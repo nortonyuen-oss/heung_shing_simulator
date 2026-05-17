@@ -416,14 +416,14 @@ function preload() {
   this.load.image('beach_corner_water_nw', `${roadPath}beachCornerNW.png`);
 
   this.load.image('hill_plateau', `${roadPath}grassWhole.png`);
-  this.load.image('hill_edge_n', `${roadPath}hillE.png`);
-  this.load.image('hill_edge_e', `${roadPath}hillS.png`);
-  this.load.image('hill_edge_s', `${roadPath}hillW.png`);
-  this.load.image('hill_edge_w', `${roadPath}hillN.png`);
-  this.load.image('hill_corner_ne', `${roadPath}hillES.png`);
-  this.load.image('hill_corner_se', `${roadPath}hillSW.png`);
-  this.load.image('hill_corner_sw', `${roadPath}hillNW.png`);
-  this.load.image('hill_corner_nw', `${roadPath}hillNE.png`);
+  this.load.image('hill_edge_n', `${roadPath}hillS.png`);
+  this.load.image('hill_edge_e', `${roadPath}hillW.png`);
+  this.load.image('hill_edge_s', `${roadPath}hillN.png`);
+  this.load.image('hill_edge_w', `${roadPath}hillE.png`);
+  this.load.image('hill_corner_ne', `${roadPath}hillSW.png`);
+  this.load.image('hill_corner_se', `${roadPath}hillNW.png`);
+  this.load.image('hill_corner_sw', `${roadPath}hillNE.png`);
+  this.load.image('hill_corner_nw', `${roadPath}hillES.png`);
 }
 
 function create() {

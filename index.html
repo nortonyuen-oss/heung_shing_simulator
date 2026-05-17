@@ -1,0 +1,2577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>SimCity 2000 – City Builder</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    html,
+    body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #87ceeb;
+    }
+
+    #game-container {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    #game-container canvas {
+      display: block;
+    }
+
+    /* ── Top menu bar ────────────────────────────────────────────────────── */
+
+    #top-bar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 28px;
+      z-index: 110;
+      display: flex;
+      align-items: stretch;
+      background: #d4d0c3;
+      border-bottom: 2px solid #6f6b60;
+      box-shadow: inset 0 1px 0 #fff8e7;
+      user-select: none;
+    }
+
+    #menu-bar { display: flex; align-items: stretch; flex: 1; }
+
+    .menu-item { position: relative; display: flex; align-items: stretch; }
+
+    .menu-btn {
+      padding: 0 13px;
+      background: none;
+      border: none;
+      font-size: 13px;
+      font-weight: 600;
+      color: #1e2427;
+      cursor: pointer;
+      white-space: nowrap;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    .menu-btn:hover,
+    .menu-item.is-open > .menu-btn { background: #1e5cb3; color: #fff; }
+
+    .menu-dropdown {
+      display: none;
+      position: absolute;
+      top: calc(100% + 2px);
+      left: 0;
+      min-width: 200px;
+      background: #d4d0c3;
+      border: 2px solid #6f6b60;
+      box-shadow: 3px 3px 0 rgba(0,0,0,0.25);
+      z-index: 200;
+      padding: 3px 0;
+    }
+    .menu-item.is-open .menu-dropdown { display: block; }
+
+    .menu-drop-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      padding: 5px 14px 5px 28px;
+      background: none;
+      border: none;
+      text-align: left;
+      font-size: 13px;
+      color: #1e2427;
+      cursor: pointer;
+      white-space: nowrap;
+      position: relative;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    .menu-drop-item:hover { background: #1e5cb3; color: #fff; }
+    .menu-drop-item.menu-checked::before {
+      content: '✓';
+      position: absolute;
+      left: 9px;
+      font-size: 11px;
+    }
+
+    .menu-shortcut {
+      font-size: 11px;
+      color: #888;
+      margin-left: 24px;
+    }
+    .menu-drop-item:hover .menu-shortcut { color: #cdd; }
+
+    .menu-hr { height: 1px; background: #a7a08d; margin: 3px 0; }
+
+    .menu-drop-empty {
+      padding: 8px 14px;
+      font-size: 12px;
+      color: #7a7264;
+      font-style: italic;
+      font-family: Arial, Helvetica, sans-serif;
+      text-align: center;
+    }
+
+    /* News dropdown */
+    #menu-news .menu-dropdown { min-width: 280px; }
+    #menu-news-list { max-height: 280px; overflow-y: auto; }
+    .menu-news-entry {
+      display: flex;
+      gap: 8px;
+      padding: 5px 12px;
+      font-size: 12px;
+      color: #1e2427;
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    .menu-news-date { color: #7a7264; white-space: nowrap; flex-shrink: 0; }
+    .menu-news-text { flex: 1; }
+
+    /* Volume slider inside dropdown */
+    .menu-drop-slider {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 14px;
+      font-size: 12px;
+      color: #1e2427;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    .menu-drop-slider input { flex: 1; accent-color: #f1c65d; }
+
+    /* City name centred in top bar — both axes */
+    #topbar-city-name {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 13px;
+      font-weight: 800;
+      color: #1e2427;
+      letter-spacing: 0.4px;
+      white-space: nowrap;
+      pointer-events: none;
+      text-shadow: 0 1px 0 rgba(255,255,255,0.6);
+    }
+
+    /* Speed buttons in top bar */
+    #topbar-speed {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      padding: 3px 8px;
+      border-left: 1px solid #a7a08d;
+    }
+    .topbar-speed-btn {
+      padding: 2px 9px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #1e2427;
+      background: #ece7d4;
+      border: 1px solid #a7a08d;
+      border-radius: 3px;
+      cursor: pointer;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    .topbar-speed-btn:hover    { background: #f8f0d2; }
+    .topbar-speed-btn.is-active { background: #f1c65d; border-color: #6f6b60; }
+
+    /* ── Dialogs (Help / About) ───────────────────────────────────────────── */
+
+    .sim-dialog {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 300;
+      align-items: center;
+      justify-content: center;
+    }
+    .dialog-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+    }
+    .dialog-box {
+      position: relative;
+      background: #d4d0c3;
+      border: 3px solid #6f6b60;
+      border-radius: 6px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5), inset 1px 1px 0 #fff8e7, inset -1px -1px 0 #a7a08d;
+      min-width: 320px;
+      max-width: 480px;
+      width: 90vw;
+      max-height: 80vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .dialog-title-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 10px;
+      background: #1e5cb3;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      border-radius: 3px 3px 0 0;
+      flex-shrink: 0;
+    }
+    .dialog-close-btn {
+      padding: 0 6px;
+      height: 18px;
+      line-height: 16px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #1e2427;
+      background: #d4d0c3;
+      border: 2px solid #6f6b60;
+      border-radius: 2px;
+      cursor: pointer;
+    }
+    .dialog-body {
+      padding: 16px 18px;
+      font-size: 13px;
+      color: #1e2427;
+      font-family: 'Courier New', monospace;
+      line-height: 1.7;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+    .dialog-body h3 {
+      font-size: 13px;
+      margin: 10px 0 4px;
+      color: #1e5cb3;
+      font-family: Arial, sans-serif;
+    }
+    .dialog-footer {
+      padding: 8px 14px;
+      display: flex;
+      justify-content: flex-end;
+      border-top: 1px solid #a7a08d;
+      flex-shrink: 0;
+    }
+    .dialog-ok-btn {
+      padding: 4px 18px;
+      font-size: 13px;
+      font-weight: 700;
+      background: #ece7d4;
+      border: 2px solid #6f6b60;
+      border-radius: 4px;
+      cursor: pointer;
+      box-shadow: inset 1px 1px 0 #fffdf2, inset -1px -1px 0 #a7a08d;
+      font-family: Arial, sans-serif;
+    }
+    .dialog-ok-btn:hover { background: #f8f0d2; }
+
+    /* ── Save list modal ──────────────────────────────────────────────────── */
+
+    /* Must sit above #landing-screen (z-index: 400) */
+    #save-list-modal { z-index: 500; }
+
+    .save-list-items {
+      overflow-y: auto;
+      max-height: 55vh;
+      padding: 4px 0;
+    }
+
+    .save-list-loading,
+    .save-list-empty {
+      padding: 20px 18px;
+      font-size: 13px;
+      color: #7a7264;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      line-height: 1.7;
+    }
+    .save-list-empty strong { color: #1e2427; }
+    .save-list-empty code {
+      background: #ece7d4;
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-size: 12px;
+    }
+
+    .save-list-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 9px 14px;
+      border-bottom: 1px solid #cac4b3;
+      font-family: Arial, sans-serif;
+    }
+    .save-list-item:last-child { border-bottom: none; }
+    .save-list-item:hover { background: #ece7d4; }
+
+    .save-list-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+    }
+    .save-list-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: #1e2427;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .save-list-detail {
+      font-size: 12px;
+      color: #5a5648;
+    }
+    .save-list-date {
+      font-size: 11px;
+      color: #9a9080;
+      font-style: italic;
+    }
+
+    .save-list-actions {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .save-list-load-btn {
+      padding: 4px 14px;
+      font-size: 12px;
+      font-weight: 700;
+      background: #2255cc;
+      color: #fff;
+      border: 2px solid #1a3f99;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: Arial, sans-serif;
+      white-space: nowrap;
+    }
+    .save-list-load-btn:hover { background: #1a3f99; }
+
+    .save-list-del-btn {
+      padding: 4px 8px;
+      font-size: 13px;
+      background: #ece7d4;
+      border: 2px solid #a7a08d;
+      border-radius: 4px;
+      cursor: pointer;
+      line-height: 1;
+    }
+    .save-list-del-btn:hover { background: #e8c8c8; border-color: #883333; }
+
+    /* ── Toolbar ──────────────────────────────────────────────────────────── */
+
+    .tool-menu {
+      position: fixed;
+      top: 28px;
+      left: 0;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      width: 72px;
+      height: calc(100vh - 28px);
+      padding: 10px 10px;
+      background: #d4d0c3;
+      border-right: 2px solid #6f6b60;
+      box-shadow: inset -1px 0 0 #fff8e7;
+      overflow: visible;
+      overflow-x: hidden;
+    }
+
+    .tool-menu-divider {
+      width: 100%;
+      height: 1px;
+      background: #a7a08d;
+      margin: 2px 0;
+      flex-shrink: 0;
+    }
+
+    .tool-button {
+      display: grid;
+      place-items: center;
+      width: 52px;
+      height: 52px;
+      padding: 0;
+      color: #1e2427;
+      background: #ece7d4;
+      border: 2px solid #6f6b60;
+      border-radius: 6px;
+      box-shadow: inset 1px 1px 0 #fffdf2, inset -1px -1px 0 #a7a08d;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .tool-category-button {
+      position: relative;
+      display: grid;
+      place-items: center;
+      width: 52px;
+      height: 44px;
+      padding: 0;
+      color: #1e2427;
+      background: #ece7d4;
+      border: 2px solid #6f6b60;
+      border-radius: 5px;
+      box-shadow: inset 1px 1px 0 #fffdf2, inset -1px -1px 0 #a7a08d;
+      cursor: pointer;
+      flex-shrink: 0;
+      font-size: 20px;
+      font-weight: 900;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    .tool-category-button:hover { background: #f8f0d2; }
+    .tool-category-button.is-open,
+    .tool-category-button.is-active {
+      background: #f1c65d;
+      box-shadow: inset -1px -1px 0 #fff7cf, inset 1px 1px 0 #8d7025;
+    }
+
+    .tool-category-button svg,
+    .tool-row-icon svg {
+      width: 26px;
+      height: 26px;
+      stroke: currentColor;
+      stroke-width: 2.25;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      pointer-events: none;
+    }
+
+    .tool-flyout {
+      position: fixed;
+      left: 74px;
+      top: 48px;
+      z-index: 13;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      min-width: 210px;
+      max-width: 250px;
+      padding: 8px;
+      background: #d4d0c3;
+      border: 2px solid #6f6b60;
+      border-radius: 6px;
+      box-shadow: 3px 3px 0 rgba(0,0,0,0.25), inset 1px 1px 0 #fff8e7, inset -1px -1px 0 #a7a08d;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transform: translateX(-8px);
+      transition: opacity 120ms ease, transform 120ms ease, visibility 120ms ease;
+    }
+
+    .tool-flyout.is-open {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+      transform: translateX(0);
+    }
+
+    .tool-flyout-title {
+      padding: 2px 4px 5px;
+      color: #5a5648;
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+      border-bottom: 1px solid #a7a08d;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    .tool-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      min-height: 34px;
+      padding: 4px 8px;
+      color: #1e2427;
+      background: #ece7d4;
+      border: 2px solid #6f6b60;
+      border-radius: 5px;
+      box-shadow: inset 1px 1px 0 #fffdf2, inset -1px -1px 0 #a7a08d;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 700;
+      font-family: Arial, Helvetica, sans-serif;
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    .tool-row:hover { background: #f8f0d2; }
+    .tool-row.is-active {
+      background: #f1c65d;
+      box-shadow: inset -1px -1px 0 #fff7cf, inset 1px 1px 0 #8d7025;
+    }
+
+    .tool-row-icon {
+      width: 28px;
+      height: 26px;
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+      font-size: 17px;
+      font-weight: 900;
+    }
+
+    .tool-row-text { flex: 1; min-width: 0; }
+    .tool-row-cost {
+      color: #5a5648;
+      font-size: 11px;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+
+    .tool-row .tool-badge {
+      position: static;
+      margin-left: auto;
+      flex-shrink: 0;
+    }
+
+    .tool-button:hover {
+      background: #f8f0d2;
+    }
+
+    .tool-button.is-active {
+      background: #f1c65d;
+      box-shadow: inset -1px -1px 0 #fff7cf, inset 1px 1px 0 #8d7025;
+    }
+
+    .tool-button svg {
+      width: 30px;
+      height: 30px;
+      stroke: currentColor;
+      stroke-width: 2.25;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      pointer-events: none;
+    }
+
+    .tool-button .tool-image {
+      width: 38px;
+      height: 38px;
+      object-fit: contain;
+      pointer-events: none;
+    }
+
+    .tool-button .tool-badge {
+      position: absolute;
+      right: 3px;
+      bottom: 2px;
+      min-width: 22px;
+      padding: 1px 3px;
+      color: #1e2427;
+      background: #f1c65d;
+      border: 1px solid #6f6b60;
+      border-radius: 3px;
+      font-size: 10px;
+      line-height: 12px;
+      font-weight: 700;
+      pointer-events: none;
+    }
+
+    #park-tool-icon {
+      left: 3px;
+      right: auto;
+      min-width: 18px;
+      font-size: 11px;
+    }
+
+    .tool-button:has(.tool-badge) {
+      position: relative;
+    }
+
+    .tool-button .swatch {
+      width: 30px;
+      height: 30px;
+      border: 2px solid #5d584e;
+      transform: rotate(45deg) scaleY(0.55);
+      pointer-events: none;
+    }
+
+    .tool-button .swatch.grass  { background: #89bd45; }
+    .tool-button .swatch.dirt   { background: #c99b6b; }
+    .tool-button .swatch.beach  { background: #dfdca0; }
+    .tool-button .swatch.water  { background: #89d3e0; }
+    .tool-button .swatch.hill {
+      background: linear-gradient(135deg, #6fa13a 0 48%, #9ac65d 50% 100%);
+    }
+
+    .tool-menu > .tool-button,
+    .tool-menu > .tool-menu-divider {
+      display: none;
+    }
+
+    /* Zone swatches */
+    .tool-button .zone-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 900;
+      color: #fff;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+      pointer-events: none;
+    }
+    .zone-icon.res { background: #2e9e3e; }
+    .zone-icon.com { background: #2255cc; }
+    .zone-icon.ind { background: #c8a800; }
+
+    /* Infra icons */
+    .tool-button .infra-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      pointer-events: none;
+    }
+
+    /* ── Rotate cluster (bottom-right) ──────────────────────────────────── */
+
+    #rotate-cluster {
+      position: fixed;
+      right: 16px;
+      bottom: 56px;
+      z-index: 11;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .rotate-btn {
+      display: grid;
+      place-items: center;
+      width: 42px;
+      height: 42px;
+      padding: 0;
+      color: #1e2427;
+      background: #d4d0c3;
+      border: 2px solid #6f6b60;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: inset 1px 1px 0 #fff8e7, inset -1px -1px 0 #a7a08d, 2px 2px 4px rgba(0,0,0,0.25);
+      font-size: 11px;
+      font-weight: 700;
+      font-family: Arial, sans-serif;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    .rotate-btn:hover { background: #f8f0d2; }
+    .rotate-btn:active { background: #e0d8bc; box-shadow: inset 1px 1px 2px rgba(0,0,0,0.2); }
+
+    .rotate-btn svg {
+      width: 22px;
+      height: 22px;
+      stroke: currentColor;
+      stroke-width: 2.2;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      pointer-events: none;
+    }
+
+    .rotate-btn-label {
+      font-size: 9px;
+      font-weight: 700;
+      color: #5a5648;
+      pointer-events: none;
+      line-height: 1;
+    }
+
+    /* ── Jukebox floating window ─────────────────────────────────────────── */
+
+    #jukebox-window {
+      position: fixed;
+      bottom: 60px;
+      right: 70px;
+      width: 300px;
+      z-index: 120;
+      display: none;
+      flex-direction: column;
+      background: #d4d0c3;
+      border: 2px solid #6f6b60;
+      border-radius: 6px;
+      box-shadow: 4px 4px 12px rgba(0,0,0,0.4), inset 1px 1px 0 #fff8e7;
+      user-select: none;
+    }
+
+    #jukebox-window.is-open { display: flex; }
+
+    #jukebox-titlebar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 8px;
+      background: #1e5cb3;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      border-radius: 3px 3px 0 0;
+      cursor: move;
+      flex-shrink: 0;
+    }
+
+    #jukebox-titlebar-title { flex: 1; }
+
+    #jukebox-close-btn {
+      padding: 0 6px;
+      height: 18px;
+      line-height: 16px;
+      font-size: 14px;
+      font-weight: 700;
+      color: #1e2427;
+      background: #d4d0c3;
+      border: 2px solid #6f6b60;
+      border-radius: 2px;
+      cursor: pointer;
+    }
+
+    #jukebox-body {
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    #jukebox-track-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: #1e2427;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      min-height: 18px;
+    }
+
+    .jukebox-controls {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .jukebox-button {
+      display: grid;
+      place-items: center;
+      width: 38px;
+      height: 38px;
+      padding: 0;
+      color: #1e2427;
+      background: #ece7d4;
+      border: 2px solid #6f6b60;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .jukebox-button:hover { background: #f8f0d2; }
+    .jukebox-button.is-active { background: #f1c65d; border-color: #6f6b60; }
+
+    .jukebox-button svg {
+      width: 22px;
+      height: 22px;
+      stroke: currentColor;
+      stroke-width: 2.4;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      pointer-events: none;
+    }
+
+    .jukebox-loop-group {
+      display: flex;
+      gap: 6px;
+      justify-content: center;
+    }
+
+    .jukebox-loop-btn {
+      flex: 1;
+      padding: 4px 8px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #1e2427;
+      background: #ece7d4;
+      border: 2px solid #6f6b60;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: Arial, sans-serif;
+      white-space: nowrap;
+    }
+
+    .jukebox-loop-btn:hover { background: #f8f0d2; }
+    .jukebox-loop-btn.is-active { background: #f1c65d; border-color: #a07820; }
+
+    .jukebox-volume-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: #5a5648;
+      font-family: Arial, sans-serif;
+    }
+
+    .jukebox-volume {
+      flex: 1;
+      accent-color: #f1c65d;
+    }
+
+    /* ── House size menu ──────────────────────────────────────────────────── */
+
+    .house-size-menu {
+      position: fixed;
+      left: 82px;
+      top: 324px;
+      z-index: 12;
+      display: flex;
+      gap: 8px;
+      padding: 8px;
+      background: #d4d0c3;
+      border: 2px solid #6f6b60;
+      border-radius: 6px;
+      box-shadow: inset 1px 1px 0 #fff8e7, inset -1px -1px 0 #a7a08d;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transform: translateX(-8px);
+      transition: opacity 120ms ease, transform 120ms ease, visibility 120ms ease;
+    }
+
+    .house-size-menu.is-open {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+      transform: translateX(0);
+    }
+
+    .house-size-button {
+      position: relative;
+      display: grid;
+      place-items: center;
+      width: 58px;
+      height: 58px;
+      padding: 0;
+      background: #ece7d4;
+      border: 2px solid #6f6b60;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .house-size-button:hover {
+      background: #f8f0d2;
+    }
+
+    .house-size-button.is-active {
+      background: #f1c65d;
+      box-shadow: inset -1px -1px 0 #fff7cf, inset 1px 1px 0 #8d7025;
+    }
+
+    .house-size-button img {
+      width: 44px;
+      height: 44px;
+      object-fit: contain;
+      pointer-events: none;
+    }
+
+    .house-size-button span {
+      position: absolute;
+      right: 3px;
+      bottom: 2px;
+      padding: 1px 3px;
+      color: #1e2427;
+      background: #f1c65d;
+      border: 1px solid #6f6b60;
+      border-radius: 3px;
+      font-size: 10px;
+      line-height: 12px;
+      font-weight: 700;
+      pointer-events: none;
+    }
+
+    /* ── Generic tool popup (terrain picker + zone density menu) ─────────── */
+
+    .tool-popup {
+      position: fixed;
+      left: 82px;
+      top: 200px;      /* JS repositions via getBoundingClientRect */
+      z-index: 12;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 8px;
+      background: #d4d0c3;
+      border: 2px solid #6f6b60;
+      border-radius: 6px;
+      box-shadow: inset 1px 1px 0 #fff8e7, inset -1px -1px 0 #a7a08d;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transform: translateX(-8px);
+      transition: opacity 120ms ease, transform 120ms ease, visibility 120ms ease;
+    }
+
+    .tool-popup.is-open {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+      transform: translateX(0);
+    }
+
+    /* Shared popup button */
+    .popup-button {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 130px;
+      padding: 5px 8px;
+      background: #ece7d4;
+      border: 2px solid #6f6b60;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 12px;
+      font-family: Arial, Helvetica, sans-serif;
+      color: #1e2427;
+      text-align: left;
+    }
+
+    .popup-button:hover  { background: #f8f0d2; }
+    .popup-button.is-active {
+      background: #f1c65d;
+      box-shadow: inset -1px -1px 0 #fff7cf, inset 1px 1px 0 #8d7025;
+    }
+
+    /* Swatch inside popup button */
+    .popup-button .swatch {
+      width: 22px;
+      height: 22px;
+      flex-shrink: 0;
+      border: 2px solid #5d584e;
+      transform: rotate(45deg) scaleY(0.55);
+    }
+
+    /* Zone-colour block inside popup button */
+    .popup-button .zone-block {
+      width: 22px;
+      height: 22px;
+      flex-shrink: 0;
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 900;
+      color: #fff;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+    }
+    .zone-block.res { background: #2e9e3e; }
+    .zone-block.com { background: #2255cc; }
+    .zone-block.ind { background: #c8a800; }
+
+    .popup-button .park-popup-icon {
+      width: 22px;
+      height: 22px;
+      flex-shrink: 0;
+      display: grid;
+      place-items: center;
+      font-size: 17px;
+    }
+
+    .popup-button .popup-label  { flex: 1; font-weight: 600; }
+    .popup-button .popup-cost   {
+      font-size: 10px;
+      color: #5a5648;
+      white-space: nowrap;
+    }
+
+    /* ── HUD (top-right) ──────────────────────────────────────────────────── */
+
+    #hud {
+      position: fixed;
+      top: 38px;
+      right: 10px;
+      z-index: 10;
+      min-width: 160px;
+      padding: 10px 12px;
+      background: #d4d0c3;
+      border: 2px solid #6f6b60;
+      border-radius: 6px;
+      box-shadow: inset 1px 1px 0 #fff8e7, inset -1px -1px 0 #a7a08d;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    .hud-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      line-height: 1.5;
+      font-size: 13px;
+      color: #1e2427;
+    }
+
+    #hud-money {
+      font-size: 15px;
+      font-weight: 700;
+      color: #1a6b1a;
+    }
+
+    #hud-money.hud-warning { color: #c07000; }
+    #hud-money.hud-danger  { color: #cc2222; }
+
+    #hud-stars {
+      font-size: 14px;
+      color: #b07800;
+      letter-spacing: 1px;
+    }
+
+    .hud-separator {
+      height: 1px;
+      background: #a7a08d;
+      margin: 6px 0;
+    }
+
+    /* Demand bars */
+    .hud-rci {
+      display: flex;
+      gap: 6px;
+      align-items: flex-end;
+      margin-top: 6px;
+    }
+
+    .hud-rci-bar {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .hud-rci-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: #1e2427;
+    }
+
+    .demand-bar-track {
+      position: relative;
+      width: 14px;
+      height: 56px;
+      background: rgba(0,0,0,0.15);
+      border: 1px solid #6f6b60;
+      border-radius: 2px;
+    }
+
+    /* Center line */
+    .demand-bar-track::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      width: 100%;
+      height: 1px;
+      background: #6f6b60;
+    }
+
+    .demand-bar-fill {
+      position: absolute;
+      left: 0;
+      width: 100%;
+      transition: height 0.4s ease, top 0.4s ease;
+    }
+
+    .hud-income-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #3a5a3a;
+    }
+
+    .hud-expense-val { color: #7a2222; }
+
+    /* ── Budget panel (bottom) ────────────────────────────────────────────── */
+
+    #budget-panel {
+      position: fixed;
+      bottom: 0;
+      left: 82px;
+      right: 0;
+      z-index: 10;
+      pointer-events: auto;
+    }
+
+    /* ── Tips ticker — lives INSIDE the budget strip ─────────────────────── */
+
+    .strip-sep {
+      width: 1px;
+      height: 14px;
+      background: #a7a08d;
+      flex-shrink: 0;
+      margin: 0 4px;
+    }
+
+    /* Track clips the scrolling text */
+    #tip-ticker-track {
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+      height: 22px;          /* matches strip line-height */
+      min-width: 0;
+    }
+
+    #tip-ticker-inner {
+      position: absolute;
+      white-space: nowrap;
+      top: 50%;
+      margin-top: -6px;      /* half of 12px line-height */
+      font-size: 11px;
+      font-style: italic;
+      color: #6a6050;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    #budget-strip {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 6px 14px;
+      background: #d4d0c3;
+      border-top: 2px solid #6f6b60;
+      box-shadow: inset 0 1px 0 #fff8e7;
+      cursor: pointer;
+      user-select: none;
+      font-size: 12px;
+      color: #1e2427;
+    }
+
+    #budget-strip:hover { background: #e0dbc8; }
+
+    .strip-label { font-weight: 700; }
+    #budget-strip-balance { font-weight: 700; color: #1a6b1a; min-width: 70px; }
+
+    #budget-detail {
+      display: none;
+      padding: 10px 14px;
+      background: #ccc8b8;
+      border-top: 1px solid #a7a08d;
+      gap: 14px;
+      align-items: center;
+      flex-wrap: wrap;
+      font-size: 12px;
+      color: #1e2427;
+    }
+
+    #budget-detail.is-open { display: flex; }
+
+    .budget-stat { display: flex; flex-direction: column; align-items: center; }
+    .budget-stat-label { font-size: 10px; color: #5a5648; }
+    .budget-stat-value { font-weight: 700; font-size: 13px; }
+
+    .tax-row,
+    .budget-slider-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .tax-row { margin-left: auto; }
+    .tax-row label,
+    .budget-slider-row label {
+      min-width: 82px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    #tax-slider,
+    .budget-slider { width: 90px; accent-color: #f1c65d; }
+    #tax-rate-display,
+    .budget-slider-value { min-width: 36px; font-weight: 700; text-align: right; }
+
+    .budget-section {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 8px;
+      background: rgba(255,255,255,0.18);
+      border: 1px solid #a7a08d;
+      border-radius: 6px;
+      flex-wrap: wrap;
+    }
+
+    .budget-section-title {
+      font-size: 11px;
+      font-weight: 900;
+      color: #5a5648;
+      text-transform: uppercase;
+    }
+
+    .loan-btn,
+    .policy-toggle {
+      border: 2px solid #6f6b60;
+      border-radius: 5px;
+      background: #ece7d4;
+      box-shadow: inset 1px 1px 0 #fffdf2, inset -1px -1px 0 #a7a08d;
+      color: #1e2427;
+      cursor: pointer;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 4px 7px;
+    }
+
+    .loan-btn:hover,
+    .policy-toggle:hover { background: #f8f0d2; }
+
+    .policy-toggle.is-active {
+      background: #f1c65d;
+      box-shadow: inset -1px -1px 0 #fff7cf, inset 1px 1px 0 #8d7025;
+    }
+
+    .budget-note {
+      color: #5a5648;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .budget-open-window-btn {
+      border: 2px solid #6f6b60;
+      border-radius: 5px;
+      background: #ece7d4;
+      box-shadow: inset 1px 1px 0 #fffdf2, inset -1px -1px 0 #a7a08d;
+      color: #1e2427;
+      cursor: pointer;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 4px 7px;
+    }
+
+    .budget-open-window-btn:hover { background: #f8f0d2; }
+
+    /* ── Budget window (SimCity-style breakdown) ────────────────────────── */
+
+    #budget-window {
+      position: fixed;
+      right: 26px;
+      top: 80px;
+      width: min(500px, calc(100vw - 120px));
+      max-height: calc(100vh - 120px);
+      z-index: 135;
+      display: none;
+      flex-direction: column;
+      background: #d4d0c3;
+      border: 2px solid #6f6b60;
+      border-radius: 6px;
+      box-shadow: 4px 4px 12px rgba(0,0,0,0.4), inset 1px 1px 0 #fff8e7;
+      user-select: none;
+    }
+
+    #budget-window.is-open { display: flex; }
+
+    #budget-window-titlebar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 9px;
+      background: #1e5cb3;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      border-radius: 3px 3px 0 0;
+      cursor: move;
+      flex-shrink: 0;
+    }
+
+    #budget-window-title {
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    #budget-window-close {
+      padding: 0 6px;
+      height: 18px;
+      line-height: 16px;
+      font-size: 14px;
+      font-weight: 700;
+      color: #1e2427;
+      background: #d4d0c3;
+      border: 2px solid #6f6b60;
+      border-radius: 2px;
+      cursor: pointer;
+    }
+
+    #budget-window-body {
+      padding: 10px 12px 12px;
+      overflow: auto;
+      display: grid;
+      gap: 8px;
+      color: #1e2427;
+      font-size: 12px;
+    }
+
+    .budget-window-section {
+      border: 1px solid #a7a08d;
+      border-radius: 6px;
+      background: rgba(255,255,255,0.22);
+      overflow: hidden;
+    }
+
+    .budget-window-heading {
+      padding: 5px 8px;
+      font-size: 11px;
+      font-weight: 900;
+      color: #5a5648;
+      text-transform: uppercase;
+      border-bottom: 1px solid #b0a893;
+      background: rgba(0,0,0,0.03);
+    }
+
+    .budget-window-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    .budget-window-table th,
+    .budget-window-table td {
+      padding: 5px 8px;
+      border-bottom: 1px solid rgba(0,0,0,0.07);
+    }
+
+    .budget-window-table tr:last-child th,
+    .budget-window-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .budget-window-table th {
+      text-align: left;
+      font-weight: 700;
+      color: #2c2a24;
+    }
+
+    .budget-window-table td {
+      text-align: right;
+      font-family: 'Courier New', monospace;
+      font-weight: 700;
+      color: #1f1f1f;
+      white-space: nowrap;
+    }
+
+    .budget-window-table tr.budget-total-row {
+      background: rgba(30,92,179,0.12);
+    }
+
+    .budget-window-table tr.budget-total-row th,
+    .budget-window-table tr.budget-total-row td {
+      font-weight: 900;
+    }
+
+    .budget-positive { color: #1f6f1f !important; }
+    .budget-negative { color: #8d1f1f !important; }
+
+    @media (max-width: 820px) {
+      #budget-window {
+        left: 84px;
+        right: 10px;
+        top: 40px;
+        width: auto;
+        max-height: calc(100vh - 52px);
+      }
+    }
+
+    /* ── Toast notifications ──────────────────────────────────────────────── */
+
+    #toast-container {
+      position: fixed;
+      top: 42px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 20;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      pointer-events: none;
+    }
+
+    .toast {
+      padding: 7px 16px;
+      border-radius: 5px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #fff;
+      background: #444;
+      border: 1px solid rgba(0,0,0,0.2);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+      opacity: 1;
+      transition: opacity 0.5s ease;
+      white-space: nowrap;
+    }
+
+    .toast.toast-info    { background: #3a5a8a; }
+    .toast.toast-warning { background: #b07000; }
+    .toast.toast-danger  { background: #aa2222; }
+    .toast.toast-fade    { opacity: 0; }
+
+    /* ── Tile debug tooltip ───────────────────────────────────────────────── */
+
+    #tile-debug {
+      position: fixed;
+      display: none;
+      z-index: 50;
+      min-width: 210px;
+      padding: 8px 11px;
+      background: rgba(10, 10, 20, 0.93);
+      border: 1px solid #555;
+      border-radius: 6px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      color: #ddd;
+      pointer-events: none;
+      line-height: 1.7;
+    }
+
+    #tile-debug .dbg-title      { color: #aaddff; font-weight: bold; margin-bottom: 2px; }
+    #tile-debug .dbg-sprite-key { color: #f5e14a; font-family: monospace; font-size: 10px; margin-bottom: 3px; }
+    #tile-debug .dbg-ok         { color: #66dd66; }
+    #tile-debug .dbg-fail       { color: #ff6666; }
+    #tile-debug .dbg-warn       { color: #ffbb33; }
+    #tile-debug .dbg-muted      { color: #888; }
+    #tile-debug .dbg-grow-yes   { color: #44ff88; font-weight: bold; }
+    #tile-debug .dbg-grow-no    { color: #ff4444; font-weight: bold; }
+    #tile-debug .dbg-divider    { border-top: 1px solid #444; margin: 4px 0; }
+
+    /* ── Inspect panel ───────────────────────────────────────────────────── */
+    #inspect-panel {
+      display: none;
+      position: fixed;
+      left: 62px;         /* just right of the toolbar */
+      top: 50%;
+      transform: translateY(-50%);
+      width: 230px;
+      background: #1a1e24;
+      border: 1px solid #3a4050;
+      border-radius: 7px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.55);
+      color: #ccd6e0;
+      font-size: 12px;
+      font-family: 'Courier New', monospace;
+      z-index: 140;
+      pointer-events: all;
+      overflow: hidden;
+    }
+    .insp-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #252b35;
+      padding: 7px 10px;
+      border-bottom: 1px solid #3a4050;
+    }
+    .insp-header-title { font-weight: bold; color: #aaddff; font-size: 12px; }
+    .insp-close {
+      background: none; border: none; color: #888; font-size: 14px;
+      cursor: pointer; padding: 0 2px; line-height: 1;
+    }
+    .insp-close:hover { color: #fff; }
+    #inspect-content { padding: 8px 10px 10px; }
+    .insp-coord      { color: #aaddff; font-weight: bold; margin-bottom: 2px; }
+    .insp-sprite-key { color: #f5e14a; font-family: monospace; font-size: 10px; margin-bottom: 5px; }
+    .insp-section { margin-top: 8px; padding-top: 6px; border-top: 1px solid #333; }
+    .insp-bldg-name { font-weight: bold; font-size: 12px; margin: 4px 0; }
+    .insp-zone-name { font-weight: bold; margin-bottom: 2px; }
+    .insp-divider   { border-top: 1px solid #2a2f3a; margin: 5px 0; }
+    .insp-row { line-height: 1.6; }
+    .insp-ok    { color: #66dd66; }
+    .insp-warn  { color: #ffbb33; }
+    .insp-fail  { color: #ff6666; }
+    .insp-muted { color: #778; }
+
+    /* ── Speed controls (old — hidden, replaced by top bar) ──────────────── */
+    #speed-controls { display: none !important; }
+
+    /* ── Landing screen ──────────────────────────────────────────────────── */
+
+    #landing-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 400;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(18, 24, 28, 0.82);
+      backdrop-filter: blur(4px);
+    }
+
+    .landing-card {
+      background: #d4d0c3;
+      border: 3px solid #6f6b60;
+      border-radius: 10px;
+      box-shadow: 0 20px 56px rgba(0,0,0,0.65),
+                  inset 1px 1px 0 #fff8e7,
+                  inset -1px -1px 0 #a7a08d;
+      padding: 40px 48px;
+      min-width: 300px;
+      max-width: 420px;
+      width: 88vw;
+      text-align: center;
+      user-select: none;
+    }
+
+    .landing-icon   { font-size: 56px; line-height: 1; margin-bottom: 10px; }
+    .landing-title  { font-size: 30px; font-weight: 900; color: #1e2427; margin: 0 0 4px; }
+    .landing-tagline { font-size: 13px; color: #5a5648; margin: 0 0 28px; letter-spacing: 0.8px; }
+    .landing-form-title { font-size: 15px; font-weight: 700; color: #1e2427; margin: 0 0 14px; }
+
+    .landing-actions { display: flex; flex-direction: column; gap: 10px; }
+
+    .landing-btn {
+      padding: 12px 20px;
+      font-size: 14px;
+      font-weight: 700;
+      border-radius: 6px;
+      cursor: pointer;
+      border: 2px solid #6f6b60;
+      letter-spacing: 0.2px;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    .landing-btn.primary {
+      background: #f1c65d;
+      color: #1e2427;
+      box-shadow: inset 1px 1px 0 #fffbcf, inset -1px -1px 0 #b08030;
+    }
+    .landing-btn.primary:hover  { background: #f5d070; }
+    .landing-btn.primary:active { background: #d4a830; }
+    .landing-btn.secondary {
+      background: #ece7d4;
+      color: #1e2427;
+      box-shadow: inset 1px 1px 0 #fffdf2, inset -1px -1px 0 #a7a08d;
+    }
+    .landing-btn.secondary:hover { background: #f5f0dc; }
+
+    .landing-save-info {
+      margin-top: 14px;
+      font-size: 11px;
+      color: #7a7264;
+      line-height: 1.6;
+    }
+
+    /* Loading status line at the bottom of the landing card */
+    #landing-load-status {
+      margin-top: 18px;
+      padding-top: 12px;
+      border-top: 1px solid #cac4b3;
+      font-size: 11px;
+      color: #9a9080;
+      font-style: italic;
+      font-family: Arial, Helvetica, sans-serif;
+      text-align: center;
+      min-height: 18px;
+      letter-spacing: 0.2px;
+    }
+
+    #landing-load-status.status-ok      { color: #4a7a4a; font-style: normal; }
+    #landing-load-status.status-error   { color: #aa4444; font-style: normal; }
+
+    /* Animated ellipsis for the loading state */
+    @keyframes ellipsis-pulse {
+      0%   { content: '.';   }
+      33%  { content: '..';  }
+      66%  { content: '...'; }
+      100% { content: '.';   }
+    }
+    .loading-dots::after {
+      content: '.';
+      animation: ellipsis-pulse 1.2s steps(1, end) infinite;
+      display: inline-block;
+      width: 1.4em;
+      text-align: left;
+    }
+
+    #city-name-input {
+      width: 100%;
+      padding: 11px 14px;
+      font-size: 17px;
+      font-weight: 600;
+      color: #1e2427;
+      background: #fffdf2;
+      border: 2px solid #6f6b60;
+      border-radius: 6px;
+      margin-bottom: 16px;
+      box-sizing: border-box;
+      text-align: center;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    #city-name-input:focus { outline: none; border-color: #f1c65d; background: #fff; }
+
+    /* ── HUD city name ───────────────────────────────────────────────────── */
+
+    .hud-city-row {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin-bottom: 5px;
+    }
+
+    #hud-city-name {
+      font-size: 14px;
+      font-weight: 800;
+      color: #1e2427;
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .hud-rename-btn {
+      padding: 0;
+      width: 18px;
+      height: 18px;
+      font-size: 11px;
+      line-height: 1;
+      background: none;
+      border: none;
+      cursor: pointer;
+      opacity: 0.55;
+      pointer-events: auto;
+      flex-shrink: 0;
+    }
+    .hud-rename-btn:hover { opacity: 1; }
+
+    /* ── Overlay map section in HUD ─────────────────────────────── */
+    /* ── Overlay map controls strip (inside HUD) ─────────────────────────── */
+    #overlay-controls {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+      margin-top: 4px;
+      pointer-events: auto;
+    }
+    .overlay-btn {
+      width: 26px;
+      height: 26px;
+      font-size: 14px;
+      line-height: 1;
+      background: #ece7d4;
+      border: 2px solid #6f6b60;
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      transition: background 0.12s;
+    }
+    .overlay-btn:hover  { background: #f8f0d2; }
+    .overlay-btn.is-active {
+      background: #f1c65d;
+      box-shadow: inset -1px -1px 0 #fff7cf, inset 1px 1px 0 #8d7025;
+    }
+
+    /* ── Floating overlay map window ──────────────────────────────────────── */
+    #overlay-window {
+      position: fixed;
+      top: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 400px;
+      height: 420px;
+      min-width: 260px;
+      min-height: 220px;
+      z-index: 60;
+      display: none;
+      flex-direction: column;
+      background: #1a2318;
+      border: 2px solid #6f6b60;
+      border-radius: 6px;
+      box-shadow: 4px 6px 18px rgba(0,0,0,0.55);
+      overflow: hidden;
+    }
+    #overlay-window.is-open { display: flex; }
+
+    /* Title bar */
+    #overlay-win-titlebar {
+      display: flex;
+      align-items: center;
+      height: 28px;
+      padding: 0 8px;
+      gap: 7px;
+      background: #1e5cb3;
+      cursor: move;
+      flex-shrink: 0;
+      user-select: none;
+    }
+    #overlay-win-icon  { font-size: 14px; flex-shrink: 0; pointer-events: none; }
+    #overlay-win-title {
+      flex: 1;
+      font-size: 12px;
+      font-weight: 700;
+      color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      pointer-events: none;
+    }
+    #overlay-win-close {
+      width: 20px;
+      height: 20px;
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.35);
+      border-radius: 3px;
+      color: #fff;
+      font-size: 15px;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      transition: background 0.1s;
+    }
+    #overlay-win-close:hover { background: rgba(200,30,30,0.75); }
+
+    /* Map viewport */
+    #overlay-win-body {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      cursor: grab;
+      min-height: 0;
+      background: #0d160b;
+    }
+    #overlay-win-body.is-panning { cursor: grabbing; }
+
+    /* The actual pixel canvas — CSS transform handles pan/zoom */
+    #mini-map-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 256px;
+      height: 256px;
+      image-rendering: pixelated;
+      transform-origin: 0 0;
+      will-change: transform;
+    }
+
+    /* Legend + zoom controls */
+    #overlay-win-footer {
+      display: flex;
+      align-items: center;
+      height: 26px;
+      padding: 0 8px;
+      gap: 6px;
+      background: #d4d0c3;
+      border-top: 1px solid #6f6b60;
+      flex-shrink: 0;
+      font-size: 10px;
+      color: #1e2427;
+      user-select: none;
+    }
+    #overlay-win-footer .legend-label { flex-shrink: 0; }
+    #legend-gradient-canvas {
+      flex: 1;
+      height: 10px;
+      border: 1px solid #6f6b60;
+      border-radius: 2px;
+      image-rendering: pixelated;
+    }
+    .overlay-zoom-group {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      flex-shrink: 0;
+    }
+    .overlay-zoom-btn {
+      width: 18px;
+      height: 18px;
+      background: #ece7d4;
+      border: 1px solid #6f6b60;
+      border-radius: 3px;
+      font-size: 14px;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      color: #1e2427;
+    }
+    .overlay-zoom-btn:hover  { background: #f8f0d2; }
+    #overlay-zoom-label {
+      font-size: 10px;
+      color: #5a5648;
+      min-width: 33px;
+      text-align: center;
+    }
+
+    /* Resize handle (bottom-right corner grip) */
+    #overlay-resize-handle {
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      width: 16px;
+      height: 16px;
+      cursor: nwse-resize;
+      z-index: 2;
+      /* Three diagonal lines */
+      background-image:
+        linear-gradient(135deg,
+          transparent 0% 40%,
+          #888 40% 50%,
+          transparent 50% 65%,
+          #888 65% 75%,
+          transparent 75% 85%,
+          #888 85% 95%,
+          transparent 95%
+        );
+    }
+  </style>
+  <!-- Load Phaser from CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js"></script>
+</head>
+<body>
+
+  <!-- ── Top menu bar ───────────────────────────────────────────────────── -->
+  <header id="top-bar">
+    <nav id="menu-bar">
+
+      <!-- File -->
+      <div class="menu-item" data-menu="file">
+        <button class="menu-btn" data-i18n="menu.file">File</button>
+        <div class="menu-dropdown">
+          <button class="menu-drop-item" data-menu-action="save"><span data-i18n="menu.save">💾 Save</span><span class="menu-shortcut">Ctrl+S</span></button>
+          <button class="menu-drop-item" data-menu-action="save-as" data-i18n="menu.saveAs">💾 Save As…</button>
+          <div class="menu-hr"></div>
+          <button class="menu-drop-item" data-menu-action="load-game"><span data-i18n="menu.loadGame">📂 Load Game…</span><span class="menu-shortcut">Ctrl+O</span></button>
+          <div class="menu-hr"></div>
+          <button class="menu-drop-item" data-menu-action="main-menu" data-i18n="menu.mainMenu">🏠 Return to Main Menu</button>
+        </div>
+      </div>
+
+      <!-- News -->
+      <div class="menu-item" data-menu="news">
+        <button class="menu-btn" data-i18n="menu.news">News</button>
+        <div class="menu-dropdown" id="menu-news" style="min-width:280px">
+          <div id="menu-news-list"></div>
+        </div>
+      </div>
+
+      <!-- View -->
+      <div class="menu-item" data-menu="view">
+        <button class="menu-btn" data-i18n="menu.view">View</button>
+        <div class="menu-dropdown">
+          <button class="menu-drop-item" data-menu-action="fullscreen" id="menu-fullscreen-btn"><span data-i18n="menu.fullScreen">⛶ Full Screen</span><span class="menu-shortcut">F11</span></button>
+          <button class="menu-drop-item" data-menu-action="windowed"   id="menu-windowed-btn" class="menu-checked" data-i18n="menu.window">⊡ Window</button>
+        </div>
+      </div>
+
+      <!-- Settings -->
+      <div class="menu-item" data-menu="settings">
+        <button class="menu-btn" data-i18n="menu.settings">Settings</button>
+        <div class="menu-dropdown">
+          <button class="menu-drop-item" data-menu-action="speed-1" data-i18n="menu.speed1">▶ 1× Speed</button>
+          <button class="menu-drop-item" data-menu-action="speed-2" data-i18n="menu.speed2">▶▶ 2× Speed</button>
+          <button class="menu-drop-item" data-menu-action="speed-4" data-i18n="menu.speed4">▶▶▶ 4× Speed</button>
+          <button class="menu-drop-item" data-menu-action="speed-pause" data-i18n="menu.pause">⏸ Pause</button>
+          <div class="menu-hr"></div>
+          <button class="menu-drop-item" data-menu-action="open-budget" data-i18n="menu.budgetPanel">💰 Budget Panel</button>
+          <div class="menu-hr"></div>
+          <div class="menu-drop-empty" data-i18n="menu.language">Language</div>
+          <button class="menu-drop-item" data-menu-action="language-en" id="menu-lang-en">English</button>
+          <button class="menu-drop-item" data-menu-action="language-zhHant" id="menu-lang-zhHant">繁體中文</button>
+          <button class="menu-drop-item" data-menu-action="language-ja" id="menu-lang-ja">日本語</button>
+        </div>
+      </div>
+
+      <!-- Sound -->
+      <div class="menu-item" data-menu="sound">
+        <button class="menu-btn" data-i18n="menu.sound">Sound</button>
+        <div class="menu-dropdown">
+          <button class="menu-drop-item" data-menu-action="open-jukebox" data-i18n="menu.openJukebox">🎵 Open Jukebox…</button>
+          <div class="menu-hr"></div>
+          <button class="menu-drop-item" data-menu-action="toggle-music" id="menu-music-btn">🔇 Music: Off</button>
+          <div class="menu-hr"></div>
+          <div class="menu-drop-slider menu-no-close">
+            <span data-i18n="menu.volume">Volume</span>
+            <input id="menu-volume-slider" type="range" min="0" max="1" step="0.05" value="0.55" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Help -->
+      <div class="menu-item" data-menu="help">
+        <button class="menu-btn" data-i18n="menu.help">Help</button>
+        <div class="menu-dropdown">
+          <button class="menu-drop-item" data-menu-action="show-help" data-i18n="menu.howToPlay">📖 How to Play</button>
+          <div class="menu-hr"></div>
+          <button class="menu-drop-item" data-menu-action="show-about" data-i18n="menu.about">ℹ️ About</button>
+        </div>
+      </div>
+
+    </nav>
+
+    <!-- City name — absolutely centred in the bar -->
+    <div id="topbar-city-name" data-i18n="city.defaultName">My City</div>
+
+    <!-- Speed controls (right side of top bar) -->
+    <div id="topbar-speed">
+      <button class="topbar-speed-btn is-active" data-speed="1" title="1× speed">1×</button>
+      <button class="topbar-speed-btn"            data-speed="2" title="2× speed">2×</button>
+      <button class="topbar-speed-btn"            data-speed="4" title="4× speed">4×</button>
+      <button class="topbar-speed-btn"            data-speed="0" title="Pause">⏸</button>
+    </div>
+  </header>
+
+  <!-- ── Help dialog ────────────────────────────────────────────────────── -->
+  <div id="help-dialog" class="sim-dialog">
+    <div class="dialog-overlay"></div>
+    <div class="dialog-box">
+      <div class="dialog-title-bar">
+        <span data-i18n="dialog.helpTitle">City Builder — How to Play</span>
+        <button class="dialog-close-btn" data-close-dialog="help-dialog">✕</button>
+      </div>
+      <div class="dialog-body" data-i18n-html="dialog.helpBody"><h3>🏗 Building Your City</h3>
+🛣  Roads ($10) — Connect zones; roads are required for growth
+🟩  Zone R ($50) — Residential: citizens live here
+🟦  Zone C ($60) — Commercial: shops &amp; offices
+🟨  Zone I ($50) — Industrial: factories
+⚡  Power Line ($5) — Carry electricity across tiles
+🏭  Coal Plant ($3,000) — Generates power; causes pollution
+🌞  Solar Plant ($6,000) — Clean power, no pollution
+🚒  Fire Station ($1,000) — Fire protection; boosts happiness
+👮  Police ($800) — Reduces crime; boosts happiness
+🌳  Parks — Choose open ground, playground, or large 3×3 park; boosts nearby residential happiness
+🔨  Bulldoze ($5) — Remove buildings, zones, roads
+
+<h3>💡 Growth Rules</h3>
+• Zones must be adjacent to a road to grow
+• Power makes zones grow 5× faster (unpowered zones still grow at 20% rate)
+• Balance R / C / I demand — watch the bars in the top-right HUD
+• High taxes suppress residential demand
+• Fire stations &amp; police improve happiness, which boosts all demand
+• Parks make nearby residential areas happier and more valuable
+
+<h3>⌨ Controls</h3>
+Left-drag    Paint selected tool
+Right-drag   Pan the camera
+Scroll       Zoom in / out
+Hover tile   Debug tooltip shows growth conditions
+Space        Pause / unpause simulation
+Ctrl+S       Save game
+Ctrl+O       Load game (open saves list)</div>
+      <div class="dialog-footer">
+        <button class="dialog-ok-btn" data-close-dialog="help-dialog" data-i18n="dialog.ok">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── About dialog ───────────────────────────────────────────────────── -->
+  <div id="about-dialog" class="sim-dialog">
+    <div class="dialog-overlay"></div>
+    <div class="dialog-box" style="max-width:340px">
+      <div class="dialog-title-bar">
+        <span data-i18n="dialog.aboutTitle">About City Builder</span>
+        <button class="dialog-close-btn" data-close-dialog="about-dialog">✕</button>
+      </div>
+      <div class="dialog-body" style="text-align:center; font-family:Arial,sans-serif">
+        <div style="font-size:48px; margin:8px 0">🏙️</div>
+        <div style="font-size:18px; font-weight:900; margin-bottom:6px" data-i18n="app.name">City Builder</div>
+        <div style="color:#5a5648; font-size:12px" data-i18n="dialog.aboutInspired">Inspired by SimCity 2000</div>
+        <div style="margin-top:14px; font-size:12px; line-height:1.8; color:#3a3530">
+          <span data-i18n-html="dialog.aboutBuilt">Built with Phaser 3<br>Zone · Build · Grow</span>
+        </div>
+      </div>
+      <div class="dialog-footer">
+        <button class="dialog-ok-btn" data-close-dialog="about-dialog" data-i18n="dialog.ok">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Save list modal ───────────────────────────────────────────────── -->
+  <div id="save-list-modal" class="sim-dialog" role="dialog" aria-label="Saved games" data-i18n-aria="save.title">
+    <div class="dialog-overlay" onclick="closeSaveListModal()"></div>
+    <div class="dialog-box" style="max-width:520px; width:92vw">
+      <div class="dialog-title-bar">
+        <span data-i18n="save.title">📂 Saved Games</span>
+        <button class="dialog-close-btn" onclick="closeSaveListModal()">✕</button>
+      </div>
+      <div id="save-list-items" class="save-list-items"></div>
+      <div class="dialog-footer">
+        <button class="dialog-ok-btn" onclick="closeSaveListModal()" data-i18n="dialog.close">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Landing screen ─────────────────────────────────────────────────── -->
+  <div id="landing-screen" role="dialog" aria-label="City Builder welcome screen" data-i18n-aria="app.name">
+    <div class="landing-card">
+
+      <!-- Main menu state -->
+      <div id="landing-menu">
+        <div class="landing-icon">🏙️</div>
+        <h1 class="landing-title" data-i18n="app.name">City Builder</h1>
+        <p class="landing-tagline" data-i18n="landing.tagline">ZONE · BUILD · GROW</p>
+        <div class="landing-actions">
+          <button id="btn-new-game" class="landing-btn primary" data-i18n-html="landing.newGame">🏗&nbsp; New Game</button>
+          <button id="btn-continue" class="landing-btn secondary" data-i18n-html="landing.loadSaved">📂&nbsp; Load Saved Game</button>
+        </div>
+      </div>
+
+      <!-- City-name entry state -->
+      <div id="landing-name-form" style="display:none">
+        <p class="landing-form-title" data-i18n="landing.nameCity">Name your city</p>
+        <input id="city-name-input" type="text" placeholder="My City" data-i18n-placeholder="city.defaultName" maxlength="30" autocomplete="off" spellcheck="false" />
+        <div class="landing-actions">
+          <button id="btn-start-city" class="landing-btn primary" data-i18n-html="landing.foundCity">🚀&nbsp; Found City!</button>
+          <button id="btn-back"       class="landing-btn secondary" data-i18n="landing.back">← Back</button>
+        </div>
+      </div>
+
+      <!-- Save-load status (shown while the server is queried on startup) -->
+      <div id="landing-load-status" class="loading-dots" data-i18n="landing.loading">Loading saved cities</div>
+
+    </div>
+  </div>
+
+  <nav id="tool-menu" class="tool-menu" aria-label="City tools" data-i18n-aria="tool.menu">
+    <button class="tool-category-button" type="button" data-tool-category="inspect" title="Inspect" data-i18n-title="toolCategory.inspect">?</button>
+    <button class="tool-category-button" type="button" data-tool-category="terrain" title="Terrain" data-i18n-title="toolCategory.terrain">⛰</button>
+    <button class="tool-category-button is-active" type="button" data-tool-category="roads" title="Roads" data-i18n-title="toolCategory.roads">🛣</button>
+    <button class="tool-category-button" type="button" data-tool-category="zones" title="Zones" data-i18n-title="toolCategory.zones">RCI</button>
+    <button class="tool-category-button" type="button" data-tool-category="power" title="Power" data-i18n-title="toolCategory.power">⚡</button>
+    <button class="tool-category-button" type="button" data-tool-category="services" title="Services" data-i18n-title="toolCategory.services">🚒</button>
+    <button class="tool-category-button" type="button" data-tool-category="parks" title="Parks" data-i18n-title="toolCategory.parks">🌳</button>
+    <button class="tool-category-button" type="button" data-tool-category="buildings" title="Buildings" data-i18n-title="toolCategory.buildings">🏠</button>
+    <button class="tool-category-button" type="button" data-tool-category="maps" title="Maps" data-i18n-title="toolCategory.maps">🗺</button>
+    <button class="tool-category-button" type="button" data-tool="bulldoze" title="Bulldoze ($5)" aria-label="Bulldoze" data-i18n-title="tool.bulldoze" data-i18n-aria="tool.bulldoze">🔨</button>
+
+    <section class="tool-flyout" data-tool-panel="inspect">
+      <div class="tool-flyout-title" data-i18n="toolCategory.inspect">Inspect</div>
+      <button class="tool-row" type="button" data-tool="inspect" title="Inspect — click any building or tile to see details">
+        <span class="tool-row-icon">?</span><span class="tool-row-text" data-i18n="toolRow.inspectTile">Inspect Tile</span>
+      </button>
+    </section>
+
+    <section class="tool-flyout" data-tool-panel="terrain">
+      <div class="tool-flyout-title" data-i18n="toolCategory.terrain">Terrain</div>
+      <button class="tool-row" type="button" data-tool="terrain">
+        <span class="tool-row-icon">🎨</span><span class="tool-row-text" data-i18n="toolRow.terrainBrush">Terrain Brush</span>
+      </button>
+      <button class="tool-row" type="button" data-action="generate">
+        <span class="tool-row-icon">🔄</span><span class="tool-row-text" data-i18n="tool.generate">Generate Terrain</span>
+      </button>
+    </section>
+
+    <section class="tool-flyout" data-tool-panel="roads">
+      <div class="tool-flyout-title" data-i18n="toolCategory.roads">Roads</div>
+      <button class="tool-row is-active" type="button" data-tool="road" title="Build road ($10)">
+        <span class="tool-row-icon">🛣</span><span class="tool-row-text" data-i18n="toolRow.road">Road</span><span class="tool-row-cost">$10</span>
+      </button>
+    </section>
+
+    <section class="tool-flyout" data-tool-panel="zones">
+      <div class="tool-flyout-title" data-i18n="toolCategory.zones">Zones</div>
+      <button class="tool-row" type="button" data-tool="zone-res" data-zone-type="res">
+        <span class="tool-row-icon">R</span><span class="tool-row-text" data-i18n="zone.residential">Residential</span><span class="tool-row-cost">$50</span>
+      </button>
+      <button class="tool-row" type="button" data-tool="zone-com" data-zone-type="com">
+        <span class="tool-row-icon">C</span><span class="tool-row-text" data-i18n="zone.commercial">Commercial</span><span class="tool-row-cost">$60</span>
+      </button>
+      <button class="tool-row" type="button" data-tool="zone-ind" data-zone-type="ind">
+        <span class="tool-row-icon">I</span><span class="tool-row-text" data-i18n="zone.industrial">Industrial</span><span class="tool-row-cost">$50</span>
+      </button>
+      <button class="tool-row" type="button" data-tool="dezone">
+        <span class="tool-row-icon">✕</span><span class="tool-row-text" data-i18n="toolRow.dezone">De-zone</span><span class="tool-row-cost" data-i18n="toolRow.free">Free</span>
+      </button>
+    </section>
+
+    <section class="tool-flyout" data-tool-panel="power">
+      <div class="tool-flyout-title" data-i18n="toolCategory.power">Power</div>
+      <button class="tool-row" type="button" data-tool="power-line">
+        <span class="tool-row-icon">⚡</span><span class="tool-row-text" data-i18n="toolRow.powerLine">Power Line</span><span class="tool-row-cost">$5</span>
+      </button>
+      <button class="tool-row" type="button" data-tool="power-coal">
+        <span class="tool-row-icon">🏭</span><span class="tool-row-text" data-i18n="toolRow.coalPlant">Coal Plant</span><span class="tool-row-cost">$3000</span>
+      </button>
+      <button class="tool-row" type="button" data-tool="power-solar">
+        <span class="tool-row-icon">☀️</span><span class="tool-row-text" data-i18n="toolRow.solarPlant">Solar Plant</span><span class="tool-row-cost">$6000</span>
+      </button>
+    </section>
+
+    <section class="tool-flyout" data-tool-panel="services">
+      <div class="tool-flyout-title" data-i18n="toolCategory.services">Services</div>
+      <button class="tool-row" type="button" data-tool="fire-station">
+        <span class="tool-row-icon">🚒</span><span class="tool-row-text" data-i18n="toolRow.fireStation">Fire Station</span><span class="tool-row-cost">$1000</span>
+      </button>
+      <button class="tool-row" type="button" data-tool="police-station">
+        <span class="tool-row-icon">👮</span><span class="tool-row-text" data-i18n="toolRow.policeStation">Police Station</span><span class="tool-row-cost">$800</span>
+      </button>
+    </section>
+
+    <section class="tool-flyout" data-tool-panel="parks">
+      <div class="tool-flyout-title" data-i18n="toolCategory.parks">Parks</div>
+      <button class="tool-row" type="button" data-tool="park">
+        <span class="tool-row-icon">🌳</span><span class="tool-row-text" data-i18n="toolRow.parkPicker">Park Picker</span>
+      </button>
+    </section>
+
+    <section class="tool-flyout" data-tool-panel="buildings">
+      <div class="tool-flyout-title" data-i18n="toolCategory.buildings">Buildings</div>
+      <button class="tool-row" type="button" data-tool="house" title="Add house">
+        <span class="tool-row-icon"><img class="tool-image" src="Models/house/houseGermini.png" alt="" aria-hidden="true" /></span>
+        <span class="tool-row-text" data-i18n="toolRow.house">House</span>
+        <span class="tool-badge" aria-hidden="true">1x1</span>
+      </button>
+    </section>
+
+    <section class="tool-flyout" data-tool-panel="maps">
+      <div class="tool-flyout-title" data-i18n="toolCategory.maps">Maps</div>
+      <button class="tool-row" type="button" data-overlay="pollution"><span class="tool-row-icon">🏭</span><span class="tool-row-text" data-i18n="overlay.pollution">Pollution</span></button>
+      <button class="tool-row" type="button" data-overlay="crime"><span class="tool-row-icon">🚔</span><span class="tool-row-text" data-i18n="overlay.crime">Crime</span></button>
+      <button class="tool-row" type="button" data-overlay="fire"><span class="tool-row-icon">🔥</span><span class="tool-row-text" data-i18n="overlay.fire">Fire Risk</span></button>
+      <button class="tool-row" type="button" data-overlay="population"><span class="tool-row-icon">👥</span><span class="tool-row-text" data-i18n="overlay.population">Population</span></button>
+      <button class="tool-row" type="button" data-overlay="landvalue"><span class="tool-row-icon">💰</span><span class="tool-row-text" data-i18n="overlay.landvalue">Land Value</span></button>
+    </section>
+
+    <!-- Terrain / infrastructure -->
+    <button class="tool-button is-active" type="button" data-tool="road" title="Build road ($10)" aria-label="Build road" data-i18n-title="tool.road" data-i18n-aria="tool.road">
+      <svg viewBox="0 0 32 32" aria-hidden="true">
+        <path d="M12 28 15 4" />
+        <path d="M20 28 17 4" />
+        <path d="M16 25v-3" />
+        <path d="M16 18v-4" />
+        <path d="M16 10V7" />
+      </svg>
+    </button>
+    <button class="tool-button" type="button" data-tool="terrain" title="Terrain brush — click for options" aria-label="Terrain brush" data-i18n-title="tool.terrainDefault" data-i18n-aria="tool.terrainDefault">
+      <span class="swatch grass" id="terrain-tool-swatch" aria-hidden="true"></span>
+      <span class="tool-badge" id="terrain-tool-badge" aria-hidden="true">🌿</span>
+    </button>
+
+    <div class="tool-menu-divider"></div>
+
+    <!-- Zone tools -->
+    <button class="tool-button" type="button" data-tool="zone-res" data-zone-type="res" title="Zone Residential — click for density options" aria-label="Zone Residential">
+      <span class="zone-icon res" aria-hidden="true">R</span>
+      <span class="tool-badge" id="zone-res-badge" aria-hidden="true">R1</span>
+    </button>
+    <button class="tool-button" type="button" data-tool="zone-com" data-zone-type="com" title="Zone Commercial — click for density options" aria-label="Zone Commercial">
+      <span class="zone-icon com" aria-hidden="true">C</span>
+      <span class="tool-badge" id="zone-com-badge" aria-hidden="true">C1</span>
+    </button>
+    <button class="tool-button" type="button" data-tool="zone-ind" data-zone-type="ind" title="Zone Industrial — click for density options" aria-label="Zone Industrial">
+      <span class="zone-icon ind" aria-hidden="true">I</span>
+      <span class="tool-badge" id="zone-ind-badge" aria-hidden="true">I1</span>
+    </button>
+    <button class="tool-button" type="button" data-tool="dezone" title="De-zone — remove zoning (free, drag to clear area)" aria-label="De-zone" data-i18n-title="tool.dezone" data-i18n-aria="tool.dezone">
+      <svg viewBox="0 0 32 32" aria-hidden="true" stroke="#cc4444">
+        <rect x="6" y="6" width="20" height="20" rx="3" fill="none" stroke-width="2"/>
+        <path d="M11 11l10 10M21 11l-10 10" stroke-width="2.5" stroke-linecap="round"/>
+      </svg>
+    </button>
+
+    <div class="tool-menu-divider"></div>
+
+    <!-- Power tools -->
+    <button class="tool-button" type="button" data-tool="power-line" title="Power Line ($5)" aria-label="Power Line" data-i18n-title="tool.powerLine" data-i18n-aria="tool.powerLine">
+      <svg viewBox="0 0 32 32" aria-hidden="true" stroke="#e8b800">
+        <path d="M6 8 26 24" />
+        <path d="M26 8 6 24" />
+        <circle cx="16" cy="16" r="3" fill="#e8b800" stroke="none"/>
+      </svg>
+    </button>
+    <button class="tool-button" type="button" data-tool="power-coal" title="Coal Power Plant ($3000)" aria-label="Coal Power Plant" data-i18n-title="tool.coalPlant" data-i18n-aria="tool.coalPlant">
+      <svg viewBox="0 0 32 32" aria-hidden="true">
+        <rect x="9" y="18" width="14" height="10" rx="1"/>
+        <rect x="12" y="8" width="4" height="12" rx="1"/>
+        <rect x="17" y="11" width="3" height="9" rx="1"/>
+        <path d="M13 8 c0-2 2-3 2-5" stroke-dasharray="1,1"/>
+      </svg>
+    </button>
+    <button class="tool-button" type="button" data-tool="power-solar" title="Solar Plant ($6000)" aria-label="Solar Plant" data-i18n-title="tool.solarPlant" data-i18n-aria="tool.solarPlant">
+      <svg viewBox="0 0 32 32" aria-hidden="true">
+        <circle cx="16" cy="16" r="5" fill="currentColor" opacity="0.3"/>
+        <path d="M16 4v4M16 24v4M4 16h4M24 16h4M7.5 7.5l3 3M21.5 21.5l3 3M21.5 7.5l-3 3M7.5 21.5l3-3"/>
+      </svg>
+    </button>
+
+    <div class="tool-menu-divider"></div>
+
+    <!-- Services -->
+    <button class="tool-button" type="button" data-tool="fire-station" title="Fire Station ($1000)" aria-label="Fire Station" data-i18n-title="tool.fireStation" data-i18n-aria="tool.fireStation">
+      <svg viewBox="0 0 32 32" aria-hidden="true" stroke="#cc3300">
+        <path d="M16 6 c-3 4-6 7-5 11 1 5 4 8 5 9 1-1 4-4 5-9 1-4-2-7-5-11z" fill="#cc3300" opacity="0.3"/>
+        <path d="M13 22 c0 3 6 3 6 0"/>
+      </svg>
+    </button>
+    <button class="tool-button" type="button" data-tool="police-station" title="Police Station ($800)" aria-label="Police Station" data-i18n-title="tool.policeStation" data-i18n-aria="tool.policeStation">
+      <svg viewBox="0 0 32 32" aria-hidden="true" stroke="#2255aa">
+        <path d="M16 6l8 4v6c0 5-4 9-8 10-4-1-8-5-8-10v-6z" fill="#2255aa" opacity="0.2"/>
+        <path d="M12 16l3 3 5-6"/>
+      </svg>
+    </button>
+    <button class="tool-button" type="button" data-tool="park" title="Park — choose open ground, playground, or 3x3 park" aria-label="Park">
+      <svg viewBox="0 0 32 32" aria-hidden="true" stroke="#227a3a">
+        <path d="M16 5c-3 0-5 2-5 5-3 1-5 3-5 6 0 4 3 6 7 6h6c4 0 7-2 7-6 0-3-2-5-5-6 0-3-2-5-5-5z" fill="#4db85a" opacity="0.35"/>
+        <path d="M16 19v8M11 27h10"/>
+      </svg>
+      <span class="tool-badge" id="park-tool-badge" aria-hidden="true">1x1</span>
+      <span class="tool-badge" id="park-tool-icon" aria-hidden="true">🌳</span>
+    </button>
+
+    <div class="tool-menu-divider"></div>
+
+    <!-- Buildings -->
+    <button class="tool-button" type="button" data-tool="house" title="Add house" aria-label="Add house" data-i18n-title="tool.house" data-i18n-aria="tool.house">
+      <img class="tool-image" src="Models/house/houseGermini.png" alt="" aria-hidden="true" />
+      <span class="tool-badge" aria-hidden="true">1x1</span>
+    </button>
+
+    <div class="tool-menu-divider"></div>
+
+    <!-- Inspect -->
+    <button class="tool-button" type="button" data-tool="inspect" title="Inspect — click any building or tile to see details" aria-label="Inspect tile" data-i18n-title="tool.inspect" data-i18n-aria="tool.inspect">
+      <svg viewBox="0 0 32 32" aria-hidden="true">
+        <circle cx="16" cy="12" r="7" fill="none" stroke-width="2.5"/>
+        <path d="M16 20v8" stroke-width="2.5" stroke-linecap="round"/>
+        <circle cx="16" cy="10" r="1.5" fill="currentColor" stroke="none"/>
+        <path d="M14.5 14h3" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <span class="tool-badge" aria-hidden="true">?</span>
+    </button>
+
+    <div class="tool-menu-divider"></div>
+
+    <!-- Actions -->
+    <button class="tool-button" type="button" data-action="generate" title="Generate terrain" aria-label="Generate terrain" data-i18n-title="tool.generate" data-i18n-aria="tool.generate">
+      <svg viewBox="0 0 32 32" aria-hidden="true">
+        <path d="M7 16a9 9 0 0 1 15-6" />
+        <path d="M22 6v6h-6" />
+        <path d="M25 16a9 9 0 0 1-15 6" />
+        <path d="M10 26v-6h6" />
+      </svg>
+    </button>
+    <button class="tool-button" type="button" data-tool="bulldoze" title="Bulldoze ($5)" aria-label="Bulldoze" data-i18n-title="tool.bulldoze" data-i18n-aria="tool.bulldoze">
+      <svg viewBox="0 0 32 32" aria-hidden="true">
+        <path d="M5 23h16l6-7h-8l-4-5H8z" />
+        <path d="M8 23v3" />
+        <path d="M19 23v3" />
+        <path d="M7 26h14" />
+        <path d="M21 16l-4 7" />
+      </svg>
+    </button>
+  </nav>
+
+  <!-- House size popup -->
+  <section id="house-size-menu" class="house-size-menu" aria-label="House sizes"></section>
+
+  <!-- Terrain picker popup -->
+  <section id="terrain-picker" class="tool-popup" aria-label="Terrain types"></section>
+
+  <!-- Zone density popup -->
+  <section id="zone-density-menu" class="tool-popup" aria-label="Zone density"></section>
+
+  <!-- Park picker popup -->
+  <section id="park-picker" class="tool-popup" aria-label="Park type"></section>
+
+  <!-- Inspect panel (click-to-inspect mode) -->
+  <div id="inspect-panel" role="dialog" aria-label="Tile inspector">
+    <div class="insp-header">
+      <span class="insp-header-title" data-i18n="inspect.title">🔍 Tile Inspector</span>
+      <button class="insp-close" onclick="document.getElementById('inspect-panel').style.display='none'" title="Close" data-i18n-title="tool.close">✕</button>
+    </div>
+    <div id="inspect-content"></div>
+  </div>
+
+  <!-- Rotate cluster (bottom-right) -->
+  <div id="rotate-cluster" aria-label="Rotate map view">
+    <button class="rotate-btn" id="btn-rotate-ccw" type="button" title="Rotate 90° anti-clockwise" aria-label="Rotate anti-clockwise">
+      <svg viewBox="0 0 32 32" aria-hidden="true">
+        <path d="M10 10a9 9 0 1 1-2 6" stroke-linecap="round"/>
+        <path d="M8 6 l2 5 l-4 1z" fill="currentColor" stroke="none"/>
+      </svg>
+      <span class="rotate-btn-label">CCW</span>
+    </button>
+    <button class="rotate-btn" id="btn-rotate-cw" type="button" title="Rotate 90° clockwise" aria-label="Rotate clockwise">
+      <svg viewBox="0 0 32 32" aria-hidden="true">
+        <path d="M22 10a9 9 0 1 0 2 6" stroke-linecap="round"/>
+        <path d="M24 6 l-2 5 l4 1z" fill="currentColor" stroke="none"/>
+      </svg>
+      <span class="rotate-btn-label">CW</span>
+    </button>
+  </div>
+
+  <!-- Jukebox floating window -->
+  <div id="jukebox-window" role="dialog" aria-label="Jukebox">
+    <div id="jukebox-titlebar">
+      <span>🎵</span>
+      <span id="jukebox-titlebar-title" data-i18n="jukebox.title">Jukebox</span>
+      <button id="jukebox-close-btn" type="button" title="Close jukebox" aria-label="Close" data-i18n-title="jukebox.close" data-i18n-aria="tool.close">×</button>
+    </div>
+    <div id="jukebox-body">
+      <div id="jukebox-track-name">—</div>
+      <div class="jukebox-controls">
+        <button class="jukebox-button" type="button" data-music-action="previous" title="Previous track" aria-label="Previous track" data-i18n-title="jukebox.previous" data-i18n-aria="jukebox.previous">
+          <svg viewBox="0 0 32 32" aria-hidden="true">
+            <path d="M11 8v16" />
+            <path d="M24 8 12 16l12 8z" />
+          </svg>
+        </button>
+        <button class="jukebox-button" type="button" data-music-action="toggle" title="Play / Pause" aria-label="Play or pause" data-i18n-title="jukebox.playPause" data-i18n-aria="jukebox.playPause">
+          <svg id="jukebox-play-icon" viewBox="0 0 32 32" aria-hidden="true">
+            <path d="M10 7v18l15-9z" />
+          </svg>
+        </button>
+        <button class="jukebox-button" type="button" data-music-action="next" title="Next track" aria-label="Next track" data-i18n-title="jukebox.next" data-i18n-aria="jukebox.next">
+          <svg viewBox="0 0 32 32" aria-hidden="true">
+            <path d="M21 8v16" />
+            <path d="M8 8l12 8-12 8z" />
+          </svg>
+        </button>
+      </div>
+      <div class="jukebox-loop-group">
+        <button class="jukebox-loop-btn is-active" id="jukebox-loop-all" type="button" data-loop="all" title="Loop all tracks" data-i18n="jukebox.loopAll" data-i18n-title="jukebox.loopAllTitle">🔁 Loop All</button>
+        <button class="jukebox-loop-btn"           id="jukebox-loop-one" type="button" data-loop="one" title="Loop current track" data-i18n="jukebox.loopOne" data-i18n-title="jukebox.loopOneTitle">🔂 Loop One</button>
+      </div>
+      <div class="jukebox-volume-row">
+        <span>🔈</span>
+        <input id="jukebox-volume" class="jukebox-volume" type="range" min="0" max="1" step="0.05" value="0.55" aria-label="Music volume" data-i18n-aria="jukebox.volume" />
+        <span>🔊</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Speed controls -->
+  <div id="speed-controls" aria-label="Simulation speed">
+    <button class="speed-btn is-active" type="button" data-speed="1">1×</button>
+    <button class="speed-btn" type="button" data-speed="2">2×</button>
+    <button class="speed-btn" type="button" data-speed="0">⏸</button>
+  </div>
+
+  <!-- HUD panel (top-right) -->
+  <aside id="hud" aria-label="City statistics">
+    <div class="hud-city-row">
+      <span id="hud-city-name">My City</span>
+      <button class="hud-rename-btn" onclick="renameCityPrompt()" title="Rename city" aria-label="Rename city" data-i18n-title="tool.renameCity" data-i18n-aria="tool.renameCity">✏️</button>
+    </div>
+    <div class="hud-separator"></div>
+    <div class="hud-row">
+      <span id="hud-money">$10,000</span>
+    </div>
+    <div class="hud-row">
+      <span id="hud-pop">Pop: 0</span>
+      <span id="hud-stars">★☆☆☆☆</span>
+    </div>
+    <div class="hud-row">
+      <span id="hud-date">Jan 1900</span>
+    </div>
+    <div class="hud-income-row">
+      <span id="hud-income">+$0</span>
+      <span id="hud-expense" class="hud-expense-val">-$0</span>
+    </div>
+    <div class="hud-separator"></div>
+    <div id="overlay-controls" aria-label="City overlay maps">
+      <button class="overlay-btn" type="button" data-overlay="pollution"  title="Pollution map" data-i18n-title="overlay.pollutionMap">🏭</button>
+      <button class="overlay-btn" type="button" data-overlay="crime"      title="Crime rate map" data-i18n-title="overlay.crimeMap">🚔</button>
+      <button class="overlay-btn" type="button" data-overlay="fire"       title="Fire hazard map" data-i18n-title="overlay.fireMap">🔥</button>
+      <button class="overlay-btn" type="button" data-overlay="population" title="Population density map" data-i18n-title="overlay.populationMap">👥</button>
+      <button class="overlay-btn" type="button" data-overlay="landvalue"  title="Land value map" data-i18n-title="overlay.landvalueMap">💰</button>
+    </div>
+    <div class="hud-separator"></div>
+    <div class="hud-rci" aria-label="R/C/I demand">
+      <div class="hud-rci-bar">
+        <div class="demand-bar-track"><div id="bar-r" class="demand-bar-fill"></div></div>
+        <span class="hud-rci-label">R</span>
+      </div>
+      <div class="hud-rci-bar">
+        <div class="demand-bar-track"><div id="bar-c" class="demand-bar-fill"></div></div>
+        <span class="hud-rci-label">C</span>
+      </div>
+      <div class="hud-rci-bar">
+        <div class="demand-bar-track"><div id="bar-i" class="demand-bar-fill"></div></div>
+        <span class="hud-rci-label">I</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Budget panel (bottom) -->
+  <div id="budget-panel" aria-label="Budget panel">
+    <div id="budget-strip">
+      <span class="strip-label" data-i18n="budget.label">Budget</span>
+      <span id="budget-strip-balance">$10,000</span>
+      <span class="strip-sep"></span>
+      <div id="tip-ticker-track" aria-hidden="true">
+        <span id="tip-ticker-inner"></span>
+      </div>
+      <span style="font-size:11px; color:#5a5648; flex-shrink:0; margin-left:8px;" data-i18n="budget.details">▲ details</span>
+    </div>
+    <div id="budget-detail">
+      <div class="budget-stat">
+        <span class="budget-stat-label" data-i18n="budget.income">Income/mo</span>
+        <span id="hud-income-detail" class="budget-stat-value" style="color:#2a6a2a">+$0</span>
+      </div>
+      <div class="budget-stat">
+        <span class="budget-stat-label" data-i18n="budget.expenses">Expenses/mo</span>
+        <span id="hud-expense-detail" class="budget-stat-value" style="color:#882222">-$0</span>
+      </div>
+      <div class="tax-row">
+        <label for="tax-slider" data-i18n="budget.taxRate">Tax Rate</label>
+        <input id="tax-slider" type="range" min="4" max="20" step="1" value="9" aria-label="Tax rate" />
+        <span id="tax-rate-display">9%</span>
+      </div>
+      <div class="budget-section" aria-label="Department budgets">
+        <span class="budget-section-title" data-i18n="budget.departments">Departments</span>
+        <div class="budget-slider-row">
+          <label for="budget-roads" data-i18n="budget.roads">Roads</label>
+          <input id="budget-roads" class="budget-slider" type="range" min="50" max="150" step="5" value="100" data-budget-key="roads" />
+          <span id="budget-roads-value" class="budget-slider-value">100%</span>
+        </div>
+        <div class="budget-slider-row">
+          <label for="budget-police" data-i18n="budget.police">Police</label>
+          <input id="budget-police" class="budget-slider" type="range" min="50" max="150" step="5" value="100" data-budget-key="police" />
+          <span id="budget-police-value" class="budget-slider-value">100%</span>
+        </div>
+        <div class="budget-slider-row">
+          <label for="budget-fire" data-i18n="budget.fire">Fire</label>
+          <input id="budget-fire" class="budget-slider" type="range" min="50" max="150" step="5" value="100" data-budget-key="fire" />
+          <span id="budget-fire-value" class="budget-slider-value">100%</span>
+        </div>
+        <div class="budget-slider-row">
+          <label for="budget-parks" data-i18n="budget.parks">Parks</label>
+          <input id="budget-parks" class="budget-slider" type="range" min="50" max="150" step="5" value="100" data-budget-key="parks" />
+          <span id="budget-parks-value" class="budget-slider-value">100%</span>
+        </div>
+      </div>
+      <div class="budget-section" aria-label="Loans">
+        <span class="budget-section-title" data-i18n="budget.loans">Loans</span>
+        <span class="budget-note"><span data-i18n="budget.debt">Debt</span>: <span id="budget-debt-total">$0</span></span>
+        <span class="budget-note"><span data-i18n="budget.credit">Credit</span>: <span id="budget-credit-rating">A</span></span>
+        <button class="loan-btn" type="button" data-loan-option="0">+$5k</button>
+        <button class="loan-btn" type="button" data-loan-option="1">+$10k</button>
+        <button class="loan-btn" type="button" data-loan-option="2">+$25k</button>
+      </div>
+      <div class="budget-section" aria-label="City laws">
+        <span class="budget-section-title" data-i18n="budget.laws">Acts & Laws</span>
+        <button class="policy-toggle" type="button" data-policy-id="cleanAir" data-i18n-title="policy.cleanAir.desc" data-i18n="policy.cleanAir.title">Clean Air Act</button>
+        <button class="policy-toggle" type="button" data-policy-id="roadRepair" data-i18n-title="policy.roadRepair.desc" data-i18n="policy.roadRepair.title">Road Repair Program</button>
+        <button class="policy-toggle" type="button" data-policy-id="publicSafety" data-i18n-title="policy.publicSafety.desc" data-i18n="policy.publicSafety.title">Public Safety Act</button>
+        <button class="policy-toggle" type="button" data-policy-id="smallBusiness" data-i18n-title="policy.smallBusiness.desc" data-i18n="policy.smallBusiness.title">Small Business Relief</button>
+        <button class="policy-toggle" type="button" data-policy-id="greenParks" data-i18n-title="policy.greenParks.desc" data-i18n="policy.greenParks.title">Green Parks Ordinance</button>
+        <span class="budget-note"><span data-i18n="budget.policyCost">Policy cost</span>: <span id="budget-policy-cost">$0/mo</span></span>
+        <span class="budget-note"><span data-i18n="budget.loanCost">Loan cost</span>: <span id="budget-loan-cost">$0/mo</span></span>
+        <button id="budget-open-window" class="budget-open-window-btn" type="button" data-i18n="budget.openWindow">Budget Window</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="budget-window" role="dialog" aria-label="Budget breakdown">
+    <div id="budget-window-titlebar">
+      <span>💰</span>
+      <span id="budget-window-title" data-i18n="budget.windowTitle">Budget Overview</span>
+      <button id="budget-window-close" type="button" title="Close" aria-label="Close">×</button>
+    </div>
+    <div id="budget-window-body">
+      <section class="budget-window-section" aria-label="Income">
+        <div class="budget-window-heading" data-i18n="budget.tableIncome">Income</div>
+        <table class="budget-window-table">
+          <tbody>
+            <tr><th data-i18n="budget.residentialTax">Residential tax</th><td id="budget-income-residential">$0</td></tr>
+            <tr><th data-i18n="budget.commercialTax">Commercial tax</th><td id="budget-income-commercial">$0</td></tr>
+            <tr><th data-i18n="budget.industrialTax">Industrial tax</th><td id="budget-income-industrial">$0</td></tr>
+            <tr><th data-i18n="budget.policyAdjustment">Policy adjustment</th><td id="budget-income-policy-adjust">$0</td></tr>
+            <tr class="budget-total-row"><th data-i18n="budget.totalIncome">Total income</th><td id="budget-income-total">$0</td></tr>
+          </tbody>
+        </table>
+      </section>
+      <section class="budget-window-section" aria-label="Expenses">
+        <div class="budget-window-heading" data-i18n="budget.tableExpenses">Expenses</div>
+        <table class="budget-window-table">
+          <tbody>
+            <tr><th data-i18n="budget.roads">Roads</th><td id="budget-expense-roads">$0</td></tr>
+            <tr><th data-i18n="budget.fire">Fire</th><td id="budget-expense-fire">$0</td></tr>
+            <tr><th data-i18n="budget.police">Police</th><td id="budget-expense-police">$0</td></tr>
+            <tr><th data-i18n="budget.power">Power</th><td id="budget-expense-power">$0</td></tr>
+            <tr><th data-i18n="budget.parks">Parks</th><td id="budget-expense-parks">$0</td></tr>
+            <tr><th data-i18n="budget.policyCost">Policy cost</th><td id="budget-expense-policy">$0</td></tr>
+            <tr><th data-i18n="budget.loanCost">Loan cost</th><td id="budget-expense-loans">$0</td></tr>
+            <tr class="budget-total-row"><th data-i18n="budget.totalExpenses">Total expenses</th><td id="budget-expense-total">$0</td></tr>
+          </tbody>
+        </table>
+      </section>
+      <section class="budget-window-section" aria-label="Budget estimates">
+        <div class="budget-window-heading" data-i18n="budget.estimatedTitle">Estimated budget</div>
+        <table class="budget-window-table">
+          <tbody>
+            <tr><th data-i18n="budget.netMonthly">Current monthly net</th><td id="budget-net-monthly">$0</td></tr>
+            <tr><th data-i18n="budget.netProjected">Projected next month net</th><td id="budget-net-projected">$0</td></tr>
+            <tr><th data-i18n="budget.netAnnual">Projected annual net</th><td id="budget-net-annual">$0</td></tr>
+            <tr class="budget-total-row"><th data-i18n="budget.estimatedTreasury">Estimated treasury in 12 months</th><td id="budget-estimated-treasury">$0</td></tr>
+          </tbody>
+        </table>
+      </section>
+    </div>
+  </div>
+
+  <!-- Toast container -->
+  <div id="toast-container" aria-live="polite"></div>
+
+  <!-- Tile debug tooltip -->
+  <div id="tile-debug"></div>
+
+  <!-- Game canvas -->
+  <div id="game-container"></div>
+
+  <!-- ── Floating overlay map window ──────────────────────────────────────── -->
+  <div id="overlay-window" role="dialog" aria-label="City overlay map">
+    <!-- Title bar (draggable) -->
+    <div id="overlay-win-titlebar">
+      <span id="overlay-win-icon">🏭</span>
+      <span id="overlay-win-title">Pollution</span>
+      <button id="overlay-win-close" type="button" title="Close map" aria-label="Close">×</button>
+    </div>
+
+    <!-- Map viewport (pan + zoom) -->
+    <div id="overlay-win-body">
+      <canvas id="mini-map-canvas" width="256" height="256"></canvas>
+    </div>
+
+    <!-- Footer: legend + zoom controls -->
+    <div id="overlay-win-footer">
+      <span class="legend-label" data-i18n="overlay.low">Low</span>
+      <canvas id="legend-gradient-canvas" width="120" height="10"></canvas>
+      <span class="legend-label" data-i18n="overlay.high">High</span>
+      <div class="overlay-zoom-group">
+        <button class="overlay-zoom-btn" id="overlay-zoom-out"   type="button" title="Zoom out" data-i18n-title="overlay.zoomOut">−</button>
+        <span id="overlay-zoom-label">100%</span>
+        <button class="overlay-zoom-btn" id="overlay-zoom-in"    type="button" title="Zoom in" data-i18n-title="overlay.zoomIn">+</button>
+        <button class="overlay-zoom-btn" id="overlay-zoom-reset" type="button" title="Fit map to window" style="width:auto;padding:0 5px;font-size:10px;" data-i18n="overlay.fit" data-i18n-title="overlay.fitTitle">⌂ Fit</button>
+      </div>
+    </div>
+
+    <!-- Custom resize handle -->
+    <div id="overlay-resize-handle"></div>
+  </div>
+
+  <!-- Script load order matters: i18n → constants → city-state → simulation → tools → hud → save → topbar → main -->
+  <script src="i18n.js"></script>
+  <script src="constants.js"></script>
+  <script src="city-state.js"></script>
+  <script src="simulation.js"></script>
+  <script src="tools.js"></script>
+  <script src="hud.js"></script>
+  <script src="save.js"></script>
+  <script src="topbar.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>

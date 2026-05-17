@@ -3436,7 +3436,8 @@ function enforceLocalSlopeConstraints(centerRow, centerCol, radius = 2, passes =
         let clamped = current;
         neighbors.forEach(([nr, nc]) => {
           if (!isInsideMap(nr, nc)) return;
-          const neighborHeight = mapData[nr][nc] === HILL ? getTileHeight(nr, nc) : 0;
+          if (mapData[nr][nc] !== HILL) return;
+          const neighborHeight = getTileHeight(nr, nc);
           if (clamped > neighborHeight + maxDelta) {
             clamped = neighborHeight + maxDelta;
           }

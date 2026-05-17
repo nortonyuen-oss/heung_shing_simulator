@@ -3198,6 +3198,9 @@ function getTerrainTileVisualOffset(row, col, key = getTileKey(row, col)) {
     if (key === 'hill_plateau') return getElevationVisualOffset(row, col) - 2;
     return -getHillSlopeBaseHeight(row, col) * HEIGHT_STEP_PIXELS;
   }
+  if (key.startsWith('road_hill')) {
+    return -getHillSlopeBaseHeight(row, col) * HEIGHT_STEP_PIXELS;
+  }
   return getElevationVisualOffset(row, col);
 }
 

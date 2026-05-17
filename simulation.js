@@ -54,6 +54,30 @@ function updatePowerGrid(scene) {
     for (let c = 0; c < MAP_WIDTH; c++)
       powerMap[r][c] = false;
 
+  let totalSupply = 0;
+  let totalDemand = 0;
+
+  for (let r = 0; r < MAP_HEIGHT; r++) {
+    for (let c = 0; c < MAP_WIDTH; c++) {
+      const id = getTileId(r, c);
+      const record = buildingData[id];
+      if (record) {
+        totalDemand += getBuildingPowerDemand(record);
+        if (POWER_PLANT_STATS[record.type] && (record.powerState ?? 'active') !== 'abandoned') {
+          totalSupply += getPowerPlantOutput(record);
+        }
+      } else if (zoneMap[r][c] !== ZONE_NONE) {
+        totalDemand += getZonePowerDemand(zoneMap[r][c], zoneDensityMap[r][c] ?? DENSITY_LOW);
+      }
+    }
+  }
+
+  city.totalPowerSupply = Math.max(0, Math.round(totalSupply));
+  city.totalPowerDemand = Math.max(0, Math.round(totalDemand));
+  city.powerRatio = city.totalPowerDemand > 0
+    ? clamp(city.totalPowerSupply / city.totalPowerDemand, 0, 1)
+    : 1;
+
   const queue = [];
 
   // Seed BFS from every tile occupied by a power plant
@@ -88,7 +112,7 @@ function updatePowerGrid(scene) {
     }
   }
 
-  // Second pass: empty zoned tiles are powered if adjacent to a powered tile
+  // Second pass: empty zoned tiles are powered if adjacent to a powered tile.
   for (let r = 0; r < MAP_HEIGHT; r++) {
     for (let c = 0; c < MAP_WIDTH; c++) {
       if (zoneMap[r][c] === ZONE_NONE || powerMap[r][c]) continue;
@@ -189,9 +213,11 @@ function growOrShrinkZones(scene) {
                     : zone === ZONE_COM ? city.demandC
                     : city.demandI;
 
-      // Power multiplies growth speed: 100% if powered, 20% if dark.
-      // This lets the early game work without a power plant while still making power very valuable.
-      const powerMul   = powered ? 1.0 : 0.2;
+      // Power multiplies growth speed. A citywide shortage slows all powered
+      // tiles; unpowered tiles remain mostly stagnant.
+      const powerMul   = powered
+        ? Math.max(0.08, Math.min(1, 0.1 + (city.powerRatio ?? 1) * 0.9))
+        : 0.05;
       const density    = zoneDensityMap[r][c] ?? DENSITY_LOW;
       const densityMul = DENSITY_GROW_MUL[density] ?? 1.0;
 
@@ -207,7 +233,7 @@ function growOrShrinkZones(scene) {
         if (record.level < 3 && hasRoad && demand > 0.5 && Math.random() < UPGRADE_CHANCE * powerMul * densityMul) {
           if (zone === ZONE_RES && tryMergeResidentialCluster(scene, r, c, record)) continue;
           upgradeZoneBuilding(scene, r, c, zone);
-        } else if ((!hasRoad || demand < -0.5) && Math.random() < SHRINK_CHANCE) {
+        } else if ((!hasRoad || demand < -0.5 || (city.powerRatio ?? 1) < 0.25) && Math.random() < SHRINK_CHANCE * ((city.powerRatio ?? 1) < 0.25 ? 1.3 : 1)) {
           shrinkOrRemoveZoneBuilding(scene, r, c);
         }
       }
@@ -249,10 +275,12 @@ function spawnZoneBuilding(scene, r, c, zone, level, density = DENSITY_LOW, opti
     key = BUILDING_KEYS[39 + Math.floor(Math.random() * 39)];
   }
 
-  placeSpriteBuilding(scene, r, c, key, options);
-
   const fp  = options.footprintCols ?? 1;
   const fpr = options.footprintRows ?? 1;
+  if (!canPlaceBuildingFootprint(r, c, fp, fpr)) return false;
+
+  placeSpriteBuilding(scene, r, c, key, options);
+
   // 2×2 (or larger) buildings house proportionally more residents;
   // high-density zones multiply population further.
   const basePop  = zone === ZONE_RES ? (POP_PER_LEVEL[level] || 0) : 0;
@@ -271,6 +299,7 @@ function spawnZoneBuilding(scene, r, c, zone, level, density = DENSITY_LOW, opti
     originY: options.originY,
     scale:   options.scale,
   };
+  return true;
 }
 
 function getResidential2x2Chance(density) {
@@ -279,14 +308,15 @@ function getResidential2x2Chance(density) {
 
 // Returns true when a 2×2 block anchored at (r, c) is fully clear and zoned RES.
 function canPlace2x2Residential(scene, r, c) {
+  const baseHeight = getTileHeight(r, c);
   for (let dr = 0; dr < 2; dr++) {
     for (let dc = 0; dc < 2; dc++) {
       const rr = r + dr, cc = c + dc;
       if (!isInsideMap(rr, cc))                        return false;
       if (zoneMap[rr][cc] !== ZONE_RES)                return false;
       if (scene.buildingSprites.has(getTileId(rr, cc))) return false;
-      // Must be placeable terrain (ground / dirt / hill — not water or road)
-      if (![GROUND, DIRT, HILL].includes(mapData[rr][cc])) return false;
+      if (!canPlaceBuilding(rr, cc)) return false;
+      if (getTileHeight(rr, cc) !== baseHeight) return false;
     }
   }
   return true;
@@ -322,12 +352,14 @@ function findMergeableResidential2x2Anchor(scene, r, c) {
 }
 
 function canMergeResidential2x2At(scene, r, c) {
+  const baseHeight = getTileHeight(r, c);
   for (let dr = 0; dr < 2; dr++) {
     for (let dc = 0; dc < 2; dc++) {
       const rr = r + dr, cc = c + dc;
       if (!isInsideMap(rr, cc)) return false;
       if (zoneMap[rr][cc] !== ZONE_RES) return false;
-      if (![GROUND, DIRT, HILL].includes(mapData[rr][cc])) return false;
+      if (!canPlaceBuilding(rr, cc)) return false;
+      if (getTileHeight(rr, cc) !== baseHeight) return false;
 
       const id = getTileId(rr, cc);
       const sprite = scene.buildingSprites.get(id);
@@ -413,6 +445,8 @@ function updatePopulationAndPollution() {
       city.pollution += POLLUTION_IND_BUILDING * (isPolicyActive('cleanAir') ? 0.70 : 1);
     } else if (rec.type === 'power_plant_coal') {
       city.pollution += POLLUTION_COAL_PLANT * (isPolicyActive('cleanAir') ? 0.70 : 1);
+    } else if (rec.type === 'power_plant_solar') {
+      city.pollution += Math.max(1, Math.round(POLLUTION_COAL_PLANT * 0.08));
     }
   });
   city.pollution = Math.round(city.pollution);
@@ -420,10 +454,12 @@ function updatePopulationAndPollution() {
 
 // ── Economy (runs monthly) ────────────────────────────────────────────────────
 
-function runEconomy() {
+function runEconomy(scene) {
   if (city.tick % TICKS_PER_MONTH !== 0) return;
   normalizeCityFinanceState();
   const loanPayment = applyMonthlyLoanPayments();
+
+  agePowerPlants(scene);
 
   const snapshot = computeBudgetSnapshot({ loanPayment });
   city.monthlyIncome = snapshot.totalIncome;
@@ -446,6 +482,44 @@ function runEconomy() {
   } else if (city.budget >= 0 && city.isBankrupt) {
     city.isBankrupt = false;
   }
+}
+
+function agePowerPlants(scene) {
+  Object.entries(buildingData).forEach(([id, record]) => {
+    if (!POWER_PLANT_STATS[record.type]) return;
+
+    record.age = Math.max(0, Number(record.age ?? 0) + 1);
+    const stats = getPowerPlantStats(record.type);
+    const remaining = getPowerPlantRemainingMonths(record);
+    const state = getPowerPlantState(record);
+    const building = scene?.buildingSprites.get(id);
+
+    if (remaining <= 0) {
+      record.powerState = 'abandoned';
+      record.powerOutput = 0;
+    } else if (state === 'degraded') {
+      record.powerState = 'degraded';
+      record.powerOutput = getPowerPlantOutput(record);
+    } else {
+      record.powerState = 'active';
+      record.powerOutput = getPowerPlantOutput(record);
+    }
+
+    record.powerRemainingMonths = remaining;
+    record.powerWarning = isPowerPlantNearRetirement(record);
+
+    if (!building) return;
+    if (record.powerState === 'abandoned') {
+      building.setAlpha(0.55);
+      building.setTint(0x9a9a9a);
+    } else if (record.powerState === 'degraded') {
+      building.setAlpha(0.86);
+      building.setTint(record.type === 'power_plant_coal' ? 0xd9b873 : 0xf0dc98);
+    } else {
+      building.clearTint();
+      building.setAlpha(1);
+    }
+  });
 }
 
 function applyMonthlyLoanPayments() {
@@ -509,12 +583,13 @@ function computeHappiness(scene) {
     : 0;
   const taxPenalty   = Math.max(0, (city.taxRate - 0.09) * 3);
   const pollPenalty  = city.pollution / 200;
+  const powerPenalty = Math.max(0, 1 - (city.powerRatio ?? 1)) * 0.22;
   const roadBonus = Math.min(0.08, (getDepartmentFunding('roads') - 1) * 0.08 + (isPolicyActive('roadRepair') ? 0.04 : 0));
   const policyBonus = (isPolicyActive('cleanAir') ? 0.03 : 0) + (isPolicyActive('publicSafety') ? 0.02 : 0);
 
   city.happiness = clamp(
     0.2 + 0.42 * poweredRatio + 0.18 * fireRatio + 0.18 * policeRatio + 0.22 * parkRatio
-    + roadBonus + policyBonus - taxPenalty - pollPenalty,
+      + roadBonus + policyBonus - taxPenalty - pollPenalty - powerPenalty,
     0, 1
   );
 }

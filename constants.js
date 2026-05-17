@@ -99,10 +99,51 @@ const POWER_PLANT_MODELS = {
   },
 };
 
+const POWER_PLANT_STATS = {
+  power_plant_coal: {
+    generationMW: 600,
+    baseUpkeep: 420,
+    maxAgeMonths: 420,
+    degradeStartMonths: 300,
+    warningMonths: 60,
+    minOutputRatio: 0.35,
+    pollutionRadius: 24,
+    pollutionStrength: 1.0,
+    fireRadius: 16,
+    fireStrength: 0.90,
+    nuisanceRadius: 14,
+    nuisanceStrength: 0.40,
+  },
+  power_plant_solar: {
+    generationMW: 180,
+    baseUpkeep: 140,
+    maxAgeMonths: 300,
+    degradeStartMonths: 240,
+    warningMonths: 36,
+    minOutputRatio: 0.45,
+    pollutionRadius: 10,
+    pollutionStrength: 0.18,
+    fireRadius: 10,
+    fireStrength: 0.12,
+    nuisanceRadius: 10,
+    nuisanceStrength: 0.18,
+  },
+};
+
+const BUILDING_POWER_DEMAND = {
+  residential: [0, 3, 6, 10],
+  commercial:  [0, 4, 8, 14],
+  industrial:  [0, 8, 14, 22],
+  fire_station: 10,
+  police_station: 8,
+  park_small: 2,
+  park_large: 4,
+};
+
 // Monthly upkeep costs
 const UPKEEP_ROAD_PER_TILE  = 0.10;
-const UPKEEP_COAL_PLANT     = 300;
-const UPKEEP_SOLAR_PLANT    = 150;
+const UPKEEP_COAL_PLANT     = POWER_PLANT_STATS.power_plant_coal.baseUpkeep;
+const UPKEEP_SOLAR_PLANT    = POWER_PLANT_STATS.power_plant_solar.baseUpkeep;
 const UPKEEP_FIRE_STATION   = 500;
 const UPKEEP_POLICE_STATION = 400;
 const UPKEEP_PARK_SMALL     = 25;

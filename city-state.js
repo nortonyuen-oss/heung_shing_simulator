@@ -1,6 +1,7 @@
 // Parallel map layers — initialized in resetGameState(), called from create()
 let zoneMap         = [];   // ZONE_NONE | ZONE_RES | ZONE_COM | ZONE_IND per cell
 let zoneDensityMap  = [];   // DENSITY_LOW | DENSITY_MED | DENSITY_HIGH per cell
+let heightMap       = [];   // 0 = sea/flat, each +1 step is 100m altitude
 let powerMap        = [];   // boolean per cell (is this cell powered?)
 let serviceMap      = [];   // { fire: bool, police: bool, park: 0|1|2 } | null per cell
 
@@ -39,6 +40,9 @@ const city = {
   lastBudgetSnapshot: null,
   monthlyIncome: 0,
   monthlyExpenses: 0,
+  totalPowerSupply: 0,
+  totalPowerDemand: 0,
+  powerRatio: 1,
   population: 0,
   residentialCount: 0,
   commercialCount: 0,
@@ -89,6 +93,9 @@ function resetGameState() {
   city.lastBudgetSnapshot = null;
   city.monthlyIncome   = 0;
   city.monthlyExpenses = 0;
+  city.totalPowerSupply = 0;
+  city.totalPowerDemand = 0;
+  city.powerRatio      = 1;
   city.population      = 0;
   city.residentialCount = 0;
   city.commercialCount = 0;
@@ -124,6 +131,9 @@ function normalizeCityFinanceState() {
   city.lastPolicyCost = city.lastPolicyCost ?? 0;
   city.lastLoanPayment = city.lastLoanPayment ?? 0;
   city.lastBudgetSnapshot = city.lastBudgetSnapshot ?? null;
+  city.totalPowerSupply = Number.isFinite(city.totalPowerSupply) ? city.totalPowerSupply : 0;
+  city.totalPowerDemand = Number.isFinite(city.totalPowerDemand) ? city.totalPowerDemand : 0;
+  city.powerRatio = Number.isFinite(city.powerRatio) ? city.powerRatio : 1;
   city.creditRating = city.creditRating || 'A';
 }
 
@@ -211,6 +221,98 @@ function getTotalDebt() {
 function getMonthlyLoanDue() {
   normalizeCityFinanceState();
   return Math.round(city.loans.reduce((sum, loan) => sum + Number(loan.monthlyPayment || 0), 0));
+}
+
+function getPowerPlantStats(type) {
+  return POWER_PLANT_STATS[type] ?? null;
+}
+
+function getBuildingPowerDemand(record) {
+  if (!record) return 0;
+  if (POWER_PLANT_STATS[record.type]) return 0;
+
+  if (record.type === 'residential' || record.type === 'commercial' || record.type === 'industrial') {
+    const table = BUILDING_POWER_DEMAND[record.type] ?? BUILDING_POWER_DEMAND.residential;
+    return table[Math.max(1, Math.min(3, record.level ?? 1))] ?? table[1];
+  }
+
+  return BUILDING_POWER_DEMAND[record.type] ?? 0;
+}
+
+function getZonePowerDemand(zone, density = DENSITY_LOW) {
+  const level = Math.max(1, Math.min(3, density ?? DENSITY_LOW));
+  const tables = {
+    [ZONE_RES]: [0, 3, 6, 10],
+    [ZONE_COM]: [0, 4, 8, 14],
+    [ZONE_IND]: [0, 7, 12, 20],
+  };
+  return tables[zone]?.[level] ?? 0;
+}
+
+function getPowerPlantAgeMonths(record) {
+  return Math.max(0, Number(record?.age ?? 0));
+}
+
+function getPowerPlantOutput(record) {
+  const stats = getPowerPlantStats(record?.type);
+  if (!stats) return 0;
+
+  const age = getPowerPlantAgeMonths(record);
+  if ((record.powerState ?? 'active') === 'abandoned' || age >= stats.maxAgeMonths) return 0;
+  if (age <= stats.degradeStartMonths) return stats.generationMW;
+
+  const wornMonths = age - stats.degradeStartMonths;
+  const wearRange = Math.max(1, stats.maxAgeMonths - stats.degradeStartMonths);
+  const wear = Math.min(1, wornMonths / wearRange);
+  const outputRatio = 1 - wear * (1 - stats.minOutputRatio);
+  return Math.round(stats.generationMW * outputRatio);
+}
+
+function getPowerPlantMaintenance(record) {
+  const stats = getPowerPlantStats(record?.type);
+  if (!stats) return 0;
+
+  const age = getPowerPlantAgeMonths(record);
+  const wornRatio = clamp(age / Math.max(1, stats.maxAgeMonths), 0, 1);
+  const upkeepScale = 1 + wornRatio * 0.45;
+  return Math.round(stats.baseUpkeep * upkeepScale);
+}
+
+function isPowerPlantNearRetirement(record) {
+  const stats = getPowerPlantStats(record?.type);
+  if (!stats) return false;
+  const age = getPowerPlantAgeMonths(record);
+  return age >= Math.max(0, stats.maxAgeMonths - stats.warningMonths) && age < stats.maxAgeMonths;
+}
+
+function getPowerPlantRemainingMonths(record) {
+  const stats = getPowerPlantStats(record?.type);
+  if (!stats) return 0;
+  return Math.max(0, stats.maxAgeMonths - getPowerPlantAgeMonths(record));
+}
+
+function formatPowerPlantAge(record) {
+  const months = getPowerPlantAgeMonths(record);
+  const years = Math.floor(months / 12);
+  const remMonths = months % 12;
+  return years > 0 ? `${years}y ${remMonths}m` : `${remMonths}m`;
+}
+
+function getPowerPlantState(record) {
+  const stats = getPowerPlantStats(record?.type);
+  if (!stats) return 'normal';
+  const age = getPowerPlantAgeMonths(record);
+  if ((record.powerState ?? 'active') === 'abandoned' || age >= stats.maxAgeMonths) return 'abandoned';
+  if (age >= stats.degradeStartMonths) return 'degraded';
+  return 'active';
+}
+
+function getPowerPlantGenerationSummary(record) {
+  const stats = getPowerPlantStats(record?.type);
+  if (!stats) return { output: 0, maxOutput: 0, ratio: 0 };
+  const output = getPowerPlantOutput(record);
+  const ratio = stats.generationMW > 0 ? output / stats.generationMW : 0;
+  return { output, maxOutput: stats.generationMW, ratio };
 }
 
 function computeLoanPayment(amount, months, annualRate) {

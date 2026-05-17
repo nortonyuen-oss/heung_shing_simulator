@@ -6,7 +6,7 @@ function updateHUD() {
   setTextContent('topbar-city-name',  name);   // centred top bar label
   setTextContent('hud-money',  formatMoney(city.budget));
   setTextContent('hud-pop',    t('hud.pop', { population: city.population.toLocaleString() }));
-  setTextContent('hud-date',   `${city.day ?? 1} ${tMonth(city.month)} ${city.year}`);
+  setTextContent('hud-date',   formatCityDate(city.day, city.month, city.year));
   setTextContent('hud-stars',  starsDisplay(city.happiness));
   setTextContent('hud-income',         `+${formatMoney(city.monthlyIncome)}`);
   setTextContent('hud-expense',        `-${formatMoney(city.monthlyExpenses)}`);
@@ -21,6 +21,7 @@ function updateHUD() {
   updateTaxDisplay();
   updateBudgetControls();
   updateBudgetWindow();
+  if (typeof updateMiniMap === 'function') updateMiniMap();
 
   // Highlight budget in red when near-bankrupt
   const moneyEl = document.getElementById('hud-money');
@@ -101,7 +102,7 @@ function addCityNews(text) {
   const day   = (city && city.day)   ? city.day   : 1;
   const month = (city && city.month) ? city.month : 1;
   const year  = (city && city.year)  ? city.year  : 1900;
-  cityNewsFeed.unshift({ text, date: `${day} ${tMonth(month)} ${year}` });
+  cityNewsFeed.unshift({ text, date: formatCityDate(day, month, year) });
   if (cityNewsFeed.length > NEWS_MAX) cityNewsFeed.pop();
 }
 
@@ -320,6 +321,17 @@ function setTextContent(id, text) {
   if (el) el.textContent = text;
 }
 
+function formatCityDate(day, month, year) {
+  const safeDay = Number.isFinite(Number(day)) ? Number(day) : 1;
+  const safeMonth = Number.isFinite(Number(month)) ? Number(month) : 1;
+  const safeYear = Number.isFinite(Number(year)) ? Number(year) : 1900;
+  return t('hud.dateFormat', {
+    day: String(safeDay),
+    month: tMonth(safeMonth),
+    year: String(safeYear),
+  });
+}
+
 // ── Scrolling tips ticker (走馬燈) ─────────────────────────────────────────
 
 const GAMEPLAY_TIP_KEYS = Array.from({ length: 19 }, (_, index) => `tip.${index + 1}`);
@@ -335,7 +347,8 @@ function startTicker() {
   let idx = 0;
 
   function showNextTip() {
-    const text = t(tips[idx++ % tips.length]);
+    const warning = getPowerPlantTickerWarning();
+    const text = warning ?? t(tips[idx++ % tips.length]);
     inner.textContent = text;
 
     // Measure actual rendered width after setting content
@@ -355,6 +368,14 @@ function startTicker() {
   tickerShowNextTip = showNextTip;
   showNextTip();
   inner.addEventListener('transitionend', showNextTip);
+}
+
+function getPowerPlantTickerWarning() {
+  const plant = Object.values(buildingData).find((record) => POWER_PLANT_STATS[record.type] && isPowerPlantNearRetirement(record));
+  if (!plant) return null;
+  const remaining = getPowerPlantRemainingMonths(plant);
+  const label = plant.type === 'power_plant_coal' ? t('building.coalPlant') : t('building.solarPlant');
+  return `${label} · ${t('inspect.powerWarning')} · ${t('inspect.powerRemaining', { remaining })}`;
 }
 
 document.addEventListener('languagechange', () => {

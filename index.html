@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>SimCity 2000 – City Builder</title>
+  <title>City Builder Classic</title>
   <style>
     * { box-sizing: border-box; }
 
@@ -1089,6 +1089,44 @@
       transition: height 0.4s ease, top 0.4s ease;
     }
 
+    .power-status-surplus  { color: #1a6b1a; background: rgba(26,107,26,0.18); }
+    .power-status-ok       { color: #226622; background: rgba(34,102,34,0.18); }
+    .power-status-strained { color: #7a5a00; background: rgba(200,150,0,0.20); }
+    .power-status-overloaded { color: #882222; background: rgba(136,34,34,0.18); }
+    @keyframes power-blink { 0%,100%{opacity:1} 50%{opacity:.35} }
+    .power-status-overloaded { animation: power-blink 0.9s step-end infinite; }
+    .power-load-track {
+      width: 100%;
+      height: 6px;
+      background: rgba(0,0,0,0.15);
+      border: 1px solid #6f6b60;
+      border-radius: 3px;
+      overflow: hidden;
+      margin: 3px 0 2px;
+    }
+    .power-load-bar {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.4s ease, background-color 0.4s ease;
+    }
+
+    /* Power plant tool-row two-line layout */
+    .tool-row-main {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      white-space: normal;
+    }
+    .tool-row-main .tool-row-text { flex: none; }
+    .tool-row-stats {
+      font-size: 10px;
+      color: #6a6050;
+      font-weight: 400;
+      font-family: monospace;
+    }
+
     .hud-income-row {
       display: flex;
       justify-content: space-between;
@@ -1752,6 +1790,40 @@
     }
     #overlay-win-body.is-panning { cursor: grabbing; }
 
+    #overlay-mode-buttons {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      z-index: 3;
+      pointer-events: auto;
+    }
+    .overlay-mode-btn {
+      width: 34px;
+      height: 34px;
+      background: rgba(18, 28, 16, 0.85);
+      border: 1px solid rgba(236, 231, 212, 0.35);
+      border-radius: 6px;
+      color: #f7f1dc;
+      font-size: 16px;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+      backdrop-filter: blur(2px);
+    }
+    .overlay-mode-btn:hover { background: rgba(41, 63, 36, 0.92); }
+    .overlay-mode-btn.is-active {
+      background: #f1c65d;
+      color: #1e2427;
+      border-color: #8d7025;
+      box-shadow: inset -1px -1px 0 #fff7cf, inset 1px 1px 0 #8d7025;
+    }
+
     /* The actual pixel canvas — CSS transform handles pan/zoom */
     #mini-map-canvas {
       position: absolute;
@@ -1764,13 +1836,13 @@
       will-change: transform;
     }
 
-    /* Legend + zoom controls */
+    /* Footer details + zoom controls */
     #overlay-win-footer {
       display: flex;
       align-items: center;
-      height: 26px;
-      padding: 0 8px;
-      gap: 6px;
+      min-height: 58px;
+      padding: 6px 8px;
+      gap: 10px;
       background: #d4d0c3;
       border-top: 1px solid #6f6b60;
       flex-shrink: 0;
@@ -1778,13 +1850,105 @@
       color: #1e2427;
       user-select: none;
     }
-    #overlay-win-footer .legend-label { flex-shrink: 0; }
-    #legend-gradient-canvas {
+    #overlay-detail-panel {
       flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    #overlay-detail-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: #1e2427;
+    }
+    #overlay-detail-stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    #overlay-legend {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    #overlay-legend.is-hidden {
+      display: none;
+    }
+    #overlay-legend-canvas {
+      width: 100%;
       height: 10px;
       border: 1px solid #6f6b60;
-      border-radius: 2px;
+      border-radius: 3px;
       image-rendering: pixelated;
+      background: rgba(0,0,0,0.08);
+    }
+    #overlay-legend-labels {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 9px;
+      color: #5a5648;
+      font-weight: 700;
+    }
+    #overlay-legend-labels span:nth-child(2) {
+      text-align: center;
+      flex: 1;
+    }
+    .overlay-detail-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      min-height: 18px;
+      padding: 2px 6px;
+      background: rgba(255,255,255,0.42);
+      border: 1px solid #a79f8c;
+      border-radius: 999px;
+      color: #1e2427;
+      white-space: nowrap;
+    }
+    .overlay-detail-label {
+      font-size: 9px;
+      font-weight: 700;
+      color: #5a5648;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .overlay-detail-value {
+      font-size: 10px;
+      font-weight: 700;
+    }
+    #overlay-detail-note {
+      min-height: 12px;
+      color: #5a5648;
+      font-size: 10px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #overlay-power-footer {
+      display: none;
+      flex-direction: column;
+      gap: 3px;
+      max-width: 240px;
+    }
+    #overlay-power-footer.is-visible { display: flex; }
+    .overlay-power-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+    #overlay-power-status {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 999px;
+    }
+    #overlay-power-mw {
+      font-size: 10px;
+      color: #4a4030;
+      white-space: nowrap;
     }
     .overlay-zoom-group {
       display: flex;
@@ -2102,10 +2266,20 @@ Ctrl+O       Load game (open saves list)</div>
         <span class="tool-row-icon">⚡</span><span class="tool-row-text" data-i18n="toolRow.powerLine">Power Line</span><span class="tool-row-cost">$5</span>
       </button>
       <button class="tool-row" type="button" data-tool="power-coal">
-        <span class="tool-row-icon">🏭</span><span class="tool-row-text" data-i18n="toolRow.coalPlant">Coal Plant</span><span class="tool-row-cost">$3000</span>
+        <span class="tool-row-icon">🏭</span>
+        <span class="tool-row-main">
+          <span class="tool-row-text" data-i18n="toolRow.coalPlant">Coal Plant</span>
+          <span class="tool-row-stats" data-i18n="toolRow.coalPlantStats">600 MW · $420/mo · 35 yrs</span>
+        </span>
+        <span class="tool-row-cost">$3000</span>
       </button>
       <button class="tool-row" type="button" data-tool="power-solar">
-        <span class="tool-row-icon">☀️</span><span class="tool-row-text" data-i18n="toolRow.solarPlant">Solar Plant</span><span class="tool-row-cost">$6000</span>
+        <span class="tool-row-icon">☀️</span>
+        <span class="tool-row-main">
+          <span class="tool-row-text" data-i18n="toolRow.solarPlant">Solar Plant</span>
+          <span class="tool-row-stats" data-i18n="toolRow.solarPlantStats">180 MW · $140/mo · 25 yrs</span>
+        </span>
+        <span class="tool-row-cost">$6000</span>
       </button>
     </section>
 
@@ -2142,6 +2316,7 @@ Ctrl+O       Load game (open saves list)</div>
       <button class="tool-row" type="button" data-overlay="fire"><span class="tool-row-icon">🔥</span><span class="tool-row-text" data-i18n="overlay.fire">Fire Risk</span></button>
       <button class="tool-row" type="button" data-overlay="population"><span class="tool-row-icon">👥</span><span class="tool-row-text" data-i18n="overlay.population">Population</span></button>
       <button class="tool-row" type="button" data-overlay="landvalue"><span class="tool-row-icon">💰</span><span class="tool-row-text" data-i18n="overlay.landvalue">Land Value</span></button>
+      <button class="tool-row" type="button" data-overlay="power"><span class="tool-row-icon">⚡</span><span class="tool-row-text" data-i18n="overlay.power">Power Plants</span></button>
     </section>
 
     <!-- Terrain / infrastructure -->
@@ -2387,6 +2562,7 @@ Ctrl+O       Load game (open saves list)</div>
       <button class="overlay-btn" type="button" data-overlay="fire"       title="Fire hazard map" data-i18n-title="overlay.fireMap">🔥</button>
       <button class="overlay-btn" type="button" data-overlay="population" title="Population density map" data-i18n-title="overlay.populationMap">👥</button>
       <button class="overlay-btn" type="button" data-overlay="landvalue"  title="Land value map" data-i18n-title="overlay.landvalueMap">💰</button>
+      <button class="overlay-btn" type="button" data-overlay="power"       title="Power plant map" data-i18n-title="overlay.powerMap">⚡</button>
     </div>
     <div class="hud-separator"></div>
     <div class="hud-rci" aria-label="R/C/I demand">
@@ -2543,14 +2719,41 @@ Ctrl+O       Load game (open saves list)</div>
 
     <!-- Map viewport (pan + zoom) -->
     <div id="overlay-win-body">
+      <div id="overlay-mode-buttons" aria-label="Map modes">
+        <button class="overlay-mode-btn" type="button" data-overlay="pollution" title="Pollution map" data-i18n-title="overlay.pollutionMap">🏭</button>
+        <button class="overlay-mode-btn" type="button" data-overlay="crime" title="Crime rate map" data-i18n-title="overlay.crimeMap">🚔</button>
+        <button class="overlay-mode-btn" type="button" data-overlay="fire" title="Fire hazard map" data-i18n-title="overlay.fireMap">🔥</button>
+        <button class="overlay-mode-btn" type="button" data-overlay="population" title="Population density map" data-i18n-title="overlay.populationMap">👥</button>
+        <button class="overlay-mode-btn" type="button" data-overlay="landvalue" title="Land value map" data-i18n-title="overlay.landvalueMap">💰</button>
+        <button class="overlay-mode-btn" type="button" data-overlay="power" title="Power plant map" data-i18n-title="overlay.powerMap">⚡</button>
+      </div>
       <canvas id="mini-map-canvas" width="256" height="256"></canvas>
     </div>
 
-    <!-- Footer: legend + zoom controls -->
+    <!-- Footer: live details + zoom controls -->
     <div id="overlay-win-footer">
-      <span class="legend-label" data-i18n="overlay.low">Low</span>
-      <canvas id="legend-gradient-canvas" width="120" height="10"></canvas>
-      <span class="legend-label" data-i18n="overlay.high">High</span>
+      <div id="overlay-detail-panel">
+        <div id="overlay-detail-title">Pollution</div>
+        <div id="overlay-detail-stats"></div>
+        <div id="overlay-legend">
+          <canvas id="overlay-legend-canvas" width="180" height="10"></canvas>
+          <div id="overlay-legend-labels">
+            <span id="overlay-legend-min">0%</span>
+            <span id="overlay-legend-mid">50%</span>
+            <span id="overlay-legend-max">100%</span>
+          </div>
+        </div>
+        <div id="overlay-detail-note"></div>
+        <div id="overlay-power-footer">
+          <div class="overlay-power-header">
+            <span id="overlay-power-status" class="power-status-ok">OK</span>
+            <span id="overlay-power-mw">0 / 0 MW</span>
+          </div>
+          <div class="power-load-track">
+            <div id="overlay-power-bar" class="power-load-bar" style="width:0%;background:#44cc55"></div>
+          </div>
+        </div>
+      </div>
       <div class="overlay-zoom-group">
         <button class="overlay-zoom-btn" id="overlay-zoom-out"   type="button" title="Zoom out" data-i18n-title="overlay.zoomOut">−</button>
         <span id="overlay-zoom-label">100%</span>

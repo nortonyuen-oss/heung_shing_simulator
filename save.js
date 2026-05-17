@@ -1,0 +1,398 @@
+// ── Save / Load (SQLite via REST API) ─────────────────────────────────────────
+// Requires server.js to be running (npm install && node server.js)
+
+const API_BASE = '/api/saves';
+let currentSaveId = null;   // tracks which DB row we are editing
+
+// ── Build save payload ────────────────────────────────────────────────────────
+
+function buildSavePayload() {
+  return {
+    city_name:  city.name || getDefaultCityName(),
+    population: city.population,
+    year:       city.year,
+    month:      city.month,
+    budget:     city.budget,
+    save_data: {
+      version:       5,
+      seed:          currentSeed,
+      city:          { ...city },
+      mapData:       mapData.map((row) => Array.from(row)),
+      heightMap:     heightMap.map((row) => Array.from(row)),
+      zoneMap:       zoneMap.map((row) => Array.from(row)),
+      zoneDensityMap: zoneDensityMap.map((row) => Array.from(row)),
+      buildingData:  JSON.parse(JSON.stringify(buildingData)),
+      powerSources:  Array.from(powerSources),
+      powerLineSet:  Array.from(powerLineSet),
+      roadTileCount,
+    },
+  };
+}
+
+// ── Save ──────────────────────────────────────────────────────────────────────
+
+async function saveGame(silent = false) {
+  if (!activeScene) { if (!silent) showToast(t('toast.gameNotReady'), 'warning'); return; }
+
+  const payload = buildSavePayload();
+
+  try {
+    let res;
+    if (currentSaveId) {
+      // Overwrite the existing slot
+      res = await fetch(`${API_BASE}/${currentSaveId}`, {
+        method:  'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(payload),
+      });
+    } else {
+      // Create a new slot
+      res = await fetch(API_BASE, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(payload),
+      });
+    }
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    currentSaveId = data.id;
+    showToast(silent ? t('toast.autosaved') : t('toast.citySaved'), 'info');
+  } catch (e) {
+    if (!silent) showToast(t('toast.saveFailed'), 'danger');
+    console.error('[Save]', e);
+  }
+}
+
+// ── Save As (forces a new slot) ───────────────────────────────────────────────
+
+async function saveAsGame() {
+  if (!activeScene) { showToast(t('toast.gameNotReady'), 'warning'); return; }
+
+  const name = window.prompt(t('prompt.saveAs'), city.name || getDefaultCityName());
+  if (name === null) return;        // user cancelled
+  if (name.trim()) {
+    city.name = name.trim().slice(0, 30);
+    updateHUD();
+  }
+
+  // Temporarily clear currentSaveId so saveGame() POSTs a new row
+  const prevId  = currentSaveId;
+  currentSaveId = null;
+  try {
+    await saveGame();
+  } catch (e) {
+    currentSaveId = prevId;   // restore on failure
+  }
+}
+
+// ── Load by ID ────────────────────────────────────────────────────────────────
+
+async function loadSaveById(id, scene) {
+  try {
+    const res = await fetch(`${API_BASE}/${id}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const row  = await res.json();
+    const save = row.save_data;
+
+    applySaveData(scene, save);
+    currentSaveId = id;
+
+    showToast(t('toast.welcomeBack', { city: city.name }), 'info');
+    return true;
+  } catch (e) {
+    showToast(t('toast.loadFailed'), 'danger');
+    console.error('[Load]', e);
+    return false;
+  }
+}
+
+// ── Apply save data to the running scene ──────────────────────────────────────
+
+function applySaveData(scene, save) {
+  stopSimTimer();
+
+  // Restore terrain
+  currentSeed = save.seed ?? currentSeed;
+  for (let r = 0; r < MAP_HEIGHT; r++)
+    for (let c = 0; c < MAP_WIDTH; c++)
+      mapData[r][c] = (save.mapData[r] ?? [])[c] ?? GROUND;
+  heightMap = createFilledMap(0);
+  for (let r = 0; r < MAP_HEIGHT; r++) {
+    for (let c = 0; c < MAP_WIDTH; c++) {
+      const savedHeight = (save.heightMap?.[r] ?? [])[c];
+      heightMap[r][c] = Number.isFinite(Number(savedHeight))
+        ? Math.max(0, Number(savedHeight))
+        : (mapData[r][c] === HILL ? 1 : 0);
+    }
+  }
+  flattenMapBorder(mapData, heightMap, 3);
+
+  // Clear Phaser sprites
+  clearAllOverlays(scene);
+  clearBuildings(scene);
+
+  // Reset simulation state
+  resetGameState();
+
+  // Restore city state
+  Object.assign(city, save.city ?? {});
+  normalizeCityFinanceState();
+
+  // Restore infrastructure metadata
+  roadTileCount = save.roadTileCount ?? 0;
+  (save.powerSources ?? []).forEach((id) => powerSources.add(id));
+  (save.powerLineSet  ?? []).forEach((id) => powerLineSet.add(id));
+
+  // Restore zone map
+  for (let r = 0; r < MAP_HEIGHT; r++)
+    for (let c = 0; c < MAP_WIDTH; c++)
+      zoneMap[r][c] = (save.zoneMap[r] ?? [])[c] ?? ZONE_NONE;
+
+  // Restore zone density map (falls back to DENSITY_LOW for older saves)
+  if (save.zoneDensityMap) {
+    for (let r = 0; r < MAP_HEIGHT; r++)
+      for (let c = 0; c < MAP_WIDTH; c++)
+        zoneDensityMap[r][c] = (save.zoneDensityMap[r] ?? [])[c] ?? DENSITY_LOW;
+  }
+
+  // Restore building data
+  Object.assign(buildingData, save.buildingData ?? {});
+
+  // Rebuild Phaser sprites
+  rebuildSceneFromSave(scene, save);
+
+  // Refresh tile textures
+  refreshAllTiles(scene);
+
+  // Re-run infrastructure passes
+  updatePowerGrid(scene);
+  updateServiceCoverage();
+  updatePopulationAndPollution();
+  computeHappiness(scene);
+  updateDemand();
+  refreshZoneOverlayTints(scene);
+
+  // UI
+  updateHUD();
+
+  // Restart sim
+  startSimTimer();
+}
+
+// ── Rebuild Phaser sprites from saved data ────────────────────────────────────
+
+function rebuildSceneFromSave(scene, save) {
+  // Zone overlays
+  for (let r = 0; r < MAP_HEIGHT; r++) {
+    for (let c = 0; c < MAP_WIDTH; c++) {
+      const zone = zoneMap[r][c];
+      if (zone === ZONE_NONE) continue;
+
+      const density = (save.zoneDensityMap?.[r]?.[c]) ?? DENSITY_LOW;
+      const zoneCode = zone === ZONE_RES ? 'res'
+                     : zone === ZONE_COM ? 'com'
+                     : 'ind';
+      const textureKey = `zone_overlay_${zoneCode}_${density}`;
+      const pos     = isoToScreen(c, r);
+      const overlay = scene.add.image(
+        pos.x + scene.offsetX,
+        pos.y + scene.offsetY + getElevationVisualOffset(r, c),
+        textureKey,
+      );
+      overlay.setOrigin(0.5, 1);
+      overlay.setDepth(pos.y + 0.5);
+      overlay.setAlpha(0.80);
+      overlay.setMask(scene.worldMask);
+      scene.zoneOverlays.set(getTileId(r, c), overlay);
+    }
+  }
+
+  // Buildings (buildingData only stores anchor tiles)
+  Object.entries(save.buildingData ?? {}).forEach(([id, record]) => {
+    if (scene.buildingSprites.has(id)) return;
+
+    const [r, c] = id.split(':').map(Number);
+    const key    = deriveLoadedSpriteKey(record);
+    const opts   = normalizeLoadedBuildingOptions(key, record);
+
+    placeSpriteBuilding(scene, r, c, key, opts);
+    Object.assign(record, opts, { spriteKey: key });
+  });
+
+  // Power-line graphics
+  (save.powerLineSet ?? []).forEach((id) => {
+    const [r, c] = id.split(':').map(Number);
+    if (!scene.powerLineSprites.has(id)) {
+      drawPowerLineSprite(scene, r, c);
+    }
+  });
+}
+
+// ── Fallback sprite key for saves without spriteKey ───────────────────────────
+
+function deriveFallbackSpriteKey(record) {
+  if (typeof isPowerPlantType === 'function' && isPowerPlantType(record.type)) {
+    return POWER_PLANT_MODELS[record.type].spriteKey;
+  }
+
+  const infraIdx = typeof INFRA_SPRITE_INDEX !== 'undefined'
+    ? INFRA_SPRITE_INDEX[record.type]
+    : undefined;
+  if (infraIdx !== undefined) return BUILDING_KEYS[infraIdx];
+  if (record.type === 'park_small') return 'park_small_open';
+  if (record.type === 'park_large') return 'park_large';
+  if (record.type === 'residential') return BUILDING_KEYS[Math.floor(Math.random() * 20)];
+  if (record.type === 'commercial')  return BUILDING_KEYS[Math.floor(Math.random() * 39)];
+  if (record.type === 'industrial')  return BUILDING_KEYS[39 + Math.floor(Math.random() * 39)];
+  return BUILDING_KEYS[0];
+}
+
+function deriveLoadedSpriteKey(record) {
+  if (typeof isPowerPlantType === 'function' && isPowerPlantType(record.type)) {
+    return POWER_PLANT_MODELS[record.type].spriteKey;
+  }
+  return record.spriteKey ?? deriveFallbackSpriteKey(record);
+}
+
+function normalizeLoadedBuildingOptions(key, record) {
+  const options = {
+    footprintCols: record.footprintCols ?? 1,
+    footprintRows: record.footprintRows ?? 1,
+    originX: record.originX,
+    originY: record.originY,
+    scale: record.scale,
+  };
+
+  if (typeof isPowerPlantSpriteKey === 'function' && isPowerPlantSpriteKey(key) && typeof normalizeSpriteBuildingOptions === 'function') {
+    return normalizeSpriteBuildingOptions(key, options);
+  }
+
+  if (typeof isParkSpriteKey === 'function' && isParkSpriteKey(key) && typeof normalizeSpriteBuildingOptions === 'function') {
+    return normalizeSpriteBuildingOptions(key, options);
+  }
+
+  return options;
+}
+
+// ── List / Delete ─────────────────────────────────────────────────────────────
+
+async function listSaves() {
+  const res = await fetch(API_BASE);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();   // [{id, city_name, population, year, month, budget, updated_at}, …]
+}
+
+async function deleteSaveById(id) {
+  const res = await fetch(`${API_BASE}/${id}`, { method: 'DELETE' });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+}
+
+// ── Save list modal ───────────────────────────────────────────────────────────
+
+function openSaveListModal() {
+  const modal = document.getElementById('save-list-modal');
+  if (!modal) return;
+  modal.style.display = 'flex';
+  refreshSaveListModal();
+}
+
+function closeSaveListModal() {
+  const modal = document.getElementById('save-list-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+async function refreshSaveListModal() {
+  const list = document.getElementById('save-list-items');
+  if (!list) return;
+  list.innerHTML = `<div class="save-list-loading">${t('save.loading')}</div>`;
+
+  try {
+    const saves = await listSaves();
+
+    if (saves.length === 0) {
+      list.innerHTML = `
+        <div class="save-list-empty">
+          ${t('save.empty')}
+        </div>`;
+      return;
+    }
+
+    list.innerHTML = saves.map((s) => {
+      const date  = s.updated_at
+        ? new Date(s.updated_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+        : '';
+      const month = (typeof MONTH_NAMES !== 'undefined' && MONTH_NAMES[s.month - 1])
+        ? tMonth(s.month)
+        : '';
+      const budgetStr = `$${Number(s.budget).toLocaleString()}`;
+      const detail = t('save.detail', {
+        population: Number(s.population).toLocaleString(),
+        month,
+        year: s.year,
+        budget: budgetStr,
+      });
+      return `
+        <div class="save-list-item">
+          <div class="save-list-meta">
+            <span class="save-list-name">${escapeHtml(s.city_name)}</span>
+            <span class="save-list-detail">
+              ${detail}
+            </span>
+            ${date ? `<span class="save-list-date">${t('save.lastSaved', { date })}</span>` : ''}
+          </div>
+          <div class="save-list-actions">
+            <button class="save-list-load-btn" data-id="${s.id}">${t('save.load')}</button>
+            <button class="save-list-del-btn"  data-id="${s.id}" title="${t('save.deleteTitle')}">🗑</button>
+          </div>
+        </div>`;
+    }).join('');
+
+    // Wire Load buttons
+    list.querySelectorAll('.save-list-load-btn').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        if (!gameReady) { showToast(t('toast.stillLoading'), 'warning'); return; }
+        closeSaveListModal();
+        const id = Number(btn.dataset.id);
+        const ok = await loadSaveById(id, activeScene);
+        if (ok) hideLandingScreen();
+      });
+    });
+
+    // Wire Delete buttons
+    list.querySelectorAll('.save-list-del-btn').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        if (!confirm(t('save.deleteConfirm'))) return;
+        const id = Number(btn.dataset.id);
+        try {
+          await deleteSaveById(id);
+          if (currentSaveId === id) currentSaveId = null;
+          refreshSaveListModal();
+        } catch (e) {
+          showToast(t('toast.deleteFailed'), 'danger');
+        }
+      });
+    });
+
+  } catch (e) {
+    list.innerHTML = `
+      <div class="save-list-empty">
+        ${t('save.connectError')}
+      </div>`;
+    console.error('[SaveList]', e);
+  }
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// Kept for backward-compatibility — no longer used for primary flow
+function hasSave() { return currentSaveId !== null; }
+function getSaveInfo() { return null; }

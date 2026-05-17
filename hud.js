@@ -372,10 +372,20 @@ function startTicker() {
 
 function getPowerPlantTickerWarning() {
   const plant = Object.values(buildingData).find((record) => POWER_PLANT_STATS[record.type] && isPowerPlantNearRetirement(record));
-  if (!plant) return null;
-  const remaining = getPowerPlantRemainingMonths(plant);
-  const label = plant.type === 'power_plant_coal' ? t('building.coalPlant') : t('building.solarPlant');
-  return `${label} · ${t('inspect.powerWarning')} · ${t('inspect.powerRemaining', { remaining })}`;
+  if (plant) {
+    const remaining = getPowerPlantRemainingMonths(plant);
+    const label = plant.type === 'power_plant_coal' ? t('building.coalPlant') : t('building.solarPlant');
+    return `${label} · ${t('inspect.powerWarning')} · ${t('inspect.powerRemaining', { remaining })}`;
+  }
+
+  if ((city.totalPowerSupply ?? 0) < (city.totalPowerDemand ?? 0) && (city.totalPowerDemand ?? 0) > 0) {
+    return t('inspect.powerShortage', {
+      supply: city.totalPowerSupply ?? 0,
+      demand: city.totalPowerDemand ?? 0,
+    });
+  }
+
+  return null;
 }
 
 document.addEventListener('languagechange', () => {

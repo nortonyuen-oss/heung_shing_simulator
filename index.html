@@ -1945,6 +1945,18 @@
       padding: 1px 5px;
       border-radius: 999px;
     }
+    #overlay-power-status.power-status-ok {
+      background: #e4f4df;
+      color: #2d6b32;
+    }
+    #overlay-power-status.power-status-warn {
+      background: #fff0cc;
+      color: #856100;
+    }
+    #overlay-power-status.power-status-bad {
+      background: #f6d3d3;
+      color: #992626;
+    }
     #overlay-power-mw {
       font-size: 10px;
       color: #4a4030;
@@ -2562,6 +2574,7 @@ Ctrl+O       Load game (open saves list)</div>
       <button class="overlay-btn" type="button" data-overlay="fire"       title="Fire hazard map" data-i18n-title="overlay.fireMap">🔥</button>
       <button class="overlay-btn" type="button" data-overlay="population" title="Population density map" data-i18n-title="overlay.populationMap">👥</button>
       <button class="overlay-btn" type="button" data-overlay="landvalue"  title="Land value map" data-i18n-title="overlay.landvalueMap">💰</button>
+      <button class="overlay-btn" type="button" data-overlay="electricity" title="Electricity map" data-i18n-title="overlay.electricityMap">🔌</button>
       <button class="overlay-btn" type="button" data-overlay="power"       title="Power plant map" data-i18n-title="overlay.powerMap">⚡</button>
     </div>
     <div class="hud-separator"></div>
@@ -2725,6 +2738,7 @@ Ctrl+O       Load game (open saves list)</div>
         <button class="overlay-mode-btn" type="button" data-overlay="fire" title="Fire hazard map" data-i18n-title="overlay.fireMap">🔥</button>
         <button class="overlay-mode-btn" type="button" data-overlay="population" title="Population density map" data-i18n-title="overlay.populationMap">👥</button>
         <button class="overlay-mode-btn" type="button" data-overlay="landvalue" title="Land value map" data-i18n-title="overlay.landvalueMap">💰</button>
+        <button class="overlay-mode-btn" type="button" data-overlay="electricity" title="Electricity map" data-i18n-title="overlay.electricityMap">🔌</button>
         <button class="overlay-mode-btn" type="button" data-overlay="power" title="Power plant map" data-i18n-title="overlay.powerMap">⚡</button>
       </div>
       <canvas id="mini-map-canvas" width="256" height="256"></canvas>

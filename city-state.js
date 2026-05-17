@@ -315,6 +315,22 @@ function getPowerPlantGenerationSummary(record) {
   return { output, maxOutput: stats.generationMW, ratio };
 }
 
+function getPowerPlantLoadSummary(record) {
+  const stats = getPowerPlantStats(record?.type);
+  if (!stats) return { load: 0, maxLoad: 0, loadRatio: 0, status: 'unknown' };
+
+  const maxLoad = stats.generationMW;
+  const load = Math.max(0, Number(record?.powerLoad ?? 0));
+  const loadRatio = clamp(load / Math.max(1, maxLoad), 0, 1);
+  let status = 'balanced';
+  if ((record?.powerState ?? 'active') === 'abandoned') status = 'abandoned';
+  else if (loadRatio >= 0.95) status = 'overloaded';
+  else if (loadRatio >= 0.75) status = 'busy';
+  else if (loadRatio < 0.25) status = 'underused';
+
+  return { load, maxLoad, loadRatio, status };
+}
+
 function computeLoanPayment(amount, months, annualRate) {
   const monthlyRate = annualRate / 12;
   if (!monthlyRate) return Math.ceil(amount / months);

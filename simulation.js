@@ -56,6 +56,7 @@ function updatePowerGrid(scene) {
 
   let totalSupply = 0;
   let totalDemand = 0;
+  const activePlants = [];
 
   for (let r = 0; r < MAP_HEIGHT; r++) {
     for (let c = 0; c < MAP_WIDTH; c++) {
@@ -64,7 +65,9 @@ function updatePowerGrid(scene) {
       if (record) {
         totalDemand += getBuildingPowerDemand(record);
         if (POWER_PLANT_STATS[record.type] && (record.powerState ?? 'active') !== 'abandoned') {
-          totalSupply += getPowerPlantOutput(record);
+          const output = getPowerPlantOutput(record);
+          totalSupply += output;
+          activePlants.push({ record, output });
         }
       } else if (zoneMap[r][c] !== ZONE_NONE) {
         totalDemand += getZonePowerDemand(zoneMap[r][c], zoneDensityMap[r][c] ?? DENSITY_LOW);
@@ -77,6 +80,41 @@ function updatePowerGrid(scene) {
   city.powerRatio = city.totalPowerDemand > 0
     ? clamp(city.totalPowerSupply / city.totalPowerDemand, 0, 1)
     : 1;
+  city.powerStatus = city.totalPowerDemand === 0
+    ? 'surplus'
+    : city.totalPowerSupply >= city.totalPowerDemand
+      ? (city.totalPowerSupply > city.totalPowerDemand * 1.1 ? 'surplus' : 'ok')
+      : (city.totalPowerSupply >= city.totalPowerDemand * 0.75 ? 'strained' : 'overloaded');
+
+  activePlants.forEach(({ record, output }) => {
+    if (output <= 0) {
+      record.powerLoad = 0;
+      record.powerLoadRatio = 0;
+      record.powerLoadState = 'off';
+      return;
+    }
+
+    const share = totalSupply > 0 ? output / totalSupply : 0;
+    const served = Math.min(output, Math.round(totalDemand * share));
+    record.powerLoad = served;
+    record.powerLoadRatio = clamp(served / output, 0, 1);
+    record.powerLoadState = city.powerStatus === 'overloaded'
+      ? 'overloaded'
+      : record.powerLoadRatio >= 0.9
+        ? 'busy'
+        : record.powerLoadRatio >= 0.5
+          ? 'balanced'
+          : 'underused';
+  });
+
+  Object.entries(buildingData).forEach(([, record]) => {
+    if (!POWER_PLANT_STATS[record.type]) return;
+    if ((record.powerState ?? 'active') === 'abandoned') {
+      record.powerLoad = 0;
+      record.powerLoadRatio = 0;
+      record.powerLoadState = 'abandoned';
+    }
+  });
 
   const queue = [];
 
@@ -215,9 +253,10 @@ function growOrShrinkZones(scene) {
 
       // Power multiplies growth speed. A citywide shortage slows all powered
       // tiles; unpowered tiles remain mostly stagnant.
+      const cityPower = city.powerRatio ?? 1;
       const powerMul   = powered
-        ? Math.max(0.08, Math.min(1, 0.1 + (city.powerRatio ?? 1) * 0.9))
-        : 0.05;
+        ? Math.max(0.06, Math.min(1, 0.08 + cityPower * 0.92))
+        : 0.03;
       const density    = zoneDensityMap[r][c] ?? DENSITY_LOW;
       const densityMul = DENSITY_GROW_MUL[density] ?? 1.0;
 
@@ -233,7 +272,7 @@ function growOrShrinkZones(scene) {
         if (record.level < 3 && hasRoad && demand > 0.5 && Math.random() < UPGRADE_CHANCE * powerMul * densityMul) {
           if (zone === ZONE_RES && tryMergeResidentialCluster(scene, r, c, record)) continue;
           upgradeZoneBuilding(scene, r, c, zone);
-        } else if ((!hasRoad || demand < -0.5 || (city.powerRatio ?? 1) < 0.25) && Math.random() < SHRINK_CHANCE * ((city.powerRatio ?? 1) < 0.25 ? 1.3 : 1)) {
+        } else if ((!hasRoad || demand < -0.5 || cityPower < 0.35) && Math.random() < SHRINK_CHANCE * (cityPower < 0.35 ? 1.5 : 1)) {
           shrinkOrRemoveZoneBuilding(scene, r, c);
         }
       }
@@ -489,7 +528,6 @@ function agePowerPlants(scene) {
     if (!POWER_PLANT_STATS[record.type]) return;
 
     record.age = Math.max(0, Number(record.age ?? 0) + 1);
-    const stats = getPowerPlantStats(record.type);
     const remaining = getPowerPlantRemainingMonths(record);
     const state = getPowerPlantState(record);
     const building = scene?.buildingSprites.get(id);
@@ -507,6 +545,7 @@ function agePowerPlants(scene) {
 
     record.powerRemainingMonths = remaining;
     record.powerWarning = isPowerPlantNearRetirement(record);
+  record.powerMaintenance = getPowerPlantMaintenance(record);
 
     if (!building) return;
     if (record.powerState === 'abandoned') {

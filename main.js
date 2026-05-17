@@ -373,6 +373,14 @@ function preload() {
   this.load.image('road_t_e', `${roadPath}crossroadESW.png`);
   this.load.image('road_t_s', `${roadPath}crossroadNSW.png`);
   this.load.image('road_t_w', `${roadPath}crossroadNEW.png`);
+  this.load.image('road_hill_n', `${roadPath}roadHillN.png`);
+  this.load.image('road_hill_e', `${roadPath}roadHillE.png`);
+  this.load.image('road_hill_s', `${roadPath}roadHillS.png`);
+  this.load.image('road_hill_w', `${roadPath}roadHillW.png`);
+  this.load.image('road_hill2_n', `${roadPath}roadHill2N.png`);
+  this.load.image('road_hill2_e', `${roadPath}roadHill2E.png`);
+  this.load.image('road_hill2_s', `${roadPath}roadHill2S.png`);
+  this.load.image('road_hill2_w', `${roadPath}roadHill2W.png`);
   this.load.image('road_end_n', `${roadPath}endW.png`);
   this.load.image('road_end_e', `${roadPath}endN.png`);
   this.load.image('road_end_s', `${roadPath}endE.png`);
@@ -2471,6 +2479,14 @@ function canPlaceBuilding(row, col) {
   return [GROUND, DIRT, HILL].includes(mapData[row][col]);
 }
 
+function canPlaceRoad(scene, row, col) {
+  if (!isInsideMap(row, col)) return false;
+  if (scene?.buildingSprites?.has(getTileId(row, col))) return false;
+  if (buildingData[getTileId(row, col)]) return false;
+  if (getRoadSlopeKey(row, col) === 'road_slope_corner') return false;
+  return true;
+}
+
 function canPlaceBuildingFootprint(row, col, footprintCols = 1, footprintRows = 1) {
   return getFootprintTiles(row, col, footprintCols, footprintRows).every(([tileRow, tileCol]) => (
     isInsideMap(tileRow, tileCol)
@@ -2558,6 +2574,7 @@ function applyToolAt(scene, row, col, pointer = null) {
   }
 
   if (selectedTool === 'road' && mapData[row][col] !== ROAD) {
+    if (!canPlaceRoad(scene, row, col)) return;
     if (!spendBudget(COST_ROAD)) { showToast(t('toast.notEnoughFunds'), 'warning'); return; }
   }
 
@@ -3032,6 +3049,8 @@ function setTileType(scene, row, col, tileType) {
   if (oldType === tileType) return;
 
   if (tileType === ROAD) {
+    const tileId = getTileId(row, col);
+    if (scene.buildingSprites.has(tileId) || buildingData[tileId]) return;
     removeBuilding(scene, row, col);
     removeZoneOverlay(scene, row, col);
   }
@@ -3724,6 +3743,10 @@ function rotateTileKey(key, steps) {
   const tM = key.match(/^(.+_t)_([nesw])$/);
   if (tM) return `${tM[1]}_${d(tM[2])}`;
 
+  // Hill-road variants use the same compass rotation rules.
+  const hillM = key.match(/^(.+_hill2?)_([nesw])$/);
+  if (hillM) return `${hillM[1]}_${d(hillM[2])}`;
+
   // Patterns: PREFIX_end_X  →  PREFIX_end_{d(X)}
   const endM = key.match(/^(.+_end)_([nesw])$/);
   if (endM) return `${endM[1]}_${d(endM[2])}`;
@@ -3783,6 +3806,10 @@ function screenToIso(x, y) {
 
 // Determine which road tile to use based on neighbouring roads
 function getRoadKey(row, col) {
+  const slopeKey = getRoadSlopeKey(row, col);
+  if (slopeKey === 'road_slope_corner') return 'road_isolated';
+  if (slopeKey) return slopeKey;
+
   // Determine adjacency on diagonal edges (NE, SE, SW, NW).  The 'north' tile in mapData corresponds
   // to the NE edge of the isometric tile, 'east' corresponds to SE, 'south' to SW and 'west' to NW.
   const ne = row > 0 && mapData[row - 1][col] === ROAD;
@@ -3809,6 +3836,25 @@ function getRoadKey(row, col) {
   if (sw) return 'road_end_n';
   if (nw) return 'road_end_e';
   return 'road_isolated';
+}
+
+function getRoadSlopeKey(row, col) {
+  if (getTileHeight(row, col) <= 0) return null;
+
+  const openEdges = getHillOpenEdges(row, col);
+  if (openEdges.length === 0) return null;
+
+  const normalized = normalizeHillOpenEdges(row, col, openEdges);
+  if (normalized.length === 2 && !areOppositeDirs(normalized[0], normalized[1])) {
+    return 'road_slope_corner';
+  }
+
+  if (openEdges.length === 2 && areOppositeDirs(openEdges[0], openEdges[1])) {
+    const axisDir = openEdges.includes('n') ? 'n' : 'e';
+    return `road_hill2_${axisDir}`;
+  }
+
+  return `road_hill_${normalized[0]}`;
 }
 
 function getBeachKey(row, col) {

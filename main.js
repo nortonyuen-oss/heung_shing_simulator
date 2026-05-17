@@ -3494,13 +3494,13 @@ function normalizeUnsupportedHillTopologiesLocal(centerRow, centerCol, radius = 
         if (current <= 0) continue;
 
         const neighbors = [
-          row > 0 ? getTileHeight(row - 1, col) : 0,
-          col < MAP_WIDTH - 1 ? getTileHeight(row, col + 1) : 0,
-          row < MAP_HEIGHT - 1 ? getTileHeight(row + 1, col) : 0,
-          col > 0 ? getTileHeight(row, col - 1) : 0,
+          row > 0 ? (mapData[row - 1][col] === HILL ? getTileHeight(row - 1, col) : null) : null,
+          col < MAP_WIDTH - 1 ? (mapData[row][col + 1] === HILL ? getTileHeight(row, col + 1) : null) : null,
+          row < MAP_HEIGHT - 1 ? (mapData[row + 1][col] === HILL ? getTileHeight(row + 1, col) : null) : null,
+          col > 0 ? (mapData[row][col - 1] === HILL ? getTileHeight(row, col - 1) : null) : null,
         ];
 
-        const lowerDirs = ['n', 'e', 's', 'w'].filter((dir, index) => neighbors[index] < current);
+        const lowerDirs = ['n', 'e', 's', 'w'].filter((dir, index) => neighbors[index] !== null && neighbors[index] < current);
         const hasOppositePair = (lowerDirs.length === 2) && areOppositeDirs(lowerDirs[0], lowerDirs[1]);
 
         if (lowerDirs.length >= 3 || hasOppositePair) {

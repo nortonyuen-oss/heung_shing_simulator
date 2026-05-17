@@ -57,7 +57,7 @@ const DIRT = 3;
 const BEACH = 4;
 const WATER = 5;
 const HILL = 6;
-const MAX_TERRAIN_HEIGHT = 4;
+const MAX_TERRAIN_HEIGHT = 8;
 const HEIGHT_STEP_PIXELS = 12;
 const TERRAIN_RAISE_BLOCK_RADIUS = 1;
 const TOOL_TERRAIN = {
@@ -2483,7 +2483,6 @@ function canPlaceRoad(scene, row, col) {
   if (!isInsideMap(row, col)) return false;
   if (scene?.buildingSprites?.has(getTileId(row, col))) return false;
   if (buildingData[getTileId(row, col)]) return false;
-  if (getRoadSlopeKey(row, col) === 'road_slope_corner') return false;
   return true;
 }
 

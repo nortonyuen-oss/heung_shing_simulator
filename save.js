@@ -2,6 +2,9 @@
 // Requires server.js to be running (npm install && node server.js)
 
 const API_BASE = '/api/saves';
+const TERRAIN_API_BASE = '/api/terrains';
+const TERRAIN_LOCAL_KEY = 'citybuilder.terrainPresets';
+let terrainApiAvailable = null;
 let currentSaveId = null;   // tracks which DB row we are editing
 
 // ── Build save payload ────────────────────────────────────────────────────────
@@ -96,6 +99,8 @@ async function loadSaveById(id, scene) {
     const save = row.save_data;
 
     applySaveData(scene, save);
+    if (typeof isTerrainCreatorMode !== 'undefined') isTerrainCreatorMode = false;
+    if (typeof activeTerrainProfileType !== 'undefined') activeTerrainProfileType = 'custom';
     currentSaveId = id;
 
     showToast(t('toast.welcomeBack', { city: city.name }), 'info');
@@ -286,6 +291,121 @@ async function listSaves() {
 async function deleteSaveById(id) {
   const res = await fetch(`${API_BASE}/${id}`, { method: 'DELETE' });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
+}
+
+// ── Terrain preset API ───────────────────────────────────────────────────────
+
+async function listTerrainPresets() {
+  if (terrainApiAvailable !== false) {
+    try {
+      const res = await fetch(TERRAIN_API_BASE);
+      if (res.ok) {
+        terrainApiAvailable = true;
+        return res.json();
+      }
+      if (res.status === 404) terrainApiAvailable = false;
+      else throw new Error(`HTTP ${res.status}`);
+    } catch {
+      terrainApiAvailable = false;
+    }
+  }
+  return readLocalTerrainPresets().map((row) => ({ ...row }));
+}
+
+async function getTerrainPresetById(id) {
+  if (terrainApiAvailable !== false) {
+    try {
+      const res = await fetch(`${TERRAIN_API_BASE}/${id}`);
+      if (res.ok) {
+        terrainApiAvailable = true;
+        return res.json();
+      }
+      if (res.status === 404) terrainApiAvailable = false;
+      else throw new Error(`HTTP ${res.status}`);
+    } catch {
+      terrainApiAvailable = false;
+    }
+  }
+
+  const row = readLocalTerrainPresets().find((preset) => String(preset.id) === String(id));
+  if (!row) throw new Error('Terrain preset not found');
+  return {
+    ...row,
+    terrain_data: row.terrain_data,
+  };
+}
+
+async function createTerrainPreset(payload) {
+  if (terrainApiAvailable !== false) {
+    try {
+      const res = await fetch(TERRAIN_API_BASE, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) {
+        terrainApiAvailable = true;
+        return res.json();
+      }
+      if (res.status === 404) terrainApiAvailable = false;
+      else throw new Error(`HTTP ${res.status}`);
+    } catch {
+      terrainApiAvailable = false;
+    }
+  }
+
+  const rows = readLocalTerrainPresets();
+  const now = new Date().toISOString();
+  const id = `local-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+  const row = {
+    id,
+    name: payload.name,
+    profile_type: payload.profile_type || 'custom',
+    seed: payload.seed || '',
+    terrain_data: payload.terrain_data,
+    created_at: now,
+    updated_at: now,
+  };
+  rows.unshift(row);
+  writeLocalTerrainPresets(rows);
+  return row;
+}
+
+async function deleteTerrainPresetById(id) {
+  if (terrainApiAvailable !== false) {
+    try {
+      const res = await fetch(`${TERRAIN_API_BASE}/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        terrainApiAvailable = true;
+        return;
+      }
+      if (res.status === 404) terrainApiAvailable = false;
+      else throw new Error(`HTTP ${res.status}`);
+    } catch {
+      terrainApiAvailable = false;
+    }
+  }
+
+  const next = readLocalTerrainPresets().filter((preset) => String(preset.id) !== String(id));
+  writeLocalTerrainPresets(next);
+}
+
+function readLocalTerrainPresets() {
+  try {
+    const raw = localStorage.getItem(TERRAIN_LOCAL_KEY);
+    const data = raw ? JSON.parse(raw) : [];
+    return Array.isArray(data) ? data : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeLocalTerrainPresets(rows) {
+  try {
+    localStorage.setItem(TERRAIN_LOCAL_KEY, JSON.stringify(rows));
+  } catch {
+    // Ignore storage write failures.
+  }
 }
 
 // ── Save list modal ───────────────────────────────────────────────────────────

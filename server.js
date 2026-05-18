@@ -93,6 +93,62 @@ app.delete('/api/saves/:id', (req, res) => {
   }
 });
 
+// GET /api/terrains - list terrain presets (metadata only)
+app.get('/api/terrains', (req, res) => {
+  try {
+    res.json(store.listTerrainPresets());
+  } catch (e) {
+    console.error('[GET /api/terrains]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// GET /api/terrains/:id - fetch full terrain payload
+app.get('/api/terrains/:id', (req, res) => {
+  try {
+    const row = store.getTerrainPreset(Number(req.params.id));
+    if (!row) return res.status(404).json({ error: 'Terrain preset not found' });
+    res.json(row);
+  } catch (e) {
+    console.error('[GET /api/terrains/:id]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /api/terrains - create a terrain preset
+app.post('/api/terrains', (req, res) => {
+  try {
+    const row = store.createTerrainPreset(req.body);
+    res.status(201).json(row);
+  } catch (e) {
+    console.error('[POST /api/terrains]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// PUT /api/terrains/:id - update a terrain preset
+app.put('/api/terrains/:id', (req, res) => {
+  try {
+    const row = store.updateTerrainPreset(Number(req.params.id), req.body);
+    if (!row) return res.status(404).json({ error: 'Terrain preset not found' });
+    res.json(row);
+  } catch (e) {
+    console.error('[PUT /api/terrains/:id]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// DELETE /api/terrains/:id - delete a terrain preset
+app.delete('/api/terrains/:id', (req, res) => {
+  try {
+    store.deleteTerrainPreset(Number(req.params.id));
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[DELETE /api/terrains/:id]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`\nCity Builder running at http://localhost:${PORT}`);
   console.log(`SQLite saves: ${store.path}\n`);

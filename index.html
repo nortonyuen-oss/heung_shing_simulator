@@ -1651,6 +1651,36 @@
     }
     #city-name-input:focus { outline: none; border-color: #f1c65d; background: #fff; }
 
+    .landing-form-select,
+    .landing-form-input {
+      width: 100%;
+      padding: 10px 12px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #1e2427;
+      background: #fffdf2;
+      border: 2px solid #6f6b60;
+      border-radius: 6px;
+      margin-bottom: 10px;
+      box-sizing: border-box;
+      text-align: center;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    .landing-form-select:focus,
+    .landing-form-input:focus {
+      outline: none;
+      border-color: #f1c65d;
+      background: #fff;
+    }
+
+    .landing-form-hint {
+      margin: -2px 0 12px;
+      font-size: 11px;
+      color: #6d6658;
+      text-align: center;
+    }
+
     /* ── HUD city name ───────────────────────────────────────────────────── */
 
     .hud-city-row {
@@ -2200,6 +2230,7 @@ Ctrl+O       Load game (open saves list)</div>
         <p class="landing-tagline" data-i18n="landing.tagline">ZONE · BUILD · GROW</p>
         <div class="landing-actions">
           <button id="btn-new-game" class="landing-btn primary" data-i18n-html="landing.newGame">🏗&nbsp; New Game</button>
+          <button id="btn-terrain-creator" class="landing-btn primary" data-i18n-html="landing.terrainCreator">🗺️&nbsp; Create Terrain</button>
           <button id="btn-continue" class="landing-btn secondary" data-i18n-html="landing.loadSaved">📂&nbsp; Load Saved Game</button>
         </div>
       </div>
@@ -2208,9 +2239,28 @@ Ctrl+O       Load game (open saves list)</div>
       <div id="landing-name-form" style="display:none">
         <p class="landing-form-title" data-i18n="landing.nameCity">Name your city</p>
         <input id="city-name-input" type="text" placeholder="My City" data-i18n-placeholder="city.defaultName" maxlength="30" autocomplete="off" spellcheck="false" />
+        <select id="newgame-terrain-source" class="landing-form-select" aria-label="Terrain source" data-i18n-aria="landing.terrainSource">
+          <option value="random" data-i18n="landing.terrainSourceRandom">Random terrain</option>
+          <option value="preset" data-i18n="landing.terrainSourcePreset">Saved terrain preset</option>
+        </select>
+        <select id="newgame-terrain-preset" class="landing-form-select" aria-label="Saved terrain preset" data-i18n-aria="landing.terrainPresetSelect" style="display:none">
+          <option value="" data-i18n="landing.terrainPresetLoading">Loading terrain presets…</option>
+        </select>
+        <div id="newgame-terrain-empty-hint" class="landing-form-hint" style="display:none" data-i18n="landing.noTerrainPresets">No saved terrain presets yet.</div>
         <div class="landing-actions">
           <button id="btn-start-city" class="landing-btn primary" data-i18n-html="landing.foundCity">🚀&nbsp; Found City!</button>
           <button id="btn-back"       class="landing-btn secondary" data-i18n="landing.back">← Back</button>
+        </div>
+      </div>
+
+      <!-- Terrain creator setup state -->
+      <div id="landing-terrain-form" style="display:none">
+        <p class="landing-form-title" data-i18n="landing.terrainPickTitle">Choose terrain type</p>
+        <select id="terrain-profile-select" class="landing-form-select" aria-label="Terrain profile" data-i18n-aria="landing.terrainPickTitle"></select>
+        <input id="terrain-seed-input" class="landing-form-input" type="text" maxlength="30" autocomplete="off" spellcheck="false" placeholder="Seed" data-i18n-placeholder="landing.terrainSeedPlaceholder" />
+        <div class="landing-actions">
+          <button id="btn-generate-terrain" class="landing-btn primary" data-i18n-html="landing.generateTerrain">⛰️&nbsp; Generate Terrain</button>
+          <button id="btn-terrain-back" class="landing-btn secondary" data-i18n="landing.back">← Back</button>
         </div>
       </div>
 
@@ -2246,6 +2296,9 @@ Ctrl+O       Load game (open saves list)</div>
       </button>
       <button class="tool-row" type="button" data-action="generate">
         <span class="tool-row-icon">🔄</span><span class="tool-row-text" data-i18n="tool.generate">Generate Terrain</span>
+      </button>
+      <button class="tool-row" type="button" data-action="save-terrain">
+        <span class="tool-row-icon">💾</span><span class="tool-row-text" data-i18n="tool.saveTerrain">Save Terrain</span>
       </button>
     </section>
 

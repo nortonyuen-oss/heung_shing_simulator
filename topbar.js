@@ -207,16 +207,21 @@ function updateSoundMenu() {
 
 function returnToMainMenu() {
   // Auto-save current game, then go back to landing screen
-  saveGame();   // async — fires in background; toast appears when done
+  if (!isTerrainCreatorMode) {
+    saveGame();   // async — fires in background; toast appears when done
+  }
+  isTerrainCreatorMode = false;
   stopSimTimer();
 
   // Show landing screen in main-menu state
   const screen   = document.getElementById('landing-screen');
   const menuDiv  = document.getElementById('landing-menu');
   const nameForm = document.getElementById('landing-name-form');
+  const terrainForm = document.getElementById('landing-terrain-form');
   if (screen)   screen.style.display   = 'flex';
   if (menuDiv)  menuDiv.style.display  = 'block';
   if (nameForm) nameForm.style.display = 'none';
+  if (terrainForm) terrainForm.style.display = 'none';
 }
 
 // ── Dialog helpers ────────────────────────────────────────────────────────────

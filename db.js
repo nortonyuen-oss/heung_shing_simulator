@@ -29,9 +29,27 @@ function openGameDatabase(dbPath = resolveDbPath()) {
     )
   `);
 
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS terrain_presets (
+      id            INTEGER PRIMARY KEY AUTOINCREMENT,
+      name          TEXT    NOT NULL,
+      profile_type  TEXT    NOT NULL DEFAULT 'custom',
+      seed          TEXT    NOT NULL DEFAULT '',
+      terrain_data  TEXT    NOT NULL,
+      created_at    TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at    TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
   const getSaveMetadataById = db.prepare(`
     SELECT id, city_name, population, year, month, budget, created_at, updated_at
     FROM game_saves
+    WHERE id = ?
+  `);
+
+  const getTerrainMetadataById = db.prepare(`
+    SELECT id, name, profile_type, seed, created_at, updated_at
+    FROM terrain_presets
     WHERE id = ?
   `);
 
@@ -108,6 +126,51 @@ function openGameDatabase(dbPath = resolveDbPath()) {
       });
     },
 
+    listTerrainPresets() {
+      return db.prepare(`
+        SELECT id, name, profile_type, seed, created_at, updated_at
+        FROM terrain_presets
+        ORDER BY updated_at DESC
+      `).all();
+    },
+
+    getTerrainPreset(id) {
+      const row = db.prepare('SELECT * FROM terrain_presets WHERE id = ?').get(id);
+      if (!row) return null;
+      return {
+        ...row,
+        terrain_data: JSON.parse(row.terrain_data),
+      };
+    },
+
+    createTerrainPreset(payload) {
+      const result = db.prepare(`
+        INSERT INTO terrain_presets (name, profile_type, seed, terrain_data, updated_at)
+        VALUES (@name, @profile_type, @seed, @terrain_data, CURRENT_TIMESTAMP)
+      `).run(serializeTerrainPayload(payload));
+
+      return getTerrainMetadataById.get(result.lastInsertRowid);
+    },
+
+    updateTerrainPreset(id, payload) {
+      const result = db.prepare(`
+        UPDATE terrain_presets
+        SET name = @name,
+            profile_type = @profile_type,
+            seed = @seed,
+            terrain_data = @terrain_data,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = @id
+      `).run({ id, ...serializeTerrainPayload(payload) });
+
+      if (result.changes === 0) return null;
+      return getTerrainMetadataById.get(id);
+    },
+
+    deleteTerrainPreset(id) {
+      db.prepare('DELETE FROM terrain_presets WHERE id = ?').run(id);
+    },
+
     close() {
       db.close();
     },
@@ -127,6 +190,15 @@ function serializePayload(payload) {
 
 function stringifySaveData(saveData) {
   return typeof saveData === 'string' ? saveData : JSON.stringify(saveData);
+}
+
+function serializeTerrainPayload(payload) {
+  return {
+    name: (payload.name || 'Untitled Terrain').toString().slice(0, 60),
+    profile_type: (payload.profile_type || 'custom').toString().slice(0, 40),
+    seed: (payload.seed || '').toString().slice(0, 120),
+    terrain_data: stringifySaveData(payload.terrain_data),
+  };
 }
 
 module.exports = {

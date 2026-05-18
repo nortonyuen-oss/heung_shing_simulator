@@ -134,6 +134,8 @@ let didLongPressPark = false;
 let selectedTerrainType = 'grass';
 let terrainPressTimer = null;
 let didLongPressTerrain = false;
+let isTerrainCreatorMode = false;
+let activeTerrainProfileType = 'custom';
 
 // Zone density state (per zone type; values = DENSITY_LOW|MED|HIGH = 1|2|3)
 let selectedZoneDensity = { res: 1, com: 1, ind: 1 };
@@ -162,6 +164,18 @@ const TERRAIN_OPTIONS = [
   { key: 'raise',  emoji: '⬆️', titleKey: 'terrain.raise',  swatchClass: 'hill' },
   { key: 'lower',  emoji: '⬇️', titleKey: 'terrain.lower',  swatchClass: 'hill' },
   { key: 'flatten',emoji: '🟰', titleKey: 'terrain.flatten',swatchClass: 'hill' },
+];
+
+const TERRAIN_PROFILE_OPTIONS = [
+  { key: 'island', titleKey: 'terrain.profile.island' },
+  { key: 'mountain', titleKey: 'terrain.profile.mountain' },
+  { key: 'desert', titleKey: 'terrain.profile.desert' },
+  { key: 'plain', titleKey: 'terrain.profile.plain' },
+  { key: 'lake', titleKey: 'terrain.profile.lake' },
+  { key: 'river', titleKey: 'terrain.profile.river' },
+  { key: 'plateau', titleKey: 'terrain.profile.plateau' },
+  { key: 'basin', titleKey: 'terrain.profile.basin' },
+  { key: 'flat', titleKey: 'terrain.profile.flat' },
 ];
 
 // Zone density option definitions
@@ -704,6 +718,11 @@ function setupToolMenu() {
     const actionButton = event.target.closest('[data-action]');
     if (actionButton?.dataset.action === 'generate') {
       generateNewTerrain();
+      closeToolCategoryFlyouts();
+      return;
+    }
+    if (actionButton?.dataset.action === 'save-terrain') {
+      saveTerrainPresetFromCurrentMap();
       closeToolCategoryFlyouts();
       return;
     }
@@ -2559,6 +2578,11 @@ function applyToolAt(scene, row, col, pointer = null) {
   // Inspect tool — show persistent info panel, don't modify terrain
   if (selectedTool === 'inspect') { showInspectPanel(scene, row, col, pointer); return; }
 
+  if (isTerrainCreatorMode && selectedTool !== 'terrain') {
+    showToast(t('toast.terrainCreatorOnlyTerrainTools'), 'warning');
+    return;
+  }
+
   // New tools (zones, power, services, dezone) handled in tools.js
   if (handleNewTool(scene, { row, col })) return;
 
@@ -3438,6 +3462,135 @@ function generateTerrainMap(seed) {
   quantizeHillHeights(terrain, heights);
 
   flattenMapBorder(terrain, heights, 3);
+  heightMap = heights;
+  return terrain;
+}
+
+function generateTerrainMapByProfile(profileType, seed) {
+  if (profileType === 'flat') {
+    const terrain = createFilledMap(GROUND);
+    const heights = createFilledMap(0);
+    flattenMapBorder(terrain, heights, 3);
+    heightMap = heights;
+    return terrain;
+  }
+
+  const random = createRandom(seed);
+  const terrain = createFilledMap(GROUND);
+  const heights = createFilledMap(0);
+  const centerX = (MAP_WIDTH - 1) / 2;
+  const centerY = (MAP_HEIGHT - 1) / 2;
+
+  for (let row = 0; row < MAP_HEIGHT; row++) {
+    for (let col = 0; col < MAP_WIDTH; col++) {
+      const nx = (col - centerX) / Math.max(1, centerX);
+      const ny = (row - centerY) / Math.max(1, centerY);
+      const dist = Math.sqrt(nx * nx + ny * ny);
+      const macro = valueNoise(col * 0.018 + 200, row * 0.018 - 60, random);
+      const detail = valueNoise(col * 0.06 - 80, row * 0.06 + 140, random);
+      const ridge = valueNoise(col * 0.014 + 320, row * 0.038 - 110, random);
+
+      let rawHeight = 0;
+      let forceWater = false;
+
+      switch (profileType) {
+        case 'island': {
+          rawHeight = (1.12 - dist) * 6 + (macro - 0.5) * 2.1 + (detail - 0.5) * 0.9;
+          forceWater = dist > 0.94 + (macro - 0.5) * 0.12;
+          break;
+        }
+        case 'mountain': {
+          rawHeight = 2.1 + Math.max(0, 1.25 - dist) * 6 + ridge * 2.3 + (detail - 0.5) * 1.2;
+          forceWater = dist > 0.99 && macro < 0.3;
+          break;
+        }
+        case 'desert': {
+          rawHeight = 0.7 + (macro - 0.5) * 1.4 + (detail - 0.5) * 1.0;
+          forceWater = macro > 0.985 && detail > 0.75;
+          break;
+        }
+        case 'plain': {
+          rawHeight = 0.45 + (macro - 0.5) * 0.8 + (detail - 0.5) * 0.55;
+          forceWater = macro < 0.018;
+          break;
+        }
+        case 'lake': {
+          const lakeDepth = Math.max(0, 0.65 - dist) * 4.5;
+          rawHeight = 2.2 - lakeDepth + (macro - 0.5) * 1.7;
+          forceWater = dist < 0.35 + (detail - 0.5) * 0.08;
+          break;
+        }
+        case 'river': {
+          rawHeight = 1.2 + (macro - 0.5) * 1.1 + (detail - 0.5) * 0.8;
+          forceWater = dist > 0.985;
+          break;
+        }
+        case 'plateau': {
+          const plateau = Math.max(0, 0.9 - dist);
+          rawHeight = 4.4 + plateau * 2.6 + (macro - 0.5) * 0.8;
+          if (dist > 0.78) rawHeight -= (dist - 0.78) * 12;
+          forceWater = dist > 0.98 + (macro - 0.5) * 0.06;
+          break;
+        }
+        case 'basin': {
+          const rim = Math.max(0, 0.78 - Math.abs(dist - 0.55)) * 7.8;
+          rawHeight = 1.5 + rim - Math.max(0, 0.38 - dist) * 5.5 + (macro - 0.5) * 1.1;
+          forceWater = dist < 0.2 + (detail - 0.5) * 0.06;
+          break;
+        }
+        default: {
+          return generateTerrainMap(seed);
+        }
+      }
+
+      if (forceWater) {
+        terrain[row][col] = WATER;
+        heights[row][col] = 0;
+        continue;
+      }
+
+      const quantized = Math.round(Math.max(0, Math.min(MAX_TERRAIN_HEIGHT, rawHeight)));
+      if (quantized > 0) {
+        terrain[row][col] = HILL;
+        heights[row][col] = Math.max(1, Math.min(MAX_TERRAIN_HEIGHT, quantized));
+      }
+    }
+  }
+
+  if (profileType === 'river') {
+    carveRivers(terrain, random);
+  }
+
+  if (profileType === 'desert') {
+    addPatches(terrain, random, DIRT, 36, 5, 22);
+  } else {
+    addPatches(terrain, random, DIRT, 18, 4, 14);
+  }
+
+  // Keep heights consistent after terrain mask post-processing.
+  for (let row = 0; row < MAP_HEIGHT; row++) {
+    for (let col = 0; col < MAP_WIDTH; col++) {
+      if (terrain[row][col] === WATER || terrain[row][col] === BEACH || terrain[row][col] === DIRT || terrain[row][col] === GROUND) {
+        if (terrain[row][col] !== HILL) heights[row][col] = 0;
+      }
+      if (terrain[row][col] === HILL && heights[row][col] <= 0) {
+        const n = valueNoise(col * 0.025 + 200, row * 0.025 + 200, random);
+        heights[row][col] = Math.max(1, Math.min(MAX_TERRAIN_HEIGHT, 1 + Math.round(n * 3)));
+      }
+    }
+  }
+
+  normalizeHillTerrain(terrain, 2);
+  smoothHillMask(terrain, 1);
+  smoothHillHeights(terrain, heights, 2);
+  enforceGlobalSlopeConstraints(terrain, heights, 1, 5);
+  quantizeHillHeights(terrain, heights);
+  normalizeUnsupportedHillTopologiesGlobal(terrain, heights, 4);
+  enforceGlobalSlopeConstraints(terrain, heights, 1, 2);
+  quantizeHillHeights(terrain, heights);
+  addBeaches(terrain);
+  flattenMapBorder(terrain, heights, 3);
+
   heightMap = heights;
   return terrain;
 }
@@ -4813,12 +4966,85 @@ function setupLandingScreen() {
   const screen    = document.getElementById('landing-screen');
   const menu      = document.getElementById('landing-menu');
   const nameForm  = document.getElementById('landing-name-form');
+  const terrainForm = document.getElementById('landing-terrain-form');
   const btnNew    = document.getElementById('btn-new-game');
+  const btnTerrainCreator = document.getElementById('btn-terrain-creator');
   const btnCont   = document.getElementById('btn-continue');
   const btnStart  = document.getElementById('btn-start-city');
   const btnBack   = document.getElementById('btn-back');
+  const btnGenerateTerrain = document.getElementById('btn-generate-terrain');
+  const btnTerrainBack = document.getElementById('btn-terrain-back');
   const nameInput = document.getElementById('city-name-input');
+  const terrainProfileSelect = document.getElementById('terrain-profile-select');
+  const terrainSeedInput = document.getElementById('terrain-seed-input');
+  const terrainSourceSelect = document.getElementById('newgame-terrain-source');
+  const terrainPresetSelect = document.getElementById('newgame-terrain-preset');
+  const terrainEmptyHint = document.getElementById('newgame-terrain-empty-hint');
   if (!screen) return;
+
+  function setLandingState(state) {
+    if (menu) menu.style.display = state === 'menu' ? 'block' : 'none';
+    if (nameForm) nameForm.style.display = state === 'name' ? 'block' : 'none';
+    if (terrainForm) terrainForm.style.display = state === 'terrain' ? 'block' : 'none';
+  }
+
+  function populateTerrainProfileSelect() {
+    if (!terrainProfileSelect) return;
+    terrainProfileSelect.innerHTML = '';
+    TERRAIN_PROFILE_OPTIONS.forEach((profile) => {
+      const option = document.createElement('option');
+      option.value = profile.key;
+      option.textContent = t(profile.titleKey);
+      terrainProfileSelect.appendChild(option);
+    });
+  }
+
+  async function refreshTerrainPresetOptions() {
+    if (!terrainPresetSelect || !terrainEmptyHint) return;
+
+    terrainPresetSelect.innerHTML = `<option value="">${t('landing.terrainPresetLoading')}</option>`;
+    terrainEmptyHint.style.display = 'none';
+
+    try {
+      const presets = await listTerrainPresets();
+      terrainPresetSelect.innerHTML = '';
+
+      if (presets.length === 0) {
+        terrainPresetSelect.style.display = 'none';
+        terrainEmptyHint.style.display = 'block';
+        return;
+      }
+
+      const placeholder = document.createElement('option');
+      placeholder.value = '';
+      placeholder.textContent = t('landing.terrainPresetSelect');
+      terrainPresetSelect.appendChild(placeholder);
+
+      presets.forEach((preset) => {
+        const option = document.createElement('option');
+        option.value = String(preset.id);
+        const profileLabel = t(`terrain.profile.${preset.profile_type}`);
+        const profileText = profileLabel === `terrain.profile.${preset.profile_type}`
+          ? preset.profile_type
+          : profileLabel;
+        option.textContent = `${preset.name} (${profileText})`;
+        terrainPresetSelect.appendChild(option);
+      });
+    } catch {
+      terrainPresetSelect.innerHTML = '';
+      terrainPresetSelect.style.display = 'none';
+      terrainEmptyHint.style.display = 'block';
+    }
+  }
+
+  function updateTerrainSourceVisibility() {
+    if (!terrainSourceSelect || !terrainPresetSelect || !terrainEmptyHint) return;
+    const usePreset = terrainSourceSelect.value === 'preset';
+    terrainPresetSelect.style.display = usePreset ? 'block' : 'none';
+    if (!usePreset) {
+      terrainEmptyHint.style.display = 'none';
+    }
+  }
 
   // "Load Saved Game" always visible — opens the save-list modal
   if (btnCont) btnCont.style.display = 'block';
@@ -4826,13 +5052,24 @@ function setupLandingScreen() {
   // Pre-fetch saves immediately so the player sees live feedback instead of
   // a blank button while the server wakes up.
   prefetchSaveStatus();
+  populateTerrainProfileSelect();
+  updateTerrainSourceVisibility();
+  document.addEventListener('languagechange', () => {
+    populateTerrainProfileSelect();
+    refreshTerrainPresetOptions();
+  });
 
   btnNew.addEventListener('click', () => {
-    menu.style.display  = 'none';
-    nameForm.style.display = 'block';
+    setLandingState('name');
     nameInput.value = getDefaultCityName();
     nameInput.focus();
     nameInput.select();
+    refreshTerrainPresetOptions();
+  });
+
+  btnTerrainCreator?.addEventListener('click', () => {
+    setLandingState('terrain');
+    if (terrainSeedInput) terrainSeedInput.value = createSeed();
   });
 
   btnCont.addEventListener('click', () => {
@@ -4844,15 +5081,31 @@ function setupLandingScreen() {
     startNewGame(name);
   });
 
+  btnGenerateTerrain?.addEventListener('click', () => {
+    const profile = terrainProfileSelect?.value || 'island';
+    const seed = (terrainSeedInput?.value || '').trim() || createSeed();
+    startTerrainCreatorMode(profile, seed);
+  });
+
   btnBack.addEventListener('click', () => {
-    nameForm.style.display = 'none';
-    menu.style.display     = 'block';
+    setLandingState('menu');
+  });
+
+  btnTerrainBack?.addEventListener('click', () => {
+    setLandingState('menu');
   });
 
   nameInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
       const name = nameInput.value.trim() || getDefaultCityName();
       startNewGame(name);
+    }
+  });
+
+  terrainSourceSelect?.addEventListener('change', () => {
+    updateTerrainSourceVisibility();
+    if (terrainSourceSelect.value === 'preset') {
+      refreshTerrainPresetOptions();
     }
   });
 
@@ -4887,18 +5140,149 @@ function hideLandingScreen() {
   }
 }
 
-function startNewGame(cityName) {
-  if (!gameReady) return;
-  stopSimTimer();
-  currentSeed = createSeed();
-  mapData = generateTerrainMap(currentSeed);
+function copyTerrainToWorld(mapRows, heightRows) {
+  mapData = createFilledMap(GROUND);
+  heightMap = createFilledMap(0);
+
+  for (let row = 0; row < MAP_HEIGHT; row++) {
+    for (let col = 0; col < MAP_WIDTH; col++) {
+      const tile = Number((mapRows?.[row] ?? [])[col]);
+      const normalizedTile = Number.isFinite(tile) ? tile : GROUND;
+      mapData[row][col] = [GROUND, ROAD, DIRT, BEACH, WATER, HILL].includes(normalizedTile)
+        ? normalizedTile
+        : GROUND;
+
+      const h = Number((heightRows?.[row] ?? [])[col]);
+      if (mapData[row][col] === HILL) {
+        heightMap[row][col] = Number.isFinite(h)
+          ? Math.max(1, Math.min(MAX_TERRAIN_HEIGHT, Math.round(h)))
+          : 1;
+      } else if (mapData[row][col] === ROAD) {
+        heightMap[row][col] = Number.isFinite(h)
+          ? Math.max(0, Math.min(MAX_TERRAIN_HEIGHT, Math.round(h)))
+          : 0;
+      } else {
+        heightMap[row][col] = 0;
+      }
+    }
+  }
+
+  flattenMapBorder(mapData, heightMap, 3);
+}
+
+function rebuildFreshMapSession(cityName) {
   clearAllOverlays(activeScene);
   clearBuildings(activeScene);
   resetGameState();
   city.name = cityName || getDefaultCityName();
   refreshAllTiles(activeScene);
-  startSimTimer();
   updateHUD();
+}
+
+function startTerrainCreatorMode(profileType, seedText) {
+  if (!gameReady || !activeScene) return;
+
+  stopSimTimer();
+  isTerrainCreatorMode = true;
+  activeTerrainProfileType = profileType;
+  currentSeed = seedText || createSeed();
+  mapData = generateTerrainMapByProfile(profileType, currentSeed);
+  rebuildFreshMapSession(getDefaultCityName());
+  selectedTool = 'terrain';
+  selectedTerrainType = 'raise';
+
+  document.querySelectorAll('#tool-menu [data-tool]').forEach((button) => {
+    button.classList.toggle('is-active', button.dataset.tool === 'terrain');
+  });
+  updateTerrainToolUi();
+
+  hideLandingScreen();
+  showToast(t('toast.terrainCreatorEntered'), 'info');
+}
+
+async function saveTerrainPresetFromCurrentMap() {
+  if (!activeScene) {
+    showToast(t('toast.gameNotReady'), 'warning');
+    return;
+  }
+
+  if (!isTerrainCreatorMode) {
+    showToast(t('toast.terrainCreatorOnlyTerrainTools'), 'warning');
+    return;
+  }
+
+  const profileLabel = t(`terrain.profile.${activeTerrainProfileType}`);
+  const fallbackName = profileLabel.startsWith('terrain.profile.')
+    ? getDefaultCityName()
+    : profileLabel;
+  let presetName = fallbackName;
+  try {
+    const entered = window.prompt(t('prompt.terrainPresetName'), fallbackName);
+    if (entered === null) return;
+    presetName = entered.trim() || fallbackName;
+  } catch {
+    presetName = `${fallbackName}-${Date.now().toString().slice(-6)}`;
+  }
+
+  const payload = {
+    name: presetName,
+    profile_type: activeTerrainProfileType,
+    seed: currentSeed,
+    terrain_data: {
+      version: 1,
+      profileType: activeTerrainProfileType,
+      seed: currentSeed,
+      mapData: mapData.map((row) => Array.from(row)),
+      heightMap: heightMap.map((row) => Array.from(row)),
+    },
+  };
+
+  try {
+    await createTerrainPreset(payload);
+    showToast(t('toast.terrainPresetSaved'), 'info');
+  } catch (error) {
+    console.error('[TerrainPreset Save]', error);
+    showToast(t('toast.terrainPresetSaveFailed'), 'danger');
+  }
+}
+
+async function startNewGame(cityName) {
+  if (!gameReady) return;
+
+  const terrainSourceSelect = document.getElementById('newgame-terrain-source');
+  const terrainPresetSelect = document.getElementById('newgame-terrain-preset');
+  const source = terrainSourceSelect?.value || 'random';
+
+  stopSimTimer();
+  isTerrainCreatorMode = false;
+  activeTerrainProfileType = 'custom';
+
+  if (source === 'preset') {
+    const selectedId = (terrainPresetSelect?.value || '').trim();
+    if (!selectedId) {
+      showToast(t('landing.terrainPresetRequired'), 'warning');
+      return;
+    }
+
+    try {
+      const row = await getTerrainPresetById(selectedId);
+      const terrain = row?.terrain_data;
+      copyTerrainToWorld(terrain?.mapData, terrain?.heightMap);
+      currentSeed = terrain?.seed || createSeed();
+    } catch (error) {
+      console.error('[TerrainPreset Load]', error);
+      showToast(t('toast.terrainPresetLoadFailed'), 'danger');
+      return;
+    }
+  } else {
+    currentSeed = createSeed();
+    mapData = generateTerrainMap(currentSeed);
+  }
+
+  if (typeof currentSaveId !== 'undefined') currentSaveId = null;
+
+  rebuildFreshMapSession(cityName || getDefaultCityName());
+  startSimTimer();
   hideLandingScreen();
 }
 

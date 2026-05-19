@@ -1681,6 +1681,165 @@
       text-align: center;
     }
 
+    .terrain-preset-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin: 0 0 12px;
+      max-height: 230px;
+      overflow-y: auto;
+      padding-right: 2px;
+    }
+
+    .terrain-preset-card {
+      border: 2px solid #8d887a;
+      border-radius: 8px;
+      background: #f7f3e5;
+      padding: 6px;
+      cursor: pointer;
+      text-align: left;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .terrain-preset-card.is-active {
+      border-color: #e1a92a;
+      box-shadow: 0 0 0 2px rgba(225, 169, 42, 0.25);
+      background: #fff8df;
+    }
+
+    .terrain-preset-thumb {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      border-radius: 5px;
+      border: 1px solid #9f998a;
+      background: #d7ecff;
+      image-rendering: pixelated;
+    }
+
+    .terrain-preset-name {
+      font-size: 11px;
+      font-weight: 700;
+      color: #252b2f;
+      line-height: 1.2;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .terrain-preset-meta {
+      font-size: 10px;
+      color: #625b4e;
+      line-height: 1.2;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .terrain-preset-actions {
+      display: flex;
+      justify-content: space-between;
+      gap: 6px;
+    }
+
+    .terrain-preset-btn {
+      border: 1px solid #8d887a;
+      background: #ece7d4;
+      color: #1e2427;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 3px 6px;
+      cursor: pointer;
+      flex: 1;
+    }
+
+    .terrain-preset-btn.delete {
+      background: #f5dddb;
+      border-color: #a76f69;
+      color: #7a2f28;
+      flex: 0 0 auto;
+    }
+
+    .terrain-preset-loading {
+      grid-column: 1 / -1;
+      font-size: 11px;
+      color: #7a7264;
+      text-align: center;
+      padding: 8px 0;
+    }
+
+    body.terrain-editor-mode #hud,
+    body.terrain-editor-mode #budget-panel,
+    body.terrain-editor-mode #budget-window,
+    body.terrain-editor-mode #topbar-speed,
+    body.terrain-editor-mode #speed-controls,
+    body.terrain-editor-mode #overlay-window,
+    body.terrain-editor-mode #inspect-panel,
+    body.terrain-editor-mode [data-menu-action="save"],
+    body.terrain-editor-mode [data-menu-action="save-as"],
+    body.terrain-editor-mode [data-menu-action="load-game"],
+    body.terrain-editor-mode [data-menu-action="open-budget"],
+    body.terrain-editor-mode [data-menu-action^="speed-"] {
+      display: none !important;
+    }
+
+    body.terrain-editor-mode #tool-menu .tool-menu-divider,
+    body.terrain-editor-mode #tool-menu .tool-flyout:not([data-tool-panel="terrain"]),
+    body.terrain-editor-mode #tool-menu [data-tool-category]:not([data-tool-category="terrain"]),
+    body.terrain-editor-mode #tool-menu [data-tool]:not([data-tool="terrain"]),
+    body.terrain-editor-mode #tool-menu [data-action]:not([data-action="generate"]):not([data-action="save-terrain"]) {
+      display: none !important;
+    }
+
+    #terrain-minimap-panel {
+      position: fixed;
+      right: 14px;
+      bottom: 92px;
+      z-index: 72;
+      width: 188px;
+      padding: 8px;
+      border: 2px solid #5f5a4c;
+      border-radius: 8px;
+      background: #f5f0df;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.22);
+      display: none;
+      user-select: none;
+    }
+
+    body.terrain-editor-mode #terrain-minimap-panel {
+      display: block;
+    }
+
+    .terrain-minimap-title {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 6px;
+      color: #2b2a24;
+      font: 700 12px Arial, Helvetica, sans-serif;
+    }
+
+    #terrain-minimap-meta {
+      color: #696150;
+      font-weight: 700;
+      font-size: 10px;
+      white-space: nowrap;
+    }
+
+    #terrain-minimap-canvas {
+      display: block;
+      width: 172px;
+      height: 172px;
+      border: 1px solid #8e8774;
+      border-radius: 5px;
+      background: #8fc8eb;
+      cursor: crosshair;
+      image-rendering: pixelated;
+    }
+
     /* ── HUD city name ───────────────────────────────────────────────────── */
 
     .hud-city-row {
@@ -2246,6 +2405,8 @@ Ctrl+O       Load game (open saves list)</div>
         <select id="newgame-terrain-preset" class="landing-form-select" aria-label="Saved terrain preset" data-i18n-aria="landing.terrainPresetSelect" style="display:none">
           <option value="" data-i18n="landing.terrainPresetLoading">Loading terrain presets…</option>
         </select>
+        <p class="landing-form-hint" id="newgame-terrain-presets-title" style="display:none" data-i18n="landing.terrainPresetsTitle">Saved terrain presets</p>
+        <div id="newgame-terrain-preview-list" class="terrain-preset-grid" style="display:none"></div>
         <div id="newgame-terrain-empty-hint" class="landing-form-hint" style="display:none" data-i18n="landing.noTerrainPresets">No saved terrain presets yet.</div>
         <div class="landing-actions">
           <button id="btn-start-city" class="landing-btn primary" data-i18n-html="landing.foundCity">🚀&nbsp; Found City!</button>
@@ -2533,6 +2694,14 @@ Ctrl+O       Load game (open saves list)</div>
     </div>
     <div id="inspect-content"></div>
   </div>
+
+  <aside id="terrain-minimap-panel" aria-label="Terrain overview" data-i18n-aria="terrainEditor.map">
+    <div class="terrain-minimap-title">
+      <span data-i18n="terrainEditor.map">Terrain Map</span>
+      <span id="terrain-minimap-meta"></span>
+    </div>
+    <canvas id="terrain-minimap-canvas" width="256" height="256"></canvas>
+  </aside>
 
   <!-- Rotate cluster (bottom-right) -->
   <div id="rotate-cluster" aria-label="Rotate map view">

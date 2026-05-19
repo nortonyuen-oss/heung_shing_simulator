@@ -136,6 +136,7 @@ let terrainPressTimer = null;
 let didLongPressTerrain = false;
 let isTerrainCreatorMode = false;
 let activeTerrainProfileType = 'custom';
+let terrainMiniMapRaf = null;
 
 // Zone density state (per zone type; values = DENSITY_LOW|MED|HIGH = 1|2|3)
 let selectedZoneDensity = { res: 1, com: 1, ind: 1 };
@@ -710,6 +711,7 @@ function setupToolMenu() {
 
     const overlayButton = event.target.closest('[data-overlay]');
     if (overlayButton) {
+      if (isTerrainCreatorMode) return;
       toggleOverlayMap(overlayButton.dataset.overlay);
       closeToolCategoryFlyouts();
       return;
@@ -739,6 +741,12 @@ function setupToolMenu() {
 
     const button = event.target.closest('[data-tool]');
     if (!button) return;
+
+    if (isTerrainCreatorMode && button.dataset.tool !== 'terrain') {
+      showToast(t('toast.terrainCreatorOnlyTerrainTools'), 'warning');
+      closeToolCategoryFlyouts();
+      return;
+    }
 
     // ── House tool ────────────────────────────────────────────────────────
     if (button.dataset.tool === 'house' && didLongPressHouse) {
@@ -828,6 +836,7 @@ function setupToolMenu() {
 
   setupJukebox();
   setupRotateCluster();
+  setupTerrainMiniMapControls();
 }
 
 function getToolCategoryForTool(tool) {
@@ -1035,6 +1044,27 @@ function updateTerrainToolUi() {
   if (btn) {
     btn.title = t('tool.terrain', { terrain: getTerrainLabel(opt) });
     btn.setAttribute('aria-label', btn.title);
+  }
+}
+
+function setTerrainEditorUiActive(active) {
+  document.body?.classList.toggle('terrain-editor-mode', !!active);
+  if (active) {
+    closeOverlayWindow();
+    closeToolPopups();
+    closeToolCategoryFlyouts();
+    document.getElementById('budget-detail')?.classList.remove('is-open');
+    document.getElementById('budget-window')?.classList.remove('is-open');
+    document.getElementById('inspect-panel')?.style.setProperty('display', 'none');
+    selectedTool = 'terrain';
+    updateToolCategoryState();
+    updateTerrainToolUi();
+    scheduleTerrainMiniMapUpdate();
+  } else {
+    if (terrainMiniMapRaf !== null) {
+      cancelAnimationFrame(terrainMiniMapRaf);
+      terrainMiniMapRaf = null;
+    }
   }
 }
 
@@ -1733,6 +1763,99 @@ function terrainPixelColor(terrain, r, c) {
     case HILL:  return [90,  130, 55];
     default:    return [100, 155, 65];   // GROUND / grass
   }
+}
+
+function terrainEditorPixelColor(terrain, height = 0) {
+  switch (terrain) {
+    case WATER: return [44, 124, 190];
+    case BEACH: return [222, 202, 135];
+    case DIRT: return [158, 119, 77];
+    case HILL: {
+      const h = Math.max(0, Math.min(MAX_TERRAIN_HEIGHT, Number(height) || 0));
+      return [
+        Math.max(50, 92 - h * 4),
+        Math.min(205, 132 + h * 12),
+        Math.max(52, 74 - h * 2),
+      ];
+    }
+    default: return [96, 160, 88];
+  }
+}
+
+function drawTerrainMiniMap() {
+  const canvas = document.getElementById('terrain-minimap-canvas');
+  if (!canvas) return;
+
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  const W = canvas.width;
+  const H = canvas.height;
+  const imgData = ctx.createImageData(W, H);
+  const d = imgData.data;
+  let highTiles = 0;
+  let waterTiles = 0;
+
+  for (let displayRow = 0; displayRow < H; displayRow++) {
+    for (let displayCol = 0; displayCol < W; displayCol++) {
+      const src = getMiniMapSourceCoords(displayRow, displayCol);
+      const tile = mapData[src.row]?.[src.col] ?? GROUND;
+      const height = heightMap[src.row]?.[src.col] ?? 0;
+      if (tile === WATER) waterTiles++;
+      if (height > 0) highTiles++;
+
+      const [r, g, b] = terrainEditorPixelColor(tile, height);
+      const idx = (displayRow * W + displayCol) * 4;
+      d[idx] = r;
+      d[idx + 1] = g;
+      d[idx + 2] = b;
+      d[idx + 3] = 255;
+    }
+  }
+
+  ctx.putImageData(imgData, 0, 0);
+
+  const meta = document.getElementById('terrain-minimap-meta');
+  if (meta) {
+    const highPct = Math.round((highTiles / (MAP_WIDTH * MAP_HEIGHT)) * 100);
+    const waterPct = Math.round((waterTiles / (MAP_WIDTH * MAP_HEIGHT)) * 100);
+    meta.textContent = t('terrainEditor.mapMeta', { high: highPct, water: waterPct });
+  }
+}
+
+function scheduleTerrainMiniMapUpdate() {
+  if (!isTerrainCreatorMode) return;
+  if (terrainMiniMapRaf !== null) return;
+  terrainMiniMapRaf = requestAnimationFrame(() => {
+    terrainMiniMapRaf = null;
+    drawTerrainMiniMap();
+  });
+}
+
+function setupTerrainMiniMapControls() {
+  const panel = document.getElementById('terrain-minimap-panel');
+  const canvas = document.getElementById('terrain-minimap-canvas');
+  if (!panel || !canvas) return;
+
+  panel.addEventListener('pointerdown', (event) => event.stopPropagation());
+  canvas.addEventListener('click', (event) => {
+    if (!activeScene) return;
+    const rect = canvas.getBoundingClientRect();
+    const displayCol = Math.max(0, Math.min(MAP_WIDTH - 1, Math.floor(((event.clientX - rect.left) / rect.width) * MAP_WIDTH)));
+    const displayRow = Math.max(0, Math.min(MAP_HEIGHT - 1, Math.floor(((event.clientY - rect.top) / rect.height) * MAP_HEIGHT)));
+    const { row, col } = getMiniMapSourceCoords(displayRow, displayCol);
+    centerCameraOnTile(activeScene, row, col);
+  });
+}
+
+function centerCameraOnTile(scene, row, col) {
+  const camera = scene?.cameras?.main;
+  if (!camera || !isInsideMap(row, col)) return;
+  const pos = isoToScreen(col, row);
+  const worldX = pos.x + scene.offsetX;
+  const worldY = pos.y + scene.offsetY + getTerrainTileVisualOffset(row, col, getTileKey(row, col));
+  camera.scrollX = worldX - camera.width / (2 * camera.zoom);
+  camera.scrollY = worldY - camera.height / (2 * camera.zoom);
 }
 
 function overlayPixelColor(type, val) {
@@ -2938,7 +3061,7 @@ function applyFlattenTerrain(scene, row, col, radius = 1) {
 }
 
 function applySelectedTool(scene, pointer) {
-  if (pointer.event?.target?.closest('#tool-menu, #hud, #budget-panel, #budget-window, #toast-container, #speed-controls, #top-bar, .sim-dialog, #jukebox-window, #rotate-cluster, #overlay-window, #inspect-panel')) return;
+  if (pointer.event?.target?.closest('#tool-menu, #hud, #budget-panel, #budget-window, #toast-container, #speed-controls, #top-bar, .sim-dialog, #jukebox-window, #rotate-cluster, #overlay-window, #inspect-panel, #terrain-minimap-panel')) return;
 
   let tile = selectedTool === 'inspect'
     ? (resolveInspectTile(scene, pointer) ?? lastInspectTile)
@@ -3306,6 +3429,8 @@ function refreshTileArea(scene, row, col) {
     sprite.setDepth(getTerrainTileDepth(tileRow, tileCol, key, pos.y));
     applyTileVisualStyle(sprite, tileRow, tileCol, key);
   });
+
+  scheduleTerrainMiniMapUpdate();
 }
 
 function refreshAllTiles(scene) {
@@ -3320,6 +3445,7 @@ function refreshAllTiles(scene) {
       applyTileVisualStyle(sprite, row, col, key);
     }
   }
+  scheduleTerrainMiniMapUpdate();
 }
 
 function generateNewTerrain() {
@@ -3343,13 +3469,16 @@ function generateNewTerrain() {
     showToast(t('toast.terrainSeedPromptUnavailable'), 'info');
   }
 
-  mapData = generateTerrainMap(currentSeed);
+  mapData = isTerrainCreatorMode
+    ? generateTerrainMapByProfile(activeTerrainProfileType, currentSeed)
+    : generateTerrainMap(currentSeed);
   mapRotation = 0;           // reset view to default orientation
   lastEditedTile = null;
 
   if (activeScene) {
     fullReset(activeScene);
     refreshAllTiles(activeScene);
+    if (isTerrainCreatorMode) stopSimTimer();
   }
 }
 
@@ -3480,91 +3609,143 @@ function generateTerrainMapByProfile(profileType, seed) {
   const heights = createFilledMap(0);
   const centerX = (MAP_WIDTH - 1) / 2;
   const centerY = (MAP_HEIGHT - 1) / 2;
-
-  for (let row = 0; row < MAP_HEIGHT; row++) {
-    for (let col = 0; col < MAP_WIDTH; col++) {
-      const nx = (col - centerX) / Math.max(1, centerX);
-      const ny = (row - centerY) / Math.max(1, centerY);
-      const dist = Math.sqrt(nx * nx + ny * ny);
-      const macro = valueNoise(col * 0.018 + 200, row * 0.018 - 60, random);
-      const detail = valueNoise(col * 0.06 - 80, row * 0.06 + 140, random);
-      const ridge = valueNoise(col * 0.014 + 320, row * 0.038 - 110, random);
-
-      let rawHeight = 0;
-      let forceWater = false;
-
-      switch (profileType) {
-        case 'island': {
-          rawHeight = (1.12 - dist) * 6 + (macro - 0.5) * 2.1 + (detail - 0.5) * 0.9;
-          forceWater = dist > 0.94 + (macro - 0.5) * 0.12;
-          break;
-        }
-        case 'mountain': {
-          rawHeight = 2.1 + Math.max(0, 1.25 - dist) * 6 + ridge * 2.3 + (detail - 0.5) * 1.2;
-          forceWater = dist > 0.99 && macro < 0.3;
-          break;
-        }
-        case 'desert': {
-          rawHeight = 0.7 + (macro - 0.5) * 1.4 + (detail - 0.5) * 1.0;
-          forceWater = macro > 0.985 && detail > 0.75;
-          break;
-        }
-        case 'plain': {
-          rawHeight = 0.45 + (macro - 0.5) * 0.8 + (detail - 0.5) * 0.55;
-          forceWater = macro < 0.018;
-          break;
-        }
-        case 'lake': {
-          const lakeDepth = Math.max(0, 0.65 - dist) * 4.5;
-          rawHeight = 2.2 - lakeDepth + (macro - 0.5) * 1.7;
-          forceWater = dist < 0.35 + (detail - 0.5) * 0.08;
-          break;
-        }
-        case 'river': {
-          rawHeight = 1.2 + (macro - 0.5) * 1.1 + (detail - 0.5) * 0.8;
-          forceWater = dist > 0.985;
-          break;
-        }
-        case 'plateau': {
-          const plateau = Math.max(0, 0.9 - dist);
-          rawHeight = 4.4 + plateau * 2.6 + (macro - 0.5) * 0.8;
-          if (dist > 0.78) rawHeight -= (dist - 0.78) * 12;
-          forceWater = dist > 0.98 + (macro - 0.5) * 0.06;
-          break;
-        }
-        case 'basin': {
-          const rim = Math.max(0, 0.78 - Math.abs(dist - 0.55)) * 7.8;
-          rawHeight = 1.5 + rim - Math.max(0, 0.38 - dist) * 5.5 + (macro - 0.5) * 1.1;
-          forceWater = dist < 0.2 + (detail - 0.5) * 0.06;
-          break;
-        }
-        default: {
-          return generateTerrainMap(seed);
-        }
-      }
-
-      if (forceWater) {
+  if (profileType === 'island') {
+    for (let row = 0; row < MAP_HEIGHT; row++) {
+      for (let col = 0; col < MAP_WIDTH; col++) {
         terrain[row][col] = WATER;
         heights[row][col] = 0;
-        continue;
       }
+    }
 
-      const quantized = Math.round(Math.max(0, Math.min(MAX_TERRAIN_HEIGHT, rawHeight)));
-      if (quantized > 0) {
+    const islands = [];
+    const islandCount = 7 + Math.floor(random() * 6);
+    for (let i = 0; i < islandCount; i++) {
+      islands.push({
+        col: 18 + Math.floor(random() * (MAP_WIDTH - 36)),
+        row: 18 + Math.floor(random() * (MAP_HEIGHT - 36)),
+        radius: 20 + random() * 34,
+        peak: 3.5 + random() * 3.2,
+      });
+    }
+
+    for (let row = 0; row < MAP_HEIGHT; row++) {
+      for (let col = 0; col < MAP_WIDTH; col++) {
+        const macro = valueNoise(col * 0.02 + 80, row * 0.02 + 200, random);
+        const detail = valueNoise(col * 0.07 - 30, row * 0.07 + 55, random);
+        let influence = -0.5;
+        islands.forEach((island) => {
+          const dist = Math.hypot(col - island.col, row - island.row) / island.radius;
+          const value = island.peak * Math.max(0, 1 - dist * dist);
+          if (value > influence) influence = value;
+        });
+
+        const raw = influence + (macro - 0.5) * 1.5 + (detail - 0.5) * 0.9;
+        if (raw <= 0.5) continue;
+        if (raw < 1.2) {
+          terrain[row][col] = GROUND;
+          continue;
+        }
         terrain[row][col] = HILL;
-        heights[row][col] = Math.max(1, Math.min(MAX_TERRAIN_HEIGHT, quantized));
+        heights[row][col] = Math.max(1, Math.min(MAX_TERRAIN_HEIGHT, Math.round(raw)));
+      }
+    }
+  } else {
+    for (let row = 0; row < MAP_HEIGHT; row++) {
+      for (let col = 0; col < MAP_WIDTH; col++) {
+        const nx = (col - centerX) / Math.max(1, centerX);
+        const ny = (row - centerY) / Math.max(1, centerY);
+        const dist = Math.sqrt(nx * nx + ny * ny);
+        const macro = valueNoise(col * 0.018 + 200, row * 0.018 - 60, random);
+        const detail = valueNoise(col * 0.06 - 80, row * 0.06 + 140, random);
+        const ridge = valueNoise(col * 0.014 + 320, row * 0.038 - 110, random);
+
+        let rawHeight = 0;
+        let forceWater = false;
+        let forceDirt = false;
+
+        switch (profileType) {
+          case 'mountain': {
+            const ridgeBoost = Math.abs(ridge - 0.5) * 5.5;
+            rawHeight = 1.8 + Math.max(0, 1.18 - dist) * 6.4 + ridgeBoost + (detail - 0.5) * 1.1;
+            forceWater = dist > 0.985 && macro < 0.45;
+            break;
+          }
+          case 'desert': {
+            rawHeight = 0.5 + Math.max(0, macro - 0.58) * 2.4 + (detail - 0.5) * 0.7;
+            forceDirt = true;
+            forceWater = macro > 0.996 && detail > 0.68;
+            break;
+          }
+          case 'plain': {
+            rawHeight = 0.35 + Math.max(0, macro - 0.62) * 1.4 + (detail - 0.5) * 0.45;
+            forceWater = macro < 0.012;
+            break;
+          }
+          case 'lake': {
+            const lakeDepth = Math.max(0, 0.58 - dist) * 6.2;
+            rawHeight = 2.0 - lakeDepth + Math.max(0, Math.abs(dist - 0.56) - 0.05) * 3.0 + (macro - 0.5) * 0.9;
+            forceWater = dist < 0.34 + (detail - 0.5) * 0.09;
+            break;
+          }
+          case 'river': {
+            const slopeBase = 3.8 - (row / MAP_HEIGHT) * 2.4 - (col / MAP_WIDTH) * 1.8;
+            rawHeight = slopeBase + Math.max(0, macro - 0.52) * 2.1 + (detail - 0.5) * 0.6;
+            forceWater = row > MAP_HEIGHT - 14 || col > MAP_WIDTH - 14;
+            break;
+          }
+          case 'plateau': {
+            const edge = dist;
+            const cliff = edge > 0.43 && edge < 0.66 ? (0.66 - edge) * 20 : 0;
+            const top = edge <= 0.43 ? 6.2 + (macro - 0.5) * 0.5 : 2.0;
+            rawHeight = top + cliff + (detail - 0.5) * 0.4;
+            forceWater = edge > 0.97;
+            break;
+          }
+          case 'basin': {
+            const rim = Math.max(0, 0.72 - Math.abs(dist - 0.53)) * 8.3;
+            const sink = Math.max(0, 0.34 - dist) * 6.8;
+            rawHeight = 1.2 + rim - sink + (macro - 0.5) * 0.7;
+            forceWater = dist < 0.19 + (detail - 0.5) * 0.04;
+            break;
+          }
+          default: {
+            return generateTerrainMap(seed);
+          }
+        }
+
+        if (forceWater) {
+          terrain[row][col] = WATER;
+          heights[row][col] = 0;
+          continue;
+        }
+
+        const quantized = Math.round(Math.max(0, Math.min(MAX_TERRAIN_HEIGHT, rawHeight)));
+        if (quantized > 0) {
+          terrain[row][col] = HILL;
+          heights[row][col] = Math.max(1, Math.min(MAX_TERRAIN_HEIGHT, quantized));
+        } else if (forceDirt) {
+          terrain[row][col] = DIRT;
+        }
       }
     }
   }
 
   if (profileType === 'river') {
-    carveRivers(terrain, random);
+    carveDirectedRiver(terrain, heights, random, { tributaries: 2, width: 1 });
+  }
+
+  if (profileType === 'plain') {
+    carveDirectedRiver(terrain, heights, random, { tributaries: 1, width: 1 });
+  }
+
+  if (profileType === 'mountain') {
+    carveDirectedRiver(terrain, heights, random, { tributaries: 1, width: 1 });
   }
 
   if (profileType === 'desert') {
-    addPatches(terrain, random, DIRT, 36, 5, 22);
+    addPatches(terrain, random, DIRT, 46, 5, 24);
   } else {
-    addPatches(terrain, random, DIRT, 18, 4, 14);
+    addPatches(terrain, random, DIRT, 16, 4, 14);
   }
 
   // Keep heights consistent after terrain mask post-processing.
@@ -3593,6 +3774,70 @@ function generateTerrainMapByProfile(profileType, seed) {
 
   heightMap = heights;
   return terrain;
+}
+
+function carveDirectedRiver(terrain, heights, random, { tributaries = 1, width = 1 } = {}) {
+  const directions = [
+    [1, 0], [0, 1], [1, 1], [1, -1],
+    [-1, 1], [0, -1], [-1, 0], [-1, -1],
+  ];
+
+  const starts = [];
+  for (let i = 0; i < tributaries; i++) {
+    const fromNorth = random() < 0.5;
+    starts.push({
+      row: fromNorth ? 4 + Math.floor(random() * 40) : 8 + Math.floor(random() * (MAP_HEIGHT - 16)),
+      col: fromNorth ? 8 + Math.floor(random() * (MAP_WIDTH - 16)) : 4 + Math.floor(random() * 40),
+    });
+  }
+
+  starts.forEach(({ row: startRow, col: startCol }, index) => {
+    let row = startRow;
+    let col = startCol;
+    const targetRow = MAP_HEIGHT - 8 - Math.floor(random() * 22);
+    const targetCol = MAP_WIDTH - 8 - Math.floor(random() * 22);
+    const visited = new Set();
+
+    for (let step = 0; step < MAP_WIDTH + MAP_HEIGHT; step++) {
+      paintCircle(terrain, row, col, WATER, width + (step % 18 === 0 && index === 0 ? 1 : 0));
+      for (let rr = row - 2; rr <= row + 2; rr++) {
+        for (let cc = col - 2; cc <= col + 2; cc++) {
+          if (!isInsideMap(rr, cc)) continue;
+          if (terrain[rr][cc] === HILL) heights[rr][cc] = Math.max(1, heights[rr][cc] - 1);
+          if (terrain[rr][cc] === WATER) heights[rr][cc] = 0;
+        }
+      }
+
+      if (isNearMapEdge(row, col) && step > 28) break;
+
+      const key = `${row},${col}`;
+      visited.add(key);
+
+      let bestScore = Number.POSITIVE_INFINITY;
+      let best = null;
+
+      directions.forEach(([dr, dc]) => {
+        const nr = row + dr;
+        const nc = col + dc;
+        if (!isInsideMap(nr, nc)) return;
+        const nKey = `${nr},${nc}`;
+        if (visited.has(nKey) && random() < 0.85) return;
+
+        const h = Number.isFinite(heights[nr][nc]) ? heights[nr][nc] : 0;
+        const distToTarget = Math.hypot(targetRow - nr, targetCol - nc);
+        const directionalBias = Math.max(0, (targetRow - nr) * 0.015 + (targetCol - nc) * 0.015);
+        const bend = random() * 0.22;
+        const score = h + distToTarget * 0.018 - directionalBias + bend;
+        if (score < bestScore) {
+          bestScore = score;
+          best = [nr, nc];
+        }
+      });
+
+      if (!best) break;
+      [row, col] = best;
+    }
+  });
 }
 
 function smoothHillMask(terrain, passes = 1) {
@@ -4841,6 +5086,7 @@ function preGenerateZoneTextures(scene) {
 // Called by simulation.js every time the in-game year increments (1 Jan).
 // Uses the same save slot so it silently overwrites without prompting.
 function triggerAutosave() {
+  if (isTerrainCreatorMode) return;
   if (!activeScene || !gameReady) return;
   saveGame(true);   // pass silent=true so the toast says "Autosaved" instead of "City saved"
 }
@@ -4876,6 +5122,7 @@ function rotateMap(scene, steps = 1) {
   showToast(t('toast.view', { direction: COMPASS[mapRotation] }), 'info');
 
   if (activeOverlay) updateMiniMap();
+  scheduleTerrainMiniMapUpdate();
 }
 
 // ── Full reset (new terrain generation) ──────────────────────────────────────
@@ -4896,6 +5143,11 @@ let simPaused   = false;
 let simSpeedMul = 1;
 
 function startSimTimer() {
+  if (isTerrainCreatorMode) {
+    stopSimTimer();
+    simPaused = true;
+    return;
+  }
   stopSimTimer();
   if (simPaused || simSpeedMul === 0) return;
   const interval = Math.round(SIM_TICK_MS / simSpeedMul);
@@ -4912,12 +5164,24 @@ function stopSimTimer() {
 }
 
 function toggleSimPause() {
+  if (isTerrainCreatorMode) {
+    simPaused = true;
+    stopSimTimer();
+    if (typeof updateSpeedButtons === 'function') updateSpeedButtons();
+    return;
+  }
   simPaused = !simPaused;
   if (!simPaused) startSimTimer();
   if (typeof updateSpeedButtons === 'function') updateSpeedButtons();
 }
 
 function setSimSpeed(speed) {
+  if (isTerrainCreatorMode) {
+    simPaused = true;
+    stopSimTimer();
+    if (typeof updateSpeedButtons === 'function') updateSpeedButtons();
+    return;
+  }
   if (speed === 0) {
     simPaused = true;
     stopSimTimer();
@@ -4979,8 +5243,12 @@ function setupLandingScreen() {
   const terrainSeedInput = document.getElementById('terrain-seed-input');
   const terrainSourceSelect = document.getElementById('newgame-terrain-source');
   const terrainPresetSelect = document.getElementById('newgame-terrain-preset');
+  const terrainPresetTitle = document.getElementById('newgame-terrain-presets-title');
+  const terrainPreviewList = document.getElementById('newgame-terrain-preview-list');
   const terrainEmptyHint = document.getElementById('newgame-terrain-empty-hint');
   if (!screen) return;
+  let selectedTerrainPresetId = '';
+  const terrainPresetDataCache = new Map();
 
   function setLandingState(state) {
     if (menu) menu.style.display = state === 'menu' ? 'block' : 'none';
@@ -4999,21 +5267,78 @@ function setupLandingScreen() {
     });
   }
 
+  function drawTerrainPreview(canvas, terrainData) {
+    const ctx = canvas.getContext('2d');
+    if (!ctx || !terrainData?.mapData) return;
+
+    const size = 64;
+    canvas.width = size;
+    canvas.height = size;
+    const image = ctx.createImageData(size, size);
+    const mapRows = terrainData.mapData;
+    const heightRows = terrainData.heightMap ?? [];
+
+    function getColor(tile, height) {
+      if (tile === WATER) return [68, 136, 198];
+      if (tile === BEACH) return [224, 206, 142];
+      if (tile === DIRT) return [155, 120, 82];
+      if (tile === HILL) {
+        const shade = 105 + Math.min(80, Math.max(0, height) * 13);
+        return [78, shade, 72];
+      }
+      return [95, 160, 92];
+    }
+
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        const row = Math.floor((y / size) * MAP_HEIGHT);
+        const col = Math.floor((x / size) * MAP_WIDTH);
+        const tile = Number((mapRows[row] ?? [])[col]) || GROUND;
+        const h = Number((heightRows[row] ?? [])[col]) || 0;
+        const [r, g, b] = getColor(tile, h);
+        const idx = (y * size + x) * 4;
+        image.data[idx] = r;
+        image.data[idx + 1] = g;
+        image.data[idx + 2] = b;
+        image.data[idx + 3] = 255;
+      }
+    }
+    ctx.putImageData(image, 0, 0);
+  }
+
+  function setSelectedTerrainPreset(id) {
+    selectedTerrainPresetId = id ? String(id) : '';
+    if (terrainPresetSelect) {
+      terrainPresetSelect.value = selectedTerrainPresetId;
+    }
+    if (!terrainPreviewList) return;
+    terrainPreviewList.querySelectorAll('.terrain-preset-card').forEach((card) => {
+      card.classList.toggle('is-active', card.dataset.presetId === selectedTerrainPresetId);
+    });
+  }
+
   async function refreshTerrainPresetOptions() {
-    if (!terrainPresetSelect || !terrainEmptyHint) return;
+    if (!terrainPresetSelect || !terrainEmptyHint || !terrainPreviewList) return;
 
     terrainPresetSelect.innerHTML = `<option value="">${t('landing.terrainPresetLoading')}</option>`;
+    terrainPreviewList.innerHTML = `<div class="terrain-preset-loading">${t('landing.terrainPresetLoading')}</div>`;
     terrainEmptyHint.style.display = 'none';
+    if (terrainPresetTitle) terrainPresetTitle.style.display = 'none';
 
     try {
       const presets = await listTerrainPresets();
       terrainPresetSelect.innerHTML = '';
+      terrainPreviewList.innerHTML = '';
 
       if (presets.length === 0) {
         terrainPresetSelect.style.display = 'none';
+        terrainPreviewList.style.display = 'none';
         terrainEmptyHint.style.display = 'block';
         return;
       }
+
+      terrainPreviewList.style.display = 'grid';
+      if (terrainPresetTitle) terrainPresetTitle.style.display = 'block';
 
       const placeholder = document.createElement('option');
       placeholder.value = '';
@@ -5029,18 +5354,107 @@ function setupLandingScreen() {
           : profileLabel;
         option.textContent = `${preset.name} (${profileText})`;
         terrainPresetSelect.appendChild(option);
+
+        const card = document.createElement('div');
+        card.className = 'terrain-preset-card';
+        card.dataset.presetId = String(preset.id);
+
+        const thumb = document.createElement('canvas');
+        thumb.className = 'terrain-preset-thumb';
+        card.appendChild(thumb);
+
+        const name = document.createElement('div');
+        name.className = 'terrain-preset-name';
+        name.textContent = preset.name;
+        card.appendChild(name);
+
+        const meta = document.createElement('div');
+        meta.className = 'terrain-preset-meta';
+        meta.textContent = profileText;
+        card.appendChild(meta);
+
+        const actions = document.createElement('div');
+        actions.className = 'terrain-preset-actions';
+
+        const selectBtn = document.createElement('button');
+        selectBtn.type = 'button';
+        selectBtn.className = 'terrain-preset-btn';
+        selectBtn.textContent = t('landing.terrainSelect');
+        actions.appendChild(selectBtn);
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.type = 'button';
+        deleteBtn.className = 'terrain-preset-btn delete';
+        deleteBtn.textContent = t('landing.terrainDelete');
+        actions.appendChild(deleteBtn);
+
+        card.appendChild(actions);
+
+        const selectCard = () => setSelectedTerrainPreset(preset.id);
+        card.addEventListener('click', selectCard);
+        selectBtn.addEventListener('click', (event) => {
+          event.stopPropagation();
+          selectCard();
+        });
+
+        deleteBtn.addEventListener('click', async (event) => {
+          event.stopPropagation();
+          if (!window.confirm(t('landing.terrainDeleteConfirm'))) return;
+          try {
+            await deleteTerrainPresetById(preset.id);
+            terrainPresetDataCache.delete(String(preset.id));
+            if (selectedTerrainPresetId === String(preset.id)) {
+              selectedTerrainPresetId = '';
+            }
+            showToast(t('toast.terrainPresetDeleted'), 'info');
+            refreshTerrainPresetOptions();
+          } catch (error) {
+            console.error('[TerrainPreset Delete]', error);
+            showToast(t('toast.terrainPresetDeleteFailed'), 'danger');
+          }
+        });
+
+        terrainPreviewList.appendChild(card);
+
+        const cached = terrainPresetDataCache.get(String(preset.id));
+        if (cached) {
+          drawTerrainPreview(thumb, cached);
+        } else if (preset.terrain_data?.mapData) {
+          terrainPresetDataCache.set(String(preset.id), preset.terrain_data);
+          drawTerrainPreview(thumb, preset.terrain_data);
+        } else {
+          getTerrainPresetById(preset.id)
+            .then((full) => {
+              if (!full?.terrain_data) return;
+              terrainPresetDataCache.set(String(preset.id), full.terrain_data);
+              drawTerrainPreview(thumb, full.terrain_data);
+            })
+            .catch(() => {
+              thumb.replaceWith(document.createTextNode(t('landing.terrainPreviewFailed')));
+            });
+        }
       });
+
+      if (!presets.some((preset) => String(preset.id) === selectedTerrainPresetId)) {
+        selectedTerrainPresetId = String(presets[0].id);
+      }
+      setSelectedTerrainPreset(selectedTerrainPresetId);
     } catch {
       terrainPresetSelect.innerHTML = '';
       terrainPresetSelect.style.display = 'none';
+      terrainPreviewList.innerHTML = '';
+      terrainPreviewList.style.display = 'none';
+      if (terrainPresetTitle) terrainPresetTitle.style.display = 'none';
       terrainEmptyHint.style.display = 'block';
     }
   }
 
   function updateTerrainSourceVisibility() {
-    if (!terrainSourceSelect || !terrainPresetSelect || !terrainEmptyHint) return;
+    if (!terrainSourceSelect || !terrainPresetSelect || !terrainEmptyHint || !terrainPreviewList) return;
     const usePreset = terrainSourceSelect.value === 'preset';
-    terrainPresetSelect.style.display = usePreset ? 'block' : 'none';
+    terrainPresetSelect.style.display = 'none';
+    terrainPreviewList.style.display = usePreset ? 'grid' : 'none';
+    if (terrainPresetTitle) terrainPresetTitle.style.display = usePreset ? 'block' : 'none';
     if (!usePreset) {
       terrainEmptyHint.style.display = 'none';
     }
@@ -5109,14 +5523,20 @@ function setupLandingScreen() {
     }
   });
 
+  terrainPresetSelect?.addEventListener('change', () => {
+    setSelectedTerrainPreset(terrainPresetSelect.value);
+  });
+
   // Keyboard shortcuts: Ctrl+S = save, Ctrl+O = load
   document.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key === 's') {
       e.preventDefault();
-      saveGame();
+      if (isTerrainCreatorMode) saveTerrainPresetFromCurrentMap();
+      else saveGame();
     }
     if ((e.ctrlKey || e.metaKey) && e.key === 'o') {
       e.preventDefault();
+      if (isTerrainCreatorMode) return;
       openSaveListModal();
     }
     if (e.key === 'F11') {
@@ -5183,6 +5603,7 @@ function startTerrainCreatorMode(profileType, seedText) {
   if (!gameReady || !activeScene) return;
 
   stopSimTimer();
+  simPaused = true;
   isTerrainCreatorMode = true;
   activeTerrainProfileType = profileType;
   currentSeed = seedText || createSeed();
@@ -5195,6 +5616,7 @@ function startTerrainCreatorMode(profileType, seedText) {
     button.classList.toggle('is-active', button.dataset.tool === 'terrain');
   });
   updateTerrainToolUi();
+  setTerrainEditorUiActive(true);
 
   hideLandingScreen();
   showToast(t('toast.terrainCreatorEntered'), 'info');
@@ -5256,6 +5678,7 @@ async function startNewGame(cityName) {
   stopSimTimer();
   isTerrainCreatorMode = false;
   activeTerrainProfileType = 'custom';
+  setTerrainEditorUiActive(false);
 
   if (source === 'preset') {
     const selectedId = (terrainPresetSelect?.value || '').trim();
@@ -5282,6 +5705,8 @@ async function startNewGame(cityName) {
   if (typeof currentSaveId !== 'undefined') currentSaveId = null;
 
   rebuildFreshMapSession(cityName || getDefaultCityName());
+  simPaused = false;
+  simSpeedMul = simSpeedMul || 1;
   startSimTimer();
   hideLandingScreen();
 }

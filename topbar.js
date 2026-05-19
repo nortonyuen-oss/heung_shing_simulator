@@ -91,7 +91,10 @@ function onMenuOpen(menuId) {
 
 function handleMenuAction(action) {
   switch (action) {
-    case 'save':         saveGame();                        break;
+    case 'save':
+      if (typeof isTerrainCreatorMode !== 'undefined' && isTerrainCreatorMode) saveTerrainPresetFromCurrentMap();
+      else saveGame();
+      break;
     case 'save-as':      saveAsGame();                      break;
     case 'load-game':    openSaveListModal();               break;
     case 'main-menu':    returnToMainMenu();                break;
@@ -211,6 +214,7 @@ function returnToMainMenu() {
     saveGame();   // async — fires in background; toast appears when done
   }
   isTerrainCreatorMode = false;
+  if (typeof setTerrainEditorUiActive === 'function') setTerrainEditorUiActive(false);
   stopSimTimer();
 
   // Show landing screen in main-menu state

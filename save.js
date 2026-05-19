@@ -98,9 +98,10 @@ async function loadSaveById(id, scene) {
     const row  = await res.json();
     const save = row.save_data;
 
-    applySaveData(scene, save);
     if (typeof isTerrainCreatorMode !== 'undefined') isTerrainCreatorMode = false;
     if (typeof activeTerrainProfileType !== 'undefined') activeTerrainProfileType = 'custom';
+    if (typeof setTerrainEditorUiActive === 'function') setTerrainEditorUiActive(false);
+    applySaveData(scene, save);
     currentSaveId = id;
 
     showToast(t('toast.welcomeBack', { city: city.name }), 'info');

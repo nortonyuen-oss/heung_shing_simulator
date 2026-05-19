@@ -137,6 +137,7 @@ let didLongPressTerrain = false;
 let isTerrainCreatorMode = false;
 let activeTerrainProfileType = 'custom';
 let terrainMiniMapRaf = null;
+let currentTerrainMetadata = null;
 
 // Zone density state (per zone type; values = DENSITY_LOW|MED|HIGH = 1|2|3)
 let selectedZoneDensity = { res: 1, com: 1, ind: 1 };
@@ -169,6 +170,7 @@ const TERRAIN_OPTIONS = [
 
 const TERRAIN_PROFILE_OPTIONS = [
   { key: 'island', titleKey: 'terrain.profile.island' },
+  { key: 'harbor', titleKey: 'terrain.profile.harbor' },
   { key: 'mountain', titleKey: 'terrain.profile.mountain' },
   { key: 'desert', titleKey: 'terrain.profile.desert' },
   { key: 'plain', titleKey: 'terrain.profile.plain' },
@@ -281,7 +283,7 @@ function getBuildingSubLabel(type, level) {
 }
 
 // Map data: 1=ground, 2=road, 3=dirt, 4=beach, 5=water, 6=hill
-let mapData = generateTerrainMap(currentSeed);
+let mapData = createFilledMap(GROUND);
 
 const config = {
   type: Phaser.AUTO,
@@ -3449,6 +3451,20 @@ function refreshAllTiles(scene) {
 }
 
 function generateNewTerrain() {
+  if (isTerrainCreatorMode) {
+    currentSeed = createSeed();
+    mapData = generateTerrainMapByProfile(activeTerrainProfileType, currentSeed);
+    mapRotation = 0;
+    lastEditedTile = null;
+
+    if (activeScene) {
+      fullReset(activeScene);
+      refreshAllTiles(activeScene);
+      stopSimTimer();
+    }
+    return;
+  }
+
   let seedInput = null;
   let promptSupported = true;
   try {
@@ -3559,285 +3575,920 @@ function getBuildingElevationOffset(row, col, footprintCols = 1, footprintRows =
 
 // ── Terrain generation ────────────────────────────────────────────────────────
 
+const REALISTIC_TERRAIN_PROFILES = {
+  default: {
+    seaLevel: 0.28, baseElevation: 0.44, relief: 0.9, ridgeCount: 2, riverCount: 2,
+    coastMode: 'edgeSea', buildableBias: 0.52, dryness: 0.22, erosionPasses: 2,
+  },
+  island: {
+    seaLevel: 0.38, baseElevation: 0.16, relief: 0.82, ridgeCount: 2, riverCount: 2,
+    coastMode: 'island', buildableBias: 0.28, dryness: 0.18, erosionPasses: 2,
+  },
+  harbor: {
+    seaLevel: 0.34, baseElevation: 0.44, relief: 0.82, ridgeCount: 2, riverCount: 2,
+    coastMode: 'harbor', buildableBias: 0.42, dryness: 0.18, erosionPasses: 2, harborMouthWidth: 34,
+  },
+  mountain: {
+    seaLevel: 0.18, baseElevation: 0.56, relief: 1.55, ridgeCount: 4, riverCount: 3,
+    coastMode: 'edgeSea', buildableBias: 0.24, dryness: 0.16, erosionPasses: 3,
+  },
+  desert: {
+    seaLevel: 0.08, baseElevation: 0.32, relief: 0.7, ridgeCount: 2, riverCount: 1,
+    coastMode: 'none', buildableBias: 0.38, dryness: 0.86, erosionPasses: 1,
+  },
+  plain: {
+    seaLevel: 0.16, baseElevation: 0.30, relief: 0.42, ridgeCount: 1, riverCount: 2,
+    coastMode: 'edgeSea', buildableBias: 0.62, dryness: 0.20, erosionPasses: 1,
+  },
+  lake: {
+    seaLevel: 0.16, baseElevation: 0.40, relief: 0.75, ridgeCount: 2, riverCount: 2,
+    coastMode: 'lake', buildableBias: 0.42, dryness: 0.12, erosionPasses: 2,
+  },
+  river: {
+    seaLevel: 0.12, baseElevation: 0.42, relief: 0.75, ridgeCount: 2, riverCount: 4,
+    coastMode: 'none', buildableBias: 0.52, dryness: 0.16, erosionPasses: 2,
+  },
+  plateau: {
+    seaLevel: 0.10, baseElevation: 0.54, relief: 1.05, ridgeCount: 2, riverCount: 2,
+    coastMode: 'none', buildableBias: 0.32, dryness: 0.34, erosionPasses: 2,
+  },
+  basin: {
+    seaLevel: 0.20, baseElevation: 0.32, relief: 1.0, ridgeCount: 3, riverCount: 2,
+    coastMode: 'basin', buildableBias: 0.38, dryness: 0.18, erosionPasses: 2,
+  },
+  flat: {
+    seaLevel: -1, baseElevation: 0, relief: 0, ridgeCount: 0, riverCount: 0,
+    coastMode: 'none', buildableBias: 1, dryness: 0, erosionPasses: 0,
+  },
+};
+
+mapData = generateTerrainMap(currentSeed);
+
 function generateTerrainMap(seed) {
-  const random = createRandom(seed);
-  const terrain = createFilledMap(GROUND);
-
-  carveSeas(terrain, random);
-  carveRivers(terrain, random);
-  addBeaches(terrain);
-  addPatches(terrain, random, DIRT, 22, 4, 16);
-  addPatches(terrain, random, HILL, 28, 5, 18);
-  normalizeHillTerrain(terrain, 2);
-  smoothHillMask(terrain, 1);
-
-  // Generate an initial continuous height field for hill cells.
-  const heights = createFilledMap(0);
-  for (let row = 0; row < MAP_HEIGHT; row++) {
-    for (let col = 0; col < MAP_WIDTH; col++) {
-      if (terrain[row][col] !== HILL) continue;
-      const n = valueNoise(col * 0.025 + 200, row * 0.025 + 200, random);
-      const detail = valueNoise(col * 0.065 - 80, row * 0.065 + 140, random);
-      const blended = 1 + n * 2.1 + (detail - 0.5) * 0.7;
-      heights[row][col] = Math.max(1, Math.min(MAX_TERRAIN_HEIGHT, blended));
-    }
-  }
-
-  smoothHillHeights(terrain, heights, 2);
-  enforceGlobalSlopeConstraints(terrain, heights, 1, 4);
-  quantizeHillHeights(terrain, heights);
-  normalizeUnsupportedHillTopologiesGlobal(terrain, heights, 4);
-  enforceGlobalSlopeConstraints(terrain, heights, 1, 2);
-  quantizeHillHeights(terrain, heights);
-
-  flattenMapBorder(terrain, heights, 3);
-  heightMap = heights;
-  return terrain;
+  return generateRealisticTerrainMap('default', seed).mapData;
 }
 
 function generateTerrainMapByProfile(profileType, seed) {
-  if (profileType === 'flat') {
-    const terrain = createFilledMap(GROUND);
-    const heights = createFilledMap(0);
-    flattenMapBorder(terrain, heights, 3);
-    heightMap = heights;
-    return terrain;
-  }
-
-  const random = createRandom(seed);
-  const terrain = createFilledMap(GROUND);
-  const heights = createFilledMap(0);
-  const centerX = (MAP_WIDTH - 1) / 2;
-  const centerY = (MAP_HEIGHT - 1) / 2;
-  if (profileType === 'island') {
-    for (let row = 0; row < MAP_HEIGHT; row++) {
-      for (let col = 0; col < MAP_WIDTH; col++) {
-        terrain[row][col] = WATER;
-        heights[row][col] = 0;
-      }
-    }
-
-    const islands = [];
-    const islandCount = 7 + Math.floor(random() * 6);
-    for (let i = 0; i < islandCount; i++) {
-      islands.push({
-        col: 18 + Math.floor(random() * (MAP_WIDTH - 36)),
-        row: 18 + Math.floor(random() * (MAP_HEIGHT - 36)),
-        radius: 20 + random() * 34,
-        peak: 3.5 + random() * 3.2,
-      });
-    }
-
-    for (let row = 0; row < MAP_HEIGHT; row++) {
-      for (let col = 0; col < MAP_WIDTH; col++) {
-        const macro = valueNoise(col * 0.02 + 80, row * 0.02 + 200, random);
-        const detail = valueNoise(col * 0.07 - 30, row * 0.07 + 55, random);
-        let influence = -0.5;
-        islands.forEach((island) => {
-          const dist = Math.hypot(col - island.col, row - island.row) / island.radius;
-          const value = island.peak * Math.max(0, 1 - dist * dist);
-          if (value > influence) influence = value;
-        });
-
-        const raw = influence + (macro - 0.5) * 1.5 + (detail - 0.5) * 0.9;
-        if (raw <= 0.5) continue;
-        if (raw < 1.2) {
-          terrain[row][col] = GROUND;
-          continue;
-        }
-        terrain[row][col] = HILL;
-        heights[row][col] = Math.max(1, Math.min(MAX_TERRAIN_HEIGHT, Math.round(raw)));
-      }
-    }
-  } else {
-    for (let row = 0; row < MAP_HEIGHT; row++) {
-      for (let col = 0; col < MAP_WIDTH; col++) {
-        const nx = (col - centerX) / Math.max(1, centerX);
-        const ny = (row - centerY) / Math.max(1, centerY);
-        const dist = Math.sqrt(nx * nx + ny * ny);
-        const macro = valueNoise(col * 0.018 + 200, row * 0.018 - 60, random);
-        const detail = valueNoise(col * 0.06 - 80, row * 0.06 + 140, random);
-        const ridge = valueNoise(col * 0.014 + 320, row * 0.038 - 110, random);
-
-        let rawHeight = 0;
-        let forceWater = false;
-        let forceDirt = false;
-
-        switch (profileType) {
-          case 'mountain': {
-            const ridgeBoost = Math.abs(ridge - 0.5) * 5.5;
-            rawHeight = 1.8 + Math.max(0, 1.18 - dist) * 6.4 + ridgeBoost + (detail - 0.5) * 1.1;
-            forceWater = dist > 0.985 && macro < 0.45;
-            break;
-          }
-          case 'desert': {
-            rawHeight = 0.5 + Math.max(0, macro - 0.58) * 2.4 + (detail - 0.5) * 0.7;
-            forceDirt = true;
-            forceWater = macro > 0.996 && detail > 0.68;
-            break;
-          }
-          case 'plain': {
-            rawHeight = 0.35 + Math.max(0, macro - 0.62) * 1.4 + (detail - 0.5) * 0.45;
-            forceWater = macro < 0.012;
-            break;
-          }
-          case 'lake': {
-            const lakeDepth = Math.max(0, 0.58 - dist) * 6.2;
-            rawHeight = 2.0 - lakeDepth + Math.max(0, Math.abs(dist - 0.56) - 0.05) * 3.0 + (macro - 0.5) * 0.9;
-            forceWater = dist < 0.34 + (detail - 0.5) * 0.09;
-            break;
-          }
-          case 'river': {
-            const slopeBase = 3.8 - (row / MAP_HEIGHT) * 2.4 - (col / MAP_WIDTH) * 1.8;
-            rawHeight = slopeBase + Math.max(0, macro - 0.52) * 2.1 + (detail - 0.5) * 0.6;
-            forceWater = row > MAP_HEIGHT - 14 || col > MAP_WIDTH - 14;
-            break;
-          }
-          case 'plateau': {
-            const edge = dist;
-            const cliff = edge > 0.43 && edge < 0.66 ? (0.66 - edge) * 20 : 0;
-            const top = edge <= 0.43 ? 6.2 + (macro - 0.5) * 0.5 : 2.0;
-            rawHeight = top + cliff + (detail - 0.5) * 0.4;
-            forceWater = edge > 0.97;
-            break;
-          }
-          case 'basin': {
-            const rim = Math.max(0, 0.72 - Math.abs(dist - 0.53)) * 8.3;
-            const sink = Math.max(0, 0.34 - dist) * 6.8;
-            rawHeight = 1.2 + rim - sink + (macro - 0.5) * 0.7;
-            forceWater = dist < 0.19 + (detail - 0.5) * 0.04;
-            break;
-          }
-          default: {
-            return generateTerrainMap(seed);
-          }
-        }
-
-        if (forceWater) {
-          terrain[row][col] = WATER;
-          heights[row][col] = 0;
-          continue;
-        }
-
-        const quantized = Math.round(Math.max(0, Math.min(MAX_TERRAIN_HEIGHT, rawHeight)));
-        if (quantized > 0) {
-          terrain[row][col] = HILL;
-          heights[row][col] = Math.max(1, Math.min(MAX_TERRAIN_HEIGHT, quantized));
-        } else if (forceDirt) {
-          terrain[row][col] = DIRT;
-        }
-      }
-    }
-  }
-
-  if (profileType === 'river') {
-    carveDirectedRiver(terrain, heights, random, { tributaries: 2, width: 1 });
-  }
-
-  if (profileType === 'plain') {
-    carveDirectedRiver(terrain, heights, random, { tributaries: 1, width: 1 });
-  }
-
-  if (profileType === 'mountain') {
-    carveDirectedRiver(terrain, heights, random, { tributaries: 1, width: 1 });
-  }
-
-  if (profileType === 'desert') {
-    addPatches(terrain, random, DIRT, 46, 5, 24);
-  } else {
-    addPatches(terrain, random, DIRT, 16, 4, 14);
-  }
-
-  // Keep heights consistent after terrain mask post-processing.
-  for (let row = 0; row < MAP_HEIGHT; row++) {
-    for (let col = 0; col < MAP_WIDTH; col++) {
-      if (terrain[row][col] === WATER || terrain[row][col] === BEACH || terrain[row][col] === DIRT || terrain[row][col] === GROUND) {
-        if (terrain[row][col] !== HILL) heights[row][col] = 0;
-      }
-      if (terrain[row][col] === HILL && heights[row][col] <= 0) {
-        const n = valueNoise(col * 0.025 + 200, row * 0.025 + 200, random);
-        heights[row][col] = Math.max(1, Math.min(MAX_TERRAIN_HEIGHT, 1 + Math.round(n * 3)));
-      }
-    }
-  }
-
-  normalizeHillTerrain(terrain, 2);
-  smoothHillMask(terrain, 1);
-  smoothHillHeights(terrain, heights, 2);
-  enforceGlobalSlopeConstraints(terrain, heights, 1, 5);
-  quantizeHillHeights(terrain, heights);
-  normalizeUnsupportedHillTopologiesGlobal(terrain, heights, 4);
-  enforceGlobalSlopeConstraints(terrain, heights, 1, 2);
-  quantizeHillHeights(terrain, heights);
-  addBeaches(terrain);
-  flattenMapBorder(terrain, heights, 3);
-
-  heightMap = heights;
-  return terrain;
+  return generateRealisticTerrainMap(profileType, seed).mapData;
 }
 
-function carveDirectedRiver(terrain, heights, random, { tributaries = 1, width = 1 } = {}) {
-  const directions = [
-    [1, 0], [0, 1], [1, 1], [1, -1],
-    [-1, 1], [0, -1], [-1, 0], [-1, -1],
-  ];
+function generateRealisticTerrainMap(profileType = 'default', seed, options = {}) {
+  const requestedProfile = REALISTIC_TERRAIN_PROFILES[profileType] ? profileType : 'default';
+  const config = { ...REALISTIC_TERRAIN_PROFILES[requestedProfile], ...options };
+  const random = createRandom(seed);
 
-  const starts = [];
-  for (let i = 0; i < tributaries; i++) {
-    const fromNorth = random() < 0.5;
-    starts.push({
-      row: fromNorth ? 4 + Math.floor(random() * 40) : 8 + Math.floor(random() * (MAP_HEIGHT - 16)),
-      col: fromNorth ? 8 + Math.floor(random() * (MAP_WIDTH - 16)) : 4 + Math.floor(random() * 40),
-    });
+  if (requestedProfile === 'flat') {
+    const terrain = createFilledMap(GROUND);
+    const heights = createFilledMap(0);
+    currentTerrainMetadata = { generatorVersion: 2, profileType: requestedProfile, seed, features: ['flat'] };
+    heightMap = heights;
+    return {
+      mapData: terrain,
+      heightMap: heights,
+      metadata: currentTerrainMetadata,
+    };
   }
 
-  starts.forEach(({ row: startRow, col: startCol }, index) => {
-    let row = startRow;
-    let col = startCol;
-    const targetRow = MAP_HEIGHT - 8 - Math.floor(random() * 22);
-    const targetCol = MAP_WIDTH - 8 - Math.floor(random() * 22);
-    const visited = new Set();
+  const field = createNumericMap(0);
+  const masks = createTerrainMasks();
+  const metadata = {
+    generatorVersion: 2,
+    profileType: requestedProfile,
+    seed,
+    features: [],
+  };
 
-    for (let step = 0; step < MAP_WIDTH + MAP_HEIGHT; step++) {
-      paintCircle(terrain, row, col, WATER, width + (step % 18 === 0 && index === 0 ? 1 : 0));
-      for (let rr = row - 2; rr <= row + 2; rr++) {
-        for (let cc = col - 2; cc <= col + 2; cc++) {
-          if (!isInsideMap(rr, cc)) continue;
-          if (terrain[rr][cc] === HILL) heights[rr][cc] = Math.max(1, heights[rr][cc] - 1);
-          if (terrain[rr][cc] === WATER) heights[rr][cc] = 0;
+  buildBaseHeightField(field, config, requestedProfile, random);
+  applyCoastModel(field, masks, config, requestedProfile, random, metadata);
+  const ridges = generateRidgeNetwork(config, requestedProfile, random);
+  applyRidgeNetwork(field, ridges, config, requestedProfile, metadata);
+  applyProfileLandform(field, masks, config, requestedProfile, random, metadata);
+  routeRiverNetwork(field, masks, config, requestedProfile, random, metadata);
+  smoothWaterMasks(field, masks, config, requestedProfile);
+  erodeFieldAlongDrainage(field, masks, config);
+
+  const { terrain, heights } = classifyTerrain(field, masks, config, requestedProfile, random);
+  cleanupTerrainComponents(terrain, heights, requestedProfile);
+  addBeachesBySlope(terrain, heights, field, config);
+  smoothHillHeights(terrain, heights, Math.min(2, config.erosionPasses + 1));
+  enforceGlobalSlopeConstraints(terrain, heights, 1, 4);
+  quantizeHillHeights(terrain, heights);
+  normalizeUnsupportedHillTopologiesGlobal(terrain, heights, 3);
+  enforceGlobalSlopeConstraints(terrain, heights, 1, 2);
+  quantizeHillHeights(terrain, heights);
+  flattenMapBorder(terrain, heights, 3);
+
+  currentTerrainMetadata = metadata;
+  heightMap = heights;
+  return { mapData: terrain, heightMap: heights, metadata };
+}
+
+function createNumericMap(value) {
+  return Array.from({ length: MAP_HEIGHT }, () => Array(MAP_WIDTH).fill(value));
+}
+
+function createTerrainMasks() {
+  return {
+    water: createNumericMap(false),
+    river: createNumericMap(false),
+    lake: createNumericMap(false),
+    beach: createNumericMap(false),
+    dirt: createNumericMap(false),
+  };
+}
+
+function buildBaseHeightField(field, config, profileType, random) {
+  const coastEdge = Math.floor(random() * 4);
+  config._coastEdge = coastEdge;
+
+  for (let row = 0; row < MAP_HEIGHT; row++) {
+    for (let col = 0; col < MAP_WIDTH; col++) {
+      const nx = col / (MAP_WIDTH - 1);
+      const ny = row / (MAP_HEIGHT - 1);
+      const broad = valueNoise(col * 0.007, row * 0.007, random);
+      const medium = valueNoise(col * 0.018 + 41, row * 0.018 - 29, random);
+      const detail = valueNoise(col * 0.042 + 90, row * 0.042 - 40, random);
+      let gradient = 0;
+
+      if (profileType === 'mountain') gradient = (1 - nx) * 0.45 + (1 - ny) * 0.25;
+      else if (profileType === 'plain') gradient = (1 - ny) * 0.12;
+      else if (profileType === 'river') gradient = (1 - nx) * 0.18 + (1 - ny) * 0.10;
+      else if (profileType === 'desert') gradient = (nx - 0.5) * 0.12;
+      else if (profileType === 'plateau') gradient = 0.20 + (1 - ny) * 0.12;
+
+      field[row][col] = config.baseElevation
+        + (broad - 0.5) * config.relief * 0.82
+        + (medium - 0.5) * config.relief * 0.28
+        + (detail - 0.5) * config.relief * 0.14
+        + gradient;
+    }
+  }
+}
+
+function applyCoastModel(field, masks, config, profileType, random, metadata) {
+  if (config.coastMode === 'none') return;
+
+  if (config.coastMode === 'edgeSea') {
+    const edge = config._coastEdge ?? 1;
+    const coastLine = Array.from({ length: Math.max(MAP_WIDTH, MAP_HEIGHT) }, (_, along) => (
+      20
+      + valueNoise(along * 0.025, 20 + along * 0.006, random) * 36
+      + Math.max(0, valueNoise(along * 0.011 + 60, along * 0.014 - 20, random) - 0.58) * 72
+    ));
+    for (let row = 0; row < MAP_HEIGHT; row++) {
+      for (let col = 0; col < MAP_WIDTH; col++) {
+        const along = edge < 2 ? row : col;
+        const inward = edge === 0 ? row
+          : edge === 1 ? MAP_WIDTH - 1 - col
+            : edge === 2 ? MAP_HEIGHT - 1 - row
+              : col;
+        const coast = coastLine[along];
+        if (inward < coast) {
+          masks.water[row][col] = true;
+          field[row][col] = Math.min(field[row][col], config.seaLevel - 0.18);
+        } else if (inward < coast + 14) {
+          field[row][col] -= (1 - (inward - coast) / 14) * 0.18;
         }
       }
+    }
+    metadata.features.push('coast');
+    return;
+  }
 
-      if (isNearMapEdge(row, col) && step > 28) break;
+  if (config.coastMode === 'island') {
+    applyIslandCoast(field, masks, config, random, metadata);
+    return;
+  }
 
-      const key = `${row},${col}`;
-      visited.add(key);
+  if (config.coastMode === 'harbor') {
+    applyHarborCoast(field, masks, config, random, metadata);
+    return;
+  }
 
-      let bestScore = Number.POSITIVE_INFINITY;
-      let best = null;
+  if (config.coastMode === 'lake') {
+    applyLakeBasin(field, masks, config, random, metadata);
+    return;
+  }
 
-      directions.forEach(([dr, dc]) => {
-        const nr = row + dr;
-        const nc = col + dc;
-        if (!isInsideMap(nr, nc)) return;
-        const nKey = `${nr},${nc}`;
-        if (visited.has(nKey) && random() < 0.85) return;
+  if (config.coastMode === 'basin') {
+    applyBasinRim(field, masks, config, random, metadata);
+  }
+}
 
-        const h = Number.isFinite(heights[nr][nc]) ? heights[nr][nc] : 0;
-        const distToTarget = Math.hypot(targetRow - nr, targetCol - nc);
-        const directionalBias = Math.max(0, (targetRow - nr) * 0.015 + (targetCol - nc) * 0.015);
-        const bend = random() * 0.22;
-        const score = h + distToTarget * 0.018 - directionalBias + bend;
-        if (score < bestScore) {
-          bestScore = score;
-          best = [nr, nc];
-        }
+function applyIslandCoast(field, masks, config, random, metadata) {
+  const spines = generateIslandSpines(random);
+  for (let row = 0; row < MAP_HEIGHT; row++) {
+    for (let col = 0; col < MAP_WIDTH; col++) {
+      const warpRow = row + (valueNoise(col * 0.016 + 7, row * 0.016 - 11, random) - 0.5) * 22;
+      const warpCol = col + (valueNoise(col * 0.016 - 13, row * 0.016 + 17, random) - 0.5) * 22;
+      let land = -0.35;
+      spines.forEach((spine, index) => {
+        const d = distanceToPolyline(warpRow, warpCol, spine.points);
+        const width = spine.width * (index === 0 ? 1 : 0.72);
+        land = Math.max(land, 1.05 - d / width);
       });
+      land += (valueNoise(col * 0.018, row * 0.018, random) - 0.5) * 0.55;
+      if (land < 0) {
+        masks.water[row][col] = true;
+        field[row][col] = config.seaLevel - 0.25;
+      } else {
+        field[row][col] += land * 0.75;
+      }
+    }
+  }
+  metadata.features.push('island-chain');
+}
 
-      if (!best) break;
-      [row, col] = best;
+function generateIslandSpines(random) {
+  const spines = [];
+  const mainStart = { row: 60 + random() * 40, col: 24 + random() * 32 };
+  const mainEnd = { row: 160 + random() * 42, col: 196 + random() * 30 };
+  spines.push({
+    width: 46 + random() * 22,
+    points: makeMeanderingPolyline(mainStart, mainEnd, random, 6, 34),
+  });
+  const count = 2 + Math.floor(random() * 4);
+  for (let i = 0; i < count; i++) {
+    const anchor = spines[0].points[1 + Math.floor(random() * (spines[0].points.length - 2))];
+    const angle = random() * Math.PI * 2;
+    const len = 36 + random() * 56;
+    const end = {
+      row: Math.max(22, Math.min(MAP_HEIGHT - 22, anchor.row + Math.sin(angle) * len)),
+      col: Math.max(22, Math.min(MAP_WIDTH - 22, anchor.col + Math.cos(angle) * len)),
+    };
+    spines.push({
+      width: 17 + random() * 18,
+      points: makeMeanderingPolyline(anchor, end, random, 4, 18),
+    });
+  }
+  return spines;
+}
+
+function applyHarborCoast(field, masks, config, random, metadata) {
+  const edge = Math.floor(random() * 4);
+  config._coastEdge = edge;
+  const mouthCenter = 104 + random() * 48;
+  const bayDepth = 108 + random() * 44;
+  const mouthWidth = config.harborMouthWidth ?? 34;
+
+  for (let row = 0; row < MAP_HEIGHT; row++) {
+    for (let col = 0; col < MAP_WIDTH; col++) {
+      const coords = edgeRelativeCoords(row, col, edge);
+      const along = coords.along;
+      const inward = coords.inward;
+      const bayCurve = mouthCenter
+        + Math.sin(inward * 0.035) * 24
+        + (valueNoise(inward * 0.025, along * 0.014, random) - 0.5) * 34;
+      const widening = mouthWidth + Math.sin(Math.min(1, inward / bayDepth) * Math.PI) * 58;
+      const openSea = inward < 14 + valueNoise(along * 0.03, 7, random) * 20;
+      const bay = inward < bayDepth && Math.abs(along - bayCurve) < widening;
+      const innerHarbor = inward > bayDepth * 0.42 && inward < bayDepth * 0.92 && Math.abs(along - bayCurve) < widening * 1.16;
+      if (openSea || bay || innerHarbor) {
+        masks.water[row][col] = true;
+        field[row][col] = config.seaLevel - (openSea ? 0.32 : 0.20);
+      } else {
+        const shoreDist = Math.abs(along - bayCurve) - widening;
+        if (shoreDist > 0 && shoreDist < 20 && inward < bayDepth + 28) {
+          field[row][col] -= (1 - shoreDist / 20) * 0.16;
+        }
+      }
+    }
+  }
+
+  addHarborHeadlands(field, masks, edge, mouthCenter, bayDepth, random);
+  metadata.features.push('natural-harbor', 'headlands');
+}
+
+function addHarborHeadlands(field, masks, edge, mouthCenter, bayDepth, random) {
+  const headlandOffsets = [-1, 1];
+  headlandOffsets.forEach((side) => {
+    const points = [];
+    for (let i = 0; i < 5; i++) {
+      const inward = 22 + i * (bayDepth / 5);
+      const along = mouthCenter + side * (34 + i * 7 + random() * 14);
+      points.push(edgeToMapCoords(inward, along, edge));
+    }
+    for (let row = 0; row < MAP_HEIGHT; row++) {
+      for (let col = 0; col < MAP_WIDTH; col++) {
+        const d = distanceToPolyline(row, col, points);
+        if (d < 18) {
+          const lift = (1 - d / 18) * 0.52;
+          if (!masks.water[row][col] || d < 8) {
+            masks.water[row][col] = false;
+            field[row][col] += lift;
+          }
+        }
+      }
     }
   });
+}
+
+function applyLakeBasin(field, masks, config, random, metadata) {
+  const center = { row: 92 + random() * 72, col: 88 + random() * 80 };
+  const rx = 42 + random() * 36;
+  const ry = 34 + random() * 32;
+  for (let row = 0; row < MAP_HEIGHT; row++) {
+    for (let col = 0; col < MAP_WIDTH; col++) {
+      const warpCol = col + (valueNoise(col * 0.018, row * 0.018, random) - 0.5) * 20;
+      const warpRow = row + (valueNoise(col * 0.018 + 31, row * 0.018 - 7, random) - 0.5) * 20;
+      const dx = (warpCol - center.col) / rx;
+      const dy = (warpRow - center.row) / ry;
+      const d = Math.sqrt(dx * dx + dy * dy);
+      const shoreNoise = (fbmNoise(col * 0.03, row * 0.03, random, 3, 2, 0.5) - 0.5) * 0.22;
+      if (d + shoreNoise < 1) {
+        masks.water[row][col] = true;
+        masks.lake[row][col] = true;
+        field[row][col] = config.seaLevel - 0.22;
+      } else if (d < 1.4) {
+        field[row][col] -= (1.4 - d) * 0.34;
+      } else if (d < 2.2) {
+        field[row][col] += (2.2 - d) * 0.10;
+      }
+    }
+  }
+  metadata.features.push('lake-basin');
+}
+
+function applyBasinRim(field, masks, config, random, metadata) {
+  const center = { row: 118 + random() * 28, col: 112 + random() * 34 };
+  for (let row = 0; row < MAP_HEIGHT; row++) {
+    for (let col = 0; col < MAP_WIDTH; col++) {
+      const nx = (col - center.col) / 100;
+      const ny = (row - center.row) / 92;
+      const d = Math.sqrt(nx * nx + ny * ny);
+      const broken = (valueNoise(col * 0.025, row * 0.025, random) - 0.5) * 0.28;
+      const rim = Math.max(0, 1 - Math.abs(d - 0.72 + broken) / 0.22);
+      const sink = Math.max(0, 1 - d / 0.44);
+      field[row][col] += rim * 0.78 - sink * 0.36;
+      if (sink > 0.72 && config.seaLevel > 0.15 && random.seed % 2 === 0) {
+        masks.lake[row][col] = true;
+        masks.water[row][col] = true;
+        field[row][col] = config.seaLevel - 0.15;
+      }
+    }
+  }
+  metadata.features.push('basin-rim');
+}
+
+function applyProfileLandform(field, masks, config, profileType, random, metadata) {
+  if (profileType === 'desert') {
+    applyDuneBands(field, masks, random);
+    metadata.features.push('dune-fields');
+  } else if (profileType === 'plateau') {
+    applyPlateauMesa(field, masks, random);
+    metadata.features.push('plateau-mesa');
+  } else if (profileType === 'plain') {
+    flattenCentralLowlands(field, masks, 0.16);
+    metadata.features.push('alluvial-plain');
+  } else if (profileType === 'harbor' || profileType === 'default') {
+    flattenCentralLowlands(field, masks, 0.08);
+  }
+}
+
+function applyDuneBands(field, masks, random) {
+  const angle = random() * Math.PI;
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  for (let row = 0; row < MAP_HEIGHT; row++) {
+    for (let col = 0; col < MAP_WIDTH; col++) {
+      const band = Math.sin((col * cos + row * sin) * 0.09 + valueNoise(col * 0.015, row * 0.015, random) * 3);
+      field[row][col] += Math.max(0, band) * 0.16;
+      if (band > 0.22) masks.dirt[row][col] = true;
+    }
+  }
+}
+
+function applyPlateauMesa(field, masks, random) {
+  const tilt = random() * Math.PI;
+  for (let row = 0; row < MAP_HEIGHT; row++) {
+    for (let col = 0; col < MAP_WIDTH; col++) {
+      const nx = (col - MAP_WIDTH / 2) / (MAP_WIDTH / 2);
+      const ny = (row - MAP_HEIGHT / 2) / (MAP_HEIGHT / 2);
+      const shelf = Math.max(Math.abs(nx * 0.85 + Math.cos(tilt) * 0.18), Math.abs(ny * 0.75 + Math.sin(tilt) * 0.18));
+      if (shelf < 0.58 + (valueNoise(col * 0.018, row * 0.018, random) - 0.5) * 0.22) {
+        field[row][col] += 0.58;
+      }
+      const canyon = Math.abs(Math.sin(col * 0.025 + valueNoise(row * 0.02, col * 0.01, random) * 2));
+      if (canyon < 0.08) {
+        field[row][col] -= 0.34;
+        masks.dirt[row][col] = true;
+      }
+    }
+  }
+}
+
+function flattenCentralLowlands(field, masks, strength) {
+  for (let row = 34; row < MAP_HEIGHT - 34; row++) {
+    for (let col = 34; col < MAP_WIDTH - 34; col++) {
+      if (masks.water[row][col]) continue;
+      const low = field[row][col] < 0.58;
+      if (low) field[row][col] = lerp(field[row][col], 0.38, strength);
+    }
+  }
+}
+
+function generateRidgeNetwork(config, profileType, random) {
+  if (config.ridgeCount <= 0) return [];
+  const ridges = [];
+  const count = config.ridgeCount + (random() < 0.35 ? 1 : 0);
+
+  for (let i = 0; i < count; i++) {
+    const diagonal = random() < 0.65 || profileType === 'mountain';
+    const start = diagonal
+      ? { row: 18 + random() * 64, col: -10 + random() * 70 }
+      : { row: random() * MAP_HEIGHT, col: 18 + random() * 46 };
+    const end = diagonal
+      ? { row: 170 + random() * 70, col: 178 + random() * 86 }
+      : { row: random() * MAP_HEIGHT, col: 190 + random() * 48 };
+
+    const points = makeMeanderingPolyline(start, end, random, 5 + Math.floor(random() * 3), profileType === 'mountain' ? 42 : 28);
+    ridges.push({
+      points,
+      width: (profileType === 'mountain' ? 20 : 15) + random() * 18,
+      strength: (profileType === 'mountain' ? 0.78 : 0.42) + random() * 0.28,
+    });
+
+    if (random() < 0.72) {
+      const anchor = points[1 + Math.floor(random() * (points.length - 2))];
+      const angle = Math.atan2(end.row - start.row, end.col - start.col) + (random() < 0.5 ? 1 : -1) * (0.7 + random() * 0.7);
+      const branchEnd = {
+        row: anchor.row + Math.sin(angle) * (42 + random() * 64),
+        col: anchor.col + Math.cos(angle) * (42 + random() * 64),
+      };
+      ridges.push({
+        points: makeMeanderingPolyline(anchor, branchEnd, random, 4, 20),
+        width: 10 + random() * 12,
+        strength: (profileType === 'mountain' ? 0.42 : 0.24) + random() * 0.18,
+      });
+    }
+  }
+
+  return ridges;
+}
+
+function applyRidgeNetwork(field, ridges, config, profileType, metadata) {
+  if (ridges.length === 0) return;
+  ridges.forEach((ridge) => {
+    for (let index = 0; index < ridge.points.length - 1; index++) {
+      const a = ridge.points[index];
+      const b = ridge.points[index + 1];
+      const margin = Math.ceil(ridge.width * 3.2);
+      const minRow = Math.max(0, Math.floor(Math.min(a.row, b.row) - margin));
+      const maxRow = Math.min(MAP_HEIGHT - 1, Math.ceil(Math.max(a.row, b.row) + margin));
+      const minCol = Math.max(0, Math.floor(Math.min(a.col, b.col) - margin));
+      const maxCol = Math.min(MAP_WIDTH - 1, Math.ceil(Math.max(a.col, b.col) + margin));
+
+      for (let row = minRow; row <= maxRow; row++) {
+        for (let col = minCol; col <= maxCol; col++) {
+          const d = distanceToSegment(row, col, a, b);
+          if (d > margin) continue;
+          const ridgeLift = Math.exp(-((d / ridge.width) ** 2)) * ridge.strength;
+          const shoulder = Math.exp(-((d / (ridge.width * 2.8)) ** 2)) * ridge.strength * 0.18;
+          field[row][col] += ridgeLift + shoulder;
+          if (profileType === 'mountain' && d > ridge.width * 1.1 && d < ridge.width * 2.0) {
+            field[row][col] -= 0.06;
+          }
+        }
+      }
+    }
+  });
+  metadata.features.push('ridge-network');
+}
+
+function routeRiverNetwork(field, masks, config, profileType, random, metadata) {
+  const count = Math.max(0, config.riverCount);
+  for (let i = 0; i < count; i++) {
+    const source = chooseRiverSource(field, masks, random, i);
+    if (!source) continue;
+    const path = routeRiver(field, source, masks, config, random, profileType);
+    if (path.length > 18) {
+      paintRiverPath(field, masks, path, config, i === 0 ? 1 : 0);
+      metadata.features.push(i === 0 ? 'main-river' : 'tributary');
+    }
+  }
+}
+
+function chooseRiverSource(field, masks, random, index) {
+  let best = null;
+  let bestScore = -Infinity;
+  for (let attempts = 0; attempts < 900; attempts++) {
+    const row = 12 + Math.floor(random() * (MAP_HEIGHT - 24));
+    const col = 12 + Math.floor(random() * (MAP_WIDTH - 24));
+    if (masks.water[row][col]) continue;
+    const edgePenalty = Math.min(row, col, MAP_HEIGHT - 1 - row, MAP_WIDTH - 1 - col) * 0.003;
+    const score = field[row][col] + edgePenalty + (index === 0 ? 0 : random() * 0.15);
+    if (score > bestScore) {
+      bestScore = score;
+      best = { row, col };
+    }
+  }
+  return best;
+}
+
+function routeRiver(field, source, masks, config, random, profileType) {
+  const path = [];
+  let row = source.row;
+  let col = source.col;
+  let prev = { dr: 0, dc: 0 };
+  const visited = new Set();
+  const targetEdge = config._coastEdge ?? Math.floor(random() * 4);
+
+  for (let step = 0; step < MAP_WIDTH + MAP_HEIGHT; step++) {
+    if (!isInsideMap(row, col)) break;
+    path.push({ row, col });
+    if ((masks.water[row][col] && step > 8) || isNearMapEdge(row, col)) break;
+    visited.add(`${row},${col}`);
+
+    let best = null;
+    let bestScore = Infinity;
+    for (let dr = -1; dr <= 1; dr++) {
+      for (let dc = -1; dc <= 1; dc++) {
+        if (dr === 0 && dc === 0) continue;
+        const nr = row + dr;
+        const nc = col + dc;
+        if (!isInsideMap(nr, nc)) continue;
+        if (visited.has(`${nr},${nc}`) && random() < 0.92) continue;
+        const edgeBias = distanceToPreferredDrainEdge(nr, nc, targetEdge) * 0.002;
+        const isSameDirection = dr === prev.dr && dc === prev.dc;
+        const isReverse = dr === -prev.dr && dc === -prev.dc && (prev.dr !== 0 || prev.dc !== 0);
+        const dot = dr * prev.dr + dc * prev.dc;
+        const inertia = isSameDirection ? -0.09 : 0;
+        const turnPenalty = isReverse ? 0.20 : dot <= 0 && (prev.dr !== 0 || prev.dc !== 0) ? 0.07 : 0;
+        const meander = valueNoise(nc * 0.045 + step * 0.01, nr * 0.045, random) * 0.08;
+        const score = field[nr][nc] + edgeBias + meander + inertia + turnPenalty;
+        if (score < bestScore) {
+          bestScore = score;
+          best = { row: nr, col: nc, dr, dc };
+        }
+      }
+    }
+    if (!best) break;
+
+    const current = field[row][col];
+    if (field[best.row][best.col] > current - 0.01) {
+      field[best.row][best.col] = current - (profileType === 'plain' ? 0.006 : 0.018);
+    }
+    prev = { dr: best.dr, dc: best.dc };
+    row = best.row;
+    col = best.col;
+  }
+
+  return path;
+}
+
+function paintRiverPath(field, masks, path, config, extraWidth = 0) {
+  const smoothPath = smoothRiverPath(path);
+  smoothPath.forEach(({ row, col }, index) => {
+    const t = index / Math.max(1, smoothPath.length - 1);
+    const width = 1.15 + extraWidth + t * 2.45;
+    paintSoftWaterDisc(field, masks, row, col, width, config, true);
+  });
+  paintRiverMouth(field, masks, smoothPath, config, extraWidth);
+}
+
+function smoothRiverPath(path) {
+  if (path.length < 5) return path.map(({ row, col }) => ({ row, col }));
+
+  const controls = [];
+  const stride = Math.max(4, Math.floor(path.length / 18));
+  for (let i = 0; i < path.length; i += stride) {
+    controls.push(path[i]);
+  }
+  const last = path[path.length - 1];
+  if (controls[controls.length - 1] !== last) controls.push(last);
+
+  const samples = [];
+  for (let i = 0; i < controls.length - 1; i++) {
+    const p0 = controls[Math.max(0, i - 1)];
+    const p1 = controls[i];
+    const p2 = controls[i + 1];
+    const p3 = controls[Math.min(controls.length - 1, i + 2)];
+    const distance = Math.hypot(p2.row - p1.row, p2.col - p1.col);
+    const steps = Math.max(4, Math.ceil(distance / 2.4));
+    for (let step = 0; step < steps; step++) {
+      const t = step / steps;
+      samples.push({
+        row: catmullRom(p0.row, p1.row, p2.row, p3.row, t),
+        col: catmullRom(p0.col, p1.col, p2.col, p3.col, t),
+      });
+    }
+  }
+  samples.push({ row: last.row, col: last.col });
+  return samples;
+}
+
+function catmullRom(p0, p1, p2, p3, t) {
+  const t2 = t * t;
+  const t3 = t2 * t;
+  return 0.5 * (
+    (2 * p1) +
+    (-p0 + p2) * t +
+    (2 * p0 - 5 * p1 + 4 * p2 - p3) * t2 +
+    (-p0 + 3 * p1 - 3 * p2 + p3) * t3
+  );
+}
+
+function paintRiverMouth(field, masks, path, config, extraWidth = 0) {
+  if (path.length < 4) return;
+  const end = path[path.length - 1];
+  const before = path[Math.max(0, path.length - 8)];
+  const dirRow = end.row - before.row;
+  const dirCol = end.col - before.col;
+  const length = Math.hypot(dirRow, dirCol) || 1;
+  const unitRow = dirRow / length;
+  const unitCol = dirCol / length;
+  const normalRow = -unitCol;
+  const normalCol = unitRow;
+
+  for (let i = 0; i < 7; i++) {
+    const t = i / 6;
+    const centerRow = end.row + unitRow * i * 1.7;
+    const centerCol = end.col + unitCol * i * 1.7;
+    const spread = (2.1 + extraWidth + t * 3.4);
+    for (let side = -1; side <= 1; side++) {
+      const offset = side * spread * 0.45 * t;
+      paintSoftWaterDisc(
+        field,
+        masks,
+        centerRow + normalRow * offset,
+        centerCol + normalCol * offset,
+        spread * (side === 0 ? 1 : 0.72),
+        config,
+        true,
+      );
+    }
+  }
+}
+
+function paintSoftWaterDisc(field, masks, row, col, width, config, isRiver = false) {
+  const radius = width + 2.7;
+  for (let rr = Math.floor(row - radius); rr <= Math.ceil(row + radius); rr++) {
+    for (let cc = Math.floor(col - radius); cc <= Math.ceil(col + radius); cc++) {
+      if (!isInsideMap(rr, cc)) continue;
+      const dist = Math.hypot(rr - row, cc - col);
+      if (dist <= width) {
+        masks.water[rr][cc] = true;
+        if (isRiver) masks.river[rr][cc] = true;
+        field[rr][cc] = Math.min(field[rr][cc], config.seaLevel - 0.12);
+      } else if (dist <= radius) {
+        const falloff = 1 - (dist - width) / (radius - width);
+        field[rr][cc] -= falloff * 0.11;
+        masks.dirt[rr][cc] = true;
+      }
+    }
+  }
+}
+
+function smoothWaterMasks(field, masks, config, profileType) {
+  const passes = profileType === 'harbor' || profileType === 'lake' ? 2 : 1;
+  for (let pass = 0; pass < passes; pass++) {
+    const nextWater = masks.water.map((row) => row.slice());
+    for (let row = 1; row < MAP_HEIGHT - 1; row++) {
+      for (let col = 1; col < MAP_WIDTH - 1; col++) {
+        const waterNeighbors = countWaterNeighbors(masks, row, col, true);
+        const cardinalWater = countWaterNeighbors(masks, row, col, false);
+
+        if (!masks.water[row][col]) {
+          const lowEnough = field[row][col] <= config.seaLevel + (profileType === 'plain' ? 0.18 : 0.32);
+          if (lowEnough && (waterNeighbors >= 5 || cardinalWater >= 3)) {
+            nextWater[row][col] = true;
+          }
+          continue;
+        }
+
+        if (!masks.river[row][col] && !masks.lake[row][col] && waterNeighbors <= 1) {
+          nextWater[row][col] = false;
+        } else if (!masks.river[row][col] && waterNeighbors <= 2 && field[row][col] > config.seaLevel - 0.04) {
+          nextWater[row][col] = false;
+        }
+      }
+    }
+
+    for (let row = 1; row < MAP_HEIGHT - 1; row++) {
+      for (let col = 1; col < MAP_WIDTH - 1; col++) {
+        masks.water[row][col] = nextWater[row][col];
+        if (masks.water[row][col]) {
+          field[row][col] = Math.min(field[row][col], config.seaLevel - 0.08);
+        } else {
+          masks.river[row][col] = false;
+        }
+      }
+    }
+  }
+}
+
+function countWaterNeighbors(masks, row, col, includeDiagonals = true) {
+  let count = 0;
+  for (let dr = -1; dr <= 1; dr++) {
+    for (let dc = -1; dc <= 1; dc++) {
+      if (dr === 0 && dc === 0) continue;
+      if (!includeDiagonals && Math.abs(dr) + Math.abs(dc) !== 1) continue;
+      const nr = row + dr;
+      const nc = col + dc;
+      if (isInsideMap(nr, nc) && masks.water[nr][nc]) count++;
+    }
+  }
+  return count;
+}
+
+function erodeFieldAlongDrainage(field, masks, config) {
+  for (let row = 1; row < MAP_HEIGHT - 1; row++) {
+    for (let col = 1; col < MAP_WIDTH - 1; col++) {
+      if (!masks.river[row][col]) continue;
+      for (let rr = row - 3; rr <= row + 3; rr++) {
+        for (let cc = col - 3; cc <= col + 3; cc++) {
+          if (!isInsideMap(rr, cc) || masks.water[rr][cc]) continue;
+          const dist = Math.hypot(rr - row, cc - col);
+          if (dist <= 3) field[rr][cc] -= (1 - dist / 3) * 0.06 * Math.max(1, config.erosionPasses);
+        }
+      }
+    }
+  }
+}
+
+function classifyTerrain(field, masks, config, profileType, random) {
+  const terrain = createFilledMap(GROUND);
+  const heights = createFilledMap(0);
+  const buildableCutoff = getBuildableCutoff(config, profileType);
+  const heightScale = profileType === 'mountain' ? 5.7 : profileType === 'plateau' ? 5.0 : 4.25;
+
+  for (let row = 0; row < MAP_HEIGHT; row++) {
+    for (let col = 0; col < MAP_WIDTH; col++) {
+      if (masks.water[row][col] || field[row][col] <= config.seaLevel) {
+        terrain[row][col] = WATER;
+        heights[row][col] = 0;
+        continue;
+      }
+
+      const relative = Math.max(0, field[row][col] - config.seaLevel);
+      const slope = localFieldSlope(field, row, col);
+      const dryNoise = valueNoise(col * 0.032 + 140, row * 0.032 - 75, random);
+      const hillHeight = Math.max(0, Math.min(MAX_TERRAIN_HEIGHT, Math.round((relative - buildableCutoff) * heightScale)));
+
+      if (hillHeight > 0 && (relative > buildableCutoff || slope > 0.18)) {
+        terrain[row][col] = HILL;
+        heights[row][col] = Math.max(1, hillHeight);
+      } else if (masks.dirt[row][col] || dryNoise < config.dryness * 0.54 || slope > 0.16) {
+        terrain[row][col] = DIRT;
+      } else {
+        terrain[row][col] = GROUND;
+      }
+    }
+  }
+
+  return { terrain, heights };
+}
+
+function getBuildableCutoff(config, profileType) {
+  if (profileType === 'plain') return 0.62;
+  if (profileType === 'default') return 0.76;
+  if (profileType === 'harbor') return 1.08;
+  if (profileType === 'mountain') return 1.30;
+  if (profileType === 'island') return 1.02;
+  if (profileType === 'plateau') return 0.78;
+  if (profileType === 'desert') return 0.56;
+  if (profileType === 'river') return 1.08;
+  if (profileType === 'lake') return 0.52;
+  if (profileType === 'basin') return 0.84;
+  return 0.50;
+}
+
+function cleanupTerrainComponents(terrain, heights, profileType) {
+  removeTinyTerrainComponents(terrain, heights, WATER, profileType === 'plain' ? 2 : 6, GROUND);
+  removeTinyTerrainComponents(terrain, heights, HILL, 4, GROUND);
+}
+
+function removeTinyTerrainComponents(terrain, heights, tileType, minSize, replacement) {
+  const visited = createNumericMap(false);
+  for (let row = 0; row < MAP_HEIGHT; row++) {
+    for (let col = 0; col < MAP_WIDTH; col++) {
+      if (visited[row][col] || terrain[row][col] !== tileType) continue;
+      const stack = [[row, col]];
+      const cells = [];
+      visited[row][col] = true;
+      while (stack.length > 0) {
+        const [r, c] = stack.pop();
+        cells.push([r, c]);
+        [[r - 1, c], [r + 1, c], [r, c - 1], [r, c + 1]].forEach(([nr, nc]) => {
+          if (!isInsideMap(nr, nc) || visited[nr][nc] || terrain[nr][nc] !== tileType) return;
+          visited[nr][nc] = true;
+          stack.push([nr, nc]);
+        });
+      }
+      if (cells.length < minSize) {
+        cells.forEach(([r, c]) => {
+          terrain[r][c] = replacement;
+          heights[r][c] = 0;
+        });
+      }
+    }
+  }
+}
+
+function addBeachesBySlope(terrain, heights, field, config) {
+  const beachTiles = [];
+  for (let row = 1; row < MAP_HEIGHT - 1; row++) {
+    for (let col = 1; col < MAP_WIDTH - 1; col++) {
+      if (terrain[row][col] !== GROUND && terrain[row][col] !== DIRT && !(terrain[row][col] === HILL && heights[row][col] <= 1)) continue;
+      if (!hasCardinalTerrain(terrain, row, col, WATER)) continue;
+      const slope = localFieldSlope(field, row, col);
+      if (slope < 0.50 && field[row][col] < config.seaLevel + 1.10) {
+        beachTiles.push([row, col]);
+      }
+    }
+  }
+  beachTiles.forEach(([row, col]) => {
+    terrain[row][col] = BEACH;
+    heights[row][col] = 0;
+  });
+}
+
+function fbmNoise(x, y, random, octaves = 4, lacunarity = 2, gain = 0.5) {
+  let frequency = 1;
+  let amplitude = 1;
+  let total = 0;
+  let max = 0;
+  for (let octave = 0; octave < octaves; octave++) {
+    total += valueNoise(x * frequency + octave * 37.7, y * frequency - octave * 19.3, random) * amplitude;
+    max += amplitude;
+    frequency *= lacunarity;
+    amplitude *= gain;
+  }
+  return max > 0 ? total / max : 0;
+}
+
+function domainWarpPoint(col, row, random, strength = 16) {
+  const wx = (fbmNoise(col * 0.012 + 21, row * 0.012 - 17, random, 3, 2, 0.5) - 0.5) * strength;
+  const wy = (fbmNoise(col * 0.012 - 43, row * 0.012 + 31, random, 3, 2, 0.5) - 0.5) * strength;
+  return { col: col + wx, row: row + wy, x: col + wx, y: row + wy };
+}
+
+function makeMeanderingPolyline(start, end, random, pointCount = 5, jitter = 24) {
+  const points = [];
+  for (let i = 0; i < pointCount; i++) {
+    const t = i / (pointCount - 1);
+    const row = lerp(start.row, end.row, t);
+    const col = lerp(start.col, end.col, t);
+    const bend = Math.sin(t * Math.PI) * jitter;
+    const angle = Math.atan2(end.row - start.row, end.col - start.col) + Math.PI / 2;
+    points.push({
+      row: Math.max(0, Math.min(MAP_HEIGHT - 1, row + Math.sin(angle) * (random() - 0.5) * bend * 2)),
+      col: Math.max(0, Math.min(MAP_WIDTH - 1, col + Math.cos(angle) * (random() - 0.5) * bend * 2)),
+    });
+  }
+  return points;
+}
+
+function distanceToPolyline(row, col, points) {
+  let best = Number.POSITIVE_INFINITY;
+  for (let i = 0; i < points.length - 1; i++) {
+    best = Math.min(best, distanceToSegment(row, col, points[i], points[i + 1]));
+  }
+  return best;
+}
+
+function distanceToSegment(row, col, a, b) {
+  const vx = b.col - a.col;
+  const vy = b.row - a.row;
+  const wx = col - a.col;
+  const wy = row - a.row;
+  const len2 = vx * vx + vy * vy || 1;
+  const t = Math.max(0, Math.min(1, (wx * vx + wy * vy) / len2));
+  const px = a.col + vx * t;
+  const py = a.row + vy * t;
+  return Math.hypot(col - px, row - py);
+}
+
+function edgeRelativeCoords(row, col, edge) {
+  if (edge === 0) return { inward: row, along: col };
+  if (edge === 1) return { inward: MAP_WIDTH - 1 - col, along: row };
+  if (edge === 2) return { inward: MAP_HEIGHT - 1 - row, along: MAP_WIDTH - 1 - col };
+  return { inward: col, along: MAP_HEIGHT - 1 - row };
+}
+
+function edgeToMapCoords(inward, along, edge) {
+  if (edge === 0) return { row: inward, col: along };
+  if (edge === 1) return { row: along, col: MAP_WIDTH - 1 - inward };
+  if (edge === 2) return { row: MAP_HEIGHT - 1 - inward, col: MAP_WIDTH - 1 - along };
+  return { row: MAP_HEIGHT - 1 - along, col: inward };
+}
+
+function distanceToPreferredDrainEdge(row, col, edge) {
+  if (edge === 0) return row;
+  if (edge === 1) return MAP_WIDTH - 1 - col;
+  if (edge === 2) return MAP_HEIGHT - 1 - row;
+  return col;
+}
+
+function localFieldSlope(field, row, col) {
+  const center = field[row]?.[col] ?? 0;
+  const samples = [
+    field[row - 1]?.[col] ?? center,
+    field[row + 1]?.[col] ?? center,
+    field[row]?.[col - 1] ?? center,
+    field[row]?.[col + 1] ?? center,
+  ];
+  return samples.reduce((max, value) => Math.max(max, Math.abs(center - value)), 0);
 }
 
 function smoothHillMask(terrain, passes = 1) {
@@ -4259,9 +4910,10 @@ function hashNoise(x, y, seed) {
 }
 
 function createRandom(seedText) {
+  const seedString = String(seedText ?? '');
   let hash = 2166136261;
-  for (let index = 0; index < seedText.length; index++) {
-    hash ^= seedText.charCodeAt(index);
+  for (let index = 0; index < seedString.length; index++) {
+    hash ^= seedString.charCodeAt(index);
     hash = Math.imul(hash, 16777619);
   }
 
@@ -5240,7 +5892,6 @@ function setupLandingScreen() {
   const btnTerrainBack = document.getElementById('btn-terrain-back');
   const nameInput = document.getElementById('city-name-input');
   const terrainProfileSelect = document.getElementById('terrain-profile-select');
-  const terrainSeedInput = document.getElementById('terrain-seed-input');
   const terrainSourceSelect = document.getElementById('newgame-terrain-source');
   const terrainPresetSelect = document.getElementById('newgame-terrain-preset');
   const terrainPresetTitle = document.getElementById('newgame-terrain-presets-title');
@@ -5483,7 +6134,6 @@ function setupLandingScreen() {
 
   btnTerrainCreator?.addEventListener('click', () => {
     setLandingState('terrain');
-    if (terrainSeedInput) terrainSeedInput.value = createSeed();
   });
 
   btnCont.addEventListener('click', () => {
@@ -5497,8 +6147,7 @@ function setupLandingScreen() {
 
   btnGenerateTerrain?.addEventListener('click', () => {
     const profile = terrainProfileSelect?.value || 'island';
-    const seed = (terrainSeedInput?.value || '').trim() || createSeed();
-    startTerrainCreatorMode(profile, seed);
+    startTerrainCreatorMode(profile, createSeed());
   });
 
   btnBack.addEventListener('click', () => {
@@ -5652,8 +6301,10 @@ async function saveTerrainPresetFromCurrentMap() {
     seed: currentSeed,
     terrain_data: {
       version: 1,
+      generatorVersion: currentTerrainMetadata?.generatorVersion ?? 2,
       profileType: activeTerrainProfileType,
       seed: currentSeed,
+      features: currentTerrainMetadata?.features ?? [],
       mapData: mapData.map((row) => Array.from(row)),
       heightMap: heightMap.map((row) => Array.from(row)),
     },

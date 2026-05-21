@@ -6,6 +6,7 @@ City Builder Classic is a SimCity 2000-style city builder with a local SQLite sa
 
 - Zone residential, commercial, and industrial districts.
 - Build roads, parks, fire stations, police stations, and power plants.
+- Build and render bridge decks over water using isometric bridge textures.
 - Rotate the main map view and inspect the city with multiple overlay maps.
 - Manage budget, taxes, loans, department funding, and city policies.
 - Save and load cities locally through the bundled Node.js server.

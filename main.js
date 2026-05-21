@@ -59,7 +59,7 @@ const WATER = 5;
 const HILL = 6;
 const MAX_TERRAIN_HEIGHT = 8;
 const HEIGHT_STEP_PIXELS = 12;
-const BRIDGE_DECK_VISUAL_LIFT = 20;
+const BRIDGE_DECK_VISUAL_LIFT = 15;
 const BRIDGE_TOP_LAYER_CUTOFF_Y = 40;
 const BRIDGE_SIDE_LAYER_START_Y = 28;
 const TERRAIN_RAISE_BLOCK_RADIUS = 1;
@@ -407,8 +407,8 @@ function preload() {
   this.load.image('road_end_s', `${roadPath}endE.png`);
   this.load.image('road_end_w', `${roadPath}endS.png`);
   this.load.image('road_isolated', `${roadPath}road.png`);
-  this.load.image('road_bridge_h', `${roadPath}bridgeNS.png`);
-  this.load.image('road_bridge_v', `${roadPath}bridgeEW.png`);
+  this.load.image('road_bridge_h', `${roadPath}bridgeNS_iso21_shoulders_top.png`);
+  this.load.image('road_bridge_v', `${roadPath}bridgeEW_iso21_shoulders_top.png`);
 
   this.load.image('water_full', `${roadPath}water.png`);
   this.load.image('water_edge_n', `${roadPath}waterE.png`);
@@ -454,7 +454,6 @@ function create() {
   prepareHouseModelMetadata(this);
   prepareParkModelMetadata(this);
   preparePowerPlantModelMetadata(this);
-  prepareBridgeLayerTextures(this);
 
   updateMapMetrics(this);
 
@@ -2341,8 +2340,9 @@ function drawWorldMask(scene) {
   graphics.fillStyle(0xffffff, 1);
   graphics.beginPath();
   const APEX_CLIP = 12;
+  const RIGHT_EDGE_BLEED = 6;
   graphics.moveTo(topPt.x    + ox,                  topPt.y    + oy - TILE_IMAGE_HEIGHT + APEX_CLIP);
-  graphics.lineTo(rightPt.x  + ox + TILE_WIDTH / 2, rightPt.y  + oy - TILE_IMAGE_HEIGHT + TILE_HEIGHT / 2);
+  graphics.lineTo(rightPt.x  + ox + TILE_WIDTH / 2 + RIGHT_EDGE_BLEED, rightPt.y  + oy - TILE_IMAGE_HEIGHT + TILE_HEIGHT / 2);
   graphics.lineTo(bottomPt.x + ox,                  bottomPt.y + oy);
   graphics.lineTo(leftPt.x   + ox - TILE_WIDTH / 2, leftPt.y   + oy - TILE_IMAGE_HEIGHT + TILE_HEIGHT / 2);
   graphics.closePath();
@@ -3429,34 +3429,23 @@ function refreshBridgeSprite(scene, row, col) {
   }
 
   const key = getRoadKey(row, col);
-  const topKey = `${key}_top`;
-  const sideKey = `${key}_side`;
   const pos = isoToScreen(col, row);
   const x = pos.x + scene.offsetX;
-  const baseY = pos.y + scene.offsetY + getTerrainTileVisualOffset(row, col, key);
-  const topY = pos.y + scene.offsetY + getBridgeDeckVisualOffset(row, col, key);
+  const y = pos.y + scene.offsetY + getBridgeDeckVisualOffset(row, col, key);
   const depth = getTerrainTileDepth(row, col, key, pos.y);
 
   if (existing) {
-    existing.side.setTexture(sideKey);
-    existing.side.setPosition(x, baseY);
-    existing.side.setDepth(depth + 0.28);
-    existing.top.setTexture(topKey);
-    existing.top.setPosition(x, topY);
-    existing.top.setDepth(depth + 0.45);
+    existing.setTexture(key);
+    existing.setPosition(x, y);
+    existing.setDepth(depth + 0.45);
     return;
   }
 
-  const side = scene.add.image(x, baseY, sideKey);
-  side.setOrigin(0.5, 1);
-  side.setDepth(depth + 0.28);
-  side.setMask(scene.worldMask);
-
-  const top = scene.add.image(x, topY, topKey);
-  top.setOrigin(0.5, 1);
-  top.setDepth(depth + 0.45);
-  top.setMask(scene.worldMask);
-  scene.bridgeSprites.set(id, { side, top });
+  const bridge = scene.add.image(x, y, key);
+  bridge.setOrigin(0.5, 1);
+  bridge.setDepth(depth + 0.45);
+  bridge.setMask(scene.worldMask);
+  scene.bridgeSprites.set(id, bridge);
 }
 
 function refreshAllBridgeSprites(scene) {
@@ -3480,16 +3469,11 @@ function repositionBridgeSprites(scene) {
       return;
     }
     const key = getRoadKey(row, col);
-    const topKey = `${key}_top`;
-    const sideKey = `${key}_side`;
     const pos = isoToScreen(col, row);
     const depth = getTerrainTileDepth(row, col, key, pos.y);
-    entry.side.setTexture(sideKey);
-    entry.side.setPosition(pos.x + scene.offsetX, pos.y + scene.offsetY + getTerrainTileVisualOffset(row, col, key));
-    entry.side.setDepth(depth + 0.28);
-    entry.top.setTexture(topKey);
-    entry.top.setPosition(pos.x + scene.offsetX, pos.y + scene.offsetY + getBridgeDeckVisualOffset(row, col, key));
-    entry.top.setDepth(depth + 0.45);
+    entry.setTexture(key);
+    entry.setPosition(pos.x + scene.offsetX, pos.y + scene.offsetY + getBridgeDeckVisualOffset(row, col, key));
+    entry.setDepth(depth + 0.45);
   });
 }
 

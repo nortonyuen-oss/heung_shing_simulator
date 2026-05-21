@@ -2,6 +2,8 @@
 let zoneMap         = [];   // ZONE_NONE | ZONE_RES | ZONE_COM | ZONE_IND per cell
 let zoneDensityMap  = [];   // DENSITY_LOW | DENSITY_MED | DENSITY_HIGH per cell
 let heightMap       = [];   // 0 = sea/flat, each +1 step is 100m altitude
+let bridgeMap       = [];   // null | 'deck:row' | 'deck:col' | 'ramp:n/e/s/w'
+let roadUnderlayMap = [];   // original terrain below bridge road tiles
 let powerMap        = [];   // boolean per cell (is this cell powered?)
 let serviceMap      = [];   // { fire: bool, police: bool, park: 0|1|2 } | null per cell
 
@@ -64,6 +66,8 @@ function resetGameState() {
   zoneDensityMap = createFilledMap(DENSITY_LOW);
   powerMap       = createFilledMap(false);
   serviceMap     = createFilledMap(null);
+  bridgeMap      = createFilledMap(null);
+  roadUnderlayMap = createFilledMap(null);
 
   Object.keys(buildingData).forEach((k) => delete buildingData[k]);
   powerSources.clear();

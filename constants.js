@@ -71,6 +71,7 @@ const LARGE_PARK_RADIUS     = 12;
 
 // Placement costs (player-paid per action)
 const COST_ROAD          = 10;
+const COST_BRIDGE        = 75;
 const COST_ZONE_RES      = 50;
 const COST_ZONE_COM      = 60;
 const COST_ZONE_IND      = 50;

@@ -290,6 +290,12 @@ function clearAllOverlays(scene) {
 
   scene.powerLineSprites.forEach((g) => g.destroy());
   scene.powerLineSprites.clear();
+
+  scene.bridgeSprites?.forEach((entry) => {
+    if (typeof destroyBridgeSpriteEntry === 'function') destroyBridgeSpriteEntry(entry);
+    else entry?.destroy?.();
+  });
+  scene.bridgeSprites?.clear();
 }
 
 // ── Reposition overlays on resize ─────────────────────────────────────────────
@@ -308,4 +314,6 @@ function repositionOverlays(scene) {
     g.setPosition(pos.x + scene.offsetX, pos.y + scene.offsetY - TILE_HEIGHT / 2 + getElevationVisualOffset(r, c));
     g.setDepth(pos.y + 2);
   });
+
+  if (typeof repositionBridgeSprites === 'function') repositionBridgeSprites(scene);
 }

@@ -683,7 +683,10 @@ function hasAdjacentRoad(row, col) {
   for (let dr = -2; dr <= 2; dr++) {
     for (let dc = -2; dc <= 2; dc++) {
       const r = row + dr, c = col + dc;
-      if (isInsideMap(r, c) && mapData[r][c] === ROAD) return true;
+      if (isInsideMap(r, c) && (
+        mapData[r][c] === ROAD
+        || (typeof isBridgeDeckTile === 'function' && isBridgeDeckTile(r, c))
+      )) return true;
     }
   }
   return false;

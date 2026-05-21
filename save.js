@@ -17,11 +17,13 @@ function buildSavePayload() {
     month:      city.month,
     budget:     city.budget,
     save_data: {
-      version:       5,
+      version:       6,
       seed:          currentSeed,
       city:          { ...city },
       mapData:       mapData.map((row) => Array.from(row)),
       heightMap:     heightMap.map((row) => Array.from(row)),
+      bridgeMap:     bridgeMap.map((row) => Array.from(row)),
+      roadUnderlayMap: roadUnderlayMap.map((row) => Array.from(row)),
       zoneMap:       zoneMap.map((row) => Array.from(row)),
       zoneDensityMap: zoneDensityMap.map((row) => Array.from(row)),
       buildingData:  JSON.parse(JSON.stringify(buildingData)),
@@ -147,6 +149,20 @@ function applySaveData(scene, save) {
 
   // Restore infrastructure metadata
   roadTileCount = save.roadTileCount ?? 0;
+  bridgeMap = createFilledMap(null);
+  roadUnderlayMap = createFilledMap(null);
+  for (let r = 0; r < MAP_HEIGHT; r++) {
+    for (let c = 0; c < MAP_WIDTH; c++) {
+      const bridgeValue = (save.bridgeMap?.[r] ?? [])[c];
+      bridgeMap[r][c] = normalizeBridgeMapValue(bridgeValue);
+      const underlay = Number((save.roadUnderlayMap?.[r] ?? [])[c]);
+      roadUnderlayMap[r][c] = [GROUND, DIRT, BEACH, WATER, HILL].includes(underlay) ? underlay : null;
+      if (bridgeMap[r][c]?.startsWith('deck:') && roadUnderlayMap[r][c] !== null) {
+        mapData[r][c] = roadUnderlayMap[r][c];
+        heightMap[r][c] = 0;
+      }
+    }
+  }
   (save.powerSources ?? []).forEach((id) => powerSources.add(id));
   (save.powerLineSet  ?? []).forEach((id) => powerLineSet.add(id));
 
@@ -189,6 +205,8 @@ function applySaveData(scene, save) {
 // ── Rebuild Phaser sprites from saved data ────────────────────────────────────
 
 function rebuildSceneFromSave(scene, save) {
+  if (typeof refreshAllBridgeSprites === 'function') refreshAllBridgeSprites(scene);
+
   // Zone overlays
   for (let r = 0; r < MAP_HEIGHT; r++) {
     for (let c = 0; c < MAP_WIDTH; c++) {

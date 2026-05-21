@@ -59,6 +59,9 @@ const WATER = 5;
 const HILL = 6;
 const MAX_TERRAIN_HEIGHT = 8;
 const HEIGHT_STEP_PIXELS = 12;
+const BRIDGE_DECK_VISUAL_LIFT = 20;
+const BRIDGE_TOP_LAYER_CUTOFF_Y = 40;
+const BRIDGE_SIDE_LAYER_START_Y = 28;
 const TERRAIN_RAISE_BLOCK_RADIUS = 1;
 const TERRAIN_RADIATE_BASE_RADIUS = 4;
 const TOOL_TERRAIN = {
@@ -404,6 +407,8 @@ function preload() {
   this.load.image('road_end_s', `${roadPath}endE.png`);
   this.load.image('road_end_w', `${roadPath}endS.png`);
   this.load.image('road_isolated', `${roadPath}road.png`);
+  this.load.image('road_bridge_h', `${roadPath}bridgeNS.png`);
+  this.load.image('road_bridge_v', `${roadPath}bridgeEW.png`);
 
   this.load.image('water_full', `${roadPath}water.png`);
   this.load.image('water_edge_n', `${roadPath}waterE.png`);
@@ -449,6 +454,7 @@ function create() {
   prepareHouseModelMetadata(this);
   prepareParkModelMetadata(this);
   preparePowerPlantModelMetadata(this);
+  prepareBridgeLayerTextures(this);
 
   updateMapMetrics(this);
 
@@ -460,6 +466,7 @@ function create() {
   this.buildingSprites = new Map();
   this.zoneOverlays    = new Map();
   this.powerLineSprites = new Map();
+  this.bridgeSprites = new Map();
 
   const maskGraphics = this.make.graphics({ x: 0, y: 0, add: false });
   this.maskGraphics = maskGraphics;
@@ -510,6 +517,10 @@ function create() {
   this.zonePreviewGraphic = this.add.graphics();
   this.zonePreviewGraphic.setDepth(9998);
 
+  // Road/bridge drag preview graphic.
+  this.bridgePreviewGraphic = this.add.graphics();
+  this.bridgePreviewGraphic.setDepth(9998);
+
   // Inspect-tool hover highlight (red diamond under the cursor)
   this.inspectHighlightGraphic = this.add.graphics();
   this.inspectHighlightGraphic.setDepth(9999);
@@ -521,8 +532,9 @@ function create() {
       const startTile = pointerToTile(this, pointer);
       dragStartTile = startTile ? { row: startTile.row, col: startTile.col } : null;
       lastPaintTile = startTile ? { row: startTile.row, col: startTile.col } : null;
-      // Apply the tool immediately on click for all tools (zones included)
-      applySelectedTool(this, pointer);
+      lastKnownTile = startTile ? { row: startTile.row, col: startTile.col } : null;
+      // Roads are committed on pointerup so a drag can become a SimCity-style bridge span.
+      if (selectedTool !== 'road') applySelectedTool(this, pointer);
     } else if (pointer.button === 2) {
       this.isPanning = true;
       this.panPrevX = pointer.x;
@@ -545,20 +557,11 @@ function create() {
   // Adjust camera scroll during panning
   this.input.on('pointermove', (pointer) => {
     if (isPainting && pointer.isDown) {
-      if (selectedTool === 'road' && lastPaintTile) {
-        // Bresenham interpolation — fills every cell between paint steps,
-        // eliminating gaps when dragging quickly.
+      if (selectedTool === 'road' && dragStartTile) {
         const cur = pointerToTile(this, pointer);
         if (cur) {
-          getLineTiles(lastPaintTile.row, lastPaintTile.col, cur.row, cur.col)
-            .forEach((t) => {
-              const id = getTileId(t.row, t.col);
-              if (id !== lastEditedTile) {
-                lastEditedTile = id;
-                applyToolAt(this, t.row, t.col);
-              }
-            });
-          lastPaintTile = { row: cur.row, col: cur.col };
+          lastKnownTile = { row: cur.row, col: cur.col };
+          drawRoadDragPreview(this, dragStartTile, cur);
         }
       } else if (isZoneTool()) {
         // Zone tools: update the tracked end-tile and redraw the ISO rectangle preview.
@@ -672,7 +675,12 @@ function setupToolMenu() {
       const endTile = lastKnownTile ?? dragStartTile;
       fillZoneRect(activeScene, dragStartTile, endTile);
     }
+    if (isPainting && dragStartTile && selectedTool === 'road' && activeScene) {
+      const endTile = lastKnownTile ?? dragStartTile;
+      commitRoadDrag(activeScene, dragStartTile, endTile);
+    }
     if (activeScene?.zonePreviewGraphic)        activeScene.zonePreviewGraphic.clear();
+    if (activeScene?.bridgePreviewGraphic)      activeScene.bridgePreviewGraphic.clear();
     if (activeScene?.inspectHighlightGraphic)   activeScene.inspectHighlightGraphic.clear();
 
     // ── Clear paint state ─────────────────────────────────────────────────────
@@ -1757,6 +1765,7 @@ function terrainPixelColor(terrain, r, c) {
   if (zone === ZONE_RES) return [80, 160, 60];
   if (zone === ZONE_COM) return [60, 100, 200];
   if (zone === ZONE_IND) return [160, 140, 40];
+  if (isBridgeTile(r, c)) return [110, 110, 110];
   switch (terrain) {
     case ROAD:  return [110, 110, 110];
     case DIRT:  return [170, 130, 85];
@@ -2355,6 +2364,7 @@ function positionAllTiles(scene) {
     positionBuilding(scene, building);
   });
 
+  repositionBridgeSprites(scene);
   repositionOverlays(scene);
 }
 
@@ -2382,6 +2392,63 @@ function preparePowerPlantModelMetadata(scene) {
       [type, getPowerPlantModelMetadata(scene, type)]
     )),
   );
+}
+
+function prepareBridgeLayerTextures(scene) {
+  [
+    ['road_bridge_h', 'road_bridge_h_top', 'road_bridge_h_side'],
+    ['road_bridge_v', 'road_bridge_v_top', 'road_bridge_v_side'],
+  ].forEach(([sourceKey, topKey, sideKey]) => {
+    const source = scene.textures.get(sourceKey)?.getSourceImage();
+    if (!source || scene.textures.exists(topKey)) return;
+    const width = source.width;
+    const height = source.height;
+    const sourceCanvas = document.createElement('canvas');
+    sourceCanvas.width = width;
+    sourceCanvas.height = height;
+    const sourceCtx = sourceCanvas.getContext('2d');
+    sourceCtx.drawImage(source, 0, 0);
+    const sourceData = sourceCtx.getImageData(0, 0, width, height);
+    const topCanvas = document.createElement('canvas');
+    const sideCanvas = document.createElement('canvas');
+    topCanvas.width = sideCanvas.width = width;
+    topCanvas.height = sideCanvas.height = height;
+    const topCtx = topCanvas.getContext('2d');
+    const sideCtx = sideCanvas.getContext('2d');
+    const topData = topCtx.createImageData(width, height);
+    const sideData = sideCtx.createImageData(width, height);
+
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const index = (y * width + x) * 4;
+        const r = sourceData.data[index];
+        const g = sourceData.data[index + 1];
+        const b = sourceData.data[index + 2];
+        const a = sourceData.data[index + 3];
+        if (a === 0) continue;
+        const roadSurface = Math.abs(r - g) < 10 && Math.abs(g - b) < 10 && r >= 70 && r <= 135;
+        const bridgeUnderside = r >= 120 && r <= 210 && g >= 80 && g <= 170 && b <= 135;
+
+        if (y <= BRIDGE_TOP_LAYER_CUTOFF_Y) {
+          topData.data[index] = r;
+          topData.data[index + 1] = g;
+          topData.data[index + 2] = b;
+          topData.data[index + 3] = a;
+        }
+        if (y >= BRIDGE_SIDE_LAYER_START_Y && !roadSurface && bridgeUnderside) {
+          sideData.data[index] = r;
+          sideData.data[index + 1] = g;
+          sideData.data[index + 2] = b;
+          sideData.data[index + 3] = a;
+        }
+      }
+    }
+
+    topCtx.putImageData(topData, 0, 0);
+    sideCtx.putImageData(sideData, 0, 0);
+    scene.textures.addCanvas(topKey, topCanvas);
+    scene.textures.addCanvas(sideKey, sideCanvas);
+  });
 }
 
 function getPowerPlantModelMetadata(scene, buildingType) {
@@ -2720,8 +2787,18 @@ function applyToolAt(scene, row, col, pointer = null) {
     removeZoneOverlay(scene, row, col);
     if (!heightMap[row]) heightMap[row] = [];
     const bulldozeHeight = getTileHeight(row, col);
-    if (mapData[row][col] === ROAD) roadTileCount = Math.max(0, roadTileCount - 1);
-    mapData[row][col] = bulldozeHeight > 0 ? HILL : GROUND;
+    if (isBridgeTile(row, col)) {
+      const underlay = roadUnderlayMap[row]?.[col] ?? WATER;
+      if (underlay !== ROAD) roadTileCount = Math.max(0, roadTileCount - 1);
+      mapData[row][col] = underlay;
+      bridgeMap[row][col] = null;
+      roadUnderlayMap[row][col] = null;
+      heightMap[row][col] = 0;
+      refreshBridgeSprite(scene, row, col);
+    } else {
+      if (mapData[row][col] === ROAD) roadTileCount = Math.max(0, roadTileCount - 1);
+      mapData[row][col] = bulldozeHeight > 0 ? HILL : GROUND;
+    }
     reconcileSurfaceTerrainFromHeight(row, col, 2);
     refreshTileArea(scene, row, col);
     return;
@@ -2774,7 +2851,7 @@ function getTerrainEditBlockersForTiles(scene, tiles) {
     if (visited.has(key)) return;
     visited.add(key);
 
-    if (mapData[row][col] === ROAD) {
+    if (mapData[row][col] === ROAD || isBridgeTile(row, col)) {
       blockers.push({ row, col, reason: 'road' });
       return;
     }
@@ -3131,6 +3208,339 @@ function getLineTiles(r1, c1, r2, c2) {
   return tiles;
 }
 
+function getStraightDragPath(start, end) {
+  if (!start || !end) return [];
+  const rowDelta = Math.abs(end.row - start.row);
+  const colDelta = Math.abs(end.col - start.col);
+  const path = [];
+
+  if (colDelta >= rowDelta) {
+    const step = end.col >= start.col ? 1 : -1;
+    for (let col = start.col; ; col += step) {
+      path.push({ row: start.row, col });
+      if (col === end.col) break;
+    }
+    return { axis: 'row', path };
+  }
+
+  const step = end.row >= start.row ? 1 : -1;
+  for (let row = start.row; ; row += step) {
+    path.push({ row, col: start.col });
+    if (row === end.row) break;
+  }
+  return { axis: 'col', path };
+}
+
+function isBridgeTile(row, col) {
+  return !!bridgeMap?.[row]?.[col];
+}
+
+function isBridgeDeckTile(row, col) {
+  return normalizeBridgeMapValue(bridgeMap?.[row]?.[col])?.startsWith('deck:') ?? false;
+}
+
+function isRoadLikeTile(row, col) {
+  return isInsideMap(row, col) && (mapData[row][col] === ROAD || isBridgeDeckTile(row, col));
+}
+
+function analyzeBridgePath(scene, pathInfo) {
+  const path = pathInfo?.path ?? [];
+  const axis = pathInfo?.axis;
+  const result = {
+    valid: false,
+    axis,
+    path,
+    crossesWater: false,
+    reason: '',
+    cost: 0,
+  };
+  if (path.length < 3) {
+    result.reason = 'bridge-too-short';
+    return result;
+  }
+
+  const start = path[0];
+  const end = path[path.length - 1];
+  const interior = path.slice(1, -1);
+  result.crossesWater = path.some(({ row, col }) => mapData[row]?.[col] === WATER);
+  if (!result.crossesWater) return result;
+
+  if (getTileHeight(start.row, start.col) > 0 || getTileHeight(end.row, end.col) > 0) {
+    result.reason = 'bridge-flat-shores';
+    return result;
+  }
+
+  if (!isBridgeShoreTile(start.row, start.col) || !isBridgeShoreTile(end.row, end.col)) {
+    result.reason = 'bridge-two-shores';
+    return result;
+  }
+
+  for (const tile of path) {
+    const id = getTileId(tile.row, tile.col);
+    if (scene?.buildingSprites?.has(id) || buildingData[id]) {
+      result.reason = 'bridge-blocked';
+      return result;
+    }
+  }
+
+  for (const tile of interior) {
+    if (mapData[tile.row][tile.col] !== WATER) {
+      result.reason = 'bridge-needs-water';
+      return result;
+    }
+  }
+
+  result.valid = true;
+  result.cost = (path.length * COST_ROAD) + (interior.length * COST_BRIDGE);
+  return result;
+}
+
+function isBridgeShoreTile(row, col) {
+  if (!isInsideMap(row, col)) return false;
+  if (mapData[row][col] === WATER) return false;
+  if (isBridgeTile(row, col)) return false;
+  return [GROUND, DIRT, BEACH, ROAD].includes(mapData[row][col]);
+}
+
+function commitRoadDrag(scene, start, end) {
+  const pathInfo = getStraightDragPath(start, end);
+  const bridge = analyzeBridgePath(scene, pathInfo);
+  if (bridge.crossesWater) {
+    if (!bridge.valid) {
+      showToast(getBridgeErrorMessage(bridge.reason), 'warning');
+      return;
+    }
+    buildBridgePath(scene, bridge);
+    return;
+  }
+
+  buildRoadPath(scene, pathInfo.path);
+}
+
+function buildRoadPath(scene, path) {
+  const uniqueTiles = dedupePath(path).filter(({ row, col }) => (
+    mapData[row][col] !== ROAD && mapData[row][col] !== WATER
+    && canPlaceRoad(scene, row, col)
+  ));
+  if (uniqueTiles.length === 0) return;
+
+  const cost = uniqueTiles.length * COST_ROAD;
+  if (!spendBudget(cost)) {
+    showToast(t('toast.notEnoughFunds'), 'warning');
+    return;
+  }
+
+  uniqueTiles.forEach(({ row, col }) => {
+    setTileType(scene, row, col, ROAD);
+  });
+  if (typeof updateHUD === 'function') updateHUD();
+}
+
+function buildBridgePath(scene, bridge) {
+  if (!spendBudget(bridge.cost)) {
+    showToast(t('toast.notEnoughFunds'), 'warning');
+    return;
+  }
+
+  const path = dedupePath(bridge.path);
+  path.forEach(({ row, col }, index) => {
+    const isInterior = index > 0 && index < path.length - 1;
+    const isStart = index === 0;
+    const isEnd = index === path.length - 1;
+    if (isInterior) {
+      const oldType = mapData[row][col];
+      roadTileCount++;
+      removeZoneOverlay(scene, row, col);
+      bridgeMap[row][col] = `deck:${bridge.axis}`;
+      roadUnderlayMap[row][col] = oldType;
+      mapData[row][col] = oldType;
+      heightMap[row][col] = 0;
+    } else if (isStart || isEnd) {
+      const oldType = mapData[row][col];
+      if (oldType !== ROAD) roadTileCount++;
+      removeZoneOverlay(scene, row, col);
+      mapData[row][col] = ROAD;
+      heightMap[row][col] = 0;
+      const towardWater = isStart
+        ? getDirectionBetweenTiles(path[index], path[index + 1])
+        : getDirectionBetweenTiles(path[index], path[index - 1]);
+      bridgeMap[row][col] = `ramp:${towardWater}`;
+      roadUnderlayMap[row][col] = oldType;
+    } else {
+      bridgeMap[row][col] = null;
+      roadUnderlayMap[row][col] = null;
+    }
+  });
+
+  refreshTilesAlongPath(scene, path);
+  refreshBridgeSpritesAlongPath(scene, path);
+  if (typeof refreshInfrastructureEffects === 'function') refreshInfrastructureEffects(scene);
+  if (typeof updateHUD === 'function') updateHUD();
+}
+
+function refreshTilesAlongPath(scene, path) {
+  const touched = new Set();
+  path.forEach(({ row, col }) => {
+    [
+      [row, col],
+      [row - 1, col],
+      [row, col + 1],
+      [row + 1, col],
+      [row, col - 1],
+    ].forEach(([r, c]) => {
+      if (!isInsideMap(r, c)) return;
+      const key = getTileId(r, c);
+      if (touched.has(key)) return;
+      touched.add(key);
+      refreshTileArea(scene, r, c);
+    });
+  });
+}
+
+function refreshBridgeSpritesAlongPath(scene, path) {
+  const touched = new Set();
+  path.forEach(({ row, col }) => {
+    [
+      [row, col],
+      [row - 1, col],
+      [row, col + 1],
+      [row + 1, col],
+      [row, col - 1],
+    ].forEach(([r, c]) => {
+      if (!isInsideMap(r, c)) return;
+      const key = getTileId(r, c);
+      if (touched.has(key)) return;
+      touched.add(key);
+      refreshBridgeSprite(scene, r, c);
+    });
+  });
+}
+
+function refreshBridgeSprite(scene, row, col) {
+  if (!scene?.bridgeSprites) return;
+  const id = getTileId(row, col);
+  const existing = scene.bridgeSprites.get(id);
+  if (!isBridgeDeckTile(row, col)) {
+    if (existing) {
+      destroyBridgeSpriteEntry(existing);
+      scene.bridgeSprites.delete(id);
+    }
+    return;
+  }
+
+  const key = getRoadKey(row, col);
+  const topKey = `${key}_top`;
+  const sideKey = `${key}_side`;
+  const pos = isoToScreen(col, row);
+  const x = pos.x + scene.offsetX;
+  const baseY = pos.y + scene.offsetY + getTerrainTileVisualOffset(row, col, key);
+  const topY = pos.y + scene.offsetY + getBridgeDeckVisualOffset(row, col, key);
+  const depth = getTerrainTileDepth(row, col, key, pos.y);
+
+  if (existing) {
+    existing.side.setTexture(sideKey);
+    existing.side.setPosition(x, baseY);
+    existing.side.setDepth(depth + 0.28);
+    existing.top.setTexture(topKey);
+    existing.top.setPosition(x, topY);
+    existing.top.setDepth(depth + 0.45);
+    return;
+  }
+
+  const side = scene.add.image(x, baseY, sideKey);
+  side.setOrigin(0.5, 1);
+  side.setDepth(depth + 0.28);
+  side.setMask(scene.worldMask);
+
+  const top = scene.add.image(x, topY, topKey);
+  top.setOrigin(0.5, 1);
+  top.setDepth(depth + 0.45);
+  top.setMask(scene.worldMask);
+  scene.bridgeSprites.set(id, { side, top });
+}
+
+function refreshAllBridgeSprites(scene) {
+  if (!scene?.bridgeSprites) return;
+  scene.bridgeSprites.forEach(destroyBridgeSpriteEntry);
+  scene.bridgeSprites.clear();
+  for (let row = 0; row < MAP_HEIGHT; row++) {
+    for (let col = 0; col < MAP_WIDTH; col++) {
+      refreshBridgeSprite(scene, row, col);
+    }
+  }
+}
+
+function repositionBridgeSprites(scene) {
+  if (!scene?.bridgeSprites) return;
+  scene.bridgeSprites.forEach((entry, id) => {
+    const [row, col] = id.split(':').map(Number);
+    if (!isInsideMap(row, col) || !isBridgeDeckTile(row, col)) {
+      destroyBridgeSpriteEntry(entry);
+      scene.bridgeSprites.delete(id);
+      return;
+    }
+    const key = getRoadKey(row, col);
+    const topKey = `${key}_top`;
+    const sideKey = `${key}_side`;
+    const pos = isoToScreen(col, row);
+    const depth = getTerrainTileDepth(row, col, key, pos.y);
+    entry.side.setTexture(sideKey);
+    entry.side.setPosition(pos.x + scene.offsetX, pos.y + scene.offsetY + getTerrainTileVisualOffset(row, col, key));
+    entry.side.setDepth(depth + 0.28);
+    entry.top.setTexture(topKey);
+    entry.top.setPosition(pos.x + scene.offsetX, pos.y + scene.offsetY + getBridgeDeckVisualOffset(row, col, key));
+    entry.top.setDepth(depth + 0.45);
+  });
+}
+
+function destroyBridgeSpriteEntry(entry) {
+  if (!entry) return;
+  if (entry.destroy) {
+    entry.destroy();
+    return;
+  }
+  entry.side?.destroy();
+  entry.top?.destroy();
+}
+
+function dedupePath(path) {
+  const seen = new Set();
+  return path.filter(({ row, col }) => {
+    const key = getTileId(row, col);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function getDirectionBetweenTiles(from, to) {
+  if (!from || !to) return 'n';
+  if (to.row < from.row) return 'n';
+  if (to.col > from.col) return 'e';
+  if (to.row > from.row) return 's';
+  if (to.col < from.col) return 'w';
+  return 'n';
+}
+
+function getOppositeDirection(direction) {
+  return { n: 's', e: 'w', s: 'n', w: 'e' }[direction] ?? direction;
+}
+
+function normalizeBridgeMapValue(value) {
+  if (value === 'row' || value === 'col') return `deck:${value}`;
+  if (value === 'deck:row' || value === 'deck:col') return value;
+  if (typeof value === 'string' && /^ramp:[nesw]$/.test(value)) return value;
+  return null;
+}
+
+function getBridgeErrorMessage(reason) {
+  if (reason === 'bridge-flat-shores') return t('toast.bridgeNeedsFlatShores');
+  if (reason === 'bridge-two-shores') return t('toast.bridgeNeedsTwoShores');
+  if (reason === 'bridge-needs-water') return t('toast.bridgeNeedsWater');
+  if (reason === 'bridge-blocked') return t('toast.bridgeBlocked');
+  return t('toast.bridgeInvalid');
+}
+
 // Fill the axis-aligned rectangle from startTile to endTile with the active zone tool.
 function fillZoneRect(scene, startTile, endTile) {
   const r1 = Math.min(startTile.row, endTile.row);
@@ -3218,6 +3628,34 @@ function drawZoneSelectionPreview(scene, start, end) {
   g.strokePath();
 }
 
+function drawRoadDragPreview(scene, start, end) {
+  const g = scene.bridgePreviewGraphic;
+  if (!g) return;
+  g.clear();
+
+  const pathInfo = getStraightDragPath(start, end);
+  const path = pathInfo.path ?? [];
+  if (path.length === 0) return;
+
+  const bridge = analyzeBridgePath(scene, pathInfo);
+  const invalidWaterPath = bridge.crossesWater && !bridge.valid;
+  const color = invalidWaterPath ? 0xff4444 : bridge.valid ? 0x55ccff : 0xd0d0d0;
+
+  g.fillStyle(color, bridge.valid ? 0.26 : 0.18);
+  g.lineStyle(2, color, 0.92);
+  path.forEach(({ row, col }) => {
+    const geom = getTileFaceGeometry(row, col, scene.offsetX, scene.offsetY);
+    g.beginPath();
+    g.moveTo(geom.top.x, geom.top.y);
+    g.lineTo(geom.right.x, geom.right.y);
+    g.lineTo(geom.bottom.x, geom.bottom.y);
+    g.lineTo(geom.left.x, geom.left.y);
+    g.closePath();
+    g.fillPath();
+    g.strokePath();
+  });
+}
+
 function getTileFaceVertices(row, col, ox, oy, hw, hh) {
   const key = getTileKey(row, col);
   const pos = isoToScreen(col, row);
@@ -3300,6 +3738,11 @@ function clampScreenPointToTile(scene, worldX, worldY) {
   };
 }
 
+function resetBridgeLayers() {
+  bridgeMap = createFilledMap(null);
+  roadUnderlayMap = createFilledMap(null);
+}
+
 function pointInConvexPolygon(x, y, vertices) {
   let hasPositive = false;
   let hasNegative = false;
@@ -3368,6 +3811,11 @@ function setTileType(scene, row, col, tileType) {
 
   if (oldType === tileType) return;
 
+  if (isBridgeTile(row, col) && tileType !== ROAD) {
+    bridgeMap[row][col] = null;
+    roadUnderlayMap[row][col] = null;
+  }
+
   if (tileType === ROAD) {
     const tileId = getTileId(row, col);
     if (scene.buildingSprites.has(tileId) || buildingData[tileId]) return;
@@ -3430,6 +3878,7 @@ function refreshTileArea(scene, row, col) {
     sprite.setPosition(pos.x + scene.offsetX, pos.y + scene.offsetY + getTerrainTileVisualOffset(tileRow, tileCol, key));
     sprite.setDepth(getTerrainTileDepth(tileRow, tileCol, key, pos.y));
     applyTileVisualStyle(sprite, tileRow, tileCol, key);
+    refreshBridgeSprite(scene, tileRow, tileCol);
   });
 
   scheduleTerrainMiniMapUpdate();
@@ -3447,6 +3896,7 @@ function refreshAllTiles(scene) {
       applyTileVisualStyle(sprite, row, col, key);
     }
   }
+  refreshAllBridgeSprites(scene);
   scheduleTerrainMiniMapUpdate();
 }
 
@@ -3454,6 +3904,7 @@ function generateNewTerrain() {
   if (isTerrainCreatorMode) {
     currentSeed = createSeed();
     mapData = generateTerrainMapByProfile(activeTerrainProfileType, currentSeed);
+    resetBridgeLayers();
     mapRotation = 0;
     lastEditedTile = null;
 
@@ -3488,6 +3939,7 @@ function generateNewTerrain() {
   mapData = isTerrainCreatorMode
     ? generateTerrainMapByProfile(activeTerrainProfileType, currentSeed)
     : generateTerrainMap(currentSeed);
+  resetBridgeLayers();
   mapRotation = 0;           // reset view to default orientation
   lastEditedTile = null;
 
@@ -3541,6 +3993,10 @@ function getTerrainTileVisualOffset(row, col, key = getTileKey(row, col)) {
     return -getHillSlopeBaseHeight(row, col) * HEIGHT_STEP_PIXELS;
   }
   return getElevationVisualOffset(row, col);
+}
+
+function getBridgeDeckVisualOffset(row, col, key) {
+  return getTerrainTileVisualOffset(row, col, key) - BRIDGE_DECK_VISUAL_LIFT;
 }
 
 function reconcileSurfaceTerrainFromHeight(centerRow, centerCol, radius = 2) {
@@ -4948,6 +5404,8 @@ function rotateTileKey(key, steps) {
   // Straight roads swap orientation each 90°
   if (key === 'road_straight_v') return 'road_straight_h';
   if (key === 'road_straight_h') return 'road_straight_v';
+  if (key === 'road_bridge_v') return 'road_bridge_h';
+  if (key === 'road_bridge_h') return 'road_bridge_v';
 
   // Patterns: PREFIX_edge_X  →  PREFIX_edge_{d(X)}
   const edgeM = key.match(/^(.+_edge)_([nesw])$/);
@@ -5030,16 +5488,24 @@ function screenToIso(x, y) {
 
 // Determine which road tile to use based on neighbouring roads
 function getRoadKey(row, col) {
+  if (isBridgeTile(row, col)) {
+    const bridgeValue = normalizeBridgeMapValue(bridgeMap[row][col]);
+    if (bridgeValue === 'deck:row') return 'road_bridge_h';
+    if (bridgeValue === 'deck:col') return 'road_bridge_v';
+    const rampMatch = bridgeValue?.match(/^ramp:([nesw])$/);
+    if (rampMatch) return `road_hill2_${getOppositeDirection(rampMatch[1])}`;
+  }
+
   const slopeKey = getRoadSlopeKey(row, col);
   if (slopeKey === 'road_slope_corner') return 'road_isolated';
   if (slopeKey) return slopeKey;
 
   // Determine adjacency on diagonal edges (NE, SE, SW, NW).  The 'north' tile in mapData corresponds
   // to the NE edge of the isometric tile, 'east' corresponds to SE, 'south' to SW and 'west' to NW.
-  const ne = row > 0 && mapData[row - 1][col] === ROAD;
-  const se = col < MAP_WIDTH - 1 && mapData[row][col + 1] === ROAD;
-  const sw = row < MAP_HEIGHT - 1 && mapData[row + 1][col] === ROAD;
-  const nw = col > 0 && mapData[row][col - 1] === ROAD;
+  const ne = row > 0 && isRoadLikeTile(row - 1, col);
+  const se = col < MAP_WIDTH - 1 && isRoadLikeTile(row, col + 1);
+  const sw = row < MAP_HEIGHT - 1 && isRoadLikeTile(row + 1, col);
+  const nw = col > 0 && isRoadLikeTile(row, col - 1);
   // Cross intersection (all four sides connect)
   if (ne && se && sw && nw) return 'road_cross';
   // Straight roads (two opposite sides connect)
@@ -6212,6 +6678,7 @@ function hideLandingScreen() {
 function copyTerrainToWorld(mapRows, heightRows) {
   mapData = createFilledMap(GROUND);
   heightMap = createFilledMap(0);
+  resetBridgeLayers();
 
   for (let row = 0; row < MAP_HEIGHT; row++) {
     for (let col = 0; col < MAP_WIDTH; col++) {

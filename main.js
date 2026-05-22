@@ -184,6 +184,608 @@ const TERRAIN_PROFILE_OPTIONS = [
   { key: 'flat', titleKey: 'terrain.profile.flat' },
 ];
 
+const BUILT_IN_CITY_TERRAIN_SCENARIOS = [
+  {
+    id: 'builtin:hong-kong',
+    name: '香港 Hong Kong',
+    profileType: 'harbor',
+    seed: 'city-scenario:hong-kong:v1',
+    options: {
+      seaLevel: 0.36, baseElevation: 0.46, relief: 1.28,
+      ridgeCount: 4, riverCount: 2, coastMode: 'harbor',
+      harborMouthWidth: 26, buildableBias: 0.26, dryness: 0.12, erosionPasses: 3,
+    },
+  },
+  {
+    id: 'builtin:taipei',
+    name: '台北 Taipei',
+    profileType: 'basin',
+    seed: 'city-scenario:taipei:v1',
+    options: {
+      seaLevel: 0.18, baseElevation: 0.40, relief: 1.12,
+      ridgeCount: 3, riverCount: 3, coastMode: 'basin',
+      buildableBias: 0.44, dryness: 0.14, erosionPasses: 2,
+    },
+  },
+  {
+    id: 'builtin:tokyo',
+    name: '東京 Tokyo',
+    profileType: 'harbor',
+    seed: 'city-scenario:tokyo:v1',
+    options: {
+      seaLevel: 0.30, baseElevation: 0.36, relief: 0.68,
+      ridgeCount: 1, riverCount: 3, coastMode: 'harbor',
+      harborMouthWidth: 44, buildableBias: 0.62, dryness: 0.18, erosionPasses: 2,
+    },
+  },
+  {
+    id: 'builtin:new-york',
+    name: '紐約 New York',
+    profileType: 'harbor',
+    seed: 'city-scenario:new-york:v1',
+    options: {
+      seaLevel: 0.33, baseElevation: 0.40, relief: 0.78,
+      ridgeCount: 2, riverCount: 2, coastMode: 'harbor',
+      harborMouthWidth: 36, buildableBias: 0.55, dryness: 0.20, erosionPasses: 2,
+    },
+  },
+  {
+    id: 'builtin:singapore',
+    name: '新加坡 Singapore',
+    profileType: 'island',
+    seed: 'city-scenario:singapore:v1',
+    options: {
+      seaLevel: 0.44, baseElevation: 0.18, relief: 0.52,
+      ridgeCount: 1, riverCount: 1, coastMode: 'island',
+      buildableBias: 0.52, dryness: 0.22, erosionPasses: 1,
+    },
+  },
+  {
+    id: 'builtin:london',
+    name: '倫敦 London',
+    profileType: 'river',
+    seed: 'city-scenario:london:v1',
+    options: {
+      seaLevel: 0.12, baseElevation: 0.30, relief: 0.40,
+      ridgeCount: 1, riverCount: 4, coastMode: 'none',
+      buildableBias: 0.70, dryness: 0.18, erosionPasses: 2,
+    },
+  },
+  {
+    id: 'builtin:copenhagen',
+    name: '哥本哈根 Copenhagen',
+    profileType: 'island',
+    seed: 'city-scenario:copenhagen:v1',
+    options: {
+      seaLevel: 0.40, baseElevation: 0.22, relief: 0.46,
+      ridgeCount: 1, riverCount: 1, coastMode: 'island',
+      buildableBias: 0.58, dryness: 0.20, erosionPasses: 1,
+    },
+  },
+  {
+    id: 'builtin:sydney',
+    name: '悉尼 Sydney',
+    profileType: 'harbor',
+    seed: 'city-scenario:sydney:v1',
+    options: {
+      seaLevel: 0.32, baseElevation: 0.44, relief: 0.96,
+      ridgeCount: 2, riverCount: 2, coastMode: 'harbor',
+      harborMouthWidth: 26, buildableBias: 0.46, dryness: 0.20, erosionPasses: 2,
+    },
+  },
+];
+
+const builtInCityTerrainCache = new Map();
+
+function getBuiltInCityTerrainData(scenarioId) {
+  if (builtInCityTerrainCache.has(scenarioId)) {
+    return builtInCityTerrainCache.get(scenarioId);
+  }
+
+  const scenario = BUILT_IN_CITY_TERRAIN_SCENARIOS.find((entry) => entry.id === scenarioId);
+  if (!scenario) return null;
+
+  let terrainData = null;
+  if (scenario.id === 'builtin:hong-kong') {
+    terrainData = {
+      version: 1,
+      generatorVersion: 3,
+      profileType: scenario.profileType,
+      seed: scenario.seed,
+      features: ['real-coastline-source', `city-scenario:${scenario.id}`],
+      mapData: createFilledMap(WATER),
+      heightMap: createFilledMap(0),
+    };
+  } else {
+    const generated = generateRealisticTerrainMap(scenario.profileType, scenario.seed, scenario.options);
+    terrainData = {
+      version: 1,
+      generatorVersion: generated.metadata?.generatorVersion ?? 2,
+      profileType: scenario.profileType,
+      seed: scenario.seed,
+      features: [...(generated.metadata?.features ?? []), `city-scenario:${scenario.id}`],
+      mapData: generated.mapData.map((row) => Array.from(row)),
+      heightMap: generated.heightMap.map((row) => Array.from(row)),
+    };
+  }
+
+  const templatedTerrainData = applyBuiltInCityGeographyTemplate(scenario.id, terrainData, scenario.seed);
+
+  builtInCityTerrainCache.set(scenarioId, templatedTerrainData);
+  return templatedTerrainData;
+}
+
+function listBuiltInCityTerrainPresets() {
+  return BUILT_IN_CITY_TERRAIN_SCENARIOS.map((scenario) => ({
+    id: scenario.id,
+    name: scenario.name,
+    profile_type: scenario.profileType,
+    seed: scenario.seed,
+    terrain_data: getBuiltInCityTerrainData(scenario.id),
+    isBuiltInScenario: true,
+  }));
+}
+
+function createTerrainPresetOptionLabel(preset) {
+  const profileLabel = t(`terrain.profile.${preset.profile_type}`);
+  const profileText = profileLabel === `terrain.profile.${preset.profile_type}`
+    ? preset.profile_type
+    : profileLabel;
+  return preset.isBuiltInScenario
+    ? `${preset.name} (${profileText} · ${t('landing.cityScenarioLabel')})`
+    : `${preset.name} (${profileText})`;
+}
+
+function setPresetSelectLoading(terrainPresetSelect) {
+  if (!terrainPresetSelect) return;
+  terrainPresetSelect.innerHTML = `<option value="">${t('landing.terrainPresetLoading')}</option>`;
+}
+
+const HONG_KONG_REAL_COASTLINE_POLYGONS = [
+  [{ x: 0.696, y: 0.021 }, { x: 0.7398, y: 0.0335 }, { x: 0.7672, y: 0.0992 }, { x: 0.7808, y: 0.1351 }, { x: 0.8177, y: 0.1627 }, { x: 0.8827, y: 0.1487 }, { x: 0.6984, y: 0.2434 }, { x: 0.6734, y: 0.2998 }, { x: 0.5854, y: 0.2995 }, { x: 0.6596, y: 0.4272 }, { x: 0.7622, y: 0.3443 }, { x: 0.8009, y: 0.3565 }, { x: 0.8625, y: 0.2169 }, { x: 0.9266, y: 0.2657 }, { x: 0.9973, y: 0.3303 }, { x: 0.9654, y: 0.3745 }, { x: 0.9795, y: 0.5118 }, { x: 0.9225, y: 0.5984 }, { x: 0.8205, y: 0.4714 }, { x: 0.7649, y: 0.4795 }, { x: 0.7608, y: 0.5118 }, { x: 0.7717, y: 0.6287 }, { x: 0.8009, y: 0.7154 }, { x: 0.8205, y: 0.7416 }, { x: 0.8146, y: 0.7901 }, { x: 0.7416, y: 0.6245 }, { x: 0.7121, y: 0.7296 }, { x: 0.6279, y: 0.6851 }, { x: 0.5932, y: 0.7114 }, { x: 0.5075, y: 0.5862 }, { x: 0.3248, y: 0.5521 }, { x: 0.2364, y: 0.4572 }, { x: 0.1906, y: 0.5218 }, { x: 0.1436, y: 0.4552 }, { x: 0.1838, y: 0.3545 }, { x: 0.311, y: 0.2012 }, { x: 0.3414, y: 0.2215 }, { x: 0.3912, y: 0.1527 }, { x: 0.4961, y: 0.094 }, { x: 0.5521, y: 0.0668 }, { x: 0.613, y: 0.02 }, { x: 0.696, y: 0.021 }],
+  [{ x: 0.0162, y: 0.9483 }, { x: 0.0033, y: 0.8523 }, { x: 0.0211, y: 0.8523 }, { x: 0.0235, y: 0.7941 }, { x: 0.0978, y: 0.7011 }, { x: 0.1615, y: 0.7214 }, { x: 0.2209, y: 0.6792 }, { x: 0.2472, y: 0.6872 }, { x: 0.3192, y: 0.5904 }, { x: 0.3248, y: 0.6085 }, { x: 0.3759, y: 0.5731 }, { x: 0.3775, y: 0.6307 }, { x: 0.3442, y: 0.6187 }, { x: 0.341, y: 0.659 }, { x: 0.311, y: 0.6529 }, { x: 0.311, y: 0.6872 }, { x: 0.3277, y: 0.6773 }, { x: 0.3219, y: 0.7738 }, { x: 0.2802, y: 0.7656 }, { x: 0.3013, y: 0.8061 }, { x: 0.275, y: 0.8342 }, { x: 0.315, y: 0.8707 }, { x: 0.2887, y: 0.899 }, { x: 0.2564, y: 0.9194 }, { x: 0.2541, y: 0.8444 }, { x: 0.1921, y: 0.8444 }, { x: 0.1492, y: 0.8787 }, { x: 0.1615, y: 0.9129 }, { x: 0.145, y: 0.9277 }, { x: 0.1222, y: 0.9304 }, { x: 0.0978, y: 0.8828 }, { x: 0.0162, y: 0.9483 }],
+  [{ x: 0.6707, y: 0.7194 }, { x: 0.7343, y: 0.7881 }, { x: 0.7426, y: 0.9314 }, { x: 0.7205, y: 0.9374 }, { x: 0.7012, y: 0.911 }, { x: 0.6833, y: 0.8403 }, { x: 0.6639, y: 0.899 }, { x: 0.6776, y: 0.9617 }, { x: 0.6567, y: 0.9677 }, { x: 0.6596, y: 0.9212 }, { x: 0.6279, y: 0.915 }, { x: 0.6144, y: 0.8347 }, { x: 0.5808, y: 0.8687 }, { x: 0.5739, y: 0.8363 }, { x: 0.5173, y: 0.8144 }, { x: 0.488, y: 0.7559 }, { x: 0.5351, y: 0.7114 }, { x: 0.5823, y: 0.7356 }, { x: 0.6374, y: 0.7033 }, { x: 0.6707, y: 0.7194 }],
+  [{ x: 0.532, y: 0.9956 }, { x: 0.485, y: 1 }, { x: 0.4776, y: 0.8482 }, { x: 0.524, y: 0.899 }, { x: 0.5114, y: 0.9272 }, { x: 0.5626, y: 0.9314 }, { x: 0.532, y: 0.9956 }],
+];
+
+function isPointInsidePolygonNormalized(x, y, polygon) {
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const xi = polygon[i].x;
+    const yi = polygon[i].y;
+    const xj = polygon[j].x;
+    const yj = polygon[j].y;
+    const intersects = ((yi > y) !== (yj > y))
+      && (x < ((xj - xi) * (y - yi)) / ((yj - yi) || 1e-8) + xi);
+    if (intersects) inside = !inside;
+  }
+  return inside;
+}
+
+function applyHongKongRealCoastlineFlatMap(ctx) {
+  fillScenarioTerrain(ctx.map, ctx.heights, WATER, 0);
+  for (let row = 0; row < MAP_HEIGHT; row++) {
+    for (let col = 0; col < MAP_WIDTH; col++) {
+      const x = col / (MAP_WIDTH - 1);
+      const y = row / (MAP_HEIGHT - 1);
+      let onLand = false;
+      for (let index = 0; index < HONG_KONG_REAL_COASTLINE_POLYGONS.length; index++) {
+        if (isPointInsidePolygonNormalized(x, y, HONG_KONG_REAL_COASTLINE_POLYGONS[index])) {
+          onLand = true;
+          break;
+        }
+      }
+      if (onLand) {
+        setScenarioLandHeight(ctx.map, ctx.heights, row, col, 0);
+      }
+    }
+  }
+}
+
+function paintScenarioPeakOnLand(ctx, centerX, centerY, rx, ry, targetHeight) {
+  const minRow = Math.max(0, Math.floor((centerY - ry - 0.02) * (MAP_HEIGHT - 1)));
+  const maxRow = Math.min(MAP_HEIGHT - 1, Math.ceil((centerY + ry + 0.02) * (MAP_HEIGHT - 1)));
+  const minCol = Math.max(0, Math.floor((centerX - rx - 0.02) * (MAP_WIDTH - 1)));
+  const maxCol = Math.min(MAP_WIDTH - 1, Math.ceil((centerX + rx + 0.02) * (MAP_WIDTH - 1)));
+  for (let row = minRow; row <= maxRow; row++) {
+    for (let col = minCol; col <= maxCol; col++) {
+      if (ctx.map[row][col] === WATER) continue;
+      const nx = ((col / (MAP_WIDTH - 1)) - centerX) / Math.max(0.01, rx);
+      const ny = ((row / (MAP_HEIGHT - 1)) - centerY) / Math.max(0.01, ry);
+      if (nx * nx + ny * ny <= 1) {
+        setScenarioLandHeight(ctx.map, ctx.heights, row, col, targetHeight);
+      }
+    }
+  }
+}
+
+function applyHongKongMountainRelief(ctx) {
+  paintScenarioHillRidge(ctx, [
+    { x: 0.22, y: 0.70 }, { x: 0.30, y: 0.66 }, { x: 0.37, y: 0.62 },
+  ], 10, 5);
+  paintScenarioHillRidge(ctx, [
+    { x: 0.43, y: 0.44 }, { x: 0.51, y: 0.40 }, { x: 0.61, y: 0.37 },
+  ], 9, 6);
+  paintScenarioHillRidge(ctx, [
+    { x: 0.70, y: 0.63 }, { x: 0.77, y: 0.67 }, { x: 0.80, y: 0.74 },
+  ], 8, 4);
+  paintScenarioPeakOnLand(ctx, 0.29, 0.67, 0.07, 0.06, 6);
+  paintScenarioPeakOnLand(ctx, 0.54, 0.39, 0.08, 0.06, 7);
+  paintScenarioPeakOnLand(ctx, 0.75, 0.69, 0.06, 0.05, 4);
+}
+
+function applyBuiltInCityGeographyTemplate(scenarioId, terrainData, seedText = '') {
+  const map = terrainData?.mapData?.map((row) => Array.from(row));
+  const heights = terrainData?.heightMap?.map((row) => Array.from(row));
+  if (!map || !heights) return terrainData;
+
+  const rng = createRandom(`${seedText}:${scenarioId}:geo-v2`);
+  const ctx = { map, heights, rng };
+  const shapeId = scenarioId.replace(/^builtin:/, '');
+
+  const builders = {
+    'hong-kong': buildHongKongScenarioShape,
+    taipei: buildTaipeiScenarioShape,
+    tokyo: buildTokyoScenarioShape,
+    'new-york': buildNewYorkScenarioShape,
+    singapore: buildSingaporeScenarioShape,
+    london: buildLondonScenarioShape,
+    copenhagen: buildCopenhagenScenarioShape,
+    sydney: buildSydneyScenarioShape,
+  };
+
+  const builder = builders[shapeId];
+  if (!builder) return terrainData;
+
+  builder(ctx);
+  const preserveCoastline = shapeId === 'hong-kong';
+  finalizeScenarioTerrain(ctx, { preserveWaterMask: preserveCoastline });
+
+  return {
+    ...terrainData,
+    mapData: map,
+    heightMap: heights,
+    features: [...(terrainData.features ?? []), `city-template:${shapeId}`],
+  };
+}
+
+function fillScenarioTerrain(map, heights, tile, height) {
+  for (let row = 0; row < MAP_HEIGHT; row++) {
+    for (let col = 0; col < MAP_WIDTH; col++) {
+      map[row][col] = tile;
+      heights[row][col] = height;
+    }
+  }
+}
+
+function setScenarioLandHeight(map, heights, row, col, targetHeight = 0) {
+  if (!isInsideMap(row, col)) return;
+  const safeHeight = Math.max(0, Math.min(MAX_TERRAIN_HEIGHT, Math.round(targetHeight)));
+  heights[row][col] = safeHeight;
+  map[row][col] = safeHeight > 0 ? HILL : GROUND;
+}
+
+function setScenarioWater(map, heights, row, col) {
+  if (!isInsideMap(row, col)) return;
+  map[row][col] = WATER;
+  heights[row][col] = 0;
+}
+
+function paintScenarioWaterDisc(ctx, centerRow, centerCol, radius) {
+  const minRow = Math.max(0, Math.floor(centerRow - radius - 1));
+  const maxRow = Math.min(MAP_HEIGHT - 1, Math.ceil(centerRow + radius + 1));
+  const minCol = Math.max(0, Math.floor(centerCol - radius - 1));
+  const maxCol = Math.min(MAP_WIDTH - 1, Math.ceil(centerCol + radius + 1));
+  for (let row = minRow; row <= maxRow; row++) {
+    for (let col = minCol; col <= maxCol; col++) {
+      if (Math.hypot(row - centerRow, col - centerCol) <= radius) {
+        setScenarioWater(ctx.map, ctx.heights, row, col);
+      }
+    }
+  }
+}
+
+function paintScenarioWaterPath(ctx, points, widthStart, widthEnd) {
+  const mapPoints = points.map((point) => ({
+    row: point.y * (MAP_HEIGHT - 1),
+    col: point.x * (MAP_WIDTH - 1),
+  }));
+  if (mapPoints.length < 2) return;
+  let traveled = 0;
+  let total = 0;
+  for (let i = 0; i < mapPoints.length - 1; i++) {
+    total += Math.hypot(mapPoints[i + 1].row - mapPoints[i].row, mapPoints[i + 1].col - mapPoints[i].col);
+  }
+  total = Math.max(1, total);
+
+  for (let i = 0; i < mapPoints.length - 1; i++) {
+    const start = mapPoints[i];
+    const end = mapPoints[i + 1];
+    const segLen = Math.max(1, Math.hypot(end.row - start.row, end.col - start.col));
+    const steps = Math.max(8, Math.ceil(segLen));
+    for (let step = 0; step <= steps; step++) {
+      const t = step / steps;
+      const row = lerp(start.row, end.row, t);
+      const col = lerp(start.col, end.col, t);
+      const globalT = (traveled + segLen * t) / total;
+      const width = lerp(widthStart, widthEnd, globalT);
+      paintScenarioWaterDisc(ctx, row, col, width);
+    }
+    traveled += segLen;
+  }
+}
+
+function paintScenarioEllipse(ctx, options = {}) {
+  const {
+    x = 0.5,
+    y = 0.5,
+    rx = 0.2,
+    ry = 0.2,
+    rotation = 0,
+    jitter = 0,
+    mode = 'water',
+    landHeight = 0,
+  } = options;
+
+  const cosR = Math.cos(rotation);
+  const sinR = Math.sin(rotation);
+  const minRow = Math.max(0, Math.floor((y - ry - 0.08) * (MAP_HEIGHT - 1)));
+  const maxRow = Math.min(MAP_HEIGHT - 1, Math.ceil((y + ry + 0.08) * (MAP_HEIGHT - 1)));
+  const minCol = Math.max(0, Math.floor((x - rx - 0.08) * (MAP_WIDTH - 1)));
+  const maxCol = Math.min(MAP_WIDTH - 1, Math.ceil((x + rx + 0.08) * (MAP_WIDTH - 1)));
+
+  for (let row = minRow; row <= maxRow; row++) {
+    for (let col = minCol; col <= maxCol; col++) {
+      const nx = (col / (MAP_WIDTH - 1)) - x;
+      const ny = (row / (MAP_HEIGHT - 1)) - y;
+      const xr = (nx * cosR + ny * sinR) / Math.max(0.01, rx);
+      const yr = (-nx * sinR + ny * cosR) / Math.max(0.01, ry);
+      const noise = jitter
+        ? (valueNoise(col * 0.023 + 17, row * 0.023 - 11, ctx.rng) - 0.5) * jitter
+        : 0;
+      if (xr * xr + yr * yr <= 1 + noise) {
+        if (mode === 'water') {
+          setScenarioWater(ctx.map, ctx.heights, row, col);
+        } else {
+          setScenarioLandHeight(ctx.map, ctx.heights, row, col, landHeight);
+        }
+      }
+    }
+  }
+}
+
+function paintScenarioHillRidge(ctx, points, width, peakHeight) {
+  const ridge = points.map((point) => ({
+    row: point.y * (MAP_HEIGHT - 1),
+    col: point.x * (MAP_WIDTH - 1),
+  }));
+  for (let i = 0; i < ridge.length - 1; i++) {
+    const start = ridge[i];
+    const end = ridge[i + 1];
+    const margin = Math.ceil(width * 2.2);
+    const minRow = Math.max(0, Math.floor(Math.min(start.row, end.row) - margin));
+    const maxRow = Math.min(MAP_HEIGHT - 1, Math.ceil(Math.max(start.row, end.row) + margin));
+    const minCol = Math.max(0, Math.floor(Math.min(start.col, end.col) - margin));
+    const maxCol = Math.min(MAP_WIDTH - 1, Math.ceil(Math.max(start.col, end.col) + margin));
+    for (let row = minRow; row <= maxRow; row++) {
+      for (let col = minCol; col <= maxCol; col++) {
+        if (ctx.map[row][col] === WATER) continue;
+        const d = distanceToSegment(row, col, start, end);
+        if (d > width * 2.1) continue;
+        const lift = Math.exp(-((d / Math.max(1, width)) ** 2)) * peakHeight;
+        const currentHeight = ctx.heights[row][col] ?? 0;
+        setScenarioLandHeight(ctx.map, ctx.heights, row, col, Math.max(currentHeight, Math.round(lift)));
+      }
+    }
+  }
+}
+
+function softenScenarioLowlands(ctx, centerX, centerY, rx, ry) {
+  const minRow = Math.max(0, Math.floor((centerY - ry - 0.05) * (MAP_HEIGHT - 1)));
+  const maxRow = Math.min(MAP_HEIGHT - 1, Math.ceil((centerY + ry + 0.05) * (MAP_HEIGHT - 1)));
+  const minCol = Math.max(0, Math.floor((centerX - rx - 0.05) * (MAP_WIDTH - 1)));
+  const maxCol = Math.min(MAP_WIDTH - 1, Math.ceil((centerX + rx + 0.05) * (MAP_WIDTH - 1)));
+  for (let row = minRow; row <= maxRow; row++) {
+    for (let col = minCol; col <= maxCol; col++) {
+      if (ctx.map[row][col] === WATER) continue;
+      const nx = ((col / (MAP_WIDTH - 1)) - centerX) / rx;
+      const ny = ((row / (MAP_HEIGHT - 1)) - centerY) / ry;
+      if (nx * nx + ny * ny > 1) continue;
+      if (ctx.heights[row][col] > 1) {
+        setScenarioLandHeight(ctx.map, ctx.heights, row, col, 1);
+      } else {
+        setScenarioLandHeight(ctx.map, ctx.heights, row, col, 0);
+      }
+    }
+  }
+}
+
+function finalizeScenarioTerrain(ctx, options = {}) {
+  const preserveWaterMask = Boolean(options.preserveWaterMask);
+  const next = ctx.map.map((row) => row.slice());
+  for (let row = 1; row < MAP_HEIGHT - 1; row++) {
+    for (let col = 1; col < MAP_WIDTH - 1; col++) {
+      if (ctx.map[row][col] !== GROUND || (ctx.heights[row][col] ?? 0) > 0) continue;
+      let adjacentWater = 0;
+      for (let dr = -1; dr <= 1; dr++) {
+        for (let dc = -1; dc <= 1; dc++) {
+          if (dr === 0 && dc === 0) continue;
+          if (ctx.map[row + dr][col + dc] === WATER) adjacentWater++;
+        }
+      }
+      if (adjacentWater >= 2) next[row][col] = BEACH;
+    }
+  }
+
+  if (!preserveWaterMask) {
+    for (let row = 1; row < MAP_HEIGHT - 1; row++) {
+      for (let col = 1; col < MAP_WIDTH - 1; col++) {
+        if (ctx.map[row][col] !== WATER) continue;
+        let touchingWater = 0;
+        for (let dr = -1; dr <= 1; dr++) {
+          for (let dc = -1; dc <= 1; dc++) {
+            if (dr === 0 && dc === 0) continue;
+            if (ctx.map[row + dr][col + dc] === WATER) touchingWater++;
+          }
+        }
+        if (touchingWater <= 1) {
+          next[row][col] = GROUND;
+          ctx.heights[row][col] = 0;
+        }
+      }
+    }
+  }
+
+  for (let row = 0; row < MAP_HEIGHT; row++) {
+    for (let col = 0; col < MAP_WIDTH; col++) {
+      ctx.map[row][col] = next[row][col];
+      if (ctx.map[row][col] === WATER || ctx.map[row][col] === BEACH) {
+        ctx.heights[row][col] = 0;
+      } else {
+        const h = Math.max(0, Math.min(MAX_TERRAIN_HEIGHT, Math.round(ctx.heights[row][col] ?? 0)));
+        ctx.heights[row][col] = h;
+        if (ctx.map[row][col] !== HILL) {
+          ctx.map[row][col] = h > 0 ? HILL : GROUND;
+        }
+      }
+    }
+  }
+}
+
+function buildHongKongScenarioShape(ctx) {
+  applyHongKongRealCoastlineFlatMap(ctx);
+  applyHongKongMountainRelief(ctx);
+}
+
+function buildTaipeiScenarioShape(ctx) {
+  fillScenarioTerrain(ctx.map, ctx.heights, GROUND, 0);
+  paintScenarioWaterPath(ctx, [
+    { x: 0.57, y: 0.58 }, { x: 0.48, y: 0.52 }, { x: 0.37, y: 0.44 },
+    { x: 0.28, y: 0.34 }, { x: 0.16, y: 0.20 }, { x: 0.04, y: 0.06 },
+  ], 8, 12);
+  paintScenarioWaterPath(ctx, [
+    { x: 0.95, y: 0.40 }, { x: 0.82, y: 0.44 }, { x: 0.70, y: 0.50 }, { x: 0.58, y: 0.57 },
+  ], 5, 8);
+  paintScenarioWaterPath(ctx, [
+    { x: 0.63, y: 0.95 }, { x: 0.60, y: 0.84 }, { x: 0.58, y: 0.70 }, { x: 0.57, y: 0.58 },
+  ], 5, 7);
+  paintScenarioEllipse(ctx, { mode: 'land', x: 0.20, y: 0.26, rx: 0.16, ry: 0.14, landHeight: 3, jitter: 0.14 });
+  paintScenarioEllipse(ctx, { mode: 'land', x: 0.80, y: 0.22, rx: 0.18, ry: 0.15, landHeight: 3, jitter: 0.14 });
+  paintScenarioEllipse(ctx, { mode: 'land', x: 0.85, y: 0.66, rx: 0.13, ry: 0.20, landHeight: 3, jitter: 0.14 });
+  paintScenarioEllipse(ctx, { mode: 'land', x: 0.22, y: 0.76, rx: 0.18, ry: 0.16, landHeight: 2, jitter: 0.12 });
+  paintScenarioEllipse(ctx, { mode: 'land', x: 0.56, y: 0.88, rx: 0.16, ry: 0.10, landHeight: 2, jitter: 0.12 });
+  softenScenarioLowlands(ctx, 0.54, 0.54, 0.26, 0.20);
+}
+
+function buildTokyoScenarioShape(ctx) {
+  fillScenarioTerrain(ctx.map, ctx.heights, GROUND, 0);
+  paintScenarioEllipse(ctx, { mode: 'water', x: 1.13, y: 0.60, rx: 0.46, ry: 0.72, rotation: -0.08, jitter: 0.14 });
+  paintScenarioEllipse(ctx, { mode: 'water', x: 0.80, y: 1.16, rx: 0.48, ry: 0.34, rotation: -0.12, jitter: 0.16 });
+  paintScenarioEllipse(ctx, { mode: 'water', x: 0.82, y: 0.78, rx: 0.34, ry: 0.24, rotation: -0.20, jitter: 0.12 });
+  paintScenarioWaterPath(ctx, [
+    { x: 0.44, y: 0.05 }, { x: 0.50, y: 0.22 }, { x: 0.56, y: 0.40 }, { x: 0.62, y: 0.58 }, { x: 0.70, y: 0.74 },
+  ], 5, 9);
+  paintScenarioWaterPath(ctx, [
+    { x: 0.30, y: 0.10 }, { x: 0.42, y: 0.26 }, { x: 0.50, y: 0.44 }, { x: 0.58, y: 0.64 },
+  ], 4, 7);
+  paintScenarioWaterPath(ctx, [
+    { x: 0.24, y: 0.74 }, { x: 0.40, y: 0.75 }, { x: 0.55, y: 0.76 }, { x: 0.70, y: 0.78 },
+  ], 4, 6);
+  paintScenarioEllipse(ctx, { mode: 'land', x: 0.93, y: 0.66, rx: 0.12, ry: 0.23, rotation: -0.1, landHeight: 1, jitter: 0.12 });
+  paintScenarioEllipse(ctx, { mode: 'land', x: 0.20, y: 0.32, rx: 0.22, ry: 0.22, landHeight: 3, jitter: 0.12 });
+  paintScenarioHillRidge(ctx, [
+    { x: 0.08, y: 0.18 }, { x: 0.18, y: 0.28 }, { x: 0.27, y: 0.38 }, { x: 0.34, y: 0.54 },
+  ], 8, 3);
+  softenScenarioLowlands(ctx, 0.50, 0.58, 0.30, 0.22);
+}
+
+function buildNewYorkScenarioShape(ctx) {
+  fillScenarioTerrain(ctx.map, ctx.heights, GROUND, 0);
+  paintScenarioEllipse(ctx, { mode: 'water', x: 1.16, y: 0.54, rx: 0.48, ry: 0.72, rotation: -0.03, jitter: 0.13 });
+  paintScenarioEllipse(ctx, { mode: 'water', x: 0.72, y: 1.18, rx: 0.54, ry: 0.34, rotation: 0.08, jitter: 0.14 });
+  paintScenarioWaterPath(ctx, [
+    { x: 0.36, y: -0.02 }, { x: 0.35, y: 0.18 }, { x: 0.33, y: 0.38 }, { x: 0.31, y: 0.58 }, { x: 0.30, y: 0.86 },
+  ], 8, 10);
+  paintScenarioWaterPath(ctx, [
+    { x: 0.49, y: 0.08 }, { x: 0.50, y: 0.25 }, { x: 0.53, y: 0.45 }, { x: 0.56, y: 0.60 },
+  ], 4, 7);
+  paintScenarioEllipse(ctx, { mode: 'water', x: 0.48, y: 0.67, rx: 0.16, ry: 0.12, jitter: 0.10 });
+  paintScenarioEllipse(ctx, { mode: 'water', x: 0.67, y: 0.76, rx: 0.13, ry: 0.10, jitter: 0.10 });
+  paintScenarioEllipse(ctx, { mode: 'land', x: 0.43, y: 0.44, rx: 0.05, ry: 0.26, rotation: 0.08, landHeight: 1, jitter: 0.08 });
+  paintScenarioEllipse(ctx, { mode: 'land', x: 0.72, y: 0.48, rx: 0.27, ry: 0.14, rotation: -0.04, landHeight: 0, jitter: 0.08 });
+  paintScenarioEllipse(ctx, { mode: 'land', x: 0.40, y: 0.71, rx: 0.09, ry: 0.08, landHeight: 1, jitter: 0.08 });
+  paintScenarioEllipse(ctx, { mode: 'land', x: 0.17, y: 0.52, rx: 0.22, ry: 0.30, landHeight: 1, jitter: 0.10 });
+  paintScenarioHillRidge(ctx, [
+    { x: 0.12, y: 0.22 }, { x: 0.18, y: 0.34 }, { x: 0.22, y: 0.50 },
+  ], 6, 2);
+}
+
+function buildSingaporeScenarioShape(ctx) {
+  fillScenarioTerrain(ctx.map, ctx.heights, WATER, 0);
+  paintScenarioEllipse(ctx, { mode: 'land', x: 0.53, y: 0.52, rx: 0.34, ry: 0.19, rotation: -0.05, jitter: 0.14, landHeight: 0 });
+  paintScenarioEllipse(ctx, { mode: 'land', x: 0.33, y: 0.56, rx: 0.12, ry: 0.08, rotation: 0.05, jitter: 0.12, landHeight: 0 });
+  paintScenarioEllipse(ctx, { mode: 'land', x: 0.77, y: 0.50, rx: 0.11, ry: 0.08, rotation: -0.08, jitter: 0.12, landHeight: 0 });
+  paintScenarioEllipse(ctx, { mode: 'land', x: 0.58, y: 0.78, rx: 0.06, ry: 0.04, jitter: 0.10, landHeight: 0 });
+  paintScenarioEllipse(ctx, { mode: 'land', x: 0.66, y: 0.82, rx: 0.04, ry: 0.03, jitter: 0.10, landHeight: 0 });
+  paintScenarioEllipse(ctx, { mode: 'land', x: 0.49, y: 0.47, rx: 0.10, ry: 0.07, landHeight: 2, jitter: 0.12 });
+  paintScenarioEllipse(ctx, { mode: 'land', x: 0.59, y: 0.41, rx: 0.08, ry: 0.05, landHeight: 1, jitter: 0.10 });
+  softenScenarioLowlands(ctx, 0.53, 0.52, 0.25, 0.14);
+}
+
+function buildLondonScenarioShape(ctx) {
+  fillScenarioTerrain(ctx.map, ctx.heights, GROUND, 0);
+  paintScenarioWaterPath(ctx, [
+    { x: -0.02, y: 0.54 }, { x: 0.10, y: 0.56 }, { x: 0.23, y: 0.55 }, { x: 0.38, y: 0.58 },
+    { x: 0.51, y: 0.62 }, { x: 0.65, y: 0.60 }, { x: 0.80, y: 0.63 }, { x: 1.03, y: 0.66 },
+  ], 7, 11);
+  paintScenarioWaterPath(ctx, [
+    { x: 0.78, y: 0.26 }, { x: 0.74, y: 0.38 }, { x: 0.72, y: 0.52 }, { x: 0.70, y: 0.60 },
+  ], 3, 5);
+  paintScenarioEllipse(ctx, { mode: 'land', x: 0.17, y: 0.28, rx: 0.16, ry: 0.14, landHeight: 2, jitter: 0.10 });
+  paintScenarioEllipse(ctx, { mode: 'land', x: 0.82, y: 0.28, rx: 0.17, ry: 0.14, landHeight: 2, jitter: 0.10 });
+  paintScenarioEllipse(ctx, { mode: 'land', x: 0.68, y: 0.82, rx: 0.18, ry: 0.14, landHeight: 1, jitter: 0.10 });
+  softenScenarioLowlands(ctx, 0.52, 0.56, 0.34, 0.20);
+}
+
+function buildCopenhagenScenarioShape(ctx) {
+  fillScenarioTerrain(ctx.map, ctx.heights, WATER, 0);
+  paintScenarioEllipse(ctx, { mode: 'land', x: 0.35, y: 0.48, rx: 0.34, ry: 0.27, rotation: -0.08, jitter: 0.14, landHeight: 0 });
+  paintScenarioEllipse(ctx, { mode: 'land', x: 0.60, y: 0.60, rx: 0.16, ry: 0.22, rotation: 0.18, jitter: 0.12, landHeight: 0 });
+  paintScenarioEllipse(ctx, { mode: 'land', x: 0.50, y: 0.23, rx: 0.10, ry: 0.08, jitter: 0.12, landHeight: 0 });
+  paintScenarioWaterPath(ctx, [
+    { x: 0.46, y: 0.18 }, { x: 0.48, y: 0.32 }, { x: 0.50, y: 0.48 }, { x: 0.53, y: 0.66 }, { x: 0.56, y: 0.84 },
+  ], 4, 8);
+  paintScenarioWaterPath(ctx, [
+    { x: 0.30, y: 0.52 }, { x: 0.42, y: 0.56 }, { x: 0.54, y: 0.58 },
+  ], 3, 5);
+  paintScenarioEllipse(ctx, { mode: 'land', x: 0.26, y: 0.28, rx: 0.13, ry: 0.10, landHeight: 1, jitter: 0.10 });
+  paintScenarioEllipse(ctx, { mode: 'land', x: 0.64, y: 0.76, rx: 0.12, ry: 0.10, landHeight: 1, jitter: 0.10 });
+}
+
+function buildSydneyScenarioShape(ctx) {
+  fillScenarioTerrain(ctx.map, ctx.heights, GROUND, 0);
+  paintScenarioEllipse(ctx, { mode: 'water', x: 1.14, y: 0.56, rx: 0.44, ry: 0.76, rotation: -0.06, jitter: 0.12 });
+  paintScenarioWaterPath(ctx, [
+    { x: 1.02, y: 0.50 }, { x: 0.90, y: 0.50 }, { x: 0.80, y: 0.52 }, { x: 0.68, y: 0.54 }, { x: 0.56, y: 0.56 },
+  ], 8, 13);
+  paintScenarioWaterPath(ctx, [
+    { x: 0.78, y: 0.53 }, { x: 0.70, y: 0.46 }, { x: 0.60, y: 0.40 }, { x: 0.52, y: 0.34 },
+  ], 4, 8);
+  paintScenarioWaterPath(ctx, [
+    { x: 0.78, y: 0.56 }, { x: 0.70, y: 0.62 }, { x: 0.60, y: 0.70 }, { x: 0.50, y: 0.78 },
+  ], 4, 8);
+  paintScenarioWaterPath(ctx, [
+    { x: 0.30, y: 0.52 }, { x: 0.44, y: 0.54 }, { x: 0.56, y: 0.56 },
+  ], 4, 6);
+  paintScenarioHillRidge(ctx, [
+    { x: 0.16, y: 0.20 }, { x: 0.28, y: 0.34 }, { x: 0.38, y: 0.50 },
+  ], 8, 3);
+  paintScenarioHillRidge(ctx, [
+    { x: 0.16, y: 0.84 }, { x: 0.26, y: 0.70 }, { x: 0.38, y: 0.60 },
+  ], 8, 3);
+  softenScenarioLowlands(ctx, 0.54, 0.55, 0.24, 0.18);
+}
+
 // Zone density option definitions
 const ZONE_DENSITY_OPTIONS = [
   { density: 1, labelKey: 'density.low',    costNote: '×1.0' },
@@ -6545,13 +7147,22 @@ function setupLandingScreen() {
   async function refreshTerrainPresetOptions() {
     if (!terrainPresetSelect || !terrainEmptyHint || !terrainPreviewList) return;
 
-    terrainPresetSelect.innerHTML = `<option value="">${t('landing.terrainPresetLoading')}</option>`;
+    setPresetSelectLoading(terrainPresetSelect);
     terrainPreviewList.innerHTML = `<div class="terrain-preset-loading">${t('landing.terrainPresetLoading')}</div>`;
     terrainEmptyHint.style.display = 'none';
     if (terrainPresetTitle) terrainPresetTitle.style.display = 'none';
 
     try {
-      const presets = await listTerrainPresets();
+      let savedPresets = [];
+      try {
+        savedPresets = await listTerrainPresets();
+      } catch (error) {
+        console.warn('[TerrainPreset List]', error);
+      }
+
+      const builtInPresets = listBuiltInCityTerrainPresets();
+      const presets = [...builtInPresets, ...savedPresets];
+
       terrainPresetSelect.innerHTML = '';
       terrainPreviewList.innerHTML = '';
 
@@ -6570,15 +7181,20 @@ function setupLandingScreen() {
       placeholder.textContent = t('landing.terrainPresetSelect');
       terrainPresetSelect.appendChild(placeholder);
 
+      const scenarioGroup = document.createElement('optgroup');
+      scenarioGroup.label = t('landing.cityScenarioGroup');
+      terrainPresetSelect.appendChild(scenarioGroup);
+
+      const savedGroup = document.createElement('optgroup');
+      savedGroup.label = t('landing.savedTerrainGroup');
+      terrainPresetSelect.appendChild(savedGroup);
+
       presets.forEach((preset) => {
         const option = document.createElement('option');
         option.value = String(preset.id);
-        const profileLabel = t(`terrain.profile.${preset.profile_type}`);
-        const profileText = profileLabel === `terrain.profile.${preset.profile_type}`
-          ? preset.profile_type
-          : profileLabel;
-        option.textContent = `${preset.name} (${profileText})`;
-        terrainPresetSelect.appendChild(option);
+        option.textContent = createTerrainPresetOptionLabel(preset);
+        if (preset.isBuiltInScenario) scenarioGroup.appendChild(option);
+        else savedGroup.appendChild(option);
 
         const card = document.createElement('div');
         card.className = 'terrain-preset-card';
@@ -6595,7 +7211,9 @@ function setupLandingScreen() {
 
         const meta = document.createElement('div');
         meta.className = 'terrain-preset-meta';
-        meta.textContent = profileText;
+        meta.textContent = preset.isBuiltInScenario
+          ? `${t(`terrain.profile.${preset.profile_type}`)} · ${t('landing.cityScenarioLabel')}`
+          : t(`terrain.profile.${preset.profile_type}`);
         card.appendChild(meta);
 
         const actions = document.createElement('div');
@@ -6607,11 +7225,14 @@ function setupLandingScreen() {
         selectBtn.textContent = t('landing.terrainSelect');
         actions.appendChild(selectBtn);
 
-        const deleteBtn = document.createElement('button');
-        deleteBtn.type = 'button';
-        deleteBtn.className = 'terrain-preset-btn delete';
-        deleteBtn.textContent = t('landing.terrainDelete');
-        actions.appendChild(deleteBtn);
+        let deleteBtn = null;
+        if (!preset.isBuiltInScenario) {
+          deleteBtn = document.createElement('button');
+          deleteBtn.type = 'button';
+          deleteBtn.className = 'terrain-preset-btn delete';
+          deleteBtn.textContent = t('landing.terrainDelete');
+          actions.appendChild(deleteBtn);
+        }
 
         card.appendChild(actions);
 
@@ -6622,22 +7243,24 @@ function setupLandingScreen() {
           selectCard();
         });
 
-        deleteBtn.addEventListener('click', async (event) => {
-          event.stopPropagation();
-          if (!window.confirm(t('landing.terrainDeleteConfirm'))) return;
-          try {
-            await deleteTerrainPresetById(preset.id);
-            terrainPresetDataCache.delete(String(preset.id));
-            if (selectedTerrainPresetId === String(preset.id)) {
-              selectedTerrainPresetId = '';
+        if (deleteBtn) {
+          deleteBtn.addEventListener('click', async (event) => {
+            event.stopPropagation();
+            if (!window.confirm(t('landing.terrainDeleteConfirm'))) return;
+            try {
+              await deleteTerrainPresetById(preset.id);
+              terrainPresetDataCache.delete(String(preset.id));
+              if (selectedTerrainPresetId === String(preset.id)) {
+                selectedTerrainPresetId = '';
+              }
+              showToast(t('toast.terrainPresetDeleted'), 'info');
+              refreshTerrainPresetOptions();
+            } catch (error) {
+              console.error('[TerrainPreset Delete]', error);
+              showToast(t('toast.terrainPresetDeleteFailed'), 'danger');
             }
-            showToast(t('toast.terrainPresetDeleted'), 'info');
-            refreshTerrainPresetOptions();
-          } catch (error) {
-            console.error('[TerrainPreset Delete]', error);
-            showToast(t('toast.terrainPresetDeleteFailed'), 'danger');
-          }
-        });
+          });
+        }
 
         terrainPreviewList.appendChild(card);
 
@@ -6914,10 +7537,26 @@ async function startNewGame(cityName) {
     }
 
     try {
-      const row = await getTerrainPresetById(selectedId);
-      const terrain = row?.terrain_data;
-      copyTerrainToWorld(terrain?.mapData, terrain?.heightMap);
+      let terrain = null;
+      if (selectedId.startsWith('builtin:')) {
+        terrain = getBuiltInCityTerrainData(selectedId);
+      } else {
+        const row = await getTerrainPresetById(selectedId);
+        terrain = row?.terrain_data;
+      }
+
+      if (!terrain?.mapData || !terrain?.heightMap) {
+        throw new Error(`Missing terrain data for preset ${selectedId}`);
+      }
+
+      copyTerrainToWorld(terrain.mapData, terrain.heightMap);
       currentSeed = terrain?.seed || createSeed();
+      currentTerrainMetadata = {
+        generatorVersion: terrain?.generatorVersion ?? 2,
+        profileType: terrain?.profileType ?? 'custom',
+        seed: currentSeed,
+        features: terrain?.features ?? [],
+      };
     } catch (error) {
       console.error('[TerrainPreset Load]', error);
       showToast(t('toast.terrainPresetLoadFailed'), 'danger');

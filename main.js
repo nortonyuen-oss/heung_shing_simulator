@@ -3999,6 +3999,7 @@ function getTerrainTileDepth(row, col, key = getTileKey(row, col), baseY = isoTo
 }
 
 function applyTileVisualStyle(tile, row, col, key) {
+  tile.clearTint?.();
   const h = getTileHeight(row, col);
   if (h === 0 || !key.startsWith('hill_')) return;
   // Slightly darken higher terrain to give a sense of altitude
@@ -4841,6 +4842,42 @@ function addBeachesBySlope(terrain, heights, field, config) {
     terrain[row][col] = BEACH;
     heights[row][col] = 0;
   });
+
+  const cornerInfillTiles = [];
+  for (let row = 1; row < MAP_HEIGHT - 1; row++) {
+    for (let col = 1; col < MAP_WIDTH - 1; col++) {
+      if (terrain[row][col] !== GROUND && terrain[row][col] !== DIRT && !(terrain[row][col] === HILL && heights[row][col] <= 1)) continue;
+      if (hasCardinalTerrain(terrain, row, col, WATER)) continue;
+      const slope = localFieldSlope(field, row, col);
+      if (slope >= 0.62 || field[row][col] >= config.seaLevel + 1.25) continue;
+      if (!hasBeachCornerInfillPattern(terrain, row, col)) continue;
+      cornerInfillTiles.push([row, col]);
+    }
+  }
+
+  cornerInfillTiles.forEach(([row, col]) => {
+    terrain[row][col] = BEACH;
+    heights[row][col] = 0;
+  });
+}
+
+function hasBeachCornerInfillPattern(terrain, row, col) {
+  const nBeach = terrain[row - 1][col] === BEACH;
+  const eBeach = terrain[row][col + 1] === BEACH;
+  const sBeach = terrain[row + 1][col] === BEACH;
+  const wBeach = terrain[row][col - 1] === BEACH;
+
+  const neWater = terrain[row - 1][col + 1] === WATER;
+  const seWater = terrain[row + 1][col + 1] === WATER;
+  const swWater = terrain[row + 1][col - 1] === WATER;
+  const nwWater = terrain[row - 1][col - 1] === WATER;
+
+  if (nBeach && eBeach && neWater) return true;
+  if (eBeach && sBeach && seWater) return true;
+  if (sBeach && wBeach && swWater) return true;
+  if (wBeach && nBeach && nwWater) return true;
+
+  return false;
 }
 
 function fbmNoise(x, y, random, octaves = 4, lacunarity = 2, gain = 0.5) {
@@ -5598,6 +5635,7 @@ function getHillOpenEdges(row, col) {
 }
 
 function getWaterPatternKey(row, col) {
+  if (isOnMapEdge(row, col)) return 'water_full';
   const connectedEdges = getAdjacentEdges(row, col, WATER)
     .concat(getAdjacentEdges(row, col, BEACH));
   const openEdges = ['n', 'e', 's', 'w'].filter((direction) => !connectedEdges.includes(direction));
@@ -5610,9 +5648,20 @@ function getTerrainPatternKey(row, col, terrainType, prefix, fullKey = `${prefix
 }
 
 function getShorelineKey(row, col) {
+  if (isOnMapEdge(row, col)) return 'beach_full';
   const waterEdges = getAdjacentEdges(row, col, WATER);
+  if (waterEdges.length === 2) {
+    const waterCorner = getCornerPairSuffix(waterEdges);
+    if (waterCorner && isWaterDiagonalForCorner(row, col, waterCorner)) {
+      return `beach_corner_water_${rotateCornerSuffixCCW(waterCorner)}`;
+    }
+  }
   const beachEdges = getAdjacentEdges(row, col, BEACH);
   const shorelineEdges = waterEdges.length > 0 ? waterEdges : getOppositeEdges(beachEdges);
+  if (shorelineEdges.length === 2) {
+    const corner = getCornerPairSuffix(shorelineEdges);
+    if (corner) return `beach_corner_${rotateCornerSuffix180(corner)}`;
+  }
   return getEdgePatternKey(shorelineEdges, 'beach', 'beach_full');
 }
 
@@ -5638,6 +5687,81 @@ function getOpenEdges(row, col, terrainType) {
 function getOppositeEdges(edges) {
   const opposite = { n: 's', e: 'w', s: 'n', w: 'e' };
   return edges.map((edge) => opposite[edge]);
+}
+
+function getCornerPairSuffix(edges) {
+  if (!Array.isArray(edges) || edges.length !== 2) return null;
+  const pair = edges
+    .slice()
+    .sort((a, b) => 'nesw'.indexOf(a) - 'nesw'.indexOf(b))
+    .join('');
+  if (pair === 'ne') return 'ne';
+  if (pair === 'es') return 'se';
+  if (pair === 'sw') return 'sw';
+  if (pair === 'nw') return 'nw';
+  return null;
+}
+
+function rotateCornerSuffixCCW(suffix) {
+  if (suffix === 'ne') return 'nw';
+  if (suffix === 'se') return 'ne';
+  if (suffix === 'sw') return 'se';
+  if (suffix === 'nw') return 'sw';
+  return suffix;
+}
+
+function rotateCornerSuffix180(suffix) {
+  if (suffix === 'ne') return 'sw';
+  if (suffix === 'se') return 'nw';
+  if (suffix === 'sw') return 'ne';
+  if (suffix === 'nw') return 'se';
+  return suffix;
+}
+
+function isWaterDiagonalForCorner(row, col, cornerSuffix) {
+  if (cornerSuffix === 'ne') return isTerrainType(row - 1, col + 1, WATER);
+  if (cornerSuffix === 'se') return isTerrainType(row + 1, col + 1, WATER);
+  if (cornerSuffix === 'sw') return isTerrainType(row + 1, col - 1, WATER);
+  if (cornerSuffix === 'nw') return isTerrainType(row - 1, col - 1, WATER);
+  return false;
+}
+
+function isTerrainType(row, col, terrainType) {
+  return isInsideMap(row, col) && mapData[row][col] === terrainType;
+}
+
+function isOnMapEdge(row, col) {
+  return row === 0 || col === 0 || row === MAP_HEIGHT - 1 || col === MAP_WIDTH - 1;
+}
+
+function getMixedCornerKey(row, col, edges, prefix) {
+  const candidates = [
+    { suffix: 'ne', directions: ['n', 'e'], samples: [[row - 1, col], [row, col + 1], [row - 1, col + 1]] },
+    { suffix: 'se', directions: ['e', 's'], samples: [[row, col + 1], [row + 1, col], [row + 1, col + 1]] },
+    { suffix: 'sw', directions: ['s', 'w'], samples: [[row + 1, col], [row, col - 1], [row + 1, col - 1]] },
+    { suffix: 'nw', directions: ['w', 'n'], samples: [[row, col - 1], [row - 1, col], [row - 1, col - 1]] },
+  ];
+
+  let bestSuffix = null;
+  let bestScore = -1;
+
+  candidates.forEach((candidate) => {
+    if (!candidate.directions.every((direction) => edges.includes(direction))) return;
+
+    const score = candidate.samples.reduce((total, [sampleRow, sampleCol]) => {
+      if (!isInsideMap(sampleRow, sampleCol)) return total;
+      const terrain = mapData[sampleRow][sampleCol];
+      if (terrain === WATER || terrain === BEACH) return total + 1;
+      return total;
+    }, 0);
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestSuffix = candidate.suffix;
+    }
+  });
+
+  return bestSuffix ? `${prefix}_${bestSuffix}` : null;
 }
 
 function getEdgePatternKey(edges, prefix, fullKey, fallbackKey = fullKey) {

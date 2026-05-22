@@ -1,96 +1,77 @@
 # Coastline Tile Mapping
 
-This document summarizes the shoreline tile rules discussed for the current map generator.
+This document reflects the current implemented coastline tile logic.
 
 ## Goal
 
-- Keep land coastlines natural.
-- Keep beach-style shorelines visually readable.
-- Prevent map-edge water from auto-growing a beach ring.
-- Keep mixed corner tiles available for future topology refinement, but do not use them for the default shoreline pass.
+- Keep map-edge water clean without accidental beach framing.
+- Keep diagonal shoreline transitions continuous.
+- Separate small shoreline corners (i) from larger inner corners (c).
 
-## Key Decision Order
+## Current Runtime Rules
 
-1. Detect whether the tile is on a map edge.
-2. Detect whether the tile is water, beach, or land.
-3. Classify adjacency topology: straight edge, corner, narrow inlet, or complex mixed edge.
-4. Choose the most specific tile family available.
+### 1. Water Tile Rules
 
-Map-edge water must be handled before generic shoreline logic.
-Exact outer-border tiles should not use shoreline edge/corner sprites.
+- Exact map edge water tile always uses `water_full`.
+- Non-edge water uses `water_full`, `water_edge_*`, `water_corner_*` through cardinal adjacency.
+- `water_corner_land_*` is loaded but not selected by current default water pass.
 
-## Complete Tile Reference
+### 2. Beach Generation Rules
 
-| Scenario | Adjacency Shape | Recommended Tile Family | Existing Key / Asset | Purpose |
-|---|---|---|---|---|
-| Map-edge water | Pure water on outer border | Water body | `water_full` | Keep the outer water frame intact |
-| Map-edge water | One side touches the map edge | Boundary water edge | `water_edge_n`, `water_edge_e`, `water_edge_s`, `water_edge_w` | Seal the border directionally without turning it into beach |
-| Map-edge water | Outer border corner | Boundary water corner | `water_corner_ne`, `water_corner_se`, `water_corner_sw`, `water_corner_nw` | Shape the outer water frame corner |
-| Map-edge water | Water cut into land near the edge | Mixed water corner | `water_corner_land_ne`, `water_corner_land_se`, `water_corner_land_sw`, `water_corner_land_nw` | Handle bays, narrow channels, and inward cuts at the shoreline |
-| Land shoreline | One side touches water | Basic beach edge | `beach_edge_n`, `beach_edge_e`, `beach_edge_s`, `beach_edge_w` | Basic shoreline transition |
-| Land shoreline | Two adjacent sides touch water | Basic beach corner | `beach_corner_ne`, `beach_corner_se`, `beach_corner_sw`, `beach_corner_nw` | Simple shoreline turn |
-| Land shoreline | Three or more sides are affected by water or mixed topology | Mixed beach corner | `beach_corner_water_ne`, `beach_corner_water_se`, `beach_corner_water_sw`, `beach_corner_water_nw` | Remove spikes and smooth awkward turns |
-| Land shoreline | Broad, continuous sandy coast | Beach fill | `beach_full` | Wide beach stretches and small sand bars |
-| Sand-beach shoreline | Low-slope land next to water | Beach body and edge | `beach_full` + `beach_edge_*` | Stable sand coast bands |
-| Sand-beach shoreline | Sand coast turn | Beach corner | `beach_corner_*` | Natural curve at shoreline bends |
-| Sand-beach shoreline | Sand coast with inward water cut | Mixed beach corner | `beach_corner_water_*` | Soften concave shoreline shapes |
-| Inland water | Water touching land on one side | Water edge | `water_edge_*` | Lakes, rivers, and inland shore outlines |
-| Inland water | Water turning a corner | Water corner | `water_corner_*` | Regular inland water bends |
-| Inland water | Narrow inlet or strong concave mix | Mixed water corner | `water_corner_land_*` | Better fit for bays and narrow openings |
+Beach tiles are created in two passes:
 
-## Rules by Category
+1. Slope pass:
+	- Low-slope tiles adjacent to water become `BEACH`.
+2. Corner infill pass:
+	- Inner land-like tiles can be promoted to `BEACH` when they match a corner continuity pattern.
+	- This makes tiles below i-corners more likely to become c-corners instead of staying land.
 
-### 1. Land Shoreline Rules
+### 3. Shoreline Key Selection Rules
 
-- Use `beach_edge_*` for a single water-adjacent side.
-- For two-side adjacent water corners, first check the matching diagonal tile:
-	- If the diagonal is water, use `beach_corner_water_*` (small i corner near water).
-	- If the diagonal is not water, use `beach_corner_*` (larger c corner).
-- Use `beach_corner_water_*` when the shape becomes irregular, concave, or spike-like.
-- Use `beach_full` only when the beach is broad enough to read as a continuous sandy band.
+For a beach tile:
 
-### 2. Sand-Beach Rules
+1. If tile is on exact map edge -> `beach_full`.
+2. If tile has a two-edge water corner and matching water diagonal:
+	- Use small i-corner key: `beach_corner_water_*`.
+	- Then rotate i-corner suffix 90 degrees counter-clockwise.
+3. Otherwise compute shoreline edges and pick regular shoreline key.
+	- If this is a regular two-edge corner, use `beach_corner_*`.
+	- Then rotate c-corner suffix 180 degrees.
 
-- Treat beach as a transition band rather than a one-tile hard boundary.
-- Let slope-based beach creation decide where beach starts.
-- Use ordinary beach edges and corners for clean coast curves.
-- Promote difficult shapes to mixed beach corners instead of forcing a normal corner.
+## Direction Mapping
 
-### 3. Map-Edge Water Rules
+### i Corner Mapping (`beach_corner_water_*`)
 
-- If a water tile is on the outer map boundary, keep it as `water_full`.
-- Do not auto-convert outer water into beach.
-- Do not use `water_edge_*` or `water_corner_*` on the exact outer border.
-- Use `water_corner_land_*` only for inward cuts, not for the outer border by default.
+Base corner suffix is computed from water-edge pair, then rotated CCW 90:
 
-## Mixed Corner Tiles and Their Role
+- `ne -> nw`
+- `se -> ne`
+- `sw -> se`
+- `nw -> sw`
 
-These tiles are loaded and preserved as optional assets for future refinement:
+### c Corner Mapping (`beach_corner_*`)
 
-- `water_corner_land_ne`
-- `water_corner_land_se`
-- `water_corner_land_sw`
-- `water_corner_land_nw`
-- `beach_corner_water_ne`
-- `beach_corner_water_se`
-- `beach_corner_water_sw`
-- `beach_corner_water_nw`
+Base corner suffix is computed from shoreline-edge pair, then rotated 180:
 
-Recommended use:
+- `ne -> sw`
+- `se -> nw`
+- `sw -> ne`
+- `nw -> se`
 
-- `water_corner_land_*` can later absorb concave shoreline shapes and narrow inlets.
-- `beach_corner_water_*` can later absorb convex or spike-like shoreline shapes.
+## Tile Usage Reference
 
-## Practical Priority Order
+| Layer | Tile Type | Key Family | When Used |
+|---|---|---|---|
+| Water body | Water | `water_full` | Always on exact map border, and regular full-water areas |
+| Water edge | Water | `water_edge_*` | Interior water transitions |
+| Water corner | Water | `water_corner_*` | Interior water corners |
+| Beach edge | Beach | `beach_edge_*` | Single-edge shoreline transition |
+| Beach corner (c) | Beach | `beach_corner_*` | Regular inner shoreline corners after 180 rotation |
+| Beach small corner (i) | Beach | `beach_corner_water_*` | Near-water small corners after CCW 90 rotation |
+| Beach fill | Beach | `beach_full` | Broad beach body and exact map-edge beach fallback |
 
-1. Map-edge water first.
-2. Inland water or shoreline second.
-3. Regular edge and corner tiles third.
-4. Mixed corner tiles for awkward or high-frequency topologies.
+## Practical Notes
 
-## Outcome Target
-
-- Land shoreline stays readable and less jagged.
-- Beach shoreline becomes smoother and more natural.
-- Map-edge water remains water instead of spawning a beach ring.
-- Mixed corner tiles get a real function in shoreline shaping.
+- Map-edge water behavior is intentionally strict to avoid edge artifacts.
+- The i/c split now depends on corner context plus diagonal water check.
+- Corner infill is the main mechanism that converts potential land gaps under i-corners into beach corners for a more continuous diagonal coast.

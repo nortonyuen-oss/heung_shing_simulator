@@ -729,22 +729,74 @@ function buildHongKongScenarioShape(ctx) {
 
 function buildTaipeiScenarioShape(ctx) {
   fillScenarioTerrain(ctx.map, ctx.heights, GROUND, 0);
+
+  // Tamsui estuary on the northwest side.
+  paintScenarioEllipse(ctx, {
+    mode: 'water', x: -0.08, y: 0.10, rx: 0.24, ry: 0.18, rotation: -0.18, jitter: 0.10,
+  });
+
+  // Taipei river network: Keelung River (east->west), Xindian River (south->north),
+  // Dahan River (southwest->north), then confluence to Tamsui outlet.
   paintScenarioWaterPath(ctx, [
-    { x: 0.57, y: 0.58 }, { x: 0.48, y: 0.52 }, { x: 0.37, y: 0.44 },
-    { x: 0.28, y: 0.34 }, { x: 0.16, y: 0.20 }, { x: 0.04, y: 0.06 },
-  ], 8, 12);
+    { x: 0.98, y: 0.26 }, { x: 0.86, y: 0.27 }, { x: 0.74, y: 0.29 }, { x: 0.62, y: 0.31 }, { x: 0.50, y: 0.33 },
+  ], 4, 7);
   paintScenarioWaterPath(ctx, [
-    { x: 0.95, y: 0.40 }, { x: 0.82, y: 0.44 }, { x: 0.70, y: 0.50 }, { x: 0.58, y: 0.57 },
+    { x: 0.56, y: 0.97 }, { x: 0.54, y: 0.83 }, { x: 0.52, y: 0.70 }, { x: 0.51, y: 0.56 }, { x: 0.50, y: 0.42 },
+  ], 4, 8);
+  paintScenarioWaterPath(ctx, [
+    { x: 0.15, y: 0.95 }, { x: 0.22, y: 0.82 }, { x: 0.30, y: 0.68 }, { x: 0.39, y: 0.55 }, { x: 0.50, y: 0.42 },
   ], 5, 8);
   paintScenarioWaterPath(ctx, [
-    { x: 0.63, y: 0.95 }, { x: 0.60, y: 0.84 }, { x: 0.58, y: 0.70 }, { x: 0.57, y: 0.58 },
-  ], 5, 7);
-  paintScenarioEllipse(ctx, { mode: 'land', x: 0.20, y: 0.26, rx: 0.16, ry: 0.14, landHeight: 3, jitter: 0.14 });
-  paintScenarioEllipse(ctx, { mode: 'land', x: 0.80, y: 0.22, rx: 0.18, ry: 0.15, landHeight: 3, jitter: 0.14 });
-  paintScenarioEllipse(ctx, { mode: 'land', x: 0.85, y: 0.66, rx: 0.13, ry: 0.20, landHeight: 3, jitter: 0.14 });
-  paintScenarioEllipse(ctx, { mode: 'land', x: 0.22, y: 0.76, rx: 0.18, ry: 0.16, landHeight: 2, jitter: 0.12 });
-  paintScenarioEllipse(ctx, { mode: 'land', x: 0.56, y: 0.88, rx: 0.16, ry: 0.10, landHeight: 2, jitter: 0.12 });
-  softenScenarioLowlands(ctx, 0.54, 0.54, 0.26, 0.20);
+    { x: 0.50, y: 0.42 }, { x: 0.40, y: 0.34 }, { x: 0.29, y: 0.25 }, { x: 0.17, y: 0.16 }, { x: 0.03, y: 0.08 },
+  ], 8, 11);
+
+  // Linkou Plateau on the northwest flank (higher tableland west of Taipei Basin).
+  paintScenarioEllipse(ctx, {
+    mode: 'land', x: 0.10, y: 0.30, rx: 0.16, ry: 0.12, rotation: -0.18, jitter: 0.10, landHeight: 2,
+  });
+  paintScenarioHillRidge(ctx, [
+    { x: 0.03, y: 0.32 }, { x: 0.10, y: 0.28 }, { x: 0.18, y: 0.25 },
+  ], 6, 3);
+
+  // Yangmingshan volcanic group north of the basin.
+  paintScenarioHillRidge(ctx, [
+    { x: 0.18, y: 0.24 }, { x: 0.32, y: 0.19 }, { x: 0.48, y: 0.17 }, { x: 0.64, y: 0.19 }, { x: 0.78, y: 0.24 },
+  ], 8, 5);
+  paintScenarioHillRidge(ctx, [
+    { x: 0.26, y: 0.15 }, { x: 0.38, y: 0.13 }, { x: 0.52, y: 0.14 }, { x: 0.66, y: 0.17 },
+  ], 7, 5);
+
+  // East-northeast ridge toward Nangang/Shenkeng corridor.
+  paintScenarioHillRidge(ctx, [
+    { x: 0.71, y: 0.32 }, { x: 0.79, y: 0.40 }, { x: 0.85, y: 0.50 },
+  ], 7, 4);
+
+  // Wulai mountain system (south and southeast high relief).
+  paintScenarioHillRidge(ctx, [
+    { x: 0.62, y: 0.58 }, { x: 0.69, y: 0.70 }, { x: 0.76, y: 0.84 },
+  ], 9, 5);
+  paintScenarioHillRidge(ctx, [
+    { x: 0.52, y: 0.64 }, { x: 0.60, y: 0.76 }, { x: 0.69, y: 0.90 },
+  ], 10, 6);
+  paintScenarioHillRidge(ctx, [
+    { x: 0.18, y: 0.66 }, { x: 0.25, y: 0.76 }, { x: 0.33, y: 0.86 },
+  ], 8, 4);
+  paintScenarioHillRidge(ctx, [
+    { x: 0.10, y: 0.34 }, { x: 0.19, y: 0.40 }, { x: 0.27, y: 0.50 },
+  ], 6, 3);
+
+  paintScenarioPeakOnLand(ctx, 0.34, 0.18, 0.07, 0.05, 6);
+  paintScenarioPeakOnLand(ctx, 0.50, 0.14, 0.07, 0.05, 6);
+  paintScenarioPeakOnLand(ctx, 0.62, 0.19, 0.08, 0.05, 5);
+  paintScenarioPeakOnLand(ctx, 0.79, 0.43, 0.06, 0.05, 5);
+  paintScenarioPeakOnLand(ctx, 0.64, 0.78, 0.09, 0.07, 7);
+  paintScenarioPeakOnLand(ctx, 0.73, 0.84, 0.08, 0.06, 6);
+  paintScenarioPeakOnLand(ctx, 0.27, 0.80, 0.07, 0.06, 4);
+  paintScenarioPeakOnLand(ctx, 0.12, 0.30, 0.07, 0.05, 3);
+
+  // Keep central Taipei Basin broadly flat and buildable.
+  softenScenarioLowlands(ctx, 0.48, 0.50, 0.27, 0.22);
+  softenScenarioLowlands(ctx, 0.43, 0.43, 0.19, 0.15);
 }
 
 function buildTokyoScenarioShape(ctx) {

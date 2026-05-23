@@ -79,6 +79,12 @@ const TOOL_TERRAIN = {
 const BUILDING_KEYS = Array.from({ length: 78 }, (_, index) => (
   `building_${String(index).padStart(3, '0')}`
 ));
+const TREE_SPECIES = [
+  { id: 'tree',        shortKey: 'tree_short',        tallKey: 'tree_tall',        hillWeight: 1 },
+  { id: 'treeAlt',     shortKey: 'tree_alt_short',    tallKey: 'tree_alt_tall',    hillWeight: 1 },
+  { id: 'conifer',     shortKey: 'conifer_short',     tallKey: 'conifer_tall',     hillWeight: 4 },
+  { id: 'coniferAlt',  shortKey: 'conifer_alt_short', tallKey: 'conifer_alt_tall', hillWeight: 4 },
+];
 const MUSIC_TRACKS = [
   {
     key: 'music_0',
@@ -1231,6 +1237,15 @@ function preload() {
   this.load.image('hill_corner_se', `${roadPath}hillSW.png`);
   this.load.image('hill_corner_sw', `${roadPath}hillNW.png`);
   this.load.image('hill_corner_nw', `${roadPath}hillNE.png`);
+
+  this.load.image('tree_short', `${roadPath}treeShort.png`);
+  this.load.image('tree_tall', `${roadPath}treeTall.png`);
+  this.load.image('tree_alt_short', `${roadPath}treeAltShort.png`);
+  this.load.image('tree_alt_tall', `${roadPath}treeAltTall.png`);
+  this.load.image('conifer_short', `${roadPath}coniferShort.png`);
+  this.load.image('conifer_tall', `${roadPath}coniferTall.png`);
+  this.load.image('conifer_alt_short', `${roadPath}coniferAltShort.png`);
+  this.load.image('conifer_alt_tall', `${roadPath}coniferAltTall.png`);
 }
 
 function create() {
@@ -1250,6 +1265,7 @@ function create() {
   this.zoneOverlays    = new Map();
   this.powerLineSprites = new Map();
   this.bridgeSprites = new Map();
+  this.treeSprites = new Map();
 
   const maskGraphics = this.make.graphics({ x: 0, y: 0, add: false });
   this.maskGraphics = maskGraphics;
@@ -1286,6 +1302,8 @@ function create() {
 
   // Initialise simulation state
   resetGameState();
+  generateInitialTrees(this);
+  rebuildTreeSprites(this);
 
   this.scale.on('resize', () => {
     updateMapMetrics(this);
@@ -1639,7 +1657,7 @@ function getToolCategoryForTool(tool) {
   if (tool === 'zone-res' || tool === 'zone-com' || tool === 'zone-ind' || tool === 'dezone') return 'zones';
   if (tool === 'power-line' || tool === 'power-coal' || tool === 'power-solar') return 'power';
   if (tool === 'fire-station' || tool === 'police-station') return 'services';
-  if (tool === 'park') return 'parks';
+  if (tool === 'park' || tool === 'tree') return 'parks';
   if (tool === 'house') return 'buildings';
   return null;
 }
@@ -2548,6 +2566,7 @@ function terrainPixelColor(terrain, r, c) {
   if (zone === ZONE_RES) return [80, 160, 60];
   if (zone === ZONE_COM) return [60, 100, 200];
   if (zone === ZONE_IND) return [160, 140, 40];
+  if (treeMap[r]?.[c]) return [38, 115, 45];
   if (isBridgeTile(r, c)) return [110, 110, 110];
   switch (terrain) {
     case ROAD:  return [110, 110, 110];
@@ -2706,6 +2725,13 @@ function computePollutionMap() {
       }
     }
   });
+  const canopy = computeTreeCanopyMap();
+  for (let r = 0; r < MAP_HEIGHT; r++) {
+    for (let c = 0; c < MAP_WIDTH; c++) {
+      if (canopy[r][c] <= 0) continue;
+      map[r][c] = Math.max(0, map[r][c] - canopy[r][c] * 0.22);
+    }
+  }
   return map;
 }
 
@@ -2740,11 +2766,34 @@ function computeFireMap() {
       }
     }
   });
+  addTreeFireRisk(map);
   for (let r = 0; r < MAP_HEIGHT; r++)
     for (let c = 0; c < MAP_WIDTH; c++)
       if (zoneMap[r][c] !== ZONE_NONE)
         map[r][c] = Math.max(map[r][c], serviceMap[r]?.[c]?.fire ? protectedRisk : unprotectedRisk);
   return map;
+}
+
+function addTreeFireRisk(map) {
+  const radius = 2;
+  for (let row = 0; row < MAP_HEIGHT; row++) {
+    for (let col = 0; col < MAP_WIDTH; col++) {
+      const tree = treeMap[row]?.[col];
+      if (!tree) continue;
+      const baseRisk = isMatureTree(tree) ? TREE_FIRE_RISK_MATURE : TREE_FIRE_RISK_YOUNG;
+      const risk = serviceMap[row]?.[col]?.fire ? baseRisk * 0.55 : baseRisk;
+      for (let dr = -radius; dr <= radius; dr++) {
+        for (let dc = -radius; dc <= radius; dc++) {
+          const r = row + dr;
+          const c = col + dc;
+          if (!isInsideMap(r, c)) continue;
+          const dist = Math.abs(dr) + Math.abs(dc);
+          if (dist > radius) continue;
+          map[r][c] = Math.min(1, map[r][c] + risk * (1 - dist / Math.max(1, radius + 1)));
+        }
+      }
+    }
+  }
 }
 
 function computePopulationMap() {
@@ -2763,6 +2812,7 @@ function computePopulationMap() {
 
 function computeLandValueMap() {
   const pollution = computePollutionMap();
+  const canopy = computeTreeCanopyMap();
   const nuisance = createFilledMap(0);
   Object.entries(buildingData).forEach(([id, rec]) => {
     const stats = POWER_PLANT_STATS[rec.type];
@@ -2788,6 +2838,10 @@ function computeLandValueMap() {
       if (serviceMap[r]?.[c]?.fire)   val += 0.22;
       if (zoneMap[r][c] === ZONE_RES) val += (serviceMap[r]?.[c]?.park ?? 0) * 0.12;
       if (powerMap[r]?.[c])           val += 0.10;
+      if (zoneMap[r][c] === ZONE_RES) {
+        val += (canopy[r]?.[c] ?? 0) * TREE_LAND_VALUE_BONUS_MAX;
+        val += getScenicValue(r, c) * SCENIC_LAND_VALUE_BONUS_MAX;
+      }
       val -= (pollution[r]?.[c] ?? 0) * 0.35;
       val -= (nuisance[r]?.[c] ?? 0) * 0.22;
       map[r][c] = Math.max(0, Math.min(1, val));
@@ -3148,6 +3202,10 @@ function positionAllTiles(scene) {
     positionBuilding(scene, building);
   });
 
+  scene.treeSprites?.forEach((tree) => {
+    positionTree(scene, tree);
+  });
+
   repositionBridgeSprites(scene);
   repositionOverlays(scene);
 }
@@ -3368,6 +3426,7 @@ function placeSpriteBuilding(scene, row, col, key, options = {}) {
   options = normalizeSpriteBuildingOptions(key, options);
   const footprintCols = options.footprintCols ?? 1;
   const footprintRows = options.footprintRows ?? 1;
+  removeTreesInFootprint(scene, row, col, footprintCols, footprintRows);
   const anchor = getBuildingAnchor(row, col, footprintCols, footprintRows);
   const elevOffset = getBuildingElevationOffset(row, col, footprintCols, footprintRows);
   const building = scene.add.image(
@@ -3501,6 +3560,12 @@ function removeBuildingsInFootprint(scene, row, col, footprintCols = 1, footprin
   });
 }
 
+function removeTreesInFootprint(scene, row, col, footprintCols = 1, footprintRows = 1) {
+  getFootprintTiles(row, col, footprintCols, footprintRows).forEach(([tileRow, tileCol]) => {
+    removeTree(scene, tileRow, tileCol);
+  });
+}
+
 function getFootprintTiles(row, col, footprintCols = 1, footprintRows = 1) {
   const tiles = [];
   for (let rowOffset = 0; rowOffset < footprintRows; rowOffset++) {
@@ -3568,6 +3633,7 @@ function applyToolAt(scene, row, col, pointer = null) {
   if (selectedTool === 'bulldoze') {
     spendBudget(COST_BULLDOZE);
     removeBuilding(scene, row, col);
+    removeTree(scene, row, col);
     removeZoneOverlay(scene, row, col);
     if (!heightMap[row]) heightMap[row] = [];
     const bulldozeHeight = getTileHeight(row, col);
@@ -4134,6 +4200,7 @@ function buildBridgePath(scene, bridge) {
     if (isInterior) {
       const oldType = mapData[row][col];
       roadTileCount++;
+      removeTree(scene, row, col);
       removeZoneOverlay(scene, row, col);
       bridgeMap[row][col] = `deck:${bridge.axis}`;
       roadUnderlayMap[row][col] = oldType;
@@ -4142,6 +4209,7 @@ function buildBridgePath(scene, bridge) {
     } else if (isStart || isEnd) {
       const oldType = mapData[row][col];
       if (oldType !== ROAD) roadTileCount++;
+      removeTree(scene, row, col);
       removeZoneOverlay(scene, row, col);
       mapData[row][col] = ROAD;
       heightMap[row][col] = 0;
@@ -4564,6 +4632,7 @@ function setTileType(scene, row, col, tileType) {
     enforceLocalSlopeConstraints(row, col, 3, 2, 1);
     reconcileSurfaceTerrainFromHeight(row, col);
     refreshTileArea(scene, row, col);
+    refreshTreeSprite(scene, row, col);
     return;
   }
 
@@ -4574,6 +4643,7 @@ function setTileType(scene, row, col, tileType) {
     enforceLocalSlopeConstraints(row, col, 3, 2, 1);
     reconcileSurfaceTerrainFromHeight(row, col);
     refreshTileArea(scene, row, col);
+    refreshTreeSprite(scene, row, col);
     return;
   }
 
@@ -4588,6 +4658,7 @@ function setTileType(scene, row, col, tileType) {
     const tileId = getTileId(row, col);
     if (scene.buildingSprites.has(tileId) || buildingData[tileId]) return;
     removeBuilding(scene, row, col);
+    removeTree(scene, row, col);
     removeZoneOverlay(scene, row, col);
   }
 
@@ -4595,6 +4666,9 @@ function setTileType(scene, row, col, tileType) {
   if (tileType === ROAD) roadTileCount++;
 
   mapData[row][col] = tileType;
+  if (tileType !== GROUND && tileType !== HILL) {
+    removeTree(scene, row, col);
+  }
 
   if (tileType === HILL) {
     const neighbors = [
@@ -4618,6 +4692,7 @@ function setTileType(scene, row, col, tileType) {
   reconcileSurfaceTerrainFromHeight(row, col);
 
   refreshTileArea(scene, row, col);
+  refreshTreeSprite(scene, row, col);
 
   if (tileType === ROAD && typeof refreshInfrastructureEffects === 'function') {
     refreshInfrastructureEffects(scene);
@@ -4723,6 +4798,276 @@ function clearBuildings(scene) {
     building.destroy();
   });
   scene.buildingSprites.clear();
+}
+
+function clearTreeSprites(scene) {
+  scene?.treeSprites?.forEach((tree) => tree.destroy());
+  scene?.treeSprites?.clear();
+}
+
+function normalizeTreeRecord(tree, row, col) {
+  if (!tree) return null;
+  const species = TREE_SPECIES.some((entry) => entry.id === tree.species)
+    ? tree.species
+    : chooseTreeSpeciesForTile(row, col, Math.random()).id;
+  return {
+    species,
+    age: Math.max(0, Math.min(TREE_MATURE_AGE, Math.round(Number(tree.age ?? 0)))),
+    variant: Number.isFinite(Number(tree.variant)) ? Number(tree.variant) : Math.random(),
+  };
+}
+
+function getTreeSpecies(speciesId) {
+  return TREE_SPECIES.find((entry) => entry.id === speciesId) ?? TREE_SPECIES[0];
+}
+
+function chooseTreeSpeciesForTile(row, col, randomValue = Math.random()) {
+  const hill = mapData[row]?.[col] === HILL;
+  const weights = TREE_SPECIES.map((species) => hill ? species.hillWeight : 1);
+  const total = weights.reduce((sum, weight) => sum + weight, 0);
+  let pick = randomValue * total;
+  for (let i = 0; i < TREE_SPECIES.length; i++) {
+    pick -= weights[i];
+    if (pick <= 0) return TREE_SPECIES[i];
+  }
+  return TREE_SPECIES[TREE_SPECIES.length - 1];
+}
+
+function getTreeSpriteKey(tree) {
+  const species = getTreeSpecies(tree?.species);
+  return (tree?.age ?? 0) >= TREE_MATURE_AGE ? species.tallKey : species.shortKey;
+}
+
+function isTreeTerrainEligible(row, col) {
+  return isInsideMap(row, col) && (mapData[row][col] === GROUND || mapData[row][col] === HILL);
+}
+
+function canTreeGrowAt(scene, row, col, blockedTiles = null) {
+  if (!isTreeTerrainEligible(row, col)) return false;
+  const id = getTileId(row, col);
+  if (treeMap[row]?.[col]) return false;
+  return canTreeOccupyAt(scene, row, col, blockedTiles);
+}
+
+function canTreeOccupyAt(scene, row, col, blockedTiles = null) {
+  if (!isTreeTerrainEligible(row, col)) return false;
+  const id = getTileId(row, col);
+  if (zoneMap[row]?.[col] !== ZONE_NONE) return false;
+  if (powerLineSet.has(id)) return false;
+  if (bridgeMap[row]?.[col]) return false;
+  if (blockedTiles?.has(id)) return false;
+  if (buildingData[id]) return false;
+  if (scene?.buildingSprites?.has(id)) return false;
+  return true;
+}
+
+function buildTreeBlockedTilesFromSave(save) {
+  const blocked = new Set();
+  Object.entries(save?.buildingData ?? {}).forEach(([id, record]) => {
+    const [row, col] = id.split(':').map(Number);
+    const footprintCols = record?.footprintCols ?? 1;
+    const footprintRows = record?.footprintRows ?? 1;
+    getFootprintTiles(row, col, footprintCols, footprintRows).forEach(([tileRow, tileCol]) => {
+      if (isInsideMap(tileRow, tileCol)) blocked.add(getTileId(tileRow, tileCol));
+    });
+  });
+  return blocked;
+}
+
+function generateInitialTrees(scene, blockedTiles = null) {
+  const random = createRandom(`${currentSeed}:trees`);
+  treeMap = createFilledMap(null);
+
+  for (let row = 0; row < MAP_HEIGHT; row++) {
+    for (let col = 0; col < MAP_WIDTH; col++) {
+      if (!canTreeGrowAt(scene, row, col, blockedTiles)) continue;
+      const terrain = mapData[row][col];
+      const chance = terrain === HILL ? TREE_INITIAL_DENSITY_HILL : TREE_INITIAL_DENSITY_GROUND;
+      if (random() >= chance) continue;
+
+      const species = chooseTreeSpeciesForTile(row, col, random());
+      treeMap[row][col] = {
+        species: species.id,
+        age: Math.floor(random() * (TREE_MATURE_AGE + 1)),
+        variant: random(),
+      };
+    }
+  }
+}
+
+function restoreOrGenerateTrees(scene, save) {
+  const hasSavedTrees = Array.isArray(save?.treeMap);
+  if (!hasSavedTrees) {
+    generateInitialTrees(scene, buildTreeBlockedTilesFromSave(save));
+    return;
+  }
+
+  treeMap = createFilledMap(null);
+  for (let row = 0; row < MAP_HEIGHT; row++) {
+    for (let col = 0; col < MAP_WIDTH; col++) {
+      const tree = normalizeTreeRecord(save.treeMap[row]?.[col], row, col);
+      treeMap[row][col] = tree && canTreeOccupyAt(scene, row, col) ? tree : null;
+    }
+  }
+}
+
+function rebuildTreeSprites(scene) {
+  clearTreeSprites(scene);
+  for (let row = 0; row < MAP_HEIGHT; row++) {
+    for (let col = 0; col < MAP_WIDTH; col++) {
+      if (treeMap[row]?.[col]) placeTreeSprite(scene, row, col);
+    }
+  }
+}
+
+function placeTreeSprite(scene, row, col) {
+  const tree = treeMap[row]?.[col];
+  if (!tree || !scene?.treeSprites) return null;
+
+  const pos = isoToScreen(col, row);
+  const sprite = scene.add.image(
+    pos.x + scene.offsetX,
+    pos.y + scene.offsetY + getElevationVisualOffset(row, col) - 2,
+    getTreeSpriteKey(tree),
+  );
+  sprite.setOrigin(0.5, 1);
+  sprite.setScale(1.35);
+  sprite.setDepth(pos.y + TILE_HEIGHT * 0.5 + getElevationVisualOffset(row, col));
+  sprite.setMask(scene.worldMask);
+  sprite.mapRow = row;
+  sprite.mapCol = col;
+  scene.treeSprites.set(getTileId(row, col), sprite);
+  return sprite;
+}
+
+function refreshTreeSprite(scene, row, col) {
+  const id = getTileId(row, col);
+  const existing = scene?.treeSprites?.get(id);
+  if (existing) {
+    existing.destroy();
+    scene.treeSprites.delete(id);
+  }
+  if (treeMap[row]?.[col]) placeTreeSprite(scene, row, col);
+}
+
+function removeTree(scene, row, col) {
+  if (!isInsideMap(row, col) || !treeMap[row]?.[col]) return false;
+  treeMap[row][col] = null;
+  const sprite = scene?.treeSprites?.get(getTileId(row, col));
+  if (sprite) {
+    sprite.destroy();
+    scene.treeSprites.delete(getTileId(row, col));
+  }
+  return true;
+}
+
+function placeTree(scene, row, col, options = {}) {
+  if (!canTreeGrowAt(scene, row, col)) return false;
+  if (options.spend !== false && !spendBudget(COST_TREE)) {
+    showToast(t('toast.notEnoughFunds'), 'warning');
+    return false;
+  }
+
+  const species = options.species
+    ? getTreeSpecies(options.species)
+    : chooseTreeSpeciesForTile(row, col);
+  treeMap[row][col] = {
+    species: species.id,
+    age: options.age ?? 0,
+    variant: Math.random(),
+  };
+  refreshTreeSprite(scene, row, col);
+  return true;
+}
+
+function positionTree(scene, tree) {
+  const row = tree.mapRow;
+  const col = tree.mapCol;
+  const pos = isoToScreen(col, row);
+  tree.setPosition(pos.x + scene.offsetX, pos.y + scene.offsetY + getElevationVisualOffset(row, col) - 2);
+  tree.setDepth(pos.y + TILE_HEIGHT * 0.5 + getElevationVisualOffset(row, col));
+}
+
+function isMatureTree(tree) {
+  return !!tree && (tree.age ?? 0) >= TREE_MATURE_AGE;
+}
+
+function getMatureTreeCount() {
+  let count = 0;
+  for (let row = 0; row < MAP_HEIGHT; row++) {
+    for (let col = 0; col < MAP_WIDTH; col++) {
+      if (isMatureTree(treeMap[row]?.[col])) count++;
+    }
+  }
+  return count;
+}
+
+function getTreeInfluenceValue(row, col, radius = TREE_CANOPY_RADIUS) {
+  let score = 0;
+  for (let dr = -radius; dr <= radius; dr++) {
+    for (let dc = -radius; dc <= radius; dc++) {
+      const r = row + dr;
+      const c = col + dc;
+      if (!isInsideMap(r, c)) continue;
+      const tree = treeMap[r]?.[c];
+      if (!tree) continue;
+      const dist = Math.abs(dr) + Math.abs(dc);
+      if (dist > radius) continue;
+      const maturity = isMatureTree(tree) ? 1 : 0.45;
+      score += maturity * (1 - dist / Math.max(1, radius + 1));
+    }
+  }
+  return clamp(score / 4, 0, 1);
+}
+
+function computeTreeCanopyMap(radius = TREE_CANOPY_RADIUS) {
+  const map = createFilledMap(0);
+  for (let row = 0; row < MAP_HEIGHT; row++) {
+    for (let col = 0; col < MAP_WIDTH; col++) {
+      const tree = treeMap[row]?.[col];
+      if (!tree) continue;
+      const strength = isMatureTree(tree) ? 1 : 0.45;
+      for (let dr = -radius; dr <= radius; dr++) {
+        for (let dc = -radius; dc <= radius; dc++) {
+          const r = row + dr;
+          const c = col + dc;
+          if (!isInsideMap(r, c)) continue;
+          const dist = Math.abs(dr) + Math.abs(dc);
+          if (dist > radius) continue;
+          map[r][c] = Math.min(1, map[r][c] + strength * (1 - dist / Math.max(1, radius + 1)) / 4);
+        }
+      }
+    }
+  }
+  return map;
+}
+
+function getScenicValue(row, col) {
+  if (!isInsideMap(row, col)) return 0;
+
+  let waterView = 0;
+  for (let dr = -SCENIC_VIEW_RADIUS; dr <= SCENIC_VIEW_RADIUS; dr++) {
+    for (let dc = -SCENIC_VIEW_RADIUS; dc <= SCENIC_VIEW_RADIUS; dc++) {
+      const r = row + dr;
+      const c = col + dc;
+      if (!isInsideMap(r, c)) continue;
+      const terrain = mapData[r]?.[c];
+      if (terrain !== WATER && terrain !== BEACH) continue;
+      const dist = Math.abs(dr) + Math.abs(dc);
+      if (dist > SCENIC_VIEW_RADIUS) continue;
+      waterView = Math.max(waterView, 1 - dist / Math.max(1, SCENIC_VIEW_RADIUS + 1));
+    }
+  }
+
+  const height = getTileHeight(row, col);
+  let slopeView = height > 0 ? Math.min(1, 0.35 + height * 0.12) : 0;
+  const neighbourHeights = getCardinalNeighbors(row, col)
+    .filter(([r, c]) => isInsideMap(r, c))
+    .map(([r, c]) => getTileHeight(r, c));
+  const heightDelta = neighbourHeights.reduce((max, h) => Math.max(max, Math.abs(height - h)), 0);
+  if (heightDelta > 0) slopeView = Math.max(slopeView, Math.min(1, 0.45 + heightDelta * 0.16));
+
+  return clamp(waterView * 0.58 + slopeView * 0.50, 0, 1);
 }
 
 function createSeed() {
@@ -6819,6 +7164,7 @@ function showInspectPanel(scene, row, col, pointer = null) {
   const zone    = zoneMap[row]?.[col] ?? ZONE_NONE;
   const powered = !!powerMap[row]?.[col];
   const svc     = serviceMap[row]?.[col];
+  const tree    = treeMap[row]?.[col];
   const hasBldg = scene.buildingSprites.has(id);
 
   let bData = buildingData[id];
@@ -6878,6 +7224,8 @@ function showInspectPanel(scene, row, col, pointer = null) {
     coordTitle = sl ? `${tl} · ${sl}` : tl;
   } else if (hasBldg) {
     coordTitle = t('building.generic');
+  } else if (tree) {
+    coordTitle = (tree.age ?? 0) >= TREE_MATURE_AGE ? 'Mature Tree' : 'Young Tree';
   } else {
     coordTitle = getTerrainName(terrain);
   }
@@ -6886,6 +7234,10 @@ function showInspectPanel(scene, row, col, pointer = null) {
     <div class="insp-coord">[${row}, ${col}] — ${coordTitle}</div>
     ${spriteKeyInsp && (hasBldg || bData) ? `<div class="insp-sprite-key">${spriteKeyInsp}</div>` : ''}
     <div class="insp-row insp-muted">Terrain height: L${tileHeight} (${tileHeight * 100}m)</div>`;
+
+  if (tree && !bData) {
+    html += `<div class="insp-row insp-ok">Tree age: ${tree.age ?? 0}/${TREE_MATURE_AGE} · ${tree.species}</div>`;
+  }
 
   // Infrastructure building
   if (bData && INFRA_TYPES.includes(bData.type)) {
@@ -7141,6 +7493,10 @@ function fullReset(scene) {
   clearAllOverlays(scene);
   clearBuildings(scene);
   resetGameState();
+  if (!isTerrainCreatorMode) {
+    generateInitialTrees(scene);
+    rebuildTreeSprites(scene);
+  }
   stopSimTimer();
   startSimTimer();
   updateHUD();
@@ -7626,6 +7982,10 @@ function rebuildFreshMapSession(cityName) {
   clearAllOverlays(activeScene);
   clearBuildings(activeScene);
   resetGameState();
+  if (!isTerrainCreatorMode) {
+    generateInitialTrees(activeScene);
+    rebuildTreeSprites(activeScene);
+  }
   city.name = cityName || getDefaultCityName();
   refreshAllTiles(activeScene);
   updateHUD();

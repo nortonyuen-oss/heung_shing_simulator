@@ -33,6 +33,7 @@ function handleNewTool(scene, tile) {
   if (selectedTool === 'park')           return placeSelectedPark(scene, row, col);
   if (selectedTool === 'park-small')     return placePark(scene, row, col, { type: 'park_small', spriteKey: 'park_small_open', footprintCols: 1, footprintRows: 1 });
   if (selectedTool === 'park-large')     return placePark(scene, row, col, { type: 'park_large', spriteKey: 'park_large', footprintCols: 3, footprintRows: 3 });
+  if (selectedTool === 'tree')           return placeTree(scene, row, col);
 
   return false;
 }
@@ -82,6 +83,7 @@ function placeZone(scene, row, col, zoneType, density = DENSITY_LOW) {
 
   // Remove old overlay for this tile if re-zoning
   // (removeZoneOverlay clears zoneMap, so set zoneType AFTER it)
+  removeTree(scene, row, col);
   removeZoneOverlay(scene, row, col);
   zoneMap[row][col] = zoneType;
   zoneDensityMap[row][col] = density;
@@ -131,6 +133,7 @@ function placePowerLine(scene, row, col) {
     return false;
   }
 
+  removeTree(scene, row, col);
   powerLineSet.add(id);
   drawPowerLineSprite(scene, row, col);
 
@@ -296,6 +299,8 @@ function clearAllOverlays(scene) {
     else entry?.destroy?.();
   });
   scene.bridgeSprites?.clear();
+
+  if (typeof clearTreeSprites === 'function') clearTreeSprites(scene);
 }
 
 // ── Reposition overlays on resize ─────────────────────────────────────────────

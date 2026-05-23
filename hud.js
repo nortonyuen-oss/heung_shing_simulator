@@ -334,7 +334,7 @@ function formatCityDate(day, month, year) {
 
 // ── Scrolling tips ticker (走馬燈) ─────────────────────────────────────────
 
-const GAMEPLAY_TIP_KEYS = Array.from({ length: 19 }, (_, index) => `tip.${index + 1}`);
+const GAMEPLAY_TIP_KEYS = Array.from({ length: 23 }, (_, index) => `tip.${index + 1}`);
 let tickerShowNextTip = null;
 
 function startTicker() {

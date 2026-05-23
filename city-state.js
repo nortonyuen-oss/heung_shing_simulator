@@ -6,6 +6,7 @@ let bridgeMap       = [];   // null | 'deck:row' | 'deck:col' | 'ramp:n/e/s/w'
 let roadUnderlayMap = [];   // original terrain below bridge road tiles
 let powerMap        = [];   // boolean per cell (is this cell powered?)
 let serviceMap      = [];   // { fire: bool, police: bool, park: 0|1|2 } | null per cell
+let treeMap         = [];   // null | { species, age, variant } per cell
 
 // Simulation metadata for every placed building (player-placed or sim-spawned)
 // Keyed by getTileId(anchorRow, anchorCol)
@@ -66,6 +67,7 @@ function resetGameState() {
   zoneDensityMap = createFilledMap(DENSITY_LOW);
   powerMap       = createFilledMap(false);
   serviceMap     = createFilledMap(null);
+  treeMap        = createFilledMap(null);
   bridgeMap      = createFilledMap(null);
   roadUnderlayMap = createFilledMap(null);
 

@@ -15,6 +15,7 @@ function runSimTick(scene) {
   updatePopulationAndPollution();
   computeHappiness(scene);
   updateDemand();
+  updateTrees(scene);
 
   // Debug: log state every 4 ticks (once per month)
   if (city.tick % 4 === 0) {
@@ -452,6 +453,52 @@ function shrinkOrRemoveZoneBuilding(scene, r, c) {
   }
 }
 
+// ── Tree growth and natural spread ───────────────────────────────────────────
+
+function updateTrees(scene) {
+  if (!scene || !treeMap?.length) return;
+
+  const newTrees = [];
+
+  for (let r = 0; r < MAP_HEIGHT; r++) {
+    for (let c = 0; c < MAP_WIDTH; c++) {
+      const tree = treeMap[r]?.[c];
+      if (!tree) continue;
+
+      if (!isTreeTerrainEligible(r, c) || zoneMap[r]?.[c] !== ZONE_NONE || scene.buildingSprites.has(getTileId(r, c))) {
+        removeTree(scene, r, c);
+        continue;
+      }
+
+      if (tree.age < TREE_MATURE_AGE && Math.random() < TREE_GROW_CHANCE_PER_TICK) {
+        tree.age++;
+        refreshTreeSprite(scene, r, c);
+      }
+
+      if (tree.age < TREE_MATURE_AGE) continue;
+
+      const spreadChance = mapData[r][c] === HILL ? TREE_SPREAD_CHANCE_HILL : TREE_SPREAD_CHANCE_GROUND;
+      if (Math.random() >= spreadChance) continue;
+
+      const candidates = getCardinalNeighbors(r, c)
+        .filter(([nr, nc]) => canTreeGrowAt(scene, nr, nc));
+      if (candidates.length === 0) continue;
+
+      const [nr, nc] = candidates[Math.floor(Math.random() * candidates.length)];
+      newTrees.push({
+        row: nr,
+        col: nc,
+        species: tree.species,
+      });
+    }
+  }
+
+  newTrees.forEach(({ row, col, species }) => {
+    if (treeMap[row]?.[col] || !canTreeGrowAt(scene, row, col)) return;
+    placeTree(scene, row, col, { species, age: 0, spend: false });
+  });
+}
+
 // Returns a random house model from the given set that has valid computed metadata.
 // setKey = 'house' (1×1) | 'house2x2' (2×2) | 'house1x4' (1×4)
 function getRandomHouseModel(setKey = 'house') {
@@ -488,6 +535,13 @@ function updatePopulationAndPollution() {
       city.pollution += Math.max(1, Math.round(POLLUTION_COAL_PLANT * 0.08));
     }
   });
+  if (typeof getMatureTreeCount === 'function' && city.pollution > 0) {
+    const treeReduction = Math.min(
+      city.pollution * TREE_POLLUTION_REDUCTION_MAX_RATIO,
+      getMatureTreeCount() * TREE_POLLUTION_REDUCTION_PER_MATURE_TREE,
+    );
+    city.pollution = Math.max(0, city.pollution - treeReduction);
+  }
   city.pollution = Math.round(city.pollution);
 }
 
@@ -590,6 +644,8 @@ function computeHappiness(scene) {
   let policeCovered = 0;
   let residential = 0;
   let parkScore = 0;
+  let treeScore = 0;
+  let scenicScore = 0;
 
   for (let r = 0; r < MAP_HEIGHT; r++) {
     for (let c = 0; c < MAP_WIDTH; c++) {
@@ -601,6 +657,8 @@ function computeHappiness(scene) {
       if (zoneMap[r][c] === ZONE_RES) {
         residential++;
         parkScore += Math.min(serviceMap[r]?.[c]?.park ?? 0, 2);
+        if (typeof getTreeInfluenceValue === 'function') treeScore += getTreeInfluenceValue(r, c);
+        if (typeof getScenicValue === 'function') scenicScore += getScenicValue(r, c);
       }
     }
   }
@@ -620,6 +678,8 @@ function computeHappiness(scene) {
   const parkRatio    = residential > 0
     ? clamp((parkScore / (residential * 2)) * getDepartmentFunding('parks') * parkPolicyBoost, 0, 1)
     : 0;
+  const treeRatio    = residential > 0 ? clamp(treeScore / residential, 0, 1) : 0;
+  const scenicRatio  = residential > 0 ? clamp(scenicScore / residential, 0, 1) : 0;
   const taxPenalty   = Math.max(0, (city.taxRate - 0.09) * 3);
   const pollPenalty  = city.pollution / 200;
   const powerPenalty = Math.max(0, 1 - (city.powerRatio ?? 1)) * 0.22;
@@ -628,6 +688,8 @@ function computeHappiness(scene) {
 
   city.happiness = clamp(
     0.2 + 0.42 * poweredRatio + 0.18 * fireRatio + 0.18 * policeRatio + 0.22 * parkRatio
+      + TREE_HAPPINESS_BONUS_MAX * treeRatio
+      + SCENIC_HAPPINESS_BONUS_MAX * scenicRatio
       + roadBonus + policyBonus - taxPenalty - pollPenalty - powerPenalty,
     0, 1
   );

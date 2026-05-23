@@ -17,7 +17,7 @@ function buildSavePayload() {
     month:      city.month,
     budget:     city.budget,
     save_data: {
-      version:       6,
+      version:       7,
       seed:          currentSeed,
       city:          { ...city },
       mapData:       mapData.map((row) => Array.from(row)),
@@ -26,6 +26,7 @@ function buildSavePayload() {
       roadUnderlayMap: roadUnderlayMap.map((row) => Array.from(row)),
       zoneMap:       zoneMap.map((row) => Array.from(row)),
       zoneDensityMap: zoneDensityMap.map((row) => Array.from(row)),
+      treeMap:       treeMap.map((row) => row.map((tree) => tree ? { ...tree } : null)),
       buildingData:  JSON.parse(JSON.stringify(buildingData)),
       powerSources:  Array.from(powerSources),
       powerLineSet:  Array.from(powerLineSet),
@@ -180,6 +181,7 @@ function applySaveData(scene, save) {
 
   // Restore building data
   Object.assign(buildingData, save.buildingData ?? {});
+  restoreOrGenerateTrees(scene, save);
 
   // Rebuild Phaser sprites
   rebuildSceneFromSave(scene, save);
@@ -251,6 +253,8 @@ function rebuildSceneFromSave(scene, save) {
       drawPowerLineSprite(scene, r, c);
     }
   });
+
+  rebuildTreeSprites(scene);
 }
 
 // ── Fallback sprite key for saves without spriteKey ───────────────────────────

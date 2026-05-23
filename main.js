@@ -7216,6 +7216,7 @@ function setupLandingScreen() {
 
   async function refreshTerrainPresetOptions() {
     if (!terrainPresetSelect || !terrainEmptyHint || !terrainPreviewList) return;
+    const usePreset = terrainSourceSelect?.value === 'preset';
 
     setPresetSelectLoading(terrainPresetSelect);
     terrainPreviewList.innerHTML = `<div class="terrain-preset-loading">${t('landing.terrainPresetLoading')}</div>`;
@@ -7239,7 +7240,8 @@ function setupLandingScreen() {
       if (presets.length === 0) {
         terrainPresetSelect.style.display = 'none';
         terrainPreviewList.style.display = 'none';
-        terrainEmptyHint.style.display = 'block';
+        terrainEmptyHint.style.display = usePreset ? 'block' : 'none';
+        if (terrainPresetTitle) terrainPresetTitle.style.display = 'none';
         return;
       }
 
@@ -7357,6 +7359,7 @@ function setupLandingScreen() {
         selectedTerrainPresetId = String(presets[0].id);
       }
       setSelectedTerrainPreset(selectedTerrainPresetId);
+      updateTerrainSourceVisibility();
     } catch {
       terrainPresetSelect.innerHTML = '';
       terrainPresetSelect.style.display = 'none';

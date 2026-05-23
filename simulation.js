@@ -310,8 +310,8 @@ function spawnZoneBuilding(scene, r, c, zone, level, density = DENSITY_LOW, opti
       key = BUILDING_KEYS[Math.floor(Math.random() * 20)];
     }
   } else if (zone === ZONE_COM) {
-    if (!canPlace2x2ZoneBuilding(scene, r, c, ZONE_COM)) return false;
-    const model = getRandomCommercialBuildingModel();
+    const canUse2x2 = canPlace2x2ZoneBuilding(scene, r, c, ZONE_COM);
+    const model = getRandomCommercialBuildingModel(canUse2x2 ? 2 : 1, canUse2x2 ? 2 : 1);
     if (!model) return false;
 
     key     = model.key;
@@ -524,9 +524,14 @@ function getRandomHouseModel(setKey = 'house') {
   return valid[Math.floor(Math.random() * valid.length)];
 }
 
-function getRandomCommercialBuildingModel() {
+function getRandomCommercialBuildingModel(footprintCols = null, footprintRows = null) {
   const all = Array.isArray(commercialBuildingModels) ? commercialBuildingModels : [];
-  const valid = all.filter((m) => m.metadata && m.metadata.scale > 0.05);
+  const valid = all.filter((m) => (
+    m.metadata
+    && m.metadata.scale > 0.05
+    && (footprintCols === null || m.footprintCols === footprintCols)
+    && (footprintRows === null || m.footprintRows === footprintRows)
+  ));
   if (valid.length === 0) return null;
   return valid[Math.floor(Math.random() * valid.length)];
 }

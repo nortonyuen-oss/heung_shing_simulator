@@ -18,13 +18,13 @@ app.use(express.static(path.join(__dirname))); // serve index.html + JS/CSS/asse
 // Model folder discovery
 // Returns a JSON array of image filenames for a given model folder.
 // Only whitelisted folder names are allowed (no path traversal).
-app.get('/api/models/:folder', (req, res) => {
-  const ALLOWED = ['house', 'house2x2', 'house1x4', 'commercialBuildings'];
-  const folderName = req.params.folder;
+app.get('/api/models/*', (req, res) => {
+  const ALLOWED = ['house', 'house2x2', 'house1x4', 'commercialBuildings', 'commercialBuildings/1x1', 'commercialBuildings/2x2'];
+  const folderName = req.params[0];
   if (!ALLOWED.includes(folderName)) {
     return res.status(400).json({ error: 'Unknown folder' });
   }
-  const folderPath = path.join(__dirname, 'Models', folderName);
+  const folderPath = path.join(__dirname, 'Models', ...folderName.split('/'));
   try {
     const files = fs.readdirSync(folderPath)
       .filter((f) => /\.(png|jpe?g|webp)$/i.test(f))

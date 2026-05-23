@@ -271,7 +271,7 @@ function deriveFallbackSpriteKey(record) {
   if (record.type === 'park_small') return 'park_small_open';
   if (record.type === 'park_large') return 'park_large';
   if (record.type === 'residential') return getFallbackHouseSpriteKey() ?? BUILDING_KEYS[Math.floor(Math.random() * 20)];
-  if (record.type === 'commercial')  return BUILDING_KEYS[Math.floor(Math.random() * 39)];
+  if (record.type === 'commercial')  return getFallbackCommercialSpriteKey(record) ?? BUILDING_KEYS[Math.floor(Math.random() * 39)];
   if (record.type === 'industrial')  return BUILDING_KEYS[39 + Math.floor(Math.random() * 39)];
   return BUILDING_KEYS[0];
 }
@@ -285,6 +285,11 @@ function deriveLoadedSpriteKey(record) {
   if (legacy2x2Key) return legacy2x2Key;
   if (record.type === 'residential' && !isLoadedTextureKey(key)) {
     return getFallbackHouseSpriteKey() ?? deriveFallbackSpriteKey(record);
+  }
+  const legacyCommercialKey = getLegacyCommercialFallbackSpriteKey(record, key);
+  if (legacyCommercialKey) return legacyCommercialKey;
+  if (record.type === 'commercial' && !isLoadedTextureKey(key)) {
+    return getFallbackCommercialSpriteKey(record) ?? deriveFallbackSpriteKey(record);
   }
   return key;
 }
@@ -304,6 +309,45 @@ function getFallbackHouseSpriteKey() {
     ? houseModelSets.house?.[0]
     : null;
   return model?.key ?? null;
+}
+
+const LEGACY_COMMERCIAL_BUILDING_FILES = {
+  commercial_building_0: 'commercialBuilding01.png',
+  commercial_building_1: 'commercialBuilding02.png',
+  commercial_building_2: 'commercialBuilding03.png',
+  commercial_building_3: 'commercialBuilding04.png',
+  commercial_building_4: 'commercialBuilding05.png',
+  commercial_building_5: 'commercialBuilding06.png',
+  commercial_building_6: 'commercialBuilding07.png',
+  commercial_building_7: 'commercialBuilding08.png',
+};
+
+function getLegacyCommercialFallbackSpriteKey(record, key) {
+  if (record.type !== 'commercial') return null;
+  const fileName = LEGACY_COMMERCIAL_BUILDING_FILES[key];
+  if (!fileName) return null;
+
+  const model = getCommercialModelByFileName(fileName);
+  return model?.key ?? getFallbackCommercialSpriteKey(record);
+}
+
+function getFallbackCommercialSpriteKey(record) {
+  const footprintCols = record.footprintCols ?? 2;
+  const footprintRows = record.footprintRows ?? 2;
+  const models = typeof commercialBuildingModels !== 'undefined'
+    ? commercialBuildingModels
+    : [];
+  const matching = models.find((model) => (
+    model.footprintCols === footprintCols && model.footprintRows === footprintRows
+  ));
+  return (matching ?? models[0])?.key ?? null;
+}
+
+function getCommercialModelByFileName(fileName) {
+  const models = typeof commercialBuildingModels !== 'undefined'
+    ? commercialBuildingModels
+    : [];
+  return models.find((model) => model.fileName === fileName) ?? null;
 }
 
 function isLoadedTextureKey(key) {

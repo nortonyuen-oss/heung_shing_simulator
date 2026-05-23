@@ -29,8 +29,8 @@ const HOUSE_MODEL_SETS = {
       'publicHousing2.png',
       'publicHousing3.png',
       'publicHousing1.png',
+      'publicHousing5.png',
     ],
-    disabledFiles: ['publicHousing4.png'],
     fileOverrides: {
       'publicHousing1.png': { scaleMultiplier: 0.817, scaleYMultiplier: 0.92, offsetY: -8 },
       'publicHousing2.png': { scaleMultiplier: 0.817, scaleYMultiplier: 0.92, offsetY: -8 },
@@ -50,24 +50,44 @@ const HOUSE_MODEL_SETS = {
     footprintRows: 1,
   },
 };
-const COMMERCIAL_BUILDING_MODEL_SET = {
-  folder: 'Models/commercialBuildings/',
-  apiFolder: 'commercialBuildings',
-  preferredFiles: [
-    'commercialBuilding01.png',
-    'commercialBuilding02.png',
-    'commercialBuilding03.png',
-    'commercialBuilding04.png',
-    'commercialBuilding05.png',
-    'commercialBuilding06.png',
-    'commercialBuilding07.png',
-    'commercialBuilding08.png',
-  ],
-  footprintCols: 2,
-  footprintRows: 2,
-  scaleMultiplier: 0.9,
-  scaleYMultiplier: 0.9,
-};
+const COMMERCIAL_BUILDING_MODEL_SETS = [
+  {
+    keyPrefix: 'commercial_building_1x1',
+    folder: 'Models/commercialBuildings/1x1/',
+    apiFolder: 'commercialBuildings/1x1',
+    preferredFiles: [
+      'commercialBuilding04.png',
+      'commercialBuilding05.png',
+      'commercialBuilding09.png',
+      'commercialBuilding10.png',
+    ],
+    footprintCols: 1,
+    footprintRows: 1,
+    scaleMultiplier: 0.9,
+    scaleYMultiplier: 0.9,
+  },
+  {
+    keyPrefix: 'commercial_building_2x2',
+    folder: 'Models/commercialBuildings/2x2/',
+    apiFolder: 'commercialBuildings/2x2',
+    preferredFiles: [
+      'commercialBuilding01.png',
+      'commercialBuilding02.png',
+      'commercialBuilding03.png',
+      'commercialBuilding06.png',
+      'commercialBuilding07.png',
+      'commercialBuilding08.png',
+      'commercialBuilding11.png',
+    ],
+    fileOverrides: {
+      'commercialBuilding11.png': { scaleMultiplier: 0.9, offsetX: -10, offsetY: -10 },
+    },
+    footprintCols: 2,
+    footprintRows: 2,
+    scaleMultiplier: 0.9,
+    scaleYMultiplier: 0.9,
+  },
+];
 // Terrain tile type constants (GROUND–HILL defined here; zones defined in constants.js)
 const GROUND = 1;
 const ROAD = 2;
@@ -1133,7 +1153,10 @@ async function discoverHouseModelSets() {
 }
 
 async function discoverCommercialBuildingModels() {
-  return discoverModelFiles('commercial_building', COMMERCIAL_BUILDING_MODEL_SET.apiFolder, COMMERCIAL_BUILDING_MODEL_SET);
+  const sets = await Promise.all(COMMERCIAL_BUILDING_MODEL_SETS.map((config) => (
+    discoverModelFiles(config.keyPrefix, config.apiFolder, config)
+  )));
+  return sets.flat();
 }
 
 async function discoverHouseModels(tool, config) {
@@ -3297,9 +3320,9 @@ function prepareCommercialBuildingModelMetadata(scene) {
       source,
       model.footprintCols,
       model.footprintRows,
-      COMMERCIAL_BUILDING_MODEL_SET.scaleMultiplier ?? 1,
-      COMMERCIAL_BUILDING_MODEL_SET.scaleXMultiplier ?? 1,
-      COMMERCIAL_BUILDING_MODEL_SET.scaleYMultiplier ?? 1,
+      model.scaleMultiplier ?? 1,
+      model.scaleXMultiplier ?? 1,
+      model.scaleYMultiplier ?? 1,
     );
   });
 }
@@ -3595,6 +3618,16 @@ function normalizeSpriteBuildingOptions(key, options = {}) {
     };
   }
 
+  const commercialModel = getCommercialBuildingModelBySpriteKey(key);
+  if (commercialModel?.metadata) {
+    return {
+      ...options,
+      footprintCols: commercialModel.footprintCols ?? commercialModel.metadata.footprintCols ?? options.footprintCols ?? 1,
+      footprintRows: commercialModel.footprintRows ?? commercialModel.metadata.footprintRows ?? options.footprintRows ?? 1,
+      ...commercialModel.metadata,
+    };
+  }
+
   if (isPowerPlantSpriteKey(key)) {
     const buildingType = getPowerPlantTypeBySpriteKey(key);
     const model = POWER_PLANT_MODELS[buildingType];
@@ -3634,6 +3667,10 @@ function normalizeSpriteBuildingOptions(key, options = {}) {
 
 function getHouseModelBySpriteKey(key) {
   return Object.values(houseModelSets).flat().find((model) => model.key === key) ?? null;
+}
+
+function getCommercialBuildingModelBySpriteKey(key) {
+  return commercialBuildingModels.find((model) => model.key === key) ?? null;
 }
 
 function isParkSpriteKey(key) {

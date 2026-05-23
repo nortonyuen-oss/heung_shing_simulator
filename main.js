@@ -188,6 +188,7 @@ const BUILT_IN_CITY_TERRAIN_SCENARIOS = [
   {
     id: 'builtin:hong-kong',
     name: '香港 Hong Kong',
+    nameKey: 'scenario.hongKong',
     profileType: 'harbor',
     seed: 'city-scenario:hong-kong:v1',
     options: {
@@ -199,6 +200,7 @@ const BUILT_IN_CITY_TERRAIN_SCENARIOS = [
   {
     id: 'builtin:taipei',
     name: '台北 Taipei',
+    nameKey: 'scenario.taipei',
     profileType: 'basin',
     seed: 'city-scenario:taipei:v1',
     options: {
@@ -210,6 +212,7 @@ const BUILT_IN_CITY_TERRAIN_SCENARIOS = [
   {
     id: 'builtin:tokyo',
     name: '東京 Tokyo',
+    nameKey: 'scenario.tokyo',
     profileType: 'harbor',
     seed: 'city-scenario:tokyo:v1',
     options: {
@@ -221,6 +224,7 @@ const BUILT_IN_CITY_TERRAIN_SCENARIOS = [
   {
     id: 'builtin:new-york',
     name: '紐約 New York',
+    nameKey: 'scenario.newYork',
     profileType: 'harbor',
     seed: 'city-scenario:new-york:v1',
     options: {
@@ -232,6 +236,7 @@ const BUILT_IN_CITY_TERRAIN_SCENARIOS = [
   {
     id: 'builtin:singapore',
     name: '新加坡 Singapore',
+    nameKey: 'scenario.singapore',
     profileType: 'island',
     seed: 'city-scenario:singapore:v1',
     options: {
@@ -243,6 +248,7 @@ const BUILT_IN_CITY_TERRAIN_SCENARIOS = [
   {
     id: 'builtin:london',
     name: '倫敦 London',
+    nameKey: 'scenario.london',
     profileType: 'river',
     seed: 'city-scenario:london:v1',
     options: {
@@ -254,6 +260,7 @@ const BUILT_IN_CITY_TERRAIN_SCENARIOS = [
   {
     id: 'builtin:copenhagen',
     name: '哥本哈根 Copenhagen',
+    nameKey: 'scenario.copenhagen',
     profileType: 'island',
     seed: 'city-scenario:copenhagen:v1',
     options: {
@@ -265,6 +272,7 @@ const BUILT_IN_CITY_TERRAIN_SCENARIOS = [
   {
     id: 'builtin:sydney',
     name: '悉尼 Sydney',
+    nameKey: 'scenario.sydney',
     profileType: 'harbor',
     seed: 'city-scenario:sydney:v1',
     options: {
@@ -276,6 +284,15 @@ const BUILT_IN_CITY_TERRAIN_SCENARIOS = [
 ];
 
 const builtInCityTerrainCache = new Map();
+const REAL_FLAT_COASTLINE_SCENARIO_IDS = new Set([
+  'builtin:hong-kong',
+  'builtin:tokyo',
+  'builtin:new-york',
+  'builtin:singapore',
+  'builtin:london',
+  'builtin:copenhagen',
+  'builtin:sydney',
+]);
 
 function getBuiltInCityTerrainData(scenarioId) {
   if (builtInCityTerrainCache.has(scenarioId)) {
@@ -286,7 +303,7 @@ function getBuiltInCityTerrainData(scenarioId) {
   if (!scenario) return null;
 
   let terrainData = null;
-  if (scenario.id === 'builtin:hong-kong') {
+  if (REAL_FLAT_COASTLINE_SCENARIO_IDS.has(scenario.id)) {
     terrainData = {
       version: 1,
       generatorVersion: 3,
@@ -318,7 +335,11 @@ function getBuiltInCityTerrainData(scenarioId) {
 function listBuiltInCityTerrainPresets() {
   return BUILT_IN_CITY_TERRAIN_SCENARIOS.map((scenario) => ({
     id: scenario.id,
-    name: scenario.name,
+    name: (() => {
+      if (!scenario.nameKey) return scenario.name;
+      const localized = t(scenario.nameKey);
+      return localized === scenario.nameKey ? scenario.name : localized;
+    })(),
     profile_type: scenario.profileType,
     seed: scenario.seed,
     terrain_data: getBuiltInCityTerrainData(scenario.id),
@@ -339,6 +360,107 @@ function createTerrainPresetOptionLabel(preset) {
 function setPresetSelectLoading(terrainPresetSelect) {
   if (!terrainPresetSelect) return;
   terrainPresetSelect.innerHTML = `<option value="">${t('landing.terrainPresetLoading')}</option>`;
+}
+
+const TOKYO_REAL_COASTLINE_POLYGONS = [
+  [
+    { x: 0.00, y: 0.00 }, { x: 0.78, y: 0.00 }, { x: 0.76, y: 0.10 }, { x: 0.74, y: 0.20 },
+    { x: 0.71, y: 0.31 }, { x: 0.67, y: 0.40 }, { x: 0.61, y: 0.48 }, { x: 0.54, y: 0.52 },
+    { x: 0.48, y: 0.56 }, { x: 0.44, y: 0.62 }, { x: 0.42, y: 0.70 }, { x: 0.43, y: 0.79 },
+    { x: 0.46, y: 0.88 }, { x: 0.52, y: 1.00 }, { x: 0.00, y: 1.00 }, { x: 0.00, y: 0.00 },
+  ],
+  [
+    { x: 0.79, y: 0.13 }, { x: 1.00, y: 0.10 }, { x: 1.00, y: 1.00 }, { x: 0.80, y: 1.00 },
+    { x: 0.75, y: 0.90 }, { x: 0.72, y: 0.78 }, { x: 0.70, y: 0.66 }, { x: 0.69, y: 0.56 },
+    { x: 0.70, y: 0.45 }, { x: 0.73, y: 0.33 }, { x: 0.77, y: 0.22 }, { x: 0.79, y: 0.13 },
+  ],
+];
+
+const NEW_YORK_REAL_COASTLINE_POLYGONS = [
+  [
+    { x: 0.00, y: 0.00 }, { x: 0.74, y: 0.00 }, { x: 0.78, y: 0.10 }, { x: 0.82, y: 0.22 },
+    { x: 0.84, y: 0.34 }, { x: 0.83, y: 0.46 }, { x: 0.81, y: 0.60 }, { x: 0.79, y: 0.74 },
+    { x: 0.77, y: 0.88 }, { x: 0.75, y: 1.00 }, { x: 0.00, y: 1.00 }, { x: 0.00, y: 0.00 },
+  ],
+  [
+    { x: 0.38, y: 0.08 }, { x: 0.41, y: 0.08 }, { x: 0.45, y: 0.52 }, { x: 0.44, y: 0.82 },
+    { x: 0.41, y: 0.96 }, { x: 0.36, y: 0.96 }, { x: 0.35, y: 0.54 }, { x: 0.36, y: 0.26 },
+    { x: 0.38, y: 0.08 },
+  ],
+  [
+    { x: 0.49, y: 0.38 }, { x: 0.67, y: 0.38 }, { x: 0.74, y: 0.45 }, { x: 0.74, y: 0.63 },
+    { x: 0.69, y: 0.76 }, { x: 0.58, y: 0.84 }, { x: 0.49, y: 0.82 }, { x: 0.46, y: 0.62 },
+    { x: 0.47, y: 0.48 }, { x: 0.49, y: 0.38 },
+  ],
+  [
+    { x: 0.27, y: 0.70 }, { x: 0.36, y: 0.73 }, { x: 0.38, y: 0.83 }, { x: 0.34, y: 0.93 },
+    { x: 0.26, y: 0.95 }, { x: 0.21, y: 0.86 }, { x: 0.23, y: 0.75 }, { x: 0.27, y: 0.70 },
+  ],
+];
+
+const TOKYO_REAL_COASTLINE_MASK_BBOX = {
+  minLon: 139.45,
+  maxLon: 140.15,
+  minLat: 35.20,
+  maxLat: 35.95,
+};
+
+// Real Tokyo Bay landmask sampled from global_land_mask over the bbox above.
+// 1 bit per tile, row-major, 256x256.
+const TOKYO_REAL_COASTLINE_MASK_B64 = '///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////H////8f///////////////////////////////////8f////x////////////////////////////////////x/////H////////////////////////////////////H/////gAf/////////////////////////////////8f////+AB//////////////////////////////////x/////4AH////////////////////////////////H/H////gAAD///////////////////////////////8f8f///+AAAP///////////////////////////////x/x////4AAA/////////////////////////////HH//4H/H//gAAAAD//////////////////////////8cf//gf8f/+AAAAAP//////////////////////////wP//+P/////AAAAAH//////////////////////////A///4/////8AAAAAf/////////////////////////8D///j/////wAAAAB//////////////////////////wP+AOAB///4AAAAAA//////////////////////////A/4A4AH///gAAAAAD/////////////////////////8D/gDgAf//+AAAAAAP/////////////////////////x/wAOAB//wAAAAAAAH/////////////////////////H/AA4AH//AAAAAAAAf////////////////////////8f8ADgAf/8AAAAAAAB/////////////////////////x/wAOAAAOAAAAAAAAA/////////////////////////H/AA4AAA4AAAAAAAAD////////////////////////8f8ADgAADgAAAAAAAAP////////////////////////+OBwAAAAAAAAAAAAAAA4///////////////////////44HAAAAAAAAAAAAAAADj///////////////////////jgcAAAAAAAAAAAAAAAOP//////////////////////+AP+AAAAAAAAAAAAAAAHH//////////////////////4A/4AAAAAAAAAAAAAAAcf//////////////////////8AfgAAAAAAAAAAAAAAAB///////////////////////wB+AAAAAAAAAAAAAAAAH///////////////////////AH4AAAAAAAAAAAAAAAAf///////////////////////gAAAAAAAAAAAAAAAAB////////////////////////+AAAAAAAAAAAAAAAAAH////////////////////////4AAAAAAAAAAAAAAAAAf////////////////////////gAAAAAAAAAAAAAAAAB////////////////////////+AAAAAAAAAAAAAAAAAH////////////////////////4AAAAAAAAAAAAAAAAAf////////////////////////gAAAAAAAAAAAAAAAAAP///////////////////////+AAAAAAAAAAAAAAAAAA////////////////////////4AAAAAAAAAAAAAAAAAD////////////////////////8AAAAAAAAAAAAAAAAAB////////////////////////wAAAAAAAAAAAAAAAAAH////////////////////////AAAAAAAAAAAAAAAAAAf///////////////////////8AAAAAAAAAAAAAAAAAP////////////////////////wAAAAAAAAAAAAAAAAA/////////////////////////AAAAAAAAAAAAAAAD//////////////////////////8AAAAAAAAAAAAAAAP//////////////////////////wAAAAAAAAAAAAAAA///////////////////////////4AAAAAAAAAAAAAAD///////////////////////////gAAAAAAAAAAAAAAP//////////////////////////+AAAAAAAAAAAAAAA///////////////////////////AAAAAAAAAAAAAAAf//////////////////////////8AAAAAAAAAAAAAAB///////////////////////////wAAAAAAAAAAAAAAH///////////////////////////AAAAAAAAAAAAAAD///////////////////////////8AAAAAAAAAAAAAAP///////////////////////////wAAAAAAAAAAAAAA//////////////////////////44AAAAAAAAAAAAAAf//////////////////////////jgAAAAAAAAAAAAAB//////////////////////////+OAAAAAAAAAAAAAAH////////////////////////4//AAAAAAAAAAAAAAAf////////////////////////j/8AAAAAAAAAAAAAAB///////////////////////x//wAAAAAAAAAAAAAAA////////////////////////H//AAAAAAAAAAAAAAAD///////////////////////8f/8AAAAAAAAAAAAAAAP/////////////////////+B/+AAAAAAAAAAAAAAAAH//////////////////////4H/4AAAAAAAAAAAAAAAAf//////////////////////gf/gAAAAAAAAAAAAAAAB//////////////////////hx/+AAAAAAAAAAAAAAHH//////////////////////+HH/4AAAAAAAAAAAAAAcf//////////////////////4cf/gAAAAAAAAAAAAABx////////////////////8cD/x+AAAAAAAAAAAAAAH//////////////////////xwP/H4AAAAAAAAAAAAAAf//////////////////////HA/8fgAAAAAAAAAAAAAB//////////////////////8AD/wAAAAAAAAAAAAAAA4//////////////////////wAP/AAAAAAAAAAAAAAADj//////////////////////AA/8AAAAAAAAAAAAAAAOP///////////////////////gBwAAAAAAAAAAAAAAH4///////////////////////+AHAAAAAAAAAAAAAAAfj/////////////////////////gAAAAAAAAAAAAAP///////////////////////////+AAAAAAAAAAAAAA////////////////////////////4AAAAAAAAAAAAAD////////////////////////////gAAAAAAAAAAAAf////////////////////////////+AAAAAAAAAAAAB/////////////////////////////4AAAAAAAAAAAAH/////////////////////////////gAAAAAAAAAAAD/////////////////////////////+AAAAAAAAAAAAP/////////////////////////////4AAAAAAAAAAAA/////////////////////////////4AAAAAAAAAAAAD/////////////////////////////gAAAAAAAAAAAAP////////////////////////////+AAAAAAAAAAAAA///////////////////////////4/4AAAAAAAAAAAAD///////////////////////////j/gAAAAAAAAAAAAP//////////////////////////+P+AAAAAAAAAAAAA///////////////////////////4AAAAAAAAAAAAAAD///////////////////////////gAAAAAAAAAAAAAAP//////////////////////////wAAAAAAAAAAAAAAAH//////////////////////////AAAAAAAAAAAAAAAAf/////////////////////////8AAAAAAAAAAAAAAAB//////////////////////////+AAAAAAAAAAAAAAAH//////////////////////////4AAAAAAAAAAAAAAAf//////////////////////////gAAAAAAAAAAAAAAB///////////////////////////wAAAAAAAAAAAAAA////////////////////////////AAAAAAAAAAAAAAD///////////////////////////8AAAAAAAAAAAAAAP///////////////////////////wAAAAAAAAAAH//H////////////////////////////AAAAAAAAAAAf/8f///////////////////////////8AAAAAAAAAAB//x////////////////////////////wAAAAAAAAAAA///////////////////////////////AAAAAAAAAAAD//////////////////////////////8AAAAAAAAAAAP//////////////////////////////wAAAAAAAAAA////////////////////////////////AAAAAAAAAAD///////////////////////////////8AAAAAAAAAB////////////////////////////////wAAAAAAAAAH////////////////////////////////AAAAAAAAAAf///////////////////////////////gAAAAAAAAAAP//////////////////////////////+AAAAAAAAAAA///////////////////////////////4AAAAAAAAAAD////////////////////////////////gAAAAAAAAB////////////////////////////////+AAAAAAAAAH////////////////////////////////4AAAAAAAAAf///////////////////////////////gAAAAAAAAP////////////////////////////////+AAAAAAAAA/////////////////////////////////4AAAAAAAAD/////////////////////AAf/////////gAAAAAAAAP////////////////////8AB/////////+AAAAAAAAA/////////////////////wAH/////////4AAAAAAAAD/////////////////////AD8AAAf/////8cAAAAAAAAB///////////////////8APwAAB//////xwAAAAAAAAH///////////////////wAAAAAA/////4/4AAAAAAAAAD//////////////////AAAAAAD/////j/gAAAAAAAAAP/////////////////8AAAAAAP////+P+AAAAAAAAAA//////////////////wAAAAAAA//////4AAAAAAAAAAf/////////////////AAAAAAAD//////gAAAAAAAAAB/////////////////8AAAAAAAP/////+AAAAAAAAAAH/////////////////wAAAAAAA///////gAAAAAAAAD//////////////////AAAAAAAD//////+AAAAAAAAAP/////////////////8AAAAAAAP//////4AAAAAAAAA//////////////////wAAAAAAA////////gfgAAAAAD//////////////////AAAAAAAD///////+B+AAAAAAP/////////////////8AAAAAAAP///////4H4AAAAAA//////////////////wAAAAAAAH/////////8AAAAAAf/////////////////AAAAAAAAf/////////wAAAAAB/////////////////8AAAAAAAB//////////AAAAAAH/////////////////wAAAAAAAH/////////8AAAAAAD/////////////////AAAAAAAAf/////////wAAAAAAP////////////////8AAAAAAAAB////////4AAAAAAAH////////////////wAAAAAAAAH////////gAAAAAAAf////////////////AAAAAAAAAf///////+AAAAAAAB////////////////8AAAAAAAAB////////AAAAAAAAH////////////////wAAAAAAAAH///////8AAAAAAAAf////////////////AAAAAAAAAf///////wAAAAAAAB////////////////8AAAAAAAAAP///////AAAAAAAAH////////////////wAAAAAAAAA///////8AAAAAAAAf////////////////AAAAAAAAAD///////wAAAAAAAB////////////////8AAAAAAAAAAP/////4AAAAAAAH/////////////////wAAAAAAAAAA//////gAAAAAAAf/////////////////AAAAAAAAAAD/////+AAAAAAAB/////////////////8AAAAAAAAAP/////4AAAAAAAH//////////////////wAAAAAAAAA//////gAAAAAAAf//////////////////AAAAAAAAAD/////+AAAAAAAB//////////////////8=';
+
+let tokyoRealCoastlineMaskBytes = null;
+const realCityCoastlineMaskCache = new Map();
+
+function getTokyoRealCoastlineMaskBytes() {
+  if (tokyoRealCoastlineMaskBytes) return tokyoRealCoastlineMaskBytes;
+  const raw = atob(TOKYO_REAL_COASTLINE_MASK_B64);
+  const bytes = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+  tokyoRealCoastlineMaskBytes = bytes;
+  return bytes;
+}
+
+function getExternalRealCityCoastlineMaskSpec(cityId) {
+  return window.REAL_CITY_COASTLINE_MASKS?.[cityId] ?? null;
+}
+
+function getExternalRealCityCoastlineMaskBytes(cityId) {
+  if (realCityCoastlineMaskCache.has(cityId)) return realCityCoastlineMaskCache.get(cityId);
+  const spec = getExternalRealCityCoastlineMaskSpec(cityId);
+  if (!spec?.b64) return null;
+  try {
+    const raw = atob(spec.b64);
+    const bytes = new Uint8Array(raw.length);
+    for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+    realCityCoastlineMaskCache.set(cityId, bytes);
+    return bytes;
+  } catch (error) {
+    console.error('[RealCoastline Mask Decode]', cityId, error);
+    realCityCoastlineMaskCache.set(cityId, null);
+    return null;
+  }
+}
+
+function applyExternalRealCoastlineFlatMap(ctx, cityId) {
+  fillScenarioTerrain(ctx.map, ctx.heights, WATER, 0);
+  const bits = getExternalRealCityCoastlineMaskBytes(cityId);
+  if (!bits) {
+    if (cityId === 'new-york') {
+      applyNewYorkRealCoastlineFlatMap(ctx);
+    }
+    return;
+  }
+  for (let row = 0; row < MAP_HEIGHT; row++) {
+    for (let col = 0; col < MAP_WIDTH; col++) {
+      const bitIndex = row * MAP_WIDTH + col;
+      const byte = bits[bitIndex >> 3] ?? 0;
+      const mask = 1 << (7 - (bitIndex & 7));
+      if (byte & mask) {
+        setScenarioLandHeight(ctx.map, ctx.heights, row, col, 0);
+      }
+    }
+  }
 }
 
 const HONG_KONG_REAL_COASTLINE_POLYGONS = [
@@ -362,15 +484,15 @@ function isPointInsidePolygonNormalized(x, y, polygon) {
   return inside;
 }
 
-function applyHongKongRealCoastlineFlatMap(ctx) {
+function applyRealCoastlineFlatMap(ctx, polygons) {
   fillScenarioTerrain(ctx.map, ctx.heights, WATER, 0);
   for (let row = 0; row < MAP_HEIGHT; row++) {
     for (let col = 0; col < MAP_WIDTH; col++) {
       const x = col / (MAP_WIDTH - 1);
       const y = row / (MAP_HEIGHT - 1);
       let onLand = false;
-      for (let index = 0; index < HONG_KONG_REAL_COASTLINE_POLYGONS.length; index++) {
-        if (isPointInsidePolygonNormalized(x, y, HONG_KONG_REAL_COASTLINE_POLYGONS[index])) {
+      for (let index = 0; index < polygons.length; index++) {
+        if (isPointInsidePolygonNormalized(x, y, polygons[index])) {
           onLand = true;
           break;
         }
@@ -380,6 +502,29 @@ function applyHongKongRealCoastlineFlatMap(ctx) {
       }
     }
   }
+}
+
+function applyHongKongRealCoastlineFlatMap(ctx) {
+  applyRealCoastlineFlatMap(ctx, HONG_KONG_REAL_COASTLINE_POLYGONS);
+}
+
+function applyTokyoRealCoastlineFlatMap(ctx) {
+  fillScenarioTerrain(ctx.map, ctx.heights, WATER, 0);
+  const bits = getTokyoRealCoastlineMaskBytes();
+  for (let row = 0; row < MAP_HEIGHT; row++) {
+    for (let col = 0; col < MAP_WIDTH; col++) {
+      const bitIndex = row * MAP_WIDTH + col;
+      const byte = bits[bitIndex >> 3] ?? 0;
+      const mask = 1 << (7 - (bitIndex & 7));
+      if (byte & mask) {
+        setScenarioLandHeight(ctx.map, ctx.heights, row, col, 0);
+      }
+    }
+  }
+}
+
+function applyNewYorkRealCoastlineFlatMap(ctx) {
+  applyRealCoastlineFlatMap(ctx, NEW_YORK_REAL_COASTLINE_POLYGONS);
 }
 
 function paintScenarioPeakOnLand(ctx, centerX, centerY, rx, ry, targetHeight) {
@@ -504,7 +649,7 @@ function applyBuiltInCityGeographyTemplate(scenarioId, terrainData, seedText = '
   if (!builder) return terrainData;
 
   builder(ctx);
-  const preserveCoastline = shapeId === 'hong-kong';
+  const preserveCoastline = ['hong-kong', 'tokyo', 'new-york', 'singapore', 'london', 'copenhagen', 'sydney'].includes(shapeId);
   finalizeScenarioTerrain(ctx, { preserveWaterMask: preserveCoastline });
 
   return {
@@ -800,112 +945,27 @@ function buildTaipeiScenarioShape(ctx) {
 }
 
 function buildTokyoScenarioShape(ctx) {
-  fillScenarioTerrain(ctx.map, ctx.heights, GROUND, 0);
-  paintScenarioEllipse(ctx, { mode: 'water', x: 1.13, y: 0.60, rx: 0.46, ry: 0.72, rotation: -0.08, jitter: 0.14 });
-  paintScenarioEllipse(ctx, { mode: 'water', x: 0.80, y: 1.16, rx: 0.48, ry: 0.34, rotation: -0.12, jitter: 0.16 });
-  paintScenarioEllipse(ctx, { mode: 'water', x: 0.82, y: 0.78, rx: 0.34, ry: 0.24, rotation: -0.20, jitter: 0.12 });
-  paintScenarioWaterPath(ctx, [
-    { x: 0.44, y: 0.05 }, { x: 0.50, y: 0.22 }, { x: 0.56, y: 0.40 }, { x: 0.62, y: 0.58 }, { x: 0.70, y: 0.74 },
-  ], 5, 9);
-  paintScenarioWaterPath(ctx, [
-    { x: 0.30, y: 0.10 }, { x: 0.42, y: 0.26 }, { x: 0.50, y: 0.44 }, { x: 0.58, y: 0.64 },
-  ], 4, 7);
-  paintScenarioWaterPath(ctx, [
-    { x: 0.24, y: 0.74 }, { x: 0.40, y: 0.75 }, { x: 0.55, y: 0.76 }, { x: 0.70, y: 0.78 },
-  ], 4, 6);
-  paintScenarioEllipse(ctx, { mode: 'land', x: 0.93, y: 0.66, rx: 0.12, ry: 0.23, rotation: -0.1, landHeight: 1, jitter: 0.12 });
-  paintScenarioEllipse(ctx, { mode: 'land', x: 0.20, y: 0.32, rx: 0.22, ry: 0.22, landHeight: 3, jitter: 0.12 });
-  paintScenarioHillRidge(ctx, [
-    { x: 0.08, y: 0.18 }, { x: 0.18, y: 0.28 }, { x: 0.27, y: 0.38 }, { x: 0.34, y: 0.54 },
-  ], 8, 3);
-  softenScenarioLowlands(ctx, 0.50, 0.58, 0.30, 0.22);
+  applyTokyoRealCoastlineFlatMap(ctx);
 }
 
 function buildNewYorkScenarioShape(ctx) {
-  fillScenarioTerrain(ctx.map, ctx.heights, GROUND, 0);
-  paintScenarioEllipse(ctx, { mode: 'water', x: 1.16, y: 0.54, rx: 0.48, ry: 0.72, rotation: -0.03, jitter: 0.13 });
-  paintScenarioEllipse(ctx, { mode: 'water', x: 0.72, y: 1.18, rx: 0.54, ry: 0.34, rotation: 0.08, jitter: 0.14 });
-  paintScenarioWaterPath(ctx, [
-    { x: 0.36, y: -0.02 }, { x: 0.35, y: 0.18 }, { x: 0.33, y: 0.38 }, { x: 0.31, y: 0.58 }, { x: 0.30, y: 0.86 },
-  ], 8, 10);
-  paintScenarioWaterPath(ctx, [
-    { x: 0.49, y: 0.08 }, { x: 0.50, y: 0.25 }, { x: 0.53, y: 0.45 }, { x: 0.56, y: 0.60 },
-  ], 4, 7);
-  paintScenarioEllipse(ctx, { mode: 'water', x: 0.48, y: 0.67, rx: 0.16, ry: 0.12, jitter: 0.10 });
-  paintScenarioEllipse(ctx, { mode: 'water', x: 0.67, y: 0.76, rx: 0.13, ry: 0.10, jitter: 0.10 });
-  paintScenarioEllipse(ctx, { mode: 'land', x: 0.43, y: 0.44, rx: 0.05, ry: 0.26, rotation: 0.08, landHeight: 1, jitter: 0.08 });
-  paintScenarioEllipse(ctx, { mode: 'land', x: 0.72, y: 0.48, rx: 0.27, ry: 0.14, rotation: -0.04, landHeight: 0, jitter: 0.08 });
-  paintScenarioEllipse(ctx, { mode: 'land', x: 0.40, y: 0.71, rx: 0.09, ry: 0.08, landHeight: 1, jitter: 0.08 });
-  paintScenarioEllipse(ctx, { mode: 'land', x: 0.17, y: 0.52, rx: 0.22, ry: 0.30, landHeight: 1, jitter: 0.10 });
-  paintScenarioHillRidge(ctx, [
-    { x: 0.12, y: 0.22 }, { x: 0.18, y: 0.34 }, { x: 0.22, y: 0.50 },
-  ], 6, 2);
+  applyExternalRealCoastlineFlatMap(ctx, 'new-york');
 }
 
 function buildSingaporeScenarioShape(ctx) {
-  fillScenarioTerrain(ctx.map, ctx.heights, WATER, 0);
-  paintScenarioEllipse(ctx, { mode: 'land', x: 0.53, y: 0.52, rx: 0.34, ry: 0.19, rotation: -0.05, jitter: 0.14, landHeight: 0 });
-  paintScenarioEllipse(ctx, { mode: 'land', x: 0.33, y: 0.56, rx: 0.12, ry: 0.08, rotation: 0.05, jitter: 0.12, landHeight: 0 });
-  paintScenarioEllipse(ctx, { mode: 'land', x: 0.77, y: 0.50, rx: 0.11, ry: 0.08, rotation: -0.08, jitter: 0.12, landHeight: 0 });
-  paintScenarioEllipse(ctx, { mode: 'land', x: 0.58, y: 0.78, rx: 0.06, ry: 0.04, jitter: 0.10, landHeight: 0 });
-  paintScenarioEllipse(ctx, { mode: 'land', x: 0.66, y: 0.82, rx: 0.04, ry: 0.03, jitter: 0.10, landHeight: 0 });
-  paintScenarioEllipse(ctx, { mode: 'land', x: 0.49, y: 0.47, rx: 0.10, ry: 0.07, landHeight: 2, jitter: 0.12 });
-  paintScenarioEllipse(ctx, { mode: 'land', x: 0.59, y: 0.41, rx: 0.08, ry: 0.05, landHeight: 1, jitter: 0.10 });
-  softenScenarioLowlands(ctx, 0.53, 0.52, 0.25, 0.14);
+  applyExternalRealCoastlineFlatMap(ctx, 'singapore');
 }
 
 function buildLondonScenarioShape(ctx) {
-  fillScenarioTerrain(ctx.map, ctx.heights, GROUND, 0);
-  paintScenarioWaterPath(ctx, [
-    { x: -0.02, y: 0.54 }, { x: 0.10, y: 0.56 }, { x: 0.23, y: 0.55 }, { x: 0.38, y: 0.58 },
-    { x: 0.51, y: 0.62 }, { x: 0.65, y: 0.60 }, { x: 0.80, y: 0.63 }, { x: 1.03, y: 0.66 },
-  ], 7, 11);
-  paintScenarioWaterPath(ctx, [
-    { x: 0.78, y: 0.26 }, { x: 0.74, y: 0.38 }, { x: 0.72, y: 0.52 }, { x: 0.70, y: 0.60 },
-  ], 3, 5);
-  paintScenarioEllipse(ctx, { mode: 'land', x: 0.17, y: 0.28, rx: 0.16, ry: 0.14, landHeight: 2, jitter: 0.10 });
-  paintScenarioEllipse(ctx, { mode: 'land', x: 0.82, y: 0.28, rx: 0.17, ry: 0.14, landHeight: 2, jitter: 0.10 });
-  paintScenarioEllipse(ctx, { mode: 'land', x: 0.68, y: 0.82, rx: 0.18, ry: 0.14, landHeight: 1, jitter: 0.10 });
-  softenScenarioLowlands(ctx, 0.52, 0.56, 0.34, 0.20);
+  applyExternalRealCoastlineFlatMap(ctx, 'london');
 }
 
 function buildCopenhagenScenarioShape(ctx) {
-  fillScenarioTerrain(ctx.map, ctx.heights, WATER, 0);
-  paintScenarioEllipse(ctx, { mode: 'land', x: 0.35, y: 0.48, rx: 0.34, ry: 0.27, rotation: -0.08, jitter: 0.14, landHeight: 0 });
-  paintScenarioEllipse(ctx, { mode: 'land', x: 0.60, y: 0.60, rx: 0.16, ry: 0.22, rotation: 0.18, jitter: 0.12, landHeight: 0 });
-  paintScenarioEllipse(ctx, { mode: 'land', x: 0.50, y: 0.23, rx: 0.10, ry: 0.08, jitter: 0.12, landHeight: 0 });
-  paintScenarioWaterPath(ctx, [
-    { x: 0.46, y: 0.18 }, { x: 0.48, y: 0.32 }, { x: 0.50, y: 0.48 }, { x: 0.53, y: 0.66 }, { x: 0.56, y: 0.84 },
-  ], 4, 8);
-  paintScenarioWaterPath(ctx, [
-    { x: 0.30, y: 0.52 }, { x: 0.42, y: 0.56 }, { x: 0.54, y: 0.58 },
-  ], 3, 5);
-  paintScenarioEllipse(ctx, { mode: 'land', x: 0.26, y: 0.28, rx: 0.13, ry: 0.10, landHeight: 1, jitter: 0.10 });
-  paintScenarioEllipse(ctx, { mode: 'land', x: 0.64, y: 0.76, rx: 0.12, ry: 0.10, landHeight: 1, jitter: 0.10 });
+  applyExternalRealCoastlineFlatMap(ctx, 'copenhagen');
 }
 
 function buildSydneyScenarioShape(ctx) {
-  fillScenarioTerrain(ctx.map, ctx.heights, GROUND, 0);
-  paintScenarioEllipse(ctx, { mode: 'water', x: 1.14, y: 0.56, rx: 0.44, ry: 0.76, rotation: -0.06, jitter: 0.12 });
-  paintScenarioWaterPath(ctx, [
-    { x: 1.02, y: 0.50 }, { x: 0.90, y: 0.50 }, { x: 0.80, y: 0.52 }, { x: 0.68, y: 0.54 }, { x: 0.56, y: 0.56 },
-  ], 8, 13);
-  paintScenarioWaterPath(ctx, [
-    { x: 0.78, y: 0.53 }, { x: 0.70, y: 0.46 }, { x: 0.60, y: 0.40 }, { x: 0.52, y: 0.34 },
-  ], 4, 8);
-  paintScenarioWaterPath(ctx, [
-    { x: 0.78, y: 0.56 }, { x: 0.70, y: 0.62 }, { x: 0.60, y: 0.70 }, { x: 0.50, y: 0.78 },
-  ], 4, 8);
-  paintScenarioWaterPath(ctx, [
-    { x: 0.30, y: 0.52 }, { x: 0.44, y: 0.54 }, { x: 0.56, y: 0.56 },
-  ], 4, 6);
-  paintScenarioHillRidge(ctx, [
-    { x: 0.16, y: 0.20 }, { x: 0.28, y: 0.34 }, { x: 0.38, y: 0.50 },
-  ], 8, 3);
-  paintScenarioHillRidge(ctx, [
-    { x: 0.16, y: 0.84 }, { x: 0.26, y: 0.70 }, { x: 0.38, y: 0.60 },
-  ], 8, 3);
-  softenScenarioLowlands(ctx, 0.54, 0.55, 0.24, 0.18);
+  applyExternalRealCoastlineFlatMap(ctx, 'sydney');
 }
 
 // Zone density option definitions

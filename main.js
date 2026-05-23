@@ -1327,6 +1327,10 @@ function create() {
   this.bridgePreviewGraphic = this.add.graphics();
   this.bridgePreviewGraphic.setDepth(9998);
 
+  // Building placement footprint guide (hover preview before committing).
+  this.buildingGuideGraphic = this.add.graphics();
+  this.buildingGuideGraphic.setDepth(9998);
+
   // Inspect-tool hover highlight (red diamond under the cursor)
   this.inspectHighlightGraphic = this.add.graphics();
   this.inspectHighlightGraphic.setDepth(9999);
@@ -1396,6 +1400,8 @@ function create() {
       this.panPrevX = pointer.x;
       this.panPrevY = pointer.y;
     }
+
+    updateBuildingPlacementGuide(this, pointer);
 
     // Inspect highlight — red diamond on hovered tile (only in ? mode)
     if (selectedTool === 'inspect') {
@@ -1487,6 +1493,7 @@ function setupToolMenu() {
     }
     if (activeScene?.zonePreviewGraphic)        activeScene.zonePreviewGraphic.clear();
     if (activeScene?.bridgePreviewGraphic)      activeScene.bridgePreviewGraphic.clear();
+    if (activeScene?.buildingGuideGraphic)      activeScene.buildingGuideGraphic.clear();
     if (activeScene?.inspectHighlightGraphic)   activeScene.inspectHighlightGraphic.clear();
 
     // ── Clear paint state ─────────────────────────────────────────────────────
@@ -1669,6 +1676,7 @@ function getToolCategoryForTool(tool) {
 
 function updateToolCategoryState(menu = document.getElementById('tool-menu'), tool = selectedTool) {
   if (!menu) return;
+  clearPlacementGuides();
   const activeCategory = getToolCategoryForTool(tool);
   menu.querySelectorAll('[data-tool-category]').forEach((button) => {
     button.classList.toggle('is-active', button.dataset.toolCategory === activeCategory);
@@ -1676,6 +1684,10 @@ function updateToolCategoryState(menu = document.getElementById('tool-menu'), to
   menu.querySelectorAll('.tool-flyout [data-tool]').forEach((button) => {
     button.classList.toggle('is-active', button.dataset.tool === tool);
   });
+}
+
+function clearPlacementGuides() {
+  activeScene?.buildingGuideGraphic?.clear();
 }
 
 function toggleToolCategory(categoryButton) {
@@ -3680,6 +3692,54 @@ function isZoneTool() {
   return selectedTool === 'zone-res' || selectedTool === 'zone-com' || selectedTool === 'zone-ind';
 }
 
+function getSelectedPlacementFootprint() {
+  if (selectedTool === 'building') return { footprintCols: 1, footprintRows: 1 };
+
+  if (selectedTool === 'house') {
+    const config = HOUSE_MODEL_SETS[selectedHouseSet] ?? HOUSE_MODEL_SETS.house;
+    return {
+      footprintCols: config.footprintCols ?? 1,
+      footprintRows: config.footprintRows ?? 1,
+    };
+  }
+
+  if (selectedTool === 'park') {
+    const option = getSelectedParkOption();
+    return {
+      footprintCols: option.footprintCols ?? 1,
+      footprintRows: option.footprintRows ?? 1,
+    };
+  }
+
+  if (selectedTool === 'park-small') return { footprintCols: 1, footprintRows: 1 };
+  if (selectedTool === 'park-large') return { footprintCols: 3, footprintRows: 3 };
+
+  const infraTypeByTool = {
+    'power-coal': 'power_plant_coal',
+    'power-solar': 'power_plant_solar',
+    'fire-station': 'fire_station',
+    'police-station': 'police_station',
+  };
+  const infraType = infraTypeByTool[selectedTool];
+  if (infraType) {
+    const model = POWER_PLANT_MODELS[infraType] ?? SERVICE_BUILDING_MODELS[infraType];
+    return {
+      footprintCols: model?.footprintCols ?? 1,
+      footprintRows: model?.footprintRows ?? 1,
+    };
+  }
+
+  return null;
+}
+
+function shouldShowBuildingPlacementGuide(pointer) {
+  if (isPainting || selectedTool === 'inspect') return false;
+  if (pointer.event?.target?.closest('#tool-menu, #hud, #budget-panel, #budget-window, #toast-container, #speed-controls, #top-bar, .sim-dialog, #jukebox-window, #rotate-cluster, #overlay-window, #inspect-panel, #terrain-minimap-panel')) {
+    return false;
+  }
+  return Boolean(getSelectedPlacementFootprint());
+}
+
 // Apply the active tool to a specific logical tile (no pointer math, no dedup).
 function applyToolAt(scene, row, col, pointer = null) {
   if (!isInsideMap(row, col)) return;
@@ -4529,6 +4589,66 @@ function drawZoneSelectionPreview(scene, start, end) {
   g.lineTo(west.x,  west.y);
   g.closePath();
   g.fillPath();
+  g.strokePath();
+}
+
+function updateBuildingPlacementGuide(scene, pointer) {
+  const g = scene.buildingGuideGraphic;
+  if (!g) return;
+  g.clear();
+
+  if (!shouldShowBuildingPlacementGuide(pointer)) return;
+
+  const tile = pointerToTile(scene, pointer);
+  const footprint = getSelectedPlacementFootprint();
+  if (!tile || !footprint) return;
+
+  const { footprintCols, footprintRows } = footprint;
+  const canPlace = canPlaceBuildingFootprint(tile.row, tile.col, footprintCols, footprintRows);
+  drawFootprintGuide(scene, tile.row, tile.col, footprintCols, footprintRows, canPlace);
+}
+
+function drawFootprintGuide(scene, row, col, footprintCols = 1, footprintRows = 1, canPlace = true) {
+  const g = scene.buildingGuideGraphic;
+  if (!g) return;
+
+  const color = canPlace ? 0x45e6c3 : 0xff4d4d;
+  const tiles = getFootprintTiles(row, col, footprintCols, footprintRows)
+    .filter(([tileRow, tileCol]) => isInsideMap(tileRow, tileCol));
+  if (tiles.length === 0) return;
+
+  g.fillStyle(color, canPlace ? 0.16 : 0.20);
+  g.lineStyle(1, color, canPlace ? 0.42 : 0.55);
+  tiles.forEach(([tileRow, tileCol]) => {
+    const geom = getTileFaceGeometry(tileRow, tileCol, scene.offsetX, scene.offsetY);
+    g.beginPath();
+    g.moveTo(geom.top.x, geom.top.y);
+    g.lineTo(geom.right.x, geom.right.y);
+    g.lineTo(geom.bottom.x, geom.bottom.y);
+    g.lineTo(geom.left.x, geom.left.y);
+    g.closePath();
+    g.fillPath();
+    g.strokePath();
+  });
+
+  const vertices = tiles.flatMap(([tileRow, tileCol]) => (
+    getTileFaceVertices(tileRow, tileCol, scene.offsetX, scene.offsetY, TILE_WIDTH / 2, TILE_HEIGHT / 2)
+  ));
+  let north = vertices[0], east = vertices[0], south = vertices[0], west = vertices[0];
+  vertices.forEach((pt) => {
+    if (pt.y < north.y) north = pt;
+    if (pt.x > east.x) east = pt;
+    if (pt.y > south.y) south = pt;
+    if (pt.x < west.x) west = pt;
+  });
+
+  g.lineStyle(3, color, 0.95);
+  g.beginPath();
+  g.moveTo(north.x, north.y);
+  g.lineTo(east.x,  east.y);
+  g.lineTo(south.x, south.y);
+  g.lineTo(west.x,  west.y);
+  g.closePath();
   g.strokePath();
 }
 

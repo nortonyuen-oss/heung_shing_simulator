@@ -290,9 +290,15 @@ function normalizeLoadedBuildingOptions(key, record) {
     originX: record.originX,
     originY: record.originY,
     scale: record.scale,
+    scaleX: record.scaleX,
+    scaleY: record.scaleY,
   };
 
   if (typeof isPowerPlantSpriteKey === 'function' && isPowerPlantSpriteKey(key) && typeof normalizeSpriteBuildingOptions === 'function') {
+    return normalizeSpriteBuildingOptions(key, options);
+  }
+
+  if (typeof isServiceBuildingSpriteKey === 'function' && isServiceBuildingSpriteKey(key) && typeof normalizeSpriteBuildingOptions === 'function') {
     return normalizeSpriteBuildingOptions(key, options);
   }
 

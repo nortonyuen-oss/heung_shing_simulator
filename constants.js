@@ -92,6 +92,8 @@ const TREE_INITIAL_DENSITY_HILL = 0.18;
 const TREE_GROW_CHANCE_PER_TICK = 0.34;
 const TREE_SPREAD_CHANCE_GROUND = 0.006;
 const TREE_SPREAD_CHANCE_HILL = 0.024;
+const TREE_VISUAL_OFFSET_COL_MAX = 16;
+const TREE_VISUAL_OFFSET_ROW_MAX = 8;
 const TREE_CANOPY_RADIUS = 5;
 const TREE_POLLUTION_REDUCTION_PER_MATURE_TREE = 0.015;
 const TREE_POLLUTION_REDUCTION_MAX_RATIO = 0.25;
@@ -116,6 +118,25 @@ const POWER_PLANT_MODELS = {
     path: 'Models/powerPlant2x2/solarPowerPlant.png',
     footprintCols: 2,
     footprintRows: 2,
+  },
+};
+
+const SERVICE_BUILDING_MODELS = {
+  fire_station: {
+    spriteKey: 'fire_station_2x2',
+    path: 'Models/govBuildings/fireStation.png',
+    footprintCols: 2,
+    footprintRows: 2,
+    scaleMultiplier: 0.9,
+    scaleYMultiplier: 0.9,
+  },
+  police_station: {
+    spriteKey: 'police_station_2x2',
+    path: 'Models/govBuildings/policeStation.png',
+    footprintCols: 2,
+    footprintRows: 2,
+    scaleMultiplier: 0.9,
+    scaleYMultiplier: 0.9,
   },
 };
 

@@ -135,6 +135,7 @@ let didLongPressHouse = false;
 let lastInspectTile = null;
 let parkModelMetadata = {};
 let powerPlantModelMetadata = {};
+let serviceBuildingModelMetadata = {};
 let selectedParkId = 'open_ground';
 let parkPressTimer = null;
 let didLongPressPark = false;
@@ -1170,6 +1171,9 @@ function preload() {
   Object.values(POWER_PLANT_MODELS).forEach((model) => {
     this.load.image(model.spriteKey, model.path);
   });
+  Object.values(SERVICE_BUILDING_MODELS).forEach((model) => {
+    this.load.image(model.spriteKey, model.path);
+  });
 
   this.load.image('ground_full', `${roadPath}grassWhole.png`);
   this.load.image('dirt_full', `${roadPath}dirtDouble.png`);
@@ -1253,6 +1257,7 @@ function create() {
   prepareHouseModelMetadata(this);
   prepareParkModelMetadata(this);
   preparePowerPlantModelMetadata(this);
+  prepareServiceBuildingModelMetadata(this);
 
   updateMapMetrics(this);
 
@@ -3236,6 +3241,14 @@ function preparePowerPlantModelMetadata(scene) {
   );
 }
 
+function prepareServiceBuildingModelMetadata(scene) {
+  serviceBuildingModelMetadata = Object.fromEntries(
+    Object.entries(SERVICE_BUILDING_MODELS).map(([type, model]) => (
+      [type, getServiceBuildingModelMetadata(scene, type)]
+    )),
+  );
+}
+
 function prepareBridgeLayerTextures(scene) {
   [
     ['road_bridge_h', 'road_bridge_h_top', 'road_bridge_h_side'],
@@ -3307,6 +3320,27 @@ function getPowerPlantModelMetadata(scene, buildingType) {
   return getSpriteFootprintMetadata(source, model.footprintCols, model.footprintRows);
 }
 
+function getServiceBuildingModelMetadata(scene, buildingType) {
+  const model = SERVICE_BUILDING_MODELS[buildingType];
+  const base = {
+    footprintCols: model?.footprintCols ?? 1,
+    footprintRows: model?.footprintRows ?? 1,
+  };
+  if (!model) return base;
+
+  const source = scene.textures.get(model.spriteKey)?.getSourceImage();
+  if (!source) return base;
+
+  return getSpriteFootprintMetadata(
+    source,
+    model.footprintCols,
+    model.footprintRows,
+    model.scaleMultiplier ?? 1,
+    model.scaleXMultiplier ?? 1,
+    model.scaleYMultiplier ?? 1,
+  );
+}
+
 function getParkModelMetadata(scene, key, footprintCols, footprintRows) {
   const source = scene.textures.get(key)?.getSourceImage();
   if (!source) {
@@ -3316,7 +3350,14 @@ function getParkModelMetadata(scene, key, footprintCols, footprintRows) {
   return getSpriteFootprintMetadata(source, footprintCols, footprintRows);
 }
 
-function getSpriteFootprintMetadata(image, footprintCols = 1, footprintRows = 1) {
+function getSpriteFootprintMetadata(
+  image,
+  footprintCols = 1,
+  footprintRows = 1,
+  scaleMultiplier = 1,
+  scaleXMultiplier = 1,
+  scaleYMultiplier = 1,
+) {
   const canvas = document.createElement('canvas');
   const context = canvas.getContext('2d', { willReadFrequently: true });
   canvas.width = image.width;
@@ -3343,7 +3384,9 @@ function getSpriteFootprintMetadata(image, footprintCols = 1, footprintRows = 1)
     return {
       originX: 0.5,
       originY: 1,
-      scale: 1,
+      scale: scaleMultiplier,
+      scaleX: scaleMultiplier * scaleXMultiplier,
+      scaleY: scaleMultiplier * scaleYMultiplier,
     };
   }
 
@@ -3361,10 +3404,13 @@ function getSpriteFootprintMetadata(image, footprintCols = 1, footprintRows = 1)
 
   const bottomX = bottomXCount > 0 ? bottomXTotal / bottomXCount : (minX + maxX) / 2;
 
+  const scale = (getFootprintScreenWidth(footprintCols, footprintRows) / (maxX - minX + 1)) * scaleMultiplier;
   return {
     originX: bottomX / canvas.width,
     originY: bottomY / canvas.height,
-    scale: getFootprintScreenWidth(footprintCols, footprintRows) / (maxX - minX + 1),
+    scale,
+    scaleX: scale * scaleXMultiplier,
+    scaleY: scale * scaleYMultiplier,
     footprintCols,
     footprintRows,
   };
@@ -3435,7 +3481,9 @@ function placeSpriteBuilding(scene, row, col, key, options = {}) {
     key,
   );
   building.setOrigin(options.originX ?? 0.5, options.originY ?? 1);
-  if (options.scale) {
+  if (options.scaleX || options.scaleY) {
+    building.setScale(options.scaleX ?? options.scale ?? 1, options.scaleY ?? options.scale ?? 1);
+  } else if (options.scale) {
     building.setScale(options.scale);
   }
   building.setDepth(anchor.y + TILE_HEIGHT + elevOffset);
@@ -3455,6 +3503,18 @@ function normalizeSpriteBuildingOptions(key, options = {}) {
     const buildingType = getPowerPlantTypeBySpriteKey(key);
     const model = POWER_PLANT_MODELS[buildingType];
     const metadata = powerPlantModelMetadata[buildingType];
+    return {
+      ...options,
+      footprintCols: model?.footprintCols ?? metadata?.footprintCols ?? 2,
+      footprintRows: model?.footprintRows ?? metadata?.footprintRows ?? 2,
+      ...metadata,
+    };
+  }
+
+  if (isServiceBuildingSpriteKey(key)) {
+    const buildingType = getServiceBuildingTypeBySpriteKey(key);
+    const model = SERVICE_BUILDING_MODELS[buildingType];
+    const metadata = serviceBuildingModelMetadata[buildingType];
     return {
       ...options,
       footprintCols: model?.footprintCols ?? metadata?.footprintCols ?? 2,
@@ -3492,6 +3552,14 @@ function isPowerPlantSpriteKey(key) {
 
 function getPowerPlantTypeBySpriteKey(key) {
   return Object.entries(POWER_PLANT_MODELS).find(([, model]) => model.spriteKey === key)?.[0];
+}
+
+function isServiceBuildingSpriteKey(key) {
+  return Object.values(SERVICE_BUILDING_MODELS).some((model) => model.spriteKey === key);
+}
+
+function getServiceBuildingTypeBySpriteKey(key) {
+  return Object.entries(SERVICE_BUILDING_MODELS).find(([, model]) => model.spriteKey === key)?.[0];
 }
 
 function removeBuilding(scene, row, col) {
@@ -4925,14 +4993,15 @@ function placeTreeSprite(scene, row, col) {
   if (!tree || !scene?.treeSprites) return null;
 
   const pos = isoToScreen(col, row);
+  const offset = getTreeVisualOffset(tree);
   const sprite = scene.add.image(
-    pos.x + scene.offsetX,
-    pos.y + scene.offsetY + getElevationVisualOffset(row, col) - 2,
+    pos.x + scene.offsetX + offset.x,
+    pos.y + scene.offsetY + getElevationVisualOffset(row, col) - 2 + offset.y,
     getTreeSpriteKey(tree),
   );
   sprite.setOrigin(0.5, 1);
   sprite.setScale(1.35);
-  sprite.setDepth(pos.y + TILE_HEIGHT * 0.5 + getElevationVisualOffset(row, col));
+  sprite.setDepth(pos.y + TILE_HEIGHT * 0.5 + getElevationVisualOffset(row, col) + offset.y);
   sprite.setMask(scene.worldMask);
   sprite.mapRow = row;
   sprite.mapCol = col;
@@ -4984,8 +5053,26 @@ function positionTree(scene, tree) {
   const row = tree.mapRow;
   const col = tree.mapCol;
   const pos = isoToScreen(col, row);
-  tree.setPosition(pos.x + scene.offsetX, pos.y + scene.offsetY + getElevationVisualOffset(row, col) - 2);
-  tree.setDepth(pos.y + TILE_HEIGHT * 0.5 + getElevationVisualOffset(row, col));
+  const offset = getTreeVisualOffset(treeMap[row]?.[col]);
+  tree.setPosition(pos.x + scene.offsetX + offset.x, pos.y + scene.offsetY + getElevationVisualOffset(row, col) - 2 + offset.y);
+  tree.setDepth(pos.y + TILE_HEIGHT * 0.5 + getElevationVisualOffset(row, col) + offset.y);
+}
+
+function getTreeVisualOffset(tree) {
+  const variant = Number.isFinite(Number(tree?.variant)) ? Number(tree.variant) : 0.5;
+  const xSeed = fract(Math.sin((variant + 0.137) * 12345.678) * 43758.5453);
+  const ySeed = fract(Math.sin((variant + 0.731) * 9876.543) * 24634.6345);
+  const colShift = (xSeed - 0.5) * 2 * TREE_VISUAL_OFFSET_COL_MAX;
+  const rowShift = (ySeed - 0.5) * 2 * TREE_VISUAL_OFFSET_ROW_MAX;
+
+  return {
+    x: colShift * (TILE_WIDTH / 2 / 50) - rowShift * (TILE_WIDTH / 2 / 50),
+    y: colShift * (TILE_HEIGHT / 2 / 50) + rowShift * (TILE_HEIGHT / 2 / 50),
+  };
+}
+
+function fract(value) {
+  return value - Math.floor(value);
 }
 
 function isMatureTree(tree) {

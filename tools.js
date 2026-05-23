@@ -167,9 +167,9 @@ function drawPowerLineSprite(scene, row, col) {
 function placeInfraBuilding(scene, row, col, buildingType) {
   if (!isInsideMap(row, col)) return false;
 
-  const powerModel = POWER_PLANT_MODELS[buildingType];
-  const footprintCols = powerModel?.footprintCols ?? 1;
-  const footprintRows = powerModel?.footprintRows ?? 1;
+  const buildingModel = POWER_PLANT_MODELS[buildingType] ?? SERVICE_BUILDING_MODELS[buildingType];
+  const footprintCols = buildingModel?.footprintCols ?? 1;
+  const footprintRows = buildingModel?.footprintRows ?? 1;
   if (!canPlaceBuildingFootprint(row, col, footprintCols, footprintRows)) return false;
 
   const cost = INFRA_COSTS[buildingType];
@@ -180,10 +180,12 @@ function placeInfraBuilding(scene, row, col, buildingType) {
 
   removeBuildingsInFootprint(scene, row, col, footprintCols, footprintRows);
 
-  const key = powerModel?.spriteKey ?? BUILDING_KEYS[INFRA_SPRITE_INDEX[buildingType]];
-  const opts = powerModel
-    ? (powerPlantModelMetadata[buildingType] ?? powerModel)
-    : {};
+  const key = buildingModel?.spriteKey ?? BUILDING_KEYS[INFRA_SPRITE_INDEX[buildingType]];
+  const opts = POWER_PLANT_MODELS[buildingType]
+    ? (powerPlantModelMetadata[buildingType] ?? buildingModel)
+    : SERVICE_BUILDING_MODELS[buildingType]
+      ? (serviceBuildingModelMetadata[buildingType] ?? buildingModel)
+      : {};
   placeSpriteBuilding(scene, row, col, key, opts);
 
   const id = getTileId(row, col);
@@ -198,6 +200,8 @@ function placeInfraBuilding(scene, row, col, buildingType) {
     originX: opts.originX,
     originY: opts.originY,
     scale: opts.scale,
+    scaleX: opts.scaleX,
+    scaleY: opts.scaleY,
   };
 
   if (buildingType === 'power_plant_coal' || buildingType === 'power_plant_solar') {

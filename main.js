@@ -400,18 +400,31 @@ function paintScenarioPeakOnLand(ctx, centerX, centerY, rx, ry, targetHeight) {
 }
 
 function applyHongKongMountainRelief(ctx) {
+  // Lantau massif
   paintScenarioHillRidge(ctx, [
-    { x: 0.22, y: 0.70 }, { x: 0.30, y: 0.66 }, { x: 0.37, y: 0.62 },
-  ], 10, 5);
+    { x: 0.17, y: 0.76 }, { x: 0.24, y: 0.72 }, { x: 0.31, y: 0.67 }, { x: 0.38, y: 0.63 },
+  ], 11, 5);
+  paintScenarioPeakOnLand(ctx, 0.25, 0.72, 0.08, 0.06, 6);
+  paintScenarioPeakOnLand(ctx, 0.33, 0.66, 0.07, 0.05, 5);
+
+  // New Territories central backbone (Tai Mo Shan belt)
   paintScenarioHillRidge(ctx, [
-    { x: 0.43, y: 0.44 }, { x: 0.51, y: 0.40 }, { x: 0.61, y: 0.37 },
-  ], 9, 6);
+    { x: 0.39, y: 0.48 }, { x: 0.50, y: 0.43 }, { x: 0.61, y: 0.39 }, { x: 0.73, y: 0.37 },
+  ], 10, 6);
+  paintScenarioPeakOnLand(ctx, 0.52, 0.42, 0.09, 0.07, 7);
+  paintScenarioPeakOnLand(ctx, 0.63, 0.39, 0.08, 0.06, 6);
+
+  // Kowloon north ridge (Fei Ngo / Lion Rock corridor)
   paintScenarioHillRidge(ctx, [
-    { x: 0.70, y: 0.63 }, { x: 0.77, y: 0.67 }, { x: 0.80, y: 0.74 },
-  ], 8, 4);
-  paintScenarioPeakOnLand(ctx, 0.29, 0.67, 0.07, 0.06, 6);
-  paintScenarioPeakOnLand(ctx, 0.54, 0.39, 0.08, 0.06, 7);
-  paintScenarioPeakOnLand(ctx, 0.75, 0.69, 0.06, 0.05, 4);
+    { x: 0.47, y: 0.53 }, { x: 0.56, y: 0.50 }, { x: 0.66, y: 0.49 },
+  ], 7, 4);
+  paintScenarioPeakOnLand(ctx, 0.58, 0.50, 0.06, 0.04, 5);
+
+  // Hong Kong Island central ridge
+  paintScenarioHillRidge(ctx, [
+    { x: 0.69, y: 0.58 }, { x: 0.75, y: 0.62 }, { x: 0.80, y: 0.68 },
+  ], 7, 4);
+  paintScenarioPeakOnLand(ctx, 0.74, 0.61, 0.06, 0.05, 5);
 }
 
 function applyBuiltInCityGeographyTemplate(scenarioId, terrainData, seedText = '') {
@@ -602,6 +615,10 @@ function softenScenarioLowlands(ctx, centerX, centerY, rx, ry) {
 
 function finalizeScenarioTerrain(ctx, options = {}) {
   const preserveWaterMask = Boolean(options.preserveWaterMask);
+
+  // Keep pre-finalized scenario terrain within the global 1-step slope rule.
+  enforceGlobalSlopeConstraints(ctx.map, ctx.heights, 1, 10);
+
   const next = ctx.map.map((row) => row.slice());
   for (let row = 1; row < MAP_HEIGHT - 1; row++) {
     for (let col = 1; col < MAP_WIDTH - 1; col++) {

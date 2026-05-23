@@ -345,6 +345,8 @@ function spawnZoneBuilding(scene, r, c, zone, level, density = DENSITY_LOW, opti
     scale:   options.scale,
     scaleX:  options.scaleX,
     scaleY:  options.scaleY,
+    offsetX: options.offsetX,
+    offsetY: options.offsetY,
   };
   return true;
 }

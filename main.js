@@ -36,6 +36,12 @@ const HOUSE_MODEL_SETS = {
       'publicHousing3.png',
       'publicHousing1.png',
     ],
+    disabledFiles: ['publicHousing4.png'],
+    fileOverrides: {
+      'publicHousing1.png': { scaleMultiplier: 0.817, scaleYMultiplier: 0.92, offsetY: -8 },
+      'publicHousing2.png': { scaleMultiplier: 0.817, scaleYMultiplier: 0.92, offsetY: -8 },
+      'publicHousing3.png': { scaleMultiplier: 0.817, scaleYMultiplier: 0.92, offsetY: -8 },
+    },
     footprintCols: 2,
     footprintRows: 2,
   },
@@ -1160,8 +1166,9 @@ async function discoverModelFiles(keyPrefix, apiFolder, config) {
 function sortModelFiles(fileNames, config) {
   const preferred = config.preferredFiles ?? [];
   const rank = new Map(preferred.map((fileName, index) => [fileName, index]));
+  const disabled = new Set(config.disabledFiles ?? []);
 
-  return [...fileNames].sort((a, b) => {
+  return fileNames.filter((fileName) => !disabled.has(fileName)).sort((a, b) => {
     const aRank = rank.has(a) ? rank.get(a) : Number.POSITIVE_INFINITY;
     const bRank = rank.has(b) ? rank.get(b) : Number.POSITIVE_INFINITY;
     if (aRank !== bRank) return aRank - bRank;
@@ -1170,14 +1177,24 @@ function sortModelFiles(fileNames, config) {
 }
 
 function createModelEntries(keyPrefix, fileNames, config) {
-  return fileNames.map((fileName, index) => ({
-    key: `${keyPrefix}_${index}`,
-    title: fileName.replace(/\.[^.]+$/, ''),
-    path: encodeURI(`${config.folder}${fileName}`),
-    footprintCols: config.footprintCols,
-    footprintRows: config.footprintRows,
-    metadata: null,
-  }));
+  const disabled = new Set(config.disabledFiles ?? []);
+  return fileNames.filter((fileName) => !disabled.has(fileName)).map((fileName, index) => {
+    const overrides = config.fileOverrides?.[fileName] ?? {};
+    return {
+      key: `${keyPrefix}_${index}`,
+      title: fileName.replace(/\.[^.]+$/, ''),
+      fileName,
+      path: encodeURI(`${config.folder}${fileName}`),
+      footprintCols: config.footprintCols,
+      footprintRows: config.footprintRows,
+      scaleMultiplier: (config.scaleMultiplier ?? 1) * (overrides.scaleMultiplier ?? 1),
+      scaleXMultiplier: (config.scaleXMultiplier ?? 1) * (overrides.scaleXMultiplier ?? 1),
+      scaleYMultiplier: (config.scaleYMultiplier ?? 1) * (overrides.scaleYMultiplier ?? 1),
+      offsetX: overrides.offsetX ?? config.offsetX ?? 0,
+      offsetY: overrides.offsetY ?? config.offsetY ?? 0,
+      metadata: null,
+    };
+  });
 }
 
 function preload() {
@@ -3264,7 +3281,16 @@ function prepareHouseModelMetadata(scene) {
     const source = scene.textures.get(model.key)?.getSourceImage();
     if (!source) return;
 
-    model.metadata = getSpriteFootprintMetadata(source, model.footprintCols, model.footprintRows);
+    model.metadata = getSpriteFootprintMetadata(
+      source,
+      model.footprintCols,
+      model.footprintRows,
+      model.scaleMultiplier ?? 1,
+      model.scaleXMultiplier ?? 1,
+      model.scaleYMultiplier ?? 1,
+    );
+    model.metadata.offsetX = model.offsetX ?? 0;
+    model.metadata.offsetY = model.offsetY ?? 0;
   });
 }
 
@@ -3525,6 +3551,10 @@ function placeHouseModel(scene, row, col, tool) {
     originX: opts.originX,
     originY: opts.originY,
     scale:   opts.scale,
+    scaleX:  opts.scaleX,
+    scaleY:  opts.scaleY,
+    offsetX: opts.offsetX,
+    offsetY: opts.offsetY,
   };
 }
 
@@ -3536,8 +3566,8 @@ function placeSpriteBuilding(scene, row, col, key, options = {}) {
   const anchor = getBuildingAnchor(row, col, footprintCols, footprintRows);
   const elevOffset = getBuildingElevationOffset(row, col, footprintCols, footprintRows);
   const building = scene.add.image(
-    anchor.x + scene.offsetX,
-    anchor.y + scene.offsetY - BUILDING_SURFACE_Y_OFFSET + elevOffset,
+    anchor.x + scene.offsetX + (options.offsetX ?? 0),
+    anchor.y + scene.offsetY - BUILDING_SURFACE_Y_OFFSET + elevOffset + (options.offsetY ?? 0),
     key,
   );
   building.setOrigin(options.originX ?? 0.5, options.originY ?? 1);
@@ -3552,6 +3582,8 @@ function placeSpriteBuilding(scene, row, col, key, options = {}) {
   building.mapCol = col;
   building.footprintCols = footprintCols;
   building.footprintRows = footprintRows;
+  building.spriteOffsetX = options.offsetX ?? 0;
+  building.spriteOffsetY = options.offsetY ?? 0;
 
   getFootprintTiles(row, col, footprintCols, footprintRows).forEach(([tileRow, tileCol]) => {
     scene.buildingSprites.set(getTileId(tileRow, tileCol), building);
@@ -3559,6 +3591,16 @@ function placeSpriteBuilding(scene, row, col, key, options = {}) {
 }
 
 function normalizeSpriteBuildingOptions(key, options = {}) {
+  const houseModel = getHouseModelBySpriteKey(key);
+  if (houseModel?.metadata) {
+    return {
+      ...options,
+      footprintCols: houseModel.footprintCols ?? houseModel.metadata.footprintCols ?? options.footprintCols ?? 1,
+      footprintRows: houseModel.footprintRows ?? houseModel.metadata.footprintRows ?? options.footprintRows ?? 1,
+      ...houseModel.metadata,
+    };
+  }
+
   if (isPowerPlantSpriteKey(key)) {
     const buildingType = getPowerPlantTypeBySpriteKey(key);
     const model = POWER_PLANT_MODELS[buildingType];
@@ -3594,6 +3636,10 @@ function normalizeSpriteBuildingOptions(key, options = {}) {
     footprintCols: parkOption?.footprintCols ?? (key === 'park_large' ? 3 : 1),
     footprintRows: parkOption?.footprintRows ?? (key === 'park_large' ? 3 : 1),
   };
+}
+
+function getHouseModelBySpriteKey(key) {
+  return Object.values(houseModelSets).flat().find((model) => model.key === key) ?? null;
 }
 
 function isParkSpriteKey(key) {
@@ -3654,7 +3700,10 @@ function positionBuilding(scene, building) {
   const footprintRows = building.footprintRows ?? 1;
   const anchor = getBuildingAnchor(building.mapRow, building.mapCol, footprintCols, footprintRows);
   const elevOffset = getBuildingElevationOffset(building.mapRow, building.mapCol, footprintCols, footprintRows);
-  building.setPosition(anchor.x + scene.offsetX, anchor.y + scene.offsetY - BUILDING_SURFACE_Y_OFFSET + elevOffset);
+  building.setPosition(
+    anchor.x + scene.offsetX + (building.spriteOffsetX ?? 0),
+    anchor.y + scene.offsetY - BUILDING_SURFACE_Y_OFFSET + elevOffset + (building.spriteOffsetY ?? 0),
+  );
   building.setDepth(anchor.y + TILE_HEIGHT + elevOffset);
 }
 

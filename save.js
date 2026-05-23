@@ -292,6 +292,8 @@ function normalizeLoadedBuildingOptions(key, record) {
     scale: record.scale,
     scaleX: record.scaleX,
     scaleY: record.scaleY,
+    offsetX: record.offsetX,
+    offsetY: record.offsetY,
   };
 
   if (typeof isPowerPlantSpriteKey === 'function' && isPowerPlantSpriteKey(key) && typeof normalizeSpriteBuildingOptions === 'function') {
@@ -303,6 +305,10 @@ function normalizeLoadedBuildingOptions(key, record) {
   }
 
   if (typeof isParkSpriteKey === 'function' && isParkSpriteKey(key) && typeof normalizeSpriteBuildingOptions === 'function') {
+    return normalizeSpriteBuildingOptions(key, options);
+  }
+
+  if (typeof normalizeSpriteBuildingOptions === 'function') {
     return normalizeSpriteBuildingOptions(key, options);
   }
 

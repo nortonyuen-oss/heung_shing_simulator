@@ -400,31 +400,84 @@ function paintScenarioPeakOnLand(ctx, centerX, centerY, rx, ry, targetHeight) {
 }
 
 function applyHongKongMountainRelief(ctx) {
-  // Lantau massif
+  // Lantau Island: east-west central spine (Tai O west hills -> Lantau Peak/Sunset Peak -> Mui Wo east)
   paintScenarioHillRidge(ctx, [
-    { x: 0.17, y: 0.76 }, { x: 0.24, y: 0.72 }, { x: 0.31, y: 0.67 }, { x: 0.38, y: 0.63 },
-  ], 11, 5);
-  paintScenarioPeakOnLand(ctx, 0.25, 0.72, 0.08, 0.06, 6);
-  paintScenarioPeakOnLand(ctx, 0.33, 0.66, 0.07, 0.05, 5);
+    { x: 0.10, y: 0.81 }, { x: 0.16, y: 0.80 }, { x: 0.22, y: 0.79 },
+    { x: 0.27, y: 0.78 }, { x: 0.33, y: 0.79 },
+  ], 9, 5);
+  paintScenarioHillRidge(ctx, [
+    { x: 0.13, y: 0.86 }, { x: 0.20, y: 0.84 }, { x: 0.27, y: 0.83 }, { x: 0.32, y: 0.84 },
+  ], 7, 4);
+  paintScenarioHillRidge(ctx, [
+    { x: 0.19, y: 0.76 }, { x: 0.23, y: 0.75 }, { x: 0.28, y: 0.75 },
+  ], 5, 3);
+  paintScenarioPeakOnLand(ctx, 0.22, 0.80, 0.07, 0.05, 6);
+  paintScenarioPeakOnLand(ctx, 0.27, 0.78, 0.07, 0.05, 6);
+  paintScenarioPeakOnLand(ctx, 0.15, 0.82, 0.05, 0.04, 4);
+  paintScenarioPeakOnLand(ctx, 0.31, 0.80, 0.05, 0.04, 4);
 
   // New Territories central backbone (Tai Mo Shan belt)
   paintScenarioHillRidge(ctx, [
     { x: 0.39, y: 0.48 }, { x: 0.50, y: 0.43 }, { x: 0.61, y: 0.39 }, { x: 0.73, y: 0.37 },
   ], 10, 6);
+  paintScenarioHillRidge(ctx, [
+    { x: 0.56, y: 0.36 }, { x: 0.64, y: 0.33 }, { x: 0.72, y: 0.31 },
+  ], 8, 4);
   paintScenarioPeakOnLand(ctx, 0.52, 0.42, 0.09, 0.07, 7);
   paintScenarioPeakOnLand(ctx, 0.63, 0.39, 0.08, 0.06, 6);
+  paintScenarioPeakOnLand(ctx, 0.69, 0.33, 0.06, 0.05, 4);
+
+  // Sai Kung massif (east New Territories): west-east ridge with eastern peninsula relief
+  paintScenarioHillRidge(ctx, [
+    { x: 0.76, y: 0.40 }, { x: 0.82, y: 0.37 }, { x: 0.88, y: 0.35 }, { x: 0.93, y: 0.36 },
+  ], 7, 5);
+  paintScenarioHillRidge(ctx, [
+    { x: 0.81, y: 0.45 }, { x: 0.86, y: 0.42 }, { x: 0.91, y: 0.41 },
+  ], 6, 4);
+  paintScenarioHillRidge(ctx, [
+    { x: 0.88, y: 0.31 }, { x: 0.92, y: 0.28 }, { x: 0.95, y: 0.25 },
+  ], 5, 3);
+  paintScenarioPeakOnLand(ctx, 0.82, 0.38, 0.06, 0.05, 6);
+  paintScenarioPeakOnLand(ctx, 0.88, 0.36, 0.05, 0.04, 5);
+  paintScenarioPeakOnLand(ctx, 0.92, 0.35, 0.04, 0.04, 4);
+  paintScenarioPeakOnLand(ctx, 0.86, 0.43, 0.05, 0.04, 4);
 
   // Kowloon north ridge (Fei Ngo / Lion Rock corridor)
   paintScenarioHillRidge(ctx, [
     { x: 0.47, y: 0.53 }, { x: 0.56, y: 0.50 }, { x: 0.66, y: 0.49 },
   ], 7, 4);
   paintScenarioPeakOnLand(ctx, 0.58, 0.50, 0.06, 0.04, 5);
+  paintScenarioPeakOnLand(ctx, 0.50, 0.54, 0.05, 0.04, 3);
 
-  // Hong Kong Island central ridge
+  // Hong Kong Island east-west spine (Victoria Peak -> central ridge -> Tai Tam/Pottinger)
   paintScenarioHillRidge(ctx, [
-    { x: 0.69, y: 0.58 }, { x: 0.75, y: 0.62 }, { x: 0.80, y: 0.68 },
-  ], 7, 4);
-  paintScenarioPeakOnLand(ctx, 0.74, 0.61, 0.06, 0.05, 5);
+    { x: 0.52, y: 0.84 }, { x: 0.58, y: 0.82 }, { x: 0.64, y: 0.81 },
+    { x: 0.70, y: 0.82 }, { x: 0.75, y: 0.84 },
+  ], 8, 5);
+  paintScenarioHillRidge(ctx, [
+    { x: 0.54, y: 0.79 }, { x: 0.60, y: 0.77 }, { x: 0.67, y: 0.77 }, { x: 0.73, y: 0.79 },
+  ], 6, 4);
+  paintScenarioHillRidge(ctx, [
+    { x: 0.71, y: 0.81 }, { x: 0.74, y: 0.78 }, { x: 0.77, y: 0.74 },
+  ], 5, 3);
+  paintScenarioPeakOnLand(ctx, 0.56, 0.82, 0.06, 0.04, 6);
+  paintScenarioPeakOnLand(ctx, 0.63, 0.80, 0.06, 0.04, 5);
+  paintScenarioPeakOnLand(ctx, 0.70, 0.82, 0.06, 0.04, 5);
+  paintScenarioPeakOnLand(ctx, 0.74, 0.84, 0.05, 0.04, 4);
+  paintScenarioPeakOnLand(ctx, 0.76, 0.77, 0.04, 0.03, 3);
+
+  // Lantau south flank and nearby small islands.
+  paintScenarioHillRidge(ctx, [
+    { x: 0.10, y: 0.90 }, { x: 0.16, y: 0.88 }, { x: 0.23, y: 0.87 }, { x: 0.29, y: 0.88 },
+  ], 5, 3);
+  paintScenarioPeakOnLand(ctx, 0.13, 0.89, 0.04, 0.03, 3);
+  paintScenarioPeakOnLand(ctx, 0.25, 0.87, 0.05, 0.03, 3);
+
+  paintScenarioHillRidge(ctx, [
+    { x: 0.64, y: 0.91 }, { x: 0.68, y: 0.88 }, { x: 0.72, y: 0.84 },
+  ], 5, 3);
+  paintScenarioPeakOnLand(ctx, 0.66, 0.90, 0.04, 0.03, 3);
+  paintScenarioPeakOnLand(ctx, 0.70, 0.84, 0.04, 0.03, 2);
 }
 
 function applyBuiltInCityGeographyTemplate(scenarioId, terrainData, seedText = '') {

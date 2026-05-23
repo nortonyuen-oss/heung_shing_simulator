@@ -310,7 +310,12 @@ function spawnZoneBuilding(scene, r, c, zone, level, density = DENSITY_LOW, opti
       key = BUILDING_KEYS[Math.floor(Math.random() * 20)];
     }
   } else if (zone === ZONE_COM) {
-    key = BUILDING_KEYS[Math.floor(Math.random() * 39)];
+    if (!canPlace2x2ZoneBuilding(scene, r, c, ZONE_COM)) return false;
+    const model = getRandomCommercialBuildingModel();
+    if (!model) return false;
+
+    key     = model.key;
+    options = { ...model.metadata };
   } else {
     key = BUILDING_KEYS[39 + Math.floor(Math.random() * 39)];
   }
@@ -338,6 +343,8 @@ function spawnZoneBuilding(scene, r, c, zone, level, density = DENSITY_LOW, opti
     originX: options.originX,
     originY: options.originY,
     scale:   options.scale,
+    scaleX:  options.scaleX,
+    scaleY:  options.scaleY,
   };
   return true;
 }
@@ -348,12 +355,18 @@ function getResidential2x2Chance(density) {
 
 // Returns true when a 2×2 block anchored at (r, c) is fully clear and zoned RES.
 function canPlace2x2Residential(scene, r, c) {
+  return canPlace2x2ZoneBuilding(scene, r, c, ZONE_RES);
+}
+
+// Multi-tile zone buildings need every footprint tile to match the same zone,
+// be empty, buildable, and sit on the same height plane.
+function canPlace2x2ZoneBuilding(scene, r, c, zoneType) {
   const baseHeight = getTileHeight(r, c);
   for (let dr = 0; dr < 2; dr++) {
     for (let dc = 0; dc < 2; dc++) {
       const rr = r + dr, cc = c + dc;
       if (!isInsideMap(rr, cc))                        return false;
-      if (zoneMap[rr][cc] !== ZONE_RES)                return false;
+      if (zoneMap[rr][cc] !== zoneType)                return false;
       if (scene.buildingSprites.has(getTileId(rr, cc))) return false;
       if (!canPlaceBuilding(rr, cc)) return false;
       if (getTileHeight(rr, cc) !== baseHeight) return false;
@@ -504,6 +517,13 @@ function updateTrees(scene) {
 function getRandomHouseModel(setKey = 'house') {
   const all = (houseModelSets && houseModelSets[setKey]) ? houseModelSets[setKey] : [];
   // Only use models whose scale was computed successfully (> 0.05 avoids near-invisible sprites)
+  const valid = all.filter((m) => m.metadata && m.metadata.scale > 0.05);
+  if (valid.length === 0) return null;
+  return valid[Math.floor(Math.random() * valid.length)];
+}
+
+function getRandomCommercialBuildingModel() {
+  const all = Array.isArray(commercialBuildingModels) ? commercialBuildingModels : [];
   const valid = all.filter((m) => m.metadata && m.metadata.scale > 0.05);
   if (valid.length === 0) return null;
   return valid[Math.floor(Math.random() * valid.length)];

@@ -50,6 +50,24 @@ const HOUSE_MODEL_SETS = {
     footprintRows: 1,
   },
 };
+const COMMERCIAL_BUILDING_MODEL_SET = {
+  folder: 'Models/commercialBuildings/',
+  apiFolder: 'commercialBuildings',
+  preferredFiles: [
+    'commercialBuilding01.png',
+    'commercialBuilding02.png',
+    'commercialBuilding03.png',
+    'commercialBuilding04.png',
+    'commercialBuilding05.png',
+    'commercialBuilding06.png',
+    'commercialBuilding07.png',
+    'commercialBuilding08.png',
+  ],
+  footprintCols: 2,
+  footprintRows: 2,
+  scaleMultiplier: 0.9,
+  scaleYMultiplier: 0.9,
+};
 // Terrain tile type constants (GROUND–HILL defined here; zones defined in constants.js)
 const GROUND = 1;
 const ROAD = 2;
@@ -128,6 +146,7 @@ let isMusicPlaying = false;
 let musicLoopMode = 'all';   // 'all' = auto-advance, 'one' = loop current track
 let nextBuildingIndex = 0;
 let houseModelSets = {};
+let commercialBuildingModels = [];
 let selectedHouseIndices = {};
 let selectedHouseSet = 'house';
 let housePressTimer = null;
@@ -1095,6 +1114,7 @@ initializeGame();
 
 async function initializeGame() {
   houseModelSets = await discoverHouseModelSets();
+  commercialBuildingModels = await discoverCommercialBuildingModels();
   setupToolMenu();
   setupMenuBar();
   updateHouseToolUi();
@@ -1112,24 +1132,32 @@ async function discoverHouseModelSets() {
   return Object.fromEntries(entries);
 }
 
+async function discoverCommercialBuildingModels() {
+  return discoverModelFiles('commercial_building', COMMERCIAL_BUILDING_MODEL_SET.apiFolder, COMMERCIAL_BUILDING_MODEL_SET);
+}
+
 async function discoverHouseModels(tool, config) {
+  return discoverModelFiles(tool, tool, config);
+}
+
+async function discoverModelFiles(keyPrefix, apiFolder, config) {
   const fallbackFiles = config.preferredFiles ?? [config.defaultFile];
-  const fallbackModels = createHouseModels(tool, fallbackFiles, config);
+  const fallbackModels = createModelEntries(keyPrefix, fallbackFiles, config);
 
   try {
     // Ask the Express server for the actual file list — no HTML scraping needed
-    const response = await fetch(`/api/models/${tool}`, { cache: 'no-store' });
+    const response = await fetch(`/api/models/${apiFolder}`, { cache: 'no-store' });
     if (!response.ok) return fallbackModels;
     const files = await response.json();
     return Array.isArray(files) && files.length > 0
-      ? createHouseModels(tool, sortHouseModelFiles(files, config), config)
+      ? createModelEntries(keyPrefix, sortModelFiles(files, config), config)
       : fallbackModels;
   } catch {
     return fallbackModels;
   }
 }
 
-function sortHouseModelFiles(fileNames, config) {
+function sortModelFiles(fileNames, config) {
   const preferred = config.preferredFiles ?? [];
   const rank = new Map(preferred.map((fileName, index) => [fileName, index]));
 
@@ -1141,9 +1169,9 @@ function sortHouseModelFiles(fileNames, config) {
   });
 }
 
-function createHouseModels(tool, fileNames, config) {
+function createModelEntries(keyPrefix, fileNames, config) {
   return fileNames.map((fileName, index) => ({
-    key: `${tool}_${index}`,
+    key: `${keyPrefix}_${index}`,
     title: fileName.replace(/\.[^.]+$/, ''),
     path: encodeURI(`${config.folder}${fileName}`),
     footprintCols: config.footprintCols,
@@ -1162,6 +1190,9 @@ function preload() {
     this.load.image(key, `Models/PNG/buildingTiles_${String(index).padStart(3, '0')}.png`);
   });
   Object.values(houseModelSets).flat().forEach((model) => {
+    this.load.image(model.key, model.path);
+  });
+  commercialBuildingModels.forEach((model) => {
     this.load.image(model.key, model.path);
   });
   this.load.image('park_small_open', 'Models/park1x1/catProblemPark.png');
@@ -1255,6 +1286,7 @@ function preload() {
 function create() {
   activeScene = this;
   prepareHouseModelMetadata(this);
+  prepareCommercialBuildingModelMetadata(this);
   prepareParkModelMetadata(this);
   preparePowerPlantModelMetadata(this);
   prepareServiceBuildingModelMetadata(this);
@@ -3233,6 +3265,22 @@ function prepareHouseModelMetadata(scene) {
     if (!source) return;
 
     model.metadata = getSpriteFootprintMetadata(source, model.footprintCols, model.footprintRows);
+  });
+}
+
+function prepareCommercialBuildingModelMetadata(scene) {
+  commercialBuildingModels.forEach((model) => {
+    const source = scene.textures.get(model.key)?.getSourceImage();
+    if (!source) return;
+
+    model.metadata = getSpriteFootprintMetadata(
+      source,
+      model.footprintCols,
+      model.footprintRows,
+      COMMERCIAL_BUILDING_MODEL_SET.scaleMultiplier ?? 1,
+      COMMERCIAL_BUILDING_MODEL_SET.scaleXMultiplier ?? 1,
+      COMMERCIAL_BUILDING_MODEL_SET.scaleYMultiplier ?? 1,
+    );
   });
 }
 

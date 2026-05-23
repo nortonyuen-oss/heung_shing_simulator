@@ -19,7 +19,7 @@ app.use(express.static(path.join(__dirname))); // serve index.html + JS/CSS/asse
 // Returns a JSON array of image filenames for a given model folder.
 // Only whitelisted folder names are allowed (no path traversal).
 app.get('/api/models/:folder', (req, res) => {
-  const ALLOWED = ['house', 'house2x2', 'house1x4'];
+  const ALLOWED = ['house', 'house2x2', 'house1x4', 'commercialBuildings'];
   const folderName = req.params.folder;
   if (!ALLOWED.includes(folderName)) {
     return res.status(400).json({ error: 'Unknown folder' });

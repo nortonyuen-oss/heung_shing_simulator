@@ -12,15 +12,11 @@ const HOUSE_MODEL_SETS = {
   house: {
     label: '1x1',
     folder: 'Models/house/',
-    defaultFile: 'houseGermini.png',
+    defaultFile: 'dingHouse.png',
     preferredFiles: [
       'dingHouse.png',
-      'dingHouse2.png',
-      'dingHouse4.png',
-      'dingHouse6.png',
-      'dingHouse7.png',
-      'houseGermini.png',
-      'houseModified.png',
+      'ciTang.png',
+      'ciTang2.png',
     ],
     footprintCols: 1,
     footprintRows: 1,
@@ -28,10 +24,8 @@ const HOUSE_MODEL_SETS = {
   house2x2: {
     label: '2x2',
     folder: 'Models/house2x2/',
-    defaultFile: 'ciTang.png',
+    defaultFile: 'publicHousing2.png',
     preferredFiles: [
-      'ciTang.png',
-      'ciTang2.png',
       'publicHousing2.png',
       'publicHousing3.png',
       'publicHousing1.png',

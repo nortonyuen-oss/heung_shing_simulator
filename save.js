@@ -270,7 +270,7 @@ function deriveFallbackSpriteKey(record) {
   if (infraIdx !== undefined) return BUILDING_KEYS[infraIdx];
   if (record.type === 'park_small') return 'park_small_open';
   if (record.type === 'park_large') return 'park_large';
-  if (record.type === 'residential') return BUILDING_KEYS[Math.floor(Math.random() * 20)];
+  if (record.type === 'residential') return getFallbackHouseSpriteKey() ?? BUILDING_KEYS[Math.floor(Math.random() * 20)];
   if (record.type === 'commercial')  return BUILDING_KEYS[Math.floor(Math.random() * 39)];
   if (record.type === 'industrial')  return BUILDING_KEYS[39 + Math.floor(Math.random() * 39)];
   return BUILDING_KEYS[0];
@@ -280,7 +280,35 @@ function deriveLoadedSpriteKey(record) {
   if (typeof isPowerPlantType === 'function' && isPowerPlantType(record.type)) {
     return POWER_PLANT_MODELS[record.type].spriteKey;
   }
-  return record.spriteKey ?? deriveFallbackSpriteKey(record);
+  const key = record.spriteKey ?? deriveFallbackSpriteKey(record);
+  const legacy2x2Key = getLegacy2x2HouseFallbackSpriteKey(record, key);
+  if (legacy2x2Key) return legacy2x2Key;
+  if (record.type === 'residential' && !isLoadedTextureKey(key)) {
+    return getFallbackHouseSpriteKey() ?? deriveFallbackSpriteKey(record);
+  }
+  return key;
+}
+
+function getLegacy2x2HouseFallbackSpriteKey(record, key) {
+  if (record.type !== 'residential') return null;
+  if ((record.footprintCols ?? 1) !== 2 || (record.footprintRows ?? 1) !== 2) return null;
+  if (key !== 'house2x2_0' && key !== 'house2x2_1') return null;
+
+  const publicHousing2 = (typeof houseModelSets !== 'undefined' ? houseModelSets.house2x2 : [])
+    ?.find((model) => model.fileName === 'publicHousing2.png');
+  return publicHousing2?.key ?? null;
+}
+
+function getFallbackHouseSpriteKey() {
+  const model = typeof houseModelSets !== 'undefined'
+    ? houseModelSets.house?.[0]
+    : null;
+  return model?.key ?? null;
+}
+
+function isLoadedTextureKey(key) {
+  if (!key) return false;
+  return typeof activeScene !== 'undefined' && !!activeScene?.textures?.exists(key);
 }
 
 function normalizeLoadedBuildingOptions(key, record) {

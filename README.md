@@ -2,6 +2,8 @@
 
 City Builder Classic is a SimCity 2000-style city builder with a local SQLite save system, isometric map view, and a classic windowed UI.
 
+<img width="1438" height="792" alt="image" src="https://github.com/user-attachments/assets/ec3cab6e-48af-4976-b00a-097bc901e429" />
+
 ## Features
 
 - Zone residential, commercial, and industrial districts.

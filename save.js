@@ -116,6 +116,68 @@ async function loadSaveById(id, scene) {
   }
 }
 
+function normalizeBridgeMapValue(value) {
+  if (value === null || value === undefined) return null;
+  if (typeof value !== 'string') return null;
+
+  const raw = value.trim().toLowerCase();
+  if (!raw) return null;
+
+  if (raw === 'deck:row' || raw === 'deck:col') return raw;
+  if (/^ramp:[nesw]$/.test(raw)) return raw;
+
+  // Backward-compatible aliases from older save formats.
+  if (raw === 'deck-row' || raw === 'deck_row' || raw === 'row') return 'deck:row';
+  if (raw === 'deck-col' || raw === 'deck_col' || raw === 'col' || raw === 'column') return 'deck:col';
+
+  const rampAlias = raw.match(/^ramp[-_]?([nesw])$/);
+  if (rampAlias) return `ramp:${rampAlias[1]}`;
+
+  const namedDir = {
+    north: 'n',
+    east: 'e',
+    south: 's',
+    west: 'w',
+  }[raw];
+  if (namedDir) return `ramp:${namedDir}`;
+
+  return null;
+}
+
+function normalizeSavedTreeValue(value) {
+  if (!value || typeof value !== 'object') return null;
+
+  const species = typeof value.species === 'string' && value.species.trim()
+    ? value.species.trim()
+    : 'pine';
+  const age = Number(value.age);
+  const variant = Number(value.variant);
+
+  return {
+    species,
+    age: Number.isFinite(age) ? Math.max(0, Math.round(age)) : 0,
+    variant: Number.isFinite(variant) ? Math.max(0, Math.round(variant)) : 0,
+  };
+}
+
+function restoreOrGenerateTrees(scene, save) {
+  treeMap = createFilledMap(null);
+
+  if (Array.isArray(save?.treeMap)) {
+    for (let r = 0; r < MAP_HEIGHT; r++) {
+      for (let c = 0; c < MAP_WIDTH; c++) {
+        treeMap[r][c] = normalizeSavedTreeValue((save.treeMap?.[r] ?? [])[c]);
+      }
+    }
+    return;
+  }
+
+  // Legacy saves may not carry tree data. Prefer existing tree generation hooks.
+  if (typeof seedTreesOnMap === 'function') {
+    seedTreesOnMap(scene);
+  }
+}
+
 // ── Apply save data to the running scene ──────────────────────────────────────
 
 function applySaveData(scene, save) {
@@ -254,7 +316,7 @@ function rebuildSceneFromSave(scene, save) {
     }
   });
 
-  rebuildTreeSprites(scene);
+  if (typeof rebuildTreeSprites === 'function') rebuildTreeSprites(scene);
 }
 
 // ── Fallback sprite key for saves without spriteKey ───────────────────────────

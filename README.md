@@ -23,6 +23,9 @@ City Builder Classic is a SimCity 2000-style city builder with a local SQLite sa
 - Power shortages slow growth and can stop city expansion.
 - The electricity overlay shows city power status and load.
 
+<img width="1081" height="722" alt="image" src="https://github.com/user-attachments/assets/f591c047-768d-4117-8dd6-63a1b41d33c4" />
+
+
 ## Requirements
 
 - Node.js 18 or newer

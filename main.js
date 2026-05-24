@@ -4,6 +4,7 @@ const TILE_HEIGHT = 50;
 const TILE_IMAGE_HEIGHT = 65;
 const TILE_PICK_Y_OFFSET = TILE_IMAGE_HEIGHT;
 const BUILDING_SURFACE_Y_OFFSET = TILE_IMAGE_HEIGHT - TILE_HEIGHT;
+const EFFECTIVE_PIXEL_ALPHA_THRESHOLD = 20;
 const MAP_WIDTH = 256;
 const MAP_HEIGHT = 256;
 // originX shifts the grid horizontally so it is centered on the screen
@@ -11,7 +12,8 @@ const ORIGIN_X = MAP_HEIGHT * (TILE_WIDTH / 2);
 const HOUSE_MODEL_SETS = {
   house: {
     label: '1x1',
-    folder: 'Models/house/',
+    folder: 'Models/residential/house1x1/',
+    apiFolder: 'residential/house1x1',
     defaultFile: 'dingHouse.png',
     preferredFiles: [
       'dingHouse.png',
@@ -23,7 +25,8 @@ const HOUSE_MODEL_SETS = {
   },
   house2x2: {
     label: '2x2',
-    folder: 'Models/house2x2/',
+    folder: 'Models/residential/house2x2/',
+    apiFolder: 'residential/house2x2',
     defaultFile: 'publicHousing2.png',
     preferredFiles: [
       'publicHousing2.png',
@@ -39,9 +42,41 @@ const HOUSE_MODEL_SETS = {
     footprintCols: 2,
     footprintRows: 2,
   },
+  house3x3: {
+    label: '3x3',
+    folder: 'Models/residential/house3x3/',
+    apiFolder: 'residential/house3x3',
+    defaultFile: 'publicHousing4.png',
+    preferredFiles: [
+      'publicHousing4.png',
+      'privateHousing1.png',
+      'privateHousing2.png',
+    ],
+    footprintCols: 3,
+    footprintRows: 3,
+  },
+  house4x4: {
+    label: '4x4',
+    folder: 'Models/residential/house4x4/',
+    apiFolder: 'residential/house4x4',
+    anchorMode: 'effective-bottom-to-map-bottom',
+    alphaThreshold: EFFECTIVE_PIXEL_ALPHA_THRESHOLD,
+    defaultFile: 'privateHousing3.png',
+    preferredFiles: [
+      'privateHousing3.png',
+      'privateHousing4.png',
+    ],
+    fileOverrides: {
+      'privateHousing3.png': { offsetX: 0, offsetY: 0 },
+      'privateHousing4.png': { offsetX: 0, offsetY: 0 },
+    },
+    footprintCols: 4,
+    footprintRows: 4,
+  },
   house1x4: {
     label: '1x4',
-    folder: 'Models/house1x4/',
+    folder: 'Models/residential/house1x4/',
+    apiFolder: 'residential/house1x4',
     defaultFile: 'longPublicHousing.png',
     preferredFiles: [
       'longPublicHousing.png',
@@ -1045,6 +1080,28 @@ const PARK_OPTIONS = [
     footprintRows: 1,
   },
   {
+    id: 'garden_plaza',
+    type: 'park_small',
+    spriteKey: 'park_small_garden',
+    titleKey: 'park.gardenPlaza',
+    badge: '1x1',
+    icon: '🏵',
+    cost: COST_PARK_SMALL,
+    footprintCols: 1,
+    footprintRows: 1,
+  },
+  {
+    id: 'palm_court',
+    type: 'park_small',
+    spriteKey: 'park_small_palm',
+    titleKey: 'park.palmCourt',
+    badge: '2x2',
+    icon: '🌴',
+    cost: COST_PARK_SMALL,
+    footprintCols: 2,
+    footprintRows: 2,
+  },
+  {
     id: 'large_park',
     type: 'park_large',
     spriteKey: 'park_large',
@@ -1160,8 +1217,41 @@ async function discoverCommercialBuildingModels() {
 }
 
 async function discoverHouseModels(tool, config) {
-  return discoverModelFiles(tool, tool, config);
+  return discoverModelFiles(tool, config.apiFolder ?? tool, config);
 }
+
+async function reloadHouse4x4Models() {
+  const setKey = 'house4x4';
+  const config = HOUSE_MODEL_SETS[setKey];
+  if (!config) return 0;
+
+  const previousModels = houseModelSets[setKey] ?? [];
+  const nextModels = await discoverHouseModels(setKey, config);
+  houseModelSets[setKey] = nextModels;
+
+  const maxIndex = Math.max(0, nextModels.length - 1);
+  selectedHouseIndices[setKey] = Math.min(getSelectedHouseIndex(setKey), maxIndex);
+
+  if (activeScene) {
+    const cacheBust = `?v=${Date.now()}`;
+    const missingModels = nextModels.filter((model) => !activeScene.textures.exists(model.key));
+    missingModels.forEach((model) => {
+      activeScene.load.image(model.key, `${model.path}${cacheBust}`);
+    });
+    if (missingModels.length > 0) {
+      await new Promise((resolve) => {
+        activeScene.load.once('complete', resolve);
+        activeScene.load.start();
+      });
+    }
+    prepareHouseModelMetadata(activeScene);
+  }
+
+  updateHouseToolUi();
+  return nextModels.length;
+}
+
+window.reloadHouse4x4Models = reloadHouse4x4Models;
 
 async function discoverModelFiles(keyPrefix, apiFolder, config) {
   const fallbackFiles = config.preferredFiles ?? [config.defaultFile];
@@ -1209,6 +1299,8 @@ function createModelEntries(keyPrefix, fileNames, config) {
       scaleYMultiplier: (config.scaleYMultiplier ?? 1) * (overrides.scaleYMultiplier ?? 1),
       offsetX: overrides.offsetX ?? config.offsetX ?? 0,
       offsetY: overrides.offsetY ?? config.offsetY ?? 0,
+      anchorMode: overrides.anchorMode ?? config.anchorMode,
+      alphaThreshold: overrides.alphaThreshold ?? config.alphaThreshold,
       metadata: null,
     };
   });
@@ -1229,10 +1321,12 @@ function preload() {
   commercialBuildingModels.forEach((model) => {
     this.load.image(model.key, model.path);
   });
-  this.load.image('park_small_open', 'Models/park1x1/catProblemPark.png');
-  this.load.image('park_small_playground', 'Models/park1x1/smallPark2.png');
-  this.load.image('park_small', 'Models/park1x1/catProblemPark.png');
-  this.load.image('park_large', 'Models/park3x3/bigPark.png');
+  this.load.image('park_small_open', 'Models/parks/park1x1/catProblemPark.png');
+  this.load.image('park_small_playground', 'Models/parks/park1x1/smallPark2.png');
+  this.load.image('park_small_garden', 'Models/parks/park1x1/smallPark3.png');
+  this.load.image('park_small_palm', 'Models/parks/park2x2/smallPark4.png');
+  this.load.image('park_small', 'Models/parks/park1x1/catProblemPark.png');
+  this.load.image('park_large', 'Models/parks/park3x3/bigPark.png');
   Object.values(POWER_PLANT_MODELS).forEach((model) => {
     this.load.image(model.spriteKey, model.path);
   });
@@ -1819,13 +1913,27 @@ function setupHouseToolMenu(menu) {
 
   sizeMenu.addEventListener('pointerdown', (event) => event.stopPropagation());
   sizeMenu.addEventListener('click', (event) => {
+    const modelButton = event.target.closest('[data-house-model-index]');
+    if (modelButton) {
+      const setKey = modelButton.dataset.houseModelSet;
+      const index = Number(modelButton.dataset.houseModelIndex);
+      if (!setKey || Number.isNaN(index)) return;
+      selectedHouseSet = setKey;
+      selectedTool = 'house';
+      setSelectedHouseIndex(setKey, index);
+      updateHouseToolUi();
+      openHouseSizeMenu();
+      return;
+    }
+
     const button = event.target.closest('[data-house-set]');
     if (!button) return;
 
     selectedHouseSet = button.dataset.houseSet;
     selectedTool = 'house';
-    closeHouseSizeMenu();
+    setSelectedHouseIndex(selectedHouseSet, getSelectedHouseIndex(selectedHouseSet));
     updateHouseToolUi();
+    openHouseSizeMenu();
   });
 }
 
@@ -2995,6 +3103,36 @@ function openHouseSizeMenu(triggerButton = document.querySelector('[data-tool="h
     sizeMenu.append(button);
   });
 
+  const selectedModels = houseModelSets[selectedHouseSet] ?? [];
+  if (selectedModels.length > 1) {
+    const modelRow = document.createElement('div');
+    modelRow.className = 'house-model-row';
+
+    selectedModels.forEach((model, index) => {
+      const button = document.createElement('button');
+      button.className = 'house-model-button';
+      button.type = 'button';
+      button.dataset.houseModelSet = selectedHouseSet;
+      button.dataset.houseModelIndex = String(index);
+      button.classList.toggle('is-active', index === getSelectedHouseIndex(selectedHouseSet));
+      button.title = `${HOUSE_MODEL_SETS[selectedHouseSet]?.label ?? ''} ${model.title}`;
+      button.setAttribute('aria-label', button.title);
+
+      const image = document.createElement('img');
+      image.src = model.path;
+      image.alt = '';
+      image.setAttribute('aria-hidden', 'true');
+
+      const badge = document.createElement('span');
+      badge.textContent = String(index + 1);
+
+      button.append(image, badge);
+      modelRow.append(button);
+    });
+
+    sizeMenu.append(modelRow);
+  }
+
   const buttonBounds = triggerButton?.getBoundingClientRect();
   if (buttonBounds) {
     sizeMenu.style.top = `${buttonBounds.top}px`;
@@ -3029,6 +3167,16 @@ function cycleHouseModel() {
 
 function getSelectedHouseIndex(tool) {
   return selectedHouseIndices[tool] ?? 0;
+}
+
+function setSelectedHouseIndex(tool, index) {
+  const models = houseModelSets[tool] ?? [];
+  if (models.length === 0) {
+    selectedHouseIndices[tool] = 0;
+    return;
+  }
+  const clampedIndex = Math.max(0, Math.min(index, models.length - 1));
+  selectedHouseIndices[tool] = clampedIndex;
 }
 
 function getSelectedHouseModel(tool) {
@@ -3305,9 +3453,27 @@ function prepareHouseModelMetadata(scene) {
       model.scaleMultiplier ?? 1,
       model.scaleXMultiplier ?? 1,
       model.scaleYMultiplier ?? 1,
+      model.alphaThreshold,
     );
     model.metadata.offsetX = model.offsetX ?? 0;
     model.metadata.offsetY = model.offsetY ?? 0;
+    model.metadata.anchorMode = model.anchorMode;
+    if (model.anchorMode === 'effective-bottom-to-map-bottom') {
+      model.metadata.originX = model.metadata.lowestCornerOriginX ?? model.metadata.originX ?? 0.5;
+      model.metadata.originY = model.metadata.lowestCornerOriginY ?? model.metadata.originY ?? 1;
+    }
+    if (model.anchorMode === 'left-bottom') {
+      model.metadata.originX = model.metadata.leftBaseOriginX ?? model.metadata.originX ?? 0.5;
+    }
+    if (
+      model.anchorMode !== 'left-bottom'
+      &&
+      model.footprintCols >= 3
+      && model.footprintCols === model.footprintRows
+      && (model.metadata.originX < 0.35 || model.metadata.originX > 0.65)
+    ) {
+      model.metadata.originX = 0.5;
+    }
   });
 }
 
@@ -3331,6 +3497,8 @@ function prepareParkModelMetadata(scene) {
   parkModelMetadata = {
     park_small_open: getParkModelMetadata(scene, 'park_small_open', 1, 1),
     park_small_playground: getParkModelMetadata(scene, 'park_small_playground', 1, 1),
+    park_small_garden: getParkModelMetadata(scene, 'park_small_garden', 1, 1),
+    park_small_palm: getParkModelMetadata(scene, 'park_small_palm', 2, 2),
     park_small: getParkModelMetadata(scene, 'park_small', 1, 1),
     park_large: getParkModelMetadata(scene, 'park_large', 3, 3),
   };
@@ -3460,6 +3628,7 @@ function getSpriteFootprintMetadata(
   scaleMultiplier = 1,
   scaleXMultiplier = 1,
   scaleYMultiplier = 1,
+  alphaThreshold = EFFECTIVE_PIXEL_ALPHA_THRESHOLD,
 ) {
   const canvas = document.createElement('canvas');
   const context = canvas.getContext('2d', { willReadFrequently: true });
@@ -3471,15 +3640,33 @@ function getSpriteFootprintMetadata(
   let minX = canvas.width;
   let maxX = -1;
   let bottomY = -1;
+  const alphaRows = [];
 
   for (let y = 0; y < canvas.height; y++) {
+    let rowAlphaCount = 0;
+    let rowXTotal = 0;
+    let rowMinX = canvas.width;
+    let rowMaxX = -1;
     for (let x = 0; x < canvas.width; x++) {
       const alpha = pixels[(y * canvas.width + x) * 4 + 3];
-      if (alpha === 0) continue;
+      if (alpha <= alphaThreshold) continue;
 
       minX = Math.min(minX, x);
       maxX = Math.max(maxX, x);
       bottomY = Math.max(bottomY, y);
+      rowAlphaCount += 1;
+      rowXTotal += x;
+      rowMinX = Math.min(rowMinX, x);
+      rowMaxX = Math.max(rowMaxX, x);
+    }
+    if (rowAlphaCount > 0) {
+      alphaRows.push({
+        y,
+        count: rowAlphaCount,
+        xTotal: rowXTotal,
+        minX: rowMinX,
+        maxX: rowMaxX,
+      });
     }
   }
 
@@ -3493,24 +3680,32 @@ function getSpriteFootprintMetadata(
     };
   }
 
-  let bottomXTotal = 0;
-  let bottomXCount = 0;
-  for (let y = Math.max(0, bottomY - 3); y <= bottomY; y++) {
-    for (let x = 0; x < canvas.width; x++) {
-      const alpha = pixels[(y * canvas.width + x) * 4 + 3];
-      if (alpha === 0) continue;
-
-      bottomXTotal += x;
-      bottomXCount += 1;
-    }
-  }
-
+  const maxRowAlphaCount = Math.max(...alphaRows.map((row) => row.count));
+  const baseRowThreshold = Math.max(6, Math.floor(maxRowAlphaCount * 0.08));
+  const stableBaseY = alphaRows
+    .filter((row) => row.count >= baseRowThreshold)
+    .at(-1)?.y ?? bottomY;
+  const baseRows = alphaRows.filter((row) => (
+    row.y >= stableBaseY - 3
+    && row.y <= stableBaseY
+    && row.count >= baseRowThreshold
+  ));
+  const bottomXTotal = baseRows.reduce((sum, row) => sum + row.xTotal, 0);
+  const bottomXCount = baseRows.reduce((sum, row) => sum + row.count, 0);
   const bottomX = bottomXCount > 0 ? bottomXTotal / bottomXCount : (minX + maxX) / 2;
+  const leftBaseX = baseRows.reduce((leftMost, row) => Math.min(leftMost, row.minX), canvas.width);
+  const lowestRows = alphaRows.filter((row) => row.y === bottomY);
+  const lowestXTotal = lowestRows.reduce((sum, row) => sum + row.xTotal, 0);
+  const lowestXCount = lowestRows.reduce((sum, row) => sum + row.count, 0);
+  const lowestCornerX = lowestXCount > 0 ? lowestXTotal / lowestXCount : bottomX;
 
   const scale = (getFootprintScreenWidth(footprintCols, footprintRows) / (maxX - minX + 1)) * scaleMultiplier;
   return {
     originX: bottomX / canvas.width,
-    originY: bottomY / canvas.height,
+    originY: stableBaseY / canvas.height,
+    leftBaseOriginX: leftBaseX < canvas.width ? leftBaseX / canvas.width : minX / canvas.width,
+    lowestCornerOriginX: lowestCornerX / canvas.width,
+    lowestCornerOriginY: bottomY / canvas.height,
     scale,
     scaleX: scale * scaleXMultiplier,
     scaleY: scale * scaleYMultiplier,
@@ -3572,6 +3767,7 @@ function placeHouseModel(scene, row, col, tool) {
     scaleY:  opts.scaleY,
     offsetX: opts.offsetX,
     offsetY: opts.offsetY,
+    anchorMode: opts.anchorMode,
   };
 }
 
@@ -3580,7 +3776,7 @@ function placeSpriteBuilding(scene, row, col, key, options = {}) {
   const footprintCols = options.footprintCols ?? 1;
   const footprintRows = options.footprintRows ?? 1;
   removeTreesInFootprint(scene, row, col, footprintCols, footprintRows);
-  const anchor = getBuildingAnchor(row, col, footprintCols, footprintRows);
+  const anchor = getBuildingAnchor(row, col, footprintCols, footprintRows, options.anchorMode);
   const elevOffset = getBuildingElevationOffset(row, col, footprintCols, footprintRows);
   const building = scene.add.image(
     anchor.x + scene.offsetX + (options.offsetX ?? 0),
@@ -3601,6 +3797,7 @@ function placeSpriteBuilding(scene, row, col, key, options = {}) {
   building.footprintRows = footprintRows;
   building.spriteOffsetX = options.offsetX ?? 0;
   building.spriteOffsetY = options.offsetY ?? 0;
+  building.anchorMode = options.anchorMode;
 
   getFootprintTiles(row, col, footprintCols, footprintRows).forEach(([tileRow, tileCol]) => {
     scene.buildingSprites.set(getTileId(tileRow, tileCol), building);
@@ -3729,7 +3926,13 @@ function removeBuilding(scene, row, col) {
 function positionBuilding(scene, building) {
   const footprintCols = building.footprintCols ?? 1;
   const footprintRows = building.footprintRows ?? 1;
-  const anchor = getBuildingAnchor(building.mapRow, building.mapCol, footprintCols, footprintRows);
+  const anchor = getBuildingAnchor(
+    building.mapRow,
+    building.mapCol,
+    footprintCols,
+    footprintRows,
+    building.anchorMode,
+  );
   const elevOffset = getBuildingElevationOffset(building.mapRow, building.mapCol, footprintCols, footprintRows);
   building.setPosition(
     anchor.x + scene.offsetX + (building.spriteOffsetX ?? 0),
@@ -3784,7 +3987,7 @@ function getFootprintTiles(row, col, footprintCols = 1, footprintRows = 1) {
   return tiles;
 }
 
-function getBuildingAnchor(row, col, footprintCols = 1, footprintRows = 1) {
+function getBuildingAnchor(row, col, footprintCols = 1, footprintRows = 1, anchorMode = 'bottom') {
   // The building sprite's origin is (0.5, 1): its base sits at the visually
   // lowest tile of the footprint (maximum screen-Y vertex of the isometric
   // diamond).  Which logical corner that is depends on the current view rotation:
@@ -8265,6 +8468,10 @@ function setupLandingScreen() {
       e.preventDefault();
       if (isFullscreen()) exitFullscreen();
       else enterFullscreen();
+    }
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === '4') {
+      e.preventDefault();
+      reloadHouse4x4Models();
     }
   });
 }

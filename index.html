@@ -897,6 +897,59 @@
       pointer-events: none;
     }
 
+    .house-model-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding-left: 4px;
+      margin-left: 2px;
+      border-left: 1px solid #a7a08d;
+    }
+
+    .house-model-button {
+      position: relative;
+      display: grid;
+      place-items: center;
+      width: 42px;
+      height: 42px;
+      padding: 0;
+      background: #ece7d4;
+      border: 2px solid #6f6b60;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .house-model-button:hover {
+      background: #f8f0d2;
+    }
+
+    .house-model-button.is-active {
+      background: #f1c65d;
+      box-shadow: inset -1px -1px 0 #fff7cf, inset 1px 1px 0 #8d7025;
+    }
+
+    .house-model-button img {
+      width: 32px;
+      height: 32px;
+      object-fit: contain;
+      pointer-events: none;
+    }
+
+    .house-model-button span {
+      position: absolute;
+      right: 2px;
+      bottom: 1px;
+      padding: 0 3px;
+      color: #1e2427;
+      background: #f1c65d;
+      border: 1px solid #6f6b60;
+      border-radius: 3px;
+      font-size: 9px;
+      line-height: 11px;
+      font-weight: 700;
+      pointer-events: none;
+    }
+
     /* ── Generic tool popup (terrain picker + zone density menu) ─────────── */
 
     .tool-popup {
@@ -2531,7 +2584,7 @@ Ctrl+O       Load game (open saves list)</div>
     <section class="tool-flyout" data-tool-panel="buildings">
       <div class="tool-flyout-title" data-i18n="toolCategory.buildings">Buildings</div>
       <button class="tool-row" type="button" data-tool="house" title="Add house">
-        <span class="tool-row-icon"><img class="tool-image" src="Models/house/houseGermini.png" alt="" aria-hidden="true" /></span>
+        <span class="tool-row-icon"><img class="tool-image" src="Models/residential/house1x1/dingHouse.png" alt="" aria-hidden="true" /></span>
         <span class="tool-row-text" data-i18n="toolRow.house">House</span>
         <span class="tool-badge" aria-hidden="true">1x1</span>
       </button>
@@ -2641,7 +2694,7 @@ Ctrl+O       Load game (open saves list)</div>
 
     <!-- Buildings -->
     <button class="tool-button" type="button" data-tool="house" title="Add house" aria-label="Add house" data-i18n-title="tool.house" data-i18n-aria="tool.house">
-      <img class="tool-image" src="Models/house/houseGermini.png" alt="" aria-hidden="true" />
+      <img class="tool-image" src="Models/residential/house1x1/dingHouse.png" alt="" aria-hidden="true" />
       <span class="tool-badge" aria-hidden="true">1x1</span>
     </button>
 

@@ -55,6 +55,11 @@ const GROW_CHANCE_BASE = 0.4;
 const UPGRADE_CHANCE   = 0.15;
 const SHRINK_CHANCE    = 0.30;
 const RES_2X2_SPAWN_CHANCE = { 1: 0.20, 2: 0.45, 3: 0.70 };
+const RES_LARGE_SPAWN_CHANCE = {
+  3: { 3: 0.18, 4: 0.08 },
+  2: { 3: 0.08, 4: 0.00 },
+  1: { 3: 0.00, 4: 0.00 },
+};
 
 // Population per zone level [unused, level1, level2, level3]
 const POP_PER_LEVEL = [0, 4, 12, 30];

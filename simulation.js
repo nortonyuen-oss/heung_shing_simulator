@@ -286,18 +286,15 @@ function spawnZoneBuilding(scene, r, c, zone, level, density = DENSITY_LOW, opti
   let options = {};
 
   if (zone === ZONE_RES) {
-    // Larger homes are more likely in denser residential zones if a clear 2×2 block is available.
-    const try2x2 = optionsOverride.force2x2
-      ? canPlace2x2Residential(scene, r, c)
-      : Math.random() < getResidential2x2Chance(density) && canPlace2x2Residential(scene, r, c);
-    const setKey  = try2x2 ? 'house2x2' : 'house';
-    const model   = getRandomHouseModel(setKey);
+    const footprintSize = chooseResidentialFootprint(scene, r, c, density, optionsOverride);
+    const setKey = getResidentialHouseSetForFootprint(footprintSize);
+    const model = getRandomHouseModel(setKey);
 
     if (model) {
       key     = model.key;
       options = { ...model.metadata };
-    } else if (try2x2) {
-      // 2×2 models not ready yet — fall back to 1×1
+    } else if (footprintSize > 1) {
+      // Larger models not ready yet — fall back to 1×1.
       const fallback = getRandomHouseModel('house');
       if (fallback) {
         key     = fallback.key;
@@ -347,6 +344,7 @@ function spawnZoneBuilding(scene, r, c, zone, level, density = DENSITY_LOW, opti
     scaleY:  options.scaleY,
     offsetX: options.offsetX,
     offsetY: options.offsetY,
+    anchorMode: options.anchorMode,
   };
   return true;
 }
@@ -355,17 +353,60 @@ function getResidential2x2Chance(density) {
   return RES_2X2_SPAWN_CHANCE[density] ?? RES_2X2_SPAWN_CHANCE[DENSITY_LOW];
 }
 
-// Returns true when a 2×2 block anchored at (r, c) is fully clear and zoned RES.
+function getResidentialLargeSpawnChance(footprintSize, density) {
+  return RES_LARGE_SPAWN_CHANCE[density]?.[footprintSize]
+    ?? RES_LARGE_SPAWN_CHANCE[DENSITY_LOW]?.[footprintSize]
+    ?? 0;
+}
+
+function getResidentialHouseSetForFootprint(footprintSize) {
+  if (footprintSize === 4) return 'house4x4';
+  if (footprintSize === 3) return 'house3x3';
+  if (footprintSize === 2) return 'house2x2';
+  return 'house';
+}
+
+function chooseResidentialFootprint(scene, r, c, density, optionsOverride = {}) {
+  const forcedSize = optionsOverride.forceFootprint ?? (optionsOverride.force2x2 ? 2 : null);
+  if (forcedSize) {
+    return canPlaceResidentialFootprint(scene, r, c, forcedSize) && getRandomHouseModel(getResidentialHouseSetForFootprint(forcedSize))
+      ? forcedSize
+      : 1;
+  }
+
+  const candidates = [4, 3, 2];
+  for (const footprintSize of candidates) {
+    const chance = footprintSize === 2
+      ? getResidential2x2Chance(density)
+      : getResidentialLargeSpawnChance(footprintSize, density);
+    if (chance <= 0 || Math.random() >= chance) continue;
+    if (!getRandomHouseModel(getResidentialHouseSetForFootprint(footprintSize))) continue;
+    if (canPlaceResidentialFootprint(scene, r, c, footprintSize)) return footprintSize;
+  }
+
+  return 1;
+}
+
+// Returns true when a block anchored at (r, c) is fully clear and zoned RES.
+function canPlaceResidentialFootprint(scene, r, c, footprintSize) {
+  return canPlaceZoneBuildingFootprint(scene, r, c, ZONE_RES, footprintSize, footprintSize);
+}
+
 function canPlace2x2Residential(scene, r, c) {
-  return canPlace2x2ZoneBuilding(scene, r, c, ZONE_RES);
+  return canPlaceResidentialFootprint(scene, r, c, 2);
 }
 
 // Multi-tile zone buildings need every footprint tile to match the same zone,
 // be empty, buildable, and sit on the same height plane.
 function canPlace2x2ZoneBuilding(scene, r, c, zoneType) {
+  return canPlaceZoneBuildingFootprint(scene, r, c, zoneType, 2, 2);
+}
+
+function canPlaceZoneBuildingFootprint(scene, r, c, zoneType, footprintCols, footprintRows) {
+  if (!isInsideMap(r, c)) return false;
   const baseHeight = getTileHeight(r, c);
-  for (let dr = 0; dr < 2; dr++) {
-    for (let dc = 0; dc < 2; dc++) {
+  for (let dr = 0; dr < footprintRows; dr++) {
+    for (let dc = 0; dc < footprintCols; dc++) {
       const rr = r + dr, cc = c + dc;
       if (!isInsideMap(rr, cc))                        return false;
       if (zoneMap[rr][cc] !== zoneType)                return false;
@@ -378,61 +419,81 @@ function canPlace2x2ZoneBuilding(scene, r, c, zoneType) {
 }
 
 function tryMergeResidentialCluster(scene, r, c, record) {
-  const anchor = findMergeableResidential2x2Anchor(scene, r, c);
-  if (!anchor) return false;
+  const density = record.density ?? (zoneDensityMap[r]?.[c] ?? DENSITY_LOW);
+  for (const footprintSize of getResidentialMergeFootprintSizes(density)) {
+    const anchor = findMergeableResidentialAnchor(scene, r, c, footprintSize);
+    if (!anchor) continue;
 
-  const targetLevel = Math.min(3, (record.level ?? 1) + 1);
-  const density = getDominantResidentialDensity(anchor.row, anchor.col);
+    const targetLevel = Math.min(3, (record.level ?? 1) + 1);
+    const mergeDensity = getDominantResidentialDensity(anchor.row, anchor.col, footprintSize, footprintSize);
 
-  for (let dr = 0; dr < 2; dr++) {
-    for (let dc = 0; dc < 2; dc++) {
-      removeBuilding(scene, anchor.row + dr, anchor.col + dc);
-    }
+    anchor.buildings.forEach(({ row, col }) => removeBuilding(scene, row, col));
+    spawnZoneBuilding(scene, anchor.row, anchor.col, ZONE_RES, targetLevel, mergeDensity, { forceFootprint: footprintSize });
+    if (city.population > 0) showToast(t('toast.populationGain'));
+    return true;
   }
 
-  spawnZoneBuilding(scene, anchor.row, anchor.col, ZONE_RES, targetLevel, density, { force2x2: true });
-  if (city.population > 0) showToast(t('toast.populationGain'));
-  return true;
+  return false;
 }
 
-function findMergeableResidential2x2Anchor(scene, r, c) {
-  const candidates = [
-    { row: r,     col: c },
-    { row: r - 1, col: c },
-    { row: r,     col: c - 1 },
-    { row: r - 1, col: c - 1 },
-  ];
-
-  return candidates.find(({ row, col }) => canMergeResidential2x2At(scene, row, col)) ?? null;
+function getResidentialMergeFootprintSizes(density) {
+  if (density >= DENSITY_HIGH) return [4, 3, 2];
+  if (density >= DENSITY_MED) return [3, 2];
+  return [2];
 }
 
-function canMergeResidential2x2At(scene, r, c) {
+function findMergeableResidentialAnchor(scene, r, c, footprintSize) {
+  for (let row = r - footprintSize + 1; row <= r; row++) {
+    for (let col = c - footprintSize + 1; col <= c; col++) {
+      const buildings = getMergeableResidentialBuildingsAt(scene, row, col, footprintSize);
+      if (buildings) return { row, col, buildings };
+    }
+  }
+  return null;
+}
+
+function getMergeableResidentialBuildingsAt(scene, r, c, footprintSize) {
+  if (!isInsideMap(r, c)) return null;
+  if (!getRandomHouseModel(getResidentialHouseSetForFootprint(footprintSize))) return null;
+
   const baseHeight = getTileHeight(r, c);
-  for (let dr = 0; dr < 2; dr++) {
-    for (let dc = 0; dc < 2; dc++) {
+  const anchors = new Map();
+
+  for (let dr = 0; dr < footprintSize; dr++) {
+    for (let dc = 0; dc < footprintSize; dc++) {
       const rr = r + dr, cc = c + dc;
-      if (!isInsideMap(rr, cc)) return false;
-      if (zoneMap[rr][cc] !== ZONE_RES) return false;
-      if (!canPlaceBuilding(rr, cc)) return false;
-      if (getTileHeight(rr, cc) !== baseHeight) return false;
+      if (!isInsideMap(rr, cc)) return null;
+      if (zoneMap[rr][cc] !== ZONE_RES) return null;
+      if (!canPlaceBuilding(rr, cc)) return null;
+      if (getTileHeight(rr, cc) !== baseHeight) return null;
 
       const id = getTileId(rr, cc);
       const sprite = scene.buildingSprites.get(id);
-      const rec = buildingData[id];
-      if (!sprite || !rec) return false;
-      if (sprite.mapRow !== rr || sprite.mapCol !== cc) return false;
-      if (rec.type !== 'residential') return false;
-      if ((rec.footprintCols ?? 1) !== 1 || (rec.footprintRows ?? 1) !== 1) return false;
+      const rec = sprite ? buildingData[getTileId(sprite.mapRow, sprite.mapCol)] : null;
+      if (!sprite || !rec) return null;
+      if (rec.type !== 'residential') return null;
+      if (!isBuildingInsideFootprint(sprite.mapRow, sprite.mapCol, rec, r, c, footprintSize, footprintSize)) return null;
+
+      anchors.set(getTileId(sprite.mapRow, sprite.mapCol), { row: sprite.mapRow, col: sprite.mapCol });
     }
   }
 
-  return getRandomHouseModel('house2x2') !== null;
+  return anchors.size >= 2 ? [...anchors.values()] : null;
 }
 
-function getDominantResidentialDensity(r, c) {
+function isBuildingInsideFootprint(row, col, record, targetRow, targetCol, footprintCols, footprintRows) {
+  const cols = record.footprintCols ?? 1;
+  const rows = record.footprintRows ?? 1;
+  return row >= targetRow
+    && col >= targetCol
+    && row + rows <= targetRow + footprintRows
+    && col + cols <= targetCol + footprintCols;
+}
+
+function getDominantResidentialDensity(r, c, footprintCols = 2, footprintRows = 2) {
   const counts = new Map();
-  for (let dr = 0; dr < 2; dr++) {
-    for (let dc = 0; dc < 2; dc++) {
+  for (let dr = 0; dr < footprintRows; dr++) {
+    for (let dc = 0; dc < footprintCols; dc++) {
       const density = zoneDensityMap[r + dr]?.[c + dc] ?? DENSITY_LOW;
       counts.set(density, (counts.get(density) ?? 0) + 1);
     }

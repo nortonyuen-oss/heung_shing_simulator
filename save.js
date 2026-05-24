@@ -366,6 +366,7 @@ function normalizeLoadedBuildingOptions(key, record) {
     scaleY: record.scaleY,
     offsetX: record.offsetX,
     offsetY: record.offsetY,
+    anchorMode: record.anchorMode,
   };
 
   if (typeof isPowerPlantSpriteKey === 'function' && isPowerPlantSpriteKey(key) && typeof normalizeSpriteBuildingOptions === 'function') {

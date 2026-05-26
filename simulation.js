@@ -1,5 +1,11 @@
 // ── Sim tick orchestrator ─────────────────────────────────────────────────────
 
+const MODEL_VARIATION_USAGE_WEIGHT = 0.7;
+const MODEL_VARIATION_RECENT_PENALTY = 0.18;
+const MODEL_VARIATION_MIN_WEIGHT = 0.04;
+const modelUsageCounts = new Map();
+const modelRecentHistory = new Map();
+
 function runSimTick(scene) {
   if (!scene) return;
 
@@ -239,6 +245,10 @@ function updateDemand() {
 // ── Zone growth / shrink ──────────────────────────────────────────────────────
 
 function growOrShrinkZones(scene) {
+  const landValueMap = typeof computeLandValueMap === 'function'
+    ? computeLandValueMap()
+    : null;
+
   for (let r = 0; r < MAP_HEIGHT; r++) {
     for (let c = 0; c < MAP_WIDTH; c++) {
       const zone = zoneMap[r][c];
@@ -260,19 +270,26 @@ function growOrShrinkZones(scene) {
         : 0.03;
       const density    = zoneDensityMap[r][c] ?? DENSITY_LOW;
       const densityMul = DENSITY_GROW_MUL[density] ?? 1.0;
+      const landScore = getZoneGrowthLandScore(r, c, zone, landValueMap);
+      const growthLandMul = 0.72 + landScore * 0.85;
 
       if (!hasBldg) {
         // Grow a new building
-        if (hasRoad && demand > 0 && Math.random() < demand * GROW_CHANCE_BASE * powerMul * densityMul) {
-          spawnZoneBuilding(scene, r, c, zone, 1, density);
+        if (hasRoad && demand > 0 && Math.random() < demand * GROW_CHANCE_BASE * powerMul * densityMul * growthLandMul) {
+          spawnZoneBuilding(scene, r, c, zone, 1, density, { landScore });
         }
       } else {
         const record = buildingData[id];
         if (!record || !['residential', 'commercial', 'industrial'].includes(record.type)) continue;
 
-        if (record.level < 3 && hasRoad && demand > 0.5 && Math.random() < UPGRADE_CHANCE * powerMul * densityMul) {
+        const footprintArea = (record.footprintCols ?? 1) * (record.footprintRows ?? 1);
+        const footprintTier = Math.max(0, Math.sqrt(footprintArea) - 1);
+        const upgradeDemandGate = Math.max(0.3, 0.5 - landScore * 0.2);
+        const upgradePremiumMul = 0.72 + landScore * 1.05 + footprintTier * 0.20;
+
+        if (record.level < 3 && hasRoad && demand > upgradeDemandGate && Math.random() < UPGRADE_CHANCE * powerMul * densityMul * upgradePremiumMul) {
           if (zone === ZONE_RES && tryMergeResidentialCluster(scene, r, c, record)) continue;
-          upgradeZoneBuilding(scene, r, c, zone);
+          upgradeZoneBuilding(scene, r, c, zone, landScore);
         } else if ((!hasRoad || demand < -0.5 || cityPower < 0.35) && Math.random() < SHRINK_CHANCE * (cityPower < 0.35 ? 1.5 : 1)) {
           shrinkOrRemoveZoneBuilding(scene, r, c);
         }
@@ -284,9 +301,10 @@ function growOrShrinkZones(scene) {
 function spawnZoneBuilding(scene, r, c, zone, level, density = DENSITY_LOW, optionsOverride = {}) {
   let key;
   let options = {};
+  const landScore = clamp(optionsOverride.landScore ?? 0.5, 0, 1);
 
   if (zone === ZONE_RES) {
-    const footprintSize = chooseResidentialFootprint(scene, r, c, density, optionsOverride);
+    const footprintSize = chooseResidentialFootprint(scene, r, c, density, optionsOverride, landScore);
     const setKey = getResidentialHouseSetForFootprint(footprintSize);
     const model = getRandomHouseModel(setKey);
 
@@ -307,14 +325,21 @@ function spawnZoneBuilding(scene, r, c, zone, level, density = DENSITY_LOW, opti
       key = BUILDING_KEYS[Math.floor(Math.random() * 20)];
     }
   } else if (zone === ZONE_COM) {
-    const canUse2x2 = canPlace2x2ZoneBuilding(scene, r, c, ZONE_COM);
-    const model = getRandomCommercialBuildingModel(canUse2x2 ? 2 : 1, canUse2x2 ? 2 : 1);
+    const footprintSize = chooseNonResidentialFootprint(scene, r, c, zone, density, landScore);
+    const model = getRandomCommercialBuildingModel(footprintSize, footprintSize);
     if (!model) return false;
 
     key     = model.key;
     options = { ...model.metadata };
   } else {
-    key = BUILDING_KEYS[39 + Math.floor(Math.random() * 39)];
+    const footprintSize = chooseNonResidentialFootprint(scene, r, c, zone, density, landScore);
+    const model = getRandomIndustrialBuildingModel(footprintSize, footprintSize);
+    if (model) {
+      key = model.key;
+      options = { ...model.metadata };
+    } else {
+      key = BUILDING_KEYS[39 + Math.floor(Math.random() * 39)];
+    }
   }
 
   const fp  = options.footprintCols ?? 1;
@@ -366,7 +391,7 @@ function getResidentialHouseSetForFootprint(footprintSize) {
   return 'house';
 }
 
-function chooseResidentialFootprint(scene, r, c, density, optionsOverride = {}) {
+function chooseResidentialFootprint(scene, r, c, density, optionsOverride = {}, landScore = 0.5) {
   const forcedSize = optionsOverride.forceFootprint ?? (optionsOverride.force2x2 ? 2 : null);
   if (forcedSize) {
     return canPlaceResidentialFootprint(scene, r, c, forcedSize) && getRandomHouseModel(getResidentialHouseSetForFootprint(forcedSize))
@@ -379,7 +404,9 @@ function chooseResidentialFootprint(scene, r, c, density, optionsOverride = {}) 
     const chance = footprintSize === 2
       ? getResidential2x2Chance(density)
       : getResidentialLargeSpawnChance(footprintSize, density);
-    if (chance <= 0 || Math.random() >= chance) continue;
+    const largeLotBoost = getLargeLotSpawnBoost(landScore, footprintSize);
+    const adjustedChance = Math.min(0.95, chance * largeLotBoost);
+    if (adjustedChance <= 0 || Math.random() >= adjustedChance) continue;
     if (!getRandomHouseModel(getResidentialHouseSetForFootprint(footprintSize))) continue;
     if (canPlaceResidentialFootprint(scene, r, c, footprintSize)) return footprintSize;
   }
@@ -400,6 +427,33 @@ function canPlace2x2Residential(scene, r, c) {
 // be empty, buildable, and sit on the same height plane.
 function canPlace2x2ZoneBuilding(scene, r, c, zoneType) {
   return canPlaceZoneBuildingFootprint(scene, r, c, zoneType, 2, 2);
+}
+
+function chooseNonResidentialFootprint(scene, r, c, zone, density, landScore = 0.5) {
+  const candidates = zone === ZONE_COM ? [4, 3, 2] : [3, 2];
+  for (const footprintSize of candidates) {
+    const chance = getNonResidentialLargeSpawnChance(zone, footprintSize, density);
+    const largeLotBoost = getLargeLotSpawnBoost(landScore, footprintSize);
+    const adjustedChance = Math.min(0.95, chance * largeLotBoost);
+    if (adjustedChance <= 0 || Math.random() >= adjustedChance) continue;
+    if (!getRandomNonResidentialModel(zone, footprintSize)) continue;
+    if (canPlaceZoneBuildingFootprint(scene, r, c, zone, footprintSize, footprintSize)) {
+      return footprintSize;
+    }
+  }
+  return 1;
+}
+
+function getNonResidentialLargeSpawnChance(zone, footprintSize, density) {
+  const table = zone === ZONE_COM ? COM_LARGE_SPAWN_CHANCE : IND_LARGE_SPAWN_CHANCE;
+  return table?.[density]?.[footprintSize] ?? 0;
+}
+
+function getRandomNonResidentialModel(zone, footprintSize) {
+  if (zone === ZONE_COM) {
+    return getRandomCommercialBuildingModel(footprintSize, footprintSize);
+  }
+  return getRandomIndustrialBuildingModel(footprintSize, footprintSize);
 }
 
 function canPlaceZoneBuildingFootprint(scene, r, c, zoneType, footprintCols, footprintRows) {
@@ -503,13 +557,13 @@ function getDominantResidentialDensity(r, c, footprintCols = 2, footprintRows = 
     .sort((a, b) => b[1] - a[1] || b[0] - a[0])[0]?.[0] ?? DENSITY_LOW;
 }
 
-function upgradeZoneBuilding(scene, r, c, zone) {
+function upgradeZoneBuilding(scene, r, c, zone, landScore = 0.5) {
   const id      = getTileId(r, c);
   const record  = buildingData[id];
   if (!record || record.level >= 3) return;
   const density = record.density ?? (zoneDensityMap[r][c] ?? DENSITY_LOW);
   removeBuilding(scene, r, c);
-  spawnZoneBuilding(scene, r, c, zone, record.level + 1, density);
+  spawnZoneBuilding(scene, r, c, zone, record.level + 1, density, { landScore });
 
   if (city.population > 0) showToast(t('toast.populationGain'));
 }
@@ -582,7 +636,7 @@ function getRandomHouseModel(setKey = 'house') {
   // Only use models whose scale was computed successfully (> 0.05 avoids near-invisible sprites)
   const valid = all.filter((m) => m.metadata && m.metadata.scale > 0.05);
   if (valid.length === 0) return null;
-  return valid[Math.floor(Math.random() * valid.length)];
+  return pickVariedModel(valid, `house:${setKey}`);
 }
 
 function getRandomCommercialBuildingModel(footprintCols = null, footprintRows = null) {
@@ -594,7 +648,89 @@ function getRandomCommercialBuildingModel(footprintCols = null, footprintRows = 
     && (footprintRows === null || m.footprintRows === footprintRows)
   ));
   if (valid.length === 0) return null;
-  return valid[Math.floor(Math.random() * valid.length)];
+  return pickVariedModel(valid, `commercial:${footprintCols ?? 'any'}x${footprintRows ?? 'any'}`);
+}
+
+function getRandomIndustrialBuildingModel(footprintCols = null, footprintRows = null) {
+  const all = Array.isArray(industrialBuildingModels) ? industrialBuildingModels : [];
+  const valid = all.filter((m) => (
+    m.metadata
+    && m.metadata.scale > 0.05
+    && (footprintCols === null || m.footprintCols === footprintCols)
+    && (footprintRows === null || m.footprintRows === footprintRows)
+  ));
+  if (valid.length === 0) return null;
+  return pickVariedModel(valid, `industrial:${footprintCols ?? 'any'}x${footprintRows ?? 'any'}`);
+}
+
+function getZoneGrowthLandScore(row, col, zone, landValueMap = null) {
+  if (Array.isArray(landValueMap)) {
+    const value = landValueMap[row]?.[col];
+    if (Number.isFinite(value)) return clamp(value, 0, 1);
+  }
+
+  let score = 0.35;
+  if (serviceMap[row]?.[col]?.police) score += 0.22;
+  if (serviceMap[row]?.[col]?.fire) score += 0.22;
+  if (zone === ZONE_RES) score += (serviceMap[row]?.[col]?.park ?? 0) * 0.12;
+  if (powerMap[row]?.[col]) score += 0.10;
+  if (zone === ZONE_RES) {
+    if (typeof getTreeInfluenceValue === 'function') {
+      score += clamp(getTreeInfluenceValue(row, col), 0, 1) * TREE_LAND_VALUE_BONUS_MAX;
+    }
+    if (typeof getScenicValue === 'function') {
+      score += clamp(getScenicValue(row, col), 0, 1) * SCENIC_LAND_VALUE_BONUS_MAX;
+    }
+  }
+
+  const pollutionPenalty = clamp(city.pollution / 220, 0, 0.35);
+  return clamp(score - pollutionPenalty, 0, 1);
+}
+
+function getLargeLotSpawnBoost(landScore, footprintSize) {
+  const normalizedScore = clamp(landScore, 0, 1);
+  const tierWeight = footprintSize >= 4 ? 1.2 : footprintSize >= 3 ? 0.95 : 0.6;
+  return 0.75 + normalizedScore * tierWeight;
+}
+
+function pickVariedModel(models, bucketKey) {
+  if (!Array.isArray(models) || models.length === 0) return null;
+  if (models.length === 1) return models[0];
+
+  const usage = modelUsageCounts.get(bucketKey) ?? new Map();
+  const recent = modelRecentHistory.get(bucketKey) ?? [];
+
+  const weighted = models.map((model) => {
+    const usedCount = usage.get(model.key) ?? 0;
+    let weight = 1 / (1 + usedCount * MODEL_VARIATION_USAGE_WEIGHT);
+    if (recent.includes(model.key)) weight *= MODEL_VARIATION_RECENT_PENALTY;
+    return {
+      model,
+      weight: Math.max(MODEL_VARIATION_MIN_WEIGHT, weight),
+    };
+  });
+
+  const totalWeight = weighted.reduce((sum, entry) => sum + entry.weight, 0);
+  let roll = Math.random() * totalWeight;
+  let chosen = weighted[weighted.length - 1].model;
+
+  for (const entry of weighted) {
+    roll -= entry.weight;
+    if (roll <= 0) {
+      chosen = entry.model;
+      break;
+    }
+  }
+
+  usage.set(chosen.key, (usage.get(chosen.key) ?? 0) + 1);
+  modelUsageCounts.set(bucketKey, usage);
+
+  const nextRecent = [...recent, chosen.key];
+  const maxRecentWindow = Math.max(2, Math.min(6, models.length - 1));
+  while (nextRecent.length > maxRecentWindow) nextRecent.shift();
+  modelRecentHistory.set(bucketKey, nextRecent);
+
+  return chosen;
 }
 
 // ── Population & pollution counters ──────────────────────────────────────────
@@ -827,11 +963,10 @@ function getCardinalNeighbors(r, c) {
 }
 
 function hasAdjacentRoad(row, col) {
-  // Road-accessible = any road tile within Chebyshev distance 2.
-  // This covers: directly adjacent (distance 1) AND one plot further away (distance 2),
-  // matching the SimCity rule that buildings can be set back one tile from a road.
-  for (let dr = -2; dr <= 2; dr++) {
-    for (let dc = -2; dc <= 2; dc++) {
+  // Road-accessible = any road tile within Chebyshev distance 3.
+  // This allows development to sit up to three tiles away from a road.
+  for (let dr = -3; dr <= 3; dr++) {
+    for (let dc = -3; dc <= 3; dc++) {
       const r = row + dr, c = col + dc;
       if (isInsideMap(r, c) && (
         mapData[r][c] === ROAD

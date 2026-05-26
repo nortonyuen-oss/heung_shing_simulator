@@ -60,6 +60,16 @@ const RES_LARGE_SPAWN_CHANCE = {
   2: { 3: 0.08, 4: 0.00 },
   1: { 3: 0.00, 4: 0.00 },
 };
+const COM_LARGE_SPAWN_CHANCE = {
+  3: { 2: 0.70, 3: 0.40, 4: 0.18 },
+  2: { 2: 0.55, 3: 0.20, 4: 0.06 },
+  1: { 2: 0.30, 3: 0.00, 4: 0.00 },
+};
+const IND_LARGE_SPAWN_CHANCE = {
+  3: { 2: 0.65, 3: 0.30 },
+  2: { 2: 0.48, 3: 0.14 },
+  1: { 2: 0.24, 3: 0.00 },
+};
 
 // Population per zone level [unused, level1, level2, level3]
 const POP_PER_LEVEL = [0, 4, 12, 30];
@@ -132,16 +142,12 @@ const SERVICE_BUILDING_MODELS = {
     path: 'Models/govBuildings/fireStation.png',
     footprintCols: 2,
     footprintRows: 2,
-    scaleMultiplier: 0.9,
-    scaleYMultiplier: 0.9,
   },
   police_station: {
     spriteKey: 'police_station_2x2',
     path: 'Models/govBuildings/policeStation.png',
     footprintCols: 2,
     footprintRows: 2,
-    scaleMultiplier: 0.9,
-    scaleYMultiplier: 0.9,
   },
 };
 

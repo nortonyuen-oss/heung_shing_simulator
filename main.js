@@ -7,6 +7,8 @@ const BUILDING_SURFACE_Y_OFFSET = TILE_IMAGE_HEIGHT - TILE_HEIGHT;
 const EFFECTIVE_PIXEL_ALPHA_THRESHOLD = 20;
 const MAP_WIDTH = 256;
 const MAP_HEIGHT = 256;
+const MODEL_METADATA_CACHE_KEY = 'citybuilder:modelMetadata:v2';
+const INITIAL_ZONE_MODELS_PER_FOOTPRINT = 1;
 // originX shifts the grid horizontally so it is centered on the screen
 const ORIGIN_X = MAP_HEIGHT * (TILE_WIDTH / 2);
 const HOUSE_MODEL_SETS = {
@@ -34,11 +36,6 @@ const HOUSE_MODEL_SETS = {
       'publicHousing1.png',
       'publicHousing5.png',
     ],
-    fileOverrides: {
-      'publicHousing1.png': { scaleMultiplier: 0.817, scaleYMultiplier: 0.92, offsetY: -8 },
-      'publicHousing2.png': { scaleMultiplier: 0.817, scaleYMultiplier: 0.92, offsetY: -8 },
-      'publicHousing3.png': { scaleMultiplier: 0.817, scaleYMultiplier: 0.92, offsetY: -8 },
-    },
     footprintCols: 2,
     footprintRows: 2,
   },
@@ -66,10 +63,6 @@ const HOUSE_MODEL_SETS = {
       'privateHousing3.png',
       'privateHousing4.png',
     ],
-    fileOverrides: {
-      'privateHousing3.png': { offsetX: 0, offsetY: 0 },
-      'privateHousing4.png': { offsetX: 0, offsetY: 0 },
-    },
     footprintCols: 4,
     footprintRows: 4,
   },
@@ -90,37 +83,209 @@ const COMMERCIAL_BUILDING_MODEL_SETS = [
     keyPrefix: 'commercial_building_1x1',
     folder: 'Models/commercialBuildings/1x1/',
     apiFolder: 'commercialBuildings/1x1',
-    preferredFiles: [
-      'commercialBuilding04.png',
-      'commercialBuilding05.png',
+    fallbackSourceFiles: [
       'commercialBuilding09.png',
       'commercialBuilding10.png',
+      'commercialBuilding1-01_fixed.png',
     ],
+    preferredFiles: [
+      'commercialBuilding01.png',
+      'commercialBuilding02.png',
+      'commercialBuilding03.png',
+    ],
+    fileAliases: buildSequentialFileAliases([
+      'commercialBuilding09.png',
+      'commercialBuilding10.png',
+      'commercialBuilding1-01_fixed.png',
+    ], [
+      'commercialBuilding01.png',
+      'commercialBuilding02.png',
+      'commercialBuilding03.png',
+    ]),
     footprintCols: 1,
     footprintRows: 1,
-    scaleMultiplier: 0.9,
-    scaleYMultiplier: 0.9,
   },
   {
     keyPrefix: 'commercial_building_2x2',
     folder: 'Models/commercialBuildings/2x2/',
     apiFolder: 'commercialBuildings/2x2',
+    fallbackSourceFiles: [
+      'commercialBuilding2-01_fixed.png',
+      'commercialBuilding2-02_fixed.png',
+      'commercialBuilding2-04_fixed.png',
+      'commercialBuilding2-05_fixed.png',
+      'commercialBuilding2-06_fixed.png',
+      'commercialBuilding2-07_fixed.png',
+    ],
     preferredFiles: [
       'commercialBuilding01.png',
       'commercialBuilding02.png',
       'commercialBuilding03.png',
+      'commercialBuilding04.png',
+      'commercialBuilding05.png',
       'commercialBuilding06.png',
-      'commercialBuilding07.png',
-      'commercialBuilding08.png',
-      'commercialBuilding11.png',
     ],
-    fileOverrides: {
-      'commercialBuilding11.png': { scaleMultiplier: 0.9, offsetX: -10, offsetY: -10 },
-    },
+    fileAliases: buildSequentialFileAliases([
+      'commercialBuilding2-01_fixed.png',
+      'commercialBuilding2-02_fixed.png',
+      'commercialBuilding2-04_fixed.png',
+      'commercialBuilding2-05_fixed.png',
+      'commercialBuilding2-06_fixed.png',
+      'commercialBuilding2-07_fixed.png',
+    ], [
+      'commercialBuilding01.png',
+      'commercialBuilding02.png',
+      'commercialBuilding03.png',
+      'commercialBuilding04.png',
+      'commercialBuilding05.png',
+      'commercialBuilding06.png',
+    ]),
     footprintCols: 2,
     footprintRows: 2,
-    scaleMultiplier: 0.9,
-    scaleYMultiplier: 0.9,
+  },
+  {
+    keyPrefix: 'commercial_building_3x3',
+    folder: 'Models/commercialBuildings/3x3/',
+    apiFolder: 'commercialBuildings/3x3',
+    fallbackSourceFiles: [
+      'commercialBuilding3-01_fixed.png',
+      'commercialBuilding3-02_fixed.png',
+      'commercialBuilding3-03_fixed.png',
+      'commercialBuilding3-04_fixed.png',
+      'commercialBuilding3-05_fixed.png',
+    ],
+    preferredFiles: [
+      'commercialBuilding01.png',
+      'commercialBuilding02.png',
+      'commercialBuilding03.png',
+      'commercialBuilding04.png',
+      'commercialBuilding05.png',
+    ],
+    fileAliases: buildSequentialFileAliases([
+      'commercialBuilding3-01_fixed.png',
+      'commercialBuilding3-02_fixed.png',
+      'commercialBuilding3-03_fixed.png',
+      'commercialBuilding3-04_fixed.png',
+      'commercialBuilding3-05_fixed.png',
+    ], [
+      'commercialBuilding01.png',
+      'commercialBuilding02.png',
+      'commercialBuilding03.png',
+      'commercialBuilding04.png',
+      'commercialBuilding05.png',
+    ]),
+    footprintCols: 3,
+    footprintRows: 3,
+  },
+  {
+    keyPrefix: 'commercial_building_4x4',
+    folder: 'Models/commercialBuildings/4x4/',
+    apiFolder: 'commercialBuildings/4x4',
+    fallbackSourceFiles: [
+      'commercialBuilding4-01_fixed.png',
+    ],
+    preferredFiles: [
+      'commercialBuilding01.png',
+    ],
+    fileAliases: buildSequentialFileAliases([
+      'commercialBuilding4-01_fixed.png',
+    ], [
+      'commercialBuilding01.png',
+    ]),
+    footprintCols: 4,
+    footprintRows: 4,
+  },
+];
+const INDUSTRIAL_BUILDING_MODEL_SETS = [
+  {
+    keyPrefix: 'industrial_building_1x1',
+    folder: 'Models/industrialBuildings/1x1/',
+    apiFolder: 'industrialBuildings/1x1',
+    fallbackSourceFiles: [
+      'industrialBuilding1-01_fixed.png',
+      'industrialBuilding1-02_fixed.png',
+    ],
+    preferredFiles: [
+      'industrialBuilding01.png',
+      'industrialBuilding02.png',
+    ],
+    fileAliases: buildSequentialFileAliases([
+      'industrialBuilding1-01_fixed.png',
+      'industrialBuilding1-02_fixed.png',
+    ], [
+      'industrialBuilding01.png',
+      'industrialBuilding02.png',
+    ]),
+    footprintCols: 1,
+    footprintRows: 1,
+  },
+  {
+    keyPrefix: 'industrial_building_2x2',
+    folder: 'Models/industrialBuildings/2x2/',
+    apiFolder: 'industrialBuildings/2x2',
+    fallbackSourceFiles: [
+      'industrialBuilding2-01_fixed.png',
+      'industrialBuilding2-02_fixed.png',
+      'industrialBuilding2-03_fixed.png',
+      'industrialBuilding2-04_fixed.png',
+      'industrialBuilding2-05_fixed.png',
+      'sciencePark2-01_fixed.png',
+      'sciencePark2-02_fixed.png',
+    ],
+    preferredFiles: [
+      'industrialBuilding01.png',
+      'industrialBuilding02.png',
+      'industrialBuilding03.png',
+      'industrialBuilding04.png',
+      'industrialBuilding05.png',
+      'industrialBuilding06.png',
+      'industrialBuilding07.png',
+    ],
+    fileAliases: buildSequentialFileAliases([
+      'industrialBuilding2-01_fixed.png',
+      'industrialBuilding2-02_fixed.png',
+      'industrialBuilding2-03_fixed.png',
+      'industrialBuilding2-04_fixed.png',
+      'industrialBuilding2-05_fixed.png',
+      'sciencePark2-01_fixed.png',
+      'sciencePark2-02_fixed.png',
+    ], [
+      'industrialBuilding01.png',
+      'industrialBuilding02.png',
+      'industrialBuilding03.png',
+      'industrialBuilding04.png',
+      'industrialBuilding05.png',
+      'industrialBuilding06.png',
+      'industrialBuilding07.png',
+    ]),
+    footprintCols: 2,
+    footprintRows: 2,
+  },
+  {
+    keyPrefix: 'industrial_building_3x3',
+    folder: 'Models/industrialBuildings/3x3/',
+    apiFolder: 'industrialBuildings/3x3',
+    fallbackSourceFiles: [
+      'industrialBuilding3-01_fixed.png',
+      'industrialBuilding3-02_fixed.png',
+      'sciencePark3-01_fixed.png',
+    ],
+    preferredFiles: [
+      'industrialBuilding01.png',
+      'industrialBuilding02.png',
+      'industrialBuilding03.png',
+    ],
+    fileAliases: buildSequentialFileAliases([
+      'industrialBuilding3-01_fixed.png',
+      'industrialBuilding3-02_fixed.png',
+      'sciencePark3-01_fixed.png',
+    ], [
+      'industrialBuilding01.png',
+      'industrialBuilding02.png',
+      'industrialBuilding03.png',
+    ]),
+    footprintCols: 3,
+    footprintRows: 3,
   },
 ];
 // Terrain tile type constants (GROUND–HILL defined here; zones defined in constants.js)
@@ -202,6 +367,8 @@ let musicLoopMode = 'all';   // 'all' = auto-advance, 'one' = loop current track
 let nextBuildingIndex = 0;
 let houseModelSets = {};
 let commercialBuildingModels = [];
+let industrialBuildingModels = [];
+let modelMetadataCacheStore = loadModelMetadataCacheStore();
 let selectedHouseIndices = {};
 let selectedHouseSet = 'house';
 let housePressTimer = null;
@@ -441,6 +608,22 @@ function createTerrainPresetOptionLabel(preset) {
 function setPresetSelectLoading(terrainPresetSelect) {
   if (!terrainPresetSelect) return;
   terrainPresetSelect.innerHTML = `<option value="">${t('landing.terrainPresetLoading')}</option>`;
+}
+
+function buildSequentialFileAliases(sourceFileNames, canonicalFileNames) {
+  const aliases = {};
+  const safeSourceFileNames = (Array.isArray(sourceFileNames) ? sourceFileNames : [])
+    .filter((fileName) => typeof fileName === 'string' && fileName.trim().length > 0);
+  const safeCanonicalFileNames = (Array.isArray(canonicalFileNames) ? canonicalFileNames : [])
+    .filter((fileName) => typeof fileName === 'string' && fileName.trim().length > 0);
+
+  safeSourceFileNames.forEach((sourceFileName, index) => {
+    aliases[sourceFileName] = safeCanonicalFileNames[index]
+      ?? safeCanonicalFileNames[safeCanonicalFileNames.length - 1]
+      ?? sourceFileName;
+  });
+
+  return aliases;
 }
 
 const TOKYO_REAL_COASTLINE_POLYGONS = [
@@ -1192,6 +1375,7 @@ initializeGame();
 async function initializeGame() {
   houseModelSets = await discoverHouseModelSets();
   commercialBuildingModels = await discoverCommercialBuildingModels();
+  industrialBuildingModels = await discoverIndustrialBuildingModels();
   setupToolMenu();
   setupMenuBar();
   updateHouseToolUi();
@@ -1211,6 +1395,13 @@ async function discoverHouseModelSets() {
 
 async function discoverCommercialBuildingModels() {
   const sets = await Promise.all(COMMERCIAL_BUILDING_MODEL_SETS.map((config) => (
+    discoverModelFiles(config.keyPrefix, config.apiFolder, config)
+  )));
+  return sets.flat();
+}
+
+async function discoverIndustrialBuildingModels() {
+  const sets = await Promise.all(INDUSTRIAL_BUILDING_MODEL_SETS.map((config) => (
     discoverModelFiles(config.keyPrefix, config.apiFolder, config)
   )));
   return sets.flat();
@@ -1254,7 +1445,10 @@ async function reloadHouse4x4Models() {
 window.reloadHouse4x4Models = reloadHouse4x4Models;
 
 async function discoverModelFiles(keyPrefix, apiFolder, config) {
-  const fallbackFiles = config.preferredFiles ?? [config.defaultFile];
+  const fallbackFiles = (config.fallbackSourceFiles?.length
+    ? config.fallbackSourceFiles
+    : (config.preferredFiles?.length ? config.preferredFiles : [config.defaultFile]))
+    .filter((fileName) => typeof fileName === 'string' && fileName.trim().length > 0);
   const fallbackModels = createModelEntries(keyPrefix, fallbackFiles, config);
 
   try {
@@ -1271,27 +1465,92 @@ async function discoverModelFiles(keyPrefix, apiFolder, config) {
 }
 
 function sortModelFiles(fileNames, config) {
+  const extensionPriority = new Map([
+    ['.webp', 0],
+    ['.png', 1],
+    ['.jpg', 2],
+    ['.jpeg', 3],
+  ]);
+  const getExt = (fileName) => {
+    const lower = fileName.toLowerCase();
+    const dot = lower.lastIndexOf('.');
+    return dot >= 0 ? lower.slice(dot) : '';
+  };
+  const stripExt = (fileName) => fileName.replace(/\.[^.]+$/, '');
   const preferred = config.preferredFiles ?? [];
-  const rank = new Map(preferred.map((fileName, index) => [fileName, index]));
+  const rank = new Map(preferred.map((fileName, index) => [stripExt(fileName), index]));
   const disabled = new Set(config.disabledFiles ?? []);
+  const aliases = config.fileAliases ?? {};
+  const dedupedByBaseName = new Map();
 
-  return fileNames.filter((fileName) => !disabled.has(fileName)).sort((a, b) => {
-    const aRank = rank.has(a) ? rank.get(a) : Number.POSITIVE_INFINITY;
-    const bRank = rank.has(b) ? rank.get(b) : Number.POSITIVE_INFINITY;
+  const safeFileNames = (Array.isArray(fileNames) ? fileNames : [])
+    .filter((fileName) => typeof fileName === 'string' && fileName.trim().length > 0);
+
+  safeFileNames.filter((fileName) => !disabled.has(fileName)).forEach((fileName) => {
+    const canonicalFileName = aliases[fileName] ?? fileName;
+    const baseName = stripExt(canonicalFileName);
+    const existing = dedupedByBaseName.get(baseName);
+    if (!existing) {
+      dedupedByBaseName.set(baseName, { fileName: canonicalFileName, sourceFileName: fileName });
+      return;
+    }
+
+    const existingRank = extensionPriority.get(getExt(existing.sourceFileName)) ?? Number.POSITIVE_INFINITY;
+    const candidateRank = extensionPriority.get(getExt(fileName)) ?? Number.POSITIVE_INFINITY;
+    const existingLegacyPenalty = /_fixed/i.test(existing.sourceFileName) ? 1 : 0;
+    const candidateLegacyPenalty = /_fixed/i.test(fileName) ? 1 : 0;
+    if (
+      candidateLegacyPenalty < existingLegacyPenalty
+      || (candidateLegacyPenalty === existingLegacyPenalty && candidateRank < existingRank)
+      || (
+        candidateLegacyPenalty === existingLegacyPenalty
+        && candidateRank === existingRank
+        && fileName.localeCompare(existing.sourceFileName) < 0
+      )
+    ) {
+      dedupedByBaseName.set(baseName, { fileName: canonicalFileName, sourceFileName: fileName });
+    }
+  });
+
+  return [...dedupedByBaseName.values()].sort((a, b) => {
+    const aRank = rank.has(stripExt(a.fileName)) ? rank.get(stripExt(a.fileName)) : Number.POSITIVE_INFINITY;
+    const bRank = rank.has(stripExt(b.fileName)) ? rank.get(stripExt(b.fileName)) : Number.POSITIVE_INFINITY;
     if (aRank !== bRank) return aRank - bRank;
-    return a.localeCompare(b);
+    return a.fileName.localeCompare(b.fileName);
   });
 }
 
 function createModelEntries(keyPrefix, fileNames, config) {
   const disabled = new Set(config.disabledFiles ?? []);
-  return fileNames.filter((fileName) => !disabled.has(fileName)).map((fileName, index) => {
-    const overrides = config.fileOverrides?.[fileName] ?? {};
+  const safeFileEntries = (Array.isArray(fileNames) ? fileNames : [])
+    .map((entry) => {
+      if (typeof entry === 'string') {
+        return { fileName: entry, sourceFileName: config.fileAliases?.[entry] ?? entry };
+      }
+      if (entry && typeof entry === 'object' && typeof entry.fileName === 'string' && entry.fileName.trim().length > 0) {
+        return {
+          fileName: entry.fileName,
+          sourceFileName: entry.sourceFileName ?? config.fileAliases?.[entry.fileName] ?? entry.fileName,
+        };
+      }
+      return null;
+    })
+    .filter((entry) => entry && !disabled.has(entry.fileName));
+
+  return safeFileEntries.map((entry, index) => {
+    const { fileName, sourceFileName } = entry;
+    const baseName = fileName.replace(/\.[^.]+$/, '');
+    const overrides = config.fileOverrides?.[fileName]
+      ?? config.fileOverrides?.[baseName]
+      ?? config.fileOverrides?.[`${baseName}.png`]
+      ?? config.fileOverrides?.[`${baseName}.webp`]
+      ?? {};
     return {
       key: `${keyPrefix}_${index}`,
       title: fileName.replace(/\.[^.]+$/, ''),
       fileName,
-      path: encodeURI(`${config.folder}${fileName}`),
+      sourceFileName,
+      path: encodeURI(`${config.folder}${sourceFileName}`),
       footprintCols: config.footprintCols,
       footprintRows: config.footprintRows,
       scaleMultiplier: (config.scaleMultiplier ?? 1) * (overrides.scaleMultiplier ?? 1),
@@ -1308,6 +1567,10 @@ function createModelEntries(keyPrefix, fileNames, config) {
 
 function preload() {
   const roadPath = 'kenney_isometric-roads/png/';
+  const initialCommercialModels = selectInitialZoneModelsForPreload(commercialBuildingModels);
+  const initialIndustrialModels = selectInitialZoneModelsForPreload(industrialBuildingModels);
+
+  setupPreloadProgressUi(this);
 
   MUSIC_TRACKS.forEach((track) => {
     this.load.audio(track.key, track.file);
@@ -1318,7 +1581,10 @@ function preload() {
   Object.values(houseModelSets).flat().forEach((model) => {
     this.load.image(model.key, model.path);
   });
-  commercialBuildingModels.forEach((model) => {
+  initialCommercialModels.forEach((model) => {
+    this.load.image(model.key, model.path);
+  });
+  initialIndustrialModels.forEach((model) => {
     this.load.image(model.key, model.path);
   });
   this.load.image('park_small_open', 'Models/parks/park1x1/catProblemPark.png');
@@ -1415,6 +1681,8 @@ function create() {
   activeScene = this;
   prepareHouseModelMetadata(this);
   prepareCommercialBuildingModelMetadata(this);
+  prepareIndustrialBuildingModelMetadata(this);
+  startDeferredZoneModelLoading(this);
   prepareParkModelMetadata(this);
   preparePowerPlantModelMetadata(this);
   prepareServiceBuildingModelMetadata(this);
@@ -1607,9 +1875,152 @@ function create() {
 
   // Sim timer starts once player dismisses the landing screen
   gameReady = true;
+  setPreloadProgressPercent(100);
   initBudgetPanel();
   updateHUD();
   setupLandingScreen();
+}
+
+function setupPreloadProgressUi(scene) {
+  populateLoadingHintTicker();
+  setPreloadProgressPercent(0);
+
+  scene.load.on('progress', (value) => {
+    setPreloadProgressPercent(Math.max(0, Math.min(100, Math.round(value * 100))));
+  });
+
+  scene.load.once('complete', () => {
+    setPreloadProgressPercent(100);
+  });
+}
+
+function setPreloadProgressPercent(percent) {
+  const fill = document.getElementById('landing-preload-fill');
+  const percentLabel = document.getElementById('landing-preload-percent');
+  if (fill) fill.style.width = `${percent}%`;
+  if (percentLabel) percentLabel.textContent = `${percent}%`;
+}
+
+function getLoadingHintMessages(maxTips = 40) {
+  const hints = [];
+  for (let index = 1; index <= maxTips; index++) {
+    const key = `tip.${index}`;
+    const text = t(key);
+    if (text === key) break;
+    hints.push(text);
+  }
+
+  if (hints.length === 0) {
+    hints.push(t('landing.tagline'));
+  }
+
+  return hints;
+}
+
+function populateLoadingHintTicker() {
+  const hintInner = document.getElementById('landing-hint-inner');
+  const hintTrack = document.getElementById('landing-hint-track');
+  if (!hintInner) return;
+
+  const line = getLoadingHintMessages().join('   •   ');
+  hintInner.textContent = `${line}   •   ${line}`;
+
+  if (hintTrack) {
+    const chars = line.length;
+    const seconds = Math.max(90, Math.min(260, Math.round(chars * 0.14)));
+    hintTrack.style.animationDuration = `${seconds}s`;
+  }
+}
+
+function selectInitialZoneModelsForPreload(models, perFootprint = INITIAL_ZONE_MODELS_PER_FOOTPRINT) {
+  const groups = new Map();
+  models.forEach((model) => {
+    const key = `${model.footprintCols}x${model.footprintRows}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(model);
+  });
+
+  return [...groups.values()].flatMap((group) => group.slice(0, perFootprint));
+}
+
+function getDeferredZoneModels(scene) {
+  const allZoneModels = [...commercialBuildingModels, ...industrialBuildingModels];
+  return allZoneModels.filter((model) => !scene.textures.exists(model.key));
+}
+
+function startDeferredZoneModelLoading(scene) {
+  const deferredModels = getDeferredZoneModels(scene);
+  if (deferredModels.length === 0) return;
+
+  const queueDeferredLoad = () => {
+    deferredModels.forEach((model) => {
+      if (!scene.textures.exists(model.key)) {
+        scene.load.image(model.key, model.path);
+      }
+    });
+
+    scene.load.once('complete', () => {
+      prepareCommercialBuildingModelMetadata(scene);
+      prepareIndustrialBuildingModelMetadata(scene);
+    });
+    scene.load.start();
+  };
+
+  // Queue at the end of the current frame so startup UI appears first.
+  setTimeout(() => {
+    if (scene.load.isLoading()) {
+      scene.load.once('complete', queueDeferredLoad);
+      return;
+    }
+    queueDeferredLoad();
+  }, 0);
+}
+
+function loadModelMetadataCacheStore() {
+  try {
+    const raw = globalThis?.localStorage?.getItem(MODEL_METADATA_CACHE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return (parsed && typeof parsed === 'object') ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function persistModelMetadataCacheStore() {
+  try {
+    globalThis?.localStorage?.setItem(MODEL_METADATA_CACHE_KEY, JSON.stringify(modelMetadataCacheStore));
+  } catch {
+    // Ignore storage quota/private-mode errors.
+  }
+}
+
+function getModelMetadataCacheId(model) {
+  return [
+    model.path,
+    model.footprintCols,
+    model.footprintRows,
+    model.scaleMultiplier ?? 1,
+    model.scaleXMultiplier ?? 1,
+    model.scaleYMultiplier ?? 1,
+    model.alphaThreshold ?? EFFECTIVE_PIXEL_ALPHA_THRESHOLD,
+  ].join('|');
+}
+
+function getCachedModelMetadata(model, source) {
+  const entry = modelMetadataCacheStore[getModelMetadataCacheId(model)];
+  if (!entry) return null;
+  if (entry.width !== source.width || entry.height !== source.height) return null;
+  return entry.metadata ?? null;
+}
+
+function setCachedModelMetadata(model, source, metadata) {
+  modelMetadataCacheStore[getModelMetadataCacheId(model)] = {
+    width: source.width,
+    height: source.height,
+    metadata,
+  };
+  persistModelMetadataCacheStore();
 }
 
 function setupToolMenu() {
@@ -3446,6 +3857,12 @@ function prepareHouseModelMetadata(scene) {
     const source = scene.textures.get(model.key)?.getSourceImage();
     if (!source) return;
 
+    const cached = getCachedModelMetadata(model, source);
+    if (cached) {
+      model.metadata = { ...cached };
+      return;
+    }
+
     model.metadata = getSpriteFootprintMetadata(
       source,
       model.footprintCols,
@@ -3474,6 +3891,8 @@ function prepareHouseModelMetadata(scene) {
     ) {
       model.metadata.originX = 0.5;
     }
+
+    setCachedModelMetadata(model, source, model.metadata);
   });
 }
 
@@ -3481,6 +3900,12 @@ function prepareCommercialBuildingModelMetadata(scene) {
   commercialBuildingModels.forEach((model) => {
     const source = scene.textures.get(model.key)?.getSourceImage();
     if (!source) return;
+
+    const cached = getCachedModelMetadata(model, source);
+    if (cached) {
+      model.metadata = { ...cached };
+      return;
+    }
 
     model.metadata = getSpriteFootprintMetadata(
       source,
@@ -3490,6 +3915,32 @@ function prepareCommercialBuildingModelMetadata(scene) {
       model.scaleXMultiplier ?? 1,
       model.scaleYMultiplier ?? 1,
     );
+
+    setCachedModelMetadata(model, source, model.metadata);
+  });
+}
+
+function prepareIndustrialBuildingModelMetadata(scene) {
+  industrialBuildingModels.forEach((model) => {
+    const source = scene.textures.get(model.key)?.getSourceImage();
+    if (!source) return;
+
+    const cached = getCachedModelMetadata(model, source);
+    if (cached) {
+      model.metadata = { ...cached };
+      return;
+    }
+
+    model.metadata = getSpriteFootprintMetadata(
+      source,
+      model.footprintCols,
+      model.footprintRows,
+      model.scaleMultiplier ?? 1,
+      model.scaleXMultiplier ?? 1,
+      model.scaleYMultiplier ?? 1,
+    );
+
+    setCachedModelMetadata(model, source, model.metadata);
   });
 }
 
@@ -3825,6 +4276,16 @@ function normalizeSpriteBuildingOptions(key, options = {}) {
     };
   }
 
+  const industrialModel = getIndustrialBuildingModelBySpriteKey(key);
+  if (industrialModel?.metadata) {
+    return {
+      ...options,
+      footprintCols: industrialModel.footprintCols ?? industrialModel.metadata.footprintCols ?? options.footprintCols ?? 1,
+      footprintRows: industrialModel.footprintRows ?? industrialModel.metadata.footprintRows ?? options.footprintRows ?? 1,
+      ...industrialModel.metadata,
+    };
+  }
+
   if (isPowerPlantSpriteKey(key)) {
     const buildingType = getPowerPlantTypeBySpriteKey(key);
     const model = POWER_PLANT_MODELS[buildingType];
@@ -3868,6 +4329,10 @@ function getHouseModelBySpriteKey(key) {
 
 function getCommercialBuildingModelBySpriteKey(key) {
   return commercialBuildingModels.find((model) => model.key === key) ?? null;
+}
+
+function getIndustrialBuildingModelBySpriteKey(key) {
+  return industrialBuildingModels.find((model) => model.key === key) ?? null;
 }
 
 function isParkSpriteKey(key) {
@@ -7688,6 +8153,125 @@ function hideTileDebug() {
   if (el) el.style.display = 'none';
 }
 
+function resolveBuildingRecordForInspect(scene, row, col) {
+  const id = getTileId(row, col);
+  const hasBldg = scene.buildingSprites.has(id);
+
+  let bData = buildingData[id];
+  let anchorRow = row;
+  let anchorCol = col;
+
+  if (!bData && hasBldg) {
+    const sprite = scene.buildingSprites.get(id);
+    if (sprite) {
+      anchorRow = sprite.mapRow;
+      anchorCol = sprite.mapCol;
+      bData = buildingData[getTileId(anchorRow, anchorCol)] ?? null;
+    }
+  }
+
+  if (!bData) {
+    let best = Infinity;
+    let fallback = null;
+    let fallbackAnchor = null;
+    for (let dr = -2; dr <= 7; dr++) {
+      for (let dc = -2; dc <= 7; dc++) {
+        if (!isInsideMap(row + dr, col + dc)) continue;
+        const nid = getTileId(row + dr, col + dc);
+        const dist = Math.abs(dr) + Math.abs(dc);
+        if (dist >= best) continue;
+
+        const sprite = scene.buildingSprites.get(nid);
+        if (sprite) {
+          const anchored = buildingData[getTileId(sprite.mapRow, sprite.mapCol)];
+          if (anchored) {
+            best = dist;
+            fallback = anchored;
+            fallbackAnchor = { row: sprite.mapRow, col: sprite.mapCol };
+            continue;
+          }
+        }
+
+        const direct = buildingData[nid];
+        if (direct) {
+          best = dist;
+          fallback = direct;
+          fallbackAnchor = { row: row + dr, col: col + dc };
+        }
+      }
+    }
+
+    if (fallback && best <= 6) {
+      bData = fallback;
+      anchorRow = fallbackAnchor.row;
+      anchorCol = fallbackAnchor.col;
+    }
+  }
+
+  return {
+    bData,
+    hasBldg,
+    anchorRow,
+    anchorCol,
+    anchorId: bData ? getTileId(anchorRow, anchorCol) : null,
+  };
+}
+
+function clampUnit(value) {
+  return Math.max(0, Math.min(1, value));
+}
+
+function getInspectIndicators(row, col) {
+  const landValue = getTileOverlayValue('landvalue', row, col);
+  const pollution = getTileOverlayValue('pollution', row, col);
+  const svc = serviceMap[row]?.[col];
+  const powered = !!powerMap[row]?.[col];
+  const parkLevel = Math.min(2, svc?.park ?? 0);
+
+  const localBase = 0.24
+    + (powered ? 0.18 : 0)
+    + (svc?.fire ? 0.12 : 0)
+    + (svc?.police ? 0.12 : 0)
+    + parkLevel * 0.06
+    + landValue * 0.26
+    - pollution * 0.22;
+
+  const cityBase = city.happiness ?? 0.5;
+  const happiness = clampUnit(localBase * 0.65 + cityBase * 0.35);
+
+  return { landValue, happiness };
+}
+
+function getBuildingCustomName(record) {
+  if (!record || typeof record.customName !== 'string') return '';
+  return record.customName.trim();
+}
+
+function renameInspectedBuilding() {
+  if (!activeScene || !lastInspectTile) return;
+
+  const info = resolveBuildingRecordForInspect(activeScene, lastInspectTile.row, lastInspectTile.col);
+  if (!info.bData || !info.anchorId || !buildingData[info.anchorId]) {
+    showToast(t('toast.noBuildingToName'), 'warning');
+    return;
+  }
+
+  const currentName = getBuildingCustomName(buildingData[info.anchorId]);
+  const next = window.prompt(t('prompt.buildingName'), currentName);
+  if (next === null) return;
+
+  const trimmed = next.trim().slice(0, 30);
+  if (trimmed) {
+    buildingData[info.anchorId].customName = trimmed;
+    showToast(t('toast.buildingNamed', { name: trimmed }), 'info');
+  } else {
+    delete buildingData[info.anchorId].customName;
+    showToast(t('toast.buildingNameCleared'), 'info');
+  }
+
+  showInspectPanel(activeScene, lastInspectTile.row, lastInspectTile.col);
+}
+
 // ── Inspect panel (click-to-inspect mode) ────────────────────────────────────
 
 function showInspectPanel(scene, row, col, pointer = null) {
@@ -7703,33 +8287,10 @@ function showInspectPanel(scene, row, col, pointer = null) {
   const powered = !!powerMap[row]?.[col];
   const svc     = serviceMap[row]?.[col];
   const tree    = treeMap[row]?.[col];
-  const hasBldg = scene.buildingSprites.has(id);
 
-  let bData = buildingData[id];
-  if (!bData && hasBldg) {
-    const s = scene.buildingSprites.get(id);
-    if (s) bData = buildingData[getTileId(s.mapRow, s.mapCol)];
-  }
-  // Proximity fallback — any building type, dual-path (buildingSprites + buildingData direct)
-  if (!bData) {
-    let best = Infinity, bd2 = null;
-    for (let dr = -2; dr <= 7; dr++) {
-      for (let dc = -2; dc <= 7; dc++) {
-        if (!isInsideMap(row+dr, col+dc)) continue;
-        const nid = getTileId(row+dr, col+dc);
-        const d   = Math.abs(dr) + Math.abs(dc);
-        if (d >= best) continue;
-        const spr = scene.buildingSprites.get(nid);
-        if (spr) {
-          const bd = buildingData[getTileId(spr.mapRow, spr.mapCol)];
-          if (bd) { best = d; bd2 = bd; continue; }
-        }
-        const bd = buildingData[nid];
-        if (bd) { best = d; bd2 = bd; }
-      }
-    }
-    if (bd2 && best <= 6) bData = bd2;
-  }
+  const inspectRecord = resolveBuildingRecordForInspect(scene, row, col);
+  const hasBldg = inspectRecord.hasBldg;
+  const bData = inspectRecord.bData;
 
   const ZONE_COLORS   = { [ZONE_RES]:'#66ff88', [ZONE_COM]:'#6699ff', [ZONE_IND]:'#ffcc33' };
   const INFRA_LABELS  = {
@@ -7756,10 +8317,14 @@ function showInspectPanel(scene, row, col, pointer = null) {
   const spriteKeyInsp = bData?.spriteKey ?? bSpriteInsp?.texture?.key ?? null;
   let coordTitle;
   if (bData) {
-    // bData may come from proximity scan — use it for the title regardless
-    const tl = getBuildingTypeLabel(bData.type);
-    const sl = getBuildingSubLabel(bData.type, bData.level ?? 1);
-    coordTitle = sl ? `${tl} · ${sl}` : tl;
+    const customName = getBuildingCustomName(bData);
+    if (customName) {
+      coordTitle = customName;
+    } else {
+      const tl = getBuildingTypeLabel(bData.type);
+      const sl = getBuildingSubLabel(bData.type, bData.level ?? 1);
+      coordTitle = sl ? `${tl} · ${sl}` : tl;
+    }
   } else if (hasBldg) {
     coordTitle = t('building.generic');
   } else if (tree) {
@@ -7768,13 +8333,26 @@ function showInspectPanel(scene, row, col, pointer = null) {
     coordTitle = getTerrainName(terrain);
   }
 
+  const indicators = getInspectIndicators(row, col);
+  const landValuePct = `${Math.round(indicators.landValue * 100)}%`;
+  const happinessPct = `${Math.round(indicators.happiness * 100)}%`;
+
   let html = `
     <div class="insp-coord">[${row}, ${col}] — ${coordTitle}</div>
     ${spriteKeyInsp && (hasBldg || bData) ? `<div class="insp-sprite-key">${spriteKeyInsp}</div>` : ''}
-    <div class="insp-row insp-muted">Terrain height: L${tileHeight} (${tileHeight * 100}m)</div>`;
+    <div class="insp-row insp-muted">Terrain height: L${tileHeight} (${tileHeight * 100}m)</div>
+    <div class="insp-row">${t('inspect.landValue', { value: landValuePct })}</div>
+    <div class="insp-row">${t('inspect.happiness', { value: happinessPct })}</div>`;
 
   if (tree && !bData) {
     html += `<div class="insp-row insp-ok">Tree age: ${tree.age ?? 0}/${TREE_MATURE_AGE} · ${tree.species}</div>`;
+  }
+
+  if (bData) {
+    html += `
+      <div class="insp-section">
+        <button class="insp-action-btn" type="button" onclick="renameInspectedBuilding()">${t('inspect.renameBuilding')}</button>
+      </div>`;
   }
 
   // Infrastructure building
@@ -8107,26 +8685,42 @@ async function prefetchSaveStatus() {
 
   // Starting state — animated dots already in HTML
   // (class="loading-dots" set in the markup)
+  const maxRetries = 3;
+  let attempt = 0;
 
-  try {
-    const saves = await listSaves();   // defined in save.js
-    el.classList.remove('loading-dots', 'status-error');
+  while (attempt <= maxRetries) {
+    try {
+      const saves = await listSaves();   // defined in save.js
+      el.classList.remove('loading-dots', 'status-error');
 
-    if (saves.length === 0) {
+      if (saves.length === 0) {
+        el.classList.add('status-ok');
+        el.textContent = t('landing.noSaves');
+      } else {
+        el.classList.add('status-ok');
+        const n = saves.length;
+        el.textContent = t('landing.saveStatus', {
+          count: n,
+          label: t(n === 1 ? 'landing.citySingular' : 'landing.cityPlural'),
+        });
+      }
+      return;
+    } catch {
+      if (attempt < maxRetries) {
+        el.classList.remove('status-error', 'status-ok');
+        el.classList.add('loading-dots');
+        el.textContent = t('landing.retryingSaveServer');
+        // Backend can come up a bit later than static assets; retry briefly.
+        await new Promise((resolve) => setTimeout(resolve, 1200 * (attempt + 1)));
+        attempt += 1;
+        continue;
+      }
+
+      el.classList.remove('loading-dots', 'status-error');
       el.classList.add('status-ok');
-      el.textContent = t('landing.noSaves');
-    } else {
-      el.classList.add('status-ok');
-      const n = saves.length;
-      el.textContent = t('landing.saveStatus', {
-        count: n,
-        label: t(n === 1 ? 'landing.citySingular' : 'landing.cityPlural'),
-      });
+      el.textContent = t('landing.serverOfflineNewGame');
+      return;
     }
-  } catch {
-    el.classList.remove('loading-dots');
-    el.classList.add('status-error');
-    el.textContent = t('landing.serverError');
   }
 }
 

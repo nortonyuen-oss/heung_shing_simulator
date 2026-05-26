@@ -409,7 +409,7 @@ function getCommercialModelByFileName(fileName) {
   const models = typeof commercialBuildingModels !== 'undefined'
     ? commercialBuildingModels
     : [];
-  return models.find((model) => model.fileName === fileName) ?? null;
+  return models.find((model) => model.fileName === fileName || model.sourceFileName === fileName) ?? null;
 }
 
 function isLoadedTextureKey(key) {

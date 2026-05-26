@@ -39,6 +39,25 @@ npm start
 
 Open http://localhost:3000/ in your browser.
 
+## Asset Optimization
+
+Large model packs can increase first-load time. You can generate optimized WebP versions for residential/commercial/industrial/government model folders:
+
+```bash
+npm run optimize:assets
+```
+
+Optional environment variables:
+
+- `ASSET_MAX_DIMENSION` (default `1024`)
+- `ASSET_WEBP_QUALITY` (default `82`)
+
+Example:
+
+```bash
+ASSET_MAX_DIMENSION=900 ASSET_WEBP_QUALITY=80 npm run optimize:assets
+```
+
 ## Controls
 
 - Use the left tool palette to place roads, zones, infrastructure, and power plants.

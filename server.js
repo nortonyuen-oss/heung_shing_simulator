@@ -36,6 +36,12 @@ app.get('/api/models/*', (req, res) => {
     'commercialBuildings',
     'commercialBuildings/1x1',
     'commercialBuildings/2x2',
+    'commercialBuildings/3x3',
+    'commercialBuildings/4x4',
+    'industrialBuildings',
+    'industrialBuildings/1x1',
+    'industrialBuildings/2x2',
+    'industrialBuildings/3x3',
   ];
   const folderName = req.params[0];
   if (!ALLOWED.includes(folderName)) {

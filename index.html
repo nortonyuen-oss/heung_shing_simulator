@@ -1582,6 +1582,18 @@
     .insp-zone-name { font-weight: bold; margin-bottom: 2px; }
     .insp-divider   { border-top: 1px solid #2a2f3a; margin: 5px 0; }
     .insp-row { line-height: 1.6; }
+    .insp-action-btn {
+      width: 100%;
+      background: #2c6cb2;
+      color: #eef6ff;
+      border: 1px solid #4f8ecf;
+      border-radius: 4px;
+      font-size: 11px;
+      font-family: 'Courier New', monospace;
+      padding: 5px 7px;
+      cursor: pointer;
+    }
+    .insp-action-btn:hover { background: #3a7ec8; }
     .insp-ok    { color: #66dd66; }
     .insp-warn  { color: #ffbb33; }
     .insp-fail  { color: #ff6666; }
@@ -1672,6 +1684,80 @@
 
     #landing-load-status.status-ok      { color: #4a7a4a; font-style: normal; }
     #landing-load-status.status-error   { color: #aa4444; font-style: normal; }
+
+    .landing-preload-panel {
+      margin-top: 12px;
+      padding: 10px 10px 0;
+      border: 1px solid #c4bead;
+      border-radius: 8px;
+      background: #eee8d5;
+      box-shadow: inset 0 1px 0 #fff8e6;
+    }
+
+    .landing-preload-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 11px;
+      color: #5e584b;
+      margin-bottom: 6px;
+    }
+
+    #landing-preload-percent {
+      font-weight: 700;
+      color: #3c372d;
+      min-width: 38px;
+      text-align: right;
+    }
+
+    .landing-preload-track {
+      width: 100%;
+      height: 10px;
+      border: 1px solid #8b856f;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #f8f3e2 0%, #e2dbc6 100%);
+      overflow: hidden;
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.2);
+    }
+
+    #landing-preload-fill {
+      width: 0%;
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #d79f2d 0%, #f1c65d 45%, #ffe28b 100%);
+      transition: width 120ms linear;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.55);
+    }
+
+    #landing-hint-marquee {
+      margin-top: 9px;
+      border-top: 1px dashed #c6bfae;
+      padding: 7px 0 8px;
+      overflow: hidden;
+      white-space: nowrap;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 11px;
+      color: #6a6256;
+      position: relative;
+    }
+
+    #landing-hint-track {
+      display: inline-block;
+      min-width: 100%;
+      animation: landing-hint-scroll 120s linear infinite;
+      will-change: transform;
+    }
+
+    #landing-hint-inner {
+      display: inline-block;
+      padding-right: 40px;
+    }
+
+    @keyframes landing-hint-scroll {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
 
     /* Animated ellipsis for the loading state */
     @keyframes ellipsis-pulse {
@@ -2479,6 +2565,21 @@ Ctrl+O       Load game (open saves list)</div>
 
       <!-- Save-load status (shown while the server is queried on startup) -->
       <div id="landing-load-status" class="loading-dots" data-i18n="landing.loading">Loading saved cities</div>
+
+      <div id="landing-preload-panel" class="landing-preload-panel" aria-live="polite">
+        <div class="landing-preload-row">
+          <span id="landing-preload-label" data-i18n="loading.assets">Loading assets</span>
+          <span id="landing-preload-percent">0%</span>
+        </div>
+        <div class="landing-preload-track" aria-hidden="true">
+          <div id="landing-preload-fill"></div>
+        </div>
+        <div id="landing-hint-marquee" aria-label="Loading tips" data-i18n-aria="loading.hintsAria">
+          <div id="landing-hint-track">
+            <span id="landing-hint-inner"></span>
+          </div>
+        </div>
+      </div>
 
     </div>
   </div>

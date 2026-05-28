@@ -48,6 +48,8 @@ const CITY_POLICY_DEFS = [
   { id: 'publicSafety',   titleKey: 'policy.publicSafety.title',   descKey: 'policy.publicSafety.desc',   monthlyBase: 200 },
   { id: 'smallBusiness',  titleKey: 'policy.smallBusiness.title',  descKey: 'policy.smallBusiness.desc',  monthlyBase: 180 },
   { id: 'greenParks',     titleKey: 'policy.greenParks.title',     descKey: 'policy.greenParks.desc',     monthlyBase: 100 },
+  { id: 'educationReform', titleKey: 'policy.educationReform.title', descKey: 'policy.educationReform.desc', monthlyBase: 220 },
+  { id: 'scienceDevelopment', titleKey: 'policy.scienceDevelopment.title', descKey: 'policy.scienceDevelopment.desc', monthlyBase: 260 },
 ];
 
 // Growth probabilities per tick
@@ -81,8 +83,19 @@ const JOBS_PER_IND = 12;
 // Service coverage radii (Manhattan distance in tiles)
 const FIRE_STATION_RADIUS   = 20;
 const POLICE_STATION_RADIUS = 16;
+const PRIMARY_SCHOOL_RADIUS = 14;
+const SECONDARY_SCHOOL_RADIUS = 16;
+const LIBRARY_RADIUS = 18;
+const COMMUNITY_COLLEGE_RADIUS = 20;
+const UNIVERSITY_RADIUS = 26;
 const SMALL_PARK_RADIUS     = 6;
 const LARGE_PARK_RADIUS     = 12;
+
+// Education simulation tuning
+const EDUCATION_BASIC_SMOOTHING = 0.10;
+const EDUCATION_HIGHER_SMOOTHING = 0.07;
+const EDUCATION_POLICY_REFORM_MUL = 1.25;
+const SCIENCE_DEVELOPMENT_HIGHER_BONUS = 0.06;
 
 // Placement costs (player-paid per action)
 const COST_ROAD          = 10;
@@ -95,6 +108,11 @@ const COST_COAL_PLANT    = 3000;
 const COST_SOLAR_PLANT   = 6000;
 const COST_FIRE_STATION  = 1000;
 const COST_POLICE_STATION = 800;
+const COST_PRIMARY_SCHOOL = 1200;
+const COST_SECONDARY_SCHOOL = 1800;
+const COST_LIBRARY = 1600;
+const COST_COMMUNITY_COLLEGE = 3200;
+const COST_UNIVERSITY = 8000;
 const COST_PARK_SMALL    = 250;
 const COST_PARK_LARGE    = 900;
 const COST_TREE          = 15;
@@ -149,6 +167,36 @@ const SERVICE_BUILDING_MODELS = {
     footprintCols: 2,
     footprintRows: 2,
   },
+  primary_school: {
+    spriteKey: 'primary_school_2x2',
+    path: 'Models/govBuildings/primarySchool2-01_fixed.png',
+    footprintCols: 2,
+    footprintRows: 2,
+  },
+  secondary_school: {
+    spriteKey: 'secondary_school_2x2',
+    path: 'Models/govBuildings/secondarySchool2-02_fixed.png',
+    footprintCols: 2,
+    footprintRows: 2,
+  },
+  library: {
+    spriteKey: 'library_2x2',
+    path: 'Models/govBuildings/library2-01_fixed.png',
+    footprintCols: 2,
+    footprintRows: 2,
+  },
+  community_college: {
+    spriteKey: 'community_college_2x2',
+    path: 'Models/govBuildings/university2-01_fixed.png',
+    footprintCols: 2,
+    footprintRows: 2,
+  },
+  university: {
+    spriteKey: 'university_4x4',
+    path: 'Models/govBuildings/university4-01_fixed.png',
+    footprintCols: 4,
+    footprintRows: 4,
+  },
 };
 
 const POWER_PLANT_STATS = {
@@ -188,6 +236,11 @@ const BUILDING_POWER_DEMAND = {
   industrial:  [0, 8, 14, 22],
   fire_station: 10,
   police_station: 8,
+  primary_school: 6,
+  secondary_school: 8,
+  library: 7,
+  community_college: 12,
+  university: 30,
   park_small: 2,
   park_large: 4,
 };
@@ -198,6 +251,11 @@ const UPKEEP_COAL_PLANT     = POWER_PLANT_STATS.power_plant_coal.baseUpkeep;
 const UPKEEP_SOLAR_PLANT    = POWER_PLANT_STATS.power_plant_solar.baseUpkeep;
 const UPKEEP_FIRE_STATION   = 500;
 const UPKEEP_POLICE_STATION = 400;
+const UPKEEP_PRIMARY_SCHOOL = 180;
+const UPKEEP_SECONDARY_SCHOOL = 260;
+const UPKEEP_LIBRARY = 220;
+const UPKEEP_COMMUNITY_COLLEGE = 420;
+const UPKEEP_UNIVERSITY = 900;
 const UPKEEP_PARK_SMALL     = 25;
 const UPKEEP_PARK_LARGE     = 80;
 

@@ -2,18 +2,34 @@
 
 function setupMenuBar() {
   const topBar = document.getElementById('top-bar');
+  const menuBar = document.getElementById('menu-bar');
+  const moreBtn = document.getElementById('topbar-more-btn');
   if (!topBar) return;
 
   // Block Phaser from seeing pointer events on the bar
   topBar.addEventListener('pointerdown', (e) => e.stopPropagation());
   topBar.addEventListener('click',       (e) => e.stopPropagation());
 
+  if (moreBtn && menuBar) {
+    moreBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const willOpen = !menuBar.classList.contains('is-open');
+      closeAllMenus();
+      menuBar.classList.toggle('is-open', willOpen);
+      moreBtn.classList.toggle('is-open', willOpen);
+    });
+  }
+
   // ── Dropdown open/close ────────────────────────────────────────────────────
   topBar.querySelectorAll('.menu-item').forEach((item) => {
     item.querySelector('.menu-btn')?.addEventListener('click', (e) => {
       e.stopPropagation();
+      if (menuBar) menuBar.classList.add('is-open');
+      if (moreBtn) moreBtn.classList.add('is-open');
       const wasOpen = item.classList.contains('is-open');
       closeAllMenus();
+      if (menuBar) menuBar.classList.add('is-open');
+      if (moreBtn) moreBtn.classList.add('is-open');
       if (!wasOpen) {
         item.classList.add('is-open');
         onMenuOpen(item.dataset.menu);
@@ -75,6 +91,8 @@ function setupMenuBar() {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function closeAllMenus() {
+  document.getElementById('menu-bar')?.classList.remove('is-open');
+  document.getElementById('topbar-more-btn')?.classList.remove('is-open');
   document.querySelectorAll('.menu-item.is-open').forEach((item) => {
     item.classList.remove('is-open');
   });

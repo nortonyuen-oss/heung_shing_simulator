@@ -6,12 +6,27 @@
   <style>
     * { box-sizing: border-box; }
 
+    :root {
+      --ui-bg: #f2f0e8;
+      --ui-panel: #f7f5ef;
+      --ui-panel-strong: #efede4;
+      --ui-border: #cfc8b7;
+      --ui-border-strong: #b6ad99;
+      --ui-text: #22242a;
+      --ui-text-soft: #69675f;
+      --ui-green: #1f8c4a;
+      --ui-red: #c0302f;
+      --ui-gold: #d2a21e;
+      --ui-shadow: 0 2px 8px rgba(21, 21, 18, 0.16);
+      --ui-radius: 12px;
+    }
+
     html,
     body {
       margin: 0;
       width: 100%;
       height: 100%;
-      font-family: Arial, Helvetica, sans-serif;
+      font-family: 'Noto Sans TC', 'IBM Plex Sans', 'Segoe UI', sans-serif;
       background: #87ceeb;
     }
 
@@ -29,44 +44,286 @@
 
     #top-bar {
       position: fixed;
-      top: 0; left: 0; right: 0;
-      height: 28px;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 92px;
       z-index: 110;
       display: flex;
-      align-items: stretch;
-      background: #d4d0c3;
-      border-bottom: 2px solid #6f6b60;
-      box-shadow: inset 0 1px 0 #fff8e7;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 10px;
+      background: var(--ui-bg);
+      border-bottom: 1px solid var(--ui-border-strong);
+      box-shadow: var(--ui-shadow);
       user-select: none;
     }
 
-    #menu-bar { display: flex; align-items: stretch; flex: 1; }
+    #topbar-city-plate {
+      flex: 0 0 274px;
+      height: 78px;
+      padding: 8px 12px;
+      border-radius: 14px;
+      border: 1px solid var(--ui-border-strong);
+      background-image: url('UI/nameplate.png');
+      background-repeat: repeat-x;
+      background-size: 220px 220px;
+      background-position: left top;
+      box-shadow: inset 0 0 0 2px rgba(255,255,255,0.2), var(--ui-shadow);
+      color: #ecf4f0;
+      display: flex;
+      align-items: center;
+    }
 
-    .menu-item { position: relative; display: flex; align-items: stretch; }
+    #topbar-city-name {
+      font-size: 22px;
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: 1px;
+      text-shadow: 0 2px 5px rgba(0,0,0,0.35);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      pointer-events: none;
+      max-width: 100%;
+    }
+
+    #topbar-main {
+      min-width: 0;
+      flex: 1;
+      height: 78px;
+      border: 1px solid var(--ui-border-strong);
+      border-radius: 14px;
+      background: var(--ui-panel);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.9), var(--ui-shadow);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    #topbar-primary,
+    #topbar-kpis {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 3px 8px;
+      min-width: 0;
+    }
+
+    #topbar-primary {
+      border-bottom: 1px solid var(--ui-border);
+      background: linear-gradient(180deg, #f9f7f2 0%, #f2f0e8 100%);
+    }
+
+    .topbar-chip {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      padding: 3px 8px;
+      border: 1px solid var(--ui-border);
+      border-radius: 10px;
+      background: #fdfcf9;
+      color: var(--ui-text);
+    }
+
+    .topbar-chip-icon {
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .topbar-chip-main {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.15;
+    }
+
+    .topbar-chip-main strong {
+      font-size: 12px;
+      font-weight: 750;
+      color: #1f1f21;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .topbar-chip-main span {
+      font-size: 9px;
+      color: var(--ui-text-soft);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .topbar-chip-time strong {
+      min-width: 52px;
+      text-align: center;
+      letter-spacing: 0.4px;
+    }
+
+    #topbar-speed {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-left: auto;
+      padding: 3px;
+      border: 1px solid var(--ui-border);
+      border-radius: 10px;
+      background: #f9f7f0;
+      flex-shrink: 0;
+    }
+
+    .topbar-speed-btn {
+      padding: 3px 9px;
+      font-size: 12px;
+      font-weight: 800;
+      color: #23252a;
+      background: #efede4;
+      border: 1px solid var(--ui-border-strong);
+      border-radius: 7px;
+      cursor: pointer;
+      font-family: inherit;
+      min-width: 40px;
+    }
+    .topbar-speed-btn:hover { background: #f4f1e8; }
+    .topbar-speed-btn.is-active {
+      background: #e9be45;
+      border-color: #a78124;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.45);
+    }
+
+    #topbar-more-btn {
+      flex-shrink: 0;
+      height: 30px;
+      min-width: 36px;
+      border: 1px solid var(--ui-border-strong);
+      border-radius: 9px;
+      background: #efede4;
+      color: var(--ui-text);
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    #topbar-more-btn:hover { background: #f5f2ea; }
+    #topbar-more-btn.is-open { background: #e5e2d8; }
+
+    #topbar-kpis {
+      justify-content: space-between;
+      gap: 4px;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      scrollbar-width: thin;
+      background: var(--ui-panel-strong);
+    }
+
+    .kpi-card {
+      min-width: 126px;
+      max-width: 176px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: 2px 8px;
+      border-left: 1px solid var(--ui-border);
+      color: var(--ui-text);
+    }
+
+    .kpi-card:first-child {
+      border-left: none;
+    }
+
+    .kpi-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 8px;
+      letter-spacing: 0.35px;
+      color: #4f504a;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .kpi-value {
+      font-size: 18px;
+      line-height: 1;
+      font-weight: 900;
+      letter-spacing: 0.2px;
+      color: #22242a;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    #topbar-funds { color: var(--ui-green); }
+    #topbar-income { color: var(--ui-green); }
+    #topbar-expense { color: var(--ui-red); }
+
+    #topbar-rating {
+      font-size: 16px;
+      letter-spacing: 2px;
+      color: var(--ui-gold);
+      line-height: 1.1;
+    }
+
+    #menu-bar {
+      display: none;
+      position: absolute;
+      right: 12px;
+      top: 78px;
+      width: 320px;
+      max-height: calc(100vh - 120px);
+      overflow: auto;
+      padding: 8px;
+      border: 1px solid var(--ui-border-strong);
+      border-radius: 12px;
+      background: #f4f1e8;
+      box-shadow: 0 10px 26px rgba(20,20,18,0.28);
+      align-items: stretch;
+      flex-direction: column;
+      gap: 6px;
+      z-index: 220;
+    }
+
+    #menu-bar.is-open {
+      display: flex;
+    }
+
+    .menu-item {
+      position: relative;
+      display: flex;
+      align-items: stretch;
+      flex-direction: column;
+      width: 100%;
+    }
 
     .menu-btn {
-      padding: 0 13px;
-      background: none;
-      border: none;
+      padding: 8px 12px;
+      background: #fdfcf9;
+      border: 1px solid var(--ui-border);
+      border-radius: 8px;
       font-size: 13px;
-      font-weight: 600;
-      color: #1e2427;
+      font-weight: 700;
+      color: var(--ui-text);
       cursor: pointer;
       white-space: nowrap;
-      font-family: Arial, Helvetica, sans-serif;
+      font-family: inherit;
+      text-align: left;
     }
     .menu-btn:hover,
-    .menu-item.is-open > .menu-btn { background: #1e5cb3; color: #fff; }
+    .menu-item.is-open > .menu-btn { background: #ebe7dc; color: #111; }
 
     .menu-dropdown {
       display: none;
-      position: absolute;
-      top: calc(100% + 2px);
-      left: 0;
-      min-width: 200px;
-      background: #d4d0c3;
-      border: 2px solid #6f6b60;
-      box-shadow: 3px 3px 0 rgba(0,0,0,0.25);
+      position: static;
+      margin-top: 4px;
+      min-width: 100%;
+      background: #f7f5ef;
+      border: 1px solid var(--ui-border);
+      border-radius: 8px;
       z-index: 200;
       padding: 3px 0;
     }
@@ -86,7 +343,7 @@
       cursor: pointer;
       white-space: nowrap;
       position: relative;
-      font-family: Arial, Helvetica, sans-serif;
+      font-family: inherit;
     }
     .menu-drop-item:hover { background: #1e5cb3; color: #fff; }
     .menu-drop-item.menu-checked::before {
@@ -142,41 +399,29 @@
     .menu-drop-slider input { flex: 1; accent-color: #f1c65d; }
 
     /* City name centred in top bar — both axes */
-    #topbar-city-name {
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 13px;
-      font-weight: 800;
-      color: #1e2427;
-      letter-spacing: 0.4px;
-      white-space: nowrap;
-      pointer-events: none;
-      text-shadow: 0 1px 0 rgba(255,255,255,0.6);
-    }
+    @media (max-width: 980px) {
+      #top-bar {
+        height: auto;
+        align-items: stretch;
+        flex-direction: column;
+      }
 
-    /* Speed buttons in top bar */
-    #topbar-speed {
-      display: flex;
-      align-items: center;
-      gap: 2px;
-      padding: 3px 8px;
-      border-left: 1px solid #a7a08d;
+      #topbar-city-plate,
+      #topbar-main {
+        width: 100%;
+        flex: none;
+      }
+
+      #topbar-kpis {
+        padding-bottom: 8px;
+      }
+
+      #menu-bar {
+        right: 10px;
+        left: 10px;
+        width: auto;
+      }
     }
-    .topbar-speed-btn {
-      padding: 2px 9px;
-      font-size: 11px;
-      font-weight: 700;
-      color: #1e2427;
-      background: #ece7d4;
-      border: 1px solid #a7a08d;
-      border-radius: 3px;
-      cursor: pointer;
-      font-family: Arial, Helvetica, sans-serif;
-    }
-    .topbar-speed-btn:hover    { background: #f8f0d2; }
-    .topbar-speed-btn.is-active { background: #f1c65d; border-color: #6f6b60; }
 
     /* ── Dialogs (Help / About) ───────────────────────────────────────────── */
 
@@ -363,27 +608,68 @@
 
     .tool-menu {
       position: fixed;
-      top: 28px;
-      left: 0;
+      top: 100px;
+      left: 8px;
       z-index: 10;
       display: flex;
       flex-direction: column;
-      gap: 6px;
-      width: 72px;
-      height: calc(100vh - 28px);
-      padding: 10px 10px;
-      background: #d4d0c3;
-      border-right: 2px solid #6f6b60;
-      box-shadow: inset -1px 0 0 #fff8e7;
+      gap: 8px;
+      width: 202px;
+      max-height: calc(100vh - 116px);
+      padding: 10px;
+      background: #f4f1e8;
+      border: 1px solid var(--ui-border-strong);
+      border-radius: 12px;
+      box-shadow: var(--ui-shadow), inset 0 1px 0 rgba(255,255,255,0.85);
       overflow: visible;
       overflow-x: hidden;
+      overflow-y: auto;
+    }
+
+    #tool-menu-collapse {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 30px;
+      border: 1px solid var(--ui-border-strong);
+      border-radius: 8px;
+      background: #efece2;
+      color: #2a2d33;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 800;
+      margin-bottom: 2px;
+    }
+    #tool-menu-collapse:hover { background: #f4f1e8; }
+
+    .tool-menu.is-collapsed {
+      width: 72px;
+      padding: 8px;
+    }
+
+    .tool-menu.is-collapsed .tool-category-button {
+      grid-template-columns: 1fr;
+      min-height: 52px;
+      padding: 5px;
+      justify-items: center;
+    }
+
+    .tool-menu.is-collapsed .tool-category-labels,
+    .tool-menu.is-collapsed .tool-category-accent {
+      display: none;
+    }
+
+    .tool-menu.is-collapsed #tool-menu-collapse {
+      height: 28px;
+      font-size: 11px;
     }
 
     .tool-menu-divider {
       width: 100%;
       height: 1px;
-      background: #a7a08d;
-      margin: 2px 0;
+      background: #d7d2c5;
+      margin: 0;
       flex-shrink: 0;
     }
 
@@ -405,27 +691,39 @@
     .tool-category-button {
       position: relative;
       display: grid;
-      place-items: center;
-      width: 52px;
-      height: 44px;
-      padding: 0;
-      color: #1e2427;
-      background: #ece7d4;
-      border: 2px solid #6f6b60;
-      border-radius: 5px;
-      box-shadow: inset 1px 1px 0 #fffdf2, inset -1px -1px 0 #a7a08d;
+      grid-template-columns: 36px 1fr 5px;
+      align-items: center;
+      width: 100%;
+      min-height: 56px;
+      padding: 7px 8px;
+      color: #1f2327;
+      background: #faf8f2;
+      border: 1px solid var(--ui-border);
+      border-radius: 9px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.85);
       cursor: pointer;
       flex-shrink: 0;
-      font-size: 20px;
-      font-weight: 900;
-      font-family: Arial, Helvetica, sans-serif;
+      font-family: inherit;
+      text-align: left;
+      gap: 8px;
     }
 
-    .tool-category-button:hover { background: #f8f0d2; }
+    .tool-category-button:hover {
+      background: #f4f0e6;
+      border-color: var(--ui-border-strong);
+    }
+
     .tool-category-button.is-open,
     .tool-category-button.is-active {
-      background: #f1c65d;
-      box-shadow: inset -1px -1px 0 #fff7cf, inset 1px 1px 0 #8d7025;
+      background: #f1efe6;
+      border-color: #8ea17f;
+      box-shadow: inset 2px 0 0 #5ca34d, inset 0 1px 0 rgba(255,255,255,0.85);
+    }
+
+    .tool-category-button[data-tool="bulldoze"].is-active,
+    .tool-category-button[data-tool="bulldoze"]:hover {
+      border-color: #be8d8d;
+      box-shadow: inset 2px 0 0 #c84b48, inset 0 1px 0 rgba(255,255,255,0.85);
     }
 
     .tool-category-button svg,
@@ -440,9 +738,74 @@
       pointer-events: none;
     }
 
+    .tool-category-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      border: 1px solid #d9d3c5;
+      display: grid;
+      place-items: center;
+      font-size: 20px;
+      background: #f1ede2;
+      color: #3d3a33;
+      line-height: 1;
+    }
+
+    .tool-category-labels {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      min-width: 0;
+    }
+
+    .tool-category-title {
+      font-size: 15px;
+      line-height: 1;
+      font-weight: 800;
+      color: #1f2327;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .tool-category-subtitle {
+      font-size: 12px;
+      line-height: 1;
+      color: #4f5247;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      letter-spacing: 0.2px;
+    }
+
+    .tool-category-accent {
+      width: 3px;
+      height: 28px;
+      border-radius: 999px;
+      background: transparent;
+      justify-self: end;
+    }
+
+    .tool-category-button.is-open .tool-category-accent,
+    .tool-category-button.is-active .tool-category-accent {
+      background: #5ca34d;
+    }
+
+    .tool-category-button[data-tool-category="roads"] .tool-category-accent { background: #e48d2f; }
+    .tool-category-button[data-tool-category="zones"] .tool-category-accent { background: #6fb35b; }
+    .tool-category-button[data-tool-category="power"] .tool-category-accent { background: #47a1df; }
+    .tool-category-button[data-tool-category="services"] .tool-category-accent { background: #e3b44a; }
+    .tool-category-button[data-tool-category="parks"] .tool-category-accent { background: #8b6ed8; }
+    .tool-category-button[data-tool-category="maps"] .tool-category-accent { background: #5faea4; }
+    .tool-category-button[data-action="open-charts"] .tool-category-accent { background: #4b84cf; }
+    .tool-category-button[data-tool-category="inspect"] .tool-category-accent,
+    .tool-category-button[data-tool="bulldoze"] .tool-category-accent { background: #5d6f8c; }
+    .tool-category-button[data-tool="bulldoze"].is-active .tool-category-accent,
+    .tool-category-button[data-tool="bulldoze"]:hover .tool-category-accent { background: #c84b48; }
+
     .tool-flyout {
       position: fixed;
-      left: 74px;
+      left: 216px;
       top: 48px;
       z-index: 13;
       display: flex;
@@ -604,6 +967,29 @@
       display: none;
     }
 
+    @media (max-width: 980px) {
+      .tool-menu {
+        width: 72px;
+        padding: 8px;
+      }
+
+      .tool-category-button {
+        grid-template-columns: 1fr;
+        min-height: 52px;
+        padding: 5px;
+        justify-items: center;
+      }
+
+      .tool-category-labels,
+      .tool-category-accent {
+        display: none;
+      }
+
+      .tool-flyout {
+        left: 84px;
+      }
+    }
+
     /* Zone swatches */
     .tool-button .zone-icon {
       width: 28px;
@@ -639,7 +1025,7 @@
     #rotate-cluster {
       position: fixed;
       right: 16px;
-      bottom: 56px;
+      bottom: 94px;
       z-index: 11;
       display: flex;
       flex-direction: column;
@@ -1050,17 +1436,73 @@
 
     #hud {
       position: fixed;
-      top: 38px;
+      top: 100px;
       right: 10px;
       z-index: 10;
-      min-width: 160px;
-      padding: 10px 12px;
-      background: #d4d0c3;
-      border: 2px solid #6f6b60;
-      border-radius: 6px;
-      box-shadow: inset 1px 1px 0 #fff8e7, inset -1px -1px 0 #a7a08d;
-      pointer-events: none;
+      width: min(360px, calc(100vw - 96px));
+      padding: 0;
+      background: transparent;
+      border: none;
+      box-shadow: none;
+      pointer-events: auto;
       user-select: none;
+      display: grid;
+      gap: 8px;
+    }
+
+    .hud-panel {
+      background: #f4f1e8;
+      border: 1px solid var(--ui-border-strong);
+      border-radius: 10px;
+      box-shadow: var(--ui-shadow), inset 0 1px 0 rgba(255,255,255,0.8);
+      overflow: hidden;
+    }
+
+    .hud-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 7px 9px;
+      font-size: 10px;
+      letter-spacing: 0.35px;
+      text-transform: uppercase;
+      color: #525249;
+      border-bottom: 1px solid #d8d2c3;
+      background: #ebe7dc;
+      font-weight: 700;
+    }
+
+    .hud-panel-header strong {
+      font-size: 11px;
+      letter-spacing: 0;
+      color: #23252a;
+      font-weight: 800;
+      margin-left: 5px;
+    }
+
+    .hud-panel-toggle {
+      width: 20px;
+      height: 20px;
+      border: 1px solid #b8af9b;
+      border-radius: 5px;
+      background: #f5f2ea;
+      color: #3f3f3a;
+      cursor: pointer;
+      font-size: 12px;
+      line-height: 1;
+      font-weight: 900;
+      padding: 0;
+    }
+
+    .hud-panel-body {
+      padding: 9px 10px;
+      display: grid;
+      gap: 6px;
+    }
+
+    .hud-panel.is-collapsed .hud-panel-body {
+      display: none;
     }
 
     .hud-row {
@@ -1189,12 +1631,60 @@
 
     .hud-expense-val { color: #7a2222; }
 
+    .hud-overview-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px 10px;
+      font-size: 12px;
+      color: #24262b;
+    }
+
+    .hud-overview-grid > div {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      border-bottom: 1px dashed #d9d2c2;
+      padding-bottom: 3px;
+    }
+
+    .hud-index-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 5px;
+    }
+
+    .hud-index-item {
+      border: 1px solid #d4cebf;
+      border-radius: 7px;
+      background: #f9f7f1;
+      padding: 5px 4px;
+      text-align: center;
+      display: grid;
+      gap: 2px;
+    }
+
+    .hud-index-item-label {
+      font-size: 9px;
+      color: #616055;
+      text-transform: uppercase;
+    }
+
+    .hud-index-item-value {
+      font-size: 20px;
+      line-height: 1;
+      font-weight: 900;
+      color: #26412a;
+    }
+
+    .hud-index-item-value.warn { color: #9b7b1f; }
+    .hud-index-item-value.bad { color: #9f3433; }
+
     /* ── Budget panel (bottom) ────────────────────────────────────────────── */
 
     #budget-panel {
       position: fixed;
       bottom: 0;
-      left: 82px;
+      left: 0;
       right: 0;
       z-index: 10;
       pointer-events: auto;
@@ -1202,20 +1692,77 @@
 
     /* ── Tips ticker — lives INSIDE the budget strip ─────────────────────── */
 
-    .strip-sep {
-      width: 1px;
-      height: 14px;
-      background: #a7a08d;
-      flex-shrink: 0;
-      margin: 0 4px;
+    #budget-strip {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      background: #f3f0e8;
+      border-top: 1px solid #bdb49f;
+      box-shadow: inset 0 1px 0 #fffef8;
+      user-select: none;
+      font-size: 11px;
+      color: #222428;
     }
 
-    /* Track clips the scrolling text */
+    #status-pill,
+    #status-more-btn {
+      border: 1px solid #b9b09d;
+      border-radius: 10px;
+      background: #ede9df;
+      color: #262a2f;
+      min-width: 112px;
+      height: 44px;
+      display: grid;
+      align-content: center;
+      justify-items: center;
+      gap: 1px;
+      font-size: 12px;
+      font-weight: 800;
+      padding: 0 8px;
+      cursor: pointer;
+      font-family: inherit;
+      flex-shrink: 0;
+    }
+
+    #status-pill span:last-child,
+    #status-more-btn span:last-child {
+      font-size: 10px;
+      color: #4f5247;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+    }
+
+    #status-pill:hover,
+    #status-more-btn:hover {
+      background: #f3efe6;
+    }
+
+    #status-ticker-main {
+      flex: 1;
+      min-width: 0;
+      height: 44px;
+      border: 1px solid #cbc4b2;
+      border-radius: 10px;
+      background: #f9f7f1;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 10px;
+    }
+
+    #status-main-icon {
+      font-size: 22px;
+      color: #2f8447;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+
     #tip-ticker-track {
       flex: 1;
       overflow: hidden;
       position: relative;
-      height: 22px;          /* matches strip line-height */
+      height: 20px;
       min-width: 0;
     }
 
@@ -1223,31 +1770,77 @@
       position: absolute;
       white-space: nowrap;
       top: 50%;
-      margin-top: -6px;      /* half of 12px line-height */
-      font-size: 11px;
-      font-style: italic;
-      color: #6a6050;
-      font-family: Arial, Helvetica, sans-serif;
+      transform: translateY(-50%);
+      margin-top: 0;
+      font-size: 13px;
+      line-height: 1.2;
+      font-weight: 700;
+      color: #2d3138;
+      font-family: 'Noto Sans TC', 'IBM Plex Sans', sans-serif;
     }
 
-    #budget-strip {
+    #status-alert-main {
+      min-width: 420px;
+      max-width: 48%;
+      height: 44px;
+      border: 1px solid #d7b0ad;
+      border-radius: 10px;
+      background: #fff4f3;
       display: flex;
       align-items: center;
-      gap: 14px;
-      padding: 6px 14px;
-      background: #d4d0c3;
-      border-top: 2px solid #6f6b60;
-      box-shadow: inset 0 1px 0 #fff8e7;
-      cursor: pointer;
-      user-select: none;
-      font-size: 12px;
-      color: #1e2427;
+      gap: 8px;
+      padding: 0 10px;
+      color: #aa2222;
+      font-size: 13px;
+      font-weight: 700;
+      overflow: hidden;
+      flex-shrink: 1;
     }
 
-    #budget-strip:hover { background: #e0dbc8; }
+    #status-alert-icon {
+      font-size: 16px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
 
-    .strip-label { font-weight: 700; }
-    #budget-strip-balance { font-weight: 700; color: #1a6b1a; min-width: 70px; }
+    #status-alert-text {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    @media (max-width: 1320px) {
+      #budget-strip {
+        gap: 8px;
+      }
+
+      #status-alert-main {
+        min-width: 300px;
+        font-size: 12px;
+      }
+    }
+
+    @media (max-width: 1100px) {
+      #budget-strip {
+        flex-wrap: wrap;
+        padding: 8px 10px;
+      }
+
+      #status-ticker-main,
+      #status-alert-main {
+        order: 3;
+        flex-basis: 100%;
+        max-width: 100%;
+      }
+
+      #status-alert-main {
+        min-width: 0;
+      }
+
+      #rotate-cluster {
+        bottom: 138px;
+      }
+    }
 
     #budget-detail {
       display: none;
@@ -1381,6 +1974,44 @@
       flex-shrink: 0;
     }
 
+    #budget-window-titlebar-actions,
+    #overlay-win-actions,
+    #chart-win-actions,
+    #jukebox-titlebar-actions {
+      display: flex;
+      gap: 4px;
+      margin-left: auto;
+    }
+
+    .window-action-btn {
+      width: 20px;
+      height: 20px;
+      background: rgba(255,255,255,0.16);
+      border: 1px solid rgba(255,255,255,0.45);
+      border-radius: 3px;
+      color: #fff;
+      font-size: 13px;
+      line-height: 1;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    }
+
+    .window-action-btn:hover {
+      background: rgba(255,255,255,0.3);
+    }
+
+    #budget-window.is-collapsed #budget-window-body,
+    #chart-window.is-collapsed #chart-win-body,
+    #jukebox-window.is-collapsed #jukebox-body,
+    #overlay-window.is-collapsed #overlay-win-body,
+    #overlay-window.is-collapsed #overlay-win-footer,
+    #overlay-window.is-collapsed #overlay-resize-handle {
+      display: none;
+    }
+
     #budget-window-title {
       flex: 1;
       white-space: nowrap;
@@ -1484,7 +2115,7 @@
 
     #toast-container {
       position: fixed;
-      top: 42px;
+      top: 102px;
       left: 50%;
       transform: translateX(-50%);
       z-index: 20;
@@ -1915,6 +2546,7 @@
     body.terrain-editor-mode #topbar-speed,
     body.terrain-editor-mode #speed-controls,
     body.terrain-editor-mode #overlay-window,
+    body.terrain-editor-mode #chart-window,
     body.terrain-editor-mode #inspect-panel,
     body.terrain-editor-mode [data-menu-action="save"],
     body.terrain-editor-mode [data-menu-action="save-as"],
@@ -2063,6 +2695,149 @@
       overflow: hidden;
     }
     #overlay-window.is-open { display: flex; }
+
+    #chart-window {
+      position: fixed;
+      top: 88px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 760px;
+      height: 430px;
+      min-width: 460px;
+      min-height: 280px;
+      z-index: 61;
+      display: none;
+      flex-direction: column;
+      background: #141a12;
+      border: 2px solid #6f6b60;
+      border-radius: 6px;
+      box-shadow: 4px 6px 18px rgba(0,0,0,0.55);
+      overflow: hidden;
+    }
+    #chart-window.is-open { display: flex; }
+
+    #chart-win-titlebar {
+      display: flex;
+      align-items: center;
+      height: 28px;
+      padding: 0 8px;
+      gap: 7px;
+      background: #1e5cb3;
+      cursor: move;
+      flex-shrink: 0;
+      user-select: none;
+    }
+    #chart-win-icon { font-size: 14px; flex-shrink: 0; pointer-events: none; }
+    #chart-win-title {
+      flex: 1;
+      font-size: 12px;
+      font-weight: 700;
+      color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      pointer-events: none;
+    }
+    #chart-win-close {
+      width: 20px;
+      height: 20px;
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.35);
+      border-radius: 3px;
+      color: #fff;
+      font-size: 15px;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      transition: background 0.1s;
+    }
+    #chart-win-close:hover { background: rgba(200,30,30,0.75); }
+
+    #chart-win-body {
+      flex: 1;
+      display: grid;
+      grid-template-rows: auto 1fr auto auto;
+      gap: 8px;
+      padding: 10px;
+      background: #d4d0c3;
+      min-height: 0;
+    }
+    #chart-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 10px;
+      align-items: center;
+    }
+    .chart-line-toggle {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      color: #1e2427;
+      user-select: none;
+    }
+    .chart-line-toggle input {
+      width: 14px;
+      height: 14px;
+      accent-color: #1e5cb3;
+    }
+    #chart-canvas-wrap {
+      position: relative;
+      border: 1px solid #6f6b60;
+      border-radius: 4px;
+      background: #f0ecdc;
+      overflow: hidden;
+      min-height: 0;
+    }
+    #city-chart-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      image-rendering: pixelated;
+    }
+    #chart-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      min-height: 18px;
+      font-size: 11px;
+      color: #3b362e;
+    }
+    .chart-legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(255,255,255,0.45);
+      border: 1px solid #a7a08d;
+      border-radius: 10px;
+      padding: 2px 8px;
+      line-height: 1.2;
+    }
+    .chart-legend-swatch {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    #chart-note {
+      font-size: 10px;
+      color: #5a5648;
+      line-height: 1.3;
+    }
+
+    @media (max-width: 860px) {
+      #chart-window {
+        width: calc(100vw - 92px);
+        left: 82px;
+        transform: none;
+      }
+    }
 
     /* Title bar */
     #overlay-win-titlebar {
@@ -2348,6 +3123,61 @@
 
   <!-- ── Top menu bar ───────────────────────────────────────────────────── -->
   <header id="top-bar">
+    <div id="topbar-city-plate" aria-label="City name plate">
+      <div id="topbar-city-name" data-i18n="city.defaultName">My City</div>
+    </div>
+
+    <div id="topbar-main">
+      <div id="topbar-primary">
+        <div class="topbar-chip" aria-label="Current date">
+          <span class="topbar-chip-icon">🗓️</span>
+          <div class="topbar-chip-main">
+            <strong id="topbar-date-zh">2007年11月8日 星期四</strong>
+            <span id="topbar-date-en">8 Nov 2007 Thu</span>
+          </div>
+        </div>
+
+        <div class="topbar-chip topbar-chip-time" aria-label="Current time">
+          <span class="topbar-chip-icon">🕒</span>
+          <div class="topbar-chip-main">
+            <strong id="topbar-time">14:36</strong>
+          </div>
+        </div>
+
+        <div id="topbar-speed">
+          <button class="topbar-speed-btn is-active" data-speed="1" title="1× speed">1x</button>
+          <button class="topbar-speed-btn" data-speed="2" title="2× speed">2x</button>
+          <button class="topbar-speed-btn" data-speed="4" title="4× speed">4x</button>
+          <button class="topbar-speed-btn" data-speed="0" title="Pause">II</button>
+        </div>
+
+        <button id="topbar-more-btn" type="button" aria-label="Open menu" title="More">☰</button>
+      </div>
+
+      <div id="topbar-kpis" aria-label="City key indicators">
+        <div class="kpi-card">
+          <div class="kpi-label"><span>Funds</span><span>資金</span></div>
+          <div class="kpi-value" id="topbar-funds">$0</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label"><span>Monthly Income</span><span>每月收入</span></div>
+          <div class="kpi-value" id="topbar-income">+$0</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label"><span>Monthly Expenses</span><span>每月支出</span></div>
+          <div class="kpi-value" id="topbar-expense">-$0</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label"><span>Population</span><span>人口</span></div>
+          <div class="kpi-value" id="topbar-population">0</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label"><span>City Rating</span><span>城市評級</span></div>
+          <div class="kpi-value" id="topbar-rating">☆☆☆☆☆</div>
+        </div>
+      </div>
+    </div>
+
     <nav id="menu-bar">
 
       <!-- File -->
@@ -2424,17 +3254,6 @@
       </div>
 
     </nav>
-
-    <!-- City name — absolutely centred in the bar -->
-    <div id="topbar-city-name" data-i18n="city.defaultName">My City</div>
-
-    <!-- Speed controls (right side of top bar) -->
-    <div id="topbar-speed">
-      <button class="topbar-speed-btn is-active" data-speed="1" title="1× speed">1×</button>
-      <button class="topbar-speed-btn"            data-speed="2" title="2× speed">2×</button>
-      <button class="topbar-speed-btn"            data-speed="4" title="4× speed">4×</button>
-      <button class="topbar-speed-btn"            data-speed="0" title="Pause">⏸</button>
-    </div>
   </header>
 
   <!-- ── Help dialog ────────────────────────────────────────────────────── -->
@@ -2585,16 +3404,95 @@ Ctrl+O       Load game (open saves list)</div>
   </div>
 
   <nav id="tool-menu" class="tool-menu" aria-label="City tools" data-i18n-aria="tool.menu">
-    <button class="tool-category-button" type="button" data-tool-category="inspect" title="Inspect" data-i18n-title="toolCategory.inspect">?</button>
-    <button class="tool-category-button" type="button" data-tool-category="terrain" title="Terrain" data-i18n-title="toolCategory.terrain">⛰</button>
-    <button class="tool-category-button is-active" type="button" data-tool-category="roads" title="Roads" data-i18n-title="toolCategory.roads">🛣</button>
-    <button class="tool-category-button" type="button" data-tool-category="zones" title="Zones" data-i18n-title="toolCategory.zones">RCI</button>
-    <button class="tool-category-button" type="button" data-tool-category="power" title="Power" data-i18n-title="toolCategory.power">⚡</button>
-    <button class="tool-category-button" type="button" data-tool-category="services" title="Services" data-i18n-title="toolCategory.services">🚒</button>
-    <button class="tool-category-button" type="button" data-tool-category="parks" title="Parks" data-i18n-title="toolCategory.parks">🌳</button>
-    <button class="tool-category-button" type="button" data-tool-category="buildings" title="Buildings" data-i18n-title="toolCategory.buildings">🏠</button>
-    <button class="tool-category-button" type="button" data-tool-category="maps" title="Maps" data-i18n-title="toolCategory.maps">🗺</button>
-    <button class="tool-category-button" type="button" data-tool="bulldoze" title="Bulldoze ($5)" aria-label="Bulldoze" data-i18n-title="tool.bulldoze" data-i18n-aria="tool.bulldoze">🔨</button>
+    <button id="tool-menu-collapse" type="button" aria-label="Toggle tool menu" title="Toggle tool menu">◀</button>
+    <button class="tool-category-button is-active" type="button" data-tool-category="roads" title="Roads" data-i18n-title="toolCategory.roads">
+      <span class="tool-category-icon" aria-hidden="true">🛣</span>
+      <span class="tool-category-labels">
+        <span class="tool-category-title">道路</span>
+        <span class="tool-category-subtitle">Roads</span>
+      </span>
+      <span class="tool-category-accent" aria-hidden="true"></span>
+    </button>
+    <button class="tool-category-button" type="button" data-tool-category="zones" title="Zones" data-i18n-title="toolCategory.zones">
+      <span class="tool-category-icon" aria-hidden="true">🏢</span>
+      <span class="tool-category-labels">
+        <span class="tool-category-title">分區</span>
+        <span class="tool-category-subtitle">Zoning</span>
+      </span>
+      <span class="tool-category-accent" aria-hidden="true"></span>
+    </button>
+    <button class="tool-category-button" type="button" data-tool-category="buildings" title="Housing" data-i18n-title="toolCategory.buildings">
+      <span class="tool-category-icon" aria-hidden="true">🏠</span>
+      <span class="tool-category-labels">
+        <span class="tool-category-title">建築</span>
+        <span class="tool-category-subtitle">Buildings</span>
+      </span>
+      <span class="tool-category-accent" aria-hidden="true"></span>
+    </button>
+    <button class="tool-category-button" type="button" data-tool-category="maps" title="Maps" data-i18n-title="toolCategory.maps">
+      <span class="tool-category-icon" aria-hidden="true">🗺️</span>
+      <span class="tool-category-labels">
+        <span class="tool-category-title">小地圖</span>
+        <span class="tool-category-subtitle">Mini Map</span>
+      </span>
+      <span class="tool-category-accent" aria-hidden="true"></span>
+    </button>
+    <button class="tool-category-button" type="button" data-action="open-charts" title="Charts" data-i18n-title="toolCategory.charts">
+      <span class="tool-category-icon" aria-hidden="true">📈</span>
+      <span class="tool-category-labels">
+        <span class="tool-category-title">統計圖表</span>
+        <span class="tool-category-subtitle">Charts</span>
+      </span>
+      <span class="tool-category-accent" aria-hidden="true"></span>
+    </button>
+    <button class="tool-category-button" type="button" data-tool-category="power" title="Power" data-i18n-title="toolCategory.power">
+      <span class="tool-category-icon" aria-hidden="true">⚡</span>
+      <span class="tool-category-labels">
+        <span class="tool-category-title">電力水務</span>
+        <span class="tool-category-subtitle">Utilities</span>
+      </span>
+      <span class="tool-category-accent" aria-hidden="true"></span>
+    </button>
+    <button class="tool-category-button" type="button" data-tool-category="services" title="Civic" data-i18n-title="toolCategory.services">
+      <span class="tool-category-icon" aria-hidden="true">🏛️</span>
+      <span class="tool-category-labels">
+        <span class="tool-category-title">公共設施</span>
+        <span class="tool-category-subtitle">Civic</span>
+      </span>
+      <span class="tool-category-accent" aria-hidden="true"></span>
+    </button>
+    <button class="tool-category-button" type="button" data-tool-category="parks" title="Parks and Recreation" data-i18n-title="toolCategory.parks">
+      <span class="tool-category-icon" aria-hidden="true">🌳</span>
+      <span class="tool-category-labels">
+        <span class="tool-category-title">公園康樂</span>
+        <span class="tool-category-subtitle">Parks &amp; Rec</span>
+      </span>
+      <span class="tool-category-accent" aria-hidden="true"></span>
+    </button>
+    <button class="tool-category-button" type="button" data-tool-category="terrain" title="Terrain" data-i18n-title="toolCategory.terrain">
+      <span class="tool-category-icon" aria-hidden="true">🚉</span>
+      <span class="tool-category-labels">
+        <span class="tool-category-title">地形編輯</span>
+        <span class="tool-category-subtitle">Terrain</span>
+      </span>
+      <span class="tool-category-accent" aria-hidden="true"></span>
+    </button>
+    <button class="tool-category-button" type="button" data-tool-category="inspect" title="Inspect" data-i18n-title="toolCategory.inspect">
+      <span class="tool-category-icon" aria-hidden="true">🔍</span>
+      <span class="tool-category-labels">
+        <span class="tool-category-title">檢視資訊</span>
+        <span class="tool-category-subtitle">Inspect</span>
+      </span>
+      <span class="tool-category-accent" aria-hidden="true"></span>
+    </button>
+    <button class="tool-category-button" type="button" data-tool="bulldoze" title="Bulldoze" aria-label="Bulldoze" data-i18n-title="tool.bulldoze" data-i18n-aria="tool.bulldoze">
+      <span class="tool-category-icon" aria-hidden="true">🚜</span>
+      <span class="tool-category-labels">
+        <span class="tool-category-title">拆除推土</span>
+        <span class="tool-category-subtitle">Demolish</span>
+      </span>
+      <span class="tool-category-accent" aria-hidden="true"></span>
+    </button>
 
     <section class="tool-flyout" data-tool-panel="inspect">
       <div class="tool-flyout-title" data-i18n="toolCategory.inspect">Inspect</div>
@@ -2669,6 +3567,21 @@ Ctrl+O       Load game (open saves list)</div>
       </button>
       <button class="tool-row" type="button" data-tool="police-station">
         <span class="tool-row-icon">👮</span><span class="tool-row-text" data-i18n="toolRow.policeStation">Police Station</span><span class="tool-row-cost">$800</span>
+      </button>
+      <button class="tool-row" type="button" data-tool="primary-school">
+        <span class="tool-row-icon">🏫</span><span class="tool-row-text" data-i18n="toolRow.primarySchool">Primary School</span><span class="tool-row-cost">$1200</span>
+      </button>
+      <button class="tool-row" type="button" data-tool="secondary-school">
+        <span class="tool-row-icon">🏫</span><span class="tool-row-text" data-i18n="toolRow.secondarySchool">Secondary School</span><span class="tool-row-cost">$1800</span>
+      </button>
+      <button class="tool-row" type="button" data-tool="library">
+        <span class="tool-row-icon">📚</span><span class="tool-row-text" data-i18n="toolRow.library">Library</span><span class="tool-row-cost">$1600</span>
+      </button>
+      <button class="tool-row" type="button" data-tool="community-college">
+        <span class="tool-row-icon">🎓</span><span class="tool-row-text" data-i18n="toolRow.communityCollege">Community College</span><span class="tool-row-cost">$3200</span>
+      </button>
+      <button class="tool-row" type="button" data-tool="university">
+        <span class="tool-row-icon">🎓</span><span class="tool-row-text" data-i18n="toolRow.university">University</span><span class="tool-row-cost">$8000</span>
       </button>
     </section>
 
@@ -2778,6 +3691,14 @@ Ctrl+O       Load game (open saves list)</div>
         <path d="M12 16l3 3 5-6"/>
       </svg>
     </button>
+    <button class="tool-button" type="button" data-tool="primary-school" title="Primary School ($1200)" aria-label="Primary School" data-i18n-title="tool.primarySchool" data-i18n-aria="tool.primarySchool">
+      <span class="tool-row-icon" aria-hidden="true">🏫</span>
+      <span class="tool-badge" aria-hidden="true">2x2</span>
+    </button>
+    <button class="tool-button" type="button" data-tool="university" title="University ($8000)" aria-label="University" data-i18n-title="tool.university" data-i18n-aria="tool.university">
+      <span class="tool-row-icon" aria-hidden="true">🎓</span>
+      <span class="tool-badge" aria-hidden="true">4x4</span>
+    </button>
     <button class="tool-button" type="button" data-tool="park" title="Park — choose open ground, playground, or 3x3 park" aria-label="Park">
       <svg viewBox="0 0 32 32" aria-hidden="true" stroke="#227a3a">
         <path d="M16 5c-3 0-5 2-5 5-3 1-5 3-5 6 0 4 3 6 7 6h6c4 0 7-2 7-6 0-3-2-5-5-6 0-3-2-5-5-5z" fill="#4db85a" opacity="0.35"/>
@@ -2886,7 +3807,10 @@ Ctrl+O       Load game (open saves list)</div>
     <div id="jukebox-titlebar">
       <span>🎵</span>
       <span id="jukebox-titlebar-title" data-i18n="jukebox.title">Jukebox</span>
-      <button id="jukebox-close-btn" type="button" title="Close jukebox" aria-label="Close" data-i18n-title="jukebox.close" data-i18n-aria="tool.close">×</button>
+      <div id="jukebox-titlebar-actions">
+        <button id="jukebox-min-btn" class="window-action-btn" type="button" title="Fold jukebox" aria-label="Fold jukebox">−</button>
+        <button id="jukebox-close-btn" class="window-action-btn" type="button" title="Close jukebox" aria-label="Close" data-i18n-title="jukebox.close" data-i18n-aria="tool.close">×</button>
+      </div>
     </div>
     <div id="jukebox-body">
       <div id="jukebox-track-name">—</div>
@@ -2930,62 +3854,110 @@ Ctrl+O       Load game (open saves list)</div>
 
   <!-- HUD panel (top-right) -->
   <aside id="hud" aria-label="City statistics">
-    <div class="hud-city-row">
-      <span id="hud-city-name">My City</span>
-      <button class="hud-rename-btn" onclick="renameCityPrompt()" title="Rename city" aria-label="Rename city" data-i18n-title="tool.renameCity" data-i18n-aria="tool.renameCity">✏️</button>
-    </div>
-    <div class="hud-separator"></div>
-    <div class="hud-row">
-      <span id="hud-money">$10,000</span>
-    </div>
-    <div class="hud-row">
-      <span id="hud-pop">Pop: 0</span>
-      <span id="hud-stars">★☆☆☆☆</span>
-    </div>
-    <div class="hud-row">
-      <span id="hud-date">Jan 1900</span>
-    </div>
-    <div class="hud-income-row">
-      <span id="hud-income">+$0</span>
-      <span id="hud-expense" class="hud-expense-val">-$0</span>
-    </div>
-    <div class="hud-separator"></div>
-    <div id="overlay-controls" aria-label="City overlay maps">
-      <button class="overlay-btn" type="button" data-overlay="pollution"  title="Pollution map" data-i18n-title="overlay.pollutionMap">🏭</button>
-      <button class="overlay-btn" type="button" data-overlay="crime"      title="Crime rate map" data-i18n-title="overlay.crimeMap">🚔</button>
-      <button class="overlay-btn" type="button" data-overlay="fire"       title="Fire hazard map" data-i18n-title="overlay.fireMap">🔥</button>
-      <button class="overlay-btn" type="button" data-overlay="population" title="Population density map" data-i18n-title="overlay.populationMap">👥</button>
-      <button class="overlay-btn" type="button" data-overlay="landvalue"  title="Land value map" data-i18n-title="overlay.landvalueMap">💰</button>
-      <button class="overlay-btn" type="button" data-overlay="electricity" title="Electricity map" data-i18n-title="overlay.electricityMap">🔌</button>
-      <button class="overlay-btn" type="button" data-overlay="power"       title="Power plant map" data-i18n-title="overlay.powerMap">⚡</button>
-    </div>
-    <div class="hud-separator"></div>
-    <div class="hud-rci" aria-label="R/C/I demand">
-      <div class="hud-rci-bar">
-        <div class="demand-bar-track"><div id="bar-r" class="demand-bar-fill"></div></div>
-        <span class="hud-rci-label">R</span>
+    <section class="hud-panel" data-hud-panel="overview">
+      <div class="hud-panel-header">
+        <span>城市概覽 <strong>City Overview</strong></span>
+        <button class="hud-panel-toggle" type="button" data-hud-toggle="overview" aria-label="Toggle city overview">−</button>
       </div>
-      <div class="hud-rci-bar">
-        <div class="demand-bar-track"><div id="bar-c" class="demand-bar-fill"></div></div>
-        <span class="hud-rci-label">C</span>
+      <div class="hud-panel-body">
+        <div class="hud-city-row">
+          <span id="hud-city-name">My City</span>
+          <button class="hud-rename-btn" onclick="renameCityPrompt()" title="Rename city" aria-label="Rename city" data-i18n-title="tool.renameCity" data-i18n-aria="tool.renameCity">✏️</button>
+        </div>
+        <div class="hud-row"><span id="hud-money">$10,000</span></div>
+        <div class="hud-row"><span id="hud-pop">Pop: 0</span><span id="hud-stars">★☆☆☆☆</span></div>
+        <div class="hud-overview-grid">
+          <div><span>日期</span><span id="hud-date">Jan 1900</span></div>
+          <div><span>基本教育</span><span id="hud-education-basic">Basic Edu: 0%</span></div>
+          <div><span>高等教育</span><span id="hud-education-higher">Higher Edu: 0%</span></div>
+          <div><span>科研產業</span><span id="hud-science-share">Science Industry: 0%</span></div>
+          <div><span>月收入</span><span id="hud-income">+$0</span></div>
+          <div><span>月支出</span><span id="hud-expense" class="hud-expense-val">-$0</span></div>
+        </div>
       </div>
-      <div class="hud-rci-bar">
-        <div class="demand-bar-track"><div id="bar-i" class="demand-bar-fill"></div></div>
-        <span class="hud-rci-label">I</span>
+    </section>
+
+    <section class="hud-panel" data-hud-panel="demand">
+      <div class="hud-panel-header">
+        <span>需求狀況 <strong>Demand Status</strong></span>
+        <button class="hud-panel-toggle" type="button" data-hud-toggle="demand" aria-label="Toggle demand status">−</button>
       </div>
-    </div>
+      <div class="hud-panel-body">
+        <div class="hud-rci" aria-label="R/C/I demand">
+          <div class="hud-rci-bar">
+            <div class="demand-bar-track"><div id="bar-r" class="demand-bar-fill"></div></div>
+            <span class="hud-rci-label">R</span>
+          </div>
+          <div class="hud-rci-bar">
+            <div class="demand-bar-track"><div id="bar-c" class="demand-bar-fill"></div></div>
+            <span class="hud-rci-label">C</span>
+          </div>
+          <div class="hud-rci-bar">
+            <div class="demand-bar-track"><div id="bar-i" class="demand-bar-fill"></div></div>
+            <span class="hud-rci-label">I</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="hud-panel" data-hud-panel="utilities">
+      <div class="hud-panel-header">
+        <span>電力及地圖 <strong>Utilities & Maps</strong></span>
+        <button class="hud-panel-toggle" type="button" data-hud-toggle="utilities" aria-label="Toggle utilities">−</button>
+      </div>
+      <div class="hud-panel-body">
+        <div id="overlay-controls" aria-label="City overlay maps">
+          <button class="overlay-btn" type="button" data-overlay="pollution"  title="Pollution map" data-i18n-title="overlay.pollutionMap">🏭</button>
+          <button class="overlay-btn" type="button" data-overlay="crime"      title="Crime rate map" data-i18n-title="overlay.crimeMap">🚔</button>
+          <button class="overlay-btn" type="button" data-overlay="fire"       title="Fire hazard map" data-i18n-title="overlay.fireMap">🔥</button>
+          <button class="overlay-btn" type="button" data-overlay="population" title="Population density map" data-i18n-title="overlay.populationMap">👥</button>
+          <button class="overlay-btn" type="button" data-overlay="landvalue"  title="Land value map" data-i18n-title="overlay.landvalueMap">💰</button>
+          <button class="overlay-btn" type="button" data-overlay="education"  title="Education coverage map" data-i18n-title="overlay.educationMap">🎓</button>
+          <button class="overlay-btn" type="button" data-overlay="electricity" title="Electricity map" data-i18n-title="overlay.electricityMap">🔌</button>
+          <button class="overlay-btn" type="button" data-overlay="power"       title="Power plant map" data-i18n-title="overlay.powerMap">⚡</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="hud-panel" data-hud-panel="index">
+      <div class="hud-panel-header">
+        <span>城市發展指數 <strong>City Development Index</strong></span>
+        <button class="hud-panel-toggle" type="button" data-hud-toggle="index" aria-label="Toggle city index">−</button>
+      </div>
+      <div class="hud-panel-body">
+        <div class="hud-index-grid">
+          <div class="hud-index-item"><span class="hud-index-item-label">居住</span><span id="hud-index-livability" class="hud-index-item-value">0</span></div>
+          <div class="hud-index-item"><span class="hud-index-item-label">經濟</span><span id="hud-index-economy" class="hud-index-item-value">0</span></div>
+          <div class="hud-index-item"><span class="hud-index-item-label">環境</span><span id="hud-index-environment" class="hud-index-item-value">0</span></div>
+          <div class="hud-index-item"><span class="hud-index-item-label">交通</span><span id="hud-index-transport" class="hud-index-item-value">0</span></div>
+          <div class="hud-index-item"><span class="hud-index-item-label">總評</span><span id="hud-index-overall" class="hud-index-item-value">0</span></div>
+        </div>
+      </div>
+    </section>
   </aside>
 
   <!-- Budget panel (bottom) -->
   <div id="budget-panel" aria-label="Budget panel">
     <div id="budget-strip">
-      <span class="strip-label" data-i18n="budget.label">Budget</span>
-      <span id="budget-strip-balance">$10,000</span>
-      <span class="strip-sep"></span>
-      <div id="tip-ticker-track" aria-hidden="true">
-        <span id="tip-ticker-inner"></span>
+      <button id="status-pill" type="button" aria-label="Status panel">
+        <span>狀態</span>
+        <span>STATUS</span>
+      </button>
+      <div id="status-ticker-main">
+        <span id="status-main-icon" aria-hidden="true">📈</span>
+        <div id="tip-ticker-track" aria-hidden="true">
+          <span id="tip-ticker-inner"></span>
+        </div>
       </div>
-      <span style="font-size:11px; color:#5a5648; flex-shrink:0; margin-left:8px;" data-i18n="budget.details">▲ details</span>
+      <div id="status-alert-main">
+        <span id="status-alert-icon" aria-hidden="true">⚠</span>
+        <span id="status-alert-text">Power supply is insufficient. Risk of blackouts in some areas!</span>
+      </div>
+      <span id="budget-strip-balance" style="display:none">$10,000</span>
+      <button id="status-more-btn" type="button" aria-label="More information">
+        <span>更多訊息</span>
+        <span>MORE</span>
+      </button>
     </div>
     <div id="budget-detail">
       <div class="budget-stat">
@@ -3039,6 +4011,8 @@ Ctrl+O       Load game (open saves list)</div>
         <button class="policy-toggle" type="button" data-policy-id="publicSafety" data-i18n-title="policy.publicSafety.desc" data-i18n="policy.publicSafety.title">Public Safety Act</button>
         <button class="policy-toggle" type="button" data-policy-id="smallBusiness" data-i18n-title="policy.smallBusiness.desc" data-i18n="policy.smallBusiness.title">Small Business Relief</button>
         <button class="policy-toggle" type="button" data-policy-id="greenParks" data-i18n-title="policy.greenParks.desc" data-i18n="policy.greenParks.title">Green Parks Ordinance</button>
+        <button class="policy-toggle" type="button" data-policy-id="educationReform" data-i18n-title="policy.educationReform.desc" data-i18n="policy.educationReform.title">Education Reform Act</button>
+        <button class="policy-toggle" type="button" data-policy-id="scienceDevelopment" data-i18n-title="policy.scienceDevelopment.desc" data-i18n="policy.scienceDevelopment.title">Science Development Act</button>
         <span class="budget-note"><span data-i18n="budget.policyCost">Policy cost</span>: <span id="budget-policy-cost">$0/mo</span></span>
         <span class="budget-note"><span data-i18n="budget.loanCost">Loan cost</span>: <span id="budget-loan-cost">$0/mo</span></span>
         <button id="budget-open-window" class="budget-open-window-btn" type="button" data-i18n="budget.openWindow">Budget Window</button>
@@ -3050,7 +4024,10 @@ Ctrl+O       Load game (open saves list)</div>
     <div id="budget-window-titlebar">
       <span>💰</span>
       <span id="budget-window-title" data-i18n="budget.windowTitle">Budget Overview</span>
-      <button id="budget-window-close" type="button" title="Close" aria-label="Close">×</button>
+      <div id="budget-window-titlebar-actions">
+        <button id="budget-window-min-btn" class="window-action-btn" type="button" title="Fold" aria-label="Fold">−</button>
+        <button id="budget-window-close" class="window-action-btn" type="button" title="Close" aria-label="Close">×</button>
+      </div>
     </div>
     <div id="budget-window-body">
       <section class="budget-window-section" aria-label="Income">
@@ -3073,6 +4050,7 @@ Ctrl+O       Load game (open saves list)</div>
             <tr><th data-i18n="budget.fire">Fire</th><td id="budget-expense-fire">$0</td></tr>
             <tr><th data-i18n="budget.police">Police</th><td id="budget-expense-police">$0</td></tr>
             <tr><th data-i18n="budget.power">Power</th><td id="budget-expense-power">$0</td></tr>
+            <tr><th data-i18n="budget.education">Education</th><td id="budget-expense-education">$0</td></tr>
             <tr><th data-i18n="budget.parks">Parks</th><td id="budget-expense-parks">$0</td></tr>
             <tr><th data-i18n="budget.policyCost">Policy cost</th><td id="budget-expense-policy">$0</td></tr>
             <tr><th data-i18n="budget.loanCost">Loan cost</th><td id="budget-expense-loans">$0</td></tr>
@@ -3109,7 +4087,10 @@ Ctrl+O       Load game (open saves list)</div>
     <div id="overlay-win-titlebar">
       <span id="overlay-win-icon">🏭</span>
       <span id="overlay-win-title">Pollution</span>
-      <button id="overlay-win-close" type="button" title="Close map" aria-label="Close">×</button>
+      <div id="overlay-win-actions">
+        <button id="overlay-win-min" class="window-action-btn" type="button" title="Fold map" aria-label="Fold map">−</button>
+        <button id="overlay-win-close" class="window-action-btn" type="button" title="Close map" aria-label="Close">×</button>
+      </div>
     </div>
 
     <!-- Map viewport (pan + zoom) -->
@@ -3120,6 +4101,7 @@ Ctrl+O       Load game (open saves list)</div>
         <button class="overlay-mode-btn" type="button" data-overlay="fire" title="Fire hazard map" data-i18n-title="overlay.fireMap">🔥</button>
         <button class="overlay-mode-btn" type="button" data-overlay="population" title="Population density map" data-i18n-title="overlay.populationMap">👥</button>
         <button class="overlay-mode-btn" type="button" data-overlay="landvalue" title="Land value map" data-i18n-title="overlay.landvalueMap">💰</button>
+        <button class="overlay-mode-btn" type="button" data-overlay="education" title="Education coverage map" data-i18n-title="overlay.educationMap">🎓</button>
         <button class="overlay-mode-btn" type="button" data-overlay="electricity" title="Electricity map" data-i18n-title="overlay.electricityMap">🔌</button>
         <button class="overlay-mode-btn" type="button" data-overlay="power" title="Power plant map" data-i18n-title="overlay.powerMap">⚡</button>
       </div>
@@ -3160,6 +4142,32 @@ Ctrl+O       Load game (open saves list)</div>
 
     <!-- Custom resize handle -->
     <div id="overlay-resize-handle"></div>
+  </div>
+
+  <div id="chart-window" role="dialog" aria-label="City trend charts">
+    <div id="chart-win-titlebar">
+      <span id="chart-win-icon">📈</span>
+      <span id="chart-win-title" data-i18n="chart.title">City Trend Charts</span>
+      <div id="chart-win-actions">
+        <button id="chart-win-min" class="window-action-btn" type="button" title="Fold charts" aria-label="Fold charts">−</button>
+        <button id="chart-win-close" class="window-action-btn" type="button" title="Close charts" aria-label="Close">×</button>
+      </div>
+    </div>
+    <div id="chart-win-body">
+      <div id="chart-controls">
+        <label class="chart-line-toggle"><input type="checkbox" data-chart-series="education" checked> <span data-i18n="chart.education">Education</span></label>
+        <label class="chart-line-toggle"><input type="checkbox" data-chart-series="crime" checked> <span data-i18n="chart.crime">Crime</span></label>
+        <label class="chart-line-toggle"><input type="checkbox" data-chart-series="governmentIncome" checked> <span data-i18n="chart.governmentIncome">Government Income</span></label>
+        <label class="chart-line-toggle"><input type="checkbox" data-chart-series="happiness" checked> <span data-i18n="chart.happiness">Happiness</span></label>
+        <label class="chart-line-toggle"><input type="checkbox" data-chart-series="landValue" checked> <span data-i18n="chart.landValue">Land Value</span></label>
+        <label class="chart-line-toggle"><input type="checkbox" data-chart-series="pollution" checked> <span data-i18n="chart.pollution">Pollution</span></label>
+      </div>
+      <div id="chart-canvas-wrap">
+        <canvas id="city-chart-canvas" width="680" height="300"></canvas>
+      </div>
+      <div id="chart-legend"></div>
+      <div id="chart-note" data-i18n="chart.normalizedNote">Each line is normalized to its own range over visible months for shape comparison.</div>
+    </div>
   </div>
 
   <!-- Script load order matters: i18n → constants → city-state → simulation → tools → hud → save → topbar → main -->

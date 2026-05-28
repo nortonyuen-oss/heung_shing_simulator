@@ -349,6 +349,16 @@ const MUSIC_TRACKS = [
     title: 'Loopside Harbor 2',
     file: 'Music/Loopside Harbor 2.mp3',
   },
+  {
+    key: 'music_5',
+    title: 'Velvet Booth Loop',
+    file: 'Music/Velvet Booth Loop.mp3',
+  },
+  {
+    key: 'music_6',
+    title: 'Velvet Booth Loop 2',
+    file: 'Music/Velvet Booth Loop 2.mp3',
+  },
 ];
 
 let selectedTool = 'road';
@@ -1341,6 +1351,11 @@ function getBuildingTypeLabel(type) {
     power_plant_solar: 'building.solarPlant',
     fire_station: 'building.fireStation',
     police_station: 'building.policeStation',
+    primary_school: 'building.primarySchool',
+    secondary_school: 'building.secondarySchool',
+    library: 'building.library',
+    community_college: 'building.communityCollege',
+    university: 'building.university',
     park_small: 'building.smallPark',
     park_large: 'building.largePark',
   }[type] ?? type);
@@ -2027,6 +2042,17 @@ function setupToolMenu() {
   const menu = document.getElementById('tool-menu');
   if (!menu) return;
 
+  const collapseBtn = document.getElementById('tool-menu-collapse');
+  if (collapseBtn) {
+    collapseBtn.addEventListener('click', (event) => {
+      event.stopPropagation();
+      menu.classList.toggle('is-collapsed');
+      collapseBtn.textContent = menu.classList.contains('is-collapsed') ? '▶' : '◀';
+      closeToolCategoryFlyouts();
+      closeToolPopups();
+    });
+  }
+
   menu.addEventListener('pointerdown', (event) => event.stopPropagation());
 
   // Speed controls
@@ -2132,6 +2158,12 @@ function setupToolMenu() {
       closeToolCategoryFlyouts();
       return;
     }
+    if (actionButton?.dataset.action === 'open-charts') {
+      if (isTerrainCreatorMode) return;
+      toggleChartWindow();
+      closeToolCategoryFlyouts();
+      return;
+    }
 
     const button = event.target.closest('[data-tool]');
     if (!button) return;
@@ -2231,6 +2263,7 @@ function setupToolMenu() {
   setupJukebox();
   setupRotateCluster();
   setupTerrainMiniMapControls();
+  initChartControls();
 }
 
 function getToolCategoryForTool(tool) {
@@ -2239,7 +2272,15 @@ function getToolCategoryForTool(tool) {
   if (tool === 'road') return 'roads';
   if (tool === 'zone-res' || tool === 'zone-com' || tool === 'zone-ind' || tool === 'dezone') return 'zones';
   if (tool === 'power-line' || tool === 'power-coal' || tool === 'power-solar') return 'power';
-  if (tool === 'fire-station' || tool === 'police-station') return 'services';
+  if (
+    tool === 'fire-station'
+    || tool === 'police-station'
+    || tool === 'primary-school'
+    || tool === 'secondary-school'
+    || tool === 'library'
+    || tool === 'community-college'
+    || tool === 'university'
+  ) return 'services';
   if (tool === 'park' || tool === 'tree') return 'parks';
   if (tool === 'house') return 'buildings';
   return null;
@@ -2281,6 +2322,9 @@ function openToolCategory(categoryButton, panel) {
 
 function positionToolFlyout(categoryButton, panel) {
   const bounds = categoryButton.getBoundingClientRect();
+  const menu = document.getElementById('tool-menu');
+  const menuBounds = menu?.getBoundingClientRect();
+  panel.style.left = `${Math.round((menuBounds?.right ?? bounds.right) + 8)}px`;
   panel.style.top = `${Math.max(8, Math.min(bounds.top, window.innerHeight - 48))}px`;
 
   requestAnimationFrame(() => {
@@ -2426,7 +2470,10 @@ function openTerrainPicker(triggerButton = document.querySelector('[data-tool="t
   });
 
   const triggerBounds = triggerButton?.getBoundingClientRect();
-  if (triggerBounds) picker.style.top = `${triggerBounds.top}px`;
+  if (triggerBounds) {
+    picker.style.left = `${Math.round(triggerBounds.right + 8)}px`;
+    picker.style.top = `${triggerBounds.top}px`;
+  }
 
   picker.classList.add('is-open');
 }
@@ -2565,6 +2612,7 @@ function openZoneDensityMenu(toolKey, triggerButton) {
   });
 
   const bounds = triggerButton.getBoundingClientRect();
+  densityMenu.style.left = `${Math.round(bounds.right + 8)}px`;
   densityMenu.style.top = `${bounds.top}px`;
   densityMenu.classList.add('is-open');
 }
@@ -2679,7 +2727,10 @@ function openParkPicker(triggerButton = document.querySelector('[data-tool="park
   });
 
   const bounds = triggerButton?.getBoundingClientRect();
-  if (bounds) picker.style.top = `${bounds.top}px`;
+  if (bounds) {
+    picker.style.left = `${Math.round(bounds.right + 8)}px`;
+    picker.style.top = `${bounds.top}px`;
+  }
   picker.classList.add('is-open');
 }
 
@@ -2723,18 +2774,61 @@ const OVERLAY_TITLES = {
   fire:        'overlay.fire',
   population:  'overlay.population',
   landvalue:   'overlay.landvalue',
+  education:   'overlay.education',
   electricity: 'overlay.electricity',
   power:       'overlay.power',
 };
 const OVERLAY_ICONS = {
-  pollution: '🏭', crime: '🚔', fire: '🔥', population: '👥', landvalue: '💰', electricity: '🔌', power: '⚡',
+  pollution: '🏭', crime: '🚔', fire: '🔥', population: '👥', landvalue: '💰', education: '🎓', electricity: '🔌', power: '⚡',
 };
+
+const CHART_SERIES_DEFS = {
+  education: {
+    labelKey: 'chart.education',
+    color: '#2a9fd6',
+    historyKey: 'educationHistory',
+    formatter: (v) => `${Math.round((Number(v) || 0) * 100)}%`,
+  },
+  crime: {
+    labelKey: 'chart.crime',
+    color: '#c24646',
+    historyKey: 'crimeHistory',
+    formatter: (v) => `${Math.round((Number(v) || 0) * 100)}%`,
+  },
+  governmentIncome: {
+    labelKey: 'chart.governmentIncome',
+    color: '#2e8b57',
+    historyKey: 'governmentIncomeHistory',
+    formatter: (v) => `${Math.round(Number(v) || 0).toLocaleString()}`,
+  },
+  happiness: {
+    labelKey: 'chart.happiness',
+    color: '#d68f1d',
+    historyKey: 'happinessHistory',
+    formatter: (v) => `${Math.round((Number(v) || 0) * 100)}%`,
+  },
+  landValue: {
+    labelKey: 'chart.landValue',
+    color: '#6b8e23',
+    historyKey: 'landValueHistory',
+    formatter: (v) => `${Math.round((Number(v) || 0) * 100)}%`,
+  },
+  pollution: {
+    labelKey: 'chart.pollution',
+    color: '#6d4c41',
+    historyKey: 'pollutionHistory',
+    formatter: (v) => `${Math.round(Number(v) || 0).toLocaleString()}`,
+  },
+};
+
+let chartWindowLastRenderedLabel = null;
 
 function initOverlayControls() {
   const controls     = document.getElementById('overlay-controls');
   const modeButtons  = document.getElementById('overlay-mode-buttons');
   const win          = document.getElementById('overlay-window');
   const closeBtn     = document.getElementById('overlay-win-close');
+  const minBtn       = document.getElementById('overlay-win-min');
   const titlebar     = document.getElementById('overlay-win-titlebar');
   const body         = document.getElementById('overlay-win-body');
   const zoomInBtn    = document.getElementById('overlay-zoom-in');
@@ -2763,12 +2857,16 @@ function initOverlayControls() {
 
   // ── Close button ─────────────────────────────────────────────────────────────
   closeBtn?.addEventListener('click', () => closeOverlayWindow());
+  minBtn?.addEventListener('click', () => {
+    win.classList.toggle('is-collapsed');
+    minBtn.textContent = win.classList.contains('is-collapsed') ? '+' : '−';
+  });
 
   // ── Title bar — drag to move window ──────────────────────────────────────────
   let isDraggingWin = false, winOffX = 0, winOffY = 0;
 
   titlebar?.addEventListener('mousedown', (e) => {
-    if (e.target.closest('#overlay-win-close')) return;
+    if (e.target.closest('#overlay-win-close') || e.target.closest('#overlay-win-min')) return;
     isDraggingWin = true;
     // Switch from transform-based centering to explicit position
     const rect = win.getBoundingClientRect();
@@ -2854,6 +2952,201 @@ function initOverlayControls() {
   // ── Block game input while window is focused ──────────────────────────────────
   win.addEventListener('pointerdown', (e) => e.stopPropagation());
   win.addEventListener('contextmenu', (e) => e.preventDefault());
+}
+
+function initChartControls() {
+  const win = document.getElementById('chart-window');
+  const closeBtn = document.getElementById('chart-win-close');
+  const minBtn = document.getElementById('chart-win-min');
+  const titlebar = document.getElementById('chart-win-titlebar');
+  const controls = document.getElementById('chart-controls');
+  if (!win) return;
+
+  closeBtn?.addEventListener('click', () => closeChartWindow());
+  minBtn?.addEventListener('click', () => {
+    win.classList.toggle('is-collapsed');
+    minBtn.textContent = win.classList.contains('is-collapsed') ? '+' : '−';
+  });
+  controls?.addEventListener('change', (event) => {
+    if (!event.target.closest('[data-chart-series]')) return;
+    chartWindowLastRenderedLabel = null;
+    updateChartWindow(true);
+  });
+
+  let dragging = false;
+  let offX = 0;
+  let offY = 0;
+
+  titlebar?.addEventListener('mousedown', (event) => {
+    if (event.target.closest('#chart-win-close') || event.target.closest('#chart-win-min')) return;
+    dragging = true;
+    const rect = win.getBoundingClientRect();
+    win.style.transform = 'none';
+    win.style.left = `${rect.left}px`;
+    win.style.top = `${rect.top}px`;
+    offX = event.clientX - rect.left;
+    offY = event.clientY - rect.top;
+    event.preventDefault();
+  });
+
+  window.addEventListener('mousemove', (event) => {
+    if (!dragging) return;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    win.style.left = `${Math.max(0, Math.min(vw - 120, event.clientX - offX))}px`;
+    win.style.top = `${Math.max(0, Math.min(vh - 48, event.clientY - offY))}px`;
+  });
+
+  window.addEventListener('mouseup', () => {
+    dragging = false;
+  });
+
+  win.addEventListener('pointerdown', (event) => event.stopPropagation());
+}
+
+function openChartWindow() {
+  const win = document.getElementById('chart-window');
+  if (!win) return;
+  win.classList.add('is-open');
+  chartWindowLastRenderedLabel = null;
+  updateChartWindow(true);
+}
+
+function closeChartWindow() {
+  document.getElementById('chart-window')?.classList.remove('is-open');
+}
+
+function toggleChartWindow() {
+  const win = document.getElementById('chart-window');
+  if (!win) return;
+  if (win.classList.contains('is-open')) {
+    closeChartWindow();
+    return;
+  }
+  openChartWindow();
+}
+
+function getSelectedChartSeriesKeys() {
+  const selected = [...document.querySelectorAll('#chart-controls [data-chart-series]:checked')]
+    .map((input) => input.dataset.chartSeries)
+    .filter((key) => CHART_SERIES_DEFS[key]);
+  return selected;
+}
+
+function updateChartWindow(force = false) {
+  const win = document.getElementById('chart-window');
+  if (!win || !win.classList.contains('is-open')) return;
+
+  const currentLabel = `${city.year}-${String(city.month).padStart(2, '0')}`;
+  if (!force && currentLabel === chartWindowLastRenderedLabel) return;
+  chartWindowLastRenderedLabel = currentLabel;
+
+  renderCityTrendChart();
+}
+
+function renderCityTrendChart() {
+  const canvas = document.getElementById('city-chart-canvas');
+  const legend = document.getElementById('chart-legend');
+  if (!canvas || !legend) return;
+
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  const wrap = document.getElementById('chart-canvas-wrap');
+  if (wrap) {
+    const rect = wrap.getBoundingClientRect();
+    const width = Math.max(360, Math.round(rect.width));
+    const height = Math.max(180, Math.round(rect.height));
+    if (canvas.width !== width || canvas.height !== height) {
+      canvas.width = width;
+      canvas.height = height;
+    }
+  }
+
+  const width = canvas.width;
+  const height = canvas.height;
+  ctx.clearRect(0, 0, width, height);
+  ctx.fillStyle = '#f0ecdc';
+  ctx.fillRect(0, 0, width, height);
+
+  drawChartGrid(ctx, width, height);
+
+  const selectedKeys = getSelectedChartSeriesKeys();
+  if (selectedKeys.length === 0) {
+    legend.innerHTML = `<span class="chart-legend-item">${t('chart.selectPrompt')}</span>`;
+    return;
+  }
+
+  const seriesData = selectedKeys.map((key) => {
+    const def = CHART_SERIES_DEFS[key];
+    const history = Array.isArray(city[def.historyKey]) ? city[def.historyKey].slice(-120) : [];
+    return { key, def, history };
+  });
+
+  const maxPoints = Math.max(2, ...seriesData.map((entry) => entry.history.length));
+  const leftPad = 32;
+  const rightPad = 12;
+  const topPad = 12;
+  const bottomPad = 22;
+  const plotW = width - leftPad - rightPad;
+  const plotH = height - topPad - bottomPad;
+
+  seriesData.forEach(({ def, history }) => {
+    if (!history.length) return;
+    const rawValues = history.map((entry) => Number(entry?.value ?? 0));
+    const minVal = Math.min(...rawValues);
+    const maxVal = Math.max(...rawValues);
+    const range = Math.max(1e-6, maxVal - minVal);
+
+    ctx.strokeStyle = def.color;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+
+    rawValues.forEach((value, index) => {
+      const x = leftPad + (index / Math.max(1, maxPoints - 1)) * plotW;
+      const normalized = (value - minVal) / range;
+      const y = topPad + (1 - normalized) * plotH;
+      if (index === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+  });
+
+  const latestMonth = city.month;
+  const latestYear = city.year;
+  ctx.fillStyle = '#5a5648';
+  ctx.font = '11px Arial';
+  ctx.fillText(`${latestYear}/${String(latestMonth).padStart(2, '0')}`, leftPad, height - 6);
+
+  legend.innerHTML = seriesData.map(({ def, history }) => {
+    const latest = history[history.length - 1];
+    const latestText = latest ? def.formatter(latest.value) : '--';
+    return `<span class="chart-legend-item"><span class="chart-legend-swatch" style="background:${def.color}"></span>${t(def.labelKey)}: ${latestText}</span>`;
+  }).join('');
+}
+
+function drawChartGrid(ctx, width, height) {
+  ctx.strokeStyle = 'rgba(110,105,90,0.34)';
+  ctx.lineWidth = 1;
+  const vertical = 6;
+  const horizontal = 4;
+  for (let i = 0; i <= vertical; i++) {
+    const x = 32 + (i / vertical) * (width - 44);
+    ctx.beginPath();
+    ctx.moveTo(x, 12);
+    ctx.lineTo(x, height - 22);
+    ctx.stroke();
+  }
+  for (let i = 0; i <= horizontal; i++) {
+    const y = 12 + (i / horizontal) * (height - 34);
+    ctx.beginPath();
+    ctx.moveTo(32, y);
+    ctx.lineTo(width - 12, y);
+    ctx.stroke();
+  }
+
+  ctx.strokeStyle = '#6f6b60';
+  ctx.strokeRect(32.5, 12.5, width - 44, height - 34);
 }
 
 function toggleOverlayMap(type) {
@@ -3051,6 +3344,30 @@ function drawOverlayAnnotations(ctx, type) {
     });
   }
 
+  if (type === 'education') {
+    Object.entries(buildingData).forEach(([id, rec]) => {
+      if (!['primary_school', 'secondary_school', 'library', 'community_college', 'university'].includes(rec.type)) return;
+
+      const [r0, c0] = id.split(':').map(Number);
+      const center = getMiniMapDisplayCoords(r0, c0);
+      const isHigher = rec.type === 'community_college' || rec.type === 'university';
+      const radius = rec.type === 'primary_school' ? PRIMARY_SCHOOL_RADIUS
+        : rec.type === 'secondary_school' ? SECONDARY_SCHOOL_RADIUS
+          : rec.type === 'library' ? LIBRARY_RADIUS
+            : rec.type === 'community_college' ? COMMUNITY_COLLEGE_RADIUS
+              : UNIVERSITY_RADIUS;
+
+      ctx.strokeStyle = isHigher ? 'rgba(130,90,255,0.40)' : 'rgba(70,170,255,0.40)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(center.col + 0.5, center.row + 0.5, radius, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.fillStyle = isHigher ? 'rgba(120,70,240,0.95)' : 'rgba(35,140,230,0.95)';
+      ctx.fillRect(center.col, center.row, 1, 1);
+    });
+  }
+
   ctx.restore();
 }
 
@@ -3125,6 +3442,33 @@ function updateOverlayDetailPanel(type) {
     return;
   }
 
+  if (type === 'education') {
+    const districtAverages = computeEducationDistrictAverages();
+    const schoolCount = Object.values(buildingData).filter((rec) => (
+      rec.type === 'primary_school'
+      || rec.type === 'secondary_school'
+      || rec.type === 'library'
+      || rec.type === 'community_college'
+      || rec.type === 'university'
+    )).length;
+    const districtLabel = (key) => t(`overlay.district.${key}`);
+    const pct = (value) => `${Math.round(clamp(value, 0, 1) * 100)}%`;
+
+    stats.innerHTML = [
+      chip(t('overlay.detail.average'), pct(city.educationAverageLevel ?? 0)),
+      chip(t('overlay.detail.schools'), schoolCount),
+      chip(districtLabel('nw'), pct(districtAverages.nw)),
+      chip(districtLabel('ne'), pct(districtAverages.ne)),
+      chip(districtLabel('sw'), pct(districtAverages.sw)),
+      chip(districtLabel('se'), pct(districtAverages.se)),
+    ].join('');
+    note.textContent = t('overlay.detail.educationCoverage');
+    footer.classList.remove('is-visible');
+    legend.classList.remove('is-hidden');
+    setOverlayLegendLabels(type);
+    return;
+  }
+
   footer.classList.remove('is-visible');
   legend.classList.remove('is-hidden');
   setOverlayLegendLabels(type);
@@ -3153,6 +3497,7 @@ function setOverlayLegendLabels(type) {
     fire: ['0%', '50%', '100%'],
     population: ['0%', '50%', '100%'],
     landvalue: ['0%', '50%', '100%'],
+    education: ['0%', '50%', '100%'],
     electricity: ['Short', 'Balanced', 'Surplus'],
     power: ['Old', 'Degraded', 'Active'],
   }[type] ?? ['0%', '50%', '100%'];
@@ -3281,6 +3626,7 @@ function overlayPixelColor(type, val) {
     case 'crime':      return [200, 0,   0,   a];   // red
     case 'fire':       return [220, 80,  0,   a];   // orange
     case 'population': return [20,  80,  220, a];   // blue
+    case 'education':  return [25, Math.round(80 + val * 145), Math.round(170 + val * 70), a];
     case 'electricity': return [Math.round(240 * (1 - val)), Math.round(70 + 170 * val), Math.round(30 + 20 * val), a];
     case 'power':      return [Math.round(175 + 55 * val), Math.round(175 + 35 * val), Math.round(175 - 70 * val), a];
     case 'landvalue': {
@@ -3302,9 +3648,58 @@ function computeOverlayMap(type) {
   if (type === 'fire')       return computeFireMap();
   if (type === 'population') return computePopulationMap();
   if (type === 'landvalue')  return computeLandValueMap();
+  if (type === 'education')  return computeEducationMap();
   if (type === 'electricity') return computeElectricityMap();
   if (type === 'power')      return computePowerPlantMap();
   return createFilledMap(0);
+}
+
+function computeEducationMap() {
+  const map = createFilledMap(0);
+  for (let r = 0; r < MAP_HEIGHT; r++) {
+    for (let c = 0; c < MAP_WIDTH; c++) {
+      if (zoneMap[r][c] === ZONE_NONE && !buildingData[getTileId(r, c)]) continue;
+      const cell = serviceMap[r]?.[c] ?? null;
+      const basic = clamp(cell?.eduBasic ?? 0, 0, 1);
+      const higher = clamp(cell?.eduHigher ?? 0, 0, 1);
+      map[r][c] = clamp(basic * 0.55 + higher * 0.45, 0, 1);
+    }
+  }
+  return map;
+}
+
+function computeEducationDistrictAverages() {
+  const districts = {
+    nw: { sum: 0, pop: 0 },
+    ne: { sum: 0, pop: 0 },
+    sw: { sum: 0, pop: 0 },
+    se: { sum: 0, pop: 0 },
+  };
+  const splitRow = Math.floor(MAP_HEIGHT / 2);
+  const splitCol = Math.floor(MAP_WIDTH / 2);
+
+  Object.entries(buildingData).forEach(([id, rec]) => {
+    if (rec.type !== 'residential') return;
+    const pop = Math.max(0, Number(rec.population ?? 0));
+    if (pop <= 0) return;
+
+    const [r, c] = id.split(':').map(Number);
+    const cell = serviceMap[r]?.[c] ?? null;
+    const localEdu = clamp((cell?.eduBasic ?? 0) * 0.55 + (cell?.eduHigher ?? 0) * 0.45, 0, 1);
+    const key = r < splitRow
+      ? (c < splitCol ? 'nw' : 'ne')
+      : (c < splitCol ? 'sw' : 'se');
+
+    districts[key].sum += localEdu * pop;
+    districts[key].pop += pop;
+  });
+
+  return {
+    nw: districts.nw.pop > 0 ? districts.nw.sum / districts.nw.pop : 0,
+    ne: districts.ne.pop > 0 ? districts.ne.sum / districts.ne.pop : 0,
+    sw: districts.sw.pop > 0 ? districts.sw.sum / districts.sw.pop : 0,
+    se: districts.se.pop > 0 ? districts.se.sum / districts.se.pop : 0,
+  };
 }
 
 function computePollutionMap() {
@@ -3546,6 +3941,7 @@ function openHouseSizeMenu(triggerButton = document.querySelector('[data-tool="h
 
   const buttonBounds = triggerButton?.getBoundingClientRect();
   if (buttonBounds) {
+    sizeMenu.style.left = `${Math.round(buttonBounds.right + 8)}px`;
     sizeMenu.style.top = `${buttonBounds.top}px`;
   }
 
@@ -3630,6 +4026,7 @@ function setupRotateCluster() {
 function setupJukebox() {
   const win    = document.getElementById('jukebox-window');
   const volume = document.getElementById('jukebox-volume');
+  const minBtn = document.getElementById('jukebox-min-btn');
   if (!win || !volume) return;
 
   // Stop game input from firing through the window
@@ -3640,7 +4037,7 @@ function setupJukebox() {
   if (titlebar) {
     let dragging = false, ox = 0, oy = 0;
     titlebar.addEventListener('pointerdown', (e) => {
-      if (e.target.closest('#jukebox-close-btn')) return;
+      if (e.target.closest('#jukebox-close-btn') || e.target.closest('#jukebox-min-btn')) return;
       dragging = true;
       const r = win.getBoundingClientRect();
       // Switch from bottom/right anchoring to explicit top/left
@@ -3662,6 +4059,10 @@ function setupJukebox() {
 
   // Close button
   document.getElementById('jukebox-close-btn')?.addEventListener('click', closeJukebox);
+  minBtn?.addEventListener('click', () => {
+    win.classList.toggle('is-collapsed');
+    minBtn.textContent = win.classList.contains('is-collapsed') ? '+' : '−';
+  });
 
   // Playback controls
   win.addEventListener('click', (e) => {
@@ -4515,6 +4916,11 @@ function getSelectedPlacementFootprint() {
     'power-solar': 'power_plant_solar',
     'fire-station': 'fire_station',
     'police-station': 'police_station',
+    'primary-school': 'primary_school',
+    'secondary-school': 'secondary_school',
+    'library': 'library',
+    'community-college': 'community_college',
+    'university': 'university',
   };
   const infraType = infraTypeByTool[selectedTool];
   if (infraType) {
@@ -8023,6 +8429,11 @@ function showTileDebug(scene, pointer) {
     power_plant_solar: 'Solar Power Plant',
     fire_station:      'Fire Station',
     police_station:    'Police Station',
+    primary_school:    'Primary School',
+    secondary_school:  'Secondary School',
+    library:           'Library',
+    community_college: 'Community College',
+    university:        'University',
     park_small:         'Small Park',
     park_large:         'Large Park',
   };
@@ -8058,13 +8469,18 @@ function showTileDebug(scene, pointer) {
     <div class="dbg-divider"></div>`;
 
   // ── Infrastructure building tooltip ──────────────────────────────────────────
-  const INFRA_TYPES = ['power_plant_coal', 'power_plant_solar', 'fire_station', 'police_station', 'park_small', 'park_large'];
+  const INFRA_TYPES = ['power_plant_coal', 'power_plant_solar', 'fire_station', 'police_station', 'primary_school', 'secondary_school', 'library', 'community_college', 'university', 'park_small', 'park_large'];
   if (bData && INFRA_TYPES.includes(bData.type)) {
     const INFRA_LABELS = {
       power_plant_coal:  '⚡ Coal Power Plant',
       power_plant_solar: '☀️ Solar Power Plant',
       fire_station:      '🚒 Fire Station',
       police_station:    '👮 Police Station',
+      primary_school:    '🏫 Primary School',
+      secondary_school:  '🏫 Secondary School',
+      library:           '📚 Library',
+      community_college: '🎓 Community College',
+      university:        '🎓 University',
       park_small:         '🌳 Small Park',
       park_large:         '🌲 Large Park',
     };
@@ -8073,12 +8489,20 @@ function showTileDebug(scene, pointer) {
       power_plant_solar: `Grid power source · Upkeep $${UPKEEP_SOLAR_PLANT}/mo · Clean`,
       fire_station:      `Fire coverage radius ${FIRE_STATION_RADIUS} tiles · Upkeep $${UPKEEP_FIRE_STATION}/mo`,
       police_station:    `Crime reduction radius ${POLICE_STATION_RADIUS} tiles · Upkeep $${UPKEEP_POLICE_STATION}/mo`,
+      primary_school:    `Basic education radius ${PRIMARY_SCHOOL_RADIUS} tiles · Upkeep $${UPKEEP_PRIMARY_SCHOOL}/mo`,
+      secondary_school:  `Basic education radius ${SECONDARY_SCHOOL_RADIUS} tiles · Upkeep $${UPKEEP_SECONDARY_SCHOOL}/mo`,
+      library:           `Basic education radius ${LIBRARY_RADIUS} tiles · Upkeep $${UPKEEP_LIBRARY}/mo`,
+      community_college: `Higher education radius ${COMMUNITY_COLLEGE_RADIUS} tiles · Upkeep $${UPKEEP_COMMUNITY_COLLEGE}/mo`,
+      university:        `Higher education radius ${UNIVERSITY_RADIUS} tiles · Upkeep $${UPKEEP_UNIVERSITY}/mo`,
       park_small:         `Residential happiness radius ${SMALL_PARK_RADIUS} tiles · Upkeep $${UPKEEP_PARK_SMALL}/mo`,
       park_large:         `Residential happiness radius ${LARGE_PARK_RADIUS} tiles · Upkeep $${UPKEEP_PARK_LARGE}/mo`,
     };
     const INFRA_COLORS = {
       power_plant_coal: '#ffcc44', power_plant_solar: '#ffe066',
       fire_station: '#ff7755',     police_station: '#6699ff',
+      primary_school: '#59a9ff',   secondary_school: '#2f78cc',
+      library: '#6f9cd6',          community_college: '#7a77cc',
+      university: '#5f52b4',
       park_small: '#58d66a',        park_large: '#32b457',
     };
     html += `
@@ -8298,6 +8722,11 @@ function showInspectPanel(scene, row, col, pointer = null) {
     power_plant_solar: `☀️ ${t('building.solarPlant')}`,
     fire_station: `🚒 ${t('building.fireStation')}`,
     police_station: `👮 ${t('building.policeStation')}`,
+    primary_school: `🏫 ${t('building.primarySchool')}`,
+    secondary_school: `🏫 ${t('building.secondarySchool')}`,
+    library: `📚 ${t('building.library')}`,
+    community_college: `🎓 ${t('building.communityCollege')}`,
+    university: `🎓 ${t('building.university')}`,
     park_small: `🌳 ${t('building.smallPark')}`,
     park_large: `🌲 ${t('building.largePark')}`,
   };
@@ -8306,10 +8735,27 @@ function showInspectPanel(scene, row, col, pointer = null) {
     power_plant_solar: t('inspect.gridPowerSource', { upkeep: UPKEEP_SOLAR_PLANT, quality: t('inspect.clean') }),
     fire_station: t('inspect.coverageRadius', { radius: FIRE_STATION_RADIUS, upkeep: UPKEEP_FIRE_STATION }),
     police_station: t('inspect.coverageRadius', { radius: POLICE_STATION_RADIUS, upkeep: UPKEEP_POLICE_STATION }),
+    primary_school: t('inspect.educationRadiusBasic', { radius: PRIMARY_SCHOOL_RADIUS, upkeep: UPKEEP_PRIMARY_SCHOOL }),
+    secondary_school: t('inspect.educationRadiusBasic', { radius: SECONDARY_SCHOOL_RADIUS, upkeep: UPKEEP_SECONDARY_SCHOOL }),
+    library: t('inspect.educationRadiusBasic', { radius: LIBRARY_RADIUS, upkeep: UPKEEP_LIBRARY }),
+    community_college: t('inspect.educationRadiusHigher', { radius: COMMUNITY_COLLEGE_RADIUS, upkeep: UPKEEP_COMMUNITY_COLLEGE }),
+    university: t('inspect.educationRadiusHigher', { radius: UNIVERSITY_RADIUS, upkeep: UPKEEP_UNIVERSITY }),
     park_small: t('inspect.parkRadius', { radius: SMALL_PARK_RADIUS, upkeep: UPKEEP_PARK_SMALL }),
     park_large: t('inspect.parkRadius', { radius: LARGE_PARK_RADIUS, upkeep: UPKEEP_PARK_LARGE }),
   };
-  const INFRA_COLORS  = { power_plant_coal:'#ffcc44', power_plant_solar:'#ffe066', fire_station:'#ff7755', police_station:'#6699ff', park_small:'#58d66a', park_large:'#32b457' };
+  const INFRA_COLORS  = {
+    power_plant_coal:'#ffcc44',
+    power_plant_solar:'#ffe066',
+    fire_station:'#ff7755',
+    police_station:'#6699ff',
+    primary_school:'#59a9ff',
+    secondary_school:'#2f78cc',
+    library:'#6f9cd6',
+    community_college:'#7a77cc',
+    university:'#5f52b4',
+    park_small:'#58d66a',
+    park_large:'#32b457',
+  };
   const INFRA_TYPES   = Object.keys(INFRA_LABELS);
 
   // Build the coord line: prefer building name over raw terrain name
@@ -8398,13 +8844,18 @@ function showInspectPanel(scene, row, col, pointer = null) {
     const BLDG_POP_LABEL = { residential: t('inspect.residents'), commercial: t('inspect.workers'), industrial: t('inspect.workers') };
 
     let bldgHtml = '';
-    if (hasBldg && bData && BLDG_DISPLAY[bData.type]) {
+    if (bData && BLDG_DISPLAY[bData.type]) {
       const lvl      = bData.level ?? 1;
       const dispName = BLDG_DISPLAY[bData.type][lvl] ?? `${getBuildingTypeLabel(bData.type)} ${lvl}`;
       const popLabel = BLDG_POP_LABEL[bData.type] ?? t('inspect.residents');
+      const avgEducation = typeof getAverageEducationForBuilding === 'function'
+        ? getAverageEducationForBuilding(bData, inspectRecord.anchorRow, inspectRecord.anchorCol)
+        : 0;
+      const avgEducationPct = `${Math.round(clampUnit(avgEducation) * 100)}%`;
       bldgHtml = `
         <div class="insp-bldg-name" style="color:${zColor}">${dispName}</div>
-        <div class="insp-row insp-muted">${t('inspect.levelPopulation', { level: lvl, population: (bData.population ?? 0).toLocaleString(), label: popLabel })}</div>`;
+        <div class="insp-row insp-muted">${t('inspect.levelPopulation', { level: lvl, population: (bData.population ?? 0).toLocaleString(), label: popLabel })}</div>
+        <div class="insp-row insp-muted">${t('inspect.avgEducation', { value: avgEducationPct })}</div>`;
     } else {
       bldgHtml = `<div class="insp-row insp-muted">${t('inspect.emptyLot')}</div>`;
     }

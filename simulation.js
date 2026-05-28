@@ -19,6 +19,8 @@ function runSimTick(scene) {
   updatePowerGrid(scene);
   updateServiceCoverage();
   updatePopulationAndPollution();
+  updateEducationLevels();
+  updateCrimeRateIndex();
   computeHappiness(scene);
   updateDemand();
   updateTrees(scene);
@@ -177,9 +179,27 @@ function updateServiceCoverage() {
   Object.entries(buildingData).forEach(([id, record]) => {
     if (record.type === 'fire_station')   bfsService(id, 'fire',   FIRE_STATION_RADIUS);
     if (record.type === 'police_station') bfsService(id, 'police', POLICE_STATION_RADIUS);
+    if (record.type === 'primary_school') bfsService(id, 'eduBasic', PRIMARY_SCHOOL_RADIUS, 0.45);
+    if (record.type === 'secondary_school') bfsService(id, 'eduBasic', SECONDARY_SCHOOL_RADIUS, 0.55);
+    if (record.type === 'library') bfsService(id, 'eduBasic', LIBRARY_RADIUS, 0.35);
+    if (record.type === 'community_college') bfsService(id, 'eduHigher', COMMUNITY_COLLEGE_RADIUS, 0.45);
+    if (record.type === 'university') bfsService(id, 'eduHigher', UNIVERSITY_RADIUS, 0.75);
     if (record.type === 'park_small')      bfsService(id, 'park',   SMALL_PARK_RADIUS, 1);
     if (record.type === 'park_large')      bfsService(id, 'park',   LARGE_PARK_RADIUS, 2);
   });
+}
+
+function ensureServiceCell(r, c) {
+  if (!serviceMap[r][c]) {
+    serviceMap[r][c] = {
+      fire: false,
+      police: false,
+      park: 0,
+      eduBasic: 0,
+      eduHigher: 0,
+    };
+  }
+  return serviceMap[r][c];
 }
 
 function bfsService(anchorId, key, radius, value = true) {
@@ -189,11 +209,13 @@ function bfsService(anchorId, key, radius, value = true) {
 
   while (queue.length > 0) {
     const [r, c, dist] = queue.shift();
-    if (!serviceMap[r][c]) serviceMap[r][c] = { fire: false, police: false, park: 0 };
+    const cell = ensureServiceCell(r, c);
     if (key === 'park') {
-      serviceMap[r][c].park = Math.max(serviceMap[r][c].park ?? 0, value);
+      cell.park = Math.max(cell.park ?? 0, value);
+    } else if (key === 'eduBasic' || key === 'eduHigher') {
+      cell[key] = clamp((cell[key] ?? 0) + Number(value || 0), 0, 1);
     } else {
-      serviceMap[r][c][key] = value;
+      cell[key] = value;
     }
     if (dist >= radius) continue;
     for (const [nr, nc] of getCardinalNeighbors(r, c)) {
@@ -204,6 +226,86 @@ function bfsService(anchorId, key, radius, value = true) {
       queue.push([nr, nc, dist + 1]);
     }
   }
+}
+
+function updateEducationLevels() {
+  const basicPolicyMul = isPolicyActive('educationReform') ? EDUCATION_POLICY_REFORM_MUL : 1;
+  let weightedBasicSum = 0;
+  let weightedHigherSum = 0;
+  let weightedPop = 0;
+
+  Object.entries(buildingData).forEach(([id, record]) => {
+    if (record.type !== 'residential') return;
+    const pop = Math.max(0, Number(record.population ?? 0));
+    if (pop <= 0) return;
+
+    const [r, c] = id.split(':').map(Number);
+    const cell = serviceMap[r]?.[c] ?? null;
+    const localBasic = clamp((cell?.eduBasic ?? 0) * basicPolicyMul, 0, 1);
+    let localHigher = clamp(cell?.eduHigher ?? 0, 0, 1);
+    if (isPolicyActive('scienceDevelopment')) {
+      localHigher = clamp(localHigher + SCIENCE_DEVELOPMENT_HIGHER_BONUS, 0, 1);
+    }
+
+    weightedBasicSum += localBasic * pop;
+    weightedHigherSum += localHigher * pop;
+    weightedPop += pop;
+  });
+
+  const targetBasic = weightedPop > 0 ? clamp(weightedBasicSum / weightedPop, 0, 1) : 0;
+  const targetHigher = weightedPop > 0 ? clamp(weightedHigherSum / weightedPop, 0, 1) : 0;
+
+  if (city.tick % TICKS_PER_MONTH === 0 || city.tick <= 1) {
+    city.educationBasicIndex = clamp(
+      city.educationBasicIndex + EDUCATION_BASIC_SMOOTHING * (targetBasic - city.educationBasicIndex),
+      0,
+      1,
+    );
+    city.educationHigherIndex = clamp(
+      city.educationHigherIndex + EDUCATION_HIGHER_SMOOTHING * (targetHigher - city.educationHigherIndex),
+      0,
+      1,
+    );
+  }
+
+  city.educationAverageLevel = clamp(city.educationBasicIndex * 0.55 + city.educationHigherIndex * 0.45, 0, 1);
+}
+
+function getAverageEducationForBuilding(record, row, col) {
+  if (!record) return 0;
+
+  const basic = clamp(city.educationBasicIndex ?? 0, 0, 1);
+  const higher = clamp(city.educationHigherIndex ?? 0, 0, 1);
+
+  if (record.type === 'residential') {
+    const cell = serviceMap[row]?.[col] ?? null;
+    const localBasic = clamp((cell?.eduBasic ?? 0) * (isPolicyActive('educationReform') ? EDUCATION_POLICY_REFORM_MUL : 1), 0, 1);
+    const localHigher = clamp((cell?.eduHigher ?? 0) + (isPolicyActive('scienceDevelopment') ? SCIENCE_DEVELOPMENT_HIGHER_BONUS : 0), 0, 1);
+    return clamp(0.20 + localBasic * 0.55 + localHigher * 0.25, 0, 1);
+  }
+
+  if (record.type === 'commercial' || record.type === 'industrial') {
+    return clamp(0.15 + basic * 0.45 + higher * 0.40, 0, 1);
+  }
+
+  return clamp(city.educationAverageLevel ?? 0, 0, 1);
+}
+
+function updateCrimeRateIndex() {
+  const protectedRisk = isPolicyActive('publicSafety') ? 0.03 : 0.05;
+  const unprotectedRisk = Math.max(0.35, 0.82 - (getDepartmentFunding('police') - 1) * 0.25);
+  let riskSum = 0;
+  let zonedCount = 0;
+
+  for (let r = 0; r < MAP_HEIGHT; r++) {
+    for (let c = 0; c < MAP_WIDTH; c++) {
+      if (zoneMap[r][c] === ZONE_NONE) continue;
+      zonedCount++;
+      riskSum += serviceMap[r]?.[c]?.police ? protectedRisk : unprotectedRisk;
+    }
+  }
+
+  city.crimeRateIndex = zonedCount > 0 ? clamp(riskSum / zonedCount, 0, 1) : 0;
 }
 
 // ── Demand engine (Classic SimCity RCI model) ─────────────────────────────────
@@ -217,6 +319,9 @@ function updateDemand() {
 
   const jobCapacity = comCnt * JOBS_PER_COM + indCnt * JOBS_PER_IND;
   const jobRatio    = clamp(jobCapacity / (resCnt * 4), 0, 1);
+
+  const basicEdu = clamp(city.educationBasicIndex ?? 0, 0, 1);
+  const higherEdu = clamp(city.educationHigherIndex ?? 0, 0, 1);
 
   // Residential: base +0.3 attractiveness so people want to move into an empty city.
   // Scales up with jobs (C/I) and down with high taxes.
@@ -234,10 +339,19 @@ function updateDemand() {
     + (isPolicyActive('roadRepair') ? 0.04 : 0),
     -1, 1
   );
+  city.demandC = clamp(
+    city.demandC
+    + 0.08 * basicEdu
+    + 0.22 * higherEdu
+    + (isPolicyActive('educationReform') ? 0.05 : 0),
+    -1, 1
+  );
   // Industrial: starts high, falls as city industrialises or pollutes too much.
   city.demandI = clamp(
     0.5 - (indCnt / total) * 3 + 0.2 * (1 - city.pollution / 100)
-    - (isPolicyActive('cleanAir') ? 0.05 : 0),
+    - (isPolicyActive('cleanAir') ? 0.05 : 0)
+    + 0.18 * basicEdu
+    + (isPolicyActive('scienceDevelopment') ? 0.05 : 0),
     -1, 1
   );
 }
@@ -370,6 +484,7 @@ function spawnZoneBuilding(scene, r, c, zone, level, density = DENSITY_LOW, opti
     offsetX: options.offsetX,
     offsetY: options.offsetY,
     anchorMode: options.anchorMode,
+    sourceFileName: options.sourceFileName,
   };
   return true;
 }
@@ -660,7 +775,23 @@ function getRandomIndustrialBuildingModel(footprintCols = null, footprintRows = 
     && (footprintRows === null || m.footprintRows === footprintRows)
   ));
   if (valid.length === 0) return null;
-  return pickVariedModel(valid, `industrial:${footprintCols ?? 'any'}x${footprintRows ?? 'any'}`);
+
+  const allowScienceBias = footprintCols >= 2 && footprintRows >= 2;
+  if (!allowScienceBias) {
+    return pickVariedModel(valid, `industrial:${footprintCols ?? 'any'}x${footprintRows ?? 'any'}`);
+  }
+
+  const scienceModels = valid.filter((m) => /sciencepark/i.test(m.sourceFileName || m.fileName || ''));
+  const regularModels = valid.filter((m) => !/sciencepark/i.test(m.sourceFileName || m.fileName || ''));
+  if (scienceModels.length === 0 || regularModels.length === 0) {
+    return pickVariedModel(valid, `industrial:${footprintCols ?? 'any'}x${footprintRows ?? 'any'}`);
+  }
+
+  const higherEdu = clamp(city.educationHigherIndex ?? 0, 0, 1);
+  const sciencePolicyBonus = isPolicyActive('scienceDevelopment') ? 0.20 : 0;
+  const scienceChance = clamp(0.05 + 0.35 * higherEdu + sciencePolicyBonus, 0, 0.85);
+  const chosenPool = Math.random() < scienceChance ? scienceModels : regularModels;
+  return pickVariedModel(chosenPool, `industrial:${footprintCols ?? 'any'}x${footprintRows ?? 'any'}:${chosenPool === scienceModels ? 'science' : 'regular'}`);
 }
 
 function getZoneGrowthLandScore(row, col, zone, landValueMap = null) {
@@ -684,7 +815,10 @@ function getZoneGrowthLandScore(row, col, zone, landValueMap = null) {
   }
 
   const pollutionPenalty = clamp(city.pollution / 220, 0, 0.35);
-  return clamp(score - pollutionPenalty, 0, 1);
+  const basicEdu = clamp(city.educationBasicIndex ?? 0, 0, 1);
+  const higherEdu = clamp(city.educationHigherIndex ?? 0, 0, 1);
+  const educationBonus = zone === ZONE_IND ? (0.04 * basicEdu + 0.08 * higherEdu) : (0.10 * basicEdu + 0.20 * higherEdu);
+  return clamp(score + educationBonus - pollutionPenalty, 0, 1);
 }
 
 function getLargeLotSpawnBoost(landScore, footprintSize) {
@@ -742,6 +876,7 @@ function updatePopulationAndPollution() {
   city.commercialCount = 0;
   city.industrialCount = 0;
   city.pollution       = 0;
+  let industrialScienceCount = 0;
 
   Object.values(buildingData).forEach((rec) => {
     if (rec.type === 'residential') {
@@ -752,6 +887,7 @@ function updatePopulationAndPollution() {
       city.commercialCount++;
     } else if (rec.type === 'industrial') {
       city.industrialCount++;
+      if (/sciencepark/i.test(rec.sourceFileName || rec.spriteKey || '')) industrialScienceCount++;
       city.pollution += POLLUTION_IND_BUILDING * (isPolicyActive('cleanAir') ? 0.70 : 1);
     } else if (rec.type === 'power_plant_coal') {
       city.pollution += POLLUTION_COAL_PLANT * (isPolicyActive('cleanAir') ? 0.70 : 1);
@@ -767,6 +903,9 @@ function updatePopulationAndPollution() {
     city.pollution = Math.max(0, city.pollution - treeReduction);
   }
   city.pollution = Math.round(city.pollution);
+  city.scienceIndustryShare = city.industrialCount > 0
+    ? clamp(industrialScienceCount / city.industrialCount, 0, 1)
+    : 0;
 }
 
 // ── Economy (runs monthly) ────────────────────────────────────────────────────
@@ -799,6 +938,49 @@ function runEconomy(scene) {
   } else if (city.budget >= 0 && city.isBankrupt) {
     city.isBankrupt = false;
   }
+
+  recordCityMetricHistory();
+}
+
+function recordCityMetricHistory() {
+  const label = `${city.year}-${String(city.month).padStart(2, '0')}`;
+  const pushPoint = (arr, value) => {
+    if (!Array.isArray(arr)) return;
+    if (arr.length && arr[arr.length - 1]?.label === label) {
+      arr[arr.length - 1].value = value;
+      return;
+    }
+    arr.push({ label, value });
+    if (arr.length > 120) arr.shift();
+  };
+
+  let avgLandValue = 0;
+  if (typeof computeLandValueMap === 'function') {
+    avgLandValue = computeAverageLandValueFromMap(computeLandValueMap());
+  }
+
+  pushPoint(city.educationHistory, clamp(city.educationAverageLevel ?? 0, 0, 1));
+  pushPoint(city.crimeHistory, clamp(city.crimeRateIndex ?? 0, 0, 1));
+  pushPoint(city.governmentIncomeHistory, Number(city.monthlyIncome ?? 0));
+  pushPoint(city.happinessHistory, clamp(city.happiness ?? 0, 0, 1));
+  pushPoint(city.landValueHistory, clamp(avgLandValue, 0, 1));
+  pushPoint(city.pollutionHistory, Number(city.pollution ?? 0));
+}
+
+function computeAverageLandValueFromMap(landValueMap) {
+  if (!Array.isArray(landValueMap)) return 0;
+  let sum = 0;
+  let count = 0;
+  for (let r = 0; r < MAP_HEIGHT; r++) {
+    for (let c = 0; c < MAP_WIDTH; c++) {
+      if (zoneMap[r][c] === ZONE_NONE) continue;
+      const value = landValueMap[r]?.[c];
+      if (!Number.isFinite(value)) continue;
+      sum += value;
+      count++;
+    }
+  }
+  return count > 0 ? sum / count : 0;
 }
 
 function agePowerPlants(scene) {

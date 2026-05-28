@@ -11,6 +11,11 @@ const INFRA_COSTS = {
   power_plant_solar: COST_SOLAR_PLANT,
   fire_station:      COST_FIRE_STATION,
   police_station:    COST_POLICE_STATION,
+  primary_school:    COST_PRIMARY_SCHOOL,
+  secondary_school:  COST_SECONDARY_SCHOOL,
+  library:           COST_LIBRARY,
+  community_college: COST_COMMUNITY_COLLEGE,
+  university:        COST_UNIVERSITY,
   park_small:         COST_PARK_SMALL,
   park_large:         COST_PARK_LARGE,
 };
@@ -30,6 +35,11 @@ function handleNewTool(scene, tile) {
   if (selectedTool === 'power-solar')   return placeInfraBuilding(scene, row, col, 'power_plant_solar');
   if (selectedTool === 'fire-station')  return placeInfraBuilding(scene, row, col, 'fire_station');
   if (selectedTool === 'police-station') return placeInfraBuilding(scene, row, col, 'police_station');
+  if (selectedTool === 'primary-school') return placeInfraBuilding(scene, row, col, 'primary_school');
+  if (selectedTool === 'secondary-school') return placeInfraBuilding(scene, row, col, 'secondary_school');
+  if (selectedTool === 'library') return placeInfraBuilding(scene, row, col, 'library');
+  if (selectedTool === 'community-college') return placeInfraBuilding(scene, row, col, 'community_college');
+  if (selectedTool === 'university') return placeInfraBuilding(scene, row, col, 'university');
   if (selectedTool === 'park')           return placeSelectedPark(scene, row, col);
   if (selectedTool === 'park-small')     return placePark(scene, row, col, { type: 'park_small', spriteKey: 'park_small_open', footprintCols: 1, footprintRows: 1 });
   if (selectedTool === 'park-large')     return placePark(scene, row, col, { type: 'park_large', spriteKey: 'park_large', footprintCols: 3, footprintRows: 3 });

@@ -34,6 +34,8 @@ const city = {
     publicSafety: false,
     smallBusiness: false,
     greenParks: false,
+    educationReform: false,
+    scienceDevelopment: false,
   },
   loans: [],
   nextLoanId: 1,
@@ -53,6 +55,17 @@ const city = {
   demandR: 0.3,
   demandC: 0.3,
   demandI: 0.5,
+  educationBasicIndex: 0,
+  educationHigherIndex: 0,
+  educationAverageLevel: 0,
+  crimeRateIndex: 0,
+  scienceIndustryShare: 0,
+  educationHistory: [],
+  crimeHistory: [],
+  governmentIncomeHistory: [],
+  happinessHistory: [],
+  landValueHistory: [],
+  pollutionHistory: [],
   happiness: 0.5,
   pollution: 0,
   tick: 0,
@@ -90,6 +103,8 @@ function resetGameState() {
     publicSafety: false,
     smallBusiness: false,
     greenParks: false,
+    educationReform: false,
+    scienceDevelopment: false,
   };
   city.loans = [];
   city.nextLoanId = 1;
@@ -109,6 +124,17 @@ function resetGameState() {
   city.demandR    = 0.3;
   city.demandC    = 0.3;
   city.demandI    = 0.5;
+  city.educationBasicIndex = 0;
+  city.educationHigherIndex = 0;
+  city.educationAverageLevel = 0;
+  city.crimeRateIndex = 0;
+  city.scienceIndustryShare = 0;
+  city.educationHistory = [];
+  city.crimeHistory = [];
+  city.governmentIncomeHistory = [];
+  city.happinessHistory = [];
+  city.landValueHistory = [];
+  city.pollutionHistory = [];
   city.happiness  = 0.5;
   city.pollution  = 0;
   city.tick       = 0;
@@ -131,6 +157,8 @@ function normalizeCityFinanceState() {
     publicSafety: !!city.activePolicies?.publicSafety,
     smallBusiness: !!city.activePolicies?.smallBusiness,
     greenParks: !!city.activePolicies?.greenParks,
+    educationReform: !!city.activePolicies?.educationReform,
+    scienceDevelopment: !!city.activePolicies?.scienceDevelopment,
   };
   city.loans = Array.isArray(city.loans) ? city.loans.filter((loan) => loan && loan.balance > 0) : [];
   city.nextLoanId = Math.max(city.nextLoanId ?? 1, ...city.loans.map((loan) => Number(loan.id ?? 0) + 1), 1);
@@ -140,6 +168,17 @@ function normalizeCityFinanceState() {
   city.totalPowerSupply = Number.isFinite(city.totalPowerSupply) ? city.totalPowerSupply : 0;
   city.totalPowerDemand = Number.isFinite(city.totalPowerDemand) ? city.totalPowerDemand : 0;
   city.powerRatio = Number.isFinite(city.powerRatio) ? city.powerRatio : 1;
+  city.educationBasicIndex = Number.isFinite(city.educationBasicIndex) ? city.educationBasicIndex : 0;
+  city.educationHigherIndex = Number.isFinite(city.educationHigherIndex) ? city.educationHigherIndex : 0;
+  city.educationAverageLevel = Number.isFinite(city.educationAverageLevel) ? city.educationAverageLevel : 0;
+  city.crimeRateIndex = Number.isFinite(city.crimeRateIndex) ? city.crimeRateIndex : 0;
+  city.scienceIndustryShare = Number.isFinite(city.scienceIndustryShare) ? city.scienceIndustryShare : 0;
+  city.educationHistory = Array.isArray(city.educationHistory) ? city.educationHistory : [];
+  city.crimeHistory = Array.isArray(city.crimeHistory) ? city.crimeHistory : [];
+  city.governmentIncomeHistory = Array.isArray(city.governmentIncomeHistory) ? city.governmentIncomeHistory : [];
+  city.happinessHistory = Array.isArray(city.happinessHistory) ? city.happinessHistory : [];
+  city.landValueHistory = Array.isArray(city.landValueHistory) ? city.landValueHistory : [];
+  city.pollutionHistory = Array.isArray(city.pollutionHistory) ? city.pollutionHistory : [];
   city.creditRating = city.creditRating || 'A';
 }
 
@@ -154,6 +193,11 @@ function computeBudgetSnapshot(options = {}) {
   const policeCount = getBuildingCount('police_station');
   const coalCount = getBuildingCount('power_plant_coal');
   const solarCount = getBuildingCount('power_plant_solar');
+  const primarySchoolCount = getBuildingCount('primary_school');
+  const secondarySchoolCount = getBuildingCount('secondary_school');
+  const libraryCount = getBuildingCount('library');
+  const communityCollegeCount = getBuildingCount('community_college');
+  const universityCount = getBuildingCount('university');
   const smallParks = getBuildingCount('park_small');
   const largeParks = getBuildingCount('park_large');
 
@@ -168,6 +212,13 @@ function computeBudgetSnapshot(options = {}) {
   const fireUpkeep = fireCount * UPKEEP_FIRE_STATION * getDepartmentFunding('fire');
   const policeUpkeep = policeCount * UPKEEP_POLICE_STATION * getDepartmentFunding('police');
   const powerUpkeep = coalCount * UPKEEP_COAL_PLANT + solarCount * UPKEEP_SOLAR_PLANT;
+  const educationUpkeep = (
+    primarySchoolCount * UPKEEP_PRIMARY_SCHOOL
+    + secondarySchoolCount * UPKEEP_SECONDARY_SCHOOL
+    + libraryCount * UPKEEP_LIBRARY
+    + communityCollegeCount * UPKEEP_COMMUNITY_COLLEGE
+    + universityCount * UPKEEP_UNIVERSITY
+  );
   const parksUpkeep = (smallParks * UPKEEP_PARK_SMALL + largeParks * UPKEEP_PARK_LARGE) * getDepartmentFunding('parks');
   const policyCost = getPolicyMonthlyCost();
   const loanPayment = Number.isFinite(options.loanPayment)
@@ -176,7 +227,7 @@ function computeBudgetSnapshot(options = {}) {
 
   const totalIncome = Math.round(grossIncome + policyTaxAdjustment);
   const totalExpenses = Math.round(
-    roadsUpkeep + fireUpkeep + policeUpkeep + powerUpkeep + parksUpkeep + policyCost + loanPayment
+    roadsUpkeep + fireUpkeep + policeUpkeep + powerUpkeep + educationUpkeep + parksUpkeep + policyCost + loanPayment
   );
   const net = totalIncome - totalExpenses;
 
@@ -192,6 +243,7 @@ function computeBudgetSnapshot(options = {}) {
       fire: Math.round(fireUpkeep),
       police: Math.round(policeUpkeep),
       power: Math.round(powerUpkeep),
+      education: Math.round(educationUpkeep),
       parks: Math.round(parksUpkeep),
       policy: Math.round(policyCost),
       loans: Math.round(loanPayment),
@@ -371,8 +423,20 @@ function getPolicyMonthlyCost() {
     if (policy.id === 'cleanAir') cost += city.industrialCount * 4;
     if (policy.id === 'roadRepair') cost += roadTileCount * 0.12;
     if (policy.id === 'greenParks') cost += countPolicyParks() * 12;
+    if (policy.id === 'educationReform') cost += countEducationBuildings() * 24;
+    if (policy.id === 'scienceDevelopment') cost += city.industrialCount * 5;
   });
   return Math.round(cost);
+}
+
+function countEducationBuildings() {
+  return Object.values(buildingData).filter((rec) => (
+    rec.type === 'primary_school'
+    || rec.type === 'secondary_school'
+    || rec.type === 'library'
+    || rec.type === 'community_college'
+    || rec.type === 'university'
+  )).length;
 }
 
 function countPolicyParks() {

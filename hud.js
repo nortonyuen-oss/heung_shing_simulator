@@ -1,26 +1,44 @@
 // ── HUD update (called every sim tick) ────────────────────────────────────────
 
+let lastMetricHistoryLabel = null;
+
 function updateHUD() {
   const name = city.name || getDefaultCityName();
+  const rating = starsDisplay(city.happiness);
   setTextContent('hud-city-name',     name);
-  setTextContent('topbar-city-name',  name);   // centred top bar label
+  setTextContent('topbar-city-name',  name);
   setTextContent('hud-money',  formatMoney(city.budget));
   setTextContent('hud-pop',    t('hud.pop', { population: city.population.toLocaleString() }));
   setTextContent('hud-date',   formatCityDate(city.day, city.month, city.year));
-  setTextContent('hud-stars',  starsDisplay(city.happiness));
+  setTextContent('topbar-date-zh', formatTopbarDateZh(city.year, city.month, city.day));
+  setTextContent('topbar-date-en', formatTopbarDateEn(city.year, city.month, city.day));
+  setTextContent('topbar-time', getPseudoClockTime(city.year, city.month, city.day));
+  setTextContent('topbar-funds', formatMoney(city.budget));
+  setTextContent('topbar-income', `+${formatMoney(city.monthlyIncome)}`);
+  setTextContent('topbar-expense', `-${formatMoney(city.monthlyExpenses)}`);
+  setTextContent('topbar-population', city.population.toLocaleString());
+  setTextContent('topbar-rating', rating);
+  setTextContent('hud-education-basic', t('hud.educationBasic', { value: `${Math.round((city.educationBasicIndex ?? 0) * 100)}%` }));
+  setTextContent('hud-education-higher', t('hud.educationHigher', { value: `${Math.round((city.educationHigherIndex ?? 0) * 100)}%` }));
+  setTextContent('hud-science-share', t('hud.scienceIndustry', { value: `${Math.round((city.scienceIndustryShare ?? 0) * 100)}%` }));
+  setTextContent('hud-stars',  rating);
   setTextContent('hud-income',         `+${formatMoney(city.monthlyIncome)}`);
   setTextContent('hud-expense',        `-${formatMoney(city.monthlyExpenses)}`);
   setTextContent('hud-income-detail',  `+${formatMoney(city.monthlyIncome)}`);
   setTextContent('hud-expense-detail', `-${formatMoney(city.monthlyExpenses)}`);
+  updateCityDevelopmentIndex();
 
   updateDemandBar('bar-r', city.demandR, '#44cc55');
   updateDemandBar('bar-c', city.demandC, '#4488ff');
   updateDemandBar('bar-i', city.demandI, '#ffcc00');
 
   updateBudgetStrip();
+  updateStatusAlert();
   updateTaxDisplay();
   updateBudgetControls();
   updateBudgetWindow();
+  updateMetricCharts();
+  if (typeof updateChartWindow === 'function') updateChartWindow();
   if (typeof updateMiniMap === 'function') updateMiniMap();
 
   // Highlight budget in red when near-bankrupt
@@ -31,11 +49,153 @@ function updateHUD() {
   }
 }
 
+function updateCityDevelopmentIndex() {
+  const livability = clampIndex(Math.round((city.happiness ?? 0) * 100));
+  const economy = clampIndex(Math.round(45 + Math.min(55, (city.monthlyIncome - city.monthlyExpenses) / 3000)));
+  const environment = clampIndex(Math.round(52 + ((city.educationBasicIndex ?? 0) * 28) - ((city.pollutionIndex ?? 0.1) * 24)));
+  const transport = clampIndex(Math.round(58 + ((city.roadCoverageIndex ?? 0.2) * 34)));
+  const overall = clampIndex(Math.round((livability + economy + environment + transport) / 4));
+
+  setIndexValue('hud-index-livability', livability);
+  setIndexValue('hud-index-economy', economy);
+  setIndexValue('hud-index-environment', environment);
+  setIndexValue('hud-index-transport', transport);
+  setIndexValue('hud-index-overall', overall);
+}
+
+function clampIndex(value) {
+  return Math.max(0, Math.min(99, Number.isFinite(value) ? value : 0));
+}
+
+function setIndexValue(id, value) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = String(value);
+  el.classList.remove('warn', 'bad');
+  if (value < 40) el.classList.add('bad');
+  else if (value < 60) el.classList.add('warn');
+}
+
+function setupHudPanelToggles() {
+  document.querySelectorAll('[data-hud-toggle]').forEach((button) => {
+    if (button.dataset.bound === '1') return;
+    button.dataset.bound = '1';
+    button.addEventListener('click', (event) => {
+      event.stopPropagation();
+      const panel = button.closest('.hud-panel');
+      if (!panel) return;
+      panel.classList.toggle('is-collapsed');
+      button.textContent = panel.classList.contains('is-collapsed') ? '+' : '−';
+    });
+  });
+}
+
+function formatTopbarDateZh(year, month, day) {
+  const weekday = getWeekdayIndex(year, month, day);
+  const weekdayNames = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+  return `${year}年${month}月${day}日 ${weekdayNames[weekday]}`;
+}
+
+function formatTopbarDateEn(year, month, day) {
+  const weekday = getWeekdayIndex(year, month, day);
+  const weekdayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return `${day} ${monthNames[Math.max(1, Math.min(12, month)) - 1]} ${year} ${weekdayNames[weekday]}`;
+}
+
+function getWeekdayIndex(year, month, day) {
+  const d = new Date(year, Math.max(0, month - 1), day);
+  return Number.isNaN(d.getTime()) ? 0 : d.getDay();
+}
+
+function getPseudoClockTime(year, month, day) {
+  const hour = (day * 3 + month * 2 + year) % 24;
+  const minute = (day * 11 + month * 7) % 60;
+  return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+}
+
+function initMetricCharts() {
+  drawTrendChart('hud-chart-education', city.educationHistory, '#2a9fd6');
+  drawTrendChart('hud-chart-crime', city.crimeHistory, '#c24646');
+}
+
+function updateMetricCharts() {
+  const label = `${city.year}-${String(city.month).padStart(2, '0')}`;
+  if (label !== lastMetricHistoryLabel) {
+    lastMetricHistoryLabel = label;
+    drawTrendChart('hud-chart-education', city.educationHistory, '#2a9fd6');
+    drawTrendChart('hud-chart-crime', city.crimeHistory, '#c24646');
+  }
+}
+
+function drawTrendChart(canvasId, series = [], lineColor = '#2a9fd6') {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  const width = canvas.width;
+  const height = canvas.height;
+  ctx.clearRect(0, 0, width, height);
+
+  ctx.fillStyle = '#f0ecdc';
+  ctx.fillRect(0, 0, width, height);
+  ctx.strokeStyle = 'rgba(110,105,90,0.5)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(0.5, 0.5, width - 1, height - 1);
+
+  if (!Array.isArray(series) || series.length === 0) return;
+
+  const points = series.slice(-60).map((entry) => Math.max(0, Math.min(1, Number(entry?.value ?? 0))));
+  if (points.length < 2) {
+    const y = Math.round((1 - points[0]) * (height - 10)) + 5;
+    ctx.fillStyle = lineColor;
+    ctx.fillRect(width - 4, y - 1, 3, 3);
+    return;
+  }
+
+  const min = Math.min(...points);
+  const max = Math.max(...points);
+  const range = Math.max(0.08, max - min);
+  const normalize = (v) => (v - min) / range;
+
+  ctx.strokeStyle = lineColor;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  points.forEach((value, index) => {
+    const x = 4 + (index / (points.length - 1)) * (width - 8);
+    const y = 4 + (1 - normalize(value)) * (height - 8);
+    if (index === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+}
+
 // ── Budget strip (bottom bar) ─────────────────────────────────────────────────
 
 function updateBudgetStrip() {
   const el = document.getElementById('budget-strip-balance');
   if (el) el.textContent = formatMoney(city.budget);
+}
+
+function updateStatusAlert() {
+  const alertEl = document.getElementById('status-alert-text');
+  const iconEl = document.getElementById('status-alert-icon');
+  const mainIconEl = document.getElementById('status-main-icon');
+  if (!alertEl) return;
+
+  const warning = getPowerPlantTickerWarning();
+  if (warning) {
+    alertEl.textContent = warning;
+    if (iconEl) iconEl.textContent = '⚠';
+    if (mainIconEl) mainIconEl.textContent = '📉';
+    return;
+  }
+
+  alertEl.textContent = t('tip.1');
+  if (iconEl) iconEl.textContent = '✓';
+  if (mainIconEl) mainIconEl.textContent = '📈';
 }
 
 function updateTaxDisplay() {
@@ -128,7 +288,8 @@ function showToast(message, type = 'info') {
 
 function initBudgetPanel() {
   const panel = document.getElementById('budget-panel');
-  const strip = document.getElementById('budget-strip');
+  const statusMoreBtn = document.getElementById('status-more-btn');
+  const statusPillBtn = document.getElementById('status-pill');
   const slider = document.getElementById('tax-slider');
 
   if (panel) {
@@ -136,12 +297,13 @@ function initBudgetPanel() {
     panel.addEventListener('click', (e) => e.stopPropagation());
   }
 
-  if (strip) {
-    strip.addEventListener('click', () => {
-      const detail = document.getElementById('budget-detail');
-      if (detail) detail.classList.toggle('is-open');
-    });
-  }
+  const toggleBudgetDetail = () => {
+    const detail = document.getElementById('budget-detail');
+    if (detail) detail.classList.toggle('is-open');
+  };
+
+  statusMoreBtn?.addEventListener('click', toggleBudgetDetail);
+  statusPillBtn?.addEventListener('click', toggleBudgetDetail);
 
   document.getElementById('budget-open-window')?.addEventListener('click', () => {
     openBudgetWindow();
@@ -191,6 +353,8 @@ function initBudgetPanel() {
   });
 
   updateHUD();
+  initMetricCharts();
+  setupHudPanelToggles();
   startTicker();
   setupBudgetWindow();
 
@@ -225,6 +389,7 @@ function updateBudgetWindow() {
   setTextContent('budget-expense-fire', formatMoney(current.expenses.fire));
   setTextContent('budget-expense-police', formatMoney(current.expenses.police));
   setTextContent('budget-expense-power', formatMoney(current.expenses.power));
+  setTextContent('budget-expense-education', formatMoney(current.expenses.education ?? 0));
   setTextContent('budget-expense-parks', formatMoney(current.expenses.parks));
   setTextContent('budget-expense-policy', formatMoney(current.expenses.policy));
   setTextContent('budget-expense-loans', formatMoney(current.expenses.loans));
@@ -248,19 +413,24 @@ function setupBudgetWindow() {
   const win = document.getElementById('budget-window');
   const titlebar = document.getElementById('budget-window-titlebar');
   const closeBtn = document.getElementById('budget-window-close');
+  const minBtn = document.getElementById('budget-window-min-btn');
   if (!win || !titlebar || !closeBtn) return;
 
   win.addEventListener('pointerdown', (e) => e.stopPropagation());
   win.addEventListener('click', (e) => e.stopPropagation());
 
   closeBtn.addEventListener('click', () => closeBudgetWindow());
+  minBtn?.addEventListener('click', () => {
+    win.classList.toggle('is-collapsed');
+    minBtn.textContent = win.classList.contains('is-collapsed') ? '+' : '−';
+  });
 
   let dragging = false;
   let offsetX = 0;
   let offsetY = 0;
 
   titlebar.addEventListener('pointerdown', (e) => {
-    if (e.target.closest('#budget-window-close')) return;
+    if (e.target.closest('#budget-window-close') || e.target.closest('#budget-window-min-btn')) return;
     dragging = true;
     const rect = win.getBoundingClientRect();
     win.style.left = `${rect.left}px`;

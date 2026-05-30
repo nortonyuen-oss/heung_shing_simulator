@@ -4,6 +4,8 @@ const INFRA_SPRITE_INDEX = {
   power_plant_solar: 48,
   fire_station:      72,
   police_station:    66,
+  legislative_council: 74,
+  stock_exchange:      76,
 };
 
 const INFRA_COSTS = {
@@ -16,6 +18,8 @@ const INFRA_COSTS = {
   library:           COST_LIBRARY,
   community_college: COST_COMMUNITY_COLLEGE,
   university:        COST_UNIVERSITY,
+  legislative_council: COST_LEGISLATIVE_COUNCIL,
+  stock_exchange:    COST_STOCK_EXCHANGE,
   park_small:         COST_PARK_SMALL,
   park_large:         COST_PARK_LARGE,
 };
@@ -40,6 +44,8 @@ function handleNewTool(scene, tile) {
   if (selectedTool === 'library') return placeInfraBuilding(scene, row, col, 'library');
   if (selectedTool === 'community-college') return placeInfraBuilding(scene, row, col, 'community_college');
   if (selectedTool === 'university') return placeInfraBuilding(scene, row, col, 'university');
+  if (selectedTool === 'legislative-council') return placeInfraBuilding(scene, row, col, 'legislative_council');
+  if (selectedTool === 'stock-exchange') return placeInfraBuilding(scene, row, col, 'stock_exchange');
   if (selectedTool === 'park')           return placeSelectedPark(scene, row, col);
   if (selectedTool === 'park-small')     return placePark(scene, row, col, { type: 'park_small', spriteKey: 'park_small_open', footprintCols: 1, footprintRows: 1 });
   if (selectedTool === 'park-large')     return placePark(scene, row, col, { type: 'park_large', spriteKey: 'park_large', footprintCols: 3, footprintRows: 3 });
@@ -176,6 +182,12 @@ function drawPowerLineSprite(scene, row, col) {
 
 function placeInfraBuilding(scene, row, col, buildingType) {
   if (!isInsideMap(row, col)) return false;
+
+  if (buildingType === 'legislative_council') {
+    if (city.population < 10000 || hasBuildingType('legislative_council')) return false;
+  } else if (buildingType === 'stock_exchange') {
+    if (!hasBuildingType('legislative_council') || !isPolicyActive('stockExchangeAct') || hasBuildingType('stock_exchange')) return false;
+  }
 
   const buildingModel = POWER_PLANT_MODELS[buildingType] ?? SERVICE_BUILDING_MODELS[buildingType];
   const footprintCols = buildingModel?.footprintCols ?? 1;

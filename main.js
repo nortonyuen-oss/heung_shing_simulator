@@ -1356,6 +1356,8 @@ function getBuildingTypeLabel(type) {
     library: 'building.library',
     community_college: 'building.communityCollege',
     university: 'building.university',
+    legislative_council: 'building.legislativeCouncil',
+    stock_exchange: 'building.stockExchange',
     park_small: 'building.smallPark',
     park_large: 'building.largePark',
   }[type] ?? type);
@@ -2125,6 +2127,16 @@ function setupToolMenu() {
   menu.addEventListener('click', (event) => {
     const categoryButton = event.target.closest('[data-tool-category]');
     if (categoryButton) {
+      if (categoryButton.dataset.toolCategory === 'inspect') {
+        selectedTool = 'inspect';
+        menu.querySelectorAll('[data-tool]').forEach((toolButton) => {
+          toolButton.classList.toggle('is-active', toolButton.dataset.tool === 'inspect');
+        });
+        updateToolCategoryState(menu, selectedTool);
+        closeToolCategoryFlyouts();
+        closeToolPopups();
+        return;
+      }
       toggleToolCategory(categoryButton);
       return;
     }
@@ -2280,6 +2292,8 @@ function getToolCategoryForTool(tool) {
     || tool === 'library'
     || tool === 'community-college'
     || tool === 'university'
+    || tool === 'legislative-council'
+    || tool === 'stock-exchange'
   ) return 'services';
   if (tool === 'park' || tool === 'tree') return 'parks';
   if (tool === 'house') return 'buildings';
@@ -2819,6 +2833,12 @@ const CHART_SERIES_DEFS = {
     historyKey: 'pollutionHistory',
     formatter: (v) => `${Math.round(Number(v) || 0).toLocaleString()}`,
   },
+  hsi: {
+    labelKey: 'chart.hsi',
+    color: '#1e5cb3',
+    historyKey: 'hsiHistory',
+    formatter: (v) => `${Math.round(Number(v) || 0).toLocaleString()}`,
+  },
 };
 
 let chartWindowLastRenderedLabel = null;
@@ -2836,10 +2856,10 @@ function initOverlayControls() {
   const zoomResetBtn = document.getElementById('overlay-zoom-reset');
   const resizeHandle = document.getElementById('overlay-resize-handle');
 
-  if (!controls || !win) return;
+  if (!win) return;
 
   // ── HUD overlay buttons ─────────────────────────────────────────────────────
-  controls.addEventListener('click', (e) => {
+  controls?.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-overlay]');
     if (!btn) return;
     toggleOverlayMap(btn.dataset.overlay);
@@ -3427,7 +3447,7 @@ function updateOverlayDetailPanel(type) {
       chip(t('inspect.powerStateDegraded'), degraded),
       chip(t('inspect.powerStateAbandoned'), abandoned),
     ].join('');
-    note.textContent = 'Plant markers are color-coded by type and age.';
+    note.textContent = t('overlay.detail.powerPlantLegend');
     footer.classList.add('is-visible');
     const supply = city.totalPowerSupply ?? 0;
     const demand = city.totalPowerDemand ?? 0;
@@ -3477,11 +3497,11 @@ function updateOverlayDetailPanel(type) {
       ? t('overlay.detail.coveragePolice')
       : t('overlay.detail.coverageFire');
   } else if (type === 'pollution') {
-    note.textContent = 'Darker areas mean higher pollution.';
+    note.textContent = t('overlay.detail.pollutionHint');
   } else if (type === 'population') {
-    note.textContent = 'Brighter tiles mean more population concentration.';
+    note.textContent = t('overlay.detail.populationHint');
   } else if (type === 'landvalue') {
-    note.textContent = 'Green tiles have the highest land value.';
+    note.textContent = t('overlay.detail.landvalueHint');
   }
 }
 
@@ -3498,8 +3518,8 @@ function setOverlayLegendLabels(type) {
     population: ['0%', '50%', '100%'],
     landvalue: ['0%', '50%', '100%'],
     education: ['0%', '50%', '100%'],
-    electricity: ['Short', 'Balanced', 'Surplus'],
-    power: ['Old', 'Degraded', 'Active'],
+    electricity: [t('overlay.legend.short'), t('overlay.legend.balanced'), t('overlay.legend.surplus')],
+    power: [t('overlay.legend.old'), t('overlay.legend.degraded'), t('overlay.legend.active')],
   }[type] ?? ['0%', '50%', '100%'];
 
   minEl.textContent = labels[0];
@@ -3894,8 +3914,8 @@ function openHouseSizeMenu(triggerButton = document.querySelector('[data-tool="h
     button.type = 'button';
     button.dataset.houseSet = setKey;
     button.classList.toggle('is-active', setKey === selectedHouseSet);
-    button.title = `${config.label} houses`;
-    button.setAttribute('aria-label', `${config.label} houses`);
+    button.title = t('tool.houseSetTitle', { label: config.label });
+    button.setAttribute('aria-label', t('tool.houseSetTitle', { label: config.label }));
 
     const image = document.createElement('img');
     image.src = model.path;
@@ -3921,7 +3941,7 @@ function openHouseSizeMenu(triggerButton = document.querySelector('[data-tool="h
       button.dataset.houseModelSet = selectedHouseSet;
       button.dataset.houseModelIndex = String(index);
       button.classList.toggle('is-active', index === getSelectedHouseIndex(selectedHouseSet));
-      button.title = `${HOUSE_MODEL_SETS[selectedHouseSet]?.label ?? ''} ${model.title}`;
+      button.title = t('tool.houseModelTitle', { label: HOUSE_MODEL_SETS[selectedHouseSet]?.label ?? '', model: model.title });
       button.setAttribute('aria-label', button.title);
 
       const image = document.createElement('img');
@@ -4002,7 +4022,7 @@ function updateHouseToolUi() {
   if (label) {
     label.textContent = HOUSE_MODEL_SETS[selectedHouseSet]?.label ?? '';
   }
-  button.title = `Add ${HOUSE_MODEL_SETS[selectedHouseSet]?.label ?? ''} ${model.title}`;
+  button.title = t('tool.houseAddTitle', { label: HOUSE_MODEL_SETS[selectedHouseSet]?.label ?? '', model: model.title });
   button.setAttribute('aria-label', button.title);
 }
 
@@ -4650,6 +4670,18 @@ function placeSpriteBuilding(scene, row, col, key, options = {}) {
   building.spriteOffsetX = options.offsetX ?? 0;
   building.spriteOffsetY = options.offsetY ?? 0;
   building.anchorMode = options.anchorMode;
+  building.setInteractive({ useHandCursor: true });
+  building.on('pointerdown', (pointer) => {
+    if (selectedTool !== 'inspect') return;
+    const record = buildingData[getTileId(building.mapRow, building.mapCol)];
+    if (record?.type === 'legislative_council' && typeof openLegislativeWindow === 'function') {
+      pointer.event?.stopPropagation();
+      openLegislativeWindow();
+    } else if (record?.type === 'stock_exchange' && typeof openStockExchangeWindow === 'function') {
+      pointer.event?.stopPropagation();
+      openStockExchangeWindow();
+    }
+  });
 
   getFootprintTiles(row, col, footprintCols, footprintRows).forEach(([tileRow, tileCol]) => {
     scene.buildingSprites.set(getTileId(tileRow, tileCol), building);
@@ -4786,6 +4818,10 @@ function removeBuilding(scene, row, col) {
   ).forEach(([tileRow, tileCol]) => {
     scene.buildingSprites.delete(getTileId(tileRow, tileCol));
   });
+
+  if (typeof refreshInfrastructureEffects === 'function') {
+    refreshInfrastructureEffects(scene);
+  }
   return true;
 }
 
@@ -4921,6 +4957,8 @@ function getSelectedPlacementFootprint() {
     'library': 'library',
     'community-college': 'community_college',
     'university': 'university',
+    'legislative-council': 'legislative_council',
+    'stock-exchange': 'stock_exchange',
   };
   const infraType = infraTypeByTool[selectedTool];
   if (infraType) {
@@ -8469,7 +8507,7 @@ function showTileDebug(scene, pointer) {
     <div class="dbg-divider"></div>`;
 
   // ── Infrastructure building tooltip ──────────────────────────────────────────
-  const INFRA_TYPES = ['power_plant_coal', 'power_plant_solar', 'fire_station', 'police_station', 'primary_school', 'secondary_school', 'library', 'community_college', 'university', 'park_small', 'park_large'];
+  const INFRA_TYPES = ['power_plant_coal', 'power_plant_solar', 'fire_station', 'police_station', 'primary_school', 'secondary_school', 'library', 'community_college', 'university', 'legislative_council', 'stock_exchange', 'park_small', 'park_large'];
   if (bData && INFRA_TYPES.includes(bData.type)) {
     const INFRA_LABELS = {
       power_plant_coal:  '⚡ Coal Power Plant',
@@ -8727,6 +8765,8 @@ function showInspectPanel(scene, row, col, pointer = null) {
     library: `📚 ${t('building.library')}`,
     community_college: `🎓 ${t('building.communityCollege')}`,
     university: `🎓 ${t('building.university')}`,
+    legislative_council: `🏛️ ${t('building.legislativeCouncil')}`,
+    stock_exchange: `🏦 ${t('building.stockExchange')}`,
     park_small: `🌳 ${t('building.smallPark')}`,
     park_large: `🌲 ${t('building.largePark')}`,
   };
@@ -8740,6 +8780,8 @@ function showInspectPanel(scene, row, col, pointer = null) {
     library: t('inspect.educationRadiusBasic', { radius: LIBRARY_RADIUS, upkeep: UPKEEP_LIBRARY }),
     community_college: t('inspect.educationRadiusHigher', { radius: COMMUNITY_COLLEGE_RADIUS, upkeep: UPKEEP_COMMUNITY_COLLEGE }),
     university: t('inspect.educationRadiusHigher', { radius: UNIVERSITY_RADIUS, upkeep: UPKEEP_UNIVERSITY }),
+    legislative_council: t('inspect.legislativeCouncil'),
+    stock_exchange: t('inspect.stockExchange'),
     park_small: t('inspect.parkRadius', { radius: SMALL_PARK_RADIUS, upkeep: UPKEEP_PARK_SMALL }),
     park_large: t('inspect.parkRadius', { radius: LARGE_PARK_RADIUS, upkeep: UPKEEP_PARK_LARGE }),
   };
@@ -8753,6 +8795,8 @@ function showInspectPanel(scene, row, col, pointer = null) {
     library:'#6f9cd6',
     community_college:'#7a77cc',
     university:'#5f52b4',
+    legislative_council:'#4d6bbf',
+    stock_exchange:'#c39a2d',
     park_small:'#58d66a',
     park_large:'#32b457',
   };
@@ -8798,6 +8842,8 @@ function showInspectPanel(scene, row, col, pointer = null) {
     html += `
       <div class="insp-section">
         <button class="insp-action-btn" type="button" onclick="renameInspectedBuilding()">${t('inspect.renameBuilding')}</button>
+        ${bData.type === 'legislative_council' ? `<button class="insp-action-btn" type="button" onclick="openLegislativeWindow()">${t('building.legislativeCouncil')}</button>` : ''}
+        ${bData.type === 'stock_exchange' ? `<button class="insp-action-btn" type="button" onclick="openStockExchangeWindow()">${t('building.stockExchange')}</button>` : ''}
       </div>`;
   }
 

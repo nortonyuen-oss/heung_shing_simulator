@@ -2,7 +2,19 @@ let lastMetricHistoryLabel = null;
 
 function updateCityDevelopmentIndex() {
   const livability = clampIndex(Math.round((city.happiness ?? 0) * 100));
-  const economy = clampIndex(Math.round(45 + Math.min(55, (city.monthlyIncome - city.monthlyExpenses) / 3000)));
+
+  const net = Number(city.monthlyIncome ?? 0) - Number(city.monthlyExpenses ?? 0);
+  const unemp = city.unemploymentRate ?? 0;
+  const demandC = city.demandC ?? 0;
+  const creditBonus = ({ A: 6, B: 3, C: 0, D: -5 })[city.creditRating] ?? 0;
+  const economy = clampIndex(Math.round(
+    45
+    + Math.min(40, net / 3000)            // fiscal surplus: up to +40
+    + (0.5 - unemp) * 30                  // employment: −15 (high unemp) to +15 (full employ)
+    + Math.max(0, demandC) * 10           // commercial demand health: 0 to +10
+    + creditBonus,                        // credit rating: −5 to +6
+  ));
+
   const environment = clampIndex(Math.round(52 + ((city.educationBasicIndex ?? 0) * 28) - ((city.pollutionIndex ?? 0.1) * 24)));
   const transport = clampIndex(Math.round(58 + ((city.roadCoverageIndex ?? 0.2) * 34)));
   const overall = clampIndex(Math.round((livability + economy + environment + transport) / 4));

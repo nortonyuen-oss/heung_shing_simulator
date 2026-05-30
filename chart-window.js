@@ -263,7 +263,23 @@ function updateChartWindow(force = false) {
   if (!force && currentLabel === chartWindowLastRenderedLabel) return;
   chartWindowLastRenderedLabel = currentLabel;
 
+  updateChartWindowMetrics();
   renderCityTrendChart();
+}
+
+function updateChartWindowMetrics() {
+  const basic = Math.round((Number(city.educationBasicIndex ?? 0) || 0) * 100);
+  const higher = Math.round((Number(city.educationHigherIndex ?? 0) || 0) * 100);
+  const science = Math.round((Number(city.scienceIndustryShare ?? 0) || 0) * 100);
+
+  const setMetric = (id, value) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = `${Math.max(0, Math.min(100, value))}%`;
+  };
+
+  setMetric('chart-metric-basic', basic);
+  setMetric('chart-metric-higher', higher);
+  setMetric('chart-metric-science', science);
 }
 
 function renderCityTrendChart() {

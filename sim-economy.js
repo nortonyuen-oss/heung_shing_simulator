@@ -116,6 +116,87 @@ function refreshStockListings(force = false) {
   market.lastRotationTick = city.tick;
 }
 
+function annualToMonthlyReturn(annualReturn) {
+  const safeAnnual = clamp(Number(annualReturn) || 0, -0.85, 1.2);
+  return Math.pow(1 + safeAnnual, 1 / 12) - 1;
+}
+
+function monthlyToTickReturn(monthlyReturn) {
+  const safeMonthly = clamp(Number(monthlyReturn) || 0, -0.75, 0.75);
+  const ticks = Math.max(1, Number(TICKS_PER_MONTH) || 1);
+  return Math.pow(1 + safeMonthly, 1 / ticks) - 1;
+}
+
+function monthlyDecayToTickDecay(monthlyDecay) {
+  const safeDecay = clamp(Number(monthlyDecay) || 0, 0, 0.999);
+  const ticks = Math.max(1, Number(TICKS_PER_MONTH) || 1);
+  return Math.pow(safeDecay, 1 / ticks);
+}
+
+function getCityStockGrowthPremiumAnnual() {
+  const clampOr = (value, min, max, fallback = 0) => {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return fallback;
+    return clamp(numeric, min, max);
+  };
+
+  const happiness = clampOr(city.happiness, 0, 1, 0.5);
+  const ruleOfLaw = clampOr(city.ruleOfLawIndex, 0, 1, 0.4);
+  const demandC = clampOr(city.demandC, -1, 1, 0);
+  const pollution = clampOr((Number(city.pollution ?? 0) / 150), 0, 1, 0);
+  const net = Number(city.monthlyIncome ?? 0) - Number(city.monthlyExpenses ?? 0);
+  const treasuryScore = clamp(net / 22000, -1, 1);
+
+  const rawStrength =
+    demandC * 0.34
+    + (happiness - 0.5) * 0.36
+    + (ruleOfLaw - 0.45) * 0.26
+    + treasuryScore * 0.20
+    - pollution * 0.28;
+
+  const normalizedStrength = clamp(rawStrength, -1, 1);
+  return normalizedStrength * STOCK_CITY_PREMIUM_ANNUAL_MAX;
+}
+
+function pickNextStockMarketRegime(currentRegime = 'range') {
+  const transition = STOCK_MARKET_REGIME_TRANSITION[currentRegime] ?? STOCK_MARKET_REGIME_TRANSITION.range;
+  const roll = Math.random();
+  let acc = 0;
+  for (const regime of ['bull', 'range', 'bear']) {
+    acc += Number(transition?.[regime] ?? 0);
+    if (roll <= acc) return regime;
+  }
+  return 'range';
+}
+
+function getRegimeDurationMonths(regime = 'range') {
+  const range = STOCK_MARKET_REGIME_DURATION_MONTHS[regime] ?? STOCK_MARKET_REGIME_DURATION_MONTHS.range;
+  const min = Math.max(1, Math.floor(range?.[0] ?? 3));
+  const max = Math.max(min, Math.floor(range?.[1] ?? min));
+  return min + Math.floor(Math.random() * (max - min + 1));
+}
+
+function refreshStockMarketRegime() {
+  const market = city.stockMarket;
+  if (!market) return;
+
+  if (!['bull', 'range', 'bear'].includes(market.regime)) {
+    market.regime = 'range';
+  }
+  if (!Number.isFinite(Number(market.regimeMonthsLeft)) || market.regimeMonthsLeft <= 0) {
+    market.regimeMonthsLeft = getRegimeDurationMonths(market.regime);
+    return;
+  }
+
+  if (city.tick % TICKS_PER_MONTH !== 0) return;
+
+  market.regimeMonthsLeft = Math.max(0, market.regimeMonthsLeft - 1);
+  if (market.regimeMonthsLeft <= 0) {
+    market.regime = pickNextStockMarketRegime(market.regime);
+    market.regimeMonthsLeft = getRegimeDurationMonths(market.regime);
+  }
+}
+
 function updateStockMarketTick() {
   const market = city.stockMarket;
   if (!market || !Array.isArray(market.stocks) || market.stocks.length === 0) return;
@@ -126,34 +207,55 @@ function updateStockMarketTick() {
     return clamp(numeric, min, max);
   };
 
-  const happiness = clampOr(city.happiness, 0, 1, 0.5);
-  const ruleOfLaw = clampOr(city.ruleOfLawIndex, 0, 1, 0.4);
-  const demandC = clampOr(city.demandC, -1, 1, 0);
-  const pollution = clampOr((Number(city.pollution ?? 0) / 120), 0, 1, 0);
-  const policyTailwind = (isPolicyActive('stockExchangeAct') ? 0.002 : 0)
-    + (isPolicyActive('foreignInvestmentIncentive') ? 0.0015 : 0)
-    + (isPolicyActive('tourismPromotion') ? 0.001 : 0);
+  refreshStockMarketRegime();
 
-  const macroRaw = (demandC * 0.006) + ((happiness - 0.5) * 0.004) + ((ruleOfLaw - 0.4) * 0.003) - (pollution * 0.003) + policyTailwind;
-  const macro = Number.isFinite(macroRaw) ? macroRaw : 0;
+  const regime = ['bull', 'range', 'bear'].includes(market.regime) ? market.regime : 'range';
+  const regimeAnnualDrift = STOCK_MARKET_REGIME_ANNUAL_DRIFT[regime] ?? STOCK_MARKET_REGIME_ANNUAL_DRIFT.range;
+  const regimeVolMultiplier = STOCK_MARKET_REGIME_VOL_MULTIPLIER[regime] ?? STOCK_MARKET_REGIME_VOL_MULTIPLIER.range;
+  const ticksPerMonth = Math.max(1, Number(TICKS_PER_MONTH) || 1);
+  const tickVolScale = 1 / Math.sqrt(ticksPerMonth);
+  const tickShockDecay = monthlyDecayToTickDecay(STOCK_IDIO_SHOCK_DECAY);
+  const cityPremiumAnnual = getCityStockGrowthPremiumAnnual();
+  const policyPremiumAnnual =
+    (isPolicyActive('stockExchangeAct') ? 0.006 : 0)
+    + (isPolicyActive('foreignInvestmentIncentive') ? 0.004 : 0)
+    + (isPolicyActive('tourismPromotion') ? 0.002 : 0);
+  const fairGrowthMonthly = annualToMonthlyReturn(HSI_ANNUAL_BASE_RETURN + cityPremiumAnnual * 0.7);
+  const fairGrowthTick = monthlyToTickReturn(fairGrowthMonthly);
 
   market.stocks.forEach((stock) => {
     if (!stock.listed) return;
     const sensitivity = getStockSectorSensitivity(stock.sector);
     const volatility = getStockSectorVolatility(stock.sector);
-    const noise = (Math.random() - 0.5) * (volatility * 2);
-    const trend = macro * sensitivity;
-    const tickChangeRaw = trend + noise;
-    const tickChange = Number.isFinite(tickChangeRaw)
-      ? clamp(tickChangeRaw, -volatility * 2.5, volatility * 2.7)
-      : ((Math.random() - 0.5) * volatility);
     const prevPrice = Math.max(1, Number(stock.price ?? stock.basePrice ?? 1));
+
+    const fairValue = Math.max(1, Number(stock.fairValue ?? prevPrice));
+    const nextFairValue = Math.max(1, fairValue * (1 + fairGrowthTick));
+    stock.fairValue = Number(nextFairValue.toFixed(4));
+
+    const stockDriftAnnual = regimeAnnualDrift + (cityPremiumAnnual + policyPremiumAnnual) * sensitivity;
+    const stockDriftMonthly = annualToMonthlyReturn(stockDriftAnnual);
+    const stockDriftTick = monthlyToTickReturn(stockDriftMonthly);
+    const valuationGap = (prevPrice - nextFairValue) / nextFairValue;
+    const meanReversion = -valuationGap * (STOCK_MARKET_MEAN_REVERSION / ticksPerMonth) * (stock.isHSI ? 1.12 : 1);
+
+    const prevIdioShock = clampOr(stock.idioShock, -0.5, 0.5, 0);
+    const shockKick = ((Math.random() - 0.5) * 2) * volatility * STOCK_IDIO_SHOCK_SCALE * tickVolScale;
+    const nextIdioShock = prevIdioShock * tickShockDecay + shockKick;
+    stock.idioShock = clamp(nextIdioShock, -0.28, 0.28);
+
+    const noise = ((Math.random() - 0.5) * 2) * volatility * regimeVolMultiplier * tickVolScale;
+    const tickChangeRaw = stockDriftTick + meanReversion + stock.idioShock + noise;
+    const tickChange = Number.isFinite(tickChangeRaw)
+      ? clamp(tickChangeRaw, -volatility * 3.5 * regimeVolMultiplier, volatility * 3.3 * regimeVolMultiplier)
+      : ((Math.random() - 0.5) * volatility);
+
     const nextPriceRaw = prevPrice * (1 + tickChange);
     const nextPrice = Math.max(1, Number.isFinite(nextPriceRaw) ? nextPriceRaw : prevPrice);
 
     stock.prevPrice = prevPrice;
     stock.price = Number(nextPrice.toFixed(2));
-    stock.changePct = tickChange;
+    stock.changePct = (stock.price - prevPrice) / prevPrice;
     if (!Array.isArray(stock.history)) stock.history = [stock.prevPrice];
     stock.history.push(stock.price);
     if (stock.history.length > 32) stock.history.shift();

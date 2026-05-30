@@ -24,6 +24,45 @@ function pickScienceParkIndustrialModel(footprintCols, footprintRows) {
   return pickVariedModel(scienceModels, `industrial:${footprintCols ?? 'any'}x${footprintRows ?? 'any'}:science-convert`);
 }
 
+// Convert a single industrial building to a science park in-place.
+// Preserves all simulation data (type, level, density, population) —
+// only swaps the visual model and updates spriteKey / sourceFileName.
+// Returns true if conversion happened.
+function tryConvertSingleIndustrialToSciencePark(scene, row, col, record) {
+  const fp  = record.footprintCols ?? 1;
+  const fpr = record.footprintRows ?? 1;
+  if (fp < 2) return false; // no 1×1 science-park models exist
+
+  const model = pickScienceParkIndustrialModel(fp, fpr);
+  if (!model || !scene.textures.exists(model.key)) return false;
+
+  const id = getTileId(row, col);
+  const oldRecord = { ...record };
+  if (!removeBuilding(scene, row, col)) return false;
+
+  const options = { ...(model.metadata ?? {}) };
+  placeSpriteBuilding(scene, row, col, model.key, options);
+
+  buildingData[id] = {
+    ...oldRecord,
+    spriteKey:    model.key,
+    sourceFileName: model.sourceFileName,
+    footprintCols: options.footprintCols ?? model.footprintCols ?? fp,
+    footprintRows: options.footprintRows ?? model.footprintRows ?? fpr,
+    originX:   options.originX,
+    originY:   options.originY,
+    scale:     options.scale,
+    scaleX:    options.scaleX,
+    scaleY:    options.scaleY,
+    offsetX:   options.offsetX,
+    offsetY:   options.offsetY,
+    anchorMode: options.anchorMode,
+  };
+  markPowerGridDirty();
+  invalidateBuildingCountCache();
+  return true;
+}
+
 function convertEligibleIndustrialToScienceParks(scene) {
   if (!scene || !city.scienceParkUnlocked) return 0;
 

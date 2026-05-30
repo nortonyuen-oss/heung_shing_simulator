@@ -107,6 +107,20 @@ function growOrShrinkZones(scene) {
           // Premium neighbourhood: gradually swap existing max-level buildings to
           // highScore visual variants without disturbing any simulation data.
           tryRedecoratePremiumBuilding(scene, r, c, zone);
+        } else if (
+          zone === ZONE_IND
+          && !isScienceParkIndustrialRecord(record)
+          && city.scienceParkUnlocked
+          && (record.footprintCols ?? 1) >= 2
+        ) {
+          // Per-tick science-park conversion — probability scales with higher
+          // education level and science-development policy.
+          const higherEdu = clamp(city.educationHigherIndex ?? 0, 0, 1);
+          const policyBonus = isPolicyActive('scienceDevelopment') ? 0.005 : 0;
+          const tickChance = clamp(0.003 + 0.012 * higherEdu + policyBonus, 0, 0.025);
+          if (Math.random() < tickChance) {
+            tryConvertSingleIndustrialToSciencePark(scene, r, c, record);
+          }
         }
       }
     }

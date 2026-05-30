@@ -1,3 +1,47 @@
+function isBuildingHighScoreVisual(record) {
+  if (!record?.spriteKey) return false;
+  const model = (typeof getCommercialBuildingModelBySpriteKey === 'function'
+    ? getCommercialBuildingModelBySpriteKey(record.spriteKey)
+    : null)
+    ?? (typeof getHouseModelBySpriteKey === 'function'
+      ? getHouseModelBySpriteKey(record.spriteKey)
+      : null);
+  return model ? isHighScoreModel(model) : false;
+}
+
+function tryRedecoratePremiumBuilding(scene, r, c, zone) {
+  const id = getTileId(r, c);
+  const record = buildingData[id];
+  if (!record) return;
+
+  const fp  = record.footprintCols ?? 1;
+  const fpr = record.footprintRows ?? 1;
+
+  let candidates = [];
+  if (zone === ZONE_RES) {
+    const setKey = getResidentialHouseSetForFootprint(Math.max(fp, fpr));
+    candidates = (houseModelSets?.[setKey] ?? []).filter(
+      (m) => m.metadata && m.metadata.scale > 0.05 && isHighScoreModel(m)
+    );
+  } else if (zone === ZONE_COM) {
+    candidates = (Array.isArray(commercialBuildingModels) ? commercialBuildingModels : []).filter(
+      (m) => m.metadata && m.metadata.scale > 0.05
+        && m.footprintCols === fp && m.footprintRows === fpr
+        && isHighScoreModel(m)
+    );
+  }
+  if (candidates.length === 0) return;
+
+  const newModel = candidates[Math.floor(Math.random() * candidates.length)];
+  if (!scene.textures.exists(newModel.key)) return;
+
+  const sprite = scene.buildingSprites.get(id);
+  if (!sprite) return;
+
+  sprite.setTexture(newModel.key);
+  record.spriteKey = newModel.key;
+}
+
 function growOrShrinkZones(scene) {
   const landValueMap = typeof computeLandValueMap === 'function'
     ? computeLandValueMap()
@@ -51,6 +95,18 @@ function growOrShrinkZones(scene) {
           upgradeZoneBuilding(scene, r, c, zone, landScore);
         } else if ((!hasRoad || demand < -0.5 || cityPower < 0.35) && Math.random() < SHRINK_CHANCE * (cityPower < 0.35 ? 1.5 : 1)) {
           shrinkOrRemoveZoneBuilding(scene, r, c);
+        } else if (
+          record.level >= 3
+          && (zone === ZONE_RES || zone === ZONE_COM)
+          && isHighScoreModelEligible(landScore)
+          && (city.unemploymentRate ?? 1) < 0.12
+          && (city.demandC ?? 0) > 0.10
+          && !isBuildingHighScoreVisual(record)
+          && Math.random() < 0.018
+        ) {
+          // Premium neighbourhood: gradually swap existing max-level buildings to
+          // highScore visual variants without disturbing any simulation data.
+          tryRedecoratePremiumBuilding(scene, r, c, zone);
         }
       }
     }

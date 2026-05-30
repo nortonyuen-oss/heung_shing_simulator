@@ -60,14 +60,14 @@ function spawnZoneBuilding(scene, r, c, zone, level, density = DENSITY_LOW, opti
   if (zone === ZONE_RES) {
     const footprintSize = chooseResidentialFootprint(scene, r, c, density, optionsOverride, landScore);
     const setKey = getResidentialHouseSetForFootprint(footprintSize);
-    const model = getRandomHouseModel(setKey);
+    const model = getRandomHouseModel(setKey, landScore);
 
     if (model) {
       key     = model.key;
       options = { ...model.metadata };
     } else if (footprintSize > 1) {
       // Larger models not ready yet — fall back to 1×1.
-      const fallback = getRandomHouseModel('house');
+      const fallback = getRandomHouseModel('house', landScore);
       if (fallback) {
         key     = fallback.key;
         options = { ...fallback.metadata };
@@ -80,7 +80,7 @@ function spawnZoneBuilding(scene, r, c, zone, level, density = DENSITY_LOW, opti
     }
   } else if (zone === ZONE_COM) {
     const footprintSize = chooseNonResidentialFootprint(scene, r, c, zone, density, landScore);
-    const model = getRandomCommercialBuildingModel(footprintSize, footprintSize);
+    const model = getRandomCommercialBuildingModel(footprintSize, footprintSize, landScore);
     if (!model) return false;
 
     key     = model.key;
@@ -151,7 +151,7 @@ function getResidentialHouseSetForFootprint(footprintSize) {
 function chooseResidentialFootprint(scene, r, c, density, optionsOverride = {}, landScore = 0.5) {
   const forcedSize = optionsOverride.forceFootprint ?? (optionsOverride.force2x2 ? 2 : null);
   if (forcedSize) {
-    return canPlaceResidentialFootprint(scene, r, c, forcedSize) && getRandomHouseModel(getResidentialHouseSetForFootprint(forcedSize))
+    return canPlaceResidentialFootprint(scene, r, c, forcedSize) && getRandomHouseModel(getResidentialHouseSetForFootprint(forcedSize), landScore)
       ? forcedSize
       : 1;
   }
@@ -164,7 +164,7 @@ function chooseResidentialFootprint(scene, r, c, density, optionsOverride = {}, 
     const largeLotBoost = getLargeLotSpawnBoost(landScore, footprintSize);
     const adjustedChance = Math.min(0.95, chance * largeLotBoost);
     if (adjustedChance <= 0 || Math.random() >= adjustedChance) continue;
-    if (!getRandomHouseModel(getResidentialHouseSetForFootprint(footprintSize))) continue;
+    if (!getRandomHouseModel(getResidentialHouseSetForFootprint(footprintSize), landScore)) continue;
     if (canPlaceResidentialFootprint(scene, r, c, footprintSize)) return footprintSize;
   }
 
@@ -196,7 +196,7 @@ function chooseNonResidentialFootprint(scene, r, c, zone, density, landScore = 0
     const largeLotBoost = getLargeLotSpawnBoost(landScore, footprintSize);
     const adjustedChance = Math.min(0.98, chance * largeLotBoost * commercialDemandBoost);
     if (adjustedChance <= 0 || Math.random() >= adjustedChance) continue;
-    if (!getRandomNonResidentialModel(zone, footprintSize)) continue;
+    if (!getRandomNonResidentialModel(zone, footprintSize, landScore)) continue;
     if (canPlaceZoneBuildingFootprint(scene, r, c, zone, footprintSize, footprintSize)) {
       return footprintSize;
     }
@@ -209,9 +209,9 @@ function getNonResidentialLargeSpawnChance(zone, footprintSize, density) {
   return table?.[density]?.[footprintSize] ?? 0;
 }
 
-function getRandomNonResidentialModel(zone, footprintSize) {
+function getRandomNonResidentialModel(zone, footprintSize, landScore = 0.5) {
   if (zone === ZONE_COM) {
-    return getRandomCommercialBuildingModel(footprintSize, footprintSize);
+    return getRandomCommercialBuildingModel(footprintSize, footprintSize, landScore);
   }
   return getRandomIndustrialBuildingModel(footprintSize, footprintSize);
 }
@@ -389,24 +389,37 @@ function updateTrees(scene) {
   });
 }
 
+function isHighScoreModelEligible(landScore) {
+  return landScore >= 0.70 && (city.happiness ?? 0.5) >= 0.65;
+}
+
+function isHighScoreModel(m) {
+  return /highScore/i.test(m.fileName || m.sourceFileName || '');
+}
+
 // Returns a random house model from the given set that has valid computed metadata.
 // setKey = 'house' (1×1) | 'house2x2' (2×2) | 'house1x4' (1×4)
-function getRandomHouseModel(setKey = 'house') {
+function getRandomHouseModel(setKey = 'house', landScore = 0.5) {
   const all = (houseModelSets && houseModelSets[setKey]) ? houseModelSets[setKey] : [];
   // Only use models whose scale was computed successfully (> 0.05 avoids near-invisible sprites)
-  const valid = all.filter((m) => m.metadata && m.metadata.scale > 0.05);
+  const valid = all.filter((m) => {
+    if (!m.metadata || m.metadata.scale <= 0.05) return false;
+    if (isHighScoreModel(m) && !isHighScoreModelEligible(landScore)) return false;
+    return true;
+  });
   if (valid.length === 0) return null;
   return pickVariedModel(valid, `house:${setKey}`);
 }
 
-function getRandomCommercialBuildingModel(footprintCols = null, footprintRows = null) {
+function getRandomCommercialBuildingModel(footprintCols = null, footprintRows = null, landScore = 0.5) {
   const all = Array.isArray(commercialBuildingModels) ? commercialBuildingModels : [];
-  const valid = all.filter((m) => (
-    m.metadata
-    && m.metadata.scale > 0.05
-    && (footprintCols === null || m.footprintCols === footprintCols)
-    && (footprintRows === null || m.footprintRows === footprintRows)
-  ));
+  const valid = all.filter((m) => {
+    if (!m.metadata || m.metadata.scale <= 0.05) return false;
+    if (footprintCols !== null && m.footprintCols !== footprintCols) return false;
+    if (footprintRows !== null && m.footprintRows !== footprintRows) return false;
+    if (isHighScoreModel(m) && !isHighScoreModelEligible(landScore)) return false;
+    return true;
+  });
   if (valid.length === 0) return null;
   return pickVariedModel(valid, `commercial:${footprintCols ?? 'any'}x${footprintRows ?? 'any'}`);
 }

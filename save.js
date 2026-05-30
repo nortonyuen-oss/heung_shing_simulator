@@ -362,7 +362,7 @@ function getLegacy2x2HouseFallbackSpriteKey(record, key) {
   if (key !== 'house2x2_0' && key !== 'house2x2_1') return null;
 
   const publicHousing2 = (typeof houseModelSets !== 'undefined' ? houseModelSets.house2x2 : [])
-    ?.find((model) => model.fileName === 'publicHousing2.png');
+    ?.find((model) => model.fileName === 'publicHousing5.png');
   return publicHousing2?.key ?? null;
 }
 

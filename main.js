@@ -3667,6 +3667,7 @@ function setTileType(scene, row, col, tileType) {
   refreshTileArea(scene, row, col);
   refreshTreeSprite(scene, row, col);
 
+  markPowerGridDirty();
   if (tileType === ROAD && typeof refreshInfrastructureEffects === 'function') {
     refreshInfrastructureEffects(scene);
   }

@@ -126,6 +126,8 @@ function spawnZoneBuilding(scene, r, c, zone, level, density = DENSITY_LOW, opti
     anchorMode: options.anchorMode,
     sourceFileName: options.sourceFileName,
   };
+  markPowerGridDirty();
+  invalidateBuildingCountCache();
   return true;
 }
 

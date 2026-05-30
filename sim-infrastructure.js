@@ -79,6 +79,9 @@ function convertEligibleIndustrialToScienceParks(scene) {
 // ── Power grid (BFS from plants through conductors) ───────────────────────────
 
 function updatePowerGrid(scene) {
+  if (!_powerGridDirty) return;
+  _powerGridDirty = false;
+
   for (let r = 0; r < MAP_HEIGHT; r++)
     for (let c = 0; c < MAP_WIDTH; c++)
       powerMap[r][c] = false;
@@ -194,6 +197,9 @@ function updatePowerGrid(scene) {
 // ── Service coverage (BFS with radius cap) ────────────────────────────────────
 
 function updateServiceCoverage() {
+  if (!_serviceCoverageDirty) return;
+  _serviceCoverageDirty = false;
+
   serviceMap = createFilledMap(null);
 
   Object.entries(buildingData).forEach(([id, record]) => {

@@ -310,10 +310,27 @@ function normalizeCityFinanceState() {
 }
 
 let _buildingCountCache = null;
+let _powerGridDirty = true;
+let _serviceCoverageDirty = true;
 
 function invalidateBuildingCountCache() {
   _buildingCountCache = null;
 }
+
+function markPowerGridDirty() {
+  _powerGridDirty = true;
+}
+
+function markServiceCoverageDirty() {
+  _serviceCoverageDirty = true;
+}
+
+const SERVICE_BUILDING_TYPES = new Set([
+  'fire_station', 'police_station',
+  'primary_school', 'secondary_school', 'library',
+  'community_college', 'university',
+  'park_small', 'park_large',
+]);
 
 function getBuildingCount(type) {
   if (!_buildingCountCache) _buildingCountCache = {};
@@ -408,7 +425,7 @@ function isPolicyActive(id) {
 }
 
 function hasBuildingType(type) {
-  return Object.values(buildingData).some((record) => record.type === type);
+  return getBuildingCount(type) > 0;
 }
 
 function isPolicyAvailable(id) {

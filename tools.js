@@ -282,6 +282,8 @@ function placePark(scene, row, col, parkOption) {
 }
 
 function refreshInfrastructureEffects(scene) {
+  markPowerGridDirty();
+  markServiceCoverageDirty();
   if (typeof updateServiceCoverage === 'function') updateServiceCoverage();
   if (typeof updatePowerGrid === 'function') updatePowerGrid(scene);
   if (typeof computeHappiness === 'function') computeHappiness(scene);

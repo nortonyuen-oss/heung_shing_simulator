@@ -24,6 +24,9 @@ function removeBuilding(scene, row, col) {
     if (record.type === 'power_plant_coal' || record.type === 'power_plant_solar') {
       powerSources.delete(anchorId);
     }
+    markPowerGridDirty();
+    if (SERVICE_BUILDING_TYPES.has(record.type)) markServiceCoverageDirty();
+    invalidateBuildingCountCache();
     delete buildingData[anchorId];
   }
 

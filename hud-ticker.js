@@ -39,6 +39,11 @@ function getUrgentCityNews() {
     return t('news.urgent.pollution', { city: cityName });
   }
 
+  const unemploymentPct = Math.round((city.unemploymentRate ?? 0) * 100);
+  if (unemploymentPct >= 25) {
+    return t('news.urgent.unemployment', { city: cityName, rate: String(unemploymentPct) });
+  }
+
   return null;
 }
 
@@ -133,6 +138,8 @@ function buildTickerNewsCandidates() {
   const pollution = toPercent(city.pollutionIndex);
   const crime = toPercent(city.crimeIndex);
   const population = Math.max(0, Number(city.population) || 0);
+  const unemploymentPct = Math.round((city.unemploymentRate ?? 0) * 100);
+  const highEduUnemploymentPct = Math.round((city.highEduUnemploymentRate ?? 0) * 100);
   const net = Number(city.monthlyIncome || 0) - Number(city.monthlyExpenses || 0);
   const demandR = Number(city.demandR || 0);
   const demandC = Number(city.demandC || 0);
@@ -244,6 +251,45 @@ function buildTickerNewsCandidates() {
       id: 'crime-stable',
       weight: 4,
       text: t('news.headline.crimeStable', { city: cityName }),
+    });
+  }
+
+  // Unemployment tiered news
+  if (unemploymentPct >= 20) {
+    items.push({
+      id: 'unemployment-crisis',
+      weight: 11,
+      text: t('news.headline.unemploymentCrisis', { city: cityName, rate: String(unemploymentPct) }),
+    });
+  } else if (unemploymentPct >= 12) {
+    items.push({
+      id: 'unemployment-high',
+      weight: 9,
+      text: t('news.headline.unemploymentHigh', { city: cityName, rate: String(unemploymentPct) }),
+    });
+  } else if (unemploymentPct >= 6) {
+    items.push({
+      id: 'unemployment-moderate',
+      weight: 6,
+      text: t('news.headline.unemploymentModerate', { city: cityName, rate: String(unemploymentPct) }),
+    });
+  } else if (unemploymentPct <= 3 && population >= 5000) {
+    items.push({
+      id: 'unemployment-low',
+      weight: 5,
+      text: t('news.headline.unemploymentLow', { city: cityName, rate: String(unemploymentPct) }),
+    });
+  }
+
+  // Structural (high-edu) unemployment
+  if (highEduUnemploymentPct >= 30 && higherEdu >= 40) {
+    items.push({
+      id: 'high-edu-unemployment',
+      weight: 8,
+      text: t('news.headline.highEduUnemployment', {
+        city: cityName,
+        rate: String(highEduUnemploymentPct),
+      }),
     });
   }
 

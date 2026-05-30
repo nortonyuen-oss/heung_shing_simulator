@@ -41,6 +41,12 @@ const CHART_SERIES_DEFS = {
     historyKey: 'hsiHistory',
     formatter: (v) => `${Math.round(Number(v) || 0).toLocaleString()}`,
   },
+  unemployment: {
+    labelKey: 'chart.unemployment',
+    color: '#e07b39',
+    historyKey: 'unemploymentHistory',
+    formatter: (v) => `${Math.round((Number(v) || 0) * 100)}%`,
+  },
 };
 
 let chartWindowLastRenderedLabel = null;

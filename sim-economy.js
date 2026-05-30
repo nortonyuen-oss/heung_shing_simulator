@@ -304,6 +304,7 @@ function recordCityMetricHistory() {
   pushPoint(city.landValueHistory, clamp(avgLandValue, 0, 1));
   pushPoint(city.pollutionHistory, Number(city.pollution ?? 0));
   pushPoint(city.hsiHistory, Number(city.stockMarket?.hsi ?? HSI_BASE_LEVEL));
+  pushPoint(city.unemploymentHistory, clamp(city.unemploymentRate ?? 0, 0, 1));
 }
 
 function computeAverageLandValueFromMap(landValueMap) {

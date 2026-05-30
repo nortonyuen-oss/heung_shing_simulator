@@ -108,6 +108,8 @@ const city = {
   ruleOfLawIndex: 0,
   crimeRateIndex: 0,
   scienceIndustryShare: 0,
+  unemploymentRate: 0,
+  highEduUnemploymentRate: 0,
   stockMarket: createDefaultStockMarketState(),
   educationHistory: [],
   crimeHistory: [],
@@ -116,6 +118,7 @@ const city = {
   landValueHistory: [],
   pollutionHistory: [],
   hsiHistory: [],
+  unemploymentHistory: [],
   happiness: 0.5,
   pollution: 0,
   tick: 0,
@@ -187,6 +190,8 @@ function resetGameState() {
   city.ruleOfLawIndex = 0;
   city.crimeRateIndex = 0;
   city.scienceIndustryShare = 0;
+  city.unemploymentRate = 0;
+  city.highEduUnemploymentRate = 0;
   city.stockMarket = createDefaultStockMarketState();
   city.educationHistory = [];
   city.crimeHistory = [];
@@ -195,6 +200,7 @@ function resetGameState() {
   city.landValueHistory = [];
   city.pollutionHistory = [];
   city.hsiHistory = [];
+  city.unemploymentHistory = [];
   city.happiness  = 0.5;
   city.pollution  = 0;
   city.tick       = 0;
@@ -314,6 +320,9 @@ function normalizeCityFinanceState() {
   city.landValueHistory = Array.isArray(city.landValueHistory) ? city.landValueHistory : [];
   city.pollutionHistory = Array.isArray(city.pollutionHistory) ? city.pollutionHistory : [];
   city.hsiHistory = Array.isArray(city.hsiHistory) ? city.hsiHistory : [];
+  city.unemploymentHistory = Array.isArray(city.unemploymentHistory) ? city.unemploymentHistory : [];
+  city.unemploymentRate = toFiniteOr(city.unemploymentRate, 0);
+  city.highEduUnemploymentRate = toFiniteOr(city.highEduUnemploymentRate, 0);
   city.creditRating = city.creditRating || 'A';
 }
 

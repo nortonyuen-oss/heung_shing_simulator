@@ -367,6 +367,21 @@ const SCIENCE_PARK_CONVERSION_CHANCE_EDU_BONUS = 0.24;
 const INDUSTRIAL_DEMAND_PENALTY_BASE = 3.0;
 const INDUSTRIAL_DEMAND_PENALTY_MIN = 1.5;
 
+// Labour market model
+// Each job anchor (JOBS_PER_COM / JOBS_PER_IND) represents this many residents
+// economically, so job capacity is anchor_count × ANCHOR_RATIO.
+const ANCHOR_RATIO = 30;
+// Fraction of population that is working-age labour force
+const LABOUR_FORCE_RATIO = 0.60;
+// Max happiness penalty when unemployment is 100%
+const UNEMPLOYMENT_HAPPINESS_PENALTY = 0.25;
+// Fraction of higher-edu labour force preferring commercial / science-park jobs
+const HIGH_EDU_COM_PREFERENCE = 0.70;
+// Fraction of non-higher-edu labour force seeking industrial jobs
+const LOW_EDU_IND_PREFERENCE = 0.55;
+// Unemployment rate at which crime risk starts being amplified
+const UNEMPLOYMENT_CRIME_AMPLIFY_MAX = 0.50;
+
 // Month names for display
 const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 

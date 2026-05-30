@@ -124,7 +124,9 @@ function getAverageEducationForBuilding(record, row, col) {
 
 function updateCrimeRateIndex() {
   const protectedRisk = isPolicyActive('publicSafety') ? 0.03 : 0.05;
-  const unprotectedRisk = Math.max(0.35, 0.82 - (getDepartmentFunding('police') - 1) * 0.25);
+  // Unemployment amplifies crime risk in unpoliced areas (up to ×1.5 at full unemployment)
+  const unemploymentCrimeMul = 1 + clamp(city.unemploymentRate ?? 0, 0, 1) * UNEMPLOYMENT_CRIME_AMPLIFY_MAX;
+  const unprotectedRisk = Math.max(0.35, 0.82 - (getDepartmentFunding('police') - 1) * 0.25) * unemploymentCrimeMul;
   let riskSum = 0;
   let zonedCount = 0;
 
@@ -139,61 +141,118 @@ function updateCrimeRateIndex() {
   city.crimeRateIndex = zonedCount > 0 ? clamp(riskSum / zonedCount, 0, 1) : 0;
 }
 
-// ── Demand engine (Classic SimCity RCI model) ─────────────────────────────────
+// ── Demand engine ─────────────────────────────────────────────────────────────
 
 function updateDemand() {
   normalizeCityFinanceState();
   updateRuleOfLawIndex();
-  const resCnt = Math.max(1, city.residentialCount);
-  const comCnt = city.commercialCount;
-  const indCnt = city.industrialCount;
-  const total  = resCnt + comCnt + indCnt;
+  const resCnt    = Math.max(1, city.residentialCount);
+  const comCnt    = city.commercialCount;
+  const indCnt    = city.industrialCount;
+  const total     = resCnt + comCnt + indCnt;
+  const pop       = city.population;
 
-  const jobCapacity = comCnt * JOBS_PER_COM + indCnt * JOBS_PER_IND;
-  const jobRatio    = clamp(jobCapacity / (resCnt * 4), 0, 1);
-
-  const basicEdu = clamp(city.educationBasicIndex ?? 0, 0, 1);
-  const higherEdu = clamp(city.educationHigherIndex ?? 0, 0, 1);
+  const basicEdu   = clamp(city.educationBasicIndex ?? 0, 0, 1);
+  const higherEdu  = clamp(city.educationHigherIndex ?? 0, 0, 1);
   const scienceShare = clamp(city.scienceIndustryShare ?? 0, 0, 1);
-  const lawIndex = clamp(city.ruleOfLawIndex ?? 0, 0, 1);
-  const hsiRatio = clamp(((city.stockMarket?.hsi ?? HSI_BASE_LEVEL) - HSI_BASE_LEVEL) / (HSI_BASE_LEVEL * 0.35), -1, 1);
+  const lawIndex   = clamp(city.ruleOfLawIndex ?? 0, 0, 1);
+  const hsiRatio   = clamp(((city.stockMarket?.hsi ?? HSI_BASE_LEVEL) - HSI_BASE_LEVEL) / (HSI_BASE_LEVEL * 0.35), -1, 1);
   const stockExchangeBoost = hasBuildingType('stock_exchange') ? 0.08 : 0;
-  const industrialPenaltyWeight = INDUSTRIAL_DEMAND_PENALTY_BASE
-    - (INDUSTRIAL_DEMAND_PENALTY_BASE - INDUSTRIAL_DEMAND_PENALTY_MIN) * scienceShare;
 
-  // Residential: base +0.3 attractiveness so people want to move into an empty city.
-  // Scales up with jobs (C/I) and down with high taxes.
+  // ── Labour market (zone-count × ANCHOR_RATIO gives population-scale capacity) ──
+  const labourForce       = pop * LABOUR_FORCE_RATIO;
+  const sciParkCnt        = indCnt * scienceShare;
+  const regularIndCnt     = indCnt * (1 - scienceShare);
+  const comJobCap         = comCnt      * JOBS_PER_COM * ANCHOR_RATIO;
+  const sciParkJobCap     = sciParkCnt  * JOBS_PER_IND * ANCHOR_RATIO;
+  const regularIndJobCap  = regularIndCnt * JOBS_PER_IND * ANCHOR_RATIO;
+  const totalJobCap       = comJobCap + sciParkJobCap + regularIndJobCap;
+
+  // High-edu workers compete for commercial AND science-park slots
+  const highEduWorkers = labourForce * higherEdu * HIGH_EDU_COM_PREFERENCE;
+  const highEduJobCap  = comJobCap + sciParkJobCap;
+  const highEduJobGap  = highEduWorkers - highEduJobCap;
+
+  // Low-edu workers compete for traditional industrial slots
+  const lowEduWorkers    = labourForce * (1 - higherEdu) * LOW_EDU_IND_PREFERENCE;
+  const lowEduJobGap     = lowEduWorkers - regularIndJobCap;
+
+  city.unemploymentRate = labourForce > 0
+    ? clamp(1 - totalJobCap / labourForce, 0, 1)
+    : 0;
+  city.highEduUnemploymentRate = highEduWorkers > 0
+    ? clamp(highEduJobGap / highEduWorkers, 0, 1)
+    : 0;
+
+  // Legacy jobRatio kept for demandR (unchanged behaviour)
+  const legacyJobCap = comCnt * JOBS_PER_COM + indCnt * JOBS_PER_IND;
+  const jobRatio     = clamp(legacyJobCap / (resCnt * 4), 0, 1);
+
+  // ── demandR ───────────────────────────────────────────────────────────────
+  // Employment pull: surplus jobs attract residents; high unemployment repels.
+  const employmentPull    = clamp(totalJobCap / Math.max(labourForce, 1) - 0.7, -0.5, 0.5);
+  const unemploymentPenR  = city.unemploymentRate * 0.20;
   city.demandR = clamp(
-    0.3 + 0.5 * jobRatio + 0.1 * city.happiness
+    0.3 + 0.5 * Math.max(jobRatio, 0.5 + employmentPull)
+    - unemploymentPenR + 0.1 * city.happiness
     + (isPolicyActive('greenParks') ? 0.04 : 0)
     + (isPolicyActive('roadRepair') ? 0.03 : 0)
     - 0.2 * (city.taxRate / TAX_RATE_MAX),
     -1, 1
   );
-  // Commercial: needs residents (customers), falls if over-supplied.
+
+  // ── demandC ───────────────────────────────────────────────────────────────
+  // A) Consumer gap: do residents have enough shops?
+  const consumerTerm = clamp((resCnt - comCnt * 1.5) / resCnt, -1, 1) * 0.30;
+  // B) High-edu labour gap: educated workers who need commercial / science-park jobs.
+  //    Science parks absorb some of these workers, naturally easing commercial pressure.
+  const highEduLabourTerm = highEduWorkers > 0
+    ? clamp(highEduJobGap / highEduWorkers, -1, 1) * 0.40
+    : 0;
+  // C) Population-scale consumer bonus: larger cities sustain richer commercial base.
+  const popBonus = pop > 0 ? clamp(Math.log10(pop / 500 + 1) * 0.20, 0, 0.25) : 0;
+  // D) Policy for smallBusiness boosts effective com job capacity
+  const smallBizBoost = isPolicyActive('smallBusiness') ? 0.12 : 0;
+  const foreignInvBoost = isPolicyActive('foreignInvestmentIncentive') ? 0.05 : 0;
+
   city.demandC = clamp(
-    (resCnt / total) - (comCnt / total) * 2 + 0.2 * city.happiness - 0.05
-    + (isPolicyActive('smallBusiness') ? 0.12 : 0)
-    + (isPolicyActive('roadRepair') ? 0.04 : 0),
-    -1, 1
-  );
-  city.demandC = clamp(
-    city.demandC
-    + 0.08 * basicEdu
-    + 0.22 * higherEdu
-    + (isPolicyActive('educationReform') ? 0.05 : 0)
+    consumerTerm + highEduLabourTerm + popBonus
+    + 0.10 * city.happiness
+    + 0.08 * basicEdu + 0.15 * higherEdu
     + 0.10 * lawIndex
-    + (hasBuildingType('stock_exchange') ? 0.10 * hsiRatio : 0)
+    + smallBizBoost
+    + (isPolicyActive('roadRepair') ? 0.04 : 0)
+    + (isPolicyActive('educationReform') ? 0.05 : 0)
     + (isPolicyActive('tourismPromotion') ? 0.04 : 0)
-    + (isPolicyActive('foreignInvestmentIncentive') ? 0.05 : 0)
-    + stockExchangeBoost,
+    + foreignInvBoost
+    + (hasBuildingType('stock_exchange') ? 0.10 * hsiRatio : 0)
+    + stockExchangeBoost
+    - 0.05,
     -1, 1
   );
-  // Industrial: starts high, falls as city industrialises or pollutes too much.
+
+  // ── demandI (dual-track) ──────────────────────────────────────────────────
+  // Traditional track: driven by low-edu labour surplus.
+  const regularIndLabourTerm = lowEduWorkers > 0
+    ? clamp(lowEduJobGap / lowEduWorkers, -1, 1) * 0.55
+    : 0;
+  const regularIndBase = 0.30 - clamp((regularIndCnt / Math.max(total, 1)) * 1.5, 0, 0.40);
+
+  // Science-park track: driven by high-edu workers who cannot find commercial jobs.
+  //   Higher scienceShare means industrial sector can absorb educated workers.
+  const sciParkLabourTerm = highEduWorkers > 0
+    ? clamp(highEduJobGap / highEduWorkers, -1, 1) * 0.60
+    : 0;
+
+  const pollutionPenalty = clamp(city.pollution / 200, 0, 0.30);
+
   city.demandI = clamp(
-    0.5 - (indCnt / total) * industrialPenaltyWeight + 0.2 * (1 - city.pollution / 100)
-    - (isPolicyActive('cleanAir') ? 0.05 : 0)
+    regularIndLabourTerm * (1 - scienceShare) * 0.6
+    + regularIndBase    * (1 - scienceShare)
+    + sciParkLabourTerm * scienceShare * 0.8
     + 0.18 * basicEdu
+    - pollutionPenalty
+    - (isPolicyActive('cleanAir') ? 0.05 : 0)
     + (isPolicyActive('scienceDevelopment') ? 0.05 : 0),
     -1, 1
   );
@@ -327,11 +386,13 @@ function computeHappiness(scene) {
   const policyBonus = (isPolicyActive('cleanAir') ? 0.03 : 0) + (isPolicyActive('publicSafety') ? 0.02 : 0);
   const lawBonus = Math.min(0.10, (city.ruleOfLawIndex ?? 0) * 0.10 + (hasBuildingType('stock_exchange') ? 0.02 : 0));
 
+  const unemploymentHappinessPenalty = clamp(city.unemploymentRate ?? 0, 0, 1) * UNEMPLOYMENT_HAPPINESS_PENALTY;
   city.happiness = clamp(
     0.2 + 0.42 * poweredRatio + 0.18 * fireRatio + 0.18 * policeRatio + 0.22 * parkRatio
       + TREE_HAPPINESS_BONUS_MAX * treeRatio
       + SCENIC_HAPPINESS_BONUS_MAX * scenicRatio
-      + roadBonus + policyBonus + lawBonus - taxPenalty - pollPenalty - powerPenalty,
+      + roadBonus + policyBonus + lawBonus
+      - taxPenalty - pollPenalty - powerPenalty - unemploymentHappinessPenalty,
     0, 1
   );
 }

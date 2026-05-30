@@ -61,18 +61,19 @@ function spawnZoneBuilding(scene, r, c, zone, level, density = DENSITY_LOW, opti
   let key;
   let options = {};
   const landScore = clamp(optionsOverride.landScore ?? 0.5, 0, 1);
+  const preferHighScore = !!(optionsOverride.preferHighScore);
 
   if (zone === ZONE_RES) {
     const footprintSize = chooseResidentialFootprint(scene, r, c, density, optionsOverride, landScore);
     const setKey = getResidentialHouseSetForFootprint(footprintSize);
-    const model = getRandomHouseModel(setKey, landScore);
+    const model = getRandomHouseModel(setKey, landScore, preferHighScore);
 
     if (model) {
       key     = model.key;
       options = { ...model.metadata };
     } else if (footprintSize > 1) {
       // Larger models not ready yet — fall back to 1×1.
-      const fallback = getRandomHouseModel('house', landScore);
+      const fallback = getRandomHouseModel('house', landScore, preferHighScore);
       if (fallback) {
         key     = fallback.key;
         options = { ...fallback.metadata };
@@ -85,7 +86,7 @@ function spawnZoneBuilding(scene, r, c, zone, level, density = DENSITY_LOW, opti
     }
   } else if (zone === ZONE_COM) {
     const footprintSize = chooseNonResidentialFootprint(scene, r, c, zone, density, landScore);
-    const model = getRandomCommercialBuildingModel(footprintSize, footprintSize, landScore);
+    const model = getRandomCommercialBuildingModel(footprintSize, footprintSize, landScore, preferHighScore);
     if (!model) return false;
 
     key     = model.key;
@@ -327,8 +328,18 @@ function upgradeZoneBuilding(scene, r, c, zone, landScore = 0.5) {
   const record  = buildingData[id];
   if (!record || record.level >= 3) return;
   const density = record.density ?? (zoneDensityMap[r][c] ?? DENSITY_LOW);
+
+  // In a economically healthy city with good land, upgrades preferentially
+  // produce highScore-variant buildings (premium look for premium neighbourhoods).
+  const preferHighScore = (
+    landScore >= 0.65
+    && (city.unemploymentRate ?? 1) < 0.12
+    && (city.demandC ?? 0) > 0.10
+    && (city.happiness ?? 0) >= 0.60
+  );
+
   removeBuilding(scene, r, c);
-  spawnZoneBuilding(scene, r, c, zone, record.level + 1, density, { landScore });
+  spawnZoneBuilding(scene, r, c, zone, record.level + 1, density, { landScore, preferHighScore });
 
   if (city.population > 0) showToast(t('toast.populationGain'));
 }
@@ -402,9 +413,19 @@ function isHighScoreModel(m) {
   return /highScore/i.test(m.fileName || m.sourceFileName || '');
 }
 
+function pickWithHighScoreBias(valid, cacheKey, landScore, preferHighScore) {
+  if (preferHighScore && isHighScoreModelEligible(landScore)) {
+    const highPool = valid.filter(isHighScoreModel);
+    if (highPool.length > 0 && Math.random() < 0.75) {
+      return pickVariedModel(highPool, `${cacheKey}:highScore`);
+    }
+  }
+  return pickVariedModel(valid, cacheKey);
+}
+
 // Returns a random house model from the given set that has valid computed metadata.
 // setKey = 'house' (1×1) | 'house2x2' (2×2) | 'house1x4' (1×4)
-function getRandomHouseModel(setKey = 'house', landScore = 0.5) {
+function getRandomHouseModel(setKey = 'house', landScore = 0.5, preferHighScore = false) {
   const all = (houseModelSets && houseModelSets[setKey]) ? houseModelSets[setKey] : [];
   // Only use models whose scale was computed successfully (> 0.05 avoids near-invisible sprites)
   const valid = all.filter((m) => {
@@ -413,10 +434,10 @@ function getRandomHouseModel(setKey = 'house', landScore = 0.5) {
     return true;
   });
   if (valid.length === 0) return null;
-  return pickVariedModel(valid, `house:${setKey}`);
+  return pickWithHighScoreBias(valid, `house:${setKey}`, landScore, preferHighScore);
 }
 
-function getRandomCommercialBuildingModel(footprintCols = null, footprintRows = null, landScore = 0.5) {
+function getRandomCommercialBuildingModel(footprintCols = null, footprintRows = null, landScore = 0.5, preferHighScore = false) {
   const all = Array.isArray(commercialBuildingModels) ? commercialBuildingModels : [];
   const valid = all.filter((m) => {
     if (!m.metadata || m.metadata.scale <= 0.05) return false;
@@ -426,7 +447,7 @@ function getRandomCommercialBuildingModel(footprintCols = null, footprintRows = 
     return true;
   });
   if (valid.length === 0) return null;
-  return pickVariedModel(valid, `commercial:${footprintCols ?? 'any'}x${footprintRows ?? 'any'}`);
+  return pickWithHighScoreBias(valid, `commercial:${footprintCols ?? 'any'}x${footprintRows ?? 'any'}`, landScore, preferHighScore);
 }
 
 function getRandomIndustrialBuildingModel(footprintCols = null, footprintRows = null) {

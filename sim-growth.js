@@ -38,7 +38,12 @@ function growOrShrinkZones(scene) {
 
         const footprintArea = (record.footprintCols ?? 1) * (record.footprintRows ?? 1);
         const footprintTier = Math.max(0, Math.sqrt(footprintArea) - 1);
-        const upgradeDemandGate = Math.max(0.3, 0.5 - landScore * 0.2);
+        // Commercial upgrade gate is land-score-driven (not demand-gated) so that
+        // buildings level up based on neighbourhood quality even when overall commercial
+        // supply exceeds demand. Residential and industrial keep the original demand gate.
+        const upgradeDemandGate = zone === ZONE_COM
+          ? Math.max(-0.15, 0.10 - landScore * 0.25)
+          : Math.max(0.3, 0.5 - landScore * 0.2);
         const upgradePremiumMul = 0.72 + landScore * 1.05 + footprintTier * 0.20;
 
         if (record.level < 3 && hasRoad && demand > upgradeDemandGate && Math.random() < UPGRADE_CHANCE * powerMul * densityMul * upgradePremiumMul) {

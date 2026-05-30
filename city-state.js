@@ -58,6 +58,7 @@ const city = {
   educationBasicIndex: 0,
   educationHigherIndex: 0,
   educationAverageLevel: 0,
+  scienceParkUnlocked: false,
   crimeRateIndex: 0,
   scienceIndustryShare: 0,
   educationHistory: [],
@@ -127,6 +128,7 @@ function resetGameState() {
   city.educationBasicIndex = 0;
   city.educationHigherIndex = 0;
   city.educationAverageLevel = 0;
+  city.scienceParkUnlocked = false;
   city.crimeRateIndex = 0;
   city.scienceIndustryShare = 0;
   city.educationHistory = [];
@@ -171,6 +173,7 @@ function normalizeCityFinanceState() {
   city.educationBasicIndex = Number.isFinite(city.educationBasicIndex) ? city.educationBasicIndex : 0;
   city.educationHigherIndex = Number.isFinite(city.educationHigherIndex) ? city.educationHigherIndex : 0;
   city.educationAverageLevel = Number.isFinite(city.educationAverageLevel) ? city.educationAverageLevel : 0;
+  city.scienceParkUnlocked = !!city.scienceParkUnlocked;
   city.crimeRateIndex = Number.isFinite(city.crimeRateIndex) ? city.crimeRateIndex : 0;
   city.scienceIndustryShare = Number.isFinite(city.scienceIndustryShare) ? city.scienceIndustryShare : 0;
   city.educationHistory = Array.isArray(city.educationHistory) ? city.educationHistory : [];

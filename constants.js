@@ -265,6 +265,14 @@ const STARTING_BUDGET = 10000;
 // Pollution per building type per month
 const POLLUTION_COAL_PLANT  = 20;
 const POLLUTION_IND_BUILDING = 2;
+const POLLUTION_SCIENCE_PARK_BUILDING = 0.2;
+
+// Science-park progression tuning
+const SCIENCE_PARK_UNLOCK_HIGHER_EDU = 0.8;
+const SCIENCE_PARK_CONVERSION_CHANCE_BASE = 0.06;
+const SCIENCE_PARK_CONVERSION_CHANCE_EDU_BONUS = 0.24;
+const INDUSTRIAL_DEMAND_PENALTY_BASE = 3.0;
+const INDUSTRIAL_DEMAND_PENALTY_MIN = 1.5;
 
 // Month names for display
 const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];

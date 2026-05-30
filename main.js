@@ -2125,6 +2125,16 @@ function setupToolMenu() {
   menu.addEventListener('click', (event) => {
     const categoryButton = event.target.closest('[data-tool-category]');
     if (categoryButton) {
+      if (categoryButton.dataset.toolCategory === 'inspect') {
+        selectedTool = 'inspect';
+        menu.querySelectorAll('[data-tool]').forEach((toolButton) => {
+          toolButton.classList.toggle('is-active', toolButton.dataset.tool === 'inspect');
+        });
+        updateToolCategoryState(menu, selectedTool);
+        closeToolCategoryFlyouts();
+        closeToolPopups();
+        return;
+      }
       toggleToolCategory(categoryButton);
       return;
     }
@@ -2836,10 +2846,10 @@ function initOverlayControls() {
   const zoomResetBtn = document.getElementById('overlay-zoom-reset');
   const resizeHandle = document.getElementById('overlay-resize-handle');
 
-  if (!controls || !win) return;
+  if (!win) return;
 
   // ── HUD overlay buttons ─────────────────────────────────────────────────────
-  controls.addEventListener('click', (e) => {
+  controls?.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-overlay]');
     if (!btn) return;
     toggleOverlayMap(btn.dataset.overlay);
@@ -3427,7 +3437,7 @@ function updateOverlayDetailPanel(type) {
       chip(t('inspect.powerStateDegraded'), degraded),
       chip(t('inspect.powerStateAbandoned'), abandoned),
     ].join('');
-    note.textContent = 'Plant markers are color-coded by type and age.';
+    note.textContent = t('overlay.detail.powerPlantLegend');
     footer.classList.add('is-visible');
     const supply = city.totalPowerSupply ?? 0;
     const demand = city.totalPowerDemand ?? 0;
@@ -3477,11 +3487,11 @@ function updateOverlayDetailPanel(type) {
       ? t('overlay.detail.coveragePolice')
       : t('overlay.detail.coverageFire');
   } else if (type === 'pollution') {
-    note.textContent = 'Darker areas mean higher pollution.';
+    note.textContent = t('overlay.detail.pollutionHint');
   } else if (type === 'population') {
-    note.textContent = 'Brighter tiles mean more population concentration.';
+    note.textContent = t('overlay.detail.populationHint');
   } else if (type === 'landvalue') {
-    note.textContent = 'Green tiles have the highest land value.';
+    note.textContent = t('overlay.detail.landvalueHint');
   }
 }
 
@@ -3498,8 +3508,8 @@ function setOverlayLegendLabels(type) {
     population: ['0%', '50%', '100%'],
     landvalue: ['0%', '50%', '100%'],
     education: ['0%', '50%', '100%'],
-    electricity: ['Short', 'Balanced', 'Surplus'],
-    power: ['Old', 'Degraded', 'Active'],
+    electricity: [t('overlay.legend.short'), t('overlay.legend.balanced'), t('overlay.legend.surplus')],
+    power: [t('overlay.legend.old'), t('overlay.legend.degraded'), t('overlay.legend.active')],
   }[type] ?? ['0%', '50%', '100%'];
 
   minEl.textContent = labels[0];
@@ -3894,8 +3904,8 @@ function openHouseSizeMenu(triggerButton = document.querySelector('[data-tool="h
     button.type = 'button';
     button.dataset.houseSet = setKey;
     button.classList.toggle('is-active', setKey === selectedHouseSet);
-    button.title = `${config.label} houses`;
-    button.setAttribute('aria-label', `${config.label} houses`);
+    button.title = t('tool.houseSetTitle', { label: config.label });
+    button.setAttribute('aria-label', t('tool.houseSetTitle', { label: config.label }));
 
     const image = document.createElement('img');
     image.src = model.path;
@@ -3921,7 +3931,7 @@ function openHouseSizeMenu(triggerButton = document.querySelector('[data-tool="h
       button.dataset.houseModelSet = selectedHouseSet;
       button.dataset.houseModelIndex = String(index);
       button.classList.toggle('is-active', index === getSelectedHouseIndex(selectedHouseSet));
-      button.title = `${HOUSE_MODEL_SETS[selectedHouseSet]?.label ?? ''} ${model.title}`;
+      button.title = t('tool.houseModelTitle', { label: HOUSE_MODEL_SETS[selectedHouseSet]?.label ?? '', model: model.title });
       button.setAttribute('aria-label', button.title);
 
       const image = document.createElement('img');
@@ -4002,7 +4012,7 @@ function updateHouseToolUi() {
   if (label) {
     label.textContent = HOUSE_MODEL_SETS[selectedHouseSet]?.label ?? '';
   }
-  button.title = `Add ${HOUSE_MODEL_SETS[selectedHouseSet]?.label ?? ''} ${model.title}`;
+  button.title = t('tool.houseAddTitle', { label: HOUSE_MODEL_SETS[selectedHouseSet]?.label ?? '', model: model.title });
   button.setAttribute('aria-label', button.title);
 }
 

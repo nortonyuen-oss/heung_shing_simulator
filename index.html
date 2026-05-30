@@ -7,17 +7,17 @@
     * { box-sizing: border-box; }
 
     :root {
-      --ui-bg: #f2f0e8;
-      --ui-panel: #f7f5ef;
-      --ui-panel-strong: #efede4;
-      --ui-border: #cfc8b7;
-      --ui-border-strong: #b6ad99;
+      --ui-bg: #e7ebf0;
+      --ui-panel: #f1f4f8;
+      --ui-panel-strong: #e2e8ef;
+      --ui-border: #c3ccd7;
+      --ui-border-strong: #9aa8b8;
       --ui-text: #22242a;
-      --ui-text-soft: #69675f;
+      --ui-text-soft: #606a77;
       --ui-green: #1f8c4a;
       --ui-red: #c0302f;
       --ui-gold: #d2a21e;
-      --ui-shadow: 0 2px 8px rgba(21, 21, 18, 0.16);
+      --ui-shadow: 0 2px 8px rgba(32, 42, 54, 0.14);
       --ui-radius: 12px;
     }
 
@@ -60,7 +60,7 @@
     }
 
     #topbar-city-plate {
-      flex: 0 0 274px;
+      flex: 0 0 220px;
       height: 78px;
       padding: 8px 12px;
       border-radius: 14px;
@@ -73,6 +73,30 @@
       color: #ecf4f0;
       display: flex;
       align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    #topbar-rename-btn {
+      position: absolute;
+      top: 5px;
+      left: 6px;
+      width: 24px;
+      height: 24px;
+      border: 1px solid rgba(235, 248, 241, 0.85);
+      border-radius: 6px;
+      background: rgba(9, 55, 37, 0.72);
+      color: #e8f5ef;
+      font-size: 13px;
+      line-height: 1;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.22);
+    }
+
+    #topbar-rename-btn:hover {
+      background: rgba(12, 69, 46, 0.9);
     }
 
     #topbar-city-name {
@@ -86,6 +110,8 @@
       text-overflow: ellipsis;
       pointer-events: none;
       max-width: 100%;
+      width: 100%;
+      text-align: center;
     }
 
     #topbar-main {
@@ -113,7 +139,7 @@
 
     #topbar-primary {
       border-bottom: 1px solid var(--ui-border);
-      background: linear-gradient(180deg, #f9f7f2 0%, #f2f0e8 100%);
+      background: linear-gradient(180deg, #f6f8fb 0%, #e8edf3 100%);
     }
 
     .topbar-chip {
@@ -124,7 +150,7 @@
       padding: 3px 8px;
       border: 1px solid var(--ui-border);
       border-radius: 10px;
-      background: #fdfcf9;
+      background: #f8fafd;
       color: var(--ui-text);
     }
 
@@ -171,7 +197,7 @@
       padding: 3px;
       border: 1px solid var(--ui-border);
       border-radius: 10px;
-      background: #f9f7f0;
+      background: #edf2f7;
       flex-shrink: 0;
     }
 
@@ -180,14 +206,14 @@
       font-size: 12px;
       font-weight: 800;
       color: #23252a;
-      background: #efede4;
+      background: #e4e9ef;
       border: 1px solid var(--ui-border-strong);
       border-radius: 7px;
       cursor: pointer;
       font-family: inherit;
       min-width: 40px;
     }
-    .topbar-speed-btn:hover { background: #f4f1e8; }
+    .topbar-speed-btn:hover { background: #edf2f7; }
     .topbar-speed-btn.is-active {
       background: #e9be45;
       border-color: #a78124;
@@ -613,39 +639,109 @@
       z-index: 10;
       display: flex;
       flex-direction: column;
-      gap: 8px;
-      width: 202px;
+      gap: 4px;
+      width: 214px;
       max-height: calc(100vh - 116px);
-      padding: 10px;
-      background: #f4f1e8;
-      border: 1px solid var(--ui-border-strong);
-      border-radius: 12px;
-      box-shadow: var(--ui-shadow), inset 0 1px 0 rgba(255,255,255,0.85);
+      padding: 8px 7px;
+      background: linear-gradient(180deg, #dce2eb 0%, #cbd4e1 52%, #c1cad8 100%);
+      border: 1px solid #8f9daf;
+      border-radius: 14px;
+      box-shadow: 0 4px 16px rgba(35, 47, 63, 0.24), inset 0 1px 0 rgba(255,255,255,0.55);
       overflow: visible;
       overflow-x: hidden;
       overflow-y: auto;
+    }
+
+    .tool-menu-guide {
+      display: grid;
+      grid-template-columns: 34px 1fr 34px;
+      align-items: center;
+      gap: 6px;
+      min-height: 48px;
+      padding: 6px;
+      border-radius: 10px;
+      border: 1px solid #182334;
+      background: linear-gradient(180deg, #1e2c3e 0%, #111a28 100%);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.1);
     }
 
     #tool-menu-collapse {
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 100%;
-      height: 30px;
-      border: 1px solid var(--ui-border-strong);
+      width: 34px;
+      height: 34px;
+      border: 1px solid #8e9fb5;
       border-radius: 8px;
-      background: #efece2;
-      color: #2a2d33;
+      background: #eef3f9;
+      color: #2e4567;
       cursor: pointer;
-      font-size: 13px;
+      font-size: 16px;
       font-weight: 800;
-      margin-bottom: 2px;
+      margin: 0;
     }
-    #tool-menu-collapse:hover { background: #f4f1e8; }
+
+    .tool-guide-rail {
+      width: 34px;
+      height: 34px;
+      border: 1px solid #8e9fb5;
+      border-radius: 8px;
+      background: #eef3f9;
+      color: #2e4567;
+      font-size: 16px;
+      line-height: 1;
+      padding: 0;
+      cursor: default;
+    }
+
+    .tool-guide-text {
+      min-width: 0;
+      text-align: center;
+      color: #f6f9fe;
+      line-height: 1.05;
+    }
+
+    .tool-guide-text strong {
+      display: block;
+      font-size: 18px;
+      font-weight: 900;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .tool-guide-text span {
+      display: block;
+      margin-top: 3px;
+      font-size: 10px;
+      font-weight: 700;
+      color: #d9e2ef;
+      letter-spacing: 0.45px;
+      text-transform: uppercase;
+    }
+
+    #tool-menu-collapse:hover,
+    .tool-guide-rail:hover {
+      background: #ffffff;
+    }
 
     .tool-menu.is-collapsed {
       width: 72px;
       padding: 8px;
+    }
+
+    .tool-menu.is-collapsed .tool-menu-guide {
+      grid-template-columns: 1fr;
+      min-height: auto;
+      padding: 0;
+      border: none;
+      background: transparent;
+      box-shadow: none;
+    }
+
+    .tool-menu.is-collapsed .tool-guide-text,
+    .tool-menu.is-collapsed .tool-guide-rail {
+      display: none;
     }
 
     .tool-menu.is-collapsed .tool-category-button {
@@ -656,11 +752,13 @@
     }
 
     .tool-menu.is-collapsed .tool-category-labels,
-    .tool-menu.is-collapsed .tool-category-accent {
+    .tool-menu.is-collapsed .tool-category-accent,
+    .tool-menu.is-collapsed .tool-category-hotkey {
       display: none;
     }
 
     .tool-menu.is-collapsed #tool-menu-collapse {
+      width: 100%;
       height: 28px;
       font-size: 11px;
     }
@@ -691,33 +789,37 @@
     .tool-category-button {
       position: relative;
       display: grid;
-      grid-template-columns: 36px 1fr 5px;
+      grid-template-columns: 36px 1fr 4px auto;
       align-items: center;
       width: 100%;
-      min-height: 56px;
-      padding: 7px 8px;
+      min-height: 49px;
+      padding: 5px 7px;
       color: #1f2327;
-      background: #faf8f2;
-      border: 1px solid var(--ui-border);
-      border-radius: 9px;
+      background: #fbfdff;
+      border: 1px solid #bcc8d7;
+      border-radius: 7px;
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.85);
       cursor: pointer;
       flex-shrink: 0;
       font-family: inherit;
       text-align: left;
-      gap: 8px;
+      gap: 7px;
+    }
+
+    .tool-category-button + .tool-category-button {
+      margin-top: 1px;
     }
 
     .tool-category-button:hover {
-      background: #f4f0e6;
-      border-color: var(--ui-border-strong);
+      background: #ffffff;
+      border-color: #8fa4c1;
     }
 
     .tool-category-button.is-open,
     .tool-category-button.is-active {
-      background: #f1efe6;
-      border-color: #8ea17f;
-      box-shadow: inset 2px 0 0 #5ca34d, inset 0 1px 0 rgba(255,255,255,0.85);
+      background: #ffffff;
+      border-color: #3a6299;
+      box-shadow: inset 0 0 0 1px rgba(58,98,153,0.2), inset 0 1px 0 rgba(255,255,255,0.9);
     }
 
     .tool-category-button[data-tool="bulldoze"].is-active,
@@ -742,12 +844,12 @@
       width: 34px;
       height: 34px;
       border-radius: 8px;
-      border: 1px solid #d9d3c5;
+      border: 1px solid #b7c2d2;
       display: grid;
       place-items: center;
       font-size: 20px;
-      background: #f1ede2;
-      color: #3d3a33;
+      background: linear-gradient(180deg, #ffffff 0%, #ecf1f8 100%);
+      color: #40506b;
       line-height: 1;
     }
 
@@ -761,7 +863,7 @@
     .tool-category-title {
       font-size: 15px;
       line-height: 1;
-      font-weight: 800;
+      font-weight: 850;
       color: #1f2327;
       white-space: nowrap;
       overflow: hidden;
@@ -769,7 +871,7 @@
     }
 
     .tool-category-subtitle {
-      font-size: 12px;
+      font-size: 11px;
       line-height: 1;
       color: #4f5247;
       white-space: nowrap;
@@ -779,29 +881,87 @@
     }
 
     .tool-category-accent {
-      width: 3px;
-      height: 28px;
-      border-radius: 999px;
+      width: 4px;
+      height: 30px;
+      border-radius: 4px;
       background: transparent;
       justify-self: end;
     }
 
-    .tool-category-button.is-open .tool-category-accent,
-    .tool-category-button.is-active .tool-category-accent {
-      background: #5ca34d;
+    .tool-category-hotkey {
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      border: 1px solid #2b4f8a;
+      background: #3e6fb4;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 900;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-shadow: 0 1px 1px rgba(0,0,0,0.3);
+      justify-self: end;
+      margin-left: 1px;
     }
 
-    .tool-category-button[data-tool-category="roads"] .tool-category-accent { background: #e48d2f; }
-    .tool-category-button[data-tool-category="zones"] .tool-category-accent { background: #6fb35b; }
-    .tool-category-button[data-tool-category="power"] .tool-category-accent { background: #47a1df; }
-    .tool-category-button[data-tool-category="services"] .tool-category-accent { background: #e3b44a; }
-    .tool-category-button[data-tool-category="parks"] .tool-category-accent { background: #8b6ed8; }
-    .tool-category-button[data-tool-category="maps"] .tool-category-accent { background: #5faea4; }
-    .tool-category-button[data-action="open-charts"] .tool-category-accent { background: #4b84cf; }
-    .tool-category-button[data-tool-category="inspect"] .tool-category-accent,
-    .tool-category-button[data-tool="bulldoze"] .tool-category-accent { background: #5d6f8c; }
+    .tool-category-accent {
+      background: #9eabbd;
+      border: none;
+    }
+
+    .tool-category-button[data-tool-category] .tool-category-hotkey,
+    .tool-category-button[data-tool] .tool-category-hotkey {
+      background: #3e6fb4;
+      border-color: #2b4f8a;
+    }
+
+    .tool-category-button[data-tool="bulldoze"] .tool-category-hotkey {
+      background: #4d5f79;
+      border-color: #39495e;
+    }
+
+    .tool-category-button.is-active .tool-category-accent,
+    .tool-category-button.is-open .tool-category-accent {
+      background: #3d6cb1;
+    }
+
     .tool-category-button[data-tool="bulldoze"].is-active .tool-category-accent,
-    .tool-category-button[data-tool="bulldoze"]:hover .tool-category-accent { background: #c84b48; }
+    .tool-category-button[data-tool="bulldoze"]:hover .tool-category-accent,
+    .tool-category-button[data-tool="bulldoze"].is-active .tool-category-hotkey,
+    .tool-category-button[data-tool="bulldoze"]:hover .tool-category-hotkey { background: #c84b48; border-color: #8f3533; }
+
+    .tool-flyout-metrics {
+      margin-top: 4px;
+      padding-top: 6px;
+      border-top: 1px dashed #96a5b9;
+      display: grid;
+      gap: 4px;
+    }
+
+    .tool-flyout-metric {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 6px;
+      border-radius: 6px;
+      background: #edf2f8;
+      border: 1px solid #c3cfde;
+      font-size: 11px;
+    }
+
+    .tool-flyout-metric span:first-child {
+      color: #4f5e70;
+      font-weight: 700;
+    }
+
+    .tool-flyout-metric span:last-child {
+      color: #253549;
+      font-weight: 800;
+      white-space: nowrap;
+    }
 
     .tool-flyout {
       position: fixed;
@@ -981,7 +1141,9 @@
       }
 
       .tool-category-labels,
-      .tool-category-accent {
+      .tool-category-accent,
+      .tool-category-hotkey,
+      .tool-menu-guide {
         display: none;
       }
 
@@ -1439,7 +1601,7 @@
       top: 100px;
       right: 10px;
       z-index: 10;
-      width: min(360px, calc(100vw - 96px));
+      width: min(178px, calc(100vw - 96px));
       padding: 0;
       background: transparent;
       border: none;
@@ -1539,9 +1701,9 @@
     /* Demand bars */
     .hud-rci {
       display: flex;
-      gap: 6px;
+      gap: 3px;
       align-items: flex-end;
-      margin-top: 6px;
+      margin-top: 2px;
     }
 
     .hud-rci-bar {
@@ -1552,18 +1714,32 @@
     }
 
     .hud-rci-label {
-      font-size: 11px;
+      font-size: 9px;
       font-weight: 700;
       color: #1e2427;
     }
 
     .demand-bar-track {
       position: relative;
-      width: 14px;
-      height: 56px;
+      width: 10px;
+      height: 36px;
       background: rgba(0,0,0,0.15);
       border: 1px solid #6f6b60;
       border-radius: 2px;
+    }
+
+    #hud [data-hud-panel="demand"] .hud-panel-body {
+      padding: 5px 6px 6px;
+      justify-items: center;
+    }
+
+    #hud [data-hud-panel="demand"] .hud-panel-header {
+      padding: 6px 7px;
+      font-size: 9px;
+    }
+
+    #hud [data-hud-panel="demand"] .hud-panel-header strong {
+      font-size: 10px;
     }
 
     /* Center line */
@@ -1647,6 +1823,33 @@
       padding-bottom: 3px;
     }
 
+    .hud-info-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 4px;
+      font-size: 12px;
+      color: #24262b;
+    }
+
+    .hud-info-grid > div {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      border-bottom: 1px dashed #d9d2c2;
+      padding-bottom: 3px;
+    }
+
+    .hud-info-label {
+      color: #5a594f;
+      font-weight: 700;
+    }
+
+    .hud-info-value {
+      color: #243038;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
     .hud-index-grid {
       display: grid;
       grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -1709,7 +1912,7 @@
     #status-more-btn {
       border: 1px solid #b9b09d;
       border-radius: 10px;
-      background: #ede9df;
+      background: #e7ecf2;
       color: #262a2f;
       min-width: 112px;
       height: 44px;
@@ -1735,16 +1938,76 @@
 
     #status-pill:hover,
     #status-more-btn:hover {
-      background: #f3efe6;
+      background: #eff4f9;
+    }
+
+    /* ── Metro light-gray theme pass ────────────────────────────────────── */
+
+    .menu-btn,
+    .menu-dropdown,
+    .save-list-item,
+    .save-list-loading,
+    .save-list-empty,
+    .dialog-body,
+    .dialog-footer,
+    .save-list-del-btn,
+    .save-list-item:hover,
+    .save-list-empty code,
+    #budget-detail,
+    .budget-window-section,
+    .budget-window-heading,
+    #budget-window-body,
+    .tool-flyout,
+    .tool-row,
+    .tool-popup,
+    .popup-button,
+    .house-size-menu,
+    .house-size-button,
+    .house-model-button,
+    .jukebox-button,
+    .jukebox-loop-btn,
+    #chart-win-body,
+    #overlay-win-footer,
+    .rotate-btn {
+      background-color: #e4eaf1;
+    }
+
+    .dialog-box,
+    #budget-window,
+    #jukebox-window,
+    #overlay-window,
+    #chart-window,
+    .tool-flyout,
+    .tool-popup,
+    .house-size-menu {
+      border-color: #8794a3;
+      box-shadow: 0 6px 16px rgba(27, 40, 55, 0.2), inset 0 1px 0 rgba(255,255,255,0.7);
+    }
+
+    .hud-panel {
+      background: #edf2f7;
+      border-color: #a9b6c6;
+    }
+
+    .hud-panel-header {
+      background: #dde5ee;
+      border-bottom-color: #b7c3d2;
+      color: #48525e;
+    }
+
+    #budget-strip {
+      background: #e6ebf1;
+      border-top-color: #a9b7c8;
+      box-shadow: inset 0 1px 0 #f7f9fc;
     }
 
     #status-ticker-main {
       flex: 1;
       min-width: 0;
       height: 44px;
-      border: 1px solid #cbc4b2;
+      border: 1px solid #1f5f47;
       border-radius: 10px;
-      background: #f9f7f1;
+      background: linear-gradient(180deg, #11372c 0%, #0a261f 100%);
       display: flex;
       align-items: center;
       gap: 8px;
@@ -1752,10 +2015,24 @@
     }
 
     #status-main-icon {
-      font-size: 22px;
-      color: #2f8447;
+      font-size: 17px;
+      color: #9be6c3;
       flex-shrink: 0;
       line-height: 1;
+    }
+
+    #status-line-badge {
+      flex-shrink: 0;
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid #2c8d69;
+      background: #0f4d39;
+      color: #d7f3e6;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.35px;
+      white-space: nowrap;
+      text-transform: uppercase;
     }
 
     #tip-ticker-track {
@@ -1764,6 +2041,8 @@
       position: relative;
       height: 20px;
       min-width: 0;
+      border-left: 1px solid rgba(174, 232, 207, 0.28);
+      padding-left: 10px;
     }
 
     #tip-ticker-inner {
@@ -1772,41 +2051,68 @@
       top: 50%;
       transform: translateY(-50%);
       margin-top: 0;
-      font-size: 13px;
+      font-size: 12px;
       line-height: 1.2;
-      font-weight: 700;
-      color: #2d3138;
+      font-weight: 800;
+      color: #ffd96b;
       font-family: 'Noto Sans TC', 'IBM Plex Sans', sans-serif;
+      letter-spacing: 0.15px;
+      text-shadow: 0 0 5px rgba(255, 214, 109, 0.2);
     }
 
-    #status-alert-main {
+    #status-index-main {
       min-width: 420px;
       max-width: 48%;
       height: 44px;
-      border: 1px solid #d7b0ad;
+      border: 1px solid #8d3f3a;
       border-radius: 10px;
-      background: #fff4f3;
+      background: linear-gradient(180deg, #421f1d 0%, #311514 100%);
       display: flex;
       align-items: center;
       gap: 8px;
-      padding: 0 10px;
-      color: #aa2222;
-      font-size: 13px;
-      font-weight: 700;
+      padding: 4px 8px;
       overflow: hidden;
       flex-shrink: 1;
     }
 
-    #status-alert-icon {
-      font-size: 16px;
-      line-height: 1;
-      flex-shrink: 0;
+    #status-index-grid {
+      width: 100%;
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 4px;
     }
 
-    #status-alert-text {
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+    .status-index-item {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 6px;
+      color: #ffeae6;
+      display: grid;
+      justify-items: center;
+      align-content: center;
+      min-height: 34px;
+      padding: 1px 2px;
+      gap: 1px;
+    }
+
+    .status-index-label {
+      font-size: 8px;
+      color: #f4c2bb;
+      letter-spacing: 0.25px;
+    }
+
+    .status-index-value {
+      font-size: 16px;
+      font-weight: 900;
+      line-height: 1;
+      color: #ffeae6;
+    }
+
+    .status-index-value.warn { color: #ffdd8a; }
+    .status-index-value.bad { color: #ff8f84; }
+
+    #status-index-main-title {
+      display: none;
     }
 
     @media (max-width: 1320px) {
@@ -1814,7 +2120,7 @@
         gap: 8px;
       }
 
-      #status-alert-main {
+      #status-index-main {
         min-width: 300px;
         font-size: 12px;
       }
@@ -1827,13 +2133,13 @@
       }
 
       #status-ticker-main,
-      #status-alert-main {
+      #status-index-main {
         order: 3;
         flex-basis: 100%;
         max-width: 100%;
       }
 
-      #status-alert-main {
+      #status-index-main {
         min-width: 0;
       }
 
@@ -2242,17 +2548,17 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: rgba(18, 24, 28, 0.82);
+      background: rgba(20, 28, 38, 0.8);
       backdrop-filter: blur(4px);
     }
 
     .landing-card {
-      background: #d4d0c3;
-      border: 3px solid #6f6b60;
+      background: #d6dde7;
+      border: 3px solid #7f8ea2;
       border-radius: 10px;
       box-shadow: 0 20px 56px rgba(0,0,0,0.65),
-                  inset 1px 1px 0 #fff8e7,
-                  inset -1px -1px 0 #a7a08d;
+                  inset 1px 1px 0 #f6f9fd,
+                  inset -1px -1px 0 #a4b1c1;
       padding: 40px 48px;
       min-width: 300px;
       max-width: 420px;
@@ -2262,9 +2568,9 @@
     }
 
     .landing-icon   { font-size: 56px; line-height: 1; margin-bottom: 10px; }
-    .landing-title  { font-size: 30px; font-weight: 900; color: #1e2427; margin: 0 0 4px; }
-    .landing-tagline { font-size: 13px; color: #5a5648; margin: 0 0 28px; letter-spacing: 0.8px; }
-    .landing-form-title { font-size: 15px; font-weight: 700; color: #1e2427; margin: 0 0 14px; }
+    .landing-title  { font-size: 30px; font-weight: 900; color: #1b2838; margin: 0 0 4px; }
+    .landing-tagline { font-size: 13px; color: #5d6a79; margin: 0 0 28px; letter-spacing: 0.8px; }
+    .landing-form-title { font-size: 15px; font-weight: 700; color: #1e2f44; margin: 0 0 14px; }
 
     .landing-actions { display: flex; flex-direction: column; gap: 10px; }
 
@@ -2274,28 +2580,28 @@
       font-weight: 700;
       border-radius: 6px;
       cursor: pointer;
-      border: 2px solid #6f6b60;
+      border: 2px solid #7b889b;
       letter-spacing: 0.2px;
       font-family: Arial, Helvetica, sans-serif;
     }
     .landing-btn.primary {
-      background: #f1c65d;
-      color: #1e2427;
-      box-shadow: inset 1px 1px 0 #fffbcf, inset -1px -1px 0 #b08030;
+      background: #5f7da8;
+      color: #f5f8fd;
+      box-shadow: inset 1px 1px 0 #9db6d8, inset -1px -1px 0 #3f5a7f;
     }
-    .landing-btn.primary:hover  { background: #f5d070; }
-    .landing-btn.primary:active { background: #d4a830; }
+    .landing-btn.primary:hover  { background: #6b8ab7; }
+    .landing-btn.primary:active { background: #4b6790; }
     .landing-btn.secondary {
-      background: #ece7d4;
-      color: #1e2427;
-      box-shadow: inset 1px 1px 0 #fffdf2, inset -1px -1px 0 #a7a08d;
+      background: #e8edf4;
+      color: #24364d;
+      box-shadow: inset 1px 1px 0 #f8fbff, inset -1px -1px 0 #aeb8c6;
     }
-    .landing-btn.secondary:hover { background: #f5f0dc; }
+    .landing-btn.secondary:hover { background: #f2f6fb; }
 
     .landing-save-info {
       margin-top: 14px;
       font-size: 11px;
-      color: #7a7264;
+      color: #667486;
       line-height: 1.6;
     }
 
@@ -2303,9 +2609,9 @@
     #landing-load-status {
       margin-top: 18px;
       padding-top: 12px;
-      border-top: 1px solid #cac4b3;
+      border-top: 1px solid #bac6d6;
       font-size: 11px;
-      color: #9a9080;
+      color: #7b8798;
       font-style: italic;
       font-family: Arial, Helvetica, sans-serif;
       text-align: center;
@@ -2313,16 +2619,16 @@
       letter-spacing: 0.2px;
     }
 
-    #landing-load-status.status-ok      { color: #4a7a4a; font-style: normal; }
+    #landing-load-status.status-ok      { color: #3f6b96; font-style: normal; }
     #landing-load-status.status-error   { color: #aa4444; font-style: normal; }
 
     .landing-preload-panel {
       margin-top: 12px;
       padding: 10px 10px 0;
-      border: 1px solid #c4bead;
+      border: 1px solid #b3c1d3;
       border-radius: 8px;
-      background: #eee8d5;
-      box-shadow: inset 0 1px 0 #fff8e6;
+      background: #e6edf6;
+      box-shadow: inset 0 1px 0 #f7fbff;
     }
 
     .landing-preload-row {
@@ -2331,13 +2637,13 @@
       justify-content: space-between;
       font-family: Arial, Helvetica, sans-serif;
       font-size: 11px;
-      color: #5e584b;
+      color: #5a6a7f;
       margin-bottom: 6px;
     }
 
     #landing-preload-percent {
       font-weight: 700;
-      color: #3c372d;
+      color: #3a4f6c;
       min-width: 38px;
       text-align: right;
     }
@@ -2345,9 +2651,9 @@
     .landing-preload-track {
       width: 100%;
       height: 10px;
-      border: 1px solid #8b856f;
+      border: 1px solid #8e9eb4;
       border-radius: 999px;
-      background: linear-gradient(180deg, #f8f3e2 0%, #e2dbc6 100%);
+      background: linear-gradient(180deg, #f5f8fd 0%, #dbe4f0 100%);
       overflow: hidden;
       box-shadow: inset 0 1px 2px rgba(0,0,0,0.2);
     }
@@ -2356,20 +2662,20 @@
       width: 0%;
       height: 100%;
       border-radius: 999px;
-      background: linear-gradient(90deg, #d79f2d 0%, #f1c65d 45%, #ffe28b 100%);
+      background: linear-gradient(90deg, #50719e 0%, #7898c0 45%, #a9c2de 100%);
       transition: width 120ms linear;
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.55);
     }
 
     #landing-hint-marquee {
       margin-top: 9px;
-      border-top: 1px dashed #c6bfae;
+      border-top: 1px dashed #b5c3d4;
       padding: 7px 0 8px;
       overflow: hidden;
       white-space: nowrap;
       font-family: Arial, Helvetica, sans-serif;
       font-size: 11px;
-      color: #6a6256;
+      color: #5b6a7f;
       position: relative;
     }
 
@@ -2410,9 +2716,9 @@
       padding: 11px 14px;
       font-size: 17px;
       font-weight: 600;
-      color: #1e2427;
-      background: #fffdf2;
-      border: 2px solid #6f6b60;
+      color: #1e2b3b;
+      background: #f7fafe;
+      border: 2px solid #8c9ab0;
       border-radius: 6px;
       margin-bottom: 16px;
       box-sizing: border-box;
@@ -3123,13 +3429,14 @@
 
   <!-- ── Top menu bar ───────────────────────────────────────────────────── -->
   <header id="top-bar">
-    <div id="topbar-city-plate" aria-label="City name plate">
+    <div id="topbar-city-plate" aria-label="City name plate" data-i18n-aria="topbar.cityPlate">
+      <button id="topbar-rename-btn" type="button" onclick="renameCityPrompt()" title="Rename city" aria-label="Rename city" data-i18n-title="tool.renameCity" data-i18n-aria="tool.renameCity">✏</button>
       <div id="topbar-city-name" data-i18n="city.defaultName">My City</div>
     </div>
 
     <div id="topbar-main">
       <div id="topbar-primary">
-        <div class="topbar-chip" aria-label="Current date">
+        <div class="topbar-chip" aria-label="Current date" data-i18n-aria="topbar.currentDate">
           <span class="topbar-chip-icon">🗓️</span>
           <div class="topbar-chip-main">
             <strong id="topbar-date-zh">2007年11月8日 星期四</strong>
@@ -3137,7 +3444,7 @@
           </div>
         </div>
 
-        <div class="topbar-chip topbar-chip-time" aria-label="Current time">
+        <div class="topbar-chip topbar-chip-time" aria-label="Current time" data-i18n-aria="topbar.currentTime">
           <span class="topbar-chip-icon">🕒</span>
           <div class="topbar-chip-main">
             <strong id="topbar-time">14:36</strong>
@@ -3145,34 +3452,34 @@
         </div>
 
         <div id="topbar-speed">
-          <button class="topbar-speed-btn is-active" data-speed="1" title="1× speed">1x</button>
-          <button class="topbar-speed-btn" data-speed="2" title="2× speed">2x</button>
-          <button class="topbar-speed-btn" data-speed="4" title="4× speed">4x</button>
-          <button class="topbar-speed-btn" data-speed="0" title="Pause">II</button>
+          <button class="topbar-speed-btn is-active" data-speed="1" title="1× speed" data-i18n-title="topbar.speed1">1x</button>
+          <button class="topbar-speed-btn" data-speed="2" title="2× speed" data-i18n-title="topbar.speed2">2x</button>
+          <button class="topbar-speed-btn" data-speed="4" title="4× speed" data-i18n-title="topbar.speed4">4x</button>
+          <button class="topbar-speed-btn" data-speed="0" title="Pause" data-i18n-title="topbar.pause">II</button>
         </div>
 
-        <button id="topbar-more-btn" type="button" aria-label="Open menu" title="More">☰</button>
+        <button id="topbar-more-btn" type="button" aria-label="Open menu" title="More" data-i18n-aria="topbar.openMenu" data-i18n-title="topbar.more">☰</button>
       </div>
 
-      <div id="topbar-kpis" aria-label="City key indicators">
+      <div id="topbar-kpis" aria-label="City key indicators" data-i18n-aria="topbar.kpiAria">
         <div class="kpi-card">
-          <div class="kpi-label"><span>Funds</span><span>資金</span></div>
+          <div class="kpi-label"><span data-i18n="topbar.kpi.funds">Funds</span></div>
           <div class="kpi-value" id="topbar-funds">$0</div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-label"><span>Monthly Income</span><span>每月收入</span></div>
+          <div class="kpi-label"><span data-i18n="topbar.kpi.income">Monthly Income</span></div>
           <div class="kpi-value" id="topbar-income">+$0</div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-label"><span>Monthly Expenses</span><span>每月支出</span></div>
+          <div class="kpi-label"><span data-i18n="topbar.kpi.expenses">Monthly Expenses</span></div>
           <div class="kpi-value" id="topbar-expense">-$0</div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-label"><span>Population</span><span>人口</span></div>
+          <div class="kpi-label"><span data-i18n="topbar.kpi.population">Population</span></div>
           <div class="kpi-value" id="topbar-population">0</div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-label"><span>City Rating</span><span>城市評級</span></div>
+          <div class="kpi-label"><span data-i18n="topbar.kpi.rating">City Rating</span></div>
           <div class="kpi-value" id="topbar-rating">☆☆☆☆☆</div>
         </div>
       </div>
@@ -3404,102 +3711,93 @@ Ctrl+O       Load game (open saves list)</div>
   </div>
 
   <nav id="tool-menu" class="tool-menu" aria-label="City tools" data-i18n-aria="tool.menu">
-    <button id="tool-menu-collapse" type="button" aria-label="Toggle tool menu" title="Toggle tool menu">◀</button>
+    <div class="tool-menu-guide" aria-hidden="true">
+      <button id="tool-menu-collapse" type="button" aria-label="Toggle tool menu" title="Toggle tool menu" data-i18n-aria="tool.toggleMenu" data-i18n-title="tool.toggleMenu">◀</button>
+      <div class="tool-guide-text"><strong data-i18n="tool.guideTitle">建設指引</strong><span data-i18n="tool.guideSubtitle">CITY GUIDE</span></div>
+      <button class="tool-guide-rail" type="button" tabindex="-1">🚆</button>
+    </div>
+
     <button class="tool-category-button is-active" type="button" data-tool-category="roads" title="Roads" data-i18n-title="toolCategory.roads">
       <span class="tool-category-icon" aria-hidden="true">🛣</span>
       <span class="tool-category-labels">
-        <span class="tool-category-title">道路</span>
-        <span class="tool-category-subtitle">Roads</span>
+        <span class="tool-category-title" data-i18n="toolCategory.roadsTitle">路政署</span>
+        <span class="tool-category-subtitle" data-i18n="toolCategory.roadsSubtitle">Highways</span>
       </span>
       <span class="tool-category-accent" aria-hidden="true"></span>
+      <span class="tool-category-hotkey" aria-hidden="true"></span>
     </button>
     <button class="tool-category-button" type="button" data-tool-category="zones" title="Zones" data-i18n-title="toolCategory.zones">
       <span class="tool-category-icon" aria-hidden="true">🏢</span>
       <span class="tool-category-labels">
-        <span class="tool-category-title">分區</span>
-        <span class="tool-category-subtitle">Zoning</span>
+        <span class="tool-category-title" data-i18n="toolCategory.zonesTitle">城規會</span>
+        <span class="tool-category-subtitle" data-i18n="toolCategory.zonesSubtitle">Planning</span>
       </span>
       <span class="tool-category-accent" aria-hidden="true"></span>
+      <span class="tool-category-hotkey" aria-hidden="true"></span>
     </button>
-    <button class="tool-category-button" type="button" data-tool-category="buildings" title="Housing" data-i18n-title="toolCategory.buildings">
-      <span class="tool-category-icon" aria-hidden="true">🏠</span>
+    <button class="tool-category-button" type="button" data-tool-category="maps" title="City Bureau" data-i18n-title="toolCategory.maps">
+      <span class="tool-category-icon" aria-hidden="true">🏢</span>
       <span class="tool-category-labels">
-        <span class="tool-category-title">建築</span>
-        <span class="tool-category-subtitle">Buildings</span>
+        <span class="tool-category-title" data-i18n="toolCategory.mapsTitle">市政局</span>
+        <span class="tool-category-subtitle" data-i18n="toolCategory.mapsSubtitle">City Bureau</span>
       </span>
       <span class="tool-category-accent" aria-hidden="true"></span>
-    </button>
-    <button class="tool-category-button" type="button" data-tool-category="maps" title="Maps" data-i18n-title="toolCategory.maps">
-      <span class="tool-category-icon" aria-hidden="true">🗺️</span>
-      <span class="tool-category-labels">
-        <span class="tool-category-title">小地圖</span>
-        <span class="tool-category-subtitle">Mini Map</span>
-      </span>
-      <span class="tool-category-accent" aria-hidden="true"></span>
-    </button>
-    <button class="tool-category-button" type="button" data-action="open-charts" title="Charts" data-i18n-title="toolCategory.charts">
-      <span class="tool-category-icon" aria-hidden="true">📈</span>
-      <span class="tool-category-labels">
-        <span class="tool-category-title">統計圖表</span>
-        <span class="tool-category-subtitle">Charts</span>
-      </span>
-      <span class="tool-category-accent" aria-hidden="true"></span>
+      <span class="tool-category-hotkey" aria-hidden="true">M</span>
     </button>
     <button class="tool-category-button" type="button" data-tool-category="power" title="Power" data-i18n-title="toolCategory.power">
       <span class="tool-category-icon" aria-hidden="true">⚡</span>
       <span class="tool-category-labels">
-        <span class="tool-category-title">電力水務</span>
-        <span class="tool-category-subtitle">Utilities</span>
+        <span class="tool-category-title" data-i18n="toolCategory.powerTitle">電力水務</span>
+        <span class="tool-category-subtitle" data-i18n="toolCategory.powerSubtitle">Utilities</span>
       </span>
       <span class="tool-category-accent" aria-hidden="true"></span>
+      <span class="tool-category-hotkey" aria-hidden="true">U</span>
     </button>
     <button class="tool-category-button" type="button" data-tool-category="services" title="Civic" data-i18n-title="toolCategory.services">
       <span class="tool-category-icon" aria-hidden="true">🏛️</span>
       <span class="tool-category-labels">
-        <span class="tool-category-title">公共設施</span>
-        <span class="tool-category-subtitle">Civic</span>
+        <span class="tool-category-title" data-i18n="toolCategory.servicesTitle">公共設施</span>
+        <span class="tool-category-subtitle" data-i18n="toolCategory.servicesSubtitle">Civic</span>
       </span>
       <span class="tool-category-accent" aria-hidden="true"></span>
+      <span class="tool-category-hotkey" aria-hidden="true">V</span>
     </button>
     <button class="tool-category-button" type="button" data-tool-category="parks" title="Parks and Recreation" data-i18n-title="toolCategory.parks">
       <span class="tool-category-icon" aria-hidden="true">🌳</span>
       <span class="tool-category-labels">
-        <span class="tool-category-title">公園康樂</span>
-        <span class="tool-category-subtitle">Parks &amp; Rec</span>
+        <span class="tool-category-title" data-i18n="toolCategory.parksTitle">康文署</span>
+        <span class="tool-category-subtitle" data-i18n="toolCategory.parksSubtitle">LCSD</span>
       </span>
       <span class="tool-category-accent" aria-hidden="true"></span>
+      <span class="tool-category-hotkey" aria-hidden="true">P</span>
     </button>
     <button class="tool-category-button" type="button" data-tool-category="terrain" title="Terrain" data-i18n-title="toolCategory.terrain">
       <span class="tool-category-icon" aria-hidden="true">🚉</span>
       <span class="tool-category-labels">
-        <span class="tool-category-title">地形編輯</span>
-        <span class="tool-category-subtitle">Terrain</span>
+        <span class="tool-category-title" data-i18n="toolCategory.terrainTitle">土木工程署</span>
+        <span class="tool-category-subtitle" data-i18n="toolCategory.terrainSubtitle">CEDD</span>
       </span>
       <span class="tool-category-accent" aria-hidden="true"></span>
+      <span class="tool-category-hotkey" aria-hidden="true">T</span>
     </button>
     <button class="tool-category-button" type="button" data-tool-category="inspect" title="Inspect" data-i18n-title="toolCategory.inspect">
       <span class="tool-category-icon" aria-hidden="true">🔍</span>
       <span class="tool-category-labels">
-        <span class="tool-category-title">檢視資訊</span>
-        <span class="tool-category-subtitle">Inspect</span>
+        <span class="tool-category-title" data-i18n="toolCategory.inspectTitle">地籍查詢</span>
+        <span class="tool-category-subtitle" data-i18n="toolCategory.inspectSubtitle">Tile Query</span>
       </span>
       <span class="tool-category-accent" aria-hidden="true"></span>
+      <span class="tool-category-hotkey" aria-hidden="true">I</span>
     </button>
     <button class="tool-category-button" type="button" data-tool="bulldoze" title="Bulldoze" aria-label="Bulldoze" data-i18n-title="tool.bulldoze" data-i18n-aria="tool.bulldoze">
       <span class="tool-category-icon" aria-hidden="true">🚜</span>
       <span class="tool-category-labels">
-        <span class="tool-category-title">拆除推土</span>
-        <span class="tool-category-subtitle">Demolish</span>
+        <span class="tool-category-title" data-i18n="toolCategory.bulldozeTitle">拆除推土</span>
+        <span class="tool-category-subtitle" data-i18n="toolCategory.bulldozeSubtitle">Demolish</span>
       </span>
       <span class="tool-category-accent" aria-hidden="true"></span>
+      <span class="tool-category-hotkey" aria-hidden="true">D</span>
     </button>
-
-    <section class="tool-flyout" data-tool-panel="inspect">
-      <div class="tool-flyout-title" data-i18n="toolCategory.inspect">Inspect</div>
-      <button class="tool-row" type="button" data-tool="inspect" title="Inspect — click any building or tile to see details">
-        <span class="tool-row-icon">?</span><span class="tool-row-text" data-i18n="toolRow.inspectTile">Inspect Tile</span>
-      </button>
-    </section>
 
     <section class="tool-flyout" data-tool-panel="terrain">
       <div class="tool-flyout-title" data-i18n="toolCategory.terrain">Terrain</div>
@@ -3595,17 +3893,14 @@ Ctrl+O       Load game (open saves list)</div>
       </button>
     </section>
 
-    <section class="tool-flyout" data-tool-panel="buildings">
-      <div class="tool-flyout-title" data-i18n="toolCategory.buildings">Buildings</div>
-      <button class="tool-row" type="button" data-tool="house" title="Add house">
-        <span class="tool-row-icon"><img class="tool-image" src="Models/residential/house1x1/dingHouse.png" alt="" aria-hidden="true" /></span>
-        <span class="tool-row-text" data-i18n="toolRow.house">House</span>
-        <span class="tool-badge" aria-hidden="true">1x1</span>
-      </button>
-    </section>
-
     <section class="tool-flyout" data-tool-panel="maps">
-      <div class="tool-flyout-title" data-i18n="toolCategory.maps">Maps</div>
+      <div class="tool-flyout-title" data-i18n="toolCategory.mapsSubtitle">City Bureau</div>
+      <button class="tool-row" type="button" data-action="open-charts"><span class="tool-row-icon">📈</span><span class="tool-row-text" data-i18n="toolRow.charts">統計圖表 Charts</span></button>
+      <div class="tool-flyout-metrics" aria-label="City education and research metrics" data-i18n-aria="tool.educationMetrics">
+        <div class="tool-flyout-metric"><span data-i18n="hud.educationBasicLabel">基本教育</span><span id="hud-education-basic">Basic Edu: 0%</span></div>
+        <div class="tool-flyout-metric"><span data-i18n="hud.educationHigherLabel">高等教育</span><span id="hud-education-higher">Higher Edu: 0%</span></div>
+        <div class="tool-flyout-metric"><span data-i18n="hud.scienceIndustryLabel">科研產業</span><span id="hud-science-share">Science Industry: 0%</span></div>
+      </div>
       <button class="tool-row" type="button" data-overlay="pollution"><span class="tool-row-icon">🏭</span><span class="tool-row-text" data-i18n="overlay.pollution">Pollution</span></button>
       <button class="tool-row" type="button" data-overlay="crime"><span class="tool-row-icon">🚔</span><span class="tool-row-text" data-i18n="overlay.crime">Crime</span></button>
       <button class="tool-row" type="button" data-overlay="fire"><span class="tool-row-icon">🔥</span><span class="tool-row-text" data-i18n="overlay.fire">Fire Risk</span></button>
@@ -3714,14 +4009,6 @@ Ctrl+O       Load game (open saves list)</div>
 
     <div class="tool-menu-divider"></div>
 
-    <!-- Buildings -->
-    <button class="tool-button" type="button" data-tool="house" title="Add house" aria-label="Add house" data-i18n-title="tool.house" data-i18n-aria="tool.house">
-      <img class="tool-image" src="Models/residential/house1x1/dingHouse.png" alt="" aria-hidden="true" />
-      <span class="tool-badge" aria-hidden="true">1x1</span>
-    </button>
-
-    <div class="tool-menu-divider"></div>
-
     <!-- Inspect -->
     <button class="tool-button" type="button" data-tool="inspect" title="Inspect — click any building or tile to see details" aria-label="Inspect tile" data-i18n-title="tool.inspect" data-i18n-aria="tool.inspect">
       <svg viewBox="0 0 32 32" aria-hidden="true">
@@ -3756,19 +4043,19 @@ Ctrl+O       Load game (open saves list)</div>
   </nav>
 
   <!-- House size popup -->
-  <section id="house-size-menu" class="house-size-menu" aria-label="House sizes"></section>
+  <section id="house-size-menu" class="house-size-menu" aria-label="House sizes" data-i18n-aria="tool.houseSizes"></section>
 
   <!-- Terrain picker popup -->
-  <section id="terrain-picker" class="tool-popup" aria-label="Terrain types"></section>
+  <section id="terrain-picker" class="tool-popup" aria-label="Terrain types" data-i18n-aria="tool.terrainTypes"></section>
 
   <!-- Zone density popup -->
-  <section id="zone-density-menu" class="tool-popup" aria-label="Zone density"></section>
+  <section id="zone-density-menu" class="tool-popup" aria-label="Zone density" data-i18n-aria="tool.zoneDensity"></section>
 
   <!-- Park picker popup -->
-  <section id="park-picker" class="tool-popup" aria-label="Park type"></section>
+  <section id="park-picker" class="tool-popup" aria-label="Park type" data-i18n-aria="tool.parkType"></section>
 
   <!-- Inspect panel (click-to-inspect mode) -->
-  <div id="inspect-panel" role="dialog" aria-label="Tile inspector">
+  <div id="inspect-panel" role="dialog" aria-label="Tile inspector" data-i18n-aria="inspect.title">
     <div class="insp-header">
       <span class="insp-header-title" data-i18n="inspect.title">🔍 Tile Inspector</span>
       <button class="insp-close" onclick="document.getElementById('inspect-panel').style.display='none'" title="Close" data-i18n-title="tool.close">✕</button>
@@ -3785,30 +4072,30 @@ Ctrl+O       Load game (open saves list)</div>
   </aside>
 
   <!-- Rotate cluster (bottom-right) -->
-  <div id="rotate-cluster" aria-label="Rotate map view">
-    <button class="rotate-btn" id="btn-rotate-ccw" type="button" title="Rotate 90° anti-clockwise" aria-label="Rotate anti-clockwise">
+  <div id="rotate-cluster" aria-label="Rotate map view" data-i18n-aria="tool.rotateView">
+    <button class="rotate-btn" id="btn-rotate-ccw" type="button" title="Rotate 90° anti-clockwise" aria-label="Rotate anti-clockwise" data-i18n-title="tool.rotateCCW" data-i18n-aria="tool.rotateCCW">
       <svg viewBox="0 0 32 32" aria-hidden="true">
         <path d="M10 10a9 9 0 1 1-2 6" stroke-linecap="round"/>
         <path d="M8 6 l2 5 l-4 1z" fill="currentColor" stroke="none"/>
       </svg>
-      <span class="rotate-btn-label">CCW</span>
+      <span class="rotate-btn-label" data-i18n="tool.rotateCCWShort">CCW</span>
     </button>
-    <button class="rotate-btn" id="btn-rotate-cw" type="button" title="Rotate 90° clockwise" aria-label="Rotate clockwise">
+    <button class="rotate-btn" id="btn-rotate-cw" type="button" title="Rotate 90° clockwise" aria-label="Rotate clockwise" data-i18n-title="tool.rotateCW" data-i18n-aria="tool.rotateCW">
       <svg viewBox="0 0 32 32" aria-hidden="true">
         <path d="M22 10a9 9 0 1 0 2 6" stroke-linecap="round"/>
         <path d="M24 6 l-2 5 l4 1z" fill="currentColor" stroke="none"/>
       </svg>
-      <span class="rotate-btn-label">CW</span>
+      <span class="rotate-btn-label" data-i18n="tool.rotateCWShort">CW</span>
     </button>
   </div>
 
   <!-- Jukebox floating window -->
-  <div id="jukebox-window" role="dialog" aria-label="Jukebox">
+  <div id="jukebox-window" role="dialog" aria-label="Jukebox" data-i18n-aria="jukebox.title">
     <div id="jukebox-titlebar">
       <span>🎵</span>
       <span id="jukebox-titlebar-title" data-i18n="jukebox.title">Jukebox</span>
       <div id="jukebox-titlebar-actions">
-        <button id="jukebox-min-btn" class="window-action-btn" type="button" title="Fold jukebox" aria-label="Fold jukebox">−</button>
+        <button id="jukebox-min-btn" class="window-action-btn" type="button" title="Fold jukebox" aria-label="Fold jukebox" data-i18n-title="window.foldJukebox" data-i18n-aria="window.foldJukebox">−</button>
         <button id="jukebox-close-btn" class="window-action-btn" type="button" title="Close jukebox" aria-label="Close" data-i18n-title="jukebox.close" data-i18n-aria="tool.close">×</button>
       </div>
     </div>
@@ -3846,44 +4133,21 @@ Ctrl+O       Load game (open saves list)</div>
   </div>
 
   <!-- Speed controls -->
-  <div id="speed-controls" aria-label="Simulation speed">
+  <div id="speed-controls" aria-label="Simulation speed" data-i18n-aria="topbar.simSpeed">
     <button class="speed-btn is-active" type="button" data-speed="1">1×</button>
     <button class="speed-btn" type="button" data-speed="2">2×</button>
     <button class="speed-btn" type="button" data-speed="0">⏸</button>
   </div>
 
   <!-- HUD panel (top-right) -->
-  <aside id="hud" aria-label="City statistics">
-    <section class="hud-panel" data-hud-panel="overview">
-      <div class="hud-panel-header">
-        <span>城市概覽 <strong>City Overview</strong></span>
-        <button class="hud-panel-toggle" type="button" data-hud-toggle="overview" aria-label="Toggle city overview">−</button>
-      </div>
-      <div class="hud-panel-body">
-        <div class="hud-city-row">
-          <span id="hud-city-name">My City</span>
-          <button class="hud-rename-btn" onclick="renameCityPrompt()" title="Rename city" aria-label="Rename city" data-i18n-title="tool.renameCity" data-i18n-aria="tool.renameCity">✏️</button>
-        </div>
-        <div class="hud-row"><span id="hud-money">$10,000</span></div>
-        <div class="hud-row"><span id="hud-pop">Pop: 0</span><span id="hud-stars">★☆☆☆☆</span></div>
-        <div class="hud-overview-grid">
-          <div><span>日期</span><span id="hud-date">Jan 1900</span></div>
-          <div><span>基本教育</span><span id="hud-education-basic">Basic Edu: 0%</span></div>
-          <div><span>高等教育</span><span id="hud-education-higher">Higher Edu: 0%</span></div>
-          <div><span>科研產業</span><span id="hud-science-share">Science Industry: 0%</span></div>
-          <div><span>月收入</span><span id="hud-income">+$0</span></div>
-          <div><span>月支出</span><span id="hud-expense" class="hud-expense-val">-$0</span></div>
-        </div>
-      </div>
-    </section>
-
+  <aside id="hud" aria-label="City statistics" data-i18n-aria="hud.cityStats">
     <section class="hud-panel" data-hud-panel="demand">
       <div class="hud-panel-header">
-        <span>需求狀況 <strong>Demand Status</strong></span>
-        <button class="hud-panel-toggle" type="button" data-hud-toggle="demand" aria-label="Toggle demand status">−</button>
+        <span data-i18n="hud.demandStatus">需求狀況 Demand Status</span>
+        <button class="hud-panel-toggle" type="button" data-hud-toggle="demand" aria-label="Toggle demand status" data-i18n-aria="hud.toggleDemand">−</button>
       </div>
       <div class="hud-panel-body">
-        <div class="hud-rci" aria-label="R/C/I demand">
+        <div class="hud-rci" aria-label="R/C/I demand" data-i18n-aria="hud.rciDemand">
           <div class="hud-rci-bar">
             <div class="demand-bar-track"><div id="bar-r" class="demand-bar-fill"></div></div>
             <span class="hud-rci-label">R</span>
@@ -3900,63 +4164,35 @@ Ctrl+O       Load game (open saves list)</div>
       </div>
     </section>
 
-    <section class="hud-panel" data-hud-panel="utilities">
-      <div class="hud-panel-header">
-        <span>電力及地圖 <strong>Utilities & Maps</strong></span>
-        <button class="hud-panel-toggle" type="button" data-hud-toggle="utilities" aria-label="Toggle utilities">−</button>
-      </div>
-      <div class="hud-panel-body">
-        <div id="overlay-controls" aria-label="City overlay maps">
-          <button class="overlay-btn" type="button" data-overlay="pollution"  title="Pollution map" data-i18n-title="overlay.pollutionMap">🏭</button>
-          <button class="overlay-btn" type="button" data-overlay="crime"      title="Crime rate map" data-i18n-title="overlay.crimeMap">🚔</button>
-          <button class="overlay-btn" type="button" data-overlay="fire"       title="Fire hazard map" data-i18n-title="overlay.fireMap">🔥</button>
-          <button class="overlay-btn" type="button" data-overlay="population" title="Population density map" data-i18n-title="overlay.populationMap">👥</button>
-          <button class="overlay-btn" type="button" data-overlay="landvalue"  title="Land value map" data-i18n-title="overlay.landvalueMap">💰</button>
-          <button class="overlay-btn" type="button" data-overlay="education"  title="Education coverage map" data-i18n-title="overlay.educationMap">🎓</button>
-          <button class="overlay-btn" type="button" data-overlay="electricity" title="Electricity map" data-i18n-title="overlay.electricityMap">🔌</button>
-          <button class="overlay-btn" type="button" data-overlay="power"       title="Power plant map" data-i18n-title="overlay.powerMap">⚡</button>
-        </div>
-      </div>
-    </section>
-
-    <section class="hud-panel" data-hud-panel="index">
-      <div class="hud-panel-header">
-        <span>城市發展指數 <strong>City Development Index</strong></span>
-        <button class="hud-panel-toggle" type="button" data-hud-toggle="index" aria-label="Toggle city index">−</button>
-      </div>
-      <div class="hud-panel-body">
-        <div class="hud-index-grid">
-          <div class="hud-index-item"><span class="hud-index-item-label">居住</span><span id="hud-index-livability" class="hud-index-item-value">0</span></div>
-          <div class="hud-index-item"><span class="hud-index-item-label">經濟</span><span id="hud-index-economy" class="hud-index-item-value">0</span></div>
-          <div class="hud-index-item"><span class="hud-index-item-label">環境</span><span id="hud-index-environment" class="hud-index-item-value">0</span></div>
-          <div class="hud-index-item"><span class="hud-index-item-label">交通</span><span id="hud-index-transport" class="hud-index-item-value">0</span></div>
-          <div class="hud-index-item"><span class="hud-index-item-label">總評</span><span id="hud-index-overall" class="hud-index-item-value">0</span></div>
-        </div>
-      </div>
-    </section>
   </aside>
 
   <!-- Budget panel (bottom) -->
-  <div id="budget-panel" aria-label="Budget panel">
+  <div id="budget-panel" aria-label="Budget panel" data-i18n-aria="budget.label">
     <div id="budget-strip">
-      <button id="status-pill" type="button" aria-label="Status panel">
-        <span>狀態</span>
-        <span>STATUS</span>
+      <button id="status-pill" type="button" aria-label="Status panel" data-i18n-aria="status.panel">
+        <span data-i18n="status.panelZh">狀態</span>
+        <span data-i18n="status.panelEn">STATUS</span>
       </button>
       <div id="status-ticker-main">
         <span id="status-main-icon" aria-hidden="true">📈</span>
+        <span id="status-line-badge" aria-hidden="true">My City Daily</span>
         <div id="tip-ticker-track" aria-hidden="true">
           <span id="tip-ticker-inner"></span>
         </div>
       </div>
-      <div id="status-alert-main">
-        <span id="status-alert-icon" aria-hidden="true">⚠</span>
-        <span id="status-alert-text">Power supply is insufficient. Risk of blackouts in some areas!</span>
+      <div id="status-index-main">
+        <div id="status-index-grid" aria-label="City development index" data-i18n-aria="status.devIndex">
+          <div class="status-index-item"><span class="status-index-label" data-i18n="status.index.livability">居住</span><span id="hud-index-livability" class="status-index-value">0</span></div>
+          <div class="status-index-item"><span class="status-index-label" data-i18n="status.index.economy">經濟</span><span id="hud-index-economy" class="status-index-value">0</span></div>
+          <div class="status-index-item"><span class="status-index-label" data-i18n="status.index.environment">環境</span><span id="hud-index-environment" class="status-index-value">0</span></div>
+          <div class="status-index-item"><span class="status-index-label" data-i18n="status.index.transport">交通</span><span id="hud-index-transport" class="status-index-value">0</span></div>
+          <div class="status-index-item"><span class="status-index-label" data-i18n="status.index.overall">總評</span><span id="hud-index-overall" class="status-index-value">0</span></div>
+        </div>
       </div>
       <span id="budget-strip-balance" style="display:none">$10,000</span>
-      <button id="status-more-btn" type="button" aria-label="More information">
-        <span>更多訊息</span>
-        <span>MORE</span>
+      <button id="status-more-btn" type="button" aria-label="More information" data-i18n-aria="status.more">
+        <span data-i18n="status.moreZh">更多訊息</span>
+        <span data-i18n="status.moreEn">MORE</span>
       </button>
     </div>
     <div id="budget-detail">
@@ -3970,10 +4206,10 @@ Ctrl+O       Load game (open saves list)</div>
       </div>
       <div class="tax-row">
         <label for="tax-slider" data-i18n="budget.taxRate">Tax Rate</label>
-        <input id="tax-slider" type="range" min="4" max="20" step="1" value="9" aria-label="Tax rate" />
+        <input id="tax-slider" type="range" min="4" max="20" step="1" value="9" aria-label="Tax rate" data-i18n-aria="budget.taxRate" />
         <span id="tax-rate-display">9%</span>
       </div>
-      <div class="budget-section" aria-label="Department budgets">
+      <div class="budget-section" aria-label="Department budgets" data-i18n-aria="budget.departments">
         <span class="budget-section-title" data-i18n="budget.departments">Departments</span>
         <div class="budget-slider-row">
           <label for="budget-roads" data-i18n="budget.roads">Roads</label>
@@ -3996,7 +4232,7 @@ Ctrl+O       Load game (open saves list)</div>
           <span id="budget-parks-value" class="budget-slider-value">100%</span>
         </div>
       </div>
-      <div class="budget-section" aria-label="Loans">
+      <div class="budget-section" aria-label="Loans" data-i18n-aria="budget.loans">
         <span class="budget-section-title" data-i18n="budget.loans">Loans</span>
         <span class="budget-note"><span data-i18n="budget.debt">Debt</span>: <span id="budget-debt-total">$0</span></span>
         <span class="budget-note"><span data-i18n="budget.credit">Credit</span>: <span id="budget-credit-rating">A</span></span>
@@ -4004,7 +4240,7 @@ Ctrl+O       Load game (open saves list)</div>
         <button class="loan-btn" type="button" data-loan-option="1">+$10k</button>
         <button class="loan-btn" type="button" data-loan-option="2">+$25k</button>
       </div>
-      <div class="budget-section" aria-label="City laws">
+      <div class="budget-section" aria-label="City laws" data-i18n-aria="budget.laws">
         <span class="budget-section-title" data-i18n="budget.laws">Acts & Laws</span>
         <button class="policy-toggle" type="button" data-policy-id="cleanAir" data-i18n-title="policy.cleanAir.desc" data-i18n="policy.cleanAir.title">Clean Air Act</button>
         <button class="policy-toggle" type="button" data-policy-id="roadRepair" data-i18n-title="policy.roadRepair.desc" data-i18n="policy.roadRepair.title">Road Repair Program</button>
@@ -4020,17 +4256,17 @@ Ctrl+O       Load game (open saves list)</div>
     </div>
   </div>
 
-  <div id="budget-window" role="dialog" aria-label="Budget breakdown">
+  <div id="budget-window" role="dialog" aria-label="Budget breakdown" data-i18n-aria="budget.windowTitle">
     <div id="budget-window-titlebar">
       <span>💰</span>
       <span id="budget-window-title" data-i18n="budget.windowTitle">Budget Overview</span>
       <div id="budget-window-titlebar-actions">
-        <button id="budget-window-min-btn" class="window-action-btn" type="button" title="Fold" aria-label="Fold">−</button>
-        <button id="budget-window-close" class="window-action-btn" type="button" title="Close" aria-label="Close">×</button>
+        <button id="budget-window-min-btn" class="window-action-btn" type="button" title="Fold" aria-label="Fold" data-i18n-title="window.fold" data-i18n-aria="window.fold">−</button>
+        <button id="budget-window-close" class="window-action-btn" type="button" title="Close" aria-label="Close" data-i18n-title="tool.close" data-i18n-aria="tool.close">×</button>
       </div>
     </div>
     <div id="budget-window-body">
-      <section class="budget-window-section" aria-label="Income">
+      <section class="budget-window-section" aria-label="Income" data-i18n-aria="budget.tableIncome">
         <div class="budget-window-heading" data-i18n="budget.tableIncome">Income</div>
         <table class="budget-window-table">
           <tbody>
@@ -4042,7 +4278,7 @@ Ctrl+O       Load game (open saves list)</div>
           </tbody>
         </table>
       </section>
-      <section class="budget-window-section" aria-label="Expenses">
+      <section class="budget-window-section" aria-label="Expenses" data-i18n-aria="budget.tableExpenses">
         <div class="budget-window-heading" data-i18n="budget.tableExpenses">Expenses</div>
         <table class="budget-window-table">
           <tbody>
@@ -4058,7 +4294,7 @@ Ctrl+O       Load game (open saves list)</div>
           </tbody>
         </table>
       </section>
-      <section class="budget-window-section" aria-label="Budget estimates">
+      <section class="budget-window-section" aria-label="Budget estimates" data-i18n-aria="budget.estimatedTitle">
         <div class="budget-window-heading" data-i18n="budget.estimatedTitle">Estimated budget</div>
         <table class="budget-window-table">
           <tbody>
@@ -4082,20 +4318,20 @@ Ctrl+O       Load game (open saves list)</div>
   <div id="game-container"></div>
 
   <!-- ── Floating overlay map window ──────────────────────────────────────── -->
-  <div id="overlay-window" role="dialog" aria-label="City overlay map">
+  <div id="overlay-window" role="dialog" aria-label="City overlay map" data-i18n-aria="toolCategory.maps">
     <!-- Title bar (draggable) -->
     <div id="overlay-win-titlebar">
       <span id="overlay-win-icon">🏭</span>
       <span id="overlay-win-title">Pollution</span>
       <div id="overlay-win-actions">
-        <button id="overlay-win-min" class="window-action-btn" type="button" title="Fold map" aria-label="Fold map">−</button>
-        <button id="overlay-win-close" class="window-action-btn" type="button" title="Close map" aria-label="Close">×</button>
+        <button id="overlay-win-min" class="window-action-btn" type="button" title="Fold map" aria-label="Fold map" data-i18n-title="window.foldMap" data-i18n-aria="window.foldMap">−</button>
+        <button id="overlay-win-close" class="window-action-btn" type="button" title="Close map" aria-label="Close" data-i18n-title="overlay.closeMap" data-i18n-aria="tool.close">×</button>
       </div>
     </div>
 
     <!-- Map viewport (pan + zoom) -->
     <div id="overlay-win-body">
-      <div id="overlay-mode-buttons" aria-label="Map modes">
+      <div id="overlay-mode-buttons" aria-label="Map modes" data-i18n-aria="toolCategory.maps">
         <button class="overlay-mode-btn" type="button" data-overlay="pollution" title="Pollution map" data-i18n-title="overlay.pollutionMap">🏭</button>
         <button class="overlay-mode-btn" type="button" data-overlay="crime" title="Crime rate map" data-i18n-title="overlay.crimeMap">🚔</button>
         <button class="overlay-mode-btn" type="button" data-overlay="fire" title="Fire hazard map" data-i18n-title="overlay.fireMap">🔥</button>
@@ -4144,13 +4380,13 @@ Ctrl+O       Load game (open saves list)</div>
     <div id="overlay-resize-handle"></div>
   </div>
 
-  <div id="chart-window" role="dialog" aria-label="City trend charts">
+  <div id="chart-window" role="dialog" aria-label="City trend charts" data-i18n-aria="chart.title">
     <div id="chart-win-titlebar">
       <span id="chart-win-icon">📈</span>
       <span id="chart-win-title" data-i18n="chart.title">City Trend Charts</span>
       <div id="chart-win-actions">
-        <button id="chart-win-min" class="window-action-btn" type="button" title="Fold charts" aria-label="Fold charts">−</button>
-        <button id="chart-win-close" class="window-action-btn" type="button" title="Close charts" aria-label="Close">×</button>
+        <button id="chart-win-min" class="window-action-btn" type="button" title="Fold charts" aria-label="Fold charts" data-i18n-title="window.foldCharts" data-i18n-aria="window.foldCharts">−</button>
+        <button id="chart-win-close" class="window-action-btn" type="button" title="Close charts" aria-label="Close" data-i18n-title="tool.close" data-i18n-aria="tool.close">×</button>
       </div>
     </div>
     <div id="chart-win-body">

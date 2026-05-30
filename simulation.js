@@ -44,7 +44,7 @@ function runSimTick(scene) {
   }
 
   growOrShrinkZones(scene);
-  runEconomy();
+  runEconomy(scene);
   advanceDate();
   refreshZoneOverlayTints(scene);
   updateHUD();
@@ -54,6 +54,84 @@ function runSimTick(scene) {
     overlayCache = {};          // invalidate on tick
     updateMiniMap();
   }
+}
+
+function isScienceParkIndustrialRecord(record) {
+  if (!record || record.type !== 'industrial') return false;
+  return /sciencepark/i.test(record.sourceFileName || record.spriteKey || '');
+}
+
+function updateScienceParkUnlockState() {
+  const higherEdu = clamp(city.educationHigherIndex ?? 0, 0, 1);
+  if (!city.scienceParkUnlocked && higherEdu >= SCIENCE_PARK_UNLOCK_HIGHER_EDU) {
+    city.scienceParkUnlocked = true;
+  }
+}
+
+function pickScienceParkIndustrialModel(footprintCols, footprintRows) {
+  const all = Array.isArray(industrialBuildingModels) ? industrialBuildingModels : [];
+  const scienceModels = all.filter((m) => (
+    m.metadata
+    && m.metadata.scale > 0.05
+    && /sciencepark/i.test(m.sourceFileName || m.fileName || '')
+    && (footprintCols === null || m.footprintCols === footprintCols)
+    && (footprintRows === null || m.footprintRows === footprintRows)
+  ));
+
+  if (scienceModels.length === 0) return null;
+  return pickVariedModel(scienceModels, `industrial:${footprintCols ?? 'any'}x${footprintRows ?? 'any'}:science-convert`);
+}
+
+function convertEligibleIndustrialToScienceParks(scene) {
+  if (!scene || !city.scienceParkUnlocked) return 0;
+
+  const higherEdu = clamp(city.educationHigherIndex ?? 0, 0, 1);
+  const policyBonus = isPolicyActive('scienceDevelopment') ? 0.10 : 0;
+  const conversionChance = clamp(
+    SCIENCE_PARK_CONVERSION_CHANCE_BASE + SCIENCE_PARK_CONVERSION_CHANCE_EDU_BONUS * higherEdu + policyBonus,
+    0,
+    0.75,
+  );
+
+  let converted = 0;
+  Object.entries(buildingData).forEach(([id, record]) => {
+    if (!record || record.type !== 'industrial') return;
+    if (isScienceParkIndustrialRecord(record)) return;
+    if (Math.random() >= conversionChance) return;
+
+    const [row, col] = id.split(':').map(Number);
+    if (!Number.isFinite(row) || !Number.isFinite(col)) return;
+
+    const footprintCols = record.footprintCols ?? 1;
+    const footprintRows = record.footprintRows ?? 1;
+    const model = pickScienceParkIndustrialModel(footprintCols, footprintRows);
+    if (!model) return;
+
+    const oldRecord = { ...record };
+    if (!removeBuilding(scene, row, col)) return;
+
+    const options = { ...(model.metadata ?? {}) };
+    placeSpriteBuilding(scene, row, col, model.key, options);
+
+    buildingData[id] = {
+      ...oldRecord,
+      spriteKey: model.key,
+      sourceFileName: model.sourceFileName,
+      footprintCols: options.footprintCols ?? model.footprintCols ?? oldRecord.footprintCols ?? 1,
+      footprintRows: options.footprintRows ?? model.footprintRows ?? oldRecord.footprintRows ?? 1,
+      originX: options.originX,
+      originY: options.originY,
+      scale: options.scale,
+      scaleX: options.scaleX,
+      scaleY: options.scaleY,
+      offsetX: options.offsetX,
+      offsetY: options.offsetY,
+      anchorMode: options.anchorMode,
+    };
+    converted++;
+  });
+
+  return converted;
 }
 
 // ── Power grid (BFS from plants through conductors) ───────────────────────────
@@ -322,6 +400,9 @@ function updateDemand() {
 
   const basicEdu = clamp(city.educationBasicIndex ?? 0, 0, 1);
   const higherEdu = clamp(city.educationHigherIndex ?? 0, 0, 1);
+  const scienceShare = clamp(city.scienceIndustryShare ?? 0, 0, 1);
+  const industrialPenaltyWeight = INDUSTRIAL_DEMAND_PENALTY_BASE
+    - (INDUSTRIAL_DEMAND_PENALTY_BASE - INDUSTRIAL_DEMAND_PENALTY_MIN) * scienceShare;
 
   // Residential: base +0.3 attractiveness so people want to move into an empty city.
   // Scales up with jobs (C/I) and down with high taxes.
@@ -348,7 +429,7 @@ function updateDemand() {
   );
   // Industrial: starts high, falls as city industrialises or pollutes too much.
   city.demandI = clamp(
-    0.5 - (indCnt / total) * 3 + 0.2 * (1 - city.pollution / 100)
+    0.5 - (indCnt / total) * industrialPenaltyWeight + 0.2 * (1 - city.pollution / 100)
     - (isPolicyActive('cleanAir') ? 0.05 : 0)
     + 0.18 * basicEdu
     + (isPolicyActive('scienceDevelopment') ? 0.05 : 0),
@@ -787,6 +868,10 @@ function getRandomIndustrialBuildingModel(footprintCols = null, footprintRows = 
     return pickVariedModel(valid, `industrial:${footprintCols ?? 'any'}x${footprintRows ?? 'any'}`);
   }
 
+  if (!city.scienceParkUnlocked) {
+    return pickVariedModel(regularModels, `industrial:${footprintCols ?? 'any'}x${footprintRows ?? 'any'}:regular-locked`);
+  }
+
   const higherEdu = clamp(city.educationHigherIndex ?? 0, 0, 1);
   const sciencePolicyBonus = isPolicyActive('scienceDevelopment') ? 0.20 : 0;
   const scienceChance = clamp(0.05 + 0.35 * higherEdu + sciencePolicyBonus, 0, 0.85);
@@ -887,12 +972,14 @@ function updatePopulationAndPollution() {
       city.commercialCount++;
     } else if (rec.type === 'industrial') {
       city.industrialCount++;
-      if (/sciencepark/i.test(rec.sourceFileName || rec.spriteKey || '')) industrialScienceCount++;
-      city.pollution += POLLUTION_IND_BUILDING * (isPolicyActive('cleanAir') ? 0.70 : 1);
+      const isSciencePark = isScienceParkIndustrialRecord(rec);
+      if (isSciencePark) industrialScienceCount++;
+      const baseIndustrialPollution = isSciencePark ? POLLUTION_SCIENCE_PARK_BUILDING : POLLUTION_IND_BUILDING;
+      city.pollution += baseIndustrialPollution * (isPolicyActive('cleanAir') ? 0.70 : 1);
     } else if (rec.type === 'power_plant_coal') {
       city.pollution += POLLUTION_COAL_PLANT * (isPolicyActive('cleanAir') ? 0.70 : 1);
     } else if (rec.type === 'power_plant_solar') {
-      city.pollution += Math.max(1, Math.round(POLLUTION_COAL_PLANT * 0.08));
+      city.pollution += 0;
     }
   });
   if (typeof getMatureTreeCount === 'function' && city.pollution > 0) {
@@ -902,7 +989,7 @@ function updatePopulationAndPollution() {
     );
     city.pollution = Math.max(0, city.pollution - treeReduction);
   }
-  city.pollution = Math.round(city.pollution);
+  city.pollution = Math.max(0, Number(city.pollution.toFixed(1)));
   city.scienceIndustryShare = city.industrialCount > 0
     ? clamp(industrialScienceCount / city.industrialCount, 0, 1)
     : 0;
@@ -913,6 +1000,13 @@ function updatePopulationAndPollution() {
 function runEconomy(scene) {
   if (city.tick % TICKS_PER_MONTH !== 0) return;
   normalizeCityFinanceState();
+  updateScienceParkUnlockState();
+  const convertedScienceParks = convertEligibleIndustrialToScienceParks(scene);
+  if (convertedScienceParks > 0) {
+    updatePopulationAndPollution();
+    computeHappiness(scene);
+    updateDemand();
+  }
   const loanPayment = applyMonthlyLoanPayments();
 
   agePowerPlants(scene);

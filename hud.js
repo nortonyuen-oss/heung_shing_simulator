@@ -29,7 +29,10 @@ function updateHUD() {
   updateStatusAlert();
   updateTaxDisplay();
   updateBudgetControls();
+  updateInfrastructureToolVisibility();
   updateBudgetWindow();
+  updateLegislativeWindow();
+  updateStockExchangeWindow();
   updateMetricCharts();
   if (typeof updateChartWindow === 'function') updateChartWindow();
   if (typeof updateMiniMap === 'function') updateMiniMap();
@@ -199,13 +202,50 @@ function updateBudgetControls() {
   });
 
   document.querySelectorAll('[data-policy-id]').forEach((button) => {
-    button.classList.toggle('is-active', isPolicyActive(button.dataset.policyId));
+    const policyId = button.dataset.policyId;
+    const isActive = isPolicyActive(policyId);
+    const isAvailable = isPolicyAvailable(policyId);
+    button.hidden = !(isAvailable || isActive);
+    button.disabled = !isAvailable && !isActive;
+    button.classList.toggle('is-active', isActive);
   });
 
   setTextContent('budget-debt-total', formatMoney(getTotalDebt()));
   setTextContent('budget-credit-rating', city.creditRating || updateCreditRating());
   setTextContent('budget-policy-cost', `${formatMoney(city.lastPolicyCost || getPolicyMonthlyCost())}/mo`);
   setTextContent('budget-loan-cost', `${formatMoney(city.lastLoanPayment || getMonthlyLoanDue())}/mo`);
+}
+
+function updateInfrastructureToolVisibility() {
+  const councilButtons = document.querySelectorAll('[data-tool="legislative-council"]');
+  const stockExchangeButtons = document.querySelectorAll('[data-tool="stock-exchange"]');
+  const canBuildCouncil = city.population >= 10000 && !hasBuildingType('legislative_council');
+  const canBuildStockExchange = city.population >= 50000 && isPolicyActive('stockExchangeAct') && hasBuildingType('legislative_council') && !hasBuildingType('stock_exchange');
+
+  const syncButtonVisibility = (button, visible) => {
+    button.hidden = !visible;
+    button.style.display = visible ? '' : 'none';
+  };
+
+  councilButtons.forEach((button) => {
+    syncButtonVisibility(button, canBuildCouncil);
+    button.disabled = !canBuildCouncil;
+  });
+
+  stockExchangeButtons.forEach((button) => {
+    syncButtonVisibility(button, canBuildStockExchange);
+    button.disabled = !canBuildStockExchange;
+  });
+
+  const unavailableUniqueTool = (
+    (selectedTool === 'legislative-council' && !canBuildCouncil)
+    || (selectedTool === 'stock-exchange' && !canBuildStockExchange)
+  );
+  if (unavailableUniqueTool) {
+    selectedTool = 'road';
+    updateToolCategoryState(document.getElementById('tool-menu'), selectedTool);
+    closeToolPopups?.();
+  }
 }
 
 // ── Demand bars ───────────────────────────────────────────────────────────────
@@ -296,6 +336,14 @@ function initBudgetPanel() {
     openBudgetWindow();
   });
 
+  document.getElementById('legislative-open-window')?.addEventListener('click', () => {
+    openLegislativeWindow();
+  });
+
+  document.getElementById('stock-exchange-open-window')?.addEventListener('click', () => {
+    openStockExchangeWindow();
+  });
+
   if (slider) {
     slider.value = String(Math.round(city.taxRate * 100));
     slider.addEventListener('input', () => {
@@ -344,6 +392,8 @@ function initBudgetPanel() {
   setupHudPanelToggles();
   startTicker();
   setupBudgetWindow();
+  setupLegislativeWindow();
+  setupStockExchangeWindow();
 
   // Wire overlay map buttons
   if (typeof initOverlayControls === 'function') initOverlayControls();
@@ -446,6 +496,114 @@ function setupBudgetWindow() {
   });
 }
 
+function setupLegislativeWindow() {
+  const win = document.getElementById('legislative-window');
+  const titlebar = document.getElementById('legislative-window-titlebar');
+  const closeBtn = document.getElementById('legislative-window-close');
+  const minBtn = document.getElementById('legislative-window-min-btn');
+  if (!win || !titlebar || !closeBtn) return;
+
+  win.addEventListener('pointerdown', (e) => e.stopPropagation());
+  win.addEventListener('click', (e) => e.stopPropagation());
+
+  closeBtn.addEventListener('click', () => closeLegislativeWindow());
+  minBtn?.addEventListener('click', () => {
+    win.classList.toggle('is-collapsed');
+    minBtn.textContent = win.classList.contains('is-collapsed') ? '+' : '−';
+  });
+
+  let dragging = false;
+  let offsetX = 0;
+  let offsetY = 0;
+
+  titlebar.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('#legislative-window-close') || e.target.closest('#legislative-window-min-btn')) return;
+    dragging = true;
+    const rect = win.getBoundingClientRect();
+    win.style.left = `${rect.left}px`;
+    win.style.top = `${rect.top}px`;
+    win.style.right = 'auto';
+    win.style.bottom = 'auto';
+    offsetX = e.clientX - rect.left;
+    offsetY = e.clientY - rect.top;
+    titlebar.setPointerCapture(e.pointerId);
+  });
+
+  titlebar.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    const width = win.offsetWidth;
+    const height = win.offsetHeight;
+    const maxX = Math.max(0, window.innerWidth - width);
+    const maxY = Math.max(0, window.innerHeight - height);
+    const nextLeft = Math.max(0, Math.min(maxX, e.clientX - offsetX));
+    const nextTop = Math.max(0, Math.min(maxY, e.clientY - offsetY));
+    win.style.left = `${nextLeft}px`;
+    win.style.top = `${nextTop}px`;
+  });
+
+  titlebar.addEventListener('pointerup', () => {
+    dragging = false;
+  });
+}
+
+function setupStockExchangeWindow() {
+  const win = document.getElementById('stock-exchange-window');
+  const titlebar = document.getElementById('stock-exchange-window-titlebar');
+  const closeBtn = document.getElementById('stock-exchange-window-close');
+  const minBtn = document.getElementById('stock-exchange-window-min-btn');
+  const relistBtn = document.getElementById('stock-exchange-relist-btn');
+  if (!win || !titlebar || !closeBtn) return;
+
+  win.addEventListener('pointerdown', (e) => e.stopPropagation());
+  win.addEventListener('click', (e) => e.stopPropagation());
+
+  closeBtn.addEventListener('click', () => closeStockExchangeWindow());
+  minBtn?.addEventListener('click', () => {
+    win.classList.toggle('is-collapsed');
+    minBtn.textContent = win.classList.contains('is-collapsed') ? '+' : '−';
+  });
+
+  let dragging = false;
+  let offsetX = 0;
+  let offsetY = 0;
+
+  titlebar.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('#stock-exchange-window-close') || e.target.closest('#stock-exchange-window-min-btn')) return;
+    dragging = true;
+    const rect = win.getBoundingClientRect();
+    win.style.left = `${rect.left}px`;
+    win.style.top = `${rect.top}px`;
+    win.style.right = 'auto';
+    win.style.bottom = 'auto';
+    offsetX = e.clientX - rect.left;
+    offsetY = e.clientY - rect.top;
+    titlebar.setPointerCapture(e.pointerId);
+  });
+
+  titlebar.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    const width = win.offsetWidth;
+    const height = win.offsetHeight;
+    const maxX = Math.max(0, window.innerWidth - width);
+    const maxY = Math.max(0, window.innerHeight - height);
+    const nextLeft = Math.max(0, Math.min(maxX, e.clientX - offsetX));
+    const nextTop = Math.max(0, Math.min(maxY, e.clientY - offsetY));
+    win.style.left = `${nextLeft}px`;
+    win.style.top = `${nextTop}px`;
+  });
+
+  titlebar.addEventListener('pointerup', () => {
+    dragging = false;
+  });
+
+  relistBtn?.addEventListener('click', () => {
+    if (typeof refreshStockListings === 'function') {
+      refreshStockListings(true);
+      updateStockExchangeWindow();
+    }
+  });
+}
+
 function openBudgetWindow() {
   document.getElementById('budget-window')?.classList.add('is-open');
   updateBudgetWindow();
@@ -464,6 +622,134 @@ function toggleBudgetWindow(forceOpen = false) {
   }
   win.classList.toggle('is-open');
   if (win.classList.contains('is-open')) updateBudgetWindow();
+}
+
+function openLegislativeWindow() {
+  document.getElementById('legislative-window')?.classList.add('is-open');
+  updateLegislativeWindow();
+}
+
+function closeLegislativeWindow() {
+  document.getElementById('legislative-window')?.classList.remove('is-open');
+}
+
+function toggleLegislativeWindow(forceOpen = false) {
+  const win = document.getElementById('legislative-window');
+  if (!win) return;
+  if (forceOpen) {
+    openLegislativeWindow();
+    return;
+  }
+  win.classList.toggle('is-open');
+  if (win.classList.contains('is-open')) updateLegislativeWindow();
+}
+
+function openStockExchangeWindow() {
+  document.getElementById('stock-exchange-window')?.classList.add('is-open');
+  updateStockExchangeWindow();
+}
+
+function closeStockExchangeWindow() {
+  document.getElementById('stock-exchange-window')?.classList.remove('is-open');
+}
+
+function toggleStockExchangeWindow(forceOpen = false) {
+  const win = document.getElementById('stock-exchange-window');
+  if (!win) return;
+  if (forceOpen) {
+    openStockExchangeWindow();
+    return;
+  }
+  win.classList.toggle('is-open');
+  if (win.classList.contains('is-open')) updateStockExchangeWindow();
+}
+
+function updateLegislativeWindow() {
+  const win = document.getElementById('legislative-window');
+  if (!win) return;
+
+  setTextContent('legislative-rule-of-law', `${Math.round((city.ruleOfLawIndex ?? 0) * 100)}%`);
+  setTextContent('legislative-population', city.population.toLocaleString());
+  const hasCouncil = hasBuildingType('legislative_council');
+  setTextContent('legislative-status', hasCouncil ? t('legislative.windowReady') : t('legislative.windowLocked'));
+}
+
+function updateStockExchangeWindow() {
+  const win = document.getElementById('stock-exchange-window');
+  if (!win) return;
+
+  const hasCouncil = hasBuildingType('legislative_council');
+  const hasExchange = hasBuildingType('stock_exchange');
+  const market = city.stockMarket;
+  const hsi = Number(market?.hsi ?? HSI_BASE_LEVEL);
+  const prevHsi = Number(market?.prevHsi ?? hsi);
+  const hsiDelta = hsi - prevHsi;
+  const hsiBoostPct = hasExchange
+    ? Math.round(Math.max(-8, Math.min(12, ((hsi - HSI_BASE_LEVEL) / (HSI_BASE_LEVEL * 0.35)) * 10)))
+    : 0;
+
+  setTextContent('stock-exchange-status', hasExchange ? t('stockExchange.windowReady') : t('stockExchange.windowLocked'));
+  setTextContent('stock-exchange-hsi', hsi.toLocaleString());
+  setTextContent('stock-exchange-hsi-delta', `${hsiDelta >= 0 ? '+' : ''}${hsiDelta.toLocaleString()}`);
+  setTextContent('stock-exchange-rule-of-law', `${Math.round((city.ruleOfLawIndex ?? 0) * 100)}%`);
+  setTextContent('stock-exchange-commercial', `${Math.round((city.demandC ?? 0) * 100)}%`);
+  setTextContent('stock-exchange-boost', `${hsiBoostPct >= 0 ? '+' : ''}${hsiBoostPct}%`);
+  setTextContent('stock-exchange-act-status', isPolicyActive('stockExchangeAct') ? t('stockExchange.actActive') : t('stockExchange.actInactive'));
+  setTextContent('stock-exchange-council', hasCouncil ? t('stockExchange.councilBuilt') : t('stockExchange.councilMissing'));
+
+  const tbody = document.getElementById('stock-exchange-table-body');
+  if (!tbody) return;
+
+  const stocks = Array.isArray(market?.stocks)
+    ? market.stocks.filter((stock) => stock.listed).sort((a, b) => Math.abs(b.changePct ?? 0) - Math.abs(a.changePct ?? 0))
+    : [];
+  tbody.innerHTML = stocks.map((stock) => {
+    const symbol = String(stock.symbol || '--');
+    const name = String(stock.name || '--');
+    const sector = String(stock.sector || '--');
+    const fallbackPrice = Number(stock.basePrice ?? 1);
+    const rawPrice = Number(stock.price);
+    const price = Number.isFinite(rawPrice) ? rawPrice : Math.max(1, fallbackPrice);
+    const rawPrevPrice = Number(stock.prevPrice);
+    const prevPrice = Number.isFinite(rawPrevPrice) ? Math.max(0.0001, rawPrevPrice) : Math.max(0.0001, price);
+    const changePct = (price - prevPrice) / prevPrice;
+    const changeClass = changePct > 0.001 ? 'stock-change-up' : (changePct < -0.001 ? 'stock-change-down' : 'stock-change-flat');
+    const changeText = `${changePct >= 0 ? '+' : ''}${(changePct * 100).toFixed(2)}%`;
+    const trendSvg = buildStockTrendSparkline(stock.history);
+    return `
+      <tr>
+        <td>${symbol}</td>
+        <td class="stock-name-cell" title="${name}">${name}</td>
+        <td>${sector}</td>
+        <td class="stock-badge-cell">${stock.isHSI ? '<span class="stock-hsi-badge">HSI</span>' : ''}</td>
+        <td class="stock-num">${price.toFixed(2)}</td>
+        <td class="stock-num ${changeClass}">${changeText}</td>
+        <td class="stock-trend-cell">${trendSvg}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function buildStockTrendSparkline(history) {
+  const values = Array.isArray(history)
+    ? history.map((v) => Number(v)).filter((v) => Number.isFinite(v) && v > 0).slice(-24)
+    : [];
+  if (values.length < 2) return '<span class="stock-trend-empty">--</span>';
+
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = Math.max(0.0001, max - min);
+  const width = 86;
+  const height = 20;
+
+  const points = values.map((value, index) => {
+    const x = (index / Math.max(1, values.length - 1)) * width;
+    const y = height - ((value - min) / range) * height;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+
+  const color = values[values.length - 1] >= values[0] ? '#207245' : '#b33a3a';
+  return `<svg class="stock-trend-spark" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" aria-hidden="true"><polyline points="${points}" fill="none" stroke="${color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></polyline></svg>`;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -534,6 +820,87 @@ function getUrgentCityNews() {
   return null;
 }
 
+function buildHongKongFinanceTickerItems(context) {
+  const {
+    cityName,
+    hsi,
+    hsiDelta,
+    net,
+    demandC,
+    ruleOfLaw,
+    actActive,
+  } = context;
+
+  const items = [];
+  const deltaText = `${hsiDelta >= 0 ? '+' : ''}${hsiDelta.toLocaleString()}`;
+
+  if (hsiDelta >= 180) {
+    items.push({
+      id: 'hk-close-rally',
+      weight: 12,
+      text: t('news.headline.hkCloseRally', {
+        city: cityName,
+        hsi: hsi.toLocaleString(),
+        delta: deltaText,
+      }),
+    });
+  } else if (hsiDelta <= -180) {
+    items.push({
+      id: 'hk-close-drop',
+      weight: 12,
+      text: t('news.headline.hkCloseDrop', {
+        city: cityName,
+        hsi: hsi.toLocaleString(),
+        delta: deltaText,
+      }),
+    });
+  } else {
+    items.push({
+      id: 'hk-close-range',
+      weight: 8,
+      text: t('news.headline.hkCloseRange', {
+        city: cityName,
+        hsi: hsi.toLocaleString(),
+      }),
+    });
+  }
+
+  if (demandC >= 0.35 && net > 0) {
+    items.push({
+      id: 'hk-risk-on',
+      weight: 9,
+      text: t('news.headline.hkFlowRiskOn', {
+        city: cityName,
+        demandC: `${Math.round(demandC * 100)}%`,
+        net: formatMoney(net),
+      }),
+    });
+  } else if (demandC <= -0.15 || net < 0) {
+    items.push({
+      id: 'hk-risk-off',
+      weight: 9,
+      text: t('news.headline.hkFlowRiskOff', {
+        city: cityName,
+        demandC: `${Math.round(demandC * 100)}%`,
+        net: formatMoney(net),
+      }),
+    });
+  }
+
+  if (actActive) {
+    items.push({
+      id: 'hk-rule-law-premium',
+      weight: 7,
+      text: t('news.headline.hkRuleLawPremium', {
+        city: cityName,
+        ruleOfLaw: `${ruleOfLaw}%`,
+      }),
+    });
+  }
+
+  return items;
+}
+
 function buildTickerNewsCandidates() {
   const cityName = city.name || getDefaultCityName();
   const higherEdu = toPercent(city.educationHigherIndex);
@@ -548,6 +915,11 @@ function buildTickerNewsCandidates() {
   const demandR = Number(city.demandR || 0);
   const demandC = Number(city.demandC || 0);
   const demandI = Number(city.demandI || 0);
+  const hsi = Number(city.stockMarket?.hsi || HSI_BASE_LEVEL);
+  const prevHsi = Number(city.stockMarket?.prevHsi || hsi);
+  const hsiDelta = hsi - prevHsi;
+  const ruleOfLaw = Math.round((city.ruleOfLawIndex ?? 0) * 100);
+  const actActive = isPolicyActive('stockExchangeAct');
 
   const items = [];
 
@@ -665,6 +1037,38 @@ function buildTickerNewsCandidates() {
       weight: 6,
       text: t('news.headline.housingDemandCool', { city: cityName }),
     });
+  }
+
+  if (hasBuildingType('stock_exchange')) {
+    items.push(...buildHongKongFinanceTickerItems({
+      cityName,
+      hsi,
+      hsiDelta,
+      net,
+      demandC,
+      ruleOfLaw,
+      actActive,
+    }));
+
+    if (hsiDelta >= 120) {
+      items.push({
+        id: 'hsi-rally',
+        weight: 9,
+        text: t('news.headline.hsiRally', { city: cityName, hsi: hsi.toLocaleString(), delta: `+${hsiDelta.toLocaleString()}` }),
+      });
+    } else if (hsiDelta <= -120) {
+      items.push({
+        id: 'hsi-pullback',
+        weight: 9,
+        text: t('news.headline.hsiPullback', { city: cityName, hsi: hsi.toLocaleString(), delta: hsiDelta.toLocaleString() }),
+      });
+    } else {
+      items.push({
+        id: 'hsi-flat',
+        weight: 5,
+        text: t('news.headline.hsiFlat', { city: cityName, hsi: hsi.toLocaleString() }),
+      });
+    }
   }
 
   if (!items.length) {

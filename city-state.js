@@ -17,6 +17,42 @@ let powerSources  = new Set();  // tile IDs of power plant anchor tiles
 let powerLineSet  = new Set();  // tile IDs of placed power line tiles
 let roadTileCount = 0;          // maintained by setTileType()
 
+function createDefaultStockMarketState() {
+  let listedNonHsi = 0;
+  const stocks = STOCK_MARKET_CATALOG.map((entry, index) => {
+    const basePrice = 42 + index * 6;
+    const isHSI = HSI_COMPONENT_SYMBOLS.includes(entry.symbol);
+    const sharesOutstanding = Number.isFinite(entry.sharesOutstanding)
+      ? Math.max(1, Number(entry.sharesOutstanding))
+      : (120 + index * 9);
+    let listed = isHSI;
+    if (!listed && listedNonHsi < (STOCK_LISTING_COUNT - HSI_COMPONENT_SYMBOLS.length)) {
+      listed = true;
+      listedNonHsi++;
+    }
+    return {
+      symbol: entry.symbol,
+      name: entry.name,
+      sector: entry.sector,
+      basePrice,
+      price: basePrice,
+      prevPrice: basePrice,
+      changePct: 0,
+      sharesOutstanding,
+      history: [basePrice],
+      isHSI,
+      listed,
+    };
+  });
+
+  return {
+    hsi: HSI_BASE_LEVEL,
+    prevHsi: HSI_BASE_LEVEL,
+    lastRotationTick: 0,
+    stocks,
+  };
+}
+
 // City-wide simulation state
 const city = {
   name: getDefaultCityName(),
@@ -36,6 +72,12 @@ const city = {
     greenParks: false,
     educationReform: false,
     scienceDevelopment: false,
+    tourismPromotion: false,
+    foreignInvestmentIncentive: false,
+    districtCouncilElection: false,
+    icac: false,
+    legislativeCouncilElection: false,
+    stockExchangeAct: false,
   },
   loans: [],
   nextLoanId: 1,
@@ -59,14 +101,17 @@ const city = {
   educationHigherIndex: 0,
   educationAverageLevel: 0,
   scienceParkUnlocked: false,
+  ruleOfLawIndex: 0,
   crimeRateIndex: 0,
   scienceIndustryShare: 0,
+  stockMarket: createDefaultStockMarketState(),
   educationHistory: [],
   crimeHistory: [],
   governmentIncomeHistory: [],
   happinessHistory: [],
   landValueHistory: [],
   pollutionHistory: [],
+  hsiHistory: [],
   happiness: 0.5,
   pollution: 0,
   tick: 0,
@@ -106,6 +151,12 @@ function resetGameState() {
     greenParks: false,
     educationReform: false,
     scienceDevelopment: false,
+    tourismPromotion: false,
+    foreignInvestmentIncentive: false,
+    districtCouncilElection: false,
+    icac: false,
+    legislativeCouncilElection: false,
+    stockExchangeAct: false,
   };
   city.loans = [];
   city.nextLoanId = 1;
@@ -129,14 +180,17 @@ function resetGameState() {
   city.educationHigherIndex = 0;
   city.educationAverageLevel = 0;
   city.scienceParkUnlocked = false;
+  city.ruleOfLawIndex = 0;
   city.crimeRateIndex = 0;
   city.scienceIndustryShare = 0;
+  city.stockMarket = createDefaultStockMarketState();
   city.educationHistory = [];
   city.crimeHistory = [];
   city.governmentIncomeHistory = [];
   city.happinessHistory = [];
   city.landValueHistory = [];
   city.pollutionHistory = [];
+  city.hsiHistory = [];
   city.happiness  = 0.5;
   city.pollution  = 0;
   city.tick       = 0;
@@ -147,6 +201,11 @@ function resetGameState() {
 }
 
 function normalizeCityFinanceState() {
+  const toFiniteOr = (value, fallback) => {
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? numeric : fallback;
+  };
+
   city.departmentBudgets = {
     roads: clampDepartmentBudget(city.departmentBudgets?.roads),
     police: clampDepartmentBudget(city.departmentBudgets?.police),
@@ -161,27 +220,92 @@ function normalizeCityFinanceState() {
     greenParks: !!city.activePolicies?.greenParks,
     educationReform: !!city.activePolicies?.educationReform,
     scienceDevelopment: !!city.activePolicies?.scienceDevelopment,
+    tourismPromotion: !!city.activePolicies?.tourismPromotion,
+    foreignInvestmentIncentive: !!city.activePolicies?.foreignInvestmentIncentive,
+    districtCouncilElection: !!city.activePolicies?.districtCouncilElection,
+    icac: !!city.activePolicies?.icac,
+    legislativeCouncilElection: !!city.activePolicies?.legislativeCouncilElection,
+    stockExchangeAct: !!city.activePolicies?.stockExchangeAct,
   };
   city.loans = Array.isArray(city.loans) ? city.loans.filter((loan) => loan && loan.balance > 0) : [];
   city.nextLoanId = Math.max(city.nextLoanId ?? 1, ...city.loans.map((loan) => Number(loan.id ?? 0) + 1), 1);
   city.lastPolicyCost = city.lastPolicyCost ?? 0;
   city.lastLoanPayment = city.lastLoanPayment ?? 0;
   city.lastBudgetSnapshot = city.lastBudgetSnapshot ?? null;
-  city.totalPowerSupply = Number.isFinite(city.totalPowerSupply) ? city.totalPowerSupply : 0;
-  city.totalPowerDemand = Number.isFinite(city.totalPowerDemand) ? city.totalPowerDemand : 0;
-  city.powerRatio = Number.isFinite(city.powerRatio) ? city.powerRatio : 1;
-  city.educationBasicIndex = Number.isFinite(city.educationBasicIndex) ? city.educationBasicIndex : 0;
-  city.educationHigherIndex = Number.isFinite(city.educationHigherIndex) ? city.educationHigherIndex : 0;
-  city.educationAverageLevel = Number.isFinite(city.educationAverageLevel) ? city.educationAverageLevel : 0;
+  city.totalPowerSupply = toFiniteOr(city.totalPowerSupply, 0);
+  city.totalPowerDemand = toFiniteOr(city.totalPowerDemand, 0);
+  city.powerRatio = toFiniteOr(city.powerRatio, 1);
+  city.educationBasicIndex = toFiniteOr(city.educationBasicIndex, 0);
+  city.educationHigherIndex = toFiniteOr(city.educationHigherIndex, 0);
+  city.educationAverageLevel = toFiniteOr(city.educationAverageLevel, 0);
   city.scienceParkUnlocked = !!city.scienceParkUnlocked;
-  city.crimeRateIndex = Number.isFinite(city.crimeRateIndex) ? city.crimeRateIndex : 0;
-  city.scienceIndustryShare = Number.isFinite(city.scienceIndustryShare) ? city.scienceIndustryShare : 0;
+  city.ruleOfLawIndex = toFiniteOr(city.ruleOfLawIndex, 0);
+  city.crimeRateIndex = toFiniteOr(city.crimeRateIndex, 0);
+  city.scienceIndustryShare = toFiniteOr(city.scienceIndustryShare, 0);
+  if (!city.stockMarket || !Array.isArray(city.stockMarket.stocks)) {
+    city.stockMarket = createDefaultStockMarketState();
+  }
+
+  const defaultStockMarket = createDefaultStockMarketState();
+  const market = city.stockMarket;
+  market.hsi = toFiniteOr(market.hsi, defaultStockMarket.hsi);
+  market.prevHsi = toFiniteOr(market.prevHsi, defaultStockMarket.prevHsi);
+  market.lastRotationTick = toFiniteOr(market.lastRotationTick, 0);
+
+  const existingMap = new Map((Array.isArray(market.stocks) ? market.stocks : [])
+    .filter((stock) => stock && stock.symbol)
+    .map((stock) => [stock.symbol, stock]));
+
+  let listedNonHsi = 0;
+  const normalizedStocks = defaultStockMarket.stocks.map((stock) => {
+    const existing = existingMap.get(stock.symbol);
+    const source = existing ?? stock;
+    const price = Math.max(1, toFiniteOr(source.price, stock.price));
+    const prevPrice = Math.max(1, toFiniteOr(source.prevPrice, price));
+    const history = Array.isArray(source.history)
+      ? source.history.map((v) => Number(v)).filter((v) => Number.isFinite(v) && v > 0).slice(-32)
+      : [];
+    let listed = !!source.listed;
+    if (stock.isHSI) listed = true;
+    if (!stock.isHSI && listed) listedNonHsi++;
+    return {
+      ...stock,
+      price,
+      prevPrice,
+      changePct: toFiniteOr(source.changePct, 0),
+      sharesOutstanding: Math.max(1, toFiniteOr(source.sharesOutstanding, stock.sharesOutstanding)),
+      history: history.length > 0 ? history : [price],
+      listed,
+    };
+  });
+
+  market.stocks = normalizedStocks;
+  const maxNonHsiListed = Math.max(0, STOCK_LISTING_COUNT - HSI_COMPONENT_SYMBOLS.length);
+  if (listedNonHsi > maxNonHsiListed) {
+    const overflow = listedNonHsi - maxNonHsiListed;
+    let removed = 0;
+    city.stockMarket.stocks.forEach((stock) => {
+      if (removed >= overflow) return;
+      if (stock.isHSI || !stock.listed) return;
+      stock.listed = false;
+      removed++;
+    });
+  } else if (listedNonHsi < maxNonHsiListed) {
+    let needed = maxNonHsiListed - listedNonHsi;
+    city.stockMarket.stocks.forEach((stock) => {
+      if (needed <= 0) return;
+      if (stock.isHSI || stock.listed) return;
+      stock.listed = true;
+      needed--;
+    });
+  }
   city.educationHistory = Array.isArray(city.educationHistory) ? city.educationHistory : [];
   city.crimeHistory = Array.isArray(city.crimeHistory) ? city.crimeHistory : [];
   city.governmentIncomeHistory = Array.isArray(city.governmentIncomeHistory) ? city.governmentIncomeHistory : [];
   city.happinessHistory = Array.isArray(city.happinessHistory) ? city.happinessHistory : [];
   city.landValueHistory = Array.isArray(city.landValueHistory) ? city.landValueHistory : [];
   city.pollutionHistory = Array.isArray(city.pollutionHistory) ? city.pollutionHistory : [];
+  city.hsiHistory = Array.isArray(city.hsiHistory) ? city.hsiHistory : [];
   city.creditRating = city.creditRating || 'A';
 }
 
@@ -265,22 +389,32 @@ function clampDepartmentBudget(value) {
 }
 
 function getDepartmentFunding(key) {
-  normalizeCityFinanceState();
-  return (city.departmentBudgets[key] ?? DEPARTMENT_BUDGET_DEFAULT) / 100;
+  const raw = Number(city.departmentBudgets?.[key] ?? DEPARTMENT_BUDGET_DEFAULT);
+  return (Number.isFinite(raw) ? raw : DEPARTMENT_BUDGET_DEFAULT) / 100;
 }
 
 function isPolicyActive(id) {
-  normalizeCityFinanceState();
   return !!city.activePolicies[id];
 }
 
+function hasBuildingType(type) {
+  return Object.values(buildingData).some((record) => record.type === type);
+}
+
+function isPolicyAvailable(id) {
+  const policy = CITY_POLICY_DEFS.find((entry) => entry.id === id);
+  if (!policy) return false;
+
+  if (!hasBuildingType('legislative_council')) return false;
+  if (policy.unlockPopulation && city.population < policy.unlockPopulation) return false;
+  return true;
+}
+
 function getTotalDebt() {
-  normalizeCityFinanceState();
   return Math.round(city.loans.reduce((sum, loan) => sum + Number(loan.balance || 0), 0));
 }
 
 function getMonthlyLoanDue() {
-  normalizeCityFinanceState();
   return Math.round(city.loans.reduce((sum, loan) => sum + Number(loan.monthlyPayment || 0), 0));
 }
 

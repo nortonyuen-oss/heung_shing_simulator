@@ -41,7 +41,7 @@ const LOAN_OPTIONS = [
   { amount: 25000, months: 60, annualRate: 0.12 },
 ];
 
-// Five starter acts/laws. Effects are applied in simulation.js.
+// Acts/laws are presented inside the Legislative Council window.
 const CITY_POLICY_DEFS = [
   { id: 'cleanAir',       titleKey: 'policy.cleanAir.title',       descKey: 'policy.cleanAir.desc',       monthlyBase: 150 },
   { id: 'roadRepair',     titleKey: 'policy.roadRepair.title',     descKey: 'policy.roadRepair.desc',     monthlyBase: 120 },
@@ -50,6 +50,58 @@ const CITY_POLICY_DEFS = [
   { id: 'greenParks',     titleKey: 'policy.greenParks.title',     descKey: 'policy.greenParks.desc',     monthlyBase: 100 },
   { id: 'educationReform', titleKey: 'policy.educationReform.title', descKey: 'policy.educationReform.desc', monthlyBase: 220 },
   { id: 'scienceDevelopment', titleKey: 'policy.scienceDevelopment.title', descKey: 'policy.scienceDevelopment.desc', monthlyBase: 260 },
+  { id: 'tourismPromotion', titleKey: 'policy.tourismPromotion.title', descKey: 'policy.tourismPromotion.desc', monthlyBase: 160, unlockPopulation: 10000 },
+  { id: 'foreignInvestmentIncentive', titleKey: 'policy.foreignInvestmentIncentive.title', descKey: 'policy.foreignInvestmentIncentive.desc', monthlyBase: 240, unlockPopulation: 10000 },
+  { id: 'districtCouncilElection', titleKey: 'policy.districtCouncilElection.title', descKey: 'policy.districtCouncilElection.desc', monthlyBase: 140, unlockPopulation: 10000 },
+  { id: 'icac', titleKey: 'policy.icac.title', descKey: 'policy.icac.desc', monthlyBase: 200, unlockPopulation: 10000 },
+  { id: 'legislativeCouncilElection', titleKey: 'policy.legislativeCouncilElection.title', descKey: 'policy.legislativeCouncilElection.desc', monthlyBase: 180, unlockPopulation: 10000 },
+  { id: 'stockExchangeAct', titleKey: 'policy.stockExchangeAct.title', descKey: 'policy.stockExchangeAct.desc', monthlyBase: 220, unlockPopulation: 50000 },
+];
+
+const HSI_BASE_LEVEL = 20000;
+const STOCK_LISTING_COUNT = 20;
+const STOCK_LISTING_ROTATE_COUNT = 2;
+const HSI_COMPONENT_SYMBOLS = [
+  'GTT', 'ALI', 'MEO', 'HBF', 'AIA',
+  'BYD', 'MTR', 'HKE', 'SNO', 'LNK',
+];
+const STOCK_MARKET_CATALOG = [
+  { symbol: 'GTT', name: '港騰互娛', sector: '科技' },
+  { symbol: 'ALI', name: '阿里爸爸雲商', sector: '科技' },
+  { symbol: 'MEO', name: '美味團到家', sector: '消費' },
+  { symbol: 'HBF', name: '匯豐豐金服', sector: '金融' },
+  { symbol: 'AIA', name: '友邦邦保險', sector: '金融' },
+  { symbol: 'BYD', name: '比亞電動', sector: '工業' },
+  { symbol: 'MTR', name: '港鐵通勤網', sector: '交通' },
+  { symbol: 'HKE', name: '港交易廣場', sector: '金融' },
+  { symbol: 'SNO', name: '信義玻璃璃', sector: '工業' },
+  { symbol: 'LNK', name: '領展展業', sector: '地產' },
+  { symbol: 'NWS', name: '新創世界城', sector: '地產' },
+  { symbol: 'HLD', name: '恆樓置業', sector: '地產' },
+  { symbol: 'SNP', name: '新鴻基地地', sector: '地產' },
+  { symbol: 'CKR', name: '長實實業', sector: '地產' },
+  { symbol: 'MGM', name: '煤氣街坊能源', sector: '公用' },
+  { symbol: 'CLP', name: '中電好電', sector: '公用' },
+  { symbol: 'HKT', name: '香通電訊', sector: '通訊' },
+  { symbol: 'SMC', name: '數碼城城', sector: '科技' },
+  { symbol: 'TKS', name: '騰芯半導體', sector: '科技' },
+  { symbol: 'RTL', name: '日日零售聯盟', sector: '消費' },
+  { symbol: 'FOD', name: '快好送餐飲', sector: '消費' },
+  { symbol: 'CIN', name: '城際影院線', sector: '文娛' },
+  { symbol: 'TRV', name: '遊歷旅遊網', sector: '文旅' },
+  { symbol: 'AIR', name: '空運達物流', sector: '交通' },
+  { symbol: 'SEA', name: '海運通航', sector: '交通' },
+  { symbol: 'EDU', name: '學霸通教育', sector: '教育' },
+  { symbol: 'MED', name: '仁和醫護', sector: '醫療' },
+  { symbol: 'BIO', name: '生科未來', sector: '醫療' },
+  { symbol: 'PET', name: '石油龍能源', sector: '能源' },
+  { symbol: 'SOL', name: '曬爆太陽能', sector: '新能源' },
+  { symbol: 'WND', name: '追風風電', sector: '新能源' },
+  { symbol: 'BNK', name: '大灣商銀', sector: '金融' },
+  { symbol: 'FNB', name: '第一市民銀行', sector: '金融' },
+  { symbol: 'NET', name: '網運速遞', sector: '交通' },
+  { symbol: 'PAY', name: '拍住付科技', sector: '科技' },
+  { symbol: 'GME', name: '戲院宇宙互娛', sector: '文娛' },
 ];
 
 // Growth probabilities per tick
@@ -63,9 +115,9 @@ const RES_LARGE_SPAWN_CHANCE = {
   1: { 3: 0.00, 4: 0.00 },
 };
 const COM_LARGE_SPAWN_CHANCE = {
-  3: { 2: 0.70, 3: 0.40, 4: 0.18 },
-  2: { 2: 0.55, 3: 0.20, 4: 0.06 },
-  1: { 2: 0.30, 3: 0.00, 4: 0.00 },
+  3: { 2: 0.80, 3: 0.58, 4: 0.28 },
+  2: { 2: 0.66, 3: 0.36, 4: 0.14 },
+  1: { 2: 0.42, 3: 0.18, 4: 0.06 },
 };
 const IND_LARGE_SPAWN_CHANCE = {
   3: { 2: 0.65, 3: 0.30 },
@@ -113,6 +165,8 @@ const COST_SECONDARY_SCHOOL = 1800;
 const COST_LIBRARY = 1600;
 const COST_COMMUNITY_COLLEGE = 3200;
 const COST_UNIVERSITY = 8000;
+const COST_LEGISLATIVE_COUNCIL = 5200;
+const COST_STOCK_EXCHANGE = 9800;
 const COST_PARK_SMALL    = 250;
 const COST_PARK_LARGE    = 900;
 const COST_TREE          = 15;
@@ -194,6 +248,18 @@ const SERVICE_BUILDING_MODELS = {
   university: {
     spriteKey: 'university_4x4',
     path: 'Models/govBuildings/university4-01_fixed.png',
+    footprintCols: 4,
+    footprintRows: 4,
+  },
+  legislative_council: {
+    spriteKey: 'legislative_council_2x2',
+    path: 'Models/govBuildings/legistrativeCouncil2-01_fixed.png',
+    footprintCols: 2,
+    footprintRows: 2,
+  },
+  stock_exchange: {
+    spriteKey: 'stock_exchange_4x4',
+    path: 'Models/govBuildings/university4-02_fixed.png',
     footprintCols: 4,
     footprintRows: 4,
   },

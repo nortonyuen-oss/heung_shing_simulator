@@ -38,8 +38,34 @@ function tryRedecoratePremiumBuilding(scene, r, c, zone) {
   const sprite = scene.buildingSprites.get(id);
   if (!sprite) return;
 
+  const meta = newModel.metadata ?? {};
+
+  // Swap texture and sync ALL visual geometry to the new model's metadata.
+  // Without this, Phaser keeps the old scale/origin while displaying the new
+  // texture's pixel dimensions, producing an incorrect apparent size.
   sprite.setTexture(newModel.key);
-  record.spriteKey = newModel.key;
+  sprite.setOrigin(meta.originX ?? 0.5, meta.originY ?? 1);
+  if (meta.scaleX || meta.scaleY) {
+    sprite.setScale(meta.scaleX ?? meta.scale ?? 1, meta.scaleY ?? meta.scale ?? 1);
+  } else if (meta.scale) {
+    sprite.setScale(meta.scale);
+  }
+  // Adjust position if offsetX/offsetY differs from the original model
+  const dOffX = (meta.offsetX ?? 0) - (record.offsetX ?? 0);
+  const dOffY = (meta.offsetY ?? 0) - (record.offsetY ?? 0);
+  if (dOffX !== 0) sprite.x += dOffX;
+  if (dOffY !== 0) sprite.y += dOffY;
+
+  // Persist updated visual metadata so save/reload renders correctly
+  record.spriteKey  = newModel.key;
+  record.originX    = meta.originX;
+  record.originY    = meta.originY;
+  record.scale      = meta.scale;
+  record.scaleX     = meta.scaleX;
+  record.scaleY     = meta.scaleY;
+  record.offsetX    = meta.offsetX;
+  record.offsetY    = meta.offsetY;
+  record.anchorMode = meta.anchorMode ?? record.anchorMode;
 }
 
 function growOrShrinkZones(scene) {

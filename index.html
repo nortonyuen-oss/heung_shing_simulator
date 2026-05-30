@@ -4721,16 +4721,35 @@ Ctrl+O       Load game (open saves list)</div>
     </div>
   </div>
 
-  <!-- Script load order matters: i18n → constants → city-state → simulation → tools → hud → save → topbar → main -->
+  <!-- Script load order:
+       i18n → constants → city-state → model-catalog → map-utils
+       → simulation → sim-infrastructure → sim-growth → sim-economy
+       → tools → hud-helpers → hud → hud-ticker → save → topbar
+       → real-city-coastline-masks → main
+       → tool-menu → chart-window → overlay-controls → inspect-panel
+       → terrain-presets → landing-screen -->
   <script src="i18n.js"></script>
   <script src="constants.js"></script>
   <script src="city-state.js"></script>
+  <script src="model-catalog.js"></script>
+  <script src="map-utils.js"></script>
   <script src="simulation.js"></script>
+  <script src="sim-infrastructure.js"></script>
+  <script src="sim-growth.js"></script>
+  <script src="sim-economy.js"></script>
   <script src="tools.js"></script>
+  <script src="hud-helpers.js"></script>
   <script src="hud.js"></script>
+  <script src="hud-ticker.js"></script>
   <script src="save.js"></script>
   <script src="topbar.js"></script>
   <script src="real-city-coastline-masks.js"></script>
   <script src="main.js"></script>
+  <script src="tool-menu.js"></script>
+  <script src="chart-window.js"></script>
+  <script src="overlay-controls.js"></script>
+  <script src="inspect-panel.js"></script>
+  <script src="terrain-presets.js"></script>
+  <script src="landing-screen.js"></script>
 </body>
 </html>

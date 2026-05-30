@@ -309,8 +309,18 @@ function normalizeCityFinanceState() {
   city.creditRating = city.creditRating || 'A';
 }
 
+let _buildingCountCache = null;
+
+function invalidateBuildingCountCache() {
+  _buildingCountCache = null;
+}
+
 function getBuildingCount(type) {
-  return Object.values(buildingData).filter((record) => record.type === type).length;
+  if (!_buildingCountCache) _buildingCountCache = {};
+  if (!(type in _buildingCountCache)) {
+    _buildingCountCache[type] = Object.values(buildingData).filter((r) => r.type === type).length;
+  }
+  return _buildingCountCache[type];
 }
 
 function computeBudgetSnapshot(options = {}) {

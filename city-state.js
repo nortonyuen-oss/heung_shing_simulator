@@ -40,6 +40,8 @@ function createDefaultStockMarketState() {
       changePct: 0,
       sharesOutstanding,
       history: [basePrice],
+      fairValue: basePrice,
+      idioShock: 0,
       isHSI,
       listed,
     };
@@ -48,6 +50,8 @@ function createDefaultStockMarketState() {
   return {
     hsi: HSI_BASE_LEVEL,
     prevHsi: HSI_BASE_LEVEL,
+    regime: 'range',
+    regimeMonthsLeft: 0,
     lastRotationTick: 0,
     stocks,
   };
@@ -250,6 +254,8 @@ function normalizeCityFinanceState() {
   const market = city.stockMarket;
   market.hsi = toFiniteOr(market.hsi, defaultStockMarket.hsi);
   market.prevHsi = toFiniteOr(market.prevHsi, defaultStockMarket.prevHsi);
+  market.regime = ['bull', 'range', 'bear'].includes(market.regime) ? market.regime : defaultStockMarket.regime;
+  market.regimeMonthsLeft = Math.max(0, Math.floor(toFiniteOr(market.regimeMonthsLeft, defaultStockMarket.regimeMonthsLeft)));
   market.lastRotationTick = toFiniteOr(market.lastRotationTick, 0);
 
   const existingMap = new Map((Array.isArray(market.stocks) ? market.stocks : [])
@@ -275,6 +281,8 @@ function normalizeCityFinanceState() {
       changePct: toFiniteOr(source.changePct, 0),
       sharesOutstanding: Math.max(1, toFiniteOr(source.sharesOutstanding, stock.sharesOutstanding)),
       history: history.length > 0 ? history : [price],
+      fairValue: Math.max(1, toFiniteOr(source.fairValue, price)),
+      idioShock: toFiniteOr(source.idioShock, 0),
       listed,
     };
   });

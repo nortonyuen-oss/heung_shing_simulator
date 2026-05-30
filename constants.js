@@ -61,6 +61,33 @@ const CITY_POLICY_DEFS = [
 const HSI_BASE_LEVEL = 20000;
 const STOCK_LISTING_COUNT = 20;
 const STOCK_LISTING_ROTATE_COUNT = 2;
+// Stock-market long-run tuning: HSI is derived from constituent market caps.
+// Target long-run annualized growth stays near historical HSI price performance (~4-5%).
+const HSI_ANNUAL_BASE_RETURN = 0.045;
+const STOCK_CITY_PREMIUM_ANNUAL_MAX = 0.022;
+const STOCK_MARKET_MEAN_REVERSION = 0.16;
+const STOCK_IDIO_SHOCK_DECAY = 0.78;
+const STOCK_IDIO_SHOCK_SCALE = 0.55;
+const STOCK_MARKET_REGIME_ANNUAL_DRIFT = {
+  bull: 0.14,
+  range: 0.01,
+  bear: -0.16,
+};
+const STOCK_MARKET_REGIME_VOL_MULTIPLIER = {
+  bull: 0.85,
+  range: 1.0,
+  bear: 1.35,
+};
+const STOCK_MARKET_REGIME_TRANSITION = {
+  bull: { bull: 0.84, range: 0.14, bear: 0.02 },
+  range: { bull: 0.18, range: 0.66, bear: 0.16 },
+  bear: { bull: 0.07, range: 0.28, bear: 0.65 },
+};
+const STOCK_MARKET_REGIME_DURATION_MONTHS = {
+  bull: [4, 10],
+  range: [3, 8],
+  bear: [2, 6],
+};
 const HSI_COMPONENT_SYMBOLS = [
   'GTT', 'ALI', 'MEO', 'HBF', 'AIA',
   'BYD', 'MTR', 'HKE', 'SNO', 'LNK',

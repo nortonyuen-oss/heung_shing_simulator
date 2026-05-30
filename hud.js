@@ -123,16 +123,34 @@ function updateDemandBar(id, value, positiveColor) {
   if (!fill) return;
 
   const track = fill.parentElement;
+  const isHorizontal = track?.classList.contains('demand-bar-track-horizontal');
+
+  if (isHorizontal) {
+    const trackWidth = Math.max(1, track?.clientWidth || 96);
+    const half = trackWidth / 2;
+    const barWidth = Math.abs(value) * half;
+
+    fill.style.top = '0';
+    fill.style.bottom = 'auto';
+    fill.style.height = '100%';
+    fill.style.width = `${barWidth}px`;
+    fill.style.left = value >= 0 ? `${half}px` : `${half - barWidth}px`;
+    fill.style.background = value >= 0 ? positiveColor : '#cc3333';
+    return;
+  }
+
   const trackHeight = Math.max(1, track?.clientHeight || 56);
   const half = trackHeight / 2;
   const barHeight = Math.abs(value) * half;
 
   if (value >= 0) {
+    fill.style.width      = '100%';
     fill.style.height     = `${barHeight}px`;
     fill.style.top        = `${half - barHeight}px`;
     fill.style.bottom     = 'auto';
     fill.style.background = positiveColor;
   } else {
+    fill.style.width      = '100%';
     fill.style.height     = `${barHeight}px`;
     fill.style.top        = `${half}px`;
     fill.style.bottom     = 'auto';

@@ -1757,7 +1757,7 @@
       position: absolute;
       left: 0;
       width: 100%;
-      transition: height 0.4s ease, top 0.4s ease;
+      transition: height 0.4s ease, top 0.4s ease, width 0.4s ease, left 0.4s ease;
     }
 
     .power-status-surplus  { color: #1a6b1a; background: rgba(26,107,26,0.18); }
@@ -1926,6 +1926,32 @@
       cursor: pointer;
       font-family: inherit;
       flex-shrink: 0;
+    }
+
+    #status-pill {
+      padding: 4px 7px;
+    }
+
+    #status-pill-rci {
+      width: 100%;
+      display: grid;
+      gap: 3px;
+      align-content: center;
+    }
+
+    .status-pill-rci-row {
+      display: grid;
+      grid-template-columns: 10px minmax(0, 1fr);
+      align-items: center;
+      gap: 5px;
+    }
+
+    .status-pill-rci-label {
+      font-size: 9px;
+      font-weight: 900;
+      color: #2e3440;
+      text-align: center;
+      line-height: 1;
     }
 
     #status-pill span:last-child,
@@ -2110,6 +2136,43 @@
 
     .status-index-value.warn { color: #ffdd8a; }
     .status-index-value.bad { color: #ff8f84; }
+
+    .demand-bar-track-horizontal {
+      position: relative;
+      width: 100%;
+      height: 10px;
+      background: rgba(0,0,0,0.28);
+      border: 1px solid rgba(255,255,255,0.24);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .demand-bar-track-horizontal::after {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 0;
+      width: 1px;
+      height: 100%;
+      background: rgba(255,255,255,0.52);
+      transform: translateX(-50%);
+    }
+
+    .demand-bar-track-horizontal .demand-bar-fill {
+      top: 0;
+      height: 100%;
+      border-radius: 999px;
+    }
+
+    #status-pill .demand-bar-track-horizontal {
+      height: 7px;
+      border-color: rgba(35, 48, 64, 0.25);
+      background: rgba(35, 48, 64, 0.16);
+    }
+
+    #status-pill .demand-bar-track-horizontal::after {
+      background: rgba(35, 48, 64, 0.45);
+    }
 
     #status-index-main-title {
       display: none;
@@ -3280,7 +3343,7 @@
     #chart-win-body {
       flex: 1;
       display: grid;
-      grid-template-rows: auto 1fr auto auto;
+      grid-template-rows: auto auto 1fr auto auto;
       gap: 8px;
       padding: 10px;
       background: #d4d0c3;
@@ -3312,6 +3375,38 @@
       background: #f0ecdc;
       overflow: hidden;
       min-height: 0;
+    }
+    #chart-metrics {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 6px;
+    }
+    .chart-metric {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      min-width: 0;
+      background: rgba(255,255,255,0.45);
+      border: 1px solid #a7a08d;
+      border-radius: 8px;
+      padding: 5px 8px;
+      color: #1e2427;
+      font-size: 12px;
+      line-height: 1.2;
+    }
+    .chart-metric-label {
+      color: #4f4a40;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .chart-metric-value {
+      color: #202a3a;
+      font-weight: 800;
+      white-space: nowrap;
+      flex-shrink: 0;
     }
     #city-chart-canvas {
       width: 100%;
@@ -3355,6 +3450,9 @@
         width: calc(100vw - 92px);
         left: 82px;
         transform: none;
+      }
+      #chart-metrics {
+        grid-template-columns: 1fr;
       }
     }
 
@@ -4115,11 +4213,6 @@ Ctrl+O       Load game (open saves list)</div>
     <section class="tool-flyout" data-tool-panel="maps">
       <div class="tool-flyout-title" data-i18n="toolCategory.mapsSubtitle">City Bureau</div>
       <button class="tool-row" type="button" data-action="open-charts"><span class="tool-row-icon">📈</span><span class="tool-row-text" data-i18n="toolRow.charts">統計圖表 Charts</span></button>
-      <div class="tool-flyout-metrics" aria-label="City education and research metrics" data-i18n-aria="tool.educationMetrics">
-        <div class="tool-flyout-metric"><span data-i18n="hud.educationBasicLabel">基本教育</span><span id="hud-education-basic">Basic Edu: 0%</span></div>
-        <div class="tool-flyout-metric"><span data-i18n="hud.educationHigherLabel">高等教育</span><span id="hud-education-higher">Higher Edu: 0%</span></div>
-        <div class="tool-flyout-metric"><span data-i18n="hud.scienceIndustryLabel">科研產業</span><span id="hud-science-share">Science Industry: 0%</span></div>
-      </div>
       <button class="tool-row" type="button" data-overlay="pollution"><span class="tool-row-icon">🏭</span><span class="tool-row-text" data-i18n="overlay.pollution">Pollution</span></button>
       <button class="tool-row" type="button" data-overlay="crime"><span class="tool-row-icon">🚔</span><span class="tool-row-text" data-i18n="overlay.crime">Crime</span></button>
       <button class="tool-row" type="button" data-overlay="fire"><span class="tool-row-icon">🔥</span><span class="tool-row-text" data-i18n="overlay.fire">Fire Risk</span></button>
@@ -4367,38 +4460,26 @@ Ctrl+O       Load game (open saves list)</div>
   </div>
 
   <!-- HUD panel (top-right) -->
-  <aside id="hud" aria-label="City statistics" data-i18n-aria="hud.cityStats">
-    <section class="hud-panel" data-hud-panel="demand">
-      <div class="hud-panel-header">
-        <span data-i18n="hud.demandStatus">需求狀況 Demand Status</span>
-        <button class="hud-panel-toggle" type="button" data-hud-toggle="demand" aria-label="Toggle demand status" data-i18n-aria="hud.toggleDemand">−</button>
-      </div>
-      <div class="hud-panel-body">
-        <div class="hud-rci" aria-label="R/C/I demand" data-i18n-aria="hud.rciDemand">
-          <div class="hud-rci-bar">
-            <div class="demand-bar-track"><div id="bar-r" class="demand-bar-fill"></div></div>
-            <span class="hud-rci-label">R</span>
-          </div>
-          <div class="hud-rci-bar">
-            <div class="demand-bar-track"><div id="bar-c" class="demand-bar-fill"></div></div>
-            <span class="hud-rci-label">C</span>
-          </div>
-          <div class="hud-rci-bar">
-            <div class="demand-bar-track"><div id="bar-i" class="demand-bar-fill"></div></div>
-            <span class="hud-rci-label">I</span>
-          </div>
-        </div>
-      </div>
-    </section>
-
-  </aside>
+  <aside id="hud" aria-label="City statistics" data-i18n-aria="hud.cityStats"></aside>
 
   <!-- Budget panel (bottom) -->
   <div id="budget-panel" aria-label="Budget panel" data-i18n-aria="budget.label">
     <div id="budget-strip">
       <button id="status-pill" type="button" aria-label="Status panel" data-i18n-aria="status.panel">
-        <span data-i18n="status.panelZh">狀態</span>
-        <span data-i18n="status.panelEn">STATUS</span>
+        <div id="status-pill-rci" aria-label="R/C/I demand" data-i18n-aria="hud.rciDemand">
+          <div class="status-pill-rci-row">
+            <span class="status-pill-rci-label">R</span>
+            <div class="demand-bar-track-horizontal"><div id="bar-r" class="demand-bar-fill"></div></div>
+          </div>
+          <div class="status-pill-rci-row">
+            <span class="status-pill-rci-label">C</span>
+            <div class="demand-bar-track-horizontal"><div id="bar-c" class="demand-bar-fill"></div></div>
+          </div>
+          <div class="status-pill-rci-row">
+            <span class="status-pill-rci-label">I</span>
+            <div class="demand-bar-track-horizontal"><div id="bar-i" class="demand-bar-fill"></div></div>
+          </div>
+        </div>
       </button>
       <div id="status-ticker-main">
         <span id="status-main-icon" aria-hidden="true">📈</span>
@@ -4712,6 +4793,20 @@ Ctrl+O       Load game (open saves list)</div>
         <label class="chart-line-toggle"><input type="checkbox" data-chart-series="landValue" checked> <span data-i18n="chart.landValue">Land Value</span></label>
         <label class="chart-line-toggle"><input type="checkbox" data-chart-series="pollution" checked> <span data-i18n="chart.pollution">Pollution</span></label>
         <label class="chart-line-toggle"><input type="checkbox" data-chart-series="hsi" checked> <span data-i18n="chart.hsi">HSI</span></label>
+      </div>
+      <div id="chart-metrics" aria-label="Education and science metrics">
+        <div class="chart-metric">
+          <span class="chart-metric-label" data-i18n="hud.educationBasicLabel">Basic Education</span>
+          <span id="chart-metric-basic" class="chart-metric-value">0%</span>
+        </div>
+        <div class="chart-metric">
+          <span class="chart-metric-label" data-i18n="hud.educationHigherLabel">Higher Education</span>
+          <span id="chart-metric-higher" class="chart-metric-value">0%</span>
+        </div>
+        <div class="chart-metric">
+          <span class="chart-metric-label" data-i18n="hud.scienceIndustryLabel">Science Industry</span>
+          <span id="chart-metric-science" class="chart-metric-value">0%</span>
+        </div>
       </div>
       <div id="chart-canvas-wrap">
         <canvas id="city-chart-canvas" width="680" height="300"></canvas>

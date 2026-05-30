@@ -90,6 +90,15 @@ let mapViewPanY   = 0;
 
 // Map rotation: 0=default, 1=90°CW, 2=180°, 3=270°CW
 let mapRotation = 0;
+const PREVIEW_OVERLAY_DEPTH = 200000;
+
+function ensurePreviewOverlayDepth(scene) {
+  if (!scene) return;
+  scene.zonePreviewGraphic?.setDepth?.(PREVIEW_OVERLAY_DEPTH);
+  scene.bridgePreviewGraphic?.setDepth?.(PREVIEW_OVERLAY_DEPTH);
+  scene.buildingGuideGraphic?.setDepth?.(PREVIEW_OVERLAY_DEPTH);
+  scene.inspectHighlightGraphic?.setDepth?.(PREVIEW_OVERLAY_DEPTH + 1);
+}
 
 // Terrain option definitions
 
@@ -1163,6 +1172,7 @@ function create() {
     updateMapMetrics(this);
     drawWorldMask(this);
     positionAllTiles(this);
+    ensurePreviewOverlayDepth(this);
   });
 
   // Group for future buildings
@@ -1170,19 +1180,19 @@ function create() {
 
   // Zone drag-select preview graphic (drawn over the world during zone rect drag)
   this.zonePreviewGraphic = this.add.graphics();
-  this.zonePreviewGraphic.setDepth(9998);
+  this.zonePreviewGraphic.setDepth(PREVIEW_OVERLAY_DEPTH);
 
   // Road/bridge drag preview graphic.
   this.bridgePreviewGraphic = this.add.graphics();
-  this.bridgePreviewGraphic.setDepth(9998);
+  this.bridgePreviewGraphic.setDepth(PREVIEW_OVERLAY_DEPTH);
 
   // Building placement footprint guide (hover preview before committing).
   this.buildingGuideGraphic = this.add.graphics();
-  this.buildingGuideGraphic.setDepth(9998);
+  this.buildingGuideGraphic.setDepth(PREVIEW_OVERLAY_DEPTH);
 
   // Inspect-tool hover highlight (red diamond under the cursor)
   this.inspectHighlightGraphic = this.add.graphics();
-  this.inspectHighlightGraphic.setDepth(9999);
+  this.inspectHighlightGraphic.setDepth(PREVIEW_OVERLAY_DEPTH + 1);
 
   // Paint roads on left click; start panning on right click.
   this.input.on('pointerdown', (pointer) => {
@@ -1782,15 +1792,53 @@ function drawWorldMask(scene) {
   const oy = scene.offsetY;
   const graphics = scene.maskGraphics;
 
+  const top = {
+    x: topPt.x + ox,
+    y: topPt.y + oy - TILE_IMAGE_HEIGHT,
+  };
+  const right = {
+    x: rightPt.x + ox + TILE_WIDTH / 2,
+    y: rightPt.y + oy - TILE_IMAGE_HEIGHT + TILE_HEIGHT / 2,
+  };
+  const bottom = {
+    x: bottomPt.x + ox,
+    y: bottomPt.y + oy,
+  };
+  const left = {
+    x: leftPt.x + ox - TILE_WIDTH / 2,
+    y: leftPt.y + oy - TILE_IMAGE_HEIGHT + TILE_HEIGHT / 2,
+  };
+
+  const center = {
+    x: (top.x + right.x + bottom.x + left.x) / 4,
+    y: (top.y + right.y + bottom.y + left.y) / 4,
+  };
+
+  const EDGE_BLEED = 220;
+  const BOTTOM_BLEED = 24;
+  const expandFromCenter = (point, extra = 0) => {
+    const dx = point.x - center.x;
+    const dy = point.y - center.y;
+    const length = Math.max(1, Math.hypot(dx, dy));
+    const bleed = EDGE_BLEED + extra;
+    return {
+      x: point.x + (dx / length) * bleed,
+      y: point.y + (dy / length) * bleed,
+    };
+  };
+
+  const topMask = expandFromCenter(top, 20);
+  const rightMask = expandFromCenter(right, 8);
+  const bottomMask = expandFromCenter(bottom, BOTTOM_BLEED);
+  const leftMask = expandFromCenter(left, 8);
+
   graphics.clear();
   graphics.fillStyle(0xffffff, 1);
   graphics.beginPath();
-  const APEX_CLIP = 12;
-  const RIGHT_EDGE_BLEED = 6;
-  graphics.moveTo(topPt.x    + ox,                  topPt.y    + oy - TILE_IMAGE_HEIGHT + APEX_CLIP);
-  graphics.lineTo(rightPt.x  + ox + TILE_WIDTH / 2 + RIGHT_EDGE_BLEED, rightPt.y  + oy - TILE_IMAGE_HEIGHT + TILE_HEIGHT / 2);
-  graphics.lineTo(bottomPt.x + ox,                  bottomPt.y + oy);
-  graphics.lineTo(leftPt.x   + ox - TILE_WIDTH / 2, leftPt.y   + oy - TILE_IMAGE_HEIGHT + TILE_HEIGHT / 2);
+  graphics.moveTo(topMask.x, topMask.y);
+  graphics.lineTo(rightMask.x, rightMask.y);
+  graphics.lineTo(bottomMask.x, bottomMask.y);
+  graphics.lineTo(leftMask.x, leftMask.y);
   graphics.closePath();
   graphics.fillPath();
 }
@@ -6366,6 +6414,7 @@ function rotateMap(scene, steps = 1) {
   // isoToScreen will place them differently — drawWorldMask reads the same
   // 4 corner tile coords, so it just needs a redraw)
   drawWorldMask(scene);
+  ensurePreviewOverlayDepth(scene);
 
   // Keep the same logical map area under the center of the screen after the
   // coordinate system rotates.

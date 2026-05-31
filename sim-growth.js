@@ -244,6 +244,7 @@ function getResidentialLargeSpawnChance(footprintSize, density) {
 }
 
 function getResidentialHouseSetForFootprint(footprintSize) {
+  if (footprintSize === 5) return 'house5x5';
   if (footprintSize === 4) return 'house4x4';
   if (footprintSize === 3) return 'house3x3';
   if (footprintSize === 2) return 'house2x2';
@@ -258,7 +259,7 @@ function chooseResidentialFootprint(scene, r, c, density, optionsOverride = {}, 
       : 1;
   }
 
-  const candidates = [4, 3, 2];
+  const candidates = [5, 4, 3, 2];
   for (const footprintSize of candidates) {
     const chance = footprintSize === 2
       ? getResidential2x2Chance(density)

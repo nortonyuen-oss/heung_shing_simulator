@@ -4322,6 +4322,17 @@ Ctrl+O       Load game (open saves list)</div>
       <span class="tool-badge" id="park-tool-badge" aria-hidden="true">1x1</span>
       <span class="tool-badge" id="park-tool-icon" aria-hidden="true">🌳</span>
     </button>
+    <button class="tool-button" type="button" data-tool="sports-ground" title="Sports Ground" aria-label="Sports Ground" data-i18n-title="tool.sportsGroundDefault" data-i18n-aria="tool.sportsGroundDefault">
+      <svg viewBox="0 0 32 32" aria-hidden="true" stroke="#c47a20">
+        <rect x="4" y="10" width="24" height="14" rx="2" fill="#e8a835" opacity="0.35" stroke-width="0"/>
+        <ellipse cx="16" cy="17" rx="5" ry="5" fill="none" stroke-width="2"/>
+        <line x1="4" y1="17" x2="11" y2="17" stroke-width="2"/>
+        <line x1="21" y1="17" x2="28" y2="17" stroke-width="2"/>
+        <line x1="16" y1="10" x2="16" y2="24" stroke-width="1.5"/>
+      </svg>
+      <span class="tool-badge" id="sports-ground-tool-badge" aria-hidden="true">2x2</span>
+      <span class="tool-badge" id="sports-ground-tool-icon" aria-hidden="true">⚽</span>
+    </button>
     <button class="tool-button" type="button" data-tool="tree" title="Plant Tree ($15)" aria-label="Plant Tree" data-i18n-title="tool.tree" data-i18n-aria="tool.tree">
       <span class="tool-row-icon" aria-hidden="true">🌲</span>
       <span class="tool-badge" aria-hidden="true">$15</span>
@@ -4373,6 +4384,7 @@ Ctrl+O       Load game (open saves list)</div>
 
   <!-- Park picker popup -->
   <section id="park-picker" class="tool-popup" aria-label="Park type" data-i18n-aria="tool.parkType"></section>
+  <section id="sports-ground-picker" class="tool-popup" aria-label="Sports ground type" data-i18n-aria="tool.sportsGroundType"></section>
 
   <!-- Inspect panel (click-to-inspect mode) -->
   <div id="inspect-panel" role="dialog" aria-label="Tile inspector" data-i18n-aria="inspect.title">

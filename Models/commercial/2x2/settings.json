@@ -1,0 +1,21 @@
+{
+  "skip_background_removal": false,
+  "background_mode": "auto_corner",
+  "tolerance": 25,
+  "custom_bg_hex": "#ffffff",
+  "feather_edges": true,
+  "feather_radius": 0.6,
+  "crop_transparent": true,
+  "crop_padding": 20,
+  "scale_x": 1.0,
+  "scale_y": 1.0,
+  "align_to_isometric": true,
+  "iso_target_ratio": 0.5,
+  "iso_max_side_diff": 0.1,
+  "iso_use_virtual_bottom_corner": true,
+  "canvas_width": 800,
+  "canvas_height": 800,
+  "alignment": "bottom-center",
+  "bottom_margin": 10,
+  "preserve_if_too_large": false
+}

@@ -332,6 +332,8 @@ function deriveFallbackSpriteKey(record) {
   if (infraIdx !== undefined) return BUILDING_KEYS[infraIdx];
   if (record.type === 'park_small') return 'park_small_open';
   if (record.type === 'park_large') return 'park_large';
+  if (record.type === 'sports_ground_small') return 'sports_ground_2x2';
+  if (record.type === 'sports_ground_large') return 'sports_ground_3x3';
   if (record.type === 'residential') return getFallbackHouseSpriteKey() ?? BUILDING_KEYS[Math.floor(Math.random() * 20)];
   if (record.type === 'commercial')  return getFallbackCommercialSpriteKey(record) ?? BUILDING_KEYS[Math.floor(Math.random() * 39)];
   if (record.type === 'industrial')  return BUILDING_KEYS[39 + Math.floor(Math.random() * 39)];
@@ -342,7 +344,9 @@ function deriveLoadedSpriteKey(record) {
   if (typeof isPowerPlantType === 'function' && isPowerPlantType(record.type)) {
     return POWER_PLANT_MODELS[record.type].spriteKey;
   }
-  const key = record.spriteKey ?? deriveFallbackSpriteKey(record);
+  let key = record.spriteKey ?? deriveFallbackSpriteKey(record);
+  // Migrate stock_exchange from old 4×4 spriteKey to new 3×3 key
+  if (key === 'stock_exchange_4x4') key = 'stock_exchange_3x3';
   const legacy2x2Key = getLegacy2x2HouseFallbackSpriteKey(record, key);
   if (legacy2x2Key) return legacy2x2Key;
   if (record.type === 'residential' && !isLoadedTextureKey(key)) {

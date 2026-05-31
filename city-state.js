@@ -371,6 +371,8 @@ function computeBudgetSnapshot(options = {}) {
   const universityCount = getBuildingCount('university');
   const smallParks = getBuildingCount('park_small');
   const largeParks = getBuildingCount('park_large');
+  const sportsGroundSmall = getBuildingCount('sports_ground_small');
+  const sportsGroundLarge = getBuildingCount('sports_ground_large');
 
   const taxScale = city.taxRate / 0.09;
   const residentialTax = city.population * TAX_PER_RESIDENT * taxScale;
@@ -390,7 +392,12 @@ function computeBudgetSnapshot(options = {}) {
     + communityCollegeCount * UPKEEP_COMMUNITY_COLLEGE
     + universityCount * UPKEEP_UNIVERSITY
   );
-  const parksUpkeep = (smallParks * UPKEEP_PARK_SMALL + largeParks * UPKEEP_PARK_LARGE) * getDepartmentFunding('parks');
+  const parksUpkeep = (
+    smallParks * UPKEEP_PARK_SMALL
+    + largeParks * UPKEEP_PARK_LARGE
+    + sportsGroundSmall * UPKEEP_SPORTS_GROUND_SMALL
+    + sportsGroundLarge * UPKEEP_SPORTS_GROUND_LARGE
+  ) * getDepartmentFunding('parks');
   const policyCost = getPolicyMonthlyCost();
   const loanPayment = Number.isFinite(options.loanPayment)
     ? options.loanPayment

@@ -20,8 +20,10 @@ const INFRA_COSTS = {
   university:        COST_UNIVERSITY,
   legislative_council: COST_LEGISLATIVE_COUNCIL,
   stock_exchange:    COST_STOCK_EXCHANGE,
-  park_small:         COST_PARK_SMALL,
-  park_large:         COST_PARK_LARGE,
+  park_small:           COST_PARK_SMALL,
+  park_large:           COST_PARK_LARGE,
+  sports_ground_small:  COST_SPORTS_GROUND_SMALL,
+  sports_ground_large:  COST_SPORTS_GROUND_LARGE,
 };
 
 // ── Main dispatch (called from applySelectedTool in main.js) ──────────────────
@@ -49,6 +51,7 @@ function handleNewTool(scene, tile) {
   if (selectedTool === 'park')           return placeSelectedPark(scene, row, col);
   if (selectedTool === 'park-small')     return placePark(scene, row, col, { type: 'park_small', spriteKey: 'park_small_open', footprintCols: 1, footprintRows: 1 });
   if (selectedTool === 'park-large')     return placePark(scene, row, col, { type: 'park_large', spriteKey: 'park_large', footprintCols: 3, footprintRows: 3 });
+  if (selectedTool === 'sports-ground')  return placeSelectedSportsGround(scene, row, col);
   if (selectedTool === 'tree')           return placeTree(scene, row, col);
 
   return false;
@@ -278,6 +281,46 @@ function placePark(scene, row, col, parkOption) {
   };
   refreshInfrastructureEffects(scene);
 
+  return true;
+}
+
+function placeSelectedSportsGround(scene, row, col) {
+  const option = typeof getSelectedSportsGroundOption === 'function'
+    ? getSelectedSportsGroundOption()
+    : SPORT_GROUND_OPTIONS[0];
+  return placeSportsGround(scene, row, col, option);
+}
+
+function placeSportsGround(scene, row, col, option) {
+  if (!isInsideMap(row, col)) return false;
+
+  const { type, spriteKey, footprintCols = 2, footprintRows = 2 } = option;
+  if (!canPlaceBuildingFootprint(row, col, footprintCols, footprintRows)) return false;
+
+  const cost = INFRA_COSTS[type];
+  if (!spendBudget(cost)) {
+    showToast(t('toast.notEnoughFunds'), 'warning');
+    return false;
+  }
+
+  removeBuildingsInFootprint(scene, row, col, footprintCols, footprintRows);
+
+  const opts = getParkSpriteOptions(spriteKey, option);
+  placeSpriteBuilding(scene, row, col, spriteKey, opts);
+
+  buildingData[getTileId(row, col)] = {
+    type,
+    level: 1,
+    population: 0,
+    age: 0,
+    spriteKey,
+    footprintCols,
+    footprintRows,
+    originX: opts.originX,
+    originY: opts.originY,
+    scale: opts.scale,
+  };
+  refreshInfrastructureEffects(scene);
   return true;
 }
 

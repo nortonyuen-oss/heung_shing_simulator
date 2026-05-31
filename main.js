@@ -697,13 +697,24 @@ const PARK_OPTIONS = [
     footprintRows: 1,
   },
   {
+    id: 'plaza_square',
+    type: 'park_small',
+    spriteKey: 'park_small_plaza',
+    titleKey: 'park.plazaSquare',
+    badge: '1x1',
+    icon: '🎪',
+    cost: COST_PARK_SMALL,
+    footprintCols: 1,
+    footprintRows: 1,
+  },
+  {
     id: 'palm_court',
     type: 'park_small',
     spriteKey: 'park_small_palm',
     titleKey: 'park.palmCourt',
     badge: '2x2',
     icon: '🌴',
-    cost: COST_PARK_SMALL,
+    cost: COST_PARK_SMALL * 2,
     footprintCols: 2,
     footprintRows: 2,
   },
@@ -715,6 +726,31 @@ const PARK_OPTIONS = [
     badge: '3x3',
     icon: '🌲',
     cost: COST_PARK_LARGE,
+    footprintCols: 3,
+    footprintRows: 3,
+  },
+];
+
+const SPORT_GROUND_OPTIONS = [
+  {
+    id: 'sports_ground_small',
+    type: 'sports_ground_small',
+    spriteKey: 'sports_ground_2x2',
+    titleKey: 'sportsGround.small',
+    badge: '2x2',
+    icon: '⚽',
+    cost: COST_SPORTS_GROUND_SMALL,
+    footprintCols: 2,
+    footprintRows: 2,
+  },
+  {
+    id: 'sports_ground_large',
+    type: 'sports_ground_large',
+    spriteKey: 'sports_ground_3x3',
+    titleKey: 'sportsGround.large',
+    badge: '3x3',
+    icon: '🏟',
+    cost: COST_SPORTS_GROUND_LARGE,
     footprintCols: 3,
     footprintRows: 3,
   },
@@ -1017,12 +1053,18 @@ function preload() {
   initialIndustrialModels.forEach((model) => {
     this.load.image(model.key, model.path);
   });
-  this.load.image('park_small_open', 'Models/parks/park1x1/catProblemPark.png');
-  this.load.image('park_small_playground', 'Models/parks/park1x1/smallPark2.png');
-  this.load.image('park_small_garden', 'Models/parks/park1x1/smallPark3.png');
-  this.load.image('park_small_palm', 'Models/parks/park2x2/smallPark4.png');
-  this.load.image('park_small', 'Models/parks/park1x1/catProblemPark.png');
-  this.load.image('park_large', 'Models/parks/park3x3/bigPark.png');
+  // Parks (new asset filenames)
+  this.load.image('park_small_open',       'Models/parks/park1x1/park1-01_fixed.png');
+  this.load.image('park_small_playground', 'Models/parks/park1x1/park1-02_fixed.png');
+  this.load.image('park_small_garden',     'Models/parks/park1x1/park1-03_fixed.png');
+  this.load.image('park_small_plaza',      'Models/parks/park1x1/park1-04_fixed.png');
+  this.load.image('park_small_palm',       'Models/parks/park2x2/park2-02_fixed.png');
+  this.load.image('park_large_highscore',  'Models/parks/park2x2/park2-03-highScore_fixed.png');
+  this.load.image('park_small',            'Models/parks/park1x1/park1-01_fixed.png');
+  this.load.image('park_large',            'Models/parks/park3x3/park3-01_fixed.png');
+  // Sports grounds
+  this.load.image('sports_ground_2x2',     'Models/parks/park2x2/sportField3-02_fixed.png');
+  this.load.image('sports_ground_3x3',     'Models/parks/park3x3/sportField3-01_fixed.png');
   Object.values(POWER_PLANT_MODELS).forEach((model) => {
     this.load.image(model.spriteKey, model.path);
   });
@@ -1960,12 +2002,16 @@ function prepareIndustrialBuildingModelMetadata(scene) {
 
 function prepareParkModelMetadata(scene) {
   parkModelMetadata = {
-    park_small_open: getParkModelMetadata(scene, 'park_small_open', 1, 1),
+    park_small_open:       getParkModelMetadata(scene, 'park_small_open',       1, 1),
     park_small_playground: getParkModelMetadata(scene, 'park_small_playground', 1, 1),
-    park_small_garden: getParkModelMetadata(scene, 'park_small_garden', 1, 1),
-    park_small_palm: getParkModelMetadata(scene, 'park_small_palm', 2, 2),
-    park_small: getParkModelMetadata(scene, 'park_small', 1, 1),
-    park_large: getParkModelMetadata(scene, 'park_large', 3, 3),
+    park_small_garden:     getParkModelMetadata(scene, 'park_small_garden',     1, 1),
+    park_small_plaza:      getParkModelMetadata(scene, 'park_small_plaza',      1, 1),
+    park_small_palm:       getParkModelMetadata(scene, 'park_small_palm',       2, 2),
+    park_large_highscore:  getParkModelMetadata(scene, 'park_large_highscore',  2, 2),
+    park_small:            getParkModelMetadata(scene, 'park_small',            1, 1),
+    park_large:            getParkModelMetadata(scene, 'park_large',            3, 3),
+    sports_ground_2x2:     getParkModelMetadata(scene, 'sports_ground_2x2',    2, 2),
+    sports_ground_3x3:     getParkModelMetadata(scene, 'sports_ground_3x3',    3, 3),
   };
 }
 
@@ -2367,6 +2413,14 @@ function isParkSpriteKey(key) {
     || PARK_OPTIONS.some((opt) => opt.spriteKey === key);
 }
 
+function isSportsGroundSpriteKey(key) {
+  return SPORT_GROUND_OPTIONS.some((opt) => opt.spriteKey === key);
+}
+
+function isSportsGroundType(type) {
+  return type === 'sports_ground_small' || type === 'sports_ground_large';
+}
+
 function isPowerPlantType(type) {
   return !!POWER_PLANT_MODELS[type];
 }
@@ -2534,6 +2588,16 @@ function getSelectedPlacementFootprint() {
     return {
       footprintCols: option.footprintCols ?? 1,
       footprintRows: option.footprintRows ?? 1,
+    };
+  }
+
+  if (selectedTool === 'sports-ground') {
+    const option = typeof getSelectedSportsGroundOption === 'function'
+      ? getSelectedSportsGroundOption()
+      : SPORT_GROUND_OPTIONS[0];
+    return {
+      footprintCols: option.footprintCols ?? 2,
+      footprintRows: option.footprintRows ?? 2,
     };
   }
 
@@ -6101,41 +6165,46 @@ function showTileDebug(scene, pointer) {
     <div class="dbg-divider"></div>`;
 
   // ── Infrastructure building tooltip ──────────────────────────────────────────
-  const INFRA_TYPES = ['power_plant_coal', 'power_plant_solar', 'fire_station', 'police_station', 'primary_school', 'secondary_school', 'library', 'community_college', 'university', 'legislative_council', 'stock_exchange', 'park_small', 'park_large'];
+  const INFRA_TYPES = ['power_plant_coal', 'power_plant_solar', 'fire_station', 'police_station', 'primary_school', 'secondary_school', 'library', 'community_college', 'university', 'legislative_council', 'stock_exchange', 'park_small', 'park_large', 'sports_ground_small', 'sports_ground_large'];
   if (bData && INFRA_TYPES.includes(bData.type)) {
     const INFRA_LABELS = {
-      power_plant_coal:  '⚡ Coal Power Plant',
-      power_plant_solar: '☀️ Solar Power Plant',
-      fire_station:      '🚒 Fire Station',
-      police_station:    '👮 Police Station',
-      primary_school:    '🏫 Primary School',
-      secondary_school:  '🏫 Secondary School',
-      library:           '📚 Library',
-      community_college: '🎓 Community College',
-      university:        '🎓 University',
-      park_small:         '🌳 Small Park',
-      park_large:         '🌲 Large Park',
+      power_plant_coal:    '⚡ Coal Power Plant',
+      power_plant_solar:   '☀️ Solar Power Plant',
+      fire_station:        '🚒 Fire Station',
+      police_station:      '👮 Police Station',
+      primary_school:      '🏫 Primary School',
+      secondary_school:    '🏫 Secondary School',
+      library:             '📚 Library',
+      community_college:   '🎓 Community College',
+      university:          '🎓 University',
+      park_small:          '🌳 Small Park',
+      park_large:          '🌲 Large Park',
+      sports_ground_small: '⚽ Sports Ground',
+      sports_ground_large: '🏟 Sports Complex',
     };
     const INFRA_DESCS = {
-      power_plant_coal:  `Grid power source · Upkeep $${UPKEEP_COAL_PLANT}/mo · Polluting`,
-      power_plant_solar: `Grid power source · Upkeep $${UPKEEP_SOLAR_PLANT}/mo · Clean`,
-      fire_station:      `Fire coverage radius ${FIRE_STATION_RADIUS} tiles · Upkeep $${UPKEEP_FIRE_STATION}/mo`,
-      police_station:    `Crime reduction radius ${POLICE_STATION_RADIUS} tiles · Upkeep $${UPKEEP_POLICE_STATION}/mo`,
-      primary_school:    `Basic education radius ${PRIMARY_SCHOOL_RADIUS} tiles · Upkeep $${UPKEEP_PRIMARY_SCHOOL}/mo`,
-      secondary_school:  `Basic education radius ${SECONDARY_SCHOOL_RADIUS} tiles · Upkeep $${UPKEEP_SECONDARY_SCHOOL}/mo`,
-      library:           `Basic education radius ${LIBRARY_RADIUS} tiles · Upkeep $${UPKEEP_LIBRARY}/mo`,
-      community_college: `Higher education radius ${COMMUNITY_COLLEGE_RADIUS} tiles · Upkeep $${UPKEEP_COMMUNITY_COLLEGE}/mo`,
-      university:        `Higher education radius ${UNIVERSITY_RADIUS} tiles · Upkeep $${UPKEEP_UNIVERSITY}/mo`,
-      park_small:         `Residential happiness radius ${SMALL_PARK_RADIUS} tiles · Upkeep $${UPKEEP_PARK_SMALL}/mo`,
-      park_large:         `Residential happiness radius ${LARGE_PARK_RADIUS} tiles · Upkeep $${UPKEEP_PARK_LARGE}/mo`,
+      power_plant_coal:    `Grid power source · Upkeep $${UPKEEP_COAL_PLANT}/mo · Polluting`,
+      power_plant_solar:   `Grid power source · Upkeep $${UPKEEP_SOLAR_PLANT}/mo · Clean`,
+      fire_station:        `Fire coverage radius ${FIRE_STATION_RADIUS} tiles · Upkeep $${UPKEEP_FIRE_STATION}/mo`,
+      police_station:      `Crime reduction radius ${POLICE_STATION_RADIUS} tiles · Upkeep $${UPKEEP_POLICE_STATION}/mo`,
+      primary_school:      `Basic education radius ${PRIMARY_SCHOOL_RADIUS} tiles · Upkeep $${UPKEEP_PRIMARY_SCHOOL}/mo`,
+      secondary_school:    `Basic education radius ${SECONDARY_SCHOOL_RADIUS} tiles · Upkeep $${UPKEEP_SECONDARY_SCHOOL}/mo`,
+      library:             `Basic education radius ${LIBRARY_RADIUS} tiles · Upkeep $${UPKEEP_LIBRARY}/mo`,
+      community_college:   `Higher education radius ${COMMUNITY_COLLEGE_RADIUS} tiles · Upkeep $${UPKEEP_COMMUNITY_COLLEGE}/mo`,
+      university:          `Higher education radius ${UNIVERSITY_RADIUS} tiles · Upkeep $${UPKEEP_UNIVERSITY}/mo`,
+      park_small:          `Residential happiness radius ${SMALL_PARK_RADIUS} tiles · Upkeep $${UPKEEP_PARK_SMALL}/mo`,
+      park_large:          `Residential happiness radius ${LARGE_PARK_RADIUS} tiles · Upkeep $${UPKEEP_PARK_LARGE}/mo`,
+      sports_ground_small: `Recreation radius ${SPORTS_GROUND_RADIUS} tiles · Upkeep $${UPKEEP_SPORTS_GROUND_SMALL}/mo`,
+      sports_ground_large: `Recreation radius ${SPORTS_GROUND_RADIUS} tiles · Upkeep $${UPKEEP_SPORTS_GROUND_LARGE}/mo`,
     };
     const INFRA_COLORS = {
-      power_plant_coal: '#ffcc44', power_plant_solar: '#ffe066',
-      fire_station: '#ff7755',     police_station: '#6699ff',
-      primary_school: '#59a9ff',   secondary_school: '#2f78cc',
-      library: '#6f9cd6',          community_college: '#7a77cc',
-      university: '#5f52b4',
-      park_small: '#58d66a',        park_large: '#32b457',
+      power_plant_coal:    '#ffcc44', power_plant_solar:   '#ffe066',
+      fire_station:        '#ff7755', police_station:      '#6699ff',
+      primary_school:      '#59a9ff', secondary_school:    '#2f78cc',
+      library:             '#6f9cd6', community_college:   '#7a77cc',
+      university:          '#5f52b4',
+      park_small:          '#58d66a', park_large:          '#32b457',
+      sports_ground_small: '#f0a830', sports_ground_large: '#e07b20',
     };
     html += `
       <div style="color:${INFRA_COLORS[bData.type]};font-weight:bold">${INFRA_LABELS[bData.type]}</div>

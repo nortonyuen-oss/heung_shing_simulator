@@ -33,6 +33,7 @@ function setupToolMenu() {
   setupTerrainTool(menu);
   setupZoneDensityTools(menu);
   setupParkTool(menu);
+  initSportsGroundToolMenu(menu);
 
   window.addEventListener('pointerup', () => {
     const wasPainting = isPainting;
@@ -79,6 +80,9 @@ function setupToolMenu() {
     }
     if (!event.target.closest('#park-picker') && !event.target.closest('[data-tool="park"]')) {
       closeParkPicker();
+    }
+    if (!event.target.closest('#sports-ground-picker') && !event.target.closest('[data-tool="sports-ground"]')) {
+      closeSportsGroundPicker();
     }
   });
 
@@ -723,6 +727,122 @@ function getSelectedParkOption() {
 function getParkOptionBySpriteKey(spriteKey) {
   return PARK_OPTIONS.find((opt) => opt.spriteKey === spriteKey)
     ?? PARK_OPTIONS.find((opt) => opt.spriteKey === 'park_small_open');
+}
+
+// ── Sports Ground picker ──────────────────────────────────────────────────────
+
+let selectedSportsGroundId = 'sports_ground_small';
+let sportsGroundPressTimer = null;
+
+function getSelectedSportsGroundOption() {
+  return SPORT_GROUND_OPTIONS.find((opt) => opt.id === selectedSportsGroundId) ?? SPORT_GROUND_OPTIONS[0];
+}
+
+function openSportsGroundPicker(triggerButton = document.querySelector('[data-tool="sports-ground"]')) {
+  const picker = document.getElementById('sports-ground-picker');
+  if (!picker) return;
+
+  picker.innerHTML = '';
+  SPORT_GROUND_OPTIONS.forEach((opt) => {
+    const btn = document.createElement('button');
+    btn.className = 'popup-button';
+    btn.type = 'button';
+    btn.dataset.sportId = opt.id;
+    btn.classList.toggle('is-active', opt.id === selectedSportsGroundId);
+
+    const icon = document.createElement('span');
+    icon.className = 'park-popup-icon';
+    icon.textContent = opt.icon;
+    icon.setAttribute('aria-hidden', 'true');
+
+    const label = document.createElement('span');
+    label.className = 'popup-label';
+    label.textContent = `${t(opt.titleKey)} ${opt.badge}`;
+
+    const cost = document.createElement('span');
+    cost.className = 'popup-cost';
+    cost.textContent = `$${opt.cost}`;
+
+    btn.append(icon, label, cost);
+    picker.append(btn);
+  });
+
+  const bounds = triggerButton?.getBoundingClientRect();
+  if (bounds) {
+    picker.style.left = `${Math.round(bounds.right + 8)}px`;
+    picker.style.top = `${bounds.top}px`;
+  }
+  picker.classList.add('is-open');
+}
+
+function closeSportsGroundPicker() {
+  document.getElementById('sports-ground-picker')?.classList.remove('is-open');
+}
+
+function toggleSportsGroundPicker(triggerButton) {
+  const picker = document.getElementById('sports-ground-picker');
+  if (picker?.classList.contains('is-open')) closeSportsGroundPicker();
+  else openSportsGroundPicker(triggerButton);
+}
+
+function updateSportsGroundToolUi() {
+  const btn = document.querySelector('[data-tool="sports-ground"]');
+  const badge = document.getElementById('sports-ground-tool-badge');
+  const icon = document.getElementById('sports-ground-tool-icon');
+  const opt = getSelectedSportsGroundOption();
+  if (!btn || !opt) return;
+
+  if (badge) badge.textContent = opt.badge;
+  if (icon) icon.textContent = opt.icon;
+  btn.title = t('tool.sportsGround', { name: t(opt.titleKey), badge: opt.badge, cost: opt.cost });
+  btn.setAttribute('aria-label', btn.title);
+}
+
+function initSportsGroundToolMenu(menu) {
+  const sgButton = menu.querySelector('[data-tool="sports-ground"]');
+  if (!sgButton) return;
+
+  const picker = document.getElementById('sports-ground-picker');
+  if (!picker) return;
+
+  sgButton.addEventListener('pointerdown', () => {
+    sportsGroundPressTimer = window.setTimeout(() => {
+      sportsGroundPressTimer = null;
+      toggleSportsGroundPicker(sgButton);
+    }, 350);
+  });
+
+  sgButton.addEventListener('pointerup', () => {
+    if (sportsGroundPressTimer) {
+      clearTimeout(sportsGroundPressTimer);
+      sportsGroundPressTimer = null;
+      selectedTool = 'sports-ground';
+      closeSportsGroundPicker();
+      updateSportsGroundToolUi();
+      menu.querySelectorAll('[data-tool]').forEach((toolButton) => {
+        toolButton.classList.toggle('is-active', toolButton === sgButton);
+      });
+    }
+  });
+
+  sgButton.addEventListener('pointerleave', () => {
+    if (!sportsGroundPressTimer) return;
+    clearTimeout(sportsGroundPressTimer);
+    sportsGroundPressTimer = null;
+  });
+
+  picker.addEventListener('pointerdown', (event) => event.stopPropagation());
+  picker.addEventListener('click', (event) => {
+    const btn = event.target.closest('[data-sport-id]');
+    if (!btn) return;
+    selectedSportsGroundId = btn.dataset.sportId;
+    selectedTool = 'sports-ground';
+    closeSportsGroundPicker();
+    updateSportsGroundToolUi();
+    menu.querySelectorAll('[data-tool]').forEach((toolButton) => {
+      toolButton.classList.toggle('is-active', toolButton === sgButton);
+    });
+  });
 }
 
 function updateParkToolUi() {

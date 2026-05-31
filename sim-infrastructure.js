@@ -249,8 +249,10 @@ function updateServiceCoverage() {
     if (record.type === 'library') bfsService(id, 'eduBasic', LIBRARY_RADIUS, 0.35);
     if (record.type === 'community_college') bfsService(id, 'eduHigher', COMMUNITY_COLLEGE_RADIUS, 0.45);
     if (record.type === 'university') bfsService(id, 'eduHigher', UNIVERSITY_RADIUS, 0.75);
-    if (record.type === 'park_small')      bfsService(id, 'park',   SMALL_PARK_RADIUS, 1);
-    if (record.type === 'park_large')      bfsService(id, 'park',   LARGE_PARK_RADIUS, 2);
+    if (record.type === 'park_small')           bfsService(id, 'park',         SMALL_PARK_RADIUS,   1);
+    if (record.type === 'park_large')           bfsService(id, 'park',         LARGE_PARK_RADIUS,   2);
+    if (record.type === 'sports_ground_small')  bfsService(id, 'sportsGround', SPORTS_GROUND_RADIUS, 1);
+    if (record.type === 'sports_ground_large')  bfsService(id, 'sportsGround', SPORTS_GROUND_RADIUS, 2);
   });
 }
 

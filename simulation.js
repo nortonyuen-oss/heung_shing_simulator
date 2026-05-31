@@ -356,6 +356,8 @@ function computeHappiness(scene) {
       if (zoneMap[r][c] === ZONE_RES) {
         residential++;
         parkScore += Math.min(serviceMap[r]?.[c]?.park ?? 0, 2);
+        // Sports grounds contribute an additional recreation bonus (up to +0.5 park-equivalent)
+        parkScore += Math.min((serviceMap[r]?.[c]?.sportsGround ?? 0) * 0.5, 1);
         if (typeof getTreeInfluenceValue === 'function') treeScore += getTreeInfluenceValue(r, c);
         if (typeof getScenicValue === 'function') scenicScore += getScenicValue(r, c);
       }

@@ -137,9 +137,9 @@ const UPGRADE_CHANCE   = 0.15;
 const SHRINK_CHANCE    = 0.30;
 const RES_2X2_SPAWN_CHANCE = { 1: 0.20, 2: 0.45, 3: 0.70 };
 const RES_LARGE_SPAWN_CHANCE = {
-  3: { 3: 0.18, 4: 0.08 },
-  2: { 3: 0.08, 4: 0.00 },
-  1: { 3: 0.00, 4: 0.00 },
+  3: { 3: 0.18, 4: 0.08, 5: 0.04 },
+  2: { 3: 0.08, 4: 0.00, 5: 0.00 },
+  1: { 3: 0.00, 4: 0.00, 5: 0.00 },
 };
 const COM_LARGE_SPAWN_CHANCE = {
   3: { 2: 0.80, 3: 0.58, 4: 0.28 },
@@ -167,8 +167,9 @@ const SECONDARY_SCHOOL_RADIUS = 16;
 const LIBRARY_RADIUS = 18;
 const COMMUNITY_COLLEGE_RADIUS = 20;
 const UNIVERSITY_RADIUS = 26;
-const SMALL_PARK_RADIUS     = 6;
-const LARGE_PARK_RADIUS     = 12;
+const SMALL_PARK_RADIUS      = 6;
+const LARGE_PARK_RADIUS      = 12;
+const SPORTS_GROUND_RADIUS   = 10;
 
 // Education simulation tuning
 const EDUCATION_BASIC_SMOOTHING = 0.10;
@@ -194,8 +195,10 @@ const COST_COMMUNITY_COLLEGE = 3200;
 const COST_UNIVERSITY = 8000;
 const COST_LEGISLATIVE_COUNCIL = 5200;
 const COST_STOCK_EXCHANGE = 9800;
-const COST_PARK_SMALL    = 250;
-const COST_PARK_LARGE    = 900;
+const COST_PARK_SMALL          = 250;
+const COST_PARK_LARGE          = 900;
+const COST_SPORTS_GROUND_SMALL = 600;
+const COST_SPORTS_GROUND_LARGE = 1400;
 const COST_TREE          = 15;
 const COST_BULLDOZE      = 5;
 
@@ -238,57 +241,71 @@ const POWER_PLANT_MODELS = {
 const SERVICE_BUILDING_MODELS = {
   fire_station: {
     spriteKey: 'fire_station_2x2',
-    path: 'Models/govBuildings/2x2/fireStation2-01.png',
+    path: 'Models/government/2x2/fireStation2-01_fixed.png',
     footprintCols: 2,
     footprintRows: 2,
   },
   police_station: {
     spriteKey: 'police_station_2x2',
-    path: 'Models/govBuildings/2x2/policeStation2-01.png',
+    path: 'Models/government/2x2/policeStation2-01_fixed.png',
     footprintCols: 2,
     footprintRows: 2,
   },
   primary_school: {
     spriteKey: 'primary_school_2x2',
-    path: 'Models/govBuildings/2x2/primarySchool2-01.png',
+    path: 'Models/government/2x2/primarySchool2-01_fixed.png',
     footprintCols: 2,
     footprintRows: 2,
   },
   secondary_school: {
     spriteKey: 'secondary_school_2x2',
-    path: 'Models/govBuildings/2x2/secondarySchool2-02.png',
+    path: 'Models/government/2x2/secondarySchool2-01_fixed.png',
     footprintCols: 2,
     footprintRows: 2,
   },
   library: {
     spriteKey: 'library_2x2',
-    path: 'Models/govBuildings/2x2/library2-01.png',
+    path: 'Models/government/2x2/library2-01_fixed.png',
     footprintCols: 2,
     footprintRows: 2,
   },
   community_college: {
     spriteKey: 'community_college_3x3',
-    path: 'Models/govBuildings/3x3/university3-01.png',
+    path: 'Models/government/3x3/college3-01_fixed.png',
     footprintCols: 3,
     footprintRows: 3,
   },
   university: {
     spriteKey: 'university_4x4',
-    path: 'Models/govBuildings/4x4/university4-01.png',
+    path: 'Models/government/4x4/university4-01_fixed.png',
     footprintCols: 4,
     footprintRows: 4,
   },
   legislative_council: {
     spriteKey: 'legislative_council_2x2',
-    path: 'Models/govBuildings/2x2/legistrativeCouncil2-01.png',
+    path: 'Models/government/2x2/legistrativeCouncil2-01_fixed.png',
     footprintCols: 2,
     footprintRows: 2,
   },
+  // Stock exchange moved from 4×4 → 3×3 in new assets
   stock_exchange: {
-    spriteKey: 'stock_exchange_4x4',
-    path: 'Models/govBuildings/4x4/stockMarket.png',
-    footprintCols: 4,
-    footprintRows: 4,
+    spriteKey: 'stock_exchange_3x3',
+    path: 'Models/government/3x3/stockExchange3-01_fixed.png',
+    footprintCols: 3,
+    footprintRows: 3,
+  },
+  // Sports grounds: two sizes, handled via SPORT_GROUND_OPTIONS picker
+  sports_ground_small: {
+    spriteKey: 'sports_ground_2x2',
+    path: 'Models/parks/park2x2/sportField3-02_fixed.png',
+    footprintCols: 2,
+    footprintRows: 2,
+  },
+  sports_ground_large: {
+    spriteKey: 'sports_ground_3x3',
+    path: 'Models/parks/park3x3/sportField3-01_fixed.png',
+    footprintCols: 3,
+    footprintRows: 3,
   },
 };
 
@@ -336,6 +353,8 @@ const BUILDING_POWER_DEMAND = {
   university: 30,
   park_small: 2,
   park_large: 4,
+  sports_ground_small: 4,
+  sports_ground_large: 8,
 };
 
 // Monthly upkeep costs
@@ -349,8 +368,10 @@ const UPKEEP_SECONDARY_SCHOOL = 260;
 const UPKEEP_LIBRARY = 220;
 const UPKEEP_COMMUNITY_COLLEGE = 420;
 const UPKEEP_UNIVERSITY = 900;
-const UPKEEP_PARK_SMALL     = 25;
-const UPKEEP_PARK_LARGE     = 80;
+const UPKEEP_PARK_SMALL          = 25;
+const UPKEEP_PARK_LARGE          = 80;
+const UPKEEP_SPORTS_GROUND_SMALL = 60;
+const UPKEEP_SPORTS_GROUND_LARGE = 160;
 
 // Starting budget
 const STARTING_BUDGET = 10000;

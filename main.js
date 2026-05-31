@@ -828,6 +828,13 @@ const config = {
   type: Phaser.AUTO,
   parent: 'game-container',
   backgroundColor: '#87ceeb',
+  render: {
+    antialias: true,
+    antialiasGL: true,
+    pixelArt: false,
+    roundPixels: false,
+    mipmapFilter: 'LINEAR_MIPMAP_LINEAR',
+  },
   scale: {
     mode: Phaser.Scale.RESIZE,
     width: '100%',

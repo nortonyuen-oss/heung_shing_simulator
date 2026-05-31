@@ -124,6 +124,7 @@ function growOrShrinkZones(scene) {
         } else if (
           record.level >= 3
           && (zone === ZONE_RES || zone === ZONE_COM)
+          && (zone !== ZONE_RES || density === DENSITY_LOW)
           && isHighScoreModelEligible(landScore)
           && (city.unemploymentRate ?? 1) < 0.12
           && (city.demandC ?? 0) > 0.10
@@ -162,14 +163,14 @@ function spawnZoneBuilding(scene, r, c, zone, level, density = DENSITY_LOW, opti
   if (zone === ZONE_RES) {
     const footprintSize = chooseResidentialFootprint(scene, r, c, density, optionsOverride, landScore);
     const setKey = getResidentialHouseSetForFootprint(footprintSize);
-    const model = getRandomHouseModel(setKey, landScore, preferHighScore);
+    const model = getRandomHouseModel(setKey, landScore, preferHighScore, density);
 
     if (model) {
       key     = model.key;
       options = { ...model.metadata };
     } else if (footprintSize > 1) {
       // Larger models not ready yet — fall back to 1×1.
-      const fallback = getRandomHouseModel('house', landScore, preferHighScore);
+      const fallback = getRandomHouseModel('house', landScore, preferHighScore, density);
       if (fallback) {
         key     = fallback.key;
         options = { ...fallback.metadata };
@@ -522,12 +523,13 @@ function pickWithHighScoreBias(valid, cacheKey, landScore, preferHighScore) {
 
 // Returns a random house model from the given set that has valid computed metadata.
 // setKey = 'house' (1×1) | 'house2x2' (2×2) | 'house1x4' (1×4)
-function getRandomHouseModel(setKey = 'house', landScore = 0.5, preferHighScore = false) {
+function getRandomHouseModel(setKey = 'house', landScore = 0.5, preferHighScore = false, density = DENSITY_LOW) {
   const all = (houseModelSets && houseModelSets[setKey]) ? houseModelSets[setKey] : [];
   // Only use models whose scale was computed successfully (> 0.05 avoids near-invisible sprites)
   const valid = all.filter((m) => {
     if (!m.metadata || m.metadata.scale <= 0.05) return false;
     if (isHighScoreModel(m) && !isHighScoreModelEligible(landScore)) return false;
+    if (isHighScoreModel(m) && density !== DENSITY_LOW) return false;
     return true;
   });
   if (valid.length === 0) return null;

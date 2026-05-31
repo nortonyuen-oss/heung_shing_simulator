@@ -1054,17 +1054,17 @@ function preload() {
     this.load.image(model.key, model.path);
   });
   // Parks (new asset filenames)
-  this.load.image('park_small_open',       'Models/parks/park1x1/park1-01_fixed.png');
-  this.load.image('park_small_playground', 'Models/parks/park1x1/park1-02_fixed.png');
-  this.load.image('park_small_garden',     'Models/parks/park1x1/park1-03_fixed.png');
-  this.load.image('park_small_plaza',      'Models/parks/park1x1/park1-04_fixed.png');
-  this.load.image('park_small_palm',       'Models/parks/park2x2/park2-02_fixed.png');
-  this.load.image('park_large_highscore',  'Models/parks/park2x2/park2-03-highScore_fixed.png');
-  this.load.image('park_small',            'Models/parks/park1x1/park1-01_fixed.png');
-  this.load.image('park_large',            'Models/parks/park3x3/park3-01_fixed.png');
+  this.load.image('park_small_open',       'Models/parks/park1x1/park1-01.png');
+  this.load.image('park_small_playground', 'Models/parks/park1x1/park1-02.png');
+  this.load.image('park_small_garden',     'Models/parks/park1x1/park1-03.png');
+  this.load.image('park_small_plaza',      'Models/parks/park1x1/park1-04.png');
+  this.load.image('park_small_palm',       'Models/parks/park2x2/park2-02.png');
+  this.load.image('park_large_highscore',  'Models/parks/park2x2/park2-03-highScore.png');
+  this.load.image('park_small',            'Models/parks/park1x1/park1-01.png');
+  this.load.image('park_large',            'Models/parks/park3x3/park3-01.png');
   // Sports grounds
-  this.load.image('sports_ground_2x2',     'Models/parks/park2x2/sportField3-02_fixed.png');
-  this.load.image('sports_ground_3x3',     'Models/parks/park3x3/sportField3-01_fixed.png');
+  this.load.image('sports_ground_2x2',     'Models/parks/park2x2/sportField3-02.png');
+  this.load.image('sports_ground_3x3',     'Models/parks/park3x3/sportField3-01.png');
   Object.values(POWER_PLANT_MODELS).forEach((model) => {
     this.load.image(model.spriteKey, model.path);
   });
@@ -3305,7 +3305,7 @@ function refreshBridgeSprite(scene, row, col) {
     return;
   }
 
-  const key = getRoadKey(row, col);
+  const key = getBridgeDeckKey(row, col);
   const pos = isoToScreen(col, row);
   const x = pos.x + scene.offsetX;
   const y = pos.y + scene.offsetY + getBridgeDeckVisualOffset(row, col, key);
@@ -3345,13 +3345,17 @@ function repositionBridgeSprites(scene) {
       scene.bridgeSprites.delete(id);
       return;
     }
-    const key = getRoadKey(row, col);
+    const key = getBridgeDeckKey(row, col);
     const pos = isoToScreen(col, row);
     const depth = getTerrainTileDepth(row, col, key, pos.y);
     entry.setTexture(key);
     entry.setPosition(pos.x + scene.offsetX, pos.y + scene.offsetY + getBridgeDeckVisualOffset(row, col, key));
     entry.setDepth(depth + 0.45);
   });
+}
+
+function getBridgeDeckKey(row, col) {
+  return rotateTileKey(getRoadKey(row, col), mapRotation);
 }
 
 function destroyBridgeSpriteEntry(entry) {

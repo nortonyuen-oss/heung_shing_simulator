@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>City Builder Classic</title>
+  <title>香城模擬器 | The City of Heung Shing v1.0</title>
   <style>
     * { box-sizing: border-box; }
 
@@ -542,10 +542,52 @@
     /* Must sit above #landing-screen (z-index: 400) */
     #save-list-modal { z-index: 500; }
 
+    #save-list-modal .dialog-overlay {
+      background: rgba(8, 14, 20, 0.62);
+      backdrop-filter: blur(4px) saturate(0.9);
+    }
+
+    #save-list-modal .dialog-box {
+      background: linear-gradient(180deg, rgba(245, 244, 237, 0.98) 0%, rgba(236, 233, 225, 0.96) 100%);
+      border: 3px solid #2a6f61;
+      border-radius: 16px;
+      box-shadow: 0 22px 42px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.82);
+      overflow: hidden;
+    }
+
+    #save-list-modal .dialog-title-bar {
+      background: linear-gradient(90deg, #136249 0%, #0f5a57 52%, #114b67 100%);
+      color: #ebf8f1;
+      border-radius: 0;
+      min-height: 38px;
+      padding: 8px 12px;
+      font-size: 14px;
+      letter-spacing: 0.03em;
+    }
+
+    #save-list-modal .dialog-close-btn {
+      border: 1px solid rgba(213, 239, 228, 0.45);
+      background: rgba(5, 39, 46, 0.38);
+      color: #ecf8f2;
+      border-radius: 8px;
+      width: 26px;
+      height: 24px;
+      line-height: 1;
+      display: grid;
+      place-items: center;
+      padding: 0;
+    }
+
+    #save-list-modal .dialog-close-btn:hover {
+      background: rgba(7, 51, 60, 0.72);
+    }
+
     .save-list-items {
       overflow-y: auto;
       max-height: 55vh;
-      padding: 4px 0;
+      padding: 10px;
+      display: grid;
+      gap: 8px;
     }
 
     .save-list-loading,
@@ -570,12 +612,17 @@
       align-items: center;
       justify-content: space-between;
       gap: 12px;
-      padding: 9px 14px;
-      border-bottom: 1px solid #cac4b3;
+      padding: 10px 12px;
+      border: 1px solid rgba(67, 99, 104, 0.38);
+      border-radius: 10px;
+      background: rgba(250, 252, 250, 0.66);
       font-family: Arial, sans-serif;
     }
-    .save-list-item:last-child { border-bottom: none; }
-    .save-list-item:hover { background: #ece7d4; }
+    .save-list-item:last-child { border-bottom: 1px solid rgba(67, 99, 104, 0.38); }
+    .save-list-item:hover {
+      background: rgba(230, 240, 235, 0.76);
+      border-color: rgba(34, 92, 84, 0.65);
+    }
 
     .save-list-meta {
       display: flex;
@@ -607,29 +654,47 @@
       flex-shrink: 0;
     }
     .save-list-load-btn {
-      padding: 4px 14px;
+      padding: 5px 14px;
       font-size: 12px;
       font-weight: 700;
-      background: #2255cc;
-      color: #fff;
-      border: 2px solid #1a3f99;
-      border-radius: 4px;
+      background: linear-gradient(180deg, #1f7f66 0%, #1a6f5a 100%);
+      color: #eef7f3;
+      border: 1px solid #105746;
+      border-radius: 7px;
       cursor: pointer;
       font-family: Arial, sans-serif;
       white-space: nowrap;
     }
-    .save-list-load-btn:hover { background: #1a3f99; }
+    .save-list-load-btn:hover { background: linear-gradient(180deg, #24886d 0%, #1c765f 100%); }
 
     .save-list-del-btn {
-      padding: 4px 8px;
+      padding: 5px 9px;
       font-size: 13px;
-      background: #ece7d4;
-      border: 2px solid #a7a08d;
-      border-radius: 4px;
+      background: #f2ede0;
+      border: 1px solid #a39f8f;
+      border-radius: 7px;
       cursor: pointer;
       line-height: 1;
     }
-    .save-list-del-btn:hover { background: #e8c8c8; border-color: #883333; }
+    .save-list-del-btn:hover { background: #e8d1cf; border-color: #8d4e4a; }
+
+    #save-list-modal .dialog-footer {
+      border-top: 1px solid rgba(57, 92, 99, 0.28);
+      background: rgba(239, 245, 239, 0.55);
+    }
+
+    #save-list-modal .dialog-ok-btn {
+      border: 1px solid #5f7477;
+      border-radius: 8px;
+      background: #f3f5f1;
+      color: #173137;
+      box-shadow: 0 2px 0 rgba(16, 46, 42, 0.2);
+      padding: 5px 16px;
+    }
+
+    #save-list-modal .dialog-ok-btn:hover {
+      background: #e8eeea;
+    }
 
     /* ── Toolbar ──────────────────────────────────────────────────────────── */
 
@@ -3034,6 +3099,424 @@
       text-align: center;
     }
 
+    /* ── Hong Kong title-screen redesign ───────────────────────────────── */
+    #landing-screen {
+      background: #0b1118 url('UI/backgroundTitle.png') center center / cover no-repeat;
+      backdrop-filter: none;
+      overflow: hidden;
+    }
+
+    #landing-screen::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(15, 22, 30, 0.25) 0%, rgba(4, 8, 13, 0.5) 100%);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    #landing-screen::after {
+      content: '香城市政規劃局 Presents';
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-top: 1px solid rgba(123, 219, 176, 0.4);
+      background: linear-gradient(90deg, rgba(11, 62, 52, 0.95) 0%, rgba(10, 75, 70, 0.92) 38%, rgba(9, 53, 70, 0.94) 100%);
+      color: rgba(214, 247, 231, 0.95);
+      font: 700 12px/1.2 'Noto Sans TC', 'IBM Plex Sans', sans-serif;
+      letter-spacing: 0.08em;
+      text-transform: none;
+      box-shadow: 0 -8px 18px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.16);
+      z-index: 4;
+    }
+
+    .landing-card {
+      background: transparent;
+      border: none;
+      border-radius: 0;
+      box-shadow: none;
+      width: min(860px, 94vw);
+      max-width: 860px;
+      padding: 20px 0 16px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      position: relative;
+      z-index: 3;
+    }
+
+    .landing-card::after {
+      display: none;
+    }
+
+    #landing-menu {
+      display: grid;
+      justify-items: center;
+      gap: 12px;
+      width: 100%;
+    }
+
+    .landing-icon {
+      display: none;
+    }
+
+    .landing-title {
+      margin: 0;
+      width: min(790px, 92vw);
+      padding: 16px 28px 34px;
+      border-radius: 24px;
+      border: 4px solid #d4d7d2;
+      color: #e6eee8;
+      font-family: 'PMingLiU', 'MingLiU', 'Songti TC', 'Noto Serif TC', 'STSong', serif;
+      text-shadow: 0 2px 0 rgba(0, 0, 0, 0.36), 0 6px 20px rgba(0, 0, 0, 0.28);
+      font-size: clamp(30px, 5.3vw, 58px);
+      line-height: 0.95;
+      letter-spacing: 0.04em;
+      font-weight: 900;
+      background:
+        linear-gradient(180deg, rgba(18, 90, 61, 0.88) 0%, rgba(7, 62, 42, 0.9) 100%),
+        repeating-linear-gradient(0deg, rgba(214, 246, 221, 0.08) 0 1px, transparent 1px 12px),
+        repeating-linear-gradient(90deg, rgba(214, 246, 221, 0.07) 0 1px, transparent 1px 12px),
+        url('UI/nameplate.png');
+      background-size: auto, auto, auto, 420px 420px;
+      background-position: center, center, center, center;
+      background-blend-mode: normal, normal, normal, multiply;
+      box-shadow:
+        0 20px 42px rgba(0, 0, 0, 0.44),
+        inset 0 2px 0 rgba(255, 255, 255, 0.28),
+        inset 0 -2px 0 rgba(6, 39, 27, 0.62);
+    }
+
+    .landing-tagline {
+      margin: -46px 0 14px;
+      width: min(790px, 92vw);
+      color: #eaf3ef;
+      font-size: clamp(12px, 1.2vw, 16px);
+      letter-spacing: 0.09em;
+      font-weight: 700;
+      text-transform: none;
+      padding: 0 20px;
+      text-shadow: 0 3px 14px rgba(0, 0, 0, 0.45);
+      position: relative;
+      z-index: 2;
+    }
+
+    #landing-menu .landing-actions {
+      width: min(500px, 88vw);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      border-radius: 0;
+      border: none;
+      background: transparent;
+      box-shadow: none;
+      overflow: visible;
+      position: relative;
+      padding: 0;
+    }
+
+    #landing-menu .landing-actions::before {
+      display: none;
+    }
+
+    #landing-menu .landing-btn {
+      appearance: none;
+      position: relative;
+      border: none;
+      border-radius: 0;
+      background: transparent;
+      color: #121a22;
+      font-size: 20px;
+      font-weight: 800;
+      min-height: 78px;
+      padding: 10px 20px;
+      text-align: center;
+      letter-spacing: 0.02em;
+      line-height: 1.14;
+      transition: background 120ms ease, transform 120ms ease;
+      font-family: 'Noto Sans TC', 'IBM Plex Sans', sans-serif;
+      box-shadow: none;
+      z-index: 1;
+      display: grid;
+      place-content: center;
+      gap: 3px;
+      isolation: isolate;
+      overflow: visible;
+    }
+
+    #landing-menu .landing-btn:last-child {
+      border-bottom: none;
+    }
+
+    #landing-menu .landing-btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 50%;
+      width: 70%;
+      transform: translateX(-50%);
+      clip-path: polygon(4.8% 0, 95.2% 0, 100% 50%, 95.2% 100%, 4.8% 100%, 0 50%);
+      background: #ffffff;
+      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.28);
+      z-index: 1;
+    }
+
+    #landing-menu .landing-btn::after {
+      content: '';
+      position: absolute;
+      left: 50%;
+      width: 85.6%;
+      bottom: -13px;
+      height: 19px;
+      transform: translateX(-50%);
+      border-radius: 11px 11px 3px 3px;
+      background: #040a14;
+      box-shadow: 0 3px 7px rgba(0,0,0,0.38), inset 0 1px 0 rgba(255,255,255,0.06);
+      z-index: 0;
+    }
+
+    #landing-menu .landing-btn.primary,
+    #landing-menu .landing-btn.secondary {
+      background: transparent;
+      color: #121a22;
+      border-color: transparent;
+      box-shadow: none;
+    }
+
+    #landing-menu .landing-btn:hover::before {
+      background: #fbfbfb;
+    }
+
+    #landing-menu .landing-btn:hover {
+      transform: none;
+    }
+
+    #landing-menu .landing-btn:active::before {
+      background: #f2f2f2;
+    }
+
+    .landing-btn-main {
+      display: block;
+      position: relative;
+      z-index: 2;
+      font-size: clamp(14px, 1.2vw, 19px);
+      line-height: 1.08;
+      letter-spacing: 0.02em;
+      font-weight: 900;
+    }
+
+    .landing-btn-sub {
+      display: block;
+      position: relative;
+      z-index: 2;
+      margin-top: 2px;
+      font-size: clamp(16px, 1.45vw, 22px);
+      font-weight: 900;
+      letter-spacing: 0.03em;
+      color: #111a22;
+      opacity: 1;
+    }
+
+    #landing-name-form .landing-actions,
+    #landing-terrain-form .landing-actions {
+      width: 100%;
+      display: flex;
+      gap: 8px;
+      border: none;
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+      overflow: visible;
+      margin-top: 8px;
+    }
+
+    #landing-name-form .landing-actions::before,
+    #landing-terrain-form .landing-actions::before {
+      display: none;
+    }
+
+    #landing-name-form .landing-btn,
+    #landing-terrain-form .landing-btn {
+      border: 1px solid #5f7477;
+      border-radius: 9px;
+      background: #f3f5f1;
+      color: #173137;
+      font-size: 17px;
+      font-weight: 800;
+      line-height: 1.2;
+      text-align: center;
+      padding: 12px 14px;
+      box-shadow: 0 2px 0 rgba(16, 46, 42, 0.2);
+    }
+
+    #landing-name-form .landing-btn:hover,
+    #landing-terrain-form .landing-btn:hover {
+      background: #e8eeea;
+    }
+
+    #landing-name-form .landing-btn.primary,
+    #landing-terrain-form .landing-btn.primary {
+      background: linear-gradient(180deg, #1f7f66 0%, #1a6f5a 100%);
+      border-color: #105746;
+      color: #edf7f3;
+    }
+
+    #landing-name-form .landing-btn.primary:hover,
+    #landing-terrain-form .landing-btn.primary:hover {
+      background: linear-gradient(180deg, #24886d 0%, #1c765f 100%);
+    }
+
+    #landing-load-status {
+      margin-top: 8px;
+      border: none;
+      padding: 4px 8px 2px;
+      color: #d2e8de;
+      font-size: 12px;
+      letter-spacing: 0.06em;
+      min-height: 18px;
+    }
+
+    #landing-preload-panel {
+      width: min(700px, 92vw);
+      margin-top: 4px;
+      border: 1px solid rgba(129, 216, 184, 0.34);
+      border-radius: 12px;
+      background: rgba(6, 61, 56, 0.72);
+      padding: 9px 12px 6px;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+      backdrop-filter: blur(1px);
+    }
+
+    .landing-preload-row {
+      color: #d6efe5;
+      font-size: 11px;
+      letter-spacing: 0.06em;
+    }
+
+    #landing-preload-percent {
+      color: #f2fff8;
+    }
+
+    .landing-preload-track {
+      border-color: rgba(141, 221, 191, 0.55);
+      background: rgba(8, 42, 38, 0.6);
+      height: 8px;
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4);
+    }
+
+    #landing-preload-fill {
+      background: linear-gradient(90deg, #2c9b79 0%, #56bc9d 55%, #87d4b8 100%);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.42);
+    }
+
+    #landing-hint-marquee {
+      border-top-color: rgba(146, 219, 191, 0.3);
+      color: rgba(215, 242, 231, 0.88);
+      font-size: 10px;
+      letter-spacing: 0.05em;
+      padding-top: 6px;
+    }
+
+    #landing-name-form,
+    #landing-terrain-form {
+      width: min(560px, 92vw);
+      border-radius: 18px;
+      border: 3px solid #2a6f61;
+      padding: 22px;
+      background: linear-gradient(180deg, rgba(245, 244, 237, 0.97) 0%, rgba(236, 233, 225, 0.95) 100%);
+      box-shadow: 0 18px 34px rgba(0, 0, 0, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+      position: relative;
+      overflow: hidden;
+    }
+
+    #landing-name-form::before,
+    #landing-terrain-form::before {
+      content: '';
+      position: absolute;
+      left: 14px;
+      top: 16px;
+      bottom: 16px;
+      width: 3px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #1b7d67 0%, #4da18f 52%, #2f6b9f 100%);
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.55);
+      opacity: 0.75;
+      pointer-events: none;
+    }
+
+    #city-name-input,
+    .landing-form-select,
+    .landing-form-input {
+      border-radius: 10px;
+      border-color: #5e6f73;
+      background: #f9faf7;
+      color: #16282d;
+    }
+
+    .landing-form-title {
+      color: #1f2d31;
+      font-size: 19px;
+      margin-bottom: 14px;
+      letter-spacing: 0.02em;
+    }
+
+    @media (max-width: 860px) {
+      .landing-title {
+        border-width: 3px;
+        border-radius: 20px;
+        padding: 13px 16px 24px;
+      }
+
+      .landing-tagline {
+        margin-top: -30px;
+        margin-bottom: 8px;
+        letter-spacing: 0.06em;
+      }
+
+      #landing-menu .landing-btn {
+        font-size: 18px;
+        min-height: 66px;
+        padding: 8px 16px;
+      }
+
+      #landing-menu .landing-btn::after {
+        left: 50%;
+        width: 84%;
+        bottom: -11px;
+        height: 16px;
+      }
+
+      .landing-btn-main {
+        font-size: clamp(12px, 2.5vw, 15px);
+      }
+
+      .landing-btn-sub {
+        font-size: clamp(13px, 3.4vw, 18px);
+      }
+
+      #landing-name-form .landing-actions,
+      #landing-terrain-form .landing-actions {
+        flex-direction: column;
+      }
+
+      .landing-card::after {
+        font-size: 11px;
+      }
+
+      #landing-screen::after {
+        height: 32px;
+        font-size: 11px;
+      }
+    }
+
     .terrain-preset-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3923,15 +4406,17 @@ Ctrl+O       Load game (open saves list)</div>
     <div class="dialog-overlay"></div>
     <div class="dialog-box" style="max-width:340px">
       <div class="dialog-title-bar">
-        <span data-i18n="dialog.aboutTitle">About City Builder</span>
+        <span data-i18n="dialog.aboutTitle">About The City of Heung Shing</span>
         <button class="dialog-close-btn" data-close-dialog="about-dialog">✕</button>
       </div>
       <div class="dialog-body" style="text-align:center; font-family:Arial,sans-serif">
         <div style="font-size:48px; margin:8px 0">🏙️</div>
-        <div style="font-size:18px; font-weight:900; margin-bottom:6px" data-i18n="app.name">City Builder</div>
-        <div style="color:#5a5648; font-size:12px" data-i18n="dialog.aboutInspired">Inspired by SimCity 2000</div>
+        <div style="font-size:18px; font-weight:900; margin-bottom:6px" data-i18n="app.name">The City of Heung Shing</div>
+        <div style="color:#5a5648; font-size:12px" data-i18n="dialog.aboutEnglishName">The City of Heung Shing</div>
+        <div style="color:#5a5648; font-size:12px" data-i18n="dialog.version">Version 1.0</div>
+        <div style="color:#5a5648; font-size:12px" data-i18n="dialog.aboutInspired">A Hong Kong-themed city simulation brand title</div>
         <div style="margin-top:14px; font-size:12px; line-height:1.8; color:#3a3530">
-          <span data-i18n-html="dialog.aboutBuilt">Built with Phaser 3<br>Zone · Build · Grow</span>
+          <span data-i18n-html="dialog.aboutBuilt">The City of Heung Shing v1.0<br>Plan · Build · Govern · Thrive</span>
         </div>
       </div>
       <div class="dialog-footer">
@@ -3956,18 +4441,18 @@ Ctrl+O       Load game (open saves list)</div>
   </div>
 
   <!-- ── Landing screen ─────────────────────────────────────────────────── -->
-  <div id="landing-screen" role="dialog" aria-label="City Builder welcome screen" data-i18n-aria="app.name">
+  <div id="landing-screen" role="dialog" aria-label="The City of Heung Shing welcome screen" data-i18n-aria="app.name">
     <div class="landing-card">
 
       <!-- Main menu state -->
       <div id="landing-menu">
         <div class="landing-icon">🏙️</div>
-        <h1 class="landing-title" data-i18n="app.name">City Builder</h1>
-        <p class="landing-tagline" data-i18n="landing.tagline">ZONE · BUILD · GROW</p>
+        <h1 class="landing-title" data-i18n="app.name">The City of Heung Shing</h1>
+        <p class="landing-tagline" data-i18n="landing.tagline">Start from one tile, raise a city.</p>
         <div class="landing-actions">
-          <button id="btn-new-game" class="landing-btn primary" data-i18n-html="landing.newGame">🏗&nbsp; New Game</button>
-          <button id="btn-terrain-creator" class="landing-btn primary" data-i18n-html="landing.terrainCreator">🗺️&nbsp; Create Terrain</button>
-          <button id="btn-continue" class="landing-btn secondary" data-i18n-html="landing.loadSaved">📂&nbsp; Load Saved Game</button>
+          <button id="btn-new-game" class="landing-btn primary" data-i18n-html="landing.newGame"><span class="landing-btn-main">New City</span><span class="landing-btn-sub">Start Fresh</span></button>
+          <button id="btn-terrain-creator" class="landing-btn primary" data-i18n-html="landing.terrainCreator"><span class="landing-btn-main">Map Editor</span><span class="landing-btn-sub">Design Terrain</span></button>
+          <button id="btn-continue" class="landing-btn secondary" data-i18n-html="landing.loadSaved"><span class="landing-btn-main">Load Save</span><span class="landing-btn-sub">Continue City</span></button>
         </div>
       </div>
 
@@ -3986,7 +4471,7 @@ Ctrl+O       Load game (open saves list)</div>
         <div id="newgame-terrain-preview-list" class="terrain-preset-grid" style="display:none"></div>
         <div id="newgame-terrain-empty-hint" class="landing-form-hint" style="display:none" data-i18n="landing.noTerrainPresets">No saved terrain presets yet.</div>
         <div class="landing-actions">
-          <button id="btn-start-city" class="landing-btn primary" data-i18n-html="landing.foundCity">🚀&nbsp; Found City!</button>
+          <button id="btn-start-city" class="landing-btn primary" data-i18n-html="landing.foundCity">Found City</button>
           <button id="btn-back"       class="landing-btn secondary" data-i18n="landing.back">← Back</button>
         </div>
       </div>
@@ -3996,7 +4481,7 @@ Ctrl+O       Load game (open saves list)</div>
         <p class="landing-form-title" data-i18n="landing.terrainPickTitle">Choose terrain type</p>
         <select id="terrain-profile-select" class="landing-form-select" aria-label="Terrain profile" data-i18n-aria="landing.terrainPickTitle"></select>
         <div class="landing-actions">
-          <button id="btn-generate-terrain" class="landing-btn primary" data-i18n-html="landing.generateTerrain">⛰️&nbsp; Generate Terrain</button>
+          <button id="btn-generate-terrain" class="landing-btn primary" data-i18n-html="landing.generateTerrain">Generate Terrain</button>
           <button id="btn-terrain-back" class="landing-btn secondary" data-i18n="landing.back">← Back</button>
         </div>
       </div>

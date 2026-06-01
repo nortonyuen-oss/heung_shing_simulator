@@ -348,14 +348,6 @@ function hideLandingScreen() {
   const screen = document.getElementById('landing-screen');
   if (screen) screen.style.display = 'none';
 
-  // Auto-start music on game entry (respects browser autoplay policy —
-  // this runs inside a user gesture so it is always allowed).
-  if (!isMusicPlaying) {
-    // Pick a random starting track for variety
-    activeTrackIndex = Math.floor(Math.random() * MUSIC_TRACKS.length);
-    playTrack(activeTrackIndex);
-  }
-
   // Start ticker only once the game session actually begins (not at page load).
   // startTicker() is re-entrant-safe: it clears any existing timer before restarting.
   if (typeof startTicker === 'function') startTicker();

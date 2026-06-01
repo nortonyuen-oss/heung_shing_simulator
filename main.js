@@ -48,6 +48,8 @@ let activeMusic = null;
 let activeTrackIndex = 0;
 let isMusicPlaying = false;
 let musicLoopMode = 'all';   // 'all' = auto-advance, 'one' = loop current track
+const TITLE_MUSIC_TRACK_KEY = 'music_title';
+let titleLoadingAudio = null;
 let nextBuildingIndex = 0;
 let houseModelSets = {};
 let commercialBuildingModels = [];
@@ -1361,9 +1363,54 @@ function create() {
   setupLandingScreen();
 }
 
+function getTitleMusicTrack() {
+  return MUSIC_TRACKS.find((track) => track.key === TITLE_MUSIC_TRACK_KEY) ?? MUSIC_TRACKS[0] ?? null;
+}
+
+function getCurrentMusicVolume() {
+  return Number(document.getElementById('jukebox-volume')?.value ?? 0.55);
+}
+
+function ensureTitleLoadingAudio() {
+  const titleTrack = getTitleMusicTrack();
+  if (!titleTrack) return null;
+
+  activeTrackIndex = getTitleMusicTrackIndex();
+
+  if (!titleLoadingAudio) {
+    titleLoadingAudio = new Audio(titleTrack.file);
+    titleLoadingAudio.preload = 'auto';
+    titleLoadingAudio.loop = true;
+  }
+
+  titleLoadingAudio.volume = getCurrentMusicVolume();
+  return titleLoadingAudio;
+}
+
+function playTitleLoadingAudio() {
+  const audio = ensureTitleLoadingAudio();
+  if (!audio) return;
+
+  const maybePromise = audio.play();
+  if (maybePromise && typeof maybePromise.catch === 'function') {
+    maybePromise.catch(() => {});
+  }
+}
+
+function stopTitleLoadingAudio() {
+  if (!titleLoadingAudio) return;
+  titleLoadingAudio.pause();
+  titleLoadingAudio.currentTime = 0;
+}
+
+function isTitleLoadingAudioPlaying() {
+  return !!titleLoadingAudio && !titleLoadingAudio.paused;
+}
+
 function setupPreloadProgressUi(scene) {
   populateLoadingHintTicker();
   setPreloadProgressPercent(0);
+  playTitleLoadingAudio();
 
   scene.load.on('progress', (value) => {
     setPreloadProgressPercent(Math.max(0, Math.min(100, Math.round(value * 100))));
@@ -1371,6 +1418,9 @@ function setupPreloadProgressUi(scene) {
 
   scene.load.once('complete', () => {
     setPreloadProgressPercent(100);
+    if (!isTitleLoadingAudioPlaying()) {
+      playTitleLoadingAudio();
+    }
   });
 }
 
@@ -1707,6 +1757,7 @@ function setupJukebox() {
   // Volume
   volume.addEventListener('input', () => {
     if (activeMusic) activeMusic.setVolume(Number(volume.value));
+    if (titleLoadingAudio) titleLoadingAudio.volume = Number(volume.value);
   });
 
   updateJukeboxUi();
@@ -1725,6 +1776,42 @@ function toggleJukebox() {
   const win = document.getElementById('jukebox-window');
   if (!win) return;
   win.classList.toggle('is-open');
+  updateJukeboxUi();
+}
+
+function getTitleMusicTrackIndex() {
+  const index = MUSIC_TRACKS.findIndex((track) => track.key === TITLE_MUSIC_TRACK_KEY);
+  return index >= 0 ? index : 0;
+}
+
+function ensureTitleMusic(options = {}) {
+  const { useLoadingAudio = false } = options;
+  if (MUSIC_TRACKS.length === 0) return;
+
+  if (useLoadingAudio) {
+    playTitleLoadingAudio();
+    updateJukeboxUi();
+    return;
+  }
+
+  if (!activeScene) return;
+
+  const titleTrackIndex = getTitleMusicTrackIndex();
+  const currentTrackKey = MUSIC_TRACKS[activeTrackIndex]?.key;
+  activeTrackIndex = titleTrackIndex;
+
+  stopTitleLoadingAudio();
+
+  if (!isMusicPlaying) {
+    playTrack(activeTrackIndex);
+    return;
+  }
+
+  if (currentTrackKey !== TITLE_MUSIC_TRACK_KEY) {
+    playTrack(activeTrackIndex);
+    return;
+  }
+
   updateJukeboxUi();
 }
 

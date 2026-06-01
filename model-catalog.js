@@ -385,6 +385,11 @@ const TREE_SPECIES = [
 
 const MUSIC_TRACKS = [
   {
+    key: 'music_title',
+    title: 'Skyline Serenade (Sim City Theme)',
+    file: 'Music/Skyline Serenade (Sim City Theme).mp3',
+  },
+  {
     key: 'music_0',
     title: 'Heart Sutra RnB Vocal Guide Loop',
     file: 'Music/heart_sutra_rnb_vocal_guide_loop.wav',

@@ -14,6 +14,8 @@ function setupToolMenu() {
   }
 
   menu.addEventListener('pointerdown', (event) => event.stopPropagation());
+  menu.addEventListener('pointerenter', cancelZoneDensityClose);
+  menu.addEventListener('pointerleave', () => scheduleZoneDensityClose());
 
   // Speed controls
   const speedControls = document.getElementById('speed-controls');
@@ -67,7 +69,7 @@ function setupToolMenu() {
     if (wasPainting) closeToolPopups();
   });
   window.addEventListener('pointerdown', (event) => {
-    if (!event.target.closest('#tool-menu')) {
+    if (!event.target.closest('#tool-menu') && !event.target.closest('#zone-density-menu')) {
       closeToolCategoryFlyouts();
     }
     if (event.target.closest('#house-size-menu') || event.target.closest('[data-tool="house"]')) return;
@@ -100,6 +102,7 @@ function setupToolMenu() {
         return;
       }
       toggleToolCategory(categoryButton);
+      closeZoneDensityMenu();
       return;
     }
 
@@ -184,10 +187,6 @@ function setupToolMenu() {
 
     // ── Zone tools ────────────────────────────────────────────────────────
     const zoneType = button.dataset.zoneType;
-    if (zoneType && didLongPressZone[button.dataset.tool]) {
-      didLongPressZone[button.dataset.tool] = false;
-      return;
-    }
     if (zoneType) {
       selectedTool = button.dataset.tool;
       menu.querySelectorAll('[data-tool]').forEach((toolButton) => {
@@ -195,8 +194,7 @@ function setupToolMenu() {
       });
       updateToolCategoryState(menu, selectedTool);
       updateZoneDensityBadges();
-      toggleZoneDensityMenu(button.dataset.tool, button);
-      closeToolCategoryFlyouts();
+      openZoneDensityMenu(button.dataset.tool, button);
       return;
     }
 
@@ -232,6 +230,19 @@ function setupToolMenu() {
       const dbgEl = document.getElementById('tile-debug');
       if (dbgEl) dbgEl.style.display = 'none';
     }
+  });
+
+  menu.querySelectorAll('[data-tool-category]').forEach((categoryButton) => {
+    categoryButton.addEventListener('pointerenter', () => {
+      if (!document.querySelector('.tool-flyout.is-open')) return;
+      if (categoryButton.dataset.toolCategory === 'inspect') {
+        closeToolCategoryFlyouts();
+        closeToolPopups();
+        return;
+      }
+      const panel = document.querySelector(`.tool-flyout[data-tool-panel="${categoryButton.dataset.toolCategory}"]`);
+      if (panel) openToolCategory(categoryButton, panel);
+    });
   });
 
   setupJukebox();
@@ -504,34 +515,43 @@ function setTerrainEditorUiActive(active) {
   }
 }
 
-// ── Zone density tools (R/C/I long-press popup) ───────────────────────────────
+// ── Zone density tools (Windows-style cascading submenu) ─────────────────────
+
+let zoneDensityCloseTimer = null;
 
 function setupZoneDensityTools(menu) {
   const densityMenu = document.getElementById('zone-density-menu');
   if (!densityMenu) return;
 
+  menu.querySelectorAll('[data-tool-category]').forEach((button) => {
+    button.addEventListener('pointerenter', () => {
+      if (button.dataset.toolCategory !== 'zones') closeZoneDensityMenu();
+    });
+  });
+
+  menu.querySelectorAll('.tool-flyout').forEach((panel) => {
+    panel.addEventListener('pointerenter', cancelZoneDensityClose);
+    panel.addEventListener('pointerleave', () => scheduleZoneDensityClose());
+  });
+
+  menu.querySelectorAll('.tool-row:not([data-zone-type])').forEach((button) => {
+    button.addEventListener('pointerenter', closeZoneDensityMenu);
+  });
+
   ['zone-res', 'zone-com', 'zone-ind'].forEach((toolKey) => {
     const btn = menu.querySelector(`[data-tool="${toolKey}"]`);
     if (!btn) return;
 
-    btn.addEventListener('pointerdown', () => {
-      didLongPressZone[toolKey] = false;
-      clearZonePressTimer(toolKey);
-      zonePressTimers[toolKey] = window.setTimeout(() => {
-        didLongPressZone[toolKey] = true;
-        selectedTool = toolKey;
-        menu.querySelectorAll('[data-tool]').forEach((b) => {
-          b.classList.toggle('is-active', b === btn);
-        });
-        openZoneDensityMenu(toolKey, btn);
-        updateToolCategoryState(menu, selectedTool);
-        closeToolCategoryFlyouts();
-      }, 450);
+    btn.addEventListener('pointerenter', () => {
+      cancelZoneDensityClose();
+      openZoneDensityMenu(toolKey, btn);
     });
 
-    btn.addEventListener('pointerleave', () => clearZonePressTimer(toolKey));
+    btn.addEventListener('pointerleave', () => scheduleZoneDensityClose());
   });
 
+  densityMenu.addEventListener('pointerenter', cancelZoneDensityClose);
+  densityMenu.addEventListener('pointerleave', () => scheduleZoneDensityClose());
   densityMenu.addEventListener('pointerdown', (e) => e.stopPropagation());
   densityMenu.addEventListener('click', (event) => {
     const btn = event.target.closest('[data-density]');
@@ -541,6 +561,10 @@ function setupZoneDensityTools(menu) {
     if (zoneType) selectedZoneDensity[zoneType] = density;
     closeZoneDensityMenu();
     updateZoneDensityBadges();
+  });
+
+  window.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') closeZoneDensityMenu();
   });
 }
 
@@ -553,6 +577,7 @@ function clearZonePressTimer(toolKey) {
 function openZoneDensityMenu(toolKey, triggerButton) {
   const densityMenu = document.getElementById('zone-density-menu');
   if (!densityMenu) return;
+  cancelZoneDensityClose();
 
   // Determine zone letter and current density
   const zoneType = toolKey.replace('zone-', '');          // 'res', 'com', 'ind'
@@ -594,7 +619,22 @@ function openZoneDensityMenu(toolKey, triggerButton) {
 }
 
 function closeZoneDensityMenu() {
+  cancelZoneDensityClose();
   document.getElementById('zone-density-menu')?.classList.remove('is-open');
+}
+
+function scheduleZoneDensityClose(delay = 220) {
+  cancelZoneDensityClose();
+  zoneDensityCloseTimer = window.setTimeout(() => {
+    zoneDensityCloseTimer = null;
+    document.getElementById('zone-density-menu')?.classList.remove('is-open');
+  }, delay);
+}
+
+function cancelZoneDensityClose() {
+  if (!zoneDensityCloseTimer) return;
+  window.clearTimeout(zoneDensityCloseTimer);
+  zoneDensityCloseTimer = null;
 }
 
 function toggleZoneDensityMenu(toolKey, triggerButton) {
@@ -873,4 +913,3 @@ const OVERLAY_TITLES = {
 const OVERLAY_ICONS = {
   pollution: '🏭', crime: '🚔', fire: '🔥', population: '👥', landvalue: '💰', education: '🎓', electricity: '🔌', power: '⚡',
 };
-

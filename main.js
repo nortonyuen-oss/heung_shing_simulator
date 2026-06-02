@@ -2417,6 +2417,9 @@ function placeSpriteBuilding(scene, row, col, key, options = {}) {
   });
 
   getFootprintTiles(row, col, footprintCols, footprintRows).forEach(([tileRow, tileCol]) => {
+    if (typeof destroyZoneOverlaySprite === 'function') {
+      destroyZoneOverlaySprite(scene, tileRow, tileCol);
+    }
     scene.buildingSprites.set(getTileId(tileRow, tileCol), building);
   });
 }

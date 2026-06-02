@@ -138,6 +138,14 @@ function removeZoneOverlay(scene, row, col) {
   zoneMap[row][col] = ZONE_NONE;
 }
 
+function destroyZoneOverlaySprite(scene, row, col) {
+  const id = getTileId(row, col);
+  const existing = scene.zoneOverlays.get(id);
+  if (!existing) return;
+  existing.destroy();
+  scene.zoneOverlays.delete(id);
+}
+
 // ── Power line placement ───────────────────────────────────────────────────────
 
 function placePowerLine(scene, row, col) {

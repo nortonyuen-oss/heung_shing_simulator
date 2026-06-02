@@ -5766,7 +5766,7 @@ function rotateTileKey(key, steps) {
 
   // Patterns: PREFIX_corner_XY  →  PREFIX_corner_{canonical rotated pair}
   // Canonical names: ne (n+e→NE), se (e+s→SE), sw (s+w→SW), nw (n+w→NW)
-  const cornerM = key.match(/^(.+_corner)_([nesw]{2})$/);
+  const cornerM = key.match(/^(.+_corner(?:_water|_land)?)_([nesw]{2})$/);
   if (cornerM) {
     const a = d(cornerM[2][0]);
     const b = d(cornerM[2][1]);

@@ -211,8 +211,6 @@ function placeInfraBuilding(scene, row, col, buildingType) {
     return false;
   }
 
-  removeBuildingsInFootprint(scene, row, col, footprintCols, footprintRows);
-
   const key = buildingModel?.spriteKey ?? BUILDING_KEYS[INFRA_SPRITE_INDEX[buildingType]];
   const opts = POWER_PLANT_MODELS[buildingType]
     ? (powerPlantModelMetadata[buildingType] ?? buildingModel)
@@ -267,8 +265,6 @@ function placePark(scene, row, col, parkOption) {
     return false;
   }
 
-  removeBuildingsInFootprint(scene, row, col, footprintCols, footprintRows);
-
   const key = spriteKey;
   const opts = getParkSpriteOptions(key, parkOption);
   placeSpriteBuilding(scene, row, col, key, opts);
@@ -310,8 +306,6 @@ function placeSportsGround(scene, row, col, option) {
     showToast(t('toast.notEnoughFunds'), 'warning');
     return false;
   }
-
-  removeBuildingsInFootprint(scene, row, col, footprintCols, footprintRows);
 
   const opts = getParkSpriteOptions(spriteKey, option);
   placeSpriteBuilding(scene, row, col, spriteKey, opts);

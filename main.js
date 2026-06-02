@@ -2320,9 +2320,7 @@ function getSpriteFootprintMetadata(
 }
 
 function placeBuilding(scene, row, col) {
-  if (!canPlaceBuilding(row, col)) return;
-
-  removeBuilding(scene, row, col);
+  if (!canPlaceBuildingFootprint(row, col, 1, 1)) return;
 
   const key = BUILDING_KEYS[nextBuildingIndex % BUILDING_KEYS.length];
   nextBuildingIndex += 1;
@@ -2349,8 +2347,6 @@ function placeHouse(scene, row, col) {
 function placeHouseModel(scene, row, col, tool) {
   const model = getSelectedHouseModel(tool);
   if (!model || !canPlaceBuildingFootprint(row, col, model.footprintCols, model.footprintRows)) return;
-
-  removeBuildingsInFootprint(scene, row, col, model.footprintCols, model.footprintRows);
 
   const opts = model.metadata ?? { footprintCols: model.footprintCols, footprintRows: model.footprintRows };
   placeSpriteBuilding(scene, row, col, model.key, opts);
@@ -2602,6 +2598,10 @@ function canPlaceBuildingFootprint(row, col, footprintCols = 1, footprintRows = 
   return getFootprintTiles(row, col, footprintCols, footprintRows).every(([tileRow, tileCol]) => (
     isInsideMap(tileRow, tileCol)
     && canPlaceBuilding(tileRow, tileCol)
+    && mapData[tileRow][tileCol] !== ROAD
+    && !isBridgeTile(tileRow, tileCol)
+    && !activeScene?.buildingSprites?.has(getTileId(tileRow, tileCol))
+    && !buildingData[getTileId(tileRow, tileCol)]
   ));
 }
 

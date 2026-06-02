@@ -2745,6 +2745,7 @@ function applyToolAt(scene, row, col, pointer = null) {
 
   // New tools (zones, power, services, dezone) handled in tools.js
   if (handleNewTool(scene, { row, col })) return;
+  if (isZoneTool()) return;
 
   if (selectedTool === 'building') { placeBuilding(scene, row, col); return; }
   if (selectedTool === 'house')    { placeHouse(scene, row, col);    return; }

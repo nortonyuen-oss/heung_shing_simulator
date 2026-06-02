@@ -3230,25 +3230,25 @@
       appearance: none;
       position: relative;
       border: none;
-      border-radius: 0;
-      background: transparent;
+      border-radius: 9px;
+      background: #040a14;
       color: #121a22;
       font-size: 20px;
       font-weight: 800;
-      min-height: 78px;
-      padding: 10px 20px;
+      min-height: 86px;
+      padding: 6px;
       text-align: center;
       letter-spacing: 0.02em;
       line-height: 1.14;
       transition: background 120ms ease, transform 120ms ease;
       font-family: 'Noto Sans TC', 'IBM Plex Sans', sans-serif;
-      box-shadow: none;
+      box-shadow: 0 6px 14px rgba(0,0,0,0.38);
       z-index: 1;
       display: grid;
       place-content: center;
       gap: 3px;
       isolation: isolate;
-      overflow: visible;
+      overflow: hidden;
     }
 
     #landing-menu .landing-btn:last-child {
@@ -3258,37 +3258,21 @@
     #landing-menu .landing-btn::before {
       content: '';
       position: absolute;
-      top: 0;
-      bottom: 0;
-      left: 50%;
-      width: 70%;
-      transform: translateX(-50%);
-      clip-path: polygon(4.8% 0, 95.2% 0, 100% 50%, 95.2% 100%, 4.8% 100%, 0 50%);
+      inset: 6px;
+      clip-path: polygon(10% 0, 90% 0, 100% 50%, 90% 100%, 10% 100%, 0 50%);
       background: #ffffff;
-      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.28);
       z-index: 1;
     }
 
     #landing-menu .landing-btn::after {
-      content: '';
-      position: absolute;
-      left: 50%;
-      width: 85.6%;
-      bottom: -13px;
-      height: 19px;
-      transform: translateX(-50%);
-      border-radius: 11px 11px 3px 3px;
-      background: #040a14;
-      box-shadow: 0 3px 7px rgba(0,0,0,0.38), inset 0 1px 0 rgba(255,255,255,0.06);
-      z-index: 0;
+      display: none;
     }
 
     #landing-menu .landing-btn.primary,
     #landing-menu .landing-btn.secondary {
-      background: transparent;
+      background: #040a14;
       color: #121a22;
       border-color: transparent;
-      box-shadow: none;
     }
 
     #landing-menu .landing-btn:hover::before {
@@ -3296,7 +3280,7 @@
     }
 
     #landing-menu .landing-btn:hover {
-      transform: none;
+      transform: translateY(-1px);
     }
 
     #landing-menu .landing-btn:active::before {
@@ -3483,15 +3467,12 @@
 
       #landing-menu .landing-btn {
         font-size: 18px;
-        min-height: 66px;
-        padding: 8px 16px;
+        min-height: 72px;
+        padding: 5px;
       }
 
       #landing-menu .landing-btn::after {
-        left: 50%;
-        width: 84%;
-        bottom: -11px;
-        height: 16px;
+        display: none;
       }
 
       .landing-btn-main {

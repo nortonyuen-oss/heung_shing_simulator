@@ -22,7 +22,7 @@ function setupLandingScreen() {
   const terrainPresetDataCache = new Map();
 
   function setLandingState(state) {
-    if (menu) menu.style.display = state === 'menu' ? 'block' : 'none';
+    if (menu) menu.style.display = state === 'menu' ? 'grid' : 'none';
     if (nameForm) nameForm.style.display = state === 'name' ? 'block' : 'none';
     if (terrainForm) terrainForm.style.display = state === 'terrain' ? 'block' : 'none';
   }

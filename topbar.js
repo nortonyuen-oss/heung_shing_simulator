@@ -241,7 +241,7 @@ function returnToMainMenu() {
   const nameForm = document.getElementById('landing-name-form');
   const terrainForm = document.getElementById('landing-terrain-form');
   if (screen)   screen.style.display   = 'flex';
-  if (menuDiv)  menuDiv.style.display  = 'block';
+  if (menuDiv)  menuDiv.style.display  = 'grid';
   if (nameForm) nameForm.style.display = 'none';
   if (terrainForm) terrainForm.style.display = 'none';
 }

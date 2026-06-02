@@ -2669,6 +2669,30 @@ function isZoneTool() {
   return selectedTool === 'zone-res' || selectedTool === 'zone-com' || selectedTool === 'zone-ind';
 }
 
+function isNewToolHandledByToolsModule(tool) {
+  return tool === 'zone-res'
+    || tool === 'zone-com'
+    || tool === 'zone-ind'
+    || tool === 'dezone'
+    || tool === 'power-line'
+    || tool === 'power-coal'
+    || tool === 'power-solar'
+    || tool === 'fire-station'
+    || tool === 'police-station'
+    || tool === 'primary-school'
+    || tool === 'secondary-school'
+    || tool === 'library'
+    || tool === 'community-college'
+    || tool === 'university'
+    || tool === 'legislative-council'
+    || tool === 'stock-exchange'
+    || tool === 'park'
+    || tool === 'park-small'
+    || tool === 'park-large'
+    || tool === 'sports-ground'
+    || tool === 'tree';
+}
+
 function getSelectedPlacementFootprint() {
   if (selectedTool === 'building') return { footprintCols: 1, footprintRows: 1 };
 
@@ -2748,7 +2772,7 @@ function applyToolAt(scene, row, col, pointer = null) {
 
   // New tools (zones, power, services, dezone) handled in tools.js
   if (handleNewTool(scene, { row, col })) return;
-  if (isZoneTool()) return;
+  if (isNewToolHandledByToolsModule(selectedTool)) return;
 
   if (selectedTool === 'building') { placeBuilding(scene, row, col); return; }
   if (selectedTool === 'house')    { placeHouse(scene, row, col);    return; }

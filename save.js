@@ -289,7 +289,7 @@ function rebuildSceneFromSave(scene, save) {
         textureKey,
       );
       overlay.setOrigin(0.5, 1);
-      overlay.setDepth(pos.y + 0.5);
+      overlay.setDepth(getTerrainTileDepth(r, c, getTileKey(r, c), pos.y) + 0.05);
       overlay.setAlpha(0.80);
       overlay.setMask(scene.worldMask);
       scene.zoneOverlays.set(getTileId(r, c), overlay);

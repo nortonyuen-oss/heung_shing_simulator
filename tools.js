@@ -120,7 +120,7 @@ function placeZone(scene, row, col, zoneType, density = DENSITY_LOW) {
     textureKey,
   );
   overlay.setOrigin(0.5, 1);
-  overlay.setDepth(pos.y + 0.5);
+  overlay.setDepth(getTerrainTileDepth(row, col, getTileKey(row, col), pos.y) + 0.05);
   overlay.setAlpha(0.80);
   overlay.setMask(scene.worldMask);
   scene.zoneOverlays.set(getTileId(row, col), overlay);
@@ -388,8 +388,9 @@ function repositionOverlays(scene) {
   scene.zoneOverlays.forEach((overlay, id) => {
     const [r, c] = id.split(':').map(Number);
     const pos = isoToScreen(c, r);
+    const key = getTileKey(r, c);
     overlay.setPosition(pos.x + scene.offsetX, pos.y + scene.offsetY + getElevationVisualOffset(r, c));
-    overlay.setDepth(pos.y + 0.5);
+    overlay.setDepth(getTerrainTileDepth(r, c, key, pos.y) + 0.05);
   });
 
   scene.powerLineSprites.forEach((g, id) => {

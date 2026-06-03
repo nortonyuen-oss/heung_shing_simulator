@@ -159,13 +159,22 @@ function updateDemand() {
   const hsiRatio   = clamp(((city.stockMarket?.hsi ?? HSI_BASE_LEVEL) - HSI_BASE_LEVEL) / (HSI_BASE_LEVEL * 0.35), -1, 1);
   const stockExchangeBoost = hasBuildingType('stock_exchange') ? 0.08 : 0;
 
-  // ── Labour market (zone-count × ANCHOR_RATIO gives population-scale capacity) ──
+  // ── Labour market ─────────────────────────────────────────────────────────
+  // Job capacity scales with building footprint so merged 2x2/3x3 buildings
+  // keep the capacity represented by the smaller buildings they replaced.
   const labourForce       = pop * LABOUR_FORCE_RATIO;
-  const sciParkCnt        = indCnt * scienceShare;
-  const regularIndCnt     = indCnt * (1 - scienceShare);
-  const comJobCap         = comCnt      * JOBS_PER_COM * ANCHOR_RATIO;
-  const sciParkJobCap     = sciParkCnt  * JOBS_PER_IND * ANCHOR_RATIO;
-  const regularIndJobCap  = regularIndCnt * JOBS_PER_IND * ANCHOR_RATIO;
+  let comJobCap = 0;
+  let sciParkJobCap = 0;
+  let regularIndJobCap = 0;
+  Object.values(buildingData).forEach((record) => {
+    const jobs = getBuildingJobCapacity(record);
+    if (record.type === 'commercial') {
+      comJobCap += jobs;
+    } else if (record.type === 'industrial') {
+      if (isScienceParkIndustrialRecord(record)) sciParkJobCap += jobs;
+      else regularIndJobCap += jobs;
+    }
+  });
   const totalJobCap       = comJobCap + sciParkJobCap + regularIndJobCap;
 
   // High-edu workers compete for commercial AND science-park slots
@@ -185,7 +194,7 @@ function updateDemand() {
     : 0;
 
   // Legacy jobRatio kept for demandR (unchanged behaviour)
-  const legacyJobCap = comCnt * JOBS_PER_COM + indCnt * JOBS_PER_IND;
+  const legacyJobCap = (comJobCap + sciParkJobCap + regularIndJobCap) / ANCHOR_RATIO;
   const jobRatio     = clamp(legacyJobCap / (resCnt * 4), 0, 1);
 
   // ── demandR ───────────────────────────────────────────────────────────────
@@ -233,6 +242,7 @@ function updateDemand() {
 
   // ── demandI (dual-track) ──────────────────────────────────────────────────
   // Traditional track: driven by low-edu labour surplus.
+  const regularIndCnt = indCnt * (1 - scienceShare);
   const regularIndLabourTerm = lowEduWorkers > 0
     ? clamp(lowEduJobGap / lowEduWorkers, -1, 1) * 0.55
     : 0;

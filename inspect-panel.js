@@ -187,9 +187,12 @@ function showInspectPanel(scene, row, col, pointer = null) {
         ? getAverageEducationForBuilding(bData, inspectRecord.anchorRow, inspectRecord.anchorCol)
         : 0;
       const avgEducationPct = `${Math.round(clampUnit(avgEducation) * 100)}%`;
+      const occupancy = bData.type === 'residential'
+        ? (bData.population ?? 0)
+        : getBuildingJobCapacity(bData);
       bldgHtml = `
         <div class="insp-bldg-name" style="color:${zColor}">${dispName}</div>
-        <div class="insp-row insp-muted">${t('inspect.levelPopulation', { level: lvl, population: (bData.population ?? 0).toLocaleString(), label: popLabel })}</div>
+        <div class="insp-row insp-muted">${t('inspect.levelPopulation', { level: lvl, population: occupancy.toLocaleString(), label: popLabel })}</div>
         <div class="insp-row insp-muted">${t('inspect.avgEducation', { value: avgEducationPct })}</div>`;
     } else {
       bldgHtml = `<div class="insp-row insp-muted">${t('inspect.emptyLot')}</div>`;
@@ -262,4 +265,3 @@ function positionInspectPanel(panel, pointer) {
 }
 
 // ── Park textures ─────────────────────────────────────────────────────────────
-

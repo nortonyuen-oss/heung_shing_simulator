@@ -488,6 +488,15 @@ function getBuildingPowerDemand(record) {
   return BUILDING_POWER_DEMAND[record.type] ?? 0;
 }
 
+function getBuildingJobCapacity(record) {
+  if (!record) return 0;
+  if (record.type !== 'commercial' && record.type !== 'industrial') return 0;
+
+  const baseJobs = record.type === 'commercial' ? JOBS_PER_COM : JOBS_PER_IND;
+  const footprintArea = Math.max(1, (record.footprintCols ?? 1) * (record.footprintRows ?? 1));
+  return Math.round(baseJobs * ANCHOR_RATIO * footprintArea);
+}
+
 function getZonePowerDemand(zone, density = DENSITY_LOW) {
   const level = Math.max(1, Math.min(3, density ?? DENSITY_LOW));
   const tables = {

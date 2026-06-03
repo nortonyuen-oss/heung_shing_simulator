@@ -89,6 +89,7 @@ const city = {
   lastPolicyCost: 0,
   lastLoanPayment: 0,
   lastBudgetSnapshot: null,
+  autoReplacePowerPlants: false,
   monthlyIncome: 0,
   monthlyExpenses: 0,
   totalPowerSupply: 0,
@@ -171,6 +172,7 @@ function resetGameState() {
   city.lastPolicyCost = 0;
   city.lastLoanPayment = 0;
   city.lastBudgetSnapshot = null;
+  city.autoReplacePowerPlants = false;
   city.monthlyIncome   = 0;
   city.monthlyExpenses = 0;
   city.totalPowerSupply = 0;
@@ -242,6 +244,7 @@ function normalizeCityFinanceState() {
   city.lastPolicyCost = city.lastPolicyCost ?? 0;
   city.lastLoanPayment = city.lastLoanPayment ?? 0;
   city.lastBudgetSnapshot = city.lastBudgetSnapshot ?? null;
+  city.autoReplacePowerPlants = !!city.autoReplacePowerPlants;
   city.totalPowerSupply = toFiniteOr(city.totalPowerSupply, 0);
   city.totalPowerDemand = toFiniteOr(city.totalPowerDemand, 0);
   city.powerRatio = toFiniteOr(city.powerRatio, 1);

@@ -481,6 +481,7 @@ function setupStockExchangeWindow() {
   });
 
   relistBtn?.addEventListener('click', () => {
+    if (!hasBuildingType('stock_exchange')) return;
     if (typeof refreshStockListings === 'function') {
       refreshStockListings(true);
       updateStockExchangeWindow();
@@ -573,16 +574,22 @@ function updateStockExchangeWindow() {
     : 0;
 
   setTextContent('stock-exchange-status', hasExchange ? t('stockExchange.windowReady') : t('stockExchange.windowLocked'));
-  setTextContent('stock-exchange-hsi', hsi.toLocaleString());
-  setTextContent('stock-exchange-hsi-delta', `${hsiDelta >= 0 ? '+' : ''}${hsiDelta.toLocaleString()}`);
+  setTextContent('stock-exchange-hsi', hasExchange ? hsi.toLocaleString() : '--');
+  setTextContent('stock-exchange-hsi-delta', hasExchange ? `${hsiDelta >= 0 ? '+' : ''}${hsiDelta.toLocaleString()}` : '--');
   setTextContent('stock-exchange-rule-of-law', `${Math.round((city.ruleOfLawIndex ?? 0) * 100)}%`);
   setTextContent('stock-exchange-commercial', `${Math.round((city.demandC ?? 0) * 100)}%`);
-  setTextContent('stock-exchange-boost', `${hsiBoostPct >= 0 ? '+' : ''}${hsiBoostPct}%`);
+  setTextContent('stock-exchange-boost', hasExchange ? `${hsiBoostPct >= 0 ? '+' : ''}${hsiBoostPct}%` : '--');
   setTextContent('stock-exchange-act-status', isPolicyActive('stockExchangeAct') ? t('stockExchange.actActive') : t('stockExchange.actInactive'));
   setTextContent('stock-exchange-council', hasCouncil ? t('stockExchange.councilBuilt') : t('stockExchange.councilMissing'));
 
   const tbody = document.getElementById('stock-exchange-table-body');
   if (!tbody) return;
+  const relistBtn = document.getElementById('stock-exchange-relist-btn');
+  if (relistBtn) relistBtn.disabled = !hasExchange;
+  if (!hasExchange) {
+    tbody.innerHTML = `<tr><td colspan="7" class="stock-trend-empty">${t('stockExchange.marketLocked')}</td></tr>`;
+    return;
+  }
 
   const stocks = Array.isArray(market?.stocks)
     ? market.stocks.filter((stock) => stock.listed).sort((a, b) => Math.abs(b.changePct ?? 0) - Math.abs(a.changePct ?? 0))

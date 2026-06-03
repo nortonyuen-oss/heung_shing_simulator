@@ -200,6 +200,10 @@ function refreshStockMarketRegime() {
 function updateStockMarketTick() {
   const market = city.stockMarket;
   if (!market || !Array.isArray(market.stocks) || market.stocks.length === 0) return;
+  if (!hasBuildingType('stock_exchange')) {
+    resetDormantStockMarket(market);
+    return;
+  }
 
   const clampOr = (value, min, max, fallback = 0) => {
     const numeric = Number(value);
@@ -280,6 +284,23 @@ function updateStockMarketTick() {
   refreshStockListings(false);
 }
 
+function resetDormantStockMarket(market = city.stockMarket) {
+  if (!market || !Array.isArray(market.stocks)) return;
+  market.hsi = HSI_BASE_LEVEL;
+  market.prevHsi = HSI_BASE_LEVEL;
+  market.regime = 'range';
+  market.regimeMonthsLeft = 0;
+  market.stocks.forEach((stock) => {
+    const basePrice = Math.max(1, Number(stock.basePrice ?? stock.price ?? 1));
+    stock.price = basePrice;
+    stock.prevPrice = basePrice;
+    stock.changePct = 0;
+    stock.fairValue = basePrice;
+    stock.idioShock = 0;
+    stock.history = [basePrice];
+  });
+}
+
 function recordCityMetricHistory() {
   const label = `${city.year}-${String(city.month).padStart(2, '0')}`;
   const pushPoint = (arr, value) => {
@@ -328,13 +349,27 @@ function agePowerPlants(scene) {
     if (!POWER_PLANT_STATS[record.type]) return;
 
     record.age = Math.max(0, Number(record.age ?? 0) + 1);
-    const remaining = getPowerPlantRemainingMonths(record);
-    const state = getPowerPlantState(record);
+    let remaining = getPowerPlantRemainingMonths(record);
+    let state = getPowerPlantState(record);
     const building = scene?.buildingSprites.get(id);
 
     if (remaining <= 0) {
-      record.powerState = 'abandoned';
-      record.powerOutput = 0;
+      const replacementCost = getPowerPlantReplacementCost(record.type);
+      if (city.autoReplacePowerPlants && replacementCost > 0 && city.budget >= replacementCost) {
+        city.budget -= replacementCost;
+        record.age = 0;
+        record.powerState = 'active';
+        record.powerOutput = getPowerPlantOutput(record);
+        record.powerLoad = 0;
+        remaining = getPowerPlantRemainingMonths(record);
+        showToast(t('toast.powerPlantAutoReplaced', {
+          plant: getPowerPlantDisplayName(record.type),
+          cost: replacementCost,
+        }), 'success');
+      } else {
+        record.powerState = 'abandoned';
+        record.powerOutput = 0;
+      }
     } else if (state === 'degraded') {
       record.powerState = 'degraded';
       record.powerOutput = getPowerPlantOutput(record);
@@ -345,7 +380,7 @@ function agePowerPlants(scene) {
 
     record.powerRemainingMonths = remaining;
     record.powerWarning = isPowerPlantNearRetirement(record);
-  record.powerMaintenance = getPowerPlantMaintenance(record);
+    record.powerMaintenance = getPowerPlantMaintenance(record);
 
     if (!building) return;
     if (record.powerState === 'abandoned') {
@@ -359,6 +394,18 @@ function agePowerPlants(scene) {
       building.setAlpha(1);
     }
   });
+}
+
+function getPowerPlantReplacementCost(type) {
+  if (type === 'power_plant_coal') return COST_COAL_PLANT;
+  if (type === 'power_plant_solar') return COST_SOLAR_PLANT;
+  return 0;
+}
+
+function getPowerPlantDisplayName(type) {
+  if (type === 'power_plant_coal') return t('building.coalPlant');
+  if (type === 'power_plant_solar') return t('building.solarPlant');
+  return t('building.generic');
 }
 
 function applyMonthlyLoanPayments() {
@@ -375,4 +422,3 @@ function applyMonthlyLoanPayments() {
   city.loans = city.loans.filter((loan) => loan.balance > 1 && loan.monthsLeft > 0);
   return Math.round(total);
 }
-

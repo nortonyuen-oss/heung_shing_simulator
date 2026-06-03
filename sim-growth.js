@@ -1,3 +1,5 @@
+let lastCommercialMergeScanTick = null;
+
 function isBuildingHighScoreVisual(record) {
   if (!record?.spriteKey) return false;
   const model = (typeof getCommercialBuildingModelBySpriteKey === 'function'
@@ -72,6 +74,12 @@ function growOrShrinkZones(scene) {
   const landValueMap = typeof computeLandValueMap === 'function'
     ? computeLandValueMap()
     : null;
+  const tickGap = lastCommercialMergeScanTick === null ? Infinity : Math.abs(city.tick - lastCommercialMergeScanTick);
+  const runCommercialMerge = tickGap <= TICKS_PER_MONTH * 2
+    && city.tick > TICKS_PER_MONTH
+    && city.tick % TICKS_PER_MONTH === 0;
+  lastCommercialMergeScanTick = city.tick;
+  let commercialMergeBudget = runCommercialMerge ? 4 : 0;
 
   for (let r = 0; r < MAP_HEIGHT; r++) {
     for (let c = 0; c < MAP_WIDTH; c++) {
@@ -115,6 +123,17 @@ function growOrShrinkZones(scene) {
           ? Math.max(-0.15, 0.10 - landScore * 0.25)
           : Math.max(0.3, 0.5 - landScore * 0.2);
         const upgradePremiumMul = 0.72 + landScore * 1.05 + footprintTier * 0.20;
+
+        if (
+          commercialMergeBudget > 0
+          && zone === ZONE_COM
+          && record.level >= 3
+          && shouldScanCommercialMergeTile(r, c)
+          && tryMergeCommercialCluster(scene, r, c, record, landScore)
+        ) {
+          commercialMergeBudget--;
+          continue;
+        }
 
         if (record.level < 3 && hasRoad && demand > upgradeDemandGate && Math.random() < UPGRADE_CHANCE * powerMul * densityMul * upgradePremiumMul) {
           if (zone === ZONE_RES && tryMergeResidentialCluster(scene, r, c, record)) continue;
@@ -182,14 +201,14 @@ function spawnZoneBuilding(scene, r, c, zone, level, density = DENSITY_LOW, opti
       key = BUILDING_KEYS[Math.floor(Math.random() * 20)];
     }
   } else if (zone === ZONE_COM) {
-    const footprintSize = chooseNonResidentialFootprint(scene, r, c, zone, density, landScore);
+    const footprintSize = chooseNonResidentialFootprint(scene, r, c, zone, density, landScore, optionsOverride);
     const model = getRandomCommercialBuildingModel(footprintSize, footprintSize, landScore, preferHighScore);
     if (!model) return false;
 
     key     = model.key;
     options = { ...model.metadata };
   } else {
-    const footprintSize = chooseNonResidentialFootprint(scene, r, c, zone, density, landScore);
+    const footprintSize = chooseNonResidentialFootprint(scene, r, c, zone, density, landScore, optionsOverride);
     const model = getRandomIndustrialBuildingModel(footprintSize, footprintSize);
     if (model) {
       key = model.key;
@@ -290,7 +309,15 @@ function canPlace2x2ZoneBuilding(scene, r, c, zoneType) {
   return canPlaceZoneBuildingFootprint(scene, r, c, zoneType, 2, 2);
 }
 
-function chooseNonResidentialFootprint(scene, r, c, zone, density, landScore = 0.5) {
+function chooseNonResidentialFootprint(scene, r, c, zone, density, landScore = 0.5, optionsOverride = {}) {
+  const forcedSize = optionsOverride.forceFootprint ?? null;
+  if (forcedSize) {
+    return hasNonResidentialBuildingModelForFootprint(zone, forcedSize, landScore)
+      && canPlaceZoneBuildingFootprint(scene, r, c, zone, forcedSize, forcedSize)
+      ? forcedSize
+      : 1;
+  }
+
   const candidates = zone === ZONE_COM ? [4, 3, 2] : [3, 2];
   const commercialDemandBoost = zone === ZONE_COM
     ? getCommercialProsperityBoost() * clamp(0.95 + Math.max(0, city.demandC) * 0.35 + landScore * 0.15, 0.95, 1.45)
@@ -397,6 +424,93 @@ function getMergeableResidentialBuildingsAt(scene, r, c, footprintSize) {
   }
 
   return anchors.size >= 2 ? [...anchors.values()] : null;
+}
+
+function tryMergeCommercialCluster(scene, r, c, record, landScore = 0.5) {
+  for (const footprintSize of [3, 2]) {
+    const anchor = findMergeableCommercialAnchor(scene, r, c, footprintSize, landScore);
+    if (!anchor) continue;
+
+    const mergeDensity = getDominantResidentialDensity(anchor.row, anchor.col, footprintSize, footprintSize);
+    anchor.buildings.forEach(({ row, col }) => removeBuilding(scene, row, col));
+    spawnZoneBuilding(scene, anchor.row, anchor.col, ZONE_COM, 3, mergeDensity, {
+      landScore,
+      preferHighScore: true,
+      forceFootprint: footprintSize,
+    });
+    return true;
+  }
+
+  return false;
+}
+
+function shouldScanCommercialMergeTile(row, col) {
+  const shardCount = 8;
+  return ((row * 37 + col * 17 + city.tick) % shardCount) === 0;
+}
+
+function findMergeableCommercialAnchor(scene, r, c, footprintSize, landScore = 0.5) {
+  for (let row = r - footprintSize + 1; row <= r; row++) {
+    for (let col = c - footprintSize + 1; col <= c; col++) {
+      const buildings = getMergeableCommercialBuildingsAt(scene, row, col, footprintSize, landScore);
+      if (buildings) return { row, col, buildings };
+    }
+  }
+  return null;
+}
+
+function getMergeableCommercialBuildingsAt(scene, r, c, footprintSize, landScore = 0.5) {
+  if (!isInsideMap(r, c)) return null;
+  if (!hasCommercialBuildingModelForFootprint(footprintSize, landScore)) return null;
+
+  const baseHeight = getTileHeight(r, c);
+  const anchors = new Map();
+  const requireOneByOne = footprintSize === 2;
+
+  for (let dr = 0; dr < footprintSize; dr++) {
+    for (let dc = 0; dc < footprintSize; dc++) {
+      const rr = r + dr, cc = c + dc;
+      if (!isInsideMap(rr, cc)) return null;
+      if (zoneMap[rr][cc] !== ZONE_COM) return null;
+      if (!canPlaceBuilding(rr, cc)) return null;
+      if (getTileHeight(rr, cc) !== baseHeight) return null;
+
+      const id = getTileId(rr, cc);
+      const sprite = scene.buildingSprites.get(id);
+      const rec = sprite ? buildingData[getTileId(sprite.mapRow, sprite.mapCol)] : null;
+      if (!sprite || !rec) return null;
+      if (rec.type !== 'commercial') return null;
+      if ((rec.level ?? 1) < 3) return null;
+      if (requireOneByOne && ((rec.footprintCols ?? 1) !== 1 || (rec.footprintRows ?? 1) !== 1)) return null;
+      if (!isBuildingInsideFootprint(sprite.mapRow, sprite.mapCol, rec, r, c, footprintSize, footprintSize)) return null;
+
+      anchors.set(getTileId(sprite.mapRow, sprite.mapCol), { row: sprite.mapRow, col: sprite.mapCol });
+    }
+  }
+
+  return anchors.size >= 2 ? [...anchors.values()] : null;
+}
+
+function hasCommercialBuildingModelForFootprint(footprintSize, landScore = 0.5) {
+  const all = Array.isArray(commercialBuildingModels) ? commercialBuildingModels : [];
+  return all.some((m) => (
+    m.metadata
+    && m.metadata.scale > 0.05
+    && m.footprintCols === footprintSize
+    && m.footprintRows === footprintSize
+    && (!isHighScoreModel(m) || isHighScoreModelEligible(landScore))
+  ));
+}
+
+function hasNonResidentialBuildingModelForFootprint(zone, footprintSize, landScore = 0.5) {
+  if (zone === ZONE_COM) return hasCommercialBuildingModelForFootprint(footprintSize, landScore);
+  const all = Array.isArray(industrialBuildingModels) ? industrialBuildingModels : [];
+  return all.some((m) => (
+    m.metadata
+    && m.metadata.scale > 0.05
+    && m.footprintCols === footprintSize
+    && m.footprintRows === footprintSize
+  ));
 }
 
 function isBuildingInsideFootprint(row, col, record, targetRow, targetCol, footprintCols, footprintRows) {
@@ -668,4 +782,3 @@ function pickVariedModel(models, bucketKey) {
 }
 
 // ── Population & pollution counters ──────────────────────────────────────────
-

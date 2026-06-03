@@ -64,8 +64,6 @@ let parkModelMetadata = {};
 let powerPlantModelMetadata = {};
 let serviceBuildingModelMetadata = {};
 let selectedParkId = 'open_ground';
-let parkPressTimer = null;
-let didLongPressPark = false;
 
 // Terrain tool state
 let selectedTerrainType = 'grass';
@@ -1452,8 +1450,8 @@ function populateLoadingHintTicker() {
   const hintTrack = document.getElementById('landing-hint-track');
   if (!hintInner) return;
 
-  const line = getLoadingHintMessages().join('   •   ');
-  hintInner.textContent = `${line}   •   ${line}`;
+  const line = getLoadingHintMessages().join('   |   ');
+  hintInner.textContent = `${line}   |   ${line}`;
 
   if (hintTrack) {
     const chars = line.length;
@@ -2390,7 +2388,7 @@ function placeSpriteBuilding(scene, row, col, key, options = {}) {
   } else if (options.scale) {
     building.setScale(options.scale);
   }
-  building.setDepth(anchor.y + TILE_HEIGHT + elevOffset);
+  building.setDepth(getBuildingSortDepth(anchor.y, footprintCols, footprintRows, elevOffset));
   building.setMask(scene.worldMask);
   building.mapRow = row;
   building.mapCol = col;
@@ -2580,18 +2578,42 @@ function positionBuilding(scene, building) {
     anchor.x + scene.offsetX + (building.spriteOffsetX ?? 0),
     anchor.y + scene.offsetY - BUILDING_SURFACE_Y_OFFSET + elevOffset + (building.spriteOffsetY ?? 0),
   );
-  building.setDepth(anchor.y + TILE_HEIGHT + elevOffset);
+  building.setDepth(getBuildingSortDepth(anchor.y, footprintCols, footprintRows, elevOffset));
 }
 
 function canPlaceBuilding(row, col) {
-  return [GROUND, DIRT, HILL].includes(mapData[row][col]);
+  return [GROUND, DIRT, HILL].includes(mapData[row][col]) && !isSlopeTile(row, col);
 }
 
 function canPlaceRoad(scene, row, col) {
   if (!isInsideMap(row, col)) return false;
   if (scene?.buildingSprites?.has(getTileId(row, col))) return false;
   if (buildingData[getTileId(row, col)]) return false;
+  if (!isSupportedRoadSlopeTile(row, col)) return false;
   return true;
+}
+
+function isSlopeTile(row, col) {
+  return getTileHeight(row, col) > 0 && getHillOpenEdges(row, col).length > 0;
+}
+
+function isSupportedRoadSlopeTile(row, col) {
+  return !isSlopeTile(row, col) || !!getSupportedRoadSlopeKey(row, col);
+}
+
+function getSupportedRoadSlopeKey(row, col) {
+  if (!isSlopeTile(row, col)) return null;
+
+  const openEdges = getHillOpenEdges(row, col);
+  if (openEdges.length === 1) {
+    return `road_hill_${openEdges[0]}`;
+  }
+  if (openEdges.length === 2 && areOppositeDirs(openEdges[0], openEdges[1])) {
+    const axisDir = openEdges.includes('n') ? 'n' : 'e';
+    return `road_hill2_${axisDir}`;
+  }
+
+  return null;
 }
 
 function canPlaceBuildingFootprint(row, col, footprintCols = 1, footprintRows = 1) {
@@ -2653,6 +2675,11 @@ function getBuildingAnchor(row, col, footprintCols = 1, footprintRows = 1, ancho
     default: anchorRow = row + footprintRows - 1; anchorCol = col + footprintCols - 1; break;
   }
   return isoToScreen(anchorCol, anchorRow);
+}
+
+function getBuildingSortDepth(anchorY, footprintCols = 1, footprintRows = 1, elevOffset = 0) {
+  const footprintDepthBias = Math.max(0, (footprintCols + footprintRows - 2) * (TILE_HEIGHT / 4));
+  return anchorY + TILE_HEIGHT + elevOffset - footprintDepthBias;
 }
 
 function getFootprintScreenWidth(footprintCols = 1, footprintRows = 1) {
@@ -3183,10 +3210,38 @@ function findBuildingAtPointer(scene, pointer) {
 
   new Set(scene.buildingSprites.values()).forEach((building) => {
     if (!building.getBounds().contains(worldPoint.x, worldPoint.y)) return;
+    if (!isBuildingPixelOpaque(scene, building, worldPoint.x, worldPoint.y)) return;
     if (!best || building.depth > best.depth) best = building;
   });
 
   return best;
+}
+
+function isBuildingPixelOpaque(scene, building, worldX, worldY) {
+  const frame = building.frame;
+  if (!frame) return true;
+
+  const displayWidth = building.displayWidth || frame.width || 1;
+  const displayHeight = building.displayHeight || frame.height || 1;
+  const left = building.x - (building.originX ?? 0.5) * displayWidth;
+  const top = building.y - (building.originY ?? 0.5) * displayHeight;
+  const textureX = Math.floor(((worldX - left) / displayWidth) * frame.width);
+  const textureY = Math.floor(((worldY - top) / displayHeight) * frame.height);
+
+  if (textureX < 0 || textureY < 0 || textureX >= frame.width || textureY >= frame.height) {
+    return false;
+  }
+
+  if (typeof scene.textures?.getPixelAlpha === 'function') {
+    const alpha = scene.textures.getPixelAlpha(
+      textureX + (frame.x ?? 0),
+      textureY + (frame.y ?? 0),
+      building.texture.key,
+    );
+    return alpha > 8;
+  }
+
+  return true;
 }
 
 // Bresenham line between two grid cells — returns [{row,col}] inclusive.
@@ -5910,22 +5965,9 @@ function getRoadKey(row, col) {
 }
 
 function getRoadSlopeKey(row, col) {
-  if (getTileHeight(row, col) <= 0) return null;
-
-  const openEdges = getHillOpenEdges(row, col);
-  if (openEdges.length === 0) return null;
-
-  const normalized = normalizeHillOpenEdges(row, col, openEdges);
-  if (normalized.length === 2 && !areOppositeDirs(normalized[0], normalized[1])) {
-    return 'road_slope_corner';
-  }
-
-  if (openEdges.length === 2 && areOppositeDirs(openEdges[0], openEdges[1])) {
-    const axisDir = openEdges.includes('n') ? 'n' : 'e';
-    return `road_hill2_${axisDir}`;
-  }
-
-  return `road_hill_${normalized[0]}`;
+  const supportedSlopeKey = getSupportedRoadSlopeKey(row, col);
+  if (supportedSlopeKey) return supportedSlopeKey;
+  return isSlopeTile(row, col) ? 'road_slope_corner' : null;
 }
 
 function getBeachKey(row, col) {
@@ -6418,44 +6460,6 @@ function resolveBuildingRecordForInspect(scene, row, col) {
       anchorRow = sprite.mapRow;
       anchorCol = sprite.mapCol;
       bData = buildingData[getTileId(anchorRow, anchorCol)] ?? null;
-    }
-  }
-
-  if (!bData) {
-    let best = Infinity;
-    let fallback = null;
-    let fallbackAnchor = null;
-    for (let dr = -2; dr <= 7; dr++) {
-      for (let dc = -2; dc <= 7; dc++) {
-        if (!isInsideMap(row + dr, col + dc)) continue;
-        const nid = getTileId(row + dr, col + dc);
-        const dist = Math.abs(dr) + Math.abs(dc);
-        if (dist >= best) continue;
-
-        const sprite = scene.buildingSprites.get(nid);
-        if (sprite) {
-          const anchored = buildingData[getTileId(sprite.mapRow, sprite.mapCol)];
-          if (anchored) {
-            best = dist;
-            fallback = anchored;
-            fallbackAnchor = { row: sprite.mapRow, col: sprite.mapCol };
-            continue;
-          }
-        }
-
-        const direct = buildingData[nid];
-        if (direct) {
-          best = dist;
-          fallback = direct;
-          fallbackAnchor = { row: row + dr, col: col + dc };
-        }
-      }
-    }
-
-    if (fallback && best <= 6) {
-      bData = fallback;
-      anchorRow = fallbackAnchor.row;
-      anchorCol = fallbackAnchor.col;
     }
   }
 

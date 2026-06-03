@@ -15,7 +15,11 @@ function setupToolMenu() {
 
   menu.addEventListener('pointerdown', (event) => event.stopPropagation());
   menu.addEventListener('pointerenter', cancelZoneDensityClose);
-  menu.addEventListener('pointerleave', () => scheduleZoneDensityClose());
+  menu.addEventListener('pointerenter', cancelParkPickerClose);
+  menu.addEventListener('pointerleave', () => {
+    scheduleZoneDensityClose();
+    scheduleParkPickerClose();
+  });
 
   // Speed controls
   const speedControls = document.getElementById('speed-controls');
@@ -64,12 +68,11 @@ function setupToolMenu() {
     lastKnownTile  = null;
     clearHousePressTimer();
     clearTerrainPressTimer();
-    clearParkPressTimer();
     Object.keys(zonePressTimers).forEach(clearZonePressTimer);
     if (wasPainting) closeToolPopups();
   });
   window.addEventListener('pointerdown', (event) => {
-    if (!event.target.closest('#tool-menu') && !event.target.closest('#zone-density-menu')) {
+    if (!event.target.closest('#tool-menu') && !event.target.closest('#zone-density-menu') && !event.target.closest('#park-picker')) {
       closeToolCategoryFlyouts();
     }
     if (event.target.closest('#house-size-menu') || event.target.closest('[data-tool="house"]')) return;
@@ -103,6 +106,7 @@ function setupToolMenu() {
       }
       toggleToolCategory(categoryButton);
       closeZoneDensityMenu();
+      if (categoryButton.dataset.toolCategory !== 'parks') closeParkPicker();
       return;
     }
 
@@ -200,17 +204,12 @@ function setupToolMenu() {
 
     // ── Park tool ────────────────────────────────────────────────────────
     if (button.dataset.tool === 'park') {
-      if (didLongPressPark) {
-        didLongPressPark = false;
-        return;
-      }
       selectedTool = 'park';
       menu.querySelectorAll('[data-tool]').forEach((toolButton) => {
         toolButton.classList.toggle('is-active', toolButton === button);
       });
       updateToolCategoryState(menu, selectedTool);
-      toggleParkPicker(button);
-      closeToolCategoryFlyouts();
+      openParkPicker(button);
       return;
     }
 
@@ -668,30 +667,39 @@ function updateZoneDensityBadges() {
   });
 }
 
-// ── Park tool (single button + picker) ────────────────────────────────────────
+// ── Park tool (Windows-style cascading submenu) ───────────────────────────────
+
+let parkPickerCloseTimer = null;
 
 function setupParkTool(menu) {
   const parkButton = menu.querySelector('[data-tool="park"]');
   const picker = document.getElementById('park-picker');
   if (!parkButton || !picker) return;
 
-  parkButton.addEventListener('pointerdown', () => {
-    didLongPressPark = false;
-    clearParkPressTimer();
-    parkPressTimer = window.setTimeout(() => {
-      didLongPressPark = true;
-      selectedTool = 'park';
-      menu.querySelectorAll('[data-tool]').forEach((btn) => {
-        btn.classList.toggle('is-active', btn === parkButton);
-      });
-      openParkPicker(parkButton);
-      updateToolCategoryState(menu, selectedTool);
-      closeToolCategoryFlyouts();
-    }, 450);
+  menu.querySelectorAll('[data-tool-category]').forEach((button) => {
+    button.addEventListener('pointerenter', () => {
+      if (button.dataset.toolCategory !== 'parks') closeParkPicker();
+    });
   });
 
-  parkButton.addEventListener('pointerleave', clearParkPressTimer);
+  menu.querySelectorAll('.tool-flyout').forEach((panel) => {
+    panel.addEventListener('pointerenter', cancelParkPickerClose);
+    panel.addEventListener('pointerleave', () => scheduleParkPickerClose());
+  });
 
+  menu.querySelectorAll('.tool-row:not([data-tool="park"])').forEach((button) => {
+    button.addEventListener('pointerenter', closeParkPicker);
+  });
+
+  parkButton.addEventListener('pointerenter', () => {
+    cancelParkPickerClose();
+    openParkPicker(parkButton);
+  });
+
+  parkButton.addEventListener('pointerleave', () => scheduleParkPickerClose());
+
+  picker.addEventListener('pointerenter', cancelParkPickerClose);
+  picker.addEventListener('pointerleave', () => scheduleParkPickerClose());
   picker.addEventListener('pointerdown', (event) => event.stopPropagation());
   picker.addEventListener('click', (event) => {
     const btn = event.target.closest('[data-park-id]');
@@ -704,18 +712,18 @@ function setupParkTool(menu) {
     menu.querySelectorAll('[data-tool]').forEach((toolButton) => {
       toolButton.classList.toggle('is-active', toolButton === parkButton);
     });
+    updateToolCategoryState(menu, selectedTool);
   });
-}
 
-function clearParkPressTimer() {
-  if (!parkPressTimer) return;
-  window.clearTimeout(parkPressTimer);
-  parkPressTimer = null;
+  window.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') closeParkPicker();
+  });
 }
 
 function openParkPicker(triggerButton = document.querySelector('[data-tool="park"]')) {
   const picker = document.getElementById('park-picker');
   if (!picker) return;
+  cancelParkPickerClose();
 
   picker.innerHTML = '';
   PARK_OPTIONS.forEach((opt) => {
@@ -751,13 +759,22 @@ function openParkPicker(triggerButton = document.querySelector('[data-tool="park
 }
 
 function closeParkPicker() {
+  cancelParkPickerClose();
   document.getElementById('park-picker')?.classList.remove('is-open');
 }
 
-function toggleParkPicker(triggerButton) {
-  const picker = document.getElementById('park-picker');
-  if (picker?.classList.contains('is-open')) closeParkPicker();
-  else openParkPicker(triggerButton);
+function scheduleParkPickerClose(delay = 220) {
+  cancelParkPickerClose();
+  parkPickerCloseTimer = window.setTimeout(() => {
+    parkPickerCloseTimer = null;
+    document.getElementById('park-picker')?.classList.remove('is-open');
+  }, delay);
+}
+
+function cancelParkPickerClose() {
+  if (!parkPickerCloseTimer) return;
+  window.clearTimeout(parkPickerCloseTimer);
+  parkPickerCloseTimer = null;
 }
 
 function getSelectedParkOption() {

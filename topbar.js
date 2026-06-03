@@ -120,6 +120,10 @@ function handleMenuAction(action) {
     case 'speed-2':      setSimSpeed(2); updateSpeedButtons(); break;
     case 'speed-4':      setSimSpeed(4); updateSpeedButtons(); break;
     case 'speed-pause':  setSimSpeed(0); updateSpeedButtons(); break;
+    case 'toggle-auto-replace-plants':
+      city.autoReplacePowerPlants = !city.autoReplacePowerPlants;
+      updateSettingsMenu();
+      break;
     case 'language-en':      setLanguage('en');      break;
     case 'language-zhHant':  setLanguage('zhHant');  break;
     case 'language-ja':      setLanguage('ja');      break;
@@ -211,6 +215,8 @@ function populateNewsMenu() {
 
 function updateSettingsMenu() {
   updateSpeedButtons();
+  document.getElementById('menu-auto-replace-plants')
+    ?.classList.toggle('menu-checked', !!city.autoReplacePowerPlants);
   ['en', 'zhHant', 'ja'].forEach((language) => {
     document.getElementById(`menu-lang-${language}`)
       ?.classList.toggle('menu-checked', getCurrentLanguage() === language);

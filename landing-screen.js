@@ -527,8 +527,8 @@ async function startNewGame(cityName) {
   hideLandingScreen();
 }
 
-function renameCityPrompt() {
-  const newName = window.prompt(t('prompt.cityName'), city.name || getDefaultCityName());
+async function renameCityPrompt() {
+  const newName = await showTextPromptDialog(t('prompt.cityName'), city.name || getDefaultCityName());
   if (newName !== null && newName.trim()) {
     city.name = newName.trim().slice(0, 30);
     updateHUD();

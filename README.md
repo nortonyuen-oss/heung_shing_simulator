@@ -28,7 +28,7 @@
 
 ## Requirements
 
-- Node.js 18 or newer
+- Node.js 22 LTS
 
 ## Run
 
@@ -38,6 +38,62 @@ npm start
 ```
 
 Open http://localhost:3000/ in your browser.
+
+## Desktop Development
+
+The browser development flow stays the same. To test the installable desktop version locally:
+
+```bash
+npm run electron:dev
+```
+
+Desktop saves are stored in the operating system user data folder instead of the project `.data` folder.
+
+## Build Installers
+
+macOS:
+
+```bash
+npm run dist:mac
+```
+
+Windows:
+
+```bash
+npm run dist:win
+```
+
+The installers are written to `release/`. Build Windows installers on Windows, or use the included GitHub Actions workflow.
+
+## Release Flow
+
+Use semantic versions in `package.json`:
+
+- `1.0.1` for bug fixes
+- `1.1.0` for gameplay/content updates
+- `2.0.0` for breaking save-format changes
+
+To trigger CI installer builds:
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+## Download Website
+
+The static download site lives in `docs/` and is designed for GitHub Pages. It links to the latest GitHub Release assets:
+
+- `The City of Heung Shing-1.0.0.dmg`
+- `The City of Heung Shing Setup 1.0.0.exe`
+- `The City of Heung Shing 1.0.0.exe`
+
+To publish a new version:
+
+1. Build the installers.
+2. Create a GitHub Release for the matching tag.
+3. Upload the installer files from `release/`.
+4. Push `docs/` to `main`; the `Deploy Website` workflow publishes the site.
 
 ## Asset Optimization
 

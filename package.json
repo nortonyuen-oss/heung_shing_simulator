@@ -2,16 +2,66 @@
   "name": "city-builder",
   "version": "1.0.0",
   "description": "SimCity 2000-style city builder with local SQLite save system",
-  "main": "server.js",
+  "author": "The City of Heung Shing",
+  "main": "electron-main.js",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
+    "electron:dev": "node scripts/run-electron.js",
+    "rebuild:electron": "electron-builder install-app-deps",
+    "dist": "electron-builder",
+    "dist:mac": "electron-builder --mac",
+    "dist:win": "electron-builder --win",
+    "generate:icons": "node scripts/generate-icons.js",
     "migrate:pg-to-sqlite": "node scripts/migrate-pg-to-sqlite.js",
     "optimize:assets": "node scripts/optimize-model-assets.js"
   },
   "dependencies": {
-    "better-sqlite3": "^12.10.0",
-    "express": "^4.18.2",
-    "sharp": "^0.34.2"
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "electron": "^39.8.10",
+    "electron-builder": "^26.8.1",
+    "sharp": "^0.34.5"
+  },
+  "build": {
+    "appId": "com.heungshing.citybuilder",
+    "productName": "The City of Heung Shing",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "**/*",
+      "!release/**",
+      "!test-results/**",
+      "!.data/**",
+      "!.git/**",
+      "!.vscode/**",
+      "!.claude/**",
+      "!.venv/**",
+      "!.DS_Store"
+    ],
+    "mac": {
+      "category": "public.app-category.games",
+      "target": [
+        "dmg",
+        "zip"
+      ]
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
   }
 }

@@ -7,18 +7,21 @@ const path = require('path');
 const fs = require('fs');
 const { openGameDatabase } = require('./db');
 
-const app = express();
-const PORT = process.env.PORT || 3000;
-const store = openGameDatabase();
+const DEFAULT_PORT = process.env.PORT || 3000;
 
-// Middleware
-app.use(express.json({ limit: '50mb' }));
-app.use(express.static(path.join(__dirname))); // serve index.html + JS/CSS/assets
+function createGameApp(options = {}) {
+  const app = express();
+  const rootDir = options.rootDir || __dirname;
+  const store = openGameDatabase(options.dbPath);
 
-// Model folder discovery
-// Returns a JSON array of image filenames for a given model folder.
-// Only whitelisted folder names are allowed (no path traversal).
-app.get('/api/models/*', (req, res) => {
+  // Middleware
+  app.use(express.json({ limit: '50mb' }));
+  app.use(express.static(rootDir)); // serve index.html + JS/CSS/assets
+
+  // Model folder discovery
+  // Returns a JSON array of image filenames for a given model folder.
+  // Only whitelisted folder names are allowed (no path traversal).
+  app.get('/api/models/*', (req, res) => {
   const ALLOWED = [
     // Current folder structure
     'residential/house1x1',
@@ -50,7 +53,7 @@ app.get('/api/models/*', (req, res) => {
   if (!ALLOWED.includes(folderName)) {
     return res.status(400).json({ error: 'Unknown folder' });
   }
-  const folderPath = path.join(__dirname, 'Models', ...folderName.split('/'));
+  const folderPath = path.join(rootDir, 'Models', ...folderName.split('/'));
   try {
     const files = fs.readdirSync(folderPath)
       .filter((f) => /\.(png|jpe?g|webp)$/i.test(f))
@@ -59,22 +62,22 @@ app.get('/api/models/*', (req, res) => {
   } catch {
     res.json([]);
   }
-});
+  });
 
 // REST API
 
 // GET /api/saves - list all saves (metadata only, no full JSON blob)
-app.get('/api/saves', (req, res) => {
+  app.get('/api/saves', (req, res) => {
   try {
     res.json(store.listSaves());
   } catch (e) {
     console.error('[GET /api/saves]', e.message);
     res.status(500).json({ error: e.message });
   }
-});
+  });
 
 // GET /api/saves/:id - fetch full save data for loading
-app.get('/api/saves/:id', (req, res) => {
+  app.get('/api/saves/:id', (req, res) => {
   try {
     const row = store.getSave(Number(req.params.id));
     if (!row) return res.status(404).json({ error: 'Save not found' });
@@ -83,10 +86,10 @@ app.get('/api/saves/:id', (req, res) => {
     console.error('[GET /api/saves/:id]', e.message);
     res.status(500).json({ error: e.message });
   }
-});
+  });
 
 // POST /api/saves - create a new save slot
-app.post('/api/saves', (req, res) => {
+  app.post('/api/saves', (req, res) => {
   try {
     const row = store.createSave(req.body);
     res.status(201).json(row);
@@ -94,10 +97,10 @@ app.post('/api/saves', (req, res) => {
     console.error('[POST /api/saves]', e.message);
     res.status(500).json({ error: e.message });
   }
-});
+  });
 
 // PUT /api/saves/:id - overwrite an existing save slot
-app.put('/api/saves/:id', (req, res) => {
+  app.put('/api/saves/:id', (req, res) => {
   try {
     const row = store.updateSave(Number(req.params.id), req.body);
     if (!row) return res.status(404).json({ error: 'Save not found' });
@@ -106,10 +109,10 @@ app.put('/api/saves/:id', (req, res) => {
     console.error('[PUT /api/saves/:id]', e.message);
     res.status(500).json({ error: e.message });
   }
-});
+  });
 
 // DELETE /api/saves/:id - delete a save slot
-app.delete('/api/saves/:id', (req, res) => {
+  app.delete('/api/saves/:id', (req, res) => {
   try {
     store.deleteSave(Number(req.params.id));
     res.json({ ok: true });
@@ -117,20 +120,20 @@ app.delete('/api/saves/:id', (req, res) => {
     console.error('[DELETE /api/saves/:id]', e.message);
     res.status(500).json({ error: e.message });
   }
-});
+  });
 
 // GET /api/terrains - list terrain presets (metadata only)
-app.get('/api/terrains', (req, res) => {
+  app.get('/api/terrains', (req, res) => {
   try {
     res.json(store.listTerrainPresets());
   } catch (e) {
     console.error('[GET /api/terrains]', e.message);
     res.status(500).json({ error: e.message });
   }
-});
+  });
 
 // GET /api/terrains/:id - fetch full terrain payload
-app.get('/api/terrains/:id', (req, res) => {
+  app.get('/api/terrains/:id', (req, res) => {
   try {
     const row = store.getTerrainPreset(Number(req.params.id));
     if (!row) return res.status(404).json({ error: 'Terrain preset not found' });
@@ -139,10 +142,10 @@ app.get('/api/terrains/:id', (req, res) => {
     console.error('[GET /api/terrains/:id]', e.message);
     res.status(500).json({ error: e.message });
   }
-});
+  });
 
 // POST /api/terrains - create a terrain preset
-app.post('/api/terrains', (req, res) => {
+  app.post('/api/terrains', (req, res) => {
   try {
     const row = store.createTerrainPreset(req.body);
     res.status(201).json(row);
@@ -150,10 +153,10 @@ app.post('/api/terrains', (req, res) => {
     console.error('[POST /api/terrains]', e.message);
     res.status(500).json({ error: e.message });
   }
-});
+  });
 
 // PUT /api/terrains/:id - update a terrain preset
-app.put('/api/terrains/:id', (req, res) => {
+  app.put('/api/terrains/:id', (req, res) => {
   try {
     const row = store.updateTerrainPreset(Number(req.params.id), req.body);
     if (!row) return res.status(404).json({ error: 'Terrain preset not found' });
@@ -162,10 +165,10 @@ app.put('/api/terrains/:id', (req, res) => {
     console.error('[PUT /api/terrains/:id]', e.message);
     res.status(500).json({ error: e.message });
   }
-});
+  });
 
 // DELETE /api/terrains/:id - delete a terrain preset
-app.delete('/api/terrains/:id', (req, res) => {
+  app.delete('/api/terrains/:id', (req, res) => {
   try {
     store.deleteTerrainPreset(Number(req.params.id));
     res.json({ ok: true });
@@ -173,9 +176,60 @@ app.delete('/api/terrains/:id', (req, res) => {
     console.error('[DELETE /api/terrains/:id]', e.message);
     res.status(500).json({ error: e.message });
   }
-});
+  });
 
-app.listen(PORT, () => {
-  console.log(`\nCity Builder running at http://localhost:${PORT}`);
-  console.log(`SQLite saves: ${store.path}\n`);
-});
+  return { app, store };
+}
+
+function startGameServer(options = {}) {
+  const port = options.port ?? DEFAULT_PORT;
+  const host = options.host;
+  const { app, store } = createGameApp(options);
+
+  return new Promise((resolve, reject) => {
+    const server = app.listen(port, host, () => {
+      const address = server.address();
+      const resolvedPort = typeof address === 'object' && address ? address.port : port;
+      resolve({
+        app,
+        server,
+        store,
+        port: resolvedPort,
+        url: `http://127.0.0.1:${resolvedPort}`,
+        close() {
+          return new Promise((closeResolve, closeReject) => {
+            server.close((err) => {
+              try {
+                store.close();
+              } catch (e) {
+                if (!err) err = e;
+              }
+
+              if (err) closeReject(err);
+              else closeResolve();
+            });
+          });
+        },
+      });
+    });
+
+    server.on('error', reject);
+  });
+}
+
+if (require.main === module) {
+  startGameServer({ port: DEFAULT_PORT })
+    .then(({ port, store }) => {
+      console.log(`\nCity Builder running at http://localhost:${port}`);
+      console.log(`SQLite saves: ${store.path}\n`);
+    })
+    .catch((err) => {
+      console.error('[server]', err);
+      process.exit(1);
+    });
+}
+
+module.exports = {
+  createGameApp,
+  startGameServer,
+};

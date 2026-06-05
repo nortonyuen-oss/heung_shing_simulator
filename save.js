@@ -7,6 +7,83 @@ const TERRAIN_LOCAL_KEY = 'citybuilder.terrainPresets';
 let terrainApiAvailable = null;
 let currentSaveId = null;   // tracks which DB row we are editing
 
+function showTextPromptDialog(message, defaultValue = '') {
+  return new Promise((resolve) => {
+    let dialog = document.getElementById('text-prompt-dialog');
+    if (!dialog) {
+      dialog = document.createElement('div');
+      dialog.id = 'text-prompt-dialog';
+      dialog.className = 'sim-dialog';
+      dialog.setAttribute('role', 'dialog');
+      dialog.setAttribute('aria-modal', 'true');
+      dialog.innerHTML = `
+        <div class="dialog-overlay" data-prompt-cancel></div>
+        <form class="dialog-box" style="max-width:420px; width:92vw">
+          <div class="dialog-title-bar">
+            <span data-prompt-title></span>
+            <button class="dialog-close-btn" type="button" data-prompt-cancel>✕</button>
+          </div>
+          <div class="dialog-body">
+            <input class="dialog-text-input" type="text" maxlength="30" autocomplete="off" spellcheck="false" />
+          </div>
+          <div class="dialog-footer">
+            <button class="dialog-cancel-btn" type="button" data-prompt-cancel></button>
+            <button class="dialog-ok-btn" type="submit"></button>
+          </div>
+        </form>
+      `;
+      document.body.appendChild(dialog);
+    }
+
+    const titleEl = dialog.querySelector('[data-prompt-title]');
+    const inputEl = dialog.querySelector('.dialog-text-input');
+    const okBtn = dialog.querySelector('.dialog-ok-btn');
+    const cancelBtn = dialog.querySelector('.dialog-cancel-btn');
+    const formEl = dialog.querySelector('form');
+
+    titleEl.textContent = message;
+    inputEl.value = defaultValue || '';
+    okBtn.textContent = t('dialog.ok');
+    cancelBtn.textContent = t('dialog.cancel');
+
+    let settled = false;
+    const cleanup = () => {
+      dialog.style.display = 'none';
+      formEl.removeEventListener('submit', onSubmit);
+      dialog.querySelectorAll('[data-prompt-cancel]').forEach((el) => {
+        el.removeEventListener('click', onCancel);
+      });
+      document.removeEventListener('keydown', onKeyDown);
+    };
+    const finish = (value) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve(value);
+    };
+    const onSubmit = (e) => {
+      e.preventDefault();
+      finish(inputEl.value);
+    };
+    const onCancel = () => finish(null);
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') finish(null);
+    };
+
+    formEl.addEventListener('submit', onSubmit);
+    dialog.querySelectorAll('[data-prompt-cancel]').forEach((el) => {
+      el.addEventListener('click', onCancel);
+    });
+    document.addEventListener('keydown', onKeyDown);
+
+    dialog.style.display = 'flex';
+    window.setTimeout(() => {
+      inputEl.focus();
+      inputEl.select();
+    }, 0);
+  });
+}
+
 // ── Build save payload ────────────────────────────────────────────────────────
 
 function buildSavePayload() {
@@ -75,7 +152,7 @@ async function saveGame(silent = false) {
 async function saveAsGame() {
   if (!activeScene) { showToast(t('toast.gameNotReady'), 'warning'); return; }
 
-  const name = window.prompt(t('prompt.saveAs'), city.name || getDefaultCityName());
+  const name = await showTextPromptDialog(t('prompt.saveAs'), city.name || getDefaultCityName());
   if (name === null) return;        // user cancelled
   if (name.trim()) {
     city.name = name.trim().slice(0, 30);

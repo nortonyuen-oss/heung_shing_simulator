@@ -1,5 +1,7 @@
 node_modules/
 .data/
+release/
+build/icon.iconset/
 *.sqlite
 *.sqlite-shm
 *.sqlite-wal

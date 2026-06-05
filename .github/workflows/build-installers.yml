@@ -15,10 +15,10 @@ jobs:
       matrix:
         include:
           - os: macos-15
-            command: npm run dist:mac
+            command: npm run dist:mac -- --publish never
             artifact: mac-installers
           - os: windows-latest
-            command: npm run dist:win
+            command: npm run dist:win -- --publish never
             artifact: windows-installers
 
     steps:

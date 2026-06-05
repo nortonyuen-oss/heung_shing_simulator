@@ -348,6 +348,8 @@ function hideLandingScreen() {
   const screen = document.getElementById('landing-screen');
   if (screen) screen.style.display = 'none';
 
+  if (typeof enterGameplayAudioMode === 'function') enterGameplayAudioMode();
+
   // Start ticker only once the game session actually begins (not at page load).
   // startTicker() is re-entrant-safe: it clears any existing timer before restarting.
   if (typeof startTicker === 'function') startTicker();

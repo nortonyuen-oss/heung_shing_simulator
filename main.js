@@ -1782,6 +1782,11 @@ function getTitleMusicTrackIndex() {
   return index >= 0 ? index : 0;
 }
 
+function getFirstGameplayMusicTrackIndex() {
+  const index = MUSIC_TRACKS.findIndex((track) => track.key !== TITLE_MUSIC_TRACK_KEY);
+  return index >= 0 ? index : getTitleMusicTrackIndex();
+}
+
 function ensureTitleMusic(options = {}) {
   const { useLoadingAudio = false } = options;
   if (MUSIC_TRACKS.length === 0) return;
@@ -1811,6 +1816,21 @@ function ensureTitleMusic(options = {}) {
   }
 
   updateJukeboxUi();
+}
+
+function enterGameplayAudioMode() {
+  stopTitleLoadingAudio();
+
+  if (!activeScene || MUSIC_TRACKS.length === 0) {
+    updateJukeboxUi();
+    return;
+  }
+
+  if (MUSIC_TRACKS[activeTrackIndex]?.key === TITLE_MUSIC_TRACK_KEY) {
+    activeTrackIndex = getFirstGameplayMusicTrackIndex();
+  }
+
+  playTrack(activeTrackIndex);
 }
 
 function setMusicLoopMode(mode) {

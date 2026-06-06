@@ -86,13 +86,17 @@ jobs:
           test -n "$win_portable"
           test -n "$win_latest"
           test -n "$win_setup_blockmap"
+          setup_public="The.City.of.Heung.Shing.Setup.${version}.exe"
           cp "$mac_arm64_dmg" "release-assets/The.City.of.Heung.Shing-${version}-arm64.dmg"
           cp "$mac_x64_dmg" "release-assets/The.City.of.Heung.Shing-${version}-x64.dmg"
-          cp "$win_setup" "release-assets/The.City.of.Heung.Shing.Setup.${version}.exe"
+          cp "$win_setup" "release-assets/${setup_public}"
           cp "$win_portable" "release-assets/The.City.of.Heung.Shing.${version}.exe"
-          cp "$win_setup" "release-assets/$(basename "$win_setup")"
-          cp "$win_setup_blockmap" "release-assets/$(basename "$win_setup_blockmap")"
+          cp "$win_setup_blockmap" "release-assets/${setup_public}.blockmap"
           cp "$win_latest" "release-assets/latest.yml"
+          OLD_SETUP="$(basename "$win_setup")" \
+          OLD_BLOCKMAP="$(basename "$win_setup_blockmap")" \
+          SETUP_PUBLIC="$setup_public" \
+          perl -0pi -e 's/\Q$ENV{OLD_SETUP}\E/$ENV{SETUP_PUBLIC}/g; s/\Q$ENV{OLD_BLOCKMAP}\E/$ENV{SETUP_PUBLIC}.blockmap/g' release-assets/latest.yml
           ls -lh release-assets
 
       - name: Create release and upload installers

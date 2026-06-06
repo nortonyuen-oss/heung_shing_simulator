@@ -64,7 +64,7 @@ The installer workflow must build all platforms:
 - Windows installer EXE: `The.City.of.Heung.Shing.Setup.<version>.exe`
 - Windows portable EXE: `The.City.of.Heung.Shing.<version>.exe`
 
-For Windows auto-update, the release must also include the original electron-builder NSIS setup artifact, its matching `*.exe.blockmap`, and `latest.yml`. Do not edit or rename the artifact referenced by `latest.yml`.
+For Windows auto-update, the release must also include the public NSIS setup artifact, its matching `*.exe.blockmap`, and `latest.yml`. The release workflow patches `latest.yml` so the updater uses the same no-spaces setup filename shown on the website.
 
 The website links in `docs/index.html` must point to the same filenames under:
 
@@ -136,8 +136,7 @@ Confirm the latest release has all four files:
 Confirm Windows auto-update files are also present:
 
 - `latest.yml`
-- Original `The City of Heung Shing Setup <version>.exe`
-- Original `The City of Heung Shing Setup <version>.exe.blockmap`
+- `The.City.of.Heung.Shing.Setup.<version>.exe.blockmap`
 
 ## 9. If Release Publish Fails
 

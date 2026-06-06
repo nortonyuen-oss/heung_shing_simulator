@@ -71,12 +71,15 @@ jobs:
           set -euo pipefail
           version="${GITHUB_REF_NAME#v}"
           mkdir -p release-assets
-          cp "artifacts/mac-installers/The City of Heung Shing-${version}.dmg" \
-             "release-assets/The.City.of.Heung.Shing-${version}.dmg"
-          cp "artifacts/windows-installers/The City of Heung Shing Setup ${version}.exe" \
-             "release-assets/The.City.of.Heung.Shing.Setup.${version}.exe"
-          cp "artifacts/windows-installers/The City of Heung Shing ${version}.exe" \
-             "release-assets/The.City.of.Heung.Shing.${version}.exe"
+          mac_dmg="$(find artifacts/mac-installers -maxdepth 1 -type f -name '*.dmg' | head -n 1)"
+          win_setup="$(find artifacts/windows-installers -maxdepth 1 -type f -name '*Setup*.exe' | head -n 1)"
+          win_portable="$(find artifacts/windows-installers -maxdepth 1 -type f -name '*.exe' ! -name '*Setup*' | head -n 1)"
+          test -n "$mac_dmg"
+          test -n "$win_setup"
+          test -n "$win_portable"
+          cp "$mac_dmg" "release-assets/The.City.of.Heung.Shing-${version}.dmg"
+          cp "$win_setup" "release-assets/The.City.of.Heung.Shing.Setup.${version}.exe"
+          cp "$win_portable" "release-assets/The.City.of.Heung.Shing.${version}.exe"
           ls -lh release-assets
 
       - name: Create release and upload installers

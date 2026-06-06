@@ -10,8 +10,8 @@
   <meta property="og:image" content="assets/backgroundTitle.png" />
   <meta name="theme-color" content="#17212d" />
   <link rel="icon" href="assets/icon.png" />
-  <link rel="stylesheet" href="styles.css" />
-  <script src="site.js" defer></script>
+  <link rel="stylesheet" href="styles.css?v=20260606-2" />
+  <script src="site.js?v=20260606-2" defer></script>
 </head>
 <body>
   <header class="site-header" aria-label="網站導覽">
@@ -41,33 +41,32 @@
     </section>
 
     <section id="stats" class="stats-strip" aria-label="網站統計">
-      <div class="stat-card">
-        <span class="stat-label">最新版本</span>
-        <strong class="stat-value" data-latest-version>v1.0.4</strong>
-        <span class="stat-note" data-latest-published>2026年6月6日發布</span>
-      </div>
-      <div class="stat-card">
-        <span class="stat-label">最新版本下載</span>
-        <strong class="stat-value" data-latest-downloads>載入中</strong>
-        <span class="stat-note">由 GitHub Releases 即時讀取</span>
-      </div>
-      <div class="stat-card">
-        <span class="stat-label">全部版本下載</span>
-        <strong class="stat-value" data-all-downloads>載入中</strong>
-        <span class="stat-note">包含 macOS 與 Windows 安裝檔</span>
-      </div>
-      <div class="stat-card">
-        <span class="stat-label">入口瀏覽次數</span>
-        <span class="stat-value badge-value">
-          <img
-            src="https://hits.sh/nortonyuen-oss.github.io/heung_shing_simulator.svg?view=total&label=views&color=1f5d64&labelColor=17212d"
-            alt="入口瀏覽次數"
-            loading="lazy"
-            referrerpolicy="no-referrer"
-          />
+      <p class="stats-record">
+        <span class="stats-record-item">
+          <span class="stat-label">最新版本</span>
+          <strong class="stat-value" data-latest-version>v1.0.4</strong>
+          <span data-latest-published>2026年6月6日發布</span>
         </span>
-        <span class="stat-note">由 hits.sh 自本頁載入時計算</span>
-      </div>
+        <span class="stats-record-item">
+          <span class="stat-label">最新版本下載</span>
+          <strong class="stat-value" data-latest-downloads>載入中</strong>
+        </span>
+        <span class="stats-record-item">
+          <span class="stat-label">全部版本下載</span>
+          <strong class="stat-value" data-all-downloads>載入中</strong>
+        </span>
+        <span class="stats-record-item">
+          <span class="stat-label">入口瀏覽</span>
+          <span class="badge-value">
+            <img
+              src="https://hits.sh/nortonyuen-oss.github.io/heung_shing_simulator.svg?view=total&label=views&color=1f5d64&labelColor=17212d"
+              alt="入口瀏覽次數"
+              loading="lazy"
+              referrerpolicy="no-referrer"
+            />
+          </span>
+        </span>
+      </p>
     </section>
 
     <section id="downloads" class="downloads">

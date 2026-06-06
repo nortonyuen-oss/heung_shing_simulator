@@ -6,6 +6,9 @@ on:
     tags:
       - "v*.*.*"
 
+permissions:
+  contents: write
+
 jobs:
   build:
     name: Build ${{ matrix.os }}
@@ -49,3 +52,40 @@ jobs:
             release/*.blockmap
             release/latest*.yml
           if-no-files-found: error
+
+  release:
+    name: Publish GitHub Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download installer artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Prepare release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          mkdir -p release-assets
+          cp "artifacts/mac-installers/The City of Heung Shing-${version}.dmg" \
+             "release-assets/The.City.of.Heung.Shing-${version}.dmg"
+          cp "artifacts/windows-installers/The City of Heung Shing Setup ${version}.exe" \
+             "release-assets/The.City.of.Heung.Shing.Setup.${version}.exe"
+          cp "artifacts/windows-installers/The City of Heung Shing ${version}.exe" \
+             "release-assets/The.City.of.Heung.Shing.${version}.exe"
+          ls -lh release-assets
+
+      - name: Create release and upload installers
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          gh release create "$GITHUB_REF_NAME" \
+            --title "The City of Heung Shing ${GITHUB_REF_NAME}" \
+            --notes "Desktop installers for The City of Heung Shing ${GITHUB_REF_NAME}." \
+            release-assets/*

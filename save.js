@@ -402,6 +402,9 @@ function deriveFallbackSpriteKey(record) {
   if (typeof isPowerPlantType === 'function' && isPowerPlantType(record.type)) {
     return POWER_PLANT_MODELS[record.type].spriteKey;
   }
+  if (typeof SERVICE_BUILDING_MODELS !== 'undefined' && SERVICE_BUILDING_MODELS[record.type]) {
+    return SERVICE_BUILDING_MODELS[record.type].spriteKey;
+  }
 
   const infraIdx = typeof INFRA_SPRITE_INDEX !== 'undefined'
     ? INFRA_SPRITE_INDEX[record.type]
@@ -422,8 +425,7 @@ function deriveLoadedSpriteKey(record) {
     return POWER_PLANT_MODELS[record.type].spriteKey;
   }
   let key = record.spriteKey ?? deriveFallbackSpriteKey(record);
-  // Migrate stock_exchange from old 4×4 spriteKey to new 3×3 key
-  if (key === 'stock_exchange_4x4') key = 'stock_exchange_3x3';
+  key = migrateServiceSpriteKey(record, key);
   const legacy2x2Key = getLegacy2x2HouseFallbackSpriteKey(record, key);
   if (legacy2x2Key) return legacy2x2Key;
   if (record.type === 'residential' && !isLoadedTextureKey(key)) {
@@ -434,6 +436,13 @@ function deriveLoadedSpriteKey(record) {
   if (record.type === 'commercial' && !isLoadedTextureKey(key)) {
     return getFallbackCommercialSpriteKey(record) ?? deriveFallbackSpriteKey(record);
   }
+  return key;
+}
+
+function migrateServiceSpriteKey(record, key) {
+  if (record.type === 'primary_school' && key === 'primary_school_2x2') return 'primary_school_3x3';
+  if (record.type === 'secondary_school' && key === 'secondary_school_2x2') return 'secondary_school_3x3';
+  if (record.type === 'stock_exchange' && key === 'stock_exchange_3x3') return 'stock_exchange_4x4';
   return key;
 }
 

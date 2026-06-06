@@ -1,6 +1,6 @@
 {
   "name": "city-builder",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "SimCity 2000-style city builder with local SQLite save system",
   "author": "The City of Heung Shing",
   "main": "electron-main.js",

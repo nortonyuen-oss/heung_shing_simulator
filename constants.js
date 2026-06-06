@@ -252,16 +252,16 @@ const SERVICE_BUILDING_MODELS = {
     footprintRows: 2,
   },
   primary_school: {
-    spriteKey: 'primary_school_2x2',
-    path: 'Models/government/2x2/primarySchool2-01.png',
-    footprintCols: 2,
-    footprintRows: 2,
+    spriteKey: 'primary_school_3x3',
+    path: 'Models/government/3x3/primarySchool3-01.png',
+    footprintCols: 3,
+    footprintRows: 3,
   },
   secondary_school: {
-    spriteKey: 'secondary_school_2x2',
-    path: 'Models/government/2x2/secondarySchool2-01.png',
-    footprintCols: 2,
-    footprintRows: 2,
+    spriteKey: 'secondary_school_3x3',
+    path: 'Models/government/3x3/secondarySchool3-01.png',
+    footprintCols: 3,
+    footprintRows: 3,
   },
   library: {
     spriteKey: 'library_2x2',
@@ -287,12 +287,11 @@ const SERVICE_BUILDING_MODELS = {
     footprintCols: 2,
     footprintRows: 2,
   },
-  // Stock exchange moved from 4×4 → 3×3 in new assets
   stock_exchange: {
-    spriteKey: 'stock_exchange_3x3',
-    path: 'Models/government/3x3/stockExchange3-01.png',
-    footprintCols: 3,
-    footprintRows: 3,
+    spriteKey: 'stock_exchange_4x4',
+    path: 'Models/government/4x4/stockExchange4-01.png',
+    footprintCols: 4,
+    footprintRows: 4,
   },
   // Sports grounds: two sizes, handled via SPORT_GROUND_OPTIONS picker
   sports_ground_small: {

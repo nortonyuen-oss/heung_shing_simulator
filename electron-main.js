@@ -1,5 +1,6 @@
 const path = require('path');
 const { app, BrowserWindow, shell } = require('electron');
+const { scheduleUpdateChecks } = require('./electron-updates');
 
 const emitWarning = process.emitWarning.bind(process);
 process.emitWarning = (warning, ...args) => {
@@ -66,6 +67,7 @@ async function createWindow() {
   });
 
   await mainWindow.loadURL(gameServer.url);
+  scheduleUpdateChecks(mainWindow);
 }
 
 app.whenReady().then(createWindow).catch((err) => {

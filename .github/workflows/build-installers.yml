@@ -78,14 +78,21 @@ jobs:
           mac_x64_dmg="$(find artifacts/mac-x64-installers -maxdepth 1 -type f -name '*.dmg' | head -n 1)"
           win_setup="$(find artifacts/windows-installers -maxdepth 1 -type f -name '*Setup*.exe' | head -n 1)"
           win_portable="$(find artifacts/windows-installers -maxdepth 1 -type f -name '*.exe' ! -name '*Setup*' | head -n 1)"
+          win_latest="$(find artifacts/windows-installers -maxdepth 1 -type f -name 'latest.yml' | head -n 1)"
+          win_setup_blockmap="$(find artifacts/windows-installers -maxdepth 1 -type f -name '*Setup*.exe.blockmap' | head -n 1)"
           test -n "$mac_arm64_dmg"
           test -n "$mac_x64_dmg"
           test -n "$win_setup"
           test -n "$win_portable"
+          test -n "$win_latest"
+          test -n "$win_setup_blockmap"
           cp "$mac_arm64_dmg" "release-assets/The.City.of.Heung.Shing-${version}-arm64.dmg"
           cp "$mac_x64_dmg" "release-assets/The.City.of.Heung.Shing-${version}-x64.dmg"
           cp "$win_setup" "release-assets/The.City.of.Heung.Shing.Setup.${version}.exe"
           cp "$win_portable" "release-assets/The.City.of.Heung.Shing.${version}.exe"
+          cp "$win_setup" "release-assets/$(basename "$win_setup")"
+          cp "$win_setup_blockmap" "release-assets/$(basename "$win_setup_blockmap")"
+          cp "$win_latest" "release-assets/latest.yml"
           ls -lh release-assets
 
       - name: Create release and upload installers
@@ -97,5 +104,5 @@ jobs:
           gh release create "$GITHUB_REF_NAME" \
             --repo "$GITHUB_REPOSITORY" \
             --title "The City of Heung Shing ${GITHUB_REF_NAME}" \
-            --notes "Desktop installers for The City of Heung Shing ${GITHUB_REF_NAME}." \
+            --notes "Desktop installers for The City of Heung Shing ${GITHUB_REF_NAME}. Windows auto-update metadata is included for installed desktop builds." \
             release-assets/*

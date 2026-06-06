@@ -1,8 +1,12 @@
 {
   "name": "city-builder",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "SimCity 2000-style city builder with local SQLite save system",
   "author": "The City of Heung Shing",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nortonyuen-oss/heung_shing_simulator.git"
+  },
   "main": "electron-main.js",
   "engines": {
     "node": ">=22"
@@ -20,6 +24,7 @@
     "optimize:assets": "node scripts/optimize-model-assets.js"
   },
   "dependencies": {
+    "electron-updater": "^6.8.9",
     "express": "^4.18.2"
   },
   "devDependencies": {
@@ -30,6 +35,13 @@
   "build": {
     "appId": "com.heungshing.citybuilder",
     "productName": "The City of Heung Shing",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "nortonyuen-oss",
+        "repo": "heung_shing_simulator"
+      }
+    ],
     "directories": {
       "output": "release"
     },

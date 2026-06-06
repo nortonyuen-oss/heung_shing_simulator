@@ -9,10 +9,10 @@ const dateFormatter = new Intl.DateTimeFormat("zh-Hant-HK", {
 });
 
 const assetMatchers = {
-  "mac-arm64": (asset) => /-arm64\.dmg$/i.test(asset.name),
-  "mac-x64": (asset) => /-x64\.dmg$/i.test(asset.name),
-  "windows-setup": (asset) => /\.setup\.[\d.]+\.exe$/i.test(asset.name),
-  "windows-portable": (asset) => /\.exe$/i.test(asset.name) && !/\.setup\./i.test(asset.name),
+  "mac-arm64": (asset) => /^The\.City\.of\.Heung\.Shing-[\d.]+-arm64\.dmg$/i.test(asset.name),
+  "mac-x64": (asset) => /^The\.City\.of\.Heung\.Shing-[\d.]+-x64\.dmg$/i.test(asset.name),
+  "windows-setup": (asset) => /^The\.City\.of\.Heung\.Shing\.Setup\.[\d.]+\.exe$/i.test(asset.name),
+  "windows-portable": (asset) => /^The\.City\.of\.Heung\.Shing\.[\d.]+\.exe$/i.test(asset.name),
 };
 
 function setText(selector, text) {
@@ -29,8 +29,14 @@ function getAssetDownloadCount(asset) {
   return Number(asset.download_count ?? asset.downloadCount ?? 0) || 0;
 }
 
+function isPublicDownloadAsset(asset) {
+  return Object.values(assetMatchers).some((matcher) => matcher(asset));
+}
+
 function sumReleaseDownloads(release) {
-  return (release.assets || []).reduce((total, asset) => total + getAssetDownloadCount(asset), 0);
+  return (release.assets || [])
+    .filter(isPublicDownloadAsset)
+    .reduce((total, asset) => total + getAssetDownloadCount(asset), 0);
 }
 
 function updateReleaseLinks(url) {

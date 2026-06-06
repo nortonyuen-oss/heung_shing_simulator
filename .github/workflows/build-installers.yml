@@ -96,7 +96,7 @@ jobs:
           OLD_SETUP="$(basename "$win_setup")" \
           OLD_BLOCKMAP="$(basename "$win_setup_blockmap")" \
           SETUP_PUBLIC="$setup_public" \
-          perl -0pi -e 's/\Q$ENV{OLD_SETUP}\E/$ENV{SETUP_PUBLIC}/g; s/\Q$ENV{OLD_BLOCKMAP}\E/$ENV{SETUP_PUBLIC}.blockmap/g' release-assets/latest.yml
+          perl -0pi -e 's/\Q$ENV{OLD_SETUP}\E/$ENV{SETUP_PUBLIC}/g; s/\Q$ENV{OLD_BLOCKMAP}\E/$ENV{SETUP_PUBLIC}.blockmap/g; s/^(\s*-\s*url:\s*).*?$/$1$ENV{SETUP_PUBLIC}/mg; s/^(path:\s*).*?$/$1$ENV{SETUP_PUBLIC}/mg' release-assets/latest.yml
           ls -lh release-assets
 
       - name: Create release and upload installers

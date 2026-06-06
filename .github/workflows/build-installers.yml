@@ -18,8 +18,11 @@ jobs:
       matrix:
         include:
           - os: macos-15
-            command: npm run dist:mac -- --publish never
-            artifact: mac-installers
+            command: npm run dist:mac -- --arm64 --publish never
+            artifact: mac-arm64-installers
+          - os: macos-15
+            command: npm run dist:mac -- --x64 --publish never
+            artifact: mac-x64-installers
           - os: windows-latest
             command: npm run dist:win -- --publish never
             artifact: windows-installers
@@ -71,13 +74,16 @@ jobs:
           set -euo pipefail
           version="${GITHUB_REF_NAME#v}"
           mkdir -p release-assets
-          mac_dmg="$(find artifacts/mac-installers -maxdepth 1 -type f -name '*.dmg' | head -n 1)"
+          mac_arm64_dmg="$(find artifacts/mac-arm64-installers -maxdepth 1 -type f -name '*.dmg' | head -n 1)"
+          mac_x64_dmg="$(find artifacts/mac-x64-installers -maxdepth 1 -type f -name '*.dmg' | head -n 1)"
           win_setup="$(find artifacts/windows-installers -maxdepth 1 -type f -name '*Setup*.exe' | head -n 1)"
           win_portable="$(find artifacts/windows-installers -maxdepth 1 -type f -name '*.exe' ! -name '*Setup*' | head -n 1)"
-          test -n "$mac_dmg"
+          test -n "$mac_arm64_dmg"
+          test -n "$mac_x64_dmg"
           test -n "$win_setup"
           test -n "$win_portable"
-          cp "$mac_dmg" "release-assets/The.City.of.Heung.Shing-${version}.dmg"
+          cp "$mac_arm64_dmg" "release-assets/The.City.of.Heung.Shing-${version}-arm64.dmg"
+          cp "$mac_x64_dmg" "release-assets/The.City.of.Heung.Shing-${version}-x64.dmg"
           cp "$win_setup" "release-assets/The.City.of.Heung.Shing.Setup.${version}.exe"
           cp "$win_portable" "release-assets/The.City.of.Heung.Shing.${version}.exe"
           ls -lh release-assets

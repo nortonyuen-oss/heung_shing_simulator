@@ -89,6 +89,7 @@ jobs:
         run: |
           version="${GITHUB_REF_NAME#v}"
           gh release create "$GITHUB_REF_NAME" \
+            --repo "$GITHUB_REPOSITORY" \
             --title "The City of Heung Shing ${GITHUB_REF_NAME}" \
             --notes "Desktop installers for The City of Heung Shing ${GITHUB_REF_NAME}." \
             release-assets/*

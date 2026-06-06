@@ -11,6 +11,7 @@
   <meta name="theme-color" content="#17212d" />
   <link rel="icon" href="assets/icon.png" />
   <link rel="stylesheet" href="styles.css" />
+  <script src="site.js" defer></script>
 </head>
 <body>
   <header class="site-header" aria-label="網站導覽">
@@ -20,6 +21,8 @@
     </a>
     <nav>
       <a href="#downloads">下載</a>
+      <a href="#stats">統計</a>
+      <a href="#changelog">版本</a>
       <a href="https://github.com/nortonyuen-oss/heung_shing_simulator" rel="noopener">GitHub</a>
     </nav>
   </header>
@@ -32,8 +35,38 @@
         <p class="lede">一款向 SimCity 2000 致敬的城市建設遊戲。規劃道路、分區、公共設施與電力系統，管理財政、政策與城市發展，在等角地圖上建立屬於你的香城。</p>
         <div class="hero-actions">
           <a class="button primary" href="#downloads">下載遊戲</a>
-          <a class="button secondary" href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest" rel="noopener">最新版本</a>
+          <a class="button secondary" href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest" rel="noopener" data-release-link>最新版本</a>
         </div>
+      </div>
+    </section>
+
+    <section id="stats" class="stats-strip" aria-label="網站統計">
+      <div class="stat-card">
+        <span class="stat-label">最新版本</span>
+        <strong class="stat-value" data-latest-version>v1.0.4</strong>
+        <span class="stat-note" data-latest-published>2026年6月6日發布</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">最新版本下載</span>
+        <strong class="stat-value" data-latest-downloads>載入中</strong>
+        <span class="stat-note">由 GitHub Releases 即時讀取</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">全部版本下載</span>
+        <strong class="stat-value" data-all-downloads>載入中</strong>
+        <span class="stat-note">包含 macOS 與 Windows 安裝檔</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">入口瀏覽次數</span>
+        <span class="stat-value badge-value">
+          <img
+            src="https://hits.sh/nortonyuen-oss.github.io/heung_shing_simulator.svg?view=total&label=views&color=1f5d64&labelColor=17212d"
+            alt="入口瀏覽次數"
+            loading="lazy"
+            referrerpolicy="no-referrer"
+          />
+        </span>
+        <span class="stat-note">由 hits.sh 自本頁載入時計算</span>
       </div>
     </section>
 
@@ -50,7 +83,10 @@
             <h3>Mac Apple Silicon</h3>
             <p>適合 M1、M2、M3、M4 或更新的 Mac。下載 DMG 後拖入「應用程式」即可安裝。</p>
           </div>
-          <a class="download-link" href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest/download/The.City.of.Heung.Shing-1.0.4-arm64.dmg">下載 ARM64 DMG</a>
+          <div class="download-actions">
+            <a class="download-link" href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest/download/The.City.of.Heung.Shing-1.0.4-arm64.dmg" data-download-link="mac-arm64">下載 ARM64 DMG</a>
+            <span class="download-count" data-download-count="mac-arm64">下載數載入中</span>
+          </div>
         </article>
 
         <article class="download-card">
@@ -59,7 +95,10 @@
             <h3>Mac Intel</h3>
             <p>適合 Intel CPU 的 Mac。下載 DMG 後拖入「應用程式」即可安裝。</p>
           </div>
-          <a class="download-link" href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest/download/The.City.of.Heung.Shing-1.0.4-x64.dmg">下載 Intel DMG</a>
+          <div class="download-actions">
+            <a class="download-link" href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest/download/The.City.of.Heung.Shing-1.0.4-x64.dmg" data-download-link="mac-x64">下載 Intel DMG</a>
+            <span class="download-count" data-download-count="mac-x64">下載數載入中</span>
+          </div>
         </article>
 
         <article class="download-card">
@@ -68,7 +107,10 @@
             <h3>Windows 安裝版</h3>
             <p>推薦大部分玩家使用。安裝後會加入一般應用程式捷徑。</p>
           </div>
-          <a class="download-link" href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest/download/The.City.of.Heung.Shing.Setup.1.0.4.exe">下載安裝版 EXE</a>
+          <div class="download-actions">
+            <a class="download-link" href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest/download/The.City.of.Heung.Shing.Setup.1.0.4.exe" data-download-link="windows-setup">下載安裝版 EXE</a>
+            <span class="download-count" data-download-count="windows-setup">下載數載入中</span>
+          </div>
         </article>
 
         <article class="download-card">
@@ -77,11 +119,50 @@
             <h3>Windows 免安裝版</h3>
             <p>不用安裝，下載後直接執行。適合快速試玩或分享給朋友。</p>
           </div>
-          <a class="download-link" href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest/download/The.City.of.Heung.Shing.1.0.4.exe">下載免安裝版 EXE</a>
+          <div class="download-actions">
+            <a class="download-link" href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest/download/The.City.of.Heung.Shing.1.0.4.exe" data-download-link="windows-portable">下載免安裝版 EXE</a>
+            <span class="download-count" data-download-count="windows-portable">下載數載入中</span>
+          </div>
         </article>
       </div>
 
       <p class="notice">目前版本尚未完成簽章。macOS Gatekeeper 或 Windows SmartScreen 可能會在第一次開啟時要求確認。</p>
+    </section>
+
+    <section id="changelog" class="changelog">
+      <div class="section-head">
+        <p class="eyebrow">Release Notes</p>
+        <h2>版本變更說明</h2>
+      </div>
+
+      <div class="release-list">
+        <article class="release-card current-release">
+          <div class="release-meta">
+            <span>v1.0.4</span>
+            <time datetime="2026-06-06">2026年6月6日</time>
+          </div>
+          <h3>醫療系統、讀檔修正與大型建築顯示改善</h3>
+          <ul>
+            <li>加入醫院、健康指標、預期壽命、醫療覆蓋與健康地圖第一版。</li>
+            <li>加入疫情、醫療容量與衛生政策初版，包括禁煙及學童保健計劃。</li>
+            <li>修正城市讀檔等待流程，避免入口網站或遊戲場景未 ready 時載入失敗。</li>
+            <li>改用深度區段 fallback 處理地貌、道路、建築與效果排序，改善大型 4x4 建築被地面蓋住的問題。</li>
+          </ul>
+        </article>
+
+        <article class="release-card">
+          <div class="release-meta">
+            <span>v1.0.3</span>
+            <time datetime="2026-06-06">2026年6月6日</time>
+          </div>
+          <h3>桌面安裝包同步</h3>
+          <ul>
+            <li>分開提供 macOS Apple Silicon 與 macOS Intel DMG。</li>
+            <li>同步 Windows 安裝版及免安裝版下載連結。</li>
+            <li>更新發佈流程文件，方便之後一包式更新遊戲、網站與 installers。</li>
+          </ul>
+        </article>
+      </div>
     </section>
 
     <section class="features">

@@ -44,6 +44,11 @@ Then update visible version text:
 - `i18n.js`
 - `index.html`
 
+Also update the website release notes and counters:
+
+- Add the new release summary to the changelog section in `docs/index.html`.
+- Confirm the `data-download-link` platform keys in `docs/index.html` still match the asset matchers in `docs/site.js`.
+
 Quick search:
 
 ```bash

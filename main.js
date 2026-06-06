@@ -91,13 +91,45 @@ let mapViewPanY   = 0;
 // Map rotation: 0=default, 1=90°CW, 2=180°, 3=270°CW
 let mapRotation = 0;
 const PREVIEW_OVERLAY_DEPTH = 200000;
+const WORLD_LAYER_DEPTHS = {
+  terrain: 0,
+  road: 100000,
+  object: 200000,
+  effect: 300000,
+};
+
+function createWorldRenderLayers(scene) {
+  if (!scene) return;
+  scene.renderLayerMode = 'depth-bands';
+}
+
+function addToRenderLayer(scene, child, layerName) {
+  return child;
+}
+
+function sortRenderLayer(scene, layerName) {
+  if (!scene) return;
+}
+
+function sortWorldRenderLayers(scene) {
+  if (!scene) return;
+}
+
+function getWorldDepth(layerName, localDepth = 0) {
+  return (WORLD_LAYER_DEPTHS[layerName] ?? 0) + (Number(localDepth) || 0);
+}
+
+function getPreviewOverlayDepth(offset = 0) {
+  return getWorldDepth('effect', PREVIEW_OVERLAY_DEPTH + offset);
+}
 
 function ensurePreviewOverlayDepth(scene) {
   if (!scene) return;
-  scene.zonePreviewGraphic?.setDepth?.(PREVIEW_OVERLAY_DEPTH);
-  scene.bridgePreviewGraphic?.setDepth?.(PREVIEW_OVERLAY_DEPTH);
-  scene.buildingGuideGraphic?.setDepth?.(PREVIEW_OVERLAY_DEPTH);
-  scene.inspectHighlightGraphic?.setDepth?.(PREVIEW_OVERLAY_DEPTH + 1);
+  scene.zonePreviewGraphic?.setDepth?.(getPreviewOverlayDepth());
+  scene.bridgePreviewGraphic?.setDepth?.(getPreviewOverlayDepth());
+  scene.buildingGuideGraphic?.setDepth?.(getPreviewOverlayDepth());
+  scene.inspectHighlightGraphic?.setDepth?.(getPreviewOverlayDepth(1));
+  sortWorldRenderLayers(scene);
 }
 
 // Terrain option definitions
@@ -805,6 +837,7 @@ function getBuildingTypeLabel(type) {
     library: 'building.library',
     community_college: 'building.communityCollege',
     university: 'building.university',
+    hospital: 'building.hospital',
     legislative_council: 'building.legislativeCouncil',
     stock_exchange: 'building.stockExchange',
     park_small: 'building.smallPark',
@@ -1178,6 +1211,7 @@ function create() {
   this.powerLineSprites = new Map();
   this.bridgeSprites = new Map();
   this.treeSprites = new Map();
+  createWorldRenderLayers(this);
 
   const maskGraphics = this.make.graphics({ x: 0, y: 0, add: false });
   this.maskGraphics = maskGraphics;
@@ -1200,6 +1234,7 @@ function create() {
       const x = pos.x + this.offsetX;
       const y = pos.y + this.offsetY + getTerrainTileVisualOffset(row, col, key);
       const tile = this.add.image(x, y, key);
+      addToRenderLayer(this, tile, 'terrainLayer');
       tile.setOrigin(0.5, 1);
       tile.setDepth(getTerrainTileDepth(row, col, key, pos.y));
       tile.setMask(worldMask);
@@ -1229,19 +1264,23 @@ function create() {
 
   // Zone drag-select preview graphic (drawn over the world during zone rect drag)
   this.zonePreviewGraphic = this.add.graphics();
-  this.zonePreviewGraphic.setDepth(PREVIEW_OVERLAY_DEPTH);
+  addToRenderLayer(this, this.zonePreviewGraphic, 'effectLayer');
+  this.zonePreviewGraphic.setDepth(getPreviewOverlayDepth());
 
   // Road/bridge drag preview graphic.
   this.bridgePreviewGraphic = this.add.graphics();
-  this.bridgePreviewGraphic.setDepth(PREVIEW_OVERLAY_DEPTH);
+  addToRenderLayer(this, this.bridgePreviewGraphic, 'effectLayer');
+  this.bridgePreviewGraphic.setDepth(getPreviewOverlayDepth());
 
   // Building placement footprint guide (hover preview before committing).
   this.buildingGuideGraphic = this.add.graphics();
-  this.buildingGuideGraphic.setDepth(PREVIEW_OVERLAY_DEPTH);
+  addToRenderLayer(this, this.buildingGuideGraphic, 'effectLayer');
+  this.buildingGuideGraphic.setDepth(getPreviewOverlayDepth());
 
   // Inspect-tool hover highlight (red diamond under the cursor)
   this.inspectHighlightGraphic = this.add.graphics();
-  this.inspectHighlightGraphic.setDepth(PREVIEW_OVERLAY_DEPTH + 1);
+  addToRenderLayer(this, this.inspectHighlightGraphic, 'effectLayer');
+  this.inspectHighlightGraphic.setDepth(getPreviewOverlayDepth(1));
 
   // Paint roads on left click; start panning on right click.
   this.input.on('pointerdown', (pointer) => {
@@ -2018,6 +2057,7 @@ function positionAllTiles(scene) {
 
   repositionBridgeSprites(scene);
   repositionOverlays(scene);
+  sortWorldRenderLayers(scene);
 }
 
 function prepareHouseModelMetadata(scene) {
@@ -2402,6 +2442,7 @@ function placeSpriteBuilding(scene, row, col, key, options = {}) {
     anchor.y + scene.offsetY - BUILDING_SURFACE_Y_OFFSET + elevOffset + (options.offsetY ?? 0),
     key,
   );
+  addToRenderLayer(scene, building, 'objectLayer');
   building.setOrigin(options.originX ?? 0.5, options.originY ?? 1);
   if (options.scaleX || options.scaleY) {
     building.setScale(options.scaleX ?? options.scale ?? 1, options.scaleY ?? options.scale ?? 1);
@@ -2409,6 +2450,7 @@ function placeSpriteBuilding(scene, row, col, key, options = {}) {
     building.setScale(options.scale);
   }
   building.setDepth(getBuildingSortDepth(anchor.y, footprintCols, footprintRows, elevOffset));
+  sortRenderLayer(scene, 'objectLayer');
   building.setMask(scene.worldMask);
   building.mapRow = row;
   building.mapCol = col;
@@ -2699,7 +2741,7 @@ function getBuildingAnchor(row, col, footprintCols = 1, footprintRows = 1, ancho
 
 function getBuildingSortDepth(anchorY, footprintCols = 1, footprintRows = 1, elevOffset = 0) {
   const footprintDepthBias = Math.max(0, (footprintCols + footprintRows - 2) * (TILE_HEIGHT / 4));
-  return anchorY + TILE_HEIGHT + elevOffset - footprintDepthBias;
+  return getWorldDepth('object', anchorY + TILE_HEIGHT + elevOffset - footprintDepthBias);
 }
 
 function getFootprintScreenWidth(footprintCols = 1, footprintRows = 1) {
@@ -2731,6 +2773,7 @@ function isNewToolHandledByToolsModule(tool) {
     || tool === 'library'
     || tool === 'community-college'
     || tool === 'university'
+    || tool === 'hospital'
     || tool === 'legislative-council'
     || tool === 'stock-exchange'
     || tool === 'park'
@@ -2782,6 +2825,7 @@ function getSelectedPlacementFootprint() {
     'library': 'library',
     'community-college': 'community_college',
     'university': 'university',
+    'hospital': 'hospital',
     'legislative-council': 'legislative_council',
     'stock-exchange': 'stock_exchange',
   };
@@ -3506,20 +3550,23 @@ function refreshBridgeSprite(scene, row, col) {
   const pos = isoToScreen(col, row);
   const x = pos.x + scene.offsetX;
   const y = pos.y + scene.offsetY + getBridgeDeckVisualOffset(row, col, key);
-  const depth = getTerrainTileDepth(row, col, key, pos.y);
+  const depth = getRoadTileDepth(row, col, key, pos.y);
 
   if (existing) {
     existing.setTexture(key);
     existing.setPosition(x, y);
     existing.setDepth(depth + 0.45);
+    sortRenderLayer(scene, 'roadLayer');
     return;
   }
 
   const bridge = scene.add.image(x, y, key);
+  addToRenderLayer(scene, bridge, 'roadLayer');
   bridge.setOrigin(0.5, 1);
   bridge.setDepth(depth + 0.45);
   bridge.setMask(scene.worldMask);
   scene.bridgeSprites.set(id, bridge);
+  sortRenderLayer(scene, 'roadLayer');
 }
 
 function refreshAllBridgeSprites(scene) {
@@ -3544,11 +3591,12 @@ function repositionBridgeSprites(scene) {
     }
     const key = getBridgeDeckKey(row, col);
     const pos = isoToScreen(col, row);
-    const depth = getTerrainTileDepth(row, col, key, pos.y);
+    const depth = getRoadTileDepth(row, col, key, pos.y);
     entry.setTexture(key);
     entry.setPosition(pos.x + scene.offsetX, pos.y + scene.offsetY + getBridgeDeckVisualOffset(row, col, key));
     entry.setDepth(depth + 0.45);
   });
+  sortRenderLayer(scene, 'roadLayer');
 }
 
 function getBridgeDeckKey(row, col) {
@@ -4081,6 +4129,7 @@ function generateNewTerrain() {
 }
 
 function clearBuildings(scene) {
+  if (!scene?.buildingSprites) return;
   new Set(scene.buildingSprites.values()).forEach((building) => {
     building.destroy();
   });
@@ -4218,13 +4267,15 @@ function placeTreeSprite(scene, row, col) {
     pos.y + scene.offsetY + getElevationVisualOffset(row, col) - 2 + offset.y,
     getTreeSpriteKey(tree),
   );
+  addToRenderLayer(scene, sprite, 'objectLayer');
   sprite.setOrigin(0.5, 1);
   sprite.setScale(1.35);
-  sprite.setDepth(pos.y + TILE_HEIGHT * 0.5 + getElevationVisualOffset(row, col) + offset.y);
+  sprite.setDepth(getObjectTileDepth(row, col, pos.y + TILE_HEIGHT * 0.5 + getElevationVisualOffset(row, col) + offset.y));
   sprite.setMask(scene.worldMask);
   sprite.mapRow = row;
   sprite.mapCol = col;
   scene.treeSprites.set(getTileId(row, col), sprite);
+  sortRenderLayer(scene, 'objectLayer');
   return sprite;
 }
 
@@ -4274,7 +4325,8 @@ function positionTree(scene, tree) {
   const pos = isoToScreen(col, row);
   const offset = getTreeVisualOffset(treeMap[row]?.[col]);
   tree.setPosition(pos.x + scene.offsetX + offset.x, pos.y + scene.offsetY + getElevationVisualOffset(row, col) - 2 + offset.y);
-  tree.setDepth(pos.y + TILE_HEIGHT * 0.5 + getElevationVisualOffset(row, col) + offset.y);
+  tree.setDepth(getObjectTileDepth(row, col, pos.y + TILE_HEIGHT * 0.5 + getElevationVisualOffset(row, col) + offset.y));
+  sortRenderLayer(scene, 'objectLayer');
 }
 
 function getTreeVisualOffset(tree) {
@@ -4430,7 +4482,15 @@ function reconcileSurfaceTerrainFromHeight(centerRow, centerCol, radius = 2) {
 }
 
 function getTerrainTileDepth(row, col, key = getTileKey(row, col), baseY = isoToScreen(col, row).y) {
-  return baseY + getTerrainTileVisualOffset(row, col, key);
+  return getWorldDepth('terrain', baseY + getTerrainTileVisualOffset(row, col, key));
+}
+
+function getRoadTileDepth(row, col, key = getTileKey(row, col), baseY = isoToScreen(col, row).y) {
+  return getWorldDepth('road', baseY + getTerrainTileVisualOffset(row, col, key));
+}
+
+function getObjectTileDepth(row, col, localDepth = isoToScreen(col, row).y) {
+  return getWorldDepth('object', localDepth);
 }
 
 function applyTileVisualStyle(tile, row, col, key) {
@@ -6318,6 +6378,7 @@ function showTileDebug(scene, pointer) {
     library:           'Library',
     community_college: 'Community College',
     university:        'University',
+    hospital:          'Hospital',
     park_small:         'Small Park',
     park_large:         'Large Park',
   };
@@ -6353,7 +6414,7 @@ function showTileDebug(scene, pointer) {
     <div class="dbg-divider"></div>`;
 
   // ── Infrastructure building tooltip ──────────────────────────────────────────
-  const INFRA_TYPES = ['power_plant_coal', 'power_plant_solar', 'fire_station', 'police_station', 'primary_school', 'secondary_school', 'library', 'community_college', 'university', 'legislative_council', 'stock_exchange', 'park_small', 'park_large', 'sports_ground_small', 'sports_ground_large'];
+  const INFRA_TYPES = ['power_plant_coal', 'power_plant_solar', 'fire_station', 'police_station', 'primary_school', 'secondary_school', 'library', 'community_college', 'university', 'hospital', 'legislative_council', 'stock_exchange', 'park_small', 'park_large', 'sports_ground_small', 'sports_ground_large'];
   if (bData && INFRA_TYPES.includes(bData.type)) {
     const INFRA_LABELS = {
       power_plant_coal:    '⚡ Coal Power Plant',
@@ -6365,6 +6426,7 @@ function showTileDebug(scene, pointer) {
       library:             '📚 Library',
       community_college:   '🎓 Community College',
       university:          '🎓 University',
+      hospital:            '🏥 Hospital',
       park_small:          '🌳 Small Park',
       park_large:          '🌲 Large Park',
       sports_ground_small: '⚽ Sports Ground',
@@ -6380,6 +6442,7 @@ function showTileDebug(scene, pointer) {
       library:             `Basic education radius ${LIBRARY_RADIUS} tiles · Upkeep $${UPKEEP_LIBRARY}/mo`,
       community_college:   `Higher education radius ${COMMUNITY_COLLEGE_RADIUS} tiles · Upkeep $${UPKEEP_COMMUNITY_COLLEGE}/mo`,
       university:          `Higher education radius ${UNIVERSITY_RADIUS} tiles · Upkeep $${UPKEEP_UNIVERSITY}/mo`,
+      hospital:            `Health coverage radius ${HOSPITAL_RADIUS} tiles · Upkeep $${UPKEEP_HOSPITAL}/mo`,
       park_small:          `Residential happiness radius ${SMALL_PARK_RADIUS} tiles · Upkeep $${UPKEEP_PARK_SMALL}/mo`,
       park_large:          `Residential happiness radius ${LARGE_PARK_RADIUS} tiles · Upkeep $${UPKEEP_PARK_LARGE}/mo`,
       sports_ground_small: `Recreation radius ${SPORTS_GROUND_RADIUS} tiles · Upkeep $${UPKEEP_SPORTS_GROUND_SMALL}/mo`,
@@ -6390,7 +6453,7 @@ function showTileDebug(scene, pointer) {
       fire_station:        '#ff7755', police_station:      '#6699ff',
       primary_school:      '#59a9ff', secondary_school:    '#2f78cc',
       library:             '#6f9cd6', community_college:   '#7a77cc',
-      university:          '#5f52b4',
+      university:          '#5f52b4', hospital:            '#35b98f',
       park_small:          '#58d66a', park_large:          '#32b457',
       sports_ground_small: '#f0a830', sports_ground_large: '#e07b20',
     };
@@ -6441,7 +6504,7 @@ function showTileDebug(scene, pointer) {
 
   if (typeof activeOverlay === 'string' && activeOverlay) {
     const val = getTileOverlayValue(activeOverlay, row, col);
-    const overlayLabel = { pollution: '🏭 Pollution', crime: '🚔 Crime', fire: '🔥 Fire Risk', population: '👥 Population', landvalue: '💰 Land Value', electricity: '🔌 Electricity', power: '⚡ Power Plants' };
+    const overlayLabel = { pollution: '🏭 Pollution', crime: '🚔 Crime', fire: '🔥 Fire Risk', population: '👥 Population', landvalue: '💰 Land Value', education: '🎓 Education', health: '🏥 Health', electricity: '🔌 Electricity', power: '⚡ Power Plants' };
     html += `<div class="dbg-muted">${overlayLabel[activeOverlay] ?? activeOverlay}: ${(val * 100).toFixed(0)}%</div>`;
   }
 

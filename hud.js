@@ -311,6 +311,7 @@ function updateBudgetWindow() {
   setTextContent('budget-expense-police', formatMoney(current.expenses.police));
   setTextContent('budget-expense-power', formatMoney(current.expenses.power));
   setTextContent('budget-expense-education', formatMoney(current.expenses.education ?? 0));
+  setTextContent('budget-expense-health', formatMoney(current.expenses.health ?? 0));
   setTextContent('budget-expense-parks', formatMoney(current.expenses.parks));
   setTextContent('budget-expense-policy', formatMoney(current.expenses.policy));
   setTextContent('budget-expense-loans', formatMoney(current.expenses.loans));

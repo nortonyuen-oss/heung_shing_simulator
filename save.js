@@ -173,6 +173,12 @@ async function saveAsGame() {
 
 async function loadSaveById(id, scene) {
   try {
+    const readyScene = await waitForLoadScene(scene);
+    if (!readyScene) {
+      showToast(t('toast.stillLoading'), 'warning');
+      return false;
+    }
+
     const res = await fetch(`${API_BASE}/${id}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const row  = await res.json();
@@ -181,7 +187,7 @@ async function loadSaveById(id, scene) {
     if (typeof isTerrainCreatorMode !== 'undefined') isTerrainCreatorMode = false;
     if (typeof activeTerrainProfileType !== 'undefined') activeTerrainProfileType = 'custom';
     if (typeof setTerrainEditorUiActive === 'function') setTerrainEditorUiActive(false);
-    applySaveData(scene, save);
+    applySaveData(readyScene, save);
     currentSaveId = id;
 
     showToast(t('toast.welcomeBack', { city: city.name }), 'info');
@@ -191,6 +197,30 @@ async function loadSaveById(id, scene) {
     console.error('[Load]', e);
     return false;
   }
+}
+
+function waitForLoadScene(scene, timeoutMs = 15000) {
+  const start = Date.now();
+  return new Promise((resolve) => {
+    const poll = () => {
+      const candidate = scene || (typeof activeScene !== 'undefined' ? activeScene : null);
+      const isReady = !!candidate
+        && !!candidate.scene
+        && !!candidate.tileSprites
+        && !!candidate.buildingSprites
+        && !!candidate.zoneOverlays;
+      if (isReady) {
+        resolve(candidate);
+        return;
+      }
+      if (Date.now() - start >= timeoutMs) {
+        resolve(null);
+        return;
+      }
+      window.setTimeout(poll, 100);
+    };
+    poll();
+  });
 }
 
 function normalizeBridgeMapValue(value) {
@@ -365,6 +395,7 @@ function rebuildSceneFromSave(scene, save) {
         pos.y + scene.offsetY + getElevationVisualOffset(r, c),
         textureKey,
       );
+      if (typeof addToRenderLayer === 'function') addToRenderLayer(scene, overlay, 'terrainLayer');
       overlay.setOrigin(0.5, 1);
       overlay.setDepth(getTerrainTileDepth(r, c, getTileKey(r, c), pos.y) + 0.05);
       overlay.setAlpha(0.80);
@@ -372,6 +403,7 @@ function rebuildSceneFromSave(scene, save) {
       scene.zoneOverlays.set(getTileId(r, c), overlay);
     }
   }
+  if (typeof sortRenderLayer === 'function') sortRenderLayer(scene, 'terrainLayer');
 
   // Buildings (buildingData only stores anchor tiles)
   Object.entries(save.buildingData ?? {}).forEach(([id, record]) => {
@@ -394,6 +426,7 @@ function rebuildSceneFromSave(scene, save) {
   });
 
   if (typeof rebuildTreeSprites === 'function') rebuildTreeSprites(scene);
+  if (typeof sortWorldRenderLayers === 'function') sortWorldRenderLayers(scene);
 }
 
 // ── Fallback sprite key for saves without spriteKey ───────────────────────────
@@ -440,8 +473,8 @@ function deriveLoadedSpriteKey(record) {
 }
 
 function migrateServiceSpriteKey(record, key) {
-  if (record.type === 'primary_school' && key === 'primary_school_2x2') return 'primary_school_3x3';
-  if (record.type === 'secondary_school' && key === 'secondary_school_2x2') return 'secondary_school_3x3';
+  if (record.type === 'primary_school' && key === 'primary_school_3x3') return 'primary_school_2x2';
+  if (record.type === 'secondary_school' && key === 'secondary_school_3x3') return 'secondary_school_2x2';
   if (record.type === 'stock_exchange' && key === 'stock_exchange_3x3') return 'stock_exchange_4x4';
   return key;
 }

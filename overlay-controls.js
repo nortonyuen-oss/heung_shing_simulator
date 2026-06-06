@@ -159,7 +159,7 @@ function drawOverlayAnnotations(ctx, type) {
 
       const radius = type === 'fire' ? FIRE_STATION_RADIUS : POLICE_STATION_RADIUS;
       const [r0, c0] = id.split(':').map(Number);
-      const center = getMiniMapDisplayCoords(r0, c0);
+      const center = getBuildingMiniMapCenter(r0, c0, rec);
       ctx.strokeStyle = type === 'fire' ? 'rgba(255,120,70,0.45)' : 'rgba(100,170,255,0.45)';
       ctx.lineWidth = 1;
       ctx.beginPath();
@@ -198,7 +198,7 @@ function drawOverlayAnnotations(ctx, type) {
       if (!['primary_school', 'secondary_school', 'library', 'community_college', 'university'].includes(rec.type)) return;
 
       const [r0, c0] = id.split(':').map(Number);
-      const center = getMiniMapDisplayCoords(r0, c0);
+      const center = getBuildingMiniMapCenter(r0, c0, rec);
       const isHigher = rec.type === 'community_college' || rec.type === 'university';
       const radius = rec.type === 'primary_school' ? PRIMARY_SCHOOL_RADIUS
         : rec.type === 'secondary_school' ? SECONDARY_SCHOOL_RADIUS
@@ -217,7 +217,32 @@ function drawOverlayAnnotations(ctx, type) {
     });
   }
 
+  if (type === 'health') {
+    Object.entries(buildingData).forEach(([id, rec]) => {
+      if (rec.type !== 'hospital') return;
+
+      const [r0, c0] = id.split(':').map(Number);
+      const center = getMiniMapDisplayCoords(r0, c0);
+      ctx.strokeStyle = 'rgba(80,220,170,0.45)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(center.col + 0.5, center.row + 0.5, HOSPITAL_RADIUS, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.fillStyle = 'rgba(40,210,155,0.95)';
+      ctx.fillRect(center.col, center.row, 1, 1);
+    });
+  }
+
   ctx.restore();
+}
+
+function getBuildingMiniMapCenter(row, col, record) {
+  const footprintRows = Math.max(1, Number(record?.footprintRows ?? 1) || 1);
+  const footprintCols = Math.max(1, Number(record?.footprintCols ?? 1) || 1);
+  const centerRow = Math.min(MAP_HEIGHT - 1, Math.max(0, row + Math.floor(footprintRows / 2)));
+  const centerCol = Math.min(MAP_WIDTH - 1, Math.max(0, col + Math.floor(footprintCols / 2)));
+  return getMiniMapDisplayCoords(centerRow, centerCol);
 }
 
 function updateOverlayDetailPanel(type) {
@@ -318,6 +343,28 @@ function updateOverlayDetailPanel(type) {
     return;
   }
 
+  if (type === 'health') {
+    const hospitalCount = Object.values(buildingData).filter((rec) => rec.type === 'hospital').length;
+    const pct = (value) => `${Math.round(clamp(value, 0, 1) * 100)}%`;
+    const pctWide = (value) => `${Math.round(clamp(value, 0, 1.35) * 100)}%`;
+
+    stats.innerHTML = [
+      chip(t('overlay.detail.average'), pct(city.healthIndex ?? 0)),
+      chip(t('overlay.detail.lifeExpectancy'), t('unit.yearsShort', { value: Number(city.lifeExpectancy ?? 70).toFixed(1) })),
+      chip(t('overlay.detail.hospitals'), hospitalCount),
+      chip(t('overlay.detail.coveredPopulation'), pct(city.hospitalCoverageRate ?? 0)),
+      chip(t('overlay.detail.hospitalCapacity'), Number(city.hospitalCapacity ?? 0).toLocaleString()),
+      chip(t('overlay.detail.hospitalUsage'), pctWide(city.hospitalUtilization ?? 0)),
+      chip(t('overlay.detail.epidemicRisk'), pct(city.epidemicRisk ?? 0)),
+      chip(t('overlay.detail.epidemicSeverity'), pct(city.epidemicSeverity ?? 0)),
+    ].join('');
+    note.textContent = t('overlay.detail.healthCoverage');
+    footer.classList.remove('is-visible');
+    legend.classList.remove('is-hidden');
+    setOverlayLegendLabels(type);
+    return;
+  }
+
   footer.classList.remove('is-visible');
   legend.classList.remove('is-hidden');
   setOverlayLegendLabels(type);
@@ -347,6 +394,7 @@ function setOverlayLegendLabels(type) {
     population: ['0%', '50%', '100%'],
     landvalue: ['0%', '50%', '100%'],
     education: ['0%', '50%', '100%'],
+    health: [t('overlay.legend.poor'), t('overlay.legend.stable'), t('overlay.legend.healthy')],
     electricity: [t('overlay.legend.short'), t('overlay.legend.balanced'), t('overlay.legend.surplus')],
     power: [t('overlay.legend.old'), t('overlay.legend.degraded'), t('overlay.legend.active')],
   }[type] ?? ['0%', '50%', '100%'];
@@ -476,6 +524,7 @@ function overlayPixelColor(type, val) {
     case 'fire':       return [220, 80,  0,   a];   // orange
     case 'population': return [20,  80,  220, a];   // blue
     case 'education':  return [25, Math.round(80 + val * 145), Math.round(170 + val * 70), a];
+    case 'health':     return [Math.round(220 - val * 170), Math.round(70 + val * 150), Math.round(55 + val * 105), a];
     case 'electricity': return [Math.round(240 * (1 - val)), Math.round(70 + 170 * val), Math.round(30 + 20 * val), a];
     case 'power':      return [Math.round(175 + 55 * val), Math.round(175 + 35 * val), Math.round(175 - 70 * val), a];
     case 'landvalue': {
@@ -498,9 +547,23 @@ function computeOverlayMap(type) {
   if (type === 'population') return computePopulationMap();
   if (type === 'landvalue')  return computeLandValueMap();
   if (type === 'education')  return computeEducationMap();
+  if (type === 'health')     return computeHealthMap();
   if (type === 'electricity') return computeElectricityMap();
   if (type === 'power')      return computePowerPlantMap();
   return createFilledMap(0);
+}
+
+function computeHealthMap() {
+  const map = createFilledMap(0);
+  for (let r = 0; r < MAP_HEIGHT; r++) {
+    for (let c = 0; c < MAP_WIDTH; c++) {
+      if (zoneMap[r][c] === ZONE_NONE && !buildingData[getTileId(r, c)]) continue;
+      map[r][c] = typeof getLocalHealthScore === 'function'
+        ? getLocalHealthScore(r, c)
+        : clamp(serviceMap[r]?.[c]?.health ?? 0, 0, 1);
+    }
+  }
+  return map;
 }
 
 function computeEducationMap() {
@@ -728,4 +791,3 @@ function computePowerPlantMap() {
   });
   return map;
 }
-

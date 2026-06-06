@@ -1,6 +1,6 @@
-# 香城模擬器 (The City of Heung Shing) v1.0.3
+# 香城模擬器 (The City of Heung Shing) v1.0.4
 
-香城模擬器 (The City of Heung Shing) v1.0.3 is a SimCity 2000-style city builder with a local SQLite save system, isometric map view, and a classic windowed UI.
+香城模擬器 (The City of Heung Shing) v1.0.4 is a SimCity 2000-style city builder with a local SQLite save system, isometric map view, and a classic windowed UI.
 
 <img width="1438" height="792" alt="image" src="https://github.com/user-attachments/assets/ec3cab6e-48af-4976-b00a-097bc901e429" />
 
@@ -69,25 +69,25 @@ The installers are written to `release/`. Build Windows installers on Windows, o
 
 Use semantic versions in `package.json`:
 
-- `1.0.3` for bug fixes
+- `1.0.4` for bug fixes
 - `1.1.0` for gameplay/content updates
 - `2.0.0` for breaking save-format changes
 
 To trigger CI installer builds:
 
 ```bash
-git tag v1.0.3
-git push origin v1.0.3
+git tag v1.0.4
+git push origin v1.0.4
 ```
 
 ## Download Website
 
 The static download site lives in `docs/` and is designed for GitHub Pages. It links to the latest GitHub Release assets:
 
-- `The.City.of.Heung.Shing-1.0.3-arm64.dmg`
-- `The.City.of.Heung.Shing-1.0.3-x64.dmg`
-- `The.City.of.Heung.Shing.Setup.1.0.3.exe`
-- `The.City.of.Heung.Shing.1.0.3.exe`
+- `The.City.of.Heung.Shing-1.0.4-arm64.dmg`
+- `The.City.of.Heung.Shing-1.0.4-x64.dmg`
+- `The.City.of.Heung.Shing.Setup.1.0.4.exe`
+- `The.City.of.Heung.Shing.1.0.4.exe`
 
 To publish a new version:
 

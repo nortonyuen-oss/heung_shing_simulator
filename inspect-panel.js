@@ -54,6 +54,7 @@ function showInspectPanel(scene, row, col, pointer = null) {
     library: `📚 ${t('building.library')}`,
     community_college: `🎓 ${t('building.communityCollege')}`,
     university: `🎓 ${t('building.university')}`,
+    hospital: `🏥 ${t('building.hospital')}`,
     legislative_council: `🏛️ ${t('building.legislativeCouncil')}`,
     stock_exchange: `🏦 ${t('building.stockExchange')}`,
     park_small: `🌳 ${t('building.smallPark')}`,
@@ -69,6 +70,7 @@ function showInspectPanel(scene, row, col, pointer = null) {
     library: t('inspect.educationRadiusBasic', { radius: LIBRARY_RADIUS, upkeep: UPKEEP_LIBRARY }),
     community_college: t('inspect.educationRadiusHigher', { radius: COMMUNITY_COLLEGE_RADIUS, upkeep: UPKEEP_COMMUNITY_COLLEGE }),
     university: t('inspect.educationRadiusHigher', { radius: UNIVERSITY_RADIUS, upkeep: UPKEEP_UNIVERSITY }),
+    hospital: t('inspect.healthRadius', { radius: HOSPITAL_RADIUS, upkeep: UPKEEP_HOSPITAL }),
     legislative_council: t('inspect.legislativeCouncil'),
     stock_exchange: t('inspect.stockExchange'),
     park_small: t('inspect.parkRadius', { radius: SMALL_PARK_RADIUS, upkeep: UPKEEP_PARK_SMALL }),
@@ -84,6 +86,7 @@ function showInspectPanel(scene, row, col, pointer = null) {
     library:'#6f9cd6',
     community_college:'#7a77cc',
     university:'#5f52b4',
+    hospital:'#35b98f',
     legislative_council:'#4d6bbf',
     stock_exchange:'#c39a2d',
     park_small:'#58d66a',
@@ -115,13 +118,22 @@ function showInspectPanel(scene, row, col, pointer = null) {
   const indicators = getInspectIndicators(row, col);
   const landValuePct = `${Math.round(indicators.landValue * 100)}%`;
   const happinessPct = `${Math.round(indicators.happiness * 100)}%`;
+  const healthScore = typeof getLocalHealthScore === 'function' ? getLocalHealthScore(row, col) : (svc?.health ?? 0);
+  const healthPct = `${Math.round(clampUnit(healthScore) * 100)}%`;
+  const hospitalCoveragePct = `${Math.round(clampUnit(svc?.health ?? 0) * 100)}%`;
+  const healthPollution = typeof getLocalHealthPollutionPressure === 'function' ? getLocalHealthPollutionPressure(row, col) : 0;
+  const healthPollutionPct = `${Math.round(clampUnit(healthPollution) * 100)}%`;
+  const hospitalUsagePct = `${Math.round(Math.max(0, Math.min(1.35, Number(city.hospitalUtilization ?? 0))) * 100)}%`;
+  const epidemicRiskPct = `${Math.round(clampUnit(city.epidemicRisk ?? 0) * 100)}%`;
+  const epidemicSeverityPct = `${Math.round(clampUnit(city.epidemicSeverity ?? 0) * 100)}%`;
 
   let html = `
     <div class="insp-coord">[${row}, ${col}] — ${coordTitle}</div>
     ${spriteKeyInsp && (hasBldg || bData) ? `<div class="insp-sprite-key">${spriteKeyInsp}</div>` : ''}
     <div class="insp-row insp-muted">Terrain height: L${tileHeight} (${tileHeight * 100}m)</div>
     <div class="insp-row">${t('inspect.landValue', { value: landValuePct })}</div>
-    <div class="insp-row">${t('inspect.happiness', { value: happinessPct })}</div>`;
+    <div class="insp-row">${t('inspect.happiness', { value: happinessPct })}</div>
+    <div class="insp-row">${t('inspect.health', { value: healthPct })}</div>`;
 
   if (tree && !bData) {
     html += `<div class="insp-row insp-ok">Tree age: ${tree.age ?? 0}/${TREE_MATURE_AGE} · ${tree.species}</div>`;
@@ -216,6 +228,10 @@ function showInspectPanel(scene, row, col, pointer = null) {
         <div class="insp-row ${svc?.fire   ? 'insp-ok' : 'insp-muted'}">🚒 ${svc?.fire   ? t('inspect.fireProtected')  : t('inspect.noFireCover')}</div>
         <div class="insp-row ${svc?.police ? 'insp-ok' : 'insp-muted'}">👮 ${svc?.police ? t('inspect.policeCoverage') : t('inspect.noPoliceCover')}</div>
         <div class="insp-row ${svc?.park   ? 'insp-ok' : 'insp-muted'}">🌳 ${svc?.park === 2 ? t('inspect.largeParkNearby') : svc?.park === 1 ? t('inspect.smallParkNearby') : t('inspect.noParkNearby')}</div>
+        <div class="insp-row ${svc?.health ? 'insp-ok' : 'insp-muted'}">🏥 ${svc?.health ? t('inspect.hospitalCoverage', { value: hospitalCoveragePct }) : t('inspect.noHospitalCover')}</div>
+        <div class="insp-row insp-muted">🧑‍⚕️ ${t('inspect.hospitalUsage', { value: hospitalUsagePct })}</div>
+        <div class="insp-row ${city.epidemicSeverity > 0.01 ? 'insp-warn' : 'insp-muted'}">🦠 ${t('inspect.epidemicStatus', { risk: epidemicRiskPct, severity: epidemicSeverityPct })}</div>
+        <div class="insp-row insp-muted">🏭 ${t('inspect.healthPollution', { value: healthPollutionPct })}</div>
       </div>`;
   }
 

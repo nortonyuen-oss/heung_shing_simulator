@@ -76,6 +76,8 @@ const city = {
     greenParks: false,
     educationReform: false,
     scienceDevelopment: false,
+    smokingBan: false,
+    schoolHealthProgram: false,
     tourismPromotion: false,
     foreignInvestmentIncentive: false,
     districtCouncilElection: false,
@@ -105,6 +107,14 @@ const city = {
   educationBasicIndex: 0,
   educationHigherIndex: 0,
   educationAverageLevel: 0,
+  healthIndex: 0.5,
+  lifeExpectancy: 70,
+  hospitalCoverageRate: 0,
+  hospitalCapacity: 0,
+  hospitalUtilization: 0,
+  epidemicRisk: 0,
+  epidemicSeverity: 0,
+  epidemicMonthsLeft: 0,
   scienceParkUnlocked: false,
   ruleOfLawIndex: 0,
   crimeRateIndex: 0,
@@ -120,6 +130,10 @@ const city = {
   pollutionHistory: [],
   hsiHistory: [],
   unemploymentHistory: [],
+  healthHistory: [],
+  lifeExpectancyHistory: [],
+  epidemicHistory: [],
+  hospitalUtilizationHistory: [],
   happiness: 0.5,
   pollution: 0,
   tick: 0,
@@ -159,6 +173,8 @@ function resetGameState() {
     greenParks: false,
     educationReform: false,
     scienceDevelopment: false,
+    smokingBan: false,
+    schoolHealthProgram: false,
     tourismPromotion: false,
     foreignInvestmentIncentive: false,
     districtCouncilElection: false,
@@ -188,6 +204,14 @@ function resetGameState() {
   city.educationBasicIndex = 0;
   city.educationHigherIndex = 0;
   city.educationAverageLevel = 0;
+  city.healthIndex = 0.5;
+  city.lifeExpectancy = 70;
+  city.hospitalCoverageRate = 0;
+  city.hospitalCapacity = 0;
+  city.hospitalUtilization = 0;
+  city.epidemicRisk = 0;
+  city.epidemicSeverity = 0;
+  city.epidemicMonthsLeft = 0;
   city.scienceParkUnlocked = false;
   city.ruleOfLawIndex = 0;
   city.crimeRateIndex = 0;
@@ -203,6 +227,10 @@ function resetGameState() {
   city.pollutionHistory = [];
   city.hsiHistory = [];
   city.unemploymentHistory = [];
+  city.healthHistory = [];
+  city.lifeExpectancyHistory = [];
+  city.epidemicHistory = [];
+  city.hospitalUtilizationHistory = [];
   city.happiness  = 0.5;
   city.pollution  = 0;
   city.tick       = 0;
@@ -232,6 +260,8 @@ function normalizeCityFinanceState() {
     greenParks: !!city.activePolicies?.greenParks,
     educationReform: !!city.activePolicies?.educationReform,
     scienceDevelopment: !!city.activePolicies?.scienceDevelopment,
+    smokingBan: !!city.activePolicies?.smokingBan,
+    schoolHealthProgram: !!city.activePolicies?.schoolHealthProgram,
     tourismPromotion: !!city.activePolicies?.tourismPromotion,
     foreignInvestmentIncentive: !!city.activePolicies?.foreignInvestmentIncentive,
     districtCouncilElection: !!city.activePolicies?.districtCouncilElection,
@@ -251,6 +281,14 @@ function normalizeCityFinanceState() {
   city.educationBasicIndex = toFiniteOr(city.educationBasicIndex, 0);
   city.educationHigherIndex = toFiniteOr(city.educationHigherIndex, 0);
   city.educationAverageLevel = toFiniteOr(city.educationAverageLevel, 0);
+  city.healthIndex = toFiniteOr(city.healthIndex, 0.5);
+  city.lifeExpectancy = toFiniteOr(city.lifeExpectancy, 70);
+  city.hospitalCoverageRate = toFiniteOr(city.hospitalCoverageRate, 0);
+  city.hospitalCapacity = toFiniteOr(city.hospitalCapacity, 0);
+  city.hospitalUtilization = toFiniteOr(city.hospitalUtilization, 0);
+  city.epidemicRisk = toFiniteOr(city.epidemicRisk, 0);
+  city.epidemicSeverity = toFiniteOr(city.epidemicSeverity, 0);
+  city.epidemicMonthsLeft = Math.max(0, Math.floor(toFiniteOr(city.epidemicMonthsLeft, 0)));
   city.scienceParkUnlocked = !!city.scienceParkUnlocked;
   city.ruleOfLawIndex = toFiniteOr(city.ruleOfLawIndex, 0);
   city.crimeRateIndex = toFiniteOr(city.crimeRateIndex, 0);
@@ -324,6 +362,10 @@ function normalizeCityFinanceState() {
   city.pollutionHistory = Array.isArray(city.pollutionHistory) ? city.pollutionHistory : [];
   city.hsiHistory = Array.isArray(city.hsiHistory) ? city.hsiHistory : [];
   city.unemploymentHistory = Array.isArray(city.unemploymentHistory) ? city.unemploymentHistory : [];
+  city.healthHistory = Array.isArray(city.healthHistory) ? city.healthHistory : [];
+  city.lifeExpectancyHistory = Array.isArray(city.lifeExpectancyHistory) ? city.lifeExpectancyHistory : [];
+  city.epidemicHistory = Array.isArray(city.epidemicHistory) ? city.epidemicHistory : [];
+  city.hospitalUtilizationHistory = Array.isArray(city.hospitalUtilizationHistory) ? city.hospitalUtilizationHistory : [];
   city.unemploymentRate = toFiniteOr(city.unemploymentRate, 0);
   city.highEduUnemploymentRate = toFiniteOr(city.highEduUnemploymentRate, 0);
   city.creditRating = city.creditRating || 'A';
@@ -348,7 +390,7 @@ function markServiceCoverageDirty() {
 const SERVICE_BUILDING_TYPES = new Set([
   'fire_station', 'police_station',
   'primary_school', 'secondary_school', 'library',
-  'community_college', 'university',
+  'community_college', 'university', 'hospital',
   'park_small', 'park_large',
 ]);
 
@@ -372,6 +414,7 @@ function computeBudgetSnapshot(options = {}) {
   const libraryCount = getBuildingCount('library');
   const communityCollegeCount = getBuildingCount('community_college');
   const universityCount = getBuildingCount('university');
+  const hospitalCount = getBuildingCount('hospital');
   const smallParks = getBuildingCount('park_small');
   const largeParks = getBuildingCount('park_large');
   const sportsGroundSmall = getBuildingCount('sports_ground_small');
@@ -395,6 +438,7 @@ function computeBudgetSnapshot(options = {}) {
     + communityCollegeCount * UPKEEP_COMMUNITY_COLLEGE
     + universityCount * UPKEEP_UNIVERSITY
   );
+  const healthUpkeep = hospitalCount * UPKEEP_HOSPITAL;
   const parksUpkeep = (
     smallParks * UPKEEP_PARK_SMALL
     + largeParks * UPKEEP_PARK_LARGE
@@ -408,7 +452,8 @@ function computeBudgetSnapshot(options = {}) {
 
   const totalIncome = Math.round(grossIncome + policyTaxAdjustment);
   const totalExpenses = Math.round(
-    roadsUpkeep + fireUpkeep + policeUpkeep + powerUpkeep + educationUpkeep + parksUpkeep + policyCost + loanPayment
+    roadsUpkeep + fireUpkeep + policeUpkeep + powerUpkeep + educationUpkeep + healthUpkeep
+    + parksUpkeep + policyCost + loanPayment
   );
   const net = totalIncome - totalExpenses;
 
@@ -425,6 +470,7 @@ function computeBudgetSnapshot(options = {}) {
       police: Math.round(policeUpkeep),
       power: Math.round(powerUpkeep),
       education: Math.round(educationUpkeep),
+      health: Math.round(healthUpkeep),
       parks: Math.round(parksUpkeep),
       policy: Math.round(policyCost),
       loans: Math.round(loanPayment),
@@ -625,8 +671,17 @@ function getPolicyMonthlyCost() {
     if (policy.id === 'greenParks') cost += countPolicyParks() * 12;
     if (policy.id === 'educationReform') cost += countEducationBuildings() * 24;
     if (policy.id === 'scienceDevelopment') cost += city.industrialCount * 5;
+    if (policy.id === 'smokingBan') cost += Math.ceil(city.population / 2500) * 8;
+    if (policy.id === 'schoolHealthProgram') cost += countSchoolHealthProgramBuildings() * 18;
   });
   return Math.round(cost);
+}
+
+function countSchoolHealthProgramBuildings() {
+  return Object.values(buildingData).filter((rec) => (
+    rec.type === 'primary_school'
+    || rec.type === 'secondary_school'
+  )).length;
 }
 
 function countEducationBuildings() {

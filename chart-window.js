@@ -47,6 +47,30 @@ const CHART_SERIES_DEFS = {
     historyKey: 'unemploymentHistory',
     formatter: (v) => `${Math.round((Number(v) || 0) * 100)}%`,
   },
+  health: {
+    labelKey: 'chart.health',
+    color: '#35a872',
+    historyKey: 'healthHistory',
+    formatter: (v) => `${Math.round((Number(v) || 0) * 100)}%`,
+  },
+  lifeExpectancy: {
+    labelKey: 'chart.lifeExpectancy',
+    color: '#53b7c8',
+    historyKey: 'lifeExpectancyHistory',
+    formatter: (v) => t('unit.yearsShort', { value: (Number(v) || 0).toFixed(1) }),
+  },
+  epidemic: {
+    labelKey: 'chart.epidemic',
+    color: '#d94f55',
+    historyKey: 'epidemicHistory',
+    formatter: (v) => `${Math.round((Number(v) || 0) * 100)}%`,
+  },
+  hospitalUtilization: {
+    labelKey: 'chart.hospitalUtilization',
+    color: '#9672d8',
+    historyKey: 'hospitalUtilizationHistory',
+    formatter: (v) => `${Math.round((Number(v) || 0) * 100)}%`,
+  },
 };
 
 let chartWindowLastRenderedLabel = null;
@@ -277,6 +301,10 @@ function updateChartWindowMetrics() {
   const basic = Math.round((Number(city.educationBasicIndex ?? 0) || 0) * 100);
   const higher = Math.round((Number(city.educationHigherIndex ?? 0) || 0) * 100);
   const science = Math.round((Number(city.scienceIndustryShare ?? 0) || 0) * 100);
+  const health = Math.round((Number(city.healthIndex ?? 0) || 0) * 100);
+  const life = Number(city.lifeExpectancy ?? 70);
+  const epidemic = Math.round((Number(city.epidemicSeverity ?? 0) || 0) * 100);
+  const hospitalUsage = Math.round((Number(city.hospitalUtilization ?? 0) || 0) * 100);
 
   const setMetric = (id, value) => {
     const el = document.getElementById(id);
@@ -286,6 +314,12 @@ function updateChartWindowMetrics() {
   setMetric('chart-metric-basic', basic);
   setMetric('chart-metric-higher', higher);
   setMetric('chart-metric-science', science);
+  setMetric('chart-metric-health', health);
+  setMetric('chart-metric-epidemic', epidemic);
+  const hospitalUsageEl = document.getElementById('chart-metric-hospital-usage');
+  if (hospitalUsageEl) hospitalUsageEl.textContent = `${Math.max(0, hospitalUsage)}%`;
+  const lifeEl = document.getElementById('chart-metric-life');
+  if (lifeEl) lifeEl.textContent = t('unit.yearsShort', { value: life.toFixed(1) });
 }
 
 function renderCityTrendChart() {

@@ -18,6 +18,7 @@ const INFRA_COSTS = {
   library:           COST_LIBRARY,
   community_college: COST_COMMUNITY_COLLEGE,
   university:        COST_UNIVERSITY,
+  hospital:          COST_HOSPITAL,
   legislative_council: COST_LEGISLATIVE_COUNCIL,
   stock_exchange:    COST_STOCK_EXCHANGE,
   park_small:           COST_PARK_SMALL,
@@ -46,6 +47,7 @@ function handleNewTool(scene, tile) {
   if (selectedTool === 'library') return placeInfraBuilding(scene, row, col, 'library');
   if (selectedTool === 'community-college') return placeInfraBuilding(scene, row, col, 'community_college');
   if (selectedTool === 'university') return placeInfraBuilding(scene, row, col, 'university');
+  if (selectedTool === 'hospital') return placeInfraBuilding(scene, row, col, 'hospital');
   if (selectedTool === 'legislative-council') return placeInfraBuilding(scene, row, col, 'legislative_council');
   if (selectedTool === 'stock-exchange') return placeInfraBuilding(scene, row, col, 'stock_exchange');
   if (selectedTool === 'park')           return placeSelectedPark(scene, row, col);
@@ -119,6 +121,7 @@ function placeZone(scene, row, col, zoneType, density = DENSITY_LOW) {
     pos.y + scene.offsetY + getElevationVisualOffset(row, col),
     textureKey,
   );
+  addToRenderLayer(scene, overlay, 'terrainLayer');
   overlay.setOrigin(0.5, 1);
   overlay.setDepth(getTerrainTileDepth(row, col, getTileKey(row, col), pos.y) + 0.05);
   overlay.setAlpha(0.80);
@@ -172,6 +175,7 @@ function drawPowerLineSprite(scene, row, col) {
   const pos = isoToScreen(col, row);
 
   const g = scene.add.graphics();
+  addToRenderLayer(scene, g, 'objectLayer');
   g.lineStyle(2, 0xffdd00, 0.95);
   // Draw X wire pattern centered at (0,0); positioned via g.setPosition
   const hw = TILE_WIDTH / 4;
@@ -184,7 +188,7 @@ function drawPowerLineSprite(scene, row, col) {
   const cx = pos.x + scene.offsetX;
   const cy = pos.y + scene.offsetY - TILE_HEIGHT / 2;
   g.setPosition(cx, cy + getElevationVisualOffset(row, col));
-  g.setDepth(pos.y + 2);
+  g.setDepth(getObjectTileDepth(row, col, pos.y + 2));
   g.setMask(scene.worldMask);
   scene.powerLineSprites.set(id, g);
 }
@@ -361,11 +365,13 @@ function getParkSpriteOptions(spriteKey, parkOption = {}) {
 // ── Clear all overlays (called from fullReset) ────────────────────────────────
 
 function clearAllOverlays(scene) {
-  scene.zoneOverlays.forEach((overlay) => overlay.destroy());
-  scene.zoneOverlays.clear();
+  if (!scene) return;
 
-  scene.powerLineSprites.forEach((g) => g.destroy());
-  scene.powerLineSprites.clear();
+  scene.zoneOverlays?.forEach((overlay) => overlay.destroy());
+  scene.zoneOverlays?.clear();
+
+  scene.powerLineSprites?.forEach((g) => g.destroy());
+  scene.powerLineSprites?.clear();
 
   scene.bridgeSprites?.forEach((entry) => {
     if (typeof destroyBridgeSpriteEntry === 'function') destroyBridgeSpriteEntry(entry);
@@ -386,13 +392,15 @@ function repositionOverlays(scene) {
     overlay.setPosition(pos.x + scene.offsetX, pos.y + scene.offsetY + getElevationVisualOffset(r, c));
     overlay.setDepth(getTerrainTileDepth(r, c, key, pos.y) + 0.05);
   });
+  sortRenderLayer(scene, 'terrainLayer');
 
   scene.powerLineSprites.forEach((g, id) => {
     const [r, c] = id.split(':').map(Number);
     const pos = isoToScreen(c, r);
     g.setPosition(pos.x + scene.offsetX, pos.y + scene.offsetY - TILE_HEIGHT / 2 + getElevationVisualOffset(r, c));
-    g.setDepth(pos.y + 2);
+    g.setDepth(getObjectTileDepth(r, c, pos.y + 2));
   });
+  sortRenderLayer(scene, 'objectLayer');
 
   if (typeof repositionBridgeSprites === 'function') repositionBridgeSprites(scene);
 }

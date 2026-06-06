@@ -23,6 +23,7 @@ function runSimTick(scene) {
   updatePopulationAndPollution();
   updateEducationLevels();
   updateCrimeRateIndex();
+  updateHealthMetrics();
   computeHappiness(scene);
   updateDemand();
   updateStockMarketTick();
@@ -141,6 +142,154 @@ function updateCrimeRateIndex() {
   city.crimeRateIndex = zonedCount > 0 ? clamp(riskSum / zonedCount, 0, 1) : 0;
 }
 
+function updateHealthMetrics() {
+  let weightedHealthSum = 0;
+  let weightedCoverageSum = 0;
+  let weightedPop = 0;
+  const hospitalCount = countBuildingType('hospital');
+  const capacity = hospitalCount * HOSPITAL_CAPACITY_PER_BUILDING;
+
+  Object.entries(buildingData).forEach(([id, record]) => {
+    if (record.type !== 'residential') return;
+    const pop = Math.max(0, Number(record.population ?? 0));
+    if (pop <= 0) return;
+
+    const [row, col] = id.split(':').map(Number);
+    const localHealth = getLocalHealthScore(row, col);
+    const hospitalCoverage = clamp(serviceMap[row]?.[col]?.health ?? 0, 0, 1);
+
+    weightedHealthSum += localHealth * pop;
+    weightedCoverageSum += hospitalCoverage * pop;
+    weightedPop += pop;
+  });
+
+  const targetHealth = weightedPop > 0 ? clamp(weightedHealthSum / weightedPop, 0, 1) : 0.5;
+  const targetCoverage = weightedPop > 0 ? clamp(weightedCoverageSum / weightedPop, 0, 1) : 0;
+  const smoothing = city.tick % TICKS_PER_MONTH === 0 || city.tick <= 1 ? 0.18 : 0.06;
+  const medicalDemand = Math.round(weightedPop * (0.58 + (1 - targetHealth) * 0.40 + clamp(city.epidemicSeverity ?? 0, 0, 1) * 0.55));
+  const utilization = capacity > 0 ? clamp(medicalDemand / capacity, 0, 1.35) : (weightedPop > 0 ? 1.35 : 0);
+
+  city.healthIndex = clamp((city.healthIndex ?? 0.5) + smoothing * (targetHealth - (city.healthIndex ?? 0.5)), 0, 1);
+  city.hospitalCoverageRate = clamp(targetCoverage, 0, 1);
+  city.hospitalCapacity = capacity;
+  city.hospitalUtilization = utilization;
+  updateEpidemicState(targetHealth, targetCoverage, utilization, weightedPop);
+  city.lifeExpectancy = Math.round((62 + city.healthIndex * 24 - clamp(city.epidemicSeverity ?? 0, 0, 1) * 7) * 10) / 10;
+}
+
+function getLocalHealthScore(row, col) {
+  const svc = serviceMap[row]?.[col] ?? null;
+  const hospital = clamp(svc?.health ?? 0, 0, 1);
+  const pollutionPressure = getLocalHealthPollutionPressure(row, col);
+  const recreation = clamp(
+    Math.min(svc?.park ?? 0, 2) / 2
+    + Math.min((svc?.sportsGround ?? 0) * 0.35, 0.35),
+    0,
+    1,
+  );
+  const power = powerMap[row]?.[col] ? clamp(city.powerRatio ?? 1, 0, 1) : 0.15;
+  const safety = ((svc?.fire ? 1 : 0) + (svc?.police ? 1 : 0)) / 2;
+  const education = clamp(city.educationAverageLevel ?? 0, 0, 1);
+  const capacityPenalty = Math.max(0, clamp(city.hospitalUtilization ?? 0, 0, 1.35) - 0.88) * 0.22;
+  const epidemicPenalty = clamp(city.epidemicSeverity ?? 0, 0, 1) * 0.22;
+  const policyHealthBonus =
+    (isPolicyActive('smokingBan') ? HEALTH_SMOKING_BAN_BONUS : 0)
+    + (isPolicyActive('schoolHealthProgram') ? HEALTH_SCHOOL_PROGRAM_BONUS * (0.35 + education * 0.65) : 0);
+
+  return clamp(
+    0.18
+    + hospital * 0.45
+    + (1 - pollutionPressure) * 0.22
+    + recreation * 0.10
+    + power * 0.07
+    + safety * 0.05
+    + education * 0.03
+    + policyHealthBonus
+    - capacityPenalty
+    - epidemicPenalty,
+    0,
+    1,
+  );
+}
+
+function updateEpidemicState(targetHealth, targetCoverage, utilization, weightedPop) {
+  const popPressure = clamp((weightedPop - 3000) / 45000, 0, 1);
+  const pollutionPressure = clamp((city.pollution ?? 0) / 160, 0, 1);
+  const capacityPressure = clamp((utilization - 0.72) / 0.58, 0, 1);
+  const coverageGap = 1 - clamp(targetCoverage, 0, 1);
+  const healthGap = 1 - clamp(targetHealth, 0, 1);
+  const policyProtection =
+    (isPolicyActive('smokingBan') ? 0.16 : 0)
+    + (isPolicyActive('schoolHealthProgram') ? 0.12 : 0)
+    + (isPolicyActive('cleanAir') ? 0.08 : 0);
+
+  const risk = clamp(
+    0.04
+    + popPressure * 0.22
+    + pollutionPressure * 0.20
+    + capacityPressure * 0.24
+    + coverageGap * 0.18
+    + healthGap * 0.18
+    - policyProtection,
+    0,
+    1,
+  );
+  city.epidemicRisk = clamp((city.epidemicRisk ?? 0) + 0.18 * (risk - (city.epidemicRisk ?? 0)), 0, 1);
+
+  if (city.tick % TICKS_PER_MONTH !== 0) return;
+
+  const currentSeverity = clamp(city.epidemicSeverity ?? 0, 0, 1);
+  const monthsLeft = Math.max(0, Math.floor(city.epidemicMonthsLeft ?? 0));
+  if (monthsLeft > 0 || currentSeverity > 0.01) {
+    const treatment = clamp(targetCoverage * 0.30 + (1 - capacityPressure) * 0.28 + targetHealth * 0.24 + policyProtection, 0, 0.82);
+    const nextSeverity = clamp(currentSeverity + risk * 0.08 - EPIDEMIC_RECOVERY_RATE * treatment, 0, 1);
+    city.epidemicSeverity = nextSeverity;
+    city.epidemicMonthsLeft = nextSeverity > 0.03 ? Math.max(0, monthsLeft - 1) : 0;
+    return;
+  }
+
+  const triggerChance = clamp(EPIDEMIC_MONTHLY_TRIGGER_BASE + city.epidemicRisk * 0.085, 0, 0.18);
+  if (weightedPop >= 3000 && Math.random() < triggerChance) {
+    city.epidemicSeverity = clamp(0.18 + city.epidemicRisk * 0.32, 0, 0.72);
+    city.epidemicMonthsLeft = 3 + Math.floor(Math.random() * 4);
+    if (typeof showToast === 'function') showToast(t('toast.epidemicOutbreak'), 'warning');
+  } else {
+    city.epidemicSeverity = 0;
+    city.epidemicMonthsLeft = 0;
+  }
+}
+
+function getLocalHealthPollutionPressure(row, col) {
+  let pressure = 0;
+  const pollutionMul = (isPolicyActive('cleanAir') ? 0.70 : 1) * (isPolicyActive('smokingBan') ? 0.92 : 1);
+
+  Object.entries(buildingData).forEach(([id, record]) => {
+    const [r0, c0] = id.split(':').map(Number);
+    let radius = 0;
+    let strength = 0;
+
+    if (record.type === 'industrial') {
+      radius = 10;
+      strength = isScienceParkIndustrialRecord(record) ? 0.12 : 0.28;
+    } else {
+      const stats = POWER_PLANT_STATS[record.type];
+      if (!stats) return;
+      radius = stats.pollutionRadius ?? 12;
+      strength = stats.pollutionStrength ?? 0.5;
+    }
+
+    const dist = Math.hypot(row - r0, col - c0);
+    if (dist > radius) return;
+    pressure += strength * pollutionMul * (1 - dist / Math.max(1, radius));
+  });
+
+  if (typeof getTreeInfluenceValue === 'function') {
+    pressure -= getTreeInfluenceValue(row, col) * 0.10;
+  }
+
+  return clamp(pressure, 0, 1);
+}
+
 // ── Demand engine ─────────────────────────────────────────────────────────────
 
 function updateDemand() {
@@ -201,11 +350,15 @@ function updateDemand() {
   // Employment pull: surplus jobs attract residents; high unemployment repels.
   const employmentPull    = clamp(totalJobCap / Math.max(labourForce, 1) - 0.7, -0.5, 0.5);
   const unemploymentPenR  = city.unemploymentRate * 0.20;
+  const epidemicDemandPenalty = clamp(city.epidemicSeverity ?? 0, 0, 1);
+  const healthCapacityPenalty = Math.max(0, clamp(city.hospitalUtilization ?? 0, 0, 1.35) - 1) * 0.12;
   city.demandR = clamp(
     0.3 + 0.5 * Math.max(jobRatio, 0.5 + employmentPull)
     - unemploymentPenR + 0.1 * city.happiness
     + (isPolicyActive('greenParks') ? 0.04 : 0)
     + (isPolicyActive('roadRepair') ? 0.03 : 0)
+    - epidemicDemandPenalty * 0.16
+    - healthCapacityPenalty
     - 0.2 * (city.taxRate / TAX_RATE_MAX),
     -1, 1
   );
@@ -236,6 +389,7 @@ function updateDemand() {
     + foreignInvBoost
     + (hasBuildingType('stock_exchange') ? 0.10 * hsiRatio : 0)
     + stockExchangeBoost
+    - epidemicDemandPenalty * 0.08
     - 0.05,
     -1, 1
   );
@@ -397,14 +551,16 @@ function computeHappiness(scene) {
   const roadBonus = Math.min(0.08, (getDepartmentFunding('roads') - 1) * 0.08 + (isPolicyActive('roadRepair') ? 0.04 : 0));
   const policyBonus = (isPolicyActive('cleanAir') ? 0.03 : 0) + (isPolicyActive('publicSafety') ? 0.02 : 0);
   const lawBonus = Math.min(0.10, (city.ruleOfLawIndex ?? 0) * 0.10 + (hasBuildingType('stock_exchange') ? 0.02 : 0));
+  const healthBonus = (clamp(city.healthIndex ?? 0.5, 0, 1) - 0.5) * 0.08;
+  const epidemicHappinessPenalty = clamp(city.epidemicSeverity ?? 0, 0, 1) * 0.16;
 
   const unemploymentHappinessPenalty = clamp(city.unemploymentRate ?? 0, 0, 1) * UNEMPLOYMENT_HAPPINESS_PENALTY;
   city.happiness = clamp(
     0.2 + 0.42 * poweredRatio + 0.18 * fireRatio + 0.18 * policeRatio + 0.22 * parkRatio
       + TREE_HAPPINESS_BONUS_MAX * treeRatio
       + SCENIC_HAPPINESS_BONUS_MAX * scenicRatio
-      + roadBonus + policyBonus + lawBonus
-      - taxPenalty - pollPenalty - powerPenalty - unemploymentHappinessPenalty,
+      + roadBonus + policyBonus + lawBonus + healthBonus
+      - taxPenalty - pollPenalty - powerPenalty - unemploymentHappinessPenalty - epidemicHappinessPenalty,
     0, 1
   );
 }

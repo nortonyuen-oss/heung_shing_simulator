@@ -13,6 +13,7 @@ function getFootprintTiles(row, col, footprintCols = 1, footprintRows = 1) {
 }
 
 function removeBuilding(scene, row, col) {
+  if (!scene?.buildingSprites) return false;
   const tileId = getTileId(row, col);
   const building = scene.buildingSprites.get(tileId);
   if (!building) return false;
@@ -47,6 +48,7 @@ function removeBuilding(scene, row, col) {
 }
 
 function removeBuildingsInFootprint(scene, row, col, footprintCols = 1, footprintRows = 1) {
+  if (!scene?.buildingSprites) return;
   const buildings = new Set();
   getFootprintTiles(row, col, footprintCols, footprintRows).forEach(([tileRow, tileCol]) => {
     const building = scene.buildingSprites.get(getTileId(tileRow, tileCol));

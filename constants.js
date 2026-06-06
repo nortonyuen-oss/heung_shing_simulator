@@ -50,6 +50,8 @@ const CITY_POLICY_DEFS = [
   { id: 'greenParks',     titleKey: 'policy.greenParks.title',     descKey: 'policy.greenParks.desc',     monthlyBase: 100 },
   { id: 'educationReform', titleKey: 'policy.educationReform.title', descKey: 'policy.educationReform.desc', monthlyBase: 220 },
   { id: 'scienceDevelopment', titleKey: 'policy.scienceDevelopment.title', descKey: 'policy.scienceDevelopment.desc', monthlyBase: 260 },
+  { id: 'smokingBan', titleKey: 'policy.smokingBan.title', descKey: 'policy.smokingBan.desc', monthlyBase: 130, unlockPopulation: 10000 },
+  { id: 'schoolHealthProgram', titleKey: 'policy.schoolHealthProgram.title', descKey: 'policy.schoolHealthProgram.desc', monthlyBase: 180, unlockPopulation: 10000 },
   { id: 'tourismPromotion', titleKey: 'policy.tourismPromotion.title', descKey: 'policy.tourismPromotion.desc', monthlyBase: 160, unlockPopulation: 10000 },
   { id: 'foreignInvestmentIncentive', titleKey: 'policy.foreignInvestmentIncentive.title', descKey: 'policy.foreignInvestmentIncentive.desc', monthlyBase: 240, unlockPopulation: 10000 },
   { id: 'districtCouncilElection', titleKey: 'policy.districtCouncilElection.title', descKey: 'policy.districtCouncilElection.desc', monthlyBase: 140, unlockPopulation: 10000 },
@@ -167,6 +169,7 @@ const SECONDARY_SCHOOL_RADIUS = 16;
 const LIBRARY_RADIUS = 18;
 const COMMUNITY_COLLEGE_RADIUS = 20;
 const UNIVERSITY_RADIUS = 26;
+const HOSPITAL_RADIUS = 22;
 const SMALL_PARK_RADIUS      = 6;
 const LARGE_PARK_RADIUS      = 12;
 const SPORTS_GROUND_RADIUS   = 10;
@@ -193,6 +196,7 @@ const COST_SECONDARY_SCHOOL = 1800;
 const COST_LIBRARY = 1600;
 const COST_COMMUNITY_COLLEGE = 3200;
 const COST_UNIVERSITY = 8000;
+const COST_HOSPITAL = 7200;
 const COST_LEGISLATIVE_COUNCIL = 5200;
 const COST_STOCK_EXCHANGE = 9800;
 const COST_PARK_SMALL          = 250;
@@ -252,16 +256,16 @@ const SERVICE_BUILDING_MODELS = {
     footprintRows: 2,
   },
   primary_school: {
-    spriteKey: 'primary_school_3x3',
-    path: 'Models/government/3x3/primarySchool3-01.png',
-    footprintCols: 3,
-    footprintRows: 3,
+    spriteKey: 'primary_school_2x2',
+    path: 'Models/government/2x2/primarySchool2-01.png',
+    footprintCols: 2,
+    footprintRows: 2,
   },
   secondary_school: {
-    spriteKey: 'secondary_school_3x3',
-    path: 'Models/government/3x3/secondarySchool3-01.png',
-    footprintCols: 3,
-    footprintRows: 3,
+    spriteKey: 'secondary_school_2x2',
+    path: 'Models/government/2x2/secondarySchool2-01.png',
+    footprintCols: 2,
+    footprintRows: 2,
   },
   library: {
     spriteKey: 'library_2x2',
@@ -278,6 +282,12 @@ const SERVICE_BUILDING_MODELS = {
   university: {
     spriteKey: 'university_4x4',
     path: 'Models/government/4x4/university4-01.png',
+    footprintCols: 4,
+    footprintRows: 4,
+  },
+  hospital: {
+    spriteKey: 'hospital_4x4',
+    path: 'Models/government/4x4/hospital4.png',
     footprintCols: 4,
     footprintRows: 4,
   },
@@ -350,6 +360,7 @@ const BUILDING_POWER_DEMAND = {
   library: 7,
   community_college: 12,
   university: 30,
+  hospital: 22,
   park_small: 2,
   park_large: 4,
   sports_ground_small: 4,
@@ -367,6 +378,14 @@ const UPKEEP_SECONDARY_SCHOOL = 260;
 const UPKEEP_LIBRARY = 220;
 const UPKEEP_COMMUNITY_COLLEGE = 420;
 const UPKEEP_UNIVERSITY = 900;
+const UPKEEP_HOSPITAL = 700;
+
+// Health system tuning
+const HOSPITAL_CAPACITY_PER_BUILDING = 12000;
+const HEALTH_SMOKING_BAN_BONUS = 0.04;
+const HEALTH_SCHOOL_PROGRAM_BONUS = 0.035;
+const EPIDEMIC_MONTHLY_TRIGGER_BASE = 0.018;
+const EPIDEMIC_RECOVERY_RATE = 0.18;
 const UPKEEP_PARK_SMALL          = 25;
 const UPKEEP_PARK_LARGE          = 80;
 const UPKEEP_SPORTS_GROUND_SMALL = 60;

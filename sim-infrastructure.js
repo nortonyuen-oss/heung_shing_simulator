@@ -242,18 +242,29 @@ function updateServiceCoverage() {
   serviceMap = createFilledMap(null);
 
   Object.entries(buildingData).forEach(([id, record]) => {
-    if (record.type === 'fire_station')   bfsService(id, 'fire',   FIRE_STATION_RADIUS);
-    if (record.type === 'police_station') bfsService(id, 'police', POLICE_STATION_RADIUS);
-    if (record.type === 'primary_school') bfsService(id, 'eduBasic', PRIMARY_SCHOOL_RADIUS, 0.45);
-    if (record.type === 'secondary_school') bfsService(id, 'eduBasic', SECONDARY_SCHOOL_RADIUS, 0.55);
-    if (record.type === 'library') bfsService(id, 'eduBasic', LIBRARY_RADIUS, 0.35);
-    if (record.type === 'community_college') bfsService(id, 'eduHigher', COMMUNITY_COLLEGE_RADIUS, 0.45);
-    if (record.type === 'university') bfsService(id, 'eduHigher', UNIVERSITY_RADIUS, 0.75);
-    if (record.type === 'park_small')           bfsService(id, 'park',         SMALL_PARK_RADIUS,   1);
-    if (record.type === 'park_large')           bfsService(id, 'park',         LARGE_PARK_RADIUS,   2);
-    if (record.type === 'sports_ground_small')  bfsService(id, 'sportsGround', SPORTS_GROUND_RADIUS, 1);
-    if (record.type === 'sports_ground_large')  bfsService(id, 'sportsGround', SPORTS_GROUND_RADIUS, 2);
+    const anchorId = getServiceCoverageAnchorId(id, record);
+    if (record.type === 'fire_station')   bfsService(anchorId, 'fire',   FIRE_STATION_RADIUS);
+    if (record.type === 'police_station') bfsService(anchorId, 'police', POLICE_STATION_RADIUS);
+    if (record.type === 'primary_school') bfsService(anchorId, 'eduBasic', PRIMARY_SCHOOL_RADIUS, 0.45);
+    if (record.type === 'secondary_school') bfsService(anchorId, 'eduBasic', SECONDARY_SCHOOL_RADIUS, 0.55);
+    if (record.type === 'library') bfsService(anchorId, 'eduBasic', LIBRARY_RADIUS, 0.35);
+    if (record.type === 'community_college') bfsService(anchorId, 'eduHigher', COMMUNITY_COLLEGE_RADIUS, 0.45);
+    if (record.type === 'university') bfsService(anchorId, 'eduHigher', UNIVERSITY_RADIUS, 0.75);
+    if (record.type === 'hospital') bfsService(anchorId, 'health', HOSPITAL_RADIUS, 1);
+    if (record.type === 'park_small')           bfsService(anchorId, 'park',         SMALL_PARK_RADIUS,   1);
+    if (record.type === 'park_large')           bfsService(anchorId, 'park',         LARGE_PARK_RADIUS,   2);
+    if (record.type === 'sports_ground_small')  bfsService(anchorId, 'sportsGround', SPORTS_GROUND_RADIUS, 1);
+    if (record.type === 'sports_ground_large')  bfsService(anchorId, 'sportsGround', SPORTS_GROUND_RADIUS, 2);
   });
+}
+
+function getServiceCoverageAnchorId(id, record) {
+  const [row, col] = id.split(':').map(Number);
+  const footprintRows = Math.max(1, Number(record.footprintRows ?? 1) || 1);
+  const footprintCols = Math.max(1, Number(record.footprintCols ?? 1) || 1);
+  const centerRow = Math.min(MAP_HEIGHT - 1, Math.max(0, row + Math.floor(footprintRows / 2)));
+  const centerCol = Math.min(MAP_WIDTH - 1, Math.max(0, col + Math.floor(footprintCols / 2)));
+  return getTileId(centerRow, centerCol);
 }
 
 function ensureServiceCell(r, c) {
@@ -262,6 +273,7 @@ function ensureServiceCell(r, c) {
       fire: false,
       police: false,
       park: 0,
+      health: 0,
       eduBasic: 0,
       eduHigher: 0,
     };
@@ -279,6 +291,9 @@ function bfsService(anchorId, key, radius, value = true) {
     const cell = ensureServiceCell(r, c);
     if (key === 'park') {
       cell.park = Math.max(cell.park ?? 0, value);
+    } else if (key === 'health') {
+      const falloff = radius > 0 ? Math.max(0, 1 - dist / radius) : 1;
+      cell.health = Math.max(cell.health ?? 0, clamp(Number(value || 0) * falloff, 0, 1));
     } else if (key === 'eduBasic' || key === 'eduHigher') {
       cell[key] = clamp((cell[key] ?? 0) + Number(value || 0), 0, 1);
     } else {
@@ -294,4 +309,3 @@ function bfsService(anchorId, key, radius, value = true) {
     }
   }
 }
-

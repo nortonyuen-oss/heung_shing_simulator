@@ -924,9 +924,10 @@ const OVERLAY_TITLES = {
   population:  'overlay.population',
   landvalue:   'overlay.landvalue',
   education:   'overlay.education',
+  health:      'overlay.health',
   electricity: 'overlay.electricity',
   power:       'overlay.power',
 };
 const OVERLAY_ICONS = {
-  pollution: '🏭', crime: '🚔', fire: '🔥', population: '👥', landvalue: '💰', education: '🎓', electricity: '🔌', power: '⚡',
+  pollution: '🏭', crime: '🚔', fire: '🔥', population: '👥', landvalue: '💰', education: '🎓', health: '🏥', electricity: '🔌', power: '⚡',
 };

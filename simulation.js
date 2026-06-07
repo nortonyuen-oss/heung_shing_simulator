@@ -450,6 +450,8 @@ function updatePopulationAndPollution() {
       city.pollution += POLLUTION_COAL_PLANT * (isPolicyActive('cleanAir') ? 0.70 : 1);
     } else if (rec.type === 'power_plant_solar') {
       city.pollution += 0;
+    } else if (rec.type === 'power_plant_nuclear') {
+      city.pollution += POLLUTION_NUCLEAR_PLANT;
     }
   });
   if (typeof getMatureTreeCount === 'function' && city.pollution > 0) {

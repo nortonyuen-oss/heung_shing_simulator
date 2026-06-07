@@ -140,7 +140,11 @@ function updatePowerGrid(scene) {
           totalSupply += output;
           activePlants.push({ record, output });
         }
-      } else if (zoneMap[r][c] !== ZONE_NONE) {
+      } else if (zoneMap[r][c] !== ZONE_NONE && !scene.buildingSprites.has(id)) {
+        // Only count empty zoned tiles. Non-anchor footprint tiles of multi-tile buildings
+        // have no buildingData record but still carry a zone type, causing demand to be
+        // counted N² times for an N×N building. Skipping tiles with a building sprite
+        // prevents this overcounting (e.g. 2×2 building was 4× too expensive).
         totalDemand += getZonePowerDemand(zoneMap[r][c], zoneDensityMap[r][c] ?? DENSITY_LOW);
       }
     }

@@ -14,6 +14,7 @@ function setupLandingScreen() {
   const terrainProfileSelect = document.getElementById('terrain-profile-select');
   const terrainSourceSelect = document.getElementById('newgame-terrain-source');
   const terrainPresetSelect = document.getElementById('newgame-terrain-preset');
+  const roadTileSetSelect = document.getElementById('newgame-road-tile-set');
   const terrainPresetTitle = document.getElementById('newgame-terrain-presets-title');
   const terrainPreviewList = document.getElementById('newgame-terrain-preview-list');
   const terrainEmptyHint = document.getElementById('newgame-terrain-empty-hint');
@@ -262,15 +263,18 @@ function setupLandingScreen() {
   // a blank button while the server wakes up.
   prefetchSaveStatus();
   populateTerrainProfileSelect();
+  if (typeof populateRoadTileSetSelect === 'function') populateRoadTileSetSelect(roadTileSetSelect);
   updateTerrainSourceVisibility();
   document.addEventListener('languagechange', () => {
     populateTerrainProfileSelect();
+    if (typeof populateRoadTileSetSelect === 'function') populateRoadTileSetSelect(roadTileSetSelect);
     refreshTerrainPresetOptions();
   });
 
   btnNew.addEventListener('click', () => {
     setLandingState('name');
     nameInput.value = getDefaultCityName();
+    if (typeof populateRoadTileSetSelect === 'function') populateRoadTileSetSelect(roadTileSetSelect);
     nameInput.focus();
     nameInput.select();
     refreshTerrainPresetOptions();
@@ -475,6 +479,7 @@ async function startNewGame(cityName) {
 
   const terrainSourceSelect = document.getElementById('newgame-terrain-source');
   const terrainPresetSelect = document.getElementById('newgame-terrain-preset');
+  const roadTileSetSelect = document.getElementById('newgame-road-tile-set');
   const source = terrainSourceSelect?.value || 'random';
 
   stopSimTimer();
@@ -518,6 +523,10 @@ async function startNewGame(cityName) {
   } else {
     currentSeed = createSeed();
     mapData = generateTerrainMap(currentSeed);
+  }
+
+  if (typeof setRoadTileSet === 'function') {
+    setRoadTileSet(roadTileSetSelect?.value || ROAD_TILE_SET_DEFAULT_ID, { refresh: false });
   }
 
   if (typeof currentSaveId !== 'undefined') currentSaveId = null;

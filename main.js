@@ -18,6 +18,10 @@ const HILL = 6;
 const MAX_TERRAIN_HEIGHT = 8;
 const HEIGHT_STEP_PIXELS = 12;
 const BRIDGE_DECK_VISUAL_LIFT = 15;
+const BRIDGE_SPRITE_DEPTH_BOOST = 64;
+const BRIDGE_RAMP_BODY_DEPTH_OFFSET = 0.45;
+const BRIDGE_RAMP_SURFACE_CROSS_LIMIT = 0.42;
+const BRIDGE_RAMP_SURFACE_MARKING_RADIUS = 5;
 const BRIDGE_TOP_LAYER_CUTOFF_Y = 40;
 const BRIDGE_SIDE_LAYER_START_Y = 28;
 const TERRAIN_RAISE_BLOCK_RADIUS = 1;
@@ -121,6 +125,17 @@ function getWorldDepth(layerName, localDepth = 0) {
 
 function getPreviewOverlayDepth(offset = 0) {
   return getWorldDepth('effect', PREVIEW_OVERLAY_DEPTH + offset);
+}
+
+function resolveTileTextureKey(logicalKey) {
+  if (typeof getRoadTileTextureKey === 'function') {
+    const textureKey = getRoadTileTextureKey(logicalKey);
+    if (activeScene?.textures?.exists && !activeScene.textures.exists(textureKey)) {
+      return getRoadTileTextureKey(logicalKey, ROAD_TILE_SET_DEFAULT_ID);
+    }
+    return textureKey;
+  }
+  return logicalKey;
 }
 
 function ensurePreviewOverlayDepth(scene) {
@@ -828,8 +843,9 @@ function getBuildingTypeLabel(type) {
     residential: 'building.residential',
     commercial: 'building.commercial',
     industrial: 'building.industrial',
-    power_plant_coal: 'building.coalPlant',
-    power_plant_solar: 'building.solarPlant',
+    power_plant_coal:    'building.coalPlant',
+    power_plant_solar:   'building.solarPlant',
+    power_plant_nuclear: 'building.nuclearPlant',
     fire_station: 'building.fireStation',
     police_station: 'building.policeStation',
     primary_school: 'building.primarySchool',
@@ -884,6 +900,7 @@ async function initializeGame() {
   industrialBuildingModels = await discoverIndustrialBuildingModels();
   setupToolMenu();
   setupMenuBar();
+  setupRoadTileSetWindow();
   updateHouseToolUi();
   updateTerrainToolUi();
   updateZoneDensityBadges();
@@ -1071,6 +1088,39 @@ function createModelEntries(keyPrefix, fileNames, config) {
   });
 }
 
+class TreeAlphaPipeline extends Phaser.Renderer.WebGL.Pipelines.MultiPipeline {
+  constructor(game) {
+    super({
+      game,
+      name: 'TreeAlphaPipeline',
+      fragShader: `
+        #define SHADER_NAME TREE_ALPHA_FS
+        precision mediump float;
+        uniform sampler2D uMainSampler[%count%];
+        varying vec2 outTexCoord;
+        varying float outTexId;
+        varying float outTintEffect;
+        varying vec4 outTint;
+        void main() {
+          vec4 texture;
+          %forloop%
+          if (texture.a < 0.04) discard;
+          vec4 texel = outTint;
+          texel.rgb *= outTint.a;
+          vec4 color = texture * texel;
+          if (outTintEffect == 1.0) {
+            color.rgb = mix(texture.rgb, outTint.rgb * outTint.a, texture.a);
+            color.a = texture.a * texel.a;
+          } else if (outTintEffect == 2.0) {
+            color = texel;
+          }
+          gl_FragColor = color;
+        }
+      `,
+    });
+  }
+}
+
 function preload() {
   const roadPath = 'kenney_isometric-roads/png/';
   const initialCommercialModels = selectInitialZoneModelsForPreload(commercialBuildingModels);
@@ -1114,32 +1164,13 @@ function preload() {
 
   this.load.image('ground_full', `${roadPath}grassWhole.png`);
   this.load.image('dirt_full', `${roadPath}dirtDouble.png`);
-  this.load.image('road_straight_h', `${roadPath}roadNS.png`);
-  this.load.image('road_straight_v', `${roadPath}roadEW.png`);
-  this.load.image('road_cross', `${roadPath}crossroad.png`);
-  this.load.image('road_corner_ne', `${roadPath}roadES.png`);
-  this.load.image('road_corner_nw', `${roadPath}roadNE.png`);
-  this.load.image('road_corner_se', `${roadPath}roadSW.png`);
-  this.load.image('road_corner_sw', `${roadPath}roadNW.png`);
-  this.load.image('road_t_n', `${roadPath}crossroadNES.png`);
-  this.load.image('road_t_e', `${roadPath}crossroadESW.png`);
-  this.load.image('road_t_s', `${roadPath}crossroadNSW.png`);
-  this.load.image('road_t_w', `${roadPath}crossroadNEW.png`);
-  this.load.image('road_hill_n', `${roadPath}roadHillE.png`);
-  this.load.image('road_hill_e', `${roadPath}roadHillS.png`);
-  this.load.image('road_hill_s', `${roadPath}roadHillW.png`);
-  this.load.image('road_hill_w', `${roadPath}roadHillN.png`);
-  this.load.image('road_hill2_n', `${roadPath}roadHill2E.png`);
-  this.load.image('road_hill2_e', `${roadPath}roadHill2S.png`);
-  this.load.image('road_hill2_s', `${roadPath}roadHill2W.png`);
-  this.load.image('road_hill2_w', `${roadPath}roadHill2N.png`);
-  this.load.image('road_end_n', `${roadPath}endW.png`);
-  this.load.image('road_end_e', `${roadPath}endN.png`);
-  this.load.image('road_end_s', `${roadPath}endE.png`);
-  this.load.image('road_end_w', `${roadPath}endS.png`);
-  this.load.image('road_isolated', `${roadPath}road.png`);
-  this.load.image('road_bridge_h', `${roadPath}bridgeNS_iso21_shoulders_top.png`);
-  this.load.image('road_bridge_v', `${roadPath}bridgeEW_iso21_shoulders_top.png`);
+  if (typeof getRoadTileSets === 'function') {
+    getRoadTileSets().forEach((set) => {
+      Object.keys(ROAD_TILE_LOGICAL_FILES).forEach((logicalKey) => {
+        this.load.image(`${set.texturePrefix}_${logicalKey}`, getRoadTileAssetPath(logicalKey, set.id));
+      });
+    });
+  }
 
   this.load.image('water_full', `${roadPath}water.png`);
   this.load.image('water_edge_n', `${roadPath}waterE.png`);
@@ -1179,14 +1210,10 @@ function preload() {
   this.load.image('hill_corner_sw', `${roadPath}hillNW.png`);
   this.load.image('hill_corner_nw', `${roadPath}hillNE.png`);
 
-  this.load.image('tree_short', `${roadPath}treeShort.png`);
-  this.load.image('tree_tall', `${roadPath}treeTall.png`);
-  this.load.image('tree_alt_short', `${roadPath}treeAltShort.png`);
-  this.load.image('tree_alt_tall', `${roadPath}treeAltTall.png`);
-  this.load.image('conifer_short', `${roadPath}coniferShort.png`);
-  this.load.image('conifer_tall', `${roadPath}coniferTall.png`);
-  this.load.image('conifer_alt_short', `${roadPath}coniferAltShort.png`);
-  this.load.image('conifer_alt_tall', `${roadPath}coniferAltTall.png`);
+  for (let i = 1; i <= 15; i++) {
+    const key = `tree${String(i).padStart(2, '0')}`;
+    this.load.image(key, `Models/trees/${key}.png`);
+  }
 }
 
 function create() {
@@ -1211,6 +1238,9 @@ function create() {
   this.powerLineSprites = new Map();
   this.bridgeSprites = new Map();
   this.treeSprites = new Map();
+  if (this.renderer instanceof Phaser.Renderer.WebGL.WebGLRenderer) {
+    this.renderer.pipelines.add('TreeAlphaPipeline', new TreeAlphaPipeline(this.game));
+  }
   createWorldRenderLayers(this);
 
   const maskGraphics = this.make.graphics({ x: 0, y: 0, add: false });
@@ -1233,7 +1263,7 @@ function create() {
       const pos = isoToScreen(col, row);
       const x = pos.x + this.offsetX;
       const y = pos.y + this.offsetY + getTerrainTileVisualOffset(row, col, key);
-      const tile = this.add.image(x, y, key);
+      const tile = this.add.image(x, y, resolveTileTextureKey(key));
       addToRenderLayer(this, tile, 'terrainLayer');
       tile.setOrigin(0.5, 1);
       tile.setDepth(getTerrainTileDepth(row, col, key, pos.y));
@@ -1466,6 +1496,166 @@ function setPreloadProgressPercent(percent) {
   const percentLabel = document.getElementById('landing-preload-percent');
   if (fill) fill.style.width = `${percent}%`;
   if (percentLabel) percentLabel.textContent = `${percent}%`;
+}
+
+function setRoadTileSet(id, options = {}) {
+  const { refresh = true, notify = false } = options;
+  if (typeof setCurrentRoadTileSetId !== 'function') return id;
+
+  const previousId = typeof getCurrentRoadTileSetId === 'function'
+    ? getCurrentRoadTileSetId()
+    : ROAD_TILE_SET_DEFAULT_ID;
+  const nextId = setCurrentRoadTileSetId(id);
+
+  if (refresh && activeScene?.tileSprites?.length) {
+    refreshAllTiles(activeScene);
+    sortWorldRenderLayers(activeScene);
+  }
+
+  updateRoadTileSetControls();
+
+  if (notify && previousId !== nextId && typeof showToast === 'function') {
+    const set = getRoadTileSet(nextId);
+    showToast(t('toast.roadTileSetChanged', { set: t(set.labelKey) }), 'info');
+  }
+
+  return nextId;
+}
+
+function populateRoadTileSetSelect(select) {
+  if (!select || typeof getRoadTileSets !== 'function') return;
+  const selectedId = select.value || getCurrentRoadTileSetId();
+  select.innerHTML = '';
+  getRoadTileSets().forEach((set) => {
+    const option = document.createElement('option');
+    option.value = set.id;
+    option.textContent = t(set.labelKey);
+    select.appendChild(option);
+  });
+  select.value = normalizeRoadTileSetId(selectedId);
+}
+
+function populateRoadTileSetOptions() {
+  const container = document.getElementById('road-tile-set-options');
+  if (!container || typeof getRoadTileSets !== 'function') return;
+
+  container.innerHTML = '';
+  getRoadTileSets().forEach((set) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'road-tile-set-option';
+    button.dataset.roadTileSetId = set.id;
+
+    const text = document.createElement('span');
+    const name = document.createElement('span');
+    name.className = 'road-tile-set-option-name';
+    name.textContent = t(set.labelKey);
+    text.appendChild(name);
+
+    const desc = document.createElement('span');
+    desc.className = 'road-tile-set-option-desc';
+    desc.textContent = t(set.descriptionKey);
+    text.appendChild(desc);
+
+    const preview = document.createElement('span');
+    preview.className = 'road-tile-set-preview';
+    getRoadTilePreviewAssets(set.id).forEach((src) => {
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = '';
+      preview.appendChild(img);
+    });
+
+    button.appendChild(text);
+    button.appendChild(preview);
+    button.addEventListener('click', () => {
+      setRoadTileSet(set.id, { refresh: true, notify: true });
+    });
+    container.appendChild(button);
+  });
+
+  updateRoadTileSetControls();
+}
+
+function updateRoadTileSetControls() {
+  if (typeof getCurrentRoadTileSetId !== 'function') return;
+  const activeId = getCurrentRoadTileSetId();
+  document.querySelectorAll('[data-road-tile-set-id]').forEach((button) => {
+    const active = button.dataset.roadTileSetId === activeId;
+    button.classList.toggle('is-active', active);
+    button.setAttribute('aria-pressed', active ? 'true' : 'false');
+  });
+
+  const select = document.getElementById('newgame-road-tile-set');
+  if (select && select.options.length > 0) {
+    select.value = activeId;
+  }
+}
+
+function setupRoadTileSetWindow() {
+  const win = document.getElementById('road-tile-set-window');
+  const titlebar = document.getElementById('road-tile-set-window-titlebar');
+  const closeBtn = document.getElementById('road-tile-set-window-close');
+  const minBtn = document.getElementById('road-tile-set-window-min-btn');
+  if (!win || !titlebar || !closeBtn) return;
+
+  win.addEventListener('pointerdown', (e) => e.stopPropagation());
+  win.addEventListener('click', (e) => e.stopPropagation());
+
+  closeBtn.addEventListener('click', closeRoadTileSetWindow);
+  minBtn?.addEventListener('click', () => {
+    win.classList.toggle('is-collapsed');
+    minBtn.textContent = win.classList.contains('is-collapsed') ? '+' : '−';
+  });
+
+  let dragging = false;
+  let offsetX = 0;
+  let offsetY = 0;
+
+  titlebar.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('#road-tile-set-window-close') || e.target.closest('#road-tile-set-window-min-btn')) return;
+    dragging = true;
+    const rect = win.getBoundingClientRect();
+    win.style.left = `${rect.left}px`;
+    win.style.top = `${rect.top}px`;
+    win.style.right = 'auto';
+    win.style.bottom = 'auto';
+    offsetX = e.clientX - rect.left;
+    offsetY = e.clientY - rect.top;
+    titlebar.setPointerCapture(e.pointerId);
+  });
+
+  titlebar.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    const width = win.offsetWidth;
+    const height = win.offsetHeight;
+    const maxX = Math.max(0, window.innerWidth - width);
+    const maxY = Math.max(0, window.innerHeight - height);
+    const nextLeft = Math.max(0, Math.min(maxX, e.clientX - offsetX));
+    const nextTop = Math.max(0, Math.min(maxY, e.clientY - offsetY));
+    win.style.left = `${nextLeft}px`;
+    win.style.top = `${nextTop}px`;
+  });
+
+  titlebar.addEventListener('pointerup', () => {
+    dragging = false;
+  });
+
+  document.addEventListener('languagechange', () => {
+    populateRoadTileSetOptions();
+    populateRoadTileSetSelect(document.getElementById('newgame-road-tile-set'));
+  });
+
+  populateRoadTileSetOptions();
+}
+
+function openRoadTileSetWindow() {
+  populateRoadTileSetOptions();
+  document.getElementById('road-tile-set-window')?.classList.add('is-open');
+}
+
+function closeRoadTileSetWindow() {
+  document.getElementById('road-tile-set-window')?.classList.remove('is-open');
 }
 
 function getLoadingHintMessages(maxTips = 40) {
@@ -2051,8 +2241,8 @@ function positionAllTiles(scene) {
     positionBuilding(scene, building);
   });
 
-  scene.treeSprites?.forEach((tree) => {
-    positionTree(scene, tree);
+  scene.treeSprites?.forEach((sprites) => {
+    sprites.forEach((sprite) => positionTree(scene, sprite));
   });
 
   repositionBridgeSprites(scene);
@@ -2238,6 +2428,204 @@ function prepareBridgeLayerTextures(scene) {
     scene.textures.addCanvas(topKey, topCanvas);
     scene.textures.addCanvas(sideKey, sideCanvas);
   });
+}
+
+function getBridgeRampSurfaceTextureKey(scene, key, visualDirection) {
+  const sourceKey = resolveTileTextureKey(key);
+  const surfaceKey = `${sourceKey}_bridge_ramp_surface_${visualDirection}`;
+  if (scene.textures.exists(surfaceKey)) return surfaceKey;
+
+  const source = scene.textures.get(sourceKey)?.getSourceImage();
+  if (!source) return sourceKey;
+
+  const width = source.width;
+  const height = source.height;
+  const sourceCanvas = document.createElement('canvas');
+  sourceCanvas.width = width;
+  sourceCanvas.height = height;
+  const sourceCtx = sourceCanvas.getContext('2d', { willReadFrequently: true });
+  sourceCtx.drawImage(source, 0, 0);
+  const sourceData = sourceCtx.getImageData(0, 0, width, height);
+  const surfaceCanvas = document.createElement('canvas');
+  surfaceCanvas.width = width;
+  surfaceCanvas.height = height;
+  const surfaceCtx = surfaceCanvas.getContext('2d');
+  const surfaceData = surfaceCtx.createImageData(width, height);
+  const bounds = getAlphaBounds(sourceData, width, height);
+
+  if (!bounds) {
+    scene.textures.addCanvas(surfaceKey, surfaceCanvas);
+    return surfaceKey;
+  }
+
+  const surfaceMask = createBridgeRampSurfaceMask(sourceData, width, height, bounds, visualDirection);
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const index = (y * width + x) * 4;
+      if (!surfaceMask[y * width + x]) continue;
+      surfaceData.data[index] = sourceData.data[index];
+      surfaceData.data[index + 1] = sourceData.data[index + 1];
+      surfaceData.data[index + 2] = sourceData.data[index + 2];
+      surfaceData.data[index + 3] = sourceData.data[index + 3];
+    }
+  }
+
+  surfaceCtx.putImageData(surfaceData, 0, 0);
+  scene.textures.addCanvas(surfaceKey, surfaceCanvas);
+  return surfaceKey;
+}
+
+function getAlphaBounds(imageData, width, height) {
+  const bounds = { minX: width, minY: height, maxX: -1, maxY: -1 };
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const alpha = imageData.data[((y * width + x) * 4) + 3];
+      if (alpha <= 0) continue;
+      bounds.minX = Math.min(bounds.minX, x);
+      bounds.minY = Math.min(bounds.minY, y);
+      bounds.maxX = Math.max(bounds.maxX, x);
+      bounds.maxY = Math.max(bounds.maxY, y);
+    }
+  }
+  return bounds.maxX >= bounds.minX && bounds.maxY >= bounds.minY ? bounds : null;
+}
+
+function createBridgeRampSurfaceMask(imageData, width, height, bounds, visualDirection) {
+  const asphaltMask = new Uint8Array(width * height);
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const pixelIndex = (y * width + x) * 4;
+      const r = imageData.data[pixelIndex];
+      const g = imageData.data[pixelIndex + 1];
+      const b = imageData.data[pixelIndex + 2];
+      const a = imageData.data[pixelIndex + 3];
+      if (!isBridgeRampAsphaltPixel(r, g, b, a)) continue;
+      if (!isInsideBridgeRampSurfaceCap(x, y, bounds, visualDirection)) continue;
+      asphaltMask[y * width + x] = 1;
+    }
+  }
+
+  const roadMask = getLargestConnectedMask(asphaltMask, width, height);
+  const nearRoadMask = expandPixelMask(roadMask, width, height, BRIDGE_RAMP_SURFACE_MARKING_RADIUS);
+  const surfaceMask = new Uint8Array(width * height);
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const maskIndex = y * width + x;
+      if (roadMask[maskIndex]) {
+        surfaceMask[maskIndex] = 1;
+        continue;
+      }
+
+      const pixelIndex = maskIndex * 4;
+      const r = imageData.data[pixelIndex];
+      const g = imageData.data[pixelIndex + 1];
+      const b = imageData.data[pixelIndex + 2];
+      const a = imageData.data[pixelIndex + 3];
+      if (!nearRoadMask[maskIndex]) continue;
+      if (!isBridgeRampYellowMarkingPixel(r, g, b, a)) continue;
+      if (!isInsideBridgeRampSurfaceCap(x, y, bounds, visualDirection)) continue;
+      surfaceMask[maskIndex] = 1;
+    }
+  }
+
+  return surfaceMask;
+}
+
+function getLargestConnectedMask(mask, width, height) {
+  const visited = new Uint8Array(mask.length);
+  let best = [];
+
+  for (let start = 0; start < mask.length; start++) {
+    if (!mask[start] || visited[start]) continue;
+    const stack = [start];
+    const component = [];
+    visited[start] = 1;
+
+    while (stack.length > 0) {
+      const index = stack.pop();
+      component.push(index);
+      const x = index % width;
+      const y = Math.floor(index / width);
+      [
+        x > 0 ? index - 1 : -1,
+        x < width - 1 ? index + 1 : -1,
+        y > 0 ? index - width : -1,
+        y < height - 1 ? index + width : -1,
+      ].forEach((next) => {
+        if (next < 0 || !mask[next] || visited[next]) return;
+        visited[next] = 1;
+        stack.push(next);
+      });
+    }
+
+    if (component.length > best.length) best = component;
+  }
+
+  const output = new Uint8Array(mask.length);
+  best.forEach((index) => {
+    output[index] = 1;
+  });
+  return output;
+}
+
+function expandPixelMask(mask, width, height, radius) {
+  const output = new Uint8Array(mask.length);
+  for (let index = 0; index < mask.length; index++) {
+    if (!mask[index]) continue;
+    const x = index % width;
+    const y = Math.floor(index / width);
+    for (let dy = -radius; dy <= radius; dy++) {
+      for (let dx = -radius; dx <= radius; dx++) {
+        if (Math.abs(dx) + Math.abs(dy) > radius) continue;
+        const nx = x + dx;
+        const ny = y + dy;
+        if (nx < 0 || nx >= width || ny < 0 || ny >= height) continue;
+        output[ny * width + nx] = 1;
+      }
+    }
+  }
+  return output;
+}
+
+function isBridgeRampAsphaltPixel(r, g, b, a) {
+  if (a < 16) return false;
+  const maxChannel = Math.max(r, g, b);
+  const minChannel = Math.min(r, g, b);
+  const luma = (r + g + b) / 3;
+  const neutral = maxChannel - minChannel <= 32;
+  const roadAsphalt = neutral && luma >= 45 && luma <= 130;
+  const greenTerrain = g > r + 18 && g > b + 8;
+  const brownBody = r > g + 10 && g > b + 5 && r >= 80 && r <= 220;
+  return roadAsphalt && !greenTerrain && !brownBody;
+}
+
+function isBridgeRampYellowMarkingPixel(r, g, b, a) {
+  return a >= 16 && r >= 135 && g >= 105 && b <= 110 && r > b + 35 && g > b + 25;
+}
+
+function isInsideBridgeRampSurfaceCap(x, y, bounds, visualDirection) {
+  const halfWidth = Math.max(1, (bounds.maxX - bounds.minX + 1) / 2);
+  const halfHeight = Math.max(1, (bounds.maxY - bounds.minY + 1) / 2);
+  const midX = (bounds.minX + bounds.maxX) / 2;
+  const midY = (bounds.minY + bounds.maxY) / 2;
+  const xNorm = (x - midX) / halfWidth;
+  const yNorm = (y - midY) / halfHeight;
+  let bridgeScore = xNorm - yNorm;
+  let crossScore = xNorm + yNorm;
+
+  if (visualDirection === 'e') {
+    bridgeScore = xNorm + yNorm;
+    crossScore = xNorm - yNorm;
+  } else if (visualDirection === 's') {
+    bridgeScore = -xNorm + yNorm;
+    crossScore = xNorm + yNorm;
+  } else if (visualDirection === 'w') {
+    bridgeScore = -xNorm - yNorm;
+    crossScore = xNorm - yNorm;
+  }
+
+  return bridgeScore >= -0.05 && Math.abs(crossScore) <= BRIDGE_RAMP_SURFACE_CROSS_LIMIT;
 }
 
 function getPowerPlantModelMetadata(scene, buildingType) {
@@ -2603,7 +2991,7 @@ function removeBuilding(scene, row, col) {
   const anchorId = getTileId(building.mapRow, building.mapCol);
   const record   = buildingData[anchorId];
   if (record) {
-    if (record.type === 'power_plant_coal' || record.type === 'power_plant_solar') {
+    if (record.type === 'power_plant_coal' || record.type === 'power_plant_solar' || record.type === 'power_plant_nuclear') {
       powerSources.delete(anchorId);
     }
     delete buildingData[anchorId];
@@ -2766,6 +3154,7 @@ function isNewToolHandledByToolsModule(tool) {
     || tool === 'power-line'
     || tool === 'power-coal'
     || tool === 'power-solar'
+    || tool === 'power-nuclear'
     || tool === 'fire-station'
     || tool === 'police-station'
     || tool === 'primary-school'
@@ -2816,8 +3205,9 @@ function getSelectedPlacementFootprint() {
   if (selectedTool === 'park-large') return { footprintCols: 3, footprintRows: 3 };
 
   const infraTypeByTool = {
-    'power-coal': 'power_plant_coal',
-    'power-solar': 'power_plant_solar',
+    'power-coal':    'power_plant_coal',
+    'power-solar':   'power_plant_solar',
+    'power-nuclear': 'power_plant_nuclear',
     'fire-station': 'fire_station',
     'police-station': 'police_station',
     'primary-school': 'primary_school',
@@ -2843,7 +3233,7 @@ function getSelectedPlacementFootprint() {
 
 function shouldShowBuildingPlacementGuide(pointer) {
   if (isPainting || selectedTool === 'inspect') return false;
-  if (pointer.event?.target?.closest('#tool-menu, #hud, #budget-panel, #budget-window, #toast-container, #speed-controls, #top-bar, .sim-dialog, #jukebox-window, #rotate-cluster, #overlay-window, #inspect-panel, #terrain-minimap-panel')) {
+  if (pointer.event?.target?.closest('#tool-menu, #hud, #budget-panel, #budget-window, #road-tile-set-window, #toast-container, #speed-controls, #top-bar, .sim-dialog, #jukebox-window, #rotate-cluster, #overlay-window, #inspect-panel, #terrain-minimap-panel')) {
     return false;
   }
   return Boolean(getSelectedPlacementFootprint());
@@ -3228,7 +3618,7 @@ function applyFlattenTerrain(scene, row, col, radius = 1) {
 }
 
 function applySelectedTool(scene, pointer) {
-  if (pointer.event?.target?.closest('#tool-menu, #hud, #budget-panel, #budget-window, #toast-container, #speed-controls, #top-bar, .sim-dialog, #jukebox-window, #rotate-cluster, #overlay-window, #inspect-panel, #terrain-minimap-panel')) return;
+  if (pointer.event?.target?.closest('#tool-menu, #hud, #budget-panel, #budget-window, #road-tile-set-window, #toast-container, #speed-controls, #top-bar, .sim-dialog, #jukebox-window, #rotate-cluster, #overlay-window, #inspect-panel, #terrain-minimap-panel')) return;
 
   let tile = selectedTool === 'inspect'
     ? (resolveInspectTile(scene, pointer) ?? lastInspectTile)
@@ -3353,6 +3743,10 @@ function isBridgeTile(row, col) {
 
 function isBridgeDeckTile(row, col) {
   return normalizeBridgeMapValue(bridgeMap?.[row]?.[col])?.startsWith('deck:') ?? false;
+}
+
+function isBridgeRampTile(row, col) {
+  return normalizeBridgeMapValue(bridgeMap?.[row]?.[col])?.startsWith('ramp:') ?? false;
 }
 
 function isRoadLikeTile(row, col) {
@@ -3537,8 +3931,8 @@ function refreshBridgeSpritesAlongPath(scene, path) {
 function refreshBridgeSprite(scene, row, col) {
   if (!scene?.bridgeSprites) return;
   const id = getTileId(row, col);
-  const existing = scene.bridgeSprites.get(id);
-  if (!isBridgeDeckTile(row, col)) {
+  let existing = scene.bridgeSprites.get(id);
+  if (!isBridgeTile(row, col)) {
     if (existing) {
       destroyBridgeSpriteEntry(existing);
       scene.bridgeSprites.delete(id);
@@ -3546,24 +3940,36 @@ function refreshBridgeSprite(scene, row, col) {
     return;
   }
 
-  const key = getBridgeDeckKey(row, col);
+  const key = getBridgeSpriteKey(row, col);
   const pos = isoToScreen(col, row);
   const x = pos.x + scene.offsetX;
-  const y = pos.y + scene.offsetY + getBridgeDeckVisualOffset(row, col, key);
-  const depth = getRoadTileDepth(row, col, key, pos.y);
+  const y = pos.y + scene.offsetY + getBridgeSpriteVisualOffset(row, col, key);
+  const depth = getBridgeSpriteDepth(row, col, key, pos.y);
 
-  if (existing) {
-    existing.setTexture(key);
-    existing.setPosition(x, y);
-    existing.setDepth(depth + 0.45);
+  if (isBridgeRampTile(row, col)) {
+    existing = upsertBridgeRampSprite(scene, existing, row, col, key, x, y, pos.y);
+    scene.bridgeSprites.set(id, existing);
     sortRenderLayer(scene, 'roadLayer');
     return;
   }
 
-  const bridge = scene.add.image(x, y, key);
+  if (existing && !existing.destroy) {
+    destroyBridgeSpriteEntry(existing);
+    existing = null;
+  }
+
+  if (existing) {
+    existing.setTexture(resolveTileTextureKey(key));
+    existing.setPosition(x, y);
+    existing.setDepth(depth);
+    sortRenderLayer(scene, 'roadLayer');
+    return;
+  }
+
+  const bridge = scene.add.image(x, y, resolveTileTextureKey(key));
   addToRenderLayer(scene, bridge, 'roadLayer');
   bridge.setOrigin(0.5, 1);
-  bridge.setDepth(depth + 0.45);
+  bridge.setDepth(depth);
   bridge.setMask(scene.worldMask);
   scene.bridgeSprites.set(id, bridge);
   sortRenderLayer(scene, 'roadLayer');
@@ -3584,23 +3990,125 @@ function repositionBridgeSprites(scene) {
   if (!scene?.bridgeSprites) return;
   scene.bridgeSprites.forEach((entry, id) => {
     const [row, col] = id.split(':').map(Number);
-    if (!isInsideMap(row, col) || !isBridgeDeckTile(row, col)) {
+    if (!isInsideMap(row, col) || !isBridgeTile(row, col)) {
       destroyBridgeSpriteEntry(entry);
       scene.bridgeSprites.delete(id);
       return;
     }
-    const key = getBridgeDeckKey(row, col);
+    const key = getBridgeSpriteKey(row, col);
     const pos = isoToScreen(col, row);
-    const depth = getRoadTileDepth(row, col, key, pos.y);
-    entry.setTexture(key);
-    entry.setPosition(pos.x + scene.offsetX, pos.y + scene.offsetY + getBridgeDeckVisualOffset(row, col, key));
-    entry.setDepth(depth + 0.45);
+    const depth = getBridgeSpriteDepth(row, col, key, pos.y);
+    const x = pos.x + scene.offsetX;
+    const y = pos.y + scene.offsetY + getBridgeSpriteVisualOffset(row, col, key);
+    if (isBridgeRampTile(row, col)) {
+      scene.bridgeSprites.set(id, upsertBridgeRampSprite(scene, entry, row, col, key, x, y, pos.y));
+      return;
+    }
+    if (entry && !entry.destroy) {
+      destroyBridgeSpriteEntry(entry);
+      refreshBridgeSprite(scene, row, col);
+      return;
+    }
+    entry.setTexture(resolveTileTextureKey(key));
+    entry.setPosition(x, y);
+    entry.setDepth(depth);
   });
   sortRenderLayer(scene, 'roadLayer');
 }
 
-function getBridgeDeckKey(row, col) {
+function upsertBridgeRampSprite(scene, existing, row, col, key, x, y, baseY) {
+  const sourceKey = resolveTileTextureKey(key);
+  const visualDirection = getBridgeRampVisualDirection(row, col);
+  const shouldUseSurface = shouldBridgeRampUseSurfaceOverlay(row, col);
+  const surfaceKey = shouldUseSurface
+    ? getBridgeRampSurfaceTextureKey(scene, key, visualDirection)
+    : null;
+  const bodyDepth = getBridgeRampBodyDepth(row, col, key, baseY);
+  const surfaceDepth = getBridgeSpriteDepth(row, col, key, baseY);
+
+  if (existing?.body) {
+    existing.body.setTexture(sourceKey);
+    existing.body.setPosition(x, y);
+    existing.body.setDepth(bodyDepth);
+    if (surfaceKey) {
+      if (!existing.top) {
+        existing.top = scene.add.image(x, y, surfaceKey);
+        addToRenderLayer(scene, existing.top, 'roadLayer');
+        existing.top.setOrigin(0.5, 1);
+        existing.top.setMask(scene.worldMask);
+      }
+      existing.top.setTexture(surfaceKey);
+      existing.top.setPosition(x, y);
+      existing.top.setDepth(surfaceDepth);
+    } else if (existing.top) {
+      existing.top.destroy();
+      existing.top = null;
+    }
+    return existing;
+  }
+
+  if (existing) destroyBridgeSpriteEntry(existing);
+
+  const body = scene.add.image(x, y, sourceKey);
+  addToRenderLayer(scene, body, 'terrainLayer');
+  body.setOrigin(0.5, 1);
+  body.setDepth(bodyDepth);
+  body.setMask(scene.worldMask);
+
+  let top = null;
+  if (surfaceKey) {
+    top = scene.add.image(x, y, surfaceKey);
+    addToRenderLayer(scene, top, 'roadLayer');
+    top.setOrigin(0.5, 1);
+    top.setDepth(surfaceDepth);
+    top.setMask(scene.worldMask);
+  }
+
+  return { body, top };
+}
+
+function getBridgeSpriteKey(row, col) {
   return rotateTileKey(getRoadKey(row, col), mapRotation);
+}
+
+function getBridgeRampDirection(row, col) {
+  return normalizeBridgeMapValue(bridgeMap?.[row]?.[col])?.match(/^ramp:([nesw])$/)?.[1] ?? null;
+}
+
+function getBridgeRampVisualDirection(row, col) {
+  const direction = getBridgeRampDirection(row, col);
+  return direction ? rotateDirection(direction, mapRotation) : 'n';
+}
+
+function shouldBridgeRampUseSurfaceOverlay(row, col) {
+  const direction = getBridgeRampDirection(row, col);
+  if (!direction) return false;
+  const deckTile = getNeighborTileInDirection(row, col, direction);
+  if (!deckTile || !isBridgeDeckTile(deckTile.row, deckTile.col)) return false;
+  const rampPos = isoToScreen(col, row);
+  const deckPos = isoToScreen(deckTile.col, deckTile.row);
+  return rampPos.y > deckPos.y;
+}
+
+function getNeighborTileInDirection(row, col, direction) {
+  if (direction === 'n') return { row: row - 1, col };
+  if (direction === 'e') return { row, col: col + 1 };
+  if (direction === 's') return { row: row + 1, col };
+  if (direction === 'w') return { row, col: col - 1 };
+  return null;
+}
+
+function getBridgeSpriteVisualOffset(row, col, key) {
+  if (isBridgeDeckTile(row, col)) return getBridgeDeckVisualOffset(row, col, key);
+  return getTerrainTileVisualOffset(row, col, key);
+}
+
+function getBridgeSpriteDepth(row, col, key, baseY = isoToScreen(col, row).y) {
+  return getRoadTileDepth(row, col, key, baseY) + BRIDGE_SPRITE_DEPTH_BOOST;
+}
+
+function getBridgeRampBodyDepth(row, col, key, baseY = isoToScreen(col, row).y) {
+  return getTerrainTileDepth(row, col, key, baseY) + BRIDGE_RAMP_BODY_DEPTH_OFFSET;
 }
 
 function destroyBridgeSpriteEntry(entry) {
@@ -3609,6 +4117,7 @@ function destroyBridgeSpriteEntry(entry) {
     entry.destroy();
     return;
   }
+  entry.body?.destroy();
   entry.side?.destroy();
   entry.top?.destroy();
 }
@@ -4052,7 +4561,7 @@ function refreshTileArea(scene, row, col) {
     const key = getTileKey(tileRow, tileCol);
     const pos = isoToScreen(tileCol, tileRow);
     const sprite = scene.tileSprites[tileRow][tileCol];
-    sprite.setTexture(key);
+    sprite.setTexture(resolveTileTextureKey(key));
     sprite.setPosition(pos.x + scene.offsetX, pos.y + scene.offsetY + getTerrainTileVisualOffset(tileRow, tileCol, key));
     sprite.setDepth(getTerrainTileDepth(tileRow, tileCol, key, pos.y));
     applyTileVisualStyle(sprite, tileRow, tileCol, key);
@@ -4068,7 +4577,7 @@ function refreshAllTiles(scene) {
       const key = getTileKey(row, col);
       const pos = isoToScreen(col, row);
       const sprite = scene.tileSprites[row][col];
-      sprite.setTexture(key);
+      sprite.setTexture(resolveTileTextureKey(key));
       sprite.setPosition(pos.x + scene.offsetX, pos.y + scene.offsetY + getTerrainTileVisualOffset(row, col, key));
       sprite.setDepth(getTerrainTileDepth(row, col, key, pos.y));
       applyTileVisualStyle(sprite, row, col, key);
@@ -4137,7 +4646,7 @@ function clearBuildings(scene) {
 }
 
 function clearTreeSprites(scene) {
-  scene?.treeSprites?.forEach((tree) => tree.destroy());
+  scene?.treeSprites?.forEach((sprites) => sprites.forEach((s) => s.destroy()));
   scene?.treeSprites?.clear();
 }
 
@@ -4146,10 +4655,12 @@ function normalizeTreeRecord(tree, row, col) {
   const species = TREE_SPECIES.some((entry) => entry.id === tree.species)
     ? tree.species
     : chooseTreeSpeciesForTile(row, col, Math.random()).id;
+  const rawCount = Number(tree.count ?? 1);
   return {
     species,
     age: Math.max(0, Math.min(TREE_MATURE_AGE, Math.round(Number(tree.age ?? 0)))),
     variant: Number.isFinite(Number(tree.variant)) ? Number(tree.variant) : Math.random(),
+    count: Number.isFinite(rawCount) && rawCount >= 1 ? Math.min(3, Math.round(rawCount)) : 1,
   };
 }
 
@@ -4185,8 +4696,25 @@ function canTreeGrowAt(scene, row, col, blockedTiles = null) {
   return canTreeOccupyAt(scene, row, col, blockedTiles);
 }
 
+function isAdjacentToRoad(row, col) {
+  for (let dr = -1; dr <= 1; dr++) {
+    for (let dc = -1; dc <= 1; dc++) {
+      if (dr === 0 && dc === 0) continue;
+      const nr = row + dr, nc = col + dc;
+      if (!isInsideMap(nr, nc)) continue;
+      if (mapData[nr]?.[nc] === ROAD) return true;
+      if (roadUnderlayMap[nr]?.[nc] != null) return true;
+      if (bridgeMap[nr]?.[nc]) return true;
+    }
+  }
+  return false;
+}
+
 function canTreeOccupyAt(scene, row, col, blockedTiles = null) {
   if (!isTreeTerrainEligible(row, col)) return false;
+  if (mapData[row]?.[col] === ROAD) return false;
+  if (roadUnderlayMap[row]?.[col] != null) return false;
+  if (isAdjacentToRoad(row, col)) return false;
   const id = getTileId(row, col);
   if (zoneMap[row]?.[col] !== ZONE_NONE) return false;
   if (powerLineSet.has(id)) return false;
@@ -4199,6 +4727,26 @@ function canTreeOccupyAt(scene, row, col, blockedTiles = null) {
 
 function buildTreeBlockedTilesFromSave(save) {
   const blocked = new Set();
+
+  // Block all road tiles and their 1-tile diagonal buffer from saved mapData.
+  // The buffer prevents large tree canopies from visually overlapping road surfaces.
+  if (Array.isArray(save?.mapData)) {
+    for (let row = 0; row < MAP_HEIGHT; row++) {
+      for (let col = 0; col < MAP_WIDTH; col++) {
+        if ((save.mapData[row] ?? [])[col] === ROAD) {
+          blocked.add(getTileId(row, col));
+          for (let dr = -1; dr <= 1; dr++) {
+            for (let dc = -1; dc <= 1; dc++) {
+              const nr = row + dr, nc = col + dc;
+              if (isInsideMap(nr, nc)) blocked.add(getTileId(nr, nc));
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Block building footprints
   Object.entries(save?.buildingData ?? {}).forEach(([id, record]) => {
     const [row, col] = id.split(':').map(Number);
     const footprintCols = record?.footprintCols ?? 1;
@@ -4207,33 +4755,72 @@ function buildTreeBlockedTilesFromSave(save) {
       if (isInsideMap(tileRow, tileCol)) blocked.add(getTileId(tileRow, tileCol));
     });
   });
+
   return blocked;
+}
+
+function generateForestMap(random) {
+  const forestCount = TREE_FOREST_COUNT_MIN +
+    Math.floor(random() * (TREE_FOREST_COUNT_MAX - TREE_FOREST_COUNT_MIN + 1));
+  const forests = [];
+  for (let f = 0; f < forestCount; f++) {
+    forests.push({
+      row:      random() * MAP_HEIGHT,
+      col:      random() * MAP_WIDTH,
+      radius:   TREE_FOREST_RADIUS_MIN + random() * (TREE_FOREST_RADIUS_MAX - TREE_FOREST_RADIUS_MIN),
+      strength: TREE_FOREST_STRENGTH_MIN + random() * (TREE_FOREST_STRENGTH_MAX - TREE_FOREST_STRENGTH_MIN),
+    });
+  }
+
+  const weights = createFilledMap(TREE_BASE_DENSITY);
+  for (const f of forests) {
+    const rMin = Math.max(0, Math.floor(f.row - f.radius));
+    const rMax = Math.min(MAP_HEIGHT - 1, Math.ceil(f.row + f.radius));
+    const cMin = Math.max(0, Math.floor(f.col - f.radius));
+    const cMax = Math.min(MAP_WIDTH - 1, Math.ceil(f.col + f.radius));
+    for (let row = rMin; row <= rMax; row++) {
+      for (let col = cMin; col <= cMax; col++) {
+        const dist = Math.sqrt((row - f.row) ** 2 + (col - f.col) ** 2);
+        if (dist < f.radius) {
+          const w = f.strength * (1 - dist / f.radius);
+          if (w > weights[row][col]) weights[row][col] = w;
+        }
+      }
+    }
+  }
+  return weights;
 }
 
 function generateInitialTrees(scene, blockedTiles = null) {
   const random = createRandom(`${currentSeed}:trees`);
   treeMap = createFilledMap(null);
+  const forestWeights = generateForestMap(random);
 
   for (let row = 0; row < MAP_HEIGHT; row++) {
     for (let col = 0; col < MAP_WIDTH; col++) {
       if (!canTreeGrowAt(scene, row, col, blockedTiles)) continue;
-      const terrain = mapData[row][col];
-      const chance = terrain === HILL ? TREE_INITIAL_DENSITY_HILL : TREE_INITIAL_DENSITY_GROUND;
+
+      const hillMul = mapData[row][col] === HILL ? 1.8 : 1.0;
+      const chance = Math.min(forestWeights[row][col] * hillMul, 0.82);
       if (random() >= chance) continue;
 
+      const inForest = forestWeights[row][col] > TREE_BASE_DENSITY * 4;
       const species = chooseTreeSpeciesForTile(row, col, random());
+      const r = random();
       treeMap[row][col] = {
         species: species.id,
-        age: Math.floor(random() * (TREE_MATURE_AGE + 1)),
+        age:     Math.floor(random() * (TREE_MATURE_AGE + 1)),
         variant: random(),
+        count:   inForest ? (r < 0.70 ? 1 : r < 0.92 ? 2 : 3) : 1,
       };
     }
   }
 }
 
 function restoreOrGenerateTrees(scene, save) {
-  const hasSavedTrees = Array.isArray(save?.treeMap);
-  if (!hasSavedTrees) {
+  // Regenerate if the save predates the current forest-patch system so that
+  // all existing saves get the improved distribution on first load.
+  if (save?.treeVersion !== TREE_SYSTEM_VERSION) {
     generateInitialTrees(scene, buildTreeBlockedTilesFromSave(save));
     return;
   }
@@ -4256,34 +4843,56 @@ function rebuildTreeSprites(scene) {
   }
 }
 
+function getTreeSubOffset(count, index, variant) {
+  if (count <= 1) return { x: 0, y: 0 };
+  const baseAngle = variant * Math.PI * 2;
+  const angle = baseAngle + index * (Math.PI * 2 / count);
+  const r = count === 2 ? 7 : 5;
+  return { x: Math.cos(angle) * r, y: Math.sin(angle) * r * 0.5 };
+}
+
 function placeTreeSprite(scene, row, col) {
   const tree = treeMap[row]?.[col];
-  if (!tree || !scene?.treeSprites) return null;
+  if (!tree || !scene?.treeSprites) return;
 
   const pos = isoToScreen(col, row);
-  const offset = getTreeVisualOffset(tree);
-  const sprite = scene.add.image(
-    pos.x + scene.offsetX + offset.x,
-    pos.y + scene.offsetY + getElevationVisualOffset(row, col) - 2 + offset.y,
-    getTreeSpriteKey(tree),
-  );
-  addToRenderLayer(scene, sprite, 'objectLayer');
-  sprite.setOrigin(0.5, 1);
-  sprite.setScale(1.35);
-  sprite.setDepth(getObjectTileDepth(row, col, pos.y + TILE_HEIGHT * 0.5 + getElevationVisualOffset(row, col) + offset.y));
-  sprite.setMask(scene.worldMask);
-  sprite.mapRow = row;
-  sprite.mapCol = col;
-  scene.treeSprites.set(getTileId(row, col), sprite);
+  const baseOffset = getTreeVisualOffset(tree);
+  const elevOffset = getElevationVisualOffset(row, col);
+  const count = tree.count ?? 1;
+  const baseScale = isMatureTree(tree) ? 0.28 : 0.20;
+  const countScale = count === 3 ? 0.82 : count === 2 ? 0.91 : 1.0;
+  const scale = baseScale * countScale;
+  const sprites = [];
+
+  for (let i = 0; i < count; i++) {
+    const sub = getTreeSubOffset(count, i, tree.variant);
+    const sx = pos.x + scene.offsetX + baseOffset.x + sub.x;
+    const sy = pos.y + scene.offsetY + TILE_HEIGHT / 2 + elevOffset + baseOffset.y + sub.y;
+    const sprite = scene.add.image(sx, sy, getTreeSpriteKey(tree));
+    addToRenderLayer(scene, sprite, 'objectLayer');
+    sprite.setOrigin(0.5, 1);
+    sprite.setScale(scale);
+    sprite.setDepth(getObjectTileDepth(row, col, pos.y + TILE_HEIGHT * 0.5 + elevOffset + baseOffset.y + sub.y));
+    sprite.setMask(scene.worldMask);
+    sprite.mapRow = row;
+    sprite.mapCol = col;
+    sprite.treeSubIndex = i;
+    sprite.treeCount = count;
+    if (scene.renderer instanceof Phaser.Renderer.WebGL.WebGLRenderer) {
+      sprite.setPipeline('TreeAlphaPipeline');
+    }
+    sprites.push(sprite);
+  }
+
+  scene.treeSprites.set(getTileId(row, col), sprites);
   sortRenderLayer(scene, 'objectLayer');
-  return sprite;
 }
 
 function refreshTreeSprite(scene, row, col) {
   const id = getTileId(row, col);
   const existing = scene?.treeSprites?.get(id);
   if (existing) {
-    existing.destroy();
+    existing.forEach((s) => s.destroy());
     scene.treeSprites.delete(id);
   }
   if (treeMap[row]?.[col]) placeTreeSprite(scene, row, col);
@@ -4292,10 +4901,11 @@ function refreshTreeSprite(scene, row, col) {
 function removeTree(scene, row, col) {
   if (!isInsideMap(row, col) || !treeMap[row]?.[col]) return false;
   treeMap[row][col] = null;
-  const sprite = scene?.treeSprites?.get(getTileId(row, col));
-  if (sprite) {
-    sprite.destroy();
-    scene.treeSprites.delete(getTileId(row, col));
+  const id = getTileId(row, col);
+  const sprites = scene?.treeSprites?.get(id);
+  if (sprites) {
+    sprites.forEach((s) => s.destroy());
+    scene.treeSprites.delete(id);
   }
   return true;
 }
@@ -4319,13 +4929,18 @@ function placeTree(scene, row, col, options = {}) {
   return true;
 }
 
-function positionTree(scene, tree) {
-  const row = tree.mapRow;
-  const col = tree.mapCol;
+function positionTree(scene, sprite) {
+  const row = sprite.mapRow;
+  const col = sprite.mapCol;
   const pos = isoToScreen(col, row);
-  const offset = getTreeVisualOffset(treeMap[row]?.[col]);
-  tree.setPosition(pos.x + scene.offsetX + offset.x, pos.y + scene.offsetY + getElevationVisualOffset(row, col) - 2 + offset.y);
-  tree.setDepth(getObjectTileDepth(row, col, pos.y + TILE_HEIGHT * 0.5 + getElevationVisualOffset(row, col) + offset.y));
+  const baseOffset = getTreeVisualOffset(treeMap[row]?.[col]);
+  const elevOffset = getElevationVisualOffset(row, col);
+  const sub = getTreeSubOffset(sprite.treeCount ?? 1, sprite.treeSubIndex ?? 0, treeMap[row]?.[col]?.variant ?? 0);
+  sprite.setPosition(
+    pos.x + scene.offsetX + baseOffset.x + sub.x,
+    pos.y + scene.offsetY + TILE_HEIGHT / 2 + elevOffset + baseOffset.y + sub.y,
+  );
+  sprite.setDepth(getObjectTileDepth(row, col, pos.y + TILE_HEIGHT * 0.5 + elevOffset + baseOffset.y + sub.y));
   sortRenderLayer(scene, 'objectLayer');
 }
 
@@ -5908,6 +6523,13 @@ function createRandom(seedText) {
 // key name.  When the view is rotated those letters must be rotated too so that
 // the correct texture is chosen.  One CW step maps n→e→s→w→n.
 
+function rotateDirection(direction, steps) {
+  const order = ['n', 'e', 's', 'w'];
+  const index = order.indexOf(direction);
+  if (index < 0) return direction;
+  return order[(index + ((steps % 4) + 4)) % 4];
+}
+
 function rotateTileKey(key, steps) {
   steps = ((steps % 4) + 4) % 4;
   if (steps === 0) return key;
@@ -5954,7 +6576,11 @@ function rotateTileKey(key, steps) {
 }
 
 function getTileKey(row, col) {
-  const tileType = mapData[row][col];
+  return rotateTileKey(getBaseTileKey(row, col), mapRotation);
+}
+
+function getBaseTileKey(row, col) {
+  const tileType = getBaseTileType(row, col);
   const hasHeight = getTileHeight(row, col) > 0;
   let key;
   if      (tileType === ROAD)  key = getRoadKey(row, col);
@@ -5963,7 +6589,19 @@ function getTileKey(row, col) {
   else if (tileType === WATER) key = getWaterKey(row, col);
   else if (hasHeight)          key = getHillKey(row, col);
   else                         key = 'ground_full';
-  return rotateTileKey(key, mapRotation);
+  return key;
+}
+
+function getBaseTileType(row, col) {
+  if (!isBridgeTile(row, col)) return mapData[row][col];
+  return getBridgeUnderlayTileType(row, col);
+}
+
+function getBridgeUnderlayTileType(row, col) {
+  const underlay = roadUnderlayMap?.[row]?.[col];
+  if ([GROUND, DIRT, BEACH, WATER, HILL].includes(underlay)) return underlay;
+  if (underlay === ROAD) return getTileHeight(row, col) > 0 ? HILL : GROUND;
+  return isBridgeDeckTile(row, col) ? WATER : GROUND;
 }
 
 function isInsideMap(row, col) {
@@ -6009,7 +6647,7 @@ function getRoadKey(row, col) {
     if (bridgeValue === 'deck:row') return 'road_bridge_h';
     if (bridgeValue === 'deck:col') return 'road_bridge_v';
     const rampMatch = bridgeValue?.match(/^ramp:([nesw])$/);
-    if (rampMatch) return `road_hill2_${getOppositeDirection(rampMatch[1])}`;
+    if (rampMatch) return getBridgeRampRoadKey(rampMatch[1]);
   }
 
   const slopeKey = getRoadSlopeKey(row, col);
@@ -6042,6 +6680,18 @@ function getRoadKey(row, col) {
   if (sw) return 'road_end_n';
   if (nw) return 'road_end_e';
   return 'road_isolated';
+}
+
+function getBridgeRampRoadKey(direction) {
+  const mode = typeof getRoadTileSetBridgeRampMode === 'function'
+    ? getRoadTileSetBridgeRampMode()
+    : 'hill2';
+  if (mode === 'straight') {
+    return direction === 'n' || direction === 's'
+      ? 'road_straight_v'
+      : 'road_straight_h';
+  }
+  return `road_hill2_${getOppositeDirection(direction)}`;
 }
 
 function getRoadSlopeKey(row, col) {
@@ -6414,11 +7064,12 @@ function showTileDebug(scene, pointer) {
     <div class="dbg-divider"></div>`;
 
   // ── Infrastructure building tooltip ──────────────────────────────────────────
-  const INFRA_TYPES = ['power_plant_coal', 'power_plant_solar', 'fire_station', 'police_station', 'primary_school', 'secondary_school', 'library', 'community_college', 'university', 'hospital', 'legislative_council', 'stock_exchange', 'park_small', 'park_large', 'sports_ground_small', 'sports_ground_large'];
+  const INFRA_TYPES = ['power_plant_coal', 'power_plant_solar', 'power_plant_nuclear', 'fire_station', 'police_station', 'primary_school', 'secondary_school', 'library', 'community_college', 'university', 'hospital', 'legislative_council', 'stock_exchange', 'park_small', 'park_large', 'sports_ground_small', 'sports_ground_large'];
   if (bData && INFRA_TYPES.includes(bData.type)) {
     const INFRA_LABELS = {
       power_plant_coal:    '⚡ Coal Power Plant',
       power_plant_solar:   '☀️ Solar Power Plant',
+      power_plant_nuclear: '☢️ Nuclear Power Plant',
       fire_station:        '🚒 Fire Station',
       police_station:      '👮 Police Station',
       primary_school:      '🏫 Primary School',
@@ -6435,6 +7086,7 @@ function showTileDebug(scene, pointer) {
     const INFRA_DESCS = {
       power_plant_coal:    `Grid power source · Upkeep $${UPKEEP_COAL_PLANT}/mo · Polluting`,
       power_plant_solar:   `Grid power source · Upkeep $${UPKEEP_SOLAR_PLANT}/mo · Clean`,
+      power_plant_nuclear: `Grid power source · Upkeep $${UPKEEP_NUCLEAR_PLANT}/mo · Near-zero emissions · High NIMBY`,
       fire_station:        `Fire coverage radius ${FIRE_STATION_RADIUS} tiles · Upkeep $${UPKEEP_FIRE_STATION}/mo`,
       police_station:      `Crime reduction radius ${POLICE_STATION_RADIUS} tiles · Upkeep $${UPKEEP_POLICE_STATION}/mo`,
       primary_school:      `Basic education radius ${PRIMARY_SCHOOL_RADIUS} tiles · Upkeep $${UPKEEP_PRIMARY_SCHOOL}/mo`,
@@ -6449,7 +7101,7 @@ function showTileDebug(scene, pointer) {
       sports_ground_large: `Recreation radius ${SPORTS_GROUND_RADIUS} tiles · Upkeep $${UPKEEP_SPORTS_GROUND_LARGE}/mo`,
     };
     const INFRA_COLORS = {
-      power_plant_coal:    '#ffcc44', power_plant_solar:   '#ffe066',
+      power_plant_coal:    '#ffcc44', power_plant_solar:   '#ffe066', power_plant_nuclear: '#66ffcc',
       fire_station:        '#ff7755', police_station:      '#6699ff',
       primary_school:      '#59a9ff', secondary_school:    '#2f78cc',
       library:             '#6f9cd6', community_college:   '#7a77cc',
@@ -6462,7 +7114,7 @@ function showTileDebug(scene, pointer) {
       <div class="dbg-muted">${INFRA_DESCS[bData.type]}</div>
       <div class="${powered ? 'dbg-ok' : 'dbg-warn'}">Powered : ${powered ? '✓ yes' : '✗ no — needs power source'}</div>
       <div class="dbg-muted">Age : ${POWER_PLANT_STATS[bData.type] ? formatPowerPlantAge(bData) : `${bData.age ?? 0} ticks in service`}</div>`;
-    if (bData.type === 'power_plant_coal' || bData.type === 'power_plant_solar') {
+    if (bData.type === 'power_plant_coal' || bData.type === 'power_plant_solar' || bData.type === 'power_plant_nuclear') {
       const generation = getPowerPlantGenerationSummary(bData);
       const load = getPowerPlantLoadSummary(bData);
       html += `

@@ -517,6 +517,35 @@
       color: #1e5cb3;
       font-family: Arial, sans-serif;
     }
+    .about-links {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 14px;
+    }
+    .about-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 92px;
+      padding: 4px 10px;
+      color: #123c78;
+      background: #ece7d4;
+      border: 2px solid #6f6b60;
+      border-radius: 3px;
+      box-shadow: inset 1px 1px 0 #fffdf2, inset -1px -1px 0 #a7a08d;
+      font-family: Arial, sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.3;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .about-link:hover {
+      background: #f8f0d2;
+      color: #0d2d5b;
+    }
     .dialog-footer {
       padding: 8px 14px;
       display: flex;
@@ -2084,6 +2113,8 @@
     .budget-window-section,
     .budget-window-heading,
     #budget-window-body,
+    #road-tile-set-window-body,
+    .road-tile-set-option,
     .tool-flyout,
     .tool-row,
     .tool-popup,
@@ -2101,6 +2132,7 @@
 
     .dialog-box,
     #budget-window,
+    #road-tile-set-window,
     #jukebox-window,
     #overlay-window,
     #chart-window,
@@ -2460,9 +2492,26 @@
       user-select: none;
     }
 
+    #road-tile-set-window {
+      position: fixed;
+      right: 26px;
+      top: 176px;
+      width: min(420px, calc(100vw - 120px));
+      max-height: calc(100vh - 190px);
+      z-index: 138;
+      display: none;
+      flex-direction: column;
+      background: #d4d0c3;
+      border: 2px solid #6f6b60;
+      border-radius: 6px;
+      box-shadow: 4px 4px 12px rgba(0,0,0,0.4), inset 1px 1px 0 #fff8e7;
+      user-select: none;
+    }
+
     #budget-window.is-open { display: flex; }
     #legislative-window.is-open { display: flex; }
     #stock-exchange-window.is-open { display: flex; }
+    #road-tile-set-window.is-open { display: flex; }
 
     #budget-window-titlebar {
       display: flex;
@@ -2506,9 +2555,24 @@
       flex-shrink: 0;
     }
 
+    #road-tile-set-window-titlebar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 9px;
+      background: #465d7a;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      border-radius: 3px 3px 0 0;
+      cursor: move;
+      flex-shrink: 0;
+    }
+
     #budget-window-titlebar-actions,
     #legislative-window-titlebar-actions,
     #stock-exchange-window-titlebar-actions,
+    #road-tile-set-window-titlebar-actions,
     #overlay-win-actions,
     #chart-win-actions,
     #jukebox-titlebar-actions {
@@ -2540,6 +2604,7 @@
     #budget-window.is-collapsed #budget-window-body,
     #legislative-window.is-collapsed #legislative-window-body,
     #stock-exchange-window.is-collapsed #stock-exchange-window-body,
+    #road-tile-set-window.is-collapsed #road-tile-set-window-body,
     #chart-window.is-collapsed #chart-win-body,
     #jukebox-window.is-collapsed #jukebox-body,
     #overlay-window.is-collapsed #overlay-win-body,
@@ -2563,6 +2628,13 @@
     }
 
     #stock-exchange-window-title {
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    #road-tile-set-window-title {
       flex: 1;
       white-space: nowrap;
       overflow: hidden;
@@ -2608,6 +2680,19 @@
       cursor: pointer;
     }
 
+    #road-tile-set-window-close {
+      padding: 0 6px;
+      height: 18px;
+      line-height: 16px;
+      font-size: 14px;
+      font-weight: 700;
+      color: #1e2427;
+      background: #d4d0c3;
+      border: 2px solid #6f6b60;
+      border-radius: 2px;
+      cursor: pointer;
+    }
+
     #budget-window-body {
       padding: 10px 12px 12px;
       overflow: auto;
@@ -2633,6 +2718,78 @@
       gap: 8px;
       color: #1e2427;
       font-size: 12px;
+    }
+
+    #road-tile-set-window-body {
+      padding: 10px 12px 12px;
+      overflow: auto;
+      display: grid;
+      gap: 8px;
+      color: #1e2427;
+      font-size: 12px;
+    }
+
+    .road-tile-set-options {
+      display: grid;
+      gap: 8px;
+    }
+
+    .road-tile-set-option {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+      padding: 8px;
+      border: 2px solid #8a8372;
+      border-radius: 6px;
+      background: #ece7d4;
+      color: #1e2427;
+      cursor: pointer;
+      font: inherit;
+      text-align: left;
+      box-shadow: inset 1px 1px 0 #fffdf2, inset -1px -1px 0 #a7a08d;
+    }
+
+    .road-tile-set-option:hover {
+      background: #f8f0d2;
+    }
+
+    .road-tile-set-option.is-active {
+      border-color: #1e5cb3;
+      background: #f1c65d;
+      box-shadow: inset -1px -1px 0 #fff7cf, inset 1px 1px 0 #8d7025;
+    }
+
+    .road-tile-set-option-name {
+      display: block;
+      font-size: 13px;
+      font-weight: 900;
+      line-height: 1.2;
+    }
+
+    .road-tile-set-option-desc {
+      display: block;
+      margin-top: 3px;
+      color: #5a5648;
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1.25;
+    }
+
+    .road-tile-set-preview {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      min-width: 0;
+    }
+
+    .road-tile-set-preview img {
+      width: 48px;
+      height: 36px;
+      object-fit: contain;
+      image-rendering: auto;
+      filter: drop-shadow(0 1px 1px rgba(0,0,0,0.25));
     }
 
     .budget-window-section {
@@ -2785,7 +2942,8 @@
     .budget-negative { color: #8d1f1f !important; }
 
     @media (max-width: 820px) {
-      #budget-window {
+      #budget-window,
+      #road-tile-set-window {
         left: 84px;
         right: 10px;
         top: 40px;
@@ -3658,6 +3816,7 @@
     body.terrain-editor-mode #hud,
     body.terrain-editor-mode #budget-panel,
     body.terrain-editor-mode #budget-window,
+    body.terrain-editor-mode #road-tile-set-window,
     body.terrain-editor-mode #topbar-speed,
     body.terrain-editor-mode #speed-controls,
     body.terrain-editor-mode #overlay-window,
@@ -3667,6 +3826,7 @@
     body.terrain-editor-mode [data-menu-action="save-as"],
     body.terrain-editor-mode [data-menu-action="load-game"],
     body.terrain-editor-mode [data-menu-action="open-budget"],
+    body.terrain-editor-mode [data-menu-action="open-road-tile-set"],
     body.terrain-editor-mode [data-menu-action^="speed-"] {
       display: none !important;
     }
@@ -4371,6 +4531,7 @@
           <button class="menu-drop-item" data-menu-action="speed-pause" data-i18n="menu.pause">⏸ Pause</button>
           <div class="menu-hr"></div>
           <button class="menu-drop-item" data-menu-action="open-budget" data-i18n="menu.budgetPanel">💰 Budget Panel</button>
+          <button class="menu-drop-item" data-menu-action="open-road-tile-set" data-i18n="menu.roadTileSet">Road Tile Set…</button>
           <button class="menu-drop-item" data-menu-action="toggle-auto-replace-plants" id="menu-auto-replace-plants" data-i18n="menu.autoReplacePowerPlants">Auto-replace aged power plants</button>
           <div class="menu-hr"></div>
           <div class="menu-drop-empty" data-i18n="menu.language">Language</div>
@@ -4468,6 +4629,10 @@ Ctrl+O       Load game (open saves list)</div>
         <div style="margin-top:14px; font-size:12px; line-height:1.8; color:#3a3530">
           <span data-i18n-html="dialog.aboutBuilt">The City of Heung Shing v1.0.5<br>Plan · Build · Govern · Thrive</span>
         </div>
+        <div class="about-links">
+          <a class="about-link" href="https://github.com/nortonyuen-oss/heung_shing_simulator" target="_blank" rel="noopener noreferrer" data-i18n="dialog.githubLink">GitHub</a>
+          <a class="about-link" href="https://heungshingsimulator.blogspot.com/" target="_blank" rel="noopener noreferrer" data-i18n="dialog.blogLink">Development Blog</a>
+        </div>
       </div>
       <div class="dialog-footer">
         <button class="dialog-ok-btn" data-close-dialog="about-dialog" data-i18n="dialog.ok">OK</button>
@@ -4514,6 +4679,7 @@ Ctrl+O       Load game (open saves list)</div>
           <option value="random" data-i18n="landing.terrainSourceRandom">Random terrain</option>
           <option value="preset" data-i18n="landing.terrainSourcePreset">Saved terrain preset</option>
         </select>
+        <select id="newgame-road-tile-set" class="landing-form-select" aria-label="Road tile set" data-i18n-aria="landing.roadTileSet"></select>
         <select id="newgame-terrain-preset" class="landing-form-select" aria-label="Saved terrain preset" data-i18n-aria="landing.terrainPresetSelect" style="display:none">
           <option value="" data-i18n="landing.terrainPresetLoading">Loading terrain presets…</option>
         </select>
@@ -4968,6 +5134,20 @@ Ctrl+O       Load game (open saves list)</div>
     </button>
   </div>
 
+  <!-- Road tile set floating window -->
+  <div id="road-tile-set-window" role="dialog" aria-label="Road tile set" data-i18n-aria="roadTileSet.windowTitle">
+    <div id="road-tile-set-window-titlebar">
+      <span id="road-tile-set-window-title" data-i18n="roadTileSet.windowTitle">Road Tile Set</span>
+      <div id="road-tile-set-window-titlebar-actions">
+        <button id="road-tile-set-window-min-btn" class="window-action-btn" type="button" title="Fold" aria-label="Fold" data-i18n-title="window.fold" data-i18n-aria="window.fold">−</button>
+        <button id="road-tile-set-window-close" class="window-action-btn" type="button" title="Close" aria-label="Close" data-i18n-title="tool.close" data-i18n-aria="tool.close">×</button>
+      </div>
+    </div>
+    <div id="road-tile-set-window-body">
+      <div id="road-tile-set-options" class="road-tile-set-options"></div>
+    </div>
+  </div>
+
   <!-- Jukebox floating window -->
   <div id="jukebox-window" role="dialog" aria-label="Jukebox" data-i18n-aria="jukebox.title">
     <div id="jukebox-titlebar">
@@ -5401,7 +5581,7 @@ Ctrl+O       Load game (open saves list)</div>
   </div>
 
   <!-- Script load order:
-       i18n → constants → city-state → model-catalog → map-utils
+       i18n → constants → road-tile-sets → city-state → model-catalog → map-utils
        → simulation → sim-infrastructure → sim-growth → sim-economy
        → tools → hud-helpers → hud → hud-ticker → save → topbar
        → real-city-coastline-masks → main
@@ -5409,6 +5589,7 @@ Ctrl+O       Load game (open saves list)</div>
        → terrain-presets → landing-screen -->
   <script src="i18n.js"></script>
   <script src="constants.js"></script>
+  <script src="road-tile-sets.js"></script>
   <script src="city-state.js"></script>
   <script src="model-catalog.js"></script>
   <script src="map-utils.js"></script>

@@ -94,8 +94,11 @@ function buildSavePayload() {
     month:      city.month,
     budget:     city.budget,
     save_data: {
-      version:       7,
+      version:       8,
       seed:          currentSeed,
+      roadTileSetId: typeof getCurrentRoadTileSetId === 'function'
+        ? getCurrentRoadTileSetId()
+        : ROAD_TILE_SET_DEFAULT_ID,
       city:          { ...city },
       mapData:       mapData.map((row) => Array.from(row)),
       heightMap:     heightMap.map((row) => Array.from(row)),
@@ -103,6 +106,7 @@ function buildSavePayload() {
       roadUnderlayMap: roadUnderlayMap.map((row) => Array.from(row)),
       zoneMap:       zoneMap.map((row) => Array.from(row)),
       zoneDensityMap: zoneDensityMap.map((row) => Array.from(row)),
+      treeVersion:   TREE_SYSTEM_VERSION,
       treeMap:       treeMap.map((row) => row.map((tree) => tree ? { ...tree } : null)),
       buildingData:  JSON.parse(JSON.stringify(buildingData)),
       powerSources:  Array.from(powerSources),
@@ -292,6 +296,11 @@ function applySaveData(scene, save) {
 
   // Restore terrain
   currentSeed = save.seed ?? currentSeed;
+  if (typeof setRoadTileSet === 'function') {
+    setRoadTileSet(save.roadTileSetId ?? ROAD_TILE_SET_DEFAULT_ID, { refresh: false });
+  } else if (typeof setCurrentRoadTileSetId === 'function') {
+    setCurrentRoadTileSetId(save.roadTileSetId ?? ROAD_TILE_SET_DEFAULT_ID);
+  }
   for (let r = 0; r < MAP_HEIGHT; r++)
     for (let c = 0; c < MAP_WIDTH; c++)
       mapData[r][c] = (save.mapData[r] ?? [])[c] ?? GROUND;
@@ -326,8 +335,8 @@ function applySaveData(scene, save) {
       const bridgeValue = (save.bridgeMap?.[r] ?? [])[c];
       bridgeMap[r][c] = normalizeBridgeMapValue(bridgeValue);
       const underlay = Number((save.roadUnderlayMap?.[r] ?? [])[c]);
-      roadUnderlayMap[r][c] = [GROUND, DIRT, BEACH, WATER, HILL].includes(underlay) ? underlay : null;
-      if (bridgeMap[r][c]?.startsWith('deck:') && roadUnderlayMap[r][c] !== null) {
+      roadUnderlayMap[r][c] = [GROUND, ROAD, DIRT, BEACH, WATER, HILL].includes(underlay) ? underlay : null;
+      if (bridgeMap[r][c]?.startsWith('deck:') && roadUnderlayMap[r][c] !== null && roadUnderlayMap[r][c] !== ROAD) {
         mapData[r][c] = roadUnderlayMap[r][c];
         heightMap[r][c] = 0;
       }

@@ -9,8 +9,9 @@ const INFRA_SPRITE_INDEX = {
 };
 
 const INFRA_COSTS = {
-  power_plant_coal:  COST_COAL_PLANT,
-  power_plant_solar: COST_SOLAR_PLANT,
+  power_plant_coal:    COST_COAL_PLANT,
+  power_plant_solar:   COST_SOLAR_PLANT,
+  power_plant_nuclear: COST_NUCLEAR_PLANT,
   fire_station:      COST_FIRE_STATION,
   police_station:    COST_POLICE_STATION,
   primary_school:    COST_PRIMARY_SCHOOL,
@@ -40,6 +41,7 @@ function handleNewTool(scene, tile) {
   if (selectedTool === 'power-line')    return placePowerLine(scene, row, col);
   if (selectedTool === 'power-coal')    return placeInfraBuilding(scene, row, col, 'power_plant_coal');
   if (selectedTool === 'power-solar')   return placeInfraBuilding(scene, row, col, 'power_plant_solar');
+  if (selectedTool === 'power-nuclear') return placeInfraBuilding(scene, row, col, 'power_plant_nuclear');
   if (selectedTool === 'fire-station')  return placeInfraBuilding(scene, row, col, 'fire_station');
   if (selectedTool === 'police-station') return placeInfraBuilding(scene, row, col, 'police_station');
   if (selectedTool === 'primary-school') return placeInfraBuilding(scene, row, col, 'primary_school');
@@ -239,7 +241,7 @@ function placeInfraBuilding(scene, row, col, buildingType) {
     scaleY: opts.scaleY,
   };
 
-  if (buildingType === 'power_plant_coal' || buildingType === 'power_plant_solar') {
+  if (buildingType === 'power_plant_coal' || buildingType === 'power_plant_solar' || buildingType === 'power_plant_nuclear') {
     powerSources.add(id);
   }
   refreshInfrastructureEffects(scene);

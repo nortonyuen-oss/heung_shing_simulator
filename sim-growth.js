@@ -583,7 +583,9 @@ function updateTrees(scene) {
       const tree = treeMap[r]?.[c];
       if (!tree) continue;
 
-      if (!isTreeTerrainEligible(r, c) || zoneMap[r]?.[c] !== ZONE_NONE || scene.buildingSprites.has(getTileId(r, c))) {
+      if (!isTreeTerrainEligible(r, c) || zoneMap[r]?.[c] !== ZONE_NONE || scene.buildingSprites.has(getTileId(r, c))
+          || mapData[r]?.[c] === ROAD || roadUnderlayMap[r]?.[c] != null || bridgeMap[r]?.[c]
+          || isAdjacentToRoad(r, c)) {
         removeTree(scene, r, c);
         continue;
       }
@@ -594,6 +596,19 @@ function updateTrees(scene) {
       }
 
       if (tree.age < TREE_MATURE_AGE) continue;
+
+      // Natural senescence: mature trees have a small chance to die each tick.
+      // This balances spread and prevents unlimited map saturation.
+      if (Math.random() < TREE_DEATH_CHANCE_PER_TICK) {
+        removeTree(scene, r, c);
+        continue;
+      }
+
+      // Density cap: a tree surrounded by 3+ tree neighbours is in a dense
+      // interior — it stops spreading outward so forests reach natural equilibrium.
+      const treeNeighbours = getCardinalNeighbors(r, c)
+        .filter(([nr, nc]) => treeMap[nr]?.[nc]).length;
+      if (treeNeighbours >= TREE_SPREAD_NEIGHBOR_CAP) continue;
 
       const spreadChance = mapData[r][c] === HILL ? TREE_SPREAD_CHANCE_HILL : TREE_SPREAD_CHANCE_GROUND;
       if (Math.random() >= spreadChance) continue;

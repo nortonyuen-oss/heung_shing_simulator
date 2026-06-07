@@ -189,6 +189,7 @@ const COST_ZONE_IND      = 50;
 const COST_POWER_LINE    = 5;
 const COST_COAL_PLANT    = 3000;
 const COST_SOLAR_PLANT   = 6000;
+const COST_NUCLEAR_PLANT = 28000;
 const COST_FIRE_STATION  = 1000;
 const COST_POLICE_STATION = 800;
 const COST_PRIMARY_SCHOOL = 1200;
@@ -207,14 +208,22 @@ const COST_TREE          = 15;
 const COST_BULLDOZE      = 5;
 
 // Tree simulation
+const TREE_SYSTEM_VERSION = 3;            // bump when generation algorithm changes
 const TREE_MATURE_AGE = 6;
-const TREE_INITIAL_DENSITY_GROUND = 0.035;
-const TREE_INITIAL_DENSITY_HILL = 0.18;
+const TREE_BASE_DENSITY = 0.008;          // background (non-forest) tile density
+const TREE_FOREST_COUNT_MIN = 15;
+const TREE_FOREST_COUNT_MAX = 25;
+const TREE_FOREST_RADIUS_MIN = 5;
+const TREE_FOREST_RADIUS_MAX = 12;
+const TREE_FOREST_STRENGTH_MIN = 0.45;
+const TREE_FOREST_STRENGTH_MAX = 0.70;
 const TREE_GROW_CHANCE_PER_TICK = 0.34;
-const TREE_SPREAD_CHANCE_GROUND = 0.006;
-const TREE_SPREAD_CHANCE_HILL = 0.024;
-const TREE_VISUAL_OFFSET_COL_MAX = 16;
-const TREE_VISUAL_OFFSET_ROW_MAX = 8;
+const TREE_SPREAD_CHANCE_GROUND = 0.001;   // was 0.006 — slower spread prevents map saturation
+const TREE_SPREAD_CHANCE_HILL = 0.003;     // was 0.024
+const TREE_DEATH_CHANCE_PER_TICK = 0.0008; // mature trees slowly die, balancing spread
+const TREE_SPREAD_NEIGHBOR_CAP = 3;        // no spread when this many cardinal neighbours already have trees
+const TREE_VISUAL_OFFSET_COL_MAX = 5;
+const TREE_VISUAL_OFFSET_ROW_MAX = 3;
 const TREE_CANOPY_RADIUS = 5;
 const TREE_POLLUTION_REDUCTION_PER_MATURE_TREE = 0.015;
 const TREE_POLLUTION_REDUCTION_MAX_RATIO = 0.25;
@@ -239,6 +248,12 @@ const POWER_PLANT_MODELS = {
     path: 'Models/powerPlant2x2/solarPowerPlant.png',
     footprintCols: 2,
     footprintRows: 2,
+  },
+  power_plant_nuclear: {
+    spriteKey: 'power_plant_nuclear_4x4',
+    path: 'Models/powerPlant2x2/nuclearPower4x4.png',
+    footprintCols: 4,
+    footprintRows: 4,
   },
 };
 
@@ -347,6 +362,20 @@ const POWER_PLANT_STATS = {
     nuisanceRadius: 10,
     nuisanceStrength: 0.18,
   },
+  power_plant_nuclear: {
+    generationMW: 2400,
+    baseUpkeep: 900,
+    maxAgeMonths: 720,          // 60 years
+    degradeStartMonths: 600,    // starts degrading at 50 years
+    warningMonths: 60,          // 5-year decommission warning
+    minOutputRatio: 0.65,       // stays efficient longer than coal
+    pollutionRadius: 6,         // near-zero air emissions
+    pollutionStrength: 0.10,
+    fireRadius: 22,             // meltdown blast radius
+    fireStrength: 0.98,         // catastrophic if ignited
+    nuisanceRadius: 22,         // NIMBY radiation fear
+    nuisanceStrength: 0.70,
+  },
 };
 
 const BUILDING_POWER_DEMAND = {
@@ -371,6 +400,7 @@ const BUILDING_POWER_DEMAND = {
 const UPKEEP_ROAD_PER_TILE  = 0.10;
 const UPKEEP_COAL_PLANT     = POWER_PLANT_STATS.power_plant_coal.baseUpkeep;
 const UPKEEP_SOLAR_PLANT    = POWER_PLANT_STATS.power_plant_solar.baseUpkeep;
+const UPKEEP_NUCLEAR_PLANT  = POWER_PLANT_STATS.power_plant_nuclear.baseUpkeep;
 const UPKEEP_FIRE_STATION   = 500;
 const UPKEEP_POLICE_STATION = 400;
 const UPKEEP_PRIMARY_SCHOOL = 180;
@@ -395,8 +425,9 @@ const UPKEEP_SPORTS_GROUND_LARGE = 160;
 const STARTING_BUDGET = 10000;
 
 // Pollution per building type per month
-const POLLUTION_COAL_PLANT  = 20;
-const POLLUTION_IND_BUILDING = 2;
+const POLLUTION_COAL_PLANT    = 20;
+const POLLUTION_NUCLEAR_PLANT = 2;   // minimal air pollution; nuisance handled via nuisanceRadius/Strength
+const POLLUTION_IND_BUILDING  = 2;
 const POLLUTION_SCIENCE_PARK_BUILDING = 0.2;
 
 // Science-park progression tuning

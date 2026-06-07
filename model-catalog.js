@@ -375,10 +375,16 @@ const BUILDING_KEYS = Array.from({ length: 78 }, (_, index) => (
 ));
 
 const TREE_SPECIES = [
-  { id: 'tree',        shortKey: 'tree_short',        tallKey: 'tree_tall',        hillWeight: 1 },
-  { id: 'treeAlt',     shortKey: 'tree_alt_short',    tallKey: 'tree_alt_tall',    hillWeight: 1 },
-  { id: 'conifer',     shortKey: 'conifer_short',     tallKey: 'conifer_tall',     hillWeight: 4 },
-  { id: 'coniferAlt',  shortKey: 'conifer_alt_short', tallKey: 'conifer_alt_tall', hillWeight: 4 },
+  { id: 'banyan',     shortKey: 'tree02', tallKey: 'tree01', hillWeight: 1 },
+  { id: 'broadleaf',  shortKey: 'tree05', tallKey: 'tree03', hillWeight: 2 },
+  { id: 'fruitTree',  shortKey: 'tree04', tallKey: 'tree04', hillWeight: 1 },
+  { id: 'whiteBark',  shortKey: 'tree08', tallKey: 'tree07', hillWeight: 4 },
+  { id: 'autumn',     shortKey: 'tree09', tallKey: 'tree09', hillWeight: 3 },
+  { id: 'cherry',     shortKey: 'tree10', tallKey: 'tree10', hillWeight: 1 },
+  { id: 'flameTr',    shortKey: 'tree12', tallKey: 'tree11', hillWeight: 2 },
+  { id: 'jacaranda',  shortKey: 'tree14', tallKey: 'tree13', hillWeight: 1 },
+  { id: 'palmLeaf',   shortKey: 'tree06', tallKey: 'tree06', hillWeight: 3 },
+  { id: 'hillGreen',  shortKey: 'tree15', tallKey: 'tree15', hillWeight: 4 },
 ];
 
 const MUSIC_TRACKS = [

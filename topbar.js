@@ -135,6 +135,9 @@ function handleMenuAction(action) {
       }
       break;
     }
+    case 'open-road-tile-set':
+      if (typeof openRoadTileSetWindow === 'function') openRoadTileSetWindow();
+      break;
     case 'open-jukebox':  openJukebox(); break;
     case 'toggle-music': toggleMusic(); updateSoundMenu();  break;
     case 'fullscreen':   enterFullscreen(); break;
@@ -215,6 +218,7 @@ function populateNewsMenu() {
 
 function updateSettingsMenu() {
   updateSpeedButtons();
+  if (typeof updateRoadTileSetControls === 'function') updateRoadTileSetControls();
   document.getElementById('menu-auto-replace-plants')
     ?.classList.toggle('menu-checked', !!city.autoReplacePowerPlants);
   ['en', 'zhHant', 'ja'].forEach((language) => {
@@ -250,6 +254,7 @@ function returnToMainMenu() {
   if (menuDiv)  menuDiv.style.display  = 'grid';
   if (nameForm) nameForm.style.display = 'none';
   if (terrainForm) terrainForm.style.display = 'none';
+  if (typeof closeRoadTileSetWindow === 'function') closeRoadTileSetWindow();
 }
 
 // ── Dialog helpers ────────────────────────────────────────────────────────────

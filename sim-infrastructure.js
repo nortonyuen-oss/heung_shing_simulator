@@ -313,3 +313,99 @@ function bfsService(anchorId, key, radius, value = true) {
     }
   }
 }
+
+// ── Traffic map ───────────────────────────────────────────────────────────────
+// Each zone building generates traffic demand proportional to zone type and
+// density.  That demand radiates outward along the road network and decays
+// with distance.  The accumulated per-tile values are normalised to 0–1 and
+// stored in trafficMap; city.trafficIndex is the weighted mean load.
+//
+// Demand weights (arbitrary units):
+//   Residential  low=1  med=3  high=7
+//   Commercial   low=4  med=8  high=14   (attracts visitors + deliveries)
+//   Industrial   low=5  med=10 high=17   (goods vehicles + shift workers)
+
+const TRAFFIC_DEMAND_WEIGHTS = {
+  residential: { 1: 1,  2: 3,  3: 7  },
+  commercial:  { 1: 4,  2: 8,  3: 14 },
+  industrial:  { 1: 5,  2: 10, 3: 17 },
+};
+const TRAFFIC_DIFFUSE_RADIUS  = 7;   // max tiles from building that demand spreads
+const TRAFFIC_ROAD_CAP        = 80;  // raw units above which a tile is "saturated"
+
+function isRoadTile(r, c) {
+  return mapData[r]?.[c] === ROAD || roadUnderlayMap[r]?.[c] != null || bridgeMap[r]?.[c] != null;
+}
+
+function updateTrafficMap() {
+  // Reset map
+  for (let r = 0; r < MAP_HEIGHT; r++)
+    for (let c = 0; c < MAP_WIDTH; c++)
+      trafficMap[r][c] = 0;
+
+  // Accumulate demand from every developed zone building
+  Object.entries(buildingData).forEach(([id, record]) => {
+    const zoneType = record.type;
+    if (zoneType !== 'residential' && zoneType !== 'commercial' && zoneType !== 'industrial') return;
+
+    const [startR, startC] = id.split(':').map(Number);
+    const density = record.density ?? zoneDensityMap[startR]?.[startC] ?? DENSITY_LOW;
+    const level   = Math.max(1, Math.min(3, density));
+    const demand  = (TRAFFIC_DEMAND_WEIGHTS[zoneType]?.[level] ?? 1);
+
+    // BFS outward along road tiles, spreading demand with distance decay
+    const visited = new Set([getTileId(startR, startC)]);
+    const queue   = [[startR, startC, 0]];
+
+    while (queue.length > 0) {
+      const [r, c, dist] = queue.shift();
+      if (!isInsideMap(r, c)) continue;
+
+      if (isRoadTile(r, c)) {
+        const decay = 1 - dist / TRAFFIC_DIFFUSE_RADIUS;
+        trafficMap[r][c] += demand * decay;
+      }
+
+      if (dist >= TRAFFIC_DIFFUSE_RADIUS) continue;
+
+      for (const [nr, nc] of getCardinalNeighbors(r, c)) {
+        if (!isInsideMap(nr, nc)) continue;
+        const nid = getTileId(nr, nc);
+        if (visited.has(nid)) continue;
+        // Only continue BFS through road tiles (demand travels on roads)
+        if (!isRoadTile(nr, nc) && dist > 0) continue;
+        visited.add(nid);
+        queue.push([nr, nc, dist + 1]);
+      }
+    }
+  });
+
+  // Normalise to 0–1 and compute city-wide index
+  let totalLoad   = 0;
+  let roadCount   = 0;
+  let zonedCount  = 0;
+  let coveredZoned = 0;
+
+  for (let r = 0; r < MAP_HEIGHT; r++) {
+    for (let c = 0; c < MAP_WIDTH; c++) {
+      if (isRoadTile(r, c)) {
+        trafficMap[r][c] = clamp(trafficMap[r][c] / TRAFFIC_ROAD_CAP, 0, 1);
+        totalLoad += trafficMap[r][c];
+        roadCount++;
+      } else {
+        trafficMap[r][c] = 0;
+      }
+
+      if (zoneMap[r][c] !== ZONE_NONE) {
+        zonedCount++;
+        // A zoned tile is "covered" if it or a neighbour is a road
+        if (isRoadTile(r, c) || getCardinalNeighbors(r, c).some(([nr, nc]) => isInsideMap(nr, nc) && isRoadTile(nr, nc))) {
+          coveredZoned++;
+        }
+      }
+    }
+  }
+
+  city.trafficIndex    = roadCount > 0 ? clamp(totalLoad / roadCount, 0, 1) : 0;
+  city.trafficCoverage = zonedCount > 0 ? clamp(coveredZoned / zonedCount, 0, 1) : 0;
+}

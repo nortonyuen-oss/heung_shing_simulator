@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>香城模擬器 | The City of Heung Shing v1.0.6</title>
+  <title>香城模擬器 | The City of Heung Shing v1.1.0</title>
   <style>
     * { box-sizing: border-box; }
 
@@ -4624,10 +4624,10 @@ Ctrl+O       Load game (open saves list)</div>
         <div style="font-size:48px; margin:8px 0">🏙️</div>
         <div style="font-size:18px; font-weight:900; margin-bottom:6px" data-i18n="app.name">The City of Heung Shing</div>
         <div style="color:#5a5648; font-size:12px" data-i18n="dialog.aboutEnglishName">The City of Heung Shing</div>
-        <div style="color:#5a5648; font-size:12px" data-i18n="dialog.version">Version 1.0.6</div>
+        <div style="color:#5a5648; font-size:12px" data-i18n="dialog.version">Version 1.1.0</div>
         <div style="color:#5a5648; font-size:12px" data-i18n="dialog.aboutInspired">A Hong Kong-themed city simulation brand title</div>
         <div style="margin-top:14px; font-size:12px; line-height:1.8; color:#3a3530">
-          <span data-i18n-html="dialog.aboutBuilt">The City of Heung Shing v1.0.6<br>Plan · Build · Govern · Thrive</span>
+          <span data-i18n-html="dialog.aboutBuilt">The City of Heung Shing v1.1.0<br>Plan · Build · Govern · Thrive</span>
         </div>
         <div class="about-links">
           <a class="about-link" href="https://github.com/nortonyuen-oss/heung_shing_simulator" target="_blank" rel="noopener noreferrer" data-i18n="dialog.githubLink">GitHub</a>
@@ -4869,6 +4869,14 @@ Ctrl+O       Load game (open saves list)</div>
         </span>
         <span class="tool-row-cost">$6000</span>
       </button>
+      <button class="tool-row" type="button" data-tool="power-nuclear">
+        <span class="tool-row-icon">☢️</span>
+        <span class="tool-row-main">
+          <span class="tool-row-text" data-i18n="toolRow.nuclearPlant">Nuclear Plant</span>
+          <span class="tool-row-stats" data-i18n="toolRow.nuclearPlantStats">2400 MW · $900/mo · 60 yrs</span>
+        </span>
+        <span class="tool-row-cost">$28000</span>
+      </button>
     </section>
 
     <section class="tool-flyout" data-tool-panel="services">
@@ -4921,13 +4929,7 @@ Ctrl+O       Load game (open saves list)</div>
     <section class="tool-flyout" data-tool-panel="maps">
       <div class="tool-flyout-title" data-i18n="toolCategory.mapsSubtitle">City Bureau</div>
       <button class="tool-row" type="button" data-action="open-charts"><span class="tool-row-icon">📈</span><span class="tool-row-text" data-i18n="toolRow.charts">統計圖表 Charts</span></button>
-      <button class="tool-row" type="button" data-overlay="pollution"><span class="tool-row-icon">🏭</span><span class="tool-row-text" data-i18n="overlay.pollution">Pollution</span></button>
-      <button class="tool-row" type="button" data-overlay="crime"><span class="tool-row-icon">🚔</span><span class="tool-row-text" data-i18n="overlay.crime">Crime</span></button>
-      <button class="tool-row" type="button" data-overlay="fire"><span class="tool-row-icon">🔥</span><span class="tool-row-text" data-i18n="overlay.fire">Fire Risk</span></button>
-      <button class="tool-row" type="button" data-overlay="population"><span class="tool-row-icon">👥</span><span class="tool-row-text" data-i18n="overlay.population">Population</span></button>
-      <button class="tool-row" type="button" data-overlay="landvalue"><span class="tool-row-icon">💰</span><span class="tool-row-text" data-i18n="overlay.landvalue">Land Value</span></button>
-      <button class="tool-row" type="button" data-overlay="health"><span class="tool-row-icon">🏥</span><span class="tool-row-text" data-i18n="overlay.health">Health</span></button>
-      <button class="tool-row" type="button" data-overlay="power"><span class="tool-row-icon">⚡</span><span class="tool-row-text" data-i18n="overlay.power">Power Plants</span></button>
+      <button class="tool-row" type="button" data-action="open-overlay-maps"><span class="tool-row-icon">🗺️</span><span class="tool-row-text" data-i18n="toolRow.overlayMaps">資訊地圖</span></button>
     </section>
 
     <!-- Terrain / infrastructure -->
@@ -4989,6 +4991,14 @@ Ctrl+O       Load game (open saves list)</div>
       <svg viewBox="0 0 32 32" aria-hidden="true">
         <circle cx="16" cy="16" r="5" fill="currentColor" opacity="0.3"/>
         <path d="M16 4v4M16 24v4M4 16h4M24 16h4M7.5 7.5l3 3M21.5 21.5l3 3M21.5 7.5l-3 3M7.5 21.5l3-3"/>
+      </svg>
+    </button>
+    <button class="tool-button" type="button" data-tool="power-nuclear" title="Nuclear Plant ($28000)" aria-label="Nuclear Plant" data-i18n-title="tool.nuclearPlant" data-i18n-aria="tool.nuclearPlant">
+      <svg viewBox="0 0 32 32" aria-hidden="true">
+        <circle cx="16" cy="16" r="7" fill="none" stroke-width="2"/>
+        <circle cx="16" cy="16" r="2.5" fill="currentColor"/>
+        <path d="M16 9v-4M16 23v4M9 16H5M23 16h4" stroke-width="1.5"/>
+        <path d="M11 11 L7.5 7.5M21 11 L24.5 7.5M11 21 L7.5 24.5M21 21 L24.5 24.5" stroke-width="1"/>
       </svg>
     </button>
 
@@ -5478,6 +5488,7 @@ Ctrl+O       Load game (open saves list)</div>
         <button class="overlay-mode-btn" type="button" data-overlay="health" title="Health map" data-i18n-title="overlay.healthMap">🏥</button>
         <button class="overlay-mode-btn" type="button" data-overlay="electricity" title="Electricity map" data-i18n-title="overlay.electricityMap">🔌</button>
         <button class="overlay-mode-btn" type="button" data-overlay="power" title="Power plant map" data-i18n-title="overlay.powerMap">⚡</button>
+        <button class="overlay-mode-btn" type="button" data-overlay="traffic" title="Traffic map" data-i18n-title="overlay.trafficMap">🚦</button>
       </div>
       <canvas id="mini-map-canvas" width="256" height="256"></canvas>
     </div>

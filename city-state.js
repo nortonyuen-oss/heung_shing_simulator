@@ -7,6 +7,7 @@ let roadUnderlayMap = [];   // original terrain below bridge road tiles
 let powerMap        = [];   // boolean per cell (is this cell powered?)
 let serviceMap      = [];   // { fire: bool, police: bool, park: 0|1|2 } | null per cell
 let treeMap         = [];   // null | { species, age, variant } per cell
+let trafficMap      = [];   // 0–1 traffic load per road tile (updated each sim tick)
 
 // Simulation metadata for every placed building (player-placed or sim-spawned)
 // Keyed by getTileId(anchorRow, anchorCol)
@@ -136,6 +137,8 @@ const city = {
   hospitalUtilizationHistory: [],
   happiness: 0.5,
   pollution: 0,
+  trafficIndex: 0,        // 0–1 city-wide congestion pressure (0 = free-flow, 1 = gridlock)
+  trafficCoverage: 0,     // fraction of zoned tiles within road reach
   tick: 0,
   day:   1,
   month: 1,
@@ -151,6 +154,7 @@ function resetGameState() {
   treeMap        = createFilledMap(null);
   bridgeMap      = createFilledMap(null);
   roadUnderlayMap = createFilledMap(null);
+  trafficMap     = createFilledMap(0);
 
   Object.keys(buildingData).forEach((k) => delete buildingData[k]);
   powerSources.clear();
@@ -368,6 +372,8 @@ function normalizeCityFinanceState() {
   city.hospitalUtilizationHistory = Array.isArray(city.hospitalUtilizationHistory) ? city.hospitalUtilizationHistory : [];
   city.unemploymentRate = toFiniteOr(city.unemploymentRate, 0);
   city.highEduUnemploymentRate = toFiniteOr(city.highEduUnemploymentRate, 0);
+  city.trafficIndex    = toFiniteOr(city.trafficIndex, 0);
+  city.trafficCoverage = toFiniteOr(city.trafficCoverage, 0);
   city.creditRating = city.creditRating || 'A';
 }
 
@@ -407,8 +413,9 @@ function computeBudgetSnapshot(options = {}) {
 
   const fireCount = getBuildingCount('fire_station');
   const policeCount = getBuildingCount('police_station');
-  const coalCount = getBuildingCount('power_plant_coal');
-  const solarCount = getBuildingCount('power_plant_solar');
+  const coalCount    = getBuildingCount('power_plant_coal');
+  const solarCount   = getBuildingCount('power_plant_solar');
+  const nuclearCount = getBuildingCount('power_plant_nuclear');
   const primarySchoolCount = getBuildingCount('primary_school');
   const secondarySchoolCount = getBuildingCount('secondary_school');
   const libraryCount = getBuildingCount('library');
@@ -430,7 +437,7 @@ function computeBudgetSnapshot(options = {}) {
   const roadsUpkeep = roadTileCount * UPKEEP_ROAD_PER_TILE * getDepartmentFunding('roads');
   const fireUpkeep = fireCount * UPKEEP_FIRE_STATION * getDepartmentFunding('fire');
   const policeUpkeep = policeCount * UPKEEP_POLICE_STATION * getDepartmentFunding('police');
-  const powerUpkeep = coalCount * UPKEEP_COAL_PLANT + solarCount * UPKEEP_SOLAR_PLANT;
+  const powerUpkeep = coalCount * UPKEEP_COAL_PLANT + solarCount * UPKEEP_SOLAR_PLANT + nuclearCount * UPKEEP_NUCLEAR_PLANT;
   const educationUpkeep = (
     primarySchoolCount * UPKEEP_PRIMARY_SCHOOL
     + secondarySchoolCount * UPKEEP_SECONDARY_SCHOOL

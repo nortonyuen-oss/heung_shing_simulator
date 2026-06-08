@@ -16,7 +16,10 @@ function updateCityDevelopmentIndex() {
   ));
 
   const environment = clampIndex(Math.round(52 + ((city.educationBasicIndex ?? 0) * 28) - ((city.pollutionIndex ?? 0.1) * 24)));
-  const transport = clampIndex(Math.round(58 + ((city.roadCoverageIndex ?? 0.2) * 34)));
+  // Transport score: road coverage lifts the base; congestion drags it down
+  const roadCov   = city.roadCoverageIndex ?? 0.2;
+  const congestion = city.trafficIndex ?? 0;
+  const transport = clampIndex(Math.round(58 + roadCov * 34 - congestion * 22));
   const overall = clampIndex(Math.round((livability + economy + environment + transport) / 4));
 
   setIndexValue('hud-index-livability', livability);

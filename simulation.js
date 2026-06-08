@@ -21,6 +21,7 @@ function runSimTick(scene) {
   updatePowerGrid(scene);
   updateServiceCoverage();
   updatePopulationAndPollution();
+  updateTrafficMap();
   updateEducationLevels();
   updateCrimeRateIndex();
   updateHealthMetrics();
@@ -352,6 +353,10 @@ function updateDemand() {
   const unemploymentPenR  = city.unemploymentRate * 0.20;
   const epidemicDemandPenalty = clamp(city.epidemicSeverity ?? 0, 0, 1);
   const healthCapacityPenalty = Math.max(0, clamp(city.hospitalUtilization ?? 0, 0, 1.35) - 1) * 0.12;
+  // Traffic congestion reduces residential desirability; penalty is non-linear —
+  // mild congestion (index < 0.4) has little effect, gridlock (> 0.7) is severe.
+  const congestion = clamp(city.trafficIndex ?? 0, 0, 1);
+  const congestionPenR = Math.max(0, congestion - 0.4) * 0.30;
   city.demandR = clamp(
     0.3 + 0.5 * Math.max(jobRatio, 0.5 + employmentPull)
     - unemploymentPenR + 0.1 * city.happiness
@@ -359,6 +364,7 @@ function updateDemand() {
     + (isPolicyActive('roadRepair') ? 0.03 : 0)
     - epidemicDemandPenalty * 0.16
     - healthCapacityPenalty
+    - congestionPenR
     - 0.2 * (city.taxRate / TAX_RATE_MAX),
     -1, 1
   );
@@ -377,6 +383,8 @@ function updateDemand() {
   const smallBizBoost = isPolicyActive('smallBusiness') ? 0.12 : 0;
   const foreignInvBoost = isPolicyActive('foreignInvestmentIncentive') ? 0.05 : 0;
 
+  // Severe congestion reduces customer foot traffic for commercial zones
+  const congestionPenC = Math.max(0, congestion - 0.6) * 0.18;
   city.demandC = clamp(
     consumerTerm + highEduLabourTerm + popBonus
     + 0.10 * city.happiness
@@ -390,6 +398,7 @@ function updateDemand() {
     + (hasBuildingType('stock_exchange') ? 0.10 * hsiRatio : 0)
     + stockExchangeBoost
     - epidemicDemandPenalty * 0.08
+    - congestionPenC
     - 0.05,
     -1, 1
   );

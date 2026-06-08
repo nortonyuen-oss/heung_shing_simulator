@@ -145,6 +145,14 @@ function setupToolMenu() {
       closeToolCategoryFlyouts();
       return;
     }
+    if (actionButton?.dataset.action === 'open-overlay-maps') {
+      if (isTerrainCreatorMode) return;
+      // Open the overlay window, defaulting to the last active overlay or 'pollution'
+      const defaultOverlay = (typeof activeOverlay === 'string' && activeOverlay) ? activeOverlay : 'pollution';
+      toggleOverlayMap(defaultOverlay);
+      closeToolCategoryFlyouts();
+      return;
+    }
 
     const button = event.target.closest('[data-tool]');
     if (!button) return;
@@ -927,7 +935,8 @@ const OVERLAY_TITLES = {
   health:      'overlay.health',
   electricity: 'overlay.electricity',
   power:       'overlay.power',
+  traffic:     'overlay.traffic',
 };
 const OVERLAY_ICONS = {
-  pollution: '🏭', crime: '🚔', fire: '🔥', population: '👥', landvalue: '💰', education: '🎓', health: '🏥', electricity: '🔌', power: '⚡',
+  pollution: '🏭', crime: '🚔', fire: '🔥', population: '👥', landvalue: '💰', education: '🎓', health: '🏥', electricity: '🔌', power: '⚡', traffic: '🚦',
 };

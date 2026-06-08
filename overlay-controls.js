@@ -289,14 +289,16 @@ function updateOverlayDetailPanel(type) {
   }
 
   if (type === 'power') {
-    const coal = Object.values(buildingData).filter((rec) => rec.type === 'power_plant_coal').length;
-    const solar = Object.values(buildingData).filter((rec) => rec.type === 'power_plant_solar').length;
+    const coal    = Object.values(buildingData).filter((rec) => rec.type === 'power_plant_coal').length;
+    const solar   = Object.values(buildingData).filter((rec) => rec.type === 'power_plant_solar').length;
+    const nuclear = Object.values(buildingData).filter((rec) => rec.type === 'power_plant_nuclear').length;
     const active = Object.values(buildingData).filter((rec) => POWER_PLANT_STATS[rec.type] && (rec.powerState ?? 'active') === 'active').length;
     const degraded = Object.values(buildingData).filter((rec) => POWER_PLANT_STATS[rec.type] && (rec.powerState ?? 'active') === 'degraded').length;
     const abandoned = Object.values(buildingData).filter((rec) => POWER_PLANT_STATS[rec.type] && (rec.powerState ?? 'active') === 'abandoned').length;
     stats.innerHTML = [
       chip(t('building.coalPlant'), coal),
       chip(t('building.solarPlant'), solar),
+      chip(t('building.nuclearPlant'), nuclear),
       chip(t('inspect.powerStateActive'), active),
       chip(t('inspect.powerStateDegraded'), degraded),
       chip(t('inspect.powerStateAbandoned'), abandoned),
@@ -378,6 +380,18 @@ function updateOverlayDetailPanel(type) {
     note.textContent = t('overlay.detail.populationHint');
   } else if (type === 'landvalue') {
     note.textContent = t('overlay.detail.landvalueHint');
+  } else if (type === 'traffic') {
+    const indexPct  = Math.round((city.trafficIndex ?? 0) * 100);
+    const coverPct  = Math.round((city.trafficCoverage ?? 0) * 100);
+    const status    = indexPct < 40 ? 'free' : indexPct < 65 ? 'busy' : 'congested';
+    stats.innerHTML = [
+      chip(t('overlay.detail.trafficIndex'),    `${indexPct}%`),
+      chip(t('overlay.detail.trafficCoverage'), `${coverPct}%`),
+      chip(t('overlay.detail.trafficStatus'),   t(`overlay.detail.trafficStatus.${status}`)),
+    ].join('');
+    note.textContent = t('overlay.detail.trafficHint');
+    setOverlayLegendLabels(type);
+    legend.classList.remove('is-hidden');
   }
 }
 
@@ -397,6 +411,7 @@ function setOverlayLegendLabels(type) {
     health: [t('overlay.legend.poor'), t('overlay.legend.stable'), t('overlay.legend.healthy')],
     electricity: [t('overlay.legend.short'), t('overlay.legend.balanced'), t('overlay.legend.surplus')],
     power: [t('overlay.legend.old'), t('overlay.legend.degraded'), t('overlay.legend.active')],
+    traffic: [t('overlay.legend.trafficFree'), t('overlay.legend.trafficBusy'), t('overlay.legend.trafficJam')],
   }[type] ?? ['0%', '50%', '100%'];
 
   minEl.textContent = labels[0];
@@ -528,8 +543,18 @@ function overlayPixelColor(type, val) {
     case 'electricity': return [Math.round(240 * (1 - val)), Math.round(70 + 170 * val), Math.round(30 + 20 * val), a];
     case 'power':      return [Math.round(175 + 55 * val), Math.round(175 + 35 * val), Math.round(175 - 70 * val), a];
     case 'landvalue': {
-      // green gradient: low=red, high=green
       return [Math.round((1 - val) * 200), Math.round(val * 200), 0, 200];
+    }
+    case 'traffic': {
+      // green (free-flow) → yellow (busy) → red (gridlock)
+      const alpha = Math.round(180 + val * 40);
+      if (val < 0.5) {
+        // green → yellow
+        return [Math.round(val * 2 * 220), 200, 0, alpha];
+      } else {
+        // yellow → red
+        return [220, Math.round((1 - (val - 0.5) * 2) * 200), 0, alpha];
+      }
     }
     default: return [0, 0, 0, 0];
   }
@@ -550,7 +575,18 @@ function computeOverlayMap(type) {
   if (type === 'health')     return computeHealthMap();
   if (type === 'electricity') return computeElectricityMap();
   if (type === 'power')      return computePowerPlantMap();
+  if (type === 'traffic')    return computeTrafficOverlayMap();
   return createFilledMap(0);
+}
+
+function computeTrafficOverlayMap() {
+  // trafficMap is maintained by updateTrafficMap() in sim-infrastructure.js.
+  // Return a shallow copy so the overlay cache is independent of live updates.
+  const map = createFilledMap(0);
+  for (let r = 0; r < MAP_HEIGHT; r++)
+    for (let c = 0; c < MAP_WIDTH; c++)
+      map[r][c] = trafficMap[r]?.[c] ?? 0;
+  return map;
 }
 
 function computeHealthMap() {

@@ -104,9 +104,15 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          version="${GITHUB_REF_NAME#v}"
-          gh release create "$GITHUB_REF_NAME" \
+          # Create the release if it doesn't already exist (e.g. pre-created manually),
+          # then upload assets either way.
+          if ! gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            gh release create "$GITHUB_REF_NAME" \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "The City of Heung Shing ${GITHUB_REF_NAME}" \
+              --notes "Desktop installers for The City of Heung Shing ${GITHUB_REF_NAME}. Windows auto-update metadata is included for installed desktop builds."
+          fi
+          gh release upload "$GITHUB_REF_NAME" \
             --repo "$GITHUB_REPOSITORY" \
-            --title "The City of Heung Shing ${GITHUB_REF_NAME}" \
-            --notes "Desktop installers for The City of Heung Shing ${GITHUB_REF_NAME}. Windows auto-update metadata is included for installed desktop builds." \
+            --clobber \
             release-assets/*

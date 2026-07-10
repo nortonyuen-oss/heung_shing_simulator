@@ -11,7 +11,7 @@ gh release list --repo nortonyuen-oss/heung_shing_simulator --limit 5
 
 - Do not overwrite unrelated local changes.
 - Confirm the latest public version before choosing the next version.
-- Use a new patch version for release/build fixes, for example `1.0.6` after `1.0.5`.
+- Use a new patch version for release/build fixes, for example `2.0.1` after `2.0.0`.
 
 ## 2. Update Game Assets And Fallbacks
 
@@ -25,7 +25,7 @@ When adding, removing, renaming, or resizing models:
 Useful checks:
 
 ```bash
-rg "oldSpriteKey|old/file/name|1.0.6"
+rg "oldSpriteKey|old/file/name|2.0.0"
 node --check constants.js
 node --check model-catalog.js
 node --check save.js
@@ -34,7 +34,7 @@ node --check save.js
 ## 3. Bump Version Everywhere
 
 ```bash
-npm version 1.0.6 --no-git-tag-version
+npm version 2.0.0 --no-git-tag-version
 ```
 
 Then update visible version text:
@@ -43,6 +43,7 @@ Then update visible version text:
 - `docs/index.html`
 - `i18n.js`
 - `index.html`
+- `RELEASE_NOTES.md`
 
 Also update the website release notes and counters:
 
@@ -52,7 +53,7 @@ Also update the website release notes and counters:
 Quick search:
 
 ```bash
-rg "1\.0\.3|1\.0\.4" README.md docs/index.html i18n.js index.html package.json package-lock.json
+rg "1\.1\.0|2\.0\.0" README.md docs/index.html i18n.js index.html package.json package-lock.json
 ```
 
 ## 4. Keep Desktop Build Outputs In Sync
@@ -95,10 +96,10 @@ git diff --cached --stat
 
 ```bash
 git add <changed-files>
-git commit -m "Release v1.0.6"
-git tag v1.0.6
+git commit -m "Release v2.0.0"
+git tag v2.0.0
 git push origin main
-git push origin v1.0.6
+git push origin v2.0.0
 ```
 
 Do not include `.vscode/` or `test-results/` unless there is a specific reason.
@@ -121,17 +122,17 @@ Expected result:
 ## 8. Verify Release And Website
 
 ```bash
-gh release view v1.0.6 --repo nortonyuen-oss/heung_shing_simulator --json tagName,name,url,assets
-curl -fsSL https://nortonyuen-oss.github.io/heung_shing_simulator/ | rg "1\.0\.4|arm64|x64|The\.City\.of\.Heung\.Shing"
+gh release view v2.0.0 --repo nortonyuen-oss/heung_shing_simulator --json tagName,name,url,assets
+curl -fsSL https://nortonyuen-oss.github.io/heung_shing_simulator/ | rg "2\.0\.0|arm64|x64|The\.City\.of\.Heung\.Shing"
 gh release list --repo nortonyuen-oss/heung_shing_simulator --limit 3
 ```
 
 Confirm the latest release has all four files:
 
-- `The.City.of.Heung.Shing-1.0.6-arm64.dmg`
-- `The.City.of.Heung.Shing-1.0.6-x64.dmg`
-- `The.City.of.Heung.Shing.Setup.1.0.6.exe`
-- `The.City.of.Heung.Shing.1.0.6.exe`
+- `The.City.of.Heung.Shing-2.0.0-arm64.dmg`
+- `The.City.of.Heung.Shing-2.0.0-x64.dmg`
+- `The.City.of.Heung.Shing.Setup.2.0.0.exe`
+- `The.City.of.Heung.Shing.2.0.0.exe`
 
 Confirm Windows auto-update files are also present:
 
@@ -153,8 +154,8 @@ Preferred fixes:
 - If a tag was pushed but no release was created, fix the workflow, move the tag to the fixed commit, and force-push the tag.
 
 ```bash
-git tag -f v1.0.6 HEAD
-git push origin v1.0.6 --force
+git tag -f v2.0.0 HEAD
+git push origin v2.0.0 --force
 ```
 
 Only force-push a tag when the broken tag has not produced a valid public release.

@@ -57,6 +57,10 @@ function handleNewTool(scene, tile) {
   if (selectedTool === 'park-large')     return placePark(scene, row, col, { type: 'park_large', spriteKey: 'park_large', footprintCols: 3, footprintRows: 3 });
   if (selectedTool === 'sports-ground')  return placeSelectedSportsGround(scene, row, col);
   if (selectedTool === 'tree')           return placeTree(scene, row, col);
+  if (selectedTool === 'district-sign') {
+    placeDistrictSign(scene, row, col).catch((error) => console.warn('[District sign]', error));
+    return true;
+  }
 
   return false;
 }
@@ -382,6 +386,7 @@ function clearAllOverlays(scene) {
   scene.bridgeSprites?.clear();
 
   if (typeof clearTreeSprites === 'function') clearTreeSprites(scene);
+  if (typeof clearDistrictSignSprites === 'function') clearDistrictSignSprites(scene);
 }
 
 // ── Reposition overlays on resize ─────────────────────────────────────────────
@@ -405,4 +410,5 @@ function repositionOverlays(scene) {
   sortRenderLayer(scene, 'objectLayer');
 
   if (typeof repositionBridgeSprites === 'function') repositionBridgeSprites(scene);
+  if (typeof repositionDistrictSignSprites === 'function') repositionDistrictSignSprites(scene);
 }

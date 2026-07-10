@@ -1,5 +1,6 @@
 const path = require('path');
-const { app, BrowserWindow, shell } = require('electron');
+const fs = require('fs');
+const { app, BrowserWindow, safeStorage, shell } = require('electron');
 const { scheduleUpdateChecks } = require('./electron-updates');
 
 const emitWarning = process.emitWarning.bind(process);
@@ -12,6 +13,75 @@ const { startGameServer } = require('./server');
 
 let mainWindow = null;
 let gameServer = null;
+
+function createEncryptedAiNewsCredentialStore(filePath) {
+  let sessionPayload = {
+    apiKey: String(process.env.OLLAMA_API_KEY || '').trim(),
+    config: null,
+  };
+
+  function normalizeConfig(value = {}) {
+    return {
+      enabled: value.enabled === true,
+      provider: 'cloud',
+      models: { local: '', cloud: String(value.models?.cloud || '').trim().slice(0, 120) },
+    };
+  }
+
+  function readPayload() {
+    if (!safeStorage.isEncryptionAvailable() || !fs.existsSync(filePath)) return sessionPayload;
+    try {
+      const cleartext = safeStorage.decryptString(fs.readFileSync(filePath));
+      try {
+        const parsed = JSON.parse(cleartext);
+        if (parsed && typeof parsed === 'object') {
+          return {
+            apiKey: String(parsed.apiKey || '').trim(),
+            config: parsed.config && typeof parsed.config === 'object' ? normalizeConfig(parsed.config) : null,
+          };
+        }
+      } catch {}
+      return { apiKey: cleartext.trim(), config: null };
+    } catch (error) {
+      console.error('[AI News settings read]', error.message);
+      return sessionPayload;
+    }
+  }
+
+  function writePayload(payload) {
+    sessionPayload = payload;
+    if (!safeStorage.isEncryptionAvailable()) return;
+    const encrypted = safeStorage.encryptString(JSON.stringify(payload));
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    fs.writeFileSync(filePath, encrypted, { mode: 0o600 });
+  }
+
+  return {
+    get persistent() {
+      return safeStorage.isEncryptionAvailable();
+    },
+    get() {
+      return sessionPayload.apiKey || readPayload().apiKey;
+    },
+    set(value) {
+      const payload = readPayload();
+      payload.apiKey = String(value || '').trim();
+      writePayload(payload);
+    },
+    clear() {
+      const payload = readPayload();
+      payload.apiKey = '';
+      writePayload(payload);
+    },
+    getConfig() { return normalizeConfig(readPayload().config || {}); },
+    hasConfig() { return !!readPayload().config; },
+    setConfig(value) {
+      const payload = readPayload();
+      payload.config = normalizeConfig(value);
+      writePayload(payload);
+    },
+  };
+}
 
 async function stopGameServer() {
   if (!gameServer) return;
@@ -29,12 +99,16 @@ async function createWindow() {
   await stopGameServer();
 
   const dbPath = path.join(app.getPath('userData'), 'citybuilder.sqlite');
+  const aiNewsCredentialStore = createEncryptedAiNewsCredentialStore(
+    path.join(app.getPath('userData'), 'ollama-api-key.bin'),
+  );
 
   gameServer = await startGameServer({
     port: 0,
     host: '127.0.0.1',
     dbPath,
     rootDir: __dirname,
+    aiNewsCredentialStore,
   });
 
   mainWindow = new BrowserWindow({

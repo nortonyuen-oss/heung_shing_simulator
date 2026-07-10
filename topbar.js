@@ -124,6 +124,16 @@ function handleMenuAction(action) {
       city.autoReplacePowerPlants = !city.autoReplacePowerPlants;
       updateSettingsMenu();
       break;
+    case 'toggle-district-signs':
+      if (typeof setDistrictSignsVisible === 'function') {
+        setDistrictSignsVisible(!areDistrictSignsVisible());
+      }
+      if (typeof queueCityChangeAutosave === 'function') queueCityChangeAutosave();
+      updateSettingsMenu();
+      break;
+    case 'open-ai-news-settings':
+      if (typeof openAiNewsSettings === 'function') openAiNewsSettings();
+      break;
     case 'language-en':      setLanguage('en');      break;
     case 'language-zhHant':  setLanguage('zhHant');  break;
     case 'language-ja':      setLanguage('ja');      break;
@@ -221,6 +231,10 @@ function updateSettingsMenu() {
   if (typeof updateRoadTileSetControls === 'function') updateRoadTileSetControls();
   document.getElementById('menu-auto-replace-plants')
     ?.classList.toggle('menu-checked', !!city.autoReplacePowerPlants);
+  document.getElementById('menu-district-signs')
+    ?.classList.toggle('menu-checked', typeof areDistrictSignsVisible !== 'function' || areDistrictSignsVisible());
+  document.getElementById('menu-ai-news')
+    ?.classList.toggle('menu-checked', typeof isAiNewsEnabled === 'function' && isAiNewsEnabled());
   ['en', 'zhHant', 'ja'].forEach((language) => {
     document.getElementById(`menu-lang-${language}`)
       ?.classList.toggle('menu-checked', getCurrentLanguage() === language);

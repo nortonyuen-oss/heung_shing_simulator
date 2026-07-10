@@ -1238,6 +1238,7 @@ function create() {
   this.powerLineSprites = new Map();
   this.bridgeSprites = new Map();
   this.treeSprites = new Map();
+  this.districtSignSprites = new Map();
   if (this.renderer instanceof Phaser.Renderer.WebGL.WebGLRenderer) {
     this.renderer.pipelines.add('TreeAlphaPipeline', new TreeAlphaPipeline(this.game));
   }
@@ -2245,6 +2246,8 @@ function positionAllTiles(scene) {
     sprites.forEach((sprite) => positionTree(scene, sprite));
   });
 
+  if (typeof repositionDistrictSignSprites === 'function') repositionDistrictSignSprites(scene);
+
   repositionBridgeSprites(scene);
   repositionOverlays(scene);
   sortWorldRenderLayers(scene);
@@ -3074,6 +3077,7 @@ function canPlaceBuildingFootprint(row, col, footprintCols = 1, footprintRows = 
     && !isBridgeTile(tileRow, tileCol)
     && !activeScene?.buildingSprites?.has(getTileId(tileRow, tileCol))
     && !buildingData[getTileId(tileRow, tileCol)]
+    && !(typeof hasDistrictSignAt === 'function' && hasDistrictSignAt(tileRow, tileCol))
   ));
 }
 
@@ -3169,10 +3173,12 @@ function isNewToolHandledByToolsModule(tool) {
     || tool === 'park-small'
     || tool === 'park-large'
     || tool === 'sports-ground'
-    || tool === 'tree';
+    || tool === 'tree'
+    || tool === 'district-sign';
 }
 
 function getSelectedPlacementFootprint() {
+  if (selectedTool === 'district-sign') return { footprintCols: 1, footprintRows: 1 };
   if (selectedTool === 'building') return { footprintCols: 1, footprintRows: 1 };
 
   if (selectedTool === 'house') {
@@ -3243,8 +3249,19 @@ function shouldShowBuildingPlacementGuide(pointer) {
 function applyToolAt(scene, row, col, pointer = null) {
   if (!isInsideMap(row, col)) return;
 
-  // Inspect tool — show persistent info panel, don't modify terrain
-  if (selectedTool === 'inspect') { showInspectPanel(scene, row, col, pointer); return; }
+  // Querying a district sign edits its bilingual label directly.
+  if (selectedTool === 'inspect') {
+    const districtSign = typeof getDistrictSigns === 'function'
+      && (typeof areDistrictSignsVisible !== 'function' || areDistrictSignsVisible())
+      ? getDistrictSigns().find((sign) => sign.row === row && sign.col === col)
+      : null;
+    if (districtSign && typeof editDistrictSign === 'function') {
+      editDistrictSign(scene, districtSign).catch((error) => console.warn('[District sign edit]', error));
+      return;
+    }
+    showInspectPanel(scene, row, col, pointer);
+    return;
+  }
 
   if (isTerrainCreatorMode && selectedTool !== 'terrain') {
     showToast(t('toast.terrainCreatorOnlyTerrainTools'), 'warning');
@@ -3260,6 +3277,7 @@ function applyToolAt(scene, row, col, pointer = null) {
 
   if (selectedTool === 'bulldoze') {
     spendBudget(COST_BULLDOZE);
+    if (typeof removeDistrictSignAt === 'function') removeDistrictSignAt(scene, row, col);
     removeBuilding(scene, row, col);
     removeTree(scene, row, col);
     removeZoneOverlay(scene, row, col);
@@ -3335,7 +3353,7 @@ function getTerrainEditBlockersForTiles(scene, tiles) {
     }
 
     const id = getTileId(row, col);
-    if (scene.buildingSprites.has(id) || !!buildingData[id]) {
+    if (scene.buildingSprites.has(id) || !!buildingData[id] || (typeof hasDistrictSignAt === 'function' && hasDistrictSignAt(row, col))) {
       blockers.push({ row, col, reason: 'building' });
     }
   });
@@ -4258,6 +4276,11 @@ function updateBuildingPlacementGuide(scene, pointer) {
   const footprint = getSelectedPlacementFootprint();
   if (!tile || !footprint) return;
 
+  if (selectedTool === 'district-sign' && typeof drawDistrictRadiusGuide === 'function') {
+    drawDistrictRadiusGuide(scene, tile.row, tile.col, canPlaceDistrictSign(scene, tile.row, tile.col));
+    return;
+  }
+
   const { footprintCols, footprintRows } = footprint;
   const canPlace = canPlaceBuildingFootprint(tile.row, tile.col, footprintCols, footprintRows);
   drawFootprintGuide(scene, tile.row, tile.col, footprintCols, footprintRows, canPlace);
@@ -4722,6 +4745,7 @@ function canTreeOccupyAt(scene, row, col, blockedTiles = null) {
   if (blockedTiles?.has(id)) return false;
   if (buildingData[id]) return false;
   if (scene?.buildingSprites?.has(id)) return false;
+  if (typeof hasDistrictSignAt === 'function' && hasDistrictSignAt(row, col)) return false;
   return true;
 }
 

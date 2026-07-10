@@ -262,6 +262,7 @@ function getToolCategoryForTool(tool) {
   if (tool === 'inspect') return 'inspect';
   if (tool === 'terrain') return 'terrain';
   if (tool === 'road') return 'roads';
+  if (tool === 'district-sign') return 'maps';
   if (tool === 'zone-res' || tool === 'zone-com' || tool === 'zone-ind' || tool === 'dezone') return 'zones';
   if (tool === 'power-line' || tool === 'power-coal' || tool === 'power-solar') return 'power';
   if (

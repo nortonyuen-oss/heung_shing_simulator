@@ -139,6 +139,29 @@ const city = {
   pollution: 0,
   trafficIndex: 0,        // 0–1 city-wide congestion pressure (0 = free-flow, 1 = gridlock)
   trafficCoverage: 0,     // fraction of zoned tiles within road reach
+  weather: {
+    condition: 'clear',
+    temperatureC: 24,
+    rainfallMm: 0,
+    windKph: 10,
+    conditionTicksLeft: 1,
+    typhoonStage: 'none',
+    typhoonStrength: 0,
+    typhoonTicksLeft: 0,
+  },
+  citizenActivityDigest: null,
+  showDistrictSigns: true,
+  districtSigns: [],
+  aiNews: {
+    headline: '',
+    model: '',
+    provider: '',
+    language: '',
+    generatedAtTick: -1,
+    lastRequestKey: '',
+    pendingDisplay: false,
+    history: [],
+  },
   tick: 0,
   day:   1,
   month: 1,
@@ -237,6 +260,32 @@ function resetGameState() {
   city.hospitalUtilizationHistory = [];
   city.happiness  = 0.5;
   city.pollution  = 0;
+  city.trafficIndex = 0;
+  city.trafficCoverage = 0;
+  city.weather = {
+    condition: 'clear',
+    temperatureC: 24,
+    rainfallMm: 0,
+    windKph: 10,
+    conditionTicksLeft: 1,
+    typhoonStage: 'none',
+    typhoonStrength: 0,
+    typhoonTicksLeft: 0,
+  };
+  city.citizenActivityDigest = null;
+  city.showDistrictSigns = true;
+  city.districtSigns = [];
+  city.aiNews = {
+    headline: '',
+    model: '',
+    provider: '',
+    language: '',
+    generatedAtTick: -1,
+    lastRequestKey: '',
+    pendingDisplay: false,
+    history: [],
+  };
+  if (typeof resetAiNewsRuntime === 'function') resetAiNewsRuntime();
   city.tick       = 0;
   city.day        = 1;
   city.month      = 1;
@@ -374,6 +423,65 @@ function normalizeCityFinanceState() {
   city.highEduUnemploymentRate = toFiniteOr(city.highEduUnemploymentRate, 0);
   city.trafficIndex    = toFiniteOr(city.trafficIndex, 0);
   city.trafficCoverage = toFiniteOr(city.trafficCoverage, 0);
+  const savedWeather = city.weather && typeof city.weather === 'object' ? city.weather : {};
+  const validConditions = ['clear', 'cloudy', 'showers', 'heavyRain', 'hot', 'cool', 'windy'];
+  const validTyphoonStages = ['none', 'approaching', 'signal3', 'signal8', 'departing', 'recovery'];
+  city.weather = {
+    condition: validConditions.includes(savedWeather.condition) ? savedWeather.condition : 'clear',
+    temperatureC: toFiniteOr(savedWeather.temperatureC, 24),
+    rainfallMm: Math.max(0, toFiniteOr(savedWeather.rainfallMm, 0)),
+    windKph: Math.max(0, toFiniteOr(savedWeather.windKph, 10)),
+    conditionTicksLeft: Math.max(0, Math.floor(toFiniteOr(savedWeather.conditionTicksLeft, 1))),
+    typhoonStage: validTyphoonStages.includes(savedWeather.typhoonStage) ? savedWeather.typhoonStage : 'none',
+    typhoonStrength: Math.max(0, Math.min(1, toFiniteOr(savedWeather.typhoonStrength, 0))),
+    typhoonTicksLeft: Math.max(0, Math.floor(toFiniteOr(savedWeather.typhoonTicksLeft, 0))),
+  };
+  city.citizenActivityDigest = city.citizenActivityDigest
+    && typeof city.citizenActivityDigest.key === 'string'
+    ? city.citizenActivityDigest
+    : null;
+  city.showDistrictSigns = city.showDistrictSigns !== false;
+  const seenDistrictSignIds = new Set();
+  city.districtSigns = (Array.isArray(city.districtSigns) ? city.districtSigns : [])
+    .slice(0, 16)
+    .map((sign, index) => {
+      const row = Math.max(0, Math.min(MAP_HEIGHT - 1, Math.floor(toFiniteOr(sign?.row, -1))));
+      const col = Math.max(0, Math.min(MAP_WIDTH - 1, Math.floor(toFiniteOr(sign?.col, -1))));
+      const name = Array.from(String(sign?.name || '').trim()).slice(0, 30).join('');
+      let id = String(sign?.id || `district-loaded-${index}`).replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 80);
+      if (!id || seenDistrictSignIds.has(id)) id = `district-loaded-${index}`;
+      seenDistrictSignIds.add(id);
+      return {
+        id,
+        name,
+        englishName: Array.from(String(sign?.englishName || `District ${index + 1}`).replace(/\s+/g, ' ').trim()).slice(0, 48).join(''),
+        row,
+        col,
+        radius: Math.max(12, Math.min(64, Math.floor(toFiniteOr(sign?.radius, 36)))),
+        createdAtTick: Math.floor(toFiniteOr(sign?.createdAtTick, -1)),
+      };
+    })
+    .filter((sign) => sign.name);
+  const savedAiNews = city.aiNews && typeof city.aiNews === 'object' ? city.aiNews : {};
+  city.aiNews = {
+    headline: String(savedAiNews.headline || '').slice(0, 220),
+    model: String(savedAiNews.model || '').slice(0, 120),
+    provider: ['local', 'cloud'].includes(savedAiNews.provider) ? savedAiNews.provider : '',
+    language: ['en', 'zhHant', 'ja'].includes(savedAiNews.language) ? savedAiNews.language : '',
+    generatedAtTick: Math.floor(toFiniteOr(savedAiNews.generatedAtTick, -1)),
+    lastRequestKey: String(savedAiNews.lastRequestKey || '').slice(0, 160),
+    pendingDisplay: !!savedAiNews.pendingDisplay,
+    history: (Array.isArray(savedAiNews.history) ? savedAiNews.history : []).slice(-12).map((item) => ({
+      headline: String(item?.headline || '').slice(0, 220),
+      desk: String(item?.desk || '').slice(0, 40),
+      district: String(item?.district || '').slice(0, 60),
+      location: String(item?.location || '').slice(0, 60),
+      angle: String(item?.angle || '').slice(0, 80),
+      tick: Math.floor(toFiniteOr(item?.tick, -1)),
+      year: Math.floor(toFiniteOr(item?.year, city.year)),
+      month: Math.max(1, Math.min(12, Math.floor(toFiniteOr(item?.month, city.month)))),
+    })).filter((item) => item.headline),
+  };
   city.creditRating = city.creditRating || 'A';
 }
 

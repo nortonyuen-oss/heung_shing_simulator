@@ -1,6 +1,6 @@
-# 香城模擬器 (The City of Heung Shing) v1.1.0
+# 香城模擬器 (The City of Heung Shing) v2.0.0
 
-香城模擬器 (The City of Heung Shing) v1.1.0 is a SimCity 2000-style city builder with a local SQLite save system, isometric map view, and a classic windowed UI.
+香城模擬器 (The City of Heung Shing) v2.0.0 is a SimCity 2000-style city builder with a local SQLite save system, isometric map view, cloud-assisted district news, and a classic windowed UI.
 
 <img width="1438" height="792" alt="image" src="https://github.com/user-attachments/assets/ec3cab6e-48af-4976-b00a-097bc901e429" />
 
@@ -14,6 +14,8 @@
 - Save and load cities locally through the bundled Node.js server.
 - View power plant age, output, loading, maintenance cost, and retirement warnings.
 - Use overlays for pollution, crime, fire risk, population, land value, electricity, and power plants.
+- Place bilingual Hong Kong-style district signs; each sign defines a 36-tile local news area whose traffic, education, health, pollution, land value, and population feed AI headlines. Select Query and click a sign to edit both names.
+- Simulate Hong Kong-style weather, typhoons, citizen activity, and district-aware news tickers.
 
 ## Electricity System
 
@@ -40,6 +42,25 @@ npm start
 Open http://localhost:3000/ in your browser.
 
 ## Desktop Development
+
+### Optional AI news
+
+AI headlines are optional and use Ollama Cloud with `gpt-oss:20b` preferred.
+Local model execution is disabled so the game cannot consume player CPU or
+memory. All simulation and rule-based news continue to work without a cloud
+account, and models are not bundled into the Windows or macOS installers.
+
+No API key is included in this repository, GitHub Actions, or any installer.
+After installing the game, each player opens **Settings → AI News**, pastes
+their own Ollama API key once, chooses an available model, and enables AI
+headlines.
+
+Packaged builds encrypt the Ollama Cloud API key and AI choices with Electron
+`safeStorage` (macOS Keychain or Windows DPAPI). Browser development stores the
+same settings in an AES-256-GCM encrypted file under `.data/`, protected by a
+separate owner-only key file. The provider uses Node's built-in `fetch`, so it
+adds no native dependency or platform-specific path to the `.exe` or `.dmg`
+build.
 
 The browser development flow stays the same. To test the installable desktop version locally:
 
@@ -77,25 +98,25 @@ For Windows auto-update, the GitHub Release must include the public NSIS setup f
 
 Use semantic versions in `package.json`:
 
-- `1.1.0` for bug fixes
-- `1.1.0` for gameplay/content updates
-- `2.0.0` for breaking save-format changes
+- `2.0.1` for bug fixes
+- `2.1.0` for gameplay/content updates
+- `3.0.0` for breaking save-format changes
 
 To trigger CI installer builds:
 
 ```bash
-git tag v1.1.0
-git push origin v1.1.0
+git tag v2.0.0
+git push origin v2.0.0
 ```
 
 ## Download Website
 
 The static download site lives in `docs/` and is designed for GitHub Pages. It links to the latest GitHub Release assets:
 
-- `The.City.of.Heung.Shing-1.1.0-arm64.dmg`
-- `The.City.of.Heung.Shing-1.1.0-x64.dmg`
-- `The.City.of.Heung.Shing.Setup.1.1.0.exe`
-- `The.City.of.Heung.Shing.1.1.0.exe`
+- `The.City.of.Heung.Shing-2.0.0-arm64.dmg`
+- `The.City.of.Heung.Shing-2.0.0-x64.dmg`
+- `The.City.of.Heung.Shing.Setup.2.0.0.exe`
+- `The.City.of.Heung.Shing.2.0.0.exe`
 
 To publish a new version:
 

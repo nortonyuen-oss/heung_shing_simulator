@@ -10,6 +10,7 @@ function runSimTick(scene) {
   if (!scene) return;
 
   invalidateBuildingCountCache();
+  updateWeatherSimulation();
 
   // Order matters:
   // 1. Infrastructure state (power, services)
@@ -29,6 +30,8 @@ function runSimTick(scene) {
   updateDemand();
   updateStockMarketTick();
   updateTrees(scene);
+  updateCitizenActivitySimulation();
+  if (typeof queueAiNewsGeneration === 'function') queueAiNewsGeneration();
 
   // Debug: log state every 4 ticks (once per month)
   if (city.tick % 4 === 0) {
@@ -469,6 +472,9 @@ function updatePopulationAndPollution() {
       getMatureTreeCount() * TREE_POLLUTION_REDUCTION_PER_MATURE_TREE,
     );
     city.pollution = Math.max(0, city.pollution - treeReduction);
+  }
+  if (typeof getWeatherPollutionMultiplier === 'function') {
+    city.pollution *= getWeatherPollutionMultiplier();
   }
   city.pollution = Math.max(0, Number(city.pollution.toFixed(1)));
   city.scienceIndustryShare = city.industrialCount > 0

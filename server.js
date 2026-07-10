@@ -6,13 +6,37 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const { openGameDatabase } = require('./db');
+const { generateOllamaNews, getOllamaStatus } = require('./ai-news-provider');
+const {
+  createEncryptedFileAiNewsSettingsStore,
+  normalizeAiNewsConfig,
+} = require('./ai-news-settings-store');
 
 const DEFAULT_PORT = process.env.PORT || 3000;
+
+function createMemoryAiNewsCredentialStore() {
+  let apiKey = String(process.env.OLLAMA_API_KEY || '').trim();
+  let config = null;
+  return {
+    persistent: false,
+    get() { return apiKey; },
+    set(value) { apiKey = String(value || '').trim(); },
+    clear() { apiKey = ''; },
+    getConfig() { return normalizeAiNewsConfig(config || {}); },
+    hasConfig() { return !!config; },
+    setConfig(value) { config = normalizeAiNewsConfig(value); },
+  };
+}
 
 function createGameApp(options = {}) {
   const app = express();
   const rootDir = options.rootDir || __dirname;
   const store = openGameDatabase(options.dbPath);
+  const settingsDir = path.dirname(store.path);
+  const aiNewsCredentialStore = options.aiNewsCredentialStore || createEncryptedFileAiNewsSettingsStore({
+    filePath: path.join(settingsDir, 'ai-news-settings.enc'),
+    keyPath: path.join(settingsDir, 'ai-news-settings.key'),
+  });
 
   // Middleware
   app.use(express.json({ limit: '50mb' }));
@@ -65,6 +89,117 @@ function createGameApp(options = {}) {
   });
 
 // REST API
+
+// Local AI bridge. The renderer never connects to Ollama directly, which keeps
+// the same-origin API working in browsers and packaged Electron builds.
+  app.get('/api/ai-news/status', async (req, res) => {
+  const provider = req.query.provider === 'local' ? 'local' : 'cloud';
+  if (provider === 'local') {
+    return res.status(410).json({
+      available: false,
+      provider: 'local',
+      disabled: true,
+      models: [],
+      recommendedModel: '',
+      error: 'Local AI generation is disabled',
+    });
+  }
+  const apiKey = aiNewsCredentialStore.get();
+  const status = await getOllamaStatus({ provider, apiKey });
+  res.status(status.available ? 200 : 503).json({
+    ...status,
+    hasApiKey: !!apiKey,
+    credentialStorage: aiNewsCredentialStore.persistent ? 'encrypted' : 'memory',
+  });
+  });
+
+  app.get('/api/ai-news/settings', (req, res) => {
+  try {
+    res.json({
+      config: aiNewsCredentialStore.getConfig(),
+      configured: aiNewsCredentialStore.hasConfig(),
+      hasApiKey: !!aiNewsCredentialStore.get(),
+      credentialStorage: aiNewsCredentialStore.persistent ? 'encrypted' : 'memory',
+    });
+  } catch (error) {
+    console.error('[GET /api/ai-news/settings]', error.message);
+    res.status(500).json({ error: 'Could not read AI news settings' });
+  }
+  });
+
+  app.put('/api/ai-news/settings', (req, res) => {
+  try {
+    const config = normalizeAiNewsConfig(req.body);
+    aiNewsCredentialStore.setConfig(config);
+    res.json({
+      ok: true,
+      config,
+      credentialStorage: aiNewsCredentialStore.persistent ? 'encrypted' : 'memory',
+    });
+  } catch (error) {
+    console.error('[PUT /api/ai-news/settings]', error.message);
+    res.status(500).json({ error: 'Could not store AI news settings' });
+  }
+  });
+
+  app.post('/api/ai-news/credentials', (req, res) => {
+  const apiKey = String(req.body?.apiKey || '').trim();
+  if (apiKey.length < 10 || apiKey.length > 512) {
+    return res.status(400).json({ error: 'Invalid Ollama API key' });
+  }
+  try {
+    aiNewsCredentialStore.set(apiKey);
+    res.json({
+      ok: true,
+      hasApiKey: true,
+      credentialStorage: aiNewsCredentialStore.persistent ? 'encrypted' : 'memory',
+    });
+  } catch (error) {
+    console.error('[POST /api/ai-news/credentials]', error.message);
+    res.status(500).json({ error: 'Could not store Ollama API key' });
+  }
+  });
+
+  app.delete('/api/ai-news/credentials', (req, res) => {
+  try {
+    aiNewsCredentialStore.clear();
+    res.json({ ok: true, hasApiKey: false });
+  } catch (error) {
+    console.error('[DELETE /api/ai-news/credentials]', error.message);
+    res.status(500).json({ error: 'Could not remove Ollama API key' });
+  }
+  });
+
+  app.post('/api/ai-news/generate', async (req, res) => {
+  const requestController = new AbortController();
+  res.on('close', () => {
+    if (!res.writableEnded) requestController.abort();
+  });
+  try {
+    if (req.body?.provider !== 'cloud') {
+      return res.status(410).json({
+        error: 'Local AI generation is disabled',
+        code: 'LOCAL_AI_DISABLED',
+      });
+    }
+    const apiKey = aiNewsCredentialStore.get();
+    const result = await generateOllamaNews(req.body, {
+      apiKey,
+      signal: requestController.signal,
+    });
+    res.json(result);
+  } catch (error) {
+    if (error.code === 'REQUEST_ABORTED' || res.destroyed) return;
+    const unavailable = ['OLLAMA_UNAVAILABLE', 'OLLAMA_TIMEOUT', 'CLOUD_API_KEY_REQUIRED'].includes(error.code);
+    const notFound = error.code === 'MODEL_NOT_FOUND';
+    const unauthorized = error.code === 'CLOUD_AUTH_ERROR';
+    console.error('[POST /api/ai-news/generate]', error.message);
+    res.status(unauthorized ? 401 : unavailable ? 503 : notFound ? 400 : 502).json({
+      error: error.message,
+      code: error.code || 'AI_NEWS_ERROR',
+    });
+  }
+  });
 
 // GET /api/saves - list all saves (metadata only, no full JSON blob)
   app.get('/api/saves', (req, res) => {
@@ -183,7 +318,7 @@ function createGameApp(options = {}) {
 
 function startGameServer(options = {}) {
   const port = options.port ?? DEFAULT_PORT;
-  const host = options.host;
+  const host = options.host ?? '127.0.0.1';
   const { app, store } = createGameApp(options);
 
   return new Promise((resolve, reject) => {
@@ -231,5 +366,6 @@ if (require.main === module) {
 
 module.exports = {
   createGameApp,
+  createMemoryAiNewsCredentialStore,
   startGameServer,
 };

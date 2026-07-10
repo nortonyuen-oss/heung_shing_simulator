@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>香城模擬器 | The City of Heung Shing v1.1.0</title>
+  <title>香城模擬器 | The City of Heung Shing v2.0.0</title>
   <style>
     * { box-sizing: border-box; }
 
@@ -595,6 +595,110 @@
       outline: none;
       border-color: #1e5cb3;
       background: #fff;
+    }
+
+    #ai-news-dialog .dialog-body {
+      white-space: normal;
+      font-family: Arial, sans-serif;
+    }
+    .ai-news-setting-row {
+      display: grid;
+      grid-template-columns: minmax(120px, 0.8fr) minmax(180px, 1.2fr);
+      align-items: center;
+      gap: 10px;
+      min-height: 34px;
+      padding: 5px 0;
+      border-bottom: 1px solid #aaa493;
+    }
+    .ai-news-setting-row:last-of-type { border-bottom: 0; }
+    .ai-news-toggle-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+    .ai-news-toggle-label input {
+      width: 16px;
+      height: 16px;
+      accent-color: #1e5cb3;
+    }
+    #ai-news-provider,
+    #ai-news-model,
+    #ai-news-api-key {
+      width: 100%;
+      min-width: 0;
+      padding: 5px 7px;
+      color: #1e2427;
+      background: #fffdf2;
+      border: 2px solid #6f6b60;
+      border-radius: 3px;
+      font: 12px Arial, sans-serif;
+    }
+    .ai-news-setting-row[hidden] { display: none; }
+    .ai-news-key-controls {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto auto;
+      gap: 5px;
+    }
+    .ai-news-key-btn {
+      min-width: 52px;
+      padding: 4px 8px;
+      color: #1e2427;
+      background: #ece7d4;
+      border: 2px solid #6f6b60;
+      border-radius: 3px;
+      cursor: pointer;
+      font: 700 12px Arial, sans-serif;
+    }
+    .ai-news-key-btn:disabled,
+    .ai-news-icon-btn:disabled,
+    .dialog-cancel-btn:disabled {
+      opacity: 0.55;
+      cursor: default;
+    }
+    .ai-news-key-link {
+      display: inline-block;
+      margin-top: 4px;
+      color: #123c78;
+      font-size: 11px;
+    }
+    .ai-news-status-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    #ai-news-status { font-weight: 700; }
+    #ai-news-status[data-state="ready"] { color: #17632d; }
+    #ai-news-status[data-state="working"] { color: #765500; }
+    #ai-news-status[data-state="error"] { color: #9b2020; }
+    .ai-news-icon-btn {
+      width: 28px;
+      height: 26px;
+      flex: 0 0 28px;
+      padding: 0;
+      color: #1e2427;
+      background: #ece7d4;
+      border: 2px solid #6f6b60;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 16px;
+      line-height: 20px;
+    }
+    #ai-news-preview {
+      min-height: 42px;
+      margin-top: 12px;
+      padding: 8px 10px;
+      color: #2e342f;
+      background: #fffdf2;
+      border: 1px solid #aaa493;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    @media (max-width: 520px) {
+      .ai-news-setting-row { grid-template-columns: 1fr; gap: 3px; }
+      .ai-news-key-controls { grid-template-columns: minmax(0, 1fr) auto; }
+      #ai-news-key-clear { grid-column: 2; }
     }
 
     /* ── Save list modal ──────────────────────────────────────────────────── */
@@ -4532,7 +4636,9 @@
           <div class="menu-hr"></div>
           <button class="menu-drop-item" data-menu-action="open-budget" data-i18n="menu.budgetPanel">💰 Budget Panel</button>
           <button class="menu-drop-item" data-menu-action="open-road-tile-set" data-i18n="menu.roadTileSet">Road Tile Set…</button>
+          <button class="menu-drop-item" data-menu-action="toggle-district-signs" id="menu-district-signs" data-i18n="menu.showDistrictSigns">Show district signs</button>
           <button class="menu-drop-item" data-menu-action="toggle-auto-replace-plants" id="menu-auto-replace-plants" data-i18n="menu.autoReplacePowerPlants">Auto-replace aged power plants</button>
+          <button class="menu-drop-item" data-menu-action="open-ai-news-settings" id="menu-ai-news" data-i18n="menu.aiNews">AI News…</button>
           <div class="menu-hr"></div>
           <div class="menu-drop-empty" data-i18n="menu.language">Language</div>
           <button class="menu-drop-item" data-menu-action="language-en" id="menu-lang-en">English</button>
@@ -4624,10 +4730,10 @@ Ctrl+O       Load game (open saves list)</div>
         <div style="font-size:48px; margin:8px 0">🏙️</div>
         <div style="font-size:18px; font-weight:900; margin-bottom:6px" data-i18n="app.name">The City of Heung Shing</div>
         <div style="color:#5a5648; font-size:12px" data-i18n="dialog.aboutEnglishName">The City of Heung Shing</div>
-        <div style="color:#5a5648; font-size:12px" data-i18n="dialog.version">Version 1.1.0</div>
+        <div style="color:#5a5648; font-size:12px" data-i18n="dialog.version">Version 2.0.0</div>
         <div style="color:#5a5648; font-size:12px" data-i18n="dialog.aboutInspired">A Hong Kong-themed city simulation brand title</div>
         <div style="margin-top:14px; font-size:12px; line-height:1.8; color:#3a3530">
-          <span data-i18n-html="dialog.aboutBuilt">The City of Heung Shing v1.1.0<br>Plan · Build · Govern · Thrive</span>
+          <span data-i18n-html="dialog.aboutBuilt">The City of Heung Shing v2.0.0<br>Plan · Build · Govern · Thrive</span>
         </div>
         <div class="about-links">
           <a class="about-link" href="https://github.com/nortonyuen-oss/heung_shing_simulator" target="_blank" rel="noopener noreferrer" data-i18n="dialog.githubLink">GitHub</a>
@@ -4636,6 +4742,59 @@ Ctrl+O       Load game (open saves list)</div>
       </div>
       <div class="dialog-footer">
         <button class="dialog-ok-btn" data-close-dialog="about-dialog" data-i18n="dialog.ok">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── AI news settings ────────────────────────────────────────────────── -->
+  <div id="ai-news-dialog" class="sim-dialog" role="dialog" aria-label="AI News" data-i18n-aria="aiNews.title">
+    <div class="dialog-overlay"></div>
+    <div class="dialog-box" style="max-width:500px">
+      <div class="dialog-title-bar">
+        <span data-i18n="aiNews.title">AI News</span>
+        <button class="dialog-close-btn" data-close-dialog="ai-news-dialog" aria-label="Close" data-i18n-aria="dialog.close">✕</button>
+      </div>
+      <div class="dialog-body">
+        <div class="ai-news-setting-row">
+          <label for="ai-news-provider" data-i18n="aiNews.provider">Provider</label>
+          <select id="ai-news-provider" disabled>
+            <option value="cloud" data-i18n="aiNews.ollamaCloud">Ollama Cloud</option>
+          </select>
+        </div>
+        <div id="ai-news-key-row" class="ai-news-setting-row" hidden>
+          <label for="ai-news-api-key" data-i18n="aiNews.apiKey">API key</label>
+          <div>
+            <div class="ai-news-key-controls">
+              <input id="ai-news-api-key" type="password" autocomplete="off" spellcheck="false" data-i18n-placeholder="aiNews.apiKeyPlaceholder" />
+              <button id="ai-news-key-save" class="ai-news-key-btn" type="button" data-i18n="aiNews.saveKey">Save</button>
+              <button id="ai-news-key-clear" class="ai-news-key-btn" type="button" data-i18n="aiNews.clearKey">Clear</button>
+            </div>
+            <a class="ai-news-key-link" href="https://ollama.com/settings/keys" target="_blank" rel="noopener noreferrer" data-i18n="aiNews.createKey">Create Ollama API key</a>
+          </div>
+        </div>
+        <div class="ai-news-setting-row">
+          <span data-i18n="aiNews.enabled">AI headlines</span>
+          <label class="ai-news-toggle-label">
+            <input id="ai-news-enabled" type="checkbox" />
+            <span data-i18n="aiNews.enableLocal">Enable local generation</span>
+          </label>
+        </div>
+        <div class="ai-news-setting-row">
+          <label for="ai-news-model" data-i18n="aiNews.model">Model</label>
+          <select id="ai-news-model"></select>
+        </div>
+        <div class="ai-news-setting-row">
+          <span data-i18n="aiNews.connection">Connection</span>
+          <div class="ai-news-status-wrap">
+            <span id="ai-news-status" data-state="working" data-i18n="aiNews.statusChecking">Checking Ollama…</span>
+            <button id="ai-news-refresh" class="ai-news-icon-btn" type="button" title="Refresh" data-i18n-title="aiNews.refresh">↻</button>
+          </div>
+        </div>
+        <div id="ai-news-preview" data-i18n="aiNews.previewEmpty">No test headline yet.</div>
+      </div>
+      <div class="dialog-footer">
+        <button id="ai-news-test" class="dialog-cancel-btn" type="button" data-i18n="aiNews.test">Test headline</button>
+        <button class="dialog-ok-btn" data-close-dialog="ai-news-dialog" data-i18n="dialog.close">Close</button>
       </div>
     </div>
   </div>
@@ -4928,6 +5087,7 @@ Ctrl+O       Load game (open saves list)</div>
 
     <section class="tool-flyout" data-tool-panel="maps">
       <div class="tool-flyout-title" data-i18n="toolCategory.mapsSubtitle">City Bureau</div>
+      <button class="tool-row" type="button" data-tool="district-sign"><span class="tool-row-icon">🚏</span><span class="tool-row-text" data-i18n="toolRow.districtSign">District sign</span><span class="tool-row-cost">$250</span></button>
       <button class="tool-row" type="button" data-action="open-charts"><span class="tool-row-icon">📈</span><span class="tool-row-text" data-i18n="toolRow.charts">統計圖表 Charts</span></button>
       <button class="tool-row" type="button" data-action="open-overlay-maps"><span class="tool-row-icon">🗺️</span><span class="tool-row-text" data-i18n="toolRow.overlayMaps">資訊地圖</span></button>
     </section>
@@ -5592,7 +5752,7 @@ Ctrl+O       Load game (open saves list)</div>
   </div>
 
   <!-- Script load order:
-       i18n → constants → road-tile-sets → city-state → model-catalog → map-utils
+       i18n → constants → road-tile-sets → city-state → weather/citizens/AI news → model-catalog → map-utils
        → simulation → sim-infrastructure → sim-growth → sim-economy
        → tools → hud-helpers → hud → hud-ticker → save → topbar
        → real-city-coastline-masks → main
@@ -5602,6 +5762,11 @@ Ctrl+O       Load game (open saves list)</div>
   <script src="constants.js"></script>
   <script src="road-tile-sets.js"></script>
   <script src="city-state.js"></script>
+  <script src="district-signs.js"></script>
+  <script src="sim-weather.js"></script>
+  <script src="sim-citizens.js"></script>
+  <script src="sim-news-events.js"></script>
+  <script src="ai-news-service.js"></script>
   <script src="model-catalog.js"></script>
   <script src="map-utils.js"></script>
   <script src="simulation.js"></script>

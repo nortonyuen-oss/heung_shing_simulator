@@ -385,11 +385,14 @@ function updateTrafficMap() {
   let roadCount   = 0;
   let zonedCount  = 0;
   let coveredZoned = 0;
+  const weatherMultiplier = typeof getWeatherTrafficMultiplier === 'function'
+    ? getWeatherTrafficMultiplier()
+    : 1;
 
   for (let r = 0; r < MAP_HEIGHT; r++) {
     for (let c = 0; c < MAP_WIDTH; c++) {
       if (isRoadTile(r, c)) {
-        trafficMap[r][c] = clamp(trafficMap[r][c] / TRAFFIC_ROAD_CAP, 0, 1);
+        trafficMap[r][c] = clamp((trafficMap[r][c] / TRAFFIC_ROAD_CAP) * weatherMultiplier, 0, 1);
         totalLoad += trafficMap[r][c];
         roadCount++;
       } else {

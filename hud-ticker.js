@@ -21,6 +21,8 @@ function toPercent(value) {
 
 function getUrgentCityNews() {
   const cityName = city.name || getDefaultCityName();
+  const weatherWarning = typeof getUrgentWeatherNews === 'function' ? getUrgentWeatherNews() : null;
+  if (weatherWarning) return weatherWarning;
   const powerWarning = getPowerPlantTickerWarning();
   if (powerWarning) return powerWarning;
 
@@ -59,6 +61,7 @@ function buildHongKongFinanceTickerItems(context) {
   } = context;
 
   const items = [];
+
   const deltaText = `${hsiDelta >= 0 ? '+' : ''}${hsiDelta.toLocaleString()}`;
 
   if (hsiDelta >= 180) {
@@ -151,6 +154,16 @@ function buildTickerNewsCandidates() {
   const actActive = isPolicyActive('stockExchangeAct');
 
   const items = [];
+
+  if (typeof buildWeatherTickerCandidates === 'function') {
+    items.push(...buildWeatherTickerCandidates());
+  }
+  if (typeof buildCitizenTickerCandidates === 'function') {
+    items.push(...buildCitizenTickerCandidates());
+  }
+  if (typeof buildAiTickerCandidates === 'function') {
+    items.push(...buildAiTickerCandidates());
+  }
 
   if (higherEdu >= 80) {
     items.push({
@@ -355,6 +368,11 @@ function pickTickerNewsHeadline() {
   if (urgent && tickerCycleCount % 2 === 0) {
     return { id: 'urgent', text: t('news.breakingPrefix', { headline: urgent }) };
   }
+
+  const pendingAi = typeof takePendingAiTickerHeadline === 'function'
+    ? takePendingAiTickerHeadline()
+    : null;
+  if (pendingAi) return pendingAi;
 
   const pool = buildTickerNewsCandidates();
   const weighted = [];

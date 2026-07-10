@@ -6,6 +6,8 @@ const TERRAIN_API_BASE = '/api/terrains';
 const TERRAIN_LOCAL_KEY = 'citybuilder.terrainPresets';
 let terrainApiAvailable = null;
 let currentSaveId = null;   // tracks which DB row we are editing
+let saveOperationQueue = Promise.resolve();
+let cityChangeAutosaveTimer = null;
 
 function showTextPromptDialog(message, defaultValue = '') {
   return new Promise((resolve) => {
@@ -94,7 +96,7 @@ function buildSavePayload() {
     month:      city.month,
     budget:     city.budget,
     save_data: {
-      version:       8,
+      version:       12,
       seed:          currentSeed,
       roadTileSetId: typeof getCurrentRoadTileSetId === 'function'
         ? getCurrentRoadTileSetId()
@@ -118,37 +120,61 @@ function buildSavePayload() {
 
 // ── Save ──────────────────────────────────────────────────────────────────────
 
-async function saveGame(silent = false) {
-  if (!activeScene) { if (!silent) showToast(t('toast.gameNotReady'), 'warning'); return; }
-
-  const payload = buildSavePayload();
-
-  try {
-    let res;
-    if (currentSaveId) {
-      // Overwrite the existing slot
-      res = await fetch(`${API_BASE}/${currentSaveId}`, {
-        method:  'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify(payload),
-      });
-    } else {
-      // Create a new slot
-      res = await fetch(API_BASE, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify(payload),
-      });
-    }
-
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-    currentSaveId = data.id;
-    showToast(silent ? t('toast.autosaved') : t('toast.citySaved'), 'info');
-  } catch (e) {
-    if (!silent) showToast(t('toast.saveFailed'), 'danger');
-    console.error('[Save]', e);
+function saveGame(silent = false) {
+  if (!activeScene) {
+    if (!silent) showToast(t('toast.gameNotReady'), 'warning');
+    return Promise.resolve(false);
   }
+
+  const targetSaveId = currentSaveId;
+  const operation = async () => {
+    const payload = buildSavePayload();
+    try {
+      let res;
+      if (targetSaveId) {
+        // Overwrite the existing slot
+        res = await fetch(`${API_BASE}/${targetSaveId}`, {
+          method:  'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify(payload),
+        });
+      } else {
+        // Create a new slot
+        res = await fetch(API_BASE, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify(payload),
+        });
+      }
+
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      currentSaveId = data.id;
+      showToast(silent ? t('toast.autosaved') : t('toast.citySaved'), 'info');
+      return true;
+    } catch (e) {
+      if (!silent) showToast(t('toast.saveFailed'), 'danger');
+      console.error('[Save]', e);
+      return false;
+    }
+  };
+
+  saveOperationQueue = saveOperationQueue.then(operation, operation);
+  return saveOperationQueue;
+}
+
+function queueCityChangeAutosave(delayMs = 300) {
+  if (!currentSaveId || !activeScene) return false;
+  const scheduledSaveId = currentSaveId;
+  if (cityChangeAutosaveTimer) clearTimeout(cityChangeAutosaveTimer);
+  cityChangeAutosaveTimer = setTimeout(() => {
+    cityChangeAutosaveTimer = null;
+    if (currentSaveId !== scheduledSaveId) return;
+    saveGame(true).then((saved) => {
+      if (!saved) showToast(t('toast.saveFailed'), 'danger');
+    });
+  }, Math.max(0, Number(delayMs) || 0));
+  return true;
 }
 
 // ── Save As (forces a new slot) ───────────────────────────────────────────────
@@ -165,12 +191,13 @@ async function saveAsGame() {
 
   // Temporarily clear currentSaveId so saveGame() POSTs a new row
   const prevId  = currentSaveId;
-  currentSaveId = null;
-  try {
-    await saveGame();
-  } catch (e) {
-    currentSaveId = prevId;   // restore on failure
+  if (cityChangeAutosaveTimer) {
+    clearTimeout(cityChangeAutosaveTimer);
+    cityChangeAutosaveTimer = null;
   }
+  currentSaveId = null;
+  const saved = await saveGame();
+  if (!saved) currentSaveId = prevId;
 }
 
 // ── Load by ID ────────────────────────────────────────────────────────────────
@@ -435,6 +462,7 @@ function rebuildSceneFromSave(scene, save) {
   });
 
   if (typeof rebuildTreeSprites === 'function') rebuildTreeSprites(scene);
+  if (typeof rebuildDistrictSignSprites === 'function') rebuildDistrictSignSprites(scene);
   if (typeof sortWorldRenderLayers === 'function') sortWorldRenderLayers(scene);
 }
 

@@ -22,6 +22,7 @@ This major release adds a full Legislative Council, ties AI news to named counci
 - A topbar weather chip shows live condition, temperature, humidity, and active signal/rainstorm badges using official-style HKO iconography; click it for a detail legend.
 - Adds screen-space rain particles and lightning with thunder, both tied to the same storm-severity ladder as the sky-darkening effect — rain falls vertically in calm weather and leans further with rising wind speed.
 - A new Settings toggle lets players disable rain/lightning visual effects for lower-end machines while keeping the (near-zero-cost) sky darkening.
+- Adds a zoom-aware Hong Kong ambient soundscape: zooming into dense commercial/residential blocks fades in matching urban or residential room tone, layered with rain/typhoon audio when the weather turns.
 
 ## Balance and fixes
 

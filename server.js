@@ -6,7 +6,7 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const { openGameDatabase } = require('./db');
-const { generateOllamaNews, getOllamaStatus } = require('./ai-news-provider');
+const { generateOllamaNews, generateOllamaCouncilNews, getOllamaStatus } = require('./ai-news-provider');
 const {
   createEncryptedFileAiNewsSettingsStore,
   normalizeAiNewsConfig,
@@ -183,7 +183,8 @@ function createGameApp(options = {}) {
       });
     }
     const apiKey = aiNewsCredentialStore.get();
-    const result = await generateOllamaNews(req.body, {
+    const generate = req.body?.storyKind === 'council_character' ? generateOllamaCouncilNews : generateOllamaNews;
+    const result = await generate(req.body, {
       apiKey,
       signal: requestController.signal,
     });

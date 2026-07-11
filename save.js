@@ -96,7 +96,7 @@ function buildSavePayload() {
     month:      city.month,
     budget:     city.budget,
     save_data: {
-      version:       12,
+      version:       13,
       seed:          currentSeed,
       roadTileSetId: typeof getCurrentRoadTileSetId === 'function'
         ? getCurrentRoadTileSetId()
@@ -298,6 +298,78 @@ function normalizeSavedTreeValue(value) {
   };
 }
 
+const TERRAIN_ELEVATION_REPAIR_THRESHOLD = 64;
+
+function normalizeSavedTerrainElevation(save) {
+  const sourceMap = Array.isArray(save?.mapData) ? save.mapData : [];
+  const sourceHeights = Array.isArray(save?.heightMap) ? save.heightMap : [];
+  const normalizedMap = createFilledMap(GROUND);
+  const normalizedHeights = createFilledMap(0);
+  let impossibleWaterHeight = 0;
+  let zeroHeightHill = 0;
+  let elevatedSurface = 0;
+
+  for (let row = 0; row < MAP_HEIGHT; row++) {
+    for (let col = 0; col < MAP_WIDTH; col++) {
+      const rawTile = Number((sourceMap[row] ?? [])[col]);
+      const tile = [GROUND, ROAD, DIRT, BEACH, WATER, HILL].includes(rawTile) ? rawTile : GROUND;
+      const rawHeight = Number((sourceHeights[row] ?? [])[col]);
+      const fallbackHeight = tile === HILL ? 1 : 0;
+      const height = Number.isFinite(rawHeight)
+        ? Math.max(0, Math.min(MAX_TERRAIN_HEIGHT, Math.round(rawHeight)))
+        : fallbackHeight;
+      normalizedMap[row][col] = tile;
+      normalizedHeights[row][col] = height;
+      if ((tile === WATER || tile === BEACH) && height > 0) impossibleWaterHeight++;
+      if (tile === HILL && height <= 0) zeroHeightHill++;
+      if (![HILL, ROAD, WATER, BEACH].includes(tile) && height > 0) elevatedSurface++;
+    }
+  }
+
+  // Elevated GROUND/DIRT is valid in older saves. Those cells carry the
+  // altitude beneath developed land and mountain roads, even though their
+  // surface type is no longer HILL. Only water/beach elevation and a HILL at
+  // level zero are contradictory states.
+  const severeMismatch = impossibleWaterHeight + zeroHeightHill >= TERRAIN_ELEVATION_REPAIR_THRESHOLD;
+  let changedTiles = 0;
+
+  for (let row = 0; row < MAP_HEIGHT; row++) {
+    for (let col = 0; col < MAP_WIDTH; col++) {
+      const originalTile = normalizedMap[row][col];
+      const originalHeight = normalizedHeights[row][col];
+      let tile = originalTile;
+      let height = originalHeight;
+
+      if (tile === WATER || tile === BEACH) {
+        height = 0;
+      } else if (tile === HILL && height <= 0) {
+        // A zero-height hill already renders as ordinary ground. Preserve the
+        // elevation field and repair the stale surface classification instead
+        // of inventing a new one-level plateau.
+        tile = GROUND;
+      }
+
+      normalizedMap[row][col] = tile;
+      normalizedHeights[row][col] = height;
+      if (tile !== originalTile || height !== originalHeight) changedTiles++;
+    }
+  }
+
+  return {
+    mapData: normalizedMap,
+    heightMap: normalizedHeights,
+    repaired: changedTiles > 0,
+    severeMismatch,
+    diagnostics: {
+      impossibleWaterHeight,
+      zeroHeightHill,
+      elevatedSurface,
+      changedTiles,
+      relaxedTiles: 0,
+    },
+  };
+}
+
 function restoreOrGenerateTrees(scene, save) {
   treeMap = createFilledMap(null);
 
@@ -321,6 +393,8 @@ function restoreOrGenerateTrees(scene, save) {
 function applySaveData(scene, save) {
   stopSimTimer();
 
+  const terrainElevation = normalizeSavedTerrainElevation(save);
+
   // Restore terrain
   currentSeed = save.seed ?? currentSeed;
   if (typeof setRoadTileSet === 'function') {
@@ -330,16 +404,8 @@ function applySaveData(scene, save) {
   }
   for (let r = 0; r < MAP_HEIGHT; r++)
     for (let c = 0; c < MAP_WIDTH; c++)
-      mapData[r][c] = (save.mapData[r] ?? [])[c] ?? GROUND;
-  heightMap = createFilledMap(0);
-  for (let r = 0; r < MAP_HEIGHT; r++) {
-    for (let c = 0; c < MAP_WIDTH; c++) {
-      const savedHeight = (save.heightMap?.[r] ?? [])[c];
-      heightMap[r][c] = Number.isFinite(Number(savedHeight))
-        ? Math.max(0, Number(savedHeight))
-        : (mapData[r][c] === HILL ? 1 : 0);
-    }
-  }
+      mapData[r][c] = terrainElevation.mapData[r][c];
+  heightMap = terrainElevation.heightMap.map((row) => Array.from(row));
   flattenMapBorder(mapData, heightMap, 3);
 
   // Clear Phaser sprites
@@ -404,6 +470,9 @@ function applySaveData(scene, save) {
 
   // UI
   updateHUD();
+  if (terrainElevation.repaired && typeof showToast === 'function') {
+    showToast(t('toast.terrainElevationRepaired'), 'info');
+  }
 
   // Restart sim
   startSimTimer();

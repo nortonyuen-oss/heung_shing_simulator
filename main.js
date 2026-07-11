@@ -54,6 +54,93 @@ let isMusicPlaying = false;
 let musicLoopMode = 'all';   // 'all' = auto-advance, 'one' = loop current track
 const TITLE_MUSIC_TRACK_KEY = 'music_title';
 let titleLoadingAudio = null;
+
+// ── Ambient city soundscape (density + weather driven, fades with camera zoom) ─
+const AMBIENT_TRACKS = [
+  { key: 'amb_urban',       file: 'Sounds/urban.m4a' },
+  { key: 'amb_residential', file: 'Sounds/residential.m4a' },
+  { key: 'amb_rain',        file: 'Sounds/rainyDay.m4a' },
+  { key: 'amb_typhoon',     file: 'Sounds/typhoon.m4a' },
+];
+const SFX_TRACKS = [
+  { key: 'sfx_thunder', file: 'Sounds/thunder.mp3' },
+];
+
+// Rain particle tiers (screen-space). Shares the same storm-severity ladder as
+// getWeatherOverlayAlpha()/getRainEffectTier() (sim-weather.js). lifespan shortens at
+// higher tiers (faster-falling drops cross the screen quicker anyway) to keep the
+// on-screen particle count bounded for performance. speedX (wind lean) is NOT set here —
+// see getRainWindSpeedX(), which drives the slant continuously from actual wind speed
+// regardless of tier, so calm rain always falls near-vertical and only leans hard once
+// the wind actually picks up.
+const RAIN_TIER_CONFIG = {
+  light:    { frequency: 30, quantity: 2, lifespan: 950, speedY: [420, 520] },
+  moderate: { frequency: 16, quantity: 2, lifespan: 900, speedY: [560, 700] },
+  heavy:    { frequency: 9,  quantity: 3, lifespan: 800, speedY: [700, 900] },
+  extreme:  { frequency: 6,  quantity: 3, lifespan: 700, speedY: [900, 1150] },
+};
+
+// Baseline non-rain wind is ~7-22 km/h (sim-weather.js); anything below that reads as
+// "calm" and rain should fall essentially straight down. Above it, lean scales with
+// wind speed up to a cap so even a Signal 10 typhoon doesn't send streaks flying
+// off-screen instantly.
+function getRainWindSpeedX(windKph) {
+  const excess = Math.max(0, (Number(windKph) || 0) - 15);
+  const lean = Math.min(230, excess * 1.4);
+  const jitter = lean * 0.15;
+  return { min: -(lean + jitter), max: -Math.max(0, lean - jitter) };
+}
+
+// Weather visual effects (rain particles + lightning) toggle — persisted so players on
+// slower machines can disable the heavier bits. The sky-darkening overlay stays on
+// regardless, since a single tinted rectangle costs essentially nothing to render.
+const WEATHER_EFFECTS_SETTING_KEY = 'citybuilder.weatherEffects.v1';
+let weatherEffectsEnabledCache = null;
+
+function isWeatherEffectsEnabled() {
+  if (weatherEffectsEnabledCache !== null) return weatherEffectsEnabledCache;
+  try {
+    const raw = localStorage.getItem(WEATHER_EFFECTS_SETTING_KEY);
+    weatherEffectsEnabledCache = raw === null ? true : JSON.parse(raw) !== false;
+  } catch {
+    weatherEffectsEnabledCache = true;
+  }
+  return weatherEffectsEnabledCache;
+}
+
+function setWeatherEffectsEnabled(enabled) {
+  weatherEffectsEnabledCache = !!enabled;
+  try {
+    localStorage.setItem(WEATHER_EFFECTS_SETTING_KEY, JSON.stringify(!!enabled));
+  } catch {}
+  if (activeScene) applyWeatherEffectsEnabledState(activeScene);
+}
+
+function applyWeatherEffectsEnabledState(scene) {
+  if (!scene) return;
+  if (!isWeatherEffectsEnabled()) {
+    scene.rainEmitter?.stop();
+    scene.currentRainTier = 'none';
+    if (scene.lightningTimer) {
+      scene.lightningTimer.remove();
+      scene.lightningTimer = null;
+    }
+    scene.lightningFlash?.setAlpha(0);
+  } else {
+    scene.currentRainTier = null; // force re-application on the next tier check
+  }
+}
+const AMBIENT_ZOOM_MIN = 0.5;   // camera.zoom at/below this → ambience is silent
+const AMBIENT_ZOOM_MAX = 1.8;   // camera.zoom at/above this → ambience is at full volume
+const AMBIENT_SAMPLE_GRID = 6;  // NxN screen-space sample grid used to gauge on-screen building density
+const AMBIENT_FADE_RATE = 0.12; // per-update volume smoothing (lower = smoother/slower fades)
+const AMBIENT_UPDATE_MS = 500;
+const AMBIENT_BASE_VOLUME = {
+  urban: 0.55,
+  residential: 0.4,
+  rain: 0.5,
+  typhoon: 0.7,
+};
 let nextBuildingIndex = 0;
 let houseModelSets = {};
 let commercialBuildingModels = [];
@@ -1131,6 +1218,12 @@ function preload() {
   MUSIC_TRACKS.forEach((track) => {
     this.load.audio(track.key, track.file);
   });
+  AMBIENT_TRACKS.forEach((track) => {
+    this.load.audio(track.key, track.file);
+  });
+  SFX_TRACKS.forEach((track) => {
+    this.load.audio(track.key, track.file);
+  });
   BUILDING_KEYS.forEach((key, index) => {
     this.load.image(key, `Models/PNG/buildingTiles_${String(index).padStart(3, '0')}.png`);
   });
@@ -1283,11 +1376,20 @@ function create() {
   generateInitialTrees(this);
   rebuildTreeSprites(this);
 
+  this.weatherOverlay = this.add.rectangle(0, 0, this.scale.width, this.scale.height, 0x0a1428, 1);
+  this.weatherOverlay.setOrigin(0, 0);
+  this.weatherOverlay.setScrollFactor(0);
+  this.weatherOverlay.setDepth(999999);
+  this.weatherOverlay.setAlpha(0);
+
+  setupWeatherEffects(this);
+
   this.scale.on('resize', () => {
     updateMapMetrics(this);
     drawWorldMask(this);
     positionAllTiles(this);
     ensurePreviewOverlayDepth(this);
+    syncWeatherFxToCamera(this);
   });
 
   // Group for future buildings
@@ -1418,10 +1520,14 @@ function create() {
     camera.setZoom(newZoom);
     camera.scrollX = worldX - pointer.x / camera.zoom;
     camera.scrollY = worldY - pointer.y / camera.zoom;
+    updateAmbientSoundscape(this);
+    syncWeatherFxToCamera(this);
   });
 
   // Spacebar pause shortcut
   this.input.keyboard.on('keydown-SPACE', () => toggleSimPause());
+
+  startAmbientSoundscape(this);
 
   // Sim timer starts once player dismisses the landing screen
   gameReady = true;
@@ -4474,6 +4580,258 @@ function worldToLogicalPoint(scene, worldX, worldY) {
     worldX - scene.offsetX,
     worldY - scene.offsetY + TILE_PICK_Y_OFFSET,
   );
+}
+
+// ── Ambient city soundscape ────────────────────────────────────────────────────
+// Four looping beds (urban / residential / rain / typhoon) are always playing at
+// volume 0 and are continuously faded toward a target mix so transitions are
+// smooth instead of hard cuts. The mix is driven by:
+//  - how densely built the on-screen area is (sampled buildingData), which
+//    crossfades between the "urban" and "residential" beds
+//  - the current weather/typhoon state, which layers rain/typhoon on top
+//  - the camera zoom level, which scales everything toward silence when zoomed out
+function startAmbientSoundscape(scene) {
+  if (!scene || scene.ambientSounds) return;
+  if (scene.sound.locked) {
+    scene.sound.once('unlocked', () => startAmbientSoundscape(scene));
+    return;
+  }
+
+  scene.ambientSounds = {};
+  scene.ambientVolumes = {};
+  AMBIENT_TRACKS.forEach((track) => {
+    const channel = track.key.replace(/^amb_/, '');
+    const sound = scene.sound.add(track.key, { loop: true, volume: 0 });
+    sound.play();
+    scene.ambientSounds[channel] = sound;
+    scene.ambientVolumes[channel] = 0;
+  });
+
+  updateAmbientSoundscape(scene);
+  if (!scene.ambientIntervalId) {
+    scene.ambientIntervalId = setInterval(() => {
+      updateAmbientSoundscape(scene);
+      updateWeatherEffectsTier(scene);
+    }, AMBIENT_UPDATE_MS);
+  }
+}
+
+// ── Rain particles + lightning flash (screen-space, storm-severity driven) ─────
+
+function generateRainStreakTexture(scene) {
+  if (scene.textures.exists('fx_rain_streak')) return;
+  const g = scene.make.graphics({ x: 0, y: 0, add: false });
+  g.lineStyle(1.5, 0xdfeaff, 0.9);
+  g.lineBetween(1, 0, 3, 20);
+  g.generateTexture('fx_rain_streak', 4, 20);
+  g.destroy();
+}
+
+function setupWeatherEffects(scene) {
+  generateRainStreakTexture(scene);
+
+  // Spawn-width is fixed generously at the smallest supported zoom (0.4, see the mouse
+  // wheel handler's zoom clamp) so it comfortably covers the viewport at any zoom level.
+  // Every setConfig() call below must keep re-specifying x/y (see the comment there for
+  // why), so this is stored on the scene rather than being a setup-local constant.
+  scene.rainSpawnWidth = (scene.scale.width / 0.4) * 1.1;
+  scene.rainEmitter = scene.add.particles(0, 0, 'fx_rain_streak', {
+    x: { min: 0, max: scene.rainSpawnWidth },
+    y: -20,
+    lifespan: 950,
+    speedY: { min: 420, max: 520 },
+    speedX: { min: -5, max: 5 },
+    alpha: { start: 0.85, end: 0.3 },
+    quantity: 2,
+    frequency: 30,
+    // The streak texture is drawn as a near-vertical line; rotate each particle to match
+    // its own actual fall direction so the visible streak really leans with the wind
+    // instead of always looking upright regardless of speedX.
+    emitCallback: (particle) => {
+      particle.rotation = Math.atan2(particle.velocityX, particle.velocityY);
+    },
+  });
+  scene.rainEmitter.setScrollFactor(0);
+  scene.rainEmitter.setDepth(999998);
+  scene.rainEmitter.stop();
+  scene.currentRainTier = 'none';
+
+  scene.lightningFlash = scene.add.rectangle(0, 0, scene.scale.width, scene.scale.height, 0xffffff, 1);
+  scene.lightningFlash.setOrigin(0, 0);
+  scene.lightningFlash.setScrollFactor(0);
+  scene.lightningFlash.setDepth(1000000);
+  scene.lightningFlash.setAlpha(0);
+  scene.lightningTimer = null;
+
+  syncWeatherFxToCamera(scene);
+  applyWeatherEffectsEnabledState(scene);
+}
+
+// scrollFactor(0) cancels camera *pan* but NOT *zoom* — a scrollFactor-0 object still
+// gets scaled by the camera's zoom (pivoting at world origin), so at zoom < 1 a
+// screen-space overlay sized to scale.width/height renders smaller than the actual
+// viewport, leaving an uncovered strip. Re-sizing by 1/zoom keeps it pinned to the
+// full visible canvas at any zoom level. Must be called whenever zoom or canvas size
+// changes (mouse wheel zoom, window resize) and is also re-applied periodically as a
+// safety net from the ambient/weather-fx interval.
+function syncWeatherFxToCamera(scene) {
+  const camera = scene?.cameras?.main;
+  if (!camera) return;
+  const zoom = camera.zoom || 1;
+  const w = scene.scale.width / zoom;
+  const h = scene.scale.height / zoom;
+  const x = camera.centerX - w / 2;
+  const y = camera.centerY - h / 2;
+  scene.weatherOverlay?.setSize(w, h).setPosition(x, y);
+  scene.lightningFlash?.setSize(w, h).setPosition(x, y);
+  // setPosition() is safe here (see the big comment on applyRainState() for why plain
+  // property assignment of x/y is NOT), and only touches x/y — it won't disturb the
+  // speedX/speedY/etc ops applyRainState() manages.
+  scene.rainEmitter?.setPosition(x, y);
+}
+
+// speedX/speedY/x/y/alpha/quantity/lifespan are all "EmitterOp"-backed properties in
+// Phaser's particle system (see phaser.js configOpMap). Plain property assignment
+// (`emitter.speedX = {min,max}`) does not reliably reconfigure them at runtime — the
+// only supported way is `emitter.setConfig({...})`, BUT setConfig() re-derives *every*
+// op key from the object passed in, falling back to that op's original default (not its
+// current value) for any key you omit. So every call here must restate x/y (the spawn
+// range) and alpha alongside whatever actually changed (speedY/lifespan/quantity from
+// the rain tier, speedX from live wind speed) — omitting any of them would silently
+// reset it to a default and break spawning/positioning.
+function applyRainState(scene) {
+  if (!scene?.rainEmitter) return;
+  const tier = typeof getRainEffectTier === 'function' ? getRainEffectTier() : 'none';
+  scene.currentRainTier = tier;
+  const config = RAIN_TIER_CONFIG[tier];
+  if (!config) {
+    scene.rainEmitter.stop();
+    return;
+  }
+  const wind = getRainWindSpeedX(city.weather?.windKph);
+  scene.rainEmitter.setConfig({
+    x: { min: 0, max: scene.rainSpawnWidth },
+    y: -20,
+    lifespan: config.lifespan,
+    speedY: { min: config.speedY[0], max: config.speedY[1] },
+    speedX: wind,
+    alpha: { start: 0.85, end: 0.3 },
+    quantity: config.quantity,
+    frequency: config.frequency,
+  });
+  scene.rainEmitter.start();
+  syncWeatherFxToCamera(scene); // setConfig() just reset x/y to the default (0,0) above
+}
+
+function triggerLightningStrike(scene) {
+  if (scene.lightningFlash) {
+    scene.tweens.chain({
+      targets: scene.lightningFlash,
+      tweens: [
+        { alpha: 0.55, duration: 80, ease: 'Sine.easeOut' },
+        { alpha: 0.1, duration: 60, ease: 'Sine.easeIn' },
+        { alpha: 0.35, duration: 50, ease: 'Sine.easeOut' },
+        { alpha: 0, duration: 150, ease: 'Sine.easeIn' },
+      ],
+    });
+  }
+  const thunderDelay = Phaser.Math.Between(200, 800);
+  scene.time.delayedCall(thunderDelay, () => {
+    if (!scene.sound?.locked) scene.sound.play('sfx_thunder', { volume: 0.5 });
+  });
+  scheduleNextLightning(scene);
+}
+
+function scheduleNextLightning(scene) {
+  const range = typeof getLightningDelayRangeMs === 'function' ? getLightningDelayRangeMs() : null;
+  if (!range) {
+    scene.lightningTimer = null;
+    return;
+  }
+  const delay = Phaser.Math.Between(range[0], range[1]);
+  scene.lightningTimer = scene.time.delayedCall(delay, () => triggerLightningStrike(scene));
+}
+
+function updateWeatherEffectsTier(scene) {
+  if (!scene) return;
+  syncWeatherFxToCamera(scene); // sky darkening stays on regardless of the effects toggle
+  if (!isWeatherEffectsEnabled()) return;
+
+  applyRainState(scene);
+
+  const eligible = !!(typeof getLightningDelayRangeMs === 'function' && getLightningDelayRangeMs());
+  if (eligible && !scene.lightningTimer) {
+    scheduleNextLightning(scene);
+  } else if (!eligible && scene.lightningTimer) {
+    scene.lightningTimer.remove();
+    scene.lightningTimer = null;
+  }
+}
+
+// Samples a grid of on-screen points and looks up the actual building at each
+// one, so "urban" reflects what's visually packed into view right now rather
+// than the zoning intent of off-screen tiles.
+function sampleOnScreenBuildingDensity(scene) {
+  const camera = scene.cameras.main;
+  let sampleCount = 0;
+  let weightedDensity = 0;
+
+  for (let i = 0; i < AMBIENT_SAMPLE_GRID; i++) {
+    for (let j = 0; j < AMBIENT_SAMPLE_GRID; j++) {
+      const screenX = camera.width * (i + 0.5) / AMBIENT_SAMPLE_GRID;
+      const screenY = camera.height * (j + 0.5) / AMBIENT_SAMPLE_GRID;
+      const worldX = camera.scrollX + screenX / camera.zoom;
+      const worldY = camera.scrollY + screenY / camera.zoom;
+      const logical = worldToLogicalPoint(scene, worldX, worldY);
+      const row = Math.floor(logical.y);
+      const col = Math.floor(logical.x);
+      if (!isInsideMap(row, col)) continue;
+
+      sampleCount++;
+      const record = buildingData[getTileId(row, col)];
+      if (!record) continue;
+
+      const density = record.density ?? zoneDensityMap[row]?.[col] ?? DENSITY_LOW;
+      let weight = density === DENSITY_HIGH ? 1 : density === DENSITY_MED ? 0.6 : 0.3;
+      if (record.type === 'commercial' || record.type === 'industrial') weight = Math.min(1, weight + 0.15);
+      weightedDensity += weight;
+    }
+  }
+
+  if (sampleCount === 0) return 0;
+  return Phaser.Math.Clamp(weightedDensity / sampleCount, 0, 1);
+}
+
+function updateAmbientSoundscape(scene) {
+  if (!scene?.ambientSounds || !scene.cameras?.main) return;
+  const camera = scene.cameras.main;
+
+  const zoomFade = Phaser.Math.Clamp(
+    (camera.zoom - AMBIENT_ZOOM_MIN) / (AMBIENT_ZOOM_MAX - AMBIENT_ZOOM_MIN),
+    0, 1,
+  );
+  const urbanScore = zoomFade > 0 ? sampleOnScreenBuildingDensity(scene) : 0;
+
+  const weather = city?.weather ?? {};
+  const isTyphoon = ['signal3', 'signal8', 'signal9', 'signal10'].includes(weather.typhoonStage);
+  const isApproachingTyphoon = weather.typhoonStage === 'signal1';
+  const isRaining = !isTyphoon && (weather.condition === 'showers' || weather.condition === 'heavyRain');
+
+  const targets = {
+    urban: zoomFade * urbanScore * AMBIENT_BASE_VOLUME.urban,
+    residential: zoomFade * (1 - urbanScore * 0.85) * AMBIENT_BASE_VOLUME.residential,
+    rain: zoomFade * (isRaining ? 1 : 0) * AMBIENT_BASE_VOLUME.rain,
+    typhoon: zoomFade * (isTyphoon ? 1 : isApproachingTyphoon ? 0.45 : 0) * AMBIENT_BASE_VOLUME.typhoon,
+  };
+
+  Object.keys(targets).forEach((channel) => {
+    const sound = scene.ambientSounds[channel];
+    if (!sound) return;
+    const current = scene.ambientVolumes[channel] ?? 0;
+    const next = current + (targets[channel] - current) * AMBIENT_FADE_RATE;
+    scene.ambientVolumes[channel] = next;
+    sound.setVolume(Math.max(0, next));
+  });
 }
 
 function logicalPointToWorld(scene, logical) {

@@ -131,6 +131,12 @@ function handleMenuAction(action) {
       if (typeof queueCityChangeAutosave === 'function') queueCityChangeAutosave();
       updateSettingsMenu();
       break;
+    case 'toggle-weather-effects':
+      if (typeof setWeatherEffectsEnabled === 'function') {
+        setWeatherEffectsEnabled(!isWeatherEffectsEnabled());
+      }
+      updateSettingsMenu();
+      break;
     case 'open-ai-news-settings':
       if (typeof openAiNewsSettings === 'function') openAiNewsSettings();
       break;
@@ -235,6 +241,8 @@ function updateSettingsMenu() {
     ?.classList.toggle('menu-checked', typeof areDistrictSignsVisible !== 'function' || areDistrictSignsVisible());
   document.getElementById('menu-ai-news')
     ?.classList.toggle('menu-checked', typeof isAiNewsEnabled === 'function' && isAiNewsEnabled());
+  document.getElementById('menu-weather-effects')
+    ?.classList.toggle('menu-checked', typeof isWeatherEffectsEnabled !== 'function' || isWeatherEffectsEnabled());
   ['en', 'zhHant', 'ja'].forEach((language) => {
     document.getElementById(`menu-lang-${language}`)
       ?.classList.toggle('menu-checked', getCurrentLanguage() === language);

@@ -153,6 +153,12 @@ function setupToolMenu() {
       closeToolCategoryFlyouts();
       return;
     }
+    if (actionButton?.dataset.action === 'open-council-meeting') {
+      if (isTerrainCreatorMode) return;
+      openLegislativeWindow();
+      closeToolCategoryFlyouts();
+      return;
+    }
 
     const button = event.target.closest('[data-tool]');
     if (!button) return;

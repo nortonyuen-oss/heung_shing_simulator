@@ -28,6 +28,7 @@ function updateHUD() {
   updateTaxDisplay();
   updateBudgetControls();
   updateInfrastructureToolVisibility();
+  updateTopbarWeatherChip();
   updateBudgetWindow();
   updateLegislativeWindow();
   updateStockExchangeWindow();
@@ -73,8 +74,11 @@ function updateBudgetControls() {
     const policyId = button.dataset.policyId;
     const isActive = isPolicyActive(policyId);
     const isAvailable = isPolicyAvailable(policyId);
-    button.hidden = !(isAvailable || isActive);
-    button.disabled = !isAvailable && !isActive;
+    const isCouncilPreviewButton = !!button.closest('.council-policy-list');
+    button.hidden = isCouncilPreviewButton ? false : !(isAvailable || isActive);
+    button.disabled = isCouncilPreviewButton ? false : (!isAvailable && !isActive);
+    button.classList.toggle('is-locked', isCouncilPreviewButton && !isAvailable && !isActive);
+    button.setAttribute('aria-disabled', String(!isAvailable && !isActive));
     button.classList.toggle('is-active', isActive);
   });
 
@@ -84,11 +88,22 @@ function updateBudgetControls() {
   setTextContent('budget-loan-cost', `${formatMoney(city.lastLoanPayment || getMonthlyLoanDue())}/mo`);
 }
 
+function isCouncilMeetingUnlocked() {
+  return city.population >= 10000 || hasBuildingType('legislative_council');
+}
+
 function updateInfrastructureToolVisibility() {
   const councilButtons = document.querySelectorAll('[data-tool="legislative-council"]');
   const stockExchangeButtons = document.querySelectorAll('[data-tool="stock-exchange"]');
   const canBuildCouncil = city.population >= 10000 && !hasBuildingType('legislative_council');
   const canBuildStockExchange = city.population >= 50000 && isPolicyActive('stockExchangeAct') && hasBuildingType('legislative_council') && !hasBuildingType('stock_exchange');
+
+  const councilOpenButton = document.getElementById('legislative-open-window');
+  if (councilOpenButton) {
+    const unlocked = isCouncilMeetingUnlocked();
+    councilOpenButton.hidden = !unlocked;
+    councilOpenButton.style.display = unlocked ? '' : 'none';
+  }
 
   const syncButtonVisibility = (button, visible) => {
     button.hidden = !visible;
@@ -114,6 +129,97 @@ function updateInfrastructureToolVisibility() {
     updateToolCategoryState(document.getElementById('tool-menu'), selectedTool);
     closeToolPopups?.();
   }
+}
+
+// ── Weather chip ────────────────────────────────────────────────────────────
+
+function getTyphoonNameForDisplay(weather) {
+  if (!weather?.typhoonName) return '';
+  return typeof getTyphoonDisplayName === 'function' ? getTyphoonDisplayName(weather.typhoonName) : weather.typhoonName;
+}
+
+function getActiveWeatherWarnings() {
+  const weather = city.weather;
+  if (!weather) return { signalId: null, rainWarning: null };
+  return {
+    signalId: weather.typhoonStage && weather.typhoonStage !== 'none' ? weather.typhoonStage : null,
+    rainWarning: weather.rainWarning && weather.rainWarning !== 'none' ? weather.rainWarning : null,
+  };
+}
+
+function updateTopbarWeatherChip() {
+  const weather = city.weather;
+  if (!weather || typeof weatherConditionIconSvg !== 'function') return;
+
+  const bucket = getWeatherConditionBucket(weather);
+  const icon = document.getElementById('topbar-weather-icon');
+  if (icon) {
+    icon.innerHTML = weatherConditionIconSvg(bucket);
+    icon.title = t(`weather.condition.${bucket}`);
+  }
+  setTextContent('topbar-weather-temp', `${Math.round(weather.temperatureC)}°C`);
+  setTextContent('topbar-weather-humidity', `${Math.round(weather.humidityPct ?? 0)}%`);
+
+  const warnings = document.getElementById('topbar-weather-warnings');
+  if (warnings) {
+    const { signalId, rainWarning } = getActiveWeatherWarnings();
+    const badges = [];
+    if (signalId) {
+      const storm = getTyphoonNameForDisplay(weather);
+      const label = storm
+        ? `${t(TYPHOON_SIGNAL_LABEL_KEY[signalId])} — ${storm}`
+        : t(TYPHOON_SIGNAL_LABEL_KEY[signalId]);
+      badges.push(`<span class="topbar-weather-badge" title="${label}">${typhoonSignalIconSvg(signalId)}</span>`);
+    }
+    if (rainWarning) {
+      badges.push(`<span class="topbar-weather-badge" title="${t(RAINSTORM_LABEL_KEY[rainWarning])}">${rainstormWarningIconSvg(rainWarning)}</span>`);
+    }
+    warnings.innerHTML = badges.join('');
+  }
+}
+
+function updateWeatherLegendDialog() {
+  const weather = city.weather;
+  const summary = document.getElementById('weather-legend-summary');
+  const active = document.getElementById('weather-legend-active');
+  if (!weather || !summary || !active) return;
+
+  const bucket = getWeatherConditionBucket(weather);
+  const rows = [
+    t(`weather.condition.${bucket}`),
+    `${Math.round(weather.temperatureC)}°C`,
+    t('weather.humidity', { value: Math.round(weather.humidityPct ?? 0) }),
+  ];
+  if (weather.typhoonActive && weather.typhoonName) {
+    rows.push(t('weather.typhoonWind', { name: getTyphoonNameForDisplay(weather), wind: Math.round(weather.windKph ?? 0) }));
+  }
+  summary.replaceChildren(...rows.map((text) => {
+    const span = document.createElement('span');
+    span.textContent = text;
+    return span;
+  }));
+
+  const { signalId, rainWarning } = getActiveWeatherWarnings();
+  const chips = [];
+  if (signalId) {
+    const storm = getTyphoonNameForDisplay(weather);
+    const signalLabel = storm
+      ? `${t(TYPHOON_SIGNAL_LABEL_KEY[signalId])} — ${storm}`
+      : t(TYPHOON_SIGNAL_LABEL_KEY[signalId]);
+    chips.push({ svg: typhoonSignalIconSvg(signalId), label: signalLabel });
+  }
+  if (rainWarning) {
+    chips.push({ svg: rainstormWarningIconSvg(rainWarning), label: t(RAINSTORM_LABEL_KEY[rainWarning]) });
+  }
+  active.replaceChildren(...chips.map(({ svg, label }) => {
+    const chip = document.createElement('div');
+    chip.className = 'weather-legend-active-chip';
+    chip.innerHTML = svg;
+    const text = document.createElement('span');
+    text.textContent = label;
+    chip.appendChild(text);
+    return chip;
+  }));
 }
 
 // ── Demand bars ───────────────────────────────────────────────────────────────
@@ -226,6 +332,11 @@ function initBudgetPanel() {
     openLegislativeWindow();
   });
 
+  document.getElementById('topbar-weather-chip')?.addEventListener('click', () => {
+    updateWeatherLegendDialog();
+    if (typeof showDialog === 'function') showDialog('weather-legend-dialog');
+  });
+
   document.getElementById('stock-exchange-open-window')?.addEventListener('click', () => {
     openStockExchangeWindow();
   });
@@ -261,15 +372,8 @@ function initBudgetPanel() {
 
   document.querySelectorAll('[data-policy-id]').forEach((button) => {
     button.addEventListener('click', () => {
-      normalizeCityFinanceState();
       const id = button.dataset.policyId;
-      city.activePolicies[id] = !city.activePolicies[id];
-      computeHappiness(activeScene);
-      updateDemand();
-      showToast(t(city.activePolicies[id] ? 'toast.policyEnabled' : 'toast.policyDisabled', {
-        policy: t(`policy.${id}.title`),
-      }), 'info');
-      updateHUD();
+      if (typeof selectCouncilPolicy === 'function') selectCouncilPolicy(id);
     });
   });
 
@@ -387,6 +491,7 @@ function setupLegislativeWindow() {
   const closeBtn = document.getElementById('legislative-window-close');
   const minBtn = document.getElementById('legislative-window-min-btn');
   if (!win || !titlebar || !closeBtn) return;
+  if (typeof setupCouncilMeetingUi === 'function') setupCouncilMeetingUi();
 
   win.addEventListener('pointerdown', (e) => e.stopPropagation());
   win.addEventListener('click', (e) => e.stopPropagation());
@@ -511,7 +616,9 @@ function toggleBudgetWindow(forceOpen = false) {
 }
 
 function openLegislativeWindow() {
+  if (!isCouncilMeetingUnlocked()) return;
   document.getElementById('legislative-window')?.classList.add('is-open');
+  if (typeof updateCouncilMeetingUi === 'function') updateCouncilMeetingUi();
   updateLegislativeWindow();
 }
 
@@ -521,7 +628,7 @@ function closeLegislativeWindow() {
 
 function toggleLegislativeWindow(forceOpen = false) {
   const win = document.getElementById('legislative-window');
-  if (!win) return;
+  if (!win || !isCouncilMeetingUnlocked()) return;
   if (forceOpen) {
     openLegislativeWindow();
     return;
@@ -558,6 +665,7 @@ function updateLegislativeWindow() {
   setTextContent('legislative-population', city.population.toLocaleString());
   const hasCouncil = hasBuildingType('legislative_council');
   setTextContent('legislative-status', hasCouncil ? t('legislative.windowReady') : t('legislative.windowLocked'));
+  if (typeof updateCouncilMeetingUi === 'function') updateCouncilMeetingUi();
 }
 
 function updateStockExchangeWindow() {

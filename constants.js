@@ -369,8 +369,8 @@ const POWER_PLANT_STATS = {
     degradeStartMonths: 600,    // starts degrading at 50 years
     warningMonths: 60,          // 5-year decommission warning
     minOutputRatio: 0.65,       // stays efficient longer than coal
-    pollutionRadius: 6,         // near-zero air emissions
-    pollutionStrength: 0.10,
+    pollutionRadius: 4,         // near-zero operational air emissions
+    pollutionStrength: 0.015,   // lifecycle footprint is tiny beside coal
     fireRadius: 22,             // meltdown blast radius
     fireStrength: 0.98,         // catastrophic if ignited
     nuisanceRadius: 22,         // NIMBY radiation fear
@@ -426,7 +426,11 @@ const STARTING_BUDGET = 10000;
 
 // Pollution per building type per month
 const POLLUTION_COAL_PLANT    = 20;
-const POLLUTION_NUCLEAR_PLANT = 2;   // minimal air pollution; nuisance handled via nuisanceRadius/Strength
+// Nuclear lifecycle emissions are roughly 0.5% of coal per kWh. One nuclear
+// plant produces 4x the electricity of coal here, so 0.4 is ~2% of a coal
+// plant's total pollution contribution at four times the output. Accident risk
+// and perceived nuisance remain separate in POWER_PLANT_STATS.
+const POLLUTION_NUCLEAR_PLANT = 0.4;
 const POLLUTION_IND_BUILDING  = 2;
 const POLLUTION_SCIENCE_PARK_BUILDING = 0.2;
 

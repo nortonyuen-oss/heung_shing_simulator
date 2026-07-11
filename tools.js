@@ -250,6 +250,12 @@ function placeInfraBuilding(scene, row, col, buildingType) {
   }
   refreshInfrastructureEffects(scene);
 
+  if (buildingType === 'legislative_council' && typeof announceCouncilBuiltNewspaper === 'function') {
+    announceCouncilBuiltNewspaper();
+  } else if (buildingType === 'stock_exchange' && typeof announceStockExchangeBuiltNewspaper === 'function') {
+    announceStockExchangeBuiltNewspaper();
+  }
+
   return true;
 }
 

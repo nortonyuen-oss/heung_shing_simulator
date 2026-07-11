@@ -11,6 +11,7 @@ function runSimTick(scene) {
 
   invalidateBuildingCountCache();
   updateWeatherSimulation();
+  updateWeatherVisualOverlay(scene);
 
   // Order matters:
   // 1. Infrastructure state (power, services)

@@ -113,10 +113,18 @@ async function getOllamaStatus(options = {}) {
   }
 }
 
+function sanitizeText(value, max = 180) {
+  return String(value ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, max);
+}
+
+function sanitizeNumber(value, fallback = 0) {
+  return Number.isFinite(Number(value)) ? Number(value) : fallback;
+}
+
 function sanitizeFacts(rawFacts) {
   const facts = rawFacts && typeof rawFacts === 'object' ? rawFacts : {};
-  const text = (value, max = 180) => String(value ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, max);
-  const number = (value, fallback = 0) => Number.isFinite(Number(value)) ? Number(value) : fallback;
+  const text = sanitizeText;
+  const number = sanitizeNumber;
   const rawStory = facts.story && typeof facts.story === 'object' ? facts.story : null;
   const story = rawStory ? {
     desk: text(rawStory.desk, 40),
@@ -172,6 +180,192 @@ function sanitizeFacts(rawFacts) {
         angle: text(topic?.angle, 100),
       })),
   };
+}
+
+const COUNCIL_NEWS_ALLOWED_TONES = ['straight', 'light', 'satirical', 'gossip'];
+const COUNCIL_NEWS_TONE_CEILING = { 0: ['straight'], 1: ['straight', 'light'], 2: ['straight', 'light', 'satirical'], 3: COUNCIL_NEWS_ALLOWED_TONES };
+
+function sanitizeCouncilCharacter(raw) {
+  const character = raw && typeof raw === 'object' ? raw : {};
+  const id = sanitizeText(character.id, 60);
+  if (!id) return null;
+  return {
+    id,
+    displayName: sanitizeText(character.displayName, 40),
+    nickname: sanitizeText(character.nickname, 40),
+    role: sanitizeText(character.role, 30),
+    coreBelief: sanitizeText(character.coreBelief, 120),
+    tone: sanitizeText(character.tone, 30),
+    personality: (Array.isArray(character.personality) ? character.personality : []).slice(0, 4).map((v) => sanitizeText(v, 60)).filter(Boolean),
+    quirk: sanitizeText(character.quirk, 100),
+    speechStyle: sanitizeText(character.speechStyle, 60),
+    likes: (Array.isArray(character.likes) ? character.likes : []).slice(0, 4).map((v) => sanitizeText(v, 40)).filter(Boolean),
+    dislikes: (Array.isArray(character.dislikes) ? character.dislikes : []).slice(0, 4).map((v) => sanitizeText(v, 40)).filter(Boolean),
+    relationshipContext: (Array.isArray(character.relationshipContext) ? character.relationshipContext : []).slice(0, 6).map((rel) => ({
+      otherId: sanitizeText(rel?.otherId, 60),
+      strength: Math.max(-2, Math.min(2, Math.round(sanitizeNumber(rel?.strength)))),
+    })).filter((rel) => rel.otherId),
+  };
+}
+
+function sanitizeCouncilFacts(rawFacts) {
+  const facts = rawFacts && typeof rawFacts === 'object' ? rawFacts : {};
+  const rawEvent = facts.event && typeof facts.event === 'object' ? facts.event : {};
+  const characters = (Array.isArray(facts.characters) ? facts.characters : [])
+    .map(sanitizeCouncilCharacter).filter(Boolean).slice(0, 3);
+  const characterIds = new Set(characters.map((c) => c.id));
+  const quoteSpeakerId = sanitizeText(rawEvent.quoteSpeakerId, 60);
+  return {
+    city: sanitizeText(facts.city, 60),
+    date: sanitizeText(facts.date, 30),
+    event: {
+      eventType: sanitizeText(rawEvent.eventType, 40),
+      absurdity: Math.max(0, Math.min(3, Math.round(sanitizeNumber(rawEvent.absurdity)))),
+      facts: (Array.isArray(rawEvent.facts) ? rawEvent.facts : []).slice(0, 6).map((f) => sanitizeText(f, 160)).filter(Boolean),
+      quoteSpeakerId: characterIds.has(quoteSpeakerId) ? quoteSpeakerId : '',
+    },
+    characters,
+  };
+}
+
+function buildCouncilNewsPrompt(language, facts) {
+  const toneCeiling = COUNCIL_NEWS_TONE_CEILING[facts.event.absurdity] || ['straight'];
+  return [
+    '你是香港風格虛構城市模擬遊戲的新聞編輯 / You are the news editor of a Hong Kong-inspired fictional city simulation.',
+    '只可根據 CHARACTER_JSON 及 EVENT_JSON 寫作，兩者皆為遊戲引擎已確認的事實，不可增加或改變事件結果。',
+    'Only use CHARACTER_JSON and EVENT_JSON. Both are authoritative facts already decided by the game engine — do not add or change outcomes.',
+    '規則 / Rules:',
+    '1. 只能使用輸入內已有角色、事件及數字，不可創造新的政策、建築、親屬、醜聞、傷亡、犯罪或財政結果。',
+    '2. 不可改變角色核心信念（coreBelief）。',
+    `3. tone 只可為以下之一：${toneCeiling.join(', ')}（不可超過 event.absurdity 所容許的荒誕度）。`,
+    '4. 直接引述（quote）只能由 event.quoteSpeakerId 指定角色說出，語氣須符合該角色 tone；沒有 quoteSpeakerId 時 quote 必須為空字串。',
+    '5. relatedCharacterIds 必須是 CHARACTER_JSON 內已有角色 id 的子集。',
+    (language === 'zhHant'
+      ? '6. 用自然繁體中文寫作；headline 最多 24 個中文字，body 80–140 個中文字。'
+      : '6. Write in natural English; headline at most 24 words, body 60–110 words.'),
+    '7. 不可輸出 Markdown 或 JSON 以外文字。',
+    '回傳 JSON，欄位為 schemaVersion(=1)、headline、body、quote、quoteSpeakerId、tone、relatedCharacterIds。',
+    'Return JSON with fields: schemaVersion (=1), headline, body, quote, quoteSpeakerId, tone, relatedCharacterIds.',
+    `CHARACTER_JSON: ${JSON.stringify(facts.characters)}`,
+    `EVENT_JSON: ${JSON.stringify(facts.event)}`,
+    `CITY_STATE_JSON: ${JSON.stringify({ city: facts.city, date: facts.date })}`,
+  ].join('\n');
+}
+
+function readCouncilNewsResponse(responseText, facts) {
+  const source = String(responseText || '').trim();
+  if (!source) return null;
+  let parsed;
+  try {
+    parsed = JSON.parse(source);
+  } catch {
+    return null;
+  }
+  const headline = sanitizeHeadline(parsed.headline);
+  if (!headline) return null;
+  const body = sanitizeText(parsed.body, 400);
+  const characterIds = new Set(facts.characters.map((c) => c.id));
+  const relatedCharacterIds = (Array.isArray(parsed.relatedCharacterIds) ? parsed.relatedCharacterIds : [])
+    .map((id) => sanitizeText(id, 60)).filter((id) => characterIds.has(id));
+  const toneCeiling = COUNCIL_NEWS_TONE_CEILING[facts.event.absurdity] || ['straight'];
+  const tone = toneCeiling.includes(parsed.tone) ? parsed.tone : 'straight';
+  const quoteSpeakerId = sanitizeText(parsed.quoteSpeakerId, 60);
+  const allowedSpeaker = facts.event.quoteSpeakerId || '';
+  const quote = allowedSpeaker && quoteSpeakerId === allowedSpeaker ? sanitizeText(parsed.quote, 160) : '';
+  return {
+    headline,
+    body,
+    quote,
+    quoteSpeakerId: quote ? allowedSpeaker : '',
+    tone,
+    relatedCharacterIds,
+  };
+}
+
+async function generateOllamaCouncilNews(input = {}, options = {}) {
+  const language = ['en', 'zhHant', 'ja'].includes(input.language) ? input.language : 'en';
+  const provider = input.provider === 'cloud' ? 'cloud' : 'local';
+  const apiKey = provider === 'cloud' ? String(options.apiKey || '').trim() : '';
+  const facts = sanitizeCouncilFacts(input.facts);
+  if (!facts.characters.length || !facts.event.facts.length) {
+    const error = new Error('Council news requires at least one character and one fact');
+    error.code = 'EMPTY_RESPONSE';
+    throw error;
+  }
+  const status = await getOllamaStatus({ provider, apiKey });
+  if (!status.available) {
+    const error = new Error(status.error || 'Ollama is unavailable');
+    error.code = status.needsApiKey
+      ? 'CLOUD_API_KEY_REQUIRED'
+      : status.authError ? 'CLOUD_AUTH_ERROR' : 'OLLAMA_UNAVAILABLE';
+    throw error;
+  }
+
+  const model = normalizeModelName(input.model) || status.recommendedModel;
+  if (!model || !status.models.some((item) => item.name === model)) {
+    const error = new Error('Selected Ollama model is not available');
+    error.code = 'MODEL_NOT_FOUND';
+    throw error;
+  }
+
+  const connection = getProviderConnection(provider, apiKey);
+  const requestBody = {
+    model,
+    prompt: buildCouncilNewsPrompt(language, facts),
+    stream: false,
+    think: false,
+    format: 'json',
+    options: {
+      temperature: 0.6,
+      num_ctx: 2048,
+      num_predict: provider === 'cloud' ? 500 : 160,
+    },
+  };
+  if (provider === 'local') requestBody.keep_alive = '30s';
+
+  let response;
+  try {
+    response = await fetchWithTimeout(`${connection.baseUrl}/api/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...connection.headers },
+      body: JSON.stringify(requestBody),
+      signal: options.signal,
+    }, OLLAMA_GENERATE_TIMEOUT_MS);
+  } catch (error) {
+    const wrapped = new Error(error.name === 'AbortError' ? 'Ollama generation timed out' : error.message);
+    wrapped.code = options.signal?.aborted
+      ? 'REQUEST_ABORTED'
+      : error.name === 'AbortError' ? 'OLLAMA_TIMEOUT' : 'OLLAMA_UNAVAILABLE';
+    throw wrapped;
+  }
+
+  if (!response.ok) {
+    let detail = '';
+    try {
+      const errorPayload = await response.json();
+      detail = String(errorPayload.error || errorPayload.message || '').slice(0, 240);
+    } catch {}
+    const error = new Error(detail || `Ollama HTTP ${response.status}`);
+    error.code = provider === 'cloud' && response.status === 401
+      ? 'CLOUD_AUTH_ERROR'
+      : provider === 'cloud' && response.status === 403
+        ? 'CLOUD_ACCESS_DENIED'
+        : 'OLLAMA_ERROR';
+    throw error;
+  }
+  const payload = await response.json();
+  if (payload.error) {
+    const error = new Error(String(payload.error).slice(0, 240));
+    error.code = 'OLLAMA_ERROR';
+    throw error;
+  }
+  const parsed = readCouncilNewsResponse(payload.response || payload.message?.content, facts);
+  if (!parsed) {
+    const error = new Error('Ollama returned an invalid or unauthorized council news payload');
+    error.code = 'EMPTY_RESPONSE';
+    throw error;
+  }
+  return { ...parsed, model, provider, cached: false };
 }
 
 function getPromptInstruction(language) {
@@ -376,6 +570,7 @@ async function generateOllamaNews(input = {}, options = {}) {
 
 module.exports = {
   generateOllamaNews,
+  generateOllamaCouncilNews,
   getHeadlineSimilarity,
   getOllamaStatus,
   sanitizeFacts,

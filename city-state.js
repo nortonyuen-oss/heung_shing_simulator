@@ -86,6 +86,7 @@ const city = {
     legislativeCouncilElection: false,
     stockExchangeAct: false,
   },
+  council: createDefaultCouncilState(),
   loans: [],
   nextLoanId: 1,
   creditRating: 'A',
@@ -142,12 +143,20 @@ const city = {
   weather: {
     condition: 'clear',
     temperatureC: 24,
+    humidityPct: 60,
     rainfallMm: 0,
+    rainWarning: 'none',
     windKph: 10,
     conditionTicksLeft: 1,
     typhoonStage: 'none',
-    typhoonStrength: 0,
-    typhoonTicksLeft: 0,
+    typhoonActive: false,
+    typhoonName: '',
+    typhoonPeakWindKph: 0,
+    typhoonDurationTicks: 0,
+    typhoonTicksElapsed: 0,
+    typhoonWindKph: 0,
+    typhoonNameIndex: 0,
+    signal8ReachedThisStorm: false,
   },
   citizenActivityDigest: null,
   showDistrictSigns: true,
@@ -209,6 +218,7 @@ function resetGameState() {
     legislativeCouncilElection: false,
     stockExchangeAct: false,
   };
+  city.council = createDefaultCouncilState(city.activePolicies);
   city.loans = [];
   city.nextLoanId = 1;
   city.creditRating = 'A';
@@ -265,12 +275,20 @@ function resetGameState() {
   city.weather = {
     condition: 'clear',
     temperatureC: 24,
+    humidityPct: 60,
     rainfallMm: 0,
+    rainWarning: 'none',
     windKph: 10,
     conditionTicksLeft: 1,
     typhoonStage: 'none',
-    typhoonStrength: 0,
-    typhoonTicksLeft: 0,
+    typhoonActive: false,
+    typhoonName: '',
+    typhoonPeakWindKph: 0,
+    typhoonDurationTicks: 0,
+    typhoonTicksElapsed: 0,
+    typhoonWindKph: 0,
+    typhoonNameIndex: 0,
+    signal8ReachedThisStorm: false,
   };
   city.citizenActivityDigest = null;
   city.showDistrictSigns = true;
@@ -322,6 +340,7 @@ function normalizeCityFinanceState() {
     legislativeCouncilElection: !!city.activePolicies?.legislativeCouncilElection,
     stockExchangeAct: !!city.activePolicies?.stockExchangeAct,
   };
+  city.council = normalizeCouncilState(city.council, city.activePolicies);
   city.loans = Array.isArray(city.loans) ? city.loans.filter((loan) => loan && loan.balance > 0) : [];
   city.nextLoanId = Math.max(city.nextLoanId ?? 1, ...city.loans.map((loan) => Number(loan.id ?? 0) + 1), 1);
   city.lastPolicyCost = city.lastPolicyCost ?? 0;
@@ -425,16 +444,28 @@ function normalizeCityFinanceState() {
   city.trafficCoverage = toFiniteOr(city.trafficCoverage, 0);
   const savedWeather = city.weather && typeof city.weather === 'object' ? city.weather : {};
   const validConditions = ['clear', 'cloudy', 'showers', 'heavyRain', 'hot', 'cool', 'windy'];
-  const validTyphoonStages = ['none', 'approaching', 'signal3', 'signal8', 'departing', 'recovery'];
+  const validTyphoonStages = ['none', 'signal1', 'signal3', 'signal8', 'signal9', 'signal10'];
+  const validRainWarnings = ['none', 'amber', 'red', 'black'];
+  const migratedTyphoonActive = validTyphoonStages.includes(savedWeather.typhoonStage)
+    ? savedWeather.typhoonStage !== 'none'
+    : false;
   city.weather = {
     condition: validConditions.includes(savedWeather.condition) ? savedWeather.condition : 'clear',
     temperatureC: toFiniteOr(savedWeather.temperatureC, 24),
+    humidityPct: Math.max(0, Math.min(100, toFiniteOr(savedWeather.humidityPct, 60))),
     rainfallMm: Math.max(0, toFiniteOr(savedWeather.rainfallMm, 0)),
+    rainWarning: validRainWarnings.includes(savedWeather.rainWarning) ? savedWeather.rainWarning : 'none',
     windKph: Math.max(0, toFiniteOr(savedWeather.windKph, 10)),
     conditionTicksLeft: Math.max(0, Math.floor(toFiniteOr(savedWeather.conditionTicksLeft, 1))),
     typhoonStage: validTyphoonStages.includes(savedWeather.typhoonStage) ? savedWeather.typhoonStage : 'none',
-    typhoonStrength: Math.max(0, Math.min(1, toFiniteOr(savedWeather.typhoonStrength, 0))),
-    typhoonTicksLeft: Math.max(0, Math.floor(toFiniteOr(savedWeather.typhoonTicksLeft, 0))),
+    typhoonActive: !!savedWeather.typhoonActive || migratedTyphoonActive,
+    typhoonName: typeof savedWeather.typhoonName === 'string' ? savedWeather.typhoonName.slice(0, 40) : '',
+    typhoonPeakWindKph: Math.max(0, toFiniteOr(savedWeather.typhoonPeakWindKph, 0)),
+    typhoonDurationTicks: Math.max(0, Math.floor(toFiniteOr(savedWeather.typhoonDurationTicks, 0))),
+    typhoonTicksElapsed: Math.max(0, Math.floor(toFiniteOr(savedWeather.typhoonTicksElapsed, 0))),
+    typhoonWindKph: Math.max(0, toFiniteOr(savedWeather.typhoonWindKph, 0)),
+    typhoonNameIndex: Math.max(0, Math.floor(toFiniteOr(savedWeather.typhoonNameIndex, 0))) % TYPHOON_NAMES.length,
+    signal8ReachedThisStorm: !!savedWeather.signal8ReachedThisStorm,
   };
   city.citizenActivityDigest = city.citizenActivityDigest
     && typeof city.citizenActivityDigest.key === 'string'
@@ -451,15 +482,22 @@ function normalizeCityFinanceState() {
       let id = String(sign?.id || `district-loaded-${index}`).replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 80);
       if (!id || seenDistrictSignIds.has(id)) id = `district-loaded-${index}`;
       seenDistrictSignIds.add(id);
-      return {
-        id,
-        name,
-        englishName: Array.from(String(sign?.englishName || `District ${index + 1}`).replace(/\s+/g, ' ').trim()).slice(0, 48).join(''),
-        row,
-        col,
-        radius: Math.max(12, Math.min(64, Math.floor(toFiniteOr(sign?.radius, 36)))),
-        createdAtTick: Math.floor(toFiniteOr(sign?.createdAtTick, -1)),
-      };
+      const englishName = Array.from(String(sign?.englishName || `District ${index + 1}`).replace(/\s+/g, ' ').trim()).slice(0, 48).join('');
+      const radius = Math.max(12, Math.min(64, Math.floor(toFiniteOr(sign?.radius, 36))));
+      const createdAtTick = Math.floor(toFiniteOr(sign?.createdAtTick, -1));
+
+      // Reuse the existing object when nothing actually needed normalizing so
+      // live references held elsewhere (e.g. a drawn sign sprite mid-edit)
+      // don't get silently orphaned from the array that gets saved.
+      if (
+        sign && typeof sign === 'object'
+        && sign.id === id && sign.name === name && sign.englishName === englishName
+        && sign.row === row && sign.col === col && sign.radius === radius
+        && sign.createdAtTick === createdAtTick
+      ) {
+        return sign;
+      }
+      return { id, name, englishName, row, col, radius, createdAtTick };
     })
     .filter((sign) => sign.name);
   const savedAiNews = city.aiNews && typeof city.aiNews === 'object' ? city.aiNews : {};

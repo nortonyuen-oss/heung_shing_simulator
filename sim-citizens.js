@@ -15,7 +15,7 @@ function updateCitizenActivitySimulation() {
     temp: String(Math.round(weather.temperatureC ?? 24)),
   };
 
-  if (weather.typhoonStage === 'signal8') {
+  if (['signal8', 'signal9', 'signal10'].includes(weather.typhoonStage)) {
     setCitizenDigest('news.citizen.sheltering', params, 'citizen-sheltering', 12);
   } else if (weather.condition === 'heavyRain') {
     setCitizenDigest('news.citizen.rainCommute', params, 'citizen-rain-commute', 10);

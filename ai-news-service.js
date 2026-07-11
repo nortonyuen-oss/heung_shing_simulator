@@ -13,6 +13,8 @@ function hasLegacyAiNewsConfig() {
   }
 }
 
+const councilNewsRuntime = { pending: false };
+
 const aiNewsRuntime = {
   config: loadAiNewsConfig(),
   hadClientConfig: hasLegacyAiNewsConfig(),
@@ -218,6 +220,61 @@ function buildAiNewsFacts() {
   };
 }
 
+// Rewords a rule-decided CanonicalNewsEvent (council-news.js) into a news line via AI.
+// The event's facts, characters and quoteSpeakerId are authoritative; a rule-based fallback
+// line is always shown by the caller first, so failures here are silently non-fatal.
+async function requestCouncilCharacterNews(event) {
+  if (!event || councilNewsRuntime.pending) return null;
+  if (!aiNewsRuntime.initialized || !isAiNewsEnabled()) return null;
+  if (!aiNewsRuntime.status?.available || !getSelectedAiModel()) return null;
+
+  councilNewsRuntime.pending = true;
+  try {
+    const facts = {
+      city: city.name || getDefaultCityName(),
+      date: `${tMonth(city.month)} ${city.year}`,
+      storyKind: event.storyKind,
+      event: {
+        eventType: event.eventType,
+        absurdity: event.absurdity,
+        facts: event.facts,
+        quoteSpeakerId: event.quoteSpeakerId,
+      },
+      characters: typeof buildCouncilCharacterPayload === 'function'
+        ? buildCouncilCharacterPayload(event.characterIds)
+        : [],
+    };
+    const response = await fetch('/api/ai-news/generate', {
+      method: 'POST',
+      priority: 'high',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        provider: getAiNewsProvider(),
+        model: getSelectedAiModel(),
+        language: getCurrentLanguage(),
+        storyKind: event.storyKind,
+        facts,
+      }),
+    });
+    const result = await response.json();
+    if (!response.ok) {
+      const error = new Error(result.error || `HTTP ${response.status}`);
+      error.code = result.code;
+      throw error;
+    }
+    const headline = withAiNewsDebugPrefix(result.headline).slice(0, 220);
+    if (!headline) return null;
+    const line = result.quote ? `${headline}「${result.quote}」` : headline;
+    if (typeof addCityNews === 'function') addCityNews(line);
+    return result;
+  } catch (error) {
+    console.warn('[Council News]', error.message);
+    return null;
+  } finally {
+    councilNewsRuntime.pending = false;
+  }
+}
+
 function withAiNewsDebugPrefix(headline) {
   const clean = String(headline || '').replace(/^香城快訊\s*[:：]\s*/u, '').trim();
   return clean ? `${AI_NEWS_DEBUG_PREFIX}${clean}` : '';
@@ -227,7 +284,7 @@ function getAiNewsRequestKey() {
   const language = getCurrentLanguage();
   const provider = getAiNewsProvider();
   const period = `${provider}-${getSelectedAiModel()}-${city.year}-${city.month}-${language}`;
-  if (city.weather?.typhoonStage === 'signal8') return `typhoon-${period}-signal8`;
+  if (['signal8', 'signal9', 'signal10'].includes(city.weather?.typhoonStage)) return `typhoon-${period}-${city.weather.typhoonStage}`;
   if ((city.epidemicSeverity ?? 0) >= 0.45) return `epidemic-${period}`;
   if ((city.totalPowerDemand ?? 0) > 0 && (city.totalPowerSupply ?? 0) < (city.totalPowerDemand ?? 0)) {
     return `blackout-${period}`;

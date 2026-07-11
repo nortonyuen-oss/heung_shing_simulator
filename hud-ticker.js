@@ -320,6 +320,27 @@ function buildTickerNewsCandidates() {
     });
   }
 
+  if (population >= 10000 && !hasBuildingType('legislative_council')) {
+    items.push({
+      id: 'council-buildable',
+      weight: 9,
+      text: t('news.headline.councilBuildable', { city: cityName, population: population.toLocaleString() }),
+    });
+  }
+
+  if (
+    population >= 50000
+    && isPolicyActive('stockExchangeAct')
+    && hasBuildingType('legislative_council')
+    && !hasBuildingType('stock_exchange')
+  ) {
+    items.push({
+      id: 'stock-exchange-buildable',
+      weight: 9,
+      text: t('news.headline.stockExchangeBuildable', { city: cityName, population: population.toLocaleString() }),
+    });
+  }
+
   if (hasBuildingType('stock_exchange')) {
     items.push(...buildHongKongFinanceTickerItems({
       cityName,

@@ -1,11 +1,11 @@
-# The City of Heung Shing v3.1.2
+# The City of Heung Shing v3.1.3
 
-Patch release. Fixes a request-flood bug that could make forum images and audio appear broken.
+Patch release. Fixes broken forum news images and reduces how often the forum posts filler chatter.
 
 ## Fix
 
-- When the AI news backend was unavailable (e.g. a rate-limited or exhausted API key), the Heung Shing Forum retried every pending post's AI comment generation on every trigger with no backoff — up to 60 requests per sweep, repeated. This saturated the local server's connection pool and could starve unrelated requests (forum/newspaper images, and briefly audio) behind the queue, making them appear permanently broken even though the underlying files were fine.
-- AI News now has a proper circuit breaker shared across all three AI features (news ticker, council character news, forum comments): 3 consecutive failures anywhere turns AI News off entirely instead of each feature quietly retrying forever in the background. A toast explains what happened. Re-enabling AI News from Settings resets the counter and immediately fires a fresh test request, which is itself subject to the same 3-strikes rule.
+- 15 forum "special event" images (typhoon, rainstorm, academic ranking, singer scandal, free ice cream, night drone show, and others) still pointed at their old pre-WebP-migration `.png` paths, which no longer exist on disk — every one of them showed as a broken image. All references now point at the real `.webp` files, and the image-path validator that builds each forum post now reuses the same normalization used elsewhere, instead of a separate check that only accepted the old format.
+- The discussion forum generated a new post every single in-game month, even when nothing notable happened, which added up to unnecessary churn over a long game. It now only posts every month when something actually triggers it (a typhoon, a new policy, a stat threshold, a seasonal event, etc.); if nothing did, it falls back to at most once every 3 months.
 
 ## Downloads
 

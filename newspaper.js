@@ -23,6 +23,13 @@ let openForumPostId = '';
 // isAiNewsEnabled()): 3 consecutive failures across any of these paths disables AI
 // News entirely rather than each feature retrying independently.
 
+// generateMonthlyForumPost() runs once per in-game month. Most months have no notable
+// trigger (no typhoon, no fresh policy, no stat threshold crossed), so without a
+// throttle the forum would still post generic filler chatter every month, which adds
+// up to a lot of DOM churn/autosave writes over a long game. Only throttle the filler
+// case — an actual notable event still posts the same month it happens.
+const FORUM_FILLER_INTERVAL_MONTHS = 3;
+
 function getExamForumCitizenName(seed = '') {
   const source = String(seed);
   let hash = 2166136261;
@@ -239,7 +246,7 @@ function addForumPost(article, metadata = {}) {
     id,
     category: metadata.category || (metadata.outcome && metadata.outcome !== 'success' ? '城中熱話' : '城市發展'),
     headline: article.headline,
-    image: /^UI\/News\/[a-zA-Z0-9_.-]+\.png$/.test(String(article.image || metadata.image || '')) ? String(article.image || metadata.image) : '',
+    image: normalizeForumImagePath(article.image || metadata.image || ''),
     body: (Array.isArray(article.body) ? article.body : [article.body]).filter(Boolean),
     author: metadata.author || (article.quoteSpeakerId ? getCouncilNewsOfficialDisplayName(article.quoteSpeakerId) : '香城街坊'),
     officialId: article.quoteSpeakerId || '',
@@ -403,21 +410,21 @@ function getForumNamedOfficials() {
 function localizeForumTopicJapanese(topic, context) {
   const { chief, treasury, police, observatory, business, tourism, religion, official, cityName, pollution, crime, unemployment, net, higherEdu } = context;
   const stories = {
-    'UI/News/sideNewsNewYearEvent.png': [`${business}、新春写真でセンター争い　獅子舞に議員が倒される`, `記念撮影は大混乱。掲示板では「政策より立ち位置が重要なのか」との声が相次いだ。`, '結局、一番きれいに写ったのは獅子だった。'],
-    'UI/News/northPolePenguin.png': [`${tourism}、北極ペンギン保護区を実現`, '観光の新名所として期待される一方、交通費と運営費を心配する声も出ている。', '北極まで2ドル優待は使えますか。'],
-    'UI/News/busSeatBeltAct.png': ['バスのシートベルトが外れず消防隊出動', `着席客だけ固定され、立っている客はそのままなのかと市民が疑問視。${police}は運用を検討するとした。`, '安全すぎて消防士がいないと降りられない。'],
-    'UI/News/elderyCitizenBusFareSubsidary.png': ['高齢者、2ドル運賃でゲームジム巡り　財政当局は渋い顔', `高齢者は行動範囲が広がったと歓迎。${treasury}は利用増による公費負担を注視している。`, '2ドルで終点まで行けるなら、ゲーム課金より安い。'],
-    'UI/News/chiefPoliceActingInFlim.png': [`${police}、政策PRに警察映画の前日譚を提案`, '掲示板では、改名されたどの政府高官が潜入捜査官役に向くかで盛り上がっている。', '公費で三部作だけはやめてほしい。'],
-    'UI/News/fatherWithPrisoner.png': [`${religion}、更生支援で受刑者とゲーム`, 'ゲームを通じてストレスを減らし、信頼関係と再出発を支える取り組みとして好意的な反応が集まった。', 'ゲームに再挑戦があるなら、人生にもあっていい。'],
-    'UI/News/academicUniversityRank.png': [`${chief}「香城大学は世界トップ100を維持」`, `高等教育指数は${higherEdu}。順位が雇用増につながるか学生と市民が議論している。`, '順位が上がっても学食の値段は上げないで。'],
-    'UI/News/tooHotToShutDownAitCond.png': [`35°Cでも冷房拒否　${observatory}「扇風機で十分」`, '省エネの実演が暑さ我慢大会になっていないか、掲示板で疑問の声が上がった。', 'その扇風機を文化財に指定してほしい。'],
-    'UI/News/typhoon.png': ['台風襲来、市民がカラオケ店に避難', `娯楽施設が臨時避難所のようになり、${observatory}は危険な外出を控えるよう呼びかけた。`, '外の風より店内の歌声の方が大きい。'],
-    'UI/News/rainstorm.png': ['「大雨なのに黒色警報は退勤直前」市民が苦情', `交通が混乱し、警報のタイミングを巡って${observatory}への書き込みが殺到した。`, '出勤後に赤、退勤一秒前に黒。'],
-    'UI/News/rainstorm02.png': ['豪雨で冠水、配車アプリにゴムボート項目', '道路冠水を受け、ボートの変動料金はタクシーより強気だと話題になった。', '運転手いわく、行き先は埠頭限定。'],
-    'UI/News/sideNewsFreeIceCream.png': ['商業施設の無料アイスが品切れ　行列客が激怒', '配布開始直後に在庫が尽き、利用者は並んだ時間の損失を計算し始めた。', '一番冷たかったのは店員の視線。'],
-    'UI/News/sideNewsSinger.png': ['往年の歌手、タクシー降車場所で口論　車載映像が拡散', '映像は急速に拡散。会話を一秒ずつ分析する一方、個人情報への配慮を求める声も出た。', '新曲より多くの人に聞かれてしまった。'],
-    'UI/News/nightDroneShowSucceed.png': [`${business}「幻彩 fing 香城を365日開催すべき」`, `${observatory}は騒音、電気代、飛行経路を巡る議論に対し、毎日の飛行許可は約束しなかった。`, '毎日光る前に、隣の街へ飛ばないようにして。'],
-    'UI/News/touringEverywhere.png': [`${chief}の「どこでも観光」、団地屋上の干し物まで観光地に`, '住民の日常が撮影対象となり、近隣住民はツアーの制限を求めている。', '干している物は住民のもの。観光地指定は誰のもの？'],
+    'UI/news/sideNewsNewYearEvent.webp': [`${business}、新春写真でセンター争い　獅子舞に議員が倒される`, `記念撮影は大混乱。掲示板では「政策より立ち位置が重要なのか」との声が相次いだ。`, '結局、一番きれいに写ったのは獅子だった。'],
+    'UI/news/northPolePenguin.webp': [`${tourism}、北極ペンギン保護区を実現`, '観光の新名所として期待される一方、交通費と運営費を心配する声も出ている。', '北極まで2ドル優待は使えますか。'],
+    'UI/news/busSeatBeltAct.webp': ['バスのシートベルトが外れず消防隊出動', `着席客だけ固定され、立っている客はそのままなのかと市民が疑問視。${police}は運用を検討するとした。`, '安全すぎて消防士がいないと降りられない。'],
+    'UI/news/elderyCitizenBusFareSubsidary.webp': ['高齢者、2ドル運賃でゲームジム巡り　財政当局は渋い顔', `高齢者は行動範囲が広がったと歓迎。${treasury}は利用増による公費負担を注視している。`, '2ドルで終点まで行けるなら、ゲーム課金より安い。'],
+    'UI/news/chiefPoliceActingInFlim.webp': [`${police}、政策PRに警察映画の前日譚を提案`, '掲示板では、改名されたどの政府高官が潜入捜査官役に向くかで盛り上がっている。', '公費で三部作だけはやめてほしい。'],
+    'UI/news/fatherWithPrisoner.webp': [`${religion}、更生支援で受刑者とゲーム`, 'ゲームを通じてストレスを減らし、信頼関係と再出発を支える取り組みとして好意的な反応が集まった。', 'ゲームに再挑戦があるなら、人生にもあっていい。'],
+    'UI/news/academicUniversityRank.webp': [`${chief}「香城大学は世界トップ100を維持」`, `高等教育指数は${higherEdu}。順位が雇用増につながるか学生と市民が議論している。`, '順位が上がっても学食の値段は上げないで。'],
+    'UI/news/tooHotToShutDownAitCond.webp': [`35°Cでも冷房拒否　${observatory}「扇風機で十分」`, '省エネの実演が暑さ我慢大会になっていないか、掲示板で疑問の声が上がった。', 'その扇風機を文化財に指定してほしい。'],
+    'UI/news/typhoon.webp': ['台風襲来、市民がカラオケ店に避難', `娯楽施設が臨時避難所のようになり、${observatory}は危険な外出を控えるよう呼びかけた。`, '外の風より店内の歌声の方が大きい。'],
+    'UI/news/rainstorm.webp': ['「大雨なのに黒色警報は退勤直前」市民が苦情', `交通が混乱し、警報のタイミングを巡って${observatory}への書き込みが殺到した。`, '出勤後に赤、退勤一秒前に黒。'],
+    'UI/news/rainstorm02.webp': ['豪雨で冠水、配車アプリにゴムボート項目', '道路冠水を受け、ボートの変動料金はタクシーより強気だと話題になった。', '運転手いわく、行き先は埠頭限定。'],
+    'UI/news/sideNewsFreeIceCream.webp': ['商業施設の無料アイスが品切れ　行列客が激怒', '配布開始直後に在庫が尽き、利用者は並んだ時間の損失を計算し始めた。', '一番冷たかったのは店員の視線。'],
+    'UI/news/sideNewsSinger.webp': ['往年の歌手、タクシー降車場所で口論　車載映像が拡散', '映像は急速に拡散。会話を一秒ずつ分析する一方、個人情報への配慮を求める声も出た。', '新曲より多くの人に聞かれてしまった。'],
+    'UI/news/nightDroneShowSucceed.webp': [`${business}「幻彩 fing 香城を365日開催すべき」`, `${observatory}は騒音、電気代、飛行経路を巡る議論に対し、毎日の飛行許可は約束しなかった。`, '毎日光る前に、隣の街へ飛ばないようにして。'],
+    'UI/news/touringEverywhere.webp': [`${chief}の「どこでも観光」、団地屋上の干し物まで観光地に`, '住民の日常が撮影対象となり、近隣住民はツアーの制限を求めている。', '干している物は住民のもの。観光地指定は誰のもの？'],
   };
   const translated = stories[topic.image];
   if (translated) return { ...topic, headline: translated[0], body: translated[1], comment: translated[2] };
@@ -468,63 +475,63 @@ function generateMonthlyForumPost(monthIndex = getCityMonthIndex()) {
   if ([1, 2].includes(city.month)) topics.push(forumStory('城中熱話',
     zh ? `${business}賀歲合照再爭C位　旗袍議員被舞麒麟師傅意外撞跌` : `${business} battles for centre stage as councillor is knocked over by a dancing lion`,
     zh ? `賀歲活動合照期間場面混亂，${business}被網民追問爭位是否比城市政策更重要。` : `A chaotic Lunar New Year photo has users asking whether positioning mattered more than policy.`,
-    zh ? '張相最清楚嗰個，始終係隻麒麟。' : 'The lion was still the clearest subject in the photo.', 'UI/News/sideNewsNewYearEvent.png'));
+    zh ? '張相最清楚嗰個，始終係隻麒麟。' : 'The lion was still the clearest subject in the photo.', 'UI/news/sideNewsNewYearEvent.webp'));
   if (policyActive('arcticPenguinReserve')) topics.push(forumStory('城市發展',
     zh ? `${tourism}成功爭取北極企鵝保育區　網民先問企鵝點樣返工` : `${tourism} secures an Arctic penguin reserve`,
     zh ? `保育區被形容為旅遊新亮點，預計提升城市吸引力，但交通與營運成本亦受到關注。` : `The reserve may boost tourism, though users are debating transport and operating costs.`,
-    zh ? '北極有冇地鐵站？企鵝有冇兩蚊優惠？' : 'Does the Arctic have a metro station?', 'UI/News/northPolePenguin.png'));
+    zh ? '北極有冇地鐵站？企鵝有冇兩蚊優惠？' : 'Does the Arctic have a metro station?', 'UI/news/northPolePenguin.webp'));
   if (policyActive('busSeatbeltMandate')) topics.push(forumStory('交通台',
     zh ? '巴士乘客被安全帶卡住　消防員到場解困' : 'Bus passenger trapped by mandatory seat belt; firefighters called',
     zh ? `市民質疑座位乘客被綁實，但企位乘客反而沒有保障；${police}表示會研究執行情況。` : `Users question why seated passengers are restrained while standing passengers remain unprotected; ${police} promised a review.`,
-    zh ? '安全到要消防員先可以落車。' : 'So safe that firefighters are needed to get off.', 'UI/News/busSeatBeltAct.png'));
+    zh ? '安全到要消防員先可以落車。' : 'So safe that firefighters are needed to get off.', 'UI/news/busSeatBeltAct.webp'));
   if (policyActive('elderlyTwoDollarFare')) topics.push(forumStory('交通台',
     zh ? '長者兩蚊搭巴士出門打口袋怪物　財政司睇住開支眉頭緊皺' : 'Elderly riders use $2 fare to tour game arenas as treasury watches costs',
     zh ? `長者表示優惠令生活圈大增，${treasury}則提醒乘車量上升會增加公共開支。` : `Older residents say the fare expanded their social lives, while ${treasury} warned of rising costs.`,
-    zh ? '兩蚊由屋企打到總站，抵過買道具。' : 'Two dollars from home to the final arena.', 'UI/News/elderyCitizenBusFareSubsidary.png'));
+    zh ? '兩蚊由屋企打到總站，抵過買道具。' : 'Two dollars from home to the final arena.', 'UI/news/elderyCitizenBusFareSubsidary.webp'));
   if (policyActive('publicSafety') && crime < 0.28) topics.push(forumStory('城中熱話',
     zh ? `${police}建議官員開拍警匪片《無X道前傳》宣傳施政` : `${police} proposes a crime-film prequel to promote government policy`,
     zh ? `構思被指將政府宣傳娛樂化，網民開始競猜哪位改名官員適合飾演臥底。` : `The proposal has users casting renamed officials as undercover officers.`,
-    zh ? '最緊要唔好用公帑拍足三部曲。' : 'Just do not fund an entire trilogy.', 'UI/News/chiefPoliceActingInFlim.png'));
+    zh ? '最緊要唔好用公帑拍足三部曲。' : 'Just do not fund an entire trilogy.', 'UI/news/chiefPoliceActingInFlim.webp'));
   if (policyActive('publicSafety') && religion && Math.abs(monthIndex) % 4 === 0) topics.push(forumStory('開心些牙',
     zh ? `${religion}陪伴更新人士打機　讓在囚人士輕鬆度日` : `${religion} plays video games with inmates in rehabilitation programme`,
     zh ? `計劃以遊戲協助減壓、建立關係及重整生活，部分網民大讚有人情味。` : `The programme uses games to reduce stress, build trust and support rehabilitation.`,
-    zh ? '打機可以重來，人生都應該有再開一局嘅機會。' : 'Games allow restarts; people deserve another round too.', 'UI/News/fatherWithPrisoner.png'));
+    zh ? '打機可以重來，人生都應該有再開一局嘅機會。' : 'Games allow restarts; people deserve another round too.', 'UI/news/fatherWithPrisoner.webp'));
   if ((Number(city.educationHigherIndex) || 0) >= 0.72 && city.population >= 50000) topics.push(forumStory('城市發展',
     zh ? `${chief}指香城大學繼續榮登全球100大　投資教育有很好回報` : `${chief} says university remains in global top 100`,
     zh ? `高等教育指數升至 ${Math.round((Number(city.educationHigherIndex) || 0) * 100)}，學生與網民討論排名能否轉化成更多職位。` : `Higher education reached ${Math.round((Number(city.educationHigherIndex) || 0) * 100)}, prompting debate over jobs.`,
-    zh ? '排名有升，canteen飯價可唔可以唔升？' : 'Can the ranking rise without canteen prices rising?', 'UI/News/academicUniversityRank.png'));
+    zh ? '排名有升，canteen飯價可唔可以唔升？' : 'Can the ranking rise without canteen prices rising?', 'UI/news/academicUniversityRank.webp'));
   if ((Number(city.weather?.temperatureC) || 0) >= 35) topics.push(forumStory('城中熱話',
     zh ? `35°C仍拒開冷氣　${observatory}：風扇好夠` : `At 35°C, ${observatory} still says a fan is enough`,
     zh ? `天文台辦公室錄得高溫，網民質疑節能示範是否已變成耐熱挑戰。` : `Users question whether an energy-saving example has become a heat endurance test.`,
-    zh ? '建議將個風扇列入文化遺產。' : 'Please list that fan as cultural heritage.', 'UI/News/tooHotToShutDownAitCond.png'));
+    zh ? '建議將個風扇列入文化遺產。' : 'Please list that fan as cultural heritage.', 'UI/news/tooHotToShutDownAitCond.webp'));
   if (['signal8', 'signal9', 'signal10'].includes(city.weather?.typhoonStage)) topics.push(forumStory('城中熱話',
     zh ? '颱風襲香城　市民紛紛躲到KTV暫避' : 'Residents shelter from typhoon in karaoke lounges',
     zh ? `風球生效期間，多區娛樂場所被市民當成臨時避風站，${observatory}提醒切勿冒險外出。` : `Karaoke lounges became improvised shelters as ${observatory} warned residents to stay safe.`,
-    zh ? '出面風聲大，入面唱歌聲更大。' : 'The singing inside was louder than the wind outside.', 'UI/News/typhoon.png'));
+    zh ? '出面風聲大，入面唱歌聲更大。' : 'The singing inside was louder than the wind outside.', 'UI/news/typhoon.webp'));
   if (['red', 'black'].includes(city.weather?.rainWarning)) topics.push(forumStory('城中熱話',
     zh ? '市民投訴落雨咁大又唔掛黑雨　放工先嚟黑雨' : 'Residents ask why black rain warning arrived only after work',
     zh ? `暴雨期間交通受阻，討論區大量留言追問警告時間，${observatory}成為最多人點名官員。` : `Transport was disrupted as users questioned warning timing and tagged ${observatory}.`,
-    zh ? '返到公司先紅雨，收工前一秒先黑雨。' : 'Red at the office, black one second before going home.', 'UI/News/rainstorm.png'));
+    zh ? '返到公司先紅雨，收工前一秒先黑雨。' : 'Red at the office, black one second before going home.', 'UI/news/rainstorm.webp'));
   if (city.weather?.rainWarning === 'black' && Number(city.weather?.rainfallMm) >= 80) topics.push(forumStory('交通台',
     zh ? '香城暴雨水浸　市民發現call車app多了橡皮艇選項' : 'Ride-hailing app adds inflatable-boat option during flooding',
     zh ? `多區道路受水浸影響，網民笑稱橡皮艇動態收費比的士更進取。` : `Flooded roads prompted jokes that surge-priced boats now cost more than taxis.`,
-    zh ? '司機話目的地只可以揀碼頭。' : 'The driver says destinations are limited to piers.', 'UI/News/rainstorm02.png'));
+    zh ? '司機話目的地只可以揀碼頭。' : 'The driver says destinations are limited to piers.', 'UI/news/rainstorm02.webp'));
   if ([6, 7, 8, 9].includes(city.month) && Math.abs(monthIndex) % 3 === 0) topics.push(forumStory('吹水台',
     zh ? '商場promote雪糕派曬　排隊市民怒懟工作人員' : 'Shopping-centre ice cream giveaway runs out; queue turns angry',
     zh ? `免費雪糕在宣傳時段開始不久便派完，商場解釋數量有限，網民則開始計算排隊時間成本。` : `The free ice cream ran out early, prompting users to calculate the cost of queueing.`,
-    zh ? '最凍唔係雪糕，係工作人員個眼神。' : 'The coldest thing was the staff member’s stare.', 'UI/News/sideNewsFreeIceCream.png'));
+    zh ? '最凍唔係雪糕，係工作人員個眼神。' : 'The coldest thing was the staff member’s stare.', 'UI/news/sideNewsFreeIceCream.webp'));
   if (Math.abs(monthIndex) % 7 === 0) topics.push(forumStory('吹水台',
     zh ? '過氣知名歌星搭的士爭落車地點　粗口對話被車cam全程錄影' : 'Former pop star’s taxi argument captured on dashcam',
     zh ? `片段上載後迅速流傳，網民逐秒分析雙方語氣，亦有人提醒不要公開乘客個人資料。` : `The clip went viral as users analysed every second while warning against exposing personal data.`,
-    zh ? '成首新歌都冇呢段錄音咁多人聽。' : 'More people heard this than the singer’s latest song.', 'UI/News/sideNewsSinger.png'));
+    zh ? '成首新歌都冇呢段錄音咁多人聽。' : 'More people heard this than the singer’s latest song.', 'UI/news/sideNewsSinger.webp'));
   if ((city.council?.activePrograms || []).some((program) => program.resolutionId === 'fantasyFingHeungShing')) topics.push(forumStory('城中熱話',
     zh ? `${business}要求《幻彩 fing 香城》全年365日上演　稱：「成功城市就要日日閃。」` : `${business} demands Fantasy fing Heung Shing run 365 days a year`,
     zh ? `建議在討論區引發噪音、電費及無人機航道爭議，${observatory}未有承諾每日批准飛行。` : `The proposal sparked debate over noise, power costs and flight paths; ${observatory} made no daily-flight commitment.`,
-    zh ? '日日閃之前，可唔可以先確保唔好飛去隔離城？' : 'Before flashing daily, can we keep the drones in our own city?', 'UI/News/nightDroneShowSucceed.png'));
+    zh ? '日日閃之前，可唔可以先確保唔好飛去隔離城？' : 'Before flashing daily, can we keep the drones in our own city?', 'UI/news/nightDroneShowSucceed.webp'));
   if ((city.temporaryEffects || []).some((effect) => effect.sourceId === 'tourEverywhere')) topics.push(forumStory('城中熱話',
     zh ? `${chief}落實「無處不旅遊」　自由行到公屋天台參觀阿婆曬果皮被指擾民` : `${chief} sends tourists to public-housing rooftop under Tour Everywhere campaign`,
     zh ? `旅客把居民日常生活當成景點拍攝，文化部門呼籲尊重私人空間，附近街坊要求限制旅行團。` : `Residents objected after visitors treated daily rooftop life as an attraction.`,
-    zh ? '果皮係阿婆嘅，景點係邊個批嘅？' : 'The peels belong to grandma—who approved the attraction?', 'UI/News/touringEverywhere.png'));
+    zh ? '果皮係阿婆嘅，景點係邊個批嘅？' : 'The peels belong to grandma—who approved the attraction?', 'UI/news/touringEverywhere.webp'));
   if (traffic >= 0.62) topics.push({
     category: '交通台',
     headline: zh ? `${cityName}塞車塞到市民開始在車上食晚飯` : `${cityName} commuters begin eating dinner in traffic`,
@@ -561,6 +568,11 @@ function generateMonthlyForumPost(monthIndex = getCityMonthIndex()) {
     body: zh ? `${official.name}表示歡迎市民繼續在討論區提供「有建設性又好笑」的意見。` : `${official.name} welcomed more “constructive and funny” suggestions from residents.`,
     comment: zh ? '最開心係今個月冇新奇怪議案。' : 'Best part: no strange new resolution this month.',
   });
+  if (!topics.length) {
+    const lastPost = (city.forumPosts || [])[(city.forumPosts || []).length - 1];
+    const lastPostMonthIndex = lastPost ? getCityMonthIndex(lastPost.year, lastPost.month) : -Infinity;
+    if (monthIndex - lastPostMonthIndex < FORUM_FILLER_INTERVAL_MONTHS) return null;
+  }
   topics.push({
     category: '吹水台',
     headline: zh ? `${cityName}人口突破 ${Number(city.population || 0).toLocaleString()}　網民研究邊區茶餐廳最多` : `${cityName} reaches ${Number(city.population || 0).toLocaleString()} residents as users rank local cafés`,

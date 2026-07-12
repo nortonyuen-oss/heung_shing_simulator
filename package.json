@@ -1,6 +1,6 @@
 {
   "name": "city-builder",
-  "version": "3.1.2",
+  "version": "3.1.3",
   "description": "SimCity 2000-style city builder with local SQLite save system",
   "author": "The City of Heung Shing",
   "repository": {

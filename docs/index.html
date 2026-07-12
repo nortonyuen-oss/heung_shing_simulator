@@ -4,9 +4,9 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>香城模擬器 | The City of Heung Shing</title>
-  <meta name="description" content="下載香城模擬器 v3.1.1：修正討論區新聞圖片失效問題，支援 macOS 與 Windows。" />
+  <meta name="description" content="下載香城模擬器 v3.1.2：修正討論區 AI 留言喺 AI 服務不可用時洗版式重試嘅問題，支援 macOS 與 Windows。" />
   <meta property="og:title" content="香城模擬器 | The City of Heung Shing" />
-  <meta property="og:description" content="v3.1.1 修正版：解決討論區新聞圖片顯示失效嘅問題。" />
+  <meta property="og:description" content="v3.1.2 修正版：解決 AI 服務唔穩定時討論區留言洗版式重試嘅問題。" />
   <meta property="og:image" content="assets/backgroundTitle.png" />
   <meta name="theme-color" content="#17212d" />
   <link rel="icon" href="assets/icon.png" />
@@ -31,7 +31,7 @@
   <main id="top">
     <section class="hero">
       <div class="hero-content">
-        <p class="eyebrow">香城模擬器 v3.1.1</p>
+        <p class="eyebrow">香城模擬器 v3.1.2</p>
         <h1>香城模擬器</h1>
         <p class="lede">一款向 SimCity 2000 致敬的城市建設遊戲。興建立法會、認識十位官員議員，經歷有名有姓嘅真實颱風信號同落雨閃電天氣，越 zoom 入城市越聽到對應地區嘅環境白噪音，再由雲端 AI 將城市實況編成屬於你嘅香城快訊。</p>
         <div class="hero-actions">
@@ -83,7 +83,7 @@
       <p class="stats-record">
         <span class="stats-record-item">
           <span class="stat-label">最新版本</span>
-          <strong class="stat-value" data-latest-version>v3.1.1</strong>
+          <strong class="stat-value" data-latest-version>v3.1.2</strong>
           <span data-latest-published>2026年7月11日發布</span>
         </span>
         <span class="stats-record-item">
@@ -122,7 +122,7 @@
             <p>適合 M1、M2、M3、M4 或更新的 Mac。下載 DMG 後拖入「應用程式」即可安裝。</p>
           </div>
           <div class="download-actions">
-            <a class="download-link" href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest/download/The.City.of.Heung.Shing-3.1.1-arm64.dmg" data-download-link="mac-arm64">下載 ARM64 DMG</a>
+            <a class="download-link" href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest/download/The.City.of.Heung.Shing-3.1.2-arm64.dmg" data-download-link="mac-arm64">下載 ARM64 DMG</a>
             <span class="download-count" data-download-count="mac-arm64">下載數載入中</span>
           </div>
         </article>
@@ -134,7 +134,7 @@
             <p>適合 Intel CPU 的 Mac。下載 DMG 後拖入「應用程式」即可安裝。</p>
           </div>
           <div class="download-actions">
-            <a class="download-link" href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest/download/The.City.of.Heung.Shing-3.1.1-x64.dmg" data-download-link="mac-x64">下載 Intel DMG</a>
+            <a class="download-link" href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest/download/The.City.of.Heung.Shing-3.1.2-x64.dmg" data-download-link="mac-x64">下載 Intel DMG</a>
             <span class="download-count" data-download-count="mac-x64">下載數載入中</span>
           </div>
         </article>
@@ -146,7 +146,7 @@
             <p>推薦大部分玩家使用。安裝後會加入一般應用程式捷徑。</p>
           </div>
           <div class="download-actions">
-            <a class="download-link" href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest/download/The.City.of.Heung.Shing.Setup.3.1.1.exe" data-download-link="windows-setup">下載安裝版 EXE</a>
+            <a class="download-link" href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest/download/The.City.of.Heung.Shing.Setup.3.1.2.exe" data-download-link="windows-setup">下載安裝版 EXE</a>
             <span class="download-count" data-download-count="windows-setup">下載數載入中</span>
           </div>
         </article>
@@ -158,7 +158,7 @@
             <p>不用安裝，下載後直接執行。適合快速試玩或分享給朋友。</p>
           </div>
           <div class="download-actions">
-            <a class="download-link" href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest/download/The.City.of.Heung.Shing.3.1.1.exe" data-download-link="windows-portable">下載免安裝版 EXE</a>
+            <a class="download-link" href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest/download/The.City.of.Heung.Shing.3.1.2.exe" data-download-link="windows-portable">下載免安裝版 EXE</a>
             <span class="download-count" data-download-count="windows-portable">下載數載入中</span>
           </div>
         </article>
@@ -175,6 +175,19 @@
 
       <div class="release-list">
         <article class="release-card current-release">
+          <div class="release-meta">
+            <span>v3.1.2</span>
+            <time datetime="2026-07-12">2026年7月12日</time>
+          </div>
+          <h3>AI 新聞加入三振自動停用機制</h3>
+          <ul>
+            <li>當 AI 新聞服務暫時不可用（例如額度用盡）時，討論區之前會不斷重試每一篇未生成留言嘅帖文，短時間內連環發出大量請求，連累圖片同音效一齊載入唔到。</li>
+            <li>而家走馬燈新聞、立法會角色新聞同討論區留言共用同一個「三振」機制：連續失敗 3 次就會自動停用成個 AI 新聞服務，並彈出提示，唔會再各自無限重試拖慢成個遊戲。</li>
+            <li>去設定入面重新開啟 AI 新聞會即時進行一次測試生成，同樣受三振機制保護——再連續失敗 3 次會再次自動停用。</li>
+          </ul>
+        </article>
+
+        <article class="release-card">
           <div class="release-meta">
             <span>v3.1.1</span>
             <time datetime="2026-07-12">2026年7月12日</time>
@@ -307,7 +320,7 @@
   </main>
 
   <footer>
-    <span>香城模擬器 v3.1.1</span>
+    <span>香城模擬器 v3.1.2</span>
     <div class="footer-links">
       <a href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest" rel="noopener">版本資訊</a>
       <a href="https://heungshingsimulator.blogspot.com/" rel="noopener">開發blog</a>

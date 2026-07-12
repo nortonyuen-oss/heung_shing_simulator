@@ -2,6 +2,12 @@ const AI_NEWS_SETTINGS_KEY = 'citybuilder.aiNews.v2';
 const AI_NEWS_LEGACY_SETTINGS_KEY = 'citybuilder.aiNews.v1';
 const AI_NEWS_AUTOMATIC_COOLDOWN_MS = 60000;
 const AI_NEWS_DEBUG_PREFIX = '香城快訊：';
+// Circuit breaker shared by every AI request path (ticker, council character news,
+// forum comments): 3 consecutive failures across any of them — the backend being
+// down or rate-limited affects all of them the same way — turns AI News off rather
+// than letting each feature keep retrying independently and hammering the backend.
+// Re-enabling via Settings resets the counter and fires one test request.
+const AI_NEWS_MAX_CONSECUTIVE_FAILURES = 3;
 let aiNewsSettingsSaveQueue = Promise.resolve();
 
 function hasLegacyAiNewsConfig() {
@@ -34,7 +40,24 @@ const aiNewsRuntime = {
   testPreview: '',
   statusRequestId: 0,
   modelOptionsSignature: '',
+  consecutiveFailures: 0,
 };
+
+function recordAiNewsSuccess() {
+  aiNewsRuntime.consecutiveFailures = 0;
+}
+
+function recordAiNewsFailure() {
+  if (aiNewsRuntime.config.enabled === false) return;
+  aiNewsRuntime.consecutiveFailures = (aiNewsRuntime.consecutiveFailures || 0) + 1;
+  if (aiNewsRuntime.consecutiveFailures < AI_NEWS_MAX_CONSECUTIVE_FAILURES) return;
+  aiNewsRuntime.consecutiveFailures = 0;
+  aiNewsRuntime.config.enabled = false;
+  saveAiNewsConfig();
+  renderAiNewsSettings();
+  if (typeof updateSettingsMenu === 'function') updateSettingsMenu();
+  if (typeof showToast === 'function') showToast(t('aiNews.autoDisabled'), 'warning');
+}
 
 function loadAiNewsConfig() {
   try {
@@ -268,12 +291,14 @@ async function requestCouncilCharacterNews(event, options = {}) {
       error.code = result.code;
       throw error;
     }
+    recordAiNewsSuccess();
     const headline = withAiNewsDebugPrefix(result.headline).slice(0, 220);
     if (!headline) return null;
     const line = result.quote ? `${headline}「${result.quote}」` : headline;
     if (options.addToTicker !== false && typeof addCityNews === 'function') addCityNews(line);
     return result;
   } catch (error) {
+    recordAiNewsFailure();
     console.warn('[Council News]', error.message);
     return null;
   } finally {
@@ -414,9 +439,11 @@ async function requestAiNewsGeneration(options = {}) {
         history: [...existingHistory, historyItem].filter((item) => item.headline).slice(-12),
       };
     }
+    recordAiNewsSuccess();
     return result;
   } catch (error) {
     if (requestId !== aiNewsRuntime.activeRequestId || error.name === 'AbortError') return null;
+    recordAiNewsFailure();
     aiNewsRuntime.lastError = getAiNewsErrorMessage(error.code, error.message);
     console.warn('[AI News]', error.message);
     if (options.notify && typeof showToast === 'function') showToast(aiNewsRuntime.lastError, 'warning');
@@ -599,10 +626,17 @@ function setupAiNewsSettingsUi() {
   });
   document.getElementById('ai-news-enabled')?.addEventListener('change', (event) => {
     aiNewsRuntime.config.enabled = !!event.target.checked;
-    if (!aiNewsRuntime.config.enabled) cancelAiNewsRequest();
+    if (!aiNewsRuntime.config.enabled) {
+      cancelAiNewsRequest();
+    } else {
+      aiNewsRuntime.consecutiveFailures = 0;
+    }
     saveAiNewsConfig();
     renderAiNewsSettings();
     if (typeof updateSettingsMenu === 'function') updateSettingsMenu();
+    if (aiNewsRuntime.config.enabled) {
+      requestAiNewsGeneration({ force: true, previewOnly: true, notify: true });
+    }
   });
   document.getElementById('ai-news-model')?.addEventListener('change', (event) => {
     const nextModel = event.target.value;

@@ -14,6 +14,14 @@ const forumAiCommentAttempts = new Set();
 // slower AI comment fetch that resolves after the dialog opened can still update it —
 // otherwise the popup silently stays stuck showing zero AI comments.
 let openForumPostId = '';
+// If the AI backend is down or rate-limited, every pending post's request fails the
+// same way — hydrateRecentForumAiComments() would otherwise fire one network request
+// per pending post (up to 60) every time it runs, flooding the local server's
+// connection pool and starving unrelated requests (images, audio) behind the queue.
+// One failure here pauses all forum-AI attempts for a cooldown instead of retrying
+// every other post immediately.
+const FORUM_AI_FAILURE_COOLDOWN_MS = 120000;
+let forumAiCooldownUntil = 0;
 
 function getExamForumCitizenName(seed = '') {
   const source = String(seed);
@@ -256,6 +264,7 @@ async function requestForumAiComments(post) {
   if (!post || post.aiCommentsStatus === 'complete' || forumAiCommentAttempts.has(post.id)) return false;
   if (typeof aiNewsRuntime === 'undefined' || !aiNewsRuntime.initialized
     || !aiNewsRuntime.status?.available || !getSelectedAiModel()) return false;
+  if (Date.now() < forumAiCooldownUntil) return false;
   forumAiCommentAttempts.add(post.id);
   try {
     const officials = getForumNamedOfficials();
@@ -273,10 +282,18 @@ async function requestForumAiComments(post) {
         },
       }),
     });
+    if (!response.ok) {
+      // A non-OK status (502, 429, etc.) almost always means the backend or its
+      // quota is down for everyone right now, not just this one post — back off
+      // instead of letting the next pending post retry immediately.
+      forumAiCooldownUntil = Date.now() + FORUM_AI_FAILURE_COOLDOWN_MS;
+      forumAiCommentAttempts.delete(post.id);
+      return false;
+    }
     const result = await response.json();
     const citizenComments = Array.isArray(result.citizenComments) ? result.citizenComments : [];
     const officialComments = Array.isArray(result.officialComments) ? result.officialComments : [];
-    if (!response.ok || (citizenComments.length < 1 && officialComments.length < 1)) {
+    if (citizenComments.length < 1 && officialComments.length < 1) {
       forumAiCommentAttempts.delete(post.id);
       return false;
     }
@@ -309,6 +326,7 @@ async function requestForumAiComments(post) {
     refreshOpenForumViews(post);
     return true;
   } catch (error) {
+    forumAiCooldownUntil = Date.now() + FORUM_AI_FAILURE_COOLDOWN_MS;
     forumAiCommentAttempts.delete(post.id);
     console.warn('[Forum AI comments]', error.message);
     return false;
@@ -316,6 +334,7 @@ async function requestForumAiComments(post) {
 }
 
 async function hydrateRecentForumAiComments() {
+  if (Date.now() < forumAiCooldownUntil) return;
   // Newest first: if generation is slow or a post never gets picked up, it should be
   // an old thread nobody's looking at anymore, not the one just posted.
   const pending = (city.forumPosts || []).filter((post) => post.aiCommentsStatus !== 'complete').reverse();

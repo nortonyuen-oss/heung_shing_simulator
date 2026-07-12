@@ -1,34 +1,24 @@
-# The City of Heung Shing v3.0.0
+# The City of Heung Shing v3.1.0
 
-This major release adds a full Legislative Council, ties AI news to named council characters, and rebuilds the weather system with real typhoon signals and live visual effects.
+This release redesigns the Legislative Council into a categorised chamber experience, brings AI-generated commentary to the Heung Shing Forum, and fixes the reliability issues behind both AI systems.
 
-## Legislative Council (Phase 1)
+## Legislative Council: chamber redesign
 
-- Adds 10 named officials and councillors with distinct beliefs, focus issues, and rule-based opinions that react to real city data (budget, tax, crime, pollution, health, and more).
-- Council overview and Acts & Ordinances tabs open once the Legislative Council is built and the city has enough population; opinions stay locked until then.
-- Officials and councillors can be renamed by the player; stable internal IDs keep news, votes, and comments consistent across renames.
-- Policy actions generate rule-based council news immediately, with an optional AI-authored version layered on top when Ollama Cloud is enabled.
+- Acts & Ordinances is no longer one long scrolling list — the 18 permanent bills are grouped into six collapsible categories (Finance & Economy, Public Safety & Transport, Environment & Urban Planning, Education & Science, Social Welfare, Governance Reform), plus a dedicated Special Resolutions group for the one-off funding motions (Cash Handout, Tour Everywhere, the MENA concert, the Mui Kin-kwok match, the AI anti-drug girl group, and Fantasy fing Heung Shing).
+- Every bill and resolution now shows the portrait of the official or councillor who moved it, chosen from each character's real focus areas and interests.
+- The policy/resolution detail view and the in-progress council session both open with a "podium" header using the real chamber interior artwork and the mover's portrait; an active session shows its real debate/decision stage instead of a plain status line.
+- Official advice and councillors' initial positions are laid out as alternating left/right cards instead of a stacked list, reading more like an actual floor debate.
 
-## AI news, now with characters
+## Heung Shing Forum: AI commentary
 
-- Adds a `council_character` story type so AI news can voice specific officials — policy reactions, on-demand "profile feature" pieces, and typhoon signal announcements from the Observatory Director.
-- AI output is validated against the authoritative facts the game engine already decided (no invented numbers, policies, or characters); a rule-based fallback always covers the same event if AI is disabled or fails.
-- Newspaper "Extra" front pages celebrate milestones — Legislative Council opening, Stock Exchange listing, and Typhoon Signal No. 8+ bulletins — using the same rule-first pipeline.
+- Forum posts can now get AI-generated comments — 2 to 3 from citizens and 1 to 2 in-character replies from named officials, clearly badged apart from the rule-based ones.
+- Fixed the root cause of AI comments silently never appearing: reasoning-capable cloud models were spending their entire token budget on hidden "thinking" and leaving nothing for the actual reply. Generation now detects this, learns which models do it, and automatically falls back to a working model instead of failing silently.
+- The forum popup now updates live if AI comments finish generating after the dialog is already open, instead of requiring it to be reopened.
 
-## Weather system rebuild
+## Settings and menus
 
-- Typhoons are now named from the real Western North Pacific tropical cyclone list (Chinese and Japanese names included) and progress through realistic 1→3→8→(9→10)→8→3→1 signal arcs driven directly by simulated wind speed.
-- Rainstorm warnings (Amber/Red/Black) are derived from simulated rainfall using Hong Kong Observatory-style thresholds.
-- A topbar weather chip shows live condition, temperature, humidity, and active signal/rainstorm badges using official-style HKO iconography; click it for a detail legend.
-- Adds screen-space rain particles and lightning with thunder, both tied to the same storm-severity ladder as the sky-darkening effect — rain falls vertically in calm weather and leans further with rising wind speed.
-- A new Settings toggle lets players disable rain/lightning visual effects for lower-end machines while keeping the (near-zero-cost) sky darkening.
-- Adds a zoom-aware Hong Kong ambient soundscape: zooming into dense commercial/residential blocks fades in matching urban or residential room tone, layered with rain/typhoon audio when the weather turns.
-
-## Balance and fixes
-
-- Rebalances nuclear power plant pollution to better reflect its real lifecycle footprint relative to coal.
-- Fixes a topbar weather dialog bug where reopening it kept appending old readings instead of showing only the current weather.
-- Fixes screen-space weather effects (darkening, rain, lightning) not covering the full viewport when zoomed out.
+- Music volume and a new separate City Ambience volume (the background traffic/rain/typhoon soundscape) are now both remembered between sessions.
+- The Settings and View menus were reorganised: display toggles (district signs, weather visual effects) moved into View; the redundant speed controls and Budget Panel shortcut (already available on the top bar and HUD) were removed from Settings.
 
 ## Downloads
 
@@ -37,4 +27,4 @@ This major release adds a full Legislative Council, ties AI news to named counci
 - Windows installer EXE
 - Windows portable EXE
 
-Save format version: 13.
+Save format version: 14.

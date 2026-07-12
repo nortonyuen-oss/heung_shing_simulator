@@ -10,6 +10,15 @@ const HKEAA_FORUM_SURNAMES = Object.freeze([
   '陳', '李', '黃', '張', '梁', '林', '劉', '何', '鄭', '周', '羅', '許',
 ]);
 const forumAiCommentAttempts = new Set();
+// Forum images migrated from UI/News/*.png to UI/news/*.webp; this also runs on
+// values already in the new format, so it is safe to apply unconditionally to any
+// image path a forum post is built with (migrating old saves, validating new ones).
+function normalizeForumImagePath(value) {
+  const migrated = String(value || '')
+    .replace(/^UI\/News\//, 'UI/news/')
+    .replace(/\.png$/i, '.webp');
+  return /^UI\/news\/[a-zA-Z0-9_.-]+\.webp$/.test(migrated) ? migrated : '';
+}
 // Tracks which forum post (if any) is rendered in #newspaper-dialog right now, so a
 // slower AI comment fetch that resolves after the dialog opened can still update it —
 // otherwise the popup silently stays stuck showing zero AI comments.

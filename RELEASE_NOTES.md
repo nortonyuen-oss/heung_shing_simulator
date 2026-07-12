@@ -1,11 +1,10 @@
-# The City of Heung Shing v3.1.3
+# The City of Heung Shing v3.1.4
 
-Patch release. Fixes broken forum news images and reduces how often the forum posts filler chatter.
+Critical patch. v3.1.3 broke all new discussion forum posts — fixed here.
 
 ## Fix
 
-- 15 forum "special event" images (typhoon, rainstorm, academic ranking, singer scandal, free ice cream, night drone show, and others) still pointed at their old pre-WebP-migration `.png` paths, which no longer exist on disk — every one of them showed as a broken image. All references now point at the real `.webp` files, and the image-path validator that builds each forum post now reuses the same normalization used elsewhere, instead of a separate check that only accepted the old format.
-- The discussion forum generated a new post every single in-game month, even when nothing notable happened, which added up to unnecessary churn over a long game. It now only posts every month when something actually triggers it (a typhoon, a new policy, a stat threshold, a seasonal event, etc.); if nothing did, it falls back to at most once every 3 months.
+- The v3.1.3 image-path fix called a helper function (`normalizeForumImagePath`) that, due to a packaging oversight, was never actually included in that release. As a result, every attempt to create a forum post — the monthly discussion post, resolution-outcome announcements, all of it — threw an error and silently failed. New games and existing saves alike stopped generating any forum content. The function is now defined directly where it's used, with no missing dependency.
 
 ## Downloads
 

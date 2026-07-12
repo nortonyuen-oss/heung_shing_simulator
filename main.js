@@ -130,6 +130,76 @@ function applyWeatherEffectsEnabledState(scene) {
     scene.currentRainTier = null; // force re-application on the next tier check
   }
 }
+
+// Music volume — persisted so the level a player left it at carries into their next
+// session instead of resetting to the slider's hardcoded HTML default every launch.
+const MUSIC_VOLUME_SETTING_KEY = 'citybuilder.musicVolume.v1';
+let musicVolumeCache = null;
+
+function getStoredMusicVolume() {
+  if (musicVolumeCache !== null) return musicVolumeCache;
+  try {
+    const raw = localStorage.getItem(MUSIC_VOLUME_SETTING_KEY);
+    const value = raw === null ? 0.55 : Number(JSON.parse(raw));
+    musicVolumeCache = Number.isFinite(value) ? Math.max(0, Math.min(1, value)) : 0.55;
+  } catch {
+    musicVolumeCache = 0.55;
+  }
+  return musicVolumeCache;
+}
+
+function setStoredMusicVolume(value) {
+  const clamped = Math.max(0, Math.min(1, Number(value)));
+  musicVolumeCache = Number.isFinite(clamped) ? clamped : 0.55;
+  try {
+    localStorage.setItem(MUSIC_VOLUME_SETTING_KEY, JSON.stringify(musicVolumeCache));
+  } catch {}
+}
+
+// Applies the stored volume to both volume sliders (Sound menu + Jukebox window, kept
+// in sync) and the currently playing track, if any. Safe to call before either slider
+// exists in the DOM.
+function applyStoredMusicVolume() {
+  const volume = getStoredMusicVolume();
+  const jukeboxVol = document.getElementById('jukebox-volume');
+  const menuVol = document.getElementById('menu-volume-slider');
+  if (jukeboxVol) jukeboxVol.value = volume;
+  if (menuVol) menuVol.value = volume;
+  if (activeMusic) activeMusic.setVolume(volume);
+  if (titleLoadingAudio) titleLoadingAudio.volume = volume;
+}
+
+// City ambience (background soundscape) volume — a separate mix knob from music, so
+// players can turn down traffic/rain/typhoon noise without touching the music level.
+// Read fresh every updateAmbientSoundscape() tick, so no imperative push is needed when
+// it changes — the existing fade-toward-target loop picks it up within one tick.
+const AMBIENT_VOLUME_SETTING_KEY = 'citybuilder.ambientVolume.v1';
+let ambientVolumeCache = null;
+
+function getStoredAmbientVolume() {
+  if (ambientVolumeCache !== null) return ambientVolumeCache;
+  try {
+    const raw = localStorage.getItem(AMBIENT_VOLUME_SETTING_KEY);
+    const value = raw === null ? 1 : Number(JSON.parse(raw));
+    ambientVolumeCache = Number.isFinite(value) ? Math.max(0, Math.min(1, value)) : 1;
+  } catch {
+    ambientVolumeCache = 1;
+  }
+  return ambientVolumeCache;
+}
+
+function setStoredAmbientVolume(value) {
+  const clamped = Math.max(0, Math.min(1, Number(value)));
+  ambientVolumeCache = Number.isFinite(clamped) ? clamped : 1;
+  try {
+    localStorage.setItem(AMBIENT_VOLUME_SETTING_KEY, JSON.stringify(ambientVolumeCache));
+  } catch {}
+}
+
+function applyStoredAmbientVolume() {
+  const slider = document.getElementById('menu-ambient-volume-slider');
+  if (slider) slider.value = getStoredAmbientVolume();
+}
 const AMBIENT_ZOOM_MIN = 0.5;   // camera.zoom at/below this → ambience is silent
 const AMBIENT_ZOOM_MAX = 1.8;   // camera.zoom at/above this → ambience is at full volume
 const AMBIENT_SAMPLE_GRID = 6;  // NxN screen-space sample grid used to gauge on-screen building density
@@ -988,6 +1058,7 @@ async function initializeGame() {
   setupToolMenu();
   setupMenuBar();
   setupRoadTileSetWindow();
+  applyStoredMusicVolume();
   updateHouseToolUi();
   updateTerrainToolUi();
   updateZoneDensityBadges();
@@ -2090,8 +2161,12 @@ function setupJukebox() {
 
   // Volume
   volume.addEventListener('input', () => {
-    if (activeMusic) activeMusic.setVolume(Number(volume.value));
-    if (titleLoadingAudio) titleLoadingAudio.volume = Number(volume.value);
+    const value = Number(volume.value);
+    setStoredMusicVolume(value);
+    const menuVol = document.getElementById('menu-volume-slider');
+    if (menuVol) menuVol.value = value;
+    if (activeMusic) activeMusic.setVolume(value);
+    if (titleLoadingAudio) titleLoadingAudio.volume = value;
   });
 
   updateJukeboxUi();
@@ -4816,12 +4891,13 @@ function updateAmbientSoundscape(scene) {
   const isTyphoon = ['signal3', 'signal8', 'signal9', 'signal10'].includes(weather.typhoonStage);
   const isApproachingTyphoon = weather.typhoonStage === 'signal1';
   const isRaining = !isTyphoon && (weather.condition === 'showers' || weather.condition === 'heavyRain');
+  const ambientMix = getStoredAmbientVolume();
 
   const targets = {
-    urban: zoomFade * urbanScore * AMBIENT_BASE_VOLUME.urban,
-    residential: zoomFade * (1 - urbanScore * 0.85) * AMBIENT_BASE_VOLUME.residential,
-    rain: zoomFade * (isRaining ? 1 : 0) * AMBIENT_BASE_VOLUME.rain,
-    typhoon: zoomFade * (isTyphoon ? 1 : isApproachingTyphoon ? 0.45 : 0) * AMBIENT_BASE_VOLUME.typhoon,
+    urban: zoomFade * urbanScore * AMBIENT_BASE_VOLUME.urban * ambientMix,
+    residential: zoomFade * (1 - urbanScore * 0.85) * AMBIENT_BASE_VOLUME.residential * ambientMix,
+    rain: zoomFade * (isRaining ? 1 : 0) * AMBIENT_BASE_VOLUME.rain * ambientMix,
+    typhoon: zoomFade * (isTyphoon ? 1 : isApproachingTyphoon ? 0.45 : 0) * AMBIENT_BASE_VOLUME.typhoon * ambientMix,
   };
 
   Object.keys(targets).forEach((channel) => {

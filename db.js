@@ -31,6 +31,18 @@ function openGameDatabase(dbPath = resolveDbPath()) {
     )
   `);
 
+  // Older databases predate dedicated autosave slots. Keep the migration
+  // additive so existing manual saves remain untouched.
+  const saveColumns = db.prepare('PRAGMA table_info(game_saves)').all();
+  if (!saveColumns.some((column) => column.name === 'save_type')) {
+    db.exec("ALTER TABLE game_saves ADD COLUMN save_type TEXT NOT NULL DEFAULT 'manual'");
+  }
+  db.exec(`
+    CREATE UNIQUE INDEX IF NOT EXISTS game_saves_single_autosave
+    ON game_saves(save_type)
+    WHERE save_type = 'autosave'
+  `);
+
   db.exec(`
     CREATE TABLE IF NOT EXISTS terrain_presets (
       id            INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -44,7 +56,7 @@ function openGameDatabase(dbPath = resolveDbPath()) {
   `);
 
   const getSaveMetadataById = db.prepare(`
-    SELECT id, city_name, population, year, month, budget, created_at, updated_at
+    SELECT id, city_name, population, year, month, budget, save_type, created_at, updated_at
     FROM game_saves
     WHERE id = ?
   `);
@@ -60,7 +72,7 @@ function openGameDatabase(dbPath = resolveDbPath()) {
 
     listSaves() {
       return db.prepare(`
-        SELECT id, city_name, population, year, month, budget, created_at, updated_at
+        SELECT id, city_name, population, year, month, budget, save_type, created_at, updated_at
         FROM game_saves
         ORDER BY updated_at DESC
       `).all();
@@ -82,6 +94,29 @@ function openGameDatabase(dbPath = resolveDbPath()) {
       `).run(serializePayload(payload));
 
       return getSaveMetadataById.get(result.lastInsertRowid);
+    },
+
+    upsertAutosave(payload) {
+      const values = serializePayload({ ...payload, city_name: 'autosave' });
+      db.prepare(`
+        INSERT INTO game_saves
+          (city_name, population, year, month, budget, save_data, save_type, updated_at)
+        VALUES
+          (@city_name, @population, @year, @month, @budget, @save_data, 'autosave', CURRENT_TIMESTAMP)
+        ON CONFLICT(save_type) WHERE save_type = 'autosave' DO UPDATE SET
+          city_name = excluded.city_name,
+          population = excluded.population,
+          year = excluded.year,
+          month = excluded.month,
+          budget = excluded.budget,
+          save_data = excluded.save_data,
+          updated_at = CURRENT_TIMESTAMP
+      `).run(values);
+
+      return db.prepare(`
+        SELECT id, city_name, population, year, month, budget, save_type, created_at, updated_at
+        FROM game_saves WHERE save_type = 'autosave'
+      `).get();
     },
 
     updateSave(id, payload) {

@@ -31,6 +31,7 @@
     }
 
     #game-container {
+      position: relative;
       width: 100vw;
       height: 100vh;
       overflow: hidden;
@@ -39,6 +40,63 @@
     #game-container canvas {
       display: block;
       image-rendering: auto;
+    }
+
+    #drone-show-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 9;
+      overflow: hidden;
+      pointer-events: none;
+      opacity: 0;
+      background: linear-gradient(to bottom, rgba(3, 8, 27, 0.34), rgba(3, 8, 27, 0.08) 72%, transparent);
+    }
+    #drone-show-overlay.is-playing { animation: drone-show-sky 5s ease-in-out both; }
+    .firework-burst {
+      position: absolute;
+      left: var(--x);
+      top: var(--y);
+      width: 1px;
+      height: 1px;
+      transform: scale(var(--size));
+    }
+    .firework-burst::before {
+      content: '';
+      position: absolute;
+      left: -2px;
+      top: -2px;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: #fff;
+      opacity: 0;
+      box-shadow: 0 0 14px 5px var(--color);
+    }
+    .firework-burst i {
+      position: absolute;
+      left: -1.5px;
+      top: -5px;
+      width: 3px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--color);
+      box-shadow: 0 0 6px 2px var(--color);
+      opacity: 0;
+      transform-origin: 50% 5px;
+    }
+    #drone-show-overlay.is-playing .firework-burst::before {
+      animation: firework-flash .42s ease-out var(--delay) both;
+    }
+    #drone-show-overlay.is-playing .firework-burst i {
+      animation: firework-spark 1.28s cubic-bezier(.16,.72,.32,1) var(--delay) both;
+    }
+    @keyframes drone-show-sky { 0%,100% { opacity: 0; } 7%,90% { opacity: 1; } }
+    @keyframes firework-flash { 0% { opacity: 0; transform: scale(.2); } 22% { opacity: 1; transform: scale(2.6); } 100% { opacity: 0; transform: scale(5); } }
+    @keyframes firework-spark {
+      0% { opacity: 0; transform: rotate(var(--angle)) translateY(0) scaleY(.4); }
+      12% { opacity: 1; }
+      72% { opacity: .9; }
+      100% { opacity: 0; transform: rotate(var(--angle)) translateY(calc(-1 * var(--distance))) scaleY(.18); }
     }
 
     /* ── Top menu bar ────────────────────────────────────────────────────── */
@@ -860,6 +918,142 @@
       border-top: 1px solid #ccc3a8;
       background: #f4efe1;
     }
+    .forum-engagement { display: none; }
+    .newspaper-box.is-forum {
+      max-width: 620px;
+      background: #eef1f5;
+      border: 0;
+      border-radius: 14px;
+      font-family: Arial, 'Noto Sans TC', sans-serif;
+    }
+    .newspaper-box.is-forum .newspaper-ribbon {
+      top: 66px;
+      right: 18px;
+      width: auto;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #ff5a36;
+      font-size: 10px;
+      letter-spacing: .5px;
+      transform: none;
+      box-shadow: none;
+    }
+    .newspaper-box.is-forum .newspaper-masthead-bar {
+      align-items: center;
+      padding: 14px 50px 14px 18px;
+      background: #172133;
+      border: 0;
+    }
+    .newspaper-box.is-forum .newspaper-masthead {
+      color: #fff;
+      font-family: Arial, 'Noto Sans TC', sans-serif;
+      font-size: 22px;
+      letter-spacing: 0;
+    }
+    .newspaper-box.is-forum .newspaper-date { color: #aeb8c8; text-transform: none; }
+    .newspaper-box.is-forum .newspaper-rule { display: none; }
+    .newspaper-box.is-forum .newspaper-content {
+      margin: 12px;
+      padding: 16px;
+      max-height: calc(86vh - 130px);
+      background: #fff;
+      border: 1px solid #dce1e8;
+      border-radius: 12px;
+    }
+    .newspaper-box.is-forum .newspaper-portrait-wrap {
+      float: left;
+      width: 54px;
+      margin: 0 12px 8px 0;
+      text-align: left;
+    }
+    .newspaper-box.is-forum .newspaper-portrait {
+      width: 48px;
+      height: 48px;
+      border: 0;
+      border-radius: 50%;
+    }
+    .newspaper-box.is-forum .newspaper-portrait-caption {
+      width: 120px;
+      color: #526173;
+      font-size: 9px;
+      text-transform: none;
+    }
+    .newspaper-box.is-forum .newspaper-headline {
+      margin: 2px 0 5px;
+      color: #172133;
+      font-family: Arial, 'Noto Sans TC', sans-serif;
+      font-size: 21px;
+      line-height: 1.25;
+    }
+    .newspaper-box.is-forum .newspaper-subhead {
+      margin-bottom: 14px;
+      color: #687586;
+      font-family: Arial, 'Noto Sans TC', sans-serif;
+      font-size: 12px;
+      font-style: normal;
+    }
+    .newspaper-box.is-forum .newspaper-columns {
+      clear: both;
+      color: #283548;
+      font-family: Arial, 'Noto Sans TC', sans-serif;
+      font-size: 13px;
+      line-height: 1.55;
+      column-count: 1;
+      text-align: left;
+    }
+    .newspaper-box.is-forum .newspaper-quote {
+      margin-top: 12px;
+      padding: 10px 12px;
+      background: #edf4ff;
+      border: 0;
+      border-radius: 9px;
+      font-family: Arial, 'Noto Sans TC', sans-serif;
+    }
+    .newspaper-box.is-forum .newspaper-quote p { color: #25364f; font-size: 13px; font-style: normal; }
+    .newspaper-box.is-forum .newspaper-quote cite { color: #2865b1; text-transform: none; }
+    .newspaper-box.is-forum .forum-engagement { display: block; clear: both; margin-top: 12px; }
+    .forum-reactions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      padding: 9px 0;
+      color: #526173;
+      border-top: 1px solid #e3e7ec;
+      border-bottom: 1px solid #e3e7ec;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .forum-comments { display: grid; gap: 7px; margin-top: 10px; }
+    .forum-comment { padding: 8px 10px; background: #f2f4f7; border-radius: 10px; color: #29384c; font-size: 12px; line-height: 1.4; }
+    .forum-comment strong { color: #1f5f9f; margin-right: 6px; }
+    .forum-ai-badge { display: inline-block; margin-right: 6px; padding: 1px 4px; color: #6b3aa5; background: #eee4fb; border: 1px solid #d5c0ef; border-radius: 3px; font-size: 8px; font-weight: 800; vertical-align: 1px; }
+    .forum-official-badge { display: inline-block; margin-right: 6px; padding: 1px 4px; color: #0f5c8a; background: #dbeeff; border: 1px solid #b7d9f4; border-radius: 3px; font-size: 8px; font-weight: 800; vertical-align: 1px; }
+    .newspaper-box.is-forum .newspaper-footer { background: #eef1f5; border-top: 1px solid #dce1e8; }
+    .forum-history-box { max-width: 760px; width: 94vw; max-height: 88vh; padding: 0; overflow: hidden; background: #e9edf2; border: 2px solid #172133; }
+    .forum-history-header { padding: 14px 18px; color: #fff; background: #172133; }
+    .forum-history-header h2 { margin: 0; font-size: 23px; }
+    .forum-history-header p { margin: 4px 0 0; color: #aeb8c8; font-size: 11px; }
+    .forum-history-nav { display: flex; flex-wrap: wrap; gap: 5px; padding: 7px 12px; color: #fff; background: #27354b; font-size: 11px; }
+    .forum-history-nav button { padding: 4px 9px; color: #fff; background: #34455f; border: 0; border-radius: 3px; font: inherit; cursor: pointer; }
+    .forum-history-nav button:hover { background: #476080; }
+    .forum-history-nav button.is-active { background: #e65f2b; }
+    .forum-filter-count { margin-left: 3px; opacity: .72; }
+    .forum-history-list { max-height: calc(88vh - 150px); padding: 10px; overflow-y: auto; }
+    .forum-history-empty { padding: 28px; color: #667386; text-align: center; }
+    .forum-thread { margin-bottom: 6px; background: #fff; border: 1px solid #cbd2dc; }
+    .forum-thread summary { display: grid; grid-template-columns: 80px minmax(0,1fr) auto; gap: 5px 10px; padding: 10px; cursor: pointer; list-style: none; }
+    .forum-thread summary.has-image { grid-template-columns: 80px 72px minmax(0,1fr) auto; }
+    .forum-thread summary::-webkit-details-marker { display: none; }
+    .forum-thread[open] summary { background: #f5f7fa; border-bottom: 1px solid #d8dee7; }
+    .forum-thread-category { align-self: start; padding: 3px 5px; color: #fff; background: #e65f2b; border-radius: 3px; font-size: 10px; text-align: center; }
+    .forum-thread-title { color: #163e72; font-size: 14px; font-weight: 800; }
+    .forum-thread-stats { color: #6a7687; font-size: 10px; white-space: nowrap; }
+    .forum-thread-meta { grid-column: 2 / 4; color: #7d8794; font-size: 10px; }
+    .forum-thread summary.has-image .forum-thread-meta { grid-column: 3 / 5; }
+    .forum-thread-thumb { grid-column: 2; grid-row: 1 / 3; width: 72px; height: 50px; object-fit: cover; border-radius: 3px; background: #dfe4ea; }
+    .forum-thread-content { padding: 12px 16px; color: #283548; font-size: 13px; line-height: 1.55; }
+    .forum-thread-content p { margin: 0 0 8px; }
+    .forum-thread-image { display: block; width: 100%; max-height: 360px; margin: 0 0 12px; object-fit: cover; border: 1px solid #cbd2dc; border-radius: 5px; background: #dfe4ea; }
     @media (max-width: 520px) {
       .newspaper-columns { column-count: 1; }
       .newspaper-masthead { font-size: 24px; }
@@ -2767,8 +2961,7 @@
       text-transform: uppercase;
     }
 
-    .loan-btn,
-    .policy-toggle {
+    .loan-btn {
       border: 2px solid #6f6b60;
       border-radius: 5px;
       background: #ece7d4;
@@ -2781,13 +2974,7 @@
       padding: 4px 7px;
     }
 
-    .loan-btn:hover,
-    .policy-toggle:hover { background: #f8f0d2; }
-
-    .policy-toggle.is-active {
-      background: #f1c65d;
-      box-shadow: inset -1px -1px 0 #fff7cf, inset 1px 1px 0 #8d7025;
-    }
+    .loan-btn:hover { background: #f8f0d2; }
 
     .budget-note {
       color: #5a5648;
@@ -3496,32 +3683,86 @@
       line-height: 1.35;
     }
 
-    .council-policy-list {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 6px;
-      padding: 0;
+    /* Categorised, collapsible law/resolution list (accordion) */
+    .council-policy-list { display: flex; flex-direction: column; gap: 4px; overflow-y: auto; }
+    .bill-group + .bill-group { margin-top: 2px; }
+    .bill-group-head {
+      display: flex; align-items: center; gap: 7px; width: 100%; text-align: left; padding: 6px 6px;
+      border: none; background: transparent; cursor: pointer; border-radius: 4px; font: inherit; color: inherit;
     }
+    .bill-group-head:hover { background: rgba(0,0,0,0.05); }
+    .bill-group-head .chevron { font-size: 9px; color: #8b5c24; width: 10px; transition: transform .15s ease; }
+    .bill-group.is-open .bill-group-head .chevron { transform: rotate(90deg); }
+    .bill-group-icon {
+      width: 20px; height: 20px; border-radius: 5px; flex-shrink: 0; display: flex; align-items: center;
+      justify-content: center; font-size: 11px; background: #6b4423; color: #f4e6c8;
+    }
+    .bill-group-title { font-size: 11px; font-weight: 900; color: #5d3516; flex: 1; }
+    .bill-group-count { font-size: 9px; font-weight: 800; color: #665743; background: rgba(0,0,0,0.06); padding: 1px 6px; border-radius: 999px; }
+    .bill-group-list { display: none; flex-direction: column; gap: 3px; padding: 2px 2px 6px 25px; }
+    .bill-group.is-open .bill-group-list { display: flex; }
+    .bill-row {
+      display: grid; grid-template-columns: 22px 1fr auto; align-items: center; gap: 6px; padding: 5px 6px;
+      border-radius: 5px; cursor: pointer; border: 1px solid transparent; background: none; text-align: left;
+      width: 100%; font: inherit; color: inherit; min-height: 28px;
+    }
+    .bill-row:hover { background: #f8f0d2; }
+    .bill-row.is-selected { background: #fbf3da; border-color: #c9a154; outline: 2px solid rgba(139,92,36,0.35); outline-offset: 1px; }
+    .bill-row.is-locked { opacity: .55; filter: grayscale(.65); }
+    .bill-row.is-locked:hover { opacity: .78; }
+    .mover-chip { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; object-position: top; border: 1px solid #817765; display: block; }
+    .bill-row-title { font-size: 11px; font-weight: 700; line-height: 1.3; }
+    .bill-row-cost { font-size: 9px; color: #665743; white-space: nowrap; }
 
-    .council-policy-list .policy-toggle {
-      min-height: 34px;
-      text-align: left;
+    .council-laws-layout { display: grid; grid-template-columns: minmax(200px, 0.8fr) minmax(320px, 1.2fr); gap: 8px; padding: 8px; }
+    .council-policy-detail { min-height: 360px; padding: 0 10px 10px; border: 1px solid #958b78; border-radius: 5px; background: #f7efdc; overflow: hidden; }
+
+    /* Chamber "podium" header shared by policy/resolution/session detail views */
+    .podium-band {
+      position: relative; margin: 0 -10px 10px; padding: 14px 16px 12px; color: #fdf4de; overflow: hidden;
+      background-size: cover; background-position: center 30%;
     }
-    .council-policy-list .policy-toggle.is-selected { outline: 3px solid rgba(139,92,36,0.45); outline-offset: 1px; }
-    .council-policy-list .policy-toggle.is-locked { opacity: .58; filter: grayscale(.65); }
-    .council-policy-list .policy-toggle.is-locked:hover { opacity: .82; }
-    .council-laws-layout { display: grid; grid-template-columns: minmax(180px, 0.72fr) minmax(320px, 1.28fr); gap: 8px; padding: 8px; }
-    .council-policy-detail { min-height: 360px; padding: 10px; border: 1px solid #958b78; border-radius: 5px; background: #f7efdc; }
-    .council-policy-title { margin: 0; color: #5d3516; font-size: 17px; }
-    .council-policy-desc { margin: 6px 0 9px; color: #4d4437; font-size: 11px; line-height: 1.45; }
+    .podium-band::before {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(180deg, rgba(30,18,8,0.55), rgba(30,18,8,0.82) 75%, rgba(30,18,8,0.92));
+    }
+    .podium-band > * { position: relative; z-index: 1; }
+    .podium-row { display: flex; align-items: center; gap: 12px; }
+    .podium-avatar { width: 48px; height: 48px; border-radius: 8px; flex-shrink: 0; object-fit: cover; object-position: top; border: 2px solid #f6e9cc; }
+    .podium-copy .category-eyebrow { font-size: 9.5px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: #e0c789; margin: 0 0 2px; }
+    .podium-copy .council-policy-title { color: #fdf4de; font-size: 16px; margin: 0; }
+    .podium-copy .mover-line { font-size: 10.5px; color: #e7dcc2; margin: 3px 0 0; }
+    .podium-copy .mover-line b { color: #fff3d9; }
+
+    /* Active-session stage stepper (draft vs decided) */
+    .council-stage-stepper { display: flex; gap: 6px; margin: 0 0 10px; }
+    .council-stage-step {
+      font-size: 9.5px; font-weight: 800; padding: 3px 9px; border-radius: 999px; color: #5d3516;
+      background: #e8dfc5; border: 1px solid #b5aa96;
+    }
+    .council-stage-step.is-current { background: #c9a154; color: #33260c; border-color: transparent; }
+    .council-stage-step.is-done { opacity: .6; text-decoration: line-through; }
+
+    .council-policy-desc { margin: 0 0 9px; color: #4d4437; font-size: 11px; line-height: 1.45; }
     .council-policy-facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-bottom: 9px; }
     .council-policy-fact { padding: 5px; border: 1px solid #b2a893; background: #eee5d1; text-align: center; }
     .council-policy-fact span { display: block; color: #756b5b; font-size: 9px; font-weight: 800; text-transform: uppercase; }
     .council-policy-fact strong { display: block; margin-top: 2px; color: #332b21; font-size: 11px; }
     .council-policy-section-title { margin: 9px 0 5px; color: #665743; font-size: 10px; font-weight: 900; text-transform: uppercase; }
-    .council-advice-list, .council-position-list { display: grid; gap: 5px; }
-    .council-advice-row, .council-position-row { display: grid; grid-template-columns: 34px 1fr auto; gap: 6px; align-items: center; padding: 5px; border: 1px solid #b5aa96; background: rgba(255,255,255,0.35); }
-    .council-advice-row img, .council-position-row img { width: 34px; height: 34px; object-fit: cover; object-position: top; border: 1px solid #817765; }
+
+    /* Advisor/position rows styled as a chamber debate — alternating sides */
+    .council-advice-list, .council-position-list { display: grid; gap: 6px; }
+    .council-advice-row, .council-position-row {
+      display: grid; grid-template-columns: 34px 1fr auto; gap: 7px; align-items: center; padding: 6px 8px;
+      border: 1px solid #b5aa96; border-radius: 10px; background: rgba(255,255,255,0.4);
+    }
+    .council-advice-row img, .council-position-row img { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; object-position: top; border: 1px solid #817765; }
+    .council-advice-list > :nth-child(even), .council-position-list > :nth-child(even) {
+      grid-template-columns: auto 1fr 34px;
+    }
+    .council-advice-list > :nth-child(even) > img, .council-position-list > :nth-child(even) > img { order: 2; }
+    .council-advice-list > :nth-child(even) > div, .council-position-list > :nth-child(even) > div { order: 1; text-align: right; }
+    .council-advice-list > :nth-child(even) > .council-position-badge, .council-position-list > :nth-child(even) > .council-position-badge { order: 0; }
     .council-preview-name { display: block; font-size: 10px; font-weight: 900; }
     .council-preview-reason { display: block; margin-top: 2px; color: #665d50; font-size: 9px; line-height: 1.25; }
     .council-position-badge { min-width: 45px; padding: 3px 5px; border-radius: 999px; text-align: center; font-size: 9px; font-weight: 900; }
@@ -3530,7 +3771,14 @@
     .council-position-badge[data-stance="oppose"] { color: #7a2727; background: #f1d2cf; border: 1px solid #bd7770; }
     .council-policy-action { width: 100%; margin-top: 10px; padding: 7px; border: 2px solid #6f6b60; border-radius: 4px; background: #f1c65d; color: #2e271c; cursor: pointer; font-weight: 900; }
     .council-policy-action:disabled { cursor: not-allowed; filter: grayscale(1); opacity: .55; }
+    .council-secondary-action { margin-top: 6px; background: #ddd4c2; }
+    .council-vote-reveal { opacity: 0; animation: council-vote-reveal .28s ease-out forwards; animation-delay: calc(var(--vote-index) * .16s); }
+    @keyframes council-vote-reveal { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: translateX(0); } }
     .council-policy-action-note { margin-top: 5px; color: #756b5b; font-size: 9px; text-align: center; }
+    .council-history-list { display: grid; gap: 7px; padding: 10px; }
+    .council-history-card { display: grid; grid-template-columns: minmax(180px, 1fr) auto auto auto; gap: 10px; align-items: center; padding: 9px; border: 1px solid #a99d87; border-radius: 4px; background: #f7efdc; font-size: 11px; }
+    .council-history-card strong { color: #5d3516; }
+    .council-history-card span { color: #645948; }
 
     @media (max-width: 820px) {
       #legislative-window {
@@ -4430,9 +4678,7 @@
     body.terrain-editor-mode [data-menu-action="save"],
     body.terrain-editor-mode [data-menu-action="save-as"],
     body.terrain-editor-mode [data-menu-action="load-game"],
-    body.terrain-editor-mode [data-menu-action="open-budget"],
-    body.terrain-editor-mode [data-menu-action="open-road-tile-set"],
-    body.terrain-editor-mode [data-menu-action^="speed-"] {
+    body.terrain-editor-mode [data-menu-action="open-road-tile-set"] {
       display: none !important;
     }
 
@@ -5120,8 +5366,10 @@
 
       <!-- News -->
       <div class="menu-item" data-menu="news">
-        <button class="menu-btn" data-i18n="menu.news">News</button>
+        <button class="menu-btn" data-i18n="menu.news">Heung Shing Forum</button>
         <div class="menu-dropdown" id="menu-news" style="min-width:280px">
+          <button class="menu-drop-item" data-menu-action="open-forum-history" data-i18n="menu.openForum">Open Heung Shing Forum…</button>
+          <div class="menu-hr"></div>
           <div id="menu-news-list"></div>
         </div>
       </div>
@@ -5132,6 +5380,9 @@
         <div class="menu-dropdown">
           <button class="menu-drop-item" data-menu-action="fullscreen" id="menu-fullscreen-btn"><span data-i18n="menu.fullScreen">⛶ Full Screen</span><span class="menu-shortcut">F11</span></button>
           <button class="menu-drop-item" data-menu-action="windowed"   id="menu-windowed-btn" class="menu-checked" data-i18n="menu.window">⊡ Window</button>
+          <div class="menu-hr"></div>
+          <button class="menu-drop-item" data-menu-action="toggle-district-signs" id="menu-district-signs" data-i18n="menu.showDistrictSigns">Show district signs</button>
+          <button class="menu-drop-item" data-menu-action="toggle-weather-effects" id="menu-weather-effects" data-i18n="menu.weatherEffects">Weather visual effects (rain/lightning)</button>
         </div>
       </div>
 
@@ -5139,16 +5390,8 @@
       <div class="menu-item" data-menu="settings">
         <button class="menu-btn" data-i18n="menu.settings">Settings</button>
         <div class="menu-dropdown">
-          <button class="menu-drop-item" data-menu-action="speed-1" data-i18n="menu.speed1">▶ 1× Speed</button>
-          <button class="menu-drop-item" data-menu-action="speed-2" data-i18n="menu.speed2">▶▶ 2× Speed</button>
-          <button class="menu-drop-item" data-menu-action="speed-4" data-i18n="menu.speed4">▶▶▶ 4× Speed</button>
-          <button class="menu-drop-item" data-menu-action="speed-pause" data-i18n="menu.pause">⏸ Pause</button>
-          <div class="menu-hr"></div>
-          <button class="menu-drop-item" data-menu-action="open-budget" data-i18n="menu.budgetPanel">💰 Budget Panel</button>
           <button class="menu-drop-item" data-menu-action="open-road-tile-set" data-i18n="menu.roadTileSet">Road Tile Set…</button>
-          <button class="menu-drop-item" data-menu-action="toggle-district-signs" id="menu-district-signs" data-i18n="menu.showDistrictSigns">Show district signs</button>
           <button class="menu-drop-item" data-menu-action="toggle-auto-replace-plants" id="menu-auto-replace-plants" data-i18n="menu.autoReplacePowerPlants">Auto-replace aged power plants</button>
-          <button class="menu-drop-item" data-menu-action="toggle-weather-effects" id="menu-weather-effects" data-i18n="menu.weatherEffects">Weather visual effects (rain/lightning)</button>
           <button class="menu-drop-item" data-menu-action="open-ai-news-settings" id="menu-ai-news" data-i18n="menu.aiNews">AI News…</button>
           <div class="menu-hr"></div>
           <div class="menu-drop-empty" data-i18n="menu.language">Language</div>
@@ -5169,6 +5412,10 @@
           <div class="menu-drop-slider menu-no-close">
             <span data-i18n="menu.volume">Volume</span>
             <input id="menu-volume-slider" type="range" min="0" max="1" step="0.05" value="0.55" />
+          </div>
+          <div class="menu-drop-slider menu-no-close">
+            <span data-i18n="menu.ambientVolume">City Ambience</span>
+            <input id="menu-ambient-volume-slider" type="range" min="0" max="1" step="0.05" value="1" aria-label="City ambience volume" data-i18n-aria="menu.ambientVolume" />
           </div>
         </div>
       </div>
@@ -5328,15 +5575,41 @@ Ctrl+O       Load game (open saves list)</div>
         </div>
         <h1 class="newspaper-headline" id="newspaper-headline"></h1>
         <h2 class="newspaper-subhead" id="newspaper-subhead"></h2>
+        <img id="forum-post-image" class="forum-thread-image" alt="" hidden />
         <div class="newspaper-columns" id="newspaper-body"></div>
         <blockquote class="newspaper-quote" id="newspaper-quote-block" hidden>
           <p id="newspaper-quote"></p>
           <cite id="newspaper-quote-attribution"></cite>
         </blockquote>
+        <div class="forum-engagement" id="forum-engagement" hidden>
+          <div class="forum-reactions" id="forum-reactions"></div>
+          <div class="forum-comments" id="forum-comments"></div>
+        </div>
       </div>
       <div class="dialog-footer newspaper-footer">
         <button class="dialog-ok-btn" data-close-dialog="newspaper-dialog" data-i18n="dialog.close">Close</button>
       </div>
+    </div>
+  </div>
+
+  <div id="forum-history-dialog" class="sim-dialog" role="dialog" aria-label="Heung Shing Forum">
+    <div class="dialog-overlay"></div>
+    <div class="dialog-box forum-history-box">
+      <button class="newspaper-close-btn" data-close-dialog="forum-history-dialog" aria-label="Close" data-i18n-aria="dialog.close">✕</button>
+      <header class="forum-history-header">
+        <h2 data-i18n="forum.title">香城討論區</h2>
+        <p><span>Heung Shing Forum · </span><span data-i18n="forum.tagline">城市大小事，花生友即時討論</span></p>
+      </header>
+      <nav class="forum-history-nav" id="forum-history-nav" aria-label="討論區分類">
+        <button type="button" class="is-active" data-forum-filter="all" data-i18n="forum.hot">熱門</button>
+        <button type="button" data-forum-filter="城市發展" data-i18n="forum.cityDevelopment">城市發展</button>
+        <button type="button" data-forum-filter="城中熱話" data-i18n="forum.cityBuzz">城中熱話</button>
+        <button type="button" data-forum-filter="交通台" data-i18n="forum.transport">交通台</button>
+        <button type="button" data-forum-filter="吹水台" data-i18n="forum.chat">吹水台</button>
+      </nav>
+      <div id="forum-history-empty" class="forum-history-empty" data-i18n="forum.empty">暫時未有討論主題。</div>
+      <div id="forum-history-list" class="forum-history-list"></div>
+      <div class="dialog-footer"><button class="dialog-ok-btn" data-close-dialog="forum-history-dialog" data-i18n="dialog.close">Close</button></div>
     </div>
   </div>
 
@@ -5646,7 +5919,7 @@ Ctrl+O       Load game (open saves list)</div>
 
     <section class="tool-flyout" data-tool-panel="maps">
       <div class="tool-flyout-title" data-i18n="toolCategory.mapsSubtitle">City Bureau</div>
-      <button class="tool-row" type="button" data-action="open-council-meeting"><span class="tool-row-icon">🏛️</span><span class="tool-row-text" data-i18n="toolRow.councilMeeting">Municipal Meeting</span></button>
+      <button class="tool-row" type="button" data-action="open-council-meeting" hidden style="display:none"><span class="tool-row-icon">🏛️</span><span class="tool-row-text" data-i18n="toolRow.councilMeeting">Municipal Meeting</span></button>
       <button class="tool-row" type="button" data-tool="district-sign"><span class="tool-row-icon">🚏</span><span class="tool-row-text" data-i18n="toolRow.districtSign">District sign</span><span class="tool-row-cost">$250</span></button>
       <button class="tool-row" type="button" data-action="open-charts"><span class="tool-row-icon">📈</span><span class="tool-row-text" data-i18n="toolRow.charts">統計圖表 Charts</span></button>
       <button class="tool-row" type="button" data-action="open-overlay-maps"><span class="tool-row-icon">🗺️</span><span class="tool-row-text" data-i18n="toolRow.overlayMaps">資訊地圖</span></button>
@@ -6045,6 +6318,7 @@ Ctrl+O       Load game (open saves list)</div>
             <tr><th data-i18n="budget.commercialTax">Commercial tax</th><td id="budget-income-commercial">$0</td></tr>
             <tr><th data-i18n="budget.industrialTax">Industrial tax</th><td id="budget-income-industrial">$0</td></tr>
             <tr><th data-i18n="budget.policyAdjustment">Policy adjustment</th><td id="budget-income-policy-adjust">$0</td></tr>
+            <tr><th data-i18n="budget.tourismIncome">Tourism income</th><td id="budget-income-tourism">$0</td></tr>
             <tr class="budget-total-row"><th data-i18n="budget.totalIncome">Total income</th><td id="budget-income-total">$0</td></tr>
           </tbody>
         </table>
@@ -6093,6 +6367,7 @@ Ctrl+O       Load game (open saves list)</div>
       <div class="council-tabs" role="tablist">
         <button class="council-tab is-active" type="button" role="tab" aria-selected="true" data-council-tab="people" data-i18n="council.peopleTab">Officials & Councillors</button>
         <button class="council-tab" type="button" role="tab" aria-selected="false" data-council-tab="laws" data-i18n="council.lawsTab">Acts & Ordinances</button>
+        <button class="council-tab" type="button" role="tab" aria-selected="false" data-council-tab="history" data-i18n="council.historyTab">Meeting Records</button>
       </div>
       <div class="council-tab-panel" data-council-panel="people">
         <div class="council-roster-layout">
@@ -6114,26 +6389,13 @@ Ctrl+O       Load game (open saves list)</div>
       <section class="budget-window-section" aria-label="Acts and laws" data-i18n-aria="legislative.lawsSection">
         <div class="budget-window-heading" data-i18n="budget.laws">Acts & Laws</div>
         <div class="council-laws-layout">
-        <div class="council-policy-list">
-        <button class="policy-toggle" type="button" data-policy-id="cleanAir" data-i18n-title="policy.cleanAir.desc" data-i18n="policy.cleanAir.title">Clean Air Act</button>
-        <button class="policy-toggle" type="button" data-policy-id="roadRepair" data-i18n-title="policy.roadRepair.desc" data-i18n="policy.roadRepair.title">Road Repair Program</button>
-        <button class="policy-toggle" type="button" data-policy-id="publicSafety" data-i18n-title="policy.publicSafety.desc" data-i18n="policy.publicSafety.title">Public Safety Act</button>
-        <button class="policy-toggle" type="button" data-policy-id="smallBusiness" data-i18n-title="policy.smallBusiness.desc" data-i18n="policy.smallBusiness.title">Small Business Relief</button>
-        <button class="policy-toggle" type="button" data-policy-id="greenParks" data-i18n-title="policy.greenParks.desc" data-i18n="policy.greenParks.title">Green Parks Ordinance</button>
-        <button class="policy-toggle" type="button" data-policy-id="educationReform" data-i18n-title="policy.educationReform.desc" data-i18n="policy.educationReform.title">Education Reform Act</button>
-        <button class="policy-toggle" type="button" data-policy-id="scienceDevelopment" data-i18n-title="policy.scienceDevelopment.desc" data-i18n="policy.scienceDevelopment.title">Science Development Act</button>
-        <button class="policy-toggle" type="button" data-policy-id="smokingBan" data-i18n-title="policy.smokingBan.desc" data-i18n="policy.smokingBan.title">Smoking Ban Ordinance</button>
-        <button class="policy-toggle" type="button" data-policy-id="schoolHealthProgram" data-i18n-title="policy.schoolHealthProgram.desc" data-i18n="policy.schoolHealthProgram.title">School Health Program</button>
-        <button class="policy-toggle" type="button" data-policy-id="tourismPromotion" data-i18n-title="policy.tourismPromotion.desc" data-i18n="policy.tourismPromotion.title">Tourism Promotion Bill</button>
-        <button class="policy-toggle" type="button" data-policy-id="foreignInvestmentIncentive" data-i18n-title="policy.foreignInvestmentIncentive.desc" data-i18n="policy.foreignInvestmentIncentive.title">Foreign Investment Incentive Bill</button>
-        <button class="policy-toggle" type="button" data-policy-id="districtCouncilElection" data-i18n-title="policy.districtCouncilElection.desc" data-i18n="policy.districtCouncilElection.title">District Council Election Bill</button>
-        <button class="policy-toggle" type="button" data-policy-id="icac" data-i18n-title="policy.icac.desc" data-i18n="policy.icac.title">ICAC Bill</button>
-        <button class="policy-toggle" type="button" data-policy-id="legislativeCouncilElection" data-i18n-title="policy.legislativeCouncilElection.desc" data-i18n="policy.legislativeCouncilElection.title">Legislative Council Election Bill</button>
-        <button class="policy-toggle" type="button" data-policy-id="stockExchangeAct" data-i18n-title="policy.stockExchangeAct.desc" data-i18n="policy.stockExchangeAct.title">Stock Exchange Act</button>
-        </div>
+        <nav id="council-policy-list" class="council-policy-list"></nav>
         <aside id="council-policy-detail" class="council-policy-detail"></aside>
         </div>
       </section>
+      </div>
+      <div class="council-tab-panel" data-council-panel="history" hidden>
+        <div id="council-history" class="council-history-list"></div>
       </div>
     </div>
   </div>
@@ -6289,6 +6551,8 @@ Ctrl+O       Load game (open saves list)</div>
         <label class="chart-line-toggle"><input type="checkbox" data-chart-series="lifeExpectancy" checked> <span data-i18n="chart.lifeExpectancy">Life Expectancy</span></label>
         <label class="chart-line-toggle"><input type="checkbox" data-chart-series="epidemic" checked> <span data-i18n="chart.epidemic">Epidemic</span></label>
         <label class="chart-line-toggle"><input type="checkbox" data-chart-series="hospitalUtilization" checked> <span data-i18n="chart.hospitalUtilization">Hospital Usage</span></label>
+        <label class="chart-line-toggle"><input type="checkbox" data-chart-series="attractiveness"> <span data-i18n="chart.attractiveness">City Attractiveness</span></label>
+        <label id="chart-ridicule-toggle" class="chart-line-toggle" hidden><input type="checkbox" data-chart-series="ridicule"> <span data-i18n="chart.ridicule">City Ridicule</span></label>
       </div>
       <div id="chart-metrics" aria-label="Education and science metrics">
         <div class="chart-metric">
@@ -6342,6 +6606,7 @@ Ctrl+O       Load game (open saves list)</div>
   <script src="council-state.js"></script>
   <script src="road-tile-sets.js"></script>
   <script src="city-state.js"></script>
+  <script src="council-effects.js"></script>
   <script src="district-signs.js"></script>
   <script src="sim-weather.js"></script>
   <script src="weather-icons.js"></script>
@@ -6359,6 +6624,7 @@ Ctrl+O       Load game (open saves list)</div>
   <script src="hud.js"></script>
   <script src="council-comments.js"></script>
   <script src="council-policy-preview.js"></script>
+  <script src="council-voting.js"></script>
   <script src="council-news.js"></script>
   <script src="newspaper.js"></script>
   <script src="council-ui.js"></script>

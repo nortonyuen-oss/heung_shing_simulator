@@ -410,5 +410,14 @@ function updateTrafficMap() {
   }
 
   city.trafficIndex    = roadCount > 0 ? clamp(totalLoad / roadCount, 0, 1) : 0;
+  const councilTraffic = typeof getCouncilTemporaryModifier === 'function'
+    ? getCouncilTemporaryModifier('traffic')
+    : 0;
+  city.trafficIndex = clamp(
+    city.trafficIndex + councilTraffic + (isPolicyActive('busSeatbeltMandate') ? 0.025 : 0)
+      - (isPolicyActive('elderlyTwoDollarFare') ? 0.012 : 0),
+    0,
+    1,
+  );
   city.trafficCoverage = zonedCount > 0 ? clamp(coveredZoned / zonedCount, 0, 1) : 0;
 }

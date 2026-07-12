@@ -95,6 +95,8 @@ function isCouncilMeetingUnlocked() {
 function updateInfrastructureToolVisibility() {
   const councilButtons = document.querySelectorAll('[data-tool="legislative-council"]');
   const stockExchangeButtons = document.querySelectorAll('[data-tool="stock-exchange"]');
+  const councilMeetingButtons = document.querySelectorAll('[data-action="open-council-meeting"]');
+  const councilMeetingUnlocked = isCouncilMeetingUnlocked();
   const canBuildCouncil = city.population >= 10000 && !hasBuildingType('legislative_council');
   const canBuildStockExchange = city.population >= 50000 && isPolicyActive('stockExchangeAct') && hasBuildingType('legislative_council') && !hasBuildingType('stock_exchange');
 
@@ -109,6 +111,11 @@ function updateInfrastructureToolVisibility() {
     button.hidden = !visible;
     button.style.display = visible ? '' : 'none';
   };
+
+  councilMeetingButtons.forEach((button) => {
+    syncButtonVisibility(button, councilMeetingUnlocked);
+    button.disabled = !councilMeetingUnlocked;
+  });
 
   councilButtons.forEach((button) => {
     syncButtonVisibility(button, canBuildCouncil);
@@ -370,13 +377,6 @@ function initBudgetPanel() {
     });
   });
 
-  document.querySelectorAll('[data-policy-id]').forEach((button) => {
-    button.addEventListener('click', () => {
-      const id = button.dataset.policyId;
-      if (typeof selectCouncilPolicy === 'function') selectCouncilPolicy(id);
-    });
-  });
-
   updateHUD();
   setupHudPanelToggles();
   setupBudgetWindow();
@@ -408,6 +408,7 @@ function updateBudgetWindow() {
   setTextContent('budget-income-commercial', formatMoney(current.income.commercialTax));
   setTextContent('budget-income-industrial', formatMoney(current.income.industrialTax));
   setTextContent('budget-income-policy-adjust', formatMoney(current.income.policyAdjustment));
+  setTextContent('budget-income-tourism', formatMoney(current.income.tourism));
   setTextContent('budget-income-total', formatMoney(current.totalIncome));
 
   setTextContent('budget-expense-roads', formatMoney(current.expenses.roads));

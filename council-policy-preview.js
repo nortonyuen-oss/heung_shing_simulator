@@ -1,12 +1,12 @@
 const COUNCIL_POLICY_METADATA = Object.freeze({
-  cleanAir: { issues: { environment: 2, business: -0.5 }, leadOfficialIds: ['observatory_head', 'treasury_head'] },
+  cleanAir: { issues: { environment: 2, business: -0.5 }, tags: ['clean_air', 'regulation'], leadOfficialIds: ['observatory_head', 'treasury_head'] },
   roadRepair: { issues: { roads: 2, business: 1 }, leadOfficialIds: ['chief_executive', 'treasury_head'] },
   publicSafety: { issues: { public_safety: 2, governance: 0.5 }, leadOfficialIds: ['police_head', 'treasury_head'] },
   smallBusiness: { issues: { business: 2, tax: 1 }, leadOfficialIds: ['treasury_head', 'chief_executive'] },
   greenParks: { issues: { parks_culture: 2, environment: 1 }, leadOfficialIds: ['culture_head', 'treasury_head'] },
   educationReform: { issues: { education: 2, business: 0.5 }, leadOfficialIds: ['chief_executive', 'treasury_head'] },
   scienceDevelopment: { issues: { science: 2, education: 1, business: 1 }, leadOfficialIds: ['chief_executive', 'treasury_head'] },
-  smokingBan: { issues: { health: 2, governance: 1, business: -0.25 }, leadOfficialIds: ['chief_executive', 'police_head'] },
+  smokingBan: { issues: { health: 2, governance: 1, business: -0.25 }, tags: ['healthcare', 'regulation', 'smoking_restriction'], leadOfficialIds: ['chief_executive', 'police_head'] },
   schoolHealthProgram: { issues: { health: 1.5, education: 1.5 }, leadOfficialIds: ['chief_executive', 'treasury_head'] },
   tourismPromotion: { issues: { tourism: 2, parks_culture: 0.5, business: 1 }, leadOfficialIds: ['culture_head', 'treasury_head'] },
   foreignInvestmentIncentive: { issues: { business: 2, finance: 1, tax: 0.5 }, leadOfficialIds: ['treasury_head', 'chief_executive'] },
@@ -14,6 +14,9 @@ const COUNCIL_POLICY_METADATA = Object.freeze({
   icac: { issues: { governance: 2, business: 0.5 }, leadOfficialIds: ['chief_executive', 'police_head'] },
   legislativeCouncilElection: { issues: { governance: 3 }, leadOfficialIds: ['chief_executive', 'treasury_head'] },
   stockExchangeAct: { issues: { business: 2, finance: 1 }, leadOfficialIds: ['treasury_head', 'chief_executive'] },
+  elderlyTwoDollarFare: { issues: { health: 0.5, business: 0.75, governance: 0.5, finance: -0.5 }, tags: ['elderly', 'welfare', 'subsidy', 'public_transport'], leadOfficialIds: ['councillor_religion', 'treasury_head'] },
+  arcticPenguinReserve: { issues: { tourism: 1.5, environment: 0.5, science: -1, finance: -0.5 }, tags: ['photo_spot', 'penguin', 'energy_waste', 'scientific_nonsense'], leadOfficialIds: ['councillor_tourism', 'observatory_head'] },
+  busSeatbeltMandate: { issues: { public_safety: 1.25, governance: -0.5, roads: -0.25 }, tags: ['regulation', 'public_transport', 'safety_belt', 'bureaucracy'], leadOfficialIds: ['police_head', 'treasury_head'] },
 });
 
 const COUNCIL_VOTING_OFFICIAL_IDS = Object.freeze(
@@ -35,6 +38,9 @@ function getCouncilPolicyEstimatedMonthlyCost(policyId) {
   if (policyId === 'scienceDevelopment') cost += city.industrialCount * 5;
   if (policyId === 'smokingBan') cost += Math.ceil(city.population / 2500) * 8;
   if (policyId === 'schoolHealthProgram') cost += countSchoolHealthProgramBuildings() * 18;
+  if (policyId === 'elderlyTwoDollarFare') cost += Math.ceil(city.population / 1000) * 9;
+  if (policyId === 'arcticPenguinReserve') cost += Math.ceil(city.population / 5000) * 6;
+  if (policyId === 'busSeatbeltMandate') cost += Math.ceil(roadTileCount / 100) * 4;
   return Math.round(cost);
 }
 
@@ -127,15 +133,22 @@ function getCouncilPolicyPreview(policyId) {
   const metadata = COUNCIL_POLICY_METADATA[policyId];
   if (!policy || !metadata) return null;
   const cost = getCouncilPolicyEstimatedMonthlyCost(policyId);
+  const active = isPolicyActive(policyId);
+  const motion = active ? 'repeal' : 'enact';
+  const currentNet = Number(city.monthlyIncome || 0) - Number(city.monthlyExpenses || 0);
   return {
     policy,
     metadata,
     cost,
-    currentNet: Number(city.monthlyIncome || 0) - Number(city.monthlyExpenses || 0),
-    projectedNet: Number(city.monthlyIncome || 0) - Number(city.monthlyExpenses || 0) - (isPolicyActive(policyId) ? 0 : cost),
-    active: isPolicyActive(policyId),
+    currentNet,
+    projectedNet: currentNet + (active ? cost : -cost),
+    active,
     available: isPolicyAvailable(policyId),
     advisors: metadata.leadOfficialIds.map((id) => getCouncilPolicyAdvisorOpinion(policyId, id)).filter(Boolean),
-    positions: COUNCIL_VOTING_OFFICIAL_IDS.map((id) => getCouncilPolicyPosition(policyId, id)).filter(Boolean),
+    positions: COUNCIL_VOTING_OFFICIAL_IDS.map((id) => (
+      typeof getCouncilMotionPosition === 'function'
+        ? getCouncilMotionPosition('policy', policyId, motion, id, `preview:${city.tick}`)
+        : getCouncilPolicyPosition(policyId, id)
+    )).filter(Boolean),
   };
 }

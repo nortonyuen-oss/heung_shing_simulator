@@ -6,7 +6,7 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const { openGameDatabase } = require('./db');
-const { generateOllamaNews, generateOllamaCouncilNews, getOllamaStatus } = require('./ai-news-provider');
+const { generateOllamaNews, generateOllamaCouncilNews, generateOllamaForumComments, getOllamaStatus } = require('./ai-news-provider');
 const {
   createEncryptedFileAiNewsSettingsStore,
   normalizeAiNewsConfig,
@@ -183,7 +183,9 @@ function createGameApp(options = {}) {
       });
     }
     const apiKey = aiNewsCredentialStore.get();
-    const generate = req.body?.storyKind === 'council_character' ? generateOllamaCouncilNews : generateOllamaNews;
+    const generate = req.body?.storyKind === 'council_character'
+      ? generateOllamaCouncilNews
+      : req.body?.storyKind === 'forum_comments' ? generateOllamaForumComments : generateOllamaNews;
     const result = await generate(req.body, {
       apiKey,
       signal: requestController.signal,
@@ -224,7 +226,18 @@ function createGameApp(options = {}) {
   }
   });
 
-// POST /api/saves - create a new save slot
+// POST /api/saves/autosave - create or replace the dedicated autosave slot
+  app.post('/api/saves/autosave', (req, res) => {
+  try {
+    const row = store.upsertAutosave(req.body);
+    res.json(row);
+  } catch (e) {
+    console.error('[POST /api/saves/autosave]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+  });
+
+// POST /api/saves - create a new manual save slot
   app.post('/api/saves', (req, res) => {
   try {
     const row = store.createSave(req.body);

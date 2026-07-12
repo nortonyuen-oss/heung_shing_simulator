@@ -63,10 +63,23 @@ function setupMenuBar() {
   const jukeboxVol = document.getElementById('jukebox-volume');
   if (menuVol) {
     menuVol.addEventListener('input', () => {
-      if (jukeboxVol) jukeboxVol.value = menuVol.value;
-      if (activeMusic) activeMusic.setVolume(Number(menuVol.value));
+      const value = Number(menuVol.value);
+      if (jukeboxVol) jukeboxVol.value = value;
+      if (typeof setStoredMusicVolume === 'function') setStoredMusicVolume(value);
+      if (activeMusic) activeMusic.setVolume(value);
+      if (titleLoadingAudio) titleLoadingAudio.volume = value;
     });
     menuVol.addEventListener('click', (e) => e.stopPropagation());
+  }
+
+  // ── City ambience volume slider ────────────────────────────────────────────
+  const ambientVol = document.getElementById('menu-ambient-volume-slider');
+  if (ambientVol) {
+    if (typeof applyStoredAmbientVolume === 'function') applyStoredAmbientVolume();
+    ambientVol.addEventListener('input', () => {
+      if (typeof setStoredAmbientVolume === 'function') setStoredAmbientVolume(Number(ambientVol.value));
+    });
+    ambientVol.addEventListener('click', (e) => e.stopPropagation());
   }
 
   // ── Dialog close buttons ───────────────────────────────────────────────────
@@ -86,6 +99,7 @@ function setupMenuBar() {
 
   updateSettingsMenu();
   updateSoundMenu();
+  updateViewMenu();
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -116,10 +130,6 @@ function handleMenuAction(action) {
     case 'save-as':      saveAsGame();                      break;
     case 'load-game':    openSaveListModal();               break;
     case 'main-menu':    returnToMainMenu();                break;
-    case 'speed-1':      setSimSpeed(1); updateSpeedButtons(); break;
-    case 'speed-2':      setSimSpeed(2); updateSpeedButtons(); break;
-    case 'speed-4':      setSimSpeed(4); updateSpeedButtons(); break;
-    case 'speed-pause':  setSimSpeed(0); updateSpeedButtons(); break;
     case 'toggle-auto-replace-plants':
       city.autoReplacePowerPlants = !city.autoReplacePowerPlants;
       updateSettingsMenu();
@@ -129,28 +139,23 @@ function handleMenuAction(action) {
         setDistrictSignsVisible(!areDistrictSignsVisible());
       }
       if (typeof queueCityChangeAutosave === 'function') queueCityChangeAutosave();
-      updateSettingsMenu();
+      updateViewMenu();
       break;
     case 'toggle-weather-effects':
       if (typeof setWeatherEffectsEnabled === 'function') {
         setWeatherEffectsEnabled(!isWeatherEffectsEnabled());
       }
-      updateSettingsMenu();
+      updateViewMenu();
       break;
     case 'open-ai-news-settings':
       if (typeof openAiNewsSettings === 'function') openAiNewsSettings();
       break;
+    case 'open-forum-history':
+      if (typeof openForumHistory === 'function') openForumHistory();
+      break;
     case 'language-en':      setLanguage('en');      break;
     case 'language-zhHant':  setLanguage('zhHant');  break;
     case 'language-ja':      setLanguage('ja');      break;
-    case 'open-budget': {
-      if (typeof openBudgetWindow === 'function') {
-        openBudgetWindow();
-      } else {
-        document.getElementById('budget-detail')?.classList.add('is-open');
-      }
-      break;
-    }
     case 'open-road-tile-set':
       if (typeof openRoadTileSetWindow === 'function') openRoadTileSetWindow();
       break;
@@ -186,6 +191,10 @@ function updateViewMenu() {
   const fs = isFullscreen();
   document.getElementById('menu-fullscreen-btn')?.classList.toggle('menu-checked',  fs);
   document.getElementById('menu-windowed-btn')  ?.classList.toggle('menu-checked', !fs);
+  document.getElementById('menu-district-signs')
+    ?.classList.toggle('menu-checked', typeof areDistrictSignsVisible !== 'function' || areDistrictSignsVisible());
+  document.getElementById('menu-weather-effects')
+    ?.classList.toggle('menu-checked', typeof isWeatherEffectsEnabled !== 'function' || isWeatherEffectsEnabled());
 }
 
 // Keep the checkmarks live as the user presses F11 or Esc
@@ -201,14 +210,6 @@ function updateSpeedButtons() {
     const active = paused ? s === 0 : (s === simSpeedMul && s !== 0);
     btn.classList.toggle('is-active', active);
   });
-
-  // Also tick the Settings menu items
-  ['speed-1','speed-2','speed-4','speed-pause'].forEach((a) => {
-    const s = a === 'speed-pause' ? 0 : Number(a.split('-')[1]);
-    const active = paused ? s === 0 : (s === simSpeedMul && s !== 0);
-    document.querySelector(`[data-menu-action="${a}"]`)
-            ?.classList.toggle('menu-checked', active);
-  });
 }
 
 // ── News menu ─────────────────────────────────────────────────────────────────
@@ -216,33 +217,38 @@ function updateSpeedButtons() {
 function populateNewsMenu() {
   const dropdown = document.getElementById('menu-news-list');
   if (!dropdown) return;
+  if (typeof syncResolutionHistoryToForum === 'function') syncResolutionHistoryToForum();
 
-  if (!cityNewsFeed || cityNewsFeed.length === 0) {
+  if (typeof generateMonthlyForumPost === 'function' && !(city.forumPosts || []).length) {
+    generateMonthlyForumPost();
+  }
+  const posts = (city.forumPosts || []).slice(-4).reverse();
+  if (posts.length === 0) {
     dropdown.innerHTML = `<div class="menu-drop-empty">${t('menu.noNews')}</div>`;
     return;
   }
-
-  dropdown.innerHTML = cityNewsFeed.map((item) => `
-    <div class="menu-news-entry">
-      <span class="menu-news-date">${item.date}</span>
-      <span class="menu-news-text">${item.text}</span>
-    </div>
-  `).join('');
+  dropdown.replaceChildren(...posts.map((post) => {
+    const entry = document.createElement('div');
+    entry.className = 'menu-news-entry';
+    const date = document.createElement('span');
+    date.className = 'menu-news-date';
+    date.textContent = `${typeof getForumCategoryLabel === 'function' ? getForumCategoryLabel(post.category) : post.category} · ${post.date}`;
+    const text = document.createElement('span');
+    text.className = 'menu-news-text';
+    text.textContent = post.headline;
+    entry.append(date, text);
+    return entry;
+  }));
 }
 
 // ── Settings menu ─────────────────────────────────────────────────────────────
 
 function updateSettingsMenu() {
-  updateSpeedButtons();
   if (typeof updateRoadTileSetControls === 'function') updateRoadTileSetControls();
   document.getElementById('menu-auto-replace-plants')
     ?.classList.toggle('menu-checked', !!city.autoReplacePowerPlants);
-  document.getElementById('menu-district-signs')
-    ?.classList.toggle('menu-checked', typeof areDistrictSignsVisible !== 'function' || areDistrictSignsVisible());
   document.getElementById('menu-ai-news')
     ?.classList.toggle('menu-checked', typeof isAiNewsEnabled === 'function' && isAiNewsEnabled());
-  document.getElementById('menu-weather-effects')
-    ?.classList.toggle('menu-checked', typeof isWeatherEffectsEnabled !== 'function' || isWeatherEffectsEnabled());
   ['en', 'zhHant', 'ja'].forEach((language) => {
     document.getElementById(`menu-lang-${language}`)
       ?.classList.toggle('menu-checked', getCurrentLanguage() === language);

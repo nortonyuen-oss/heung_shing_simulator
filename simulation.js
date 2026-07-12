@@ -28,6 +28,7 @@ function runSimTick(scene) {
   updateCrimeRateIndex();
   updateHealthMetrics();
   computeHappiness(scene);
+  if (typeof updateCityAttractivenessMetrics === 'function') updateCityAttractivenessMetrics();
   updateDemand();
   updateStockMarketTick();
   updateTrees(scene);
@@ -55,6 +56,7 @@ function runSimTick(scene) {
   growOrShrinkZones(scene);
   runEconomy(scene);
   advanceDate();
+  if (typeof updateCouncilTimedSystems === 'function') updateCouncilTimedSystems();
   refreshZoneOverlayTints(scene);
   updateHUD();
 
@@ -145,6 +147,9 @@ function updateCrimeRateIndex() {
   }
 
   city.crimeRateIndex = zonedCount > 0 ? clamp(riskSum / zonedCount, 0, 1) : 0;
+  if (typeof getCouncilTemporaryModifier === 'function') {
+    city.crimeRateIndex = clamp(city.crimeRateIndex + getCouncilTemporaryModifier('crime'), 0, 1);
+  }
 }
 
 function updateHealthMetrics() {
@@ -399,6 +404,9 @@ function updateDemand() {
     + (isPolicyActive('educationReform') ? 0.05 : 0)
     + (isPolicyActive('tourismPromotion') ? 0.04 : 0)
     + foreignInvBoost
+    + (isPolicyActive('elderlyTwoDollarFare') ? 0.035 : 0)
+    + (isPolicyActive('arcticPenguinReserve') ? 0.018 : 0)
+    + (typeof getCouncilTemporaryModifier === 'function' ? getCouncilTemporaryModifier('commercialDemand') : 0)
     + (hasBuildingType('stock_exchange') ? 0.10 * hsiRatio : 0)
     + stockExchangeBoost
     - epidemicDemandPenalty * 0.08
@@ -477,6 +485,7 @@ function updatePopulationAndPollution() {
   if (typeof getWeatherPollutionMultiplier === 'function') {
     city.pollution *= getWeatherPollutionMultiplier();
   }
+  if (isPolicyActive('arcticPenguinReserve')) city.pollution += 1.5;
   city.pollution = Math.max(0, Number(city.pollution.toFixed(1)));
   city.scienceIndustryShare = city.industrialCount > 0
     ? clamp(industrialScienceCount / city.industrialCount, 0, 1)
@@ -504,7 +513,8 @@ function updateRuleOfLawIndex() {
     + (stockExchangeCount > 0 ? 1 : 0)
   ) / 4;
 
-  city.ruleOfLawIndex = clamp(0.12 + policyScore * 0.58 + tradeScore * 0.18 + Math.min(0.12, councilCount * 0.04), 0, 1);
+  const ridiculePenalty = Math.max(0, Number(city.cityRidicule || 0) - 60) * 0.0015;
+  city.ruleOfLawIndex = clamp(0.12 + policyScore * 0.58 + tradeScore * 0.18 + Math.min(0.12, councilCount * 0.04) - ridiculePenalty, 0, 1);
   return city.ruleOfLawIndex;
 }
 
@@ -567,10 +577,17 @@ function computeHappiness(scene) {
   const pollPenalty  = city.pollution / 200;
   const powerPenalty = Math.max(0, 1 - (city.powerRatio ?? 1)) * 0.22;
   const roadBonus = Math.min(0.08, (getDepartmentFunding('roads') - 1) * 0.08 + (isPolicyActive('roadRepair') ? 0.04 : 0));
-  const policyBonus = (isPolicyActive('cleanAir') ? 0.03 : 0) + (isPolicyActive('publicSafety') ? 0.02 : 0);
+  const policyBonus = (isPolicyActive('cleanAir') ? 0.03 : 0)
+    + (isPolicyActive('publicSafety') ? 0.02 : 0)
+    + (isPolicyActive('elderlyTwoDollarFare') ? 0.025 : 0)
+    + (isPolicyActive('arcticPenguinReserve') ? 0.008 : 0)
+    - (isPolicyActive('busSeatbeltMandate') ? 0.012 : 0);
   const lawBonus = Math.min(0.10, (city.ruleOfLawIndex ?? 0) * 0.10 + (hasBuildingType('stock_exchange') ? 0.02 : 0));
   const healthBonus = (clamp(city.healthIndex ?? 0.5, 0, 1) - 0.5) * 0.08;
   const epidemicHappinessPenalty = clamp(city.epidemicSeverity ?? 0, 0, 1) * 0.16;
+  const ridicule = clamp(Number(city.cityRidicule || 0), 0, 100);
+  const ridiculeMemeBonus = ridicule <= 55 ? Math.min(0.035, ridicule * 0.0007) : 0.035;
+  const ridiculeReputationPenalty = Math.max(0, ridicule - 70) * 0.0018;
 
   const unemploymentHappinessPenalty = clamp(city.unemploymentRate ?? 0, 0, 1) * UNEMPLOYMENT_HAPPINESS_PENALTY;
   city.happiness = clamp(
@@ -578,7 +595,10 @@ function computeHappiness(scene) {
       + TREE_HAPPINESS_BONUS_MAX * treeRatio
       + SCENIC_HAPPINESS_BONUS_MAX * scenicRatio
       + roadBonus + policyBonus + lawBonus + healthBonus
-      - taxPenalty - pollPenalty - powerPenalty - unemploymentHappinessPenalty - epidemicHappinessPenalty,
+      + (typeof getCouncilTemporaryModifier === 'function' ? getCouncilTemporaryModifier('happiness') : 0)
+      + ridiculeMemeBonus
+      - taxPenalty - pollPenalty - powerPenalty - unemploymentHappinessPenalty - epidemicHappinessPenalty
+      - ridiculeReputationPenalty,
     0, 1
   );
 }

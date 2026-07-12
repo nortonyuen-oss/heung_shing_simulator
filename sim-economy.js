@@ -330,6 +330,9 @@ function recordCityMetricHistory() {
   pushPoint(city.lifeExpectancyHistory, Number(city.lifeExpectancy ?? 70));
   pushPoint(city.epidemicHistory, clamp(city.epidemicSeverity ?? 0, 0, 1));
   pushPoint(city.hospitalUtilizationHistory, clamp(city.hospitalUtilization ?? 0, 0, 1.35));
+  pushPoint(city.cityAttractivenessHistory, clamp(city.cityAttractiveness ?? 0, 0, 100));
+  pushPoint(city.cityRidiculeHistory, clamp(city.cityRidicule ?? 0, 0, 100));
+  pushPoint(city.tourismAppealHistory, clamp(city.tourismAppeal ?? 0, 0, 100));
 }
 
 function computeAverageLandValueFromMap(landValueMap) {

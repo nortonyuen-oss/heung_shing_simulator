@@ -41,23 +41,38 @@ const LOAN_OPTIONS = [
   { amount: 25000, months: 60, annualRate: 0.12 },
 ];
 
-// Acts/laws are presented inside the Legislative Council window.
+// Acts/laws are presented inside the Legislative Council window, grouped by category
+// and each attributed to a mover for the chamber UI (council-ui.js). moverId is purely
+// the "who proposed this" narrative attribution — distinct from COUNCIL_POLICY_METADATA's
+// leadOfficialIds (council-policy-preview.js), which drives fiscal/need advisor opinions
+// and stays as-is.
+const CITY_POLICY_CATEGORY_IDS = Object.freeze([
+  'financeEconomy',
+  'safetyTransport',
+  'environmentPlanning',
+  'educationScience',
+  'socialWelfare',
+  'governanceReform',
+]);
 const CITY_POLICY_DEFS = [
-  { id: 'cleanAir',       titleKey: 'policy.cleanAir.title',       descKey: 'policy.cleanAir.desc',       monthlyBase: 150 },
-  { id: 'roadRepair',     titleKey: 'policy.roadRepair.title',     descKey: 'policy.roadRepair.desc',     monthlyBase: 120 },
-  { id: 'publicSafety',   titleKey: 'policy.publicSafety.title',   descKey: 'policy.publicSafety.desc',   monthlyBase: 200 },
-  { id: 'smallBusiness',  titleKey: 'policy.smallBusiness.title',  descKey: 'policy.smallBusiness.desc',  monthlyBase: 180 },
-  { id: 'greenParks',     titleKey: 'policy.greenParks.title',     descKey: 'policy.greenParks.desc',     monthlyBase: 100 },
-  { id: 'educationReform', titleKey: 'policy.educationReform.title', descKey: 'policy.educationReform.desc', monthlyBase: 220 },
-  { id: 'scienceDevelopment', titleKey: 'policy.scienceDevelopment.title', descKey: 'policy.scienceDevelopment.desc', monthlyBase: 260 },
-  { id: 'smokingBan', titleKey: 'policy.smokingBan.title', descKey: 'policy.smokingBan.desc', monthlyBase: 130, unlockPopulation: 10000 },
-  { id: 'schoolHealthProgram', titleKey: 'policy.schoolHealthProgram.title', descKey: 'policy.schoolHealthProgram.desc', monthlyBase: 180, unlockPopulation: 10000 },
-  { id: 'tourismPromotion', titleKey: 'policy.tourismPromotion.title', descKey: 'policy.tourismPromotion.desc', monthlyBase: 160, unlockPopulation: 10000 },
-  { id: 'foreignInvestmentIncentive', titleKey: 'policy.foreignInvestmentIncentive.title', descKey: 'policy.foreignInvestmentIncentive.desc', monthlyBase: 240, unlockPopulation: 10000 },
-  { id: 'districtCouncilElection', titleKey: 'policy.districtCouncilElection.title', descKey: 'policy.districtCouncilElection.desc', monthlyBase: 140, unlockPopulation: 10000 },
-  { id: 'icac', titleKey: 'policy.icac.title', descKey: 'policy.icac.desc', monthlyBase: 200, unlockPopulation: 10000 },
-  { id: 'legislativeCouncilElection', titleKey: 'policy.legislativeCouncilElection.title', descKey: 'policy.legislativeCouncilElection.desc', monthlyBase: 180, unlockPopulation: 10000 },
-  { id: 'stockExchangeAct', titleKey: 'policy.stockExchangeAct.title', descKey: 'policy.stockExchangeAct.desc', monthlyBase: 220, unlockPopulation: 50000 },
+  { id: 'cleanAir',       titleKey: 'policy.cleanAir.title',       descKey: 'policy.cleanAir.desc',       monthlyBase: 150, category: 'environmentPlanning', moverId: 'observatory_head' },
+  { id: 'roadRepair',     titleKey: 'policy.roadRepair.title',     descKey: 'policy.roadRepair.desc',     monthlyBase: 120, category: 'safetyTransport', moverId: 'chief_executive' },
+  { id: 'publicSafety',   titleKey: 'policy.publicSafety.title',   descKey: 'policy.publicSafety.desc',   monthlyBase: 200, category: 'safetyTransport', moverId: 'police_head' },
+  { id: 'smallBusiness',  titleKey: 'policy.smallBusiness.title',  descKey: 'policy.smallBusiness.desc',  monthlyBase: 180, category: 'financeEconomy', moverId: 'councillor_business' },
+  { id: 'greenParks',     titleKey: 'policy.greenParks.title',     descKey: 'policy.greenParks.desc',     monthlyBase: 100, category: 'environmentPlanning', moverId: 'culture_head' },
+  { id: 'educationReform', titleKey: 'policy.educationReform.title', descKey: 'policy.educationReform.desc', monthlyBase: 220, category: 'educationScience', moverId: 'councillor_democracy' },
+  { id: 'scienceDevelopment', titleKey: 'policy.scienceDevelopment.title', descKey: 'policy.scienceDevelopment.desc', monthlyBase: 260, category: 'educationScience', moverId: 'councillor_liberty' },
+  { id: 'smokingBan', titleKey: 'policy.smokingBan.title', descKey: 'policy.smokingBan.desc', monthlyBase: 130, unlockPopulation: 10000, category: 'safetyTransport', moverId: 'councillor_religion' },
+  { id: 'schoolHealthProgram', titleKey: 'policy.schoolHealthProgram.title', descKey: 'policy.schoolHealthProgram.desc', monthlyBase: 180, unlockPopulation: 10000, category: 'socialWelfare', moverId: 'councillor_religion' },
+  { id: 'tourismPromotion', titleKey: 'policy.tourismPromotion.title', descKey: 'policy.tourismPromotion.desc', monthlyBase: 160, unlockPopulation: 10000, category: 'financeEconomy', moverId: 'councillor_tourism' },
+  { id: 'foreignInvestmentIncentive', titleKey: 'policy.foreignInvestmentIncentive.title', descKey: 'policy.foreignInvestmentIncentive.desc', monthlyBase: 240, unlockPopulation: 10000, category: 'financeEconomy', moverId: 'treasury_head' },
+  { id: 'districtCouncilElection', titleKey: 'policy.districtCouncilElection.title', descKey: 'policy.districtCouncilElection.desc', monthlyBase: 140, unlockPopulation: 10000, category: 'governanceReform', moverId: 'councillor_democracy' },
+  { id: 'icac', titleKey: 'policy.icac.title', descKey: 'policy.icac.desc', monthlyBase: 200, unlockPopulation: 10000, category: 'governanceReform', moverId: 'chief_executive' },
+  { id: 'legislativeCouncilElection', titleKey: 'policy.legislativeCouncilElection.title', descKey: 'policy.legislativeCouncilElection.desc', monthlyBase: 180, unlockPopulation: 10000, category: 'governanceReform', moverId: 'councillor_democracy' },
+  { id: 'stockExchangeAct', titleKey: 'policy.stockExchangeAct.title', descKey: 'policy.stockExchangeAct.desc', monthlyBase: 220, unlockPopulation: 50000, category: 'financeEconomy', moverId: 'treasury_head' },
+  { id: 'elderlyTwoDollarFare', titleKey: 'policy.elderlyTwoDollarFare.title', descKey: 'policy.elderlyTwoDollarFare.desc', monthlyBase: 260, unlockPopulation: 10000, category: 'socialWelfare', moverId: 'councillor_religion' },
+  { id: 'arcticPenguinReserve', titleKey: 'policy.arcticPenguinReserve.title', descKey: 'policy.arcticPenguinReserve.desc', monthlyBase: 320, unlockPopulation: 25000, category: 'environmentPlanning', moverId: 'observatory_head' },
+  { id: 'busSeatbeltMandate', titleKey: 'policy.busSeatbeltMandate.title', descKey: 'policy.busSeatbeltMandate.desc', monthlyBase: 190, unlockPopulation: 10000, category: 'safetyTransport', moverId: 'police_head' },
 ];
 
 const HSI_BASE_LEVEL = 20000;

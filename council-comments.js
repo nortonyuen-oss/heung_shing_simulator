@@ -41,6 +41,9 @@ function getCouncilCommentSignals() {
     typhoonStage: String(city.weather?.typhoonStage ?? 'none'),
     epidemicSeverity: Number(city.epidemicSeverity ?? 0),
     hsiChange: (hsi - previousHsi) / previousHsi,
+    attractiveness: Number(city.cityAttractiveness ?? 50),
+    ridicule: Number(city.cityRidicule ?? 0),
+    visitors: Number(city.monthlyVisitors ?? 0),
   };
 }
 
@@ -93,6 +96,7 @@ function getLibertyComment(s) {
 }
 
 function getBusinessComment(s) {
+  if (s.ridicule >= 65) return makeCouncilComment('councillor_business', 'business', 'concern', 3, 'city_ridiculed', 'council.comment.business.ridicule', { value: Math.round(s.ridicule) });
   if (s.hsiChange <= -0.03) return makeCouncilComment('councillor_business', 'business', 'concern', 3, 'stock_market_fall', 'council.comment.business.marketFall', { value: `${(s.hsiChange * 100).toFixed(1)}%` });
   if (s.taxRate >= 0.13) return makeCouncilComment('councillor_business', 'tax', 'oppose', 2, 'tax_high', 'council.comment.business.taxHigh', { value: councilPercent(s.taxRate) });
   if (s.unemployment >= 0.1 || s.commercialDemand < -0.25) return makeCouncilComment('councillor_business', 'business', 'concern', 2, 'market_weak', 'council.comment.business.weak');
@@ -100,6 +104,8 @@ function getBusinessComment(s) {
 }
 
 function getTourismComment(s) {
+  if (s.attractiveness >= 72) return makeCouncilComment('councillor_tourism', 'tourism', 'support', 2, 'attractiveness_high', 'council.comment.tourism.attractive', { value: Math.round(s.attractiveness), visitors: Math.round(s.visitors) });
+  if (s.ridicule >= 45) return makeCouncilComment('councillor_tourism', 'tourism', 'concern', 2, 'meme_tourism', 'council.comment.tourism.ridicule', { value: Math.round(s.ridicule) });
   if (s.pollution >= 65) return makeCouncilComment('councillor_tourism', 'tourism', 'oppose', 3, 'pollution_hurts_tourism', 'council.comment.tourism.pollution', { value: Math.round(s.pollution) });
   if (isPolicyActive('tourismPromotion')) return makeCouncilComment('councillor_tourism', 'tourism', 'support', 1, 'tourism_policy_active', 'council.comment.tourism.promotion');
   if (s.happiness < 0.45) return makeCouncilComment('councillor_tourism', 'tourism', 'concern', 2, 'city_appeal_low', 'council.comment.tourism.appeal', { value: councilPercent(s.happiness) });
@@ -130,4 +136,3 @@ function getCurrentCouncilComment(officialId) {
   const builder = COUNCIL_COMMENT_BUILDERS[officialId];
   return builder ? builder(getCouncilCommentSignals()) : null;
 }
-

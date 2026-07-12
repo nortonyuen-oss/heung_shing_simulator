@@ -71,6 +71,18 @@ const CHART_SERIES_DEFS = {
     historyKey: 'hospitalUtilizationHistory',
     formatter: (v) => `${Math.round((Number(v) || 0) * 100)}%`,
   },
+  attractiveness: {
+    labelKey: 'chart.attractiveness',
+    color: '#9b4dff',
+    historyKey: 'cityAttractivenessHistory',
+    formatter: (v) => `${Math.round(Number(v) || 0)}/100`,
+  },
+  ridicule: {
+    labelKey: 'chart.ridicule',
+    color: '#ff4db8',
+    historyKey: 'cityRidiculeHistory',
+    formatter: (v) => `${Math.round(Number(v) || 0)}/100`,
+  },
 };
 
 let chartWindowLastRenderedLabel = null;
@@ -292,6 +304,10 @@ function updateChartWindow(force = false) {
   const currentLabel = `${city.year}-${String(city.month).padStart(2, '0')}`;
   if (!force && currentLabel === chartWindowLastRenderedLabel) return;
   chartWindowLastRenderedLabel = currentLabel;
+
+  const ridiculeToggle = document.getElementById('chart-ridicule-toggle');
+  if (ridiculeToggle) ridiculeToggle.hidden = Number(city.cityRidicule || 0) <= 0
+    && !(city.cityRidiculeHistory || []).some((point) => Number(point?.value || 0) > 0);
 
   updateChartWindowMetrics();
   renderCityTrendChart();

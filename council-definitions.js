@@ -1,7 +1,7 @@
 // Stable council data shared by comments, voting, events, saves, and future AI news.
 // Display names and copy belong in i18n; never use them as persistence keys.
 
-const COUNCIL_SCHEMA_VERSION = 1;
+const COUNCIL_SCHEMA_VERSION = 2;
 
 const COUNCIL_ISSUE_IDS = Object.freeze([
   'finance',
@@ -219,6 +219,76 @@ const COUNCIL_SPECIAL_EVENT_DEFS = Object.freeze([
   { id: 'tourism_record_selfie', ownerId: 'councillor_tourism', cooldownMonths: 12, trigger: 'tourism_record' },
   { id: 'religion_disaster_mutual_aid', ownerId: 'councillor_religion', cooldownMonths: 6, trigger: 'major_disaster' },
 ]);
+
+// One-off resolutions share the council debate/vote pipeline with ordinances, but
+// create temporary effects or scheduled programmes instead of toggling activePolicies.
+const COUNCIL_RESOLUTION_DEFS = Object.freeze([
+  {
+    id: 'cashHandout', titleKey: 'resolution.cashHandout.title', descKey: 'resolution.cashHandout.desc',
+    upfrontBase: 500000, costPerCitizen: 18, durationMonths: 3, cooldownMonths: 18, absurdity: 1,
+    issues: { finance: -1, business: 1, governance: 0.5 },
+    tags: ['cash_handout', 'welfare', 'consumer_spending'],
+    leadOfficialIds: ['treasury_head', 'chief_executive'],
+    successModifiers: { happiness: 0.06, commercialDemand: 0.12, tourism: 2, attractiveness: 3 },
+    riskModifiers: { happiness: 0.02, commercialDemand: 0.05, ridicule: 3 },
+  },
+  {
+    id: 'tourEverywhere', titleKey: 'resolution.tourEverywhere.title', descKey: 'resolution.tourEverywhere.desc',
+    upfrontBase: 900000, costPerCitizen: 2, durationMonths: 3, cooldownMonths: 18, absurdity: 2,
+    issues: { tourism: 2, business: 1, environment: -0.5 },
+    tags: ['tourism_campaign', 'photo_spot', 'crowding'],
+    leadOfficialIds: ['culture_head', 'councillor_tourism'],
+    successModifiers: { happiness: 0.03, commercialDemand: 0.09, tourism: 16, attractiveness: 8, traffic: 0.05 },
+    riskModifiers: { happiness: -0.03, tourism: 4, attractiveness: -2, traffic: 0.12, ridicule: 7 },
+  },
+  {
+    id: 'menaConcert', titleKey: 'resolution.menaConcert.title', descKey: 'resolution.menaConcert.desc',
+    upfrontBase: 1600000, costPerCitizen: 1, durationMonths: 3, cooldownMonths: 24, absurdity: 1,
+    issues: { parks_culture: 2, tourism: 2, business: 1 },
+    tags: ['concert', 'international_star', 'kpop', 'crowding'],
+    leadOfficialIds: ['culture_head', 'councillor_tourism'],
+    successModifiers: { happiness: 0.09, commercialDemand: 0.10, tourism: 22, attractiveness: 12, traffic: 0.08 },
+    riskModifiers: { happiness: -0.02, tourism: 5, attractiveness: -3, traffic: 0.14, ridicule: 8 },
+  },
+  {
+    id: 'muiKinKwokMatch', titleKey: 'resolution.muiKinKwokMatch.title', descKey: 'resolution.muiKinKwokMatch.desc',
+    upfrontBase: 1400000, costPerCitizen: 1, durationMonths: 3, cooldownMonths: 24, absurdity: 1,
+    issues: { tourism: 2, parks_culture: 1, business: 1, public_safety: 0.5 },
+    tags: ['football', 'international_star', 'sports_event', 'crowding'],
+    leadOfficialIds: ['culture_head', 'police_head'],
+    successModifiers: { happiness: 0.07, commercialDemand: 0.08, tourism: 18, attractiveness: 10, traffic: 0.09 },
+    failureOutcome: 'bench_warmer_refund', failureRefundRate: 0.75,
+    riskModifiers: { happiness: -0.06, tourism: -5, attractiveness: -8, traffic: 0.15, ridicule: 20 },
+  },
+  {
+    id: 'aiAntiDrugGirlGroup', titleKey: 'resolution.aiAntiDrugGirlGroup.title', descKey: 'resolution.aiAntiDrugGirlGroup.desc',
+    upfrontBase: 750000, costPerCitizen: 0.5, durationMonths: 3, cooldownMonths: 24, absurdity: 3,
+    issues: { public_safety: 1, education: 1, science: 1, governance: -0.5 },
+    tags: ['anti_drug', 'ai_girl_group', 'government_campaign'],
+    leadOfficialIds: ['police_head', 'councillor_religion'],
+    successModifiers: { happiness: 0.02, commercialDemand: 0.02, attractiveness: 3, crime: -0.04 },
+    // Canonical failure: lavish drug-themed styling glamorises the imagery and
+    // turns the campaign into counter-advertising. News may reword, not alter it.
+    failureOutcome: 'glamourised_drugs_backfire',
+    riskModifiers: { happiness: -0.04, attractiveness: -6, ridicule: 18, crime: 0.05 },
+  },
+  {
+    id: 'fantasyFingHeungShing', titleKey: 'resolution.fantasyFingHeungShing.title', descKey: 'resolution.fantasyFingHeungShing.desc',
+    upfrontBase: 1800000, costPerCitizen: 1, durationMonths: 12, cooldownMonths: 24, absurdity: 2,
+    issues: { tourism: 2, parks_culture: 2, business: 1, environment: -0.5 },
+    tags: ['drone_show', 'light_show', 'spectacle', 'noise', 'energy_use'],
+    leadOfficialIds: ['culture_head', 'observatory_head'],
+    programmeType: 'quarterly_drone_show', programmeShows: 4,
+    successModifiers: { happiness: 0.035, commercialDemand: 0.035, tourism: 8, attractiveness: 6, traffic: 0.04 },
+    riskModifiers: { happiness: -0.025, tourism: 1, attractiveness: -3, traffic: 0.08, ridicule: 10 },
+  },
+]);
+
+const COUNCIL_RESOLUTION_IDS = Object.freeze(COUNCIL_RESOLUTION_DEFS.map((resolution) => resolution.id));
+
+function getCouncilResolutionDefinition(id) {
+  return COUNCIL_RESOLUTION_DEFS.find((resolution) => resolution.id === id) ?? null;
+}
 
 function getCouncilOfficialDefinition(id) {
   return COUNCIL_OFFICIAL_DEFS.find((official) => official.id === id) ?? null;

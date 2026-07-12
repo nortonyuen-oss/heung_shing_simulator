@@ -85,6 +85,9 @@ const city = {
     icac: false,
     legislativeCouncilElection: false,
     stockExchangeAct: false,
+    elderlyTwoDollarFare: false,
+    arcticPenguinReserve: false,
+    busSeatbeltMandate: false,
   },
   council: createDefaultCouncilState(),
   loans: [],
@@ -136,8 +139,17 @@ const city = {
   lifeExpectancyHistory: [],
   epidemicHistory: [],
   hospitalUtilizationHistory: [],
+  cityAttractivenessHistory: [],
+  cityRidiculeHistory: [],
+  tourismAppealHistory: [],
   happiness: 0.5,
   pollution: 0,
+  cityAttractiveness: 50,
+  cityRidicule: 0,
+  tourismAppeal: 40,
+  monthlyVisitors: 0,
+  tourismRevenue: 0,
+  temporaryEffects: [],
   trafficIndex: 0,        // 0–1 city-wide congestion pressure (0 = free-flow, 1 = gridlock)
   trafficCoverage: 0,     // fraction of zoned tiles within road reach
   weather: {
@@ -171,6 +183,8 @@ const city = {
     pendingDisplay: false,
     history: [],
   },
+  forumPosts: [],
+  lastForumMonthIndex: -1,
   tick: 0,
   day:   1,
   month: 1,
@@ -217,6 +231,9 @@ function resetGameState() {
     icac: false,
     legislativeCouncilElection: false,
     stockExchangeAct: false,
+    elderlyTwoDollarFare: false,
+    arcticPenguinReserve: false,
+    busSeatbeltMandate: false,
   };
   city.council = createDefaultCouncilState(city.activePolicies);
   city.loans = [];
@@ -268,8 +285,17 @@ function resetGameState() {
   city.lifeExpectancyHistory = [];
   city.epidemicHistory = [];
   city.hospitalUtilizationHistory = [];
+  city.cityAttractivenessHistory = [];
+  city.cityRidiculeHistory = [];
+  city.tourismAppealHistory = [];
   city.happiness  = 0.5;
   city.pollution  = 0;
+  city.cityAttractiveness = 50;
+  city.cityRidicule = 0;
+  city.tourismAppeal = 40;
+  city.monthlyVisitors = 0;
+  city.tourismRevenue = 0;
+  city.temporaryEffects = [];
   city.trafficIndex = 0;
   city.trafficCoverage = 0;
   city.weather = {
@@ -303,6 +329,8 @@ function resetGameState() {
     pendingDisplay: false,
     history: [],
   };
+  city.forumPosts = [];
+  city.lastForumMonthIndex = -1;
   if (typeof resetAiNewsRuntime === 'function') resetAiNewsRuntime();
   city.tick       = 0;
   city.day        = 1;
@@ -339,6 +367,9 @@ function normalizeCityFinanceState() {
     icac: !!city.activePolicies?.icac,
     legislativeCouncilElection: !!city.activePolicies?.legislativeCouncilElection,
     stockExchangeAct: !!city.activePolicies?.stockExchangeAct,
+    elderlyTwoDollarFare: !!city.activePolicies?.elderlyTwoDollarFare,
+    arcticPenguinReserve: !!city.activePolicies?.arcticPenguinReserve,
+    busSeatbeltMandate: !!city.activePolicies?.busSeatbeltMandate,
   };
   city.council = normalizeCouncilState(city.council, city.activePolicies);
   city.loans = Array.isArray(city.loans) ? city.loans.filter((loan) => loan && loan.balance > 0) : [];
@@ -438,6 +469,25 @@ function normalizeCityFinanceState() {
   city.lifeExpectancyHistory = Array.isArray(city.lifeExpectancyHistory) ? city.lifeExpectancyHistory : [];
   city.epidemicHistory = Array.isArray(city.epidemicHistory) ? city.epidemicHistory : [];
   city.hospitalUtilizationHistory = Array.isArray(city.hospitalUtilizationHistory) ? city.hospitalUtilizationHistory : [];
+  city.cityAttractivenessHistory = Array.isArray(city.cityAttractivenessHistory) ? city.cityAttractivenessHistory : [];
+  city.cityRidiculeHistory = Array.isArray(city.cityRidiculeHistory) ? city.cityRidiculeHistory : [];
+  city.tourismAppealHistory = Array.isArray(city.tourismAppealHistory) ? city.tourismAppealHistory : [];
+  city.cityAttractiveness = Math.max(0, Math.min(100, toFiniteOr(city.cityAttractiveness, 50)));
+  city.cityRidicule = Math.max(0, Math.min(100, toFiniteOr(city.cityRidicule, 0)));
+  city.tourismAppeal = Math.max(0, Math.min(100, toFiniteOr(city.tourismAppeal, 40)));
+  city.monthlyVisitors = Math.max(0, Math.round(toFiniteOr(city.monthlyVisitors, 0)));
+  city.tourismRevenue = Math.max(0, Math.round(toFiniteOr(city.tourismRevenue, 0)));
+  city.temporaryEffects = (Array.isArray(city.temporaryEffects) ? city.temporaryEffects : [])
+    .filter((effect) => effect && typeof effect === 'object' && typeof effect.id === 'string')
+    .slice(-40)
+    .map((effect) => ({
+      id: String(effect.id).slice(0, 100),
+      sourceId: String(effect.sourceId ?? '').slice(0, 80),
+      startMonthIndex: Math.max(0, Math.floor(toFiniteOr(effect.startMonthIndex, 0))),
+      endMonthIndex: Math.max(0, Math.floor(toFiniteOr(effect.endMonthIndex, 0))),
+      modifiers: effect.modifiers && typeof effect.modifiers === 'object' ? { ...effect.modifiers } : {},
+      outcome: String(effect.outcome ?? 'success').slice(0, 40),
+    }));
   city.unemploymentRate = toFiniteOr(city.unemploymentRate, 0);
   city.highEduUnemploymentRate = toFiniteOr(city.highEduUnemploymentRate, 0);
   city.trafficIndex    = toFiniteOr(city.trafficIndex, 0);
@@ -520,6 +570,38 @@ function normalizeCityFinanceState() {
       month: Math.max(1, Math.min(12, Math.floor(toFiniteOr(item?.month, city.month)))),
     })).filter((item) => item.headline),
   };
+  city.forumPosts = (Array.isArray(city.forumPosts) ? city.forumPosts : []).slice(-60).map((post, index) => ({
+    id: String(post?.id || `forum-loaded-${index}`).slice(0, 120),
+    category: String(post?.category || '城市熱話').slice(0, 30),
+    headline: String(post?.headline || '').slice(0, 220),
+    image: /^UI\/News\/[a-zA-Z0-9_.-]+\.png$/.test(String(post?.image || '')) ? String(post.image) : '',
+    body: (Array.isArray(post?.body) ? post.body : [post?.body]).slice(0, 3).map((text) => String(text || '').slice(0, 500)).filter(Boolean),
+    author: String(post?.author || '香城街坊').slice(0, 40),
+    officialId: String(post?.officialId || '').slice(0, 60),
+    date: String(post?.date || '').slice(0, 60),
+    year: Math.floor(toFiniteOr(post?.year, city.year)),
+    month: Math.max(1, Math.min(12, Math.floor(toFiniteOr(post?.month, city.month)))),
+    outcome: String(post?.outcome || '').slice(0, 60),
+    resolutionId: String(post?.resolutionId || '').slice(0, 60),
+    resolutionMonthIndex: Math.floor(toFiniteOr(post?.resolutionMonthIndex, -1)),
+    source: post?.source === 'ai' ? 'ai' : 'local',
+    aiCommentsStatus: post?.aiCommentsStatus === 'complete' ? 'complete' : '',
+    social: {
+      likes: String(post?.social?.likes || '0').slice(0, 20),
+      laughs: String(post?.social?.laughs || '0').slice(0, 20),
+      angry: String(post?.social?.angry || '0').slice(0, 20),
+      commentCount: String(post?.social?.commentCount || '0').slice(0, 20),
+      shares: String(post?.social?.shares || '0').slice(0, 20),
+      comments: (Array.isArray(post?.social?.comments) ? post.social.comments : []).slice(0, 8).map((comment) => ({
+        author: String(comment?.author || '香城街坊').slice(0, 40),
+        text: String(comment?.text || '').slice(0, 240),
+        ai: comment?.ai === true,
+        official: comment?.official === true,
+        officialId: String(comment?.officialId || '').slice(0, 60),
+      })).filter((comment) => comment.text),
+    },
+  })).filter((post) => post.headline);
+  city.lastForumMonthIndex = Math.floor(toFiniteOr(city.lastForumMonthIndex, -1));
   city.creditRating = city.creditRating || 'A';
 }
 
@@ -603,7 +685,8 @@ function computeBudgetSnapshot(options = {}) {
     ? options.loanPayment
     : getMonthlyLoanDue();
 
-  const totalIncome = Math.round(grossIncome + policyTaxAdjustment);
+  const tourismIncome = Math.max(0, Number(city.tourismRevenue || 0));
+  const totalIncome = Math.round(grossIncome + policyTaxAdjustment + tourismIncome);
   const totalExpenses = Math.round(
     roadsUpkeep + fireUpkeep + policeUpkeep + powerUpkeep + educationUpkeep + healthUpkeep
     + parksUpkeep + policyCost + loanPayment
@@ -616,6 +699,7 @@ function computeBudgetSnapshot(options = {}) {
       commercialTax: Math.round(commercialTax),
       industrialTax: Math.round(industrialTax),
       policyAdjustment: Math.round(policyTaxAdjustment),
+      tourism: Math.round(tourismIncome),
     },
     expenses: {
       roads: Math.round(roadsUpkeep),
@@ -826,6 +910,9 @@ function getPolicyMonthlyCost() {
     if (policy.id === 'scienceDevelopment') cost += city.industrialCount * 5;
     if (policy.id === 'smokingBan') cost += Math.ceil(city.population / 2500) * 8;
     if (policy.id === 'schoolHealthProgram') cost += countSchoolHealthProgramBuildings() * 18;
+    if (policy.id === 'elderlyTwoDollarFare') cost += Math.ceil(city.population / 1000) * 9;
+    if (policy.id === 'arcticPenguinReserve') cost += Math.ceil(city.population / 5000) * 6;
+    if (policy.id === 'busSeatbeltMandate') cost += Math.ceil(roadTileCount / 100) * 4;
   });
   return Math.round(cost);
 }

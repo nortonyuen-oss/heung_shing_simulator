@@ -1,6 +1,6 @@
 # 市議會系統 Phase 1–2 設計規格
 
-狀態：設計草案，尚未實作  
+狀態：Phase 1 已實作；Phase 2 及特別議案首輪已接入，持續平衡及驗證
 範圍：Phase 1「角色與情境評論」及 Phase 2「法案審議與投票」  
 原則：先使用規則及對白模板，不依賴 AI；保留現有城市模擬效果；所有人物顯示名稱日後均可修改。
 
@@ -858,3 +858,34 @@ EVENT_JSON 是已由遊戲引擎確認的事實，不可增加或改變事件結
 - provider 逾時、無效 JSON、超長文字或未知 ID 時會可靠 fallback。
 - 同一怪癖不會在短期新聞反覆出現。
 - AI 新聞失敗不會改變任何城市數值、政策狀態或議會投票。
+
+## 14. 特別議案、城市吸引力與城市恥笑度
+
+議會議程分為 `policy` 常設法案及 `resolution` 一次性／限期特別議案。兩者共用草案、辯論、五席表決及行政批准流程；只有常設法案切換 `activePolicies`。特別議案批准時扣除一次性成本，建立有期限 modifier 或季度 programme，完成後進入冷卻。
+
+首批特別議案：
+
+- `cashHandout`：派錢計劃。
+- `tourEverywhere`：「無處不旅遊」活動。
+- `menaConcert`：邀請韓星天團「咩拿」開 Show。
+- `muiKinKwokMatch`：邀請足球明星「梅建國」表演賽。
+- `aiAntiDrugGirlGroup`：成立 AI 女團宣傳禁毒。
+- `fantasyFingHeungShing`：《幻彩 fing 香城》季度無人機燈光表演。
+
+AI 禁毒女團的 canonical 失敗結果固定為 `glamourised_drugs_backfire`：政府以過度華麗造型包裝代表毒品意象的女團成員，令毒品形象反而顯得時尚，造成反宣傳並增加城市恥笑度。AI 只可改寫新聞措辭，不得更改失敗原因。
+
+新增常設法案：
+
+- `elderlyTwoDollarFare`：長者兩元乘車計劃。
+- `arcticPenguinReserve`：北極企鵝保育區條例。
+- `busSeatbeltMandate`：巴士座位強制配戴安全帶法案。
+
+新增城市指標：
+
+- `cityAttractiveness` 0–100：由幸福、治安、環境、交通、商業、文化、旅遊政策、短期活動及適量迷因注意力組成。
+- `cityRidicule` 0–100：由荒誕法案、活動失敗及反宣傳事件增加，每月自然衰減；中等數值可帶來笑料幸福與迷因旅遊，極高數值損害城市品牌及法治形象。
+- `tourismAppeal`、`monthlyVisitors`、`tourismRevenue`：把旅遊 boost 轉為可見、可入帳的模擬結果。
+
+兩個彩蛋指標只在統計圖表顯示，預設不勾選；恥笑度選項在首次非零後解鎖。歷史序列每月記錄並隨存檔保存。
+
+《幻彩 fing 香城》批准後安排下一個 3／6／9／12 月開始，共四場。每場只在該月第一個 simulation tick 觸發一次，以 wall-clock 播放五秒獨立天空／無人機 overlay，不覆寫天氣狀態。場次結果由電力、天氣、交通、治安、文化撥款及 deterministic seed 決定，並可為 `success`、`nuisance`、`failure` 或 `meme_success`。

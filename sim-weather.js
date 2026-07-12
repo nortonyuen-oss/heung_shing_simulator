@@ -273,7 +273,6 @@ function updateTyphoonState() {
     weather.typhoonStage = stage;
     if ((stage === 'signal8' || stage === 'signal9' || stage === 'signal10') && !weather.signal8ReachedThisStorm) {
       weather.signal8ReachedThisStorm = true;
-      if (typeof announceTyphoonBulletin === 'function') announceTyphoonBulletin(weather.typhoonName, stage, weather.typhoonWindKph);
     }
     if (typeof announceTyphoonSignalChange === 'function') {
       announceTyphoonSignalChange(weather.typhoonName, stage, weather.typhoonWindKph);

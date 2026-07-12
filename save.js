@@ -88,7 +88,7 @@ function showTextPromptDialog(message, defaultValue = '') {
 
 // ── Build save payload ────────────────────────────────────────────────────────
 
-function buildSavePayload() {
+function buildSavePayload({ autosave = false, manualSaveId = currentSaveId } = {}) {
   return {
     city_name:  city.name || getDefaultCityName(),
     population: city.population,
@@ -96,7 +96,8 @@ function buildSavePayload() {
     month:      city.month,
     budget:     city.budget,
     save_data: {
-      version:       13,
+      version:       14,
+      ...(autosave ? { autosave: { manualSaveId } } : {}),
       seed:          currentSeed,
       roadTileSetId: typeof getCurrentRoadTileSetId === 'function'
         ? getCurrentRoadTileSetId()
@@ -126,12 +127,20 @@ function saveGame(silent = false) {
     return Promise.resolve(false);
   }
 
+  const isAutosave = silent === true;
   const targetSaveId = currentSaveId;
   const operation = async () => {
-    const payload = buildSavePayload();
+    const payload = buildSavePayload({ autosave: isAutosave, manualSaveId: targetSaveId });
     try {
       let res;
-      if (targetSaveId) {
+      if (isAutosave) {
+        // Autosave has one dedicated slot and never changes the active manual slot.
+        res = await fetch(`${API_BASE}/autosave`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify(payload),
+        });
+      } else if (targetSaveId) {
         // Overwrite the existing slot
         res = await fetch(`${API_BASE}/${targetSaveId}`, {
           method:  'PUT',
@@ -149,7 +158,7 @@ function saveGame(silent = false) {
 
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      currentSaveId = data.id;
+      if (!isAutosave) currentSaveId = data.id;
       showToast(silent ? t('toast.autosaved') : t('toast.citySaved'), 'info');
       return true;
     } catch (e) {
@@ -219,7 +228,11 @@ async function loadSaveById(id, scene) {
     if (typeof activeTerrainProfileType !== 'undefined') activeTerrainProfileType = 'custom';
     if (typeof setTerrainEditorUiActive === 'function') setTerrainEditorUiActive(false);
     applySaveData(readyScene, save);
-    currentSaveId = id;
+    // An autosave remembers which manual slot it came from. Loading it must not
+    // make a later Ctrl+S overwrite the autosave slot itself.
+    currentSaveId = row.save_type === 'autosave'
+      ? (Number(save.autosave?.manualSaveId) || null)
+      : id;
 
     showToast(t('toast.welcomeBack', { city: city.name }), 'info');
     return true;

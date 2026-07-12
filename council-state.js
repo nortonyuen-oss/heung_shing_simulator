@@ -24,6 +24,7 @@ function createDefaultCouncilPolicyStates(activePolicies = {}) {
   return Object.fromEntries(CITY_POLICY_DEFS.map((policy) => [policy.id, {
     status: activePolicies[policy.id] ? 'active' : 'inactive',
     lastChangedTick: -1,
+    cooldownUntilMonthIndex: -1,
   }]));
 }
 
@@ -40,6 +41,13 @@ function createDefaultCouncilState(activePolicies = {}) {
     }])),
     activeSession: null,
     voteHistory: [],
+    resolutionStates: Object.fromEntries(COUNCIL_RESOLUTION_IDS.map((id) => [id, {
+      cooldownUntilMonthIndex: -1,
+      timesApproved: 0,
+    }])),
+    activePrograms: [],
+    resolutionHistory: [],
+    lastTimedMonthIndex: -1,
     recentCommentKeys: [],
     lastCommentTickByContext: {},
   };
@@ -86,6 +94,7 @@ function normalizeCouncilState(rawCouncil, activePolicies = {}) {
     policyStates[policy.id] = {
       status,
       lastChangedTick: Math.floor(clampCouncilNumber(saved?.lastChangedTick, -1, Number.MAX_SAFE_INTEGER, -1)),
+      cooldownUntilMonthIndex: Math.floor(clampCouncilNumber(saved?.cooldownUntilMonthIndex, -1, Number.MAX_SAFE_INTEGER, -1)),
     };
   });
 
@@ -95,6 +104,15 @@ function normalizeCouncilState(rawCouncil, activePolicies = {}) {
     specialEventState[event.id] = {
       lastTriggeredTick: Math.floor(clampCouncilNumber(saved?.lastTriggeredTick, -1, Number.MAX_SAFE_INTEGER, -1)),
       triggerCount: Math.floor(clampCouncilNumber(saved?.triggerCount, 0, Number.MAX_SAFE_INTEGER, 0)),
+    };
+  });
+
+  const resolutionStates = {};
+  COUNCIL_RESOLUTION_IDS.forEach((id) => {
+    const saved = raw.resolutionStates?.[id];
+    resolutionStates[id] = {
+      cooldownUntilMonthIndex: Math.floor(clampCouncilNumber(saved?.cooldownUntilMonthIndex, -1, Number.MAX_SAFE_INTEGER, -1)),
+      timesApproved: Math.floor(clampCouncilNumber(saved?.timesApproved, 0, Number.MAX_SAFE_INTEGER, 0)),
     };
   });
 
@@ -117,6 +135,14 @@ function normalizeCouncilState(rawCouncil, activePolicies = {}) {
     specialEventState,
     activeSession: raw.activeSession && typeof raw.activeSession === 'object' ? raw.activeSession : null,
     voteHistory: (Array.isArray(raw.voteHistory) ? raw.voteHistory : []).filter((vote) => vote && typeof vote === 'object').slice(-50),
+    resolutionStates,
+    activePrograms: (Array.isArray(raw.activePrograms) ? raw.activePrograms : [])
+      .filter((program) => program && typeof program === 'object' && COUNCIL_RESOLUTION_IDS.includes(program.resolutionId))
+      .slice(-12),
+    resolutionHistory: (Array.isArray(raw.resolutionHistory) ? raw.resolutionHistory : [])
+      .filter((record) => record && typeof record === 'object' && COUNCIL_RESOLUTION_IDS.includes(record.resolutionId))
+      .slice(-50),
+    lastTimedMonthIndex: Math.floor(clampCouncilNumber(raw.lastTimedMonthIndex, -1, Number.MAX_SAFE_INTEGER, -1)),
     recentCommentKeys,
     lastCommentTickByContext,
   };

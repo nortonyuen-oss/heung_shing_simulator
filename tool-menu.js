@@ -154,7 +154,7 @@ function setupToolMenu() {
       return;
     }
     if (actionButton?.dataset.action === 'open-council-meeting') {
-      if (isTerrainCreatorMode) return;
+      if (isTerrainCreatorMode || (typeof isCouncilMeetingUnlocked === 'function' && !isCouncilMeetingUnlocked())) return;
       openLegislativeWindow();
       closeToolCategoryFlyouts();
       return;

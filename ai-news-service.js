@@ -62,7 +62,10 @@ function loadAiNewsConfig() {
   } catch (error) {
     console.warn('[AI News] Ignoring invalid settings', error);
   }
-  return { enabled: false, provider: 'cloud', models: { local: '', cloud: '' } };
+  // First-run default: prefer AI when a configured provider is available;
+  // refreshAiNewsStatus resolves this sentinel to true or false. Explicit user
+  // choices loaded above remain untouched.
+  return { enabled: null, provider: 'cloud', models: { local: '', cloud: '' } };
 }
 
 function normalizeAiNewsClientConfig(value = {}) {
@@ -186,6 +189,9 @@ async function initializeAiNewsService() {
   aiNewsRuntime.initialized = true;
   await hydrateAiNewsConfig();
   await refreshAiNewsStatus();
+  // Forum posts created while this status check was still in flight (e.g. right at
+  // load) skip their first AI-comment attempt silently; retry them now that we know.
+  if (typeof hydrateRecentForumAiComments === 'function') hydrateRecentForumAiComments();
 }
 
 function buildAiNewsFacts() {
@@ -223,7 +229,7 @@ function buildAiNewsFacts() {
 // Rewords a rule-decided CanonicalNewsEvent (council-news.js) into a news line via AI.
 // The event's facts, characters and quoteSpeakerId are authoritative; a rule-based fallback
 // line is always shown by the caller first, so failures here are silently non-fatal.
-async function requestCouncilCharacterNews(event) {
+async function requestCouncilCharacterNews(event, options = {}) {
   if (!event || councilNewsRuntime.pending) return null;
   if (!aiNewsRuntime.initialized || !isAiNewsEnabled()) return null;
   if (!aiNewsRuntime.status?.available || !getSelectedAiModel()) return null;
@@ -265,7 +271,7 @@ async function requestCouncilCharacterNews(event) {
     const headline = withAiNewsDebugPrefix(result.headline).slice(0, 220);
     if (!headline) return null;
     const line = result.quote ? `${headline}「${result.quote}」` : headline;
-    if (typeof addCityNews === 'function') addCityNews(line);
+    if (options.addToTicker !== false && typeof addCityNews === 'function') addCityNews(line);
     return result;
   } catch (error) {
     console.warn('[Council News]', error.message);

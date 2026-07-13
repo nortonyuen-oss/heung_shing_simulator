@@ -70,15 +70,6 @@ function createGameApp(options = {}) {
     'parks/park1x1',
     'parks/park2x2',
     'parks/park3x3',
-    // Legacy folder names kept for backward compatibility with cached save data
-    'residential/house1x4',
-    'commercialBuildings/1x1',
-    'commercialBuildings/2x2',
-    'commercialBuildings/3x3',
-    'commercialBuildings/4x4',
-    'industrialBuildings/1x1',
-    'industrialBuildings/2x2',
-    'industrialBuildings/3x3',
   ];
   const folderName = req.params[0];
   if (!ALLOWED.includes(folderName)) {

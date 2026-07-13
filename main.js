@@ -211,7 +211,6 @@ const AMBIENT_BASE_VOLUME = {
   rain: 0.5,
   typhoon: 0.7,
 };
-let nextBuildingIndex = 0;
 let houseModelSets = {};
 let commercialBuildingModels = [];
 let industrialBuildingModels = [];
@@ -1295,9 +1294,9 @@ function preload() {
   SFX_TRACKS.forEach((track) => {
     this.load.audio(track.key, track.file);
   });
-  BUILDING_KEYS.forEach((key, index) => {
-    this.load.image(key, `Models/PNG/buildingTiles_${String(index).padStart(3, '0')}.png`);
-  });
+  // The legacy Models/PNG tileset is no longer shipped. Old saves are migrated
+  // to the current model catalog during load, so requesting its 78 missing PNGs
+  // here only delayed startup with 78 guaranteed 404 responses.
   Object.values(houseModelSets).flat().forEach((model) => {
     this.load.image(model.key, model.path);
   });
@@ -2949,27 +2948,6 @@ function getSpriteFootprintMetadata(
   };
 }
 
-function placeBuilding(scene, row, col) {
-  if (!canPlaceBuildingFootprint(row, col, 1, 1)) return;
-
-  const key = BUILDING_KEYS[nextBuildingIndex % BUILDING_KEYS.length];
-  nextBuildingIndex += 1;
-  placeSpriteBuilding(scene, row, col, key);
-
-  // Register in buildingData so the sim tracks it (treat as residential for pop)
-  const zone = zoneMap[row]?.[col];
-  const id   = getTileId(row, col);
-  buildingData[id] = {
-    type: zone === ZONE_COM ? 'commercial' : zone === ZONE_IND ? 'industrial' : 'residential',
-    level: 1,
-    population: zone === ZONE_COM || zone === ZONE_IND ? 0 : POP_PER_LEVEL[1],
-    age: 0,
-    spriteKey:    key,
-    footprintCols: 1,
-    footprintRows: 1,
-  };
-}
-
 function placeHouse(scene, row, col) {
   placeHouseModel(scene, row, col, selectedHouseSet);
 }
@@ -3360,8 +3338,6 @@ function isNewToolHandledByToolsModule(tool) {
 
 function getSelectedPlacementFootprint() {
   if (selectedTool === 'district-sign') return { footprintCols: 1, footprintRows: 1 };
-  if (selectedTool === 'building') return { footprintCols: 1, footprintRows: 1 };
-
   if (selectedTool === 'house') {
     const config = HOUSE_MODEL_SETS[selectedHouseSet] ?? HOUSE_MODEL_SETS.house;
     return {
@@ -3453,7 +3429,6 @@ function applyToolAt(scene, row, col, pointer = null) {
   if (handleNewTool(scene, { row, col })) return;
   if (isNewToolHandledByToolsModule(selectedTool)) return;
 
-  if (selectedTool === 'building') { placeBuilding(scene, row, col); return; }
   if (selectedTool === 'house')    { placeHouse(scene, row, col);    return; }
 
   if (selectedTool === 'bulldoze') {

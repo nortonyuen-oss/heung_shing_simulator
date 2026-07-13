@@ -356,13 +356,13 @@ function saveResolutionArticle(event, article) {
 
 function getResolutionForumImage(resolutionId, outcome) {
   const images = {
-    muiKinKwokMatch: 'UI/News/footballStarVisit.png',
-    menaConcert: 'UI/News/koreanStarVisit.png',
-    aiAntiDrugGirlGroup: 'UI/News/AIAntidrugCampagin.png',
-    tourEverywhere: 'UI/News/touringEverywhere.png',
+    muiKinKwokMatch: 'UI/news/footballStarVisit.webp',
+    menaConcert: 'UI/news/koreanStarVisit.webp',
+    aiAntiDrugGirlGroup: 'UI/news/AIAntidrugCampagin.webp',
+    tourEverywhere: 'UI/news/touringEverywhere.webp',
   };
   if (resolutionId === 'fantasyFingHeungShing') {
-    return outcome === 'success' ? 'UI/News/nightDroneShowSucceed.png' : 'UI/News/nightDroneShowFailed.png';
+    return outcome === 'success' ? 'UI/news/nightDroneShowSucceed.webp' : 'UI/news/nightDroneShowFailed.webp';
   }
   return images[resolutionId] || '';
 }

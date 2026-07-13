@@ -211,8 +211,9 @@ function placeInfraBuilding(scene, row, col, buildingType) {
   }
 
   const buildingModel = POWER_PLANT_MODELS[buildingType] ?? SERVICE_BUILDING_MODELS[buildingType];
-  const footprintCols = buildingModel?.footprintCols ?? 1;
-  const footprintRows = buildingModel?.footprintRows ?? 1;
+  if (!buildingModel) return false;
+  const footprintCols = buildingModel.footprintCols;
+  const footprintRows = buildingModel.footprintRows;
   if (!canPlaceBuildingFootprint(row, col, footprintCols, footprintRows)) return false;
 
   const cost = INFRA_COSTS[buildingType];
@@ -221,7 +222,7 @@ function placeInfraBuilding(scene, row, col, buildingType) {
     return false;
   }
 
-  const key = buildingModel?.spriteKey ?? BUILDING_KEYS[INFRA_SPRITE_INDEX[buildingType]];
+  const key = buildingModel.spriteKey;
   const opts = POWER_PLANT_MODELS[buildingType]
     ? (powerPlantModelMetadata[buildingType] ?? buildingModel)
     : SERVICE_BUILDING_MODELS[buildingType]

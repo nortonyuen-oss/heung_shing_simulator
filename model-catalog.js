@@ -103,20 +103,6 @@ const HOUSE_MODEL_SETS = {
   },
 };
 
-// Legacy fallback: house1x4 no longer exists in new assets.
-// Kept so old save files that reference it don't crash at load time.
-const HOUSE_MODEL_SETS_LEGACY = {
-  house1x4: {
-    label: '1x4',
-    folder: 'Models/residential/house1x4/',
-    apiFolder: 'residential/house1x4',
-    defaultFile: 'longPublicHousing.png',
-    preferredFiles: ['longPublicHousing.png'],
-    footprintCols: 4,
-    footprintRows: 1,
-  },
-};
-
 // ── Commercial ───────────────────────────────────────────────────────────────
 // fallbackSourceFiles = actual disk names; preferredFiles = canonical slot names.
 // fileAliases maps disk → canonical so highScore detection (/highScore/i)
@@ -183,7 +169,6 @@ const COMMERCIAL_BUILDING_MODEL_SETS = [
     folder: 'Models/commercial/3x3/',
     apiFolder: 'commercial/3x3',
     fallbackSourceFiles: [
-      'commercialBuilding3-02.png',
       'commercialBuilding3-03.png',
       'commercialBuilding3-04.png',
       'commercialBuilding3-07.png',
@@ -201,13 +186,11 @@ const COMMERCIAL_BUILDING_MODEL_SETS = [
       'commercialBuilding04.png',
       'commercialBuilding05.png',
       'commercialBuilding06.png',
-      'commercialBuilding07.png',
       'commercialBuilding01-highScore.png',
       'commercialBuilding02-highScore.png',
       'commercialBuilding03-highScore.png',
     ],
     fileAliases: buildSequentialFileAliases([
-      'commercialBuilding3-02.png',
       'commercialBuilding3-03.png',
       'commercialBuilding3-04.png',
       'commercialBuilding3-07.png',
@@ -224,7 +207,6 @@ const COMMERCIAL_BUILDING_MODEL_SETS = [
       'commercialBuilding04.png',
       'commercialBuilding05.png',
       'commercialBuilding06.png',
-      'commercialBuilding07.png',
       'commercialBuilding01-highScore.png',
       'commercialBuilding02-highScore.png',
       'commercialBuilding03-highScore.png',
@@ -369,10 +351,6 @@ const INDUSTRIAL_BUILDING_MODEL_SETS = [
     footprintRows: 3,
   },
 ];
-
-const BUILDING_KEYS = Array.from({ length: 78 }, (_, index) => (
-  `building_${String(index).padStart(3, '0')}`
-));
 
 const TREE_SPECIES = [
   { id: 'banyan',     shortKey: 'tree02', tallKey: 'tree01', hillWeight: 1 },

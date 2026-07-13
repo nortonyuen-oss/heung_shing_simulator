@@ -1,12 +1,12 @@
-# The City of Heung Shing v3.1.6
+# The City of Heung Shing v3.1.7
 
-Forum image rendering correction for desktop packages.
+Desktop asset loading cleanup for resolution news and removed building models.
 
 ## Fixes
 
-- Fixed the city-state sanitizer that discarded every current `UI/news/*.webp` forum image path before the renderer created its `<img>` elements.
-- Legacy `UI/News/*.png` save references now migrate to the case-correct optimized WebP assets.
-- Added a release regression test covering both current and legacy forum image paths.
+- Fixed three-month resolution-result news so both generation and the immediate popup resolve the packaged `UI/news/*.webp` image.
+- Removed startup requests for 78 deleted `Models/PNG/buildingTiles_*.png` assets and deleted the associated dead legacy placement/catalog code.
+- Removed one stale commercial fallback filename and verified every configured startup/fallback model file exists.
 
 ## Downloads
 

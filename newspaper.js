@@ -198,8 +198,9 @@ function showResolutionNewspaper(article, postId = '') {
   setTextContent('newspaper-subhead', article.subhead || '');
   const forumImage = document.getElementById('forum-post-image');
   if (forumImage) {
-    forumImage.hidden = !article.image;
-    forumImage.src = article.image || '';
+    const imagePath = normalizeForumImagePath(article.image);
+    forumImage.hidden = !imagePath;
+    forumImage.src = imagePath;
     forumImage.alt = article.headline || '';
   }
 

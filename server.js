@@ -13,6 +13,7 @@ const {
 } = require('./ai-news-settings-store');
 
 const DEFAULT_PORT = process.env.PORT || 3000;
+const APP_VERSION = require('./package.json').version;
 
 function createMemoryAiNewsCredentialStore() {
   let apiKey = String(process.env.OLLAMA_API_KEY || '').trim();
@@ -41,6 +42,12 @@ function createGameApp(options = {}) {
   // Middleware
   app.use(express.json({ limit: '50mb' }));
   app.use(express.static(rootDir)); // serve index.html + JS/CSS/assets
+
+  // Keep renderer-visible version labels tied to the same package metadata used
+  // by electron-builder for DMG/EXE names and native application metadata.
+  app.get('/api/app-info', (_req, res) => {
+    res.json({ version: APP_VERSION });
+  });
 
   // Model folder discovery
   // Returns a JSON array of image filenames for a given model folder.

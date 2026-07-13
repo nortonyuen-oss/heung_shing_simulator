@@ -1,10 +1,12 @@
-# The City of Heung Shing v3.1.4
+# The City of Heung Shing v3.1.5
 
-Critical patch. v3.1.3 broke all new discussion forum posts — fixed here.
+Desktop packaging patch for correct version labels and forum images.
 
-## Fix
+## Fixes
 
-- The v3.1.3 image-path fix called a helper function (`normalizeForumImagePath`) that, due to a packaging oversight, was never actually included in that release. As a result, every attempt to create a forum post — the monthly discussion post, resolution-outcome announcements, all of it — threw an error and silently failed. New games and existing saves alike stopped generating any forum content. The function is now defined directly where it's used, with no missing dependency.
+- Window-title and About-dialog version labels now report v3.1.5 and are sourced from the packaged application metadata.
+- Forum WebP images and thumbnails are explicitly included in DMG and EXE packages.
+- Existing saved forum image paths continue to migrate to the case-correct optimized assets.
 
 ## Downloads
 

@@ -339,6 +339,13 @@ function resetGameState() {
   city.isBankrupt = false;
 }
 
+function normalizeForumImagePath(value) {
+  const migrated = String(value || '')
+    .replace(/^UI\/News\//, 'UI/news/')
+    .replace(/\.png$/i, '.webp');
+  return /^UI\/news\/[a-zA-Z0-9_.-]+\.webp$/.test(migrated) ? migrated : '';
+}
+
 function normalizeCityFinanceState() {
   const toFiniteOr = (value, fallback) => {
     const numeric = Number(value);
@@ -574,7 +581,7 @@ function normalizeCityFinanceState() {
     id: String(post?.id || `forum-loaded-${index}`).slice(0, 120),
     category: String(post?.category || '城市熱話').slice(0, 30),
     headline: String(post?.headline || '').slice(0, 220),
-    image: /^UI\/News\/[a-zA-Z0-9_.-]+\.png$/.test(String(post?.image || '')) ? String(post.image) : '',
+    image: normalizeForumImagePath(post?.image),
     body: (Array.isArray(post?.body) ? post.body : [post?.body]).slice(0, 3).map((text) => String(text || '').slice(0, 500)).filter(Boolean),
     author: String(post?.author || '香城街坊').slice(0, 40),
     officialId: String(post?.officialId || '').slice(0, 60),

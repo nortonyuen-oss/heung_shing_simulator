@@ -1,12 +1,12 @@
-# The City of Heung Shing v3.1.5
+# The City of Heung Shing v3.1.6
 
-Desktop packaging patch for correct version labels and forum images.
+Forum image rendering correction for desktop packages.
 
 ## Fixes
 
-- Window-title and About-dialog version labels now report v3.1.5 and are sourced from the packaged application metadata.
-- Forum WebP images and thumbnails are explicitly included in DMG and EXE packages.
-- Existing saved forum image paths continue to migrate to the case-correct optimized assets.
+- Fixed the city-state sanitizer that discarded every current `UI/news/*.webp` forum image path before the renderer created its `<img>` elements.
+- Legacy `UI/News/*.png` save references now migrate to the case-correct optimized WebP assets.
+- Added a release regression test covering both current and legacy forum image paths.
 
 ## Downloads
 

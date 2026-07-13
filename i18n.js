@@ -1,5 +1,5 @@
 const I18N_STORAGE_KEY = 'citybuilder.language';
-let appVersion = '3.1.5';
+let appVersion = '3.1.6';
 
 const LANGUAGES = {
   en: 'English',

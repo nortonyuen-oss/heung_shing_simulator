@@ -1,12 +1,12 @@
-# The City of Heung Shing v3.1.7
+# The City of Heung Shing v3.1.8
 
-Desktop asset loading cleanup for resolution news and removed building models.
+Terrain elevation integrity fix for language switching and built-in map previews.
 
 ## Fixes
 
-- Fixed three-month resolution-result news so both generation and the immediate popup resolve the packaged `UI/news/*.webp` image.
-- Removed startup requests for 78 deleted `Models/PNG/buildingTiles_*.png` assets and deleted the associated dead legacy placement/catalog code.
-- Removed one stale commercial fallback filename and verified every configured startup/fallback model file exists.
+- Prevented built-in terrain preview generation from overwriting the active city's global elevation map.
+- Stopped language changes during gameplay from rebuilding the hidden landing-screen terrain previews.
+- Added a regression test that keeps preview generation isolated while preserving explicit terrain commits for new games.
 
 ## Downloads
 
@@ -15,4 +15,4 @@ Desktop asset loading cleanup for resolution news and removed building models.
 - Windows installer EXE
 - Windows portable EXE
 
-Save format version: 14 (unchanged from v3.1.0).
+Save format version: 14 (unchanged from v3.1.7).

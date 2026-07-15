@@ -266,6 +266,10 @@ function setupLandingScreen() {
   if (typeof populateRoadTileSetSelect === 'function') populateRoadTileSetSelect(roadTileSetSelect);
   updateTerrainSourceVisibility();
   document.addEventListener('languagechange', () => {
+    // The landing screen stays mounted after gameplay begins. Rebuilding its
+    // hidden terrain previews is unnecessary and used to let preview generation
+    // race with (and overwrite) the active city's elevation state.
+    if (screen.style.display === 'none') return;
     populateTerrainProfileSelect();
     if (typeof populateRoadTileSetSelect === 'function') populateRoadTileSetSelect(roadTileSetSelect);
     refreshTerrainPresetOptions();

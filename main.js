@@ -5609,11 +5609,20 @@ const REALISTIC_TERRAIN_PROFILES = {
 mapData = generateTerrainMap(currentSeed);
 
 function generateTerrainMap(seed) {
-  return generateRealisticTerrainMap('default', seed).mapData;
+  const generated = generateRealisticTerrainMap('default', seed);
+  commitGeneratedTerrainState(generated);
+  return generated.mapData;
 }
 
 function generateTerrainMapByProfile(profileType, seed) {
-  return generateRealisticTerrainMap(profileType, seed).mapData;
+  const generated = generateRealisticTerrainMap(profileType, seed);
+  commitGeneratedTerrainState(generated);
+  return generated.mapData;
+}
+
+function commitGeneratedTerrainState(generated) {
+  heightMap = generated.heightMap;
+  currentTerrainMetadata = generated.metadata;
 }
 
 function generateRealisticTerrainMap(profileType = 'default', seed, options = {}) {
@@ -5624,12 +5633,11 @@ function generateRealisticTerrainMap(profileType = 'default', seed, options = {}
   if (requestedProfile === 'flat') {
     const terrain = createFilledMap(GROUND);
     const heights = createFilledMap(0);
-    currentTerrainMetadata = { generatorVersion: 2, profileType: requestedProfile, seed, features: ['flat'] };
-    heightMap = heights;
+    const metadata = { generatorVersion: 2, profileType: requestedProfile, seed, features: ['flat'] };
     return {
       mapData: terrain,
       heightMap: heights,
-      metadata: currentTerrainMetadata,
+      metadata,
     };
   }
 
@@ -5662,8 +5670,6 @@ function generateRealisticTerrainMap(profileType = 'default', seed, options = {}
   quantizeHillHeights(terrain, heights);
   flattenMapBorder(terrain, heights, 3);
 
-  currentTerrainMetadata = metadata;
-  heightMap = heights;
   return { mapData: terrain, heightMap: heights, metadata };
 }
 

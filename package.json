@@ -17,9 +17,11 @@
     "dev": "node server.js",
     "electron:dev": "node scripts/run-electron.js",
     "rebuild:electron": "electron-builder install-app-deps",
-    "dist": "electron-builder",
-    "dist:mac": "electron-builder --mac",
-    "dist:win": "electron-builder --win",
+    "prepare:release-assets": "node scripts/prepare-release-assets.js",
+    "verify:release-assets": "node scripts/verify-release-assets.js",
+    "dist": "npm run prepare:release-assets && npm run verify:release-assets && electron-builder",
+    "dist:mac": "npm run prepare:release-assets && npm run verify:release-assets && electron-builder --mac",
+    "dist:win": "npm run prepare:release-assets && npm run verify:release-assets && electron-builder --win",
     "generate:icons": "node scripts/generate-icons.js",
     "migrate:pg-to-sqlite": "node scripts/migrate-pg-to-sqlite.js",
     "optimize:assets": "node scripts/optimize-model-assets.js",
@@ -55,6 +57,7 @@
       "!test/**",
       "!test-results/**",
       "!scripts/**",
+      "!Models/**",
       "!.data/**",
       "!.git/**",
       "!.vscode/**",
@@ -63,7 +66,14 @@
       "!.DS_Store",
       "!**/.DS_Store",
       "!**/process_log.csv",
-      "!**/settings.json"
+      "!**/settings.json",
+      {
+        "from": ".data/package-assets/Models",
+        "to": "Models",
+        "filter": [
+          "**/*"
+        ]
+      }
     ],
     "mac": {
       "category": "public.app-category.games",

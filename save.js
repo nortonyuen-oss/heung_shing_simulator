@@ -613,11 +613,32 @@ async function ensureSaveBuildingTextures(scene, save) {
   });
   if (missingModels.size === 0) return;
 
-  missingModels.forEach((model) => scene.load.image(model.key, model.path));
-  await new Promise((resolve) => {
-    scene.load.once('complete', resolve);
-    scene.load.start();
-  });
+  // Loading happens before applySaveData mutates the active city. If any
+  // texture remains unavailable after bounded retries, reject the load and
+  // leave the current city untouched instead of constructing blank sprites.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const outstanding = [...missingModels.values()]
+      .filter((model) => !scene.textures.exists(model.key));
+    if (outstanding.length === 0) break;
+    outstanding.forEach((model) => {
+      const separator = model.path.includes('?') ? '&' : '?';
+      scene.load.image(model.key, `${model.path}${separator}loadAttempt=${attempt + 1}`);
+    });
+    await new Promise((resolve) => {
+      scene.load.once('complete', resolve);
+      scene.load.start();
+    });
+    if (attempt < 2 && outstanding.some((model) => !scene.textures.exists(model.key))) {
+      await new Promise((resolve) => setTimeout(resolve, 150 * (2 ** attempt)));
+    }
+  }
+  const failed = [...missingModels.values()].filter((model) => !scene.textures.exists(model.key));
+  if (failed.length > 0) {
+    throw new Error(`Could not load ${failed.length} saved building texture(s)`);
+  }
+  if (typeof markZoneModelTextureUsed === 'function') {
+    missingModels.forEach((model) => markZoneModelTextureUsed(model.key));
+  }
   if (typeof prepareHouseModelMetadata === 'function') prepareHouseModelMetadata(scene);
   if (typeof prepareCommercialBuildingModelMetadata === 'function') prepareCommercialBuildingModelMetadata(scene);
   if (typeof prepareIndustrialBuildingModelMetadata === 'function') prepareIndustrialBuildingModelMetadata(scene);

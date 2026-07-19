@@ -4,15 +4,15 @@
 
 ## 總覽
 
-- 遊戲 PNG 模型：147
-- 已由登記表、模型目錄或動態 key 使用：144
+- 遊戲 PNG 模型：144
+- 已由登記表、模型目錄或動態 key 使用：141
 - 尚未接入玩法：3
 - 非遊戲生成檔：24 個 `.DS_Store`、2 個 `process_log.csv`、2 個 `settings.json`
 
 | 分類 | PNG 數量 | 狀態 |
 |---|---:|---|
 | airport | 1 | 新建機場 12×12；舊存檔支援 6×6、8×8 fallback |
-| commercial | 26 | 1×1 至 5×5 已接入 |
+| commercial | 23 | 1×1 至 5×5 已接入 |
 | containerPort | 4 | 四個海岸方向已接入 |
 | government | 21 | 18 張已接入，3 張保留作新玩法 |
 | industrial | 17 | 1×1 至 3×3 已接入 |
@@ -24,10 +24,14 @@
 
 ## 本輪更新檢查
 
-- 147 張模型全部可解碼，並且全部具有透明通道。
+- 144 張模型全部可解碼，並且全部具有透明通道。
 - 固定 registry、住宅／商業／工業 catalog 與目前檔名完全吻合，沒有失效引用。
 - 已移除顯示異常的 `commercialBuilding1-02-M.png`、`commercialBuilding4-03-L.png` 及 `commercialBuilding4-04-L.png`；舊存檔會按相同 footprint fallback 到現有模型。
-- 模型 metadata cache 已升級至 v10；同名換圖不會沿用舊透明邊界資料。
+- 打包管線會由 PNG 母檔自動產生 144 張 WebP；目前由 145.0 MiB 降至 25.9 MiB。
+- manifest hash 已納入模型路徑及 metadata cache；同名換圖不會沿用舊貼圖或透明邊界資料。
+- 建築會裁走全透明畫布，樹木保留原畫布；WebP anchor 審計最大偏差為 0.00px。
+- 遊戲啟動只預載每個 footprint／tier 的代表模型，其餘按需載入並受 192 MiB soft LRU budget 管理。
+- 以 manifest 尺寸估算，zone texture 啟動解碼量由全載入約 216.8 MiB 降至約 74.0 MiB（減少 65.9%）。
 - `/Models/` 圖片改為每次重載時條件式重新驗證，避免一小時媒體快取遮蔽最新貼圖。
 - 貨櫃碼頭四方向已使用 4×4 footprint；機場新建尺寸為 12×12，舊存檔保留 6×6／8×8 fallback。
 

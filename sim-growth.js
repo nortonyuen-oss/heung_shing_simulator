@@ -634,6 +634,15 @@ function getMergeableCommercialBuildingsAt(
   return anchors.size >= 2 ? [...anchors.values()] : null;
 }
 
+function isSelectableZoneModelTexture(model) {
+  return typeof isZoneModelTextureLoaded !== 'function' || isZoneModelTextureLoaded(model.key);
+}
+
+function rememberSelectedZoneModel(model) {
+  if (typeof markZoneModelTextureUsed === 'function') markZoneModelTextureUsed(model?.key);
+  return model;
+}
+
 function hasCommercialBuildingModelForFootprint(
   footprintSize,
   landScore = 0.5,
@@ -644,6 +653,7 @@ function hasCommercialBuildingModelForFootprint(
   const valid = all.filter((m) => (
     m.metadata
     && m.metadata.scale > 0.05
+    && isSelectableZoneModelTexture(m)
     && m.footprintCols === footprintSize
     && m.footprintRows === footprintSize
   ));
@@ -658,6 +668,7 @@ function hasResidentialModelForFootprint(footprintSize) {
   return (houseModelSets?.[setKey] ?? []).some((model) => (
     model.metadata
     && model.metadata.scale > 0.05
+    && isSelectableZoneModelTexture(model)
     && model.footprintCols === footprintSize
     && model.footprintRows === footprintSize
   ));
@@ -677,6 +688,7 @@ function hasNonResidentialBuildingModelForFootprint(
   return all.some((m) => (
     m.metadata
     && m.metadata.scale > 0.05
+    && isSelectableZoneModelTexture(m)
     && m.footprintCols === footprintSize
     && m.footprintRows === footprintSize
   ));
@@ -1346,7 +1358,12 @@ function getRandomHouseModel(
 ) {
   const all = (houseModelSets && houseModelSets[setKey]) ? houseModelSets[setKey] : [];
   // Only use models whose scale was computed successfully (> 0.05 avoids near-invisible sprites)
-  const valid = all.filter((m) => m.metadata && m.metadata.scale > 0.05 && m.wealthTier);
+  const valid = all.filter((m) => (
+    m.metadata
+    && m.metadata.scale > 0.05
+    && m.wealthTier
+    && isSelectableZoneModelTexture(m)
+  ));
   if (valid.length === 0) return null;
   const factors = siteFactors ?? {
     quality: clamp(landScore, 0, 1),
@@ -1360,7 +1377,8 @@ function getRandomHouseModel(
   const weights = getResidentialWealthWeights(factors, density, valid);
   const selectedTier = pickResidentialWealthTier(weights);
   const tierModels = valid.filter((model) => model.wealthTier === selectedTier);
-  return pickVariedModel(tierModels, `house:${setKey}:wealth:${selectedTier}`, factors);
+  const selected = pickVariedModel(tierModels, `house:${setKey}:wealth:${selectedTier}`, factors);
+  return rememberSelectedZoneModel(selected);
 }
 
 function getRandomCommercialBuildingModel(
@@ -1374,6 +1392,7 @@ function getRandomCommercialBuildingModel(
   const all = Array.isArray(commercialBuildingModels) ? commercialBuildingModels : [];
   const valid = all.filter((m) => {
     if (!m.metadata || m.metadata.scale <= 0.05) return false;
+    if (!isSelectableZoneModelTexture(m)) return false;
     if (footprintCols !== null && m.footprintCols !== footprintCols) return false;
     if (footprintRows !== null && m.footprintRows !== footprintRows) return false;
     return !!m.commercialTier;
@@ -1384,11 +1403,12 @@ function getRandomCommercialBuildingModel(
   const selectedTier = pickResidentialWealthTier(weights);
   if (!selectedTier) return null;
   const tierModels = valid.filter((model) => model.commercialTier === selectedTier);
-  return pickVariedModel(
+  const selected = pickVariedModel(
     tierModels,
     `commercial:${footprintCols ?? 'any'}x${footprintRows ?? 'any'}:tier:${selectedTier}`,
     factors,
   );
+  return rememberSelectedZoneModel(selected);
 }
 
 function getRandomIndustrialBuildingModel(footprintCols = null, footprintRows = null) {
@@ -1396,6 +1416,7 @@ function getRandomIndustrialBuildingModel(footprintCols = null, footprintRows = 
   const valid = all.filter((m) => (
     m.metadata
     && m.metadata.scale > 0.05
+    && isSelectableZoneModelTexture(m)
     && (footprintCols === null || m.footprintCols === footprintCols)
     && (footprintRows === null || m.footprintRows === footprintRows)
   ));
@@ -1403,24 +1424,28 @@ function getRandomIndustrialBuildingModel(footprintCols = null, footprintRows = 
 
   const allowScienceBias = footprintCols >= 2 && footprintRows >= 2;
   if (!allowScienceBias) {
-    return pickVariedModel(valid, `industrial:${footprintCols ?? 'any'}x${footprintRows ?? 'any'}`);
+    const selected = pickVariedModel(valid, `industrial:${footprintCols ?? 'any'}x${footprintRows ?? 'any'}`);
+    return rememberSelectedZoneModel(selected);
   }
 
   const scienceModels = valid.filter((m) => /sciencepark/i.test(m.sourceFileName || m.fileName || ''));
   const regularModels = valid.filter((m) => !/sciencepark/i.test(m.sourceFileName || m.fileName || ''));
   if (scienceModels.length === 0 || regularModels.length === 0) {
-    return pickVariedModel(valid, `industrial:${footprintCols ?? 'any'}x${footprintRows ?? 'any'}`);
+    const selected = pickVariedModel(valid, `industrial:${footprintCols ?? 'any'}x${footprintRows ?? 'any'}`);
+    return rememberSelectedZoneModel(selected);
   }
 
   if (!city.scienceParkUnlocked) {
-    return pickVariedModel(regularModels, `industrial:${footprintCols ?? 'any'}x${footprintRows ?? 'any'}:regular-locked`);
+    const selected = pickVariedModel(regularModels, `industrial:${footprintCols ?? 'any'}x${footprintRows ?? 'any'}:regular-locked`);
+    return rememberSelectedZoneModel(selected);
   }
 
   const higherEdu = clamp(city.educationHigherIndex ?? 0, 0, 1);
   const sciencePolicyBonus = isPolicyActive('scienceDevelopment') ? 0.20 : 0;
   const scienceChance = clamp(0.05 + 0.35 * higherEdu + sciencePolicyBonus, 0, 0.85);
   const chosenPool = Math.random() < scienceChance ? scienceModels : regularModels;
-  return pickVariedModel(chosenPool, `industrial:${footprintCols ?? 'any'}x${footprintRows ?? 'any'}:${chosenPool === scienceModels ? 'science' : 'regular'}`);
+  const selected = pickVariedModel(chosenPool, `industrial:${footprintCols ?? 'any'}x${footprintRows ?? 'any'}:${chosenPool === scienceModels ? 'science' : 'regular'}`);
+  return rememberSelectedZoneModel(selected);
 }
 
 function getZoneGrowthLandScore(row, col, zone, landValueMap = null) {

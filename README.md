@@ -127,27 +127,42 @@ To publish a new version:
 
 ## Asset Optimization
 
-Large model packs can increase first-load time. You can generate optimized WebP versions for residential/commercial/industrial/government model folders:
+`Models/` PNG files are the editable source of truth. Do not maintain a second
+set of WebP models by hand. Every desktop build now prepares a content-addressed
+release stage automatically (quality 88, alpha quality 100, maximum dimension
+1024px):
 
 ```bash
-npm run optimize:assets
+npm run prepare:release-assets
+npm run verify:release-assets
 ```
 
-Optional environment variables:
+The ignored output is written to `.data/package-assets/Models`. Buildings have
+empty transparent canvas edges removed, while trees retain their original
+canvas so their fixed origins do not move. `model-assets.json` preserves each
+logical PNG identity, maps it to the packaged WebP, and records its content hash,
+trim bounds and anchor geometry. Deleted or replaced source files are reflected
+automatically on the next build.
+
+Electron packages exclude source `Models/**` and include only this staged WebP
+tree and manifest. `npm run dist`, `npm run dist:mac`, and `npm run dist:win` all
+run preparation and verification first. The current 144-model set is reduced
+from 145.0 MiB to 25.9 MiB.
+
+Optional release-pipeline environment variables:
 
 - `ASSET_MAX_DIMENSION` (default `1024`)
-- `ASSET_WEBP_QUALITY` (default `82`)
-- `ASSET_DEFRINGE=1` removes generated white edge contamination before WebP conversion
+- `ASSET_WEBP_QUALITY` (default `88`)
 
 Example:
 
 ```bash
-ASSET_MAX_DIMENSION=900 ASSET_WEBP_QUALITY=80 npm run optimize:assets
+ASSET_MAX_DIMENSION=900 ASSET_WEBP_QUALITY=84 npm run prepare:release-assets
+npm run verify:release-assets
 ```
 
-To inspect white-edge corrections without changing source models, run a dry
-scan. Supplying an output directory writes mirrored preview PNGs; source files
-are never overwritten:
+To inspect white-edge corrections without changing the PNG source models, run a
+dry scan. Supplying an output directory writes mirrored preview PNGs:
 
 ```bash
 npm run defringe:assets

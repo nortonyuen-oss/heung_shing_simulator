@@ -214,7 +214,13 @@ const AMBIENT_BASE_VOLUME = {
 let houseModelSets = {};
 let commercialBuildingModels = [];
 let industrialBuildingModels = [];
+let modelAssetManifest = { version: 'development', entries: {} };
+let modelAssetVersion = 'development';
 let modelMetadataCacheStore = loadModelMetadataCacheStore();
+const ZONE_TEXTURE_BUDGET_BYTES = 192 * 1024 * 1024;
+const initialZoneTextureKeys = new Set();
+const zoneTextureLastUsed = new Map();
+const pendingZoneTextureLoads = new Map();
 let selectedHouseIndices = {};
 let selectedHouseSet = 'house';
 let housePressTimer = null;
@@ -1089,6 +1095,7 @@ const config = {
 initializeGame();
 
 async function initializeGame() {
+  await loadModelAssetManifest();
   houseModelSets = await discoverHouseModelSets();
   commercialBuildingModels = await discoverCommercialBuildingModels();
   industrialBuildingModels = await discoverIndustrialBuildingModels();
@@ -1101,6 +1108,65 @@ async function initializeGame() {
   updateZoneDensityBadges();
   updateParkToolUi();
   new Phaser.Game(config);
+}
+
+async function loadModelAssetManifest() {
+  try {
+    const response = await fetch('/api/model-assets', { cache: 'no-store' });
+    if (!response.ok) return;
+    const manifest = await response.json();
+    if (!manifest?.entries || typeof manifest.entries !== 'object') return;
+    modelAssetManifest = manifest;
+    modelAssetVersion = String(manifest.version || 'development');
+    modelMetadataCacheStore = loadModelMetadataCacheStore();
+  } catch {
+    // Development server without a release manifest uses source PNG paths.
+  }
+}
+
+function normalizeModelLogicalPath(value) {
+  const withoutQuery = String(value ?? '').split('?')[0].replace(/^\/+/, '');
+  try {
+    return decodeURI(withoutQuery);
+  } catch {
+    return withoutQuery;
+  }
+}
+
+function resolveModelAssetPath(logicalPath) {
+  const normalized = normalizeModelLogicalPath(logicalPath);
+  const entry = modelAssetManifest.entries?.[normalized];
+  if (!entry?.packagedPath) return logicalPath;
+  return `${encodeURI(entry.packagedPath)}?asset=${encodeURIComponent(String(entry.hash || modelAssetVersion).slice(0, 16))}`;
+}
+
+function getManifestZoneModelMetadata(model) {
+  const logicalPath = normalizeModelLogicalPath(model.logicalPath);
+  const entry = modelAssetManifest.entries?.[logicalPath];
+  const geometry = entry?.geometry;
+  const width = Number(entry?.outputWidth);
+  const height = Number(entry?.outputHeight);
+  if (!geometry || !width || !height || geometry.maxX < geometry.minX) return null;
+  const scale = (getFootprintScreenWidth(model.footprintCols, model.footprintRows)
+    / (geometry.maxX - geometry.minX + 1)) * (model.scaleMultiplier ?? 1);
+  return finalizeZoneModelMetadata(model, {
+    originX: geometry.bottomX / width,
+    originY: geometry.stableBaseY / height,
+    leftBaseOriginX: geometry.leftBaseX / width,
+    lowestCornerOriginX: geometry.lowestCornerX / width,
+    lowestCornerOriginY: geometry.bottomY / height,
+    scale,
+    scaleX: scale * (model.scaleXMultiplier ?? 1),
+    scaleY: scale * (model.scaleYMultiplier ?? 1),
+    footprintCols: model.footprintCols,
+    footprintRows: model.footprintRows,
+    offsetX: model.offsetX ?? 0,
+    offsetY: model.offsetY ?? 0,
+    assetId: model.assetId,
+    sourceFileName: model.sourceFileName,
+    wealthTier: model.wealthTier,
+    commercialTier: model.commercialTier,
+  });
 }
 
 async function discoverHouseModelSets() {
@@ -1142,10 +1208,10 @@ async function reloadHouse4x4Models() {
   selectedHouseIndices[setKey] = Math.min(getSelectedHouseIndex(setKey), maxIndex);
 
   if (activeScene) {
-    const cacheBust = `?v=${Date.now()}`;
     const missingModels = nextModels.filter((model) => !activeScene.textures.exists(model.key));
     missingModels.forEach((model) => {
-      activeScene.load.image(model.key, `${model.path}${cacheBust}`);
+      const separator = model.path.includes('?') ? '&' : '?';
+      activeScene.load.image(model.key, `${model.path}${separator}v=${Date.now()}`);
     });
     if (missingModels.length > 0) {
       await new Promise((resolve) => {
@@ -1263,7 +1329,7 @@ function createModelEntries(keyPrefix, fileNames, config) {
       ?? config.fileOverrides?.[`${baseName}.png`]
       ?? config.fileOverrides?.[`${baseName}.webp`]
       ?? {};
-    return {
+    const model = {
       key: `${keyPrefix}_${index}`,
       assetId: `zone:${config.apiFolder ?? keyPrefix}/${sourceFileName}`,
       title: fileName.replace(/\.[^.]+$/, ''),
@@ -1275,7 +1341,8 @@ function createModelEntries(keyPrefix, fileNames, config) {
       commercialTier: config.modelKind === 'commercial'
         ? getCommercialTierFromFileName(sourceFileName || fileName)
         : null,
-      path: encodeURI(`${config.folder}${sourceFileName}`),
+      logicalPath: `${config.folder}${sourceFileName}`,
+      path: resolveModelAssetPath(`${config.folder}${sourceFileName}`),
       footprintCols: config.footprintCols,
       footprintRows: config.footprintRows,
       scaleMultiplier: (config.scaleMultiplier ?? 1) * (overrides.scaleMultiplier ?? 1),
@@ -1287,6 +1354,8 @@ function createModelEntries(keyPrefix, fileNames, config) {
       alphaThreshold: overrides.alphaThreshold ?? config.alphaThreshold,
       metadata: null,
     };
+    model.metadata = getManifestZoneModelMetadata(model);
+    return model;
   });
 }
 
@@ -1325,8 +1394,11 @@ class TreeAlphaPipeline extends Phaser.Renderer.WebGL.Pipelines.MultiPipeline {
 
 function preload() {
   const roadPath = 'kenney_isometric-roads/png/';
+  const initialHouseModels = selectInitialZoneModelsForPreload(Object.values(houseModelSets).flat());
   const initialCommercialModels = selectInitialZoneModelsForPreload(commercialBuildingModels);
   const initialIndustrialModels = selectInitialZoneModelsForPreload(industrialBuildingModels);
+  [...initialHouseModels, ...initialCommercialModels, ...initialIndustrialModels]
+    .forEach((model) => initialZoneTextureKeys.add(model.key));
 
   setupPreloadProgressUi(this);
 
@@ -1342,7 +1414,7 @@ function preload() {
   // The legacy Models/PNG tileset is no longer shipped. Old saves are migrated
   // to the current model catalog during load, so requesting its 78 missing PNGs
   // here only delayed startup with 78 guaranteed 404 responses.
-  Object.values(houseModelSets).flat().forEach((model) => {
+  initialHouseModels.forEach((model) => {
     this.load.image(model.key, model.path);
   });
   initialCommercialModels.forEach((model) => {
@@ -1352,20 +1424,20 @@ function preload() {
     this.load.image(model.key, model.path);
   });
   // Parks (new asset filenames)
-  this.load.image('park_small_open',       'Models/parks/park1x1/park1-01.png');
-  this.load.image('park_small_playground', 'Models/parks/park1x1/park1-02.png');
-  this.load.image('park_small_garden',     'Models/parks/park1x1/park1-03.png');
-  this.load.image('park_small_plaza',      'Models/parks/park1x1/park1-04.png');
-  this.load.image('park_small_palm',       'Models/parks/park2x2/park2-02.png');
-  this.load.image('park_large_highscore',  'Models/parks/park2x2/park2-03-highScore.png');
-  this.load.image('park_small',            'Models/parks/park1x1/park1-01.png');
-  this.load.image('park_large',            'Models/parks/park3x3/park3-01.png');
+  this.load.image('park_small_open',       resolveModelAssetPath('Models/parks/park1x1/park1-01.png'));
+  this.load.image('park_small_playground', resolveModelAssetPath('Models/parks/park1x1/park1-02.png'));
+  this.load.image('park_small_garden',     resolveModelAssetPath('Models/parks/park1x1/park1-03.png'));
+  this.load.image('park_small_plaza',      resolveModelAssetPath('Models/parks/park1x1/park1-04.png'));
+  this.load.image('park_small_palm',       resolveModelAssetPath('Models/parks/park2x2/park2-02.png'));
+  this.load.image('park_large_highscore',  resolveModelAssetPath('Models/parks/park2x2/park2-03-highScore.png'));
+  this.load.image('park_small',            resolveModelAssetPath('Models/parks/park1x1/park1-01.png'));
+  this.load.image('park_large',            resolveModelAssetPath('Models/parks/park3x3/park3-01.png'));
   // Sports grounds
-  this.load.image('sports_ground_2x2',     'Models/parks/park2x2/sportField3-02.png');
-  this.load.image('sports_ground_3x3',     'Models/parks/park3x3/sportField3-01.png');
+  this.load.image('sports_ground_2x2',     resolveModelAssetPath('Models/parks/park2x2/sportField3-02.png'));
+  this.load.image('sports_ground_3x3',     resolveModelAssetPath('Models/parks/park3x3/sportField3-01.png'));
   // Swimming pool (park_large cosmetic variant) + Victoria Park (park_flagship tier)
-  this.load.image('park_large_pool',       'Models/parks/park3x3/swimmingPool3-01.png');
-  this.load.image('park_flagship_victoria', 'Models/parks/park4x4/victoriaPark4-01.png');
+  this.load.image('park_large_pool',       resolveModelAssetPath('Models/parks/park3x3/swimmingPool3-01.png'));
+  this.load.image('park_flagship_victoria', resolveModelAssetPath('Models/parks/park4x4/victoriaPark4-01.png'));
   Object.values(POWER_PLANT_MODELS).forEach((model) => {
     this.load.image(model.spriteKey, getFixedBuildingModelLoadPath(model));
   });
@@ -1429,7 +1501,7 @@ function preload() {
 
   for (let i = 1; i <= 15; i++) {
     const key = `tree${String(i).padStart(2, '0')}`;
-    this.load.image(key, `Models/trees/${key}.png`);
+    this.load.image(key, resolveModelAssetPath(`Models/trees/${key}.png`));
   }
 }
 
@@ -1438,7 +1510,7 @@ function create() {
   prepareHouseModelMetadata(this);
   prepareCommercialBuildingModelMetadata(this);
   prepareIndustrialBuildingModelMetadata(this);
-  startDeferredZoneModelLoading(this);
+  startZoneTexturePoolRotation(this);
   prepareParkModelMetadata(this);
   preparePowerPlantModelMetadata(this);
   prepareServiceBuildingModelMetadata(this);
@@ -1925,7 +1997,8 @@ function populateLoadingHintTicker() {
 function selectInitialZoneModelsForPreload(models, perFootprint = INITIAL_ZONE_MODELS_PER_FOOTPRINT) {
   const groups = new Map();
   models.forEach((model) => {
-    const key = `${model.footprintCols}x${model.footprintRows}`;
+    const tier = model.wealthTier ?? model.commercialTier ?? 'standard';
+    const key = `${model.footprintCols}x${model.footprintRows}:${tier}`;
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(model);
   });
@@ -1933,61 +2006,132 @@ function selectInitialZoneModelsForPreload(models, perFootprint = INITIAL_ZONE_M
   return [...groups.values()].flatMap((group) => group.slice(0, perFootprint));
 }
 
-function getDeferredZoneModels(scene) {
-  const allZoneModels = [...commercialBuildingModels, ...industrialBuildingModels];
-  return allZoneModels.filter((model) => !scene.textures.exists(model.key));
+function getAllZoneModels() {
+  return [...Object.values(houseModelSets).flat(), ...commercialBuildingModels, ...industrialBuildingModels];
 }
 
-function startDeferredZoneModelLoading(scene) {
-  const deferredModels = getDeferredZoneModels(scene);
-  if (deferredModels.length === 0) return;
+function isZoneModelTextureLoaded(key) {
+  return !!activeScene?.textures?.exists(key);
+}
 
-  const batchSize = 4;
-  let nextIndex = 0;
-  const scheduleNextBatch = () => {
-    if (nextIndex >= deferredModels.length) return;
-    const schedule = globalThis.requestIdleCallback
-      ? (callback) => globalThis.requestIdleCallback(callback, { timeout: 1500 })
-      : (callback) => setTimeout(callback, 250);
-    schedule(queueDeferredLoad);
-  };
+function markZoneModelTextureUsed(key) {
+  if (key) zoneTextureLastUsed.set(key, Date.now());
+}
 
-  const queueDeferredLoad = () => {
-    if (scene.load.isLoading()) {
-      scene.load.once('complete', scheduleNextBatch);
-      return;
+function prepareZoneMetadataForLoadedTextures(scene) {
+  prepareHouseModelMetadata(scene);
+  prepareCommercialBuildingModelMetadata(scene);
+  prepareIndustrialBuildingModelMetadata(scene);
+}
+
+function requestZoneModelTexture(scene, model, callback = null) {
+  if (!scene || !model) return false;
+  if (scene.textures.exists(model.key)) {
+    markZoneModelTextureUsed(model.key);
+    callback?.(true);
+    return true;
+  }
+  const queued = pendingZoneTextureLoads.get(model.key);
+  if (queued) {
+    if (callback) queued.callbacks.push(callback);
+    return false;
+  }
+  pendingZoneTextureLoads.set(model.key, {
+    model,
+    callbacks: callback ? [callback] : [],
+    attempts: 0,
+    delayed: false,
+  });
+  pumpZoneTextureLoadQueue(scene);
+  return false;
+}
+
+function pumpZoneTextureLoadQueue(scene) {
+  if (!scene || scene.zoneTextureLoadActive || pendingZoneTextureLoads.size === 0) return;
+  if (scene.load.isLoading()) {
+    scene.load.once('complete', () => pumpZoneTextureLoadQueue(scene));
+    return;
+  }
+  const nextRequest = [...pendingZoneTextureLoads.entries()]
+    .find(([, request]) => !request.delayed);
+  if (!nextRequest) return;
+  const [key, request] = nextRequest;
+  pendingZoneTextureLoads.delete(key);
+  scene.zoneTextureLoadActive = true;
+  const separator = request.model.path.includes('?') ? '&' : '?';
+  scene.load.image(
+    request.model.key,
+    `${request.model.path}${separator}loadAttempt=${request.attempts + 1}`,
+  );
+  scene.load.once('complete', () => {
+    scene.zoneTextureLoadActive = false;
+    const loaded = scene.textures.exists(request.model.key);
+    if (loaded) {
+      markZoneModelTextureUsed(request.model.key);
+      prepareZoneMetadataForLoadedTextures(scene);
     }
-    const batch = deferredModels.slice(nextIndex, nextIndex + batchSize);
-    nextIndex += batch.length;
-    let queuedCount = 0;
-    batch.forEach((model) => {
-      if (!scene.textures.exists(model.key)) {
-        scene.load.image(model.key, model.path);
-        queuedCount++;
-      }
-    });
-
-    if (queuedCount === 0) {
-      scheduleNextBatch();
-      return;
+    if (!loaded && request.attempts < 2) {
+      request.attempts += 1;
+      request.delayed = true;
+      pendingZoneTextureLoads.set(key, request);
+      setTimeout(() => {
+        const delayedRequest = pendingZoneTextureLoads.get(key);
+        if (!delayedRequest) return;
+        delayedRequest.delayed = false;
+        pumpZoneTextureLoadQueue(scene);
+      }, 150 * (2 ** (request.attempts - 1)));
+    } else {
+      request.callbacks.forEach((listener) => listener(loaded));
+      // Placement callbacks commit their buildingData reference first. The LRU
+      // can then distinguish an in-use texture from a rotation-only texture.
+      if (loaded) evictUnusedZoneTextures(scene);
     }
+    pumpZoneTextureLoadQueue(scene);
+  });
+  scene.load.start();
+}
 
-    scene.load.once('complete', () => {
-      prepareCommercialBuildingModelMetadata(scene);
-      prepareIndustrialBuildingModelMetadata(scene);
-      scheduleNextBatch();
-    });
-    scene.load.start();
-  };
+function evictUnusedZoneTextures(scene) {
+  if (!scene?.textures) return;
+  const models = getAllZoneModels();
+  const loaded = models.flatMap((model) => {
+    const source = scene.textures.get(model.key)?.getSourceImage();
+    return source ? [{ model, bytes: source.width * source.height * 4 }] : [];
+  });
+  let totalBytes = loaded.reduce((sum, entry) => sum + entry.bytes, 0);
+  if (totalBytes <= ZONE_TEXTURE_BUDGET_BYTES) return;
+  const referenced = new Set(Object.values(buildingData ?? {}).map((record) => record?.spriteKey).filter(Boolean));
+  const candidates = loaded
+    .filter(({ model }) => !referenced.has(model.key) && !initialZoneTextureKeys.has(model.key))
+    .sort((a, b) => (zoneTextureLastUsed.get(a.model.key) ?? 0) - (zoneTextureLastUsed.get(b.model.key) ?? 0));
+  for (const entry of candidates) {
+    if (totalBytes <= ZONE_TEXTURE_BUDGET_BYTES) break;
+    scene.textures.remove(entry.model.key);
+    zoneTextureLastUsed.delete(entry.model.key);
+    totalBytes -= entry.bytes;
+  }
+}
 
-  // Decode small batches only when the browser has time, avoiding a single
-  // post-loading-screen burst of dozens of large textures.
-  scheduleNextBatch();
+function rotateZoneTexturePool(scene) {
+  const candidates = getAllZoneModels().filter((model) => !scene.textures.exists(model.key));
+  if (candidates.length === 0) return;
+  const model = candidates[Math.floor(Math.random() * candidates.length)];
+  requestZoneModelTexture(scene, model);
+}
+
+function startZoneTexturePoolRotation(scene) {
+  getAllZoneModels().filter((model) => scene.textures.exists(model.key))
+    .forEach((model) => markZoneModelTextureUsed(model.key));
+  scene.time.addEvent({
+    delay: 30000,
+    loop: true,
+    callback: () => rotateZoneTexturePool(scene),
+  });
 }
 
 function loadModelMetadataCacheStore() {
   try {
-    const raw = globalThis?.localStorage?.getItem(MODEL_METADATA_CACHE_KEY);
+    const raw = globalThis?.localStorage?.getItem(`${MODEL_METADATA_CACHE_KEY}:${modelAssetVersion}`);
     if (!raw) return {};
     const parsed = JSON.parse(raw);
     return (parsed && typeof parsed === 'object') ? parsed : {};
@@ -1998,7 +2142,7 @@ function loadModelMetadataCacheStore() {
 
 function persistModelMetadataCacheStore() {
   try {
-    globalThis?.localStorage?.setItem(MODEL_METADATA_CACHE_KEY, JSON.stringify(modelMetadataCacheStore));
+    globalThis?.localStorage?.setItem(`${MODEL_METADATA_CACHE_KEY}:${modelAssetVersion}`, JSON.stringify(modelMetadataCacheStore));
   } catch {
     // Ignore storage quota/private-mode errors.
   }
@@ -2676,9 +2820,10 @@ function preparePowerPlantModelMetadata(scene) {
 }
 
 function getFixedBuildingModelLoadPath(model) {
-  if (!model?.cacheVersion) return model?.path;
-  const separator = model.path.includes('?') ? '&' : '?';
-  return `${model.path}${separator}v=${encodeURIComponent(model.cacheVersion)}`;
+  const resolvedPath = resolveModelAssetPath(model?.path);
+  if (!model?.cacheVersion) return resolvedPath;
+  const separator = resolvedPath.includes('?') ? '&' : '?';
+  return `${resolvedPath}${separator}v=${encodeURIComponent(model.cacheVersion)}`;
 }
 
 function prepareServiceBuildingModelMetadata(scene) {
@@ -3142,9 +3287,22 @@ function placeHouse(scene, row, col) {
   placeHouseModel(scene, row, col, selectedHouseSet);
 }
 
-function placeHouseModel(scene, row, col, tool) {
-  const model = getSelectedHouseModel(tool);
+function placeHouseModel(scene, row, col, tool, requestedModelKey = null) {
+  const model = requestedModelKey
+    ? (houseModelSets?.[tool] ?? []).find((candidate) => candidate.key === requestedModelKey)
+    : getSelectedHouseModel(tool);
   if (!model || !canPlaceBuildingFootprint(row, col, model.footprintCols, model.footprintRows)) return;
+
+  // Manual placement may select a model outside the small startup pool. Load
+  // the exact texture first and re-check the footprint before committing any
+  // map mutation, so a failed request can never create an invisible building.
+  if (!scene.textures.exists(model.key)) {
+    requestZoneModelTexture(scene, model, (loaded) => {
+      if (loaded) placeHouseModel(scene, row, col, tool, model.key);
+    });
+    return;
+  }
+  markZoneModelTextureUsed(model.key);
 
   const opts = model.metadata ?? { footprintCols: model.footprintCols, footprintRows: model.footprintRows };
   placeSpriteBuilding(scene, row, col, model.key, opts);

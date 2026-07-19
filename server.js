@@ -39,6 +39,16 @@ function sendStoreError(res, error, routeLabel) {
 function createGameApp(options = {}) {
   const app = express();
   const rootDir = options.rootDir || __dirname;
+  const modelManifestPath = path.join(rootDir, 'Models', 'model-assets.json');
+  let modelAssetManifest = { formatVersion: 1, version: 'development', entries: {} };
+  try {
+    if (fs.existsSync(modelManifestPath)) {
+      const parsed = JSON.parse(fs.readFileSync(modelManifestPath, 'utf8'));
+      if (parsed?.entries && typeof parsed.entries === 'object') modelAssetManifest = parsed;
+    }
+  } catch (error) {
+    console.error('[model asset manifest]', error.message);
+  }
   const store = openGameDatabase(options.dbPath);
   const settingsDir = path.dirname(store.path);
   const aiNewsCredentialStore = options.aiNewsCredentialStore || createEncryptedFileAiNewsSettingsStore({
@@ -48,6 +58,24 @@ function createGameApp(options = {}) {
 
   // Middleware
   app.use(express.json({ limit: '25mb' }));
+  // Packaged builds contain WebP models only. Keep logical PNG URLs working as
+  // a defence-in-depth fallback for old saves or a missed hard-coded path.
+  app.use((req, res, next) => {
+    if (req.method !== 'GET' && req.method !== 'HEAD') return next();
+    let logicalPath;
+    try {
+      logicalPath = decodeURIComponent(req.path).replace(/^\/+/, '');
+    } catch {
+      return next();
+    }
+    const entry = modelAssetManifest.entries?.[logicalPath];
+    if (!entry?.packagedPath) return next();
+    const packagedPath = path.resolve(rootDir, entry.packagedPath);
+    if (!packagedPath.startsWith(path.resolve(rootDir, 'Models') + path.sep)) return next();
+    return res.sendFile(packagedPath, {
+      headers: { 'Cache-Control': 'public, max-age=31536000, immutable' },
+    });
+  });
   app.use(express.static(rootDir, {
     maxAge: STATIC_ASSET_CACHE_MAX_AGE,
     setHeaders(res, filePath) {
@@ -67,6 +95,11 @@ function createGameApp(options = {}) {
   // by electron-builder for DMG/EXE names and native application metadata.
   app.get('/api/app-info', (_req, res) => {
     res.json({ version: APP_VERSION });
+  });
+
+  app.get('/api/model-assets', (_req, res) => {
+    res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+    res.json(modelAssetManifest);
   });
 
   // Model folder discovery
@@ -96,6 +129,13 @@ function createGameApp(options = {}) {
   if (!ALLOWED.includes(folderName)) {
     return res.status(400).json({ error: 'Unknown folder' });
   }
+  const logicalPrefix = `Models/${folderName}/`;
+  const packagedLogicalFiles = Object.keys(modelAssetManifest.entries ?? {})
+    .filter((logicalPath) => logicalPath.startsWith(logicalPrefix))
+    .map((logicalPath) => logicalPath.slice(logicalPrefix.length))
+    .filter((fileName) => fileName && !fileName.includes('/'))
+    .sort((a, b) => a.localeCompare(b));
+  if (packagedLogicalFiles.length > 0) return res.json(packagedLogicalFiles);
   const folderPath = path.join(rootDir, 'Models', ...folderName.split('/'));
   try {
     const files = fs.readdirSync(folderPath)

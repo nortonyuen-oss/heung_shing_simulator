@@ -6,6 +6,22 @@ const vm = require('node:vm');
 
 const ROOT = path.resolve(__dirname, '..');
 
+test('every registered music track ships with the game', () => {
+  const catalog = fs.readFileSync(path.join(ROOT, 'model-catalog.js'), 'utf8');
+  const musicBlock = catalog.slice(
+    catalog.indexOf('const MUSIC_TRACKS = ['),
+    catalog.indexOf('\n];', catalog.indexOf('const MUSIC_TRACKS = [')) + 3,
+  );
+  const musicPaths = [...musicBlock.matchAll(/file: '([^']+\.mp3)'/g)].map((match) => match[1]);
+  assert.ok(musicPaths.includes('Music/City Pulse.mp3'));
+  assert.equal(new Set(musicPaths).size, musicPaths.length, 'music paths must be unique');
+  musicPaths.forEach((relativePath) => {
+    const absolutePath = path.join(ROOT, relativePath);
+    assert.ok(fs.existsSync(absolutePath), `missing registered music: ${relativePath}`);
+    assert.ok(fs.statSync(absolutePath).size > 0, `empty registered music: ${relativePath}`);
+  });
+});
+
 function loadScriptValues(fileName, expression, globals = {}) {
   const source = fs.readFileSync(path.join(ROOT, fileName), 'utf8');
   const context = vm.createContext({ ...globals });

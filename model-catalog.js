@@ -414,4 +414,9 @@ const MUSIC_TRACKS = [
     title: 'Velvet Booth Loop 2',
     file: 'Music/Velvet Booth Loop 2.mp3',
   },
+  {
+    key: 'music_7',
+    title: 'City Pulse',
+    file: 'Music/City Pulse.mp3',
+  },
 ];

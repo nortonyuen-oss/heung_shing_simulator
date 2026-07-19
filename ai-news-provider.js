@@ -1,11 +1,17 @@
+const crypto = require('node:crypto');
+
 const OLLAMA_LOCAL_BASE_URL = process.env.OLLAMA_BASE_URL || 'http://127.0.0.1:11434';
 const OLLAMA_CLOUD_BASE_URL = 'https://ollama.com';
 const OLLAMA_STATUS_TIMEOUT_MS = 2000;
 const OLLAMA_CLOUD_STATUS_TIMEOUT_MS = 8000;
 const OLLAMA_GENERATE_TIMEOUT_MS = 55000;
+const OLLAMA_STATUS_CACHE_TTL_MS = 30000;
+const OLLAMA_STATUS_FAILURE_CACHE_TTL_MS = 5000;
+const OLLAMA_STATUS_CACHE_LIMIT = 8;
 const AI_NEWS_CACHE_LIMIT = 64;
 const AI_NEWS_DEBUG_PREFIX = '香城快訊：';
 const aiNewsCache = new Map();
+const ollamaStatusCache = new Map();
 
 // Some cloud "thinking" models (e.g. gpt-oss) ignore think:false and spend the whole
 // num_predict budget on their hidden reasoning trace, leaving response empty; others
@@ -93,7 +99,7 @@ function getProviderConnection(provider, apiKey = '') {
   };
 }
 
-async function getOllamaStatus(options = {}) {
+async function fetchOllamaStatus(options = {}) {
   const provider = options.provider === 'cloud' ? 'cloud' : 'local';
   const apiKey = String(options.apiKey || '').trim();
   if (provider === 'cloud' && !apiKey) {
@@ -152,6 +158,36 @@ async function getOllamaStatus(options = {}) {
       error: error.name === 'AbortError' ? 'Ollama status timed out' : error.message,
     };
   }
+}
+
+async function getOllamaStatus(options = {}) {
+  const provider = options.provider === 'cloud' ? 'cloud' : 'local';
+  const apiKey = String(options.apiKey || '').trim();
+  const credentialFingerprint = apiKey
+    ? crypto.createHash('sha256').update(apiKey).digest('hex').slice(0, 24)
+    : 'none';
+  const cacheKey = `${provider}:${credentialFingerprint}`;
+  const now = Date.now();
+  ollamaStatusCache.forEach((entry, key) => {
+    if (!entry.promise && entry.expiresAt <= now) ollamaStatusCache.delete(key);
+  });
+  const cached = ollamaStatusCache.get(cacheKey);
+  if (!options.forceRefresh && cached && (cached.promise || cached.expiresAt > now)) {
+    return cached.value || cached.promise;
+  }
+
+  const promise = fetchOllamaStatus({ provider, apiKey });
+  if (!ollamaStatusCache.has(cacheKey) && ollamaStatusCache.size >= OLLAMA_STATUS_CACHE_LIMIT) {
+    ollamaStatusCache.delete(ollamaStatusCache.keys().next().value);
+  }
+  ollamaStatusCache.set(cacheKey, { promise, value: null, expiresAt: now + OLLAMA_STATUS_FAILURE_CACHE_TTL_MS });
+  const value = await promise;
+  ollamaStatusCache.set(cacheKey, {
+    promise: null,
+    value,
+    expiresAt: Date.now() + (value.available ? OLLAMA_STATUS_CACHE_TTL_MS : OLLAMA_STATUS_FAILURE_CACHE_TTL_MS),
+  });
+  return value;
 }
 
 function sanitizeText(value, max = 180) {
@@ -466,7 +502,7 @@ async function generateOllamaForumComments(input = {}, options = {}) {
     const response = await fetchWithTimeout(`${connection.baseUrl}/api/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...connection.headers },
-      body: JSON.stringify({ model: useModel, prompt, stream: false, think: false, format: 'json', options: { temperature: 0.82, num_ctx: 4096, num_predict: 1800 } }),
+      body: JSON.stringify({ model: useModel, prompt, stream: false, think: false, format: 'json', options: { temperature: 0.82, num_ctx: 2048, num_predict: 600 } }),
       signal: options.signal,
     }, OLLAMA_GENERATE_TIMEOUT_MS);
     if (!response.ok) {
@@ -480,7 +516,11 @@ async function generateOllamaForumComments(input = {}, options = {}) {
     }
     return response.json();
   }
-  const generated = await generateWithModelFallback(status, provider, model, runGenerate);
+  // The serialized browser queue already provides bounded retry/backoff. Trying
+  // three 55-second model fallbacks inside one forum job can block every newer
+  // thread, so each job tries one model; the next queued retry can select a new
+  // model from the runtime blocklist.
+  const generated = await generateWithModelFallback(status, provider, model, runGenerate, 1);
   const payload = generated.payload;
   model = generated.model;
   const responseText = String(payload.response || payload.message?.content || '')

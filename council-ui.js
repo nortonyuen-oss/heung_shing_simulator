@@ -433,6 +433,15 @@ function appendCouncilMotionPositions(container, positions) {
   });
 }
 
+function getCouncilMotionAvailabilityText(availability) {
+  return t(`council.availability.${availability.reason}`, {
+    count: Number(availability.threshold || 0).toLocaleString(),
+    amount: councilMoney(Number(availability.threshold || 0)),
+    value: Number(availability.threshold || 0),
+    current: Number(availability.current || 0).toLocaleString(),
+  });
+}
+
 function renderCouncilResolutionDetail(detail) {
   const definition = getCouncilResolutionDefinition(selectedCouncilResolutionId);
   if (!definition) return;
@@ -452,11 +461,28 @@ function renderCouncilResolutionDetail(detail) {
   desc.textContent = t(definition.descKey);
   const facts = document.createElement('div');
   facts.className = 'council-policy-facts';
-  [
+  const factRows = [
     [t('council.resolution.upfrontCost'), councilMoney(getCouncilResolutionUpfrontCost(definition.id))],
     [t('council.resolution.duration'), t('council.monthCount', { count: definition.durationMonths })],
     [t('council.resolution.cooldown'), t('council.monthCount', { count: definition.cooldownMonths })],
-  ].forEach(([labelText, valueText]) => {
+  ];
+  if (definition.unlockPopulation) factRows.push([
+    t('council.resolution.populationRequirement'),
+    Number(definition.unlockPopulation).toLocaleString(),
+  ]);
+  if (definition.minimumMonthlyIncome) factRows.push([
+    t('council.resolution.incomeRequirement'),
+    councilMoney(definition.minimumMonthlyIncome),
+  ]);
+  if (definition.minimumMonthlySurplus) factRows.push([
+    t('council.resolution.surplusRequirement'),
+    councilMoney(definition.minimumMonthlySurplus),
+  ]);
+  if (definition.minimumEconomyIndex) factRows.push([
+    t('council.resolution.economyRequirement'),
+    String(definition.minimumEconomyIndex),
+  ]);
+  factRows.forEach(([labelText, valueText]) => {
     const fact = document.createElement('div');
     fact.className = 'council-policy-fact';
     const label = document.createElement('span'); label.textContent = labelText;
@@ -479,7 +505,7 @@ function renderCouncilResolutionDetail(detail) {
   action.textContent = t('council.resolution.propose');
   const note = document.createElement('div');
   note.className = 'council-policy-action-note';
-  note.textContent = t(`council.availability.${availability.reason}`);
+  note.textContent = getCouncilMotionAvailabilityText(availability);
   detail.append(podium, desc, facts, prediction, positionList, action, note);
 }
 

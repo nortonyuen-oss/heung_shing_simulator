@@ -197,6 +197,145 @@ function refreshStockMarketRegime() {
   }
 }
 
+function ensureStockCrashState(market = city.stockMarket) {
+  if (!market) return null;
+  if (!market.crash || typeof market.crash !== 'object') market.crash = {};
+  const crash = market.crash;
+  crash.active = !!crash.active;
+  crash.monthsLeft = Math.max(0, Math.floor(Number(crash.monthsLeft) || 0));
+  crash.cooldownMonths = Math.max(0, Math.floor(Number(crash.cooldownMonths) || 0));
+  crash.severity = clamp(Number(crash.severity) || 0, 0, STOCK_CRASH_DROP_RANGE[1]);
+  crash.openingHsi = Math.max(1, Math.round(Number(crash.openingHsi) || Number(market.hsi) || HSI_BASE_LEVEL));
+  crash.closingHsi = Math.max(1, Math.round(Number(crash.closingHsi) || Number(market.hsi) || HSI_BASE_LEVEL));
+  crash.startedYear = Math.max(0, Math.floor(Number(crash.startedYear) || 0));
+  crash.startedMonth = Math.max(0, Math.floor(Number(crash.startedMonth) || 0));
+  crash.lastUpdateMonthIndex = Number.isFinite(Number(crash.lastUpdateMonthIndex))
+    ? Math.floor(Number(crash.lastUpdateMonthIndex))
+    : -1;
+  crash.trigger = String(crash.trigger || '');
+  crash.newsVariant = Math.max(0, Math.floor(Number(crash.newsVariant) || 0)) % 5;
+  if (crash.monthsLeft <= 0) crash.active = false;
+  return crash;
+}
+
+function getStockCrashRiskProfile() {
+  const epidemic = clamp(city.epidemicSeverity ?? 0, 0, 1) * 0.045;
+  const pollution = clamp((city.pollution ?? 0) / 160, 0, 1) * 0.025;
+  const unemployment = clamp(((city.unemploymentRate ?? 0) - 0.10) / 0.35, 0, 1) * 0.020;
+  const net = Number(city.monthlyIncome ?? 0) - Number(city.monthlyExpenses ?? 0);
+  const fiscal = clamp(-net / 25000, 0, 1) * 0.012;
+  const bear = city.stockMarket?.regime === 'bear' ? 0.008 : 0;
+  const contributions = { epidemic, pollution, unemployment, fiscal, bear };
+  const trigger = Object.entries(contributions)
+    .sort((a, b) => b[1] - a[1])[0]?.[0] || 'market';
+  const chance = clamp(
+    STOCK_CRASH_BASE_MONTHLY_CHANCE + Object.values(contributions).reduce((sum, value) => sum + value, 0),
+    0,
+    STOCK_CRASH_MAX_MONTHLY_CHANCE,
+  );
+  return { chance, trigger, contributions };
+}
+
+function recalculateStockMarketHsi(market = city.stockMarket) {
+  if (!market || !Array.isArray(market.stocks)) return HSI_BASE_LEVEL;
+  const componentStocks = market.stocks.filter((stock) => stock.isHSI && stock.listed);
+  if (componentStocks.length === 0) return Number(market.hsi) || HSI_BASE_LEVEL;
+  const currentCap = componentStocks.reduce((sum, stock) => {
+    const shares = Math.max(1, Number(stock.sharesOutstanding ?? 1));
+    return sum + Math.max(1, Number(stock.price ?? 1)) * shares;
+  }, 0);
+  const baseCap = componentStocks.reduce((sum, stock) => {
+    const shares = Math.max(1, Number(stock.sharesOutstanding ?? 1));
+    return sum + Math.max(1, Number(stock.basePrice ?? stock.price ?? 1)) * shares;
+  }, 0);
+  market.prevHsi = Number.isFinite(market.hsi) ? market.hsi : HSI_BASE_LEVEL;
+  market.hsi = baseCap > 0
+    ? Math.round(HSI_BASE_LEVEL * (currentCap / baseCap))
+    : HSI_BASE_LEVEL;
+  return market.hsi;
+}
+
+function triggerStockMarketCrash(
+  market = city.stockMarket,
+  severityRoll = Math.random(),
+  durationRoll = Math.random(),
+  cooldownRoll = Math.random(),
+  newsRoll = Math.random(),
+  trigger = 'market',
+) {
+  if (!market || !Array.isArray(market.stocks)) return null;
+  const crash = ensureStockCrashState(market);
+  const severity = STOCK_CRASH_DROP_RANGE[0]
+    + clamp(Number(severityRoll) || 0, 0, 0.999999)
+      * (STOCK_CRASH_DROP_RANGE[1] - STOCK_CRASH_DROP_RANGE[0]);
+  const duration = STOCK_CRASH_DURATION_MONTHS[0]
+    + Math.floor(clamp(Number(durationRoll) || 0, 0, 0.999999)
+      * (STOCK_CRASH_DURATION_MONTHS[1] - STOCK_CRASH_DURATION_MONTHS[0] + 1));
+  const cooldown = STOCK_CRASH_COOLDOWN_MONTHS[0]
+    + Math.floor(clamp(Number(cooldownRoll) || 0, 0, 0.999999)
+      * (STOCK_CRASH_COOLDOWN_MONTHS[1] - STOCK_CRASH_COOLDOWN_MONTHS[0] + 1));
+  const openingHsi = Math.max(1, Math.round(Number(market.hsi) || HSI_BASE_LEVEL));
+
+  market.stocks.forEach((stock) => {
+    if (!stock.listed) return;
+    const previousPrice = Math.max(1, Number(stock.price ?? stock.basePrice ?? 1));
+    const closingPrice = Math.max(1, previousPrice * (1 - severity));
+    stock.prevPrice = previousPrice;
+    stock.price = Number(closingPrice.toFixed(2));
+    stock.changePct = (stock.price - previousPrice) / previousPrice;
+    stock.idioShock = Math.min(Number(stock.idioShock) || 0, -0.04 * getStockSectorSensitivity(stock.sector));
+    if (!Array.isArray(stock.history)) stock.history = [previousPrice];
+    stock.history.push(stock.price);
+    if (stock.history.length > 32) stock.history.shift();
+  });
+  recalculateStockMarketHsi(market);
+
+  Object.assign(crash, {
+    active: true,
+    monthsLeft: duration,
+    cooldownMonths: cooldown,
+    severity,
+    openingHsi,
+    closingHsi: Math.max(1, Math.round(Number(market.hsi) || openingHsi * (1 - severity))),
+    startedYear: city.year,
+    startedMonth: city.month,
+    lastUpdateMonthIndex: city.year * 12 + city.month - 1,
+    trigger,
+    newsVariant: Math.floor(clamp(Number(newsRoll) || 0, 0, 0.999999) * 5),
+  });
+  market.regime = 'bear';
+  market.regimeMonthsLeft = Math.max(Number(market.regimeMonthsLeft) || 0, duration);
+
+  if (typeof announceStockMarketCrash === 'function') announceStockMarketCrash(crash);
+  if (typeof showToast === 'function') {
+    const percent = Math.round(severity * 100);
+    showToast(`股災爆發：恆指單日急跌 ${percent}%`, 'danger');
+  }
+  return crash;
+}
+
+function updateStockMarketCrashEvent(market = city.stockMarket) {
+  if (!market || city.tick % TICKS_PER_MONTH !== 0) return null;
+  const crash = ensureStockCrashState(market);
+  const monthIndex = city.year * 12 + city.month - 1;
+  if (crash.lastUpdateMonthIndex === monthIndex) return null;
+  crash.lastUpdateMonthIndex = monthIndex;
+
+  if (crash.active) {
+    crash.monthsLeft = Math.max(0, crash.monthsLeft - 1);
+    if (crash.monthsLeft <= 0) crash.active = false;
+    return null;
+  }
+  if (crash.cooldownMonths > 0) {
+    crash.cooldownMonths--;
+    return null;
+  }
+
+  const risk = getStockCrashRiskProfile();
+  if (Math.random() >= risk.chance) return null;
+  return triggerStockMarketCrash(market, Math.random(), Math.random(), Math.random(), Math.random(), risk.trigger);
+}
+
 function updateStockMarketTick() {
   const market = city.stockMarket;
   if (!market || !Array.isArray(market.stocks) || market.stocks.length === 0) return;
@@ -213,9 +352,12 @@ function updateStockMarketTick() {
 
   refreshStockMarketRegime();
 
+  const crashState = ensureStockCrashState(market);
+  const crashActive = !!crashState?.active;
   const regime = ['bull', 'range', 'bear'].includes(market.regime) ? market.regime : 'range';
   const regimeAnnualDrift = STOCK_MARKET_REGIME_ANNUAL_DRIFT[regime] ?? STOCK_MARKET_REGIME_ANNUAL_DRIFT.range;
-  const regimeVolMultiplier = STOCK_MARKET_REGIME_VOL_MULTIPLIER[regime] ?? STOCK_MARKET_REGIME_VOL_MULTIPLIER.range;
+  const regimeVolMultiplier = (STOCK_MARKET_REGIME_VOL_MULTIPLIER[regime] ?? STOCK_MARKET_REGIME_VOL_MULTIPLIER.range)
+    * (crashActive ? 1.35 : 1);
   const ticksPerMonth = Math.max(1, Number(TICKS_PER_MONTH) || 1);
   const tickVolScale = 1 / Math.sqrt(ticksPerMonth);
   const tickShockDecay = monthlyDecayToTickDecay(STOCK_IDIO_SHOCK_DECAY);
@@ -237,11 +379,16 @@ function updateStockMarketTick() {
     const nextFairValue = Math.max(1, fairValue * (1 + fairGrowthTick));
     stock.fairValue = Number(nextFairValue.toFixed(4));
 
-    const stockDriftAnnual = regimeAnnualDrift + (cityPremiumAnnual + policyPremiumAnnual) * sensitivity;
+    const crashDriftAnnual = crashActive ? -(0.10 + crashState.severity * 0.20) * sensitivity : 0;
+    const stockDriftAnnual = regimeAnnualDrift
+      + (cityPremiumAnnual + policyPremiumAnnual) * sensitivity
+      + crashDriftAnnual;
     const stockDriftMonthly = annualToMonthlyReturn(stockDriftAnnual);
     const stockDriftTick = monthlyToTickReturn(stockDriftMonthly);
     const valuationGap = (prevPrice - nextFairValue) / nextFairValue;
-    const meanReversion = -valuationGap * (STOCK_MARKET_MEAN_REVERSION / ticksPerMonth) * (stock.isHSI ? 1.12 : 1);
+    const meanReversion = -valuationGap * (STOCK_MARKET_MEAN_REVERSION / ticksPerMonth)
+      * (stock.isHSI ? 1.12 : 1)
+      * (crashActive ? 0.18 : 1);
 
     const prevIdioShock = clampOr(stock.idioShock, -0.5, 0.5, 0);
     const shockKick = ((Math.random() - 0.5) * 2) * volatility * STOCK_IDIO_SHOCK_SCALE * tickVolScale;
@@ -265,21 +412,8 @@ function updateStockMarketTick() {
     if (stock.history.length > 32) stock.history.shift();
   });
 
-  const componentStocks = market.stocks.filter((stock) => stock.isHSI && stock.listed);
-  if (componentStocks.length > 0) {
-    const currentCap = componentStocks.reduce((sum, stock) => {
-      const shares = Math.max(1, Number(stock.sharesOutstanding ?? 1));
-      return sum + Math.max(1, Number(stock.price ?? 1)) * shares;
-    }, 0);
-    const baseCap = componentStocks.reduce((sum, stock) => {
-      const shares = Math.max(1, Number(stock.sharesOutstanding ?? 1));
-      return sum + Math.max(1, Number(stock.basePrice ?? stock.price ?? 1)) * shares;
-    }, 0);
-    market.prevHsi = Number.isFinite(market.hsi) ? market.hsi : HSI_BASE_LEVEL;
-    market.hsi = baseCap > 0
-      ? Math.round(HSI_BASE_LEVEL * (currentCap / baseCap))
-      : HSI_BASE_LEVEL;
-  }
+  recalculateStockMarketHsi(market);
+  updateStockMarketCrashEvent(market);
 
   refreshStockListings(false);
 }
@@ -290,6 +424,19 @@ function resetDormantStockMarket(market = city.stockMarket) {
   market.prevHsi = HSI_BASE_LEVEL;
   market.regime = 'range';
   market.regimeMonthsLeft = 0;
+  market.crash = {
+    active: false,
+    monthsLeft: 0,
+    cooldownMonths: 0,
+    severity: 0,
+    openingHsi: HSI_BASE_LEVEL,
+    closingHsi: HSI_BASE_LEVEL,
+    startedYear: 0,
+    startedMonth: 0,
+    lastUpdateMonthIndex: -1,
+    trigger: '',
+    newsVariant: 0,
+  };
   market.stocks.forEach((stock) => {
     const basePrice = Math.max(1, Number(stock.basePrice ?? stock.price ?? 1));
     stock.price = basePrice;

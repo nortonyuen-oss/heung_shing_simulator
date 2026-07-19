@@ -717,3 +717,121 @@ function announceStockExchangeBuiltNewspaper() {
   const hsi = Math.round(Number(city.stockMarket?.hsi ?? HSI_BASE_LEVEL));
   showNewspaperExtra('stock_exchange_built', { hsi: hsi.toLocaleString() });
 }
+
+function announceStockMarketCrash(crash = city.stockMarket?.crash) {
+  if (!crash) return null;
+  const language = typeof getCurrentLanguage === 'function' ? getCurrentLanguage() : 'zhHant';
+  const opening = Math.max(1, Math.round(Number(crash.openingHsi) || HSI_BASE_LEVEL)).toLocaleString();
+  const closing = Math.max(1, Math.round(Number(crash.closingHsi) || HSI_BASE_LEVEL)).toLocaleString();
+  const pointsLost = Math.max(0, Math.round((Number(crash.openingHsi) || 0) - (Number(crash.closingHsi) || 0))).toLocaleString();
+  const percent = Math.round((Number(crash.severity) || 0) * 100);
+  const duration = Math.max(1, Math.floor(Number(crash.monthsLeft) || 1));
+  const variant = Math.max(0, Math.floor(Number(crash.newsVariant) || 0)) % 5;
+  const triggerLabels = {
+    zhHant: { epidemic: '疫情升溫', pollution: '污染惡化', unemployment: '失業壓力', fiscal: '公共財政轉差', bear: '外圍熊市', market: '市場恐慌' },
+    en: { epidemic: 'an epidemic surge', pollution: 'worsening pollution', unemployment: 'unemployment pressure', fiscal: 'fiscal deterioration', bear: 'a wider bear market', market: 'market panic' },
+    ja: { epidemic: '感染症の拡大', pollution: '汚染悪化', unemployment: '失業圧力', fiscal: '財政悪化', bear: '世界的な弱気相場', market: '市場パニック' },
+  };
+  const trigger = (triggerLabels[language] ?? triggerLabels.zhHant)[crash.trigger] || triggerLabels.zhHant.market;
+
+  const zhHeadlines = [
+    `股災！恆指一日由 ${opening} 點瀉至 ${closing} 點`,
+    '投資失敗的人排隊上股票交易所天台「乘涼」',
+    `香城股市蒸發 ${pointsLost} 點　丁蟹：技術性調整`,
+    `金融科技股全線崩跌　恆指單日挫 ${percent}%`,
+    '券商叫股民保持冷靜　網民：冷靜都想停牌',
+  ];
+  const zhBodies = [
+    `香城恆指由開市 ${opening} 點急跌至收市 ${closing} 點，單日跌幅達 ${percent}%。市場人士認為${trigger}觸發連鎖拋售，弱勢可能持續約 ${duration} 個月。`,
+    `股災令大量投資者損失慘重，有網民笑稱股票交易所天台突然成為熱門「乘涼」地點。交易所呼籲市民不要前往危險位置，並指市場仍會正常運作。`,
+    `恆指一日蒸發 ${pointsLost} 點，金融、科技及地產股成為跌市重災區。股民丁蟹接受訪問時堅持表示：「只是技術性調整，不要怕。」`,
+    `受${trigger}影響，市場出現恐慌性沽售，恆指收報 ${closing} 點。分析預計波動將延續約 ${duration} 個月，短期內企業融資及商業信心均會受壓。`,
+    `多間券商在指數暴跌 ${percent}% 後呼籲投資者保持冷靜，但香城討論區最熱門留言是：「而家唯一冇停牌嘅資產，就係冷靜。」`,
+  ];
+  const enHeadlines = [
+    `Market crash sends HSI from ${opening} to ${closing} in one day`,
+    'Failed investors joke about queueing on the Stock Exchange rooftop',
+    `HSI loses ${pointsLost} points as Ding Hai calls it “technical”`,
+    `Finance and technology shares collapse; index falls ${percent}%`,
+    'Brokers urge calm; forum users ask whether calm can be suspended',
+  ];
+  const enBodies = [
+    `The HSI plunged from ${opening} at the open to ${closing} at the close, a ${percent}% one-day fall. ${trigger} helped trigger forced selling, with weakness expected for about ${duration} months.`,
+    `Heavy losses prompted dark jokes about investors queueing on the Stock Exchange rooftop “for fresh air”. The Exchange urged residents to avoid dangerous areas.`,
+    `The index erased ${pointsLost} points as finance, technology and property shares led the fall. Investor Ding Hai insisted: “It is only a technical correction. Do not panic.”`,
+    `Panic selling linked to ${trigger} pushed the HSI down to ${closing}. Analysts expect elevated volatility for roughly ${duration} months.`,
+    `Brokers appealed for calm after the ${percent}% rout. The forum’s top reply asked whether calm was the only asset not yet suspended.`,
+  ];
+  const jaHeadlines = [
+    `株価暴落、ハンセン指数は一日で${opening}から${closing}へ`,
+    '投資家が証券取引所の屋上で「涼む」と冗談',
+    `指数${pointsLost}ポイント消失、丁蟹氏「テクニカル調整」`,
+    `金融・ハイテク株が全面安、指数${percent}%下落`,
+    '証券会社が冷静さを要請、掲示板は「冷静も取引停止？」',
+  ];
+  const jaBodies = [
+    `ハンセン指数は始値${opening}から終値${closing}へ急落し、一日で${percent}%下落した。${trigger}が売りを加速させ、弱気局面は約${duration}か月続く見通し。`,
+    `巨額損失を受け、投資家が証券取引所の屋上で「涼む」ため列を作るとの冗談が拡散。取引所は危険な場所へ行かないよう呼びかけた。`,
+    `金融・ハイテク・不動産株が売られ、指数は${pointsLost}ポイント消失。投資家の丁蟹氏は「単なるテクニカル調整。恐れる必要はない」と述べた。`,
+    `${trigger}によるパニック売りで指数は${closing}に下落。高い変動率は約${duration}か月続く可能性がある。`,
+    `${percent}%の急落後、証券会社は冷静な対応を要請。掲示板の人気コメントは「冷静さも取引停止になるのか」だった。`,
+  ];
+  const headlines = language === 'en' ? enHeadlines : language === 'ja' ? jaHeadlines : zhHeadlines;
+  const bodies = language === 'en' ? enBodies : language === 'ja' ? jaBodies : zhBodies;
+  const comments = language === 'en'
+    ? [
+      { author: 'Ding Hai', text: 'It is only a technical correction. Do not panic.' },
+      { author: 'Rooftop Breeze Concern Group', text: 'Please remain on the ground floor and look after one another.' },
+    ]
+    : language === 'ja'
+      ? [
+        { author: '丁蟹', text: '単なるテクニカル調整です。恐れる必要はありません。' },
+        { author: '屋上涼風関注組', text: '屋上へ行かず、地上で互いに見守りましょう。' },
+      ]
+      : [
+        { author: '股民丁蟹', text: '只是技術性調整，不要怕。最緊要坐穩扶好。' },
+        { author: '天台乘涼關注組', text: '講笑還講笑，大家唔好去危險地方，輸錢都要安全返屋企。' },
+      ];
+
+  return addForumPost({
+    headline: headlines[variant],
+    body: [bodies[variant], bodies[(variant + 2) % bodies.length]],
+    source: 'local',
+    social: {
+      likes: 2600 + variant * 311,
+      laughs: 1800 + variant * 227,
+      angry: 4200 + variant * 419,
+      commentCount: 3100 + variant * 283,
+      shares: 1700 + variant * 193,
+      comments,
+    },
+  }, {
+    id: `stock-crash-${crash.startedYear}-${crash.startedMonth}`,
+    category: language === 'en' ? 'Finance' : language === 'ja' ? '金融板' : '財經台',
+    author: language === 'en' ? 'Heung Shing Finance Desk' : language === 'ja' ? '香城金融デスク' : '香城財經台',
+    outcome: 'crash',
+  });
+}
+
+// Fired once by checkSpecialBuildingUnlockNotices() (city-state.js) the first
+// time a special building's population/policy threshold is crossed — lets the
+// ticker and forum tell the player something new just became buildable.
+function getLandmarkToolRowLabelKey(buildingType) {
+  const camelKey = buildingType === HARBOR_BUILDING_TYPE
+    ? 'harbor'
+    : String(buildingType).replace(/_([a-z])/g, (_, c) => c.toUpperCase());
+  return `toolRow.${camelKey}`;
+}
+
+function announceLandmarkUnlockNotice(buildingType) {
+  const name = t(getLandmarkToolRowLabelKey(buildingType));
+  const cityName = city.name || getDefaultCityName();
+  if (typeof queueLandmarkTickerNotice === 'function') {
+    queueLandmarkTickerNotice(t('news.urgent.landmarkUnlocked', { city: cityName, building: name }));
+  }
+  addForumPost({
+    headline: t('forum.landmarkUnlocked.headline', { building: name }),
+    body: [t('forum.landmarkUnlocked.body', { city: cityName, building: name })],
+    source: 'local',
+  }, { category: '城市發展' });
+}

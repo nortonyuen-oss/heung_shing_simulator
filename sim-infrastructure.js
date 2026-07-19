@@ -46,6 +46,7 @@ function tryConvertSingleIndustrialToSciencePark(scene, row, col, record) {
   buildingData[id] = {
     ...oldRecord,
     spriteKey:    model.key,
+    assetId: model.assetId,
     sourceFileName: model.sourceFileName,
     footprintCols: options.footprintCols ?? model.footprintCols ?? fp,
     footprintRows: options.footprintRows ?? model.footprintRows ?? fpr,
@@ -97,6 +98,7 @@ function convertEligibleIndustrialToScienceParks(scene) {
     buildingData[id] = {
       ...oldRecord,
       spriteKey: model.key,
+      assetId: model.assetId,
       sourceFileName: model.sourceFileName,
       footprintCols: options.footprintCols ?? model.footprintCols ?? oldRecord.footprintCols ?? 1,
       footprintRows: options.footprintRows ?? model.footprintRows ?? oldRecord.footprintRows ?? 1,
@@ -210,8 +212,9 @@ function updatePowerGrid(scene) {
     });
   });
 
-  while (queue.length > 0) {
-    const [r, c] = queue.shift();
+  let queueIndex = 0;
+  while (queueIndex < queue.length) {
+    const [r, c] = queue[queueIndex++];
     for (const [nr, nc] of getCardinalNeighbors(r, c)) {
       if (!isInsideMap(nr, nc) || powerMap[nr][nc]) continue;
       const nid = getTileId(nr, nc);
@@ -257,6 +260,7 @@ function updateServiceCoverage() {
     if (record.type === 'hospital') bfsService(anchorId, 'health', HOSPITAL_RADIUS, 1);
     if (record.type === 'park_small')           bfsService(anchorId, 'park',         SMALL_PARK_RADIUS,   1);
     if (record.type === 'park_large')           bfsService(anchorId, 'park',         LARGE_PARK_RADIUS,   2);
+    if (record.type === 'park_flagship')        bfsService(anchorId, 'park',         FLAGSHIP_PARK_RADIUS, 3);
     if (record.type === 'sports_ground_small')  bfsService(anchorId, 'sportsGround', SPORTS_GROUND_RADIUS, 1);
     if (record.type === 'sports_ground_large')  bfsService(anchorId, 'sportsGround', SPORTS_GROUND_RADIUS, 2);
   });
@@ -290,8 +294,9 @@ function bfsService(anchorId, key, radius, value = true) {
   const visited = new Set([anchorId]);
   const queue = [[startR, startC, 0]];
 
-  while (queue.length > 0) {
-    const [r, c, dist] = queue.shift();
+  let queueIndex = 0;
+  while (queueIndex < queue.length) {
+    const [r, c, dist] = queue[queueIndex++];
     const cell = ensureServiceCell(r, c);
     if (key === 'park') {
       cell.park = Math.max(cell.park ?? 0, value);
@@ -332,83 +337,113 @@ const TRAFFIC_DEMAND_WEIGHTS = {
 };
 const TRAFFIC_DIFFUSE_RADIUS  = 7;   // max tiles from building that demand spreads
 const TRAFFIC_ROAD_CAP        = 80;  // raw units above which a tile is "saturated"
+const TRAFFIC_ROUTE_CACHE_LIMIT = 8192;
+const trafficRouteCache = new Map();
 
 function isRoadTile(r, c) {
   return mapData[r]?.[c] === ROAD || roadUnderlayMap[r]?.[c] != null || bridgeMap[r]?.[c] != null;
 }
 
-function updateTrafficMap() {
-  // Reset map
-  for (let r = 0; r < MAP_HEIGHT; r++)
-    for (let c = 0; c < MAP_WIDTH; c++)
-      trafficMap[r][c] = 0;
+function markTrafficNetworkDirty() {
+  trafficRouteCache.clear();
+  if (typeof invalidateOverlayCache === 'function') invalidateOverlayCache();
+}
 
-  // Accumulate demand from every developed zone building
-  Object.entries(buildingData).forEach(([id, record]) => {
-    const zoneType = record.type;
-    if (zoneType !== 'residential' && zoneType !== 'commercial' && zoneType !== 'industrial') return;
+function getTrafficRoadRoutes(startR, startC) {
+  const cacheKey = startR * MAP_WIDTH + startC;
+  const cached = trafficRouteCache.get(cacheKey);
+  if (cached) return cached;
 
-    const [startR, startC] = id.split(':').map(Number);
-    const density = record.density ?? zoneDensityMap[startR]?.[startC] ?? DENSITY_LOW;
-    const level   = Math.max(1, Math.min(3, density));
-    const demand  = (TRAFFIC_DEMAND_WEIGHTS[zoneType]?.[level] ?? 1);
+  const visited = new Set([getTileId(startR, startC)]);
+  const queue = [[startR, startC, 0]];
+  const routes = [];
+  let queueIndex = 0;
+  while (queueIndex < queue.length) {
+    const [r, c, dist] = queue[queueIndex++];
+    if (!isInsideMap(r, c)) continue;
+    if (isRoadTile(r, c)) routes.push([r, c, dist]);
+    if (dist >= TRAFFIC_DIFFUSE_RADIUS) continue;
 
-    // BFS outward along road tiles, spreading demand with distance decay
-    const visited = new Set([getTileId(startR, startC)]);
-    const queue   = [[startR, startC, 0]];
-
-    while (queue.length > 0) {
-      const [r, c, dist] = queue.shift();
-      if (!isInsideMap(r, c)) continue;
-
-      if (isRoadTile(r, c)) {
-        const decay = 1 - dist / TRAFFIC_DIFFUSE_RADIUS;
-        trafficMap[r][c] += demand * decay;
-      }
-
-      if (dist >= TRAFFIC_DIFFUSE_RADIUS) continue;
-
-      for (const [nr, nc] of getCardinalNeighbors(r, c)) {
-        if (!isInsideMap(nr, nc)) continue;
-        const nid = getTileId(nr, nc);
-        if (visited.has(nid)) continue;
-        // Only continue BFS through road tiles (demand travels on roads)
-        if (!isRoadTile(nr, nc) && dist > 0) continue;
-        visited.add(nid);
-        queue.push([nr, nc, dist + 1]);
-      }
+    for (const [nr, nc] of getCardinalNeighbors(r, c)) {
+      if (!isInsideMap(nr, nc)) continue;
+      const nid = getTileId(nr, nc);
+      if (visited.has(nid)) continue;
+      if (!isRoadTile(nr, nc) && dist > 0) continue;
+      visited.add(nid);
+      queue.push([nr, nc, dist + 1]);
     }
-  });
+  }
 
-  // Normalise to 0–1 and compute city-wide index
-  let totalLoad   = 0;
-  let roadCount   = 0;
-  let zonedCount  = 0;
+  // A very large city can have more anchors than are worth retaining. Keep the
+  // first stable working set cached and compute uncommon overflow anchors on demand.
+  if (trafficRouteCache.size < TRAFFIC_ROUTE_CACHE_LIMIT) {
+    trafficRouteCache.set(cacheKey, routes);
+  }
+  return routes;
+}
+
+function updateTrafficMap() {
+  // Reset once while collecting the sparse road list and coverage totals. The
+  // old implementation walked all 65,536 cells a second time just to find the
+  // roads again for normalisation.
+  const roadTiles = [];
+  let zonedCount = 0;
   let coveredZoned = 0;
-  const weatherMultiplier = typeof getWeatherTrafficMultiplier === 'function'
-    ? getWeatherTrafficMultiplier()
-    : 1;
-
   for (let r = 0; r < MAP_HEIGHT; r++) {
     for (let c = 0; c < MAP_WIDTH; c++) {
-      if (isRoadTile(r, c)) {
-        trafficMap[r][c] = clamp((trafficMap[r][c] / TRAFFIC_ROAD_CAP) * weatherMultiplier, 0, 1);
-        totalLoad += trafficMap[r][c];
-        roadCount++;
-      } else {
-        trafficMap[r][c] = 0;
-      }
+      trafficMap[r][c] = 0;
+      const road = isRoadTile(r, c);
+      if (road) roadTiles.push(r * MAP_WIDTH + c);
 
       if (zoneMap[r][c] !== ZONE_NONE) {
         zonedCount++;
-        // A zoned tile is "covered" if it or a neighbour is a road
-        if (isRoadTile(r, c) || getCardinalNeighbors(r, c).some(([nr, nc]) => isInsideMap(nr, nc) && isRoadTile(nr, nc))) {
+        if (
+          road
+          || (r > 0 && isRoadTile(r - 1, c))
+          || (c + 1 < MAP_WIDTH && isRoadTile(r, c + 1))
+          || (r + 1 < MAP_HEIGHT && isRoadTile(r + 1, c))
+          || (c > 0 && isRoadTile(r, c - 1))
+        ) {
           coveredZoned++;
         }
       }
     }
   }
 
+  // Accumulate demand from every developed zone building
+  Object.entries(buildingData).forEach(([id, record]) => {
+    const zoneType = record.type;
+    if (zoneType !== 'residential' && zoneType !== 'commercial' && zoneType !== 'industrial') return;
+
+    const separator = id.indexOf(':');
+    const startR = Number(id.slice(0, separator));
+    const startC = Number(id.slice(separator + 1));
+    const density = record.density ?? zoneDensityMap[startR]?.[startC] ?? DENSITY_LOW;
+    const level   = Math.max(1, Math.min(3, density));
+    const demand  = (TRAFFIC_DEMAND_WEIGHTS[zoneType]?.[level] ?? 1);
+
+    // The route geometry changes only when the road/bridge network changes.
+    // Reuse it across ticks while applying the current building demand each time.
+    for (const [r, c, dist] of getTrafficRoadRoutes(startR, startC)) {
+      const decay = 1 - dist / TRAFFIC_DIFFUSE_RADIUS;
+      trafficMap[r][c] += demand * decay;
+    }
+  });
+
+  // Normalise only the cells known to be roads and compute the city-wide index.
+  let totalLoad = 0;
+  const weatherMultiplier = typeof getWeatherTrafficMultiplier === 'function'
+    ? getWeatherTrafficMultiplier()
+    : 1;
+
+  for (const tileIndex of roadTiles) {
+    const r = Math.floor(tileIndex / MAP_WIDTH);
+    const c = tileIndex % MAP_WIDTH;
+    trafficMap[r][c] = clamp((trafficMap[r][c] / TRAFFIC_ROAD_CAP) * weatherMultiplier, 0, 1);
+    totalLoad += trafficMap[r][c];
+  }
+
+  const roadCount = roadTiles.length;
   city.trafficIndex    = roadCount > 0 ? clamp(totalLoad / roadCount, 0, 1) : 0;
   const councilTraffic = typeof getCouncilTemporaryModifier === 'function'
     ? getCouncilTemporaryModifier('traffic')

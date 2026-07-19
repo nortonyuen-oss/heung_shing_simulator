@@ -32,6 +32,24 @@ function getCouncilMotionAvailability(itemType, itemId, motion) {
     const definition = getCouncilResolutionDefinition(itemId);
     if (!definition) return { available: false, reason: 'unknown' };
     const state = city.council.resolutionStates[itemId];
+    if (definition.oneTime && Number(state?.timesApproved || 0) > 0) {
+      return { available: false, reason: 'alreadyApproved' };
+    }
+    if (definition.requiresBuildingType && !hasBuildingType(definition.requiresBuildingType)) return { available: false, reason: 'needsBuilding' };
+    if (definition.unlockPopulation && city.population < definition.unlockPopulation) {
+      return { available: false, reason: 'population', threshold: definition.unlockPopulation, current: city.population };
+    }
+    if (definition.minimumMonthlyIncome && Number(city.monthlyIncome || 0) < definition.minimumMonthlyIncome) {
+      return { available: false, reason: 'monthlyIncome', threshold: definition.minimumMonthlyIncome, current: Number(city.monthlyIncome || 0) };
+    }
+    const monthlySurplus = Number(city.monthlyIncome || 0) - Number(city.monthlyExpenses || 0);
+    if (definition.minimumMonthlySurplus && monthlySurplus < definition.minimumMonthlySurplus) {
+      return { available: false, reason: 'monthlySurplus', threshold: definition.minimumMonthlySurplus, current: monthlySurplus };
+    }
+    const economyIndex = typeof getCityEconomyIndex === 'function' ? getCityEconomyIndex() : 0;
+    if (definition.minimumEconomyIndex && economyIndex < definition.minimumEconomyIndex) {
+      return { available: false, reason: 'economy', threshold: definition.minimumEconomyIndex, current: economyIndex };
+    }
     if (monthIndex < Number(state?.cooldownUntilMonthIndex ?? -1)) return { available: false, reason: 'cooldown' };
     if (city.council.activePrograms.some((program) => program.resolutionId === itemId)) return { available: false, reason: 'programActive' };
     if (city.budget < getCouncilResolutionUpfrontCost(itemId)) return { available: false, reason: 'insufficientFunds' };

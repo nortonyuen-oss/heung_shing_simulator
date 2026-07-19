@@ -28,6 +28,8 @@ function updateHUD() {
   updateTaxDisplay();
   updateBudgetControls();
   updateInfrastructureToolVisibility();
+  if (typeof updateLandmarkToolUi === 'function') updateLandmarkToolUi();
+  if (typeof checkSpecialBuildingUnlockNotices === 'function') checkSpecialBuildingUnlockNotices();
   updateTopbarWeatherChip();
   updateBudgetWindow();
   updateLegislativeWindow();
@@ -666,7 +668,6 @@ function updateLegislativeWindow() {
   setTextContent('legislative-population', city.population.toLocaleString());
   const hasCouncil = hasBuildingType('legislative_council');
   setTextContent('legislative-status', hasCouncil ? t('legislative.windowReady') : t('legislative.windowLocked'));
-  if (typeof updateCouncilMeetingUi === 'function') updateCouncilMeetingUi();
 }
 
 function updateStockExchangeWindow() {

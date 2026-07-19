@@ -13,6 +13,7 @@ function openGameDatabase(dbPath = resolveDbPath()) {
 
   const db = new DatabaseSync(dbPath);
   db.exec(`
+    PRAGMA busy_timeout = 5000;
     PRAGMA journal_mode = WAL;
     PRAGMA foreign_keys = ON;
   `);
@@ -159,7 +160,7 @@ function openGameDatabase(dbPath = resolveDbPath()) {
           updated_at = excluded.updated_at
       `).run({
         ...row,
-        save_data: stringifySaveData(row.save_data),
+        save_data: stringifyMigratedSaveData(row.save_data),
       });
     },
 
@@ -215,26 +216,55 @@ function openGameDatabase(dbPath = resolveDbPath()) {
 }
 
 function serializePayload(payload) {
+  assertJsonObject(payload, 'Save payload');
   return {
     city_name: payload.city_name || 'Unknown City',
     population: Number(payload.population ?? 0),
     year: Number(payload.year ?? 1900),
     month: Number(payload.month ?? 1),
     budget: payload.budget ?? 10000,
-    save_data: stringifySaveData(payload.save_data),
+    save_data: stringifyJsonObject(payload.save_data, 'save_data'),
   };
 }
 
-function stringifySaveData(saveData) {
-  return typeof saveData === 'string' ? saveData : JSON.stringify(saveData);
+function createInvalidPayloadError(message) {
+  const error = new TypeError(message);
+  error.code = 'INVALID_PAYLOAD';
+  return error;
+}
+
+function assertJsonObject(value, fieldName) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw createInvalidPayloadError(`${fieldName} must be a JSON object`);
+  }
+}
+
+function stringifyJsonObject(value, fieldName) {
+  assertJsonObject(value, fieldName);
+  try {
+    return JSON.stringify(value);
+  } catch {
+    throw createInvalidPayloadError(`${fieldName} must be JSON serializable`);
+  }
+}
+
+function stringifyMigratedSaveData(value) {
+  if (typeof value !== 'string') return stringifyJsonObject(value, 'save_data');
+  try {
+    return stringifyJsonObject(JSON.parse(value), 'save_data');
+  } catch (error) {
+    if (error?.code === 'INVALID_PAYLOAD') throw error;
+    throw createInvalidPayloadError('save_data must contain a valid JSON object');
+  }
 }
 
 function serializeTerrainPayload(payload) {
+  assertJsonObject(payload, 'Terrain payload');
   return {
     name: (payload.name || 'Untitled Terrain').toString().slice(0, 60),
     profile_type: (payload.profile_type || 'custom').toString().slice(0, 40),
     seed: (payload.seed || '').toString().slice(0, 120),
-    terrain_data: stringifySaveData(payload.terrain_data),
+    terrain_data: stringifyJsonObject(payload.terrain_data, 'terrain_data'),
   };
 }
 

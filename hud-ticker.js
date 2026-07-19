@@ -12,6 +12,7 @@ let lastTickerTopicId = '';
 let tickerCycleCount = 0;
 let tickerAdvanceTimer = null;
 let tickerTransitionEndHandler = null;
+let pendingLandmarkTickerNotices = [];
 
 function toPercent(value) {
   const numeric = Number(value ?? 0);
@@ -19,12 +20,59 @@ function toPercent(value) {
   return Math.max(0, Math.min(100, Math.round(numeric * 100)));
 }
 
+// Queued by announceLandmarkUnlockNotice() (newspaper.js) the moment a
+// special building's unlock threshold is first crossed; drained one at a
+// time by the urgent-news check below so it interrupts the normal cycle.
+function queueLandmarkTickerNotice(text) {
+  if (text) pendingLandmarkTickerNotices.push(text);
+}
+
+function getStockCrashTickerNews() {
+  const crash = city.stockMarket?.crash;
+  if (!crash?.active) return null;
+  const opening = Math.max(1, Math.round(Number(crash.openingHsi) || HSI_BASE_LEVEL)).toLocaleString();
+  const closing = Math.max(1, Math.round(Number(crash.closingHsi) || HSI_BASE_LEVEL)).toLocaleString();
+  const percent = Math.round((Number(crash.severity) || 0) * 100);
+  const months = Math.max(0, Math.floor(Number(crash.monthsLeft) || 0));
+  const language = typeof getCurrentLanguage === 'function' ? getCurrentLanguage() : 'zhHant';
+  const variant = (Math.max(0, Number(crash.newsVariant) || 0) + tickerCycleCount) % 5;
+
+  if (language === 'en') {
+    return [
+      `MARKET CRASH: The HSI plunged from ${opening} at the open to ${closing} at the close. Investor Ding Hai calls it “only a technical correction.”`,
+      `MARKET CRASH: Failed investors are reportedly queueing on the Stock Exchange rooftop “for some fresh air.” The index fell ${percent}%.`,
+      `Panic selling grips the market as the HSI loses ${percent}% in one day; the bear phase may persist for another ${months} months.`,
+      `Finance and technology shares lead a broad collapse. The HSI closes at ${closing}, down from ${opening}.`,
+      `Brokers urge calm after a ${percent}% rout; forum users reply that calm is the only asset still not suspended.`,
+    ][variant];
+  }
+  if (language === 'ja') {
+    return [
+      `【株価暴落】ハンセン指数は始値${opening}から終値${closing}へ急落。投資家の丁蟹氏は「単なるテクニカル調整」と強調。`,
+      `【株価暴落】投資に失敗した人々が証券取引所の屋上で「涼む」ため列を作っている。指数は${percent}%下落。`,
+      `パニック売りで指数は一日${percent}%下落。弱気相場はあと${months}か月続く可能性。`,
+      `金融・ハイテク株が全面安を主導。指数は${opening}から${closing}で取引を終えた。`,
+      `${percent}%の急落を受け証券会社は冷静な対応を呼びかけ。掲示板では「冷静さだけが取引停止になっていない」と皮肉。`,
+    ][variant];
+  }
+  return [
+    `【股災】恆指一天內從開市 ${opening} 點急跌至收市 ${closing} 點。股民丁蟹表示：「只是技術性調整，不要怕。」`,
+    `【股災】投資失敗的人正在排隊上股票交易所天台乘涼；恆指單日暴跌 ${percent}%。`,
+    `【金融風暴】恐慌性拋售席捲香城，恆指一日蒸發 ${percent}%，跌市或再持續約 ${months} 個月。`,
+    `【港股收市】金融及科技股全線急挫，恆指由 ${opening} 點跌至 ${closing} 點，交易大堂一片死寂。`,
+    `【市場消息】券商在 ${percent}% 暴跌後呼籲股民冷靜，網民回應：「而家唯一冇停牌嘅資產就係冷靜。」`,
+  ][variant];
+}
+
 function getUrgentCityNews() {
   const cityName = city.name || getDefaultCityName();
+  if (pendingLandmarkTickerNotices.length) return pendingLandmarkTickerNotices.shift();
   const weatherWarning = typeof getUrgentWeatherNews === 'function' ? getUrgentWeatherNews() : null;
   if (weatherWarning) return weatherWarning;
   const powerWarning = getPowerPlantTickerWarning();
   if (powerWarning) return powerWarning;
+  const stockCrashWarning = getStockCrashTickerNews();
+  if (stockCrashWarning) return stockCrashWarning;
 
   if (city.budget < 0 && Math.abs(city.monthlyIncome - city.monthlyExpenses) > 5000) {
     return t('news.urgent.deficit', {
@@ -33,11 +81,11 @@ function getUrgentCityNews() {
     });
   }
 
-  if ((city.crimeIndex ?? 0) >= 0.68) {
+  if ((city.crimeRateIndex ?? 0) >= 0.68) {
     return t('news.urgent.crime', { city: cityName });
   }
 
-  if ((city.pollutionIndex ?? 0) >= 0.72) {
+  if ((Number(city.pollution ?? 0) / 200) >= 0.72) {
     return t('news.urgent.pollution', { city: cityName });
   }
 
@@ -137,9 +185,9 @@ function buildTickerNewsCandidates() {
   const basicEdu = toPercent(city.educationBasicIndex);
   const scienceShare = toPercent(city.scienceIndustryShare);
   const happiness = toPercent(city.happiness);
-  const roadCoverage = toPercent(city.roadCoverageIndex);
-  const pollution = toPercent(city.pollutionIndex);
-  const crime = toPercent(city.crimeIndex);
+  const roadCoverage = toPercent(city.trafficCoverage);
+  const pollution = toPercent(Number(city.pollution ?? 0) / 200);
+  const crime = toPercent(city.crimeRateIndex);
   const population = Math.max(0, Number(city.population) || 0);
   const unemploymentPct = Math.round((city.unemploymentRate ?? 0) * 100);
   const highEduUnemploymentPct = Math.round((city.highEduUnemploymentRate ?? 0) * 100);
@@ -452,6 +500,7 @@ function startTicker() {
     if (trackW <= 0 || textW <= 0) {
       inner.style.transition = 'none';
       inner.style.left = '0px';
+      inner.style.transform = 'translate3d(0, -50%, 0)';
       scheduleFallbackAdvance(1200);
       return;
     }
@@ -459,10 +508,11 @@ function startTicker() {
 
     // Snap to just off the right edge (no transition), then glide left
     inner.style.transition = 'none';
-    inner.style.left = trackW + 'px';
-    void inner.offsetLeft;                        // force reflow
-    inner.style.transition = `left ${duration}s linear`;
-    inner.style.left = `-${textW}px`;
+    inner.style.left = '0px';
+    inner.style.transform = `translate3d(${trackW}px, -50%, 0)`;
+    void inner.offsetWidth;                       // commit the starting position
+    inner.style.transition = `transform ${duration}s linear`;
+    inner.style.transform = `translate3d(-${textW}px, -50%, 0)`;
 
     // Fallback for cases where transitionend is skipped (tab hidden, style recalculation, etc.)
     scheduleFallbackAdvance((duration + 0.25) * 1000);
@@ -471,7 +521,7 @@ function startTicker() {
   tickerShowNextTip = showNextTip;
   showNextTip();
   tickerTransitionEndHandler = (event) => {
-    if (event && event.propertyName && event.propertyName !== 'left') return;
+    if (event && event.propertyName && event.propertyName !== 'transform') return;
     if (tickerAdvanceTimer) {
       clearTimeout(tickerAdvanceTimer);
       tickerAdvanceTimer = null;

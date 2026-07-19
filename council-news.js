@@ -167,6 +167,15 @@ function getResolutionCanonicalFacts(resolutionId, outcome, extra = {}) {
     drone_crash: zh ? '表演期間有無人機失控墜毀，引發安全及擾民爭議。' : 'Drones lost control and crashed during the show, causing safety and nuisance concerns.',
     drones_wrong_city: zh ? '整批無人機飛到隔離城市完成表演，香城市民留在原地甚麼也看不到。' : 'The entire drone fleet flew to the neighbouring city and performed there, leaving local spectators with nothing to see.',
   };
+  if (resolutionId === 'leagueMatchday') {
+    return zh
+      ? (outcome === 'success'
+        ? [`城超聯主場日圓滿舉行，${title}吸引大批球迷入場，主場館內外氣氛熾熱。`, '球場周邊交通繁忙，但商戶及旅遊收益顯著上升。']
+        : [`${title}演變成場外混亂，球迷與保安一度爆發衝突。`, `活動部分退款，退款成本為 $${Number(extra.refundCost || 0).toLocaleString()}，城市恥笑度上升。`])
+      : (outcome === 'success'
+        ? [`${title} drew a packed crowd to the League Stadium in a lively atmosphere.`, 'Traffic around the stadium was heavy, but nearby businesses and tourism revenue jumped.']
+        : [`${title} descended into chaos outside the gates after fans clashed with security.`, `Partial refunds were issued at a cost of $${Number(extra.refundCost || 0).toLocaleString()}, and the city's ridicule score rose.`]);
+  }
   if (resolutionId === 'fantasyFingHeungShing') {
     const summary = zh
       ? `全年共舉行 ${Number(extra.showCount || 4)} 場，成功 ${Number(extra.successCount || 0)} 場、失敗 ${Number(extra.failureCount || 0)} 場。`
@@ -373,11 +382,13 @@ async function announceCouncilResolutionNews(resolutionId, outcome, extra = {}) 
   const fallback = buildLocalResolutionArticle(event);
   let article = fallback;
   if (typeof requestCouncilCharacterNews === 'function') {
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 4000);
     try {
-      const generated = await Promise.race([
-        requestCouncilCharacterNews(event, { addToTicker: false }),
-        new Promise((resolve) => window.setTimeout(() => resolve(null), 4000)),
-      ]);
+      const generated = await requestCouncilCharacterNews(event, {
+        addToTicker: false,
+        signal: controller.signal,
+      });
       if (generated?.headline && generated?.body) {
         const newsLanguage = getResolutionNewsLanguage();
         const leadName = getCouncilNewsOfficialDisplayName(event.characterIds[0]);
@@ -413,6 +424,8 @@ async function announceCouncilResolutionNews(resolutionId, outcome, extra = {}) 
       }
     } catch (error) {
       console.warn('[Council Resolution Newspaper]', error);
+    } finally {
+      window.clearTimeout(timeoutId);
     }
   }
   article.image = getResolutionForumImage(resolutionId, outcome);

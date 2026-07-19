@@ -40,6 +40,7 @@ function setupToolMenu() {
   setupZoneDensityTools(menu);
   setupParkTool(menu);
   initSportsGroundToolMenu(menu);
+  setupGroupedToolMenus(menu);
 
   window.addEventListener('pointerup', () => {
     const wasPainting = isPainting;
@@ -92,6 +93,12 @@ function setupToolMenu() {
   });
 
   menu.addEventListener('click', (event) => {
+    const groupButton = event.target.closest('[data-tool-group]');
+    if (groupButton) {
+      toggleToolGroup(groupButton);
+      return;
+    }
+
     const categoryButton = event.target.closest('[data-tool-category]');
     if (categoryButton) {
       if (categoryButton.dataset.toolCategory === 'inspect') {
@@ -157,6 +164,16 @@ function setupToolMenu() {
       if (isTerrainCreatorMode || (typeof isCouncilMeetingUnlocked === 'function' && !isCouncilMeetingUnlocked())) return;
       openLegislativeWindow();
       closeToolCategoryFlyouts();
+      return;
+    }
+
+    const parkShortcut = event.target.closest('[data-park-shortcut]');
+    if (parkShortcut) {
+      selectedParkId = parkShortcut.dataset.parkShortcut;
+      selectedTool = 'park';
+      updateParkToolUi();
+      updateToolCategoryState(menu, selectedTool);
+      closeToolPopups();
       return;
     }
 
@@ -227,6 +244,17 @@ function setupToolMenu() {
       return;
     }
 
+    // ── Landmark tools (population/policy gated) ───────────────────────────
+    const landmarkBuildingType = LANDMARK_TOOL_BUILDING_TYPES[button.dataset.tool];
+    if (landmarkBuildingType && typeof getSpecialBuildingUnlockState === 'function') {
+      const state = getSpecialBuildingUnlockState(landmarkBuildingType);
+      if (!state.unlocked) {
+        showToast(describeSpecialBuildingLockReason(state), 'warning');
+        closeToolCategoryFlyouts();
+        return;
+      }
+    }
+
     selectedTool = button.dataset.tool;
     menu.querySelectorAll('[data-tool]').forEach((toolButton) => {
       toolButton.classList.toggle('is-active', toolButton === button);
@@ -262,6 +290,7 @@ function setupToolMenu() {
   setupRotateCluster();
   setupTerrainMiniMapControls();
   initChartControls();
+  updateLandmarkToolUi();
 }
 
 function getToolCategoryForTool(tool) {
@@ -274,15 +303,34 @@ function getToolCategoryForTool(tool) {
   if (
     tool === 'fire-station'
     || tool === 'police-station'
+    || tool === 'hospital'
     || tool === 'primary-school'
     || tool === 'secondary-school'
-    || tool === 'library'
     || tool === 'community-college'
     || tool === 'university'
     || tool === 'legislative-council'
     || tool === 'stock-exchange'
+    || tool === 'harbor'
+    || tool === 'airport'
   ) return 'services';
-  if (tool === 'park' || tool === 'tree') return 'parks';
+  if (
+    tool === 'park'
+    || tool === 'sports-ground'
+    || tool === 'tree'
+    || tool === 'library'
+    || tool === 'cultural-center'
+    || tool === 'space-museum'
+    || tool === 'indoor-coliseum'
+    || tool === 'football-stadium'
+  ) return 'parks';
+  if (
+    tool === 'exhibition-center'
+    || tool === 'buddha-statue'
+    || tool === 'heritage-temple'
+    || tool === 'heritage-church'
+    || tool === 'murray-house'
+    || tool === 'ocean-park'
+  ) return 'landmarks';
   if (tool === 'house') return 'buildings';
   return null;
 }
@@ -296,6 +344,14 @@ function updateToolCategoryState(menu = document.getElementById('tool-menu'), to
   });
   menu.querySelectorAll('.tool-flyout [data-tool]').forEach((button) => {
     button.classList.toggle('is-active', button.dataset.tool === tool);
+  });
+  menu.querySelectorAll('[data-tool-group]').forEach((button) => {
+    const items = menu.querySelector(`[data-tool-group-items="${button.dataset.toolGroup}"]`);
+    const selectedPoolShortcut = tool === 'park' && selectedParkId === 'swimming_pool';
+    const containsActiveTool = selectedPoolShortcut
+      ? Boolean(items?.querySelector('[data-park-shortcut="swimming_pool"]'))
+      : Boolean(items?.querySelector(`[data-tool="${tool}"]`));
+    button.classList.toggle('has-active-tool', containsActiveTool);
   });
 }
 
@@ -325,13 +381,16 @@ function positionToolFlyout(categoryButton, panel) {
   const bounds = categoryButton.getBoundingClientRect();
   const menu = document.getElementById('tool-menu');
   const menuBounds = menu?.getBoundingClientRect();
+  panel.style.maxHeight = '';
   panel.style.left = `${Math.round((menuBounds?.right ?? bounds.right) + 8)}px`;
   panel.style.top = `${Math.max(8, Math.min(bounds.top, window.innerHeight - 48))}px`;
 
   requestAnimationFrame(() => {
     const panelBounds = panel.getBoundingClientRect();
     const maxTop = Math.max(8, window.innerHeight - panelBounds.height - 8);
-    panel.style.top = `${Math.max(8, Math.min(bounds.top, maxTop))}px`;
+    const top = Math.max(8, Math.min(bounds.top, maxTop));
+    panel.style.top = `${top}px`;
+    panel.style.maxHeight = `${Math.max(120, window.innerHeight - top - 8)}px`;
   });
 }
 
@@ -342,6 +401,39 @@ function closeToolCategoryFlyouts() {
   });
   document.querySelectorAll('.tool-flyout.is-open').forEach((panel) => {
     panel.classList.remove('is-open');
+  });
+  closeToolGroups();
+}
+
+function setupGroupedToolMenus(menu) {
+  menu.querySelectorAll('[data-tool-group]').forEach((button) => {
+    button.setAttribute('aria-expanded', 'false');
+  });
+}
+
+function toggleToolGroup(button) {
+  const panel = button.closest('.tool-flyout');
+  const items = panel?.querySelector(`[data-tool-group-items="${button.dataset.toolGroup}"]`);
+  if (!panel || !items) return;
+  const shouldOpen = items.hidden;
+  closeToolGroups(panel);
+  if (!shouldOpen) return;
+  items.hidden = false;
+  button.classList.add('is-open');
+  button.setAttribute('aria-expanded', 'true');
+  const category = panel.dataset.toolPanel;
+  const categoryButton = document.querySelector(`[data-tool-category="${category}"]`);
+  if (categoryButton) positionToolFlyout(categoryButton, panel);
+  requestAnimationFrame(() => button.scrollIntoView({ block: 'nearest' }));
+}
+
+function closeToolGroups(root = document) {
+  root.querySelectorAll('[data-tool-group].is-open').forEach((button) => {
+    button.classList.remove('is-open');
+    button.setAttribute('aria-expanded', 'false');
+  });
+  root.querySelectorAll('[data-tool-group-items]').forEach((items) => {
+    items.hidden = true;
   });
 }
 
@@ -741,7 +833,7 @@ function openParkPicker(triggerButton = document.querySelector('[data-tool="park
   cancelParkPickerClose();
 
   picker.innerHTML = '';
-  PARK_OPTIONS.forEach((opt) => {
+  PARK_OPTIONS.filter((opt) => opt.id !== 'swimming_pool').forEach((opt) => {
     const btn = document.createElement('button');
     btn.className = 'popup-button';
     btn.type = 'button';
@@ -928,6 +1020,35 @@ function updateParkToolUi() {
   if (icon) icon.textContent = opt.icon;
   btn.title = t('tool.park', { name: getParkLabel(opt), badge: opt.badge, cost: opt.cost });
   btn.setAttribute('aria-label', btn.title);
+}
+
+// ── Landmark tools (population/policy gated) ──────────────────────────────
+
+function describeSpecialBuildingLockReason(state) {
+  if (state.reason === 'population') return t('toast.landmarkLocked.population', { count: state.threshold.toLocaleString() });
+  if (state.reason === 'attractiveness') return t('toast.landmarkLocked.attractiveness', { value: state.threshold });
+  if (state.reason === 'building') return t('toast.landmarkLocked.building', { building: t(`toolRow.${toCamelToolKey(state.requires)}`) });
+  if (state.reason === 'policy') return t('toast.landmarkLocked.policy', { policy: t(`policy.${state.requires}.title`) });
+  if (state.reason === 'resolution') return t('toast.landmarkLocked.resolution', { resolution: t(`resolution.${state.requires}.title`) });
+  if (state.reason === 'maxCount') return t('toast.landmarkLocked.maxCount');
+  return t('toast.landmarkLocked.generic');
+}
+
+function toCamelToolKey(buildingType) {
+  return String(buildingType).replace(/_([a-z])/g, (_, c) => c.toUpperCase());
+}
+
+function updateLandmarkToolUi() {
+  if (typeof getSpecialBuildingUnlockState !== 'function') return;
+  Object.entries(LANDMARK_TOOL_BUILDING_TYPES).forEach(([tool, buildingType]) => {
+    const row = document.querySelector(`.tool-row[data-tool="${tool}"]`);
+    if (!row) return;
+    const state = getSpecialBuildingUnlockState(buildingType);
+    const rule = SPECIAL_BUILDING_UNLOCKS[buildingType];
+    row.hidden = Boolean(rule?.hideUntilApproved && !state.unlocked);
+    row.classList.toggle('is-locked', !state.unlocked);
+    row.title = state.unlocked ? '' : describeSpecialBuildingLockReason(state);
+  });
 }
 
 // ── Overlay map floating window ───────────────────────────────────────────────

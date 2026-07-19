@@ -3,17 +3,25 @@
 const fs = require('fs');
 const path = require('path');
 const sharp = require('sharp');
+const { defringeWhiteMatteRgba } = require('./lib/defringe-model');
 
 const projectRoot = path.resolve(__dirname, '..');
 const modelRoots = [
   path.join(projectRoot, 'Models', 'residential'),
-  path.join(projectRoot, 'Models', 'commercialBuildings'),
-  path.join(projectRoot, 'Models', 'industrialBuildings'),
-  path.join(projectRoot, 'Models', 'govBuildings'),
+  path.join(projectRoot, 'Models', 'commercial'),
+  path.join(projectRoot, 'Models', 'industrial'),
+  path.join(projectRoot, 'Models', 'government'),
+  path.join(projectRoot, 'Models', 'parks'),
+  path.join(projectRoot, 'Models', 'powerStation'),
+  path.join(projectRoot, 'Models', 'specialSites'),
+  path.join(projectRoot, 'Models', 'airPort'),
+  path.join(projectRoot, 'Models', 'containerPort'),
+  path.join(projectRoot, 'Models', 'trees'),
 ];
 
 const MAX_DIMENSION = Number(process.env.ASSET_MAX_DIMENSION || 1024);
 const WEBP_QUALITY = Number(process.env.ASSET_WEBP_QUALITY || 82);
+const APPLY_DEFRINGE = process.env.ASSET_DEFRINGE === '1';
 const SOURCE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg']);
 
 async function main() {
@@ -44,6 +52,13 @@ async function main() {
     const height = metadata.height ?? MAX_DIMENSION;
 
     let pipeline = image;
+    if (APPLY_DEFRINGE && metadata.hasAlpha) {
+      const { data, info } = await image.clone().ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+      const result = defringeWhiteMatteRgba(data, info.width, info.height);
+      pipeline = sharp(result.data, {
+        raw: { width: info.width, height: info.height, channels: 4 },
+      });
+    }
     if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
       pipeline = pipeline.resize({
         width: MAX_DIMENSION,

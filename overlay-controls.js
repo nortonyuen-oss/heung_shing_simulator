@@ -1,3 +1,22 @@
+let overlayRedrawFrame = null;
+
+function invalidateOverlayCache() {
+  overlayCache = {};
+  // Player tools can mutate overlay data while the simulation is paused, so
+  // clearing the cache alone leaves the open map visibly stale. Coalesce all
+  // mutations in the same frame; updateMiniMap() cancels this callback when a
+  // normal HUD refresh has already repainted the overlay.
+  const win = typeof document !== 'undefined' ? document.getElementById('overlay-window') : null;
+  if (overlayRedrawFrame !== null
+    || typeof activeOverlay === 'undefined' || !activeOverlay
+    || !win?.classList.contains('is-open')
+    || typeof window === 'undefined' || typeof window.requestAnimationFrame !== 'function') return;
+  overlayRedrawFrame = window.requestAnimationFrame(() => {
+    overlayRedrawFrame = null;
+    updateMiniMap();
+  });
+}
+
 function toggleOverlayMap(type) {
   const win = document.getElementById('overlay-window');
   if (!type || !win) return;
@@ -8,7 +27,7 @@ function toggleOverlayMap(type) {
   }
 
   activeOverlay = type;
-  overlayCache = {};
+  invalidateOverlayCache();
   _syncOverlayButtons();
   openOverlayWindow();
 }
@@ -28,7 +47,7 @@ function openOverlayWindow() {
 function closeOverlayWindow() {
   document.getElementById('overlay-window')?.classList.remove('is-open');
   activeOverlay = null;
-  overlayCache  = {};
+  invalidateOverlayCache();
   _syncOverlayButtons();
 }
 
@@ -39,6 +58,10 @@ function _syncOverlayButtons() {
 }
 
 function updateMiniMap() {
+  if (overlayRedrawFrame !== null) {
+    window.cancelAnimationFrame(overlayRedrawFrame);
+    overlayRedrawFrame = null;
+  }
   const win    = document.getElementById('overlay-window');
   const canvas = document.getElementById('mini-map-canvas');
   if (!win || !canvas || !activeOverlay || !win.classList.contains('is-open')) return;
@@ -49,7 +72,9 @@ function updateMiniMap() {
   if (titleEl) titleEl.textContent = t(OVERLAY_TITLES[activeOverlay] ?? activeOverlay);
   if (iconEl)  iconEl.textContent  = OVERLAY_ICONS[activeOverlay]  ?? '🗺';
 
-  overlayCache[activeOverlay] = computeOverlayMap(activeOverlay);
+  if (!overlayCache[activeOverlay]) {
+    overlayCache[activeOverlay] = computeOverlayMap(activeOverlay);
+  }
   drawMiniMap(canvas, activeOverlay);
   _drawLegendGradient(activeOverlay);
   updateOverlayDetailPanel(activeOverlay);
@@ -591,11 +616,14 @@ function computeTrafficOverlayMap() {
 
 function computeHealthMap() {
   const map = createFilledMap(0);
+  const pollutionSources = typeof getHealthPollutionSources === 'function'
+    ? getHealthPollutionSources()
+    : null;
   for (let r = 0; r < MAP_HEIGHT; r++) {
     for (let c = 0; c < MAP_WIDTH; c++) {
       if (zoneMap[r][c] === ZONE_NONE && !buildingData[getTileId(r, c)]) continue;
       map[r][c] = typeof getLocalHealthScore === 'function'
-        ? getLocalHealthScore(r, c)
+        ? getLocalHealthScore(r, c, pollutionSources)
         : clamp(serviceMap[r]?.[c]?.health ?? 0, 0, 1);
     }
   }
@@ -677,6 +705,22 @@ function computePollutionMap() {
       map[r][c] = Math.max(0, map[r][c] - canopy[r][c] * 0.22);
     }
   }
+  Object.entries(buildingData).forEach(([id, rec]) => {
+    const effects = SPECIAL_BUILDING_EFFECTS[rec.type];
+    const radius = effects?.pollutionReductionRadius;
+    const strength = effects?.pollutionReductionStrength;
+    if (!radius || !strength) return;
+    const [r0, c0] = id.split(':').map(Number);
+    for (let dr = -radius; dr <= radius; dr++) {
+      for (let dc = -radius; dc <= radius; dc++) {
+        const r = r0 + dr, c = c0 + dc;
+        if (!isInsideMap(r, c)) continue;
+        const dist = Math.sqrt(dr * dr + dc * dc);
+        if (dist > radius) continue;
+        map[r][c] = Math.max(0, map[r][c] - strength * (1 - dist / radius));
+      }
+    }
+  });
   return map;
 }
 
@@ -759,18 +803,38 @@ function computeLandValueMap() {
   const pollution = computePollutionMap();
   const canopy = computeTreeCanopyMap();
   const nuisance = createFilledMap(0);
+  const landmarkBonus = createFilledMap(0);
   Object.entries(buildingData).forEach(([id, rec]) => {
     const stats = POWER_PLANT_STATS[rec.type];
-    if (!stats) return;
+    const landmarkEffects = SPECIAL_BUILDING_EFFECTS[rec.type];
+    if (!stats && !landmarkEffects) return;
     const [r0, c0] = id.split(':').map(Number);
-    const radius = stats.nuisanceRadius;
-    for (let dr = -radius; dr <= radius; dr++) {
-      for (let dc = -radius; dc <= radius; dc++) {
-        const r = r0 + dr, c = c0 + dc;
-        if (!isInsideMap(r, c)) continue;
-        const dist = Math.abs(dr) + Math.abs(dc);
-        if (dist > radius) continue;
-        nuisance[r][c] = Math.min(1, nuisance[r][c] + stats.nuisanceStrength * (1 - dist / Math.max(1, radius)));
+
+    const nuisanceRadius = stats?.nuisanceRadius ?? landmarkEffects?.nuisanceRadius;
+    const nuisanceStrength = stats?.nuisanceStrength ?? landmarkEffects?.nuisanceStrength;
+    if (nuisanceRadius) {
+      for (let dr = -nuisanceRadius; dr <= nuisanceRadius; dr++) {
+        for (let dc = -nuisanceRadius; dc <= nuisanceRadius; dc++) {
+          const r = r0 + dr, c = c0 + dc;
+          if (!isInsideMap(r, c)) continue;
+          const dist = Math.abs(dr) + Math.abs(dc);
+          if (dist > nuisanceRadius) continue;
+          nuisance[r][c] = Math.min(1, nuisance[r][c] + nuisanceStrength * (1 - dist / Math.max(1, nuisanceRadius)));
+        }
+      }
+    }
+
+    const bonusRadius = landmarkEffects?.landValueRadius;
+    const bonusStrength = landmarkEffects?.landValueBonus;
+    if (bonusRadius && bonusStrength) {
+      for (let dr = -bonusRadius; dr <= bonusRadius; dr++) {
+        for (let dc = -bonusRadius; dc <= bonusRadius; dc++) {
+          const r = r0 + dr, c = c0 + dc;
+          if (!isInsideMap(r, c)) continue;
+          const dist = Math.abs(dr) + Math.abs(dc);
+          if (dist > bonusRadius) continue;
+          landmarkBonus[r][c] = Math.min(0.3, landmarkBonus[r][c] + bonusStrength * (1 - dist / Math.max(1, bonusRadius)));
+        }
       }
     }
   });
@@ -787,6 +851,7 @@ function computeLandValueMap() {
         val += (canopy[r]?.[c] ?? 0) * TREE_LAND_VALUE_BONUS_MAX;
         val += getScenicValue(r, c) * SCENIC_LAND_VALUE_BONUS_MAX;
       }
+      val += landmarkBonus[r]?.[c] ?? 0;
       val -= (pollution[r]?.[c] ?? 0) * 0.35;
       val -= (nuisance[r]?.[c] ?? 0) * 0.22;
       map[r][c] = Math.max(0, Math.min(1, val));

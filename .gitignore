@@ -6,3 +6,8 @@ build/icon.iconset/
 *.sqlite-shm
 *.sqlite-wal
 .DS_Store
+.vscode/
+test-results/
+**/process_log.csv
+**/settings.json
+/footballStarVisit.webp

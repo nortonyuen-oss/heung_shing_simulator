@@ -533,7 +533,8 @@ async function startNewGame(cityName) {
     setRoadTileSet(roadTileSetSelect?.value || ROAD_TILE_SET_DEFAULT_ID, { refresh: false });
   }
 
-  if (typeof currentSaveId !== 'undefined') currentSaveId = null;
+  if (typeof beginNewCitySaveSession === 'function') beginNewCitySaveSession();
+  else if (typeof currentSaveId !== 'undefined') currentSaveId = null;
 
   rebuildFreshMapSession(cityName || getDefaultCityName());
   simPaused = false;

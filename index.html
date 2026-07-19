@@ -1661,6 +1661,7 @@
       gap: 5px;
       min-width: 210px;
       max-width: 250px;
+      max-height: calc(100vh - 16px);
       padding: 8px;
       background: #d4d0c3;
       border: 2px solid #6f6b60;
@@ -1671,6 +1672,8 @@
       pointer-events: none;
       transform: translateX(-8px);
       transition: opacity 120ms ease, transform 120ms ease, visibility 120ms ease;
+      overflow-x: hidden;
+      overflow-y: auto;
     }
 
     .tool-flyout.is-open {
@@ -1710,11 +1713,19 @@
       white-space: nowrap;
     }
 
+    .tool-row[hidden] { display: none !important; }
+
     .tool-row:hover { background: #f8f0d2; }
     .tool-row.is-active {
       background: #f1c65d;
       box-shadow: inset -1px -1px 0 #fff7cf, inset 1px 1px 0 #8d7025;
     }
+    .tool-row.is-locked {
+      opacity: 0.5;
+      cursor: not-allowed;
+      filter: grayscale(0.6);
+    }
+    .tool-row.is-locked:hover { background: #ece7d4; }
 
     .tool-row-icon {
       width: 28px;
@@ -1738,6 +1749,44 @@
       position: static;
       margin-left: auto;
       flex-shrink: 0;
+    }
+
+    .tool-group-row {
+      background: #dde5ee;
+      border-color: #7f8d9d;
+    }
+
+    .tool-group-row:hover,
+    .tool-group-row.is-open {
+      background: #f7f9fc;
+    }
+
+    .tool-group-row.has-active-tool {
+      box-shadow: inset 3px 0 0 #3d6cb1, inset 1px 1px 0 #fffdf2, inset -1px -1px 0 #a7a08d;
+    }
+
+    .tool-group-chevron {
+      width: 16px;
+      flex: 0 0 16px;
+      color: #536172;
+      font-size: 13px;
+      text-align: center;
+    }
+
+    .tool-group-row.is-open .tool-group-chevron {
+      transform: rotate(90deg);
+    }
+
+    .tool-group-items {
+      display: grid;
+      gap: 5px;
+      margin-left: 10px;
+      padding-left: 7px;
+      border-left: 2px solid #96a5b9;
+    }
+
+    .tool-group-items[hidden] {
+      display: none !important;
     }
 
     .tool-button:hover {
@@ -5775,6 +5824,15 @@ Ctrl+O       Load game (open saves list)</div>
       <span class="tool-category-accent" aria-hidden="true"></span>
       <span class="tool-category-hotkey" aria-hidden="true">P</span>
     </button>
+    <button class="tool-category-button" type="button" data-tool-category="landmarks" title="Landmarks" data-i18n-title="toolCategory.landmarks">
+      <span class="tool-category-icon" aria-hidden="true">🗽</span>
+      <span class="tool-category-labels">
+        <span class="tool-category-title" data-i18n="toolCategory.landmarksTitle">地標名勝</span>
+        <span class="tool-category-subtitle" data-i18n="toolCategory.landmarksSubtitle">Landmarks</span>
+      </span>
+      <span class="tool-category-accent" aria-hidden="true"></span>
+      <span class="tool-category-hotkey" aria-hidden="true">L</span>
+    </button>
     <button class="tool-category-button" type="button" data-tool-category="terrain" title="Terrain" data-i18n-title="toolCategory.terrain">
       <span class="tool-category-icon" aria-hidden="true">🚉</span>
       <span class="tool-category-labels">
@@ -5872,49 +5930,78 @@ Ctrl+O       Load game (open saves list)</div>
 
     <section class="tool-flyout" data-tool-panel="services">
       <div class="tool-flyout-title" data-i18n="toolCategory.services">Services</div>
-      <button class="tool-row" type="button" data-tool="fire-station">
-        <span class="tool-row-icon">🚒</span><span class="tool-row-text" data-i18n="toolRow.fireStation">Fire Station</span><span class="tool-row-cost">$1000</span>
+      <button class="tool-row tool-group-row" type="button" data-tool-group="safety-health">
+        <span class="tool-row-icon">🚨</span><span class="tool-row-text" data-i18n="toolGroup.safetyHealth">Safety & Health</span><span class="tool-group-chevron">▶</span>
       </button>
-      <button class="tool-row" type="button" data-tool="police-station">
-        <span class="tool-row-icon">👮</span><span class="tool-row-text" data-i18n="toolRow.policeStation">Police Station</span><span class="tool-row-cost">$800</span>
+      <div class="tool-group-items" data-tool-group-items="safety-health" hidden>
+        <button class="tool-row" type="button" data-tool="fire-station"><span class="tool-row-icon">🚒</span><span class="tool-row-text" data-i18n="toolRow.fireStation">Fire Station</span><span class="tool-row-cost">$1000</span></button>
+        <button class="tool-row" type="button" data-tool="police-station"><span class="tool-row-icon">👮</span><span class="tool-row-text" data-i18n="toolRow.policeStation">Police Station</span><span class="tool-row-cost">$800</span></button>
+        <button class="tool-row" type="button" data-tool="hospital"><span class="tool-row-icon">🏥</span><span class="tool-row-text" data-i18n="toolRow.hospital">Hospital</span><span class="tool-row-cost">$7200</span></button>
+      </div>
+      <button class="tool-row tool-group-row" type="button" data-tool-group="education">
+        <span class="tool-row-icon">🎓</span><span class="tool-row-text" data-i18n="toolGroup.education">Education</span><span class="tool-group-chevron">▶</span>
       </button>
-      <button class="tool-row" type="button" data-tool="primary-school">
-        <span class="tool-row-icon">🏫</span><span class="tool-row-text" data-i18n="toolRow.primarySchool">Primary School</span><span class="tool-row-cost">$1200</span>
+      <div class="tool-group-items" data-tool-group-items="education" hidden>
+        <button class="tool-row" type="button" data-tool="primary-school"><span class="tool-row-icon">🏫</span><span class="tool-row-text" data-i18n="toolRow.primarySchool">Primary School</span><span class="tool-row-cost">$1200</span></button>
+        <button class="tool-row" type="button" data-tool="secondary-school"><span class="tool-row-icon">🏫</span><span class="tool-row-text" data-i18n="toolRow.secondarySchool">Secondary School</span><span class="tool-row-cost">$1800</span></button>
+        <button class="tool-row" type="button" data-tool="community-college"><span class="tool-row-icon">🎓</span><span class="tool-row-text" data-i18n="toolRow.communityCollege">Community College</span><span class="tool-row-cost">$3200</span></button>
+        <button class="tool-row" type="button" data-tool="university"><span class="tool-row-icon">🎓</span><span class="tool-row-text" data-i18n="toolRow.university">University</span><span class="tool-row-cost">$8000</span></button>
+      </div>
+      <button class="tool-row tool-group-row" type="button" data-tool-group="government-economy">
+        <span class="tool-row-icon">🏛️</span><span class="tool-row-text" data-i18n="toolGroup.governmentEconomy">Government & Economy</span><span class="tool-group-chevron">▶</span>
       </button>
-      <button class="tool-row" type="button" data-tool="secondary-school">
-        <span class="tool-row-icon">🏫</span><span class="tool-row-text" data-i18n="toolRow.secondarySchool">Secondary School</span><span class="tool-row-cost">$1800</span>
+      <div class="tool-group-items" data-tool-group-items="government-economy" hidden>
+        <button class="tool-row" type="button" data-tool="legislative-council"><span class="tool-row-icon">🏛️</span><span class="tool-row-text" data-i18n="toolRow.legislativeCouncil">Legislative Council</span><span class="tool-row-cost">$5200</span></button>
+        <button class="tool-row" type="button" data-tool="stock-exchange"><span class="tool-row-icon">🏦</span><span class="tool-row-text" data-i18n="toolRow.stockExchange">Stock Exchange</span><span class="tool-row-cost">$9800</span></button>
+      </div>
+      <button class="tool-row tool-group-row" type="button" data-tool-group="transport-gateways">
+        <span class="tool-row-icon">🚢</span><span class="tool-row-text" data-i18n="toolGroup.transportGateways">Transport Gateways</span><span class="tool-group-chevron">▶</span>
       </button>
-      <button class="tool-row" type="button" data-tool="library">
-        <span class="tool-row-icon">📚</span><span class="tool-row-text" data-i18n="toolRow.library">Library</span><span class="tool-row-cost">$1600</span>
-      </button>
-      <button class="tool-row" type="button" data-tool="community-college">
-        <span class="tool-row-icon">🎓</span><span class="tool-row-text" data-i18n="toolRow.communityCollege">Community College</span><span class="tool-row-cost">$3200</span>
-      </button>
-      <button class="tool-row" type="button" data-tool="university">
-        <span class="tool-row-icon">🎓</span><span class="tool-row-text" data-i18n="toolRow.university">University</span><span class="tool-row-cost">$8000</span>
-      </button>
-      <button class="tool-row" type="button" data-tool="hospital">
-        <span class="tool-row-icon">🏥</span><span class="tool-row-text" data-i18n="toolRow.hospital">Hospital</span><span class="tool-row-cost">$7200</span>
-      </button>
-      <button class="tool-row" type="button" data-tool="legislative-council">
-        <span class="tool-row-icon">🏛️</span><span class="tool-row-text" data-i18n="toolRow.legislativeCouncil">Legislative Council</span><span class="tool-row-cost">$5200</span>
-      </button>
-      <button class="tool-row" type="button" data-tool="stock-exchange">
-        <span class="tool-row-icon">🏦</span><span class="tool-row-text" data-i18n="toolRow.stockExchange">Stock Exchange</span><span class="tool-row-cost">$9800</span>
-      </button>
+      <div class="tool-group-items" data-tool-group-items="transport-gateways" hidden>
+        <button class="tool-row" type="button" data-tool="harbor"><span class="tool-row-icon">🚢</span><span class="tool-row-text" data-i18n="toolRow.harbor">Container Port</span><span class="tool-row-cost">$12000</span></button>
+        <button class="tool-row" type="button" data-tool="airport" hidden><span class="tool-row-icon">✈️</span><span class="tool-row-text" data-i18n="toolRow.airport">Airport</span><span class="tool-row-cost">$150000</span></button>
+      </div>
     </section>
 
     <section class="tool-flyout" data-tool-panel="parks">
       <div class="tool-flyout-title" data-i18n="toolCategory.parks">Parks</div>
-      <button class="tool-row" type="button" data-tool="park">
-        <span class="tool-row-icon">🌳</span><span class="tool-row-text" data-i18n="toolRow.parkPicker">Park Picker</span>
-      </button>
-      <button class="tool-row" type="button" data-tool="sports-ground">
-        <span class="tool-row-icon">⚽</span><span class="tool-row-text" data-i18n="toolRow.sportsGround">Sports Ground</span>
-      </button>
-      <button class="tool-row" type="button" data-tool="tree" title="Plant Tree ($15)" aria-label="Plant Tree" data-i18n-title="tool.tree" data-i18n-aria="tool.tree">
-        <span class="tool-row-icon">🌲</span><span class="tool-row-text" data-i18n="toolRow.tree">Tree</span><span class="tool-row-cost">$15</span>
-      </button>
+      <button class="tool-row tool-group-row" type="button" data-tool-group="parks-greenery"><span class="tool-row-icon">🌳</span><span class="tool-row-text" data-i18n="toolGroup.parksGreenery">Parks & Greenery</span><span class="tool-group-chevron">▶</span></button>
+      <div class="tool-group-items" data-tool-group-items="parks-greenery" hidden>
+        <button class="tool-row" type="button" data-tool="park"><span class="tool-row-icon">🌳</span><span class="tool-row-text" data-i18n="toolRow.parkPicker">Park Picker</span></button>
+        <button class="tool-row" type="button" data-tool="tree" title="Plant Tree ($15)" aria-label="Plant Tree" data-i18n-title="tool.tree" data-i18n-aria="tool.tree"><span class="tool-row-icon">🌲</span><span class="tool-row-text" data-i18n="toolRow.tree">Tree</span><span class="tool-row-cost">$15</span></button>
+      </div>
+      <button class="tool-row tool-group-row" type="button" data-tool-group="cultural-facilities"><span class="tool-row-icon">🎭</span><span class="tool-row-text" data-i18n="toolGroup.culturalFacilities">Cultural Facilities</span><span class="tool-group-chevron">▶</span></button>
+      <div class="tool-group-items" data-tool-group-items="cultural-facilities" hidden>
+        <button class="tool-row" type="button" data-tool="library"><span class="tool-row-icon">📚</span><span class="tool-row-text" data-i18n="toolRow.library">Library</span><span class="tool-row-cost">$1600</span></button>
+        <button class="tool-row" type="button" data-tool="cultural-center"><span class="tool-row-icon">🎭</span><span class="tool-row-text" data-i18n="toolRow.culturalCenter">Cultural Centre</span><span class="tool-row-cost">$9000</span></button>
+        <button class="tool-row" type="button" data-tool="space-museum"><span class="tool-row-icon">🔭</span><span class="tool-row-text" data-i18n="toolRow.spaceMuseum">Space Museum</span><span class="tool-row-cost">$6500</span></button>
+      </div>
+      <button class="tool-row tool-group-row" type="button" data-tool-group="sports-facilities"><span class="tool-row-icon">⚽</span><span class="tool-row-text" data-i18n="toolGroup.sportsFacilities">Sports Facilities</span><span class="tool-group-chevron">▶</span></button>
+      <div class="tool-group-items" data-tool-group-items="sports-facilities" hidden>
+        <button class="tool-row" type="button" data-tool="sports-ground"><span class="tool-row-icon">⚽</span><span class="tool-row-text" data-i18n="toolRow.sportsGround">Sports Ground</span></button>
+        <button class="tool-row" type="button" data-park-shortcut="swimming_pool"><span class="tool-row-icon">🏊</span><span class="tool-row-text" data-i18n="park.swimmingPool">Swimming Pool</span><span class="tool-row-cost">$900</span></button>
+      </div>
+      <button class="tool-row tool-group-row" type="button" data-tool-group="major-venues"><span class="tool-row-icon">🏟️</span><span class="tool-row-text" data-i18n="toolGroup.majorVenues">Major Venues</span><span class="tool-group-chevron">▶</span></button>
+      <div class="tool-group-items" data-tool-group-items="major-venues" hidden>
+        <button class="tool-row" type="button" data-tool="indoor-coliseum"><span class="tool-row-icon">🏟️</span><span class="tool-row-text" data-i18n="toolRow.indoorColiseum">Indoor Coliseum</span><span class="tool-row-cost">$12000</span></button>
+        <button class="tool-row" type="button" data-tool="football-stadium"><span class="tool-row-icon">🏟️</span><span class="tool-row-text" data-i18n="toolRow.footballStadium">League Stadium</span><span class="tool-row-cost">$18000</span></button>
+      </div>
+    </section>
+
+    <section class="tool-flyout" data-tool-panel="landmarks">
+      <div class="tool-flyout-title" data-i18n="toolCategory.landmarks">Landmarks</div>
+      <button class="tool-row tool-group-row" type="button" data-tool-group="heritage-religion"><span class="tool-row-icon">🏛️</span><span class="tool-row-text" data-i18n="toolGroup.heritageReligion">Heritage & Religion</span><span class="tool-group-chevron">▶</span></button>
+      <div class="tool-group-items" data-tool-group-items="heritage-religion" hidden>
+        <button class="tool-row" type="button" data-tool="buddha-statue"><span class="tool-row-icon">🗿</span><span class="tool-row-text" data-i18n="toolRow.buddhaStatue">Big Buddha</span><span class="tool-row-cost">$4200</span></button>
+        <button class="tool-row" type="button" data-tool="heritage-temple"><span class="tool-row-icon">⛩️</span><span class="tool-row-text" data-i18n="toolRow.heritageTemple">Heritage Temple</span><span class="tool-row-cost">$2600</span></button>
+        <button class="tool-row" type="button" data-tool="heritage-church"><span class="tool-row-icon">⛪</span><span class="tool-row-text" data-i18n="toolRow.heritageChurch">Heritage Church</span><span class="tool-row-cost">$3200</span></button>
+        <button class="tool-row" type="button" data-tool="murray-house"><span class="tool-row-icon">🏛️</span><span class="tool-row-text" data-i18n="toolRow.murrayHouse">Murray House</span><span class="tool-row-cost">$1800</span></button>
+      </div>
+      <button class="tool-row tool-group-row" type="button" data-tool-group="tourism-attractions"><span class="tool-row-icon">🎡</span><span class="tool-row-text" data-i18n="toolGroup.tourismAttractions">Tourism & Attractions</span><span class="tool-group-chevron">▶</span></button>
+      <div class="tool-group-items" data-tool-group-items="tourism-attractions" hidden>
+        <button class="tool-row" type="button" data-tool="exhibition-center"><span class="tool-row-icon">🏢</span><span class="tool-row-text" data-i18n="toolRow.exhibitionCenter">Exhibition Centre</span><span class="tool-row-cost">$15000</span></button>
+        <button class="tool-row" type="button" data-tool="ocean-park"><span class="tool-row-icon">🎢</span><span class="tool-row-text" data-i18n="toolRow.oceanPark">Ocean Park</span><span class="tool-row-cost">$22000</span></button>
+      </div>
     </section>
 
     <section class="tool-flyout" data-tool-panel="maps">

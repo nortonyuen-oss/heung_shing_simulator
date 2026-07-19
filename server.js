@@ -13,6 +13,7 @@ const {
 } = require('./ai-news-settings-store');
 
 const DEFAULT_PORT = process.env.PORT || 3000;
+const STATIC_ASSET_CACHE_MAX_AGE = '1h';
 const APP_VERSION = require('./package.json').version;
 
 function createMemoryAiNewsCredentialStore() {
@@ -29,6 +30,12 @@ function createMemoryAiNewsCredentialStore() {
   };
 }
 
+function sendStoreError(res, error, routeLabel) {
+  console.error(`[${routeLabel}]`, error.message);
+  const status = error?.code === 'INVALID_PAYLOAD' ? 400 : 500;
+  res.status(status).json({ error: error.message });
+}
+
 function createGameApp(options = {}) {
   const app = express();
   const rootDir = options.rootDir || __dirname;
@@ -40,8 +47,21 @@ function createGameApp(options = {}) {
   });
 
   // Middleware
-  app.use(express.json({ limit: '50mb' }));
-  app.use(express.static(rootDir)); // serve index.html + JS/CSS/assets
+  app.use(express.json({ limit: '25mb' }));
+  app.use(express.static(rootDir, {
+    maxAge: STATIC_ASSET_CACHE_MAX_AGE,
+    setHeaders(res, filePath) {
+      const extension = path.extname(filePath).toLowerCase();
+      const isModelAsset = filePath.split(path.sep).includes('Models');
+      // Source files are not fingerprinted, so always revalidate code and markup.
+      // Model art is also edited in place under stable filenames; conditional
+      // revalidation prevents an updated sprite being hidden by the one-hour
+      // media cache while still allowing an efficient 304 for unchanged files.
+      if (isModelAsset || ['.html', '.js', '.css', '.json'].includes(extension)) {
+        res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+      }
+    },
+  })); // serve index.html + JS/CSS/assets
 
   // Keep renderer-visible version labels tied to the same package metadata used
   // by electron-builder for DMG/EXE names and native application metadata.
@@ -64,6 +84,7 @@ function createGameApp(options = {}) {
     'commercial/2x2',
     'commercial/3x3',
     'commercial/4x4',
+    'commercial/5x5',
     'industrial/1x1',
     'industrial/2x2',
     'industrial/3x3',
@@ -230,8 +251,7 @@ function createGameApp(options = {}) {
     const row = store.upsertAutosave(req.body);
     res.json(row);
   } catch (e) {
-    console.error('[POST /api/saves/autosave]', e.message);
-    res.status(500).json({ error: e.message });
+    sendStoreError(res, e, 'POST /api/saves/autosave');
   }
   });
 
@@ -241,8 +261,7 @@ function createGameApp(options = {}) {
     const row = store.createSave(req.body);
     res.status(201).json(row);
   } catch (e) {
-    console.error('[POST /api/saves]', e.message);
-    res.status(500).json({ error: e.message });
+    sendStoreError(res, e, 'POST /api/saves');
   }
   });
 
@@ -253,8 +272,7 @@ function createGameApp(options = {}) {
     if (!row) return res.status(404).json({ error: 'Save not found' });
     res.json(row);
   } catch (e) {
-    console.error('[PUT /api/saves/:id]', e.message);
-    res.status(500).json({ error: e.message });
+    sendStoreError(res, e, 'PUT /api/saves/:id');
   }
   });
 
@@ -297,8 +315,7 @@ function createGameApp(options = {}) {
     const row = store.createTerrainPreset(req.body);
     res.status(201).json(row);
   } catch (e) {
-    console.error('[POST /api/terrains]', e.message);
-    res.status(500).json({ error: e.message });
+    sendStoreError(res, e, 'POST /api/terrains');
   }
   });
 
@@ -309,8 +326,7 @@ function createGameApp(options = {}) {
     if (!row) return res.status(404).json({ error: 'Terrain preset not found' });
     res.json(row);
   } catch (e) {
-    console.error('[PUT /api/terrains/:id]', e.message);
-    res.status(500).json({ error: e.message });
+    sendStoreError(res, e, 'PUT /api/terrains/:id');
   }
   });
 
@@ -323,6 +339,18 @@ function createGameApp(options = {}) {
     console.error('[DELETE /api/terrains/:id]', e.message);
     res.status(500).json({ error: e.message });
   }
+  });
+
+  // Keep body-parser failures machine-readable for the renderer and avoid
+  // Express's default HTML error page (and development stack trace).
+  app.use((error, _req, res, next) => {
+    if (error?.type === 'entity.too.large') {
+      return res.status(413).json({ error: 'Request body is too large' });
+    }
+    if (error instanceof SyntaxError && error.status === 400 && 'body' in error) {
+      return res.status(400).json({ error: 'Request body must contain valid JSON' });
+    }
+    return next(error);
   });
 
   return { app, store };

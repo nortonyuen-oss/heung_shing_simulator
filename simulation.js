@@ -3,6 +3,7 @@
 const MODEL_VARIATION_USAGE_WEIGHT = 0.7;
 const MODEL_VARIATION_RECENT_PENALTY = 0.18;
 const MODEL_VARIATION_MIN_WEIGHT = 0.04;
+const SIM_DEBUG_LOGGING = false;
 const modelUsageCounts = new Map();
 const modelRecentHistory = new Map();
 
@@ -35,8 +36,9 @@ function runSimTick(scene) {
   updateCitizenActivitySimulation();
   if (typeof queueAiNewsGeneration === 'function') queueAiNewsGeneration();
 
-  // Debug: log state every 4 ticks (once per month)
-  if (city.tick % 4 === 0) {
+  // Keep the expensive full-map diagnostics available for development without
+  // charging every player for another zone/road scan once per game month.
+  if (SIM_DEBUG_LOGGING && city.tick % TICKS_PER_MONTH === 0) {
     let zonedCount = 0, roadAdjacentZoned = 0, poweredZoned = 0;
     for (let r = 0; r < MAP_HEIGHT; r++)
       for (let c = 0; c < MAP_WIDTH; c++)
@@ -58,13 +60,13 @@ function runSimTick(scene) {
   advanceDate();
   if (typeof updateCouncilTimedSystems === 'function') updateCouncilTimedSystems();
   refreshZoneOverlayTints(scene);
-  updateHUD();
-
-  // Refresh mini-map if one is visible
+  // Invalidate before the HUD refresh so an open mini-map is recomputed once,
+  // not once with stale data and then a second time immediately afterwards.
   if (typeof activeOverlay === 'string' && activeOverlay) {
-    overlayCache = {};          // invalidate on tick
-    updateMiniMap();
+    if (typeof invalidateOverlayCache === 'function') invalidateOverlayCache();
+    else overlayCache = {};
   }
+  updateHUD();
 }
 
 function updateEducationLevels() {
@@ -158,6 +160,7 @@ function updateHealthMetrics() {
   let weightedPop = 0;
   const hospitalCount = countBuildingType('hospital');
   const capacity = hospitalCount * HOSPITAL_CAPACITY_PER_BUILDING;
+  const pollutionSources = getHealthPollutionSources();
 
   Object.entries(buildingData).forEach(([id, record]) => {
     if (record.type !== 'residential') return;
@@ -165,7 +168,7 @@ function updateHealthMetrics() {
     if (pop <= 0) return;
 
     const [row, col] = id.split(':').map(Number);
-    const localHealth = getLocalHealthScore(row, col);
+    const localHealth = getLocalHealthScore(row, col, pollutionSources);
     const hospitalCoverage = clamp(serviceMap[row]?.[col]?.health ?? 0, 0, 1);
 
     weightedHealthSum += localHealth * pop;
@@ -187,10 +190,10 @@ function updateHealthMetrics() {
   city.lifeExpectancy = Math.round((62 + city.healthIndex * 24 - clamp(city.epidemicSeverity ?? 0, 0, 1) * 7) * 10) / 10;
 }
 
-function getLocalHealthScore(row, col) {
+function getLocalHealthScore(row, col, pollutionSources = null) {
   const svc = serviceMap[row]?.[col] ?? null;
   const hospital = clamp(svc?.health ?? 0, 0, 1);
-  const pollutionPressure = getLocalHealthPollutionPressure(row, col);
+  const pollutionPressure = getLocalHealthPollutionPressure(row, col, pollutionSources);
   const recreation = clamp(
     Math.min(svc?.park ?? 0, 2) / 2
     + Math.min((svc?.sportsGround ?? 0) * 0.35, 0.35),
@@ -269,12 +272,9 @@ function updateEpidemicState(targetHealth, targetCoverage, utilization, weighted
   }
 }
 
-function getLocalHealthPollutionPressure(row, col) {
-  let pressure = 0;
-  const pollutionMul = (isPolicyActive('cleanAir') ? 0.70 : 1) * (isPolicyActive('smokingBan') ? 0.92 : 1);
-
+function getHealthPollutionSources() {
+  const sources = [];
   Object.entries(buildingData).forEach(([id, record]) => {
-    const [r0, c0] = id.split(':').map(Number);
     let radius = 0;
     let strength = 0;
 
@@ -288,7 +288,22 @@ function getLocalHealthPollutionPressure(row, col) {
       strength = stats.pollutionStrength ?? 0.5;
     }
 
-    const dist = Math.hypot(row - r0, col - c0);
+    const separator = id.indexOf(':');
+    const sourceRow = Number(id.slice(0, separator));
+    const sourceCol = Number(id.slice(separator + 1));
+    sources.push({ row: sourceRow, col: sourceCol, radius, strength });
+  });
+  return sources;
+}
+
+function getLocalHealthPollutionPressure(row, col, pollutionSources = null) {
+  let pressure = 0;
+  const pollutionMul = (isPolicyActive('cleanAir') ? 0.70 : 1) * (isPolicyActive('smokingBan') ? 0.92 : 1);
+
+  const sources = pollutionSources ?? getHealthPollutionSources();
+  sources.forEach((source) => {
+    const dist = Math.hypot(row - source.row, col - source.col);
+    const { radius, strength } = source;
     if (dist > radius) return;
     pressure += strength * pollutionMul * (1 - dist / Math.max(1, radius));
   });
@@ -521,7 +536,7 @@ function updateRuleOfLawIndex() {
 // ── Economy (runs monthly) ────────────────────────────────────────────────────
 
 function countBuildingType(type) {
-  return Object.values(buildingData).filter((r) => r.type === type).length;
+  return getBuildingCount(type);
 }
 
 // ── Happiness & city rating ───────────────────────────────────────────────────
@@ -590,11 +605,12 @@ function computeHappiness(scene) {
   const ridiculeReputationPenalty = Math.max(0, ridicule - 70) * 0.0018;
 
   const unemploymentHappinessPenalty = clamp(city.unemploymentRate ?? 0, 0, 1) * UNEMPLOYMENT_HAPPINESS_PENALTY;
+  const landmarkHappinessBonus = typeof sumSpecialBuildingEffect === 'function' ? sumSpecialBuildingEffect('happinessBonus') : 0;
   city.happiness = clamp(
     0.2 + 0.42 * poweredRatio + 0.18 * fireRatio + 0.18 * policeRatio + 0.22 * parkRatio
       + TREE_HAPPINESS_BONUS_MAX * treeRatio
       + SCENIC_HAPPINESS_BONUS_MAX * scenicRatio
-      + roadBonus + policyBonus + lawBonus + healthBonus
+      + roadBonus + policyBonus + lawBonus + healthBonus + landmarkHappinessBonus
       + (typeof getCouncilTemporaryModifier === 'function' ? getCouncilTemporaryModifier('happiness') : 0)
       + ridiculeMemeBonus
       - taxPenalty - pollPenalty - powerPenalty - unemploymentHappinessPenalty - epidemicHappinessPenalty

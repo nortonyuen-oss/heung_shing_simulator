@@ -13,6 +13,7 @@ const { startGameServer } = require('./server');
 
 let mainWindow = null;
 let gameServer = null;
+const hasSingleInstanceLock = app.requestSingleInstanceLock();
 
 function createEncryptedAiNewsCredentialStore(filePath) {
   let sessionPayload = {
@@ -144,26 +145,37 @@ async function createWindow() {
   scheduleUpdateChecks(mainWindow);
 }
 
-app.whenReady().then(createWindow).catch((err) => {
-  console.error('[electron]', err);
+if (!hasSingleInstanceLock) {
   app.quit();
-});
+} else {
+  app.on('second-instance', () => {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    if (!mainWindow.isVisible()) mainWindow.show();
+    mainWindow.focus();
+  });
 
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
+  app.whenReady().then(createWindow).catch((err) => {
+    console.error('[electron]', err);
     app.quit();
-  }
-});
+  });
 
-app.on('activate', () => {
-  if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow().catch((err) => {
-      console.error('[electron activate]', err);
+  app.on('window-all-closed', () => {
+    if (process.platform !== 'darwin') {
       app.quit();
-    });
-  }
-});
+    }
+  });
 
-app.on('before-quit', () => {
-  stopGameServer();
-});
+  app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) {
+      createWindow().catch((err) => {
+        console.error('[electron activate]', err);
+        app.quit();
+      });
+    }
+  });
+
+  app.on('before-quit', () => {
+    stopGameServer();
+  });
+}

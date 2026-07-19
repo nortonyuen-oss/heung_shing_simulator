@@ -24,8 +24,30 @@ const INFRA_COSTS = {
   stock_exchange:    COST_STOCK_EXCHANGE,
   park_small:           COST_PARK_SMALL,
   park_large:           COST_PARK_LARGE,
+  park_flagship:        COST_PARK_FLAGSHIP,
   sports_ground_small:  COST_SPORTS_GROUND_SMALL,
   sports_ground_large:  COST_SPORTS_GROUND_LARGE,
+  ...SPECIAL_BUILDING_COSTS,
+};
+
+// Maps tool-menu dataset.tool ids (kebab-case) to the buildingType keys used
+// by SPECIAL_BUILDING_MODELS / SPECIAL_BUILDING_UNLOCKS / SPECIAL_BUILDING_EFFECTS.
+// Covers every population/policy-gated placement tool, not just the ones shown
+// under the "Landmarks" menu category — harbor/airport live under "Services"
+// (tool-menu.js:getToolCategoryForTool) but share this same unlock/effect wiring.
+const LANDMARK_TOOL_BUILDING_TYPES = {
+  'exhibition-center': 'exhibition_center',
+  'cultural-center':   'cultural_center',
+  'space-museum':      'space_museum',
+  'buddha-statue':     'buddha_statue',
+  'heritage-temple':   'heritage_temple',
+  'heritage-church':   'heritage_church',
+  'indoor-coliseum':   'indoor_coliseum',
+  'murray-house':      'murray_house',
+  'ocean-park':        'ocean_park',
+  'football-stadium':  'football_stadium',
+  'airport':           'airport',
+  'harbor':            HARBOR_BUILDING_TYPE,
 };
 
 // ── Main dispatch (called from applySelectedTool in main.js) ──────────────────
@@ -57,6 +79,10 @@ function handleNewTool(scene, tile) {
   if (selectedTool === 'park-large')     return placePark(scene, row, col, { type: 'park_large', spriteKey: 'park_large', footprintCols: 3, footprintRows: 3 });
   if (selectedTool === 'sports-ground')  return placeSelectedSportsGround(scene, row, col);
   if (selectedTool === 'tree')           return placeTree(scene, row, col);
+  if (selectedTool === 'harbor')         return placeHarborBuilding(scene, row, col);
+  if (LANDMARK_TOOL_BUILDING_TYPES[selectedTool] && selectedTool !== 'harbor') {
+    return placeInfraBuilding(scene, row, col, LANDMARK_TOOL_BUILDING_TYPES[selectedTool]);
+  }
   if (selectedTool === 'district-sign') {
     placeDistrictSign(scene, row, col).catch((error) => console.warn('[District sign]', error));
     return true;
@@ -133,6 +159,7 @@ function placeZone(scene, row, col, zoneType, density = DENSITY_LOW) {
   overlay.setAlpha(0.80);
   overlay.setMask(scene.worldMask);
   scene.zoneOverlays.set(getTileId(row, col), overlay);
+  if (typeof invalidateOverlayCache === 'function') invalidateOverlayCache();
 
   return true;
 }
@@ -145,6 +172,7 @@ function removeZoneOverlay(scene, row, col) {
     scene.zoneOverlays.delete(id);
   }
   zoneMap[row][col] = ZONE_NONE;
+  if (typeof invalidateOverlayCache === 'function') invalidateOverlayCache();
 }
 
 function destroyZoneOverlaySprite(scene, row, col) {
@@ -172,6 +200,7 @@ function placePowerLine(scene, row, col) {
   removeTree(scene, row, col);
   powerLineSet.add(id);
   drawPowerLineSprite(scene, row, col);
+  if (typeof invalidateOverlayCache === 'function') invalidateOverlayCache();
 
   return true;
 }
@@ -208,9 +237,23 @@ function placeInfraBuilding(scene, row, col, buildingType) {
     if (city.population < 10000 || hasBuildingType('legislative_council')) return false;
   } else if (buildingType === 'stock_exchange') {
     if (!hasBuildingType('legislative_council') || !isPolicyActive('stockExchangeAct') || hasBuildingType('stock_exchange')) return false;
+  } else if (SPECIAL_BUILDING_UNLOCKS[buildingType]) {
+    if (!isSpecialBuildingUnlocked(buildingType)) return false;
   }
 
-  const buildingModel = POWER_PLANT_MODELS[buildingType] ?? SERVICE_BUILDING_MODELS[buildingType];
+  const existingServiceCount = SERVICE_BUILDING_MODELS[buildingType]
+    ? Object.values(buildingData).filter((record) => record?.type === buildingType).length
+    : 0;
+  const serviceModel = SERVICE_BUILDING_MODELS[buildingType]
+    ? selectServiceBuildingModel(buildingType, existingServiceCount)
+    : null;
+  const specialModels = SPECIAL_BUILDING_MODELS[buildingType]
+    ? getSpecialBuildingModels(buildingType)
+    : [];
+  const specialModel = specialModels.length > 0
+    ? specialModels[Math.floor(Math.random() * specialModels.length)]
+    : null;
+  const buildingModel = POWER_PLANT_MODELS[buildingType] ?? serviceModel ?? specialModel;
   if (!buildingModel) return false;
   const footprintCols = buildingModel.footprintCols;
   const footprintRows = buildingModel.footprintRows;
@@ -226,8 +269,10 @@ function placeInfraBuilding(scene, row, col, buildingType) {
   const opts = POWER_PLANT_MODELS[buildingType]
     ? (powerPlantModelMetadata[buildingType] ?? buildingModel)
     : SERVICE_BUILDING_MODELS[buildingType]
-      ? (serviceBuildingModelMetadata[buildingType] ?? buildingModel)
-      : {};
+      ? (serviceBuildingModelMetadata[key] ?? buildingModel)
+      : SPECIAL_BUILDING_MODELS[buildingType]
+        ? (specialBuildingModelMetadata[key] ?? buildingModel)
+        : {};
   placeSpriteBuilding(scene, row, col, key, opts);
 
   const id = getTileId(row, col);
@@ -237,6 +282,7 @@ function placeInfraBuilding(scene, row, col, buildingType) {
     population: 0,
     age: 0,
     spriteKey:    key,
+    assetId: buildingModel.path,
     footprintCols,
     footprintRows,
     originX: opts.originX,
@@ -244,6 +290,9 @@ function placeInfraBuilding(scene, row, col, buildingType) {
     scale: opts.scale,
     scaleX: opts.scaleX,
     scaleY: opts.scaleY,
+    offsetX: opts.offsetX,
+    offsetY: opts.offsetY,
+    anchorMode: opts.anchorMode,
   };
 
   if (buildingType === 'power_plant_coal' || buildingType === 'power_plant_solar' || buildingType === 'power_plant_nuclear') {
@@ -257,6 +306,53 @@ function placeInfraBuilding(scene, row, col, buildingType) {
     announceStockExchangeBuiltNewspaper();
   }
 
+  return true;
+}
+
+// ── Container port ──────────────────────────────────────────────────────────
+// Footprint is fixed (HARBOR_FOOTPRINT_COLS x HARBOR_FOOTPRINT_ROWS) but the
+// sprite is picked per-tile from the coastline shape — see getHarborVisualKey
+// in main.js, which also keeps it correct across map rotations.
+
+function placeHarborBuilding(scene, row, col) {
+  if (!isInsideMap(row, col)) return false;
+  if (!isSpecialBuildingUnlocked(HARBOR_BUILDING_TYPE)) return false;
+  if (!canPlaceBuildingFootprint(row, col, HARBOR_FOOTPRINT_COLS, HARBOR_FOOTPRINT_ROWS)) return false;
+  if (!canPlaceHarbor(row, col)) {
+    showToast(t('toast.harborNeedsCoastline'), 'warning');
+    return false;
+  }
+
+  const cost = INFRA_COSTS[HARBOR_BUILDING_TYPE];
+  if (!spendBudget(cost)) {
+    showToast(t('toast.notEnoughFunds'), 'warning');
+    return false;
+  }
+
+  const key = getHarborVisualKey(row, col);
+  const opts = harborModelMetadata[key] ?? HARBOR_MODELS[key];
+  placeSpriteBuilding(scene, row, col, key, opts);
+
+  const id = getTileId(row, col);
+  buildingData[id] = {
+    type: HARBOR_BUILDING_TYPE,
+    level: 1,
+    population: 0,
+    age: 0,
+    spriteKey: key,
+    assetId: HARBOR_MODELS[key]?.path,
+    footprintCols: HARBOR_FOOTPRINT_COLS,
+    footprintRows: HARBOR_FOOTPRINT_ROWS,
+    originX: opts.originX,
+    originY: opts.originY,
+    scale: opts.scale,
+    scaleX: opts.scaleX,
+    scaleY: opts.scaleY,
+    offsetX: opts.offsetX,
+    offsetY: opts.offsetY,
+    anchorMode: opts.anchorMode,
+  };
+  refreshInfrastructureEffects(scene);
   return true;
 }
 
@@ -344,6 +440,8 @@ function placeSportsGround(scene, row, col, option) {
 }
 
 function refreshInfrastructureEffects(scene) {
+  invalidateBuildingCountCache();
+  if (typeof invalidateOverlayCache === 'function') invalidateOverlayCache();
   markPowerGridDirty();
   markServiceCoverageDirty();
   if (typeof updateServiceCoverage === 'function') updateServiceCoverage();

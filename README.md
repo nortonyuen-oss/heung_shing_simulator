@@ -137,11 +137,21 @@ Optional environment variables:
 
 - `ASSET_MAX_DIMENSION` (default `1024`)
 - `ASSET_WEBP_QUALITY` (default `82`)
+- `ASSET_DEFRINGE=1` removes generated white edge contamination before WebP conversion
 
 Example:
 
 ```bash
 ASSET_MAX_DIMENSION=900 ASSET_WEBP_QUALITY=80 npm run optimize:assets
+```
+
+To inspect white-edge corrections without changing source models, run a dry
+scan. Supplying an output directory writes mirrored preview PNGs; source files
+are never overwritten:
+
+```bash
+npm run defringe:assets
+npm run defringe:assets -- --match residential3 --output-dir .data/defringed
 ```
 
 ## Controls

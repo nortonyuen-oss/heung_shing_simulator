@@ -223,6 +223,8 @@ let lastInspectTile = null;
 let parkModelMetadata = {};
 let powerPlantModelMetadata = {};
 let serviceBuildingModelMetadata = {};
+let specialBuildingModelMetadata = {};
+let harborModelMetadata = {};
 let selectedParkId = 'open_ground';
 
 // Terrain tool state
@@ -932,6 +934,39 @@ const PARK_OPTIONS = [
     footprintCols: 3,
     footprintRows: 3,
   },
+  {
+    id: 'premium_plaza',
+    type: 'park_large',
+    spriteKey: 'park_large_highscore',
+    titleKey: 'park.premiumPlaza',
+    badge: '2x2',
+    icon: '✨',
+    cost: COST_PARK_LARGE,
+    footprintCols: 2,
+    footprintRows: 2,
+  },
+  {
+    id: 'swimming_pool',
+    type: 'park_large',
+    spriteKey: 'park_large_pool',
+    titleKey: 'park.swimmingPool',
+    badge: '3x3',
+    icon: '🏊',
+    cost: COST_PARK_LARGE,
+    footprintCols: 3,
+    footprintRows: 3,
+  },
+  {
+    id: 'victoria_park',
+    type: 'park_flagship',
+    spriteKey: 'park_flagship_victoria',
+    titleKey: 'park.victoriaPark',
+    badge: '4x4',
+    icon: '🎡',
+    cost: COST_PARK_FLAGSHIP,
+    footprintCols: 4,
+    footprintRows: 4,
+  },
 ];
 
 const SPORT_GROUND_OPTIONS = [
@@ -1014,6 +1049,9 @@ function getBuildingTypeLabel(type) {
     stock_exchange: 'building.stockExchange',
     park_small: 'building.smallPark',
     park_large: 'building.largePark',
+    airport: 'building.airport',
+    heritage_church: 'building.heritageChurch',
+    indoor_coliseum: 'building.indoorColiseum',
   }[type] ?? type);
 }
 
@@ -1227,9 +1265,16 @@ function createModelEntries(keyPrefix, fileNames, config) {
       ?? {};
     return {
       key: `${keyPrefix}_${index}`,
+      assetId: `zone:${config.apiFolder ?? keyPrefix}/${sourceFileName}`,
       title: fileName.replace(/\.[^.]+$/, ''),
       fileName,
       sourceFileName,
+      wealthTier: config.modelKind === 'residential'
+        ? getResidentialWealthTierFromFileName(sourceFileName || fileName)
+        : null,
+      commercialTier: config.modelKind === 'commercial'
+        ? getCommercialTierFromFileName(sourceFileName || fileName)
+        : null,
       path: encodeURI(`${config.folder}${sourceFileName}`),
       footprintCols: config.footprintCols,
       footprintRows: config.footprintRows,
@@ -1238,7 +1283,7 @@ function createModelEntries(keyPrefix, fileNames, config) {
       scaleYMultiplier: (config.scaleYMultiplier ?? 1) * (overrides.scaleYMultiplier ?? 1),
       offsetX: overrides.offsetX ?? config.offsetX ?? 0,
       offsetY: overrides.offsetY ?? config.offsetY ?? 0,
-      anchorMode: overrides.anchorMode ?? config.anchorMode,
+      anchorMode: overrides.anchorMode ?? config.anchorMode ?? DEFAULT_BUILDING_ANCHOR_MODE,
       alphaThreshold: overrides.alphaThreshold ?? config.alphaThreshold,
       metadata: null,
     };
@@ -1318,11 +1363,20 @@ function preload() {
   // Sports grounds
   this.load.image('sports_ground_2x2',     'Models/parks/park2x2/sportField3-02.png');
   this.load.image('sports_ground_3x3',     'Models/parks/park3x3/sportField3-01.png');
+  // Swimming pool (park_large cosmetic variant) + Victoria Park (park_flagship tier)
+  this.load.image('park_large_pool',       'Models/parks/park3x3/swimmingPool3-01.png');
+  this.load.image('park_flagship_victoria', 'Models/parks/park4x4/victoriaPark4-01.png');
   Object.values(POWER_PLANT_MODELS).forEach((model) => {
-    this.load.image(model.spriteKey, model.path);
+    this.load.image(model.spriteKey, getFixedBuildingModelLoadPath(model));
   });
-  Object.values(SERVICE_BUILDING_MODELS).forEach((model) => {
-    this.load.image(model.spriteKey, model.path);
+  Object.keys(SERVICE_BUILDING_MODELS).flatMap(getServiceBuildingModels).forEach((model) => {
+    this.load.image(model.spriteKey, getFixedBuildingModelLoadPath(model));
+  });
+  Object.keys(SPECIAL_BUILDING_MODELS).flatMap(getAllSpecialBuildingModels).forEach((model) => {
+    this.load.image(model.spriteKey, getFixedBuildingModelLoadPath(model));
+  });
+  Object.values(HARBOR_MODELS).forEach((model) => {
+    this.load.image(model.spriteKey, getFixedBuildingModelLoadPath(model));
   });
 
   this.load.image('ground_full', `${roadPath}grassWhole.png`);
@@ -1388,6 +1442,8 @@ function create() {
   prepareParkModelMetadata(this);
   preparePowerPlantModelMetadata(this);
   prepareServiceBuildingModelMetadata(this);
+  prepareSpecialBuildingModelMetadata(this);
+  prepareHarborModelMetadata(this);
 
   updateMapMetrics(this);
 
@@ -1886,28 +1942,47 @@ function startDeferredZoneModelLoading(scene) {
   const deferredModels = getDeferredZoneModels(scene);
   if (deferredModels.length === 0) return;
 
+  const batchSize = 4;
+  let nextIndex = 0;
+  const scheduleNextBatch = () => {
+    if (nextIndex >= deferredModels.length) return;
+    const schedule = globalThis.requestIdleCallback
+      ? (callback) => globalThis.requestIdleCallback(callback, { timeout: 1500 })
+      : (callback) => setTimeout(callback, 250);
+    schedule(queueDeferredLoad);
+  };
+
   const queueDeferredLoad = () => {
-    deferredModels.forEach((model) => {
+    if (scene.load.isLoading()) {
+      scene.load.once('complete', scheduleNextBatch);
+      return;
+    }
+    const batch = deferredModels.slice(nextIndex, nextIndex + batchSize);
+    nextIndex += batch.length;
+    let queuedCount = 0;
+    batch.forEach((model) => {
       if (!scene.textures.exists(model.key)) {
         scene.load.image(model.key, model.path);
+        queuedCount++;
       }
     });
+
+    if (queuedCount === 0) {
+      scheduleNextBatch();
+      return;
+    }
 
     scene.load.once('complete', () => {
       prepareCommercialBuildingModelMetadata(scene);
       prepareIndustrialBuildingModelMetadata(scene);
+      scheduleNextBatch();
     });
     scene.load.start();
   };
 
-  // Queue at the end of the current frame so startup UI appears first.
-  setTimeout(() => {
-    if (scene.load.isLoading()) {
-      scene.load.once('complete', queueDeferredLoad);
-      return;
-    }
-    queueDeferredLoad();
-  }, 0);
+  // Decode small batches only when the browser has time, avoiding a single
+  // post-loading-screen burst of dozens of large textures.
+  scheduleNextBatch();
 }
 
 function loadModelMetadataCacheStore() {
@@ -1938,6 +2013,7 @@ function getModelMetadataCacheId(model) {
     model.scaleXMultiplier ?? 1,
     model.scaleYMultiplier ?? 1,
     model.alphaThreshold ?? EFFECTIVE_PIXEL_ALPHA_THRESHOLD,
+    model.anchorMode ?? DEFAULT_BUILDING_ANCHOR_MODE,
   ].join('|');
 }
 
@@ -2338,6 +2414,45 @@ function updateMapMetrics(scene) {
   scene.offsetY = (scene.cameras.main.height - mapHeightPx) / 2;
 }
 
+const WORLD_MASK_BASE_EDGE_BLEED = 220;
+const WORLD_MASK_BUILDING_PADDING = 96;
+
+function getBuildingWorldMaskBleed(building) {
+  if (!building) return WORLD_MASK_BASE_EDGE_BLEED;
+
+  const scaleX = Math.abs(Number(building.scaleX) || 1);
+  const scaleY = Math.abs(Number(building.scaleY) || 1);
+  const displayWidth = Math.abs(Number(building.displayWidth))
+    || Math.abs(Number(building.width) || 0) * scaleX;
+  const displayHeight = Math.abs(Number(building.displayHeight))
+    || Math.abs(Number(building.height) || 0) * scaleY;
+  const originX = Math.max(0, Math.min(1, Number.isFinite(Number(building.originX))
+    ? Number(building.originX)
+    : 0.5));
+  const originY = Math.max(0, Math.min(1, Number.isFinite(Number(building.originY))
+    ? Number(building.originY)
+    : 1));
+
+  // A sprite can overhang any side of the isometric diamond.  Use its largest
+  // anchored extent, then leave room for elevated terrain and antialiased
+  // pixels so tall/narrow models never meet the clipping edge exactly.
+  const horizontalExtent = displayWidth * Math.max(originX, 1 - originX);
+  const verticalExtent = displayHeight * Math.max(originY, 1 - originY);
+  return Math.ceil(Math.max(horizontalExtent, verticalExtent) + WORLD_MASK_BUILDING_PADDING);
+}
+
+function ensureWorldMaskContainsBuilding(scene, building) {
+  const requiredBleed = Math.max(
+    WORLD_MASK_BASE_EDGE_BLEED,
+    getBuildingWorldMaskBleed(building),
+  );
+  const currentBleed = scene.worldMaskRequiredBleed ?? WORLD_MASK_BASE_EDGE_BLEED;
+  if (requiredBleed <= currentBleed) return;
+
+  scene.worldMaskRequiredBleed = requiredBleed;
+  if (scene.maskGraphics) drawWorldMask(scene);
+}
+
 function drawWorldMask(scene) {
   // The map forms an isometric diamond.  After any rotation the same 4 logical
   // corners are still the visual extremes; we just need to find which is which.
@@ -2378,13 +2493,16 @@ function drawWorldMask(scene) {
     y: (top.y + right.y + bottom.y + left.y) / 4,
   };
 
-  const EDGE_BLEED = 220;
+  const edgeBleed = Math.max(
+    WORLD_MASK_BASE_EDGE_BLEED,
+    scene.worldMaskRequiredBleed ?? 0,
+  );
   const BOTTOM_BLEED = 24;
   const expandFromCenter = (point, extra = 0) => {
     const dx = point.x - center.x;
     const dy = point.y - center.y;
     const length = Math.max(1, Math.hypot(dx, dy));
-    const bleed = EDGE_BLEED + extra;
+    const bleed = edgeBleed + extra;
     return {
       x: point.x + (dx / length) * bleed,
       y: point.y + (dy / length) * bleed,
@@ -2433,6 +2551,29 @@ function positionAllTiles(scene) {
   sortWorldRenderLayers(scene);
 }
 
+function finalizeZoneModelMetadata(model, metadata) {
+  const finalized = applySpriteAnchorMode(
+    { ...metadata },
+    model.anchorMode ?? DEFAULT_BUILDING_ANCHOR_MODE,
+  );
+  finalized.offsetX = model.offsetX ?? 0;
+  finalized.offsetY = model.offsetY ?? 0;
+  finalized.assetId = model.assetId;
+  finalized.sourceFileName = model.sourceFileName;
+  if (model.wealthTier) finalized.wealthTier = model.wealthTier;
+  if (model.commercialTier) finalized.commercialTier = model.commercialTier;
+
+  if (
+    finalized.anchorMode !== 'left-bottom'
+    && model.footprintCols >= 3
+    && model.footprintCols === model.footprintRows
+    && (finalized.originX < 0.35 || finalized.originX > 0.65)
+  ) {
+    finalized.originX = 0.5;
+  }
+  return finalized;
+}
+
 function prepareHouseModelMetadata(scene) {
   Object.values(houseModelSets).flat().forEach((model) => {
     const source = scene.textures.get(model.key)?.getSourceImage();
@@ -2440,7 +2581,7 @@ function prepareHouseModelMetadata(scene) {
 
     const cached = getCachedModelMetadata(model, source);
     if (cached) {
-      model.metadata = { ...cached };
+      model.metadata = finalizeZoneModelMetadata(model, cached);
       return;
     }
 
@@ -2453,25 +2594,7 @@ function prepareHouseModelMetadata(scene) {
       model.scaleYMultiplier ?? 1,
       model.alphaThreshold,
     );
-    model.metadata.offsetX = model.offsetX ?? 0;
-    model.metadata.offsetY = model.offsetY ?? 0;
-    model.metadata.anchorMode = model.anchorMode;
-    if (model.anchorMode === 'effective-bottom-to-map-bottom') {
-      model.metadata.originX = model.metadata.lowestCornerOriginX ?? model.metadata.originX ?? 0.5;
-      model.metadata.originY = model.metadata.lowestCornerOriginY ?? model.metadata.originY ?? 1;
-    }
-    if (model.anchorMode === 'left-bottom') {
-      model.metadata.originX = model.metadata.leftBaseOriginX ?? model.metadata.originX ?? 0.5;
-    }
-    if (
-      model.anchorMode !== 'left-bottom'
-      &&
-      model.footprintCols >= 3
-      && model.footprintCols === model.footprintRows
-      && (model.metadata.originX < 0.35 || model.metadata.originX > 0.65)
-    ) {
-      model.metadata.originX = 0.5;
-    }
+    model.metadata = finalizeZoneModelMetadata(model, model.metadata);
 
     setCachedModelMetadata(model, source, model.metadata);
   });
@@ -2484,7 +2607,7 @@ function prepareCommercialBuildingModelMetadata(scene) {
 
     const cached = getCachedModelMetadata(model, source);
     if (cached) {
-      model.metadata = { ...cached };
+      model.metadata = finalizeZoneModelMetadata(model, cached);
       return;
     }
 
@@ -2496,6 +2619,7 @@ function prepareCommercialBuildingModelMetadata(scene) {
       model.scaleXMultiplier ?? 1,
       model.scaleYMultiplier ?? 1,
     );
+    model.metadata = finalizeZoneModelMetadata(model, model.metadata);
 
     setCachedModelMetadata(model, source, model.metadata);
   });
@@ -2508,7 +2632,7 @@ function prepareIndustrialBuildingModelMetadata(scene) {
 
     const cached = getCachedModelMetadata(model, source);
     if (cached) {
-      model.metadata = { ...cached };
+      model.metadata = finalizeZoneModelMetadata(model, cached);
       return;
     }
 
@@ -2520,6 +2644,7 @@ function prepareIndustrialBuildingModelMetadata(scene) {
       model.scaleXMultiplier ?? 1,
       model.scaleYMultiplier ?? 1,
     );
+    model.metadata = finalizeZoneModelMetadata(model, model.metadata);
 
     setCachedModelMetadata(model, source, model.metadata);
   });
@@ -2535,6 +2660,8 @@ function prepareParkModelMetadata(scene) {
     park_large_highscore:  getParkModelMetadata(scene, 'park_large_highscore',  2, 2),
     park_small:            getParkModelMetadata(scene, 'park_small',            1, 1),
     park_large:            getParkModelMetadata(scene, 'park_large',            3, 3),
+    park_large_pool:       getParkModelMetadata(scene, 'park_large_pool',       3, 3),
+    park_flagship_victoria: getParkModelMetadata(scene, 'park_flagship_victoria', 4, 4),
     sports_ground_2x2:     getParkModelMetadata(scene, 'sports_ground_2x2',    2, 2),
     sports_ground_3x3:     getParkModelMetadata(scene, 'sports_ground_3x3',    3, 3),
   };
@@ -2548,10 +2675,32 @@ function preparePowerPlantModelMetadata(scene) {
   );
 }
 
+function getFixedBuildingModelLoadPath(model) {
+  if (!model?.cacheVersion) return model?.path;
+  const separator = model.path.includes('?') ? '&' : '?';
+  return `${model.path}${separator}v=${encodeURIComponent(model.cacheVersion)}`;
+}
+
 function prepareServiceBuildingModelMetadata(scene) {
   serviceBuildingModelMetadata = Object.fromEntries(
-    Object.entries(SERVICE_BUILDING_MODELS).map(([type, model]) => (
-      [type, getServiceBuildingModelMetadata(scene, type)]
+    Object.keys(SERVICE_BUILDING_MODELS).flatMap((type) => getServiceBuildingModels(type)).map((model) => (
+      [model.spriteKey, getServiceBuildingModelMetadata(scene, model)]
+    )),
+  );
+}
+
+function prepareSpecialBuildingModelMetadata(scene) {
+  specialBuildingModelMetadata = Object.fromEntries(
+    Object.keys(SPECIAL_BUILDING_MODELS).flatMap((type) => getAllSpecialBuildingModels(type)).map((model) => (
+      [model.spriteKey, getSpecialBuildingModelMetadata(scene, model)]
+    )),
+  );
+}
+
+function prepareHarborModelMetadata(scene) {
+  harborModelMetadata = Object.fromEntries(
+    Object.keys(HARBOR_MODELS).map((spriteKey) => (
+      [spriteKey, getParkModelMetadata(scene, spriteKey, HARBOR_FOOTPRINT_COLS, HARBOR_FOOTPRINT_ROWS)]
     )),
   );
 }
@@ -2822,11 +2971,13 @@ function getPowerPlantModelMetadata(scene, buildingType) {
   const source = scene.textures.get(model.spriteKey)?.getSourceImage();
   if (!source) return base;
 
-  return getSpriteFootprintMetadata(source, model.footprintCols, model.footprintRows);
+  return applySpriteAnchorMode(
+    getSpriteFootprintMetadata(source, model.footprintCols, model.footprintRows),
+    model.anchorMode ?? DEFAULT_BUILDING_ANCHOR_MODE,
+  );
 }
 
-function getServiceBuildingModelMetadata(scene, buildingType) {
-  const model = SERVICE_BUILDING_MODELS[buildingType];
+function getServiceBuildingModelMetadata(scene, model) {
   const base = {
     footprintCols: model?.footprintCols ?? 1,
     footprintRows: model?.footprintRows ?? 1,
@@ -2836,23 +2987,51 @@ function getServiceBuildingModelMetadata(scene, buildingType) {
   const source = scene.textures.get(model.spriteKey)?.getSourceImage();
   if (!source) return base;
 
-  return getSpriteFootprintMetadata(
-    source,
-    model.footprintCols,
-    model.footprintRows,
-    model.scaleMultiplier ?? 1,
-    model.scaleXMultiplier ?? 1,
-    model.scaleYMultiplier ?? 1,
+  return applySpriteAnchorMode(
+    getSpriteFootprintMetadata(
+      source,
+      model.footprintCols,
+      model.footprintRows,
+      model.scaleMultiplier ?? 1,
+      model.scaleXMultiplier ?? 1,
+      model.scaleYMultiplier ?? 1,
+    ),
+    model.anchorMode ?? DEFAULT_BUILDING_ANCHOR_MODE,
   );
 }
 
-function getParkModelMetadata(scene, key, footprintCols, footprintRows) {
+function getSpecialBuildingModelMetadata(scene, model) {
+  const base = {
+    footprintCols: model?.footprintCols ?? 1,
+    footprintRows: model?.footprintRows ?? 1,
+  };
+  if (!model) return base;
+
+  const source = scene.textures.get(model.spriteKey)?.getSourceImage();
+  if (!source) return base;
+
+  return applySpriteAnchorMode(
+    getSpriteFootprintMetadata(source, model.footprintCols, model.footprintRows),
+    model.anchorMode ?? DEFAULT_BUILDING_ANCHOR_MODE,
+  );
+}
+
+function getParkModelMetadata(
+  scene,
+  key,
+  footprintCols,
+  footprintRows,
+  anchorMode = DEFAULT_BUILDING_ANCHOR_MODE,
+) {
   const source = scene.textures.get(key)?.getSourceImage();
   if (!source) {
     return { footprintCols, footprintRows };
   }
 
-  return getSpriteFootprintMetadata(source, footprintCols, footprintRows);
+  return applySpriteAnchorMode(
+    getSpriteFootprintMetadata(source, footprintCols, footprintRows),
+    anchorMode,
+  );
 }
 
 function getSpriteFootprintMetadata(
@@ -2948,6 +3127,17 @@ function getSpriteFootprintMetadata(
   };
 }
 
+function applySpriteAnchorMode(metadata, anchorMode = DEFAULT_BUILDING_ANCHOR_MODE) {
+  const anchored = { ...metadata, anchorMode };
+  if (anchorMode === 'effective-bottom-to-map-bottom') {
+    anchored.originX = anchored.lowestCornerOriginX ?? anchored.originX ?? 0.5;
+    anchored.originY = anchored.lowestCornerOriginY ?? anchored.originY ?? 1;
+  } else if (anchorMode === 'left-bottom') {
+    anchored.originX = anchored.leftBaseOriginX ?? anchored.originX ?? 0.5;
+  }
+  return anchored;
+}
+
 function placeHouse(scene, row, col) {
   placeHouseModel(scene, row, col, selectedHouseSet);
 }
@@ -2967,6 +3157,8 @@ function placeHouseModel(scene, row, col, tool) {
     population: POP_PER_LEVEL[1],
     age: 0,
     spriteKey:    model.key,
+    assetId: model.assetId,
+    sourceFileName: model.sourceFileName,
     footprintCols: model.footprintCols,
     footprintRows: model.footprintRows,
     originX: opts.originX,
@@ -3002,6 +3194,7 @@ function placeSpriteBuilding(scene, row, col, key, options = {}) {
   building.setDepth(getBuildingSortDepth(anchor.y, footprintCols, footprintRows, elevOffset));
   sortRenderLayer(scene, 'objectLayer');
   building.setMask(scene.worldMask);
+  ensureWorldMaskContainsBuilding(scene, building);
   building.mapRow = row;
   building.mapCol = col;
   building.footprintCols = footprintCols;
@@ -3028,6 +3221,8 @@ function placeSpriteBuilding(scene, row, col, key, options = {}) {
     }
     scene.buildingSprites.set(getTileId(tileRow, tileCol), building);
   });
+  invalidateBuildingCountCache();
+  if (typeof invalidateOverlayCache === 'function') invalidateOverlayCache();
 }
 
 function normalizeSpriteBuildingOptions(key, options = {}) {
@@ -3075,13 +3270,34 @@ function normalizeSpriteBuildingOptions(key, options = {}) {
 
   if (isServiceBuildingSpriteKey(key)) {
     const buildingType = getServiceBuildingTypeBySpriteKey(key);
-    const model = SERVICE_BUILDING_MODELS[buildingType];
-    const metadata = serviceBuildingModelMetadata[buildingType];
+    const model = getServiceBuildingModelBySpriteKey(key) ?? SERVICE_BUILDING_MODELS[buildingType];
+    const metadata = serviceBuildingModelMetadata[key];
     return {
       ...options,
       footprintCols: model?.footprintCols ?? metadata?.footprintCols ?? 2,
       footprintRows: model?.footprintRows ?? metadata?.footprintRows ?? 2,
       ...metadata,
+    };
+  }
+
+  if (isSpecialBuildingSpriteKey(key)) {
+    const buildingType = getSpecialBuildingTypeBySpriteKey(key);
+    const model = getSpecialBuildingModelBySpriteKey(key) ?? SPECIAL_BUILDING_MODELS[buildingType];
+    const metadata = specialBuildingModelMetadata[key];
+    return {
+      ...options,
+      footprintCols: model?.footprintCols ?? metadata?.footprintCols ?? 1,
+      footprintRows: model?.footprintRows ?? metadata?.footprintRows ?? 1,
+      ...metadata,
+    };
+  }
+
+  if (HARBOR_MODELS[key]) {
+    return {
+      ...options,
+      footprintCols: HARBOR_FOOTPRINT_COLS,
+      footprintRows: HARBOR_FOOTPRINT_ROWS,
+      ...(harborModelMetadata[key] ?? {}),
     };
   }
 
@@ -3136,12 +3352,38 @@ function getPowerPlantTypeBySpriteKey(key) {
   return Object.entries(POWER_PLANT_MODELS).find(([, model]) => model.spriteKey === key)?.[0];
 }
 
+function isSpecialBuildingSpriteKey(key) {
+  return Object.keys(SPECIAL_BUILDING_MODELS)
+    .flatMap(getAllSpecialBuildingModels)
+    .some((model) => model.spriteKey === key);
+}
+
+function getSpecialBuildingTypeBySpriteKey(key) {
+  return Object.keys(SPECIAL_BUILDING_MODELS)
+    .find((type) => getAllSpecialBuildingModels(type).some((model) => model.spriteKey === key));
+}
+
+function getSpecialBuildingModelBySpriteKey(key) {
+  return Object.keys(SPECIAL_BUILDING_MODELS)
+    .flatMap(getAllSpecialBuildingModels)
+    .find((model) => model.spriteKey === key) ?? null;
+}
+
 function isServiceBuildingSpriteKey(key) {
-  return Object.values(SERVICE_BUILDING_MODELS).some((model) => model.spriteKey === key);
+  return Object.keys(SERVICE_BUILDING_MODELS)
+    .flatMap(getServiceBuildingModels)
+    .some((model) => model.spriteKey === key);
 }
 
 function getServiceBuildingTypeBySpriteKey(key) {
-  return Object.entries(SERVICE_BUILDING_MODELS).find(([, model]) => model.spriteKey === key)?.[0];
+  return Object.keys(SERVICE_BUILDING_MODELS)
+    .find((type) => getServiceBuildingModels(type).some((model) => model.spriteKey === key));
+}
+
+function getServiceBuildingModelBySpriteKey(key) {
+  return Object.keys(SERVICE_BUILDING_MODELS)
+    .flatMap(getServiceBuildingModels)
+    .find((model) => model.spriteKey === key) ?? null;
 }
 
 function removeBuilding(scene, row, col) {
@@ -3157,6 +3399,9 @@ function removeBuilding(scene, row, col) {
       powerSources.delete(anchorId);
     }
     delete buildingData[anchorId];
+    markPowerGridDirty();
+    if (SERVICE_BUILDING_TYPES.has(record.type)) markServiceCoverageDirty();
+    invalidateBuildingCountCache();
   }
 
   building.destroy();
@@ -3172,6 +3417,7 @@ function removeBuilding(scene, row, col) {
   if (typeof refreshInfrastructureEffects === 'function') {
     refreshInfrastructureEffects(scene);
   }
+  if (typeof invalidateOverlayCache === 'function') invalidateOverlayCache();
   return true;
 }
 
@@ -3391,6 +3637,20 @@ function getSelectedPlacementFootprint() {
     };
   }
 
+  const landmarkType = typeof LANDMARK_TOOL_BUILDING_TYPES !== 'undefined'
+    ? LANDMARK_TOOL_BUILDING_TYPES[selectedTool]
+    : null;
+  if (landmarkType === HARBOR_BUILDING_TYPE) {
+    return { footprintCols: HARBOR_FOOTPRINT_COLS, footprintRows: HARBOR_FOOTPRINT_ROWS };
+  }
+  if (landmarkType) {
+    const model = SPECIAL_BUILDING_MODELS[landmarkType];
+    return {
+      footprintCols: model?.footprintCols ?? 1,
+      footprintRows: model?.footprintRows ?? 1,
+    };
+  }
+
   return null;
 }
 
@@ -3453,6 +3713,7 @@ function applyToolAt(scene, row, col, pointer = null) {
     }
     reconcileSurfaceTerrainFromHeight(row, col, 2);
     refreshTileArea(scene, row, col);
+    if (typeof markTrafficNetworkDirty === 'function') markTrafficNetworkDirty();
     return;
   }
 
@@ -3711,6 +3972,7 @@ function applyRaiseTerrain(scene, row, col, radius = 1) {
   affectedTiles.forEach(({ row: tileRow, col: tileCol }) => {
     refreshTileArea(scene, tileRow, tileCol);
   });
+  if (typeof invalidateOverlayCache === 'function') invalidateOverlayCache();
   return true;
 }
 
@@ -3760,6 +4022,7 @@ function applyLowerTerrain(scene, row, col, radius = 1) {
   affectedTiles.forEach(({ row: tileRow, col: tileCol }) => {
     refreshTileArea(scene, tileRow, tileCol);
   });
+  if (typeof invalidateOverlayCache === 'function') invalidateOverlayCache();
   return true;
 }
 
@@ -3788,6 +4051,7 @@ function applyFlattenTerrain(scene, row, col, radius = 1) {
   enforceLocalSlopeConstraints(row, col, radius + 2, 2, 1);
   reconcileSurfaceTerrainFromHeight(row, col, radius + 2);
   refreshTileArea(scene, row, col);
+  if (typeof invalidateOverlayCache === 'function') invalidateOverlayCache();
   return true;
 }
 
@@ -4060,6 +4324,7 @@ function buildBridgePath(scene, bridge) {
 
   refreshTilesAlongPath(scene, path);
   refreshBridgeSpritesAlongPath(scene, path);
+  if (typeof markTrafficNetworkDirty === 'function') markTrafficNetworkDirty();
   if (typeof refreshInfrastructureEffects === 'function') refreshInfrastructureEffects(scene);
   if (typeof updateHUD === 'function') updateHUD();
 }
@@ -4438,7 +4703,10 @@ function updateBuildingPlacementGuide(scene, pointer) {
   }
 
   const { footprintCols, footprintRows } = footprint;
-  const canPlace = canPlaceBuildingFootprint(tile.row, tile.col, footprintCols, footprintRows);
+  let canPlace = canPlaceBuildingFootprint(tile.row, tile.col, footprintCols, footprintRows);
+  if (canPlace && selectedTool === 'harbor' && typeof canPlaceHarbor === 'function') {
+    canPlace = canPlaceHarbor(tile.row, tile.col);
+  }
   drawFootprintGuide(scene, tile.row, tile.col, footprintCols, footprintRows, canPlace);
 }
 
@@ -4901,17 +5169,18 @@ function setTileType(scene, row, col, tileType) {
 
   // SimCity-style stepped terrain editing:
   // clicking hill raises by one level, clicking ground lowers by one level.
-  if (tileType === HILL && currentHeight > 0) {
+  if (tileType === HILL && currentHeight > 0 && oldType !== ROAD) {
     heightMap[row][col] = Math.min(MAX_TERRAIN_HEIGHT, currentHeight + 1);
     mapData[row][col] = HILL;
     enforceLocalSlopeConstraints(row, col, 3, 2, 1);
     reconcileSurfaceTerrainFromHeight(row, col);
     refreshTileArea(scene, row, col);
     refreshTreeSprite(scene, row, col);
+    if (typeof invalidateOverlayCache === 'function') invalidateOverlayCache();
     return;
   }
 
-  if (tileType === GROUND && currentHeight > 0) {
+  if (tileType === GROUND && currentHeight > 0 && oldType !== ROAD) {
     const lowered = Math.max(0, currentHeight - 1);
     heightMap[row][col] = lowered;
     mapData[row][col] = lowered > 0 ? HILL : GROUND;
@@ -4919,6 +5188,7 @@ function setTileType(scene, row, col, tileType) {
     reconcileSurfaceTerrainFromHeight(row, col);
     refreshTileArea(scene, row, col);
     refreshTreeSprite(scene, row, col);
+    if (typeof invalidateOverlayCache === 'function') invalidateOverlayCache();
     return;
   }
 
@@ -4970,6 +5240,7 @@ function setTileType(scene, row, col, tileType) {
   refreshTreeSprite(scene, row, col);
 
   markPowerGridDirty();
+  if (typeof markTrafficNetworkDirty === 'function') markTrafficNetworkDirty();
   if (tileType === ROAD && typeof refreshInfrastructureEffects === 'function') {
     refreshInfrastructureEffects(scene);
   }
@@ -5248,6 +5519,7 @@ function generateInitialTrees(scene, blockedTiles = null) {
       };
     }
   }
+  if (typeof invalidateTreeSimulationTiles === 'function') invalidateTreeSimulationTiles();
 }
 
 function restoreOrGenerateTrees(scene, save) {
@@ -5265,6 +5537,7 @@ function restoreOrGenerateTrees(scene, save) {
       treeMap[row][col] = tree && canTreeOccupyAt(scene, row, col) ? tree : null;
     }
   }
+  if (typeof invalidateTreeSimulationTiles === 'function') invalidateTreeSimulationTiles();
 }
 
 function rebuildTreeSprites(scene) {
@@ -5334,6 +5607,8 @@ function refreshTreeSprite(scene, row, col) {
 function removeTree(scene, row, col) {
   if (!isInsideMap(row, col) || !treeMap[row]?.[col]) return false;
   treeMap[row][col] = null;
+  if (typeof invalidateTreeSimulationTiles === 'function') invalidateTreeSimulationTiles();
+  if (typeof invalidateOverlayCache === 'function') invalidateOverlayCache();
   const id = getTileId(row, col);
   const sprites = scene?.treeSprites?.get(id);
   if (sprites) {
@@ -5358,6 +5633,8 @@ function placeTree(scene, row, col, options = {}) {
     age: options.age ?? 0,
     variant: Math.random(),
   };
+  if (typeof invalidateTreeSimulationTiles === 'function') invalidateTreeSimulationTiles();
+  if (typeof invalidateOverlayCache === 'function') invalidateOverlayCache();
   refreshTreeSprite(scene, row, col);
   return true;
 }
@@ -5399,6 +5676,14 @@ function isMatureTree(tree) {
 }
 
 function getMatureTreeCount() {
+  if (typeof getTreeSimulationTiles === 'function') {
+    let count = 0;
+    for (const [row, col] of getTreeSimulationTiles(activeScene)) {
+      if (isMatureTree(treeMap[row]?.[col])) count++;
+    }
+    return count;
+  }
+
   let count = 0;
   for (let row = 0; row < MAP_HEIGHT; row++) {
     for (let col = 0; col < MAP_WIDTH; col++) {
@@ -5428,20 +5713,31 @@ function getTreeInfluenceValue(row, col, radius = TREE_CANOPY_RADIUS) {
 
 function computeTreeCanopyMap(radius = TREE_CANOPY_RADIUS) {
   const map = createFilledMap(0);
-  for (let row = 0; row < MAP_HEIGHT; row++) {
-    for (let col = 0; col < MAP_WIDTH; col++) {
-      const tree = treeMap[row]?.[col];
-      if (!tree) continue;
-      const strength = isMatureTree(tree) ? 1 : 0.45;
-      for (let dr = -radius; dr <= radius; dr++) {
-        for (let dc = -radius; dc <= radius; dc++) {
-          const r = row + dr;
-          const c = col + dc;
-          if (!isInsideMap(r, c)) continue;
-          const dist = Math.abs(dr) + Math.abs(dc);
-          if (dist > radius) continue;
-          map[r][c] = Math.min(1, map[r][c] + strength * (1 - dist / Math.max(1, radius + 1)) / 4);
-        }
+  const treeTiles = typeof getTreeSimulationTiles === 'function'
+    ? getTreeSimulationTiles(activeScene)
+    : null;
+  const tiles = treeTiles ?? (() => {
+    const all = [];
+    for (let row = 0; row < MAP_HEIGHT; row++) {
+      for (let col = 0; col < MAP_WIDTH; col++) {
+        if (treeMap[row]?.[col]) all.push([row, col]);
+      }
+    }
+    return all;
+  })();
+
+  for (const [row, col] of tiles) {
+    const tree = treeMap[row]?.[col];
+    if (!tree) continue;
+    const strength = isMatureTree(tree) ? 1 : 0.45;
+    for (let dr = -radius; dr <= radius; dr++) {
+      for (let dc = -radius; dc <= radius; dc++) {
+        const r = row + dr;
+        const c = col + dc;
+        if (!isInsideMap(r, c)) continue;
+        const dist = Math.abs(dr) + Math.abs(dc);
+        if (dist > radius) continue;
+        map[r][c] = Math.min(1, map[r][c] + strength * (1 - dist / Math.max(1, radius + 1)) / 4);
       }
     }
   }
@@ -7121,6 +7417,93 @@ function getRoadKey(row, col) {
   return 'road_isolated';
 }
 
+// ── Container port orientation ─────────────────────────────────────────────
+// The four LL/LR/UL/UR sprites represent the four screen-facing quay directions.
+// Water is sampled from raw mapData
+// neighbours (n=row-1, e=col+1, s=row+1, w=col-1) around the whole footprint,
+// then rotated through rotateDirection() so the choice stays correct at every
+// mapRotation — same technique getBridgeRampVisualDirection() uses for ramps.
+
+function getHarborWaterSides(row, col, footprintCols = HARBOR_FOOTPRINT_COLS, footprintRows = HARBOR_FOOTPRINT_ROWS) {
+  const sides = { n: false, e: false, s: false, w: false };
+  for (let dc = 0; dc < footprintCols; dc++) {
+    if (mapData[row - 1]?.[col + dc] === WATER) sides.n = true;
+    if (mapData[row + footprintRows]?.[col + dc] === WATER) sides.s = true;
+  }
+  for (let dr = 0; dr < footprintRows; dr++) {
+    if (mapData[row + dr]?.[col - 1] === WATER) sides.w = true;
+    if (mapData[row + dr]?.[col + footprintCols] === WATER) sides.e = true;
+  }
+  return sides;
+}
+
+function getHarborVisualWaterSides(row, col, footprintCols = HARBOR_FOOTPRINT_COLS, footprintRows = HARBOR_FOOTPRINT_ROWS) {
+  const raw = getHarborWaterSides(row, col, footprintCols, footprintRows);
+  const visual = { n: false, e: false, s: false, w: false };
+  ['n', 'e', 's', 'w'].forEach((dir) => {
+    if (raw[dir]) visual[rotateDirection(dir, mapRotation)] = true;
+  });
+  return visual;
+}
+
+function canPlaceHarbor(row, col) {
+  const raw = getHarborWaterSides(row, col);
+  return raw.n || raw.e || raw.s || raw.w;
+}
+
+function getHarborVisualKey(
+  row,
+  col,
+  footprintCols = HARBOR_FOOTPRINT_COLS,
+  footprintRows = HARBOR_FOOTPRINT_ROWS,
+) {
+  const visual = getHarborVisualWaterSides(row, col, footprintCols, footprintRows);
+  // Logical neighbours map to isometric screen edges as follows:
+  // n → upper-right, e → lower-right, s → lower-left, w → upper-left.
+  // The filename suffix states where the water edge appears in the artwork.
+  if (visual.n) return 'harbor_ur';
+  if (visual.e) return 'harbor_lr';
+  if (visual.s) return 'harbor_ll';
+  if (visual.w) return 'harbor_ul';
+  return 'harbor_ll';
+}
+
+function refreshHarborSprites(scene) {
+  Object.entries(buildingData).forEach(([id, record]) => {
+    if (record.type !== HARBOR_BUILDING_TYPE) return;
+    const [row, col] = id.split(':').map(Number);
+    const footprintCols = record.footprintCols ?? HARBOR_FOOTPRINT_COLS;
+    const footprintRows = record.footprintRows ?? HARBOR_FOOTPRINT_ROWS;
+    const newKey = getHarborVisualKey(row, col, footprintCols, footprintRows);
+    if (newKey === record.spriteKey) return;
+    record.spriteKey = newKey;
+    record.assetId = HARBOR_MODELS[newKey]?.path;
+    const sprite = scene?.buildingSprites?.get(id);
+    if (!sprite) return;
+    sprite.setTexture(newKey);
+    const opts = harborModelMetadata[newKey];
+    if (opts) {
+      sprite.setOrigin(opts.originX ?? 0.5, opts.originY ?? 1);
+      if (opts.scaleX || opts.scaleY) sprite.setScale(opts.scaleX ?? opts.scale ?? 1, opts.scaleY ?? opts.scale ?? 1);
+      else if (opts.scale) sprite.setScale(opts.scale);
+      sprite.spriteOffsetX = opts.offsetX ?? 0;
+      sprite.spriteOffsetY = opts.offsetY ?? 0;
+      sprite.anchorMode = opts.anchorMode;
+      Object.assign(record, {
+        originX: opts.originX,
+        originY: opts.originY,
+        scale: opts.scale,
+        scaleX: opts.scaleX,
+        scaleY: opts.scaleY,
+        offsetX: opts.offsetX,
+        offsetY: opts.offsetY,
+        anchorMode: opts.anchorMode,
+      });
+      positionBuilding(scene, sprite);
+    }
+  });
+}
+
 function getBridgeRampRoadKey(direction) {
   const mode = typeof getRoadTileSetBridgeRampMode === 'function'
     ? getRoadTileSetBridgeRampMode()
@@ -7779,6 +8162,7 @@ function rotateMap(scene, steps = 1) {
 
   // Refresh tile textures (direction-aware keys change)
   refreshAllTiles(scene);
+  refreshHarborSprites(scene);
 
   // Reposition every sprite that uses isoToScreen
   positionAllTiles(scene);

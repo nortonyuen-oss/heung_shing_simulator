@@ -63,10 +63,11 @@ function updateCityAttractivenessMetrics() {
   const ridicule = councilEffectClamp(city.cityRidicule, 0, 100);
   const memeBonus = ridicule <= 45 ? ridicule * 0.12 : Math.max(0, 5.4 - (ridicule - 45) * 0.05);
   const reputationPenalty = Math.max(0, ridicule - 65) * 0.25;
+  const landmarkBonus = typeof sumSpecialBuildingEffect === 'function' ? sumSpecialBuildingEffect('attractivenessBonus') : 0;
 
   city.cityAttractiveness = councilEffectClamp(
     100 * (happiness * 0.25 + safety * 0.16 + environment * 0.17 + access * 0.12 + economy * 0.18 + culture * 0.12)
-      + eventBonus + lawBonus + memeBonus - reputationPenalty,
+      + eventBonus + lawBonus + memeBonus - reputationPenalty + landmarkBonus,
     0,
     100,
   );
@@ -110,6 +111,9 @@ function getCouncilResolutionReadiness(resolutionId, salt = '') {
 function resolveCouncilResolutionOutcome(resolutionId) {
   const definition = getCouncilResolutionDefinition(resolutionId);
   if (!definition) return null;
+  if (definition.unlockBuildingType) {
+    return { outcome: 'success', readiness: 1, refundCost: 0, modifiers: {} };
+  }
   const readiness = getCouncilResolutionReadiness(resolutionId, 'approval');
   const outcome = readiness >= 0.56 ? 'success' : (definition.failureOutcome || 'failure');
   const modifiers = outcome === 'success' ? definition.successModifiers : definition.riskModifiers;
@@ -307,4 +311,9 @@ function updateCouncilTimedSystems() {
   });
   city.council.activePrograms = city.council.activePrograms.filter((program) => program.remainingShows > 0);
   city.council.resolutionHistory = city.council.resolutionHistory.slice(-50);
+  if (typeof document !== 'undefined'
+    && document.getElementById('legislative-window')?.classList.contains('is-open')
+    && typeof updateCouncilMeetingUi === 'function') {
+    updateCouncilMeetingUi();
+  }
 }

@@ -22,7 +22,8 @@
     "dist:win": "electron-builder --win",
     "generate:icons": "node scripts/generate-icons.js",
     "migrate:pg-to-sqlite": "node scripts/migrate-pg-to-sqlite.js",
-    "optimize:assets": "node scripts/optimize-model-assets.js"
+    "optimize:assets": "node scripts/optimize-model-assets.js",
+    "defringe:assets": "node scripts/defringe-model-assets.js"
   },
   "dependencies": {
     "electron-updater": "^6.8.9",

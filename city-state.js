@@ -54,6 +54,19 @@ function createDefaultStockMarketState() {
     regime: 'range',
     regimeMonthsLeft: 0,
     lastRotationTick: 0,
+    crash: {
+      active: false,
+      monthsLeft: 0,
+      cooldownMonths: 0,
+      severity: 0,
+      openingHsi: HSI_BASE_LEVEL,
+      closingHsi: HSI_BASE_LEVEL,
+      startedYear: 0,
+      startedMonth: 0,
+      lastUpdateMonthIndex: -1,
+      trigger: '',
+      newsVariant: 0,
+    },
     stocks,
   };
 }
@@ -185,6 +198,9 @@ const city = {
   },
   forumPosts: [],
   lastForumMonthIndex: -1,
+  acknowledgedLandmarkUnlocks: [],
+  landmarkRevenue: 0,
+  landmarkUpkeep: 0,
   tick: 0,
   day:   1,
   month: 1,
@@ -198,6 +214,7 @@ function resetGameState() {
   powerMap       = createFilledMap(false);
   serviceMap     = createFilledMap(null);
   treeMap        = createFilledMap(null);
+  if (typeof invalidateTreeSimulationTiles === 'function') invalidateTreeSimulationTiles();
   bridgeMap      = createFilledMap(null);
   roadUnderlayMap = createFilledMap(null);
   trafficMap     = createFilledMap(0);
@@ -206,6 +223,7 @@ function resetGameState() {
   powerSources.clear();
   powerLineSet.clear();
   roadTileCount = 0;
+  if (typeof markTrafficNetworkDirty === 'function') markTrafficNetworkDirty();
 
   city.budget          = STARTING_BUDGET;
   city.taxRate         = 0.09;
@@ -295,6 +313,9 @@ function resetGameState() {
   city.tourismAppeal = 40;
   city.monthlyVisitors = 0;
   city.tourismRevenue = 0;
+  city.acknowledgedLandmarkUnlocks = [];
+  city.landmarkRevenue = 0;
+  city.landmarkUpkeep = 0;
   city.temporaryEffects = [];
   city.trafficIndex = 0;
   city.trafficCoverage = 0;
@@ -339,6 +360,31 @@ function resetGameState() {
   city.isBankrupt = false;
 }
 
+// Deep save migration used to rebuild the council, stock market, weather and
+// forum tree on every call.  This function is also called by several hot paths
+// during each simulation tick, so those rebuilds generated a large amount of
+// garbage and invalidated live references held by asynchronous UI work.  A
+// parsed save introduces fresh object references; runtime updates mutate or
+// replace them with already-valid data.  Remember which references have been
+// migrated so each tree is sanitized at most once.
+const _normalizedCityStateObjects = new WeakSet();
+const CITY_STATE_POLICY_IDS = Object.freeze([
+  'cleanAir', 'roadRepair', 'publicSafety', 'smallBusiness', 'greenParks',
+  'educationReform', 'scienceDevelopment', 'smokingBan', 'schoolHealthProgram',
+  'tourismPromotion', 'foreignInvestmentIncentive', 'districtCouncilElection',
+  'icac', 'legislativeCouncilElection', 'stockExchangeAct', 'elderlyTwoDollarFare',
+  'arcticPenguinReserve', 'busSeatbeltMandate',
+]);
+
+function isNormalizedCityStateObject(value) {
+  return !!value && typeof value === 'object' && _normalizedCityStateObjects.has(value);
+}
+
+function rememberNormalizedCityStateObject(value) {
+  if (value && typeof value === 'object') _normalizedCityStateObjects.add(value);
+  return value;
+}
+
 function normalizeForumImagePath(value) {
   const migrated = String(value || '')
     .replace(/^UI\/News\//, 'UI/news/')
@@ -352,35 +398,30 @@ function normalizeCityFinanceState() {
     return Number.isFinite(numeric) ? numeric : fallback;
   };
 
-  city.departmentBudgets = {
-    roads: clampDepartmentBudget(city.departmentBudgets?.roads),
-    police: clampDepartmentBudget(city.departmentBudgets?.police),
-    fire: clampDepartmentBudget(city.departmentBudgets?.fire),
-    parks: clampDepartmentBudget(city.departmentBudgets?.parks),
-  };
-  city.activePolicies = {
-    cleanAir: !!city.activePolicies?.cleanAir,
-    roadRepair: !!city.activePolicies?.roadRepair,
-    publicSafety: !!city.activePolicies?.publicSafety,
-    smallBusiness: !!city.activePolicies?.smallBusiness,
-    greenParks: !!city.activePolicies?.greenParks,
-    educationReform: !!city.activePolicies?.educationReform,
-    scienceDevelopment: !!city.activePolicies?.scienceDevelopment,
-    smokingBan: !!city.activePolicies?.smokingBan,
-    schoolHealthProgram: !!city.activePolicies?.schoolHealthProgram,
-    tourismPromotion: !!city.activePolicies?.tourismPromotion,
-    foreignInvestmentIncentive: !!city.activePolicies?.foreignInvestmentIncentive,
-    districtCouncilElection: !!city.activePolicies?.districtCouncilElection,
-    icac: !!city.activePolicies?.icac,
-    legislativeCouncilElection: !!city.activePolicies?.legislativeCouncilElection,
-    stockExchangeAct: !!city.activePolicies?.stockExchangeAct,
-    elderlyTwoDollarFare: !!city.activePolicies?.elderlyTwoDollarFare,
-    arcticPenguinReserve: !!city.activePolicies?.arcticPenguinReserve,
-    busSeatbeltMandate: !!city.activePolicies?.busSeatbeltMandate,
-  };
-  city.council = normalizeCouncilState(city.council, city.activePolicies);
-  city.loans = Array.isArray(city.loans) ? city.loans.filter((loan) => loan && loan.balance > 0) : [];
-  city.nextLoanId = Math.max(city.nextLoanId ?? 1, ...city.loans.map((loan) => Number(loan.id ?? 0) + 1), 1);
+  const departmentBudgets = city.departmentBudgets && typeof city.departmentBudgets === 'object'
+    ? city.departmentBudgets
+    : {};
+  departmentBudgets.roads = clampDepartmentBudget(departmentBudgets.roads);
+  departmentBudgets.police = clampDepartmentBudget(departmentBudgets.police);
+  departmentBudgets.fire = clampDepartmentBudget(departmentBudgets.fire);
+  departmentBudgets.parks = clampDepartmentBudget(departmentBudgets.parks);
+  city.departmentBudgets = departmentBudgets;
+
+  const activePolicies = city.activePolicies && typeof city.activePolicies === 'object'
+    ? city.activePolicies
+    : {};
+  CITY_STATE_POLICY_IDS.forEach((policyId) => { activePolicies[policyId] = !!activePolicies[policyId]; });
+  city.activePolicies = activePolicies;
+
+  if (!isNormalizedCityStateObject(city.council)) {
+    city.council = rememberNormalizedCityStateObject(normalizeCouncilState(city.council, city.activePolicies));
+  }
+  if (!isNormalizedCityStateObject(city.loans)) {
+    city.loans = rememberNormalizedCityStateObject(
+      (Array.isArray(city.loans) ? city.loans : []).filter((loan) => loan && loan.balance > 0),
+    );
+    city.nextLoanId = Math.max(city.nextLoanId ?? 1, ...city.loans.map((loan) => Number(loan.id ?? 0) + 1), 1);
+  }
   city.lastPolicyCost = city.lastPolicyCost ?? 0;
   city.lastLoanPayment = city.lastLoanPayment ?? 0;
   city.lastBudgetSnapshot = city.lastBudgetSnapshot ?? null;
@@ -403,66 +444,87 @@ function normalizeCityFinanceState() {
   city.ruleOfLawIndex = toFiniteOr(city.ruleOfLawIndex, 0);
   city.crimeRateIndex = toFiniteOr(city.crimeRateIndex, 0);
   city.scienceIndustryShare = toFiniteOr(city.scienceIndustryShare, 0);
-  if (!city.stockMarket || !Array.isArray(city.stockMarket.stocks)) {
-    city.stockMarket = createDefaultStockMarketState();
-  }
+  if (!isNormalizedCityStateObject(city.stockMarket)) {
+    if (!city.stockMarket || !Array.isArray(city.stockMarket.stocks)) {
+      city.stockMarket = createDefaultStockMarketState();
+    }
 
-  const defaultStockMarket = createDefaultStockMarketState();
-  const market = city.stockMarket;
-  market.hsi = toFiniteOr(market.hsi, defaultStockMarket.hsi);
-  market.prevHsi = toFiniteOr(market.prevHsi, defaultStockMarket.prevHsi);
-  market.regime = ['bull', 'range', 'bear'].includes(market.regime) ? market.regime : defaultStockMarket.regime;
-  market.regimeMonthsLeft = Math.max(0, Math.floor(toFiniteOr(market.regimeMonthsLeft, defaultStockMarket.regimeMonthsLeft)));
-  market.lastRotationTick = toFiniteOr(market.lastRotationTick, 0);
-
-  const existingMap = new Map((Array.isArray(market.stocks) ? market.stocks : [])
-    .filter((stock) => stock && stock.symbol)
-    .map((stock) => [stock.symbol, stock]));
-
-  let listedNonHsi = 0;
-  const normalizedStocks = defaultStockMarket.stocks.map((stock) => {
-    const existing = existingMap.get(stock.symbol);
-    const source = existing ?? stock;
-    const price = Math.max(1, toFiniteOr(source.price, stock.price));
-    const prevPrice = Math.max(1, toFiniteOr(source.prevPrice, price));
-    const history = Array.isArray(source.history)
-      ? source.history.map((v) => Number(v)).filter((v) => Number.isFinite(v) && v > 0).slice(-32)
-      : [];
-    let listed = !!source.listed;
-    if (stock.isHSI) listed = true;
-    if (!stock.isHSI && listed) listedNonHsi++;
-    return {
-      ...stock,
-      price,
-      prevPrice,
-      changePct: toFiniteOr(source.changePct, 0),
-      sharesOutstanding: Math.max(1, toFiniteOr(source.sharesOutstanding, stock.sharesOutstanding)),
-      history: history.length > 0 ? history : [price],
-      fairValue: Math.max(1, toFiniteOr(source.fairValue, price)),
-      idioShock: toFiniteOr(source.idioShock, 0),
-      listed,
+    const defaultStockMarket = createDefaultStockMarketState();
+    const market = city.stockMarket;
+    market.hsi = toFiniteOr(market.hsi, defaultStockMarket.hsi);
+    market.prevHsi = toFiniteOr(market.prevHsi, defaultStockMarket.prevHsi);
+    market.regime = ['bull', 'range', 'bear'].includes(market.regime) ? market.regime : defaultStockMarket.regime;
+    market.regimeMonthsLeft = Math.max(0, Math.floor(toFiniteOr(market.regimeMonthsLeft, defaultStockMarket.regimeMonthsLeft)));
+    market.lastRotationTick = toFiniteOr(market.lastRotationTick, 0);
+    const defaultCrash = defaultStockMarket.crash ?? { startedYear: 0, startedMonth: 0 };
+    const sourceCrash = market.crash && typeof market.crash === 'object' ? market.crash : {};
+    market.crash = {
+      active: !!sourceCrash.active,
+      monthsLeft: Math.max(0, Math.floor(toFiniteOr(sourceCrash.monthsLeft, 0))),
+      cooldownMonths: Math.max(0, Math.floor(toFiniteOr(sourceCrash.cooldownMonths, 0))),
+      severity: Math.max(0, Math.min(0.50, toFiniteOr(sourceCrash.severity, 0))),
+      openingHsi: Math.max(1, Math.round(toFiniteOr(sourceCrash.openingHsi, market.hsi))),
+      closingHsi: Math.max(1, Math.round(toFiniteOr(sourceCrash.closingHsi, market.hsi))),
+      startedYear: Math.max(0, Math.floor(toFiniteOr(sourceCrash.startedYear, defaultCrash.startedYear))),
+      startedMonth: Math.max(0, Math.floor(toFiniteOr(sourceCrash.startedMonth, defaultCrash.startedMonth))),
+      lastUpdateMonthIndex: Math.floor(toFiniteOr(sourceCrash.lastUpdateMonthIndex, -1)),
+      trigger: ['epidemic', 'pollution', 'unemployment', 'fiscal', 'bear', 'market'].includes(sourceCrash.trigger)
+        ? sourceCrash.trigger
+        : '',
+      newsVariant: Math.max(0, Math.floor(toFiniteOr(sourceCrash.newsVariant, 0))) % 5,
     };
-  });
+    if (market.crash.monthsLeft <= 0) market.crash.active = false;
 
-  market.stocks = normalizedStocks;
-  const maxNonHsiListed = Math.max(0, STOCK_LISTING_COUNT - HSI_COMPONENT_SYMBOLS.length);
-  if (listedNonHsi > maxNonHsiListed) {
-    const overflow = listedNonHsi - maxNonHsiListed;
-    let removed = 0;
-    city.stockMarket.stocks.forEach((stock) => {
-      if (removed >= overflow) return;
-      if (stock.isHSI || !stock.listed) return;
-      stock.listed = false;
-      removed++;
+    const existingMap = new Map((Array.isArray(market.stocks) ? market.stocks : [])
+      .filter((stock) => stock && stock.symbol)
+      .map((stock) => [stock.symbol, stock]));
+
+    let listedNonHsi = 0;
+    const normalizedStocks = defaultStockMarket.stocks.map((stock) => {
+      const existing = existingMap.get(stock.symbol);
+      const source = existing ?? stock;
+      const price = Math.max(1, toFiniteOr(source.price, stock.price));
+      const prevPrice = Math.max(1, toFiniteOr(source.prevPrice, price));
+      const history = Array.isArray(source.history)
+        ? source.history.map((v) => Number(v)).filter((v) => Number.isFinite(v) && v > 0).slice(-32)
+        : [];
+      let listed = !!source.listed;
+      if (stock.isHSI) listed = true;
+      if (!stock.isHSI && listed) listedNonHsi++;
+      return {
+        ...stock,
+        price,
+        prevPrice,
+        changePct: toFiniteOr(source.changePct, 0),
+        sharesOutstanding: Math.max(1, toFiniteOr(source.sharesOutstanding, stock.sharesOutstanding)),
+        history: history.length > 0 ? history : [price],
+        fairValue: Math.max(1, toFiniteOr(source.fairValue, price)),
+        idioShock: toFiniteOr(source.idioShock, 0),
+        listed,
+      };
     });
-  } else if (listedNonHsi < maxNonHsiListed) {
-    let needed = maxNonHsiListed - listedNonHsi;
-    city.stockMarket.stocks.forEach((stock) => {
-      if (needed <= 0) return;
-      if (stock.isHSI || stock.listed) return;
-      stock.listed = true;
-      needed--;
-    });
+
+    market.stocks = normalizedStocks;
+    const maxNonHsiListed = Math.max(0, STOCK_LISTING_COUNT - HSI_COMPONENT_SYMBOLS.length);
+    if (listedNonHsi > maxNonHsiListed) {
+      const overflow = listedNonHsi - maxNonHsiListed;
+      let removed = 0;
+      market.stocks.forEach((stock) => {
+        if (removed >= overflow) return;
+        if (stock.isHSI || !stock.listed) return;
+        stock.listed = false;
+        removed++;
+      });
+    } else if (listedNonHsi < maxNonHsiListed) {
+      let needed = maxNonHsiListed - listedNonHsi;
+      market.stocks.forEach((stock) => {
+        if (needed <= 0) return;
+        if (stock.isHSI || stock.listed) return;
+        stock.listed = true;
+        needed--;
+      });
+    }
+    rememberNormalizedCityStateObject(market);
   }
   city.educationHistory = Array.isArray(city.educationHistory) ? city.educationHistory : [];
   city.crimeHistory = Array.isArray(city.crimeHistory) ? city.crimeHistory : [];
@@ -484,55 +546,65 @@ function normalizeCityFinanceState() {
   city.tourismAppeal = Math.max(0, Math.min(100, toFiniteOr(city.tourismAppeal, 40)));
   city.monthlyVisitors = Math.max(0, Math.round(toFiniteOr(city.monthlyVisitors, 0)));
   city.tourismRevenue = Math.max(0, Math.round(toFiniteOr(city.tourismRevenue, 0)));
-  city.temporaryEffects = (Array.isArray(city.temporaryEffects) ? city.temporaryEffects : [])
-    .filter((effect) => effect && typeof effect === 'object' && typeof effect.id === 'string')
-    .slice(-40)
-    .map((effect) => ({
-      id: String(effect.id).slice(0, 100),
-      sourceId: String(effect.sourceId ?? '').slice(0, 80),
-      startMonthIndex: Math.max(0, Math.floor(toFiniteOr(effect.startMonthIndex, 0))),
-      endMonthIndex: Math.max(0, Math.floor(toFiniteOr(effect.endMonthIndex, 0))),
-      modifiers: effect.modifiers && typeof effect.modifiers === 'object' ? { ...effect.modifiers } : {},
-      outcome: String(effect.outcome ?? 'success').slice(0, 40),
-    }));
+  city.acknowledgedLandmarkUnlocks = Array.isArray(city.acknowledgedLandmarkUnlocks) ? city.acknowledgedLandmarkUnlocks : [];
+  city.landmarkRevenue = Math.max(0, Math.round(toFiniteOr(city.landmarkRevenue, 0)));
+  city.landmarkUpkeep = Math.max(0, Math.round(toFiniteOr(city.landmarkUpkeep, 0)));
+  if (!isNormalizedCityStateObject(city.temporaryEffects)) {
+    city.temporaryEffects = rememberNormalizedCityStateObject(
+      (Array.isArray(city.temporaryEffects) ? city.temporaryEffects : [])
+        .filter((effect) => effect && typeof effect === 'object' && typeof effect.id === 'string')
+        .slice(-40)
+        .map((effect) => ({
+          id: String(effect.id).slice(0, 100),
+          sourceId: String(effect.sourceId ?? '').slice(0, 80),
+          startMonthIndex: Math.max(0, Math.floor(toFiniteOr(effect.startMonthIndex, 0))),
+          endMonthIndex: Math.max(0, Math.floor(toFiniteOr(effect.endMonthIndex, 0))),
+          modifiers: effect.modifiers && typeof effect.modifiers === 'object' ? { ...effect.modifiers } : {},
+          outcome: String(effect.outcome ?? 'success').slice(0, 40),
+        })),
+    );
+  }
   city.unemploymentRate = toFiniteOr(city.unemploymentRate, 0);
   city.highEduUnemploymentRate = toFiniteOr(city.highEduUnemploymentRate, 0);
   city.trafficIndex    = toFiniteOr(city.trafficIndex, 0);
   city.trafficCoverage = toFiniteOr(city.trafficCoverage, 0);
-  const savedWeather = city.weather && typeof city.weather === 'object' ? city.weather : {};
-  const validConditions = ['clear', 'cloudy', 'showers', 'heavyRain', 'hot', 'cool', 'windy'];
-  const validTyphoonStages = ['none', 'signal1', 'signal3', 'signal8', 'signal9', 'signal10'];
-  const validRainWarnings = ['none', 'amber', 'red', 'black'];
-  const migratedTyphoonActive = validTyphoonStages.includes(savedWeather.typhoonStage)
-    ? savedWeather.typhoonStage !== 'none'
-    : false;
-  city.weather = {
-    condition: validConditions.includes(savedWeather.condition) ? savedWeather.condition : 'clear',
-    temperatureC: toFiniteOr(savedWeather.temperatureC, 24),
-    humidityPct: Math.max(0, Math.min(100, toFiniteOr(savedWeather.humidityPct, 60))),
-    rainfallMm: Math.max(0, toFiniteOr(savedWeather.rainfallMm, 0)),
-    rainWarning: validRainWarnings.includes(savedWeather.rainWarning) ? savedWeather.rainWarning : 'none',
-    windKph: Math.max(0, toFiniteOr(savedWeather.windKph, 10)),
-    conditionTicksLeft: Math.max(0, Math.floor(toFiniteOr(savedWeather.conditionTicksLeft, 1))),
-    typhoonStage: validTyphoonStages.includes(savedWeather.typhoonStage) ? savedWeather.typhoonStage : 'none',
-    typhoonActive: !!savedWeather.typhoonActive || migratedTyphoonActive,
-    typhoonName: typeof savedWeather.typhoonName === 'string' ? savedWeather.typhoonName.slice(0, 40) : '',
-    typhoonPeakWindKph: Math.max(0, toFiniteOr(savedWeather.typhoonPeakWindKph, 0)),
-    typhoonDurationTicks: Math.max(0, Math.floor(toFiniteOr(savedWeather.typhoonDurationTicks, 0))),
-    typhoonTicksElapsed: Math.max(0, Math.floor(toFiniteOr(savedWeather.typhoonTicksElapsed, 0))),
-    typhoonWindKph: Math.max(0, toFiniteOr(savedWeather.typhoonWindKph, 0)),
-    typhoonNameIndex: Math.max(0, Math.floor(toFiniteOr(savedWeather.typhoonNameIndex, 0))) % TYPHOON_NAMES.length,
-    signal8ReachedThisStorm: !!savedWeather.signal8ReachedThisStorm,
-  };
+  if (!isNormalizedCityStateObject(city.weather)) {
+    const savedWeather = city.weather && typeof city.weather === 'object' ? city.weather : {};
+    const validConditions = ['clear', 'cloudy', 'showers', 'heavyRain', 'hot', 'cool', 'windy'];
+    const validTyphoonStages = ['none', 'signal1', 'signal3', 'signal8', 'signal9', 'signal10'];
+    const validRainWarnings = ['none', 'amber', 'red', 'black'];
+    const migratedTyphoonActive = validTyphoonStages.includes(savedWeather.typhoonStage)
+      ? savedWeather.typhoonStage !== 'none'
+      : false;
+    city.weather = rememberNormalizedCityStateObject({
+      condition: validConditions.includes(savedWeather.condition) ? savedWeather.condition : 'clear',
+      temperatureC: toFiniteOr(savedWeather.temperatureC, 24),
+      humidityPct: Math.max(0, Math.min(100, toFiniteOr(savedWeather.humidityPct, 60))),
+      rainfallMm: Math.max(0, toFiniteOr(savedWeather.rainfallMm, 0)),
+      rainWarning: validRainWarnings.includes(savedWeather.rainWarning) ? savedWeather.rainWarning : 'none',
+      windKph: Math.max(0, toFiniteOr(savedWeather.windKph, 10)),
+      conditionTicksLeft: Math.max(0, Math.floor(toFiniteOr(savedWeather.conditionTicksLeft, 1))),
+      typhoonStage: validTyphoonStages.includes(savedWeather.typhoonStage) ? savedWeather.typhoonStage : 'none',
+      typhoonActive: !!savedWeather.typhoonActive || migratedTyphoonActive,
+      typhoonName: typeof savedWeather.typhoonName === 'string' ? savedWeather.typhoonName.slice(0, 40) : '',
+      typhoonPeakWindKph: Math.max(0, toFiniteOr(savedWeather.typhoonPeakWindKph, 0)),
+      typhoonDurationTicks: Math.max(0, Math.floor(toFiniteOr(savedWeather.typhoonDurationTicks, 0))),
+      typhoonTicksElapsed: Math.max(0, Math.floor(toFiniteOr(savedWeather.typhoonTicksElapsed, 0))),
+      typhoonWindKph: Math.max(0, toFiniteOr(savedWeather.typhoonWindKph, 0)),
+      typhoonNameIndex: Math.max(0, Math.floor(toFiniteOr(savedWeather.typhoonNameIndex, 0))) % TYPHOON_NAMES.length,
+      signal8ReachedThisStorm: !!savedWeather.signal8ReachedThisStorm,
+    });
+  }
   city.citizenActivityDigest = city.citizenActivityDigest
     && typeof city.citizenActivityDigest.key === 'string'
     ? city.citizenActivityDigest
     : null;
   city.showDistrictSigns = city.showDistrictSigns !== false;
-  const seenDistrictSignIds = new Set();
-  city.districtSigns = (Array.isArray(city.districtSigns) ? city.districtSigns : [])
-    .slice(0, 16)
-    .map((sign, index) => {
+  if (!isNormalizedCityStateObject(city.districtSigns)) {
+    const seenDistrictSignIds = new Set();
+    city.districtSigns = rememberNormalizedCityStateObject((Array.isArray(city.districtSigns) ? city.districtSigns : [])
+      .slice(0, 16)
+      .map((sign, index) => {
       const row = Math.max(0, Math.min(MAP_HEIGHT - 1, Math.floor(toFiniteOr(sign?.row, -1))));
       const col = Math.max(0, Math.min(MAP_WIDTH - 1, Math.floor(toFiniteOr(sign?.col, -1))));
       const name = Array.from(String(sign?.name || '').trim()).slice(0, 30).join('');
@@ -554,11 +626,13 @@ function normalizeCityFinanceState() {
       ) {
         return sign;
       }
-      return { id, name, englishName, row, col, radius, createdAtTick };
-    })
-    .filter((sign) => sign.name);
-  const savedAiNews = city.aiNews && typeof city.aiNews === 'object' ? city.aiNews : {};
-  city.aiNews = {
+        return { id, name, englishName, row, col, radius, createdAtTick };
+      })
+      .filter((sign) => sign.name));
+  }
+  if (!isNormalizedCityStateObject(city.aiNews)) {
+    const savedAiNews = city.aiNews && typeof city.aiNews === 'object' ? city.aiNews : {};
+    city.aiNews = rememberNormalizedCityStateObject({
     headline: String(savedAiNews.headline || '').slice(0, 220),
     model: String(savedAiNews.model || '').slice(0, 120),
     provider: ['local', 'cloud'].includes(savedAiNews.provider) ? savedAiNews.provider : '',
@@ -575,9 +649,11 @@ function normalizeCityFinanceState() {
       tick: Math.floor(toFiniteOr(item?.tick, -1)),
       year: Math.floor(toFiniteOr(item?.year, city.year)),
       month: Math.max(1, Math.min(12, Math.floor(toFiniteOr(item?.month, city.month)))),
-    })).filter((item) => item.headline),
-  };
-  city.forumPosts = (Array.isArray(city.forumPosts) ? city.forumPosts : []).slice(-60).map((post, index) => ({
+      })).filter((item) => item.headline),
+    });
+  }
+  if (!isNormalizedCityStateObject(city.forumPosts)) {
+    city.forumPosts = rememberNormalizedCityStateObject((Array.isArray(city.forumPosts) ? city.forumPosts : []).slice(-60).map((post, index) => ({
     id: String(post?.id || `forum-loaded-${index}`).slice(0, 120),
     category: String(post?.category || '城市熱話').slice(0, 30),
     headline: String(post?.headline || '').slice(0, 220),
@@ -606,8 +682,9 @@ function normalizeCityFinanceState() {
         official: comment?.official === true,
         officialId: String(comment?.officialId || '').slice(0, 60),
       })).filter((comment) => comment.text),
-    },
-  })).filter((post) => post.headline);
+      },
+    })).filter((post) => post.headline));
+  }
   city.lastForumMonthIndex = Math.floor(toFiniteOr(city.lastForumMonthIndex, -1));
   city.creditRating = city.creditRating || 'A';
 }
@@ -643,6 +720,36 @@ function getBuildingCount(type) {
   return _buildingCountCache[type];
 }
 
+// Sums SPECIAL_BUILDING_EFFECTS.revenue/upkeep across every placed landmark +
+// the harbour. Ocean Park ticket sales, port fees, stadium match revenue etc.
+// all flow through the same flat per-building fields rather than separate
+// bespoke income lines.
+function computeLandmarkFinancials() {
+  let revenue = 0;
+  let upkeep = 0;
+  Object.keys(SPECIAL_BUILDING_EFFECTS).forEach((type) => {
+    const count = getBuildingCount(type);
+    if (!count) return;
+    const effects = SPECIAL_BUILDING_EFFECTS[type];
+    revenue += count * (effects.revenue || 0);
+    upkeep += count * (effects.upkeep || 0);
+  });
+  return { revenue, upkeep };
+}
+
+// Flat city-wide sum of a SPECIAL_BUILDING_EFFECTS numeric field across every
+// placed landmark (e.g. 'attractivenessBonus', 'happinessBonus'). Used by
+// council-effects.js (attractiveness/tourism) and simulation.js (happiness).
+function sumSpecialBuildingEffect(field) {
+  let total = 0;
+  Object.keys(SPECIAL_BUILDING_EFFECTS).forEach((type) => {
+    const count = getBuildingCount(type);
+    if (!count) return;
+    total += count * (SPECIAL_BUILDING_EFFECTS[type][field] || 0);
+  });
+  return total;
+}
+
 function computeBudgetSnapshot(options = {}) {
   normalizeCityFinanceState();
 
@@ -659,8 +766,10 @@ function computeBudgetSnapshot(options = {}) {
   const hospitalCount = getBuildingCount('hospital');
   const smallParks = getBuildingCount('park_small');
   const largeParks = getBuildingCount('park_large');
+  const flagshipParks = getBuildingCount('park_flagship');
   const sportsGroundSmall = getBuildingCount('sports_ground_small');
   const sportsGroundLarge = getBuildingCount('sports_ground_large');
+  const landmarkFinancials = computeLandmarkFinancials();
 
   const taxScale = city.taxRate / 0.09;
   const residentialTax = city.population * TAX_PER_RESIDENT * taxScale;
@@ -684,6 +793,7 @@ function computeBudgetSnapshot(options = {}) {
   const parksUpkeep = (
     smallParks * UPKEEP_PARK_SMALL
     + largeParks * UPKEEP_PARK_LARGE
+    + flagshipParks * UPKEEP_PARK_FLAGSHIP
     + sportsGroundSmall * UPKEEP_SPORTS_GROUND_SMALL
     + sportsGroundLarge * UPKEEP_SPORTS_GROUND_LARGE
   ) * getDepartmentFunding('parks');
@@ -693,12 +803,16 @@ function computeBudgetSnapshot(options = {}) {
     : getMonthlyLoanDue();
 
   const tourismIncome = Math.max(0, Number(city.tourismRevenue || 0));
-  const totalIncome = Math.round(grossIncome + policyTaxAdjustment + tourismIncome);
+  const landmarkIncome = landmarkFinancials.revenue;
+  const landmarkUpkeep = landmarkFinancials.upkeep;
+  const totalIncome = Math.round(grossIncome + policyTaxAdjustment + tourismIncome + landmarkIncome);
   const totalExpenses = Math.round(
     roadsUpkeep + fireUpkeep + policeUpkeep + powerUpkeep + educationUpkeep + healthUpkeep
-    + parksUpkeep + policyCost + loanPayment
+    + parksUpkeep + policyCost + loanPayment + landmarkUpkeep
   );
   const net = totalIncome - totalExpenses;
+  city.landmarkRevenue = Math.round(landmarkIncome);
+  city.landmarkUpkeep = Math.round(landmarkUpkeep);
 
   return {
     income: {
@@ -707,12 +821,14 @@ function computeBudgetSnapshot(options = {}) {
       industrialTax: Math.round(industrialTax),
       policyAdjustment: Math.round(policyTaxAdjustment),
       tourism: Math.round(tourismIncome),
+      landmarks: Math.round(landmarkIncome),
     },
     expenses: {
       roads: Math.round(roadsUpkeep),
       fire: Math.round(fireUpkeep),
       police: Math.round(policeUpkeep),
       power: Math.round(powerUpkeep),
+      landmarks: Math.round(landmarkUpkeep),
       education: Math.round(educationUpkeep),
       health: Math.round(healthUpkeep),
       parks: Math.round(parksUpkeep),
@@ -741,8 +857,58 @@ function isPolicyActive(id) {
   return !!city.activePolicies[id];
 }
 
+function isCouncilResolutionApproved(id) {
+  return Number(city.council?.resolutionStates?.[id]?.timesApproved || 0) > 0;
+}
+
 function hasBuildingType(type) {
   return getBuildingCount(type) > 0;
+}
+
+// ── Special building (landmark) unlock gating ──────────────────────────────
+// Generic check against SPECIAL_BUILDING_UNLOCKS (constants.js), covering the
+// harbour, airport, football stadium and the specialSites landmarks. Mirrors
+// the unlockPopulation pattern already used by CITY_POLICY_DEFS.
+function getSpecialBuildingUnlockState(type) {
+  const rule = SPECIAL_BUILDING_UNLOCKS[type];
+  if (!rule) return { unlocked: true, reason: '', type };
+  if (rule.unlockPopulation && city.population < rule.unlockPopulation) {
+    return { unlocked: false, reason: 'population', threshold: rule.unlockPopulation, type };
+  }
+  if (rule.unlockAttractiveness && (city.cityAttractiveness ?? 0) < rule.unlockAttractiveness) {
+    return { unlocked: false, reason: 'attractiveness', threshold: rule.unlockAttractiveness, type };
+  }
+  if (rule.requiresBuildingType && !hasBuildingType(rule.requiresBuildingType)) {
+    return { unlocked: false, reason: 'building', requires: rule.requiresBuildingType, type };
+  }
+  if (rule.requiresPolicy && !isPolicyActive(rule.requiresPolicy)) {
+    return { unlocked: false, reason: 'policy', requires: rule.requiresPolicy, type };
+  }
+  if (rule.requiresResolution && !isCouncilResolutionApproved(rule.requiresResolution)) {
+    return { unlocked: false, reason: 'resolution', requires: rule.requiresResolution, type };
+  }
+  if (rule.maxCount && getBuildingCount(type) >= rule.maxCount) {
+    return { unlocked: false, reason: 'maxCount', type };
+  }
+  return { unlocked: true, reason: '', type };
+}
+
+function isSpecialBuildingUnlocked(type) {
+  return getSpecialBuildingUnlockState(type).unlocked;
+}
+
+// Fires the ticker + forum "just unlocked" notice exactly once per building
+// type per game, the first time updateHUD() observes a locked→unlocked flip
+// for a building that hasn't been placed yet. Called from hud.js:updateHUD().
+function checkSpecialBuildingUnlockNotices() {
+  if (!Array.isArray(city.acknowledgedLandmarkUnlocks)) city.acknowledgedLandmarkUnlocks = [];
+  Object.keys(SPECIAL_BUILDING_UNLOCKS).forEach((type) => {
+    if (city.acknowledgedLandmarkUnlocks.includes(type)) return;
+    if (hasBuildingType(type)) { city.acknowledgedLandmarkUnlocks.push(type); return; }
+    if (!isSpecialBuildingUnlocked(type)) return;
+    city.acknowledgedLandmarkUnlocks.push(type);
+    if (typeof announceLandmarkUnlockNotice === 'function') announceLandmarkUnlockNotice(type);
+  });
 }
 
 function isPolicyAvailable(id) {

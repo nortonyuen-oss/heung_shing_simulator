@@ -1,5 +1,7 @@
 const EFFECTIVE_PIXEL_ALPHA_THRESHOLD = 20;
-const MODEL_METADATA_CACHE_KEY = 'citybuilder:modelMetadata:v4';
+// Bump whenever same-name model artwork is replaced. Alpha bounds and anchor
+// metadata depend on the pixels, not only on the filename or canvas dimensions.
+const MODEL_METADATA_CACHE_KEY = 'citybuilder:modelMetadata:v10';
 const INITIAL_ZONE_MODELS_PER_FOOTPRINT = 1;
 
 function buildSequentialFileAliases(sourceFileNames, canonicalFileNames) {
@@ -21,18 +23,31 @@ function buildSequentialFileAliases(sourceFileNames, canonicalFileNames) {
 // ── Residential ──────────────────────────────────────────────────────────────
 // preferredFiles = actual disk filenames used as fallback when the API
 // is unreachable AND as rank-priority order for model selection.
+const RESIDENTIAL_WEALTH_TIERS = Object.freeze(['L', 'M', 'H', 'UH']);
+
+function getResidentialWealthTierFromFileName(fileName) {
+  const match = String(fileName ?? '').match(/-(UH|H|M|L)\.(?:png|webp|jpe?g)$/i);
+  return match ? match[1].toUpperCase() : null;
+}
+
+function getCommercialTierFromFileName(fileName) {
+  const match = String(fileName ?? '').match(/-(UH|H|M|L)\.(?:png|webp|jpe?g)$/i);
+  return match ? match[1].toUpperCase() : null;
+}
+
 const HOUSE_MODEL_SETS = {
   house: {
     label: '1x1',
     folder: 'Models/residential/house1x1/',
     apiFolder: 'residential/house1x1',
-    defaultFile: 'house1-01.png',
+    modelKind: 'residential',
+    defaultFile: 'house1-01-L.png',
     preferredFiles: [
-      'house1-01.png',
-      'house1-02.png',
-      'house1-03.png',
-      'house1-05-highScore.png',
-      'house1-06-highScore.png',
+      'house1-01-L.png',
+      'house1-02-L.png',
+      'house1-03-L.png',
+      'house1-05-H.png',
+      'house1-06-H.png',
     ],
     footprintCols: 1,
     footprintRows: 1,
@@ -41,18 +56,26 @@ const HOUSE_MODEL_SETS = {
     label: '2x2',
     folder: 'Models/residential/house2x2/',
     apiFolder: 'residential/house2x2',
-    defaultFile: 'residential2-04.png',
+    modelKind: 'residential',
+    defaultFile: 'residential2-04-L.png',
     preferredFiles: [
-      'residential2-04.png',
-      'residential2-05.png',
-      'residential2-06.png',
-      'residential2-07.png',
-      'residential2-09.png',
-      'residential2-03-highScore.png',
-      'residential2-11-highScore.png',
-      'residential2-12-highScore.png',
-      'residential2-13-highScore.png',
-      'residential2-14-highScore.png',
+      'residential2-04-L.png',
+      'residential2-05-L.png',
+      'residential2-06-M.png',
+      'residential2-07-M.png',
+      'residential2-09-UH.png',
+      'residential2-03-UH.png',
+      'residential2-11-H.png',
+      'residential2-12-UH.png',
+      'residential2-13-UH.png',
+      'residential2-14-UH.png',
+      'residential2-01-M.png',
+      'residential2-02-M.png',
+      'residential2-15-H.png',
+      'residential2-16-H.png',
+      'residential2-17-H.png',
+      'residential2-18-H.png',
+      'residential2-10-H.png',
     ],
     footprintCols: 2,
     footprintRows: 2,
@@ -61,14 +84,19 @@ const HOUSE_MODEL_SETS = {
     label: '3x3',
     folder: 'Models/residential/house3x3/',
     apiFolder: 'residential/house3x3',
-    defaultFile: 'residential3-01.png',
+    modelKind: 'residential',
+    defaultFile: 'residential3-01-L.png',
     preferredFiles: [
-      'residential3-01.png',
-      'residential3-02.png',
-      'residential3-03.png',
-      'residential3-04-highScore.png',
-      'residential3-05-highScore.png',
-      'residential3-06.png',
+      'residential3-01-L.png',
+      'residential3-02-L.png',
+      'residential3-03-H.png',
+      'residential3-04-H.png',
+      'residential3-05-UH.png',
+      'residential3-06-L.png',
+      'residential3-07-M.png',
+      'residential3-08-M.png',
+      'residential3-12-H.png',
+      'residential3-14-M.png',
     ],
     footprintCols: 3,
     footprintRows: 3,
@@ -77,12 +105,13 @@ const HOUSE_MODEL_SETS = {
     label: '4x4',
     folder: 'Models/residential/house4x4/',
     apiFolder: 'residential/house4x4',
+    modelKind: 'residential',
     anchorMode: 'effective-bottom-to-map-bottom',
     alphaThreshold: EFFECTIVE_PIXEL_ALPHA_THRESHOLD,
-    defaultFile: 'residential4-01.png',
+    defaultFile: 'residential4-01-M.png',
     preferredFiles: [
-      'residential4-01.png',
-      'residential4-02.png',
+      'residential4-01-M.png',
+      'residential4-02-M.png',
     ],
     footprintCols: 4,
     footprintRows: 4,
@@ -91,12 +120,14 @@ const HOUSE_MODEL_SETS = {
     label: '5x5',
     folder: 'Models/residential/house5x5/',
     apiFolder: 'residential/house5x5',
+    modelKind: 'residential',
     anchorMode: 'effective-bottom-to-map-bottom',
     alphaThreshold: EFFECTIVE_PIXEL_ALPHA_THRESHOLD,
-    defaultFile: 'residential5-01.png',
+    defaultFile: 'residential5-01-H.png',
     preferredFiles: [
-      'residential5-01.png',
-      'residential5-02.png',
+      'residential5-01-H.png',
+      'residential5-02-H.png',
+      'residential5-03-L.png',
     ],
     footprintCols: 5,
     footprintRows: 5,
@@ -104,29 +135,26 @@ const HOUSE_MODEL_SETS = {
 };
 
 // ── Commercial ───────────────────────────────────────────────────────────────
-// fallbackSourceFiles = actual disk names; preferredFiles = canonical slot names.
-// fileAliases maps disk → canonical so highScore detection (/highScore/i)
-// works on canonical names.
+// Commercial filenames carry their L/M/H/UH grade directly. preferredFiles
+// preserves the historical slot order so older saves keep the same sprite key.
 const COMMERCIAL_BUILDING_MODEL_SETS = [
   {
     keyPrefix: 'commercial_building_1x1',
     folder: 'Models/commercial/1x1/',
     apiFolder: 'commercial/1x1',
+    modelKind: 'commercial',
     fallbackSourceFiles: [
-      'commercialBuilding1-01.png',
-      'commercialBuilding1-03.png',
+      'commercialBuilding1-01-L.png',
+      'commercialBuilding1-03-L.png',
+      'commercialBuilding1-04-M.png',
+      'commercialBuilding1-05-L.png',
     ],
     preferredFiles: [
-      'commercialBuilding01.png',
-      'commercialBuilding02.png',
+      'commercialBuilding1-01-L.png',
+      'commercialBuilding1-03-L.png',
+      'commercialBuilding1-04-M.png',
+      'commercialBuilding1-05-L.png',
     ],
-    fileAliases: buildSequentialFileAliases([
-      'commercialBuilding1-01.png',
-      'commercialBuilding1-03.png',
-    ], [
-      'commercialBuilding01.png',
-      'commercialBuilding02.png',
-    ]),
     footprintCols: 1,
     footprintRows: 1,
   },
@@ -134,33 +162,21 @@ const COMMERCIAL_BUILDING_MODEL_SETS = [
     keyPrefix: 'commercial_building_2x2',
     folder: 'Models/commercial/2x2/',
     apiFolder: 'commercial/2x2',
+    modelKind: 'commercial',
     fallbackSourceFiles: [
-      'commercialBuilding2-02.png',
-      'commercialBuilding2-03.png',
-      'commercialBuilding2-04.png',
-      'commercialBuilding2-05.png',
-      'commercialBuilding2-06.png',
+      'commercialBuilding2-02-H.png',
+      'commercialBuilding2-03-M.png',
+      'commercialBuilding2-04-M.png',
+      'commercialBuilding2-05-L.png',
+      'commercialBuilding2-06-L.png',
     ],
     preferredFiles: [
-      'commercialBuilding01.png',
-      'commercialBuilding02.png',
-      'commercialBuilding03.png',
-      'commercialBuilding04.png',
-      'commercialBuilding05.png',
+      'commercialBuilding2-02-H.png',
+      'commercialBuilding2-03-M.png',
+      'commercialBuilding2-04-M.png',
+      'commercialBuilding2-05-L.png',
+      'commercialBuilding2-06-L.png',
     ],
-    fileAliases: buildSequentialFileAliases([
-      'commercialBuilding2-02.png',
-      'commercialBuilding2-03.png',
-      'commercialBuilding2-04.png',
-      'commercialBuilding2-05.png',
-      'commercialBuilding2-06.png',
-    ], [
-      'commercialBuilding01.png',
-      'commercialBuilding02.png',
-      'commercialBuilding03.png',
-      'commercialBuilding04.png',
-      'commercialBuilding05.png',
-    ]),
     footprintCols: 2,
     footprintRows: 2,
   },
@@ -168,49 +184,33 @@ const COMMERCIAL_BUILDING_MODEL_SETS = [
     keyPrefix: 'commercial_building_3x3',
     folder: 'Models/commercial/3x3/',
     apiFolder: 'commercial/3x3',
+    modelKind: 'commercial',
     fallbackSourceFiles: [
-      'commercialBuilding3-03.png',
-      'commercialBuilding3-04.png',
-      'commercialBuilding3-07.png',
-      'commercialBuilding3-09.png',
-      'commercialBuilding3-10.png',
-      'commercialBuilding3-11.png',
-      'commercialBuilding3-01-highScore.png',
-      'commercialBuilding3-05-highScore.png',
-      'commercialBuilding3-08-highScore.png',
+      'commercialBuilding3-03-M.png',
+      'commercialBuilding3-04-H.png',
+      'commercialBuilding3-07-M.png',
+      'commercialBuilding3-09-M.png',
+      'commercialBuilding3-10-M.png',
+      'commercialBuilding3-11-H.png',
+      'commercialBuilding3-01-H.png',
+      'commercialBuilding3-05-UH.png',
+      'commercialBuilding3-08-H.png',
+      'commercialBuilding3-12-M.png',
+      'commercialBuilding3-13-H.png',
     ],
     preferredFiles: [
-      'commercialBuilding01.png',
-      'commercialBuilding02.png',
-      'commercialBuilding03.png',
-      'commercialBuilding04.png',
-      'commercialBuilding05.png',
-      'commercialBuilding06.png',
-      'commercialBuilding01-highScore.png',
-      'commercialBuilding02-highScore.png',
-      'commercialBuilding03-highScore.png',
+      'commercialBuilding3-03-M.png',
+      'commercialBuilding3-04-H.png',
+      'commercialBuilding3-07-M.png',
+      'commercialBuilding3-09-M.png',
+      'commercialBuilding3-10-M.png',
+      'commercialBuilding3-11-H.png',
+      'commercialBuilding3-01-H.png',
+      'commercialBuilding3-05-UH.png',
+      'commercialBuilding3-08-H.png',
+      'commercialBuilding3-12-M.png',
+      'commercialBuilding3-13-H.png',
     ],
-    fileAliases: buildSequentialFileAliases([
-      'commercialBuilding3-03.png',
-      'commercialBuilding3-04.png',
-      'commercialBuilding3-07.png',
-      'commercialBuilding3-09.png',
-      'commercialBuilding3-10.png',
-      'commercialBuilding3-11.png',
-      'commercialBuilding3-01-highScore.png',
-      'commercialBuilding3-05-highScore.png',
-      'commercialBuilding3-08-highScore.png',
-    ], [
-      'commercialBuilding01.png',
-      'commercialBuilding02.png',
-      'commercialBuilding03.png',
-      'commercialBuilding04.png',
-      'commercialBuilding05.png',
-      'commercialBuilding06.png',
-      'commercialBuilding01-highScore.png',
-      'commercialBuilding02-highScore.png',
-      'commercialBuilding03-highScore.png',
-    ]),
     footprintCols: 3,
     footprintRows: 3,
   },
@@ -218,23 +218,27 @@ const COMMERCIAL_BUILDING_MODEL_SETS = [
     keyPrefix: 'commercial_building_4x4',
     folder: 'Models/commercial/4x4/',
     apiFolder: 'commercial/4x4',
+    modelKind: 'commercial',
     fallbackSourceFiles: [
-      'commercialBuilding4-01-highScore.png',
-      'commercialBuilding4-02-highScore.png',
+      'commercialBuilding4-01-H.png',
+      'commercialBuilding4-02-H.png',
     ],
     preferredFiles: [
-      'commercialBuilding01-highScore.png',
-      'commercialBuilding02-highScore.png',
+      'commercialBuilding4-01-H.png',
+      'commercialBuilding4-02-H.png',
     ],
-    fileAliases: buildSequentialFileAliases([
-      'commercialBuilding4-01-highScore.png',
-      'commercialBuilding4-02-highScore.png',
-    ], [
-      'commercialBuilding01-highScore.png',
-      'commercialBuilding02-highScore.png',
-    ]),
     footprintCols: 4,
     footprintRows: 4,
+  },
+  {
+    keyPrefix: 'commercial_building_5x5',
+    folder: 'Models/commercial/5x5/',
+    apiFolder: 'commercial/5x5',
+    modelKind: 'commercial',
+    fallbackSourceFiles: ['commercialBuilding5-01-UH.png'],
+    preferredFiles: ['commercialBuilding5-01-UH.png'],
+    footprintCols: 5,
+    footprintRows: 5,
   },
 ];
 
@@ -272,6 +276,7 @@ const INDUSTRIAL_BUILDING_MODEL_SETS = [
     fallbackSourceFiles: [
       'industrialBuilding2-01.png',
       'industrialBuilding2-02.png',
+      'industrialBuilding2-03.png',
       'industrialBuilding2-04.png',
       'industrialBuilding2-05.png',
       'industrialBuilding2-06.png',
@@ -288,6 +293,7 @@ const INDUSTRIAL_BUILDING_MODEL_SETS = [
       'industrialBuilding04.png',
       'industrialBuilding05.png',
       'industrialBuilding06.png',
+      'industrialBuilding07.png',
       'sciencePark01.png',
       'sciencePark02.png',
       'sciencePark03.png',
@@ -296,6 +302,7 @@ const INDUSTRIAL_BUILDING_MODEL_SETS = [
     fileAliases: buildSequentialFileAliases([
       'industrialBuilding2-01.png',
       'industrialBuilding2-02.png',
+      'industrialBuilding2-03.png',
       'industrialBuilding2-04.png',
       'industrialBuilding2-05.png',
       'industrialBuilding2-06.png',
@@ -311,6 +318,7 @@ const INDUSTRIAL_BUILDING_MODEL_SETS = [
       'industrialBuilding04.png',
       'industrialBuilding05.png',
       'industrialBuilding06.png',
+      'industrialBuilding07.png',
       'sciencePark01.png',
       'sciencePark02.png',
       'sciencePark03.png',

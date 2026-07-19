@@ -85,6 +85,11 @@ const STOCK_CITY_PREMIUM_ANNUAL_MAX = 0.022;
 const STOCK_MARKET_MEAN_REVERSION = 0.16;
 const STOCK_IDIO_SHOCK_DECAY = 0.78;
 const STOCK_IDIO_SHOCK_SCALE = 0.55;
+const STOCK_CRASH_BASE_MONTHLY_CHANCE = 0.003;
+const STOCK_CRASH_MAX_MONTHLY_CHANCE = 0.09;
+const STOCK_CRASH_DROP_RANGE = Object.freeze([0.30, 0.50]);
+const STOCK_CRASH_DURATION_MONTHS = Object.freeze([3, 6]);
+const STOCK_CRASH_COOLDOWN_MONTHS = Object.freeze([18, 36]);
 const STOCK_MARKET_REGIME_ANNUAL_DRIFT = {
   bull: 0.14,
   range: 0.01,
@@ -152,16 +157,70 @@ const STOCK_MARKET_CATALOG = [
 const GROW_CHANCE_BASE = 0.4;
 const UPGRADE_CHANCE   = 0.15;
 const SHRINK_CHANCE    = 0.30;
+const PREMIUM_VISUAL_UPGRADE_CHANCE_PER_MONTH = 0.012;
+const PREMIUM_VISUAL_REBALANCE_CHANCE_PER_MONTH = 0.045;
+const SKYLINE_NEIGHBORHOOD_RADIUS = 6;
+const SKYLINE_REPEAT_MODEL_PENALTY = 0.18;
 const RES_2X2_SPAWN_CHANCE = { 1: 0.20, 2: 0.45, 3: 0.70 };
 const RES_LARGE_SPAWN_CHANCE = {
   3: { 3: 0.18, 4: 0.08, 5: 0.04 },
   2: { 3: 0.08, 4: 0.00, 5: 0.00 },
   1: { 3: 0.00, 4: 0.00, 5: 0.00 },
 };
+const RESIDENTIAL_WEALTH_PROBABILITIES = [
+  { maxQuality: 0.29, weights: { L: 0.78, M: 0.21, H: 0.01, UH: 0.00 } },
+  { maxQuality: 0.44, weights: { L: 0.65, M: 0.32, H: 0.03, UH: 0.00 } },
+  { maxQuality: 0.59, weights: { L: 0.52, M: 0.40, H: 0.08, UH: 0.00 } },
+  { maxQuality: 0.74, weights: { L: 0.43, M: 0.38, H: 0.19, UH: 0.00 } },
+  { maxQuality: 0.84, weights: { L: 0.35, M: 0.38, H: 0.24, UH: 0.03 } },
+  { maxQuality: 1.00, weights: { L: 0.30, M: 0.37, H: 0.28, UH: 0.05 } },
+];
+const RESIDENTIAL_H_MINIMUMS = Object.freeze({
+  quality: 0.55,
+  landValue: 0.50,
+  environment: 0.45,
+  health: 0.45,
+  economy: 0.45,
+});
+const RESIDENTIAL_UH_MINIMUMS = Object.freeze({
+  quality: 0.76,
+  landValue: 0.72,
+  scenic: 0.55,
+  environment: 0.68,
+  health: 0.62,
+  economy: 0.65,
+  maxPollution: 0.20,
+});
+const RESIDENTIAL_LOW_DENSITY_3X3_CHANCE = Object.freeze({ premium: 0.06, elite: 0.12 });
+const COMMERCIAL_TIER_PROBABILITIES = [
+  { maxQuality: 0.29, weights: { L: 0.80, M: 0.20, H: 0.00, UH: 0.00 } },
+  { maxQuality: 0.44, weights: { L: 0.66, M: 0.31, H: 0.03, UH: 0.00 } },
+  { maxQuality: 0.59, weights: { L: 0.52, M: 0.40, H: 0.08, UH: 0.00 } },
+  { maxQuality: 0.74, weights: { L: 0.42, M: 0.39, H: 0.19, UH: 0.00 } },
+  { maxQuality: 0.84, weights: { L: 0.34, M: 0.38, H: 0.25, UH: 0.03 } },
+  { maxQuality: 1.00, weights: { L: 0.28, M: 0.38, H: 0.29, UH: 0.05 } },
+];
+const COMMERCIAL_H_MINIMUMS = Object.freeze({
+  quality: 0.56,
+  landValue: 0.50,
+  environment: 0.40,
+  economy: 0.52,
+});
+const COMMERCIAL_UH_MINIMUMS = Object.freeze({
+  quality: 0.78,
+  landValue: 0.70,
+  scenic: 0.35,
+  environment: 0.55,
+  economy: 0.72,
+  stockExchange: 0.55,
+  airport: 0.55,
+  maxPollution: 0.25,
+});
+const COMMERCIAL_CATALYST_RADIUS = Object.freeze({ stockExchange: 28, airport: 42 });
 const COM_LARGE_SPAWN_CHANCE = {
-  3: { 2: 0.80, 3: 0.58, 4: 0.28 },
-  2: { 2: 0.66, 3: 0.36, 4: 0.14 },
-  1: { 2: 0.42, 3: 0.18, 4: 0.06 },
+  3: { 2: 0.80, 3: 0.58, 4: 0.28, 5: 0.07 },
+  2: { 2: 0.66, 3: 0.36, 4: 0.14, 5: 0.02 },
+  1: { 2: 0.42, 3: 0.18, 4: 0.06, 5: 0.00 },
 };
 const IND_LARGE_SPAWN_CHANCE = {
   3: { 2: 0.65, 3: 0.30 },
@@ -251,22 +310,26 @@ const SCENIC_HAPPINESS_BONUS_MAX = 0.08;
 const SCENIC_LAND_VALUE_BONUS_MAX = 0.16;
 
 // Power plant model assets and logical footprints
+// Updated model canvases have an intentional isometric base point. Anchor that
+// true lowest corner to the map rather than the wider "stable" alpha row above it.
+const DEFAULT_BUILDING_ANCHOR_MODE = 'effective-bottom-to-map-bottom';
+
 const POWER_PLANT_MODELS = {
   power_plant_coal: {
     spriteKey: 'power_plant_coal_2x2',
-    path: 'Models/powerPlant2x2/coalPowerPlant.png',
+    path: 'Models/powerStation/coalPowerPlant.png',
     footprintCols: 2,
     footprintRows: 2,
   },
   power_plant_solar: {
     spriteKey: 'power_plant_solar_2x2',
-    path: 'Models/powerPlant2x2/solarPowerPlant.png',
+    path: 'Models/powerStation/solarPowerPlant.png',
     footprintCols: 2,
     footprintRows: 2,
   },
   power_plant_nuclear: {
     spriteKey: 'power_plant_nuclear_4x4',
-    path: 'Models/powerPlant2x2/nuclearPower4x4.png',
+    path: 'Models/powerStation/nuclearPower4x4.png',
     footprintCols: 4,
     footprintRows: 4,
   },
@@ -305,7 +368,7 @@ const SERVICE_BUILDING_MODELS = {
   },
   community_college: {
     spriteKey: 'community_college_3x3',
-    path: 'Models/government/3x3/university3-01.png',
+    path: 'Models/government/3x3/college3-01.png',
     footprintCols: 3,
     footprintRows: 3,
   },
@@ -323,7 +386,7 @@ const SERVICE_BUILDING_MODELS = {
   },
   legislative_council: {
     spriteKey: 'legislative_council_2x2',
-    path: 'Models/government/2x2/legistrativeCouncil2-01.png',
+    path: 'Models/government/2x2/legislativeCouncil2-02.png',
     footprintCols: 2,
     footprintRows: 2,
   },
@@ -347,6 +410,330 @@ const SERVICE_BUILDING_MODELS = {
     footprintRows: 3,
   },
 };
+
+// Same-service visual variants are chosen when the player constructs the
+// building. The chosen sprite key is persisted, so loading a save never
+// changes an existing building's appearance.
+const SERVICE_BUILDING_MODEL_VARIANTS = {
+  fire_station: [
+    SERVICE_BUILDING_MODELS.fire_station,
+    {
+      spriteKey: 'fire_station_2x2_alt',
+      path: 'Models/government/2x2/firestation2-02.png',
+      footprintCols: 2,
+      footprintRows: 2,
+    },
+  ],
+  police_station: [
+    SERVICE_BUILDING_MODELS.police_station,
+    {
+      spriteKey: 'police_station_2x2_alt',
+      path: 'Models/government/2x2/policeStation2-02.png',
+      footprintCols: 2,
+      footprintRows: 2,
+    },
+  ],
+  secondary_school: [
+    SERVICE_BUILDING_MODELS.secondary_school,
+    {
+      spriteKey: 'secondary_school_2x2_alt',
+      path: 'Models/government/2x2/secondarySchool2-02.png',
+      footprintCols: 2,
+      footprintRows: 2,
+    },
+  ],
+  community_college: [
+    SERVICE_BUILDING_MODELS.community_college,
+    {
+      spriteKey: 'community_college_3x3_alt_2',
+      path: 'Models/government/3x3/college3-02.png',
+      footprintCols: 3,
+      footprintRows: 3,
+    },
+    {
+      spriteKey: 'community_college_3x3_alt_3',
+      path: 'Models/government/3x3/college3-03.png',
+      footprintCols: 3,
+      footprintRows: 3,
+    },
+    {
+      spriteKey: 'community_college_3x3_alt_4',
+      path: 'Models/government/3x3/college3-04.png',
+      footprintCols: 3,
+      footprintRows: 3,
+    },
+  ],
+  university: [
+    SERVICE_BUILDING_MODELS.university,
+    {
+      spriteKey: 'university_4x4_alt',
+      path: 'Models/government/4x4/university4-02.png',
+      footprintCols: 4,
+      footprintRows: 4,
+    },
+  ],
+  legislative_council: [
+    SERVICE_BUILDING_MODELS.legislative_council,
+    {
+      spriteKey: 'legislative_council_2x2_alt',
+      path: 'Models/government/2x2/legislativeCouncil2-01.png',
+      footprintCols: 2,
+      footprintRows: 2,
+    },
+  ],
+};
+
+function getServiceBuildingModels(buildingType) {
+  return SERVICE_BUILDING_MODEL_VARIANTS[buildingType]
+    ?? (SERVICE_BUILDING_MODELS[buildingType] ? [SERVICE_BUILDING_MODELS[buildingType]] : []);
+}
+
+// These frequently repeated civic buildings use every visual variant in a
+// predictable order before starting over. Other service types retain their
+// existing random selection behaviour.
+const CYCLIC_SERVICE_BUILDING_TYPES = new Set([
+  'fire_station',
+  'police_station',
+  'community_college',
+  'university',
+]);
+
+function selectServiceBuildingModel(buildingType, existingCount = 0, randomValue = Math.random()) {
+  const models = getServiceBuildingModels(buildingType);
+  if (models.length === 0) return null;
+
+  if (CYCLIC_SERVICE_BUILDING_TYPES.has(buildingType)) {
+    const index = Math.max(0, Math.floor(Number(existingCount) || 0)) % models.length;
+    return models[index];
+  }
+
+  const randomIndex = Math.min(models.length - 1, Math.floor(Math.max(0, Number(randomValue) || 0) * models.length));
+  return models[randomIndex];
+}
+
+// ── Special buildings (landmarks) ──────────────────────────────────────────
+// Population/policy-gated one-off buildings. Placed through the same
+// placeInfraBuilding() pipeline as SERVICE_BUILDING_MODELS, but gated by
+// SPECIAL_BUILDING_UNLOCKS instead of budget alone.
+const SPECIAL_BUILDING_MODELS = {
+  exhibition_center: {
+    spriteKey: 'exhibition_center_4x4',
+    path: 'Models/specialSites/4x4/exhibitionCentre4-01.png',
+    footprintCols: 4,
+    footprintRows: 4,
+  },
+  cultural_center: {
+    spriteKey: 'cultural_center_4x4',
+    path: 'Models/specialSites/4x4/culturalCentre4-01.png',
+    footprintCols: 4,
+    footprintRows: 4,
+  },
+  space_museum: {
+    spriteKey: 'space_museum_2x2',
+    path: 'Models/specialSites/2x2/spaceMuseum2-01.png',
+    footprintCols: 2,
+    footprintRows: 2,
+  },
+  buddha_statue: {
+    spriteKey: 'buddha_statue_3x3',
+    path: 'Models/specialSites/3x3/buddha3-01.png',
+    footprintCols: 3,
+    footprintRows: 3,
+  },
+  heritage_temple: {
+    spriteKey: 'heritage_temple_2x2',
+    path: 'Models/specialSites/2x2/tample2-01.png',
+    footprintCols: 2,
+    footprintRows: 2,
+  },
+  heritage_church: {
+    spriteKey: 'heritage_church_3x3',
+    path: 'Models/specialSites/3x3/church3-01.png',
+    footprintCols: 3,
+    footprintRows: 3,
+  },
+  indoor_coliseum: {
+    spriteKey: 'indoor_coliseum_3x3',
+    path: 'Models/specialSites/3x3/hungHomColiseum3-01_fixed.png',
+    footprintCols: 3,
+    footprintRows: 3,
+  },
+  murray_house: {
+    spriteKey: 'murray_house_2x2',
+    path: 'Models/specialSites/2x2/murrayHouse2-01.png',
+    footprintCols: 2,
+    footprintRows: 2,
+  },
+  ocean_park: {
+    spriteKey: 'ocean_park_4x4',
+    path: 'Models/specialSites/4x4/oceanPark4-01.png',
+    footprintCols: 4,
+    footprintRows: 4,
+  },
+  football_stadium: {
+    spriteKey: 'football_stadium_4x4',
+    path: 'Models/specialSites/4x4/footballStadium4-02.png',
+    footprintCols: 4,
+    footprintRows: 4,
+  },
+  airport: {
+    spriteKey: 'airport_12x12',
+    path: 'Models/airPort/6x6/airport6-01.png',
+    // The source image is occasionally replaced without changing its filename.
+    // Version the request URL so browsers do not retain the previous airport.
+    cacheVersion: '20260719-12x12-v4',
+    footprintCols: 12,
+    footprintRows: 12,
+  },
+};
+
+// Existing saves used the same source art as a 6x6 airport. Keep that visual
+// footprint loadable so migration never claims or overwrites adjacent tiles.
+const LEGACY_AIRPORT_MODEL = {
+  spriteKey: 'airport_6x6_legacy',
+  path: 'Models/airPort/6x6/airport6-01.png',
+  cacheVersion: '20260719-12x12-v4',
+  footprintCols: 6,
+  footprintRows: 6,
+};
+
+const LEGACY_AIRPORT_8X8_MODEL = {
+  spriteKey: 'airport_8x8_legacy',
+  path: 'Models/airPort/6x6/airport6-01.png',
+  cacheVersion: '20260719-12x12-v4',
+  footprintCols: 8,
+  footprintRows: 8,
+};
+
+const SPECIAL_BUILDING_MODEL_VARIANTS = {
+  heritage_temple: [
+    SPECIAL_BUILDING_MODELS.heritage_temple,
+    {
+      spriteKey: 'heritage_temple_2x2_alt',
+      path: 'Models/specialSites/2x2/tample2-02.png',
+      footprintCols: 2,
+      footprintRows: 2,
+    },
+  ],
+};
+
+function getSpecialBuildingModels(buildingType) {
+  return SPECIAL_BUILDING_MODEL_VARIANTS[buildingType]
+    ?? (SPECIAL_BUILDING_MODELS[buildingType] ? [SPECIAL_BUILDING_MODELS[buildingType]] : []);
+}
+
+function getAllSpecialBuildingModels(buildingType) {
+  const models = getSpecialBuildingModels(buildingType);
+  return buildingType === 'airport'
+    ? [...models, LEGACY_AIRPORT_MODEL, LEGACY_AIRPORT_8X8_MODEL]
+    : models;
+}
+
+// Container port: footprint is fixed but the sprite is chosen per-tile from the
+// coastline shape (see getHarborVisualKey in main.js), so it isn't a simple
+// type→spriteKey map like the other registries.
+const HARBOR_BUILDING_TYPE = 'container_port';
+const HARBOR_FOOTPRINT_COLS = 4;
+const HARBOR_FOOTPRINT_ROWS = 4;
+const HARBOR_MODELS = {
+  harbor_ll: {
+    spriteKey: 'harbor_ll',
+    path: 'Models/containerPort/4x4/containerPort3-LL.png',
+    footprintCols: HARBOR_FOOTPRINT_COLS,
+    footprintRows: HARBOR_FOOTPRINT_ROWS,
+  },
+  harbor_lr: {
+    spriteKey: 'harbor_lr',
+    path: 'Models/containerPort/4x4/containerPort3-LR.png',
+    footprintCols: HARBOR_FOOTPRINT_COLS,
+    footprintRows: HARBOR_FOOTPRINT_ROWS,
+  },
+  harbor_ul: {
+    spriteKey: 'harbor_ul',
+    path: 'Models/containerPort/4x4/containerPort3-UL.png',
+    footprintCols: HARBOR_FOOTPRINT_COLS,
+    footprintRows: HARBOR_FOOTPRINT_ROWS,
+  },
+  harbor_ur: {
+    spriteKey: 'harbor_ur',
+    path: 'Models/containerPort/4x4/containerPort3-UR.png',
+    footprintCols: HARBOR_FOOTPRINT_COLS,
+    footprintRows: HARBOR_FOOTPRINT_ROWS,
+  },
+};
+
+// Unlock gates for special buildings + the harbour. Checked generically by
+// getSpecialBuildingUnlockState() in city-state.js.
+// Landmarks (specialSites) are one-off — each city gets exactly one of each.
+// Harbour/airport are ordinary (repeatable) infrastructure, so they get no
+// maxCount here even though they share the same unlock-gate mechanism.
+const SPECIAL_BUILDING_UNLOCKS = {
+  exhibition_center: { unlockPopulation: 30000, maxCount: 1 },
+  cultural_center:    { unlockPopulation: 20000, maxCount: 1 },
+  space_museum:       { unlockPopulation: 15000, requiresPolicy: 'scienceDevelopment', maxCount: 1 },
+  buddha_statue:      { unlockPopulation: 12000, maxCount: 1 },
+  heritage_temple:    { unlockPopulation: 8000, maxCount: 1 },
+  heritage_church:    { unlockPopulation: 6000, maxCount: 1 },
+  indoor_coliseum:    { unlockPopulation: 30000, maxCount: 1 },
+  murray_house:       { unlockAttractiveness: 60, maxCount: 1 },
+  ocean_park:         { unlockPopulation: 25000, maxCount: 1 },
+  football_stadium:   { unlockPopulation: 40000, maxCount: 1 },
+  airport:            { requiresResolution: 'roseGardenAirportProject', hideUntilApproved: true, maxCount: 1 },
+  container_port:     { unlockPopulation: 15000 },
+};
+
+// Gameplay effects for each special building / the harbour. attractivenessBonus
+// and happinessBonus are flat city-wide contributions (summed in
+// council-effects.js / simulation.js); landValueBonus is radius-based like the
+// tree/scenic bonuses in overlay-controls.js; nuisanceRadius/Strength dents
+// nearby land value like POWER_PLANT_STATS; revenue/upkeep feed the monthly
+// budget in city-state.js.
+const SPECIAL_BUILDING_EFFECTS = {
+  exhibition_center: { attractivenessBonus: 6,  landValueBonus: 0.10, landValueRadius: 10, revenue: 260, upkeep: 900 },
+  cultural_center:    { attractivenessBonus: 5,  landValueBonus: 0.08, landValueRadius: 8,  happinessBonus: 0.015, upkeep: 520 },
+  space_museum:       { attractivenessBonus: 4,  landValueBonus: 0.06, landValueRadius: 7,  happinessBonus: 0.010, upkeep: 380 },
+  buddha_statue:      { attractivenessBonus: 5,  landValueBonus: 0.05, landValueRadius: 9,  happinessBonus: 0.015, upkeep: 150 },
+  heritage_temple:    { attractivenessBonus: 3,  landValueBonus: 0.05, landValueRadius: 7,  happinessBonus: 0.010, upkeep: 120 },
+  heritage_church:    { attractivenessBonus: 4,  landValueBonus: 0.06, landValueRadius: 7,  happinessBonus: 0.012, upkeep: 150 },
+  indoor_coliseum:    { attractivenessBonus: 6,  landValueBonus: 0.07, landValueRadius: 8,  happinessBonus: 0.010, revenue: 300, upkeep: 650 },
+  murray_house:       { attractivenessBonus: 3,  landValueBonus: 0.06, landValueRadius: 6,  upkeep: 140 },
+  ocean_park:         { attractivenessBonus: 10, landValueBonus: 0.06, landValueRadius: 10, revenue: 900, upkeep: 1400 },
+  football_stadium:   {
+    attractivenessBonus: 6, landValueBonus: 0.08, landValueRadius: 9, happinessBonus: 0.010,
+    pollutionReductionRadius: 8, pollutionReductionStrength: 0.10,
+    revenue: 400, upkeep: 900,
+  },
+  airport:            {
+    attractivenessBonus: 14, landValueBonus: 0.05, landValueRadius: 8,
+    nuisanceRadius: 20, nuisanceStrength: 0.30,
+    revenue: 1400, upkeep: 2600,
+  },
+  container_port:     {
+    nuisanceRadius: 12, nuisanceStrength: 0.28,
+    revenue: 500, upkeep: 700,
+  },
+};
+
+const SPECIAL_BUILDING_COSTS = {
+  exhibition_center: 15000,
+  cultural_center:    9000,
+  space_museum:       6500,
+  buddha_statue:       4200,
+  heritage_temple:     2600,
+  heritage_church:     3200,
+  indoor_coliseum:    12000,
+  murray_house:        1800,
+  ocean_park:         22000,
+  football_stadium:   18000,
+  airport:           150000,
+  container_port:     12000,
+};
+
+// Flagship park tier (e.g. Victoria Park) — mechanically a bigger, pricier,
+// stronger-coverage sibling of park_large, repeatable like any other park.
+const COST_PARK_FLAGSHIP   = 2200;
+const UPKEEP_PARK_FLAGSHIP = 180;
+const FLAGSHIP_PARK_RADIUS = 16;
 
 const POWER_PLANT_STATS = {
   power_plant_coal: {
@@ -407,8 +794,21 @@ const BUILDING_POWER_DEMAND = {
   hospital: 22,
   park_small: 2,
   park_large: 4,
+  park_flagship: 7,
   sports_ground_small: 4,
   sports_ground_large: 8,
+  exhibition_center: 24,
+  cultural_center: 14,
+  space_museum: 10,
+  buddha_statue: 4,
+  heritage_temple: 3,
+  heritage_church: 4,
+  indoor_coliseum: 18,
+  murray_house: 3,
+  ocean_park: 32,
+  football_stadium: 26,
+  airport: 60,
+  container_port: 20,
 };
 
 // Monthly upkeep costs

@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const sharp = require('sharp');
+const { defringeWhiteMatteRgba } = require('./lib/defringe-model');
 
 const ROOT = path.resolve(__dirname, '..');
 const SOURCE_ROOT = path.join(ROOT, 'Models');
@@ -13,7 +14,9 @@ const NEXT_STAGE_ROOT = path.join(DATA_ROOT, 'package-assets.next');
 const CACHE_ROOT = path.join(DATA_ROOT, 'webp-cache');
 const QUALITY = Number(process.env.ASSET_WEBP_QUALITY || 88);
 const MAX_DIMENSION = Number(process.env.ASSET_MAX_DIMENSION || 1024);
-const SETTINGS_VERSION = 1;
+// Bump whenever pixel processing changes so cached WebP files cannot retain an
+// older matte-removal or resize result.
+const SETTINGS_VERSION = 3;
 const SOURCE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg']);
 
 function walk(root) {
@@ -104,7 +107,13 @@ async function prepareFile(sourcePath) {
   const shouldTrim = !relativeFromModels.startsWith('trees/');
   const cacheKey = sha256(Buffer.concat([
     sourceBuffer,
-    Buffer.from(JSON.stringify({ SETTINGS_VERSION, QUALITY, MAX_DIMENSION, shouldTrim })),
+    Buffer.from(JSON.stringify({
+      SETTINGS_VERSION,
+      QUALITY,
+      MAX_DIMENSION,
+      shouldTrim,
+      defringe: 'white-matte-v2-3pass',
+    })),
   ]));
   const cacheImage = path.join(CACHE_ROOT, `${cacheKey}.webp`);
   const cacheMetadata = path.join(CACHE_ROOT, `${cacheKey}.json`);
@@ -113,9 +122,29 @@ async function prepareFile(sourcePath) {
   if (fs.existsSync(cacheImage) && fs.existsSync(cacheMetadata)) {
     metadata = JSON.parse(fs.readFileSync(cacheMetadata, 'utf8'));
   } else {
-    let pipeline = sharp(sourceBuffer, { animated: false }).ensureAlpha();
-    const sourceMetadata = await pipeline.metadata();
-    if ((sourceMetadata.width || 0) > MAX_DIMENSION || (sourceMetadata.height || 0) > MAX_DIMENSION) {
+    // Remove generated white matte RGB while the original pixels are still
+    // intact. Doing this after resize would allow the matte colour to bleed
+    // through the interpolation kernel into otherwise clean edge pixels.
+    const decoded = await sharp(sourceBuffer, { animated: false })
+      .ensureAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+    const defringed = defringeWhiteMatteRgba(
+      decoded.data,
+      decoded.info.width,
+      decoded.info.height,
+    );
+    // Sharp automatically premultiplies alpha for resize operations and
+    // unpremultiplies afterwards, preventing transparent RGB from creating a
+    // second halo during resampling.
+    let pipeline = sharp(defringed.data, {
+      raw: {
+        width: decoded.info.width,
+        height: decoded.info.height,
+        channels: 4,
+      },
+    });
+    if (decoded.info.width > MAX_DIMENSION || decoded.info.height > MAX_DIMENSION) {
       pipeline = pipeline.resize({
         width: MAX_DIMENSION,
         height: MAX_DIMENSION,
@@ -124,25 +153,51 @@ async function prepareFile(sourcePath) {
       });
     }
     const resized = await pipeline.raw().toBuffer({ resolveWithObject: true });
+    const defringePasses = [defringed.stats];
+    let processedData = resized.data;
+    // Resampling and lossy colour conversion can reveal a smaller second ring
+    // of matte pixels. Two conservative finishing passes clean that ring while
+    // avoiding the cumulative darkening seen with five or more passes.
+    for (let pass = 0; pass < 2; pass++) {
+      const result = defringeWhiteMatteRgba(
+        processedData,
+        resized.info.width,
+        resized.info.height,
+      );
+      processedData = result.data;
+      defringePasses.push(result.stats);
+    }
     const trim = shouldTrim
-      ? findAlphaBounds(resized.data, resized.info.width, resized.info.height)
+      ? findAlphaBounds(processedData, resized.info.width, resized.info.height)
       : { left: 0, top: 0, width: resized.info.width, height: resized.info.height };
-    const trimmedRaw = await sharp(resized.data, { raw: resized.info })
+    const trimmedRaw = await sharp(processedData, { raw: resized.info })
       .extract(trim)
       .raw()
       .toBuffer({ resolveWithObject: true });
     const webp = await sharp(trimmedRaw.data, { raw: trimmedRaw.info })
-      .webp({ quality: QUALITY, alphaQuality: 100, smartSubsample: true, effort: 5 })
+      .webp({
+        quality: QUALITY,
+        alphaQuality: 100,
+        smartSubsample: true,
+        smartDeblock: true,
+        preset: 'drawing',
+        effort: 5,
+      })
       .toBuffer();
     fs.mkdirSync(CACHE_ROOT, { recursive: true });
     fs.writeFileSync(cacheImage, webp);
     metadata = {
-      sourceWidth: sourceMetadata.width,
-      sourceHeight: sourceMetadata.height,
+      sourceWidth: decoded.info.width,
+      sourceHeight: decoded.info.height,
       outputWidth: trimmedRaw.info.width,
       outputHeight: trimmedRaw.info.height,
       trim,
       geometry: findGeometry(trimmedRaw.data, trimmedRaw.info.width, trimmedRaw.info.height),
+      defringe: {
+        algorithm: 'white-matte-v2-3pass',
+        passes: defringePasses,
+        changedPixels: defringePasses.reduce((sum, stats) => sum + stats.changedPixels, 0),
+      },
     };
     fs.writeFileSync(cacheMetadata, `${JSON.stringify(metadata)}\n`);
   }
@@ -181,7 +236,14 @@ async function main() {
   const manifest = {
     formatVersion: 1,
     version: manifestVersion,
-    settings: { quality: QUALITY, alphaQuality: 100, maxDimension: MAX_DIMENSION },
+    settings: {
+      quality: QUALITY,
+      alphaQuality: 100,
+      maxDimension: MAX_DIMENSION,
+      defringe: 'white-matte-v2-3pass',
+      alphaResize: 'premultiplied',
+      webpPreset: 'drawing',
+    },
     totals: { files: entries.length, sourceBytes, outputBytes },
     entries: Object.fromEntries(entries.map((entry) => [entry.logicalPath, entry])),
   };

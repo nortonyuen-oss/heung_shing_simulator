@@ -40,6 +40,20 @@ test('all Electron release commands prepare and verify staged WebP assets', () =
   assert.equal(stagedFileSet?.from, '.data/package-assets/Models');
 });
 
+test('release conversion defringes source RGBA before alpha-safe resizing', () => {
+  const source = fs.readFileSync(path.join(ROOT, 'scripts', 'prepare-release-assets.js'), 'utf8');
+  const decodeIndex = source.indexOf('const decoded = await sharp');
+  const defringeIndex = source.indexOf('defringeWhiteMatteRgba(', decodeIndex);
+  const resizeIndex = source.indexOf('pipeline = pipeline.resize(', defringeIndex);
+  const encodeIndex = source.indexOf('.webp({', resizeIndex);
+  assert.ok(decodeIndex >= 0 && defringeIndex > decodeIndex);
+  assert.ok(resizeIndex > defringeIndex, 'defringe must run before resize');
+  assert.ok(encodeIndex > resizeIndex, 'WebP encoding must run after alpha-safe resize');
+  assert.match(source, /const SETTINGS_VERSION = 3/);
+  assert.match(source, /defringePasses\.push\(result\.stats\)/);
+  assert.match(source, /preset: 'drawing'/);
+});
+
 test('Phaser model literals are routed through the model asset resolver', () => {
   const main = fs.readFileSync(path.join(ROOT, 'main.js'), 'utf8');
   const directModelLoads = main.split('\n').filter((line) => (

@@ -27,7 +27,7 @@
 - 144 張模型全部可解碼，並且全部具有透明通道。
 - 固定 registry、住宅／商業／工業 catalog 與目前檔名完全吻合，沒有失效引用。
 - 已移除顯示異常的 `commercialBuilding1-02-M.png`、`commercialBuilding4-03-L.png` 及 `commercialBuilding4-04-L.png`；舊存檔會按相同 footprint fallback 到現有模型。
-- 打包管線會由 PNG 母檔自動產生 144 張 WebP；目前由 145.0 MiB 降至 25.9 MiB。
+- 打包管線會由 PNG 母檔自動產生 144 張 WebP；三次 defringe 後目前由 145.0 MiB 降至 27.0 MiB。
 - manifest hash 已納入模型路徑及 metadata cache；同名換圖不會沿用舊貼圖或透明邊界資料。
 - 建築會裁走全透明畫布，樹木保留原畫布；WebP anchor 審計最大偏差為 0.00px。
 - 遊戲啟動只預載每個 footprint／tier 的代表模型，其餘按需載入並受 192 MiB soft LRU budget 管理。

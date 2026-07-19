@@ -1,12 +1,20 @@
-# The City of Heung Shing v3.1.8
+# The City of Heung Shing v3.2.0
 
-Terrain elevation integrity fix for language switching and built-in map previews.
+New asset, skyline progression and major-project systems release.
 
-## Fixes
+## Highlights
 
-- Prevented built-in terrain preview generation from overwriting the active city's global elevation map.
-- Stopped language changes during gameplay from rebuilding the hidden landing-screen terrain previews.
-- Added a regression test that keeps preview generation isolated while preserving explicit terrain commits for new games.
+- Added L/M/H/UH residential and commercial progression driven by district quality and city conditions.
+- Restricted ultra-luxury homes to low-density residential zones and world-class towers to qualified high-density commercial zones.
+- Added the council-gated “I Love the Rose Garden Project” airport and upgraded it to a 12×12 footprint.
+- Reorganised civic, leisure and landmark construction menus for smaller screens.
+- Added sequential civic-building visual variants and improved isometric model anchoring.
+- Added lossless WebP release assets with power-of-two texture padding for smaller desktop packages.
+
+## Compatibility
+
+- Existing residential, commercial and legacy airport saves are migrated when loaded.
+- Save format version: 15.
 
 ## Downloads
 
@@ -14,5 +22,3 @@ Terrain elevation integrity fix for language switching and built-in map previews
 - macOS Intel DMG
 - Windows installer EXE
 - Windows portable EXE
-
-Save format version: 14 (unchanged from v3.1.7).

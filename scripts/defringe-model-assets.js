@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const sharp = require('sharp');
 const {
-  PACKAGED_DEFRINGE_OPTIONS,
+  CONSERVATIVE_DEFRINGE_OPTIONS,
   defringeWhiteMatteRgba,
 } = require('./lib/defringe-model');
 
@@ -68,7 +68,7 @@ async function processFile(sourcePath, options) {
     data,
     info.width,
     info.height,
-    PACKAGED_DEFRINGE_OPTIONS,
+    CONSERVATIVE_DEFRINGE_OPTIONS,
   );
   if (result.stats.changedPixels < options.minChanged) return null;
 

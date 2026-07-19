@@ -15,12 +15,11 @@ const DEFAULT_DEFRINGE_OPTIONS = Object.freeze({
   pureWhiteMaxAlpha: 250,
 });
 
-// Conservative release preset. It only considers pixels very close to the
-// transparent silhouette and requires substantially stronger evidence of a
-// white matte than the diagnostic/default mode. Keeping this as one pass is
-// important: repeated passes progressively reinterpret legitimate antialiasing
-// and fine foliage as contamination.
-const PACKAGED_DEFRINGE_OPTIONS = Object.freeze({
+// Conservative manual-authoring preset. Release packaging intentionally does
+// not call this: checked-in PNG edge colours are the visual source of truth.
+// Keeping this as one pass is important because repeated passes progressively
+// reinterpret legitimate antialiasing and fine foliage as contamination.
+const CONSERVATIVE_DEFRINGE_OPTIONS = Object.freeze({
   edgeRadius: 2,
   sampleRadius: 10,
   maxAlpha: 235,
@@ -177,8 +176,8 @@ function defringeWhiteMatteRgba(input, width, height, overrides = {}) {
 }
 
 module.exports = {
+  CONSERVATIVE_DEFRINGE_OPTIONS,
   DEFAULT_DEFRINGE_OPTIONS,
-  PACKAGED_DEFRINGE_OPTIONS,
   defringeWhiteMatteRgba,
   recoverWhiteMatteColor,
 };

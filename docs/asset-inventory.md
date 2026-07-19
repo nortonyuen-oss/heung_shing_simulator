@@ -27,11 +27,10 @@
 - 144 張模型全部可解碼，並且全部具有透明通道。
 - 固定 registry、住宅／商業／工業 catalog 與目前檔名完全吻合，沒有失效引用。
 - 已移除顯示異常的 `commercialBuilding1-02-M.png`、`commercialBuilding4-03-L.png` 及 `commercialBuilding4-04-L.png`；舊存檔會按相同 footprint fallback 到現有模型。
-- 打包管線會由 PNG 母檔自動產生 144 張 WebP；使用嚴格單次 defringe，145.0 MiB 降至 25.1 MiB，避免重複處理破壞反鋸齒及植物細節。
+- 打包管線會由 PNG 母檔自動產生 144 張 lossless WebP；不會再次 defringe，所有可見 RGBA 像素維持一致，145.0 MiB 降至 96.0 MiB。
 - manifest hash 已納入模型路徑及 metadata cache；同名換圖不會沿用舊貼圖或透明邊界資料。
-- 建築會裁走全透明畫布，樹木保留原畫布；WebP anchor 審計最大偏差為 0.00px。
-- 遊戲啟動只預載每個 footprint／tier 的代表模型，其餘按需載入並受 192 MiB soft LRU budget 管理。
-- 以 manifest 尺寸估算，zone texture 啟動解碼量由全載入約 216.8 MiB 降至約 74.0 MiB（減少 65.9%）。
+- 建築裁走全透明畫布後會在頂部及左右補透明像素至最接近的 2 次方尺寸；樹木保留原畫布後同樣補位。144 張 WebP 全部恢復 Phaser mipmap，anchor 審計最大偏差為 0.00px。
+- 遊戲啟動只預載每個 footprint／tier 的代表模型，其餘按需載入並受 192 MiB soft LRU budget 管理；預算已計入完整 mip chain 額外約三分之一的 GPU 記憶體。
 - `/Models/` 圖片改為每次重載時條件式重新驗證，避免一小時媒體快取遮蔽最新貼圖。
 - 貨櫃碼頭四方向已使用 4×4 footprint；機場新建尺寸為 12×12，舊存檔保留 6×6／8×8 fallback。
 

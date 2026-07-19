@@ -2096,7 +2096,18 @@ function evictUnusedZoneTextures(scene) {
   const models = getAllZoneModels();
   const loaded = models.flatMap((model) => {
     const source = scene.textures.get(model.key)?.getSourceImage();
-    return source ? [{ model, bytes: source.width * source.height * 4 }] : [];
+    if (!source) return [];
+    const isPowerOfTwo = (value) => value > 0 && (value & (value - 1)) === 0;
+    const mipmapMultiplier = isPowerOfTwo(source.width) && isPowerOfTwo(source.height)
+      ? 4 / 3
+      : 1;
+    return [{
+      model,
+      // RGBA textures occupy four bytes per pixel in GPU memory. A complete
+      // mip chain adds one third more storage, so include it in the soft
+      // budget now that packaged model textures deliberately restore mipmaps.
+      bytes: Math.ceil(source.width * source.height * 4 * mipmapMultiplier),
+    }];
   });
   let totalBytes = loaded.reduce((sum, entry) => sum + entry.bytes, 0);
   if (totalBytes <= ZONE_TEXTURE_BUDGET_BYTES) return;

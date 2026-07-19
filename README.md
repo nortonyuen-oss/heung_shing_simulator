@@ -1,6 +1,6 @@
-# 香城模擬器 (The City of Heung Shing) v3.1.8
+# 香城模擬器 (The City of Heung Shing) v3.2.0
 
-香城模擬器 (The City of Heung Shing) v3.1.8 is a SimCity 2000-style city builder with a local SQLite save system, isometric map view, cloud-assisted district news, and a classic windowed UI.
+香城模擬器 (The City of Heung Shing) v3.2.0 is a SimCity 2000-style city builder with a local SQLite save system, isometric map view, cloud-assisted district news, and a classic windowed UI.
 
 <img width="1438" height="792" alt="image" src="https://github.com/user-attachments/assets/ec3cab6e-48af-4976-b00a-097bc901e429" />
 
@@ -129,43 +129,45 @@ To publish a new version:
 
 `Models/` PNG files are the editable source of truth. Do not maintain a second
 set of WebP models by hand. Every desktop build now prepares a content-addressed
-release stage automatically (quality 88, alpha quality 100, maximum dimension
-1024px):
+release stage automatically as lossless WebP with a maximum source dimension of
+1024px:
 
 ```bash
 npm run prepare:release-assets
 npm run verify:release-assets
 ```
 
-The ignored output is written to `.data/package-assets/Models`. A strict,
-single-pass correction removes generated white matte RGB before Sharp performs
-its premultiplied-alpha resize. The pass is deliberately not repeated after
-resize because repeated correction damages legitimate antialiasing and foliage.
-Buildings then have empty transparent canvas edges removed, while trees retain
-their original canvas so their fixed origins do not move. `model-assets.json` preserves each
-logical PNG identity, maps it to the packaged WebP, and records its content hash,
-trim bounds and anchor geometry. Deleted or replaced source files are reflected
-automatically on the next build.
+The ignored output is written to `.data/package-assets/Models`. Packaging does
+not run defringe or reinterpret antialiased edge colours: the checked-in PNG is
+the visual master. Buildings have empty transparent canvas edges removed, while
+trees retain their original canvas. Every result is then transparently padded
+at the top and sides to the nearest power-of-two dimensions, bottom-centred, so
+Phaser 3.60 can generate mipmaps when large source art is minified in-game.
+`model-assets.json` preserves each logical PNG identity, maps it to the packaged
+WebP, and records its content hash, trim, padding, mipmap eligibility and anchor
+geometry. Deleted or replaced source files are reflected automatically on the
+next build.
 
 Electron packages exclude source `Models/**` and include only this staged WebP
 tree and manifest. `npm run dist`, `npm run dist:mac`, and `npm run dist:win` all
 run preparation and verification first. The current 144-model set is reduced
-from 145.0 MiB to 25.1 MiB with strict single-pass defringe.
+from 145.0 MiB to 96.0 MiB while keeping every visible RGBA pixel bit-exact and
+all 144 packaged textures mipmap-safe.
 
 Optional release-pipeline environment variables:
 
 - `ASSET_MAX_DIMENSION` (default `1024`)
-- `ASSET_WEBP_QUALITY` (default `88`)
 
 Example:
 
 ```bash
-ASSET_MAX_DIMENSION=900 ASSET_WEBP_QUALITY=84 npm run prepare:release-assets
+ASSET_MAX_DIMENSION=1024 npm run prepare:release-assets
 npm run verify:release-assets
 ```
 
-To inspect white-edge corrections without changing the PNG source models, run a
-dry scan. Supplying an output directory writes mirrored preview PNGs:
+Defringe remains a separate authoring diagnostic and is never applied during
+release packaging. To inspect a new PNG without changing the source model, run
+a dry scan. Supplying an output directory writes mirrored preview PNGs:
 
 ```bash
 npm run defringe:assets

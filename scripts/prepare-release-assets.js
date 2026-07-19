@@ -4,10 +4,6 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const sharp = require('sharp');
-const {
-  PACKAGED_DEFRINGE_OPTIONS,
-  defringeWhiteMatteRgba,
-} = require('./lib/defringe-model');
 
 const ROOT = path.resolve(__dirname, '..');
 const SOURCE_ROOT = path.join(ROOT, 'Models');
@@ -15,11 +11,10 @@ const DATA_ROOT = path.join(ROOT, '.data');
 const STAGE_ROOT = path.join(DATA_ROOT, 'package-assets');
 const NEXT_STAGE_ROOT = path.join(DATA_ROOT, 'package-assets.next');
 const CACHE_ROOT = path.join(DATA_ROOT, 'webp-cache');
-const QUALITY = Number(process.env.ASSET_WEBP_QUALITY || 88);
 const MAX_DIMENSION = Number(process.env.ASSET_MAX_DIMENSION || 1024);
 // Bump whenever pixel processing changes so cached WebP files cannot retain an
-// older matte-removal or resize result.
-const SETTINGS_VERSION = 4;
+// older matte-removal, resize, padding, or encoder result.
+const SETTINGS_VERSION = 5;
 const SOURCE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg']);
 
 function walk(root) {
@@ -37,6 +32,34 @@ function normalizePath(value) {
 
 function sha256(value) {
   return crypto.createHash('sha256').update(value).digest('hex');
+}
+
+function nextPowerOfTwo(value) {
+  if (!Number.isInteger(value) || value <= 0) {
+    throw new TypeError('Texture dimensions must be positive integers.');
+  }
+  return 2 ** Math.ceil(Math.log2(value));
+}
+
+function getPowerOfTwoPadding(width, height) {
+  const outputWidth = nextPowerOfTwo(width);
+  const outputHeight = nextPowerOfTwo(height);
+  const horizontal = outputWidth - width;
+  const vertical = outputHeight - height;
+  const left = Math.floor(horizontal / 2);
+  const right = horizontal - left;
+
+  // Keep the old bottom-centre sprite origin stable. Zone-model anchors are
+  // read from the padded geometry, while fixed models and trees commonly use
+  // setOrigin(0.5, 1) and therefore also remain aligned.
+  return {
+    left,
+    top: vertical,
+    right,
+    bottom: 0,
+    outputWidth,
+    outputHeight,
+  };
 }
 
 function findAlphaBounds(data, width, height, threshold = 1) {
@@ -112,11 +135,11 @@ async function prepareFile(sourcePath) {
     sourceBuffer,
     Buffer.from(JSON.stringify({
       SETTINGS_VERSION,
-      QUALITY,
       MAX_DIMENSION,
       shouldTrim,
-      defringe: 'white-matte-v3-strict-single',
-      defringeOptions: PACKAGED_DEFRINGE_OPTIONS,
+      defringe: 'none-source-preserved',
+      webp: 'lossless',
+      mipmapLayout: 'power-of-two-bottom-center',
     })),
   ]));
   const cacheImage = path.join(CACHE_ROOT, `${cacheKey}.webp`);
@@ -126,23 +149,14 @@ async function prepareFile(sourcePath) {
   if (fs.existsSync(cacheImage) && fs.existsSync(cacheMetadata)) {
     metadata = JSON.parse(fs.readFileSync(cacheMetadata, 'utf8'));
   } else {
-    // Remove generated white matte RGB while the original pixels are still
-    // intact. Doing this after resize would allow the matte colour to bleed
-    // through the interpolation kernel into otherwise clean edge pixels.
+    // The checked-in PNG is the visual master. Do not reinterpret its
+    // antialiased edge pixels during packaging: a lossless WebP must decode to
+    // exactly the same RGBA values after the optional size cap.
     const decoded = await sharp(sourceBuffer, { animated: false })
       .ensureAlpha()
       .raw()
       .toBuffer({ resolveWithObject: true });
-    const defringed = defringeWhiteMatteRgba(
-      decoded.data,
-      decoded.info.width,
-      decoded.info.height,
-      PACKAGED_DEFRINGE_OPTIONS,
-    );
-    // Sharp automatically premultiplies alpha for resize operations and
-    // unpremultiplies afterwards, preventing transparent RGB from creating a
-    // second halo during resampling.
-    let pipeline = sharp(defringed.data, {
+    let pipeline = sharp(decoded.data, {
       raw: {
         width: decoded.info.width,
         height: decoded.info.height,
@@ -166,13 +180,21 @@ async function prepareFile(sourcePath) {
       .extract(trim)
       .raw()
       .toBuffer({ resolveWithObject: true });
-    const webp = await sharp(trimmedRaw.data, { raw: trimmedRaw.info })
+    const padding = getPowerOfTwoPadding(trimmedRaw.info.width, trimmedRaw.info.height);
+    const paddedRaw = await sharp(trimmedRaw.data, { raw: trimmedRaw.info })
+      .extend({
+        left: padding.left,
+        top: padding.top,
+        right: padding.right,
+        bottom: padding.bottom,
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+      })
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+    const webp = await sharp(paddedRaw.data, { raw: paddedRaw.info })
       .webp({
-        quality: QUALITY,
-        alphaQuality: 100,
-        smartSubsample: true,
-        preset: 'picture',
-        effort: 5,
+        lossless: true,
+        effort: 6,
       })
       .toBuffer();
     fs.mkdirSync(CACHE_ROOT, { recursive: true });
@@ -180,15 +202,20 @@ async function prepareFile(sourcePath) {
     metadata = {
       sourceWidth: decoded.info.width,
       sourceHeight: decoded.info.height,
-      outputWidth: trimmedRaw.info.width,
-      outputHeight: trimmedRaw.info.height,
+      contentWidth: trimmedRaw.info.width,
+      contentHeight: trimmedRaw.info.height,
+      outputWidth: paddedRaw.info.width,
+      outputHeight: paddedRaw.info.height,
       trim,
-      geometry: findGeometry(trimmedRaw.data, trimmedRaw.info.width, trimmedRaw.info.height),
-      defringe: {
-        algorithm: 'white-matte-v3-strict-single',
-        passes: [defringed.stats],
-        changedPixels: defringed.stats.changedPixels,
+      padding: {
+        left: padding.left,
+        top: padding.top,
+        right: padding.right,
+        bottom: padding.bottom,
       },
+      geometry: findGeometry(paddedRaw.data, paddedRaw.info.width, paddedRaw.info.height),
+      defringe: { algorithm: 'none-source-preserved', passes: [], changedPixels: 0 },
+      mipmapEligible: true,
     };
     fs.writeFileSync(cacheMetadata, `${JSON.stringify(metadata)}\n`);
   }
@@ -228,12 +255,11 @@ async function main() {
     formatVersion: 1,
     version: manifestVersion,
     settings: {
-      quality: QUALITY,
-      alphaQuality: 100,
       maxDimension: MAX_DIMENSION,
-      defringe: 'white-matte-v3-strict-single',
+      defringe: 'none-source-preserved',
       alphaResize: 'premultiplied',
-      webpPreset: 'picture',
+      webpMode: 'lossless',
+      mipmapLayout: 'power-of-two-bottom-center',
     },
     totals: { files: entries.length, sourceBytes, outputBytes },
     entries: Object.fromEntries(entries.map((entry) => [entry.logicalPath, entry])),
@@ -245,7 +271,7 @@ async function main() {
   fs.renameSync(NEXT_STAGE_ROOT, STAGE_ROOT);
 
   const toMiB = (bytes) => (bytes / 1024 / 1024).toFixed(1);
-  console.log(`Prepared ${entries.length} model assets: ${toMiB(sourceBytes)} MiB -> ${toMiB(outputBytes)} MiB (${(100 - outputBytes / sourceBytes * 100).toFixed(1)}% smaller)`);
+  console.log(`Prepared ${entries.length} lossless mipmapped WebP assets: ${toMiB(sourceBytes)} MiB -> ${toMiB(outputBytes)} MiB (${(100 - outputBytes / sourceBytes * 100).toFixed(1)}% smaller)`);
   console.log(`Manifest: ${path.relative(ROOT, path.join(STAGE_ROOT, 'Models', 'model-assets.json'))}`);
 }
 

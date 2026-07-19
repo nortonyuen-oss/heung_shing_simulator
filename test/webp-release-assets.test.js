@@ -40,19 +40,24 @@ test('all Electron release commands prepare and verify staged WebP assets', () =
   assert.equal(stagedFileSet?.from, '.data/package-assets/Models');
 });
 
-test('release conversion defringes source RGBA before alpha-safe resizing', () => {
+test('release conversion preserves source edges and restores power-of-two mipmaps', () => {
   const source = fs.readFileSync(path.join(ROOT, 'scripts', 'prepare-release-assets.js'), 'utf8');
   const decodeIndex = source.indexOf('const decoded = await sharp');
-  const defringeIndex = source.indexOf('defringeWhiteMatteRgba(', decodeIndex);
-  const resizeIndex = source.indexOf('pipeline = pipeline.resize(', defringeIndex);
-  const encodeIndex = source.indexOf('.webp({', resizeIndex);
-  assert.ok(decodeIndex >= 0 && defringeIndex > decodeIndex);
-  assert.ok(resizeIndex > defringeIndex, 'defringe must run before resize');
-  assert.ok(encodeIndex > resizeIndex, 'WebP encoding must run after alpha-safe resize');
-  assert.match(source, /const SETTINGS_VERSION = 4/);
-  assert.doesNotMatch(source, /defringePasses\.push/);
-  assert.match(source, /passes: \[defringed\.stats\]/);
-  assert.match(source, /preset: 'picture'/);
+  const resizeIndex = source.indexOf('pipeline = pipeline.resize(', decodeIndex);
+  const paddingIndex = source.indexOf('getPowerOfTwoPadding(', resizeIndex);
+  const extendIndex = source.indexOf('.extend({', paddingIndex);
+  const encodeIndex = source.indexOf('.webp({', extendIndex);
+  assert.ok(decodeIndex >= 0);
+  assert.ok(resizeIndex > decodeIndex, 'optional alpha-safe resize must follow source decoding');
+  assert.ok(paddingIndex > resizeIndex, 'power-of-two padding must follow resize and trim');
+  assert.ok(extendIndex > paddingIndex, 'transparent padding must be applied before encoding');
+  assert.ok(encodeIndex > extendIndex, 'WebP encoding must run after power-of-two padding');
+  assert.match(source, /const SETTINGS_VERSION = 5/);
+  assert.doesNotMatch(source, /defringeWhiteMatteRgba/);
+  assert.match(source, /defringe: 'none-source-preserved'/);
+  assert.match(source, /lossless: true/);
+  assert.match(source, /mipmapLayout: 'power-of-two-bottom-center'/);
+  assert.doesNotMatch(source, /quality: QUALITY/);
 });
 
 test('Phaser model literals are routed through the model asset resolver', () => {
@@ -64,6 +69,7 @@ test('Phaser model literals are routed through the model asset resolver', () => 
   directModelLoads.forEach((line) => assert.match(line, /resolveModelAssetPath\(/));
   assert.match(main, /await loadModelAssetManifest\(\);[\s\S]*new Phaser\.Game\(config\)/);
   assert.match(main, /const ZONE_TEXTURE_BUDGET_BYTES = 192 \* 1024 \* 1024/);
+  assert.match(main, /mipmapMultiplier[\s\S]*4 \/ 3/);
   assert.doesNotMatch(main, /function startDeferredZoneModelLoading/);
 });
 

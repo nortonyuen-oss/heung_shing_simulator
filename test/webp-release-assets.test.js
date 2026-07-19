@@ -49,9 +49,10 @@ test('release conversion defringes source RGBA before alpha-safe resizing', () =
   assert.ok(decodeIndex >= 0 && defringeIndex > decodeIndex);
   assert.ok(resizeIndex > defringeIndex, 'defringe must run before resize');
   assert.ok(encodeIndex > resizeIndex, 'WebP encoding must run after alpha-safe resize');
-  assert.match(source, /const SETTINGS_VERSION = 3/);
-  assert.match(source, /defringePasses\.push\(result\.stats\)/);
-  assert.match(source, /preset: 'drawing'/);
+  assert.match(source, /const SETTINGS_VERSION = 4/);
+  assert.doesNotMatch(source, /defringePasses\.push/);
+  assert.match(source, /passes: \[defringed\.stats\]/);
+  assert.match(source, /preset: 'picture'/);
 });
 
 test('Phaser model literals are routed through the model asset resolver', () => {

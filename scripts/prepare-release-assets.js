@@ -4,7 +4,10 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const sharp = require('sharp');
-const { defringeWhiteMatteRgba } = require('./lib/defringe-model');
+const {
+  PACKAGED_DEFRINGE_OPTIONS,
+  defringeWhiteMatteRgba,
+} = require('./lib/defringe-model');
 
 const ROOT = path.resolve(__dirname, '..');
 const SOURCE_ROOT = path.join(ROOT, 'Models');
@@ -16,7 +19,7 @@ const QUALITY = Number(process.env.ASSET_WEBP_QUALITY || 88);
 const MAX_DIMENSION = Number(process.env.ASSET_MAX_DIMENSION || 1024);
 // Bump whenever pixel processing changes so cached WebP files cannot retain an
 // older matte-removal or resize result.
-const SETTINGS_VERSION = 3;
+const SETTINGS_VERSION = 4;
 const SOURCE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg']);
 
 function walk(root) {
@@ -112,7 +115,8 @@ async function prepareFile(sourcePath) {
       QUALITY,
       MAX_DIMENSION,
       shouldTrim,
-      defringe: 'white-matte-v2-3pass',
+      defringe: 'white-matte-v3-strict-single',
+      defringeOptions: PACKAGED_DEFRINGE_OPTIONS,
     })),
   ]));
   const cacheImage = path.join(CACHE_ROOT, `${cacheKey}.webp`);
@@ -133,6 +137,7 @@ async function prepareFile(sourcePath) {
       decoded.data,
       decoded.info.width,
       decoded.info.height,
+      PACKAGED_DEFRINGE_OPTIONS,
     );
     // Sharp automatically premultiplies alpha for resize operations and
     // unpremultiplies afterwards, preventing transparent RGB from creating a
@@ -153,20 +158,7 @@ async function prepareFile(sourcePath) {
       });
     }
     const resized = await pipeline.raw().toBuffer({ resolveWithObject: true });
-    const defringePasses = [defringed.stats];
-    let processedData = resized.data;
-    // Resampling and lossy colour conversion can reveal a smaller second ring
-    // of matte pixels. Two conservative finishing passes clean that ring while
-    // avoiding the cumulative darkening seen with five or more passes.
-    for (let pass = 0; pass < 2; pass++) {
-      const result = defringeWhiteMatteRgba(
-        processedData,
-        resized.info.width,
-        resized.info.height,
-      );
-      processedData = result.data;
-      defringePasses.push(result.stats);
-    }
+    const processedData = resized.data;
     const trim = shouldTrim
       ? findAlphaBounds(processedData, resized.info.width, resized.info.height)
       : { left: 0, top: 0, width: resized.info.width, height: resized.info.height };
@@ -179,8 +171,7 @@ async function prepareFile(sourcePath) {
         quality: QUALITY,
         alphaQuality: 100,
         smartSubsample: true,
-        smartDeblock: true,
-        preset: 'drawing',
+        preset: 'picture',
         effort: 5,
       })
       .toBuffer();
@@ -194,9 +185,9 @@ async function prepareFile(sourcePath) {
       trim,
       geometry: findGeometry(trimmedRaw.data, trimmedRaw.info.width, trimmedRaw.info.height),
       defringe: {
-        algorithm: 'white-matte-v2-3pass',
-        passes: defringePasses,
-        changedPixels: defringePasses.reduce((sum, stats) => sum + stats.changedPixels, 0),
+        algorithm: 'white-matte-v3-strict-single',
+        passes: [defringed.stats],
+        changedPixels: defringed.stats.changedPixels,
       },
     };
     fs.writeFileSync(cacheMetadata, `${JSON.stringify(metadata)}\n`);
@@ -240,9 +231,9 @@ async function main() {
       quality: QUALITY,
       alphaQuality: 100,
       maxDimension: MAX_DIMENSION,
-      defringe: 'white-matte-v2-3pass',
+      defringe: 'white-matte-v3-strict-single',
       alphaResize: 'premultiplied',
-      webpPreset: 'drawing',
+      webpPreset: 'picture',
     },
     totals: { files: entries.length, sourceBytes, outputBytes },
     entries: Object.fromEntries(entries.map((entry) => [entry.logicalPath, entry])),

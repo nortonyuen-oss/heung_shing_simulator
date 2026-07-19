@@ -4,7 +4,6 @@ const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
 const sharp = require('sharp');
-const { defringeWhiteMatteRgba } = require('./lib/defringe-model');
 
 const ROOT = path.resolve(__dirname, '..');
 const SOURCE_ROOT = path.join(ROOT, 'Models');
@@ -72,9 +71,9 @@ async function verify() {
   assert.ok(fs.existsSync(MANIFEST_PATH), 'release model manifest is missing; run prepare:release-assets');
   const manifest = JSON.parse(fs.readFileSync(MANIFEST_PATH, 'utf8'));
   assert.ok(manifest.version && manifest.entries, 'release model manifest is invalid');
-  assert.equal(manifest.settings?.defringe, 'white-matte-v2-3pass', 'release pipeline must enable defringe');
+  assert.equal(manifest.settings?.defringe, 'white-matte-v3-strict-single', 'release pipeline must enable strict defringe');
   assert.equal(manifest.settings?.alphaResize, 'premultiplied', 'alpha-safe resize must be recorded');
-  assert.equal(manifest.settings?.webpPreset, 'drawing', 'sprite-aware WebP preset must be recorded');
+  assert.equal(manifest.settings?.webpPreset, 'picture', 'picture WebP preset must be recorded');
 
   const sourceLogicalPaths = walk(SOURCE_ROOT)
     .filter((filePath) => IMAGE_EXTENSIONS.has(path.extname(filePath).toLowerCase()))
@@ -94,7 +93,6 @@ async function verify() {
 
   let maximumAnchorError = 0;
   let sourceDefringePixels = 0;
-  let residualDefringePixels = 0;
   for (const [logicalPath, entry] of Object.entries(manifest.entries)) {
     assert.equal(path.extname(entry.packagedPath).toLowerCase(), '.webp', `${logicalPath} is not mapped to WebP`);
     const stagedPath = path.join(ROOT, '.data', 'package-assets', ...entry.packagedPath.split('/'));
@@ -105,10 +103,8 @@ async function verify() {
     assert.equal(decoded.info.height, entry.outputHeight, `${logicalPath} height mismatch`);
     const decodedGeometry = findGeometry(decoded.data, decoded.info.width, decoded.info.height);
     assert.ok(Number.isFinite(entry.defringe?.changedPixels), `${logicalPath} has no defringe audit data`);
-    assert.equal(entry.defringe?.passes?.length, 3, `${logicalPath} did not complete three defringe passes`);
+    assert.equal(entry.defringe?.passes?.length, 1, `${logicalPath} must use exactly one defringe pass`);
     sourceDefringePixels += entry.defringe.changedPixels;
-    const residual = defringeWhiteMatteRgba(decoded.data, decoded.info.width, decoded.info.height);
-    residualDefringePixels += residual.stats.changedPixels;
     if (entry.geometry && decodedGeometry) {
       const errors = [
         Math.abs(decodedGeometry.bottomY - entry.geometry.bottomY),
@@ -120,15 +116,7 @@ async function verify() {
     }
   }
   assert.ok(maximumAnchorError <= 1, `maximum PNG/WebP anchor error is ${maximumAnchorError.toFixed(2)}px`);
-  const residualRatio = sourceDefringePixels > 0 ? residualDefringePixels / sourceDefringePixels : 0;
-  assert.ok(
-    // Lossy WebP can create small colour deltas that the conservative scanner
-    // flags again even when no visible white ring remains. The previous
-    // single-pass release measured 38.16%; keep the decoded result below 20%
-    // so future encoder changes cannot silently regress to that baseline.
-    residualRatio <= 0.20,
-    `decoded WebP retains ${(residualRatio * 100).toFixed(2)}% of detected white-matte pixels`,
-  );
+  assert.ok(sourceDefringePixels > 0, 'strict defringe did not process any source edge pixels');
 
   const registrySources = ['constants.js', 'main.js'];
   const referencedModels = new Set(registrySources.flatMap((fileName) => {
@@ -142,7 +130,7 @@ async function verify() {
   const ratio = manifest.totals.outputBytes / manifest.totals.sourceBytes;
   assert.ok(ratio <= 0.30, `model package ratio ${(ratio * 100).toFixed(1)}% exceeds 30% target`);
   const toMiB = (bytes) => (bytes / 1024 / 1024).toFixed(1);
-  console.log(`Verified ${manifest.totals.files} WebP assets; ${toMiB(manifest.totals.sourceBytes)} MiB -> ${toMiB(manifest.totals.outputBytes)} MiB; max anchor error ${maximumAnchorError.toFixed(2)}px; residual matte ${(residualRatio * 100).toFixed(2)}%`);
+  console.log(`Verified ${manifest.totals.files} WebP assets; ${toMiB(manifest.totals.sourceBytes)} MiB -> ${toMiB(manifest.totals.outputBytes)} MiB; max anchor error ${maximumAnchorError.toFixed(2)}px; strict single-pass corrections ${sourceDefringePixels}`);
 }
 
 verify().catch((error) => {

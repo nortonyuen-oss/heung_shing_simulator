@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const {
+  PACKAGED_DEFRINGE_OPTIONS,
   defringeWhiteMatteRgba,
   recoverWhiteMatteColor,
 } = require('../scripts/lib/defringe-model');
@@ -68,4 +69,22 @@ test('defringe looks through a five-pixel generated white feather', () => {
 
 test('defringe rejects malformed raw image input', () => {
   assert.throws(() => defringeWhiteMatteRgba(Buffer.alloc(3), 1, 1), /Expected 4 RGBA bytes/);
+});
+
+test('packaged preset is single-pass conservative around fine antialiasing', () => {
+  const input = rgba(
+    [0, 0, 0, 0],
+    [205, 210, 215, 210],
+    [160, 170, 180, 245],
+    [70, 80, 90, 255],
+  );
+  const diagnostic = defringeWhiteMatteRgba(input, 4, 1);
+  const packaged = defringeWhiteMatteRgba(input, 4, 1, PACKAGED_DEFRINGE_OPTIONS);
+
+  assert.ok(packaged.stats.changedPixels < diagnostic.stats.changedPixels);
+  assert.deepEqual(
+    [...packaged.data].filter((_, index) => index % 4 === 3),
+    [0, 210, 245, 255],
+    'release correction must preserve the complete alpha silhouette',
+  );
 });

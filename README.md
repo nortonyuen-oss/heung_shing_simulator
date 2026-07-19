@@ -137,9 +137,10 @@ npm run prepare:release-assets
 npm run verify:release-assets
 ```
 
-The ignored output is written to `.data/package-assets/Models`. Generated white
-matte RGB is removed before Sharp performs its premultiplied-alpha resize, then
-two conservative finishing passes remove the smaller ring exposed by resampling.
+The ignored output is written to `.data/package-assets/Models`. A strict,
+single-pass correction removes generated white matte RGB before Sharp performs
+its premultiplied-alpha resize. The pass is deliberately not repeated after
+resize because repeated correction damages legitimate antialiasing and foliage.
 Buildings then have empty transparent canvas edges removed, while trees retain
 their original canvas so their fixed origins do not move. `model-assets.json` preserves each
 logical PNG identity, maps it to the packaged WebP, and records its content hash,
@@ -149,7 +150,7 @@ automatically on the next build.
 Electron packages exclude source `Models/**` and include only this staged WebP
 tree and manifest. `npm run dist`, `npm run dist:mac`, and `npm run dist:win` all
 run preparation and verification first. The current 144-model set is reduced
-from 145.0 MiB to 27.0 MiB after three-pass defringe.
+from 145.0 MiB to 25.1 MiB with strict single-pass defringe.
 
 Optional release-pipeline environment variables:
 

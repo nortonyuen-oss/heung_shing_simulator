@@ -3,7 +3,10 @@
 const fs = require('fs');
 const path = require('path');
 const sharp = require('sharp');
-const { defringeWhiteMatteRgba } = require('./lib/defringe-model');
+const {
+  PACKAGED_DEFRINGE_OPTIONS,
+  defringeWhiteMatteRgba,
+} = require('./lib/defringe-model');
 
 const projectRoot = path.resolve(__dirname, '..');
 const modelRoots = [
@@ -54,7 +57,12 @@ async function main() {
     let pipeline = image;
     if (APPLY_DEFRINGE && metadata.hasAlpha) {
       const { data, info } = await image.clone().ensureAlpha().raw().toBuffer({ resolveWithObject: true });
-      const result = defringeWhiteMatteRgba(data, info.width, info.height);
+      const result = defringeWhiteMatteRgba(
+        data,
+        info.width,
+        info.height,
+        PACKAGED_DEFRINGE_OPTIONS,
+      );
       pipeline = sharp(result.data, {
         raw: { width: info.width, height: info.height, channels: 4 },
       });

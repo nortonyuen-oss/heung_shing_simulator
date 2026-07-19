@@ -15,6 +15,22 @@ const DEFAULT_DEFRINGE_OPTIONS = Object.freeze({
   pureWhiteMaxAlpha: 250,
 });
 
+// Conservative release preset. It only considers pixels very close to the
+// transparent silhouette and requires substantially stronger evidence of a
+// white matte than the diagnostic/default mode. Keeping this as one pass is
+// important: repeated passes progressively reinterpret legitimate antialiasing
+// and fine foliage as contamination.
+const PACKAGED_DEFRINGE_OPTIONS = Object.freeze({
+  edgeRadius: 2,
+  sampleRadius: 10,
+  maxAlpha: 235,
+  minLightnessDelta: 22,
+  minDistanceImprovement: 32,
+  pureWhiteThreshold: 250,
+  pureWhiteNeighborLimit: 190,
+  pureWhiteMaxAlpha: 160,
+});
+
 function clampByte(value) {
   return Math.max(0, Math.min(255, Math.round(Number(value) || 0)));
 }
@@ -162,6 +178,7 @@ function defringeWhiteMatteRgba(input, width, height, overrides = {}) {
 
 module.exports = {
   DEFAULT_DEFRINGE_OPTIONS,
+  PACKAGED_DEFRINGE_OPTIONS,
   defringeWhiteMatteRgba,
   recoverWhiteMatteColor,
 };

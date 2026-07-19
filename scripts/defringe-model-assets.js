@@ -3,7 +3,10 @@
 const fs = require('fs');
 const path = require('path');
 const sharp = require('sharp');
-const { defringeWhiteMatteRgba } = require('./lib/defringe-model');
+const {
+  PACKAGED_DEFRINGE_OPTIONS,
+  defringeWhiteMatteRgba,
+} = require('./lib/defringe-model');
 
 const projectRoot = path.resolve(__dirname, '..');
 const modelsRoot = path.join(projectRoot, 'Models');
@@ -61,7 +64,12 @@ async function processFile(sourcePath, options) {
     .ensureAlpha()
     .raw()
     .toBuffer({ resolveWithObject: true });
-  const result = defringeWhiteMatteRgba(data, info.width, info.height);
+  const result = defringeWhiteMatteRgba(
+    data,
+    info.width,
+    info.height,
+    PACKAGED_DEFRINGE_OPTIONS,
+  );
   if (result.stats.changedPixels < options.minChanged) return null;
 
   const relativePath = path.relative(projectRoot, sourcePath);

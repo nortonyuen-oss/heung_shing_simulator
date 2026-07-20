@@ -1056,6 +1056,8 @@ function getBuildingTypeLabel(type) {
     park_small: 'building.smallPark',
     park_large: 'building.largePark',
     airport: 'building.airport',
+    heritage_temple: 'building.heritageTemple',
+    grand_temple: 'building.grandTemple',
     heritage_church: 'building.heritageChurch',
     indoor_coliseum: 'building.indoorColiseum',
   }[type] ?? type);
@@ -1263,15 +1265,14 @@ function sortModelFiles(fileNames, config) {
   const stripExt = (fileName) => fileName.replace(/\.[^.]+$/, '');
   const preferred = config.preferredFiles ?? [];
   const rank = new Map(preferred.map((fileName, index) => [stripExt(fileName), index]));
-  const disabled = new Set(config.disabledFiles ?? []);
   const aliases = config.fileAliases ?? {};
   const dedupedByBaseName = new Map();
 
   const safeFileNames = (Array.isArray(fileNames) ? fileNames : [])
     .filter((fileName) => typeof fileName === 'string' && fileName.trim().length > 0);
 
-  safeFileNames.filter((fileName) => !disabled.has(fileName)).forEach((fileName) => {
-    const canonicalFileName = aliases[fileName] ?? fileName;
+  safeFileNames.filter((fileName) => !isDisabledModelFile(fileName, config.disabledFiles)).forEach((fileName) => {
+    const canonicalFileName = getModelFileAlias(fileName, aliases);
     const baseName = stripExt(canonicalFileName);
     const existing = dedupedByBaseName.get(baseName);
     if (!existing) {
@@ -1305,11 +1306,13 @@ function sortModelFiles(fileNames, config) {
 }
 
 function createModelEntries(keyPrefix, fileNames, config) {
-  const disabled = new Set(config.disabledFiles ?? []);
   const safeFileEntries = (Array.isArray(fileNames) ? fileNames : [])
     .map((entry) => {
       if (typeof entry === 'string') {
-        return { fileName: entry, sourceFileName: config.fileAliases?.[entry] ?? entry };
+        return {
+          fileName: getModelFileAlias(entry, config.fileAliases),
+          sourceFileName: entry,
+        };
       }
       if (entry && typeof entry === 'object' && typeof entry.fileName === 'string' && entry.fileName.trim().length > 0) {
         return {
@@ -1319,7 +1322,7 @@ function createModelEntries(keyPrefix, fileNames, config) {
       }
       return null;
     })
-    .filter((entry) => entry && !disabled.has(entry.fileName));
+    .filter((entry) => entry && !isDisabledModelFile(entry.sourceFileName, config.disabledFiles));
 
   return safeFileEntries.map((entry, index) => {
     const { fileName, sourceFileName } = entry;

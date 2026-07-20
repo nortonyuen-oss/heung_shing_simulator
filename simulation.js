@@ -149,6 +149,10 @@ function updateCrimeRateIndex() {
   }
 
   city.crimeRateIndex = zonedCount > 0 ? clamp(riskSum / zonedCount, 0, 1) : 0;
+  const communityCrimeReduction = typeof sumSpecialBuildingEffect === 'function'
+    ? Math.min(0.06, sumSpecialBuildingEffect('communitySupportBonus'))
+    : 0;
+  city.crimeRateIndex = clamp(city.crimeRateIndex - communityCrimeReduction, 0, 1);
   if (typeof getCouncilTemporaryModifier === 'function') {
     city.crimeRateIndex = clamp(city.crimeRateIndex + getCouncilTemporaryModifier('crime'), 0, 1);
   }
@@ -176,7 +180,12 @@ function updateHealthMetrics() {
     weightedPop += pop;
   });
 
-  const targetHealth = weightedPop > 0 ? clamp(weightedHealthSum / weightedPop, 0, 1) : 0.5;
+  const communityHealthBonus = typeof sumSpecialBuildingEffect === 'function'
+    ? Math.min(0.03, sumSpecialBuildingEffect('communitySupportBonus') * 0.5)
+    : 0;
+  const targetHealth = weightedPop > 0
+    ? clamp(weightedHealthSum / weightedPop + communityHealthBonus, 0, 1)
+    : 0.5;
   const targetCoverage = weightedPop > 0 ? clamp(weightedCoverageSum / weightedPop, 0, 1) : 0;
   const smoothing = city.tick % TICKS_PER_MONTH === 0 || city.tick <= 1 ? 0.18 : 0.06;
   const medicalDemand = Math.round(weightedPop * (0.58 + (1 - targetHealth) * 0.40 + clamp(city.epidemicSeverity ?? 0, 0, 1) * 0.55));

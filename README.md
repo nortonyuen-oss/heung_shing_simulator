@@ -150,9 +150,9 @@ next build.
 
 Electron packages exclude source `Models/**` and include only this staged WebP
 tree and manifest. `npm run dist`, `npm run dist:mac`, and `npm run dist:win` all
-run preparation and verification first. The current 144-model set is reduced
-from 145.0 MiB to 96.0 MiB while keeping every visible RGBA pixel bit-exact and
-all 144 packaged textures mipmap-safe.
+run preparation and verification first. The current 145-model set is reduced
+from 151.0 MiB to 95.5 MiB while keeping every visible RGBA pixel bit-exact and
+all 145 packaged textures mipmap-safe.
 
 Optional release-pipeline environment variables:
 

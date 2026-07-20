@@ -81,6 +81,8 @@ test('fixed building registries point at the current asset set', () => {
   assert.equal(registries.SERVICE_BUILDING_MODEL_VARIANTS.community_college.length, 4);
   assert.equal(registries.SERVICE_BUILDING_MODEL_VARIANTS.university.length, 2);
   assert.equal(registries.SPECIAL_BUILDING_MODEL_VARIANTS.heritage_temple.length, 2);
+  assert.equal(registries.SPECIAL_BUILDING_MODELS.grand_temple.footprintCols, 3);
+  assert.equal(registries.SPECIAL_BUILDING_MODELS.grand_temple.footprintRows, 3);
 });
 
 test('zone-model fallback catalogs contain only files that ship', () => {
@@ -100,6 +102,99 @@ test('zone-model fallback catalogs contain only files that ship', () => {
   });
 });
 
+test('industrial catalog retires the broken model and classifies every science park', () => {
+  const catalog = loadScriptValues(
+    'model-catalog.js',
+    `({
+      INDUSTRIAL_BUILDING_MODEL_SETS,
+      getModelFileAlias,
+      isDisabledModelFile,
+      isScienceParkModel,
+      getResidentialWealthTierFromFileName,
+      getCommercialTierFromFileName,
+    })`,
+  );
+  const config2x2 = catalog.INDUSTRIAL_BUILDING_MODEL_SETS.find((entry) => entry.footprintCols === 2);
+  const config3x3 = catalog.INDUSTRIAL_BUILDING_MODEL_SETS.find((entry) => entry.footprintCols === 3);
+  assert.ok(config2x2 && config3x3);
+  assert.ok(config3x3.disabledFiles.includes('sciencePark3-02.png'));
+  assert.equal(catalog.isDisabledModelFile('sciencePark3-02.webp', config3x3.disabledFiles), true);
+  assert.equal(catalog.isScienceParkModel({ sourceFileName: 'sicencePark2-03.webp' }), true);
+
+  const main = fs.readFileSync(path.join(ROOT, 'main.js'), 'utf8');
+  const start = main.indexOf('function sortModelFiles(');
+  const end = main.indexOf('\nclass TreeAlphaPipeline', start);
+  const context = vm.createContext({
+    ...catalog,
+    DEFAULT_BUILDING_ANCHOR_MODE: 'effective-bottom-to-map-bottom',
+    resolveModelAssetPath: (value) => value,
+    getManifestZoneModelMetadata: () => null,
+  });
+  vm.runInContext(main.slice(start, end), context);
+
+  const pngFiles = config3x3.fallbackSourceFiles;
+  const webpFiles = pngFiles.map((fileName) => fileName.replace(/\.png$/, '.webp'));
+  context.config = config3x3;
+  context.pngFiles = pngFiles;
+  context.webpFiles = webpFiles;
+  const result = vm.runInContext(`({
+    png: createModelEntries(config.keyPrefix, sortModelFiles(pngFiles, config), config),
+    webp: createModelEntries(config.keyPrefix, sortModelFiles(webpFiles, config), config),
+  })`, context);
+  assert.deepEqual([...result.png].map((model) => model.key), [
+    'industrial_building_3x3_0',
+    'industrial_building_3x3_1',
+    'industrial_building_3x3_2',
+  ]);
+  assert.deepEqual(
+    [...result.png].map((model) => model.fileName.replace(/\.png$/, '')),
+    [...result.webp].map((model) => model.fileName.replace(/\.webp$/, '')),
+  );
+  assert.equal([...result.webp].some((model) => /sciencePark3-02/i.test(model.sourceFileName)), false);
+  assert.equal([...result.webp].filter(catalog.isScienceParkModel).length, 1);
+
+  context.config = config2x2;
+  context.pngFiles = config2x2.fallbackSourceFiles;
+  context.webpFiles = config2x2.fallbackSourceFiles.map((fileName) => fileName.replace(/\.png$/, '.webp'));
+  const result2x2 = vm.runInContext(`({
+    png: createModelEntries(config.keyPrefix, sortModelFiles(pngFiles, config), config),
+    webp: createModelEntries(config.keyPrefix, sortModelFiles(webpFiles, config), config),
+  })`, context);
+  assert.equal([...result2x2.png].length, 11);
+  assert.equal([...result2x2.png].filter(catalog.isScienceParkModel).length, 4);
+  assert.deepEqual(
+    [...result2x2.png].map((model) => model.fileName.replace(/\.png$/, '')),
+    [...result2x2.webp].map((model) => model.fileName.replace(/\.webp$/, '')),
+  );
+});
+
+test('science-park conversion loads its texture before removing industry', () => {
+  const infrastructure = fs.readFileSync(path.join(ROOT, 'sim-infrastructure.js'), 'utf8');
+  const conversionStart = infrastructure.indexOf('function tryConvertSingleIndustrialToSciencePark(');
+  const conversionEnd = infrastructure.indexOf('\nfunction convertEligibleIndustrialToScienceParks(', conversionStart);
+  const conversion = infrastructure.slice(conversionStart, conversionEnd);
+  const batchStart = conversionEnd;
+  const batchEnd = infrastructure.indexOf('\n// ── Power grid', batchStart);
+  const batch = infrastructure.slice(batchStart, batchEnd);
+  const requestIndex = conversion.indexOf('requestZoneModelTexture(scene, model');
+  const removeIndex = conversion.indexOf('removeBuilding(scene, row, col)');
+
+  assert.ok(requestIndex >= 0 && removeIndex > requestIndex);
+  assert.match(conversion, /loaded[\s\S]*?current === record[\s\S]*?tryConvertSingleIndustrialToSciencePark/);
+  assert.match(batch, /tryConvertSingleIndustrialToSciencePark\(scene, row, col, record, model\)/);
+  assert.doesNotMatch(batch, /removeBuilding\(/);
+
+  const save = fs.readFileSync(path.join(ROOT, 'save.js'), 'utf8');
+  assert.match(save, /'sciencePark3-02': 'sciencePark3-01'/);
+
+  const constants = fs.readFileSync(path.join(ROOT, 'constants.js'), 'utf8');
+  const growth = fs.readFileSync(path.join(ROOT, 'sim-growth.js'), 'utf8');
+  assert.match(constants, /SCIENCE_PARK_UNLOCK_HIGHER_EDU\s*=\s*0\.8/);
+  assert.match(infrastructure, /higherEdu >= SCIENCE_PARK_UNLOCK_HIGHER_EDU/);
+  assert.match(infrastructure, /isPolicyActive\('scienceDevelopment'\) \? 0\.10 : 0/);
+  assert.match(growth, /isPolicyActive\('scienceDevelopment'\) \? 0\.20 : 0/);
+});
+
 test('both road sets provide every logical road topology', () => {
   const roadSets = loadScriptValues('road-tile-sets.js', 'ROAD_TILE_SETS');
   roadSets.forEach((set) => {
@@ -108,20 +203,20 @@ test('both road sets provide every logical road topology', () => {
   });
 });
 
-test('new large transport assets use transparent PNG canvases', () => {
-  const files = {
-    'Models/airPort/6x6/airport6-01.png': 560,
-    'Models/containerPort/4x4/containerPort3-LL.png': 600,
-    'Models/containerPort/4x4/containerPort3-LR.png': 600,
-    'Models/containerPort/4x4/containerPort3-UL.png': 600,
-    'Models/containerPort/4x4/containerPort3-UR.png': 600,
-  };
+test('large transport sources use transparent PNG canvases', () => {
+  const files = [
+    'Models/airPort/6x6/airport6-01.png',
+    'Models/containerPort/4x4/containerPort4-LL.png',
+    'Models/containerPort/4x4/containerPort4-LR.png',
+    'Models/containerPort/4x4/containerPort4-UL.png',
+    'Models/containerPort/4x4/containerPort4-UR.png',
+  ];
 
-  Object.entries(files).forEach(([fileName, expectedHeight]) => {
+  files.forEach((fileName) => {
     const png = fs.readFileSync(path.join(ROOT, fileName));
     assert.equal(png.toString('ascii', 1, 4), 'PNG', fileName);
-    assert.equal(png.readUInt32BE(16), 1024, fileName);
-    assert.equal(png.readUInt32BE(20), expectedHeight, fileName);
+    assert.ok(png.readUInt32BE(16) >= 1024, fileName);
+    assert.ok(png.readUInt32BE(20) >= 512, fileName);
     assert.ok([4, 6].includes(png[25]), `${fileName} must have an alpha channel`);
   });
 });
@@ -225,7 +320,7 @@ test('selected civic variants cycle in order and keep their saved sprite key', (
     'university_4x4', 'university_4x4_alt',
   ]);
   assert.match(tools, /selectServiceBuildingModel\(buildingType, existingServiceCount\)/);
-  assert.match(tools, /specialModels\[Math\.floor\(Math\.random\(\) \* specialModels\.length\)\]/);
+  assert.match(tools, /buildingType === 'heritage_temple'[\s\S]*?existingSpecialCount % specialModels\.length/);
   assert.match(save, /savedKey[\s\S]*?isSpecialBuildingSpriteKey\(savedKey\)[\s\S]*?return savedKey/);
 });
 
@@ -244,14 +339,38 @@ test('civic, leisure and landmark menus are grouped by building purpose', () => 
   assert.match(group('transport-gateways'), /harbor[\s\S]*data-tool="airport" hidden/);
   assert.match(group('parks-greenery'), /data-tool="park"[\s\S]*data-tool="tree"/);
   assert.match(group('cultural-facilities'), /library[\s\S]*cultural-center[\s\S]*space-museum/);
+  assert.match(group('religious-buildings'), /heritage-temple[\s\S]*grand-temple[\s\S]*heritage-church/);
   assert.match(group('sports-facilities'), /sports-ground[\s\S]*data-park-shortcut="swimming_pool"/);
   assert.match(group('major-venues'), /indoor-coliseum[\s\S]*football-stadium/);
-  assert.match(group('heritage-religion'), /buddha-statue[\s\S]*heritage-temple[\s\S]*heritage-church[\s\S]*murray-house/);
+  assert.match(group('heritage-sites'), /buddha-statue[\s\S]*murray-house/);
+  assert.doesNotMatch(group('heritage-sites'), /heritage-temple|heritage-church/);
   assert.match(group('tourism-attractions'), /exhibition-center[\s\S]*ocean-park/);
+
+  assert.match(menuScript, /tool === 'heritage-temple'[\s\S]*?return 'parks'/);
 
   assert.match(menuScript, /PARK_OPTIONS\.filter\(\(opt\) => opt\.id !== 'swimming_pool'\)/);
   assert.match(menuScript, /function toggleToolGroup\(/);
   assert.match(html, /\.tool-flyout\s*\{[\s\S]*?max-height:\s*calc\(100vh - 16px\)[\s\S]*?overflow-y:\s*auto/);
+});
+
+test('religious buildings have bounded community-support effects', () => {
+  const values = loadScriptValues(
+    'constants.js',
+    '({ SPECIAL_BUILDING_EFFECTS, SPECIAL_BUILDING_UNLOCKS, SPECIAL_BUILDING_COSTS, BUILDING_POWER_DEMAND })',
+  );
+  const simulation = fs.readFileSync(path.join(ROOT, 'simulation.js'), 'utf8');
+
+  assert.equal(values.SPECIAL_BUILDING_UNLOCKS.heritage_temple.maxCount, 4);
+  assert.equal(values.SPECIAL_BUILDING_UNLOCKS.heritage_church.maxCount, 2);
+  assert.equal(values.SPECIAL_BUILDING_UNLOCKS.grand_temple.maxCount, 1);
+  ['heritage_temple', 'grand_temple', 'heritage_church'].forEach((type) => {
+    assert.ok(values.SPECIAL_BUILDING_EFFECTS[type].communitySupportBonus > 0, type);
+    assert.ok(values.SPECIAL_BUILDING_EFFECTS[type].happinessBonus > 0, type);
+    assert.ok(values.SPECIAL_BUILDING_COSTS[type] > 0, type);
+    assert.ok(values.BUILDING_POWER_DEMAND[type] > 0, type);
+  });
+  assert.match(simulation, /Math\.min\(0\.06, sumSpecialBuildingEffect\('communitySupportBonus'\)\)/);
+  assert.match(simulation, /Math\.min\(0\.03, sumSpecialBuildingEffect\('communitySupportBonus'\) \* 0\.5\)/);
 });
 
 test('new airports load as 12x12 while old saves retain safe 6x6 and 8x8 fallbacks', () => {

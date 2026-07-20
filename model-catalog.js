@@ -20,6 +20,32 @@ function buildSequentialFileAliases(sourceFileNames, canonicalFileNames) {
   return aliases;
 }
 
+function getModelFileAlias(fileName, aliases = {}) {
+  const direct = aliases[fileName];
+  if (direct) return direct;
+  const extension = String(fileName ?? '').match(/\.[^.]+$/)?.[0] ?? '';
+  const baseName = String(fileName ?? '').replace(/\.[^.]+$/, '');
+  const match = Object.entries(aliases).find(([source]) => source.replace(/\.[^.]+$/, '') === baseName);
+  if (!match) return fileName;
+  return match[1].replace(/\.[^.]+$/, extension);
+}
+
+function isDisabledModelFile(fileName, disabledFiles = []) {
+  const baseName = String(fileName ?? '').replace(/\.[^.]+$/, '');
+  return disabledFiles.some((disabled) => (
+    disabled === fileName || String(disabled).replace(/\.[^.]+$/, '') === baseName
+  ));
+}
+
+function isScienceParkModelFileName(fileName) {
+  return /(?:sciencepark|sicencepark)/i.test(String(fileName ?? ''));
+}
+
+function isScienceParkModel(model) {
+  return [model?.sourceFileName, model?.fileName, model?.logicalPath, model?.assetId]
+    .some(isScienceParkModelFileName);
+}
+
 // ── Residential ──────────────────────────────────────────────────────────────
 // preferredFiles = actual disk filenames used as fallback when the API
 // is unreachable AND as rank-priority order for model selection.
@@ -245,7 +271,8 @@ const COMMERCIAL_BUILDING_MODEL_SETS = [
 // ── Industrial ───────────────────────────────────────────────────────────────
 // Note: 'sicencePark2-03.png' (typo in filename) is aliased to
 // 'sciencePark03.png' so that /sciencepark/i detection still works.
-// 'industrialBuilding2-.png' (malformed name) is excluded.
+// 'industrialBuilding2-.png' (malformed name) and sciencePark3-02 (retired
+// after repeated display failures) are excluded in both PNG and WebP modes.
 const INDUSTRIAL_BUILDING_MODEL_SETS = [
   {
     keyPrefix: 'industrial_building_1x1',
@@ -355,6 +382,7 @@ const INDUSTRIAL_BUILDING_MODEL_SETS = [
       'sciencePark01.png',
       'sciencePark02.png',
     ]),
+    disabledFiles: ['sciencePark3-02.png'],
     footprintCols: 3,
     footprintRows: 3,
   },

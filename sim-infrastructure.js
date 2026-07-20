@@ -1,6 +1,10 @@
 function isScienceParkIndustrialRecord(record) {
   if (!record || record.type !== 'industrial') return false;
-  return /sciencepark/i.test(record.sourceFileName || record.spriteKey || '');
+  if (isScienceParkModel(record)) return true;
+  const catalogModel = Array.isArray(industrialBuildingModels)
+    ? industrialBuildingModels.find((model) => model.key === record.spriteKey)
+    : null;
+  return isScienceParkModel(catalogModel);
 }
 
 function updateScienceParkUnlockState() {
@@ -15,7 +19,7 @@ function pickScienceParkIndustrialModel(footprintCols, footprintRows) {
   const scienceModels = all.filter((m) => (
     m.metadata
     && m.metadata.scale > 0.05
-    && /sciencepark/i.test(m.sourceFileName || m.fileName || '')
+    && isScienceParkModel(m)
     && (footprintCols === null || m.footprintCols === footprintCols)
     && (footprintRows === null || m.footprintRows === footprintRows)
   ));
@@ -28,15 +32,32 @@ function pickScienceParkIndustrialModel(footprintCols, footprintRows) {
 // Preserves all simulation data (type, level, density, population) —
 // only swaps the visual model and updates spriteKey / sourceFileName.
 // Returns true if conversion happened.
-function tryConvertSingleIndustrialToSciencePark(scene, row, col, record) {
+function tryConvertSingleIndustrialToSciencePark(scene, row, col, record, requestedModel = null) {
   const fp  = record.footprintCols ?? 1;
   const fpr = record.footprintRows ?? 1;
   if (fp < 2) return false; // no 1×1 science-park models exist
 
-  const model = pickScienceParkIndustrialModel(fp, fpr);
-  if (!model || !scene.textures.exists(model.key)) return false;
+  const model = requestedModel ?? pickScienceParkIndustrialModel(fp, fpr);
+  if (!model) return false;
 
   const id = getTileId(row, col);
+  if (!scene.textures.exists(model.key)) {
+    if (typeof requestZoneModelTexture === 'function') {
+      requestZoneModelTexture(scene, model, (loaded) => {
+        const current = buildingData[id];
+        if (
+          loaded
+          && current === record
+          && current?.type === 'industrial'
+          && !isScienceParkIndustrialRecord(current)
+        ) {
+          tryConvertSingleIndustrialToSciencePark(scene, row, col, current, model);
+        }
+      });
+    }
+    return false;
+  }
+
   const oldRecord = { ...record };
   if (!removeBuilding(scene, row, col)) return false;
 
@@ -89,29 +110,7 @@ function convertEligibleIndustrialToScienceParks(scene) {
     const model = pickScienceParkIndustrialModel(footprintCols, footprintRows);
     if (!model) return;
 
-    const oldRecord = { ...record };
-    if (!removeBuilding(scene, row, col)) return;
-
-    const options = { ...(model.metadata ?? {}) };
-    placeSpriteBuilding(scene, row, col, model.key, options);
-
-    buildingData[id] = {
-      ...oldRecord,
-      spriteKey: model.key,
-      assetId: model.assetId,
-      sourceFileName: model.sourceFileName,
-      footprintCols: options.footprintCols ?? model.footprintCols ?? oldRecord.footprintCols ?? 1,
-      footprintRows: options.footprintRows ?? model.footprintRows ?? oldRecord.footprintRows ?? 1,
-      originX: options.originX,
-      originY: options.originY,
-      scale: options.scale,
-      scaleX: options.scaleX,
-      scaleY: options.scaleY,
-      offsetX: options.offsetX,
-      offsetY: options.offsetY,
-      anchorMode: options.anchorMode,
-    };
-    converted++;
+    if (tryConvertSingleIndustrialToSciencePark(scene, row, col, record, model)) converted++;
   });
 
   return converted;

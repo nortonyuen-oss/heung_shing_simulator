@@ -546,6 +546,12 @@ const SPECIAL_BUILDING_MODELS = {
     footprintCols: 2,
     footprintRows: 2,
   },
+  grand_temple: {
+    spriteKey: 'grand_temple_3x3',
+    path: 'Models/specialSites/3x3/tample3-01.png',
+    footprintCols: 3,
+    footprintRows: 3,
+  },
   heritage_church: {
     spriteKey: 'heritage_church_3x3',
     path: 'Models/specialSites/3x3/church3-01.png',
@@ -638,25 +644,25 @@ const HARBOR_FOOTPRINT_ROWS = 4;
 const HARBOR_MODELS = {
   harbor_ll: {
     spriteKey: 'harbor_ll',
-    path: 'Models/containerPort/4x4/containerPort3-LL.png',
+    path: 'Models/containerPort/4x4/containerPort4-LL.png',
     footprintCols: HARBOR_FOOTPRINT_COLS,
     footprintRows: HARBOR_FOOTPRINT_ROWS,
   },
   harbor_lr: {
     spriteKey: 'harbor_lr',
-    path: 'Models/containerPort/4x4/containerPort3-LR.png',
+    path: 'Models/containerPort/4x4/containerPort4-LR.png',
     footprintCols: HARBOR_FOOTPRINT_COLS,
     footprintRows: HARBOR_FOOTPRINT_ROWS,
   },
   harbor_ul: {
     spriteKey: 'harbor_ul',
-    path: 'Models/containerPort/4x4/containerPort3-UL.png',
+    path: 'Models/containerPort/4x4/containerPort4-UL.png',
     footprintCols: HARBOR_FOOTPRINT_COLS,
     footprintRows: HARBOR_FOOTPRINT_ROWS,
   },
   harbor_ur: {
     spriteKey: 'harbor_ur',
-    path: 'Models/containerPort/4x4/containerPort3-UR.png',
+    path: 'Models/containerPort/4x4/containerPort4-UR.png',
     footprintCols: HARBOR_FOOTPRINT_COLS,
     footprintRows: HARBOR_FOOTPRINT_ROWS,
   },
@@ -664,16 +670,17 @@ const HARBOR_MODELS = {
 
 // Unlock gates for special buildings + the harbour. Checked generically by
 // getSpecialBuildingUnlockState() in city-state.js.
-// Landmarks (specialSites) are one-off — each city gets exactly one of each.
-// Harbour/airport are ordinary (repeatable) infrastructure, so they get no
-// maxCount here even though they share the same unlock-gate mechanism.
+// Most landmarks are one-off. Community religious buildings are deliberately
+// repeatable up to a small city-wide cap so all same-footprint variants can be
+// used without letting their city-wide social bonuses stack indefinitely.
 const SPECIAL_BUILDING_UNLOCKS = {
   exhibition_center: { unlockPopulation: 30000, maxCount: 1 },
   cultural_center:    { unlockPopulation: 20000, maxCount: 1 },
   space_museum:       { unlockPopulation: 15000, requiresPolicy: 'scienceDevelopment', maxCount: 1 },
   buddha_statue:      { unlockPopulation: 12000, maxCount: 1 },
-  heritage_temple:    { unlockPopulation: 8000, maxCount: 1 },
-  heritage_church:    { unlockPopulation: 6000, maxCount: 1 },
+  heritage_temple:    { unlockPopulation: 3000, maxCount: 4 },
+  grand_temple:       { unlockPopulation: 12000, unlockAttractiveness: 35, maxCount: 1 },
+  heritage_church:    { unlockPopulation: 5000, maxCount: 2 },
   indoor_coliseum:    { unlockPopulation: 30000, maxCount: 1 },
   murray_house:       { unlockAttractiveness: 60, maxCount: 1 },
   ocean_park:         { unlockPopulation: 25000, maxCount: 1 },
@@ -683,8 +690,10 @@ const SPECIAL_BUILDING_UNLOCKS = {
 };
 
 // Gameplay effects for each special building / the harbour. attractivenessBonus
-// and happinessBonus are flat city-wide contributions (summed in
-// council-effects.js / simulation.js); landValueBonus is radius-based like the
+// happinessBonus and communitySupportBonus are flat city-wide contributions
+// (summed in council-effects.js / simulation.js). Community support modestly
+// reduces crime and improves public health, with caps applied in simulation.js;
+// landValueBonus is radius-based like the
 // tree/scenic bonuses in overlay-controls.js; nuisanceRadius/Strength dents
 // nearby land value like POWER_PLANT_STATS; revenue/upkeep feed the monthly
 // budget in city-state.js.
@@ -693,8 +702,9 @@ const SPECIAL_BUILDING_EFFECTS = {
   cultural_center:    { attractivenessBonus: 5,  landValueBonus: 0.08, landValueRadius: 8,  happinessBonus: 0.015, upkeep: 520 },
   space_museum:       { attractivenessBonus: 4,  landValueBonus: 0.06, landValueRadius: 7,  happinessBonus: 0.010, upkeep: 380 },
   buddha_statue:      { attractivenessBonus: 5,  landValueBonus: 0.05, landValueRadius: 9,  happinessBonus: 0.015, upkeep: 150 },
-  heritage_temple:    { attractivenessBonus: 3,  landValueBonus: 0.05, landValueRadius: 7,  happinessBonus: 0.010, upkeep: 120 },
-  heritage_church:    { attractivenessBonus: 4,  landValueBonus: 0.06, landValueRadius: 7,  happinessBonus: 0.012, upkeep: 150 },
+  heritage_temple:    { attractivenessBonus: 2,  landValueBonus: 0.04, landValueRadius: 6,  happinessBonus: 0.006, communitySupportBonus: 0.008, upkeep: 120 },
+  grand_temple:       { attractivenessBonus: 5,  landValueBonus: 0.07, landValueRadius: 9,  happinessBonus: 0.012, communitySupportBonus: 0.018, upkeep: 260 },
+  heritage_church:    { attractivenessBonus: 3,  landValueBonus: 0.05, landValueRadius: 7,  happinessBonus: 0.008, communitySupportBonus: 0.012, upkeep: 150 },
   indoor_coliseum:    { attractivenessBonus: 6,  landValueBonus: 0.07, landValueRadius: 8,  happinessBonus: 0.010, revenue: 300, upkeep: 650 },
   murray_house:       { attractivenessBonus: 3,  landValueBonus: 0.06, landValueRadius: 6,  upkeep: 140 },
   ocean_park:         { attractivenessBonus: 10, landValueBonus: 0.06, landValueRadius: 10, revenue: 900, upkeep: 1400 },
@@ -720,6 +730,7 @@ const SPECIAL_BUILDING_COSTS = {
   space_museum:       6500,
   buddha_statue:       4200,
   heritage_temple:     2600,
+  grand_temple:        6200,
   heritage_church:     3200,
   indoor_coliseum:    12000,
   murray_house:        1800,
@@ -802,6 +813,7 @@ const BUILDING_POWER_DEMAND = {
   space_museum: 10,
   buddha_statue: 4,
   heritage_temple: 3,
+  grand_temple: 7,
   heritage_church: 4,
   indoor_coliseum: 18,
   murray_house: 3,

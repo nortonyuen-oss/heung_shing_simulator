@@ -550,6 +550,14 @@ const LEGACY_COMMERCIAL_FILE_MIGRATIONS = Object.freeze({
   'commercialBuilding5-01_fixed.png': 'commercialBuilding5-01-UH.png',
 });
 
+// sciencePark3-02 used the generated industrial_building_3x3_3 key and could
+// render as Phaser's missing-texture placeholder during asynchronous science
+// park conversion. Retire it and migrate saved references to the remaining
+// 3x3 science-park model without changing the occupied footprint.
+const RETIRED_INDUSTRIAL_MODEL_MIGRATIONS = Object.freeze({
+  'sciencePark3-02': 'sciencePark3-01',
+});
+
 function getMigratedResidentialFileName(record) {
   if (record?.type !== 'residential') return null;
   const assetFileName = String(record.assetId ?? '').split('/').pop();
@@ -562,6 +570,14 @@ function getMigratedCommercialFileName(record) {
   const assetFileName = String(record.assetId ?? '').split('/').pop();
   const sourceFileName = record.sourceFileName || assetFileName;
   return LEGACY_COMMERCIAL_FILE_MIGRATIONS[sourceFileName] ?? sourceFileName ?? null;
+}
+
+function getMigratedIndustrialFileName(record) {
+  if (record?.type !== 'industrial') return null;
+  const assetFileName = String(record.assetId ?? '').split('/').pop();
+  const sourceFileName = record.sourceFileName || assetFileName;
+  const baseName = String(sourceFileName ?? '').replace(/\.[^.]+$/, '');
+  return RETIRED_INDUSTRIAL_MODEL_MIGRATIONS[baseName] ?? null;
 }
 
 function getSaveModelForRecord(record) {
@@ -583,6 +599,17 @@ function getSaveModelForRecord(record) {
       record.assetId = migratedModel.assetId;
       record.sourceFileName = migratedModel.sourceFileName;
       record.commercialTier = migratedModel.commercialTier;
+      return migratedModel;
+    }
+  }
+  const migratedIndustrialFileName = getMigratedIndustrialFileName(record);
+  if (migratedIndustrialFileName) {
+    const migratedModel = models.find((model) => (
+      String(model.sourceFileName ?? '').replace(/\.[^.]+$/, '') === migratedIndustrialFileName
+    ));
+    if (migratedModel) {
+      record.assetId = migratedModel.assetId;
+      record.sourceFileName = migratedModel.sourceFileName;
       return migratedModel;
     }
   }

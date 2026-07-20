@@ -320,14 +320,15 @@ function getToolCategoryForTool(tool) {
     || tool === 'library'
     || tool === 'cultural-center'
     || tool === 'space-museum'
+    || tool === 'heritage-temple'
+    || tool === 'grand-temple'
+    || tool === 'heritage-church'
     || tool === 'indoor-coliseum'
     || tool === 'football-stadium'
   ) return 'parks';
   if (
     tool === 'exhibition-center'
     || tool === 'buddha-statue'
-    || tool === 'heritage-temple'
-    || tool === 'heritage-church'
     || tool === 'murray-house'
     || tool === 'ocean-park'
   ) return 'landmarks';

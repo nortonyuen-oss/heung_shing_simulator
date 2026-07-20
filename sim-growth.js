@@ -1428,8 +1428,8 @@ function getRandomIndustrialBuildingModel(footprintCols = null, footprintRows = 
     return rememberSelectedZoneModel(selected);
   }
 
-  const scienceModels = valid.filter((m) => /sciencepark/i.test(m.sourceFileName || m.fileName || ''));
-  const regularModels = valid.filter((m) => !/sciencepark/i.test(m.sourceFileName || m.fileName || ''));
+  const scienceModels = valid.filter(isScienceParkModel);
+  const regularModels = valid.filter((m) => !isScienceParkModel(m));
   if (scienceModels.length === 0 || regularModels.length === 0) {
     const selected = pickVariedModel(valid, `industrial:${footprintCols ?? 'any'}x${footprintRows ?? 'any'}`);
     return rememberSelectedZoneModel(selected);

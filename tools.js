@@ -41,6 +41,7 @@ const LANDMARK_TOOL_BUILDING_TYPES = {
   'space-museum':      'space_museum',
   'buddha-statue':     'buddha_statue',
   'heritage-temple':   'heritage_temple',
+  'grand-temple':      'grand_temple',
   'heritage-church':   'heritage_church',
   'indoor-coliseum':   'indoor_coliseum',
   'murray-house':      'murray_house',
@@ -250,8 +251,15 @@ function placeInfraBuilding(scene, row, col, buildingType) {
   const specialModels = SPECIAL_BUILDING_MODELS[buildingType]
     ? getSpecialBuildingModels(buildingType)
     : [];
+  // Community-temple art cycles predictably so a city that builds several
+  // temples sees every 2x2 model instead of repeatedly rolling the same one.
+  const existingSpecialCount = specialModels.length > 0
+    ? Object.values(buildingData).filter((record) => record?.type === buildingType).length
+    : 0;
   const specialModel = specialModels.length > 0
-    ? specialModels[Math.floor(Math.random() * specialModels.length)]
+    ? specialModels[buildingType === 'heritage_temple'
+      ? existingSpecialCount % specialModels.length
+      : Math.floor(Math.random() * specialModels.length)]
     : null;
   const buildingModel = POWER_PLANT_MODELS[buildingType] ?? serviceModel ?? specialModel;
   if (!buildingModel) return false;

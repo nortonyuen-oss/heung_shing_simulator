@@ -220,6 +220,7 @@ function resetGameState() {
   trafficMap     = createFilledMap(0);
 
   Object.keys(buildingData).forEach((k) => delete buildingData[k]);
+  if (typeof clearHarborFrontageTileCache === 'function') clearHarborFrontageTileCache();
   powerSources.clear();
   powerLineSet.clear();
   roadTileCount = 0;
@@ -865,6 +866,18 @@ function hasBuildingType(type) {
   return getBuildingCount(type) > 0;
 }
 
+function getCouncilRequiredBuildingTypes(definition) {
+  if (!definition) return [];
+  const types = Array.isArray(definition.requiresBuildingTypes)
+    ? definition.requiresBuildingTypes
+    : definition.requiresBuildingType ? [definition.requiresBuildingType] : [];
+  return [...new Set(types.filter(Boolean))];
+}
+
+function getMissingCouncilBuildingRequirement(definition) {
+  return getCouncilRequiredBuildingTypes(definition).find((type) => !hasBuildingType(type)) || '';
+}
+
 // ── Special building (landmark) unlock gating ──────────────────────────────
 // Generic check against SPECIAL_BUILDING_UNLOCKS (constants.js), covering the
 // harbour, airport, football stadium and the specialSites landmarks. Mirrors
@@ -902,13 +915,51 @@ function isSpecialBuildingUnlocked(type) {
 // for a building that hasn't been placed yet. Called from hud.js:updateHUD().
 function checkSpecialBuildingUnlockNotices() {
   if (!Array.isArray(city.acknowledgedLandmarkUnlocks)) city.acknowledgedLandmarkUnlocks = [];
+  const acknowledgeOnce = (noticeId, buildingType, unlocked, alreadyExists = false, reason = '') => {
+    if (city.acknowledgedLandmarkUnlocks.includes(noticeId)) return;
+    if (alreadyExists) {
+      city.acknowledgedLandmarkUnlocks.push(noticeId);
+      return;
+    }
+    if (!unlocked) return;
+    city.acknowledgedLandmarkUnlocks.push(noticeId);
+    if (typeof announceLandmarkUnlockNotice === 'function') {
+      announceLandmarkUnlockNotice(buildingType, reason);
+    }
+  };
+
   Object.keys(SPECIAL_BUILDING_UNLOCKS).forEach((type) => {
-    if (city.acknowledgedLandmarkUnlocks.includes(type)) return;
-    if (hasBuildingType(type)) { city.acknowledgedLandmarkUnlocks.push(type); return; }
-    if (!isSpecialBuildingUnlocked(type)) return;
-    city.acknowledgedLandmarkUnlocks.push(type);
-    if (typeof announceLandmarkUnlockNotice === 'function') announceLandmarkUnlockNotice(type);
+    acknowledgeOnce(type, type, isSpecialBuildingUnlocked(type), hasBuildingType(type));
   });
+
+  acknowledgeOnce(
+    'infrastructure:legislative_council',
+    'legislative_council',
+    city.population >= 10000,
+    hasBuildingType('legislative_council'),
+    'population',
+  );
+  acknowledgeOnce(
+    'infrastructure:stock_exchange',
+    'stock_exchange',
+    city.population >= 50000
+      && hasBuildingType('legislative_council')
+      && isPolicyActive('stockExchangeAct'),
+    hasBuildingType('stock_exchange'),
+    'policy',
+  );
+  const hasSciencePark = Object.values(buildingData).some((record) => (
+    typeof isScienceParkIndustrialRecord === 'function'
+      ? isScienceParkIndustrialRecord(record)
+      : /science.?park/i.test(`${record?.sourceFileName ?? ''} ${record?.spriteKey ?? ''}`)
+  ));
+  acknowledgeOnce(
+    'industry:science_park',
+    'science_park',
+    Boolean(city.scienceParkUnlocked),
+    hasSciencePark,
+    'education',
+  );
 }
 
 function isPolicyAvailable(id) {
@@ -917,6 +968,7 @@ function isPolicyAvailable(id) {
 
   if (!hasBuildingType('legislative_council')) return false;
   if (policy.unlockPopulation && city.population < policy.unlockPopulation) return false;
+  if (getMissingCouncilBuildingRequirement(policy)) return false;
   return true;
 }
 

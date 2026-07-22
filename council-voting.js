@@ -23,6 +23,16 @@ function getCouncilMotionCost(itemType, itemId, motion) {
   return motion === 'repeal' ? -cost : cost;
 }
 
+function getCouncilMotionMissingBuilding(definition) {
+  if (typeof getMissingCouncilBuildingRequirement === 'function') {
+    return getMissingCouncilBuildingRequirement(definition);
+  }
+  const required = Array.isArray(definition?.requiresBuildingTypes)
+    ? definition.requiresBuildingTypes
+    : definition?.requiresBuildingType ? [definition.requiresBuildingType] : [];
+  return required.find((type) => !hasBuildingType(type)) || '';
+}
+
 function getCouncilMotionAvailability(itemType, itemId, motion) {
   normalizeCityFinanceState();
   const monthIndex = getCityMonthIndex();
@@ -35,7 +45,8 @@ function getCouncilMotionAvailability(itemType, itemId, motion) {
     if (definition.oneTime && Number(state?.timesApproved || 0) > 0) {
       return { available: false, reason: 'alreadyApproved' };
     }
-    if (definition.requiresBuildingType && !hasBuildingType(definition.requiresBuildingType)) return { available: false, reason: 'needsBuilding' };
+    const missingBuilding = getCouncilMotionMissingBuilding(definition);
+    if (missingBuilding) return { available: false, reason: 'needsBuilding', requires: missingBuilding };
     if (definition.unlockPopulation && city.population < definition.unlockPopulation) {
       return { available: false, reason: 'population', threshold: definition.unlockPopulation, current: city.population };
     }
@@ -57,6 +68,8 @@ function getCouncilMotionAvailability(itemType, itemId, motion) {
   }
   const definition = getCouncilPolicyDefinition(itemId);
   if (!definition) return { available: false, reason: 'unknown' };
+  const missingBuilding = getCouncilMotionMissingBuilding(definition);
+  if (missingBuilding) return { available: false, reason: 'needsBuilding', requires: missingBuilding };
   if (definition.unlockPopulation && city.population < definition.unlockPopulation) return { available: false, reason: 'population' };
   const isActive = isPolicyActive(itemId);
   if (motion === 'repeal' && !isActive) return { available: false, reason: 'notActive' };

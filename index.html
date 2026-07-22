@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>香城模擬器 | The City of Heung Shing v3.2.0</title>
+  <title>香城模擬器 | The City of Heung Shing v3.3.0</title>
   <style>
     * { box-sizing: border-box; }
 
@@ -5490,7 +5490,7 @@
         <span data-i18n="dialog.helpTitle">City Builder — How to Play</span>
         <button class="dialog-close-btn" data-close-dialog="help-dialog">✕</button>
       </div>
-      <div class="dialog-body" data-i18n-html="dialog.helpBody"><h3>🏗 Building Your City</h3>
+      <div class="dialog-body"><div data-i18n-html="dialog.helpBody"><h3>🏗 Building Your City</h3>
 🛣  Roads ($10) — Connect zones; roads are required for growth
 🟩  Zone R ($50) — Residential: citizens live here
 🟦  Zone C ($60) — Commercial: shops &amp; offices
@@ -5519,6 +5519,23 @@ Hover tile   Debug tooltip shows growth conditions
 Space        Pause / unpause simulation
 Ctrl+S       Save game
 Ctrl+O       Load game (open saves list)</div>
+        <div class="help-unlock-rules" data-i18n-html="dialog.unlockRules"><h3>🔓 Special Building Unlocks</h3>Community Temple  Population 3,000 (max 4)
+Church            Population 5,000 (max 2)
+Legislative Council Population 10,000
+Big Buddha        Population 12,000
+Grand Temple      Population 12,000 + attractiveness 35
+Space Museum      Population 15,000 + Science Development Act
+Container Port    Population 15,000 + continuous four-tile waterfront
+Cultural Centre   Population 20,000
+Exhibition Centre / Indoor Coliseum  Population 30,000
+Ocean Park        Council project: population 35,000, income $6,000, surplus $1,000, economy 50
+League Stadium    Population 40,000
+Stock Exchange    Council + population 50,000 + Stock Exchange Act
+Murray House      Attractiveness 60
+Airport           Council project: population 80,000, income $12,000, surplus $2,000, economy 65
+
+<h3>🏙 Special Zone Models</h3>Science Parks unlock at higher education 0.80. UH luxury homes require qualifying low-density residential land. UH world-class towers require qualifying high-density commercial land plus a Stock Exchange and Airport.</div>
+      </div>
       <div class="dialog-footer">
         <button class="dialog-ok-btn" data-close-dialog="help-dialog" data-i18n="dialog.ok">OK</button>
       </div>
@@ -5537,10 +5554,10 @@ Ctrl+O       Load game (open saves list)</div>
         <div style="font-size:48px; margin:8px 0">🏙️</div>
         <div style="font-size:18px; font-weight:900; margin-bottom:6px" data-i18n="app.name">The City of Heung Shing</div>
         <div style="color:#5a5648; font-size:12px" data-i18n="dialog.aboutEnglishName">The City of Heung Shing</div>
-        <div style="color:#5a5648; font-size:12px" data-i18n="dialog.version">Version 3.2.0</div>
+        <div style="color:#5a5648; font-size:12px" data-i18n="dialog.version">Version 3.3.0</div>
         <div style="color:#5a5648; font-size:12px" data-i18n="dialog.aboutInspired">A Hong Kong-themed city simulation brand title</div>
         <div style="margin-top:14px; font-size:12px; line-height:1.8; color:#3a3530">
-          <span data-i18n-html="dialog.aboutBuilt">The City of Heung Shing v3.2.0<br>Plan · Build · Govern · Thrive</span>
+          <span data-i18n-html="dialog.aboutBuilt">The City of Heung Shing v3.3.0<br>Plan · Build · Govern · Thrive</span>
         </div>
         <div class="about-links">
           <a class="about-link" href="https://github.com/nortonyuen-oss/heung_shing_simulator" target="_blank" rel="noopener noreferrer" data-i18n="dialog.githubLink">GitHub</a>
@@ -6004,7 +6021,7 @@ Ctrl+O       Load game (open saves list)</div>
       <button class="tool-row tool-group-row" type="button" data-tool-group="tourism-attractions"><span class="tool-row-icon">🎡</span><span class="tool-row-text" data-i18n="toolGroup.tourismAttractions">Tourism & Attractions</span><span class="tool-group-chevron">▶</span></button>
       <div class="tool-group-items" data-tool-group-items="tourism-attractions" hidden>
         <button class="tool-row" type="button" data-tool="exhibition-center"><span class="tool-row-icon">🏢</span><span class="tool-row-text" data-i18n="toolRow.exhibitionCenter">Exhibition Centre</span><span class="tool-row-cost">$15000</span></button>
-        <button class="tool-row" type="button" data-tool="ocean-park"><span class="tool-row-icon">🎢</span><span class="tool-row-text" data-i18n="toolRow.oceanPark">Ocean Park</span><span class="tool-row-cost">$22000</span></button>
+        <button class="tool-row" type="button" data-tool="ocean-park" hidden><span class="tool-row-icon">🎢</span><span class="tool-row-text" data-i18n="toolRow.oceanPark">Ocean Park</span><span class="tool-row-cost">$22000</span></button>
       </div>
     </section>
 

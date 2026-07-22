@@ -270,12 +270,17 @@ function updateTyphoonState() {
   weather.typhoonWindKph = Math.round(windKph);
 
   if (stage !== weather.typhoonStage) {
+    const firstSevereSignal = (stage === 'signal8' || stage === 'signal9' || stage === 'signal10')
+      && !weather.signal8ReachedThisStorm;
     weather.typhoonStage = stage;
-    if ((stage === 'signal8' || stage === 'signal9' || stage === 'signal10') && !weather.signal8ReachedThisStorm) {
+    if (firstSevereSignal) {
       weather.signal8ReachedThisStorm = true;
     }
     if (typeof announceTyphoonSignalChange === 'function') {
       announceTyphoonSignalChange(weather.typhoonName, stage, weather.typhoonWindKph);
+    }
+    if (firstSevereSignal && typeof announceSevereTyphoonForumNews === 'function') {
+      announceSevereTyphoonForumNews(weather.typhoonName, stage, weather.typhoonWindKph);
     }
   }
 

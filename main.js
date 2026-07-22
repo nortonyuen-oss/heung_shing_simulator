@@ -258,6 +258,10 @@ let mapViewPanY   = 0;
 
 // Map rotation: 0=default, 1=90°CW, 2=180°, 3=270°CW
 let mapRotation = 0;
+// Terrain rendering asks whether a water/beach tile sits in front of a
+// container port.  Keep those few tile ids indexed so a full-map redraw does
+// not scan every building for every terrain tile.
+const harborFrontageTileIds = new Set();
 const PREVIEW_OVERLAY_DEPTH = 200000;
 const WORLD_LAYER_DEPTHS = {
   terrain: 0,
@@ -3566,6 +3570,9 @@ function removeBuilding(scene, row, col) {
   // Clean up simulation data keyed to anchor tile
   const anchorId = getTileId(building.mapRow, building.mapCol);
   const record   = buildingData[anchorId];
+  const removedHarborSide = record?.type === HARBOR_BUILDING_TYPE
+    ? getHarborRecordWaterSide(building.mapRow, building.mapCol, record)
+    : '';
   if (record) {
     if (record.type === 'power_plant_coal' || record.type === 'power_plant_solar' || record.type === 'power_plant_nuclear') {
       powerSources.delete(anchorId);
@@ -3575,6 +3582,7 @@ function removeBuilding(scene, row, col) {
     if (SERVICE_BUILDING_TYPES.has(record.type)) markServiceCoverageDirty();
     invalidateBuildingCountCache();
   }
+  if (removedHarborSide) rebuildHarborFrontageTileCache();
 
   building.destroy();
   getFootprintTiles(
@@ -3588,6 +3596,9 @@ function removeBuilding(scene, row, col) {
 
   if (typeof refreshInfrastructureEffects === 'function') {
     refreshInfrastructureEffects(scene);
+  }
+  if (removedHarborSide) {
+    refreshHarborCoastTiles(scene, building.mapRow, building.mapCol, removedHarborSide);
   }
   if (typeof invalidateOverlayCache === 'function') invalidateOverlayCache();
   return true;
@@ -4875,10 +4886,9 @@ function updateBuildingPlacementGuide(scene, pointer) {
   }
 
   const { footprintCols, footprintRows } = footprint;
-  let canPlace = canPlaceBuildingFootprint(tile.row, tile.col, footprintCols, footprintRows);
-  if (canPlace && selectedTool === 'harbor' && typeof canPlaceHarbor === 'function') {
-    canPlace = canPlaceHarbor(tile.row, tile.col);
-  }
+  const canPlace = selectedTool === 'harbor' && typeof canPlaceHarborFootprint === 'function'
+    ? canPlaceHarborFootprint(tile.row, tile.col)
+    : canPlaceBuildingFootprint(tile.row, tile.col, footprintCols, footprintRows);
   drawFootprintGuide(scene, tile.row, tile.col, footprintCols, footprintRows, canPlace);
 }
 
@@ -7609,6 +7619,90 @@ function getHarborWaterSides(row, col, footprintCols = HARBOR_FOOTPRINT_COLS, fo
   return sides;
 }
 
+function getHarborSideTiles(
+  row,
+  col,
+  side,
+  offset = 1,
+  footprintCols = HARBOR_FOOTPRINT_COLS,
+  footprintRows = HARBOR_FOOTPRINT_ROWS,
+) {
+  if (side === 'n' || side === 's') {
+    const tileRow = side === 'n' ? row - offset : row + footprintRows - 1 + offset;
+    return Array.from({ length: footprintCols }, (_, index) => [tileRow, col + index]);
+  }
+  const tileCol = side === 'w' ? col - offset : col + footprintCols - 1 + offset;
+  return Array.from({ length: footprintRows }, (_, index) => [row + index, tileCol]);
+}
+
+function getHarborCoastCandidate(
+  row,
+  col,
+  side,
+  footprintCols = HARBOR_FOOTPRINT_COLS,
+  footprintRows = HARBOR_FOOTPRINT_ROWS,
+) {
+  const frontageTiles = getHarborSideTiles(row, col, side, 1, footprintCols, footprintRows);
+  const beyondTiles = getHarborSideTiles(row, col, side, 2, footprintCols, footprintRows);
+  let directWaterCount = 0;
+  let beachCount = 0;
+  for (let index = 0; index < frontageTiles.length; index++) {
+    const [frontRow, frontCol] = frontageTiles[index];
+    const [beyondRow, beyondCol] = beyondTiles[index];
+    const frontageType = mapData[frontRow]?.[frontCol];
+    if (frontageType === WATER) {
+      directWaterCount++;
+      continue;
+    }
+    if (frontageType === BEACH && mapData[beyondRow]?.[beyondCol] === WATER) {
+      beachCount++;
+      continue;
+    }
+    return null;
+  }
+  return {
+    side,
+    coastMode: beachCount > 0 ? 'beach-buffer' : 'direct-water',
+    frontageTiles,
+    beyondTiles,
+    score: directWaterCount * 2 + beachCount,
+  };
+}
+
+function analyzeHarborCoast(
+  row,
+  col,
+  footprintCols = HARBOR_FOOTPRINT_COLS,
+  footprintRows = HARBOR_FOOTPRINT_ROWS,
+) {
+  return ['n', 'e', 's', 'w']
+    .map((side) => getHarborCoastCandidate(row, col, side, footprintCols, footprintRows))
+    .filter(Boolean)
+    .sort((a, b) => b.score - a.score || 'nesw'.indexOf(a.side) - 'nesw'.indexOf(b.side))[0] ?? null;
+}
+
+function isHarborFootprintSurfaceAllowed(row, col, anchorRow, anchorCol, coastSide) {
+  if (canPlaceBuilding(row, col)) return true;
+  if (mapData[row]?.[col] !== BEACH) return false;
+  return getHarborSideTiles(anchorRow, anchorCol, coastSide, 0)
+    .some(([edgeRow, edgeCol]) => edgeRow === row && edgeCol === col);
+}
+
+function canPlaceHarborFootprint(row, col) {
+  const coast = analyzeHarborCoast(row, col);
+  if (!coast) return false;
+  return getFootprintTiles(row, col, HARBOR_FOOTPRINT_COLS, HARBOR_FOOTPRINT_ROWS)
+    .every(([tileRow, tileCol]) => (
+      isInsideMap(tileRow, tileCol)
+      && isHarborFootprintSurfaceAllowed(tileRow, tileCol, row, col, coast.side)
+      && mapData[tileRow][tileCol] !== ROAD
+      && !isBridgeTile(tileRow, tileCol)
+      && !activeScene?.buildingSprites?.has(getTileId(tileRow, tileCol))
+      && !buildingData[getTileId(tileRow, tileCol)]
+      && !(typeof hasDistrictSignAt === 'function' && hasDistrictSignAt(tileRow, tileCol))
+    ));
+}
+
 function getHarborVisualWaterSides(row, col, footprintCols = HARBOR_FOOTPRINT_COLS, footprintRows = HARBOR_FOOTPRINT_ROWS) {
   const raw = getHarborWaterSides(row, col, footprintCols, footprintRows);
   const visual = { n: false, e: false, s: false, w: false };
@@ -7619,8 +7713,7 @@ function getHarborVisualWaterSides(row, col, footprintCols = HARBOR_FOOTPRINT_CO
 }
 
 function canPlaceHarbor(row, col) {
-  const raw = getHarborWaterSides(row, col);
-  return raw.n || raw.e || raw.s || raw.w;
+  return canPlaceHarborFootprint(row, col);
 }
 
 function getHarborVisualKey(
@@ -7628,8 +7721,16 @@ function getHarborVisualKey(
   col,
   footprintCols = HARBOR_FOOTPRINT_COLS,
   footprintRows = HARBOR_FOOTPRINT_ROWS,
+  rawSide = '',
 ) {
-  const visual = getHarborVisualWaterSides(row, col, footprintCols, footprintRows);
+  const coastSide = rawSide || analyzeHarborCoast(row, col, footprintCols, footprintRows)?.side;
+  const raw = coastSide
+    ? { n: coastSide === 'n', e: coastSide === 'e', s: coastSide === 's', w: coastSide === 'w' }
+    : getHarborWaterSides(row, col, footprintCols, footprintRows);
+  const visual = { n: false, e: false, s: false, w: false };
+  ['n', 'e', 's', 'w'].forEach((dir) => {
+    if (raw[dir]) visual[rotateDirection(dir, mapRotation)] = true;
+  });
   // Logical neighbours map to isometric screen edges as follows:
   // n → upper-right, e → lower-right, s → lower-left, w → upper-left.
   // The filename suffix states where the water edge appears in the artwork.
@@ -7640,13 +7741,71 @@ function getHarborVisualKey(
   return 'harbor_ll';
 }
 
+function getHarborRecordWaterSide(row, col, record) {
+  if (['n', 'e', 's', 'w'].includes(record?.harborWaterSide)) return record.harborWaterSide;
+  return analyzeHarborCoast(
+    row,
+    col,
+    record?.footprintCols ?? HARBOR_FOOTPRINT_COLS,
+    record?.footprintRows ?? HARBOR_FOOTPRINT_ROWS,
+  )?.side || '';
+}
+
+function addHarborFrontageToCache(row, col, record, side = '') {
+  const waterSide = side || getHarborRecordWaterSide(row, col, record);
+  if (!waterSide) return;
+  getHarborSideTiles(
+    row,
+    col,
+    waterSide,
+    1,
+    record?.footprintCols ?? HARBOR_FOOTPRINT_COLS,
+    record?.footprintRows ?? HARBOR_FOOTPRINT_ROWS,
+  ).forEach(([tileRow, tileCol]) => {
+    if (isInsideMap(tileRow, tileCol)) harborFrontageTileIds.add(getTileId(tileRow, tileCol));
+  });
+}
+
+function rebuildHarborFrontageTileCache() {
+  harborFrontageTileIds.clear();
+  Object.entries(buildingData).forEach(([id, record]) => {
+    if (record?.type !== HARBOR_BUILDING_TYPE) return;
+    const [row, col] = id.split(':').map(Number);
+    addHarborFrontageToCache(row, col, record);
+  });
+}
+
+function clearHarborFrontageTileCache() {
+  harborFrontageTileIds.clear();
+}
+
+function isHarborFrontageTile(row, col) {
+  return harborFrontageTileIds.has(getTileId(row, col));
+}
+
+function refreshHarborCoastTiles(scene, row, col, side) {
+  if (!scene || !side) return;
+  getHarborSideTiles(row, col, side, 1).forEach(([tileRow, tileCol]) => {
+    if (isInsideMap(tileRow, tileCol)) refreshTileArea(scene, tileRow, tileCol);
+  });
+}
+
+function refreshAllHarborFrontages(scene) {
+  harborFrontageTileIds.forEach((id) => {
+    const [row, col] = id.split(':').map(Number);
+    if (isInsideMap(row, col)) refreshTileArea(scene, row, col);
+  });
+}
+
 function refreshHarborSprites(scene) {
   Object.entries(buildingData).forEach(([id, record]) => {
     if (record.type !== HARBOR_BUILDING_TYPE) return;
     const [row, col] = id.split(':').map(Number);
     const footprintCols = record.footprintCols ?? HARBOR_FOOTPRINT_COLS;
     const footprintRows = record.footprintRows ?? HARBOR_FOOTPRINT_ROWS;
-    const newKey = getHarborVisualKey(row, col, footprintCols, footprintRows);
+    const rawSide = getHarborRecordWaterSide(row, col, record);
+    if (rawSide) record.harborWaterSide = rawSide;
+    const newKey = getHarborVisualKey(row, col, footprintCols, footprintRows, rawSide);
     if (newKey === record.spriteKey) return;
     record.spriteKey = newKey;
     record.assetId = HARBOR_MODELS[newKey]?.path;
@@ -7761,6 +7920,10 @@ function getHillOpenEdges(row, col) {
 }
 
 function getWaterPatternKey(row, col) {
+  // A container-port sprite already draws its own quay wall. Suppress the
+  // normal grassy/sandy shoreline lip on the adjoining frontage tiles so the
+  // quay meets open water without a duplicate bank.
+  if (isHarborFrontageTile(row, col)) return 'water_full';
   if (isOnMapEdge(row, col)) return 'water_full';
   const connectedEdges = getAdjacentEdges(row, col, WATER)
     .concat(getAdjacentEdges(row, col, BEACH));
@@ -7774,6 +7937,9 @@ function getTerrainPatternKey(row, col, terrainType, prefix, fullKey = `${prefix
 }
 
 function getShorelineKey(row, col) {
+  // Beach frontage is visually occupied by the quay. Keep BEACH in mapData so
+  // saves and terrain simulation stay intact, but render water beneath the port.
+  if (isHarborFrontageTile(row, col)) return 'water_full';
   if (isOnMapEdge(row, col)) return 'beach_full';
   const waterEdges = getAdjacentEdges(row, col, WATER);
   if (waterEdges.length === 2) {

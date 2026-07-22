@@ -44,6 +44,7 @@ test('fixed building registries point at the current asset set', () => {
       SPECIAL_BUILDING_MODEL_VARIANTS,
       LEGACY_AIRPORT_MODEL,
       LEGACY_AIRPORT_8X8_MODEL,
+      LEGACY_OCEAN_PARK_MODEL,
     })`,
   );
 
@@ -56,6 +57,7 @@ test('fixed building registries point at the current asset set', () => {
     ...Object.values(registries.SPECIAL_BUILDING_MODEL_VARIANTS),
     [registries.LEGACY_AIRPORT_MODEL],
     [registries.LEGACY_AIRPORT_8X8_MODEL],
+    [registries.LEGACY_OCEAN_PARK_MODEL],
   ];
   modelRegistries.flatMap((registry) => Array.isArray(registry) ? registry : Object.values(registry)).forEach((model) => {
     assertAssetExists(model.path);
@@ -68,6 +70,10 @@ test('fixed building registries point at the current asset set', () => {
   assert.equal(registries.LEGACY_AIRPORT_MODEL.footprintRows, 6);
   assert.equal(registries.LEGACY_AIRPORT_8X8_MODEL.footprintCols, 8);
   assert.equal(registries.LEGACY_AIRPORT_8X8_MODEL.footprintRows, 8);
+  assert.equal(registries.SPECIAL_BUILDING_MODELS.ocean_park.footprintCols, 8);
+  assert.equal(registries.SPECIAL_BUILDING_MODELS.ocean_park.footprintRows, 8);
+  assert.equal(registries.LEGACY_OCEAN_PARK_MODEL.footprintCols, 4);
+  assert.equal(registries.LEGACY_OCEAN_PARK_MODEL.footprintRows, 4);
   assert.ok(registries.SPECIAL_BUILDING_MODELS.airport.cacheVersion);
   assert.deepEqual(
     Object.keys(registries.HARBOR_MODELS).sort(),
@@ -102,7 +108,7 @@ test('zone-model fallback catalogs contain only files that ship', () => {
   });
 });
 
-test('industrial catalog retires the broken model and classifies every science park', () => {
+test('industrial catalog keeps both 3x3 science parks and classifies every science park', () => {
   const catalog = loadScriptValues(
     'model-catalog.js',
     `({
@@ -117,8 +123,7 @@ test('industrial catalog retires the broken model and classifies every science p
   const config2x2 = catalog.INDUSTRIAL_BUILDING_MODEL_SETS.find((entry) => entry.footprintCols === 2);
   const config3x3 = catalog.INDUSTRIAL_BUILDING_MODEL_SETS.find((entry) => entry.footprintCols === 3);
   assert.ok(config2x2 && config3x3);
-  assert.ok(config3x3.disabledFiles.includes('sciencePark3-02.png'));
-  assert.equal(catalog.isDisabledModelFile('sciencePark3-02.webp', config3x3.disabledFiles), true);
+  assert.equal(config3x3.disabledFiles, undefined);
   assert.equal(catalog.isScienceParkModel({ sourceFileName: 'sicencePark2-03.webp' }), true);
 
   const main = fs.readFileSync(path.join(ROOT, 'main.js'), 'utf8');
@@ -145,13 +150,14 @@ test('industrial catalog retires the broken model and classifies every science p
     'industrial_building_3x3_0',
     'industrial_building_3x3_1',
     'industrial_building_3x3_2',
+    'industrial_building_3x3_3',
   ]);
   assert.deepEqual(
     [...result.png].map((model) => model.fileName.replace(/\.png$/, '')),
     [...result.webp].map((model) => model.fileName.replace(/\.webp$/, '')),
   );
-  assert.equal([...result.webp].some((model) => /sciencePark3-02/i.test(model.sourceFileName)), false);
-  assert.equal([...result.webp].filter(catalog.isScienceParkModel).length, 1);
+  assert.equal([...result.webp].some((model) => /sciencePark3-02/i.test(model.sourceFileName)), true);
+  assert.equal([...result.webp].filter(catalog.isScienceParkModel).length, 2);
 
   context.config = config2x2;
   context.pngFiles = config2x2.fallbackSourceFiles;
@@ -184,15 +190,68 @@ test('science-park conversion loads its texture before removing industry', () =>
   assert.match(batch, /tryConvertSingleIndustrialToSciencePark\(scene, row, col, record, model\)/);
   assert.doesNotMatch(batch, /removeBuilding\(/);
 
-  const save = fs.readFileSync(path.join(ROOT, 'save.js'), 'utf8');
-  assert.match(save, /'sciencePark3-02': 'sciencePark3-01'/);
-
   const constants = fs.readFileSync(path.join(ROOT, 'constants.js'), 'utf8');
   const growth = fs.readFileSync(path.join(ROOT, 'sim-growth.js'), 'utf8');
   assert.match(constants, /SCIENCE_PARK_UNLOCK_HIGHER_EDU\s*=\s*0\.8/);
   assert.match(infrastructure, /higherEdu >= SCIENCE_PARK_UNLOCK_HIGHER_EDU/);
   assert.match(infrastructure, /isPolicyActive\('scienceDevelopment'\) \? 0\.10 : 0/);
   assert.match(growth, /isPolicyActive\('scienceDevelopment'\) \? 0\.20 : 0/);
+});
+
+test('sciencePark3-02 delayed texture load preserves the old building until success', () => {
+  const infrastructure = fs.readFileSync(path.join(ROOT, 'sim-infrastructure.js'), 'utf8');
+  const start = infrastructure.indexOf('function isScienceParkIndustrialRecord(');
+  const end = infrastructure.indexOf('\nfunction convertEligibleIndustrialToScienceParks(', start);
+  const model = {
+    key: 'industrial_building_3x3_3',
+    assetId: 'Models/industrial/3x3/sciencePark3-02.png',
+    sourceFileName: 'sciencePark3-02.png',
+    footprintCols: 3,
+    footprintRows: 3,
+    metadata: { footprintCols: 3, footprintRows: 3, scale: 1, originX: 0.5, originY: 1 },
+  };
+  const oldRecord = {
+    type: 'industrial',
+    spriteKey: 'industrial_building_3x3_0',
+    sourceFileName: 'industrialBuilding3-01.png',
+    footprintCols: 3,
+    footprintRows: 3,
+  };
+  let textureLoaded = false;
+  let deferredCallback = null;
+  let removeCount = 0;
+  let placedKey = null;
+  const context = vm.createContext({
+    industrialBuildingModels: [model],
+    buildingData: { '2:3': oldRecord },
+    isScienceParkModel: (value) => /sciencepark/i.test(value?.sourceFileName ?? ''),
+    getTileId: (row, col) => `${row}:${col}`,
+    requestZoneModelTexture: (_scene, _model, callback) => { deferredCallback = callback; },
+    removeBuilding: () => { removeCount += 1; return true; },
+    placeSpriteBuilding: (_scene, _row, _col, key) => { placedKey = key; },
+    markPowerGridDirty: () => {},
+    invalidateBuildingCountCache: () => {},
+    pickVariedModel: (models) => models[0],
+  });
+  vm.runInContext(infrastructure.slice(start, end), context);
+  context.scene = { textures: { exists: () => textureLoaded } };
+  context.model = model;
+  context.oldRecord = oldRecord;
+
+  const immediate = vm.runInContext(
+    'tryConvertSingleIndustrialToSciencePark(scene, 2, 3, oldRecord, model)',
+    context,
+  );
+  assert.equal(immediate, false);
+  assert.equal(removeCount, 0);
+  assert.equal(context.buildingData['2:3'], oldRecord);
+  assert.equal(typeof deferredCallback, 'function');
+
+  textureLoaded = true;
+  deferredCallback(true);
+  assert.equal(removeCount, 1);
+  assert.equal(placedKey, 'industrial_building_3x3_3');
+  assert.equal(context.buildingData['2:3'].sourceFileName, 'sciencePark3-02.png');
 });
 
 test('both road sets provide every logical road topology', () => {
@@ -234,8 +293,23 @@ test('container-port suffixes match the isometric screen edge containing water',
     HARBOR_FOOTPRINT_COLS: 4,
     HARBOR_FOOTPRINT_ROWS: 4,
     WATER: 0,
+    GROUND: 1,
+    ROAD: 2,
+    BEACH: 4,
     mapRotation: 0,
     mapData: [],
+    activeScene: null,
+    buildingData: {},
+    HARBOR_BUILDING_TYPE: 'container_port',
+    harborFrontageTileIds: new Set(),
+    canPlaceBuilding: (row, col) => context.mapData[row]?.[col] === 1,
+    isInsideMap: (row, col) => row >= 0 && col >= 0 && row < context.mapData.length && col < context.mapData[0].length,
+    getFootprintTiles: (row, col, cols, rows) => Array.from({ length: rows }, (_, dr) => (
+      Array.from({ length: cols }, (__, dc) => [row + dr, col + dc])
+    )).flat(),
+    isBridgeTile: () => false,
+    getTileId: (row, col) => `${row}:${col}`,
+    hasDistrictSignAt: () => false,
   });
   vm.runInContext(source.slice(rotateStart, rotateEnd), context);
   vm.runInContext(source.slice(harborStart, harborEnd), context);
@@ -255,6 +329,50 @@ test('container-port suffixes match the isometric screen edge containing water',
   assert.equal(keyForWaterSide('s'), 'harbor_ll');
   assert.equal(keyForWaterSide('w'), 'harbor_ul');
   assert.equal(keyForWaterSide('n', 1), 'harbor_lr');
+
+  context.mapRotation = 0;
+  context.mapData = Array.from({ length: 8 }, () => Array(8).fill(1));
+  for (let col = 2; col <= 5; col++) {
+    context.mapData[6][col] = 4;
+    context.mapData[7][col] = 0;
+  }
+  assert.equal(vm.runInContext('canPlaceHarborFootprint(2, 2)', context), true, 'beach backed by water is valid');
+  assert.equal(vm.runInContext("analyzeHarborCoast(2, 2).coastMode", context), 'beach-buffer');
+
+  context.mapData = Array.from({ length: 8 }, () => Array(8).fill(1));
+  for (let col = 2; col <= 5; col++) context.mapData[6][col] = 0;
+  context.mapData[5][2] = 4;
+  context.mapData[5][3] = 4;
+  context.mapData[5][4] = 4;
+  context.mapData[5][5] = 4;
+  assert.equal(vm.runInContext('canPlaceHarborFootprint(2, 2)', context), true, 'waterfront footprint row may be beach');
+
+  context.mapData = Array.from({ length: 8 }, () => Array(8).fill(1));
+  context.mapData[6][2] = 0;
+  assert.equal(vm.runInContext('canPlaceHarborFootprint(2, 2)', context), false, 'one water tile is not a continuous quay');
+
+  context.mapData = Array.from({ length: 8 }, () => Array(8).fill(1));
+  for (let col = 2; col <= 5; col++) context.mapData[6][col] = 0;
+  context.buildingData['2:2'] = {
+    type: 'container_port',
+    footprintCols: 4,
+    footprintRows: 4,
+    harborWaterSide: 's',
+  };
+  vm.runInContext('rebuildHarborFrontageTileCache()', context);
+  assert.equal(vm.runInContext('isHarborFrontageTile(6, 2)', context), true);
+  assert.equal(vm.runInContext('isHarborFrontageTile(5, 2)', context), false);
+  vm.runInContext('clearHarborFrontageTileCache()', context);
+  assert.equal(vm.runInContext('isHarborFrontageTile(6, 2)', context), false);
+
+  const frontageLookupStart = source.indexOf('function isHarborFrontageTile(');
+  const frontageLookupEnd = source.indexOf('\nfunction refreshHarborCoastTiles(', frontageLookupStart);
+  const frontageLookup = source.slice(frontageLookupStart, frontageLookupEnd);
+  assert.match(frontageLookup, /harborFrontageTileIds\.has/);
+  assert.doesNotMatch(frontageLookup, /Object\.entries\(buildingData\)/);
+
+  assert.match(source, /function getWaterPatternKey\(row, col\) \{[\s\S]*?isHarborFrontageTile\(row, col\)[\s\S]*?return 'water_full'/);
+  assert.match(source, /function getShorelineKey\(row, col\) \{[\s\S]*?isHarborFrontageTile\(row, col\)[\s\S]*?return 'water_full'/);
 });
 
 test('updated model metadata anchors the true lowest corner to the map', () => {

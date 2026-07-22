@@ -204,17 +204,26 @@ const COUNCIL_LAW_CATEGORY_ICONS = Object.freeze({
 let expandedCouncilLawGroups = null;
 
 function buildCouncilLawGroups() {
+  const isVisible = (definition, itemType) => {
+    if (!definition.hideUntilBuildingRequirements) return true;
+    if (itemType === 'policy' && isPolicyActive(definition.id)) return true;
+    return !getMissingCouncilBuildingRequirement(definition);
+  };
   const groups = CITY_POLICY_CATEGORY_IDS.map((categoryId) => ({
     id: categoryId,
     label: t(`council.category.${categoryId}`),
     icon: COUNCIL_LAW_CATEGORY_ICONS[categoryId] || '📜',
-    items: CITY_POLICY_DEFS.filter((policy) => policy.category === categoryId).map((policy) => ({ type: 'policy', id: policy.id, def: policy })),
+    items: CITY_POLICY_DEFS
+      .filter((policy) => policy.category === categoryId && isVisible(policy, 'policy'))
+      .map((policy) => ({ type: 'policy', id: policy.id, def: policy })),
   }));
   groups.push({
     id: 'resolutions',
     label: t('council.resolutions.heading'),
     icon: '🎪',
-    items: COUNCIL_RESOLUTION_DEFS.map((resolution) => ({ type: 'resolution', id: resolution.id, def: resolution })),
+    items: COUNCIL_RESOLUTION_DEFS
+      .filter((resolution) => isVisible(resolution, 'resolution'))
+      .map((resolution) => ({ type: 'resolution', id: resolution.id, def: resolution })),
   });
   return groups;
 }

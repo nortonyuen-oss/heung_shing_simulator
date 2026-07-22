@@ -152,7 +152,11 @@ function getResolutionNewsLanguage() {
 function getResolutionCanonicalFacts(resolutionId, outcome, extra = {}) {
   const zh = getResolutionNewsLanguage() === 'zhHant';
   const title = t(getCouncilResolutionDefinition(resolutionId)?.titleKey || '');
-  if (resolutionId === 'muiKinKwokMatch' && outcome === 'bench_warmer_refund') {
+  if (resolutionId === 'roseGardenAirportProject' && outcome === 'success') {
+    headline = zh ? '【我愛玫瑰園】計劃獲立法會通過　新機場正式解鎖' : 'I Love the Rose Garden project approved; new airport unlocked';
+    subhead = zh ? `${lead}宣布完成審議　政府將展開新機場選址及工程準備` : `${lead} confirms the vote as airport planning moves ahead`;
+    quote = zh ? '議會批准代表城市已具備人口、財政及經濟條件，機場工程可以正式啟動。' : 'Approval confirms the city is ready to begin the airport project.';
+  } else if (resolutionId === 'muiKinKwokMatch' && outcome === 'bench_warmer_refund') {
     return zh
       ? [`${title}失敗。梅建國全程九十分鐘坐在後備席，最後四十秒才出場揮手離場。`, `購票市民要求回水，事件令城市被世界恥笑。退款成本為 $${Number(extra.refundCost || 0).toLocaleString()}。`]
       : [`${title} failed: Mui Kin-kwok sat on the bench for all 90 minutes and appeared only for the final 40 seconds to wave before leaving.`, `Ticket holders demanded refunds and the city became an international joke. Refund cost: $${Number(extra.refundCost || 0).toLocaleString()}.`];
@@ -365,6 +369,7 @@ function saveResolutionArticle(event, article) {
 
 function getResolutionForumImage(resolutionId, outcome) {
   const images = {
+    roseGardenAirportProject: 'UI/news/airportProjectApproved.webp',
     muiKinKwokMatch: 'UI/news/footballStarVisit.webp',
     menaConcert: 'UI/news/koreanStarVisit.webp',
     aiAntiDrugGirlGroup: 'UI/news/AIAntidrugCampagin.webp',

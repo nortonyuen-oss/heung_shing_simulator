@@ -1,12 +1,12 @@
 # Models 資產盤點
 
-更新日期：2026-07-20
+更新日期：2026-07-22
 
 ## 總覽
 
 - 遊戲 PNG 模型：145
-- 已由登記表、模型目錄或動態 key 使用：141
-- 尚未接入／已停用：4
+- 已由登記表、模型目錄或動態 key 使用：142
+- 尚未接入：3
 - 非遊戲生成檔：24 個 `.DS_Store`、2 個 `process_log.csv`、2 個 `settings.json`
 
 | 分類 | PNG 數量 | 狀態 |
@@ -15,7 +15,7 @@
 | commercial | 23 | 1×1 至 5×5 已接入 |
 | containerPort | 4 | 四個海岸方向已接入 |
 | government | 21 | 18 張已接入，3 張保留作新玩法 |
-| industrial | 17 | 16 張投入發展；1 張問題模型停用 |
+| industrial | 17 | 1×1 至 3×3 全部投入發展 |
 | parks | 11 | 公園、泳池、運動場及旗艦公園已接入 |
 | powerStation | 3 | 燃煤、太陽能、核電已接入 |
 | residential | 37 | 1×1 至 5×5 已接入 |
@@ -36,6 +36,8 @@
 - 遊戲啟動只預載每個 footprint／tier 的代表模型，其餘按需載入並受 192 MiB soft LRU budget 管理；預算已計入完整 mip chain 額外約三分之一的 GPU 記憶體。
 - `/Models/` 圖片改為每次重載時條件式重新驗證，避免一小時媒體快取遮蔽最新貼圖。
 - 貨櫃碼頭四方向已使用 4×4 footprint；機場新建尺寸為 12×12，舊存檔保留 6×6／8×8 fallback。
+- 貨櫃碼頭建造時要求一條連續四格海岸，支援直接水岸及「沙灘後方為海水」兩種岸線；碼頭 frontage 會抑制普通草岸／沙岸貼圖，讓模型岸牆直接接上海面。
+- 海洋公園新建尺寸改為 8×8，需先由議會通過【海洋公園發展計劃】；舊存檔保留原有 4×4 佔地並自動承認既有項目。
 
 ## 宗教建築
 
@@ -47,14 +49,14 @@
 ## 工業及科學園發展
 
 - 傳統工業：1×1 共 2 張、2×2 共 7 張、3×3 共 2 張。
-- 科學園：2×2 共 4 張、3×3 共 1 張投入使用；`sicencePark2-03` 雖保留舊檔名，catalog 會正確識別為科學園。
+- 科學園：2×2 共 4 張、3×3 共 2 張投入使用；`sicencePark2-03` 雖保留舊檔名，catalog 會正確識別為科學園。
 - 城市高等教育指數達 0.8 後解鎖科學園；高等教育水平及「科研發展」政策會提高新科學園出現與舊工業轉型機率。
 - 開發模式 PNG 與 packaged WebP 現共用相同 alias 排序，模型 key 不會因副檔名不同而改變。
 - 工業轉型採先載入、後替換；載入失敗會保留原工業建築，避免再次出現 Phaser missing texture。
+- `sciencePark3-02.png` 已重新啟用；PNG 與 WebP 均固定對應 `industrial_building_3x3_3`，延遲載入成功後才會提交轉型。
 
 ## 尚未接入及建議用途
 
-- `Models/industrial/3x3/sciencePark3-02.png`：原本對應 `industrial_building_3x3_3`，因轉型期間曾顯示 missing texture 而停用；舊存檔會 fallback 至 `sciencePark3-01`。
 - `Models/government/1x1/policeStation1.png`：低成本 1×1 社區警崗，覆蓋較小。
 - `Models/government/1x1/schoolHall1.png`：1×1 幼稚園、社區會堂或成人教育中心。
 - `Models/government/3x3/fireStation3-01-Photoroom.png`：3×3 區域消防總局，較高建造費及覆蓋半徑。
@@ -64,3 +66,9 @@
 ## 非遊戲檔案
 
 `.DS_Store`、`process_log.csv` 與 `settings.json` 不應由遊戲載入或納入模型登記。它們目前保留作來源追溯，日後可在確認不再需要資產處理紀錄後統一清理。
+
+## 討論區新聞圖片
+
+- 新增 `airportProjectApproved`、`oceanParkMemories`、`stockMarketShock`、`stockMarketShock2` 四套新聞圖片。
+- PNG 保留作新聞母檔但排除於 Electron package；遊戲及正式版只讀取最大 960×720 的 WebP 與 180×125 縮圖。
+- 機場計劃通過、海洋公園半年活動及每次股災（兩則新聞）均使用各自的固定 WebP 圖片。

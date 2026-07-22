@@ -325,6 +325,53 @@ h1 {
   background: #121b23;
 }
 
+.manual {
+  padding: 60px clamp(18px, 5vw, 70px) 72px;
+  background: #16252d;
+}
+
+.manual-intro,
+.manual-notes {
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.manual-table-wrap {
+  overflow-x: auto;
+  border: 1px solid rgba(247, 241, 223, 0.16);
+  border-radius: 8px;
+}
+
+.manual-table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+  background: rgba(18, 27, 35, 0.78);
+}
+
+.manual-table th,
+.manual-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(247, 241, 223, 0.12);
+  text-align: left;
+  vertical-align: top;
+  line-height: 1.5;
+}
+
+.manual-table th {
+  color: #18202a;
+  background: var(--tram);
+}
+
+.manual h3 {
+  margin-top: 28px;
+}
+
+.manual-source a {
+  color: var(--tram);
+  font-weight: 800;
+}
+
 .release-list {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

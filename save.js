@@ -550,14 +550,6 @@ const LEGACY_COMMERCIAL_FILE_MIGRATIONS = Object.freeze({
   'commercialBuilding5-01_fixed.png': 'commercialBuilding5-01-UH.png',
 });
 
-// sciencePark3-02 used the generated industrial_building_3x3_3 key and could
-// render as Phaser's missing-texture placeholder during asynchronous science
-// park conversion. Retire it and migrate saved references to the remaining
-// 3x3 science-park model without changing the occupied footprint.
-const RETIRED_INDUSTRIAL_MODEL_MIGRATIONS = Object.freeze({
-  'sciencePark3-02': 'sciencePark3-01',
-});
-
 function getMigratedResidentialFileName(record) {
   if (record?.type !== 'residential') return null;
   const assetFileName = String(record.assetId ?? '').split('/').pop();
@@ -570,14 +562,6 @@ function getMigratedCommercialFileName(record) {
   const assetFileName = String(record.assetId ?? '').split('/').pop();
   const sourceFileName = record.sourceFileName || assetFileName;
   return LEGACY_COMMERCIAL_FILE_MIGRATIONS[sourceFileName] ?? sourceFileName ?? null;
-}
-
-function getMigratedIndustrialFileName(record) {
-  if (record?.type !== 'industrial') return null;
-  const assetFileName = String(record.assetId ?? '').split('/').pop();
-  const sourceFileName = record.sourceFileName || assetFileName;
-  const baseName = String(sourceFileName ?? '').replace(/\.[^.]+$/, '');
-  return RETIRED_INDUSTRIAL_MODEL_MIGRATIONS[baseName] ?? null;
 }
 
 function getSaveModelForRecord(record) {
@@ -599,17 +583,6 @@ function getSaveModelForRecord(record) {
       record.assetId = migratedModel.assetId;
       record.sourceFileName = migratedModel.sourceFileName;
       record.commercialTier = migratedModel.commercialTier;
-      return migratedModel;
-    }
-  }
-  const migratedIndustrialFileName = getMigratedIndustrialFileName(record);
-  if (migratedIndustrialFileName) {
-    const migratedModel = models.find((model) => (
-      String(model.sourceFileName ?? '').replace(/\.[^.]+$/, '') === migratedIndustrialFileName
-    ));
-    if (migratedModel) {
-      record.assetId = migratedModel.assetId;
-      record.sourceFileName = migratedModel.sourceFileName;
       return migratedModel;
     }
   }
@@ -1012,12 +985,26 @@ function rebuildSceneFromSave(scene, save) {
 
     const [r, c] = id.split(':').map(Number);
     migrateAirportBuildingRecord(record);
+    migrateOceanParkBuildingRecord(record);
+    if (record.type === HARBOR_BUILDING_TYPE && !record.harborWaterSide) {
+      const coast = analyzeHarborCoast(
+        r,
+        c,
+        record.footprintCols ?? HARBOR_FOOTPRINT_COLS,
+        record.footprintRows ?? HARBOR_FOOTPRINT_ROWS,
+      );
+      if (coast) {
+        record.harborWaterSide = coast.side;
+        record.harborCoastMode = coast.coastMode;
+      }
+    }
     const key    = record.type === HARBOR_BUILDING_TYPE
       ? getHarborVisualKey(
         r,
         c,
         record.footprintCols ?? HARBOR_FOOTPRINT_COLS,
         record.footprintRows ?? HARBOR_FOOTPRINT_ROWS,
+        record.harborWaterSide,
       )
       : deriveLoadedSpriteKey(record);
     const opts   = normalizeLoadedBuildingOptions(key, record);
@@ -1025,7 +1012,10 @@ function rebuildSceneFromSave(scene, save) {
     placeSpriteBuilding(scene, r, c, key, opts);
     Object.assign(record, opts, { spriteKey: key });
   });
+  if (typeof rebuildHarborFrontageTileCache === 'function') rebuildHarborFrontageTileCache();
+  if (typeof refreshAllHarborFrontages === 'function') refreshAllHarborFrontages(scene);
   grandfatherLegacyAirportProjectApproval();
+  grandfatherLegacyOceanParkProjectApproval();
 
   // Power-line graphics
   (save.powerLineSet ?? []).forEach((id) => {
@@ -1146,6 +1136,41 @@ function grandfatherLegacyAirportProjectApproval() {
   const hasSavedAirport = Object.values(buildingData ?? {}).some((record) => record?.type === 'airport');
   const state = city.council?.resolutionStates?.roseGardenAirportProject;
   if (!hasSavedAirport || !state || Number(state.timesApproved || 0) > 0) return false;
+  state.timesApproved = 1;
+  state.cooldownUntilMonthIndex = -1;
+  return true;
+}
+
+function migrateOceanParkBuildingRecord(record) {
+  if (!record || record.type !== 'ocean_park') return record;
+  const model = typeof SPECIAL_BUILDING_MODELS !== 'undefined'
+    ? SPECIAL_BUILDING_MODELS.ocean_park
+    : null;
+  if (!model) return record;
+
+  const legacyModel = typeof LEGACY_OCEAN_PARK_MODEL !== 'undefined'
+    ? LEGACY_OCEAN_PARK_MODEL
+    : null;
+  const savedCols = Number(record.footprintCols ?? 4);
+  const savedRows = Number(record.footprintRows ?? 4);
+  const isLegacy4x4 = record.spriteKey === 'ocean_park_4x4'
+    || savedCols <= 4
+    || savedRows <= 4;
+  const targetModel = isLegacy4x4 && legacyModel ? legacyModel : model;
+
+  // Preserve existing 4x4 occupancy; only newly constructed parks use 8x8.
+  record.spriteKey = targetModel.spriteKey;
+  record.assetId = model.path;
+  delete record.sourceFileName;
+  record.footprintCols = targetModel.footprintCols;
+  record.footprintRows = targetModel.footprintRows;
+  return record;
+}
+
+function grandfatherLegacyOceanParkProjectApproval() {
+  const hasSavedOceanPark = Object.values(buildingData ?? {}).some((record) => record?.type === 'ocean_park');
+  const state = city.council?.resolutionStates?.oceanParkDevelopmentProject;
+  if (!hasSavedOceanPark || !state || Number(state.timesApproved || 0) > 0) return false;
   state.timesApproved = 1;
   state.cooldownUntilMonthIndex = -1;
   return true;

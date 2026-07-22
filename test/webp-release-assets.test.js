@@ -97,6 +97,28 @@ test('logical PNG URLs and physical WebP URLs both serve WebP in packaged mode',
   assert.ok((await discoveryResponse.json()).includes(path.posix.basename(entry.logicalPath)));
 });
 
+test('re-enabled sciencePark3-02 is discoverable and served as packaged WebP', {
+  skip: !HAS_STAGED_ASSETS,
+}, async () => {
+  const manifestResponse = await fetch(`${packagedServer.url}/api/model-assets`);
+  assert.equal(manifestResponse.status, 200);
+  const manifest = await manifestResponse.json();
+  const logicalPath = 'Models/industrial/3x3/sciencePark3-02.png';
+  const entry = manifest.entries[logicalPath];
+  assert.ok(entry, 'sciencePark3-02 must be present in the packaged manifest');
+
+  for (const requestPath of [logicalPath, entry.packagedPath]) {
+    const response = await fetch(`${packagedServer.url}/${encodeURI(requestPath)}`);
+    assert.equal(response.status, 200, requestPath);
+    assert.match(response.headers.get('content-type') || '', /^image\/webp\b/, requestPath);
+    assert.ok((await response.arrayBuffer()).byteLength > 0, requestPath);
+  }
+
+  const discoveryResponse = await fetch(`${packagedServer.url}/api/models/industrial/3x3`);
+  assert.equal(discoveryResponse.status, 200);
+  assert.ok((await discoveryResponse.json()).includes('sciencePark3-02.png'));
+});
+
 test('save loading verifies textures before replacing the active city', () => {
   const source = fs.readFileSync(path.join(ROOT, 'save.js'), 'utf8');
   const ensureStart = source.indexOf('async function ensureSaveBuildingTextures');

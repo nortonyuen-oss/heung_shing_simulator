@@ -71,7 +71,7 @@ const CITY_POLICY_DEFS = [
   { id: 'legislativeCouncilElection', titleKey: 'policy.legislativeCouncilElection.title', descKey: 'policy.legislativeCouncilElection.desc', monthlyBase: 180, unlockPopulation: 10000, category: 'governanceReform', moverId: 'councillor_democracy' },
   { id: 'stockExchangeAct', titleKey: 'policy.stockExchangeAct.title', descKey: 'policy.stockExchangeAct.desc', monthlyBase: 220, unlockPopulation: 50000, category: 'financeEconomy', moverId: 'treasury_head' },
   { id: 'elderlyTwoDollarFare', titleKey: 'policy.elderlyTwoDollarFare.title', descKey: 'policy.elderlyTwoDollarFare.desc', monthlyBase: 260, unlockPopulation: 10000, category: 'socialWelfare', moverId: 'councillor_religion' },
-  { id: 'arcticPenguinReserve', titleKey: 'policy.arcticPenguinReserve.title', descKey: 'policy.arcticPenguinReserve.desc', monthlyBase: 320, unlockPopulation: 25000, category: 'environmentPlanning', moverId: 'observatory_head' },
+  { id: 'arcticPenguinReserve', titleKey: 'policy.arcticPenguinReserve.title', descKey: 'policy.arcticPenguinReserve.desc', monthlyBase: 320, unlockPopulation: 25000, requiresBuildingTypes: ['ocean_park'], hideUntilBuildingRequirements: true, category: 'environmentPlanning', moverId: 'observatory_head' },
   { id: 'busSeatbeltMandate', titleKey: 'policy.busSeatbeltMandate.title', descKey: 'policy.busSeatbeltMandate.desc', monthlyBase: 190, unlockPopulation: 10000, category: 'safetyTransport', moverId: 'police_head' },
 ];
 
@@ -571,10 +571,10 @@ const SPECIAL_BUILDING_MODELS = {
     footprintRows: 2,
   },
   ocean_park: {
-    spriteKey: 'ocean_park_4x4',
+    spriteKey: 'ocean_park_8x8',
     path: 'Models/specialSites/4x4/oceanPark4-01.png',
-    footprintCols: 4,
-    footprintRows: 4,
+    footprintCols: 8,
+    footprintRows: 8,
   },
   football_stadium: {
     spriteKey: 'football_stadium_4x4',
@@ -611,6 +611,16 @@ const LEGACY_AIRPORT_8X8_MODEL = {
   footprintRows: 8,
 };
 
+// Ocean Park used a 4x4 footprint before becoming a council-approved 8x8
+// project. Keep old cities on their original occupied tiles while new
+// construction uses the larger footprint.
+const LEGACY_OCEAN_PARK_MODEL = {
+  spriteKey: 'ocean_park_4x4',
+  path: 'Models/specialSites/4x4/oceanPark4-01.png',
+  footprintCols: 4,
+  footprintRows: 4,
+};
+
 const SPECIAL_BUILDING_MODEL_VARIANTS = {
   heritage_temple: [
     SPECIAL_BUILDING_MODELS.heritage_temple,
@@ -630,9 +640,9 @@ function getSpecialBuildingModels(buildingType) {
 
 function getAllSpecialBuildingModels(buildingType) {
   const models = getSpecialBuildingModels(buildingType);
-  return buildingType === 'airport'
-    ? [...models, LEGACY_AIRPORT_MODEL, LEGACY_AIRPORT_8X8_MODEL]
-    : models;
+  if (buildingType === 'airport') return [...models, LEGACY_AIRPORT_MODEL, LEGACY_AIRPORT_8X8_MODEL];
+  if (buildingType === 'ocean_park') return [...models, LEGACY_OCEAN_PARK_MODEL];
+  return models;
 }
 
 // Container port: footprint is fixed but the sprite is chosen per-tile from the
@@ -683,7 +693,7 @@ const SPECIAL_BUILDING_UNLOCKS = {
   heritage_church:    { unlockPopulation: 5000, maxCount: 2 },
   indoor_coliseum:    { unlockPopulation: 30000, maxCount: 1 },
   murray_house:       { unlockAttractiveness: 60, maxCount: 1 },
-  ocean_park:         { unlockPopulation: 25000, maxCount: 1 },
+  ocean_park:         { requiresResolution: 'oceanParkDevelopmentProject', hideUntilApproved: true, maxCount: 1 },
   football_stadium:   { unlockPopulation: 40000, maxCount: 1 },
   airport:            { requiresResolution: 'roseGardenAirportProject', hideUntilApproved: true, maxCount: 1 },
   container_port:     { unlockPopulation: 15000 },

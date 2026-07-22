@@ -427,6 +427,7 @@ function localizeForumTopicJapanese(topic, context) {
     'UI/news/chiefPoliceActingInFlim.webp': [`${police}、政策PRに警察映画の前日譚を提案`, '掲示板では、改名されたどの政府高官が潜入捜査官役に向くかで盛り上がっている。', '公費で三部作だけはやめてほしい。'],
     'UI/news/fatherWithPrisoner.webp': [`${religion}、更生支援で受刑者とゲーム`, 'ゲームを通じてストレスを減らし、信頼関係と再出発を支える取り組みとして好意的な反応が集まった。', 'ゲームに再挑戦があるなら、人生にもあっていい。'],
     'UI/news/academicUniversityRank.webp': [`${chief}「香城大学は世界トップ100を維持」`, `高等教育指数は${higherEdu}。順位が雇用増につながるか学生と市民が議論している。`, '順位が上がっても学食の値段は上げないで。'],
+    'UI/news/oceanParkMemories.webp': ['オーシャンパーク×星の王子さま展　カップルが甘い思い出を写真に', '期間限定展示には写真スポットが登場し、来園者が夕暮れまで列を作った。観光業界は定期イベントによる再訪効果に期待している。', '王子さまにはバラが一輪、私のスマホには写真が百枚。'],
     'UI/news/tooHotToShutDownAitCond.webp': [`35°Cでも冷房拒否　${observatory}「扇風機で十分」`, '省エネの実演が暑さ我慢大会になっていないか、掲示板で疑問の声が上がった。', 'その扇風機を文化財に指定してほしい。'],
     'UI/news/typhoon.webp': ['台風襲来、市民がカラオケ店に避難', `娯楽施設が臨時避難所のようになり、${observatory}は危険な外出を控えるよう呼びかけた。`, '外の風より店内の歌声の方が大きい。'],
     'UI/news/rainstorm.webp': ['「大雨なのに黒色警報は退勤直前」市民が苦情', `交通が混乱し、警報のタイミングを巡って${observatory}への書き込みが殺到した。`, '出勤後に赤、退勤一秒前に黒。'],
@@ -481,6 +482,7 @@ function generateMonthlyForumPost(monthIndex = getCityMonthIndex()) {
   const religion = officialName('councillor_religion', zh ? '宗教界議員' : 'Religious Councillor');
   const culture = officialName('culture_head', zh ? '康文署署長' : 'Culture Director');
   const forumStory = (category, headline, body, comment, image) => ({ category, headline, body, comment, image });
+  let featuredTopic = null;
 
   if ([1, 2].includes(city.month)) topics.push(forumStory('城中熱話',
     zh ? `${business}賀歲合照再爭C位　旗袍議員被舞麒麟師傅意外撞跌` : `${business} battles for centre stage as councillor is knocked over by a dancing lion`,
@@ -502,22 +504,26 @@ function generateMonthlyForumPost(monthIndex = getCityMonthIndex()) {
     zh ? `${police}建議官員開拍警匪片《無X道前傳》宣傳施政` : `${police} proposes a crime-film prequel to promote government policy`,
     zh ? `構思被指將政府宣傳娛樂化，網民開始競猜哪位改名官員適合飾演臥底。` : `The proposal has users casting renamed officials as undercover officers.`,
     zh ? '最緊要唔好用公帑拍足三部曲。' : 'Just do not fund an entire trilogy.', 'UI/news/chiefPoliceActingInFlim.webp'));
-  if (policyActive('publicSafety') && religion && Math.abs(monthIndex) % 4 === 0) topics.push(forumStory('開心些牙',
+  if (policyActive('publicSafety') && hasBuildingType('heritage_church') && Math.abs(monthIndex) % 4 === 0) topics.push(forumStory('開心些牙',
     zh ? `${religion}陪伴更新人士打機　讓在囚人士輕鬆度日` : `${religion} plays video games with inmates in rehabilitation programme`,
     zh ? `計劃以遊戲協助減壓、建立關係及重整生活，部分網民大讚有人情味。` : `The programme uses games to reduce stress, build trust and support rehabilitation.`,
     zh ? '打機可以重來，人生都應該有再開一局嘅機會。' : 'Games allow restarts; people deserve another round too.', 'UI/news/fatherWithPrisoner.webp'));
-  if ((Number(city.educationHigherIndex) || 0) >= 0.72 && city.population >= 50000) topics.push(forumStory('城市發展',
+  if (hasBuildingType('university') && (Number(city.educationHigherIndex) || 0) >= 0.72 && city.population >= 50000) topics.push(forumStory('城市發展',
     zh ? `${chief}指香城大學繼續榮登全球100大　投資教育有很好回報` : `${chief} says university remains in global top 100`,
     zh ? `高等教育指數升至 ${Math.round((Number(city.educationHigherIndex) || 0) * 100)}，學生與網民討論排名能否轉化成更多職位。` : `Higher education reached ${Math.round((Number(city.educationHigherIndex) || 0) * 100)}, prompting debate over jobs.`,
     zh ? '排名有升，canteen飯價可唔可以唔升？' : 'Can the ranking rise without canteen prices rising?', 'UI/news/academicUniversityRank.webp'));
+  if (hasBuildingType('ocean_park') && Math.abs(monthIndex) % 6 === 0) {
+    featuredTopic = forumStory('城中熱話',
+      zh ? '海洋公園 X 小王子展覽開幕　情侶打卡留下甜蜜回憶' : 'Ocean Park × The Little Prince exhibition gives couples a picture-perfect day',
+      zh ? '海洋公園推出期間限定小王子主題展覽，多個玫瑰花園及星空裝置成為熱門打卡位。園方表示會定期舉辦不同活動，吸引市民再次入場。' : 'The limited exhibition adds rose-garden and starlight photo spots, part of a new programme of recurring park events.',
+      zh ? '小王子得一朵玫瑰，我部手機影咗一百張相。' : 'The Little Prince had one rose; my phone now has a hundred photos.',
+      'UI/news/oceanParkMemories.webp');
+    topics.push(featuredTopic);
+  }
   if ((Number(city.weather?.temperatureC) || 0) >= 35) topics.push(forumStory('城中熱話',
     zh ? `35°C仍拒開冷氣　${observatory}：風扇好夠` : `At 35°C, ${observatory} still says a fan is enough`,
     zh ? `天文台辦公室錄得高溫，網民質疑節能示範是否已變成耐熱挑戰。` : `Users question whether an energy-saving example has become a heat endurance test.`,
     zh ? '建議將個風扇列入文化遺產。' : 'Please list that fan as cultural heritage.', 'UI/news/tooHotToShutDownAitCond.webp'));
-  if (['signal8', 'signal9', 'signal10'].includes(city.weather?.typhoonStage)) topics.push(forumStory('城中熱話',
-    zh ? '颱風襲香城　市民紛紛躲到KTV暫避' : 'Residents shelter from typhoon in karaoke lounges',
-    zh ? `風球生效期間，多區娛樂場所被市民當成臨時避風站，${observatory}提醒切勿冒險外出。` : `Karaoke lounges became improvised shelters as ${observatory} warned residents to stay safe.`,
-    zh ? '出面風聲大，入面唱歌聲更大。' : 'The singing inside was louder than the wind outside.', 'UI/news/typhoon.webp'));
   if (['red', 'black'].includes(city.weather?.rainWarning)) topics.push(forumStory('城中熱話',
     zh ? '市民投訴落雨咁大又唔掛黑雨　放工先嚟黑雨' : 'Residents ask why black rain warning arrived only after work',
     zh ? `暴雨期間交通受阻，討論區大量留言追問警告時間，${observatory}成為最多人點名官員。` : `Transport was disrupted as users questioned warning timing and tagged ${observatory}.`,
@@ -592,7 +598,7 @@ function generateMonthlyForumPost(monthIndex = getCityMonthIndex()) {
   const recentImages = new Set((city.forumPosts || []).slice(-12).map((post) => post.image).filter(Boolean));
   const freshImageTopics = topics.filter((candidate) => candidate.image && !recentImages.has(candidate.image));
   const candidateTopics = freshImageTopics.length ? freshImageTopics : topics;
-  let topic = candidateTopics[Math.abs(monthIndex) % candidateTopics.length];
+  let topic = featuredTopic ?? candidateTopics[Math.abs(monthIndex) % candidateTopics.length];
   if (language === 'ja') {
     topic = localizeForumTopicJapanese(topic, {
       chief, treasury, police, observatory, business, tourism, religion, culture,
@@ -625,6 +631,88 @@ function generateMonthlyForumPost(monthIndex = getCityMonthIndex()) {
       ],
     },
   }, { id: `monthly-forum-${monthIndex}`, category: topic.category, author: zh ? '香城熱話台' : language === 'ja' ? '香城トレンド' : 'Heung Shing Trending' });
+}
+
+function announceSevereTyphoonForumNews(name, stage, windKph) {
+  if (!name || !['signal8', 'signal9', 'signal10'].includes(stage)) return [];
+  const language = typeof getCurrentLanguage === 'function' ? getCurrentLanguage() : 'zhHant';
+  const displayName = typeof getTyphoonDisplayName === 'function' ? getTyphoonDisplayName(name) : name;
+  const official = getCouncilNewsOfficialDisplayName('observatory_head');
+  const signal = ({ signal8: 8, signal9: 9, signal10: 10 })[stage];
+  const wind = Math.max(0, Math.round(Number(windKph) || 0));
+  const common = {
+    category: language === 'en' ? 'Weather' : language === 'ja' ? '天気板' : '城中熱話',
+    author: language === 'en' ? 'Heung Shing Weather Desk' : language === 'ja' ? '香城気象デスク' : '香城天氣台',
+    outcome: 'severe_typhoon',
+    year: city.year,
+    month: city.month,
+  };
+  const stories = language === 'en'
+    ? [
+      {
+        headline: `Typhoon ${displayName}: residents shelter from Signal No. ${signal} in karaoke lounges`,
+        body: [`As Typhoon ${displayName} brought winds of ${wind} km/h, Observatory Director ${official} urged residents to stay indoors. Some citizens turned nearby karaoke lounges into improvised shelters.`],
+        comment: 'The storm outside was loud; the singing inside was louder.',
+        image: 'UI/news/typhoon.webp',
+      },
+      {
+        headline: `Typhoon ${displayName} floods roads under Signal No. ${signal}`,
+        body: [`Flooding disrupted several districts while Typhoon ${displayName} crossed the city. Observatory Director ${official} warned residents to avoid waterfronts, underpasses and fast-moving water.`],
+        comment: 'The ride-hailing app should add a boat option.',
+        image: 'UI/news/rainstorm02.webp',
+      },
+    ]
+    : language === 'ja'
+      ? [
+        {
+          headline: `台風${displayName}でシグナル${signal}　市民はカラオケ店へ避難`,
+          body: [`台風${displayName}の風速は時速${wind}キロに達した。天文台長${official}は屋内待機を呼びかけ、市民の一部はカラオケ店を臨時避難所として利用した。`],
+          comment: '外の風より店内の歌声の方が大きい。',
+          image: 'UI/news/typhoon.webp',
+        },
+        {
+          headline: `台風${displayName}で道路冠水　シグナル${signal}発令`,
+          body: [`台風${displayName}による大雨で複数地区が冠水。天文台長${official}は海岸、地下道、急流に近づかないよう警告した。`],
+          comment: '配車アプリにボート項目が必要だ。',
+          image: 'UI/news/rainstorm02.webp',
+        },
+      ]
+      : [
+        {
+          headline: `颱風${displayName}襲香城掛${signal}號風球　市民紛紛到KTV避風`,
+          body: [`颱風${displayName}帶來每小時 ${wind} 公里烈風，天文台長${official}呼籲市民留在室內。部分市民將附近KTV當成臨時避風站，一邊等風勢減弱一邊點歌。`],
+          comment: '出面風聲大，入面唱歌聲更大。',
+          image: 'UI/news/typhoon.webp',
+        },
+        {
+          headline: `颱風${displayName}帶來暴雨水浸　${signal}號風球下多區道路變河道`,
+          body: [`颱風${displayName}吹襲期間多區出現水浸，天文台長${official}提醒市民遠離海旁、隧道低窪位置及急流，切勿冒險涉水。`],
+          comment: 'call車app係時候加入橡皮艇選項。',
+          image: 'UI/news/rainstorm02.webp',
+        },
+      ];
+
+  return stories.map((story, index) => addForumPost({
+    headline: story.headline,
+    image: story.image,
+    body: story.body,
+    quoteSpeakerId: 'observatory_head',
+    source: 'local',
+    social: {
+      likes: 1900 + index * 420,
+      laughs: 1100 + index * 260,
+      angry: 380 + index * 190,
+      commentCount: 1500 + index * 330,
+      shares: 2100 + index * 410,
+      comments: [
+        { author: language === 'en' ? 'Storm Watcher' : language === 'ja' ? '台風ウォッチャー' : '風更追蹤員', text: story.comment },
+        { author: official, officialId: 'observatory_head', text: language === 'en' ? `Please remain indoors until Typhoon ${displayName} moves away.` : language === 'ja' ? `台風${displayName}が遠ざかるまで屋内にいてください。` : `颱風${displayName}遠離前，請大家繼續留在室內安全地方。` },
+      ],
+    },
+  }, {
+    ...common,
+    id: `typhoon-forum-${city.year}-${city.month}-${name}-${index === 0 ? 'ktv' : 'flood'}`,
+  })).filter(Boolean);
 }
 
 function renderForumHistory(filter = 'all') {
@@ -793,16 +881,18 @@ function announceStockMarketCrash(crash = city.stockMarket?.crash) {
         { author: '天台乘涼關注組', text: '講笑還講笑，大家唔好去危險地方，輸錢都要安全返屋企。' },
       ];
 
-  return addForumPost({
-    headline: headlines[variant],
-    body: [bodies[variant], bodies[(variant + 2) % bodies.length]],
+  const primaryVariant = [0, 2, 3, 4][variant % 4];
+  const primaryPost = addForumPost({
+    headline: headlines[primaryVariant],
+    image: 'UI/news/stockMarketShock.webp',
+    body: [bodies[primaryVariant], bodies[(primaryVariant + 2) % bodies.length]],
     source: 'local',
     social: {
-      likes: 2600 + variant * 311,
-      laughs: 1800 + variant * 227,
-      angry: 4200 + variant * 419,
-      commentCount: 3100 + variant * 283,
-      shares: 1700 + variant * 193,
+      likes: 2600 + primaryVariant * 311,
+      laughs: 1800 + primaryVariant * 227,
+      angry: 4200 + primaryVariant * 419,
+      commentCount: 3100 + primaryVariant * 283,
+      shares: 1700 + primaryVariant * 193,
       comments,
     },
   }, {
@@ -811,27 +901,93 @@ function announceStockMarketCrash(crash = city.stockMarket?.crash) {
     author: language === 'en' ? 'Heung Shing Finance Desk' : language === 'ja' ? '香城金融デスク' : '香城財經台',
     outcome: 'crash',
   });
+  addForumPost({
+    headline: headlines[1],
+    image: 'UI/news/stockMarketShock2.webp',
+    body: [bodies[1], bodies[2]],
+    source: 'local',
+    social: {
+      likes: 3100 + variant * 271,
+      laughs: 4200 + variant * 337,
+      angry: 2800 + variant * 229,
+      commentCount: 3600 + variant * 311,
+      shares: 2300 + variant * 197,
+      comments,
+    },
+  }, {
+    id: `stock-crash-${crash.startedYear}-${crash.startedMonth}-rooftop`,
+    category: language === 'en' ? 'Finance' : language === 'ja' ? '金融板' : '財經台',
+    author: language === 'en' ? 'Heung Shing Finance Desk' : language === 'ja' ? '香城金融デスク' : '香城財經台',
+    outcome: 'crash',
+  });
+  return primaryPost;
 }
 
 // Fired once by checkSpecialBuildingUnlockNotices() (city-state.js) the first
 // time a special building's population/policy threshold is crossed — lets the
 // ticker and forum tell the player something new just became buildable.
 function getLandmarkToolRowLabelKey(buildingType) {
+  if (buildingType === 'science_park') return 'building.sciencePark';
   const camelKey = buildingType === HARBOR_BUILDING_TYPE
     ? 'harbor'
     : String(buildingType).replace(/_([a-z])/g, (_, c) => c.toUpperCase());
   return `toolRow.${camelKey}`;
 }
 
-function announceLandmarkUnlockNotice(buildingType) {
+const BUILDING_UNLOCK_SPEAKER_IDS = Object.freeze({
+  legislative_council: 'councillor_democracy',
+  stock_exchange: 'councillor_business',
+  heritage_temple: 'councillor_religion',
+  grand_temple: 'councillor_religion',
+  heritage_church: 'councillor_religion',
+  buddha_statue: 'councillor_religion',
+  cultural_center: 'councillor_tourism',
+  space_museum: 'councillor_liberty',
+  exhibition_center: 'councillor_business',
+  indoor_coliseum: 'councillor_tourism',
+  murray_house: 'councillor_tourism',
+  ocean_park: 'councillor_tourism',
+  football_stadium: 'councillor_tourism',
+  airport: 'councillor_business',
+  container_port: 'councillor_business',
+  science_park: 'councillor_liberty',
+});
+
+function getBuildingUnlockSpeaker(buildingType) {
+  const official = typeof getCouncilOfficialDefinition === 'function'
+    ? getCouncilOfficialDefinition(BUILDING_UNLOCK_SPEAKER_IDS[buildingType])
+    : null;
+  return official ? t(official.nameKey) : t('news.unlockSpeaker.citizen');
+}
+
+function getBuildingUnlockAnnouncementReason(buildingType) {
+  if (buildingType === 'science_park') return 'education';
+  if (buildingType === 'legislative_council') return 'population';
+  if (buildingType === 'stock_exchange') return 'policy';
+  const rule = SPECIAL_BUILDING_UNLOCKS?.[buildingType];
+  if (rule?.requiresResolution) return 'resolution';
+  if (rule?.requiresPolicy) return 'policy';
+  if (rule?.unlockAttractiveness && rule?.unlockPopulation) return 'development';
+  if (rule?.unlockAttractiveness) return 'attractiveness';
+  if (rule?.unlockPopulation) return 'population';
+  return 'development';
+}
+
+function announceLandmarkUnlockNotice(buildingType, reason = '') {
   const name = t(getLandmarkToolRowLabelKey(buildingType));
   const cityName = city.name || getDefaultCityName();
+  const speaker = getBuildingUnlockSpeaker(buildingType);
+  const announcementReason = reason || getBuildingUnlockAnnouncementReason(buildingType);
   if (typeof queueLandmarkTickerNotice === 'function') {
-    queueLandmarkTickerNotice(t('news.urgent.landmarkUnlocked', { city: cityName, building: name }));
+    queueLandmarkTickerNotice(t(`news.urgent.buildingUnlocked.${announcementReason}`, {
+      city: cityName,
+      building: name,
+      speaker,
+    }));
   }
   addForumPost({
     headline: t('forum.landmarkUnlocked.headline', { building: name }),
-    body: [t('forum.landmarkUnlocked.body', { city: cityName, building: name })],
+    body: [t('forum.landmarkUnlocked.body', { city: cityName, building: name, speaker })],
     source: 'local',
   }, { category: '城市發展' });
 }

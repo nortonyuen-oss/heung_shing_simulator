@@ -325,11 +325,13 @@ function placeInfraBuilding(scene, row, col, buildingType) {
 function placeHarborBuilding(scene, row, col) {
   if (!isInsideMap(row, col)) return false;
   if (!isSpecialBuildingUnlocked(HARBOR_BUILDING_TYPE)) return false;
-  if (!canPlaceBuildingFootprint(row, col, HARBOR_FOOTPRINT_COLS, HARBOR_FOOTPRINT_ROWS)) return false;
-  if (!canPlaceHarbor(row, col)) {
+  if (!canPlaceHarborFootprint(row, col)) {
     showToast(t('toast.harborNeedsCoastline'), 'warning');
     return false;
   }
+
+  const coast = analyzeHarborCoast(row, col);
+  if (!coast) return false;
 
   const cost = INFRA_COSTS[HARBOR_BUILDING_TYPE];
   if (!spendBudget(cost)) {
@@ -337,7 +339,7 @@ function placeHarborBuilding(scene, row, col) {
     return false;
   }
 
-  const key = getHarborVisualKey(row, col);
+  const key = getHarborVisualKey(row, col, HARBOR_FOOTPRINT_COLS, HARBOR_FOOTPRINT_ROWS, coast.side);
   const opts = harborModelMetadata[key] ?? HARBOR_MODELS[key];
   placeSpriteBuilding(scene, row, col, key, opts);
 
@@ -351,6 +353,8 @@ function placeHarborBuilding(scene, row, col) {
     assetId: HARBOR_MODELS[key]?.path,
     footprintCols: HARBOR_FOOTPRINT_COLS,
     footprintRows: HARBOR_FOOTPRINT_ROWS,
+    harborWaterSide: coast.side,
+    harborCoastMode: coast.coastMode,
     originX: opts.originX,
     originY: opts.originY,
     scale: opts.scale,
@@ -360,6 +364,8 @@ function placeHarborBuilding(scene, row, col) {
     offsetY: opts.offsetY,
     anchorMode: opts.anchorMode,
   };
+  addHarborFrontageToCache(row, col, buildingData[id], coast.side);
+  refreshHarborCoastTiles(scene, row, col, coast.side);
   refreshInfrastructureEffects(scene);
   return true;
 }

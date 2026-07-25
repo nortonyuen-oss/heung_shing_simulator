@@ -19,9 +19,24 @@ const TRAFFIC_VISUAL_CONFIG = Object.freeze({
   maxLegTransitionsPerFrame: 4,
   modelDiscoveryMs: 1500,
   depthRefreshMs: 250,
+  uphillSpeedFactor: 0.82,
+  downhillSpeedFactor: 0.94,
+  surfaceConnectionTolerancePx: 0.75,
 });
 
 const TRAFFIC_DIRECTIONS = Object.freeze(['ne', 'nw', 'se', 'sw']);
+const TRAFFIC_LOGICAL_DIRECTIONS = Object.freeze({
+  n: Object.freeze({ row: -1, col: 0 }),
+  e: Object.freeze({ row: 0, col: 1 }),
+  s: Object.freeze({ row: 1, col: 0 }),
+  w: Object.freeze({ row: 0, col: -1 }),
+});
+const TRAFFIC_OPPOSITE_DIRECTION = Object.freeze({
+  n: 's',
+  e: 'w',
+  s: 'n',
+  w: 'e',
+});
 
 function createTrafficDirectionAssets(id, folder, baseName) {
   return Object.freeze(Object.fromEntries(TRAFFIC_DIRECTIONS.map((direction) => {
@@ -202,6 +217,18 @@ function computeTrafficProgressAmount(
   return config.baseSpeedTilesPerSecond * speed * vehicleSpeed * clampedDelta / 1000;
 }
 
+function getTrafficLegSpeedFactor(leg, config = TRAFFIC_VISUAL_CONFIG) {
+  const startLift = Number(leg?.surfaceLifts?.start) || 0;
+  const endLift = Number(leg?.surfaceLifts?.end) || 0;
+  if (endLift > startLift + config.surfaceConnectionTolerancePx) {
+    return config.uphillSpeedFactor;
+  }
+  if (endLift < startLift - config.surfaceConnectionTolerancePx) {
+    return config.downhillSpeedFactor;
+  }
+  return 1;
+}
+
 function pickWeightedTrafficModel(
   random = Math.random,
   models = TRAFFIC_MODEL_REGISTRY,
@@ -272,6 +299,167 @@ function isTrafficFlatRoadTile(row, col, layers) {
     && !(typeof layers?.isSlopeRoad === 'function' && layers.isSlopeRoad(row, col));
 }
 
+function normalizeTrafficBridgeValue(value) {
+  if (value === 'row' || value === 'col') return `deck:${value}`;
+  if (value === 'deck:row' || value === 'deck:col') return value;
+  if (typeof value === 'string' && /^ramp:[nesw]$/.test(value)) return value;
+  return null;
+}
+
+function getTrafficDirectionForDelta(deltaRow, deltaCol) {
+  if (deltaRow === -1 && deltaCol === 0) return 'n';
+  if (deltaRow === 0 && deltaCol === 1) return 'e';
+  if (deltaRow === 1 && deltaCol === 0) return 's';
+  if (deltaRow === 0 && deltaCol === -1) return 'w';
+  return null;
+}
+
+function getTrafficLayerHeight(layers, row, col) {
+  return Math.max(0, Number(layers?.heightMap?.[row]?.[col]) || 0);
+}
+
+function getTrafficRoadSlopeKey(layers, row, col) {
+  if (typeof layers?.getRoadSlopeKey === 'function') {
+    return layers.getRoadSlopeKey(row, col);
+  }
+  return layers?.roadSlopeKeyMap?.[row]?.[col] ?? null;
+}
+
+function createTrafficRoadSurface({
+  row,
+  col,
+  kind,
+  directions,
+  centerLift,
+  endpointLifts,
+}) {
+  return {
+    row,
+    col,
+    kind,
+    directions,
+    centerLift,
+    endpointLifts,
+  };
+}
+
+function getTrafficRoadSurface(row, col, layers) {
+  const roadValue = layers?.roadValue ?? 2;
+  const heightStep = Math.max(0, Number(layers?.heightStepPixels) || 12);
+  const bridgeDeckLift = Math.max(0, Number(layers?.bridgeDeckLiftPixels) || 15);
+  const bridge = normalizeTrafficBridgeValue(layers?.bridgeMap?.[row]?.[col]);
+
+  if (bridge === 'deck:row' || bridge === 'deck:col') {
+    const directions = bridge === 'deck:row' ? ['e', 'w'] : ['n', 's'];
+    return createTrafficRoadSurface({
+      row,
+      col,
+      kind: 'bridge-deck',
+      directions,
+      centerLift: bridgeDeckLift,
+      endpointLifts: Object.fromEntries(directions.map((direction) => [direction, bridgeDeckLift])),
+    });
+  }
+
+  const rampMatch = bridge?.match(/^ramp:([nesw])$/);
+  if (rampMatch) {
+    const highDirection = rampMatch[1];
+    const lowDirection = TRAFFIC_OPPOSITE_DIRECTION[highDirection];
+    return createTrafficRoadSurface({
+      row,
+      col,
+      kind: 'bridge-ramp',
+      directions: [highDirection, lowDirection],
+      centerLift: bridgeDeckLift / 2,
+      endpointLifts: {
+        [highDirection]: bridgeDeckLift,
+        [lowDirection]: 0,
+      },
+    });
+  }
+
+  if (layers?.mapData?.[row]?.[col] !== roadValue) return null;
+
+  const tileHeight = getTrafficLayerHeight(layers, row, col);
+  const tileLift = tileHeight * heightStep;
+  const slopeKey = getTrafficRoadSlopeKey(layers, row, col);
+  if (slopeKey === 'road_slope_corner') return null;
+
+  const crestMatch = slopeKey?.match(/^road_hill2_([nesw])$/);
+  if (crestMatch) {
+    const axisDirection = crestMatch[1];
+    const directions = axisDirection === 'n' || axisDirection === 's'
+      ? ['n', 's']
+      : ['e', 'w'];
+    const endpointLifts = Object.fromEntries(directions.map((direction) => {
+      const delta = TRAFFIC_LOGICAL_DIRECTIONS[direction];
+      return [
+        direction,
+        getTrafficLayerHeight(layers, row + delta.row, col + delta.col) * heightStep,
+      ];
+    }));
+    return createTrafficRoadSurface({
+      row,
+      col,
+      kind: 'terrain-crest',
+      directions,
+      centerLift: tileLift,
+      endpointLifts,
+    });
+  }
+
+  const slopeMatch = slopeKey?.match(/^road_hill_([nesw])$/);
+  if (slopeMatch) {
+    const lowDirection = slopeMatch[1];
+    const highDirection = TRAFFIC_OPPOSITE_DIRECTION[lowDirection];
+    const delta = TRAFFIC_LOGICAL_DIRECTIONS[lowDirection];
+    const lowLift = getTrafficLayerHeight(
+      layers,
+      row + delta.row,
+      col + delta.col,
+    ) * heightStep;
+    return createTrafficRoadSurface({
+      row,
+      col,
+      kind: 'terrain-slope',
+      directions: [lowDirection, highDirection],
+      centerLift: (lowLift + tileLift) / 2,
+      endpointLifts: {
+        [lowDirection]: lowLift,
+        [highDirection]: tileLift,
+      },
+    });
+  }
+
+  const directions = ['n', 'e', 's', 'w'];
+  return createTrafficRoadSurface({
+    row,
+    col,
+    kind: tileHeight > 0 ? 'elevated-flat' : 'flat',
+    directions,
+    centerLift: tileLift,
+    endpointLifts: Object.fromEntries(directions.map((direction) => [direction, tileLift])),
+  });
+}
+
+function trafficRoadSurfacesConnect(
+  current,
+  next,
+  direction,
+  config = TRAFFIC_VISUAL_CONFIG,
+) {
+  if (!current || !next || !direction) return false;
+  const opposite = TRAFFIC_OPPOSITE_DIRECTION[direction];
+  if (!current.directions.includes(direction) || !next.directions.includes(opposite)) {
+    return false;
+  }
+  const currentLift = Number(current.endpointLifts[direction]);
+  const nextLift = Number(next.endpointLifts[opposite]);
+  return Number.isFinite(currentLift)
+    && Number.isFinite(nextLift)
+    && Math.abs(currentLift - nextLift) <= config.surfaceConnectionTolerancePx;
+}
+
 function getTrafficRuntimeLayers() {
   return {
     mapData,
@@ -279,24 +467,45 @@ function getTrafficRuntimeLayers() {
     bridgeMap,
     roadUnderlayMap,
     roadValue: ROAD,
-    isSlopeRoad: (row, col) => (
-      typeof getRoadSlopeKey === 'function' && !!getRoadSlopeKey(row, col)
+    heightStepPixels: typeof HEIGHT_STEP_PIXELS === 'number' ? HEIGHT_STEP_PIXELS : 12,
+    bridgeDeckLiftPixels: typeof BRIDGE_DECK_VISUAL_LIFT === 'number'
+      ? BRIDGE_DECK_VISUAL_LIFT
+      : 15,
+    getRoadSlopeKey: (row, col) => (
+      typeof getRoadSlopeKey === 'function' ? getRoadSlopeKey(row, col) : null
     ),
   };
 }
 
 function isRuntimeTrafficRoad(row, col) {
   return isInsideMap(row, col)
-    && isTrafficFlatRoadTile(row, col, getTrafficRuntimeLayers());
+    && !!getTrafficRoadSurface(row, col, getTrafficRuntimeLayers());
 }
 
 function getTrafficRoadNeighbours(row, col) {
-  return [
-    { row: row - 1, col },
-    { row, col: col + 1 },
-    { row: row + 1, col },
-    { row, col: col - 1 },
-  ].filter((tile) => isRuntimeTrafficRoad(tile.row, tile.col));
+  const layers = getTrafficRuntimeLayers();
+  const surface = getTrafficRoadSurface(row, col, layers);
+  if (!surface) return [];
+  return Object.entries(TRAFFIC_LOGICAL_DIRECTIONS).flatMap(([direction, delta]) => {
+    const tile = { row: row + delta.row, col: col + delta.col };
+    if (!isInsideMap(tile.row, tile.col)) return [];
+    const nextSurface = getTrafficRoadSurface(tile.row, tile.col, layers);
+    return trafficRoadSurfacesConnect(surface, nextSurface, direction) ? [tile] : [];
+  });
+}
+
+function runtimeTrafficTilesConnect(current, next, layers = getTrafficRuntimeLayers()) {
+  if (!current || !next) return false;
+  const direction = getTrafficDirectionForDelta(
+    next.row - current.row,
+    next.col - current.col,
+  );
+  if (!direction) return false;
+  return trafficRoadSurfacesConnect(
+    getTrafficRoadSurface(current.row, current.col, layers),
+    getTrafficRoadSurface(next.row, next.col, layers),
+    direction,
+  );
 }
 
 function getTrafficState(scene) {
@@ -348,8 +557,7 @@ function invalidateTrafficVisualNetwork(scene) {
   const state = scene?.trafficVisualState;
   if (!state) return;
   state.vehicles = state.vehicles.filter((vehicle) => {
-    const valid = isRuntimeTrafficRoad(vehicle.current.row, vehicle.current.col)
-      && isRuntimeTrafficRoad(vehicle.next.row, vehicle.next.col);
+    const valid = runtimeTrafficTilesConnect(vehicle.current, vehicle.next);
     if (!valid) destroyTrafficVehicle(vehicle);
     return valid;
   });
@@ -634,6 +842,27 @@ function weightedTrafficRoadPick(roads, random = Math.random) {
   return roads.at(-1) ?? null;
 }
 
+function getTrafficLegSurfaceLifts(current, next, layers = getTrafficRuntimeLayers()) {
+  const direction = getTrafficDirectionForDelta(
+    next.row - current.row,
+    next.col - current.col,
+  );
+  const currentSurface = getTrafficRoadSurface(current.row, current.col, layers);
+  const nextSurface = getTrafficRoadSurface(next.row, next.col, layers);
+  if (!trafficRoadSurfacesConnect(currentSurface, nextSurface, direction)) {
+    return { start: 0, boundary: 0, end: 0 };
+  }
+
+  const opposite = TRAFFIC_OPPOSITE_DIRECTION[direction];
+  const currentBoundaryLift = Number(currentSurface.endpointLifts[direction]);
+  const nextBoundaryLift = Number(nextSurface.endpointLifts[opposite]);
+  return {
+    start: currentSurface.centerLift,
+    boundary: (currentBoundaryLift + nextBoundaryLift) / 2,
+    end: nextSurface.centerLift,
+  };
+}
+
 function createTrafficLeg(scene, previous, current, next) {
   const incoming = {
     row: current.row - previous.row,
@@ -653,7 +882,13 @@ function createTrafficLeg(scene, previous, current, next) {
         depthY: (start.depthY + end.depthY) / 2,
       }
     : getTrafficLanePoint(scene, current, outgoing.row, outgoing.col);
-  return { start, control, end, turn };
+  return {
+    start,
+    control,
+    end,
+    turn,
+    surfaceLifts: getTrafficLegSurfaceLifts(current, next),
+  };
 }
 
 function evaluateTrafficLeg(leg, progress) {
@@ -668,12 +903,19 @@ function evaluateTrafficLeg(leg, progress) {
     2 * inverse * (leg.control[key] - leg.start[key])
     + 2 * t * (leg.end[key] - leg.control[key])
   );
+  const startLift = Number(leg.surfaceLifts?.start) || 0;
+  const boundaryLift = Number(leg.surfaceLifts?.boundary) || 0;
+  const endLift = Number(leg.surfaceLifts?.end) || 0;
+  const surfaceLift = t <= 0.5
+    ? startLift + (boundaryLift - startLift) * t * 2
+    : boundaryLift + (endLift - boundaryLift) * (t - 0.5) * 2;
   return {
     x: value('x'),
-    y: value('y'),
-    depthY: value('depthY'),
+    y: value('y') - surfaceLift,
+    depthY: value('depthY') - surfaceLift,
     dx: derivative('x'),
     dy: derivative('y'),
+    surfaceLift,
   };
 }
 
@@ -792,8 +1034,7 @@ function removeTrafficVehiclesOutside(scene, rect, time) {
   state.vehicles = state.vehicles.filter((vehicle) => {
     const position = evaluateTrafficLeg(vehicle.leg, vehicle.progress);
     const keep = trafficPointInRect(position, rect)
-      && isRuntimeTrafficRoad(vehicle.current.row, vehicle.current.col)
-      && isRuntimeTrafficRoad(vehicle.next.row, vehicle.next.col);
+      && runtimeTrafficTilesConnect(vehicle.current, vehicle.next);
     if (!keep) destroyTrafficVehicle(vehicle);
     return keep;
   });
@@ -903,7 +1144,7 @@ function updateTrafficVisuals(time, delta) {
       paused,
       speedMultiplier,
       TRAFFIC_VISUAL_CONFIG,
-      vehicle.model.speedFactor,
+      vehicle.model.speedFactor * getTrafficLegSpeedFactor(vehicle.leg),
     );
     const keep = advanceTrafficVehicle(scene, vehicle, progressAmount, viewRect, time);
     if (!keep) destroyTrafficVehicle(vehicle);
@@ -926,6 +1167,11 @@ const trafficVisualTestApi = {
   classifyTrafficTurn,
   chooseNextTrafficTile,
   isTrafficFlatRoadTile,
+  getTrafficLegSpeedFactor,
+  getTrafficDirectionForDelta,
+  getTrafficRoadSurface,
+  trafficRoadSurfacesConnect,
+  getTrafficLegSurfaceLifts,
   evaluateTrafficLeg,
   getTrafficCameraRect,
   setTrafficVehicleVisual,

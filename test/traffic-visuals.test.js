@@ -19,6 +19,10 @@ const {
   classifyTrafficTurn,
   chooseNextTrafficTile,
   isTrafficFlatRoadTile,
+  getTrafficLegSpeedFactor,
+  getTrafficRoadSurface,
+  trafficRoadSurfacesConnect,
+  getTrafficLegSurfaceLifts,
   evaluateTrafficLeg,
   getTrafficCameraRect,
   setTrafficVehicleVisual,
@@ -34,6 +38,18 @@ test('vehicle texture directions match the supplied four-view convention', () =>
   assert.equal(getTrafficTextureDirection(1, -1), 'ne');
   assert.equal(getTrafficTextureDirection(1, 1), 'se');
   assert.equal(getTrafficTextureDirection(0, 0, 'sw'), 'sw');
+});
+
+test('logical eastbound traffic remaps through every rotated screen view', () => {
+  const eastboundScreenVectors = [
+    { dx: 50, dy: 25, texture: 'se' },
+    { dx: -50, dy: 25, texture: 'sw' },
+    { dx: -50, dy: -25, texture: 'nw' },
+    { dx: 50, dy: -25, texture: 'ne' },
+  ];
+  eastboundScreenVectors.forEach(({ dx, dy, texture }) => {
+    assert.equal(getTrafficTextureDirection(dx, dy), texture);
+  });
 });
 
 test('registry contains 19 complete four-direction vehicle models', () => {
@@ -148,6 +164,143 @@ test('flat-road eligibility excludes elevated roads, bridges, and bridge underla
   assert.equal(isTrafficFlatRoadTile(0, 4, layers), false);
 });
 
+test('traffic surfaces describe terrain slopes, crests, bridge ramps, and bridge decks', () => {
+  const terrainSlopeLayers = {
+    mapData: [[2, 2, 2]],
+    heightMap: [[0, 1, 1]],
+    bridgeMap: [[null, null, null]],
+    roadSlopeKeyMap: [[null, 'road_hill_w', null]],
+    roadValue: 2,
+    heightStepPixels: 12,
+  };
+  const slope = getTrafficRoadSurface(0, 1, terrainSlopeLayers);
+  assert.equal(slope.kind, 'terrain-slope');
+  assert.deepEqual(slope.directions, ['w', 'e']);
+  assert.equal(slope.centerLift, 6);
+  assert.deepEqual(slope.endpointLifts, { w: 0, e: 12 });
+
+  const elevated = getTrafficRoadSurface(0, 2, terrainSlopeLayers);
+  assert.equal(elevated.kind, 'elevated-flat');
+  assert.equal(elevated.centerLift, 12);
+
+  const crestLayers = {
+    mapData: [[2], [2], [2]],
+    heightMap: [[0], [1], [0]],
+    bridgeMap: [[null], [null], [null]],
+    roadSlopeKeyMap: [[null], ['road_hill2_n'], [null]],
+    roadValue: 2,
+    heightStepPixels: 12,
+  };
+  const crest = getTrafficRoadSurface(1, 0, crestLayers);
+  assert.equal(crest.kind, 'terrain-crest');
+  assert.deepEqual(crest.directions, ['n', 's']);
+  assert.equal(crest.centerLift, 12);
+  assert.deepEqual(crest.endpointLifts, { n: 0, s: 0 });
+
+  const bridgeLayers = {
+    mapData: [[2, 2, 5]],
+    heightMap: [[0, 0, 0]],
+    bridgeMap: [[null, 'ramp:e', 'deck:row']],
+    roadSlopeKeyMap: [[null, null, null]],
+    roadValue: 2,
+    bridgeDeckLiftPixels: 15,
+  };
+  const ramp = getTrafficRoadSurface(0, 1, bridgeLayers);
+  const deck = getTrafficRoadSurface(0, 2, bridgeLayers);
+  assert.equal(ramp.kind, 'bridge-ramp');
+  assert.deepEqual(ramp.directions, ['e', 'w']);
+  assert.equal(ramp.centerLift, 7.5);
+  assert.deepEqual(ramp.endpointLifts, { e: 15, w: 0 });
+  assert.equal(deck.kind, 'bridge-deck');
+  assert.deepEqual(deck.directions, ['e', 'w']);
+  assert.equal(deck.centerLift, 15);
+
+  bridgeLayers.bridgeMap[0][2] = 'deck:col';
+  const columnDeck = getTrafficRoadSurface(0, 2, bridgeLayers);
+  assert.deepEqual(columnDeck.directions, ['n', 's']);
+});
+
+test('traffic surface connections require matching direction and boundary height', () => {
+  const terrainLayers = {
+    mapData: [[2, 2, 2]],
+    heightMap: [[0, 1, 1]],
+    bridgeMap: [[null, null, null]],
+    roadSlopeKeyMap: [[null, 'road_hill_w', null]],
+    roadValue: 2,
+    heightStepPixels: 12,
+  };
+  const low = getTrafficRoadSurface(0, 0, terrainLayers);
+  const slope = getTrafficRoadSurface(0, 1, terrainLayers);
+  const high = getTrafficRoadSurface(0, 2, terrainLayers);
+  assert.equal(trafficRoadSurfacesConnect(low, slope, 'e'), true);
+  assert.equal(trafficRoadSurfacesConnect(slope, high, 'e'), true);
+  assert.equal(trafficRoadSurfacesConnect(low, high, 'e'), false);
+
+  const bridgeLayers = {
+    mapData: [[2, 2, 5]],
+    heightMap: [[0, 0, 0]],
+    bridgeMap: [[null, 'ramp:e', 'deck:row']],
+    roadSlopeKeyMap: [[null, null, null]],
+    roadValue: 2,
+    bridgeDeckLiftPixels: 15,
+  };
+  const shore = getTrafficRoadSurface(0, 0, bridgeLayers);
+  const ramp = getTrafficRoadSurface(0, 1, bridgeLayers);
+  const deck = getTrafficRoadSurface(0, 2, bridgeLayers);
+  assert.equal(trafficRoadSurfacesConnect(shore, ramp, 'e'), true);
+  assert.equal(trafficRoadSurfacesConnect(ramp, deck, 'e'), true);
+  assert.equal(trafficRoadSurfacesConnect(deck, deck, 'n'), false);
+});
+
+test('traffic legs rise continuously at surface boundaries and adjust hill speed', () => {
+  const layers = {
+    mapData: [[2, 2, 2]],
+    heightMap: [[0, 1, 1]],
+    bridgeMap: [[null, null, null]],
+    roadSlopeKeyMap: [[null, 'road_hill_w', null]],
+    roadValue: 2,
+    heightStepPixels: 12,
+  };
+  assert.deepEqual(
+    getTrafficLegSurfaceLifts(
+      { row: 0, col: 0 },
+      { row: 0, col: 1 },
+      layers,
+    ),
+    { start: 0, boundary: 0, end: 6 },
+  );
+  assert.deepEqual(
+    getTrafficLegSurfaceLifts(
+      { row: 0, col: 1 },
+      { row: 0, col: 2 },
+      layers,
+    ),
+    { start: 6, boundary: 12, end: 12 },
+  );
+
+  const leg = {
+    start: { x: 0, y: 20, depthY: 30 },
+    control: { x: 5, y: 20, depthY: 35 },
+    end: { x: 10, y: 20, depthY: 40 },
+    surfaceLifts: { start: 0, boundary: 0, end: 6 },
+  };
+  assert.equal(evaluateTrafficLeg(leg, 0.5).surfaceLift, 0);
+  assert.equal(evaluateTrafficLeg(leg, 0.75).surfaceLift, 3);
+  assert.equal(evaluateTrafficLeg(leg, 1).y, 14);
+  assert.equal(evaluateTrafficLeg(leg, 1).depthY, 34);
+  assert.equal(evaluateTrafficLeg(leg, 1).dx, 10);
+  assert.equal(evaluateTrafficLeg(leg, 1).dy, 0);
+  assert.equal(getTrafficLegSpeedFactor(leg), TRAFFIC_VISUAL_CONFIG.uphillSpeedFactor);
+  assert.equal(
+    getTrafficLegSpeedFactor({ surfaceLifts: { start: 6, boundary: 0, end: 0 } }),
+    TRAFFIC_VISUAL_CONFIG.downhillSpeedFactor,
+  );
+  assert.equal(
+    getTrafficLegSpeedFactor({ surfaceLifts: { start: 15, boundary: 15, end: 15 } }),
+    1,
+  );
+});
+
 test('route selection prefers available non-U-turn exits and reverses only at dead ends', () => {
   const previous = { row: 1, col: 0 };
   const current = { row: 1, col: 1 };
@@ -178,6 +331,7 @@ test('quadratic traffic legs interpolate position, depth, and travel derivative'
     depthY: 15,
     dx: 10,
     dy: 10,
+    surfaceLift: 0,
   });
 });
 

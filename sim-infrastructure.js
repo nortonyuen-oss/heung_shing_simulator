@@ -345,6 +345,9 @@ function isRoadTile(r, c) {
 
 function markTrafficNetworkDirty() {
   trafficRouteCache.clear();
+  if (typeof invalidateTrafficVisualNetwork === 'function') {
+    invalidateTrafficVisualNetwork(typeof activeScene === 'undefined' ? null : activeScene);
+  }
   if (typeof invalidateOverlayCache === 'function') invalidateOverlayCache();
 }
 

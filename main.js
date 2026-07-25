@@ -275,6 +275,82 @@ function createWorldRenderLayers(scene) {
   scene.renderLayerMode = 'depth-bands';
 }
 
+function setGameWorldVisible(visible) {
+  const scene = activeScene;
+  if (!scene?.scene?.setVisible) return;
+  const shouldShow = !!visible;
+  scene.scene.setVisible(shouldShow);
+  if (!shouldShow) {
+    if (typeof clearTrafficVisuals === 'function') clearTrafficVisuals(scene);
+    return;
+  }
+  updateTerrainViewportCulling(scene, true);
+  if (typeof invalidateTrafficVisualView === 'function') {
+    invalidateTrafficVisualView(scene, true);
+  }
+}
+
+function getCameraWorldViewRect(camera) {
+  const zoom = Math.max(0.0001, Number(camera?.zoom) || 1);
+  const width = Math.max(0, Number(camera?.width) || 0) / zoom;
+  const height = Math.max(0, Number(camera?.height) || 0) / zoom;
+  const originX = Number.isFinite(camera?.originX) ? camera.originX : 0.5;
+  const originY = Number.isFinite(camera?.originY) ? camera.originY : 0.5;
+  return {
+    x: (Number(camera?.scrollX) || 0) + (Number(camera?.width) || 0) * originX - width * originX,
+    y: (Number(camera?.scrollY) || 0) + (Number(camera?.height) || 0) * originY - height * originY,
+    width,
+    height,
+  };
+}
+
+function updateTerrainViewportCulling(scene, force = false) {
+  const camera = scene?.cameras?.main;
+  if (
+    !camera
+    || !scene?.tileSprites?.length
+    || (scene.scene?.isVisible && !scene.scene.isVisible())
+  ) {
+    return;
+  }
+
+  // Phaser's cached camera.worldView can lag behind direct scrollX/scrollY
+  // changes until pre-render. Derive the view from live camera properties so
+  // panning reveals the next terrain batch before the frame is rendered.
+  const view = getCameraWorldViewRect(camera);
+  const cacheKey = [
+    Math.floor(view.x / TILE_WIDTH),
+    Math.floor(view.y / TILE_IMAGE_HEIGHT),
+    Math.ceil((view.x + view.width) / TILE_WIDTH),
+    Math.ceil((view.y + view.height) / TILE_IMAGE_HEIGHT),
+  ].join(':');
+  if (!force && scene.terrainViewportCacheKey === cacheKey) return;
+  scene.terrainViewportCacheKey = cacheKey;
+
+  const padX = TILE_WIDTH * 2;
+  const padY = TILE_IMAGE_HEIGHT + MAX_TERRAIN_HEIGHT * HEIGHT_STEP_PIXELS + TILE_HEIGHT;
+  const minX = view.x - padX;
+  const maxX = view.x + view.width + padX;
+  const minY = view.y - padY;
+  const maxY = view.y + view.height + padY;
+
+  for (const row of scene.tileSprites) {
+    for (const tile of row) {
+      tile.setVisible(
+        tile.x >= minX
+        && tile.x <= maxX
+        && tile.y >= minY
+        && tile.y <= maxY
+      );
+    }
+  }
+}
+
+function updateGameFrame(time, delta) {
+  updateTerrainViewportCulling(this);
+  updateTrafficVisuals.call(this, time, delta);
+}
+
 function addToRenderLayer(scene, child, layerName) {
   return child;
 }
@@ -1095,7 +1171,7 @@ const config = {
     width: '100%',
     height: '100%',
   },
-  scene: { preload, create },
+  scene: { preload, create, update: updateGameFrame },
 };
 
 initializeGame();
@@ -1547,6 +1623,7 @@ function create() {
   drawWorldMask(this);
   const worldMask = maskGraphics.createGeometryMask();
   this.worldMask = worldMask;
+  setupTrafficVisuals(this);
 
   // Disable browser context menu to allow right-click panning
   this.input.mouse.disableContextMenu();
@@ -1593,6 +1670,7 @@ function create() {
     updateMapMetrics(this);
     drawWorldMask(this);
     positionAllTiles(this);
+    invalidateTrafficVisualView(this, true);
     ensurePreviewOverlayDepth(this);
     syncWeatherFxToCamera(this);
   });
@@ -1684,6 +1762,7 @@ function create() {
       camera.scrollY -= dy / camera.zoom;
       this.panPrevX = pointer.x;
       this.panPrevY = pointer.y;
+      updateTerrainViewportCulling(this);
     }
 
     updateBuildingPlacementGuide(this, pointer);
@@ -1725,6 +1804,8 @@ function create() {
     camera.setZoom(newZoom);
     camera.scrollX = worldX - pointer.x / camera.zoom;
     camera.scrollY = worldY - pointer.y / camera.zoom;
+    updateTerrainViewportCulling(this, true);
+    invalidateTrafficVisualView(this);
     updateAmbientSoundscape(this);
     syncWeatherFxToCamera(this);
   });
@@ -1735,6 +1816,9 @@ function create() {
   startAmbientSoundscape(this);
 
   // Sim timer starts once player dismisses the landing screen
+  // The landing page has its own static city artwork. Do not render or update
+  // the 65,536-tile Phaser world invisibly behind it.
+  this.scene.setVisible(false);
   gameReady = true;
   setPreloadProgressPercent(100);
   initBudgetPanel();
@@ -2131,6 +2215,9 @@ function evictUnusedZoneTextures(scene) {
 }
 
 function rotateZoneTexturePool(scene) {
+  // The landing screen deliberately hides the Phaser world. Do not decode
+  // background building textures while no city session is being rendered.
+  if (scene?.scene?.isVisible && !scene.scene.isVisible()) return;
   const candidates = getAllZoneModels().filter((model) => !scene.textures.exists(model.key));
   if (candidates.length === 0) return;
   const model = candidates[Math.floor(Math.random() * candidates.length)];
@@ -2710,6 +2797,7 @@ function positionAllTiles(scene) {
 
   repositionBridgeSprites(scene);
   repositionOverlays(scene);
+  updateTerrainViewportCulling(scene, true);
   sortWorldRenderLayers(scene);
 }
 
@@ -5110,6 +5198,7 @@ function startAmbientSoundscape(scene) {
   updateAmbientSoundscape(scene);
   if (!scene.ambientIntervalId) {
     scene.ambientIntervalId = setInterval(() => {
+      if (scene.scene?.isVisible && !scene.scene.isVisible()) return;
       updateAmbientSoundscape(scene);
       updateWeatherEffectsTier(scene);
     }, AMBIENT_UPDATE_MS);
@@ -8496,6 +8585,7 @@ function rotateMap(scene, steps = 1) {
   const centerBefore = getCameraCenterWorld(scene);
   const logicalCenter = worldToLogicalPoint(scene, centerBefore.x, centerBefore.y);
 
+  clearTrafficVisuals(scene);
   mapRotation = ((mapRotation + steps) % 4 + 4) % 4;
 
   // Refresh tile textures (direction-aware keys change)
@@ -8528,6 +8618,7 @@ function rotateMap(scene, steps = 1) {
 // ── Full reset (new terrain generation) ──────────────────────────────────────
 
 function fullReset(scene) {
+  clearTrafficVisuals(scene);
   clearAllOverlays(scene);
   clearBuildings(scene);
   resetGameState();

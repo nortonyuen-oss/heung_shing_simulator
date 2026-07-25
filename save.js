@@ -861,6 +861,7 @@ function restoreOrGenerateTrees(scene, save) {
 
 function applySaveData(scene, save) {
   stopSimTimer();
+  if (typeof clearTrafficVisuals === 'function') clearTrafficVisuals(scene);
 
   const terrainElevation = normalizeSavedTerrainElevation(save);
 

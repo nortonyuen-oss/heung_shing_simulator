@@ -282,6 +282,7 @@ function returnToMainMenu() {
   if (menuDiv)  menuDiv.style.display  = 'grid';
   if (nameForm) nameForm.style.display = 'none';
   if (terrainForm) terrainForm.style.display = 'none';
+  if (typeof setGameWorldVisible === 'function') setGameWorldVisible(false);
   if (typeof closeRoadTileSetWindow === 'function') closeRoadTileSetWindow();
 }
 

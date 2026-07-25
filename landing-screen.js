@@ -355,6 +355,7 @@ function setupLandingScreen() {
 function hideLandingScreen() {
   const screen = document.getElementById('landing-screen');
   if (screen) screen.style.display = 'none';
+  if (typeof setGameWorldVisible === 'function') setGameWorldVisible(true);
 
   if (typeof enterGameplayAudioMode === 'function') enterGameplayAudioMode();
 

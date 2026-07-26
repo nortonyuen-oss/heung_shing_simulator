@@ -6,6 +6,9 @@ const path = require('node:path');
 const ROOT = path.resolve(__dirname, '..');
 const {
   TRAFFIC_VISUAL_CONFIG,
+  ICE_CREAM_EDUCATION_TARGET_TYPES,
+  ICE_CREAM_VISITOR_ATTRACTION_TYPES,
+  ICE_CREAM_TARGET_TYPES,
   TRAFFIC_DIRECTIONS,
   TRAFFIC_MODEL_REGISTRY,
   TRAFFIC_MODEL_BY_ID,
@@ -20,6 +23,12 @@ const {
   chooseNextTrafficTile,
   isTrafficFlatRoadTile,
   getTrafficLegSpeedFactor,
+  canSpawnIceCreamTruckForWeather,
+  isIceCreamTargetBuilding,
+  findTrafficPathOutsideView,
+  getTrafficVirtualOutsideTile,
+  getIceCreamArrivalDirectionForBuildingSide,
+  collectIceCreamParkingCandidates,
   getTrafficRoadSurface,
   trafficRoadSurfacesConnect,
   getTrafficLegSurfaceLifts,
@@ -99,12 +108,162 @@ test('category weights match the planned Hong Kong traffic mix', () => {
     taxi: 26,
     truck: 7,
     van: 8,
-    icecream: 1,
+    icecream: 0,
   })) {
     assert.ok(Math.abs(weights[category] - expected) < 1e-9, category);
   }
   assert.equal(pickWeightedTrafficModel(() => 0).id, 'bus_kmb');
-  assert.equal(pickWeightedTrafficModel(() => 0.999999).id, 'icecream_van');
+  assert.equal(pickWeightedTrafficModel(() => 0.999999).id, 'van_namkee');
+  assert.notEqual(pickWeightedTrafficModel(() => 0.999999).id, 'icecream_van');
+});
+
+test('ice cream truck only starts in dry clear or cloudy weather', () => {
+  const dry = {
+    typhoonStage: 'none',
+    typhoonActive: false,
+    rainfallMm: 0,
+    rainWarning: 'none',
+  };
+  assert.equal(canSpawnIceCreamTruckForWeather({ ...dry, condition: 'clear' }), true);
+  assert.equal(canSpawnIceCreamTruckForWeather({ ...dry, condition: 'cloudy' }), true);
+  for (const condition of ['showers', 'heavyRain', 'hot', 'cool', 'windy']) {
+    assert.equal(canSpawnIceCreamTruckForWeather({ ...dry, condition }), false, condition);
+  }
+  assert.equal(canSpawnIceCreamTruckForWeather({ ...dry, condition: 'clear', rainfallMm: 1 }), false);
+  assert.equal(canSpawnIceCreamTruckForWeather({ ...dry, condition: 'clear', rainWarning: 'amber' }), false);
+  assert.equal(canSpawnIceCreamTruckForWeather({ ...dry, condition: 'cloudy', typhoonActive: true }), false);
+  for (const typhoonStage of ['signal1', 'signal3', 'signal8', 'signal9', 'signal10']) {
+    assert.equal(
+      canSpawnIceCreamTruckForWeather({ ...dry, condition: 'clear', typhoonStage }),
+      false,
+      typhoonStage,
+    );
+  }
+});
+
+test('ice cream targets include education sites and every non-airport visitor attraction', () => {
+  assert.deepEqual(ICE_CREAM_EDUCATION_TARGET_TYPES, [
+    'primary_school',
+    'secondary_school',
+    'community_college',
+    'university',
+  ]);
+  assert.deepEqual(ICE_CREAM_VISITOR_ATTRACTION_TYPES, [
+    'exhibition_center',
+    'cultural_center',
+    'space_museum',
+    'buddha_statue',
+    'heritage_temple',
+    'grand_temple',
+    'heritage_church',
+    'indoor_coliseum',
+    'murray_house',
+    'ocean_park',
+    'football_stadium',
+  ]);
+  assert.deepEqual(ICE_CREAM_TARGET_TYPES, [
+    'primary_school',
+    'secondary_school',
+    'community_college',
+    'university',
+    'exhibition_center',
+    'cultural_center',
+    'space_museum',
+    'buddha_statue',
+    'heritage_temple',
+    'grand_temple',
+    'heritage_church',
+    'indoor_coliseum',
+    'murray_house',
+    'ocean_park',
+    'football_stadium',
+  ]);
+  ICE_CREAM_TARGET_TYPES.forEach((type) => assert.equal(isIceCreamTargetBuilding(type), true));
+  ['library', 'park_large', 'airport', 'container_port', 'stock_exchange', 'residential'].forEach((type) => {
+    assert.equal(isIceCreamTargetBuilding(type), false);
+  });
+});
+
+test('viewport routing reaches the nearest connected road outside the current view', () => {
+  const roads = new Set(['2:0', '2:1', '2:2', '2:3', '2:4']);
+  const deltas = [[-1, 0], [0, 1], [1, 0], [0, -1]];
+  const isRoad = (row, col) => roads.has(`${row}:${col}`);
+  const getNeighbours = (row, col) => deltas
+    .map(([dr, dc]) => ({ row: row + dr, col: col + dc }))
+    .filter((tile) => isRoad(tile.row, tile.col));
+  const targetToOutside = findTrafficPathOutsideView(
+    { row: 2, col: 2 },
+    (row, col) => col >= 4,
+    getNeighbours,
+  );
+  assert.deepEqual(targetToOutside, [
+    { row: 2, col: 2 },
+    { row: 2, col: 3 },
+    { row: 2, col: 4 },
+  ]);
+  const arrivalPath = [...targetToOutside].reverse();
+  assert.deepEqual(
+    getTrafficVirtualOutsideTile(arrivalPath),
+    { row: 2, col: 5 },
+  );
+  assert.equal(
+    findTrafficPathOutsideView({ row: 2, col: 2 }, () => false, getNeighbours),
+    null,
+  );
+  assert.deepEqual(
+    findTrafficPathOutsideView(
+      { row: 2, col: 2 },
+      (_row, col) => col === 0 || col === 4,
+      getNeighbours,
+      { firstStep: { row: 2, col: 1 } },
+    ),
+    [
+      { row: 2, col: 2 },
+      { row: 2, col: 1 },
+      { row: 2, col: 0 },
+    ],
+  );
+});
+
+test('ice cream arrival direction keeps the destination curb on the traffic-left side', () => {
+  const cases = [
+    { buildingSide: { row: -1, col: 0 }, direction: { row: 0, col: 1 } },
+    { buildingSide: { row: 0, col: 1 }, direction: { row: 1, col: 0 } },
+    { buildingSide: { row: 1, col: 0 }, direction: { row: 0, col: -1 } },
+    { buildingSide: { row: 0, col: -1 }, direction: { row: -1, col: 0 } },
+  ];
+  for (const { buildingSide, direction } of cases) {
+    assert.deepEqual(
+      getIceCreamArrivalDirectionForBuildingSide(buildingSide),
+      direction,
+    );
+    const left = getTrafficLeftLaneOffset(direction.row, direction.col, 1);
+    assert.deepEqual(left, buildingSide);
+  }
+  assert.equal(getIceCreamArrivalDirectionForBuildingSide({ row: 1, col: 1 }), null);
+});
+
+test('parking candidates sit on roads directly outside a target footprint', () => {
+  const roads = new Set(['1:2', '2:4', '4:3']);
+  const candidates = collectIceCreamParkingCandidates(
+    { row: 2, col: 2 },
+    { type: 'primary_school', footprintRows: 2, footprintCols: 2 },
+    (row, col) => roads.has(`${row}:${col}`),
+  );
+  assert.deepEqual(
+    candidates.map((candidate) => candidate.road).sort((a, b) => a.row - b.row || a.col - b.col),
+    [{ row: 1, col: 2 }, { row: 2, col: 4 }, { row: 4, col: 3 }],
+  );
+  const northRoad = candidates.find((candidate) => candidate.road.row === 1);
+  assert.deepEqual(northRoad.buildingSide, { row: 1, col: 0 });
+  assert.deepEqual(
+    collectIceCreamParkingCandidates(
+      { row: 2, col: 2 },
+      { type: 'hospital', footprintRows: 2, footprintCols: 2 },
+      () => true,
+    ),
+    [],
+  );
 });
 
 test('left-hand traffic offsets to the logical left of every travel direction', () => {
@@ -335,6 +494,29 @@ test('quadratic traffic legs interpolate position, depth, and travel derivative'
   });
 });
 
+test('cubic parking legs move forward while easing laterally into and out of the curb', () => {
+  const leg = {
+    cubic: true,
+    start: { x: 0, y: 0, depthY: 0 },
+    control1: { x: 4, y: 0, depthY: 2 },
+    control2: { x: 6, y: 4, depthY: 4 },
+    end: { x: 10, y: 4, depthY: 6 },
+  };
+  const start = evaluateTrafficLeg(leg, 0);
+  const approach = evaluateTrafficLeg(leg, 0.25);
+  const end = evaluateTrafficLeg(leg, 1);
+  assert.deepEqual(
+    { x: start.x, y: start.y, dx: start.dx, dy: start.dy },
+    { x: 0, y: 0, dx: 12, dy: 0 },
+  );
+  assert.equal(approach.x, 2.6875);
+  assert.equal(approach.y, 0.625);
+  assert.deepEqual(
+    { x: end.x, y: end.y, dx: end.dx, dy: end.dy },
+    { x: 10, y: 4, dx: 12, dy: 0 },
+  );
+});
+
 test('camera bounds follow live scroll values without relying on stale Phaser worldView', () => {
   global.TILE_WIDTH = 100;
   global.TILE_IMAGE_HEIGHT = 65;
@@ -456,6 +638,8 @@ test('traffic module is loaded before main and wired into lifecycle invalidation
   assert.match(main, /camera\.scrollY\s*-=\s*dy\s*\/\s*camera\.zoom;[\s\S]*?updateTerrainViewportCulling\(this\)/);
   assert.match(main, /camera\.setZoom\(newZoom\);[\s\S]*?updateTerrainViewportCulling\(this,\s*true\)/);
   assert.match(main, /setupTrafficVisuals\(this\)/);
+  assert.match(main, /\{\s*key:\s*'event_ice_cream_truck',\s*file:\s*'Sounds\/iceCreamTruck\.m4a'\s*\}/);
+  assert.ok(fs.existsSync(path.join(ROOT, 'Sounds/iceCreamTruck.m4a')));
   assert.match(main, /scene\.renderLayerMode\s*=\s*'depth-bands'/);
   assert.match(main, /this\.scene\.setVisible\(false\)/);
   assert.match(landing, /setGameWorldVisible\(true\)/);

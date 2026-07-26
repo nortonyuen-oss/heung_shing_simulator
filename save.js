@@ -307,7 +307,80 @@ function decodeSaveDataForLoad(rawSave) {
   };
 }
 
+function normalizeSavedViewpoint(rawViewpoint) {
+  if (!rawViewpoint || typeof rawViewpoint !== 'object' || Array.isArray(rawViewpoint)) {
+    return null;
+  }
+  const centerCol = Number(rawViewpoint.centerCol);
+  const centerRow = Number(rawViewpoint.centerRow);
+  const zoom = Number(rawViewpoint.zoom);
+  const rotation = Number(rawViewpoint.rotation);
+  if (!Number.isFinite(centerCol) || !Number.isFinite(centerRow) || !Number.isFinite(zoom)) {
+    return null;
+  }
+  return {
+    centerCol: Math.max(0, Math.min(MAP_WIDTH - 1, centerCol)),
+    centerRow: Math.max(0, Math.min(MAP_HEIGHT - 1, centerRow)),
+    zoom: Math.max(0.4, Math.min(3, zoom)),
+    rotation: Number.isFinite(rotation)
+      ? ((Math.round(rotation) % 4) + 4) % 4
+      : 0,
+  };
+}
+
+function getDefaultSavedViewpoint() {
+  return {
+    centerCol: (MAP_WIDTH - 1) / 2,
+    centerRow: (MAP_HEIGHT - 1) / 2,
+    zoom: 1,
+    rotation: 0,
+  };
+}
+
+function captureCurrentViewpoint(scene) {
+  const camera = scene?.cameras?.main;
+  if (!camera || typeof worldToLogicalPoint !== 'function') return null;
+  const zoom = Math.max(0.0001, Number(camera.zoom) || 1);
+  const worldCenter = {
+    x: (Number(camera.scrollX) || 0) + (Number(camera.width) || 0) / (2 * zoom),
+    y: (Number(camera.scrollY) || 0) + (Number(camera.height) || 0) / (2 * zoom),
+  };
+  const logical = worldToLogicalPoint(scene, worldCenter.x, worldCenter.y);
+  return normalizeSavedViewpoint({
+    centerCol: logical.x,
+    centerRow: logical.y,
+    zoom,
+    rotation: typeof mapRotation === 'undefined' ? 0 : mapRotation,
+  });
+}
+
+function restoreSavedViewpoint(scene, rawViewpoint) {
+  const camera = scene?.cameras?.main;
+  if (!camera || typeof logicalPointToWorld !== 'function') return false;
+  const viewpoint = normalizeSavedViewpoint(rawViewpoint) ?? getDefaultSavedViewpoint();
+  if (typeof mapRotation !== 'undefined') mapRotation = viewpoint.rotation;
+  camera.setZoom(viewpoint.zoom);
+  const worldCenter = logicalPointToWorld(scene, {
+    x: viewpoint.centerCol,
+    y: viewpoint.centerRow,
+  });
+  camera.scrollX = worldCenter.x - camera.width / (2 * viewpoint.zoom);
+  camera.scrollY = worldCenter.y - camera.height / (2 * viewpoint.zoom);
+  if (typeof updateTerrainViewportCulling === 'function') {
+    updateTerrainViewportCulling(scene, true);
+  }
+  if (typeof invalidateTrafficVisualView === 'function') {
+    invalidateTrafficVisualView(scene, true);
+  }
+  if (typeof updateAmbientSoundscape === 'function') updateAmbientSoundscape(scene);
+  if (typeof syncWeatherFxToCamera === 'function') syncWeatherFxToCamera(scene);
+  return true;
+}
+
 function buildSavePayload({ autosave = false, manualSaveId = currentSaveId } = {}) {
+  const viewpoint = captureCurrentViewpoint(
+    typeof activeScene === 'undefined' ? null : activeScene,
+  );
   return {
     city_name:  city.name || getDefaultCityName(),
     population: city.population,
@@ -321,6 +394,7 @@ function buildSavePayload({ autosave = false, manualSaveId = currentSaveId } = {
       roadTileSetId: typeof getCurrentRoadTileSetId === 'function'
         ? getCurrentRoadTileSetId()
         : ROAD_TILE_SET_DEFAULT_ID,
+      ...(viewpoint ? { viewpoint } : {}),
       city:          { ...city },
       mapData:       encodeCompactRleMap(mapData, 'mapData'),
       heightMap:     encodeCompactRleMap(heightMap, 'heightMap'),
@@ -864,6 +938,8 @@ function applySaveData(scene, save) {
   if (typeof clearTrafficVisuals === 'function') clearTrafficVisuals(scene);
 
   const terrainElevation = normalizeSavedTerrainElevation(save);
+  const savedViewpoint = normalizeSavedViewpoint(save.viewpoint) ?? getDefaultSavedViewpoint();
+  if (typeof mapRotation !== 'undefined') mapRotation = savedViewpoint.rotation;
 
   // Restore terrain
   currentSeed = save.seed ?? currentSeed;
@@ -943,6 +1019,7 @@ function applySaveData(scene, save) {
   if (terrainElevation.repaired && typeof showToast === 'function') {
     showToast(t('toast.terrainElevationRepaired'), 'info');
   }
+  restoreSavedViewpoint(scene, savedViewpoint);
 
   // Restart sim
   startSimTimer();

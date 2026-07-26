@@ -1,5 +1,6 @@
 const I18N_STORAGE_KEY = 'citybuilder.language';
-let appVersion = '3.4.0';
+let appVersion = '3.5.0';
+let appReleaseTheme = '夢幻雪糕車';
 
 const LANGUAGES = {
   en: 'English',
@@ -123,9 +124,9 @@ const I18N = {
     'dialog.unlockRules': '<h3>🔓 Special Building Unlocks</h3>• Community Temple: population 3,000 (max 4)\n• Church: population 5,000 (max 2)\n• Legislative Council: population 10,000 (one only)\n• Big Buddha: population 12,000\n• Grand Temple: population 12,000 + attractiveness 35\n• Space Museum: population 15,000 + Science Development Act\n• Container Port: population 15,000 + continuous four-tile waterfront; beach backed by water is valid\n• Cultural Centre: population 20,000\n• Exhibition Centre / Indoor Coliseum: population 30,000\n• Ocean Park: Council, population 35,000, monthly income $6,000, surplus $1,000, economy 50, then project approval (proposal $10,000; 8×8 construction $22,000)\n• League Stadium: population 40,000\n• Stock Exchange: Council, population 50,000 + Stock Exchange Act\n• Murray House: attractiveness 60\n• Airport: Council, population 80,000, monthly income $12,000, surplus $2,000, economy 65, then Rose Garden project approval (proposal $25,000; 12×12 construction $150,000)\n\n<h3>🏙 Special Zone Models</h3>• Science Parks: higher education ≥0.80 and industrial footprint ≥2×2; Science Development Act raises the chance\n• H homes: quality ≥0.55, land ≥0.50, environment ≥0.45, health ≥0.45, economy ≥0.45\n• UH homes: low density only; quality ≥0.76, land ≥0.72, scenery ≥0.55, environment ≥0.68, health ≥0.62, economy ≥0.65, pollution ≤0.20\n• H offices: quality ≥0.56, land ≥0.50, environment ≥0.40, economy ≥0.52\n• UH towers: high density only; quality ≥0.78, land ≥0.70, scenery ≥0.35, environment ≥0.55, economy ≥0.72, pollution ≤0.25, with both Stock Exchange and Airport\n• H/UH eligibility is assessed per site; nearby tower saturation suppresses repeats',
     'dialog.aboutTitle': 'About The City of Heung Shing',
     'dialog.aboutEnglishName': 'The City of Heung Shing',
-    'dialog.version': 'Version {version}',
+    'dialog.version': 'Version {version} — {theme}',
     'dialog.aboutInspired': 'A Hong Kong-themed city simulation brand title',
-    'dialog.aboutBuilt': 'The City of Heung Shing v{version}<br>Plan · Build · Govern · Thrive',
+    'dialog.aboutBuilt': 'The City of Heung Shing v{version} — {theme}<br>Plan · Build · Govern · Thrive',
     'dialog.githubLink': 'GitHub',
     'dialog.blogLink': 'Development Blog',
     'dialog.ok': 'OK',
@@ -1326,9 +1327,9 @@ const I18N = {
     'dialog.unlockRules': '<h3>🔓 特殊建築解鎖</h3>• 社區廟宇：人口 3,000（最多 4 座）\n• 教堂：人口 5,000（最多 2 座）\n• 立法會：人口 10,000（只限 1 座）\n• 大佛：人口 12,000\n• 大型廟宇：人口 12,000＋吸引力 35\n• 太空館：人口 15,000＋科研發展法生效\n• 貨櫃碼頭：人口 15,000＋連續四格海岸；沙灘後方緊接海水亦可\n• 文化中心：人口 20,000\n• 會展中心／紅磡體育館：人口 30,000\n• 海洋公園：立法會、人口 35,000、月收入 $6,000、月盈餘 $1,000、經濟 50；提案費 $10,000，獲批後以 $22,000 興建 8×8 項目\n• 城超聯主場：人口 40,000\n• 股票交易所：立法會、人口 50,000＋股票交易所法案生效\n• 美利樓：吸引力 60\n• 機場：立法會、人口 80,000、月收入 $12,000、月盈餘 $2,000、經濟 65；提案費 $25,000，通過【我愛玫瑰園計劃】後以 $150,000 興建 12×12 機場\n\n<h3>🏙 特殊分區模型</h3>• 科學園：高等教育 ≥0.80、工業 footprint ≥2×2；科研發展法提高機率\n• H 富人住宅：質素 ≥0.55、地價 ≥0.50、環境 ≥0.45、健康 ≥0.45、經濟 ≥0.45\n• UH 富豪住宅：只限低密度；質素 ≥0.76、地價 ≥0.72、景觀 ≥0.55、環境 ≥0.68、健康 ≥0.62、經濟 ≥0.65、污染 ≤0.20\n• H 甲級寫字樓：質素 ≥0.56、地價 ≥0.50、環境 ≥0.40、經濟 ≥0.52\n• UH 世界級摩天大樓：只限高密度；質素 ≥0.78、地價 ≥0.70、景觀 ≥0.35、環境 ≥0.55、經濟 ≥0.72、污染 ≤0.25，並且同時有股票交易所及機場\n• H／UH 逐個地段評分，附近高樓過密會壓低出現機率',
     'dialog.aboutTitle': '關於香城模擬器',
     'dialog.aboutEnglishName': 'The City of Heung Shing',
-    'dialog.version': '版本 {version}',
+    'dialog.version': '版本 {version} — {theme}',
     'dialog.aboutInspired': '香港主題城市經營品牌作品',
-    'dialog.aboutBuilt': '香城模擬器 v{version}<br>規劃 · 建設 · 治理 · 繁榮',
+    'dialog.aboutBuilt': '香城模擬器 v{version} — {theme}<br>規劃 · 建設 · 治理 · 繁榮',
     'dialog.githubLink': 'GitHub',
     'dialog.blogLink': '開發blog',
     'dialog.ok': '確定',
@@ -2500,9 +2501,9 @@ const I18N = {
     'dialog.unlockRules': '<h3>🔓 特殊建築の解除</h3>• 地域寺院：人口3,000（最大4棟）\n• 教会：人口5,000（最大2棟）\n• 立法会：人口10,000（1棟のみ）\n• 大仏：人口12,000\n• 大寺院：人口12,000＋魅力度35\n• 宇宙博物館：人口15,000＋科学開発法\n• コンテナ港：人口15,000＋連続4タイルの海岸\n• 文化センター：人口20,000\n• 展示センター／屋内コロシアム：人口30,000\n• オーシャンパーク：立法会、人口35,000、月収$6,000、黒字$1,000、経済50、議会承認\n• リーグ競技場：人口40,000\n• 証券取引所：立法会、人口50,000＋証券取引所法\n• マレーハウス：魅力度60\n• 空港：立法会、人口80,000、月収$12,000、黒字$2,000、経済65、議会承認\n\n<h3>🏙 特殊ゾーンモデル</h3>• 高等教育0.80で2×2以上の工業区にサイエンスパークが出現可能\n• UH高級住宅は条件を満たす低密度住宅区のみ\n• UH超高層ビルは証券取引所と空港がある高密度商業区のみ\n• H／UHは敷地ごとに評価され、周辺の高層密度が高いと抑制されます',
     'dialog.aboutTitle': 'The City of Heung Shing について',
     'dialog.aboutEnglishName': 'The City of Heung Shing',
-    'dialog.version': 'バージョン {version}',
+    'dialog.version': 'バージョン {version} — {theme}',
     'dialog.aboutInspired': '香港テーマの都市経営ブランド作品',
-    'dialog.aboutBuilt': 'The City of Heung Shing v{version}<br>計画 · 建設 · 統治 · 繁栄',
+    'dialog.aboutBuilt': 'The City of Heung Shing v{version} — {theme}<br>計画 · 建設 · 統治 · 繁栄',
     'dialog.githubLink': 'GitHub',
     'dialog.blogLink': '開発ブログ',
     'dialog.ok': 'OK',
@@ -3334,12 +3335,12 @@ function detectInitialLanguage() {
 
 function t(key, params = {}) {
   const template = I18N[currentLanguage]?.[key] ?? I18N.en[key] ?? key;
-  const values = { version: appVersion, ...params };
+  const values = { version: appVersion, theme: appReleaseTheme, ...params };
   return template.replace(/\{(\w+)\}/g, (_, name) => values[name] ?? '');
 }
 
 function applyAppVersion() {
-  document.title = `香城模擬器 | The City of Heung Shing v${appVersion}`;
+  document.title = `香城模擬器 | The City of Heung Shing v${appVersion} — ${appReleaseTheme}`;
   applyTranslations();
 }
 
@@ -3350,8 +3351,11 @@ async function loadAppVersion() {
     const info = await response.json();
     if (/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/.test(String(info.version || ''))) {
       appVersion = info.version;
-      applyAppVersion();
     }
+    if (typeof info.releaseTheme === 'string' && info.releaseTheme.trim()) {
+      appReleaseTheme = info.releaseTheme.trim();
+    }
+    applyAppVersion();
   } catch {
     // The package version embedded in this file remains a safe offline fallback.
   }

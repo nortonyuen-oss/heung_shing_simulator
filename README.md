@@ -1,6 +1,6 @@
-# 香城模擬器 (The City of Heung Shing) v3.4.0
+# 香城模擬器 (The City of Heung Shing) v3.5.0 — 夢幻雪糕車
 
-香城模擬器 (The City of Heung Shing) v3.4.0 is a SimCity 2000-style city builder with a local SQLite save system, isometric map view, cloud-assisted district news, and a classic windowed UI.
+香城模擬器 (The City of Heung Shing) v3.5.0 — 夢幻雪糕車 is a SimCity 2000-style city builder with a local SQLite save system, isometric map view, cloud-assisted district news, and a classic windowed UI.
 
 <img width="1438" height="792" alt="image" src="https://github.com/user-attachments/assets/ec3cab6e-48af-4976-b00a-097bc901e429" />
 
@@ -16,6 +16,8 @@
 - Use overlays for pollution, crime, fire risk, population, land value, electricity, and power plants.
 - Place bilingual Hong Kong-style district signs; each sign defines a 36-tile local news area whose traffic, education, health, pollution, land value, and population feed AI headlines. Select Query and click a sign to edit both names.
 - Simulate Hong Kong-style weather, typhoons, citizen activity, and district-aware news tickers.
+- Watch a weather-aware ice cream truck drive in from outside the current view, pull up beside schools, universities and visitor attractions, play its melody, then merge back into traffic.
+- Preserve the map viewpoint, zoom and rotation with every city save.
 
 ## Electricity System
 
@@ -101,6 +103,9 @@ Use semantic versions in `package.json`:
 - `2.0.1` for bug fixes
 - `2.1.0` for gameplay/content updates
 - `3.0.0` for breaking save-format changes
+
+Every release also has a theme name in `package.json` under `releaseTheme`. Use
+the same name in the release notes, game About dialog and download website.
 
 To trigger CI installer builds:
 

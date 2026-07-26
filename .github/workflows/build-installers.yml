@@ -110,9 +110,11 @@ jobs:
           # Create the release if it doesn't already exist (e.g. pre-created manually),
           # then upload assets either way.
           if ! gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            release_title="$(sed -n '1s/^# //p' RELEASE_NOTES.md)"
+            test -n "$release_title"
             gh release create "$GITHUB_REF_NAME" \
               --repo "$GITHUB_REPOSITORY" \
-              --title "The City of Heung Shing ${GITHUB_REF_NAME}" \
+              --title "$release_title" \
               --notes-file RELEASE_NOTES.md
           fi
           gh release upload "$GITHUB_REF_NAME" \

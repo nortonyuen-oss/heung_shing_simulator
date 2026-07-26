@@ -485,7 +485,6 @@ function tryMergeResidentialCluster(scene, r, c, record, residentialQualityConte
       forceFootprint: footprintSize,
       residentialQualityContext,
     });
-    if (city.population > 0) showToast(t('toast.populationGain'));
     return true;
   }
 
@@ -746,8 +745,6 @@ function upgradeZoneBuilding(
     residentialQualityContext,
     commercialQualityContext,
   });
-
-  if (city.population > 0) showToast(t('toast.populationGain'));
 }
 
 function shrinkOrRemoveZoneBuilding(scene, r, c) {

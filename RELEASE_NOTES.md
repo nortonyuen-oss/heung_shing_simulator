@@ -1,21 +1,20 @@
-# The City of Heung Shing v3.4.0
+# The City of Heung Shing v3.5.0 — 夢幻雪糕車
 
-Visible traffic and road-performance release.
+「夢幻雪糕車」主題版本。
 
 ## Highlights
 
-- Added 19 visual traffic models across buses, private cars, minibuses, taxis, trucks and vans, with 76 direction-specific sprites and vehicle-specific city scale factors.
-- Added left-hand traffic that follows connected roads, uses separate directional lanes, rounds junction turns and maintains spacing behind slower vehicles.
-- Connected vehicle density to the visible `trafficMap`, with weighted hotspot spawning and a bounded 28-vehicle viewport cap.
-- Added continuous vehicle movement across elevated roads, terrain slopes, crests, bridge ramps and bridge decks.
-- Added realistic grade behaviour: vehicles slow to 82% uphill and 94% downhill while retaining the correct screen-facing texture through every map rotation.
-- Added zoom-gated, lazy-loaded and viewport-only traffic rendering so off-screen vehicles and low-zoom traffic do not consume simulation resources.
-- Improved large-map responsiveness with live camera terrain culling, bounded spawn and route-transition work, batched depth updates and incremental traffic asset loading.
+- Added a dedicated ice cream truck event that can visit schools, colleges, universities and genuine visitor attractions during clear or cloudy weather.
+- The truck now enters from outside the player's current zoomed viewport, follows connected roads, approaches the correct Hong Kong left-driving curb and uses smooth forward parking and departure curves.
+- The ice cream truck stops on the sidewalk-side curb, mixes its melody with the city's ambient soundscape, then rejoins traffic and drives beyond the current view.
+- Added viewpoint persistence: every save now records the logical map centre, zoom and rotation, and restores them when the city is reloaded.
+- Removed repetitive population increase notifications while preserving meaningful unlock announcements.
+- Added regression coverage for event weather, destinations, viewport entry and exit, curb direction, parking motion, audio preloading and viewpoint saves.
 
 ## Compatibility
 
-- Existing cities load without migration.
-- Traffic vehicles are session-only visual representatives and are not written into saves.
+- Existing cities load normally and use the default centred viewpoint when no saved viewpoint is present.
+- Ice cream trucks remain session-only event vehicles and are not written into saves.
 - Save format version: 15.
 
 ## Downloads

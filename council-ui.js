@@ -163,6 +163,14 @@ function getCouncilPolicyAvailabilityText(preview) {
   if (preview.policy.unlockPopulation && city.population < preview.policy.unlockPopulation) {
     return t('council.policy.needsPopulation', { value: preview.policy.unlockPopulation.toLocaleString() });
   }
+  const missingPolicy = typeof getMissingCouncilPolicyRequirement === 'function'
+    ? getMissingCouncilPolicyRequirement(preview.policy)
+    : '';
+  if (missingPolicy) {
+    return t('council.availability.needsPolicy', {
+      policy: getCouncilPolicyDisplayTitle(missingPolicy),
+    });
+  }
   return t('council.policy.statusAvailable');
 }
 
@@ -205,9 +213,14 @@ let expandedCouncilLawGroups = null;
 
 function buildCouncilLawGroups() {
   const isVisible = (definition, itemType) => {
-    if (!definition.hideUntilBuildingRequirements) return true;
     if (itemType === 'policy' && isPolicyActive(definition.id)) return true;
-    return !getMissingCouncilBuildingRequirement(definition);
+    if (definition.hideUntilBuildingRequirements && getMissingCouncilBuildingRequirement(definition)) return false;
+    if (
+      definition.hideUntilPolicyRequirements
+      && typeof getMissingCouncilPolicyRequirement === 'function'
+      && getMissingCouncilPolicyRequirement(definition)
+    ) return false;
+    return true;
   };
   const groups = CITY_POLICY_CATEGORY_IDS.map((categoryId) => ({
     id: categoryId,
@@ -245,7 +258,9 @@ function buildCouncilLawRow(item) {
 
   const title = document.createElement('span');
   title.className = 'bill-row-title';
-  title.textContent = t(item.def.titleKey);
+  title.textContent = item.type === 'policy'
+    ? getCouncilPolicyDisplayTitle(item.id)
+    : t(item.def.titleKey);
 
   const cost = document.createElement('span');
   cost.className = 'bill-row-cost';
@@ -356,7 +371,7 @@ function renderCouncilPolicyDetail() {
 
   const podium = buildCouncilPodiumBand(
     t(`council.category.${preview.policy.category}`),
-    t(preview.policy.titleKey),
+    getCouncilPolicyDisplayTitle(preview.policy.id),
     preview.policy.moverId,
   );
   const desc = document.createElement('p');
@@ -409,7 +424,7 @@ function renderCouncilPolicyDetail() {
       position.officialId,
       position.stance,
       t(`council.policyPosition.${position.officialId}.${position.stance}`, {
-        policy: t(preview.policy.titleKey),
+        policy: getCouncilPolicyDisplayTitle(preview.policy.id),
         cost: councilMoney(preview.cost),
       }),
       'council-position-row',
@@ -427,7 +442,7 @@ function renderCouncilPolicyDetail() {
   actionNote.className = 'council-policy-action-note';
   actionNote.textContent = motionAvailability.available
     ? t('council.policy.voteRequiredNote')
-    : t(`council.availability.${motionAvailability.reason}`);
+    : getCouncilMotionAvailabilityText(motionAvailability);
   detail.append(podium, desc, facts, status, advisorTitle, advisorList, positionTitle, positionList, action, actionNote);
 }
 
@@ -448,6 +463,9 @@ function getCouncilMotionAvailabilityText(availability) {
     amount: councilMoney(Number(availability.threshold || 0)),
     value: Number(availability.threshold || 0),
     current: Number(availability.current || 0).toLocaleString(),
+    policy: availability.requires
+      ? getCouncilPolicyDisplayTitle(availability.requires)
+      : '',
   });
 }
 
@@ -555,7 +573,7 @@ function renderCouncilSessionDetail(detail) {
   detail.replaceChildren();
   const podium = buildCouncilPodiumBand(
     getCouncilItemCategoryLabel(session.itemType, session.itemId),
-    t(getCouncilItemTitleKey(session.itemType, session.itemId)),
+    getCouncilItemDisplayTitle(session.itemType, session.itemId),
     getCouncilItemMoverId(session.itemType, session.itemId),
   );
   const stepper = buildCouncilStageStepper(session.stage);
@@ -682,7 +700,7 @@ function renderCouncilHistory() {
     const card = document.createElement('article');
     card.className = 'council-history-card';
     const title = document.createElement('strong');
-    title.textContent = t(getCouncilItemTitleKey(itemType, itemId));
+    title.textContent = getCouncilItemDisplayTitle(itemType, itemId);
     const date = document.createElement('span');
     date.textContent = `${record.year}/${String(record.month).padStart(2, '0')}`;
     const tally = document.createElement('span');

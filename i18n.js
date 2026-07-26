@@ -1,6 +1,6 @@
 const I18N_STORAGE_KEY = 'citybuilder.language';
-let appVersion = '3.5.0';
-let appReleaseTheme = '夢幻雪糕車';
+let appVersion = '3.6.0';
+let appReleaseTheme = '車公靈籤';
 
 const LANGUAGES = {
   en: 'English',
@@ -75,6 +75,7 @@ const I18N = {
     'toast.landmarkLocked.generic': 'This landmark is not available yet.',
     'toast.harborNeedsCoastline': 'The container port needs one continuous four-tile waterfront; a beach backed by water is valid.',
     'council.availability.needsBuilding': 'A prerequisite building has not been built yet.',
+    'council.availability.needsPolicy': '{policy} must be active first.',
     'resolution.leagueMatchday.title': 'Host a City Super League Matchday',
     'resolution.leagueMatchday.desc': 'Stages a City Super League fixture at the League Stadium — boosts happiness, tourism and business, but spikes traffic around the stadium.',
     'news.unlockSpeaker.citizen': 'a local resident',
@@ -643,6 +644,10 @@ const I18N = {
     'policy.educationReform.desc': 'Boosts education system effectiveness, raising citizen education and commercial demand.',
     'policy.scienceDevelopment.title': 'Science Development Act',
     'policy.scienceDevelopment.desc': 'Accelerates advanced education and increases science-park industrial growth.',
+    'policy.industrialBuildingRevitalization.title': 'Industrial Building Revitalization',
+    'policy.industrialBuildingRevitalization.desc': 'Opens industrial buildings to leisure and dining uses, raising industrial demand and tax income while cutting factory pollution—but heavily increasing local traffic.',
+    'policy.strongCountryManufacturing.title': 'Strong Nation Manufacturing {year}',
+    'policy.strongCountryManufacturing.desc': 'Funds local technology start-ups, lifting industrial demand, higher education and science-park growth, with substantial recurring subsidy costs.',
     'policy.smokingBan.title': 'Smoking Ban Ordinance',
     'policy.smokingBan.desc': 'Improves public health and lowers epidemic risk with citywide enforcement costs.',
     'policy.schoolHealthProgram.title': 'School Health Program',
@@ -1278,6 +1283,7 @@ const I18N = {
     'toast.landmarkLocked.generic': '呢個地標仲未解鎖。',
     'toast.harborNeedsCoastline': '貨櫃碼頭需要一條連續四格海岸；沙灘後方緊接海水亦可建造。',
     'council.availability.needsBuilding': '仲未起咗必要嘅建築物。',
+    'council.availability.needsPolicy': '必須先讓《{policy}》生效。',
     'resolution.leagueMatchday.title': '舉辦城超聯主場日',
     'resolution.leagueMatchday.desc': '喺城超聯主場舉行主場賽事，提升幸福感、旅遊同商業，但主場周邊交通會大幅繁忙。',
     'news.unlockSpeaker.citizen': '香城市民阿明',
@@ -1846,6 +1852,10 @@ const I18N = {
     'policy.educationReform.desc': '提升教育系統效能，增加市民教育程度並推動商業需求。',
     'policy.scienceDevelopment.title': '科研發展法',
     'policy.scienceDevelopment.desc': '加快高等教育累積，提升科學園區型工業出現機率。',
+    'policy.industrialBuildingRevitalization.title': '活化工廈',
+    'policy.industrialBuildingRevitalization.desc': '放寬工廈用途，可開設 Party Room、War Game 場及私房菜，提升工業需求與稅收並減少工業污染，但會令工業區交通大幅惡化。',
+    'policy.strongCountryManufacturing.title': '強國製造{year}',
+    'policy.strongCountryManufacturing.desc': '政府撥款支持本地新創科技人才，提升工業需求、高等教育與科學園發展，但需要持續支付大額補助。',
     'policy.smokingBan.title': '禁煙條例',
     'policy.smokingBan.desc': '提升公共健康並降低疫情風險，但需要全城執法成本。',
     'policy.schoolHealthProgram.title': '學童保健計劃',
@@ -2435,6 +2445,7 @@ const I18N = {
     'resolution.oceanParkDevelopmentProject.desc': '人口、政府収入、財政黒字、経済指標の条件を満たした後、8×8規模のオーシャンパーク建設を承認します。',
     'toast.landmarkLocked.resolution': '「{resolution}」の議会承認が必要です。',
     'council.availability.monthlyIncome': '月間政府収入が {amount} に達する必要があります。',
+    'council.availability.needsPolicy': '先に「{policy}」を施行する必要があります。',
     'council.availability.monthlySurplus': '月間財政黒字が {amount} に達する必要があります。',
     'council.availability.economy': '経済指数が {value} に達する必要があります。',
     'council.availability.alreadyApproved': 'このプロジェクトは承認済みです。',
@@ -2672,6 +2683,10 @@ const I18N = {
     'policy.educationReform.desc': '教育制度の効果を高め、市民の教育水準と商業需要を向上させます。',
     'policy.scienceDevelopment.title': '科学開発法',
     'policy.scienceDevelopment.desc': '高等教育の蓄積を加速し、サイエンスパーク型工業の発生率を高めます。',
+    'policy.industrialBuildingRevitalization.title': '工業ビル活性化政策',
+    'policy.industrialBuildingRevitalization.desc': '工業ビルで娯楽・飲食事業を認め、工業需要と税収を高めて汚染を減らしますが、周辺交通を大幅に悪化させます。',
+    'policy.strongCountryManufacturing.title': '強国製造{year}',
+    'policy.strongCountryManufacturing.desc': '地元テクノロジー人材と新興企業への助成により、工業需要、高等教育、サイエンスパークの成長を促進します。',
     'policy.smokingBan.title': '禁煙条例',
     'policy.smokingBan.desc': '都市全体の執行費をかけて公衆衛生を改善し、感染症リスクを下げます。',
     'policy.schoolHealthProgram.title': '学童保健計画',

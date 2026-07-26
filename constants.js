@@ -62,6 +62,17 @@ const CITY_POLICY_DEFS = [
   { id: 'greenParks',     titleKey: 'policy.greenParks.title',     descKey: 'policy.greenParks.desc',     monthlyBase: 100, category: 'environmentPlanning', moverId: 'culture_head' },
   { id: 'educationReform', titleKey: 'policy.educationReform.title', descKey: 'policy.educationReform.desc', monthlyBase: 220, category: 'educationScience', moverId: 'councillor_democracy' },
   { id: 'scienceDevelopment', titleKey: 'policy.scienceDevelopment.title', descKey: 'policy.scienceDevelopment.desc', monthlyBase: 260, category: 'educationScience', moverId: 'councillor_liberty' },
+  { id: 'industrialBuildingRevitalization', titleKey: 'policy.industrialBuildingRevitalization.title', descKey: 'policy.industrialBuildingRevitalization.desc', monthlyBase: 180, category: 'financeEconomy', moverId: 'councillor_business' },
+  {
+    id: 'strongCountryManufacturing',
+    titleKey: 'policy.strongCountryManufacturing.title',
+    descKey: 'policy.strongCountryManufacturing.desc',
+    monthlyBase: 320,
+    requiresPolicies: ['scienceDevelopment'],
+    hideUntilPolicyRequirements: true,
+    category: 'educationScience',
+    moverId: 'councillor_liberty',
+  },
   { id: 'smokingBan', titleKey: 'policy.smokingBan.title', descKey: 'policy.smokingBan.desc', monthlyBase: 130, unlockPopulation: 10000, category: 'safetyTransport', moverId: 'councillor_religion' },
   { id: 'schoolHealthProgram', titleKey: 'policy.schoolHealthProgram.title', descKey: 'policy.schoolHealthProgram.desc', monthlyBase: 180, unlockPopulation: 10000, category: 'socialWelfare', moverId: 'councillor_religion' },
   { id: 'tourismPromotion', titleKey: 'policy.tourismPromotion.title', descKey: 'policy.tourismPromotion.desc', monthlyBase: 160, unlockPopulation: 10000, category: 'financeEconomy', moverId: 'councillor_tourism' },
@@ -253,6 +264,7 @@ const EDUCATION_BASIC_SMOOTHING = 0.10;
 const EDUCATION_HIGHER_SMOOTHING = 0.07;
 const EDUCATION_POLICY_REFORM_MUL = 1.25;
 const SCIENCE_DEVELOPMENT_HIGHER_BONUS = 0.06;
+const STRONG_COUNTRY_HIGHER_EDU_BONUS = 0.03;
 
 // Placement costs (player-paid per action)
 const COST_ROAD          = 10;

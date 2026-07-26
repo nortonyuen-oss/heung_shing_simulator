@@ -24,6 +24,42 @@ const TRAFFIC_VISUAL_CONFIG = Object.freeze({
   surfaceConnectionTolerancePx: 0.75,
 });
 
+const ICE_CREAM_EVENT_CONFIG = Object.freeze({
+  initialCooldownMinMs: 15000,
+  initialCooldownMaxMs: 30000,
+  cooldownMinMs: 90000,
+  cooldownMaxMs: 180000,
+  retryCooldownMs: 5000,
+  parkingOffsetTiles: 0.42,
+  parkingCurveLeadTiles: 0.38,
+  musicDurationFallbackMs: 22422,
+  musicBaseVolume: 0.55,
+});
+const ICE_CREAM_AUDIO_KEY = 'event_ice_cream_truck';
+const ICE_CREAM_EDUCATION_TARGET_TYPES = Object.freeze([
+  'primary_school',
+  'secondary_school',
+  'community_college',
+  'university',
+]);
+const ICE_CREAM_VISITOR_ATTRACTION_TYPES = Object.freeze([
+  'exhibition_center',
+  'cultural_center',
+  'space_museum',
+  'buddha_statue',
+  'heritage_temple',
+  'grand_temple',
+  'heritage_church',
+  'indoor_coliseum',
+  'murray_house',
+  'ocean_park',
+  'football_stadium',
+]);
+const ICE_CREAM_TARGET_TYPES = Object.freeze([
+  ...ICE_CREAM_EDUCATION_TARGET_TYPES,
+  ...ICE_CREAM_VISITOR_ATTRACTION_TYPES,
+]);
+
 const TRAFFIC_DIRECTIONS = Object.freeze(['ne', 'nw', 'se', 'sw']);
 const TRAFFIC_LOGICAL_DIRECTIONS = Object.freeze({
   n: Object.freeze({ row: -1, col: 0 }),
@@ -150,7 +186,7 @@ const TRAFFIC_MODEL_REGISTRY = Object.freeze([
   }),
   createTrafficModel({
     id: 'icecream_van', category: 'icecream', folder: 'icecream', baseName: 'iceCream',
-    scale: 0.084, weight: 1, speedFactor: 0.85, headwayFactor: 0.62, originY: 0.82,
+    scale: 0.084, weight: 0, speedFactor: 0.85, headwayFactor: 0.62, originY: 0.82,
   }),
 ]);
 
@@ -312,6 +348,127 @@ function getTrafficDirectionForDelta(deltaRow, deltaCol) {
   if (deltaRow === 1 && deltaCol === 0) return 's';
   if (deltaRow === 0 && deltaCol === -1) return 'w';
   return null;
+}
+
+function canSpawnIceCreamTruckForWeather(weather) {
+  return (
+    ICE_CREAM_TARGET_TYPES.length > 0
+    && ['clear', 'cloudy'].includes(weather?.condition)
+    && weather?.typhoonStage === 'none'
+    && weather?.typhoonActive !== true
+    && Number(weather?.rainfallMm ?? 0) === 0
+    && (weather?.rainWarning ?? 'none') === 'none'
+  );
+}
+
+function isIceCreamTargetBuilding(type) {
+  return ICE_CREAM_TARGET_TYPES.includes(type);
+}
+
+function findTrafficPathOutsideView(start, isOutsideView, getNeighbours, options = {}) {
+  if (!start || typeof isOutsideView !== 'function' || typeof getNeighbours !== 'function') {
+    return null;
+  }
+  const startKey = `${start.row}:${start.col}`;
+  const parents = new Map([[startKey, null]]);
+  const requiredFirstStep = options.firstStep ?? null;
+  let queue;
+  if (requiredFirstStep) {
+    const firstStepIsConnected = getNeighbours(start.row, start.col).some((tile) => (
+      tile.row === requiredFirstStep.row && tile.col === requiredFirstStep.col
+    ));
+    if (!firstStepIsConnected) return null;
+    parents.set(`${requiredFirstStep.row}:${requiredFirstStep.col}`, start);
+    queue = [{ row: requiredFirstStep.row, col: requiredFirstStep.col }];
+  } else {
+    queue = [{ row: start.row, col: start.col }];
+  }
+  let destination = null;
+  let queueIndex = 0;
+
+  while (queueIndex < queue.length) {
+    const current = queue[queueIndex++];
+    if (isOutsideView(current.row, current.col)) {
+      destination = current;
+      break;
+    }
+    for (const next of getNeighbours(current.row, current.col)) {
+      const key = `${next.row}:${next.col}`;
+      if (parents.has(key)) continue;
+      parents.set(key, current);
+      queue.push({ row: next.row, col: next.col });
+    }
+  }
+  if (!destination) return null;
+
+  const path = [];
+  let current = destination;
+  while (current) {
+    path.push(current);
+    current = parents.get(`${current.row}:${current.col}`);
+  }
+  return path.reverse();
+}
+
+function getTrafficVirtualOutsideTile(path) {
+  if (!Array.isArray(path) || path.length < 2) return null;
+  const outsideRoad = path[0];
+  const nextRoad = path[1];
+  return {
+    row: outsideRoad.row - (nextRoad.row - outsideRoad.row),
+    col: outsideRoad.col - (nextRoad.col - outsideRoad.col),
+  };
+}
+
+function getIceCreamArrivalDirectionForBuildingSide(buildingSide) {
+  if (!buildingSide) return null;
+  const row = Number(buildingSide.row);
+  const col = Number(buildingSide.col);
+  if (Math.abs(row) + Math.abs(col) !== 1) return null;
+  // Hong Kong left-hand traffic: the destination curb must be on the van's
+  // left. getTrafficLeftLaneOffset(dr, dc) points to {-dc, dr}, so invert
+  // that relationship to obtain the required direction of travel.
+  const directionRow = col;
+  const directionCol = -row;
+  return {
+    row: directionRow === 0 ? 0 : directionRow,
+    col: directionCol === 0 ? 0 : directionCol,
+  };
+}
+
+function collectIceCreamParkingCandidates(
+  anchor,
+  record,
+  isParkingRoad,
+) {
+  if (!anchor || !record || !isIceCreamTargetBuilding(record.type)) return [];
+  const footprintRows = Math.max(1, Number(record.footprintRows ?? 1) || 1);
+  const footprintCols = Math.max(1, Number(record.footprintCols ?? 1) || 1);
+  const footprint = new Set();
+  for (let rowOffset = 0; rowOffset < footprintRows; rowOffset++) {
+    for (let colOffset = 0; colOffset < footprintCols; colOffset++) {
+      footprint.add(`${anchor.row + rowOffset}:${anchor.col + colOffset}`);
+    }
+  }
+
+  const candidates = new Map();
+  for (const key of footprint) {
+    const [buildingRow, buildingCol] = key.split(':').map(Number);
+    for (const delta of Object.values(TRAFFIC_LOGICAL_DIRECTIONS)) {
+      const road = {
+        row: buildingRow - delta.row,
+        col: buildingCol - delta.col,
+      };
+      const roadKey = `${road.row}:${road.col}`;
+      if (footprint.has(roadKey) || candidates.has(roadKey)) continue;
+      if (!isParkingRoad(road.row, road.col)) continue;
+      candidates.set(roadKey, {
+        road,
+        buildingSide: { row: delta.row, col: delta.col },
+      });
+    }
+  }
+  return Array.from(candidates.values());
 }
 
 function getTrafficLayerHeight(layers, row, col) {
@@ -524,6 +681,8 @@ function getTrafficState(scene) {
       starterRequested: false,
       lastModelDiscoveryTime: -Infinity,
       nextDepthRefreshTime: 0,
+      iceCreamEvent: null,
+      iceCreamCooldownMs: randomIceCreamCooldown(true),
       dirty: true,
     };
   }
@@ -538,11 +697,38 @@ function destroyTrafficVehicle(vehicle) {
   vehicle?.sprite?.destroy?.();
 }
 
+function randomIceCreamCooldown(initial = false, random = Math.random) {
+  const min = initial
+    ? ICE_CREAM_EVENT_CONFIG.initialCooldownMinMs
+    : ICE_CREAM_EVENT_CONFIG.cooldownMinMs;
+  const max = initial
+    ? ICE_CREAM_EVENT_CONFIG.initialCooldownMaxMs
+    : ICE_CREAM_EVENT_CONFIG.cooldownMaxMs;
+  return min + Math.max(0, Math.min(1, Number(random()) || 0)) * (max - min);
+}
+
+function destroyIceCreamEvent(event) {
+  if (!event) return;
+  if (event.sound) {
+    event.sound.off?.('complete');
+    event.sound.stop?.();
+    event.sound.destroy?.();
+  }
+  destroyTrafficVehicle(event);
+}
+
+function clearOrdinaryTrafficVisuals(state) {
+  state?.vehicles?.forEach(destroyTrafficVehicle);
+  if (state?.vehicles) state.vehicles.length = 0;
+}
+
 function clearTrafficVisuals(scene) {
   const state = scene?.trafficVisualState;
   if (!state) return;
-  state.vehicles.forEach(destroyTrafficVehicle);
-  state.vehicles.length = 0;
+  clearOrdinaryTrafficVisuals(state);
+  destroyIceCreamEvent(state.iceCreamEvent);
+  state.iceCreamEvent = null;
+  state.iceCreamCooldownMs = randomIceCreamCooldown(true);
   state.dirty = true;
 }
 
@@ -561,6 +747,18 @@ function invalidateTrafficVisualNetwork(scene) {
     if (!valid) destroyTrafficVehicle(vehicle);
     return valid;
   });
+  const event = state.iceCreamEvent;
+  const eventRouteBroken = event?.movementLegs
+    ?.slice(event.movementIndex)
+    .some((descriptor) => (
+      descriptor.kind === 'road'
+      && !runtimeTrafficTilesConnect(descriptor.current, descriptor.next)
+    ));
+  if (eventRouteBroken) {
+    destroyIceCreamEvent(event);
+    state.iceCreamEvent = null;
+    state.iceCreamCooldownMs = randomIceCreamCooldown();
+  }
   state.dirty = true;
 }
 
@@ -599,6 +797,9 @@ function getReadyTrafficModels(scene) {
 
 function evictTrafficModelsForCapacity(scene, state, incomingCount) {
   const activeModelIds = new Set(state.vehicles.map((vehicle) => vehicle.model.id));
+  if (state.iceCreamEvent?.model?.id) {
+    activeModelIds.add(state.iceCreamEvent.model.id);
+  }
   const ready = getReadyTrafficModels(scene);
   let excess = Math.max(
     0,
@@ -894,6 +1095,27 @@ function createTrafficLeg(scene, previous, current, next) {
 function evaluateTrafficLeg(leg, progress) {
   const t = Math.max(0, Math.min(1, progress));
   const inverse = 1 - t;
+  if (leg?.cubic) {
+    const value = (key) => (
+      inverse ** 3 * leg.start[key]
+      + 3 * inverse * inverse * t * leg.control1[key]
+      + 3 * inverse * t * t * leg.control2[key]
+      + t ** 3 * leg.end[key]
+    );
+    const derivative = (key) => (
+      3 * inverse * inverse * (leg.control1[key] - leg.start[key])
+      + 6 * inverse * t * (leg.control2[key] - leg.control1[key])
+      + 3 * t * t * (leg.end[key] - leg.control2[key])
+    );
+    return {
+      x: value('x'),
+      y: value('y'),
+      depthY: value('depthY'),
+      dx: derivative('x'),
+      dy: derivative('y'),
+      surfaceLift: 0,
+    };
+  }
   const value = (key) => (
     inverse * inverse * leg.start[key]
     + 2 * inverse * t * leg.control[key]
@@ -917,6 +1139,511 @@ function evaluateTrafficLeg(leg, progress) {
     dy: derivative('y'),
     surfaceLift,
   };
+}
+
+function createIceCreamCubicLeg(start, control1, control2, end) {
+  return {
+    cubic: true,
+    start,
+    control1,
+    control2,
+    end,
+    turn: 'parking',
+    surfaceLifts: { start: 0, boundary: 0, end: 0 },
+  };
+}
+
+function createIceCreamPointLeg(start, end) {
+  return {
+    start,
+    control: {
+      x: (start.x + end.x) / 2,
+      y: (start.y + end.y) / 2,
+      depthY: (start.depthY + end.depthY) / 2,
+    },
+    end,
+    turn: 'straight',
+    surfaceLifts: { start: 0, boundary: 0, end: 0 },
+  };
+}
+
+function getIceCreamParkingPoint(scene, parking) {
+  const center = getTrafficSurfacePoint(scene, parking.road.row, parking.road.col);
+  const shifted = isoToScreen(
+    parking.road.col + parking.buildingSide.col * ICE_CREAM_EVENT_CONFIG.parkingOffsetTiles,
+    parking.road.row + parking.buildingSide.row * ICE_CREAM_EVENT_CONFIG.parkingOffsetTiles,
+  );
+  const unshifted = isoToScreen(parking.road.col, parking.road.row);
+  const surface = getTrafficRoadSurface(
+    parking.road.row,
+    parking.road.col,
+    getTrafficRuntimeLayers(),
+  );
+  const lift = Number(surface?.centerLift) || 0;
+  return {
+    x: center.x + shifted.x - unshifted.x,
+    y: center.y + shifted.y - unshifted.y - lift,
+    depthY: center.depthY + shifted.y - unshifted.y - lift,
+    dx: 0,
+    dy: 0,
+    surfaceLift: lift,
+  };
+}
+
+function getIceCreamForwardScreenVector(tile, direction, amountTiles) {
+  const start = isoToScreen(tile.col, tile.row);
+  const end = isoToScreen(
+    tile.col + direction.col * amountTiles,
+    tile.row + direction.row * amountTiles,
+  );
+  return {
+    x: end.x - start.x,
+    y: end.y - start.y,
+    depthY: end.y - start.y,
+  };
+}
+
+function createIceCreamRoadLegs(scene, path) {
+  const legs = [];
+  for (let index = 0; index < path.length - 1; index++) {
+    const current = path[index];
+    const next = path[index + 1];
+    const previous = index > 0
+      ? path[index - 1]
+      : {
+          row: current.row - (next.row - current.row),
+          col: current.col - (next.col - current.col),
+        };
+    legs.push({
+      kind: 'road',
+      current,
+      next,
+      leg: createTrafficLeg(scene, previous, current, next),
+    });
+  }
+  return legs;
+}
+
+function createIceCreamArrivalLegs(scene, path, outside, parking) {
+  const roadLegs = createIceCreamRoadLegs(scene, path);
+  if (roadLegs.length === 0) return [];
+  const finalRoadLeg = roadLegs.at(-1);
+  const arrivalDirection = {
+    row: finalRoadLeg.next.row - finalRoadLeg.current.row,
+    col: finalRoadLeg.next.col - finalRoadLeg.current.col,
+  };
+  const parkingPoint = getIceCreamParkingPoint(scene, parking);
+  const forward = getIceCreamForwardScreenVector(
+    parking.road,
+    arrivalDirection,
+    ICE_CREAM_EVENT_CONFIG.parkingCurveLeadTiles,
+  );
+  finalRoadLeg.kind = 'parkingApproach';
+  finalRoadLeg.leg = createIceCreamCubicLeg(
+    evaluateTrafficLeg(finalRoadLeg.leg, 0),
+    evaluateTrafficLeg(finalRoadLeg.leg, 0.42),
+    {
+      x: parkingPoint.x - forward.x,
+      y: parkingPoint.y - forward.y,
+      depthY: parkingPoint.depthY - forward.depthY,
+    },
+    parkingPoint,
+  );
+  const delta = {
+    row: path[1].row - path[0].row,
+    col: path[1].col - path[0].col,
+  };
+  const outsidePoint = getTrafficLanePoint(scene, outside, delta.row, delta.col);
+  const edgePoint = evaluateTrafficLeg(roadLegs[0].leg, 0);
+  return [{
+    kind: 'entry',
+    current: null,
+    next: path[0],
+    leg: createIceCreamPointLeg(outsidePoint, edgePoint),
+  }, ...roadLegs];
+}
+
+function createIceCreamDepartureLegs(scene, path, outside, parking) {
+  const roadLegs = createIceCreamRoadLegs(scene, path);
+  if (roadLegs.length === 0) return [];
+  const firstRoadLeg = roadLegs[0];
+  const departureDirection = {
+    row: firstRoadLeg.next.row - firstRoadLeg.current.row,
+    col: firstRoadLeg.next.col - firstRoadLeg.current.col,
+  };
+  const parkingPoint = getIceCreamParkingPoint(scene, parking);
+  const forward = getIceCreamForwardScreenVector(
+    parking.road,
+    departureDirection,
+    ICE_CREAM_EVENT_CONFIG.parkingCurveLeadTiles,
+  );
+  firstRoadLeg.kind = 'parkingDeparture';
+  firstRoadLeg.leg = createIceCreamCubicLeg(
+    parkingPoint,
+    {
+      x: parkingPoint.x + forward.x,
+      y: parkingPoint.y + forward.y,
+      depthY: parkingPoint.depthY + forward.depthY,
+    },
+    evaluateTrafficLeg(firstRoadLeg.leg, 0.58),
+    evaluateTrafficLeg(firstRoadLeg.leg, 1),
+  );
+  const lastRoadLeg = roadLegs.at(-1);
+  const delta = {
+    row: outside.row - path.at(-1).row,
+    col: outside.col - path.at(-1).col,
+  };
+  const edgePoint = evaluateTrafficLeg(lastRoadLeg.leg, 1);
+  const outsidePoint = getTrafficLanePoint(scene, outside, delta.row, delta.col);
+  return [...roadLegs, {
+    kind: 'exit',
+    current: path.at(-1),
+    next: null,
+    leg: createIceCreamPointLeg(edgePoint, outsidePoint),
+  }];
+}
+
+function setIceCreamTruckPosition(event, position, updateDirection = true) {
+  if (updateDirection) {
+    setTrafficVehicleVisual(event, position, 0, true);
+    return;
+  }
+  event.sprite.setPosition(position.x, position.y);
+  event.lastPosition = position;
+  event.sprite.setDepth(getWorldDepth('object', position.depthY + TILE_HEIGHT / 2));
+}
+
+function isRuntimeIceCreamParkingRoad(row, col) {
+  if (!isRuntimeTrafficRoad(row, col)) return false;
+  const surface = getTrafficRoadSurface(row, col, getTrafficRuntimeLayers());
+  return surface?.kind === 'flat' || surface?.kind === 'elevated-flat';
+}
+
+function getRuntimeIceCreamRouteOutsideView(scene, parking, firstTravelDelta) {
+  const visibleRect = getTrafficCameraRect(scene);
+  const spawnRect = getTrafficCameraRect(
+    scene,
+    TRAFFIC_VISUAL_CONFIG.viewportPaddingTiles + 1,
+  );
+  if (!visibleRect || !spawnRect) return null;
+  const parkingPoint = getTrafficSurfacePoint(scene, parking.road.row, parking.road.col);
+  if (!trafficPointInRect(parkingPoint, visibleRect)) return null;
+  const firstStep = firstTravelDelta
+    ? {
+        row: parking.road.row + firstTravelDelta.row,
+        col: parking.road.col + firstTravelDelta.col,
+      }
+    : null;
+
+  const targetToOutside = findTrafficPathOutsideView(
+    parking.road,
+    (row, col) => !trafficPointInRect(getTrafficSurfacePoint(scene, row, col), spawnRect),
+    getTrafficRoadNeighbours,
+    { firstStep },
+  );
+  if (!targetToOutside || targetToOutside.length < 2) return null;
+  const path = [...targetToOutside].reverse();
+  const outside = getTrafficVirtualOutsideTile(path);
+  return outside ? { targetToOutside, path, outside } : null;
+}
+
+function collectRuntimeIceCreamTargets(scene, random = Math.random) {
+  if (typeof buildingData === 'undefined') return [];
+
+  const targets = [];
+  for (const [id, record] of Object.entries(buildingData)) {
+    if (!isIceCreamTargetBuilding(record?.type)) continue;
+    const [row, col] = id.split(':').map(Number);
+    const parkingCandidates = collectIceCreamParkingCandidates(
+      { row, col },
+      record,
+      isRuntimeIceCreamParkingRoad,
+    );
+    for (const parking of parkingCandidates) {
+      const arrivalDirection = getIceCreamArrivalDirectionForBuildingSide(parking.buildingSide);
+      if (!arrivalDirection) continue;
+      const arrivalOutboundDirection = {
+        row: -arrivalDirection.row,
+        col: -arrivalDirection.col,
+      };
+      const route = getRuntimeIceCreamRouteOutsideView(
+        scene,
+        parking,
+        arrivalOutboundDirection,
+      );
+      const departureRoute = getRuntimeIceCreamRouteOutsideView(
+        scene,
+        parking,
+        arrivalDirection,
+      );
+      if (!route || !departureRoute) continue;
+      targets.push({
+        targetId: id,
+        targetType: record.type,
+        parking,
+        arrivalDirection,
+        path: route.path,
+        outside: route.outside,
+        departurePath: departureRoute.targetToOutside,
+        departureOutside: departureRoute.outside,
+      });
+    }
+  }
+  for (let index = targets.length - 1; index > 0; index--) {
+    const swapIndex = Math.floor(Math.max(0, Math.min(0.999999, random())) * (index + 1));
+    [targets[index], targets[swapIndex]] = [targets[swapIndex], targets[index]];
+  }
+  return targets;
+}
+
+function spawnIceCreamEvent(scene, state, random = Math.random) {
+  const model = TRAFFIC_MODEL_BY_ID.get('icecream_van');
+  if (!model) return false;
+  if (!trafficModelTexturesAreReady(scene, model)) {
+    requestTrafficModels(scene, [model]);
+    return false;
+  }
+
+  const target = collectRuntimeIceCreamTargets(scene, random)[0];
+  if (!target) return false;
+  const movementLegs = createIceCreamArrivalLegs(
+    scene,
+    target.path,
+    target.outside,
+    target.parking,
+  );
+  if (movementLegs.length === 0) return false;
+
+  const sprite = scene.add.image(0, 0, model.directions.ne.key);
+  addToRenderLayer(scene, sprite, 'objectLayer');
+  sprite.setOrigin(model.originX, model.originY);
+  sprite.setScale(model.scale);
+  sprite.setMask(scene.worldMask);
+
+  const event = {
+    id: `icecream_${state.nextVehicleId++}`,
+    model,
+    sprite,
+    targetId: target.targetId,
+    targetType: target.targetType,
+    parking: target.parking,
+    arrivalDirection: target.arrivalDirection,
+    arrivalPath: target.path,
+    outside: target.outside,
+    departurePath: target.departurePath,
+    departureOutside: target.departureOutside,
+    phase: 'entering',
+    movementLegs,
+    movementIndex: 0,
+    progress: 0,
+    current: null,
+    next: target.path[0],
+    textureDirection: 'ne',
+    lastPosition: null,
+    sound: null,
+    soundPausedForSimulation: false,
+    musicElapsedMs: 0,
+    musicComplete: false,
+  };
+  setIceCreamTruckPosition(event, evaluateTrafficLeg(movementLegs[0].leg, 0));
+  state.iceCreamEvent = event;
+  return true;
+}
+
+function getIceCreamEventAudioVolume(scene, event) {
+  const camera = scene?.cameras?.main;
+  const position = event?.lastPosition;
+  if (!camera || !position) return 0;
+  const rect = getTrafficCameraRect(scene);
+  if (!rect) return 0;
+  const centerX = rect.x + rect.width / 2;
+  const centerY = rect.y + rect.height / 2;
+  const distance = Math.hypot(position.x - centerX, position.y - centerY);
+  const audibleRadius = Math.max(rect.width, rect.height) * 0.8;
+  const proximity = Math.max(0, Math.min(1, 1 - distance / Math.max(1, audibleRadius)));
+  const zoomFade = Math.max(0, Math.min(
+    1,
+    (camera.zoom - 0.5) / (TRAFFIC_VISUAL_CONFIG.zoomMin - 0.5),
+  ));
+  const ambientMix = typeof getStoredAmbientVolume === 'function'
+    ? getStoredAmbientVolume()
+    : 1;
+  return ICE_CREAM_EVENT_CONFIG.musicBaseVolume * proximity * zoomFade * ambientMix;
+}
+
+function startIceCreamEventMusic(scene, event) {
+  event.musicElapsedMs = 0;
+  event.musicComplete = false;
+  const audioCache = scene?.cache?.audio;
+  const audioIsReady = audioCache?.has?.(ICE_CREAM_AUDIO_KEY)
+    ?? audioCache?.exists?.(ICE_CREAM_AUDIO_KEY)
+    ?? true;
+  if (!scene?.sound || scene.sound.locked || !audioIsReady) {
+    return;
+  }
+  const sound = scene.sound.add(ICE_CREAM_AUDIO_KEY, {
+    loop: false,
+    volume: getIceCreamEventAudioVolume(scene, event),
+  });
+  sound.once('complete', () => {
+    event.musicComplete = true;
+  });
+  sound.play();
+  event.sound = sound;
+}
+
+function completeIceCreamParking(scene, event) {
+  event.phase = 'parkedPlaying';
+  event.current = null;
+  event.next = null;
+  startIceCreamEventMusic(scene, event);
+}
+
+function beginIceCreamDeparture(scene, event) {
+  if (event.sound) {
+    event.sound.off?.('complete');
+    event.sound.stop?.();
+    event.sound.destroy?.();
+    event.sound = null;
+  }
+  const currentRoute = getRuntimeIceCreamRouteOutsideView(
+    scene,
+    event.parking,
+    event.arrivalDirection,
+  );
+  const departurePath = currentRoute?.targetToOutside ?? event.departurePath;
+  const departureOutside = currentRoute?.outside ?? event.departureOutside;
+  const movementLegs = createIceCreamDepartureLegs(
+    scene,
+    departurePath,
+    departureOutside,
+    event.parking,
+  );
+  if (movementLegs.length === 0) {
+    event.phase = 'finished';
+    return;
+  }
+  event.phase = 'leaving';
+  event.movementLegs = movementLegs;
+  event.movementIndex = 0;
+  event.progress = 0;
+  event.current = movementLegs[0].current;
+  event.next = movementLegs[0].next;
+}
+
+function advanceIceCreamMovement(scene, state, event, delta, speedMultiplier) {
+  const descriptor = event.movementLegs[event.movementIndex];
+  if (!descriptor) {
+    event.phase = event.phase === 'leaving' ? 'finished' : event.phase;
+    return;
+  }
+  event.current = descriptor.current;
+  event.next = descriptor.next;
+  if (
+    ['road', 'parkingApproach', 'parkingDeparture'].includes(descriptor.kind)
+    && trafficVehicleHasBlockingLeader(event, state.vehicles)
+  ) {
+    return;
+  }
+
+  const progressAmount = computeTrafficProgressAmount(
+    delta,
+    false,
+    speedMultiplier,
+    TRAFFIC_VISUAL_CONFIG,
+    event.model.speedFactor * getTrafficLegSpeedFactor(descriptor.leg),
+  );
+  event.progress += progressAmount;
+  let transitions = 0;
+  while (
+    event.progress >= 1
+    && transitions++ < TRAFFIC_VISUAL_CONFIG.maxLegTransitionsPerFrame
+  ) {
+    event.progress -= 1;
+    event.movementIndex++;
+    const nextDescriptor = event.movementLegs[event.movementIndex];
+    if (!nextDescriptor) {
+      setIceCreamTruckPosition(event, evaluateTrafficLeg(descriptor.leg, 1));
+      event.current = null;
+      event.next = null;
+      if (event.phase === 'leaving') event.phase = 'finished';
+      else completeIceCreamParking(scene, event);
+      return;
+    }
+    if (
+      event.phase === 'entering'
+      && ['road', 'parkingApproach'].includes(nextDescriptor.kind)
+    ) {
+      event.phase = 'drivingToTarget';
+    }
+    event.current = nextDescriptor.current;
+    event.next = nextDescriptor.next;
+  }
+  const activeDescriptor = event.movementLegs[event.movementIndex];
+  setIceCreamTruckPosition(
+    event,
+    evaluateTrafficLeg(activeDescriptor.leg, event.progress),
+    ['road', 'parkingApproach', 'parkingDeparture'].includes(activeDescriptor.kind),
+  );
+}
+
+function updateIceCreamEvent(scene, state, delta, paused, speedMultiplier) {
+  const event = state.iceCreamEvent;
+  if (!event) {
+    if (paused || scene.cameras.main.zoom < TRAFFIC_VISUAL_CONFIG.zoomMin) return;
+    state.iceCreamCooldownMs = Math.max(
+      0,
+      state.iceCreamCooldownMs - Math.min(1000, Math.max(0, delta)) * speedMultiplier,
+    );
+    if (state.iceCreamCooldownMs > 0) return;
+    const weather = typeof city === 'undefined' ? null : city.weather;
+    if (!canSpawnIceCreamTruckForWeather(weather)) return;
+    if (!spawnIceCreamEvent(scene, state)) {
+      state.iceCreamCooldownMs = ICE_CREAM_EVENT_CONFIG.retryCooldownMs;
+      return;
+    }
+    return;
+  }
+
+  const targetStillExists = typeof buildingData !== 'undefined'
+    && buildingData[event.targetId]?.type === event.targetType;
+  if (!targetStillExists && !['parkedPlaying', 'leaving'].includes(event.phase)) {
+    destroyIceCreamEvent(event);
+    state.iceCreamEvent = null;
+    state.iceCreamCooldownMs = randomIceCreamCooldown();
+    return;
+  }
+
+  if (event.sound) {
+    event.sound.setVolume?.(getIceCreamEventAudioVolume(scene, event));
+    if (paused && !event.soundPausedForSimulation) {
+      event.sound.pause?.();
+      event.soundPausedForSimulation = true;
+    } else if (!paused && event.soundPausedForSimulation) {
+      event.sound.resume?.();
+      event.soundPausedForSimulation = false;
+    }
+  }
+  if (paused) return;
+
+  if (event.phase === 'entering' || event.phase === 'drivingToTarget' || event.phase === 'leaving') {
+    advanceIceCreamMovement(scene, state, event, delta, speedMultiplier);
+  } else if (event.phase === 'parkedPlaying') {
+    event.musicElapsedMs += Math.max(0, delta);
+    if (
+      event.musicComplete
+      || event.musicElapsedMs >= ICE_CREAM_EVENT_CONFIG.musicDurationFallbackMs
+      || !targetStillExists
+    ) {
+      beginIceCreamDeparture(scene, event);
+    }
+  }
+
+  if (event.phase === 'finished') {
+    destroyIceCreamEvent(event);
+    state.iceCreamEvent = null;
+    state.iceCreamCooldownMs = randomIceCreamCooldown();
+  }
 }
 
 function setTrafficVehicleVisual(vehicle, position, time = 0, forceDepth = false) {
@@ -976,8 +1703,13 @@ function chooseTrafficModelForSpawn(scene, random = Math.random) {
 }
 
 function hasTrafficSpawnConflict(state, current, next) {
-  return state.vehicles.some((vehicle) => (
-    vehicle.current.row === current.row
+  const vehicles = state.iceCreamEvent
+    ? [...state.vehicles, state.iceCreamEvent]
+    : state.vehicles;
+  return vehicles.some((vehicle) => (
+    vehicle.current
+    && vehicle.next
+    && vehicle.current.row === current.row
     && vehicle.current.col === current.col
     && vehicle.next.row === next.row
     && vehicle.next.col === next.col
@@ -1066,6 +1798,10 @@ function refreshVisibleTraffic(scene, time) {
 function trafficVehicleHasBlockingLeader(vehicle, vehicles) {
   return vehicles.some((leader) => (
     leader !== vehicle
+    && leader.current
+    && leader.next
+    && vehicle.current
+    && vehicle.next
     && leader.current.row === vehicle.current.row
     && leader.current.col === vehicle.current.col
     && leader.next.row === vehicle.next.row
@@ -1111,15 +1847,36 @@ function updateTrafficVisuals(time, delta) {
   if (!state || !camera) return;
 
   if (scene.scene?.isVisible && !scene.scene.isVisible()) {
-    if (state.vehicles.length > 0) clearTrafficVisuals(scene);
+    if (state.vehicles.length > 0 || state.iceCreamEvent) clearTrafficVisuals(scene);
     return;
+  }
+
+  const paused = typeof simPaused !== 'undefined' && simPaused;
+  const speedMultiplier = paused
+    ? 0
+    : Math.max(0, Number(typeof simSpeedMul === 'undefined' ? 1 : simSpeedMul) || 0);
+
+  if (!(typeof isTerrainCreatorMode !== 'undefined' && isTerrainCreatorMode)) {
+    updateIceCreamEvent(scene, state, delta, paused, speedMultiplier);
   }
 
   if (
     camera.zoom < TRAFFIC_VISUAL_CONFIG.zoomMin
     || (typeof isTerrainCreatorMode !== 'undefined' && isTerrainCreatorMode)
   ) {
-    if (state.vehicles.length > 0) clearTrafficVisuals(scene);
+    if (state.vehicles.length > 0) {
+      clearOrdinaryTrafficVisuals(state);
+      state.dirty = true;
+    }
+    if (
+      typeof isTerrainCreatorMode !== 'undefined'
+      && isTerrainCreatorMode
+      && state.iceCreamEvent
+    ) {
+      destroyIceCreamEvent(state.iceCreamEvent);
+      state.iceCreamEvent = null;
+      state.iceCreamCooldownMs = randomIceCreamCooldown(true);
+    }
     return;
   }
 
@@ -1130,15 +1887,14 @@ function updateTrafficVisuals(time, delta) {
     refreshVisibleTraffic(scene, time);
   }
 
-  const paused = typeof simPaused !== 'undefined' && simPaused;
-  const speedMultiplier = paused
-    ? 0
-    : Math.max(0, Number(typeof simSpeedMul === 'undefined' ? 1 : simSpeedMul) || 0);
   if (speedMultiplier <= 0 || state.vehicles.length === 0) return;
 
   const viewRect = getTrafficCameraRect(scene, TRAFFIC_VISUAL_CONFIG.viewportPaddingTiles);
+  const leaders = state.iceCreamEvent
+    ? [...state.vehicles, state.iceCreamEvent]
+    : state.vehicles;
   state.vehicles = state.vehicles.filter((vehicle) => {
-    if (trafficVehicleHasBlockingLeader(vehicle, state.vehicles)) return true;
+    if (trafficVehicleHasBlockingLeader(vehicle, leaders)) return true;
     const progressAmount = computeTrafficProgressAmount(
       delta,
       paused,
@@ -1154,6 +1910,10 @@ function updateTrafficVisuals(time, delta) {
 
 const trafficVisualTestApi = {
   TRAFFIC_VISUAL_CONFIG,
+  ICE_CREAM_EVENT_CONFIG,
+  ICE_CREAM_EDUCATION_TARGET_TYPES,
+  ICE_CREAM_VISITOR_ATTRACTION_TYPES,
+  ICE_CREAM_TARGET_TYPES,
   TRAFFIC_DIRECTIONS,
   TRAFFIC_MODEL_REGISTRY,
   TRAFFIC_MODEL_BY_ID,
@@ -1169,6 +1929,12 @@ const trafficVisualTestApi = {
   isTrafficFlatRoadTile,
   getTrafficLegSpeedFactor,
   getTrafficDirectionForDelta,
+  canSpawnIceCreamTruckForWeather,
+  isIceCreamTargetBuilding,
+  findTrafficPathOutsideView,
+  getTrafficVirtualOutsideTile,
+  getIceCreamArrivalDirectionForBuildingSide,
+  collectIceCreamParkingCandidates,
   getTrafficRoadSurface,
   trafficRoadSurfacesConnect,
   getTrafficLegSurfaceLifts,

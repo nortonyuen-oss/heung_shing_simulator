@@ -11,6 +11,7 @@ gh release list --repo nortonyuen-oss/heung_shing_simulator --limit 5
 
 - Do not overwrite unrelated local changes.
 - Confirm the latest public version before choosing the next version.
+- Choose a theme name for every release and store it in `package.json` as `releaseTheme`.
 - Use a new patch version for release/build fixes, for example `2.0.1` after `2.0.0`.
 
 ## 2. Update Game Assets And Fallbacks
@@ -44,6 +45,16 @@ Then update visible version text:
 - `i18n.js`
 - `index.html`
 - `RELEASE_NOTES.md`
+
+Use the same theme name in:
+
+- `package.json` as `releaseTheme`
+- the first `RELEASE_NOTES.md` heading, in the form `# The City of Heung Shing v2.0.0 — Theme Name`
+- `README.md`
+- `docs/index.html`
+- the `i18n.js` offline fallback and `index.html` fallback text
+
+The installer workflow uses the first `RELEASE_NOTES.md` heading as the GitHub Release title.
 
 Also update the website release notes and counters:
 

@@ -75,10 +75,71 @@ test('compact decoder rejects corrupt runs and leaves v14 saves compatible', () 
   assert.equal(vm.runInContext('legacy = { version: 14, mapData: [[1]] }; decodeSaveDataForLoad(legacy) === legacy', context), true);
 });
 
+test('saved viewpoints preserve logical map position, zoom and rotation', () => {
+  const context = createSaveVm();
+  Object.assign(context, {
+    mapRotation: 3,
+    worldToLogicalPoint: (_scene, x, y) => ({ x: x / 20, y: y / 20 }),
+    logicalPointToWorld: (_scene, logical) => ({ x: logical.x * 10, y: logical.y * 10 }),
+  });
+  const camera = {
+    width: 100,
+    height: 80,
+    scrollX: 15,
+    scrollY: 20,
+    zoom: 2,
+    setZoom(value) { this.zoom = value; },
+  };
+  context.scene = { cameras: { main: camera } };
+
+  vm.runInContext('capturedViewpoint = captureCurrentViewpoint(scene)', context);
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(context.capturedViewpoint)),
+    { centerCol: 2, centerRow: 2, zoom: 2, rotation: 3 },
+  );
+
+  vm.runInContext(`
+    restoredViewpoint = restoreSavedViewpoint(scene, {
+      centerCol: 2.5,
+      centerRow: 1.5,
+      zoom: 1.5,
+      rotation: 1,
+    });
+  `, context);
+  assert.equal(context.restoredViewpoint, true);
+  assert.equal(camera.zoom, 1.5);
+  assert.ok(Math.abs(camera.scrollX - (25 - 100 / 3)) < 1e-9);
+  assert.ok(Math.abs(camera.scrollY - (15 - 80 / 3)) < 1e-9);
+  assert.equal(context.mapRotation, 1);
+});
+
+test('saved viewpoint normalization clamps corrupt camera values and supports old saves', () => {
+  const context = createSaveVm();
+  vm.runInContext(`
+    missingViewpoint = normalizeSavedViewpoint(undefined);
+    clampedViewpoint = normalizeSavedViewpoint({
+      centerCol: -100,
+      centerRow: 999,
+      zoom: 20,
+      rotation: -1,
+    });
+  `, context);
+  assert.equal(context.missingViewpoint, null);
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(context.clampedViewpoint)),
+    { centerCol: 0, centerRow: 2, zoom: 3, rotation: 3 },
+  );
+});
+
 test('save requests serialize an immutable snapshot before entering the queue', async () => {
   const context = createSaveVm();
   Object.assign(context, {
-    activeScene: {},
+    activeScene: {
+      cameras: {
+        main: { width: 40, height: 30, scrollX: 0, scrollY: 0, zoom: 1 },
+      },
+    },
+    worldToLogicalPoint: () => ({ x: 1.5, y: 1 }),
     city: { name: 'City A', population: 10, year: 1900, month: 1, budget: 5000 },
     currentSeed: 'seed',
     mapData: Array.from({ length: 3 }, () => Array(4).fill(1)),
@@ -109,6 +170,10 @@ test('save requests serialize an immutable snapshot before entering the queue', 
   assert.equal(await saving, true);
   assert.equal(bodies[0].city_name, 'City A');
   assert.equal(bodies[0].save_data.buildingData['1:1'].nested.value, 'A');
+  assert.deepEqual(
+    bodies[0].save_data.viewpoint,
+    { centerCol: 1.5, centerRow: 1, zoom: 1, rotation: 0 },
+  );
 });
 
 test('save session generations preserve a successful slot on failed load and reject stale responses', async () => {
@@ -229,7 +294,11 @@ test('visible application version is sourced from package metadata', () => {
   const packageJson = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   const translations = fs.readFileSync(path.join(ROOT, 'i18n.js'), 'utf8');
-  assert.match(html, new RegExp(`v${packageJson.version.replace(/\./g, '\\.')}<\\/title>`));
+  assert.match(
+    html,
+    new RegExp(`v${packageJson.version.replace(/\./g, '\\.')} — ${packageJson.releaseTheme}<\\/title>`),
+  );
+  assert.match(translations, new RegExp(`appReleaseTheme = '${packageJson.releaseTheme}'`));
   assert.doesNotMatch(translations, /(?:Version|版本|バージョン) 2\.0\.0/);
   assert.match(translations, /fetch\('\/api\/app-info'/);
 });
@@ -253,6 +322,12 @@ before(async () => {
 after(async () => {
   if (gameServer) await gameServer.close();
   if (tempDir) fs.rmSync(tempDir, { recursive: true, force: true });
+});
+
+test('routine population growth does not open repetitive toast notifications', () => {
+  const growth = fs.readFileSync(path.join(ROOT, 'sim-growth.js'), 'utf8');
+  assert.doesNotMatch(growth, /toast\.populationGain/);
+  assert.doesNotMatch(growth, /showToast\([^)]*populationGain/);
 });
 
 test('save API rejects malformed save_data and accepts a valid object', async () => {
@@ -279,7 +354,10 @@ test('app metadata and forum WebP assets are served by the desktop HTTP stack', 
   const packageJson = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
   const infoResponse = await fetch(`${gameServer.url}/api/app-info`);
   assert.equal(infoResponse.status, 200);
-  assert.deepEqual(await infoResponse.json(), { version: packageJson.version });
+  assert.deepEqual(await infoResponse.json(), {
+    version: packageJson.version,
+    releaseTheme: packageJson.releaseTheme,
+  });
 
   const imageResponse = await fetch(`${gameServer.url}/UI/news/rainstorm.webp`);
   assert.equal(imageResponse.status, 200);

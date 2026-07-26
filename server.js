@@ -14,7 +14,9 @@ const {
 
 const DEFAULT_PORT = process.env.PORT || 3000;
 const STATIC_ASSET_CACHE_MAX_AGE = '1h';
-const APP_VERSION = require('./package.json').version;
+const PACKAGE_INFO = require('./package.json');
+const APP_VERSION = PACKAGE_INFO.version;
+const APP_RELEASE_THEME = PACKAGE_INFO.releaseTheme || '';
 
 function createMemoryAiNewsCredentialStore() {
   let apiKey = String(process.env.OLLAMA_API_KEY || '').trim();
@@ -94,7 +96,7 @@ function createGameApp(options = {}) {
   // Keep renderer-visible version labels tied to the same package metadata used
   // by electron-builder for DMG/EXE names and native application metadata.
   app.get('/api/app-info', (_req, res) => {
-    res.json({ version: APP_VERSION });
+    res.json({ version: APP_VERSION, releaseTheme: APP_RELEASE_THEME });
   });
 
   app.get('/api/model-assets', (_req, res) => {

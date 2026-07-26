@@ -209,7 +209,8 @@ function growOrShrinkZones(scene) {
           // Per-tick science-park conversion — probability scales with higher
           // education level and science-development policy.
           const higherEdu = clamp(city.educationHigherIndex ?? 0, 0, 1);
-          const policyBonus = isPolicyActive('scienceDevelopment') ? 0.005 : 0;
+          const policyBonus = (isPolicyActive('scienceDevelopment') ? 0.005 : 0)
+            + (isPolicyActive('strongCountryManufacturing') ? 0.003 : 0);
           const tickChance = clamp(0.003 + 0.012 * higherEdu + policyBonus, 0, 0.025);
           if (Math.random() < tickChance) {
             tryConvertSingleIndustrialToSciencePark(scene, r, c, record);
@@ -1438,7 +1439,8 @@ function getRandomIndustrialBuildingModel(footprintCols = null, footprintRows = 
   }
 
   const higherEdu = clamp(city.educationHigherIndex ?? 0, 0, 1);
-  const sciencePolicyBonus = isPolicyActive('scienceDevelopment') ? 0.20 : 0;
+  const sciencePolicyBonus = (isPolicyActive('scienceDevelopment') ? 0.20 : 0)
+    + (isPolicyActive('strongCountryManufacturing') ? 0.15 : 0);
   const scienceChance = clamp(0.05 + 0.35 * higherEdu + sciencePolicyBonus, 0, 0.85);
   const chosenPool = Math.random() < scienceChance ? scienceModels : regularModels;
   const selected = pickVariedModel(chosenPool, `industrial:${footprintCols ?? 'any'}x${footprintRows ?? 'any'}:${chosenPool === scienceModels ? 'science' : 'regular'}`);

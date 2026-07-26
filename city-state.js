@@ -90,6 +90,8 @@ const city = {
     greenParks: false,
     educationReform: false,
     scienceDevelopment: false,
+    industrialBuildingRevitalization: false,
+    strongCountryManufacturing: false,
     smokingBan: false,
     schoolHealthProgram: false,
     tourismPromotion: false,
@@ -242,6 +244,8 @@ function resetGameState() {
     greenParks: false,
     educationReform: false,
     scienceDevelopment: false,
+    industrialBuildingRevitalization: false,
+    strongCountryManufacturing: false,
     smokingBan: false,
     schoolHealthProgram: false,
     tourismPromotion: false,
@@ -372,6 +376,7 @@ const _normalizedCityStateObjects = new WeakSet();
 const CITY_STATE_POLICY_IDS = Object.freeze([
   'cleanAir', 'roadRepair', 'publicSafety', 'smallBusiness', 'greenParks',
   'educationReform', 'scienceDevelopment', 'smokingBan', 'schoolHealthProgram',
+  'industrialBuildingRevitalization', 'strongCountryManufacturing',
   'tourismPromotion', 'foreignInvestmentIncentive', 'districtCouncilElection',
   'icac', 'legislativeCouncilElection', 'stockExchangeAct', 'elderlyTwoDollarFare',
   'arcticPenguinReserve', 'busSeatbeltMandate',
@@ -775,7 +780,8 @@ function computeBudgetSnapshot(options = {}) {
   const taxScale = city.taxRate / 0.09;
   const residentialTax = city.population * TAX_PER_RESIDENT * taxScale;
   const commercialTax = city.commercialCount * TAX_PER_COMMERCIAL * taxScale;
-  const industrialTax = city.industrialCount * TAX_PER_INDUSTRIAL * taxScale;
+  const industrialTax = city.industrialCount * TAX_PER_INDUSTRIAL * taxScale
+    * (isPolicyActive('industrialBuildingRevitalization') ? 1.10 : 1);
   const grossIncome = residentialTax + commercialTax + industrialTax;
   const policyTaxAdjustment = isPolicyActive('smallBusiness') ? -grossIncome * 0.02 : 0;
 
@@ -878,6 +884,18 @@ function getMissingCouncilBuildingRequirement(definition) {
   return getCouncilRequiredBuildingTypes(definition).find((type) => !hasBuildingType(type)) || '';
 }
 
+function getCouncilRequiredPolicyIds(definition) {
+  if (!definition) return [];
+  const ids = Array.isArray(definition.requiresPolicies)
+    ? definition.requiresPolicies
+    : definition.requiresPolicy ? [definition.requiresPolicy] : [];
+  return [...new Set(ids.filter(Boolean))];
+}
+
+function getMissingCouncilPolicyRequirement(definition) {
+  return getCouncilRequiredPolicyIds(definition).find((id) => !isPolicyActive(id)) || '';
+}
+
 // ── Special building (landmark) unlock gating ──────────────────────────────
 // Generic check against SPECIAL_BUILDING_UNLOCKS (constants.js), covering the
 // harbour, airport, football stadium and the specialSites landmarks. Mirrors
@@ -969,6 +987,7 @@ function isPolicyAvailable(id) {
   if (!hasBuildingType('legislative_council')) return false;
   if (policy.unlockPopulation && city.population < policy.unlockPopulation) return false;
   if (getMissingCouncilBuildingRequirement(policy)) return false;
+  if (getMissingCouncilPolicyRequirement(policy)) return false;
   return true;
 }
 
@@ -1133,6 +1152,8 @@ function getPolicyMonthlyCost() {
     if (policy.id === 'greenParks') cost += countPolicyParks() * 12;
     if (policy.id === 'educationReform') cost += countEducationBuildings() * 24;
     if (policy.id === 'scienceDevelopment') cost += city.industrialCount * 5;
+    if (policy.id === 'industrialBuildingRevitalization') cost += city.industrialCount * 3;
+    if (policy.id === 'strongCountryManufacturing') cost += city.industrialCount * 8;
     if (policy.id === 'smokingBan') cost += Math.ceil(city.population / 2500) * 8;
     if (policy.id === 'schoolHealthProgram') cost += countSchoolHealthProgramBuildings() * 18;
     if (policy.id === 'elderlyTwoDollarFare') cost += Math.ceil(city.population / 1000) * 9;

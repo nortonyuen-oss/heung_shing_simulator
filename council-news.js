@@ -20,7 +20,7 @@ function buildCouncilPolicyNewsEvent(policyId, action) {
   const characterIds = getCouncilNewsCharacterIds(policyId);
   const quoteSpeakerId = characterIds[0] || null;
   const advisorOpinion = quoteSpeakerId ? getCouncilPolicyAdvisorOpinion(policyId, quoteSpeakerId) : null;
-  const policyTitle = t(policy.titleKey);
+  const policyTitle = getCouncilPolicyDisplayTitle(policyId);
   const officialName = quoteSpeakerId ? getCouncilNewsOfficialDisplayName(quoteSpeakerId) : '';
 
   const facts = [t(`council.newsFact.${action === 'enact' ? 'enacted' : 'repealed'}`, { policy: policyTitle })];

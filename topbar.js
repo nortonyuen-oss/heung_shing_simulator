@@ -222,7 +222,9 @@ function populateNewsMenu() {
   if (typeof generateMonthlyForumPost === 'function' && !(city.forumPosts || []).length) {
     generateMonthlyForumPost();
   }
-  const posts = (city.forumPosts || []).slice(-4).reverse();
+  const posts = typeof getForumPostsByRecency === 'function'
+    ? getForumPostsByRecency('all', 4)
+    : (city.forumPosts || []).slice(-4).reverse();
   if (posts.length === 0) {
     dropdown.innerHTML = `<div class="menu-drop-empty">${t('menu.noNews')}</div>`;
     return;

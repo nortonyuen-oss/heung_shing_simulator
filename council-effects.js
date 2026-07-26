@@ -51,6 +51,67 @@ function pruneExpiredCouncilEffects() {
     .filter((effect) => Number(effect.endMonthIndex) >= monthIndex);
 }
 
+function handleCouncilPolicyLifecycle(policyId, motion, monthIndex = getCityMonthIndex()) {
+  normalizeCityFinanceState();
+  if (!Array.isArray(city.council.policyNewsSchedules)) city.council.policyNewsSchedules = [];
+
+  if (policyId === 'industrialBuildingRevitalization' && motion === 'enact') {
+    if (typeof announceIndustrialBuildingRevitalizationForum === 'function') {
+      announceIndustrialBuildingRevitalizationForum(monthIndex);
+    }
+  }
+
+  if (policyId !== 'strongCountryManufacturing') return;
+  if (motion === 'repeal') {
+    city.council.policyNewsSchedules.forEach((schedule) => {
+      if (schedule.policyId !== policyId || schedule.researchAnnounced) return;
+      schedule.researchCancelled = true;
+    });
+    return;
+  }
+
+  const enactedYear = Math.floor(Number(city.year) || 1900);
+  const seed = `strong-country:${enactedYear}:${monthIndex}:${city.tick}:${city.council.policyNewsSchedules.length}`;
+  const researchDelay = 1 + Math.floor(hashCouncilEffectSeed(seed) * 6);
+  city.council.policyNewsSchedules.push({
+    id: `strong-country-${monthIndex}-${city.tick}`,
+    policyId,
+    enactedYear,
+    enactedMonthIndex: monthIndex,
+    abuseDueMonthIndex: monthIndex + 6,
+    researchDueMonthIndex: monthIndex + 6 + researchDelay,
+    abuseAnnounced: false,
+    researchAnnounced: false,
+    researchCancelled: false,
+  });
+  city.council.policyNewsSchedules = city.council.policyNewsSchedules.slice(-12);
+}
+
+function announceDuePolicyForumNews(monthIndex) {
+  if (!Array.isArray(city.council.policyNewsSchedules)) return;
+  city.council.policyNewsSchedules.forEach((schedule) => {
+    if (schedule.policyId !== 'strongCountryManufacturing') return;
+    if (!schedule.abuseAnnounced && monthIndex >= Number(schedule.abuseDueMonthIndex)) {
+      schedule.abuseAnnounced = true;
+      city.budget -= 2000;
+      city.cityRidicule = councilEffectClamp(city.cityRidicule + 10, 0, 100);
+      if (typeof announceStrongCountryAbuseForum === 'function') {
+        announceStrongCountryAbuseForum(schedule);
+      }
+    }
+    if (
+      !schedule.researchAnnounced
+      && !schedule.researchCancelled
+      && monthIndex >= Number(schedule.researchDueMonthIndex)
+    ) {
+      schedule.researchAnnounced = true;
+      if (typeof announceStrongCountryResearchForum === 'function') {
+        announceStrongCountryResearchForum(schedule);
+      }
+    }
+  });
+}
+
 function updateCityAttractivenessMetrics() {
   const happiness = councilEffectClamp(city.happiness, 0, 1);
   const safety = 1 - councilEffectClamp(city.crimeRateIndex, 0, 1);
@@ -286,6 +347,13 @@ function updateCouncilTimedSystems() {
   }
   pruneExpiredCouncilEffects();
   announceDueResolutionNewspapers(monthIndex);
+  announceDuePolicyForumNews(monthIndex);
+  if (typeof maybeAnnounceSecondarySchoolLabExplosion === 'function') {
+    maybeAnnounceSecondarySchoolLabExplosion(monthIndex);
+  }
+  if (typeof maybeAnnounceAnnualCityFortune === 'function') {
+    maybeAnnounceAnnualCityFortune(monthIndex);
+  }
   if (typeof generateMonthlyForumPost === 'function') generateMonthlyForumPost(monthIndex);
 
   city.council.activePrograms.forEach((program) => {

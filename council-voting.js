@@ -17,6 +17,12 @@ function getCouncilItemTitleKey(itemType, itemId) {
   return definition?.titleKey || '';
 }
 
+function getCouncilItemDisplayTitle(itemType, itemId) {
+  return itemType === 'policy'
+    ? getCouncilPolicyDisplayTitle(itemId)
+    : t(getCouncilItemTitleKey(itemType, itemId));
+}
+
 function getCouncilMotionCost(itemType, itemId, motion) {
   if (itemType === 'resolution') return getCouncilResolutionUpfrontCost(itemId);
   const cost = getCouncilPolicyEstimatedMonthlyCost(itemId);
@@ -70,6 +76,10 @@ function getCouncilMotionAvailability(itemType, itemId, motion) {
   if (!definition) return { available: false, reason: 'unknown' };
   const missingBuilding = getCouncilMotionMissingBuilding(definition);
   if (missingBuilding) return { available: false, reason: 'needsBuilding', requires: missingBuilding };
+  const missingPolicy = typeof getMissingCouncilPolicyRequirement === 'function'
+    ? getMissingCouncilPolicyRequirement(definition)
+    : '';
+  if (missingPolicy && motion === 'enact') return { available: false, reason: 'needsPolicy', requires: missingPolicy };
   if (definition.unlockPopulation && city.population < definition.unlockPopulation) return { available: false, reason: 'population' };
   const isActive = isPolicyActive(itemId);
   if (motion === 'repeal' && !isActive) return { available: false, reason: 'notActive' };
@@ -257,7 +267,13 @@ function decideCouncilSession(approve) {
       ...city.council.policyStates[session.itemId],
       status: city.activePolicies[session.itemId] ? 'active' : 'inactive',
       lastChangedTick: city.tick,
+      enactedYear: session.motion === 'enact'
+        ? Math.floor(Number(city.year) || 1900)
+        : city.council.policyStates[session.itemId]?.enactedYear,
     };
+    if (typeof handleCouncilPolicyLifecycle === 'function') {
+      handleCouncilPolicyLifecycle(session.itemId, session.motion, monthIndex);
+    }
     if (typeof announceCouncilPolicyNews === 'function') announceCouncilPolicyNews(session.itemId, session.motion);
   } else {
     const definition = getCouncilResolutionDefinition(session.itemId);

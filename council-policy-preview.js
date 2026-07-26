@@ -6,6 +6,8 @@ const COUNCIL_POLICY_METADATA = Object.freeze({
   greenParks: { issues: { parks_culture: 2, environment: 1 }, leadOfficialIds: ['culture_head', 'treasury_head'] },
   educationReform: { issues: { education: 2, business: 0.5 }, leadOfficialIds: ['chief_executive', 'treasury_head'] },
   scienceDevelopment: { issues: { science: 2, education: 1, business: 1 }, leadOfficialIds: ['chief_executive', 'treasury_head'] },
+  industrialBuildingRevitalization: { issues: { business: 2, roads: -1, environment: 0.75 }, tags: ['deregulation', 'industrial_growth'], leadOfficialIds: ['treasury_head', 'chief_executive'] },
+  strongCountryManufacturing: { issues: { science: 2, education: 1, business: 1, finance: -0.75 }, tags: ['subsidy', 'industrial_growth', 'innovation'], leadOfficialIds: ['chief_executive', 'treasury_head'] },
   smokingBan: { issues: { health: 2, governance: 1, business: -0.25 }, tags: ['healthcare', 'regulation', 'smoking_restriction'], leadOfficialIds: ['chief_executive', 'police_head'] },
   schoolHealthProgram: { issues: { health: 1.5, education: 1.5 }, leadOfficialIds: ['chief_executive', 'treasury_head'] },
   tourismPromotion: { issues: { tourism: 2, parks_culture: 0.5, business: 1 }, leadOfficialIds: ['culture_head', 'treasury_head'] },
@@ -27,6 +29,22 @@ function getCouncilPolicyDefinition(policyId) {
   return CITY_POLICY_DEFS.find((policy) => policy.id === policyId) ?? null;
 }
 
+function getCouncilPolicyDisplayYear(policyId) {
+  const enactedYear = Number(city.council?.policyStates?.[policyId]?.enactedYear);
+  const active = typeof isPolicyActive === 'function'
+    ? isPolicyActive(policyId)
+    : city.activePolicies?.[policyId] === true;
+  return active && Number.isFinite(enactedYear) && enactedYear > 0
+    ? Math.floor(enactedYear)
+    : Math.floor(Number(city.year) || 1900);
+}
+
+function getCouncilPolicyDisplayTitle(policyId) {
+  const policy = getCouncilPolicyDefinition(policyId);
+  if (!policy) return policyId;
+  return t(policy.titleKey, { year: getCouncilPolicyDisplayYear(policyId) });
+}
+
 function getCouncilPolicyEstimatedMonthlyCost(policyId) {
   const policy = getCouncilPolicyDefinition(policyId);
   if (!policy) return 0;
@@ -36,6 +54,8 @@ function getCouncilPolicyEstimatedMonthlyCost(policyId) {
   if (policyId === 'greenParks') cost += countPolicyParks() * 12;
   if (policyId === 'educationReform') cost += countEducationBuildings() * 24;
   if (policyId === 'scienceDevelopment') cost += city.industrialCount * 5;
+  if (policyId === 'industrialBuildingRevitalization') cost += city.industrialCount * 3;
+  if (policyId === 'strongCountryManufacturing') cost += city.industrialCount * 8;
   if (policyId === 'smokingBan') cost += Math.ceil(city.population / 2500) * 8;
   if (policyId === 'schoolHealthProgram') cost += countSchoolHealthProgramBuildings() * 18;
   if (policyId === 'elderlyTwoDollarFare') cost += Math.ceil(city.population / 1000) * 9;
@@ -124,7 +144,7 @@ function getCouncilPolicyAdvisorOpinion(policyId, officialId) {
     officialId,
     stance,
     messageKey: `council.advice.${officialId}.${stance}`,
-    params: { cost: councilMoney(cost), policy: t(`policy.${policyId}.title`) },
+    params: { cost: councilMoney(cost), policy: getCouncilPolicyDisplayTitle(policyId) },
   };
 }
 

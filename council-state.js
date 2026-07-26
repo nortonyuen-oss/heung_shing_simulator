@@ -25,6 +25,7 @@ function createDefaultCouncilPolicyStates(activePolicies = {}) {
     status: activePolicies[policy.id] ? 'active' : 'inactive',
     lastChangedTick: -1,
     cooldownUntilMonthIndex: -1,
+    enactedYear: -1,
   }]));
 }
 
@@ -47,6 +48,15 @@ function createDefaultCouncilState(activePolicies = {}) {
     }])),
     activePrograms: [],
     resolutionHistory: [],
+    policyNewsSchedules: [],
+    forumEventState: {
+      labExplosionLastMonthIndex: -1,
+    },
+    annualFortuneState: {
+      lastDrawYear: -1,
+      recentFortuneIds: [],
+      history: [],
+    },
     lastTimedMonthIndex: -1,
     recentCommentKeys: [],
     lastCommentTickByContext: {},
@@ -95,6 +105,7 @@ function normalizeCouncilState(rawCouncil, activePolicies = {}) {
       status,
       lastChangedTick: Math.floor(clampCouncilNumber(saved?.lastChangedTick, -1, Number.MAX_SAFE_INTEGER, -1)),
       cooldownUntilMonthIndex: Math.floor(clampCouncilNumber(saved?.cooldownUntilMonthIndex, -1, Number.MAX_SAFE_INTEGER, -1)),
+      enactedYear: Math.floor(clampCouncilNumber(saved?.enactedYear, -1, 9999, -1)),
     };
   });
 
@@ -126,6 +137,58 @@ function normalizeCouncilState(rawCouncil, activePolicies = {}) {
     });
   }
 
+  const policyNewsSchedules = (Array.isArray(raw.policyNewsSchedules) ? raw.policyNewsSchedules : [])
+    .filter((schedule) => schedule && typeof schedule === 'object' && schedule.policyId === 'strongCountryManufacturing')
+    .slice(-12)
+    .map((schedule, index) => ({
+      id: cleanShortText(schedule.id || `strong-country-loaded-${index}`, 100),
+      policyId: 'strongCountryManufacturing',
+      enactedYear: Math.floor(clampCouncilNumber(schedule.enactedYear, 1900, 9999, 1900)),
+      enactedMonthIndex: Math.floor(clampCouncilNumber(schedule.enactedMonthIndex, 0, Number.MAX_SAFE_INTEGER, 0)),
+      abuseDueMonthIndex: Math.floor(clampCouncilNumber(schedule.abuseDueMonthIndex, 0, Number.MAX_SAFE_INTEGER, 0)),
+      researchDueMonthIndex: Math.floor(clampCouncilNumber(schedule.researchDueMonthIndex, 0, Number.MAX_SAFE_INTEGER, 0)),
+      abuseAnnounced: !!schedule.abuseAnnounced,
+      researchAnnounced: !!schedule.researchAnnounced,
+      researchCancelled: !!schedule.researchCancelled,
+    }));
+  const forumEventState = {
+    labExplosionLastMonthIndex: Math.floor(clampCouncilNumber(
+      raw.forumEventState?.labExplosionLastMonthIndex,
+      -1,
+      Number.MAX_SAFE_INTEGER,
+      -1,
+    )),
+  };
+  const fortuneIdPattern = /^heung-shing-\d{2}$/;
+  const annualFortuneState = {
+    lastDrawYear: Math.floor(clampCouncilNumber(
+      raw.annualFortuneState?.lastDrawYear,
+      -1,
+      9999,
+      -1,
+    )),
+    recentFortuneIds: (Array.isArray(raw.annualFortuneState?.recentFortuneIds)
+      ? raw.annualFortuneState.recentFortuneIds
+      : [])
+      .map((id) => cleanShortText(id, 40))
+      .filter((id) => fortuneIdPattern.test(id))
+      .slice(-3),
+    history: (Array.isArray(raw.annualFortuneState?.history)
+      ? raw.annualFortuneState.history
+      : [])
+      .filter((record) => record && fortuneIdPattern.test(String(record.fortuneId || '')))
+      .slice(-10)
+      .map((record) => ({
+        year: Math.floor(clampCouncilNumber(record.year, 0, 9999, 0)),
+        fortuneId: cleanShortText(record.fortuneId, 40),
+        grade: ['upper', 'middle', 'lower'].includes(record.grade) ? record.grade : 'middle',
+        economyIndex: clampCouncilNumber(record.economyIndex, 0, 100, 50),
+        stockCrashActive: !!record.stockCrashActive,
+        epidemicSeverity: clampCouncilNumber(record.epidemicSeverity, 0, 1, 0),
+        postId: cleanShortText(record.postId, 80),
+      })),
+  };
+
   return {
     schemaVersion: COUNCIL_SCHEMA_VERSION,
     customNames,
@@ -142,6 +205,9 @@ function normalizeCouncilState(rawCouncil, activePolicies = {}) {
     resolutionHistory: (Array.isArray(raw.resolutionHistory) ? raw.resolutionHistory : [])
       .filter((record) => record && typeof record === 'object' && COUNCIL_RESOLUTION_IDS.includes(record.resolutionId))
       .slice(-50),
+    policyNewsSchedules,
+    forumEventState,
+    annualFortuneState,
     lastTimedMonthIndex: Math.floor(clampCouncilNumber(raw.lastTimedMonthIndex, -1, Number.MAX_SAFE_INTEGER, -1)),
     recentCommentKeys,
     lastCommentTickByContext,

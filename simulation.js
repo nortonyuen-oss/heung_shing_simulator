@@ -87,6 +87,9 @@ function updateEducationLevels() {
     if (isPolicyActive('scienceDevelopment')) {
       localHigher = clamp(localHigher + SCIENCE_DEVELOPMENT_HIGHER_BONUS, 0, 1);
     }
+    if (isPolicyActive('strongCountryManufacturing')) {
+      localHigher = clamp(localHigher + STRONG_COUNTRY_HIGHER_EDU_BONUS, 0, 1);
+    }
 
     weightedBasicSum += localBasic * pop;
     weightedHigherSum += localHigher * pop;
@@ -121,7 +124,13 @@ function getAverageEducationForBuilding(record, row, col) {
   if (record.type === 'residential') {
     const cell = serviceMap[row]?.[col] ?? null;
     const localBasic = clamp((cell?.eduBasic ?? 0) * (isPolicyActive('educationReform') ? EDUCATION_POLICY_REFORM_MUL : 1), 0, 1);
-    const localHigher = clamp((cell?.eduHigher ?? 0) + (isPolicyActive('scienceDevelopment') ? SCIENCE_DEVELOPMENT_HIGHER_BONUS : 0), 0, 1);
+    const localHigher = clamp(
+      (cell?.eduHigher ?? 0)
+      + (isPolicyActive('scienceDevelopment') ? SCIENCE_DEVELOPMENT_HIGHER_BONUS : 0)
+      + (isPolicyActive('strongCountryManufacturing') ? STRONG_COUNTRY_HIGHER_EDU_BONUS : 0),
+      0,
+      1,
+    );
     return clamp(0.20 + localBasic * 0.55 + localHigher * 0.25, 0, 1);
   }
 
@@ -300,21 +309,23 @@ function getHealthPollutionSources() {
     const separator = id.indexOf(':');
     const sourceRow = Number(id.slice(0, separator));
     const sourceCol = Number(id.slice(separator + 1));
-    sources.push({ row: sourceRow, col: sourceCol, radius, strength });
+    sources.push({ row: sourceRow, col: sourceCol, radius, strength, industrial: record.type === 'industrial' });
   });
   return sources;
 }
 
 function getLocalHealthPollutionPressure(row, col, pollutionSources = null) {
   let pressure = 0;
-  const pollutionMul = (isPolicyActive('cleanAir') ? 0.70 : 1) * (isPolicyActive('smokingBan') ? 0.92 : 1);
+  const pollutionMul = (isPolicyActive('cleanAir') ? 0.70 : 1)
+    * (isPolicyActive('smokingBan') ? 0.92 : 1);
 
   const sources = pollutionSources ?? getHealthPollutionSources();
   sources.forEach((source) => {
     const dist = Math.hypot(row - source.row, col - source.col);
     const { radius, strength } = source;
     if (dist > radius) return;
-    pressure += strength * pollutionMul * (1 - dist / Math.max(1, radius));
+    const sourceMultiplier = source.industrial && isPolicyActive('industrialBuildingRevitalization') ? 0.70 : 1;
+    pressure += strength * pollutionMul * sourceMultiplier * (1 - dist / Math.max(1, radius));
   });
 
   if (typeof getTreeInfluenceValue === 'function') {
@@ -462,7 +473,9 @@ function updateDemand() {
     + 0.18 * basicEdu
     - pollutionPenalty
     - (isPolicyActive('cleanAir') ? 0.05 : 0)
-    + (isPolicyActive('scienceDevelopment') ? 0.05 : 0),
+    + (isPolicyActive('scienceDevelopment') ? 0.05 : 0)
+    + (isPolicyActive('industrialBuildingRevitalization') ? 0.12 : 0)
+    + (isPolicyActive('strongCountryManufacturing') ? 0.10 : 0),
     -1, 1
   );
 }
@@ -490,7 +503,9 @@ function updatePopulationAndPollution() {
       const isSciencePark = isScienceParkIndustrialRecord(rec);
       if (isSciencePark) industrialScienceCount++;
       const baseIndustrialPollution = isSciencePark ? POLLUTION_SCIENCE_PARK_BUILDING : POLLUTION_IND_BUILDING;
-      city.pollution += baseIndustrialPollution * (isPolicyActive('cleanAir') ? 0.70 : 1);
+      const cleanAirMultiplier = isPolicyActive('cleanAir') ? 0.70 : 1;
+      const revitalizationMultiplier = isPolicyActive('industrialBuildingRevitalization') ? 0.70 : 1;
+      city.pollution += baseIndustrialPollution * cleanAirMultiplier * revitalizationMultiplier;
     } else if (rec.type === 'power_plant_coal') {
       city.pollution += POLLUTION_COAL_PLANT * (isPolicyActive('cleanAir') ? 0.70 : 1);
     } else if (rec.type === 'power_plant_solar') {

@@ -89,7 +89,8 @@ function convertEligibleIndustrialToScienceParks(scene) {
   if (!scene || !city.scienceParkUnlocked) return 0;
 
   const higherEdu = clamp(city.educationHigherIndex ?? 0, 0, 1);
-  const policyBonus = isPolicyActive('scienceDevelopment') ? 0.10 : 0;
+  const policyBonus = (isPolicyActive('scienceDevelopment') ? 0.10 : 0)
+    + (isPolicyActive('strongCountryManufacturing') ? 0.08 : 0);
   const conversionChance = clamp(
     SCIENCE_PARK_CONVERSION_CHANCE_BASE + SCIENCE_PARK_CONVERSION_CHANCE_EDU_BONUS * higherEdu + policyBonus,
     0,
@@ -422,7 +423,11 @@ function updateTrafficMap() {
     const startC = Number(id.slice(separator + 1));
     const density = record.density ?? zoneDensityMap[startR]?.[startC] ?? DENSITY_LOW;
     const level   = Math.max(1, Math.min(3, density));
-    const demand  = (TRAFFIC_DEMAND_WEIGHTS[zoneType]?.[level] ?? 1);
+    const industrialRevitalizationMultiplier = (
+      zoneType === 'industrial' && isPolicyActive('industrialBuildingRevitalization')
+    ) ? 1.65 : 1;
+    const demand = (TRAFFIC_DEMAND_WEIGHTS[zoneType]?.[level] ?? 1)
+      * industrialRevitalizationMultiplier;
 
     // The route geometry changes only when the road/bridge network changes.
     // Reuse it across ticks while applying the current building demand each time.

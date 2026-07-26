@@ -277,6 +277,27 @@ function addForumPost(article, metadata = {}) {
   return post;
 }
 
+function getForumPostsByRecency(filter = 'all', limit = 15) {
+  const maximum = Math.max(1, Math.floor(Number(limit) || 15));
+  return (Array.isArray(city.forumPosts) ? city.forumPosts : [])
+    .map((post, index) => {
+      const resolutionMonthIndex = Number(post?.resolutionMonthIndex);
+      const calendarMonthIndex = Math.floor(Number(post?.year) || 0) * 12
+        + Math.max(0, Math.floor(Number(post?.month) || 1) - 1);
+      return {
+        post,
+        index,
+        monthIndex: Number.isFinite(resolutionMonthIndex) && resolutionMonthIndex >= 0
+          ? resolutionMonthIndex
+          : calendarMonthIndex,
+      };
+    })
+    .filter((entry) => filter === 'all' || entry.post?.category === filter)
+    .sort((left, right) => right.monthIndex - left.monthIndex || right.index - left.index)
+    .slice(0, maximum)
+    .map((entry) => entry.post);
+}
+
 async function requestForumAiComments(post) {
   if (!post || post.aiCommentsStatus === 'complete' || forumAiCommentAttempts.has(post.id)) return false;
   if (typeof aiNewsRuntime === 'undefined' || !aiNewsRuntime.initialized
@@ -719,13 +740,16 @@ function renderForumHistory(filter = 'all') {
   const list = document.getElementById('forum-history-list');
   const empty = document.getElementById('forum-history-empty');
   if (!list || !empty) return;
-  const allPosts = (city.forumPosts || []).slice().reverse();
+  const allPosts = getForumPostsByRecency('all', Number.MAX_SAFE_INTEGER);
   const openPostIds = new Set([...list.querySelectorAll('.forum-thread[open][data-post-id]')].map((thread) => thread.dataset.postId));
-  const posts = filter === 'all' ? allPosts : allPosts.filter((post) => post.category === filter);
+  const posts = getForumPostsByRecency(filter, 15);
   const nav = document.getElementById('forum-history-nav');
   nav?.querySelectorAll('[data-forum-filter]').forEach((button) => {
     const buttonFilter = button.dataset.forumFilter;
-    const count = buttonFilter === 'all' ? allPosts.length : allPosts.filter((post) => post.category === buttonFilter).length;
+    const availableCount = buttonFilter === 'all'
+      ? allPosts.length
+      : allPosts.filter((post) => post.category === buttonFilter).length;
+    const count = Math.min(15, availableCount);
     button.classList.toggle('is-active', buttonFilter === filter);
     button.setAttribute('aria-pressed', String(buttonFilter === filter));
     let countNode = button.querySelector('.forum-filter-count');
@@ -804,6 +828,322 @@ function announceCouncilBuiltNewspaper() {
 function announceStockExchangeBuiltNewspaper() {
   const hsi = Math.round(Number(city.stockMarket?.hsi ?? HSI_BASE_LEVEL));
   showNewspaperExtra('stock_exchange_built', { hsi: hsi.toLocaleString() });
+}
+
+function getIndustrialPolicyForumLocale() {
+  const language = typeof getCurrentLanguage === 'function' ? getCurrentLanguage() : 'zhHant';
+  return {
+    language,
+    category: language === 'en' ? 'City Development' : language === 'ja' ? '都市開発' : '城市發展',
+    educationCategory: language === 'en' ? 'Education' : language === 'ja' ? '教育板' : '城中熱話',
+    author: language === 'en' ? 'Heung Shing City Desk' : language === 'ja' ? '香城都市デスク' : '香城熱話台',
+  };
+}
+
+function announceIndustrialBuildingRevitalizationForum(monthIndex = getCityMonthIndex()) {
+  const locale = getIndustrialPolicyForumLocale();
+  const copy = locale.language === 'en'
+    ? {
+      headline: 'Industrial revitalization turns factories into party rooms and war-game arenas as commuters rename the district “Mother”',
+      body: 'Relaxed operating rules have brought private kitchens, party rooms and war-game venues into industrial buildings. Business is booming, but nearby roads are gridlocked.',
+      comment: 'The factory has three party rooms and the road has one permanent traffic jam.',
+    }
+    : locale.language === 'ja'
+      ? {
+        headline: '工業ビル活性化でパーティールームとサバゲー場が急増　大渋滞に市民激怒',
+        body: '用途規制の緩和により私房菜、パーティールーム、サバゲー施設が相次いで開業したが、周辺道路では深刻な渋滞が発生している。',
+        comment: 'ビルは活性化したが、道路は完全に停止した。',
+      }
+      : {
+        headline: '活化工廈政策 工廈變Party Room War Game場 市民塞車塞到媽媽聲 改稱工業區為「老母」',
+        body: '政府放寬工廈營運限制後，Party Room、War Game 場及私房菜紛紛進駐。工業區生意暢旺，但附近道路由朝塞到晚。',
+        comment: '工廈就活化咗，條路就石化咗。',
+      };
+  const article = {
+    headline: copy.headline,
+    image: 'UI/news/revokeIndustrialBuildings.webp',
+    body: [copy.body],
+    source: 'local',
+    social: {
+      likes: 2600, laughs: 4100, angry: 2900, commentCount: 3300, shares: 1800,
+      comments: [{ author: '工業區返工苦主', text: copy.comment }],
+    },
+  };
+  if (typeof addCityNews === 'function') addCityNews(copy.headline);
+  const post = addForumPost(article, {
+    id: `industrial-revitalization-${monthIndex}-${city.tick}`,
+    category: locale.category,
+    author: locale.author,
+    outcome: 'policy_enacted',
+  });
+  if (typeof showResolutionNewspaper === 'function') showResolutionNewspaper(article, post?.id || '');
+  return post;
+}
+
+function announceStrongCountryAbuseForum(schedule) {
+  const locale = getIndustrialPolicyForumLocale();
+  const year = Math.floor(Number(schedule?.enactedYear) || Number(city.year) || 1900);
+  const copy = locale.language === 'en'
+    ? {
+      headline: `Heung Shing launches Strong Nation Manufacturing ${year}; “Star Child” Chow Sing-sing wins $2 million for a solar-powered torch`,
+      body: 'The Innovation Bureau says the subsidy backs local talent, while forum users question whether the public-funding scaffold has grown larger than the invention.',
+      comment: 'A solar torch works best when the sun is already bright enough to see without it.',
+    }
+    : locale.language === 'ja'
+      ? {
+        headline: `香城が「強国製造${year}」を開始　太陽光懐中電灯に200万補助、ネットは公金乱用を疑問視`,
+        body: '創科当局は地元人材支援だと説明したが、掲示板では発明より助成金の仕組みの方が大きいとの批判が相次いだ。',
+        comment: '太陽が出ている時だけ点く懐中電灯なら、懐中電灯は必要なのか。',
+      }
+      : {
+        headline: `香城推出強國製造${year} 星之子周星星發明太陽能電筒 獲創科局二百萬補助 網民質疑雞棚搭太大`,
+        body: '創科局表示計劃旨在支持本地新創科技人才，但網民質疑太陽能電筒只在有太陽時先有電，公帑資助規模遠超發明本身。',
+        comment: '有太陽嗰陣使乜開電筒？冇太陽嗰陣又充唔到電。',
+      };
+  const article = {
+    headline: copy.headline,
+    image: 'UI/news/strongCountry20XX.webp',
+    body: [copy.body],
+    source: 'local',
+    social: {
+      likes: 1900, laughs: 5200, angry: 4300, commentCount: 4600, shares: 2700,
+      comments: [{ author: '公帑關注組', text: copy.comment }],
+    },
+  };
+  if (typeof addCityNews === 'function') addCityNews(copy.headline);
+  const post = addForumPost(article, {
+    id: `${schedule.id}-abuse`,
+    category: locale.category,
+    author: locale.author,
+    outcome: 'subsidy_abuse',
+  });
+  if (typeof showResolutionNewspaper === 'function') showResolutionNewspaper(article, post?.id || '');
+  return post;
+}
+
+function announceStrongCountryResearchForum(schedule) {
+  const locale = getIndustrialPolicyForumLocale();
+  const copy = locale.language === 'en'
+    ? {
+      headline: 'Research investment pays off as Heung Shing scientist Man Sai wins Geneva gold with the “Take Your Life 3000”',
+      body: 'The multi-purpose invention impressed judges with an improbable collection of tools, giving the city’s research programme a rare international success.',
+      comment: 'The user manual is probably more dangerous than the weapon.',
+    }
+    : locale.language === 'ja'
+      ? {
+        headline: '研究投資が成果　香城の科学者・聞西が「命取り3000」でジュネーブ発明金賞',
+        body: '多数の機能を一体化した究極発明が審査員を驚かせ、香城の研究開発計画に国際的な成果をもたらした。',
+        comment: '武器より取扱説明書の方が危険そうだ。',
+      }
+      : {
+        headline: '科研投資有回報 香城科學家聞西研發出「攞你命3000」終極武器 勇奪日奈瓦發明金獎',
+        body: '聞西把多種看似毫無關係的工具合而為一，評審讚揚作品極具想像力，為香城科研界取得罕見國際殊榮。',
+        comment: '最強功能應該係令評審唔敢唔畀獎。',
+      };
+  const article = {
+    headline: copy.headline,
+    image: 'UI/news/researchAndDevelopment.webp',
+    body: [copy.body],
+    source: 'local',
+    social: {
+      likes: 6100, laughs: 3500, angry: 300, commentCount: 2800, shares: 3900,
+      comments: [{ author: '香城科研迷', text: copy.comment }],
+    },
+  };
+  if (typeof addCityNews === 'function') addCityNews(copy.headline);
+  const post = addForumPost(article, {
+    id: `${schedule.id}-research`,
+    category: locale.category,
+    author: locale.author,
+    outcome: 'research_success',
+  });
+  if (typeof showResolutionNewspaper === 'function') showResolutionNewspaper(article, post?.id || '');
+  return post;
+}
+
+function maybeAnnounceSecondarySchoolLabExplosion(monthIndex = getCityMonthIndex()) {
+  normalizeCityFinanceState();
+  if (!hasBuildingType('secondary_school')) return null;
+  if (!city.council.forumEventState || typeof city.council.forumEventState !== 'object') {
+    city.council.forumEventState = { labExplosionLastMonthIndex: -1 };
+  }
+  const lastMonth = Number(city.council.forumEventState.labExplosionLastMonthIndex);
+  if (Number.isFinite(lastMonth) && lastMonth >= 0 && monthIndex - lastMonth < 12) return null;
+  const roll = typeof hashCouncilEffectSeed === 'function'
+    ? hashCouncilEffectSeed(`lab-explosion:${city.name}:${monthIndex}`)
+    : Math.random();
+  if (roll >= 0.08) return null;
+  city.council.forumEventState.labExplosionLastMonthIndex = monthIndex;
+
+  const locale = getIndustrialPolicyForumLocale();
+  const copy = locale.language === 'en'
+    ? {
+      headline: 'Laboratory explosion at Hang Tan Secondary School',
+      body: 'Teachers evacuated students after a loud blast in the school laboratory. The school says everyone is safe and the cause is under investigation.',
+      comment: 'The experiment report now includes a new section called “ceiling damage”.',
+    }
+    : locale.language === 'ja'
+      ? {
+        headline: '杏壇中学校の実験室で爆発',
+        body: '実験室で大きな爆発音があり、教職員が生徒を避難させた。学校は全員の安全を確認し、原因を調査している。',
+        comment: '実験レポートに「天井の損傷」という新しい項目が増えた。',
+      }
+      : {
+        headline: '杏壇中學實驗室爆炸',
+        body: '校內實驗室突然傳出巨響，師生隨即疏散。校方表示所有人安全，正調查事故原因及實驗程序。',
+        comment: '今次份實驗報告要唔要附埋天花維修報價？',
+      };
+  if (typeof addCityNews === 'function') addCityNews(copy.headline);
+  return addForumPost({
+    headline: copy.headline,
+    image: 'UI/news/labExplosion.webp',
+    body: [copy.body],
+    source: 'local',
+    social: {
+      likes: 700, laughs: 1600, angry: 900, commentCount: 2100, shares: 1200,
+      comments: [{ author: '杏壇學生家長', text: copy.comment }],
+    },
+  }, {
+    id: `lab-explosion-${monthIndex}`,
+    category: locale.educationCategory,
+    author: locale.author,
+    outcome: 'school_incident',
+  });
+}
+
+function getAnnualFortuneWeights(snapshot = {}) {
+  const clampValue = (value, min, max) => Math.max(min, Math.min(max, Number(value) || 0));
+  const economyIndex = clampValue(snapshot.economyIndex ?? 50, 0, 100);
+  const economyStress = clampValue((50 - economyIndex) / 50, -0.60, 0.80);
+  const stockCrashStress = snapshot.stockCrashActive ? 0.55 : 0;
+  const epidemicStress = clampValue(clampValue(snapshot.epidemicSeverity, 0, 1) * 0.65, 0, 0.65);
+  const totalStress = clampValue(economyStress + stockCrashStress + epidemicStress, -0.60, 1.40);
+  const upper = clampValue(0.36 - 0.07 * totalStress, 0.25, 0.42);
+  const lower = clampValue(0.18 + 0.08 * totalStress, 0.10, 0.30);
+  return { upper, middle: 1 - upper - lower, lower, totalStress };
+}
+
+function selectAnnualFortune(weights, gradeRoll, fortuneRoll, recentFortuneIds = []) {
+  const fortunes = Array.isArray(ANNUAL_FORTUNE_DATABASE?.fortunes)
+    ? ANNUAL_FORTUNE_DATABASE.fortunes
+    : [];
+  if (!fortunes.length) return null;
+  const roll = Math.max(0, Math.min(0.999999999, Number(gradeRoll) || 0));
+  const grade = roll < weights.upper
+    ? 'upper'
+    : roll < weights.upper + weights.middle ? 'middle' : 'lower';
+  const recentIds = new Set(Array.isArray(recentFortuneIds) ? recentFortuneIds : []);
+  const gradeFortunes = fortunes.filter((fortune) => fortune.grade === grade);
+  const candidates = gradeFortunes.filter((fortune) => !recentIds.has(fortune.id));
+  const pool = candidates.length ? candidates : gradeFortunes;
+  if (!pool.length) return null;
+  const candidateRoll = Math.max(0, Math.min(0.999999999, Number(fortuneRoll) || 0));
+  return pool[Math.floor(candidateRoll * pool.length)];
+}
+
+function getAnnualFortuneOfficialName(officialId, fallback) {
+  const definition = typeof getCouncilOfficialDefinition === 'function'
+    ? getCouncilOfficialDefinition(officialId)
+    : null;
+  if (!definition) return fallback;
+  if (typeof getCouncilOfficialDisplayName === 'function') return getCouncilOfficialDisplayName(definition);
+  return city.council?.customNames?.[officialId] || (typeof t === 'function' ? t(definition.nameKey) : fallback);
+}
+
+function maybeAnnounceAnnualCityFortune(monthIndex = getCityMonthIndex()) {
+  normalizeCityFinanceState();
+  if (Number(city.month) !== 1) return null;
+  if (!hasBuildingType('heritage_temple') && !hasBuildingType('grand_temple')) return null;
+  if (!city.council.annualFortuneState || typeof city.council.annualFortuneState !== 'object') {
+    city.council.annualFortuneState = { lastDrawYear: -1, recentFortuneIds: [], history: [] };
+  }
+  const state = city.council.annualFortuneState;
+  const year = Math.floor(Number(city.year) || 0);
+  if (Number(state.lastDrawYear) === year) return null;
+
+  const snapshot = {
+    economyIndex: typeof getCityEconomyIndex === 'function' ? getCityEconomyIndex() : 50,
+    stockCrashActive: !!city.stockMarket?.crash?.active,
+    epidemicSeverity: Math.max(0, Math.min(1, Number(city.epidemicSeverity) || 0)),
+  };
+  const weights = getAnnualFortuneWeights(snapshot);
+  const seedPrefix = `annual-fortune:${city.name || 'heung-shing'}:${year}`;
+  const gradeRoll = typeof hashCouncilEffectSeed === 'function'
+    ? hashCouncilEffectSeed(`${seedPrefix}:grade`)
+    : Math.random();
+  const fortuneRoll = typeof hashCouncilEffectSeed === 'function'
+    ? hashCouncilEffectSeed(`${seedPrefix}:fortune`)
+    : Math.random();
+  const fortune = selectAnnualFortune(weights, gradeRoll, fortuneRoll, state.recentFortuneIds);
+  if (!fortune) return null;
+
+  const postId = `annual-fortune-${year}`;
+  state.lastDrawYear = year;
+  state.recentFortuneIds = [...(Array.isArray(state.recentFortuneIds) ? state.recentFortuneIds : []), fortune.id].slice(-3);
+  state.history = [...(Array.isArray(state.history) ? state.history : []), {
+    year,
+    fortuneId: fortune.id,
+    grade: fortune.grade,
+    economyIndex: snapshot.economyIndex,
+    stockCrashActive: snapshot.stockCrashActive,
+    epidemicSeverity: snapshot.epidemicSeverity,
+    postId,
+  }].slice(-10);
+
+  const cultureName = getAnnualFortuneOfficialName('culture_head', '康文署署長');
+  const governmentName = getAnnualFortuneOfficialName(
+    fortune.governmentInterpretation?.officialId,
+    fortune.governmentInterpretation?.officialNameZh || '政府官員',
+  );
+  const originalGovernmentName = fortune.governmentInterpretation?.officialNameZh || '';
+  const governmentText = originalGovernmentName
+    ? String(fortune.governmentInterpretation?.textZh || '').split(originalGovernmentName).join(governmentName)
+    : String(fortune.governmentInterpretation?.textZh || '');
+  const poemText = (fortune.poem || []).join('；');
+  const imageByGrade = {
+    upper: 'UI/news/lunarYearGoodLuck.webp',
+    middle: 'UI/news/lunarYearMediumLuck.webp',
+    lower: 'UI/news/lunarYearBadLuck.webp',
+  };
+  const headline = `【香城新春求籤】${cultureName}為全城求得第${fortune.number}籤「${fortune.titleZh}」${fortune.gradeZh}　政府與廟祝祥叔各自解籤`;
+  const article = {
+    headline,
+    image: imageByGrade[fortune.grade],
+    body: [
+      `香城新年求籤儀式今早在廟內舉行，${cultureName}代表全城市民抽出第${fortune.number}籤「${fortune.titleZh}」，屬${fortune.gradeZh}。`,
+      `籤文：${poemText}`,
+      `政府解籤｜${governmentText}`,
+      `廟祝解籤｜${fortune.templeKeeperInterpretation?.textZh || ''}`,
+    ],
+    source: 'local',
+    social: {
+      likes: fortune.grade === 'upper' ? 4600 : fortune.grade === 'middle' ? 2800 : 1900,
+      laughs: fortune.grade === 'lower' ? 5200 : 3100,
+      angry: fortune.grade === 'lower' ? 2300 : 500,
+      commentCount: fortune.grade === 'lower' ? 4100 : 2600,
+      shares: 1800,
+      comments: (fortune.forumResponses || []).slice(0, 3).map((comment) => ({
+        author: comment.author,
+        text: comment.textZh,
+      })),
+    },
+  };
+
+  if (fortune.grade === 'upper' && typeof addCouncilTemporaryEffect === 'function') {
+    addCouncilTemporaryEffect(postId, 3, { attractiveness: 2, happiness: 0.005 }, 'upper');
+  } else if (fortune.grade === 'lower' && typeof addCouncilTemporaryEffect === 'function') {
+    addCouncilTemporaryEffect(postId, 3, { tourism: 3, ridicule: 2 }, 'lower');
+  }
+  if (typeof addCityNews === 'function') addCityNews(headline);
+  city.lastForumMonthIndex = monthIndex;
+  return addForumPost(article, {
+    id: postId,
+    category: '城中熱話',
+    author: '香城新春求籤直播台',
+    outcome: `annual_fortune_${fortune.grade}`,
+    year,
+    month: 1,
+  });
 }
 
 function announceStockMarketCrash(crash = city.stockMarket?.crash) {

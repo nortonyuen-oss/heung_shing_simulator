@@ -678,7 +678,7 @@ function computeEducationDistrictAverages() {
   };
 }
 
-function computePollutionMap() {
+function computePollutionMap(canopy) {
   const map = createFilledMap(0);
   const pollutionMul = isPolicyActive('cleanAir') ? 0.70 : 1;
   Object.entries(buildingData).forEach(([id, rec]) => {
@@ -698,7 +698,7 @@ function computePollutionMap() {
       }
     }
   });
-  const canopy = computeTreeCanopyMap();
+  canopy = canopy ?? computeTreeCanopyMap();
   for (let r = 0; r < MAP_HEIGHT; r++) {
     for (let c = 0; c < MAP_WIDTH; c++) {
       if (canopy[r][c] <= 0) continue;
@@ -800,8 +800,8 @@ function computePopulationMap() {
 }
 
 function computeLandValueMap() {
-  const pollution = computePollutionMap();
   const canopy = computeTreeCanopyMap();
+  const pollution = computePollutionMap(canopy);
   const nuisance = createFilledMap(0);
   const landmarkBonus = createFilledMap(0);
   Object.entries(buildingData).forEach(([id, rec]) => {

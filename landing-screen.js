@@ -404,6 +404,8 @@ function rebuildFreshMapSession(cityName) {
     rebuildTreeSprites(activeScene);
   }
   city.name = cityName || getDefaultCityName();
+  city.nameEn = '';
+  city.plateColor = 0;
   refreshAllTiles(activeScene);
   updateHUD();
 }
@@ -544,10 +546,143 @@ async function startNewGame(cityName) {
   hideLandingScreen();
 }
 
+function showCityIdentityDialog(defaults = {}) {
+  return new Promise((resolve) => {
+    let dialog = document.getElementById('city-identity-dialog');
+    if (!dialog) {
+      dialog = document.createElement('div');
+      dialog.id = 'city-identity-dialog';
+      dialog.className = 'sim-dialog';
+      dialog.setAttribute('role', 'dialog');
+      dialog.setAttribute('aria-modal', 'true');
+      dialog.innerHTML = `
+        <div class="dialog-overlay" data-identity-cancel></div>
+        <form class="dialog-box" style="max-width:420px; width:92vw">
+          <div class="dialog-title-bar">
+            <span data-identity-title></span>
+            <button class="dialog-close-btn" type="button" data-identity-cancel>✕</button>
+          </div>
+          <div class="dialog-body">
+            <label class="city-identity-label" data-identity-label-zh></label>
+            <input class="dialog-text-input city-identity-input-zh" type="text" maxlength="30" autocomplete="off" spellcheck="false" />
+            <label class="city-identity-label" data-identity-label-en></label>
+            <input class="dialog-text-input city-identity-input-en" type="text" maxlength="40" autocomplete="off" spellcheck="false" />
+            <label class="city-identity-label" data-identity-label-color></label>
+            <div class="plate-color-picker" data-identity-color-picker></div>
+          </div>
+          <div class="dialog-footer">
+            <button class="dialog-cancel-btn" type="button" data-identity-cancel></button>
+            <button class="dialog-ok-btn" type="submit"></button>
+          </div>
+        </form>
+      `;
+      document.body.appendChild(dialog);
+
+      const picker = dialog.querySelector('[data-identity-color-picker]');
+      const PLATE_SWATCH_BOX_PX = 40; // matches the fixed .plate-color-swatch size in CSS
+      for (let i = 0; i < CITY_PLATE_COLOR_COUNT; i++) {
+        const swatch = document.createElement('button');
+        swatch.type = 'button';
+        swatch.className = 'plate-color-swatch';
+        swatch.dataset.colorIndex = String(i);
+        const crop = getCityPlateCrop(i, PLATE_SWATCH_BOX_PX);
+        swatch.style.backgroundSize = crop.backgroundSize;
+        swatch.style.backgroundPosition = crop.backgroundPosition;
+        picker.appendChild(swatch);
+      }
+    }
+
+    const titleEl   = dialog.querySelector('[data-identity-title]');
+    const labelZhEl  = dialog.querySelector('[data-identity-label-zh]');
+    const labelEnEl  = dialog.querySelector('[data-identity-label-en]');
+    const labelColorEl = dialog.querySelector('[data-identity-label-color]');
+    const inputZhEl = dialog.querySelector('.city-identity-input-zh');
+    const inputEnEl = dialog.querySelector('.city-identity-input-en');
+    const picker    = dialog.querySelector('[data-identity-color-picker]');
+    const okBtn      = dialog.querySelector('.dialog-ok-btn');
+    const cancelBtn  = dialog.querySelector('.dialog-cancel-btn');
+    const formEl     = dialog.querySelector('form');
+
+    titleEl.textContent = t('tool.renameCity');
+    labelZhEl.textContent = t('prompt.cityNameZh');
+    labelEnEl.textContent = t('prompt.cityNameEn');
+    labelColorEl.textContent = t('prompt.cityPlateColor');
+    inputZhEl.value = defaults.nameZh || '';
+    inputEnEl.value = defaults.nameEn || '';
+    okBtn.textContent = t('dialog.ok');
+    cancelBtn.textContent = t('dialog.cancel');
+
+    let selectedColor = ((Number(defaults.plateColor) || 0) % CITY_PLATE_COLOR_COUNT + CITY_PLATE_COLOR_COUNT) % CITY_PLATE_COLOR_COUNT;
+    const swatchEls = [...picker.querySelectorAll('.plate-color-swatch')];
+    const paintSelection = () => {
+      swatchEls.forEach((el) => {
+        el.classList.toggle('is-selected', Number(el.dataset.colorIndex) === selectedColor);
+      });
+    };
+    paintSelection();
+    const onSwatchClick = (e) => {
+      const btn = e.target.closest('.plate-color-swatch');
+      if (!btn) return;
+      selectedColor = Number(btn.dataset.colorIndex) || 0;
+      paintSelection();
+    };
+    picker.addEventListener('click', onSwatchClick);
+
+    let settled = false;
+    const cleanup = () => {
+      dialog.style.display = 'none';
+      formEl.removeEventListener('submit', onSubmit);
+      dialog.querySelectorAll('[data-identity-cancel]').forEach((el) => {
+        el.removeEventListener('click', onCancel);
+      });
+      picker.removeEventListener('click', onSwatchClick);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+    const finish = (value) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve(value);
+    };
+    const onSubmit = (e) => {
+      e.preventDefault();
+      finish({
+        nameZh: inputZhEl.value,
+        nameEn: inputEnEl.value,
+        plateColor: selectedColor,
+      });
+    };
+    const onCancel = () => finish(null);
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') finish(null);
+    };
+
+    formEl.addEventListener('submit', onSubmit);
+    dialog.querySelectorAll('[data-identity-cancel]').forEach((el) => {
+      el.addEventListener('click', onCancel);
+    });
+    document.addEventListener('keydown', onKeyDown);
+
+    dialog.style.display = 'flex';
+    window.setTimeout(() => {
+      inputZhEl.focus();
+      inputZhEl.select();
+    }, 0);
+  });
+}
+
 async function renameCityPrompt() {
-  const newName = await showTextPromptDialog(t('prompt.cityName'), city.name || getDefaultCityName());
-  if (newName !== null && newName.trim()) {
-    city.name = newName.trim().slice(0, 30);
-    updateHUD();
-  }
+  const result = await showCityIdentityDialog({
+    nameZh: city.name || getDefaultCityName(),
+    nameEn: city.nameEn || '',
+    plateColor: city.plateColor || 0,
+  });
+  if (!result) return;
+  const nameZh = result.nameZh.trim().slice(0, 30);
+  if (!nameZh) return;
+  city.name = nameZh;
+  city.nameEn = result.nameEn.trim().slice(0, 40);
+  city.plateColor = result.plateColor;
+  updateHUD();
+  if (typeof queueCityChangeAutosave === 'function') queueCityChangeAutosave();
 }

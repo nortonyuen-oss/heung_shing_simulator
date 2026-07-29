@@ -3,7 +3,9 @@
 function updateHUD() {
   const name = city.name || getDefaultCityName();
   const rating = starsDisplay(city.happiness);
-  setTextContent('topbar-city-name',  name);
+  setTextContent('topbar-city-name-zh', name);
+  setTextContent('topbar-city-name-en', city.nameEn || '');
+  applyCityPlateColor();
   setTextContent('topbar-date-zh', formatTopbarDateZh(city.year, city.month, city.day));
   setTextContent('topbar-date-en', formatTopbarDateEn(city.year, city.month, city.day));
   setTextContent('topbar-time', getPseudoClockTime(city.year, city.month, city.day));
@@ -764,6 +766,14 @@ function formatMoney(amount) {
 function setTextContent(id, text) {
   const el = document.getElementById(id);
   if (el) el.textContent = text;
+}
+
+function applyCityPlateColor() {
+  const plate = document.getElementById('topbar-city-plate');
+  if (!plate) return;
+  const crop = getCityPlateCrop(city.plateColor, plate.clientWidth || 220);
+  plate.style.backgroundSize = crop.backgroundSize;
+  plate.style.backgroundPosition = crop.backgroundPosition;
 }
 
 function formatCityDate(day, month, year) {

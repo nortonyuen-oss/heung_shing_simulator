@@ -74,6 +74,8 @@ function createDefaultStockMarketState() {
 // City-wide simulation state
 const city = {
   name: getDefaultCityName(),
+  nameEn: '',
+  plateColor: 0,
   budget: STARTING_BUDGET,
   taxRate: 0.09,
   departmentBudgets: {

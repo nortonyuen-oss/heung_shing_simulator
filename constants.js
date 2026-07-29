@@ -912,3 +912,45 @@ const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct'
 function createFilledMap(value) {
   return Array.from({ length: MAP_HEIGHT }, () => Array(MAP_WIDTH).fill(value));
 }
+
+// City nameplate colour picker: UI/nameplateNew.webp is a single 5x2 grid of
+// colour swatches: one sprite sheet, selected at runtime via CSS
+// background-position instead of shipping 10 separate image files.
+const CITY_PLATE_GRID_COLS = 5;
+const CITY_PLATE_GRID_ROWS = 2;
+const CITY_PLATE_COLOR_COUNT = CITY_PLATE_GRID_COLS * CITY_PLATE_GRID_ROWS;
+const CITY_PLATE_SHEET_WIDTH  = 1448;
+const CITY_PLATE_SHEET_HEIGHT = 1086;
+const CITY_PLATE_CELL_WIDTH   = CITY_PLATE_SHEET_WIDTH  / CITY_PLATE_GRID_COLS;
+const CITY_PLATE_CELL_HEIGHT  = CITY_PLATE_SHEET_HEIGHT / CITY_PLATE_GRID_ROWS;
+
+// The 5x2 grid in nameplateNew.webp was hand-collaged, not machine-cut: the
+// white gutters between cells sit a few px off from an exact width/5, height/2
+// split (measured gutter columns at x=291-297/577-583/864-868/1151-1156, row
+// gutter at y=532-539). Cropping at the naive uniform boundary clips a sliver
+// of that white gutter into the edge of the visible tile. Pulling the crop
+// window in by this inset on every edge keeps it safely inside real content.
+const CITY_PLATE_CELL_INSET = 18;
+
+// Each source cell is a tall photo (~1:1.9) of a *square* mosaic-tile texture,
+// much taller than the wide nameplate box. Scaling both axes independently to
+// fill the box (the old `background-size: 500% 200%` approach) squashes the
+// square tiles into rectangles. Instead scale uniformly to the box width and
+// let the box crop the excess height - this keeps every tile square and only
+// ever shows the top slice of each cell (before the dark baseboard strip).
+function getCityPlateCrop(colorIndex, boxWidth) {
+  const total = CITY_PLATE_COLOR_COUNT;
+  const idx = ((Number(colorIndex) || 0) % total + total) % total;
+  const col = idx % CITY_PLATE_GRID_COLS;
+  const row = Math.floor(idx / CITY_PLATE_GRID_COLS);
+  const visibleCellWidth = CITY_PLATE_CELL_WIDTH - 2 * CITY_PLATE_CELL_INSET;
+  const scale = (Number(boxWidth) || visibleCellWidth) / visibleCellWidth;
+  const sheetWidth  = CITY_PLATE_SHEET_WIDTH  * scale;
+  const sheetHeight = CITY_PLATE_SHEET_HEIGHT * scale;
+  const originX = col * CITY_PLATE_CELL_WIDTH  + CITY_PLATE_CELL_INSET;
+  const originY = row * CITY_PLATE_CELL_HEIGHT + CITY_PLATE_CELL_INSET;
+  return {
+    backgroundSize: `${sheetWidth}px ${sheetHeight}px`,
+    backgroundPosition: `${-(originX * scale)}px ${-(originY * scale)}px`,
+  };
+}

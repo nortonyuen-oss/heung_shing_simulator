@@ -65,6 +65,7 @@ const AMBIENT_TRACKS = [
 const SFX_TRACKS = [
   { key: 'sfx_thunder', file: 'Sounds/thunder.mp3' },
   { key: 'event_ice_cream_truck', file: 'Sounds/iceCreamTruck.m4a' },
+  { key: 'vessel_horn', file: 'Sounds/vesselFlute.mp3' },
 ];
 
 // Rain particle tiers (screen-space). Shares the same storm-severity ladder as
@@ -283,11 +284,15 @@ function setGameWorldVisible(visible) {
   scene.scene.setVisible(shouldShow);
   if (!shouldShow) {
     if (typeof clearTrafficVisuals === 'function') clearTrafficVisuals(scene);
+    if (typeof clearVesselVisuals === 'function') clearVesselVisuals(scene);
     return;
   }
   updateTerrainViewportCulling(scene, true);
   if (typeof invalidateTrafficVisualView === 'function') {
     invalidateTrafficVisualView(scene, true);
+  }
+  if (typeof invalidateVesselVisualView === 'function') {
+    invalidateVesselVisualView(scene, true);
   }
 }
 
@@ -413,6 +418,7 @@ function updateSpriteViewportCulling(scene, bounds) {
 function updateGameFrame(time, delta) {
   updateTerrainViewportCulling(this);
   updateTrafficVisuals.call(this, time, delta);
+  updateVesselVisuals.call(this, time, delta);
 }
 
 function addToRenderLayer(scene, child, layerName) {
@@ -1696,6 +1702,7 @@ function create() {
   const worldMask = maskGraphics.createGeometryMask();
   this.worldMask = worldMask;
   setupTrafficVisuals(this);
+  setupVesselVisuals(this);
 
   // Disable browser context menu to allow right-click panning
   this.input.mouse.disableContextMenu();
@@ -1743,6 +1750,7 @@ function create() {
     drawWorldMask(this);
     positionAllTiles(this);
     invalidateTrafficVisualView(this, true);
+    invalidateVesselVisualView(this, true);
     ensurePreviewOverlayDepth(this);
     syncWeatherFxToCamera(this);
   });
@@ -8658,6 +8666,7 @@ function rotateMap(scene, steps = 1) {
   const logicalCenter = worldToLogicalPoint(scene, centerBefore.x, centerBefore.y);
 
   clearTrafficVisuals(scene);
+  clearVesselVisuals(scene);
   mapRotation = ((mapRotation + steps) % 4 + 4) % 4;
 
   // Refresh tile textures (direction-aware keys change)
@@ -8691,6 +8700,7 @@ function rotateMap(scene, steps = 1) {
 
 function fullReset(scene) {
   clearTrafficVisuals(scene);
+  clearVesselVisuals(scene);
   clearAllOverlays(scene);
   clearBuildings(scene);
   resetGameState();

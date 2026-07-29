@@ -19,6 +19,7 @@ const modelRoots = [
   path.join(projectRoot, 'Models', 'specialSites'),
   path.join(projectRoot, 'Models', 'airPort'),
   path.join(projectRoot, 'Models', 'containerPort'),
+  path.join(projectRoot, 'Models', 'vessels'),
   path.join(projectRoot, 'Models', 'trees'),
 ];
 

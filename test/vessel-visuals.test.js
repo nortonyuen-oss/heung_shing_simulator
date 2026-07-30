@@ -147,18 +147,25 @@ test('harbor berth follows all four water-facing sides and beach buffers', () =>
 // the same way the routing candidate does.
 test('vessel dock point sits strictly between the harbor land edge and the routed water tile', () => {
   const portEntry = { row: 4, col: 4, record: { footprintCols: 4, footprintRows: 4 } };
+  // 'n' and 'w' render the ship in front of its port (see
+  // VESSEL_SHIP_BEHIND_PORT_SIDES), so they get no extra gap: still strictly
+  // between the land edge (fraction 0) and the routed water tile (fraction 1).
   const north = vessels.getVesselDockPoint(portEntry, 'n', { offset: 1, center: { row: 3, col: 5 } });
   assert.ok(north.row > 3 && north.row < 4, `expected 3 < row < 4, got ${north.row}`);
   assert.equal(north.col, 5);
 
-  const south = vessels.getVesselDockPoint(portEntry, 's', { offset: 1, center: { row: 8, col: 5 } });
-  assert.ok(south.row > 7 && south.row < 8, `expected 7 < row < 8, got ${south.row}`);
-
   const west = vessels.getVesselDockPoint(portEntry, 'w', { offset: 1, center: { row: 5, col: 3 } });
   assert.ok(west.col > 3 && west.col < 4, `expected 3 < col < 4, got ${west.col}`);
 
+  // 's' and 'e' render the ship *behind* its port, so getVesselDockPoint adds
+  // VESSEL_BEHIND_PORT_EXTRA_GAP_TILES on top of dockOffsetTiles - pushing the
+  // point past the routed water tile (fraction 1) instead of stopping short
+  // of it, so the hull clears the (opaque, single-sprite) yard art.
+  const south = vessels.getVesselDockPoint(portEntry, 's', { offset: 1, center: { row: 8, col: 5 } });
+  assert.ok(south.row > 8 && south.row < 9, `expected 8 < row < 9, got ${south.row}`);
+
   const east = vessels.getVesselDockPoint(portEntry, 'e', { offset: 1, center: { row: 5, col: 8 } });
-  assert.ok(east.col > 7 && east.col < 8, `expected 7 < col < 8, got ${east.col}`);
+  assert.ok(east.col > 8 && east.col < 9, `expected 8 < col < 9, got ${east.col}`);
 
   // A beach-buffer berth (offset 2, one extra tile out) should push the dock
   // point out by the same extra whole tile, not collapse back toward land.

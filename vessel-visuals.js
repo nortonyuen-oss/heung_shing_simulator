@@ -353,11 +353,29 @@ function getHarborBerthCandidates(map, row, col, side, waterValue, footprintCols
 // point) using VESSEL_VISUAL_CONFIG.dockOffsetTiles, then carries any extra
 // whole tiles the berth candidate needed (candidate.offset > 1, e.g. a beach
 // buffer) on top of that fraction so it still lands in clear water.
+// The container_port sprite draws its crane/frontage art toward either the
+// lower half of its tile image (harbor_ll for side 's', harbor_lr for 'e')
+// or the upper half (harbor_ul for 'w', harbor_ur for 'n' - see
+// getHarborVisualKey in main.js). On the lower-half sides the crane sits
+// close enough to the berth that letting the port draw *in front of* the
+// ship (crane arm reaching over the hull) reads correctly; on the upper-half
+// sides the crane is too far from the berth for that to read as anything but
+// the ship vanishing under unrelated yard art, so the ship stays in front
+// there instead (see setVesselVisual).
+const VESSEL_SHIP_BEHIND_PORT_SIDES = new Set(['s', 'e']);
+// cargoShip01's hull is ~3.2 tiles long (see vesselScale above); a realistic
+// container-ship length:beam ratio (~6.5:1) puts its beam around 0.49 tiles.
+// On the sides where the ship renders behind its own port sprite, standing
+// back this many extra ship-widths keeps the hull clear of the (opaque)
+// yard texture instead of being swallowed by it.
+const VESSEL_BEHIND_PORT_EXTRA_GAP_TILES = 0.7 * (3.2 / 6.5);
+
 function getVesselDockPoint(portEntry, side, candidate) {
   const { row, col } = portEntry;
   const cols = Number(portEntry.record?.footprintCols) || HARBOR_FOOTPRINT_COLS;
   const rows = Number(portEntry.record?.footprintRows) || HARBOR_FOOTPRINT_ROWS;
-  const effectiveOffset = (candidate.offset - 1) + VESSEL_VISUAL_CONFIG.dockOffsetTiles;
+  const extraGap = VESSEL_SHIP_BEHIND_PORT_SIDES.has(side) ? VESSEL_BEHIND_PORT_EXTRA_GAP_TILES : 0;
+  const effectiveOffset = (candidate.offset - 1) + VESSEL_VISUAL_CONFIG.dockOffsetTiles + extraGap;
   if (side === 'n') return { row: row - effectiveOffset, col: candidate.center.col };
   if (side === 's') return { row: row + rows - 1 + effectiveOffset, col: candidate.center.col };
   if (side === 'w') return { row: candidate.center.row, col: col - effectiveOffset };
@@ -643,7 +661,7 @@ function setVesselCargoState(event, cargoState) {
 }
 
 
-function setVesselVisual(scene, event, logicalPoint, forcedDirection = null) {
+function setVesselVisual(scene, event, logicalPoint, forcedDirection = null, side = null) {
   const world = getVesselWaterSurfacePoint(scene, logicalPoint.row, logicalPoint.col);
   const previous = event.lastWorld ?? { x: world.x - 1, y: world.y };
   const direction = forcedDirection || getVesselTextureDirection(
@@ -654,23 +672,22 @@ function setVesselVisual(scene, event, logicalPoint, forcedDirection = null) {
   event.direction = direction;
   setVesselSpriteTexture(event.sprite, getVesselTextureKey(event.cargoState, direction));
   event.sprite.setPosition(world.x, world.y);
-  // Start from the same Y-based depth as every other sprite in the scene.
-  // The container_port building is one flat sprite covering its whole 4x4
-  // footprint (cranes included), so pinning the docked ship to a fixed
-  // "just behind the harbor" depth (the old approach) drew the *entire*
-  // port texture - cranes, yard, everything - on top of the ship regardless
-  // of the ship's actual position, making it look like the hull was buried
-  // in the dock.
+  // Start from the same Y-based depth as every other sprite in the scene,
+  // then pin it to the correct side of its own port (see
+  // VESSEL_SHIP_BEHIND_PORT_SIDES) - the container_port building is one flat
+  // sprite covering its whole 4x4 footprint, so Phaser can only draw the
+  // ship fully in front of or fully behind it, never "crane in front, yard
+  // behind" at once.
   if (typeof getWorldDepth === 'function') {
     let depth = getWorldDepth('object', world.depthY);
-    // Plain Y-depth already puts the ship in front of the port on the s/e
-    // sides (further along row/col = higher screen Y = drawn later), but on
-    // the n/w sides the dock point has a *smaller* row+col than the port's
-    // own footprint, which would sort it behind the port's single sprite
-    // even though it's sitting in open water right next to it. Floor the
-    // depth so the ship is never drawn behind its own port, on any side.
     const portDepth = Number(event.portSprite?.depth);
-    if (Number.isFinite(portDepth) && depth <= portDepth) depth = portDepth + 1;
+    if (Number.isFinite(portDepth)) {
+      if (VESSEL_SHIP_BEHIND_PORT_SIDES.has(side)) {
+        if (depth >= portDepth) depth = portDepth - 1;
+      } else if (depth <= portDepth) {
+        depth = portDepth + 1;
+      }
+    }
     event.sprite.setDepth(depth);
   }
   event.lastWorld = world;
@@ -720,7 +737,7 @@ function spawnVessel(scene, state, portState, portEntry, route, random = Math.ra
     soundPausedForSimulation: false,
   };
   portState.event = event;
-  setVesselVisual(scene, event, start);
+  setVesselVisual(scene, event, start, null, event.route.side);
   return true;
 }
 
@@ -759,7 +776,7 @@ function updateVesselEvent(scene, state, portState, scaledDelta, random = Math.r
     return;
   }
   if (event.phase === 'cargo_exchange') {
-    setVesselVisual(scene, event, event.route.berth, getVesselDockDirection(scene, event.route.side, event.route.berth));
+    setVesselVisual(scene, event, event.route.berth, getVesselDockDirection(scene, event.route.side, event.route.berth), event.route.side);
     if (updateVesselCargoExchange(event, scaledDelta, random)) {
       event.phase = 'outbound';
       event.distance = 0;
@@ -774,7 +791,7 @@ function updateVesselEvent(scene, state, portState, scaledDelta, random = Math.r
       event.distance = track.total;
       event.cargoStepIndex = 0;
       event.cargoStepTimerMs = 0;
-      setVesselVisual(scene, event, event.route.berth, getVesselDockDirection(scene, event.route.side, event.route.berth));
+      setVesselVisual(scene, event, event.route.berth, getVesselDockDirection(scene, event.route.side, event.route.berth), event.route.side);
       startVesselEventSound(scene, event, VESSEL_AUDIO_CONFIG.horn);
       return;
     }
@@ -787,7 +804,7 @@ function updateVesselEvent(scene, state, portState, scaledDelta, random = Math.r
     );
     return;
   }
-  setVesselVisual(scene, event, evaluateVesselLogicalTrack(track, event.distance));
+  setVesselVisual(scene, event, evaluateVesselLogicalTrack(track, event.distance), null, event.route.side);
 }
 
 // The route to open water for a given berth almost never changes between one

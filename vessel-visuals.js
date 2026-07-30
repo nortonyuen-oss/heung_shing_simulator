@@ -55,6 +55,17 @@ const VESSEL_DOCK_OFFSET_TILES_BY_SIDE = Object.freeze({
   w: 1.8,
 });
 
+// Extra logical tiles of clearance, on top of VESSEL_DOCK_OFFSET_TILES_BY_SIDE,
+// applied only when the harbor_ul/harbor_ur artwork is the one on screen (see
+// getVesselHarborVisualVariant). harbor_ul/harbor_ur draw their crane and
+// warehouse structure closer to the water edge than harbor_ll/harbor_lr do,
+// so the same land-clearance gap that's plenty for ll/lr still visually
+// tucks the hull behind that structure for ul/ur - roughly one hull beam of
+// extra push clears it. Verified against real screenshots (not land-color
+// sampling, since this is a screen-space occlusion problem, not a land-clip
+// one) across both rotation-swept test ports in the "九龍" save.
+const VESSEL_OCCLUSION_CLEARANCE_TILES = 1.0;
+
 const VESSEL_AUDIO_CONFIG = Object.freeze({
   horn: Object.freeze({ key: 'vessel_horn', baseVolume: 0.9 }),
 });
@@ -361,18 +372,43 @@ function getHarborBerthCandidates(map, row, col, side, waterValue, footprintCols
   ];
 }
 
+// getHarborVisualKey() in main.js picks which harbor artwork to draw by
+// rotating the port's fixed logical water side through the current view
+// rotation: n->harbor_ur, e->harbor_lr, s->harbor_ll, w->harbor_ul. The UL/UR
+// pieces draw their crane/warehouse structure much closer to the water edge
+// than LL/LR do, so a dock gap that's plenty for LL/LR still leaves the ship
+// tucked visually behind that structure when UL/UR is the piece on screen.
+// This only depends on the *currently displayed* artwork, so it has to be
+// re-derived from live mapRotation rather than baked into the fixed side ->
+// offset table above (whose whole point is staying rotation-invariant).
+function getVesselHarborVisualVariant(side) {
+  const rotation = typeof mapRotation === 'number' ? mapRotation : 0;
+  const visualSide = typeof rotateDirection === 'function' ? rotateDirection(side, rotation) : side;
+  if (visualSide === 'n') return 'ur';
+  if (visualSide === 'e') return 'lr';
+  if (visualSide === 's') return 'll';
+  return 'ul'; // 'w'
+}
+
 // The precise, gap-adjusted point a ship actually stops at. Interpolates
 // between the harbor's own land-edge tile (fraction 0, would clip the hull
 // into land) and the direct water-adjacent tile (fraction 1, the old spawn
 // point) using VESSEL_DOCK_OFFSET_TILES_BY_SIDE, then carries any extra
 // whole tiles the berth candidate needed (candidate.offset > 1, e.g. a beach
-// buffer) on top of that fraction so it still lands in clear water.
+// buffer) on top of that fraction so it still lands in clear water. A further
+// VESSEL_OCCLUSION_CLEARANCE_TILES is added on top when the currently
+// displayed artwork is harbor_ul/harbor_ur, so the hull clears that piece's
+// closer-to-shore crane structure instead of hiding behind it.
 function getVesselDockPoint(portEntry, side, candidate) {
   const { row, col } = portEntry;
   const cols = Number(portEntry.record?.footprintCols) || HARBOR_FOOTPRINT_COLS;
   const rows = Number(portEntry.record?.footprintRows) || HARBOR_FOOTPRINT_ROWS;
   const dockOffsetTiles = VESSEL_DOCK_OFFSET_TILES_BY_SIDE[side] ?? 0.82;
-  const effectiveOffset = (candidate.offset - 1) + dockOffsetTiles;
+  const variant = getVesselHarborVisualVariant(side);
+  const occlusionClearance = (variant === 'ul' || variant === 'ur')
+    ? VESSEL_OCCLUSION_CLEARANCE_TILES
+    : 0;
+  const effectiveOffset = (candidate.offset - 1) + dockOffsetTiles + occlusionClearance;
   if (side === 'n') return { row: row - effectiveOffset, col: candidate.center.col };
   if (side === 's') return { row: row + rows - 1 + effectiveOffset, col: candidate.center.col };
   if (side === 'w') return { row: candidate.center.row, col: col - effectiveOffset };
@@ -940,6 +976,7 @@ const vesselVisualTestApi = {
   stopVesselEventSound,
   getHarborBerthCandidates,
   getVesselDockPoint,
+  getVesselHarborVisualVariant,
   getVesselDockDirection,
   findOceanRoute,
   findVesselShipRoute,

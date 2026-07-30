@@ -148,26 +148,78 @@ test('harbor berth follows all four water-facing sides and beach buffers', () =>
 // every container port in the "九龍" save. 'n'/'s' stay at the tight 0.82
 // default (no real port needed more); 'e'/'w' sit at 1.8 - a smaller value
 // left a visible sliver of grass/beach at ports whose local coastline
-// curves in tightly near the berth.
+// curves in tightly near the berth. At mapRotation 0, side 'n' displays as
+// harbor_ur and side 'w' as harbor_ul, so both also pick up
+// VESSEL_OCCLUSION_CLEARANCE_TILES (see the dedicated occlusion test below).
 test('vessel dock point clears the harbor land edge with margin past the routed water tile', () => {
-  const portEntry = { row: 4, col: 4, record: { footprintCols: 4, footprintRows: 4 } };
-  const north = vessels.getVesselDockPoint(portEntry, 'n', { offset: 1, center: { row: 3, col: 5 } });
-  assert.ok(north.row > 3 && north.row < 4, `expected 3 < row < 4, got ${north.row}`);
-  assert.equal(north.col, 5);
+  const originalGlobals = Object.fromEntries(['mapRotation', 'rotateDirection'].map((key) => [key, global[key]]));
+  global.mapRotation = 0;
+  global.rotateDirection = (direction, steps) => {
+    const order = ['n', 'e', 's', 'w'];
+    const index = order.indexOf(direction);
+    return order[(index + ((steps % 4) + 4)) % 4];
+  };
+  try {
+    const portEntry = { row: 4, col: 4, record: { footprintCols: 4, footprintRows: 4 } };
+    // 'n' -> harbor_ur at rotation 0, so this also carries the +1.0 occlusion clearance.
+    const north = vessels.getVesselDockPoint(portEntry, 'n', { offset: 1, center: { row: 3, col: 5 } });
+    assert.ok(north.row > 2 && north.row < 3, `expected 2 < row < 3, got ${north.row}`);
+    assert.equal(north.col, 5);
 
-  const west = vessels.getVesselDockPoint(portEntry, 'w', { offset: 1, center: { row: 5, col: 3 } });
-  assert.ok(west.col > 2 && west.col < 3, `expected 2 < col < 3, got ${west.col}`);
+    // 'w' -> harbor_ul at rotation 0, so this also carries the +1.0 occlusion clearance.
+    const west = vessels.getVesselDockPoint(portEntry, 'w', { offset: 1, center: { row: 5, col: 3 } });
+    assert.ok(west.col > 1 && west.col < 2, `expected 1 < col < 2, got ${west.col}`);
 
-  const south = vessels.getVesselDockPoint(portEntry, 's', { offset: 1, center: { row: 8, col: 5 } });
-  assert.ok(south.row > 7 && south.row < 8, `expected 7 < row < 8, got ${south.row}`);
+    // 's' -> harbor_ll at rotation 0: no occlusion clearance.
+    const south = vessels.getVesselDockPoint(portEntry, 's', { offset: 1, center: { row: 8, col: 5 } });
+    assert.ok(south.row > 7 && south.row < 8, `expected 7 < row < 8, got ${south.row}`);
 
-  const east = vessels.getVesselDockPoint(portEntry, 'e', { offset: 1, center: { row: 5, col: 8 } });
-  assert.ok(east.col > 8 && east.col < 9, `expected 8 < col < 9, got ${east.col}`);
+    // 'e' -> harbor_lr at rotation 0: no occlusion clearance.
+    const east = vessels.getVesselDockPoint(portEntry, 'e', { offset: 1, center: { row: 5, col: 8 } });
+    assert.ok(east.col > 8 && east.col < 9, `expected 8 < col < 9, got ${east.col}`);
 
-  // A beach-buffer berth (offset 2, one extra tile out) should push the dock
-  // point out by the same extra whole tile, not collapse back toward land.
-  const bufferedNorth = vessels.getVesselDockPoint(portEntry, 'n', { offset: 2, center: { row: 2, col: 5 } });
-  assert.ok(bufferedNorth.row > 2 && bufferedNorth.row < 3, `expected 2 < row < 3, got ${bufferedNorth.row}`);
+    // A beach-buffer berth (offset 2, one extra tile out) should push the dock
+    // point out by the same extra whole tile, not collapse back toward land.
+    const bufferedNorth = vessels.getVesselDockPoint(portEntry, 'n', { offset: 2, center: { row: 2, col: 5 } });
+    assert.ok(bufferedNorth.row > 1 && bufferedNorth.row < 2, `expected 1 < row < 2, got ${bufferedNorth.row}`);
+  } finally {
+    Object.entries(originalGlobals).forEach(([key, value]) => {
+      if (value === undefined) delete global[key];
+      else global[key] = value;
+    });
+  }
+});
+
+// The occlusion-clearance fix: the harbor_ul/harbor_ur artwork draws its
+// crane/warehouse structure much closer to the water edge than harbor_ll/
+// harbor_lr do, so a docked ship can end up visually hidden behind that
+// structure even though it's fully clear of the land tiles underneath. This
+// only depends on which artwork variant is on screen for the port's *fixed*
+// logical side at the *current* view rotation - every side passes through
+// every variant across the 4 rotations, so this cannot be baked into the
+// fixed per-side table above without breaking rotation-invariance.
+test('harbor visual variant follows the fixed side through every map rotation, not a static lookup', () => {
+  const originalGlobals = Object.fromEntries(['mapRotation', 'rotateDirection'].map((key) => [key, global[key]]));
+  global.rotateDirection = (direction, steps) => {
+    const order = ['n', 'e', 's', 'w'];
+    const index = order.indexOf(direction);
+    return order[(index + ((steps % 4) + 4)) % 4];
+  };
+  try {
+    // side 'e' sweeps lr -> ll -> ul -> ur as the view rotates 0..3, so it
+    // passes through the occlusion-prone ul/ur pair exactly like every other
+    // side does - the bug the user found wasn't specific to one logical side.
+    const expectedForE = ['lr', 'll', 'ul', 'ur'];
+    expectedForE.forEach((expected, rotation) => {
+      global.mapRotation = rotation;
+      assert.equal(vessels.getVesselHarborVisualVariant('e'), expected, `rotation ${rotation}`);
+    });
+  } finally {
+    Object.entries(originalGlobals).forEach(([key, value]) => {
+      if (value === undefined) delete global[key];
+      else global[key] = value;
+    });
+  }
 });
 
 // A docked ship must lie broadside against the pier (parallel), never

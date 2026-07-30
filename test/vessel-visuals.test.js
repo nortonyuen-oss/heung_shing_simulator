@@ -143,22 +143,23 @@ test('harbor berth follows all four water-facing sides and beach buffers', () =>
 // dock point must clear the harbor's own land edge (fraction 0, which would
 // render the ship on top of land) by at least a full tile past the direct
 // water tile used for routing (fraction 1, the pre-redesign spawn point).
-// dockOffsetTiles (1.15) was calibrated by sampling the ship sprite's actual
-// rendered pixels against the map at every container port in the "九龍" save
-// - a smaller value (0.82) left a visible sliver of grass/beach at ports
-// whose local coastline curves in tightly near the berth, so the dock point
-// deliberately sits *past* the routed water tile now, not just short of it.
+// dockOffsetTiles is calibrated per side (VESSEL_DOCK_OFFSET_TILES_BY_SIDE)
+// by sampling the ship sprite's actual rendered pixels against the map at
+// every container port in the "九龍" save. 'n'/'s' stay at the tight 0.82
+// default (no real port needed more); 'e'/'w' sit at 1.8 - a smaller value
+// left a visible sliver of grass/beach at ports whose local coastline
+// curves in tightly near the berth.
 test('vessel dock point clears the harbor land edge with margin past the routed water tile', () => {
   const portEntry = { row: 4, col: 4, record: { footprintCols: 4, footprintRows: 4 } };
   const north = vessels.getVesselDockPoint(portEntry, 'n', { offset: 1, center: { row: 3, col: 5 } });
-  assert.ok(north.row > 2 && north.row < 3, `expected 2 < row < 3, got ${north.row}`);
+  assert.ok(north.row > 3 && north.row < 4, `expected 3 < row < 4, got ${north.row}`);
   assert.equal(north.col, 5);
 
   const west = vessels.getVesselDockPoint(portEntry, 'w', { offset: 1, center: { row: 5, col: 3 } });
   assert.ok(west.col > 2 && west.col < 3, `expected 2 < col < 3, got ${west.col}`);
 
   const south = vessels.getVesselDockPoint(portEntry, 's', { offset: 1, center: { row: 8, col: 5 } });
-  assert.ok(south.row > 8 && south.row < 9, `expected 8 < row < 9, got ${south.row}`);
+  assert.ok(south.row > 7 && south.row < 8, `expected 7 < row < 8, got ${south.row}`);
 
   const east = vessels.getVesselDockPoint(portEntry, 'e', { offset: 1, center: { row: 5, col: 8 } });
   assert.ok(east.col > 8 && east.col < 9, `expected 8 < col < 9, got ${east.col}`);
@@ -166,7 +167,7 @@ test('vessel dock point clears the harbor land edge with margin past the routed 
   // A beach-buffer berth (offset 2, one extra tile out) should push the dock
   // point out by the same extra whole tile, not collapse back toward land.
   const bufferedNorth = vessels.getVesselDockPoint(portEntry, 'n', { offset: 2, center: { row: 2, col: 5 } });
-  assert.ok(bufferedNorth.row > 1 && bufferedNorth.row < 2, `expected 1 < row < 2, got ${bufferedNorth.row}`);
+  assert.ok(bufferedNorth.row > 2 && bufferedNorth.row < 3, `expected 2 < row < 3, got ${bufferedNorth.row}`);
 });
 
 // A docked ship must lie broadside against the pier (parallel), never

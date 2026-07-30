@@ -34,16 +34,25 @@ const VESSEL_VISUAL_CONFIG = Object.freeze({
   routeConflictTiles: 3,
   maxDeltaMs: 1000,
   maxLoadAttempts: 2,
-  // Docking geometry, in fractional logical tiles measured outward from the
-  // harbor's land edge (0 = still on land, 1 = the old "one full tile out"
-  // spot). Verified against every container port in the "九龍" save by
-  // sampling the ship sprite's actual rendered pixels (not just its bounding
-  // box) against the underlying map tiles. This only moves the berth further
-  // *outward*, not sideways - at ports whose coastline curves in close to a
-  // corner of the ~3.2-tile-long hull's bounding box, pushing straight out
-  // doesn't clear that corner, so this needed a couple of iterations against
-  // real ports rather than a single formula-derived number.
-  dockOffsetTiles: 1.5,
+});
+
+// Docking geometry, in fractional logical tiles measured outward from the
+// harbor's land edge (0 = still on land, 1 = the old "one full tile out"
+// spot). Verified per side against every container port in the "九龍" save
+// by sampling the ship sprite's actual rendered pixels (not just its
+// bounding box) against the underlying map tiles. 's'-side ports (harbor_ll)
+// docked cleanly at the tight original spacing; 'e'/'w'-side ports
+// (harbor_lr/harbor_ul) had at least one whose coastline curves in close
+// enough to a corner of the ~3.2-tile hull's bounding box that 0.82 left a
+// 1px sliver of land visible - this only pushes the berth further outward,
+// not sideways, so clearing that corner needed more clearance. 'n'
+// (harbor_ur) has no real test case in that save; it keeps the tight
+// default rather than inheriting an unverified wider gap.
+const VESSEL_DOCK_OFFSET_TILES_BY_SIDE = Object.freeze({
+  n: 0.82,
+  s: 0.82,
+  e: 1.8,
+  w: 1.8,
 });
 
 const VESSEL_AUDIO_CONFIG = Object.freeze({
@@ -355,14 +364,15 @@ function getHarborBerthCandidates(map, row, col, side, waterValue, footprintCols
 // The precise, gap-adjusted point a ship actually stops at. Interpolates
 // between the harbor's own land-edge tile (fraction 0, would clip the hull
 // into land) and the direct water-adjacent tile (fraction 1, the old spawn
-// point) using VESSEL_VISUAL_CONFIG.dockOffsetTiles, then carries any extra
+// point) using VESSEL_DOCK_OFFSET_TILES_BY_SIDE, then carries any extra
 // whole tiles the berth candidate needed (candidate.offset > 1, e.g. a beach
 // buffer) on top of that fraction so it still lands in clear water.
 function getVesselDockPoint(portEntry, side, candidate) {
   const { row, col } = portEntry;
   const cols = Number(portEntry.record?.footprintCols) || HARBOR_FOOTPRINT_COLS;
   const rows = Number(portEntry.record?.footprintRows) || HARBOR_FOOTPRINT_ROWS;
-  const effectiveOffset = (candidate.offset - 1) + VESSEL_VISUAL_CONFIG.dockOffsetTiles;
+  const dockOffsetTiles = VESSEL_DOCK_OFFSET_TILES_BY_SIDE[side] ?? 0.82;
+  const effectiveOffset = (candidate.offset - 1) + dockOffsetTiles;
   if (side === 'n') return { row: row - effectiveOffset, col: candidate.center.col };
   if (side === 's') return { row: row + rows - 1 + effectiveOffset, col: candidate.center.col };
   if (side === 'w') return { row: candidate.center.row, col: col - effectiveOffset };

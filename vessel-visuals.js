@@ -36,9 +36,14 @@ const VESSEL_VISUAL_CONFIG = Object.freeze({
   maxLoadAttempts: 2,
   // Docking geometry, in fractional logical tiles measured outward from the
   // harbor's land edge (0 = still on land, 1 = the old "one full tile out"
-  // spot). Tuned by eye against the actual cargoShip01 renders so the hull's
-  // near edge clears the shoreline instead of overlapping it.
-  dockOffsetTiles: 0.82,
+  // spot). Verified against every container port in the "九龍" save by
+  // sampling the ship sprite's actual rendered pixels (not just its bounding
+  // box) against the underlying map tiles. This only moves the berth further
+  // *outward*, not sideways - at ports whose coastline curves in close to a
+  // corner of the ~3.2-tile-long hull's bounding box, pushing straight out
+  // doesn't clear that corner, so this needed a couple of iterations against
+  // real ports rather than a single formula-derived number.
+  dockOffsetTiles: 1.5,
 });
 
 const VESSEL_AUDIO_CONFIG = Object.freeze({

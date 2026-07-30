@@ -11,10 +11,10 @@ function source(fileName) {
   return fs.readFileSync(path.join(ROOT, fileName), 'utf8');
 }
 
-test('vessel sound registry ships a browser-compatible horn effect', () => {
+test('vessel sound registry ships a playable horn effect', () => {
   const main = source('main.js');
-  assert.match(main, /key: 'vessel_horn'.*file: 'Sounds\/vesselFlute\.mp3'/);
-  const filePath = path.join(ROOT, 'Sounds/vesselFlute.mp3');
+  assert.match(main, /key: 'vessel_horn'.*file: 'Sounds\/vesselFlute\.m4a'/);
+  const filePath = path.join(ROOT, 'Sounds/vesselFlute.m4a');
   assert.ok(fs.existsSync(filePath));
   assert.ok(fs.statSync(filePath).size > 0);
   assert.equal(vessels.VESSEL_AUDIO_CONFIG.horn.key, 'vessel_horn');

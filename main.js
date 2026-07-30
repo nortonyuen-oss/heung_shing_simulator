@@ -65,7 +65,7 @@ const AMBIENT_TRACKS = [
 const SFX_TRACKS = [
   { key: 'sfx_thunder', file: 'Sounds/thunder.mp3' },
   { key: 'event_ice_cream_truck', file: 'Sounds/iceCreamTruck.m4a' },
-  { key: 'vessel_horn', file: 'Sounds/vesselFlute.mp3' },
+  { key: 'vessel_horn', file: 'Sounds/vesselFlute.m4a' },
 ];
 
 // Rain particle tiers (screen-space). Shares the same storm-severity ladder as

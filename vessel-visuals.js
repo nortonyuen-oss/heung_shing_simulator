@@ -353,29 +353,11 @@ function getHarborBerthCandidates(map, row, col, side, waterValue, footprintCols
 // point) using VESSEL_VISUAL_CONFIG.dockOffsetTiles, then carries any extra
 // whole tiles the berth candidate needed (candidate.offset > 1, e.g. a beach
 // buffer) on top of that fraction so it still lands in clear water.
-// The container_port sprite draws its crane/frontage art toward either the
-// lower half of its tile image (harbor_ll for side 's', harbor_lr for 'e')
-// or the upper half (harbor_ul for 'w', harbor_ur for 'n' - see
-// getHarborVisualKey in main.js). On the lower-half sides the crane sits
-// close enough to the berth that letting the port draw *in front of* the
-// ship (crane arm reaching over the hull) reads correctly; on the upper-half
-// sides the crane is too far from the berth for that to read as anything but
-// the ship vanishing under unrelated yard art, so the ship stays in front
-// there instead (see setVesselVisual).
-const VESSEL_SHIP_BEHIND_PORT_SIDES = new Set(['s', 'e']);
-// cargoShip01's hull is ~3.2 tiles long (see vesselScale above); a realistic
-// container-ship length:beam ratio (~6.5:1) puts its beam around 0.49 tiles.
-// On the sides where the ship renders behind its own port sprite, standing
-// back this many extra ship-widths keeps the hull clear of the (opaque)
-// yard texture instead of being swallowed by it.
-const VESSEL_BEHIND_PORT_EXTRA_GAP_TILES = 0.7 * (3.2 / 6.5);
-
 function getVesselDockPoint(portEntry, side, candidate) {
   const { row, col } = portEntry;
   const cols = Number(portEntry.record?.footprintCols) || HARBOR_FOOTPRINT_COLS;
   const rows = Number(portEntry.record?.footprintRows) || HARBOR_FOOTPRINT_ROWS;
-  const extraGap = VESSEL_SHIP_BEHIND_PORT_SIDES.has(side) ? VESSEL_BEHIND_PORT_EXTRA_GAP_TILES : 0;
-  const effectiveOffset = (candidate.offset - 1) + VESSEL_VISUAL_CONFIG.dockOffsetTiles + extraGap;
+  const effectiveOffset = (candidate.offset - 1) + VESSEL_VISUAL_CONFIG.dockOffsetTiles;
   if (side === 'n') return { row: row - effectiveOffset, col: candidate.center.col };
   if (side === 's') return { row: row + rows - 1 + effectiveOffset, col: candidate.center.col };
   if (side === 'w') return { row: candidate.center.row, col: col - effectiveOffset };
@@ -672,23 +654,13 @@ function setVesselVisual(scene, event, logicalPoint, forcedDirection = null, sid
   event.direction = direction;
   setVesselSpriteTexture(event.sprite, getVesselTextureKey(event.cargoState, direction));
   event.sprite.setPosition(world.x, world.y);
-  // Start from the same Y-based depth as every other sprite in the scene,
-  // then pin it to the correct side of its own port (see
-  // VESSEL_SHIP_BEHIND_PORT_SIDES) - the container_port building is one flat
-  // sprite covering its whole 4x4 footprint, so Phaser can only draw the
-  // ship fully in front of or fully behind it, never "crane in front, yard
-  // behind" at once.
+  // Plain Y-based depth - the same rule every other sprite in the scene
+  // (buildings, trees) sorts by, no per-side special-casing. This only
+  // looks right if the dock point stands far enough off the harbor's own
+  // sprite bounds that the two don't fight over the same screen pixels in
+  // the first place (see the gap comments on VESSEL_VISUAL_CONFIG.dockOffsetTiles).
   if (typeof getWorldDepth === 'function') {
-    let depth = getWorldDepth('object', world.depthY);
-    const portDepth = Number(event.portSprite?.depth);
-    if (Number.isFinite(portDepth)) {
-      if (VESSEL_SHIP_BEHIND_PORT_SIDES.has(side)) {
-        if (depth >= portDepth) depth = portDepth - 1;
-      } else if (depth <= portDepth) {
-        depth = portDepth + 1;
-      }
-    }
-    event.sprite.setDepth(depth);
+    event.sprite.setDepth(getWorldDepth('object', world.depthY));
   }
   event.lastWorld = world;
   event.lastLogical = logicalPoint;

@@ -166,6 +166,59 @@ test('vessel dock point sits strictly between the harbor land edge and the route
   assert.ok(bufferedNorth.row > 2 && bufferedNorth.row < 3, `expected 2 < row < 3, got ${bufferedNorth.row}`);
 });
 
+// A docked ship must lie broadside against the pier (parallel), never
+// pointed bow-first into it (perpendicular). A first version of this fix
+// used a static side->direction lookup table, which was correct at the
+// default view rotation but silently wrong under any other rotation, since
+// isoToScreen() remaps which screen diagonal a given logical axis lands on
+// once the map is rotated. getVesselDockDirection must derive the direction
+// from real screen-space points (going through isoToScreen) so it rotates
+// along with everything else instead of staying pinned to a fixed diagonal.
+test('docked direction stays parallel to the pier at every map rotation', () => {
+  const originalGlobals = Object.fromEntries([
+    'isoToScreen', 'TILE_WIDTH', 'TILE_HEIGHT', 'TILE_IMAGE_HEIGHT', 'BUILDING_SURFACE_Y_OFFSET', 'MAP_HEIGHT', 'MAP_WIDTH',
+  ].map((key) => [key, global[key]]));
+  try {
+    global.TILE_WIDTH = 100;
+    global.TILE_HEIGHT = 50;
+    global.TILE_IMAGE_HEIGHT = 100;
+    global.BUILDING_SURFACE_Y_OFFSET = 50;
+    global.MAP_HEIGHT = 256;
+    global.MAP_WIDTH = 256;
+    const scene = { offsetX: 0, offsetY: 0 };
+    const ROW_AXIS = ['ne', 'sw'];
+    const COL_AXIS = ['nw', 'se'];
+
+    // Unrotated (mapRotation 0): the real isoToScreen formula.
+    global.isoToScreen = (col, row) => ({ x: (col - row) * 50, y: (col + row) * 25 });
+    const southUnrotated = vessels.getVesselDockDirection(scene, 's', { row: 8.82, col: 5.5 });
+    const eastUnrotated = vessels.getVesselDockDirection(scene, 'e', { row: 5.5, col: 8.82 });
+    assert.ok(COL_AXIS.includes(southUnrotated), `side 's' expected nw/se, got ${southUnrotated}`);
+    assert.ok(ROW_AXIS.includes(eastUnrotated), `side 'e' expected ne/sw, got ${eastUnrotated}`);
+
+    // Rotated 90 (mapRotation 1): mirrors main.js's isoToScreen rotation
+    // branch (vizCol = MAP_HEIGHT-1-row; vizRow = col). A static lookup
+    // would still report the unrotated-axis direction here; the fix must not.
+    global.isoToScreen = (col, row) => {
+      const vizCol = global.MAP_HEIGHT - 1 - row;
+      const vizRow = col;
+      return { x: (vizCol - vizRow) * 50, y: (vizCol + vizRow) * 25 };
+    };
+    const southRotated = vessels.getVesselDockDirection(scene, 's', { row: 8.82, col: 5.5 });
+    const eastRotated = vessels.getVesselDockDirection(scene, 'e', { row: 5.5, col: 8.82 });
+    // After a 90 rotation, the axis that was column-aligned becomes
+    // row-aligned and vice versa - the direction set each side reports
+    // must swap accordingly.
+    assert.ok(ROW_AXIS.includes(southRotated), `side 's' under rotation expected ne/sw, got ${southRotated}`);
+    assert.ok(COL_AXIS.includes(eastRotated), `side 'e' under rotation expected nw/se, got ${eastRotated}`);
+  } finally {
+    Object.entries(originalGlobals).forEach(([key, value]) => {
+      if (value === undefined) delete global[key];
+      else global[key] = value;
+    });
+  }
+});
+
 test('ocean routing reaches off-view map-edge water but rejects enclosed lakes', () => {
   const water = 1;
   const land = 0;

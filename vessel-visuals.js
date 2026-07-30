@@ -42,7 +42,7 @@ const VESSEL_VISUAL_CONFIG = Object.freeze({
 });
 
 const VESSEL_AUDIO_CONFIG = Object.freeze({
-  horn: Object.freeze({ key: 'vessel_horn', baseVolume: 0.44 }),
+  horn: Object.freeze({ key: 'vessel_horn', baseVolume: 0.9 }),
 });
 
 const VESSEL_DIRECTIONS = Object.freeze(['ne', 'nw', 'se', 'sw']);
@@ -364,6 +364,27 @@ function getVesselDockPoint(portEntry, side, candidate) {
   return { row: candidate.center.row, col: col + cols - 1 + effectiveOffset }; // 'e'
 }
 
+// The berth's water-facing edge runs along whichever logical axis is *not*
+// the approach axis for that side: n/s sides front onto the column axis,
+// e/w sides front onto the row axis (mirrors the n/e/s/w -> screen-corner
+// mapping in main.js's getHarborVisualKey). Deriving the parallel screen
+// direction from two real points along that axis - run through the same
+// isoToScreen()-backed pipeline as every other position in this file -
+// keeps it correct under map rotation automatically; a static side-to-
+// direction lookup table would not rotate along with the view.
+function getVesselDockDirection(scene, side, dockPoint) {
+  const alongRow = side === 'e' || side === 'w';
+  const before = alongRow
+    ? { row: dockPoint.row - 0.5, col: dockPoint.col }
+    : { row: dockPoint.row, col: dockPoint.col - 0.5 };
+  const after = alongRow
+    ? { row: dockPoint.row + 0.5, col: dockPoint.col }
+    : { row: dockPoint.row, col: dockPoint.col + 0.5 };
+  const worldBefore = getVesselWaterSurfacePoint(scene, before.row, before.col);
+  const worldAfter = getVesselWaterSurfacePoint(scene, after.row, after.col);
+  return getVesselTextureDirection(worldAfter.x - worldBefore.x, worldAfter.y - worldBefore.y, 'se');
+}
+
 function countVesselAdjacentLand(map, row, col, waterValue) {
   return [[-1, 0], [1, 0], [0, -1], [0, 1]]
     .reduce((count, [dr, dc]) => count + (map[row + dr]?.[col + dc] === waterValue ? 0 : 1), 0);
@@ -621,10 +642,11 @@ function setVesselCargoState(event, cargoState) {
   setVesselSpriteTexture(event.sprite, getVesselTextureKey(event.cargoState, event.direction));
 }
 
-function setVesselVisual(scene, event, logicalPoint) {
+
+function setVesselVisual(scene, event, logicalPoint, forcedDirection = null) {
   const world = getVesselWaterSurfacePoint(scene, logicalPoint.row, logicalPoint.col);
   const previous = event.lastWorld ?? { x: world.x - 1, y: world.y };
-  const direction = getVesselTextureDirection(
+  const direction = forcedDirection || getVesselTextureDirection(
     world.x - previous.x,
     world.y - previous.y,
     event.direction,
@@ -737,7 +759,7 @@ function updateVesselEvent(scene, state, portState, scaledDelta, random = Math.r
     return;
   }
   if (event.phase === 'cargo_exchange') {
-    setVesselVisual(scene, event, event.route.berth);
+    setVesselVisual(scene, event, event.route.berth, getVesselDockDirection(scene, event.route.side, event.route.berth));
     if (updateVesselCargoExchange(event, scaledDelta, random)) {
       event.phase = 'outbound';
       event.distance = 0;
@@ -752,7 +774,7 @@ function updateVesselEvent(scene, state, portState, scaledDelta, random = Math.r
       event.distance = track.total;
       event.cargoStepIndex = 0;
       event.cargoStepTimerMs = 0;
-      setVesselVisual(scene, event, event.route.berth);
+      setVesselVisual(scene, event, event.route.berth, getVesselDockDirection(scene, event.route.side, event.route.berth));
       startVesselEventSound(scene, event, VESSEL_AUDIO_CONFIG.horn);
       return;
     }
@@ -914,6 +936,7 @@ const vesselVisualTestApi = {
   stopVesselEventSound,
   getHarborBerthCandidates,
   getVesselDockPoint,
+  getVesselDockDirection,
   findOceanRoute,
   findVesselShipRoute,
   isVesselRouteStillOutsideView,

@@ -1,6 +1,6 @@
 const path = require('path');
 const fs = require('fs');
-const { app, BrowserWindow, safeStorage, shell } = require('electron');
+const { app, BrowserWindow, dialog, safeStorage, shell } = require('electron');
 const { scheduleUpdateChecks } = require('./electron-updates');
 
 const emitWarning = process.emitWarning.bind(process);
@@ -14,6 +14,48 @@ const { startGameServer } = require('./server');
 let mainWindow = null;
 let gameServer = null;
 const hasSingleInstanceLock = app.requestSingleInstanceLock();
+
+// The renderer hosts the whole game (Phaser + sim). If it crashes or wedges,
+// there is nothing left inside the page that can recover itself — without
+// this, a dead renderer just leaves the window frozen on its last frame
+// forever with no way out except a force-quit. render-process-gone fires once
+// the process is confirmed gone; unresponsive fires while it's still alive
+// but hasn't answered an IPC ping in ~5s (e.g. a long synchronous sim tick),
+// so that case gets a grace period in case it's just a slow frame, not a wedge.
+const UNRESPONSIVE_RECOVERY_DELAY_MS = 8000;
+let unresponsiveRecoveryTimer = null;
+
+function clearUnresponsiveRecoveryTimer() {
+  if (unresponsiveRecoveryTimer) {
+    clearTimeout(unresponsiveRecoveryTimer);
+    unresponsiveRecoveryTimer = null;
+  }
+}
+
+const RENDERER_RECOVERY_REASON_TEXT = {
+  crashed: { zh: '遊戲畫面已經停止咗', en: 'The game display has stopped' },
+  unresponsive: { zh: '遊戲畫面卡住咗好一陣', en: 'The game display has been unresponsive for a while' },
+};
+
+async function offerRendererRecovery(reasonKind) {
+  if (!mainWindow || mainWindow.isDestroyed() || !gameServer) return;
+  const reason = RENDERER_RECOVERY_REASON_TEXT[reasonKind] ?? RENDERER_RECOVERY_REASON_TEXT.crashed;
+  const { response } = await dialog.showMessageBox(mainWindow, {
+    type: 'warning',
+    buttons: ['重新載入 Reload', '稍後 Later'],
+    defaultId: 0,
+    cancelId: 1,
+    title: '遊戲畫面沒有回應 The game display stopped responding',
+    message: `${reason.zh}。要重新載入嗎？未存檔的進度可能會遺失，但已儲存的城市不受影響。\n\n`
+      + `${reason.en}. Reload now? Unsaved progress may be lost, but saved cities are unaffected.`,
+  });
+  if (response !== 0 || !mainWindow || mainWindow.isDestroyed() || !gameServer) return;
+  try {
+    await mainWindow.loadURL(gameServer.url);
+  } catch (err) {
+    console.error('[electron recovery reload]', err);
+  }
+}
 
 function createEncryptedAiNewsCredentialStore(filePath) {
   let sessionPayload = {
@@ -132,6 +174,7 @@ async function createWindow() {
   });
 
   mainWindow.on('closed', () => {
+    clearUnresponsiveRecoveryTimer();
     mainWindow = null;
     stopGameServer();
   });
@@ -139,6 +182,28 @@ async function createWindow() {
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url);
     return { action: 'deny' };
+  });
+
+  mainWindow.webContents.on('render-process-gone', (event, details) => {
+    console.error('[electron] render-process-gone', details.reason);
+    clearUnresponsiveRecoveryTimer();
+    // 'clean-exit' means something deliberately ended the process (not a crash
+    // players hit) — nothing to recover from.
+    if (details.reason === 'clean-exit') return;
+    offerRendererRecovery('crashed');
+  });
+
+  mainWindow.webContents.on('unresponsive', () => {
+    console.warn('[electron] webContents unresponsive');
+    clearUnresponsiveRecoveryTimer();
+    unresponsiveRecoveryTimer = setTimeout(() => {
+      unresponsiveRecoveryTimer = null;
+      offerRendererRecovery('unresponsive');
+    }, UNRESPONSIVE_RECOVERY_DELAY_MS);
+  });
+
+  mainWindow.webContents.on('responsive', () => {
+    clearUnresponsiveRecoveryTimer();
   });
 
   await mainWindow.loadURL(gameServer.url);

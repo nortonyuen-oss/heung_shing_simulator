@@ -9,10 +9,26 @@ const modelRecentHistory = new Map();
 
 function runSimTick(scene) {
   if (!scene) return;
+  const performanceProfileStartedAt = (
+    typeof isVisualRouteCalibrationTestModeEnabled === 'function'
+    && isVisualRouteCalibrationTestModeEnabled()
+    && typeof recordVisualRoutePerformanceDuration === 'function'
+  ) ? performance.now() : null;
+  const runProfiledStep = (section, action) => {
+    if (performanceProfileStartedAt === null) return action();
+    const startedAt = performance.now();
+    const result = action();
+    recordVisualRoutePerformanceDuration(scene, `sim.${section}`, performance.now() - startedAt);
+    return result;
+  };
 
-  invalidateBuildingCountCache();
-  updateWeatherSimulation();
-  updateWeatherVisualOverlay(scene);
+  // A tick refreshes aggregate counts, but facility anchors only change through
+  // placement/demolition/load paths which invalidate their cache explicitly.
+  invalidateBuildingCountCache({ facilities: false });
+  runProfiledStep('weather', () => {
+    updateWeatherSimulation();
+    updateWeatherVisualOverlay(scene);
+  });
 
   // Order matters:
   // 1. Infrastructure state (power, services)
@@ -21,20 +37,24 @@ function runSimTick(scene) {
   // 4. Demand (needs fresh happiness)
   // 5. Zone growth (needs fresh demand)
   // 6. Economy, date, display
-  updatePowerGrid(scene);
-  updateServiceCoverage();
-  updatePopulationAndPollution();
-  updateTrafficMap();
-  updateEducationLevels();
-  updateCrimeRateIndex();
-  updateHealthMetrics();
-  computeHappiness(scene);
-  if (typeof updateCityAttractivenessMetrics === 'function') updateCityAttractivenessMetrics();
-  updateDemand();
-  updateStockMarketTick();
-  updateTrees(scene);
-  updateCitizenActivitySimulation();
-  if (typeof queueAiNewsGeneration === 'function') queueAiNewsGeneration();
+  runProfiledStep('power', () => updatePowerGrid(scene));
+  runProfiledStep('services', () => updateServiceCoverage());
+  runProfiledStep('population', () => updatePopulationAndPollution());
+  runProfiledStep('traffic', () => updateTrafficMap());
+  runProfiledStep('education', () => updateEducationLevels());
+  runProfiledStep('crime', () => updateCrimeRateIndex());
+  runProfiledStep('health', () => updateHealthMetrics());
+  runProfiledStep('happiness', () => computeHappiness(scene));
+  runProfiledStep('attractiveness', () => {
+    if (typeof updateCityAttractivenessMetrics === 'function') updateCityAttractivenessMetrics();
+  });
+  runProfiledStep('demand', () => updateDemand());
+  runProfiledStep('stocks', () => updateStockMarketTick());
+  runProfiledStep('trees', () => updateTrees(scene));
+  runProfiledStep('citizens', () => updateCitizenActivitySimulation());
+  runProfiledStep('news', () => {
+    if (typeof queueAiNewsGeneration === 'function') queueAiNewsGeneration();
+  });
 
   // Keep the expensive full-map diagnostics available for development without
   // charging every player for another zone/road scan once per game month.
@@ -55,18 +75,27 @@ function runSimTick(scene) {
     );
   }
 
-  growOrShrinkZones(scene);
-  runEconomy(scene);
-  advanceDate();
-  if (typeof updateCouncilTimedSystems === 'function') updateCouncilTimedSystems();
-  refreshZoneOverlayTints(scene);
+  runProfiledStep('growth', () => growOrShrinkZones(scene));
+  runProfiledStep('economy', () => runEconomy(scene));
+  runProfiledStep('date', () => advanceDate());
+  runProfiledStep('council', () => {
+    if (typeof updateCouncilTimedSystems === 'function') updateCouncilTimedSystems();
+  });
+  runProfiledStep('overlay', () => refreshZoneOverlayTints(scene));
   // Invalidate before the HUD refresh so an open mini-map is recomputed once,
   // not once with stale data and then a second time immediately afterwards.
   if (typeof activeOverlay === 'string' && activeOverlay) {
     if (typeof invalidateOverlayCache === 'function') invalidateOverlayCache();
     else overlayCache = {};
   }
-  updateHUD();
+  runProfiledStep('hud', () => updateHUD());
+  if (performanceProfileStartedAt !== null) {
+    recordVisualRoutePerformanceDuration(
+      scene,
+      'simulation',
+      performance.now() - performanceProfileStartedAt,
+    );
+  }
 }
 
 function updateEducationLevels() {
@@ -314,6 +343,43 @@ function getHealthPollutionSources() {
   return sources;
 }
 
+// getTreeInfluenceValue/getScenicValue each brute-force a ~(2*radius+1)^2 tile
+// scan. computeHappiness and getLocalHealthPollutionPressure both need them for
+// every residential tile, every single sim tick — in a mature city that's
+// millions of redundant iterations (and short-lived arrays for GC to chase)
+// for values that only move as trees grow or terrain changes. Cache per
+// game-month bucket, the same freshness window sim-growth.js already uses for
+// its land-value/quality snapshots (see getZoneGrowthQualityContextBucket).
+let residentialEnvironmentScoreBucket = -1;
+const residentialEnvironmentScoreCache = new Map();
+
+function invalidateResidentialEnvironmentScoreCache() {
+  residentialEnvironmentScoreBucket = -1;
+  residentialEnvironmentScoreCache.clear();
+}
+
+function getResidentialEnvironmentScore(row, col) {
+  const ticksPerMonth = Math.max(1, Number(
+    typeof TICKS_PER_MONTH === 'undefined' ? 4 : TICKS_PER_MONTH,
+  ) || 4);
+  const tick = typeof city === 'undefined' ? 0 : Number(city.tick) || 0;
+  const bucket = Math.floor(Math.max(0, tick) / ticksPerMonth);
+  if (bucket !== residentialEnvironmentScoreBucket) {
+    residentialEnvironmentScoreCache.clear();
+    residentialEnvironmentScoreBucket = bucket;
+  }
+  const key = row * MAP_WIDTH + col;
+  let entry = residentialEnvironmentScoreCache.get(key);
+  if (!entry) {
+    entry = {
+      tree: typeof getTreeInfluenceValue === 'function' ? getTreeInfluenceValue(row, col) : 0,
+      scenic: typeof getScenicValue === 'function' ? getScenicValue(row, col) : 0,
+    };
+    residentialEnvironmentScoreCache.set(key, entry);
+  }
+  return entry;
+}
+
 function getLocalHealthPollutionPressure(row, col, pollutionSources = null) {
   let pressure = 0;
   const pollutionMul = (isPolicyActive('cleanAir') ? 0.70 : 1)
@@ -328,14 +394,22 @@ function getLocalHealthPollutionPressure(row, col, pollutionSources = null) {
     pressure += strength * pollutionMul * sourceMultiplier * (1 - dist / Math.max(1, radius));
   });
 
-  if (typeof getTreeInfluenceValue === 'function') {
-    pressure -= getTreeInfluenceValue(row, col) * 0.10;
-  }
+  pressure -= getResidentialEnvironmentScore(row, col).tree * 0.10;
 
   return clamp(pressure, 0, 1);
 }
 
 // ── Demand engine ─────────────────────────────────────────────────────────────
+
+function getPowerShortageDemandPenalty(powerRatio = city.powerRatio) {
+  const numericRatio = Number(powerRatio);
+  const suppliedRatio = clamp(Number.isFinite(numericRatio) ? numericRatio : 1, 0, 1);
+  return clamp(
+    (1 - suppliedRatio) * POWER_SHORTAGE_DEMAND_PENALTY_SCALE,
+    0,
+    POWER_SHORTAGE_DEMAND_PENALTY_MAX,
+  );
+}
 
 function updateDemand() {
   normalizeCityFinanceState();
@@ -352,6 +426,7 @@ function updateDemand() {
   const lawIndex   = clamp(city.ruleOfLawIndex ?? 0, 0, 1);
   const hsiRatio   = clamp(((city.stockMarket?.hsi ?? HSI_BASE_LEVEL) - HSI_BASE_LEVEL) / (HSI_BASE_LEVEL * 0.35), -1, 1);
   const stockExchangeBoost = hasBuildingType('stock_exchange') ? 0.08 : 0;
+  const powerShortageDemandPenalty = getPowerShortageDemandPenalty();
 
   // ── Labour market ─────────────────────────────────────────────────────────
   // Job capacity scales with building footprint so merged 2x2/3x3 buildings
@@ -409,6 +484,7 @@ function updateDemand() {
     - epidemicDemandPenalty * 0.16
     - healthCapacityPenalty
     - congestionPenR
+    - powerShortageDemandPenalty
     - 0.2 * (city.taxRate / TAX_RATE_MAX),
     -1, 1
   );
@@ -446,6 +522,7 @@ function updateDemand() {
     + stockExchangeBoost
     - epidemicDemandPenalty * 0.08
     - congestionPenC
+    - powerShortageDemandPenalty
     - 0.05,
     -1, 1
   );
@@ -475,7 +552,8 @@ function updateDemand() {
     - (isPolicyActive('cleanAir') ? 0.05 : 0)
     + (isPolicyActive('scienceDevelopment') ? 0.05 : 0)
     + (isPolicyActive('industrialBuildingRevitalization') ? 0.12 : 0)
-    + (isPolicyActive('strongCountryManufacturing') ? 0.10 : 0),
+    + (isPolicyActive('strongCountryManufacturing') ? 0.10 : 0)
+    - powerShortageDemandPenalty,
     -1, 1
   );
 }
@@ -589,8 +667,9 @@ function computeHappiness(scene) {
         parkScore += Math.min(serviceMap[r]?.[c]?.park ?? 0, 2);
         // Sports grounds contribute an additional recreation bonus (up to +0.5 park-equivalent)
         parkScore += Math.min((serviceMap[r]?.[c]?.sportsGround ?? 0) * 0.5, 1);
-        if (typeof getTreeInfluenceValue === 'function') treeScore += getTreeInfluenceValue(r, c);
-        if (typeof getScenicValue === 'function') scenicScore += getScenicValue(r, c);
+        const env = getResidentialEnvironmentScore(r, c);
+        treeScore += env.tree;
+        scenicScore += env.scenic;
       }
     }
   }
@@ -614,7 +693,6 @@ function computeHappiness(scene) {
   const scenicRatio  = residential > 0 ? clamp(scenicScore / residential, 0, 1) : 0;
   const taxPenalty   = Math.max(0, (city.taxRate - 0.09) * 3);
   const pollPenalty  = city.pollution / 200;
-  const powerPenalty = Math.max(0, 1 - (city.powerRatio ?? 1)) * 0.22;
   const roadBonus = Math.min(0.08, (getDepartmentFunding('roads') - 1) * 0.08 + (isPolicyActive('roadRepair') ? 0.04 : 0));
   const policyBonus = (isPolicyActive('cleanAir') ? 0.03 : 0)
     + (isPolicyActive('publicSafety') ? 0.02 : 0)
@@ -637,7 +715,7 @@ function computeHappiness(scene) {
       + roadBonus + policyBonus + lawBonus + healthBonus + landmarkHappinessBonus
       + (typeof getCouncilTemporaryModifier === 'function' ? getCouncilTemporaryModifier('happiness') : 0)
       + ridiculeMemeBonus
-      - taxPenalty - pollPenalty - powerPenalty - unemploymentHappinessPenalty - epidemicHappinessPenalty
+      - taxPenalty - pollPenalty - unemploymentHappinessPenalty - epidemicHappinessPenalty
       - ridiculeReputationPenalty,
     0, 1
   );

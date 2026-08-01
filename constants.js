@@ -168,6 +168,14 @@ const STOCK_MARKET_CATALOG = [
 const GROW_CHANCE_BASE = 0.4;
 const UPGRADE_CHANCE   = 0.15;
 const SHRINK_CHANCE    = 0.30;
+// Decline is evaluated monthly and hard-capped so a weak power grid cannot
+// remove or downgrade a large share of the city in one simulation callback.
+// For a roughly 1,000-building city this allows at most five mutations, of
+// which no more than two may make a level-one building disappear.
+const ZONE_DECLINE_MUTATION_FRACTION_PER_MONTH = 0.005;
+const ZONE_DECLINE_REMOVAL_FRACTION_PER_MONTH = 0.0015;
+const ZONE_DECLINE_MAX_MUTATIONS_PER_MONTH = 8;
+const ZONE_DECLINE_MAX_REMOVALS_PER_MONTH = 2;
 const PREMIUM_VISUAL_UPGRADE_CHANCE_PER_MONTH = 0.012;
 const PREMIUM_VISUAL_REBALANCE_CHANCE_PER_MONTH = 0.045;
 const SKYLINE_NEIGHBORHOOD_RADIUS = 6;
@@ -609,6 +617,10 @@ const SPECIAL_BUILDING_MODELS = {
 // footprint loadable so migration never claims or overwrites adjacent tiles.
 const LEGACY_AIRPORT_MODEL = {
   spriteKey: 'airport_6x6_legacy',
+  // Keep the legacy key as a footprint/save profile only. All airport sizes
+  // render from the canonical 12x12 texture so Phaser decodes/uploads the
+  // shared source image once instead of once per historic footprint.
+  textureKey: 'airport_12x12',
   path: 'Models/airPort/6x6/airport6-01.png',
   cacheVersion: '20260719-12x12-v4',
   footprintCols: 6,
@@ -617,6 +629,7 @@ const LEGACY_AIRPORT_MODEL = {
 
 const LEGACY_AIRPORT_8X8_MODEL = {
   spriteKey: 'airport_8x8_legacy',
+  textureKey: 'airport_12x12',
   path: 'Models/airPort/6x6/airport6-01.png',
   cacheVersion: '20260719-12x12-v4',
   footprintCols: 8,
@@ -655,6 +668,10 @@ function getAllSpecialBuildingModels(buildingType) {
   if (buildingType === 'airport') return [...models, LEGACY_AIRPORT_MODEL, LEGACY_AIRPORT_8X8_MODEL];
   if (buildingType === 'ocean_park') return [...models, LEGACY_OCEAN_PARK_MODEL];
   return models;
+}
+
+function getFixedBuildingTextureKey(model) {
+  return model?.textureKey ?? model?.spriteKey ?? '';
 }
 
 // Container port: footprint is fixed but the sprite is chosen per-tile from the
@@ -898,6 +915,11 @@ const ANCHOR_RATIO = 30;
 const LABOUR_FORCE_RATIO = 0.60;
 // Max happiness penalty when unemployment is 100%
 const UNEMPLOYMENT_HAPPINESS_PENALTY = 0.25;
+// A city-wide shortage acts through the R/C/I market instead of directly
+// selecting buildings for decline. At 50% supply the demand penalty is 0.70;
+// at 18% supply it reaches the capped 1.15-point penalty.
+const POWER_SHORTAGE_DEMAND_PENALTY_SCALE = 1.40;
+const POWER_SHORTAGE_DEMAND_PENALTY_MAX = 1.15;
 // Fraction of higher-edu labour force preferring commercial / science-park jobs
 const HIGH_EDU_COM_PREFERENCE = 0.70;
 // Fraction of non-higher-edu labour force seeking industrial jobs

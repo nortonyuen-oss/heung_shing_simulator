@@ -59,7 +59,7 @@ function tryConvertSingleIndustrialToSciencePark(scene, row, col, record, reques
   }
 
   const oldRecord = { ...record };
-  if (!removeBuilding(scene, row, col)) return false;
+  if (!removeBuilding(scene, row, col, { refreshInfrastructure: false })) return false;
 
   const options = { ...(model.metadata ?? {}) };
   placeSpriteBuilding(scene, row, col, model.key, options);

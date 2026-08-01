@@ -219,6 +219,7 @@ function resetGameState() {
   serviceMap     = createFilledMap(null);
   treeMap        = createFilledMap(null);
   if (typeof invalidateTreeSimulationTiles === 'function') invalidateTreeSimulationTiles();
+  if (typeof invalidateResidentialEnvironmentScoreCache === 'function') invalidateResidentialEnvironmentScoreCache();
   bridgeMap      = createFilledMap(null);
   roadUnderlayMap = createFilledMap(null);
   trafficMap     = createFilledMap(0);
@@ -365,6 +366,10 @@ function resetGameState() {
   city.month      = 1;
   city.year       = 1900;
   city.isBankrupt = false;
+  if (typeof clearZoneGrowthQualityContextCache === 'function') {
+    clearZoneGrowthQualityContextCache();
+  }
+  invalidateBuildingCountCache();
 }
 
 // Deep save migration used to rebuild the council, stock market, weather and
@@ -698,11 +703,64 @@ function normalizeCityFinanceState() {
 }
 
 let _buildingCountCache = null;
+let _buildingFacilityCache = null;
+const EMPTY_BUILDING_FACILITY_ENTRIES = Object.freeze([]);
+const _buildingFacilityCacheStats = {
+  hits: 0,
+  misses: 0,
+  rebuilds: 0,
+  entryCount: 0,
+};
 let _powerGridDirty = true;
 let _serviceCoverageDirty = true;
 
-function invalidateBuildingCountCache() {
+function invalidateBuildingCountCache(options = {}) {
   _buildingCountCache = null;
+  if (options.facilities !== false) _buildingFacilityCache = null;
+}
+
+function rebuildBuildingFacilityCache() {
+  const byType = new Map();
+  Object.entries(buildingData).forEach(([id, record]) => {
+    const type = String(record?.type || '');
+    if (!type) return;
+    const [row, col] = id.split(':').map(Number);
+    if (!Number.isFinite(row) || !Number.isFinite(col)) return;
+    if (!byType.has(type)) byType.set(type, []);
+    byType.get(type).push(Object.freeze({
+      id,
+      type,
+      row,
+      col,
+      centerRow: row + (Math.max(1, Number(record.footprintRows) || 1) - 1) / 2,
+      centerCol: col + (Math.max(1, Number(record.footprintCols) || 1) - 1) / 2,
+      record,
+    }));
+  });
+  byType.forEach((entries, type) => byType.set(type, Object.freeze(entries)));
+  _buildingFacilityCache = byType;
+  _buildingFacilityCacheStats.rebuilds++;
+  _buildingFacilityCacheStats.entryCount = [...byType.values()]
+    .reduce((total, entries) => total + entries.length, 0);
+  return byType;
+}
+
+function getBuildingFacilityEntries(type) {
+  if (!_buildingFacilityCache) {
+    _buildingFacilityCacheStats.misses++;
+    rebuildBuildingFacilityCache();
+  } else {
+    _buildingFacilityCacheStats.hits++;
+  }
+  return _buildingFacilityCache.get(type) ?? EMPTY_BUILDING_FACILITY_ENTRIES;
+}
+
+function getBuildingFacilityCacheStats() {
+  return {
+    valid: _buildingFacilityCache instanceof Map,
+    typeCount: _buildingFacilityCache?.size ?? 0,
+    ..._buildingFacilityCacheStats,
+  };
 }
 
 function markPowerGridDirty() {

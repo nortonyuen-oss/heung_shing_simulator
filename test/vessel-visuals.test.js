@@ -275,6 +275,132 @@ test('docked direction stays parallel to the pier at every map rotation', () => 
   }
 });
 
+test('berth calibration measures centerline and outward normal for all four quay sides', () => {
+  const originalBuildingData = global.buildingData;
+  global.buildingData = {
+    '10:20': { type: 'container_port', footprintRows: 4, footprintCols: 4 },
+  };
+  try {
+    const expected = {
+      n: { logical: { row: 8.75, col: 21.75 }, along: 0.25, normal: 1.25 },
+      s: { logical: { row: 14.25, col: 21.25 }, along: -0.25, normal: 1.25 },
+      w: { logical: { row: 11.75, col: 18.5 }, along: 0.25, normal: 1.5 },
+      e: { logical: { row: 11.25, col: 24.5 }, along: -0.25, normal: 1.5 },
+    };
+    Object.entries(expected).forEach(([side, sample]) => {
+      const event = {
+        portId: '10:20',
+        route: { side, berth: sample.logical },
+      };
+      const measurement = vessels.getVesselBerthCalibrationMeasurement(event, sample.logical);
+      assert.equal(measurement.quayCenterRow, 11.5, side);
+      assert.equal(measurement.quayCenterCol, 21.5, side);
+      assert.equal(measurement.alongFromQuayCenterTiles, sample.along, side);
+      assert.equal(measurement.normalFromQuayTiles, sample.normal, side);
+      assert.equal(measurement.alongDeltaTiles, 0, side);
+      assert.equal(measurement.normalDeltaTiles, 0, side);
+    });
+  } finally {
+    if (originalBuildingData === undefined) delete global.buildingData;
+    else global.buildingData = originalBuildingData;
+  }
+});
+
+test('vessel calibration adapter exposes the docked sprite center only while paused', () => {
+  const keys = [
+    'syncVisualRouteCalibrationTarget', 'simPaused', 'mapRotation', 'rotateDirection',
+    'isoToScreen', 'TILE_HEIGHT', 'BUILDING_SURFACE_Y_OFFSET', 'getWorldDepth',
+  ];
+  const originals = Object.fromEntries(keys.map((key) => [key, global[key]]));
+  let descriptor;
+  try {
+    global.syncVisualRouteCalibrationTarget = (_scene, target) => {
+      descriptor = target;
+      return target.eligible && target.paused;
+    };
+    global.simPaused = true;
+    global.mapRotation = 0;
+    global.rotateDirection = (side) => side;
+    global.TILE_HEIGHT = 50;
+    global.BUILDING_SURFACE_Y_OFFSET = 50;
+    global.isoToScreen = (col, row) => ({ x: col * 50, y: row * 25 });
+    global.getWorldDepth = (_kind, y) => y + 1000;
+    const sprite = {
+      depth: 0,
+      setDepth(value) { this.depth = value; return this; },
+    };
+    const event = {
+      id: 'vessel_9',
+      portId: '10:20',
+      phase: 'cargo_exchange',
+      sprite,
+      portSprite: { x: 500, y: 250 },
+      route: { side: 'n', berth: { row: 8.5, col: 21.5 } },
+    };
+    const scene = { offsetX: 7, offsetY: 11 };
+
+    assert.equal(vessels.syncVesselBerthCalibration(scene, event), true);
+    assert.equal(descriptor.kind, 'vessel-berth');
+    assert.equal(descriptor.slot, 'ur');
+    assert.deepEqual(descriptor.slots, ['ll', 'lr', 'ul', 'ur']);
+    assert.equal(descriptor.sprite, sprite);
+    assert.equal(descriptor.eligible, true);
+    assert.equal(descriptor.paused, true);
+    assert.deepEqual(descriptor.baselineWorld, { x: 1082, y: 148.5 });
+
+    descriptor.onMove(1100, 160, { row: 9, col: 22 });
+    assert.equal(sprite.depth, 1250);
+    assert.deepEqual(event.lastWorld, { x: 1100, y: 160, depthY: 250 });
+    assert.deepEqual(event.lastLogical, { row: 9, col: 22 });
+
+    global.simPaused = false;
+    assert.equal(vessels.syncVesselBerthCalibration(scene, event), false);
+    assert.equal(descriptor.paused, false);
+  } finally {
+    Object.entries(originals).forEach(([key, value]) => {
+      if (value === undefined) delete global[key];
+      else global[key] = value;
+    });
+  }
+});
+
+test('paused berth calibration owns the sprite position so the route cannot snap a drag back', () => {
+  const keys = [
+    'buildingData', 'syncVisualRouteCalibrationTarget', 'simPaused', 'mapRotation',
+    'rotateDirection', 'isoToScreen', 'TILE_HEIGHT', 'BUILDING_SURFACE_Y_OFFSET',
+  ];
+  const originals = Object.fromEntries(keys.map((key) => [key, global[key]]));
+  let positionWrites = 0;
+  try {
+    global.buildingData = { '4:5': { type: 'container_port', footprintRows: 4, footprintCols: 4 } };
+    global.syncVisualRouteCalibrationTarget = () => true;
+    global.simPaused = true;
+    global.mapRotation = 0;
+    global.rotateDirection = (side) => side;
+    global.TILE_HEIGHT = 50;
+    global.BUILDING_SURFACE_Y_OFFSET = 50;
+    global.isoToScreen = (col, row) => ({ x: col * 50, y: row * 25 });
+    const event = {
+      id: 'vessel_10',
+      portId: '4:5',
+      phase: 'cargo_exchange',
+      sprite: { setPosition: () => { positionWrites++; } },
+      portSprite: { active: true },
+      route: { side: 's', berth: { row: 8.8, col: 6.5 } },
+      sound: null,
+    };
+    const portState = { event, cooldownMs: 0 };
+    vessels.updateVesselEvent({ offsetX: 0, offsetY: 0 }, {}, portState, 0, () => 0.5);
+    assert.equal(positionWrites, 0);
+    assert.equal(portState.event, event);
+  } finally {
+    Object.entries(originals).forEach(([key, value]) => {
+      if (value === undefined) delete global[key];
+      else global[key] = value;
+    });
+  }
+});
+
 test('ocean routing reaches off-view map-edge water but rejects enclosed lakes', () => {
   const water = 1;
   const land = 0;
@@ -353,7 +479,7 @@ test('vessel module is wired into Phaser lifecycle and remains visual-only', () 
   const html = source('index.html');
   const main = source('main.js');
   const moduleSource = source('vessel-visuals.js');
-  assert.match(html, /traffic-visuals\.js[\s\S]*vessel-visuals\.js[\s\S]*main\.js/);
+  assert.match(html, /traffic-visuals\.js[\s\S]*visual-route-calibrator\.js[\s\S]*vessel-visuals\.js[\s\S]*main\.js/);
   assert.match(main, /setupVesselVisuals\(this\)/);
   assert.match(main, /updateVesselVisuals\.call\(this, time, delta\)/);
   assert.match(main, /clearVesselVisuals\(scene\)/);

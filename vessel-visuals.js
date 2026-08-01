@@ -717,7 +717,103 @@ function setVesselVisual(scene, event, logicalPoint, forcedDirection = null, sid
   event.lastLogical = logicalPoint;
 }
 
-function destroyVesselEvent(event) {
+function getVesselCalibrationLogicalPoint(scene, worldX, worldY) {
+  if (typeof screenToIso !== 'function') return null;
+  const surfaceOffset = (typeof BUILDING_SURFACE_Y_OFFSET === 'number' ? BUILDING_SURFACE_Y_OFFSET : 82)
+    + (typeof TILE_HEIGHT === 'number' ? TILE_HEIGHT : 50) / 2;
+  const logical = screenToIso(
+    worldX - (Number(scene?.offsetX) || 0),
+    worldY - (Number(scene?.offsetY) || 0) + surfaceOffset,
+  );
+  const row = Number(logical?.y);
+  const col = Number(logical?.x);
+  return Number.isFinite(row) && Number.isFinite(col) ? { row, col } : null;
+}
+
+function getVesselBerthCalibrationMeasurement(event, logical) {
+  const side = event?.route?.side;
+  const [portRow, portCol] = String(event?.portId || '').split(':').map(Number);
+  if (!logical || !['n', 'e', 's', 'w'].includes(side)
+    || !Number.isFinite(portRow) || !Number.isFinite(portCol)) return {};
+  const record = typeof buildingData === 'undefined' ? null : buildingData[event.portId];
+  const cols = Number(record?.footprintCols) || 4;
+  const rows = Number(record?.footprintRows) || 4;
+  const quayCenterRow = portRow + (rows - 1) / 2;
+  const quayCenterCol = portCol + (cols - 1) / 2;
+  const valuesForPoint = (point) => {
+    if (!point) return null;
+    if (side === 'n') {
+      return { along: point.col - quayCenterCol, normal: portRow - point.row };
+    }
+    if (side === 's') {
+      return { along: point.col - quayCenterCol, normal: point.row - (portRow + rows - 1) };
+    }
+    if (side === 'w') {
+      return { along: point.row - quayCenterRow, normal: portCol - point.col };
+    }
+    return { along: point.row - quayCenterRow, normal: point.col - (portCol + cols - 1) };
+  };
+  const current = valuesForPoint(logical);
+  const original = valuesForPoint(event.route.berth);
+  return {
+    quayCenterRow,
+    quayCenterCol,
+    alongFromQuayCenterTiles: current.along,
+    normalFromQuayTiles: current.normal,
+    alongDeltaTiles: original ? current.along - original.along : null,
+    normalDeltaTiles: original ? current.normal - original.normal : null,
+  };
+}
+
+function syncVesselBerthCalibration(scene, event) {
+  if (typeof syncVisualRouteCalibrationTarget !== 'function' || !event?.sprite) return false;
+  const docked = event.phase === 'cargo_exchange';
+  if (!docked) {
+    if (typeof clearVisualRouteCalibrationTarget === 'function') {
+      clearVisualRouteCalibrationTarget(scene, event.id);
+    }
+    return false;
+  }
+  const paused = typeof simPaused !== 'undefined' && simPaused;
+  const berthWorld = getVesselWaterSurfacePoint(scene, event.route.berth.row, event.route.berth.col);
+  const visualVariant = getVesselHarborVisualVariant(event.route.side);
+  return syncVisualRouteCalibrationTarget(scene, {
+    id: event.id,
+    kind: 'vessel-berth',
+    label: '船舶停泊校正',
+    slot: visualVariant,
+    slots: ['ll', 'lr', 'ul', 'ur'],
+    visualVariant,
+    logicalSide: event.route.side,
+    rotation: typeof mapRotation === 'number' ? mapRotation : 0,
+    sprite: event.sprite,
+    referenceSprite: event.portSprite,
+    eligible: docked,
+    paused,
+    baselineWorld: { x: berthWorld.x, y: berthWorld.y },
+    originalLogical: event.route.berth,
+    worldToLogical: (worldX, worldY) => (
+      getVesselCalibrationLogicalPoint(scene, worldX, worldY)
+    ),
+    measure: (logical) => getVesselBerthCalibrationMeasurement(event, logical),
+    onMove: (worldX, worldY, logical) => {
+      if (!logical) return;
+      const iso = isoToScreen(logical.col, logical.row);
+      const tileHeight = typeof TILE_HEIGHT === 'number' ? TILE_HEIGHT : 50;
+      const depthY = iso.y + tileHeight / 2;
+      if (typeof getWorldDepth === 'function') {
+        event.sprite.setDepth(getWorldDepth('object', depthY));
+      }
+      event.lastWorld = { x: worldX, y: worldY, depthY };
+      event.lastLogical = logical;
+    },
+  });
+}
+
+function destroyVesselEvent(scene, event) {
+  if (typeof clearVisualRouteCalibrationTarget === 'function') {
+    clearVisualRouteCalibrationTarget(scene, event?.id);
+  }
   stopVesselEventSound(event);
   event?.sprite?.destroy?.();
 }
@@ -789,7 +885,7 @@ function updateVesselEvent(scene, state, portState, scaledDelta, random = Math.r
   const recordStillExists = typeof buildingData !== 'undefined'
     && buildingData[event.portId]?.type === 'container_port';
   if (!recordStillExists || !event.portSprite?.active) {
-    destroyVesselEvent(event);
+    destroyVesselEvent(scene, event);
     portState.event = null;
     portState.cooldownMs = vesselRandomBetween(
       VESSEL_VISUAL_CONFIG.cooldownMinMs,
@@ -798,6 +894,7 @@ function updateVesselEvent(scene, state, portState, scaledDelta, random = Math.r
     );
     return;
   }
+  if (syncVesselBerthCalibration(scene, event)) return;
   if (event.phase === 'cargo_exchange') {
     setVesselVisual(scene, event, event.route.berth, getVesselDockDirection(scene, event.route.side, event.route.berth), event.route.side);
     if (updateVesselCargoExchange(event, scaledDelta, random)) {
@@ -818,7 +915,7 @@ function updateVesselEvent(scene, state, portState, scaledDelta, random = Math.r
       startVesselEventSound(scene, event, VESSEL_AUDIO_CONFIG.horn);
       return;
     }
-    destroyVesselEvent(event);
+    destroyVesselEvent(scene, event);
     portState.event = null;
     portState.cooldownMs = vesselRandomBetween(
       VESSEL_VISUAL_CONFIG.cooldownMinMs,
@@ -901,7 +998,7 @@ function setupVesselVisuals(scene) {
 function clearVesselVisuals(scene) {
   const state = scene?.vesselVisualState;
   if (!state) return;
-  state.portStates.forEach((portState) => destroyVesselEvent(portState.event));
+  state.portStates.forEach((portState) => destroyVesselEvent(scene, portState.event));
   state.portStates.clear();
 }
 
@@ -978,6 +1075,10 @@ const vesselVisualTestApi = {
   getVesselDockPoint,
   getVesselHarborVisualVariant,
   getVesselDockDirection,
+  getVesselCalibrationLogicalPoint,
+  getVesselBerthCalibrationMeasurement,
+  syncVesselBerthCalibration,
+  updateVesselEvent,
   findOceanRoute,
   findVesselShipRoute,
   isVesselRouteStillOutsideView,

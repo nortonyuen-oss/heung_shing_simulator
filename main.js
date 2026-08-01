@@ -65,6 +65,7 @@ const AMBIENT_TRACKS = [
 const SFX_TRACKS = [
   { key: 'sfx_thunder', file: 'Sounds/thunder.mp3' },
   { key: 'event_ice_cream_truck', file: 'Sounds/iceCreamTruck.m4a' },
+  { key: 'vessel_horn', file: 'Sounds/vesselFlute.m4a' },
 ];
 
 // Rain particle tiers (screen-space). Shares the same storm-severity ladder as
@@ -283,11 +284,15 @@ function setGameWorldVisible(visible) {
   scene.scene.setVisible(shouldShow);
   if (!shouldShow) {
     if (typeof clearTrafficVisuals === 'function') clearTrafficVisuals(scene);
+    if (typeof clearVesselVisuals === 'function') clearVesselVisuals(scene);
     return;
   }
   updateTerrainViewportCulling(scene, true);
   if (typeof invalidateTrafficVisualView === 'function') {
     invalidateTrafficVisualView(scene, true);
+  }
+  if (typeof invalidateVesselVisualView === 'function') {
+    invalidateVesselVisualView(scene, true);
   }
 }
 
@@ -345,11 +350,75 @@ function updateTerrainViewportCulling(scene, force = false) {
       );
     }
   }
+
+  // Buildings/trees/overlays get a much more generous pad than terrain tiles:
+  // a building's Map entry is keyed by its anchor tile only, but footprints up
+  // to 5x5 (see model-catalog.js) and multi-story sprites can still paint well
+  // inside the viewport even when their anchor sits just outside it.
+  const spritePadX = TILE_WIDTH * 6;
+  const spritePadY = TILE_IMAGE_HEIGHT * 6 + MAX_TERRAIN_HEIGHT * HEIGHT_STEP_PIXELS + TILE_HEIGHT * 4;
+  updateSpriteViewportCulling(scene, {
+    minX: view.x - spritePadX,
+    maxX: view.x + view.width + spritePadX,
+    minY: view.y - spritePadY,
+    maxY: view.y + view.height + spritePadY,
+  });
+}
+
+function isPointWithinCullBounds(x, y, bounds) {
+  return x >= bounds.minX && x <= bounds.maxX && y >= bounds.minY && y <= bounds.maxY;
+}
+
+function cullSpriteMapEntries(map, bounds) {
+  if (!map || !map.size) return;
+  for (const value of map.values()) {
+    if (!value) continue;
+    if (Array.isArray(value)) {
+      // treeSprites stores one entry per tile as an array of sub-sprites.
+      for (const sprite of value) {
+        if (sprite && typeof sprite.setVisible === 'function') {
+          sprite.setVisible(isPointWithinCullBounds(sprite.x, sprite.y, bounds));
+        }
+      }
+    } else if (typeof value.setVisible === 'function') {
+      value.setVisible(isPointWithinCullBounds(value.x, value.y, bounds));
+    } else if (value.body || value.top) {
+      // Bridge ramp entries are a plain { body, top } pair of images rather
+      // than a single game object (see upsertBridgeRampSprite).
+      if (value.body && typeof value.body.setVisible === 'function') {
+        value.body.setVisible(isPointWithinCullBounds(value.body.x, value.body.y, bounds));
+      }
+      if (value.top && typeof value.top.setVisible === 'function') {
+        value.top.setVisible(isPointWithinCullBounds(value.top.x, value.top.y, bounds));
+      }
+    }
+  }
+}
+
+function updateSpriteViewportCulling(scene, bounds) {
+  // A multi-tile building is registered under buildingSprites once per
+  // footprint tile it occupies, all pointing at the same sprite object -
+  // dedupe so a 5x5 landmark isn't visibility-tested 25 times per pass.
+  if (scene.buildingSprites?.size) {
+    const seenBuildings = new Set();
+    for (const building of scene.buildingSprites.values()) {
+      if (!building || seenBuildings.has(building)) continue;
+      seenBuildings.add(building);
+      if (typeof building.setVisible === 'function') {
+        building.setVisible(isPointWithinCullBounds(building.x, building.y, bounds));
+      }
+    }
+  }
+  cullSpriteMapEntries(scene.treeSprites, bounds);
+  cullSpriteMapEntries(scene.zoneOverlays, bounds);
+  cullSpriteMapEntries(scene.powerLineSprites, bounds);
+  cullSpriteMapEntries(scene.bridgeSprites, bounds);
 }
 
 function updateGameFrame(time, delta) {
   updateTerrainViewportCulling(this);
   updateTrafficVisuals.call(this, time, delta);
+  updateVesselVisuals.call(this, time, delta);
 }
 
 function addToRenderLayer(scene, child, layerName) {
@@ -1172,6 +1241,14 @@ const config = {
     width: '100%',
     height: '100%',
   },
+  // `target` alone is only used for delta smoothing/panic detection - `limit`
+  // is what actually throttles the update/render step, otherwise this city
+  // builder redraws as fast as the display allows (120Hz+ on gaming monitors)
+  // for zero visual benefit.
+  fps: {
+    target: 60,
+    limit: 60,
+  },
   scene: { preload, create, update: updateGameFrame },
 };
 
@@ -1625,6 +1702,7 @@ function create() {
   const worldMask = maskGraphics.createGeometryMask();
   this.worldMask = worldMask;
   setupTrafficVisuals(this);
+  setupVesselVisuals(this);
 
   // Disable browser context menu to allow right-click panning
   this.input.mouse.disableContextMenu();
@@ -1672,6 +1750,7 @@ function create() {
     drawWorldMask(this);
     positionAllTiles(this);
     invalidateTrafficVisualView(this, true);
+    invalidateVesselVisualView(this, true);
     ensurePreviewOverlayDepth(this);
     syncWeatherFxToCamera(this);
   });
@@ -1701,6 +1780,8 @@ function create() {
 
   // Paint roads on left click; start panning on right click.
   this.input.on('pointerdown', (pointer) => {
+    if (typeof isVisualRouteCalibrationInputCaptured === 'function'
+      && isVisualRouteCalibrationInputCaptured(this)) return;
     if (pointer.button === 0) {
       isPainting = true;
       const startTile = pointerToTile(this, pointer);
@@ -1717,6 +1798,8 @@ function create() {
   });
 
   this.input.on('pointerup', (pointer) => {
+    if (typeof isVisualRouteCalibrationInputCaptured === 'function'
+      && isVisualRouteCalibrationInputCaptured(this)) return;
     if (pointer.button === 0 && selectedTool === 'inspect') {
       applySelectedTool(this, pointer);
     }
@@ -1730,6 +1813,8 @@ function create() {
 
   // Adjust camera scroll during panning
   this.input.on('pointermove', (pointer) => {
+    if (typeof isVisualRouteCalibrationInputCaptured === 'function'
+      && isVisualRouteCalibrationInputCaptured(this)) return;
     if (isPainting && pointer.isDown) {
       if (selectedTool === 'road' && dragStartTile) {
         const cur = pointerToTile(this, pointer);
@@ -3469,6 +3554,8 @@ function placeSpriteBuilding(scene, row, col, key, options = {}) {
   building.anchorMode = options.anchorMode;
   building.setInteractive({ useHandCursor: true });
   building.on('pointerdown', (pointer) => {
+    if (typeof isVisualRouteCalibrationInputCaptured === 'function'
+      && isVisualRouteCalibrationInputCaptured(scene)) return;
     if (selectedTool !== 'inspect') return;
     const record = buildingData[getTileId(building.mapRow, building.mapCol)];
     if (record?.type === 'legislative_council' && typeof openLegislativeWindow === 'function') {
@@ -8587,6 +8674,7 @@ function rotateMap(scene, steps = 1) {
   const logicalCenter = worldToLogicalPoint(scene, centerBefore.x, centerBefore.y);
 
   clearTrafficVisuals(scene);
+  clearVesselVisuals(scene);
   mapRotation = ((mapRotation + steps) % 4 + 4) % 4;
 
   // Refresh tile textures (direction-aware keys change)
@@ -8620,6 +8708,7 @@ function rotateMap(scene, steps = 1) {
 
 function fullReset(scene) {
   clearTrafficVisuals(scene);
+  clearVesselVisuals(scene);
   clearAllOverlays(scene);
   clearBuildings(scene);
   resetGameState();

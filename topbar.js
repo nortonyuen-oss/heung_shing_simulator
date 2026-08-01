@@ -97,6 +97,10 @@ function setupMenuBar() {
     });
   });
 
+  if (typeof setupVisualRouteCalibrationTestModeUnlock === 'function') {
+    setupVisualRouteCalibrationTestModeUnlock();
+  }
+
   updateSettingsMenu();
   updateSoundMenu();
   updateViewMenu();

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>香城模擬器 | The City of Heung Shing v3.6.0 — 車公靈籤</title>
+  <title>香城模擬器 | The City of Heung Shing v3.7.0 — 貨櫃碼頭！</title>
   <link rel="icon" type="image/png" href="build/icon.png" />
   <style>
     * { box-sizing: border-box; }
@@ -125,16 +125,68 @@
       padding: 8px 12px;
       border-radius: 14px;
       border: 1px solid var(--ui-border-strong);
-      background-image: url('UI/nameplate.png');
-      background-repeat: repeat-x;
-      background-size: 220px 220px;
-      background-position: left top;
+      /* nameplateNew.webp is a single 5x2 grid of colour swatches - one image,
+         cropped (not stretched) to the active colour so the square mosaic-tile
+         texture keeps its true proportions (see getCityPlateCrop in
+         constants.js and applyCityPlateColor in hud.js). */
+      background-image: url('UI/nameplateNew.webp');
+      background-repeat: no-repeat;
+      background-size: 1100px 825px;
+      background-position: 0px 0px;
       box-shadow: inset 0 0 0 2px rgba(255,255,255,0.2), var(--ui-shadow);
       color: #ecf4f0;
       display: flex;
       align-items: center;
       justify-content: center;
       position: relative;
+    }
+
+    #topbar-city-name {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1px;
+      width: 100%;
+      max-width: 100%;
+      pointer-events: none;
+    }
+
+    /* Hong Kong MTR station sign convention: Chinese name on top set in a
+       Ming/Song serif face, English name below in a bold Gothic/sans face. */
+    #topbar-city-name-zh {
+      font-family: 'PMingLiU', 'MingLiU', 'Songti TC', 'Noto Serif TC', 'STSong', serif;
+      font-size: 21px;
+      font-weight: 700;
+      line-height: 1.1;
+      letter-spacing: 1px;
+      text-shadow: 0 2px 5px rgba(0,0,0,0.35);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+      width: 100%;
+      text-align: center;
+    }
+
+    #topbar-city-name-en {
+      font-family: 'Helvetica Neue', 'Arial', 'PingFang HK', 'Microsoft JhengHei', 'Noto Sans HK', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1.1;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.35);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+      width: 100%;
+      text-align: center;
+    }
+
+    #topbar-city-name-en:empty {
+      display: none;
     }
 
     #topbar-rename-btn {
@@ -157,21 +209,6 @@
 
     #topbar-rename-btn:hover {
       background: rgba(12, 69, 46, 0.9);
-    }
-
-    #topbar-city-name {
-      font-size: 22px;
-      font-weight: 800;
-      line-height: 1;
-      letter-spacing: 1px;
-      text-shadow: 0 2px 5px rgba(0,0,0,0.35);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      pointer-events: none;
-      max-width: 100%;
-      width: 100%;
-      text-align: center;
     }
 
     #topbar-main {
@@ -704,6 +741,33 @@
       background: #f8f0d2;
       color: #0d2d5b;
     }
+    .about-app-icon {
+      display: block;
+      margin: 8px auto;
+      padding: 0;
+      border: 0;
+      color: inherit;
+      background: transparent;
+      font: inherit;
+      font-size: 48px;
+      line-height: 1;
+      cursor: default;
+      user-select: none;
+    }
+    .about-app-icon:focus-visible {
+      outline: 2px solid #1e5cb3;
+      outline-offset: 3px;
+      border-radius: 4px;
+    }
+    #visual-route-calibration-test-mode-label {
+      color: #b03a2e;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .04em;
+    }
+    #visual-route-calibration-test-mode-label[hidden] {
+      display: none !important;
+    }
     .dialog-footer {
       padding: 8px 14px;
       display: flex;
@@ -758,6 +822,50 @@
     #ai-news-dialog .dialog-body {
       white-space: normal;
       font-family: Arial, sans-serif;
+    }
+
+    #city-identity-dialog .dialog-body {
+      white-space: normal;
+      font-family: Arial, sans-serif;
+    }
+
+    .city-identity-label {
+      display: block;
+      margin-top: 12px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #4b473c;
+    }
+
+    .city-identity-label:first-child {
+      margin-top: 0;
+    }
+
+    .plate-color-picker {
+      display: grid;
+      grid-template-columns: repeat(5, 40px);
+      gap: 6px;
+      margin-top: 8px;
+      justify-content: center;
+    }
+
+    .plate-color-swatch {
+      width: 40px;
+      height: 40px;
+      border: 2px solid #6f6b60;
+      border-radius: 4px;
+      cursor: pointer;
+      padding: 0;
+      /* background-size/position are set per-swatch in JS via getCityPlateCrop()
+         so the crop math has a fixed, known box size (see landing-screen.js). */
+      background-image: url('UI/nameplateNew.webp');
+      background-repeat: no-repeat;
+      box-shadow: inset 1px 1px 0 rgba(255,255,255,0.25);
+    }
+
+    .plate-color-swatch.is-selected {
+      border-color: #1e5cb3;
+      box-shadow: 0 0 0 2px #1e5cb3, inset 1px 1px 0 rgba(255,255,255,0.25);
     }
 
     /* ── Newspaper extra (tabloid front page) ─────────────────────────────── */
@@ -5336,7 +5444,10 @@
   <header id="top-bar">
     <div id="topbar-city-plate" aria-label="City name plate" data-i18n-aria="topbar.cityPlate">
       <button id="topbar-rename-btn" type="button" onclick="renameCityPrompt()" title="Rename city" aria-label="Rename city" data-i18n-title="tool.renameCity" data-i18n-aria="tool.renameCity">✏</button>
-      <div id="topbar-city-name" data-i18n="city.defaultName">My City</div>
+      <div id="topbar-city-name">
+        <div id="topbar-city-name-zh" data-i18n="city.defaultName">My City</div>
+        <div id="topbar-city-name-en"></div>
+      </div>
     </div>
 
     <div id="topbar-main">
@@ -5552,13 +5663,14 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
         <button class="dialog-close-btn" data-close-dialog="about-dialog">✕</button>
       </div>
       <div class="dialog-body" style="text-align:center; font-family:Arial,sans-serif">
-        <div style="font-size:48px; margin:8px 0">🏙️</div>
+        <button id="about-app-icon" class="about-app-icon" type="button" aria-label="City icon" aria-pressed="false">🏙️</button>
         <div style="font-size:18px; font-weight:900; margin-bottom:6px" data-i18n="app.name">The City of Heung Shing</div>
         <div style="color:#5a5648; font-size:12px" data-i18n="dialog.aboutEnglishName">The City of Heung Shing</div>
-        <div style="color:#5a5648; font-size:12px" data-i18n="dialog.version">Version 3.6.0 — 車公靈籤</div>
+        <div style="color:#5a5648; font-size:12px" data-i18n="dialog.version">Version 3.7.0 — 貨櫃碼頭！</div>
+        <div id="visual-route-calibration-test-mode-label" hidden>【test mode】</div>
         <div style="color:#5a5648; font-size:12px" data-i18n="dialog.aboutInspired">A Hong Kong-themed city simulation brand title</div>
         <div style="margin-top:14px; font-size:12px; line-height:1.8; color:#3a3530">
-          <span data-i18n-html="dialog.aboutBuilt">The City of Heung Shing v3.6.0 — 車公靈籤<br>Plan · Build · Govern · Thrive</span>
+          <span data-i18n-html="dialog.aboutBuilt">The City of Heung Shing v3.7.0 — 貨櫃碼頭！<br>Plan · Build · Govern · Thrive</span>
         </div>
         <div class="about-links">
           <a class="about-link" href="https://github.com/nortonyuen-oss/heung_shing_simulator" target="_blank" rel="noopener noreferrer" data-i18n="dialog.githubLink">GitHub</a>
@@ -6743,6 +6855,9 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
   <script src="topbar.js"></script>
   <script src="real-city-coastline-masks.js"></script>
   <script src="traffic-visuals.js"></script>
+  <script src="vessel-route-metadata.js"></script>
+  <script src="visual-route-calibrator.js"></script>
+  <script src="vessel-visuals.js"></script>
   <script src="main.js"></script>
   <script src="tool-menu.js"></script>
   <script src="chart-window.js"></script>

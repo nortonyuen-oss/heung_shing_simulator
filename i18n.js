@@ -1,6 +1,6 @@
 const I18N_STORAGE_KEY = 'citybuilder.language';
-let appVersion = '3.6.0';
-let appReleaseTheme = '車公靈籤';
+let appVersion = '3.7.0';
+let appReleaseTheme = '貨櫃碼頭！';
 
 const LANGUAGES = {
   en: 'English',
@@ -1194,7 +1194,9 @@ const I18N = {
     'toast.terrainElevationRepaired': 'Legacy terrain elevation data was repaired while loading.',
     'toast.terrainPresetDeleteFailed': 'Failed to delete terrain preset.',
     'prompt.saveAs': 'Save city as (sets city name):',
-    'prompt.cityName': 'City name:',
+    'prompt.cityNameZh': 'Chinese city name:',
+    'prompt.cityNameEn': 'English city name:',
+    'prompt.cityPlateColor': 'Nameplate colour:',
     'prompt.buildingName': 'Building name (leave empty to clear):',
     'districtSign.namePrompt': 'District name:',
     'districtSign.defaultName': 'District {count}',
@@ -2402,7 +2404,9 @@ const I18N = {
     'toast.terrainElevationRepaired': '載入時已修復舊存檔的地形海拔資料。',
     'toast.terrainPresetDeleteFailed': '刪除地形失敗。',
     'prompt.saveAs': '將城市另存為（同時設定城市名稱）：',
-    'prompt.cityName': '城市名稱：',
+    'prompt.cityNameZh': '中文城市名稱：',
+    'prompt.cityNameEn': '英文城市名稱：',
+    'prompt.cityPlateColor': '名牌顏色：',
     'prompt.buildingName': '建築名稱（留空可清除）：',
     'districtSign.namePrompt': '分區名稱：',
     'districtSign.defaultName': '新市鎮第 {count} 區',
@@ -3311,7 +3315,9 @@ const I18N = {
     'toast.terrainElevationRepaired': '読み込み時に旧セーブの地形高度データを修復しました。',
     'toast.terrainPresetDeleteFailed': '地形プリセットの削除に失敗しました。',
     'prompt.saveAs': '保存名（都市名も変更されます）：',
-    'prompt.cityName': '都市名：',
+    'prompt.cityNameZh': '中国語の都市名：',
+    'prompt.cityNameEn': '英語の都市名：',
+    'prompt.cityPlateColor': 'ネームプレートの色：',
     'districtSign.namePrompt': '地区名：',
     'districtSign.defaultName': '新地区 {count}',
     'districtSign.englishNamePrompt': '地区の英語名：',

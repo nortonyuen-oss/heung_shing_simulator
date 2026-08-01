@@ -1780,6 +1780,8 @@ function create() {
 
   // Paint roads on left click; start panning on right click.
   this.input.on('pointerdown', (pointer) => {
+    if (typeof isVisualRouteCalibrationInputCaptured === 'function'
+      && isVisualRouteCalibrationInputCaptured(this)) return;
     if (pointer.button === 0) {
       isPainting = true;
       const startTile = pointerToTile(this, pointer);
@@ -1796,6 +1798,8 @@ function create() {
   });
 
   this.input.on('pointerup', (pointer) => {
+    if (typeof isVisualRouteCalibrationInputCaptured === 'function'
+      && isVisualRouteCalibrationInputCaptured(this)) return;
     if (pointer.button === 0 && selectedTool === 'inspect') {
       applySelectedTool(this, pointer);
     }
@@ -1809,6 +1813,8 @@ function create() {
 
   // Adjust camera scroll during panning
   this.input.on('pointermove', (pointer) => {
+    if (typeof isVisualRouteCalibrationInputCaptured === 'function'
+      && isVisualRouteCalibrationInputCaptured(this)) return;
     if (isPainting && pointer.isDown) {
       if (selectedTool === 'road' && dragStartTile) {
         const cur = pointerToTile(this, pointer);
@@ -3548,6 +3554,8 @@ function placeSpriteBuilding(scene, row, col, key, options = {}) {
   building.anchorMode = options.anchorMode;
   building.setInteractive({ useHandCursor: true });
   building.on('pointerdown', (pointer) => {
+    if (typeof isVisualRouteCalibrationInputCaptured === 'function'
+      && isVisualRouteCalibrationInputCaptured(scene)) return;
     if (selectedTool !== 'inspect') return;
     const record = buildingData[getTileId(building.mapRow, building.mapCol)];
     if (record?.type === 'legislative_council' && typeof openLegislativeWindow === 'function') {

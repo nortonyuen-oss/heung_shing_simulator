@@ -9,6 +9,7 @@
 const VISUAL_ROUTE_CALIBRATION_SCHEMA_VERSION = 1;
 const VISUAL_ROUTE_CALIBRATION_STORAGE_KEY = 'cityBuilder.visualRouteCalibration.v1';
 const VISUAL_ROUTE_CALIBRATION_DEFAULT_SLOTS = Object.freeze(['default']);
+const VISUAL_ROUTE_CALIBRATION_INPUT_DEPTH = 2_000_000_000;
 const visualRouteCalibrationStates = new WeakMap();
 
 function visualRouteCalibrationRound(value, digits = 4) {
@@ -187,6 +188,7 @@ function resetVisualRouteCalibrationPosition(state) {
   if (!target?.sprite || !Number.isFinite(baselineX) || !Number.isFinite(baselineY)) return;
   target.sprite.setPosition?.(baselineX, baselineY);
   target.onMove?.(baselineX, baselineY, getVisualRouteCalibrationLogical(target, baselineX, baselineY));
+  target.sprite.setDepth?.(VISUAL_ROUTE_CALIBRATION_INPUT_DEPTH);
   setVisualRouteCalibrationMessage(state, '已回復原本航線位置', 'info');
   renderVisualRouteCalibrationPanel(state);
 }
@@ -334,6 +336,7 @@ function getVisualRouteCalibrationState(scene) {
       dragSprite: null,
       dragHandlers: null,
       dragHadInput: false,
+      dragOriginalDepth: null,
       records: loadVisualRouteCalibrationRecords(),
       panel: null,
       message: { text: '', tone: 'info' },
@@ -348,25 +351,42 @@ function detachVisualRouteCalibrationDrag(state) {
   const sprite = state.dragSprite;
   const handlers = state.dragHandlers;
   if (!sprite || !handlers) return;
+  sprite.off?.('pointerdown', handlers.pointerdown);
+  sprite.off?.('pointerup', handlers.pointerup);
   sprite.off?.('dragstart', handlers.dragstart);
   sprite.off?.('drag', handlers.drag);
   sprite.off?.('dragend', handlers.dragend);
   state.scene?.input?.setDraggable?.(sprite, false);
+  if (Number.isFinite(state.dragOriginalDepth)) {
+    sprite.setDepth?.(state.dragOriginalDepth);
+  }
   if (!state.dragHadInput) sprite.disableInteractive?.();
   state.dragSprite = null;
   state.dragHandlers = null;
   state.dragHadInput = false;
+  state.dragOriginalDepth = null;
 }
 
 function attachVisualRouteCalibrationDrag(state) {
   const target = state.activeTarget;
   const sprite = target?.sprite;
-  if (!sprite || state.dragSprite === sprite) return;
+  if (!sprite) return;
+  if (state.dragSprite === sprite) {
+    sprite.setDepth?.(VISUAL_ROUTE_CALIBRATION_INPUT_DEPTH);
+    return;
+  }
   detachVisualRouteCalibrationDrag(state);
   state.dragHadInput = !!sprite.input;
-  sprite.setInteractive?.({ useHandCursor: true });
+  state.dragOriginalDepth = Number.isFinite(Number(sprite.depth)) ? Number(sprite.depth) : null;
+  if (!state.dragHadInput) sprite.setInteractive?.({ useHandCursor: true });
+  sprite.setDepth?.(VISUAL_ROUTE_CALIBRATION_INPUT_DEPTH);
   state.scene?.input?.setDraggable?.(sprite, true);
+  const stopPointerPropagation = (pointer, localX, localY, event) => {
+    event?.stopPropagation?.();
+  };
   const handlers = {
+    pointerdown: stopPointerPropagation,
+    pointerup: stopPointerPropagation,
     dragstart: () => setVisualRouteCalibrationMessage(state, '拖曳中…', 'info'),
     drag: (pointer, dragX, dragY) => {
       if (!state.activeTarget?.paused) return;
@@ -375,15 +395,23 @@ function attachVisualRouteCalibrationDrag(state) {
       sprite.setPosition?.(x, y);
       const logical = getVisualRouteCalibrationLogical(state.activeTarget, x, y);
       state.activeTarget.onMove?.(x, y, logical);
+      sprite.setDepth?.(VISUAL_ROUTE_CALIBRATION_INPUT_DEPTH);
       renderVisualRouteCalibrationPanel(state);
     },
     dragend: () => saveVisualRouteCalibrationCurrent(state),
   };
+  sprite.on?.('pointerdown', handlers.pointerdown);
+  sprite.on?.('pointerup', handlers.pointerup);
   sprite.on?.('dragstart', handlers.dragstart);
   sprite.on?.('drag', handlers.drag);
   sprite.on?.('dragend', handlers.dragend);
   state.dragSprite = sprite;
   state.dragHandlers = handlers;
+}
+
+function isVisualRouteCalibrationInputCaptured(scene) {
+  const target = visualRouteCalibrationStates.get(scene)?.activeTarget;
+  return !!target?.eligible && !!target?.paused;
 }
 
 function clearVisualRouteCalibrationTarget(scene, targetId = '') {
@@ -424,6 +452,7 @@ const visualRouteCalibrationTestApi = {
   VISUAL_ROUTE_CALIBRATION_SCHEMA_VERSION,
   VISUAL_ROUTE_CALIBRATION_STORAGE_KEY,
   VISUAL_ROUTE_CALIBRATION_DEFAULT_SLOTS,
+  VISUAL_ROUTE_CALIBRATION_INPUT_DEPTH,
   visualRouteCalibrationRound,
   loadVisualRouteCalibrationRecords,
   persistVisualRouteCalibrationRecords,
@@ -432,6 +461,7 @@ const visualRouteCalibrationTestApi = {
   getVisualRouteCalibrationCollection,
   getVisualRouteCalibrationState,
   saveVisualRouteCalibrationCurrent,
+  isVisualRouteCalibrationInputCaptured,
   syncVisualRouteCalibrationTarget,
   clearVisualRouteCalibrationTarget,
   clearVisualRouteCalibrationScene,
@@ -442,6 +472,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = visualRout
 if (typeof globalThis !== 'undefined') {
   Object.assign(globalThis, {
     syncVisualRouteCalibrationTarget,
+    isVisualRouteCalibrationInputCaptured,
     clearVisualRouteCalibrationTarget,
     clearVisualRouteCalibrationScene,
   });

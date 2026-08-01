@@ -87,10 +87,12 @@ test('paused target becomes draggable, records drag end and releases ownership o
   const sprite = {
     x: 20,
     y: 30,
+    depth: 123,
     input: null,
     setInteractive() { this.input = {}; return this; },
     disableInteractive() { this.input = null; return this; },
     setPosition(x, y) { this.x = x; this.y = y; return this; },
+    setDepth(value) { this.depth = value; return this; },
     on(name, handler) { handlers.set(name, handler); return this; },
     off(name, handler) { if (handlers.get(name) === handler) handlers.delete(name); return this; },
   };
@@ -111,7 +113,12 @@ test('paused target becomes draggable, records drag end and releases ownership o
   };
 
   assert.equal(calibrator.syncVisualRouteCalibrationTarget(scene, target), true);
+  assert.equal(calibrator.isVisualRouteCalibrationInputCaptured(scene), true);
+  assert.equal(sprite.depth, calibrator.VISUAL_ROUTE_CALIBRATION_INPUT_DEPTH);
   assert.equal(dragCalls.at(-1)[1], true);
+  let propagationStopped = false;
+  handlers.get('pointerdown')(null, 0, 0, { stopPropagation: () => { propagationStopped = true; } });
+  assert.equal(propagationStopped, true);
   handlers.get('drag')(null, 26, 37);
   assert.deepEqual([sprite.x, sprite.y], [26, 37]);
   assert.deepEqual(moves.at(-1), { x: 26, y: 37, logical: { row: 37, col: 26 } });
@@ -122,6 +129,8 @@ test('paused target becomes draggable, records drag end and releases ownership o
 
   assert.equal(calibrator.syncVisualRouteCalibrationTarget(scene, { ...target, paused: false }), false);
   assert.equal(dragCalls.at(-1)[1], false);
+  assert.equal(calibrator.isVisualRouteCalibrationInputCaptured(scene), false);
+  assert.equal(sprite.depth, 123);
   assert.equal(sprite.input, null);
   assert.equal(handlers.size, 0);
   calibrator.clearVisualRouteCalibrationScene(scene);
@@ -129,8 +138,10 @@ test('paused target becomes draggable, records drag end and releases ownership o
 
 test('browser script loads generic calibrator before domain adapters', () => {
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  const main = fs.readFileSync(path.join(ROOT, 'main.js'), 'utf8');
   assert.match(
     html,
     /traffic-visuals\.js[\s\S]*visual-route-calibrator\.js[\s\S]*vessel-visuals\.js[\s\S]*main\.js/,
   );
+  assert.match(main, /pointerdown[\s\S]*isVisualRouteCalibrationInputCaptured\(this\)/);
 });

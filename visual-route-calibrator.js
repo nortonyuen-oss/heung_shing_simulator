@@ -755,6 +755,11 @@ function createVisualRoutePerformancePanel(scene) {
         font: inherit; cursor: pointer;
       }
       #visual-route-performance-panel button:hover { background: #1a5145; }
+      #visual-route-performance-panel .vrp-close-btn {
+        position: absolute; top: 8px; right: 8px; width: 20px; height: 20px;
+        margin-top: 0; padding: 0; display: flex; align-items: center; justify-content: center;
+        border-radius: 5px; line-height: 1;
+      }
     `;
     document.head.appendChild(style);
   }
@@ -762,8 +767,13 @@ function createVisualRoutePerformancePanel(scene) {
   root.id = 'visual-route-performance-panel';
   root.hidden = !visualRouteCalibrationTestModeEnabled;
   root.setAttribute('aria-label', 'Test mode performance metrics');
-  root.innerHTML = '<div class="vrp-title">PERFORMANCE · TEST</div><pre></pre><button type="button">複製 profiling JSON</button>';
-  root.querySelector('button')?.addEventListener?.('click', () => {
+  root.innerHTML = '<button type="button" class="vrp-close-btn" aria-label="Close performance panel" title="Close">✕</button>'
+    + '<div class="vrp-title">PERFORMANCE · TEST</div><pre></pre>'
+    + '<button type="button" class="vrp-copy-btn">複製 profiling JSON</button>';
+  root.querySelector('.vrp-close-btn')?.addEventListener?.('click', () => {
+    setVisualRouteCalibrationTestModeEnabled(false);
+  });
+  root.querySelector('.vrp-copy-btn')?.addEventListener?.('click', () => {
     const snapshot = getVisualRoutePerformanceSnapshot(scene);
     if (!snapshot) return;
     copyVisualRouteCalibrationText(JSON.stringify(snapshot, null, 2)).catch(() => {});

@@ -27,6 +27,14 @@ test('slow icon clicks do not unlock test mode', () => {
   assert.equal(calibrator.isVisualRouteCalibrationTestModeEnabled(), false);
 });
 
+test('the performance panel has a close button that disables test mode without retriggering the icon gesture', () => {
+  const source = fs.readFileSync(path.join(ROOT, 'visual-route-calibrator.js'), 'utf8');
+  assert.match(source, /class="vrp-close-btn"[^>]*>✕<\/button>/);
+  const closeHandlerStart = source.indexOf("querySelector('.vrp-close-btn')");
+  const closeHandler = source.slice(closeHandlerStart, source.indexOf("querySelector('.vrp-copy-btn')", closeHandlerStart));
+  assert.match(closeHandler, /setVisualRouteCalibrationTestModeEnabled\(false\);/);
+});
+
 test('calibration record captures absolute, route-relative and adapter measurements', () => {
   const target = {
     id: 'ship-7',

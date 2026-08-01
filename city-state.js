@@ -219,6 +219,7 @@ function resetGameState() {
   serviceMap     = createFilledMap(null);
   treeMap        = createFilledMap(null);
   if (typeof invalidateTreeSimulationTiles === 'function') invalidateTreeSimulationTiles();
+  if (typeof invalidateResidentialEnvironmentScoreCache === 'function') invalidateResidentialEnvironmentScoreCache();
   bridgeMap      = createFilledMap(null);
   roadUnderlayMap = createFilledMap(null);
   trafficMap     = createFilledMap(0);

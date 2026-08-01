@@ -7,6 +7,7 @@ const test = require('node:test');
 const ROOT = path.resolve(__dirname, '..');
 const mainSource = fs.readFileSync(path.join(ROOT, 'main.js'), 'utf8');
 const growthSource = fs.readFileSync(path.join(ROOT, 'sim-growth.js'), 'utf8');
+const simulationSource = fs.readFileSync(path.join(ROOT, 'simulation.js'), 'utf8');
 const calibrator = require('../visual-route-calibrator.js');
 
 function loadViewportCullingContext() {
@@ -165,4 +166,53 @@ test('growth quality maps are reused within a game month and rebuilt at the boun
   assert.notEqual(context.second, context.third);
   assert.equal(context.stats.hits, 1);
   assert.equal(context.stats.rebuilds, 2);
+});
+
+test('residential tree/scenic scores are cached per game month and shared across lookups', () => {
+  const start = simulationSource.indexOf('let residentialEnvironmentScoreBucket');
+  const end = simulationSource.indexOf('function getLocalHealthPollutionPressure', start);
+  assert.ok(start >= 0 && end > start, 'residential environment score cache must remain extractable');
+
+  let calls = 0;
+  const context = vm.createContext({
+    Map,
+    Math,
+    Number,
+    MAP_WIDTH: 16,
+    TICKS_PER_MONTH: 4,
+    city: { tick: 0 },
+    getTreeInfluenceValue: (row, col) => { calls++; return row + col * 0.01; },
+    getScenicValue: (row, col) => row - col * 0.01,
+  });
+  vm.runInContext(simulationSource.slice(start, end), context, { filename: 'residential-environment-score.js' });
+
+  vm.runInContext(`
+    first = getResidentialEnvironmentScore(2, 3);
+    second = getResidentialEnvironmentScore(2, 3);
+    city.tick = 3;
+    third = getResidentialEnvironmentScore(2, 3);
+  `, context);
+  assert.equal(calls, 1, 'repeated lookups within the same game month must not recompute');
+  assert.equal(context.first, context.second);
+  assert.equal(context.first, context.third);
+  assert.ok(Math.abs(context.first.tree - 2.03) < 1e-9);
+  assert.ok(Math.abs(context.first.scenic - 1.97) < 1e-9);
+
+  vm.runInContext('city.tick = 4; fourth = getResidentialEnvironmentScore(2, 3);', context);
+  assert.equal(calls, 2, 'crossing a month boundary must rebuild the cache');
+  assert.notEqual(context.fourth, context.first);
+  assert.ok(Math.abs(context.fourth.tree - context.first.tree) < 1e-9);
+
+  vm.runInContext(
+    'invalidateResidentialEnvironmentScoreCache(); fifth = getResidentialEnvironmentScore(2, 3);',
+    context,
+  );
+  assert.equal(calls, 3, 'explicit invalidation must force a recompute even mid-month');
+});
+
+test('happiness and health pressure read tree/scenic scores through the cache, not raw per-tile scans', () => {
+  assert.doesNotMatch(simulationSource, /treeScore \+= getTreeInfluenceValue/);
+  assert.doesNotMatch(simulationSource, /scenicScore \+= getScenicValue/);
+  assert.match(simulationSource, /const env = getResidentialEnvironmentScore\(r, c\);/);
+  assert.match(simulationSource, /pressure -= getResidentialEnvironmentScore\(row, col\)\.tree \* 0\.10;/);
 });

@@ -1,4 +1,7 @@
 let lastCommercialMergeScanTick = null;
+let lastZoneDeclineTick = null;
+let zoneDeclineCandidateCursor = 0;
+let lastZoneDeclineStats = null;
 
 // Land value, canopy, pollution pressure and skyline indexes are expensive
 // full-city snapshots. They only need month-level freshness for model quality
@@ -54,6 +57,9 @@ function getZoneGrowthQualityContexts() {
 
 function clearZoneGrowthQualityContextCache() {
   zoneGrowthQualityContextCache = null;
+  lastZoneDeclineTick = null;
+  zoneDeclineCandidateCursor = 0;
+  lastZoneDeclineStats = null;
 }
 
 function getZoneGrowthQualityContextCacheStats() {
@@ -62,6 +68,99 @@ function getZoneGrowthQualityContextCacheStats() {
     bucket: zoneGrowthQualityContextCache?.bucket ?? null,
     ...zoneGrowthQualityContextCacheStats,
   };
+}
+
+function getZoneDeclineBudgets(zoneBuildingCount) {
+  const count = Math.max(0, Math.floor(Number(zoneBuildingCount) || 0));
+  if (count === 0) return { mutations: 0, removals: 0 };
+  return {
+    mutations: Math.min(
+      ZONE_DECLINE_MAX_MUTATIONS_PER_MONTH,
+      Math.max(1, Math.ceil(count * ZONE_DECLINE_MUTATION_FRACTION_PER_MONTH)),
+    ),
+    removals: Math.min(
+      ZONE_DECLINE_MAX_REMOVALS_PER_MONTH,
+      Math.max(1, Math.ceil(count * ZONE_DECLINE_REMOVAL_FRACTION_PER_MONTH)),
+    ),
+  };
+}
+
+function getZoneDeclineDemand(zone) {
+  if (zone === ZONE_RES) return Number(city.demandR) || 0;
+  if (zone === ZONE_COM) return Number(city.demandC) || 0;
+  return Number(city.demandI) || 0;
+}
+
+function collectZoneDeclineCandidates() {
+  const cityPower = Number(city.powerRatio ?? 1);
+  const candidates = [];
+  let zoneBuildingCount = 0;
+  Object.entries(buildingData).forEach(([id, record]) => {
+    if (!record || !['residential', 'commercial', 'industrial'].includes(record.type)) return;
+    zoneBuildingCount++;
+    const [row, col] = id.split(':').map(Number);
+    const zone = zoneMap[row]?.[col] ?? ZONE_NONE;
+    if (zone === ZONE_NONE) return;
+    const hasRoad = hasAdjacentRoad(row, col);
+    const demand = getZoneDeclineDemand(zone);
+    if (hasRoad && demand >= -0.5 && cityPower >= 0.35) return;
+    candidates.push({ row, col, record, cityPower });
+  });
+  return { candidates, zoneBuildingCount };
+}
+
+function applyMonthlyZoneDecline(scene) {
+  const tick = Math.max(0, Math.floor(Number(city.tick) || 0));
+  if (
+    tick <= 0
+    || tick % Math.max(1, Number(TICKS_PER_MONTH) || 1) !== 0
+    || lastZoneDeclineTick === tick
+  ) {
+    return lastZoneDeclineStats;
+  }
+  lastZoneDeclineTick = tick;
+
+  const { candidates, zoneBuildingCount } = collectZoneDeclineCandidates();
+  const budget = getZoneDeclineBudgets(zoneBuildingCount);
+  const stats = {
+    tick,
+    candidates: candidates.length,
+    zoneBuildingCount,
+    mutationBudget: budget.mutations,
+    removalBudget: budget.removals,
+    mutations: 0,
+    downgrades: 0,
+    removals: 0,
+  };
+  lastZoneDeclineStats = stats;
+  if (candidates.length === 0 || budget.mutations === 0) return stats;
+
+  // Rotate the starting candidate each month. The old row-major scan always
+  // punished the same corner first whenever the cap was reached.
+  const start = zoneDeclineCandidateCursor % candidates.length;
+  zoneDeclineCandidateCursor = (
+    start + Math.max(1, Math.floor(candidates.length * 0.38196601125))
+  ) % candidates.length;
+
+  for (let offset = 0; offset < candidates.length; offset++) {
+    if (stats.mutations >= budget.mutations) break;
+    const candidate = candidates[(start + offset) % candidates.length];
+    const current = buildingData[getTileId(candidate.row, candidate.col)];
+    if (current !== candidate.record) continue;
+    const wouldRemove = (current.level ?? 1) <= 1;
+    if (wouldRemove && stats.removals >= budget.removals) continue;
+    const chance = SHRINK_CHANCE * (candidate.cityPower < 0.35 ? 1.5 : 1);
+    if (Math.random() >= chance) continue;
+    if (!shrinkOrRemoveZoneBuilding(scene, candidate.row, candidate.col)) continue;
+    stats.mutations++;
+    if (wouldRemove) stats.removals++;
+    else stats.downgrades++;
+  }
+  return stats;
+}
+
+function getLastZoneDeclineStats() {
+  return lastZoneDeclineStats ? { ...lastZoneDeclineStats } : null;
 }
 
 function isBuildingHighScoreVisual(record) {
@@ -152,6 +251,7 @@ function tryRedecoratePremiumBuilding(
 }
 
 function growOrShrinkZones(scene) {
+  applyMonthlyZoneDecline(scene);
   const qualityContexts = getZoneGrowthQualityContexts();
   const landValueMap = qualityContexts.landValueMap;
   const residentialQualityContext = qualityContexts.residential;
@@ -224,8 +324,6 @@ function growOrShrinkZones(scene) {
         if (record.level < 3 && hasRoad && demand > upgradeDemandGate && Math.random() < UPGRADE_CHANCE * powerMul * densityMul * upgradePremiumMul) {
           if (zone === ZONE_RES && tryMergeResidentialCluster(scene, r, c, record, residentialQualityContext)) continue;
           upgradeZoneBuilding(scene, r, c, zone, landScore, residentialQualityContext, commercialQualityContext);
-        } else if ((!hasRoad || demand < -0.5 || cityPower < 0.35) && Math.random() < SHRINK_CHANCE * (cityPower < 0.35 ? 1.5 : 1)) {
-          shrinkOrRemoveZoneBuilding(scene, r, c);
         } else if (
           record.level >= 3
           && (zone === ZONE_RES || zone === ZONE_COM)
@@ -544,7 +642,12 @@ function tryMergeResidentialCluster(scene, r, c, record, residentialQualityConte
     const targetLevel = Math.min(3, (record.level ?? 1) + 1);
     const mergeDensity = getDominantResidentialDensity(anchor.row, anchor.col, footprintSize, footprintSize);
 
-    anchor.buildings.forEach(({ row, col }) => removeBuilding(scene, row, col));
+    anchor.buildings.forEach(({ row, col }) => removeBuilding(
+      scene,
+      row,
+      col,
+      { refreshInfrastructure: false },
+    ));
     spawnZoneBuilding(scene, anchor.row, anchor.col, ZONE_RES, targetLevel, mergeDensity, {
       forceFootprint: footprintSize,
       residentialQualityContext,
@@ -613,7 +716,12 @@ function tryMergeCommercialCluster(scene, r, c, record, landScore = 0.5, commerc
     if (!anchor) continue;
 
     const mergeDensity = getDominantResidentialDensity(anchor.row, anchor.col, footprintSize, footprintSize);
-    anchor.buildings.forEach(({ row, col }) => removeBuilding(scene, row, col));
+    anchor.buildings.forEach(({ row, col }) => removeBuilding(
+      scene,
+      row,
+      col,
+      { refreshInfrastructure: false },
+    ));
     spawnZoneBuilding(scene, anchor.row, anchor.col, ZONE_COM, 3, mergeDensity, {
       landScore,
       preferHighScore: true,
@@ -802,7 +910,7 @@ function upgradeZoneBuilding(
     && (city.happiness ?? 0) >= 0.60
   );
 
-  removeBuilding(scene, r, c);
+  removeBuilding(scene, r, c, { refreshInfrastructure: false });
   spawnZoneBuilding(scene, r, c, zone, record.level + 1, density, {
     landScore,
     preferHighScore,
@@ -814,16 +922,17 @@ function upgradeZoneBuilding(
 function shrinkOrRemoveZoneBuilding(scene, r, c) {
   const id     = getTileId(r, c);
   const record = buildingData[id];
-  if (!record) return;
+  if (!record) return false;
 
   if (record.level > 1) {
     const zone    = zoneMap[r][c];
     const density = record.density ?? (zoneDensityMap[r][c] ?? DENSITY_LOW);
-    removeBuilding(scene, r, c);
+    if (!removeBuilding(scene, r, c, { refreshInfrastructure: false })) return false;
     spawnZoneBuilding(scene, r, c, zone, record.level - 1, density);
   } else {
-    removeBuilding(scene, r, c);
+    if (!removeBuilding(scene, r, c, { refreshInfrastructure: false })) return false;
   }
+  return true;
 }
 
 // ── Tree growth and natural spread ───────────────────────────────────────────

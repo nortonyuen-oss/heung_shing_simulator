@@ -12,7 +12,7 @@ function getFootprintTiles(row, col, footprintCols = 1, footprintRows = 1) {
   return tiles;
 }
 
-function removeBuilding(scene, row, col) {
+function removeBuilding(scene, row, col, options = {}) {
   if (!scene?.buildingSprites) return false;
   const tileId = getTileId(row, col);
   const building = scene.buildingSprites.get(tileId);
@@ -41,7 +41,7 @@ function removeBuilding(scene, row, col) {
     scene.buildingSprites.delete(getTileId(tileRow, tileCol));
   });
 
-  if (typeof refreshInfrastructureEffects === 'function') {
+  if (options.refreshInfrastructure !== false && typeof refreshInfrastructureEffects === 'function') {
     refreshInfrastructureEffects(scene);
   }
   return true;

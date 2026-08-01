@@ -191,7 +191,9 @@ test('science-park conversion loads its texture before removing industry', () =>
   const batchEnd = infrastructure.indexOf('\n// ── Power grid', batchStart);
   const batch = infrastructure.slice(batchStart, batchEnd);
   const requestIndex = conversion.indexOf('requestZoneModelTexture(scene, model');
-  const removeIndex = conversion.indexOf('removeBuilding(scene, row, col)');
+  const removeIndex = conversion.indexOf(
+    "removeBuilding(scene, row, col, { refreshInfrastructure: false })",
+  );
 
   assert.ok(requestIndex >= 0 && removeIndex > requestIndex);
   assert.match(conversion, /loaded[\s\S]*?current === record[\s\S]*?tryConvertSingleIndustrialToSciencePark/);

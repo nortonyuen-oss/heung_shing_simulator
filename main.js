@@ -4003,7 +4003,7 @@ function getServiceBuildingModelBySpriteKey(key) {
     .find((model) => model.spriteKey === key) ?? null;
 }
 
-function removeBuilding(scene, row, col) {
+function removeBuilding(scene, row, col, options = {}) {
   const tileId = getTileId(row, col);
   const building = scene.buildingSprites.get(tileId);
   if (!building) return false;
@@ -4035,7 +4035,7 @@ function removeBuilding(scene, row, col) {
     scene.buildingSprites.delete(getTileId(tileRow, tileCol));
   });
 
-  if (typeof refreshInfrastructureEffects === 'function') {
+  if (options.refreshInfrastructure !== false && typeof refreshInfrastructureEffects === 'function') {
     refreshInfrastructureEffects(scene);
   }
   if (removedHarborSide) {

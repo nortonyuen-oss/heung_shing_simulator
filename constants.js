@@ -168,6 +168,14 @@ const STOCK_MARKET_CATALOG = [
 const GROW_CHANCE_BASE = 0.4;
 const UPGRADE_CHANCE   = 0.15;
 const SHRINK_CHANCE    = 0.30;
+// Decline is evaluated monthly and hard-capped so a weak power grid cannot
+// remove or downgrade a large share of the city in one simulation callback.
+// For a roughly 1,000-building city this allows at most five mutations, of
+// which no more than two may make a level-one building disappear.
+const ZONE_DECLINE_MUTATION_FRACTION_PER_MONTH = 0.005;
+const ZONE_DECLINE_REMOVAL_FRACTION_PER_MONTH = 0.0015;
+const ZONE_DECLINE_MAX_MUTATIONS_PER_MONTH = 8;
+const ZONE_DECLINE_MAX_REMOVALS_PER_MONTH = 2;
 const PREMIUM_VISUAL_UPGRADE_CHANCE_PER_MONTH = 0.012;
 const PREMIUM_VISUAL_REBALANCE_CHANCE_PER_MONTH = 0.045;
 const SKYLINE_NEIGHBORHOOD_RADIUS = 6;

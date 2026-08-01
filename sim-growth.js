@@ -92,7 +92,6 @@ function getZoneDeclineDemand(zone) {
 }
 
 function collectZoneDeclineCandidates() {
-  const cityPower = Number(city.powerRatio ?? 1);
   const candidates = [];
   let zoneBuildingCount = 0;
   Object.entries(buildingData).forEach(([id, record]) => {
@@ -103,8 +102,8 @@ function collectZoneDeclineCandidates() {
     if (zone === ZONE_NONE) return;
     const hasRoad = hasAdjacentRoad(row, col);
     const demand = getZoneDeclineDemand(zone);
-    if (hasRoad && demand >= -0.5 && cityPower >= 0.35) return;
-    candidates.push({ row, col, record, cityPower });
+    if (hasRoad && demand >= -0.5) return;
+    candidates.push({ row, col, record });
   });
   return { candidates, zoneBuildingCount };
 }
@@ -149,7 +148,7 @@ function applyMonthlyZoneDecline(scene) {
     if (current !== candidate.record) continue;
     const wouldRemove = (current.level ?? 1) <= 1;
     if (wouldRemove && stats.removals >= budget.removals) continue;
-    const chance = SHRINK_CHANCE * (candidate.cityPower < 0.35 ? 1.5 : 1);
+    const chance = SHRINK_CHANCE;
     if (Math.random() >= chance) continue;
     if (!shrinkOrRemoveZoneBuilding(scene, candidate.row, candidate.col)) continue;
     stats.mutations++;

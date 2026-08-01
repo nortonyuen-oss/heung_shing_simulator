@@ -915,6 +915,11 @@ const ANCHOR_RATIO = 30;
 const LABOUR_FORCE_RATIO = 0.60;
 // Max happiness penalty when unemployment is 100%
 const UNEMPLOYMENT_HAPPINESS_PENALTY = 0.25;
+// A city-wide shortage acts through the R/C/I market instead of directly
+// selecting buildings for decline. At 50% supply the demand penalty is 0.70;
+// at 18% supply it reaches the capped 1.15-point penalty.
+const POWER_SHORTAGE_DEMAND_PENALTY_SCALE = 1.40;
+const POWER_SHORTAGE_DEMAND_PENALTY_MAX = 1.15;
 // Fraction of higher-edu labour force preferring commercial / science-park jobs
 const HIGH_EDU_COM_PREFERENCE = 0.70;
 // Fraction of non-higher-edu labour force seeking industrial jobs

@@ -38,9 +38,9 @@ function createDeclineContext(buildingCount = 1000) {
     city: {
       tick: 4,
       powerRatio: 0.2,
-      demandR: 0.8,
-      demandC: 0.8,
-      demandI: 0.2,
+      demandR: -0.8,
+      demandC: -0.8,
+      demandI: -0.8,
     },
     buildingData,
     zoneMap,
@@ -95,6 +95,7 @@ test('decline limits stay bounded as a city grows and healthy cities do not decl
     hugeBudget = getZoneDeclineBudgets(10000);
     city.tick = 4;
     city.powerRatio = 1;
+    city.demandR = 0.8;
     healthyStats = applyMonthlyZoneDecline({});
   `, context);
 
@@ -103,6 +104,18 @@ test('decline limits stay bounded as a city grows and healthy cities do not decl
   assert.deepEqual({ ...context.hugeBudget }, { mutations: 8, removals: 2 });
   assert.equal(context.healthyStats.candidates, 0);
   assert.equal(context.healthyStats.mutations, 0);
+});
+
+test('power shortage alone does not bypass demand to directly decline buildings', () => {
+  const context = createDeclineContext(1000);
+  vm.runInContext(`
+    city.powerRatio = 0.05;
+    city.demandR = 0.2;
+    shortageOnlyStats = applyMonthlyZoneDecline({});
+  `, context);
+
+  assert.equal(context.shortageOnlyStats.candidates, 0);
+  assert.equal(context.shortageOnlyStats.mutations, 0);
 });
 
 test('simulation removals skip immediate full-city refresh while player removals keep it', () => {

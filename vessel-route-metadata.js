@@ -10,7 +10,7 @@
 
 const VESSEL_ROUTE_METADATA_VALUE = Object.freeze({
   schemaVersion: 1,
-  calibrationId: 'vessel-berth-2026-08-01-v2',
+  calibrationId: 'vessel-berth-2026-08-01-v3',
   berthAnchorsByVisualVariant: Object.freeze({
     ll: Object.freeze({
       alongFromQuayCenterTiles: 0.8507,
@@ -39,9 +39,12 @@ const VESSEL_ROUTE_METADATA_VALUE = Object.freeze({
     }),
   }),
   parallelApproach: Object.freeze({
-    // The last inbound tile and first outbound tile run along the quay, so the
-    // vessel never points bow-first into the port or surrounding land.
-    legTiles: 1.0,
+    // Keep only the final three inbound tiles (and the same first three
+    // outbound tiles) parallel to the quay at berth clearance. Farther out,
+    // the route may cross the quay's infinite normal plane to get around the
+    // real coastline; treating that plane as a whole-map wall can make an
+    // otherwise valid harbor completely unreachable.
+    legTiles: 3.0,
     // Quadratic approach control keeps the curve outside the berth normal
     // while making its final tangent parallel to the quay.
     curveTangentLeadTiles: 0.35,

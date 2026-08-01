@@ -182,7 +182,7 @@ test('vessel dock point uses the recorded visual anchor for every quay direction
 });
 
 test('route metadata preserves all four recorded quay-relative anchors exactly', () => {
-  assert.equal(vesselRouteMetadata.calibrationId, 'vessel-berth-2026-08-01-v2');
+  assert.equal(vesselRouteMetadata.calibrationId, 'vessel-berth-2026-08-01-v3');
   assert.deepEqual(vesselRouteMetadata.berthAnchorsByVisualVariant, {
     ll: { alongFromQuayCenterTiles: 0.8507, normalFromQuayTiles: 0.266 },
     lr: { alongFromQuayCenterTiles: -0.7073, normalFromQuayTiles: 0.1424 },
@@ -237,18 +237,80 @@ test('final inbound and first outbound berth legs are parallel to the quay', () 
     const approach = vessels.getVesselParallelApproachPoint(side, dock);
     if (side === 'n') {
       assert.equal(approach.row, dock.row, side);
-      assert.equal(dock.col - approach.col, 1, side);
+      assert.equal(dock.col - approach.col, 3, side);
     } else if (side === 'e') {
       assert.equal(approach.col, dock.col, side);
-      assert.equal(dock.row - approach.row, 1, side);
+      assert.equal(dock.row - approach.row, 3, side);
     } else if (side === 's') {
       assert.equal(approach.row, dock.row, side);
-      assert.equal(approach.col - dock.col, 1, side);
+      assert.equal(approach.col - dock.col, 3, side);
     } else {
       assert.equal(approach.col, dock.col, side);
-      assert.equal(approach.row - dock.row, 1, side);
+      assert.equal(approach.row - dock.row, 3, side);
     }
   });
+});
+
+test('three-tile berth clearance does not turn the infinite quay plane into a route wall', () => {
+  const originalGlobals = Object.fromEntries([
+    'mapData', 'WATER', 'isoToScreen', 'mapRotation', 'rotateDirection',
+    'TILE_HEIGHT', 'BUILDING_SURFACE_Y_OFFSET',
+  ].map((key) => [key, global[key]]));
+  try {
+    global.WATER = 1;
+    global.mapRotation = 0;
+    global.rotateDirection = (direction, steps) => {
+      const order = ['n', 'e', 's', 'w'];
+      return order[(order.indexOf(direction) + steps + 40) % 4];
+    };
+    global.TILE_HEIGHT = 0;
+    global.BUILDING_SURFACE_Y_OFFSET = 0;
+    global.isoToScreen = (col, row) => ({ x: col * 100, y: row * 100 });
+    global.mapData = Array.from({ length: 15 }, () => Array(15).fill(0));
+
+    // The north berth is connected to open water only by rounding the east
+    // end of the quay. A whole-map normal-plane restriction at row <= 4.1602
+    // cannot reach the boundary, while a local three-tile approach can.
+    for (let col = 4; col <= 7; col++) {
+      global.mapData[4][col] = 1;
+      global.mapData[5][col] = 1;
+    }
+    for (let row = 5; row <= 10; row++) global.mapData[row][8] = 1;
+    for (let col = 8; col < 15; col++) global.mapData[10][col] = 1;
+
+    const portEntry = {
+      id: '6:4',
+      row: 6,
+      col: 4,
+      record: { type: 'container_port', footprintRows: 4, footprintCols: 4, harborWaterSide: 'n' },
+    };
+    const route = vessels.findVesselShipRoute(
+      { offsetX: 0, offsetY: 0 },
+      portEntry,
+      { x: 0, y: 0, width: 1300, height: 1300 },
+    );
+    assert.ok(route, 'a route around the quay end should remain reachable');
+    assert.equal(route.berth.col - route.parallelApproach.col, 3);
+    assert.equal(route.berth.row, route.parallelApproach.row);
+    assert.ok(
+      route.inboundTrack.points.some((point) => (
+        vessels.getVesselQuayNormalDistance(portEntry, 'n', point)
+          < route.minimumQuayNormalTiles - 0.0001
+      )),
+      'the open-water portion should be free to round the quay end',
+    );
+    [route.parallelApproach, route.berth].forEach((point) => {
+      assert.ok(
+        vessels.getVesselQuayNormalDistance(portEntry, 'n', point)
+          >= route.minimumQuayNormalTiles - 0.0001,
+      );
+    });
+  } finally {
+    Object.entries(originalGlobals).forEach(([key, value]) => {
+      if (value === undefined) delete global[key];
+      else global[key] = value;
+    });
+  }
 });
 
 test('near-shore route is trimmed and curved without crossing inside the final berth normal', () => {
@@ -717,8 +779,8 @@ test('runtime update only starts work for a container port near the camera view'
     assert.equal(spawnedRoute.berthAnchor.nearBerthDepthMode, 'front-of-port');
     const parallelEntry = spawnedRoute.inboundTrack.points.at(-2);
     assert.equal(parallelEntry.col, spawnedRoute.berth.col);
-    assert.equal(spawnedRoute.berth.row - parallelEntry.row, 1);
-    spawnedRoute.inboundTrack.points.forEach((point) => {
+    assert.equal(spawnedRoute.berth.row - parallelEntry.row, 3);
+    [parallelEntry, spawnedRoute.berth].forEach((point) => {
       assert.ok(
         vessels.getVesselQuayNormalDistance(
           { row: 5, col: 5, record: global.buildingData['5:5'] },

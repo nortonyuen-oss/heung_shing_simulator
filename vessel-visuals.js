@@ -775,18 +775,18 @@ function findVesselShipRoute(scene, portEntry, rect) {
       berthAnchor.normalFromQuayTiles,
     );
     if (!clearanceEntry) return [];
-    const hasQuayClearance = (row, col) => getVesselQuayNormalDistance(
-      portEntry,
-      side,
-      { row, col },
-    ) >= berthAnchor.normalFromQuayTiles - 0.0001;
+    // Do not use the berth's infinite quay-normal plane as a Dijkstra wall.
+    // A real coastline can require the open-water route to pass around the
+    // end of that plane; rejecting those tiles makes the port unreachable and
+    // leaves the retry timer cycling forever with no vessel. Clearance is a
+    // local docking rule instead: the cached approach curve stays outside the
+    // berth normal, then the final metadata-sized leg runs parallel to shore.
     const portToOutside = findOceanRoute(
       mapData,
       clearanceEntry,
       waterValue,
       isOutsideView,
       Math.max(1000, mapData.length * (mapData[0]?.length ?? 0)),
-      hasQuayClearance,
     );
     if (!portToOutside) return [];
     const inbound = portToOutside.slice().reverse();

@@ -29,6 +29,15 @@ const VESSEL_ROUTE_METADATA_VALUE = Object.freeze({
       normalFromQuayTiles: 1.8398,
     }),
   }),
+  depthRulesByVisualVariant: Object.freeze({
+    // LR sits extremely close to the quay (normal 0.1424). Its correct visual
+    // relationship is in front of the harbor artwork, even when ordinary
+    // world-Y sorting would place the vessel below that large sprite.
+    lr: Object.freeze({
+      nearBerthMode: 'front-of-port',
+      portDepthOffset: 1,
+    }),
+  }),
   parallelApproach: Object.freeze({
     // The last inbound tile and first outbound tile run along the quay, so the
     // vessel never points bow-first into the port or surrounding land.

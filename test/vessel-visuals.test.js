@@ -189,6 +189,41 @@ test('route metadata preserves all four recorded quay-relative anchors exactly',
     ul: { alongFromQuayCenterTiles: 0.8755, normalFromQuayTiles: 1.8942 },
     ur: { alongFromQuayCenterTiles: -1.0684, normalFromQuayTiles: 1.8398 },
   });
+  assert.deepEqual(vesselRouteMetadata.depthRulesByVisualVariant.lr, {
+    nearBerthMode: 'front-of-port',
+    portDepthOffset: 1,
+  });
+});
+
+test('LR vessel renders in front of its port only across the near-berth parallel leg', () => {
+  const originalGetWorldDepth = global.getWorldDepth;
+  try {
+    global.getWorldDepth = (_layer, localDepth) => 200000 + localDepth;
+    const event = {
+      portSprite: { depth: 200500 },
+      route: {
+        berth: { row: 10, col: 20 },
+        parallelApproach: { row: 10, col: 19 },
+        berthAnchor: { nearBerthDepthMode: 'front-of-port', portDepthOffset: 1 },
+      },
+    };
+    const world = { depthY: 400 };
+    assert.equal(
+      vessels.getVesselRenderDepth(event, world, { row: 10, col: 20 }),
+      200501,
+    );
+    assert.equal(
+      vessels.getVesselRenderDepth(event, world, { row: 10, col: 19.5 }),
+      200501,
+    );
+    assert.equal(
+      vessels.getVesselRenderDepth(event, world, { row: 10, col: 18.5 }),
+      200400,
+    );
+  } finally {
+    if (originalGetWorldDepth === undefined) delete global.getWorldDepth;
+    else global.getWorldDepth = originalGetWorldDepth;
+  }
 });
 
 test('final inbound and first outbound berth legs are parallel to the quay', () => {
@@ -631,6 +666,7 @@ test('runtime update only starts work for a container port near the camera view'
     const spawnedRoute = state.portStates.get('5:5').event.route;
     assert.equal(spawnedRoute.routeMetadataId, vesselRouteMetadata.calibrationId);
     assert.equal(spawnedRoute.berthAnchor.calibrated, true);
+    assert.equal(spawnedRoute.berthAnchor.nearBerthDepthMode, 'front-of-port');
     const parallelEntry = spawnedRoute.inboundTrack.points.at(-2);
     assert.equal(parallelEntry.col, spawnedRoute.berth.col);
     assert.equal(spawnedRoute.berth.row - parallelEntry.row, 1);

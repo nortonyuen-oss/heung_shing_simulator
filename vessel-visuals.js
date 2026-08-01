@@ -407,7 +407,9 @@ function getVesselBerthAnchor(portEntry, side, candidate) {
   const cols = Number(portEntry.record?.footprintCols) || HARBOR_FOOTPRINT_COLS;
   const rows = Number(portEntry.record?.footprintRows) || HARBOR_FOOTPRINT_ROWS;
   const variant = getVesselHarborVisualVariant(side);
-  const configured = getVesselRouteMetadata()?.berthAnchorsByVisualVariant?.[variant];
+  const metadata = getVesselRouteMetadata();
+  const configured = metadata?.berthAnchorsByVisualVariant?.[variant];
+  const depthRule = metadata?.depthRulesByVisualVariant?.[variant];
   const extraWaterBuffer = Math.max(0, (Number(candidate?.offset) || 1) - 1);
   if (Number.isFinite(Number(configured?.alongFromQuayCenterTiles))
     && Number.isFinite(Number(configured?.normalFromQuayTiles))) {
@@ -417,6 +419,8 @@ function getVesselBerthAnchor(portEntry, side, candidate) {
       quayCenterCol: col + (cols - 1) / 2,
       alongFromQuayCenterTiles: Number(configured.alongFromQuayCenterTiles),
       normalFromQuayTiles: Number(configured.normalFromQuayTiles) + extraWaterBuffer,
+      nearBerthDepthMode: String(depthRule?.nearBerthMode || 'world'),
+      portDepthOffset: Number(depthRule?.portDepthOffset) || 0,
       calibrated: true,
     };
   }
@@ -430,6 +434,8 @@ function getVesselBerthAnchor(portEntry, side, candidate) {
     quayCenterCol: col + (cols - 1) / 2,
     alongFromQuayCenterTiles: 0,
     normalFromQuayTiles: extraWaterBuffer + dockOffsetTiles + occlusionClearance,
+    nearBerthDepthMode: 'world',
+    portDepthOffset: 0,
     calibrated: false,
   };
 }
@@ -752,6 +758,27 @@ function setVesselCargoState(event, cargoState) {
   setVesselSpriteTexture(event.sprite, getVesselTextureKey(event.cargoState, event.direction));
 }
 
+function getVesselRenderDepth(event, world, logicalPoint) {
+  if (typeof getWorldDepth !== 'function') return null;
+  const worldDepth = getWorldDepth('object', world?.depthY);
+  const anchor = event?.route?.berthAnchor;
+  if (anchor?.nearBerthDepthMode !== 'front-of-port') return worldDepth;
+  const berth = event.route?.berth;
+  const parallelApproach = event.route?.parallelApproach;
+  if (!berth || !logicalPoint) return worldDepth;
+  const berthLegTiles = parallelApproach
+    ? Math.hypot(berth.row - parallelApproach.row, berth.col - parallelApproach.col)
+    : 0;
+  const distanceToBerth = Math.hypot(
+    logicalPoint.row - berth.row,
+    logicalPoint.col - berth.col,
+  );
+  if (distanceToBerth > berthLegTiles + 0.0001) return worldDepth;
+  const portDepth = Number(event.portSprite?.depth);
+  if (!Number.isFinite(portDepth)) return worldDepth;
+  return Math.max(worldDepth, portDepth + (Number(anchor.portDepthOffset) || 1));
+}
+
 
 function setVesselVisual(scene, event, logicalPoint, forcedDirection = null, side = null) {
   const world = getVesselWaterSurfacePoint(scene, logicalPoint.row, logicalPoint.col);
@@ -764,14 +791,8 @@ function setVesselVisual(scene, event, logicalPoint, forcedDirection = null, sid
   event.direction = direction;
   setVesselSpriteTexture(event.sprite, getVesselTextureKey(event.cargoState, direction));
   event.sprite.setPosition(world.x, world.y);
-  // Plain Y-based depth - the same rule every other sprite in the scene
-  // (buildings, trees) sorts by, no per-side special-casing. This only
-  // looks right if the dock point stands far enough off the harbor's own
-  // sprite bounds that the two don't fight over the same screen pixels in
-  // the first place (see the gap comments on VESSEL_VISUAL_CONFIG.dockOffsetTiles).
-  if (typeof getWorldDepth === 'function') {
-    event.sprite.setDepth(getWorldDepth('object', world.depthY));
-  }
+  const depth = getVesselRenderDepth(event, world, logicalPoint);
+  if (Number.isFinite(depth)) event.sprite.setDepth(depth);
   event.lastWorld = world;
   event.lastLogical = logicalPoint;
 }
@@ -1137,6 +1158,7 @@ const vesselVisualTestApi = {
   getVesselBerthAnchor,
   getVesselParallelApproachPoint,
   getVesselRouteMetadataId,
+  getVesselRenderDepth,
   getVesselHarborVisualVariant,
   getVesselDockDirection,
   getVesselCalibrationLogicalPoint,

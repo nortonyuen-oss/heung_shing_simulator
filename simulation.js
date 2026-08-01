@@ -9,12 +9,26 @@ const modelRecentHistory = new Map();
 
 function runSimTick(scene) {
   if (!scene) return;
+  const performanceProfileStartedAt = (
+    typeof isVisualRouteCalibrationTestModeEnabled === 'function'
+    && isVisualRouteCalibrationTestModeEnabled()
+    && typeof recordVisualRoutePerformanceDuration === 'function'
+  ) ? performance.now() : null;
+  const runProfiledStep = (section, action) => {
+    if (performanceProfileStartedAt === null) return action();
+    const startedAt = performance.now();
+    const result = action();
+    recordVisualRoutePerformanceDuration(scene, `sim.${section}`, performance.now() - startedAt);
+    return result;
+  };
 
   // A tick refreshes aggregate counts, but facility anchors only change through
   // placement/demolition/load paths which invalidate their cache explicitly.
   invalidateBuildingCountCache({ facilities: false });
-  updateWeatherSimulation();
-  updateWeatherVisualOverlay(scene);
+  runProfiledStep('weather', () => {
+    updateWeatherSimulation();
+    updateWeatherVisualOverlay(scene);
+  });
 
   // Order matters:
   // 1. Infrastructure state (power, services)
@@ -23,20 +37,24 @@ function runSimTick(scene) {
   // 4. Demand (needs fresh happiness)
   // 5. Zone growth (needs fresh demand)
   // 6. Economy, date, display
-  updatePowerGrid(scene);
-  updateServiceCoverage();
-  updatePopulationAndPollution();
-  updateTrafficMap();
-  updateEducationLevels();
-  updateCrimeRateIndex();
-  updateHealthMetrics();
-  computeHappiness(scene);
-  if (typeof updateCityAttractivenessMetrics === 'function') updateCityAttractivenessMetrics();
-  updateDemand();
-  updateStockMarketTick();
-  updateTrees(scene);
-  updateCitizenActivitySimulation();
-  if (typeof queueAiNewsGeneration === 'function') queueAiNewsGeneration();
+  runProfiledStep('power', () => updatePowerGrid(scene));
+  runProfiledStep('services', () => updateServiceCoverage());
+  runProfiledStep('population', () => updatePopulationAndPollution());
+  runProfiledStep('traffic', () => updateTrafficMap());
+  runProfiledStep('education', () => updateEducationLevels());
+  runProfiledStep('crime', () => updateCrimeRateIndex());
+  runProfiledStep('health', () => updateHealthMetrics());
+  runProfiledStep('happiness', () => computeHappiness(scene));
+  runProfiledStep('attractiveness', () => {
+    if (typeof updateCityAttractivenessMetrics === 'function') updateCityAttractivenessMetrics();
+  });
+  runProfiledStep('demand', () => updateDemand());
+  runProfiledStep('stocks', () => updateStockMarketTick());
+  runProfiledStep('trees', () => updateTrees(scene));
+  runProfiledStep('citizens', () => updateCitizenActivitySimulation());
+  runProfiledStep('news', () => {
+    if (typeof queueAiNewsGeneration === 'function') queueAiNewsGeneration();
+  });
 
   // Keep the expensive full-map diagnostics available for development without
   // charging every player for another zone/road scan once per game month.
@@ -57,18 +75,27 @@ function runSimTick(scene) {
     );
   }
 
-  growOrShrinkZones(scene);
-  runEconomy(scene);
-  advanceDate();
-  if (typeof updateCouncilTimedSystems === 'function') updateCouncilTimedSystems();
-  refreshZoneOverlayTints(scene);
+  runProfiledStep('growth', () => growOrShrinkZones(scene));
+  runProfiledStep('economy', () => runEconomy(scene));
+  runProfiledStep('date', () => advanceDate());
+  runProfiledStep('council', () => {
+    if (typeof updateCouncilTimedSystems === 'function') updateCouncilTimedSystems();
+  });
+  runProfiledStep('overlay', () => refreshZoneOverlayTints(scene));
   // Invalidate before the HUD refresh so an open mini-map is recomputed once,
   // not once with stale data and then a second time immediately afterwards.
   if (typeof activeOverlay === 'string' && activeOverlay) {
     if (typeof invalidateOverlayCache === 'function') invalidateOverlayCache();
     else overlayCache = {};
   }
-  updateHUD();
+  runProfiledStep('hud', () => updateHUD());
+  if (performanceProfileStartedAt !== null) {
+    recordVisualRoutePerformanceDuration(
+      scene,
+      'simulation',
+      performance.now() - performanceProfileStartedAt,
+    );
+  }
 }
 
 function updateEducationLevels() {

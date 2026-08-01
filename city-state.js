@@ -365,6 +365,9 @@ function resetGameState() {
   city.month      = 1;
   city.year       = 1900;
   city.isBankrupt = false;
+  if (typeof clearZoneGrowthQualityContextCache === 'function') {
+    clearZoneGrowthQualityContextCache();
+  }
   invalidateBuildingCountCache();
 }
 

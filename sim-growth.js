@@ -1,5 +1,69 @@
 let lastCommercialMergeScanTick = null;
 
+// Land value, canopy, pollution pressure and skyline indexes are expensive
+// full-city snapshots. They only need month-level freshness for model quality
+// selection, yet the old path rebuilt them on every simulation tick. Reusing a
+// snapshot for the four ticks in one game month removes a large stream of
+// short-lived Maps, arrays and factor objects that otherwise drives long GC
+// pauses in mature cities.
+let zoneGrowthQualityContextCache = null;
+const zoneGrowthQualityContextCacheStats = {
+  hits: 0,
+  misses: 0,
+  rebuilds: 0,
+  lastBuildMs: 0,
+};
+
+function getZoneGrowthQualityContextBucket() {
+  const ticksPerMonth = Math.max(1, Number(
+    typeof TICKS_PER_MONTH === 'undefined' ? 4 : TICKS_PER_MONTH,
+  ) || 4);
+  const tick = typeof city === 'undefined' ? 0 : Number(city.tick) || 0;
+  return Math.floor(Math.max(0, tick) / ticksPerMonth);
+}
+
+function getZoneGrowthQualityContexts() {
+  const bucket = getZoneGrowthQualityContextBucket();
+  if (zoneGrowthQualityContextCache?.bucket === bucket) {
+    zoneGrowthQualityContextCacheStats.hits++;
+    // Economy can move during a month without requiring the spatial maps and
+    // skyline index to be rebuilt.
+    zoneGrowthQualityContextCache.residential.economy = getResidentialEconomyScore();
+    zoneGrowthQualityContextCache.commercial.economy = getCommercialEconomyScore();
+    return zoneGrowthQualityContextCache;
+  }
+
+  zoneGrowthQualityContextCacheStats.misses++;
+  zoneGrowthQualityContextCache = null;
+  const startedAt = globalThis.performance?.now?.() ?? Date.now();
+  const landValueMap = typeof computeLandValueMap === 'function'
+    ? computeLandValueMap()
+    : null;
+  zoneGrowthQualityContextCache = {
+    bucket,
+    landValueMap,
+    residential: createResidentialQualityContext(landValueMap),
+    commercial: createCommercialQualityContext(landValueMap),
+  };
+  zoneGrowthQualityContextCacheStats.rebuilds++;
+  zoneGrowthQualityContextCacheStats.lastBuildMs = (
+    globalThis.performance?.now?.() ?? Date.now()
+  ) - startedAt;
+  return zoneGrowthQualityContextCache;
+}
+
+function clearZoneGrowthQualityContextCache() {
+  zoneGrowthQualityContextCache = null;
+}
+
+function getZoneGrowthQualityContextCacheStats() {
+  return {
+    valid: !!zoneGrowthQualityContextCache,
+    bucket: zoneGrowthQualityContextCache?.bucket ?? null,
+    ...zoneGrowthQualityContextCacheStats,
+  };
+}
+
 function isBuildingHighScoreVisual(record) {
   if (!record?.spriteKey) return false;
   if (record.type === 'residential' && ['H', 'UH'].includes(record.wealthTier)) return true;
@@ -88,11 +152,10 @@ function tryRedecoratePremiumBuilding(
 }
 
 function growOrShrinkZones(scene) {
-  const landValueMap = typeof computeLandValueMap === 'function'
-    ? computeLandValueMap()
-    : null;
-  const residentialQualityContext = createResidentialQualityContext(landValueMap);
-  const commercialQualityContext = createCommercialQualityContext(landValueMap);
+  const qualityContexts = getZoneGrowthQualityContexts();
+  const landValueMap = qualityContexts.landValueMap;
+  const residentialQualityContext = qualityContexts.residential;
+  const commercialQualityContext = qualityContexts.commercial;
   const tickGap = lastCommercialMergeScanTick === null ? Infinity : Math.abs(city.tick - lastCommercialMergeScanTick);
   const runCommercialMerge = tickGap <= TICKS_PER_MONTH * 2
     && city.tick > TICKS_PER_MONTH

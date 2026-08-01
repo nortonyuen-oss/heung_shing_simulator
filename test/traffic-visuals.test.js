@@ -634,7 +634,9 @@ test('traffic module is loaded before main and wired into lifecycle invalidation
   assert.match(main, /updateTerrainViewportCulling\(this\)/);
   assert.match(main, /updateTrafficVisuals\.call\(this,\s*time,\s*delta\)/);
   assert.match(main, /function updateTerrainViewportCulling\(scene,\s*force\s*=\s*false\)/);
-  assert.match(main, /tile\.setVisible\(/);
+  assert.match(main, /function setTerrainSpriteViewportActive\(tile,\s*active\)/);
+  assert.match(main, /tile\.removeFromDisplayList\(\)/);
+  assert.match(main, /getTerrainViewportLogicalRange\(scene,/);
   assert.match(main, /camera\.scrollY\s*-=\s*dy\s*\/\s*camera\.zoom;[\s\S]*?updateTerrainViewportCulling\(this\)/);
   assert.match(main, /camera\.setZoom\(newZoom\);[\s\S]*?updateTerrainViewportCulling\(this,\s*true\)/);
   assert.match(main, /setupTrafficVisuals\(this\)/);

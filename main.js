@@ -280,6 +280,17 @@ const WORLD_LAYER_DEPTHS = {
   object: 200000,
   effect: 300000,
 };
+// Logical compatibility keys may outlive the asset that renders them. Resolve
+// those aliases before preload/runtime lookup so Phaser decodes and uploads one
+// canonical source instead of one source per legacy key.
+const GLOBAL_TEXTURE_KEY_ALIASES = Object.freeze({
+  hill_plateau: 'ground_full',
+  park_small: 'park_small_open',
+});
+
+function resolveCanonicalTextureKey(key) {
+  return GLOBAL_TEXTURE_KEY_ALIASES[key] ?? key;
+}
 
 function createWorldRenderLayers(scene) {
   if (!scene) return;
@@ -319,6 +330,45 @@ function getCameraWorldViewRect(camera) {
   };
 }
 
+function setTerrainSpriteViewportActive(tile, active) {
+  if (!tile) return;
+  if (active) {
+    if (!tile.displayList && typeof tile.addToDisplayList === 'function') {
+      tile.addToDisplayList();
+    }
+    tile.setVisible?.(true);
+    return;
+  }
+  tile.setVisible?.(false);
+  if (tile.displayList && typeof tile.removeFromDisplayList === 'function') {
+    tile.removeFromDisplayList();
+  }
+}
+
+function getTerrainViewportLogicalRange(scene, bounds) {
+  const corners = [
+    worldToLogicalPoint(scene, bounds.minX, bounds.minY),
+    worldToLogicalPoint(scene, bounds.maxX, bounds.minY),
+    worldToLogicalPoint(scene, bounds.minX, bounds.maxY),
+    worldToLogicalPoint(scene, bounds.maxX, bounds.maxY),
+  ];
+  const cols = corners.map((point) => Number(point?.x)).filter(Number.isFinite);
+  const rows = corners.map((point) => Number(point?.y)).filter(Number.isFinite);
+  if (!cols.length || !rows.length) {
+    return { minRow: 0, maxRow: MAP_HEIGHT - 1, minCol: 0, maxCol: MAP_WIDTH - 1 };
+  }
+  // The corner conversion encloses tile anchors. Keep a small logical margin
+  // for tall hill faces and antialiased edges before applying the exact world
+  // bounds test below.
+  const margin = 3;
+  return {
+    minRow: Math.max(0, Math.floor(Math.min(...rows)) - margin),
+    maxRow: Math.min(MAP_HEIGHT - 1, Math.ceil(Math.max(...rows)) + margin),
+    minCol: Math.max(0, Math.floor(Math.min(...cols)) - margin),
+    maxCol: Math.min(MAP_WIDTH - 1, Math.ceil(Math.max(...cols)) + margin),
+  };
+}
+
 function updateTerrainViewportCulling(scene, force = false) {
   const camera = scene?.cameras?.main;
   if (
@@ -341,6 +391,7 @@ function updateTerrainViewportCulling(scene, force = false) {
   ].join(':');
   if (!force && scene.terrainViewportCacheKey === cacheKey) return;
   scene.terrainViewportCacheKey = cacheKey;
+  const cullStartedAt = performance.now();
 
   const padX = TILE_WIDTH * 2;
   const padY = TILE_IMAGE_HEIGHT + MAX_TERRAIN_HEIGHT * HEIGHT_STEP_PIXELS + TILE_HEIGHT;
@@ -349,16 +400,53 @@ function updateTerrainViewportCulling(scene, force = false) {
   const minY = view.y - padY;
   const maxY = view.y + view.height + padY;
 
-  for (const row of scene.tileSprites) {
-    for (const tile of row) {
-      tile.setVisible(
+  if (!(scene.activeTerrainSpriteIds instanceof Set)) {
+    scene.activeTerrainSpriteIds = new Set();
+    // One initialization pass removes the full 256x256 terrain grid from the
+    // Scene Display List. Later frames only add the small camera-local set, so
+    // Phaser no longer traverses tens of thousands of invisible Images.
+    for (const row of scene.tileSprites) {
+      for (const tile of row) setTerrainSpriteViewportActive(tile, false);
+    }
+  }
+
+  const logicalRange = getTerrainViewportLogicalRange(scene, { minX, maxX, minY, maxY });
+  const nextActiveTerrainIds = new Set();
+  let terrainCandidates = 0;
+  for (let row = logicalRange.minRow; row <= logicalRange.maxRow; row++) {
+    for (let col = logicalRange.minCol; col <= logicalRange.maxCol; col++) {
+      terrainCandidates++;
+      const tile = scene.tileSprites[row]?.[col];
+      if (!tile) continue;
+      if (
         tile.x >= minX
         && tile.x <= maxX
         && tile.y >= minY
         && tile.y <= maxY
-      );
+      ) {
+        nextActiveTerrainIds.add(row * MAP_WIDTH + col);
+      }
     }
   }
+
+  let terrainEntered = 0;
+  let terrainExited = 0;
+  for (const id of scene.activeTerrainSpriteIds) {
+    if (nextActiveTerrainIds.has(id)) continue;
+    const row = Math.floor(id / MAP_WIDTH);
+    const col = id % MAP_WIDTH;
+    setTerrainSpriteViewportActive(scene.tileSprites[row]?.[col], false);
+    terrainExited++;
+  }
+  for (const id of nextActiveTerrainIds) {
+    if (scene.activeTerrainSpriteIds.has(id)) continue;
+    const row = Math.floor(id / MAP_WIDTH);
+    const col = id % MAP_WIDTH;
+    setTerrainSpriteViewportActive(scene.tileSprites[row]?.[col], true);
+    terrainEntered++;
+  }
+  scene.activeTerrainSpriteIds = nextActiveTerrainIds;
+  if (terrainEntered > 0) scene.children?.queueDepthSort?.();
 
   // Buildings/trees/overlays get a much more generous pad than terrain tiles:
   // a building's Map entry is keyed by its anchor tile only, but footprints up
@@ -366,68 +454,96 @@ function updateTerrainViewportCulling(scene, force = false) {
   // inside the viewport even when their anchor sits just outside it.
   const spritePadX = TILE_WIDTH * 6;
   const spritePadY = TILE_IMAGE_HEIGHT * 6 + MAX_TERRAIN_HEIGHT * HEIGHT_STEP_PIXELS + TILE_HEIGHT * 4;
-  updateSpriteViewportCulling(scene, {
+  const spriteStats = updateSpriteViewportCulling(scene, {
     minX: view.x - spritePadX,
     maxX: view.x + view.width + spritePadX,
     minY: view.y - spritePadY,
     maxY: view.y + view.height + spritePadY,
   });
+  scene.viewportCullStats = {
+    passes: (scene.viewportCullStats?.passes ?? 0) + 1,
+    lastDurationMs: performance.now() - cullStartedAt,
+    terrainCandidates,
+    activeTerrain: nextActiveTerrainIds.size,
+    terrainEntered,
+    terrainExited,
+    spriteCandidates: spriteStats.candidates,
+    visibleSprites: spriteStats.visible,
+  };
 }
 
 function isPointWithinCullBounds(x, y, bounds) {
   return x >= bounds.minX && x <= bounds.maxX && y >= bounds.minY && y <= bounds.maxY;
 }
 
-function cullSpriteMapEntries(map, bounds) {
-  if (!map || !map.size) return;
+function cullSpriteMapEntries(map, bounds, seen = null) {
+  const stats = { candidates: 0, visible: 0 };
+  if (!map || !map.size) return stats;
+  const apply = (sprite) => {
+    if (!sprite || (seen && seen.has(sprite))) return;
+    if (seen) seen.add(sprite);
+    if (typeof sprite.setVisible !== 'function') return;
+    stats.candidates++;
+    const visible = isPointWithinCullBounds(sprite.x, sprite.y, bounds);
+    sprite.setVisible(visible);
+    if (visible) stats.visible++;
+  };
   for (const value of map.values()) {
     if (!value) continue;
     if (Array.isArray(value)) {
       // treeSprites stores one entry per tile as an array of sub-sprites.
-      for (const sprite of value) {
-        if (sprite && typeof sprite.setVisible === 'function') {
-          sprite.setVisible(isPointWithinCullBounds(sprite.x, sprite.y, bounds));
-        }
-      }
+      for (const sprite of value) apply(sprite);
     } else if (typeof value.setVisible === 'function') {
-      value.setVisible(isPointWithinCullBounds(value.x, value.y, bounds));
+      apply(value);
     } else if (value.body || value.top) {
       // Bridge ramp entries are a plain { body, top } pair of images rather
       // than a single game object (see upsertBridgeRampSprite).
-      if (value.body && typeof value.body.setVisible === 'function') {
-        value.body.setVisible(isPointWithinCullBounds(value.body.x, value.body.y, bounds));
-      }
-      if (value.top && typeof value.top.setVisible === 'function') {
-        value.top.setVisible(isPointWithinCullBounds(value.top.x, value.top.y, bounds));
-      }
+      apply(value.body);
+      apply(value.side);
+      apply(value.top);
     }
   }
+  return stats;
 }
 
 function updateSpriteViewportCulling(scene, bounds) {
   // A multi-tile building is registered under buildingSprites once per
   // footprint tile it occupies, all pointing at the same sprite object -
   // dedupe so a 5x5 landmark isn't visibility-tested 25 times per pass.
-  if (scene.buildingSprites?.size) {
-    const seenBuildings = new Set();
-    for (const building of scene.buildingSprites.values()) {
-      if (!building || seenBuildings.has(building)) continue;
-      seenBuildings.add(building);
-      if (typeof building.setVisible === 'function') {
-        building.setVisible(isPointWithinCullBounds(building.x, building.y, bounds));
-      }
-    }
-  }
-  cullSpriteMapEntries(scene.treeSprites, bounds);
-  cullSpriteMapEntries(scene.zoneOverlays, bounds);
-  cullSpriteMapEntries(scene.powerLineSprites, bounds);
-  cullSpriteMapEntries(scene.bridgeSprites, bounds);
+  const seen = new Set();
+  const totals = { candidates: 0, visible: 0 };
+  const collect = (stats) => {
+    totals.candidates += stats.candidates;
+    totals.visible += stats.visible;
+  };
+  collect(cullSpriteMapEntries(scene.buildingSprites, bounds, seen));
+  collect(cullSpriteMapEntries(scene.treeSprites, bounds, seen));
+  collect(cullSpriteMapEntries(scene.zoneOverlays, bounds, seen));
+  collect(cullSpriteMapEntries(scene.powerLineSprites, bounds, seen));
+  collect(cullSpriteMapEntries(scene.bridgeSprites, bounds, seen));
+  collect(cullSpriteMapEntries(scene.districtSignSprites, bounds, seen));
+  return totals;
 }
 
 function updateGameFrame(time, delta) {
+  if (typeof recordVisualRoutePerformanceFrameStart === 'function') {
+    recordVisualRoutePerformanceFrameStart(this);
+  }
   updateTerrainViewportCulling(this);
+
+  const profileSections = typeof isVisualRouteCalibrationTestModeEnabled === 'function'
+    && isVisualRouteCalibrationTestModeEnabled()
+    && typeof recordVisualRoutePerformanceDuration === 'function';
+  let sectionStartedAt = profileSections ? performance.now() : 0;
   updateTrafficVisuals.call(this, time, delta);
+  if (profileSections) {
+    recordVisualRoutePerformanceDuration(this, 'traffic', performance.now() - sectionStartedAt);
+    sectionStartedAt = performance.now();
+  }
   updateVesselVisuals.call(this, time, delta);
+  if (profileSections) {
+    recordVisualRoutePerformanceDuration(this, 'vessel', performance.now() - sectionStartedAt);
+  }
   if (typeof updateVisualRoutePerformanceProfiler === 'function') {
     updateVisualRoutePerformanceProfiler(this, time, delta);
   }
@@ -457,11 +573,13 @@ function resolveTileTextureKey(logicalKey) {
   if (typeof getRoadTileTextureKey === 'function') {
     const textureKey = getRoadTileTextureKey(logicalKey);
     if (activeScene?.textures?.exists && !activeScene.textures.exists(textureKey)) {
-      return getRoadTileTextureKey(logicalKey, ROAD_TILE_SET_DEFAULT_ID);
+      return resolveCanonicalTextureKey(
+        getRoadTileTextureKey(logicalKey, ROAD_TILE_SET_DEFAULT_ID),
+      );
     }
-    return textureKey;
+    return resolveCanonicalTextureKey(textureKey);
   }
-  return logicalKey;
+  return resolveCanonicalTextureKey(logicalKey);
 }
 
 function ensurePreviewOverlayDepth(scene) {
@@ -1630,7 +1748,6 @@ function preload() {
   this.load.image('park_small_plaza',      resolveModelAssetPath('Models/parks/park1x1/park1-04.png'));
   this.load.image('park_small_palm',       resolveModelAssetPath('Models/parks/park2x2/park2-02.png'));
   this.load.image('park_large_highscore',  resolveModelAssetPath('Models/parks/park2x2/park2-03-highScore.png'));
-  this.load.image('park_small',            resolveModelAssetPath('Models/parks/park1x1/park1-01.png'));
   this.load.image('park_large',            resolveModelAssetPath('Models/parks/park3x3/park3-01.png'));
   // Sports grounds
   this.load.image('sports_ground_2x2',     resolveModelAssetPath('Models/parks/park2x2/sportField3-02.png'));
@@ -1690,7 +1807,6 @@ function preload() {
   this.load.image('beach_corner_water_sw', `${roadPath}beachCornerSW.png`);
   this.load.image('beach_corner_water_nw', `${roadPath}beachCornerNW.png`);
 
-  this.load.image('hill_plateau', `${roadPath}grassWhole.png`);
   this.load.image('hill_edge_n', `${roadPath}hillE.png`);
   this.load.image('hill_edge_e', `${roadPath}hillS.png`);
   this.load.image('hill_edge_s', `${roadPath}hillW.png`);
@@ -1708,6 +1824,9 @@ function preload() {
 
 function create() {
   activeScene = this;
+  if (typeof setupVisualRoutePerformanceHooks === 'function') {
+    setupVisualRoutePerformanceHooks(this);
+  }
   prepareHouseModelMetadata(this);
   prepareCommercialBuildingModelMetadata(this);
   prepareIndustrialBuildingModelMetadata(this);
@@ -1725,6 +1844,7 @@ function create() {
   this.panPrevX = 0;
   this.panPrevY = 0;
   this.tileSprites = [];
+  this.activeTerrainSpriteIds = new Set();
   this.buildingSprites = new Map();
   this.zoneOverlays    = new Map();
   this.powerLineSprites = new Map();
@@ -1758,8 +1878,18 @@ function create() {
       const pos = isoToScreen(col, row);
       const x = pos.x + this.offsetX;
       const y = pos.y + this.offsetY + getTerrainTileVisualOffset(row, col, key);
-      const tile = this.add.image(x, y, resolveTileTextureKey(key));
+      // The map owns 65,536 terrain Images, but only a few hundred can appear
+      // in one camera view. Creating them detached avoids an O(n²) first-frame
+      // pass through Phaser's Display List; viewport culling adds only the
+      // camera-local subset when gameplay becomes visible.
+      const tile = this.make.image({
+        x,
+        y,
+        key: resolveTileTextureKey(key),
+        add: false,
+      });
       addToRenderLayer(this, tile, 'terrainLayer');
+      tile.setVisible(false);
       tile.setOrigin(0.5, 1);
       tile.setDepth(getTerrainTileDepth(row, col, key, pos.y));
       tile.setMask(worldMask);
@@ -3034,7 +3164,7 @@ function prepareParkModelMetadata(scene) {
     park_small_plaza:      getParkModelMetadata(scene, 'park_small_plaza',      1, 1),
     park_small_palm:       getParkModelMetadata(scene, 'park_small_palm',       2, 2),
     park_large_highscore:  getParkModelMetadata(scene, 'park_large_highscore',  2, 2),
-    park_small:            getParkModelMetadata(scene, 'park_small',            1, 1),
+    park_small:            getParkModelMetadata(scene, 'park_small_open',       1, 1),
     park_large:            getParkModelMetadata(scene, 'park_large',            3, 3),
     park_large_pool:       getParkModelMetadata(scene, 'park_large_pool',       3, 3),
     park_flagship_victoria: getParkModelMetadata(scene, 'park_flagship_victoria', 4, 4),
@@ -3416,7 +3546,7 @@ function getParkModelMetadata(
   footprintRows,
   anchorMode = DEFAULT_BUILDING_ANCHOR_MODE,
 ) {
-  const source = scene.textures.get(key)?.getSourceImage();
+  const source = scene.textures.get(resolveCanonicalTextureKey(key))?.getSourceImage();
   if (!source) {
     return { footprintCols, footprintRows };
   }
@@ -3851,7 +3981,9 @@ function getSpriteBuildingTextureKey(key) {
   if (specialModel) return getFixedBuildingTextureKey(specialModel);
 
   const harborModel = HARBOR_MODELS[key];
-  return harborModel ? getFixedBuildingTextureKey(harborModel) : key;
+  return resolveCanonicalTextureKey(
+    harborModel ? getFixedBuildingTextureKey(harborModel) : key,
+  );
 }
 
 function isServiceBuildingSpriteKey(key) {
@@ -8714,7 +8846,8 @@ function preGenerateParkTextures(scene) {
   ];
 
   configs.forEach(({ key, width, height, faceHeight, trees }) => {
-    if (scene.textures.exists(key)) return;
+    const textureKey = resolveCanonicalTextureKey(key);
+    if (scene.textures.exists(textureKey)) return;
 
     const g = scene.make.graphics({ add: false });
     g.fillStyle(0x56b85b, 1);
@@ -8745,7 +8878,7 @@ function preGenerateParkTextures(scene) {
       g.fillCircle(x + size * 0.35, y - size * 0.15, size * 0.55);
     });
 
-    g.generateTexture(key, width, height);
+    g.generateTexture(textureKey, width, height);
     g.destroy();
   });
 }

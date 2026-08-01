@@ -10,7 +10,9 @@ const modelRecentHistory = new Map();
 function runSimTick(scene) {
   if (!scene) return;
 
-  invalidateBuildingCountCache();
+  // A tick refreshes aggregate counts, but facility anchors only change through
+  // placement/demolition/load paths which invalidate their cache explicitly.
+  invalidateBuildingCountCache({ facilities: false });
   updateWeatherSimulation();
   updateWeatherVisualOverlay(scene);
 

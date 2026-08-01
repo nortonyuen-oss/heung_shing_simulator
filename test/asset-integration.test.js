@@ -70,6 +70,14 @@ test('fixed building registries point at the current asset set', () => {
   assert.equal(registries.LEGACY_AIRPORT_MODEL.footprintRows, 6);
   assert.equal(registries.LEGACY_AIRPORT_8X8_MODEL.footprintCols, 8);
   assert.equal(registries.LEGACY_AIRPORT_8X8_MODEL.footprintRows, 8);
+  assert.equal(
+    registries.LEGACY_AIRPORT_MODEL.textureKey,
+    registries.SPECIAL_BUILDING_MODELS.airport.spriteKey,
+  );
+  assert.equal(
+    registries.LEGACY_AIRPORT_8X8_MODEL.textureKey,
+    registries.SPECIAL_BUILDING_MODELS.airport.spriteKey,
+  );
   assert.equal(registries.SPECIAL_BUILDING_MODELS.ocean_park.footprintCols, 8);
   assert.equal(registries.SPECIAL_BUILDING_MODELS.ocean_park.footprintRows, 8);
   assert.equal(registries.LEGACY_OCEAN_PARK_MODEL.footprintCols, 4);
@@ -499,7 +507,9 @@ test('new airports load as 12x12 while old saves retain safe 6x6 and 8x8 fallbac
   assert.match(constants, /airport:\s*\{[\s\S]*?spriteKey:\s*'airport_12x12'[\s\S]*?cacheVersion:[\s\S]*?footprintCols:\s*12[\s\S]*?footprintRows:\s*12/);
   assert.match(constants, /LEGACY_AIRPORT_MODEL[\s\S]*?spriteKey:\s*'airport_6x6_legacy'[\s\S]*?footprintCols:\s*6[\s\S]*?footprintRows:\s*6/);
   assert.match(constants, /LEGACY_AIRPORT_8X8_MODEL[\s\S]*?spriteKey:\s*'airport_8x8_legacy'[\s\S]*?footprintCols:\s*8[\s\S]*?footprintRows:\s*8/);
-  assert.match(main, /this\.load\.image\(model\.spriteKey, getFixedBuildingModelLoadPath\(model\)\)/);
+  assert.match(main, /queuedFixedTextureKeys[\s\S]*?getFixedBuildingTextureKey\(model\)[\s\S]*?this\.load\.image\(textureKey, getFixedBuildingModelLoadPath\(model\)\)/);
+  assert.match(main, /function placeSpriteBuilding[\s\S]*?getSpriteBuildingTextureKey\(key\)[\s\S]*?scene\.add\.image\([\s\S]*?textureKey/);
+  assert.match(main, /function getSpecialBuildingModelMetadata[\s\S]*?getManifestFixedBuildingModelMetadata\(model\)/);
   assert.match(save, /migrateAirportBuildingRecord\(record\)[\s\S]*?deriveLoadedSpriteKey\(record\)/);
   assert.match(save, /isLegacy6x6[\s\S]*?isLegacy8x8[\s\S]*?targetModel[\s\S]*?record\.spriteKey = targetModel\.spriteKey[\s\S]*?record\.footprintCols = targetModel\.footprintCols[\s\S]*?record\.footprintRows = targetModel\.footprintRows/);
 });

@@ -609,6 +609,10 @@ const SPECIAL_BUILDING_MODELS = {
 // footprint loadable so migration never claims or overwrites adjacent tiles.
 const LEGACY_AIRPORT_MODEL = {
   spriteKey: 'airport_6x6_legacy',
+  // Keep the legacy key as a footprint/save profile only. All airport sizes
+  // render from the canonical 12x12 texture so Phaser decodes/uploads the
+  // shared source image once instead of once per historic footprint.
+  textureKey: 'airport_12x12',
   path: 'Models/airPort/6x6/airport6-01.png',
   cacheVersion: '20260719-12x12-v4',
   footprintCols: 6,
@@ -617,6 +621,7 @@ const LEGACY_AIRPORT_MODEL = {
 
 const LEGACY_AIRPORT_8X8_MODEL = {
   spriteKey: 'airport_8x8_legacy',
+  textureKey: 'airport_12x12',
   path: 'Models/airPort/6x6/airport6-01.png',
   cacheVersion: '20260719-12x12-v4',
   footprintCols: 8,
@@ -655,6 +660,10 @@ function getAllSpecialBuildingModels(buildingType) {
   if (buildingType === 'airport') return [...models, LEGACY_AIRPORT_MODEL, LEGACY_AIRPORT_8X8_MODEL];
   if (buildingType === 'ocean_park') return [...models, LEGACY_OCEAN_PARK_MODEL];
   return models;
+}
+
+function getFixedBuildingTextureKey(model) {
+  return model?.textureKey ?? model?.spriteKey ?? '';
 }
 
 // Container port: footprint is fixed but the sprite is chosen per-tile from the

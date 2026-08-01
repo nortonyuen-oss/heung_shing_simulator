@@ -12,8 +12,11 @@ const VISUAL_ROUTE_CALIBRATION_DEFAULT_SLOTS = Object.freeze(['default']);
 const VISUAL_ROUTE_CALIBRATION_INPUT_DEPTH = 2_000_000_000;
 const VISUAL_ROUTE_CALIBRATION_UNLOCK_CLICKS = 5;
 const VISUAL_ROUTE_CALIBRATION_UNLOCK_WINDOW_MS = 2500;
+const VISUAL_ROUTE_PERFORMANCE_SAMPLE_COUNT = 120;
+const VISUAL_ROUTE_PERFORMANCE_REFRESH_MS = 500;
 const visualRouteCalibrationStates = new WeakMap();
 const visualRouteCalibrationLiveStates = new Set();
+const visualRoutePerformanceStates = new WeakMap();
 let visualRouteCalibrationTestModeEnabled = false;
 let visualRouteCalibrationUnlockCount = 0;
 let visualRouteCalibrationLastUnlockClickAt = -Infinity;
@@ -24,6 +27,8 @@ function updateVisualRouteCalibrationTestModeIndicator() {
   if (indicator) indicator.hidden = !visualRouteCalibrationTestModeEnabled;
   const icon = document.getElementById('about-app-icon');
   icon?.setAttribute?.('aria-pressed', String(visualRouteCalibrationTestModeEnabled));
+  const performancePanel = document.getElementById('visual-route-performance-panel');
+  if (performancePanel) performancePanel.hidden = !visualRouteCalibrationTestModeEnabled;
 }
 
 function isVisualRouteCalibrationTestModeEnabled() {
@@ -515,6 +520,167 @@ function syncVisualRouteCalibrationTarget(scene, target) {
   return !!target.paused;
 }
 
+function summarizeVisualRoutePerformanceSamples(samples) {
+  const values = Array.from(samples ?? [])
+    .map(Number)
+    .filter((value) => Number.isFinite(value) && value > 0);
+  if (values.length === 0) {
+    return { currentMs: 0, averageMs: 0, p95Ms: 0, maxMs: 0, fps: 0, longFrames: 0 };
+  }
+  const sorted = [...values].sort((a, b) => a - b);
+  const averageMs = values.reduce((sum, value) => sum + value, 0) / values.length;
+  return {
+    currentMs: values.at(-1),
+    averageMs,
+    p95Ms: sorted[Math.max(0, Math.ceil(sorted.length * 0.95) - 1)],
+    maxMs: sorted.at(-1),
+    fps: averageMs > 0 ? 1000 / averageMs : 0,
+    longFrames: values.filter((value) => value > 33.34).length,
+  };
+}
+
+function visualRouteBytesToMiB(bytes) {
+  const value = Number(bytes);
+  return Number.isFinite(value) && value >= 0 ? value / (1024 * 1024) : null;
+}
+
+function visualRouteIsPowerOfTwo(value) {
+  const number = Number(value);
+  return Number.isInteger(number) && number > 0 && (number & (number - 1)) === 0;
+}
+
+function getVisualRouteTextureMemoryStats(scene) {
+  const textures = Object.values(scene?.textures?.list ?? {}).filter(Boolean);
+  const sourceObjects = new Set();
+  let estimatedBytes = 0;
+  textures.forEach((texture) => {
+    let sources = Array.isArray(texture.source) ? texture.source : [];
+    if (sources.length === 0) {
+      const image = texture.getSourceImage?.();
+      if (image) sources = [image];
+    }
+    sources.forEach((source) => {
+      const image = source?.image ?? source;
+      const identity = image || source;
+      if (!identity || sourceObjects.has(identity)) return;
+      sourceObjects.add(identity);
+      const width = Number(source?.width ?? image?.width) || 0;
+      const height = Number(source?.height ?? image?.height) || 0;
+      if (width <= 0 || height <= 0) return;
+      const mipmapMultiplier = visualRouteIsPowerOfTwo(width) && visualRouteIsPowerOfTwo(height)
+        ? 4 / 3
+        : 1;
+      estimatedBytes += width * height * 4 * mipmapMultiplier;
+    });
+  });
+  const airportKeys = ['airport_12x12', 'airport_8x8_legacy', 'airport_6x6_legacy'];
+  return {
+    textureCount: textures.length,
+    sourceCount: sourceObjects.size,
+    estimatedBytes,
+    airportTextureCount: airportKeys.filter((key) => scene?.textures?.exists?.(key)).length,
+  };
+}
+
+function createVisualRoutePerformancePanel() {
+  if (typeof document === 'undefined' || !document.body) return null;
+  const existing = document.getElementById('visual-route-performance-panel');
+  if (existing) return existing;
+  if (!document.getElementById('visual-route-performance-style')) {
+    const style = document.createElement('style');
+    style.id = 'visual-route-performance-style';
+    style.textContent = `
+      #visual-route-performance-panel {
+        position: fixed; right: 14px; top: 126px; z-index: 99999;
+        min-width: 250px; box-sizing: border-box; padding: 10px 12px;
+        border: 1px solid rgba(112, 221, 160, .72); border-radius: 10px;
+        color: #eafff2; background: rgba(5, 24, 25, .91);
+        box-shadow: 0 10px 28px rgba(0, 0, 0, .32);
+        font: 11px/1.48 ui-monospace, SFMono-Regular, Menlo, monospace;
+        pointer-events: none; user-select: text; backdrop-filter: blur(7px);
+      }
+      #visual-route-performance-panel[hidden] { display: none !important; }
+      #visual-route-performance-panel .vrp-title { color: #70dda0; font-weight: 800; letter-spacing: .08em; }
+      #visual-route-performance-panel pre { margin: 6px 0 0; color: #d9f7e5; white-space: pre-wrap; }
+    `;
+    document.head.appendChild(style);
+  }
+  const root = document.createElement('aside');
+  root.id = 'visual-route-performance-panel';
+  root.hidden = !visualRouteCalibrationTestModeEnabled;
+  root.setAttribute('aria-label', 'Test mode performance metrics');
+  root.innerHTML = '<div class="vrp-title">PERFORMANCE · TEST</div><pre></pre>';
+  document.body.appendChild(root);
+  return root;
+}
+
+function updateVisualRoutePerformanceProfiler(scene, time, delta) {
+  if (!visualRouteCalibrationTestModeEnabled || !scene) return false;
+  let state = visualRoutePerformanceStates.get(scene);
+  if (!state) {
+    state = {
+      samples: new Float64Array(VISUAL_ROUTE_PERFORMANCE_SAMPLE_COUNT),
+      sampleCount: 0,
+      sampleIndex: 0,
+      lastRefreshAt: -Infinity,
+    };
+    visualRoutePerformanceStates.set(scene, state);
+  }
+  const frameMs = Number(delta);
+  if (Number.isFinite(frameMs) && frameMs > 0) {
+    state.samples[state.sampleIndex] = frameMs;
+    state.sampleIndex = (state.sampleIndex + 1) % state.samples.length;
+    state.sampleCount = Math.min(state.samples.length, state.sampleCount + 1);
+  }
+  const now = Number.isFinite(Number(time)) ? Number(time) : globalThis.performance?.now?.() ?? 0;
+  if (now - state.lastRefreshAt < VISUAL_ROUTE_PERFORMANCE_REFRESH_MS) return true;
+  state.lastRefreshAt = now;
+
+  const orderedSamples = [];
+  for (let offset = state.sampleCount - 1; offset >= 0; offset--) {
+    const index = (state.sampleIndex - 1 - offset + state.samples.length) % state.samples.length;
+    orderedSamples.push(state.samples[index]);
+  }
+  const frame = summarizeVisualRoutePerformanceSamples(orderedSamples);
+  const memory = globalThis.performance?.memory;
+  const heapUsed = visualRouteBytesToMiB(memory?.usedJSHeapSize);
+  const heapTotal = visualRouteBytesToMiB(memory?.totalJSHeapSize);
+  const texture = getVisualRouteTextureMemoryStats(scene);
+  const textureMiB = visualRouteBytesToMiB(texture.estimatedBytes) ?? 0;
+  const airports = typeof getBuildingFacilityEntries === 'function'
+    ? getBuildingFacilityEntries('airport')
+    : [];
+  const facility = typeof getBuildingFacilityCacheStats === 'function'
+    ? getBuildingFacilityCacheStats()
+    : null;
+  const metadata = typeof getSpriteMetadataProfileStats === 'function'
+    ? getSpriteMetadataProfileStats()
+    : null;
+  const root = createVisualRoutePerformancePanel();
+  const output = root?.querySelector?.('pre');
+  if (!root || !output) return false;
+  root.hidden = false;
+  const heapText = heapUsed === null
+    ? 'RAM (JS heap)   n/a'
+    : `RAM (JS heap)   ${heapUsed.toFixed(1)} / ${heapTotal?.toFixed(1) ?? '?'} MiB`;
+  const facilityText = facility
+    ? `${facility.valid ? 'hot' : 'cold'} · airport ${airports.length} · H/M ${facility.hits}/${facility.misses}`
+    : `n/a · airport ${airports.length}`;
+  output.textContent = [
+    `frame now      ${frame.currentMs.toFixed(2)} ms`,
+    `frame avg/p95  ${frame.averageMs.toFixed(2)} / ${frame.p95Ms.toFixed(2)} ms`,
+    `fps / >33ms    ${frame.fps.toFixed(1)} / ${frame.longFrames}`,
+    heapText,
+    `GPU tex est.   ${textureMiB.toFixed(1)} MiB · ${texture.sourceCount} src`,
+    `airport tex    ${texture.airportTextureCount} canonical key(s)`,
+    metadata
+      ? `metadata       manifest ${metadata.manifestHits} · scan ${metadata.alphaScans} · reuse ${metadata.geometryCacheHits}`
+      : 'metadata       n/a',
+    `facility cache ${facilityText}`,
+  ].join('\n');
+  return true;
+}
+
 const visualRouteCalibrationTestApi = {
   VISUAL_ROUTE_CALIBRATION_SCHEMA_VERSION,
   VISUAL_ROUTE_CALIBRATION_STORAGE_KEY,
@@ -538,6 +704,9 @@ const visualRouteCalibrationTestApi = {
   syncVisualRouteCalibrationTarget,
   clearVisualRouteCalibrationTarget,
   clearVisualRouteCalibrationScene,
+  summarizeVisualRoutePerformanceSamples,
+  getVisualRouteTextureMemoryStats,
+  updateVisualRoutePerformanceProfiler,
 };
 
 if (typeof module !== 'undefined' && module.exports) module.exports = visualRouteCalibrationTestApi;
@@ -551,5 +720,6 @@ if (typeof globalThis !== 'undefined') {
     setupVisualRouteCalibrationTestModeUnlock,
     clearVisualRouteCalibrationTarget,
     clearVisualRouteCalibrationScene,
+    updateVisualRoutePerformanceProfiler,
   });
 }

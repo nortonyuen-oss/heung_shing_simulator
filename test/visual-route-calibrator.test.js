@@ -168,4 +168,34 @@ test('browser script loads generic calibrator before domain adapters', () => {
   );
   assert.match(main, /pointerdown[\s\S]*isVisualRouteCalibrationInputCaptured\(this\)/);
   assert.match(html, /id="about-app-icon"[\s\S]*id="visual-route-calibration-test-mode-label" hidden>【test mode】/);
+  assert.match(main, /updateVisualRoutePerformanceProfiler\(this, time, delta\)/);
+});
+
+test('performance profiler summarizes frame time and deduplicates shared texture sources', () => {
+  const summary = calibrator.summarizeVisualRoutePerformanceSamples([16, 17, 18, 40]);
+  assert.equal(summary.currentMs, 40);
+  assert.equal(summary.averageMs, 22.75);
+  assert.equal(summary.p95Ms, 40);
+  assert.equal(summary.maxMs, 40);
+  assert.equal(summary.longFrames, 1);
+  assert.ok(summary.fps > 43 && summary.fps < 44);
+
+  const sharedAirportImage = { width: 1024, height: 512 };
+  const otherImage = { width: 256, height: 256 };
+  const list = {
+    airport_12x12: { source: [{ image: sharedAirportImage, width: 1024, height: 512 }] },
+    alias_for_test: { source: [{ image: sharedAirportImage, width: 1024, height: 512 }] },
+    aircraft: { source: [{ image: otherImage, width: 256, height: 256 }] },
+  };
+  const scene = {
+    textures: {
+      list,
+      exists: (key) => Object.hasOwn(list, key),
+    },
+  };
+  const textures = calibrator.getVisualRouteTextureMemoryStats(scene);
+  assert.equal(textures.textureCount, 3);
+  assert.equal(textures.sourceCount, 2);
+  assert.equal(textures.airportTextureCount, 1);
+  assert.equal(textures.estimatedBytes, (1024 * 512 + 256 * 256) * 4 * (4 / 3));
 });

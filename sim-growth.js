@@ -1076,6 +1076,12 @@ function getCommercialEconomyScore() {
 }
 
 function getCommercialCatalystLocations(buildingType) {
+  if (typeof getBuildingFacilityEntries === 'function') {
+    return getBuildingFacilityEntries(buildingType).map((entry) => ({
+      row: entry.centerRow,
+      col: entry.centerCol,
+    }));
+  }
   if (typeof buildingData === 'undefined' || !buildingData) return [];
   return Object.entries(buildingData).flatMap(([id, record]) => {
     if (record?.type !== buildingType) return [];

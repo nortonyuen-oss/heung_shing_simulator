@@ -233,6 +233,15 @@ let powerPlantModelMetadata = {};
 let serviceBuildingModelMetadata = {};
 let specialBuildingModelMetadata = {};
 let harborModelMetadata = {};
+// Fallback development builds may not have a release manifest. Cache the
+// expensive alpha scan by decoded image + threshold so several footprint
+// profiles sharing one texture (notably legacy airports) reuse its geometry.
+const spriteFootprintGeometryCache = new WeakMap();
+const spriteMetadataProfileStats = {
+  manifestHits: 0,
+  alphaScans: 0,
+  geometryCacheHits: 0,
+};
 let selectedParkId = 'open_ground';
 
 // Terrain tool state
@@ -419,6 +428,9 @@ function updateGameFrame(time, delta) {
   updateTerrainViewportCulling(this);
   updateTrafficVisuals.call(this, time, delta);
   updateVesselVisuals.call(this, time, delta);
+  if (typeof updateVisualRoutePerformanceProfiler === 'function') {
+    updateVisualRoutePerformanceProfiler(this, time, delta);
+  }
 }
 
 function addToRenderLayer(scene, child, layerName) {
@@ -1329,6 +1341,33 @@ function getManifestZoneModelMetadata(model) {
   });
 }
 
+function getManifestFixedBuildingModelMetadata(model) {
+  const logicalPath = normalizeModelLogicalPath(model?.path);
+  const entry = modelAssetManifest.entries?.[logicalPath];
+  const geometry = entry?.geometry;
+  const width = Number(entry?.outputWidth);
+  const height = Number(entry?.outputHeight);
+  if (!model || !geometry || !width || !height || geometry.maxX < geometry.minX) return null;
+  spriteMetadataProfileStats.manifestHits++;
+  const effectivePixelWidth = geometry.maxX - geometry.minX + 1;
+  const scale = (getFootprintScreenWidth(model.footprintCols, model.footprintRows)
+    / effectivePixelWidth) * (model.scaleMultiplier ?? 1);
+  return applySpriteAnchorMode({
+    originX: geometry.bottomX / width,
+    originY: geometry.stableBaseY / height,
+    leftBaseOriginX: geometry.leftBaseX / width,
+    lowestCornerOriginX: geometry.lowestCornerX / width,
+    lowestCornerOriginY: geometry.bottomY / height,
+    scale,
+    scaleX: scale * (model.scaleXMultiplier ?? 1),
+    scaleY: scale * (model.scaleYMultiplier ?? 1),
+    footprintCols: model.footprintCols,
+    footprintRows: model.footprintRows,
+    offsetX: model.offsetX ?? 0,
+    offsetY: model.offsetY ?? 0,
+  }, model.anchorMode ?? DEFAULT_BUILDING_ANCHOR_MODE);
+}
+
 async function discoverHouseModelSets() {
   const entries = await Promise.all(Object.entries(HOUSE_MODEL_SETS).map(async ([tool, config]) => (
     [tool, await discoverHouseModels(tool, config)]
@@ -1599,17 +1638,18 @@ function preload() {
   // Swimming pool (park_large cosmetic variant) + Victoria Park (park_flagship tier)
   this.load.image('park_large_pool',       resolveModelAssetPath('Models/parks/park3x3/swimmingPool3-01.png'));
   this.load.image('park_flagship_victoria', resolveModelAssetPath('Models/parks/park4x4/victoriaPark4-01.png'));
-  Object.values(POWER_PLANT_MODELS).forEach((model) => {
-    this.load.image(model.spriteKey, getFixedBuildingModelLoadPath(model));
-  });
-  Object.keys(SERVICE_BUILDING_MODELS).flatMap(getServiceBuildingModels).forEach((model) => {
-    this.load.image(model.spriteKey, getFixedBuildingModelLoadPath(model));
-  });
-  Object.keys(SPECIAL_BUILDING_MODELS).flatMap(getAllSpecialBuildingModels).forEach((model) => {
-    this.load.image(model.spriteKey, getFixedBuildingModelLoadPath(model));
-  });
-  Object.values(HARBOR_MODELS).forEach((model) => {
-    this.load.image(model.spriteKey, getFixedBuildingModelLoadPath(model));
+  const fixedBuildingModels = [
+    ...Object.values(POWER_PLANT_MODELS),
+    ...Object.keys(SERVICE_BUILDING_MODELS).flatMap(getServiceBuildingModels),
+    ...Object.keys(SPECIAL_BUILDING_MODELS).flatMap(getAllSpecialBuildingModels),
+    ...Object.values(HARBOR_MODELS),
+  ];
+  const queuedFixedTextureKeys = new Set();
+  fixedBuildingModels.forEach((model) => {
+    const textureKey = getFixedBuildingTextureKey(model);
+    if (!textureKey || queuedFixedTextureKeys.has(textureKey)) return;
+    queuedFixedTextureKeys.add(textureKey);
+    this.load.image(textureKey, getFixedBuildingModelLoadPath(model));
   });
 
   this.load.image('ground_full', `${roadPath}grassWhole.png`);
@@ -3305,7 +3345,10 @@ function getPowerPlantModelMetadata(scene, buildingType) {
   };
   if (!model) return base;
 
-  const source = scene.textures.get(model.spriteKey)?.getSourceImage();
+  const manifestMetadata = getManifestFixedBuildingModelMetadata(model);
+  if (manifestMetadata) return manifestMetadata;
+
+  const source = scene.textures.get(getFixedBuildingTextureKey(model))?.getSourceImage();
   if (!source) return base;
 
   return applySpriteAnchorMode(
@@ -3321,7 +3364,10 @@ function getServiceBuildingModelMetadata(scene, model) {
   };
   if (!model) return base;
 
-  const source = scene.textures.get(model.spriteKey)?.getSourceImage();
+  const manifestMetadata = getManifestFixedBuildingModelMetadata(model);
+  if (manifestMetadata) return manifestMetadata;
+
+  const source = scene.textures.get(getFixedBuildingTextureKey(model))?.getSourceImage();
   if (!source) return base;
 
   return applySpriteAnchorMode(
@@ -3344,11 +3390,21 @@ function getSpecialBuildingModelMetadata(scene, model) {
   };
   if (!model) return base;
 
-  const source = scene.textures.get(model.spriteKey)?.getSourceImage();
+  const manifestMetadata = getManifestFixedBuildingModelMetadata(model);
+  if (manifestMetadata) return manifestMetadata;
+
+  const source = scene.textures.get(getFixedBuildingTextureKey(model))?.getSourceImage();
   if (!source) return base;
 
   return applySpriteAnchorMode(
-    getSpriteFootprintMetadata(source, model.footprintCols, model.footprintRows),
+    getSpriteFootprintMetadata(
+      source,
+      model.footprintCols,
+      model.footprintRows,
+      model.scaleMultiplier ?? 1,
+      model.scaleXMultiplier ?? 1,
+      model.scaleYMultiplier ?? 1,
+    ),
     model.anchorMode ?? DEFAULT_BUILDING_ANCHOR_MODE,
   );
 }
@@ -3380,6 +3436,20 @@ function getSpriteFootprintMetadata(
   scaleYMultiplier = 1,
   alphaThreshold = EFFECTIVE_PIXEL_ALPHA_THRESHOLD,
 ) {
+  const cachedByThreshold = spriteFootprintGeometryCache.get(image);
+  const cachedGeometry = cachedByThreshold?.get(alphaThreshold);
+  if (cachedGeometry) {
+    spriteMetadataProfileStats.geometryCacheHits++;
+    return buildSpriteFootprintMetadataFromGeometry(
+      cachedGeometry,
+      footprintCols,
+      footprintRows,
+      scaleMultiplier,
+      scaleXMultiplier,
+      scaleYMultiplier,
+    );
+  }
+  spriteMetadataProfileStats.alphaScans++;
   const canvas = document.createElement('canvas');
   const context = canvas.getContext('2d', { willReadFrequently: true });
   canvas.width = image.width;
@@ -3421,13 +3491,18 @@ function getSpriteFootprintMetadata(
   }
 
   if (bottomY < 0 || maxX < minX) {
-    return {
-      originX: 0.5,
-      originY: 1,
-      scale: scaleMultiplier,
-      scaleX: scaleMultiplier * scaleXMultiplier,
-      scaleY: scaleMultiplier * scaleYMultiplier,
-    };
+    const emptyGeometry = { empty: true };
+    const thresholdCache = cachedByThreshold ?? new Map();
+    thresholdCache.set(alphaThreshold, emptyGeometry);
+    if (!cachedByThreshold) spriteFootprintGeometryCache.set(image, thresholdCache);
+    return buildSpriteFootprintMetadataFromGeometry(
+      emptyGeometry,
+      footprintCols,
+      footprintRows,
+      scaleMultiplier,
+      scaleXMultiplier,
+      scaleYMultiplier,
+    );
   }
 
   const maxRowAlphaCount = Math.max(...alphaRows.map((row) => row.count));
@@ -3449,19 +3524,60 @@ function getSpriteFootprintMetadata(
   const lowestXCount = lowestRows.reduce((sum, row) => sum + row.count, 0);
   const lowestCornerX = lowestXCount > 0 ? lowestXTotal / lowestXCount : bottomX;
 
-  const scale = (getFootprintScreenWidth(footprintCols, footprintRows) / (maxX - minX + 1)) * scaleMultiplier;
-  return {
+  const geometry = {
     originX: bottomX / canvas.width,
     originY: stableBaseY / canvas.height,
     leftBaseOriginX: leftBaseX < canvas.width ? leftBaseX / canvas.width : minX / canvas.width,
     lowestCornerOriginX: lowestCornerX / canvas.width,
     lowestCornerOriginY: bottomY / canvas.height,
+    effectivePixelWidth: maxX - minX + 1,
+  };
+  const thresholdCache = cachedByThreshold ?? new Map();
+  thresholdCache.set(alphaThreshold, geometry);
+  if (!cachedByThreshold) spriteFootprintGeometryCache.set(image, thresholdCache);
+  return buildSpriteFootprintMetadataFromGeometry(
+    geometry,
+    footprintCols,
+    footprintRows,
+    scaleMultiplier,
+    scaleXMultiplier,
+    scaleYMultiplier,
+  );
+}
+
+function buildSpriteFootprintMetadataFromGeometry(
+  geometry,
+  footprintCols,
+  footprintRows,
+  scaleMultiplier = 1,
+  scaleXMultiplier = 1,
+  scaleYMultiplier = 1,
+) {
+  if (geometry?.empty) {
+    return {
+      originX: 0.5,
+      originY: 1,
+      scale: scaleMultiplier,
+      scaleX: scaleMultiplier * scaleXMultiplier,
+      scaleY: scaleMultiplier * scaleYMultiplier,
+      footprintCols,
+      footprintRows,
+    };
+  }
+  const effectivePixelWidth = Math.max(1, Number(geometry?.effectivePixelWidth) || 1);
+  const scale = (getFootprintScreenWidth(footprintCols, footprintRows) / effectivePixelWidth) * scaleMultiplier;
+  return {
+    ...geometry,
     scale,
     scaleX: scale * scaleXMultiplier,
     scaleY: scale * scaleYMultiplier,
     footprintCols,
     footprintRows,
   };
+}
+
+function getSpriteMetadataProfileStats() {
+  return { ...spriteMetadataProfileStats };
 }
 
 function applySpriteAnchorMode(metadata, anchorMode = DEFAULT_BUILDING_ANCHOR_MODE) {
@@ -3524,6 +3640,7 @@ function placeHouseModel(scene, row, col, tool, requestedModelKey = null) {
 
 function placeSpriteBuilding(scene, row, col, key, options = {}) {
   options = normalizeSpriteBuildingOptions(key, options);
+  const textureKey = getSpriteBuildingTextureKey(key);
   const footprintCols = options.footprintCols ?? 1;
   const footprintRows = options.footprintRows ?? 1;
   removeTreesInFootprint(scene, row, col, footprintCols, footprintRows);
@@ -3532,7 +3649,7 @@ function placeSpriteBuilding(scene, row, col, key, options = {}) {
   const building = scene.add.image(
     anchor.x + scene.offsetX + (options.offsetX ?? 0),
     anchor.y + scene.offsetY - BUILDING_SURFACE_Y_OFFSET + elevOffset + (options.offsetY ?? 0),
-    key,
+    textureKey,
   );
   addToRenderLayer(scene, building, 'objectLayer');
   building.setOrigin(options.originX ?? 0.5, options.originY ?? 1);
@@ -3547,6 +3664,8 @@ function placeSpriteBuilding(scene, row, col, key, options = {}) {
   ensureWorldMaskContainsBuilding(scene, building);
   building.mapRow = row;
   building.mapCol = col;
+  building.logicalSpriteKey = key;
+  building.renderTextureKey = textureKey;
   building.footprintCols = footprintCols;
   building.footprintRows = footprintRows;
   building.spriteOffsetX = options.offsetX ?? 0;
@@ -3719,6 +3838,20 @@ function getSpecialBuildingModelBySpriteKey(key) {
   return Object.keys(SPECIAL_BUILDING_MODELS)
     .flatMap(getAllSpecialBuildingModels)
     .find((model) => model.spriteKey === key) ?? null;
+}
+
+function getSpriteBuildingTextureKey(key) {
+  const powerModel = Object.values(POWER_PLANT_MODELS).find((model) => model.spriteKey === key);
+  if (powerModel) return getFixedBuildingTextureKey(powerModel);
+
+  const serviceModel = getServiceBuildingModelBySpriteKey(key);
+  if (serviceModel) return getFixedBuildingTextureKey(serviceModel);
+
+  const specialModel = getSpecialBuildingModelBySpriteKey(key);
+  if (specialModel) return getFixedBuildingTextureKey(specialModel);
+
+  const harborModel = HARBOR_MODELS[key];
+  return harborModel ? getFixedBuildingTextureKey(harborModel) : key;
 }
 
 function isServiceBuildingSpriteKey(key) {

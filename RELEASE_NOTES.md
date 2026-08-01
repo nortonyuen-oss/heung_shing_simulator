@@ -1,23 +1,23 @@
-# The City of Heung Shing v3.6.0 — 車公靈籤
+# The City of Heung Shing v3.7.0 — 貨櫃碼頭！
 
-「車公靈籤」主題版本。
+「貨櫃碼頭！」主題版本。
 
 ## Highlights
 
-- Added Heung Shing's annual New Year fortune tradition with 18 original seven-character fortunes: six upper, six middle and six lower lots.
-- At the start of each year, a city with a temple draws one fortune. The odds gently respond to the economy, an active stock crash and epidemic severity, while avoiding repeats from the previous three years.
-- Every annual fortune publishes a forum report with the full poem, a government interpretation, temple keeper Cheung's interpretation and three fortune-specific satirical citizen replies. It appears in the ticker and forum without interrupting play with a popup.
-- Annual results and their economic snapshot are saved, preventing reloads from rerolling the fortune. Upper and lower lots also apply small temporary city effects.
-- Added the Industrial Building Revitalization policy: more industrial demand and revenue with less factory pollution, offset by substantially heavier local industrial traffic.
-- Added Strong Nation Manufacturing 20XX after the Science Development Act, including industrial and science-park boosts, a delayed subsidy-abuse story and a later research-success story.
-- Added rare secondary-school laboratory explosion reports, and kept stock-crash forum coverage protected by regression tests.
-- Forum categories now show their 15 most recent stories in newest-first order; the three industrial-policy breaking stories open as newspaper extras.
+- Added animated cargo vessels for visible container ports, with empty, half-loaded and full cargo states in all four isometric directions.
+- Vessels enter from open water, approach and berth parallel to the quay, exchange cargo, sound their horn, then retrace a safe departure route.
+- Calibrated all four harbor artwork orientations so the vessel model centre aligns with the true quay centre while preserving the intended shore clearance.
+- The final three inbound tiles and first three outbound tiles remain parallel to the quay; farther out, routes follow the real connected waterway without treating the quay line as an infinite wall.
+- Added camera-aware route caching and viewport gating so ocean pathfinding is reused and off-screen ports add negligible frame cost.
+- Corrected near-berth layer ordering for the close LL/LR orientations so vessels remain visible in front of the harbor artwork where required.
+- Added bilingual Chinese/English city nameplates with selectable colours, plus broader viewport culling and frame-rate limits for smoother large-city rendering.
 
 ## Compatibility
 
-- Existing cities receive additive defaults for annual fortunes and policy-news schedules; the save format version remains unchanged.
-- Annual fortunes require an existing community or grand temple and are drawn in January only.
-- Original PNG news artwork remains in the source repository; desktop releases package optimized WebP images and 180×125 forum thumbnails.
+- Existing container ports begin vessel activity automatically when they are visible and the simulation is running.
+- Vessel movement is visual only and does not change port income, cargo simulation, terrain or city balance.
+- Existing cities remain compatible and the save format version is unchanged.
+- Desktop releases package optimized lossless WebP model assets while keeping the editable PNG sources in the repository.
 - Save format version: 15.
 
 ## Downloads

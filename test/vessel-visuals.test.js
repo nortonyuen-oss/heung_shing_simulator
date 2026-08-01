@@ -5,7 +5,12 @@ const path = require('node:path');
 const sharp = require('sharp');
 
 const ROOT = path.resolve(__dirname, '..');
+const vesselRouteMetadata = require('../vessel-route-metadata.js');
 const vessels = require('../vessel-visuals.js');
+
+function assertClose(actual, expected, message = '') {
+  assert.ok(Math.abs(actual - expected) < 0.000001, `${message} expected ${expected}, got ${actual}`);
+}
 
 function source(fileName) {
   return fs.readFileSync(path.join(ROOT, fileName), 'utf8');
@@ -139,19 +144,7 @@ test('harbor berth follows all four water-facing sides and beach buffers', () =>
   assert.equal(buffered[0].center.row, 2);
 });
 
-// This is the fix for "bow/hull poking into the harbor's land tiles": the
-// dock point must clear the harbor's own land edge (fraction 0, which would
-// render the ship on top of land) by at least a full tile past the direct
-// water tile used for routing (fraction 1, the pre-redesign spawn point).
-// dockOffsetTiles is calibrated per side (VESSEL_DOCK_OFFSET_TILES_BY_SIDE)
-// by sampling the ship sprite's actual rendered pixels against the map at
-// every container port in the "九龍" save. 'n'/'s' stay at the tight 0.82
-// default (no real port needed more); 'e'/'w' sit at 1.8 - a smaller value
-// left a visible sliver of grass/beach at ports whose local coastline
-// curves in tightly near the berth. At mapRotation 0, side 'n' displays as
-// harbor_ur and side 'w' as harbor_ul, so both also pick up
-// VESSEL_OCCLUSION_CLEARANCE_TILES (see the dedicated occlusion test below).
-test('vessel dock point clears the harbor land edge with margin past the routed water tile', () => {
+test('vessel dock point uses the recorded visual anchor for every quay direction', () => {
   const originalGlobals = Object.fromEntries(['mapRotation', 'rotateDirection'].map((key) => [key, global[key]]));
   global.mapRotation = 0;
   global.rotateDirection = (direction, steps) => {
@@ -161,33 +154,66 @@ test('vessel dock point clears the harbor land edge with margin past the routed 
   };
   try {
     const portEntry = { row: 4, col: 4, record: { footprintCols: 4, footprintRows: 4 } };
-    // 'n' -> harbor_ur at rotation 0, so this also carries the +1.0 occlusion clearance.
     const north = vessels.getVesselDockPoint(portEntry, 'n', { offset: 1, center: { row: 3, col: 5 } });
-    assert.ok(north.row > 2 && north.row < 3, `expected 2 < row < 3, got ${north.row}`);
-    assert.equal(north.col, 5);
+    assertClose(north.row, 2.1602, 'north/ur row');
+    assertClose(north.col, 4.4316, 'north/ur col');
 
-    // 'w' -> harbor_ul at rotation 0, so this also carries the +1.0 occlusion clearance.
     const west = vessels.getVesselDockPoint(portEntry, 'w', { offset: 1, center: { row: 5, col: 3 } });
-    assert.ok(west.col > 1 && west.col < 2, `expected 1 < col < 2, got ${west.col}`);
+    assertClose(west.row, 4.6245, 'west/ul row');
+    assertClose(west.col, 2.1058, 'west/ul col');
 
-    // 's' -> harbor_ll at rotation 0: no occlusion clearance.
     const south = vessels.getVesselDockPoint(portEntry, 's', { offset: 1, center: { row: 8, col: 5 } });
-    assert.ok(south.row > 7 && south.row < 8, `expected 7 < row < 8, got ${south.row}`);
+    assertClose(south.row, 7.266, 'south/ll row');
+    assertClose(south.col, 4.6493, 'south/ll col');
 
-    // 'e' -> harbor_lr at rotation 0: no occlusion clearance.
     const east = vessels.getVesselDockPoint(portEntry, 'e', { offset: 1, center: { row: 5, col: 8 } });
-    assert.ok(east.col > 8 && east.col < 9, `expected 8 < col < 9, got ${east.col}`);
+    assertClose(east.row, 4.7927, 'east/lr row');
+    assertClose(east.col, 7.1424, 'east/lr col');
 
-    // A beach-buffer berth (offset 2, one extra tile out) should push the dock
-    // point out by the same extra whole tile, not collapse back toward land.
     const bufferedNorth = vessels.getVesselDockPoint(portEntry, 'n', { offset: 2, center: { row: 2, col: 5 } });
-    assert.ok(bufferedNorth.row > 1 && bufferedNorth.row < 2, `expected 1 < row < 2, got ${bufferedNorth.row}`);
+    assertClose(bufferedNorth.row, 1.1602, 'buffered north row');
+    assertClose(bufferedNorth.col, 4.4316, 'buffered north col');
   } finally {
     Object.entries(originalGlobals).forEach(([key, value]) => {
       if (value === undefined) delete global[key];
       else global[key] = value;
     });
   }
+});
+
+test('route metadata preserves all four recorded quay-relative anchors exactly', () => {
+  assert.equal(vesselRouteMetadata.calibrationId, 'vessel-berth-2026-08-01-v1');
+  assert.deepEqual(vesselRouteMetadata.berthAnchorsByVisualVariant, {
+    ll: { alongFromQuayCenterTiles: 0.8507, normalFromQuayTiles: 0.266 },
+    lr: { alongFromQuayCenterTiles: -0.7073, normalFromQuayTiles: 0.1424 },
+    ul: { alongFromQuayCenterTiles: 0.8755, normalFromQuayTiles: 1.8942 },
+    ur: { alongFromQuayCenterTiles: -1.0684, normalFromQuayTiles: 1.8398 },
+  });
+});
+
+test('final inbound and first outbound berth legs are parallel to the quay', () => {
+  const dockBySide = {
+    n: { row: 2, col: 8 },
+    s: { row: 9, col: 8 },
+    w: { row: 8, col: 2 },
+    e: { row: 8, col: 9 },
+  };
+  Object.entries(dockBySide).forEach(([side, dock]) => {
+    const approach = vessels.getVesselParallelApproachPoint(side, dock);
+    if (side === 'n') {
+      assert.equal(approach.row, dock.row, side);
+      assert.equal(dock.col - approach.col, 1, side);
+    } else if (side === 'e') {
+      assert.equal(approach.col, dock.col, side);
+      assert.equal(dock.row - approach.row, 1, side);
+    } else if (side === 's') {
+      assert.equal(approach.row, dock.row, side);
+      assert.equal(approach.col - dock.col, 1, side);
+    } else {
+      assert.equal(approach.col, dock.col, side);
+      assert.equal(approach.row - dock.row, 1, side);
+    }
+  });
 });
 
 // The occlusion-clearance fix: the harbor_ul/harbor_ur artwork draws its
@@ -275,6 +301,51 @@ test('docked direction stays parallel to the pier at every map rotation', () => 
   }
 });
 
+test('the same harbor artwork keeps the same calibrated vessel facing on every logical side', () => {
+  const keys = [
+    'isoToScreen', 'mapRotation', 'TILE_WIDTH', 'TILE_HEIGHT', 'TILE_IMAGE_HEIGHT',
+    'BUILDING_SURFACE_Y_OFFSET', 'MAP_HEIGHT', 'MAP_WIDTH',
+  ];
+  const originals = Object.fromEntries(keys.map((key) => [key, global[key]]));
+  try {
+    global.TILE_WIDTH = 100;
+    global.TILE_HEIGHT = 50;
+    global.TILE_IMAGE_HEIGHT = 100;
+    global.BUILDING_SURFACE_Y_OFFSET = 50;
+    global.MAP_HEIGHT = 256;
+    global.MAP_WIDTH = 256;
+    global.isoToScreen = (col, row) => {
+      let visualCol = col;
+      let visualRow = row;
+      if (global.mapRotation === 1) {
+        visualCol = global.MAP_HEIGHT - 1 - row;
+        visualRow = col;
+      } else if (global.mapRotation === 2) {
+        visualCol = global.MAP_WIDTH - 1 - col;
+        visualRow = global.MAP_HEIGHT - 1 - row;
+      } else if (global.mapRotation === 3) {
+        visualCol = row;
+        visualRow = global.MAP_WIDTH - 1 - col;
+      }
+      return { x: (visualCol - visualRow) * 50, y: (visualCol + visualRow) * 25 };
+    };
+    const sides = ['n', 'e', 's', 'w'];
+    const scene = { offsetX: 0, offsetY: 0 };
+    sides.forEach((visualSide, visualIndex) => {
+      const facings = sides.map((logicalSide, logicalIndex) => {
+        global.mapRotation = (visualIndex - logicalIndex + 4) % 4;
+        return vessels.getVesselDockDirection(scene, logicalSide, { row: 10, col: 20 });
+      });
+      assert.equal(new Set(facings).size, 1, `${visualSide}: ${facings.join(', ')}`);
+    });
+  } finally {
+    Object.entries(originals).forEach(([key, value]) => {
+      if (value === undefined) delete global[key];
+      else global[key] = value;
+    });
+  }
+});
+
 test('berth calibration measures centerline and outward normal for all four quay sides', () => {
   const originalBuildingData = global.buildingData;
   global.buildingData = {
@@ -283,8 +354,8 @@ test('berth calibration measures centerline and outward normal for all four quay
   try {
     const expected = {
       n: { logical: { row: 8.75, col: 21.75 }, along: 0.25, normal: 1.25 },
-      s: { logical: { row: 14.25, col: 21.25 }, along: -0.25, normal: 1.25 },
-      w: { logical: { row: 11.75, col: 18.5 }, along: 0.25, normal: 1.5 },
+      s: { logical: { row: 14.25, col: 21.25 }, along: 0.25, normal: 1.25 },
+      w: { logical: { row: 11.75, col: 18.5 }, along: -0.25, normal: 1.5 },
       e: { logical: { row: 11.25, col: 24.5 }, along: -0.25, normal: 1.5 },
     };
     Object.entries(expected).forEach(([side, sample]) => {
@@ -454,7 +525,10 @@ test('cached port route is reused while its spawn point stays off-screen, recomp
     global.TILE_IMAGE_HEIGHT = 100;
     global.BUILDING_SURFACE_Y_OFFSET = 50;
     const scene = { offsetX: 0, offsetY: 0 };
-    const route = { points: [{ row: 20, col: 20 }, { row: 0, col: 0 }] };
+    const route = {
+      routeMetadataId: vessels.getVesselRouteMetadataId(),
+      points: [{ row: 20, col: 20 }, { row: 0, col: 0 }],
+    };
     const portState = { route };
     // A broken portEntry (null) stands in for "findVesselShipRoute got
     // called" - that function dereferences portEntry.record and throws
@@ -479,7 +553,7 @@ test('vessel module is wired into Phaser lifecycle and remains visual-only', () 
   const html = source('index.html');
   const main = source('main.js');
   const moduleSource = source('vessel-visuals.js');
-  assert.match(html, /traffic-visuals\.js[\s\S]*visual-route-calibrator\.js[\s\S]*vessel-visuals\.js[\s\S]*main\.js/);
+  assert.match(html, /traffic-visuals\.js[\s\S]*vessel-route-metadata\.js[\s\S]*visual-route-calibrator\.js[\s\S]*vessel-visuals\.js[\s\S]*main\.js/);
   assert.match(main, /setupVesselVisuals\(this\)/);
   assert.match(main, /updateVesselVisuals\.call\(this, time, delta\)/);
   assert.match(main, /clearVesselVisuals\(scene\)/);
@@ -554,6 +628,12 @@ test('runtime update only starts work for a container port near the camera view'
     state.portStates.set('5:5', { cooldownMs: 0, event: null });
     vessels.updateVesselVisuals.call(onScreenScene, 0, 16);
     assert.ok(state.portStates.get('5:5').event, 'an on-screen, off-cooldown port should spawn a vessel');
+    const spawnedRoute = state.portStates.get('5:5').event.route;
+    assert.equal(spawnedRoute.routeMetadataId, vesselRouteMetadata.calibrationId);
+    assert.equal(spawnedRoute.berthAnchor.calibrated, true);
+    const parallelEntry = spawnedRoute.inboundTrack.points.at(-2);
+    assert.equal(parallelEntry.col, spawnedRoute.berth.col);
+    assert.equal(spawnedRoute.berth.row - parallelEntry.row, 1);
     assert.equal(createdSprites.length, 1);
     vessels.clearVesselVisuals(onScreenScene);
     assert.equal(state.portStates.size, 0);

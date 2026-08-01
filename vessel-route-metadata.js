@@ -1,0 +1,45 @@
+// Immutable calibration data captured with the visual route calibrator.
+//
+// Coordinates are logical isometric-world tiles, not screen pixels:
+//   alongFromQuayCenterTiles: positive clockwise along the quay from its
+//                             outward normal (n:+col, e:+row, s:-col, w:-row)
+//   normalFromQuayTiles:      positive from the land edge out toward water
+//
+// Keeping these values in a script-loaded metadata object avoids fetches and
+// lets vessel-visuals cache the fully resolved absolute berth with its route.
+
+const VESSEL_ROUTE_METADATA_VALUE = Object.freeze({
+  schemaVersion: 1,
+  calibrationId: 'vessel-berth-2026-08-01-v1',
+  berthAnchorsByVisualVariant: Object.freeze({
+    ll: Object.freeze({
+      alongFromQuayCenterTiles: 0.8507,
+      normalFromQuayTiles: 0.2660,
+    }),
+    lr: Object.freeze({
+      alongFromQuayCenterTiles: -0.7073,
+      normalFromQuayTiles: 0.1424,
+    }),
+    ul: Object.freeze({
+      alongFromQuayCenterTiles: 0.8755,
+      normalFromQuayTiles: 1.8942,
+    }),
+    ur: Object.freeze({
+      alongFromQuayCenterTiles: -1.0684,
+      normalFromQuayTiles: 1.8398,
+    }),
+  }),
+  parallelApproach: Object.freeze({
+    // The last inbound tile and first outbound tile run along the quay, so the
+    // vessel never points bow-first into the port or surrounding land.
+    legTiles: 1.0,
+  }),
+});
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = VESSEL_ROUTE_METADATA_VALUE;
+}
+
+if (typeof globalThis !== 'undefined') {
+  globalThis.VESSEL_ROUTE_METADATA = VESSEL_ROUTE_METADATA_VALUE;
+}

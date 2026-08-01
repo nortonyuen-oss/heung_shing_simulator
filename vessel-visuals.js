@@ -36,7 +36,7 @@ const VESSEL_VISUAL_CONFIG = Object.freeze({
   maxLoadAttempts: 2,
 });
 
-// Docking geometry, in fractional logical tiles measured outward from the
+// Legacy fallback docking geometry, in fractional logical tiles measured outward from the
 // harbor's land edge (0 = still on land, 1 = the old "one full tile out"
 // spot). Verified per side against every container port in the "九龍" save
 // by sampling the ship sprite's actual rendered pixels (not just its
@@ -65,6 +65,14 @@ const VESSEL_DOCK_OFFSET_TILES_BY_SIDE = Object.freeze({
 // sampling, since this is a screen-space occlusion problem, not a land-clip
 // one) across both rotation-swept test ports in the "九龍" save.
 const VESSEL_OCCLUSION_CLEARANCE_TILES = 1.0;
+
+function getVesselRouteMetadata() {
+  return typeof VESSEL_ROUTE_METADATA === 'undefined' ? null : VESSEL_ROUTE_METADATA;
+}
+
+function getVesselRouteMetadataId() {
+  return String(getVesselRouteMetadata()?.calibrationId || 'legacy-vessel-berth');
+}
 
 const VESSEL_AUDIO_CONFIG = Object.freeze({
   horn: Object.freeze({ key: 'vessel_horn', baseVolume: 0.9 }),
@@ -390,29 +398,64 @@ function getVesselHarborVisualVariant(side) {
   return 'ul'; // 'w'
 }
 
-// The precise, gap-adjusted point a ship actually stops at. Interpolates
-// between the harbor's own land-edge tile (fraction 0, would clip the hull
-// into land) and the direct water-adjacent tile (fraction 1, the old spawn
-// point) using VESSEL_DOCK_OFFSET_TILES_BY_SIDE, then carries any extra
-// whole tiles the berth candidate needed (candidate.offset > 1, e.g. a beach
-// buffer) on top of that fraction so it still lands in clear water. A further
-// VESSEL_OCCLUSION_CLEARANCE_TILES is added on top when the currently
-// displayed artwork is harbor_ul/harbor_ur, so the hull clears that piece's
-// closer-to-shore crane structure instead of hiding behind it.
-function getVesselDockPoint(portEntry, side, candidate) {
+// Resolve one immutable quay-relative anchor. Calibrated metadata is the
+// primary path; the old guessed offset remains only as a safe fallback if the
+// metadata script fails to load. Along is oriented clockwise from the quay's
+// outward normal, so one visual-variant record works for all logical sides.
+function getVesselBerthAnchor(portEntry, side, candidate) {
   const { row, col } = portEntry;
   const cols = Number(portEntry.record?.footprintCols) || HARBOR_FOOTPRINT_COLS;
   const rows = Number(portEntry.record?.footprintRows) || HARBOR_FOOTPRINT_ROWS;
-  const dockOffsetTiles = VESSEL_DOCK_OFFSET_TILES_BY_SIDE[side] ?? 0.82;
   const variant = getVesselHarborVisualVariant(side);
+  const configured = getVesselRouteMetadata()?.berthAnchorsByVisualVariant?.[variant];
+  const extraWaterBuffer = Math.max(0, (Number(candidate?.offset) || 1) - 1);
+  if (Number.isFinite(Number(configured?.alongFromQuayCenterTiles))
+    && Number.isFinite(Number(configured?.normalFromQuayTiles))) {
+    return {
+      visualVariant: variant,
+      quayCenterRow: row + (rows - 1) / 2,
+      quayCenterCol: col + (cols - 1) / 2,
+      alongFromQuayCenterTiles: Number(configured.alongFromQuayCenterTiles),
+      normalFromQuayTiles: Number(configured.normalFromQuayTiles) + extraWaterBuffer,
+      calibrated: true,
+    };
+  }
+  const dockOffsetTiles = VESSEL_DOCK_OFFSET_TILES_BY_SIDE[side] ?? 0.82;
   const occlusionClearance = (variant === 'ul' || variant === 'ur')
     ? VESSEL_OCCLUSION_CLEARANCE_TILES
     : 0;
-  const effectiveOffset = (candidate.offset - 1) + dockOffsetTiles + occlusionClearance;
-  if (side === 'n') return { row: row - effectiveOffset, col: candidate.center.col };
-  if (side === 's') return { row: row + rows - 1 + effectiveOffset, col: candidate.center.col };
-  if (side === 'w') return { row: candidate.center.row, col: col - effectiveOffset };
-  return { row: candidate.center.row, col: col + cols - 1 + effectiveOffset }; // 'e'
+  return {
+    visualVariant: variant,
+    quayCenterRow: row + (rows - 1) / 2,
+    quayCenterCol: col + (cols - 1) / 2,
+    alongFromQuayCenterTiles: 0,
+    normalFromQuayTiles: extraWaterBuffer + dockOffsetTiles + occlusionClearance,
+    calibrated: false,
+  };
+}
+
+function getVesselDockPoint(portEntry, side, candidate, anchor = null) {
+  const resolved = anchor || getVesselBerthAnchor(portEntry, side, candidate);
+  const { row, col } = portEntry;
+  const cols = Number(portEntry.record?.footprintCols) || HARBOR_FOOTPRINT_COLS;
+  const rows = Number(portEntry.record?.footprintRows) || HARBOR_FOOTPRINT_ROWS;
+  const along = resolved.alongFromQuayCenterTiles;
+  const normal = resolved.normalFromQuayTiles;
+  if (side === 'n') return { row: row - normal, col: resolved.quayCenterCol + along };
+  if (side === 's') return { row: row + rows - 1 + normal, col: resolved.quayCenterCol - along };
+  if (side === 'w') return { row: resolved.quayCenterRow - along, col: col - normal };
+  return { row: resolved.quayCenterRow + along, col: col + cols - 1 + normal }; // 'e'
+}
+
+function getVesselParallelApproachPoint(side, dockPoint) {
+  const legTiles = Math.max(0, Number(getVesselRouteMetadata()?.parallelApproach?.legTiles) || 0);
+  if (!dockPoint || legTiles <= 0) return null;
+  if (side === 'n') {
+    return { row: dockPoint.row, col: dockPoint.col - legTiles };
+  }
+  if (side === 'e') return { row: dockPoint.row - legTiles, col: dockPoint.col };
+  if (side === 's') return { row: dockPoint.row, col: dockPoint.col + legTiles };
+  return { row: dockPoint.row + legTiles, col: dockPoint.col }; // 'w'
 }
 
 // The berth's water-facing edge runs along whichever logical axis is *not*
@@ -424,13 +467,21 @@ function getVesselDockPoint(portEntry, side, candidate) {
 // keeps it correct under map rotation automatically; a static side-to-
 // direction lookup table would not rotate along with the view.
 function getVesselDockDirection(scene, side, dockPoint) {
-  const alongRow = side === 'e' || side === 'w';
-  const before = alongRow
-    ? { row: dockPoint.row - 0.5, col: dockPoint.col }
-    : { row: dockPoint.row, col: dockPoint.col - 0.5 };
-  const after = alongRow
-    ? { row: dockPoint.row + 0.5, col: dockPoint.col }
-    : { row: dockPoint.row, col: dockPoint.col + 0.5 };
+  let before;
+  let after;
+  if (side === 'n') {
+    before = { row: dockPoint.row, col: dockPoint.col - 0.5 };
+    after = { row: dockPoint.row, col: dockPoint.col + 0.5 };
+  } else if (side === 'e') {
+    before = { row: dockPoint.row - 0.5, col: dockPoint.col };
+    after = { row: dockPoint.row + 0.5, col: dockPoint.col };
+  } else if (side === 's') {
+    before = { row: dockPoint.row, col: dockPoint.col + 0.5 };
+    after = { row: dockPoint.row, col: dockPoint.col - 0.5 };
+  } else {
+    before = { row: dockPoint.row + 0.5, col: dockPoint.col };
+    after = { row: dockPoint.row - 0.5, col: dockPoint.col };
+  }
   const worldBefore = getVesselWaterSurfacePoint(scene, before.row, before.col);
   const worldAfter = getVesselWaterSurfacePoint(scene, after.row, after.col);
   return getVesselTextureDirection(worldAfter.x - worldBefore.x, worldAfter.y - worldBefore.y, 'se');
@@ -653,12 +704,20 @@ function findVesselShipRoute(scene, portEntry, rect) {
     const inbound = portToOutside.slice().reverse();
     inbound.push(candidate.center);
     const roundedPoints = roundVesselWaterTrack(simplifyVesselTrack(inbound), mapData, waterValue);
-    const dockPoint = getVesselDockPoint(portEntry, side, candidate);
+    const berthAnchor = getVesselBerthAnchor(portEntry, side, candidate);
+    const dockPoint = getVesselDockPoint(portEntry, side, candidate, berthAnchor);
+    const parallelApproach = getVesselParallelApproachPoint(side, dockPoint);
+    const finalPoints = [...roundedPoints];
+    if (parallelApproach) finalPoints.push(parallelApproach);
+    finalPoints.push(dockPoint);
     return [{
       side,
       offset: candidate.offset,
       berth: dockPoint,
-      points: [...roundedPoints, dockPoint],
+      berthAnchor,
+      parallelApproach,
+      routeMetadataId: getVesselRouteMetadataId(),
+      points: finalPoints,
     }];
   });
   if (!routes.length) return null;
@@ -746,10 +805,10 @@ function getVesselBerthCalibrationMeasurement(event, logical) {
       return { along: point.col - quayCenterCol, normal: portRow - point.row };
     }
     if (side === 's') {
-      return { along: point.col - quayCenterCol, normal: point.row - (portRow + rows - 1) };
+      return { along: quayCenterCol - point.col, normal: point.row - (portRow + rows - 1) };
     }
     if (side === 'w') {
-      return { along: point.row - quayCenterRow, normal: portCol - point.col };
+      return { along: quayCenterRow - point.row, normal: portCol - point.col };
     }
     return { along: point.row - quayCenterRow, normal: point.col - (portCol + cols - 1) };
   };
@@ -941,7 +1000,9 @@ function isVesselRouteStillOutsideView(scene, route, rect) {
 }
 
 function getVesselPortRoute(scene, portState, entry, rect) {
-  if (portState.route && isVesselRouteStillOutsideView(scene, portState.route, rect)) {
+  if (portState.route
+    && portState.route.routeMetadataId === getVesselRouteMetadataId()
+    && isVesselRouteStillOutsideView(scene, portState.route, rect)) {
     return portState.route;
   }
   const route = findVesselShipRoute(scene, entry, rect);
@@ -1073,6 +1134,9 @@ const vesselVisualTestApi = {
   stopVesselEventSound,
   getHarborBerthCandidates,
   getVesselDockPoint,
+  getVesselBerthAnchor,
+  getVesselParallelApproachPoint,
+  getVesselRouteMetadataId,
   getVesselHarborVisualVariant,
   getVesselDockDirection,
   getVesselCalibrationLogicalPoint,

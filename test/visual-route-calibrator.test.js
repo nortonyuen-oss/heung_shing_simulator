@@ -141,7 +141,7 @@ test('browser script loads generic calibrator before domain adapters', () => {
   const main = fs.readFileSync(path.join(ROOT, 'main.js'), 'utf8');
   assert.match(
     html,
-    /traffic-visuals\.js[\s\S]*visual-route-calibrator\.js[\s\S]*vessel-visuals\.js[\s\S]*main\.js/,
+    /traffic-visuals\.js[\s\S]*vessel-route-metadata\.js[\s\S]*visual-route-calibrator\.js[\s\S]*vessel-visuals\.js[\s\S]*main\.js/,
   );
   assert.match(main, /pointerdown[\s\S]*isVisualRouteCalibrationInputCaptured\(this\)/);
 });

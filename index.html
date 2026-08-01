@@ -741,6 +741,33 @@
       background: #f8f0d2;
       color: #0d2d5b;
     }
+    .about-app-icon {
+      display: block;
+      margin: 8px auto;
+      padding: 0;
+      border: 0;
+      color: inherit;
+      background: transparent;
+      font: inherit;
+      font-size: 48px;
+      line-height: 1;
+      cursor: default;
+      user-select: none;
+    }
+    .about-app-icon:focus-visible {
+      outline: 2px solid #1e5cb3;
+      outline-offset: 3px;
+      border-radius: 4px;
+    }
+    #visual-route-calibration-test-mode-label {
+      color: #b03a2e;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .04em;
+    }
+    #visual-route-calibration-test-mode-label[hidden] {
+      display: none !important;
+    }
     .dialog-footer {
       padding: 8px 14px;
       display: flex;
@@ -5636,10 +5663,11 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
         <button class="dialog-close-btn" data-close-dialog="about-dialog">✕</button>
       </div>
       <div class="dialog-body" style="text-align:center; font-family:Arial,sans-serif">
-        <div style="font-size:48px; margin:8px 0">🏙️</div>
+        <button id="about-app-icon" class="about-app-icon" type="button" aria-label="City icon" aria-pressed="false">🏙️</button>
         <div style="font-size:18px; font-weight:900; margin-bottom:6px" data-i18n="app.name">The City of Heung Shing</div>
         <div style="color:#5a5648; font-size:12px" data-i18n="dialog.aboutEnglishName">The City of Heung Shing</div>
         <div style="color:#5a5648; font-size:12px" data-i18n="dialog.version">Version 3.6.0 — 車公靈籤</div>
+        <div id="visual-route-calibration-test-mode-label" hidden>【test mode】</div>
         <div style="color:#5a5648; font-size:12px" data-i18n="dialog.aboutInspired">A Hong Kong-themed city simulation brand title</div>
         <div style="margin-top:14px; font-size:12px; line-height:1.8; color:#3a3530">
           <span data-i18n-html="dialog.aboutBuilt">The City of Heung Shing v3.6.0 — 車公靈籤<br>Plan · Build · Govern · Thrive</span>

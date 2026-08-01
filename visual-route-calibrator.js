@@ -10,7 +10,67 @@ const VISUAL_ROUTE_CALIBRATION_SCHEMA_VERSION = 1;
 const VISUAL_ROUTE_CALIBRATION_STORAGE_KEY = 'cityBuilder.visualRouteCalibration.v1';
 const VISUAL_ROUTE_CALIBRATION_DEFAULT_SLOTS = Object.freeze(['default']);
 const VISUAL_ROUTE_CALIBRATION_INPUT_DEPTH = 2_000_000_000;
+const VISUAL_ROUTE_CALIBRATION_UNLOCK_CLICKS = 5;
+const VISUAL_ROUTE_CALIBRATION_UNLOCK_WINDOW_MS = 2500;
 const visualRouteCalibrationStates = new WeakMap();
+const visualRouteCalibrationLiveStates = new Set();
+let visualRouteCalibrationTestModeEnabled = false;
+let visualRouteCalibrationUnlockCount = 0;
+let visualRouteCalibrationLastUnlockClickAt = -Infinity;
+
+function updateVisualRouteCalibrationTestModeIndicator() {
+  if (typeof document === 'undefined') return;
+  const indicator = document.getElementById('visual-route-calibration-test-mode-label');
+  if (indicator) indicator.hidden = !visualRouteCalibrationTestModeEnabled;
+  const icon = document.getElementById('about-app-icon');
+  icon?.setAttribute?.('aria-pressed', String(visualRouteCalibrationTestModeEnabled));
+}
+
+function isVisualRouteCalibrationTestModeEnabled() {
+  return visualRouteCalibrationTestModeEnabled;
+}
+
+function setVisualRouteCalibrationTestModeEnabled(enabled) {
+  visualRouteCalibrationTestModeEnabled = !!enabled;
+  visualRouteCalibrationUnlockCount = 0;
+  visualRouteCalibrationLastUnlockClickAt = -Infinity;
+  if (!visualRouteCalibrationTestModeEnabled) {
+    visualRouteCalibrationLiveStates.forEach((state) => {
+      clearVisualRouteCalibrationTarget(state.scene);
+    });
+  }
+  updateVisualRouteCalibrationTestModeIndicator();
+  return visualRouteCalibrationTestModeEnabled;
+}
+
+function handleVisualRouteCalibrationUnlockClick(now = Date.now()) {
+  if (visualRouteCalibrationTestModeEnabled) {
+    return setVisualRouteCalibrationTestModeEnabled(false);
+  }
+  const timestamp = Number(now);
+  if (!Number.isFinite(timestamp)
+    || timestamp - visualRouteCalibrationLastUnlockClickAt > VISUAL_ROUTE_CALIBRATION_UNLOCK_WINDOW_MS) {
+    visualRouteCalibrationUnlockCount = 0;
+  }
+  visualRouteCalibrationLastUnlockClickAt = Number.isFinite(timestamp) ? timestamp : Date.now();
+  visualRouteCalibrationUnlockCount++;
+  if (visualRouteCalibrationUnlockCount >= VISUAL_ROUTE_CALIBRATION_UNLOCK_CLICKS) {
+    return setVisualRouteCalibrationTestModeEnabled(true);
+  }
+  return false;
+}
+
+function setupVisualRouteCalibrationTestModeUnlock() {
+  if (typeof document === 'undefined') return false;
+  const icon = document.getElementById('about-app-icon');
+  if (!icon) return false;
+  if (icon.dataset.visualRouteCalibrationUnlock !== 'ready') {
+    icon.dataset.visualRouteCalibrationUnlock = 'ready';
+    icon.addEventListener('click', () => handleVisualRouteCalibrationUnlockClick());
+  }
+  updateVisualRouteCalibrationTestModeIndicator();
+  return true;
+}
 
 function visualRouteCalibrationRound(value, digits = 4) {
   const numeric = Number(value);
@@ -282,8 +342,8 @@ function renderVisualRouteCalibrationPanel(state) {
   const panel = state.panel;
   const target = state.activeTarget;
   if (!panel) return;
-  panel.root.hidden = !target?.eligible || !target?.paused;
-  if (!target?.eligible || !target?.paused) return;
+  panel.root.hidden = !visualRouteCalibrationTestModeEnabled || !target?.eligible || !target?.paused;
+  if (panel.root.hidden) return;
   const record = buildVisualRouteCalibrationRecord(target, 'preview');
   panel.status.textContent = `${record.label} · 已暫停 · 可直接拖曳模型`;
   const rows = [
@@ -343,6 +403,7 @@ function getVisualRouteCalibrationState(scene) {
     };
     state.panel = createVisualRouteCalibrationPanel(state);
     visualRouteCalibrationStates.set(scene, state);
+    visualRouteCalibrationLiveStates.add(state);
   }
   return state;
 }
@@ -411,7 +472,7 @@ function attachVisualRouteCalibrationDrag(state) {
 
 function isVisualRouteCalibrationInputCaptured(scene) {
   const target = visualRouteCalibrationStates.get(scene)?.activeTarget;
-  return !!target?.eligible && !!target?.paused;
+  return visualRouteCalibrationTestModeEnabled && !!target?.eligible && !!target?.paused;
 }
 
 function clearVisualRouteCalibrationTarget(scene, targetId = '') {
@@ -427,6 +488,7 @@ function clearVisualRouteCalibrationScene(scene) {
   if (!state) return;
   clearVisualRouteCalibrationTarget(scene);
   state.panel?.root?.remove?.();
+  visualRouteCalibrationLiveStates.delete(state);
   visualRouteCalibrationStates.delete(scene);
 }
 
@@ -434,6 +496,11 @@ function clearVisualRouteCalibrationScene(scene) {
 // caller should skip its normal position write for that frame, otherwise the
 // drag would be snapped back to the route point by the simulation update.
 function syncVisualRouteCalibrationTarget(scene, target) {
+  if (!visualRouteCalibrationTestModeEnabled) {
+    const existingState = visualRouteCalibrationStates.get(scene);
+    if (existingState?.activeTarget) clearVisualRouteCalibrationTarget(scene);
+    return false;
+  }
   const state = getVisualRouteCalibrationState(scene);
   if (!state || !target?.id) return false;
   if (!target.eligible) {
@@ -453,6 +520,8 @@ const visualRouteCalibrationTestApi = {
   VISUAL_ROUTE_CALIBRATION_STORAGE_KEY,
   VISUAL_ROUTE_CALIBRATION_DEFAULT_SLOTS,
   VISUAL_ROUTE_CALIBRATION_INPUT_DEPTH,
+  VISUAL_ROUTE_CALIBRATION_UNLOCK_CLICKS,
+  VISUAL_ROUTE_CALIBRATION_UNLOCK_WINDOW_MS,
   visualRouteCalibrationRound,
   loadVisualRouteCalibrationRecords,
   persistVisualRouteCalibrationRecords,
@@ -460,6 +529,10 @@ const visualRouteCalibrationTestApi = {
   buildVisualRouteCalibrationRecord,
   getVisualRouteCalibrationCollection,
   getVisualRouteCalibrationState,
+  isVisualRouteCalibrationTestModeEnabled,
+  setVisualRouteCalibrationTestModeEnabled,
+  handleVisualRouteCalibrationUnlockClick,
+  setupVisualRouteCalibrationTestModeUnlock,
   saveVisualRouteCalibrationCurrent,
   isVisualRouteCalibrationInputCaptured,
   syncVisualRouteCalibrationTarget,
@@ -473,6 +546,9 @@ if (typeof globalThis !== 'undefined') {
   Object.assign(globalThis, {
     syncVisualRouteCalibrationTarget,
     isVisualRouteCalibrationInputCaptured,
+    isVisualRouteCalibrationTestModeEnabled,
+    setVisualRouteCalibrationTestModeEnabled,
+    setupVisualRouteCalibrationTestModeUnlock,
     clearVisualRouteCalibrationTarget,
     clearVisualRouteCalibrationScene,
   });

@@ -182,20 +182,20 @@ test('vessel dock point uses the recorded visual anchor for every quay direction
 });
 
 test('route metadata preserves all four recorded quay-relative anchors exactly', () => {
-  assert.equal(vesselRouteMetadata.calibrationId, 'vessel-berth-2026-08-01-v3');
+  assert.equal(vesselRouteMetadata.calibrationId, 'vessel-berth-2026-08-01-v4');
   assert.deepEqual(vesselRouteMetadata.berthAnchorsByVisualVariant, {
     ll: { alongFromQuayCenterTiles: 0.8507, normalFromQuayTiles: 0.266 },
     lr: { alongFromQuayCenterTiles: -0.7073, normalFromQuayTiles: 0.1424 },
     ul: { alongFromQuayCenterTiles: 0.8755, normalFromQuayTiles: 1.8942 },
     ur: { alongFromQuayCenterTiles: -1.0684, normalFromQuayTiles: 1.8398 },
   });
-  assert.deepEqual(vesselRouteMetadata.depthRulesByVisualVariant.lr, {
-    nearBerthMode: 'front-of-port',
-    portDepthOffset: 1,
+  assert.deepEqual(vesselRouteMetadata.depthRulesByVisualVariant, {
+    ll: { nearBerthMode: 'front-of-port', portDepthOffset: 1 },
+    lr: { nearBerthMode: 'front-of-port', portDepthOffset: 1 },
   });
 });
 
-test('LR vessel renders in front of its port only across the near-berth parallel leg', () => {
+test('LL and LR vessels render in front of their port only across the near-berth parallel leg', () => {
   const originalGetWorldDepth = global.getWorldDepth;
   try {
     global.getWorldDepth = (_layer, localDepth) => 200000 + localDepth;

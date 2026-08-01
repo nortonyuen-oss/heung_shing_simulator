@@ -10,7 +10,7 @@
 
 const VESSEL_ROUTE_METADATA_VALUE = Object.freeze({
   schemaVersion: 1,
-  calibrationId: 'vessel-berth-2026-08-01-v3',
+  calibrationId: 'vessel-berth-2026-08-01-v4',
   berthAnchorsByVisualVariant: Object.freeze({
     ll: Object.freeze({
       alongFromQuayCenterTiles: 0.8507,
@@ -30,9 +30,13 @@ const VESSEL_ROUTE_METADATA_VALUE = Object.freeze({
     }),
   }),
   depthRulesByVisualVariant: Object.freeze({
-    // LR sits extremely close to the quay (normal 0.1424). Its correct visual
-    // relationship is in front of the harbor artwork, even when ordinary
-    // world-Y sorting would place the vessel below that large sprite.
+    // LL and LR both sit close enough to the quay that ordinary world-Y
+    // sorting can tuck the vessel below the large harbor artwork. Keep only
+    // their near-berth three-tile legs in front; UL/UR retain world sorting.
+    ll: Object.freeze({
+      nearBerthMode: 'front-of-port',
+      portDepthOffset: 1,
+    }),
     lr: Object.freeze({
       nearBerthMode: 'front-of-port',
       portDepthOffset: 1,

@@ -6,6 +6,27 @@ const path = require('node:path');
 const ROOT = path.resolve(__dirname, '..');
 const calibrator = require('../visual-route-calibrator.js');
 
+test('hidden test mode requires five rapid icon clicks and one more click disables it', () => {
+  calibrator.setVisualRouteCalibrationTestModeEnabled(false);
+  assert.equal(calibrator.isVisualRouteCalibrationTestModeEnabled(), false);
+  [1000, 1200, 1400, 1600].forEach((timestamp) => {
+    assert.equal(calibrator.handleVisualRouteCalibrationUnlockClick(timestamp), false);
+  });
+  assert.equal(calibrator.isVisualRouteCalibrationTestModeEnabled(), false);
+  assert.equal(calibrator.handleVisualRouteCalibrationUnlockClick(1800), true);
+  assert.equal(calibrator.isVisualRouteCalibrationTestModeEnabled(), true);
+  assert.equal(calibrator.handleVisualRouteCalibrationUnlockClick(2000), false);
+  assert.equal(calibrator.isVisualRouteCalibrationTestModeEnabled(), false);
+});
+
+test('slow icon clicks do not unlock test mode', () => {
+  calibrator.setVisualRouteCalibrationTestModeEnabled(false);
+  [0, 3000, 6000, 9000, 12000].forEach((timestamp) => {
+    assert.equal(calibrator.handleVisualRouteCalibrationUnlockClick(timestamp), false);
+  });
+  assert.equal(calibrator.isVisualRouteCalibrationTestModeEnabled(), false);
+});
+
 test('calibration record captures absolute, route-relative and adapter measurements', () => {
   const target = {
     id: 'ship-7',
@@ -112,6 +133,7 @@ test('paused target becomes draggable, records drag end and releases ownership o
     onMove: (x, y, logical) => moves.push({ x, y, logical }),
   };
 
+  calibrator.setVisualRouteCalibrationTestModeEnabled(true);
   assert.equal(calibrator.syncVisualRouteCalibrationTarget(scene, target), true);
   assert.equal(calibrator.isVisualRouteCalibrationInputCaptured(scene), true);
   assert.equal(sprite.depth, calibrator.VISUAL_ROUTE_CALIBRATION_INPUT_DEPTH);
@@ -134,6 +156,7 @@ test('paused target becomes draggable, records drag end and releases ownership o
   assert.equal(sprite.input, null);
   assert.equal(handlers.size, 0);
   calibrator.clearVisualRouteCalibrationScene(scene);
+  calibrator.setVisualRouteCalibrationTestModeEnabled(false);
 });
 
 test('browser script loads generic calibrator before domain adapters', () => {
@@ -144,4 +167,5 @@ test('browser script loads generic calibrator before domain adapters', () => {
     /traffic-visuals\.js[\s\S]*vessel-route-metadata\.js[\s\S]*visual-route-calibrator\.js[\s\S]*vessel-visuals\.js[\s\S]*main\.js/,
   );
   assert.match(main, /pointerdown[\s\S]*isVisualRouteCalibrationInputCaptured\(this\)/);
+  assert.match(html, /id="about-app-icon"[\s\S]*id="visual-route-calibration-test-mode-label" hidden>【test mode】/);
 });

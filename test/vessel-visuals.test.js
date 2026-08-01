@@ -182,7 +182,7 @@ test('vessel dock point uses the recorded visual anchor for every quay direction
 });
 
 test('route metadata preserves all four recorded quay-relative anchors exactly', () => {
-  assert.equal(vesselRouteMetadata.calibrationId, 'vessel-berth-2026-08-01-v1');
+  assert.equal(vesselRouteMetadata.calibrationId, 'vessel-berth-2026-08-01-v2');
   assert.deepEqual(vesselRouteMetadata.berthAnchorsByVisualVariant, {
     ll: { alongFromQuayCenterTiles: 0.8507, normalFromQuayTiles: 0.266 },
     lr: { alongFromQuayCenterTiles: -0.7073, normalFromQuayTiles: 0.1424 },
@@ -249,6 +249,54 @@ test('final inbound and first outbound berth legs are parallel to the quay', () 
       assert.equal(approach.row - dock.row, 1, side);
     }
   });
+});
+
+test('near-shore route is trimmed and curved without crossing inside the final berth normal', () => {
+  const portEntry = { row: 10, col: 20, record: { footprintRows: 4, footprintCols: 4 } };
+  const rawInbound = [
+    { row: 4, col: 21.5 },
+    { row: 7, col: 21.5 },
+    { row: 8.5, col: 21.5 },
+    { row: 9, col: 20 },
+  ];
+  const minimumNormal = 2;
+  const safe = vessels.trimVesselTrackToQuayClearance(rawInbound, portEntry, 'n', minimumNormal);
+  assert.deepEqual(safe, rawInbound.slice(0, 2));
+  const approach = { row: 8, col: 20.5 };
+  const curve = vessels.buildVesselQuayApproachCurve(safe.at(-1), approach, 'n');
+  assert.deepEqual(curve.at(-1), approach);
+  [...safe, ...curve].forEach((point) => {
+    assert.ok(
+      vessels.getVesselQuayNormalDistance(portEntry, 'n', point) >= minimumNormal - 0.0001,
+      JSON.stringify(point),
+    );
+  });
+});
+
+test('ocean search starts on the first whole water tile outside the berth clearance', () => {
+  const portEntry = { row: 10, col: 20, record: { footprintRows: 4, footprintCols: 4 } };
+  const candidates = {
+    n: { offset: 1, entry: { row: 9, col: 20 } },
+    e: { offset: 1, entry: { row: 10, col: 24 } },
+    s: { offset: 1, entry: { row: 14, col: 20 } },
+    w: { offset: 1, entry: { row: 10, col: 19 } },
+  };
+  assert.deepEqual(
+    vessels.getVesselRouteClearanceEntry(portEntry, 'n', candidates.n, 1.8942),
+    { row: 8, col: 20 },
+  );
+  assert.deepEqual(
+    vessels.getVesselRouteClearanceEntry(portEntry, 'e', candidates.e, 1.8942),
+    { row: 10, col: 25 },
+  );
+  assert.deepEqual(
+    vessels.getVesselRouteClearanceEntry(portEntry, 's', candidates.s, 1.8942),
+    { row: 15, col: 20 },
+  );
+  assert.deepEqual(
+    vessels.getVesselRouteClearanceEntry(portEntry, 'w', candidates.w, 1.8942),
+    { row: 10, col: 18 },
+  );
 });
 
 // The occlusion-clearance fix: the harbor_ul/harbor_ur artwork draws its
@@ -670,6 +718,15 @@ test('runtime update only starts work for a container port near the camera view'
     const parallelEntry = spawnedRoute.inboundTrack.points.at(-2);
     assert.equal(parallelEntry.col, spawnedRoute.berth.col);
     assert.equal(spawnedRoute.berth.row - parallelEntry.row, 1);
+    spawnedRoute.inboundTrack.points.forEach((point) => {
+      assert.ok(
+        vessels.getVesselQuayNormalDistance(
+          { row: 5, col: 5, record: global.buildingData['5:5'] },
+          'e',
+          point,
+        ) >= spawnedRoute.minimumQuayNormalTiles - 0.0001,
+      );
+    });
     assert.equal(createdSprites.length, 1);
     vessels.clearVesselVisuals(onScreenScene);
     assert.equal(state.portStates.size, 0);

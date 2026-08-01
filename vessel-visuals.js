@@ -453,15 +453,74 @@ function getVesselDockPoint(portEntry, side, candidate, anchor = null) {
   return { row: resolved.quayCenterRow + along, col: col + cols - 1 + normal }; // 'e'
 }
 
+function offsetVesselPointAlongQuay(side, point, deltaTiles) {
+  const delta = Number(deltaTiles) || 0;
+  if (side === 'n') return { row: point.row, col: point.col + delta };
+  if (side === 'e') return { row: point.row + delta, col: point.col };
+  if (side === 's') return { row: point.row, col: point.col - delta };
+  return { row: point.row - delta, col: point.col }; // 'w'
+}
+
 function getVesselParallelApproachPoint(side, dockPoint) {
   const legTiles = Math.max(0, Number(getVesselRouteMetadata()?.parallelApproach?.legTiles) || 0);
   if (!dockPoint || legTiles <= 0) return null;
-  if (side === 'n') {
-    return { row: dockPoint.row, col: dockPoint.col - legTiles };
+  return offsetVesselPointAlongQuay(side, dockPoint, -legTiles);
+}
+
+function getVesselQuayNormalDistance(portEntry, side, point) {
+  if (!portEntry || !point) return -Infinity;
+  const cols = Number(portEntry.record?.footprintCols) || HARBOR_FOOTPRINT_COLS;
+  const rows = Number(portEntry.record?.footprintRows) || HARBOR_FOOTPRINT_ROWS;
+  if (side === 'n') return portEntry.row - point.row;
+  if (side === 'e') return point.col - (portEntry.col + cols - 1);
+  if (side === 's') return point.row - (portEntry.row + rows - 1);
+  return portEntry.col - point.col; // 'w'
+}
+
+function getVesselRouteClearanceEntry(portEntry, side, candidate, minimumNormalTiles) {
+  const candidateOffset = Math.max(1, Number(candidate?.offset) || 1);
+  const requiredOffset = Math.max(
+    candidateOffset,
+    Math.ceil(Math.max(0, Number(minimumNormalTiles) || 0) - 0.0001),
+  );
+  const extraOffset = requiredOffset - candidateOffset;
+  const entry = candidate?.entry;
+  if (!entry) return null;
+  if (side === 'n') return { row: entry.row - extraOffset, col: entry.col };
+  if (side === 'e') return { row: entry.row, col: entry.col + extraOffset };
+  if (side === 's') return { row: entry.row + extraOffset, col: entry.col };
+  return { row: entry.row, col: entry.col - extraOffset }; // 'w'
+}
+
+function trimVesselTrackToQuayClearance(points, portEntry, side, minimumNormalTiles) {
+  const minimum = Math.max(0, Number(minimumNormalTiles) || 0);
+  let safeEndIndex = points.length - 1;
+  while (safeEndIndex >= 0 && getVesselQuayNormalDistance(
+    portEntry,
+    side,
+    points[safeEndIndex],
+  ) < minimum - 0.0001) {
+    safeEndIndex--;
   }
-  if (side === 'e') return { row: dockPoint.row - legTiles, col: dockPoint.col };
-  if (side === 's') return { row: dockPoint.row, col: dockPoint.col + legTiles };
-  return { row: dockPoint.row + legTiles, col: dockPoint.col }; // 'w'
+  return safeEndIndex < 0 ? [] : points.slice(0, safeEndIndex + 1);
+}
+
+function buildVesselQuayApproachCurve(start, end, side) {
+  if (!start || !end) return [];
+  const config = getVesselRouteMetadata()?.parallelApproach;
+  const tangentLeadTiles = Math.max(0, Number(config?.curveTangentLeadTiles) || 0);
+  const sampleCount = Math.max(1, Math.round(Number(config?.curveSamples) || 1));
+  const control = offsetVesselPointAlongQuay(side, end, -tangentLeadTiles);
+  const samples = [];
+  for (let index = 1; index <= sampleCount; index++) {
+    const t = index / sampleCount;
+    const u = 1 - t;
+    samples.push({
+      row: u * u * start.row + 2 * u * t * control.row + t * t * end.row,
+      col: u * u * start.col + 2 * u * t * control.col + t * t * end.col,
+    });
+  }
+  return samples;
 }
 
 // The berth's water-facing edge runs along whichever logical axis is *not*
@@ -545,10 +604,18 @@ const VESSEL_ROUTE_NEIGHBOR_OFFSETS = Object.freeze([[-1, 0], [1, 0], [0, -1], [
 // can touch tens of thousands of cells, and string concatenation/hashing per
 // cell was the single biggest cost when this ran. Callers must cache the
 // result (see getVesselPortRoute) - this must never run every frame.
-function findOceanRoute(map, start, waterValue, isOutsideView, maxVisited = 100000) {
+function findOceanRoute(
+  map,
+  start,
+  waterValue,
+  isOutsideView,
+  maxVisited = 100000,
+  isAllowedPoint = null,
+) {
   const height = map.length;
   const width = map[0]?.length ?? 0;
-  if (!height || !width || map[start.row]?.[start.col] !== waterValue) return null;
+  if (!height || !width || map[start.row]?.[start.col] !== waterValue
+    || (isAllowedPoint && !isAllowedPoint(start.row, start.col))) return null;
   const size = height * width;
   const toIndex = (row, col) => row * width + col;
   const costs = new Float64Array(size).fill(Infinity);
@@ -575,6 +642,7 @@ function findOceanRoute(map, start, waterValue, isOutsideView, maxVisited = 1000
       const nextCol = col + dc;
       if (nextRow < 0 || nextRow >= height || nextCol < 0 || nextCol >= width) continue;
       if (map[nextRow]?.[nextCol] !== waterValue) continue;
+      if (isAllowedPoint && !isAllowedPoint(nextRow, nextCol)) continue;
       const nextIndex = toIndex(nextRow, nextCol);
       const nextCost = current.cost + 1 + countVesselAdjacentLand(map, nextRow, nextCol, waterValue) * 0.35;
       if (nextCost >= costs[nextIndex]) continue;
@@ -699,29 +767,52 @@ function findVesselShipRoute(scene, portEntry, rect) {
     !vesselPointInRect(getVesselWaterSurfacePoint(scene, row, col), rect)
   );
   const routes = berthCandidates.flatMap((candidate) => {
+    const berthAnchor = getVesselBerthAnchor(portEntry, side, candidate);
+    const clearanceEntry = getVesselRouteClearanceEntry(
+      portEntry,
+      side,
+      candidate,
+      berthAnchor.normalFromQuayTiles,
+    );
+    if (!clearanceEntry) return [];
+    const hasQuayClearance = (row, col) => getVesselQuayNormalDistance(
+      portEntry,
+      side,
+      { row, col },
+    ) >= berthAnchor.normalFromQuayTiles - 0.0001;
     const portToOutside = findOceanRoute(
       mapData,
-      candidate.entry,
+      clearanceEntry,
       waterValue,
       isOutsideView,
       Math.max(1000, mapData.length * (mapData[0]?.length ?? 0)),
+      hasQuayClearance,
     );
     if (!portToOutside) return [];
     const inbound = portToOutside.slice().reverse();
-    inbound.push(candidate.center);
     const roundedPoints = roundVesselWaterTrack(simplifyVesselTrack(inbound), mapData, waterValue);
-    const berthAnchor = getVesselBerthAnchor(portEntry, side, candidate);
     const dockPoint = getVesselDockPoint(portEntry, side, candidate, berthAnchor);
     const parallelApproach = getVesselParallelApproachPoint(side, dockPoint);
-    const finalPoints = [...roundedPoints];
-    if (parallelApproach) finalPoints.push(parallelApproach);
+    const safeOceanPoints = trimVesselTrackToQuayClearance(
+      roundedPoints,
+      portEntry,
+      side,
+      berthAnchor.normalFromQuayTiles,
+    );
+    if (!safeOceanPoints.length) return [];
+    const approachCurve = parallelApproach
+      ? buildVesselQuayApproachCurve(safeOceanPoints.at(-1), parallelApproach, side)
+      : [];
+    const finalPoints = [...safeOceanPoints, ...approachCurve];
     finalPoints.push(dockPoint);
     return [{
       side,
       offset: candidate.offset,
       berth: dockPoint,
       berthAnchor,
+      clearanceEntry,
       parallelApproach,
+      minimumQuayNormalTiles: berthAnchor.normalFromQuayTiles,
       routeMetadataId: getVesselRouteMetadataId(),
       points: finalPoints,
     }];
@@ -1157,6 +1248,10 @@ const vesselVisualTestApi = {
   getVesselDockPoint,
   getVesselBerthAnchor,
   getVesselParallelApproachPoint,
+  getVesselQuayNormalDistance,
+  getVesselRouteClearanceEntry,
+  trimVesselTrackToQuayClearance,
+  buildVesselQuayApproachCurve,
   getVesselRouteMetadataId,
   getVesselRenderDepth,
   getVesselHarborVisualVariant,

@@ -7,7 +7,6 @@
 // reusable for vessel berths now and aircraft taxi/landing nodes later.
 
 const VISUAL_ROUTE_CALIBRATION_SCHEMA_VERSION = 1;
-const VISUAL_ROUTE_CALIBRATION_STORAGE_KEY = 'cityBuilder.visualRouteCalibration.v1';
 const VISUAL_ROUTE_CALIBRATION_DEFAULT_SLOTS = Object.freeze(['default']);
 const VISUAL_ROUTE_CALIBRATION_INPUT_DEPTH = 2_000_000_000;
 const VISUAL_ROUTE_CALIBRATION_UNLOCK_CLICKS = 5;
@@ -83,37 +82,6 @@ function visualRouteCalibrationRound(value, digits = 4) {
   if (!Number.isFinite(numeric)) return null;
   const factor = 10 ** digits;
   return Math.round(numeric * factor) / factor;
-}
-
-function getVisualRouteCalibrationStorage() {
-  try {
-    return typeof globalThis !== 'undefined' ? globalThis.localStorage : null;
-  } catch {
-    return null;
-  }
-}
-
-function loadVisualRouteCalibrationRecords(storage = getVisualRouteCalibrationStorage()) {
-  if (!storage?.getItem) return {};
-  try {
-    const parsed = JSON.parse(storage.getItem(VISUAL_ROUTE_CALIBRATION_STORAGE_KEY) || '{}');
-    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
-  } catch {
-    return {};
-  }
-}
-
-function persistVisualRouteCalibrationRecords(
-  records,
-  storage = getVisualRouteCalibrationStorage(),
-) {
-  if (!storage?.setItem) return false;
-  try {
-    storage.setItem(VISUAL_ROUTE_CALIBRATION_STORAGE_KEY, JSON.stringify(records));
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 function getVisualRouteCalibrationRecordKey(targetKind, slot) {
@@ -236,12 +204,16 @@ async function copyVisualRouteCalibrationText(text) {
   return copied;
 }
 
+// Kept only in-memory for this session (state.records, not localStorage) -
+// calibration is meant to end up baked into the relevant *-route-metadata.js
+// file, never left living solely in browser storage where a fresh install
+// (or even just clearing site data) would silently lose it. The "複製 JSON"
+// button is the actual handoff point; this only feeds the live panel.
 function saveVisualRouteCalibrationCurrent(state) {
   const target = state.activeTarget;
   const record = buildVisualRouteCalibrationRecord(target);
   if (!record) return null;
   state.records[getVisualRouteCalibrationRecordKey(record.targetKind, record.slot)] = record;
-  persistVisualRouteCalibrationRecords(state.records);
   setVisualRouteCalibrationMessage(state, `${record.slot.toUpperCase()} 位置已記錄`, 'success');
   renderVisualRouteCalibrationPanel(state);
   return record;
@@ -403,7 +375,7 @@ function getVisualRouteCalibrationState(scene) {
       dragHandlers: null,
       dragHadInput: false,
       dragOriginalDepth: null,
-      records: loadVisualRouteCalibrationRecords(),
+      records: {},
       panel: null,
       message: { text: '', tone: 'info' },
     };
@@ -880,14 +852,11 @@ function updateVisualRoutePerformanceProfiler(scene, time, delta) {
 
 const visualRouteCalibrationTestApi = {
   VISUAL_ROUTE_CALIBRATION_SCHEMA_VERSION,
-  VISUAL_ROUTE_CALIBRATION_STORAGE_KEY,
   VISUAL_ROUTE_CALIBRATION_DEFAULT_SLOTS,
   VISUAL_ROUTE_CALIBRATION_INPUT_DEPTH,
   VISUAL_ROUTE_CALIBRATION_UNLOCK_CLICKS,
   VISUAL_ROUTE_CALIBRATION_UNLOCK_WINDOW_MS,
   visualRouteCalibrationRound,
-  loadVisualRouteCalibrationRecords,
-  persistVisualRouteCalibrationRecords,
   getVisualRouteCalibrationRecordKey,
   buildVisualRouteCalibrationRecord,
   getVisualRouteCalibrationCollection,

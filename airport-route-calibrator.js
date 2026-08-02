@@ -3,7 +3,7 @@
 // Vessel/harbor calibration (visual-route-calibrator.js) drags one sprite at
 // a time through named "slot" variants of the same thing (which harbor
 // orientation a docked ship happens to be in — auto-detected, not chosen).
-// A flight route is a different shape of problem: 7 independent points that
+// A flight route is a different shape of problem: 14 independent points that
 // together define one route for one static building, placed all at once.
 // This reuses the generic, non-vessel-specific pieces of
 // visual-route-calibrator.js (clipboard copy, rounding, the test-mode gate,
@@ -11,24 +11,39 @@
 // instead of the single-sprite one.
 
 const AIRPORT_ROUTE_CALIBRATION_SCHEMA_VERSION = 1;
-const AIRPORT_ROUTE_CALIBRATION_STORAGE_KEY = 'cityBuilder.airportRouteCalibration.v1';
 const AIRPORT_ROUTE_POINT_DEFS = Object.freeze([
-  Object.freeze({ key: 'landStart', label: '降落跑道開始點', short: 'L1' }),
-  Object.freeze({ key: 'landEnd', label: '降落跑道結束點', short: 'L2' }),
+  Object.freeze({ key: 'approachSpawn', label: '降落的起點', short: 'L0' }),
+  Object.freeze({ key: 'approachCurve', label: '降落弧線通過點', short: 'L1' }),
+  Object.freeze({ key: 'landStart', label: '落地taxi點', short: 'L2' }),
+  Object.freeze({ key: 'landEnd', label: '跑道減速滑行終點', short: 'L3' }),
   Object.freeze({ key: 'gate1', label: '第一停泊位置', short: 'G1' }),
   Object.freeze({ key: 'gate2', label: '第二停泊位置', short: 'G2' }),
   Object.freeze({ key: 'gate3', label: '第三停泊位置', short: 'G3' }),
-  Object.freeze({ key: 'takeoffStart', label: '起飛跑道開始點', short: 'T1' }),
-  Object.freeze({ key: 'liftoff', label: '飛機開始離地點', short: 'T2' }),
+  Object.freeze({ key: 'gate4', label: '第四停泊位置', short: 'G4' }),
+  Object.freeze({ key: 'gate5', label: '第五停泊位置', short: 'G5' }),
+  Object.freeze({ key: 'gate6', label: '第六停泊位置', short: 'G6' }),
+  Object.freeze({ key: 'takeoffStart', label: '起飛點', short: 'T0' }),
+  Object.freeze({ key: 'liftoff', label: '離開跑道點', short: 'T1' }),
+  Object.freeze({ key: 'departCurve', label: '起飛弧線通過點', short: 'T2' }),
+  Object.freeze({ key: 'departureDespawn', label: '達到穩定高度點', short: 'T3' }),
 ]);
+// Purple = airborne/curve points, blue = landing ground roll, gold = gates,
+// green = takeoff ground roll.
 const AIRPORT_ROUTE_MARKER_COLORS = Object.freeze({
+  approachSpawn: 0xc792ea,
+  approachCurve: 0xc792ea,
   landStart: 0x4fd1ff,
   landEnd: 0x4fd1ff,
   gate1: 0xffd15a,
   gate2: 0xffd15a,
   gate3: 0xffd15a,
+  gate4: 0xffd15a,
+  gate5: 0xffd15a,
+  gate6: 0xffd15a,
   takeoffStart: 0x7ce8a8,
   liftoff: 0x7ce8a8,
+  departCurve: 0xc792ea,
+  departureDespawn: 0xc792ea,
 });
 const airportRouteCalibrationSessions = new WeakMap();
 // Which livery previews at each marker - purely cosmetic, doesn't affect the
@@ -64,16 +79,30 @@ function getDefaultAirportRoutePoints(anchor = {}) {
   const colAt = (fraction) => Math.min(footprintCols - 1, Math.max(0, Math.round(fraction * (footprintCols - 1))));
   const rowAt = (fraction) => Math.min(footprintRows - 1, Math.max(0, Math.round(fraction * (footprintRows - 1))));
   // Two parallel lines (landing runway near one edge, takeoff runway near the
-  // opposite edge, reversed) plus three gates in between. Just a starting
-  // layout — every point gets dragged onto the real art by eye.
+  // opposite edge, reversed) plus six gates in between, and a curve point
+  // sitting right next to each runway end (on-line by default, so the
+  // approach/departure legs start out straight — see
+  // getShippedAirportRoutePoints for why that matters). The spawn/despawn
+  // points (approachSpawn/departureDespawn) sit further out along that same
+  // line, deliberately outside the footprint (rowAt/colAt clamp to it,
+  // hence the raw fraction math here) since they're meant to be out in open
+  // sky, not on the airport itself. Just a starting layout — every point
+  // gets dragged onto the real art by eye.
   return {
+    approachSpawn: { dRow: -0.15 * (footprintRows - 1), dCol: colAt(0.1) },
+    approachCurve: { dRow: rowAt(0.0), dCol: colAt(0.1) },
     landStart: { dRow: rowAt(0.1), dCol: colAt(0.1) },
     landEnd: { dRow: rowAt(0.1), dCol: colAt(0.85) },
-    gate1: { dRow: rowAt(0.45), dCol: colAt(0.25) },
-    gate2: { dRow: rowAt(0.45), dCol: colAt(0.5) },
-    gate3: { dRow: rowAt(0.45), dCol: colAt(0.75) },
+    gate1: { dRow: rowAt(0.45), dCol: colAt(0.2) },
+    gate2: { dRow: rowAt(0.45), dCol: colAt(0.36) },
+    gate3: { dRow: rowAt(0.45), dCol: colAt(0.52) },
+    gate4: { dRow: rowAt(0.45), dCol: colAt(0.68) },
+    gate5: { dRow: rowAt(0.45), dCol: colAt(0.84) },
+    gate6: { dRow: rowAt(0.6), dCol: colAt(0.52) },
     takeoffStart: { dRow: rowAt(0.9), dCol: colAt(0.85) },
     liftoff: { dRow: rowAt(0.9), dCol: colAt(0.1) },
+    departCurve: { dRow: rowAt(1.0), dCol: colAt(0.1) },
+    departureDespawn: { dRow: 1.15 * (footprintRows - 1), dCol: colAt(0.1) },
   };
 }
 
@@ -136,26 +165,6 @@ function buildAirportRouteCalibrationRecord(session, recordedAt = new Date().toI
   };
 }
 
-function loadAirportRouteCalibrationRecord(storage = getVisualRouteCalibrationStorage()) {
-  if (!storage?.getItem) return null;
-  try {
-    const parsed = JSON.parse(storage.getItem(AIRPORT_ROUTE_CALIBRATION_STORAGE_KEY) || 'null');
-    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null;
-  } catch {
-    return null;
-  }
-}
-
-function persistAirportRouteCalibrationRecord(record, storage = getVisualRouteCalibrationStorage()) {
-  if (!record || !storage?.setItem) return false;
-  try {
-    storage.setItem(AIRPORT_ROUTE_CALIBRATION_STORAGE_KEY, JSON.stringify(record));
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 function resolveAirportRoutePointsFromRecord(anchor, record) {
   const defaults = getShippedAirportRoutePoints(anchor);
   const points = {};
@@ -186,16 +195,46 @@ function getAirportRouteCalibrationSession(scene) {
   return session;
 }
 
-function getAirportCalibrationWorldPoint(scene, row, col) {
+// Same vertical correction getAircraftGroundPoint (aircraft-visuals.js)
+// applies - the tile's mathematical iso-projection point isn't where a
+// sprite standing on that tile actually renders; it's offset up by the gap
+// between the tile art's full image height and its isometric footprint.
+function getAirportCalibratorSurfaceOffset() {
+  return (typeof BUILDING_SURFACE_Y_OFFSET === 'number' ? BUILDING_SURFACE_Y_OFFSET : 82)
+    + (typeof TILE_HEIGHT === 'number' ? TILE_HEIGHT : 50) / 2;
+}
+
+// Delegates to aircraft-visuals.js's OWN getAircraftGroundPoint rather than
+// a second, hand-maintained copy of the same math - a marker's on-screen
+// position is then pixel-identical to where the real aircraft sprite
+// renders for that same logical point, by construction, instead of
+// something that can quietly drift out of sync with it (which is exactly
+// what happened here: this used to reimplement it without the surface
+// offset above, so every calibrated point was visibly off from gameplay).
+function getAirportCalibrationWorldPoint(session, row, col) {
+  const scene = session?.scene ?? session;
+  if (typeof getAircraftGroundPoint === 'function' && session?.anchor) {
+    return getAircraftGroundPoint(scene, session.anchor, row, col);
+  }
   const iso = isoToScreen(col, row);
   return {
     x: iso.x + (Number(scene?.offsetX) || 0),
-    y: iso.y + (Number(scene?.offsetY) || 0),
+    y: iso.y + (Number(scene?.offsetY) || 0) - getAirportCalibratorSurfaceOffset(),
   };
 }
 
+// The inverse of getAirportCalibrationWorldPoint's vertical correction -
+// undoes the surface offset before handing off to the game's own
+// screen-to-logical math, so a dragged marker resolves to the logical point
+// that would put the real aircraft exactly under the cursor, not the ground
+// tile mathematically under it.
 function getAirportCalibrationLogicalPoint(scene, worldX, worldY) {
-  const logical = typeof worldToLogicalPoint === 'function' ? worldToLogicalPoint(scene, worldX, worldY) : null;
+  const logical = typeof screenToIso === 'function'
+    ? screenToIso(
+      worldX - (Number(scene?.offsetX) || 0),
+      worldY - (Number(scene?.offsetY) || 0) + getAirportCalibratorSurfaceOffset(),
+    )
+    : null;
   const row = Number(logical?.y);
   const col = Number(logical?.x);
   return Number.isFinite(row) && Number.isFinite(col) ? { row, col } : null;
@@ -258,11 +297,28 @@ function drawAirportRouteSegment(graphics, session, fromKey, toKey) {
   const from = session.points[fromKey];
   const to = session.points[toKey];
   if (!from || !to) return;
-  const a = getAirportCalibrationWorldPoint(session.scene, from.row, from.col);
-  const b = getAirportCalibrationWorldPoint(session.scene, to.row, to.col);
+  const a = getAirportCalibrationWorldPoint(session, from.row, from.col);
+  const b = getAirportCalibrationWorldPoint(session, to.row, to.col);
   graphics.beginPath();
   graphics.moveTo(a.x, a.y);
   graphics.lineTo(b.x, b.y);
+  graphics.strokePath();
+}
+
+// Draws the actual sampled Bezier a flight would fly between two logical
+// points (through a control point held in session.points), not just a
+// straight guide line - so bending the control marker shows the real arc.
+function drawAirportRouteCurve(graphics, session, fromKey, controlKey, toKey) {
+  const from = session.points[fromKey];
+  const control = session.points[controlKey];
+  const to = session.points[toKey];
+  if (!from || !control || !to || typeof buildAircraftCurvePoints !== 'function') return;
+  const samples = Number(AIRCRAFT_VISUAL_CONFIG?.curveSamples) || 16;
+  const curvePoints = buildAircraftCurvePoints(from, control, to, samples);
+  const worldPoints = curvePoints.map((point) => getAirportCalibrationWorldPoint(session, point.row, point.col));
+  graphics.beginPath();
+  graphics.moveTo(worldPoints[0].x, worldPoints[0].y);
+  worldPoints.slice(1).forEach(({ x, y }) => graphics.lineTo(x, y));
   graphics.strokePath();
 }
 
@@ -277,6 +333,10 @@ function updateAirportRoutePolyline(session) {
   drawAirportRouteSegment(graphics, session, 'landStart', 'landEnd');
   graphics.lineStyle(3, AIRPORT_ROUTE_MARKER_COLORS.takeoffStart, 0.85);
   drawAirportRouteSegment(graphics, session, 'takeoffStart', 'liftoff');
+  graphics.lineStyle(2, AIRPORT_ROUTE_MARKER_COLORS.approachCurve, 0.75);
+  drawAirportRouteCurve(graphics, session, 'approachSpawn', 'approachCurve', 'landStart');
+  graphics.lineStyle(2, AIRPORT_ROUTE_MARKER_COLORS.departCurve, 0.75);
+  drawAirportRouteCurve(graphics, session, 'liftoff', 'departCurve', 'departureDespawn');
 }
 
 function createAirportRouteMarkers(session) {
@@ -288,7 +348,7 @@ function createAirportRouteMarkers(session) {
   AIRPORT_ROUTE_POINT_DEFS.forEach(({ key, short }) => {
     const point = session.points[key];
     if (!AIRPORT_ROUTE_DIRECTION_CYCLE.includes(point.direction)) point.direction = AIRPORT_ROUTE_DEFAULT_DIRECTION;
-    const world = getAirportCalibrationWorldPoint(scene, point.row, point.col);
+    const world = getAirportCalibrationWorldPoint(session, point.row, point.col);
     const { visual, isSprite, halfHeight } = createAirportRouteMarkerVisual(scene, world, point.direction, key);
     visual.setDepth(VISUAL_ROUTE_CALIBRATION_INPUT_DEPTH);
     const labelOffset = halfHeight + 4;
@@ -319,7 +379,6 @@ function createAirportRouteMarkers(session) {
       renderAirportRouteCalibratorPanel(session);
     });
     visual.on('dragend', () => {
-      persistAirportRouteCalibrationRecord(buildAirportRouteCalibrationRecord(session));
       setAirportRouteCalibratorMessage(session, `${short} 已記錄`, 'success');
     });
     // A plain click (pointerdown -> pointerup with no drag in between) cycles
@@ -333,7 +392,6 @@ function createAirportRouteMarkers(session) {
         const textureKey = getAirportRouteAircraftTextureKey(current.direction);
         if (textureKey) visual.setTexture?.(textureKey);
       }
-      persistAirportRouteCalibrationRecord(buildAirportRouteCalibrationRecord(session));
       setAirportRouteCalibratorMessage(session, `${short} 已轉向 ${current.direction.toUpperCase()}`, 'success');
       renderAirportRouteCalibratorPanel(session);
     });
@@ -503,7 +561,6 @@ function renderAirportRouteCalibratorPanel(session) {
 
 const airportRouteCalibratorTestApi = {
   AIRPORT_ROUTE_CALIBRATION_SCHEMA_VERSION,
-  AIRPORT_ROUTE_CALIBRATION_STORAGE_KEY,
   AIRPORT_ROUTE_POINT_DEFS,
   AIRPORT_ROUTE_PREVIEW_LIVERY,
   AIRPORT_ROUTE_DIRECTION_CYCLE,
@@ -513,9 +570,10 @@ const airportRouteCalibratorTestApi = {
   getAirportRouteAircraftTextureKey,
   getDefaultAirportRoutePoints,
   getShippedAirportRoutePoints,
+  getAirportCalibratorSurfaceOffset,
+  getAirportCalibrationWorldPoint,
+  getAirportCalibrationLogicalPoint,
   buildAirportRouteCalibrationRecord,
-  loadAirportRouteCalibrationRecord,
-  persistAirportRouteCalibrationRecord,
   resolveAirportRoutePointsFromRecord,
   getAirportRouteCalibrationSession,
   resolveAirportRouteCalibrationAnchor,

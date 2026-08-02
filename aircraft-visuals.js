@@ -26,16 +26,21 @@ const AIRCRAFT_VISUAL_CONFIG = Object.freeze({
   parkedDwellMinMs: 15000,
   parkedDwellMaxMs: 25000,
   aircraftScale: 0.30,
-  // Landing roll (L1->L2) and takeoff roll (T1->T2) - 2.2x the original 0.62.
+  // Landing roll (L2->L3) and takeoff roll (T0->T1) - 2.2x the original 0.62.
   groundSpeedTilesPerSecond: 1.364,
-  // Gate taxiing (L2<->gate, gate<->T1) - 2x the original 0.30.
+  // Gate taxiing (L3<->gate, gate<->T0) - 2x the original 0.30.
   taxiSpeedTilesPerSecond: 0.60,
-  // Airborne legs only (inbound descent / departure climb) - taxi and ground
-  // roll speeds have their own separate multipliers above.
+  // Airborne legs only (inbound descent L0->L2 / departure climb T1->T3) -
+  // taxi and ground roll speeds have their own separate multipliers above.
   airSpeedTilesPerSecond: 2.2,
-  // How far out (in tiles, beyond landStart/liftoff) the plane spawns/despawns.
-  approachLegTiles: 9,
+  // The approach (L0->L1->L2) and departure (T1->T2->T3) legs fly a curve,
+  // not a straight line - this many samples of the quadratic Bezier become a
+  // dense-enough polyline to look smooth while reusing
+  // buildVesselTrackMetrics/evaluateVesselLogicalTrack unchanged.
+  curveSamples: 16,
   altitudePeakPixels: 150,
+  // >1 = altitude changes fastest near the ground (see evaluateAircraftAltitude).
+  altitudeEaseExponent: 3,
   maxDeltaMs: 1000,
   maxLoadAttempts: 2,
 });
@@ -65,7 +70,7 @@ const AIRCRAFT_ASSET_REGISTRY = Object.freeze(Object.fromEntries(
   ]),
 ));
 
-const AIRCRAFT_GATE_KEYS = Object.freeze(['gate1', 'gate2', 'gate3']);
+const AIRCRAFT_GATE_KEYS = Object.freeze(['gate1', 'gate2', 'gate3', 'gate4', 'gate5', 'gate6']);
 
 function aircraftClamp(value, min, max) {
   return Math.max(min, Math.min(max, Number(value) || 0));
@@ -303,10 +308,35 @@ function getAircraftLocalOffset(dRow, dCol, rotation) {
   };
 }
 
+// getBuildingAnchor (main.js) does NOT anchor a multi-tile building sprite to
+// its stored top-left tile - it picks whichever footprint corner is
+// currently the visually-lowest point of the diamond, and WHICH corner that
+// is depends on live rotation (see that function's own comment for the
+// derivation: rot0->bottom-right, rot1->top-right, rot2->top-left,
+// rot3->bottom-left). getAircraftLocalOffset's delta was calibrated
+// relative to the stored top-left tile (dRow/dCol in aircraft-route-metadata
+// are anchor-row/col-relative), not whichever corner the sprite happens to
+// pivot on - so the delta has to be re-based onto that corner (at the FIXED
+// calibration rotation, matching the fixed-rotation delta itself) before
+// it's added to the sprite's real live anchor, or the two disagree about
+// what "the anchor" even means the moment live rotation isn't the
+// calibration rotation.
+function getAircraftBuildingAnchorCornerOffset(footprintCols, footprintRows, rotation) {
+  if (rotation === 1) return { dRow: 0, dCol: footprintCols - 1 };
+  if (rotation === 2) return { dRow: 0, dCol: 0 };
+  if (rotation === 3) return { dRow: footprintRows - 1, dCol: 0 };
+  return { dRow: footprintRows - 1, dCol: footprintCols - 1 };
+}
+
 function getAircraftGroundPoint(scene, anchor, row, col) {
   const fixedRotation = Number(getAircraftRouteMetadata()?.calibratedMapRotation) || 0;
-  const liveAnchor = typeof isoToScreen === 'function' ? isoToScreen(anchor.col, anchor.row) : { x: 0, y: 0 };
-  const offset = getAircraftLocalOffset(row - anchor.row, col - anchor.col, fixedRotation);
+  const footprintCols = Number(anchor.footprintCols) || 1;
+  const footprintRows = Number(anchor.footprintRows) || 1;
+  const liveAnchor = typeof getBuildingAnchor === 'function'
+    ? getBuildingAnchor(anchor.row, anchor.col, footprintCols, footprintRows)
+    : (typeof isoToScreen === 'function' ? isoToScreen(anchor.col, anchor.row) : { x: 0, y: 0 });
+  const corner = getAircraftBuildingAnchorCornerOffset(footprintCols, footprintRows, fixedRotation);
+  const offset = getAircraftLocalOffset(row - anchor.row - corner.dRow, col - anchor.col - corner.dCol, fixedRotation);
   const x = liveAnchor.x + offset.dx;
   const y = liveAnchor.y + offset.dy;
   const surfaceOffset = (typeof BUILDING_SURFACE_Y_OFFSET === 'number' ? BUILDING_SURFACE_Y_OFFSET : 82)
@@ -335,38 +365,75 @@ function getAircraftAbsolutePoints(entry) {
   return points;
 }
 
-function aircraftVectorBetween(from, to) {
-  const dRow = to.row - from.row;
-  const dCol = to.col - from.col;
-  const length = Math.hypot(dRow, dCol);
-  if (length <= 0.0001) return { row: 0, col: 0, length: 0 };
-  return { row: dRow / length, col: dCol / length, length };
+// Converts a "the curve should visibly pass through here" point - the
+// intuitive thing to calibrate, and how a familiar curve tool (e.g. MS
+// Paint's) behaves: you drag the curve where you want it to go, and it goes
+// there - into the raw quadratic-Bezier control point that actually
+// produces that result. A raw control point only pulls the curve HALFWAY
+// toward itself at t=0.5 (B(0.5) = 0.5*control + 0.25*(p0+p1)), which reads
+// as the curve visibly undershooting wherever it was dragged to; this
+// inverts that relationship so the calibrated point IS where the curve ends
+// up, not just something it leans toward.
+function getAircraftBezierControlFromMidpoint(p0, midpoint, p1) {
+  return {
+    row: 2 * midpoint.row - (p0.row + p1.row) / 2,
+    col: 2 * midpoint.col - (p0.col + p1.col) / 2,
+  };
 }
 
-function extendAircraftPoint(from, unitVector, tiles) {
-  return { row: from.row + unitVector.row * tiles, col: from.col + unitVector.col * tiles };
+function evaluateQuadraticBezierPoint(p0, control, p1, t) {
+  const mt = 1 - t;
+  return {
+    row: mt * mt * p0.row + 2 * mt * t * control.row + t * t * p1.row,
+    col: mt * mt * p0.col + 2 * mt * t * control.col + t * t * p1.col,
+  };
 }
 
-// Builds one visit's full route: a single ground track (landing roll -> taxi
-// in -> gate -> taxi out -> takeoff roll) plus two short airborne tracks for
-// the approach and departure legs, extending the runway centerline outward
-// past whichever end is nearest landStart/liftoff. gateKey is chosen by the
-// caller (updateAircraftAirports), which is the only place that knows which
-// gates are already occupied by other concurrent visits.
+// Approximates a smooth arc as a dense polyline instead of evaluating the
+// Bezier live during flight - lets the approach/departure legs reuse
+// buildVesselTrackMetrics/evaluateVesselLogicalTrack completely unchanged
+// (arc-length distance + progress lerp over N tiny straight segments looks
+// exactly as smooth as a true curve at this scale) rather than building a
+// second, curve-native progress system just for these two legs.
+// midpoint is where the finished curve should visibly pass through at its
+// halfway point (see getAircraftBezierControlFromMidpoint) - not a raw
+// Bezier control point.
+function buildAircraftCurvePoints(p0, midpoint, p1, samples) {
+  const control = getAircraftBezierControlFromMidpoint(p0, midpoint, p1);
+  const points = [];
+  for (let i = 0; i <= samples; i++) {
+    points.push(evaluateQuadraticBezierPoint(p0, control, p1, i / samples));
+  }
+  return points;
+}
+
+// Builds one visit's full route: a single ground track (L2 touchdown -> L3
+// end of roll -> gate -> T0 start of roll -> T1 liftoff) plus two curved
+// airborne tracks - approach (L0 spawn -> L1 curve point -> L2 touchdown)
+// and departure (T1 liftoff -> T2 curve point -> T3 stable altitude). Every
+// point is directly calibrated (airport-route-calibrator.js) - nothing here
+// is extrapolated. gateKey is chosen by the caller (updateAircraftAirports),
+// which is the only place that knows which gates are already occupied by
+// other concurrent visits.
 function buildAircraftRoute(entry, gateKey) {
   const points = getAircraftAbsolutePoints(entry);
-  const required = ['landStart', 'landEnd', gateKey, 'takeoffStart', 'liftoff'];
+  const required = [
+    'approachSpawn', 'approachCurve', 'landStart', 'landEnd', gateKey,
+    'takeoffStart', 'liftoff', 'departCurve', 'departureDespawn',
+  ];
   if (!points || required.some((key) => !points[key])) return null;
   const gate = points[gateKey];
   const groundPoints = [points.landStart, points.landEnd, gate, points.takeoffStart, points.liftoff];
   const groundTrack = buildVesselTrackMetrics(groundPoints);
   if (groundTrack.segments.length < 4) return null;
-  const approachVector = aircraftVectorBetween(points.landEnd, points.landStart);
-  const departVector = aircraftVectorBetween(points.takeoffStart, points.liftoff);
-  const approachStart = extendAircraftPoint(points.landStart, approachVector, AIRCRAFT_VISUAL_CONFIG.approachLegTiles);
-  const departureEnd = extendAircraftPoint(points.liftoff, departVector, AIRCRAFT_VISUAL_CONFIG.approachLegTiles);
-  const approachTrack = buildVesselTrackMetrics([approachStart, points.landStart]);
-  const departureTrack = buildVesselTrackMetrics([points.liftoff, departureEnd]);
+  const approachPath = buildAircraftCurvePoints(
+    points.approachSpawn, points.approachCurve, points.landStart, AIRCRAFT_VISUAL_CONFIG.curveSamples,
+  );
+  const departurePath = buildAircraftCurvePoints(
+    points.liftoff, points.departCurve, points.departureDespawn, AIRCRAFT_VISUAL_CONFIG.curveSamples,
+  );
+  const approachTrack = buildVesselTrackMetrics(approachPath);
+  const departureTrack = buildVesselTrackMetrics(departurePath);
   if (!approachTrack.segments.length || !departureTrack.segments.length) return null;
   return {
     routeMetadataId: getAircraftRouteMetadataId(),
@@ -380,12 +447,21 @@ function buildAircraftRoute(entry, gateKey) {
   };
 }
 
-// direction 'descend' flares (fast, then eases toward 0 near the ground);
-// 'climb' rotates (slow, then accelerates away from the ground). Altitude is
-// a pure screen-Y offset layered on top of the normal isoToScreen position.
+// Asymmetric, not a symmetric ease: altitude changes FAST near the ground
+// (right after liftoff / right before touchdown) and levels off far from
+// it, like one side of a mountain slope (a bounded, well-behaved stand-in
+// for y=cot(x)'s steep-near-zero/flat-near-pi/2 shape) rather than
+// bulging evenly across the whole leg. 'climb' is steepest at t=0
+// (liftoff/T1) and flattens toward t=1 (T3, stable altitude); 'descend' is
+// flattest at t=0 (L0, spawn) and steepens into the final dive toward t=1
+// (L2, touchdown). Altitude is a pure screen-Y offset layered on top of the
+// normal isoToScreen position.
 function evaluateAircraftAltitude(progress, direction) {
   const t = aircraftClamp(progress, 0, 1);
-  const eased = direction === 'descend' ? (1 - t) * (1 - t) : t * t;
+  const exponent = AIRCRAFT_VISUAL_CONFIG.altitudeEaseExponent;
+  const eased = direction === 'descend'
+    ? 1 - Math.pow(t, exponent)
+    : 1 - Math.pow(1 - t, exponent);
   return AIRCRAFT_VISUAL_CONFIG.altitudePeakPixels * eased;
 }
 
@@ -406,10 +482,18 @@ function setAircraftSpriteTexture(sprite, key) {
 function setAircraftVisual(scene, event, logicalPoint, altitudePixels, forcedDirection = null) {
   const ground = getAircraftGroundPoint(scene, event.anchor, logicalPoint.row, logicalPoint.col);
   const world = { x: ground.x, y: ground.y - altitudePixels, depthY: ground.depthY };
-  const previous = event.lastWorld ?? { x: world.x - 1, y: world.y };
+  // Heading is a ground-plane property (which way the compass-relative
+  // flight path points) - it must not react to how fast altitude happens to
+  // be changing right now. Deriving it from `world` (which bakes altitude
+  // into y) let the steep-near-liftoff/near-touchdown altitude curve
+  // dominate the delta right at T1/L2, snapping the sprite to the wrong
+  // diagonal for a moment (looked like a sudden 90° turn). Tracked
+  // separately from lastWorld, which stays altitude-inclusive since sound
+  // proximity (getAircraftEventAudioVolume) should follow the visual position.
+  const previousGround = event.lastGround ?? { x: ground.x - 1, y: ground.y };
   const direction = forcedDirection || getVesselTextureDirection(
-    world.x - previous.x,
-    world.y - previous.y,
+    ground.x - previousGround.x,
+    ground.y - previousGround.y,
     event.direction,
   );
   event.direction = direction;
@@ -431,6 +515,7 @@ function setAircraftVisual(scene, event, logicalPoint, altitudePixels, forcedDir
     event.sprite.setDepth(depth);
   }
   event.lastWorld = world;
+  event.lastGround = ground;
   event.lastLogical = logicalPoint;
 }
 
@@ -446,7 +531,12 @@ function spawnAircraft(scene, state, airportState, entry, gateKey, random = Math
   const livery = AIRCRAFT_LIVERIES[
     Math.min(AIRCRAFT_LIVERIES.length - 1, Math.floor(aircraftClamp(random(), 0, 0.999999) * AIRCRAFT_LIVERIES.length))
   ];
-  const anchor = { row: entry.row, col: entry.col };
+  const anchor = {
+    row: entry.row,
+    col: entry.col,
+    footprintCols: Number(entry.record?.footprintCols) || 1,
+    footprintRows: Number(entry.record?.footprintRows) || 1,
+  };
   const start = route.approachTrack.points[0];
   const next = route.approachTrack.points[1];
   const startGround = getAircraftGroundPoint(scene, anchor, start.row, start.col);
@@ -582,7 +672,7 @@ function updateAircraftEvent(scene, event, scaledDelta, runwayBusy, random = Mat
 }
 
 // Multiple aircraft can be in play per airport at once - up to one per gate
-// (AIRCRAFT_GATE_KEYS.length, currently 3), each holding its gate reserved
+// (AIRCRAFT_GATE_KEYS.length, currently 6), each holding its gate reserved
 // from spawn until it fully departs. But only ONE may ever be using the
 // shared runway/taxiway corridor (any phase except 'parked') at a time -
 // planes converging on the same strip of tarmac would just overlap on
@@ -735,12 +825,14 @@ const aircraftVisualTestApi = {
   updateAircraftEventSound,
   stopAircraftEventSound,
   getAircraftAbsolutePoints,
-  aircraftVectorBetween,
-  extendAircraftPoint,
+  getAircraftBezierControlFromMidpoint,
+  evaluateQuadraticBezierPoint,
+  buildAircraftCurvePoints,
   buildAircraftRoute,
   evaluateAircraftAltitude,
   getAircraftTextureKey,
   getAircraftLocalOffset,
+  getAircraftBuildingAnchorCornerOffset,
   getAircraftGroundPoint,
   setAircraftVisual,
   spawnAircraft,

@@ -34,15 +34,11 @@ function toPlain(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
-function createMockStorage() {
-  const values = new Map();
-  return {
-    getItem: (key) => values.get(key) ?? null,
-    setItem: (key, value) => values.set(key, value),
-  };
+function assertClose(actual, expected, message = '') {
+  assert.ok(Math.abs(actual - expected) < 1e-6, `${message} expected ${expected}, got ${actual}`);
 }
 
-test('default layout gives all 7 points a finite, non-degenerate starting position', () => {
+test('default layout gives all 14 points a finite, non-degenerate starting position', () => {
   const context = createAirportCalibratorContext();
   const points = vm.runInContext(
     'getDefaultAirportRoutePoints({ row: 0, col: 0, footprintCols: 12, footprintRows: 12 })',
@@ -50,14 +46,76 @@ test('default layout gives all 7 points a finite, non-degenerate starting positi
   );
   const keys = vm.runInContext('AIRPORT_ROUTE_POINT_DEFS.map((def) => def.key)', context);
   assert.deepEqual(Object.keys(points).sort(), [...keys].sort());
-  keys.forEach((key) => {
+  // approachSpawn/departureDespawn are deliberately out in open sky, outside
+  // the footprint - every other point stays within it.
+  const groundKeys = [...keys].filter((key) => key !== 'approachSpawn' && key !== 'departureDespawn');
+  groundKeys.forEach((key) => {
     assert.ok(Number.isFinite(points[key].dRow), `${key}.dRow`);
     assert.ok(Number.isFinite(points[key].dCol), `${key}.dCol`);
     assert.ok(points[key].dRow >= 0 && points[key].dRow <= 11, `${key}.dRow in range`);
     assert.ok(points[key].dCol >= 0 && points[key].dCol <= 11, `${key}.dCol in range`);
   });
+  [points.approachSpawn, points.departureDespawn].forEach((point, i) => {
+    assert.ok(Number.isFinite(point.dRow), `sky point ${i}.dRow`);
+    assert.ok(Number.isFinite(point.dCol), `sky point ${i}.dCol`);
+  });
   assert.notEqual(points.landStart.dCol, points.landEnd.dCol, 'landing runway must not be a single point');
   assert.notEqual(points.takeoffStart.dCol, points.liftoff.dCol, 'takeoff runway must not be a single point');
+});
+
+test('the point list is the L0-L3/T0-T3 arc plus 6 gates', () => {
+  const context = createAirportCalibratorContext();
+  const short = vm.runInContext('AIRPORT_ROUTE_POINT_DEFS.map((def) => def.short)', context);
+  assert.deepEqual(
+    toPlain(short),
+    ['L0', 'L1', 'L2', 'L3', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'T0', 'T1', 'T2', 'T3'],
+  );
+});
+
+test('a marker\'s world position is pixel-identical to where the real aircraft renders for that logical point', () => {
+  // Regression test: this used to reimplement isoToScreen + offsetX/Y by
+  // hand, missing the vertical "surface" correction aircraft-visuals.js
+  // applies (and the fixed-rotation/anchor projection from the rotation
+  // fix) - so every calibrated point was visibly off from where the plane
+  // actually landed/parked in real gameplay. Delegating straight to
+  // getAircraftGroundPoint makes drift like that structurally impossible.
+  const context = createAirportCalibratorContext();
+  const calls = [];
+  context.getAircraftGroundPoint = (scene, anchor, row, col) => {
+    calls.push({ scene, anchor, row, col });
+    return { x: 1234, y: 5678 };
+  };
+  context.testSession = { scene: { offsetX: 1, offsetY: 2 }, anchor: { row: 10, col: 20 } };
+  const world = vm.runInContext('getAirportCalibrationWorldPoint(testSession, 15, 25)', context);
+  assert.deepEqual(toPlain(world), { x: 1234, y: 5678 });
+  assert.equal(calls.length, 1);
+  assert.deepEqual(toPlain(calls[0].anchor), { row: 10, col: 20 });
+  assert.equal(calls[0].row, 15);
+  assert.equal(calls[0].col, 25);
+});
+
+test('a marker\'s screen position and its drag-back-to-logical conversion are exact inverses (round-trips through the surface offset)', () => {
+  const context = createAirportCalibratorContext();
+  // No getAircraftGroundPoint stub - exercises getAirportCalibrationWorldPoint's
+  // own fallback formula, the same one getAirportCalibrationLogicalPoint must invert.
+  context.isoToScreen = (col, row) => ({ x: (col - row) * 50, y: (col + row) * 25 });
+  context.screenToIso = (x, y) => ({ x: (x / 50 + y / 25) / 2, y: (y / 25 - x / 50) / 2 });
+  context.BUILDING_SURFACE_Y_OFFSET = 32;
+  context.TILE_HEIGHT = 50;
+  context.testSession = { scene: { offsetX: 400, offsetY: 300 }, anchor: null };
+
+  const row = 12.5;
+  const col = 34.25;
+  context.testRow = row;
+  context.testCol = col;
+  const world = vm.runInContext('getAirportCalibrationWorldPoint(testSession, testRow, testCol)', context);
+  context.testWorld = world;
+  const logical = vm.runInContext(
+    'getAirportCalibrationLogicalPoint(testSession.scene, testWorld.x, testWorld.y)',
+    context,
+  );
+  assertClose(logical.row, row, 'row');
+  assertClose(logical.col, col, 'col');
 });
 
 test('exported record captures absolute and anchor-relative coordinates for all 7 points', () => {
@@ -101,37 +159,6 @@ test('missing anchor produces no record instead of a partially-garbage one', () 
   context.testSession = { anchor: null, points: {} };
   const record = vm.runInContext('buildAirportRouteCalibrationRecord(testSession)', context);
   assert.equal(record, null);
-});
-
-test('persisted record round-trips exactly through the dedicated storage key', () => {
-  const context = createAirportCalibratorContext();
-  context.mockStorage = createMockStorage();
-  const record = vm.runInContext(
-    'buildAirportRouteCalibrationRecord({ anchor: { row: 10, col: 20, footprintCols: 12, footprintRows: 12 }, points: { landStart: { row: 11, col: 21 } } })',
-    context,
-  );
-  context.testRecord = record;
-
-  const saved = vm.runInContext('persistAirportRouteCalibrationRecord(testRecord, mockStorage)', context);
-  assert.equal(saved, true);
-  const storedRaw = vm.runInContext(
-    "mockStorage.getItem(AIRPORT_ROUTE_CALIBRATION_STORAGE_KEY)",
-    context,
-  );
-  assert.equal(storedRaw, JSON.stringify(record));
-
-  const loaded = vm.runInContext('loadAirportRouteCalibrationRecord(mockStorage)', context);
-  assert.deepEqual(loaded, record);
-});
-
-test('loading with no stored record and a corrupt one both fail safe to null', () => {
-  const context = createAirportCalibratorContext();
-  context.emptyStorage = createMockStorage();
-  assert.equal(vm.runInContext('loadAirportRouteCalibrationRecord(emptyStorage)', context), null);
-
-  context.corruptStorage = createMockStorage();
-  vm.runInContext("corruptStorage.setItem(AIRPORT_ROUTE_CALIBRATION_STORAGE_KEY, '{not json')", context);
-  assert.equal(vm.runInContext('loadAirportRouteCalibrationRecord(corruptStorage)', context), null);
 });
 
 test('resolving points from a saved record reuses saved offsets and falls back per-point for missing ones', () => {

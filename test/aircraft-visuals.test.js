@@ -194,6 +194,80 @@ test('a calibrated point tracks the airport\'s CURRENT screen position, offset b
   }
 });
 
+test('a calibrated point tracks the REAL multi-tile building anchor (getBuildingAnchor\'s rotation-dependent corner), not the stored top-left tile, at every live rotation', () => {
+  // Regression test: 一旋轉地圖所有飛機都亂曬，只有calibration rotation
+  // (East)正常 - getBuildingAnchor (main.js) does NOT pin a multi-tile
+  // building sprite to its stored top-left tile. It picks whichever
+  // footprint corner is visually lowest, and WHICH corner depends on live
+  // rotation (rot0->bottom-right, rot1->top-right, rot2->top-left,
+  // rot3->bottom-left - see that function's own comment). The old formula
+  // assumed "the anchor" meant literally (anchor.row, anchor.col) at every
+  // rotation, which only coincidentally matches getBuildingAnchor's own
+  // choice at rotation 2, and (by construction of the fixed/live
+  // self-cancelling math - see the test above) always LOOKED right AT the
+  // calibration rotation regardless of this bug - masking it completely
+  // until the player actually rotated away from East.
+  const originalGlobals = Object.fromEntries(
+    ['isoToScreen', 'getBuildingAnchor', 'TILE_WIDTH', 'TILE_HEIGHT', 'BUILDING_SURFACE_Y_OFFSET', 'ORIGIN_X']
+      .map((key) => [key, global[key]]),
+  );
+  const originalMetadata = global.AIRCRAFT_ROUTE_METADATA;
+  try {
+    const MAP_WIDTH = 256;
+    const MAP_HEIGHT = 256;
+    global.TILE_WIDTH = 100;
+    global.TILE_HEIGHT = 50;
+    global.BUILDING_SURFACE_Y_OFFSET = 32;
+    global.ORIGIN_X = 12800;
+    let liveRotation = 3;
+    const realIsoToScreen = (col, row, rotation) => {
+      let vizCol = col;
+      let vizRow = row;
+      if (rotation === 1) { vizCol = MAP_HEIGHT - 1 - row; vizRow = col; }
+      else if (rotation === 2) { vizCol = MAP_WIDTH - 1 - col; vizRow = MAP_HEIGHT - 1 - row; }
+      else if (rotation === 3) { vizCol = row; vizRow = MAP_WIDTH - 1 - col; }
+      return { x: (vizCol - vizRow) * 50 + 12800, y: (vizCol + vizRow) * 25 };
+    };
+    global.isoToScreen = (col, row) => realIsoToScreen(col, row, liveRotation);
+    // getBuildingAnchor's exact corner-selection logic (main.js).
+    global.getBuildingAnchor = (row, col, footprintCols, footprintRows) => {
+      let anchorRow;
+      let anchorCol;
+      switch (liveRotation) {
+        case 1: anchorRow = row; anchorCol = col + footprintCols - 1; break;
+        case 2: anchorRow = row; anchorCol = col; break;
+        case 3: anchorRow = row + footprintRows - 1; anchorCol = col; break;
+        default: anchorRow = row + footprintRows - 1; anchorCol = col + footprintCols - 1; break;
+      }
+      return realIsoToScreen(anchorCol, anchorRow, liveRotation);
+    };
+    global.AIRCRAFT_ROUTE_METADATA = { calibratedMapRotation: 3, pointsByKey: {} };
+
+    const scene = { offsetX: 0, offsetY: 0 };
+    const anchor = { row: 197, col: 110, footprintCols: 12, footprintRows: 12 };
+    const surfaceOffset = 32 + 50 / 2;
+    // The point at the calibration rotation's (3) own selected corner
+    // (bottom-left: row+rows-1, col) has zero delta from that corner by
+    // construction - its ground point must equal the REAL sprite anchor at
+    // every live rotation, not just at rotation 3.
+    const calibCornerRow = anchor.row + anchor.footprintRows - 1;
+    const calibCornerCol = anchor.col;
+    [0, 1, 2, 3].forEach((rotation) => {
+      liveRotation = rotation;
+      const realSpritePos = global.getBuildingAnchor(anchor.row, anchor.col, anchor.footprintCols, anchor.footprintRows);
+      const ground = aircraft.getAircraftGroundPoint(scene, anchor, calibCornerRow, calibCornerCol);
+      assertClose(ground.x, realSpritePos.x, `rotation ${rotation} x`);
+      assertClose(ground.y, realSpritePos.y - surfaceOffset, `rotation ${rotation} y`);
+    });
+  } finally {
+    global.AIRCRAFT_ROUTE_METADATA = originalMetadata;
+    Object.entries(originalGlobals).forEach(([key, value]) => {
+      if (value === undefined) delete global[key];
+      else global[key] = value;
+    });
+  }
+});
+
 test('rotating the map between flights keeps the next flight glued to the airport\'s new on-screen position', () => {
   // Regression test: 轉左角orientation就沒有飛機了 - after rotating, later
   // flights kept rendering at the airport's PRE-rotation screen spot (the
@@ -307,11 +381,65 @@ test('the aircraft always renders in front of the (much larger) airport sprite, 
   }
 });
 
-test('the calibrated route metadata carries all 7 named points and drives the calibration id', () => {
+test('a sudden altitude change never flips the sprite\'s heading - heading follows the ground track only, not the altitude offset', () => {
+  // Regression test: "點解T0方向OK，但係T1開始轉左90度" - the departing
+  // phase's altitude now rises steepest right at T1/liftoff (the new
+  // mountain-slope easing). setAircraftVisual used to derive heading from
+  // the altitude-inclusive screen position, so that sudden vertical pull
+  // could dominate the delta and snap the sprite to the wrong diagonal for
+  // a moment, reading as an unexpected 90° turn right at liftoff.
+  const originalGlobals = Object.fromEntries([
+    'isoToScreen', 'TILE_WIDTH', 'TILE_HEIGHT', 'TILE_IMAGE_HEIGHT', 'BUILDING_SURFACE_Y_OFFSET', 'getWorldDepth',
+  ].map((key) => [key, global[key]]));
+  try {
+    global.isoToScreen = (col, row) => ({ x: col * 70, y: row * 35 });
+    global.TILE_WIDTH = 100;
+    global.TILE_HEIGHT = 50;
+    global.TILE_IMAGE_HEIGHT = 100;
+    global.BUILDING_SURFACE_Y_OFFSET = 50;
+    global.getWorldDepth = () => 0;
+    const scene = { offsetX: 0, offsetY: 0 };
+    const event = {
+      anchor: { row: 0, col: 0 },
+      direction: null,
+      sprite: {
+        texture: { key: '' },
+        setTexture(key) { this.texture.key = key; },
+        setPosition() {},
+        setDepth() {},
+      },
+      lastWorld: null,
+      lastGround: null,
+      lastLogical: null,
+    };
+    // Consistent ground-track direction of travel (row and col both
+    // increasing each step) - altitude 0 establishes the baseline heading.
+    aircraft.setAircraftVisual(scene, event, { row: 100, col: 110 }, 0);
+    const baselineDirection = event.direction;
+    assert.ok(baselineDirection, 'a heading must be established on the first call');
+    // Same next ground step, but altitude jumps sharply - simulating the
+    // steepest instant of the new near-liftoff climb curve.
+    aircraft.setAircraftVisual(scene, event, { row: 101, col: 111 }, 150);
+    assert.equal(event.direction, baselineDirection, 'a big altitude jump must not change the computed heading');
+    aircraft.setAircraftVisual(scene, event, { row: 102, col: 112 }, 0);
+    assert.equal(event.direction, baselineDirection, 'heading must stay consistent once back near the ground too');
+  } finally {
+    Object.entries(originalGlobals).forEach(([key, value]) => {
+      if (value === undefined) delete global[key];
+      else global[key] = value;
+    });
+  }
+});
+
+test('the calibrated route metadata carries all 14 named points and drives the calibration id', () => {
   const keys = Object.keys(aircraftRouteMetadata.pointsByKey);
   assert.deepEqual(
     [...keys].sort(),
-    ['gate1', 'gate2', 'gate3', 'landEnd', 'landStart', 'liftoff', 'takeoffStart'].sort(),
+    [
+      'approachSpawn', 'approachCurve', 'landStart', 'landEnd',
+      'gate1', 'gate2', 'gate3', 'gate4', 'gate5', 'gate6',
+      'takeoffStart', 'liftoff', 'departCurve', 'departureDespawn',
+    ].sort(),
   );
   keys.forEach((key) => {
     assert.ok(Number.isFinite(aircraftRouteMetadata.pointsByKey[key].dRow), key);
@@ -335,19 +463,93 @@ test('altitude eases toward 0 at the ground and toward the peak away from it', (
   }
 });
 
-test('the approach/departure legs extend outward from the runway, away from the opposite end', () => {
-  const entry = { row: 100, col: 50 };
-  const points = aircraft.getAircraftAbsolutePoints(entry);
+test('altitude changes fastest near the ground and levels off far from it, like one side of a mountain slope', () => {
+  // Norton's ask: reference y=1/tan(x)'s steep-near-zero/flat-elsewhere
+  // shape ("類似山坡上升和下降") instead of a symmetric ease - climb should
+  // be steepest right at liftoff (t=0, T1) and level off toward stable
+  // altitude (t=1, T3); descend should be flattest far out (t=0, L0) and
+  // steepen into the final dive toward touchdown (t=1, L2).
+  const step = 0.001;
+  const climbRateNearGround = aircraft.evaluateAircraftAltitude(step, 'climb') - aircraft.evaluateAircraftAltitude(0, 'climb');
+  const climbRateFarFromGround = aircraft.evaluateAircraftAltitude(1, 'climb') - aircraft.evaluateAircraftAltitude(1 - step, 'climb');
+  assert.ok(climbRateNearGround > climbRateFarFromGround, 'climb must gain altitude fastest right after liftoff, not right before leveling off');
+
+  const descendRateFarFromGround = aircraft.evaluateAircraftAltitude(0, 'descend') - aircraft.evaluateAircraftAltitude(step, 'descend');
+  const descendRateNearGround = aircraft.evaluateAircraftAltitude(1 - step, 'descend') - aircraft.evaluateAircraftAltitude(1, 'descend');
+  assert.ok(descendRateNearGround > descendRateFarFromGround, 'descend must lose altitude fastest right before touchdown, not right after spawning');
+});
+
+test('the quadratic Bezier passes through its endpoints and only actually bends when the control point is off the line', () => {
+  const p0 = { row: 0, col: 0 };
+  const p1 = { row: 10, col: 0 };
+  assert.deepEqual(aircraft.evaluateQuadraticBezierPoint(p0, { row: 3, col: 7 }, p1, 0), p0);
+  assert.deepEqual(aircraft.evaluateQuadraticBezierPoint(p0, { row: 3, col: 7 }, p1, 1), p1);
+
+  // A control point exactly on the p0-p1 line degrades to a straight line -
+  // this is the "unmodified" default every calibrated route ships with
+  // until someone drags the control point off-line.
+  const onLineMidpoint = aircraft.evaluateQuadraticBezierPoint(p0, { row: 5, col: 0 }, p1, 0.5);
+  assert.deepEqual(onLineMidpoint, { row: 5, col: 0 });
+
+  // Once dragged off-line, the curve genuinely bends away from the straight
+  // path - the midpoint is no longer the straight-line midpoint.
+  const bentMidpoint = aircraft.evaluateQuadraticBezierPoint(p0, { row: 5, col: 8 }, p1, 0.5);
+  assert.notEqual(bentMidpoint.col, 0, 'an off-line control point must actually curve the path');
+});
+
+test('the curve genuinely passes through the calibrated point at its midpoint, MS-Paint-curve-tool style', () => {
+  // Regression test: the calibrated point used to be fed straight in as the
+  // raw Bezier control point, which only pulls the curve HALFWAY toward
+  // itself - dragging the marker somewhere and having the actual flight
+  // path visibly undershoot it is what "弧線既設定不正確" was about.
+  const p0 = { row: 0, col: 0 };
+  const p1 = { row: 10, col: 0 };
+  const desiredMidpoint = { row: 5, col: 8 }; // well off the straight p0-p1 line
+  const points = aircraft.buildAircraftCurvePoints(p0, desiredMidpoint, p1, 16);
+  const middleSample = points[8]; // t = 8/16 = 0.5
+  assertClose(middleSample.row, desiredMidpoint.row);
+  assertClose(middleSample.col, desiredMidpoint.col);
+
+  // The raw control point is a different, overshot value - not the
+  // calibrated point itself - which is exactly what makes the curve land on
+  // the calibrated point instead of merely leaning toward it.
+  const rawControl = aircraft.getAircraftBezierControlFromMidpoint(p0, desiredMidpoint, p1);
+  assert.notDeepEqual(rawControl, desiredMidpoint);
+});
+
+test('a sampled curve is a dense polyline that still starts and ends exactly on the real endpoints', () => {
+  const p0 = { row: 0, col: 0 };
+  const control = { row: 5, col: 12 };
+  const p1 = { row: 10, col: 0 };
+  const points = aircraft.buildAircraftCurvePoints(p0, control, p1, 16);
+  assert.equal(points.length, 17);
+  assert.deepEqual(points[0], p0);
+  assert.deepEqual(points.at(-1), p1);
+});
+
+test('the calibrated approachCurve/departCurve genuinely bend the flight path into a curve, not a straight line', () => {
+  const entry = { row: 197, col: 110 };
   const route = aircraft.buildAircraftRoute(entry, 'gate1');
-  const approachSpawn = route.approachTrack.points[0];
-  const departureEnd = route.departureTrack.points[1];
-  // landStart sits between landEnd and the spawn point (spawn is further away).
-  const landEndToLandStart = Math.hypot(points.landStart.row - points.landEnd.row, points.landStart.col - points.landEnd.col);
-  const landEndToSpawn = Math.hypot(approachSpawn.row - points.landEnd.row, approachSpawn.col - points.landEnd.col);
-  assert.ok(landEndToSpawn > landEndToLandStart, 'approach spawn must extend past landStart, not sit before it');
-  const takeoffToLiftoff = Math.hypot(points.liftoff.row - points.takeoffStart.row, points.liftoff.col - points.takeoffStart.col);
-  const takeoffToDespawn = Math.hypot(departureEnd.row - points.takeoffStart.row, departureEnd.col - points.takeoffStart.col);
-  assert.ok(takeoffToDespawn > takeoffToLiftoff, 'departure end must extend past liftoff, not sit before it');
+  // The shipped metadata's approachCurve/departCurve are off the straight
+  // line by design (see aircraft-route-metadata.js) - the sampled track
+  // should have far more than 1 segment.
+  assert.ok(route.approachTrack.segments.length > 1, 'a curved approach must be sampled into multiple segments');
+  assert.ok(route.departureTrack.segments.length > 1, 'a curved departure must be sampled into multiple segments');
+});
+
+test('every point in the L0-L3/T0-T3 arc is required - a route missing any one of them fails cleanly instead of guessing', () => {
+  const entry = { row: 197, col: 110 };
+  const originalMetadata = global.AIRCRAFT_ROUTE_METADATA;
+  try {
+    ['approachSpawn', 'approachCurve', 'landStart', 'landEnd', 'takeoffStart', 'liftoff', 'departCurve', 'departureDespawn'].forEach((missingKey) => {
+      const incomplete = JSON.parse(JSON.stringify(originalMetadata));
+      delete incomplete.pointsByKey[missingKey];
+      global.AIRCRAFT_ROUTE_METADATA = incomplete;
+      assert.equal(aircraft.buildAircraftRoute(entry, 'gate1'), null, `missing ${missingKey} must fail cleanly, not throw or guess a position`);
+    });
+  } finally {
+    global.AIRCRAFT_ROUTE_METADATA = originalMetadata;
+  }
 });
 
 test('the ground track visits landStart, landEnd, the chosen gate, takeoffStart and liftoff in order', () => {

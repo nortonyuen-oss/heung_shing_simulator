@@ -155,24 +155,24 @@ test('vessel dock point uses the recorded visual anchor for every quay direction
   try {
     const portEntry = { row: 4, col: 4, record: { footprintCols: 4, footprintRows: 4 } };
     const north = vessels.getVesselDockPoint(portEntry, 'n', { offset: 1, center: { row: 3, col: 5 } });
-    assertClose(north.row, 2.1602, 'north/ur row');
-    assertClose(north.col, 4.4316, 'north/ur col');
+    assertClose(north.row, 2.7228, 'north/ur row');
+    assertClose(north.col, 5.066, 'north/ur col');
 
     const west = vessels.getVesselDockPoint(portEntry, 'w', { offset: 1, center: { row: 5, col: 3 } });
-    assertClose(west.row, 4.6245, 'west/ul row');
-    assertClose(west.col, 2.1058, 'west/ul col');
+    assertClose(west.row, 5.3157, 'west/ul row');
+    assertClose(west.col, 2.8102, 'west/ul col');
 
     const south = vessels.getVesselDockPoint(portEntry, 's', { offset: 1, center: { row: 8, col: 5 } });
-    assertClose(south.row, 7.266, 'south/ll row');
-    assertClose(south.col, 4.6493, 'south/ll col');
+    assertClose(south.row, 7.8106, 'south/ll row');
+    assertClose(south.col, 5.4932, 'south/ll col');
 
     const east = vessels.getVesselDockPoint(portEntry, 'e', { offset: 1, center: { row: 5, col: 8 } });
-    assertClose(east.row, 4.7927, 'east/lr row');
-    assertClose(east.col, 7.1424, 'east/lr col');
+    assertClose(east.row, 5.3523, 'east/lr row');
+    assertClose(east.col, 7.7941, 'east/lr col');
 
     const bufferedNorth = vessels.getVesselDockPoint(portEntry, 'n', { offset: 2, center: { row: 2, col: 5 } });
-    assertClose(bufferedNorth.row, 1.1602, 'buffered north row');
-    assertClose(bufferedNorth.col, 4.4316, 'buffered north col');
+    assertClose(bufferedNorth.row, 1.7228, 'buffered north row');
+    assertClose(bufferedNorth.col, 5.066, 'buffered north col');
   } finally {
     Object.entries(originalGlobals).forEach(([key, value]) => {
       if (value === undefined) delete global[key];
@@ -182,12 +182,12 @@ test('vessel dock point uses the recorded visual anchor for every quay direction
 });
 
 test('route metadata preserves all four recorded quay-relative anchors exactly', () => {
-  assert.equal(vesselRouteMetadata.calibrationId, 'vessel-berth-2026-08-01-v4');
+  assert.equal(vesselRouteMetadata.calibrationId, 'vessel-berth-2026-08-02-v10');
   assert.deepEqual(vesselRouteMetadata.berthAnchorsByVisualVariant, {
-    ll: { alongFromQuayCenterTiles: 0.8507, normalFromQuayTiles: 0.266 },
-    lr: { alongFromQuayCenterTiles: -0.7073, normalFromQuayTiles: 0.1424 },
-    ul: { alongFromQuayCenterTiles: 0.8755, normalFromQuayTiles: 1.8942 },
-    ur: { alongFromQuayCenterTiles: -1.0684, normalFromQuayTiles: 1.8398 },
+    ll: { alongFromQuayCenterTiles: 0.0068, normalFromQuayTiles: 0.8106 },
+    lr: { alongFromQuayCenterTiles: -0.1477, normalFromQuayTiles: 0.7941 },
+    ul: { alongFromQuayCenterTiles: 0.1843, normalFromQuayTiles: 1.1898 },
+    ur: { alongFromQuayCenterTiles: -0.434, normalFromQuayTiles: 1.2772 },
   });
   assert.deepEqual(vesselRouteMetadata.depthRulesByVisualVariant, {
     ll: { nearBerthMode: 'front-of-port', portDepthOffset: 1 },
@@ -223,6 +223,37 @@ test('LL and LR vessels render in front of their port only across the near-berth
   } finally {
     if (originalGetWorldDepth === undefined) delete global.getWorldDepth;
     else global.getWorldDepth = originalGetWorldDepth;
+  }
+});
+
+test('ul (side "n") berth anchor deliberately keeps ordinary world sorting, not front-of-port', () => {
+  // 2026-08-02: briefly gave ul the same front-of-port override as ll/lr
+  // after its recalibration moved it closer to the quay, on the theory it
+  // had hit the same "vessel tucked under the harbor artwork" problem.
+  // Reverted - screenshots showed it made things look WORSE: the port
+  // sprite is one flat image (pier + cranes + yard painted together, no
+  // per-element depth within it), so forcing the ship permanently in front
+  // of the whole thing made it draw over crane legs that are supposed to
+  // occlude it from ul's specific camera angle. Not every "moved closer to
+  // the quay" berth needs this fix - verify it stays off for ul.
+  const originalGlobals = Object.fromEntries(['mapRotation', 'rotateDirection'].map((key) => [key, global[key]]));
+  // Matches the real report: logicalSide "n" at mapRotation 3 visually reads as "ul".
+  global.mapRotation = 3;
+  global.rotateDirection = (direction, steps) => {
+    const order = ['n', 'e', 's', 'w'];
+    const index = order.indexOf(direction);
+    return order[(index + ((steps % 4) + 4)) % 4];
+  };
+  try {
+    const portEntry = { row: 4, col: 4, record: { footprintCols: 4, footprintRows: 4 } };
+    const anchor = vessels.getVesselBerthAnchor(portEntry, 'n', { offset: 1 });
+    assert.equal(anchor.visualVariant, 'ul');
+    assert.equal(anchor.nearBerthDepthMode, 'world');
+  } finally {
+    Object.entries(originalGlobals).forEach(([key, value]) => {
+      if (value === undefined) delete global[key];
+      else global[key] = value;
+    });
   }
 });
 

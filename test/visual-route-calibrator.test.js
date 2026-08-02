@@ -80,19 +80,16 @@ test('calibration record captures absolute, route-relative and adapter measureme
   });
 });
 
-test('calibration records persist and collect independently by visual slot', () => {
-  const values = new Map();
-  const storage = {
-    getItem: (key) => values.get(key) ?? null,
-    setItem: (key, value) => values.set(key, value),
-  };
+test('calibration records collect independently by visual slot, in-memory for the session only', () => {
+  // Deliberately no localStorage anywhere in this path (see
+  // saveVisualRouteCalibrationCurrent) - a record only ever exists in
+  // state.records (this session) until it's baked into the relevant
+  // *-route-metadata.js file, never left living solely in browser storage.
   const records = {
     'vessel-berth:ll': { slot: 'll', worldX: 10 },
     'vessel-berth:ur': { slot: 'ur', worldX: 20 },
     'aircraft-taxi:north': { slot: 'north', worldX: 30 },
   };
-  assert.equal(calibrator.persistVisualRouteCalibrationRecords(records, storage), true);
-  assert.deepEqual(calibrator.loadVisualRouteCalibrationRecords(storage), records);
   assert.deepEqual(
     calibrator.getVisualRouteCalibrationCollection(
       { records },

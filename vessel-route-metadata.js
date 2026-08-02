@@ -10,29 +10,40 @@
 
 const VESSEL_ROUTE_METADATA_VALUE = Object.freeze({
   schemaVersion: 1,
-  calibrationId: 'vessel-berth-2026-08-01-v4',
+  calibrationId: 'vessel-berth-2026-08-02-v10',
   berthAnchorsByVisualVariant: Object.freeze({
     ll: Object.freeze({
-      alongFromQuayCenterTiles: 0.8507,
-      normalFromQuayTiles: 0.2660,
+      alongFromQuayCenterTiles: 0.0068,
+      normalFromQuayTiles: 0.8106,
     }),
     lr: Object.freeze({
-      alongFromQuayCenterTiles: -0.7073,
-      normalFromQuayTiles: 0.1424,
+      alongFromQuayCenterTiles: -0.1477,
+      normalFromQuayTiles: 0.7941,
     }),
     ul: Object.freeze({
-      alongFromQuayCenterTiles: 0.8755,
-      normalFromQuayTiles: 1.8942,
+      alongFromQuayCenterTiles: 0.1843,
+      normalFromQuayTiles: 1.1898,
     }),
     ur: Object.freeze({
-      alongFromQuayCenterTiles: -1.0684,
-      normalFromQuayTiles: 1.8398,
+      alongFromQuayCenterTiles: -0.434,
+      normalFromQuayTiles: 1.2772,
     }),
   }),
   depthRulesByVisualVariant: Object.freeze({
     // LL and LR both sit close enough to the quay that ordinary world-Y
     // sorting can tuck the vessel below the large harbor artwork. Keep only
     // their near-berth three-tile legs in front; UL/UR retain world sorting.
+    //
+    // Tried adding UL here too on 2026-08-02 after its recalibration moved
+    // it closer to the quay (thinking it had hit the same problem LL/LR
+    // needed this for) - reverted, screenshots showed it made things WORSE,
+    // not better. The port sprite is one flat image (pier + cranes +
+    // container yard painted together, no per-element depth within it), so
+    // "always render the ship in front of the whole port" can only be
+    // globally right or wrong for a given berth's camera geometry - for UL
+    // it made the ship draw over crane legs that are supposed to occlude
+    // it from this angle, which reads as visually worse than the original
+    // "sinks into the yard" issue it was meant to fix.
     ll: Object.freeze({
       nearBerthMode: 'front-of-port',
       portDepthOffset: 1,

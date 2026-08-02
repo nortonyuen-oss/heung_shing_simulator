@@ -375,6 +375,9 @@ function restoreSavedViewpoint(scene, rawViewpoint) {
   if (typeof invalidateVesselVisualView === 'function') {
     invalidateVesselVisualView(scene, true);
   }
+  if (typeof invalidateAircraftVisualView === 'function') {
+    invalidateAircraftVisualView(scene, true);
+  }
   if (typeof updateAmbientSoundscape === 'function') updateAmbientSoundscape(scene);
   if (typeof syncWeatherFxToCamera === 'function') syncWeatherFxToCamera(scene);
   return true;
@@ -940,6 +943,7 @@ function applySaveData(scene, save) {
   stopSimTimer();
   if (typeof clearTrafficVisuals === 'function') clearTrafficVisuals(scene);
   if (typeof clearVesselVisuals === 'function') clearVesselVisuals(scene);
+  if (typeof clearAircraftVisuals === 'function') clearAircraftVisuals(scene);
 
   const terrainElevation = normalizeSavedTerrainElevation(save);
   const savedViewpoint = normalizeSavedViewpoint(save.viewpoint) ?? getDefaultSavedViewpoint();

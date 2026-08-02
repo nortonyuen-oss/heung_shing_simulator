@@ -604,12 +604,16 @@ const SPECIAL_BUILDING_MODELS = {
   },
   airport: {
     spriteKey: 'airport_12x12',
-    path: 'Models/airPort/6x6/airport6-01.png',
+    path: 'Models/airPort/12x12/airport12-01.png',
     // The source image is occasionally replaced without changing its filename.
     // Version the request URL so browsers do not retain the previous airport.
-    cacheVersion: '20260719-12x12-v4',
+    cacheVersion: '20260802-12x12-hd-v1',
     footprintCols: 12,
     footprintRows: 12,
+    // The painted ground diamond is slightly taller than the game's 2:1
+    // isometric projection. Correct Y only so it fits exactly inside 12×12
+    // instead of covering the sidewalk on either diagonal edge.
+    scaleYMultiplier: 0.964,
   },
 };
 
@@ -621,19 +625,21 @@ const LEGACY_AIRPORT_MODEL = {
   // render from the canonical 12x12 texture so Phaser decodes/uploads the
   // shared source image once instead of once per historic footprint.
   textureKey: 'airport_12x12',
-  path: 'Models/airPort/6x6/airport6-01.png',
-  cacheVersion: '20260719-12x12-v4',
+  path: 'Models/airPort/12x12/airport12-01.png',
+  cacheVersion: '20260802-12x12-hd-v1',
   footprintCols: 6,
   footprintRows: 6,
+  scaleYMultiplier: 0.964,
 };
 
 const LEGACY_AIRPORT_8X8_MODEL = {
   spriteKey: 'airport_8x8_legacy',
   textureKey: 'airport_12x12',
-  path: 'Models/airPort/6x6/airport6-01.png',
-  cacheVersion: '20260719-12x12-v4',
+  path: 'Models/airPort/12x12/airport12-01.png',
+  cacheVersion: '20260802-12x12-hd-v1',
   footprintCols: 8,
   footprintRows: 8,
+  scaleYMultiplier: 0.964,
 };
 
 // Ocean Park used a 4x4 footprint before becoming a council-approved 8x8

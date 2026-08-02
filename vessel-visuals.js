@@ -1238,6 +1238,8 @@ const vesselVisualTestApi = {
   VESSEL_ASSET_REGISTRY,
   CARGO_SCENARIO_DEFS,
   getVesselTextureDirection,
+  getVesselCameraRect,
+  vesselPointInRect,
   isVesselSevereWeather,
   getCargoScenarioDefinition,
   getVesselEventAudioVolume,

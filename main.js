@@ -66,6 +66,8 @@ const SFX_TRACKS = [
   { key: 'sfx_thunder', file: 'Sounds/thunder.mp3' },
   { key: 'event_ice_cream_truck', file: 'Sounds/iceCreamTruck.m4a' },
   { key: 'vessel_horn', file: 'Sounds/vesselFlute.m4a' },
+  { key: 'aircraft_landing', file: 'Sounds/aircraftLanding.m4a' },
+  { key: 'aircraft_takeoff', file: 'Sounds/aircraftTakeoff.m4a' },
 ];
 
 // Rain particle tiers (screen-space). Shares the same storm-severity ladder as
@@ -305,6 +307,7 @@ function setGameWorldVisible(visible) {
   if (!shouldShow) {
     if (typeof clearTrafficVisuals === 'function') clearTrafficVisuals(scene);
     if (typeof clearVesselVisuals === 'function') clearVesselVisuals(scene);
+    if (typeof clearAircraftVisuals === 'function') clearAircraftVisuals(scene);
     return;
   }
   updateTerrainViewportCulling(scene, true);
@@ -313,6 +316,9 @@ function setGameWorldVisible(visible) {
   }
   if (typeof invalidateVesselVisualView === 'function') {
     invalidateVesselVisualView(scene, true);
+  }
+  if (typeof invalidateAircraftVisualView === 'function') {
+    invalidateAircraftVisualView(scene, true);
   }
 }
 
@@ -543,6 +549,11 @@ function updateGameFrame(time, delta) {
   updateVesselVisuals.call(this, time, delta);
   if (profileSections) {
     recordVisualRoutePerformanceDuration(this, 'vessel', performance.now() - sectionStartedAt);
+    sectionStartedAt = performance.now();
+  }
+  updateAircraftVisuals.call(this, time, delta);
+  if (profileSections) {
+    recordVisualRoutePerformanceDuration(this, 'aircraft', performance.now() - sectionStartedAt);
   }
   if (typeof updateVisualRoutePerformanceProfiler === 'function') {
     updateVisualRoutePerformanceProfiler(this, time, delta);
@@ -1863,6 +1874,7 @@ function create() {
   this.worldMask = worldMask;
   setupTrafficVisuals(this);
   setupVesselVisuals(this);
+  setupAircraftVisuals(this);
 
   // Disable browser context menu to allow right-click panning
   this.input.mouse.disableContextMenu();
@@ -8941,6 +8953,7 @@ function rotateMap(scene, steps = 1) {
 
   clearTrafficVisuals(scene);
   clearVesselVisuals(scene);
+  clearAircraftVisuals(scene);
   mapRotation = ((mapRotation + steps) % 4 + 4) % 4;
 
   // Refresh tile textures (direction-aware keys change)
@@ -8975,6 +8988,7 @@ function rotateMap(scene, steps = 1) {
 function fullReset(scene) {
   clearTrafficVisuals(scene);
   clearVesselVisuals(scene);
+  clearAircraftVisuals(scene);
   clearAllOverlays(scene);
   clearBuildings(scene);
   resetGameState();

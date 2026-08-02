@@ -769,7 +769,8 @@ function createVisualRoutePerformancePanel(scene) {
   root.setAttribute('aria-label', 'Test mode performance metrics');
   root.innerHTML = '<button type="button" class="vrp-close-btn" aria-label="Close performance panel" title="Close">✕</button>'
     + '<div class="vrp-title">PERFORMANCE · TEST</div><pre></pre>'
-    + '<button type="button" class="vrp-copy-btn">複製 profiling JSON</button>';
+    + '<button type="button" class="vrp-copy-btn">複製 profiling JSON</button>'
+    + '<button type="button" class="vrp-airport-btn">機場路線校正</button>';
   root.querySelector('.vrp-close-btn')?.addEventListener?.('click', () => {
     setVisualRouteCalibrationTestModeEnabled(false);
   });
@@ -777,6 +778,9 @@ function createVisualRoutePerformancePanel(scene) {
     const snapshot = getVisualRoutePerformanceSnapshot(scene);
     if (!snapshot) return;
     copyVisualRouteCalibrationText(JSON.stringify(snapshot, null, 2)).catch(() => {});
+  });
+  root.querySelector('.vrp-airport-btn')?.addEventListener?.('click', () => {
+    if (typeof toggleAirportRouteCalibrator === 'function') toggleAirportRouteCalibrator(scene);
   });
   document.body.appendChild(root);
   return root;

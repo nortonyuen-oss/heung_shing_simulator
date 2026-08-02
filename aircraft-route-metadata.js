@@ -24,18 +24,18 @@
 
 const AIRCRAFT_ROUTE_METADATA_VALUE = Object.freeze({
   schemaVersion: 1,
-  calibrationId: 'aircraft-route-2026-08-02-v3',
+  calibrationId: 'aircraft-route-2026-08-02-v7',
   calibratedMapRotation: 3,
   footprintCols: 12,
   footprintRows: 12,
   pointsByKey: Object.freeze({
-    landStart: Object.freeze({ dRow: -2.2671, dCol: 5.6526, direction: 'se' }),
-    landEnd: Object.freeze({ dRow: 9.5484, dCol: 3.6076, direction: 'se' }),
-    gate1: Object.freeze({ dRow: 5.7355, dCol: 6.5750, direction: 'ne' }),
-    gate2: Object.freeze({ dRow: 3.6187, dCol: 6.5859, direction: 'ne' }),
-    gate3: Object.freeze({ dRow: 1.5661, dCol: 6.5845, direction: 'ne' }),
-    takeoffStart: Object.freeze({ dRow: 0.6648, dCol: 3.3253, direction: 'se' }),
-    liftoff: Object.freeze({ dRow: 9.9145, dCol: 6.1145, direction: 'se' }),
+    landStart: Object.freeze({ dRow: -3.3387, dCol: 6.0292, direction: 'se' }),
+    landEnd: Object.freeze({ dRow: 9.4574, dCol: 4.1100, direction: 'se' }),
+    gate1: Object.freeze({ dRow: 3.9752, dCol: 7.4541, direction: 'ne' }),
+    gate2: Object.freeze({ dRow: 7.4274, dCol: 7.3241, direction: 'ne' }),
+    gate3: Object.freeze({ dRow: 0.7760, dCol: 7.3678, direction: 'ne' }),
+    takeoffStart: Object.freeze({ dRow: 0.6210, dCol: 4.0176, direction: 'se' }),
+    liftoff: Object.freeze({ dRow: 9.6544, dCol: 7.1224, direction: 'se' }),
   }),
 });
 

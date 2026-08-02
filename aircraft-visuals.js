@@ -15,19 +15,24 @@
 const AIRCRAFT_VISUAL_CONFIG = Object.freeze({
   zoomMin: 0.75,
   viewportPaddingTiles: 3,
-  initialCooldownMinMs: 25000,
-  initialCooldownMaxMs: 70000,
-  cooldownMinMs: 120000,
-  cooldownMaxMs: 240000,
+  // Spawning itself is no longer cooldown-paced (see updateAircraftAirports)
+  // - every gate refills as soon as it's physically free, so occupancy stays
+  // at the gate count whenever possible. retryCooldownMs/weatherRecovery*
+  // are the only remaining uses of a per-airport cooldown: a backoff after a
+  // genuine failure, and a grace period right after severe weather clears.
   retryCooldownMs: 10000,
   weatherRecoveryMinMs: 10000,
   weatherRecoveryMaxMs: 30000,
   parkedDwellMinMs: 15000,
   parkedDwellMaxMs: 25000,
   aircraftScale: 0.30,
-  groundSpeedTilesPerSecond: 0.62,
-  taxiSpeedTilesPerSecond: 0.30,
-  airSpeedTilesPerSecond: 1.35,
+  // Landing roll (L1->L2) and takeoff roll (T1->T2) - 2.2x the original 0.62.
+  groundSpeedTilesPerSecond: 1.364,
+  // Gate taxiing (L2<->gate, gate<->T1) - 2x the original 0.30.
+  taxiSpeedTilesPerSecond: 0.60,
+  // Airborne legs only (inbound descent / departure climb) - taxi and ground
+  // roll speeds have their own separate multipliers above.
+  airSpeedTilesPerSecond: 2.2,
   // How far out (in tiles, beyond landStart/liftoff) the plane spawns/despawns.
   approachLegTiles: 9,
   altitudePeakPixels: 150,
@@ -345,15 +350,13 @@ function extendAircraftPoint(from, unitVector, tiles) {
 // Builds one visit's full route: a single ground track (landing roll -> taxi
 // in -> gate -> taxi out -> takeoff roll) plus two short airborne tracks for
 // the approach and departure legs, extending the runway centerline outward
-// past whichever end is nearest landStart/liftoff. Picking a gate is the
-// only per-visit variation, so this is rebuilt fresh at spawn time.
-function buildAircraftRoute(entry, random = Math.random) {
+// past whichever end is nearest landStart/liftoff. gateKey is chosen by the
+// caller (updateAircraftAirports), which is the only place that knows which
+// gates are already occupied by other concurrent visits.
+function buildAircraftRoute(entry, gateKey) {
   const points = getAircraftAbsolutePoints(entry);
-  const required = ['landStart', 'landEnd', 'gate1', 'gate2', 'gate3', 'takeoffStart', 'liftoff'];
+  const required = ['landStart', 'landEnd', gateKey, 'takeoffStart', 'liftoff'];
   if (!points || required.some((key) => !points[key])) return null;
-  const gateKey = AIRCRAFT_GATE_KEYS[
-    Math.min(AIRCRAFT_GATE_KEYS.length - 1, Math.floor(aircraftClamp(random(), 0, 0.999999) * AIRCRAFT_GATE_KEYS.length))
-  ];
   const gate = points[gateKey];
   const groundPoints = [points.landStart, points.landEnd, gate, points.takeoffStart, points.liftoff];
   const groundTrack = buildVesselTrackMetrics(groundPoints);
@@ -436,9 +439,9 @@ function destroyAircraftEvent(scene, event) {
   event?.sprite?.destroy?.();
 }
 
-function spawnAircraft(scene, state, airportState, entry, random = Math.random) {
+function spawnAircraft(scene, state, airportState, entry, gateKey, random = Math.random) {
   if (!aircraftBundleIsReady(scene)) return false;
-  const route = buildAircraftRoute(entry, random);
+  const route = buildAircraftRoute(entry, gateKey);
   if (!route) return false;
   const livery = AIRCRAFT_LIVERIES[
     Math.min(AIRCRAFT_LIVERIES.length - 1, Math.floor(aircraftClamp(random(), 0, 0.999999) * AIRCRAFT_LIVERIES.length))
@@ -476,25 +479,25 @@ function spawnAircraft(scene, state, airportState, entry, random = Math.random) 
     soundBaseVolume: 0,
     soundPausedForSimulation: false,
   };
-  airportState.event = event;
+  airportState.events.push(event);
   setAircraftVisual(scene, event, start, AIRCRAFT_VISUAL_CONFIG.altitudePeakPixels);
   return true;
 }
 
-function updateAircraftEvent(scene, state, airportState, scaledDelta, random = Math.random) {
-  const event = airportState.event;
-  if (!event) return;
+// A pure per-event step: mutates the event in place and returns whether it
+// should stay in airportState.events (true) or be removed (false, meaning
+// it's despawned - the caller owns destroying it and rolling the airport's
+// cooldown, since airportState-level bookkeeping is the orchestrator's job,
+// not an individual event's). runwayBusy reflects whether some OTHER event
+// at this airport currently holds the shared runway (see the concurrency
+// comment above updateAircraftAirports) - the only phase that reads it is
+// 'parked', deciding whether it's clear to taxi out yet.
+function updateAircraftEvent(scene, event, scaledDelta, runwayBusy, random = Math.random) {
   updateAircraftEventSound(scene, event);
   const recordStillExists = typeof buildingData !== 'undefined' && buildingData[event.airportId]?.type === 'airport';
   if (!recordStillExists || !event.airportSprite?.active) {
     destroyAircraftEvent(scene, event);
-    airportState.event = null;
-    airportState.cooldownMs = aircraftRandomBetween(
-      AIRCRAFT_VISUAL_CONFIG.cooldownMinMs,
-      AIRCRAFT_VISUAL_CONFIG.cooldownMaxMs,
-      random,
-    );
-    return;
+    return false;
   }
 
   if (event.phase === 'inbound') {
@@ -505,7 +508,7 @@ function updateAircraftEvent(scene, state, airportState, scaledDelta, random = M
       event.distance = 0;
       startAircraftEventSound(scene, event, AIRCRAFT_AUDIO_CONFIG.landing);
       setAircraftVisual(scene, event, event.route.groundTrack.points[0], 0);
-      return;
+      return true;
     }
     const progress = track.total > 0 ? event.distance / track.total : 1;
     setAircraftVisual(
@@ -514,16 +517,18 @@ function updateAircraftEvent(scene, state, airportState, scaledDelta, random = M
       evaluateVesselLogicalTrack(track, event.distance),
       evaluateAircraftAltitude(progress, 'descend'),
     );
-    return;
+    return true;
   }
 
   if (event.phase === 'parked') {
     const facing = getAircraftGateFacingDirection(event.route.gateKey, event.direction);
     setAircraftVisual(scene, event, event.lastLogical, 0, facing);
     event.dwellMs -= scaledDelta;
-    if (event.dwellMs > 0) return;
+    // Ready to leave, but another aircraft is still using the runway - hold
+    // at the gate and re-check next tick rather than taxiing into it.
+    if (event.dwellMs > 0 || runwayBusy) return true;
     event.phase = 'taxiOut';
-    return;
+    return true;
   }
 
   if (event.phase === 'departing') {
@@ -531,13 +536,7 @@ function updateAircraftEvent(scene, state, airportState, scaledDelta, random = M
     event.distance += (scaledDelta / 1000) * AIRCRAFT_VISUAL_CONFIG.airSpeedTilesPerSecond;
     if (event.distance >= track.total) {
       destroyAircraftEvent(scene, event);
-      airportState.event = null;
-      airportState.cooldownMs = aircraftRandomBetween(
-        AIRCRAFT_VISUAL_CONFIG.cooldownMinMs,
-        AIRCRAFT_VISUAL_CONFIG.cooldownMaxMs,
-        random,
-      );
-      return;
+      return false;
     }
     const progress = track.total > 0 ? event.distance / track.total : 1;
     setAircraftVisual(
@@ -546,7 +545,7 @@ function updateAircraftEvent(scene, state, airportState, scaledDelta, random = M
       evaluateVesselLogicalTrack(track, event.distance),
       evaluateAircraftAltitude(progress, 'climb'),
     );
-    return;
+    return true;
   }
 
   // landingRoll / taxiIn / taxiOut / takeoff all move along the one shared
@@ -576,34 +575,58 @@ function updateAircraftEvent(scene, state, airportState, scaledDelta, random = M
     event.phase = 'departing';
     event.distance = 0;
     setAircraftVisual(scene, event, event.route.departureTrack.points[0], 0);
-    return;
+    return true;
   }
   setAircraftVisual(scene, event, evaluateVesselLogicalTrack(ground, event.distance), 0);
+  return true;
 }
 
+// Multiple aircraft can be in play per airport at once - up to one per gate
+// (AIRCRAFT_GATE_KEYS.length, currently 3), each holding its gate reserved
+// from spawn until it fully departs. But only ONE may ever be using the
+// shared runway/taxiway corridor (any phase except 'parked') at a time -
+// planes converging on the same strip of tarmac would just overlap on
+// screen. That single rule is enough to reproduce a believably busy airport
+// with the simple ordering Norton described (land+park, land+park, take off,
+// land...) without needing an actual taxiway graph: a parked plane whose
+// dwell timer expires simply waits for the runway to clear (see 'parked' in
+// updateAircraftEvent), and a new arrival only spawns once both a gate and
+// the runway are free.
+//
+// Spawning is deliberately NOT cooldown-throttled beyond that: every free
+// gate is refilled the instant it's physically possible (runway clear, gate
+// open), so occupancy sits at the gate count whenever the airport can manage
+// it - typically 2 parked (the third slot cycling through the runway) rather
+// than "maybe one plane, eventually". A per-airport cooldownMs field still
+// exists, but only for a genuine spawn-failure backoff (retryCooldownMs) and
+// the post-severe-weather grace period (weatherRecoveryMinMs/MaxMs) - it no
+// longer paces the healthy steady state.
 function updateAircraftAirports(scene, state, scaledDelta, eligibleAirports, allAirports, random = Math.random) {
   const eligibleById = new Map(eligibleAirports.map((entry) => [entry.id, entry]));
   allAirports.forEach((entry) => {
     if (!state.airportStates.has(entry.id)) {
-      state.airportStates.set(entry.id, {
-        cooldownMs: aircraftRandomBetween(
-          AIRCRAFT_VISUAL_CONFIG.initialCooldownMinMs,
-          AIRCRAFT_VISUAL_CONFIG.initialCooldownMaxMs,
-          random,
-        ),
-        event: null,
-      });
+      state.airportStates.set(entry.id, { cooldownMs: 0, events: [] });
     }
   });
   for (const [airportId, airportState] of state.airportStates) {
-    if (airportState.event) {
-      updateAircraftEvent(scene, state, airportState, scaledDelta, random);
-      continue;
-    }
     if (typeof buildingData === 'undefined' || buildingData[airportId]?.type !== 'airport') {
+      airportState.events.forEach((event) => destroyAircraftEvent(scene, event));
       state.airportStates.delete(airportId);
       continue;
     }
+
+    // Recomputed fresh for EACH event, not snapshotted once for the whole
+    // tick: if two parked events both have expired dwell timers this same
+    // tick, processing the first must be visible to the second, or both
+    // would see "runway free" and both taxi out together. events is at most
+    // gate-count long, so re-scanning it per event is cheap.
+    for (let i = airportState.events.length - 1; i >= 0; i--) {
+      const event = airportState.events[i];
+      const runwayBusy = airportState.events.some((other) => other !== event && other.phase !== 'parked');
+      const keepAlive = updateAircraftEvent(scene, event, scaledDelta, runwayBusy, random);
+      if (!keepAlive) airportState.events.splice(i, 1);
+    }
+
     // Everything past this point - route building, spawning, texture
     // loading - only ever runs for an airport actually near the camera view.
     const entry = eligibleById.get(airportId);
@@ -612,8 +635,18 @@ function updateAircraftAirports(scene, state, scaledDelta, eligibleAirports, all
     if (isAircraftSevereWeather(weather)) continue;
     airportState.cooldownMs = Math.max(0, airportState.cooldownMs - scaledDelta);
     if (airportState.cooldownMs > 0) continue;
+    // Re-check fresh (not the tick-start snapshot): a parked event above may
+    // have just taken the runway this same tick, and that must block a new
+    // arrival from also claiming it.
+    if (airportState.events.some((event) => event.phase !== 'parked')) continue;
+    const usedGateKeys = new Set(airportState.events.map((event) => event.route.gateKey));
+    const freeGateKeys = AIRCRAFT_GATE_KEYS.filter((key) => !usedGateKeys.has(key));
+    if (!freeGateKeys.length) continue;
     requestAircraftBundle(scene);
-    if (!spawnAircraft(scene, state, airportState, entry, random)) {
+    const gateKey = freeGateKeys[
+      Math.min(freeGateKeys.length - 1, Math.floor(aircraftClamp(random(), 0, 0.999999) * freeGateKeys.length))
+    ];
+    if (!spawnAircraft(scene, state, airportState, entry, gateKey, random)) {
       airportState.cooldownMs = AIRCRAFT_VISUAL_CONFIG.retryCooldownMs;
     }
   }
@@ -626,7 +659,9 @@ function setupAircraftVisuals(scene) {
 function clearAircraftVisuals(scene) {
   const state = scene?.aircraftVisualState;
   if (!state) return;
-  state.airportStates.forEach((airportState) => destroyAircraftEvent(scene, airportState.event));
+  state.airportStates.forEach((airportState) => {
+    airportState.events.forEach((event) => destroyAircraftEvent(scene, event));
+  });
   state.airportStates.clear();
 }
 

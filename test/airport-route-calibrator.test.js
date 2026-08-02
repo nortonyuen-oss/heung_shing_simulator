@@ -157,6 +157,47 @@ test('resolving points from a saved record reuses saved offsets and falls back p
   );
 });
 
+test('the shipped route (aircraft-route-metadata.js) is what the calibrator falls back to, not the generic starting layout', () => {
+  const context = createAirportCalibratorContext();
+  const anchor = { row: 0, col: 0, footprintCols: 12, footprintRows: 12 };
+  context.testAnchor = anchor;
+  context.getAircraftRouteMetadata = () => ({
+    pointsByKey: {
+      landStart: { dRow: 5.5, dCol: 6.5, direction: 'nw' },
+      // gate1 intentionally omitted from the stub - must fall back further,
+      // to the generic default layout, not throw or drop the point.
+    },
+  });
+
+  const shipped = vm.runInContext('getShippedAirportRoutePoints(testAnchor)', context);
+  const generic = vm.runInContext('getDefaultAirportRoutePoints(testAnchor)', context);
+  assert.deepEqual(toPlain(shipped.landStart), { dRow: 5.5, dCol: 6.5, direction: 'nw' });
+  assert.deepEqual(toPlain(shipped.gate1), { dRow: generic.gate1.dRow, dCol: generic.gate1.dCol, direction: 'se' });
+
+  // resolveAirportRoutePointsFromRecord must prefer this shipped route over
+  // the generic layout whenever a point isn't in the (possibly stale or
+  // absent) saved record passed in - this is what makes opening the
+  // calibrator show the route actually flying right now.
+  const resolvedWithNoRecord = vm.runInContext('resolveAirportRoutePointsFromRecord(testAnchor, null)', context);
+  assert.deepEqual(
+    toPlain(resolvedWithNoRecord.landStart),
+    { row: anchor.row + 5.5, col: anchor.col + 6.5, direction: 'nw' },
+  );
+
+  context.partialRecord = { points: { landStart: { dRow: 1, dCol: 1, direction: 'sw' } } };
+  const resolvedWithPartialRecord = vm.runInContext(
+    'resolveAirportRoutePointsFromRecord(testAnchor, partialRecord)',
+    context,
+  );
+  // landStart: the record wins over the shipped route (an in-progress drag beats it).
+  assert.deepEqual(toPlain(resolvedWithPartialRecord.landStart), { row: 1, col: 1, direction: 'sw' });
+  // gate1: not in the record, so it falls all the way through to the generic layout (shipped had no gate1 either).
+  assert.deepEqual(
+    toPlain(resolvedWithPartialRecord.gate1),
+    { row: anchor.row + generic.gate1.dRow, col: anchor.col + generic.gate1.dCol, direction: 'se' },
+  );
+});
+
 test('an airport already on the map anchors the calibrator to its footprint', () => {
   const context = createAirportCalibratorContext();
   context.getBuildingFacilityEntries = (type) => (

@@ -234,22 +234,20 @@ test('rotating the map between flights keeps the next flight glued to the airpor
       },
     };
     const state = aircraft.getAircraftVisualState(scene);
-    const airportState = { cooldownMs: 0, event: null };
+    const airportState = { cooldownMs: 0, events: [] };
     const random = () => 0;
 
     global.isoToScreen = (col, row) => ({ x: (col - row) * 50, y: (col + row) * 25 });
-    assert.equal(aircraft.spawnAircraft(scene, state, airportState, entry, random), true);
-    const firstFlightGroundX = airportState.event.sprite.x;
-    for (let i = 0; i < 100000 && airportState.event; i++) {
-      aircraft.updateAircraftEvent(scene, state, airportState, 500, random);
-    }
-    assert.equal(airportState.event, null, 'first visit must complete and despawn before the next one spawns');
+    assert.equal(aircraft.spawnAircraft(scene, state, airportState, entry, 'gate1', random), true);
+    const firstFlightGroundX = airportState.events[0].sprite.x;
+    flyAircraftEventToDespawn(airportState.events[0], (event, ms) => aircraft.updateAircraftEvent(scene, event, ms, false, random));
+    airportState.events.length = 0;
 
     // The player rotates the map: main.js's positionAllTiles now reports a
     // very different live screen position for the same logical airport tile.
     global.isoToScreen = (col, row) => ({ x: (col - row) * 50 + 5000, y: (col + row) * 25 - 3000 });
-    assert.equal(aircraft.spawnAircraft(scene, state, airportState, entry, random), true);
-    const secondFlightGroundX = airportState.event.sprite.x;
+    assert.equal(aircraft.spawnAircraft(scene, state, airportState, entry, 'gate1', random), true);
+    const secondFlightGroundX = airportState.events[0].sprite.x;
 
     assert.ok(
       Math.abs((secondFlightGroundX - firstFlightGroundX) - 5000) < 1,
@@ -340,7 +338,7 @@ test('altitude eases toward 0 at the ground and toward the peak away from it', (
 test('the approach/departure legs extend outward from the runway, away from the opposite end', () => {
   const entry = { row: 100, col: 50 };
   const points = aircraft.getAircraftAbsolutePoints(entry);
-  const route = aircraft.buildAircraftRoute(entry, () => 0);
+  const route = aircraft.buildAircraftRoute(entry, 'gate1');
   const approachSpawn = route.approachTrack.points[0];
   const departureEnd = route.departureTrack.points[1];
   // landStart sits between landEnd and the spawn point (spawn is further away).
@@ -355,7 +353,7 @@ test('the approach/departure legs extend outward from the runway, away from the 
 test('the ground track visits landStart, landEnd, the chosen gate, takeoffStart and liftoff in order', () => {
   const entry = { row: 197, col: 110 };
   const points = aircraft.getAircraftAbsolutePoints(entry);
-  const route = aircraft.buildAircraftRoute(entry, () => 0.5); // picks gate2
+  const route = aircraft.buildAircraftRoute(entry, 'gate2');
   assert.equal(route.gateKey, 'gate2');
   assert.deepEqual(route.groundTrack.points, [
     points.landStart, points.landEnd, points.gate2, points.takeoffStart, points.liftoff,
@@ -368,6 +366,33 @@ test('the ground track visits landStart, landEnd, the chosen gate, takeoffStart 
 
 function assertClose(actual, expected, message = '') {
   assert.ok(Math.abs(actual - expected) < 1e-9, `${message} expected ${expected}, got ${actual}`);
+}
+
+// Repeatedly steps a single event (via the caller's update closure, which
+// pins in whatever runwayBusy/scene/random this test needs) until it
+// despawns (step returns false), recording the phase sequence seen along
+// the way. Throws if it never despawns, so a stuck state machine fails loud.
+function flyAircraftEventToDespawn(event, step, ms = 500, maxTicks = 200000) {
+  const phases = [event.phase];
+  for (let i = 0; i < maxTicks; i++) {
+    const keepAlive = step(event, ms);
+    if (!keepAlive) return phases;
+    if (phases.at(-1) !== event.phase) phases.push(event.phase);
+  }
+  throw new Error(`aircraft event did not despawn within ${maxTicks} ticks (stuck in phase '${event.phase}')`);
+}
+
+// Deterministic xorshift32 PRNG so a many-tick stochastic test is still
+// reproducible - varies gate/livery/cooldown picks across spawns without
+// relying on Math.random (which would make a failure unreproducible).
+function makeSeededRandom(seed) {
+  let s = seed >>> 0;
+  return () => {
+    s ^= s << 13; s >>>= 0;
+    s ^= s >>> 17;
+    s ^= s << 5; s >>>= 0;
+    return (s % 1_000_000) / 1_000_000;
+  };
 }
 
 test('an aircraft event walks inbound -> landingRoll -> taxiIn -> parked -> taxiOut -> takeoff -> departing in order', () => {
@@ -405,28 +430,26 @@ test('an aircraft event walks inbound -> landingRoll -> taxiIn -> parked -> taxi
       },
     };
     const state = aircraft.getAircraftVisualState(scene);
-    const airportState = { cooldownMs: 0, event: null };
-    const random = () => 0; // always picks gate1, livery UO - deterministic
+    const airportState = { cooldownMs: 0, events: [] };
+    const random = () => 0; // always picks livery UO - deterministic
 
     // Bundle not loaded yet - spawn must fail cleanly, not throw.
-    assert.equal(aircraft.spawnAircraft(scene, state, airportState, entry, random), false);
+    assert.equal(aircraft.spawnAircraft(scene, state, airportState, entry, 'gate1', random), false);
 
     scene.textures = { exists: () => true }; // fake the bundle being ready
-    assert.equal(aircraft.spawnAircraft(scene, state, airportState, entry, random), true);
-    const event = airportState.event;
+    assert.equal(aircraft.spawnAircraft(scene, state, airportState, entry, 'gate1', random), true);
+    const event = airportState.events[0];
     assert.equal(event.phase, 'inbound');
 
-    const tick = (ms) => aircraft.updateAircraftEvent(scene, state, airportState, ms, random);
-    const seenPhases = [event.phase];
-    for (let i = 0; i < 100000 && airportState.event; i++) {
-      tick(500);
-      const current = airportState.event?.phase;
-      if (current && seenPhases.at(-1) !== current) seenPhases.push(current);
-    }
+    // Alone at the airport, so the runway is never busy on account of any
+    // OTHER event - this single event is the only thing that could occupy it.
+    const seenPhases = flyAircraftEventToDespawn(
+      event,
+      (activeEvent, ms) => aircraft.updateAircraftEvent(scene, activeEvent, ms, false, random),
+    );
     assert.deepEqual(seenPhases, [
       'inbound', 'landingRoll', 'taxiIn', 'parked', 'taxiOut', 'takeoff', 'departing',
     ]);
-    assert.equal(airportState.event, null, 'the event must despawn once the departure leg completes');
   } finally {
     Object.entries(originalGlobals).forEach(([key, value]) => {
       if (value === undefined) delete global[key];
@@ -499,20 +522,145 @@ test('runtime update only starts work for an airport near the camera view', () =
 
     const offScreenScene = makeScene(makeSprite({ x: 50000, y: 50000 }));
     const offScreenState = aircraft.setupAircraftVisuals(offScreenScene);
-    offScreenState.airportStates.set('197:110', { cooldownMs: 0, event: null });
+    offScreenState.airportStates.set('197:110', { cooldownMs: 0, events: [] });
     aircraft.updateAircraftVisuals.call(offScreenScene, 0, 16);
     assert.equal(createdSprites.length, 0, 'an off-screen airport must not spawn an aircraft or load textures');
 
     const onScreenScene = makeScene(makeSprite({ x: 500, y: 300 }));
     const state = aircraft.setupAircraftVisuals(onScreenScene);
-    state.airportStates.set('197:110', { cooldownMs: 0, event: null });
+    state.airportStates.set('197:110', { cooldownMs: 0, events: [] });
     aircraft.updateAircraftVisuals.call(onScreenScene, 0, 16);
-    assert.ok(state.airportStates.get('197:110').event, 'an on-screen, off-cooldown airport should spawn an aircraft');
+    assert.equal(state.airportStates.get('197:110').events.length, 1, 'an on-screen, off-cooldown airport should spawn an aircraft');
     assert.equal(createdSprites.length, 1);
 
     aircraft.clearAircraftVisuals(onScreenScene);
     assert.equal(state.airportStates.size, 0);
     assert.ok(createdSprites.every((sprite) => sprite.active === false));
+  } finally {
+    Object.entries(originalGlobals).forEach(([key, value]) => {
+      if (value === undefined) delete global[key];
+      else global[key] = value;
+    });
+  }
+});
+
+test('a parked aircraft waits for the runway to clear before taxiing out, even with an expired dwell timer', () => {
+  const originalBuildingData = global.buildingData;
+  try {
+    global.buildingData = { x: { type: 'airport' } };
+    const scene = { offsetX: 0, offsetY: 0 };
+    const event = {
+      phase: 'parked',
+      dwellMs: -100, // already expired
+      route: { gateKey: 'gate1' },
+      direction: 'ne',
+      anchor: { row: 0, col: 0 },
+      lastLogical: { row: 1, col: 1 },
+      lastWorld: null,
+      airportId: 'x',
+      airportSprite: { active: true },
+      sound: null,
+      sprite: { texture: { key: '' }, setTexture() {}, setPosition() {}, setDepth() {} },
+    };
+
+    const keptAliveWhileBusy = aircraft.updateAircraftEvent(scene, event, 500, true, () => 0);
+    assert.equal(keptAliveWhileBusy, true);
+    assert.equal(event.phase, 'parked', 'must not taxi out while another aircraft holds the runway');
+
+    const keptAliveOnceFree = aircraft.updateAircraftEvent(scene, event, 500, false, () => 0);
+    assert.equal(keptAliveOnceFree, true);
+    assert.equal(event.phase, 'taxiOut', 'the same expired dwell should release it the moment the runway frees up');
+  } finally {
+    if (originalBuildingData === undefined) delete global.buildingData;
+    else global.buildingData = originalBuildingData;
+  }
+});
+
+test('a busy airport keeps at least two aircraft on the apron almost always, but never two on the runway or the same gate', () => {
+  const originalGlobals = Object.fromEntries([
+    'isoToScreen', 'TILE_WIDTH', 'TILE_HEIGHT', 'TILE_IMAGE_HEIGHT', 'BUILDING_SURFACE_Y_OFFSET',
+    'buildingData', 'getWorldDepth', 'addToRenderLayer',
+  ].map((key) => [key, global[key]]));
+  try {
+    global.isoToScreen = (col, row) => ({ x: col * 70, y: row * 35 });
+    global.TILE_WIDTH = 100;
+    global.TILE_HEIGHT = 50;
+    global.TILE_IMAGE_HEIGHT = 100;
+    global.BUILDING_SURFACE_Y_OFFSET = 50;
+    global.getWorldDepth = (layer, localDepth) => (layer === 'effect' ? 300000 : 200000) + (Number(localDepth) || 0);
+    global.addToRenderLayer = (scene, child) => child;
+    global.buildingData = { '197:110': { type: 'airport', footprintCols: 12, footprintRows: 12 } };
+
+    const entry = { id: '197:110', row: 197, col: 110 };
+    const scene = {
+      offsetX: 0,
+      offsetY: 0,
+      worldMask: {},
+      buildingSprites: new Map([[entry.id, { active: true }]]),
+      textures: { exists: () => true },
+      add: {
+        image: (x, y) => ({
+          x, y, texture: { key: '' },
+          setOrigin() { return this; },
+          setScale() { return this; },
+          setMask() { return this; },
+          setDepth(value) { this.depth = value; return this; },
+          setPosition(px, py) { this.x = px; this.y = py; return this; },
+          setTexture(key) { this.texture.key = key; return this; },
+          destroy() { this.active = false; },
+        }),
+      },
+    };
+    const state = aircraft.getAircraftVisualState(scene);
+    state.airportStates.set(entry.id, { cooldownMs: 0, events: [] });
+    const random = makeSeededRandom(12345);
+
+    let maxConcurrent = 0;
+    let ticksAtOrAboveTwo = 0;
+    let measuredTicks = 0;
+    const capacityErrors = [];
+    const gateConflictErrors = [];
+    const runwayConflictErrors = [];
+    const rampUpTicks = 120; // ~60s - enough for the first couple of gates to fill from a cold start
+    const totalTicks = 4000; // ~2000 simulated seconds
+    for (let tick = 0; tick < totalTicks; tick++) {
+      aircraft.updateAircraftAirports(scene, state, 500, [entry], [entry], random);
+      const { events } = state.airportStates.get(entry.id);
+      maxConcurrent = Math.max(maxConcurrent, events.length);
+      if (events.length > aircraft.AIRCRAFT_GATE_KEYS.length) {
+        capacityErrors.push(`tick ${tick}: ${events.length} concurrent aircraft, more than ${aircraft.AIRCRAFT_GATE_KEYS.length} gates`);
+      }
+      const gateKeys = events.map((event) => event.route.gateKey);
+      if (new Set(gateKeys).size !== gateKeys.length) {
+        gateConflictErrors.push(`tick ${tick}: duplicate gate assignment among ${JSON.stringify(gateKeys)}`);
+      }
+      const nonParked = events.filter((event) => event.phase !== 'parked');
+      if (nonParked.length > 1) {
+        runwayConflictErrors.push(`tick ${tick}: ${nonParked.length} aircraft on the runway at once (${nonParked.map((e) => e.phase)})`);
+      }
+      if (tick >= rampUpTicks) {
+        measuredTicks++;
+        if (events.length >= 2) ticksAtOrAboveTwo++;
+      }
+    }
+
+    assert.deepEqual(capacityErrors, []);
+    assert.deepEqual(gateConflictErrors, []);
+    assert.deepEqual(runwayConflictErrors, []);
+    assert.ok(
+      maxConcurrent > 1,
+      `expected to see more than one aircraft at the airport at once over the run (busier-airport goal); max observed was ${maxConcurrent}`,
+    );
+    // Norton wants at least two aircraft on the apron essentially always,
+    // not just occasionally - spawning is unthrottled below gate capacity
+    // (see updateAircraftAirports), so once past the initial ramp-up this
+    // should hold the vast majority of the time, with brief dips only while
+    // a refill is still taxiing in after the other gate emptied out.
+    const twoOrMoreRatio = ticksAtOrAboveTwo / measuredTicks;
+    assert.ok(
+      twoOrMoreRatio >= 0.9,
+      `expected at least 2 concurrent aircraft on >=90% of post-ramp-up ticks, got ${(twoOrMoreRatio * 100).toFixed(1)}%`,
+    );
   } finally {
     Object.entries(originalGlobals).forEach(([key, value]) => {
       if (value === undefined) delete global[key];

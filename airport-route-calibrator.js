@@ -77,6 +77,32 @@ function getDefaultAirportRoutePoints(anchor = {}) {
   };
 }
 
+// The route actually flying right now (aircraft-route-metadata.js), reached
+// through the same accessor aircraft-visuals.js uses. The calibrator opens
+// showing THIS, not the generic starting layout or a possibly-stale
+// browser-storage draft from an earlier session - every drag should start
+// from what the player is actually seeing in the game, not from whatever
+// this browser profile happened to have lying around.
+function getShippedAirportRoutePoints(anchor) {
+  const pointsByKey = typeof getAircraftRouteMetadata === 'function' ? getAircraftRouteMetadata()?.pointsByKey : null;
+  const defaults = getDefaultAirportRoutePoints(anchor);
+  const points = {};
+  AIRPORT_ROUTE_POINT_DEFS.forEach(({ key }) => {
+    const shipped = pointsByKey?.[key];
+    const dRow = Number(shipped?.dRow);
+    const dCol = Number(shipped?.dCol);
+    const hasShipped = Number.isFinite(dRow) && Number.isFinite(dCol);
+    points[key] = {
+      dRow: hasShipped ? dRow : defaults[key].dRow,
+      dCol: hasShipped ? dCol : defaults[key].dCol,
+      direction: AIRPORT_ROUTE_DIRECTION_CYCLE.includes(shipped?.direction)
+        ? shipped.direction
+        : AIRPORT_ROUTE_DEFAULT_DIRECTION,
+    };
+  });
+  return points;
+}
+
 function buildAirportRouteCalibrationRecord(session, recordedAt = new Date().toISOString()) {
   const anchor = session?.anchor;
   const anchorRow = Number(anchor?.row);
@@ -131,7 +157,7 @@ function persistAirportRouteCalibrationRecord(record, storage = getVisualRouteCa
 }
 
 function resolveAirportRoutePointsFromRecord(anchor, record) {
-  const defaults = getDefaultAirportRoutePoints(anchor);
+  const defaults = getShippedAirportRoutePoints(anchor);
   const points = {};
   AIRPORT_ROUTE_POINT_DEFS.forEach(({ key }) => {
     const saved = record?.points?.[key];
@@ -140,7 +166,7 @@ function resolveAirportRoutePointsFromRecord(anchor, record) {
       : defaults[key];
     const direction = AIRPORT_ROUTE_DIRECTION_CYCLE.includes(saved?.direction)
       ? saved.direction
-      : AIRPORT_ROUTE_DEFAULT_DIRECTION;
+      : defaults[key].direction;
     points[key] = { row: anchor.row + offset.dRow, col: anchor.col + offset.dCol, direction };
   });
   return points;
@@ -329,7 +355,10 @@ function startAirportRouteCalibrator(session) {
   const scene = session.scene;
   session.anchor = resolveAirportRouteCalibrationAnchor(scene);
   session.mapRotation = typeof mapRotation === 'number' ? mapRotation : 0;
-  session.points = resolveAirportRoutePointsFromRecord(session.anchor, loadAirportRouteCalibrationRecord());
+  // Always the currently-shipped route, not a saved browser-storage draft
+  // (see getShippedAirportRoutePoints) - opening the tool should show
+  // exactly what's flying right now.
+  session.points = resolveAirportRoutePointsFromRecord(session.anchor, null);
   session.active = true;
   createAirportRouteMarkers(session);
   createAirportRouteCalibratorPanel(session);
@@ -483,6 +512,7 @@ const airportRouteCalibratorTestApi = {
   airportRouteAircraftPreviewIsReady,
   getAirportRouteAircraftTextureKey,
   getDefaultAirportRoutePoints,
+  getShippedAirportRoutePoints,
   buildAirportRouteCalibrationRecord,
   loadAirportRouteCalibrationRecord,
   persistAirportRouteCalibrationRecord,

@@ -350,6 +350,15 @@ function getTrafficDirectionForDelta(deltaRow, deltaCol) {
   return null;
 }
 
+// Signal8+ grounds buses and minibuses specifically (Norton's ask named only
+// those two categories, not taxis/cars/trucks/vans) - matches the severe
+// threshold used elsewhere in the codebase (sim-weather.js, aircraft-visuals.js).
+const TRAFFIC_SEVERE_WEATHER_GROUNDED_CATEGORIES = Object.freeze(['bus', 'minibus']);
+
+function isTrafficSevereWeather(weather) {
+  return ['signal8', 'signal9', 'signal10'].includes(weather?.typhoonStage);
+}
+
 function canSpawnIceCreamTruckForWeather(weather) {
   return (
     ICE_CREAM_TARGET_TYPES.length > 0
@@ -720,6 +729,24 @@ function destroyIceCreamEvent(event) {
 function clearOrdinaryTrafficVisuals(state) {
   state?.vehicles?.forEach(destroyTrafficVehicle);
   if (state?.vehicles) state.vehicles.length = 0;
+}
+
+// "8號風球以上巴士小巴停駛，全部巴士小巴在路上消失" - unlike
+// clearOrdinaryTrafficVisuals (every vehicle, e.g. on the zoom-out/terrain-
+// creator gate), this is a selective purge: only the two grounded categories
+// vanish immediately, everything else keeps driving. Pairs with
+// chooseTrafficModelForSpawn's severe-weather filter, which stops new
+// buses/minibuses from spawning for as long as the same condition holds.
+function purgeSevereWeatherGroundedTraffic(state, weather) {
+  if (!state?.vehicles?.length || !isTrafficSevereWeather(weather)) return;
+  const remaining = state.vehicles.filter((vehicle) => {
+    if (!TRAFFIC_SEVERE_WEATHER_GROUNDED_CATEGORIES.includes(vehicle.model?.category)) return true;
+    destroyTrafficVehicle(vehicle);
+    return false;
+  });
+  if (remaining.length === state.vehicles.length) return;
+  state.vehicles = remaining;
+  state.dirty = true;
 }
 
 function clearTrafficVisuals(scene) {
@@ -1695,7 +1722,11 @@ function maybeRequestTrafficModelForSpawn(scene, time, random = Math.random) {
 
 function chooseTrafficModelForSpawn(scene, random = Math.random) {
   const state = getTrafficState(scene);
-  const readyModels = getReadyTrafficModels(scene);
+  let readyModels = getReadyTrafficModels(scene);
+  const weather = typeof city === 'undefined' ? null : city.weather;
+  if (isTrafficSevereWeather(weather)) {
+    readyModels = readyModels.filter((model) => !TRAFFIC_SEVERE_WEATHER_GROUNDED_CATEGORIES.includes(model.category));
+  }
   if (readyModels.length === 0) return null;
   const selected = pickWeightedTrafficModel(random, readyModels);
   if (selected) touchTrafficModel(state, selected.id);
@@ -1851,6 +1882,8 @@ function updateTrafficVisuals(time, delta) {
     return;
   }
 
+  purgeSevereWeatherGroundedTraffic(state, typeof city === 'undefined' ? null : city.weather);
+
   const paused = typeof simPaused !== 'undefined' && simPaused;
   const speedMultiplier = paused
     ? 0
@@ -1929,6 +1962,10 @@ const trafficVisualTestApi = {
   isTrafficFlatRoadTile,
   getTrafficLegSpeedFactor,
   getTrafficDirectionForDelta,
+  TRAFFIC_SEVERE_WEATHER_GROUNDED_CATEGORIES,
+  isTrafficSevereWeather,
+  chooseTrafficModelForSpawn,
+  purgeSevereWeatherGroundedTraffic,
   canSpawnIceCreamTruckForWeather,
   isIceCreamTargetBuilding,
   findTrafficPathOutsideView,

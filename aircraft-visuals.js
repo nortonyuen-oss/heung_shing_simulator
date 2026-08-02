@@ -23,8 +23,13 @@ const AIRCRAFT_VISUAL_CONFIG = Object.freeze({
   retryCooldownMs: 10000,
   weatherRecoveryMinMs: 10000,
   weatherRecoveryMaxMs: 30000,
-  parkedDwellMinMs: 15000,
-  parkedDwellMaxMs: 25000,
+  // Tuned empirically (see the "busy airport" stochastic test) so the
+  // runway mutex's own throughput ceiling settles at an average of ~3-4
+  // concurrent aircraft rather than ~2 - the mutex, not the gate count
+  // (AIRCRAFT_GATE_KEYS.length, 6), is the actual bottleneck on how many
+  // planes accumulate before one is ready to leave.
+  parkedDwellMinMs: 65000,
+  parkedDwellMaxMs: 95000,
   aircraftScale: 0.30,
   // Landing roll (L2->L3) and takeoff roll (T0->T1) - 2.2x the original 0.62.
   groundSpeedTilesPerSecond: 1.364,
@@ -580,9 +585,12 @@ function spawnAircraft(scene, state, airportState, entry, gateKey, random = Math
 // cooldown, since airportState-level bookkeeping is the orchestrator's job,
 // not an individual event's). runwayBusy reflects whether some OTHER event
 // at this airport currently holds the shared runway (see the concurrency
-// comment above updateAircraftAirports) - the only phase that reads it is
-// 'parked', deciding whether it's clear to taxi out yet.
-function updateAircraftEvent(scene, event, scaledDelta, runwayBusy, random = Math.random) {
+// comment above updateAircraftAirports); severeWeather reflects a signal8+
+// typhoon grounding all departures. Both are read only by 'parked', deciding
+// whether it's clear to taxi out yet - every other phase is already
+// airborne/rolling and is left to finish its current leg naturally rather
+// than being interrupted mid-motion.
+function updateAircraftEvent(scene, event, scaledDelta, runwayBusy, severeWeather, random = Math.random) {
   updateAircraftEventSound(scene, event);
   const recordStillExists = typeof buildingData !== 'undefined' && buildingData[event.airportId]?.type === 'airport';
   if (!recordStillExists || !event.airportSprite?.active) {
@@ -614,9 +622,13 @@ function updateAircraftEvent(scene, event, scaledDelta, runwayBusy, random = Mat
     const facing = getAircraftGateFacingDirection(event.route.gateKey, event.direction);
     setAircraftVisual(scene, event, event.lastLogical, 0, facing);
     event.dwellMs -= scaledDelta;
-    // Ready to leave, but another aircraft is still using the runway - hold
-    // at the gate and re-check next tick rather than taxiing into it.
-    if (event.dwellMs > 0 || runwayBusy) return true;
+    // Ready to leave, but either another aircraft is still using the runway
+    // or a signal8+ typhoon has grounded all departures - hold at the gate
+    // and re-check next tick rather than taxiing out. The dwell countdown
+    // keeps running either way (it's not "paused" by the storm), so a plane
+    // whose dwell already lapsed during severe weather taxis out the instant
+    // conditions clear, rather than waiting out a fresh dwell on top of it.
+    if (event.dwellMs > 0 || runwayBusy || severeWeather) return true;
     event.phase = 'taxiOut';
     return true;
   }
@@ -685,14 +697,25 @@ function updateAircraftEvent(scene, event, scaledDelta, runwayBusy, random = Mat
 //
 // Spawning is deliberately NOT cooldown-throttled beyond that: every free
 // gate is refilled the instant it's physically possible (runway clear, gate
-// open), so occupancy sits at the gate count whenever the airport can manage
-// it - typically 2 parked (the third slot cycling through the runway) rather
-// than "maybe one plane, eventually". A per-airport cooldownMs field still
-// exists, but only for a genuine spawn-failure backoff (retryCooldownMs) and
-// the post-severe-weather grace period (weatherRecoveryMinMs/MaxMs) - it no
-// longer paces the healthy steady state.
+// open), so occupancy climbs as high as the runway mutex's own throughput
+// allows rather than "maybe one plane, eventually". In practice the mutex
+// (not AIRCRAFT_GATE_KEYS.length, 6) ends up the binding constraint - with
+// parkedDwellMinMs/MaxMs tuned per Norton's "average 3-4 busier" ask, an
+// empirical long-run simulation (see the "busy airport" stochastic test)
+// settles around 3-4 parked at once, occasionally bursting toward the
+// 6-gate ceiling rather than sitting there permanently. A per-airport
+// cooldownMs field still exists, but only for a genuine spawn-failure
+// backoff (retryCooldownMs) and the post-severe-weather grace period
+// (weatherRecoveryMinMs/MaxMs) - it no longer paces the healthy steady state.
 function updateAircraftAirports(scene, state, scaledDelta, eligibleAirports, allAirports, random = Math.random) {
   const eligibleById = new Map(eligibleAirports.map((entry) => [entry.id, entry]));
+  // Computed once for every airport, not just eligible/near-view ones - an
+  // off-screen airport's already-parked planes must stay grounded through a
+  // typhoon exactly like an on-screen one's, even though (per the existing
+  // camera-gating below) an off-screen airport was never going to spawn
+  // anything new regardless of weather.
+  const weather = typeof city === 'undefined' ? null : city.weather;
+  const severeWeather = isAircraftSevereWeather(weather);
   allAirports.forEach((entry) => {
     if (!state.airportStates.has(entry.id)) {
       state.airportStates.set(entry.id, { cooldownMs: 0, events: [] });
@@ -713,7 +736,7 @@ function updateAircraftAirports(scene, state, scaledDelta, eligibleAirports, all
     for (let i = airportState.events.length - 1; i >= 0; i--) {
       const event = airportState.events[i];
       const runwayBusy = airportState.events.some((other) => other !== event && other.phase !== 'parked');
-      const keepAlive = updateAircraftEvent(scene, event, scaledDelta, runwayBusy, random);
+      const keepAlive = updateAircraftEvent(scene, event, scaledDelta, runwayBusy, severeWeather, random);
       if (!keepAlive) airportState.events.splice(i, 1);
     }
 
@@ -721,8 +744,7 @@ function updateAircraftAirports(scene, state, scaledDelta, eligibleAirports, all
     // loading - only ever runs for an airport actually near the camera view.
     const entry = eligibleById.get(airportId);
     if (!entry) continue;
-    const weather = typeof city === 'undefined' ? null : city.weather;
-    if (isAircraftSevereWeather(weather)) continue;
+    if (severeWeather) continue;
     airportState.cooldownMs = Math.max(0, airportState.cooldownMs - scaledDelta);
     if (airportState.cooldownMs > 0) continue;
     // Re-check fresh (not the tick-start snapshot): a parked event above may

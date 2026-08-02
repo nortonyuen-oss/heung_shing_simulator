@@ -314,7 +314,7 @@ test('rotating the map between flights keeps the next flight glued to the airpor
     global.isoToScreen = (col, row) => ({ x: (col - row) * 50, y: (col + row) * 25 });
     assert.equal(aircraft.spawnAircraft(scene, state, airportState, entry, 'gate1', random), true);
     const firstFlightGroundX = airportState.events[0].sprite.x;
-    flyAircraftEventToDespawn(airportState.events[0], (event, ms) => aircraft.updateAircraftEvent(scene, event, ms, false, random));
+    flyAircraftEventToDespawn(airportState.events[0], (event, ms) => aircraft.updateAircraftEvent(scene, event, ms, false, false, random));
     airportState.events.length = 0;
 
     // The player rotates the map: main.js's positionAllTiles now reports a
@@ -647,7 +647,7 @@ test('an aircraft event walks inbound -> landingRoll -> taxiIn -> parked -> taxi
     // OTHER event - this single event is the only thing that could occupy it.
     const seenPhases = flyAircraftEventToDespawn(
       event,
-      (activeEvent, ms) => aircraft.updateAircraftEvent(scene, activeEvent, ms, false, random),
+      (activeEvent, ms) => aircraft.updateAircraftEvent(scene, activeEvent, ms, false, false, random),
     );
     assert.deepEqual(seenPhases, [
       'inbound', 'landingRoll', 'taxiIn', 'parked', 'taxiOut', 'takeoff', 'departing',
@@ -765,11 +765,11 @@ test('a parked aircraft waits for the runway to clear before taxiing out, even w
       sprite: { texture: { key: '' }, setTexture() {}, setPosition() {}, setDepth() {} },
     };
 
-    const keptAliveWhileBusy = aircraft.updateAircraftEvent(scene, event, 500, true, () => 0);
+    const keptAliveWhileBusy = aircraft.updateAircraftEvent(scene, event, 500, true, false, () => 0);
     assert.equal(keptAliveWhileBusy, true);
     assert.equal(event.phase, 'parked', 'must not taxi out while another aircraft holds the runway');
 
-    const keptAliveOnceFree = aircraft.updateAircraftEvent(scene, event, 500, false, () => 0);
+    const keptAliveOnceFree = aircraft.updateAircraftEvent(scene, event, 500, false, false, () => 0);
     assert.equal(keptAliveOnceFree, true);
     assert.equal(event.phase, 'taxiOut', 'the same expired dwell should release it the moment the runway frees up');
   } finally {
@@ -778,7 +778,120 @@ test('a parked aircraft waits for the runway to clear before taxiing out, even w
   }
 });
 
-test('a busy airport keeps at least two aircraft on the apron almost always, but never two on the runway or the same gate', () => {
+test('a parked aircraft with an expired dwell timer stays grounded through signal8+ severe weather and departs the instant it clears', () => {
+  // Regression test: "8號風球以上停止飛機起飛降落，全部飛機stay係機場" - severe
+  // weather is a second, independent hold on the same parked->taxiOut
+  // transition the runway mutex already gates. The dwell countdown itself
+  // keeps running through the storm (it's not paused) - only the actual
+  // taxi-out is held back - so a plane that was already overdue to leave
+  // taxis out the moment conditions clear, with no extra wait tacked on.
+  const originalBuildingData = global.buildingData;
+  try {
+    global.buildingData = { x: { type: 'airport' } };
+    const scene = { offsetX: 0, offsetY: 0 };
+    const event = {
+      phase: 'parked',
+      dwellMs: -100, // already expired
+      route: { gateKey: 'gate1' },
+      direction: 'ne',
+      anchor: { row: 0, col: 0 },
+      lastLogical: { row: 1, col: 1 },
+      lastWorld: null,
+      airportId: 'x',
+      airportSprite: { active: true },
+      sound: null,
+      sprite: { texture: { key: '' }, setTexture() {}, setPosition() {}, setDepth() {} },
+    };
+
+    const keptAliveDuringStorm = aircraft.updateAircraftEvent(scene, event, 500, false, true, () => 0);
+    assert.equal(keptAliveDuringStorm, true);
+    assert.equal(event.phase, 'parked', 'signal8+ must keep an already-ready-to-leave plane at the gate');
+
+    // Storm lingers a while longer - still must not budge, however negative
+    // dwellMs has gone in the meantime.
+    aircraft.updateAircraftEvent(scene, event, 5000, false, true, () => 0);
+    assert.equal(event.phase, 'parked', 'must stay grounded for as long as severe weather persists');
+
+    const keptAliveOnceClear = aircraft.updateAircraftEvent(scene, event, 500, false, false, () => 0);
+    assert.equal(keptAliveOnceClear, true);
+    assert.equal(event.phase, 'taxiOut', 'must taxi out the instant the storm clears, not wait for a fresh dwell');
+  } finally {
+    if (originalBuildingData === undefined) delete global.buildingData;
+    else global.buildingData = originalBuildingData;
+  }
+});
+
+test('severe weather never interrupts an aircraft already in motion - it only blocks the next parked->taxiOut departure', () => {
+  // Norton's ask names only "全部飛機stay係機場" (all aircraft stay AT the
+  // airport), which a plane already mid-landing satisfies just by finishing
+  // its approach and parking - aborting a curved final approach mid-flight
+  // the instant a typhoon signal ticks over would look far more broken than
+  // letting an already-committed landing complete normally.
+  const originalGlobals = Object.fromEntries([
+    'isoToScreen', 'TILE_WIDTH', 'TILE_HEIGHT', 'TILE_IMAGE_HEIGHT', 'BUILDING_SURFACE_Y_OFFSET',
+    'buildingData', 'getWorldDepth', 'addToRenderLayer',
+  ].map((key) => [key, global[key]]));
+  try {
+    global.isoToScreen = (col, row) => ({ x: col * 70, y: row * 35 });
+    global.TILE_WIDTH = 100;
+    global.TILE_HEIGHT = 50;
+    global.TILE_IMAGE_HEIGHT = 100;
+    global.BUILDING_SURFACE_Y_OFFSET = 50;
+    global.getWorldDepth = (layer, localDepth) => (layer === 'effect' ? 300000 : 200000) + (Number(localDepth) || 0);
+    global.addToRenderLayer = (scene, child) => child;
+    global.buildingData = { '197:110': { type: 'airport', footprintCols: 12, footprintRows: 12 } };
+
+    const entry = { id: '197:110', row: 197, col: 110 };
+    const scene = {
+      offsetX: 0,
+      offsetY: 0,
+      worldMask: {},
+      buildingSprites: new Map([[entry.id, { active: true }]]),
+      add: {
+        image: (x, y) => ({
+          x, y, texture: { key: '' },
+          setOrigin() { return this; },
+          setScale() { return this; },
+          setMask() { return this; },
+          setDepth(value) { this.depth = value; return this; },
+          setPosition(px, py) { this.x = px; this.y = py; return this; },
+          setTexture(key) { this.texture.key = key; return this; },
+          destroy() { this.active = false; },
+        }),
+      },
+    };
+    const state = aircraft.getAircraftVisualState(scene);
+    const airportState = { cooldownMs: 0, events: [] };
+    const random = () => 0;
+
+    scene.textures = { exists: () => true };
+    assert.equal(aircraft.spawnAircraft(scene, state, airportState, entry, 'gate1', random), true);
+    const event = airportState.events[0];
+    assert.equal(event.phase, 'inbound');
+
+    // Severe weather is already active for this entire flight - inbound must
+    // still land, roll out and taxi all the way to the gate.
+    const seenPhases = [event.phase];
+    for (let i = 0; i < 2000 && event.phase !== 'parked'; i++) {
+      aircraft.updateAircraftEvent(scene, event, 500, false, true, random);
+      if (seenPhases.at(-1) !== event.phase) seenPhases.push(event.phase);
+    }
+    assert.deepEqual(seenPhases, ['inbound', 'landingRoll', 'taxiIn', 'parked']);
+
+    // But once parked, it must sit there for as long as the storm lasts.
+    for (let i = 0; i < 50; i++) {
+      aircraft.updateAircraftEvent(scene, event, 500, false, true, random);
+    }
+    assert.equal(event.phase, 'parked', 'must not taxi out mid-storm, no matter how overdue its dwell timer gets');
+  } finally {
+    Object.entries(originalGlobals).forEach(([key, value]) => {
+      if (value === undefined) delete global[key];
+      else global[key] = value;
+    });
+  }
+});
+
+test('a busy airport averages 3-4 concurrent aircraft, but never two on the runway or more than one per gate', () => {
   const originalGlobals = Object.fromEntries([
     'isoToScreen', 'TILE_WIDTH', 'TILE_HEIGHT', 'TILE_IMAGE_HEIGHT', 'BUILDING_SURFACE_Y_OFFSET',
     'buildingData', 'getWorldDepth', 'addToRenderLayer',
@@ -820,6 +933,7 @@ test('a busy airport keeps at least two aircraft on the apron almost always, but
     let maxConcurrent = 0;
     let ticksAtOrAboveTwo = 0;
     let measuredTicks = 0;
+    let concurrentSum = 0;
     const capacityErrors = [];
     const gateConflictErrors = [];
     const runwayConflictErrors = [];
@@ -842,6 +956,7 @@ test('a busy airport keeps at least two aircraft on the apron almost always, but
       }
       if (tick >= rampUpTicks) {
         measuredTicks++;
+        concurrentSum += events.length;
         if (events.length >= 2) ticksAtOrAboveTwo++;
       }
     }
@@ -853,15 +968,25 @@ test('a busy airport keeps at least two aircraft on the apron almost always, but
       maxConcurrent > 1,
       `expected to see more than one aircraft at the airport at once over the run (busier-airport goal); max observed was ${maxConcurrent}`,
     );
-    // Norton wants at least two aircraft on the apron essentially always,
-    // not just occasionally - spawning is unthrottled below gate capacity
-    // (see updateAircraftAirports), so once past the initial ramp-up this
-    // should hold the vast majority of the time, with brief dips only while
-    // a refill is still taxiing in after the other gate emptied out.
+    // Weaker sanity floor kept alongside the average check below - at least
+    // 2 essentially always, which the 3-4 average target already implies.
     const twoOrMoreRatio = ticksAtOrAboveTwo / measuredTicks;
     assert.ok(
       twoOrMoreRatio >= 0.9,
       `expected at least 2 concurrent aircraft on >=90% of post-ramp-up ticks, got ${(twoOrMoreRatio * 100).toFixed(1)}%`,
+    );
+    // Norton's actual density ask ("我想同時平均3-4架飛機在飛機場"): the mean
+    // concurrent count over the run should land in the 3-4 range he asked
+    // for, not just "more than one" - parkedDwellMinMs/MaxMs is tuned
+    // specifically to hit this (see AIRCRAFT_VISUAL_CONFIG's comment). A
+    // fixed seed makes this fully deterministic, not flaky, so the band only
+    // needs to be wide enough to survive future minor speed/dwell tweaks
+    // without masking a real regression back toward ~2 or up toward the
+    // 6-gate ceiling.
+    const averageConcurrent = concurrentSum / measuredTicks;
+    assert.ok(
+      averageConcurrent >= 3 && averageConcurrent <= 4.2,
+      `expected an average of ~3-4 concurrent aircraft, got ${averageConcurrent.toFixed(2)}`,
     );
   } finally {
     Object.entries(originalGlobals).forEach(([key, value]) => {

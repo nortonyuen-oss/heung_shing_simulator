@@ -23,6 +23,10 @@ const {
   chooseNextTrafficTile,
   isTrafficFlatRoadTile,
   getTrafficLegSpeedFactor,
+  isTrafficSevereWeather,
+  TRAFFIC_SEVERE_WEATHER_GROUNDED_CATEGORIES,
+  chooseTrafficModelForSpawn,
+  purgeSevereWeatherGroundedTraffic,
   canSpawnIceCreamTruckForWeather,
   isIceCreamTargetBuilding,
   findTrafficPathOutsideView,
@@ -139,6 +143,104 @@ test('ice cream truck only starts in dry clear or cloudy weather', () => {
       typhoonStage,
     );
   }
+});
+
+test('only signal 8 or above grounds buses and minibuses', () => {
+  ['none', 'signal1', 'signal3'].forEach((typhoonStage) => {
+    assert.equal(isTrafficSevereWeather({ typhoonStage }), false);
+  });
+  ['signal8', 'signal9', 'signal10'].forEach((typhoonStage) => {
+    assert.equal(isTrafficSevereWeather({ typhoonStage }), true);
+  });
+  assert.deepEqual([...TRAFFIC_SEVERE_WEATHER_GROUNDED_CATEGORIES].sort(), ['bus', 'minibus']);
+});
+
+test('signal8+ excludes buses and minibuses from new spawns, but leaves every other category untouched', () => {
+  // Regression test: "8號風球以上巴士小巴停駛" - only these two categories are
+  // grounded; taxis/cars/trucks/vans must keep spawning normally so overall
+  // traffic doesn't just vanish during a storm.
+  const scene = { textures: { exists: () => true } };
+  const originalCity = global.city;
+  try {
+    global.city = { weather: { typhoonStage: 'none' } };
+    assert.equal(chooseTrafficModelForSpawn(scene, () => 0).id, 'bus_kmb');
+
+    global.city = { weather: { typhoonStage: 'signal8' } };
+    const grounded = chooseTrafficModelForSpawn(scene, () => 0);
+    assert.equal(grounded.id, 'car_hrv', 'first non-grounded candidate once bus/minibus are filtered out');
+    for (let i = 0; i <= 20; i++) {
+      const model = chooseTrafficModelForSpawn(scene, () => i / 20);
+      assert.ok(model, `a model must still be pickable at pick=${i / 20}`);
+      assert.ok(
+        !TRAFFIC_SEVERE_WEATHER_GROUNDED_CATEGORIES.includes(model.category),
+        `${model.id} (${model.category}) must not spawn during signal8+`,
+      );
+    }
+
+    global.city = { weather: { typhoonStage: 'signal9' } };
+    assert.ok(!TRAFFIC_SEVERE_WEATHER_GROUNDED_CATEGORIES.includes(chooseTrafficModelForSpawn(scene, () => 0).category));
+
+    global.city = { weather: { typhoonStage: 'signal3' } };
+    assert.equal(chooseTrafficModelForSpawn(scene, () => 0).id, 'bus_kmb', 'below signal8, buses spawn normally again');
+  } finally {
+    if (originalCity === undefined) delete global.city;
+    else global.city = originalCity;
+  }
+});
+
+test('signal8+ immediately removes any bus/minibus already on the road, leaving other vehicles alone', () => {
+  // Regression test: "全部巴士小巴在路上消失" - a selective purge, not the
+  // blanket clearOrdinaryTrafficVisuals used for e.g. the zoom-out gate.
+  const destroyed = [];
+  const makeVehicle = (modelId) => ({
+    model: TRAFFIC_MODEL_BY_ID.get(modelId),
+    sprite: { destroy: () => destroyed.push(modelId) },
+  });
+  const state = {
+    vehicles: [makeVehicle('bus_kmb'), makeVehicle('car_hrv'), makeVehicle('minibus_green'), makeVehicle('taxi_red')],
+    dirty: false,
+  };
+
+  purgeSevereWeatherGroundedTraffic(state, { typhoonStage: 'none' });
+  assert.deepEqual(destroyed, []);
+  assert.equal(state.vehicles.length, 4, 'below signal8, nothing is purged');
+  assert.equal(state.dirty, false);
+
+  purgeSevereWeatherGroundedTraffic(state, { typhoonStage: 'signal8' });
+  assert.deepEqual(destroyed.sort(), ['bus_kmb', 'minibus_green']);
+  assert.deepEqual(state.vehicles.map((vehicle) => vehicle.model.id).sort(), ['car_hrv', 'taxi_red']);
+  assert.equal(state.dirty, true, 'purging must mark the view dirty so a refill is considered next refresh');
+
+  // Idempotent - nothing left to purge, second call is a safe no-op.
+  state.dirty = false;
+  purgeSevereWeatherGroundedTraffic(state, { typhoonStage: 'signal8' });
+  assert.equal(destroyed.length, 2);
+  assert.equal(state.dirty, false);
+});
+
+test('runtime traffic update calls the severe-weather purge on every frame, before the pause/zoom/refresh gates', () => {
+  // The purge (tested directly above) has to run unconditionally near the
+  // top of updateTrafficVisuals - after the visibility early-return, but
+  // before pause/zoom/dirty gating - so a bus/minibus vanishes the moment
+  // signal8+ is detected, even mid-pause or while zoomed out. A full
+  // behavioural run through updateTrafficVisuals itself would need a real
+  // road/tile network mocked up (refreshVisibleTraffic re-targets vehicle
+  // count from live road load, which would just delete the survivor for an
+  // unrelated reason in a roads-less fake scene) - source position is the
+  // precise, honest thing to assert here.
+  const moduleSource = fs.readFileSync(path.join(ROOT, 'traffic-visuals.js'), 'utf8');
+  const bodyStart = moduleSource.indexOf('function updateTrafficVisuals(time, delta) {');
+  const bodyEnd = moduleSource.indexOf('\nfunction ', bodyStart + 1);
+  const body = moduleSource.slice(bodyStart, bodyEnd);
+  const visibilityGateIndex = body.indexOf('if (scene.scene?.isVisible');
+  const purgeCallIndex = body.indexOf('purgeSevereWeatherGroundedTraffic(state,');
+  const pauseIndex = body.indexOf('const paused =');
+  const zoomGateIndex = body.indexOf('camera.zoom < TRAFFIC_VISUAL_CONFIG.zoomMin');
+  const refreshIndex = body.indexOf('refreshVisibleTraffic(scene, time)');
+  assert.ok(visibilityGateIndex >= 0 && purgeCallIndex > visibilityGateIndex, 'purge must run after the visibility early-return');
+  assert.ok(purgeCallIndex < pauseIndex, 'purge must run unconditionally, before pause is even computed');
+  assert.ok(purgeCallIndex < zoomGateIndex, 'purge must run before the zoom gate');
+  assert.ok(purgeCallIndex < refreshIndex, 'purge must run before refreshVisibleTraffic re-targets vehicle count');
 });
 
 test('ice cream targets include education sites and every non-airport visitor attraction', () => {

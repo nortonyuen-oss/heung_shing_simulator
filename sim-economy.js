@@ -553,12 +553,14 @@ function agePowerPlants(scene) {
 function getPowerPlantReplacementCost(type) {
   if (type === 'power_plant_coal') return COST_COAL_PLANT;
   if (type === 'power_plant_solar') return COST_SOLAR_PLANT;
+  if (type === 'power_plant_nuclear') return COST_NUCLEAR_PLANT;
   return 0;
 }
 
 function getPowerPlantDisplayName(type) {
   if (type === 'power_plant_coal') return t('building.coalPlant');
   if (type === 'power_plant_solar') return t('building.solarPlant');
+  if (type === 'power_plant_nuclear') return t('building.nuclearPlant');
   return t('building.generic');
 }
 

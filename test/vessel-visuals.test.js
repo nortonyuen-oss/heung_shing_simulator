@@ -155,24 +155,24 @@ test('vessel dock point uses the recorded visual anchor for every quay direction
   try {
     const portEntry = { row: 4, col: 4, record: { footprintCols: 4, footprintRows: 4 } };
     const north = vessels.getVesselDockPoint(portEntry, 'n', { offset: 1, center: { row: 3, col: 5 } });
-    assertClose(north.row, 2.7228, 'north/ur row');
-    assertClose(north.col, 5.066, 'north/ur col');
+    assertClose(north.row, 2.1961, 'north/ur row');
+    assertClose(north.col, 4.3718, 'north/ur col');
 
     const west = vessels.getVesselDockPoint(portEntry, 'w', { offset: 1, center: { row: 5, col: 3 } });
-    assertClose(west.row, 5.3157, 'west/ul row');
-    assertClose(west.col, 2.8102, 'west/ul col');
+    assertClose(west.row, 4.7771, 'west/ul row');
+    assertClose(west.col, 2.1519, 'west/ul col');
 
     const south = vessels.getVesselDockPoint(portEntry, 's', { offset: 1, center: { row: 8, col: 5 } });
-    assertClose(south.row, 7.8106, 'south/ll row');
-    assertClose(south.col, 5.4932, 'south/ll col');
+    assertClose(south.row, 7.2061, 'south/ll row');
+    assertClose(south.col, 4.9725, 'south/ll col');
 
     const east = vessels.getVesselDockPoint(portEntry, 'e', { offset: 1, center: { row: 5, col: 8 } });
-    assertClose(east.row, 5.3523, 'east/lr row');
-    assertClose(east.col, 7.7941, 'east/lr col');
+    assertClose(east.row, 4.6162, 'east/lr row');
+    assertClose(east.col, 7.1418, 'east/lr col');
 
     const bufferedNorth = vessels.getVesselDockPoint(portEntry, 'n', { offset: 2, center: { row: 2, col: 5 } });
-    assertClose(bufferedNorth.row, 1.7228, 'buffered north row');
-    assertClose(bufferedNorth.col, 5.066, 'buffered north col');
+    assertClose(bufferedNorth.row, 1.1961, 'buffered north row');
+    assertClose(bufferedNorth.col, 4.3718, 'buffered north col');
   } finally {
     Object.entries(originalGlobals).forEach(([key, value]) => {
       if (value === undefined) delete global[key];
@@ -182,12 +182,12 @@ test('vessel dock point uses the recorded visual anchor for every quay direction
 });
 
 test('route metadata preserves all four recorded quay-relative anchors exactly', () => {
-  assert.equal(vesselRouteMetadata.calibrationId, 'vessel-berth-2026-08-02-v10');
+  assert.equal(vesselRouteMetadata.calibrationId, 'vessel-berth-2026-08-07-v11');
   assert.deepEqual(vesselRouteMetadata.berthAnchorsByVisualVariant, {
-    ll: { alongFromQuayCenterTiles: 0.0068, normalFromQuayTiles: 0.8106 },
-    lr: { alongFromQuayCenterTiles: -0.1477, normalFromQuayTiles: 0.7941 },
-    ul: { alongFromQuayCenterTiles: 0.1843, normalFromQuayTiles: 1.1898 },
-    ur: { alongFromQuayCenterTiles: -0.434, normalFromQuayTiles: 1.2772 },
+    ll: { alongFromQuayCenterTiles: 0.5275, normalFromQuayTiles: 0.2061 },
+    lr: { alongFromQuayCenterTiles: -0.8838, normalFromQuayTiles: 0.1418 },
+    ul: { alongFromQuayCenterTiles: 0.7229, normalFromQuayTiles: 1.8481 },
+    ur: { alongFromQuayCenterTiles: -1.1282, normalFromQuayTiles: 1.8039 },
   });
   assert.deepEqual(vesselRouteMetadata.depthRulesByVisualVariant, {
     ll: { nearBerthMode: 'front-of-port', portDepthOffset: 1 },

@@ -10,23 +10,23 @@
 
 const VESSEL_ROUTE_METADATA_VALUE = Object.freeze({
   schemaVersion: 1,
-  calibrationId: 'vessel-berth-2026-08-02-v10',
+  calibrationId: 'vessel-berth-2026-08-07-v11',
   berthAnchorsByVisualVariant: Object.freeze({
     ll: Object.freeze({
-      alongFromQuayCenterTiles: 0.0068,
-      normalFromQuayTiles: 0.8106,
+      alongFromQuayCenterTiles: 0.5275,
+      normalFromQuayTiles: 0.2061,
     }),
     lr: Object.freeze({
-      alongFromQuayCenterTiles: -0.1477,
-      normalFromQuayTiles: 0.7941,
+      alongFromQuayCenterTiles: -0.8838,
+      normalFromQuayTiles: 0.1418,
     }),
     ul: Object.freeze({
-      alongFromQuayCenterTiles: 0.1843,
-      normalFromQuayTiles: 1.1898,
+      alongFromQuayCenterTiles: 0.7229,
+      normalFromQuayTiles: 1.8481,
     }),
     ur: Object.freeze({
-      alongFromQuayCenterTiles: -0.434,
-      normalFromQuayTiles: 1.2772,
+      alongFromQuayCenterTiles: -1.1282,
+      normalFromQuayTiles: 1.8039,
     }),
   }),
   depthRulesByVisualVariant: Object.freeze({

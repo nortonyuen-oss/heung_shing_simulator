@@ -36,6 +36,36 @@ test('explicit performance query enables Phase 0 mode without the hidden click g
   calibrator.setVisualRouteCalibrationTestModeEnabled(false);
 });
 
+test('a `?performance=1` launch collects data silently without popping the panel open', () => {
+  calibrator.setVisualRouteCalibrationTestModeEnabled(false);
+  assert.equal(calibrator.isVisualRoutePerformancePanelVisible(), false);
+  assert.equal(calibrator.setupVisualRoutePerformanceMode({ search: '?performance=1' }), true);
+  assert.equal(calibrator.isVisualRouteCalibrationTestModeEnabled(), true, 'instrumentation runs in the background');
+  assert.equal(calibrator.isVisualRoutePerformancePanelVisible(), false, 'the panel must not auto-open');
+  // A follow-up click reveals the panel instead of tearing down the session -
+  // most players are on the About icon looking for it, so it should not cost
+  // them the run they came to inspect.
+  assert.equal(calibrator.handleVisualRouteCalibrationUnlockClick(1000), true);
+  assert.equal(calibrator.isVisualRouteCalibrationTestModeEnabled(), true);
+  assert.equal(calibrator.isVisualRoutePerformancePanelVisible(), true);
+  // Only once the panel is already visible does the same click fully exit.
+  assert.equal(calibrator.handleVisualRouteCalibrationUnlockClick(1200), false);
+  assert.equal(calibrator.isVisualRouteCalibrationTestModeEnabled(), false);
+  assert.equal(calibrator.isVisualRoutePerformancePanelVisible(), false);
+});
+
+test('the five-click gesture still opens the panel together with test mode for manual dev use', () => {
+  calibrator.setVisualRouteCalibrationTestModeEnabled(false);
+  [1000, 1200, 1400, 1600].forEach((timestamp) => {
+    calibrator.handleVisualRouteCalibrationUnlockClick(timestamp);
+  });
+  assert.equal(calibrator.isVisualRoutePerformancePanelVisible(), false);
+  assert.equal(calibrator.handleVisualRouteCalibrationUnlockClick(1800), true);
+  assert.equal(calibrator.isVisualRouteCalibrationTestModeEnabled(), true);
+  assert.equal(calibrator.isVisualRoutePerformancePanelVisible(), true);
+  calibrator.setVisualRouteCalibrationTestModeEnabled(false);
+});
+
 test('the performance panel has a close button that disables test mode without retriggering the icon gesture', () => {
   const source = fs.readFileSync(path.join(ROOT, 'visual-route-calibrator.js'), 'utf8');
   assert.match(source, /class="vrp-close-btn"[^>]*>✕<\/button>/);

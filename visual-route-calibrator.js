@@ -33,6 +33,14 @@ const visualRoutePerformanceSession = {
   longTaskObserver: null,
 };
 let visualRouteCalibrationTestModeEnabled = false;
+// Independent from the flag above: instrumentation (samples/milestones/long
+// tasks) runs whenever test mode is enabled, by either path below, but the
+// visible panel only opens through a deliberate action - the five-click
+// gesture, or a follow-up click once already unlocked. A `?performance=1`
+// launch must never pop the panel open on its own, or a profiling run started
+// unattended (e.g. for a recorded benchmark) would have it obscuring the
+// screen from the first frame.
+let visualRoutePerformancePanelVisible = false;
 let visualRouteCalibrationUnlockCount = 0;
 let visualRouteCalibrationLastUnlockClickAt = -Infinity;
 
@@ -43,11 +51,15 @@ function updateVisualRouteCalibrationTestModeIndicator() {
   const icon = document.getElementById('about-app-icon');
   icon?.setAttribute?.('aria-pressed', String(visualRouteCalibrationTestModeEnabled));
   const performancePanel = document.getElementById('visual-route-performance-panel');
-  if (performancePanel) performancePanel.hidden = !visualRouteCalibrationTestModeEnabled;
+  if (performancePanel) performancePanel.hidden = !visualRoutePerformancePanelVisible;
 }
 
 function isVisualRouteCalibrationTestModeEnabled() {
   return visualRouteCalibrationTestModeEnabled;
+}
+
+function isVisualRoutePerformancePanelVisible() {
+  return visualRoutePerformancePanelVisible;
 }
 
 function isVisualRoutePerformanceModeRequested(locationValue = globalThis.location) {
@@ -128,17 +140,34 @@ function recordVisualRoutePerformanceOperation(name, durationMs, details = {}) {
   return true;
 }
 
+function activateVisualRoutePerformanceInstrumentation() {
+  const now = visualRoutePerformanceNow();
+  if (!Number.isFinite(visualRoutePerformanceSession.enabledAtMs)) {
+    visualRoutePerformanceSession.enabledAtMs = now;
+  }
+  if (!Number.isFinite(visualRoutePerformanceSession.baselineStartedAtMs)) {
+    visualRoutePerformanceSession.baselineStartedAtMs = now;
+  }
+  setupVisualRoutePerformanceLongTaskObserver();
+}
+
+// `?performance=1` starts instrumentation immediately (so a benchmark run
+// captures every frame from launch) but deliberately leaves the panel
+// closed - see the note on visualRoutePerformancePanelVisible above.
 function setupVisualRoutePerformanceMode(locationValue = globalThis.location) {
   const requested = isVisualRoutePerformanceModeRequested(locationValue);
   if (!requested) return false;
   visualRoutePerformanceSession.requested = true;
-  setVisualRouteCalibrationTestModeEnabled(true);
+  visualRouteCalibrationTestModeEnabled = true;
+  activateVisualRoutePerformanceInstrumentation();
+  updateVisualRouteCalibrationTestModeIndicator();
   recordVisualRoutePerformanceMilestone('profilerEnabled');
   return true;
 }
 
 function setVisualRouteCalibrationTestModeEnabled(enabled) {
   visualRouteCalibrationTestModeEnabled = !!enabled;
+  visualRoutePerformancePanelVisible = visualRouteCalibrationTestModeEnabled;
   visualRouteCalibrationUnlockCount = 0;
   visualRouteCalibrationLastUnlockClickAt = -Infinity;
   if (!visualRouteCalibrationTestModeEnabled) {
@@ -146,14 +175,7 @@ function setVisualRouteCalibrationTestModeEnabled(enabled) {
       clearVisualRouteCalibrationTarget(state.scene);
     });
   } else {
-    const now = visualRoutePerformanceNow();
-    if (!Number.isFinite(visualRoutePerformanceSession.enabledAtMs)) {
-      visualRoutePerformanceSession.enabledAtMs = now;
-    }
-    if (!Number.isFinite(visualRoutePerformanceSession.baselineStartedAtMs)) {
-      visualRoutePerformanceSession.baselineStartedAtMs = now;
-    }
-    setupVisualRoutePerformanceLongTaskObserver();
+    activateVisualRoutePerformanceInstrumentation();
   }
   updateVisualRouteCalibrationTestModeIndicator();
   return visualRouteCalibrationTestModeEnabled;
@@ -161,6 +183,14 @@ function setVisualRouteCalibrationTestModeEnabled(enabled) {
 
 function handleVisualRouteCalibrationUnlockClick(now = Date.now()) {
   if (visualRouteCalibrationTestModeEnabled) {
+    // Instrumentation already running silently (a `?performance=1` launch) -
+    // the first click just reveals the panel instead of tearing everything
+    // down, so a profiling session can be inspected without losing its data.
+    if (!visualRoutePerformancePanelVisible) {
+      visualRoutePerformancePanelVisible = true;
+      updateVisualRouteCalibrationTestModeIndicator();
+      return true;
+    }
     return setVisualRouteCalibrationTestModeEnabled(false);
   }
   const timestamp = Number(now);
@@ -1128,6 +1158,7 @@ const visualRouteCalibrationTestApi = {
   getVisualRouteCalibrationCollection,
   getVisualRouteCalibrationState,
   isVisualRouteCalibrationTestModeEnabled,
+  isVisualRoutePerformancePanelVisible,
   isVisualRoutePerformanceModeRequested,
   setVisualRouteCalibrationTestModeEnabled,
   setupVisualRoutePerformanceMode,
@@ -1160,6 +1191,7 @@ if (typeof globalThis !== 'undefined') {
     syncVisualRouteCalibrationTarget,
     isVisualRouteCalibrationInputCaptured,
     isVisualRouteCalibrationTestModeEnabled,
+    isVisualRoutePerformancePanelVisible,
     isVisualRoutePerformanceModeRequested,
     setVisualRouteCalibrationTestModeEnabled,
     setupVisualRoutePerformanceMode,

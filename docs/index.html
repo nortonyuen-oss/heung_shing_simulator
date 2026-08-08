@@ -10,8 +10,9 @@
   <meta property="og:image" content="assets/backgroundTitle.png" />
   <meta name="theme-color" content="#17212d" />
   <link rel="icon" href="assets/icon.png" />
-  <link rel="stylesheet" href="styles.css?v=20260711-2" />
-  <script src="site.js?v=20260711-2" defer></script>
+  <link rel="stylesheet" href="styles.css?v=20260808-1" />
+  <script src="i18n.js?v=20260808-1" defer></script>
+  <script src="site.js?v=20260808-1" defer></script>
 </head>
 <body>
   <header class="site-header" aria-label="網站導覽">
@@ -20,83 +21,57 @@
       <span>香城模擬器</span>
     </a>
     <nav>
-      <a href="#gallery">截圖</a>
-      <a href="#downloads">下載</a>
-      <a href="#manual">玩家手冊</a>
-      <a href="#stats">統計</a>
-      <a href="#changelog">版本</a>
-      <a href="https://github.com/nortonyuen-oss/heung_shing_simulator" rel="noopener">GitHub</a>
+      <a href="#gallery" data-i18n="nav.gallery">截圖</a>
+      <a href="#downloads" data-i18n="nav.downloads">下載</a>
+      <a href="#manual" data-i18n="nav.manual">玩家手冊</a>
+      <a href="guide.html" data-i18n="nav.guide">遊戲指南</a>
+      <a href="#stats" data-i18n="nav.stats">統計</a>
+      <a href="#changelog" data-i18n="nav.changelog">版本</a>
+      <a href="https://github.com/nortonyuen-oss/heung_shing_simulator" rel="noopener" data-i18n="nav.github">GitHub</a>
+      <div class="lang-switcher" data-language-switcher></div>
     </nav>
   </header>
 
   <main id="top">
     <section class="hero">
       <div class="hero-content">
-        <p class="eyebrow">香城模擬器 v3.9.0 — 好岸居</p>
-        <h1>香城模擬器</h1>
-        <p class="lede">一款向 SimCity 2000 致敬的城市建設遊戲。v3.9.0「好岸居」向香港真實嘅房屋政策睇齊：公共/私人房屋比例全面重整，低密度地一經規劃就永久鎖定，唔會之後被起返屋邨。</p>
+        <p class="eyebrow" data-i18n="hero.eyebrowPrefix">香城模擬器</p>
+        <h1 data-i18n="hero.title">香城模擬器</h1>
+        <p class="lede" data-i18n="hero.lede">一款向 SimCity 2000 致敬的城市建設遊戲。v3.9.0「好岸居」向香港真實嘅房屋政策睇齊：公共/私人房屋比例全面重整，低密度地一經規劃就永久鎖定，唔會之後被起返屋邨。</p>
         <div class="hero-actions">
-          <a class="button primary" href="#downloads">下載遊戲</a>
-          <a class="button secondary" href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest" rel="noopener" data-release-link>最新版本</a>
+          <a class="button primary" href="#downloads" data-i18n="hero.downloadBtn">下載遊戲</a>
+          <a class="button secondary" href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest" rel="noopener" data-release-link data-i18n="hero.latestBtn">最新版本</a>
+          <a class="button secondary" href="guide.html" data-i18n="hero.guideBtn">睇遊戲指南</a>
         </div>
       </div>
     </section>
 
     <section id="gallery" class="gallery">
       <div class="section-head">
-        <p class="eyebrow">Screenshots</p>
-        <h2>遊戲截圖</h2>
+        <p class="eyebrow" data-i18n="gallery.eyebrow">Screenshots</p>
+        <h2 data-i18n="gallery.title">遊戲截圖</h2>
       </div>
 
-      <div class="gallery-grid">
-        <figure class="gallery-item">
-          <img src="assets/weatherSystem.png" alt="城市頂部天氣狀態列，顯示溫度、濕度同暴雨警告徽章" loading="lazy" />
-          <figcaption>即時天氣狀態列：溫度、濕度、風球同暴雨警告一目了然，天色仲會隨天氣變暗。</figcaption>
-        </figure>
-        <figure class="gallery-item">
-          <img src="assets/typhoonSystem.png" alt="颱風八號風球號外頭條，天文台台長發言" loading="lazy" />
-          <figcaption>天文台台長親自公布颱風信號，八號或以上仲會彈出蘋果日報式「號外」頭條。</figcaption>
-        </figure>
-        <figure class="gallery-item">
-          <img src="assets/ourNewCouncilMembers.png" alt="市政會議視窗，顯示十位官員及議員名單" loading="lazy" />
-          <figcaption>全新立法會：十位有名有姓嘅官員議員，會按稅率、治安、環境等城市數據表達立場。</figcaption>
-        </figure>
-        <figure class="gallery-item">
-          <img src="assets/stockMarket.png" alt="股票交易所視窗，顯示恒生指數同企業股票報價" loading="lazy" />
-          <figcaption>股票交易所：恒生指數、企業股票報價，同法案生效狀態即時連動。</figcaption>
-        </figure>
-        <figure class="gallery-item">
-          <img src="assets/nameYourDistrict.png" alt="城市入面嘅將軍澳雙語分區路牌" loading="lazy" />
-          <figcaption>自訂雙語分區路牌，為你城市每一區起中英文名。</figcaption>
-        </figure>
-        <figure class="gallery-item">
-          <img src="assets/nameYourDistrict2.png" alt="分區命名對話框" loading="lazy" />
-          <figcaption>隨時改名、隨時重劃，分區數據會即時反映落地區新聞入面。</figcaption>
-        </figure>
-        <figure class="gallery-item">
-          <img src="assets/connectWithFreeAPIKey.png" alt="AI 新聞設定視窗，連接 Ollama 雲端" loading="lazy" />
-          <figcaption>免費連接 Ollama Cloud，貼上一次 API key 就可以啟用 AI 新聞標題。</figcaption>
-        </figure>
-      </div>
+      <div class="gallery-grid" data-render="gallery"></div>
     </section>
 
     <section id="stats" class="stats-strip" aria-label="網站統計">
       <p class="stats-record">
         <span class="stats-record-item">
-          <span class="stat-label">最新版本</span>
+          <span class="stat-label" data-i18n="stats.latestVersion">最新版本</span>
           <strong class="stat-value" data-latest-version>v3.9.0</strong>
           <span data-latest-published>2026年8月8日發布</span>
         </span>
         <span class="stats-record-item">
-          <span class="stat-label">最新版本下載</span>
+          <span class="stat-label" data-i18n="stats.latestDownloads">最新版本下載</span>
           <strong class="stat-value" data-latest-downloads>載入中</strong>
         </span>
         <span class="stats-record-item">
-          <span class="stat-label">全部版本下載</span>
+          <span class="stat-label" data-i18n="stats.allDownloads">全部版本下載</span>
           <strong class="stat-value" data-all-downloads>載入中</strong>
         </span>
         <span class="stats-record-item">
-          <span class="stat-label">入口瀏覽</span>
+          <span class="stat-label" data-i18n="stats.totalViews">入口瀏覽</span>
           <span class="badge-value">
             <img
               src="https://hits.sh/nortonyuen-oss.github.io/heung_shing_simulator.svg?view=total&label=views&color=1f5d64&labelColor=17212d"
@@ -111,446 +86,106 @@
 
     <section id="downloads" class="downloads">
       <div class="section-head">
-        <p class="eyebrow">Downloads</p>
-        <h2>選擇你的平台</h2>
+        <p class="eyebrow" data-i18n="downloads.eyebrow">Downloads</p>
+        <h2 data-i18n="downloads.title">選擇你的平台</h2>
       </div>
 
       <div class="download-grid">
-        <article class="download-card">
+        <article class="download-card" data-render="download-card">
           <div>
-            <span class="platform">macOS</span>
-            <h3>Mac Apple Silicon</h3>
-            <p>適合 M1、M2、M3、M4 或更新的 Mac。下載 DMG 後拖入「應用程式」即可安裝。</p>
+            <span class="platform" data-field="platform">macOS</span>
+            <h3 data-field="title">Mac Apple Silicon</h3>
+            <p data-field="desc">適合 M1、M2、M3、M4 或更新的 Mac。下載 DMG 後拖入「應用程式」即可安裝。</p>
           </div>
           <div class="download-actions">
-            <a class="download-link" href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest/download/The.City.of.Heung.Shing-3.9.0-arm64.dmg" data-download-link="mac-arm64">下載 ARM64 DMG</a>
+            <a class="download-link" href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest/download/The.City.of.Heung.Shing-3.9.0-arm64.dmg" data-download-link="mac-arm64" data-field="btn">下載 ARM64 DMG</a>
             <span class="download-count" data-download-count="mac-arm64">下載數載入中</span>
           </div>
         </article>
 
-        <article class="download-card">
+        <article class="download-card" data-render="download-card">
           <div>
-            <span class="platform">macOS</span>
-            <h3>Mac Intel</h3>
-            <p>適合 Intel CPU 的 Mac。下載 DMG 後拖入「應用程式」即可安裝。</p>
+            <span class="platform" data-field="platform">macOS</span>
+            <h3 data-field="title">Mac Intel</h3>
+            <p data-field="desc">適合 Intel CPU 的 Mac。下載 DMG 後拖入「應用程式」即可安裝。</p>
           </div>
           <div class="download-actions">
-            <a class="download-link" href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest/download/The.City.of.Heung.Shing-3.9.0-x64.dmg" data-download-link="mac-x64">下載 Intel DMG</a>
+            <a class="download-link" href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest/download/The.City.of.Heung.Shing-3.9.0-x64.dmg" data-download-link="mac-x64" data-field="btn">下載 Intel DMG</a>
             <span class="download-count" data-download-count="mac-x64">下載數載入中</span>
           </div>
         </article>
 
-        <article class="download-card">
+        <article class="download-card" data-render="download-card">
           <div>
-            <span class="platform">Windows</span>
-            <h3>Windows 安裝版</h3>
-            <p>推薦大部分玩家使用。安裝後會加入一般應用程式捷徑。</p>
+            <span class="platform" data-field="platform">Windows</span>
+            <h3 data-field="title">Windows 安裝版</h3>
+            <p data-field="desc">推薦大部分玩家使用。安裝後會加入一般應用程式捷徑。</p>
           </div>
           <div class="download-actions">
-            <a class="download-link" href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest/download/The.City.of.Heung.Shing.Setup.3.9.0.exe" data-download-link="windows-setup">下載安裝版 EXE</a>
+            <a class="download-link" href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest/download/The.City.of.Heung.Shing.Setup.3.9.0.exe" data-download-link="windows-setup" data-field="btn">下載安裝版 EXE</a>
             <span class="download-count" data-download-count="windows-setup">下載數載入中</span>
           </div>
         </article>
 
-        <article class="download-card">
+        <article class="download-card" data-render="download-card">
           <div>
-            <span class="platform">Windows</span>
-            <h3>Windows 免安裝版</h3>
-            <p>不用安裝，下載後直接執行。適合快速試玩或分享給朋友。</p>
+            <span class="platform" data-field="platform">Windows</span>
+            <h3 data-field="title">Windows 免安裝版</h3>
+            <p data-field="desc">不用安裝，下載後直接執行。適合快速試玩或分享給朋友。</p>
           </div>
           <div class="download-actions">
-            <a class="download-link" href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest/download/The.City.of.Heung.Shing.3.9.0.exe" data-download-link="windows-portable">下載免安裝版 EXE</a>
+            <a class="download-link" href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest/download/The.City.of.Heung.Shing.3.9.0.exe" data-download-link="windows-portable" data-field="btn">下載免安裝版 EXE</a>
             <span class="download-count" data-download-count="windows-portable">下載數載入中</span>
           </div>
         </article>
       </div>
 
-      <p class="notice">AI 新聞屬選用功能。安裝後請在「設定 → AI 新聞」貼上你自己嘅 Ollama API key；遊戲及安裝檔不包含任何開發者密鑰。未設定 AI 亦可照常使用模擬新聞。現時安裝檔尚未完成簽章，macOS Gatekeeper 或 Windows SmartScreen 可能會在第一次開啟時要求確認。</p>
+      <p class="notice" data-i18n="downloads.notice">AI 新聞屬選用功能。安裝後請在「設定 → AI 新聞」貼上你自己嘅 Ollama API key；遊戲及安裝檔不包含任何開發者密鑰。未設定 AI 亦可照常使用模擬新聞。現時安裝檔尚未完成簽章，macOS Gatekeeper 或 Windows SmartScreen 可能會在第一次開啟時要求確認。</p>
     </section>
 
     <section id="manual" class="manual">
       <div class="section-head">
-        <p class="eyebrow">User Manual</p>
-        <h2>特殊建築解鎖規格</h2>
-        <p class="manual-intro">除資金、空地及 footprint 外，以下建築需要額外城市條件。首次達標時，遊戲走馬燈及香城討論區會發出一次解鎖通知。</p>
+        <p class="eyebrow" data-i18n="manual.eyebrow">User Manual</p>
+        <h2 data-i18n="manual.title">特殊建築解鎖規格</h2>
+        <p class="manual-intro" data-i18n="manual.intro">除資金、空地及 footprint 外，以下建築需要額外城市條件。首次達標時，遊戲走馬燈及香城討論區會發出一次解鎖通知。</p>
       </div>
       <div class="manual-table-wrap">
         <table class="manual-table">
           <thead><tr><th>建築</th><th>解鎖條件</th><th>上限／選單行為</th></tr></thead>
-          <tbody>
-            <tr><td>社區廟宇</td><td>人口 3,000</td><td>最多 4 座</td></tr>
-            <tr><td>教堂</td><td>人口 5,000</td><td>最多 2 座</td></tr>
-            <tr><td>立法會</td><td>人口 10,000</td><td>最多 1 座；達標後才出現</td></tr>
-            <tr><td>大佛</td><td>人口 12,000</td><td>最多 1 座</td></tr>
-            <tr><td>大型廟宇</td><td>人口 12,000；吸引力 35</td><td>最多 1 座</td></tr>
-            <tr><td>太空館</td><td>人口 15,000；「科研發展法」生效</td><td>最多 1 座</td></tr>
-            <tr><td>貨櫃碼頭</td><td>人口 15,000；4×4 footprint 貼住連續四格水邊，或沙灘後方緊接海水</td><td>不限數量</td></tr>
-            <tr><td>文化中心</td><td>人口 20,000</td><td>最多 1 座</td></tr>
-            <tr><td>會展中心／紅磡體育館</td><td>人口 30,000</td><td>各最多 1 座</td></tr>
-            <tr><td>海洋公園</td><td>立法會；人口 35,000；月收入 $6,000；月盈餘 $1,000；經濟 50；支付 $10,000 提案並獲批</td><td>批准前隱藏；8×8；建造費 $22,000</td></tr>
-            <tr><td>城超聯主場</td><td>人口 40,000</td><td>最多 1 座</td></tr>
-            <tr><td>股票交易所</td><td>立法會；人口 50,000；「股票交易所法案」生效</td><td>最多 1 座；達標後才出現</td></tr>
-            <tr><td>美利樓</td><td>城市吸引力 60</td><td>最多 1 座</td></tr>
-            <tr><td>玫瑰園國際機場</td><td>立法會；人口 80,000；月收入 $12,000；月盈餘 $2,000；經濟 65；支付 $25,000 提案並獲批</td><td>批准前隱藏；12×12；建造費 $150,000</td></tr>
-          </tbody>
+          <tbody data-render="manual-table"></tbody>
         </table>
       </div>
-      <h3>分區自然生成</h3>
-      <ul class="manual-notes">
-        <li><strong>科學園：</strong>高等教育至少 0.80，並只會使用 2×2 或以上工業 footprint；科研發展法會提高出現機率。</li>
-        <li><strong>出現比例：</strong>公共／大眾房屋（L）喺中高密度區為大宗，最高質素地段都仲有五成；私樓（M）為次要，豪宅／甲級寫字樓（H）為真正少數，最高質素地段封頂約一成半。</li>
-        <li><strong>UH 富豪住宅：</strong>只限低密度嘅 3×3 莊園地段，並要求高地價、景觀、環境、健康、經濟及低污染，最高質素區間基本權重 3%。</li>
-        <li><strong>UH 世界級摩天大樓：</strong>只限高密度商業，城市必須同時有股票交易所及機場，代表匯豐總行、中銀大廈呢類全城獨有地標，並無數量上限。</li>
-        <li><strong>低密度規劃永久鎖定：</strong>一幅地一經劃為低密度住宅，就永遠唔可以再改做中／高密度，保持村屋、別墅嘅低層風貌。</li>
-        <li>H／UH 按個別地段評估，不屬於全城一次性解鎖。</li>
-      </ul>
-      <p class="manual-source"><a href="user-manual.md">閱讀完整數值規格</a></p>
+      <h3 data-i18n="manual.notesTitle">分區自然生成</h3>
+      <ul class="manual-notes" data-render="manual-notes"></ul>
+      <p class="manual-source">
+        <a href="user-manual.md" data-i18n="manual.sourceLink">閱讀完整數值規格</a>
+        · <a href="guide.html" data-i18n="manual.guideLink">睇完整遊戲規則指南 →</a>
+      </p>
     </section>
 
     <section id="changelog" class="changelog">
       <div class="section-head">
-        <p class="eyebrow">Release Notes</p>
-        <h2>版本變更說明</h2>
+        <p class="eyebrow" data-i18n="changelog.eyebrow">Release Notes</p>
+        <h2 data-i18n="changelog.title">版本變更說明</h2>
       </div>
 
-      <div class="release-list">
-        <article class="release-card current-release">
-          <div class="release-meta">
-            <span>v3.9.0</span>
-            <time datetime="2026-08-08">2026年8月8日</time>
-          </div>
-          <h3>好岸居</h3>
-          <ul>
-            <li>重新設計住宅同商業建築嘅出現機率，向香港真實嘅房屋政策睇齊：公共/大眾房屋（L）喺中高密度區成為大宗，私樓（M）為次要，豪宅／甲級寫字樓（H）變返真正嘅少數。</li>
-            <li>新增「低密度規劃永久鎖定」：一幅地一經劃為低密度住宅，就永遠唔可以再改做中／高密度，就算推倒重來都好，保持低密度區嘅村屋／別墅風格。</li>
-            <li>修正低密度 3x3 莊園後門，加入「大地皮優先掃描」令 5x5 住宅大廈唔會再被四周細屋搶晒地。</li>
-            <li>商業區加入兩款全新街市場景模型（女人街／廟街風）同一款分層商場大廈模型，並同步重整商業機率分佈。</li>
-          </ul>
-        </article>
-
-        <article class="release-card">
-          <div class="release-meta">
-            <span>v3.8.1</span>
-            <time datetime="2026-08-08">2026年8月8日</time>
-          </div>
-          <h3>衝上雲霄 穩定性更新</h3>
-          <ul>
-            <li>重新校正貨櫃船四個泊位位置（ll/lr/ul/ur）：上一版飛機彎曲航線嘅改動意外一併帶入咗一次校準漂移，令泊位偏離咗 v3.7.2 已驗證嘅位置。</li>
-            <li>修復「自動更換老化發電廠」設定冇套用到核電廠：發電廠更換成本同顯示名稱查詢一直得燃煤同太陽能兩種，令核電廠壽命到咗都只會荒廢，唔會自動更換。</li>
-          </ul>
-        </article>
-
-        <article class="release-card">
-          <div class="release-meta">
-            <span>v3.8.0</span>
-            <time datetime="2026-08-02">2026年8月2日</time>
-          </div>
-          <h3>衝上雲霄</h3>
-          <ul>
-            <li>加入完整機場客機活動：兩間航空公司四方向飛機會沿彎曲航線進場、降落、滑行泊位、離閘再起飛，並配上升降聲效。</li>
-            <li>每個機場設六個校準閘口，平均同時有三至四架客機；跑道一次只容許一架飛機使用，旋轉地圖後航線仍然準確貼合機場。</li>
-            <li>八號風球或以上暫停新航班同客機離閘，已泊位飛機會留喺機場；已經升降中嘅航班會安全完成目前航段。</li>
-            <li>八號風球或以上巴士同小巴即時停駛並從路面消失，的士、私家車、貨車同客貨車則繼續行駛。</li>
-            <li>重新校準貨櫃船泊位，並把飛機／船舶航線改為隨遊戲發佈嘅固定 metadata；下載網站亦換上新 icon。</li>
-          </ul>
-        </article>
-
-        <article class="release-card">
-          <div class="release-meta">
-            <span>v3.7.2</span>
-            <time datetime="2026-08-02">2026年8月2日</time>
-          </div>
-          <h3>貨櫃碼頭！穩定性更新</h3>
-          <ul>
-            <li>修復大城市長時間遊玩容易卡頓嘅問題：住宅嘅樹木同景觀分數改為每個遊戲月先重新計算一次並共用結果，唔再每個 tick 都重新掃描全地圖。</li>
-            <li>加入畫面當機／無回應自動復原：桌面版一旦偵測到遊戲畫面當機或者卡住超過幾秒，會彈窗提供重新載入，唔使再強制退出。</li>
-            <li>電力短缺改為透過住宅／商業／工業需求影響城市發展，唔再直接觸發地皮衰落或者扣減快樂指數。</li>
-            <li>隱藏效能測試面板加入關閉掣，唔使再重複五連撳先關到。</li>
-          </ul>
-        </article>
-
-        <article class="release-card">
-          <div class="release-meta">
-            <span>v3.7.0</span>
-            <time datetime="2026-08-01">2026年8月1日</time>
-          </div>
-          <h3>貨櫃碼頭！</h3>
-          <ul>
-            <li>加入四方向貨櫃船活動：由畫面外沿海路進港、平行靠泊、交換貨物並鳴笛，再沿航線離港。</li>
-            <li>按四款碼頭視角逐一校正船舶中心、碼頭中心、離岸距離及圖層關係，停泊位置不再因旋轉方向偏移。</li>
-            <li>靠泊前最後三格及離港後最初三格保持與岸邊平行，外海航線則按真實連通水域繞行。</li>
-            <li>加入 route cache、畫面範圍判斷及模型延遲載入，避免重複尋路，離開畫面嘅碼頭幾乎不增加運算負擔。</li>
-            <li>加入可選顏色嘅中英文城市名牌，並擴大建築、樹木及 overlay 嘅 viewport culling，改善大型城市效能。</li>
-          </ul>
-        </article>
-
-        <article class="release-card">
-          <div class="release-meta">
-            <span>v3.6.0</span>
-            <time datetime="2026-07-26">2026年7月26日</time>
-          </div>
-          <h3>車公靈籤</h3>
-          <ul>
-            <li>加入18支香城原創七言籤文，上、中、下籤各六支；每年正月由官員到廟宇代表全城求籤。</li>
-            <li>籤運會按經濟、股災及疫情輕微調整，並避開最近三年籤號；結果和當時城市狀況會存檔，重新載入不會重抽。</li>
-            <li>每支籤均有完整籤文、政府解釋、廟祝祥叔解釋及三則灰色幽默市民回應，只刊登討論區與 ticker，不彈阻擋式號外。</li>
-            <li>加入「活化工廈」政策，以工業需求、收入及減污染換取工業區附近嚴重交通壓力。</li>
-            <li>加入須先通過科研發展法的「強國製造20XX」，以及搭雞棚、公帑補助與科研得獎的延遲新聞。</li>
-            <li>討論區各欄改為最新新聞置頂並最多顯示15條，另加入罕見的杏壇中學實驗室爆炸事件。</li>
-          </ul>
-        </article>
-
-        <article class="release-card">
-          <div class="release-meta">
-            <span>v3.5.0</span>
-            <time datetime="2026-07-26">2026年7月26日</time>
-          </div>
-          <h3>夢幻雪糕車</h3>
-          <ul>
-            <li>天晴或多雲時，雪糕車會隨機探訪小學、中學、專上學院、大學，以及真正具遊客吸引力的景點。</li>
-            <li>雪糕車由目前縮放畫面之外駛入，沿道路前往目標，按香港左側行車方向選擇建築物同一邊的行人路路邊。</li>
-            <li>進站及離站改用向前斜切的曲線，自然靠近路邊、播放雪糕車音樂，再匯入行車線並駛出目前畫面。</li>
-            <li>雪糕車音樂會與其他城市背景聲混音，並跟隨環境音量、鏡頭距離與遊戲暫停狀態。</li>
-            <li>存檔會一併記錄地圖中心位置、縮放比例及旋轉方向，重新載入後不再重設視角；舊存檔仍可正常使用。</li>
-            <li>取消一般人口增加的重複通知，特殊建築解鎖等重要提示不受影響。</li>
-          </ul>
-        </article>
-
-        <article class="release-card">
-          <div class="release-meta">
-            <span>v3.4.0</span>
-            <time datetime="2026-07-26">2026年7月26日</time>
-          </div>
-          <h3>可視交通車流、香港左側行車與山路橋面更新</h3>
-          <ul>
-            <li>加入十九款巴士、私家車、小巴、的士、貨車及客貨車，共七十六張方向貼圖；各車種按實際長短使用獨立城市比例。</li>
-            <li>車流按可視範圍交通量加權生成，採用香港左側行車、分離雙向行車線、路口曲線轉彎及前後車安全距離。</li>
-            <li>車輛可連續駛過高地道路、普通斜坡、山脊、橋斜坡及橋面；上坡會減速，落斜坡及旋轉視角時仍保持正確高度與方向。</li>
-            <li>只有放大至指定比例先延遲載入車輛，縮小或離開畫面即清走；離屏道路不建立或渲染車流。</li>
-            <li>加入地形 viewport culling、分批生成、有限路段轉移、貼圖逐批載入及 depth 批次更新，改善大型城市載入與移動畫面時的效能。</li>
-            <li>交通只屬即時視覺層，不修改城市經濟、交通地圖或存檔格式，舊城市可直接載入。</li>
-          </ul>
-        </article>
-
-        <article class="release-card">
-          <div class="release-meta">
-            <span>v3.3.0</span>
-            <time datetime="2026-07-22">2026年7月22日</time>
-          </div>
-          <h3>大型項目、城市新聞與特殊建築解鎖更新</h3>
-          <ul>
-            <li>海洋公園改為 8×8 議會項目，按人口、收入、盈餘及經濟指數審批；機場與大型項目保留舊存檔 footprint fallback。</li>
-            <li>新增機場批准、海洋公園活動及股災討論區圖片與新聞；八號或以上風球會按颱風名稱及天文台台長產生避風與水浸帖文。</li>
-            <li>名人訪問、演唱會、企鵝保育、教堂及大學新聞改為要求相關建築真正存在。</li>
-            <li>重新啟用科學園模型並保留兩階段安全載入；改善工業區模型分類及貼圖失敗保護。</li>
-            <li>修正貨櫃碼頭沙灘海岸、重複岸邊及旋轉方向；海邊格改用索引，避免大型城市旋轉時掃描數千萬次。</li>
-            <li>加入完整特殊建築解鎖手冊、遊戲內說明及議員風格首次解鎖走馬燈。</li>
-          </ul>
-        </article>
-
-        <article class="release-card">
-          <div class="release-meta">
-            <span>v3.2.0</span>
-            <time datetime="2026-07-19">2026年7月19日</time>
-          </div>
-          <h3>全新城市天際線、住宅商業分級與「我愛玫瑰園計劃」</h3>
-          <ul>
-            <li>住宅及商業模型加入 L／M／H／UH 分級，按地價、景觀、環境、經濟、健康及城市設施形成更有層次嘅社區與商業核心。</li>
-            <li>富豪住宅只會出現喺合資格低密度住宅區；世界級摩天大樓只會出現喺具備股票交易所、機場與優質營商環境嘅高密度商業區。</li>
-            <li>新機場以 12×12「我愛玫瑰園計劃」登場，必須通過人口、財政、經濟條件及議會審批先會解鎖建造。</li>
-            <li>公共服務、康文設施及地標選單重新分類；大學、社區學院、警察局與消防局模型按順序循環，增加地圖多樣性。</li>
-            <li>全面更新 isometric anchor、貨櫃碼頭 4×4 模型及 lossless WebP 發佈管線，改善縮放鋸齒、貼圖穩定性與桌面版容量。</li>
-          </ul>
-        </article>
-
-        <article class="release-card">
-          <div class="release-meta">
-            <span>v3.1.8</span>
-            <time datetime="2026-07-15">2026年7月15日</time>
-          </div>
-          <h3>修正語言切換後城市地形高度大面積變形</h3>
-          <ul>
-            <li>內建城市地形預覽而家只會回傳預覽資料，不會再將台北等預覽高度寫入正在遊玩嘅城市。</li>
-            <li>進入遊戲後切換英文、繁體中文或日文，不再背景刷新已隱藏嘅 landing screen 地形預覽。</li>
-            <li>加入地形預覽隔離回歸測試，確保新遊戲仍正常建立高度，而預覽永遠不會污染正式地圖。</li>
-          </ul>
-        </article>
-
-        <article class="release-card">
-          <div class="release-meta">
-            <span>v3.1.7</span>
-            <time datetime="2026-07-14">2026年7月14日</time>
-          </div>
-          <h3>修正法案結果新聞圖片並清理失效模型載入</h3>
-          <ul>
-            <li>法案通過三個月後嘅效果新聞，已改用封裝內實際存在嘅 <code>UI/news/*.webp</code> 圖片，彈窗顯示前亦會統一路徑，修正 DMG 與 EXE 版圖片失效。</li>
-            <li>移除啟動時對 78 個已刪除 <code>Models/PNG/buildingTiles_*.png</code> 模型嘅載入要求，以及相關未再使用嘅舊放置與目錄程式，避免 console 不斷出現 404。</li>
-            <li>清除已失效嘅商業建築 fallback 檔名，並檢查所有啟動與 fallback 模型路徑均有對應檔案。</li>
-          </ul>
-        </article>
-
-        <article class="release-card">
-          <div class="release-meta">
-            <span>v3.1.3</span>
-            <time datetime="2026-07-12">2026年7月12日</time>
-          </div>
-          <h3>修正討論區圖片失效並降低發帖頻率</h3>
-          <ul>
-            <li>颱風、暴雨、學術排名、過氣歌星、免費雪糕、幻彩 fing 香城等 15 張討論區「特別事件」圖片，之前仍然指向遷移前嘅舊 .png 路徑（實際檔案已改用 .webp），全部顯示失效。已修正返所有路徑，連建立帖文時嘅圖片驗證都改用同一套邏輯，唔會再靜靜地擋走已修正嘅路徑。</li>
-            <li>討論區之前每個遊戲月份都會發一則新帖，即使冇任何特別事件都照發，日子長咗會頗為煩擾亦拖慢遊戲。而家淨係當真係有事發生（颱風、新政策、數據觸及門檻、季節性話題等）先會即月發帖；如果冇，就最多每 3 個月先補一則閒聊帖。</li>
-          </ul>
-        </article>
-
-        <article class="release-card">
-          <div class="release-meta">
-            <span>v3.1.2</span>
-            <time datetime="2026-07-12">2026年7月12日</time>
-          </div>
-          <h3>AI 新聞加入三振自動停用機制</h3>
-          <ul>
-            <li>當 AI 新聞服務暫時不可用（例如額度用盡）時，討論區之前會不斷重試每一篇未生成留言嘅帖文，短時間內連環發出大量請求，連累圖片同音效一齊載入唔到。</li>
-            <li>而家走馬燈新聞、立法會角色新聞同討論區留言共用同一個「三振」機制：連續失敗 3 次就會自動停用成個 AI 新聞服務，並彈出提示，唔會再各自無限重試拖慢成個遊戲。</li>
-            <li>去設定入面重新開啟 AI 新聞會即時進行一次測試生成，同樣受三振機制保護——再連續失敗 3 次會再次自動停用。</li>
-          </ul>
-        </article>
-
-        <article class="release-card">
-          <div class="release-meta">
-            <span>v3.1.1</span>
-            <time datetime="2026-07-12">2026年7月12日</time>
-          </div>
-          <h3>修正討論區新聞圖片失效</h3>
-          <ul>
-            <li>v3.1.0 入面討論區同新聞彈窗嘅圖片會 404——已補回缺少嘅圖片檔案，全部應該正常顯示返。</li>
-          </ul>
-        </article>
-
-        <article class="release-card">
-          <div class="release-meta">
-            <span>v3.1.0</span>
-            <time datetime="2026-07-12">2026年7月12日</time>
-          </div>
-          <h3>立法會議事廳重新設計與香城討論區 AI 留言</h3>
-          <ul>
-            <li>法案與條例由一條長清單改做可摺疊分類：財政經濟、公共安全與交通、環境與城市規劃、教育與科研、社會福利、管治改革，另加獨立嘅特別決議（一次性撥款）分類。</li>
-            <li>每條法案同決議顯示動議官員或議員嘅頭像；議事廳畫面用返實景相做背景，動議進入表決會顯示進度階段。</li>
-            <li>官員專業意見同議員立場由直排列表改做左右交替嘅辯論式卡片。</li>
-            <li>香城討論區留言支援 AI 生成：網民 2-3 條、官員 1-2 條，並修正令留言一直生成唔到嘅 token 截斷問題，加入自動避開唔穩定 model 嘅備援機制。</li>
-            <li>音樂音量同新增嘅都市背景音量會記住上次設定；天氣視覺效果開關維持預設開啟。</li>
-            <li>頂欄選單重新分類，檢視同設定分流，移除同頂欄重複嘅速度掣。</li>
-          </ul>
-        </article>
-
-        <article class="release-card">
-          <div class="release-meta">
-            <span>v3.0.0</span>
-            <time datetime="2026-07-11">2026年7月11日</time>
-          </div>
-          <h3>立法會議會系統、AI 人物新聞與颱風信號天氣重製</h3>
-          <ul>
-            <li>加入立法會：十位有名有姓嘅官員議員，會按稅率、治安、污染、醫療等真實城市數據作出回應，人物可改名。</li>
-            <li>AI 新聞新增「人物新聞」：官員議員政策回應、隨時可請嘅人物專訪，同天文台長嘅颱風信號公告，AI 版本以外一律有規則版 fallback。</li>
-            <li>颱風改用西北太平洋真實命名清單（中日文對照），信號按實際模擬風速升跌，呈現 1→3→8→(9→10)→8→3→1 嘅真實進程；暴雨警告按天文台雨量門檻分黃紅黑三級。</li>
-            <li>頂部新增天氣狀態列（溫度、濕度、信號徽章），加入落雨粒子同閃電雷聲效果，效果強度隨風雨同步變化；設定可關閉視覺效果，照顧配置較舊嘅電腦。</li>
-            <li>立法會建成同股票交易所開市、八號或以上風球會彈出報紙式「號外」頭版。</li>
-            <li>加入香港式地區環境白噪音：越 zoom 入商業商住區越聽到都市白噪音，zoom 入純住宅區就轉返寧靜住宅氛圍，天氣仲會疊加落雨或打風音效。</li>
-          </ul>
-        </article>
-
-        <article class="release-card">
-          <div class="release-meta">
-            <span>v2.0.0</span>
-            <time datetime="2026-07-10">2026年7月10日</time>
-          </div>
-          <h3>雲端 AI 分區新聞與城市生活模擬</h3>
-          <ul>
-            <li>加入選用 Ollama Cloud AI 新聞，以香港本地編採語氣把城市實況寫成「香城快訊」。</li>
-            <li>加入天氣、暴雨、颱風階段與市民活動，並連動交通、經濟及新聞內容。</li>
-            <li>新增玩家命名嘅香港式雙語分區路牌；每區交通、教育、醫療、污染、地價及人口會影響地區新聞。</li>
-            <li>API key 不會放入 GitHub 或安裝檔；玩家安裝後自行輸入一次，並由系統安全儲存。</li>
-            <li>路牌改名、放置、拆除與顯示設定加入安全自動存檔，存檔格式升至第 12 版。</li>
-          </ul>
-        </article>
-
-        <article class="release-card">
-          <div class="release-meta">
-            <span>v1.1.0</span>
-            <time datetime="2026-06-08">2026年6月8日</time>
-          </div>
-          <h3>交通指數系統與資訊地圖整合</h3>
-          <ul>
-            <li>加入交通指數模擬及交通 Overlay 地圖。</li>
-            <li>高擠塞會降低住宅與商業需求，並影響城市發展評分。</li>
-            <li>市政局將所有 Overlay 整合到資訊地圖視窗。</li>
-          </ul>
-        </article>
-
-        <article class="release-card">
-          <div class="release-meta">
-            <span>v1.0.5</span>
-            <time datetime="2026-06-06">2026年6月6日</time>
-          </div>
-          <h3>Windows 自動更新第一版</h3>
-          <ul>
-            <li>加入 Windows 桌面版自動檢查更新、背景下載與重開套用更新流程。</li>
-            <li>macOS 未簽章前先提供新版提示，並可直接開啟下載頁手動更新。</li>
-            <li>Release 會一併上傳 Windows updater metadata，包括 <code>latest.yml</code> 與 setup blockmap。</li>
-            <li>入口網站下載統計改為只計公開下載檔，不計 updater metadata。</li>
-          </ul>
-        </article>
-
-        <article class="release-card">
-          <div class="release-meta">
-            <span>v1.0.4</span>
-            <time datetime="2026-06-06">2026年6月6日</time>
-          </div>
-          <h3>醫療系統、讀檔修正與大型建築顯示改善</h3>
-          <ul>
-            <li>加入醫院、健康指標、預期壽命、醫療覆蓋與健康地圖第一版。</li>
-            <li>加入疫情、醫療容量與衛生政策初版，包括禁煙及學童保健計劃。</li>
-            <li>修正城市讀檔等待流程，避免入口網站或遊戲場景未 ready 時載入失敗。</li>
-            <li>改用深度區段 fallback 處理地貌、道路、建築與效果排序，改善大型 4x4 建築被地面蓋住的問題。</li>
-          </ul>
-        </article>
-
-        <article class="release-card">
-          <div class="release-meta">
-            <span>v1.0.3</span>
-            <time datetime="2026-06-06">2026年6月6日</time>
-          </div>
-          <h3>桌面安裝包同步</h3>
-          <ul>
-            <li>分開提供 macOS Apple Silicon 與 macOS Intel DMG。</li>
-            <li>同步 Windows 安裝版及免安裝版下載連結。</li>
-            <li>更新發佈流程文件，方便之後一包式更新遊戲、網站與 installers。</li>
-          </ul>
-        </article>
-      </div>
+      <div class="release-list" data-render="changelog"></div>
     </section>
 
     <section class="features">
       <div class="feature">
-        <h2>建設、治理、迭代</h2>
-        <p>劃設住宅、商業與工業區，興建道路、公園、公共設施與發電廠。放置雙語路牌建立分區，觀察地區交通、醫療、教育與污染，再由 AI 或模擬新聞報道城市變化。</p>
+        <h2 data-i18n="features.title">建設、治理、迭代</h2>
+        <p data-i18n="features.desc">劃設住宅、商業與工業區，興建道路、公園、公共設施與發電廠。放置雙語路牌建立分區，觀察地區交通、醫療、教育與污染，再由 AI 或模擬新聞報道城市變化。</p>
       </div>
-      <div class="feature-list">
-        <span>本機存檔系統</span>
-        <span>電力與發電廠管理</span>
-        <span>經典城市 overlay</span>
-        <span>財政與政策系統</span>
-        <span>選用雲端 AI 人物新聞</span>
-        <span>立法會與十位官員議員</span>
-        <span>真實颱風信號與天氣效果</span>
-        <span>zoom 連動環境白噪音</span>
-      </div>
+      <div class="feature-list" data-render="feature-list"></div>
     </section>
   </main>
 
   <footer>
     <span>香城模擬器 v3.9.0 — 好岸居</span>
     <div class="footer-links">
-      <a href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest" rel="noopener">版本資訊</a>
-      <a href="https://heungshingsimulator.blogspot.com/" rel="noopener">開發blog</a>
+      <a href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest" rel="noopener" data-i18n="footer.releaseInfo">版本資訊</a>
+      <a href="https://heungshingsimulator.blogspot.com/" rel="noopener" data-i18n="footer.blog">開發blog</a>
     </div>
   </footer>
 </body>

@@ -34,7 +34,7 @@ test('a wedged (but not crashed) renderer gets a grace period before offering re
   // 'responsive' firing before the grace period elapses must cancel the prompt.
   const responsiveHandler = mainSource.slice(
     mainSource.indexOf("webContents.on('responsive'"),
-    mainSource.indexOf("await mainWindow.loadURL(gameServer.url);\n  scheduleUpdateChecks"),
+    mainSource.indexOf("await mainWindow.loadURL(getGameWindowUrl());\n  if (!performanceModeEnabled)"),
   );
   assert.match(responsiveHandler, /clearUnresponsiveRecoveryTimer\(\);/);
 });
@@ -45,9 +45,20 @@ test('recovery reloads the existing window/server instead of tearing down and re
   const body = mainSource.slice(start, end);
   assert.match(body, /dialog\.showMessageBox\(mainWindow, \{/);
   assert.match(body, /response !== 0[\s\S]*?return;/);
-  assert.match(body, /await mainWindow\.loadURL\(gameServer\.url\);/);
+  assert.match(body, /await mainWindow\.loadURL\(getGameWindowUrl\(\)\);/);
   assert.doesNotMatch(body, /new BrowserWindow/);
   assert.doesNotMatch(body, /startGameServer/);
+});
+
+test('explicit Electron performance mode adds the profiler query and suppresses updater noise', () => {
+  const runnerSource = fs.readFileSync(path.join(ROOT, 'scripts', 'run-electron.js'), 'utf8');
+  const packageJson = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
+  assert.match(mainSource, /process\.env\.ELECTRON_PERFORMANCE_MODE === '1'/);
+  assert.match(mainSource, /url\.searchParams\.set\('performance', '1'\)/);
+  assert.match(mainSource, /backgroundThrottling: !performanceModeEnabled/);
+  assert.match(mainSource, /if \(!performanceModeEnabled\) scheduleUpdateChecks\(mainWindow\);/);
+  assert.match(runnerSource, /process\.argv\.includes\('--performance'\)/);
+  assert.equal(packageJson.scripts['electron:perf'], 'node scripts/run-electron.js --performance');
 });
 
 test('the recovery timer is cleared when the window closes so it cannot fire on a destroyed window', () => {

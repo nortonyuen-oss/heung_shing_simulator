@@ -119,7 +119,7 @@ test('nearby duplicate models receive an exponential six-tile penalty', () => {
   assert.ok(Math.abs(result.two - 0.0324) < 1e-12);
 });
 
-test('premium upgrades and skyline recovery run on slower monthly rates', () => {
+test('premium upgrades and skyline recovery are sharded once per tile each month', () => {
   const context = createGrowthContext();
   const rates = vm.runInContext(`({
     upgrade: PREMIUM_VISUAL_UPGRADE_CHANCE_PER_MONTH,
@@ -127,8 +127,22 @@ test('premium upgrades and skyline recovery run on slower monthly rates', () => 
     radius: SKYLINE_NEIGHBORHOOD_RADIUS,
   })`, context);
   const growth = source('sim-growth.js');
+  const checks = vm.runInContext(`(() => {
+    const counts = [];
+    for (let row = 0; row < 4; row++) {
+      for (let col = 0; col < 4; col++) {
+        let count = 0;
+        for (let tick = 0; tick < TICKS_PER_MONTH; tick++) {
+          if (shouldRunMonthlyZoneVisualCheck(row, col, tick)) count++;
+        }
+        counts.push(count);
+      }
+    }
+    return counts;
+  })()`, context);
 
   assert.deepEqual({ ...rates }, { upgrade: 0.012, rebalance: 0.045, radius: 6 });
-  assert.match(growth, /city\.tick % TICKS_PER_MONTH === 0[\s\S]*?PREMIUM_VISUAL_REBALANCE_CHANCE_PER_MONTH/);
-  assert.match(growth, /city\.tick % TICKS_PER_MONTH === 0[\s\S]*?PREMIUM_VISUAL_UPGRADE_CHANCE_PER_MONTH/);
+  assert.deepEqual(Array.from(checks), Array(16).fill(1));
+  assert.match(growth, /runMonthlyVisualCheck[\s\S]*?PREMIUM_VISUAL_REBALANCE_CHANCE_PER_MONTH/);
+  assert.match(growth, /runMonthlyVisualCheck[\s\S]*?PREMIUM_VISUAL_UPGRADE_CHANCE_PER_MONTH/);
 });

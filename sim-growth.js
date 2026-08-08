@@ -2,6 +2,48 @@ let lastCommercialMergeScanTick = null;
 let lastZoneDeclineTick = null;
 let zoneDeclineCandidateCursor = 0;
 let lastZoneDeclineStats = null;
+let zoneGrowthTileCache = null;
+const zoneGrowthTileCacheStats = {
+  hits: 0,
+  misses: 0,
+  rebuilds: 0,
+  lastBuildMs: 0,
+};
+
+function invalidateZoneGrowthTileCache() {
+  zoneGrowthTileCache = null;
+}
+
+function getZoneGrowthTiles() {
+  if (zoneGrowthTileCache) {
+    zoneGrowthTileCacheStats.hits++;
+    return zoneGrowthTileCache;
+  }
+
+  zoneGrowthTileCacheStats.misses++;
+  const startedAt = globalThis.performance?.now?.() ?? Date.now();
+  const tiles = [];
+  for (let row = 0; row < MAP_HEIGHT; row++) {
+    for (let col = 0; col < MAP_WIDTH; col++) {
+      if (zoneMap[row]?.[col] === ZONE_NONE) continue;
+      tiles.push({ row, col, id: `${row}:${col}` });
+    }
+  }
+  zoneGrowthTileCache = tiles;
+  zoneGrowthTileCacheStats.rebuilds++;
+  zoneGrowthTileCacheStats.lastBuildMs = (
+    globalThis.performance?.now?.() ?? Date.now()
+  ) - startedAt;
+  return zoneGrowthTileCache;
+}
+
+function getZoneGrowthTileCacheStats() {
+  return {
+    valid: !!zoneGrowthTileCache,
+    tileCount: zoneGrowthTileCache?.length ?? 0,
+    ...zoneGrowthTileCacheStats,
+  };
+}
 
 // Land value, canopy, pollution pressure and skyline indexes are expensive
 // full-city snapshots. They only need month-level freshness for model quality
@@ -10,6 +52,7 @@ let lastZoneDeclineStats = null;
 // short-lived Maps, arrays and factor objects that otherwise drives long GC
 // pauses in mature cities.
 let zoneGrowthQualityContextCache = null;
+let zoneGrowthQualityContextBuild = null;
 const zoneGrowthQualityContextCacheStats = {
   hits: 0,
   misses: 0,
@@ -25,29 +68,107 @@ function getZoneGrowthQualityContextBucket() {
   return Math.floor(Math.max(0, tick) / ticksPerMonth);
 }
 
-function getZoneGrowthQualityContexts() {
-  const bucket = getZoneGrowthQualityContextBucket();
-  if (zoneGrowthQualityContextCache?.bucket === bucket) {
-    zoneGrowthQualityContextCacheStats.hits++;
-    // Economy can move during a month without requiring the spatial maps and
-    // skyline index to be rebuilt.
-    zoneGrowthQualityContextCache.residential.economy = getResidentialEconomyScore();
-    zoneGrowthQualityContextCache.commercial.economy = getCommercialEconomyScore();
-    return zoneGrowthQualityContextCache;
-  }
+function getZoneGrowthQualityContextTickPhase() {
+  const ticksPerMonth = Math.max(1, Number(
+    typeof TICKS_PER_MONTH === 'undefined' ? 4 : TICKS_PER_MONTH,
+  ) || 4);
+  const tick = typeof city === 'undefined' ? 0 : Number(city.tick) || 0;
+  return Math.max(0, tick) % ticksPerMonth;
+}
 
-  zoneGrowthQualityContextCacheStats.misses++;
-  zoneGrowthQualityContextCache = null;
-  const startedAt = globalThis.performance?.now?.() ?? Date.now();
-  const landValueMap = typeof computeLandValueMap === 'function'
-    ? computeLandValueMap()
-    : null;
-  zoneGrowthQualityContextCache = {
+function refreshZoneGrowthQualityEconomy(context) {
+  if (!context) return context;
+  context.residential.economy = getResidentialEconomyScore();
+  context.commercial.economy = getCommercialEconomyScore();
+  return context;
+}
+
+function createZoneGrowthQualityContext(bucket, landValueMap) {
+  return {
     bucket,
     landValueMap,
     residential: createResidentialQualityContext(landValueMap),
     commercial: createCommercialQualityContext(landValueMap),
   };
+}
+
+function canStageZoneGrowthQualityContextBuild() {
+  return typeof computeTreeCanopyMap === 'function'
+    && typeof computePollutionMap === 'function'
+    && typeof computeLandValueInfluenceMaps === 'function'
+    && typeof composeLandValueMap === 'function';
+}
+
+function advanceZoneGrowthQualityContextBuild(bucket) {
+  if (!zoneGrowthQualityContextBuild || zoneGrowthQualityContextBuild.bucket !== bucket) {
+    zoneGrowthQualityContextBuild = {
+      bucket,
+      stage: 'canopy',
+      durationMs: 0,
+      canopy: null,
+      pollution: null,
+      influenceMaps: null,
+    };
+  }
+  const build = zoneGrowthQualityContextBuild;
+  const startedAt = globalThis.performance?.now?.() ?? Date.now();
+  if (build.stage === 'canopy') {
+    build.canopy = computeTreeCanopyMap();
+    build.stage = 'pollution';
+  } else if (build.stage === 'pollution') {
+    build.pollution = computePollutionMap(build.canopy);
+    build.stage = 'influences';
+  } else if (build.stage === 'influences') {
+    build.influenceMaps = computeLandValueInfluenceMaps();
+    build.stage = 'compose';
+  } else {
+    const landValueMap = composeLandValueMap(
+      build.canopy,
+      build.pollution,
+      build.influenceMaps,
+    );
+    zoneGrowthQualityContextCache = createZoneGrowthQualityContext(bucket, landValueMap);
+    zoneGrowthQualityContextCacheStats.rebuilds++;
+    build.stage = 'complete';
+  }
+  build.durationMs += (globalThis.performance?.now?.() ?? Date.now()) - startedAt;
+  if (build.stage === 'complete') {
+    zoneGrowthQualityContextCacheStats.lastBuildMs = build.durationMs;
+    zoneGrowthQualityContextBuild = null;
+  }
+  return refreshZoneGrowthQualityEconomy(zoneGrowthQualityContextCache);
+}
+
+function getZoneGrowthQualityContexts() {
+  const bucket = getZoneGrowthQualityContextBucket();
+  if (zoneGrowthQualityContextCache?.bucket === bucket) {
+    zoneGrowthQualityContextCacheStats.hits++;
+    // Build next month's expensive spatial snapshot during the three quiet
+    // intra-month ticks. At the month boundary only the cheap compose stage
+    // remains, keeping canopy/pollution/influence scans away from the budget
+    // update that runs on the same tick.
+    if (
+      canStageZoneGrowthQualityContextBuild()
+      && getZoneGrowthQualityContextTickPhase() > 0
+    ) {
+      return advanceZoneGrowthQualityContextBuild(bucket + 1);
+    }
+    // Economy can move during a month without requiring the spatial maps and
+    // skyline index to be rebuilt.
+    return refreshZoneGrowthQualityEconomy(zoneGrowthQualityContextCache);
+  }
+
+  zoneGrowthQualityContextCacheStats.misses++;
+  if (zoneGrowthQualityContextCache && canStageZoneGrowthQualityContextBuild()) {
+    return advanceZoneGrowthQualityContextBuild(bucket);
+  }
+
+  zoneGrowthQualityContextBuild = null;
+  const startedAt = globalThis.performance?.now?.() ?? Date.now();
+  const landValueMap = typeof computeLandValueMap === 'function'
+    ? computeLandValueMap()
+    : null;
+  zoneGrowthQualityContextCache = createZoneGrowthQualityContext(bucket, landValueMap);
   zoneGrowthQualityContextCacheStats.rebuilds++;
   zoneGrowthQualityContextCacheStats.lastBuildMs = (
     globalThis.performance?.now?.() ?? Date.now()
@@ -57,6 +178,8 @@ function getZoneGrowthQualityContexts() {
 
 function clearZoneGrowthQualityContextCache() {
   zoneGrowthQualityContextCache = null;
+  zoneGrowthQualityContextBuild = null;
+  invalidateZoneGrowthTileCache();
   lastZoneDeclineTick = null;
   zoneDeclineCandidateCursor = 0;
   lastZoneDeclineStats = null;
@@ -66,8 +189,15 @@ function getZoneGrowthQualityContextCacheStats() {
   return {
     valid: !!zoneGrowthQualityContextCache,
     bucket: zoneGrowthQualityContextCache?.bucket ?? null,
+    pendingBucket: zoneGrowthQualityContextBuild?.bucket ?? null,
+    pendingStage: zoneGrowthQualityContextBuild?.stage ?? null,
+    zonedTiles: getZoneGrowthTileCacheStats(),
     ...zoneGrowthQualityContextCacheStats,
   };
+}
+
+function getCachedZoneGrowthLandValueMap() {
+  return zoneGrowthQualityContextCache?.landValueMap ?? null;
 }
 
 function getZoneDeclineBudgets(zoneBuildingCount) {
@@ -252,6 +382,32 @@ function tryRedecoratePremiumBuilding(
 const LARGE_RESIDENTIAL_LOT_SCAN_INTERVAL_TICKS = TICKS_PER_MONTH;
 const LARGE_RESIDENTIAL_LOT_SCAN_SHARD_COUNT = 8;
 
+function runZoneGrowthProfiledStep(scene, section, action) {
+  const shouldProfile = (
+    typeof isVisualRouteCalibrationTestModeEnabled === 'function'
+    && isVisualRouteCalibrationTestModeEnabled()
+    && typeof recordVisualRoutePerformanceDuration === 'function'
+  );
+  if (!shouldProfile) return action();
+  const startedAt = performance.now();
+  try {
+    return action();
+  } finally {
+    recordVisualRoutePerformanceDuration(
+      scene,
+      `sim.growth.${section}`,
+      performance.now() - startedAt,
+    );
+  }
+}
+
+function shouldRunMonthlyZoneVisualCheck(row, col, tick = city.tick) {
+  const shardCount = Math.max(1, Number(TICKS_PER_MONTH) || 1);
+  const tileShard = ((row * 37 + col * 17) % shardCount + shardCount) % shardCount;
+  const tickShard = ((Number(tick) || 0) % shardCount + shardCount) % shardCount;
+  return tileShard === tickShard;
+}
+
 // A 5x5 lot needs 25 contiguous empty tiles, but the per-tile loop below rolls
 // every empty high-density tile independently every tick - by the time a
 // would-be 5x5 anchor gets its own roll, neighbouring tiles inside that block
@@ -265,33 +421,35 @@ function scanForLargeResidentialLots(scene, qualityContexts) {
   if ((city.demandR ?? 0) <= 0) return;
   if (!hasResidentialModelForFootprint(5)) return;
 
-  for (let r = 0; r < MAP_HEIGHT; r++) {
-    for (let c = 0; c < MAP_WIDTH; c++) {
-      if (((r * 37 + c * 17 + city.tick) % LARGE_RESIDENTIAL_LOT_SCAN_SHARD_COUNT) !== 0) continue;
-      if (zoneMap[r][c] !== ZONE_RES || zoneDensityMap[r][c] !== DENSITY_HIGH) continue;
-      if (scene.buildingSprites.has(getTileId(r, c))) continue;
-      if (!hasAdjacentRoad(r, c)) continue;
-      if (!canPlaceResidentialFootprint(scene, r, c, 5)) continue;
+  for (const { row: r, col: c, id } of getZoneGrowthTiles()) {
+    if (((r * 37 + c * 17 + city.tick) % LARGE_RESIDENTIAL_LOT_SCAN_SHARD_COUNT) !== 0) continue;
+    if (zoneMap[r]?.[c] !== ZONE_RES || zoneDensityMap[r]?.[c] !== DENSITY_HIGH) continue;
+    if (scene.buildingSprites.has(id)) continue;
+    if (!hasAdjacentRoad(r, c)) continue;
+    if (!canPlaceResidentialFootprint(scene, r, c, 5)) continue;
 
-      const landScore = getZoneGrowthLandScore(r, c, ZONE_RES, qualityContexts.landValueMap);
-      const chance = Math.min(
-        0.95,
-        getResidentialLargeSpawnChance(5, DENSITY_HIGH) * getLargeLotSpawnBoost(landScore, 5),
-      );
-      if (Math.random() < chance) {
-        spawnZoneBuilding(scene, r, c, ZONE_RES, 1, DENSITY_HIGH, {
-          forceFootprint: 5,
-          landScore,
-          residentialQualityContext: qualityContexts.residential,
-        });
-      }
+    const landScore = getZoneGrowthLandScore(r, c, ZONE_RES, qualityContexts.landValueMap);
+    const chance = Math.min(
+      0.95,
+      getResidentialLargeSpawnChance(5, DENSITY_HIGH) * getLargeLotSpawnBoost(landScore, 5),
+    );
+    if (Math.random() < chance) {
+      spawnZoneBuilding(scene, r, c, ZONE_RES, 1, DENSITY_HIGH, {
+        forceFootprint: 5,
+        landScore,
+        residentialQualityContext: qualityContexts.residential,
+      });
     }
   }
 }
 
 function growOrShrinkZones(scene) {
-  applyMonthlyZoneDecline(scene);
-  const qualityContexts = getZoneGrowthQualityContexts();
+  runZoneGrowthProfiledStep(scene, 'decline', () => applyMonthlyZoneDecline(scene));
+  const qualityContexts = runZoneGrowthProfiledStep(
+    scene,
+    'qualityContext',
+    () => getZoneGrowthQualityContexts(),
+  );
   const landValueMap = qualityContexts.landValueMap;
   const residentialQualityContext = qualityContexts.residential;
   const commercialQualityContext = qualityContexts.commercial;
@@ -302,14 +460,17 @@ function growOrShrinkZones(scene) {
   lastCommercialMergeScanTick = city.tick;
   let commercialMergeBudget = runCommercialMerge ? 4 : 0;
 
-  scanForLargeResidentialLots(scene, qualityContexts);
+  runZoneGrowthProfiledStep(
+    scene,
+    'largeLots',
+    () => scanForLargeResidentialLots(scene, qualityContexts),
+  );
 
-  for (let r = 0; r < MAP_HEIGHT; r++) {
-    for (let c = 0; c < MAP_WIDTH; c++) {
-      const zone = zoneMap[r][c];
+  runZoneGrowthProfiledStep(scene, 'tiles', () => {
+    for (const { row: r, col: c, id } of getZoneGrowthTiles()) {
+      const zone = zoneMap[r]?.[c] ?? ZONE_NONE;
       if (zone === ZONE_NONE) continue;
 
-      const id      = getTileId(r, c);
       const hasBldg = scene.buildingSprites.has(id);
       const powered = !!powerMap[r][c];
       const hasRoad = hasAdjacentRoad(r, c);
@@ -327,6 +488,7 @@ function growOrShrinkZones(scene) {
       const densityMul = DENSITY_GROW_MUL[density] ?? 1.0;
       const landScore = getZoneGrowthLandScore(r, c, zone, landValueMap);
       const growthLandMul = 0.72 + landScore * 0.85;
+      const runMonthlyVisualCheck = shouldRunMonthlyZoneVisualCheck(r, c);
 
       if (!hasBldg) {
         // Grow a new building
@@ -368,7 +530,7 @@ function growOrShrinkZones(scene) {
         } else if (
           record.level >= 3
           && (zone === ZONE_RES || zone === ZONE_COM)
-          && city.tick % TICKS_PER_MONTH === 0
+          && runMonthlyVisualCheck
           && isBuildingHighScoreVisual(record)
           && Math.random() < PREMIUM_VISUAL_REBALANCE_CHANCE_PER_MONTH
         ) {
@@ -385,7 +547,7 @@ function growOrShrinkZones(scene) {
         } else if (
           record.level >= 3
           && (zone === ZONE_RES || zone === ZONE_COM)
-          && city.tick % TICKS_PER_MONTH === 0
+          && runMonthlyVisualCheck
           && isHighScoreModelEligible(landScore)
           && (city.unemploymentRate ?? 1) < 0.12
           && (city.demandC ?? 0) > 0.10
@@ -420,7 +582,7 @@ function growOrShrinkZones(scene) {
         }
       }
     }
-  }
+  });
 }
 
 function spawnZoneBuilding(scene, r, c, zone, level, density = DENSITY_LOW, optionsOverride = {}) {

@@ -8,6 +8,8 @@ const ROOT = path.resolve(__dirname, '..');
 const mainSource = fs.readFileSync(path.join(ROOT, 'main.js'), 'utf8');
 const growthSource = fs.readFileSync(path.join(ROOT, 'sim-growth.js'), 'utf8');
 const simulationSource = fs.readFileSync(path.join(ROOT, 'simulation.js'), 'utf8');
+const economySource = fs.readFileSync(path.join(ROOT, 'sim-economy.js'), 'utf8');
+const infrastructureSource = fs.readFileSync(path.join(ROOT, 'sim-infrastructure.js'), 'utf8');
 const calibrator = require('../visual-route-calibrator.js');
 
 function loadViewportCullingContext() {
@@ -95,6 +97,11 @@ test('terrain grid is created detached to avoid a quadratic first cull pass', ()
   );
 });
 
+test('Phaser follows display rAF without divisor-based hard frame limiting', () => {
+  assert.match(mainSource, /fps:\s*\{\s*target:\s*60,\s*limit:\s*0,/);
+  assert.doesNotMatch(mainSource, /fps:\s*\{\s*target:\s*60,\s*limit:\s*(?:60|75),/);
+});
+
 test('profiler separates raw frame cadence from update and render durations', () => {
   const scene = {
     children: { list: Array(80).fill({}) },
@@ -120,6 +127,11 @@ test('profiler separates raw frame cadence from update and render durations', ()
     rendered: 20,
     activeTerrain: 16,
     terrainCandidates: 25,
+    terrainObjects: 0,
+    buildingSpriteReferences: 0,
+    uniqueBuildingSprites: 0,
+    treeTiles: 0,
+    zoneOverlays: 0,
   });
 });
 
@@ -166,6 +178,132 @@ test('growth quality maps are reused within a game month and rebuilt at the boun
   assert.notEqual(context.second, context.third);
   assert.equal(context.stats.hits, 1);
   assert.equal(context.stats.rebuilds, 2);
+});
+
+test('mature-city quality-map rebuild is prepared before the monthly budget tick', () => {
+  const end = growthSource.indexOf('function isBuildingHighScoreVisual');
+  assert.ok(end > 0, 'growth cache functions must remain extractable');
+  const stages = [];
+  const context = vm.createContext({
+    Date,
+    Map,
+    Math,
+    Number,
+    TICKS_PER_MONTH: 4,
+    city: { tick: 0 },
+    computeLandValueMap: () => ({ source: 'initial' }),
+    computeTreeCanopyMap: () => { stages.push('canopy'); return { canopy: true }; },
+    computePollutionMap: (canopy) => { stages.push('pollution'); return { canopy }; },
+    computeLandValueInfluenceMaps: () => { stages.push('influences'); return { influence: true }; },
+    composeLandValueMap: () => { stages.push('compose'); return { source: 'staged' }; },
+    createResidentialQualityContext: (landValueMap) => ({ landValueMap, economy: 0 }),
+    createCommercialQualityContext: (landValueMap) => ({ landValueMap, economy: 0 }),
+    getResidentialEconomyScore: () => 0.5,
+    getCommercialEconomyScore: () => 0.6,
+    performance,
+  });
+  vm.runInContext(growthSource.slice(0, end), context, { filename: 'growth-staged-cache.js' });
+  vm.runInContext(`
+    initial = getZoneGrowthQualityContexts();
+    city.tick = 1;
+    afterCanopy = getZoneGrowthQualityContexts();
+    city.tick = 2;
+    afterPollution = getZoneGrowthQualityContexts();
+    city.tick = 3;
+    afterInfluences = getZoneGrowthQualityContexts();
+    city.tick = 4;
+    completed = getZoneGrowthQualityContexts();
+    stagedStats = getZoneGrowthQualityContextCacheStats();
+  `, context);
+
+  assert.equal(context.afterCanopy, context.initial);
+  assert.equal(context.afterPollution, context.initial);
+  assert.equal(context.afterInfluences, context.initial);
+  assert.notEqual(context.completed, context.initial);
+  assert.equal(context.completed.landValueMap.source, 'staged');
+  assert.deepEqual(stages, ['canopy', 'pollution', 'influences', 'compose']);
+  assert.equal(context.stagedStats.rebuilds, 2);
+  assert.equal(context.stagedStats.pendingStage, null);
+});
+
+test('growth reuses a sparse zoned-tile index until zoning changes', () => {
+  const end = growthSource.indexOf('function isBuildingHighScoreVisual');
+  assert.ok(end > 0, 'growth cache functions must remain extractable');
+  const context = vm.createContext({
+    Date,
+    MAP_HEIGHT: 3,
+    MAP_WIDTH: 4,
+    Math,
+    Number,
+    TICKS_PER_MONTH: 4,
+    ZONE_NONE: 0,
+    city: { tick: 0 },
+    performance,
+    zoneMap: [
+      [0, 1, 0, 2],
+      [0, 0, 0, 0],
+      [3, 0, 1, 0],
+    ],
+  });
+  vm.runInContext(growthSource.slice(0, end), context, { filename: 'growth-tile-cache.js' });
+  vm.runInContext(`
+    first = getZoneGrowthTiles();
+    second = getZoneGrowthTiles();
+    zoneMap[0][1] = ZONE_NONE;
+    invalidateZoneGrowthTileCache();
+    third = getZoneGrowthTiles();
+    tileStats = getZoneGrowthTileCacheStats();
+  `, context);
+
+  assert.equal(context.first, context.second);
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(context.first.map(({ id }) => id))),
+    ['0:1', '0:3', '2:0', '2:2'],
+  );
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(context.third.map(({ id }) => id))),
+    ['0:3', '2:0', '2:2'],
+  );
+  assert.equal(context.tileStats.hits, 1);
+  assert.equal(context.tileStats.rebuilds, 2);
+  assert.match(growthSource, /for \(const \{ row: r, col: c, id \} of getZoneGrowthTiles\(\)\)/);
+});
+
+test('monthly economy reuses the land-value map already built by growth', () => {
+  assert.match(
+    economySource,
+    /getCachedZoneGrowthLandValueMap\(\)[\s\S]*?computeAverageLandValueFromMap\(cachedLandValueMap\)/,
+  );
+  assert.match(economySource, /sim\.economy\.\$\{section\}/);
+  assert.match(economySource, /function computeAverageLandValueFromMap[\s\S]*?getZoneGrowthTiles\(\)/);
+});
+
+test('crime and happiness iterate the sparse zoned-tile index', () => {
+  assert.match(simulationSource, /function forEachSimulationZonedTile[\s\S]*?getZoneGrowthTiles\(\)/);
+  assert.match(simulationSource, /function updateCrimeRateIndex[\s\S]*?forEachSimulationZonedTile/);
+  assert.match(simulationSource, /function computeHappiness[\s\S]*?forEachSimulationZonedTile/);
+});
+
+test('traffic reuses sparse road and zone indexes between network edits', () => {
+  assert.match(infrastructureSource, /let trafficRoadTilesCache = null/);
+  assert.match(infrastructureSource, /function updateTrafficMap[\s\S]*?getTrafficRoadTiles\(\)/);
+  assert.match(infrastructureSource, /function updateTrafficMap[\s\S]*?getZoneGrowthTiles\(\)/);
+  assert.match(
+    infrastructureSource,
+    /function markTrafficNetworkDirty[\s\S]*?trafficRoadTilesCache = null[\s\S]*?trafficRouteCache\.clear\(\)/,
+  );
+  assert.doesNotMatch(
+    infrastructureSource.match(/function updateTrafficMap\(\)[\s\S]*?\/\/ Accumulate demand/)?.[0] ?? '',
+    /trafficMap\[r\]\[c\] = 0/,
+  );
+});
+
+test('annual autosave is scheduled after the simulation task yields', () => {
+  assert.match(mainSource, /function triggerAutosave\(\)[\s\S]*?scheduleAnnualAutosave\(\)/);
+  assert.doesNotMatch(
+    mainSource.match(/function triggerAutosave\(\)[\s\S]*?\n\}/)?.[0] ?? '',
+    /\bsaveGame\(true\);/,
+  );
 });
 
 test('residential tree/scenic scores are cached per game month and shared across lookups', () => {

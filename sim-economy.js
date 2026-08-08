@@ -1,40 +1,71 @@
+function runEconomyProfiledStep(scene, section, action) {
+  const shouldProfile = (
+    typeof isVisualRouteCalibrationTestModeEnabled === 'function'
+    && isVisualRouteCalibrationTestModeEnabled()
+    && typeof recordVisualRoutePerformanceDuration === 'function'
+  );
+  if (!shouldProfile) return action();
+  const startedAt = performance.now();
+  try {
+    return action();
+  } finally {
+    recordVisualRoutePerformanceDuration(
+      scene,
+      `sim.economy.${section}`,
+      performance.now() - startedAt,
+    );
+  }
+}
+
 function runEconomy(scene) {
   if (city.tick % TICKS_PER_MONTH !== 0) return;
-  normalizeCityFinanceState();
-  updateScienceParkUnlockState();
-  const convertedScienceParks = convertEligibleIndustrialToScienceParks(scene);
-  if (convertedScienceParks > 0) {
-    updatePopulationAndPollution();
-    computeHappiness(scene);
-    updateDemand();
-  }
-  const loanPayment = applyMonthlyLoanPayments();
+  runEconomyProfiledStep(scene, 'preparation', () => {
+    normalizeCityFinanceState();
+    updateScienceParkUnlockState();
+    const convertedScienceParks = convertEligibleIndustrialToScienceParks(scene);
+    if (convertedScienceParks > 0) {
+      updatePopulationAndPollution();
+      computeHappiness(scene);
+      updateDemand();
+    }
+  });
+  const loanPayment = runEconomyProfiledStep(
+    scene,
+    'loans',
+    () => applyMonthlyLoanPayments(),
+  );
 
-  agePowerPlants(scene);
+  runEconomyProfiledStep(scene, 'powerPlants', () => agePowerPlants(scene));
 
-  const snapshot = computeBudgetSnapshot({ loanPayment });
-  city.monthlyIncome = snapshot.totalIncome;
-  city.monthlyExpenses = snapshot.totalExpenses;
-  city.lastPolicyCost = snapshot.expenses.policy;
-  city.lastLoanPayment = snapshot.expenses.loans;
-  city.lastBudgetSnapshot = snapshot;
-  updateCreditRating();
+  const snapshot = runEconomyProfiledStep(
+    scene,
+    'budget',
+    () => computeBudgetSnapshot({ loanPayment }),
+  );
+  runEconomyProfiledStep(scene, 'commit', () => {
+    city.monthlyIncome = snapshot.totalIncome;
+    city.monthlyExpenses = snapshot.totalExpenses;
+    city.lastPolicyCost = snapshot.expenses.policy;
+    city.lastLoanPayment = snapshot.expenses.loans;
+    city.lastBudgetSnapshot = snapshot;
+    updateCreditRating();
 
-  const net = city.monthlyIncome - city.monthlyExpenses;
-  city.budget += net;
+    const net = city.monthlyIncome - city.monthlyExpenses;
+    city.budget += net;
 
-  if (net < 0 && city.tick > TICKS_PER_MONTH) {
-    showToast(t('toast.monthlyLoss', { amount: Math.abs(net) }), 'warning');
-  }
+    if (net < 0 && city.tick > TICKS_PER_MONTH) {
+      showToast(t('toast.monthlyLoss', { amount: Math.abs(net) }), 'warning');
+    }
 
-  if (city.budget < 0 && !city.isBankrupt) {
-    city.isBankrupt = true;
-    showToast(t('toast.bankruptcy'), 'danger');
-  } else if (city.budget >= 0 && city.isBankrupt) {
-    city.isBankrupt = false;
-  }
+    if (city.budget < 0 && !city.isBankrupt) {
+      city.isBankrupt = true;
+      showToast(t('toast.bankruptcy'), 'danger');
+    } else if (city.budget >= 0 && city.isBankrupt) {
+      city.isBankrupt = false;
+    }
+  });
 
-  recordCityMetricHistory();
+  runEconomyProfiledStep(scene, 'history', () => recordCityMetricHistory());
 }
 
 function getStockSectorSensitivity(sector) {
@@ -461,7 +492,12 @@ function recordCityMetricHistory() {
   };
 
   let avgLandValue = 0;
-  if (typeof computeLandValueMap === 'function') {
+  const cachedLandValueMap = typeof getCachedZoneGrowthLandValueMap === 'function'
+    ? getCachedZoneGrowthLandValueMap()
+    : null;
+  if (Array.isArray(cachedLandValueMap)) {
+    avgLandValue = computeAverageLandValueFromMap(cachedLandValueMap);
+  } else if (typeof computeLandValueMap === 'function') {
     avgLandValue = computeAverageLandValueFromMap(computeLandValueMap());
   }
 
@@ -486,6 +522,19 @@ function computeAverageLandValueFromMap(landValueMap) {
   if (!Array.isArray(landValueMap)) return 0;
   let sum = 0;
   let count = 0;
+  const cachedTiles = typeof getZoneGrowthTiles === 'function'
+    ? getZoneGrowthTiles()
+    : null;
+  if (Array.isArray(cachedTiles)) {
+    cachedTiles.forEach(({ row, col }) => {
+      if (zoneMap[row]?.[col] === ZONE_NONE) return;
+      const value = landValueMap[row]?.[col];
+      if (!Number.isFinite(value)) return;
+      sum += value;
+      count++;
+    });
+    return count > 0 ? sum / count : 0;
+  }
   for (let r = 0; r < MAP_HEIGHT; r++) {
     for (let c = 0; c < MAP_WIDTH; c++) {
       if (zoneMap[r][c] === ZONE_NONE) continue;

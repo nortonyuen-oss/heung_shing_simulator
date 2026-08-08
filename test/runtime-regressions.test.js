@@ -242,6 +242,41 @@ test('save session generations preserve a successful slot on failed load and rej
   assert.equal(vm.runInContext('currentSaveId', deletedSlotContext), 777);
 });
 
+test('annual autosaves yield out of the simulation task and cancel on city changes', () => {
+  const context = createSaveVm();
+  const pending = new Map();
+  const cleared = [];
+  let nextTimerId = 1;
+  context.setTimeout = (callback) => {
+    const id = nextTimerId++;
+    pending.set(id, callback);
+    return id;
+  };
+  context.clearTimeout = (id) => {
+    cleared.push(id);
+    pending.delete(id);
+  };
+  vm.runInContext(`
+    autosaveCalls = [];
+    saveGame = (silent) => { autosaveCalls.push(silent); return Promise.resolve(true); };
+    firstScheduled = scheduleAnnualAutosave();
+    duplicateScheduled = scheduleAnnualAutosave();
+  `, context);
+
+  assert.equal(context.firstScheduled, true);
+  assert.equal(context.duplicateScheduled, false);
+  assert.equal(context.autosaveCalls.length, 0);
+  assert.equal(pending.size, 1);
+  const [firstId, firstCallback] = [...pending.entries()][0];
+  pending.delete(firstId);
+  firstCallback();
+  assert.deepEqual(JSON.parse(JSON.stringify(context.autosaveCalls)), [true]);
+
+  vm.runInContext('scheduleAnnualAutosave(); beginNewCitySaveSession();', context);
+  assert.equal(pending.size, 0);
+  assert.equal(cleared.length, 1);
+});
+
 test('repeated city normalization preserves live forum and market references', () => {
   const source = fs.readFileSync(path.join(ROOT, 'city-state.js'), 'utf8');
   const start = source.indexOf('const _normalizedCityStateObjects');

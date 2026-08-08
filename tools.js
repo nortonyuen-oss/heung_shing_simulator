@@ -152,6 +152,7 @@ function placeZone(scene, row, col, zoneType, density = DENSITY_LOW) {
   removeZoneOverlay(scene, row, col);
   zoneMap[row][col] = zoneType;
   zoneDensityMap[row][col] = density;
+  if (typeof invalidateZoneGrowthTileCache === 'function') invalidateZoneGrowthTileCache();
   if (zoneType === ZONE_RES && density === DENSITY_LOW) {
     lowDensityLockSet.add(getTileId(row, col));
   }
@@ -187,6 +188,7 @@ function removeZoneOverlay(scene, row, col) {
     scene.zoneOverlays.delete(id);
   }
   zoneMap[row][col] = ZONE_NONE;
+  if (typeof invalidateZoneGrowthTileCache === 'function') invalidateZoneGrowthTileCache();
   if (typeof invalidateOverlayCache === 'function') invalidateOverlayCache();
 }
 

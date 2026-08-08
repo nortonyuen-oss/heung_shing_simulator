@@ -14,15 +14,51 @@ let terrainApiAvailable = null;
 let currentSaveId = null;   // tracks which DB row we are editing
 let saveOperationQueue = Promise.resolve();
 let cityChangeAutosaveTimer = null;
+let annualAutosaveSchedule = null;
 // Loading a different city starts a new save session. Network responses from an
 // older session may still arrive afterwards, but must never change the active
 // manual save id of the newly loaded city.
 let saveSessionGeneration = 0;
 let loadRequestGeneration = 0;
 
+function cancelScheduledAnnualAutosave() {
+  if (!annualAutosaveSchedule) return false;
+  const { kind, id } = annualAutosaveSchedule;
+  annualAutosaveSchedule = null;
+  if (kind === 'idle' && typeof globalThis.cancelIdleCallback === 'function') {
+    globalThis.cancelIdleCallback(id);
+  } else {
+    clearTimeout(id);
+  }
+  return true;
+}
+
+function scheduleAnnualAutosave() {
+  if (annualAutosaveSchedule) return false;
+  const operationGeneration = saveSessionGeneration;
+  const run = () => {
+    annualAutosaveSchedule = null;
+    if (operationGeneration !== saveSessionGeneration) return;
+    saveGame(true);
+  };
+
+  // Snapshot construction and JSON serialization can take tens of
+  // milliseconds in a mature city. Run them after the simulation task has
+  // yielded so the January tick can paint before autosave work begins.
+  if (typeof globalThis.requestIdleCallback === 'function') {
+    const id = globalThis.requestIdleCallback(run, { timeout: 1000 });
+    annualAutosaveSchedule = { kind: 'idle', id };
+  } else {
+    const id = setTimeout(run, 50);
+    annualAutosaveSchedule = { kind: 'timeout', id };
+  }
+  return true;
+}
+
 function beginNewCitySaveSession(manualSaveId = null) {
   saveSessionGeneration += 1;
   loadRequestGeneration += 1;
+  cancelScheduledAnnualAutosave();
   if (cityChangeAutosaveTimer) {
     clearTimeout(cityChangeAutosaveTimer);
     cityChangeAutosaveTimer = null;
@@ -435,15 +471,30 @@ function saveGame(silent = false) {
   // earlier save is in flight; serializing now gives this operation an immutable
   // snapshot of the city that was active when Save was requested.
   let requestBody;
+  let snapshotSucceeded = false;
+  const snapshotStartedAt = globalThis.performance?.now?.() ?? Date.now();
   try {
     requestBody = JSON.stringify(buildSavePayload({
       autosave: isAutosave,
       manualSaveId: targetSaveId,
     }));
+    snapshotSucceeded = true;
   } catch (e) {
     if (!silent) showToast(t('toast.saveFailed'), 'danger');
     console.error('[Save snapshot]', e);
     return Promise.resolve(false);
+  } finally {
+    const snapshotDuration = (globalThis.performance?.now?.() ?? Date.now()) - snapshotStartedAt;
+    const section = isAutosave ? 'save.autosave.snapshot' : 'save.manual.snapshot';
+    if (typeof recordVisualRoutePerformanceDuration === 'function') {
+      recordVisualRoutePerformanceDuration(activeScene, section, snapshotDuration);
+    }
+    if (typeof recordVisualRoutePerformanceOperation === 'function') {
+      recordVisualRoutePerformanceOperation(section, snapshotDuration, {
+        success: snapshotSucceeded,
+        bytes: typeof requestBody === 'string' ? requestBody.length : 0,
+      });
+    }
   }
   const operation = async () => {
     try {
@@ -726,6 +777,9 @@ async function ensureSaveBuildingTextures(scene, save) {
 }
 
 async function loadSaveById(id, scene) {
+  const performanceStartedAt = globalThis.performance?.now?.() ?? Date.now();
+  let performanceScene = scene;
+  let performanceSucceeded = false;
   const loadGeneration = ++loadRequestGeneration;
   if (cityChangeAutosaveTimer) {
     clearTimeout(cityChangeAutosaveTimer);
@@ -740,6 +794,7 @@ async function loadSaveById(id, scene) {
     if (loadGeneration !== loadRequestGeneration) return false;
 
     const readyScene = await waitForLoadScene(scene);
+    performanceScene = readyScene || scene;
     if (!readyScene) {
       showToast(t('toast.stillLoading'), 'warning');
       return false;
@@ -769,11 +824,25 @@ async function loadSaveById(id, scene) {
       : id;
 
     showToast(t('toast.welcomeBack', { city: city.name }), 'info');
+    performanceSucceeded = true;
     return true;
   } catch (e) {
     showToast(t('toast.loadFailed'), 'danger');
     console.error('[Load]', e);
     return false;
+  } finally {
+    const performanceDuration = (globalThis.performance?.now?.() ?? Date.now()) - performanceStartedAt;
+    if (typeof recordVisualRoutePerformanceDuration === 'function') {
+      recordVisualRoutePerformanceDuration(performanceScene, 'load.save', performanceDuration);
+    }
+    if (typeof recordVisualRoutePerformanceOperation === 'function') {
+      recordVisualRoutePerformanceOperation('load-save', performanceDuration, {
+        saveId: Number(id) || 0,
+        success: performanceSucceeded,
+        population: typeof city === 'undefined' ? 0 : Number(city.population) || 0,
+        buildingCount: typeof buildingData === 'undefined' ? 0 : Object.keys(buildingData).length,
+      });
+    }
   }
 }
 

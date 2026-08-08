@@ -799,9 +799,7 @@ function computePopulationMap() {
   return map;
 }
 
-function computeLandValueMap() {
-  const canopy = computeTreeCanopyMap();
-  const pollution = computePollutionMap(canopy);
+function computeLandValueInfluenceMaps() {
   const nuisance = createFilledMap(0);
   const landmarkBonus = createFilledMap(0);
   Object.entries(buildingData).forEach(([id, rec]) => {
@@ -838,26 +836,47 @@ function computeLandValueMap() {
       }
     }
   });
+  return { nuisance, landmarkBonus };
+}
+
+function composeLandValueMap(canopy, pollution, influenceMaps) {
+  const nuisance = influenceMaps?.nuisance ?? createFilledMap(0);
+  const landmarkBonus = influenceMaps?.landmarkBonus ?? createFilledMap(0);
   const map = createFilledMap(0);
-  for (let r = 0; r < MAP_HEIGHT; r++) {
-    for (let c = 0; c < MAP_WIDTH; c++) {
-      if (zoneMap[r][c] === ZONE_NONE) continue;
-      let val = 0.35;
-      if (serviceMap[r]?.[c]?.police) val += 0.22;
-      if (serviceMap[r]?.[c]?.fire)   val += 0.22;
-      if (zoneMap[r][c] === ZONE_RES) val += (serviceMap[r]?.[c]?.park ?? 0) * 0.12;
-      if (powerMap[r]?.[c])           val += 0.10;
-      if (zoneMap[r][c] === ZONE_RES) {
-        val += (canopy[r]?.[c] ?? 0) * TREE_LAND_VALUE_BONUS_MAX;
-        val += getScenicValue(r, c) * SCENIC_LAND_VALUE_BONUS_MAX;
-      }
-      val += landmarkBonus[r]?.[c] ?? 0;
-      val -= (pollution[r]?.[c] ?? 0) * 0.35;
-      val -= (nuisance[r]?.[c] ?? 0) * 0.22;
-      map[r][c] = Math.max(0, Math.min(1, val));
+  const applyTile = (r, c) => {
+    if (zoneMap[r]?.[c] === ZONE_NONE) return;
+    let val = 0.35;
+    if (serviceMap[r]?.[c]?.police) val += 0.22;
+    if (serviceMap[r]?.[c]?.fire)   val += 0.22;
+    if (zoneMap[r][c] === ZONE_RES) val += (serviceMap[r]?.[c]?.park ?? 0) * 0.12;
+    if (powerMap[r]?.[c])           val += 0.10;
+    if (zoneMap[r][c] === ZONE_RES) {
+      val += (canopy[r]?.[c] ?? 0) * TREE_LAND_VALUE_BONUS_MAX;
+      val += getScenicValue(r, c) * SCENIC_LAND_VALUE_BONUS_MAX;
+    }
+    val += landmarkBonus[r]?.[c] ?? 0;
+    val -= (pollution[r]?.[c] ?? 0) * 0.35;
+    val -= (nuisance[r]?.[c] ?? 0) * 0.22;
+    map[r][c] = Math.max(0, Math.min(1, val));
+  };
+  const zonedTiles = typeof getZoneGrowthTiles === 'function'
+    ? getZoneGrowthTiles()
+    : null;
+  if (Array.isArray(zonedTiles)) {
+    zonedTiles.forEach(({ row, col }) => applyTile(row, col));
+  } else {
+    for (let r = 0; r < MAP_HEIGHT; r++) {
+      for (let c = 0; c < MAP_WIDTH; c++) applyTile(r, c);
     }
   }
   return map;
+}
+
+function computeLandValueMap() {
+  const canopy = computeTreeCanopyMap();
+  const pollution = computePollutionMap(canopy);
+  const influenceMaps = computeLandValueInfluenceMaps();
+  return composeLandValueMap(canopy, pollution, influenceMaps);
 }
 
 function computeElectricityMap() {

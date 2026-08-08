@@ -17,6 +17,7 @@
     "start": "node server.js",
     "dev": "node server.js",
     "electron:dev": "node scripts/run-electron.js",
+    "electron:perf": "node scripts/run-electron.js --performance",
     "rebuild:electron": "electron-builder install-app-deps",
     "prepare:release-assets": "node scripts/prepare-release-assets.js",
     "verify:release-assets": "node scripts/verify-release-assets.js",

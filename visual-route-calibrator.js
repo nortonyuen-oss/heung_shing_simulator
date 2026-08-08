@@ -781,11 +781,14 @@ function visualRouteIsPowerOfTwo(value) {
 }
 
 function getVisualRouteTextureMemoryStats(scene) {
-  const textures = Object.values(scene?.textures?.list ?? {}).filter(Boolean);
+  const textureEntries = Object.entries(scene?.textures?.list ?? {})
+    .filter(([, texture]) => !!texture);
+  const textures = textureEntries.map(([, texture]) => texture);
   const sourceObjects = new Set();
   const sourceUrls = new Map();
+  const sourceEntries = [];
   let estimatedBytes = 0;
-  textures.forEach((texture) => {
+  textureEntries.forEach(([registeredKey, texture]) => {
     let sources = Array.isArray(texture.source) ? texture.source : [];
     if (sources.length === 0) {
       const image = texture.getSourceImage?.();
@@ -805,6 +808,22 @@ function getVisualRouteTextureMemoryStats(scene) {
       const bytes = width * height * 4 * mipmapMultiplier;
       estimatedBytes += bytes;
       const url = String(image?.currentSrc || image?.src || '').split('?')[0];
+      let sourceLabel = url;
+      try {
+        sourceLabel = decodeURI(sourceLabel);
+      } catch {}
+      const modelPathIndex = sourceLabel.lastIndexOf('/Models/');
+      if (modelPathIndex >= 0) sourceLabel = sourceLabel.slice(modelPathIndex + 1);
+      else if (sourceLabel.includes('/')) {
+        sourceLabel = sourceLabel.slice(sourceLabel.lastIndexOf('/') + 1);
+      }
+      sourceEntries.push({
+        textureKey: String(texture.key || registeredKey || ''),
+        source: sourceLabel || String(texture.key || registeredKey || ''),
+        width,
+        height,
+        estimatedBytes: bytes,
+      });
       if (url) {
         const entry = sourceUrls.get(url) ?? { count: 0, bytes: 0 };
         entry.count++;
@@ -825,6 +844,9 @@ function getVisualRouteTextureMemoryStats(scene) {
       total + entry.bytes * ((entry.count - 1) / entry.count)
     ), 0),
     airportTextureCount: airportKeys.filter((key) => scene?.textures?.exists?.(key)).length,
+    largestSources: sourceEntries
+      .sort((a, b) => b.estimatedBytes - a.estimatedBytes)
+      .slice(0, 12),
   };
 }
 

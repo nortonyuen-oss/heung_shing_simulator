@@ -177,6 +177,79 @@ test('save requests serialize an immutable snapshot before entering the queue', 
   );
 });
 
+test('autosave stringification runs in a worker without losing snapshot immutability', async () => {
+  const context = createSaveVm();
+  let workerPosts = 0;
+  class FakeWorker {
+    postMessage(message) {
+      workerPosts++;
+      const captured = JSON.parse(JSON.stringify(message.payload));
+      Promise.resolve().then(() => {
+        this.onmessage({
+          data: { id: message.id, body: JSON.stringify(captured) },
+        });
+      });
+    }
+
+    terminate() {}
+  }
+  Object.assign(context, {
+    Worker: FakeWorker,
+    Blob: class FakeBlob {},
+    URL: {
+      createObjectURL: () => 'blob:save-serializer',
+      revokeObjectURL: () => {},
+    },
+    activeScene: {
+      cameras: {
+        main: { width: 40, height: 30, scrollX: 0, scrollY: 0, zoom: 1 },
+      },
+    },
+    worldToLogicalPoint: () => ({ x: 1.5, y: 1 }),
+    city: { name: 'Worker City', population: 10, year: 1900, month: 1, budget: 5000 },
+    currentSeed: 'seed',
+    mapData: Array.from({ length: 3 }, () => Array(4).fill(1)),
+    heightMap: Array.from({ length: 3 }, () => Array(4).fill(0)),
+    bridgeMap: Array.from({ length: 3 }, () => Array(4).fill(null)),
+    roadUnderlayMap: Array.from({ length: 3 }, () => Array(4).fill(null)),
+    zoneMap: Array.from({ length: 3 }, () => Array(4).fill(0)),
+    zoneDensityMap: Array.from({ length: 3 }, () => Array(4).fill(1)),
+    treeMap: Array.from({ length: 3 }, () => Array(4).fill(null)),
+    buildingData: { '1:1': { type: 'residential', nested: { value: 'A' } } },
+    powerSources: new Set(),
+    powerLineSet: new Set(),
+    lowDensityLockSet: new Set(),
+    roadTileCount: 0,
+    getDefaultCityName: () => 'Default',
+    getCurrentRoadTileSetId: () => 'default',
+    showToast: () => {},
+    t: (key) => key,
+  });
+  const bodies = [];
+  const metrics = [];
+  context.recordVisualRoutePerformanceOperation = (section, duration, details) => {
+    metrics.push({ section, duration, details });
+  };
+  context.fetch = async (url, options) => {
+    bodies.push({ url, body: JSON.parse(options.body) });
+    return { ok: true, json: async () => ({ id: 1 }) };
+  };
+
+  const saving = vm.runInContext('saveGame(true)', context);
+  context.city.name = 'Changed City';
+  context.buildingData['1:1'].nested.value = 'B';
+
+  assert.equal(await saving, true);
+  assert.equal(workerPosts, 1);
+  assert.equal(bodies[0].url, '/api/saves/autosave');
+  assert.equal(bodies[0].body.city_name, 'Worker City');
+  assert.equal(bodies[0].body.save_data.buildingData['1:1'].nested.value, 'A');
+  assert.equal(
+    metrics.find((entry) => entry.section === 'save.autosave.serialize')?.details.offThread,
+    true,
+  );
+});
+
 test('save session generations preserve a successful slot on failed load and reject stale responses', async () => {
   const installSaveState = (context) => Object.assign(context, {
     activeScene: { scene: {}, tileSprites: [], buildingSprites: new Map(), zoneOverlays: new Map() },

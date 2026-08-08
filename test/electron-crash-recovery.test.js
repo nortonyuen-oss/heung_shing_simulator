@@ -56,9 +56,12 @@ test('explicit Electron performance mode adds the profiler query and suppresses 
   assert.match(mainSource, /process\.env\.ELECTRON_PERFORMANCE_MODE === '1'/);
   assert.match(mainSource, /url\.searchParams\.set\('performance', '1'\)/);
   assert.match(mainSource, /backgroundThrottling: !performanceModeEnabled/);
+  assert.match(mainSource, /modelAssetRootDir: getGameModelAssetRootDir\(\)/);
+  assert.match(mainSource, /\.data', 'package-assets'/);
   assert.match(mainSource, /if \(!performanceModeEnabled\) scheduleUpdateChecks\(mainWindow\);/);
   assert.match(runnerSource, /process\.argv\.includes\('--performance'\)/);
-  assert.equal(packageJson.scripts['electron:perf'], 'node scripts/run-electron.js --performance');
+  assert.match(packageJson.scripts['electron:perf'], /prepare:release-assets/);
+  assert.match(packageJson.scripts['electron:perf'], /run-electron\.js --performance/);
 });
 
 test('the recovery timer is cleared when the window closes so it cannot fire on a destroyed window', () => {

@@ -31,6 +31,13 @@ function getGameWindowUrl() {
   return url.toString();
 }
 
+function getGameModelAssetRootDir() {
+  if (!performanceModeEnabled) return __dirname;
+  const stagedRoot = path.join(__dirname, '.data', 'package-assets');
+  const stagedManifest = path.join(stagedRoot, 'Models', 'model-assets.json');
+  return fs.existsSync(stagedManifest) ? stagedRoot : __dirname;
+}
+
 // The renderer hosts the whole game (Phaser + sim). If it crashes or wedges,
 // there is nothing left inside the page that can recover itself — without
 // this, a dead renderer just leaves the window frozen on its last frame
@@ -167,6 +174,7 @@ async function createWindow() {
     host: '127.0.0.1',
     dbPath,
     rootDir: __dirname,
+    modelAssetRootDir: getGameModelAssetRootDir(),
     aiNewsCredentialStore,
   });
 

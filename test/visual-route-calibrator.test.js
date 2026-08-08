@@ -218,6 +218,14 @@ test('performance profiler summarizes frame time and deduplicates shared texture
   assert.equal(textures.sourceCount, 2);
   assert.equal(textures.airportTextureCount, 1);
   assert.equal(textures.estimatedBytes, (1024 * 512 + 256 * 256) * 4 * (4 / 3));
+  assert.deepEqual(textures.largestSources.map((entry) => entry.textureKey), [
+    'airport_12x12',
+    'aircraft',
+  ]);
+  assert.deepEqual(
+    textures.largestSources.map(({ width, height }) => ({ width, height })),
+    [{ width: 1024, height: 512 }, { width: 256, height: 256 }],
+  );
 });
 
 test('baseline reset clears rolling frame and section samples without reinstalling hooks', () => {

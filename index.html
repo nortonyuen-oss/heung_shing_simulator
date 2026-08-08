@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>香城模擬器 | The City of Heung Shing v3.10.0 — 廟街煲仔飯</title>
+  <title>香城模擬器 | The City of Heung Shing v3.11.0 — 大時代</title>
   <link rel="icon" type="image/png" href="build/icon.png" />
   <style>
     * { box-sizing: border-box; }
@@ -3193,7 +3193,7 @@
       position: fixed;
       right: 26px;
       top: 144px;
-      width: min(520px, calc(100vw - 120px));
+      width: min(640px, calc(100vw - 120px));
       max-height: calc(100vh - 170px);
       z-index: 137;
       display: none;
@@ -3644,6 +3644,154 @@
     .stock-trend-empty {
       color: #7c7566;
       font-size: 11px;
+    }
+
+    .stock-gov-trade-heading {
+      margin-top: 6px;
+      font-size: 12px;
+    }
+
+    .stock-gov-trade-form {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+      margin: 8px 0 14px;
+      padding: 10px;
+      background: #ece7d4;
+      border: 1px solid #8a8372;
+      border-radius: 6px;
+    }
+
+    .stock-gov-field {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      font-size: 11px;
+      color: #5a5648;
+    }
+
+    .stock-gov-field select,
+    .stock-gov-field input {
+      width: 100%;
+      padding: 7px 8px;
+      border: 1px solid #6f6b60;
+      border-radius: 4px;
+      background: #fffdf6;
+      color: #1e2427;
+      font-size: 13px;
+      box-sizing: border-box;
+    }
+
+    .stock-gov-quick-amounts {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .stock-gov-quick-amounts button {
+      flex: 1 1 auto;
+      min-width: 70px;
+      padding: 5px 8px;
+      font-size: 11px;
+      border: 1px solid #6f6b60;
+      border-radius: 4px;
+      background: #fffdf6;
+      color: #1e2427;
+      cursor: pointer;
+    }
+
+    .stock-gov-quick-amounts button:hover {
+      background: #f8f0d2;
+    }
+
+    .stock-gov-trade-hint {
+      font-size: 11px;
+      color: #5a5648;
+      min-height: 14px;
+    }
+
+    .stock-gov-trade-hint.is-cap-reached {
+      color: #8d1f1f;
+      font-weight: 700;
+    }
+
+    .stock-gov-buy-btn:disabled,
+    .stock-gov-sell-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .stock-gov-cap-badge {
+      display: inline-block;
+      padding: 1px 6px;
+      border-radius: 999px;
+      border: 1px solid #8d1f1f;
+      color: #8d1f1f;
+      font-size: 10px;
+      font-weight: 800;
+      background: rgba(141,31,31,0.10);
+      white-space: nowrap;
+    }
+
+    .stock-gov-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .stock-gov-buy-btn,
+    .stock-gov-sell-btn {
+      flex: 1;
+      padding: 9px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      border-radius: 4px;
+      cursor: pointer;
+      border: 1px solid transparent;
+    }
+
+    .stock-gov-buy-btn {
+      background: #1f6f1f;
+      color: #fdfaf0;
+    }
+
+    .stock-gov-buy-btn:hover { background: #275f27; }
+
+    .stock-gov-sell-btn {
+      background: #8d1f1f;
+      color: #fdfaf0;
+    }
+
+    .stock-gov-sell-btn:hover { background: #732121; }
+
+    .stock-gov-holdings-heading {
+      margin-top: 4px;
+      font-size: 12px;
+    }
+
+    .stock-gov-holdings-actions {
+      display: flex;
+      gap: 4px;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }
+
+    .stock-gov-holdings-actions button {
+      padding: 2px 6px;
+      font-size: 10px;
+      border: 1px solid #6f6b60;
+      border-radius: 4px;
+      background: #ece7d4;
+      color: #1e2427;
+      cursor: pointer;
+    }
+
+    .stock-gov-holdings-actions button:hover {
+      background: #f8f0d2;
+    }
+
+    #stock-gov-panel.is-locked {
+      display: none;
     }
 
     .budget-window-table tr.budget-total-row th,
@@ -5666,11 +5814,11 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
         <button id="about-app-icon" class="about-app-icon" type="button" aria-label="City icon" aria-pressed="false">🏙️</button>
         <div style="font-size:18px; font-weight:900; margin-bottom:6px" data-i18n="app.name">The City of Heung Shing</div>
         <div style="color:#5a5648; font-size:12px" data-i18n="dialog.aboutEnglishName">The City of Heung Shing</div>
-        <div style="color:#5a5648; font-size:12px" data-i18n="dialog.version">Version 3.10.0 — 廟街煲仔飯</div>
+        <div style="color:#5a5648; font-size:12px" data-i18n="dialog.version">Version 3.11.0 — 大時代</div>
         <div id="visual-route-calibration-test-mode-label" hidden>【test mode】</div>
         <div style="color:#5a5648; font-size:12px" data-i18n="dialog.aboutInspired">A Hong Kong-themed city simulation brand title</div>
         <div style="margin-top:14px; font-size:12px; line-height:1.8; color:#3a3530">
-          <span data-i18n-html="dialog.aboutBuilt">The City of Heung Shing v3.10.0 — 廟街煲仔飯<br>Plan · Build · Govern · Thrive</span>
+          <span data-i18n-html="dialog.aboutBuilt">The City of Heung Shing v3.11.0 — 大時代<br>Plan · Build · Govern · Thrive</span>
         </div>
         <div class="about-links">
           <a class="about-link" href="https://github.com/nortonyuen-oss/heung_shing_simulator" target="_blank" rel="noopener noreferrer" data-i18n="dialog.githubLink">GitHub</a>
@@ -6569,6 +6717,8 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
             <tr><th data-i18n="budget.netProjected">Projected next month net</th><td id="budget-net-projected">$0</td></tr>
             <tr><th data-i18n="budget.netAnnual">Projected annual net</th><td id="budget-net-annual">$0</td></tr>
             <tr class="budget-total-row"><th data-i18n="budget.estimatedTreasury">Estimated treasury in 12 months</th><td id="budget-estimated-treasury">$0</td></tr>
+            <tr id="budget-stock-reserve-row"><th data-i18n="stockExchange.govReserveLabel">Stock reserve</th><td id="budget-stock-reserve">$0</td></tr>
+            <tr id="budget-stock-unrealized-row"><th data-i18n="stockExchange.govUnrealizedLabel">Unrealized P&amp;L</th><td id="budget-stock-unrealized">$0</td></tr>
           </tbody>
         </table>
       </section>
@@ -6631,47 +6781,101 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
       </div>
     </div>
     <div id="stock-exchange-window-body">
-      <section class="budget-window-section" aria-label="Market status" data-i18n-aria="stockExchange.statusSection">
-        <div class="budget-window-heading" data-i18n="stockExchange.statusSection">Market status</div>
-        <table class="budget-window-table">
-          <tbody>
-            <tr><th data-i18n="stockExchange.windowStatus">Status</th><td id="stock-exchange-status">Not built</td></tr>
-            <tr><th data-i18n="stockExchange.hsi">HSI</th><td id="stock-exchange-hsi">20,000</td></tr>
-            <tr><th data-i18n="stockExchange.hsiDelta">HSI change</th><td id="stock-exchange-hsi-delta">+0</td></tr>
-            <tr><th data-i18n="stockExchange.ruleOfLaw">Rule of law</th><td id="stock-exchange-rule-of-law">0%</td></tr>
-            <tr><th data-i18n="stockExchange.commercial">Commercial demand</th><td id="stock-exchange-commercial">0%</td></tr>
-            <tr><th data-i18n="stockExchange.boost">Commercial boost</th><td id="stock-exchange-boost">+0%</td></tr>
-            <tr><th data-i18n="stockExchange.actStatus">Act status</th><td id="stock-exchange-act-status">Inactive</td></tr>
-            <tr><th data-i18n="stockExchange.councilBuilt">Council</th><td id="stock-exchange-council">Missing</td></tr>
-          </tbody>
-        </table>
-      </section>
-      <section class="budget-window-section" aria-label="Stock board" data-i18n-aria="stockExchange.marketBoardSection">
-        <div class="budget-window-heading">
-          <span data-i18n="stockExchange.marketBoardSection">Market board</span>
-          <button id="stock-exchange-relist-btn" type="button" data-i18n="stockExchange.relist">Rebalance</button>
-        </div>
-        <div class="stock-list-wrap">
-          <table class="budget-window-table stock-list-table">
-            <thead>
-              <tr>
-                <th data-i18n="stockExchange.stock">Stock</th>
-                <th data-i18n="stockExchange.company">Company</th>
-                <th data-i18n="stockExchange.sector">Sector</th>
-                <th data-i18n="stockExchange.hsiMember">HSI</th>
-                <th data-i18n="stockExchange.price">Price</th>
-                <th data-i18n="stockExchange.change">Change</th>
-                <th data-i18n="stockExchange.trend">Trend</th>
-              </tr>
-            </thead>
-            <tbody id="stock-exchange-table-body"></tbody>
+      <div class="council-tabs" role="tablist">
+        <button class="council-tab is-active" type="button" role="tab" aria-selected="true" data-stock-tab="market" data-i18n="stockExchange.marketTab">Market</button>
+        <button class="council-tab" type="button" role="tab" aria-selected="false" data-stock-tab="trading" data-i18n="stockExchange.tradingTab">Government Trading</button>
+      </div>
+      <div class="council-tab-panel" data-stock-panel="market">
+        <section class="budget-window-section" aria-label="Market status" data-i18n-aria="stockExchange.statusSection">
+          <div class="budget-window-heading" data-i18n="stockExchange.statusSection">Market status</div>
+          <table class="budget-window-table">
+            <tbody>
+              <tr><th data-i18n="stockExchange.windowStatus">Status</th><td id="stock-exchange-status">Not built</td></tr>
+              <tr><th data-i18n="stockExchange.hsi">HSI</th><td id="stock-exchange-hsi">20,000</td></tr>
+              <tr><th data-i18n="stockExchange.hsiDelta">HSI change</th><td id="stock-exchange-hsi-delta">+0</td></tr>
+              <tr><th data-i18n="stockExchange.ruleOfLaw">Rule of law</th><td id="stock-exchange-rule-of-law">0%</td></tr>
+              <tr><th data-i18n="stockExchange.commercial">Commercial demand</th><td id="stock-exchange-commercial">0%</td></tr>
+              <tr><th data-i18n="stockExchange.boost">Commercial boost</th><td id="stock-exchange-boost">+0%</td></tr>
+              <tr><th data-i18n="stockExchange.actStatus">Act status</th><td id="stock-exchange-act-status">Inactive</td></tr>
+              <tr><th data-i18n="stockExchange.councilBuilt">Council</th><td id="stock-exchange-council">Missing</td></tr>
+            </tbody>
           </table>
-        </div>
-      </section>
-      <section class="budget-window-section" aria-label="Commercial notes" data-i18n-aria="stockExchange.notesSection">
-        <div class="budget-window-heading" data-i18n="stockExchange.notesSection">Commercial notes</div>
-        <div class="insp-row" data-i18n="inspect.stockExchange">Boosts commercial attraction when the Stock Exchange Act is active.</div>
-      </section>
+        </section>
+        <section class="budget-window-section" aria-label="Stock board" data-i18n-aria="stockExchange.marketBoardSection">
+          <div class="budget-window-heading">
+            <span data-i18n="stockExchange.marketBoardSection">Market board</span>
+            <button id="stock-exchange-relist-btn" type="button" data-i18n="stockExchange.relist">Rebalance</button>
+          </div>
+          <div class="stock-list-wrap">
+            <table class="budget-window-table stock-list-table">
+              <thead>
+                <tr>
+                  <th data-i18n="stockExchange.stock">Stock</th>
+                  <th data-i18n="stockExchange.company">Company</th>
+                  <th data-i18n="stockExchange.sector">Sector</th>
+                  <th data-i18n="stockExchange.hsiMember">HSI</th>
+                  <th data-i18n="stockExchange.price">Price</th>
+                  <th data-i18n="stockExchange.change">Change</th>
+                  <th data-i18n="stockExchange.trend">Trend</th>
+                </tr>
+              </thead>
+              <tbody id="stock-exchange-table-body"></tbody>
+            </table>
+          </div>
+        </section>
+        <section class="budget-window-section" aria-label="Commercial notes" data-i18n-aria="stockExchange.notesSection">
+          <div class="budget-window-heading" data-i18n="stockExchange.notesSection">Commercial notes</div>
+          <div class="insp-row" data-i18n="inspect.stockExchange">Boosts commercial attraction when the Stock Exchange Act is active.</div>
+        </section>
+      </div>
+      <div class="council-tab-panel" data-stock-panel="trading" hidden>
+        <section class="budget-window-section" aria-label="Government trading" data-i18n-aria="stockExchange.govSection">
+          <div id="stock-gov-locked-hint" class="insp-row"></div>
+          <div id="stock-gov-panel" class="stock-gov-panel">
+            <table class="budget-window-table">
+              <tbody>
+                <tr><th data-i18n="stockExchange.govReserveLabel">Stock reserve</th><td id="stock-gov-reserve-value">$0</td></tr>
+                <tr><th data-i18n="stockExchange.govUnrealizedLabel">Unrealized P&amp;L</th><td id="stock-gov-unrealized-pnl">$0</td></tr>
+                <tr><th data-i18n="stockExchange.govRealizedLabel">Realized P&amp;L</th><td id="stock-gov-realized-pnl">$0</td></tr>
+              </tbody>
+            </table>
+            <div class="budget-window-heading stock-gov-trade-heading" data-i18n="stockExchange.govTradeSection">Place an order</div>
+            <div class="stock-gov-trade-form">
+              <label class="stock-gov-field">
+                <span data-i18n="stockExchange.govSymbolLabel">Stock</span>
+                <select id="stock-gov-trade-symbol"></select>
+              </label>
+              <label class="stock-gov-field">
+                <span data-i18n="stockExchange.govAmountLabel">Amount (HK$)</span>
+                <input id="stock-gov-trade-amount" type="number" min="0" step="10000" placeholder="1000000" />
+              </label>
+              <div class="stock-gov-quick-amounts" id="stock-gov-quick-amounts"></div>
+              <div id="stock-gov-trade-hint" class="stock-gov-trade-hint"></div>
+              <div class="stock-gov-actions">
+                <button id="stock-gov-buy-btn" type="button" class="stock-gov-buy-btn" data-i18n="stockExchange.govBuyBtn">Buy</button>
+                <button id="stock-gov-sell-btn" type="button" class="stock-gov-sell-btn" data-i18n="stockExchange.govSellBtn">Sell</button>
+              </div>
+            </div>
+            <div class="budget-window-heading stock-gov-holdings-heading" data-i18n="stockExchange.govHoldingsSection">Holdings</div>
+            <div class="stock-list-wrap">
+              <table class="budget-window-table stock-list-table">
+                <thead>
+                  <tr>
+                    <th data-i18n="stockExchange.stock">Stock</th>
+                    <th data-i18n="stockExchange.govHoldingsShares">Shares</th>
+                    <th data-i18n="stockExchange.govHoldingsAvgCost">Avg. cost</th>
+                    <th data-i18n="stockExchange.govHoldingsValue">Value</th>
+                    <th data-i18n="stockExchange.govHoldingsPnl">Unrealized P&amp;L</th>
+                    <th data-i18n="stockExchange.govHoldingsStatus">Status</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="stock-gov-holdings-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </div>
     </div>
   </div>
 

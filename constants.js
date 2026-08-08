@@ -90,8 +90,23 @@ const HSI_BASE_LEVEL = 20000;
 const STOCK_LISTING_COUNT = 20;
 const STOCK_LISTING_ROTATE_COUNT = 2;
 // Stock-market long-run tuning: HSI is derived from constituent market caps.
-// Target long-run annualized growth stays near historical HSI price performance (~4-5%).
-const HSI_ANNUAL_BASE_RETURN = 0.045;
+// Growth is driven entirely by the bull/range/bear regime cycle below (see
+// STOCK_MARKET_REGIME_ANNUAL_DRIFT) rather than a fixed background rate, so
+// the index genuinely rises and falls with the cycle instead of climbing at
+// a constant pace regardless of regime.
+// A city can run for centuries of in-game time, and a simple compounding
+// drift has no natural ceiling - left unbounded, a modest annual return still
+// diverges to absurd (trillions-of-points) levels over that many ticks. Real
+// indices don't behave that way either: they cycle within a historical band
+// shaped by earnings and macro cycles, not a straight exponential. Clamping
+// each stock's long-run fair value to a bounded multiple of its base price
+// (and HSI itself as a defence-in-depth backstop) keeps the short-term
+// dynamics - regimes, crashes, mean reversion, volatility - fully intact
+// while stopping runaway growth over very long play sessions.
+const STOCK_FAIR_VALUE_MIN_MULTIPLE = 0.25;
+const STOCK_FAIR_VALUE_MAX_MULTIPLE = 4;
+const HSI_MIN_LEVEL = 2000;
+const HSI_MAX_LEVEL = 100000;
 const STOCK_CITY_PREMIUM_ANNUAL_MAX = 0.022;
 const STOCK_MARKET_MEAN_REVERSION = 0.16;
 const STOCK_IDIO_SHOCK_DECAY = 0.78;
@@ -102,25 +117,60 @@ const STOCK_CRASH_DROP_RANGE = Object.freeze([0.30, 0.50]);
 const STOCK_CRASH_DURATION_MONTHS = Object.freeze([3, 6]);
 const STOCK_CRASH_COOLDOWN_MONTHS = Object.freeze([18, 36]);
 const STOCK_MARKET_REGIME_ANNUAL_DRIFT = {
-  bull: 0.14,
-  range: 0.01,
-  bear: -0.16,
+  bull: 0.11,
+  range: 0.00,
+  bear: -0.14,
 };
+// Fundamentals cycle with the regime too (bear markets really do erode
+// earnings, not just sentiment) but move less sharply than price itself -
+// price overshoots/undershoots the fair-value anchor during a cycle, which
+// mean reversion then corrects. Previously fair value grew at a fixed
+// positive rate in every regime, including bear, which kept dragging price
+// back up even mid-crash and made the whole market feel like a straight
+// climb instead of a real boom-bust cycle.
+const STOCK_FAIR_VALUE_REGIME_WEIGHT = 0.4;
 const STOCK_MARKET_REGIME_VOL_MULTIPLIER = {
   bull: 0.85,
   range: 1.0,
   bear: 1.35,
 };
+// Previously bull was almost a one-way trap (84% to stay bull, only 2% to
+// ever slip into bear from it), so the market spent the vast majority of
+// time climbing and bear phases were rare, brief blips. Rebalanced so all
+// three regimes trade off more evenly - bull still the most common state
+// (markets do trend up more than down over time), but bear is a real,
+// recurring phase rather than a near-impossible edge case.
 const STOCK_MARKET_REGIME_TRANSITION = {
-  bull: { bull: 0.84, range: 0.14, bear: 0.02 },
-  range: { bull: 0.18, range: 0.66, bear: 0.16 },
-  bear: { bull: 0.07, range: 0.28, bear: 0.65 },
+  bull: { bull: 0.72, range: 0.20, bear: 0.08 },
+  range: { bull: 0.22, range: 0.52, bear: 0.26 },
+  bear: { bull: 0.10, range: 0.30, bear: 0.60 },
 };
 const STOCK_MARKET_REGIME_DURATION_MONTHS = {
   bull: [4, 10],
   range: [3, 8],
-  bear: [2, 6],
+  bear: [3, 7],
 };
+
+// Government ("Monetary Authority") market participation: once the treasury
+// is healthy enough, the player can buy/sell any listed stock directly from
+// city funds. This is deliberately not a free lunch - trades carry a real
+// fee, move the market price they're transacted through (both directions, so
+// selling a large position genuinely depresses it too, not just buying
+// lifting it), and a single stock can't be cornered outright. That market
+// impact is what makes buying beaten-down HSI names during a crash function
+// as an actual rescue rather than a quiet side investment.
+const STOCK_GOV_UNLOCK_BUDGET = 10000000;
+const STOCK_GOV_TRANSACTION_FEE_RATE = 0.0025;
+const STOCK_GOV_MAX_OWNERSHIP_FRACTION = 0.15;
+const STOCK_GOV_PRICE_IMPACT_COEFFICIENT = 0.6;
+const STOCK_GOV_MAX_PRICE_IMPACT_PER_TRADE = 0.12;
+// Forum posts about government trades only fire above this size, so routine
+// small trades don't spam the feed - only a real rescue buy, a large buy, or
+// a genuinely notable profit/loss is newsworthy. The 15% ownership cap keeps
+// most single-stock trades well under $5M, so a higher separate threshold
+// for the non-crash "large buy" story almost never fired in practice -
+// shares the same bar as the other government-trading stories instead.
+const STOCK_GOV_NEWS_MIN_NOTABLE_AMOUNT = 1000000;
 const HSI_COMPONENT_SYMBOLS = [
   'GTT', 'ALI', 'MEO', 'HBF', 'AIA',
   'BYD', 'MTR', 'HKE', 'SNO', 'LNK',
@@ -185,9 +235,16 @@ const SKYLINE_REPEAT_MODEL_PENALTY = 0.18;
 // low-density planning lock in tools.js. The one exception is the rare 3x3
 // UH "estate lot" path below, reserved for the low-rise mansion model.
 const RES_2X2_SPAWN_CHANCE = { 1: 0.00, 2: 0.45, 3: 0.70 };
+// 4x4/5x5 lots were previously all-but-unreachable outside max-density blocks
+// (0.10-0.18 chance, stacked on top of needing a clear 4x4/5x5 block in an
+// already-built city) - raised across the board so a large city actually
+// grows some of these towers instead of only ever seeing 2x2/3x3. Medium
+// density now gets a real, smaller shot at them too; low density stays locked
+// to 1x1 - see the low-density planning lock in tools.js and the UH
+// villa/estate exceptions below for its only large-footprint paths.
 const RES_LARGE_SPAWN_CHANCE = {
-  3: { 3: 0.18, 4: 0.12, 5: 0.10 },
-  2: { 3: 0.12, 4: 0.00, 5: 0.00 },
+  3: { 3: 0.30, 4: 0.26, 5: 0.22 },
+  2: { 3: 0.20, 4: 0.10, 5: 0.05 },
   1: { 3: 0.00, 4: 0.00, 5: 0.00 },
 };
 // Medium/high density is Heung Shing's housing mainstay, and public/
@@ -197,13 +254,19 @@ const RES_LARGE_SPAWN_CHANCE = {
 // UH is excluded here entirely (isUltraHighWealthEligible requires
 // DENSITY_LOW), so its column is unused at density 2/3 - kept for a complete
 // table shape only.
+// The top band is split finer than the rest so sustained, truly exceptional
+// land quality (>0.90) keeps paying off with a real jump in UH odds instead
+// of flatlining at the same 3% as merely-good land - a visible reward for
+// building the city up, without touching L's majority share even at the top.
 const RESIDENTIAL_WEALTH_PROBABILITIES = [
   { maxQuality: 0.29, weights: { L: 0.85, M: 0.14, H: 0.01, UH: 0.00 } },
   { maxQuality: 0.44, weights: { L: 0.75, M: 0.23, H: 0.02, UH: 0.00 } },
   { maxQuality: 0.59, weights: { L: 0.65, M: 0.30, H: 0.05, UH: 0.00 } },
   { maxQuality: 0.74, weights: { L: 0.58, M: 0.32, H: 0.10, UH: 0.00 } },
   { maxQuality: 0.84, weights: { L: 0.53, M: 0.33, H: 0.12, UH: 0.02 } },
-  { maxQuality: 1.00, weights: { L: 0.50, M: 0.33, H: 0.14, UH: 0.03 } },
+  { maxQuality: 0.90, weights: { L: 0.50, M: 0.33, H: 0.14, UH: 0.03 } },
+  { maxQuality: 0.96, weights: { L: 0.46, M: 0.32, H: 0.16, UH: 0.06 } },
+  { maxQuality: 1.00, weights: { L: 0.42, M: 0.31, H: 0.18, UH: 0.09 } },
 ];
 const RESIDENTIAL_H_MINIMUMS = Object.freeze({
   quality: 0.60,
@@ -221,7 +284,14 @@ const RESIDENTIAL_UH_MINIMUMS = Object.freeze({
   economy: 0.65,
   maxPollution: 0.20,
 });
-const RESIDENTIAL_LOW_DENSITY_3X3_CHANCE = Object.freeze({ premium: 0.06, elite: 0.12 });
+// UH-eligible low-density sites get a real shot at a UH build instead of
+// always falling back to ordinary L/M/H 1x1 art: a rare 3x3 "estate lot", or
+// (now that its spawn path actually reaches the roll - see
+// chooseResidentialFootprint) a 2x2 UH "villa". Both raised well above the
+// original 3x3-only 0.06/0.12 values; the 2x2 chance is set a little higher
+// since a 2-tile lot fits far more sites than a 3-tile one.
+const RESIDENTIAL_LOW_DENSITY_3X3_CHANCE = Object.freeze({ premium: 0.12, elite: 0.22 });
+const RESIDENTIAL_LOW_DENSITY_2X2_UH_CHANCE = Object.freeze({ premium: 0.16, elite: 0.28 });
 // Mirrors the residential rebalance: mainstream Hong Kong retail (L - street
 // shops, markets, walk-up commercial buildings) stays the plurality even at
 // high land quality, M (ordinary malls/offices) is the solid second tier, and
@@ -236,7 +306,9 @@ const COMMERCIAL_TIER_PROBABILITIES = [
   { maxQuality: 0.59, weights: { L: 0.63, M: 0.32, H: 0.05, UH: 0.00 } },
   { maxQuality: 0.74, weights: { L: 0.55, M: 0.35, H: 0.10, UH: 0.00 } },
   { maxQuality: 0.84, weights: { L: 0.49, M: 0.36, H: 0.13, UH: 0.02 } },
-  { maxQuality: 1.00, weights: { L: 0.45, M: 0.37, H: 0.15, UH: 0.03 } },
+  { maxQuality: 0.90, weights: { L: 0.45, M: 0.37, H: 0.15, UH: 0.03 } },
+  { maxQuality: 0.96, weights: { L: 0.41, M: 0.36, H: 0.17, UH: 0.06 } },
+  { maxQuality: 1.00, weights: { L: 0.37, M: 0.35, H: 0.19, UH: 0.09 } },
 ];
 const COMMERCIAL_H_MINIMUMS = Object.freeze({
   quality: 0.60,
@@ -255,10 +327,15 @@ const COMMERCIAL_UH_MINIMUMS = Object.freeze({
   maxPollution: 0.25,
 });
 const COMMERCIAL_CATALYST_RADIUS = Object.freeze({ stockExchange: 28, airport: 42 });
+// 4x4/5x5 commercial towers (5x5 is the single UH landmark model - see
+// COMMERCIAL_UH_MINIMUMS/COMMERCIAL_CATALYST_RADIUS for its stock-exchange/
+// airport gating) were reachable in theory but the roll chance was too low to
+// matter next to how rarely a clear 4x4/5x5 block exists in a built-up city.
+// Raised across the board, most for the top two sizes.
 const COM_LARGE_SPAWN_CHANCE = {
-  3: { 2: 0.80, 3: 0.58, 4: 0.28, 5: 0.07 },
-  2: { 2: 0.66, 3: 0.36, 4: 0.14, 5: 0.02 },
-  1: { 2: 0.42, 3: 0.18, 4: 0.06, 5: 0.00 },
+  3: { 2: 0.82, 3: 0.64, 4: 0.42, 5: 0.22 },
+  2: { 2: 0.70, 3: 0.42, 4: 0.24, 5: 0.10 },
+  1: { 2: 0.46, 3: 0.22, 4: 0.10, 5: 0.02 },
 };
 const IND_LARGE_SPAWN_CHANCE = {
   3: { 2: 0.65, 3: 0.30 },

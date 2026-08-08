@@ -29,9 +29,14 @@ function createDefaultStockMarketState() {
   const stocks = STOCK_MARKET_CATALOG.map((entry, index) => {
     const basePrice = 42 + index * 6;
     const isHSI = HSI_COMPONENT_SYMBOLS.includes(entry.symbol);
+    // Scaled so each stock's market cap (price * shares) lands in the tens to
+    // low hundreds of millions - the same order of magnitude as a city
+    // treasury - so the government ownership cap (STOCK_GOV_MAX_OWNERSHIP_
+    // FRACTION of shares) is a meaningful trade size rather than a few
+    // hundred dollars' worth of stock.
     const sharesOutstanding = Number.isFinite(entry.sharesOutstanding)
       ? Math.max(1, Number(entry.sharesOutstanding))
-      : (120 + index * 9);
+      : (200000 + index * 15000);
     let listed = isHSI;
     if (!listed && listedNonHsi < (STOCK_LISTING_COUNT - HSI_COMPONENT_SYMBOLS.length)) {
       listed = true;
@@ -72,6 +77,10 @@ function createDefaultStockMarketState() {
       lastUpdateMonthIndex: -1,
       trigger: '',
       newsVariant: 0,
+    },
+    governmentPortfolio: {
+      positions: {},
+      realizedPnl: 0,
     },
     stocks,
   };
@@ -516,7 +525,13 @@ function normalizeCityFinanceState() {
         price,
         prevPrice,
         changePct: toFiniteOr(source.changePct, 0),
-        sharesOutstanding: Math.max(1, toFiniteOr(source.sharesOutstanding, stock.sharesOutstanding)),
+        // sharesOutstanding intentionally always adopts the current catalog
+        // default (via the `...stock` spread above) rather than preserving
+        // whatever a legacy save recorded: every symbol's default share
+        // count scales by the same constant factor, so HSI - which depends
+        // only on the ratio between stocks' market caps - is unaffected,
+        // and old saves get the government trading ownership caps sized
+        // correctly instead of being stuck at a stale, much smaller scale.
         history: history.length > 0 ? history : [price],
         fairValue: Math.max(1, toFiniteOr(source.fairValue, price)),
         idioShock: toFiniteOr(source.idioShock, 0),
@@ -544,6 +559,29 @@ function normalizeCityFinanceState() {
         needed--;
       });
     }
+
+    const validSymbols = new Set(market.stocks.map((stock) => stock.symbol));
+    const sourcePortfolio = market.governmentPortfolio && typeof market.governmentPortfolio === 'object'
+      ? market.governmentPortfolio
+      : {};
+    const sourcePositions = sourcePortfolio.positions && typeof sourcePortfolio.positions === 'object'
+      ? sourcePortfolio.positions
+      : {};
+    const normalizedPositions = {};
+    Object.entries(sourcePositions).forEach(([symbol, position]) => {
+      if (!validSymbols.has(symbol) || !position) return;
+      const shares = Math.max(0, Math.floor(toFiniteOr(position.shares, 0)));
+      if (shares <= 0) return;
+      normalizedPositions[symbol] = {
+        shares,
+        avgCost: Math.max(0, toFiniteOr(position.avgCost, 0)),
+      };
+    });
+    market.governmentPortfolio = {
+      positions: normalizedPositions,
+      realizedPnl: toFiniteOr(sourcePortfolio.realizedPnl, 0),
+    };
+
     rememberNormalizedCityStateObject(market);
   }
   city.educationHistory = Array.isArray(city.educationHistory) ? city.educationHistory : [];

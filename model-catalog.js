@@ -103,6 +103,15 @@ const HOUSE_MODEL_SETS = {
       'residential2-18-H.png',
       'residential2-10-H.png',
     ],
+    // 15-18 are noticeably taller/bulkier than the rest of the 2x2 H roster
+    // and look out of place popping up as often as the shorter H models.
+    // Dialed down (not excluded) so they still appear, just less often.
+    fileOverrides: {
+      'residential2-15-H.png': { spawnWeight: 0.35 },
+      'residential2-16-H.png': { spawnWeight: 0.35 },
+      'residential2-17-H.png': { spawnWeight: 0.35 },
+      'residential2-18-H.png': { spawnWeight: 0.35 },
+    },
     footprintCols: 2,
     footprintRows: 2,
   },

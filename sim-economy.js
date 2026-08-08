@@ -281,9 +281,173 @@ function recalculateStockMarketHsi(market = city.stockMarket) {
   }, 0);
   market.prevHsi = Number.isFinite(market.hsi) ? market.hsi : HSI_BASE_LEVEL;
   market.hsi = baseCap > 0
-    ? Math.round(HSI_BASE_LEVEL * (currentCap / baseCap))
+    ? Math.round(clamp(HSI_BASE_LEVEL * (currentCap / baseCap), HSI_MIN_LEVEL, HSI_MAX_LEVEL))
     : HSI_BASE_LEVEL;
   return market.hsi;
+}
+
+// ── Government ("Monetary Authority") stock trading ─────────────────────────
+
+function getGovernmentPortfolio(market = city.stockMarket) {
+  if (!market) return null;
+  if (!market.governmentPortfolio || typeof market.governmentPortfolio !== 'object') {
+    market.governmentPortfolio = { positions: {}, realizedPnl: 0 };
+  }
+  if (!market.governmentPortfolio.positions || typeof market.governmentPortfolio.positions !== 'object') {
+    market.governmentPortfolio.positions = {};
+  }
+  if (!Number.isFinite(Number(market.governmentPortfolio.realizedPnl))) {
+    market.governmentPortfolio.realizedPnl = 0;
+  }
+  return market.governmentPortfolio;
+}
+
+function isGovernmentStockTradingUnlocked() {
+  return hasBuildingType('stock_exchange') && Number(city.budget) > STOCK_GOV_UNLOCK_BUDGET;
+}
+
+function getStockMarketCapValue(stock) {
+  const shares = Math.max(1, Number(stock.sharesOutstanding ?? 1));
+  return Math.max(1, Number(stock.price ?? stock.basePrice ?? 1)) * shares;
+}
+
+// direction: +1 for a buy order (pushes price up), -1 for a sell order
+// (pushes price down) - both directions use the same formula, so a large
+// government sale depresses a stock exactly as much as an equal-sized
+// purchase would have lifted it.
+function applyGovernmentTradePriceImpact(stock, notional, direction) {
+  const marketCap = getStockMarketCapValue(stock);
+  const rawImpact = (Math.max(0, notional) / marketCap) * STOCK_GOV_PRICE_IMPACT_COEFFICIENT;
+  const impact = clamp(rawImpact, 0, STOCK_GOV_MAX_PRICE_IMPACT_PER_TRADE) * direction;
+  const prevPrice = Math.max(1, Number(stock.price ?? stock.basePrice ?? 1));
+  const nextPrice = Math.max(1, prevPrice * (1 + impact));
+  stock.prevPrice = prevPrice;
+  stock.price = Number(nextPrice.toFixed(2));
+  stock.changePct = (stock.price - prevPrice) / prevPrice;
+  if (!Array.isArray(stock.history)) stock.history = [prevPrice];
+  stock.history.push(stock.price);
+  if (stock.history.length > 32) stock.history.shift();
+  return impact;
+}
+
+function buyGovernmentStock(symbol, cashAmount) {
+  if (!isGovernmentStockTradingUnlocked()) return { success: false, reason: 'locked' };
+  const market = city.stockMarket;
+  const stock = market?.stocks?.find((entry) => entry.symbol === symbol && entry.listed);
+  if (!stock) return { success: false, reason: 'not-found' };
+
+  const requestedCash = Math.max(0, Number(cashAmount) || 0);
+  if (requestedCash <= 0) return { success: false, reason: 'invalid-amount' };
+  if (requestedCash > Number(city.budget)) return { success: false, reason: 'insufficient-funds' };
+
+  const price = Math.max(1, Number(stock.price ?? stock.basePrice ?? 1));
+  const feeRate = STOCK_GOV_TRANSACTION_FEE_RATE;
+  const shares = Math.floor(requestedCash / (price * (1 + feeRate)));
+  if (shares <= 0) return { success: false, reason: 'amount-too-small' };
+
+  const portfolio = getGovernmentPortfolio(market);
+  const existing = portfolio.positions[symbol] ?? { shares: 0, avgCost: 0 };
+  const sharesOutstanding = Math.max(1, Number(stock.sharesOutstanding ?? 1));
+  const maxShares = Math.floor(sharesOutstanding * STOCK_GOV_MAX_OWNERSHIP_FRACTION);
+  const allowedShares = Math.min(shares, Math.max(0, maxShares - existing.shares));
+  if (allowedShares <= 0) return { success: false, reason: 'ownership-cap' };
+
+  const cost = allowedShares * price;
+  const fee = cost * feeRate;
+  const totalSpend = cost + fee;
+  if (totalSpend > Number(city.budget)) return { success: false, reason: 'insufficient-funds' };
+
+  city.budget -= totalSpend;
+  const newShares = existing.shares + allowedShares;
+  const newAvgCost = ((existing.shares * existing.avgCost) + cost) / newShares;
+  portfolio.positions[symbol] = { shares: newShares, avgCost: newAvgCost };
+
+  const impact = applyGovernmentTradePriceImpact(stock, cost, 1);
+  recalculateStockMarketHsi(market);
+
+  if (
+    market.crash?.active
+    && cost >= STOCK_GOV_NEWS_MIN_NOTABLE_AMOUNT
+    && typeof announceGovernmentMarketIntervention === 'function'
+  ) {
+    announceGovernmentMarketIntervention({ symbol, cost, newPrice: stock.price });
+  } else if (
+    !market.crash?.active
+    && cost >= STOCK_GOV_NEWS_MIN_NOTABLE_AMOUNT
+    && typeof announceGovernmentLargeBuy === 'function'
+  ) {
+    announceGovernmentLargeBuy({ symbol, cost, newPrice: stock.price });
+  }
+
+  return {
+    success: true, symbol, shares: allowedShares, cost, fee, totalSpend, impact, newPrice: stock.price,
+  };
+}
+
+function sellGovernmentStock(symbol, shareCount) {
+  if (!isGovernmentStockTradingUnlocked()) return { success: false, reason: 'locked' };
+  const market = city.stockMarket;
+  const stock = market?.stocks?.find((entry) => entry.symbol === symbol);
+  if (!stock) return { success: false, reason: 'not-found' };
+
+  const portfolio = getGovernmentPortfolio(market);
+  const position = portfolio.positions[symbol];
+  if (!position || position.shares <= 0) return { success: false, reason: 'no-position' };
+
+  const requestedShares = Math.max(0, Math.floor(Number(shareCount) || 0));
+  if (requestedShares <= 0) return { success: false, reason: 'invalid-amount' };
+  const sellShares = Math.min(requestedShares, position.shares);
+
+  const price = Math.max(1, Number(stock.price ?? stock.basePrice ?? 1));
+  const grossProceeds = sellShares * price;
+  const fee = grossProceeds * STOCK_GOV_TRANSACTION_FEE_RATE;
+  const netProceeds = grossProceeds - fee;
+  const realizedGain = (price - position.avgCost) * sellShares - fee;
+
+  city.budget += netProceeds;
+  portfolio.realizedPnl = (Number(portfolio.realizedPnl) || 0) + realizedGain;
+  const remainingShares = position.shares - sellShares;
+  if (remainingShares <= 0) {
+    delete portfolio.positions[symbol];
+  } else {
+    portfolio.positions[symbol] = { shares: remainingShares, avgCost: position.avgCost };
+  }
+
+  const impact = applyGovernmentTradePriceImpact(stock, grossProceeds, -1);
+  recalculateStockMarketHsi(market);
+
+  if (realizedGain >= STOCK_GOV_NEWS_MIN_NOTABLE_AMOUNT && typeof announceGovernmentTradingProfit === 'function') {
+    announceGovernmentTradingProfit({ symbol, gain: realizedGain });
+  } else if (
+    realizedGain <= -STOCK_GOV_NEWS_MIN_NOTABLE_AMOUNT
+    && typeof announceGovernmentTradingLoss === 'function'
+  ) {
+    announceGovernmentTradingLoss({ symbol, loss: -realizedGain });
+  }
+
+  return {
+    success: true, symbol, shares: sellShares, grossProceeds, fee, netProceeds, realizedGain, impact, newPrice: stock.price,
+  };
+}
+
+function getGovernmentPortfolioMarketValue(market = city.stockMarket) {
+  const portfolio = getGovernmentPortfolio(market);
+  if (!portfolio) return 0;
+  return Object.entries(portfolio.positions).reduce((sum, [symbol, position]) => {
+    const stock = market.stocks?.find((entry) => entry.symbol === symbol);
+    const price = Math.max(1, Number(stock?.price ?? stock?.basePrice ?? 1));
+    return sum + position.shares * price;
+  }, 0);
+}
+
+function getGovernmentPortfolioUnrealizedPnl(market = city.stockMarket) {
+  const portfolio = getGovernmentPortfolio(market);
+  if (!portfolio) return 0;
+  return Object.entries(portfolio.positions).reduce((sum, [symbol, position]) => {
+    const stock = market.stocks?.find((entry) => entry.symbol === symbol);
+    const price = Math.max(1, Number(stock?.price ?? stock?.basePrice ?? 1));
+    return sum + (price - position.avgCost) * position.shares;
+  }, 0);
 }
 
 function triggerStockMarketCrash(
@@ -397,7 +561,8 @@ function updateStockMarketTick() {
     (isPolicyActive('stockExchangeAct') ? 0.006 : 0)
     + (isPolicyActive('foreignInvestmentIncentive') ? 0.004 : 0)
     + (isPolicyActive('tourismPromotion') ? 0.002 : 0);
-  const fairGrowthMonthly = annualToMonthlyReturn(HSI_ANNUAL_BASE_RETURN + cityPremiumAnnual * 0.7);
+  const fairGrowthAnnual = regimeAnnualDrift * STOCK_FAIR_VALUE_REGIME_WEIGHT + cityPremiumAnnual * 0.5;
+  const fairGrowthMonthly = annualToMonthlyReturn(fairGrowthAnnual);
   const fairGrowthTick = monthlyToTickReturn(fairGrowthMonthly);
 
   market.stocks.forEach((stock) => {
@@ -406,8 +571,13 @@ function updateStockMarketTick() {
     const volatility = getStockSectorVolatility(stock.sector);
     const prevPrice = Math.max(1, Number(stock.price ?? stock.basePrice ?? 1));
 
+    const basePrice = Math.max(1, Number(stock.basePrice ?? prevPrice));
     const fairValue = Math.max(1, Number(stock.fairValue ?? prevPrice));
-    const nextFairValue = Math.max(1, fairValue * (1 + fairGrowthTick));
+    const nextFairValue = clamp(
+      fairValue * (1 + fairGrowthTick),
+      basePrice * STOCK_FAIR_VALUE_MIN_MULTIPLE,
+      basePrice * STOCK_FAIR_VALUE_MAX_MULTIPLE,
+    );
     stock.fairValue = Number(nextFairValue.toFixed(4));
 
     const crashDriftAnnual = crashActive ? -(0.10 + crashState.severity * 0.20) * sensitivity : 0;

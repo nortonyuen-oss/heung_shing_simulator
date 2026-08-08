@@ -49,7 +49,7 @@ const premiumFactors = `({
   skylineStats: { total: 8, highRiseCount: 0, highRiseRatio: 0, modelCounts: {} },
 })`;
 
-test('top-quality baseline keeps most buildings L/M and caps UH at five percent', () => {
+test('top-quality baseline keeps most buildings L/M and keeps UH a small minority', () => {
   const context = createGrowthContext();
   const result = vm.runInContext(`(() => {
     const models = ['L', 'M', 'H', 'UH'];
@@ -61,12 +61,12 @@ test('top-quality baseline keeps most buildings L/M and caps UH at five percent'
     };
   })()`, context);
 
-  assert.ok(Math.abs(result.residential.L + result.residential.M - 0.83) < 1e-12);
-  assert.equal(result.residential.H, 0.14);
-  assert.equal(result.residential.UH, 0.03);
-  assert.ok(Math.abs(result.commercial.L + result.commercial.M - 0.82) < 1e-12);
-  assert.equal(result.commercial.H, 0.15);
-  assert.equal(result.commercial.UH, 0.03);
+  assert.ok(Math.abs(result.residential.L + result.residential.M - 0.78) < 1e-12);
+  assert.equal(result.residential.H, 0.16);
+  assert.equal(result.residential.UH, 0.06);
+  assert.ok(Math.abs(result.commercial.L + result.commercial.M - 0.77) < 1e-12);
+  assert.equal(result.commercial.H, 0.17);
+  assert.equal(result.commercial.UH, 0.06);
 });
 
 test('a saturated six-tile neighbourhood blocks additional towers', () => {

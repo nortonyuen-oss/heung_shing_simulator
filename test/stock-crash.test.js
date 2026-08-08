@@ -104,3 +104,16 @@ test('ticker and forum include the requested crash reporting lines', () => {
   assert.match(forum, /天台乘涼關注組/);
 });
 
+test('forum has government intervention, profit and loss reporting functions', () => {
+  const forum = source('newspaper.js');
+
+  assert.match(forum, /function announceGovernmentMarketIntervention/);
+  assert.match(forum, /function announceGovernmentTradingProfit/);
+  assert.match(forum, /function announceGovernmentTradingLoss/);
+  assert.match(forum, /function announceGovernmentLargeBuy/);
+  assert.match(forum, /金管局出手/);
+  assert.match(forum, /金管局沽貨獲利/);
+  assert.match(forum, /護盤蝕錢/);
+  assert.match(forum, /金管局大手掃入/);
+});
+

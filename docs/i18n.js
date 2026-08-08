@@ -210,6 +210,13 @@ const SITE_FEATURE_LIST = {
 // ── Changelog ─────────────────────────────────────────────────────────────────
 const SITE_CHANGELOG = {
   "zh-HK": [
+    { version: "v3.11.0", date: "2026-08-09", dateLabel: "2026年8月9日", title: "大時代", items: [
+      "新增「金融管理局」政府股票交易：股票交易所建成、庫房儲備超過1000萬後解鎖，可以動用庫房資金直接喺交易所買賣任何上市股票，交易會影響即市股價（買升賣跌），收0.25%手續費，單一股票持股上限15%，唔可以晒冷全城股市。",
+      "股市牛熊循環重新平衡：熊市由之前間唔中出現嘅短暫插曲，變成同牛市、橫行市況鼎足而立嘅真實週期；上市公司基本因素會隨市況上落，長遠恒指同每隻股票嘅合理值都封咗頂同底，唔會玩耐咗變到天文數字。",
+      "政府入市護盤、大手掃貨、賺大錢或者蝕大本都會上報紙頭條，新增兩張新聞插圖（股市造好／官員蝕錢）配合報導。",
+      "重新盤點全城住宅同商業建築嘅出現機率：修復咗UH豪宅嘅2x2「別墅」款式喺低密度住宅區永遠唔會出現嘅漏洞（而家會同3x3「大宅」款式一齊有機會出現）、大幅提高 4x4／5x5 住宅同商業大廈嘅出現率、將幾款過高過大嘅2x2 H級洋樓調低出現機率，等佢哋唔會成為街景嘅絕對主流。",
+      "新增「低密度屋苑活化」：如果一整個 3x3 街區嘅村屋通通達到UH豪宅嘅嚴格門檻（地價、景觀、環境、健康、經濟指數樣樣達標），有機會一次過重建做一座UH豪宅大宅。",
+    ] },
     { version: "v3.10.0", date: "2026-08-08", dateLabel: "2026年8月8日", title: "廟街煲仔飯", items: [
       "大城市模擬效能優化：重整成熟城市嘅住宅/商業/工業模擬熱路徑，autosave 改為背景執行，減少大城市長期遊玩嘅卡頓。",
       "補完 300 個一直漏咗嘅日文翻譯：立法會系統（十位官員議員嘅人物設定、政策取態、台詞）、報紙「號外」彈窗、股票交易所視窗、颱風信號同天氣狀態列等，之前呢啲喺日文版一直靜靜雞 fallback 顯示緊英文，而家加埋自動測試防止未來再漏。",
@@ -362,6 +369,13 @@ const SITE_CHANGELOG = {
 // title/items text.
 const SITE_CHANGELOG_TRANSLATIONS = {
   "zh-TW": {
+    "v3.11.0": { title: "大時代", items: [
+      "新增「金融管理局」政府股票交易：證券交易所建成、國庫儲備超過1000萬後解鎖，可直接動用國庫資金在交易所買賣任何上市股票，交易會影響即市股價（買進推升、賣出壓低），收取0.25%手續費，單一股票持股上限15%，無法囊括全城股市。",
+      "股市牛熊循環重新調整：熊市由過去偶爾出現的短暫插曲，變成與牛市、橫盤市況三足鼎立的真實週期；上市公司基本面會隨市況起伏，長期而言恆指與每檔股票的合理價值都設有上下限，不會隨遊戲時間拉長變成天文數字。",
+      "政府入市護盤、大量買進、獲利或虧損都會登上報紙頭條，新增兩張新聞插圖（股市大好／官員虧損）搭配報導。",
+      "重新盤點全城住宅和商業建築的出現機率：修復了UH豪宅的2x2「別墅」款式在低密度住宅區永遠不會出現的漏洞（現在會和3x3「大宅」款式一起有機會出現）、大幅提高 4x4／5x5 住宅和商業大樓的出現率，並將幾款過高過大的2x2 H級洋樓調低出現機率，避免成為街景的絕對主流。",
+      "新增「低密度社區活化」：若整個 3x3 街區的透天厝全部達到UH豪宅的嚴格門檻（地價、景觀、環境、健康、經濟指數皆達標），有機會一次重建成一座UH豪宅大宅。",
+    ] },
     "v3.10.0": { title: "廟街煲仔飯", items: [
       "大城市模擬效能優化：重整成熟城市的住宅/商業/工業模擬熱路徑，autosave 改為背景執行，減少大城市長期遊玩的卡頓。",
       "補齊 300 個一直缺少的日文翻譯：立法會系統（十位官員議員的人物設定、政策立場、台詞）、報紙「號外」彈出視窗、證券交易所視窗、颱風信號和天氣狀態列等，之前這些在日文版一直悄悄回退顯示英文，現在加上自動測試防止未來再有遺漏。",
@@ -507,6 +521,13 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   en: {
+    "v3.11.0": { title: "The Great Times", items: [
+      "Added Monetary Authority government stock trading: unlocked once a Stock Exchange is built and the treasury exceeds $10M, letting you trade any listed stock directly from city funds. Trades move the live price (buying lifts it, selling depresses it), carry a 0.25% fee, and are capped at 15% ownership per stock so no single position can corner the market.",
+      "Rebalanced the bull/bear market cycle: bear markets go from a rare, brief blip to a real phase on equal footing with bull and range markets. Company fundamentals now move with the cycle too, and both the HSI and every stock's fair value are bounded long-term so extended play sessions no longer drift toward astronomical numbers.",
+      "Government market rescues, large buys, and big trading profits or losses now make front-page news, with two new illustrated news images (market rally / government trading loss).",
+      "Rebalanced spawn odds for residential and commercial buildings citywide: fixed a bug where the 2x2 \"villa\" UH mansion models could never appear in low-density zones (they now spawn alongside the existing 3x3 \"estate\" variant), substantially raised how often 4x4/5x5 towers appear, and toned down a handful of oversized 2x2 H-tier towers so they no longer dominate the skyline.",
+      "Added low-density estate redevelopment: when every house in a full 3x3 block of low-density village houses independently clears the strict UH mansion bar, the whole block now has a chance to redevelop into a single UH mansion estate in one go.",
+    ] },
     "v3.10.0": { title: "Temple Street Claypot Rice", items: [
       "Mature-city simulation performance work: reworked the residential/commercial/industrial simulation hot paths, and moved autosaves to run in the background - both cut stutter in cities that have been played for a long time.",
       "Backfilled 300 long-missing Japanese translations: the entire Legislative Council system (member profiles, policy positions, stat-driven remarks), newspaper \"extra edition\" popups, the Stock Exchange window, typhoon signal news and the weather bar, and a handful of policies/buildings/tools - these had all been silently falling back to English in the Japanese build. Added a regression test so a future gap like this fails CI instead of shipping quietly.",
@@ -652,6 +673,13 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   ja: {
+    "v3.11.0": { title: "大時代", items: [
+      "「金融管理局」による政府の株式取引を追加：証券取引所を建設し、国庫が1,000万ドルを超えると解禁。市の資金で上場銘柄を直接売買でき、取引は現在値を動かし（買いは上昇、売りは下落）、手数料0.25%、1銘柄あたり保有比率上限15%で一社独占はできません。",
+      "強気・弱気相場サイクルを再調整：弱気相場はこれまでの稀な一時的な下落から、強気・レンジ相場と並ぶ本格的な局面へ。上場企業のファンダメンタルズも相場サイクルに連動するようになり、恒生指数と各銘柄の適正価値には長期的な上限・下限を設定、長時間プレイしても天文学的な数値まで発散しなくなりました。",
+      "政府による市場介入、大口買い、大きな利益・損失はすべて号外の一面ニュースに。新しいニュース挿絵2枚（株式市場好調／政府の取引損失）も追加。",
+      "住宅・商業建築の出現確率を全面的に見直し：UH高級住宅の2x2「ヴィラ」モデルが低密度住宅区で永久に出現しないバグを修正（既存の3x3「邸宅」モデルと並んで出現するように）、4x4／5x5タワーの出現率を大幅に引き上げ、一部の過大な2x2 Hランクタワーの出現率を下げてスカイラインを占有しないよう調整。",
+      "「低密度住宅地の再開発」を追加：低密度村家からなる3x3区画の全建物が個別にUH高級住宅の厳しい基準（地価・景観・環境・健康・経済指数）を満たすと、その区画全体が一度にUH高級住宅の邸宅へ再開発されるチャンスが発生。",
+    ] },
     "v3.10.0": { title: "廟街の土鍋ご飯", items: [
       "大都市シミュレーションのパフォーマンス改善：成熟した都市の住宅・商業・工業シミュレーションのホットパスを再構築し、オートセーブをバックグラウンド実行に変更。長時間プレイした大都市でのカクつきを軽減しました。",
       "長らく欠落していた日本語訳300件を補完：立法会システム全体（議員のプロフィール、政策スタンス、都市統計に応じたコメント）、新聞の「号外」ポップアップ、証券取引所ウィンドウ、台風シグナルのニュース、天気バー、いくつかの政策・建築・ツールなど——これらは日本語版で静かに英語表示にフォールバックしていました。今後同様の欠落があればCIで検出できるよう回帰テストも追加しました。",
@@ -815,14 +843,14 @@ const SITE_TEXT = {
   "zh-HK": {
     meta: {
       title: "香城模擬器 | The City of Heung Shing",
-      description: "下載香城模擬器 v3.9.0「好岸居」：住宅同商業建築機率全面重整，貼近香港真實房屋政策，加入低密度規劃永久鎖定。",
-      ogDescription: "v3.9.0 好岸居：公共/私人房屋分佈重新平衡，低密度地永久鎖定唔會被起返屋邨，5x5 大廈同全新街市場景登場。",
+      description: "下載香城模擬器 v3.11.0「大時代」：新增金融管理局政府股票交易，股市牛熊循環重新平衡，住宅同商業建築出現機率全面重新盤點。",
+      ogDescription: "v3.11.0 大時代：政府可以喺股票交易所直接買賣藍籌股、熊市成為真正嘅市況週期、UH豪宅同大廈嘅出現機率全面修正。",
     },
     nav: { gallery: "截圖", downloads: "下載", manual: "玩家手冊", guide: "遊戲指南", stats: "統計", changelog: "版本", github: "GitHub" },
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      lede: "一款向 SimCity 2000 致敬的城市建設遊戲。v3.10.0「廟街煲仔飯」大城市效能全面提升，補完 300 個日文翻譯漏洞，官網加入四語言支援同全新遊戲指南頁。",
+      lede: "一款向 SimCity 2000 致敬的城市建設遊戲。v3.11.0「大時代」新增政府股票交易、股市牛熊循環重新平衡，同埋住宅／商業建築出現機率全面重新盤點。",
       downloadBtn: "下載遊戲",
       latestBtn: "最新版本",
       guideBtn: "睇遊戲指南",
@@ -871,14 +899,14 @@ const SITE_TEXT = {
   "zh-TW": {
     meta: {
       title: "香城模擬器 | The City of Heung Shing",
-      description: "下載香城模擬器 v3.9.0「好岸居」：住宅和商業建築機率全面調整，貼近香港真實住宅政策，加入低密度規劃永久鎖定。",
-      ogDescription: "v3.9.0 好岸居：公共/私人住宅分佈重新平衡，低密度地永久鎖定不會被改建成大樓，5x5 大廈和全新市場場景登場。",
+      description: "下載香城模擬器 v3.11.0「大時代」：新增金融管理局政府股票交易，股市牛熊循環重新調整，住宅和商業建築出現機率全面重新盤點。",
+      ogDescription: "v3.11.0 大時代：政府可直接在證券交易所買賣藍籌股、熊市成為真正的市況週期、UH豪宅和大樓的出現機率全面修正。",
     },
     nav: { gallery: "截圖", downloads: "下載", manual: "玩家手冊", guide: "遊戲指南", stats: "統計", changelog: "版本", github: "GitHub" },
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      lede: "一款向 SimCity 2000 致敬的城市建設遊戲。v3.10.0「廟街煲仔飯」大城市效能全面提升，補齊 300 個日文翻譯缺口，官網加入四種語言支援和全新遊戲指南頁。",
+      lede: "一款向 SimCity 2000 致敬的城市建設遊戲。v3.11.0「大時代」新增政府股票交易、股市牛熊循環重新調整，以及住宅／商業建築出現機率全面重新盤點。",
       downloadBtn: "下載遊戲",
       latestBtn: "最新版本",
       guideBtn: "查看遊戲指南",
@@ -927,14 +955,14 @@ const SITE_TEXT = {
   en: {
     meta: {
       title: "The City of Heung Shing | 香城模擬器",
-      description: "Download The City of Heung Shing v3.9.0 “Good Home”: a full rebalance of residential/commercial building odds to match Hong Kong's real housing policy, plus a permanent low-density planning lock.",
-      ogDescription: "v3.9.0 Good Home: rebalanced public/private housing distribution, a permanent low-density lock so it can never be rebuilt into towers, 5x5 towers and new street-market scenes.",
+      description: "Download The City of Heung Shing v3.11.0 “The Great Times”: government stock trading, a rebalanced bull/bear market cycle, and a full rebalance of residential/commercial building spawn odds.",
+      ogDescription: "v3.11.0 The Great Times: the government can now trade blue chips directly on the Stock Exchange, bear markets become a real market phase, and UH-mansion/tower spawn odds are fully rebalanced.",
     },
     nav: { gallery: "Screenshots", downloads: "Download", manual: "Manual", guide: "Game Guide", stats: "Stats", changelog: "Changelog", github: "GitHub" },
     hero: {
       eyebrowPrefix: "The City of Heung Shing",
       title: "The City of Heung Shing",
-      lede: "A city-builder that pays tribute to SimCity 2000. v3.10.0 “Temple Street Claypot Rice” brings major performance improvements for large cities, completes 300 missing Japanese translations, and adds four-language support plus a brand-new game guide page to the website.",
+      lede: "A city-builder that pays tribute to SimCity 2000. v3.11.0 “The Great Times” adds government stock trading, rebalances the bull/bear market cycle, and fully rebalances residential/commercial building spawn odds.",
       downloadBtn: "Download",
       latestBtn: "Latest release",
       guideBtn: "Read the game guide",
@@ -984,14 +1012,14 @@ const SITE_TEXT = {
   ja: {
     meta: {
       title: "香城模擬器 | The City of Heung Shing",
-      description: "香城模擬器 v3.9.0「好岸居」をダウンロード：住宅・商業建築の出現確率を香港の実際の住宅政策に合わせて全面調整し、低密度計画の永久ロックを追加。",
-      ogDescription: "v3.9.0 好岸居：公共・民間住宅の分布を再調整。低密度地は永久ロックされタワーに建て替えられなくなり、5x5タワーと新しい市場シーンも登場。",
+      description: "香城模擬器 v3.11.0「大時代」をダウンロード：政府による株式取引を追加し、強気・弱気相場サイクルを再調整、住宅・商業建築の出現確率を全面的に見直しました。",
+      ogDescription: "v3.11.0 大時代：政府が証券取引所で直接ブルーチップ株を売買可能に。弱気相場が本格的な市況局面へ、UH高級住宅・タワーの出現確率も全面調整。",
     },
     nav: { gallery: "スクリーンショット", downloads: "ダウンロード", manual: "プレイヤーマニュアル", guide: "ゲームガイド", stats: "統計", changelog: "更新履歴", github: "GitHub" },
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      lede: "SimCity 2000 に敬意を表した都市builderゲーム。v3.10.0「廟街の土鍋ご飯」で大都市のパフォーマンスを大幅改善し、300件の日本語翻訳漏れを補完。公式サイトには4言語対応と新しいゲームガイドページも追加されました。",
+      lede: "SimCity 2000 に敬意を表した都市builderゲーム。v3.11.0「大時代」で政府による株式取引を追加し、強気・弱気相場サイクルを再調整、住宅・商業建築の出現確率も全面的に見直されました。",
       downloadBtn: "ダウンロード",
       latestBtn: "最新リリース",
       guideBtn: "ゲームガイドを見る",

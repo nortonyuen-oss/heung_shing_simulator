@@ -1,7 +1,7 @@
 {
   "name": "city-builder",
-  "version": "3.10.0",
-  "releaseTheme": "廟街煲仔飯",
+  "version": "3.11.0",
+  "releaseTheme": "大時代",
   "description": "SimCity 2000-style city builder with local SQLite save system",
   "author": "The City of Heung Shing",
   "repository": {

@@ -1263,6 +1263,295 @@ function announceStockMarketCrash(crash = city.stockMarket?.crash) {
   return primaryPost;
 }
 
+// Fired from buyGovernmentStock() (sim-economy.js) when the government buys
+// a notably large position while a crash is active - framed as a real
+// market-rescue intervention, echoing Hong Kong's 1998 Exchange Fund
+// blue-chip buying spree during the Asian Financial Crisis.
+function announceGovernmentMarketIntervention(trade) {
+  if (!trade) return null;
+  const language = typeof getCurrentLanguage === 'function' ? getCurrentLanguage() : 'zhHant';
+  const symbol = String(trade.symbol || '');
+  const cost = `$${Math.round(Number(trade.cost) || 0).toLocaleString()}`;
+  const priceText = Number(trade.newPrice ?? 0).toFixed(2);
+
+  const zhHeadlines = [
+    `金管局出手！動用外匯基金掃入 ${symbol} 護盤`,
+    `打大鱷？政府罕有入市力撐股市`,
+  ];
+  const zhBodies = [
+    `香城金融管理局今日動用庫房資金，斥資 ${cost} 增持藍籌股 ${symbol}，市場解讀為官方出手護盤救市之舉，股價其後回升至 ${priceText} 元。`,
+    `面對股市持續尋底，金管局宣布入市買入 ${symbol}，掃貨金額達 ${cost}。分析員形容做法似足1998年亞洲金融風暴期間嘅入市干預。`,
+  ];
+  const enHeadlines = [
+    `Monetary Authority steps in: buys ${symbol} to defend the market`,
+    'Fighting the bears? Government makes a rare market intervention',
+  ];
+  const enBodies = [
+    `The Heung Shing Monetary Authority spent ${cost} of treasury funds buying blue-chip ${symbol} today, seen as a rescue intervention. The stock has since recovered to $${priceText}.`,
+    `As the market kept sliding, the Authority bought ${symbol} worth ${cost}. Analysts compared it to the 1998 Exchange Fund intervention during the Asian Financial Crisis.`,
+  ];
+  const jaHeadlines = [
+    `金融管理局が介入！外貨準備基金で${symbol}を買い支え`,
+    '対ヘッジファンド？政府が異例の市場介入',
+  ];
+  const jaBodies = [
+    `香城金融管理局は本日、財源${cost}を投じて優良株${symbol}を買い増した。市場は救済介入と受け止め、株価は${priceText}ドルまで回復した。`,
+    `下落が続く相場に対し、金融管理局は${symbol}を${cost}分買い入れたと発表。1998年アジア通貨危機時の為替基金介入を彷彿とさせると分析されている。`,
+  ];
+  const headlines = language === 'en' ? enHeadlines : language === 'ja' ? jaHeadlines : zhHeadlines;
+  const bodies = language === 'en' ? enBodies : language === 'ja' ? jaBodies : zhBodies;
+  const comments = language === 'en'
+    ? [
+      { author: 'Ding Hai', text: 'With the government backing it, this beats us retail investors any day.' },
+      { author: 'Finance Forum Regular', text: 'Rescue or just propping it up? We will know once they sell.' },
+    ]
+    : language === 'ja'
+      ? [
+        { author: '丁蟹', text: '政府が支えてくれるなら、個人投資家より安心だ。' },
+        { author: '金融板の住人', text: '救済か下支えか、売却するまで分からないね。' },
+      ]
+      : [
+        { author: '股民丁蟹', text: '有政府撐腰，梗係穩陣過我哋啲散戶啦。' },
+        { author: '財經台常客', text: '究竟呢鋪係救市定係托市，睇下之後幾時沽貨先知。' },
+      ];
+  const variant = Math.floor(Math.random() * headlines.length);
+
+  return addForumPost({
+    headline: headlines[variant],
+    image: 'UI/news/gainStockMarket.webp',
+    body: [bodies[variant], bodies[(variant + 1) % bodies.length]],
+    source: 'local',
+    social: {
+      likes: 3400 + variant * 281,
+      laughs: 900 + variant * 133,
+      angry: 600 + variant * 91,
+      commentCount: 2200 + variant * 197,
+      shares: 1500 + variant * 149,
+      comments,
+    },
+  }, {
+    id: `gov-intervention-${city.year}-${city.month}-${city.tick}-${symbol}`,
+    category: language === 'en' ? 'Finance' : language === 'ja' ? '金融板' : '財經台',
+    author: language === 'en' ? 'Heung Shing Finance Desk' : language === 'ja' ? '香城金融デスク' : '香城財經台',
+    outcome: 'intervention',
+  });
+}
+
+// Fired from buyGovernmentStock() (sim-economy.js) for a large purchase made
+// outside an active crash - a routine but still notable show of confidence,
+// not a "rescue", so it gets its own calmer headline instead of the crisis
+// framing used by announceGovernmentMarketIntervention.
+function announceGovernmentLargeBuy(trade) {
+  if (!trade) return null;
+  const language = typeof getCurrentLanguage === 'function' ? getCurrentLanguage() : 'zhHant';
+  const symbol = String(trade.symbol || '');
+  const cost = `$${Math.round(Number(trade.cost) || 0).toLocaleString()}`;
+  const priceText = Number(trade.newPrice ?? 0).toFixed(2);
+
+  const zhHeadlines = [
+    `金管局大手掃入 ${symbol}　動用 ${cost}`,
+    `政府增持 ${symbol}　市場揣測背後用意`,
+  ];
+  const zhBodies = [
+    `香城金融管理局今日大手買入 ${symbol}，涉及金額 ${cost}，股價其後報 ${priceText} 元。市場人士對官方動向意見不一，有指純屬長線投資。`,
+    `金管局動用庫房資金 ${cost} 增持 ${symbol}，屬近期少見嘅大手买入。分析員指現時市況平穩，估計政府係睇好呢隻股份嘅長遠前景。`,
+  ];
+  const enHeadlines = [
+    `Monetary Authority makes a large ${symbol} purchase worth ${cost}`,
+    `Government adds to its ${symbol} stake, motives debated`,
+  ];
+  const enBodies = [
+    `The Heung Shing Monetary Authority bought ${cost} worth of ${symbol} today, with the stock now trading at $${priceText}. Analysts are split on whether this is a long-term investment.`,
+    `The Authority spent ${cost} of treasury funds adding to its ${symbol} position, a rare move outside crisis conditions. Analysts read it as a vote of confidence in the stock's outlook.`,
+  ];
+  const jaHeadlines = [
+    `金融管理局が${symbol}を大量購入、${cost}を投じる`,
+    `政府が${symbol}の保有を増やす、その意図に憶測`,
+  ];
+  const jaBodies = [
+    `香城金融管理局は本日${symbol}を${cost}分購入し、株価は${priceText}ドルとなった。市場の見方は分かれており、長期投資との声もある。`,
+    `金融管理局は財源${cost}を投じて${symbol}の保有を増やした。危機時以外での大量購入は珍しく、同銘柄の先行きへの自信の表れとみる分析もある。`,
+  ];
+  const headlines = language === 'en' ? enHeadlines : language === 'ja' ? jaHeadlines : zhHeadlines;
+  const bodies = language === 'en' ? enBodies : language === 'ja' ? jaBodies : zhBodies;
+  const comments = language === 'en'
+    ? [
+      { author: 'Finance Forum Regular', text: 'No crisis this time, so what is the Authority buying for?' },
+      { author: 'Ding Hai', text: 'Following the government into a stock has never gone wrong for me.' },
+    ]
+    : language === 'ja'
+      ? [
+        { author: '金融板の住人', text: '今回は危機でもないのに、なぜ買うのだろう。' },
+        { author: '丁蟹', text: '政府について行って損したことはない。' },
+      ]
+      : [
+        { author: '財經台網民', text: '今次又冇股災，政府買嚟做咩？' },
+        { author: '股民丁蟹', text: '跟住政府買貨，我未輸過。' },
+      ];
+  const variant = Math.floor(Math.random() * headlines.length);
+
+  return addForumPost({
+    headline: headlines[variant],
+    image: 'UI/news/gainStockMarket.webp',
+    body: [bodies[variant], bodies[(variant + 1) % bodies.length]],
+    source: 'local',
+    social: {
+      likes: 2100 + variant * 191,
+      laughs: 700 + variant * 97,
+      angry: 300 + variant * 53,
+      commentCount: 1400 + variant * 121,
+      shares: 900 + variant * 89,
+      comments,
+    },
+  }, {
+    id: `gov-large-buy-${city.year}-${city.month}-${city.tick}-${symbol}`,
+    category: language === 'en' ? 'Finance' : language === 'ja' ? '金融板' : '財經台',
+    author: language === 'en' ? 'Heung Shing Finance Desk' : language === 'ja' ? '香城金融デスク' : '香城財經台',
+    outcome: 'large-buy',
+  });
+}
+
+// Fired from sellGovernmentStock() (sim-economy.js) when a sale realizes a
+// notably large gain or loss - lets the forum react to the Monetary
+// Authority's own trading record, good or bad.
+function announceGovernmentTradingProfit(trade) {
+  if (!trade) return null;
+  const language = typeof getCurrentLanguage === 'function' ? getCurrentLanguage() : 'zhHant';
+  const symbol = String(trade.symbol || '');
+  const gain = `$${Math.round(Number(trade.gain) || 0).toLocaleString()}`;
+
+  const zhHeadlines = [
+    `金管局沽貨獲利！帳面勁賺 ${gain}`,
+    `政府投資有道　拋售 ${symbol} 賺 ${gain}`,
+  ];
+  const zhBodies = [
+    `金管局今日沽出所持 ${symbol} 股份，帳面實現盈利 ${gain}，市場對官方投資眼光表示讚賞。`,
+    `政府沽貨套現，${symbol} 一役帳面獲利 ${gain}。有議員建議將收益撥入公共開支儲備。`,
+  ];
+  const enHeadlines = [
+    `Authority books a profit! ${gain} realized gain`,
+    `Smart timing: government sells ${symbol} for ${gain} gain`,
+  ];
+  const enBodies = [
+    `The Monetary Authority sold its ${symbol} position today for a realized gain of ${gain}, drawing praise for its market timing.`,
+    `The government cashed out of ${symbol} with a ${gain} profit. Some councillors suggested channeling the gain into public spending reserves.`,
+  ];
+  const jaHeadlines = [
+    `金融管理局が利益確定！実現益${gain}`,
+    `絶妙のタイミング　政府が${symbol}を売却し${gain}の利益`,
+  ];
+  const jaBodies = [
+    `金融管理局は本日${symbol}を売却し、実現益${gain}を計上した。市場からは投資眼を評価する声が上がっている。`,
+    `政府は${symbol}を売却し${gain}の利益を確保。一部議員は公共支出予算への充当を提案した。`,
+  ];
+  const headlines = language === 'en' ? enHeadlines : language === 'ja' ? jaHeadlines : zhHeadlines;
+  const bodies = language === 'en' ? enBodies : language === 'ja' ? jaBodies : zhBodies;
+  const comments = language === 'en'
+    ? [
+      { author: 'Finance Forum Regular', text: 'Turns out the government can trade too - maybe write a book about it.' },
+      { author: 'Treasury Spokesperson', text: 'The proceeds will go toward public spending.' },
+    ]
+    : language === 'ja'
+      ? [
+        { author: '金融板の住人', text: '政府も株取引が上手いとは。本でも出版してほしい。' },
+        { author: '財政局スポークスパーソン', text: '得た利益は公共支出に充てられます。' },
+      ]
+      : [
+        { author: '財經台網民', text: '原來政府都識炒股，不如出書教下我哋。' },
+        { author: '財政局發言人', text: '呢筆收益會用作公共開支，回饋市民。' },
+      ];
+  const variant = Math.floor(Math.random() * headlines.length);
+
+  return addForumPost({
+    headline: headlines[variant],
+    image: 'UI/news/gainStockMarket.webp',
+    body: [bodies[variant], bodies[(variant + 1) % bodies.length]],
+    source: 'local',
+    social: {
+      likes: 4100 + variant * 313,
+      laughs: 1200 + variant * 151,
+      angry: 200 + variant * 41,
+      commentCount: 1800 + variant * 163,
+      shares: 2100 + variant * 179,
+      comments,
+    },
+  }, {
+    id: `gov-profit-${city.year}-${city.month}-${city.tick}-${symbol}`,
+    category: language === 'en' ? 'Finance' : language === 'ja' ? '金融板' : '財經台',
+    author: language === 'en' ? 'Heung Shing Finance Desk' : language === 'ja' ? '香城金融デスク' : '香城財經台',
+    outcome: 'profit',
+  });
+}
+
+function announceGovernmentTradingLoss(trade) {
+  if (!trade) return null;
+  const language = typeof getCurrentLanguage === 'function' ? getCurrentLanguage() : 'zhHant';
+  const symbol = String(trade.symbol || '');
+  const loss = `$${Math.round(Number(trade.loss) || 0).toLocaleString()}`;
+
+  const zhHeadlines = [
+    `護盤蝕錢！金管局沽貨勁蝕 ${loss}`,
+    `托市未見效　政府帳面損失 ${loss}`,
+  ];
+  const zhBodies = [
+    `金管局沽出 ${symbol} 持股，帳面錄得虧損 ${loss}，有議員質疑動用公帑入市嘅決定，要求交代風險管理機制。`,
+    `政府沽售 ${symbol} 帳面蝕 ${loss}，網民質疑護盤成效，財政局回應指投資本身存在風險，會檢討相關機制。`,
+  ];
+  const enHeadlines = [
+    `Rescue backfires! Authority books a ${loss} loss on ${symbol}`,
+    `Government treasury takes a ${loss} hit propping up the market`,
+  ];
+  const enBodies = [
+    `The Monetary Authority sold its ${symbol} position at a realized loss of ${loss}. Some councillors questioned the decision to use public funds and called for a review of risk controls.`,
+    `The government's ${symbol} sale locked in a ${loss} loss. Residents questioned whether the intervention worked; the Treasury said all investments carry risk and it would review the process.`,
+  ];
+  const jaHeadlines = [
+    `買い支え失敗！金融管理局が${symbol}で${loss}の損失`,
+    `市場介入が裏目に　政府財源に${loss}の打撃`,
+  ];
+  const jaBodies = [
+    `金融管理局は${symbol}を売却し、実現損失${loss}を計上した。一部議員は公金投入の判断を疑問視し、リスク管理体制の説明を求めた。`,
+    `政府の${symbol}売却により${loss}の損失が確定。市民から介入の効果を疑う声が上がり、財政局はリスクの存在を認めつつ手続きを見直すとした。`,
+  ];
+  const headlines = language === 'en' ? enHeadlines : language === 'ja' ? jaHeadlines : zhHeadlines;
+  const bodies = language === 'en' ? enBodies : language === 'ja' ? jaBodies : zhBodies;
+  const comments = language === 'en'
+    ? [
+      { author: 'Opposition Councillor', text: 'How many schools could that money have built instead?' },
+      { author: 'Finance Forum Regular', text: 'What goes up must come down - even for the government.' },
+    ]
+    : language === 'ja'
+      ? [
+        { author: '野党議員', text: 'その金額があれば学校が何校建てられただろうか。' },
+        { author: '金融板の住人', text: '政府でも損する時は損するものだ。' },
+      ]
+      : [
+        { author: '反對派議員', text: '呢筆錢本來可以起幾多間學校？' },
+        { author: '財經台網民', text: '出嚟行預咗要還，政府都唔例外。' },
+      ];
+  const variant = Math.floor(Math.random() * headlines.length);
+
+  return addForumPost({
+    headline: headlines[variant],
+    image: 'UI/news/governmentLostInStock.webp',
+    body: [bodies[variant], bodies[(variant + 1) % bodies.length]],
+    source: 'local',
+    social: {
+      likes: 1400 + variant * 131,
+      laughs: 2100 + variant * 179,
+      angry: 3600 + variant * 271,
+      commentCount: 3300 + variant * 241,
+      shares: 1900 + variant * 163,
+      comments,
+    },
+  }, {
+    id: `gov-loss-${city.year}-${city.month}-${city.tick}-${symbol}`,
+    category: language === 'en' ? 'Finance' : language === 'ja' ? '金融板' : '財經台',
+    author: language === 'en' ? 'Heung Shing Finance Desk' : language === 'ja' ? '香城金融デスク' : '香城財經台',
+    outcome: 'loss',
+  });
+}
+
 // Fired once by checkSpecialBuildingUnlockNotices() (city-state.js) the first
 // time a special building's population/policy threshold is crossed — lets the
 // ticker and forum tell the player something new just became buildable.

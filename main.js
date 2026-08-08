@@ -1682,6 +1682,9 @@ function createModelEntries(keyPrefix, fileNames, config) {
       offsetY: overrides.offsetY ?? config.offsetY ?? 0,
       anchorMode: overrides.anchorMode ?? config.anchorMode ?? DEFAULT_BUILDING_ANCHOR_MODE,
       alphaThreshold: overrides.alphaThreshold ?? config.alphaThreshold,
+      spawnWeight: Number.isFinite(overrides.spawnWeight)
+        ? overrides.spawnWeight
+        : (Number.isFinite(config.spawnWeight) ? config.spawnWeight : 1),
       metadata: null,
     };
     model.metadata = getManifestZoneModelMetadata(model);

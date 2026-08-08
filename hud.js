@@ -431,6 +431,17 @@ function updateBudgetWindow() {
   setTextContent('budget-net-annual', formatMoney(projected.annualNet));
   setTextContent('budget-estimated-treasury', formatMoney(estimatedTreasury));
 
+  const hasStockHoldings = typeof getGovernmentPortfolioMarketValue === 'function'
+    && Object.keys(city.stockMarket?.governmentPortfolio?.positions ?? {}).length > 0;
+  const stockReserveRow = document.getElementById('budget-stock-reserve-row');
+  const stockUnrealizedRow = document.getElementById('budget-stock-unrealized-row');
+  if (stockReserveRow) stockReserveRow.style.display = hasStockHoldings ? '' : 'none';
+  if (stockUnrealizedRow) stockUnrealizedRow.style.display = hasStockHoldings ? '' : 'none';
+  if (hasStockHoldings) {
+    setTextContent('budget-stock-reserve', formatMoney(getGovernmentPortfolioMarketValue()));
+    setPnlText('budget-stock-unrealized', getGovernmentPortfolioUnrealizedPnl());
+  }
+
   const netEl = document.getElementById('budget-net-monthly');
   const projectedEl = document.getElementById('budget-net-projected');
   [netEl, projectedEl].forEach((el) => {
@@ -552,6 +563,20 @@ function setupStockExchangeWindow() {
   win.addEventListener('pointerdown', (e) => e.stopPropagation());
   win.addEventListener('click', (e) => e.stopPropagation());
 
+  win.addEventListener('click', (e) => {
+    const tab = e.target.closest('[data-stock-tab]');
+    if (!tab) return;
+    const tabId = tab.dataset.stockTab;
+    win.querySelectorAll('[data-stock-tab]').forEach((button) => {
+      const active = button.dataset.stockTab === tabId;
+      button.classList.toggle('is-active', active);
+      button.setAttribute('aria-selected', String(active));
+    });
+    win.querySelectorAll('[data-stock-panel]').forEach((panel) => {
+      panel.hidden = panel.dataset.stockPanel !== tabId;
+    });
+  });
+
   closeBtn.addEventListener('click', () => closeStockExchangeWindow());
   minBtn?.addEventListener('click', () => {
     win.classList.toggle('is-collapsed');
@@ -598,6 +623,193 @@ function setupStockExchangeWindow() {
       updateStockExchangeWindow();
     }
   });
+
+  const quickAmountsEl = document.getElementById('stock-gov-quick-amounts');
+  if (quickAmountsEl) {
+    quickAmountsEl.innerHTML = '';
+    [100000, 500000, 1000000, 5000000].forEach((amount) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = formatMoney(amount);
+      btn.addEventListener('click', () => {
+        const input = document.getElementById('stock-gov-trade-amount');
+        if (input) input.value = String(amount);
+      });
+      quickAmountsEl.appendChild(btn);
+    });
+  }
+
+  document.getElementById('stock-gov-trade-symbol')?.addEventListener('change', () => {
+    updateStockGovTradeHint();
+  });
+  document.getElementById('stock-gov-buy-btn')?.addEventListener('click', () => {
+    handleGovernmentStockTrade('buy');
+  });
+  document.getElementById('stock-gov-sell-btn')?.addEventListener('click', () => {
+    handleGovernmentStockTrade('sell');
+  });
+  document.getElementById('stock-gov-holdings-body')?.addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-sell-symbol]');
+    if (!btn) return;
+    const symbol = btn.dataset.sellSymbol;
+    const fraction = Number(btn.dataset.sellFraction || 1);
+    const market = city.stockMarket;
+    const position = market?.governmentPortfolio?.positions?.[symbol];
+    if (!position) return;
+    const shares = Math.max(1, Math.floor(position.shares * fraction));
+    const result = sellGovernmentStock(symbol, shares);
+    reportGovernmentStockTradeResult(result, 'sell');
+    updateStockExchangeWindow();
+    updateBudgetWindow();
+  });
+}
+
+function handleGovernmentStockTrade(action) {
+  const select = document.getElementById('stock-gov-trade-symbol');
+  const amountInput = document.getElementById('stock-gov-trade-amount');
+  if (!select || !amountInput) return;
+  const symbol = select.value;
+  const amount = Number(amountInput.value);
+  if (!symbol) return;
+
+  let result;
+  if (action === 'buy') {
+    result = buyGovernmentStock(symbol, amount);
+  } else {
+    const stock = city.stockMarket?.stocks?.find((entry) => entry.symbol === symbol);
+    const price = Math.max(1, Number(stock?.price ?? 1));
+    const shares = Math.floor(Math.max(0, amount) / price);
+    result = sellGovernmentStock(symbol, shares);
+  }
+
+  reportGovernmentStockTradeResult(result, action);
+  updateStockExchangeWindow();
+  updateBudgetWindow();
+}
+
+function reportGovernmentStockTradeResult(result, action) {
+  if (!result) return;
+  if (result.success) {
+    const key = action === 'buy' ? 'stockExchange.govBuySuccess' : 'stockExchange.govSellSuccess';
+    showToast(t(key, {
+      shares: result.shares.toLocaleString(),
+      symbol: result.symbol,
+      cost: formatMoney(result.cost ?? 0),
+      proceeds: formatMoney(result.netProceeds ?? 0),
+    }), 'info');
+    return;
+  }
+  const reasonKeyMap = {
+    locked: 'stockExchange.govErrorLocked',
+    'not-found': 'stockExchange.govErrorNotFound',
+    'invalid-amount': 'stockExchange.govErrorInvalidAmount',
+    'insufficient-funds': 'stockExchange.govErrorInsufficientFunds',
+    'amount-too-small': 'stockExchange.govErrorAmountTooSmall',
+    'ownership-cap': 'stockExchange.govErrorOwnershipCap',
+    'no-position': 'stockExchange.govErrorNoPosition',
+  };
+  const key = reasonKeyMap[result.reason] || 'stockExchange.govErrorInvalidAmount';
+  showToast(t(key, { amount: formatMoney(STOCK_GOV_UNLOCK_BUDGET) }), 'danger');
+}
+
+function updateGovernmentStockTradingPanel() {
+  const lockedHintEl = document.getElementById('stock-gov-locked-hint');
+  const panelEl = document.getElementById('stock-gov-panel');
+  if (!lockedHintEl || !panelEl) return;
+
+  const unlocked = typeof isGovernmentStockTradingUnlocked === 'function' && isGovernmentStockTradingUnlocked();
+  panelEl.classList.toggle('is-locked', !unlocked);
+  lockedHintEl.textContent = unlocked ? '' : t('stockExchange.govLockedHint', { amount: formatMoney(STOCK_GOV_UNLOCK_BUDGET) });
+  if (!unlocked) return;
+
+  const market = city.stockMarket;
+  const reserveValue = getGovernmentPortfolioMarketValue(market);
+  const unrealizedPnl = getGovernmentPortfolioUnrealizedPnl(market);
+  const realizedPnl = Number(market?.governmentPortfolio?.realizedPnl ?? 0);
+  setTextContent('stock-gov-reserve-value', formatMoney(reserveValue));
+  setPnlText('stock-gov-unrealized-pnl', unrealizedPnl);
+  setPnlText('stock-gov-realized-pnl', realizedPnl);
+
+  const select = document.getElementById('stock-gov-trade-symbol');
+  if (select) {
+    const listedStocks = (market?.stocks ?? []).filter((stock) => stock.listed);
+    const previousValue = select.value;
+    select.innerHTML = listedStocks.map((stock) => `<option value="${stock.symbol}">${stock.symbol} · ${stock.name}</option>`).join('');
+    if (listedStocks.some((stock) => stock.symbol === previousValue)) select.value = previousValue;
+  }
+
+  const holdingsBody = document.getElementById('stock-gov-holdings-body');
+  if (holdingsBody) {
+    const positions = Object.entries(market?.governmentPortfolio?.positions ?? {});
+    if (positions.length === 0) {
+      holdingsBody.innerHTML = `<tr><td colspan="7" class="stock-trend-empty">${t('stockExchange.govHoldingsEmpty')}</td></tr>`;
+    } else {
+      holdingsBody.innerHTML = positions.map(([symbol, position]) => {
+        const stock = market.stocks?.find((entry) => entry.symbol === symbol);
+        const price = Math.max(1, Number(stock?.price ?? position.avgCost ?? 1));
+        const value = position.shares * price;
+        const pnl = (price - position.avgCost) * position.shares;
+        const pnlClass = pnl >= 0 ? 'budget-positive' : 'budget-negative';
+        const capInfo = getGovernmentOwnershipCapInfo(symbol);
+        const statusCell = capInfo.atCap ? `<span class="stock-gov-cap-badge">${t('stockExchange.govCapBadge')}</span>` : '';
+        return `
+          <tr>
+            <td>${symbol}</td>
+            <td class="stock-num">${position.shares.toLocaleString()}</td>
+            <td class="stock-num">${formatMoney(position.avgCost)}</td>
+            <td class="stock-num">${formatMoney(value)}</td>
+            <td class="stock-num ${pnlClass}">${formatMoney(pnl)}</td>
+            <td>${statusCell}</td>
+            <td class="stock-gov-holdings-actions">
+              <button type="button" data-sell-symbol="${symbol}" data-sell-fraction="0.5">${t('stockExchange.govSellHalf')}</button>
+              <button type="button" data-sell-symbol="${symbol}" data-sell-fraction="1">${t('stockExchange.govSellAll')}</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+  }
+
+  updateStockGovTradeHint();
+}
+
+function getGovernmentOwnershipCapInfo(symbol) {
+  const market = city.stockMarket;
+  const stock = market?.stocks?.find((entry) => entry.symbol === symbol);
+  const sharesOutstanding = Math.max(1, Number(stock?.sharesOutstanding ?? 1));
+  const cap = Math.floor(sharesOutstanding * STOCK_GOV_MAX_OWNERSHIP_FRACTION);
+  const held = Math.max(0, Math.floor(Number(market?.governmentPortfolio?.positions?.[symbol]?.shares ?? 0)));
+  const remaining = Math.max(0, cap - held);
+  return { cap, held, remaining, atCap: remaining <= 0 };
+}
+
+function updateStockGovTradeHint() {
+  const hintEl = document.getElementById('stock-gov-trade-hint');
+  const buyBtn = document.getElementById('stock-gov-buy-btn');
+  const select = document.getElementById('stock-gov-trade-symbol');
+  if (!hintEl || !select) return;
+  const symbol = select.value;
+  if (!symbol) {
+    hintEl.textContent = '';
+    hintEl.classList.remove('is-cap-reached');
+    if (buyBtn) buyBtn.disabled = false;
+    return;
+  }
+
+  const { cap, remaining, atCap } = getGovernmentOwnershipCapInfo(symbol);
+  hintEl.classList.toggle('is-cap-reached', atCap);
+  hintEl.textContent = atCap
+    ? t('stockExchange.govCapReached', { cap: cap.toLocaleString() })
+    : t('stockExchange.govCapRemaining', { remaining: remaining.toLocaleString(), cap: cap.toLocaleString() });
+  if (buyBtn) buyBtn.disabled = atCap;
+}
+
+function setPnlText(elementId, value) {
+  const el = document.getElementById(elementId);
+  if (!el) return;
+  el.textContent = formatMoney(value);
+  el.classList.toggle('budget-positive', value >= 0);
+  el.classList.toggle('budget-negative', value < 0);
 }
 
 function openBudgetWindow() {
@@ -675,6 +887,8 @@ function updateLegislativeWindow() {
 function updateStockExchangeWindow() {
   const win = document.getElementById('stock-exchange-window');
   if (!win?.classList.contains('is-open')) return;
+
+  updateGovernmentStockTradingPanel();
 
   const hasCouncil = hasBuildingType('legislative_council');
   const hasExchange = hasBuildingType('stock_exchange');

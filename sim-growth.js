@@ -421,8 +421,15 @@ function scanForLargeResidentialLots(scene, qualityContexts) {
   if ((city.demandR ?? 0) <= 0) return;
   if (!hasResidentialModelForFootprint(5)) return;
 
+  // Shard on the month index, not the raw tick: this scan only ever runs on
+  // ticks that are multiples of TICKS_PER_MONTH, so keying the shard on
+  // city.tick directly only ever reaches 2 of the 8 buckets (city.tick % 8
+  // can only land on 0 or TICKS_PER_MONTH). The month index advances by 1
+  // every time the scan runs, so it cycles through all 8 shards over 8
+  // consecutive months as intended.
+  const monthIndex = Math.floor(city.tick / LARGE_RESIDENTIAL_LOT_SCAN_INTERVAL_TICKS);
   for (const { row: r, col: c, id } of getZoneGrowthTiles()) {
-    if (((r * 37 + c * 17 + city.tick) % LARGE_RESIDENTIAL_LOT_SCAN_SHARD_COUNT) !== 0) continue;
+    if (((r * 37 + c * 17 + monthIndex) % LARGE_RESIDENTIAL_LOT_SCAN_SHARD_COUNT) !== 0) continue;
     if (zoneMap[r]?.[c] !== ZONE_RES || zoneDensityMap[r]?.[c] !== DENSITY_HIGH) continue;
     if (scene.buildingSprites.has(id)) continue;
     if (!hasAdjacentRoad(r, c)) continue;
@@ -440,6 +447,75 @@ function scanForLargeResidentialLots(scene, qualityContexts) {
         residentialQualityContext: qualityContexts.residential,
       });
     }
+  }
+}
+
+const LOW_DENSITY_ESTATE_UPGRADE_CHANCE = 0.50;
+const LOW_DENSITY_ESTATE_SCAN_INTERVAL_TICKS = TICKS_PER_MONTH;
+const LOW_DENSITY_ESTATE_SCAN_SHARD_COUNT = 8;
+
+// Closes a gap the low-density planning lock otherwise leaves forever: a 1x1
+// village house never gets a second footprint roll once built, so land that
+// matures into UH-estate quality *after* the house went up could previously
+// never become the mansion it now qualifies for. Once every building in a
+// full 3x3 block of already-built 1x1 low-density houses independently
+// clears the UH bar, the neighbourhood gets a real (50%) shot at
+// redeveloping into the estate in one go. The single-tile check on the
+// anchor runs first and is cheap; the full 9-tile check only runs for the
+// rare anchor that already cleared it on its own, so this stays affordable
+// even sharded across a whole month like the other zone-growth scans.
+function scanForLowDensityEstateUpgrades(scene, qualityContexts) {
+  if (city.tick % LOW_DENSITY_ESTATE_SCAN_INTERVAL_TICKS !== 0) return;
+  if (!hasResidentialModelForFootprint(3)) return;
+  const context = qualityContexts.residential;
+
+  // See scanForLargeResidentialLots: shard on the month index (advances by 1
+  // every time this scan runs), not the raw tick, or 75% of tiles would never
+  // be reachable since city.tick is always a multiple of TICKS_PER_MONTH here.
+  const monthIndex = Math.floor(city.tick / LOW_DENSITY_ESTATE_SCAN_INTERVAL_TICKS);
+  for (const { row: r, col: c } of getZoneGrowthTiles()) {
+    if (((r * 37 + c * 17 + monthIndex) % LOW_DENSITY_ESTATE_SCAN_SHARD_COUNT) !== 0) continue;
+    if (zoneMap[r]?.[c] !== ZONE_RES || zoneDensityMap[r]?.[c] !== DENSITY_LOW) continue;
+
+    const anchorRecord = buildingData[getTileId(r, c)];
+    if (!anchorRecord || anchorRecord.type !== 'residential'
+      || (anchorRecord.footprintCols ?? 1) !== 1 || (anchorRecord.footprintRows ?? 1) !== 1) continue;
+
+    const anchorFactors = getResidentialSiteFactors(r, c, 1, context);
+    if (!isUltraHighWealthEligible(anchorFactors, DENSITY_LOW)) continue;
+
+    const members = [];
+    let allEligible = true;
+    for (let dr = 0; dr < 3 && allEligible; dr++) {
+      for (let dc = 0; dc < 3 && allEligible; dc++) {
+        const rr = r + dr;
+        const cc = c + dc;
+        if (!isInsideMap(rr, cc) || zoneMap[rr]?.[cc] !== ZONE_RES || zoneDensityMap[rr]?.[cc] !== DENSITY_LOW) {
+          allEligible = false;
+          break;
+        }
+        const record = buildingData[getTileId(rr, cc)];
+        if (!record || record.type !== 'residential'
+          || (record.footprintCols ?? 1) !== 1 || (record.footprintRows ?? 1) !== 1) {
+          allEligible = false;
+          break;
+        }
+        const factors = (rr === r && cc === c) ? anchorFactors : getResidentialSiteFactors(rr, cc, 1, context);
+        if (!isUltraHighWealthEligible(factors, DENSITY_LOW)) {
+          allEligible = false;
+          break;
+        }
+        members.push({ row: rr, col: cc });
+      }
+    }
+    if (!allEligible || Math.random() >= LOW_DENSITY_ESTATE_UPGRADE_CHANCE) continue;
+
+    members.forEach(({ row, col }) => removeBuilding(scene, row, col, { refreshInfrastructure: false }));
+    spawnZoneBuilding(scene, r, c, ZONE_RES, 3, DENSITY_LOW, {
+      forceFootprint: 3,
+      forceWealthTier: 'UH',
+      residentialQualityContext: context,
+    });
   }
 }
 
@@ -464,6 +540,12 @@ function growOrShrinkZones(scene) {
     scene,
     'largeLots',
     () => scanForLargeResidentialLots(scene, qualityContexts),
+  );
+
+  runZoneGrowthProfiledStep(
+    scene,
+    'estateUpgrades',
+    () => scanForLowDensityEstateUpgrades(scene, qualityContexts),
   );
 
   runZoneGrowthProfiledStep(scene, 'tiles', () => {
@@ -721,17 +803,22 @@ function getResidentialHouseSetForFootprint(footprintSize) {
 }
 
 // Returns { size, forceWealthTier }. forceWealthTier is non-null only for the
-// low-density 3x3 estate-lot exception below, so the caller can pin the tier
-// roll to UH instead of letting it fall through to the ordinary 3x3 L/M/H
-// tower art - low density is otherwise locked to 1x1, so a 12-20 storey block
+// low-density UH exceptions below, so the caller can pin the tier roll to UH
+// instead of letting it fall through to the ordinary L/M/H tower art at that
+// footprint - low density is otherwise locked to 1x1, so a 12-20 storey block
 // slipping in here would break the low-rise district it's meant to preserve.
+// Two UH exceptions exist: a 3x3 "estate lot" and a 2x2 "villa". Without the
+// footprintSize === 2 branch here, RES_2X2_SPAWN_CHANCE[DENSITY_LOW] being
+// permanently 0 meant the low-density-only UH tier could never actually reach
+// a 2x2 roll - every residential2-*-UH villa model was unreachable in play.
 function chooseResidentialFootprint(scene, r, c, density, optionsOverride = {}, siteFactors = null) {
   const forcedSize = optionsOverride.forceFootprint ?? (optionsOverride.force2x2 ? 2 : null);
   if (forcedSize) {
-    const size = canPlaceResidentialFootprint(scene, r, c, forcedSize) && hasResidentialModelForFootprint(forcedSize)
-      ? forcedSize
-      : 1;
-    return { size, forceWealthTier: null };
+    const fits = canPlaceResidentialFootprint(scene, r, c, forcedSize) && hasResidentialModelForFootprint(forcedSize);
+    return {
+      size: fits ? forcedSize : 1,
+      forceWealthTier: fits ? (optionsOverride.forceWealthTier ?? null) : null,
+    };
   }
 
   const candidates = [5, 4, 3, 2];
@@ -739,20 +826,19 @@ function chooseResidentialFootprint(scene, r, c, density, optionsOverride = {}, 
     let chance = footprintSize === 2
       ? getResidential2x2Chance(density)
       : getResidentialLargeSpawnChance(footprintSize, density);
-    const isLowDensityEstateException = density === DENSITY_LOW
-      && footprintSize === 3
+    const isLowDensityUhException = density === DENSITY_LOW
+      && (footprintSize === 3 || footprintSize === 2)
       && isUltraHighWealthEligible(siteFactors, density);
-    if (isLowDensityEstateException) {
-      chance = siteFactors.quality >= 0.85
-        ? RESIDENTIAL_LOW_DENSITY_3X3_CHANCE.elite
-        : RESIDENTIAL_LOW_DENSITY_3X3_CHANCE.premium;
+    if (isLowDensityUhException) {
+      const table = footprintSize === 3 ? RESIDENTIAL_LOW_DENSITY_3X3_CHANCE : RESIDENTIAL_LOW_DENSITY_2X2_UH_CHANCE;
+      chance = siteFactors.quality >= 0.85 ? table.elite : table.premium;
     }
     const largeLotBoost = getLargeLotSpawnBoost(siteFactors?.quality ?? 0.5, footprintSize);
     const adjustedChance = Math.min(0.95, chance * largeLotBoost);
     if (adjustedChance <= 0 || Math.random() >= adjustedChance) continue;
     if (!hasResidentialModelForFootprint(footprintSize)) continue;
     if (canPlaceResidentialFootprint(scene, r, c, footprintSize)) {
-      return { size: footprintSize, forceWealthTier: isLowDensityEstateException ? 'UH' : null };
+      return { size: footprintSize, forceWealthTier: isLowDensityUhException ? 'UH' : null };
     }
   }
 
@@ -1907,6 +1993,7 @@ function pickVariedModel(models, bucketKey, siteFactors = null) {
     let weight = 1 / (1 + usedCount * MODEL_VARIATION_USAGE_WEIGHT);
     if (recent.includes(model.key)) weight *= MODEL_VARIATION_RECENT_PENALTY;
     weight *= getSpatialModelWeight(model, siteFactors);
+    weight *= Number.isFinite(model?.spawnWeight) ? model.spawnWeight : 1;
     return {
       model,
       weight: Math.max(MODEL_VARIATION_MIN_WEIGHT * 0.25, weight),

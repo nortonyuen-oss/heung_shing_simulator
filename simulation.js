@@ -7,6 +7,23 @@ const SIM_DEBUG_LOGGING = false;
 const modelUsageCounts = new Map();
 const modelRecentHistory = new Map();
 
+function forEachSimulationZonedTile(action) {
+  const cachedTiles = typeof getZoneGrowthTiles === 'function'
+    ? getZoneGrowthTiles()
+    : null;
+  if (Array.isArray(cachedTiles)) {
+    cachedTiles.forEach(({ row, col }) => {
+      if (zoneMap[row]?.[col] !== ZONE_NONE) action(row, col);
+    });
+    return;
+  }
+  for (let row = 0; row < MAP_HEIGHT; row++) {
+    for (let col = 0; col < MAP_WIDTH; col++) {
+      if (zoneMap[row]?.[col] !== ZONE_NONE) action(row, col);
+    }
+  }
+}
+
 function runSimTick(scene) {
   if (!scene) return;
   const performanceProfileStartedAt = (
@@ -178,13 +195,10 @@ function updateCrimeRateIndex() {
   let riskSum = 0;
   let zonedCount = 0;
 
-  for (let r = 0; r < MAP_HEIGHT; r++) {
-    for (let c = 0; c < MAP_WIDTH; c++) {
-      if (zoneMap[r][c] === ZONE_NONE) continue;
-      zonedCount++;
-      riskSum += serviceMap[r]?.[c]?.police ? protectedRisk : unprotectedRisk;
-    }
-  }
+  forEachSimulationZonedTile((r, c) => {
+    zonedCount++;
+    riskSum += serviceMap[r]?.[c]?.police ? protectedRisk : unprotectedRisk;
+  });
 
   city.crimeRateIndex = zonedCount > 0 ? clamp(riskSum / zonedCount, 0, 1) : 0;
   const communityCrimeReduction = typeof sumSpecialBuildingEffect === 'function'
@@ -655,24 +669,21 @@ function computeHappiness(scene) {
   let treeScore = 0;
   let scenicScore = 0;
 
-  for (let r = 0; r < MAP_HEIGHT; r++) {
-    for (let c = 0; c < MAP_WIDTH; c++) {
-      if (zoneMap[r][c] === ZONE_NONE) continue;
-      zoned++;
-      if (powerMap[r][c]) powered++;
-      if (serviceMap[r]?.[c]?.fire) fireCovered++;
-      if (serviceMap[r]?.[c]?.police) policeCovered++;
-      if (zoneMap[r][c] === ZONE_RES) {
-        residential++;
-        parkScore += Math.min(serviceMap[r]?.[c]?.park ?? 0, 2);
-        // Sports grounds contribute an additional recreation bonus (up to +0.5 park-equivalent)
-        parkScore += Math.min((serviceMap[r]?.[c]?.sportsGround ?? 0) * 0.5, 1);
-        const env = getResidentialEnvironmentScore(r, c);
-        treeScore += env.tree;
-        scenicScore += env.scenic;
-      }
+  forEachSimulationZonedTile((r, c) => {
+    zoned++;
+    if (powerMap[r][c]) powered++;
+    if (serviceMap[r]?.[c]?.fire) fireCovered++;
+    if (serviceMap[r]?.[c]?.police) policeCovered++;
+    if (zoneMap[r][c] === ZONE_RES) {
+      residential++;
+      parkScore += Math.min(serviceMap[r]?.[c]?.park ?? 0, 2);
+      // Sports grounds contribute an additional recreation bonus (up to +0.5 park-equivalent)
+      parkScore += Math.min((serviceMap[r]?.[c]?.sportsGround ?? 0) * 0.5, 1);
+      const env = getResidentialEnvironmentScore(r, c);
+      treeScore += env.tree;
+      scenicScore += env.scenic;
     }
-  }
+  });
 
   // No zones yet → city is empty and optimistic; keep baseline happiness.
   // Happiness only starts reflecting infrastructure quality once zones exist.

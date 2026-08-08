@@ -356,6 +356,9 @@ function hideLandingScreen() {
   const screen = document.getElementById('landing-screen');
   if (screen) screen.style.display = 'none';
   if (typeof setGameWorldVisible === 'function') setGameWorldVisible(true);
+  if (typeof recordVisualRoutePerformanceMilestone === 'function') {
+    recordVisualRoutePerformanceMilestone('gameplayVisible');
+  }
 
   if (typeof enterGameplayAudioMode === 'function') enterGameplayAudioMode();
 
@@ -483,6 +486,7 @@ async function saveTerrainPresetFromCurrentMap() {
 
 async function startNewGame(cityName) {
   if (!gameReady) return;
+  const performanceStartedAt = globalThis.performance?.now?.() ?? Date.now();
 
   const terrainSourceSelect = document.getElementById('newgame-terrain-source');
   const terrainPresetSelect = document.getElementById('newgame-terrain-preset');
@@ -544,6 +548,16 @@ async function startNewGame(cityName) {
   simSpeedMul = simSpeedMul || 1;
   startSimTimer();
   hideLandingScreen();
+  const performanceDuration = (globalThis.performance?.now?.() ?? Date.now()) - performanceStartedAt;
+  if (typeof recordVisualRoutePerformanceDuration === 'function') {
+    recordVisualRoutePerformanceDuration(activeScene, 'load.newCity', performanceDuration);
+  }
+  if (typeof recordVisualRoutePerformanceOperation === 'function') {
+    recordVisualRoutePerformanceOperation('new-city', performanceDuration, {
+      source,
+      population: Number(city.population) || 0,
+    });
+  }
 }
 
 function showCityIdentityDialog(defaults = {}) {

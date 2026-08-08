@@ -27,6 +27,45 @@ test('slow icon clicks do not unlock test mode', () => {
   assert.equal(calibrator.isVisualRouteCalibrationTestModeEnabled(), false);
 });
 
+test('explicit performance query enables Phase 0 mode without the hidden click gesture', () => {
+  calibrator.setVisualRouteCalibrationTestModeEnabled(false);
+  assert.equal(calibrator.isVisualRoutePerformanceModeRequested({ search: '?performance=0' }), false);
+  assert.equal(calibrator.isVisualRoutePerformanceModeRequested({ search: '?performance=1&profile=electron' }), true);
+  assert.equal(calibrator.setupVisualRoutePerformanceMode({ search: '?performance=1' }), true);
+  assert.equal(calibrator.isVisualRouteCalibrationTestModeEnabled(), true);
+  calibrator.setVisualRouteCalibrationTestModeEnabled(false);
+});
+
+test('a `?performance=1` launch collects data silently without popping the panel open', () => {
+  calibrator.setVisualRouteCalibrationTestModeEnabled(false);
+  assert.equal(calibrator.isVisualRoutePerformancePanelVisible(), false);
+  assert.equal(calibrator.setupVisualRoutePerformanceMode({ search: '?performance=1' }), true);
+  assert.equal(calibrator.isVisualRouteCalibrationTestModeEnabled(), true, 'instrumentation runs in the background');
+  assert.equal(calibrator.isVisualRoutePerformancePanelVisible(), false, 'the panel must not auto-open');
+  // A follow-up click reveals the panel instead of tearing down the session -
+  // most players are on the About icon looking for it, so it should not cost
+  // them the run they came to inspect.
+  assert.equal(calibrator.handleVisualRouteCalibrationUnlockClick(1000), true);
+  assert.equal(calibrator.isVisualRouteCalibrationTestModeEnabled(), true);
+  assert.equal(calibrator.isVisualRoutePerformancePanelVisible(), true);
+  // Only once the panel is already visible does the same click fully exit.
+  assert.equal(calibrator.handleVisualRouteCalibrationUnlockClick(1200), false);
+  assert.equal(calibrator.isVisualRouteCalibrationTestModeEnabled(), false);
+  assert.equal(calibrator.isVisualRoutePerformancePanelVisible(), false);
+});
+
+test('the five-click gesture still opens the panel together with test mode for manual dev use', () => {
+  calibrator.setVisualRouteCalibrationTestModeEnabled(false);
+  [1000, 1200, 1400, 1600].forEach((timestamp) => {
+    calibrator.handleVisualRouteCalibrationUnlockClick(timestamp);
+  });
+  assert.equal(calibrator.isVisualRoutePerformancePanelVisible(), false);
+  assert.equal(calibrator.handleVisualRouteCalibrationUnlockClick(1800), true);
+  assert.equal(calibrator.isVisualRouteCalibrationTestModeEnabled(), true);
+  assert.equal(calibrator.isVisualRoutePerformancePanelVisible(), true);
+  calibrator.setVisualRouteCalibrationTestModeEnabled(false);
+});
+
 test('the performance panel has a close button that disables test mode without retriggering the icon gesture', () => {
   const source = fs.readFileSync(path.join(ROOT, 'visual-route-calibrator.js'), 'utf8');
   assert.match(source, /class="vrp-close-btn"[^>]*>✕<\/button>/);
@@ -180,9 +219,15 @@ test('performance profiler summarizes frame time and deduplicates shared texture
   const summary = calibrator.summarizeVisualRoutePerformanceSamples([16, 17, 18, 40]);
   assert.equal(summary.currentMs, 40);
   assert.equal(summary.averageMs, 22.75);
+  assert.equal(summary.sampleCount, 4);
+  assert.equal(summary.p50Ms, 17);
   assert.equal(summary.p95Ms, 40);
+  assert.equal(summary.p99Ms, 40);
   assert.equal(summary.maxMs, 40);
   assert.equal(summary.longFrames, 1);
+  assert.equal(summary.longFrames16, 3);
+  assert.equal(summary.longFrames33, 1);
+  assert.equal(summary.longFrames50, 0);
   assert.ok(summary.fps > 43 && summary.fps < 44);
 
   const sharedAirportImage = { width: 1024, height: 512 };
@@ -203,4 +248,32 @@ test('performance profiler summarizes frame time and deduplicates shared texture
   assert.equal(textures.sourceCount, 2);
   assert.equal(textures.airportTextureCount, 1);
   assert.equal(textures.estimatedBytes, (1024 * 512 + 256 * 256) * 4 * (4 / 3));
+  assert.deepEqual(textures.largestSources.map((entry) => entry.textureKey), [
+    'airport_12x12',
+    'aircraft',
+  ]);
+  assert.deepEqual(
+    textures.largestSources.map(({ width, height }) => ({ width, height })),
+    [{ width: 1024, height: 512 }, { width: 256, height: 256 }],
+  );
+});
+
+test('baseline reset clears rolling frame and section samples without reinstalling hooks', () => {
+  const scene = {
+    children: { list: [] },
+    cameras: { main: { renderList: [] } },
+    textures: { list: {}, exists: () => false },
+  };
+  calibrator.setVisualRouteCalibrationTestModeEnabled(true);
+  calibrator.recordVisualRoutePerformanceFrameStart(scene, 100);
+  calibrator.recordVisualRoutePerformanceFrameStart(scene, 140);
+  calibrator.recordVisualRoutePerformanceDuration(scene, 'simulation', 80);
+  assert.equal(calibrator.getVisualRoutePerformanceSnapshot(scene).frame.sampleCount, 1);
+  assert.equal(calibrator.resetVisualRoutePerformanceSamples(scene, 200), true);
+  const snapshot = calibrator.getVisualRoutePerformanceSnapshot(scene);
+  assert.equal(snapshot.schemaVersion, 2);
+  assert.equal(snapshot.frame.sampleCount, 0);
+  assert.deepEqual(snapshot.sections, {});
+  assert.equal(snapshot.session.baselineStartedAtMs, 200);
+  calibrator.setVisualRouteCalibrationTestModeEnabled(false);
 });

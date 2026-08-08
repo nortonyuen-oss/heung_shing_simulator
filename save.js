@@ -14,15 +14,146 @@ let terrainApiAvailable = null;
 let currentSaveId = null;   // tracks which DB row we are editing
 let saveOperationQueue = Promise.resolve();
 let cityChangeAutosaveTimer = null;
+let annualAutosaveSchedule = null;
+let saveSerializationWorker = null;
+let saveSerializationSequence = 0;
+const pendingSaveSerializations = new Map();
 // Loading a different city starts a new save session. Network responses from an
 // older session may still arrive afterwards, but must never change the active
 // manual save id of the newly loaded city.
 let saveSessionGeneration = 0;
 let loadRequestGeneration = 0;
 
+function rejectPendingSaveSerializations(error) {
+  pendingSaveSerializations.forEach(({ reject }) => reject(error));
+  pendingSaveSerializations.clear();
+}
+
+function getSaveSerializationWorker() {
+  if (saveSerializationWorker) return saveSerializationWorker;
+  if (
+    typeof globalThis.Worker !== 'function'
+    || typeof globalThis.Blob !== 'function'
+    || typeof globalThis.URL?.createObjectURL !== 'function'
+  ) return null;
+
+  try {
+    const source = `
+      self.onmessage = (event) => {
+        const id = event.data && event.data.id;
+        try {
+          self.postMessage({ id, body: JSON.stringify(event.data.payload) });
+        } catch (error) {
+          self.postMessage({ id, error: String(error && error.message || error) });
+        }
+      };
+    `;
+    const url = globalThis.URL.createObjectURL(new globalThis.Blob(
+      [source],
+      { type: 'text/javascript' },
+    ));
+    const worker = new globalThis.Worker(url);
+    globalThis.URL.revokeObjectURL?.(url);
+    worker.onmessage = (event) => {
+      const id = Number(event.data?.id);
+      const pending = pendingSaveSerializations.get(id);
+      if (!pending) return;
+      pendingSaveSerializations.delete(id);
+      if (event.data?.error) pending.reject(new Error(event.data.error));
+      else pending.resolve(event.data?.body);
+    };
+    worker.onerror = (event) => {
+      event?.preventDefault?.();
+      const error = new Error(event?.message || 'Save serialization worker failed');
+      rejectPendingSaveSerializations(error);
+      worker.terminate?.();
+      if (saveSerializationWorker === worker) saveSerializationWorker = null;
+    };
+    saveSerializationWorker = worker;
+    return worker;
+  } catch {
+    saveSerializationWorker = null;
+    return null;
+  }
+}
+
+function serializeSavePayload(payload, preferWorker = false) {
+  const worker = preferWorker ? getSaveSerializationWorker() : null;
+  if (!worker) {
+    // Keep the fallback synchronous. Besides providing broad browser/test
+    // compatibility, this freezes nested building state before saveGame()
+    // returns just like the historical implementation did.
+    return Promise.resolve({ body: JSON.stringify(payload), offThread: false });
+  }
+
+  return new Promise((resolve, reject) => {
+    const id = ++saveSerializationSequence;
+    pendingSaveSerializations.set(id, {
+      resolve: (body) => resolve({ body, offThread: true }),
+      reject,
+    });
+    try {
+      // Structured cloning happens when postMessage is called, so later city
+      // mutations cannot leak into the immutable payload being stringified.
+      worker.postMessage({ id, payload });
+    } catch (error) {
+      pendingSaveSerializations.delete(id);
+      try {
+        resolve({ body: JSON.stringify(payload), offThread: false });
+      } catch (fallbackError) {
+        reject(fallbackError ?? error);
+      }
+    }
+  });
+}
+
+function recordSavePerformance(section, durationMs, details = {}) {
+  if (typeof recordVisualRoutePerformanceDuration === 'function') {
+    recordVisualRoutePerformanceDuration(activeScene, section, durationMs);
+  }
+  if (typeof recordVisualRoutePerformanceOperation === 'function') {
+    recordVisualRoutePerformanceOperation(section, durationMs, details);
+  }
+}
+
+function cancelScheduledAnnualAutosave() {
+  if (!annualAutosaveSchedule) return false;
+  const { kind, id } = annualAutosaveSchedule;
+  annualAutosaveSchedule = null;
+  if (kind === 'idle' && typeof globalThis.cancelIdleCallback === 'function') {
+    globalThis.cancelIdleCallback(id);
+  } else {
+    clearTimeout(id);
+  }
+  return true;
+}
+
+function scheduleAnnualAutosave() {
+  if (annualAutosaveSchedule) return false;
+  const operationGeneration = saveSessionGeneration;
+  const run = () => {
+    annualAutosaveSchedule = null;
+    if (operationGeneration !== saveSessionGeneration) return;
+    saveGame(true);
+  };
+
+  // Snapshot construction and JSON serialization can take tens of
+  // milliseconds in a mature city. Run them after the simulation task has
+  // yielded so the January tick can paint before autosave work begins.
+  if (typeof globalThis.requestIdleCallback === 'function') {
+    const id = globalThis.requestIdleCallback(run, { timeout: 1000 });
+    annualAutosaveSchedule = { kind: 'idle', id };
+  } else {
+    const id = setTimeout(run, 50);
+    annualAutosaveSchedule = { kind: 'timeout', id };
+  }
+  return true;
+}
+
 function beginNewCitySaveSession(manualSaveId = null) {
   saveSessionGeneration += 1;
   loadRequestGeneration += 1;
+  cancelScheduledAnnualAutosave();
   if (cityChangeAutosaveTimer) {
     clearTimeout(cityChangeAutosaveTimer);
     cityChangeAutosaveTimer = null;
@@ -430,23 +561,69 @@ function saveGame(silent = false) {
   const isAutosave = silent === true;
   const targetSaveId = currentSaveId;
   const operationGeneration = saveSessionGeneration;
-  // Capture the complete payload before joining the queue. Keeping only object
-  // references here is not enough because nested city state can change while an
-  // earlier save is in flight; serializing now gives this operation an immutable
-  // snapshot of the city that was active when Save was requested.
-  let requestBody;
+  // Capture the compact payload before joining the queue. Autosaves hand it to
+  // a worker immediately, whose structured clone freezes nested city state at
+  // postMessage time before JSON serialization continues off the main thread.
+  let payload;
+  const snapshotSection = isAutosave ? 'save.autosave.snapshot' : 'save.manual.snapshot';
+  const snapshotStartedAt = globalThis.performance?.now?.() ?? Date.now();
   try {
-    requestBody = JSON.stringify(buildSavePayload({
+    payload = buildSavePayload({
       autosave: isAutosave,
       manualSaveId: targetSaveId,
-    }));
+    });
   } catch (e) {
+    const snapshotDuration = (globalThis.performance?.now?.() ?? Date.now()) - snapshotStartedAt;
+    recordSavePerformance(snapshotSection, snapshotDuration, { success: false, stage: 'build' });
     if (!silent) showToast(t('toast.saveFailed'), 'danger');
     console.error('[Save snapshot]', e);
     return Promise.resolve(false);
   }
+  const snapshotDuration = (globalThis.performance?.now?.() ?? Date.now()) - snapshotStartedAt;
+  recordSavePerformance(snapshotSection, snapshotDuration, { success: true, stage: 'build' });
+
+  const serializationSection = isAutosave ? 'save.autosave.serialize' : 'save.manual.serialize';
+  const serializationStartedAt = globalThis.performance?.now?.() ?? Date.now();
+  let requestBodyPromise;
+  try {
+    requestBodyPromise = serializeSavePayload(payload, isAutosave).then((result) => {
+      const serializationDuration = (
+        globalThis.performance?.now?.() ?? Date.now()
+      ) - serializationStartedAt;
+      recordSavePerformance(serializationSection, serializationDuration, {
+        success: true,
+        bytes: typeof result.body === 'string' ? result.body.length : 0,
+        offThread: result.offThread,
+      });
+      return result.body;
+    }, (error) => {
+      const serializationDuration = (
+        globalThis.performance?.now?.() ?? Date.now()
+      ) - serializationStartedAt;
+      recordSavePerformance(serializationSection, serializationDuration, {
+        success: false,
+        bytes: 0,
+        offThread: isAutosave,
+      });
+      throw error;
+    });
+  } catch (e) {
+    const serializationDuration = (
+      globalThis.performance?.now?.() ?? Date.now()
+    ) - serializationStartedAt;
+    recordSavePerformance(serializationSection, serializationDuration, {
+      success: false,
+      bytes: 0,
+      offThread: false,
+    });
+    if (!silent) showToast(t('toast.saveFailed'), 'danger');
+    console.error('[Save serialization]', e);
+    return Promise.resolve(false);
+  }
+
   const operation = async () => {
     try {
+      const requestBody = await requestBodyPromise;
       let res;
       if (isAutosave) {
         // Autosave has one dedicated slot and never changes the active manual slot.
@@ -726,6 +903,9 @@ async function ensureSaveBuildingTextures(scene, save) {
 }
 
 async function loadSaveById(id, scene) {
+  const performanceStartedAt = globalThis.performance?.now?.() ?? Date.now();
+  let performanceScene = scene;
+  let performanceSucceeded = false;
   const loadGeneration = ++loadRequestGeneration;
   if (cityChangeAutosaveTimer) {
     clearTimeout(cityChangeAutosaveTimer);
@@ -740,6 +920,7 @@ async function loadSaveById(id, scene) {
     if (loadGeneration !== loadRequestGeneration) return false;
 
     const readyScene = await waitForLoadScene(scene);
+    performanceScene = readyScene || scene;
     if (!readyScene) {
       showToast(t('toast.stillLoading'), 'warning');
       return false;
@@ -769,11 +950,25 @@ async function loadSaveById(id, scene) {
       : id;
 
     showToast(t('toast.welcomeBack', { city: city.name }), 'info');
+    performanceSucceeded = true;
     return true;
   } catch (e) {
     showToast(t('toast.loadFailed'), 'danger');
     console.error('[Load]', e);
     return false;
+  } finally {
+    const performanceDuration = (globalThis.performance?.now?.() ?? Date.now()) - performanceStartedAt;
+    if (typeof recordVisualRoutePerformanceDuration === 'function') {
+      recordVisualRoutePerformanceDuration(performanceScene, 'load.save', performanceDuration);
+    }
+    if (typeof recordVisualRoutePerformanceOperation === 'function') {
+      recordVisualRoutePerformanceOperation('load-save', performanceDuration, {
+        saveId: Number(id) || 0,
+        success: performanceSucceeded,
+        population: typeof city === 'undefined' ? 0 : Number(city.population) || 0,
+        buildingCount: typeof buildingData === 'undefined' ? 0 : Object.keys(buildingData).length,
+      });
+    }
   }
 }
 

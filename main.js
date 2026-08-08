@@ -1382,13 +1382,14 @@ const config = {
     width: '100%',
     height: '100%',
   },
-  // `target` alone is only used for delta smoothing/panic detection - `limit`
-  // is what actually throttles the update/render step, otherwise this city
-  // builder redraws as fast as the display allows (120Hz+ on gaming monitors)
-  // for zero visual benefit.
+  // Phaser's hard limiter compares an rAF gap with a fixed interval. On both
+  // 60 Hz and variable-refresh displays that quantizes otherwise healthy frame
+  // pacing to an integer divisor (the profiler observed 30-40 fps with light
+  // update/render work). Let rAF follow the display; `target` still supplies
+  // delta smoothing and panic thresholds without rejecting display frames.
   fps: {
     target: 60,
-    limit: 60,
+    limit: 0,
   },
   scene: { preload, create, update: updateGameFrame },
 };
@@ -2088,6 +2089,9 @@ function create() {
   // the 65,536-tile Phaser world invisibly behind it.
   this.scene.setVisible(false);
   gameReady = true;
+  if (typeof recordVisualRoutePerformanceMilestone === 'function') {
+    recordVisualRoutePerformanceMilestone('gameReady');
+  }
   setPreloadProgressPercent(100);
   initBudgetPanel();
   updateHUD();
@@ -8941,7 +8945,11 @@ function preGenerateZoneTextures(scene) {
 function triggerAutosave() {
   if (isTerrainCreatorMode) return;
   if (!activeScene || !gameReady) return;
-  saveGame(true);   // pass silent=true so the toast says "Autosaved" instead of "City saved"
+  if (typeof scheduleAnnualAutosave === 'function') {
+    scheduleAnnualAutosave();
+  } else {
+    setTimeout(() => saveGame(true), 50);
+  }
 }
 
 // ── Map rotation ──────────────────────────────────────────────────────────────

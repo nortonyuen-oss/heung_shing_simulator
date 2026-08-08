@@ -13,7 +13,30 @@ const { startGameServer } = require('./server');
 
 let mainWindow = null;
 let gameServer = null;
+const performanceModeEnabled = process.env.ELECTRON_PERFORMANCE_MODE === '1';
 const hasSingleInstanceLock = app.requestSingleInstanceLock();
+
+if (performanceModeEnabled) {
+  // Chromium otherwise reports bucketed heap values. This switch is scoped to
+  // the explicit Phase 0 launch command and never affects a normal player run.
+  app.commandLine.appendSwitch('enable-precise-memory-info');
+}
+
+function getGameWindowUrl() {
+  if (!gameServer?.url) return '';
+  if (!performanceModeEnabled) return gameServer.url;
+  const url = new URL(gameServer.url);
+  url.searchParams.set('performance', '1');
+  url.searchParams.set('profile', 'electron');
+  return url.toString();
+}
+
+function getGameModelAssetRootDir() {
+  if (!performanceModeEnabled) return __dirname;
+  const stagedRoot = path.join(__dirname, '.data', 'package-assets');
+  const stagedManifest = path.join(stagedRoot, 'Models', 'model-assets.json');
+  return fs.existsSync(stagedManifest) ? stagedRoot : __dirname;
+}
 
 // The renderer hosts the whole game (Phaser + sim). If it crashes or wedges,
 // there is nothing left inside the page that can recover itself — without
@@ -51,7 +74,7 @@ async function offerRendererRecovery(reasonKind) {
   });
   if (response !== 0 || !mainWindow || mainWindow.isDestroyed() || !gameServer) return;
   try {
-    await mainWindow.loadURL(gameServer.url);
+    await mainWindow.loadURL(getGameWindowUrl());
   } catch (err) {
     console.error('[electron recovery reload]', err);
   }
@@ -151,6 +174,7 @@ async function createWindow() {
     host: '127.0.0.1',
     dbPath,
     rootDir: __dirname,
+    modelAssetRootDir: getGameModelAssetRootDir(),
     aiNewsCredentialStore,
   });
 
@@ -166,6 +190,7 @@ async function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      backgroundThrottling: !performanceModeEnabled,
     },
   });
 
@@ -206,8 +231,8 @@ async function createWindow() {
     clearUnresponsiveRecoveryTimer();
   });
 
-  await mainWindow.loadURL(gameServer.url);
-  scheduleUpdateChecks(mainWindow);
+  await mainWindow.loadURL(getGameWindowUrl());
+  if (!performanceModeEnabled) scheduleUpdateChecks(mainWindow);
 }
 
 if (!hasSingleInstanceLock) {

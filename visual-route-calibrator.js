@@ -11,13 +11,36 @@ const VISUAL_ROUTE_CALIBRATION_DEFAULT_SLOTS = Object.freeze(['default']);
 const VISUAL_ROUTE_CALIBRATION_INPUT_DEPTH = 2_000_000_000;
 const VISUAL_ROUTE_CALIBRATION_UNLOCK_CLICKS = 5;
 const VISUAL_ROUTE_CALIBRATION_UNLOCK_WINDOW_MS = 2500;
-const VISUAL_ROUTE_PERFORMANCE_SAMPLE_COUNT = 120;
+// Thirty seconds at the 60 fps cap gives the baseline enough room to include
+// several normal simulation ticks and at least one monthly boundary. The same
+// ring is also used for lower-frequency sections, where the extra storage is
+// negligible and keeps longer comparison sessions useful.
+const VISUAL_ROUTE_PERFORMANCE_SAMPLE_COUNT = 1800;
 const VISUAL_ROUTE_PERFORMANCE_REFRESH_MS = 500;
 const VISUAL_ROUTE_TEXTURE_CENSUS_REFRESH_MS = 5000;
+const VISUAL_ROUTE_PERFORMANCE_OPERATION_LIMIT = 24;
+const VISUAL_ROUTE_PERFORMANCE_LONG_TASK_LIMIT = 240;
 const visualRouteCalibrationStates = new WeakMap();
 const visualRouteCalibrationLiveStates = new Set();
 const visualRoutePerformanceStates = new WeakMap();
+const visualRoutePerformanceSession = {
+  requested: false,
+  enabledAtMs: null,
+  baselineStartedAtMs: null,
+  milestones: Object.create(null),
+  operations: [],
+  longTasks: [],
+  longTaskObserver: null,
+};
 let visualRouteCalibrationTestModeEnabled = false;
+// Independent from the flag above: instrumentation (samples/milestones/long
+// tasks) runs whenever test mode is enabled, by either path below, but the
+// visible panel only opens through a deliberate action - the five-click
+// gesture, or a follow-up click once already unlocked. A `?performance=1`
+// launch must never pop the panel open on its own, or a profiling run started
+// unattended (e.g. for a recorded benchmark) would have it obscuring the
+// screen from the first frame.
+let visualRoutePerformancePanelVisible = false;
 let visualRouteCalibrationUnlockCount = 0;
 let visualRouteCalibrationLastUnlockClickAt = -Infinity;
 
@@ -28,21 +51,131 @@ function updateVisualRouteCalibrationTestModeIndicator() {
   const icon = document.getElementById('about-app-icon');
   icon?.setAttribute?.('aria-pressed', String(visualRouteCalibrationTestModeEnabled));
   const performancePanel = document.getElementById('visual-route-performance-panel');
-  if (performancePanel) performancePanel.hidden = !visualRouteCalibrationTestModeEnabled;
+  if (performancePanel) performancePanel.hidden = !visualRoutePerformancePanelVisible;
 }
 
 function isVisualRouteCalibrationTestModeEnabled() {
   return visualRouteCalibrationTestModeEnabled;
 }
 
+function isVisualRoutePerformancePanelVisible() {
+  return visualRoutePerformancePanelVisible;
+}
+
+function isVisualRoutePerformanceModeRequested(locationValue = globalThis.location) {
+  try {
+    const params = new URLSearchParams(String(locationValue?.search || ''));
+    return params.get('performance') === '1';
+  } catch {
+    return false;
+  }
+}
+
+function setupVisualRoutePerformanceLongTaskObserver() {
+  if (visualRoutePerformanceSession.longTaskObserver) return true;
+  const Observer = globalThis.PerformanceObserver;
+  if (typeof Observer !== 'function'
+    || !Observer.supportedEntryTypes?.includes?.('longtask')) return false;
+  try {
+    visualRoutePerformanceSession.longTaskObserver = new Observer((list) => {
+      if (!visualRouteCalibrationTestModeEnabled) return;
+      list.getEntries().forEach((entry) => {
+        visualRoutePerformanceSession.longTasks.push({
+          startTimeMs: Number(entry.startTime) || 0,
+          durationMs: Number(entry.duration) || 0,
+        });
+      });
+      if (visualRoutePerformanceSession.longTasks.length > VISUAL_ROUTE_PERFORMANCE_LONG_TASK_LIMIT) {
+        visualRoutePerformanceSession.longTasks.splice(
+          0,
+          visualRoutePerformanceSession.longTasks.length - VISUAL_ROUTE_PERFORMANCE_LONG_TASK_LIMIT,
+        );
+      }
+    });
+    visualRoutePerformanceSession.longTaskObserver.observe({ type: 'longtask', buffered: true });
+    return true;
+  } catch {
+    visualRoutePerformanceSession.longTaskObserver = null;
+    return false;
+  }
+}
+
+function recordVisualRoutePerformanceMilestone(name, atMs = visualRoutePerformanceNow()) {
+  if (!visualRouteCalibrationTestModeEnabled) return false;
+  const key = String(name || '').trim();
+  const timestamp = Number(atMs);
+  if (!key || !Number.isFinite(timestamp)) return false;
+  if (!Object.hasOwn(visualRoutePerformanceSession.milestones, key)) {
+    visualRoutePerformanceSession.milestones[key] = timestamp;
+  }
+  return true;
+}
+
+function normalizeVisualRoutePerformanceDetails(details) {
+  if (!details || typeof details !== 'object' || Array.isArray(details)) return {};
+  return Object.fromEntries(Object.entries(details).flatMap(([key, value]) => (
+    typeof value === 'string' || typeof value === 'boolean' || value === null
+      || (typeof value === 'number' && Number.isFinite(value))
+      ? [[key, value]]
+      : []
+  )));
+}
+
+function recordVisualRoutePerformanceOperation(name, durationMs, details = {}) {
+  if (!visualRouteCalibrationTestModeEnabled) return false;
+  const duration = Number(durationMs);
+  if (!Number.isFinite(duration) || duration < 0) return false;
+  visualRoutePerformanceSession.operations.push({
+    name: String(name || 'operation'),
+    durationMs: duration,
+    completedAtMs: visualRoutePerformanceNow(),
+    details: normalizeVisualRoutePerformanceDetails(details),
+  });
+  if (visualRoutePerformanceSession.operations.length > VISUAL_ROUTE_PERFORMANCE_OPERATION_LIMIT) {
+    visualRoutePerformanceSession.operations.splice(
+      0,
+      visualRoutePerformanceSession.operations.length - VISUAL_ROUTE_PERFORMANCE_OPERATION_LIMIT,
+    );
+  }
+  return true;
+}
+
+function activateVisualRoutePerformanceInstrumentation() {
+  const now = visualRoutePerformanceNow();
+  if (!Number.isFinite(visualRoutePerformanceSession.enabledAtMs)) {
+    visualRoutePerformanceSession.enabledAtMs = now;
+  }
+  if (!Number.isFinite(visualRoutePerformanceSession.baselineStartedAtMs)) {
+    visualRoutePerformanceSession.baselineStartedAtMs = now;
+  }
+  setupVisualRoutePerformanceLongTaskObserver();
+}
+
+// `?performance=1` starts instrumentation immediately (so a benchmark run
+// captures every frame from launch) but deliberately leaves the panel
+// closed - see the note on visualRoutePerformancePanelVisible above.
+function setupVisualRoutePerformanceMode(locationValue = globalThis.location) {
+  const requested = isVisualRoutePerformanceModeRequested(locationValue);
+  if (!requested) return false;
+  visualRoutePerformanceSession.requested = true;
+  visualRouteCalibrationTestModeEnabled = true;
+  activateVisualRoutePerformanceInstrumentation();
+  updateVisualRouteCalibrationTestModeIndicator();
+  recordVisualRoutePerformanceMilestone('profilerEnabled');
+  return true;
+}
+
 function setVisualRouteCalibrationTestModeEnabled(enabled) {
   visualRouteCalibrationTestModeEnabled = !!enabled;
+  visualRoutePerformancePanelVisible = visualRouteCalibrationTestModeEnabled;
   visualRouteCalibrationUnlockCount = 0;
   visualRouteCalibrationLastUnlockClickAt = -Infinity;
   if (!visualRouteCalibrationTestModeEnabled) {
     visualRouteCalibrationLiveStates.forEach((state) => {
       clearVisualRouteCalibrationTarget(state.scene);
     });
+  } else {
+    activateVisualRoutePerformanceInstrumentation();
   }
   updateVisualRouteCalibrationTestModeIndicator();
   return visualRouteCalibrationTestModeEnabled;
@@ -50,6 +183,14 @@ function setVisualRouteCalibrationTestModeEnabled(enabled) {
 
 function handleVisualRouteCalibrationUnlockClick(now = Date.now()) {
   if (visualRouteCalibrationTestModeEnabled) {
+    // Instrumentation already running silently (a `?performance=1` launch) -
+    // the first click just reveals the panel instead of tearing everything
+    // down, so a profiling session can be inspected without losing its data.
+    if (!visualRoutePerformancePanelVisible) {
+      visualRoutePerformancePanelVisible = true;
+      updateVisualRouteCalibrationTestModeIndicator();
+      return true;
+    }
     return setVisualRouteCalibrationTestModeEnabled(false);
   }
   const timestamp = Number(now);
@@ -73,6 +214,7 @@ function setupVisualRouteCalibrationTestModeUnlock() {
     icon.dataset.visualRouteCalibrationUnlock = 'ready';
     icon.addEventListener('click', () => handleVisualRouteCalibrationUnlockClick());
   }
+  setupVisualRoutePerformanceMode();
   updateVisualRouteCalibrationTestModeIndicator();
   return true;
 }
@@ -498,17 +640,39 @@ function summarizeVisualRoutePerformanceSamples(samples) {
     .map(Number)
     .filter((value) => Number.isFinite(value) && value > 0);
   if (values.length === 0) {
-    return { currentMs: 0, averageMs: 0, p95Ms: 0, maxMs: 0, fps: 0, longFrames: 0 };
+    return {
+      sampleCount: 0,
+      currentMs: 0,
+      averageMs: 0,
+      p50Ms: 0,
+      p95Ms: 0,
+      p99Ms: 0,
+      maxMs: 0,
+      fps: 0,
+      longFrames16: 0,
+      longFrames33: 0,
+      longFrames50: 0,
+      longFrames: 0,
+    };
   }
   const sorted = [...values].sort((a, b) => a - b);
   const averageMs = values.reduce((sum, value) => sum + value, 0) / values.length;
+  const percentile = (ratio) => sorted[Math.max(0, Math.ceil(sorted.length * ratio) - 1)];
+  const longFrames33 = values.filter((value) => value > 33.34).length;
   return {
+    sampleCount: values.length,
     currentMs: values.at(-1),
     averageMs,
-    p95Ms: sorted[Math.max(0, Math.ceil(sorted.length * 0.95) - 1)],
+    p50Ms: percentile(0.50),
+    p95Ms: percentile(0.95),
+    p99Ms: percentile(0.99),
     maxMs: sorted.at(-1),
     fps: averageMs > 0 ? 1000 / averageMs : 0,
-    longFrames: values.filter((value) => value > 33.34).length,
+    longFrames16: values.filter((value) => value > 16.67).length,
+    longFrames33,
+    longFrames50: values.filter((value) => value > 50).length,
+    // Keep the original field as a compatibility alias for existing snapshots.
+    longFrames: longFrames33,
   };
 }
 
@@ -558,10 +722,31 @@ function getVisualRoutePerformanceState(scene) {
       hooksInstalled: false,
       updateStartedAt: null,
       renderStartedAt: null,
+      baselineStartedAtMs: visualRoutePerformanceNow(),
     };
     visualRoutePerformanceStates.set(scene, state);
   }
   return state;
+}
+
+function resetVisualRoutePerformanceSamples(scene, now = visualRoutePerformanceNow()) {
+  const state = getVisualRoutePerformanceState(scene);
+  const timestamp = Number(now);
+  if (!state || !Number.isFinite(timestamp)) return false;
+  state.rawFrame = createVisualRoutePerformanceRing();
+  state.phaserDelta = createVisualRoutePerformanceRing();
+  state.sections = new Map();
+  state.lastRawFrameAt = null;
+  state.lastRefreshAt = -Infinity;
+  state.lastTextureCensusAt = -Infinity;
+  state.textureSnapshot = null;
+  state.updateStartedAt = null;
+  state.renderStartedAt = null;
+  state.baselineStartedAtMs = timestamp;
+  visualRoutePerformanceSession.baselineStartedAtMs = timestamp;
+  visualRoutePerformanceSession.operations = [];
+  visualRoutePerformanceSession.longTasks = [];
+  return true;
 }
 
 function recordVisualRoutePerformanceFrameStart(scene, now = visualRoutePerformanceNow()) {
@@ -626,11 +811,14 @@ function visualRouteIsPowerOfTwo(value) {
 }
 
 function getVisualRouteTextureMemoryStats(scene) {
-  const textures = Object.values(scene?.textures?.list ?? {}).filter(Boolean);
+  const textureEntries = Object.entries(scene?.textures?.list ?? {})
+    .filter(([, texture]) => !!texture);
+  const textures = textureEntries.map(([, texture]) => texture);
   const sourceObjects = new Set();
   const sourceUrls = new Map();
+  const sourceEntries = [];
   let estimatedBytes = 0;
-  textures.forEach((texture) => {
+  textureEntries.forEach(([registeredKey, texture]) => {
     let sources = Array.isArray(texture.source) ? texture.source : [];
     if (sources.length === 0) {
       const image = texture.getSourceImage?.();
@@ -650,6 +838,22 @@ function getVisualRouteTextureMemoryStats(scene) {
       const bytes = width * height * 4 * mipmapMultiplier;
       estimatedBytes += bytes;
       const url = String(image?.currentSrc || image?.src || '').split('?')[0];
+      let sourceLabel = url;
+      try {
+        sourceLabel = decodeURI(sourceLabel);
+      } catch {}
+      const modelPathIndex = sourceLabel.lastIndexOf('/Models/');
+      if (modelPathIndex >= 0) sourceLabel = sourceLabel.slice(modelPathIndex + 1);
+      else if (sourceLabel.includes('/')) {
+        sourceLabel = sourceLabel.slice(sourceLabel.lastIndexOf('/') + 1);
+      }
+      sourceEntries.push({
+        textureKey: String(texture.key || registeredKey || ''),
+        source: sourceLabel || String(texture.key || registeredKey || ''),
+        width,
+        height,
+        estimatedBytes: bytes,
+      });
       if (url) {
         const entry = sourceUrls.get(url) ?? { count: 0, bytes: 0 };
         entry.count++;
@@ -670,6 +874,9 @@ function getVisualRouteTextureMemoryStats(scene) {
       total + entry.bytes * ((entry.count - 1) / entry.count)
     ), 0),
     airportTextureCount: airportKeys.filter((key) => scene?.textures?.exists?.(key)).length,
+    largestSources: sourceEntries
+      .sort((a, b) => b.estimatedBytes - a.estimatedBytes)
+      .slice(0, 12),
   };
 }
 
@@ -685,19 +892,64 @@ function getVisualRoutePerformanceSnapshot(scene) {
   const displayList = scene?.children?.list ?? scene?.sys?.displayList?.list ?? [];
   const renderList = scene?.cameras?.main?.renderList ?? [];
   const cull = scene?.viewportCullStats ?? null;
+  const now = visualRoutePerformanceNow();
+  const memory = globalThis.performance?.memory;
+  const longTasks = summarizeVisualRoutePerformanceSamples(
+    visualRoutePerformanceSession.longTasks.map((entry) => entry.durationMs),
+  );
+  const buildingSpriteValues = scene?.buildingSprites?.values
+    ? [...scene.buildingSprites.values()]
+    : [];
+  const terrainObjects = Array.isArray(scene?.tileSprites)
+    ? scene.tileSprites.reduce((total, row) => total + (Array.isArray(row) ? row.length : 0), 0)
+    : 0;
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     recordedAt: new Date().toISOString(),
+    session: {
+      performanceModeRequested: visualRoutePerformanceSession.requested,
+      enabledAtMs: visualRoutePerformanceSession.enabledAtMs,
+      baselineStartedAtMs: state.baselineStartedAtMs,
+      elapsedMs: Math.max(0, now - state.baselineStartedAtMs),
+      milestones: { ...visualRoutePerformanceSession.milestones },
+      recentOperations: visualRoutePerformanceSession.operations.map((entry) => ({
+        ...entry,
+        details: { ...entry.details },
+      })),
+    },
     frame: summarizeVisualRoutePerformanceSamples(frameValues),
+    longTasks: {
+      ...longTasks,
+      entries: visualRoutePerformanceSession.longTasks.map((entry) => ({ ...entry })),
+    },
     sections,
     objects: {
       displayList: Number(displayList.length) || 0,
       rendered: Number(renderList.length) || 0,
       activeTerrain: Number(cull?.activeTerrain) || 0,
       terrainCandidates: Number(cull?.terrainCandidates) || 0,
+      terrainObjects,
+      buildingSpriteReferences: Number(scene?.buildingSprites?.size) || 0,
+      uniqueBuildingSprites: new Set(buildingSpriteValues).size,
+      treeTiles: Number(scene?.treeSprites?.size) || 0,
+      zoneOverlays: Number(scene?.zoneOverlays?.size) || 0,
     },
     culling: cull ? { ...cull } : null,
     textures: state.textureSnapshot ? { ...state.textureSnapshot } : getVisualRouteTextureMemoryStats(scene),
+    memory: {
+      usedJSHeapSize: Number(memory?.usedJSHeapSize) || null,
+      totalJSHeapSize: Number(memory?.totalJSHeapSize) || null,
+      jsHeapSizeLimit: Number(memory?.jsHeapSizeLimit) || null,
+    },
+    city: typeof city === 'undefined' ? null : {
+      name: String(city.name || ''),
+      population: Number(city.population) || 0,
+      tick: Number(city.tick) || 0,
+      year: Number(city.year) || 0,
+      month: Number(city.month) || 0,
+      paused: typeof simPaused === 'undefined' ? null : !!simPaused,
+      speed: typeof simSpeedMul === 'undefined' ? null : Number(simSpeedMul) || 0,
+    },
   };
 }
 
@@ -711,7 +963,7 @@ function createVisualRoutePerformancePanel(scene) {
     style.textContent = `
       #visual-route-performance-panel {
         position: fixed; right: 14px; top: 126px; z-index: 99999;
-        min-width: 250px; box-sizing: border-box; padding: 10px 12px;
+        width: min(370px, calc(100vw - 28px)); box-sizing: border-box; padding: 10px 12px;
         border: 1px solid rgba(112, 221, 160, .72); border-radius: 10px;
         color: #eafff2; background: rgba(5, 24, 25, .91);
         box-shadow: 0 10px 28px rgba(0, 0, 0, .32);
@@ -720,9 +972,13 @@ function createVisualRoutePerformancePanel(scene) {
       }
       #visual-route-performance-panel[hidden] { display: none !important; }
       #visual-route-performance-panel .vrp-title { color: #70dda0; font-weight: 800; letter-spacing: .08em; }
-      #visual-route-performance-panel pre { margin: 6px 0 0; color: #d9f7e5; white-space: pre-wrap; }
+      #visual-route-performance-panel pre {
+        max-height: min(58vh, 520px); margin: 6px 0 0; overflow: auto;
+        color: #d9f7e5; white-space: pre-wrap;
+      }
+      #visual-route-performance-panel .vrp-actions { display: flex; gap: 7px; }
       #visual-route-performance-panel button {
-        width: 100%; margin-top: 7px; border: 1px solid rgba(112, 221, 160, .62);
+        flex: 1; width: 100%; margin-top: 7px; border: 1px solid rgba(112, 221, 160, .62);
         border-radius: 6px; padding: 4px 7px; color: #d9f7e5; background: #123b33;
         font: inherit; cursor: pointer;
       }
@@ -738,10 +994,11 @@ function createVisualRoutePerformancePanel(scene) {
   const root = document.createElement('aside');
   root.id = 'visual-route-performance-panel';
   root.hidden = !visualRouteCalibrationTestModeEnabled;
-  root.setAttribute('aria-label', 'Test mode performance metrics');
+  root.setAttribute('aria-label', 'Phase 0 performance baseline metrics');
   root.innerHTML = '<button type="button" class="vrp-close-btn" aria-label="Close performance panel" title="Close">✕</button>'
-    + '<div class="vrp-title">PERFORMANCE · TEST</div><pre></pre>'
-    + '<button type="button" class="vrp-copy-btn">複製 profiling JSON</button>'
+    + '<div class="vrp-title">PERFORMANCE · PHASE 0</div><pre></pre>'
+    + '<div class="vrp-actions"><button type="button" class="vrp-reset-btn">重置樣本</button>'
+    + '<button type="button" class="vrp-copy-btn">複製 JSON</button></div>'
     + '<button type="button" class="vrp-airport-btn">機場路線校正</button>';
   root.querySelector('.vrp-close-btn')?.addEventListener?.('click', () => {
     setVisualRouteCalibrationTestModeEnabled(false);
@@ -750,6 +1007,10 @@ function createVisualRoutePerformancePanel(scene) {
     const snapshot = getVisualRoutePerformanceSnapshot(scene);
     if (!snapshot) return;
     copyVisualRouteCalibrationText(JSON.stringify(snapshot, null, 2)).catch(() => {});
+  });
+  root.querySelector('.vrp-reset-btn')?.addEventListener?.('click', () => {
+    resetVisualRoutePerformanceSamples(scene);
+    updateVisualRoutePerformanceProfiler(scene, visualRoutePerformanceNow(), 0);
   });
   root.querySelector('.vrp-airport-btn')?.addEventListener?.('click', () => {
     if (typeof toggleAirportRouteCalibrator === 'function') toggleAirportRouteCalibrator(scene);
@@ -790,6 +1051,18 @@ function updateVisualRoutePerformanceProfiler(scene, time, delta) {
   const simulationTraffic = summarizeVisualRoutePerformanceSamples(
     getVisualRoutePerformanceRingValues(state.sections.get('sim.traffic')),
   );
+  const simulationHotspots = [...state.sections.entries()]
+    .filter(([section]) => section.startsWith('sim.'))
+    .map(([section, ring]) => ({
+      section: section.slice(4),
+      summary: summarizeVisualRoutePerformanceSamples(getVisualRoutePerformanceRingValues(ring)),
+    }))
+    .filter((entry) => entry.summary.sampleCount > 0)
+    .sort((a, b) => b.summary.p95Ms - a.summary.p95Ms)
+    .slice(0, 4);
+  const longTasks = summarizeVisualRoutePerformanceSamples(
+    visualRoutePerformanceSession.longTasks.map((entry) => entry.durationMs),
+  );
   const memory = globalThis.performance?.memory;
   const heapUsed = visualRouteBytesToMiB(memory?.usedJSHeapSize);
   const heapTotal = visualRouteBytesToMiB(memory?.totalJSHeapSize);
@@ -824,13 +1097,36 @@ function updateVisualRoutePerformanceProfiler(scene, time, delta) {
   const displayList = scene?.children?.list ?? scene?.sys?.displayList?.list ?? [];
   const renderList = scene?.cameras?.main?.renderList ?? [];
   const cull = scene?.viewportCullStats;
+  const elapsedSeconds = Math.max(0, now - state.baselineStartedAtMs) / 1000;
+  const milestones = visualRoutePerformanceSession.milestones;
+  const lastOperation = visualRoutePerformanceSession.operations.at(-1) ?? null;
+  const cityText = typeof city === 'undefined'
+    ? 'city            n/a'
+    : `city            pop ${Number(city.population || 0).toLocaleString()} · tick ${Number(city.tick) || 0}`;
+  const hotspotText = simulationHotspots.length > 0
+    ? simulationHotspots
+      .map((entry) => `${entry.section} ${entry.summary.p95Ms.toFixed(1)}`)
+      .join(' · ')
+    : 'n/a';
   output.textContent = [
-    `frame raw avg/p95 ${frame.averageMs.toFixed(2)} / ${frame.p95Ms.toFixed(2)} ms`,
-    `fps / >33ms       ${frame.fps.toFixed(1)} / ${frame.longFrames}`,
+    `baseline        ${elapsedSeconds.toFixed(1)} s · ${frame.sampleCount} frames`,
+    `startup ready   ${Number(milestones.gameReady || 0).toFixed(0)} ms`,
+    `gameplay shown  ${milestones.gameplayVisible ? `${Number(milestones.gameplayVisible).toFixed(0)} ms` : 'waiting'}`,
+    lastOperation
+      ? `last operation  ${lastOperation.name} ${lastOperation.durationMs.toFixed(1)} ms`
+      : 'last operation  n/a',
+    cityText,
+    '',
+    `frame p50/p95   ${frame.p50Ms.toFixed(2)} / ${frame.p95Ms.toFixed(2)} ms`,
+    `frame p99/max   ${frame.p99Ms.toFixed(2)} / ${frame.maxMs.toFixed(2)} ms`,
+    `fps / >16/33/50 ${frame.fps.toFixed(1)} / ${frame.longFrames16}/${frame.longFrames33}/${frame.longFrames50}`,
+    `long tasks      ${longTasks.sampleCount} · p95 ${longTasks.p95Ms.toFixed(1)} · max ${longTasks.maxMs.toFixed(1)} ms`,
     `CPU update/render ${update.averageMs.toFixed(2)} / ${render.averageMs.toFixed(2)} ms`,
     `traffic/vessel    ${traffic.averageMs.toFixed(2)} / ${vessel.averageMs.toFixed(2)} ms`,
     `simulation p95    ${simulation.p95Ms.toFixed(2)} ms`,
     `sim growth/traffic ${simulationGrowth.p95Ms.toFixed(2)} / ${simulationTraffic.p95Ms.toFixed(2)} ms p95`,
+    `sim hotspots p95  ${hotspotText}`,
+    '',
     `objects list/draw ${displayList.length} / ${renderList.length}`,
     cull
       ? `cull ${Number(cull.lastDurationMs || 0).toFixed(2)} ms · terrain ${cull.activeTerrain || 0}/${cull.terrainCandidates || 0}`
@@ -862,7 +1158,10 @@ const visualRouteCalibrationTestApi = {
   getVisualRouteCalibrationCollection,
   getVisualRouteCalibrationState,
   isVisualRouteCalibrationTestModeEnabled,
+  isVisualRoutePerformancePanelVisible,
+  isVisualRoutePerformanceModeRequested,
   setVisualRouteCalibrationTestModeEnabled,
+  setupVisualRoutePerformanceMode,
   handleVisualRouteCalibrationUnlockClick,
   setupVisualRouteCalibrationTestModeUnlock,
   saveVisualRouteCalibrationCurrent,
@@ -874,10 +1173,13 @@ const visualRouteCalibrationTestApi = {
   getVisualRouteTextureMemoryStats,
   getVisualRoutePerformanceSnapshot,
   getVisualRoutePerformanceState,
+  resetVisualRoutePerformanceSamples,
   pushVisualRoutePerformanceSample,
   getVisualRoutePerformanceRingValues,
   recordVisualRoutePerformanceFrameStart,
   recordVisualRoutePerformanceDuration,
+  recordVisualRoutePerformanceMilestone,
+  recordVisualRoutePerformanceOperation,
   setupVisualRoutePerformanceHooks,
   updateVisualRoutePerformanceProfiler,
 };
@@ -889,13 +1191,24 @@ if (typeof globalThis !== 'undefined') {
     syncVisualRouteCalibrationTarget,
     isVisualRouteCalibrationInputCaptured,
     isVisualRouteCalibrationTestModeEnabled,
+    isVisualRoutePerformancePanelVisible,
+    isVisualRoutePerformanceModeRequested,
     setVisualRouteCalibrationTestModeEnabled,
+    setupVisualRoutePerformanceMode,
     setupVisualRouteCalibrationTestModeUnlock,
     clearVisualRouteCalibrationTarget,
     clearVisualRouteCalibrationScene,
     recordVisualRoutePerformanceFrameStart,
     recordVisualRoutePerformanceDuration,
+    recordVisualRoutePerformanceMilestone,
+    recordVisualRoutePerformanceOperation,
     setupVisualRoutePerformanceHooks,
+    resetVisualRoutePerformanceSamples,
     updateVisualRoutePerformanceProfiler,
   });
 }
+
+// The explicit Electron/browser performance entry point must be active before
+// main.js starts model discovery and creates Phaser, otherwise startup work and
+// its long tasks would be missing from the Phase 0 baseline.
+setupVisualRoutePerformanceMode();

@@ -19,7 +19,8 @@ before(async () => {
   fs.cpSync(STAGED_MODELS, path.join(packagedRoot, 'Models'), { recursive: true });
   packagedServer = await startGameServer({
     port: 0,
-    rootDir: packagedRoot,
+    rootDir: ROOT,
+    modelAssetRootDir: packagedRoot,
     dbPath: path.join(packagedRoot, 'test.sqlite'),
   });
 });
@@ -95,6 +96,19 @@ test('logical PNG URLs and physical WebP URLs both serve WebP in packaged mode',
   const discoveryResponse = await fetch(`${packagedServer.url}/api/models/${relativeFolder}`);
   assert.equal(discoveryResponse.status, 200);
   assert.ok((await discoveryResponse.json()).includes(path.posix.basename(entry.logicalPath)));
+});
+
+test('performance server can keep app source and staged model roots separate', {
+  skip: !HAS_STAGED_ASSETS,
+}, async () => {
+  const appResponse = await fetch(`${packagedServer.url}/main.js`);
+  assert.equal(appResponse.status, 200);
+  assert.match(appResponse.headers.get('content-type') || '', /javascript/);
+
+  const manifestResponse = await fetch(`${packagedServer.url}/api/model-assets`);
+  const manifest = await manifestResponse.json();
+  assert.equal(manifest.settings?.webpMode, 'lossless');
+  assert.ok(Object.keys(manifest.entries).length > 0);
 });
 
 test('re-enabled sciencePark3-02 is discoverable and served as packaged WebP', {

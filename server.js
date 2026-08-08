@@ -40,8 +40,13 @@ function sendStoreError(res, error, routeLabel) {
 
 function createGameApp(options = {}) {
   const app = express();
-  const rootDir = options.rootDir || __dirname;
-  const modelManifestPath = path.join(rootDir, 'Models', 'model-assets.json');
+  const rootDir = path.resolve(options.rootDir || __dirname);
+  // Performance/dev launches can serve the application source from the repo
+  // while routing models through the exact staged WebP tree used by packaged
+  // Electron builds. Production keeps both roots identical.
+  const modelAssetRootDir = path.resolve(options.modelAssetRootDir || rootDir);
+  const modelAssetDir = path.join(modelAssetRootDir, 'Models');
+  const modelManifestPath = path.join(modelAssetDir, 'model-assets.json');
   let modelAssetManifest = { formatVersion: 1, version: 'development', entries: {} };
   try {
     if (fs.existsSync(modelManifestPath)) {
@@ -51,6 +56,11 @@ function createGameApp(options = {}) {
   } catch (error) {
     console.error('[model asset manifest]', error.message);
   }
+  const modelAssetEntriesByPackagedPath = new Map(
+    Object.values(modelAssetManifest.entries ?? {})
+      .filter((entry) => entry?.packagedPath)
+      .map((entry) => [String(entry.packagedPath).replace(/^\/+/, ''), entry]),
+  );
   const store = openGameDatabase(options.dbPath);
   const settingsDir = path.dirname(store.path);
   const aiNewsCredentialStore = options.aiNewsCredentialStore || createEncryptedFileAiNewsSettingsStore({
@@ -70,10 +80,11 @@ function createGameApp(options = {}) {
     } catch {
       return next();
     }
-    const entry = modelAssetManifest.entries?.[logicalPath];
+    const entry = modelAssetManifest.entries?.[logicalPath]
+      ?? modelAssetEntriesByPackagedPath.get(logicalPath);
     if (!entry?.packagedPath) return next();
-    const packagedPath = path.resolve(rootDir, entry.packagedPath);
-    if (!packagedPath.startsWith(path.resolve(rootDir, 'Models') + path.sep)) return next();
+    const packagedPath = path.resolve(modelAssetRootDir, entry.packagedPath);
+    if (!packagedPath.startsWith(modelAssetDir + path.sep)) return next();
     return res.sendFile(packagedPath, {
       headers: { 'Cache-Control': 'public, max-age=31536000, immutable' },
     });

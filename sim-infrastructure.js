@@ -339,12 +339,36 @@ const TRAFFIC_DIFFUSE_RADIUS  = 7;   // max tiles from building that demand spre
 const TRAFFIC_ROAD_CAP        = 80;  // raw units above which a tile is "saturated"
 const TRAFFIC_ROUTE_CACHE_LIMIT = 8192;
 const trafficRouteCache = new Map();
+let trafficRoadTilesCache = null;
 
 function isRoadTile(r, c) {
   return mapData[r]?.[c] === ROAD || roadUnderlayMap[r]?.[c] != null || bridgeMap[r]?.[c] != null;
 }
 
+function clearTrafficLoadForRoadTiles(roadTiles) {
+  if (!Array.isArray(roadTiles) || !Array.isArray(trafficMap)) return;
+  roadTiles.forEach((tileIndex) => {
+    const row = Math.floor(tileIndex / MAP_WIDTH);
+    const col = tileIndex % MAP_WIDTH;
+    if (trafficMap[row]) trafficMap[row][col] = 0;
+  });
+}
+
+function getTrafficRoadTiles() {
+  if (trafficRoadTilesCache) return trafficRoadTilesCache;
+  const roadTiles = [];
+  for (let row = 0; row < MAP_HEIGHT; row++) {
+    for (let col = 0; col < MAP_WIDTH; col++) {
+      if (isRoadTile(row, col)) roadTiles.push(row * MAP_WIDTH + col);
+    }
+  }
+  trafficRoadTilesCache = roadTiles;
+  return trafficRoadTilesCache;
+}
+
 function markTrafficNetworkDirty() {
+  clearTrafficLoadForRoadTiles(trafficRoadTilesCache);
+  trafficRoadTilesCache = null;
   trafficRouteCache.clear();
   if (typeof invalidateTrafficVisualNetwork === 'function') {
     invalidateTrafficVisualNetwork(typeof activeScene === 'undefined' ? null : activeScene);
@@ -386,29 +410,35 @@ function getTrafficRoadRoutes(startR, startC) {
 }
 
 function updateTrafficMap() {
-  // Reset once while collecting the sparse road list and coverage totals. The
-  // old implementation walked all 65,536 cells a second time just to find the
-  // roads again for normalisation.
-  const roadTiles = [];
+  // Road geometry changes only after an infrastructure edit. Reuse the sparse
+  // road list between ticks and clear only cells that can carry traffic instead
+  // of scanning and resetting all 65,536 map cells every five seconds.
+  const roadTiles = getTrafficRoadTiles();
+  clearTrafficLoadForRoadTiles(roadTiles);
   let zonedCount = 0;
   let coveredZoned = 0;
-  for (let r = 0; r < MAP_HEIGHT; r++) {
-    for (let c = 0; c < MAP_WIDTH; c++) {
-      trafficMap[r][c] = 0;
-      const road = isRoadTile(r, c);
-      if (road) roadTiles.push(r * MAP_WIDTH + c);
-
-      if (zoneMap[r][c] !== ZONE_NONE) {
-        zonedCount++;
-        if (
-          road
-          || (r > 0 && isRoadTile(r - 1, c))
-          || (c + 1 < MAP_WIDTH && isRoadTile(r, c + 1))
-          || (r + 1 < MAP_HEIGHT && isRoadTile(r + 1, c))
-          || (c > 0 && isRoadTile(r, c - 1))
-        ) {
-          coveredZoned++;
-        }
+  const zonedTiles = typeof getZoneGrowthTiles === 'function'
+    ? getZoneGrowthTiles()
+    : null;
+  const countCoverage = (r, c) => {
+    if (zoneMap[r]?.[c] === ZONE_NONE) return;
+    zonedCount++;
+    if (
+      isRoadTile(r, c)
+      || (r > 0 && isRoadTile(r - 1, c))
+      || (c + 1 < MAP_WIDTH && isRoadTile(r, c + 1))
+      || (r + 1 < MAP_HEIGHT && isRoadTile(r + 1, c))
+      || (c > 0 && isRoadTile(r, c - 1))
+    ) {
+      coveredZoned++;
+    }
+  };
+  if (Array.isArray(zonedTiles)) {
+    zonedTiles.forEach(({ row, col }) => countCoverage(row, col));
+  } else {
+    for (let r = 0; r < MAP_HEIGHT; r++) {
+      for (let c = 0; c < MAP_WIDTH; c++) {
+        countCoverage(r, c);
       }
     }
   }

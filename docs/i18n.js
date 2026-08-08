@@ -210,6 +210,13 @@ const SITE_FEATURE_LIST = {
 // ── Changelog ─────────────────────────────────────────────────────────────────
 const SITE_CHANGELOG = {
   "zh-HK": [
+    { version: "v3.10.0", date: "2026-08-08", dateLabel: "2026年8月8日", title: "廟街煲仔飯", items: [
+      "大城市模擬效能優化：重整成熟城市嘅住宅/商業/工業模擬熱路徑，autosave 改為背景執行，減少大城市長期遊玩嘅卡頓。",
+      "補完 300 個一直漏咗嘅日文翻譯：立法會系統（十位官員議員嘅人物設定、政策取態、台詞）、報紙「號外」彈窗、股票交易所視窗、颱風信號同天氣狀態列等，之前呢啲喺日文版一直靜靜雞 fallback 顯示緊英文，而家加埋自動測試防止未來再漏。",
+      "修正 `?performance=1` 效能測試模式會自動彈出面板嘅問題：而家背景繼續收集數據，但面板要手動撳先會顯示。",
+      "官網加入四語言支援（中文香港／中文台灣／英文／日文）同全新遊戲指南頁，詳細講解分區密度、經濟稅收、立法會、天氣颱風、特殊建築解鎖同交通系統。",
+      "官網截圖全面更新：加入機場運作、街道車流、香城討論區、立法會議案審議、城市改名、以及廟街風格傳統地攤建築群夜景等新截圖。",
+    ] },
     { version: "v3.9.0", date: "2026-08-08", dateLabel: "2026年8月8日", title: "好岸居", items: [
       "重新設計住宅同商業建築嘅出現機率，向香港真實嘅房屋政策睇齊：公共/大眾房屋（L）喺中高密度區成為大宗，私樓（M）為次要，豪宅／甲級寫字樓（H）變返真正嘅少數。",
       "新增「低密度規劃永久鎖定」：一幅地一經劃為低密度住宅，就永遠唔可以再改做中／高密度，就算推倒重來都好，保持低密度區嘅村屋／別墅風格。",
@@ -355,6 +362,13 @@ const SITE_CHANGELOG = {
 // title/items text.
 const SITE_CHANGELOG_TRANSLATIONS = {
   "zh-TW": {
+    "v3.10.0": { title: "廟街煲仔飯", items: [
+      "大城市模擬效能優化：重整成熟城市的住宅/商業/工業模擬熱路徑，autosave 改為背景執行，減少大城市長期遊玩的卡頓。",
+      "補齊 300 個一直缺少的日文翻譯：立法會系統（十位官員議員的人物設定、政策立場、台詞）、報紙「號外」彈出視窗、證券交易所視窗、颱風信號和天氣狀態列等，之前這些在日文版一直悄悄回退顯示英文，現在加上自動測試防止未來再有遺漏。",
+      "修正 `?performance=1` 效能測試模式會自動彈出面板的問題：現在背景會繼續收集數據，但面板要手動點擊才會顯示。",
+      "官網加入四種語言支援（中文香港／中文台灣／英文／日文）和全新遊戲指南頁，詳細說明分區密度、經濟稅收、立法會、天氣颱風、特殊建築解鎖和交通系統。",
+      "官網截圖全面更新：加入機場運作、街道車流、香城討論區、立法會議案審議、城市改名、以及廟街風格傳統攤販建築群夜景等新截圖。",
+    ] },
     "v3.9.0": { title: "好岸居", items: [
       "重新設計住宅和商業建築的出現機率，向香港真實的房屋政策看齊：公共/大眾住宅（L）在中高密度區成為大多數，私人住宅（M）為次要，豪宅／甲級寫字樓（H）變回真正的少數。",
       "新增「低密度規劃永久鎖定」：一塊地一旦劃為低密度住宅，就永遠不能再改為中／高密度，就算拆除重建也一樣，保持低密度區的透天厝／別墅風格。",
@@ -493,6 +507,13 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   en: {
+    "v3.10.0": { title: "Temple Street Claypot Rice", items: [
+      "Mature-city simulation performance work: reworked the residential/commercial/industrial simulation hot paths, and moved autosaves to run in the background - both cut stutter in cities that have been played for a long time.",
+      "Backfilled 300 long-missing Japanese translations: the entire Legislative Council system (member profiles, policy positions, stat-driven remarks), newspaper \"extra edition\" popups, the Stock Exchange window, typhoon signal news and the weather bar, and a handful of policies/buildings/tools - these had all been silently falling back to English in the Japanese build. Added a regression test so a future gap like this fails CI instead of shipping quietly.",
+      "Fixed the performance test mode (`?performance=1`) popping its panel open automatically - it now collects data silently in the background, and the panel only opens on a deliberate click.",
+      "Added four-language support to the website (Hong Kong Chinese / Taiwan Chinese / English / Japanese) and a brand-new in-depth Game Guide page covering zoning density, the economy, the Legislative Council, weather/typhoons, special-building unlocks and transport.",
+      "Refreshed the website's screenshot gallery with new shots of the airport in action, street traffic, the Heung Shing Forum, a Legislative Council resolution debate, city renaming, and a night-time street market scene in the Temple Street style.",
+    ] },
     "v3.9.0": { title: "Good Home", items: [
       "Redesigned residential and commercial building spawn odds to match Hong Kong's real housing policy: public/mass housing (L) becomes the majority in medium/high-density areas, private housing (M) is secondary, and luxury/Grade-A office (H) becomes a genuine minority again.",
       "Added a permanent low-density planning lock: once a plot is zoned low-density residential, it can never be rezoned medium/high density again, even after demolishing and rebuilding - preserving the village-house/villa character of low-density districts.",
@@ -631,6 +652,13 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   ja: {
+    "v3.10.0": { title: "廟街の土鍋ご飯", items: [
+      "大都市シミュレーションのパフォーマンス改善：成熟した都市の住宅・商業・工業シミュレーションのホットパスを再構築し、オートセーブをバックグラウンド実行に変更。長時間プレイした大都市でのカクつきを軽減しました。",
+      "長らく欠落していた日本語訳300件を補完：立法会システム全体（議員のプロフィール、政策スタンス、都市統計に応じたコメント）、新聞の「号外」ポップアップ、証券取引所ウィンドウ、台風シグナルのニュース、天気バー、いくつかの政策・建築・ツールなど——これらは日本語版で静かに英語表示にフォールバックしていました。今後同様の欠落があればCIで検出できるよう回帰テストも追加しました。",
+      "パフォーマンステストモード（`?performance=1`）でパネルが自動的に開いてしまう問題を修正：現在はバックグラウンドで静かにデータ収集を行い、パネルは意図的にクリックした場合のみ開きます。",
+      "公式サイトに4言語対応（中文香港／中文台灣／英語／日本語）と、区画密度・経済・立法会・天気/台風・特殊建築の解禁・交通システムを詳しく解説する新しい「ゲームガイド」ページを追加しました。",
+      "公式サイトのスクリーンショットギャラリーを刷新：空港の稼働、街の交通、香城フォーラム、立法会の決議審議、都市の改名、廟街風の夜の市場の街並みなど新しい画像を追加しました。",
+    ] },
     "v3.9.0": { title: "好岸居", items: [
       "住宅・商業建築の出現確率を香港の実際の住宅政策に合わせて再設計。公共・大衆住宅（L）は中高密度エリアで多数派となり、民間住宅（M）は次点、高級住宅／甲級オフィス（H）は本来の少数派に戻りました。",
       "「低密度計画の永久ロック」を追加：一度低密度住宅として区画指定された土地は、取り壊して建て直しても二度と中密度・高密度に変更できなくなり、低密度エリアの村家・別荘らしい街並みを維持します。",
@@ -794,7 +822,7 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      leadIntro: "一款向 SimCity 2000 致敬的城市建設遊戲。",
+      lede: "一款向 SimCity 2000 致敬的城市建設遊戲。v3.10.0「廟街煲仔飯」大城市效能全面提升，補完 300 個日文翻譯漏洞，官網加入四語言支援同全新遊戲指南頁。",
       downloadBtn: "下載遊戲",
       latestBtn: "最新版本",
       guideBtn: "睇遊戲指南",
@@ -850,7 +878,7 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      leadIntro: "一款向 SimCity 2000 致敬的城市建設遊戲。",
+      lede: "一款向 SimCity 2000 致敬的城市建設遊戲。v3.10.0「廟街煲仔飯」大城市效能全面提升，補齊 300 個日文翻譯缺口，官網加入四種語言支援和全新遊戲指南頁。",
       downloadBtn: "下載遊戲",
       latestBtn: "最新版本",
       guideBtn: "查看遊戲指南",
@@ -906,7 +934,7 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "The City of Heung Shing",
       title: "The City of Heung Shing",
-      leadIntro: "A city-builder that pays tribute to SimCity 2000.",
+      lede: "A city-builder that pays tribute to SimCity 2000. v3.10.0 “Temple Street Claypot Rice” brings major performance improvements for large cities, completes 300 missing Japanese translations, and adds four-language support plus a brand-new game guide page to the website.",
       downloadBtn: "Download",
       latestBtn: "Latest release",
       guideBtn: "Read the game guide",
@@ -963,7 +991,7 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      leadIntro: "SimCity 2000 に敬意を表した都市builderゲーム。",
+      lede: "SimCity 2000 に敬意を表した都市builderゲーム。v3.10.0「廟街の土鍋ご飯」で大都市のパフォーマンスを大幅改善し、300件の日本語翻訳漏れを補完。公式サイトには4言語対応と新しいゲームガイドページも追加されました。",
       downloadBtn: "ダウンロード",
       latestBtn: "最新リリース",
       guideBtn: "ゲームガイドを見る",

@@ -171,12 +171,14 @@ const COMMERCIAL_BUILDING_MODEL_SETS = [
     modelKind: 'commercial',
     fallbackSourceFiles: [
       'commercialBuilding1-01-L.png',
+      'commercialBuilding1-02-M.png',
       'commercialBuilding1-03-L.png',
       'commercialBuilding1-04-M.png',
       'commercialBuilding1-05-L.png',
     ],
     preferredFiles: [
       'commercialBuilding1-01-L.png',
+      'commercialBuilding1-02-M.png',
       'commercialBuilding1-03-L.png',
       'commercialBuilding1-04-M.png',
       'commercialBuilding1-05-L.png',
@@ -248,10 +250,14 @@ const COMMERCIAL_BUILDING_MODEL_SETS = [
     fallbackSourceFiles: [
       'commercialBuilding4-01-H.png',
       'commercialBuilding4-02-H.png',
+      'commercialBuilding4-03-L.png',
+      'commercialBuilding4-04-L.png',
     ],
     preferredFiles: [
       'commercialBuilding4-01-H.png',
       'commercialBuilding4-02-H.png',
+      'commercialBuilding4-03-L.png',
+      'commercialBuilding4-04-L.png',
     ],
     footprintCols: 4,
     footprintRows: 4,

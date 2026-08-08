@@ -249,6 +249,46 @@ function tryRedecoratePremiumBuilding(
   if (newModel.commercialTier) record.commercialTier = newModel.commercialTier;
 }
 
+const LARGE_RESIDENTIAL_LOT_SCAN_INTERVAL_TICKS = TICKS_PER_MONTH;
+const LARGE_RESIDENTIAL_LOT_SCAN_SHARD_COUNT = 8;
+
+// A 5x5 lot needs 25 contiguous empty tiles, but the per-tile loop below rolls
+// every empty high-density tile independently every tick - by the time a
+// would-be 5x5 anchor gets its own roll, neighbouring tiles inside that block
+// have usually already grown their own (far more likely) smaller building
+// first, fragmenting the space. This dedicated pass claims eligible open
+// blocks before that per-tile scan runs each cycle, so 5x5 isn't starved out
+// by its own neighbours. Throttled and sharded like the commercial merge scan
+// (shouldScanCommercialMergeTile) to keep the extra per-tick cost low.
+function scanForLargeResidentialLots(scene, qualityContexts) {
+  if (city.tick % LARGE_RESIDENTIAL_LOT_SCAN_INTERVAL_TICKS !== 0) return;
+  if ((city.demandR ?? 0) <= 0) return;
+  if (!hasResidentialModelForFootprint(5)) return;
+
+  for (let r = 0; r < MAP_HEIGHT; r++) {
+    for (let c = 0; c < MAP_WIDTH; c++) {
+      if (((r * 37 + c * 17 + city.tick) % LARGE_RESIDENTIAL_LOT_SCAN_SHARD_COUNT) !== 0) continue;
+      if (zoneMap[r][c] !== ZONE_RES || zoneDensityMap[r][c] !== DENSITY_HIGH) continue;
+      if (scene.buildingSprites.has(getTileId(r, c))) continue;
+      if (!hasAdjacentRoad(r, c)) continue;
+      if (!canPlaceResidentialFootprint(scene, r, c, 5)) continue;
+
+      const landScore = getZoneGrowthLandScore(r, c, ZONE_RES, qualityContexts.landValueMap);
+      const chance = Math.min(
+        0.95,
+        getResidentialLargeSpawnChance(5, DENSITY_HIGH) * getLargeLotSpawnBoost(landScore, 5),
+      );
+      if (Math.random() < chance) {
+        spawnZoneBuilding(scene, r, c, ZONE_RES, 1, DENSITY_HIGH, {
+          forceFootprint: 5,
+          landScore,
+          residentialQualityContext: qualityContexts.residential,
+        });
+      }
+    }
+  }
+}
+
 function growOrShrinkZones(scene) {
   applyMonthlyZoneDecline(scene);
   const qualityContexts = getZoneGrowthQualityContexts();
@@ -261,6 +301,8 @@ function growOrShrinkZones(scene) {
     && city.tick % TICKS_PER_MONTH === 0;
   lastCommercialMergeScanTick = city.tick;
   let commercialMergeBudget = runCommercialMerge ? 4 : 0;
+
+  scanForLargeResidentialLots(scene, qualityContexts);
 
   for (let r = 0; r < MAP_HEIGHT; r++) {
     for (let c = 0; c < MAP_WIDTH; c++) {
@@ -392,10 +434,12 @@ function spawnZoneBuilding(scene, r, c, zone, level, density = DENSITY_LOW, opti
     const residentialQualityContext = optionsOverride.residentialQualityContext
       ?? createResidentialQualityContext(optionsOverride.landValueMap ?? null);
     const anchorFactors = getResidentialSiteFactors(r, c, 1, residentialQualityContext);
-    const footprintSize = chooseResidentialFootprint(scene, r, c, density, optionsOverride, anchorFactors);
+    const { size: footprintSize, forceWealthTier } = chooseResidentialFootprint(
+      scene, r, c, density, optionsOverride, anchorFactors,
+    );
     const setKey = getResidentialHouseSetForFootprint(footprintSize);
     const siteFactors = getResidentialSiteFactors(r, c, footprintSize, residentialQualityContext);
-    const model = getRandomHouseModel(setKey, siteFactors.quality, preferHighScore, density, siteFactors);
+    const model = getRandomHouseModel(setKey, siteFactors.quality, preferHighScore, density, siteFactors, forceWealthTier);
 
     if (model) {
       selectedModel = model;
@@ -514,12 +558,18 @@ function getResidentialHouseSetForFootprint(footprintSize) {
   return 'house';
 }
 
+// Returns { size, forceWealthTier }. forceWealthTier is non-null only for the
+// low-density 3x3 estate-lot exception below, so the caller can pin the tier
+// roll to UH instead of letting it fall through to the ordinary 3x3 L/M/H
+// tower art - low density is otherwise locked to 1x1, so a 12-20 storey block
+// slipping in here would break the low-rise district it's meant to preserve.
 function chooseResidentialFootprint(scene, r, c, density, optionsOverride = {}, siteFactors = null) {
   const forcedSize = optionsOverride.forceFootprint ?? (optionsOverride.force2x2 ? 2 : null);
   if (forcedSize) {
-    return canPlaceResidentialFootprint(scene, r, c, forcedSize) && hasResidentialModelForFootprint(forcedSize)
+    const size = canPlaceResidentialFootprint(scene, r, c, forcedSize) && hasResidentialModelForFootprint(forcedSize)
       ? forcedSize
       : 1;
+    return { size, forceWealthTier: null };
   }
 
   const candidates = [5, 4, 3, 2];
@@ -527,7 +577,10 @@ function chooseResidentialFootprint(scene, r, c, density, optionsOverride = {}, 
     let chance = footprintSize === 2
       ? getResidential2x2Chance(density)
       : getResidentialLargeSpawnChance(footprintSize, density);
-    if (density === DENSITY_LOW && footprintSize === 3 && isUltraHighWealthEligible(siteFactors, density)) {
+    const isLowDensityEstateException = density === DENSITY_LOW
+      && footprintSize === 3
+      && isUltraHighWealthEligible(siteFactors, density);
+    if (isLowDensityEstateException) {
       chance = siteFactors.quality >= 0.85
         ? RESIDENTIAL_LOW_DENSITY_3X3_CHANCE.elite
         : RESIDENTIAL_LOW_DENSITY_3X3_CHANCE.premium;
@@ -536,10 +589,12 @@ function chooseResidentialFootprint(scene, r, c, density, optionsOverride = {}, 
     const adjustedChance = Math.min(0.95, chance * largeLotBoost);
     if (adjustedChance <= 0 || Math.random() >= adjustedChance) continue;
     if (!hasResidentialModelForFootprint(footprintSize)) continue;
-    if (canPlaceResidentialFootprint(scene, r, c, footprintSize)) return footprintSize;
+    if (canPlaceResidentialFootprint(scene, r, c, footprintSize)) {
+      return { size: footprintSize, forceWealthTier: isLowDensityEstateException ? 'UH' : null };
+    }
   }
 
-  return 1;
+  return { size: 1, forceWealthTier: null };
 }
 
 // Returns true when a block anchored at (r, c) is fully clear and zoned RES.
@@ -1530,6 +1585,7 @@ function getRandomHouseModel(
   preferHighScore = false,
   density = DENSITY_LOW,
   siteFactors = null,
+  forcedWealthTier = null,
 ) {
   const all = (houseModelSets && houseModelSets[setKey]) ? houseModelSets[setKey] : [];
   // Only use models whose scale was computed successfully (> 0.05 avoids near-invisible sprites)
@@ -1549,8 +1605,10 @@ function getRandomHouseModel(
     health: clamp(city.healthIndex ?? 0.5, 0, 1),
     economy: getResidentialEconomyScore(),
   };
-  const weights = getResidentialWealthWeights(factors, density, valid);
-  const selectedTier = pickResidentialWealthTier(weights);
+  const canForceTier = forcedWealthTier && valid.some((model) => model.wealthTier === forcedWealthTier);
+  const selectedTier = canForceTier
+    ? forcedWealthTier
+    : pickResidentialWealthTier(getResidentialWealthWeights(factors, density, valid));
   const tierModels = valid.filter((model) => model.wealthTier === selectedTier);
   const selected = pickVariedModel(tierModels, `house:${setKey}:wealth:${selectedTier}`, factors);
   return rememberSelectedZoneModel(selected);

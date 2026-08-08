@@ -413,6 +413,7 @@ function buildSavePayload({ autosave = false, manualSaveId = currentSaveId } = {
       buildingData,
       powerSources:  Array.from(powerSources),
       powerLineSet:  Array.from(powerLineSet),
+      lowDensityLockSet: Array.from(lowDensityLockSet),
       roadTileCount,
     },
   };
@@ -1002,6 +1003,22 @@ function applySaveData(scene, save) {
     for (let r = 0; r < MAP_HEIGHT; r++)
       for (let c = 0; c < MAP_WIDTH; c++)
         zoneDensityMap[r][c] = (save.zoneDensityMap[r] ?? [])[c] ?? DENSITY_LOW;
+  }
+
+  // Restore the low-density planning lock, then migrate: saves from before
+  // this feature existed (or any tile that fell out of sync some other way)
+  // have currently-low-density residential land that was never recorded as
+  // locked - back-fill it here so the guarantee ("low density can never be
+  // upzoned") applies immediately on load rather than only from the next
+  // time the player happens to touch that tile. This is additive and
+  // idempotent, so it's safe to run on every load, not just old saves.
+  (save.lowDensityLockSet ?? []).forEach((id) => lowDensityLockSet.add(id));
+  for (let r = 0; r < MAP_HEIGHT; r++) {
+    for (let c = 0; c < MAP_WIDTH; c++) {
+      if (zoneMap[r][c] === ZONE_RES && zoneDensityMap[r][c] === DENSITY_LOW) {
+        lowDensityLockSet.add(getTileId(r, c));
+      }
+    }
   }
 
   // Restore building data

@@ -48,8 +48,8 @@ test('every renamed commercial model is catalogued with its grade', () => {
     };
   })()`, context);
 
-  assert.equal(result.files.length, 23);
-  assert.deepEqual({ ...result.tiers }, { L: 5, M: 8, H: 8, UH: 2 });
+  assert.equal(result.files.length, 26);
+  assert.deepEqual({ ...result.tiers }, { L: 7, M: 9, H: 8, UH: 2 });
   result.files.forEach((fileName) => {
     const set = Object.values(vm.runInContext('COMMERCIAL_BUILDING_MODEL_SETS', context))
       .find((config) => config.fallbackSourceFiles.includes(fileName));

@@ -18,6 +18,12 @@ let powerSources  = new Set();  // tile IDs of power plant anchor tiles
 let powerLineSet  = new Set();  // tile IDs of placed power line tiles
 let roadTileCount = 0;          // maintained by setTileType()
 
+// Permanent planning designation: once a tile is zoned low-density
+// residential it's added here and can never be re-zoned medium/high density
+// afterwards, even after dezoning/bulldozing (see placeZone in tools.js) -
+// this keeps low-density districts low-rise for the rest of the game.
+let lowDensityLockSet = new Set();  // tile IDs of permanently low-density-locked land
+
 function createDefaultStockMarketState() {
   let listedNonHsi = 0;
   const stocks = STOCK_MARKET_CATALOG.map((entry, index) => {
@@ -228,6 +234,7 @@ function resetGameState() {
   if (typeof clearHarborFrontageTileCache === 'function') clearHarborFrontageTileCache();
   powerSources.clear();
   powerLineSet.clear();
+  lowDensityLockSet.clear();
   roadTileCount = 0;
   if (typeof markTrafficNetworkDirty === 'function') markTrafficNetworkDirty();
 

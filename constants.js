@@ -180,22 +180,33 @@ const PREMIUM_VISUAL_UPGRADE_CHANCE_PER_MONTH = 0.012;
 const PREMIUM_VISUAL_REBALANCE_CHANCE_PER_MONTH = 0.045;
 const SKYLINE_NEIGHBORHOOD_RADIUS = 6;
 const SKYLINE_REPEAT_MODEL_PENALTY = 0.18;
-const RES_2X2_SPAWN_CHANCE = { 1: 0.20, 2: 0.45, 3: 0.70 };
+// Low density is deliberately capped to 1x1 (village houses/ancestral halls/
+// villas) so it never grows the same towers as medium/high density - see the
+// low-density planning lock in tools.js. The one exception is the rare 3x3
+// UH "estate lot" path below, reserved for the low-rise mansion model.
+const RES_2X2_SPAWN_CHANCE = { 1: 0.00, 2: 0.45, 3: 0.70 };
 const RES_LARGE_SPAWN_CHANCE = {
-  3: { 3: 0.18, 4: 0.08, 5: 0.04 },
-  2: { 3: 0.08, 4: 0.00, 5: 0.00 },
+  3: { 3: 0.18, 4: 0.12, 5: 0.10 },
+  2: { 3: 0.12, 4: 0.00, 5: 0.00 },
   1: { 3: 0.00, 4: 0.00, 5: 0.00 },
 };
+// Medium/high density is Heung Shing's housing mainstay, and public/
+// subsidised estates (L) dominate it the way they dominate real Hong Kong
+// housing stock - L stays the plurality even at top land quality, with H
+// (private upper-tier) a genuine minority rather than roughly one in five.
+// UH is excluded here entirely (isUltraHighWealthEligible requires
+// DENSITY_LOW), so its column is unused at density 2/3 - kept for a complete
+// table shape only.
 const RESIDENTIAL_WEALTH_PROBABILITIES = [
-  { maxQuality: 0.29, weights: { L: 0.78, M: 0.21, H: 0.01, UH: 0.00 } },
-  { maxQuality: 0.44, weights: { L: 0.65, M: 0.32, H: 0.03, UH: 0.00 } },
-  { maxQuality: 0.59, weights: { L: 0.52, M: 0.40, H: 0.08, UH: 0.00 } },
-  { maxQuality: 0.74, weights: { L: 0.43, M: 0.38, H: 0.19, UH: 0.00 } },
-  { maxQuality: 0.84, weights: { L: 0.35, M: 0.38, H: 0.24, UH: 0.03 } },
-  { maxQuality: 1.00, weights: { L: 0.30, M: 0.37, H: 0.28, UH: 0.05 } },
+  { maxQuality: 0.29, weights: { L: 0.85, M: 0.14, H: 0.01, UH: 0.00 } },
+  { maxQuality: 0.44, weights: { L: 0.75, M: 0.23, H: 0.02, UH: 0.00 } },
+  { maxQuality: 0.59, weights: { L: 0.65, M: 0.30, H: 0.05, UH: 0.00 } },
+  { maxQuality: 0.74, weights: { L: 0.58, M: 0.32, H: 0.10, UH: 0.00 } },
+  { maxQuality: 0.84, weights: { L: 0.53, M: 0.33, H: 0.12, UH: 0.02 } },
+  { maxQuality: 1.00, weights: { L: 0.50, M: 0.33, H: 0.14, UH: 0.03 } },
 ];
 const RESIDENTIAL_H_MINIMUMS = Object.freeze({
-  quality: 0.55,
+  quality: 0.60,
   landValue: 0.50,
   environment: 0.45,
   health: 0.45,
@@ -211,16 +222,24 @@ const RESIDENTIAL_UH_MINIMUMS = Object.freeze({
   maxPollution: 0.20,
 });
 const RESIDENTIAL_LOW_DENSITY_3X3_CHANCE = Object.freeze({ premium: 0.06, elite: 0.12 });
+// Mirrors the residential rebalance: mainstream Hong Kong retail (L - street
+// shops, markets, walk-up commercial buildings) stays the plurality even at
+// high land quality, M (ordinary malls/offices) is the solid second tier, and
+// H (prestige office towers/malls) is a genuine minority rather than roughly
+// one in five. UH is untouched here - it's gated by COMMERCIAL_UH_MINIMUMS
+// (stock exchange + airport + high density) far more than by this weight, and
+// represents named one-off landmarks (HSBC HQ, Bank of China Tower) rather
+// than a repeatable building class, so it's deliberately left uncapped.
 const COMMERCIAL_TIER_PROBABILITIES = [
-  { maxQuality: 0.29, weights: { L: 0.80, M: 0.20, H: 0.00, UH: 0.00 } },
-  { maxQuality: 0.44, weights: { L: 0.66, M: 0.31, H: 0.03, UH: 0.00 } },
-  { maxQuality: 0.59, weights: { L: 0.52, M: 0.40, H: 0.08, UH: 0.00 } },
-  { maxQuality: 0.74, weights: { L: 0.42, M: 0.39, H: 0.19, UH: 0.00 } },
-  { maxQuality: 0.84, weights: { L: 0.34, M: 0.38, H: 0.25, UH: 0.03 } },
-  { maxQuality: 1.00, weights: { L: 0.28, M: 0.38, H: 0.29, UH: 0.05 } },
+  { maxQuality: 0.29, weights: { L: 0.84, M: 0.15, H: 0.01, UH: 0.00 } },
+  { maxQuality: 0.44, weights: { L: 0.74, M: 0.24, H: 0.02, UH: 0.00 } },
+  { maxQuality: 0.59, weights: { L: 0.63, M: 0.32, H: 0.05, UH: 0.00 } },
+  { maxQuality: 0.74, weights: { L: 0.55, M: 0.35, H: 0.10, UH: 0.00 } },
+  { maxQuality: 0.84, weights: { L: 0.49, M: 0.36, H: 0.13, UH: 0.02 } },
+  { maxQuality: 1.00, weights: { L: 0.45, M: 0.37, H: 0.15, UH: 0.03 } },
 ];
 const COMMERCIAL_H_MINIMUMS = Object.freeze({
-  quality: 0.56,
+  quality: 0.60,
   landValue: 0.50,
   environment: 0.40,
   economy: 0.52,
@@ -569,6 +588,9 @@ const SPECIAL_BUILDING_MODELS = {
   grand_temple: {
     spriteKey: 'grand_temple_3x3',
     path: 'Models/specialSites/3x3/tample3-01.png',
+    // The source image was replaced without changing its filename. Version
+    // the request URL so a stale file:// cache can't keep serving the old art.
+    cacheVersion: '20260808-temple3-v1',
     footprintCols: 3,
     footprintRows: 3,
   },

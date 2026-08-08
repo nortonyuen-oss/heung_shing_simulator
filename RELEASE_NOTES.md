@@ -1,16 +1,20 @@
-# The City of Heung Shing v3.8.1 — 衝上雲霄
+# The City of Heung Shing v3.9.0 — 好岸居
 
-穩定性修復版本。
+住宅同商業建築嘅出現機率、密度規劃全面重整，向香港真實嘅土地規劃、貧富分佈同房屋政策睇齊。
 
 ## Highlights
 
-- Recalibrated all four container-ship berth positions (ll/lr/ul/ur). v3.8.0's aircraft flight-curve rework had bundled in an unintended vessel berth recalibration that drifted noticeably from the verified v3.7.2 positions.
-- Fixed "Auto-replace aged power plants" not applying to nuclear plants: the replacement-cost and display-name lookups only recognised coal and solar, so nuclear plants were always abandoned at end of life regardless of the setting.
+- 重新設計住宅同商業建築嘅出現機率：公共/大眾房屋（L）喺中高密度區成為大宗，私樓（M）為次要，豪宅／甲級寫字樓（H）變返真正嘅少數，UH（罕有莊園／匯豐總行／中銀大廈呢類地標）維持極稀有。
+- 新增「低密度規劃鎖定」：一幅地一經劃為低密度住宅，就永久唔可以再改做中／高密度，就算推倒重來、dezone 都好，保持低密度區嘅村屋／別墅風格永遠唔會被起樓起到變返屋邨。舊 save 讀取時會自動追溯鎖定現有嘅低密度地。
+- 修正低密度 3x3「莊園」後門：觸發嗰陣一定揀返 UH 莊園 model，唔會再手多手甩揀成 20 層高嘅屋邨大廈。
+- 加入「大地皮優先掃描」，解決 5x5 住宅大廈幾乎冧唔到嘅問題：高密度區入面一有完整空地就優先起大樓，唔會再被四周細屋搶晒地。
+- 商業區加入兩款全新街市場景模型（4x4，女人街／廟街風）同一款分層商場大廈模型（1x1），並按上述原則重整商業機率分佈。
+- 更新大廟（grand_temple）美術素材。
 
 ## Compatibility
 
-- Both fixes are visual/economic-balance only; save format is unaffected.
-- Existing cities remain compatible and the save format version is unchanged.
+- 存檔格式版本不變，新加嘅低密度鎖定資料為選用性附加欄位，舊 save 讀取時會自動遷移、無需手動處理。
+- 全部改動只影響未來新起嘅建築；已存在嘅建築唔會被強制更改，但每月嘅「豪宅視覺重新評估」機制會令舊 save 隨遊戲時間漸漸過渡到新嘅機率分佈。
 - Save format version: 15.
 
 ## Downloads

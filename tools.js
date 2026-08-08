@@ -122,6 +122,17 @@ function placeZone(scene, row, col, zoneType, density = DENSITY_LOW) {
     return false;
   }
   if (!canPlaceBuilding(row, col)) return false;
+
+  // Low density is a permanent planning designation: once a tile has ever
+  // been zoned low-density residential, it can never be re-zoned medium/high
+  // density afterwards, even after dezoning or bulldozing - this keeps a
+  // low-density district low-rise for the rest of the game instead of it
+  // quietly densifying the moment the player repaints it.
+  if (zoneType === ZONE_RES && density !== DENSITY_LOW && lowDensityLockSet.has(getTileId(row, col))) {
+    showToast(t('toast.lowDensityLocked'), 'warning');
+    return false;
+  }
+
   // No-op if exactly the same zone+density already applied
   if (zoneMap[row][col] === zoneType && zoneDensityMap[row][col] === density) return true;
 
@@ -141,6 +152,9 @@ function placeZone(scene, row, col, zoneType, density = DENSITY_LOW) {
   removeZoneOverlay(scene, row, col);
   zoneMap[row][col] = zoneType;
   zoneDensityMap[row][col] = density;
+  if (zoneType === ZONE_RES && density === DENSITY_LOW) {
+    lowDensityLockSet.add(getTileId(row, col));
+  }
 
   // Create overlay sprite
   const zoneCode = zoneType === ZONE_RES ? 'res'

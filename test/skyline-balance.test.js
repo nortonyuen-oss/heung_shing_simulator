@@ -61,12 +61,12 @@ test('top-quality baseline keeps most buildings L/M and caps UH at five percent'
     };
   })()`, context);
 
-  assert.ok(Math.abs(result.residential.L + result.residential.M - 0.67) < 1e-12);
-  assert.equal(result.residential.H, 0.28);
-  assert.equal(result.residential.UH, 0.05);
-  assert.ok(Math.abs(result.commercial.L + result.commercial.M - 0.66) < 1e-12);
-  assert.equal(result.commercial.H, 0.29);
-  assert.equal(result.commercial.UH, 0.05);
+  assert.ok(Math.abs(result.residential.L + result.residential.M - 0.83) < 1e-12);
+  assert.equal(result.residential.H, 0.14);
+  assert.equal(result.residential.UH, 0.03);
+  assert.ok(Math.abs(result.commercial.L + result.commercial.M - 0.82) < 1e-12);
+  assert.equal(result.commercial.H, 0.15);
+  assert.equal(result.commercial.UH, 0.03);
 });
 
 test('a saturated six-tile neighbourhood blocks additional towers', () => {

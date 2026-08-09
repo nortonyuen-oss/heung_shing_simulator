@@ -405,6 +405,17 @@ function updateOverlayDetailPanel(type) {
     note.textContent = t('overlay.detail.populationHint');
   } else if (type === 'landvalue') {
     note.textContent = t('overlay.detail.landvalueHint');
+  } else if (type === 'neighborhood') {
+    const landValueMap = typeof computeLandValueMap === 'function' ? computeLandValueMap() : null;
+    const grid = typeof computeWealthDistrictGridMap === 'function' ? computeWealthDistrictGridMap(landValueMap) : null;
+    const counts = typeof getWealthDistrictGridSummary === 'function' ? getWealthDistrictGridSummary(grid) : {};
+    stats.innerHTML = [
+      chip(t('inspect.wealthDistrictCommoner'), counts.commoner ?? 0),
+      chip(t('inspect.wealthDistrictMiddleClass'), counts.middleClass ?? 0),
+      chip(t('inspect.wealthDistrictWealthy'), counts.wealthy ?? 0),
+      chip(t('inspect.wealthDistrictUltraRich'), counts.ultraRich ?? 0),
+    ].join('');
+    note.textContent = t('overlay.detail.neighborhoodHint');
   } else if (type === 'traffic') {
     const indexPct  = Math.round((city.trafficIndex ?? 0) * 100);
     const coverPct  = Math.round((city.trafficCoverage ?? 0) * 100);
@@ -432,6 +443,7 @@ function setOverlayLegendLabels(type) {
     fire: ['0%', '50%', '100%'],
     population: ['0%', '50%', '100%'],
     landvalue: ['0%', '50%', '100%'],
+    neighborhood: [t('inspect.wealthDistrictCommoner'), t('inspect.wealthDistrictMiddleClass'), t('inspect.wealthDistrictUltraRich')],
     education: ['0%', '50%', '100%'],
     health: [t('overlay.legend.poor'), t('overlay.legend.stable'), t('overlay.legend.healthy')],
     electricity: [t('overlay.legend.short'), t('overlay.legend.balanced'), t('overlay.legend.surplus')],
@@ -570,6 +582,14 @@ function overlayPixelColor(type, val) {
     case 'landvalue': {
       return [Math.round((1 - val) * 200), Math.round(val * 200), 0, 200];
     }
+    case 'neighborhood': {
+      // 4 flat district colors (not a gradient) - val is bucketed at 0.125/
+      // 0.375/0.625/0.875 by computeWealthDistrictOverlayMap, one per tier.
+      if (val < 0.25) return [150, 130, 110, 210]; // commoner - warm grey
+      if (val < 0.5)  return [90, 160, 140, 210];  // middleClass - teal
+      if (val < 0.75) return [210, 175, 60, 210];  // wealthy - gold
+      return [190, 70, 190, 210];                   // ultraRich - magenta
+    }
     case 'traffic': {
       // green (free-flow) → yellow (busy) → red (gridlock)
       const alpha = Math.round(180 + val * 40);
@@ -596,6 +616,7 @@ function computeOverlayMap(type) {
   if (type === 'fire')       return computeFireMap();
   if (type === 'population') return computePopulationMap();
   if (type === 'landvalue')  return computeLandValueMap();
+  if (type === 'neighborhood') return computeWealthDistrictOverlayMap();
   if (type === 'education')  return computeEducationMap();
   if (type === 'health')     return computeHealthMap();
   if (type === 'electricity') return computeElectricityMap();

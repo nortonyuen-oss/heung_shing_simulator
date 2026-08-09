@@ -210,6 +210,13 @@ const SITE_FEATURE_LIST = {
 // ── Changelog ─────────────────────────────────────────────────────────────────
 const SITE_CHANGELOG = {
   "zh-HK": [
+    { version: "v3.12.0", date: "2026-08-09", dateLabel: "2026年8月9日", title: "宣傳2", items: [
+      "新增「住宅財富分區」制度：全地圖劃成 16×16 網格，按附近已建成住宅嘅平均地價分類做平民區／中產區／富人區／富豪區域四級，每級有固定嘅 L/M/H/UH 出現機率（富豪區域 UH 70%／H 30%，平民區 M 40%／L 60% 等），完全取代舊有嘅逐格質素分帶同UH「只限低密度」規則。",
+      "富豪區域加入額外門檻：除咗地價要達標，附近仲要有大型旗艦公園（維多利亞公園級別）、海邊，或者地標建築（廟宇、教堂、博物館、體育館等）先會解鎖；反過來，附近有工業區、發電廠、貨櫃碼頭或者機場嘅地方，就算地價幾高都會封頂喺中產區，唔會出現富人區同富豪區域。",
+      "新增建築「密度款式」（LD/MD/HD 低/中/高層樓身），同財富分區獨立疊加：低密度住宅區主要出現LD／MD款、高密度區主要出現MD／HD款，HD款式喺低密度區保證唔會出現。",
+      "修正Electron桌面版入面「幫建築物改名」冇反應嘅Bug：`window.prompt()` 喺Electron入面根本冇實現，撳落去乜嘢都唔會彈；改用返APP自家嘅彈窗（同「另存新城市」用緊嗰個一樣），連帶修埋「生成新地形」同「儲存地形預設」入面同一個問題。",
+      "新聞跑馬燈加入10款懷舊香城式廣告（時倉迷你昌、得城女傭、Why Me Me等），同城市新聞穿插出現，每3條就有1條係廣告。",
+    ] },
     { version: "v3.11.0", date: "2026-08-09", dateLabel: "2026年8月9日", title: "大時代", items: [
       "新增「金融管理局」政府股票交易：股票交易所建成、庫房儲備超過1000萬後解鎖，可以動用庫房資金直接喺交易所買賣任何上市股票，交易會影響即市股價（買升賣跌），收0.25%手續費，單一股票持股上限15%，唔可以晒冷全城股市。",
       "股市牛熊循環重新平衡：熊市由之前間唔中出現嘅短暫插曲，變成同牛市、橫行市況鼎足而立嘅真實週期；上市公司基本因素會隨市況上落，長遠恒指同每隻股票嘅合理值都封咗頂同底，唔會玩耐咗變到天文數字。",
@@ -369,6 +376,13 @@ const SITE_CHANGELOG = {
 // title/items text.
 const SITE_CHANGELOG_TRANSLATIONS = {
   "zh-TW": {
+    "v3.12.0": { title: "宣傳2", items: [
+      "新增「住宅財富分區」制度：全地圖劃成 16×16 網格，按附近已建成住宅的平均地價分類做平民區／中產區／富人區／富豪區域四級，每級有固定的 L/M/H/UH 出現機率（富豪區域 UH 70%／H 30%，平民區 M 40%／L 60% 等），完全取代舊有的逐格質素分帶和UH「只限低密度」規則。",
+      "富豪區域加入額外門檻：除了地價要達標，附近還要有大型旗艦公園（維多利亞公園級別）、海邊，或者地標建築（廟宇、教堂、博物館、體育館等）才會解鎖；反過來，附近有工業區、發電廠、貨櫃碼頭或者機場的地方，就算地價再高都會封頂在中產區，不會出現富人區和富豪區域。",
+      "新增建築「密度款式」（LD/MD/HD 低/中/高層樓身），和財富分區獨立疊加：低密度住宅區主要出現LD／MD款、高密度區主要出現MD／HD款，HD款式在低密度區保證不會出現。",
+      "修正Electron桌面版裡「幫建築物改名」沒反應的Bug：`window.prompt()` 在Electron裡根本沒有實作，按下去什麼都不會彈出來；改用APP自家的彈窗（和「另存新城市」用的一樣），連帶修好「生成新地形」和「儲存地形預設」裡同一個問題。",
+      "新聞跑馬燈加入10款懷舊香城式廣告（時倉迷你昌、得城女傭、Why Me Me等），和城市新聞穿插出現，每3則就有1則是廣告。",
+    ] },
     "v3.11.0": { title: "大時代", items: [
       "新增「金融管理局」政府股票交易：證券交易所建成、國庫儲備超過1000萬後解鎖，可直接動用國庫資金在交易所買賣任何上市股票，交易會影響即市股價（買進推升、賣出壓低），收取0.25%手續費，單一股票持股上限15%，無法囊括全城股市。",
       "股市牛熊循環重新調整：熊市由過去偶爾出現的短暫插曲，變成與牛市、橫盤市況三足鼎立的真實週期；上市公司基本面會隨市況起伏，長期而言恆指與每檔股票的合理價值都設有上下限，不會隨遊戲時間拉長變成天文數字。",
@@ -521,6 +535,13 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   en: {
+    "v3.12.0": { title: "Promo 2", items: [
+      "Added a residential wealth-district system: the whole map is divided into a 16×16 grid, with each cell classified into Working-Class / Middle-Class / Wealthy / Ultra-Rich based on the average land value of nearby built housing, each tier carrying fixed L/M/H/UH spawn odds (Ultra-Rich is 70% UH / 30% H, Working-Class is 40% M / 60% L, etc.) - replacing the old per-tile quality-band system and the \"UH only at low density\" rule entirely.",
+      "Ultra-Rich districts now need more than just land value: a nearby flagship park (Victoria Park-tier), a waterfront edge, or a landmark (temple, church, museum, stadium, etc.) is required to unlock. Conversely, proximity to industry, any power plant, the container port, or the airport caps a district at Middle-Class no matter how high land value climbs - no Wealthy or Ultra-Rich there.",
+      "Added building \"massing\" variants (LD/MD/HD - low/medium/high-rise silhouettes), superimposed independently on top of wealth tier: low-density zones lean toward LD/MD art, high-density zones toward MD/HD, with HD guaranteed to never appear in a low-density zone.",
+      "Fixed a bug where renaming buildings did nothing in the Electron desktop build: window.prompt() isn't implemented by Electron at all, so it silently did nothing. Switched to the app's own dialog (the same one \"Save As\" already uses), and fixed the same issue in \"Generate New Terrain\" and \"Save Terrain Preset.\"",
+      "The news ticker now mixes in 10 nostalgic Heung Shing-style parody ads alongside city news, with roughly 1 in 3 ticker items being an ad.",
+    ] },
     "v3.11.0": { title: "The Great Times", items: [
       "Added Monetary Authority government stock trading: unlocked once a Stock Exchange is built and the treasury exceeds $10M, letting you trade any listed stock directly from city funds. Trades move the live price (buying lifts it, selling depresses it), carry a 0.25% fee, and are capped at 15% ownership per stock so no single position can corner the market.",
       "Rebalanced the bull/bear market cycle: bear markets go from a rare, brief blip to a real phase on equal footing with bull and range markets. Company fundamentals now move with the cycle too, and both the HSI and every stock's fair value are bounded long-term so extended play sessions no longer drift toward astronomical numbers.",
@@ -673,6 +694,13 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   ja: {
+    "v3.12.0": { title: "宣傳2", items: [
+      "「住宅富裕層エリア」制度を追加：マップ全体を16×16のグリッドに分割し、近隣の既存住宅の平均地価から庶民街／中流住宅街／富裕層住宅街／超富裕層エリアの4段階に分類。各段階に固定のL/M/H/UH出現確率を設定（超富裕層エリアはUH70%／H30%、庶民街はM40%／L60%など）、旧来のタイル単位の品質バンド制度と「UHは低密度限定」ルールを完全に置き換えました。",
+      "超富裕層エリアにはさらに条件を追加：地価に加えて、近くに大型フラッグシップ公園（ビクトリアパーク級）、海岸線、またはランドマーク（寺院・教会・博物館・スタジアムなど）が必要に。逆に近くに工業施設・発電所・コンテナ港・空港があると、地価がどれだけ高くても中流住宅街止まりとなり、富裕層/超富裕層エリアにはなりません。",
+      "建築の「階層タイプ」（LD/MD/HD 低層/中層/高層）を追加。富裕層エリアとは独立して重ね合わせで決定：低密度区画はLD/MD系のデザインを中心に、高密度区画はMD/HD系を中心に出現し、HDは低密度区画では絶対に出現しません。",
+      "Electronデスクトップ版で建物の名前変更が反応しなかったバグを修正：window.prompt()はElectronで実装されておらず、押しても何も起きませんでした。「名前を付けて保存」と同じアプリ内蔵ダイアログに切り替え、「新しい地形を生成」と「地形プリセットを保存」でも同じ問題を修正。",
+      "ニュース跑馬燈（テロップ）に懐かしい香城風パロディ広告10種類を追加。都市ニュースと交互に表示され、およそ3件に1件が広告になります。",
+    ] },
     "v3.11.0": { title: "大時代", items: [
       "「金融管理局」による政府の株式取引を追加：証券取引所を建設し、国庫が1,000万ドルを超えると解禁。市の資金で上場銘柄を直接売買でき、取引は現在値を動かし（買いは上昇、売りは下落）、手数料0.25%、1銘柄あたり保有比率上限15%で一社独占はできません。",
       "強気・弱気相場サイクルを再調整：弱気相場はこれまでの稀な一時的な下落から、強気・レンジ相場と並ぶ本格的な局面へ。上場企業のファンダメンタルズも相場サイクルに連動するようになり、恒生指数と各銘柄の適正価値には長期的な上限・下限を設定、長時間プレイしても天文学的な数値まで発散しなくなりました。",
@@ -843,14 +871,14 @@ const SITE_TEXT = {
   "zh-HK": {
     meta: {
       title: "香城模擬器 | The City of Heung Shing",
-      description: "下載香城模擬器 v3.11.0「大時代」：新增金融管理局政府股票交易，股市牛熊循環重新平衡，住宅同商業建築出現機率全面重新盤點。",
-      ogDescription: "v3.11.0 大時代：政府可以喺股票交易所直接買賣藍籌股、熊市成為真正嘅市況週期、UH豪宅同大廈嘅出現機率全面修正。",
+      description: "下載香城模擬器 v3.12.0「宣傳2」：新增住宅財富分區制度、富豪區域門檻、建築密度款式，仲修正咗Electron改名Bug同加入懷舊廣告跑馬燈。",
+      ogDescription: "v3.12.0 宣傳2：全城劃成住宅財富分區，富豪區域要有公園海景地標先解鎖，仲有建築密度款式同懷舊廣告跑馬燈登場。",
     },
     nav: { gallery: "截圖", downloads: "下載", manual: "玩家手冊", guide: "遊戲指南", stats: "統計", changelog: "版本", github: "GitHub" },
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      lede: "一款向 SimCity 2000 致敬的城市建設遊戲。v3.11.0「大時代」新增政府股票交易、股市牛熊循環重新平衡，同埋住宅／商業建築出現機率全面重新盤點。",
+      lede: "一款向 SimCity 2000 致敬的城市建設遊戲。v3.12.0「宣傳2」新增住宅財富分區制度、建築密度款式，修正Electron改名Bug，仲加咗懷舊廣告跑馬燈。",
       downloadBtn: "下載遊戲",
       latestBtn: "最新版本",
       guideBtn: "睇遊戲指南",
@@ -899,14 +927,14 @@ const SITE_TEXT = {
   "zh-TW": {
     meta: {
       title: "香城模擬器 | The City of Heung Shing",
-      description: "下載香城模擬器 v3.11.0「大時代」：新增金融管理局政府股票交易，股市牛熊循環重新調整，住宅和商業建築出現機率全面重新盤點。",
-      ogDescription: "v3.11.0 大時代：政府可直接在證券交易所買賣藍籌股、熊市成為真正的市況週期、UH豪宅和大樓的出現機率全面修正。",
+      description: "下載香城模擬器 v3.12.0「宣傳2」：新增住宅財富分區制度、富豪區域門檻、建築密度款式，還修正了Electron改名Bug並加入懷舊廣告跑馬燈。",
+      ogDescription: "v3.12.0 宣傳2：全城劃分成住宅財富分區，富豪區域要有公園海景地標才會解鎖，還有建築密度款式和懷舊廣告跑馬燈登場。",
     },
     nav: { gallery: "截圖", downloads: "下載", manual: "玩家手冊", guide: "遊戲指南", stats: "統計", changelog: "版本", github: "GitHub" },
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      lede: "一款向 SimCity 2000 致敬的城市建設遊戲。v3.11.0「大時代」新增政府股票交易、股市牛熊循環重新調整，以及住宅／商業建築出現機率全面重新盤點。",
+      lede: "一款向 SimCity 2000 致敬的城市建設遊戲。v3.12.0「宣傳2」新增住宅財富分區制度、建築密度款式，修正Electron改名Bug，還加入了懷舊廣告跑馬燈。",
       downloadBtn: "下載遊戲",
       latestBtn: "最新版本",
       guideBtn: "查看遊戲指南",
@@ -955,14 +983,14 @@ const SITE_TEXT = {
   en: {
     meta: {
       title: "The City of Heung Shing | 香城模擬器",
-      description: "Download The City of Heung Shing v3.11.0 “The Great Times”: government stock trading, a rebalanced bull/bear market cycle, and a full rebalance of residential/commercial building spawn odds.",
-      ogDescription: "v3.11.0 The Great Times: the government can now trade blue chips directly on the Stock Exchange, bear markets become a real market phase, and UH-mansion/tower spawn odds are fully rebalanced.",
+      description: "Download The City of Heung Shing v3.12.0 “Promo 2”: a new residential wealth-district system, stricter Ultra-Rich requirements, building massing variants, a fixed Electron rename bug, and nostalgic ticker ads.",
+      ogDescription: "v3.12.0 Promo 2: the whole city is now divided into wealth districts, Ultra-Rich needs a nearby park/waterfront/landmark, plus building massing variants and nostalgic parody ads on the news ticker.",
     },
     nav: { gallery: "Screenshots", downloads: "Download", manual: "Manual", guide: "Game Guide", stats: "Stats", changelog: "Changelog", github: "GitHub" },
     hero: {
       eyebrowPrefix: "The City of Heung Shing",
       title: "The City of Heung Shing",
-      lede: "A city-builder that pays tribute to SimCity 2000. v3.11.0 “The Great Times” adds government stock trading, rebalances the bull/bear market cycle, and fully rebalances residential/commercial building spawn odds.",
+      lede: "A city-builder that pays tribute to SimCity 2000. v3.12.0 “Promo 2” adds a residential wealth-district system, building massing variants, a fixed Electron rename bug, and nostalgic parody ads on the news ticker.",
       downloadBtn: "Download",
       latestBtn: "Latest release",
       guideBtn: "Read the game guide",
@@ -1012,14 +1040,14 @@ const SITE_TEXT = {
   ja: {
     meta: {
       title: "香城模擬器 | The City of Heung Shing",
-      description: "香城模擬器 v3.11.0「大時代」をダウンロード：政府による株式取引を追加し、強気・弱気相場サイクルを再調整、住宅・商業建築の出現確率を全面的に見直しました。",
-      ogDescription: "v3.11.0 大時代：政府が証券取引所で直接ブルーチップ株を売買可能に。弱気相場が本格的な市況局面へ、UH高級住宅・タワーの出現確率も全面調整。",
+      description: "香城模擬器 v3.12.0「宣傳2」をダウンロード：住宅富裕層エリア制度、超富裕層エリアの新条件、建築階層タイプを追加。Electronの改名バグも修正し、懐かしい広告テロップも登場。",
+      ogDescription: "v3.12.0 宣傳2：都市全体が住宅富裕層エリアに分類され、超富裕層エリアには公園・海岸・ランドマークが必要に。建築階層タイプと懐かしいパロディ広告テロップも追加。",
     },
     nav: { gallery: "スクリーンショット", downloads: "ダウンロード", manual: "プレイヤーマニュアル", guide: "ゲームガイド", stats: "統計", changelog: "更新履歴", github: "GitHub" },
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      lede: "SimCity 2000 に敬意を表した都市builderゲーム。v3.11.0「大時代」で政府による株式取引を追加し、強気・弱気相場サイクルを再調整、住宅・商業建築の出現確率も全面的に見直されました。",
+      lede: "SimCity 2000 に敬意を表した都市builderゲーム。v3.12.0「宣傳2」で住宅富裕層エリア制度と建築階層タイプを追加し、Electronの改名バグを修正、懐かしいパロディ広告テロップも登場しました。",
       downloadBtn: "ダウンロード",
       latestBtn: "最新リリース",
       guideBtn: "ゲームガイドを見る",

@@ -456,11 +456,11 @@ const LOW_DENSITY_ESTATE_SCAN_SHARD_COUNT = 8;
 
 // Closes a gap the low-density planning lock otherwise leaves forever: a 1x1
 // village house never gets a second footprint roll once built, so land that
-// matures into UH-estate quality *after* the house went up could previously
-// never become the mansion it now qualifies for. Once every building in a
-// full 3x3 block of already-built 1x1 low-density houses independently
-// clears the UH bar, the neighbourhood gets a real (50%) shot at
-// redeveloping into the estate in one go. The single-tile check on the
+// matures into ultraRich-district quality *after* the house went up could
+// previously never become the mansion it now qualifies for. Once every
+// building in a full 3x3 block of already-built 1x1 low-density houses sits
+// in an ultraRich wealth district, the neighbourhood gets a real (50%) shot
+// at redeveloping into the estate in one go. The single-tile check on the
 // anchor runs first and is cheap; the full 9-tile check only runs for the
 // rare anchor that already cleared it on its own, so this stays affordable
 // even sharded across a whole month like the other zone-growth scans.
@@ -482,7 +482,7 @@ function scanForLowDensityEstateUpgrades(scene, qualityContexts) {
       || (anchorRecord.footprintCols ?? 1) !== 1 || (anchorRecord.footprintRows ?? 1) !== 1) continue;
 
     const anchorFactors = getResidentialSiteFactors(r, c, 1, context);
-    if (!isUltraHighWealthEligible(anchorFactors, DENSITY_LOW)) continue;
+    if (anchorFactors.wealthDistrictTier !== 'ultraRich') continue;
 
     const members = [];
     let allEligible = true;
@@ -501,7 +501,7 @@ function scanForLowDensityEstateUpgrades(scene, qualityContexts) {
           break;
         }
         const factors = (rr === r && cc === c) ? anchorFactors : getResidentialSiteFactors(rr, cc, 1, context);
-        if (!isUltraHighWealthEligible(factors, DENSITY_LOW)) {
+        if (factors.wealthDistrictTier !== 'ultraRich') {
           allEligible = false;
           break;
         }
@@ -775,6 +775,9 @@ function spawnZoneBuilding(scene, r, c, zone, level, density = DENSITY_LOW, opti
     wealthTier: zone === ZONE_RES
       ? (options.wealthTier ?? selectedModel?.wealthTier ?? 'L')
       : undefined,
+    massingTier: zone === ZONE_RES
+      ? (options.massingTier ?? selectedModel?.massingTier ?? 'MD')
+      : undefined,
     commercialTier: zone === ZONE_COM
       ? (options.commercialTier ?? selectedModel?.commercialTier ?? 'L')
       : undefined,
@@ -802,15 +805,14 @@ function getResidentialHouseSetForFootprint(footprintSize) {
   return 'house';
 }
 
-// Returns { size, forceWealthTier }. forceWealthTier is non-null only for the
-// low-density UH exceptions below, so the caller can pin the tier roll to UH
-// instead of letting it fall through to the ordinary L/M/H tower art at that
-// footprint - low density is otherwise locked to 1x1, so a 12-20 storey block
-// slipping in here would break the low-rise district it's meant to preserve.
-// Two UH exceptions exist: a 3x3 "estate lot" and a 2x2 "villa". Without the
-// footprintSize === 2 branch here, RES_2X2_SPAWN_CHANCE[DENSITY_LOW] being
-// permanently 0 meant the low-density-only UH tier could never actually reach
-// a 2x2 roll - every residential2-*-UH villa model was unreachable in play.
+// Returns { size, forceWealthTier }. Footprint size and wealth tier are fully
+// independent axes: size comes from RES_2X2_SPAWN_CHANCE/RES_LARGE_SPAWN_CHANCE
+// by density (capped at 3x3 for low density - see those tables), wealth tier
+// comes from the tile's wealth district (sim-wealth-districts.js). No density
+// restriction applies to wealth tier here or anywhere downstream - a district
+// can produce a UH mansion at any density. forceWealthTier only ever comes
+// from an explicit caller override (e.g. scanForLowDensityEstateUpgrades
+// pinning a redeveloped estate to UH), not from anything computed here.
 function chooseResidentialFootprint(scene, r, c, density, optionsOverride = {}, siteFactors = null) {
   const forcedSize = optionsOverride.forceFootprint ?? (optionsOverride.force2x2 ? 2 : null);
   if (forcedSize) {
@@ -823,22 +825,15 @@ function chooseResidentialFootprint(scene, r, c, density, optionsOverride = {}, 
 
   const candidates = [5, 4, 3, 2];
   for (const footprintSize of candidates) {
-    let chance = footprintSize === 2
+    const chance = footprintSize === 2
       ? getResidential2x2Chance(density)
       : getResidentialLargeSpawnChance(footprintSize, density);
-    const isLowDensityUhException = density === DENSITY_LOW
-      && (footprintSize === 3 || footprintSize === 2)
-      && isUltraHighWealthEligible(siteFactors, density);
-    if (isLowDensityUhException) {
-      const table = footprintSize === 3 ? RESIDENTIAL_LOW_DENSITY_3X3_CHANCE : RESIDENTIAL_LOW_DENSITY_2X2_UH_CHANCE;
-      chance = siteFactors.quality >= 0.85 ? table.elite : table.premium;
-    }
     const largeLotBoost = getLargeLotSpawnBoost(siteFactors?.quality ?? 0.5, footprintSize);
     const adjustedChance = Math.min(0.95, chance * largeLotBoost);
     if (adjustedChance <= 0 || Math.random() >= adjustedChance) continue;
     if (!hasResidentialModelForFootprint(footprintSize)) continue;
     if (canPlaceResidentialFootprint(scene, r, c, footprintSize)) {
-      return { size: footprintSize, forceWealthTier: isLowDensityUhException ? 'UH' : null };
+      return { size: footprintSize, forceWealthTier: null };
     }
   }
 
@@ -1354,10 +1349,17 @@ function getResidentialEconomyScore() {
 }
 
 function createResidentialQualityContext(landValueMap = null) {
+  const resolvedLandValueMap = Array.isArray(landValueMap)
+    ? landValueMap
+    : (typeof computeLandValueMap === 'function' ? computeLandValueMap() : null);
   return {
-    landValueMap: Array.isArray(landValueMap)
-      ? landValueMap
-      : (typeof computeLandValueMap === 'function' ? computeLandValueMap() : null),
+    landValueMap: resolvedLandValueMap,
+    // Cheap single pass over buildingData - computed once per land-value
+    // refresh (same monthly cadence land value itself refreshes on), so
+    // districts naturally upgrade/downgrade as the neighbourhood develops.
+    wealthDistrictGrid: typeof computeWealthDistrictGridMap === 'function'
+      ? computeWealthDistrictGridMap(resolvedLandValueMap)
+      : null,
     pollutionSources: typeof getHealthPollutionSources === 'function'
       ? getHealthPollutionSources()
       : null,
@@ -1526,7 +1528,12 @@ function getResidentialSiteFactors(row, col, footprintSize = 1, context = create
     0,
     1,
   );
-  return { ...totals, economy, quality, urbanCore, skylineStats, row: centerRow, col: centerCol };
+  const wealthDistrictTier = typeof getResidentialWealthDistrictTier === 'function'
+    ? getResidentialWealthDistrictTier(row, col, context.wealthDistrictGrid)
+    : 'commoner';
+  return {
+    ...totals, economy, quality, urbanCore, skylineStats, wealthDistrictTier, row: centerRow, col: centerCol,
+  };
 }
 
 function getCommercialEconomyScore() {
@@ -1772,37 +1779,12 @@ function meetsResidentialMinimums(factors, minimums) {
   ));
 }
 
-function isHighWealthEligible(factors) {
-  return meetsResidentialMinimums(factors, RESIDENTIAL_H_MINIMUMS);
-}
-
-function isUltraHighWealthEligible(factors, density) {
-  return density === DENSITY_LOW
-    && meetsResidentialMinimums(factors, RESIDENTIAL_UH_MINIMUMS);
-}
-
-function getResidentialWealthWeights(factors, density, models = []) {
-  const quality = clamp(factors?.quality ?? 0.5, 0, 1);
-  const band = RESIDENTIAL_WEALTH_PROBABILITIES.find((entry) => quality <= entry.maxQuality)
-    ?? RESIDENTIAL_WEALTH_PROBABILITIES[RESIDENTIAL_WEALTH_PROBABILITIES.length - 1];
-  const availableTiers = new Set(models.map((model) => model.wealthTier).filter(Boolean));
-  const weights = applySkylineTierPressure(band.weights, factors, density, 'residential');
-  if (!isHighWealthEligible(factors)) weights.H = 0;
-  if (!isUltraHighWealthEligible(factors, density)) weights.UH = 0;
-  Object.keys(weights).forEach((tier) => {
-    if (!availableTiers.has(tier)) weights[tier] = 0;
-  });
-
-  if (Object.values(weights).some((weight) => weight > 0)) return weights;
-  const fallbackTier = ['L', 'M', 'H', 'UH'].find((tier) => (
-    availableTiers.has(tier)
-    && (tier !== 'H' || isHighWealthEligible(factors))
-    && (tier !== 'UH' || isUltraHighWealthEligible(factors, density))
-    && (!isLocalSkylineSaturated(factors, density, 'residential') || (tier !== 'H' && tier !== 'UH'))
-  ));
-  return Object.fromEntries(Object.keys(weights).map((tier) => [tier, tier === fallbackTier ? 1 : 0]));
-}
-
+// Residential wealth-tier selection (L/M/H/UH) is driven entirely by which
+// wealth district (see sim-wealth-districts.js) the tile sits in - no
+// per-tile minimums checklist, no "UH only at low density" rule, and no
+// skyline-saturation throttling. A 富豪區域's whole point is that it stays
+// consistently full of H/UH; see getResidentialWealthDistrictWeights in
+// sim-wealth-districts.js for the actual lookup + model-availability fallback.
 function pickResidentialWealthTier(weights, randomValue = Math.random()) {
   const entries = Object.entries(weights).filter(([, weight]) => weight > 0);
   if (entries.length === 0) return null;
@@ -1813,6 +1795,14 @@ function pickResidentialWealthTier(weights, randomValue = Math.random()) {
     if (roll <= 0) return tier;
   }
   return entries[entries.length - 1][0];
+}
+
+// Building massing (LD/MD/HD) is the second, independent axis superimposed
+// on top of wealth tier - see RESIDENTIAL_MASSING_PROBABILITIES in
+// constants.js and getRandomHouseModel below for how the two combine.
+function pickResidentialMassingTier(density, randomValue = Math.random()) {
+  const weights = RESIDENTIAL_MASSING_PROBABILITIES[density] ?? RESIDENTIAL_MASSING_PROBABILITIES[DENSITY_LOW];
+  return pickResidentialWealthTier(weights, randomValue);
 }
 
 function pickWithHighScoreBias(valid, cacheKey, landScore, preferHighScore) {
@@ -1852,13 +1842,35 @@ function getRandomHouseModel(
     environment: 0,
     health: clamp(city.healthIndex ?? 0.5, 0, 1),
     economy: getResidentialEconomyScore(),
+    wealthDistrictTier: 'commoner',
   };
   const canForceTier = forcedWealthTier && valid.some((model) => model.wealthTier === forcedWealthTier);
   const selectedTier = canForceTier
     ? forcedWealthTier
-    : pickResidentialWealthTier(getResidentialWealthWeights(factors, density, valid));
+    : pickResidentialWealthTier(getResidentialWealthDistrictWeights(factors.wealthDistrictTier, valid));
   const tierModels = valid.filter((model) => model.wealthTier === selectedTier);
-  const selected = pickVariedModel(tierModels, `house:${setKey}:wealth:${selectedTier}`, factors);
+
+  // Massing (LD/MD/HD) is superimposed on top of wealth tier: rolled
+  // independently from zone density (RESIDENTIAL_MASSING_PROBABILITIES), then
+  // preferred within the wealth-tier pool above. A massing tagged 0% for this
+  // density (e.g. HD at low density) is a hard exclusion, not just unlikely -
+  // it must never appear even as a fallback, so it's filtered out of the pool
+  // entirely before the preference roll runs; only if that leaves a wealth
+  // tier with literally no allowed-massing art at all (e.g. house1x1 only
+  // ever ships LD models) does it fall back to the unfiltered tier pool, so
+  // growth never stalls over missing art.
+  const massingWeights = RESIDENTIAL_MASSING_PROBABILITIES[density] ?? RESIDENTIAL_MASSING_PROBABILITIES[DENSITY_LOW];
+  const allowedMassingTiers = new Set(
+    Object.entries(massingWeights).filter(([, weight]) => weight > 0).map(([tier]) => tier),
+  );
+  const massingAllowedModels = tierModels.filter((model) => (
+    !model.massingTier || allowedMassingTiers.has(model.massingTier)
+  ));
+  const massingCandidatePool = massingAllowedModels.length > 0 ? massingAllowedModels : tierModels;
+  const selectedMassing = pickResidentialMassingTier(density);
+  const massingMatched = massingCandidatePool.filter((model) => model.massingTier === selectedMassing);
+  const massingPool = massingMatched.length > 0 ? massingMatched : massingCandidatePool;
+  const selected = pickVariedModel(massingPool, `house:${setKey}:wealth:${selectedTier}:massing:${selectedMassing}`, factors);
   return rememberSelectedZoneModel(selected);
 }
 

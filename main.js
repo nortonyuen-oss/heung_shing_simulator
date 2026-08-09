@@ -1354,13 +1354,17 @@ function getBuildingTypeLabel(type) {
   }[type] ?? type);
 }
 
-function getBuildingSubLabel(type, level) {
+// Residential is keyed by wealthTier (L/M/H/UH) - see sim-wealth-districts.js
+// - not by population-growth level like commercial/industrial still are.
+function getBuildingSubLabel(type, levelOrWealthTier) {
   const keys = {
-    residential: { 1: 'building.house', 2: 'building.apartment', 3: 'building.highRise' },
+    residential: {
+      L: 'building.publicEstate', M: 'building.privateResidence', H: 'building.wealthyResidence', UH: 'building.mansion',
+    },
     commercial: { 1: 'building.shop', 2: 'building.commercialBlock', 3: 'building.officeTower' },
     industrial: { 1: 'building.factory', 2: 'building.industrialComplex', 3: 'building.heavyIndustry' },
   };
-  return keys[type]?.[level] ? t(keys[type][level]) : null;
+  return keys[type]?.[levelOrWealthTier] ? t(keys[type][levelOrWealthTier]) : null;
 }
 
 // Map data: 1=ground, 2=road, 3=dirt, 4=beach, 5=water, 6=hill
@@ -1467,6 +1471,7 @@ function getManifestZoneModelMetadata(model) {
     assetId: model.assetId,
     sourceFileName: model.sourceFileName,
     wealthTier: model.wealthTier,
+    massingTier: model.massingTier,
     commercialTier: model.commercialTier,
   });
 }
@@ -1668,6 +1673,9 @@ function createModelEntries(keyPrefix, fileNames, config) {
       wealthTier: config.modelKind === 'residential'
         ? getResidentialWealthTierFromFileName(sourceFileName || fileName)
         : null,
+      massingTier: config.modelKind === 'residential'
+        ? getResidentialMassingTierFromFileName(sourceFileName || fileName)
+        : null,
       commercialTier: config.modelKind === 'commercial'
         ? getCommercialTierFromFileName(sourceFileName || fileName)
         : null,
@@ -1727,7 +1735,11 @@ class TreeAlphaPipeline extends Phaser.Renderer.WebGL.Pipelines.MultiPipeline {
 
 function preload() {
   const roadPath = 'kenney_isometric-roads/png/';
-  const initialHouseModels = selectInitialZoneModelsForPreload(Object.values(houseModelSets).flat());
+  const allHouseModels = Object.values(houseModelSets).flat();
+  const initialHouseModels = dedupeZoneModelsByKey([
+    ...selectInitialZoneModelsForPreload(allHouseModels),
+    ...selectForcedWealthTierModels(allHouseModels, ['H', 'UH']),
+  ]);
   const initialCommercialModels = selectInitialZoneModelsForPreload(commercialBuildingModels);
   const initialIndustrialModels = selectInitialZoneModelsForPreload(industrialBuildingModels);
   [...initialHouseModels, ...initialCommercialModels, ...initialIndustrialModels]
@@ -2370,6 +2382,25 @@ function selectInitialZoneModelsForPreload(models, perFootprint = INITIAL_ZONE_M
   });
 
   return [...groups.values()].flatMap((group) => group.slice(0, perFootprint));
+}
+
+// getRandomHouseModel only ever picks from models whose texture is already
+// loaded (isSelectableZoneModelTexture) - anything not preloaded here relies
+// on rotateZoneTexturePool's 30-second, uniformly-random-across-every-unloaded-
+// asset drip feed to ever become selectable, and isn't protected from LRU
+// eviction once it does load. That's fine for L/M, which accumulate variety
+// quickly just from sheer building count, but H/UH are no longer rare accents
+// under the wealth-district system - an ultraRich district is expected to be
+// ~70% UH, so its whole model roster needs to be available from the start or
+// every UH building in a district ends up using the single seeded model.
+function selectForcedWealthTierModels(models, tiers) {
+  return models.filter((model) => tiers.includes(model.wealthTier ?? model.commercialTier));
+}
+
+function dedupeZoneModelsByKey(models) {
+  const seen = new Map();
+  models.forEach((model) => { if (!seen.has(model.key)) seen.set(model.key, model); });
+  return [...seen.values()];
 }
 
 function getAllZoneModels() {
@@ -3086,6 +3117,7 @@ function finalizeZoneModelMetadata(model, metadata) {
   finalized.assetId = model.assetId;
   finalized.sourceFileName = model.sourceFileName;
   if (model.wealthTier) finalized.wealthTier = model.wealthTier;
+  if (model.massingTier) finalized.massingTier = model.massingTier;
   if (model.commercialTier) finalized.commercialTier = model.commercialTier;
 
   if (
@@ -5933,7 +5965,7 @@ function refreshAllTiles(scene) {
   scheduleTerrainMiniMapUpdate();
 }
 
-function generateNewTerrain() {
+async function generateNewTerrain() {
   if (isTerrainCreatorMode) {
     currentSeed = createSeed();
     mapData = generateTerrainMapByProfile(activeTerrainProfileType, currentSeed);
@@ -5949,25 +5981,13 @@ function generateNewTerrain() {
     return;
   }
 
-  let seedInput = null;
-  let promptSupported = true;
-  try {
-    seedInput = window.prompt(t('prompt.terrainSeed'), currentSeed);
-  } catch {
-    promptSupported = false;
-  }
-
-  // If prompt is available, keep cancel behavior unchanged.
-  // If prompt is unavailable (e.g. embedded webview), still generate terrain.
-  if (promptSupported && seedInput === null) return;
-
-  currentSeed = promptSupported
-    ? (seedInput.trim() || createSeed())
-    : createSeed();
-
-  if (!promptSupported) {
-    showToast(t('toast.terrainSeedPromptUnavailable'), 'info');
-  }
+  // window.prompt() is not implemented by Electron/Chromium (unlike
+  // alert/confirm) - it returns null immediately with no dialog shown at
+  // all, silently no-opping this whole feature. showTextPromptDialog is the
+  // app's own in-page modal (already used for "Save As"), which actually works.
+  const seedInput = await showTextPromptDialog(t('prompt.terrainSeed'), currentSeed);
+  if (seedInput === null) return;
+  currentSeed = seedInput.trim() || createSeed();
 
   mapData = isTerrainCreatorMode
     ? generateTerrainMapByProfile(activeTerrainProfileType, currentSeed)
@@ -8654,10 +8674,13 @@ function showTileDebug(scene, pointer) {
     park_large:         'Large Park',
   };
   const BLDG_SUB_LABEL = {
-    residential: { 1: 'House',    2: 'Apartment',         3: 'High-Rise'    },
+    residential: {
+      L: 'Public Estate (L)', M: 'Private Residence (M)', H: 'Wealthy Residence (H)', UH: 'Mansion (UH)',
+    },
     commercial:  { 1: 'Shop',     2: 'Commercial Block',  3: 'Office Tower' },
     industrial:  { 1: 'Factory',  2: 'Industrial Complex',3: 'Heavy Industry'},
   };
+  const getBldgSubLabelKey = (record) => (record?.type === 'residential' ? (record.wealthTier ?? 'L') : (record?.level ?? 1));
 
   // Sprite texture key — prefer bData.spriteKey (set at placement time);
   // fall back to reading it from the sprite currently at this tile.
@@ -8671,7 +8694,7 @@ function showTileDebug(scene, pointer) {
   let titleLabel;
   if (bData) {
     const typeLabel = BLDG_TYPE_LABEL[bData.type] ?? bData.type;
-    const subLabel  = BLDG_SUB_LABEL[bData.type]?.[bData.level ?? 1];
+    const subLabel  = BLDG_SUB_LABEL[bData.type]?.[getBldgSubLabelKey(bData)];
     titleLabel      = subLabel ? `${typeLabel} · ${subLabel}` : typeLabel;
   } else if (hasBldg) {
     titleLabel = 'Building';
@@ -8754,7 +8777,7 @@ function showTileDebug(scene, pointer) {
       <div class="${hasRoad   ? 'dbg-ok'   : 'dbg-fail'}">Road adjacent : ${hasRoad   ? '✓ yes' : '✗ no  ← zone needs road'}</div>
       <div class="${powered   ? 'dbg-ok'   : 'dbg-warn'}">Powered       : ${powered   ? '✓ yes (100% speed)' : `✗ no  (${powerSources.size === 0 ? 'no plant!' : '20% speed'})`}</div>
       <div class="${demand > 0 ? 'dbg-ok'  : 'dbg-fail'}">Demand        : ${demand >= 0 ? '+' : ''}${demand.toFixed(3)}</div>
-      <div class="${hasBldg   ? 'dbg-warn' : 'dbg-muted'}">Has building  : ${hasBldg  ? `✓ ${bData ? `(${BLDG_TYPE_LABEL[bData.type] ?? bData.type}${BLDG_SUB_LABEL[bData.type]?.[bData.level ?? 1] ? ' · ' + BLDG_SUB_LABEL[bData.type][bData.level ?? 1] : ''} lv${bData.level ?? 1})` : '(manual)'}` : '— (empty)'}</div>
+      <div class="${hasBldg   ? 'dbg-warn' : 'dbg-muted'}">Has building  : ${hasBldg  ? `✓ ${bData ? `(${BLDG_TYPE_LABEL[bData.type] ?? bData.type}${BLDG_SUB_LABEL[bData.type]?.[getBldgSubLabelKey(bData)] ? ' · ' + BLDG_SUB_LABEL[bData.type][getBldgSubLabelKey(bData)] : ''} lv${bData.level ?? 1})` : '(manual)'}` : '— (empty)'}</div>
       <div class="dbg-divider"></div>`;
 
     if (canGrow) {

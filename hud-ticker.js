@@ -7,8 +7,28 @@ const TICKER_NEWS_FALLBACK_KEYS = [
   'news.fallback.5',
 ];
 
+const TICKER_AD_MESSAGES = [
+  { id: 'ad-time-mini-cheong', key: 'news.ad.1' },
+  { id: 'ad-dak-shing-helper', key: 'news.ad.2' },
+  {
+    id: 'ad-public-service-tv',
+    key: 'news.ad.3',
+  },
+  { id: 'ad-zero-speed', key: 'news.ad.4' },
+  {
+    id: 'ad-why-me-me',
+    key: 'news.ad.5',
+  },
+  { id: 'ad-kam-bo', key: 'news.ad.6' },
+  { id: 'ad-animal-biscuit', key: 'news.ad.7' },
+  { id: 'ad-peanut-snack', key: 'news.ad.8' },
+  { id: 'ad-meat-patty-rice', key: 'news.ad.9' },
+  { id: 'ad-distilled-water', key: 'news.ad.10' },
+];
+
 let tickerShowNextTip = null;
 let lastTickerTopicId = '';
+let lastTickerAdId = '';
 let tickerCycleCount = 0;
 let tickerAdvanceTimer = null;
 let tickerTransitionEndHandler = null;
@@ -433,6 +453,17 @@ function buildTickerNewsCandidates() {
 }
 
 function pickTickerNewsHeadline() {
+  // Rotate as: 2 regular items, then 1 random ad.
+  const shouldShowAd = tickerCycleCount % 3 === 0;
+  if (shouldShowAd && TICKER_AD_MESSAGES.length) {
+    let ad = TICKER_AD_MESSAGES[Math.floor(Math.random() * TICKER_AD_MESSAGES.length)];
+    if (ad.id === lastTickerAdId && TICKER_AD_MESSAGES.length > 1) {
+      ad = TICKER_AD_MESSAGES.find((item) => item.id !== lastTickerAdId) || ad;
+    }
+    lastTickerAdId = ad.id;
+    return { id: ad.id, text: t(ad.key) };
+  }
+
   const urgent = getUrgentCityNews();
   if (urgent && tickerCycleCount % 2 === 0) {
     return { id: 'urgent', text: t('news.breakingPrefix', { headline: urgent }) };

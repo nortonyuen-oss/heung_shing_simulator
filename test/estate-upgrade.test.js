@@ -50,10 +50,11 @@ function createEstateUpgradeContext({
     getTileId: (row, col) => `${row}:${col}`,
     isInsideMap: (row, col) => row >= 0 && row < 3 && col >= 0 && col < 3,
     hasResidentialModelForFootprint: (size) => (size === 3 ? hasFootprint3 : true),
-    getResidentialSiteFactors: (row, col) => ({ row, col }),
-    isUltraHighWealthEligible: (factors) => (
-      eligibleTiles ? eligibleTiles.has(`${factors.row}:${factors.col}`) : true
-    ),
+    getResidentialSiteFactors: (row, col) => ({
+      row,
+      col,
+      wealthDistrictTier: (eligibleTiles ? eligibleTiles.has(`${row}:${col}`) : true) ? 'ultraRich' : 'commoner',
+    }),
     removeBuilding: (_scene, row, col, options) => {
       removed.push({ row, col, options });
     },
@@ -170,9 +171,8 @@ test('every shard eventually gets scanned across a full monthly cycle', () => {
     hasResidentialModelForFootprint: () => true,
     getResidentialSiteFactors: (row, col) => {
       visited.add(`${row}:${col}`);
-      return { row, col };
+      return { row, col, wealthDistrictTier: 'commoner' };
     },
-    isUltraHighWealthEligible: () => false,
     removeBuilding: () => {},
     spawnZoneBuilding: () => {},
   });

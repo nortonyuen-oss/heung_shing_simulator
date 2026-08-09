@@ -1,4 +1,4 @@
-function renameInspectedBuilding() {
+async function renameInspectedBuilding() {
   if (!activeScene || !lastInspectTile) return;
 
   const info = resolveBuildingRecordForInspect(activeScene, lastInspectTile.row, lastInspectTile.col);
@@ -8,7 +8,11 @@ function renameInspectedBuilding() {
   }
 
   const currentName = getBuildingCustomName(buildingData[info.anchorId]);
-  const next = window.prompt(t('prompt.buildingName'), currentName);
+  // window.prompt() is not implemented by Electron/Chromium (unlike
+  // alert/confirm) - it returns null immediately with no dialog shown at
+  // all, silently no-opping this whole feature. showTextPromptDialog is the
+  // app's own in-page modal (already used for "Save As"), which actually works.
+  const next = await showTextPromptDialog(t('prompt.buildingName'), currentName);
   if (next === null) return;
 
   const trimmed = next.trim().slice(0, 30);
@@ -21,6 +25,128 @@ function renameInspectedBuilding() {
   }
 
   showInspectPanel(activeScene, lastInspectTile.row, lastInspectTile.col);
+}
+
+// ── Zone growth eligibility breakdown ────────────────────────────────────────
+// Commercial wealth tier (L/M/H/UH) is still gated by a per-tile minimums
+// checklist (quality/land value/scenic/environment/economy, plus stock-
+// exchange/airport proximity for UH) that was never surfaced anywhere in the
+// UI, so a tile could look "maxed out" on the visible top-of-panel stats
+// while silently failing an invisible one. This renders every factor that
+// feeds COMMERCIAL_H_MINIMUMS/COMMERCIAL_UH_MINIMUMS side by side with both
+// tiers' thresholds. Residential no longer has an equivalent checklist - its
+// wealth tier comes entirely from the wealth district the tile sits in (see
+// sim-wealth-districts.js) - so it gets a district readout instead.
+const ZONE_ELIGIBILITY_FACTOR_LABEL_KEYS = {
+  quality: 'inspect.factorQuality',
+  landValue: 'inspect.factorLandValue',
+  scenic: 'inspect.factorScenic',
+  environment: 'inspect.factorEnvironment',
+  health: 'inspect.factorHealth',
+  economy: 'inspect.factorEconomy',
+  pollution: 'inspect.factorPollution',
+  stockExchange: 'inspect.factorStockExchange',
+  airport: 'inspect.factorAirport',
+};
+
+const WEALTH_DISTRICT_NAME_KEYS = {
+  commoner: 'inspect.wealthDistrictCommoner',
+  middleClass: 'inspect.wealthDistrictMiddleClass',
+  wealthy: 'inspect.wealthDistrictWealthy',
+  ultraRich: 'inspect.wealthDistrictUltraRich',
+};
+
+function getZoneEligibilityFactorThreshold(minimums, factorKey) {
+  if (!minimums) return null;
+  if (factorKey === 'pollution') {
+    return Number.isFinite(minimums.maxPollution) ? { value: minimums.maxPollution, isMax: true } : null;
+  }
+  return Number.isFinite(minimums[factorKey]) ? { value: minimums[factorKey], isMax: false } : null;
+}
+
+function renderZoneEligibilityMark(threshold, actualValue) {
+  if (!threshold) return '<span class="insp-muted">—</span>';
+  const pass = threshold.isMax ? actualValue <= threshold.value : actualValue >= threshold.value;
+  return `<span class="${pass ? 'insp-ok' : 'insp-fail'}">${pass ? '✓' : '✗'}</span>`;
+}
+
+function zonePassesMinimums(factors, minimums) {
+  if (!minimums) return true;
+  return Object.entries(minimums).every(([key, threshold]) => (
+    key === 'maxPollution' ? (factors.pollution ?? 1) <= threshold : (factors[key] ?? 0) >= threshold
+  ));
+}
+
+// Residential: which wealth district this tile is in, and that district's
+// fixed L/M/H/UH odds (see RESIDENTIAL_WEALTH_DISTRICT_PROBABILITIES).
+function buildResidentialWealthDistrictHtml(row, col) {
+  const context = typeof createResidentialQualityContext === 'function' ? createResidentialQualityContext() : null;
+  const factors = getResidentialSiteFactors(row, col, 1, context);
+  const tierKey = factors.wealthDistrictTier ?? 'commoner';
+  const districtName = t(WEALTH_DISTRICT_NAME_KEYS[tierKey] ?? WEALTH_DISTRICT_NAME_KEYS.commoner);
+  const probabilities = RESIDENTIAL_WEALTH_DISTRICT_PROBABILITIES[tierKey]
+    ?? RESIDENTIAL_WEALTH_DISTRICT_PROBABILITIES.commoner;
+  const oddsText = ['UH', 'H', 'M', 'L']
+    .filter((tier) => probabilities[tier] > 0)
+    .map((tier) => `${tier} ${Math.round(probabilities[tier] * 100)}%`)
+    .join(' · ');
+
+  return `
+    <div class="insp-section">
+      <div class="insp-row insp-muted" style="font-weight:bold">${t('inspect.wealthDistrictTitle')}</div>
+      <div class="insp-row insp-ok">📍 ${districtName}</div>
+      <div class="insp-row insp-muted">${oddsText}</div>
+      <div class="insp-row insp-muted" style="font-size:10px">${t('inspect.wealthDistrictHint')}</div>
+    </div>`;
+}
+
+// Commercial: the existing per-tile H/UH minimums checklist, unchanged.
+function buildCommercialEligibilityHtml(row, col, bData, anchorRow, anchorCol, density) {
+  const footprintSize = bData ? Math.max(bData.footprintCols ?? 1, bData.footprintRows ?? 1) : 1;
+  const targetRow = bData ? anchorRow : row;
+  const targetCol = bData ? anchorCol : col;
+
+  const factors = getCommercialSiteFactors(targetRow, targetCol, footprintSize, createCommercialQualityContext());
+  const hMinimums = COMMERCIAL_H_MINIMUMS;
+  const uhMinimums = COMMERCIAL_UH_MINIMUMS;
+  const factorKeys = ['quality', 'landValue', 'scenic', 'environment', 'economy', 'stockExchange', 'airport', 'pollution'];
+  const densityOk = density === DENSITY_HIGH;
+  const densityNoteKey = 'inspect.tierUhNeedsHighDensity';
+
+  const rows = factorKeys.map((key) => {
+    const value = factors[key] ?? 0;
+    const hThreshold = getZoneEligibilityFactorThreshold(hMinimums, key);
+    const uhThreshold = getZoneEligibilityFactorThreshold(uhMinimums, key);
+    if (!hThreshold && !uhThreshold) return '';
+    const label = t(ZONE_ELIGIBILITY_FACTOR_LABEL_KEYS[key]);
+    const pct = `${Math.round(clampUnit(value) * 100)}%`;
+    return `<div class="insp-row insp-muted">${label} ${pct} H${renderZoneEligibilityMark(hThreshold, value)} UH${renderZoneEligibilityMark(uhThreshold, value)}</div>`;
+  }).join('');
+
+  const hEligible = zonePassesMinimums(factors, hMinimums);
+  const uhFactorsEligible = zonePassesMinimums(factors, uhMinimums);
+  const uhEligible = uhFactorsEligible && densityOk;
+
+  const hStatus = `<div class="insp-row ${hEligible ? 'insp-ok' : 'insp-fail'}">${t(hEligible ? 'inspect.tierHEligible' : 'inspect.tierHNotEligible')}</div>`;
+  const uhStatus = `<div class="insp-row ${uhEligible ? 'insp-ok' : 'insp-fail'}">${t(uhEligible ? 'inspect.tierUhEligible' : 'inspect.tierUhNotEligible')}${uhEligible ? '' : t(densityNoteKey)}</div>`;
+
+  return `
+    <div class="insp-section">
+      <div class="insp-row insp-muted" style="font-weight:bold">${t('inspect.growthEligibilityTitle')}</div>
+      ${rows}
+      <div class="insp-divider"></div>
+      ${hStatus}
+      ${uhStatus}
+      <div class="insp-row insp-muted" style="font-size:10px">${t('inspect.economyIsCitywide')}</div>
+    </div>`;
+}
+
+// Builds the "what drives this tile's wealth tier" panel section for a zoned
+// residential/commercial tile. Returns '' for every other zone type.
+function buildZoneEligibilityHtml(zone, row, col, bData, anchorRow, anchorCol, density) {
+  if (zone === ZONE_RES) return buildResidentialWealthDistrictHtml(row, col);
+  if (zone === ZONE_COM) return buildCommercialEligibilityHtml(row, col, bData, anchorRow, anchorCol, density);
+  return '';
 }
 
 // ── Inspect panel (click-to-inspect mode) ────────────────────────────────────
@@ -104,7 +230,8 @@ function showInspectPanel(scene, row, col, pointer = null) {
       coordTitle = customName;
     } else {
       const tl = getBuildingTypeLabel(bData.type);
-      const sl = getBuildingSubLabel(bData.type, bData.level ?? 1);
+      const subLabelKey = bData.type === 'residential' ? (bData.wealthTier ?? 'L') : (bData.level ?? 1);
+      const sl = getBuildingSubLabel(bData.type, subLabelKey);
       coordTitle = sl ? `${tl} · ${sl}` : tl;
     }
   } else if (hasBldg) {
@@ -183,8 +310,15 @@ function showInspectPanel(scene, row, col, pointer = null) {
     const zColor   = ZONE_COLORS[zone] ?? '#aaa';
     const hasRoad  = hasAdjacentRoad(row, col);
 
+    // Residential no longer labels itself by population-growth level (1/2/3)
+    // - wealth tier is now the primary, player-planned classification (see
+    // sim-wealth-districts.js), so it's keyed by wealthTier (L/M/H/UH)
+    // instead. Commercial/industrial are unrelated to the district system and
+    // keep their existing level-keyed display untouched.
     const BLDG_DISPLAY = {
-      residential: { 1: t('building.smallHouse'), 2: t('building.apartmentBlock'), 3: t('building.highRiseResidential') },
+      residential: {
+        L: t('building.publicEstate'), M: t('building.privateResidence'), H: t('building.wealthyResidence'), UH: t('building.mansion'),
+      },
       commercial:  { 1: t('building.smallShop'), 2: t('building.commercialBlockIcon'), 3: t('building.officeTowerIcon') },
       industrial:  { 1: t('building.smallFactory'), 2: t('building.industrialComplexIcon'), 3: t('building.heavyIndustryIcon') },
     };
@@ -192,19 +326,24 @@ function showInspectPanel(scene, row, col, pointer = null) {
 
     let bldgHtml = '';
     if (bData && BLDG_DISPLAY[bData.type]) {
+      const isResidentialBldg = bData.type === 'residential';
       const lvl      = bData.level ?? 1;
-      const dispName = BLDG_DISPLAY[bData.type][lvl] ?? `${getBuildingTypeLabel(bData.type)} ${lvl}`;
+      const dispKey  = isResidentialBldg ? (bData.wealthTier ?? 'L') : lvl;
+      const dispName = BLDG_DISPLAY[bData.type][dispKey] ?? `${getBuildingTypeLabel(bData.type)} ${dispKey}`;
       const popLabel = BLDG_POP_LABEL[bData.type] ?? t('inspect.residents');
       const avgEducation = typeof getAverageEducationForBuilding === 'function'
         ? getAverageEducationForBuilding(bData, inspectRecord.anchorRow, inspectRecord.anchorCol)
         : 0;
       const avgEducationPct = `${Math.round(clampUnit(avgEducation) * 100)}%`;
-      const occupancy = bData.type === 'residential'
+      const occupancy = isResidentialBldg
         ? (bData.population ?? 0)
         : getBuildingJobCapacity(bData);
+      const populationRow = isResidentialBldg
+        ? t('inspect.residentPopulation', { population: occupancy.toLocaleString(), label: popLabel })
+        : t('inspect.levelPopulation', { level: lvl, population: occupancy.toLocaleString(), label: popLabel });
       bldgHtml = `
         <div class="insp-bldg-name" style="color:${zColor}">${dispName}</div>
-        <div class="insp-row insp-muted">${t('inspect.levelPopulation', { level: lvl, population: occupancy.toLocaleString(), label: popLabel })}</div>
+        <div class="insp-row insp-muted">${populationRow}</div>
         <div class="insp-row insp-muted">${t('inspect.avgEducation', { value: avgEducationPct })}</div>`;
     } else {
       bldgHtml = `<div class="insp-row insp-muted">${t('inspect.emptyLot')}</div>`;
@@ -219,6 +358,8 @@ function showInspectPanel(scene, row, col, pointer = null) {
         <div class="insp-row ${powered  ? 'insp-ok' : 'insp-warn'}">${t('inspect.power', { status: powered ? '✓' : t('inspect.powerGrowth') })}</div>
         <div class="insp-row">${t('inspect.demand', { demand: `${demand >= 0 ? '+' : ''}${demand.toFixed(2)}` })}</div>
       </div>`;
+
+    html += buildZoneEligibilityHtml(zone, row, col, bData, inspectRecord.anchorRow, inspectRecord.anchorCol, density);
   }
 
   // Service coverage

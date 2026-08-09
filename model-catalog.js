@@ -49,10 +49,23 @@ function isScienceParkModel(model) {
 // ── Residential ──────────────────────────────────────────────────────────────
 // preferredFiles = actual disk filenames used as fallback when the API
 // is unreachable AND as rank-priority order for model selection.
+// Residential filenames carry two independent tags: wealth tier (L/M/H/UH,
+// driven by the wealth-district system - see sim-wealth-districts.js) and
+// massing/silhouette (LD/MD/HD low/medium/high-rise, driven by zone density -
+// see RESIDENTIAL_MASSING_PROBABILITIES in constants.js), e.g.
+// "residential2-15-H-HD.png". Both parsers require the OTHER tag to also be
+// present so a legacy "-H.png"-only filename (pre-massing-tag) doesn't get
+// misread - see LEGACY_RESIDENTIAL_FILE_MAP in save.js for those.
 const RESIDENTIAL_WEALTH_TIERS = Object.freeze(['L', 'M', 'H', 'UH']);
+const RESIDENTIAL_MASSING_TIERS = Object.freeze(['LD', 'MD', 'HD']);
 
 function getResidentialWealthTierFromFileName(fileName) {
-  const match = String(fileName ?? '').match(/-(UH|H|M|L)\.(?:png|webp|jpe?g)$/i);
+  const match = String(fileName ?? '').match(/-(UH|H|M|L)-(?:LD|MD|HD)\.(?:png|webp|jpe?g)$/i);
+  return match ? match[1].toUpperCase() : null;
+}
+
+function getResidentialMassingTierFromFileName(fileName) {
+  const match = String(fileName ?? '').match(/-(?:UH|H|M|L)-(LD|MD|HD)\.(?:png|webp|jpe?g)$/i);
   return match ? match[1].toUpperCase() : null;
 }
 
@@ -67,13 +80,13 @@ const HOUSE_MODEL_SETS = {
     folder: 'Models/residential/house1x1/',
     apiFolder: 'residential/house1x1',
     modelKind: 'residential',
-    defaultFile: 'house1-01-L.png',
+    defaultFile: 'house1-01-L-LD.png',
     preferredFiles: [
-      'house1-01-L.png',
-      'house1-02-L.png',
-      'house1-03-L.png',
-      'house1-05-H.png',
-      'house1-06-H.png',
+      'house1-01-L-LD.png',
+      'house1-02-L-LD.png',
+      'house1-03-L-LD.png',
+      'house1-05-H-LD.png',
+      'house1-06-H-LD.png',
     ],
     footprintCols: 1,
     footprintRows: 1,
@@ -83,34 +96,34 @@ const HOUSE_MODEL_SETS = {
     folder: 'Models/residential/house2x2/',
     apiFolder: 'residential/house2x2',
     modelKind: 'residential',
-    defaultFile: 'residential2-04-L.png',
+    defaultFile: 'residential2-04-L-MD.png',
     preferredFiles: [
-      'residential2-04-L.png',
-      'residential2-05-L.png',
-      'residential2-06-M.png',
-      'residential2-07-M.png',
-      'residential2-09-UH.png',
-      'residential2-03-UH.png',
-      'residential2-11-H.png',
-      'residential2-12-UH.png',
-      'residential2-13-UH.png',
-      'residential2-14-UH.png',
-      'residential2-01-M.png',
-      'residential2-02-M.png',
-      'residential2-15-H.png',
-      'residential2-16-H.png',
-      'residential2-17-H.png',
-      'residential2-18-H.png',
-      'residential2-10-H.png',
+      'residential2-04-L-MD.png',
+      'residential2-05-L-MD.png',
+      'residential2-06-M-MD.png',
+      'residential2-07-M-MD.png',
+      'residential2-09-UH-MD.png',
+      'residential2-03-UH-LD.png',
+      'residential2-11-H-MD.png',
+      'residential2-12-UH-LD.png',
+      'residential2-13-UH-LD.png',
+      'residential2-14-UH-LD.png',
+      'residential2-01-M-HD.png',
+      'residential2-02-M-HD.png',
+      'residential2-15-H-HD.png',
+      'residential2-16-H-HD.png',
+      'residential2-17-H-HD.png',
+      'residential2-18-H-HD.png',
+      'residential2-10-H-MD.png',
     ],
     // 15-18 are noticeably taller/bulkier than the rest of the 2x2 H roster
     // and look out of place popping up as often as the shorter H models.
     // Dialed down (not excluded) so they still appear, just less often.
     fileOverrides: {
-      'residential2-15-H.png': { spawnWeight: 0.35 },
-      'residential2-16-H.png': { spawnWeight: 0.35 },
-      'residential2-17-H.png': { spawnWeight: 0.35 },
-      'residential2-18-H.png': { spawnWeight: 0.35 },
+      'residential2-15-H-HD.png': { spawnWeight: 0.35 },
+      'residential2-16-H-HD.png': { spawnWeight: 0.35 },
+      'residential2-17-H-HD.png': { spawnWeight: 0.35 },
+      'residential2-18-H-HD.png': { spawnWeight: 0.35 },
     },
     footprintCols: 2,
     footprintRows: 2,
@@ -120,18 +133,18 @@ const HOUSE_MODEL_SETS = {
     folder: 'Models/residential/house3x3/',
     apiFolder: 'residential/house3x3',
     modelKind: 'residential',
-    defaultFile: 'residential3-01-L.png',
+    defaultFile: 'residential3-01-L-MD.png',
     preferredFiles: [
-      'residential3-01-L.png',
-      'residential3-02-L.png',
-      'residential3-03-H.png',
-      'residential3-04-H.png',
-      'residential3-05-UH.png',
-      'residential3-06-L.png',
-      'residential3-07-M.png',
-      'residential3-08-M.png',
-      'residential3-12-H.png',
-      'residential3-14-M.png',
+      'residential3-01-L-MD.png',
+      'residential3-02-L-MD.png',
+      'residential3-03-H-MD.png',
+      'residential3-04-H-MD.png',
+      'residential3-05-UH-LD.png',
+      'residential3-06-L-MD.png',
+      'residential3-07-M-MD.png',
+      'residential3-08-M-MD.png',
+      'residential3-12-H-MD.png',
+      'residential3-14-M-MD.png',
     ],
     footprintCols: 3,
     footprintRows: 3,
@@ -143,10 +156,10 @@ const HOUSE_MODEL_SETS = {
     modelKind: 'residential',
     anchorMode: 'effective-bottom-to-map-bottom',
     alphaThreshold: EFFECTIVE_PIXEL_ALPHA_THRESHOLD,
-    defaultFile: 'residential4-01-M.png',
+    defaultFile: 'residential4-01-M-MD.png',
     preferredFiles: [
-      'residential4-01-M.png',
-      'residential4-02-M.png',
+      'residential4-01-M-MD.png',
+      'residential4-02-M-MD.png',
     ],
     footprintCols: 4,
     footprintRows: 4,
@@ -158,11 +171,11 @@ const HOUSE_MODEL_SETS = {
     modelKind: 'residential',
     anchorMode: 'effective-bottom-to-map-bottom',
     alphaThreshold: EFFECTIVE_PIXEL_ALPHA_THRESHOLD,
-    defaultFile: 'residential5-01-H.png',
+    defaultFile: 'residential5-01-H-MD.png',
     preferredFiles: [
-      'residential5-01-H.png',
-      'residential5-02-H.png',
-      'residential5-03-L.png',
+      'residential5-01-H-MD.png',
+      'residential5-02-H-MD.png',
+      'residential5-03-L-HD.png',
     ],
     footprintCols: 5,
     footprintRows: 5,

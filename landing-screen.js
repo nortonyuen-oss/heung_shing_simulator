@@ -451,14 +451,13 @@ async function saveTerrainPresetFromCurrentMap() {
   const fallbackName = profileLabel.startsWith('terrain.profile.')
     ? getDefaultCityName()
     : profileLabel;
-  let presetName = fallbackName;
-  try {
-    const entered = window.prompt(t('prompt.terrainPresetName'), fallbackName);
-    if (entered === null) return;
-    presetName = entered.trim() || fallbackName;
-  } catch {
-    presetName = `${fallbackName}-${Date.now().toString().slice(-6)}`;
-  }
+  // window.prompt() is not implemented by Electron/Chromium (unlike
+  // alert/confirm) - it returns null immediately with no dialog shown at
+  // all, silently no-opping this whole feature. showTextPromptDialog is the
+  // app's own in-page modal (already used for "Save As"), which actually works.
+  const entered = await showTextPromptDialog(t('prompt.terrainPresetName'), fallbackName);
+  if (entered === null) return;
+  const presetName = entered.trim() || fallbackName;
 
   const payload = {
     name: presetName,

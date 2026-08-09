@@ -1060,6 +1060,7 @@ const OVERLAY_TITLES = {
   fire:        'overlay.fire',
   population:  'overlay.population',
   landvalue:   'overlay.landvalue',
+  neighborhood: 'overlay.neighborhood',
   education:   'overlay.education',
   health:      'overlay.health',
   electricity: 'overlay.electricity',
@@ -1067,5 +1068,5 @@ const OVERLAY_TITLES = {
   traffic:     'overlay.traffic',
 };
 const OVERLAY_ICONS = {
-  pollution: '🏭', crime: '🚔', fire: '🔥', population: '👥', landvalue: '💰', education: '🎓', health: '🏥', electricity: '🔌', power: '⚡', traffic: '🚦',
+  pollution: '🏭', crime: '🚔', fire: '🔥', population: '👥', landvalue: '💰', neighborhood: '🏘️', education: '🎓', health: '🏥', electricity: '🔌', power: '⚡', traffic: '🚦',
 };

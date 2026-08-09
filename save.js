@@ -731,47 +731,92 @@ function getSaveModelCatalogByKey() {
   return new Map([...houses, ...commercial, ...industrial].map((model) => [model.key, model]));
 }
 
-// Residential artwork was renamed when the L/M/H/UH wealth tiers were added.
-// Keep old cities attached to the same visual slot instead of silently replacing
-// their buildings with the first available house model.
+// Residential artwork was renamed twice: first when the L/M/H/UH wealth
+// tiers were added (e.g. "residential2-15.png" -> "residential2-15-H.png"),
+// then again when LD/MD/HD massing tags were added on top of that (e.g.
+// "residential2-15-H.png" -> "residential2-15-H-HD.png"). Every entry below
+// resolves in a single hop straight to the current canonical filename -
+// covering both the original pre-wealth-tier names AND the intermediate
+// wealth-tier-only names - so cities saved at any point in that history stay
+// attached to the same visual slot instead of silently replacing their
+// buildings with the first available house model.
 const LEGACY_RESIDENTIAL_FILE_MIGRATIONS = Object.freeze({
-  'house1-01.png': 'house1-01-L.png',
-  'house1-02.png': 'house1-02-L.png',
-  'house1-03.png': 'house1-03-L.png',
-  'house1-05-highScore.png': 'house1-05-H.png',
-  'house1-06-highScore.png': 'house1-06-H.png',
-  'residential2-01.png': 'residential2-01-M.png',
-  'residential2-02.png': 'residential2-02-M.png',
-  'residential2-03-highScore.png': 'residential2-03-UH.png',
-  'residential2-04.png': 'residential2-04-L.png',
-  'residential2-05.png': 'residential2-05-L.png',
-  'residential2-06.png': 'residential2-06-M.png',
-  'residential2-07.png': 'residential2-07-M.png',
-  'residential2-09.png': 'residential2-09-UH.png',
-  'residential2-11-highScore.png': 'residential2-11-H.png',
-  'residential2-12-highScore.png': 'residential2-12-UH.png',
-  'residential2-13-highScore.png': 'residential2-13-UH.png',
-  'residential2-14-highScore.png': 'residential2-14-UH.png',
-  'residential2-15.png': 'residential2-15-H.png',
-  'residential2-16.png': 'residential2-16-H.png',
-  'residential2-17.png': 'residential2-17-H.png',
-  'residential2-18.png': 'residential2-18-H.png',
-  'residential2-19.png': 'residential2-10-H.png',
-  'residential3-01.png': 'residential3-01-L.png',
-  'residential3-02.png': 'residential3-02-L.png',
-  'residential3-03.png': 'residential3-03-H.png',
-  'residential3-04-highScore.png': 'residential3-04-H.png',
-  'residential3-05-highScore.png': 'residential3-05-UH.png',
-  'residential3-06.png': 'residential3-06-L.png',
-  'residential3-07.png': 'residential3-07-M.png',
-  'residential3-08.png': 'residential3-08-M.png',
-  'residential3-12-highScore.png': 'residential3-12-H.png',
-  'residential3-14.png': 'residential3-14-M.png',
-  'residential4-01.png': 'residential4-01-M.png',
-  'residential4-02.png': 'residential4-02-M.png',
-  'residential5-01.png': 'residential5-01-H.png',
-  'residential5-02.png': 'residential5-02-H.png',
-  'residential5-03.png': 'residential5-03-L.png',
+  'house1-01.png': 'house1-01-L-LD.png',
+  'house1-02.png': 'house1-02-L-LD.png',
+  'house1-03.png': 'house1-03-L-LD.png',
+  'house1-05-highScore.png': 'house1-05-H-LD.png',
+  'house1-06-highScore.png': 'house1-06-H-LD.png',
+  'residential2-01.png': 'residential2-01-M-HD.png',
+  'residential2-02.png': 'residential2-02-M-HD.png',
+  'residential2-03-highScore.png': 'residential2-03-UH-LD.png',
+  'residential2-04.png': 'residential2-04-L-MD.png',
+  'residential2-05.png': 'residential2-05-L-MD.png',
+  'residential2-06.png': 'residential2-06-M-MD.png',
+  'residential2-07.png': 'residential2-07-M-MD.png',
+  'residential2-09.png': 'residential2-09-UH-MD.png',
+  'residential2-11-highScore.png': 'residential2-11-H-MD.png',
+  'residential2-12-highScore.png': 'residential2-12-UH-LD.png',
+  'residential2-13-highScore.png': 'residential2-13-UH-LD.png',
+  'residential2-14-highScore.png': 'residential2-14-UH-LD.png',
+  'residential2-15.png': 'residential2-15-H-HD.png',
+  'residential2-16.png': 'residential2-16-H-HD.png',
+  'residential2-17.png': 'residential2-17-H-HD.png',
+  'residential2-18.png': 'residential2-18-H-HD.png',
+  'residential2-19.png': 'residential2-10-H-MD.png',
+  'residential3-01.png': 'residential3-01-L-MD.png',
+  'residential3-02.png': 'residential3-02-L-MD.png',
+  'residential3-03.png': 'residential3-03-H-MD.png',
+  'residential3-04-highScore.png': 'residential3-04-H-MD.png',
+  'residential3-05-highScore.png': 'residential3-05-UH-LD.png',
+  'residential3-06.png': 'residential3-06-L-MD.png',
+  'residential3-07.png': 'residential3-07-M-MD.png',
+  'residential3-08.png': 'residential3-08-M-MD.png',
+  'residential3-12-highScore.png': 'residential3-12-H-MD.png',
+  'residential3-14.png': 'residential3-14-M-MD.png',
+  'residential4-01.png': 'residential4-01-M-MD.png',
+  'residential4-02.png': 'residential4-02-M-MD.png',
+  'residential5-01.png': 'residential5-01-H-MD.png',
+  'residential5-02.png': 'residential5-02-H-MD.png',
+  'residential5-03.png': 'residential5-03-L-HD.png',
+  // Intermediate wealth-tier-only names (post wealth-tier rename, pre
+  // massing-tag rename).
+  'house1-01-L.png': 'house1-01-L-LD.png',
+  'house1-02-L.png': 'house1-02-L-LD.png',
+  'house1-03-L.png': 'house1-03-L-LD.png',
+  'house1-05-H.png': 'house1-05-H-LD.png',
+  'house1-06-H.png': 'house1-06-H-LD.png',
+  'residential2-01-M.png': 'residential2-01-M-HD.png',
+  'residential2-02-M.png': 'residential2-02-M-HD.png',
+  'residential2-03-UH.png': 'residential2-03-UH-LD.png',
+  'residential2-04-L.png': 'residential2-04-L-MD.png',
+  'residential2-05-L.png': 'residential2-05-L-MD.png',
+  'residential2-06-M.png': 'residential2-06-M-MD.png',
+  'residential2-07-M.png': 'residential2-07-M-MD.png',
+  'residential2-09-UH.png': 'residential2-09-UH-MD.png',
+  'residential2-10-H.png': 'residential2-10-H-MD.png',
+  'residential2-11-H.png': 'residential2-11-H-MD.png',
+  'residential2-12-UH.png': 'residential2-12-UH-LD.png',
+  'residential2-13-UH.png': 'residential2-13-UH-LD.png',
+  'residential2-14-UH.png': 'residential2-14-UH-LD.png',
+  'residential2-15-H.png': 'residential2-15-H-HD.png',
+  'residential2-16-H.png': 'residential2-16-H-HD.png',
+  'residential2-17-H.png': 'residential2-17-H-HD.png',
+  'residential2-18-H.png': 'residential2-18-H-HD.png',
+  'residential3-01-L.png': 'residential3-01-L-MD.png',
+  'residential3-02-L.png': 'residential3-02-L-MD.png',
+  'residential3-03-H.png': 'residential3-03-H-MD.png',
+  'residential3-04-H.png': 'residential3-04-H-MD.png',
+  'residential3-05-UH.png': 'residential3-05-UH-LD.png',
+  'residential3-06-L.png': 'residential3-06-L-MD.png',
+  'residential3-07-M.png': 'residential3-07-M-MD.png',
+  'residential3-08-M.png': 'residential3-08-M-MD.png',
+  'residential3-12-H.png': 'residential3-12-H-MD.png',
+  'residential3-14-M.png': 'residential3-14-M-MD.png',
+  'residential4-01-M.png': 'residential4-01-M-MD.png',
+  'residential4-02-M.png': 'residential4-02-M-MD.png',
+  'residential5-01-H.png': 'residential5-01-H-MD.png',
+  'residential5-02-H.png': 'residential5-02-H-MD.png',
+  'residential5-03-L.png': 'residential5-03-L-HD.png',
 });
 
 const LEGACY_COMMERCIAL_FILE_MIGRATIONS = Object.freeze({
@@ -831,6 +876,7 @@ function getSaveModelForRecord(record) {
       record.assetId = migratedModel.assetId;
       record.sourceFileName = migratedModel.sourceFileName;
       record.wealthTier = migratedModel.wealthTier;
+      record.massingTier = migratedModel.massingTier;
       return migratedModel;
     }
   }

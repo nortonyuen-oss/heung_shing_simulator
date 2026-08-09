@@ -230,68 +230,108 @@ const PREMIUM_VISUAL_UPGRADE_CHANCE_PER_MONTH = 0.012;
 const PREMIUM_VISUAL_REBALANCE_CHANCE_PER_MONTH = 0.045;
 const SKYLINE_NEIGHBORHOOD_RADIUS = 6;
 const SKYLINE_REPEAT_MODEL_PENALTY = 0.18;
-// Low density is deliberately capped to 1x1 (village houses/ancestral halls/
-// villas) so it never grows the same towers as medium/high density - see the
-// low-density planning lock in tools.js. The one exception is the rare 3x3
-// UH "estate lot" path below, reserved for the low-rise mansion model.
-const RES_2X2_SPAWN_CHANCE = { 1: 0.00, 2: 0.45, 3: 0.70 };
+// Low density can no longer only ever grow 1x1 village houses - it can now
+// grow the same 2x2/3x3 low-rise building stock as medium/high density (any
+// wealth tier, not just the UH villa/estate exceptions below), just at a
+// lower base chance so the district still reads as sparser. It stays hard
+// capped at 3x3 - see tools.js's separate, still-intact low-density zoning
+// lock (a tile once zoned low density can never be re-zoned medium/high) and
+// RES_LARGE_SPAWN_CHANCE below for the 4x4/5x5 tower cutoff.
+const RES_2X2_SPAWN_CHANCE = { 1: 0.20, 2: 0.45, 3: 0.70 };
 // 4x4/5x5 lots were previously all-but-unreachable outside max-density blocks
 // (0.10-0.18 chance, stacked on top of needing a clear 4x4/5x5 block in an
 // already-built city) - raised across the board so a large city actually
 // grows some of these towers instead of only ever seeing 2x2/3x3. Medium
-// density now gets a real, smaller shot at them too; low density stays locked
-// to 1x1 - see the low-density planning lock in tools.js and the UH
-// villa/estate exceptions below for its only large-footprint paths.
+// density now gets a real, smaller shot at them too. Low density gets a real
+// (if smaller) shot at 3x3 as well, but 4x4/5x5 stay off-limits there - those
+// footprints are reserved for medium/high-density towers, keeping low density
+// capped at "6 storeys and under" low-rise massing.
 const RES_LARGE_SPAWN_CHANCE = {
   3: { 3: 0.30, 4: 0.26, 5: 0.22 },
   2: { 3: 0.20, 4: 0.10, 5: 0.05 },
-  1: { 3: 0.00, 4: 0.00, 5: 0.00 },
+  1: { 3: 0.10, 4: 0.00, 5: 0.00 },
 };
-// Medium/high density is Heung Shing's housing mainstay, and public/
-// subsidised estates (L) dominate it the way they dominate real Hong Kong
-// housing stock - L stays the plurality even at top land quality, with H
-// (private upper-tier) a genuine minority rather than roughly one in five.
-// UH is excluded here entirely (isUltraHighWealthEligible requires
-// DENSITY_LOW), so its column is unused at density 2/3 - kept for a complete
-// table shape only.
-// The top band is split finer than the rest so sustained, truly exceptional
-// land quality (>0.90) keeps paying off with a real jump in UH odds instead
-// of flatlining at the same 3% as merely-good land - a visible reward for
-// building the city up, without touching L's majority share even at the top.
-const RESIDENTIAL_WEALTH_PROBABILITIES = [
-  { maxQuality: 0.29, weights: { L: 0.85, M: 0.14, H: 0.01, UH: 0.00 } },
-  { maxQuality: 0.44, weights: { L: 0.75, M: 0.23, H: 0.02, UH: 0.00 } },
-  { maxQuality: 0.59, weights: { L: 0.65, M: 0.30, H: 0.05, UH: 0.00 } },
-  { maxQuality: 0.74, weights: { L: 0.58, M: 0.32, H: 0.10, UH: 0.00 } },
-  { maxQuality: 0.84, weights: { L: 0.53, M: 0.33, H: 0.12, UH: 0.02 } },
-  { maxQuality: 0.90, weights: { L: 0.50, M: 0.33, H: 0.14, UH: 0.03 } },
-  { maxQuality: 0.96, weights: { L: 0.46, M: 0.32, H: 0.16, UH: 0.06 } },
-  { maxQuality: 1.00, weights: { L: 0.42, M: 0.31, H: 0.18, UH: 0.09 } },
+// ── Residential wealth-district system ───────────────────────────────────────
+// Residential wealth tier (L/M/H/UH) is no longer chosen from a continuous
+// per-tile "quality band" gated by a checklist of independent minimums (the
+// old RESIDENTIAL_WEALTH_PROBABILITIES/RESIDENTIAL_H_MINIMUMS/
+// RESIDENTIAL_UH_MINIMUMS system). Instead the built-up map is divided into a
+// fixed grid of "wealth districts" - 平民區/中產區/富人區/富豪區域 - each
+// classified from the average land value of its own built residential tiles,
+// and each with its own fixed L/M/H/UH odds. See sim-wealth-districts.js for
+// the grid classification and constants.js/RESIDENTIAL_WEALTH_DISTRICT_TIERS
+// below for the odds themselves. This also removes the old "UH only at
+// DENSITY_LOW" rule entirely - a district's odds apply at any density.
+const WEALTH_DISTRICT_GRID_CELL_SIZE = 16; // 256/16 = a 16x16 grid of cells
+// A cell needs at least this many *built* residential tiles before it gets a
+// real classification - below that it defaults to 'commoner', so a single
+// lucky house doesn't misclassify a still-mostly-empty 16x16 block.
+const WEALTH_DISTRICT_MIN_BUILT_TILES = 8;
+// Thresholds on a cell's average land value (0-1, same scale as the existing
+// land value overlay/map). Calibrated to roughly track where the old
+// quality-band table's H/UH odds used to ramp up - tunable like any other
+// balance constant here.
+const WEALTH_DISTRICT_LAND_VALUE_BANDS = [
+  { maxAvgLandValue: 0.45, tier: 'commoner' },
+  { maxAvgLandValue: 0.65, tier: 'middleClass' },
+  { maxAvgLandValue: 0.85, tier: 'wealthy' },
+  { maxAvgLandValue: 1.01, tier: 'ultraRich' },
 ];
-const RESIDENTIAL_H_MINIMUMS = Object.freeze({
-  quality: 0.60,
-  landValue: 0.50,
-  environment: 0.45,
-  health: 0.45,
-  economy: 0.45,
+// Exact odds requested for each district - the sole driver of residential
+// wealth tier now, independent of density/footprint size (which still
+// separately control whether a 2x2/3x3/etc footprint is available at all).
+const RESIDENTIAL_WEALTH_DISTRICT_PROBABILITIES = Object.freeze({
+  commoner:    Object.freeze({ L: 0.60, M: 0.40, H: 0.00, UH: 0.00 }),
+  middleClass: Object.freeze({ L: 0.30, M: 0.50, H: 0.20, UH: 0.00 }),
+  wealthy:     Object.freeze({ L: 0.00, M: 0.40, H: 0.60, UH: 0.00 }),
+  ultraRich:   Object.freeze({ L: 0.00, M: 0.00, H: 0.30, UH: 0.70 }),
 });
-const RESIDENTIAL_UH_MINIMUMS = Object.freeze({
-  quality: 0.76,
-  landValue: 0.72,
-  scenic: 0.55,
-  environment: 0.68,
-  health: 0.62,
-  economy: 0.65,
-  maxPollution: 0.20,
+// Building massing/silhouette (LD/MD/HD - low/medium/high-rise, tagged on
+// residential model filenames e.g. "residential2-15-H-HD.png") is a second,
+// independent axis on top of wealth tier: wealth tier comes from the wealth
+// district (above), massing comes from zone density here. The two are
+// "superimposed" when picking a model - see getRandomHouseModel in
+// sim-growth.js - so e.g. a UH building in a low-density zone leans toward
+// the LD-tagged mansion variants over the single UH-MD one, while the same
+// UH tier at high density leans toward taller HD/MD art instead. Keyed by
+// the numeric DENSITY_LOW/MED/HIGH values, same convention as
+// RES_2X2_SPAWN_CHANCE/RES_LARGE_SPAWN_CHANCE above.
+const RESIDENTIAL_MASSING_PROBABILITIES = Object.freeze({
+  1: Object.freeze({ LD: 0.70, MD: 0.30, HD: 0.00 }), // low density
+  2: Object.freeze({ LD: 0.25, MD: 0.60, HD: 0.15 }), // medium density
+  3: Object.freeze({ LD: 0.00, MD: 0.60, HD: 0.40 }), // high density
 });
-// UH-eligible low-density sites get a real shot at a UH build instead of
-// always falling back to ordinary L/M/H 1x1 art: a rare 3x3 "estate lot", or
-// (now that its spawn path actually reaches the roll - see
-// chooseResidentialFootprint) a 2x2 UH "villa". Both raised well above the
-// original 3x3-only 0.06/0.12 values; the 2x2 chance is set a little higher
-// since a 2-tile lot fits far more sites than a 3-tile one.
-const RESIDENTIAL_LOW_DENSITY_3X3_CHANCE = Object.freeze({ premium: 0.12, elite: 0.22 });
-const RESIDENTIAL_LOW_DENSITY_2X2_UH_CHANCE = Object.freeze({ premium: 0.16, elite: 0.28 });
+// Ultra-rich districts additionally require a nearby prestige amenity - a
+// flagship park (e.g. Victoria Park), a waterfront/coastal edge, or a named
+// landmark (temple, church, museum, stadium, etc.) - on top of clearing the
+// land-value band above. Without this an ultraRich cell was reachable from
+// land value alone (services + trees + scenic + no pollution), which didn't
+// read as distinctly "prestigious" the way a real luxury district does - a
+// cell that clears the land-value bar but has none of these nearby is capped
+// at 'wealthy' instead. See sim-wealth-districts.js.
+const WEALTH_DISTRICT_ULTRA_RICH_WATERFRONT_RADIUS = 12;
+const WEALTH_DISTRICT_ULTRA_RICH_LANDMARK_RADIUS = 18;
+// Every SPECIAL_BUILDING_MODELS type except airport/container_port - those
+// are noisy infrastructure (see their nuisanceRadius/Strength in
+// SPECIAL_BUILDING_EFFECTS), the opposite of what should draw a mansion
+// district, not a prestige draw.
+const WEALTH_DISTRICT_ULTRA_RICH_LANDMARK_TYPES = Object.freeze([
+  'exhibition_center', 'cultural_center', 'space_museum', 'buddha_statue',
+  'heritage_temple', 'grand_temple', 'heritage_church', 'indoor_coliseum',
+  'murray_house', 'ocean_park', 'football_stadium',
+]);
+// The flip side of the amenity requirement above: a cell within reach of a
+// noxious facility - industrial buildings, any power plant, the container
+// port, or the airport (exactly the ones excluded from the landmark list
+// above, plus industrial) - can never read as 富人區/富豪區域 (wealthy/
+// ultraRich) no matter how high its land value averages out, since bad views
+// and constant noise don't fit either prestige tier. Capped at middleClass
+// instead. See sim-wealth-districts.js.
+const WEALTH_DISTRICT_NOXIOUS_RADIUS = 16;
+const WEALTH_DISTRICT_NOXIOUS_FACILITY_TYPES = Object.freeze([
+  'industrial', 'power_plant_coal', 'power_plant_solar', 'power_plant_nuclear',
+  'container_port', 'airport',
+]);
 // Mirrors the residential rebalance: mainstream Hong Kong retail (L - street
 // shops, markets, walk-up commercial buildings) stays the plurality even at
 // high land quality, M (ordinary malls/offices) is the solid second tier, and

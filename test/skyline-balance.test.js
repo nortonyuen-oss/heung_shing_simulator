@@ -32,6 +32,7 @@ function createGrowthContext() {
   });
   vm.runInContext(source('constants.js'), context, { filename: 'constants.js' });
   vm.runInContext(source('sim-growth.js'), context, { filename: 'sim-growth.js' });
+  vm.runInContext(source('sim-wealth-districts.js'), context, { filename: 'sim-wealth-districts.js' });
   return context;
 }
 
@@ -49,45 +50,42 @@ const premiumFactors = `({
   skylineStats: { total: 8, highRiseCount: 0, highRiseRatio: 0, modelCounts: {} },
 })`;
 
-test('top-quality baseline keeps most buildings L/M and keeps UH a small minority', () => {
+test('top-quality commercial baseline keeps most buildings L/M and keeps UH a small minority', () => {
   const context = createGrowthContext();
-  const result = vm.runInContext(`(() => {
-    const models = ['L', 'M', 'H', 'UH'];
-    return {
-      residential: getResidentialWealthWeights(${premiumFactors}, DENSITY_LOW,
-        models.map((wealthTier) => ({ wealthTier }))),
-      commercial: getCommercialTierWeights(${premiumFactors}, DENSITY_HIGH,
-        models.map((commercialTier) => ({ commercialTier }))),
-    };
-  })()`, context);
+  const result = vm.runInContext(`getCommercialTierWeights(${premiumFactors}, DENSITY_HIGH,
+    ['L', 'M', 'H', 'UH'].map((commercialTier) => ({ commercialTier })))`, context);
 
-  assert.ok(Math.abs(result.residential.L + result.residential.M - 0.78) < 1e-12);
-  assert.equal(result.residential.H, 0.16);
-  assert.equal(result.residential.UH, 0.06);
-  assert.ok(Math.abs(result.commercial.L + result.commercial.M - 0.77) < 1e-12);
-  assert.equal(result.commercial.H, 0.17);
-  assert.equal(result.commercial.UH, 0.06);
+  assert.ok(Math.abs(result.L + result.M - 0.77) < 1e-12);
+  assert.equal(result.H, 0.17);
+  assert.equal(result.UH, 0.06);
 });
 
-test('a saturated six-tile neighbourhood blocks additional towers', () => {
+test('a saturated six-tile neighbourhood blocks additional commercial towers', () => {
   const context = createGrowthContext();
   const result = vm.runInContext(`(() => {
     const factors = {
       ...${premiumFactors},
       skylineStats: { total: 7, highRiseCount: 3, highRiseRatio: 3 / 7, modelCounts: {} },
     };
-    return {
-      residential: getResidentialWealthWeights(factors, DENSITY_HIGH,
-        ['L', 'M', 'H', 'UH'].map((wealthTier) => ({ wealthTier }))),
-      commercial: getCommercialTierWeights(factors, DENSITY_HIGH,
-        ['L', 'M', 'H', 'UH'].map((commercialTier) => ({ commercialTier }))),
-    };
+    return getCommercialTierWeights(factors, DENSITY_HIGH,
+      ['L', 'M', 'H', 'UH'].map((commercialTier) => ({ commercialTier })));
   })()`, context);
 
-  assert.equal(result.residential.H, 0);
-  assert.equal(result.residential.UH, 0);
-  assert.equal(result.commercial.H, 0);
-  assert.equal(result.commercial.UH, 0);
+  assert.equal(result.H, 0);
+  assert.equal(result.UH, 0);
+});
+
+// Residential deliberately dropped skyline-saturation throttling: a wealth
+// district's whole point is that it stays consistently full of its tier, so
+// getResidentialWealthDistrictWeights doesn't even take skyline stats as
+// input (unlike getCommercialTierWeights above, which still does).
+test('residential wealth-tier odds are not throttled by nearby skyline saturation', () => {
+  const context = createGrowthContext();
+  const result = vm.runInContext(`getResidentialWealthDistrictWeights('ultraRich',
+    ['L', 'M', 'H', 'UH'].map((wealthTier) => ({ wealthTier })))`, context);
+
+  assert.equal(result.UH, 0.70);
+  assert.equal(result.H, 0.30);
 });
 
 test('CBD and transport conditions concentrate commercial towers', () => {

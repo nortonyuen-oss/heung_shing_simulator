@@ -1,6 +1,6 @@
-# 香城模擬器 (The City of Heung Shing) v3.12.0 — 宣傳2
+# 香城模擬器 (The City of Heung Shing) v3.13.0 — 官員專訪
 
-香城模擬器 (The City of Heung Shing) v3.12.0 — 宣傳2 is a SimCity 2000-style city builder with a local SQLite save system, isometric map view, cloud-assisted district news, and a classic windowed UI.
+香城模擬器 (The City of Heung Shing) v3.13.0 — 官員專訪 is a SimCity 2000-style city builder with a local SQLite save system, isometric map view, cloud-assisted district news, and a classic windowed UI.
 
 <img width="1438" height="792" alt="image" src="https://github.com/user-attachments/assets/ec3cab6e-48af-4976-b00a-097bc901e429" />
 

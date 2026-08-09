@@ -210,6 +210,11 @@ const SITE_FEATURE_LIST = {
 // ── Changelog ─────────────────────────────────────────────────────────────────
 const SITE_CHANGELOG = {
   "zh-HK": [
+    { version: "v3.13.0", date: "2026-08-09", dateLabel: "2026年8月9日", title: "官員專訪", items: [
+      "新增十位官員議員嘅「人物專訪」金句：行政長官、財政司司長、警署署長、天文台台長、康樂及文化事務署署長，以及自由市場派、民主派、商界、宗教界、旅遊界議員，各有一句專屬性格quote，三語言（中／英／日）齊全。",
+      "「Profile feature」掣改咗做即時彈出效果：撳落去個人資料卡入面「核心理念」個quote box會即刻換成呢句人物專訪金句（換色highlight），6秒後自動變返原本嗰句。",
+      "修復咗「人物專訪」掣一直冇反應嘅Bug：原來撳落去淨係將句子塞入一個成個遊戲都冇讀嘅內部陣列，冇AI新聞就乜嘢都唔會顯示，難怪一直好似壞咗咁。",
+    ] },
     { version: "v3.12.0", date: "2026-08-09", dateLabel: "2026年8月9日", title: "宣傳2", items: [
       "新增「住宅財富分區」制度：全地圖劃成 16×16 網格，按附近已建成住宅嘅平均地價分類做平民區／中產區／富人區／富豪區域四級，每級有固定嘅 L/M/H/UH 出現機率（富豪區域 UH 70%／H 30%，平民區 M 40%／L 60% 等），完全取代舊有嘅逐格質素分帶同UH「只限低密度」規則。",
       "富豪區域加入額外門檻：除咗地價要達標，附近仲要有大型旗艦公園（維多利亞公園級別）、海邊，或者地標建築（廟宇、教堂、博物館、體育館等）先會解鎖；反過來，附近有工業區、發電廠、貨櫃碼頭或者機場嘅地方，就算地價幾高都會封頂喺中產區，唔會出現富人區同富豪區域。",
@@ -376,6 +381,11 @@ const SITE_CHANGELOG = {
 // title/items text.
 const SITE_CHANGELOG_TRANSLATIONS = {
   "zh-TW": {
+    "v3.13.0": { title: "官員專訪", items: [
+      "新增十位官員議員的「人物專訪」金句：行政長官、財政司司長、警署署長、天文台台長、康樂及文化事務署署長，以及自由市場派、民主派、商界、宗教界、旅遊界議員，各有一句專屬性格quote，三語言（中／英／日）齊全。",
+      "「Profile feature」鈕改成即時彈出效果：按下去個人資料卡裡「核心理念」的quote box會立刻換成這句人物專訪金句（換色highlight），6秒後自動變回原本那句。",
+      "修復了「人物專訪」鈕一直沒反應的Bug：原來按下去只是把句子塞進一個整個遊戲都沒讀取的內部陣列，沒開AI新聞就什麼都不會顯示，難怪一直好像壞掉了一樣。",
+    ] },
     "v3.12.0": { title: "宣傳2", items: [
       "新增「住宅財富分區」制度：全地圖劃成 16×16 網格，按附近已建成住宅的平均地價分類做平民區／中產區／富人區／富豪區域四級，每級有固定的 L/M/H/UH 出現機率（富豪區域 UH 70%／H 30%，平民區 M 40%／L 60% 等），完全取代舊有的逐格質素分帶和UH「只限低密度」規則。",
       "富豪區域加入額外門檻：除了地價要達標，附近還要有大型旗艦公園（維多利亞公園級別）、海邊，或者地標建築（廟宇、教堂、博物館、體育館等）才會解鎖；反過來，附近有工業區、發電廠、貨櫃碼頭或者機場的地方，就算地價再高都會封頂在中產區，不會出現富人區和富豪區域。",
@@ -535,6 +545,11 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   en: {
+    "v3.13.0": { title: "Official Interviews", items: [
+      "Added a signature interview quote for all ten officials/councillors: the Chief Executive, Financial Secretary, Police Commissioner, Observatory Director, Head of Leisure and Cultural Services, and the Free-Market, Democratic, Business, Religious, and Tourism councillors - each with their own personality quote, fully translated into Chinese, English, and Japanese.",
+      "The \"Profile feature\" button now gives an immediate visual payoff: clicking it swaps the \"core belief\" quote box on the official's profile card to their interview quote (with a color highlight), then reverts after 6 seconds.",
+      "Fixed a long-standing bug where the \"Profile feature\" button did nothing: it turned out to only push text into an internal array nothing in the game ever read, so unless AI news happened to be configured, clicking it had zero visible effect - no wonder it always seemed broken.",
+    ] },
     "v3.12.0": { title: "Promo 2", items: [
       "Added a residential wealth-district system: the whole map is divided into a 16×16 grid, with each cell classified into Working-Class / Middle-Class / Wealthy / Ultra-Rich based on the average land value of nearby built housing, each tier carrying fixed L/M/H/UH spawn odds (Ultra-Rich is 70% UH / 30% H, Working-Class is 40% M / 60% L, etc.) - replacing the old per-tile quality-band system and the \"UH only at low density\" rule entirely.",
       "Ultra-Rich districts now need more than just land value: a nearby flagship park (Victoria Park-tier), a waterfront edge, or a landmark (temple, church, museum, stadium, etc.) is required to unlock. Conversely, proximity to industry, any power plant, the container port, or the airport caps a district at Middle-Class no matter how high land value climbs - no Wealthy or Ultra-Rich there.",
@@ -694,6 +709,11 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   ja: {
+    "v3.13.0": { title: "官員專訪", items: [
+      "行政長官・財政司司長・警察署長・天文台長・レジャー文化サービス局長、そして自由市場派・民主派・ビジネス界・宗教界・観光業界の議員、計10名の官僚・議員に専属のインタビュー名言を追加。それぞれ個性豊かな一言を、中国語・英語・日本語の3言語で用意しました。",
+      "「Profile feature」ボタンが即座に反映されるように改善：クリックすると、プロフィールカードの「信条」欄が本人のインタビュー名言に切り替わり（色付きハイライト表示）、6秒後に元の表示へ自動的に戻ります。",
+      "「Profile feature」ボタンを押しても何も起きなかった長年のバグを修正：実際にはゲーム内のどこからも参照されない内部配列にテキストを追加するだけの処理で、AIニュースを設定していない限り見た目上の変化が一切なかったことが判明しました。道理でずっと壊れているように見えたわけです。",
+    ] },
     "v3.12.0": { title: "宣傳2", items: [
       "「住宅富裕層エリア」制度を追加：マップ全体を16×16のグリッドに分割し、近隣の既存住宅の平均地価から庶民街／中流住宅街／富裕層住宅街／超富裕層エリアの4段階に分類。各段階に固定のL/M/H/UH出現確率を設定（超富裕層エリアはUH70%／H30%、庶民街はM40%／L60%など）、旧来のタイル単位の品質バンド制度と「UHは低密度限定」ルールを完全に置き換えました。",
       "超富裕層エリアにはさらに条件を追加：地価に加えて、近くに大型フラッグシップ公園（ビクトリアパーク級）、海岸線、またはランドマーク（寺院・教会・博物館・スタジアムなど）が必要に。逆に近くに工業施設・発電所・コンテナ港・空港があると、地価がどれだけ高くても中流住宅街止まりとなり、富裕層/超富裕層エリアにはなりません。",
@@ -871,14 +891,14 @@ const SITE_TEXT = {
   "zh-HK": {
     meta: {
       title: "香城模擬器 | The City of Heung Shing",
-      description: "下載香城模擬器 v3.12.0「宣傳2」：新增住宅財富分區制度、富豪區域門檻、建築密度款式，仲修正咗Electron改名Bug同加入懷舊廣告跑馬燈。",
-      ogDescription: "v3.12.0 宣傳2：全城劃成住宅財富分區，富豪區域要有公園海景地標先解鎖，仲有建築密度款式同懷舊廣告跑馬燈登場。",
+      description: "下載香城模擬器 v3.13.0「官員專訪」：十位官員議員加入專屬人物專訪金句，撳掣即時喺個人資料卡彈出，仲修正埋一直冇反應嘅新聞掣Bug。",
+      ogDescription: "v3.13.0 官員專訪：十位官員議員終於有咗自己嘅金句，撳「人物專訪」即刻喺個人資料卡見到，仲修埋一個一直冇反應嘅新聞掣。",
     },
     nav: { gallery: "截圖", downloads: "下載", manual: "玩家手冊", guide: "遊戲指南", stats: "統計", changelog: "版本", github: "GitHub" },
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      lede: "一款向 SimCity 2000 致敬的城市建設遊戲。v3.12.0「宣傳2」新增住宅財富分區制度、建築密度款式，修正Electron改名Bug，仲加咗懷舊廣告跑馬燈。",
+      lede: "一款向 SimCity 2000 致敬的城市建設遊戲。v3.13.0「官員專訪」十位官員議員加入專屬人物專訪金句，撳掣即時彈出，仲修正埋一直冇反應嘅新聞掣Bug。",
       downloadBtn: "下載遊戲",
       latestBtn: "最新版本",
       guideBtn: "睇遊戲指南",
@@ -927,14 +947,14 @@ const SITE_TEXT = {
   "zh-TW": {
     meta: {
       title: "香城模擬器 | The City of Heung Shing",
-      description: "下載香城模擬器 v3.12.0「宣傳2」：新增住宅財富分區制度、富豪區域門檻、建築密度款式，還修正了Electron改名Bug並加入懷舊廣告跑馬燈。",
-      ogDescription: "v3.12.0 宣傳2：全城劃分成住宅財富分區，富豪區域要有公園海景地標才會解鎖，還有建築密度款式和懷舊廣告跑馬燈登場。",
+      description: "下載香城模擬器 v3.13.0「官員專訪」：十位官員議員加入專屬人物專訪金句，按鈕即時在個人資料卡彈出，還修正了一直沒反應的新聞鈕Bug。",
+      ogDescription: "v3.13.0 官員專訪：十位官員議員終於有了自己的金句，按下「人物專訪」立刻在個人資料卡看到，還修好了一個一直沒反應的新聞鈕。",
     },
     nav: { gallery: "截圖", downloads: "下載", manual: "玩家手冊", guide: "遊戲指南", stats: "統計", changelog: "版本", github: "GitHub" },
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      lede: "一款向 SimCity 2000 致敬的城市建設遊戲。v3.12.0「宣傳2」新增住宅財富分區制度、建築密度款式，修正Electron改名Bug，還加入了懷舊廣告跑馬燈。",
+      lede: "一款向 SimCity 2000 致敬的城市建設遊戲。v3.13.0「官員專訪」十位官員議員加入專屬人物專訪金句，按鈕即時彈出，還修正了一直沒反應的新聞鈕Bug。",
       downloadBtn: "下載遊戲",
       latestBtn: "最新版本",
       guideBtn: "查看遊戲指南",
@@ -983,14 +1003,14 @@ const SITE_TEXT = {
   en: {
     meta: {
       title: "The City of Heung Shing | 香城模擬器",
-      description: "Download The City of Heung Shing v3.12.0 “Promo 2”: a new residential wealth-district system, stricter Ultra-Rich requirements, building massing variants, a fixed Electron rename bug, and nostalgic ticker ads.",
-      ogDescription: "v3.12.0 Promo 2: the whole city is now divided into wealth districts, Ultra-Rich needs a nearby park/waterfront/landmark, plus building massing variants and nostalgic parody ads on the news ticker.",
+      description: "Download The City of Heung Shing v3.13.0 “Official Interviews”: all ten officials and councillors get a signature interview quote, popping up live on their profile card, plus a fix for a long-dead news button.",
+      ogDescription: "v3.13.0 Official Interviews: all ten officials finally have their own catchphrase - click “Profile feature” to see it pop up right on their card - plus a fix for a button that never did anything.",
     },
     nav: { gallery: "Screenshots", downloads: "Download", manual: "Manual", guide: "Game Guide", stats: "Stats", changelog: "Changelog", github: "GitHub" },
     hero: {
       eyebrowPrefix: "The City of Heung Shing",
       title: "The City of Heung Shing",
-      lede: "A city-builder that pays tribute to SimCity 2000. v3.12.0 “Promo 2” adds a residential wealth-district system, building massing variants, a fixed Electron rename bug, and nostalgic parody ads on the news ticker.",
+      lede: "A city-builder that pays tribute to SimCity 2000. v3.13.0 “Official Interviews” gives all ten officials a signature interview quote that pops up live on their profile card, plus a fix for a long-dead news button.",
       downloadBtn: "Download",
       latestBtn: "Latest release",
       guideBtn: "Read the game guide",
@@ -1040,14 +1060,14 @@ const SITE_TEXT = {
   ja: {
     meta: {
       title: "香城模擬器 | The City of Heung Shing",
-      description: "香城模擬器 v3.12.0「宣傳2」をダウンロード：住宅富裕層エリア制度、超富裕層エリアの新条件、建築階層タイプを追加。Electronの改名バグも修正し、懐かしい広告テロップも登場。",
-      ogDescription: "v3.12.0 宣傳2：都市全体が住宅富裕層エリアに分類され、超富裕層エリアには公園・海岸・ランドマークが必要に。建築階層タイプと懐かしいパロディ広告テロップも追加。",
+      description: "香城模擬器 v3.13.0「官員專訪」をダウンロード：10名の官僚・議員に専属インタビュー名言を追加、プロフィールカードで即座に表示。ずっと反応しなかったニュースボタンのバグも修正。",
+      ogDescription: "v3.13.0 官員專訪：10名の官僚・議員がついに自分の決め台詞を獲得。「Profile feature」を押せばカード上にすぐ表示。ずっと何も起きなかったボタンのバグも修正しました。",
     },
     nav: { gallery: "スクリーンショット", downloads: "ダウンロード", manual: "プレイヤーマニュアル", guide: "ゲームガイド", stats: "統計", changelog: "更新履歴", github: "GitHub" },
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      lede: "SimCity 2000 に敬意を表した都市builderゲーム。v3.12.0「宣傳2」で住宅富裕層エリア制度と建築階層タイプを追加し、Electronの改名バグを修正、懐かしいパロディ広告テロップも登場しました。",
+      lede: "SimCity 2000 に敬意を表した都市builderゲーム。v3.13.0「官員專訪」で10名の官僚・議員に専属インタビュー名言を追加、プロフィールカードで即座に表示されるようになりました。ずっと反応しなかったニュースボタンのバグも修正。",
       downloadBtn: "ダウンロード",
       latestBtn: "最新リリース",
       guideBtn: "ゲームガイドを見る",

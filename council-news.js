@@ -74,6 +74,7 @@ function buildCouncilCharacterPayload(characterIds) {
       personality: profile ? profile.personalityKeys.map((key) => t(key)) : [],
       quirk: profile ? t(profile.quirkKey) : '',
       speechStyle: profile ? t(profile.speechStyleKey) : official.tone,
+      signatureQuote: profile?.quoteKey ? t(profile.quoteKey) : '',
       likes: official.likes.slice(0, 4),
       dislikes: official.dislikes.slice(0, 4),
       relationshipContext,
@@ -86,6 +87,12 @@ function buildOfficialProfileNewsEvent(officialId) {
   if (!official) return null;
   const officialName = getCouncilNewsOfficialDisplayName(officialId);
   const comment = typeof getCurrentCouncilComment === 'function' ? getCurrentCouncilComment(officialId) : null;
+  const profile = typeof getCouncilProfileDefinition === 'function' ? getCouncilProfileDefinition(officialId) : null;
+  // Prefer the official's signature interview quote (COUNCIL_PROFILE_DEFS) so
+  // the fallback headline always shows in-character flavor - previously it
+  // fell back to their generic policy coreBelief even when a real quote
+  // existed, which read flatter than the AI-generated version.
+  const quoteText = profile?.quoteKey ? t(profile.quoteKey) : t(official.coreBeliefKey);
 
   const facts = [t('council.newsFact.profileIntro', { official: officialName, role: t(`council.role.${official.role}`) })];
   if (comment) {
@@ -105,7 +112,7 @@ function buildOfficialProfileNewsEvent(officialId) {
     quoteSpeakerId: officialId,
     gameplayOutcome: null,
     fallbackHeadlineKey: 'council.news.profileFallback',
-    fallbackHeadlineParams: { official: officialName, belief: t(official.coreBeliefKey) },
+    fallbackHeadlineParams: { official: officialName, quote: quoteText },
     dedupeTags: [officialId, 'profile'],
   };
 }
@@ -460,6 +467,12 @@ function announceOfficialProfileNews(officialId) {
   const event = buildOfficialProfileNewsEvent(officialId);
   if (!event) return;
 
+  // The primary, visible payoff for this click is showOfficialInterviewQuote()
+  // in council-ui.js swapping the belief blockquote next to the official's
+  // portrait - addCityNews() below only pushes into cityNewsFeed (hud.js),
+  // an array nothing in the UI reads, so it's just a background record, not
+  // the user-facing confirmation (a toast here would just duplicate the same
+  // quote text already being shown inline).
   const fallbackText = getCouncilNewsFallbackText(event);
   if (fallbackText && typeof addCityNews === 'function') addCityNews(fallbackText);
 

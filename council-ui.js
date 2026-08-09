@@ -110,6 +110,7 @@ function renderCouncilOfficialDetail() {
   head.append(portrait, identity);
 
   const belief = document.createElement('blockquote');
+  belief.id = 'council-detail-belief';
   belief.className = 'council-belief';
   belief.textContent = `“${t(official.coreBeliefKey)}”`;
   const focusLabel = document.createElement('div');
@@ -155,6 +156,37 @@ function renderCouncilOfficialDetail() {
   note.className = 'council-meeting-note';
   note.textContent = t('council.phaseNote');
   detail.append(head, belief, focusLabel, focusList, opinion, note);
+}
+
+let officialInterviewRevertTimer = null;
+
+// "Profile feature" (人物專訪) swaps the belief blockquote next to the
+// official's portrait to their signature interview quote for a few seconds,
+// then reverts to their usual core belief - a visible, in-context payoff for
+// the click instead of the old silent news-feed-only side effect.
+function showOfficialInterviewQuote(officialId) {
+  const belief = document.getElementById('council-detail-belief');
+  const official = getCouncilOfficialDefinition(officialId);
+  if (!belief || !official) return;
+
+  const profile = typeof getCouncilProfileDefinition === 'function' ? getCouncilProfileDefinition(officialId) : null;
+  const quoteText = profile?.quoteKey ? t(profile.quoteKey) : t(official.coreBeliefKey);
+
+  if (officialInterviewRevertTimer) {
+    clearTimeout(officialInterviewRevertTimer);
+    officialInterviewRevertTimer = null;
+  }
+
+  belief.textContent = `“${quoteText}”`;
+  belief.classList.add('council-belief-interview');
+
+  officialInterviewRevertTimer = setTimeout(() => {
+    officialInterviewRevertTimer = null;
+    // Only re-render if the panel is still showing this same official - if
+    // the player already switched to someone else, renderCouncilOfficialDetail
+    // has long since rebuilt this element for the new selection.
+    if (selectedCouncilOfficialId === officialId) renderCouncilOfficialDetail();
+  }, 6000);
 }
 
 function getCouncilPolicyAvailabilityText(preview) {
@@ -795,8 +827,10 @@ function setupCouncilMeetingUi() {
     if (renameButton) renameCouncilOfficial(renameButton.dataset.renameOfficialId);
 
     const profileButton = event.target.closest('[data-profile-official-id]');
-    if (profileButton && typeof announceOfficialProfileNews === 'function') {
-      announceOfficialProfileNews(profileButton.dataset.profileOfficialId);
+    if (profileButton) {
+      const officialId = profileButton.dataset.profileOfficialId;
+      if (typeof showOfficialInterviewQuote === 'function') showOfficialInterviewQuote(officialId);
+      if (typeof announceOfficialProfileNews === 'function') announceOfficialProfileNews(officialId);
     }
   });
 

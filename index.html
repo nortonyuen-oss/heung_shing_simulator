@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>香城模擬器 | The City of Heung Shing v3.12.0 — 宣傳2</title>
+  <title>香城模擬器 | The City of Heung Shing v3.13.0 — 官員專訪</title>
   <link rel="icon" type="image/png" href="build/icon.png" />
   <style>
     * { box-sizing: border-box; }
@@ -3951,6 +3951,15 @@
       font-size: 12px;
       font-weight: 700;
       line-height: 1.4;
+      transition: background 0.25s ease, border-color 0.25s ease, color 0.25s ease;
+    }
+    /* Temporary state while the "Profile feature" interview quote is shown
+       in place of the official's usual core-belief line - see
+       showOfficialInterviewQuote() in council-ui.js. */
+    .council-belief-interview {
+      border-left-color: #2c6cb2;
+      background: rgba(44,108,178,0.10);
+      color: #1d3a5c;
     }
 
     .council-focus-label { color: #5a4f3f; font-size: 10px; font-weight: 900; text-transform: uppercase; }
@@ -5814,11 +5823,11 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
         <button id="about-app-icon" class="about-app-icon" type="button" aria-label="City icon" aria-pressed="false">🏙️</button>
         <div style="font-size:18px; font-weight:900; margin-bottom:6px" data-i18n="app.name">The City of Heung Shing</div>
         <div style="color:#5a5648; font-size:12px" data-i18n="dialog.aboutEnglishName">The City of Heung Shing</div>
-        <div style="color:#5a5648; font-size:12px" data-i18n="dialog.version">Version 3.12.0 — 宣傳2</div>
+        <div style="color:#5a5648; font-size:12px" data-i18n="dialog.version">Version 3.13.0 — 官員專訪</div>
         <div id="visual-route-calibration-test-mode-label" hidden>【test mode】</div>
         <div style="color:#5a5648; font-size:12px" data-i18n="dialog.aboutInspired">A Hong Kong-themed city simulation brand title</div>
         <div style="margin-top:14px; font-size:12px; line-height:1.8; color:#3a3530">
-          <span data-i18n-html="dialog.aboutBuilt">The City of Heung Shing v3.12.0 — 宣傳2<br>Plan · Build · Govern · Thrive</span>
+          <span data-i18n-html="dialog.aboutBuilt">The City of Heung Shing v3.13.0 — 官員專訪<br>Plan · Build · Govern · Thrive</span>
         </div>
         <div class="about-links">
           <a class="about-link" href="https://github.com/nortonyuen-oss/heung_shing_simulator" target="_blank" rel="noopener noreferrer" data-i18n="dialog.githubLink">GitHub</a>

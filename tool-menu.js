@@ -296,7 +296,7 @@ function setupToolMenu() {
 function getToolCategoryForTool(tool) {
   if (tool === 'inspect') return 'inspect';
   if (tool === 'terrain') return 'terrain';
-  if (tool === 'road') return 'roads';
+  if (tool === 'road' || tool === 'bus-stop') return 'roads';
   if (tool === 'district-sign') return 'maps';
   if (tool === 'zone-res' || tool === 'zone-com' || tool === 'zone-ind' || tool === 'dezone') return 'zones';
   if (tool === 'power-line' || tool === 'power-coal' || tool === 'power-solar') return 'power';
@@ -358,6 +358,7 @@ function updateToolCategoryState(menu = document.getElementById('tool-menu'), to
 
 function clearPlacementGuides() {
   activeScene?.buildingGuideGraphic?.clear();
+  activeScene?.busStopHighlightGraphic?.clear();
 }
 
 function toggleToolCategory(categoryButton) {

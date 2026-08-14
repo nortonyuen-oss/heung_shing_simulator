@@ -592,7 +592,12 @@ function attachVisualRouteCalibrationDrag(state) {
 
 function isVisualRouteCalibrationInputCaptured(scene) {
   const target = visualRouteCalibrationStates.get(scene)?.activeTarget;
-  return visualRouteCalibrationTestModeEnabled && !!target?.eligible && !!target?.paused;
+  if (visualRouteCalibrationTestModeEnabled && !!target?.eligible && !!target?.paused) return true;
+  // bus-stop-calibrator.js's picker toggle: while on, every normal-tool
+  // input listener guarded by this same function (road painting, drag-paint,
+  // inspect clicks, building pointerdown…) is suppressed, so a drag on a
+  // bus-stop sprite can't also fire whatever tool happens to be selected.
+  return typeof isBusStopPickerActive === 'function' && isBusStopPickerActive();
 }
 
 function clearVisualRouteCalibrationTarget(scene, targetId = '') {
@@ -999,7 +1004,8 @@ function createVisualRoutePerformancePanel(scene) {
     + '<div class="vrp-title">PERFORMANCE · PHASE 0</div><pre></pre>'
     + '<div class="vrp-actions"><button type="button" class="vrp-reset-btn">重置樣本</button>'
     + '<button type="button" class="vrp-copy-btn">複製 JSON</button></div>'
-    + '<button type="button" class="vrp-airport-btn">機場路線校正</button>';
+    + '<button type="button" class="vrp-airport-btn">機場路線校正</button>'
+    + '<button type="button" class="vrp-busstop-btn">巴士站位置微調</button>';
   root.querySelector('.vrp-close-btn')?.addEventListener?.('click', () => {
     setVisualRouteCalibrationTestModeEnabled(false);
   });
@@ -1014,6 +1020,9 @@ function createVisualRoutePerformancePanel(scene) {
   });
   root.querySelector('.vrp-airport-btn')?.addEventListener?.('click', () => {
     if (typeof toggleAirportRouteCalibrator === 'function') toggleAirportRouteCalibrator(scene);
+  });
+  root.querySelector('.vrp-busstop-btn')?.addEventListener?.('click', () => {
+    if (typeof toggleBusStopCalibrator === 'function') toggleBusStopCalibrator(scene);
   });
   document.body.appendChild(root);
   return root;

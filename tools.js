@@ -88,8 +88,46 @@ function handleNewTool(scene, tile) {
     placeDistrictSign(scene, row, col).catch((error) => console.warn('[District sign]', error));
     return true;
   }
+  if (selectedTool === 'bus-stop') return placeBusStop(scene, row, col);
 
   return false;
+}
+
+// ── Bus stop (decorative road-shoulder prop) ───────────────────────────────────
+// Each click on the same straight-road tile cycles its shoulder state, read
+// straight off busStopMap (via getBusStopSides) rather than tracked
+// separately — nothing to get out of sync between clicks:
+//   none -> left only (sides[0]) -> right only (sides[1]) -> both -> none
+function placeBusStop(scene, row, col) {
+  if (!isInsideMap(row, col)) return false;
+
+  const sides = getBusStopEligibleSides(row, col);
+  if (!sides) {
+    showToast(t('toast.busStopBlocked'), 'warning');
+    return false;
+  }
+
+  const [left, right] = sides;
+  const current = getBusStopSides(row, col) ?? [];
+  const hasLeft = current.includes(left);
+  const hasRight = current.includes(right);
+
+  let next;
+  if (!hasLeft && !hasRight) next = [left];
+  else if (hasLeft && !hasRight) next = [right];
+  else if (!hasLeft && hasRight) next = [left, right];
+  else next = [];
+
+  const addedCount = Math.max(0, next.length - current.length);
+  if (addedCount > 0 && !spendBudget(addedCount * COST_BUS_STOP)) {
+    showToast(t('toast.notEnoughFunds'), 'warning');
+    return false;
+  }
+
+  setBusStopSides(row, col, next);
+  refreshBusStopSpriteAt(scene, row, col);
+  if (typeof queueCityChangeAutosave === 'function') queueCityChangeAutosave();
+  return true;
 }
 
 // ── De-zone ───────────────────────────────────────────────────────────────────

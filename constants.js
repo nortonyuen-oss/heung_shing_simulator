@@ -435,7 +435,27 @@ const COST_PARK_LARGE          = 900;
 const COST_SPORTS_GROUND_SMALL = 600;
 const COST_SPORTS_GROUND_LARGE = 1400;
 const COST_TREE          = 15;
+const COST_BUS_STOP      = 20;
 const COST_BULLDOZE      = 5;
+
+// Bus stop shoulder placement (decorative road prop, no simulation effect)
+// Raw (rotation-invariant) mapData edge → which fixed source image to use,
+// with North as the reference orientation: a N-S road (road_straight_v, raw
+// sides n/s) uses UR/LL; an E-W road (road_straight_h, raw sides w/e) uses
+// UL/LR. No runtime flip or rotation is applied — each of the 4 source images
+// is used exactly as drawn.
+const BUS_STOP_RAW_SIDE_TO_VISUAL_CORNER = { n: 'ur', e: 'lr', s: 'll', w: 'ul' };
+const BUS_STOP_SCALE = 0.16 * 0.7 * 0.7 * 0.8;
+// Per-corner pixel offset from the tile centre, hand-tuned in test mode via
+// the bus-stop-calibrator drag tool (visual-route-calibrator.js panel) and
+// fed back in here as the shipped default — see getBusStopAnchorPoint,
+// main.js.
+const BUS_STOP_ANCHOR_OFFSETS = {
+  ur: { dx: -18.0075, dy: 17.9021 },
+  ul: { dx: -19.8261, dy: -0.2845 },
+  ll: { dx: 16.4173, dy: -0.9005 },
+  lr: { dx: 18.4353, dy: 18.3707 },
+};
 
 // Tree simulation
 const TREE_SYSTEM_VERSION = 3;            // bump when generation algorithm changes

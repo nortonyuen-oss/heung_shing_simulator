@@ -7,6 +7,7 @@ let roadUnderlayMap = [];   // original terrain below bridge road tiles
 let powerMap        = [];   // boolean per cell (is this cell powered?)
 let serviceMap      = [];   // { fire: bool, police: bool, park: 0|1|2 } | null per cell
 let treeMap         = [];   // null | { species, age, variant } per cell
+let busStopMap      = [];   // null | array of raw sides ('n'|'e'|'s'|'w') per cell
 let trafficMap      = [];   // 0–1 traffic load per road tile (updated each sim tick)
 
 // Simulation metadata for every placed building (player-placed or sim-spawned)
@@ -233,6 +234,7 @@ function resetGameState() {
   powerMap       = createFilledMap(false);
   serviceMap     = createFilledMap(null);
   treeMap        = createFilledMap(null);
+  busStopMap     = createFilledMap(null);
   if (typeof invalidateTreeSimulationTiles === 'function') invalidateTreeSimulationTiles();
   if (typeof invalidateResidentialEnvironmentScoreCache === 'function') invalidateResidentialEnvironmentScoreCache();
   bridgeMap      = createFilledMap(null);

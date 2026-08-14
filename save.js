@@ -7,6 +7,7 @@ const TERRAIN_LOCAL_KEY = 'citybuilder.terrainPresets';
 const COMPACT_SAVE_VERSION = 15;
 const COMPACT_RLE_ENCODING = 'rle-row-major-v1';
 const COMPACT_TREE_ENCODING = 'sparse-row-major-v1';
+const COMPACT_BUS_STOP_ENCODING = 'sparse-row-major-v1';
 const COMPACT_TERRAIN_HEIGHT_MAX = 8;
 const COMPACT_TREE_AGE_MAX = 6;
 const COMPACT_BRIDGE_VALUE_PATTERN = /^(?:deck:(?:row|col)|ramp:[nesw])$/;
@@ -417,6 +418,72 @@ function decodeCompactTreeMap(encoded) {
   return result;
 }
 
+const COMPACT_BUS_STOP_VALID_SIDES = ['n', 'e', 's', 'w'];
+
+function normalizeCompactBusStopSides(sides, fieldName, location) {
+  const unique = Array.from(new Set(Array.isArray(sides) ? sides : []));
+  if (unique.length === 0 || unique.length > 2 || unique.some((side) => !COMPACT_BUS_STOP_VALID_SIDES.includes(side))) {
+    throw createCompactSaveError(fieldName, `invalid sides at ${location}`);
+  }
+  return unique;
+}
+
+function encodeCompactBusStopMap(source) {
+  const fieldName = 'busStopMap';
+  const { width, height } = getCompactMapDimensions();
+  assertCompactSourceMap(source, fieldName, width, height);
+  const entries = [];
+  for (let row = 0; row < height; row += 1) {
+    for (let col = 0; col < width; col += 1) {
+      if (!Array.isArray(source[row][col]) || source[row][col].length === 0) continue;
+      const index = row * width + col;
+      const sides = normalizeCompactBusStopSides(source[row][col], fieldName, `${row}:${col}`);
+      entries.push([index, sides.join('')]);
+    }
+  }
+  return { encoding: COMPACT_BUS_STOP_ENCODING, width, height, entries };
+}
+
+// Tolerant of a missing/undefined payload: saves written before this feature
+// existed simply have no bus stops, so this returns an empty grid instead of
+// throwing — unlike decodeCompactTreeMap, this field is not guaranteed to be
+// present for every save tagged with the current COMPACT_SAVE_VERSION.
+function decodeCompactBusStopMap(encoded) {
+  const fieldName = 'busStopMap';
+  const { width, height, total } = getCompactMapDimensions();
+  const emptyMap = () => Array.from({ length: height }, () => Array(width).fill(null));
+  if (encoded === undefined) return emptyMap();
+  if (!encoded || typeof encoded !== 'object' || Array.isArray(encoded)) {
+    throw createCompactSaveError(fieldName, 'sparse payload must be an object');
+  }
+  if (encoded.encoding !== COMPACT_BUS_STOP_ENCODING || encoded.width !== width || encoded.height !== height) {
+    throw createCompactSaveError(fieldName, 'unsupported encoding or dimensions');
+  }
+  if (!Array.isArray(encoded.entries) || encoded.entries.length > total) {
+    throw createCompactSaveError(fieldName, 'invalid sparse entry list');
+  }
+
+  const result = emptyMap();
+  let previousIndex = -1;
+  encoded.entries.forEach((entry, entryNumber) => {
+    if (!Array.isArray(entry) || entry.length !== 2) {
+      throw createCompactSaveError(fieldName, `invalid entry ${entryNumber}`);
+    }
+    const [index, sidesStr] = entry;
+    if (!Number.isInteger(index) || index < 0 || index >= total || index <= previousIndex) {
+      throw createCompactSaveError(fieldName, `invalid or duplicate index in entry ${entryNumber}`);
+    }
+    const sides = normalizeCompactBusStopSides(
+      typeof sidesStr === 'string' ? sidesStr.split('') : null,
+      fieldName,
+      `entry ${entryNumber}`,
+    );
+    result[Math.floor(index / width)][index % width] = sides;
+    previousIndex = index;
+  });
+  return result;
+}
+
 function decodeSaveDataForLoad(rawSave) {
   if (!rawSave || typeof rawSave !== 'object' || Array.isArray(rawSave)) {
     throw createCompactSaveError('save', 'save payload must be an object');
@@ -435,6 +502,7 @@ function decodeSaveDataForLoad(rawSave) {
     zoneMap: decodeCompactRleMap(rawSave.zoneMap, 'zoneMap'),
     zoneDensityMap: decodeCompactRleMap(rawSave.zoneDensityMap, 'zoneDensityMap'),
     treeMap: decodeCompactTreeMap(rawSave.treeMap),
+    busStopMap: decodeCompactBusStopMap(rawSave.busStopMap),
   };
 }
 
@@ -541,6 +609,7 @@ function buildSavePayload({ autosave = false, manualSaveId = currentSaveId } = {
       zoneDensityMap: encodeCompactRleMap(zoneDensityMap, 'zoneDensityMap'),
       treeVersion:   TREE_SYSTEM_VERSION,
       treeMap:       encodeCompactTreeMap(treeMap),
+      busStopMap:    encodeCompactBusStopMap(busStopMap),
       buildingData,
       powerSources:  Array.from(powerSources),
       powerLineSet:  Array.from(powerLineSet),
@@ -1179,6 +1248,17 @@ function restoreOrGenerateTrees(scene, save) {
   }
 }
 
+function restoreBusStopMap(save) {
+  busStopMap = createFilledMap(null);
+  if (!Array.isArray(save?.busStopMap)) return;
+  for (let r = 0; r < MAP_HEIGHT; r++) {
+    for (let c = 0; c < MAP_WIDTH; c++) {
+      const sides = (save.busStopMap[r] ?? [])[c];
+      busStopMap[r][c] = Array.isArray(sides) && sides.length ? sides : null;
+    }
+  }
+}
+
 // ── Apply save data to the running scene ──────────────────────────────────────
 
 function applySaveData(scene, save) {
@@ -1265,6 +1345,7 @@ function applySaveData(scene, save) {
   // Restore building data
   Object.assign(buildingData, save.buildingData ?? {});
   restoreOrGenerateTrees(scene, save);
+  restoreBusStopMap(save);
 
   // Rebuild Phaser sprites
   rebuildSceneFromSave(scene, save);
@@ -1370,6 +1451,7 @@ function rebuildSceneFromSave(scene, save) {
   });
 
   if (typeof rebuildTreeSprites === 'function') rebuildTreeSprites(scene);
+  if (typeof rebuildBusStopSprites === 'function') rebuildBusStopSprites(scene);
   if (typeof rebuildDistrictSignSprites === 'function') rebuildDistrictSignSprites(scene);
   if (typeof sortWorldRenderLayers === 'function') sortWorldRenderLayers(scene);
 }

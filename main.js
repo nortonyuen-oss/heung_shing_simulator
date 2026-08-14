@@ -524,6 +524,7 @@ function updateSpriteViewportCulling(scene, bounds) {
   };
   collect(cullSpriteMapEntries(scene.buildingSprites, bounds, seen));
   collect(cullSpriteMapEntries(scene.treeSprites, bounds, seen));
+  collect(cullSpriteMapEntries(scene.busStopSprites, bounds, seen));
   collect(cullSpriteMapEntries(scene.zoneOverlays, bounds, seen));
   collect(cullSpriteMapEntries(scene.powerLineSprites, bounds, seen));
   collect(cullSpriteMapEntries(scene.bridgeSprites, bounds, seen));
@@ -1847,6 +1848,12 @@ function preload() {
     const key = `tree${String(i).padStart(2, '0')}`;
     this.load.image(key, resolveModelAssetPath(`Models/trees/${key}.png`));
   }
+
+  // Bus stop shoulder props (decorative road prop, see BUS_STOP_* constants)
+  this.load.image('bus_stop_ur', resolveModelAssetPath('Models/busStop/busStop_UR.png'));
+  this.load.image('bus_stop_ul', resolveModelAssetPath('Models/busStop/busStop_UL.png'));
+  this.load.image('bus_stop_ll', resolveModelAssetPath('Models/busStop/busStop_LL.png'));
+  this.load.image('bus_stop_lr', resolveModelAssetPath('Models/busStop/busStop_LR.png'));
 }
 
 function create() {
@@ -1877,6 +1884,7 @@ function create() {
   this.powerLineSprites = new Map();
   this.bridgeSprites = new Map();
   this.treeSprites = new Map();
+  this.busStopSprites = new Map();
   this.districtSignSprites = new Map();
   if (this.renderer instanceof Phaser.Renderer.WebGL.WebGLRenderer) {
     this.renderer.pipelines.add('TreeAlphaPipeline', new TreeAlphaPipeline(this.game));
@@ -1934,6 +1942,7 @@ function create() {
   resetGameState();
   generateInitialTrees(this);
   rebuildTreeSprites(this);
+  rebuildBusStopSprites(this);
 
   this.weatherOverlay = this.add.rectangle(0, 0, this.scale.width, this.scale.height, 0x0a1428, 1);
   this.weatherOverlay.setOrigin(0, 0);
@@ -1975,6 +1984,11 @@ function create() {
   this.inspectHighlightGraphic = this.add.graphics();
   addToRenderLayer(this, this.inspectHighlightGraphic, 'effectLayer');
   this.inspectHighlightGraphic.setDepth(getPreviewOverlayDepth(1));
+
+  // Bus-stop tool hover highlight (green/red diamond under the cursor)
+  this.busStopHighlightGraphic = this.add.graphics();
+  addToRenderLayer(this, this.busStopHighlightGraphic, 'effectLayer');
+  this.busStopHighlightGraphic.setDepth(getPreviewOverlayDepth(1));
 
   // Paint roads on left click; start panning on right click.
   this.input.on('pointerdown', (pointer) => {
@@ -2060,6 +2074,16 @@ function create() {
     } else {
       lastInspectTile = null;
       if (this.inspectHighlightGraphic) this.inspectHighlightGraphic.clear();
+    }
+
+    // Bus-stop highlight — green (placeable) / red (blocked) diamond on the
+    // hovered tile, same pattern as the inspect highlight above.
+    if (selectedTool === 'bus-stop') {
+      const cur = pointerToTile(this, pointer);
+      if (cur) drawBusStopHighlight(this, cur.row, cur.col);
+      else if (this.busStopHighlightGraphic) this.busStopHighlightGraphic.clear();
+    } else if (this.busStopHighlightGraphic) {
+      this.busStopHighlightGraphic.clear();
     }
 
     hideTileDebug();
@@ -3098,6 +3122,8 @@ function positionAllTiles(scene) {
   scene.treeSprites?.forEach((sprites) => {
     sprites.forEach((sprite) => positionTree(scene, sprite));
   });
+
+  scene.busStopSprites?.forEach((sprite) => positionBusStopSprite(scene, sprite));
 
   if (typeof repositionDistrictSignSprites === 'function') repositionDistrictSignSprites(scene);
 
@@ -4254,7 +4280,8 @@ function isNewToolHandledByToolsModule(tool) {
     || tool === 'park-large'
     || tool === 'sports-ground'
     || tool === 'tree'
-    || tool === 'district-sign';
+    || tool === 'district-sign'
+    || tool === 'bus-stop';
 }
 
 function getSelectedPlacementFootprint() {
@@ -4371,6 +4398,7 @@ function applyToolAt(scene, row, col, pointer = null) {
     if (typeof removeDistrictSignAt === 'function') removeDistrictSignAt(scene, row, col);
     removeBuilding(scene, row, col);
     removeTree(scene, row, col);
+    removeBusStopsAt(scene, row, col);
     removeZoneOverlay(scene, row, col);
     if (!heightMap[row]) heightMap[row] = [];
     const bulldozeHeight = getTileHeight(row, col);
@@ -5312,6 +5340,27 @@ function drawInspectHighlight(scene, row, col) {
   g.strokePath();
 }
 
+// ── Bus-stop hover highlight (green = placeable, red = blocked) ───────────────
+
+function drawBusStopHighlight(scene, row, col) {
+  const g = scene.busStopHighlightGraphic;
+  if (!g) return;
+  g.clear();
+  const canPlace = Boolean(getBusStopEligibleSides(row, col));
+  const geom = getTileFaceGeometry(row, col, scene.offsetX, scene.offsetY);
+  const color = canPlace ? 0x22c78a : 0xff4d4d;
+  g.fillStyle(color, 0.22);
+  g.lineStyle(2, color, 0.95);
+  g.beginPath();
+  g.moveTo(geom.top.x, geom.top.y);
+  g.lineTo(geom.right.x, geom.right.y);
+  g.lineTo(geom.bottom.x, geom.bottom.y);
+  g.lineTo(geom.left.x, geom.left.y);
+  g.closePath();
+  g.fillPath();
+  g.strokePath();
+}
+
 // ── Zone selection preview (coloured ISO rect during drag) ────────────────────
 
 function drawZoneSelectionPreview(scene, start, end) {
@@ -5944,6 +5993,7 @@ function refreshTileArea(scene, row, col) {
     sprite.setDepth(getTerrainTileDepth(tileRow, tileCol, key, pos.y));
     applyTileVisualStyle(sprite, tileRow, tileCol, key);
     refreshBridgeSprite(scene, tileRow, tileCol);
+    invalidateBusStopIfOrphaned(scene, tileRow, tileCol);
   });
 
   scheduleTerrainMiniMapUpdate();
@@ -6332,6 +6382,192 @@ function getTreeVisualOffset(tree) {
 
 function fract(value) {
   return value - Math.floor(value);
+}
+
+// ── Bus stops (decorative road-shoulder prop; no simulation effect) ───────────
+// Orientation logic mirrors getHarborVisualKey/getBridgeRampVisualDirection:
+// a bus stop is stored against the *raw* (rotation-invariant) mapData edge
+// ('n'|'e'|'s'|'w') it sits on, not the screen corner. At render time the raw
+// edge is rotated through rotateDirection(rawSide, mapRotation) into the
+// current screen corner (n→UR, e→LR, s→LL, w→UL — same convention as
+// getHarborVisualKey), so a placed stop stays on the correct physical road
+// shoulder no matter how the player has rotated the view.
+const BUS_STOP_ROAD_ORIENTATIONS = {
+  road_straight_v: ['n', 's'], // UR/LL diagonal at the current rotation
+  road_straight_h: ['w', 'e'], // UL/LR diagonal at the current rotation
+};
+
+// Uses the *unrotated* base key, not getTileKey() — eligibility and which raw
+// side a click resolves to must depend only on the tile's true grid
+// connectivity, never on what the camera's rotation happened to be at click
+// time (getTileKey's road_straight_v/h swap with mapRotation; getBaseTileKey
+// doesn't). Storing a rotation-dependent raw side was why placement went
+// inconsistent after rotating the view — same mistake getHarborWaterSides
+// avoids by reading raw mapData neighbours before any rotateDirection call.
+function getBusStopEligibleSides(row, col) {
+  return BUS_STOP_ROAD_ORIENTATIONS[getBaseTileKey(row, col)] ?? null;
+}
+
+function getBusStopVisualCorner(rawSide) {
+  const visual = rotateDirection(rawSide, mapRotation);
+  return BUS_STOP_RAW_SIDE_TO_VISUAL_CORNER[visual] ?? 'ur';
+}
+
+// The texture corner (above) picks which of the 4 fixed images to show, per
+// the N-S->UR/LL, E-W->UL/LR convention. But that corner's edge is the
+// *lengthwise* one — where the road continues into the next tile — not where
+// the sidewalk actually is. The sidewalk runs along the perpendicular pair of
+// edges instead, so positioning uses a different corner from the one that
+// picked the texture: flip only the vertical half (U<->L) and keep the
+// horizontal half (L/R) fixed, which maps each texture corner to its
+// perpendicular neighbour (ur<->ul, ll<->lr).
+const BUS_STOP_ANCHOR_CORNER_FROM_TEXTURE_CORNER = { ur: 'ul', ul: 'ur', ll: 'lr', lr: 'll' };
+
+function getBusStopAnchorCorner(rawSide) {
+  const textureCorner = getBusStopVisualCorner(rawSide);
+  return BUS_STOP_ANCHOR_CORNER_FROM_TEXTURE_CORNER[textureCorner] ?? textureCorner;
+}
+
+function getBusStopSpriteId(row, col, rawSide) {
+  return `${getTileId(row, col)}:${rawSide}`;
+}
+
+function getBusStopSides(row, col) {
+  return busStopMap[row]?.[col] ?? null;
+}
+
+// Anchors a corner ('ur'|'lr'|'ll'|'ul') toward that edge of the tile's
+// actual rendered face — the same polygon pointerToTile()/
+// getTileFaceVertices() hit-test against — rather than re-deriving screen
+// position from isoToScreen()+TILE_HEIGHT/2 by hand. That hand-rolled version
+// used a different vertical reference point than the terrain sprite's own
+// (which subtracts TILE_IMAGE_HEIGHT to find the face's top vertex) and ended
+// up tens of pixels off, landing the prop on a neighbouring tile.
+//
+// The point is a fixed per-corner pixel offset from the tile centre (see
+// BUS_STOP_ANCHOR_OFFSETS, constants.js), hand-tuned via the bus-stop
+// calibrator so the sprite sits on the pavement shoulder rather than the
+// driveway or a neighbouring tile.
+function getBusStopAnchorPoint(row, col, corner, offsetX, offsetY) {
+  const geo = getTileFaceGeometry(row, col, offsetX, offsetY);
+  // bus-stop-calibrator.js (test-mode dev tool): a corner dragged this
+  // session overrides the shipped default below entirely.
+  const override = typeof getBusStopCalibrationOverride === 'function'
+    ? getBusStopCalibrationOverride(corner)
+    : null;
+  const offset = override ?? BUS_STOP_ANCHOR_OFFSETS[corner] ?? BUS_STOP_ANCHOR_OFFSETS.ur;
+  return { x: geo.center.x + offset.dx, y: geo.center.y + offset.dy };
+}
+
+// Depth-sorts a bus stop exactly like a 1x1-footprint building (footprintCols/
+// Rows = 1, so getBuildingSortDepth's footprintDepthBias is 0) rather than
+// getObjectTileDepth's plain tile-Y. getBusStopAnchorPoint's edge-midpoint
+// already subtracts TILE_IMAGE_HEIGHT (for correct on-screen positioning),
+// which getObjectTileDepth doesn't know about and buildings' own +TILE_HEIGHT
+// bump doesn't either — using it for depth too under-ranked bus stops by
+// roughly TILE_IMAGE_HEIGHT + TILE_HEIGHT versus a building at the same tile,
+// so a nearby large building would render in front of and cover it.
+function getBusStopSortDepth(row, col) {
+  const rawY = isoToScreen(col, row).y;
+  return getBuildingSortDepth(rawY, 1, 1, getElevationVisualOffset(row, col));
+}
+
+function placeBusStopSprite(scene, row, col, rawSide) {
+  if (!scene?.add || !scene.busStopSprites) return null;
+  const corner = getBusStopVisualCorner(rawSide);
+  const anchorCorner = getBusStopAnchorCorner(rawSide);
+  const anchor = getBusStopAnchorPoint(row, col, anchorCorner, scene.offsetX, scene.offsetY);
+  const sprite = scene.add.image(anchor.x, anchor.y, `bus_stop_${corner}`);
+  addToRenderLayer(scene, sprite, 'objectLayer');
+  sprite.setOrigin(0.5, 1);
+  sprite.setScale(BUS_STOP_SCALE);
+  sprite.setDepth(getBusStopSortDepth(row, col));
+  sprite.setMask(scene.worldMask);
+  sprite.mapRow = row;
+  sprite.mapCol = col;
+  sprite.busStopRawSide = rawSide;
+  scene.busStopSprites.set(getBusStopSpriteId(row, col, rawSide), sprite);
+  sortRenderLayer(scene, 'objectLayer');
+  // bus-stop-calibrator.js: a stop placed while the calibrator is open should
+  // be draggable immediately too, not just the ones that existed when it opened.
+  if (typeof isBusStopCalibrationActive === 'function' && isBusStopCalibrationActive()
+    && typeof makeBusStopSpriteDraggable === 'function') {
+    makeBusStopSpriteDraggable(scene, sprite);
+  }
+  return sprite;
+}
+
+function positionBusStopSprite(scene, sprite) {
+  if (!sprite) return;
+  const row = sprite.mapRow;
+  const col = sprite.mapCol;
+  const corner = getBusStopVisualCorner(sprite.busStopRawSide);
+  const textureKey = `bus_stop_${corner}`;
+  if (sprite.texture?.key !== textureKey) sprite.setTexture(textureKey);
+  const anchorCorner = getBusStopAnchorCorner(sprite.busStopRawSide);
+  const anchor = getBusStopAnchorPoint(row, col, anchorCorner, scene.offsetX, scene.offsetY);
+  sprite.setOrigin(0.5, 1);
+  sprite.setPosition(anchor.x, anchor.y);
+  sprite.setDepth(getBusStopSortDepth(row, col));
+}
+
+function refreshBusStopSpriteAt(scene, row, col) {
+  ['n', 'e', 's', 'w'].forEach((side) => {
+    const key = getBusStopSpriteId(row, col, side);
+    const existing = scene?.busStopSprites?.get(key);
+    if (existing) {
+      existing.destroy();
+      scene.busStopSprites.delete(key);
+    }
+  });
+  const sides = getBusStopSides(row, col);
+  if (!sides || !scene) return;
+  sides.forEach((side) => placeBusStopSprite(scene, row, col, side));
+}
+
+// Replaces a tile's full shoulder set — used by placeBusStop's (tools.js)
+// none->left->right->both->none click cycle. Pass [] to clear.
+function setBusStopSides(row, col, sides) {
+  if (!busStopMap[row]) busStopMap[row] = [];
+  busStopMap[row][col] = sides.length ? sides : null;
+}
+
+function removeBusStopsAt(scene, row, col) {
+  if (!isInsideMap(row, col) || !busStopMap[row]?.[col]) return false;
+  busStopMap[row][col] = null;
+  ['n', 'e', 's', 'w'].forEach((side) => {
+    const key = getBusStopSpriteId(row, col, side);
+    const sprite = scene?.busStopSprites?.get(key);
+    if (sprite) {
+      sprite.destroy();
+      scene.busStopSprites.delete(key);
+    }
+  });
+  return true;
+}
+
+// Called from refreshTileArea for every tile whose road shape may just have
+// changed (new/removed neighbouring road, bulldoze, terrain edit). A bus stop
+// only makes sense on a straight road shoulder — if the tile no longer
+// qualifies, drop it rather than leave it floating on a corner/T/cross tile.
+function invalidateBusStopIfOrphaned(scene, row, col) {
+  if (!busStopMap[row]?.[col]) return;
+  if (getBusStopEligibleSides(row, col)) return;
+  removeBusStopsAt(scene, row, col);
+}
+
+function clearBusStopSprites(scene) {
+  scene?.busStopSprites?.forEach((sprite) => sprite.destroy());
+  scene?.busStopSprites?.clear();
+}
+
+function rebuildBusStopSprites(scene) {
+  clearBusStopSprites(scene);
+  for (let row = 0; row < MAP_HEIGHT; row++) {
+    for (let col = 0; col < MAP_WIDTH; col++) {
+      if (busStopMap[row]?.[col]) refreshBusStopSpriteAt(scene, row, col);
+    }
+  }
 }
 
 function isMatureTree(tree) {
@@ -9030,6 +9266,7 @@ function fullReset(scene) {
     generateInitialTrees(scene);
     rebuildTreeSprites(scene);
   }
+  rebuildBusStopSprites(scene);
   stopSimTimer();
   startSimTimer();
   updateHUD();

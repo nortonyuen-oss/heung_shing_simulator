@@ -19,6 +19,7 @@ function runEconomyProfiledStep(scene, section, action) {
 
 function runEconomy(scene) {
   if (city.tick % TICKS_PER_MONTH !== 0) return;
+  if (typeof settleTransportMonth === 'function') settleTransportMonth();
   runEconomyProfiledStep(scene, 'preparation', () => {
     normalizeCityFinanceState();
     updateScienceParkUnlockState();

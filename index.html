@@ -5712,6 +5712,7 @@
           <button class="menu-drop-item" data-menu-action="open-road-tile-set" data-i18n="menu.roadTileSet">Road Tile Set…</button>
           <button class="menu-drop-item" data-menu-action="toggle-auto-replace-plants" id="menu-auto-replace-plants" data-i18n="menu.autoReplacePowerPlants">Auto-replace aged power plants</button>
           <button class="menu-drop-item" data-menu-action="open-ai-news-settings" id="menu-ai-news" data-i18n="menu.aiNews">AI News…</button>
+          <button class="menu-drop-item" data-menu-action="toggle-transport-expansion" id="menu-transport-expansion" data-i18n="transport.menu.toggle">Enable Public Transport Expansion</button>
           <div class="menu-hr"></div>
           <div class="menu-drop-empty" data-i18n="menu.language">Language</div>
           <button class="menu-drop-item" data-menu-action="language-en" id="menu-lang-en">English</button>
@@ -6008,6 +6009,10 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
           <option value="preset" data-i18n="landing.terrainSourcePreset">Saved terrain preset</option>
         </select>
         <select id="newgame-road-tile-set" class="landing-form-select" aria-label="Road tile set" data-i18n-aria="landing.roadTileSet"></select>
+        <label class="landing-form-hint" style="display:flex; align-items:center; gap:8px; cursor:pointer">
+          <input id="newgame-transport-expansion" type="checkbox" />
+          <span data-i18n="transport.newCity.enable">Enable Public Transport Expansion</span>
+        </label>
         <select id="newgame-terrain-preset" class="landing-form-select" aria-label="Saved terrain preset" data-i18n-aria="landing.terrainPresetSelect" style="display:none">
           <option value="" data-i18n="landing.terrainPresetLoading">Loading terrain presets…</option>
         </select>
@@ -6172,6 +6177,9 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
       </button>
       <button class="tool-row" type="button" data-tool="bus-depot" title="Bus depot ($4,000) — click a placed depot again to rotate it">
         <span class="tool-row-icon">🚌</span><span class="tool-row-text" data-i18n="toolRow.busDepot">Bus Depot</span><span class="tool-row-cost">$4,000</span>
+      </button>
+      <button class="tool-row" type="button" data-action="open-transport-network">
+        <span class="tool-row-icon">📋</span><span class="tool-row-text" data-i18n="transport.manage">Manage Bus Network</span>
       </button>
     </section>
 
@@ -6704,6 +6712,7 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
             <tr><th data-i18n="budget.industrialTax">Industrial tax</th><td id="budget-income-industrial">$0</td></tr>
             <tr><th data-i18n="budget.policyAdjustment">Policy adjustment</th><td id="budget-income-policy-adjust">$0</td></tr>
             <tr><th data-i18n="budget.tourismIncome">Tourism income</th><td id="budget-income-tourism">$0</td></tr>
+            <tr><th data-i18n="transport.finance.revenue">Bus fare revenue</th><td id="budget-income-transport">$0</td></tr>
             <tr class="budget-total-row"><th data-i18n="budget.totalIncome">Total income</th><td id="budget-income-total">$0</td></tr>
           </tbody>
         </table>
@@ -6721,6 +6730,7 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
             <tr><th data-i18n="budget.parks">Parks</th><td id="budget-expense-parks">$0</td></tr>
             <tr><th data-i18n="budget.policyCost">Policy cost</th><td id="budget-expense-policy">$0</td></tr>
             <tr><th data-i18n="budget.loanCost">Loan cost</th><td id="budget-expense-loans">$0</td></tr>
+            <tr><th data-i18n="transport.finance.cost">Bus operations and depot upkeep</th><td id="budget-expense-transport">$0</td></tr>
             <tr class="budget-total-row"><th data-i18n="budget.totalExpenses">Total expenses</th><td id="budget-expense-total">$0</td></tr>
           </tbody>
         </table>
@@ -7037,9 +7047,9 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
   <!-- Script load order:
        i18n → constants → council definitions/state → road-tile-sets → city-state → weather/citizens/AI news → model-catalog → map-utils
        → simulation → sim-infrastructure → sim-growth → sim-economy
-       → tools → hud-helpers → hud → hud-ticker → save → topbar
-       → real-city-coastline-masks → main
-       → tool-menu → chart-window → overlay-controls → inspect-panel
+       → tools → hud-helpers → hud → hud-ticker → save → topbar → real-city masks
+       → traffic visuals → transport expansion/visuals → vessel/aircraft visuals → main
+       → tool-menu → transport UI → chart-window → overlay-controls → inspect-panel
        → terrain-presets → landing-screen -->
   <script src="i18n.js"></script>
   <script src="constants.js"></script>
@@ -7078,6 +7088,8 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
   <script src="topbar.js"></script>
   <script src="real-city-coastline-masks.js"></script>
   <script src="traffic-visuals.js"></script>
+  <script src="transport-expansion.js"></script>
+  <script src="transport-visuals.js"></script>
   <script src="vessel-route-metadata.js"></script>
   <script src="visual-route-calibrator.js"></script>
   <script src="airport-route-calibrator.js"></script>
@@ -7087,6 +7099,7 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
   <script src="aircraft-visuals.js"></script>
   <script src="main.js"></script>
   <script src="tool-menu.js"></script>
+  <script src="transport-ui.js"></script>
   <script src="chart-window.js"></script>
   <script src="overlay-controls.js"></script>
   <script src="inspect-panel.js"></script>

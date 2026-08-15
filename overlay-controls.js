@@ -876,6 +876,9 @@ function composeLandValueMap(canopy, pollution, influenceMaps) {
       val += getScenicValue(r, c) * SCENIC_LAND_VALUE_BONUS_MAX;
     }
     val += landmarkBonus[r]?.[c] ?? 0;
+    if (typeof getTransportLandValueBonus === 'function') {
+      val += getTransportLandValueBonus(r, c);
+    }
     val -= (pollution[r]?.[c] ?? 0) * 0.35;
     val -= (nuisance[r]?.[c] ?? 0) * 0.22;
     map[r][c] = Math.max(0, Math.min(1, val));

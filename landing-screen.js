@@ -490,6 +490,7 @@ async function startNewGame(cityName) {
   const terrainSourceSelect = document.getElementById('newgame-terrain-source');
   const terrainPresetSelect = document.getElementById('newgame-terrain-preset');
   const roadTileSetSelect = document.getElementById('newgame-road-tile-set');
+  const transportExpansionCheckbox = document.getElementById('newgame-transport-expansion');
   const source = terrainSourceSelect?.value || 'random';
 
   stopSimTimer();
@@ -543,6 +544,12 @@ async function startNewGame(cityName) {
   else if (typeof currentSaveId !== 'undefined') currentSaveId = null;
 
   rebuildFreshMapSession(cityName || getDefaultCityName());
+  if (typeof setExpansionEnabled === 'function') {
+    setExpansionEnabled('transport', transportExpansionCheckbox?.checked === true, {
+      notify: false,
+      autosave: false,
+    });
+  }
   // New games always start at 1x (speed is not persisted/carried over).
   if (typeof resetGameClockAccumulator === 'function') resetGameClockAccumulator();
   if (typeof setGameSpeed === 'function') setGameSpeed(GAME_SPEEDS.NORMAL);

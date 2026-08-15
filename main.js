@@ -307,6 +307,7 @@ function setGameWorldVisible(visible) {
   scene.scene.setVisible(shouldShow);
   if (!shouldShow) {
     if (typeof clearTrafficVisuals === 'function') clearTrafficVisuals(scene);
+    if (typeof clearTransportVisuals === 'function') clearTransportVisuals(scene);
     if (typeof clearVesselVisuals === 'function') clearVesselVisuals(scene);
     if (typeof clearAircraftVisuals === 'function') clearAircraftVisuals(scene);
     return;
@@ -314,6 +315,9 @@ function setGameWorldVisible(visible) {
   updateTerrainViewportCulling(scene, true);
   if (typeof invalidateTrafficVisualView === 'function') {
     invalidateTrafficVisualView(scene, true);
+  }
+  if (typeof invalidateTransportVisuals === 'function') {
+    invalidateTransportVisuals(scene, true);
   }
   if (typeof invalidateVesselVisualView === 'function') {
     invalidateVesselVisualView(scene, true);
@@ -544,6 +548,7 @@ function updateGameFrame(time, delta) {
     && isVisualRouteCalibrationTestModeEnabled()
     && typeof recordVisualRoutePerformanceDuration === 'function';
   let sectionStartedAt = profileSections ? performance.now() : 0;
+  if (typeof updateTransportVisuals === 'function') updateTransportVisuals.call(this, time, delta);
   updateTrafficVisuals.call(this, time, delta);
   if (profileSections) {
     recordVisualRoutePerformanceDuration(this, 'traffic', performance.now() - sectionStartedAt);
@@ -1901,6 +1906,7 @@ function create() {
   const worldMask = maskGraphics.createGeometryMask();
   this.worldMask = worldMask;
   setupTrafficVisuals(this);
+  if (typeof setupTransportVisuals === 'function') setupTransportVisuals(this);
   setupVesselVisuals(this);
   setupAircraftVisuals(this);
 
@@ -1961,6 +1967,7 @@ function create() {
     drawWorldMask(this);
     positionAllTiles(this);
     invalidateTrafficVisualView(this, true);
+    if (typeof invalidateTransportVisuals === 'function') invalidateTransportVisuals(this, true);
     invalidateVesselVisualView(this, true);
     ensurePreviewOverlayDepth(this);
     syncWeatherFxToCamera(this);
@@ -1999,6 +2006,13 @@ function create() {
     if (typeof isVisualRouteCalibrationInputCaptured === 'function'
       && isVisualRouteCalibrationInputCaptured(this)) return;
     if (pointer.button === 0) {
+      if (typeof isTransportRoutePicking === 'function' && isTransportRoutePicking()) {
+        const routeStopTile = pointerToTile(this, pointer);
+        if (routeStopTile && typeof handleTransportRouteMapClick === 'function') {
+          handleTransportRouteMapClick(routeStopTile.row, routeStopTile.col);
+        }
+        return;
+      }
       isPainting = true;
       const startTile = pointerToTile(this, pointer);
       dragStartTile = startTile ? { row: startTile.row, col: startTile.col } : null;
@@ -2520,7 +2534,7 @@ function evictUnusedZoneTextures(scene) {
   if (!scene?.textures) return;
   const models = getAllZoneModels();
   const loaded = models.flatMap((model) => {
-    const source = scene.textures.get(model.key)?.getSourceImage();
+    const source = getLoadedZoneModelSource(scene, model);
     if (!source) return [];
     const isPowerOfTwo = (value) => value > 0 && (value & (value - 1)) === 0;
     const mipmapMultiplier = isPowerOfTwo(source.width) && isPowerOfTwo(source.height)
@@ -3161,9 +3175,19 @@ function finalizeZoneModelMetadata(model, metadata) {
   return finalized;
 }
 
+function getLoadedZoneModelSource(scene, model) {
+  // Zone art is deliberately lazy-loaded. Phaser's TextureManager#get logs a
+  // "No texture found" warning when a key is merely not resident yet, so an
+  // existence check is part of the normal control flow rather than an error
+  // condition. It also prevents metadata/LRU scans from receiving the shared
+  // missing-texture placeholder as though it were the requested model.
+  if (!model?.key || !scene?.textures?.exists?.(model.key)) return null;
+  return scene.textures.get(model.key)?.getSourceImage?.() ?? null;
+}
+
 function prepareHouseModelMetadata(scene) {
   Object.values(houseModelSets).flat().forEach((model) => {
-    const source = scene.textures.get(model.key)?.getSourceImage();
+    const source = getLoadedZoneModelSource(scene, model);
     if (!source) return;
 
     const cached = getCachedModelMetadata(model, source);
@@ -3189,7 +3213,7 @@ function prepareHouseModelMetadata(scene) {
 
 function prepareCommercialBuildingModelMetadata(scene) {
   commercialBuildingModels.forEach((model) => {
-    const source = scene.textures.get(model.key)?.getSourceImage();
+    const source = getLoadedZoneModelSource(scene, model);
     if (!source) return;
 
     const cached = getCachedModelMetadata(model, source);
@@ -3214,7 +3238,7 @@ function prepareCommercialBuildingModelMetadata(scene) {
 
 function prepareIndustrialBuildingModelMetadata(scene) {
   industrialBuildingModels.forEach((model) => {
-    const source = scene.textures.get(model.key)?.getSourceImage();
+    const source = getLoadedZoneModelSource(scene, model);
     if (!source) return;
 
     const cached = getCachedModelMetadata(model, source);
@@ -4120,6 +4144,11 @@ function removeBuilding(scene, row, col, options = {}) {
     markPowerGridDirty();
     if (SERVICE_BUILDING_TYPES.has(record.type)) markServiceCoverageDirty();
     invalidateBuildingCountCache();
+    if (record.type === 'bus_depot' && typeof markTransportNetworkDirty === 'function') {
+      markTransportNetworkDirty();
+    } else if (typeof markTransportDemandDirty === 'function') {
+      markTransportDemandDirty();
+    }
   }
   if (removedHarborSide) rebuildHarborFrontageTileCache();
 
@@ -4380,7 +4409,7 @@ function getSelectedPlacementFootprint() {
 
 function shouldShowBuildingPlacementGuide(pointer) {
   if (isPainting || selectedTool === 'inspect') return false;
-  if (pointer.event?.target?.closest('#tool-menu, #hud, #budget-panel, #budget-window, #road-tile-set-window, #toast-container, #speed-controls, #top-bar, .sim-dialog, #jukebox-window, #rotate-cluster, #overlay-window, #inspect-panel, #terrain-minimap-panel')) {
+  if (pointer.event?.target?.closest('#tool-menu, #hud, #budget-panel, #budget-window, #road-tile-set-window, #transport-window, #toast-container, #speed-controls, #top-bar, .sim-dialog, #jukebox-window, #rotate-cluster, #overlay-window, #inspect-panel, #terrain-minimap-panel')) {
     return false;
   }
   return Boolean(getSelectedPlacementFootprint());
@@ -4438,7 +4467,7 @@ function applyToolAt(scene, row, col, pointer = null) {
     }
     reconcileSurfaceTerrainFromHeight(row, col, 2);
     refreshTileArea(scene, row, col);
-    if (typeof markTrafficNetworkDirty === 'function') markTrafficNetworkDirty();
+    if (typeof markTrafficNetworkDirty === 'function') markTrafficNetworkDirty([{ row, col }]);
     return;
   }
 
@@ -4781,7 +4810,7 @@ function applyFlattenTerrain(scene, row, col, radius = 1) {
 }
 
 function applySelectedTool(scene, pointer) {
-  if (pointer.event?.target?.closest('#tool-menu, #hud, #budget-panel, #budget-window, #road-tile-set-window, #toast-container, #speed-controls, #top-bar, .sim-dialog, #jukebox-window, #rotate-cluster, #overlay-window, #inspect-panel, #terrain-minimap-panel')) return;
+  if (pointer.event?.target?.closest('#tool-menu, #hud, #budget-panel, #budget-window, #road-tile-set-window, #transport-window, #toast-container, #speed-controls, #top-bar, .sim-dialog, #jukebox-window, #rotate-cluster, #overlay-window, #inspect-panel, #terrain-minimap-panel')) return;
 
   let tile = selectedTool === 'inspect'
     ? (resolveInspectTile(scene, pointer) ?? lastInspectTile)
@@ -5049,7 +5078,7 @@ function buildBridgePath(scene, bridge) {
 
   refreshTilesAlongPath(scene, path);
   refreshBridgeSpritesAlongPath(scene, path);
-  if (typeof markTrafficNetworkDirty === 'function') markTrafficNetworkDirty();
+  if (typeof markTrafficNetworkDirty === 'function') markTrafficNetworkDirty(path);
   if (typeof refreshInfrastructureEffects === 'function') refreshInfrastructureEffects(scene);
   if (typeof updateHUD === 'function') updateHUD();
 }
@@ -5997,7 +6026,7 @@ function setTileType(scene, row, col, tileType) {
   refreshTreeSprite(scene, row, col);
 
   markPowerGridDirty();
-  if (typeof markTrafficNetworkDirty === 'function') markTrafficNetworkDirty();
+  if (typeof markTrafficNetworkDirty === 'function') markTrafficNetworkDirty([{ row, col }]);
   if (tileType === ROAD && typeof refreshInfrastructureEffects === 'function') {
     refreshInfrastructureEffects(scene);
   }
@@ -6567,6 +6596,7 @@ function refreshBusStopSpriteAt(scene, row, col) {
 function setBusStopSides(row, col, sides) {
   if (!busStopMap[row]) busStopMap[row] = [];
   busStopMap[row][col] = sides.length ? sides : null;
+  if (typeof markTransportStopsDirty === 'function') markTransportStopsDirty([{ row, col }]);
 }
 
 function removeBusStopsAt(scene, row, col) {
@@ -6580,6 +6610,7 @@ function removeBusStopsAt(scene, row, col) {
       scene.busStopSprites.delete(key);
     }
   });
+  if (typeof markTransportStopsDirty === 'function') markTransportStopsDirty([{ row, col }]);
   return true;
 }
 
@@ -9320,6 +9351,7 @@ function rotateMap(scene, steps = 1) {
   const logicalCenter = worldToLogicalPoint(scene, centerBefore.x, centerBefore.y);
 
   clearTrafficVisuals(scene);
+  if (typeof clearTransportVisuals === 'function') clearTransportVisuals(scene);
   clearVesselVisuals(scene);
   clearAircraftVisuals(scene);
   mapRotation = ((mapRotation + steps) % 4 + 4) % 4;
@@ -9356,6 +9388,7 @@ function rotateMap(scene, steps = 1) {
 
 function fullReset(scene) {
   clearTrafficVisuals(scene);
+  if (typeof clearTransportVisuals === 'function') clearTransportVisuals(scene);
   clearVesselVisuals(scene);
   clearAircraftVisuals(scene);
   clearAllOverlays(scene);

@@ -138,6 +138,11 @@ function handleMenuAction(action) {
       city.autoReplacePowerPlants = !city.autoReplacePowerPlants;
       updateSettingsMenu();
       break;
+    case 'toggle-transport-expansion':
+      if (typeof toggleTransportExpansionForCity === 'function') {
+        toggleTransportExpansionForCity();
+      }
+      break;
     case 'toggle-district-signs':
       if (typeof setDistrictSignsVisible === 'function') {
         setDistrictSignsVisible(!areDistrictSignsVisible());
@@ -255,6 +260,8 @@ function updateSettingsMenu() {
     ?.classList.toggle('menu-checked', !!city.autoReplacePowerPlants);
   document.getElementById('menu-ai-news')
     ?.classList.toggle('menu-checked', typeof isAiNewsEnabled === 'function' && isAiNewsEnabled());
+  document.getElementById('menu-transport-expansion')
+    ?.classList.toggle('menu-checked', typeof isExpansionEnabled === 'function' && isExpansionEnabled('transport'));
   ['en', 'zhHant', 'ja'].forEach((language) => {
     document.getElementById(`menu-lang-${language}`)
       ?.classList.toggle('menu-checked', getCurrentLanguage() === language);

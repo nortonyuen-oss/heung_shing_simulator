@@ -609,7 +609,12 @@ function buildSavePayload({ autosave = false, manualSaveId = currentSaveId } = {
       zoneDensityMap: encodeCompactRleMap(zoneDensityMap, 'zoneDensityMap'),
       treeVersion:   TREE_SYSTEM_VERSION,
       treeMap:       encodeCompactTreeMap(treeMap),
-      busStopMap:    encodeCompactBusStopMap(busStopMap),
+      busStopMap:    encodeCompactBusStopMap(
+        typeof busStopMap === 'undefined'
+          ? Array.from({ length: MAP_HEIGHT }, () => Array(MAP_WIDTH).fill(null))
+          : busStopMap,
+      ),
+      expansions:    typeof getExpansionSaveState === 'function' ? getExpansionSaveState() : {},
       buildingData,
       powerSources:  Array.from(powerSources),
       powerLineSet:  Array.from(powerLineSet),
@@ -1264,6 +1269,7 @@ function restoreBusStopMap(save) {
 function applySaveData(scene, save) {
   stopSimTimer();
   if (typeof clearTrafficVisuals === 'function') clearTrafficVisuals(scene);
+  if (typeof clearTransportVisuals === 'function') clearTransportVisuals(scene);
   if (typeof clearVesselVisuals === 'function') clearVesselVisuals(scene);
   if (typeof clearAircraftVisuals === 'function') clearAircraftVisuals(scene);
 
@@ -1350,6 +1356,7 @@ function applySaveData(scene, save) {
   Object.assign(buildingData, save.buildingData ?? {});
   restoreOrGenerateTrees(scene, save);
   restoreBusStopMap(save);
+  if (typeof restoreExpansionState === 'function') restoreExpansionState(save.expansions);
 
   // Rebuild Phaser sprites
   rebuildSceneFromSave(scene, save);
@@ -1361,6 +1368,10 @@ function applySaveData(scene, save) {
   updatePowerGrid(scene);
   updateServiceCoverage();
   updatePopulationAndPollution();
+  if (typeof updateTransportSimulation === 'function') updateTransportSimulation();
+  if (typeof isTransportExpansionActive === 'function' && isTransportExpansionActive()) {
+    updateTrafficMap();
+  }
   computeHappiness(scene);
   updateDemand();
   refreshZoneOverlayTints(scene);

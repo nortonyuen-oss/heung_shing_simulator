@@ -29,6 +29,7 @@ function forEachSimulationZonedTile(action) {
 function runDailySystems(scene) {
   if (!scene) return;
   updateWeatherSimulation();
+  if (typeof recordTransportDailyAvailability === 'function') recordTransportDailyAvailability();
   updateWeatherVisualOverlay(scene);
 }
 
@@ -67,6 +68,9 @@ function runLegacyCitySimulationPulse(scene) {
   runProfiledStep('power', () => updatePowerGrid(scene));
   runProfiledStep('services', () => updateServiceCoverage());
   runProfiledStep('population', () => updatePopulationAndPollution());
+  runProfiledStep('transport', () => {
+    if (typeof updateTransportSimulation === 'function') updateTransportSimulation();
+  });
   runProfiledStep('traffic', () => updateTrafficMap());
   runProfiledStep('education', () => updateEducationLevels());
   runProfiledStep('crime', () => updateCrimeRateIndex());
@@ -528,6 +532,9 @@ function updateDemand() {
 
   // Severe congestion reduces customer foot traffic for commercial zones
   const congestionPenC = Math.max(0, congestion - 0.6) * 0.18;
+  const transportCommercialBonus = typeof getTransportCommercialDemandBonus === 'function'
+    ? getTransportCommercialDemandBonus()
+    : 0;
   city.demandC = clamp(
     consumerTerm + highEduLabourTerm + popBonus
     + 0.10 * city.happiness
@@ -541,6 +548,7 @@ function updateDemand() {
     + (isPolicyActive('elderlyTwoDollarFare') ? 0.035 : 0)
     + (isPolicyActive('arcticPenguinReserve') ? 0.018 : 0)
     + (typeof getCouncilTemporaryModifier === 'function' ? getCouncilTemporaryModifier('commercialDemand') : 0)
+    + transportCommercialBonus
     + (hasBuildingType('stock_exchange') ? 0.10 * hsiRatio : 0)
     + stockExchangeBoost
     - epidemicDemandPenalty * 0.08
@@ -728,11 +736,14 @@ function computeHappiness(scene) {
 
   const unemploymentHappinessPenalty = clamp(city.unemploymentRate ?? 0, 0, 1) * UNEMPLOYMENT_HAPPINESS_PENALTY;
   const landmarkHappinessBonus = typeof sumSpecialBuildingEffect === 'function' ? sumSpecialBuildingEffect('happinessBonus') : 0;
+  const transportHappinessBonus = typeof getTransportHappinessBonus === 'function'
+    ? getTransportHappinessBonus()
+    : 0;
   city.happiness = clamp(
     0.2 + 0.42 * poweredRatio + 0.18 * fireRatio + 0.18 * policeRatio + 0.22 * parkRatio
       + TREE_HAPPINESS_BONUS_MAX * treeRatio
       + SCENIC_HAPPINESS_BONUS_MAX * scenicRatio
-      + roadBonus + policyBonus + lawBonus + healthBonus + landmarkHappinessBonus
+      + roadBonus + policyBonus + lawBonus + healthBonus + landmarkHappinessBonus + transportHappinessBonus
       + (typeof getCouncilTemporaryModifier === 'function' ? getCouncilTemporaryModifier('happiness') : 0)
       + ridiculeMemeBonus
       - taxPenalty - pollPenalty - unemploymentHappinessPenalty - epidemicHappinessPenalty

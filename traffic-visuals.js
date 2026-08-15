@@ -797,6 +797,22 @@ function purgeSevereWeatherGroundedTraffic(state, weather) {
   state.dirty = true;
 }
 
+function purgeAmbientBusesForTransportExpansion(state) {
+  if (
+    !state?.vehicles?.length
+    || typeof isTransportExpansionActive !== 'function'
+    || !isTransportExpansionActive()
+  ) return;
+  const remaining = state.vehicles.filter((vehicle) => {
+    if (vehicle.model?.category !== 'bus') return true;
+    destroyTrafficVehicle(vehicle);
+    return false;
+  });
+  if (remaining.length === state.vehicles.length) return;
+  state.vehicles = remaining;
+  state.dirty = true;
+}
+
 function clearTrafficVisuals(scene) {
   const state = scene?.trafficVisualState;
   if (!state) return;
@@ -870,11 +886,27 @@ function getReadyTrafficModels(scene) {
   });
 }
 
-function evictTrafficModelsForCapacity(scene, state, incomingCount) {
-  const activeModelIds = new Set(state.vehicles.map((vehicle) => vehicle.model.id));
-  if (state.iceCreamEvent?.model?.id) {
-    activeModelIds.add(state.iceCreamEvent.model.id);
+function getPinnedTrafficModelIds(scene, state) {
+  const pinnedModelIds = new Set();
+  state?.vehicles?.forEach((vehicle) => {
+    if (vehicle?.model?.id) pinnedModelIds.add(vehicle.model.id);
+  });
+  if (state?.iceCreamEvent?.model?.id) {
+    pinnedModelIds.add(state.iceCreamEvent.model.id);
   }
+  // Managed route buses share the ambient traffic model registry and texture
+  // cache, but live in transportVisualState rather than state.vehicles. Keep
+  // their models resident too: removing one while its Phaser Image still
+  // references the old frame leaves frame.source null and freezes WebGL on the
+  // following render.
+  scene?.transportVisualState?.vehicles?.forEach((vehicle) => {
+    if (vehicle?.model?.id) pinnedModelIds.add(vehicle.model.id);
+  });
+  return pinnedModelIds;
+}
+
+function evictTrafficModelsForCapacity(scene, state, incomingCount) {
+  const activeModelIds = getPinnedTrafficModelIds(scene, state);
   const ready = getReadyTrafficModels(scene);
   let excess = Math.max(
     0,
@@ -1771,6 +1803,9 @@ function maybeRequestTrafficModelForSpawn(scene, time, random = Math.random) {
 function chooseTrafficModelForSpawn(scene, random = Math.random) {
   const state = getTrafficState(scene);
   let readyModels = getReadyTrafficModels(scene);
+  if (typeof isTransportExpansionActive === 'function' && isTransportExpansionActive()) {
+    readyModels = readyModels.filter((model) => model.category !== 'bus');
+  }
   const weather = typeof city === 'undefined' ? null : city.weather;
   if (isTrafficSevereWeather(weather)) {
     readyModels = readyModels.filter((model) => !TRAFFIC_SEVERE_WEATHER_GROUNDED_CATEGORIES.includes(model.category));
@@ -1861,7 +1896,10 @@ function refreshVisibleTraffic(scene, time) {
   const rect = getTrafficCameraRect(scene, TRAFFIC_VISUAL_CONFIG.viewportPaddingTiles);
   removeTrafficVehiclesOutside(scene, rect, time);
   const roads = collectVisibleTrafficRoads(scene, rect);
-  const target = computeTrafficVehicleTarget(roads.map((road) => road.load));
+  const managedCount = typeof getManagedTransportVehicleCount === 'function'
+    ? getManagedTransportVehicleCount(scene)
+    : 0;
+  const target = Math.max(0, computeTrafficVehicleTarget(roads.map((road) => road.load)) - managedCount);
 
   const excess = Math.max(0, state.vehicles.length - target);
   if (excess > 0) {
@@ -1937,6 +1975,7 @@ function updateTrafficVisuals(time, delta) {
   }
 
   purgeSevereWeatherGroundedTraffic(state, typeof city === 'undefined' ? null : city.weather);
+  purgeAmbientBusesForTransportExpansion(state);
 
   const paused = typeof simPaused !== 'undefined' && simPaused;
   const speedMultiplier = typeof getVehicleVisualSpeedMultiplier === 'function'
@@ -2080,6 +2119,7 @@ const trafficVisualTestApi = {
   isTrafficSevereWeather,
   chooseTrafficModelForSpawn,
   purgeSevereWeatherGroundedTraffic,
+  purgeAmbientBusesForTransportExpansion,
   canSpawnIceCreamTruckForWeather,
   isIceCreamTargetBuilding,
   findTrafficPathOutsideView,
@@ -2094,6 +2134,8 @@ const trafficVisualTestApi = {
   setTrafficVehicleVisual,
   refreshTrafficVehicleDepths,
   trafficModelTexturesAreReady,
+  getPinnedTrafficModelIds,
+  evictTrafficModelsForCapacity,
   requestTrafficModels,
   getReadyTrafficModels,
   setupTrafficVisuals,

@@ -39,6 +39,7 @@ function updateHUD() {
   updateMetricCharts();
   if (typeof updateChartWindow === 'function') updateChartWindow();
   if (typeof updateMiniMap === 'function') updateMiniMap();
+  if (typeof refreshTransportUi === 'function') refreshTransportUi({ passive: true });
 }
 
 function updateStatusAlert() {
@@ -413,6 +414,7 @@ function updateBudgetWindow() {
   setTextContent('budget-income-industrial', formatMoney(current.income.industrialTax));
   setTextContent('budget-income-policy-adjust', formatMoney(current.income.policyAdjustment));
   setTextContent('budget-income-tourism', formatMoney(current.income.tourism));
+  setTextContent('budget-income-transport', formatMoney(current.income.transport ?? 0));
   setTextContent('budget-income-total', formatMoney(current.totalIncome));
 
   setTextContent('budget-expense-roads', formatMoney(current.expenses.roads));
@@ -424,6 +426,7 @@ function updateBudgetWindow() {
   setTextContent('budget-expense-parks', formatMoney(current.expenses.parks));
   setTextContent('budget-expense-policy', formatMoney(current.expenses.policy));
   setTextContent('budget-expense-loans', formatMoney(current.expenses.loans));
+  setTextContent('budget-expense-transport', formatMoney(current.expenses.transport ?? 0));
   setTextContent('budget-expense-total', formatMoney(current.totalExpenses));
 
   setTextContent('budget-net-monthly', formatMoney(current.net));

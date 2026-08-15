@@ -43,6 +43,8 @@ const {
   getTrafficCameraRect,
   setTrafficVehicleVisual,
   refreshTrafficVehicleDepths,
+  getPinnedTrafficModelIds,
+  evictTrafficModelsForCapacity,
   getReadyTrafficModels,
   setupTrafficVisuals,
   updateTrafficVisuals,
@@ -760,6 +762,39 @@ test('zoom threshold loads only one starter quartet, then clears vehicles withou
   assert.equal(destroyed, 1);
   assert.equal(state.vehicles.length, 0);
   assert.equal(loaded.size, 4);
+});
+
+test('traffic texture LRU never evicts a model used by a managed route bus', () => {
+  const residentModels = TRAFFIC_MODEL_REGISTRY.slice(0, TRAFFIC_VISUAL_CONFIG.maxResidentModels);
+  const loaded = new Set(residentModels.flatMap((model) => (
+    TRAFFIC_DIRECTIONS.map((direction) => model.directions[direction].key)
+  )));
+  const removed = [];
+  const managedBusModel = TRAFFIC_MODEL_BY_ID.get('bus_kmb');
+  const scene = {
+    textures: {
+      exists: (key) => loaded.has(key),
+      remove: (key) => {
+        removed.push(key);
+        loaded.delete(key);
+      },
+    },
+    transportVisualState: {
+      vehicles: [{ model: managedBusModel }],
+    },
+  };
+  const state = setupTrafficVisuals(scene);
+  residentModels.forEach((model, index) => state.modelLastUsed.set(model.id, index));
+
+  assert.equal(getPinnedTrafficModelIds(scene, state).has(managedBusModel.id), true);
+  evictTrafficModelsForCapacity(scene, state, 1);
+
+  TRAFFIC_DIRECTIONS.forEach((direction) => {
+    const key = managedBusModel.directions[direction].key;
+    assert.equal(loaded.has(key), true, `${key} remains renderable`);
+    assert.equal(removed.includes(key), false, `${key} was not evicted`);
+  });
+  assert.equal(removed.length, TRAFFIC_DIRECTIONS.length, 'one unpinned model quartet is evicted');
 });
 
 test('traffic module is loaded before main and wired into lifecycle invalidation hooks', () => {

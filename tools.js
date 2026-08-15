@@ -120,7 +120,10 @@ function placeBusStop(scene, row, col) {
   else next = [];
 
   const addedCount = Math.max(0, next.length - current.length);
-  if (addedCount > 0 && !spendBudget(addedCount * COST_BUS_STOP)) {
+  const spendBusInfrastructure = typeof spendTransportConstruction === 'function'
+    ? spendTransportConstruction
+    : spendBudget;
+  if (addedCount > 0 && !spendBusInfrastructure(addedCount * COST_BUS_STOP)) {
     showToast(t('toast.notEnoughFunds'), 'warning');
     return false;
   }
@@ -425,9 +428,8 @@ function placeHarborBuilding(scene, row, col) {
   return true;
 }
 
-// ── Bus depot (3x3 directional garage; decorative for now - vehicle
-// ownership/routes are a future Transport DLC, see game-clock.js's roadmap
-// notes) ─────────────────────────────────────────────────────────────────
+// ── Bus depot (3x3 directional garage; decorative in the base game and a
+// fleet-capacity provider when the optional transport expansion is active) ──
 // Clicking an empty, buildable 3x3 footprint places a new depot at the LL
 // corner. Clicking an already-placed depot (any of its 9 footprint tiles)
 // cycles its orientation LL -> LR -> UR -> UL -> LL instead of attempting a
@@ -444,12 +446,21 @@ function placeBusDepotBuilding(scene, row, col) {
     const nextRawSide = getBusDepotRawSideForCorner(BUS_DEPOT_CORNER_CYCLE_ORDER[nextIndex]);
     existingRecord.busDepotRawSide = nextRawSide;
     applyBusDepotVisualKey(scene, existingId, existingRecord, getBusDepotVisualKey(nextRawSide));
+    if (typeof markTransportNetworkDirty === 'function') markTransportNetworkDirty();
+    if (
+      typeof isTransportExpansionActive === 'function'
+      && isTransportExpansionActive()
+      && typeof queueCityChangeAutosave === 'function'
+    ) queueCityChangeAutosave();
     return true;
   }
 
   if (!canPlaceBuildingFootprint(row, col, BUS_DEPOT_FOOTPRINT_COLS, BUS_DEPOT_FOOTPRINT_ROWS)) return false;
 
-  if (!spendBudget(COST_BUS_DEPOT)) {
+  const spendBusInfrastructure = typeof spendTransportConstruction === 'function'
+    ? spendTransportConstruction
+    : spendBudget;
+  if (!spendBusInfrastructure(COST_BUS_DEPOT)) {
     showToast(t('toast.notEnoughFunds'), 'warning');
     return false;
   }
@@ -479,6 +490,12 @@ function placeBusDepotBuilding(scene, row, col) {
     offsetY: opts.offsetY,
     anchorMode: opts.anchorMode,
   };
+  if (typeof markTransportNetworkDirty === 'function') markTransportNetworkDirty();
+  if (
+    typeof isTransportExpansionActive === 'function'
+    && isTransportExpansionActive()
+    && typeof queueCityChangeAutosave === 'function'
+  ) queueCityChangeAutosave();
   return true;
 }
 
@@ -568,6 +585,7 @@ function placeSportsGround(scene, row, col, option) {
 function refreshInfrastructureEffects(scene) {
   invalidateBuildingCountCache();
   if (typeof invalidateOverlayCache === 'function') invalidateOverlayCache();
+  if (typeof markTransportDemandDirty === 'function') markTransportDemandDirty();
   markPowerGridDirty();
   markServiceCoverageDirty();
   if (typeof updateServiceCoverage === 'function') updateServiceCoverage();

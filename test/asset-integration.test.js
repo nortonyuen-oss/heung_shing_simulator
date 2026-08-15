@@ -116,6 +116,32 @@ test('zone-model fallback catalogs contain only files that ship', () => {
   });
 });
 
+test('lazy zone metadata scans do not query Phaser for unloaded texture keys', () => {
+  const main = fs.readFileSync(path.join(ROOT, 'main.js'), 'utf8');
+  const helperStart = main.indexOf('function getLoadedZoneModelSource(');
+  const helperEnd = main.indexOf('\nfunction prepareHouseModelMetadata(', helperStart);
+  const helperSource = main.slice(helperStart, helperEnd);
+
+  assert.ok(helperStart >= 0 && helperEnd > helperStart);
+  assert.match(helperSource, /scene\?\.textures\?\.exists\?\.\(model\.key\)/);
+  assert.match(helperSource, /scene\.textures\.get\(model\.key\)/);
+  assert.equal(
+    [...main.matchAll(/scene\.textures\.get\(model\.key\)/g)].length,
+    1,
+    'all metadata and LRU scans must use the existence-checked helper',
+  );
+  [
+    'evictUnusedZoneTextures',
+    'prepareHouseModelMetadata',
+    'prepareCommercialBuildingModelMetadata',
+    'prepareIndustrialBuildingModelMetadata',
+  ].forEach((functionName) => {
+    const start = main.indexOf(`function ${functionName}(`);
+    const end = main.indexOf('\nfunction ', start + 1);
+    assert.match(main.slice(start, end), /getLoadedZoneModelSource\(scene, model\)/, functionName);
+  });
+});
+
 test('industrial catalog keeps both 3x3 science parks and classifies every science park', () => {
   const catalog = loadScriptValues(
     'model-catalog.js',

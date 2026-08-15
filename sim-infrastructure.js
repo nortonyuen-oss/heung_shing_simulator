@@ -366,7 +366,7 @@ function getTrafficRoadTiles() {
   return trafficRoadTilesCache;
 }
 
-function markTrafficNetworkDirty() {
+function markTrafficNetworkDirty(changedTiles = null) {
   clearTrafficLoadForRoadTiles(trafficRoadTilesCache);
   trafficRoadTilesCache = null;
   trafficRouteCache.clear();
@@ -374,6 +374,7 @@ function markTrafficNetworkDirty() {
     invalidateTrafficVisualNetwork(typeof activeScene === 'undefined' ? null : activeScene);
   }
   if (typeof invalidateOverlayCache === 'function') invalidateOverlayCache();
+  if (typeof markTransportNetworkDirty === 'function') markTransportNetworkDirty(changedTiles);
 }
 
 function getTrafficRoadRoutes(startR, startC) {
@@ -456,8 +457,12 @@ function updateTrafficMap() {
     const industrialRevitalizationMultiplier = (
       zoneType === 'industrial' && isPolicyActive('industrialBuildingRevitalization')
     ) ? 1.65 : 1;
+    const transportModeShare = typeof getBuildingTransportModeShare === 'function'
+      ? getBuildingTransportModeShare(id)
+      : 0;
     const demand = (TRAFFIC_DEMAND_WEIGHTS[zoneType]?.[level] ?? 1)
-      * industrialRevitalizationMultiplier;
+      * industrialRevitalizationMultiplier
+      * (1 - clamp(transportModeShare, 0, 0.25));
 
     // The route geometry changes only when the road/bridge network changes.
     // Reuse it across ticks while applying the current building demand each time.

@@ -229,6 +229,7 @@ const city = {
 };
 
 function resetGameState() {
+  if (typeof resetExpansionState === 'function') resetExpansionState();
   zoneMap        = createFilledMap(ZONE_NONE);
   zoneDensityMap = createFilledMap(DENSITY_LOW);
   powerMap       = createFilledMap(false);
@@ -883,6 +884,9 @@ function computeBudgetSnapshot(options = {}) {
   const sportsGroundSmall = getBuildingCount('sports_ground_small');
   const sportsGroundLarge = getBuildingCount('sports_ground_large');
   const landmarkFinancials = computeLandmarkFinancials();
+  const transportFinancials = typeof getTransportFinancials === 'function'
+    ? getTransportFinancials()
+    : { revenue: 0, cost: 0 };
 
   const taxScale = city.taxRate / 0.09;
   const residentialTax = city.population * TAX_PER_RESIDENT * taxScale;
@@ -919,10 +923,14 @@ function computeBudgetSnapshot(options = {}) {
   const tourismIncome = Math.max(0, Number(city.tourismRevenue || 0));
   const landmarkIncome = landmarkFinancials.revenue;
   const landmarkUpkeep = landmarkFinancials.upkeep;
-  const totalIncome = Math.round(grossIncome + policyTaxAdjustment + tourismIncome + landmarkIncome);
+  const transportIncome = Math.max(0, Number(transportFinancials.revenue) || 0);
+  const transportCost = Math.max(0, Number(transportFinancials.cost) || 0);
+  const totalIncome = Math.round(
+    grossIncome + policyTaxAdjustment + tourismIncome + landmarkIncome + transportIncome
+  );
   const totalExpenses = Math.round(
     roadsUpkeep + fireUpkeep + policeUpkeep + powerUpkeep + educationUpkeep + healthUpkeep
-    + parksUpkeep + policyCost + loanPayment + landmarkUpkeep
+    + parksUpkeep + policyCost + loanPayment + landmarkUpkeep + transportCost
   );
   const net = totalIncome - totalExpenses;
   city.landmarkRevenue = Math.round(landmarkIncome);
@@ -936,6 +944,7 @@ function computeBudgetSnapshot(options = {}) {
       policyAdjustment: Math.round(policyTaxAdjustment),
       tourism: Math.round(tourismIncome),
       landmarks: Math.round(landmarkIncome),
+      transport: Math.round(transportIncome),
     },
     expenses: {
       roads: Math.round(roadsUpkeep),
@@ -948,6 +957,7 @@ function computeBudgetSnapshot(options = {}) {
       parks: Math.round(parksUpkeep),
       policy: Math.round(policyCost),
       loans: Math.round(loanPayment),
+      transport: Math.round(transportCost),
     },
     totalIncome,
     totalExpenses,

@@ -160,6 +160,12 @@ function setupToolMenu() {
       closeToolCategoryFlyouts();
       return;
     }
+    if (actionButton?.dataset.action === 'open-transport-network') {
+      if (isTerrainCreatorMode) return;
+      if (typeof openTransportWindow === 'function') openTransportWindow();
+      closeToolCategoryFlyouts();
+      return;
+    }
     if (actionButton?.dataset.action === 'open-council-meeting') {
       if (isTerrainCreatorMode || (typeof isCouncilMeetingUnlocked === 'function' && !isCouncilMeetingUnlocked())) return;
       openLegislativeWindow();

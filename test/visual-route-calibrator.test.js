@@ -258,6 +258,19 @@ test('performance profiler summarizes frame time and deduplicates shared texture
   );
 });
 
+test('performance profiler avoids measuring its own expensive compositor effects', () => {
+  const source = fs.readFileSync(path.join(ROOT, 'visual-route-calibrator.js'), 'utf8');
+  const panelStart = source.indexOf('#visual-route-performance-panel {');
+  const panelEnd = source.indexOf('#visual-route-performance-panel[hidden]', panelStart);
+  const panelCss = source.slice(panelStart, panelEnd);
+
+  assert.match(source, /VISUAL_ROUTE_PERFORMANCE_REFRESH_MS = 1000/);
+  assert.match(source, /longTaskObserver\.observe\(\{ type: 'longtask' \}\)/);
+  assert.doesNotMatch(source, /longTaskObserver\.observe\(\{[^}]*buffered/);
+  assert.doesNotMatch(panelCss, /backdrop-filter|box-shadow/);
+  assert.match(panelCss, /background: #051819/);
+});
+
 test('baseline reset clears rolling frame and section samples without reinstalling hooks', () => {
   const scene = {
     children: { list: [] },
@@ -276,4 +289,29 @@ test('baseline reset clears rolling frame and section samples without reinstalli
   assert.deepEqual(snapshot.sections, {});
   assert.equal(snapshot.session.baselineStartedAtMs, 200);
   calibrator.setVisualRouteCalibrationTestModeEnabled(false);
+});
+
+test('a new manual profiler session cannot inherit stale frame samples', () => {
+  const previousActiveScene = global.activeScene;
+  const scene = {
+    children: { list: [] },
+    cameras: { main: { renderList: [] } },
+    textures: { list: {}, exists: () => false },
+  };
+  global.activeScene = scene;
+  try {
+    calibrator.setVisualRouteCalibrationTestModeEnabled(false);
+    calibrator.setVisualRouteCalibrationTestModeEnabled(true);
+    calibrator.recordVisualRoutePerformanceFrameStart(scene, 100);
+    calibrator.recordVisualRoutePerformanceFrameStart(scene, 140);
+    assert.equal(calibrator.getVisualRoutePerformanceSnapshot(scene).frame.sampleCount, 1);
+
+    calibrator.setVisualRouteCalibrationTestModeEnabled(false);
+    calibrator.setVisualRouteCalibrationTestModeEnabled(true);
+    assert.equal(calibrator.getVisualRoutePerformanceSnapshot(scene).frame.sampleCount, 0);
+  } finally {
+    calibrator.setVisualRouteCalibrationTestModeEnabled(false);
+    if (typeof previousActiveScene === 'undefined') delete global.activeScene;
+    else global.activeScene = previousActiveScene;
+  }
 });

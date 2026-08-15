@@ -1708,39 +1708,6 @@ function createModelEntries(keyPrefix, fileNames, config) {
   });
 }
 
-class TreeAlphaPipeline extends Phaser.Renderer.WebGL.Pipelines.MultiPipeline {
-  constructor(game) {
-    super({
-      game,
-      name: 'TreeAlphaPipeline',
-      fragShader: `
-        #define SHADER_NAME TREE_ALPHA_FS
-        precision mediump float;
-        uniform sampler2D uMainSampler[%count%];
-        varying vec2 outTexCoord;
-        varying float outTexId;
-        varying float outTintEffect;
-        varying vec4 outTint;
-        void main() {
-          vec4 texture;
-          %forloop%
-          if (texture.a < 0.04) discard;
-          vec4 texel = outTint;
-          texel.rgb *= outTint.a;
-          vec4 color = texture * texel;
-          if (outTintEffect == 1.0) {
-            color.rgb = mix(texture.rgb, outTint.rgb * outTint.a, texture.a);
-            color.a = texture.a * texel.a;
-          } else if (outTintEffect == 2.0) {
-            color = texel;
-          }
-          gl_FragColor = color;
-        }
-      `,
-    });
-  }
-}
-
 function preload() {
   const roadPath = 'kenney_isometric-roads/png/';
   const allHouseModels = Object.values(houseModelSets).flat();
@@ -1895,9 +1862,6 @@ function create() {
   this.treeSprites = new Map();
   this.busStopSprites = new Map();
   this.districtSignSprites = new Map();
-  if (this.renderer instanceof Phaser.Renderer.WebGL.WebGLRenderer) {
-    this.renderer.pipelines.add('TreeAlphaPipeline', new TreeAlphaPipeline(this.game));
-  }
   createWorldRenderLayers(this);
 
   const maskGraphics = this.make.graphics({ x: 0, y: 0, add: false });
@@ -6359,9 +6323,9 @@ function placeTreeSprite(scene, row, col) {
     sprite.mapCol = col;
     sprite.treeSubIndex = i;
     sprite.treeCount = count;
-    if (scene.renderer instanceof Phaser.Renderer.WebGL.WebGLRenderer) {
-      sprite.setPipeline('TreeAlphaPipeline');
-    }
+    // Trees and buildings share one depth-sorted display list. Keeping trees on
+    // Phaser's default MultiPipeline lets adjacent objects stay in the same
+    // WebGL batch; a tree-only pipeline would flush that batch at every switch.
     sprites.push(sprite);
   }
 

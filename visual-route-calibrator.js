@@ -16,7 +16,7 @@ const VISUAL_ROUTE_CALIBRATION_UNLOCK_WINDOW_MS = 2500;
 // ring is also used for lower-frequency sections, where the extra storage is
 // negligible and keeps longer comparison sessions useful.
 const VISUAL_ROUTE_PERFORMANCE_SAMPLE_COUNT = 1800;
-const VISUAL_ROUTE_PERFORMANCE_REFRESH_MS = 500;
+const VISUAL_ROUTE_PERFORMANCE_REFRESH_MS = 1000;
 const VISUAL_ROUTE_TEXTURE_CENSUS_REFRESH_MS = 5000;
 const VISUAL_ROUTE_PERFORMANCE_OPERATION_LIMIT = 24;
 const VISUAL_ROUTE_PERFORMANCE_LONG_TASK_LIMIT = 240;
@@ -92,7 +92,9 @@ function setupVisualRoutePerformanceLongTaskObserver() {
         );
       }
     });
-    visualRoutePerformanceSession.longTaskObserver.observe({ type: 'longtask', buffered: true });
+    // Only measure work performed in this profiling session. Buffered entries
+    // can predate the baseline by minutes and make a fresh capture misleading.
+    visualRoutePerformanceSession.longTaskObserver.observe({ type: 'longtask' });
     return true;
   } catch {
     visualRoutePerformanceSession.longTaskObserver = null;
@@ -166,6 +168,7 @@ function setupVisualRoutePerformanceMode(locationValue = globalThis.location) {
 }
 
 function setVisualRouteCalibrationTestModeEnabled(enabled) {
+  const wasEnabled = visualRouteCalibrationTestModeEnabled;
   visualRouteCalibrationTestModeEnabled = !!enabled;
   visualRoutePerformancePanelVisible = visualRouteCalibrationTestModeEnabled;
   visualRouteCalibrationUnlockCount = 0;
@@ -174,8 +177,15 @@ function setVisualRouteCalibrationTestModeEnabled(enabled) {
     visualRouteCalibrationLiveStates.forEach((state) => {
       clearVisualRouteCalibrationTarget(state.scene);
     });
+    visualRoutePerformanceSession.enabledAtMs = null;
+    visualRoutePerformanceSession.baselineStartedAtMs = null;
+    visualRoutePerformanceSession.operations = [];
+    visualRoutePerformanceSession.longTasks = [];
   } else {
     activateVisualRoutePerformanceInstrumentation();
+    if (!wasEnabled && typeof activeScene !== 'undefined' && activeScene) {
+      resetVisualRoutePerformanceSamples(activeScene);
+    }
   }
   updateVisualRouteCalibrationTestModeIndicator();
   return visualRouteCalibrationTestModeEnabled;
@@ -970,10 +980,9 @@ function createVisualRoutePerformancePanel(scene) {
         position: fixed; right: 14px; top: 126px; z-index: 99999;
         width: min(370px, calc(100vw - 28px)); box-sizing: border-box; padding: 10px 12px;
         border: 1px solid rgba(112, 221, 160, .72); border-radius: 10px;
-        color: #eafff2; background: rgba(5, 24, 25, .91);
-        box-shadow: 0 10px 28px rgba(0, 0, 0, .32);
+        color: #eafff2; background: #051819;
         font: 11px/1.48 ui-monospace, SFMono-Regular, Menlo, monospace;
-        pointer-events: auto; user-select: text; backdrop-filter: blur(7px);
+        pointer-events: auto; user-select: text;
       }
       #visual-route-performance-panel[hidden] { display: none !important; }
       #visual-route-performance-panel .vrp-title { color: #70dda0; font-weight: 800; letter-spacing: .08em; }

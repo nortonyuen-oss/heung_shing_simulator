@@ -162,7 +162,7 @@ test('industrial catalog keeps both 3x3 science parks and classifies every scien
 
   const main = fs.readFileSync(path.join(ROOT, 'main.js'), 'utf8');
   const start = main.indexOf('function sortModelFiles(');
-  const end = main.indexOf('\nclass TreeAlphaPipeline', start);
+  const end = main.indexOf('\nfunction preload(', start);
   const context = vm.createContext({
     ...catalog,
     DEFAULT_BUILDING_ANCHOR_MODE: 'effective-bottom-to-map-bottom',

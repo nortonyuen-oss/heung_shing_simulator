@@ -102,6 +102,13 @@ test('Phaser follows display rAF without divisor-based hard frame limiting', () 
   assert.doesNotMatch(mainSource, /fps:\s*\{\s*target:\s*60,\s*limit:\s*(?:60|75),/);
 });
 
+test('depth-sorted trees share the standard WebGL pipeline with buildings', () => {
+  assert.doesNotMatch(mainSource, /class TreeAlphaPipeline/);
+  assert.doesNotMatch(mainSource, /setPipeline\(['"]TreeAlphaPipeline['"]\)/);
+  assert.doesNotMatch(mainSource, /pipelines\.add\(['"]TreeAlphaPipeline['"]/);
+  assert.match(mainSource, /Keeping trees on[\s\S]*?default MultiPipeline[\s\S]*?same[\s\S]*?WebGL batch/);
+});
+
 test('profiler separates raw frame cadence from update and render durations', () => {
   const scene = {
     children: { list: Array(80).fill({}) },

@@ -22,6 +22,11 @@ const TRAFFIC_VISUAL_CONFIG = Object.freeze({
   uphillSpeedFactor: 0.82,
   downhillSpeedFactor: 0.94,
   surfaceConnectionTolerancePx: 0.75,
+  busStopDwellMs: 3000,
+  busStopApproachStartProgress: 0.28,
+  busStopDwellProgress: 0.5,
+  busStopDepartEndProgress: 0.72,
+  busStopDwellMinSpeedFactor: 0.08,
 });
 
 const ICE_CREAM_EVENT_CONFIG = Object.freeze({
@@ -263,6 +268,49 @@ function getTrafficLegSpeedFactor(leg, config = TRAFFIC_VISUAL_CONFIG) {
     return config.downhillSpeedFactor;
   }
   return 1;
+}
+
+// ── Bus stop dwell (buses only) ──────────────────────────────────────────────
+// A bus slows, stops for a few seconds, then pulls away when it passes a stop
+// on its own side of the road. The raw side label a bus stop is stored
+// against (n/e/s/w — see BUS_STOP_ROAD_ORIENTATIONS/getBusStopEligibleSides,
+// main.js) turns out to equal the compass direction of the traffic it serves
+// (confirmed by comparing each side's calibrated screen anchor offset,
+// BUS_STOP_ANCHOR_OFFSETS, against the vehicle's own lane-offset screen delta
+// for each cardinal direction — they pair up cleanly: n with northbound, e
+// with eastbound, etc.), so matching is a direct membership check with no
+// pixel math needed at runtime. Opposite-direction traffic uses the road's
+// other shoulder and never gets close enough to this one to plausibly stop.
+function getTrafficCompassDirection(deltaRow, deltaCol) {
+  if (deltaRow < 0) return 'n';
+  if (deltaRow > 0) return 's';
+  if (deltaCol > 0) return 'e';
+  if (deltaCol < 0) return 'w';
+  return null;
+}
+
+function findMatchingBusStopSide(row, col, deltaRow, deltaCol) {
+  const sides = typeof getBusStopSides === 'function' ? getBusStopSides(row, col) : null;
+  if (!sides || sides.length === 0) return null;
+  const direction = getTrafficCompassDirection(deltaRow, deltaCol);
+  return direction && sides.includes(direction) ? direction : null;
+}
+
+// Tapers vehicle speed down approaching the dwell point and back up leaving
+// it; the hold at zero for busStopDwellMs is handled separately as a frozen
+// countdown (see updateTrafficVisuals), not by this factor reaching 0 here.
+function getBusStopDwellSpeedFactor(progress, config = TRAFFIC_VISUAL_CONFIG) {
+  const start = config.busStopApproachStartProgress;
+  const mid = config.busStopDwellProgress;
+  const end = config.busStopDepartEndProgress;
+  const minFactor = config.busStopDwellMinSpeedFactor;
+  if (progress <= start || progress >= end) return 1;
+  if (progress <= mid) {
+    const t = (progress - start) / Math.max(1e-6, mid - start);
+    return 1 - (1 - minFactor) * t;
+  }
+  const t = (progress - mid) / Math.max(1e-6, end - mid);
+  return minFactor + (1 - minFactor) * t;
 }
 
 function pickWeightedTrafficModel(
@@ -1778,6 +1826,8 @@ function spawnTrafficVehicle(scene, roads, random = Math.random, time = 0) {
       progress: random() * 0.8,
       textureDirection: 'ne',
       leg: null,
+      busDwellRemainingMs: 0,
+      busDwellHandledForLeg: false,
     };
     vehicle.leg = createTrafficLeg(scene, vehicle.previous, vehicle.current, vehicle.next);
     setTrafficVehicleVisual(
@@ -1864,6 +1914,7 @@ function advanceTrafficVehicle(scene, vehicle, amount, viewRect, time) {
     vehicle.current = current;
     vehicle.next = { row: next.row, col: next.col };
     vehicle.leg = createTrafficLeg(scene, vehicle.previous, vehicle.current, vehicle.next);
+    vehicle.busDwellHandledForLeg = false;
     if (!trafficPointInRect(vehicle.leg.start, viewRect)) return false;
   }
   if (vehicle.progress >= 1) return false;
@@ -1928,13 +1979,47 @@ function updateTrafficVisuals(time, delta) {
     : state.vehicles;
   state.vehicles = state.vehicles.filter((vehicle) => {
     if (trafficVehicleHasBlockingLeader(vehicle, leaders)) return true;
-    const progressAmount = computeTrafficProgressAmount(
+
+    if (vehicle.busDwellRemainingMs > 0) {
+      if (!paused) vehicle.busDwellRemainingMs -= delta * speedMultiplier;
+      if (vehicle.busDwellRemainingMs > 0) {
+        setTrafficVehicleVisual(vehicle, evaluateTrafficLeg(vehicle.leg, vehicle.progress), time);
+        return true;
+      }
+      vehicle.busDwellRemainingMs = 0;
+    }
+
+    let progressAmount = computeTrafficProgressAmount(
       delta,
       paused,
       speedMultiplier,
       TRAFFIC_VISUAL_CONFIG,
       vehicle.model.speedFactor * getTrafficLegSpeedFactor(vehicle.leg),
     );
+
+    if (vehicle.model.category === 'bus') {
+      progressAmount *= getBusStopDwellSpeedFactor(vehicle.progress);
+      const dwellProgress = TRAFFIC_VISUAL_CONFIG.busStopDwellProgress;
+      if (
+        !vehicle.busDwellHandledForLeg
+        && vehicle.progress < dwellProgress
+        && vehicle.progress + progressAmount >= dwellProgress
+        && vehicle.current
+        && vehicle.previous
+      ) {
+        vehicle.busDwellHandledForLeg = true;
+        const deltaRow = vehicle.current.row - vehicle.previous.row;
+        const deltaCol = vehicle.current.col - vehicle.previous.col;
+        const matchingSide = findMatchingBusStopSide(vehicle.current.row, vehicle.current.col, deltaRow, deltaCol);
+        if (matchingSide) {
+          vehicle.progress = dwellProgress;
+          vehicle.busDwellRemainingMs = TRAFFIC_VISUAL_CONFIG.busStopDwellMs;
+          setTrafficVehicleVisual(vehicle, evaluateTrafficLeg(vehicle.leg, vehicle.progress), time);
+          return true;
+        }
+      }
+    }
+
     const keep = advanceTrafficVehicle(scene, vehicle, progressAmount, viewRect, time);
     if (!keep) destroyTrafficVehicle(vehicle);
     return keep;
@@ -1961,6 +2046,9 @@ const trafficVisualTestApi = {
   chooseNextTrafficTile,
   isTrafficFlatRoadTile,
   getTrafficLegSpeedFactor,
+  getTrafficCompassDirection,
+  findMatchingBusStopSide,
+  getBusStopDwellSpeedFactor,
   getTrafficDirectionForDelta,
   TRAFFIC_SEVERE_WEATHER_GROUNDED_CATEGORIES,
   isTrafficSevereWeather,

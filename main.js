@@ -235,6 +235,7 @@ let powerPlantModelMetadata = {};
 let serviceBuildingModelMetadata = {};
 let specialBuildingModelMetadata = {};
 let harborModelMetadata = {};
+let busDepotModelMetadata = {};
 // Fallback development builds may not have a release manifest. Cache the
 // expensive alpha scan by decoded image + threshold so several footprint
 // profiles sharing one texture (notably legacy airports) reuse its geometry.
@@ -1789,6 +1790,7 @@ function preload() {
     ...Object.keys(SERVICE_BUILDING_MODELS).flatMap(getServiceBuildingModels),
     ...Object.keys(SPECIAL_BUILDING_MODELS).flatMap(getAllSpecialBuildingModels),
     ...Object.values(HARBOR_MODELS),
+    ...Object.values(BUS_DEPOT_MODELS),
   ];
   const queuedFixedTextureKeys = new Set();
   fixedBuildingModels.forEach((model) => {
@@ -1871,6 +1873,7 @@ function create() {
   prepareServiceBuildingModelMetadata(this);
   prepareSpecialBuildingModelMetadata(this);
   prepareHarborModelMetadata(this);
+  prepareBusDepotModelMetadata(this);
 
   updateMapMetrics(this);
 
@@ -3290,6 +3293,14 @@ function prepareHarborModelMetadata(scene) {
   );
 }
 
+function prepareBusDepotModelMetadata(scene) {
+  busDepotModelMetadata = Object.fromEntries(
+    Object.keys(BUS_DEPOT_MODELS).map((spriteKey) => (
+      [spriteKey, getParkModelMetadata(scene, spriteKey, BUS_DEPOT_FOOTPRINT_COLS, BUS_DEPOT_FOOTPRINT_ROWS)]
+    )),
+  );
+}
+
 function prepareBridgeLayerTextures(scene) {
   [
     ['road_bridge_h', 'road_bridge_h_top', 'road_bridge_h_side'],
@@ -3977,6 +3988,15 @@ function normalizeSpriteBuildingOptions(key, options = {}) {
       footprintCols: HARBOR_FOOTPRINT_COLS,
       footprintRows: HARBOR_FOOTPRINT_ROWS,
       ...(harborModelMetadata[key] ?? {}),
+    };
+  }
+
+  if (BUS_DEPOT_MODELS[key]) {
+    return {
+      ...options,
+      footprintCols: BUS_DEPOT_FOOTPRINT_COLS,
+      footprintRows: BUS_DEPOT_FOOTPRINT_ROWS,
+      ...(busDepotModelMetadata[key] ?? {}),
     };
   }
 
@@ -8557,6 +8577,67 @@ function refreshHarborSprites(scene) {
   });
 }
 
+// ── Bus depot (3x3 directional garage) ─────────────────────────────────────
+// Same raw-side/rotateDirection convention as the harbor and bus stops, but
+// the raw side is player-chosen (see placeBusDepotBuilding, tools.js) rather
+// than derived from geography.
+function getBusDepotVisualCorner(rawSide) {
+  const visual = rotateDirection(rawSide, mapRotation);
+  return BUS_DEPOT_RAW_SIDE_TO_VISUAL_CORNER[visual] ?? 'll';
+}
+
+function getBusDepotVisualKey(rawSide) {
+  return `bus_depot_${getBusDepotVisualCorner(rawSide)}`;
+}
+
+// Inverse of getBusDepotVisualCorner: which raw side currently displays as
+// `corner`, given the current map rotation.
+function getBusDepotRawSideForCorner(corner) {
+  const compassAtCurrentRotation = BUS_DEPOT_VISUAL_CORNER_TO_RAW_SIDE[corner] ?? 's';
+  return rotateDirection(compassAtCurrentRotation, -mapRotation);
+}
+
+// Shared by both refresh triggers: the map being rotated (raw side unchanged,
+// displayed corner re-resolved) and the player clicking to cycle orientation
+// (raw side changed directly). Mirrors refreshHarborSprites' sprite-update
+// block above.
+function applyBusDepotVisualKey(scene, id, record, newKey) {
+  if (newKey === record.spriteKey) return false;
+  record.spriteKey = newKey;
+  record.assetId = BUS_DEPOT_MODELS[newKey]?.path;
+  const sprite = scene?.buildingSprites?.get(id);
+  if (!sprite) return true;
+  sprite.setTexture(newKey);
+  const opts = busDepotModelMetadata[newKey];
+  if (opts) {
+    sprite.setOrigin(opts.originX ?? 0.5, opts.originY ?? 1);
+    if (opts.scaleX || opts.scaleY) sprite.setScale(opts.scaleX ?? opts.scale ?? 1, opts.scaleY ?? opts.scale ?? 1);
+    else if (opts.scale) sprite.setScale(opts.scale);
+    sprite.spriteOffsetX = opts.offsetX ?? 0;
+    sprite.spriteOffsetY = opts.offsetY ?? 0;
+    sprite.anchorMode = opts.anchorMode;
+    Object.assign(record, {
+      originX: opts.originX,
+      originY: opts.originY,
+      scale: opts.scale,
+      scaleX: opts.scaleX,
+      scaleY: opts.scaleY,
+      offsetX: opts.offsetX,
+      offsetY: opts.offsetY,
+      anchorMode: opts.anchorMode,
+    });
+    positionBuilding(scene, sprite);
+  }
+  return true;
+}
+
+function refreshBusDepotSprites(scene) {
+  Object.entries(buildingData).forEach(([id, record]) => {
+    if (record.type !== 'bus_depot' || !record.busDepotRawSide) return;
+    applyBusDepotVisualKey(scene, id, record, getBusDepotVisualKey(record.busDepotRawSide));
+  });
+}
+
 function getBridgeRampRoadKey(direction) {
   const mode = typeof getRoadTileSetBridgeRampMode === 'function'
     ? getRoadTileSetBridgeRampMode()
@@ -9234,6 +9315,7 @@ function rotateMap(scene, steps = 1) {
   // Refresh tile textures (direction-aware keys change)
   refreshAllTiles(scene);
   refreshHarborSprites(scene);
+  refreshBusDepotSprites(scene);
 
   // Reposition every sprite that uses isoToScreen
   positionAllTiles(scene);

@@ -438,6 +438,7 @@ const COST_SPORTS_GROUND_SMALL = 600;
 const COST_SPORTS_GROUND_LARGE = 1400;
 const COST_TREE          = 15;
 const COST_BUS_STOP      = 20;
+const COST_BUS_DEPOT     = 4000;
 const COST_BULLDOZE      = 5;
 
 // Bus stop shoulder placement (decorative road prop, no simulation effect)
@@ -889,6 +890,46 @@ const HARBOR_MODELS = {
     path: 'Models/containerPort/4x4/containerPort4-UR.png',
     footprintCols: HARBOR_FOOTPRINT_COLS,
     footprintRows: HARBOR_FOOTPRINT_ROWS,
+  },
+};
+
+// Bus depot: 3x3 directional garage, placed under the roads/highways tool
+// category. Unlike the harbor its orientation isn't derived from geography -
+// the player picks it directly (see getBusDepotRawSideForCorner, main.js):
+// placing on empty ground always starts at the LL corner, and clicking an
+// already-placed depot cycles LL -> LR -> UR -> UL -> LL. The *raw*
+// (rotation-invariant) side is what's persisted on the building record, same
+// convention as the harbor/bus stop, so it re-resolves to the correct corner
+// after the player rotates the map view (see getBusDepotVisualKey, main.js).
+const BUS_DEPOT_FOOTPRINT_COLS = 3;
+const BUS_DEPOT_FOOTPRINT_ROWS = 3;
+const BUS_DEPOT_RAW_SIDE_TO_VISUAL_CORNER = { n: 'ur', e: 'lr', s: 'll', w: 'ul' };
+const BUS_DEPOT_VISUAL_CORNER_TO_RAW_SIDE = { ur: 'n', lr: 'e', ll: 's', ul: 'w' };
+const BUS_DEPOT_CORNER_CYCLE_ORDER = ['ll', 'lr', 'ur', 'ul'];
+const BUS_DEPOT_MODELS = {
+  bus_depot_ll: {
+    spriteKey: 'bus_depot_ll',
+    path: 'Models/busDepot/busDepot3_LL_fixed.png',
+    footprintCols: BUS_DEPOT_FOOTPRINT_COLS,
+    footprintRows: BUS_DEPOT_FOOTPRINT_ROWS,
+  },
+  bus_depot_lr: {
+    spriteKey: 'bus_depot_lr',
+    path: 'Models/busDepot/busDepot3_LR_fixed.png',
+    footprintCols: BUS_DEPOT_FOOTPRINT_COLS,
+    footprintRows: BUS_DEPOT_FOOTPRINT_ROWS,
+  },
+  bus_depot_ur: {
+    spriteKey: 'bus_depot_ur',
+    path: 'Models/busDepot/busDepot3_UR_fixed.png',
+    footprintCols: BUS_DEPOT_FOOTPRINT_COLS,
+    footprintRows: BUS_DEPOT_FOOTPRINT_ROWS,
+  },
+  bus_depot_ul: {
+    spriteKey: 'bus_depot_ul',
+    path: 'Models/busDepot/busDepot3_UL_fixed.png',
+    footprintCols: BUS_DEPOT_FOOTPRINT_COLS,
+    footprintRows: BUS_DEPOT_FOOTPRINT_ROWS,
   },
 };
 

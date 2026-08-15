@@ -23,6 +23,9 @@ const {
   chooseNextTrafficTile,
   isTrafficFlatRoadTile,
   getTrafficLegSpeedFactor,
+  getTrafficCompassDirection,
+  findMatchingBusStopSide,
+  getBusStopDwellSpeedFactor,
   isTrafficSevereWeather,
   TRAFFIC_SEVERE_WEATHER_GROUNDED_CATEGORIES,
   chooseTrafficModelForSpawn,
@@ -380,6 +383,46 @@ test('same-sign diagonals and NE travel use their calibrated narrower lane offse
   assert.equal(getTrafficLaneOffsetAmount(-50, -25), 0.12);
   assert.equal(getTrafficLaneOffsetAmount(-50, 25), 0.20);
   assert.equal(getTrafficLaneOffsetAmount(50, -25), 0.08);
+});
+
+test('traffic compass direction reads off the dominant row/col delta', () => {
+  assert.equal(getTrafficCompassDirection(-1, 0), 'n');
+  assert.equal(getTrafficCompassDirection(1, 0), 's');
+  assert.equal(getTrafficCompassDirection(0, 1), 'e');
+  assert.equal(getTrafficCompassDirection(0, -1), 'w');
+  assert.equal(getTrafficCompassDirection(0, 0), null);
+});
+
+test('bus stop dwell matches a bus stop only to the compass direction it serves', () => {
+  const originalGetBusStopSides = global.getBusStopSides;
+  try {
+    global.getBusStopSides = (row, col) => (row === 5 && col === 5 ? ['n'] : null);
+    // Northbound (deltaRow -1) matches the 'n'-side stop present here.
+    assert.equal(findMatchingBusStopSide(5, 5, -1, 0), 'n');
+    // Southbound traffic passes the same tile but never gets close enough to
+    // the 'n'-side stop (that's the opposite shoulder) to count as a match.
+    assert.equal(findMatchingBusStopSide(5, 5, 1, 0), null);
+    // A tile with no bus stop never matches, regardless of direction.
+    assert.equal(findMatchingBusStopSide(9, 9, -1, 0), null);
+
+    global.getBusStopSides = (row, col) => (row === 5 && col === 5 ? ['n', 's'] : null);
+    assert.equal(findMatchingBusStopSide(5, 5, -1, 0), 'n');
+    assert.equal(findMatchingBusStopSide(5, 5, 1, 0), 's');
+    assert.equal(findMatchingBusStopSide(5, 5, 0, 1), null);
+  } finally {
+    if (originalGetBusStopSides === undefined) delete global.getBusStopSides;
+    else global.getBusStopSides = originalGetBusStopSides;
+  }
+});
+
+test('bus stop dwell speed factor tapers down approaching the stop and back up leaving it', () => {
+  assert.equal(getBusStopDwellSpeedFactor(0), 1, 'well before the approach window');
+  assert.equal(getBusStopDwellSpeedFactor(0.28), 1, 'at the approach window start');
+  assert.ok(getBusStopDwellSpeedFactor(0.4) < 1 && getBusStopDwellSpeedFactor(0.4) > 0.08);
+  assert.ok(Math.abs(getBusStopDwellSpeedFactor(0.5) - 0.08) < 1e-9, 'at the dwell point itself');
+  assert.ok(getBusStopDwellSpeedFactor(0.6) > 0.08 && getBusStopDwellSpeedFactor(0.6) < 1);
+  assert.equal(getBusStopDwellSpeedFactor(0.72), 1, 'at the depart window end');
+  assert.equal(getBusStopDwellSpeedFactor(1), 1, 'well after departing');
 });
 
 test('vehicle target follows visible traffic load and respects threshold and cap', () => {

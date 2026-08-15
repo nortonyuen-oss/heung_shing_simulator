@@ -89,6 +89,7 @@ function handleNewTool(scene, tile) {
     return true;
   }
   if (selectedTool === 'bus-stop') return placeBusStop(scene, row, col);
+  if (selectedTool === 'bus-depot') return placeBusDepotBuilding(scene, row, col);
 
   return false;
 }
@@ -421,6 +422,63 @@ function placeHarborBuilding(scene, row, col) {
   addHarborFrontageToCache(row, col, buildingData[id], coast.side);
   refreshHarborCoastTiles(scene, row, col, coast.side);
   refreshInfrastructureEffects(scene);
+  return true;
+}
+
+// ── Bus depot (3x3 directional garage; decorative for now - vehicle
+// ownership/routes are a future Transport DLC, see game-clock.js's roadmap
+// notes) ─────────────────────────────────────────────────────────────────
+// Clicking an empty, buildable 3x3 footprint places a new depot at the LL
+// corner. Clicking an already-placed depot (any of its 9 footprint tiles)
+// cycles its orientation LL -> LR -> UR -> UL -> LL instead of attempting a
+// second placement.
+function placeBusDepotBuilding(scene, row, col) {
+  if (!isInsideMap(row, col)) return false;
+
+  const existingSprite = scene?.buildingSprites?.get(getTileId(row, col));
+  const existingId = existingSprite ? getTileId(existingSprite.mapRow, existingSprite.mapCol) : null;
+  const existingRecord = existingId ? buildingData[existingId] : null;
+  if (existingSprite && existingRecord?.type === 'bus_depot') {
+    const currentCorner = getBusDepotVisualCorner(existingRecord.busDepotRawSide);
+    const nextIndex = (BUS_DEPOT_CORNER_CYCLE_ORDER.indexOf(currentCorner) + 1) % BUS_DEPOT_CORNER_CYCLE_ORDER.length;
+    const nextRawSide = getBusDepotRawSideForCorner(BUS_DEPOT_CORNER_CYCLE_ORDER[nextIndex]);
+    existingRecord.busDepotRawSide = nextRawSide;
+    applyBusDepotVisualKey(scene, existingId, existingRecord, getBusDepotVisualKey(nextRawSide));
+    return true;
+  }
+
+  if (!canPlaceBuildingFootprint(row, col, BUS_DEPOT_FOOTPRINT_COLS, BUS_DEPOT_FOOTPRINT_ROWS)) return false;
+
+  if (!spendBudget(COST_BUS_DEPOT)) {
+    showToast(t('toast.notEnoughFunds'), 'warning');
+    return false;
+  }
+
+  const rawSide = getBusDepotRawSideForCorner('ll');
+  const key = getBusDepotVisualKey(rawSide);
+  const opts = busDepotModelMetadata[key] ?? BUS_DEPOT_MODELS[key];
+  placeSpriteBuilding(scene, row, col, key, opts);
+
+  const id = getTileId(row, col);
+  buildingData[id] = {
+    type: 'bus_depot',
+    level: 1,
+    population: 0,
+    age: 0,
+    spriteKey: key,
+    assetId: BUS_DEPOT_MODELS[key]?.path,
+    footprintCols: BUS_DEPOT_FOOTPRINT_COLS,
+    footprintRows: BUS_DEPOT_FOOTPRINT_ROWS,
+    busDepotRawSide: rawSide,
+    originX: opts.originX,
+    originY: opts.originY,
+    scale: opts.scale,
+    scaleX: opts.scaleX,
+    scaleY: opts.scaleY,
+    offsetX: opts.offsetX,
+    offsetY: opts.offsetY,
+    anchorMode: opts.anchorMode,
+  };
   return true;
 }
 

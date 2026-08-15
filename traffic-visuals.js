@@ -1885,9 +1885,9 @@ function updateTrafficVisuals(time, delta) {
   purgeSevereWeatherGroundedTraffic(state, typeof city === 'undefined' ? null : city.weather);
 
   const paused = typeof simPaused !== 'undefined' && simPaused;
-  const speedMultiplier = paused
-    ? 0
-    : Math.max(0, Number(typeof simSpeedMul === 'undefined' ? 1 : simSpeedMul) || 0);
+  const speedMultiplier = typeof getVehicleVisualSpeedMultiplier === 'function'
+    ? getVehicleVisualSpeedMultiplier()
+    : (paused ? 0 : Math.max(0, Number(typeof simSpeedMul === 'undefined' ? 1 : simSpeedMul) || 0));
 
   if (!(typeof isTerrainCreatorMode !== 'undefined' && isTerrainCreatorMode)) {
     updateIceCreamEvent(scene, state, delta, paused, speedMultiplier);

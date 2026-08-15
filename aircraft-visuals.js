@@ -811,9 +811,9 @@ function updateAircraftVisuals(time, delta) {
     return;
   }
   const paused = typeof simPaused !== 'undefined' && simPaused;
-  const speedMultiplier = paused
-    ? 0
-    : Math.max(0, Number(typeof simSpeedMul === 'undefined' ? 1 : simSpeedMul) || 0);
+  const speedMultiplier = typeof getVehicleVisualSpeedMultiplier === 'function'
+    ? getVehicleVisualSpeedMultiplier()
+    : (paused ? 0 : Math.max(0, Number(typeof simSpeedMul === 'undefined' ? 1 : simSpeedMul) || 0));
   const scaledDelta = Math.min(AIRCRAFT_VISUAL_CONFIG.maxDeltaMs, Math.max(0, Number(delta) || 0)) * speedMultiplier;
   const severe = isAircraftSevereWeather(typeof city === 'undefined' ? null : city.weather);
   applyAircraftWeatherRecovery(state, severe);

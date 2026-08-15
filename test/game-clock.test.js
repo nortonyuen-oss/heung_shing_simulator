@@ -68,6 +68,19 @@ test('pausing does not clobber simSpeedMul, so resuming continues at the prior s
   assert.equal(vm.runInContext('getGameSpeed()', context), 2);
 });
 
+test('vehicle visual speed never drops below 1x at slow-motion game speeds, but scales up above 1x', () => {
+  const speedFor = (simSpeedMul, simPaused = false) => {
+    const { context } = createClockContext({ simSpeedMul, simPaused });
+    return vm.runInContext('getVehicleVisualSpeedMultiplier()', context);
+  };
+
+  assert.equal(speedFor(0.15), 1, '0.15x game speed still moves vehicles at normal (1x) speed');
+  assert.equal(speedFor(0.5), 1, '0.5x game speed still moves vehicles at normal (1x) speed');
+  assert.equal(speedFor(1), 1, '1x game speed moves vehicles at normal (1x) speed');
+  assert.equal(speedFor(2), 2, '2x game speed doubles vehicle speed');
+  assert.equal(speedFor(2, true), 0, 'pausing stops vehicle movement regardless of the stored speed');
+});
+
 test('calendar: Jan 1 -> Jan 2, Jan 30 -> Feb 1, Dec 30 -> Jan 1 of next year (with autosave)', () => {
   const { context, city, calls } = createClockContext();
 

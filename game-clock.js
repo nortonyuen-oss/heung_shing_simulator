@@ -77,6 +77,15 @@ function isGamePaused() {
   return getGameSpeed() === GAME_SPEEDS.PAUSED;
 }
 
+// Traffic/vessel/aircraft visuals must never crawl slower than normal (1x) —
+// the slow-motion clock speeds (0.15x/0.5x) exist for watching the calendar
+// and weather unfold, not for making vehicles look like they're stuck. Only
+// speeds faster than 1x actually speed vehicles up.
+function getVehicleVisualSpeedMultiplier() {
+  if (isGamePaused()) return 0;
+  return Math.max(getGameSpeed(), GAME_SPEEDS.NORMAL);
+}
+
 // Single source of truth for changing speed. Pausing never overwrites
 // simSpeedMul, so resuming (from any entry point) naturally continues at
 // whatever non-zero speed was active before the pause.

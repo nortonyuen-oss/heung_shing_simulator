@@ -211,6 +211,7 @@ const transportRuntime = {
   happinessBonus: 0,
   commercialDemandBonus: 0,
   industrialDemandBonus: 0,
+  stopWaitingEstimate: new Map(),
   summary: createEmptyTransportSummary(),
 };
 
@@ -538,6 +539,7 @@ function resetTransportRuntime() {
   transportRuntime.happinessBonus = 0;
   transportRuntime.commercialDemandBonus = 0;
   transportRuntime.industrialDemandBonus = 0;
+  transportRuntime.stopWaitingEstimate.clear();
   transportRuntime.summary = createEmptyTransportSummary();
   if (typeof invalidateTransportVisuals === 'function') {
     invalidateTransportVisuals(typeof activeScene === 'undefined' ? null : activeScene, true);
@@ -1060,6 +1062,22 @@ function simulateTransportVehiclesDaily() {
     vehicle.odometerTiles += Math.round(tilesToday);
     vehicle.tilesThisMonth += Math.round(tilesToday);
   }
+  // §7 stop queue visuals: how many of today's waiting pool are still
+  // unboarded after service - a cheap, once-a-day snapshot the visual layer
+  // can read directly (transport-visuals.js must never itself scan
+  // buildingData per frame, see test/transport-expansion.test.js's
+  // "browser wiring" guard).
+  transportRuntime.stopWaitingEstimate.clear();
+  for (const stop of state.stops) {
+    const pool = Math.round(getTransportStopCatchmentUnits(stop).originUnits * TRANSPORT_STOP_DAILY_BOARDING_SHARE);
+    const claimed = claimedToday.get(stop.id) || 0;
+    transportRuntime.stopWaitingEstimate.set(stop.id, Math.max(0, pool - claimed));
+  }
+}
+
+function getTransportStopWaitingCount(stopId) {
+  if (!isTransportExpansionActive() || isTransportSevereWeather()) return 0;
+  return transportRuntime.stopWaitingEstimate.get(stopId) || 0;
 }
 
 function transportDirectionBetween(current, next) {
@@ -1969,6 +1987,7 @@ const transportExpansionTestApi = {
   getTransportStopCatchmentUnits,
   getTransportRouteCycleStops,
   getTransportRouteAccruedCost,
+  getTransportStopWaitingCount,
 };
 
 if (typeof module !== 'undefined' && module.exports) module.exports = transportExpansionTestApi;

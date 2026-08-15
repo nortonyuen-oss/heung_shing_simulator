@@ -1,10 +1,14 @@
 // ── Managed route bus visuals ────────────────────────────────────────────────
-// Passenger and financial simulation remains aggregate in
-// transport-expansion.js. These sprites are a bounded visual projection of
-// that state: they are never persisted and never drive gameplay results.
+// Each sprite here is tied to a real, individually-owned vehicle entity
+// (transport-expansion.js's state.vehicles, §12) by id - fleet size and
+// on-screen count come from what the player actually bought, not a formula.
+// The *authoritative* passenger/revenue simulation is daily-cadence
+// (simulateTransportVehiclesDaily); this layer only owns the continuous,
+// every-frame position interpolation for legibility (TRANSPORT_TTD_SPEC.md
+// §12/§15) - it is never persisted and never itself drives gameplay results.
 
 const TRANSPORT_VISUAL_CONFIG = Object.freeze({
-  maxManagedVehicles: 16,
+  maxManagedVehicles: 48,
   zoomMin: 1.4,
   speedFactor: 0.95,
   dwellMs: 1800,
@@ -102,10 +106,16 @@ function getTransportBusModels(scene) {
   return ready;
 }
 
-function createManagedTransportVehicle(scene, route, runtime, model, ordinal, count, lineNumber) {
+function createManagedTransportVehicle(scene, route, runtime, model, vehicleId, lineNumber) {
   const cycle = runtime.roundTripPath;
   if (!Array.isArray(cycle) || cycle.length < 2) return null;
-  const positionAlongCycle = ordinal * cycle.length / Math.max(1, count);
+  // Seeded at a random point along the cycle rather than the backing
+  // vehicle's exact daily-jump position (§12) - the two run on deliberately
+  // different clocks (real sim: once/day: this: every frame, for
+  // legibility), so they're always loosely rather than exactly in sync. A
+  // random seed just avoids every newly-visible vehicle clustering at the
+  // route's first stop.
+  const positionAlongCycle = Math.random() * cycle.length;
   const currentIndex = Math.floor(positionAlongCycle) % cycle.length;
   const progress = positionAlongCycle - Math.floor(positionAlongCycle);
   const previous = cycle[(currentIndex - 1 + cycle.length) % cycle.length];
@@ -116,6 +126,11 @@ function createManagedTransportVehicle(scene, route, runtime, model, ordinal, co
   sprite.setOrigin(model.originX, model.originY);
   sprite.setScale(model.scale);
   sprite.setMask(scene.worldMask);
+  sprite.setInteractive({ cursor: 'pointer' });
+  sprite.on('pointerdown', (pointer) => {
+    if (typeof isTransportModeActive === 'undefined' || !isTransportModeActive) return;
+    if (typeof openTransportVehicleInspector === 'function') openTransportVehicleInspector(vehicleId, pointer);
+  });
   const badge = scene.add.text(0, 0, String(lineNumber), {
     fontFamily: 'Arial, sans-serif',
     fontSize: '8px',
@@ -128,7 +143,8 @@ function createManagedTransportVehicle(scene, route, runtime, model, ordinal, co
   badge.setOrigin(0.5, 0.5);
   badge.setMask(scene.worldMask);
   const vehicle = {
-    id: `managed:${route.id}:${ordinal}`,
+    id: `managed:${vehicleId}`,
+    vehicleId,
     routeId: route.id,
     route,
     runtime,
@@ -170,30 +186,55 @@ function setManagedTransportVehicleVisual(vehicle, position, forceDepth = false)
   vehicle.badge.setDepth(getWorldDepth('effect', position.depthY + TILE_HEIGHT / 2));
 }
 
-function rebuildManagedTransportVehicles(scene, state, routeEntries) {
-  const signature = getTransportVisualSignature(routeEntries);
-  if (!state.dirty && state.signature === signature) return;
-  clearManagedTransportVehicles(state);
-  const models = getTransportBusModels(scene);
-  if (models.length === 0) {
-    state.dirty = true;
-    return;
-  }
-  let remaining = TRANSPORT_VISUAL_CONFIG.maxManagedVehicles;
-  for (let routeIndex = 0; routeIndex < routeEntries.length && remaining > 0; routeIndex++) {
-    const { route, runtime } = routeEntries[routeIndex];
-    const count = Math.min(runtime.effectiveBuses, remaining);
-    for (let ordinal = 0; ordinal < count; ordinal++) {
-      const model = models[(routeIndex + ordinal) % models.length];
-      const vehicle = createManagedTransportVehicle(
-        scene, route, runtime, model, ordinal, count, routeIndex + 1,
-      );
-      if (vehicle) state.vehicles.push(vehicle);
+// Which real vehicles should currently have a sprite: assigned to an active
+// route, and either actually moving ('active') or visibly stalled
+// ('broken_down' - frozen in place, not hidden). Parked/servicing/returning
+// vehicles are conceptually off-network and have no sprite.
+function getTransportVisibleVehicleIds(routeEntries) {
+  const ids = [];
+  for (const { route, runtime } of routeEntries) {
+    if (runtime.status !== 'active' || !Array.isArray(runtime.roundTripPath) || runtime.roundTripPath.length < 2) continue;
+    const vehicles = typeof getTransportRouteVehicles === 'function' ? getTransportRouteVehicles(route.id) : [];
+    for (const vehicle of vehicles) {
+      if (vehicle.status === 'active' || vehicle.status === 'broken_down') ids.push(vehicle.id);
     }
-    remaining -= count;
   }
-  state.signature = signature;
-  state.dirty = false;
+  return ids;
+}
+
+// Incremental sync, not a rebuild-on-any-change: a sprite persists across
+// frames as long as its backing vehicle stays visible, only ever
+// created/destroyed when a vehicle actually becomes/stops being eligible
+// (bought, sold, assigned, route breaks, etc.) - promoted from the old
+// formula-driven full-rebuild-on-signature-change (§13).
+function syncManagedTransportVehicles(scene, state, routeEntries) {
+  const runtimeByRoute = new Map(routeEntries.map((entry) => [entry.route.id, entry]));
+  const visibleIds = new Set(getTransportVisibleVehicleIds(routeEntries).slice(0, TRANSPORT_VISUAL_CONFIG.maxManagedVehicles));
+
+  for (let index = state.vehicles.length - 1; index >= 0; index--) {
+    const visual = state.vehicles[index];
+    if (!visibleIds.has(visual.vehicleId)) {
+      destroyManagedTransportVehicle(visual);
+      state.vehicles.splice(index, 1);
+    }
+  }
+
+  const models = getTransportBusModels(scene);
+  if (models.length === 0) return;
+  const existingIds = new Set(state.vehicles.map((visual) => visual.vehicleId));
+  const allVehicles = getTransportExpansionState().vehicles;
+  let modelCursor = state.vehicles.length;
+  for (const vehicleId of visibleIds) {
+    if (existingIds.has(vehicleId)) continue;
+    const vehicleEntity = allVehicles.find((entry) => entry.id === vehicleId);
+    const entry = vehicleEntity ? runtimeByRoute.get(vehicleEntity.routeId) : null;
+    if (!entry) continue;
+    const model = models[modelCursor % models.length];
+    modelCursor++;
+    const lineNumber = routeEntries.findIndex((candidate) => candidate.route.id === entry.route.id) + 1;
+    const visual = createManagedTransportVehicle(scene, entry.route, entry.runtime, model, vehicleId, lineNumber);
+    if (visual) state.vehicles.push(visual);
+  }
   if (scene.trafficVisualState) scene.trafficVisualState.dirty = true;
 }
 
@@ -258,7 +299,12 @@ function getTransportOverlaySignature(routeEntries) {
   const editorStops = typeof getTransportRouteEditorStopIds === 'function'
     ? getTransportRouteEditorStopIds().join(',')
     : '';
-  return `${mapRotation}:${getTransportVisualSignature(routeEntries)}:${editorStops}`;
+  // §7: the waiting-queue label repaints once/day (getTransportStopWaitingCount
+  // only changes at simulateTransportVehiclesDaily's daily cadence) - the
+  // calendar day is cheap to include here and keeps the cache-key model
+  // simple, vs. hashing every stop's current count.
+  const day = typeof city === 'undefined' ? '' : `${city.year}:${city.month}:${city.day}`;
+  return `${mapRotation}:${getTransportVisualSignature(routeEntries)}:${editorStops}:${day}`;
 }
 
 function drawTransportRouteOverlay(scene, state, routeEntries, time) {
@@ -275,6 +321,7 @@ function drawTransportRouteOverlay(scene, state, routeEntries, time) {
   const graphic = ensureTransportRouteGraphic(scene, state);
   graphic.clear();
   clearTransportStopLabels(state);
+  const queueLabeledStopIds = new Set();
   for (const { route, runtime } of routeEntries) {
     const path = runtime.path;
     if (!Array.isArray(path) || path.length < 2) continue;
@@ -306,6 +353,28 @@ function drawTransportRouteOverlay(scene, state, routeEntries, time) {
       label.setDepth(getPreviewOverlayDepth(3));
       label.setMask(scene.worldMask);
       state.stopLabels.push(label);
+
+      // §7: visible passenger queue - one badge per stop even if served by
+      // several routes (queueLabeledStopIds dedupes across the outer loop).
+      if (queueLabeledStopIds.has(stop.id)) return;
+      queueLabeledStopIds.add(stop.id);
+      const waiting = typeof getTransportStopWaitingCount === 'function'
+        ? getTransportStopWaitingCount(stop.id)
+        : 0;
+      if (waiting <= 0) return;
+      const queueLabel = scene.add.text(point.x, point.y - 13, `👤${waiting}`, {
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '9px',
+        fontStyle: 'bold',
+        color: '#2a2118',
+        backgroundColor: '#ffe9a8',
+        padding: { x: 3, y: 1 },
+      });
+      addToRenderLayer(scene, queueLabel, 'effectLayer');
+      queueLabel.setOrigin(0.5, 1);
+      queueLabel.setDepth(getPreviewOverlayDepth(3));
+      queueLabel.setMask(scene.worldMask);
+      state.stopLabels.push(queueLabel);
     });
   }
   const editorStopIds = typeof getTransportRouteEditorStopIds === 'function'
@@ -352,7 +421,7 @@ function updateTransportVisuals(time, delta) {
     state.dirty = true;
     return;
   }
-  rebuildManagedTransportVehicles(scene, state, routeEntries);
+  syncManagedTransportVehicles(scene, state, routeEntries);
   const showRouteMarkers = typeof isTransportRouteOverlayRequested === 'function'
     && isTransportRouteOverlayRequested();
   state.vehicles.forEach((vehicle) => vehicle.badge?.setVisible?.(showRouteMarkers));
@@ -361,7 +430,18 @@ function updateTransportVisuals(time, delta) {
   const speedMultiplier = typeof getVehicleVisualSpeedMultiplier === 'function'
     ? getVehicleVisualSpeedMultiplier()
     : Math.max(1, Number(typeof simSpeedMul === 'undefined' ? 1 : simSpeedMul) || 1);
-  state.vehicles.forEach((vehicle) => updateManagedTransportVehicle(scene, vehicle, delta, speedMultiplier));
+  const allVehicles = getTransportExpansionState().vehicles;
+  state.vehicles.forEach((vehicle) => {
+    const backing = allVehicles.find((entry) => entry.id === vehicle.vehicleId);
+    if (backing?.status === 'broken_down') {
+      // Frozen in place (§12's lightweight breakdown model) - a stalled bus
+      // doesn't advance, it just visibly sits there until it self-recovers.
+      vehicle.sprite.setTint(0xd45a5a);
+      return;
+    }
+    vehicle.sprite.clearTint();
+    updateManagedTransportVehicle(scene, vehicle, delta, speedMultiplier);
+  });
 }
 
 const transportVisualTestApi = {

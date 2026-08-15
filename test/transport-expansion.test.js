@@ -581,6 +581,35 @@ test('two vehicles dwelling at the same stop the same day share, not double-clai
   assert.equal(context.totalClaimed, 81);
 });
 
+test('bus stop waiting-queue snapshot (§7) updates once per simulated day and gates on active/weather', () => {
+  const context = createTransportVm();
+  vm.runInContext(`
+    setExpansionEnabled('transport', true, { notify: false, autosave: false });
+    stopIds = listTransportStopSites().map((stop) => stop.id);
+    ensureTransportStopPairs(stopIds, null);
+    stop = getTransportStopById(stopIds[0]);
+    waitingBeforeAnyRoute = getTransportStopWaitingCount(stop.id);
+    route = createTransportRoute({ stopIds, fare: 35 });
+    depotId = getConnectedCommissionedTransportDepots()[0].id;
+    vehicle = buyTransportVehicle(depotId, 'standard_double_decker');
+    assignTransportVehicleToRoute(vehicle.id, route.id);
+    simulateTransportVehiclesDaily();
+    waitingAfterOneDay = getTransportStopWaitingCount(stop.id);
+    city.weather.typhoonStage = 'signal8';
+    waitingDuringStorm = getTransportStopWaitingCount(stop.id);
+    city.weather.typhoonStage = 'none';
+    setExpansionEnabled('transport', false, { notify: false, autosave: false });
+    waitingWhenDisabled = getTransportStopWaitingCount(stop.id);
+  `, context);
+  // No daily simulation has run yet before the route exists - the snapshot map starts empty.
+  assert.equal(context.waitingBeforeAnyRoute, 0);
+  // Fixture: this stop's catchment pool is round(540*0.15)=81 (see the
+  // dedicated dwell test above); one day's boarding can only reduce it.
+  assert.ok(context.waitingAfterOneDay >= 0 && context.waitingAfterOneDay <= 81);
+  assert.equal(context.waitingDuringStorm, 0);
+  assert.equal(context.waitingWhenDisabled, 0);
+});
+
 test('a route past TRANSPORT_MAX_ROUTES is rejected, editing/deleting existing routes is not', () => {
   const context = createTransportVm();
   context.TRANSPORT_MAX_ROUTES = transport.TRANSPORT_MAX_ROUTES;

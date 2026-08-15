@@ -18,8 +18,10 @@ const DENSITY_GROW_MUL = { 1: 1.0, 2: 0.65, 3: 0.40 };
 // Population multipliers per density (relative to base POP_PER_LEVEL)
 const DENSITY_POP_MUL  = { 1: 1.0, 2: 2.5, 3: 6.0 };
 
-// Simulation timing
-const SIM_TICK_MS    = 5000;
+// Simulation timing. Legacy per-tick cadence (5000ms/tick); the calendar
+// itself now runs on GameClock's daily accumulator (see game-clock.js) but
+// the heavy city simulation still pulses at this cadence — four times per
+// game month — so all TICKS_PER_MONTH-keyed monthly tuning stays intact.
 const TICKS_PER_MONTH = 4;
 
 // Tax rate bounds

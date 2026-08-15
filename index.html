@@ -398,7 +398,7 @@
     }
 
     .topbar-speed-btn {
-      padding: 3px 9px;
+      padding: 3px 7px;
       font-size: 12px;
       font-weight: 800;
       color: #23252a;
@@ -407,7 +407,7 @@
       border-radius: 7px;
       cursor: pointer;
       font-family: inherit;
-      min-width: 40px;
+      min-width: 32px;
     }
     .topbar-speed-btn:hover { background: #edf2f7; }
     .topbar-speed-btn.is-active {
@@ -5634,10 +5634,11 @@
         </button>
 
         <div id="topbar-speed">
+          <button class="topbar-speed-btn" data-speed="0" title="Pause" data-i18n-title="topbar.pause">II</button>
+          <button class="topbar-speed-btn" data-speed="0.15" title="0.15× speed" data-i18n-title="topbar.speed015">0.15x</button>
+          <button class="topbar-speed-btn" data-speed="0.5" title="0.5× speed" data-i18n-title="topbar.speed05">0.5x</button>
           <button class="topbar-speed-btn is-active" data-speed="1" title="1× speed" data-i18n-title="topbar.speed1">1x</button>
           <button class="topbar-speed-btn" data-speed="2" title="2× speed" data-i18n-title="topbar.speed2">2x</button>
-          <button class="topbar-speed-btn" data-speed="4" title="4× speed" data-i18n-title="topbar.speed4">4x</button>
-          <button class="topbar-speed-btn" data-speed="0" title="Pause" data-i18n-title="topbar.pause">II</button>
         </div>
 
         <button id="topbar-more-btn" type="button" aria-label="Open menu" title="More" data-i18n-aria="topbar.openMenu" data-i18n-title="topbar.more">☰</button>
@@ -7039,6 +7040,7 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
        → terrain-presets → landing-screen -->
   <script src="i18n.js"></script>
   <script src="constants.js"></script>
+  <script src="game-clock.js"></script>
   <script src="annual-fortunes-data.js"></script>
   <script src="council-definitions.js"></script>
   <script src="council-profiles.js"></script>

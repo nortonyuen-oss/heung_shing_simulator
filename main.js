@@ -536,6 +536,7 @@ function updateGameFrame(time, delta) {
   if (typeof recordVisualRoutePerformanceFrameStart === 'function') {
     recordVisualRoutePerformanceFrameStart(this);
   }
+  if (typeof updateGameClock === 'function') updateGameClock(this, delta);
   updateTerrainViewportCulling(this);
 
   const profileSections = typeof isVisualRouteCalibrationTestModeEnabled === 'function'
@@ -9273,10 +9274,14 @@ function fullReset(scene) {
 }
 
 // ── Simulation timer ──────────────────────────────────────────────────────────
+// Driven by GameClock (game-clock.js) from the Phaser update loop — a single
+// accumulator scaled by speed, not one setInterval per speed. simPaused/
+// simSpeedMul remain the canonical speed globals (read directly by topbar.js,
+// traffic/vessel/aircraft-visuals.js, visual-route-calibrator.js); GameClock
+// reads/writes them via getGameSpeed()/setGameSpeed() in game-clock.js.
 
-let simTimerId  = null;
 let simPaused   = false;
-let simSpeedMul = 1;
+let simSpeedMul = GAME_SPEEDS.NORMAL;
 
 function startSimTimer() {
   if (isTerrainCreatorMode) {
@@ -9284,19 +9289,11 @@ function startSimTimer() {
     simPaused = true;
     return;
   }
-  stopSimTimer();
-  if (simPaused || simSpeedMul === 0) return;
-  const interval = Math.round(SIM_TICK_MS / simSpeedMul);
-  simTimerId = setInterval(() => {
-    if (!simPaused) runSimTick(activeScene);
-  }, interval);
+  startGameClock();
 }
 
 function stopSimTimer() {
-  if (simTimerId !== null) {
-    clearInterval(simTimerId);
-    simTimerId = null;
-  }
+  stopGameClock();
 }
 
 function toggleSimPause() {
@@ -9306,8 +9303,7 @@ function toggleSimPause() {
     if (typeof updateSpeedButtons === 'function') updateSpeedButtons();
     return;
   }
-  simPaused = !simPaused;
-  if (!simPaused) startSimTimer();
+  setGameSpeed(simPaused ? (simSpeedMul || GAME_SPEEDS.NORMAL) : GAME_SPEEDS.PAUSED);
   if (typeof updateSpeedButtons === 'function') updateSpeedButtons();
 }
 
@@ -9318,14 +9314,7 @@ function setSimSpeed(speed) {
     if (typeof updateSpeedButtons === 'function') updateSpeedButtons();
     return;
   }
-  if (speed === 0) {
-    simPaused = true;
-    stopSimTimer();
-  } else {
-    simPaused   = false;
-    simSpeedMul = speed;
-    startSimTimer();
-  }
+  setGameSpeed(speed);
   if (typeof updateSpeedButtons === 'function') updateSpeedButtons();
 }
 

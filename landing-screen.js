@@ -543,8 +543,13 @@ async function startNewGame(cityName) {
   else if (typeof currentSaveId !== 'undefined') currentSaveId = null;
 
   rebuildFreshMapSession(cityName || getDefaultCityName());
-  simPaused = false;
-  simSpeedMul = simSpeedMul || 1;
+  // New games always start at 1x (speed is not persisted/carried over).
+  if (typeof resetGameClockAccumulator === 'function') resetGameClockAccumulator();
+  if (typeof setGameSpeed === 'function') setGameSpeed(GAME_SPEEDS.NORMAL);
+  else {
+    simPaused = false;
+    simSpeedMul = 1;
+  }
   startSimTimer();
   hideLandingScreen();
   const performanceDuration = (globalThis.performance?.now?.() ?? Date.now()) - performanceStartedAt;

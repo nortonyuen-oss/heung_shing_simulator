@@ -24,7 +24,20 @@ function forEachSimulationZonedTile(action) {
   }
 }
 
-function runSimTick(scene) {
+// Runs every calendar day (see game-clock.js's onCalendarDayAdvanced). Kept
+// cheap: it must not run the full heavy simulation 30 times a game month.
+function runDailySystems(scene) {
+  if (!scene) return;
+  updateWeatherSimulation();
+  updateWeatherVisualOverlay(scene);
+}
+
+// The legacy heavy city-simulation pulse — everything runSimTick used to run
+// every tick, before the clock refactor moved weather to daily resolution and
+// separated the calendar from this pulse. Still runs about four times per
+// game month (see game-clock.js's CITY_SIMULATION_PULSE_DAYS), the same
+// cadence TICKS_PER_MONTH-based tuning throughout the sim assumes.
+function runLegacyCitySimulationPulse(scene) {
   if (!scene) return;
   const performanceProfileStartedAt = (
     typeof isVisualRouteCalibrationTestModeEnabled === 'function'
@@ -39,13 +52,10 @@ function runSimTick(scene) {
     return result;
   };
 
-  // A tick refreshes aggregate counts, but facility anchors only change through
-  // placement/demolition/load paths which invalidate their cache explicitly.
+  // A pulse refreshes aggregate counts, but facility anchors only change
+  // through placement/demolition/load paths which invalidate their cache
+  // explicitly.
   invalidateBuildingCountCache({ facilities: false });
-  runProfiledStep('weather', () => {
-    updateWeatherSimulation();
-    updateWeatherVisualOverlay(scene);
-  });
 
   // Order matters:
   // 1. Infrastructure state (power, services)
@@ -94,18 +104,17 @@ function runSimTick(scene) {
 
   runProfiledStep('growth', () => growOrShrinkZones(scene));
   runProfiledStep('economy', () => runEconomy(scene));
-  runProfiledStep('date', () => advanceDate());
   runProfiledStep('council', () => {
     if (typeof updateCouncilTimedSystems === 'function') updateCouncilTimedSystems();
   });
   runProfiledStep('overlay', () => refreshZoneOverlayTints(scene));
-  // Invalidate before the HUD refresh so an open mini-map is recomputed once,
-  // not once with stale data and then a second time immediately afterwards.
+  // Invalidate now so an open mini-map is recomputed once on the HUD refresh
+  // that follows this pulse (game-clock.js's onCalendarDayAdvanced), not once
+  // with stale data and then a second time immediately afterwards.
   if (typeof activeOverlay === 'string' && activeOverlay) {
     if (typeof invalidateOverlayCache === 'function') invalidateOverlayCache();
     else overlayCache = {};
   }
-  runProfiledStep('hud', () => updateHUD());
   if (performanceProfileStartedAt !== null) {
     recordVisualRoutePerformanceDuration(
       scene,
@@ -732,31 +741,9 @@ function computeHappiness(scene) {
   );
 }
 
-// ── Date advancement ──────────────────────────────────────────────────────────
-
-// Days shown at each tick within a month (TICKS_PER_MONTH = 4 → 1 / 8 / 15 / 22)
-const TICK_DAY_OFFSETS = Array.from(
-  { length: TICKS_PER_MONTH },
-  (_, i) => 1 + i * Math.floor(30 / TICKS_PER_MONTH),
-);
-
-function advanceDate() {
-  city.tick++;
-
-  // Update the displayed day (cosmetic — does not drive game logic)
-  city.day = TICK_DAY_OFFSETS[city.tick % TICKS_PER_MONTH] ?? 1;
-
-  if (city.tick % TICKS_PER_MONTH === 0) {
-    city.month++;
-    city.day = 1;     // first day of the new month
-    if (city.month > 12) {
-      city.month = 1;
-      city.year++;
-      // Autosave at the start of each new year (January)
-      if (typeof triggerAutosave === 'function') triggerAutosave();
-    }
-  }
-}
+// Calendar/date advancement now lives in game-clock.js (advanceCalendarDay,
+// onCalendarDayAdvanced) — see the clock refactor spec. city.tick is
+// incremented there too, on CITY_SIMULATION_PULSE_DAYS only.
 
 // ── Zone overlay tinting (powered = brighter) ─────────────────────────────────
 

@@ -6,7 +6,17 @@
 // is the in-world voice that announces signal changes.
 
 const WEATHER_TYPHOON_MONTHS = new Set([4, 5, 6, 7, 8, 9, 10, 11]);
-const WEATHER_TYPHOON_GENESIS_CHANCE = 0.035;
+// Tuned for a once-per-sim-tick genesis check (TICKS_PER_MONTH=4 evaluations/
+// game month, back when weather only updated on the legacy heavy-sim tick).
+// The clock refactor moved weather to a daily update (GAME_DAYS_PER_MONTH=30
+// evaluations/month, ~7.5x more often) — kept unconverted, storms-per-year
+// would balloon by the same ~7.5x. Re-derive the equivalent per-day hazard
+// from the legacy per-evaluation chance so storm frequency stays the same.
+const WEATHER_TYPHOON_GENESIS_CHANCE_LEGACY = 0.035;
+const WEATHER_TYPHOON_GENESIS_CHANCE = 1 - Math.pow(
+  1 - WEATHER_TYPHOON_GENESIS_CHANCE_LEGACY,
+  TICKS_PER_MONTH / GAME_DAYS_PER_MONTH,
+);
 
 // Real Western North Pacific / South China Sea tropical cyclone names, cross-referenced
 // against the China Meteorological Administration's official English–Chinese naming

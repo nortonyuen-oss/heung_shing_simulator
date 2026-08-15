@@ -1,7 +1,7 @@
 {
   "name": "city-builder",
-  "version": "3.15.0-beta.1",
-  "releaseTheme": "巴士先行",
+  "version": "4.0.0-beta.1",
+  "releaseTheme": "【號外！香城巴士大亨】",
   "description": "SimCity 2000-style city builder with local SQLite save system",
   "author": "The City of Heung Shing",
   "repository": {

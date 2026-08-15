@@ -458,6 +458,24 @@ const BUS_STOP_ANCHOR_OFFSETS = {
   ll: { dx: 16.4173, dy: -0.9005 },
   lr: { dx: 18.4353, dy: 18.3707 },
 };
+// Which corner should win depth-sort ties against a passing vehicle. The
+// road's two shoulders always get opposite-signed depth margins from the
+// vehicle's lane-offset (each shoulder serves one direction of travel, and
+// Hong Kong left-hand traffic's "kerb is on the driver's left" rule flips
+// the offset sign between opposite directions - see getTrafficLeftLaneOffset,
+// traffic-visuals.js). UR/LR's shelter roof faces away from the kerb the
+// vehicle hugs, so the vehicle should always render in front; UL/LL's roof
+// (and its sign pole, standing right at the kerb edge) faces the vehicle, so
+// the stop should always render in front instead - confirmed against
+// reference photos of both orientations. See getBusStopSortDepth, main.js.
+const BUS_STOP_VEHICLE_WINS_CORNERS = new Set(['ur', 'lr']);
+// Comfortably larger than the vehicle's own lane-offset depth swing (at most
+// laneOffsetTiles(0.20) * TILE_HEIGHT/2 = 0.1*TILE_HEIGHT - see
+// getTrafficLeftLaneOffset/getTrafficLanePoint, traffic-visuals.js) so the
+// intended winner is never flipped by that swing, but well under a single
+// tile row's depth separation (~TILE_HEIGHT/2) so bus-stop-vs-building
+// occlusion on neighbouring tiles is untouched.
+const BUS_STOP_DEPTH_PRIORITY_MARGIN_TILES = 0.25;
 
 // Tree simulation
 const TREE_SYSTEM_VERSION = 3;            // bump when generation algorithm changes

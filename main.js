@@ -6468,9 +6468,13 @@ function getBusStopAnchorPoint(row, col, corner, offsetX, offsetY) {
 // bump doesn't either — using it for depth too under-ranked bus stops by
 // roughly TILE_IMAGE_HEIGHT + TILE_HEIGHT versus a building at the same tile,
 // so a nearby large building would render in front of and cover it.
-function getBusStopSortDepth(row, col) {
+function getBusStopSortDepth(row, col, corner) {
   const rawY = isoToScreen(col, row).y;
-  return getBuildingSortDepth(rawY, 1, 1, getElevationVisualOffset(row, col));
+  const baseDepth = getBuildingSortDepth(rawY, 1, 1, getElevationVisualOffset(row, col));
+  const margin = BUS_STOP_DEPTH_PRIORITY_MARGIN_TILES * TILE_HEIGHT;
+  // UR/LR: vehicle always wins (push the stop behind). UL/LL: the stop always
+  // wins (push it in front). See BUS_STOP_VEHICLE_WINS_CORNERS, constants.js.
+  return baseDepth + (BUS_STOP_VEHICLE_WINS_CORNERS.has(corner) ? -margin : margin);
 }
 
 function placeBusStopSprite(scene, row, col, rawSide) {
@@ -6482,7 +6486,7 @@ function placeBusStopSprite(scene, row, col, rawSide) {
   addToRenderLayer(scene, sprite, 'objectLayer');
   sprite.setOrigin(0.5, 1);
   sprite.setScale(BUS_STOP_SCALE);
-  sprite.setDepth(getBusStopSortDepth(row, col));
+  sprite.setDepth(getBusStopSortDepth(row, col, corner));
   sprite.setMask(scene.worldMask);
   sprite.mapRow = row;
   sprite.mapCol = col;
@@ -6509,7 +6513,7 @@ function positionBusStopSprite(scene, sprite) {
   const anchor = getBusStopAnchorPoint(row, col, anchorCorner, scene.offsetX, scene.offsetY);
   sprite.setOrigin(0.5, 1);
   sprite.setPosition(anchor.x, anchor.y);
-  sprite.setDepth(getBusStopSortDepth(row, col));
+  sprite.setDepth(getBusStopSortDepth(row, col, corner));
 }
 
 function refreshBusStopSpriteAt(scene, row, col) {

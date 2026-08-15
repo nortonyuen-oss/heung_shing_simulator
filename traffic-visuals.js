@@ -1828,6 +1828,7 @@ function spawnTrafficVehicle(scene, roads, random = Math.random, time = 0) {
       leg: null,
       busDwellRemainingMs: 0,
       busDwellHandledForLeg: false,
+      busDwellMatchedSide: undefined,
     };
     vehicle.leg = createTrafficLeg(scene, vehicle.previous, vehicle.current, vehicle.next);
     setTrafficVehicleVisual(
@@ -1915,6 +1916,7 @@ function advanceTrafficVehicle(scene, vehicle, amount, viewRect, time) {
     vehicle.next = { row: next.row, col: next.col };
     vehicle.leg = createTrafficLeg(scene, vehicle.previous, vehicle.current, vehicle.next);
     vehicle.busDwellHandledForLeg = false;
+    vehicle.busDwellMatchedSide = undefined;
     if (!trafficPointInRect(vehicle.leg.start, viewRect)) return false;
   }
   if (vehicle.progress >= 1) return false;
@@ -1997,21 +1999,27 @@ function updateTrafficVisuals(time, delta) {
       vehicle.model.speedFactor * getTrafficLegSpeedFactor(vehicle.leg),
     );
 
-    if (vehicle.model.category === 'bus') {
-      progressAmount *= getBusStopDwellSpeedFactor(vehicle.progress);
-      const dwellProgress = TRAFFIC_VISUAL_CONFIG.busStopDwellProgress;
-      if (
-        !vehicle.busDwellHandledForLeg
-        && vehicle.progress < dwellProgress
-        && vehicle.progress + progressAmount >= dwellProgress
-        && vehicle.current
-        && vehicle.previous
-      ) {
-        vehicle.busDwellHandledForLeg = true;
+    if (vehicle.model.category === 'bus' && vehicle.current && vehicle.previous) {
+      // Determined once per leg (reset on leg transition) and reused for the
+      // whole crossing, so a leg with no bus stop never tapers speed at all -
+      // only a leg that actually has one beside it slows/stops/resumes.
+      if (vehicle.busDwellMatchedSide === undefined) {
         const deltaRow = vehicle.current.row - vehicle.previous.row;
         const deltaCol = vehicle.current.col - vehicle.previous.col;
-        const matchingSide = findMatchingBusStopSide(vehicle.current.row, vehicle.current.col, deltaRow, deltaCol);
-        if (matchingSide) {
+        vehicle.busDwellMatchedSide = findMatchingBusStopSide(
+          vehicle.current.row, vehicle.current.col, deltaRow, deltaCol,
+        );
+      }
+
+      if (vehicle.busDwellMatchedSide) {
+        progressAmount *= getBusStopDwellSpeedFactor(vehicle.progress);
+        const dwellProgress = TRAFFIC_VISUAL_CONFIG.busStopDwellProgress;
+        if (
+          !vehicle.busDwellHandledForLeg
+          && vehicle.progress < dwellProgress
+          && vehicle.progress + progressAmount >= dwellProgress
+        ) {
+          vehicle.busDwellHandledForLeg = true;
           vehicle.progress = dwellProgress;
           vehicle.busDwellRemainingMs = TRAFFIC_VISUAL_CONFIG.busStopDwellMs;
           setTrafficVehicleVisual(vehicle, evaluateTrafficLeg(vehicle.leg, vehicle.progress), time);

@@ -4494,6 +4494,18 @@ function applyToolAt(scene, row, col, pointer = null) {
 
   // Querying a district sign edits its bilingual label directly.
   if (selectedTool === 'inspect') {
+    // Transport Mode: an inspect click on a bus-stop tile opens the stop's
+    // own info window (waiting passengers, serving routes) - the mayor's
+    // #inspect-panel is CSS-hidden in this mode anyway.
+    if (typeof isTransportModeActive !== 'undefined' && isTransportModeActive) {
+      const transportStop = typeof getTransportStopAt === 'function'
+        ? getTransportStopAt(row, col, { presentOnly: true })
+        : null;
+      if (transportStop && typeof openTransportStopInspector === 'function') {
+        openTransportStopInspector(transportStop.id, pointer);
+      }
+      return;
+    }
     const districtSign = typeof getDistrictSigns === 'function'
       && (typeof areDistrictSignsVisible !== 'function' || areDistrictSignsVisible())
       ? getDistrictSigns().find((sign) => sign.row === row && sign.col === col)

@@ -312,7 +312,7 @@ function refreshTransportUi(options = {}) {
     <div class="transport-tab-body">${tabBody}</div>
   `;
   refreshTransportHud();
-  refreshTransportVehicleInspector();
+  refreshTransportInspector();
 }
 
 function renderTransportCompanyTab(state) {
@@ -415,14 +415,31 @@ function openTransportDepotWindowFor(depotId) {
   openTransportWindow();
 }
 
+// Closing the network window no longer exits the mode - like OpenTTD,
+// windows come and go freely while the play mode itself is toggled only via
+// the CITY GUIDE header (setTransportModeActive).
 function closeTransportWindow() {
-  if (transportUiState.root) {
-    transportUiState.root.hidden = true;
-    transportUiState.pickingStops = false;
-    transportUiState.editor = null;
-    if (typeof invalidateTransportVisuals === 'function') invalidateTransportVisuals(activeScene);
-  }
-  if (isTransportModeActive) setTransportModeActive(false);
+  if (!transportUiState.root) return;
+  transportUiState.root.hidden = true;
+  transportUiState.pickingStops = false;
+  transportUiState.editor = null;
+  if (typeof invalidateTransportVisuals === 'function') invalidateTransportVisuals(activeScene);
+}
+
+// The mayor's tool selection, parked while Transport Mode is open and
+// restored on exit - the two modes keep fully separate toolsets.
+let transportModeSavedTool = '';
+
+function refreshTransportModeHeader() {
+  const title = document.querySelector('#tool-guide-text strong');
+  const subtitle = document.querySelector('#tool-guide-text span');
+  if (!title || !subtitle) return;
+  title.dataset.i18n = isTransportModeActive ? 'tool.transportGuideTitle' : 'tool.guideTitle';
+  subtitle.dataset.i18n = isTransportModeActive ? 'tool.transportGuideSubtitle' : 'tool.guideSubtitle';
+  title.textContent = t(title.dataset.i18n);
+  subtitle.textContent = t(subtitle.dataset.i18n);
+  const rail = document.getElementById('tool-guide-rail');
+  if (rail) rail.textContent = isTransportModeActive ? '🏙' : '🚆';
 }
 
 // §5: Transport Mode is a tool-menu/HUD swap, not a separate scene - the
@@ -441,13 +458,28 @@ function setTransportModeActive(active) {
     document.getElementById('budget-detail')?.classList.remove('is-open');
     document.getElementById('budget-window')?.classList.remove('is-open');
     document.getElementById('inspect-panel')?.style.setProperty('display', 'none');
-    closeTransportVehicleInspector();
+    closeTransportInspector();
+    // Park the mayor's tool; default to inspect so plain map clicks read as
+    // "what is this?" (vehicles/stops/depots all have click-to-inspect) and
+    // never invisibly build with a hidden city tool.
+    transportModeSavedTool = typeof selectedTool === 'string' ? selectedTool : '';
+    if (typeof selectedTool !== 'undefined') selectedTool = 'inspect';
     openTransportWindow();
     refreshTransportHud();
   } else {
     closeTransportWindow();
-    closeTransportVehicleInspector();
+    closeTransportInspector();
+    if (typeof selectedTool !== 'undefined' && transportModeSavedTool) {
+      selectedTool = transportModeSavedTool;
+    }
+    transportModeSavedTool = '';
   }
+  const menu = document.getElementById('tool-menu');
+  if (menu && typeof updateToolCategoryState === 'function') {
+    updateToolCategoryState(menu, typeof selectedTool === 'string' ? selectedTool : '');
+  }
+  if (typeof closeToolCategoryFlyouts === 'function') closeToolCategoryFlyouts();
+  refreshTransportModeHeader();
 }
 
 function ensureTransportHud() {
@@ -478,12 +510,14 @@ function refreshTransportHud() {
   }
 }
 
-// §6 vehicle inspector: a small click-to-inspect window, positioned near the
-// pointer like inspect-panel.js's showInspectPanel/positionInspectPanel, but
-// deliberately a separate lightweight DOM node rather than reusing
-// #inspect-panel (which Transport Mode's CSS hides outright - it shows
-// mayor's-tool tile info, not company fleet info).
-const transportInspectorState = { root: null, vehicleId: '' };
+// §6/§7 inspector: one small click-to-inspect window serving both kinds of
+// map object - a vehicle (with OpenTTD-style camera follow) or a bus stop
+// (waiting passengers + serving routes). Positioned near the pointer like
+// inspect-panel.js's showInspectPanel, but deliberately a separate
+// lightweight DOM node rather than reusing #inspect-panel (which Transport
+// Mode's CSS hides outright - it shows mayor's-tool tile info, not company
+// info).
+const transportInspectorState = { root: null, kind: '', vehicleId: '', stopId: '', follow: false };
 
 function createTransportVehicleInspector() {
   if (transportInspectorState.root || typeof document === 'undefined') return transportInspectorState.root;
@@ -498,6 +532,11 @@ function createTransportVehicleInspector() {
       #transport-vehicle-inspector .transport-inspector-body { padding:9px; display:grid; gap:5px; }
       #transport-vehicle-inspector .transport-inspector-row { display:flex; justify-content:space-between; gap:8px; }
       #transport-vehicle-inspector .transport-inspector-row span:first-child { color:#6a665c; }
+      #transport-vehicle-inspector .transport-inspector-routes { display:flex; flex-wrap:wrap; gap:4px; }
+      #transport-vehicle-inspector .transport-inspector-route-chip { border-left:5px solid var(--route-color); border-radius:3px; padding:1px 6px; background:#f8f4e8; font-weight:700; }
+      #transport-vehicle-inspector .transport-inspector-actions { display:flex; justify-content:flex-end; margin-top:4px; }
+      #transport-vehicle-inspector .transport-btn { border:1px solid #52636f; border-radius:5px; padding:4px 8px; background:#f7f3e8; color:#26323a; cursor:pointer; font:inherit; }
+      #transport-vehicle-inspector .transport-btn.primary { color:#fff; background:#236c91; border-color:#164f6e; font-weight:700; }
     `;
     document.head.appendChild(style);
   }
@@ -514,7 +553,13 @@ function createTransportVehicleInspector() {
     <div class="transport-inspector-body" data-transport-inspector-body></div>
   `;
   root.addEventListener('pointerdown', (event) => event.stopPropagation());
-  root.querySelector('[data-transport-inspector-close]').addEventListener('click', closeTransportVehicleInspector);
+  root.querySelector('[data-transport-inspector-close]').addEventListener('click', closeTransportInspector);
+  root.addEventListener('click', (event) => {
+    if (event.target.closest('[data-transport-inspector-follow]')) {
+      transportInspectorState.follow = !transportInspectorState.follow;
+      refreshTransportInspector();
+    }
+  });
   document.body.appendChild(root);
   transportInspectorState.root = root;
   return root;
@@ -537,30 +582,68 @@ function positionTransportVehicleInspector(root, pointer) {
 function openTransportVehicleInspector(vehicleId, pointer = null) {
   const root = createTransportVehicleInspector();
   if (!root) return;
+  transportInspectorState.kind = 'vehicle';
   transportInspectorState.vehicleId = vehicleId;
+  transportInspectorState.stopId = '';
+  transportInspectorState.follow = false;
   root.hidden = false;
   if (pointer) positionTransportVehicleInspector(root, pointer);
-  refreshTransportVehicleInspector();
+  refreshTransportInspector();
 }
 
-function closeTransportVehicleInspector() {
+// §7: click a bus stop while in Transport Mode - waiting passengers plus
+// which routes serve it, live-updated like the vehicle window.
+function openTransportStopInspector(stopId, pointer = null) {
+  const root = createTransportVehicleInspector();
+  if (!root) return;
+  transportInspectorState.kind = 'stop';
+  transportInspectorState.stopId = String(stopId || '');
+  transportInspectorState.vehicleId = '';
+  transportInspectorState.follow = false;
+  root.hidden = false;
+  if (pointer) positionTransportVehicleInspector(root, pointer);
+  refreshTransportInspector();
+}
+
+function closeTransportInspector() {
   if (!transportInspectorState.root) return;
   transportInspectorState.root.hidden = true;
+  transportInspectorState.kind = '';
   transportInspectorState.vehicleId = '';
+  transportInspectorState.stopId = '';
+  transportInspectorState.follow = false;
 }
 
-function refreshTransportVehicleInspector() {
+// Read by transport-visuals.js's frame loop to keep the camera glued to the
+// followed vehicle's sprite, OpenTTD-style.
+function getTransportFollowVehicleId() {
+  return transportInspectorState.follow && transportInspectorState.kind === 'vehicle'
+    ? transportInspectorState.vehicleId
+    : '';
+}
+
+function refreshTransportInspector() {
   const root = transportInspectorState.root;
   if (!root || root.hidden) return;
+  if (transportInspectorState.kind === 'stop') {
+    refreshTransportStopInspectorBody(root);
+    return;
+  }
   const vehicle = getTransportExpansionState().vehicles.find((entry) => entry.id === transportInspectorState.vehicleId);
-  if (!vehicle) { closeTransportVehicleInspector(); return; }
+  if (!vehicle) { closeTransportInspector(); return; }
   const route = getTransportExpansionState().routes.find((entry) => entry.id === vehicle.routeId);
   const vehicleClass = getTransportVehicleClass(vehicle.classId);
   root.querySelector('[data-transport-inspector-title]').textContent = t('transport.inspector.title', { id: vehicle.id });
+  // Position comes from the on-screen sprite (the thing the player is
+  // actually watching), not the daily-cadence backend order index.
+  const visual = typeof activeScene !== 'undefined'
+    ? activeScene?.transportVisualState?.vehicles?.find((entry) => entry.vehicleId === vehicle.id)
+    : null;
   const rows = [
     [t('transport.inspector.class'), t(`transport.vehicleClass.${vehicle.classId}`)],
     [t('transport.inspector.status'), t(`transport.vehicleStatus.${vehicle.status}`)],
     [t('transport.inspector.route'), route ? route.name : t('transport.depot.unassigned')],
+    [t('transport.inspector.position'), visual?.current ? `(${visual.current.row}, ${visual.current.col})` : '—'],
     [t('transport.inspector.passengers'), `${vehicle.passengersAboard} / ${vehicleClass.capacity}`],
     [t('transport.inspector.condition'), transportFormatPercent(vehicle.condition)],
     [t('transport.inspector.age'), `${vehicle.ageMonths}mo`],
@@ -569,7 +652,39 @@ function refreshTransportVehicleInspector() {
   ].map(([label, value]) => (
     `<div class="transport-inspector-row"><span>${transportEscapeHtml(label)}</span><strong>${transportEscapeHtml(value)}</strong></div>`
   )).join('');
-  root.querySelector('[data-transport-inspector-body]').innerHTML = rows;
+  const followButton = visual
+    ? `<div class="transport-inspector-actions"><button class="transport-btn ${transportInspectorState.follow ? 'primary' : ''}" type="button" data-transport-inspector-follow>${transportEscapeHtml(t(transportInspectorState.follow ? 'transport.inspector.following' : 'transport.inspector.follow'))}</button></div>`
+    : '';
+  root.querySelector('[data-transport-inspector-body]').innerHTML = rows + followButton;
+}
+
+function refreshTransportStopInspectorBody(root) {
+  const state = getTransportExpansionState();
+  const stop = typeof getTransportStopById === 'function'
+    ? getTransportStopById(transportInspectorState.stopId)
+    : null;
+  if (!stop) { closeTransportInspector(); return; }
+  const stopIndex = state.stops.indexOf(stop);
+  root.querySelector('[data-transport-inspector-title]').textContent = getTransportStopDisplayName(stop, Math.max(0, stopIndex));
+  const waiting = typeof getTransportStopWaitingCount === 'function'
+    ? getTransportStopWaitingCount(stop.id)
+    : 0;
+  const servingRoutes = state.routes.filter((route) => route.stopIds.includes(stop.id));
+  const routeChips = servingRoutes.length > 0
+    ? `<div class="transport-inspector-routes">${servingRoutes.map((route) => (
+      `<span class="transport-inspector-route-chip" style="--route-color:${transportEscapeHtml(route.color)}">${transportEscapeHtml(route.name)}</span>`
+    )).join('')}</div>`
+    : `<div class="transport-inspector-row"><span>${transportEscapeHtml(t('transport.stopInspector.routes'))}</span><strong>${transportEscapeHtml(t('transport.stopInspector.noRoutes'))}</strong></div>`;
+  const rows = [
+    [t('transport.stopInspector.waiting'), `👤 ${waiting}`],
+    [t('transport.inspector.position'), `(${stop.row}, ${stop.col})`],
+  ].map(([label, value]) => (
+    `<div class="transport-inspector-row"><span>${transportEscapeHtml(label)}</span><strong>${transportEscapeHtml(value)}</strong></div>`
+  )).join('');
+  const routesLabel = servingRoutes.length > 0
+    ? `<div class="transport-inspector-row"><span>${transportEscapeHtml(t('transport.stopInspector.routes'))}</span></div>`
+    : '';
+  root.querySelector('[data-transport-inspector-body]').innerHTML = rows + routesLabel + routeChips;
 }
 
 function resetTransportUiForCityChange() {
@@ -826,10 +941,18 @@ function getTransportRouteEditorStopIds() {
 function handleTransportUiKeydown(event) {
   if (event.key === 'Escape' && transportInspectorState.root && !transportInspectorState.root.hidden) {
     event.preventDefault();
-    closeTransportVehicleInspector();
+    closeTransportInspector();
     return;
   }
-  if (!transportUiState.root || transportUiState.root.hidden) return;
+  if (!transportUiState.root || transportUiState.root.hidden) {
+    // Escape with no transport windows left open steps back out to city
+    // building, mirroring how the mode was entered from the guide header.
+    if (event.key === 'Escape' && isTransportModeActive) {
+      event.preventDefault();
+      setTransportModeActive(false);
+    }
+    return;
+  }
   if (event.key === 'Escape') {
     event.preventDefault();
     if (transportUiState.editor) cancelTransportRouteEditor();

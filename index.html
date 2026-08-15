@@ -5048,10 +5048,10 @@
     /* Transport Mode (TRANSPORT_TTD_SPEC.md §5): same map/camera, city sim
        keeps running (unlike terrain mode, speed controls stay visible and
        nothing is paused) - only the tool-menu/HUD chrome swaps to the
-       Transport Company toolset. The "roads" category already holds every
-       tool the mode needs (road/bus-stop/bus-depot/manage-network), so it's
-       kept as the one visible category rather than duplicating those tools
-       into a new one. */
+       Transport Company's own toolset. The mode has its own dedicated tool
+       category (bus stop / bus depot / network window), hidden from the
+       city toolset and vice versa - entered/exited via the CITY GUIDE
+       header at the top of the tool menu. */
     body.transport-mode #budget-panel,
     body.transport-mode #road-tile-set-window,
     body.transport-mode #overlay-window,
@@ -5061,10 +5061,25 @@
       display: none !important;
     }
 
+    #tool-menu [data-tool-category="transport"] {
+      display: none;
+    }
+
+    body.transport-mode #tool-menu [data-tool-category="transport"] {
+      display: grid;
+    }
+
     body.transport-mode #tool-menu .tool-menu-divider,
-    body.transport-mode #tool-menu .tool-flyout:not([data-tool-panel="roads"]),
-    body.transport-mode #tool-menu [data-tool-category]:not([data-tool-category="roads"]):not([data-tool-category="inspect"]) {
+    body.transport-mode #tool-menu .tool-flyout:not([data-tool-panel="transport"]),
+    body.transport-mode #tool-menu [data-tool-category]:not([data-tool-category="transport"]):not([data-tool-category="inspect"]) {
       display: none !important;
+    }
+
+    .tool-menu-guide { cursor: pointer; }
+    .tool-menu-guide:hover .tool-guide-rail { background: #ffffff; }
+    body.transport-mode .tool-menu-guide {
+      border-color: #0d3a52;
+      background: linear-gradient(180deg, #14506e 0%, #0b2e42 100%);
     }
 
     #transport-hud {
@@ -6153,10 +6168,10 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
   </div>
 
   <nav id="tool-menu" class="tool-menu" aria-label="City tools" data-i18n-aria="tool.menu">
-    <div class="tool-menu-guide" aria-hidden="true">
+    <div class="tool-menu-guide" id="tool-menu-guide" title="Switch between city building and transport operation" data-i18n-title="tool.toggleTransportMode">
       <button id="tool-menu-collapse" type="button" aria-label="Toggle tool menu" title="Toggle tool menu" data-i18n-aria="tool.toggleMenu" data-i18n-title="tool.toggleMenu">◀</button>
-      <div class="tool-guide-text"><strong data-i18n="tool.guideTitle">建設指引</strong><span data-i18n="tool.guideSubtitle">CITY GUIDE</span></div>
-      <button class="tool-guide-rail" type="button" tabindex="-1">🚆</button>
+      <div class="tool-guide-text" id="tool-guide-text"><strong data-i18n="tool.guideTitle">建設指引</strong><span data-i18n="tool.guideSubtitle">CITY GUIDE</span></div>
+      <button class="tool-guide-rail" id="tool-guide-rail" type="button" aria-label="Switch between city building and transport operation" data-i18n-aria="tool.toggleTransportMode">🚆</button>
     </div>
 
     <button class="tool-category-button is-active" type="button" data-tool-category="roads" title="Roads" data-i18n-title="toolCategory.roads">
@@ -6268,6 +6283,20 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
       <button class="tool-row is-active" type="button" data-tool="road" title="Build road ($10)">
         <span class="tool-row-icon">🛣</span><span class="tool-row-text" data-i18n="toolRow.road">Road</span><span class="tool-row-cost">$10</span>
       </button>
+    </section>
+
+    <button class="tool-category-button" type="button" data-tool-category="transport" title="Transport Company" data-i18n-title="toolCategory.transport">
+      <span class="tool-category-icon" aria-hidden="true">🚌</span>
+      <span class="tool-category-labels">
+        <span class="tool-category-title" data-i18n="toolCategory.transportTitle">運輸公司</span>
+        <span class="tool-category-subtitle" data-i18n="toolCategory.transportSubtitle">Bus Company</span>
+      </span>
+      <span class="tool-category-accent" aria-hidden="true"></span>
+      <span class="tool-category-hotkey" aria-hidden="true"></span>
+    </button>
+
+    <section class="tool-flyout" data-tool-panel="transport">
+      <div class="tool-flyout-title" data-i18n="toolCategory.transport">Transport Company</div>
       <button class="tool-row" type="button" data-tool="bus-stop" title="Bus stop ($20) — click a straight road for the near shoulder, click again for the far shoulder">
         <span class="tool-row-icon">🚏</span><span class="tool-row-text" data-i18n="toolRow.busStop">Bus Stop</span><span class="tool-row-cost">$20</span>
       </button>

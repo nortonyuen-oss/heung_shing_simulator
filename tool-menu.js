@@ -13,6 +13,21 @@ function setupToolMenu() {
     });
   }
 
+  // CITY GUIDE header doubles as the Transport Mode toggle (OpenTTD-style
+  // separate play mode) - anywhere on the header except the collapse arrow.
+  const guideHeader = document.getElementById('tool-menu-guide');
+  if (guideHeader) {
+    guideHeader.addEventListener('click', (event) => {
+      if (event.target.closest('#tool-menu-collapse')) return;
+      if (isTerrainCreatorMode) return;
+      if (typeof setTransportModeActive === 'function') {
+        setTransportModeActive(typeof isTransportModeActive === 'undefined' || !isTransportModeActive);
+      }
+      closeToolCategoryFlyouts();
+      closeToolPopups();
+    });
+  }
+
   menu.addEventListener('pointerdown', (event) => event.stopPropagation());
   menu.addEventListener('pointerenter', cancelZoneDensityClose);
   menu.addEventListener('pointerenter', cancelParkPickerClose);
@@ -162,7 +177,11 @@ function setupToolMenu() {
     }
     if (actionButton?.dataset.action === 'open-transport-network') {
       if (isTerrainCreatorMode) return;
+      // Entering the mode auto-opens the window; when already in the mode
+      // (this button lives in the transport flyout) it reopens the window
+      // after the player closed it.
       if (typeof setTransportModeActive === 'function') setTransportModeActive(true);
+      if (typeof openTransportWindow === 'function') openTransportWindow();
       closeToolCategoryFlyouts();
       return;
     }

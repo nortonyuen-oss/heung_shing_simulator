@@ -442,6 +442,16 @@ function updateTransportVisuals(time, delta) {
     vehicle.sprite.clearTint();
     updateManagedTransportVehicle(scene, vehicle, delta, speedMultiplier);
   });
+
+  // OpenTTD-style follow: while the vehicle inspector's 追蹤 toggle is on,
+  // the camera stays glued to that vehicle's sprite every frame.
+  const followId = typeof getTransportFollowVehicleId === 'function'
+    ? getTransportFollowVehicleId()
+    : '';
+  if (followId) {
+    const followed = state.vehicles.find((entry) => entry.vehicleId === followId);
+    if (followed?.sprite) scene.cameras.main.centerOn(followed.sprite.x, followed.sprite.y);
+  }
 }
 
 const transportVisualTestApi = {

@@ -284,6 +284,7 @@ function returnToMainMenu() {
   }
   isTerrainCreatorMode = false;
   if (typeof setTerrainEditorUiActive === 'function') setTerrainEditorUiActive(false);
+  if (typeof setTransportModeActive === 'function') setTransportModeActive(false);
   stopSimTimer();
 
   // Show landing screen in main-menu state

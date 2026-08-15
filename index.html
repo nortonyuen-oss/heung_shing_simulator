@@ -5045,6 +5045,62 @@
       display: none !important;
     }
 
+    /* Transport Mode (TRANSPORT_TTD_SPEC.md §5): same map/camera, city sim
+       keeps running (unlike terrain mode, speed controls stay visible and
+       nothing is paused) - only the tool-menu/HUD chrome swaps to the
+       Transport Company toolset. The "roads" category already holds every
+       tool the mode needs (road/bus-stop/bus-depot/manage-network), so it's
+       kept as the one visible category rather than duplicating those tools
+       into a new one. */
+    body.transport-mode #budget-panel,
+    body.transport-mode #road-tile-set-window,
+    body.transport-mode #overlay-window,
+    body.transport-mode #chart-window,
+    body.transport-mode #inspect-panel,
+    body.transport-mode [data-menu-action="open-road-tile-set"] {
+      display: none !important;
+    }
+
+    body.transport-mode #tool-menu .tool-menu-divider,
+    body.transport-mode #tool-menu .tool-flyout:not([data-tool-panel="roads"]),
+    body.transport-mode #tool-menu [data-tool-category]:not([data-tool-category="roads"]):not([data-tool-category="inspect"]) {
+      display: none !important;
+    }
+
+    #transport-hud {
+      position: fixed;
+      left: 14px;
+      top: 92px;
+      z-index: 72;
+      padding: 8px 12px;
+      border: 2px solid #164f6e;
+      border-radius: 8px;
+      background: #ece7d8;
+      color: #20252a;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.22);
+      font: 12px/1.35 Arial, Helvetica, sans-serif;
+      display: none;
+    }
+
+    body.transport-mode #transport-hud {
+      display: block;
+    }
+
+    #transport-hud .transport-hud-name {
+      font-weight: 800;
+      font-size: 13px;
+      margin-bottom: 2px;
+    }
+
+    #transport-hud .transport-hud-cash {
+      font-weight: 700;
+      color: #176a43;
+    }
+
+    #transport-hud .transport-hud-cash[data-negative="true"] {
+      color: #9b2929;
+    }
+
     #terrain-minimap-panel {
       position: fixed;
       right: 14px;

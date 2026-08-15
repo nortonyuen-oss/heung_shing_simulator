@@ -162,7 +162,7 @@ function setupToolMenu() {
     }
     if (actionButton?.dataset.action === 'open-transport-network') {
       if (isTerrainCreatorMode) return;
-      if (typeof openTransportWindow === 'function') openTransportWindow();
+      if (typeof setTransportModeActive === 'function') setTransportModeActive(true);
       closeToolCategoryFlyouts();
       return;
     }

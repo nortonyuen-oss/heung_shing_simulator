@@ -226,6 +226,8 @@ test('live expansion unlocks, routes, breaks, settles and restores without affec
     assignTransportVehicleToRoute(vehicleA.id, createdRoute.id);
     assignTransportVehicleToRoute(vehicleB.id, createdRoute.id);
     updateTransportSimulation();
+    for (let i = 0; i < 3; i++) simulateTransportVehiclesDaily();
+    updateTransportSimulation();
     activeResult = {
       unlocked: getTransportExpansionState().unlocked,
       cash: getTransportExpansionState().company.cash,
@@ -292,8 +294,9 @@ test('live expansion unlocks, routes, breaks, settles and restores without affec
 
   const active = JSON.parse(JSON.stringify(context.activeResult));
   assert.equal(active.unlocked, true);
-  assert.equal(active.cash, transport.TRANSPORT_STARTUP_CAPITAL - 2 * 2800000);
-  assert.equal(context.cashAfterPurchase, active.cash);
+  assert.equal(context.cashAfterPurchase, transport.TRANSPORT_STARTUP_CAPITAL - 2 * 2800000);
+  // Real-time boarding revenue (§12) has since flowed in on top of the purchase debit.
+  assert.ok(active.cash > context.cashAfterPurchase);
   assert.equal(active.depotCapacity, transport.TRANSPORT_DEPOT_CAPACITY);
   assert.equal(active.status, 'active');
   assert.equal(active.assignedVehicles, 2);
@@ -488,6 +491,94 @@ test('mandatory periodic service recalls, services and resumes a vehicle', () =>
   assert.equal(context.statusAfterService, 'active');
   assert.equal(context.conditionAfterService, 1);
   assert.equal(context.daysSinceServiceAfterService, 0);
+});
+
+test('individual vehicle simulation moves a vehicle, boards/alights riders, and credits revenue in real time', () => {
+  const context = createTransportVm();
+  vm.runInContext(`
+    setExpansionEnabled('transport', true, { notify: false, autosave: false });
+    stopIds = listTransportStopSites().map((stop) => stop.id);
+    ensureTransportStopPairs(stopIds, null);
+    route = createTransportRoute({ stopIds, fare: 35 });
+    depotId = getConnectedCommissionedTransportDepots()[0].id;
+    vehicle = buyTransportVehicle(depotId, 'standard_double_decker');
+    assignTransportVehicleToRoute(vehicle.id, route.id);
+    const stored = () => getTransportExpansionState().vehicles.find((entry) => entry.id === vehicle.id);
+    cashBeforeDriving = getTransportExpansionState().company.cash;
+    simulateTransportVehiclesDaily();
+    odometerAfterOneDay = stored().odometerTiles;
+    tilesThisMonthAfterOneDay = stored().tilesThisMonth;
+    cashAfterOneDay = getTransportExpansionState().company.cash;
+    passengersAfterOneDay = getTransportExpansionState().routes[0].monthToDatePassengers;
+    revenueAfterOneDay = getTransportExpansionState().routes[0].monthToDateRevenue;
+
+    cashBeforeSettle = getTransportExpansionState().company.cash;
+    finance = settleTransportMonth();
+    cashAfterSettle = getTransportExpansionState().company.cash;
+    monthToDateAfterSettle = getTransportExpansionState().routes[0].monthToDatePassengers;
+    tilesThisMonthAfterSettle = stored().tilesThisMonth;
+  `, context);
+  assert.ok(context.odometerAfterOneDay > 0);
+  assert.equal(context.odometerAfterOneDay, context.tilesThisMonthAfterOneDay);
+  assert.ok(context.passengersAfterOneDay > 0);
+  assert.ok(context.revenueAfterOneDay > 0);
+  // Revenue credits company.cash the instant a rider alights, not batched to month-end.
+  assert.equal(context.cashAfterOneDay - context.cashBeforeDriving, context.revenueAfterOneDay);
+  assert.equal(context.finance.revenue, context.revenueAfterOneDay);
+  assert.ok(context.finance.cost > 0);
+  // Settling only ever subtracts cost - revenue already flowed in above, so
+  // it must not be re-added (that would double-count it).
+  assert.equal(context.cashAfterSettle, context.cashBeforeSettle - context.finance.cost);
+  assert.equal(context.monthToDateAfterSettle, 0);
+  assert.equal(context.tilesThisMonthAfterSettle, 0);
+});
+
+test('a broken route\'s vehicle idles in place instead of driving or boarding riders', () => {
+  const context = createTransportVm();
+  vm.runInContext(`
+    setExpansionEnabled('transport', true, { notify: false, autosave: false });
+    stopIds = listTransportStopSites().map((stop) => stop.id);
+    ensureTransportStopPairs(stopIds, null);
+    route = createTransportRoute({ stopIds, fare: 35 });
+    depotId = getConnectedCommissionedTransportDepots()[0].id;
+    vehicle = buyTransportVehicle(depotId, 'standard_double_decker');
+    assignTransportVehicleToRoute(vehicle.id, route.id);
+    busStopMap[5][9] = null;
+    markTransportStopsDirty();
+    updateTransportSimulation();
+    simulateTransportVehiclesDaily();
+    const stored = () => getTransportExpansionState().vehicles.find((entry) => entry.id === vehicle.id);
+    odometerAfterBrokenDay = stored().odometerTiles;
+    passengersOnBrokenRoute = getTransportExpansionState().routes[0].monthToDatePassengers;
+  `, context);
+  assert.equal(context.odometerAfterBrokenDay, 0);
+  assert.equal(context.passengersOnBrokenRoute, 0);
+});
+
+test('two vehicles dwelling at the same stop the same day share, not double-claim, its waiting pool', () => {
+  const context = createTransportVm();
+  vm.runInContext(`
+    setExpansionEnabled('transport', true, { notify: false, autosave: false });
+    stopIds = listTransportStopSites().map((stop) => stop.id);
+    ensureTransportStopPairs(stopIds, null);
+    route = createTransportRoute({ stopIds, fare: 35 });
+    stop = getTransportStopById(stopIds[0]);
+    claimedToday = new Map();
+    vehicleA = { classId: 'standard_double_decker', passengersAboard: 0, tripRevenueAccrued: 0 };
+    vehicleB = { classId: 'standard_double_decker', passengersAboard: 0, tripRevenueAccrued: 0 };
+    dwellTransportVehicleAtStop(vehicleA, route, stop, claimedToday);
+    boardedByA = vehicleA.passengersAboard;
+    dwellTransportVehicleAtStop(vehicleB, route, stop, claimedToday);
+    boardedByB = vehicleB.passengersAboard;
+    totalClaimed = claimedToday.get(stop.id);
+  `, context);
+  // Fixture: '4:2' is a 3000-population residential building 1 tile from
+  // this stop -> originUnits 3000*0.18=540, waiting pool round(540*0.15)=81.
+  // The double-decker's 70-seat capacity caps the first vehicle's boarding
+  // below the pool, leaving exactly the remainder for the second.
+  assert.equal(context.boardedByA, 70);
+  assert.equal(context.boardedByB, 11);
+  assert.equal(context.totalClaimed, 81);
 });
 
 test('a route past TRANSPORT_MAX_ROUTES is rejected, editing/deleting existing routes is not', () => {

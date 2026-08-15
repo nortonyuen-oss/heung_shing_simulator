@@ -30,6 +30,7 @@ function runDailySystems(scene) {
   if (!scene) return;
   updateWeatherSimulation();
   if (typeof recordTransportDailyAvailability === 'function') recordTransportDailyAvailability();
+  if (typeof simulateTransportVehiclesDaily === 'function') simulateTransportVehiclesDaily();
   if (typeof advanceTransportVehiclesDaily === 'function') advanceTransportVehiclesDaily();
   updateWeatherVisualOverlay(scene);
 }

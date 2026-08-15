@@ -5049,7 +5049,7 @@
        keeps running (unlike terrain mode, speed controls stay visible and
        nothing is paused) - only the tool-menu/HUD chrome swaps to the
        Transport Company's own toolset. The mode has its own dedicated tool
-       category (bus stop / bus depot / network window), hidden from the
+       category (bus stop / bus depot / direct operation windows), hidden from the
        city toolset and vice versa - entered/exited via the CITY GUIDE
        header at the top of the tool menu. */
     body.transport-mode #budget-panel,
@@ -6303,8 +6303,17 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
       <button class="tool-row" type="button" data-tool="bus-depot" title="Bus depot ($4,000) — click a placed depot again to rotate it">
         <span class="tool-row-icon">🚌</span><span class="tool-row-text" data-i18n="toolRow.busDepot">Bus Depot</span><span class="tool-row-cost">$4,000</span>
       </button>
-      <button class="tool-row" type="button" data-action="open-transport-network">
-        <span class="tool-row-icon">📋</span><span class="tool-row-text" data-i18n="transport.manage">Manage Bus Network</span>
+      <button class="tool-row" type="button" data-action="open-transport-tab" data-transport-tab="routes">
+        <span class="tool-row-icon">🗺</span><span class="tool-row-text" data-i18n="transport.tool.routes">Routes &amp; Orders</span>
+      </button>
+      <button class="tool-row" type="button" data-action="open-transport-tab" data-transport-tab="fleet">
+        <span class="tool-row-icon">🚌</span><span class="tool-row-text" data-i18n="transport.tool.fleet">Vehicle List</span>
+      </button>
+      <button class="tool-row" type="button" data-action="open-transport-tab" data-transport-tab="demand">
+        <span class="tool-row-icon">👥</span><span class="tool-row-text" data-i18n="transport.tool.demand">Passenger Demand</span>
+      </button>
+      <button class="tool-row" type="button" data-action="open-transport-tab" data-transport-tab="finances">
+        <span class="tool-row-icon">📈</span><span class="tool-row-text" data-i18n="transport.tool.finances">Profit &amp; Loss</span>
       </button>
     </section>
 

@@ -2,17 +2,13 @@
 // Each sprite here is tied to a real, individually-owned vehicle entity
 // (transport-expansion.js's state.vehicles, §12) by id - fleet size and
 // on-screen count come from what the player actually bought, not a formula.
-// The *authoritative* passenger/revenue simulation is daily-cadence
-// (simulateTransportVehiclesDaily); this layer only owns the continuous,
-// every-frame position interpolation for legibility (TRANSPORT_TTD_SPEC.md
-// §12/§15) - it is never persisted and never itself drives gameplay results.
+// Position, passengers and revenue all come from the same persistent vehicle
+// progress in transport-expansion.js. This layer only projects that state to
+// a sprite; it never runs a second visual-only vehicle clock.
 
 const TRANSPORT_VISUAL_CONFIG = Object.freeze({
   maxManagedVehicles: 48,
   zoomMin: 1.4,
-  speedFactor: 0.95,
-  dwellMs: 1800,
-  dwellProgress: 1,
   overlayRefreshMs: 200,
 });
 
@@ -109,15 +105,12 @@ function getTransportBusModels(scene) {
 function createManagedTransportVehicle(scene, route, runtime, model, vehicleId, lineNumber) {
   const cycle = runtime.roundTripPath;
   if (!Array.isArray(cycle) || cycle.length < 2) return null;
-  // Seeded at a random point along the cycle rather than the backing
-  // vehicle's exact daily-jump position (§12) - the two run on deliberately
-  // different clocks (real sim: once/day: this: every frame, for
-  // legibility), so they're always loosely rather than exactly in sync. A
-  // random seed just avoids every newly-visible vehicle clustering at the
-  // route's first stop.
-  const positionAlongCycle = Math.random() * cycle.length;
-  const currentIndex = Math.floor(positionAlongCycle) % cycle.length;
-  const progress = positionAlongCycle - Math.floor(positionAlongCycle);
+  const backing = getTransportExpansionState().vehicles.find((entry) => entry.id === vehicleId);
+  const backingPosition = typeof getTransportVehiclePathPosition === 'function'
+    ? getTransportVehiclePathPosition(backing, route, runtime)
+    : null;
+  const currentIndex = backingPosition?.currentIndex ?? 0;
+  const progress = backingPosition?.progress ?? 0;
   const previous = cycle[(currentIndex - 1 + cycle.length) % cycle.length];
   const current = cycle[currentIndex];
   const next = cycle[(currentIndex + 1) % cycle.length];
@@ -160,10 +153,6 @@ function createManagedTransportVehicle(scene, route, runtime, model, vehicleId, 
     textureDirection: 'ne',
     leg: createTrafficLeg(scene, previous, current, next),
     lastPosition: null,
-    dwellRemainingMs: 0,
-    dwellHandled: false,
-    stopKeys: new Set(route.stopIds.map(getTransportStopById).filter(Boolean)
-      .map((stop) => `${stop.row}:${stop.col}`)),
   };
   setManagedTransportVehicleVisual(vehicle, evaluateTrafficLeg(vehicle.leg, progress), true);
   return vehicle;
@@ -238,51 +227,23 @@ function syncManagedTransportVehicles(scene, state, routeEntries) {
   if (scene.trafficVisualState) scene.trafficVisualState.dirty = true;
 }
 
-function advanceManagedTransportVehicle(scene, vehicle, amount) {
-  vehicle.progress += amount;
-  let transitions = 0;
-  while (vehicle.progress >= 1 && transitions++ < TRAFFIC_VISUAL_CONFIG.maxLegTransitionsPerFrame) {
-    vehicle.progress -= 1;
-    vehicle.currentIndex = (vehicle.currentIndex + 1) % vehicle.cycle.length;
-    vehicle.previous = vehicle.cycle[(vehicle.currentIndex - 1 + vehicle.cycle.length) % vehicle.cycle.length];
+function syncManagedTransportVehiclePosition(scene, vehicle, backing) {
+  const target = typeof getTransportVehiclePathPosition === 'function'
+    ? getTransportVehiclePathPosition(backing, vehicle.route, vehicle.runtime)
+    : null;
+  if (!target) return;
+  vehicle.cycle = target.path;
+  if (vehicle.currentIndex !== target.currentIndex) {
+    vehicle.currentIndex = target.currentIndex;
+    vehicle.previous = vehicle.cycle[
+      (vehicle.currentIndex - 1 + vehicle.cycle.length) % vehicle.cycle.length
+    ];
     vehicle.current = vehicle.cycle[vehicle.currentIndex];
     vehicle.next = vehicle.cycle[(vehicle.currentIndex + 1) % vehicle.cycle.length];
     vehicle.leg = createTrafficLeg(scene, vehicle.previous, vehicle.current, vehicle.next);
-    vehicle.dwellHandled = false;
   }
-  if (vehicle.progress >= 1) vehicle.progress = 0;
+  vehicle.progress = target.progress;
   setManagedTransportVehicleVisual(vehicle, evaluateTrafficLeg(vehicle.leg, vehicle.progress));
-}
-
-function updateManagedTransportVehicle(scene, vehicle, delta, speedMultiplier) {
-  if (vehicle.dwellRemainingMs > 0) {
-    vehicle.dwellRemainingMs -= delta * speedMultiplier;
-    if (vehicle.dwellRemainingMs > 0) {
-      setManagedTransportVehicleVisual(vehicle, evaluateTrafficLeg(vehicle.leg, vehicle.progress));
-      return;
-    }
-    vehicle.dwellRemainingMs = 0;
-  }
-  const amount = computeTrafficProgressAmount(
-    delta,
-    false,
-    speedMultiplier,
-    TRAFFIC_VISUAL_CONFIG,
-    vehicle.model.speedFactor * TRANSPORT_VISUAL_CONFIG.speedFactor * getTrafficLegSpeedFactor(vehicle.leg),
-  );
-  if (
-    !vehicle.dwellHandled
-    && vehicle.stopKeys.has(`${vehicle.next.row}:${vehicle.next.col}`)
-    && vehicle.progress < TRANSPORT_VISUAL_CONFIG.dwellProgress
-    && vehicle.progress + amount >= TRANSPORT_VISUAL_CONFIG.dwellProgress
-  ) {
-    vehicle.dwellHandled = true;
-    vehicle.progress = TRANSPORT_VISUAL_CONFIG.dwellProgress;
-    vehicle.dwellRemainingMs = TRANSPORT_VISUAL_CONFIG.dwellMs;
-    setManagedTransportVehicleVisual(vehicle, evaluateTrafficLeg(vehicle.leg, vehicle.progress));
-    return;
-  }
-  advanceManagedTransportVehicle(scene, vehicle, amount);
 }
 
 function ensureTransportRouteGraphic(scene, state) {
@@ -299,12 +260,12 @@ function getTransportOverlaySignature(routeEntries) {
   const editorStops = typeof getTransportRouteEditorStopIds === 'function'
     ? getTransportRouteEditorStopIds().join(',')
     : '';
-  // §7: the waiting-queue label repaints once/day (getTransportStopWaitingCount
-  // only changes at simulateTransportVehiclesDaily's daily cadence) - the
-  // calendar day is cheap to include here and keeps the cache-key model
-  // simple, vs. hashing every stop's current count.
-  const day = typeof city === 'undefined' ? '' : `${city.year}:${city.month}:${city.day}`;
-  return `${mapRotation}:${getTransportVisualSignature(routeEntries)}:${editorStops}:${day}`;
+  // Queue revision changes both at each daily arrival and at an actual bus
+  // boarding, so the badge refreshes immediately instead of only at midnight.
+  const queueRevision = typeof getTransportQueueRevision === 'function'
+    ? getTransportQueueRevision()
+    : 0;
+  return `${mapRotation}:${getTransportVisualSignature(routeEntries)}:${editorStops}:${queueRevision}`;
 }
 
 function drawTransportRouteOverlay(scene, state, routeEntries, time) {
@@ -428,14 +389,12 @@ function updateTransportVisuals(time, delta) {
   const showRouteMarkers = typeof isTransportRouteOverlayRequested === 'function'
     && isTransportRouteOverlayRequested();
   state.vehicles.forEach((vehicle) => vehicle.badge?.setVisible?.(showRouteMarkers));
-  const paused = typeof simPaused !== 'undefined' && simPaused;
-  if (paused || state.vehicles.length === 0) return;
-  const speedMultiplier = typeof getVehicleVisualSpeedMultiplier === 'function'
-    ? getVehicleVisualSpeedMultiplier()
-    : Math.max(1, Number(typeof simSpeedMul === 'undefined' ? 1 : simSpeedMul) || 1);
+  if (state.vehicles.length === 0) return;
   const allVehicles = getTransportExpansionState().vehicles;
   state.vehicles.forEach((vehicle) => {
     const backing = allVehicles.find((entry) => entry.id === vehicle.vehicleId);
+    if (!backing) return;
+    syncManagedTransportVehiclePosition(scene, vehicle, backing);
     if (backing?.status === 'broken_down') {
       // Frozen in place (§12's lightweight breakdown model) - a stalled bus
       // doesn't advance, it just visibly sits there until it self-recovers.
@@ -443,7 +402,6 @@ function updateTransportVisuals(time, delta) {
       return;
     }
     vehicle.sprite.clearTint();
-    updateManagedTransportVehicle(scene, vehicle, delta, speedMultiplier);
   });
 }
 

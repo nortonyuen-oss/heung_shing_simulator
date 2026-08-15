@@ -122,6 +122,28 @@ test('economy protection: 30 calendar-day advances produce exactly 4 legacy simu
   assert.equal(calls.hud, 30, 'HUD refreshes once per calendar day');
 });
 
+test('clock advances authoritative vehicles before each midnight commuter reset', () => {
+  const sequence = [];
+  const { context } = createClockContext({
+    simSpeedMul: 2,
+    advanceTransportVehiclesByGameDays: (days) => sequence.push(['move', days]),
+    runDailySystems: () => sequence.push(['daily']),
+  });
+  vm.runInContext('startGameClock(); updateGameClock(null, 1000);', context);
+
+  const dailyIndices = sequence
+    .map((entry, index) => entry[0] === 'daily' ? index : -1)
+    .filter((index) => index >= 0);
+  assert.equal(dailyIndices.length, 3, '1000 ms at 2x spans exactly three game days');
+  for (const dailyIndex of dailyIndices) {
+    assert.equal(sequence[dailyIndex - 1][0], 'move', 'vehicle movement for the elapsed day happens before arrivals');
+  }
+  const movedDays = sequence
+    .filter(([kind]) => kind === 'move')
+    .reduce((sum, [, days]) => sum + days, 0);
+  assert.ok(Math.abs(movedDays - 3) < 1e-9);
+});
+
 test('speed ratio: 2x/0.5x/0.15x advance proportionally to 1x over the same real time, pause advances 0 days', () => {
   const feedRealMs = (context, totalMs, stepMs = 500) => {
     let remaining = totalMs;

@@ -9,7 +9,8 @@
 > in the game and (b) combined with a per-tile running-cost figure calibrated
 > for per-trip distances being applied to real monthly mileage (~20k
 > tiles/month), made every route unprofitable. Revenue is correspondingly
-> scaled: per-rider revenue = `fare × TRANSPORT_FARE_ECONOMY_SCALE`
+> scaled: per-rider revenue = `farePerTile × chargeableTripTiles ×
+> TRANSPORT_FARE_ECONOMY_SCALE`
 > (0.00015), with sub-dollar amounts accruing in `company.cashFraction` so
 > real-time per-dwell credits are never lost to rounding. Peak payback for a
 > fully-loaded double-decker works out to ≈17 months ≈ 1.4 game years —
@@ -362,12 +363,12 @@ This requires two changes, not fare alone:
    a per-class monthly ridership ceiling** that reflects a real vehicle
    doing several round trips a day — `TRANSPORT_VEHICLE_MONTHLY_RIDERSHIP_CAP`
    per `classId`, roughly proportional to seat capacity.
-2. **Raise the fare band substantially** — this game's whole dollar economy
+2. **Raise the per-tile fare band substantially** — this game's whole dollar economy
    is already stylized/compressed (e.g. `STARTING_BUDGET: 10,000`,
    `COST_HOSPITAL: 7,200` — a hospital costs less than one bus), so a fare
    no longer needs to resemble a literal single HK-dollar bus fare; it's an
-   abstracted revenue-per-boarding figure consistent with everything else
-   in this economy.
+   abstracted revenue rate per travelled map tile consistent with everything
+   else in this economy.
 
 | classId | skin | capacity | speedFactor | purchasePrice (萬) | monthlyRidershipCap | fare band (min/default/max) | monthlyUpkeep | tileRunningCost |
 |---|---|---|---|---|---|---|---|---|
@@ -507,7 +508,9 @@ while keeping the **demand model** (how many people want to ride) as-is.
   based on destination-unit weighting among remaining stops on the route
   (a rider boarding near a residential stop is more likely bound for the
   nearest high destination-unit stop — school, mall, hospital). Revenue
-  accrues per rider at `route.fare` on drop-off, credited to
+  accrues per rider as `route.fare × measured passenger tiles` on drop-off,
+  capped at one outbound route length so a return loop cannot overcharge,
+  and is credited to
   `company.cash` immediately (not batched to month-end like today's
   `settleTransportMonth` — real per-trip cash flow is part of the OpenTTD
   feel), with `state.lastFinancials`/route `history` still aggregated

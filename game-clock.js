@@ -157,12 +157,25 @@ function updateGameClock(scene, realDeltaMs) {
 
   const speed = getGameSpeed();
   const clampedDeltaMs = Math.min(GAME_CLOCK_MAX_FRAME_DELTA_MS, Math.max(0, Number(realDeltaMs) || 0));
-  gameClockAccumulatorMs += clampedDeltaMs * speed;
+  let scaledDeltaMs = clampedDeltaMs * speed;
 
-  while (gameClockAccumulatorMs >= BASE_REAL_MS_PER_GAME_DAY) {
-    gameClockAccumulatorMs -= BASE_REAL_MS_PER_GAME_DAY;
-    advanceCalendarDay();
-    onCalendarDayAdvanced(scene);
+  // Advance persistent transport entities in calendar-time slices. Splitting
+  // at midnight ensures vehicle arrivals occur before that day's commuter
+  // queue is replaced by the next day's pool, including when fast-forward
+  // crosses several days in one rendered frame.
+  while (scaledDeltaMs > 0.000001) {
+    const untilNextDay = BASE_REAL_MS_PER_GAME_DAY - gameClockAccumulatorMs;
+    const stepMs = Math.min(scaledDeltaMs, untilNextDay);
+    if (typeof advanceTransportVehiclesByGameDays === 'function') {
+      advanceTransportVehiclesByGameDays(stepMs / BASE_REAL_MS_PER_GAME_DAY);
+    }
+    gameClockAccumulatorMs += stepMs;
+    scaledDeltaMs -= stepMs;
+    if (gameClockAccumulatorMs >= BASE_REAL_MS_PER_GAME_DAY - 0.000001) {
+      gameClockAccumulatorMs = 0;
+      advanceCalendarDay();
+      onCalendarDayAdvanced(scene);
+    }
   }
 }
 

@@ -73,6 +73,7 @@ test('old cities default to a disabled schema-v2 state with no routes or vehicle
   assert.equal(oldCity.unlocked, false);
   assert.deepEqual(oldCity.routes, []);
   assert.deepEqual(oldCity.vehicles, []);
+  assert.deepEqual(oldCity.financeHistory, []);
   assert.equal(oldCity.company.cash, 0);
 });
 
@@ -106,6 +107,7 @@ test('v1 saves migrate to schema v2: route bus counts become grandfathered vehic
   assert.equal(restored.routes[0].servicePlan.vehicleClassId, 'future-electric-bus');
   assert.equal(restored.routes[0].history.length, 24);
   assert.equal(restored.routes[0].buses, undefined);
+  assert.equal(restored.stops[0].waitingPassengers, 0, 'old saves begin with an empty persistent queue');
 
   // 99 buses clamps to TRANSPORT_ROUTE_BUS_MAX (8), each grandfathered in for free.
   assert.equal(restored.vehicles.length, 8);
@@ -116,6 +118,32 @@ test('v1 saves migrate to schema v2: route bus counts become grandfathered vehic
   }
   assert.equal(restored.nextVehicleId, 9);
   assert.equal(restored.company.cash, 1500);
+});
+
+test('a pre-queue save receives one day of waiting passengers once, immediately on load', () => {
+  const context = createTransportVm();
+  vm.runInContext(`
+    restoreExpansionState({ transport: {
+      schemaVersion: 2,
+      enabled: true,
+      unlocked: true,
+      stops: [
+        { id: 'legacy-a', row: 5, col: 2 },
+        { id: 'legacy-b', row: 5, col: 9 },
+      ],
+    } });
+    waitingAfterLegacyLoad = getTransportStopWaitingCount('legacy-a');
+    migratedSave = getExpansionSaveState();
+    markerLeakedIntoSave = Object.hasOwn(
+      migratedSave.transport.stops[0], 'needsWaitingPassengerSeed',
+    );
+    restoreExpansionState(migratedSave);
+    waitingAfterSecondLoad = getTransportStopWaitingCount('legacy-a');
+  `, context);
+
+  assert.equal(context.waitingAfterLegacyLoad, 81);
+  assert.equal(context.waitingAfterSecondLoad, 81, 'a migrated queue must not be seeded twice');
+  assert.equal(context.markerLeakedIntoSave, false);
 });
 
 test('route metrics use the planned frequency, fare, capacity and operating formulas', () => {
@@ -132,15 +160,18 @@ test('route metrics use the planned frequency, fare, capacity and operating form
   assert.equal(balanced.headwayMinutes, 8.25);
   assert.equal(balanced.waitMinutes, 4.125);
   assert.equal(balanced.monthlyPassengers, 540);
-  // 540 riders x $35 x 0.00015 = $2.84 -> $3; two under-loaded buses cost
-  // more than that - a mediocre route genuinely loses money (§9).
-  assert.equal(balanced.revenue, 3);
-  assert.equal(balanced.cost, 11);
-  assert.equal(balanced.net, -8);
-  // Peak sanity: a fully-loaded double-decker pays itself back in roughly
-  // 1-2 game years (§9's target), never instantly and never never.
+  // Distance fare: 540 riders x 7 tiles x $35 x 0.00015 = $19.85 -> $20.
+  // Two standard buses cover about 180 tiles each/month and cost $6 rounded.
+  assert.equal(balanced.averageFareDistanceTiles, 7);
+  assert.equal(balanced.revenue, 20);
+  assert.equal(balanced.cost, 6);
+  assert.equal(balanced.net, 14);
+  // Conservative one-tile peak sanity: even the shortest full service pays
+  // itself back in roughly 1-2 game years, while longer trips earn more.
   const doubleDecker = transport.TRANSPORT_VEHICLE_CLASSES.standard_double_decker;
-  const peakMonthlyNet = doubleDecker.monthlyRidershipCap * 35 * transport.TRANSPORT_FARE_ECONOMY_SCALE
+  const peakMonthlyNet = transport.calculateTransportFareRevenue(
+    doubleDecker.monthlyRidershipCap, 35, 1,
+  )
     - (doubleDecker.monthlyUpkeep + doubleDecker.tileRunningCost * transport.TRANSPORT_ESTIMATED_TILES_PER_MONTH);
   const paybackMonths = doubleDecker.purchasePrice / peakMonthlyNet;
   assert.ok(
@@ -238,7 +269,10 @@ test('live expansion unlocks, routes, breaks, settles and restores without affec
     assignTransportVehicleToRoute(vehicleA.id, createdRoute.id);
     assignTransportVehicleToRoute(vehicleB.id, createdRoute.id);
     updateTransportSimulation();
-    for (let i = 0; i < 6; i++) simulateTransportVehiclesDaily();
+    for (let i = 0; i < 60; i++) {
+      simulateTransportVehiclesDaily();
+      advanceTransportVehiclesByGameDays(1);
+    }
     updateTransportSimulation();
     activeResult = {
       unlocked: getTransportExpansionState().unlocked,
@@ -300,6 +334,8 @@ test('live expansion unlocks, routes, breaks, settles and restores without affec
       routeName: getTransportExpansionState().routes[0].name,
       vehicleCount: getTransportExpansionState().vehicles.length,
       fare: getTransportExpansionState().routes[0].fare,
+      waitingPassengers: getTransportExpansionState().stops[0].waitingPassengers,
+      savedWaitingPassengers: savedExpansion.transport.stops[0].waitingPassengers,
       savedHasNoPath: Object.hasOwn(savedExpansion.transport.routes[0], 'path'),
     };
   `, context);
@@ -355,13 +391,14 @@ test('live expansion unlocks, routes, breaks, settles and restores without affec
     net: 0,
   });
 
-  assert.deepEqual(JSON.parse(JSON.stringify(context.roundTripResult)), {
-    enabled: true,
-    routeName: 'Cross-town',
-    vehicleCount: 2,
-    fare: 35,
-    savedHasNoPath: false,
-  });
+  const roundTrip = JSON.parse(JSON.stringify(context.roundTripResult));
+  assert.equal(roundTrip.enabled, true);
+  assert.equal(roundTrip.routeName, 'Cross-town');
+  assert.equal(roundTrip.vehicleCount, 2);
+  assert.equal(roundTrip.fare, 35);
+  assert.ok(roundTrip.waitingPassengers > 0);
+  assert.equal(roundTrip.waitingPassengers, roundTrip.savedWaitingPassengers);
+  assert.equal(roundTrip.savedHasNoPath, false);
 });
 
 test('one-click platform pairing still costs $20, drawn from company.cash', () => {
@@ -520,7 +557,10 @@ test('individual vehicle simulation moves a vehicle, boards/alights riders, and 
     assignTransportVehicleToRoute(vehicle.id, route.id);
     const stored = () => getTransportExpansionState().vehicles.find((entry) => entry.id === vehicle.id);
     cashBeforeDriving = getTransportExpansionState().company.cash;
-    for (let i = 0; i < 30; i++) simulateTransportVehiclesDaily();
+    for (let i = 0; i < 30; i++) {
+      simulateTransportVehiclesDaily();
+      advanceTransportVehiclesByGameDays(1);
+    }
     odometerAfterMonth = stored().odometerTiles;
     tilesThisMonthAfterMonth = stored().tilesThisMonth;
     cashAfterMonth = getTransportExpansionState().company.cash;
@@ -555,6 +595,45 @@ test('individual vehicle simulation moves a vehicle, boards/alights riders, and 
   assert.equal(context.tilesThisMonthAfterSettle, 0);
 });
 
+test('alighting fare uses measured passenger tiles and caps at one outbound route length', () => {
+  const context = createTransportVm();
+  vm.runInContext(`
+    setExpansionEnabled('transport', true, { notify: false, autosave: false });
+    stopIds = listTransportStopSites().map((stop) => stop.id);
+    ensureTransportStopPairs(stopIds, null);
+    route = createTransportRoute({ stopIds, fare: 35 });
+    depotId = getConnectedCommissionedTransportDepots()[0].id;
+    purchased = buyTransportVehicle(depotId, 'standard_double_decker');
+    assignTransportVehicleToRoute(purchased.id, route.id);
+    vehicle = getTransportExpansionState().vehicles.find((entry) => entry.id === purchased.id);
+    // 70 riders have each remained aboard for 100 tiles, but this route is
+    // only seven tiles end-to-end. The bill must cap at seven, not 100.
+    vehicle.passengersAboard = 70;
+    vehicle.passengerDistanceTiles = 7000;
+    cashBeforeDistanceFare = getTransportExpansionState().company.cash;
+    dwellTransportVehicleAtStop(vehicle, route, getTransportStopById(stopIds[1]));
+    distanceFareResult = {
+      aboard: vehicle.passengersAboard,
+      lastFareDistanceTiles: vehicle.lastFareDistanceTiles,
+      passengerDistanceTiles: vehicle.passengerDistanceTiles,
+      tripRevenue: vehicle.tripRevenueAccrued,
+      routeRevenue: route.monthToDateRevenue,
+      passengerTiles: route.monthToDatePassengerTiles,
+      cashDelta: getTransportExpansionState().company.cash - cashBeforeDistanceFare,
+    };
+  `, context);
+
+  const result = JSON.parse(JSON.stringify(context.distanceFareResult));
+  const expectedRevenue = 42 * 35 * 7 * transport.TRANSPORT_FARE_ECONOMY_SCALE;
+  assert.equal(result.aboard, 28);
+  assert.equal(result.lastFareDistanceTiles, 7);
+  assert.equal(result.passengerDistanceTiles, 2800);
+  assert.ok(Math.abs(result.tripRevenue - expectedRevenue) < 1e-9);
+  assert.ok(Math.abs(result.routeRevenue - expectedRevenue) < 1e-9);
+  assert.equal(result.passengerTiles, 42 * 7);
+  assert.equal(result.cashDelta, 1, 'fractional remainder stays in company.cashFraction');
+});
+
 test('a broken route\'s vehicle idles in place instead of driving or boarding riders', () => {
   const context = createTransportVm();
   vm.runInContext(`
@@ -569,6 +648,7 @@ test('a broken route\'s vehicle idles in place instead of driving or boarding ri
     markTransportStopsDirty();
     updateTransportSimulation();
     simulateTransportVehiclesDaily();
+    advanceTransportVehiclesByGameDays(1);
     const stored = () => getTransportExpansionState().vehicles.find((entry) => entry.id === vehicle.id);
     odometerAfterBrokenDay = stored().odometerTiles;
     passengersOnBrokenRoute = getTransportExpansionState().routes[0].monthToDatePassengers;
@@ -577,7 +657,7 @@ test('a broken route\'s vehicle idles in place instead of driving or boarding ri
   assert.equal(context.passengersOnBrokenRoute, 0);
 });
 
-test('two vehicles dwelling at the same stop the same day share, not double-claim, its waiting pool', () => {
+test('two vehicles dwelling at the same stop share, not double-claim, its persistent queue', () => {
   const context = createTransportVm();
   vm.runInContext(`
     setExpansionEnabled('transport', true, { notify: false, autosave: false });
@@ -585,14 +665,14 @@ test('two vehicles dwelling at the same stop the same day share, not double-clai
     ensureTransportStopPairs(stopIds, null);
     route = createTransportRoute({ stopIds, fare: 35 });
     stop = getTransportStopById(stopIds[0]);
-    claimedToday = new Map();
+    simulateTransportVehiclesDaily();
     vehicleA = { classId: 'standard_double_decker', passengersAboard: 0, tripRevenueAccrued: 0 };
     vehicleB = { classId: 'standard_double_decker', passengersAboard: 0, tripRevenueAccrued: 0 };
-    dwellTransportVehicleAtStop(vehicleA, route, stop, claimedToday);
+    dwellTransportVehicleAtStop(vehicleA, route, stop);
     boardedByA = vehicleA.passengersAboard;
-    dwellTransportVehicleAtStop(vehicleB, route, stop, claimedToday);
+    dwellTransportVehicleAtStop(vehicleB, route, stop);
     boardedByB = vehicleB.passengersAboard;
-    totalClaimed = claimedToday.get(stop.id);
+    waitingAfterBoth = getTransportStopWaitingCount(stop.id);
   `, context);
   // Fixture: '4:2' is a 3000-population residential building 1 tile from
   // this stop -> originUnits 3000*0.18=540, waiting pool round(540*0.15)=81.
@@ -600,10 +680,10 @@ test('two vehicles dwelling at the same stop the same day share, not double-clai
   // below the pool, leaving exactly the remainder for the second.
   assert.equal(context.boardedByA, 70);
   assert.equal(context.boardedByB, 11);
-  assert.equal(context.totalClaimed, 81);
+  assert.equal(context.waitingAfterBoth, 0);
 });
 
-test('bus stop waiting-queue snapshot (§7) updates once per simulated day and gates on active/weather', () => {
+test('bus stop queue resets to daily commuters and only falls when the vehicle actually arrives', () => {
   const context = createTransportVm();
   vm.runInContext(`
     setExpansionEnabled('transport', true, { notify: false, autosave: false });
@@ -617,17 +697,37 @@ test('bus stop waiting-queue snapshot (§7) updates once per simulated day and g
     assignTransportVehicleToRoute(vehicle.id, route.id);
     simulateTransportVehiclesDaily();
     waitingAfterOneDay = getTransportStopWaitingCount(stop.id);
+    advanceTransportVehiclesByGameDays(1);
+    progressAfterOneDay = getTransportExpansionState().vehicles[0].progress;
+    waitingBeforeSecondDay = getTransportStopWaitingCount(stop.id);
+    simulateTransportVehiclesDaily();
+    waitingAfterSecondDay = getTransportStopWaitingCount(stop.id);
+    advanceTransportVehiclesByGameDays(1);
+    waitingWhileReturning = getTransportStopWaitingCount(stop.id);
+    simulateTransportVehiclesDaily();
+    advanceTransportVehiclesByGameDays(1);
+    waitingAfterActualArrival = getTransportStopWaitingCount(stop.id);
+    simulateTransportVehiclesDaily();
+    waitingAfterNextDailyReset = getTransportStopWaitingCount(stop.id);
     city.weather.typhoonStage = 'signal8';
     waitingDuringStorm = getTransportStopWaitingCount(stop.id);
     city.weather.typhoonStage = 'none';
     setExpansionEnabled('transport', false, { notify: false, autosave: false });
     waitingWhenDisabled = getTransportStopWaitingCount(stop.id);
   `, context);
-  // No daily simulation has run yet before the route exists - the snapshot map starts empty.
+  // No daily passenger-generation tick has run yet.
   assert.equal(context.waitingBeforeAnyRoute, 0);
-  // Fixture: this stop's catchment pool is round(540*0.15)=81 (see the
-  // dedicated dwell test above); one day's boarding can only reduce it.
-  assert.ok(context.waitingAfterOneDay >= 0 && context.waitingAfterOneDay <= 81);
+  // Stops are seven tiles apart and a standard bus covers six per day: after
+  // one day it is still travelling, so nobody has boarded.
+  assert.equal(context.waitingAfterOneDay, 81);
+  assert.ok(context.progressAfterOneDay > 0 && context.progressAfterOneDay < 1);
+  assert.equal(context.waitingBeforeSecondDay, 81);
+  assert.equal(context.waitingAfterSecondDay, 81, 'midnight replaces rather than stacks the commuter pool');
+  assert.equal(context.waitingWhileReturning, 81);
+  // Day three resets to 81 again, then the bus physically reaches this stop
+  // and boards its 70-seat capacity, leaving 11.
+  assert.equal(context.waitingAfterActualArrival, 11);
+  assert.equal(context.waitingAfterNextDailyReset, 81);
   assert.equal(context.waitingDuringStorm, 0);
   assert.equal(context.waitingWhenDisabled, 0);
 });
@@ -676,12 +776,19 @@ test('three consecutive months in the red auto-suspend every route, and vehicles
     statusAfterMonth3 = getTransportExpansionState().routes[0].status;
     monthsInDebtAfterSuspend = getTransportExpansionState().monthsInDebt;
     ageAfterThreeMonths = getTransportExpansionState().vehicles[0].ageMonths;
+    financeHistory = getTransportExpansionState().financeHistory;
   `, context);
   assert.equal(context.statusAfterMonth1, 'active');
   assert.equal(context.statusAfterMonth2, 'active');
   assert.equal(context.statusAfterMonth3, 'suspended');
   assert.equal(context.monthsInDebtAfterSuspend, 0);
   assert.equal(context.ageAfterThreeMonths, 3);
+  assert.equal(context.financeHistory.length, 3);
+  assert.deepEqual(
+    Array.from(context.financeHistory, (entry) => entry.month),
+    [1, 2, 3],
+  );
+  assert.ok(context.financeHistory.every((entry) => Number.isFinite(entry.net)));
 });
 
 test('a positive month-end resets the bankruptcy debt counter', () => {
@@ -719,7 +826,10 @@ test('industrial demand bonus (§14.3) activates only for served industrial buil
     depotId = getConnectedCommissionedTransportDepots()[0].id;
     vehicle = buyTransportVehicle(depotId, 'standard_double_decker');
     assignTransportVehicleToRoute(vehicle.id, route.id);
-    for (let i = 0; i < 3; i++) simulateTransportVehiclesDaily();
+    for (let i = 0; i < 30; i++) {
+      simulateTransportVehiclesDaily();
+      advanceTransportVehiclesByGameDays(1);
+    }
     updateTransportSimulation();
     industrialBonus = getTransportIndustrialDemandBonus();
     city.weather.typhoonStage = 'signal8';
@@ -844,4 +954,6 @@ test('browser wiring keeps simulation state out of the visual frame loop', () =>
   assert.match(simulation, /updateTransportSimulation\(\)[\s\S]*updateTrafficMap\(\)/);
   assert.match(economy, /settleTransportMonth\(\)/);
   assert.doesNotMatch(visuals, /Object\.entries\(buildingData\)|for\s*\([^)]*MAP_(?:WIDTH|HEIGHT)/);
+  assert.match(visuals, /getTransportVehiclePathPosition\(backing/);
+  assert.doesNotMatch(visuals, /Math\.random\(\)|computeTrafficProgressAmount\(/);
 });

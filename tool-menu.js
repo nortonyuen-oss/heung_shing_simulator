@@ -175,13 +175,11 @@ function setupToolMenu() {
       closeToolCategoryFlyouts();
       return;
     }
-    if (actionButton?.dataset.action === 'open-transport-network') {
+    if (actionButton?.dataset.action === 'open-transport-tab') {
       if (isTerrainCreatorMode) return;
-      // Entering the mode auto-opens the window; when already in the mode
-      // (this button lives in the transport flyout) it reopens the window
-      // after the player closed it.
-      if (typeof setTransportModeActive === 'function') setTransportModeActive(true);
-      if (typeof openTransportWindow === 'function') openTransportWindow();
+      if (typeof openTransportWindowTab === 'function') {
+        openTransportWindowTab(actionButton.dataset.transportTab);
+      }
       closeToolCategoryFlyouts();
       return;
     }
@@ -321,7 +319,8 @@ function setupToolMenu() {
 function getToolCategoryForTool(tool) {
   if (tool === 'inspect') return 'inspect';
   if (tool === 'terrain') return 'terrain';
-  if (tool === 'road' || tool === 'bus-stop' || tool === 'bus-depot') return 'roads';
+  if (tool === 'road') return 'roads';
+  if (tool === 'bus-stop' || tool === 'bus-depot') return 'transport';
   if (tool === 'district-sign') return 'maps';
   if (tool === 'zone-res' || tool === 'zone-com' || tool === 'zone-ind' || tool === 'dezone') return 'zones';
   if (tool === 'power-line' || tool === 'power-coal' || tool === 'power-solar') return 'power';

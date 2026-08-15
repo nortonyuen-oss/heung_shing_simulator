@@ -884,9 +884,6 @@ function computeBudgetSnapshot(options = {}) {
   const sportsGroundSmall = getBuildingCount('sports_ground_small');
   const sportsGroundLarge = getBuildingCount('sports_ground_large');
   const landmarkFinancials = computeLandmarkFinancials();
-  const transportFinancials = typeof getTransportFinancials === 'function'
-    ? getTransportFinancials()
-    : { revenue: 0, cost: 0 };
 
   const taxScale = city.taxRate / 0.09;
   const residentialTax = city.population * TAX_PER_RESIDENT * taxScale;
@@ -923,8 +920,11 @@ function computeBudgetSnapshot(options = {}) {
   const tourismIncome = Math.max(0, Number(city.tourismRevenue || 0));
   const landmarkIncome = landmarkFinancials.revenue;
   const landmarkUpkeep = landmarkFinancials.upkeep;
-  const transportIncome = Math.max(0, Number(transportFinancials.revenue) || 0);
-  const transportCost = Math.max(0, Number(transportFinancials.cost) || 0);
+  // Transport Mode owns a separate OpenTTD-style company treasury. Fare
+  // revenue and bus/depot costs are settled in transport-expansion.js and
+  // must never be counted a second time in the mayor's city budget.
+  const transportIncome = 0;
+  const transportCost = 0;
   const totalIncome = Math.round(
     grossIncome + policyTaxAdjustment + tourismIncome + landmarkIncome + transportIncome
   );

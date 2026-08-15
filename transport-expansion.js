@@ -26,27 +26,23 @@ const TRANSPORT_DEPOT_MONTHLY_UPKEEP = 12;
 // during migration (migrateTransportRoutesToVehicles). Schema v2 itself has
 // no per-route bus cap; fleet size is bounded by depot capacity instead, §10.
 const TRANSPORT_LEGACY_ROUTE_BUS_MAX = 8;
-// §9: fare band rescaled from 1/2.5/5 (old aggregate model) to 15/35/60 -
-// this game's dollar economy is already stylized (COST_HOSPITAL: 7200), so a
-// fare is an abstracted revenue-per-boarding figure, not a literal HK$ price.
+// §9: player-selected fare rate per travelled road tile. The actual charge is
+// passengers alighting x chargeable trip tiles x this rate, converted onto
+// the game's stylized dollar economy below.
 const TRANSPORT_FARE_MIN = 15;
 const TRANSPORT_FARE_MAX = 60;
 const TRANSPORT_FARE_STEP = 5;
 const TRANSPORT_DEFAULT_FARE = 35;
 const TRANSPORT_MINUTES_PER_ROAD_TILE = 0.75;
 const TRANSPORT_MINUTES_PER_STOP = 1.5;
-// Converts riders x fare into company dollars on the stylized 萬 scale:
-// per-rider revenue = fare x this. At the default fare ($35) a rider is
-// worth $0.00525, so a fully-loaded double-decker (monthlyRidershipCap
-// 4,200 riders) grosses ~$22/month against a $280 purchase price - a
-// ~1.4-game-year payback at peak, degrading naturally on weaker routes.
-// Sub-dollar amounts accrue via company.cashFraction, so tiny per-dwell
-// credits are never lost to rounding.
+// Converts riders x per-tile fare x travelled tiles into company dollars on
+// the stylized 萬 scale. Sub-dollar amounts accrue via company.cashFraction,
+// so short trips are never lost to rounding.
 const TRANSPORT_FARE_ECONOMY_SCALE = 0.00015;
-// Estimator-side stand-in for a vehicle's real monthly mileage:
-// TRANSPORT_OPERATING_MINUTES_PER_DAY / TRANSPORT_MINUTES_PER_ROAD_TILE x 30
-// days = 24,000 tiles. The real simulation charges actual tilesThisMonth.
-const TRANSPORT_ESTIMATED_TILES_PER_MONTH = 24000;
+// A standard bus covers six authoritative tiles/day x 30 calendar days.
+// Express classes multiply this by their speedFactor. Month-end settlement
+// still charges each vehicle's exact tilesThisMonth.
+const TRANSPORT_ESTIMATED_TILES_PER_MONTH = 180;
 const TRANSPORT_TRAFFIC_RELIEF_MAX = 0.25;
 const TRANSPORT_HAPPINESS_BONUS_MAX = 0.025;
 const TRANSPORT_COMMERCIAL_DEMAND_BONUS_MAX = 0.03;
@@ -98,16 +94,18 @@ const TRANSPORT_VEHICLE_RESALE_FACTOR = 0.5;
 // auto-suspended (running costs stop; the player sells vehicles or waits
 // out the grace period next time). No company loan mechanic in v1.
 const TRANSPORT_BANKRUPTCY_GRACE_MONTHS = 3;
-// §12: how many minutes of service a vehicle runs per simulated day (a
-// realistic ~10-hour bus duty day), used to convert a route's geometry into
-// how many stop-to-stop legs a vehicle actually completes per day.
-const TRANSPORT_OPERATING_MINUTES_PER_DAY = 600;
-// §12 boarding: fraction of a stop's monthly-scale catchment origin units
-// that "replenish" as waiting riders each simulated day, consumed by
-// whichever vehicles dwell there that day (tracked per-day so two buses at
-// the same stop don't both claim the same waiting passengers). A first-cut
-// figure per TRANSPORT_TTD_SPEC.md §9/§18 - tune against real play.
+// §12 authoritative vehicle speed. A normal bus covers six road tiles per
+// calendar day, so a typical stop-to-stop journey spans several visible game
+// days (OpenTTD-style) while still completing useful trips before servicing.
+// Express buses apply their class speedFactor to this value. The game clock
+// advances this continuously; the map sprite only renders the saved progress.
+const TRANSPORT_VEHICLE_TILES_PER_GAME_DAY = 6;
+// §12 boarding: fraction of a stop's catchment origin units that forms that
+// day's commuter pool. Midnight replaces the previous queue with this value
+// instead of stacking yesterday's unserved riders indefinitely; vehicles
+// reaching the stop during the day subtract from the current pool.
 const TRANSPORT_STOP_DAILY_BOARDING_SHARE = 0.15;
+const TRANSPORT_STOP_WAITING_CAP = 9999;
 // This epsilon keeps tile count strictly ahead of turn count even on a full
 // 256x256 route, while still breaking equal-length ties in favour of fewer
 // turns.
@@ -177,6 +175,7 @@ function createDefaultTransportExpansionState(enabled = false) {
     lastWeatherDayKey: '',
     lastSettledMonthIndex: -1,
     lastFinancials: createEmptyTransportFinancials(),
+    financeHistory: [],
     monthsInDebt: 0,
   };
 }
@@ -232,6 +231,29 @@ function createEmptyTransportFinancials() {
   };
 }
 
+function normalizeTransportFinanceHistory(raw) {
+  return (Array.isArray(raw) ? raw : [])
+    .filter((entry) => entry && typeof entry === 'object')
+    .slice(-TRANSPORT_HISTORY_LIMIT)
+    .map((entry) => {
+      const financials = {
+        ...createEmptyTransportFinancials(),
+        ...Object.fromEntries(Object.entries(entry).map(([key, value]) => [key, Number(value) || 0])),
+      };
+      return {
+        year: Math.max(0, Math.floor(Number(entry.year) || 0)),
+        month: transportClamp(Math.floor(Number(entry.month) || 1), 1, 12),
+        passengers: transportRoundMoney(entry.passengers),
+        revenue: transportRoundMoney(financials.revenue),
+        routeOperations: transportRoundMoney(financials.routeOperations),
+        depotUpkeep: transportRoundMoney(financials.depotUpkeep),
+        cost: transportRoundMoney(financials.cost),
+        net: Math.round(Number(financials.net) || 0),
+        closingCash: Math.round(Number(entry.closingCash) || 0),
+      };
+    });
+}
+
 let expansionState = {
   [TRANSPORT_EXPANSION_ID]: createDefaultTransportExpansionState(false),
 };
@@ -249,6 +271,7 @@ const transportRuntime = {
   commercialDemandBonus: 0,
   industrialDemandBonus: 0,
   stopWaitingEstimate: new Map(),
+  queueRevision: 0,
   summary: createEmptyTransportSummary(),
 };
 
@@ -300,13 +323,28 @@ function normalizeTransportStop(raw, fallbackIndex) {
   const col = Math.floor(Number(raw.col));
   if (!Number.isFinite(row) || !Number.isFinite(col)) return null;
   const id = String(raw.id || `stop-${fallbackIndex + 1}`).slice(0, 80);
-  return {
+  const stop = {
     id,
     row,
     col,
     name: String(raw.name || '').slice(0, 60),
     createdTick: Math.max(0, Math.floor(Number(raw.createdTick) || 0)),
+    waitingPassengers: transportClamp(
+      Math.floor(Number(raw.waitingPassengers) || 0), 0, TRANSPORT_STOP_WAITING_CAP,
+    ),
   };
+  // Saves created before persistent queues existed have no queue value to
+  // restore. Preserve that distinction as a non-enumerable migration marker;
+  // it never leaks into save JSON and is removed after the initial seed.
+  if (!Object.prototype.hasOwnProperty.call(raw, 'waitingPassengers')) {
+    Object.defineProperty(stop, 'needsWaitingPassengerSeed', {
+      value: true,
+      writable: true,
+      configurable: true,
+      enumerable: false,
+    });
+  }
+  return stop;
 }
 
 function normalizeTransportStats(raw) {
@@ -319,6 +357,7 @@ function normalizeTransportStats(raw) {
     headwayMinutes: Math.max(0, Number(source.headwayMinutes) || 0),
     waitMinutes: Math.max(0, Number(source.waitMinutes) || 0),
     roundTripMinutes: Math.max(0, Number(source.roundTripMinutes) || 0),
+    averageFareDistanceTiles: Math.max(0, Number(source.averageFareDistanceTiles) || 0),
     revenue: transportRoundMoney(source.revenue),
     cost: transportRoundMoney(source.cost),
     net: Math.round(Number(source.net) || 0),
@@ -373,9 +412,10 @@ function normalizeTransportRoute(raw, fallbackIndex) {
     // §12 real per-vehicle accrual, month-to-date - reset to 0 by
     // settleTransportMonth. Revenue is credited to company.cash the instant
     // a rider alights (dwellTransportVehicleAtStop), not batched here; these
-    // two fields exist purely for live route.lastStats/history reporting.
+    // fields exist purely for live route.lastStats/history reporting.
     monthToDatePassengers: transportRoundMoney(raw.monthToDatePassengers),
     monthToDateRevenue: transportRoundMoney(raw.monthToDateRevenue),
+    monthToDatePassengerTiles: Math.max(0, Number(raw.monthToDatePassengerTiles) || 0),
   };
 }
 
@@ -404,10 +444,16 @@ function normalizeTransportVehicle(raw) {
     brokenDaysRemaining: Math.max(0, Math.floor(Number(raw.brokenDaysRemaining) || 0)),
     purchasePrice: Math.max(0, normalizeTransportLegacyScaleMoney(raw.purchasePrice, 10000)),
     passengersAboard: Math.max(0, Math.floor(Number(raw.passengersAboard) || 0)),
+    // Aggregate distance already travelled by everyone currently aboard.
+    // Adding passengers does not alter the balance; movement adds
+    // passengersAboard x tiles, and alighting removes their proportional
+    // share. This gives distance fares without storing one record per rider.
+    passengerDistanceTiles: Math.max(0, Number(raw.passengerDistanceTiles) || 0),
+    lastFareDistanceTiles: Math.max(0, Number(raw.lastFareDistanceTiles) || 0),
     // Set at each dwell to that dwell's alighting revenue (not a running
     // total) - a transient "just collected $X" figure for the vehicle
     // inspector, §6/§12.
-    tripRevenueAccrued: Math.max(0, Math.round(Number(raw.tripRevenueAccrued) || 0)),
+    tripRevenueAccrued: Math.max(0, Number(raw.tripRevenueAccrued) || 0),
     // Tiles driven this calendar month - feeds tileRunningCost at
     // settleTransportMonth, then resets to 0. Distinct from odometerTiles
     // (lifetime, never resets).
@@ -527,6 +573,7 @@ function normalizeTransportExpansionState(raw) {
         ? Object.fromEntries(Object.entries(source.lastFinancials).map(([key, value]) => [key, Number(value) || 0]))
         : {}),
     },
+    financeHistory: normalizeTransportFinanceHistory(source.financeHistory),
     monthsInDebt: Math.max(0, Math.floor(Number(source.monthsInDebt) || 0)),
   };
 }
@@ -578,6 +625,7 @@ function resetTransportRuntime() {
   transportRuntime.commercialDemandBonus = 0;
   transportRuntime.industrialDemandBonus = 0;
   transportRuntime.stopWaitingEstimate.clear();
+  transportRuntime.queueRevision++;
   transportRuntime.summary = createEmptyTransportSummary();
   if (typeof invalidateTransportVisuals === 'function') {
     invalidateTransportVisuals(typeof activeScene === 'undefined' ? null : activeScene, true);
@@ -600,6 +648,7 @@ function restoreExpansionState(rawExpansions) {
   resetTransportRuntime();
   syncTransportStops();
   updateTransportUnlockState({ notify: false });
+  seedLegacyTransportWaitingQueues();
   if (typeof resetTransportUiForCityChange === 'function') resetTransportUiForCityChange();
 }
 
@@ -681,6 +730,7 @@ function syncTransportStops() {
           col,
           name: '',
           createdTick: Math.max(0, Number(typeof city === 'undefined' ? 0 : city.tick) || 0),
+          waitingPassengers: 0,
         };
         state.stops.push(stop);
         byLocation.set(key, stop);
@@ -923,6 +973,10 @@ function assignTransportVehicleToRoute(vehicleId, routeId) {
     if (!route) throw createTransportError('missingRoute');
     vehicle.routeId = routeId;
     vehicle.orderIndex = 0;
+    vehicle.progress = 0;
+    vehicle.passengersAboard = 0;
+    vehicle.passengerDistanceTiles = 0;
+    vehicle.lastFareDistanceTiles = 0;
     vehicle.status = 'active';
   } else {
     vehicle.routeId = null;
@@ -943,9 +997,7 @@ function sellTransportVehicle(vehicleId) {
   const vehicle = state.vehicles.find((entry) => entry.id === vehicleId);
   if (!vehicle) return false;
   if (vehicle.status !== 'depot') {
-    if (vehicle.status === 'active' || vehicle.status === 'returning_for_service') {
-      vehicle.status = 'delivering_to_depot';
-    }
+    sendTransportVehicleToDepot(vehicleId);
     return false;
   }
   const index = state.vehicles.indexOf(vehicle);
@@ -953,6 +1005,21 @@ function sellTransportVehicle(vehicleId) {
   const resaleValue = Math.round(vehicle.purchasePrice * vehicle.condition * TRANSPORT_VEHICLE_RESALE_FACTOR);
   state.company.cash = Math.round(state.company.cash + resaleValue);
   markTransportRouteDirty(vehicle.routeId || '');
+  if (typeof queueCityChangeAutosave === 'function') queueCityChangeAutosave();
+  return true;
+}
+
+// OpenTTD-style explicit "send to depot" command. A moving bus keeps its
+// route assignment until the daily movement state reaches its home depot;
+// advanceTransportVehiclesDaily() then parks and unassigns it so it can be
+// reassigned or sold without teleporting it off the road.
+function sendTransportVehicleToDepot(vehicleId) {
+  const vehicle = getTransportExpansionState().vehicles.find((entry) => entry.id === vehicleId);
+  if (!vehicle) return false;
+  if (vehicle.status === 'depot' || vehicle.status === 'delivering_to_depot') return true;
+  if (vehicle.status !== 'active' && vehicle.status !== 'returning_for_service'
+    && vehicle.status !== 'broken_down') return false;
+  vehicle.status = 'delivering_to_depot';
   if (typeof queueCityChangeAutosave === 'function') queueCityChangeAutosave();
   return true;
 }
@@ -1000,9 +1067,15 @@ function advanceTransportVehiclesDaily() {
       if (vehicle.status === 'returning_for_service') {
         vehicle.status = 'servicing';
         vehicle.serviceDaysRemaining = TRANSPORT_SERVICE_DURATION_DAYS;
+        vehicle.passengersAboard = 0;
+        vehicle.passengerDistanceTiles = 0;
+        vehicle.lastFareDistanceTiles = 0;
       } else {
         vehicle.status = 'depot';
         vehicle.routeId = null;
+        vehicle.passengersAboard = 0;
+        vehicle.passengerDistanceTiles = 0;
+        vehicle.lastFareDistanceTiles = 0;
       }
       continue;
     }
@@ -1025,11 +1098,55 @@ function advanceTransportVehiclesDaily() {
   }
 }
 
+function setTransportStopWaitingCount(stop, value) {
+  if (!stop) return 0;
+  const next = transportClamp(
+    Math.floor(Number(value) || 0), 0, TRANSPORT_STOP_WAITING_CAP,
+  );
+  const previous = Math.max(0, Math.floor(Number(stop.waitingPassengers) || 0));
+  stop.waitingPassengers = next;
+  transportRuntime.stopWaitingEstimate.set(stop.id, next);
+  if (next !== previous) transportRuntime.queueRevision++;
+  return next;
+}
+
+function seedLegacyTransportWaitingQueues() {
+  if (!isTransportExpansionActive()) return 0;
+  let seeded = 0;
+  for (const stop of getTransportExpansionState().stops) {
+    if (stop.needsWaitingPassengerSeed !== true) continue;
+    const arrivals = isTransportStopPresent(stop)
+      ? Math.round(
+          getTransportStopCatchmentUnits(stop).originUnits
+          * TRANSPORT_STOP_DAILY_BOARDING_SHARE,
+        )
+      : 0;
+    setTransportStopWaitingCount(stop, arrivals);
+    delete stop.needsWaitingPassengerSeed;
+    seeded++;
+  }
+  return seeded;
+}
+
+function getTransportRouteFareDistanceCap(route) {
+  if (!route) return 1;
+  ensureTransportRouteRuntime();
+  const runtime = transportRuntime.routeRuntime.get(route.id);
+  return Math.max(1, (runtime?.path?.length || 2) - 1);
+}
+
+function calculateTransportFareRevenue(passengers, farePerTile, distanceTiles) {
+  return Math.max(0, Number(passengers) || 0)
+    * normalizeTransportFare(farePerTile)
+    * Math.max(0, Number(distanceTiles) || 0)
+    * TRANSPORT_FARE_ECONOMY_SCALE;
+}
+
 // §12 dwell: alight (destination-weighted among the route's stops) before
-// boarding (this stop's catchment, minus whatever other vehicles already
-// claimed here today). Revenue credits company.cash immediately - real
-// per-trip cash flow, not batched to month-end like running costs.
-function dwellTransportVehicleAtStop(vehicle, route, stop, claimedToday) {
+// boarding from the stop's persistent queue. Revenue credits company.cash
+// immediately - real per-trip cash flow, not batched to month-end like
+// running costs.
+function dwellTransportVehicleAtStop(vehicle, route, stop) {
   const vehicleClass = getTransportVehicleClass(vehicle.classId);
   vehicle.tripRevenueAccrued = 0;
 
@@ -1043,12 +1160,24 @@ function dwellTransportVehicleAtStop(vehicle, route, stop, claimedToday) {
       : 0.2;
     const alighting = Math.min(vehicle.passengersAboard, Math.round(vehicle.passengersAboard * alightShare));
     if (alighting > 0) {
+      const aboardBeforeAlighting = vehicle.passengersAboard;
+      const passengerDistanceBalance = Math.max(0, Number(vehicle.passengerDistanceTiles) || 0);
+      const averageTravelledTiles = passengerDistanceBalance / aboardBeforeAlighting;
+      const chargeableDistanceTiles = Math.min(
+        averageTravelledTiles,
+        getTransportRouteFareDistanceCap(route),
+      );
       vehicle.passengersAboard -= alighting;
-      // Per-rider revenue is a fraction of a stylized dollar
-      // (fare x TRANSPORT_FARE_ECONOMY_SCALE), so accrue exactly and credit
-      // company.cash the moment the accumulator crosses each whole dollar -
-      // still real-time cash flow, never rounded away.
-      const revenue = alighting * route.fare * TRANSPORT_FARE_ECONOMY_SCALE;
+      vehicle.passengerDistanceTiles = vehicle.passengersAboard > 0
+        ? Math.max(0, passengerDistanceBalance - averageTravelledTiles * alighting)
+        : 0;
+      vehicle.lastFareDistanceTiles = chargeableDistanceTiles;
+      // Fare is distance based: riders x actual average travelled tiles x
+      // the route's per-tile rate. A single outbound route length caps the
+      // bill so somebody staying aboard for a return loop is not overcharged.
+      const revenue = calculateTransportFareRevenue(
+        alighting, route.fare, chargeableDistanceTiles,
+      );
       const state = getTransportExpansionState();
       state.company.cashFraction += revenue;
       const wholeDollars = Math.floor(state.company.cashFraction);
@@ -1056,83 +1185,44 @@ function dwellTransportVehicleAtStop(vehicle, route, stop, claimedToday) {
         state.company.cash += wholeDollars;
         state.company.cashFraction -= wholeDollars;
       }
-      vehicle.tripRevenueAccrued = wholeDollars;
+      vehicle.tripRevenueAccrued = revenue;
       route.monthToDatePassengers += alighting;
       route.monthToDateRevenue += revenue;
+      route.monthToDatePassengerTiles = Math.max(0, Number(route.monthToDatePassengerTiles) || 0)
+        + alighting * chargeableDistanceTiles;
     }
   }
 
-  const catchment = getTransportStopCatchmentUnits(stop);
-  const alreadyClaimed = claimedToday.get(stop.id) || 0;
-  const waitingPool = Math.max(
-    0,
-    Math.round(catchment.originUnits * TRANSPORT_STOP_DAILY_BOARDING_SHARE) - alreadyClaimed,
-  );
+  const waitingPool = Math.max(0, Math.floor(Number(stop.waitingPassengers) || 0));
   const boardable = Math.max(0, vehicleClass.capacity - vehicle.passengersAboard);
   const boarding = Math.min(waitingPool, boardable);
   if (boarding > 0) {
     vehicle.passengersAboard += boarding;
-    claimedToday.set(stop.id, alreadyClaimed + boarding);
+    setTransportStopWaitingCount(stop, waitingPool - boarding);
   }
 }
 
-// §12 movement, run once per simulated day (game-clock.js's daily tick):
-// converts each active vehicle's route geometry + vehicleClass.speedFactor
-// into how many stop-to-stop legs it completes today, dwelling (boarding/
-// alighting/revenue) at each stop it reaches. Precise tile-by-tile position
-// is a rendering concern (§13/§14, transport-visuals.js promotion) - this
-// only needs to be right at daily granularity.
+// §7/§12 daily commuter reset. Each station begins the day with its catchment-
+// based commuter pool; yesterday's unserved riders do not stack into an
+// unrealistic crowd. Boarding is exclusively performed by
+// advanceTransportVehiclesByGameDays when a vehicle reaches a stop, so
+// multiple vehicles during the same day naturally share one queue.
 function simulateTransportVehiclesDaily() {
   if (!isTransportExpansionActive() || isTransportSevereWeather()) return;
-  ensureTransportRouteRuntime();
   const state = getTransportExpansionState();
-  const claimedToday = new Map();
-  for (const vehicle of state.vehicles) {
-    if (vehicle.status !== 'active') continue;
-    const route = state.routes.find((entry) => entry.id === vehicle.routeId);
-    if (!route) continue;
-    const runtime = transportRuntime.routeRuntime.get(route.id);
-    if (!runtime || runtime.status !== 'active' || !runtime.path || runtime.path.length < 2) continue;
-    const cycleStops = getTransportRouteCycleStops(route);
-    if (cycleStops.length < 2) continue;
-    vehicle.orderIndex = ((vehicle.orderIndex % cycleStops.length) + cycleStops.length) % cycleStops.length;
-
-    const vehicleClass = getTransportVehicleClass(vehicle.classId);
-    const outboundTiles = Math.max(1, runtime.path.length - 1);
-    const avgTilesPerLeg = outboundTiles / Math.max(1, route.stopIds.length - 1);
-    const perLegMinutes = avgTilesPerLeg * TRANSPORT_MINUTES_PER_ROAD_TILE + TRANSPORT_MINUTES_PER_STOP;
-    const legsPerDay = (TRANSPORT_OPERATING_MINUTES_PER_DAY * vehicleClass.speedFactor) / perLegMinutes;
-
-    let legProgress = vehicle.progress + legsPerDay;
-    let tilesToday = 0;
-    let safety = 0;
-    while (legProgress >= 1 && safety < 30) {
-      safety++;
-      legProgress -= 1;
-      vehicle.orderIndex = (vehicle.orderIndex + 1) % cycleStops.length;
-      tilesToday += avgTilesPerLeg;
-      dwellTransportVehicleAtStop(vehicle, route, cycleStops[vehicle.orderIndex], claimedToday);
-    }
-    vehicle.progress = transportClamp(legProgress, 0, 1);
-    vehicle.odometerTiles += Math.round(tilesToday);
-    vehicle.tilesThisMonth += Math.round(tilesToday);
-  }
-  // §7 stop queue visuals: how many of today's waiting pool are still
-  // unboarded after service - a cheap, once-a-day snapshot the visual layer
-  // can read directly (transport-visuals.js must never itself scan
-  // buildingData per frame, see test/transport-expansion.test.js's
-  // "browser wiring" guard).
-  transportRuntime.stopWaitingEstimate.clear();
   for (const stop of state.stops) {
-    const pool = Math.round(getTransportStopCatchmentUnits(stop).originUnits * TRANSPORT_STOP_DAILY_BOARDING_SHARE);
-    const claimed = claimedToday.get(stop.id) || 0;
-    transportRuntime.stopWaitingEstimate.set(stop.id, Math.max(0, pool - claimed));
+    if (!isTransportStopPresent(stop)) continue;
+    const arrivals = Math.round(
+      getTransportStopCatchmentUnits(stop).originUnits * TRANSPORT_STOP_DAILY_BOARDING_SHARE,
+    );
+    setTransportStopWaitingCount(stop, arrivals);
   }
 }
 
 function getTransportStopWaitingCount(stopId) {
   if (!isTransportExpansionActive() || isTransportSevereWeather()) return 0;
-  return transportRuntime.stopWaitingEstimate.get(stopId) || 0;
+  const stop = getTransportStopById(stopId);
+  return stop ? Math.max(0, Math.floor(Number(stop.waitingPassengers) || 0)) : 0;
 }
 
 // Best-known map tile for a vehicle when no on-screen sprite exists (zoomed
@@ -1145,6 +1235,9 @@ function getTransportVehicleApproximateTile(vehicleId) {
   if (!vehicle) return null;
   const route = state.routes.find((entry) => entry.id === vehicle.routeId);
   if (route) {
+    const runtime = transportRuntime.routeRuntime.get(route.id);
+    const position = getTransportVehiclePathPosition(vehicle, route, runtime);
+    if (position) return position.path[position.currentIndex];
     const cycleStops = getTransportRouteCycleStops(route);
     if (cycleStops.length > 0) {
       const stop = cycleStops[((vehicle.orderIndex % cycleStops.length) + cycleStops.length) % cycleStops.length];
@@ -1519,6 +1612,127 @@ function getTransportRouteCycleStops(route) {
   return [...stops, ...stops.slice(1, -1).reverse()];
 }
 
+// Locate every stop-order point on the tile-level round-trip path. Repeated
+// interior stops are deliberately found in sequence, first outbound and then
+// inbound, so vehicle.orderIndex and the rendered tile always describe the
+// same leg.
+function getTransportRouteCycleStopPathIndices(route, runtime) {
+  const cycleStops = getTransportRouteCycleStops(route);
+  const path = runtime?.roundTripPath;
+  if (cycleStops.length < 2 || !Array.isArray(path) || path.length < 2) return [];
+  const indices = [];
+  let searchFrom = 0;
+  for (const stop of cycleStops) {
+    let found = -1;
+    for (let index = searchFrom; index < path.length; index++) {
+      if (path[index].row === stop.row && path[index].col === stop.col) {
+        found = index;
+        break;
+      }
+    }
+    if (found < 0) return [];
+    indices.push(found);
+    searchFrom = found + 1;
+  }
+  return indices;
+}
+
+function getTransportVehiclePathPosition(vehicle, route = null, runtime = null) {
+  if (!vehicle) return null;
+  const state = getTransportExpansionState();
+  const assignedRoute = route || state.routes.find((entry) => entry.id === vehicle.routeId);
+  if (!assignedRoute) return null;
+  ensureTransportRouteRuntime();
+  const routeRuntime = runtime || transportRuntime.routeRuntime.get(assignedRoute.id);
+  const path = routeRuntime?.roundTripPath;
+  const stopIndices = getTransportRouteCycleStopPathIndices(assignedRoute, routeRuntime);
+  if (!Array.isArray(path) || path.length < 2 || stopIndices.length < 2) return null;
+  const orderIndex = ((vehicle.orderIndex % stopIndices.length) + stopIndices.length) % stopIndices.length;
+  const startIndex = stopIndices[orderIndex];
+  const nextIndex = stopIndices[(orderIndex + 1) % stopIndices.length];
+  const segmentTiles = Math.max(
+    1,
+    nextIndex > startIndex ? nextIndex - startIndex : path.length - startIndex + nextIndex,
+  );
+  const distance = transportClamp(vehicle.progress, 0, 1) * segmentTiles;
+  const positionAlongPath = (startIndex + distance) % path.length;
+  const currentIndex = Math.floor(positionAlongPath) % path.length;
+  return {
+    path,
+    currentIndex,
+    progress: positionAlongPath - Math.floor(positionAlongPath),
+    orderIndex,
+    segmentTiles,
+  };
+}
+
+// Continuous, authoritative movement measured in calendar days. game-clock.js
+// calls this for each fraction of a day before firing the next daily arrival
+// tick, which keeps queue growth and vehicle arrivals correctly ordered even
+// at fast-forward speeds.
+function advanceTransportVehiclesByGameDays(gameDays) {
+  const elapsedDays = Math.max(0, Number(gameDays) || 0);
+  if (elapsedDays <= 0 || !isTransportExpansionActive() || isTransportSevereWeather()) return;
+  ensureTransportRouteRuntime();
+  const state = getTransportExpansionState();
+  for (const vehicle of state.vehicles) {
+    if (vehicle.status !== 'active') continue;
+    const route = state.routes.find((entry) => entry.id === vehicle.routeId);
+    const runtime = route ? transportRuntime.routeRuntime.get(route.id) : null;
+    if (!route || !runtime || runtime.status !== 'active') continue;
+    const cycleStops = getTransportRouteCycleStops(route);
+    const stopIndices = getTransportRouteCycleStopPathIndices(route, runtime);
+    if (cycleStops.length < 2 || stopIndices.length !== cycleStops.length) continue;
+
+    vehicle.orderIndex = ((vehicle.orderIndex % cycleStops.length) + cycleStops.length) % cycleStops.length;
+    vehicle.progress = transportClamp(vehicle.progress, 0, 1);
+    const vehicleClass = getTransportVehicleClass(vehicle.classId);
+    let distanceRemaining = elapsedDays
+      * TRANSPORT_VEHICLE_TILES_PER_GAME_DAY
+      * vehicleClass.speedFactor;
+    let travelled = 0;
+    let transitions = 0;
+    while (distanceRemaining > 0.000001 && transitions < 1000) {
+      const startIndex = stopIndices[vehicle.orderIndex];
+      const nextOrderIndex = (vehicle.orderIndex + 1) % cycleStops.length;
+      const nextIndex = stopIndices[nextOrderIndex];
+      const segmentTiles = Math.max(
+        1,
+        nextIndex > startIndex
+          ? nextIndex - startIndex
+          : runtime.roundTripPath.length - startIndex + nextIndex,
+      );
+      const tilesToStop = Math.max(0, (1 - vehicle.progress) * segmentTiles);
+      if (tilesToStop <= 0.000001) {
+        vehicle.progress = 0;
+        vehicle.orderIndex = nextOrderIndex;
+        dwellTransportVehicleAtStop(vehicle, route, cycleStops[vehicle.orderIndex]);
+        transitions++;
+        continue;
+      }
+      const step = Math.min(distanceRemaining, tilesToStop);
+      vehicle.passengerDistanceTiles = Math.max(
+        0,
+        Number(vehicle.passengerDistanceTiles) || 0,
+      ) + vehicle.passengersAboard * step;
+      vehicle.progress += step / segmentTiles;
+      travelled += step;
+      distanceRemaining -= step;
+      if (vehicle.progress < 1 - 0.000001) break;
+      vehicle.progress = 0;
+      vehicle.orderIndex = nextOrderIndex;
+      dwellTransportVehicleAtStop(vehicle, route, cycleStops[vehicle.orderIndex]);
+      transitions++;
+    }
+    vehicle.odometerTiles = Math.max(0, Number(vehicle.odometerTiles) || 0) + travelled;
+    vehicle.tilesThisMonth = Math.max(0, Number(vehicle.tilesThisMonth) || 0) + travelled;
+  }
+}
+
+function getTransportQueueRevision() {
+  return transportRuntime.queueRevision;
+}
+
 function getTransportFareDemandFactor(fare) {
   return transportClamp(1 - 0.12 * (normalizeTransportFare(fare) - TRANSPORT_DEFAULT_FARE), 0.55, 1.18);
 }
@@ -1553,11 +1767,19 @@ function computeTransportRouteMetrics(options = {}) {
     * reliability;
   const capacity = effectiveBuses * vehicleClass.monthlyRidershipCap;
   const monthlyPassengers = Math.max(0, Math.round(Math.min(demandAfterService, capacity)));
+  // Two-stop services charge the full end-to-end distance. On routes with
+  // intermediate stops, half the outbound path is a stable planning estimate;
+  // live revenue always uses each vehicle's measured passenger distance.
+  const averageFareDistanceTiles = stopCount <= 2
+    ? outboundTiles
+    : Math.max(1, outboundTiles / 2);
   const quality = potentialPassengers > 0
     ? transportClamp(monthlyPassengers / potentialPassengers, 0, 1)
     : 0;
   const loadFactor = capacity > 0 ? transportClamp(monthlyPassengers / capacity, 0, 2) : 0;
-  const revenue = transportRoundMoney(monthlyPassengers * fare * TRANSPORT_FARE_ECONOMY_SCALE);
+  const revenue = transportRoundMoney(calculateTransportFareRevenue(
+    monthlyPassengers, fare, averageFareDistanceTiles,
+  ));
   const cost = transportRoundMoney(
     effectiveBuses
     * (vehicleClass.monthlyUpkeep + vehicleClass.tileRunningCost * TRANSPORT_ESTIMATED_TILES_PER_MONTH)
@@ -1571,6 +1793,7 @@ function computeTransportRouteMetrics(options = {}) {
     headwayMinutes,
     waitMinutes: headwayMinutes / 2,
     roundTripMinutes,
+    averageFareDistanceTiles,
     revenue,
     cost,
     net: revenue - cost,
@@ -1684,6 +1907,8 @@ function updateTransportSimulation() {
     return transportRuntime.summary;
   }
 
+  seedLegacyTransportWaitingQueues();
+
   ensureTransportRouteRuntime();
   const state = getTransportExpansionState();
   const weatherAvailability = transportClamp(1 - state.weatherSuspendedDaysThisMonth / 30, 0, 1);
@@ -1744,7 +1969,7 @@ function updateTransportSimulation() {
       ), 0) / runtime.path.length;
     }
     // §12/§14.1: route.lastStats is now real accrued data from per-vehicle
-    // simulation (simulateTransportVehiclesDaily), not the aggregate
+    // arrivals (advanceTransportVehiclesByGameDays), not the aggregate
     // formula - the same numbers driving traffic relief/happiness/demand
     // now reflect actual usage, not an estimate. potentialPassengers/
     // capacity are prorated to "so far this month" so quality/loadFactor
@@ -1756,6 +1981,9 @@ function updateTransportSimulation() {
     const potentialSoFar = potentialPassengers * dayFraction;
     const capacitySoFar = runtime.effectiveBuses * vehicleClass.monthlyRidershipCap * dayFraction;
     const servedPassengers = route.monthToDatePassengers;
+    const averageFareDistanceTiles = servedPassengers > 0
+      ? (Math.max(0, Number(route.monthToDatePassengerTiles) || 0) / servedPassengers)
+      : 0;
     const reliability = transportClamp((1 - averageTraffic * 0.35) * weatherAvailability, 0, 1);
     const quality = potentialSoFar > 0 ? transportClamp(servedPassengers / potentialSoFar, 0, 1) : 0;
     const loadFactor = capacitySoFar > 0 ? transportClamp(servedPassengers / capacitySoFar, 0, 2) : 0;
@@ -1774,6 +2002,7 @@ function updateTransportSimulation() {
       headwayMinutes,
       waitMinutes: headwayMinutes / 2,
       roundTripMinutes,
+      averageFareDistanceTiles,
       revenue,
       cost,
       net: revenue - cost,
@@ -1932,6 +2161,7 @@ function settleTransportMonth() {
     }
     route.monthToDatePassengers = 0;
     route.monthToDateRevenue = 0;
+    route.monthToDatePassengerTiles = 0;
   }
   for (const vehicle of state.vehicles) {
     vehicle.tilesThisMonth = 0;
@@ -1951,6 +2181,18 @@ function settleTransportMonth() {
     cost,
     net: roundedRevenue - cost,
   };
+  state.financeHistory.push({
+    year: city.year,
+    month: city.month,
+    passengers: state.routes.reduce((sum, route) => (
+      sum + (route.history.at(-1)?.passengers || 0)
+    ), 0),
+    ...state.lastFinancials,
+    closingCash: state.company.cash,
+  });
+  if (state.financeHistory.length > TRANSPORT_HISTORY_LIMIT) {
+    state.financeHistory.splice(0, state.financeHistory.length - TRANSPORT_HISTORY_LIMIT);
+  }
   // §4 bankruptcy: three consecutive month-ends in the red auto-suspends
   // every route (the grace period), rather than any harder game-over -
   // suspended routes stop accruing running costs, and the player digs out
@@ -2038,6 +2280,9 @@ const transportExpansionTestApi = {
   TRANSPORT_DEPOT_CAPACITY,
   TRANSPORT_DEPOT_MONTHLY_UPKEEP,
   TRANSPORT_MAX_ROUTES,
+  TRANSPORT_VEHICLE_TILES_PER_GAME_DAY,
+  TRANSPORT_STOP_DAILY_BOARDING_SHARE,
+  TRANSPORT_STOP_WAITING_CAP,
   TRANSPORT_DEFAULT_VEHICLE_CLASS_ID,
   TRANSPORT_VEHICLE_CLASSES,
   TRANSPORT_SERVICE_INTERVAL_DAYS,
@@ -2068,6 +2313,8 @@ const transportExpansionTestApi = {
   normalizeTransportExpansionState,
   normalizeTransportFare,
   getTransportFareDemandFactor,
+  calculateTransportFareRevenue,
+  getTransportRouteFareDistanceCap,
   getTransportFrequencyFactor,
   getTransportVehicleClass,
   listTransportVehicleClasses,
@@ -2075,11 +2322,13 @@ const transportExpansionTestApi = {
   findTransportPath,
   getTransportDepotFrontageTiles,
   createEmptyTransportFinancials,
+  normalizeTransportFinanceHistory,
   spendTransportConstruction,
   settleTransportMonth,
   getTransportFinancials,
   buyTransportVehicle,
   sellTransportVehicle,
+  sendTransportVehicleToDepot,
   assignTransportVehicleToRoute,
   advanceTransportVehiclesDaily,
   getTransportDepotVehicleCount,
@@ -2089,11 +2338,15 @@ const transportExpansionTestApi = {
   getTransportRequestedFleet,
   getTransportIndustrialDemandBonus,
   simulateTransportVehiclesDaily,
+  advanceTransportVehiclesByGameDays,
   dwellTransportVehicleAtStop,
   getTransportStopCatchmentUnits,
   getTransportRouteCycleStops,
+  getTransportRouteCycleStopPathIndices,
+  getTransportVehiclePathPosition,
   getTransportRouteAccruedCost,
   getTransportStopWaitingCount,
+  getTransportQueueRevision,
   getTransportVehicleApproximateTile,
 };
 

@@ -9,6 +9,7 @@ const transportUiState = {
   activeTab: 'routes',
   selectedDepotId: '',
   expandedRouteId: '',
+  fleetSort: 'number',
 };
 
 // "Is the UI layer currently open" - orthogonal to isTransportExpansionActive()
@@ -43,7 +44,7 @@ function createTransportWindow() {
     style.id = 'transport-window-style';
     style.textContent = `
       #transport-window {
-        position: fixed; z-index: 360; top: 92px; right: 22px; width: min(620px, calc(100vw - 44px));
+        position: fixed; z-index: 360; top: 92px; right: 22px; width: min(760px, calc(100vw - 44px));
         max-height: calc(100vh - 120px); display: flex; flex-direction: column;
         color: #20252a; background: #ece7d8; border: 2px solid #313b43; border-radius: 8px;
         box-shadow: 0 14px 38px rgba(0,0,0,.42); font: 12px/1.35 Arial, sans-serif;
@@ -104,9 +105,12 @@ function createTransportWindow() {
       #transport-window .transport-message { min-height:17px; margin-top:7px; color:#4f6270; }
       #transport-window .transport-message[data-tone="error"] { color:#9b2929; }
       #transport-window .transport-message[data-tone="success"] { color:#1b7045; }
-      #transport-window .transport-tabs { display:flex; gap:4px; margin-bottom:10px; border-bottom:1px solid #c8c0ad; }
-      #transport-window .transport-tab { border:0; border-bottom:3px solid transparent; border-radius:0; background:transparent; padding:6px 10px; color:#5e5a50; cursor:pointer; font-weight:700; }
-      #transport-window .transport-tab.is-active { color:#164f6e; border-bottom-color:#236c91; }
+      #transport-window .transport-tabs { display:grid; grid-template-columns:repeat(6,minmax(72px,1fr)); gap:3px; margin-bottom:10px; padding:3px; border:1px solid #8e8778; background:#d1cbbb; }
+      #transport-window .transport-tab { display:grid; place-items:center; gap:2px; min-height:48px; border:1px solid #a59c89; border-radius:2px; background:#f4efe2; padding:5px 7px; color:#4f514d; cursor:pointer; font-weight:800; box-shadow:inset 1px 1px #fff, inset -1px -1px #b6ae9e; }
+      #transport-window .transport-tab:hover { background:#fffaf0; }
+      #transport-window .transport-tab.is-active { color:#fff; border-color:#123f58; background:#236c91; box-shadow:inset 1px 1px rgba(255,255,255,.3), inset -1px -1px #123f58; }
+      #transport-window .transport-tab-icon { font-size:17px; line-height:1; }
+      #transport-window .transport-tab-label { font-size:10px; line-height:1.15; }
       #transport-window .transport-company-form { display:grid; gap:9px; max-width:380px; }
       #transport-window .transport-company-meta { display:flex; justify-content:space-between; gap:8px; color:#5e5a50; margin-top:2px; }
       #transport-window .transport-depot-select { display:flex; align-items:flex-end; justify-content:space-between; gap:10px; margin-bottom:10px; }
@@ -117,11 +121,42 @@ function createTransportWindow() {
       #transport-window .transport-vehicle-class-row, #transport-window .transport-vehicle-row { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:7px 8px; background:#f8f4e8; border:1px solid #aaa18e; border-radius:6px; }
       #transport-window .transport-vehicle-row select { border:1px solid #9d9584; border-radius:4px; padding:4px; background:#fff; min-width:120px; }
       #transport-window .transport-vehicle-class-row small, #transport-window .transport-vehicle-row small { display:block; color:#6a665c; }
+      #transport-window .transport-section-head { display:flex; justify-content:space-between; align-items:flex-end; gap:10px; margin:0 0 8px; }
+      #transport-window .transport-section-head h3 { margin:0; font-size:15px; }
+      #transport-window .transport-section-head p { margin:2px 0 0; color:#6a665c; }
+      #transport-window .transport-toolbar { display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
+      #transport-window .transport-toolbar select { border:1px solid #8f8776; border-radius:3px; padding:5px 7px; background:#fffaf0; color:#252b2f; }
+      #transport-window .transport-table-wrap { overflow:auto; border:1px solid #9e9685; background:#fffaf0; }
+      #transport-window .transport-table { width:100%; border-collapse:collapse; font-size:11px; }
+      #transport-window .transport-table th { position:sticky; top:0; z-index:1; padding:6px; text-align:left; white-space:nowrap; color:#fff; background:#3c535f; }
+      #transport-window .transport-table td { padding:6px; border-top:1px solid #d4ccbc; vertical-align:middle; }
+      #transport-window .transport-table tbody tr:nth-child(even) { background:#f1ebdc; }
+      #transport-window .transport-table tbody tr:hover { background:#fff; }
+      #transport-window .transport-table .is-positive { color:#176a43; font-weight:800; }
+      #transport-window .transport-table .is-negative { color:#a22c2c; font-weight:800; }
+      #transport-window .transport-line-cell { display:flex; align-items:center; gap:6px; min-width:120px; }
+      #transport-window .transport-line-swatch { width:7px; height:22px; border:1px solid rgba(0,0,0,.25); background:var(--route-color); flex:0 0 auto; }
+      #transport-window .transport-usage { min-width:82px; }
+      #transport-window .transport-bar { position:relative; height:8px; margin-top:3px; overflow:hidden; border:1px solid #817969; background:#d8d1c3; }
+      #transport-window .transport-bar > i { display:block; height:100%; width:var(--value); background:#2b8a57; }
+      #transport-window .transport-bar.demand > i { background:#d28b22; }
+      #transport-window .transport-demand-badge { display:inline-block; min-width:54px; border-radius:10px; padding:2px 6px; text-align:center; color:#fff; background:#78838a; font-weight:800; }
+      #transport-window .transport-demand-badge[data-level="high"] { background:#b84732; }
+      #transport-window .transport-demand-badge[data-level="medium"] { background:#ce8a22; }
+      #transport-window .transport-demand-badge[data-level="low"] { background:#40865a; }
+      #transport-window .transport-buy-catalog { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; }
+      #transport-window .transport-buy-card { display:grid; grid-template-columns:40px 1fr auto; align-items:center; gap:9px; padding:9px; border:1px solid #99917f; background:#f8f4e8; }
+      #transport-window .transport-buy-icon { display:grid; place-items:center; width:36px; height:36px; border:1px solid #a49b87; background:#e8e1d2; font-size:21px; }
+      #transport-window .transport-buy-stats { color:#6a665c; font-size:10px; }
+      #transport-window .transport-finance-total td { border-top:2px solid #6b6355; font-weight:800; }
+      #transport-window .transport-note { padding:7px 9px; border-left:4px solid #236c91; background:#e3edf0; color:#3f515a; }
       @media (max-width:720px) {
         #transport-window { right:8px; top:76px; width:calc(100vw - 16px); }
         #transport-window .transport-summary { grid-template-columns:repeat(2,1fr); }
         #transport-window .transport-fields { grid-template-columns:1fr 1fr; }
         #transport-window .transport-metrics { grid-template-columns:repeat(3,1fr); }
+        #transport-window .transport-tabs { grid-template-columns:repeat(3,1fr); }
+        #transport-window .transport-buy-catalog { grid-template-columns:1fr; }
       }
     `;
     document.head.appendChild(style);
@@ -219,6 +254,7 @@ function renderTransportEditor() {
       </div>
       ${transportUiState.pickingStops ? `<p class="transport-picker-hint">${transportEscapeHtml(t('transport.stopPickerHint'))}</p>` : ''}
       <div class="transport-stop-list">${stopRows}</div>
+      <p class="transport-note">${transportEscapeHtml(t('transport.orders.shared'))}</p>
       <div class="transport-editor-actions">
         <button class="transport-btn" type="button" data-transport-action="cancel-editor">${transportEscapeHtml(t('transport.cancel'))}</button>
         <button class="transport-btn primary" type="button" data-transport-action="save-route">${transportEscapeHtml(t('transport.saveRoute'))}</button>
@@ -241,6 +277,9 @@ function renderTransportRouteCard(route, index) {
     [t('transport.metric.passengers'), Math.round(stats.monthlyPassengers || 0).toLocaleString()],
     [t('transport.metric.load'), transportFormatPercent(stats.loadFactor || 0)],
     [t('transport.metric.reliability'), transportFormatPercent(stats.reliability || 0)],
+    [t('transport.metric.fareDistance'), t('transport.metric.fareDistanceValue', {
+      tiles: Number(stats.averageFareDistanceTiles || 0).toFixed(1),
+    })],
     [t('transport.metric.revenue'), transportFormatMoney(stats.revenue || 0)],
     [t('transport.metric.cost'), transportFormatMoney(stats.cost || 0)],
     [t('transport.metric.net'), transportFormatMoney(stats.net || 0, true)],
@@ -268,7 +307,7 @@ function renderTransportRouteCard(route, index) {
       <div class="transport-route-head">
         <div>
           <div class="transport-route-name">${transportEscapeHtml(route.name)}</div>
-          <button class="transport-route-fleet-toggle${expanded ? ' is-open' : ''}" type="button" data-transport-action="toggle-route-vehicles" data-route-id="${transportEscapeHtml(route.id)}" title="${transportEscapeHtml(t('transport.routeFleet.toggle'))}">${routeVehicles.length} 🚌 · $${Number(route.fare).toFixed(2)} ${expanded ? '▴' : '▾'}</button>
+          <button class="transport-route-fleet-toggle${expanded ? ' is-open' : ''}" type="button" data-transport-action="toggle-route-vehicles" data-route-id="${transportEscapeHtml(route.id)}" title="${transportEscapeHtml(t('transport.routeFleet.toggle'))}">${routeVehicles.length} 🚌 · ${transportEscapeHtml(t('transport.farePerTileShort', { fare: Number(route.fare).toFixed(0) }))} ${expanded ? '▴' : '▾'}</button>
         </div>
         <span class="transport-status" data-status="${transportEscapeHtml(status)}">${transportEscapeHtml(t(`transport.status.${status}`))}</span>
       </div>
@@ -282,7 +321,7 @@ function renderTransportRouteCard(route, index) {
         : ''}
       <div class="transport-metrics">${metrics}</div>
       <div class="transport-actions">
-        <button class="transport-btn" type="button" data-transport-action="edit-route" data-route-id="${transportEscapeHtml(route.id)}">${transportEscapeHtml(t('transport.edit'))}</button>
+        <button class="transport-btn" type="button" data-transport-action="edit-route" data-route-id="${transportEscapeHtml(route.id)}">${transportEscapeHtml(t('transport.orders.edit'))}</button>
         <button class="transport-btn" type="button" data-transport-action="toggle-route" data-route-id="${transportEscapeHtml(route.id)}">${transportEscapeHtml(t(route.status === 'suspended' ? 'transport.resume' : 'transport.suspend'))}</button>
         <button class="transport-btn danger" type="button" data-transport-action="delete-route" data-route-id="${transportEscapeHtml(route.id)}">${transportEscapeHtml(t('transport.delete'))}</button>
       </div>
@@ -312,6 +351,227 @@ function renderTransportRoutesTab(state) {
   `;
 }
 
+function transportProfitClass(value) {
+  const amount = Number(value) || 0;
+  if (amount > 0) return 'is-positive';
+  if (amount < 0) return 'is-negative';
+  return '';
+}
+
+function getTransportVehicleEstimatedProfit(vehicle, state) {
+  if (!vehicle.routeId) return 0;
+  const route = state.routes.find((entry) => entry.id === vehicle.routeId);
+  if (!route) return 0;
+  const assigned = Math.max(1, getTransportRouteVehicles(route.id).length);
+  return Math.round((Number(route.lastStats?.net) || 0) / assigned);
+}
+
+function renderTransportFleetTab(state) {
+  const routesById = new Map(state.routes.map((route) => [route.id, route]));
+  const vehicles = Array.from(state.vehicles);
+  const sorters = {
+    number: (a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }),
+    route: (a, b) => String(routesById.get(a.routeId)?.name || '').localeCompare(String(routesById.get(b.routeId)?.name || '')),
+    age: (a, b) => b.ageMonths - a.ageMonths,
+    condition: (a, b) => a.condition - b.condition,
+    load: (a, b) => {
+      const aClass = getTransportVehicleClass(a.classId);
+      const bClass = getTransportVehicleClass(b.classId);
+      return (b.passengersAboard / bClass.capacity) - (a.passengersAboard / aClass.capacity);
+    },
+    profit: (a, b) => getTransportVehicleEstimatedProfit(b, state) - getTransportVehicleEstimatedProfit(a, state),
+  };
+  vehicles.sort(sorters[transportUiState.fleetSort] || sorters.number);
+  const capacity = vehicles.reduce((sum, vehicle) => sum + getTransportVehicleClass(vehicle.classId).capacity, 0);
+  const aboard = vehicles.reduce((sum, vehicle) => sum + vehicle.passengersAboard, 0);
+  const usage = capacity > 0 ? aboard / capacity : 0;
+  const sortOptions = ['number', 'route', 'age', 'condition', 'load', 'profit'].map((id) => (
+    `<option value="${id}" ${transportUiState.fleetSort === id ? 'selected' : ''}>${transportEscapeHtml(t(`transport.fleet.sort.${id}`))}</option>`
+  )).join('');
+  const rows = vehicles.map((vehicle) => {
+    const vehicleClass = getTransportVehicleClass(vehicle.classId);
+    const route = routesById.get(vehicle.routeId);
+    const load = vehicleClass.capacity > 0 ? vehicle.passengersAboard / vehicleClass.capacity : 0;
+    const estimatedProfit = getTransportVehicleEstimatedProfit(vehicle, state);
+    const routeOptions = [`<option value="">${transportEscapeHtml(t('transport.depot.unassigned'))}</option>`]
+      .concat(state.routes.map((entry) => (
+        `<option value="${transportEscapeHtml(entry.id)}" ${entry.id === vehicle.routeId ? 'selected' : ''}>${transportEscapeHtml(entry.name)}</option>`
+      )))
+      .join('');
+    const orders = vehicle.status === 'depot'
+      ? `<select data-transport-assign-vehicle="${transportEscapeHtml(vehicle.id)}">${routeOptions}</select>`
+      : (route
+        ? `<span class="transport-line-cell"><i class="transport-line-swatch" style="--route-color:${transportEscapeHtml(route.color)}"></i>${transportEscapeHtml(route.name)}</span>`
+        : transportEscapeHtml(t('transport.depot.unassigned')));
+    const sendButton = ['active', 'returning_for_service', 'broken_down'].includes(vehicle.status)
+      ? `<button class="transport-btn" type="button" data-transport-action="send-vehicle-depot" data-vehicle-id="${transportEscapeHtml(vehicle.id)}">${transportEscapeHtml(t('transport.fleet.sendDepot'))}</button>`
+      : '';
+    const sellButton = vehicle.status === 'depot'
+      ? `<button class="transport-btn danger" type="button" data-transport-action="sell-vehicle" data-vehicle-id="${transportEscapeHtml(vehicle.id)}">${transportEscapeHtml(t('transport.depot.sell'))}</button>`
+      : '';
+    return `
+      <tr>
+        <td><strong>🚌 ${transportEscapeHtml(vehicle.id)}</strong><br><small>${transportEscapeHtml(t(`transport.vehicleClass.${vehicle.classId}`))}</small></td>
+        <td>${transportEscapeHtml(t(`transport.vehicleStatus.${vehicle.status}`))}</td>
+        <td>${orders}</td>
+        <td class="transport-usage"><strong>${vehicle.passengersAboard} / ${vehicleClass.capacity}</strong><div class="transport-bar" style="--value:${Math.round(Math.min(1, load) * 100)}%"><i></i></div></td>
+        <td class="transport-usage"><strong>${transportEscapeHtml(transportFormatPercent(vehicle.condition))}</strong><div class="transport-bar" style="--value:${Math.round(vehicle.condition * 100)}%"><i></i></div></td>
+        <td>${transportEscapeHtml(t('transport.depot.age', { months: vehicle.ageMonths }))}</td>
+        <td class="${transportProfitClass(estimatedProfit)}">${transportEscapeHtml(transportFormatMoney(estimatedProfit, true))}</td>
+        <td><div class="transport-actions"><button class="transport-btn primary" type="button" data-transport-action="track-vehicle" data-vehicle-id="${transportEscapeHtml(vehicle.id)}">${transportEscapeHtml(t('transport.routeFleet.track'))}</button>${sendButton}${sellButton}</div></td>
+      </tr>`;
+  }).join('');
+  return `
+    <div class="transport-section-head">
+      <div><h3>${transportEscapeHtml(t('transport.fleet.title'))}</h3><p>${transportEscapeHtml(t('transport.fleet.subtitle'))}</p></div>
+    </div>
+    <div class="transport-toolbar">
+      <label>${transportEscapeHtml(t('transport.fleet.sort'))}<select data-transport-fleet-sort>${sortOptions}</select></label>
+      <strong>${transportEscapeHtml(t('transport.fleet.usage', { percent: transportFormatPercent(usage), aboard, capacity }))}</strong>
+    </div>
+    ${vehicles.length === 0
+      ? `<div class="transport-empty">${transportEscapeHtml(t('transport.depot.fleetEmpty'))}</div>`
+      : `<div class="transport-table-wrap"><table class="transport-table">
+          <thead><tr><th>${transportEscapeHtml(t('transport.fleet.vehicle'))}</th><th>${transportEscapeHtml(t('transport.fleet.status'))}</th><th>${transportEscapeHtml(t('transport.fleet.orders'))}</th><th>${transportEscapeHtml(t('transport.fleet.load'))}</th><th>${transportEscapeHtml(t('transport.fleet.condition'))}</th><th>${transportEscapeHtml(t('transport.fleet.age'))}</th><th>${transportEscapeHtml(t('transport.fleet.profit'))}</th><th>${transportEscapeHtml(t('transport.fleet.actions'))}</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table></div>`}
+  `;
+}
+
+function renderTransportDemandTab(state) {
+  const allStops = listTransportStopSites();
+  const stopRows = allStops.map((stop) => {
+    const index = state.stops.indexOf(stop);
+    const catchment = getTransportStopCatchmentUnits(stop);
+    const waiting = getTransportStopWaitingCount(stop.id);
+    const dailyDemand = Math.max(waiting, Math.round(catchment.originUnits * TRANSPORT_STOP_DAILY_BOARDING_SHARE));
+    const servingRoutes = state.routes.filter((route) => route.stopIds.includes(stop.id));
+    const activeServingRoutes = servingRoutes.filter((route) => getTransportRouteStatus(route) === 'active');
+    let level = 'none';
+    if (dailyDemand >= 50) level = 'high';
+    else if (dailyDemand >= 20) level = 'medium';
+    else if (dailyDemand > 0) level = 'low';
+    return { stop, index, catchment, waiting, dailyDemand, servingRoutes, activeServingRoutes, level };
+  }).sort((a, b) => b.dailyDemand - a.dailyDemand || b.waiting - a.waiting);
+  const waitingTotal = stopRows.reduce((sum, entry) => sum + entry.waiting, 0);
+  const servedStops = stopRows.filter((entry) => entry.activeServingRoutes.length > 0).length;
+  const unservedDemand = stopRows
+    .filter((entry) => entry.activeServingRoutes.length === 0)
+    .reduce((sum, entry) => sum + entry.dailyDemand, 0);
+  const summary = getTransportSummary();
+  const cards = [
+    [t('transport.demand.waitingTotal'), waitingTotal.toLocaleString()],
+    [t('transport.demand.servedStops'), `${servedStops} / ${stopRows.length}`],
+    [t('transport.demand.unserved'), unservedDemand.toLocaleString()],
+    [t('transport.summary.coverage'), transportFormatPercent(summary.residentialCoverage)],
+    [t('transport.demand.monthlyPassengers'), Math.round(summary.monthlyPassengers).toLocaleString()],
+  ].map(([label, value]) => `<div class="transport-summary-card"><span>${transportEscapeHtml(label)}</span><strong>${transportEscapeHtml(value)}</strong></div>`).join('');
+  const rows = stopRows.map((entry) => {
+    const routeNames = entry.servingRoutes.length > 0
+      ? entry.servingRoutes.map((route) => route.name).join(', ')
+      : t('transport.stopInspector.noRoutes');
+    return `
+      <tr>
+        <td><strong>${transportEscapeHtml(getTransportStopDisplayName(entry.stop, entry.index))}</strong><br><small>(${entry.stop.row}, ${entry.stop.col})</small></td>
+        <td><span class="transport-demand-badge" data-level="${entry.level}">${transportEscapeHtml(t(`transport.demand.level.${entry.level}`))}</span></td>
+        <td><strong>👤 ${entry.waiting}</strong><br><small>${transportEscapeHtml(t('transport.demand.daily', { value: entry.dailyDemand }))}</small></td>
+        <td>${Math.round(entry.catchment.originUnits).toLocaleString()}</td>
+        <td>${Math.round(entry.catchment.destinationUnits).toLocaleString()}</td>
+        <td>${transportEscapeHtml(routeNames)}</td>
+        <td><button class="transport-btn" type="button" data-transport-action="locate-stop" data-stop-id="${transportEscapeHtml(entry.stop.id)}">${transportEscapeHtml(t('transport.demand.locate'))}</button></td>
+      </tr>`;
+  }).join('');
+  return `
+    <div class="transport-section-head"><div><h3>${transportEscapeHtml(t('transport.demand.title'))}</h3><p>${transportEscapeHtml(t('transport.demand.subtitle'))}</p></div></div>
+    <div class="transport-summary">${cards}</div>
+    ${stopRows.length === 0
+      ? `<div class="transport-empty">${transportEscapeHtml(t('transport.demand.empty'))}</div>`
+      : `<div class="transport-table-wrap"><table class="transport-table">
+          <thead><tr><th>${transportEscapeHtml(t('transport.demand.stop'))}</th><th>${transportEscapeHtml(t('transport.demand.level'))}</th><th>${transportEscapeHtml(t('transport.demand.waiting'))}</th><th>${transportEscapeHtml(t('transport.demand.origins'))}</th><th>${transportEscapeHtml(t('transport.demand.destinations'))}</th><th>${transportEscapeHtml(t('transport.demand.routes'))}</th><th></th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table></div>`}
+  `;
+}
+
+function getTransportFinanceHistoryRows(state) {
+  if (Array.isArray(state.financeHistory) && state.financeHistory.length > 0) {
+    return state.financeHistory.slice(-12).reverse();
+  }
+  const byPeriod = new Map();
+  for (const route of state.routes) {
+    for (const entry of route.history || []) {
+      const key = `${entry.year}:${entry.month}`;
+      const row = byPeriod.get(key) || {
+        year: entry.year, month: entry.month, passengers: 0, revenue: 0,
+        routeOperations: 0, depotUpkeep: 0, cost: 0, net: 0, closingCash: null,
+      };
+      row.passengers += Number(entry.passengers) || 0;
+      row.revenue += Number(entry.revenue) || 0;
+      row.routeOperations += Number(entry.cost) || 0;
+      row.cost += Number(entry.cost) || 0;
+      row.net += Number(entry.net) || 0;
+      byPeriod.set(key, row);
+    }
+  }
+  return Array.from(byPeriod.values())
+    .sort((a, b) => (b.year * 12 + b.month) - (a.year * 12 + a.month))
+    .slice(0, 12);
+}
+
+function renderTransportFinancesTab(state) {
+  const dayFraction = transportClamp((typeof city === 'undefined' ? 30 : Math.max(1, city.day)) / 30, 1 / 30, 1);
+  const revenue = state.routes.reduce((sum, route) => sum + (Number(route.lastStats?.revenue) || 0), 0);
+  const routeOperations = state.routes.reduce((sum, route) => sum + (Number(route.lastStats?.cost) || 0), 0);
+  const depotUpkeep = Math.round(getConnectedCommissionedTransportDepots().length * TRANSPORT_DEPOT_MONTHLY_UPKEEP * dayFraction);
+  const cost = routeOperations + depotUpkeep;
+  const net = revenue - cost;
+  const cards = [
+    [t('transport.finance.companyCash'), transportFormatMoney(state.company.cash)],
+    [t('transport.finance.currentRevenue'), transportFormatMoney(revenue)],
+    [t('transport.finance.currentCost'), transportFormatMoney(cost)],
+    [t('transport.finance.currentNet'), transportFormatMoney(net, true)],
+    [t('transport.finance.depotUpkeep'), transportFormatMoney(depotUpkeep)],
+  ].map(([label, value]) => `<div class="transport-summary-card"><span>${transportEscapeHtml(label)}</span><strong class="${label === t('transport.finance.currentNet') ? transportProfitClass(net) : ''}">${transportEscapeHtml(value)}</strong></div>`).join('');
+  const historyRows = getTransportFinanceHistoryRows(state);
+  const history = historyRows.map((entry) => `
+    <tr>
+      <td>${transportEscapeHtml(t('transport.finance.period', { year: entry.year, month: entry.month }))}</td>
+      <td>${Math.round(entry.passengers || 0).toLocaleString()}</td>
+      <td>${transportEscapeHtml(transportFormatMoney(entry.revenue))}</td>
+      <td>${transportEscapeHtml(transportFormatMoney(entry.routeOperations))}</td>
+      <td>${transportEscapeHtml(transportFormatMoney(entry.depotUpkeep))}</td>
+      <td>${transportEscapeHtml(transportFormatMoney(entry.cost))}</td>
+      <td class="${transportProfitClass(entry.net)}">${transportEscapeHtml(transportFormatMoney(entry.net, true))}</td>
+      <td>${entry.closingCash == null ? '—' : transportEscapeHtml(transportFormatMoney(entry.closingCash))}</td>
+    </tr>`).join('');
+  const routeRows = state.routes.map((route) => {
+    const stats = route.lastStats || {};
+    return `
+      <tr>
+        <td><span class="transport-line-cell"><i class="transport-line-swatch" style="--route-color:${transportEscapeHtml(route.color)}"></i><strong>${transportEscapeHtml(route.name)}</strong></span></td>
+        <td>${getTransportRouteVehicles(route.id).length}</td>
+        <td>${Math.round(stats.monthlyPassengers || 0).toLocaleString()}</td>
+        <td>${transportEscapeHtml(t('transport.metric.fareDistanceValue', { tiles: Number(stats.averageFareDistanceTiles || 0).toFixed(1) }))}</td>
+        <td>${transportEscapeHtml(transportFormatMoney(stats.revenue || 0))}</td>
+        <td>${transportEscapeHtml(transportFormatMoney(stats.cost || 0))}</td>
+        <td class="${transportProfitClass(stats.net)}">${transportEscapeHtml(transportFormatMoney(stats.net || 0, true))}</td>
+        <td>${transportEscapeHtml(transportFormatPercent(stats.loadFactor || 0))}</td>
+      </tr>`;
+  }).join('');
+  return `
+    <div class="transport-section-head"><div><h3>${transportEscapeHtml(t('transport.finance.title'))}</h3><p>${transportEscapeHtml(t('transport.finance.subtitle'))}</p></div></div>
+    <div class="transport-summary">${cards}</div>
+    <h4>${transportEscapeHtml(t('transport.finance.byRoute'))}</h4>
+    ${state.routes.length === 0
+      ? `<div class="transport-empty">${transportEscapeHtml(t('transport.noRoutes'))}</div>`
+      : `<div class="transport-table-wrap"><table class="transport-table"><thead><tr><th>${transportEscapeHtml(t('transport.finance.route'))}</th><th>${transportEscapeHtml(t('transport.finance.vehicles'))}</th><th>${transportEscapeHtml(t('transport.metric.passengers'))}</th><th>${transportEscapeHtml(t('transport.metric.fareDistance'))}</th><th>${transportEscapeHtml(t('transport.metric.revenue'))}</th><th>${transportEscapeHtml(t('transport.metric.cost'))}</th><th>${transportEscapeHtml(t('transport.metric.net'))}</th><th>${transportEscapeHtml(t('transport.metric.load'))}</th></tr></thead><tbody>${routeRows}</tbody></table></div>`}
+    <h4>${transportEscapeHtml(t('transport.finance.history'))}</h4>
+    ${historyRows.length === 0
+      ? `<div class="transport-empty">${transportEscapeHtml(t('transport.finance.noHistory'))}</div>`
+      : `<div class="transport-table-wrap"><table class="transport-table"><thead><tr><th>${transportEscapeHtml(t('transport.finance.month'))}</th><th>${transportEscapeHtml(t('transport.metric.passengers'))}</th><th>${transportEscapeHtml(t('transport.finance.revenue'))}</th><th>${transportEscapeHtml(t('transport.finance.routeOperations'))}</th><th>${transportEscapeHtml(t('transport.finance.depotUpkeep'))}</th><th>${transportEscapeHtml(t('transport.finance.totalCost'))}</th><th>${transportEscapeHtml(t('transport.metric.net'))}</th><th>${transportEscapeHtml(t('transport.finance.closingCash'))}</th></tr></thead><tbody>${history}</tbody></table></div>`}
+  `;
+}
+
 function refreshTransportUi(options = {}) {
   const root = transportUiState.root;
   if (!root) return;
@@ -323,14 +583,20 @@ function refreshTransportUi(options = {}) {
   const state = getTransportExpansionState();
   if (renderTransportGate(body, state)) return;
   const tabs = [
-    ['routes', t('transport.tab.routes')],
-    ['depot', t('transport.tab.depot')],
-    ['company', t('transport.tab.company')],
-  ].map(([id, label]) => (
-    `<button class="transport-tab${transportUiState.activeTab === id ? ' is-active' : ''}" type="button" data-transport-tab="${id}">${transportEscapeHtml(label)}</button>`
+    ['routes', '🗺', t('transport.tab.routes')],
+    ['fleet', '🚌', t('transport.tab.fleet')],
+    ['demand', '👥', t('transport.tab.demand')],
+    ['depot', '🏭', t('transport.tab.depot')],
+    ['finances', '📈', t('transport.tab.finances')],
+    ['company', '🏢', t('transport.tab.company')],
+  ].map(([id, icon, label]) => (
+    `<button class="transport-tab${transportUiState.activeTab === id ? ' is-active' : ''}" type="button" data-transport-tab="${id}"><span class="transport-tab-icon" aria-hidden="true">${icon}</span><span class="transport-tab-label">${transportEscapeHtml(label)}</span></button>`
   )).join('');
   let tabBody = '';
-  if (transportUiState.activeTab === 'depot') tabBody = renderTransportDepotTab(state);
+  if (transportUiState.activeTab === 'fleet') tabBody = renderTransportFleetTab(state);
+  else if (transportUiState.activeTab === 'demand') tabBody = renderTransportDemandTab(state);
+  else if (transportUiState.activeTab === 'depot') tabBody = renderTransportDepotTab(state);
+  else if (transportUiState.activeTab === 'finances') tabBody = renderTransportFinancesTab(state);
   else if (transportUiState.activeTab === 'company') tabBody = renderTransportCompanyTab(state);
   else tabBody = renderTransportRoutesTab(state);
   body.innerHTML = `
@@ -382,14 +648,21 @@ function renderTransportDepotTab(state) {
   )).join('');
   const vehicleCount = getTransportDepotVehicleCount(depotId);
   const buyRows = listTransportVehicleClasses().map((vehicleClass) => `
-    <div class="transport-vehicle-class-row">
+    <div class="transport-buy-card">
+      <div class="transport-buy-icon" aria-hidden="true">🚌</div>
       <div>
         <strong>${transportEscapeHtml(t(`transport.vehicleClass.${vehicleClass.id}`))}</strong>
-        <small>${transportEscapeHtml(t('transport.depot.stats', {
-          capacity: vehicleClass.capacity, price: transportFormatMoney(vehicleClass.purchasePrice),
-        }))}</small>
+        <div class="transport-buy-stats">${transportEscapeHtml(t('transport.depot.catalogStats', {
+          capacity: vehicleClass.capacity,
+          speed: Math.round(vehicleClass.speedFactor * 100),
+          upkeep: transportFormatMoney(vehicleClass.monthlyUpkeep),
+        }))}</div>
+        <small>${transportEscapeHtml(t(`transport.vehicleClass.${vehicleClass.id}.desc`))}</small>
       </div>
-      <button class="transport-btn primary" type="button" data-transport-action="buy-vehicle" data-depot-id="${transportEscapeHtml(depotId)}" data-class-id="${transportEscapeHtml(vehicleClass.id)}">${transportEscapeHtml(t('transport.depot.buy'))}</button>
+      <div>
+        <strong>${transportEscapeHtml(transportFormatMoney(vehicleClass.purchasePrice))}</strong>
+        <button class="transport-btn primary" type="button" data-transport-action="buy-vehicle" data-depot-id="${transportEscapeHtml(depotId)}" data-class-id="${transportEscapeHtml(vehicleClass.id)}">${transportEscapeHtml(t('transport.depot.buy'))}</button>
+      </div>
     </div>
   `).join('');
   const fleet = state.vehicles.filter((vehicle) => vehicle.depotId === depotId);
@@ -409,7 +682,11 @@ function renderTransportDepotTab(state) {
         </div>
         <select data-transport-assign-vehicle="${transportEscapeHtml(vehicle.id)}" ${vehicle.status !== 'depot' ? 'disabled' : ''}>${routeOptions}</select>
         <button class="transport-btn" type="button" data-transport-action="inspect-vehicle" data-vehicle-id="${transportEscapeHtml(vehicle.id)}">${transportEscapeHtml(t('transport.inspector.open'))}</button>
-        <button class="transport-btn danger" type="button" data-transport-action="sell-vehicle" data-vehicle-id="${transportEscapeHtml(vehicle.id)}" ${canSell ? '' : 'disabled'}>${transportEscapeHtml(t('transport.depot.sell'))}</button>
+        ${canSell
+          ? `<button class="transport-btn danger" type="button" data-transport-action="sell-vehicle" data-vehicle-id="${transportEscapeHtml(vehicle.id)}">${transportEscapeHtml(t('transport.depot.sell'))}</button>`
+          : (['active', 'returning_for_service', 'broken_down'].includes(vehicle.status)
+            ? `<button class="transport-btn" type="button" data-transport-action="send-vehicle-depot" data-vehicle-id="${transportEscapeHtml(vehicle.id)}">${transportEscapeHtml(t('transport.fleet.sendDepot'))}</button>`
+            : '')}
       </div>
     `;
   }).join('') : `<div class="transport-empty">${transportEscapeHtml(t('transport.depot.fleetEmpty'))}</div>`;
@@ -421,8 +698,9 @@ function renderTransportDepotTab(state) {
       </label>
       <span>${transportEscapeHtml(t('transport.depot.capacityLabel', { used: vehicleCount, capacity: TRANSPORT_DEPOT_CAPACITY }))}</span>
     </div>
+    <div class="transport-note">${transportEscapeHtml(t('transport.depot.purchaseFlow'))}</div>
     <h4>${transportEscapeHtml(t('transport.depot.buyTitle'))}</h4>
-    <div class="transport-vehicle-classes">${buyRows}</div>
+    <div class="transport-buy-catalog">${buyRows}</div>
     <h4>${transportEscapeHtml(t('transport.depot.fleetTitle'))}</h4>
     <div class="transport-vehicle-list">${fleetRows}</div>
   `;
@@ -434,6 +712,13 @@ function openTransportWindow() {
   root.hidden = false;
   refreshTransportUi();
   if (typeof invalidateTransportVisuals === 'function') invalidateTransportVisuals(activeScene);
+}
+
+function openTransportWindowTab(tabId) {
+  const allowed = new Set(['routes', 'fleet', 'demand', 'depot', 'finances', 'company']);
+  transportUiState.activeTab = allowed.has(tabId) ? tabId : 'routes';
+  if (typeof setTransportModeActive === 'function') setTransportModeActive(true);
+  openTransportWindow();
 }
 
 // §10: map click on a depot building (main.js's building pointerdown) lands
@@ -554,7 +839,7 @@ function createTransportVehicleInspector() {
     const style = document.createElement('style');
     style.id = 'transport-inspector-style';
     style.textContent = `
-      #transport-vehicle-inspector { position: fixed; z-index: 370; width: 250px; color:#20252a; background:#ece7d8; border:2px solid #313b43; border-radius:8px; box-shadow:0 10px 26px rgba(0,0,0,.4); font:12px/1.4 Arial, sans-serif; }
+      #transport-vehicle-inspector { position: fixed; z-index:370; width:280px; color:#20252a; background:#ece7d8; border:2px solid #313b43; border-radius:5px; box-shadow:0 10px 26px rgba(0,0,0,.4); font:12px/1.4 Arial, sans-serif; }
       #transport-vehicle-inspector[hidden] { display:none !important; }
       #transport-vehicle-inspector .transport-inspector-head { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:7px 9px; background:#263a48; color:#fff; font-weight:800; }
       #transport-vehicle-inspector .transport-inspector-close { border:0; background:transparent; color:#fff; font-size:16px; cursor:pointer; }
@@ -563,9 +848,13 @@ function createTransportVehicleInspector() {
       #transport-vehicle-inspector .transport-inspector-row span:first-child { color:#6a665c; }
       #transport-vehicle-inspector .transport-inspector-routes { display:flex; flex-wrap:wrap; gap:4px; }
       #transport-vehicle-inspector .transport-inspector-route-chip { border-left:5px solid var(--route-color); border-radius:3px; padding:1px 6px; background:#f8f4e8; font-weight:700; }
-      #transport-vehicle-inspector .transport-inspector-actions { display:flex; justify-content:flex-end; margin-top:4px; }
+      #transport-vehicle-inspector .transport-inspector-actions { display:flex; justify-content:flex-end; gap:4px; flex-wrap:wrap; margin-top:4px; padding-top:6px; border-top:1px solid #c8c0ad; }
       #transport-vehicle-inspector .transport-btn { border:1px solid #52636f; border-radius:5px; padding:4px 8px; background:#f7f3e8; color:#26323a; cursor:pointer; font:inherit; }
       #transport-vehicle-inspector .transport-btn.primary { color:#fff; background:#236c91; border-color:#164f6e; font-weight:700; }
+      #transport-vehicle-inspector .transport-btn.danger { color:#8b1f1f; border-color:#a75a5a; }
+      #transport-vehicle-inspector .transport-inspector-route { border:0; padding:0; color:#155f86; background:transparent; cursor:pointer; font:inherit; font-weight:800; }
+      #transport-vehicle-inspector .transport-inspector-meter { height:9px; overflow:hidden; border:1px solid #817969; background:#d8d1c3; }
+      #transport-vehicle-inspector .transport-inspector-meter i { display:block; height:100%; width:var(--value); background:#2b8a57; }
     `;
     document.head.appendChild(style);
   }
@@ -587,6 +876,34 @@ function createTransportVehicleInspector() {
     if (event.target.closest('[data-transport-inspector-follow]')) {
       transportInspectorState.follow = !transportInspectorState.follow;
       refreshTransportInspector();
+      return;
+    }
+    if (event.target.closest('[data-transport-inspector-route]')) {
+      const vehicle = getTransportExpansionState().vehicles.find((entry) => entry.id === transportInspectorState.vehicleId);
+      const assignedRoute = getTransportExpansionState().routes.find((entry) => entry.id === vehicle?.routeId);
+      if (assignedRoute) {
+        transportUiState.activeTab = 'routes';
+        openTransportWindow();
+        beginTransportRouteEditor(assignedRoute);
+      }
+      return;
+    }
+    if (event.target.closest('[data-transport-inspector-depot]')) {
+      if (sendTransportVehicleToDepot(transportInspectorState.vehicleId)) {
+        showToast(t('transport.toast.vehicleSentDepot'), 'info');
+      }
+      refreshTransportInspector();
+      refreshTransportUi();
+      return;
+    }
+    if (event.target.closest('[data-transport-inspector-sell]')) {
+      if (!window.confirm(t('transport.depot.confirmSell'))) return;
+      const sold = sellTransportVehicle(transportInspectorState.vehicleId);
+      if (sold) {
+        showToast(t('transport.toast.vehicleSold'), 'info');
+        closeTransportInspector();
+      }
+      refreshTransportUi();
     }
   });
   document.body.appendChild(root);
@@ -598,7 +915,7 @@ function positionTransportVehicleInspector(root, pointer) {
   const x = pointer?.event?.clientX ?? window.innerWidth / 2;
   const y = pointer?.event?.clientY ?? window.innerHeight / 2;
   const offset = 14;
-  const width = 250;
+  const width = 280;
   const height = root.offsetHeight || 220;
   let left = x + offset;
   let top = y + offset;
@@ -679,23 +996,47 @@ function refreshTransportInspector() {
     || (typeof getTransportVehicleApproximateTile === 'function'
       ? getTransportVehicleApproximateTile(vehicle.id)
       : null);
+  const cycleStops = route && typeof getTransportRouteCycleStops === 'function'
+    ? getTransportRouteCycleStops(route)
+    : [];
+  const currentOrder = cycleStops.length > 0
+    ? ((vehicle.orderIndex % cycleStops.length) + cycleStops.length) % cycleStops.length
+    : -1;
+  const fromStop = currentOrder >= 0 ? cycleStops[currentOrder] : null;
+  const toStop = currentOrder >= 0 ? cycleStops[(currentOrder + 1) % cycleStops.length] : null;
+  const leg = fromStop && toStop
+    ? `${getTransportStopDisplayName(fromStop, getTransportExpansionState().stops.indexOf(fromStop))} → ${getTransportStopDisplayName(toStop, getTransportExpansionState().stops.indexOf(toStop))}`
+    : '—';
   const rows = [
     [t('transport.inspector.class'), t(`transport.vehicleClass.${vehicle.classId}`)],
     [t('transport.inspector.status'), t(`transport.vehicleStatus.${vehicle.status}`)],
-    [t('transport.inspector.route'), route ? route.name : t('transport.depot.unassigned')],
+    [t('transport.inspector.currentLeg'), leg],
     [t('transport.inspector.position'), approximateTile ? `(${approximateTile.row}, ${approximateTile.col})` : '—'],
     [t('transport.inspector.passengers'), `${vehicle.passengersAboard} / ${vehicleClass.capacity}`],
-    [t('transport.inspector.condition'), transportFormatPercent(vehicle.condition)],
     [t('transport.inspector.age'), `${vehicle.ageMonths}mo`],
     [t('transport.inspector.odometer'), Math.round(vehicle.odometerTiles).toLocaleString()],
+    [t('transport.inspector.purchasePrice'), transportFormatMoney(vehicle.purchasePrice)],
     [t('transport.inspector.lastRevenue'), transportFormatMoney(vehicle.tripRevenueAccrued)],
   ].map(([label, value]) => (
     `<div class="transport-inspector-row"><span>${transportEscapeHtml(label)}</span><strong>${transportEscapeHtml(value)}</strong></div>`
   )).join('');
+  const routeRow = `<div class="transport-inspector-row"><span>${transportEscapeHtml(t('transport.inspector.route'))}</span>${route
+    ? `<button class="transport-inspector-route" type="button" data-transport-inspector-route>${transportEscapeHtml(route.name)}</button>`
+    : `<strong>${transportEscapeHtml(t('transport.depot.unassigned'))}</strong>`}</div>`;
+  const conditionRow = `<div class="transport-inspector-row"><span>${transportEscapeHtml(t('transport.inspector.condition'))}</span><strong>${transportEscapeHtml(transportFormatPercent(vehicle.condition))}</strong></div><div class="transport-inspector-meter" style="--value:${Math.round(vehicle.condition * 100)}%"><i></i></div>`;
   const followButton = visual
-    ? `<div class="transport-inspector-actions"><button class="transport-btn ${transportInspectorState.follow ? 'primary' : ''}" type="button" data-transport-inspector-follow>${transportEscapeHtml(t(transportInspectorState.follow ? 'transport.inspector.following' : 'transport.inspector.follow'))}</button></div>`
+    ? `<button class="transport-btn ${transportInspectorState.follow ? 'primary' : ''}" type="button" data-transport-inspector-follow>${transportEscapeHtml(t(transportInspectorState.follow ? 'transport.inspector.following' : 'transport.inspector.follow'))}</button>`
     : '';
-  root.querySelector('[data-transport-inspector-body]').innerHTML = rows + followButton;
+  const depotButton = ['active', 'returning_for_service', 'broken_down'].includes(vehicle.status)
+    ? `<button class="transport-btn" type="button" data-transport-inspector-depot>${transportEscapeHtml(t('transport.fleet.sendDepot'))}</button>`
+    : '';
+  const sellButton = vehicle.status === 'depot'
+    ? `<button class="transport-btn danger" type="button" data-transport-inspector-sell>${transportEscapeHtml(t('transport.depot.sell'))}</button>`
+    : '';
+  const actions = followButton || depotButton || sellButton
+    ? `<div class="transport-inspector-actions">${followButton}${depotButton}${sellButton}</div>`
+    : '';
+  root.querySelector('[data-transport-inspector-body]').innerHTML = routeRow + rows + conditionRow + actions;
 }
 
 function refreshTransportStopInspectorBody(root) {
@@ -733,6 +1074,7 @@ function resetTransportUiForCityChange() {
   transportUiState.activeTab = 'routes';
   transportUiState.selectedDepotId = '';
   transportUiState.expandedRouteId = '';
+  transportUiState.fleetSort = 'number';
   setTransportUiMessage('');
   if (isTransportModeActive) setTransportModeActive(false);
   if (transportUiState.root && !transportUiState.root.hidden) refreshTransportUi();
@@ -841,6 +1183,11 @@ function handleTransportUiInput(event) {
 }
 
 function handleTransportUiChange(event) {
+  const fleetSort = event.target.closest('[data-transport-fleet-sort]');
+  if (fleetSort) {
+    transportUiState.fleetSort = fleetSort.value;
+    return refreshTransportUi();
+  }
   const depotSelect = event.target.closest('[data-transport-select-depot]');
   if (depotSelect) {
     transportUiState.selectedDepotId = depotSelect.value;
@@ -888,12 +1235,29 @@ function handleTransportUiClick(event) {
   }
   if (action === 'buy-vehicle') {
     try {
-      buyTransportVehicle(button.dataset.depotId, button.dataset.classId);
+      const vehicle = buyTransportVehicle(button.dataset.depotId, button.dataset.classId);
       showToast(t('transport.toast.vehicleBought'), 'info');
+      openTransportVehicleInspector(vehicle.id);
     } catch (error) {
       showToast(transportRouteErrorMessage(error), 'warning');
     }
     return refreshTransportUi();
+  }
+  if (action === 'send-vehicle-depot') {
+    const sent = sendTransportVehicleToDepot(button.dataset.vehicleId);
+    showToast(t(sent ? 'transport.toast.vehicleSentDepot' : 'transport.error.vehicleNotAvailable'), sent ? 'info' : 'warning');
+    return refreshTransportUi();
+  }
+  if (action === 'locate-stop') {
+    const stop = getTransportStopById(button.dataset.stopId);
+    if (!stop) return;
+    if (typeof centerCameraOnTile === 'function') centerCameraOnTile(activeScene, stop.row, stop.col);
+    else if (activeScene?.cameras?.main && typeof isoToScreen === 'function') {
+      const point = isoToScreen(stop.col, stop.row);
+      activeScene.cameras.main.centerOn(point.x, point.y);
+    }
+    openTransportStopInspector(stop.id);
+    return;
   }
   if (action === 'sell-vehicle') {
     if (!window.confirm(t('transport.depot.confirmSell'))) return;

@@ -1028,6 +1028,9 @@ function spawnVessel(scene, state, portState, portEntry, route, random = Math.ra
   };
   portState.event = event;
   setVesselVisual(scene, event, start, null, event.route.side);
+  if (typeof registerVehicleTrackingSprite === 'function') {
+    registerVehicleTrackingSprite(event, 'vessel');
+  }
   return true;
 }
 

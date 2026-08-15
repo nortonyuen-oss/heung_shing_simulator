@@ -576,6 +576,9 @@ function spawnAircraft(scene, state, airportState, entry, gateKey, random = Math
   };
   airportState.events.push(event);
   setAircraftVisual(scene, event, start, AIRCRAFT_VISUAL_CONFIG.altitudePeakPixels);
+  if (typeof registerVehicleTrackingSprite === 'function') {
+    registerVehicleTrackingSprite(event, 'aircraft');
+  }
   return true;
 }
 

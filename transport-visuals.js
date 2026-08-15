@@ -154,6 +154,10 @@ function createManagedTransportVehicle(scene, route, runtime, model, vehicleId, 
     leg: createTrafficLeg(scene, previous, current, next),
     lastPosition: null,
   };
+  if (typeof markVehicleTrackerDynamicObject === 'function') {
+    markVehicleTrackerDynamicObject(sprite);
+    markVehicleTrackerDynamicObject(badge);
+  }
   setManagedTransportVehicleVisual(vehicle, evaluateTrafficLeg(vehicle.leg, progress), true);
   return vehicle;
 }
@@ -198,7 +202,16 @@ function getTransportVisibleVehicleIds(routeEntries) {
 // formula-driven full-rebuild-on-signature-change (§13).
 function syncManagedTransportVehicles(scene, state, routeEntries) {
   const runtimeByRoute = new Map(routeEntries.map((entry) => [entry.route.id, entry]));
-  const visibleIds = new Set(getTransportVisibleVehicleIds(routeEntries).slice(0, TRANSPORT_VISUAL_CONFIG.maxManagedVehicles));
+  // A tracked bus keeps its real shared sprite even if it falls beyond the
+  // ordinary fleet cap. Tracker cameras render this same object; they never
+  // construct a private visual clone.
+  const trackedIds = typeof getTrackedVehicleIds === 'function'
+    ? getTrackedVehicleIds(scene, 'transport')
+    : [];
+  const visibleIds = new Set([
+    ...trackedIds,
+    ...getTransportVisibleVehicleIds(routeEntries),
+  ].slice(0, TRANSPORT_VISUAL_CONFIG.maxManagedVehicles + trackedIds.length));
 
   for (let index = state.vehicles.length - 1; index >= 0; index--) {
     const visual = state.vehicles[index];
@@ -249,6 +262,7 @@ function syncManagedTransportVehiclePosition(scene, vehicle, backing) {
 function ensureTransportRouteGraphic(scene, state) {
   if (state.routeGraphic) return state.routeGraphic;
   const graphic = scene.add.graphics();
+  graphic.vehicleTrackerUiOverlay = true;
   addToRenderLayer(scene, graphic, 'effectLayer');
   graphic.setDepth(getPreviewOverlayDepth(2));
   graphic.setMask(scene.worldMask);
@@ -309,6 +323,7 @@ function drawTransportRouteOverlay(scene, state, routeEntries, time) {
         backgroundColor: route.color,
         padding: { x: 2, y: 1 },
       });
+      label.vehicleTrackerUiOverlay = true;
       addToRenderLayer(scene, label, 'effectLayer');
       label.setOrigin(0.5, 0.5);
       label.setDepth(getPreviewOverlayDepth(3));
@@ -331,6 +346,7 @@ function drawTransportRouteOverlay(scene, state, routeEntries, time) {
         backgroundColor: '#ffe9a8',
         padding: { x: 3, y: 1 },
       });
+      queueLabel.vehicleTrackerUiOverlay = true;
       addToRenderLayer(scene, queueLabel, 'effectLayer');
       queueLabel.setOrigin(0.5, 1);
       queueLabel.setDepth(getPreviewOverlayDepth(3));
@@ -355,6 +371,7 @@ function drawTransportRouteOverlay(scene, state, routeEntries, time) {
       backgroundColor: '#ffd54f',
       padding: { x: 2, y: 1 },
     });
+    label.vehicleTrackerUiOverlay = true;
     addToRenderLayer(scene, label, 'effectLayer');
     label.setOrigin(0.5, 0.5);
     label.setDepth(getPreviewOverlayDepth(4));
@@ -373,12 +390,11 @@ function updateTransportVisuals(time, delta) {
     ? getTransportRoutesForVisuals()
     : [];
   drawTransportRouteOverlay(scene, state, routeEntries, time);
-  // Runs before every early return below - follow must keep working while
-  // zoomed out (no sprites exist), paused, or with the fleet culled.
-  followTransportVehicleCamera(scene, state);
 
   const visible = !(scene.scene?.isVisible && !scene.scene.isVisible());
-  const zoomReady = scene.cameras.main.zoom >= TRANSPORT_VISUAL_CONFIG.zoomMin;
+  const trackerNeedsSprites = typeof hasActiveVehicleTrackers === 'function'
+    && hasActiveVehicleTrackers(scene, 'transport');
+  const zoomReady = scene.cameras.main.zoom >= TRANSPORT_VISUAL_CONFIG.zoomMin || trackerNeedsSprites;
   const terrainMode = typeof isTerrainCreatorMode !== 'undefined' && isTerrainCreatorMode;
   if (!visible || !zoomReady || terrainMode || routeEntries.length === 0) {
     if (state.vehicles.length > 0) clearManagedTransportVehicles(state);
@@ -403,30 +419,6 @@ function updateTransportVisuals(time, delta) {
     }
     vehicle.sprite.clearTint();
   });
-}
-
-// OpenTTD-style follow: while the vehicle inspector's 追蹤 toggle is on,
-// the camera stays glued to that vehicle's sprite every frame. Below the
-// sprite zoom threshold (no sprite exists), fall back to the backend
-// vehicle's current cycle stop so tracking still lands the camera on the
-// right part of town - the sprite appears there once the player zooms in.
-function followTransportVehicleCamera(scene, state) {
-  const followId = typeof getTransportFollowVehicleId === 'function'
-    ? getTransportFollowVehicleId()
-    : '';
-  if (!followId) return;
-  const followed = state.vehicles.find((entry) => entry.vehicleId === followId);
-  if (followed?.sprite) {
-    scene.cameras.main.centerOn(followed.sprite.x, followed.sprite.y);
-    return;
-  }
-  const tile = typeof getTransportVehicleApproximateTile === 'function'
-    ? getTransportVehicleApproximateTile(followId)
-    : null;
-  if (tile) {
-    const point = getTrafficSurfacePoint(scene, tile.row, tile.col);
-    scene.cameras.main.centerOn(point.x, point.y);
-  }
 }
 
 const transportVisualTestApi = {

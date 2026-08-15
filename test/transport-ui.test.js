@@ -38,14 +38,15 @@ test('transport console exposes routes, fleet, demand, depot, finances and compa
   assert.match(ui, /transport\.metric\.fareDistance/);
 });
 
-test('individual vehicle window supports following, route orders, depot recall and sale', () => {
+test('individual vehicle action opens the shared live tracker with route, depot and sale controls', () => {
   const ui = source('transport-ui.js');
-  assert.match(ui, /data-transport-inspector-follow/);
-  assert.match(ui, /data-transport-inspector-route/);
-  assert.match(ui, /data-transport-inspector-depot/);
-  assert.match(ui, /data-transport-inspector-sell/);
-  assert.match(ui, /transport\.inspector\.currentLeg/);
-  assert.match(ui, /transport\.inspector\.purchasePrice/);
+  const tracker = source('vehicle-tracker.js');
+  assert.match(ui, /openVehicleTrackingWindow\('transport', vehicleId, pointer, options\)/);
+  assert.match(tracker, /data-vehicle-tracker-action=\"route\"/);
+  assert.match(tracker, /data-vehicle-tracker-action=\"depot\"/);
+  assert.match(tracker, /data-vehicle-tracker-action=\"sell\"/);
+  assert.match(tracker, /transport\.inspector\.currentLeg/);
+  assert.match(tracker, /transport\.tracker\.locateMain/);
 });
 
 test('bus company profit stays out of the mayor budget and is reported in the company ledger', () => {

@@ -824,14 +824,9 @@ function refreshTransportHud() {
   }
 }
 
-// §6/§7 inspector: one small click-to-inspect window serving both kinds of
-// map object - a vehicle (with OpenTTD-style camera follow) or a bus stop
-// (waiting passengers + serving routes). Positioned near the pointer like
-// inspect-panel.js's showInspectPanel, but deliberately a separate
-// lightweight DOM node rather than reusing #inspect-panel (which Transport
-// Mode's CSS hides outright - it shows mayor's-tool tile info, not company
-// info).
-const transportInspectorState = { root: null, kind: '', vehicleId: '', stopId: '', follow: false };
+// Bus stops retain a compact information inspector. Vehicles use the shared
+// live Phaser-camera windows in vehicle-tracker.js instead.
+const transportInspectorState = { root: null, kind: '', stopId: '' };
 
 function createTransportVehicleInspector() {
   if (transportInspectorState.root || typeof document === 'undefined') return transportInspectorState.root;
@@ -872,40 +867,6 @@ function createTransportVehicleInspector() {
   `;
   root.addEventListener('pointerdown', (event) => event.stopPropagation());
   root.querySelector('[data-transport-inspector-close]').addEventListener('click', closeTransportInspector);
-  root.addEventListener('click', (event) => {
-    if (event.target.closest('[data-transport-inspector-follow]')) {
-      transportInspectorState.follow = !transportInspectorState.follow;
-      refreshTransportInspector();
-      return;
-    }
-    if (event.target.closest('[data-transport-inspector-route]')) {
-      const vehicle = getTransportExpansionState().vehicles.find((entry) => entry.id === transportInspectorState.vehicleId);
-      const assignedRoute = getTransportExpansionState().routes.find((entry) => entry.id === vehicle?.routeId);
-      if (assignedRoute) {
-        transportUiState.activeTab = 'routes';
-        openTransportWindow();
-        beginTransportRouteEditor(assignedRoute);
-      }
-      return;
-    }
-    if (event.target.closest('[data-transport-inspector-depot]')) {
-      if (sendTransportVehicleToDepot(transportInspectorState.vehicleId)) {
-        showToast(t('transport.toast.vehicleSentDepot'), 'info');
-      }
-      refreshTransportInspector();
-      refreshTransportUi();
-      return;
-    }
-    if (event.target.closest('[data-transport-inspector-sell]')) {
-      if (!window.confirm(t('transport.depot.confirmSell'))) return;
-      const sold = sellTransportVehicle(transportInspectorState.vehicleId);
-      if (sold) {
-        showToast(t('transport.toast.vehicleSold'), 'info');
-        closeTransportInspector();
-      }
-      refreshTransportUi();
-    }
-  });
   document.body.appendChild(root);
   transportInspectorState.root = root;
   return root;
@@ -925,22 +886,9 @@ function positionTransportVehicleInspector(root, pointer) {
   root.style.top = `${Math.max(6, top)}px`;
 }
 
-// options.follow starts the window with camera-follow already on - used by
-// the route fleet list (OpenTTD's vehicle window follows immediately);
-// clicking the sprite on the map keeps it off since you're already there.
 function openTransportVehicleInspector(vehicleId, pointer = null, options = {}) {
-  const root = createTransportVehicleInspector();
-  if (!root) return;
-  transportInspectorState.kind = 'vehicle';
-  transportInspectorState.vehicleId = vehicleId;
-  transportInspectorState.stopId = '';
-  transportInspectorState.follow = options.follow === true;
-  root.hidden = false;
-  // Always position - with no pointer (fleet list / depot buttons) the
-  // helper falls back to viewport centre. Skipping it left the window with
-  // position:fixed but no top/left, rendering it off-screen below the page.
-  positionTransportVehicleInspector(root, pointer);
-  refreshTransportInspector();
+  if (typeof openVehicleTrackingWindow !== 'function') return null;
+  return openVehicleTrackingWindow('transport', vehicleId, pointer, options);
 }
 
 // §7: click a bus stop while in Transport Mode - waiting passengers plus
@@ -950,8 +898,6 @@ function openTransportStopInspector(stopId, pointer = null) {
   if (!root) return;
   transportInspectorState.kind = 'stop';
   transportInspectorState.stopId = String(stopId || '');
-  transportInspectorState.vehicleId = '';
-  transportInspectorState.follow = false;
   root.hidden = false;
   positionTransportVehicleInspector(root, pointer);
   refreshTransportInspector();
@@ -961,17 +907,7 @@ function closeTransportInspector() {
   if (!transportInspectorState.root) return;
   transportInspectorState.root.hidden = true;
   transportInspectorState.kind = '';
-  transportInspectorState.vehicleId = '';
   transportInspectorState.stopId = '';
-  transportInspectorState.follow = false;
-}
-
-// Read by transport-visuals.js's frame loop to keep the camera glued to the
-// followed vehicle's sprite, OpenTTD-style.
-function getTransportFollowVehicleId() {
-  return transportInspectorState.follow && transportInspectorState.kind === 'vehicle'
-    ? transportInspectorState.vehicleId
-    : '';
 }
 
 function refreshTransportInspector() {
@@ -981,62 +917,7 @@ function refreshTransportInspector() {
     refreshTransportStopInspectorBody(root);
     return;
   }
-  const vehicle = getTransportExpansionState().vehicles.find((entry) => entry.id === transportInspectorState.vehicleId);
-  if (!vehicle) { closeTransportInspector(); return; }
-  const route = getTransportExpansionState().routes.find((entry) => entry.id === vehicle.routeId);
-  const vehicleClass = getTransportVehicleClass(vehicle.classId);
-  root.querySelector('[data-transport-inspector-title]').textContent = t('transport.inspector.title', { id: vehicle.id });
-  // Position prefers the on-screen sprite (the thing the player is actually
-  // watching); zoomed out (sprites culled) it falls back to the backend
-  // simulation's best-known tile.
-  const visual = typeof activeScene !== 'undefined'
-    ? activeScene?.transportVisualState?.vehicles?.find((entry) => entry.vehicleId === vehicle.id)
-    : null;
-  const approximateTile = visual?.current
-    || (typeof getTransportVehicleApproximateTile === 'function'
-      ? getTransportVehicleApproximateTile(vehicle.id)
-      : null);
-  const cycleStops = route && typeof getTransportRouteCycleStops === 'function'
-    ? getTransportRouteCycleStops(route)
-    : [];
-  const currentOrder = cycleStops.length > 0
-    ? ((vehicle.orderIndex % cycleStops.length) + cycleStops.length) % cycleStops.length
-    : -1;
-  const fromStop = currentOrder >= 0 ? cycleStops[currentOrder] : null;
-  const toStop = currentOrder >= 0 ? cycleStops[(currentOrder + 1) % cycleStops.length] : null;
-  const leg = fromStop && toStop
-    ? `${getTransportStopDisplayName(fromStop, getTransportExpansionState().stops.indexOf(fromStop))} → ${getTransportStopDisplayName(toStop, getTransportExpansionState().stops.indexOf(toStop))}`
-    : '—';
-  const rows = [
-    [t('transport.inspector.class'), t(`transport.vehicleClass.${vehicle.classId}`)],
-    [t('transport.inspector.status'), t(`transport.vehicleStatus.${vehicle.status}`)],
-    [t('transport.inspector.currentLeg'), leg],
-    [t('transport.inspector.position'), approximateTile ? `(${approximateTile.row}, ${approximateTile.col})` : '—'],
-    [t('transport.inspector.passengers'), `${vehicle.passengersAboard} / ${vehicleClass.capacity}`],
-    [t('transport.inspector.age'), `${vehicle.ageMonths}mo`],
-    [t('transport.inspector.odometer'), Math.round(vehicle.odometerTiles).toLocaleString()],
-    [t('transport.inspector.purchasePrice'), transportFormatMoney(vehicle.purchasePrice)],
-    [t('transport.inspector.lastRevenue'), transportFormatMoney(vehicle.tripRevenueAccrued)],
-  ].map(([label, value]) => (
-    `<div class="transport-inspector-row"><span>${transportEscapeHtml(label)}</span><strong>${transportEscapeHtml(value)}</strong></div>`
-  )).join('');
-  const routeRow = `<div class="transport-inspector-row"><span>${transportEscapeHtml(t('transport.inspector.route'))}</span>${route
-    ? `<button class="transport-inspector-route" type="button" data-transport-inspector-route>${transportEscapeHtml(route.name)}</button>`
-    : `<strong>${transportEscapeHtml(t('transport.depot.unassigned'))}</strong>`}</div>`;
-  const conditionRow = `<div class="transport-inspector-row"><span>${transportEscapeHtml(t('transport.inspector.condition'))}</span><strong>${transportEscapeHtml(transportFormatPercent(vehicle.condition))}</strong></div><div class="transport-inspector-meter" style="--value:${Math.round(vehicle.condition * 100)}%"><i></i></div>`;
-  const followButton = visual
-    ? `<button class="transport-btn ${transportInspectorState.follow ? 'primary' : ''}" type="button" data-transport-inspector-follow>${transportEscapeHtml(t(transportInspectorState.follow ? 'transport.inspector.following' : 'transport.inspector.follow'))}</button>`
-    : '';
-  const depotButton = ['active', 'returning_for_service', 'broken_down'].includes(vehicle.status)
-    ? `<button class="transport-btn" type="button" data-transport-inspector-depot>${transportEscapeHtml(t('transport.fleet.sendDepot'))}</button>`
-    : '';
-  const sellButton = vehicle.status === 'depot'
-    ? `<button class="transport-btn danger" type="button" data-transport-inspector-sell>${transportEscapeHtml(t('transport.depot.sell'))}</button>`
-    : '';
-  const actions = followButton || depotButton || sellButton
-    ? `<div class="transport-inspector-actions">${followButton}${depotButton}${sellButton}</div>`
-    : '';
-  root.querySelector('[data-transport-inspector-body]').innerHTML = routeRow + rows + conditionRow + actions;
+  closeTransportInspector();
 }
 
 function refreshTransportStopInspectorBody(root) {
@@ -1069,6 +950,7 @@ function refreshTransportStopInspectorBody(root) {
 }
 
 function resetTransportUiForCityChange() {
+  if (typeof closeAllVehicleTrackingWindows === 'function') closeAllVehicleTrackingWindows();
   transportUiState.editor = null;
   transportUiState.pickingStops = false;
   transportUiState.activeTab = 'routes';
@@ -1354,6 +1236,11 @@ function getTransportRouteEditorStopIds() {
 }
 
 function handleTransportUiKeydown(event) {
+  if (event.key === 'Escape' && typeof closeFocusedVehicleTrackingWindow === 'function'
+    && closeFocusedVehicleTrackingWindow()) {
+    event.preventDefault();
+    return;
+  }
   if (event.key === 'Escape' && transportInspectorState.root && !transportInspectorState.root.hidden) {
     event.preventDefault();
     closeTransportInspector();

@@ -419,6 +419,19 @@ test('simulation hot paths do not use shifting BFS queues or production debug sc
   assert.match(simulation, /const SIM_DEBUG_LOGGING = false;/);
 });
 
+test('resetting a city invalidates infrastructure caches before save restoration', () => {
+  const source = fs.readFileSync(path.join(ROOT, 'city-state.js'), 'utf8');
+  const reset = source.slice(
+    source.indexOf('function resetGameState()'),
+    source.indexOf('const _normalizedCityStateObjects'),
+  );
+  assert.match(reset, /powerMap\s*=\s*createFilledMap\(false\)/);
+  assert.match(reset, /serviceMap\s*=\s*createFilledMap\(null\)/);
+  assert.match(reset, /invalidateBuildingCountCache\(\)/);
+  assert.match(reset, /markPowerGridDirty\(\)/);
+  assert.match(reset, /markServiceCoverageDirty\(\)/);
+});
+
 let gameServer;
 let tempDir;
 

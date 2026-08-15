@@ -347,13 +347,16 @@ function getCameraWorldViewRect(camera) {
   };
 }
 
-function setTerrainSpriteViewportActive(tile, active) {
+function setTerrainSpriteViewportActive(tile, active, scene = null) {
   if (!tile) return;
   if (active) {
     if (!tile.displayList && typeof tile.addToDisplayList === 'function') {
       tile.addToDisplayList();
     }
     tile.setVisible?.(true);
+    if (scene && typeof syncVehicleTrackerObjectCameraFilters === 'function') {
+      syncVehicleTrackerObjectCameraFilters(scene, tile);
+    }
     return;
   }
   tile.setVisible?.(false);
@@ -386,6 +389,25 @@ function getTerrainViewportLogicalRange(scene, bounds) {
   };
 }
 
+function getActiveWorldViewportCameras(scene) {
+  const cameras = [scene?.cameras?.main];
+  if (typeof getVehicleTrackerCullCameras === 'function') {
+    cameras.push(...getVehicleTrackerCullCameras(scene));
+  }
+  return cameras.filter((camera, index, list) => camera && list.indexOf(camera) === index);
+}
+
+function getPaddedWorldViewportBounds(camera, padX, padY) {
+  const view = getCameraWorldViewRect(camera);
+  return {
+    view,
+    minX: view.x - padX,
+    maxX: view.x + view.width + padX,
+    minY: view.y - padY,
+    maxY: view.y + view.height + padY,
+  };
+}
+
 function updateTerrainViewportCulling(scene, force = false) {
   const camera = scene?.cameras?.main;
   if (
@@ -397,25 +419,26 @@ function updateTerrainViewportCulling(scene, force = false) {
   }
 
   // Phaser's cached camera.worldView can lag behind direct scrollX/scrollY
-  // changes until pre-render. Derive the view from live camera properties so
-  // panning reveals the next terrain batch before the frame is rendered.
-  const view = getCameraWorldViewRect(camera);
-  const cacheKey = [
+  // changes until pre-render. Derive views from live camera properties. The
+  // active set is a union of small per-camera regions, never one giant box
+  // spanning the (possibly distant) main and tracker cameras.
+  const viewportCameras = getActiveWorldViewportCameras(scene);
+  const views = viewportCameras.map(getCameraWorldViewRect);
+  const cacheKey = views.map((view) => [
     Math.floor(view.x / TILE_WIDTH),
     Math.floor(view.y / TILE_IMAGE_HEIGHT),
     Math.ceil((view.x + view.width) / TILE_WIDTH),
     Math.ceil((view.y + view.height) / TILE_IMAGE_HEIGHT),
-  ].join(':');
+  ].join(':')).join('|');
   if (!force && scene.terrainViewportCacheKey === cacheKey) return;
   scene.terrainViewportCacheKey = cacheKey;
   const cullStartedAt = performance.now();
 
   const padX = TILE_WIDTH * 2;
   const padY = TILE_IMAGE_HEIGHT + MAX_TERRAIN_HEIGHT * HEIGHT_STEP_PIXELS + TILE_HEIGHT;
-  const minX = view.x - padX;
-  const maxX = view.x + view.width + padX;
-  const minY = view.y - padY;
-  const maxY = view.y + view.height + padY;
+  const terrainBounds = viewportCameras.map((entry) => (
+    getPaddedWorldViewportBounds(entry, padX, padY)
+  ));
 
   if (!(scene.activeTerrainSpriteIds instanceof Set)) {
     scene.activeTerrainSpriteIds = new Set();
@@ -423,43 +446,62 @@ function updateTerrainViewportCulling(scene, force = false) {
     // Scene Display List. Later frames only add the small camera-local set, so
     // Phaser no longer traverses tens of thousands of invisible Images.
     for (const row of scene.tileSprites) {
-      for (const tile of row) setTerrainSpriteViewportActive(tile, false);
+      for (const tile of row) setTerrainSpriteViewportActive(tile, false, scene);
     }
   }
 
-  const logicalRange = getTerrainViewportLogicalRange(scene, { minX, maxX, minY, maxY });
   const nextActiveTerrainIds = new Set();
   let terrainCandidates = 0;
-  for (let row = logicalRange.minRow; row <= logicalRange.maxRow; row++) {
-    for (let col = logicalRange.minCol; col <= logicalRange.maxCol; col++) {
-      terrainCandidates++;
-      const tile = scene.tileSprites[row]?.[col];
-      if (!tile) continue;
-      if (
-        tile.x >= minX
-        && tile.x <= maxX
-        && tile.y >= minY
-        && tile.y <= maxY
-      ) {
-        nextActiveTerrainIds.add(row * MAP_WIDTH + col);
+  const seenTerrainCandidates = new Set();
+  for (const bounds of terrainBounds) {
+    const logicalRange = getTerrainViewportLogicalRange(scene, bounds);
+    for (let row = logicalRange.minRow; row <= logicalRange.maxRow; row++) {
+      for (let col = logicalRange.minCol; col <= logicalRange.maxCol; col++) {
+        const id = row * MAP_WIDTH + col;
+        if (!seenTerrainCandidates.has(id)) {
+          seenTerrainCandidates.add(id);
+          terrainCandidates++;
+        }
+        const tile = scene.tileSprites[row]?.[col];
+        if (!tile) continue;
+        if (
+          tile.x >= bounds.minX
+          && tile.x <= bounds.maxX
+          && tile.y >= bounds.minY
+          && tile.y <= bounds.maxY
+        ) {
+          nextActiveTerrainIds.add(id);
+        }
       }
     }
   }
 
   let terrainEntered = 0;
   let terrainExited = 0;
+  const mainTerrainBounds = terrainBounds[0];
+  for (const id of nextActiveTerrainIds) {
+    const row = Math.floor(id / MAP_WIDTH);
+    const col = id % MAP_WIDTH;
+    const tile = scene.tileSprites[row]?.[col];
+    if (!tile || !mainTerrainBounds) continue;
+    if (isPointWithinCullBounds(tile.x, tile.y, mainTerrainBounds)) {
+      tile.cameraFilter &= ~camera.id;
+    } else {
+      tile.cameraFilter |= camera.id;
+    }
+  }
   for (const id of scene.activeTerrainSpriteIds) {
     if (nextActiveTerrainIds.has(id)) continue;
     const row = Math.floor(id / MAP_WIDTH);
     const col = id % MAP_WIDTH;
-    setTerrainSpriteViewportActive(scene.tileSprites[row]?.[col], false);
+    setTerrainSpriteViewportActive(scene.tileSprites[row]?.[col], false, scene);
     terrainExited++;
   }
   for (const id of nextActiveTerrainIds) {
     if (scene.activeTerrainSpriteIds.has(id)) continue;
     const row = Math.floor(id / MAP_WIDTH);
     const col = id % MAP_WIDTH;
-    setTerrainSpriteViewportActive(scene.tileSprites[row]?.[col], true);
+    setTerrainSpriteViewportActive(scene.tileSprites[row]?.[col], true, scene);
     terrainEntered++;
   }
   scene.activeTerrainSpriteIds = nextActiveTerrainIds;
@@ -471,12 +513,10 @@ function updateTerrainViewportCulling(scene, force = false) {
   // inside the viewport even when their anchor sits just outside it.
   const spritePadX = TILE_WIDTH * 6;
   const spritePadY = TILE_IMAGE_HEIGHT * 6 + MAX_TERRAIN_HEIGHT * HEIGHT_STEP_PIXELS + TILE_HEIGHT * 4;
-  const spriteStats = updateSpriteViewportCulling(scene, {
-    minX: view.x - spritePadX,
-    maxX: view.x + view.width + spritePadX,
-    minY: view.y - spritePadY,
-    maxY: view.y + view.height + spritePadY,
-  });
+  const spriteBounds = viewportCameras.map((entry) => (
+    getPaddedWorldViewportBounds(entry, spritePadX, spritePadY)
+  ));
+  const spriteStats = updateSpriteViewportCulling(scene, spriteBounds);
   scene.viewportCullStats = {
     passes: (scene.viewportCullStats?.passes ?? 0) + 1,
     lastDurationMs: performance.now() - cullStartedAt,
@@ -490,10 +530,13 @@ function updateTerrainViewportCulling(scene, force = false) {
 }
 
 function isPointWithinCullBounds(x, y, bounds) {
-  return x >= bounds.minX && x <= bounds.maxX && y >= bounds.minY && y <= bounds.maxY;
+  const allBounds = Array.isArray(bounds) ? bounds : [bounds];
+  return allBounds.some((entry) => (
+    x >= entry.minX && x <= entry.maxX && y >= entry.minY && y <= entry.maxY
+  ));
 }
 
-function cullSpriteMapEntries(map, bounds, seen = null) {
+function cullSpriteMapEntries(map, bounds, seen = null, mainCamera = null, mainBounds = null) {
   const stats = { candidates: 0, visible: 0 };
   if (!map || !map.size) return stats;
   const apply = (sprite) => {
@@ -503,7 +546,16 @@ function cullSpriteMapEntries(map, bounds, seen = null) {
     stats.candidates++;
     const visible = isPointWithinCullBounds(sprite.x, sprite.y, bounds);
     sprite.setVisible(visible);
-    if (visible) stats.visible++;
+    if (visible) {
+      stats.visible++;
+      if (mainCamera && mainBounds) {
+        if (isPointWithinCullBounds(sprite.x, sprite.y, mainBounds)) {
+          sprite.cameraFilter &= ~mainCamera.id;
+        } else {
+          sprite.cameraFilter |= mainCamera.id;
+        }
+      }
+    }
   };
   for (const value of map.values()) {
     if (!value) continue;
@@ -533,13 +585,15 @@ function updateSpriteViewportCulling(scene, bounds) {
     totals.candidates += stats.candidates;
     totals.visible += stats.visible;
   };
-  collect(cullSpriteMapEntries(scene.buildingSprites, bounds, seen));
-  collect(cullSpriteMapEntries(scene.treeSprites, bounds, seen));
-  collect(cullSpriteMapEntries(scene.busStopSprites, bounds, seen));
-  collect(cullSpriteMapEntries(scene.zoneOverlays, bounds, seen));
-  collect(cullSpriteMapEntries(scene.powerLineSprites, bounds, seen));
-  collect(cullSpriteMapEntries(scene.bridgeSprites, bounds, seen));
-  collect(cullSpriteMapEntries(scene.districtSignSprites, bounds, seen));
+  const mainCamera = scene?.cameras?.main;
+  const mainBounds = Array.isArray(bounds) ? bounds[0] : bounds;
+  collect(cullSpriteMapEntries(scene.buildingSprites, bounds, seen, mainCamera, mainBounds));
+  collect(cullSpriteMapEntries(scene.treeSprites, bounds, seen, mainCamera, mainBounds));
+  collect(cullSpriteMapEntries(scene.busStopSprites, bounds, seen, mainCamera, mainBounds));
+  collect(cullSpriteMapEntries(scene.zoneOverlays, bounds, seen, mainCamera, mainBounds));
+  collect(cullSpriteMapEntries(scene.powerLineSprites, bounds, seen, mainCamera, mainBounds));
+  collect(cullSpriteMapEntries(scene.bridgeSprites, bounds, seen, mainCamera, mainBounds));
+  collect(cullSpriteMapEntries(scene.districtSignSprites, bounds, seen, mainCamera, mainBounds));
   return totals;
 }
 
@@ -549,7 +603,7 @@ function updateGameFrame(time, delta) {
   }
   if (typeof updateGameClock === 'function') updateGameClock(this, delta);
   updateKeyboardMapPan(this, delta);
-  updateTerrainViewportCulling(this);
+  if (typeof beginVehicleTrackerFrame === 'function') beginVehicleTrackerFrame(this, time, delta);
 
   const profileSections = typeof isVisualRouteCalibrationTestModeEnabled === 'function'
     && isVisualRouteCalibrationTestModeEnabled()
@@ -570,12 +624,22 @@ function updateGameFrame(time, delta) {
   if (profileSections) {
     recordVisualRoutePerformanceDuration(this, 'aircraft', performance.now() - sectionStartedAt);
   }
+  if (typeof syncVehicleTrackerTargetsBeforeRender === 'function') {
+    syncVehicleTrackerTargetsBeforeRender(this, time);
+  }
+  updateTerrainViewportCulling(this);
+  if (typeof finalizeVehicleTrackerCameraCulling === 'function') {
+    finalizeVehicleTrackerCameraCulling(this);
+  }
   if (typeof updateVisualRoutePerformanceProfiler === 'function') {
     updateVisualRoutePerformanceProfiler(this, time, delta);
   }
 }
 
 function addToRenderLayer(scene, child, layerName) {
+  if (typeof syncVehicleTrackerObjectCameraFilters === 'function') {
+    syncVehicleTrackerObjectCameraFilters(scene, child);
+  }
   return child;
 }
 
@@ -1905,6 +1969,7 @@ function create() {
         key: resolveTileTextureKey(key),
         add: false,
       });
+      tile.vehicleTrackerTerrain = true;
       addToRenderLayer(this, tile, 'terrainLayer');
       tile.setVisible(false);
       tile.setOrigin(0.5, 1);
@@ -1942,6 +2007,7 @@ function create() {
     invalidateVesselVisualView(this, true);
     ensurePreviewOverlayDepth(this);
     syncWeatherFxToCamera(this);
+    if (typeof markVehicleTrackerLayoutDirty === 'function') markVehicleTrackerLayoutDirty();
   });
 
   // Group for future buildings
@@ -4482,7 +4548,7 @@ function getSelectedPlacementFootprint() {
 
 function shouldShowBuildingPlacementGuide(pointer) {
   if (isPainting || selectedTool === 'inspect') return false;
-  if (pointer.event?.target?.closest('#tool-menu, #hud, #budget-panel, #budget-window, #road-tile-set-window, #transport-window, #toast-container, #speed-controls, #top-bar, .sim-dialog, #jukebox-window, #rotate-cluster, #overlay-window, #inspect-panel, #terrain-minimap-panel')) {
+  if (pointer.event?.target?.closest('#tool-menu, #hud, #budget-panel, #budget-window, #road-tile-set-window, #transport-window, .vehicle-tracker-window, #toast-container, #speed-controls, #top-bar, .sim-dialog, #jukebox-window, #rotate-cluster, #overlay-window, #inspect-panel, #terrain-minimap-panel')) {
     return false;
   }
   return Boolean(getSelectedPlacementFootprint());
@@ -4895,7 +4961,7 @@ function applyFlattenTerrain(scene, row, col, radius = 1) {
 }
 
 function applySelectedTool(scene, pointer) {
-  if (pointer.event?.target?.closest('#tool-menu, #hud, #budget-panel, #budget-window, #road-tile-set-window, #transport-window, #toast-container, #speed-controls, #top-bar, .sim-dialog, #jukebox-window, #rotate-cluster, #overlay-window, #inspect-panel, #terrain-minimap-panel')) return;
+  if (pointer.event?.target?.closest('#tool-menu, #hud, #budget-panel, #budget-window, #road-tile-set-window, #transport-window, .vehicle-tracker-window, #toast-container, #speed-controls, #top-bar, .sim-dialog, #jukebox-window, #rotate-cluster, #overlay-window, #inspect-panel, #terrain-minimap-panel')) return;
 
   let tile = selectedTool === 'inspect'
     ? (resolveInspectTile(scene, pointer) ?? lastInspectTile)
@@ -9448,6 +9514,9 @@ function rotateMap(scene, steps = 1) {
 
   // Reposition every sprite that uses isoToScreen
   positionAllTiles(scene);
+  if (typeof markVehicleTrackerSpatialIndexDirty === 'function') {
+    markVehicleTrackerSpatialIndexDirty(scene);
+  }
 
   // Rebuild world mask (corners stay the same logical coords but the rotated
   // isoToScreen will place them differently — drawWorldMask reads the same
@@ -9472,6 +9541,7 @@ function rotateMap(scene, steps = 1) {
 // ── Full reset (new terrain generation) ──────────────────────────────────────
 
 function fullReset(scene) {
+  if (typeof closeAllVehicleTrackingWindows === 'function') closeAllVehicleTrackingWindows();
   clearTrafficVisuals(scene);
   if (typeof clearTransportVisuals === 'function') clearTransportVisuals(scene);
   clearVesselVisuals(scene);

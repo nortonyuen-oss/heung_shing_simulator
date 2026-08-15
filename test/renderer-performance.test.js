@@ -86,6 +86,43 @@ test('terrain viewport keeps only camera-local tiles on the Phaser display list'
   );
 });
 
+test('terrain culling keeps distant tracker tiles active but filters them from the main camera', () => {
+  const context = loadViewportCullingContext();
+  const trackerCamera = {
+    id: 2, width: 40, height: 40, zoom: 1, originX: 0, originY: 0, scrollX: 100, scrollY: 100,
+  };
+  context.getVehicleTrackerCullCameras = () => [trackerCamera];
+  const scene = {
+    cameras: {
+      main: { id: 1, width: 40, height: 40, zoom: 1, originX: 0, originY: 0, scrollX: 0, scrollY: 0 },
+    },
+    tileSprites: Array.from({ length: 16 }, (_, row) => (
+      Array.from({ length: 16 }, (_, col) => ({ ...createTerrainTile(col * 10, row * 10), cameraFilter: 0 }))
+    )),
+    buildingSprites: new Map(),
+    treeSprites: new Map(),
+    busStopSprites: new Map(),
+    zoneOverlays: new Map(),
+    powerLineSprites: new Map(),
+    bridgeSprites: new Map(),
+    districtSignSprites: new Map(),
+    children: { queueDepthSort() {} },
+  };
+  context.scene = scene;
+  vm.runInContext('updateTerrainViewportCulling(scene, true)', context);
+
+  const mainTile = scene.tileSprites[1][1];
+  const trackerTile = scene.tileSprites[12][12];
+  assert.ok(mainTile.displayList, 'main-camera terrain remains attached');
+  assert.equal(mainTile.cameraFilter & scene.cameras.main.id, 0);
+  assert.ok(trackerTile.displayList, 'distant tracker terrain joins the shared Display List');
+  assert.equal(
+    trackerTile.cameraFilter & scene.cameras.main.id,
+    scene.cameras.main.id,
+    'tracker-only terrain is ignored by the main camera',
+  );
+});
+
 test('terrain grid is created detached to avoid a quadratic first cull pass', () => {
   assert.match(mainSource, /this\.activeTerrainSpriteIds\s*=\s*new Set\(\)/);
   assert.match(mainSource, /this\.make\.image\(\{[\s\S]*?add:\s*false[\s\S]*?\}\)/);

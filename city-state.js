@@ -248,6 +248,15 @@ function resetGameState() {
   powerLineSet.clear();
   lowDensityLockSet.clear();
   roadTileCount = 0;
+  // These maps have just been replaced with empty arrays.  A load immediately
+  // repopulates the source sets/buildings and calls the cached infrastructure
+  // passes, so their dirty flags must belong to the new city rather than retain
+  // the previous city's "already computed" state.  Otherwise updatePowerGrid()
+  // and updateServiceCoverage() return early and happiness is recomputed as if
+  // every zone were unpowered and uncovered.
+  invalidateBuildingCountCache();
+  markPowerGridDirty();
+  markServiceCoverageDirty();
   if (typeof markTrafficNetworkDirty === 'function') markTrafficNetworkDirty();
 
   city.budget          = STARTING_BUDGET;

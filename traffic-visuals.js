@@ -1873,6 +1873,9 @@ function spawnTrafficVehicle(scene, roads, random = Math.random, time = 0) {
       time,
       true,
     );
+    if (typeof registerVehicleTrackingSprite === 'function') {
+      registerVehicleTrackingSprite(vehicle, 'traffic');
+    }
     state.vehicles.push(vehicle);
     return true;
   }
@@ -1883,7 +1886,9 @@ function removeTrafficVehiclesOutside(scene, rect, time) {
   const state = getTrafficState(scene);
   state.vehicles = state.vehicles.filter((vehicle) => {
     const position = evaluateTrafficLeg(vehicle.leg, vehicle.progress);
-    const keep = trafficPointInRect(position, rect)
+    const tracked = typeof isVehicleTrackerTarget === 'function'
+      && isVehicleTrackerTarget(scene, 'traffic', vehicle.id);
+    const keep = (trafficPointInRect(position, rect) || tracked)
       && runtimeTrafficTilesConnect(vehicle.current, vehicle.next);
     if (!keep) destroyTrafficVehicle(vehicle);
     return keep;
@@ -1903,7 +1908,15 @@ function refreshVisibleTraffic(scene, time) {
 
   const excess = Math.max(0, state.vehicles.length - target);
   if (excess > 0) {
-    state.vehicles.splice(target, excess).forEach(destroyTrafficVehicle);
+    let remaining = excess;
+    for (let index = state.vehicles.length - 1; index >= 0 && remaining > 0; index--) {
+      const vehicle = state.vehicles[index];
+      if (typeof isVehicleTrackerTarget === 'function'
+        && isVehicleTrackerTarget(scene, 'traffic', vehicle.id)) continue;
+      state.vehicles.splice(index, 1);
+      destroyTrafficVehicle(vehicle);
+      remaining--;
+    }
   }
 
   const spawnBudget = computeTrafficSpawnBudget(state.vehicles.length, target);
@@ -1956,7 +1969,9 @@ function advanceTrafficVehicle(scene, vehicle, amount, viewRect, time) {
     vehicle.leg = createTrafficLeg(scene, vehicle.previous, vehicle.current, vehicle.next);
     vehicle.busDwellHandledForLeg = false;
     vehicle.busDwellMatchedSide = undefined;
-    if (!trafficPointInRect(vehicle.leg.start, viewRect)) return false;
+    const tracked = typeof isVehicleTrackerTarget === 'function'
+      && isVehicleTrackerTarget(scene, 'traffic', vehicle.id);
+    if (!trafficPointInRect(vehicle.leg.start, viewRect) && !tracked) return false;
   }
   if (vehicle.progress >= 1) return false;
   setTrafficVehicleVisual(vehicle, evaluateTrafficLeg(vehicle.leg, vehicle.progress), time);
@@ -1987,7 +2002,8 @@ function updateTrafficVisuals(time, delta) {
   }
 
   if (
-    camera.zoom < TRAFFIC_VISUAL_CONFIG.zoomMin
+    (camera.zoom < TRAFFIC_VISUAL_CONFIG.zoomMin
+      && !(typeof hasActiveVehicleTrackers === 'function' && hasActiveVehicleTrackers(scene, 'traffic')))
     || (typeof isTerrainCreatorMode !== 'undefined' && isTerrainCreatorMode)
   ) {
     if (state.vehicles.length > 0) {

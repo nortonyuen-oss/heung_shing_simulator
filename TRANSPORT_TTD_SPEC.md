@@ -1,4 +1,21 @@
-# Heung Shing Simulator — Transport Mode (OpenTTD-lite) Spec v0.5
+# Heung Shing Simulator — Transport Mode (OpenTTD-lite) Spec v0.6
+
+> **v0.6 unit correction (from playtest):** all company money is now stored
+> in the game's existing stylized dollars, where each $1 *reads as* 萬 —
+> exactly the convention `COST_HOSPITAL: 7200` (7200萬) already uses. So a
+> double-decker is **stored and displayed as $280** (280萬), not $2,800,000,
+> and `TRANSPORT_STARTUP_CAPITAL` is **$600**. v0.5 stored the ×10,000
+> "real dollar" figures, which (a) looked absurd next to every other price
+> in the game and (b) combined with a per-tile running-cost figure calibrated
+> for per-trip distances being applied to real monthly mileage (~20k
+> tiles/month), made every route unprofitable. Revenue is correspondingly
+> scaled: per-rider revenue = `fare × TRANSPORT_FARE_ECONOMY_SCALE`
+> (0.00015), with sub-dollar amounts accruing in `company.cashFraction` so
+> real-time per-dwell credits are never lost to rounding. Peak payback for a
+> fully-loaded double-decker works out to ≈17 months ≈ 1.4 game years —
+> inside the §9 target band. Dollar figures elsewhere in this spec are
+> historical (v0.5 real-dollar notation); the constants in
+> `transport-expansion.js` are the authority.
 
 ## 1. Purpose
 

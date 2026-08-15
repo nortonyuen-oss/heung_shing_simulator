@@ -132,9 +132,21 @@ test('route metrics use the planned frequency, fare, capacity and operating form
   assert.equal(balanced.headwayMinutes, 8.25);
   assert.equal(balanced.waitMinutes, 4.125);
   assert.equal(balanced.monthlyPassengers, 540);
-  assert.equal(balanced.revenue, 18900);
-  assert.equal(balanced.cost, 2136);
-  assert.equal(balanced.net, 16764);
+  // 540 riders x $35 x 0.00015 = $2.84 -> $3; two under-loaded buses cost
+  // more than that - a mediocre route genuinely loses money (§9).
+  assert.equal(balanced.revenue, 3);
+  assert.equal(balanced.cost, 11);
+  assert.equal(balanced.net, -8);
+  // Peak sanity: a fully-loaded double-decker pays itself back in roughly
+  // 1-2 game years (§9's target), never instantly and never never.
+  const doubleDecker = transport.TRANSPORT_VEHICLE_CLASSES.standard_double_decker;
+  const peakMonthlyNet = doubleDecker.monthlyRidershipCap * 35 * transport.TRANSPORT_FARE_ECONOMY_SCALE
+    - (doubleDecker.monthlyUpkeep + doubleDecker.tileRunningCost * transport.TRANSPORT_ESTIMATED_TILES_PER_MONTH);
+  const paybackMonths = doubleDecker.purchasePrice / peakMonthlyNet;
+  assert.ok(
+    paybackMonths >= 10 && paybackMonths <= 26,
+    `expected a ~1-2 game-year peak payback, got ${paybackMonths.toFixed(1)} months`,
+  );
 
   const doubleDeckerCap = transport.TRANSPORT_VEHICLE_CLASSES.standard_double_decker.monthlyRidershipCap;
   const capped = transport.computeTransportRouteMetrics({
@@ -226,7 +238,7 @@ test('live expansion unlocks, routes, breaks, settles and restores without affec
     assignTransportVehicleToRoute(vehicleA.id, createdRoute.id);
     assignTransportVehicleToRoute(vehicleB.id, createdRoute.id);
     updateTransportSimulation();
-    for (let i = 0; i < 3; i++) simulateTransportVehiclesDaily();
+    for (let i = 0; i < 6; i++) simulateTransportVehiclesDaily();
     updateTransportSimulation();
     activeResult = {
       unlocked: getTransportExpansionState().unlocked,
@@ -294,14 +306,17 @@ test('live expansion unlocks, routes, breaks, settles and restores without affec
 
   const active = JSON.parse(JSON.stringify(context.activeResult));
   assert.equal(active.unlocked, true);
-  assert.equal(context.cashAfterPurchase, transport.TRANSPORT_STARTUP_CAPITAL - 2 * 2800000);
+  assert.equal(context.cashAfterPurchase, transport.TRANSPORT_STARTUP_CAPITAL - 2 * 280);
   // Real-time boarding revenue (§12) has since flowed in on top of the purchase debit.
   assert.ok(active.cash > context.cashAfterPurchase);
   assert.equal(active.depotCapacity, transport.TRANSPORT_DEPOT_CAPACITY);
   assert.equal(active.status, 'active');
   assert.equal(active.assignedVehicles, 2);
   assert.ok(active.passengers > 0);
-  assert.ok(active.cost > 0);
+  // Six days of prorated running cost can legitimately round to $0 on the
+  // stylized scale - the full-month cost being positive is asserted in the
+  // dedicated individual-vehicle-simulation test.
+  assert.ok(active.cost >= 0);
   assert.ok(active.relief > 0 && active.relief <= transport.TRANSPORT_TRAFFIC_RELIEF_MAX);
   assert.ok(active.happiness > 0 && active.happiness <= transport.TRANSPORT_HAPPINESS_BONUS_MAX);
   assert.ok(active.commercial > 0 && active.commercial <= transport.TRANSPORT_COMMERCIAL_DEMAND_BONUS_MAX);
@@ -418,8 +433,8 @@ test('buying a vehicle debits company.cash and rejects insufficient funds', () =
     }
   `, context);
   assert.equal(context.vehicle.status, 'depot');
-  assert.equal(context.vehicle.purchasePrice, 2800000);
-  assert.equal(context.cashBefore - context.cashAfter, 2800000);
+  assert.equal(context.vehicle.purchasePrice, 280);
+  assert.equal(context.cashBefore - context.cashAfter, 280);
   assert.equal(context.brokeError, 'insufficientFunds');
   assert.equal(context.invalidClassError, 'invalidClass');
 });
@@ -453,7 +468,7 @@ test('selling a vehicle out on a route requires it to return to depot first', ()
   // returning to depot) * TRANSPORT_VEHICLE_RESALE_FACTOR
   assert.equal(
     context.cashAfterSell - context.cashBeforeSell,
-    Math.round(2800000 * context.conditionBeforeSell * transport.TRANSPORT_VEHICLE_RESALE_FACTOR),
+    Math.round(280 * context.conditionBeforeSell * transport.TRANSPORT_VEHICLE_RESALE_FACTOR),
   );
 });
 
@@ -505,12 +520,12 @@ test('individual vehicle simulation moves a vehicle, boards/alights riders, and 
     assignTransportVehicleToRoute(vehicle.id, route.id);
     const stored = () => getTransportExpansionState().vehicles.find((entry) => entry.id === vehicle.id);
     cashBeforeDriving = getTransportExpansionState().company.cash;
-    simulateTransportVehiclesDaily();
-    odometerAfterOneDay = stored().odometerTiles;
-    tilesThisMonthAfterOneDay = stored().tilesThisMonth;
-    cashAfterOneDay = getTransportExpansionState().company.cash;
-    passengersAfterOneDay = getTransportExpansionState().routes[0].monthToDatePassengers;
-    revenueAfterOneDay = getTransportExpansionState().routes[0].monthToDateRevenue;
+    for (let i = 0; i < 30; i++) simulateTransportVehiclesDaily();
+    odometerAfterMonth = stored().odometerTiles;
+    tilesThisMonthAfterMonth = stored().tilesThisMonth;
+    cashAfterMonth = getTransportExpansionState().company.cash;
+    passengersAfterMonth = getTransportExpansionState().routes[0].monthToDatePassengers;
+    revenueAfterMonth = getTransportExpansionState().routes[0].monthToDateRevenue;
 
     cashBeforeSettle = getTransportExpansionState().company.cash;
     finance = settleTransportMonth();
@@ -518,13 +533,20 @@ test('individual vehicle simulation moves a vehicle, boards/alights riders, and 
     monthToDateAfterSettle = getTransportExpansionState().routes[0].monthToDatePassengers;
     tilesThisMonthAfterSettle = stored().tilesThisMonth;
   `, context);
-  assert.ok(context.odometerAfterOneDay > 0);
-  assert.equal(context.odometerAfterOneDay, context.tilesThisMonthAfterOneDay);
-  assert.ok(context.passengersAfterOneDay > 0);
-  assert.ok(context.revenueAfterOneDay > 0);
-  // Revenue credits company.cash the instant a rider alights, not batched to month-end.
-  assert.equal(context.cashAfterOneDay - context.cashBeforeDriving, context.revenueAfterOneDay);
-  assert.equal(context.finance.revenue, context.revenueAfterOneDay);
+  assert.ok(context.odometerAfterMonth > 0);
+  assert.equal(context.odometerAfterMonth, context.tilesThisMonthAfterMonth);
+  assert.ok(context.passengersAfterMonth > 0);
+  assert.ok(context.revenueAfterMonth > 0);
+  // Revenue credits company.cash in real time as riders alight; the
+  // cashFraction accumulator means integer cash trails the exact float
+  // total by strictly less than one dollar.
+  const cashDelta = context.cashAfterMonth - context.cashBeforeDriving;
+  assert.ok(cashDelta >= 1, `expected at least $1 credited over a month, got ${cashDelta}`);
+  assert.ok(
+    Math.abs(cashDelta - context.revenueAfterMonth) < 1,
+    `cash delta ${cashDelta} should trail exact revenue ${context.revenueAfterMonth} by <$1`,
+  );
+  assert.ok(Math.abs(context.finance.revenue - context.revenueAfterMonth) <= 1);
   assert.ok(context.finance.cost > 0);
   // Settling only ever subtracts cost - revenue already flowed in above, so
   // it must not be re-added (that would double-count it).

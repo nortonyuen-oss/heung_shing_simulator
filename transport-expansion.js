@@ -13,12 +13,14 @@ const TRANSPORT_EXPANSION_UNLOCK_POPULATION = 3000;
 // v1's "credit that falls through to city.budget" is gone as of schema v2 -
 // the company now has its own real treasury (company.cash), seeded once at
 // unlock and never topped up from or drained into city.budget again. See
-// TRANSPORT_TTD_SPEC.md §4. Value is in real dollars (600萬 in the spec's
-// display convention).
-const TRANSPORT_STARTUP_CAPITAL = 6000000;
+// TRANSPORT_TTD_SPEC.md §4. All company money uses the SAME stylized dollar
+// scale as the rest of the game (COST_HOSPITAL: 7200 etc.), where each $1
+// reads as 萬 - so $600 here is "600萬", enough for two double-deckers
+// ($280 + $210) with slack, exactly the spec's sizing intent.
+const TRANSPORT_STARTUP_CAPITAL = 600;
 const TRANSPORT_STOP_CATCHMENT_RADIUS = 5;
 const TRANSPORT_DEPOT_CAPACITY = 12;
-const TRANSPORT_DEPOT_MONTHLY_UPKEEP = 120;
+const TRANSPORT_DEPOT_MONTHLY_UPKEEP = 12;
 // Legacy v1 clamp only - a v1 save's raw `route.buses` count is clamped to
 // this range while being converted into that many grandfathered vehicles
 // during migration (migrateTransportRoutesToVehicles). Schema v2 itself has
@@ -33,7 +35,18 @@ const TRANSPORT_FARE_STEP = 5;
 const TRANSPORT_DEFAULT_FARE = 35;
 const TRANSPORT_MINUTES_PER_ROAD_TILE = 0.75;
 const TRANSPORT_MINUTES_PER_STOP = 1.5;
-const TRANSPORT_FARE_ECONOMY_SCALE = 0.20;
+// Converts riders x fare into company dollars on the stylized 萬 scale:
+// per-rider revenue = fare x this. At the default fare ($35) a rider is
+// worth $0.00525, so a fully-loaded double-decker (monthlyRidershipCap
+// 4,200 riders) grosses ~$22/month against a $280 purchase price - a
+// ~1.4-game-year payback at peak, degrading naturally on weaker routes.
+// Sub-dollar amounts accrue via company.cashFraction, so tiny per-dwell
+// credits are never lost to rounding.
+const TRANSPORT_FARE_ECONOMY_SCALE = 0.00015;
+// Estimator-side stand-in for a vehicle's real monthly mileage:
+// TRANSPORT_OPERATING_MINUTES_PER_DAY / TRANSPORT_MINUTES_PER_ROAD_TILE x 30
+// days = 24,000 tiles. The real simulation charges actual tilesThisMonth.
+const TRANSPORT_ESTIMATED_TILES_PER_MONTH = 24000;
 const TRANSPORT_TRAFFIC_RELIEF_MAX = 0.25;
 const TRANSPORT_HAPPINESS_BONUS_MAX = 0.025;
 const TRANSPORT_COMMERCIAL_DEMAND_BONUS_MAX = 0.03;
@@ -42,30 +55,33 @@ const TRANSPORT_LAND_VALUE_BONUS_MAX = 0.08;
 const TRANSPORT_HISTORY_LIMIT = 24;
 const TRANSPORT_MAX_ROUTES = 50;
 const TRANSPORT_DEFAULT_VEHICLE_CLASS_ID = 'standard_double_decker';
-// §9 purchase catalog. purchasePrice/monthlyUpkeep/tileRunningCost are real
-// dollars; 萬 is purely the spec/UI's display unit for the purchase price
-// (280 -> $2,800,000), never a stored scale. Worked to a ~1.5-2 game-year
-// payback at peak ridership - see TRANSPORT_TTD_SPEC.md §9.
+// §9 purchase catalog, in the game's stylized dollars where $1 reads as 萬:
+// $280 = 280萬 = a realistic year-2000 HK double-decker, sitting naturally
+// next to COST_HOSPITAL's $7,200 (7200萬). monthlyUpkeep and tileRunningCost
+// are calibrated against the REAL per-vehicle simulation's mileage (a bus
+// genuinely drives ~20k tiles/month), keeping running costs a small fraction
+// of peak revenue so the strategic risk is ridership falling short, not
+// fixed costs - see TRANSPORT_TTD_SPEC.md §9.
 const TRANSPORT_VEHICLE_CLASSES = Object.freeze({
   standard_double_decker: Object.freeze({
     id: 'standard_double_decker',
     skin: 'bus_kmb',
     capacity: 70,
     speedFactor: 1.0,
-    purchasePrice: 2800000,
+    purchasePrice: 280,
     monthlyRidershipCap: 4200,
-    monthlyUpkeep: 900,
-    tileRunningCost: 12,
+    monthlyUpkeep: 3,
+    tileRunningCost: 0.0001,
   }),
   express_single_deck: Object.freeze({
     id: 'express_single_deck',
     skin: 'bus_citybus',
     capacity: 45,
     speedFactor: 1.25,
-    purchasePrice: 2100000,
+    purchasePrice: 210,
     monthlyRidershipCap: 2700,
-    monthlyUpkeep: 1100,
-    tileRunningCost: 16,
+    monthlyUpkeep: 3,
+    tileRunningCost: 0.0001,
   }),
 });
 // §10/§12: mandatory periodic servicing and the lightweight breakdown model.
@@ -173,6 +189,10 @@ function createDefaultTransportCompany() {
     name: '',
     presidentName: '',
     cash: 0,
+    // Sub-dollar fare revenue accrues here until it crosses a whole dollar,
+    // which then lands in `cash` - keeps per-dwell credits real-time without
+    // losing fractions of the 萬-scale dollar to rounding.
+    cashFraction: 0,
     foundedYear: 0,
     foundedMonth: 0,
   };
@@ -186,6 +206,7 @@ function normalizeTransportCompany(raw) {
     // Unlike building/route money, company cash is allowed to go negative -
     // that's the bankruptcy signal in TRANSPORT_TTD_SPEC.md §4, not a bug.
     cash: Math.round(Number(source.cash) || 0),
+    cashFraction: transportClamp(Number(source.cashFraction) || 0, 0, 0.999999),
     foundedYear: Math.max(0, Math.floor(Number(source.foundedYear) || 0)),
     foundedMonth: transportClamp(Math.floor(Number(source.foundedMonth) || 0), 0, 12),
   };
@@ -1013,12 +1034,21 @@ function dwellTransportVehicleAtStop(vehicle, route, stop, claimedToday) {
     const alighting = Math.min(vehicle.passengersAboard, Math.round(vehicle.passengersAboard * alightShare));
     if (alighting > 0) {
       vehicle.passengersAboard -= alighting;
-      const revenue = Math.round(alighting * route.fare);
+      // Per-rider revenue is a fraction of a stylized dollar
+      // (fare x TRANSPORT_FARE_ECONOMY_SCALE), so accrue exactly and credit
+      // company.cash the moment the accumulator crosses each whole dollar -
+      // still real-time cash flow, never rounded away.
+      const revenue = alighting * route.fare * TRANSPORT_FARE_ECONOMY_SCALE;
       const state = getTransportExpansionState();
-      state.company.cash = Math.round(state.company.cash + revenue);
-      vehicle.tripRevenueAccrued = revenue;
+      state.company.cashFraction += revenue;
+      const wholeDollars = Math.floor(state.company.cashFraction);
+      if (wholeDollars > 0) {
+        state.company.cash += wholeDollars;
+        state.company.cashFraction -= wholeDollars;
+      }
+      vehicle.tripRevenueAccrued = wholeDollars;
       route.monthToDatePassengers += alighting;
-      route.monthToDateRevenue = Math.round(route.monthToDateRevenue + revenue);
+      route.monthToDateRevenue += revenue;
     }
   }
 
@@ -1492,12 +1522,10 @@ function computeTransportRouteMetrics(options = {}) {
     ? transportClamp(monthlyPassengers / potentialPassengers, 0, 1)
     : 0;
   const loadFactor = capacity > 0 ? transportClamp(monthlyPassengers / capacity, 0, 2) : 0;
-  // No economy-scale dampener on revenue (§9's worked payback math is
-  // ridership x fare directly - ridershipCap/fare are already tuned as the
-  // dampener).
-  const revenue = transportRoundMoney(monthlyPassengers * fare);
+  const revenue = transportRoundMoney(monthlyPassengers * fare * TRANSPORT_FARE_ECONOMY_SCALE);
   const cost = transportRoundMoney(
-    effectiveBuses * (vehicleClass.monthlyUpkeep + vehicleClass.tileRunningCost * roundTripTiles)
+    effectiveBuses
+    * (vehicleClass.monthlyUpkeep + vehicleClass.tileRunningCost * TRANSPORT_ESTIMATED_TILES_PER_MONTH)
     * weatherAvailability,
   );
   return {
@@ -1859,9 +1887,9 @@ function settleTransportMonth() {
       year: city.year,
       month: city.month,
       passengers: route.monthToDatePassengers,
-      revenue: route.monthToDateRevenue,
+      revenue: transportRoundMoney(route.monthToDateRevenue),
       cost: routeCost,
-      net: route.monthToDateRevenue - routeCost,
+      net: Math.round(route.monthToDateRevenue - routeCost),
       reliability: route.lastStats.reliability,
     });
     if (route.history.length > TRANSPORT_HISTORY_LIMIT) {
@@ -1990,6 +2018,7 @@ const transportExpansionTestApi = {
   TRANSPORT_FARE_STEP,
   TRANSPORT_DEFAULT_FARE,
   TRANSPORT_FARE_ECONOMY_SCALE,
+  TRANSPORT_ESTIMATED_TILES_PER_MONTH,
   TRANSPORT_TRAFFIC_RELIEF_MAX,
   TRANSPORT_HAPPINESS_BONUS_MAX,
   TRANSPORT_COMMERCIAL_DEMAND_BONUS_MAX,

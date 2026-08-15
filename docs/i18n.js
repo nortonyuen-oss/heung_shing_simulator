@@ -210,6 +210,12 @@ const SITE_FEATURE_LIST = {
 // ── Changelog ─────────────────────────────────────────────────────────────────
 const SITE_CHANGELOG = {
   "zh-HK": [
+    { version: "v3.14.0", date: "2026-08-15", dateLabel: "2026年8月15日", title: "時空重置", items: [
+      "全新時間系統：日曆由以前「約7.5日一個模擬周期」改成一日一日咁行，速度檔位改為 暫停／0.15x／0.5x／1x／2x（原本淨係1x/2x/4x/暫停），新開/載入城市預設1x。1x保持返同以前一樣嘅節奏（一個月約20秒、一年約4分鐘），重型城市模擬（經濟、人口增長、股市等）維持每個月4次唔變，只有天氣（同颱風）改為每日更新，令風球呢類短時間事件睇落唔再一嚟就過。",
+      "慢速唔再拖慢架車：以前揀0.15x/0.5x連馬路上啲車、船、飛機都會跟住慢到似定格，而家車速固定唔會跌穿正常1x（淨係2x先會加快），慢速淨係影響時間流逝快慢，唔會影響交通畫面觀感。",
+      "新增巴士站路邊裝飾：直路兩邊都可以擺放巴士站牌連簷篷（$20），四個方向自動貼返正確嗰邊路肩。",
+      "修正巴士站遮擋順序：其中兩個方向入站一刻會被巴士站簷篷蓋住半架車、行前少少先返正常嘅問題，而家四個方向都按路面規則穩定顯示——貼近行車線嗰邊巴士站企定喺前，另一邊就車企喺前。",
+    ] },
     { version: "v3.13.0", date: "2026-08-09", dateLabel: "2026年8月9日", title: "官員專訪", items: [
       "新增十位官員議員嘅「人物專訪」金句：行政長官、財政司司長、警署署長、天文台台長、康樂及文化事務署署長，以及自由市場派、民主派、商界、宗教界、旅遊界議員，各有一句專屬性格quote，三語言（中／英／日）齊全。",
       "「Profile feature」掣改咗做即時彈出效果：撳落去個人資料卡入面「核心理念」個quote box會即刻換成呢句人物專訪金句（換色highlight），6秒後自動變返原本嗰句。",
@@ -381,6 +387,12 @@ const SITE_CHANGELOG = {
 // title/items text.
 const SITE_CHANGELOG_TRANSLATIONS = {
   "zh-TW": {
+    "v3.14.0": { title: "時空重置", items: [
+      "全新時間系統：日曆由以前「約7.5天一個模擬週期」改成一天一天這樣走，速度檔位改為 暫停／0.15x／0.5x／1x／2x（原本只有1x/2x/4x/暫停），新開/載入城市預設1x。1x保持和以前一樣的節奏（一個月約20秒、一年約4分鐘），重型城市模擬（經濟、人口增長、股市等）維持每個月4次不變，只有天氣（和颱風）改為每天更新，讓風球這類短時間事件看起來不再一下就過。",
+      "慢速不再拖慢車輛：以前選0.15x/0.5x連馬路上的車、船、飛機都會跟著慢到像定格，現在車速固定不會跌破正常1x（只有2x才會加快），慢速只影響時間流逝快慢，不影響交通畫面觀感。",
+      "新增巴士站路邊裝飾：直路兩邊都可以擺放巴士站牌連遮雨棚（$20），四個方向自動貼到正確那邊路肩。",
+      "修正巴士站遮擋順序：其中兩個方向進站一刻會被巴士站遮雨棚蓋住半台車、往前一點才恢復正常的問題，現在四個方向都按路面規則穩定顯示——靠近行車線那邊巴士站固定在前，另一邊就車在前。",
+    ] },
     "v3.13.0": { title: "官員專訪", items: [
       "新增十位官員議員的「人物專訪」金句：行政長官、財政司司長、警署署長、天文台台長、康樂及文化事務署署長，以及自由市場派、民主派、商界、宗教界、旅遊界議員，各有一句專屬性格quote，三語言（中／英／日）齊全。",
       "「Profile feature」鈕改成即時彈出效果：按下去個人資料卡裡「核心理念」的quote box會立刻換成這句人物專訪金句（換色highlight），6秒後自動變回原本那句。",
@@ -545,6 +557,12 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   en: {
+    "v3.14.0": { title: "Space-Time Reset", items: [
+      "New clock system: the calendar used to advance roughly every 7.5 days per simulation tick, and now advances one day at a time. Speed presets are now Pause/0.15x/0.5x/1x/2x (was 1x/2x/4x/Pause), always defaulting to 1x on a new or loaded city. 1x keeps the same pacing as before (~20 real seconds/game month, ~4 real minutes/game year); the heavy city simulation (economy, population growth, stock market, etc.) still runs about four times a month, unchanged - only weather (and typhoons) now update daily, so short-lived events like a signal 8 no longer blow through in a single blink.",
+      "Slow-motion no longer slows down traffic: picking 0.15x/0.5x used to make every car, ship, and plane on the road crawl to a near-stop along with the clock. Vehicle speed is now floored at normal (1x) regardless of clock speed - only 2x actually speeds vehicles up - so slow-motion only changes how fast time passes, not how traffic looks.",
+      "Added a bus-stop roadside decoration: place a shelter with a route sign ($20) on either side of a straight road, with the artwork automatically matching the correct shoulder for each of the four orientations.",
+      "Fixed bus-stop depth-sort order: two of the four orientations used to have the shelter roof cover half the bus right as it arrived, only fixing itself once the bus rolled forward. All four orientations now render consistently per the road's own left-hand-traffic rule - the shoulder nearest the driving lane always stays in front of the vehicle, the far shoulder always stays behind it.",
+    ] },
     "v3.13.0": { title: "Official Interviews", items: [
       "Added a signature interview quote for all ten officials/councillors: the Chief Executive, Financial Secretary, Police Commissioner, Observatory Director, Head of Leisure and Cultural Services, and the Free-Market, Democratic, Business, Religious, and Tourism councillors - each with their own personality quote, fully translated into Chinese, English, and Japanese.",
       "The \"Profile feature\" button now gives an immediate visual payoff: clicking it swaps the \"core belief\" quote box on the official's profile card to their interview quote (with a color highlight), then reverts after 6 seconds.",
@@ -709,6 +727,12 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   ja: {
+    "v3.14.0": { title: "時空重置", items: [
+      "新しいクロックシステム：暦は従来「シミュレーション1ティックにつき約7.5日」進んでいましたが、1日ずつ進むようになりました。速度プリセットは 一時停止／0.15x／0.5x／1x／2x（従来は1x/2x/4x/一時停止）となり、新規都市・ロード時は常に1xから開始します。1xは従来と同じペース（ゲーム内1ヶ月が現実約20秒、1年が現実約4分）を維持し、重い都市シミュレーション（経済、人口増加、株式市場など）は従来通り月4回のまま変わりません。天気（台風含む）のみ毎日更新されるようになり、シグナル8のような短時間のイベントも一瞬で終わらず見えるようになりました。",
+      "スロー速度でも車両は遅くならない：以前は0.15x/0.5xを選ぶと道路上の車・船・飛行機までクロックと一緒にほぼ停止するほど遅くなっていましたが、車両の速度は常に通常（1x）を下回らなくなりました（2xのときだけ実際に速くなります）。スロー速度は時間の経過速度だけに影響し、交通の見た目には影響しません。",
+      "バス停の道端装飾を追加：直線道路の両側にシェルターと路線標識（$20）を設置可能。4方向それぞれ正しい路肩に自動で合わせて表示されます。",
+      "バス停の重なり順を修正：4方向のうち2方向でバスが到着した瞬間に屋根がバスの前半分を覆い、少し前進してから元に戻るという不具合を修正。現在は4方向すべてで、走行車線側の路肩にあるバス停は常に手前に、反対側の路肩は常に奥に安定して表示されます。",
+    ] },
     "v3.13.0": { title: "官員專訪", items: [
       "行政長官・財政司司長・警察署長・天文台長・レジャー文化サービス局長、そして自由市場派・民主派・ビジネス界・宗教界・観光業界の議員、計10名の官僚・議員に専属のインタビュー名言を追加。それぞれ個性豊かな一言を、中国語・英語・日本語の3言語で用意しました。",
       "「Profile feature」ボタンが即座に反映されるように改善：クリックすると、プロフィールカードの「信条」欄が本人のインタビュー名言に切り替わり（色付きハイライト表示）、6秒後に元の表示へ自動的に戻ります。",
@@ -891,14 +915,14 @@ const SITE_TEXT = {
   "zh-HK": {
     meta: {
       title: "香城模擬器 | The City of Heung Shing",
-      description: "下載香城模擬器 v3.13.0「官員專訪」：十位官員議員加入專屬人物專訪金句，撳掣即時喺個人資料卡彈出，仲修正埋一直冇反應嘅新聞掣Bug。",
-      ogDescription: "v3.13.0 官員專訪：十位官員議員終於有咗自己嘅金句，撳「人物專訪」即刻喺個人資料卡見到，仲修埋一個一直冇反應嘅新聞掣。",
+      description: "下載香城模擬器 v3.14.0「時空重置」：日曆改為一日一日咁行，新增0.15x／0.5x慢速檔，並新增巴士站路邊裝飾同修正入站遮擋順序。",
+      ogDescription: "v3.14.0 時空重置：全新時鐘系統一日一日咁行、加咗0.15x／0.5x慢速檔，重型城市模擬同以前一樣每月4次，仲新增咗巴士站路邊裝飾。",
     },
     nav: { gallery: "截圖", downloads: "下載", manual: "玩家手冊", guide: "遊戲指南", stats: "統計", changelog: "版本", github: "GitHub" },
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      lede: "一款向 SimCity 2000 致敬的城市建設遊戲。v3.13.0「官員專訪」十位官員議員加入專屬人物專訪金句，撳掣即時彈出，仲修正埋一直冇反應嘅新聞掣Bug。",
+      lede: "一款向 SimCity 2000 致敬的城市建設遊戲。v3.14.0「時空重置」全新時鐘系統一日一日咁行，新增0.15x／0.5x慢速檔，仲新增埋巴士站路邊裝飾。",
       downloadBtn: "下載遊戲",
       latestBtn: "最新版本",
       guideBtn: "睇遊戲指南",
@@ -947,14 +971,14 @@ const SITE_TEXT = {
   "zh-TW": {
     meta: {
       title: "香城模擬器 | The City of Heung Shing",
-      description: "下載香城模擬器 v3.13.0「官員專訪」：十位官員議員加入專屬人物專訪金句，按鈕即時在個人資料卡彈出，還修正了一直沒反應的新聞鈕Bug。",
-      ogDescription: "v3.13.0 官員專訪：十位官員議員終於有了自己的金句，按下「人物專訪」立刻在個人資料卡看到，還修好了一個一直沒反應的新聞鈕。",
+      description: "下載香城模擬器 v3.14.0「時空重置」：日曆改為一日一日這樣走，新增0.15x／0.5x慢速檔，並新增巴士站路邊裝飾同修正入站遮擋順序。",
+      ogDescription: "v3.14.0 時空重置：全新時鐘系統一日一日這樣走、加了0.15x／0.5x慢速檔，重型城市模擬和以前一樣每月4次，還新增了巴士站路邊裝飾。",
     },
     nav: { gallery: "截圖", downloads: "下載", manual: "玩家手冊", guide: "遊戲指南", stats: "統計", changelog: "版本", github: "GitHub" },
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      lede: "一款向 SimCity 2000 致敬的城市建設遊戲。v3.13.0「官員專訪」十位官員議員加入專屬人物專訪金句，按鈕即時彈出，還修正了一直沒反應的新聞鈕Bug。",
+      lede: "一款向 SimCity 2000 致敬的城市建設遊戲。v3.14.0「時空重置」全新時鐘系統一日一日這樣走，新增0.15x／0.5x慢速檔，還新增了巴士站路邊裝飾。",
       downloadBtn: "下載遊戲",
       latestBtn: "最新版本",
       guideBtn: "查看遊戲指南",
@@ -1003,14 +1027,14 @@ const SITE_TEXT = {
   en: {
     meta: {
       title: "The City of Heung Shing | 香城模擬器",
-      description: "Download The City of Heung Shing v3.13.0 “Official Interviews”: all ten officials and councillors get a signature interview quote, popping up live on their profile card, plus a fix for a long-dead news button.",
-      ogDescription: "v3.13.0 Official Interviews: all ten officials finally have their own catchphrase - click “Profile feature” to see it pop up right on their card - plus a fix for a button that never did anything.",
+      description: "Download The City of Heung Shing v3.14.0 “Space-Time Reset”: the calendar now advances one day at a time, adds 0.15x/0.5x slow-motion speeds, and adds a bus-stop roadside decoration with a fixed depth-sort order on arrival.",
+      ogDescription: "v3.14.0 Space-Time Reset: a rebuilt game clock that advances daily, new 0.15x/0.5x slow speeds, the heavy city simulation still runs 4x/month as before, and a new bus-stop roadside decoration.",
     },
     nav: { gallery: "Screenshots", downloads: "Download", manual: "Manual", guide: "Game Guide", stats: "Stats", changelog: "Changelog", github: "GitHub" },
     hero: {
       eyebrowPrefix: "The City of Heung Shing",
       title: "The City of Heung Shing",
-      lede: "A city-builder that pays tribute to SimCity 2000. v3.13.0 “Official Interviews” gives all ten officials a signature interview quote that pops up live on their profile card, plus a fix for a long-dead news button.",
+      lede: "A city-builder that pays tribute to SimCity 2000. v3.14.0 “Space-Time Reset” rebuilds the game clock to advance one day at a time, adds 0.15x/0.5x slow-motion speeds, and adds a bus-stop roadside decoration.",
       downloadBtn: "Download",
       latestBtn: "Latest release",
       guideBtn: "Read the game guide",
@@ -1060,14 +1084,14 @@ const SITE_TEXT = {
   ja: {
     meta: {
       title: "香城模擬器 | The City of Heung Shing",
-      description: "香城模擬器 v3.13.0「官員專訪」をダウンロード：10名の官僚・議員に専属インタビュー名言を追加、プロフィールカードで即座に表示。ずっと反応しなかったニュースボタンのバグも修正。",
-      ogDescription: "v3.13.0 官員專訪：10名の官僚・議員がついに自分の決め台詞を獲得。「Profile feature」を押せばカード上にすぐ表示。ずっと何も起きなかったボタンのバグも修正しました。",
+      description: "香城模擬器 v3.14.0「時空重置」をダウンロード：暦が1日ずつ進むように刷新、0.15x／0.5xのスローモーション速度を追加、バス停の道端装飾と進入時の重なり順の修正も追加。",
+      ogDescription: "v3.14.0 時空重置：ゲームクロックを刷新し1日ずつ進行、0.15x／0.5xのスロー速度を追加。重い都市シミュレーションは従来通り月4回、バス停の道端装飾も新登場。",
     },
     nav: { gallery: "スクリーンショット", downloads: "ダウンロード", manual: "プレイヤーマニュアル", guide: "ゲームガイド", stats: "統計", changelog: "更新履歴", github: "GitHub" },
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      lede: "SimCity 2000 に敬意を表した都市builderゲーム。v3.13.0「官員專訪」で10名の官僚・議員に専属インタビュー名言を追加、プロフィールカードで即座に表示されるようになりました。ずっと反応しなかったニュースボタンのバグも修正。",
+      lede: "SimCity 2000 に敬意を表した都市builderゲーム。v3.14.0「時空重置」でゲームクロックを刷新し暦が1日ずつ進むように、0.15x／0.5xのスロー速度を追加、バス停の道端装飾も新登場。",
       downloadBtn: "ダウンロード",
       latestBtn: "最新リリース",
       guideBtn: "ゲームガイドを見る",

@@ -632,6 +632,29 @@ test('bus stop waiting-queue snapshot (§7) updates once per simulated day and g
   assert.equal(context.waitingWhenDisabled, 0);
 });
 
+test('pre-v0.6 dev saves with x10,000-scale money load back onto the stylized scale', () => {
+  const restored = transport.normalizeTransportExpansionState({
+    schemaVersion: 2,
+    enabled: true,
+    unlocked: true,
+    company: { name: '九龍巴士有限公司', cash: -400013 },
+    vehicles: [
+      { id: 'bus-1', classId: 'standard_double_decker', purchasePrice: 2800000 },
+      { id: 'bus-2', classId: 'express_single_deck', purchasePrice: 210 },
+    ],
+  });
+  assert.equal(restored.company.cash, -40);
+  assert.equal(restored.vehicles[0].purchasePrice, 280);
+  // Already-new-scale values pass through untouched.
+  assert.equal(restored.vehicles[1].purchasePrice, 210);
+
+  const sane = transport.normalizeTransportExpansionState({
+    schemaVersion: 2,
+    company: { cash: 599 },
+  });
+  assert.equal(sane.company.cash, 599);
+});
+
 test('three consecutive months in the red auto-suspend every route, and vehicles age monthly (§4)', () => {
   const context = createTransportVm();
   vm.runInContext(`

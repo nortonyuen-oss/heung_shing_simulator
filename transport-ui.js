@@ -8,6 +8,7 @@ const transportUiState = {
   messageTone: 'info',
   activeTab: 'routes',
   selectedDepotId: '',
+  expandedRouteId: '',
 };
 
 // "Is the UI layer currently open" - orthogonal to isTransportExpansionActive()
@@ -75,6 +76,12 @@ function createTransportWindow() {
       #transport-window .transport-status[data-status="broken"] { background:#f3d6d2; color:#8d2924; }
       #transport-window .transport-status[data-status="suspended"], #transport-window .transport-status[data-status="weather"] { background:#ece3c9; color:#765d1c; }
       #transport-window .transport-route-stops { margin:5px 0; color:#5d5a53; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+      #transport-window .transport-route-fleet-toggle { border:0; background:transparent; padding:0; margin-top:2px; color:#4f5960; font:inherit; font-size:11px; cursor:pointer; }
+      #transport-window .transport-route-fleet-toggle:hover, #transport-window .transport-route-fleet-toggle.is-open { color:#164f6e; font-weight:700; }
+      #transport-window .transport-route-fleet { display:grid; gap:4px; margin:6px 0; }
+      #transport-window .transport-route-vehicle { display:grid; grid-template-columns:1fr auto auto auto; gap:8px; align-items:center; text-align:left; padding:5px 7px; border:1px solid #b3ab98; border-radius:5px; background:#fffaf0; font:inherit; cursor:pointer; }
+      #transport-window .transport-route-vehicle:hover { background:#fff; border-color:#164f6e; }
+      #transport-window .transport-route-vehicle span:first-child { font-weight:700; }
       #transport-window .transport-route-error { margin:4px 0; color:#992f2a; font-weight:700; }
       #transport-window .transport-metrics { display:grid; grid-template-columns:repeat(4,minmax(70px,1fr)); gap:4px; margin:7px 0; }
       #transport-window .transport-metric { background:#ebe5d5; border-radius:4px; padding:4px; }
@@ -238,12 +245,34 @@ function renderTransportRouteCard(route, index) {
     [t('transport.metric.cost'), transportFormatMoney(stats.cost || 0)],
     [t('transport.metric.net'), transportFormatMoney(stats.net || 0, true)],
   ].map(([label, value]) => `<div class="transport-metric"><span>${transportEscapeHtml(label)}</span><strong>${transportEscapeHtml(value)}</strong></div>`).join('');
+  const routeVehicles = typeof getTransportRouteVehicles === 'function'
+    ? getTransportRouteVehicles(route.id)
+    : [];
+  const expanded = transportUiState.expandedRouteId === route.id;
+  // OpenTTD-style vehicle list: the bus-count chip expands this route's
+  // fleet; each row opens the tracking window with camera-follow on.
+  const vehicleRows = !expanded ? '' : `
+    <div class="transport-route-fleet">
+      ${routeVehicles.length === 0
+        ? `<div class="transport-empty">${transportEscapeHtml(t('transport.routeFleet.empty'))}</div>`
+        : routeVehicles.map((vehicle) => `
+          <button class="transport-route-vehicle" type="button" data-transport-action="track-vehicle" data-vehicle-id="${transportEscapeHtml(vehicle.id)}" title="${transportEscapeHtml(t('transport.routeFleet.track'))}">
+            <span>🚌 ${transportEscapeHtml(vehicle.id)}</span>
+            <span>${transportEscapeHtml(t(`transport.vehicleStatus.${vehicle.status}`))}</span>
+            <span>👤 ${vehicle.passengersAboard}</span>
+            <span>${transportEscapeHtml(transportFormatPercent(vehicle.condition))}</span>
+          </button>`).join('')}
+    </div>`;
   return `
     <article class="transport-route" style="--route-color:${transportEscapeHtml(route.color)}">
       <div class="transport-route-head">
-        <div><div class="transport-route-name">${transportEscapeHtml(route.name)}</div><small>${typeof getTransportRouteVehicles === 'function' ? getTransportRouteVehicles(route.id).length : 0} 🚌 · $${Number(route.fare).toFixed(2)}</small></div>
+        <div>
+          <div class="transport-route-name">${transportEscapeHtml(route.name)}</div>
+          <button class="transport-route-fleet-toggle${expanded ? ' is-open' : ''}" type="button" data-transport-action="toggle-route-vehicles" data-route-id="${transportEscapeHtml(route.id)}" title="${transportEscapeHtml(t('transport.routeFleet.toggle'))}">${routeVehicles.length} 🚌 · $${Number(route.fare).toFixed(2)} ${expanded ? '▴' : '▾'}</button>
+        </div>
         <span class="transport-status" data-status="${transportEscapeHtml(status)}">${transportEscapeHtml(t(`transport.status.${status}`))}</span>
       </div>
+      ${vehicleRows}
       <div class="transport-route-stops" title="${transportEscapeHtml(stopText)}">${transportEscapeHtml(stopText)}</div>
       ${status === 'broken' && runtime?.brokenReason
         ? `<div class="transport-route-error">${transportEscapeHtml(transportRouteErrorMessage({ code: runtime.brokenReason }))}</div>`
@@ -579,13 +608,16 @@ function positionTransportVehicleInspector(root, pointer) {
   root.style.top = `${Math.max(6, top)}px`;
 }
 
-function openTransportVehicleInspector(vehicleId, pointer = null) {
+// options.follow starts the window with camera-follow already on - used by
+// the route fleet list (OpenTTD's vehicle window follows immediately);
+// clicking the sprite on the map keeps it off since you're already there.
+function openTransportVehicleInspector(vehicleId, pointer = null, options = {}) {
   const root = createTransportVehicleInspector();
   if (!root) return;
   transportInspectorState.kind = 'vehicle';
   transportInspectorState.vehicleId = vehicleId;
   transportInspectorState.stopId = '';
-  transportInspectorState.follow = false;
+  transportInspectorState.follow = options.follow === true;
   root.hidden = false;
   if (pointer) positionTransportVehicleInspector(root, pointer);
   refreshTransportInspector();
@@ -692,6 +724,7 @@ function resetTransportUiForCityChange() {
   transportUiState.pickingStops = false;
   transportUiState.activeTab = 'routes';
   transportUiState.selectedDepotId = '';
+  transportUiState.expandedRouteId = '';
   setTransportUiMessage('');
   if (isTransportModeActive) setTransportModeActive(false);
   if (transportUiState.root && !transportUiState.root.hidden) refreshTransportUi();
@@ -862,6 +895,16 @@ function handleTransportUiClick(event) {
   }
   if (action === 'inspect-vehicle') {
     openTransportVehicleInspector(button.dataset.vehicleId);
+    return;
+  }
+  if (action === 'toggle-route-vehicles') {
+    transportUiState.expandedRouteId = transportUiState.expandedRouteId === button.dataset.routeId
+      ? ''
+      : button.dataset.routeId;
+    return refreshTransportUi();
+  }
+  if (action === 'track-vehicle') {
+    openTransportVehicleInspector(button.dataset.vehicleId, null, { follow: true });
     return;
   }
   if (action === 'new-route') return beginTransportRouteEditor();

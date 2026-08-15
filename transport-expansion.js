@@ -205,11 +205,21 @@ function normalizeTransportCompany(raw) {
     presidentName: String(source.presidentName || '').slice(0, 40),
     // Unlike building/route money, company cash is allowed to go negative -
     // that's the bankruptcy signal in TRANSPORT_TTD_SPEC.md §4, not a bug.
-    cash: Math.round(Number(source.cash) || 0),
+    cash: normalizeTransportLegacyScaleMoney(Number(source.cash) || 0, 100000),
     cashFraction: transportClamp(Number(source.cashFraction) || 0, 0, 0.999999),
     foundedYear: Math.max(0, Math.floor(Number(source.foundedYear) || 0)),
     foundedMonth: transportClamp(Math.floor(Number(source.foundedMonth) || 0), 0, 12),
   };
+}
+
+// Dev-branch saves written before the v0.6 unit correction stored company
+// money x10,000 too large (the "real dollar" scale). Any magnitude beyond
+// what the stylized economy can possibly produce is that old scale, so
+// divide the exact factor back out - e.g. a legacy cash of -400,013 loads
+// as -$40. Values in the plausible new-scale range pass through untouched.
+function normalizeTransportLegacyScaleMoney(value, threshold) {
+  const numeric = Math.round(Number(value) || 0);
+  return Math.abs(numeric) > threshold ? Math.round(numeric / 10000) : numeric;
 }
 
 function createEmptyTransportFinancials() {
@@ -392,7 +402,7 @@ function normalizeTransportVehicle(raw) {
     // Counts down status: 'servicing' / 'broken_down' respectively; 0 when neither.
     serviceDaysRemaining: Math.max(0, Math.floor(Number(raw.serviceDaysRemaining) || 0)),
     brokenDaysRemaining: Math.max(0, Math.floor(Number(raw.brokenDaysRemaining) || 0)),
-    purchasePrice: Math.max(0, Math.round(Number(raw.purchasePrice) || 0)),
+    purchasePrice: Math.max(0, normalizeTransportLegacyScaleMoney(raw.purchasePrice, 10000)),
     passengersAboard: Math.max(0, Math.floor(Number(raw.passengersAboard) || 0)),
     // Set at each dwell to that dwell's alighting revenue (not a running
     // total) - a transient "just collected $X" figure for the vehicle

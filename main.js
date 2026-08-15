@@ -3978,6 +3978,19 @@ function placeSpriteBuilding(scene, row, col, key, options = {}) {
   building.on('pointerdown', (pointer) => {
     if (typeof isVisualRouteCalibrationInputCaptured === 'function'
       && isVisualRouteCalibrationInputCaptured(scene)) return;
+    // §10: in Transport Mode, clicking a depot opens its Depot window with
+    // any tool active - except the bus-depot tool itself, whose click still
+    // means "rotate this depot".
+    if (
+      typeof isTransportModeActive !== 'undefined' && isTransportModeActive
+      && selectedTool !== 'bus-depot'
+      && buildingData[getTileId(building.mapRow, building.mapCol)]?.type === 'bus_depot'
+      && typeof openTransportDepotWindowFor === 'function'
+    ) {
+      pointer.event?.stopPropagation();
+      openTransportDepotWindowFor(getTileId(building.mapRow, building.mapCol));
+      return;
+    }
     if (selectedTool !== 'inspect') return;
     const record = buildingData[getTileId(building.mapRow, building.mapCol)];
     if (record?.type === 'legislative_council' && typeof openLegislativeWindow === 'function') {

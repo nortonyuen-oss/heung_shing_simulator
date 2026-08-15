@@ -610,6 +610,130 @@ test('bus stop waiting-queue snapshot (§7) updates once per simulated day and g
   assert.equal(context.waitingWhenDisabled, 0);
 });
 
+test('three consecutive months in the red auto-suspend every route, and vehicles age monthly (§4)', () => {
+  const context = createTransportVm();
+  vm.runInContext(`
+    setExpansionEnabled('transport', true, { notify: false, autosave: false });
+    stopIds = listTransportStopSites().map((stop) => stop.id);
+    ensureTransportStopPairs(stopIds, null);
+    route = createTransportRoute({ stopIds, fare: 35 });
+    depotId = getConnectedCommissionedTransportDepots()[0].id;
+    vehicle = buyTransportVehicle(depotId, 'standard_double_decker');
+    assignTransportVehicleToRoute(vehicle.id, route.id);
+    getTransportExpansionState().company.cash = -100;
+    settleTransportMonth();
+    statusAfterMonth1 = getTransportExpansionState().routes[0].status;
+    city.month = 2;
+    settleTransportMonth();
+    statusAfterMonth2 = getTransportExpansionState().routes[0].status;
+    city.month = 3;
+    settleTransportMonth();
+    statusAfterMonth3 = getTransportExpansionState().routes[0].status;
+    monthsInDebtAfterSuspend = getTransportExpansionState().monthsInDebt;
+    ageAfterThreeMonths = getTransportExpansionState().vehicles[0].ageMonths;
+  `, context);
+  assert.equal(context.statusAfterMonth1, 'active');
+  assert.equal(context.statusAfterMonth2, 'active');
+  assert.equal(context.statusAfterMonth3, 'suspended');
+  assert.equal(context.monthsInDebtAfterSuspend, 0);
+  assert.equal(context.ageAfterThreeMonths, 3);
+});
+
+test('a positive month-end resets the bankruptcy debt counter', () => {
+  const context = createTransportVm();
+  vm.runInContext(`
+    setExpansionEnabled('transport', true, { notify: false, autosave: false });
+    stopIds = listTransportStopSites().map((stop) => stop.id);
+    ensureTransportStopPairs(stopIds, null);
+    createTransportRoute({ stopIds, fare: 35 });
+    getTransportExpansionState().company.cash = -100;
+    settleTransportMonth();
+    debtAfterRedMonth = getTransportExpansionState().monthsInDebt;
+    getTransportExpansionState().company.cash = 500000;
+    city.month = 2;
+    settleTransportMonth();
+    debtAfterBlackMonth = getTransportExpansionState().monthsInDebt;
+  `, context);
+  assert.equal(context.debtAfterRedMonth, 1);
+  assert.equal(context.debtAfterBlackMonth, 0);
+});
+
+test('industrial demand bonus (§14.3) activates only for served industrial buildings and pauses in storms', () => {
+  const context = createTransportVm();
+  context.buildingData['7:2'] = { type: 'industrial', footprintRows: 1, footprintCols: 1 };
+  context.getBuildingJobCapacity = (record) => {
+    if (record.type === 'commercial') return 1000;
+    if (record.type === 'industrial') return 400;
+    return 0;
+  };
+  vm.runInContext(`
+    setExpansionEnabled('transport', true, { notify: false, autosave: false });
+    stopIds = listTransportStopSites().map((stop) => stop.id);
+    ensureTransportStopPairs(stopIds, null);
+    route = createTransportRoute({ stopIds, fare: 35 });
+    depotId = getConnectedCommissionedTransportDepots()[0].id;
+    vehicle = buyTransportVehicle(depotId, 'standard_double_decker');
+    assignTransportVehicleToRoute(vehicle.id, route.id);
+    for (let i = 0; i < 3; i++) simulateTransportVehiclesDaily();
+    updateTransportSimulation();
+    industrialBonus = getTransportIndustrialDemandBonus();
+    city.weather.typhoonStage = 'signal8';
+    industrialBonusInStorm = getTransportIndustrialDemandBonus();
+  `, context);
+  assert.ok(
+    context.industrialBonus > 0 && context.industrialBonus <= transport.TRANSPORT_INDUSTRIAL_DEMAND_BONUS_MAX,
+    `expected a positive capped industrial bonus, got ${context.industrialBonus}`,
+  );
+  assert.equal(context.industrialBonusInStorm, 0);
+});
+
+test('ultra-rich (UH) residents generate no boarding demand (§14.4)', () => {
+  const context = createTransportVm();
+  context.buildingData['4:2'].wealthTier = 'UH';
+  vm.runInContext(`
+    setExpansionEnabled('transport', true, { notify: false, autosave: false });
+    stopIds = listTransportStopSites().map((stop) => stop.id);
+    ensureTransportStopPairs(stopIds, null);
+    catchment = getTransportStopCatchmentUnits(getTransportStopById(stopIds[0]));
+  `, context);
+  assert.equal(context.catchment.originUnits, 0);
+
+  const control = createTransportVm();
+  control.buildingData['4:2'].wealthTier = 'M';
+  vm.runInContext(`
+    setExpansionEnabled('transport', true, { notify: false, autosave: false });
+    stopIds = listTransportStopSites().map((stop) => stop.id);
+    ensureTransportStopPairs(stopIds, null);
+    catchment = getTransportStopCatchmentUnits(getTransportStopById(stopIds[0]));
+  `, control);
+  assert.equal(control.catchment.originUnits, 3000 * 0.18);
+});
+
+test('transport construction falls back to city.budget only while the expansion is inactive', () => {
+  const context = createTransportVm();
+  context.spendBudget = (amount) => {
+    if (context.city.budget < amount) return false;
+    context.city.budget -= amount;
+    return true;
+  };
+  vm.runInContext(`
+    budgetBefore = city.budget;
+    inactiveSpend = spendTransportConstruction(50);
+    budgetAfterInactiveSpend = city.budget;
+    setExpansionEnabled('transport', true, { notify: false, autosave: false });
+    cashBefore = getTransportExpansionState().company.cash;
+    activeSpend = spendTransportConstruction(70);
+    budgetAfterActiveSpend = city.budget;
+    cashAfterActiveSpend = getTransportExpansionState().company.cash;
+  `, context);
+  assert.equal(context.inactiveSpend, true);
+  assert.equal(context.budgetBefore - context.budgetAfterInactiveSpend, 50);
+  assert.equal(context.activeSpend, true);
+  // Once active, spending must come from company cash and never touch city.budget.
+  assert.equal(context.budgetAfterActiveSpend, context.budgetAfterInactiveSpend);
+  assert.equal(context.cashBefore - context.cashAfterActiveSpend, 70);
+});
+
 test('a route past TRANSPORT_MAX_ROUTES is rejected, editing/deleting existing routes is not', () => {
   const context = createTransportVm();
   context.TRANSPORT_MAX_ROUTES = transport.TRANSPORT_MAX_ROUTES;

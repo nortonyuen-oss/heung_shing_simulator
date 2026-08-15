@@ -77,6 +77,11 @@ const TRANSPORT_BREAKDOWN_DAILY_CHANCE = 0.03;
 const TRANSPORT_BREAKDOWN_DURATION_DAYS = 2;
 // Resale value on Sell (§10): worn, aged vehicles fetch less than a fresh one.
 const TRANSPORT_VEHICLE_RESALE_FACTOR = 0.5;
+// §4/§16: v1's whole bankruptcy mechanic - after this many *consecutive*
+// month-end settlements with company.cash below zero, every route is
+// auto-suspended (running costs stop; the player sells vehicles or waits
+// out the grace period next time). No company loan mechanic in v1.
+const TRANSPORT_BANKRUPTCY_GRACE_MONTHS = 3;
 // §12: how many minutes of service a vehicle runs per simulated day (a
 // realistic ~10-hour bus duty day), used to convert a route's geometry into
 // how many stop-to-stop legs a vehicle actually completes per day.
@@ -156,6 +161,7 @@ function createDefaultTransportExpansionState(enabled = false) {
     lastWeatherDayKey: '',
     lastSettledMonthIndex: -1,
     lastFinancials: createEmptyTransportFinancials(),
+    monthsInDebt: 0,
   };
 }
 
@@ -490,6 +496,7 @@ function normalizeTransportExpansionState(raw) {
         ? Object.fromEntries(Object.entries(source.lastFinancials).map(([key, value]) => [key, Number(value) || 0]))
         : {}),
     },
+    monthsInDebt: Math.max(0, Math.floor(Number(source.monthsInDebt) || 0)),
   };
 }
 
@@ -929,7 +936,15 @@ function advanceTransportVehiclesDaily() {
   const state = getTransportExpansionState();
   const connectedDepotIds = new Set(getConnectedCommissionedTransportDepots().map((depot) => depot.id));
   for (const vehicle of state.vehicles) {
-    if (vehicle.status === 'depot') continue;
+    if (vehicle.status === 'depot') {
+      // §10: idle parked time slowly restores condition (a mechanic can
+      // always get to a bus that's sitting in the yard) - but a *working*
+      // vehicle relies on the mandatory periodic service below, never this.
+      vehicle.condition = transportClamp(
+        vehicle.condition + TRANSPORT_CONDITION_DECAY_PER_DAY * 2, 0, 1,
+      );
+      continue;
+    }
     if (vehicle.status === 'servicing') {
       vehicle.serviceDaysRemaining = Math.max(0, vehicle.serviceDaysRemaining - 1);
       if (vehicle.serviceDaysRemaining <= 0) {
@@ -1855,7 +1870,10 @@ function settleTransportMonth() {
     route.monthToDatePassengers = 0;
     route.monthToDateRevenue = 0;
   }
-  for (const vehicle of state.vehicles) vehicle.tilesThisMonth = 0;
+  for (const vehicle of state.vehicles) {
+    vehicle.tilesThisMonth = 0;
+    vehicle.ageMonths++;
+  }
   const depotUpkeep = getConnectedCommissionedTransportDepots().length * TRANSPORT_DEPOT_MONTHLY_UPKEEP;
   const cost = transportRoundMoney(routeOperations + depotUpkeep);
   const roundedRevenue = transportRoundMoney(revenue);
@@ -1870,6 +1888,29 @@ function settleTransportMonth() {
     cost,
     net: roundedRevenue - cost,
   };
+  // §4 bankruptcy: three consecutive month-ends in the red auto-suspends
+  // every route (the grace period), rather than any harder game-over -
+  // suspended routes stop accruing running costs, and the player digs out
+  // by selling vehicles. The counter restarts once cash is positive again.
+  if (state.company.cash < 0) {
+    state.monthsInDebt++;
+    if (state.monthsInDebt >= TRANSPORT_BANKRUPTCY_GRACE_MONTHS) {
+      state.monthsInDebt = 0;
+      let suspendedAny = false;
+      for (const route of state.routes) {
+        if (route.status !== 'suspended') {
+          route.status = 'suspended';
+          markTransportRouteDirty(route.id);
+          suspendedAny = true;
+        }
+      }
+      if (suspendedAny && typeof showToast === 'function') {
+        showToast(t('transport.toast.bankruptSuspended'), 'warning');
+      }
+    }
+  } else {
+    state.monthsInDebt = 0;
+  }
   state.weatherSuspendedDaysThisMonth = 0;
   return state.lastFinancials;
 }
@@ -1943,6 +1984,7 @@ const transportExpansionTestApi = {
   TRANSPORT_BREAKDOWN_DAILY_CHANCE,
   TRANSPORT_BREAKDOWN_DURATION_DAYS,
   TRANSPORT_VEHICLE_RESALE_FACTOR,
+  TRANSPORT_BANKRUPTCY_GRACE_MONTHS,
   TRANSPORT_FARE_MIN,
   TRANSPORT_FARE_MAX,
   TRANSPORT_FARE_STEP,

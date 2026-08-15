@@ -407,6 +407,14 @@ function openTransportWindow() {
   if (typeof invalidateTransportVisuals === 'function') invalidateTransportVisuals(activeScene);
 }
 
+// §10: map click on a depot building (main.js's building pointerdown) lands
+// here - jump straight to that depot's Depot tab.
+function openTransportDepotWindowFor(depotId) {
+  transportUiState.activeTab = 'depot';
+  transportUiState.selectedDepotId = String(depotId || '');
+  openTransportWindow();
+}
+
 function closeTransportWindow() {
   if (transportUiState.root) {
     transportUiState.root.hidden = true;

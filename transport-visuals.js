@@ -412,6 +412,9 @@ function updateTransportVisuals(time, delta) {
     ? getTransportRoutesForVisuals()
     : [];
   drawTransportRouteOverlay(scene, state, routeEntries, time);
+  // Runs before every early return below - follow must keep working while
+  // zoomed out (no sprites exist), paused, or with the fleet culled.
+  followTransportVehicleCamera(scene, state);
 
   const visible = !(scene.scene?.isVisible && !scene.scene.isVisible());
   const zoomReady = scene.cameras.main.zoom >= TRANSPORT_VISUAL_CONFIG.zoomMin;
@@ -442,15 +445,29 @@ function updateTransportVisuals(time, delta) {
     vehicle.sprite.clearTint();
     updateManagedTransportVehicle(scene, vehicle, delta, speedMultiplier);
   });
+}
 
-  // OpenTTD-style follow: while the vehicle inspector's 追蹤 toggle is on,
-  // the camera stays glued to that vehicle's sprite every frame.
+// OpenTTD-style follow: while the vehicle inspector's 追蹤 toggle is on,
+// the camera stays glued to that vehicle's sprite every frame. Below the
+// sprite zoom threshold (no sprite exists), fall back to the backend
+// vehicle's current cycle stop so tracking still lands the camera on the
+// right part of town - the sprite appears there once the player zooms in.
+function followTransportVehicleCamera(scene, state) {
   const followId = typeof getTransportFollowVehicleId === 'function'
     ? getTransportFollowVehicleId()
     : '';
-  if (followId) {
-    const followed = state.vehicles.find((entry) => entry.vehicleId === followId);
-    if (followed?.sprite) scene.cameras.main.centerOn(followed.sprite.x, followed.sprite.y);
+  if (!followId) return;
+  const followed = state.vehicles.find((entry) => entry.vehicleId === followId);
+  if (followed?.sprite) {
+    scene.cameras.main.centerOn(followed.sprite.x, followed.sprite.y);
+    return;
+  }
+  const tile = typeof getTransportVehicleApproximateTile === 'function'
+    ? getTransportVehicleApproximateTile(followId)
+    : null;
+  if (tile) {
+    const point = getTrafficSurfacePoint(scene, tile.row, tile.col);
+    scene.cameras.main.centerOn(point.x, point.y);
   }
 }
 

@@ -619,7 +619,10 @@ function openTransportVehicleInspector(vehicleId, pointer = null, options = {}) 
   transportInspectorState.stopId = '';
   transportInspectorState.follow = options.follow === true;
   root.hidden = false;
-  if (pointer) positionTransportVehicleInspector(root, pointer);
+  // Always position - with no pointer (fleet list / depot buttons) the
+  // helper falls back to viewport centre. Skipping it left the window with
+  // position:fixed but no top/left, rendering it off-screen below the page.
+  positionTransportVehicleInspector(root, pointer);
   refreshTransportInspector();
 }
 
@@ -633,7 +636,7 @@ function openTransportStopInspector(stopId, pointer = null) {
   transportInspectorState.vehicleId = '';
   transportInspectorState.follow = false;
   root.hidden = false;
-  if (pointer) positionTransportVehicleInspector(root, pointer);
+  positionTransportVehicleInspector(root, pointer);
   refreshTransportInspector();
 }
 
@@ -666,16 +669,21 @@ function refreshTransportInspector() {
   const route = getTransportExpansionState().routes.find((entry) => entry.id === vehicle.routeId);
   const vehicleClass = getTransportVehicleClass(vehicle.classId);
   root.querySelector('[data-transport-inspector-title]').textContent = t('transport.inspector.title', { id: vehicle.id });
-  // Position comes from the on-screen sprite (the thing the player is
-  // actually watching), not the daily-cadence backend order index.
+  // Position prefers the on-screen sprite (the thing the player is actually
+  // watching); zoomed out (sprites culled) it falls back to the backend
+  // simulation's best-known tile.
   const visual = typeof activeScene !== 'undefined'
     ? activeScene?.transportVisualState?.vehicles?.find((entry) => entry.vehicleId === vehicle.id)
     : null;
+  const approximateTile = visual?.current
+    || (typeof getTransportVehicleApproximateTile === 'function'
+      ? getTransportVehicleApproximateTile(vehicle.id)
+      : null);
   const rows = [
     [t('transport.inspector.class'), t(`transport.vehicleClass.${vehicle.classId}`)],
     [t('transport.inspector.status'), t(`transport.vehicleStatus.${vehicle.status}`)],
     [t('transport.inspector.route'), route ? route.name : t('transport.depot.unassigned')],
-    [t('transport.inspector.position'), visual?.current ? `(${visual.current.row}, ${visual.current.col})` : '—'],
+    [t('transport.inspector.position'), approximateTile ? `(${approximateTile.row}, ${approximateTile.col})` : '—'],
     [t('transport.inspector.passengers'), `${vehicle.passengersAboard} / ${vehicleClass.capacity}`],
     [t('transport.inspector.condition'), transportFormatPercent(vehicle.condition)],
     [t('transport.inspector.age'), `${vehicle.ageMonths}mo`],

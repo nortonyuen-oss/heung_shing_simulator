@@ -1135,6 +1135,31 @@ function getTransportStopWaitingCount(stopId) {
   return transportRuntime.stopWaitingEstimate.get(stopId) || 0;
 }
 
+// Best-known map tile for a vehicle when no on-screen sprite exists (zoomed
+// out, §15's culling): the cycle stop its daily simulation last reached, or
+// its home depot's anchor tile while parked/servicing. Camera tracking and
+// the inspector's position row fall back to this.
+function getTransportVehicleApproximateTile(vehicleId) {
+  const state = getTransportExpansionState();
+  const vehicle = state.vehicles.find((entry) => entry.id === vehicleId);
+  if (!vehicle) return null;
+  const route = state.routes.find((entry) => entry.id === vehicle.routeId);
+  if (route) {
+    const cycleStops = getTransportRouteCycleStops(route);
+    if (cycleStops.length > 0) {
+      const stop = cycleStops[((vehicle.orderIndex % cycleStops.length) + cycleStops.length) % cycleStops.length];
+      if (stop) return { row: stop.row, col: stop.col };
+    }
+  }
+  if (vehicle.depotId) {
+    const separator = String(vehicle.depotId).indexOf(':');
+    const row = Number(String(vehicle.depotId).slice(0, separator));
+    const col = Number(String(vehicle.depotId).slice(separator + 1));
+    if (Number.isFinite(row) && Number.isFinite(col)) return { row, col };
+  }
+  return null;
+}
+
 function transportDirectionBetween(current, next) {
   const dr = next.row - current.row;
   const dc = next.col - current.col;
@@ -2069,6 +2094,7 @@ const transportExpansionTestApi = {
   getTransportRouteCycleStops,
   getTransportRouteAccruedCost,
   getTransportStopWaitingCount,
+  getTransportVehicleApproximateTile,
 };
 
 if (typeof module !== 'undefined' && module.exports) module.exports = transportExpansionTestApi;

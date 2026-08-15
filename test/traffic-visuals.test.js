@@ -415,14 +415,11 @@ test('bus stop dwell matches a bus stop only to the compass direction it serves'
   }
 });
 
-test('bus stop dwell speed factor tapers down approaching the stop and back up leaving it', () => {
+test('bus stop dwell speed factor tapers down from the approach window to the leg end (the stop)', () => {
   assert.equal(getBusStopDwellSpeedFactor(0), 1, 'well before the approach window');
-  assert.equal(getBusStopDwellSpeedFactor(0.28), 1, 'at the approach window start');
-  assert.ok(getBusStopDwellSpeedFactor(0.4) < 1 && getBusStopDwellSpeedFactor(0.4) > 0.08);
-  assert.ok(Math.abs(getBusStopDwellSpeedFactor(0.5) - 0.08) < 1e-9, 'at the dwell point itself');
-  assert.ok(getBusStopDwellSpeedFactor(0.6) > 0.08 && getBusStopDwellSpeedFactor(0.6) < 1);
-  assert.equal(getBusStopDwellSpeedFactor(0.72), 1, 'at the depart window end');
-  assert.equal(getBusStopDwellSpeedFactor(1), 1, 'well after departing');
+  assert.equal(getBusStopDwellSpeedFactor(0.5), 1, 'at the approach window start');
+  assert.ok(getBusStopDwellSpeedFactor(0.7) < 1 && getBusStopDwellSpeedFactor(0.7) > 0.08);
+  assert.ok(Math.abs(getBusStopDwellSpeedFactor(1) - 0.08) < 1e-9, 'at progress 1 - exactly where the stop is');
 });
 
 test('vehicle target follows visible traffic load and respects threshold and cap', () => {

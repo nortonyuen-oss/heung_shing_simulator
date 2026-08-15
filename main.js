@@ -4335,6 +4335,7 @@ function getSelectedPlacementFootprint() {
 
   if (selectedTool === 'park-small') return { footprintCols: 1, footprintRows: 1 };
   if (selectedTool === 'park-large') return { footprintCols: 3, footprintRows: 3 };
+  if (selectedTool === 'bus-depot') return { footprintCols: BUS_DEPOT_FOOTPRINT_COLS, footprintRows: BUS_DEPOT_FOOTPRINT_ROWS };
 
   const infraTypeByTool = {
     'power-coal':    'power_plant_coal',
@@ -5450,8 +5451,19 @@ function updateBuildingPlacementGuide(scene, pointer) {
   const { footprintCols, footprintRows } = footprint;
   const canPlace = selectedTool === 'harbor' && typeof canPlaceHarborFootprint === 'function'
     ? canPlaceHarborFootprint(tile.row, tile.col)
-    : canPlaceBuildingFootprint(tile.row, tile.col, footprintCols, footprintRows);
+    : selectedTool === 'bus-depot'
+      ? canPlaceOrRotateBusDepot(scene, tile.row, tile.col)
+      : canPlaceBuildingFootprint(tile.row, tile.col, footprintCols, footprintRows);
   drawFootprintGuide(scene, tile.row, tile.col, footprintCols, footprintRows, canPlace);
+}
+
+// A hover over an already-placed depot doesn't block placement - clicking it
+// rotates its orientation instead (see placeBusDepotBuilding, tools.js) - so
+// the footprint guide should read as "OK" there too, not "blocked".
+function canPlaceOrRotateBusDepot(scene, row, col) {
+  const sprite = scene?.buildingSprites?.get(getTileId(row, col));
+  if (sprite && buildingData[getTileId(sprite.mapRow, sprite.mapCol)]?.type === 'bus_depot') return true;
+  return canPlaceBuildingFootprint(row, col, BUS_DEPOT_FOOTPRINT_COLS, BUS_DEPOT_FOOTPRINT_ROWS);
 }
 
 function drawFootprintGuide(scene, row, col, footprintCols = 1, footprintRows = 1, canPlace = true) {

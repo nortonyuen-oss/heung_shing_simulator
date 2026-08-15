@@ -23,9 +23,8 @@ const TRAFFIC_VISUAL_CONFIG = Object.freeze({
   downhillSpeedFactor: 0.94,
   surfaceConnectionTolerancePx: 0.75,
   busStopDwellMs: 3000,
-  busStopApproachStartProgress: 0.28,
-  busStopDwellProgress: 0.5,
-  busStopDepartEndProgress: 0.72,
+  busStopApproachStartProgress: 0.5,
+  busStopDepartEndProgress: 0.5,
   busStopDwellMinSpeedFactor: 0.08,
 });
 
@@ -299,18 +298,19 @@ function findMatchingBusStopSide(row, col, deltaRow, deltaCol) {
 // Tapers vehicle speed down approaching the dwell point and back up leaving
 // it; the hold at zero for busStopDwellMs is handled separately as a frozen
 // countdown (see updateTrafficVisuals), not by this factor reaching 0 here.
+// Tapers down from 1x to busStopDwellMinSpeedFactor as progress runs from
+// busStopApproachStartProgress up to 1 (the leg's end point - see
+// createTrafficLeg - which is where the matched stop actually is). The
+// symmetric ramp back up after departing is handled separately, on the
+// following leg, since the dwell freeze always lands exactly at progress 1
+// of *this* leg - see the busDepartTaperActive handling in
+// updateTrafficVisuals.
 function getBusStopDwellSpeedFactor(progress, config = TRAFFIC_VISUAL_CONFIG) {
   const start = config.busStopApproachStartProgress;
-  const mid = config.busStopDwellProgress;
-  const end = config.busStopDepartEndProgress;
   const minFactor = config.busStopDwellMinSpeedFactor;
-  if (progress <= start || progress >= end) return 1;
-  if (progress <= mid) {
-    const t = (progress - start) / Math.max(1e-6, mid - start);
-    return 1 - (1 - minFactor) * t;
-  }
-  const t = (progress - mid) / Math.max(1e-6, end - mid);
-  return minFactor + (1 - minFactor) * t;
+  if (progress <= start) return 1;
+  const t = (progress - start) / Math.max(1e-6, 1 - start);
+  return 1 - (1 - minFactor) * Math.min(1, t);
 }
 
 function pickWeightedTrafficModel(
@@ -1829,6 +1829,7 @@ function spawnTrafficVehicle(scene, roads, random = Math.random, time = 0) {
       busDwellRemainingMs: 0,
       busDwellHandledForLeg: false,
       busDwellMatchedSide: undefined,
+      busDepartTaperActive: false,
     };
     vehicle.leg = createTrafficLeg(scene, vehicle.previous, vehicle.current, vehicle.next);
     setTrafficVehicleVisual(
@@ -1989,6 +1990,7 @@ function updateTrafficVisuals(time, delta) {
         return true;
       }
       vehicle.busDwellRemainingMs = 0;
+      vehicle.busDepartTaperActive = true;
     }
 
     let progressAmount = computeTrafficProgressAmount(
@@ -1999,28 +2001,44 @@ function updateTrafficVisuals(time, delta) {
       vehicle.model.speedFactor * getTrafficLegSpeedFactor(vehicle.leg),
     );
 
-    if (vehicle.model.category === 'bus' && vehicle.current && vehicle.previous) {
+    if (vehicle.model.category === 'bus' && vehicle.current && vehicle.next) {
+      // A leg's progress runs from AT vehicle.current (0) to AT vehicle.next
+      // (1) - see createTrafficLeg - so the stop to check against is the tile
+      // the bus is heading toward (next, via the outgoing current->next
+      // direction), and dwelling must freeze at progress 1 to actually land
+      // on that tile instead of stopping partway there.
+      //
       // Determined once per leg (reset on leg transition) and reused for the
       // whole crossing, so a leg with no bus stop never tapers speed at all -
       // only a leg that actually has one beside it slows/stops/resumes.
       if (vehicle.busDwellMatchedSide === undefined) {
-        const deltaRow = vehicle.current.row - vehicle.previous.row;
-        const deltaCol = vehicle.current.col - vehicle.previous.col;
+        const deltaRow = vehicle.next.row - vehicle.current.row;
+        const deltaCol = vehicle.next.col - vehicle.current.col;
         vehicle.busDwellMatchedSide = findMatchingBusStopSide(
-          vehicle.current.row, vehicle.current.col, deltaRow, deltaCol,
+          vehicle.next.row, vehicle.next.col, deltaRow, deltaCol,
         );
+      }
+
+      if (vehicle.busDepartTaperActive) {
+        const departEnd = TRAFFIC_VISUAL_CONFIG.busStopDepartEndProgress;
+        if (vehicle.progress >= departEnd) {
+          vehicle.busDepartTaperActive = false;
+        } else {
+          const minFactor = TRAFFIC_VISUAL_CONFIG.busStopDwellMinSpeedFactor;
+          const t = vehicle.progress / Math.max(1e-6, departEnd);
+          progressAmount *= minFactor + (1 - minFactor) * t;
+        }
       }
 
       if (vehicle.busDwellMatchedSide) {
         progressAmount *= getBusStopDwellSpeedFactor(vehicle.progress);
-        const dwellProgress = TRAFFIC_VISUAL_CONFIG.busStopDwellProgress;
         if (
           !vehicle.busDwellHandledForLeg
-          && vehicle.progress < dwellProgress
-          && vehicle.progress + progressAmount >= dwellProgress
+          && vehicle.progress < 1
+          && vehicle.progress + progressAmount >= 1
         ) {
           vehicle.busDwellHandledForLeg = true;
-          vehicle.progress = dwellProgress;
+          vehicle.progress = 1;
           vehicle.busDwellRemainingMs = TRAFFIC_VISUAL_CONFIG.busStopDwellMs;
           setTrafficVehicleVisual(vehicle, evaluateTrafficLeg(vehicle.leg, vehicle.progress), time);
           return true;

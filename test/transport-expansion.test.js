@@ -66,13 +66,17 @@ function createTransportVm() {
   return context;
 }
 
-test('old cities default to a disabled additive schema and retain v2 reservation fields', () => {
+test('old cities default to a disabled schema-v2 state with no routes or vehicles', () => {
   const oldCity = transport.normalizeTransportExpansionState(undefined);
-  assert.equal(oldCity.schemaVersion, 1);
+  assert.equal(oldCity.schemaVersion, 2);
   assert.equal(oldCity.enabled, false);
   assert.equal(oldCity.unlocked, false);
   assert.deepEqual(oldCity.routes, []);
+  assert.deepEqual(oldCity.vehicles, []);
+  assert.equal(oldCity.company.cash, 0);
+});
 
+test('v1 saves migrate to schema v2: route bus counts become grandfathered vehicles, startup credit becomes company cash', () => {
   const history = Array.from({ length: 30 }, (_, index) => ({
     year: 1900 + Math.floor(index / 12),
     month: index % 12 + 1,
@@ -82,6 +86,7 @@ test('old cities default to a disabled additive schema and retain v2 reservation
     enabled: true,
     unlocked: true,
     lastSettledMonthIndex: 0,
+    startupCreditRemaining: 1500,
     stops: [{ id: 'central', row: 2, col: 3 }],
     routes: [{
       id: 'route-1',
@@ -93,12 +98,24 @@ test('old cities default to a disabled additive schema and retain v2 reservation
       history,
     }],
   });
+  assert.equal(restored.schemaVersion, 2);
   assert.equal(restored.lastSettledMonthIndex, 0);
-  assert.equal(restored.routes[0].buses, 8);
-  assert.equal(restored.routes[0].fare, 5);
+  // raw fare 9 is below the new TRANSPORT_FARE_MIN (15) and clamps up to it.
+  assert.equal(restored.routes[0].fare, 15);
   assert.equal(restored.routes[0].vehicleClassId, 'future-electric-bus');
   assert.equal(restored.routes[0].servicePlan.vehicleClassId, 'future-electric-bus');
   assert.equal(restored.routes[0].history.length, 24);
+  assert.equal(restored.routes[0].buses, undefined);
+
+  // 99 buses clamps to TRANSPORT_ROUTE_BUS_MAX (8), each grandfathered in for free.
+  assert.equal(restored.vehicles.length, 8);
+  for (const vehicle of restored.vehicles) {
+    assert.equal(vehicle.routeId, 'route-1');
+    assert.equal(vehicle.classId, 'future-electric-bus');
+    assert.equal(vehicle.purchasePrice, 0);
+  }
+  assert.equal(restored.nextVehicleId, 9);
+  assert.equal(restored.company.cash, 1500);
 });
 
 test('route metrics use the planned frequency, fare, capacity and operating formulas', () => {
@@ -107,7 +124,7 @@ test('route metrics use the planned frequency, fare, capacity and operating form
     outboundTiles: 7,
     stopCount: 2,
     effectiveBuses: 2,
-    fare: 2.5,
+    fare: 35,
     averageTraffic: 0,
     weatherAvailability: 1,
   });
@@ -115,21 +132,37 @@ test('route metrics use the planned frequency, fare, capacity and operating form
   assert.equal(balanced.headwayMinutes, 8.25);
   assert.equal(balanced.waitMinutes, 4.125);
   assert.equal(balanced.monthlyPassengers, 540);
-  assert.equal(balanced.revenue, 270);
-  assert.equal(balanced.cost, 262);
-  assert.equal(balanced.net, 8);
+  assert.equal(balanced.revenue, 18900);
+  assert.equal(balanced.cost, 2136);
+  assert.equal(balanced.net, 16764);
 
+  const doubleDeckerCap = transport.TRANSPORT_VEHICLE_CLASSES.standard_double_decker.monthlyRidershipCap;
   const capped = transport.computeTransportRouteMetrics({
     potentialPassengers: 100000,
     outboundTiles: 1,
     stopCount: 2,
     effectiveBuses: 2,
-    fare: 1,
+    fare: 15,
     averageTraffic: 0,
     weatherAvailability: 1,
   });
-  assert.equal(capped.monthlyPassengers, 2 * transport.TRANSPORT_CAPACITY_PER_BUS_MONTH);
-  assert.ok(transport.getTransportFareDemandFactor(1) > transport.getTransportFareDemandFactor(5));
+  assert.equal(capped.monthlyPassengers, 2 * doubleDeckerCap);
+
+  const expressCap = transport.TRANSPORT_VEHICLE_CLASSES.express_single_deck.monthlyRidershipCap;
+  const cappedExpress = transport.computeTransportRouteMetrics({
+    potentialPassengers: 100000,
+    outboundTiles: 1,
+    stopCount: 2,
+    effectiveBuses: 2,
+    fare: 15,
+    classId: 'express_single_deck',
+    averageTraffic: 0,
+    weatherAvailability: 1,
+  });
+  assert.equal(cappedExpress.monthlyPassengers, 2 * expressCap);
+  assert.ok(expressCap < doubleDeckerCap);
+
+  assert.ok(transport.getTransportFareDemandFactor(15) > transport.getTransportFareDemandFactor(60));
 });
 
 test('road routing is shortest-first, then fewest-turns, and scales to 50 full maps', () => {
@@ -183,15 +216,22 @@ test('live expansion unlocks, routes, breaks, settles and restores without affec
   vm.runInContext(`
     setExpansionEnabled('transport', true, { notify: false, autosave: false });
     createdRoute = createTransportRoute({
-      name: 'Cross-town', color: '#e53935', buses: 2, fare: 2.5,
+      name: 'Cross-town', color: '#e53935', fare: 35,
       stopIds: listTransportStopSites().map((stop) => stop.id),
     });
+    depotId = getConnectedCommissionedTransportDepots()[0].id;
+    vehicleA = buyTransportVehicle(depotId, 'standard_double_decker');
+    vehicleB = buyTransportVehicle(depotId, 'standard_double_decker');
+    cashAfterPurchase = getTransportExpansionState().company.cash;
+    assignTransportVehicleToRoute(vehicleA.id, createdRoute.id);
+    assignTransportVehicleToRoute(vehicleB.id, createdRoute.id);
     updateTransportSimulation();
     activeResult = {
       unlocked: getTransportExpansionState().unlocked,
-      credit: getTransportExpansionState().startupCreditRemaining,
+      cash: getTransportExpansionState().company.cash,
       depotCapacity: getTransportFleetCapacity(),
       status: getTransportRouteRuntime(createdRoute.id).status,
+      assignedVehicles: getTransportRouteVehicles(createdRoute.id).length,
       passengers: createdRoute.lastStats.monthlyPassengers,
       cost: createdRoute.lastStats.cost,
       relief: getBuildingTransportModeShare('4:2'),
@@ -210,9 +250,9 @@ test('live expansion unlocks, routes, breaks, settles and restores without affec
       routeCost: createdRoute.lastStats.cost,
       finance: settleTransportMonth(),
     };
-    creditAfterFirstSettlement = getTransportExpansionState().startupCreditRemaining;
+    cashAfterFirstSettlement = getTransportExpansionState().company.cash;
     repeatedSettlement = settleTransportMonth();
-    creditAfterRepeatedSettlement = getTransportExpansionState().startupCreditRemaining;
+    cashAfterRepeatedSettlement = getTransportExpansionState().company.cash;
 
     busStopMap[5][9] = ['w', 'e'];
     markTransportStopsDirty();
@@ -232,6 +272,7 @@ test('live expansion unlocks, routes, breaks, settles and restores without affec
     setExpansionEnabled('transport', false, { notify: false, autosave: false });
     disabledResult = {
       routesPreserved: getTransportExpansionState().routes.length,
+      vehiclesPreserved: getTransportExpansionState().vehicles.length,
       relief: getBuildingTransportModeShare('4:2'),
       happiness: getTransportHappinessBonus(),
       commercial: getTransportCommercialDemandBonus(),
@@ -243,7 +284,7 @@ test('live expansion unlocks, routes, breaks, settles and restores without affec
     roundTripResult = {
       enabled: isExpansionEnabled('transport'),
       routeName: getTransportExpansionState().routes[0].name,
-      buses: getTransportExpansionState().routes[0].buses,
+      vehicleCount: getTransportExpansionState().vehicles.length,
       fare: getTransportExpansionState().routes[0].fare,
       savedHasNoPath: Object.hasOwn(savedExpansion.transport.routes[0], 'path'),
     };
@@ -251,9 +292,11 @@ test('live expansion unlocks, routes, breaks, settles and restores without affec
 
   const active = JSON.parse(JSON.stringify(context.activeResult));
   assert.equal(active.unlocked, true);
-  assert.equal(active.credit, transport.TRANSPORT_STARTUP_CREDIT);
+  assert.equal(active.cash, transport.TRANSPORT_STARTUP_CAPITAL - 2 * 2800000);
+  assert.equal(context.cashAfterPurchase, active.cash);
   assert.equal(active.depotCapacity, transport.TRANSPORT_DEPOT_CAPACITY);
   assert.equal(active.status, 'active');
+  assert.equal(active.assignedVehicles, 2);
   assert.ok(active.passengers > 0);
   assert.ok(active.cost > 0);
   assert.ok(active.relief > 0 && active.relief <= transport.TRANSPORT_TRAFFIC_RELIEF_MAX);
@@ -267,7 +310,7 @@ test('live expansion unlocks, routes, breaks, settles and restores without affec
   assert.equal(broken.routeCost, 0);
   assert.equal(broken.finance.routeOperations, 0);
   assert.equal(broken.finance.depotUpkeep, transport.TRANSPORT_DEPOT_MONTHLY_UPKEEP);
-  assert.equal(context.creditAfterFirstSettlement, context.creditAfterRepeatedSettlement);
+  assert.equal(context.cashAfterFirstSettlement, context.cashAfterRepeatedSettlement);
   assert.deepEqual(
     JSON.parse(JSON.stringify(context.repeatedSettlement)),
     broken.finance,
@@ -281,6 +324,7 @@ test('live expansion unlocks, routes, breaks, settles and restores without affec
   });
   const disabled = JSON.parse(JSON.stringify(context.disabledResult));
   assert.equal(disabled.routesPreserved, 1);
+  assert.equal(disabled.vehiclesPreserved, 2);
   assert.equal(disabled.relief, 0);
   assert.equal(disabled.happiness, 0);
   assert.equal(disabled.commercial, 0);
@@ -289,8 +333,6 @@ test('live expansion unlocks, routes, breaks, settles and restores without affec
     revenue: 0,
     routeOperations: 0,
     depotUpkeep: 0,
-    grossCost: 0,
-    creditApplied: 0,
     cost: 0,
     net: 0,
   });
@@ -298,34 +340,185 @@ test('live expansion unlocks, routes, breaks, settles and restores without affec
   assert.deepEqual(JSON.parse(JSON.stringify(context.roundTripResult)), {
     enabled: true,
     routeName: 'Cross-town',
-    buses: 2,
-    fare: 2.5,
+    vehicleCount: 2,
+    fare: 35,
     savedHasNoPath: false,
   });
 });
 
-test('one-click platform pairing costs $20 and depot capacity rejects over-allocation', () => {
+test('one-click platform pairing still costs $20, drawn from company.cash', () => {
   const context = createTransportVm();
   context.busStopMap[5][9] = ['w'];
   vm.runInContext(`
     setExpansionEnabled('transport', true, { notify: false, autosave: false });
     stopIds = listTransportStopSites().map((stop) => stop.id);
     pairingCost = getTransportStopPairingCost(stopIds);
+    cashBeforePairing = getTransportExpansionState().company.cash;
     paired = ensureTransportStopPairs(stopIds, null);
-    creditAfterPairing = getTransportExpansionState().startupCreditRemaining;
-    firstCapacityRoute = createTransportRoute({ stopIds, buses: 8, fare: 2.5 });
-    capacityError = '';
-    try {
-      createTransportRoute({ stopIds, buses: 5, fare: 2.5 });
-    } catch (error) {
-      capacityError = error.code;
-    }
+    cashAfterPairing = getTransportExpansionState().company.cash;
   `, context);
   assert.equal(context.pairingCost, 20);
   assert.equal(context.paired, true);
   assert.deepEqual(context.busStopMap[5][9], ['w', 'e']);
-  assert.equal(context.creditAfterPairing, transport.TRANSPORT_STARTUP_CREDIT - 20);
-  assert.equal(context.capacityError, 'fleetCapacity');
+  assert.equal(context.cashBeforePairing - context.cashAfterPairing, 20);
+});
+
+test('depot capacity rejects a 13th vehicle at the same depot', () => {
+  const context = createTransportVm();
+  vm.runInContext(`
+    setExpansionEnabled('transport', true, { notify: false, autosave: false });
+    stopIds = listTransportStopSites().map((stop) => stop.id);
+    ensureTransportStopPairs(stopIds, null);
+    createTransportRoute({ stopIds, fare: 35 });
+    depotId = getConnectedCommissionedTransportDepots()[0].id;
+    getTransportExpansionState().company.cash = 1000000000;
+    bought = [];
+    for (let i = 0; i < 12; i++) {
+      bought.push(buyTransportVehicle(depotId, 'standard_double_decker'));
+    }
+    depotVehicleCount = getTransportDepotVehicleCount(depotId);
+    overflowError = '';
+    try {
+      buyTransportVehicle(depotId, 'standard_double_decker');
+    } catch (error) {
+      overflowError = error.code;
+    }
+  `, context);
+  assert.equal(context.bought.length, 12);
+  assert.equal(context.depotVehicleCount, 12);
+  assert.equal(context.overflowError, 'depotFull');
+});
+
+test('buying a vehicle debits company.cash and rejects insufficient funds', () => {
+  const context = createTransportVm();
+  vm.runInContext(`
+    setExpansionEnabled('transport', true, { notify: false, autosave: false });
+    stopIds = listTransportStopSites().map((stop) => stop.id);
+    ensureTransportStopPairs(stopIds, null);
+    createTransportRoute({ stopIds, fare: 35 });
+    depotId = getConnectedCommissionedTransportDepots()[0].id;
+    cashBefore = getTransportExpansionState().company.cash;
+    vehicle = buyTransportVehicle(depotId, 'standard_double_decker');
+    cashAfter = getTransportExpansionState().company.cash;
+    getTransportExpansionState().company.cash = 100;
+    brokeError = '';
+    try {
+      buyTransportVehicle(depotId, 'standard_double_decker');
+    } catch (error) {
+      brokeError = error.code;
+    }
+    invalidClassError = '';
+    try {
+      buyTransportVehicle(depotId, 'flying_saucer');
+    } catch (error) {
+      invalidClassError = error.code;
+    }
+  `, context);
+  assert.equal(context.vehicle.status, 'depot');
+  assert.equal(context.vehicle.purchasePrice, 2800000);
+  assert.equal(context.cashBefore - context.cashAfter, 2800000);
+  assert.equal(context.brokeError, 'insufficientFunds');
+  assert.equal(context.invalidClassError, 'invalidClass');
+});
+
+test('selling a vehicle out on a route requires it to return to depot first', () => {
+  const context = createTransportVm();
+  vm.runInContext(`
+    setExpansionEnabled('transport', true, { notify: false, autosave: false });
+    stopIds = listTransportStopSites().map((stop) => stop.id);
+    ensureTransportStopPairs(stopIds, null);
+    route = createTransportRoute({ stopIds, fare: 35 });
+    depotId = getConnectedCommissionedTransportDepots()[0].id;
+    vehicle = buyTransportVehicle(depotId, 'standard_double_decker');
+    assignTransportVehicleToRoute(vehicle.id, route.id);
+    cashBeforeSell = getTransportExpansionState().company.cash;
+    firstSellAttempt = sellTransportVehicle(vehicle.id);
+    statusAfterFirstAttempt = getTransportExpansionState().vehicles[0].status;
+    advanceTransportVehiclesDaily();
+    statusAfterOneDay = getTransportExpansionState().vehicles[0].status;
+    conditionBeforeSell = getTransportExpansionState().vehicles[0].condition;
+    secondSellAttempt = sellTransportVehicle(vehicle.id);
+    cashAfterSell = getTransportExpansionState().company.cash;
+    vehiclesRemaining = getTransportExpansionState().vehicles.length;
+  `, context);
+  assert.equal(context.firstSellAttempt, false);
+  assert.equal(context.statusAfterFirstAttempt, 'delivering_to_depot');
+  assert.equal(context.statusAfterOneDay, 'depot');
+  assert.equal(context.secondSellAttempt, true);
+  assert.equal(context.vehiclesRemaining, 0);
+  // resale = purchasePrice * condition (decayed by the one day spent
+  // returning to depot) * TRANSPORT_VEHICLE_RESALE_FACTOR
+  assert.equal(
+    context.cashAfterSell - context.cashBeforeSell,
+    Math.round(2800000 * context.conditionBeforeSell * transport.TRANSPORT_VEHICLE_RESALE_FACTOR),
+  );
+});
+
+test('mandatory periodic service recalls, services and resumes a vehicle', () => {
+  const context = createTransportVm();
+  context.TRANSPORT_SERVICE_INTERVAL_DAYS = transport.TRANSPORT_SERVICE_INTERVAL_DAYS;
+  context.TRANSPORT_SERVICE_DURATION_DAYS = transport.TRANSPORT_SERVICE_DURATION_DAYS;
+  vm.runInContext(`
+    setExpansionEnabled('transport', true, { notify: false, autosave: false });
+    stopIds = listTransportStopSites().map((stop) => stop.id);
+    ensureTransportStopPairs(stopIds, null);
+    route = createTransportRoute({ stopIds, fare: 35 });
+    depotId = getConnectedCommissionedTransportDepots()[0].id;
+    vehicle = buyTransportVehicle(depotId, 'standard_double_decker');
+    assignTransportVehicleToRoute(vehicle.id, route.id);
+    const stored = () => getTransportExpansionState().vehicles.find((entry) => entry.id === vehicle.id);
+    stored().daysSinceService = TRANSPORT_SERVICE_INTERVAL_DAYS;
+    stored().condition = 0.4;
+    advanceTransportVehiclesDaily();
+    statusAfterOverdueDay = stored().status;
+    advanceTransportVehiclesDaily();
+    statusAfterReturnDay = stored().status;
+    serviceDaysRemainingAtStart = stored().serviceDaysRemaining;
+    for (let i = 0; i < TRANSPORT_SERVICE_DURATION_DAYS - 1; i++) advanceTransportVehiclesDaily();
+    statusMidService = stored().status;
+    advanceTransportVehiclesDaily();
+    statusAfterService = stored().status;
+    conditionAfterService = stored().condition;
+    daysSinceServiceAfterService = stored().daysSinceService;
+  `, context);
+  assert.equal(context.statusAfterOverdueDay, 'returning_for_service');
+  assert.equal(context.statusAfterReturnDay, 'servicing');
+  assert.equal(context.serviceDaysRemainingAtStart, transport.TRANSPORT_SERVICE_DURATION_DAYS);
+  assert.equal(context.statusMidService, 'servicing');
+  assert.equal(context.statusAfterService, 'active');
+  assert.equal(context.conditionAfterService, 1);
+  assert.equal(context.daysSinceServiceAfterService, 0);
+});
+
+test('a route past TRANSPORT_MAX_ROUTES is rejected, editing/deleting existing routes is not', () => {
+  const context = createTransportVm();
+  context.TRANSPORT_MAX_ROUTES = transport.TRANSPORT_MAX_ROUTES;
+  vm.runInContext(`
+    setExpansionEnabled('transport', true, { notify: false, autosave: false });
+    stopIds = listTransportStopSites().map((stop) => stop.id);
+    ensureTransportStopPairs(stopIds, null);
+    createdRoutes = [];
+    for (let i = 0; i < TRANSPORT_MAX_ROUTES; i++) {
+      createdRoutes.push(createTransportRoute({ stopIds, fare: 35 }));
+    }
+    limitError = '';
+    try {
+      createTransportRoute({ stopIds, fare: 35 });
+    } catch (error) {
+      limitError = error.code;
+    }
+    routeCountAtLimit = getTransportExpansionState().routes.length;
+    updated = updateTransportRoute(createdRoutes[0].id, { fare: 60 });
+    deleteTransportRoute(createdRoutes[0].id);
+    routeCountAfterDelete = getTransportExpansionState().routes.length;
+    recreated = createTransportRoute({ stopIds, fare: 35 });
+  `, context);
+  assert.equal(context.createdRoutes.length, transport.TRANSPORT_MAX_ROUTES);
+  assert.equal(context.limitError, 'routeLimit');
+  assert.equal(context.routeCountAtLimit, transport.TRANSPORT_MAX_ROUTES);
+  assert.equal(context.updated.fare, 60);
+  assert.equal(context.routeCountAfterDelete, transport.TRANSPORT_MAX_ROUTES - 1);
+  assert.ok(context.recreated.id);
 });
 
 test('enabling managed transport immediately removes fake ambient buses only', () => {

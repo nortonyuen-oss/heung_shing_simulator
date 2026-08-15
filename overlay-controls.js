@@ -876,7 +876,10 @@ function composeLandValueMap(canopy, pollution, influenceMaps) {
       val += getScenicValue(r, c) * SCENIC_LAND_VALUE_BONUS_MAX;
     }
     val += landmarkBonus[r]?.[c] ?? 0;
-    if (typeof getTransportLandValueBonus === 'function') {
+    // §14.2: transit access is a land-value effect for commercial tiles only
+    // - residential gets a happiness effect instead (§14.4), industrial gets
+    // a demand effect instead (§14.3).
+    if (zoneMap[r][c] === ZONE_COM && typeof getTransportLandValueBonus === 'function') {
       val += getTransportLandValueBonus(r, c);
     }
     val -= (pollution[r]?.[c] ?? 0) * 0.35;

@@ -182,8 +182,7 @@ function renderTransportEditor() {
       <div class="transport-fields">
         <label>${transportEscapeHtml(t('transport.routeName'))}<input data-transport-field="name" maxlength="60" value="${transportEscapeHtml(editor.name)}" /></label>
         <label>${transportEscapeHtml(t('transport.routeColor'))}<input data-transport-field="color" type="color" value="${transportEscapeHtml(editor.color)}" /></label>
-        <label>${transportEscapeHtml(t('transport.routeBuses'))}<input data-transport-field="buses" type="number" min="1" max="8" step="1" value="${editor.buses}" /></label>
-        <label>${transportEscapeHtml(t('transport.routeFare'))}<input data-transport-field="fare" type="number" min="1" max="5" step="0.5" value="${editor.fare}" /></label>
+        <label>${transportEscapeHtml(t('transport.routeFare'))}<input data-transport-field="fare" type="number" min="15" max="60" step="5" value="${editor.fare}" /></label>
       </div>
       <div class="transport-stop-picker">
         <strong>${transportEscapeHtml(t('transport.routeStops'))} (${stops.length})</strong>
@@ -220,7 +219,7 @@ function renderTransportRouteCard(route, index) {
   return `
     <article class="transport-route" style="--route-color:${transportEscapeHtml(route.color)}">
       <div class="transport-route-head">
-        <div><div class="transport-route-name">${transportEscapeHtml(route.name)}</div><small>${route.buses} 🚌 · $${Number(route.fare).toFixed(2)}</small></div>
+        <div><div class="transport-route-name">${transportEscapeHtml(route.name)}</div><small>${typeof getTransportRouteVehicles === 'function' ? getTransportRouteVehicles(route.id).length : 0} 🚌 · $${Number(route.fare).toFixed(2)}</small></div>
         <span class="transport-status" data-status="${transportEscapeHtml(status)}">${transportEscapeHtml(t(`transport.status.${status}`))}</span>
       </div>
       <div class="transport-route-stops" title="${transportEscapeHtml(stopText)}">${transportEscapeHtml(stopText)}</div>
@@ -316,7 +315,6 @@ function beginTransportRouteEditor(route = null) {
     routeId: route?.id || '',
     name: route?.name || getDefaultTransportRouteName(state.nextRouteId),
     color: route?.color || TRANSPORT_ROUTE_COLORS[routeIndex % TRANSPORT_ROUTE_COLORS.length],
-    buses: route?.buses ?? TRANSPORT_DEFAULT_ROUTE_BUSES,
     fare: route?.fare ?? TRANSPORT_DEFAULT_FARE,
     stopIds: Array.from(route?.stopIds || []),
   };
@@ -374,7 +372,6 @@ function saveTransportRouteEditor() {
     const draft = {
       name: editor.name,
       color: editor.color,
-      buses: editor.buses,
       fare: editor.fare,
       stopIds: editor.stopIds,
     };
@@ -394,9 +391,7 @@ function saveTransportRouteEditor() {
 function handleTransportUiInput(event) {
   const field = event.target?.dataset?.transportField;
   if (!field || !transportUiState.editor) return;
-  if (field === 'buses') {
-    transportUiState.editor.buses = Math.round(transportClamp(event.target.value, 1, 8));
-  } else if (field === 'fare') {
+  if (field === 'fare') {
     transportUiState.editor.fare = normalizeTransportFare(event.target.value);
   } else {
     transportUiState.editor[field] = event.target.value;

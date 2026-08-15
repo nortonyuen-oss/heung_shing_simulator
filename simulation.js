@@ -30,6 +30,7 @@ function runDailySystems(scene) {
   if (!scene) return;
   updateWeatherSimulation();
   if (typeof recordTransportDailyAvailability === 'function') recordTransportDailyAvailability();
+  if (typeof advanceTransportVehiclesDaily === 'function') advanceTransportVehiclesDaily();
   updateWeatherVisualOverlay(scene);
 }
 
@@ -573,6 +574,9 @@ function updateDemand() {
     : 0;
 
   const pollutionPenalty = clamp(city.pollution / 200, 0, 0.30);
+  const transportIndustrialBonus = typeof getTransportIndustrialDemandBonus === 'function'
+    ? getTransportIndustrialDemandBonus()
+    : 0;
 
   city.demandI = clamp(
     regularIndLabourTerm * (1 - scienceShare) * 0.6
@@ -584,6 +588,7 @@ function updateDemand() {
     + (isPolicyActive('scienceDevelopment') ? 0.05 : 0)
     + (isPolicyActive('industrialBuildingRevitalization') ? 0.12 : 0)
     + (isPolicyActive('strongCountryManufacturing') ? 0.10 : 0)
+    + transportIndustrialBonus
     - powerShortageDemandPenalty,
     -1, 1
   );

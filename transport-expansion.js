@@ -8,30 +8,75 @@
 // city-building rhythm.
 
 const TRANSPORT_EXPANSION_ID = 'transport';
-const TRANSPORT_EXPANSION_SCHEMA_VERSION = 1;
+const TRANSPORT_EXPANSION_SCHEMA_VERSION = 2;
 const TRANSPORT_EXPANSION_UNLOCK_POPULATION = 3000;
-const TRANSPORT_STARTUP_CREDIT = 2000;
+// v1's "credit that falls through to city.budget" is gone as of schema v2 -
+// the company now has its own real treasury (company.cash), seeded once at
+// unlock and never topped up from or drained into city.budget again. See
+// TRANSPORT_TTD_SPEC.md §4. Value is in real dollars (600萬 in the spec's
+// display convention).
+const TRANSPORT_STARTUP_CAPITAL = 6000000;
 const TRANSPORT_STOP_CATCHMENT_RADIUS = 5;
 const TRANSPORT_DEPOT_CAPACITY = 12;
 const TRANSPORT_DEPOT_MONTHLY_UPKEEP = 120;
-const TRANSPORT_ROUTE_BUS_MIN = 1;
-const TRANSPORT_ROUTE_BUS_MAX = 8;
-const TRANSPORT_DEFAULT_ROUTE_BUSES = 2;
-const TRANSPORT_FARE_MIN = 1;
-const TRANSPORT_FARE_MAX = 5;
-const TRANSPORT_FARE_STEP = 0.5;
-const TRANSPORT_DEFAULT_FARE = 2.5;
+// Legacy v1 clamp only - a v1 save's raw `route.buses` count is clamped to
+// this range while being converted into that many grandfathered vehicles
+// during migration (migrateTransportRoutesToVehicles). Schema v2 itself has
+// no per-route bus cap; fleet size is bounded by depot capacity instead, §10.
+const TRANSPORT_LEGACY_ROUTE_BUS_MAX = 8;
+// §9: fare band rescaled from 1/2.5/5 (old aggregate model) to 15/35/60 -
+// this game's dollar economy is already stylized (COST_HOSPITAL: 7200), so a
+// fare is an abstracted revenue-per-boarding figure, not a literal HK$ price.
+const TRANSPORT_FARE_MIN = 15;
+const TRANSPORT_FARE_MAX = 60;
+const TRANSPORT_FARE_STEP = 5;
+const TRANSPORT_DEFAULT_FARE = 35;
 const TRANSPORT_MINUTES_PER_ROAD_TILE = 0.75;
 const TRANSPORT_MINUTES_PER_STOP = 1.5;
-const TRANSPORT_CAPACITY_PER_BUS_MONTH = 500;
 const TRANSPORT_FARE_ECONOMY_SCALE = 0.20;
-const TRANSPORT_BUS_MONTHLY_BASE_COST = 110;
-const TRANSPORT_BUS_TILE_COST = 1.5;
 const TRANSPORT_TRAFFIC_RELIEF_MAX = 0.25;
 const TRANSPORT_HAPPINESS_BONUS_MAX = 0.025;
 const TRANSPORT_COMMERCIAL_DEMAND_BONUS_MAX = 0.03;
+const TRANSPORT_INDUSTRIAL_DEMAND_BONUS_MAX = 0.03;
 const TRANSPORT_LAND_VALUE_BONUS_MAX = 0.08;
 const TRANSPORT_HISTORY_LIMIT = 24;
+const TRANSPORT_MAX_ROUTES = 50;
+const TRANSPORT_DEFAULT_VEHICLE_CLASS_ID = 'standard_double_decker';
+// §9 purchase catalog. purchasePrice/monthlyUpkeep/tileRunningCost are real
+// dollars; 萬 is purely the spec/UI's display unit for the purchase price
+// (280 -> $2,800,000), never a stored scale. Worked to a ~1.5-2 game-year
+// payback at peak ridership - see TRANSPORT_TTD_SPEC.md §9.
+const TRANSPORT_VEHICLE_CLASSES = Object.freeze({
+  standard_double_decker: Object.freeze({
+    id: 'standard_double_decker',
+    skin: 'bus_kmb',
+    capacity: 70,
+    speedFactor: 1.0,
+    purchasePrice: 2800000,
+    monthlyRidershipCap: 4200,
+    monthlyUpkeep: 900,
+    tileRunningCost: 12,
+  }),
+  express_single_deck: Object.freeze({
+    id: 'express_single_deck',
+    skin: 'bus_citybus',
+    capacity: 45,
+    speedFactor: 1.25,
+    purchasePrice: 2100000,
+    monthlyRidershipCap: 2700,
+    monthlyUpkeep: 1100,
+    tileRunningCost: 16,
+  }),
+});
+// §10/§12: mandatory periodic servicing and the lightweight breakdown model.
+const TRANSPORT_SERVICE_INTERVAL_DAYS = 120;
+const TRANSPORT_SERVICE_DURATION_DAYS = 4;
+const TRANSPORT_CONDITION_DECAY_PER_DAY = 1 / (TRANSPORT_SERVICE_INTERVAL_DAYS * 3);
+const TRANSPORT_BREAKDOWN_CONDITION_THRESHOLD = 0.35;
+const TRANSPORT_BREAKDOWN_DAILY_CHANCE = 0.03;
+const TRANSPORT_BREAKDOWN_DURATION_DAYS = 2;
+// Resale value on Sell (§10): worn, aged vehicles fetch less than a fresh one.
+const TRANSPORT_VEHICLE_RESALE_FACTOR = 0.5;
 // This epsilon keeps tile count strictly ahead of turn count even on a full
 // 256x256 route, while still breaking equal-length ties in favour of fewer
 // turns.
@@ -89,11 +134,13 @@ function createDefaultTransportExpansionState(enabled = false) {
     enabled: !!enabled,
     unlocked: false,
     unlockAnnounced: false,
-    startupCreditRemaining: 0,
+    company: createDefaultTransportCompany(),
     nextStopId: 1,
     nextRouteId: 1,
+    nextVehicleId: 1,
     stops: [],
     routes: [],
+    vehicles: [],
     commissionedDepotIds: [],
     weatherSuspendedDaysThisMonth: 0,
     lastWeatherDayKey: '',
@@ -102,13 +149,37 @@ function createDefaultTransportExpansionState(enabled = false) {
   };
 }
 
+// Name/presidentName default to '' (not a hardcoded language) - the UI shows
+// a localized placeholder via t() when empty, same pattern
+// getTransportStopDisplayName already uses for unnamed stops.
+function createDefaultTransportCompany() {
+  return {
+    name: '',
+    presidentName: '',
+    cash: 0,
+    foundedYear: 0,
+    foundedMonth: 0,
+  };
+}
+
+function normalizeTransportCompany(raw) {
+  const source = raw && typeof raw === 'object' ? raw : {};
+  return {
+    name: String(source.name || '').slice(0, 60),
+    presidentName: String(source.presidentName || '').slice(0, 40),
+    // Unlike building/route money, company cash is allowed to go negative -
+    // that's the bankruptcy signal in TRANSPORT_TTD_SPEC.md §4, not a bug.
+    cash: Math.round(Number(source.cash) || 0),
+    foundedYear: Math.max(0, Math.floor(Number(source.foundedYear) || 0)),
+    foundedMonth: transportClamp(Math.floor(Number(source.foundedMonth) || 0), 0, 12),
+  };
+}
+
 function createEmptyTransportFinancials() {
   return {
     revenue: 0,
     routeOperations: 0,
     depotUpkeep: 0,
-    grossCost: 0,
-    creditApplied: 0,
     cost: 0,
     net: 0,
   };
@@ -129,6 +200,7 @@ const transportRuntime = {
   landValueBonus: new Map(),
   happinessBonus: 0,
   commercialDemandBonus: 0,
+  industrialDemandBonus: 0,
   summary: createEmptyTransportSummary(),
 };
 
@@ -233,7 +305,11 @@ function normalizeTransportRoute(raw, fallbackIndex) {
     name: String(raw.name || getDefaultTransportRouteName(fallbackIndex + 1)).slice(0, 60),
     color: normalizeTransportColor(raw.color, fallbackIndex),
     stopIds,
-    buses: Math.round(transportClamp(raw.buses, TRANSPORT_ROUTE_BUS_MIN, TRANSPORT_ROUTE_BUS_MAX)),
+    // No `buses` field as of schema v2 - which (and how many) vehicles serve
+    // a route is derived at runtime from vehicle.routeId (TRANSPORT_TTD_SPEC.md
+    // §8.3), never stored on the route itself. A v1 blob's `raw.buses` is
+    // read separately during migration (migrateTransportRoutesToVehicles),
+    // not here.
     fare: normalizeTransportFare(raw.fare ?? TRANSPORT_DEFAULT_FARE),
     status: raw.status === 'suspended' ? 'suspended' : 'active',
     vehicleClassId,
@@ -249,9 +325,82 @@ function normalizeTransportRoute(raw, fallbackIndex) {
   };
 }
 
+const TRANSPORT_VEHICLE_STATUSES = Object.freeze(new Set([
+  'active', 'depot', 'servicing', 'broken_down', 'delivering_to_depot', 'returning_for_service',
+]));
+
+function normalizeTransportVehicle(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  const id = String(raw.id || '').slice(0, 80);
+  if (!id) return null;
+  return {
+    id,
+    classId: String(raw.classId || TRANSPORT_DEFAULT_VEHICLE_CLASS_ID).slice(0, 80),
+    routeId: raw.routeId ? String(raw.routeId).slice(0, 80) : null,
+    depotId: raw.depotId ? String(raw.depotId).slice(0, 80) : null,
+    orderIndex: Math.max(0, Math.floor(Number(raw.orderIndex) || 0)),
+    progress: transportClamp(raw.progress, 0, 1),
+    ageMonths: Math.max(0, Math.floor(Number(raw.ageMonths) || 0)),
+    odometerTiles: Math.max(0, Math.floor(Number(raw.odometerTiles) || 0)),
+    condition: transportClamp(raw.condition ?? 1, 0, 1),
+    daysSinceService: Math.max(0, Math.floor(Number(raw.daysSinceService) || 0)),
+    status: TRANSPORT_VEHICLE_STATUSES.has(raw.status) ? raw.status : 'depot',
+    // Counts down status: 'servicing' / 'broken_down' respectively; 0 when neither.
+    serviceDaysRemaining: Math.max(0, Math.floor(Number(raw.serviceDaysRemaining) || 0)),
+    brokenDaysRemaining: Math.max(0, Math.floor(Number(raw.brokenDaysRemaining) || 0)),
+    purchasePrice: Math.max(0, Math.round(Number(raw.purchasePrice) || 0)),
+    passengersAboard: Math.max(0, Math.floor(Number(raw.passengersAboard) || 0)),
+    tripRevenueAccrued: Math.max(0, Math.round(Number(raw.tripRevenueAccrued) || 0)),
+  };
+}
+
+// v1 -> v2: a route's old `buses` count becomes that many real, free
+// ("grandfathered") vehicles assigned to it - the player already "paid" for
+// them conceptually under the old model (TRANSPORT_TTD_SPEC.md §8.4).
+// `rawRoutes` must be the *unnormalized* source routes (normalizeTransportRoute
+// no longer keeps `buses`), matched by array position to `normalizedRoutes`.
+function migrateTransportRoutesToVehicles(rawRoutes, normalizedRoutes, startVehicleId) {
+  const vehicles = [];
+  let nextVehicleId = Math.max(1, Math.floor(Number(startVehicleId) || 1));
+  const allDepotIds = typeof buildingData === 'undefined'
+    ? []
+    : Object.keys(buildingData).filter((id) => buildingData[id]?.type === 'bus_depot');
+  const connectedDepotIds = typeof isTransportDepotConnected === 'function'
+    ? allDepotIds.filter((id) => isTransportDepotConnected(id, buildingData[id]))
+    : [];
+  // Prefer connected depots so a grandfathered fleet starts road-usable; if
+  // none are connected (yet), still grandfather the vehicles rather than
+  // silently deleting the player's fleet - they just start parked/inactive
+  // until a depot is reconnected.
+  const pool = connectedDepotIds.length > 0 ? connectedDepotIds : allDepotIds;
+  let depotCursor = 0;
+
+  normalizedRoutes.forEach((route, index) => {
+    const rawBusCount = Math.round(transportClamp(
+      rawRoutes?.[index]?.buses, 0, TRANSPORT_LEGACY_ROUTE_BUS_MAX,
+    ));
+    for (let i = 0; i < rawBusCount; i++) {
+      const depotId = pool.length > 0 ? pool[depotCursor % pool.length] : null;
+      depotCursor++;
+      const vehicle = normalizeTransportVehicle({
+        id: `bus-${nextVehicleId++}`,
+        classId: route.vehicleClassId,
+        routeId: route.id,
+        depotId,
+        status: depotId ? 'active' : 'depot',
+        condition: 1,
+        purchasePrice: 0, // grandfathered, not a real purchase - see §8.4
+      });
+      if (vehicle) vehicles.push(vehicle);
+    }
+  });
+  return { vehicles, nextVehicleId };
+}
+
 function normalizeTransportExpansionState(raw) {
   const source = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
   const defaults = createDefaultTransportExpansionState(false);
+  const sourceVersion = Math.max(1, Math.floor(Number(source.schemaVersion) || 1));
   const stops = (Array.isArray(source.stops) ? source.stops : [])
     .map(normalizeTransportStop)
     .filter(Boolean);
@@ -263,17 +412,42 @@ function normalizeTransportExpansionState(raw) {
       ...route,
       stopIds: route.stopIds.filter((id) => stopIds.has(id)),
     }));
+
+  let vehicles = (Array.isArray(source.vehicles) ? source.vehicles : [])
+    .map(normalizeTransportVehicle)
+    .filter(Boolean);
+  let nextVehicleId = Math.max(1, Math.floor(Number(source.nextVehicleId) || vehicles.length + 1));
+  let company = normalizeTransportCompany(source.company);
+
+  // v1 -> v2: synthesize vehicles from each route's old `buses` count, and
+  // carry forward whatever startup credit was left as the new company's
+  // opening cash - see TRANSPORT_TTD_SPEC.md §8.4. One-way; a v2 save is
+  // never read by pre-migration code.
+  if (sourceVersion < 2) {
+    const migrated = migrateTransportRoutesToVehicles(
+      Array.isArray(source.routes) ? source.routes : [], routes, nextVehicleId,
+    );
+    vehicles = migrated.vehicles;
+    nextVehicleId = migrated.nextVehicleId;
+    company = {
+      ...company,
+      cash: transportRoundMoney(source.startupCreditRemaining),
+    };
+  }
+
   return {
     ...defaults,
     schemaVersion: TRANSPORT_EXPANSION_SCHEMA_VERSION,
     enabled: source.enabled === true,
     unlocked: source.unlocked === true,
     unlockAnnounced: source.unlockAnnounced === true,
-    startupCreditRemaining: transportRoundMoney(source.startupCreditRemaining),
+    company,
     nextStopId: Math.max(1, Math.floor(Number(source.nextStopId) || stops.length + 1)),
     nextRouteId: Math.max(1, Math.floor(Number(source.nextRouteId) || routes.length + 1)),
+    nextVehicleId,
     stops,
     routes,
+    vehicles,
     commissionedDepotIds: Array.from(new Set(
       (Array.isArray(source.commissionedDepotIds) ? source.commissionedDepotIds : [])
         .map((id) => String(id || '').slice(0, 80))
@@ -340,6 +514,7 @@ function resetTransportRuntime() {
   transportRuntime.landValueBonus.clear();
   transportRuntime.happinessBonus = 0;
   transportRuntime.commercialDemandBonus = 0;
+  transportRuntime.industrialDemandBonus = 0;
   transportRuntime.summary = createEmptyTransportSummary();
   if (typeof invalidateTransportVisuals === 'function') {
     invalidateTransportVisuals(typeof activeScene === 'undefined' ? null : activeScene, true);
@@ -371,8 +546,14 @@ function updateTransportUnlockState(options = {}) {
   const population = Number(typeof city === 'undefined' ? 0 : city.population) || 0;
   if (state.unlocked || population < TRANSPORT_EXPANSION_UNLOCK_POPULATION) return state.unlocked;
   state.unlocked = true;
-  if (state.startupCreditRemaining <= 0) {
-    state.startupCreditRemaining = TRANSPORT_STARTUP_CREDIT;
+  // Founding grant: the company's one and only transfer from the city -
+  // see TRANSPORT_TTD_SPEC.md §4. `foundedYear === 0` means "not founded
+  // yet" (createDefaultTransportCompany's sentinel), so this only fires
+  // once, even if population dips and re-crosses the threshold somehow.
+  if (state.company.foundedYear === 0) {
+    state.company.cash = TRANSPORT_STARTUP_CAPITAL;
+    state.company.foundedYear = typeof city === 'undefined' ? 1900 : city.year;
+    state.company.foundedMonth = typeof city === 'undefined' ? 1 : city.month;
   }
   if (!state.unlockAnnounced && options.notify !== false) {
     state.unlockAnnounced = true;
@@ -397,18 +578,21 @@ function setExpansionEnabled(id, enabled, options = {}) {
   return state.enabled;
 }
 
+// The ONLY construction spender for transport infrastructure (stop pairing,
+// depot buildings, vehicle purchases). While the expansion isn't active yet,
+// it's ordinary city spending (a city can have bus stops long before anyone
+// unlocks the company). Once active, it draws *exclusively* from
+// company.cash - no fallback to city.budget, ever. See TRANSPORT_TTD_SPEC.md
+// §4: "Company cannot spend city.budget, and the city cannot spend
+// company.cash."
 function spendTransportConstruction(amount) {
   const cost = Math.max(0, Math.round(Number(amount) || 0));
   if (!isTransportExpansionActive()) {
     return typeof spendBudget === 'function' ? spendBudget(cost) : false;
   }
   const state = getTransportExpansionState();
-  const credit = Math.max(0, Number(state.startupCreditRemaining) || 0);
-  const cash = Math.max(0, Number(typeof city === 'undefined' ? 0 : city.budget) || 0);
-  if (credit + cash < cost) return false;
-  const creditUsed = Math.min(credit, cost);
-  state.startupCreditRemaining = transportRoundMoney(credit - creditUsed);
-  if (typeof city !== 'undefined') city.budget -= cost - creditUsed;
+  if (state.company.cash < cost) return false;
+  state.company.cash = Math.round(state.company.cash - cost);
   if (typeof refreshTransportUi === 'function') refreshTransportUi();
   return true;
 }
@@ -583,14 +767,177 @@ function getConnectedCommissionedTransportDepots() {
   return listTransportDepots({ connectedOnly: true }).filter((depot) => commissioned.has(depot.id));
 }
 
+// §13: repurposed from an abstract per-route pool into literal depot parking
+// capacity - citywide total (reporting) and per-depot (purchase gating).
 function getTransportFleetCapacity() {
   return getConnectedCommissionedTransportDepots().length * TRANSPORT_DEPOT_CAPACITY;
 }
 
-function getTransportRequestedFleet(excludeRouteId = '') {
-  return getTransportExpansionState().routes.reduce((sum, route) => (
-    route.id === excludeRouteId || route.status === 'suspended' ? sum : sum + route.buses
-  ), 0);
+function getTransportRequestedFleet() {
+  return getTransportExpansionState().vehicles.length;
+}
+
+function getTransportDepotVehicleCount(depotId) {
+  return getTransportExpansionState().vehicles.filter((vehicle) => vehicle.depotId === depotId).length;
+}
+
+function getTransportRouteVehicles(routeId) {
+  return getTransportExpansionState().vehicles.filter((vehicle) => vehicle.routeId === routeId);
+}
+
+// "Effective" = actually able to run today: assigned, not laid up for
+// service/repair/return, and homed at a depot that's currently connected+
+// commissioned (a disconnected depot's vehicles idle in place, §11).
+function getTransportRouteEffectiveVehicleCount(routeId) {
+  const connectedDepotIds = new Set(getConnectedCommissionedTransportDepots().map((depot) => depot.id));
+  return getTransportRouteVehicles(routeId).filter((vehicle) => (
+    vehicle.status === 'active' && connectedDepotIds.has(vehicle.depotId)
+  )).length;
+}
+
+function getTransportVehicleClass(classId) {
+  return TRANSPORT_VEHICLE_CLASSES[classId] || TRANSPORT_VEHICLE_CLASSES[TRANSPORT_DEFAULT_VEHICLE_CLASS_ID];
+}
+
+function listTransportVehicleClasses() {
+  return Object.values(TRANSPORT_VEHICLE_CLASSES);
+}
+
+// §10 Buy tab: creates a parked, unassigned vehicle at `depotId`, debiting
+// company.cash. Throws createTransportError on any validation failure so
+// callers (UI, tests) can branch on `.code` the same way route creation does.
+function buyTransportVehicle(depotId, classId) {
+  if (!isTransportExpansionActive()) throw createTransportError('notActive');
+  const state = getTransportExpansionState();
+  const depot = listTransportDepots({ connectedOnly: true }).find((entry) => entry.id === depotId);
+  if (!depot || !state.commissionedDepotIds.includes(depotId)) throw createTransportError('needsDepot');
+  if (getTransportDepotVehicleCount(depotId) >= TRANSPORT_DEPOT_CAPACITY) {
+    throw createTransportError('depotFull');
+  }
+  const vehicleClass = TRANSPORT_VEHICLE_CLASSES[classId];
+  if (!vehicleClass) throw createTransportError('invalidClass');
+  if (!spendTransportConstruction(vehicleClass.purchasePrice)) throw createTransportError('insufficientFunds');
+  const vehicle = normalizeTransportVehicle({
+    id: `bus-${state.nextVehicleId}`,
+    classId,
+    routeId: null,
+    depotId,
+    status: 'depot',
+    condition: 1,
+    purchasePrice: vehicleClass.purchasePrice,
+  });
+  state.nextVehicleId++;
+  state.vehicles.push(vehicle);
+  if (typeof queueCityChangeAutosave === 'function') queueCityChangeAutosave();
+  return vehicle;
+}
+
+// §10 Fleet tab "Assign to route": pass routeId: null to unassign back to
+// idle-at-depot. Only a vehicle currently parked at its depot (status
+// 'depot') can be (re)assigned - one already out on a route must be sold or
+// reassigned via the depot's own service/return flow, not teleported.
+function assignTransportVehicleToRoute(vehicleId, routeId) {
+  const state = getTransportExpansionState();
+  const vehicle = state.vehicles.find((entry) => entry.id === vehicleId);
+  if (!vehicle) throw createTransportError('missingVehicle');
+  if (vehicle.status !== 'depot') throw createTransportError('vehicleNotAvailable');
+  if (routeId) {
+    const route = state.routes.find((entry) => entry.id === routeId);
+    if (!route) throw createTransportError('missingRoute');
+    vehicle.routeId = routeId;
+    vehicle.orderIndex = 0;
+    vehicle.status = 'active';
+  } else {
+    vehicle.routeId = null;
+  }
+  markTransportRouteDirty(routeId || '');
+  updateTransportSimulation();
+  if (typeof queueCityChangeAutosave === 'function') queueCityChangeAutosave();
+  return vehicle;
+}
+
+// §10 Fleet tab "Sell": a vehicle out on a route must return to its depot
+// first (mirrors OpenTTD - no mid-road scrapping). Since real per-vehicle
+// movement isn't simulated yet (§12 lands later), this flags the return and
+// reports false; advanceTransportVehiclesDaily() resolves the trip once the
+// depot is reachable, at which point a follow-up Sell call succeeds.
+function sellTransportVehicle(vehicleId) {
+  const state = getTransportExpansionState();
+  const vehicle = state.vehicles.find((entry) => entry.id === vehicleId);
+  if (!vehicle) return false;
+  if (vehicle.status !== 'depot') {
+    if (vehicle.status === 'active' || vehicle.status === 'returning_for_service') {
+      vehicle.status = 'delivering_to_depot';
+    }
+    return false;
+  }
+  const index = state.vehicles.indexOf(vehicle);
+  state.vehicles.splice(index, 1);
+  const resaleValue = Math.round(vehicle.purchasePrice * vehicle.condition * TRANSPORT_VEHICLE_RESALE_FACTOR);
+  state.company.cash = Math.round(state.company.cash + resaleValue);
+  markTransportRouteDirty(vehicle.routeId || '');
+  if (typeof queueCityChangeAutosave === 'function') queueCityChangeAutosave();
+  return true;
+}
+
+// §10/§12 daily tick: ages every non-parked vehicle, runs the mandatory
+// periodic-service state machine, resolves in-progress depot returns (sell
+// or service recall), and rolls the lightweight breakdown chance for
+// vehicles whose service was skipped (most likely a disconnected depot).
+// Call once per simulated day, e.g. from game-clock.js's daily advance hook.
+function advanceTransportVehiclesDaily() {
+  if (!isTransportExpansionActive()) return;
+  const state = getTransportExpansionState();
+  const connectedDepotIds = new Set(getConnectedCommissionedTransportDepots().map((depot) => depot.id));
+  for (const vehicle of state.vehicles) {
+    if (vehicle.status === 'depot') continue;
+    if (vehicle.status === 'servicing') {
+      vehicle.serviceDaysRemaining = Math.max(0, vehicle.serviceDaysRemaining - 1);
+      if (vehicle.serviceDaysRemaining <= 0) {
+        vehicle.condition = 1;
+        vehicle.daysSinceService = 0;
+        vehicle.status = vehicle.routeId ? 'active' : 'depot';
+      }
+      continue;
+    }
+    if (vehicle.status === 'broken_down') {
+      vehicle.brokenDaysRemaining = Math.max(0, vehicle.brokenDaysRemaining - 1);
+      if (vehicle.brokenDaysRemaining <= 0) vehicle.status = vehicle.routeId ? 'active' : 'depot';
+      continue;
+    }
+    vehicle.daysSinceService++;
+    vehicle.condition = transportClamp(vehicle.condition - TRANSPORT_CONDITION_DECAY_PER_DAY, 0, 1);
+    if (vehicle.status === 'delivering_to_depot' || vehicle.status === 'returning_for_service') {
+      // No real movement sim yet (§12) - resolve the return the moment the
+      // depot is reachable; otherwise the vehicle idles in place, unable to
+      // route home, exactly like a broken route's assigned vehicles (§11).
+      if (!vehicle.depotId || !connectedDepotIds.has(vehicle.depotId)) continue;
+      if (vehicle.status === 'returning_for_service') {
+        vehicle.status = 'servicing';
+        vehicle.serviceDaysRemaining = TRANSPORT_SERVICE_DURATION_DAYS;
+      } else {
+        vehicle.status = 'depot';
+        vehicle.routeId = null;
+      }
+      continue;
+    }
+    if (vehicle.status !== 'active') continue;
+    if (vehicle.daysSinceService >= TRANSPORT_SERVICE_INTERVAL_DAYS) {
+      if (vehicle.depotId && connectedDepotIds.has(vehicle.depotId)) {
+        vehicle.status = 'returning_for_service';
+      }
+      // Depot disconnected: service deferred, condition keeps decaying - the
+      // natural in-fiction consequence, no special-case code needed (§10).
+      continue;
+    }
+    if (
+      vehicle.condition < TRANSPORT_BREAKDOWN_CONDITION_THRESHOLD
+      && Math.random() < TRANSPORT_BREAKDOWN_DAILY_CHANCE
+    ) {
+      vehicle.status = 'broken_down';
+      vehicle.brokenDaysRemaining = TRANSPORT_BREAKDOWN_DURATION_DAYS;
+    }
+  }
 }
 
 function transportDirectionBetween(current, next) {
@@ -728,7 +1075,11 @@ function createTransportError(code, message = code) {
   return error;
 }
 
-function validateTransportRouteDraft(draft, excludeRouteId = '') {
+// Fleet size is no longer validated here (§13) - a route can exist with zero
+// assigned vehicles (broken/idle until the player assigns some from the
+// Depot window, §10/§11); capacity is enforced at vehicle purchase time
+// instead (buyTransportVehicle).
+function validateTransportRouteDraft(draft) {
   if (!isTransportExpansionActive()) throw createTransportError('notActive');
   const stopIds = Array.from(new Set((draft.stopIds || []).map(String)));
   if (stopIds.length < 2) throw createTransportError('needsStops');
@@ -740,18 +1091,8 @@ function validateTransportRouteDraft(draft, excludeRouteId = '') {
   if (!path) throw createTransportError('noPath');
   const connectedDepot = commissionFirstConnectedTransportDepot();
   if (!connectedDepot) throw createTransportError('needsDepot');
-  const buses = Math.round(transportClamp(
-    draft.buses ?? TRANSPORT_DEFAULT_ROUTE_BUSES,
-    TRANSPORT_ROUTE_BUS_MIN,
-    TRANSPORT_ROUTE_BUS_MAX,
-  ));
-  const capacity = getTransportFleetCapacity();
-  if (getTransportRequestedFleet(excludeRouteId) + buses > capacity) {
-    throw createTransportError('fleetCapacity');
-  }
   return {
     stopIds,
-    buses,
     fare: normalizeTransportFare(draft.fare ?? TRANSPORT_DEFAULT_FARE),
     path,
   };
@@ -759,6 +1100,7 @@ function validateTransportRouteDraft(draft, excludeRouteId = '') {
 
 function createTransportRoute(draft = {}) {
   const state = getTransportExpansionState();
+  if (state.routes.length >= TRANSPORT_MAX_ROUTES) throw createTransportError('routeLimit');
   const valid = validateTransportRouteDraft(draft);
   const routeIndex = state.nextRouteId++;
   const route = normalizeTransportRoute({
@@ -766,7 +1108,6 @@ function createTransportRoute(draft = {}) {
     name: String(draft.name || '').trim() || getDefaultTransportRouteName(routeIndex),
     color: draft.color,
     stopIds: valid.stopIds,
-    buses: valid.buses,
     fare: valid.fare,
     status: 'active',
     servicePlan: draft.servicePlan,
@@ -782,11 +1123,10 @@ function updateTransportRoute(routeId, draft = {}) {
   const state = getTransportExpansionState();
   const route = state.routes.find((entry) => entry.id === routeId);
   if (!route) throw createTransportError('missingRoute');
-  const valid = validateTransportRouteDraft({ ...route, ...draft }, routeId);
+  const valid = validateTransportRouteDraft({ ...route, ...draft });
   route.name = String(draft.name ?? route.name).trim().slice(0, 60) || route.name;
   route.color = normalizeTransportColor(draft.color ?? route.color, state.routes.indexOf(route));
   route.stopIds = valid.stopIds;
-  route.buses = valid.buses;
   route.fare = valid.fare;
   markTransportRouteDirty(route.id);
   updateTransportSimulation();
@@ -809,6 +1149,12 @@ function deleteTransportRoute(routeId) {
   const index = state.routes.findIndex((entry) => entry.id === routeId);
   if (index < 0) return false;
   state.routes.splice(index, 1);
+  // Free up its vehicles rather than leaving them pointed at a route that no
+  // longer exists - they head back to being idle, unassigned depot stock.
+  for (const vehicle of getTransportRouteVehicles(routeId)) {
+    vehicle.routeId = null;
+    if (vehicle.status === 'active') vehicle.status = 'delivering_to_depot';
+  }
   transportRuntime.routeRuntime.delete(routeId);
   markTransportRouteDirty(routeId);
   updateTransportSimulation();
@@ -923,12 +1269,18 @@ function getTransportFrequencyFactor(headwayMinutes) {
   return transportClamp(20 / Math.max(1, Number(headwayMinutes) || 1), 0.35, 1);
 }
 
+// §13: kept as the demand-ceiling estimator (route editor's "potential
+// ridership" preview) - real per-vehicle trips (§12) will eventually be what
+// actually generates revenue, but this formula shape still stands in for
+// that until then, now driven by the route's vehicleClassId (§9) instead of
+// the old flat aggregate constants.
 function computeTransportRouteMetrics(options = {}) {
   const potentialPassengers = Math.max(0, Math.round(Number(options.potentialPassengers) || 0));
   const outboundTiles = Math.max(1, Math.round(Number(options.outboundTiles) || 1));
   const stopCount = Math.max(2, Math.round(Number(options.stopCount) || 2));
   const effectiveBuses = Math.max(0, Math.round(Number(options.effectiveBuses) || 0));
   const fare = normalizeTransportFare(options.fare ?? TRANSPORT_DEFAULT_FARE);
+  const vehicleClass = getTransportVehicleClass(options.classId);
   const averageTraffic = transportClamp(options.averageTraffic, 0, 1);
   const weatherAvailability = transportClamp(options.weatherAvailability ?? 1, 0, 1);
   const roundTripTiles = outboundTiles * 2;
@@ -941,15 +1293,18 @@ function computeTransportRouteMetrics(options = {}) {
     * frequencyFactor
     * getTransportFareDemandFactor(fare)
     * reliability;
-  const capacity = effectiveBuses * TRANSPORT_CAPACITY_PER_BUS_MONTH;
+  const capacity = effectiveBuses * vehicleClass.monthlyRidershipCap;
   const monthlyPassengers = Math.max(0, Math.round(Math.min(demandAfterService, capacity)));
   const quality = potentialPassengers > 0
     ? transportClamp(monthlyPassengers / potentialPassengers, 0, 1)
     : 0;
   const loadFactor = capacity > 0 ? transportClamp(monthlyPassengers / capacity, 0, 2) : 0;
-  const revenue = transportRoundMoney(monthlyPassengers * fare * TRANSPORT_FARE_ECONOMY_SCALE);
+  // No economy-scale dampener on revenue (§9's worked payback math is
+  // ridership x fare directly - ridershipCap/fare are already tuned as the
+  // dampener).
+  const revenue = transportRoundMoney(monthlyPassengers * fare);
   const cost = transportRoundMoney(
-    effectiveBuses * (TRANSPORT_BUS_MONTHLY_BASE_COST + TRANSPORT_BUS_TILE_COST * roundTripTiles)
+    effectiveBuses * (vehicleClass.monthlyUpkeep + vehicleClass.tileRunningCost * roundTripTiles)
     * weatherAvailability,
   );
   return {
@@ -993,7 +1348,6 @@ function ensureTransportRouteRuntime() {
   if (!transportRuntime.dirtyNetwork && transportRuntime.dirtyRouteIds.size === 0) return;
   const state = getTransportExpansionState();
   const connectedDepots = getConnectedCommissionedTransportDepots();
-  let remainingFleet = connectedDepots.length * TRANSPORT_DEPOT_CAPACITY;
   const previousRuntime = transportRuntime.routeRuntime;
   const nextRuntime = new Map();
 
@@ -1036,12 +1390,11 @@ function ensureTransportRouteRuntime() {
       status = 'broken';
       brokenReason = 'needsDepot';
     }
-    const effectiveBuses = status === 'active' ? Math.min(route.buses, remainingFleet) : 0;
+    const effectiveBuses = status === 'active' ? getTransportRouteEffectiveVehicleCount(route.id) : 0;
     if (status === 'active' && effectiveBuses <= 0) {
       status = 'broken';
       brokenReason = 'fleetCapacity';
     }
-    remainingFleet -= effectiveBuses;
     nextRuntime.set(route.id, {
       routeId: route.id,
       status,
@@ -1067,6 +1420,7 @@ function updateTransportSimulation() {
   transportRuntime.landValueBonus.clear();
   transportRuntime.happinessBonus = 0;
   transportRuntime.commercialDemandBonus = 0;
+  transportRuntime.industrialDemandBonus = 0;
   transportRuntime.summary = createEmptyTransportSummary();
   if (!isTransportExpansionActive()) {
     transportRuntime.routeRuntime.clear();
@@ -1080,6 +1434,7 @@ function updateTransportSimulation() {
   const currentlySuspendedForWeather = isTransportSevereWeather();
   const residentialBenefits = new Map();
   const commercialBenefits = new Map();
+  const industrialBenefits = new Map();
   let reliabilityTotal = 0;
   let qualityTotal = 0;
   let activeRoutes = 0;
@@ -1138,6 +1493,7 @@ function updateTransportSimulation() {
       stopCount: stops.length,
       effectiveBuses: runtime.effectiveBuses,
       fare: route.fare,
+      classId: route.vehicleClassId,
       averageTraffic,
       weatherAvailability,
     });
@@ -1167,7 +1523,11 @@ function updateTransportSimulation() {
             Math.max(transportRuntime.buildingModeShare.get(assignment.id) || 0, share),
           );
         }
-        if (assignment.origin > 0) {
+        // §14.4: UH (ultra-rich) residents never contribute to the transit
+        // happiness bonus, however well-served their building is - they
+        // don't ride the bus. L/M/H residents do.
+        if (assignment.origin > 0 && assignment.record.type === 'residential'
+          && assignment.record.wealthTier !== 'UH') {
           residentialBenefits.set(
             assignment.id,
             Math.max(residentialBenefits.get(assignment.id) || 0, benefitQuality),
@@ -1177,6 +1537,15 @@ function updateTransportSimulation() {
           commercialBenefits.set(
             assignment.id,
             Math.max(commercialBenefits.get(assignment.id) || 0, benefitQuality),
+          );
+        }
+        // §14.3: industrial demand boost - only counts an industrial
+        // building whose nearest stop is served by an active route (this
+        // loop already only runs for active routes' assignments).
+        if (assignment.record.type === 'industrial') {
+          industrialBenefits.set(
+            assignment.id,
+            Math.max(industrialBenefits.get(assignment.id) || 0, benefitQuality),
           );
         }
       }
@@ -1218,6 +1587,12 @@ function updateTransportSimulation() {
   transportRuntime.commercialDemandBonus = Math.min(
     TRANSPORT_COMMERCIAL_DEMAND_BONUS_MAX,
     commercialCoverage * averageQuality * TRANSPORT_COMMERCIAL_DEMAND_BONUS_MAX,
+  );
+  const industrialCount = Math.max(1, Number(typeof city === 'undefined' ? 1 : city.industrialCount) || 1);
+  const industrialCoverage = transportClamp(industrialBenefits.size / industrialCount, 0, 1);
+  transportRuntime.industrialDemandBonus = Math.min(
+    TRANSPORT_INDUSTRIAL_DEMAND_BONUS_MAX,
+    industrialCoverage * averageQuality * TRANSPORT_INDUSTRIAL_DEMAND_BONUS_MAX,
   );
   const connectedDepots = getConnectedCommissionedTransportDepots().length;
   transportRuntime.summary = {
@@ -1268,18 +1643,18 @@ function settleTransportMonth() {
     }
   }
   const depotUpkeep = getConnectedCommissionedTransportDepots().length * TRANSPORT_DEPOT_MONTHLY_UPKEEP;
-  const grossCost = transportRoundMoney(routeOperations + depotUpkeep);
-  const creditApplied = Math.min(state.startupCreditRemaining, grossCost);
-  state.startupCreditRemaining = transportRoundMoney(state.startupCreditRemaining - creditApplied);
-  const cost = transportRoundMoney(grossCost - creditApplied);
+  const cost = transportRoundMoney(routeOperations + depotUpkeep);
+  const roundedRevenue = transportRoundMoney(revenue);
+  // Straight into company.cash - no credit-consumption step. company.cash
+  // is allowed to go negative (bankruptcy signal, §4), unlike every other
+  // money field in this module.
+  state.company.cash = Math.round(state.company.cash + roundedRevenue - cost);
   state.lastFinancials = {
-    revenue: transportRoundMoney(revenue),
+    revenue: roundedRevenue,
     routeOperations: transportRoundMoney(routeOperations),
     depotUpkeep: transportRoundMoney(depotUpkeep),
-    grossCost,
-    creditApplied: transportRoundMoney(creditApplied),
     cost,
-    net: transportRoundMoney(revenue) - cost,
+    net: roundedRevenue - cost,
   };
   state.weatherSuspendedDaysThisMonth = 0;
   return state.lastFinancials;
@@ -1316,6 +1691,12 @@ function getTransportCommercialDemandBonus() {
     : 0;
 }
 
+function getTransportIndustrialDemandBonus() {
+  return isTransportExpansionActive() && !isTransportSevereWeather()
+    ? transportRuntime.industrialDemandBonus
+    : 0;
+}
+
 function getTransportSummary() {
   return { ...transportRuntime.summary };
 }
@@ -1334,27 +1715,59 @@ function getTransportRoutesForVisuals() {
 const transportExpansionTestApi = {
   TRANSPORT_EXPANSION_SCHEMA_VERSION,
   TRANSPORT_EXPANSION_UNLOCK_POPULATION,
-  TRANSPORT_STARTUP_CREDIT,
+  TRANSPORT_STARTUP_CAPITAL,
   TRANSPORT_STOP_CATCHMENT_RADIUS,
   TRANSPORT_DEPOT_CAPACITY,
   TRANSPORT_DEPOT_MONTHLY_UPKEEP,
-  TRANSPORT_CAPACITY_PER_BUS_MONTH,
+  TRANSPORT_MAX_ROUTES,
+  TRANSPORT_DEFAULT_VEHICLE_CLASS_ID,
+  TRANSPORT_VEHICLE_CLASSES,
+  TRANSPORT_SERVICE_INTERVAL_DAYS,
+  TRANSPORT_SERVICE_DURATION_DAYS,
+  TRANSPORT_CONDITION_DECAY_PER_DAY,
+  TRANSPORT_BREAKDOWN_CONDITION_THRESHOLD,
+  TRANSPORT_BREAKDOWN_DAILY_CHANCE,
+  TRANSPORT_BREAKDOWN_DURATION_DAYS,
+  TRANSPORT_VEHICLE_RESALE_FACTOR,
+  TRANSPORT_FARE_MIN,
+  TRANSPORT_FARE_MAX,
+  TRANSPORT_FARE_STEP,
+  TRANSPORT_DEFAULT_FARE,
   TRANSPORT_FARE_ECONOMY_SCALE,
-  TRANSPORT_BUS_MONTHLY_BASE_COST,
-  TRANSPORT_BUS_TILE_COST,
   TRANSPORT_TRAFFIC_RELIEF_MAX,
   TRANSPORT_HAPPINESS_BONUS_MAX,
   TRANSPORT_COMMERCIAL_DEMAND_BONUS_MAX,
+  TRANSPORT_INDUSTRIAL_DEMAND_BONUS_MAX,
   TRANSPORT_LAND_VALUE_BONUS_MAX,
   createDefaultTransportExpansionState,
+  createDefaultTransportCompany,
+  normalizeTransportCompany,
+  normalizeTransportVehicle,
+  migrateTransportRoutesToVehicles,
+  TRANSPORT_VEHICLE_STATUSES,
   normalizeTransportExpansionState,
   normalizeTransportFare,
   getTransportFareDemandFactor,
   getTransportFrequencyFactor,
+  getTransportVehicleClass,
+  listTransportVehicleClasses,
   computeTransportRouteMetrics,
   findTransportPath,
   getTransportDepotFrontageTiles,
   createEmptyTransportFinancials,
+  spendTransportConstruction,
+  settleTransportMonth,
+  getTransportFinancials,
+  buyTransportVehicle,
+  sellTransportVehicle,
+  assignTransportVehicleToRoute,
+  advanceTransportVehiclesDaily,
+  getTransportDepotVehicleCount,
+  getTransportRouteVehicles,
+  getTransportRouteEffectiveVehicleCount,
+  getTransportFleetCapacity,
+  getTransportRequestedFleet,
+  getTransportIndustrialDemandBonus,
 };
 
 if (typeof module !== 'undefined' && module.exports) module.exports = transportExpansionTestApi;

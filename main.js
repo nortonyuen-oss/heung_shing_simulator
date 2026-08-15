@@ -272,6 +272,12 @@ let mapViewPanY   = 0;
 
 // Map rotation: 0=default, 1=90°CW, 2=180°, 3=270°CW
 let mapRotation = 0;
+const MAP_ZOOM_MIN = 0.4;
+const MAP_ZOOM_MAX = 3;
+const MAP_ZOOM_STEP = 1.1;
+const MAP_KEYBOARD_PAN_SPEED = 620;
+const heldMapPanKeys = new Set();
+let mapKeyboardNavigationReady = false;
 // Terrain rendering asks whether a water/beach tile sits in front of a
 // container port.  Keep those few tile ids indexed so a full-map redraw does
 // not scan every building for every terrain tile.
@@ -542,6 +548,7 @@ function updateGameFrame(time, delta) {
     recordVisualRoutePerformanceFrameStart(this);
   }
   if (typeof updateGameClock === 'function') updateGameClock(this, delta);
+  updateKeyboardMapPan(this, delta);
   updateTerrainViewportCulling(this);
 
   const profileSections = typeof isVisualRouteCalibrationTestModeEnabled === 'function'
@@ -2080,24 +2087,8 @@ function create() {
 
   // Mouse wheel zoom anchored at pointer position
   this.input.on('wheel', (pointer, gameObjects, deltaX, deltaY, deltaZ, event) => {
-    const camera = this.cameras.main;
-    let newZoom = camera.zoom;
-    if (deltaY < 0) {
-      newZoom *= 1.1;
-    } else if (deltaY > 0) {
-      newZoom /= 1.1;
-    }
-    newZoom = Phaser.Math.Clamp(newZoom, 0.4, 3);
-    // Save the world position under the pointer
-    const worldX = camera.scrollX + pointer.x / camera.zoom;
-    const worldY = camera.scrollY + pointer.y / camera.zoom;
-    camera.setZoom(newZoom);
-    camera.scrollX = worldX - pointer.x / camera.zoom;
-    camera.scrollY = worldY - pointer.y / camera.zoom;
-    updateTerrainViewportCulling(this, true);
-    invalidateTrafficVisualView(this);
-    updateAmbientSoundscape(this);
-    syncWeatherFxToCamera(this);
+    if (deltaY === 0) return;
+    changeMapZoom(this, deltaY < 0 ? 1 : -1, pointer.x, pointer.y);
   });
 
   // Spacebar pause shortcut
@@ -2723,17 +2714,120 @@ function updateHouseToolUi() {
 
 // ── Rotate cluster (bottom-right) ────────────────────────────────────────────
 
+function clampMapZoom(zoom) {
+  return Math.max(MAP_ZOOM_MIN, Math.min(MAP_ZOOM_MAX, Number(zoom) || 1));
+}
+
+function formatMapZoomLabel(zoom) {
+  const rounded = Math.round(clampMapZoom(zoom) * 100) / 100;
+  return `${rounded.toFixed(2).replace(/\.0+$|(?<=\.[0-9])0$/, '')}×`;
+}
+
+function updateMapNavigationControls(scene = activeScene) {
+  const zoomLabel = document.getElementById('map-zoom-label');
+  if (zoomLabel) zoomLabel.textContent = formatMapZoomLabel(scene?.cameras?.main?.zoom ?? 1);
+
+  const musicButton = document.getElementById('btn-map-music');
+  const musicLabel = document.getElementById('map-music-label');
+  const musicPlaying = isMusicPlaying || isTitleLoadingAudioPlaying();
+  const labelKey = musicPlaying ? 'tool.musicOnShort' : 'tool.musicOffShort';
+  const actionKey = musicPlaying ? 'tool.musicMute' : 'tool.musicUnmute';
+  musicButton?.classList.toggle('is-muted', !musicPlaying);
+  musicButton?.setAttribute('aria-pressed', String(!musicPlaying));
+  musicButton?.setAttribute('aria-label', t(actionKey));
+  musicButton?.setAttribute('title', t(actionKey));
+  if (musicLabel) musicLabel.textContent = t(labelKey);
+}
+
+function setMapZoom(scene, requestedZoom, anchorScreenX, anchorScreenY) {
+  const camera = scene?.cameras?.main;
+  if (!camera) return null;
+  const previousZoom = Math.max(0.0001, Number(camera.zoom) || 1);
+  const nextZoom = clampMapZoom(requestedZoom);
+  const anchorX = Number.isFinite(anchorScreenX) ? anchorScreenX : camera.width / 2;
+  const anchorY = Number.isFinite(anchorScreenY) ? anchorScreenY : camera.height / 2;
+  const worldX = camera.scrollX + anchorX / previousZoom;
+  const worldY = camera.scrollY + anchorY / previousZoom;
+  camera.setZoom(nextZoom);
+  camera.scrollX = worldX - anchorX / nextZoom;
+  camera.scrollY = worldY - anchorY / nextZoom;
+  updateTerrainViewportCulling(scene, true);
+  if (typeof invalidateTrafficVisualView === 'function') invalidateTrafficVisualView(scene);
+  if (typeof invalidateTransportVisuals === 'function') invalidateTransportVisuals(scene);
+  if (typeof invalidateVesselVisualView === 'function') invalidateVesselVisualView(scene);
+  if (typeof invalidateAircraftVisualView === 'function') invalidateAircraftVisualView(scene);
+  updateAmbientSoundscape(scene);
+  syncWeatherFxToCamera(scene);
+  updateMapNavigationControls(scene);
+  return nextZoom;
+}
+
+function changeMapZoom(scene, direction, anchorScreenX, anchorScreenY) {
+  const currentZoom = Number(scene?.cameras?.main?.zoom) || 1;
+  const factor = direction > 0 ? MAP_ZOOM_STEP : (1 / MAP_ZOOM_STEP);
+  return setMapZoom(scene, currentZoom * factor, anchorScreenX, anchorScreenY);
+}
+
+function isMapKeyboardNavigationBlocked(target = document.activeElement) {
+  if (!activeScene || !gameReady) return true;
+  const landing = document.getElementById('landing-screen');
+  if (landing && getComputedStyle(landing).display !== 'none') return true;
+  if (target?.closest?.('input, textarea, select, button, [contenteditable="true"]')) return true;
+  return [...document.querySelectorAll('.sim-dialog')]
+    .some((dialog) => getComputedStyle(dialog).display !== 'none');
+}
+
+function setupMapKeyboardNavigation() {
+  if (mapKeyboardNavigationReady) return;
+  mapKeyboardNavigationReady = true;
+  const arrowKeys = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
+  document.addEventListener('keydown', (event) => {
+    if (!arrowKeys.has(event.key) || event.altKey || event.ctrlKey || event.metaKey) return;
+    if (isMapKeyboardNavigationBlocked(event.target)) return;
+    event.preventDefault();
+    heldMapPanKeys.add(event.key);
+  });
+  document.addEventListener('keyup', (event) => {
+    if (arrowKeys.has(event.key)) heldMapPanKeys.delete(event.key);
+  });
+  window.addEventListener('blur', () => heldMapPanKeys.clear());
+}
+
+function updateKeyboardMapPan(scene, deltaMs) {
+  if (!heldMapPanKeys.size) return false;
+  if (isMapKeyboardNavigationBlocked()) {
+    heldMapPanKeys.clear();
+    return false;
+  }
+  const camera = scene?.cameras?.main;
+  if (!camera) return false;
+  const horizontal = Number(heldMapPanKeys.has('ArrowRight')) - Number(heldMapPanKeys.has('ArrowLeft'));
+  const vertical = Number(heldMapPanKeys.has('ArrowDown')) - Number(heldMapPanKeys.has('ArrowUp'));
+  if (!horizontal && !vertical) return false;
+  const magnitude = Math.hypot(horizontal, vertical) || 1;
+  const seconds = Math.min(50, Math.max(0, Number(deltaMs) || 0)) / 1000;
+  const worldDistance = MAP_KEYBOARD_PAN_SPEED * seconds / Math.max(0.0001, camera.zoom);
+  camera.scrollX += (horizontal / magnitude) * worldDistance;
+  camera.scrollY += (vertical / magnitude) * worldDistance;
+  return true;
+}
+
 function setupRotateCluster() {
   const cluster = document.getElementById('rotate-cluster');
   if (!cluster) return;
 
   cluster.addEventListener('pointerdown', (e) => e.stopPropagation());
   cluster.addEventListener('click', (e) => {
-    const btn = e.target.closest('.rotate-btn');
+    const btn = e.target.closest('button');
     if (!btn || !activeScene) return;
     if (btn.id === 'btn-rotate-cw')  rotateMap(activeScene, 1);
     if (btn.id === 'btn-rotate-ccw') rotateMap(activeScene, -1);
+    if (btn.id === 'btn-map-zoom-in') changeMapZoom(activeScene, 1);
+    if (btn.id === 'btn-map-zoom-out') changeMapZoom(activeScene, -1);
+    if (btn.id === 'btn-map-music') toggleMusic();
   });
+  setupMapKeyboardNavigation();
+  updateMapNavigationControls();
 }
 
 // ── Jukebox floating window ───────────────────────────────────────────────────
@@ -2963,6 +3057,8 @@ function updateJukeboxUi() {
   document.querySelectorAll('[data-loop]').forEach((btn) => {
     btn.classList.toggle('is-active', btn.dataset.loop === musicLoopMode);
   });
+  if (typeof updateSoundMenu === 'function') updateSoundMenu();
+  updateMapNavigationControls();
 }
 
 function updateMapMetrics(scene) {

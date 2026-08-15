@@ -579,6 +579,7 @@ function restoreSavedViewpoint(scene, rawViewpoint) {
   }
   if (typeof updateAmbientSoundscape === 'function') updateAmbientSoundscape(scene);
   if (typeof syncWeatherFxToCamera === 'function') syncWeatherFxToCamera(scene);
+  if (typeof updateMapNavigationControls === 'function') updateMapNavigationControls(scene);
   return true;
 }
 

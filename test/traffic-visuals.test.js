@@ -815,7 +815,8 @@ test('traffic module is loaded before main and wired into lifecycle invalidation
   assert.match(main, /tile\.removeFromDisplayList\(\)/);
   assert.match(main, /getTerrainViewportLogicalRange\(scene,/);
   assert.match(main, /camera\.scrollY\s*-=\s*dy\s*\/\s*camera\.zoom;[\s\S]*?updateTerrainViewportCulling\(this\)/);
-  assert.match(main, /camera\.setZoom\(newZoom\);[\s\S]*?updateTerrainViewportCulling\(this,\s*true\)/);
+  assert.match(main, /this\.input\.on\('wheel',[\s\S]*?changeMapZoom\(this,\s*deltaY < 0 \? 1 : -1,\s*pointer\.x,\s*pointer\.y\)/);
+  assert.match(main, /function setMapZoom\(scene,[\s\S]*?camera\.setZoom\(nextZoom\);[\s\S]*?updateTerrainViewportCulling\(scene,\s*true\)/);
   assert.match(main, /setupTrafficVisuals\(this\)/);
   assert.match(main, /\{\s*key:\s*'event_ice_cream_truck',\s*file:\s*'Sounds\/iceCreamTruck\.m4a'\s*\}/);
   assert.ok(fs.existsSync(path.join(ROOT, 'Sounds/iceCreamTruck.m4a')));

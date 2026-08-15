@@ -314,6 +314,7 @@ function closeDialog(id) {
 document.addEventListener('languagechange', () => {
   updateSettingsMenu();
   updateSoundMenu();
+  if (typeof updateMapNavigationControls === 'function') updateMapNavigationControls();
   populateNewsMenu();
   if (typeof updateHUD === 'function') updateHUD();
   if (typeof prefetchSaveStatus === 'function') prefetchSaveStatus();

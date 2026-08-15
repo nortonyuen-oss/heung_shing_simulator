@@ -6,6 +6,7 @@ const test = require('node:test');
 
 const ROOT = path.resolve(__dirname, '..');
 const mainSource = fs.readFileSync(path.join(ROOT, 'main.js'), 'utf8');
+const htmlSource = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 const growthSource = fs.readFileSync(path.join(ROOT, 'sim-growth.js'), 'utf8');
 const simulationSource = fs.readFileSync(path.join(ROOT, 'simulation.js'), 'utf8');
 const economySource = fs.readFileSync(path.join(ROOT, 'sim-economy.js'), 'utf8');
@@ -107,6 +108,23 @@ test('depth-sorted trees share the standard WebGL pipeline with buildings', () =
   assert.doesNotMatch(mainSource, /setPipeline\(['"]TreeAlphaPipeline['"]\)/);
   assert.doesNotMatch(mainSource, /pipelines\.add\(['"]TreeAlphaPipeline['"]/);
   assert.match(mainSource, /Keeping trees on[\s\S]*?default MultiPipeline[\s\S]*?same[\s\S]*?WebGL batch/);
+});
+
+test('bottom-right map controls expose music and live zoom without separate render pipelines', () => {
+  assert.match(htmlSource, /id="btn-map-music"/);
+  assert.match(htmlSource, /id="btn-map-zoom-out"[\s\S]*?id="map-zoom-label"[\s\S]*?id="btn-map-zoom-in"/);
+  assert.match(mainSource, /btn\.id === 'btn-map-music'\) toggleMusic\(\)/);
+  assert.match(mainSource, /btn\.id === 'btn-map-zoom-in'\) changeMapZoom\(activeScene, 1\)/);
+  assert.match(mainSource, /updateMapNavigationControls\(scene\)/);
+});
+
+test('arrow keys pan the camera continuously but leave form controls and dialogs alone', () => {
+  assert.match(mainSource, /new Set\(\['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'\]\)/);
+  assert.match(mainSource, /input, textarea, select, button, \[contenteditable="true"\]/);
+  assert.match(mainSource, /querySelectorAll\('\.sim-dialog'\)/);
+  assert.match(mainSource, /updateKeyboardMapPan\(this, delta\);[\s\S]*?updateTerrainViewportCulling\(this\);/);
+  assert.match(mainSource, /camera\.scrollX \+= \(horizontal \/ magnitude\) \* worldDistance/);
+  assert.match(mainSource, /camera\.scrollY \+= \(vertical \/ magnitude\) \* worldDistance/);
 });
 
 test('profiler separates raw frame cadence from update and render durations', () => {

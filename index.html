@@ -2037,6 +2037,7 @@
       z-index: 11;
       display: flex;
       flex-direction: column;
+      align-items: flex-end;
       gap: 6px;
     }
 
@@ -2079,6 +2080,43 @@
       color: #5a5648;
       pointer-events: none;
       line-height: 1;
+    }
+
+    #btn-map-music.is-muted .map-music-waves { display: none; }
+    #btn-map-music:not(.is-muted) .map-music-slash { display: none; }
+
+    .map-zoom-control {
+      display: grid;
+      grid-template-columns: 34px 58px 34px;
+      height: 38px;
+      overflow: hidden;
+      color: #1e2427;
+      background: #d4d0c3;
+      border: 2px solid #6f6b60;
+      border-radius: 8px;
+      box-shadow: inset 1px 1px 0 #fff8e7, inset -1px -1px 0 #a7a08d, 2px 2px 4px rgba(0,0,0,0.25);
+    }
+
+    .map-zoom-btn {
+      border: 0;
+      padding: 0;
+      color: #1e2427;
+      background: transparent;
+      cursor: pointer;
+      font: 700 22px/1 Arial, sans-serif;
+    }
+
+    .map-zoom-btn:hover { background: #f8f0d2; }
+    .map-zoom-btn:active { background: #e0d8bc; }
+
+    #map-zoom-label {
+      display: grid;
+      place-items: center;
+      border-inline: 1px solid rgba(111, 107, 96, .6);
+      color: #3c3931;
+      font: 700 11px/1 Arial, sans-serif;
+      font-variant-numeric: tabular-nums;
+      user-select: none;
     }
 
     /* ── Jukebox floating window ─────────────────────────────────────────── */
@@ -2846,7 +2884,9 @@
     .jukebox-loop-btn,
     #chart-win-body,
     #overlay-win-footer,
-    .rotate-btn {
+    .rotate-btn,
+    .map-zoom-control,
+    .map-zoom-btn {
       background-color: #e4eaf1;
     }
 
@@ -6512,8 +6552,21 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
     <canvas id="terrain-minimap-canvas" width="256" height="256"></canvas>
   </aside>
 
-  <!-- Rotate cluster (bottom-right) -->
-  <div id="rotate-cluster" aria-label="Rotate map view" data-i18n-aria="tool.rotateView">
+  <!-- Map view controls (bottom-right) -->
+  <div id="rotate-cluster" aria-label="Map view controls" data-i18n-aria="tool.mapControls" aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight">
+    <div class="map-zoom-control" role="group" aria-label="Map zoom" data-i18n-aria="tool.mapZoom">
+      <button class="map-zoom-btn" id="btn-map-zoom-out" type="button" title="Zoom out" aria-label="Zoom out" data-i18n-title="overlay.zoomOut" data-i18n-aria="overlay.zoomOut">−</button>
+      <span id="map-zoom-label" aria-live="polite">1×</span>
+      <button class="map-zoom-btn" id="btn-map-zoom-in" type="button" title="Zoom in" aria-label="Zoom in" data-i18n-title="overlay.zoomIn" data-i18n-aria="overlay.zoomIn">+</button>
+    </div>
+    <button class="rotate-btn" id="btn-map-music" type="button" title="Mute music" aria-label="Mute music" aria-pressed="false">
+      <svg viewBox="0 0 32 32" aria-hidden="true">
+        <path d="M5 13h5l6-5v16l-6-5H5z"/>
+        <g class="map-music-waves"><path d="M21 12c2 2 2 6 0 8"/><path d="M25 9c4 4 4 10 0 14"/></g>
+        <path class="map-music-slash" d="M21 13l6 6m0-6l-6 6"/>
+      </svg>
+      <span class="rotate-btn-label" id="map-music-label">Mute</span>
+    </button>
     <button class="rotate-btn" id="btn-rotate-ccw" type="button" title="Rotate 90° anti-clockwise" aria-label="Rotate anti-clockwise" data-i18n-title="tool.rotateCCW" data-i18n-aria="tool.rotateCCW">
       <svg viewBox="0 0 32 32" aria-hidden="true">
         <path d="M10 10a9 9 0 1 1-2 6" stroke-linecap="round"/>

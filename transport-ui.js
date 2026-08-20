@@ -1,16 +1,33 @@
 // ── Transport Department window and map stop picker ─────────────────────────
 
 const transportUiState = {
-  root: null,
   editor: null,
   pickingStops: false,
   message: '',
   messageTone: 'info',
-  activeTab: 'routes',
   selectedDepotId: '',
   expandedRouteId: '',
   fleetSort: 'number',
 };
+
+// §5/§10/§11: six independent, freely-movable operation windows (OpenTTD-
+// style toolbar windows), not tabs sharing one big panel. Each is created
+// lazily on first open and lives in this map keyed by id; transportUiState
+// above holds cross-window state (the route editor, fleet sort, etc.) that
+// doesn't belong to any single window.
+const TRANSPORT_PANEL_IDS = ['routes', 'fleet', 'demand', 'depot', 'finances', 'company'];
+const TRANSPORT_PANEL_META = {
+  routes: { icon: '🗺', labelKey: 'transport.tab.routes', width: '760px' },
+  fleet: { icon: '🚌', labelKey: 'transport.tab.fleet', width: '760px' },
+  demand: { icon: '👥', labelKey: 'transport.tab.demand', width: '760px' },
+  depot: { icon: '🏭', labelKey: 'transport.tab.depot', width: '460px' },
+  finances: { icon: '📈', labelKey: 'transport.tab.finances', width: '760px' },
+  company: { icon: '🏢', labelKey: 'transport.tab.company', width: '420px' },
+};
+const transportPanels = new Map();
+let transportPanelCascade = 0;
+let transportPanelZCounter = 0;
+let transportFocusedPanelId = '';
 
 // "Is the UI layer currently open" - orthogonal to isTransportExpansionActive()
 // (the gameplay-effects gate, transport-expansion.js), per TRANSPORT_TTD_SPEC.md
@@ -37,150 +54,266 @@ function transportFormatPercent(value) {
   return `${Math.round(Math.max(0, Number(value) || 0) * 100)}%`;
 }
 
-function createTransportWindow() {
-  if (transportUiState.root || typeof document === 'undefined') return transportUiState.root;
-  if (!document.getElementById('transport-window-style')) {
-    const style = document.createElement('style');
-    style.id = 'transport-window-style';
-    style.textContent = `
-      #transport-window {
-        position: fixed; z-index: 360; top: 92px; right: 22px; width: min(760px, calc(100vw - 44px));
-        max-height: calc(100vh - 120px); display: flex; flex-direction: column;
-        color: #20252a; background: #ece7d8; border: 2px solid #313b43; border-radius: 8px;
-        box-shadow: 0 14px 38px rgba(0,0,0,.42); font: 12px/1.35 Arial, sans-serif;
-      }
-      #transport-window[hidden] { display: none !important; }
-      #transport-window .transport-head { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:8px 10px; background:#263a48; color:#fff; font-weight:800; }
-      #transport-window .transport-close { border:0; background:transparent; color:#fff; font-size:18px; cursor:pointer; }
-      #transport-window .transport-body { overflow:auto; padding:12px; }
-      #transport-window .transport-gate { text-align:center; padding:28px 18px; }
-      #transport-window .transport-gate h3 { margin:0 0 8px; font-size:18px; }
-      #transport-window .transport-gate p { margin:0 auto 14px; max-width:430px; color:#58616a; }
-      #transport-window button { font:inherit; }
-      #transport-window .transport-btn { border:1px solid #52636f; border-radius:5px; padding:6px 9px; background:#f7f3e8; color:#26323a; cursor:pointer; }
-      #transport-window .transport-btn:hover { background:#fff; }
-      #transport-window .transport-btn.primary { color:#fff; background:#236c91; border-color:#164f6e; font-weight:700; }
-      #transport-window .transport-btn.danger { color:#8b1f1f; border-color:#a75a5a; }
-      #transport-window .transport-topline { display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; margin-bottom:10px; }
-      #transport-window .transport-credit { color:#176a43; font-weight:700; }
-      #transport-window .transport-summary { display:grid; grid-template-columns:repeat(5, minmax(86px,1fr)); gap:6px; margin-bottom:10px; }
-      #transport-window .transport-summary-card { padding:7px; background:#faf7ed; border:1px solid #c8c0ad; border-radius:5px; }
-      #transport-window .transport-summary-card span { display:block; color:#6a665c; font-size:10px; }
-      #transport-window .transport-summary-card strong { display:block; margin-top:2px; font-size:14px; }
-      #transport-window .transport-depots { margin:0 0 10px; color:#4f5960; }
-      #transport-window .transport-routes { display:grid; gap:7px; }
-      #transport-window .transport-empty { padding:18px; text-align:center; border:1px dashed #a69d89; border-radius:6px; color:#686155; }
-      #transport-window .transport-route { border:1px solid #aaa18e; border-left:7px solid var(--route-color); border-radius:6px; padding:8px; background:#f8f4e8; }
-      #transport-window .transport-route-head { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; }
-      #transport-window .transport-route-name { font-weight:800; font-size:14px; }
-      #transport-window .transport-status { border-radius:12px; padding:2px 7px; background:#dce7dd; color:#285d35; white-space:nowrap; }
-      #transport-window .transport-status[data-status="broken"] { background:#f3d6d2; color:#8d2924; }
-      #transport-window .transport-status[data-status="suspended"], #transport-window .transport-status[data-status="weather"] { background:#ece3c9; color:#765d1c; }
-      #transport-window .transport-route-stops { margin:5px 0; color:#5d5a53; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-      #transport-window .transport-route-fleet-toggle { border:0; background:transparent; padding:0; margin-top:2px; color:#4f5960; font:inherit; font-size:11px; cursor:pointer; }
-      #transport-window .transport-route-fleet-toggle:hover, #transport-window .transport-route-fleet-toggle.is-open { color:#164f6e; font-weight:700; }
-      #transport-window .transport-route-fleet { display:grid; gap:4px; margin:6px 0; }
-      #transport-window .transport-route-vehicle { display:grid; grid-template-columns:1fr auto auto auto; gap:8px; align-items:center; text-align:left; padding:5px 7px; border:1px solid #b3ab98; border-radius:5px; background:#fffaf0; font:inherit; cursor:pointer; }
-      #transport-window .transport-route-vehicle:hover { background:#fff; border-color:#164f6e; }
-      #transport-window .transport-route-vehicle span:first-child { font-weight:700; }
-      #transport-window .transport-route-error { margin:4px 0; color:#992f2a; font-weight:700; }
-      #transport-window .transport-metrics { display:grid; grid-template-columns:repeat(4,minmax(70px,1fr)); gap:4px; margin:7px 0; }
-      #transport-window .transport-metric { background:#ebe5d5; border-radius:4px; padding:4px; }
-      #transport-window .transport-metric span { display:block; color:#777064; font-size:9px; }
-      #transport-window .transport-metric strong { font-size:11px; }
-      #transport-window .transport-actions { display:flex; gap:5px; justify-content:flex-end; flex-wrap:wrap; }
-      #transport-window .transport-editor { border:1px solid #9d9584; border-radius:7px; padding:10px; background:#f9f6ec; }
-      #transport-window .transport-editor h3 { margin:0 0 9px; }
-      #transport-window .transport-fields { display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:7px; }
-      #transport-window label { display:grid; gap:3px; color:#5e5a50; }
-      #transport-window input { min-width:0; border:1px solid #9d9584; border-radius:4px; padding:5px; background:#fff; color:#222; }
-      #transport-window input[type="color"] { width:100%; min-height:29px; padding:2px; }
-      #transport-window .transport-stop-picker { display:flex; justify-content:space-between; align-items:center; gap:8px; margin:10px 0 6px; }
-      #transport-window .transport-picker-hint { margin:0 0 7px; color:#236c91; }
-      #transport-window .transport-stop-list { display:grid; gap:4px; min-height:42px; }
-      #transport-window .transport-stop-row { display:grid; grid-template-columns:28px 1fr auto auto auto; align-items:center; gap:4px; padding:4px; background:#ebe5d5; border-radius:4px; }
-      #transport-window .transport-stop-row strong { text-align:center; }
-      #transport-window .transport-icon-btn { border:1px solid #a49b87; border-radius:4px; background:#fffaf0; cursor:pointer; min-width:25px; min-height:24px; }
-      #transport-window .transport-editor-actions { display:flex; justify-content:flex-end; gap:7px; margin-top:10px; }
-      #transport-window .transport-message { min-height:17px; margin-top:7px; color:#4f6270; }
-      #transport-window .transport-message[data-tone="error"] { color:#9b2929; }
-      #transport-window .transport-message[data-tone="success"] { color:#1b7045; }
-      #transport-window .transport-tabs { display:grid; grid-template-columns:repeat(6,minmax(72px,1fr)); gap:3px; margin-bottom:10px; padding:3px; border:1px solid #8e8778; background:#d1cbbb; }
-      #transport-window .transport-tab { display:grid; place-items:center; gap:2px; min-height:48px; border:1px solid #a59c89; border-radius:2px; background:#f4efe2; padding:5px 7px; color:#4f514d; cursor:pointer; font-weight:800; box-shadow:inset 1px 1px #fff, inset -1px -1px #b6ae9e; }
-      #transport-window .transport-tab:hover { background:#fffaf0; }
-      #transport-window .transport-tab.is-active { color:#fff; border-color:#123f58; background:#236c91; box-shadow:inset 1px 1px rgba(255,255,255,.3), inset -1px -1px #123f58; }
-      #transport-window .transport-tab-icon { font-size:17px; line-height:1; }
-      #transport-window .transport-tab-label { font-size:10px; line-height:1.15; }
-      #transport-window .transport-company-form { display:grid; gap:9px; max-width:380px; }
-      #transport-window .transport-company-meta { display:flex; justify-content:space-between; gap:8px; color:#5e5a50; margin-top:2px; }
-      #transport-window .transport-depot-select { display:flex; align-items:flex-end; justify-content:space-between; gap:10px; margin-bottom:10px; }
-      #transport-window .transport-depot-select label { flex:1; }
-      #transport-window .transport-depot-select select { width:100%; border:1px solid #9d9584; border-radius:4px; padding:5px; background:#fff; }
-      #transport-window h4 { margin:12px 0 6px; color:#3c4650; }
-      #transport-window .transport-vehicle-classes, #transport-window .transport-vehicle-list { display:grid; gap:6px; }
-      #transport-window .transport-vehicle-class-row, #transport-window .transport-vehicle-row { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:7px 8px; background:#f8f4e8; border:1px solid #aaa18e; border-radius:6px; }
-      #transport-window .transport-vehicle-row select { border:1px solid #9d9584; border-radius:4px; padding:4px; background:#fff; min-width:120px; }
-      #transport-window .transport-vehicle-class-row small, #transport-window .transport-vehicle-row small { display:block; color:#6a665c; }
-      #transport-window .transport-section-head { display:flex; justify-content:space-between; align-items:flex-end; gap:10px; margin:0 0 8px; }
-      #transport-window .transport-section-head h3 { margin:0; font-size:15px; }
-      #transport-window .transport-section-head p { margin:2px 0 0; color:#6a665c; }
-      #transport-window .transport-toolbar { display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
-      #transport-window .transport-toolbar select { border:1px solid #8f8776; border-radius:3px; padding:5px 7px; background:#fffaf0; color:#252b2f; }
-      #transport-window .transport-table-wrap { overflow:auto; border:1px solid #9e9685; background:#fffaf0; }
-      #transport-window .transport-table { width:100%; border-collapse:collapse; font-size:11px; }
-      #transport-window .transport-table th { position:sticky; top:0; z-index:1; padding:6px; text-align:left; white-space:nowrap; color:#fff; background:#3c535f; }
-      #transport-window .transport-table td { padding:6px; border-top:1px solid #d4ccbc; vertical-align:middle; }
-      #transport-window .transport-table tbody tr:nth-child(even) { background:#f1ebdc; }
-      #transport-window .transport-table tbody tr:hover { background:#fff; }
-      #transport-window .transport-table .is-positive { color:#176a43; font-weight:800; }
-      #transport-window .transport-table .is-negative { color:#a22c2c; font-weight:800; }
-      #transport-window .transport-line-cell { display:flex; align-items:center; gap:6px; min-width:120px; }
-      #transport-window .transport-line-swatch { width:7px; height:22px; border:1px solid rgba(0,0,0,.25); background:var(--route-color); flex:0 0 auto; }
-      #transport-window .transport-usage { min-width:82px; }
-      #transport-window .transport-bar { position:relative; height:8px; margin-top:3px; overflow:hidden; border:1px solid #817969; background:#d8d1c3; }
-      #transport-window .transport-bar > i { display:block; height:100%; width:var(--value); background:#2b8a57; }
-      #transport-window .transport-bar.demand > i { background:#d28b22; }
-      #transport-window .transport-demand-badge { display:inline-block; min-width:54px; border-radius:10px; padding:2px 6px; text-align:center; color:#fff; background:#78838a; font-weight:800; }
-      #transport-window .transport-demand-badge[data-level="high"] { background:#b84732; }
-      #transport-window .transport-demand-badge[data-level="medium"] { background:#ce8a22; }
-      #transport-window .transport-demand-badge[data-level="low"] { background:#40865a; }
-      #transport-window .transport-buy-catalog { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; }
-      #transport-window .transport-buy-card { display:grid; grid-template-columns:40px 1fr auto; align-items:center; gap:9px; padding:9px; border:1px solid #99917f; background:#f8f4e8; }
-      #transport-window .transport-buy-icon { display:grid; place-items:center; width:36px; height:36px; border:1px solid #a49b87; background:#e8e1d2; font-size:21px; }
-      #transport-window .transport-buy-stats { color:#6a665c; font-size:10px; }
-      #transport-window .transport-finance-total td { border-top:2px solid #6b6355; font-weight:800; }
-      #transport-window .transport-note { padding:7px 9px; border-left:4px solid #236c91; background:#e3edf0; color:#3f515a; }
-      @media (max-width:720px) {
-        #transport-window { right:8px; top:76px; width:calc(100vw - 16px); }
-        #transport-window .transport-summary { grid-template-columns:repeat(2,1fr); }
-        #transport-window .transport-fields { grid-template-columns:1fr 1fr; }
-        #transport-window .transport-metrics { grid-template-columns:repeat(3,1fr); }
-        #transport-window .transport-tabs { grid-template-columns:repeat(3,1fr); }
-        #transport-window .transport-buy-catalog { grid-template-columns:1fr; }
-      }
-    `;
-    document.head.appendChild(style);
-  }
+function ensureTransportPanelStyle() {
+  if (typeof document === 'undefined' || document.getElementById('transport-window-style')) return;
+  const style = document.createElement('style');
+  style.id = 'transport-window-style';
+  style.textContent = `
+    .transport-panel-window {
+      position: fixed; z-index: 360; max-height: calc(100vh - 120px); display: flex; flex-direction: column;
+      color: #20252a; background: #ece7d8; border: 2px solid #313b43; border-radius: 8px;
+      box-shadow: 0 14px 38px rgba(0,0,0,.42); font: 12px/1.35 Arial, sans-serif;
+    }
+    .transport-panel-window[hidden] { display: none !important; }
+    .transport-panel-window.is-focused { border-color:#123f58; box-shadow:0 16px 42px rgba(0,0,0,.5); }
+    .transport-panel-head { display:flex; align-items:center; gap:8px; padding:8px 10px; background:#263a48; color:#fff; font-weight:800; cursor:move; user-select:none; }
+    .transport-panel-icon { font-size:16px; line-height:1; }
+    .transport-panel-title { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .transport-panel-close { border:0; background:transparent; color:#fff; font-size:18px; line-height:1; padding:0 2px; cursor:pointer; }
+    .transport-panel-close:hover { color:#ffb4b4; }
+    .transport-panel-body { overflow:auto; padding:12px; }
+    .transport-panel-window .transport-gate { text-align:center; padding:28px 18px; }
+    .transport-panel-window .transport-gate h3 { margin:0 0 8px; font-size:18px; }
+    .transport-panel-window .transport-gate p { margin:0 auto 14px; max-width:430px; color:#58616a; }
+    .transport-panel-window button { font:inherit; }
+    .transport-panel-window .transport-btn { border:1px solid #52636f; border-radius:5px; padding:6px 9px; background:#f7f3e8; color:#26323a; cursor:pointer; }
+    .transport-panel-window .transport-btn:hover { background:#fff; }
+    .transport-panel-window .transport-btn.primary { color:#fff; background:#236c91; border-color:#164f6e; font-weight:700; }
+    .transport-panel-window .transport-btn.danger { color:#8b1f1f; border-color:#a75a5a; }
+    .transport-panel-window .transport-summary { display:grid; grid-template-columns:repeat(5, minmax(86px,1fr)); gap:6px; margin-bottom:10px; }
+    .transport-panel-window .transport-summary-card { padding:7px; background:#faf7ed; border:1px solid #c8c0ad; border-radius:5px; }
+    .transport-panel-window .transport-summary-card span { display:block; color:#6a665c; font-size:10px; }
+    .transport-panel-window .transport-summary-card strong { display:block; margin-top:2px; font-size:14px; }
+    .transport-panel-window .transport-depots { margin:0 0 10px; color:#4f5960; }
+    .transport-panel-window .transport-routes { display:grid; gap:7px; }
+    .transport-panel-window .transport-empty { padding:18px; text-align:center; border:1px dashed #a69d89; border-radius:6px; color:#686155; }
+    .transport-panel-window .transport-route { border:1px solid #aaa18e; border-left:7px solid var(--route-color); border-radius:6px; padding:8px; background:#f8f4e8; }
+    .transport-panel-window .transport-route-head { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; }
+    .transport-panel-window .transport-route-name { font-weight:800; font-size:14px; }
+    .transport-panel-window .transport-status { border-radius:12px; padding:2px 7px; background:#dce7dd; color:#285d35; white-space:nowrap; }
+    .transport-panel-window .transport-status[data-status="broken"] { background:#f3d6d2; color:#8d2924; }
+    .transport-panel-window .transport-status[data-status="suspended"], .transport-panel-window .transport-status[data-status="weather"] { background:#ece3c9; color:#765d1c; }
+    .transport-panel-window .transport-route-stops { margin:5px 0; color:#5d5a53; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .transport-panel-window .transport-route-fleet-toggle { border:0; background:transparent; padding:0; margin-top:2px; color:#4f5960; font:inherit; font-size:11px; cursor:pointer; }
+    .transport-panel-window .transport-route-fleet-toggle:hover, .transport-panel-window .transport-route-fleet-toggle.is-open { color:#164f6e; font-weight:700; }
+    .transport-panel-window .transport-route-fleet { display:grid; gap:4px; margin:6px 0; }
+    .transport-panel-window .transport-route-vehicle { display:grid; grid-template-columns:1fr auto auto auto; gap:8px; align-items:center; text-align:left; padding:5px 7px; border:1px solid #b3ab98; border-radius:5px; background:#fffaf0; font:inherit; cursor:pointer; }
+    .transport-panel-window .transport-route-vehicle:hover { background:#fff; border-color:#164f6e; }
+    .transport-panel-window .transport-route-vehicle span:first-child { font-weight:700; }
+    .transport-panel-window .transport-route-error { margin:4px 0; color:#992f2a; font-weight:700; }
+    .transport-panel-window .transport-metrics { display:grid; grid-template-columns:repeat(4,minmax(70px,1fr)); gap:4px; margin:7px 0; }
+    .transport-panel-window .transport-metric { background:#ebe5d5; border-radius:4px; padding:4px; }
+    .transport-panel-window .transport-metric span { display:block; color:#777064; font-size:9px; }
+    .transport-panel-window .transport-metric strong { font-size:11px; }
+    .transport-panel-window .transport-actions { display:flex; gap:5px; justify-content:flex-end; flex-wrap:wrap; }
+    .transport-panel-window .transport-editor { border:1px solid #9d9584; border-radius:7px; padding:10px; background:#f9f6ec; }
+    .transport-panel-window .transport-editor h3 { margin:0 0 9px; }
+    .transport-panel-window .transport-fields { display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:7px; }
+    .transport-panel-window label { display:grid; gap:3px; color:#5e5a50; }
+    .transport-panel-window input { min-width:0; border:1px solid #9d9584; border-radius:4px; padding:5px; background:#fff; color:#222; }
+    .transport-panel-window input[type="color"] { width:100%; min-height:29px; padding:2px; }
+    .transport-panel-window .transport-stop-picker { display:flex; justify-content:space-between; align-items:center; gap:8px; margin:10px 0 6px; }
+    .transport-panel-window .transport-picker-hint { margin:0 0 7px; color:#236c91; }
+    .transport-panel-window .transport-stop-list { display:grid; gap:4px; min-height:42px; }
+    .transport-panel-window .transport-stop-row { display:grid; grid-template-columns:28px 1fr auto auto auto; align-items:center; gap:4px; padding:4px; background:#ebe5d5; border-radius:4px; }
+    .transport-panel-window .transport-stop-row strong { text-align:center; }
+    .transport-panel-window .transport-icon-btn { border:1px solid #a49b87; border-radius:4px; background:#fffaf0; cursor:pointer; min-width:25px; min-height:24px; }
+    .transport-panel-window .transport-editor-actions { display:flex; justify-content:flex-end; gap:7px; margin-top:10px; }
+    .transport-panel-window .transport-message { min-height:17px; margin-top:7px; color:#4f6270; }
+    .transport-panel-window .transport-message[data-tone="error"] { color:#9b2929; }
+    .transport-panel-window .transport-message[data-tone="success"] { color:#1b7045; }
+    .transport-panel-window .transport-company-form { display:grid; gap:9px; max-width:380px; }
+    .transport-panel-window .transport-company-meta { display:flex; justify-content:space-between; gap:8px; color:#5e5a50; margin-top:2px; }
+    .transport-panel-window .transport-depot-select { display:flex; align-items:flex-end; justify-content:space-between; gap:10px; margin-bottom:10px; }
+    .transport-panel-window .transport-depot-select label { flex:1; }
+    .transport-panel-window .transport-depot-select select { width:100%; border:1px solid #9d9584; border-radius:4px; padding:5px; background:#fff; }
+    .transport-panel-window h4 { margin:12px 0 6px; color:#3c4650; }
+    .transport-panel-window .transport-vehicle-classes, .transport-panel-window .transport-vehicle-list { display:grid; gap:6px; }
+    .transport-panel-window .transport-vehicle-class-row, .transport-panel-window .transport-vehicle-row { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:7px 8px; background:#f8f4e8; border:1px solid #aaa18e; border-radius:6px; }
+    .transport-panel-window .transport-vehicle-row select { border:1px solid #9d9584; border-radius:4px; padding:4px; background:#fff; min-width:120px; }
+    .transport-panel-window .transport-vehicle-class-row small, .transport-panel-window .transport-vehicle-row small { display:block; color:#6a665c; }
+    .transport-panel-window .transport-section-head { display:flex; justify-content:space-between; align-items:flex-end; gap:10px; margin:0 0 8px; }
+    .transport-panel-window .transport-section-head h3 { margin:0; font-size:15px; }
+    .transport-panel-window .transport-section-head p { margin:2px 0 0; color:#6a665c; }
+    .transport-panel-window .transport-toolbar { display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
+    .transport-panel-window .transport-toolbar select { border:1px solid #8f8776; border-radius:3px; padding:5px 7px; background:#fffaf0; color:#252b2f; }
+    .transport-panel-window .transport-table-wrap { overflow:auto; border:1px solid #9e9685; background:#fffaf0; }
+    .transport-panel-window .transport-table { width:100%; border-collapse:collapse; font-size:11px; }
+    .transport-panel-window .transport-table th { position:sticky; top:0; z-index:1; padding:6px; text-align:left; white-space:nowrap; color:#fff; background:#3c535f; }
+    .transport-panel-window .transport-table td { padding:6px; border-top:1px solid #d4ccbc; vertical-align:middle; }
+    .transport-panel-window .transport-table tbody tr:nth-child(even) { background:#f1ebdc; }
+    .transport-panel-window .transport-table tbody tr:hover { background:#fff; }
+    .transport-panel-window .transport-table .is-positive { color:#176a43; font-weight:800; }
+    .transport-panel-window .transport-table .is-negative { color:#a22c2c; font-weight:800; }
+    .transport-panel-window .transport-line-cell { display:flex; align-items:center; gap:6px; min-width:120px; }
+    .transport-panel-window .transport-line-swatch { width:7px; height:22px; border:1px solid rgba(0,0,0,.25); background:var(--route-color); flex:0 0 auto; }
+    .transport-panel-window .transport-usage { min-width:82px; }
+    .transport-panel-window .transport-bar { position:relative; height:8px; margin-top:3px; overflow:hidden; border:1px solid #817969; background:#d8d1c3; }
+    .transport-panel-window .transport-bar > i { display:block; height:100%; width:var(--value); background:#2b8a57; }
+    .transport-panel-window .transport-bar.demand > i { background:#d28b22; }
+    .transport-panel-window .transport-demand-badge { display:inline-block; min-width:54px; border-radius:10px; padding:2px 6px; text-align:center; color:#fff; background:#78838a; font-weight:800; }
+    .transport-panel-window .transport-demand-badge[data-level="high"] { background:#b84732; }
+    .transport-panel-window .transport-demand-badge[data-level="medium"] { background:#ce8a22; }
+    .transport-panel-window .transport-demand-badge[data-level="low"] { background:#40865a; }
+    .transport-panel-window .transport-buy-catalog { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; }
+    .transport-panel-window .transport-buy-card { display:grid; grid-template-columns:40px 1fr auto; align-items:center; gap:9px; padding:9px; border:1px solid #99917f; background:#f8f4e8; }
+    .transport-panel-window .transport-buy-icon { display:grid; place-items:center; width:36px; height:36px; border:1px solid #a49b87; background:#e8e1d2; font-size:21px; }
+    .transport-panel-window .transport-buy-stats { color:#6a665c; font-size:10px; }
+    .transport-panel-window .transport-finance-total td { border-top:2px solid #6b6355; font-weight:800; }
+    .transport-panel-window .transport-note { padding:7px 9px; border-left:4px solid #236c91; background:#e3edf0; color:#3f515a; }
+    @media (max-width:720px) {
+      .transport-panel-window { width:calc(100vw - 16px) !important; }
+      .transport-panel-window .transport-summary { grid-template-columns:repeat(2,1fr); }
+      .transport-panel-window .transport-fields { grid-template-columns:1fr 1fr; }
+      .transport-panel-window .transport-metrics { grid-template-columns:repeat(3,1fr); }
+      .transport-panel-window .transport-buy-catalog { grid-template-columns:1fr; }
+    }
+  `;
+  document.head.appendChild(style);
+}
 
+// §5/§10/§11: brings a window to the front and marks it visually focused -
+// mirrors vehicle-tracker.js's focusVehicleTrackingWindow so both window
+// families behave the same way (click/drag raises, Escape targets the
+// front-most one).
+function focusTransportPanel(id) {
+  const panel = transportPanels.get(id);
+  if (!panel) return;
+  transportFocusedPanelId = id;
+  transportPanelZCounter += 1;
+  panel.root.style.zIndex = String(360 + transportPanelZCounter);
+  transportPanels.forEach((entry, key) => entry.root.classList.toggle('is-focused', key === id));
+}
+
+function beginTransportPanelDrag(event, panel) {
+  if (event.button !== 0 || event.target.closest('button')) return;
+  event.preventDefault();
+  focusTransportPanel(panel.id);
+  const rect = panel.root.getBoundingClientRect();
+  panel.dragOffsetX = event.clientX - rect.left;
+  panel.dragOffsetY = event.clientY - rect.top;
+  panel.dragPointerId = event.pointerId;
+  event.currentTarget.setPointerCapture?.(event.pointerId);
+}
+
+function moveTransportPanelDrag(event, panel) {
+  if (panel.dragPointerId !== event.pointerId) return;
+  event.preventDefault();
+  const width = panel.root.offsetWidth;
+  const height = panel.root.offsetHeight;
+  const maxX = Math.max(0, window.innerWidth - width);
+  const maxY = Math.max(0, window.innerHeight - height);
+  panel.root.style.left = `${Math.max(0, Math.min(maxX, event.clientX - panel.dragOffsetX))}px`;
+  panel.root.style.top = `${Math.max(0, Math.min(maxY, event.clientY - panel.dragOffsetY))}px`;
+  panel.root.style.right = 'auto';
+}
+
+function endTransportPanelDrag(event, panel) {
+  if (panel.dragPointerId !== event.pointerId) return;
+  panel.dragPointerId = null;
+  event.currentTarget.releasePointerCapture?.(event.pointerId);
+}
+
+// Lazily builds one independent window for the given tab id (routes/fleet/
+// demand/depot/finances/company). Each is its own free-floating, draggable
+// #transport-panel-window - OpenTTD's toolbar-launched windows, not tabs
+// sharing one big panel that used to eat most of the screen.
+function createTransportPanel(id) {
+  if (transportPanels.has(id) || typeof document === 'undefined') return transportPanels.get(id);
+  ensureTransportPanelStyle();
+  const meta = TRANSPORT_PANEL_META[id];
   const root = document.createElement('section');
-  root.id = 'transport-window';
+  root.className = 'transport-panel-window';
+  root.dataset.transportPanel = id;
   root.hidden = true;
   root.setAttribute('role', 'dialog');
   root.setAttribute('aria-modal', 'false');
+  root.style.width = `min(${meta.width}, calc(100vw - 44px))`;
+  const cascade = (transportPanelCascade++ % 8) * 26;
+  root.style.top = `${92 + cascade}px`;
+  root.style.left = `${Math.max(12, window.innerWidth - 780 - cascade)}px`;
   root.innerHTML = `
-    <div class="transport-head">
-      <span data-transport-title></span>
-      <button class="transport-close" type="button" data-transport-action="close" aria-label="Close">×</button>
+    <div class="transport-panel-head" data-transport-panel-head>
+      <span class="transport-panel-icon" aria-hidden="true">${meta.icon}</span>
+      <span class="transport-panel-title" data-transport-panel-title></span>
+      <button class="transport-panel-close" type="button" data-transport-panel-close aria-label="Close">×</button>
     </div>
-    <div class="transport-body" data-transport-body></div>
+    <div class="transport-panel-body" data-transport-panel-body></div>
   `;
-  root.addEventListener('pointerdown', (event) => event.stopPropagation());
+  document.body.appendChild(root);
+  const panel = {
+    id,
+    root,
+    body: root.querySelector('[data-transport-panel-body]'),
+    titleEl: root.querySelector('[data-transport-panel-title]'),
+    dragOffsetX: 0,
+    dragOffsetY: 0,
+    dragPointerId: null,
+  };
+  transportPanels.set(id, panel);
+  const head = root.querySelector('[data-transport-panel-head]');
+  root.addEventListener('pointerdown', (event) => {
+    event.stopPropagation();
+    focusTransportPanel(id);
+  });
   root.addEventListener('click', handleTransportUiClick);
   root.addEventListener('input', handleTransportUiInput);
   root.addEventListener('change', handleTransportUiChange);
-  document.body.appendChild(root);
-  transportUiState.root = root;
-  return root;
+  root.querySelector('[data-transport-panel-close]').addEventListener('click', () => closeTransportPanel(id));
+  head.addEventListener('pointerdown', (event) => beginTransportPanelDrag(event, panel));
+  head.addEventListener('pointermove', (event) => moveTransportPanelDrag(event, panel));
+  head.addEventListener('pointerup', (event) => endTransportPanelDrag(event, panel));
+  return panel;
+}
+
+function openTransportPanel(id) {
+  if (!TRANSPORT_PANEL_META[id]) return;
+  const panel = createTransportPanel(id);
+  if (!panel) return;
+  panel.root.hidden = false;
+  focusTransportPanel(id);
+  refreshTransportPanel(id);
+  updateTransportTopbarPanelButtonStates();
+  if (typeof invalidateTransportVisuals === 'function') invalidateTransportVisuals(activeScene);
+}
+
+function closeTransportPanel(id) {
+  const panel = transportPanels.get(id);
+  if (!panel || panel.root.hidden) return;
+  panel.root.hidden = true;
+  if (id === 'routes') {
+    transportUiState.pickingStops = false;
+    transportUiState.editor = null;
+  }
+  updateTransportTopbarPanelButtonStates();
+  if (typeof invalidateTransportVisuals === 'function') invalidateTransportVisuals(activeScene);
+}
+
+function toggleTransportPanel(id) {
+  const panel = transportPanels.get(id);
+  if (panel && !panel.root.hidden) closeTransportPanel(id);
+  else openTransportPanel(id);
+}
+
+function closeAllTransportPanels() {
+  transportPanels.forEach((panel, id) => {
+    if (!panel.root.hidden) closeTransportPanel(id);
+  });
+}
+
+function isAnyTransportPanelOpen() {
+  for (const panel of transportPanels.values()) {
+    if (!panel.root.hidden) return true;
+  }
+  return false;
+}
+
+function updateTransportTopbarPanelButtonStates() {
+  if (typeof document === 'undefined') return;
+  document.querySelectorAll('#transport-topbar-tools [data-transport-topbar-panel]').forEach((button) => {
+    const panel = transportPanels.get(button.dataset.transportTopbarPanel);
+    button.classList.toggle('is-open', !!panel && !panel.root.hidden);
+  });
 }
 
 function setTransportUiMessage(message, tone = 'info') {
@@ -572,41 +705,32 @@ function renderTransportFinancesTab(state) {
   `;
 }
 
-function refreshTransportUi(options = {}) {
-  const root = transportUiState.root;
-  if (!root) return;
-  root.querySelector('[data-transport-title]').textContent = t('transport.title');
-  root.querySelector('[data-transport-action="close"]')?.setAttribute('aria-label', t('transport.close'));
-  if (root.hidden) return;
-  if (options?.passive === true && transportUiState.editor) return;
-  const body = root.querySelector('[data-transport-body]');
+// Renders one specific panel's content (gate screen, or its tab body).
+// `options.passive` is the once-a-tick HUD refresh (hud.js's updateHUD) -
+// it must never blow away the routes panel's in-progress route-name/fare
+// inputs mid-keystroke, so that one panel is skipped while the editor is
+// open; every other open panel still refreshes normally.
+function refreshTransportPanel(id, options = {}) {
+  const panel = transportPanels.get(id);
+  if (!panel || panel.root.hidden) return;
+  if (options?.passive === true && id === 'routes' && transportUiState.editor) return;
+  panel.titleEl.textContent = t(TRANSPORT_PANEL_META[id].labelKey);
   const state = getTransportExpansionState();
-  if (renderTransportGate(body, state)) return;
-  const tabs = [
-    ['routes', '🗺', t('transport.tab.routes')],
-    ['fleet', '🚌', t('transport.tab.fleet')],
-    ['demand', '👥', t('transport.tab.demand')],
-    ['depot', '🏭', t('transport.tab.depot')],
-    ['finances', '📈', t('transport.tab.finances')],
-    ['company', '🏢', t('transport.tab.company')],
-  ].map(([id, icon, label]) => (
-    `<button class="transport-tab${transportUiState.activeTab === id ? ' is-active' : ''}" type="button" data-transport-tab="${id}"><span class="transport-tab-icon" aria-hidden="true">${icon}</span><span class="transport-tab-label">${transportEscapeHtml(label)}</span></button>`
-  )).join('');
-  let tabBody = '';
-  if (transportUiState.activeTab === 'fleet') tabBody = renderTransportFleetTab(state);
-  else if (transportUiState.activeTab === 'demand') tabBody = renderTransportDemandTab(state);
-  else if (transportUiState.activeTab === 'depot') tabBody = renderTransportDepotTab(state);
-  else if (transportUiState.activeTab === 'finances') tabBody = renderTransportFinancesTab(state);
-  else if (transportUiState.activeTab === 'company') tabBody = renderTransportCompanyTab(state);
-  else tabBody = renderTransportRoutesTab(state);
-  body.innerHTML = `
-    <div class="transport-topline">
-      <span class="transport-credit">${transportEscapeHtml(state.company.name || t('transport.defaultCompanyName'))} · ${transportEscapeHtml(transportFormatMoney(state.company.cash))}</span>
-    </div>
-    <div class="transport-tabs">${tabs}</div>
-    <div class="transport-tab-body">${tabBody}</div>
-  `;
-  refreshTransportHud();
+  if (renderTransportGate(panel.body, state)) return;
+  let html = '';
+  if (id === 'fleet') html = renderTransportFleetTab(state);
+  else if (id === 'demand') html = renderTransportDemandTab(state);
+  else if (id === 'depot') html = renderTransportDepotTab(state);
+  else if (id === 'finances') html = renderTransportFinancesTab(state);
+  else if (id === 'company') html = renderTransportCompanyTab(state);
+  else html = renderTransportRoutesTab(state);
+  panel.body.innerHTML = html;
+}
+
+function refreshTransportUi(options = {}) {
+  for (const id of TRANSPORT_PANEL_IDS) refreshTransportPanel(id, options);
+  updateTransportTopbarPanelButtonStates();
+  updateTransportTopbarKpis();
   refreshTransportInspector();
 }
 
@@ -706,38 +830,31 @@ function renderTransportDepotTab(state) {
   `;
 }
 
+// Back-compat entry point (vehicle-tracker.js's "jump to route" action, and
+// any other caller that just wants "the transport UI open somewhere") -
+// opens the Routes window specifically, the most useful default.
 function openTransportWindow() {
-  const root = createTransportWindow();
-  if (!root) return;
-  root.hidden = false;
-  refreshTransportUi();
-  if (typeof invalidateTransportVisuals === 'function') invalidateTransportVisuals(activeScene);
+  openTransportPanel('routes');
 }
 
 function openTransportWindowTab(tabId) {
-  const allowed = new Set(['routes', 'fleet', 'demand', 'depot', 'finances', 'company']);
-  transportUiState.activeTab = allowed.has(tabId) ? tabId : 'routes';
   if (typeof setTransportModeActive === 'function') setTransportModeActive(true);
-  openTransportWindow();
+  openTransportPanel(TRANSPORT_PANEL_META[tabId] ? tabId : 'routes');
 }
 
 // §10: map click on a depot building (main.js's building pointerdown) lands
-// here - jump straight to that depot's Depot tab.
+// here - jump straight to that depot's window with it preselected.
 function openTransportDepotWindowFor(depotId) {
-  transportUiState.activeTab = 'depot';
   transportUiState.selectedDepotId = String(depotId || '');
-  openTransportWindow();
+  openTransportPanel('depot');
 }
 
-// Closing the network window no longer exits the mode - like OpenTTD,
+// Closing an operation window no longer exits the mode - like OpenTTD,
 // windows come and go freely while the play mode itself is toggled only via
-// the CITY GUIDE header (setTransportModeActive).
+// the CITY GUIDE header (setTransportModeActive). Kept as a "close
+// everything" fallback for setTransportModeActive's exit path.
 function closeTransportWindow() {
-  if (!transportUiState.root) return;
-  transportUiState.root.hidden = true;
-  transportUiState.pickingStops = false;
-  transportUiState.editor = null;
-  if (typeof invalidateTransportVisuals === 'function') invalidateTransportVisuals(activeScene);
+  closeAllTransportPanels();
 }
 
 // The mayor's tool selection, parked while Transport Mode is open and
@@ -778,11 +895,12 @@ function setTransportModeActive(active) {
     // never invisibly build with a hidden city tool.
     transportModeSavedTool = typeof selectedTool === 'string' ? selectedTool : '';
     if (typeof selectedTool !== 'undefined') selectedTool = 'inspect';
-    openTransportWindow();
-    refreshTransportHud();
+    openTransportPanel('routes');
+    updateTransportTopbarKpis();
   } else {
-    closeTransportWindow();
+    closeAllTransportPanels();
     closeTransportInspector();
+    restoreCityTopbarKpiLabels();
     if (typeof selectedTool !== 'undefined' && transportModeSavedTool) {
       selectedTool = transportModeSavedTool;
     }
@@ -796,31 +914,51 @@ function setTransportModeActive(active) {
   refreshTransportModeHeader();
 }
 
-function ensureTransportHud() {
-  if (typeof document === 'undefined') return null;
-  let hud = document.getElementById('transport-hud');
-  if (hud) return hud;
-  hud = document.createElement('div');
-  hud.id = 'transport-hud';
-  hud.innerHTML = `
-    <div class="transport-hud-name" data-transport-hud-name></div>
-    <div class="transport-hud-cash" data-transport-hud-cash></div>
-  `;
-  document.body.appendChild(hud);
-  return hud;
+// §5: while Transport Mode is open, the mayor's funds strip has nothing to
+// show (city.budget doesn't move here, §4) - the same five slots are
+// repurposed for the company ledger instead of a separate floating box
+// that used to sit on top of the tool menu.
+const TRANSPORT_TOPBAR_KPI_CITY_LABELS = {
+  'topbar-funds': 'topbar.kpi.funds',
+  'topbar-income': 'topbar.kpi.income',
+  'topbar-expense': 'topbar.kpi.expenses',
+  'topbar-population': 'topbar.kpi.population',
+  'topbar-rating': 'topbar.kpi.rating',
+};
+
+function setTransportTopbarKpi(valueId, labelKey, value) {
+  const valueEl = document.getElementById(valueId);
+  if (!valueEl) return;
+  valueEl.textContent = value;
+  const labelSpan = valueEl.closest('.kpi-card')?.querySelector('.kpi-label span');
+  if (!labelSpan) return;
+  labelSpan.dataset.i18n = labelKey;
+  labelSpan.textContent = t(labelKey);
 }
 
-function refreshTransportHud() {
-  if (!isTransportModeActive) return;
-  const hud = ensureTransportHud();
-  if (!hud) return;
+function updateTransportTopbarKpis() {
+  if (typeof document === 'undefined' || !isTransportModeActive) return;
   const state = getTransportExpansionState();
-  const nameEl = hud.querySelector('[data-transport-hud-name]');
-  const cashEl = hud.querySelector('[data-transport-hud-cash]');
-  if (nameEl) nameEl.textContent = state.company.name || t('transport.defaultCompanyName');
-  if (cashEl) {
-    cashEl.textContent = transportFormatMoney(state.company.cash);
-    cashEl.dataset.negative = state.company.cash < 0 ? 'true' : 'false';
+  const financials = typeof getTransportFinancials === 'function'
+    ? getTransportFinancials()
+    : { revenue: 0, cost: 0 };
+  const summary = typeof getTransportSummary === 'function'
+    ? getTransportSummary()
+    : { monthlyPassengers: 0, averageReliability: 0 };
+  setTransportTopbarKpi('topbar-funds', 'transport.kpi.cash', transportFormatMoney(state.company.cash));
+  setTransportTopbarKpi('topbar-income', 'transport.kpi.revenue', `+${transportFormatMoney(financials.revenue)}`);
+  setTransportTopbarKpi('topbar-expense', 'transport.kpi.cost', `-${transportFormatMoney(financials.cost)}`);
+  setTransportTopbarKpi('topbar-population', 'transport.kpi.passengers', Math.round(summary.monthlyPassengers).toLocaleString());
+  setTransportTopbarKpi('topbar-rating', 'transport.kpi.reliability', transportFormatPercent(summary.averageReliability));
+}
+
+function restoreCityTopbarKpiLabels() {
+  if (typeof document === 'undefined') return;
+  for (const [valueId, labelKey] of Object.entries(TRANSPORT_TOPBAR_KPI_CITY_LABELS)) {
+    const labelSpan = document.getElementById(valueId)?.closest('.kpi-card')?.querySelector('.kpi-label span');
+    if (!labelSpan) continue;
+    labelSpan.dataset.i18n = labelKey;
+    labelSpan.textContent = t(labelKey);
   }
 }
 
@@ -951,15 +1089,14 @@ function refreshTransportStopInspectorBody(root) {
 
 function resetTransportUiForCityChange() {
   if (typeof closeAllVehicleTrackingWindows === 'function') closeAllVehicleTrackingWindows();
+  closeAllTransportPanels();
   transportUiState.editor = null;
   transportUiState.pickingStops = false;
-  transportUiState.activeTab = 'routes';
   transportUiState.selectedDepotId = '';
   transportUiState.expandedRouteId = '';
   transportUiState.fleetSort = 'number';
   setTransportUiMessage('');
   if (isTransportModeActive) setTransportModeActive(false);
-  if (transportUiState.root && !transportUiState.root.hidden) refreshTransportUi();
 }
 
 function toggleTransportExpansionForCity() {
@@ -971,7 +1108,7 @@ function toggleTransportExpansionForCity() {
   if (enabled && !window.confirm(t('transport.confirmDisable'))) return;
   setExpansionEnabled('transport', !enabled);
   showToast(t(enabled ? 'transport.toast.disabled' : 'transport.toast.enabled'), 'info');
-  if (transportUiState.root && !transportUiState.root.hidden) refreshTransportUi();
+  if (isAnyTransportPanelOpen()) refreshTransportUi();
 }
 
 function beginTransportRouteEditor(route = null) {
@@ -1090,24 +1227,18 @@ function handleTransportUiChange(event) {
 }
 
 function handleTransportUiClick(event) {
-  const tabButton = event.target.closest('[data-transport-tab]');
-  if (tabButton) {
-    transportUiState.activeTab = tabButton.dataset.transportTab;
-    return refreshTransportUi();
-  }
   const button = event.target.closest('[data-transport-action]');
   if (!button) return;
   const action = button.dataset.transportAction;
-  if (action === 'close') return closeTransportWindow();
   if (action === 'enable') {
     setExpansionEnabled('transport', true);
     showToast(t('transport.toast.enabled'), 'info');
     return refreshTransportUi();
   }
   if (action === 'save-company') {
-    const root = transportUiState.root;
-    const name = root?.querySelector('[data-transport-field="companyName"]')?.value ?? '';
-    const presidentName = root?.querySelector('[data-transport-field="presidentName"]')?.value ?? '';
+    const panelRoot = button.closest('.transport-panel-window');
+    const name = panelRoot?.querySelector('[data-transport-field="companyName"]')?.value ?? '';
+    const presidentName = panelRoot?.querySelector('[data-transport-field="presidentName"]')?.value ?? '';
     const state = getTransportExpansionState();
     state.company.name = String(name).trim().slice(0, 60);
     state.company.presidentName = String(presidentName).trim().slice(0, 40);
@@ -1226,15 +1357,18 @@ function handleTransportRouteMapClick(row, col) {
 }
 
 function isTransportRouteOverlayRequested() {
-  const windowOpen = !!transportUiState.root && !transportUiState.root.hidden;
   const trafficOverlay = typeof activeOverlay === 'string' && activeOverlay === 'traffic';
-  return isTransportExpansionActive() && (windowOpen || trafficOverlay || isTransportRoutePicking());
+  return isTransportExpansionActive() && (isAnyTransportPanelOpen() || trafficOverlay || isTransportRoutePicking());
 }
 
 function getTransportRouteEditorStopIds() {
   return Array.from(transportUiState.editor?.stopIds || []);
 }
 
+// Escape targets whichever operation window was interacted with last
+// (transportFocusedPanelId, set by focusTransportPanel on open/click/drag) -
+// same "closest window wins" precedence as the vehicle tracker windows,
+// checked first since those float above everything else.
 function handleTransportUiKeydown(event) {
   if (event.key === 'Escape' && typeof closeFocusedVehicleTrackingWindow === 'function'
     && closeFocusedVehicleTrackingWindow()) {
@@ -1246,29 +1380,42 @@ function handleTransportUiKeydown(event) {
     closeTransportInspector();
     return;
   }
-  if (!transportUiState.root || transportUiState.root.hidden) {
-    // Escape with no transport windows left open steps back out to city
-    // building, mirroring how the mode was entered from the guide header.
-    if (event.key === 'Escape' && isTransportModeActive) {
-      event.preventDefault();
-      setTransportModeActive(false);
-    }
+  const focusedPanel = transportPanels.get(transportFocusedPanelId);
+  if (event.key === 'Escape' && focusedPanel && !focusedPanel.root.hidden) {
+    event.preventDefault();
+    if (transportFocusedPanelId === 'routes' && transportUiState.editor) cancelTransportRouteEditor();
+    else closeTransportPanel(transportFocusedPanelId);
     return;
   }
-  if (event.key === 'Escape') {
+  if (event.key === 'Escape' && isAnyTransportPanelOpen()) {
+    // The previously-focused window was closed some other way (its own ×,
+    // a topbar toggle) and another is still open - rather than guess which
+    // one Escape should target next, just step out of the mode.
     event.preventDefault();
-    if (transportUiState.editor) cancelTransportRouteEditor();
-    else closeTransportWindow();
-  } else if (event.key === 'Enter' && (event.ctrlKey || event.metaKey) && transportUiState.editor) {
+    setTransportModeActive(false);
+    return;
+  }
+  if (event.key === 'Escape' && isTransportModeActive) {
+    // No transport windows left open - step back out to city building,
+    // mirroring how the mode was entered from the guide header.
+    event.preventDefault();
+    setTransportModeActive(false);
+    return;
+  }
+  if (event.key === 'Enter' && (event.ctrlKey || event.metaKey) && transportUiState.editor) {
     event.preventDefault();
     saveTransportRouteEditor();
   }
 }
 
 function setupTransportUi() {
-  createTransportWindow();
   document.addEventListener('languagechange', refreshTransportUi);
   document.addEventListener('keydown', handleTransportUiKeydown);
+  document.getElementById('transport-topbar-tools')?.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-transport-topbar-panel]');
+    if (!button) return;
+    toggleTransportPanel(button.dataset.transportTopbarPanel);
+  });
 }
 
 if (typeof document !== 'undefined') setupTransportUi();

@@ -5082,38 +5082,43 @@
       background: linear-gradient(180deg, #14506e 0%, #0b2e42 100%);
     }
 
-    #transport-hud {
-      position: fixed;
-      left: 14px;
-      top: 92px;
-      z-index: 72;
-      padding: 8px 12px;
-      border: 2px solid #164f6e;
-      border-radius: 8px;
-      background: #ece7d8;
-      color: #20252a;
-      box-shadow: 0 4px 14px rgba(0,0,0,0.22);
-      font: 12px/1.35 Arial, Helvetica, sans-serif;
+    /* §5/§10/§11: the six Transport Company operation windows (routes,
+       fleet, demand, depot, finances, company) live in a fixed topbar strip
+       instead of a flyout menu row, each toggling its own free-floating
+       draggable window (transport-ui.js's transportPanels) - mirrors
+       OpenTTD's toolbar-launched windows rather than one big tabbed panel
+       eating the screen. */
+    #transport-topbar-tools {
       display: none;
+      align-items: center;
+      gap: 4px;
     }
 
-    body.transport-mode #transport-hud {
-      display: block;
+    body.transport-mode #transport-topbar-tools {
+      display: flex;
     }
 
-    #transport-hud .transport-hud-name {
-      font-weight: 800;
-      font-size: 13px;
-      margin-bottom: 2px;
+    #transport-topbar-tools button {
+      width: 34px;
+      height: 34px;
+      border: 1px solid #164f6e;
+      border-radius: 6px;
+      background: #eef3f9;
+      color: #14506e;
+      font-size: 16px;
+      line-height: 1;
+      cursor: pointer;
     }
 
-    #transport-hud .transport-hud-cash {
-      font-weight: 700;
-      color: #176a43;
+    #transport-topbar-tools button:hover {
+      background: #ffffff;
     }
 
-    #transport-hud .transport-hud-cash[data-negative="true"] {
-      color: #9b2929;
+    #transport-topbar-tools button.is-open {
+      background: #236c91;
+      border-color: #123f58;
+      color: #ffffff;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,.35);
     }
 
     #terrain-minimap-panel {
@@ -5750,6 +5755,15 @@
           <button class="topbar-speed-btn" data-speed="0.5" title="0.5× speed" data-i18n-title="topbar.speed05">0.5x</button>
           <button class="topbar-speed-btn is-active" data-speed="1" title="1× speed" data-i18n-title="topbar.speed1">1x</button>
           <button class="topbar-speed-btn" data-speed="2" title="2× speed" data-i18n-title="topbar.speed2">2x</button>
+        </div>
+
+        <div id="transport-topbar-tools" aria-label="Transport company windows" data-i18n-aria="transport.topbarToolsAria">
+          <button type="button" data-transport-topbar-panel="routes" title="Routes &amp; Orders" data-i18n-title="transport.tool.routes" aria-label="Routes &amp; Orders" data-i18n-aria="transport.tool.routes">🗺</button>
+          <button type="button" data-transport-topbar-panel="fleet" title="Vehicle List" data-i18n-title="transport.tool.fleet" aria-label="Vehicle List" data-i18n-aria="transport.tool.fleet">🚌</button>
+          <button type="button" data-transport-topbar-panel="demand" title="Passenger Demand" data-i18n-title="transport.tool.demand" aria-label="Passenger Demand" data-i18n-aria="transport.tool.demand">👥</button>
+          <button type="button" data-transport-topbar-panel="depot" title="Depots" data-i18n-title="transport.tab.depot" aria-label="Depots" data-i18n-aria="transport.tab.depot">🏭</button>
+          <button type="button" data-transport-topbar-panel="finances" title="Profit &amp; Loss" data-i18n-title="transport.tool.finances" aria-label="Profit &amp; Loss" data-i18n-aria="transport.tool.finances">📈</button>
+          <button type="button" data-transport-topbar-panel="company" title="Company" data-i18n-title="transport.tab.company" aria-label="Company" data-i18n-aria="transport.tab.company">🏢</button>
         </div>
 
         <button id="topbar-more-btn" type="button" aria-label="Open menu" title="More" data-i18n-aria="topbar.openMenu" data-i18n-title="topbar.more">☰</button>

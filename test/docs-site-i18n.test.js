@@ -66,6 +66,33 @@ test('gallery, manual table/notes, feature list and download cards stay the same
   });
 });
 
+test('every gallery story has a localized title, description and accessible image text', () => {
+  const context = loadSiteI18n();
+  const SITE_LANGUAGES = Array.from(vm.runInContext('SITE_LANGUAGES', context));
+
+  SITE_LANGUAGES.forEach((lang) => {
+    const items = vm.runInContext(`SITE_GALLERY['${lang}']`, context);
+    items.forEach((item, index) => {
+      assert.ok(String(item.title || '').trim(), `${lang}: gallery item ${index + 1} needs a title`);
+      assert.ok(String(item.caption || '').trim(), `${lang}: gallery item ${index + 1} needs a description`);
+      assert.ok(String(item.alt || '').trim(), `${lang}: gallery item ${index + 1} needs alt text`);
+    });
+  });
+});
+
+test('landing page exposes free download, sharing credit and an interactive screenshot dialog', () => {
+  const html = fs.readFileSync(path.join(DOCS, 'index.html'), 'utf8');
+  const siteJs = fs.readFileSync(path.join(DOCS, 'site.js'), 'utf8');
+
+  assert.match(html, /href="#downloads"[^>]+data-i18n="hero\.downloadBtn"/);
+  assert.match(html, /data-i18n="sharing\.creditText"/);
+  assert.match(html, /<dialog[^>]+data-gallery-dialog/);
+  assert.match(html, /data-gallery-dialog-image/);
+  assert.match(siteJs, /setupGalleryLightbox\(\)/);
+  assert.match(siteJs, /\[data-gallery-open\]/);
+  assert.match(siteJs, /dialog\.showModal\(\)/);
+});
+
 test('every changelog release has a translation for zh-TW, en and ja', () => {
   const context = loadSiteI18n();
   const baseVersions = Array.from(vm.runInContext("SITE_CHANGELOG['zh-HK'].map((entry) => entry.version)", context));

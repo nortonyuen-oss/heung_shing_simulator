@@ -161,8 +161,48 @@ function setupViewCounterFallback() {
   });
 }
 
+function setupGalleryLightbox() {
+  const dialog = document.querySelector("[data-gallery-dialog]");
+  const image = dialog?.querySelector("[data-gallery-dialog-image]");
+  const title = dialog?.querySelector("[data-gallery-dialog-title]");
+  const caption = dialog?.querySelector("[data-gallery-dialog-caption]");
+  const closeButton = dialog?.querySelector("[data-gallery-close]");
+
+  if (!dialog || !image || !title || !caption || !closeButton) return;
+
+  const closeDialog = () => {
+    if (typeof dialog.close === "function" && dialog.open) {
+      dialog.close();
+    } else {
+      dialog.removeAttribute("open");
+    }
+  };
+
+  document.addEventListener("click", (event) => {
+    const trigger = event.target.closest?.("[data-gallery-open]");
+    if (!trigger) return;
+
+    image.src = trigger.dataset.gallerySrc || "";
+    image.alt = trigger.dataset.galleryAlt || "";
+    title.textContent = trigger.dataset.galleryTitle || "";
+    caption.textContent = trigger.dataset.galleryCaption || "";
+
+    if (typeof dialog.showModal === "function") {
+      if (!dialog.open) dialog.showModal();
+    } else {
+      dialog.setAttribute("open", "");
+    }
+  });
+
+  closeButton.addEventListener("click", closeDialog);
+  dialog.addEventListener("click", (event) => {
+    if (event.target === dialog) closeDialog();
+  });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   setupViewCounterFallback();
+  setupGalleryLightbox();
   loadReleaseStats();
 });
 

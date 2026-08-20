@@ -4,15 +4,15 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>香城模擬器 | The City of Heung Shing</title>
-  <meta name="description" content="下載香城模擬器 v3.14.0「時空重置」：日曆改為一日一日咁行，新增0.15x／0.5x慢速檔，並新增巴士站路邊裝飾同修正入站遮擋順序。" />
+  <meta name="description" content="免費下載《香城模擬器》：一款向 SimCity 2000 致敬、以香港城市生活為靈感嘅城市建設遊戲。歡迎下載同分享，註明出處就可以。" />
   <meta property="og:title" content="香城模擬器 | The City of Heung Shing" />
-  <meta property="og:description" content="v3.14.0 時空重置：全新時鐘系統一日一日咁行、加咗0.15x／0.5x慢速檔，重型城市模擬同以前一樣每月4次，仲新增咗巴士站路邊裝飾。" />
+  <meta property="og:description" content="由街道、天氣到議會、股市同公共交通，一齊建設屬於你嘅香城。遊戲免費下載，歡迎分享，請註明出處。" />
   <meta property="og:image" content="assets/backgroundTitle.png" />
   <meta name="theme-color" content="#17212d" />
   <link rel="icon" href="assets/icon.png" />
-  <link rel="stylesheet" href="styles.css?v=20260808-1" />
-  <script src="i18n.js?v=20260808-1" defer></script>
-  <script src="site.js?v=20260808-1" defer></script>
+  <link rel="stylesheet" href="styles.css?v=20260820-1" />
+  <script src="i18n.js?v=20260820-1" defer></script>
+  <script src="site.js?v=20260820-1" defer></script>
 </head>
 <body>
   <header class="site-header" aria-label="網站導覽">
@@ -21,13 +21,15 @@
       <span>香城模擬器</span>
     </a>
     <nav>
-      <a href="#gallery" data-i18n="nav.gallery">截圖</a>
-      <a href="#downloads" data-i18n="nav.downloads">下載</a>
-      <a href="#manual" data-i18n="nav.manual">玩家手冊</a>
-      <a href="guide.html" data-i18n="nav.guide">遊戲指南</a>
-      <a href="#stats" data-i18n="nav.stats">統計</a>
-      <a href="#changelog" data-i18n="nav.changelog">版本</a>
-      <a href="https://github.com/nortonyuen-oss/heung_shing_simulator" rel="noopener" data-i18n="nav.github">GitHub</a>
+      <div class="nav-links">
+        <a href="#gallery" data-i18n="nav.gallery">截圖</a>
+        <a href="#downloads" data-i18n="nav.downloads">下載</a>
+        <a href="#manual" data-i18n="nav.manual">玩家手冊</a>
+        <a href="guide.html" data-i18n="nav.guide">遊戲指南</a>
+        <a href="#stats" data-i18n="nav.stats">統計</a>
+        <a href="#changelog" data-i18n="nav.changelog">版本</a>
+        <a href="https://github.com/nortonyuen-oss/heung_shing_simulator" rel="noopener" data-i18n="nav.github">GitHub</a>
+      </div>
       <div class="lang-switcher" data-language-switcher></div>
     </nav>
   </header>
@@ -37,19 +39,37 @@
       <div class="hero-content">
         <p class="eyebrow" data-i18n="hero.eyebrowPrefix">香城模擬器</p>
         <h1 data-i18n="hero.title">香城模擬器</h1>
-        <p class="lede" data-i18n="hero.lede">一款向 SimCity 2000 致敬的城市建設遊戲。v3.14.0「時空重置」全新時鐘系統一日一日咁行，新增0.15x／0.5x慢速檔，仲新增埋巴士站路邊裝飾。</p>
+        <p class="lede" data-i18n="hero.lede">一款向 SimCity 2000 致敬、以香港城市生活為靈感嘅城市建設遊戲。起街道、規劃社區、經營自己嘅香城巴士公司、處理議會同天氣，再睇住一座有性格嘅香城慢慢成長。</p>
+        <p class="hero-free-label" data-i18n="hero.freeLabel">完全免費 · macOS + Windows · 本機存檔</p>
         <div class="hero-actions">
-          <a class="button primary" href="#downloads" data-i18n="hero.downloadBtn">下載遊戲</a>
+          <a class="button primary" href="#downloads" data-i18n="hero.downloadBtn">【免費下載】</a>
           <a class="button secondary" href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest" rel="noopener" data-release-link data-i18n="hero.latestBtn">最新版本</a>
           <a class="button secondary" href="guide.html" data-i18n="hero.guideBtn">睇遊戲指南</a>
         </div>
+        <p class="hero-share-note" data-i18n="hero.shareNote">呢個遊戲主要係想同大家分享。鍾意就下載嚟玩，亦歡迎介紹畀朋友；註明《香城模擬器》同原始連結就可以。</p>
       </div>
+    </section>
+
+    <section class="sharing" aria-labelledby="sharing-title">
+      <div class="sharing-copy">
+        <p class="eyebrow" data-i18n="sharing.eyebrow">Made to be shared</p>
+        <h2 id="sharing-title" data-i18n="sharing.title">一份想同大家分享嘅城市遊戲</h2>
+        <p data-i18n="sharing.desc">香城模擬器係一個免費嘅個人創作，希望將香港街道、城市治理同老派城市模擬嘅樂趣放埋一齊。有興趣就下載嚟玩，唔需要付費。</p>
+        <a class="text-link" href="#downloads" data-i18n="sharing.downloadLink">揀你嘅版本，免費開始建城 →</a>
+      </div>
+      <aside class="credit-card" aria-label="分享及出處說明" data-i18n-attr="aria-label:sharing.ariaLabel">
+        <span data-i18n="sharing.creditLabel">分享時請註明</span>
+        <strong data-i18n="sharing.creditText">《香城模擬器 / The City of Heung Shing》</strong>
+        <p data-i18n="sharing.creditDesc">歡迎分享遊戲、截圖或者介紹文章；保留作品名稱，同時附上官方 GitHub 或本頁連結就得。</p>
+        <a href="https://github.com/nortonyuen-oss/heung_shing_simulator" rel="noopener">github.com/nortonyuen-oss/heung_shing_simulator</a>
+      </aside>
     </section>
 
     <section id="gallery" class="gallery">
       <div class="section-head">
         <p class="eyebrow" data-i18n="gallery.eyebrow">Screenshots</p>
-        <h2 data-i18n="gallery.title">遊戲截圖</h2>
+        <h2 data-i18n="gallery.title">一張圖，一段香城故事</h2>
+        <p class="gallery-intro" data-i18n="gallery.intro">唔只係睇畫面：每張截圖都同相關玩法放埋一齊。撳任何圖片就可以放大，慢慢睇城市細節。</p>
       </div>
 
       <div class="gallery-grid" data-render="gallery"></div>
@@ -88,6 +108,7 @@
       <div class="section-head">
         <p class="eyebrow" data-i18n="downloads.eyebrow">Downloads</p>
         <h2 data-i18n="downloads.title">選擇你的平台</h2>
+        <p class="downloads-intro" data-i18n="downloads.intro">遊戲本體免費下載。揀返你部電腦嘅版本，就可以開始建立自己嘅香城。</p>
       </div>
 
       <div class="download-grid">
@@ -181,8 +202,24 @@
     </section>
   </main>
 
+  <dialog class="screenshot-lightbox" data-gallery-dialog aria-labelledby="gallery-dialog-title">
+    <div class="lightbox-shell">
+      <button class="lightbox-close" type="button" data-gallery-close data-i18n-attr="aria-label:gallery.closeImage">
+        <span aria-hidden="true">×</span>
+        <span data-i18n="gallery.closeImage">關閉</span>
+      </button>
+      <div class="lightbox-stage">
+        <img src="" alt="" data-gallery-dialog-image />
+      </div>
+      <div class="lightbox-copy">
+        <h2 id="gallery-dialog-title" data-gallery-dialog-title></h2>
+        <p data-gallery-dialog-caption></p>
+      </div>
+    </div>
+  </dialog>
+
   <footer>
-    <span>香城模擬器 v3.14.0 — 時空重置</span>
+    <span data-i18n="footer.tagline">香城模擬器 · 免費下載，歡迎分享</span>
     <div class="footer-links">
       <a href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest" rel="noopener" data-i18n="footer.releaseInfo">版本資訊</a>
       <a href="https://heungshingsimulator.blogspot.com/" rel="noopener" data-i18n="footer.blog">開發blog</a>

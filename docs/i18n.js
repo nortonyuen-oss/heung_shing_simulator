@@ -43,56 +43,56 @@ function detectSiteLanguage() {
 // ── Gallery captions ─────────────────────────────────────────────────────────
 const SITE_GALLERY = {
   "zh-HK": [
-    { alt: "城市頂部天氣狀態列，顯示溫度、濕度同暴雨警告徽章", caption: "即時天氣狀態列：溫度、濕度、風球同暴雨警告一目了然，天色仲會隨天氣變暗。" },
-    { alt: "香城討論區視窗，顯示颱風同暴雨相關熱話帖文", caption: "香城討論區：城中大小事都有花生友即時討論，颱風、股市、旅遊熱話一應俱全。" },
-    { alt: "立法會特別議案討論畫面，顯示議員支持或保留立場", caption: "立法會議事廳：提出特別議案、睇晒每位議員嘅取態，仲可以即場拍板批准。" },
-    { alt: "股票交易所視窗，顯示恒生指數同企業股票報價", caption: "股票交易所：恒生指數、企業股票報價，同法案生效狀態即時連動。" },
-    { alt: "玫瑰園國際機場，多架客機同時喺停機坪同跑道運作", caption: "機場正式投入運作：客機沿彎曲航線降落、滑行入閘再起飛，一個機場最多三四架同時繁忙。" },
-    { alt: "住宅街道車流，小巴沿路駛過屋苑同商店", caption: "真實車流：小巴、巴士、的士沿香港左側行車方向穿梭大街小巷。" },
-    { alt: "夜景街道，密集霓虹招牌同街市攤檔", caption: "建築款式愈嚟愈多元，由霓虹招牌到街市大牌檔，城市面貌隨遊戲進度豐富起嚟。" },
-    { alt: "城市入面嘅將軍澳雙語分區路牌", caption: "自訂雙語分區路牌，為你城市每一區起中英文名。" },
-    { alt: "分區命名對話框", caption: "隨時改名、隨時重劃，分區數據會即時反映落地區新聞入面。" },
-    { alt: "重新命名城市對話框，可以設定中英文城市名同揀名牌顏色", caption: "城市可以隨時改中英文名，仲可以揀返個靚色名牌。" },
-    { alt: "AI 新聞設定視窗，連接 Ollama 雲端", caption: "免費連接 Ollama Cloud，貼上一次 API key 就可以啟用 AI 新聞標題。" },
+    { title: "天氣會改變城市節奏", alt: "城市頂部天氣狀態列，顯示溫度、濕度同暴雨警告徽章", caption: "即時天氣狀態列：溫度、濕度、風球同暴雨警告一目了然，天色仲會隨天氣變暗。" },
+    { title: "城市有自己把聲", alt: "香城討論區視窗，顯示颱風同暴雨相關熱話帖文", caption: "香城討論區：城中大小事都有花生友即時討論，颱風、股市、旅遊熱話一應俱全。" },
+    { title: "議會唔只係一個選單", alt: "立法會特別議案討論畫面，顯示議員支持或保留立場", caption: "立法會議事廳：提出特別議案、睇晒每位議員嘅取態，仲可以即場拍板批准。" },
+    { title: "城市經濟會反映喺股價", alt: "股票交易所視窗，顯示恒生指數同企業股票報價", caption: "股票交易所：恒生指數、企業股票報價，同法案生效狀態即時連動。" },
+    { title: "大型基建真正運作起嚟", alt: "玫瑰園國際機場，多架客機同時喺停機坪同跑道運作", caption: "機場正式投入運作：客機沿彎曲航線降落、滑行入閘再起飛，一個機場最多三四架同時繁忙。" },
+    { title: "香港式街道有流動感", alt: "住宅街道車流，小巴沿路駛過屋苑同商店", caption: "真實車流：小巴、巴士、的士沿香港左側行車方向穿梭大街小巷。" },
+    { title: "每個街區都有自己個樣", alt: "夜景街道，密集霓虹招牌同街市攤檔", caption: "建築款式愈嚟愈多元，由霓虹招牌到街市大牌檔，城市面貌隨遊戲進度豐富起嚟。" },
+    { title: "幫每個社區改一個名", alt: "城市入面嘅將軍澳雙語分區路牌", caption: "自訂雙語分區路牌，為你城市每一區起中英文名。" },
+    { title: "分區唔係畫完就算", alt: "分區命名對話框", caption: "隨時改名、隨時重劃，分區數據會即時反映落地區新聞入面。" },
+    { title: "城市身份由你定義", alt: "重新命名城市對話框，可以設定中英文城市名同揀名牌顏色", caption: "城市可以隨時改中英文名，仲可以揀返個靚色名牌。" },
+    { title: "AI 新聞係選擇，唔係門檻", alt: "AI 新聞設定視窗，連接 Ollama 雲端", caption: "免費連接 Ollama Cloud，貼上一次 API key 就可以啟用 AI 新聞標題。" },
   ],
   "zh-TW": [
-    { alt: "城市頂部天氣狀態列，顯示溫度、濕度和暴雨警告徽章", caption: "即時天氣狀態列：溫度、濕度、風球和暴雨警告一目了然，天色還會隨天氣變暗。" },
-    { alt: "香城討論區視窗，顯示颱風和暴雨相關熱門貼文", caption: "香城討論區：城裡大小事都有網友即時討論，颱風、股市、觀光話題應有盡有。" },
-    { alt: "立法會特別議案討論畫面，顯示議員支持或保留立場", caption: "立法會議事廳：提出特別議案、看清楚每位議員的態度，還能當場拍板核准。" },
-    { alt: "股票交易所視窗，顯示恒生指數和企業股票報價", caption: "股票交易所：恒生指數、企業股票報價，和法案生效狀態即時連動。" },
-    { alt: "玫瑰園國際機場，多架客機同時在停機坪和跑道運作", caption: "機場正式啟用：客機沿曲線航路降落、滑行入閘再起飛，一座機場最多三四架同時繁忙運作。" },
-    { alt: "住宅街道車流，小巴沿路駛過社區和商店", caption: "真實車流：小巴、公車、計程車依香港靠左行車方向穿梭大街小巷。" },
-    { alt: "夜景街道，密集霓虹招牌和市集攤位", caption: "建築款式越來越多元，從霓虹招牌到市集大牌檔，城市面貌隨遊戲進度日益豐富。" },
-    { alt: "城市裡的將軍澳雙語分區路牌", caption: "自訂雙語分區路牌，為你的城市每一區取中英文名。" },
-    { alt: "分區命名對話框", caption: "隨時改名、隨時重劃，分區數據會即時反映在地區新聞裡。" },
-    { alt: "重新命名城市對話框，可以設定中英文城市名並選擇名牌顏色", caption: "城市可以隨時改中英文名稱，還能挑選喜歡的名牌顏色。" },
-    { alt: "AI 新聞設定視窗，連接 Ollama 雲端", caption: "免費連接 Ollama Cloud，貼上一次 API key 就可以啟用 AI 新聞標題。" },
+    { title: "天氣會改變城市節奏", alt: "城市頂部天氣狀態列，顯示溫度、濕度和暴雨警告徽章", caption: "即時天氣狀態列：溫度、濕度、風球和暴雨警告一目了然，天色還會隨天氣變暗。" },
+    { title: "城市有自己的聲音", alt: "香城討論區視窗，顯示颱風和暴雨相關熱門貼文", caption: "香城討論區：城裡大小事都有網友即時討論，颱風、股市、觀光話題應有盡有。" },
+    { title: "議會不只是一個選單", alt: "立法會特別議案討論畫面，顯示議員支持或保留立場", caption: "立法會議事廳：提出特別議案、看清楚每位議員的態度，還能當場拍板核准。" },
+    { title: "城市經濟會反映在股價", alt: "股票交易所視窗，顯示恒生指數和企業股票報價", caption: "股票交易所：恒生指數、企業股票報價，和法案生效狀態即時連動。" },
+    { title: "大型建設真正運轉起來", alt: "玫瑰園國際機場，多架客機同時在停機坪和跑道運作", caption: "機場正式啟用：客機沿曲線航路降落、滑行入閘再起飛，一座機場最多三四架同時繁忙運作。" },
+    { title: "香港式街道充滿流動感", alt: "住宅街道車流，小巴沿路駛過社區和商店", caption: "真實車流：小巴、公車、計程車依香港靠左行車方向穿梭大街小巷。" },
+    { title: "每個街區都有自己的樣子", alt: "夜景街道，密集霓虹招牌和市集攤位", caption: "建築款式越來越多元，從霓虹招牌到市集大牌檔，城市面貌隨遊戲進度日益豐富。" },
+    { title: "替每個社區取一個名字", alt: "城市裡的將軍澳雙語分區路牌", caption: "自訂雙語分區路牌，為你的城市每一區取中英文名。" },
+    { title: "分區不是畫完就算", alt: "分區命名對話框", caption: "隨時改名、隨時重劃，分區數據會即時反映在地區新聞裡。" },
+    { title: "城市身分由你定義", alt: "重新命名城市對話框，可以設定中英文城市名並選擇名牌顏色", caption: "城市可以隨時改中英文名稱，還能挑選喜歡的名牌顏色。" },
+    { title: "AI 新聞是選項，不是門檻", alt: "AI 新聞設定視窗，連接 Ollama 雲端", caption: "免費連接 Ollama Cloud，貼上一次 API key 就可以啟用 AI 新聞標題。" },
   ],
   en: [
-    { alt: "Weather status bar at the top of the city, showing temperature, humidity and rainstorm warning badges", caption: "Live weather status bar: temperature, humidity, typhoon signal and rainstorm warnings at a glance, with the sky darkening to match." },
-    { alt: "Heung Shing Forum window showing typhoon and rainstorm trending posts", caption: "Heung Shing Forum: netizens discuss everything from typhoons to the stock market to tourism, live." },
-    { alt: "Legislative Council special resolution debate screen showing member support and reservations", caption: "Legislative Council chamber: propose special resolutions, see exactly where every member stands, and approve on the spot." },
-    { alt: "Stock exchange window showing the Hang Seng Index and listed company quotes", caption: "Stock Exchange: the Hang Seng Index and listed company quotes update live alongside bill outcomes." },
-    { alt: "Rose Garden International Airport with several aircraft active on the apron and runway at once", caption: "The airport in full swing: aircraft land along curved flight paths, taxi to a gate and take off again, with three or four active at once." },
-    { alt: "Residential street traffic, a minibus driving past housing estates and shops", caption: "Real traffic: minibuses, buses and taxis weave through the streets, driving on the left, Hong Kong-style." },
-    { alt: "Night-time street scene with dense neon signage and market stalls", caption: "Building variety keeps growing - from neon-lit shopfronts to open-air markets, the cityscape gets richer as you play." },
-    { alt: "Bilingual district signage for Tseung Kwan O in the city", caption: "Custom bilingual district signage - give every district in your city an English and Chinese name." },
-    { alt: "District naming dialog", caption: "Rename or redraw districts any time; district data feeds straight into local news." },
-    { alt: "Rename City dialog for setting a bilingual city name and nameplate colour", caption: "Rename your city in Chinese and English any time, and pick a nameplate colour to match." },
-    { alt: "AI news setup window connecting to Ollama Cloud", caption: "Connect Ollama Cloud for free - paste an API key once to enable AI-written news headlines." },
+    { title: "Weather changes the city’s rhythm", alt: "Weather status bar at the top of the city, showing temperature, humidity and rainstorm warning badges", caption: "Live weather status bar: temperature, humidity, typhoon signal and rainstorm warnings at a glance, with the sky darkening to match." },
+    { title: "A city with its own voice", alt: "Heung Shing Forum window showing typhoon and rainstorm trending posts", caption: "Heung Shing Forum: netizens discuss everything from typhoons to the stock market to tourism, live." },
+    { title: "A council, not just a menu", alt: "Legislative Council special resolution debate screen showing member support and reservations", caption: "Legislative Council chamber: propose special resolutions, see exactly where every member stands, and approve on the spot." },
+    { title: "The economy moves the market", alt: "Stock exchange window showing the Hang Seng Index and listed company quotes", caption: "Stock Exchange: the Hang Seng Index and listed company quotes update live alongside bill outcomes." },
+    { title: "Big infrastructure comes alive", alt: "Rose Garden International Airport with several aircraft active on the apron and runway at once", caption: "The airport in full swing: aircraft land along curved flight paths, taxi to a gate and take off again, with three or four active at once." },
+    { title: "Hong Kong streets in motion", alt: "Residential street traffic, a minibus driving past housing estates and shops", caption: "Real traffic: minibuses, buses and taxis weave through the streets, driving on the left, Hong Kong-style." },
+    { title: "Every neighbourhood looks distinct", alt: "Night-time street scene with dense neon signage and market stalls", caption: "Building variety keeps growing - from neon-lit shopfronts to open-air markets, the cityscape gets richer as you play." },
+    { title: "Give every district a name", alt: "Bilingual district signage for Tseung Kwan O in the city", caption: "Custom bilingual district signage - give every district in your city an English and Chinese name." },
+    { title: "Districts evolve with the city", alt: "District naming dialog", caption: "Rename or redraw districts any time; district data feeds straight into local news." },
+    { title: "Define your city’s identity", alt: "Rename City dialog for setting a bilingual city name and nameplate colour", caption: "Rename your city in Chinese and English any time, and pick a nameplate colour to match." },
+    { title: "AI news is optional, not a gate", alt: "AI news setup window connecting to Ollama Cloud", caption: "Connect Ollama Cloud for free - paste an API key once to enable AI-written news headlines." },
   ],
   ja: [
-    { alt: "都市上部の天気ステータスバー。気温、湿度、暴風雨警報バッジを表示", caption: "リアルタイム天気バー：気温、湿度、台風シグナル、暴風雨警報がひと目でわかり、空も天候に合わせて暗くなります。" },
-    { alt: "台風・暴風雨関連の話題を表示する香城フォーラムウィンドウ", caption: "香城フォーラム：台風から株式市場、観光話題まで、都市のあらゆる出来事をユーザーがリアルタイムで語り合います。" },
-    { alt: "議員の賛成・保留の立場を示す立法会の特別決議審議画面", caption: "立法会議事堂：特別決議を提出し、各議員の立場を一目で確認、その場で承認できます。" },
-    { alt: "ハンセン指数と上場企業の株価を表示する証券取引所ウィンドウ", caption: "証券取引所：ハンセン指数と上場企業の株価が、法案の可決結果と連動してリアルタイムに変動します。" },
-    { alt: "複数の航空機がエプロンと滑走路で同時に稼働するローズガーデン国際空港", caption: "空港がフル稼働：航空機は曲線飛行経路で着陸し、ゲートへタキシングして再び離陸。1つの空港で同時に3〜4機が稼働します。" },
-    { alt: "住宅街を走るミニバスなど、街路の交通の様子", caption: "リアルな交通：ミニバス、バス、タクシーが香港式の左側通行で街中を行き交います。" },
-    { alt: "ネオン看板や市場の屋台が密集する夜の街並み", caption: "建物のバリエーションが続々増加中——ネオン輝く店先から屋台の市場まで、プレイが進むほど街並みが豊かになります。" },
-    { alt: "都市内の将軍澳（バイリンガル地区標識）", caption: "カスタムバイリンガル地区標識 - 都市内の各地区に英語と中国語の名前を付けられます。" },
-    { alt: "地区名変更ダイアログ", caption: "いつでも改名・区画変更可能。地区データはそのまま地域ニュースに反映されます。" },
-    { alt: "バイリンガルの都市名とネームプレートの色を設定する都市名変更ダイアログ", caption: "都市の中英文名称はいつでも変更可能。お気に入りの色のネームプレートも選べます。" },
-    { alt: "Ollama Cloud に接続する AI ニュース設定ウィンドウ", caption: "Ollama Cloud に無料接続 - API キーを一度貼り付けるだけで AI 生成ニュース見出しが有効になります。" },
+    { title: "天気が都市のリズムを変える", alt: "都市上部の天気ステータスバー。気温、湿度、暴風雨警報バッジを表示", caption: "リアルタイム天気バー：気温、湿度、台風シグナル、暴風雨警報がひと目でわかり、空も天候に合わせて暗くなります。" },
+    { title: "都市には独自の声がある", alt: "台風・暴風雨関連の話題を表示する香城フォーラムウィンドウ", caption: "香城フォーラム：台風から株式市場、観光話題まで、都市のあらゆる出来事をユーザーがリアルタイムで語り合います。" },
+    { title: "議会は単なるメニューではない", alt: "議員の賛成・保留の立場を示す立法会の特別決議審議画面", caption: "立法会議事堂：特別決議を提出し、各議員の立場を一目で確認、その場で承認できます。" },
+    { title: "都市経済が市場を動かす", alt: "ハンセン指数と上場企業の株価を表示する証券取引所ウィンドウ", caption: "証券取引所：ハンセン指数と上場企業の株価が、法案の可決結果と連動してリアルタイムに変動します。" },
+    { title: "大型インフラが動き出す", alt: "複数の航空機がエプロンと滑走路で同時に稼働するローズガーデン国際空港", caption: "空港がフル稼働：航空機は曲線飛行経路で着陸し、ゲートへタキシングして再び離陸。1つの空港で同時に3〜4機が稼働します。" },
+    { title: "香港らしい街路の動き", alt: "住宅街を走るミニバスなど、街路の交通の様子", caption: "リアルな交通：ミニバス、バス、タクシーが香港式の左側通行で街中を行き交います。" },
+    { title: "街区ごとに異なる表情", alt: "ネオン看板や市場の屋台が密集する夜の街並み", caption: "建物のバリエーションが続々増加中——ネオン輝く店先から屋台の市場まで、プレイが進むほど街並みが豊かになります。" },
+    { title: "すべての地区に名前を", alt: "都市内の将軍澳（バイリンガル地区標識）", caption: "カスタムバイリンガル地区標識 - 都市内の各地区に英語と中国語の名前を付けられます。" },
+    { title: "地区も都市とともに変化", alt: "地区名変更ダイアログ", caption: "いつでも改名・区画変更可能。地区データはそのまま地域ニュースに反映されます。" },
+    { title: "都市の個性を自分で決める", alt: "バイリンガルの都市名とネームプレートの色を設定する都市名変更ダイアログ", caption: "都市の中英文名称はいつでも変更可能。お気に入りの色のネームプレートも選べます。" },
+    { title: "AI ニュースは任意機能", alt: "Ollama Cloud に接続する AI ニュース設定ウィンドウ", caption: "Ollama Cloud に無料接続 - API キーを一度貼り付けるだけで AI 生成ニュース見出しが有効になります。" },
   ],
 };
 
@@ -201,15 +201,22 @@ const SITE_MANUAL_NOTES = {
 
 // ── Feature list (bottom strip) ──────────────────────────────────────────────
 const SITE_FEATURE_LIST = {
-  "zh-HK": ["本機存檔系統", "電力與發電廠管理", "經典城市 overlay", "財政與政策系統", "選用雲端 AI 人物新聞", "立法會與十位官員議員", "真實颱風信號與天氣效果", "zoom 連動環境白噪音"],
-  "zh-TW": ["本機存檔系統", "電力與發電廠管理", "經典城市 overlay", "財政與政策系統", "選用雲端 AI 人物新聞", "立法會與十位官員議員", "真實颱風信號與天氣效果", "縮放連動環境白噪音"],
-  en: ["Local save system", "Power grid and plant management", "Classic city overlays", "Fiscal and policy system", "Optional cloud AI character news", "Legislative Council with ten officials", "Realistic typhoon signals and weather effects", "Zoom-linked ambient soundscape"],
-  ja: ["ローカルセーブシステム", "電力網・発電所管理", "クラシックな都市オーバーレイ", "財政・政策システム", "オプションのクラウド AI キャラクターニュース", "10人の議員による立法会", "本格的な台風シグナルと天候演出", "ズーム連動の環境サウンド"],
+  "zh-HK": ["本機存檔系統", "電力與發電廠管理", "經典城市 overlay", "財政與政策系統", "獨立經營嘅香城巴士公司", "選用雲端 AI 人物新聞", "立法會與十位官員議員", "真實颱風信號與天氣效果", "zoom 連動環境白噪音"],
+  "zh-TW": ["本機存檔系統", "電力與發電廠管理", "經典城市 overlay", "財政與政策系統", "獨立經營的公車公司", "選用雲端 AI 人物新聞", "立法會與十位官員議員", "真實颱風信號與天氣效果", "縮放連動環境白噪音"],
+  en: ["Local save system", "Power grid and plant management", "Classic city overlays", "Fiscal and policy system", "Standalone, player-run bus company", "Optional cloud AI character news", "Legislative Council with ten officials", "Realistic typhoon signals and weather effects", "Zoom-linked ambient soundscape"],
+  ja: ["ローカルセーブシステム", "電力網・発電所管理", "クラシックな都市オーバーレイ", "財政・政策システム", "独立経営のバス会社", "オプションのクラウド AI キャラクターニュース", "10人の議員による立法会", "本格的な台風シグナルと天候演出", "ズーム連動の環境サウンド"],
 };
 
 // ── Changelog ─────────────────────────────────────────────────────────────────
 const SITE_CHANGELOG = {
   "zh-HK": [
+    { version: "v4.0.0", date: "2026-08-20", dateLabel: "2026年8月20日", title: "香城巴士公司", items: [
+      "全新「運輸營運」模式：撳左上角「建設指引 CITY GUIDE」個 header，即可喺城市建設同經營巴士公司之間切換——同一個地圖、同一個時鐘，但工具同介面會換成路線、車隊、需求、車廠、財務、公司六個獨立可拖曳視窗，由頂部工具列逐個開關。",
+      "巴士公司有自己一套獨立資金（開業獲發 $600 啟動資金），同市政府庫房完全分開；巴士要響車廠逐架購買（兩種車型 $210～$280），有 12 個泊位上限，行駛耐咗要定期返廠保養，連續三個月虧損會自動暫停所有路線。",
+      "巴士改用真實逐架模擬：每架車按實際路線行駛、上落客、賺車資即時入帳，唔再係舊有嘅公式估算；巴士站會即時顯示候車人數，撳任何一架行緊嘅巴士就會開返一個獨立追蹤視窗，實時鏡頭跟實架車。",
+      "路線經營表現會為附近地區帶嚟四樣實際效果：紓緩交通擠塞、提升商業區地價、增加工業區勞動力需求、提升 H 級或以下住宅嘅快樂指數（豪宅 UH 唔受惠）。",
+      "修正城市資金列「更多資訊」展開後撳唔返收起嘅問題（個掣展開後會郁位，令第二下撳唔中）；縮放控制搬去城市畫面右上方，唔再同旋轉／靜音掣逼埋一堆；增加背景車流嘅隨機車輛數量，令大城市睇落更加繁忙。",
+    ] },
     { version: "v3.14.0", date: "2026-08-15", dateLabel: "2026年8月15日", title: "時空重置", items: [
       "全新時間系統：日曆由以前「約7.5日一個模擬周期」改成一日一日咁行，速度檔位改為 暫停／0.15x／0.5x／1x／2x（原本淨係1x/2x/4x/暫停），新開/載入城市預設1x。1x保持返同以前一樣嘅節奏（一個月約20秒、一年約4分鐘），重型城市模擬（經濟、人口增長、股市等）維持每個月4次唔變，只有天氣（同颱風）改為每日更新，令風球呢類短時間事件睇落唔再一嚟就過。",
       "慢速唔再拖慢架車：以前揀0.15x/0.5x連馬路上啲車、船、飛機都會跟住慢到似定格，而家車速固定唔會跌穿正常1x（淨係2x先會加快），慢速淨係影響時間流逝快慢，唔會影響交通畫面觀感。",
@@ -387,6 +394,13 @@ const SITE_CHANGELOG = {
 // title/items text.
 const SITE_CHANGELOG_TRANSLATIONS = {
   "zh-TW": {
+    "v4.0.0": { title: "香城公車公司", items: [
+      "全新「運輸營運」模式：點左上角「建設指引 CITY GUIDE」的 header，即可在城市建設和經營公車公司之間切換——同一張地圖、同一個時鐘，但工具和介面會換成路線、車隊、需求、車廠、財務、公司六個獨立可拖曳視窗，由頂部工具列逐一開關。",
+      "公車公司有自己一套獨立資金（開業獲發 $600 啟動資金），和市政府庫房完全分開；公車要在車廠逐輛購買（兩種車型 $210～$280），有 12 個車位上限，行駛久了要定期回廠保養，連續三個月虧損會自動暫停所有路線。",
+      "公車改用真實逐輛模擬：每輛車依實際路線行駛、上下客、賺取車資即時入帳，不再是舊有的公式估算；公車站會即時顯示候車人數，點任何一輛行駛中的公車就會開啟一個獨立追蹤視窗，即時鏡頭跟著這輛車。",
+      "路線經營表現會為附近地區帶來四項實際效果：紓緩交通壅塞、提升商業區地價、增加工業區勞動力需求、提升 H 級或以下住宅的快樂指數（頂級豪宅 UH 不受惠）。",
+      "修正城市資金列「更多資訊」展開後點不回去的問題（該按鈕展開後位置會移動，導致第二次點擊落空）；縮放控制移到城市畫面右上方，不再和旋轉／靜音鈕擠在一起；增加背景車流的隨機車輛數量，讓大城市看起來更加繁忙。",
+    ] },
     "v3.14.0": { title: "時空重置", items: [
       "全新時間系統：日曆由以前「約7.5天一個模擬週期」改成一天一天這樣走，速度檔位改為 暫停／0.15x／0.5x／1x／2x（原本只有1x/2x/4x/暫停），新開/載入城市預設1x。1x保持和以前一樣的節奏（一個月約20秒、一年約4分鐘），重型城市模擬（經濟、人口增長、股市等）維持每個月4次不變，只有天氣（和颱風）改為每天更新，讓風球這類短時間事件看起來不再一下就過。",
       "慢速不再拖慢車輛：以前選0.15x/0.5x連馬路上的車、船、飛機都會跟著慢到像定格，現在車速固定不會跌破正常1x（只有2x才會加快），慢速只影響時間流逝快慢，不影響交通畫面觀感。",
@@ -557,6 +571,13 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   en: {
+    "v4.0.0": { title: "The Heung Shing Bus Company", items: [
+      "New Transport Mode: click the CITY GUIDE header in the top-left to switch between city building and running your own bus company - same map, same clock, but the toolset and interface swap to six independent, draggable windows (Routes, Fleet, Demand, Depot, Finances, Company), each toggled from the topbar.",
+      "The bus company keeps its own treasury (founded with $600 in start-up capital), fully separate from city hall's budget. Buses are bought individually at a depot (two classes, $210-$280), each depot holds only 12 vehicles, buses need periodic servicing the longer they run, and three consecutive losing months auto-suspends every route.",
+      "Buses now run a real per-vehicle simulation: each bus actually drives its route, picks up and drops off riders, and earns fares credited in real time - no more formula estimates. Bus stops show live waiting-passenger counts, and clicking any moving bus opens its own live tracking window with a real camera following it.",
+      "A well-run route delivers four real effects to the surrounding area: eases traffic congestion, raises commercial land value, boosts industrial labour demand, and raises happiness for residents of wealth tier H and below (the wealthiest UH households don't ride the bus).",
+      "Fixed the city funds strip's MORE toggle appearing to get stuck open (the button itself shifted position when expanded, so a second click missed it); moved the zoom control to the top-right of the city view instead of crowding the rotate/mute buttons; and raised the ambient traffic vehicle count so busy cities read as busier.",
+    ] },
     "v3.14.0": { title: "Space-Time Reset", items: [
       "New clock system: the calendar used to advance roughly every 7.5 days per simulation tick, and now advances one day at a time. Speed presets are now Pause/0.15x/0.5x/1x/2x (was 1x/2x/4x/Pause), always defaulting to 1x on a new or loaded city. 1x keeps the same pacing as before (~20 real seconds/game month, ~4 real minutes/game year); the heavy city simulation (economy, population growth, stock market, etc.) still runs about four times a month, unchanged - only weather (and typhoons) now update daily, so short-lived events like a signal 8 no longer blow through in a single blink.",
       "Slow-motion no longer slows down traffic: picking 0.15x/0.5x used to make every car, ship, and plane on the road crawl to a near-stop along with the clock. Vehicle speed is now floored at normal (1x) regardless of clock speed - only 2x actually speeds vehicles up - so slow-motion only changes how fast time passes, not how traffic looks.",
@@ -727,6 +748,13 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   ja: {
+    "v4.0.0": { title: "香城バス会社", items: [
+      "新機能「運輸経営」モード：左上の「建設ガイド CITY GUIDE」ヘッダーをクリックすると、都市建設と自分のバス会社経営を切り替えられます——同じマップ、同じ時計のまま、ツールとUIが路線・車両・需要・車庫・財務・会社の6つの独立したドラッグ可能なウィンドウに切り替わり、それぞれ上部ツールバーから開閉できます。",
+      "バス会社は独自の資金（設立時に創業資金$600を獲得）を持ち、市の予算とは完全に分離。バスは車庫で1台ずつ購入し（2車種、$210～$280）、各車庫の収容台数は12台まで、走行を重ねると定期整備が必要になり、3ヶ月連続赤字になると全路線が自動的に運休します。",
+      "バスは実際に1台ずつシミュレーションされるようになりました：各車両が実際の路線を走行し、乗客を乗降させ、運賃はリアルタイムで計上されます——もう数式による推定ではありません。バス停には待機乗客数がリアルタイムで表示され、運行中のバスをクリックすると実際のカメラが追跡する専用ウィンドウが開きます。",
+      "路線をうまく運営すると、周辺地域に4つの実際の効果をもたらします：渋滞緩和、商業地区の地価上昇、工業地区の労働需要増加、そして最富裕層（UH）を除く H 級以下の住民の幸福度上昇。",
+      "市の資金バーの「もっと見る」ボタンを展開後に閉じられないように見える問題を修正（展開時にボタン自体の位置がずれ、2回目のクリックが外れていました）。ズームコントロールを回転／ミュートボタンと重ならないよう都市画面の右上に移動。背景交通の車両数を増やし、大都市がより賑やかに見えるようにしました。",
+    ] },
     "v3.14.0": { title: "時空重置", items: [
       "新しいクロックシステム：暦は従来「シミュレーション1ティックにつき約7.5日」進んでいましたが、1日ずつ進むようになりました。速度プリセットは 一時停止／0.15x／0.5x／1x／2x（従来は1x/2x/4x/一時停止）となり、新規都市・ロード時は常に1xから開始します。1xは従来と同じペース（ゲーム内1ヶ月が現実約20秒、1年が現実約4分）を維持し、重い都市シミュレーション（経済、人口増加、株式市場など）は従来通り月4回のまま変わりません。天気（台風含む）のみ毎日更新されるようになり、シグナル8のような短時間のイベントも一瞬で終わらず見えるようになりました。",
       "スロー速度でも車両は遅くならない：以前は0.15x/0.5xを選ぶと道路上の車・船・飛行機までクロックと一緒にほぼ停止するほど遅くなっていましたが、車両の速度は常に通常（1x）を下回らなくなりました（2xのときだけ実際に速くなります）。スロー速度は時間の経過速度だけに影響し、交通の見た目には影響しません。",
@@ -915,19 +943,37 @@ const SITE_TEXT = {
   "zh-HK": {
     meta: {
       title: "香城模擬器 | The City of Heung Shing",
-      description: "下載香城模擬器 v3.14.0「時空重置」：日曆改為一日一日咁行，新增0.15x／0.5x慢速檔，並新增巴士站路邊裝飾同修正入站遮擋順序。",
-      ogDescription: "v3.14.0 時空重置：全新時鐘系統一日一日咁行、加咗0.15x／0.5x慢速檔，重型城市模擬同以前一樣每月4次，仲新增咗巴士站路邊裝飾。",
+      description: "免費下載《香城模擬器》：一款向 SimCity 2000 致敬、以香港城市生活為靈感嘅城市建設遊戲。歡迎下載同分享，註明出處就可以。",
+      ogDescription: "由街道、天氣到議會、股市同公共交通，一齊建設屬於你嘅香城。遊戲免費下載，歡迎分享，請註明出處。",
     },
-    nav: { gallery: "截圖", downloads: "下載", manual: "玩家手冊", guide: "遊戲指南", stats: "統計", changelog: "版本", github: "GitHub" },
+    nav: { gallery: "玩法與截圖", downloads: "免費下載", manual: "玩家手冊", guide: "遊戲指南", stats: "統計", changelog: "版本", github: "GitHub" },
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      lede: "一款向 SimCity 2000 致敬的城市建設遊戲。v3.14.0「時空重置」全新時鐘系統一日一日咁行，新增0.15x／0.5x慢速檔，仲新增埋巴士站路邊裝飾。",
-      downloadBtn: "下載遊戲",
+      lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感嘅城市建設遊戲。起街道、規劃社區、經營自己嘅香城巴士公司、處理議會同天氣，再睇住一座有性格嘅香城慢慢成長。",
+      freeLabel: "完全免費 · macOS + Windows · 本機存檔",
+      downloadBtn: "【免費下載】",
       latestBtn: "最新版本",
       guideBtn: "睇遊戲指南",
+      shareNote: "呢個遊戲主要係想同大家分享。鍾意就下載嚟玩，亦歡迎介紹畀朋友；註明《香城模擬器》同原始連結就可以。",
     },
-    gallery: { eyebrow: "Screenshots", title: "遊戲截圖" },
+    sharing: {
+      eyebrow: "Made to be shared",
+      title: "一份想同大家分享嘅城市遊戲",
+      desc: "香城模擬器係一個免費嘅個人創作，希望將香港街道、城市治理同老派城市模擬嘅樂趣放埋一齊。有興趣就下載嚟玩，唔需要付費。",
+      downloadLink: "揀你嘅版本，免費開始建城 →",
+      ariaLabel: "分享及出處說明",
+      creditLabel: "分享時請註明",
+      creditText: "《香城模擬器 / The City of Heung Shing》",
+      creditDesc: "歡迎分享遊戲、截圖或者介紹文章；保留作品名稱，同時附上官方 GitHub 或本頁連結就得。",
+    },
+    gallery: {
+      eyebrow: "Gameplay & Screenshots",
+      title: "一張圖，一段香城故事",
+      intro: "唔只係睇畫面：每張截圖都同相關玩法放埋一齊。撳任何圖片就可以放大，慢慢睇城市細節。",
+      openImage: "放大截圖",
+      closeImage: "關閉",
+    },
     stats: {
       latestVersion: "最新版本",
       latestDownloads: "最新版本下載",
@@ -944,6 +990,7 @@ const SITE_TEXT = {
     downloads: {
       eyebrow: "Downloads",
       title: "選擇你的平台",
+      intro: "遊戲本體免費下載。揀返你部電腦嘅版本，就可以開始建立自己嘅香城。",
       cards: [
         { platform: "macOS", title: "Mac Apple Silicon", desc: "適合 M1、M2、M3、M4 或更新的 Mac。下載 DMG 後拖入「應用程式」即可安裝。", btn: "下載 ARM64 DMG" },
         { platform: "macOS", title: "Mac Intel", desc: "適合 Intel CPU 的 Mac。下載 DMG 後拖入「應用程式」即可安裝。", btn: "下載 Intel DMG" },
@@ -966,24 +1013,42 @@ const SITE_TEXT = {
       title: "建設、治理、迭代",
       desc: "劃設住宅、商業與工業區，興建道路、公園、公共設施與發電廠。放置雙語路牌建立分區，觀察地區交通、醫療、教育與污染，再由 AI 或模擬新聞報道城市變化。",
     },
-    footer: { releaseInfo: "版本資訊", blog: "開發blog" },
+    footer: { tagline: "香城模擬器 · 免費下載，歡迎分享", releaseInfo: "版本資訊", blog: "開發blog" },
   },
   "zh-TW": {
     meta: {
       title: "香城模擬器 | The City of Heung Shing",
-      description: "下載香城模擬器 v3.14.0「時空重置」：日曆改為一日一日這樣走，新增0.15x／0.5x慢速檔，並新增巴士站路邊裝飾同修正入站遮擋順序。",
-      ogDescription: "v3.14.0 時空重置：全新時鐘系統一日一日這樣走、加了0.15x／0.5x慢速檔，重型城市模擬和以前一樣每月4次，還新增了巴士站路邊裝飾。",
+      description: "免費下載《香城模擬器》：一款向 SimCity 2000 致敬、以香港城市生活為靈感的城市建設遊戲。歡迎下載與分享，請註明出處。",
+      ogDescription: "從街道、天氣到議會、股市與公共運輸，一起建設屬於你的香城。遊戲免費下載，歡迎分享並註明出處。",
     },
-    nav: { gallery: "截圖", downloads: "下載", manual: "玩家手冊", guide: "遊戲指南", stats: "統計", changelog: "版本", github: "GitHub" },
+    nav: { gallery: "玩法與截圖", downloads: "免費下載", manual: "玩家手冊", guide: "遊戲指南", stats: "統計", changelog: "版本", github: "GitHub" },
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      lede: "一款向 SimCity 2000 致敬的城市建設遊戲。v3.14.0「時空重置」全新時鐘系統一日一日這樣走，新增0.15x／0.5x慢速檔，還新增了巴士站路邊裝飾。",
-      downloadBtn: "下載遊戲",
+      lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感的城市建設遊戲。興建街道、規劃社區、經營自己的香城公車公司、處理議會與天氣，看著一座有個性的香城慢慢成長。",
+      freeLabel: "完全免費 · macOS + Windows · 本機存檔",
+      downloadBtn: "【免費下載】",
       latestBtn: "最新版本",
       guideBtn: "查看遊戲指南",
+      shareNote: "這個遊戲主要是想和大家分享。喜歡就下載來玩，也歡迎介紹給朋友；註明《香城模擬器》與原始連結即可。",
     },
-    gallery: { eyebrow: "Screenshots", title: "遊戲截圖" },
+    sharing: {
+      eyebrow: "Made to be shared",
+      title: "一款想和大家分享的城市遊戲",
+      desc: "香城模擬器是一個免費的個人創作，希望把香港街道、城市治理與經典城市模擬的樂趣放在一起。有興趣就下載來玩，不需要付費。",
+      downloadLink: "選擇你的版本，免費開始建城 →",
+      ariaLabel: "分享與出處說明",
+      creditLabel: "分享時請註明",
+      creditText: "《香城模擬器 / The City of Heung Shing》",
+      creditDesc: "歡迎分享遊戲、截圖或介紹文章；保留作品名稱，並附上官方 GitHub 或本頁連結即可。",
+    },
+    gallery: {
+      eyebrow: "Gameplay & Screenshots",
+      title: "一張圖，一段香城故事",
+      intro: "不只是看畫面：每張截圖都和相關玩法放在一起。點擊任何圖片即可放大，慢慢欣賞城市細節。",
+      openImage: "放大截圖",
+      closeImage: "關閉",
+    },
     stats: {
       latestVersion: "最新版本",
       latestDownloads: "最新版本下載次數",
@@ -1000,6 +1065,7 @@ const SITE_TEXT = {
     downloads: {
       eyebrow: "Downloads",
       title: "選擇你的平台",
+      intro: "遊戲本體免費下載。選擇適合你電腦的版本，就可以開始建立自己的香城。",
       cards: [
         { platform: "macOS", title: "Mac Apple Silicon", desc: "適合 M1、M2、M3、M4 或更新的 Mac。下載 DMG 後拖曳到「應用程式」即可安裝。", btn: "下載 ARM64 DMG" },
         { platform: "macOS", title: "Mac Intel", desc: "適合 Intel CPU 的 Mac。下載 DMG 後拖曳到「應用程式」即可安裝。", btn: "下載 Intel DMG" },
@@ -1022,24 +1088,42 @@ const SITE_TEXT = {
       title: "建設、治理、迭代",
       desc: "劃設住宅、商業與工業區，興建道路、公園、公共設施與發電廠。放置雙語路牌建立分區，觀察地區交通、醫療、教育與污染，再由 AI 或模擬新聞報導城市變化。",
     },
-    footer: { releaseInfo: "版本資訊", blog: "開發部落格" },
+    footer: { tagline: "香城模擬器 · 免費下載，歡迎分享", releaseInfo: "版本資訊", blog: "開發部落格" },
   },
   en: {
     meta: {
       title: "The City of Heung Shing | 香城模擬器",
-      description: "Download The City of Heung Shing v3.14.0 “Space-Time Reset”: the calendar now advances one day at a time, adds 0.15x/0.5x slow-motion speeds, and adds a bus-stop roadside decoration with a fixed depth-sort order on arrival.",
-      ogDescription: "v3.14.0 Space-Time Reset: a rebuilt game clock that advances daily, new 0.15x/0.5x slow speeds, the heavy city simulation still runs 4x/month as before, and a new bus-stop roadside decoration.",
+      description: "Download The City of Heung Shing for free: a city-building game inspired by Hong Kong life and made in tribute to SimCity 2000. Free to play and share with attribution.",
+      ogDescription: "Build your own Heung Shing through streets, weather, council politics, markets and public transport. Free to download and share with attribution.",
     },
-    nav: { gallery: "Screenshots", downloads: "Download", manual: "Manual", guide: "Game Guide", stats: "Stats", changelog: "Changelog", github: "GitHub" },
+    nav: { gallery: "Gameplay & Screenshots", downloads: "Free Download", manual: "Manual", guide: "Game Guide", stats: "Stats", changelog: "Changelog", github: "GitHub" },
     hero: {
       eyebrowPrefix: "The City of Heung Shing",
       title: "The City of Heung Shing",
-      lede: "A city-builder that pays tribute to SimCity 2000. v3.14.0 “Space-Time Reset” rebuilds the game clock to advance one day at a time, adds 0.15x/0.5x slow-motion speeds, and adds a bus-stop roadside decoration.",
-      downloadBtn: "Download",
+      lede: "A city-building game inspired by Hong Kong life and made in tribute to SimCity 2000. Build streets, shape neighbourhoods, run your own Heung Shing Bus Company, navigate council politics and weather, then watch a city with real personality grow.",
+      freeLabel: "Completely free · macOS + Windows · Local saves",
+      downloadBtn: "【Free Download】",
       latestBtn: "Latest release",
       guideBtn: "Read the game guide",
+      shareNote: "This game was made to be shared. Download it, play it and tell your friends; just credit The City of Heung Shing and include the original link.",
     },
-    gallery: { eyebrow: "Screenshots", title: "Screenshots" },
+    sharing: {
+      eyebrow: "Made to be shared",
+      title: "A city game made for everyone to enjoy",
+      desc: "The City of Heung Shing is a free personal project that brings together Hong Kong streets, civic life and the joy of classic city simulation. If it sounds interesting, download it and play—there is nothing to buy.",
+      downloadLink: "Choose your build and start for free →",
+      ariaLabel: "Sharing and attribution information",
+      creditLabel: "Please credit",
+      creditText: "The City of Heung Shing / 香城模擬器",
+      creditDesc: "You are welcome to share the game, screenshots or articles about it. Keep the project name and include a link to this page or the official GitHub repository.",
+    },
+    gallery: {
+      eyebrow: "Gameplay & Screenshots",
+      title: "Every screenshot tells a city story",
+      intro: "More than a gallery: every image sits beside the feature it explains. Select any screenshot to open it at full size and explore the details.",
+      openImage: "Enlarge screenshot",
+      closeImage: "Close",
+    },
     stats: {
       latestVersion: "Latest version",
       latestDownloads: "Latest version downloads",
@@ -1057,6 +1141,7 @@ const SITE_TEXT = {
     downloads: {
       eyebrow: "Downloads",
       title: "Choose your platform",
+      intro: "The full game is free to download. Pick the build for your computer and start creating your own Heung Shing.",
       cards: [
         { platform: "macOS", title: "Mac Apple Silicon", desc: "For M1, M2, M3, M4 or newer Macs. Download the DMG and drag it into Applications to install.", btn: "Download ARM64 DMG" },
         { platform: "macOS", title: "Mac Intel", desc: "For Intel-based Macs. Download the DMG and drag it into Applications to install.", btn: "Download Intel DMG" },
@@ -1079,24 +1164,42 @@ const SITE_TEXT = {
       title: "Build, govern, iterate",
       desc: "Zone residential, commercial and industrial land, build roads, parks, public services and power plants. Place bilingual district signs to define neighbourhoods, watch local traffic, healthcare, education and pollution, then read about it all in AI-written or simulated news.",
     },
-    footer: { releaseInfo: "Release info", blog: "Dev blog" },
+    footer: { tagline: "The City of Heung Shing · Free to download and share", releaseInfo: "Release info", blog: "Dev blog" },
   },
   ja: {
     meta: {
       title: "香城模擬器 | The City of Heung Shing",
-      description: "香城模擬器 v3.14.0「時空重置」をダウンロード：暦が1日ずつ進むように刷新、0.15x／0.5xのスローモーション速度を追加、バス停の道端装飾と進入時の重なり順の修正も追加。",
-      ogDescription: "v3.14.0 時空重置：ゲームクロックを刷新し1日ずつ進行、0.15x／0.5xのスロー速度を追加。重い都市シミュレーションは従来通り月4回、バス停の道端装飾も新登場。",
+      description: "『香城模擬器』を無料ダウンロード。香港の都市生活から着想を得た、SimCity 2000へのオマージュとなる都市建設ゲームです。出典表記付きで共有できます。",
+      ogDescription: "道路、天候、議会、株式市場、公共交通を通じて自分だけの香城を建設。無料でダウンロードでき、出典表記付きで共有できます。",
     },
-    nav: { gallery: "スクリーンショット", downloads: "ダウンロード", manual: "プレイヤーマニュアル", guide: "ゲームガイド", stats: "統計", changelog: "更新履歴", github: "GitHub" },
+    nav: { gallery: "ゲーム内容と画像", downloads: "無料ダウンロード", manual: "プレイヤーマニュアル", guide: "ゲームガイド", stats: "統計", changelog: "更新履歴", github: "GitHub" },
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      lede: "SimCity 2000 に敬意を表した都市builderゲーム。v3.14.0「時空重置」でゲームクロックを刷新し暦が1日ずつ進むように、0.15x／0.5xのスロー速度を追加、バス停の道端装飾も新登場。",
-      downloadBtn: "ダウンロード",
+      lede: "香港の都市生活から着想を得た、SimCity 2000へのオマージュとなる都市建設ゲーム。道路を築き、地区を計画し、自分だけの香城バス会社を経営し、議会や天候に向き合いながら、個性ある香城の成長を見守ります。",
+      freeLabel: "完全無料 · macOS + Windows · ローカルセーブ",
+      downloadBtn: "【無料ダウンロード】",
       latestBtn: "最新リリース",
       guideBtn: "ゲームガイドを見る",
+      shareNote: "このゲームはみなさんと楽しさを共有するために作りました。ダウンロードや友人への紹介は大歓迎です。作品名と元のリンクを明記してください。",
     },
-    gallery: { eyebrow: "Screenshots", title: "スクリーンショット" },
+    sharing: {
+      eyebrow: "Made to be shared",
+      title: "みなさんと共有したい都市ゲーム",
+      desc: "香城模擬器は、香港の街路、都市運営、クラシックな都市シミュレーションの楽しさを一つにした無料の個人制作ゲームです。興味があれば、料金不要ですぐに遊べます。",
+      downloadLink: "バージョンを選んで無料で都市づくりを始める →",
+      ariaLabel: "共有と出典表記について",
+      creditLabel: "共有時のクレジット",
+      creditText: "『香城模擬器 / The City of Heung Shing』",
+      creditDesc: "ゲーム、スクリーンショット、紹介記事は自由に共有できます。作品名を残し、公式 GitHub または本ページへのリンクを添えてください。",
+    },
+    gallery: {
+      eyebrow: "Gameplay & Screenshots",
+      title: "一枚の画像、一つの香城物語",
+      intro: "単なるギャラリーではありません。各画像を関連するゲーム内容と並べました。画像を選択すると拡大し、都市の細部まで確認できます。",
+      openImage: "画像を拡大",
+      closeImage: "閉じる",
+    },
     stats: {
       latestVersion: "最新バージョン",
       latestDownloads: "最新版のダウンロード数",
@@ -1113,6 +1216,7 @@ const SITE_TEXT = {
     downloads: {
       eyebrow: "Downloads",
       title: "プラットフォームを選択",
+      intro: "ゲーム本編は無料でダウンロードできます。お使いのコンピューターに合うバージョンを選び、自分だけの香城を作り始めましょう。",
       cards: [
         { platform: "macOS", title: "Mac Apple Silicon", desc: "M1、M2、M3、M4以降のMacに対応。DMGをダウンロードして「アプリケーション」にドラッグすればインストール完了です。", btn: "ARM64 DMG をダウンロード" },
         { platform: "macOS", title: "Mac Intel", desc: "Intel搭載Macに対応。DMGをダウンロードして「アプリケーション」にドラッグすればインストール完了です。", btn: "Intel DMG をダウンロード" },
@@ -1135,7 +1239,7 @@ const SITE_TEXT = {
       title: "建設・統治・改善を繰り返す",
       desc: "住宅・商業・工業地区を区画し、道路・公園・公共施設・発電所を建設。バイリンガルの地区標識で街区を定義し、地域の交通・医療・教育・汚染状況を観察しながら、AIまたはシミュレーテッドニュースで都市の変化を追いましょう。",
     },
-    footer: { releaseInfo: "リリース情報", blog: "開発ブログ" },
+    footer: { tagline: "香城模擬器 · 無料ダウンロード、共有歓迎", releaseInfo: "リリース情報", blog: "開発ブログ" },
   },
 };
 
@@ -1286,11 +1390,16 @@ const SITE_GUIDE = {
       },
       {
         id: "transport",
-        title: "九、交通、機場與貨櫃碼頭",
+        title: "九、交通、巴士公司、機場與貨櫃碼頭",
         blocks: [
           { type: "p", text: "道路每格 $10，橋樑每格 $75，維修開支跟返道路部門撥款滑桿浮動。交通壓力會按住宅／商業／工業嘅密度同建築規模產生，沿路網擴散，塞車情況會拖低快樂指數同商業／住宅需求。" },
-          { type: "p", text: "巴士小巴純粹係背景視覺車流，唔使玩家安排路線，八號風球或以上會即時停駛。" },
-          { type: "p", text: "機場（12×12，經「我愛玫瑰園計劃」解鎖）同貨櫃碼頭（4×4，人口 15,000 解鎖）都係視覺化模擬：飛機沿固定校準航線降落、滑行去閘口、再起飛，一次大約 3 至 4 架同時運作；船隻就沿岸邊校準路線入港靠泊、交換貨物、鳴笛離港。兩者喺八號風球或以上都會暫停運作。" },
+          { type: "p", text: "小巴、的士、私家車同貨車依然純粹係背景視覺車流，唔使玩家安排路線；巴士就已經改為玩家親自經營嘅獨立公司——詳見下面。呢類背景車流喺八號風球或以上會即時停駛。" },
+          { type: "h3", text: "巴士公司：獨立經營模式" },
+          { type: "p", text: "人口達 3,000 就解鎖「運輸營運」模式：撳左上角「建設指引 CITY GUIDE」個 header 就可以喺城市建設同巴士公司經營之間切換——同一個地圖、同一個時鐘，但工具同介面會完全換成巴士公司專用嘅路線、車隊、需求、車廠、財務同公司六個獨立可拖曳視窗，逐個喺頂部工具列開關。" },
+          { type: "p", text: "巴士公司有自己一套獨立資金（開業獲發 $600 啟動資金），同市政府庫房完全分開：市政府嘅稅收、貸款、部門撥款一律唔會影響巴士公司，巴士公司蝕本都唔會拖冧市政府財政。連續三個月虧損，公司所有路線會自動暫停，等你調整車隊或者路線先再重開。" },
+          { type: "p", text: "巴士要響車廠逐架購買（兩種車型 $210～$280），每個車廠得 12 個泊位；行駛耐咗要定期返廠保養，車齡同狀態會影響載客表現同故障機會。撳任何一架行緊嘅巴士，會開返一個獨立追蹤視窗，實時鏡頭跟實架車，睇到即時位置、載客量同盈虧；撳巴士站就會顯示嗰度嘅候車人數。" },
+          { type: "p", text: "路線做得好（覆蓋密集、載客率高）會為附近地區帶嚟四樣實際效果：紓緩交通擠塞、提升商業區地價、增加工業區勞動力需求，同提升 H 級或以下住宅嘅快樂指數——豪宅級（UH）唔受惠，佢哋唔搭巴士。" },
+          { type: "p", text: "機場（12×12，經「我愛玫瑰園計劃」解鎖）同貨櫃碼頭（4×4，人口 15,000 解鎖）依然係視覺化模擬：飛機沿固定校準航線降落、滑行去閘口、再起飛，一次大約 3 至 4 架同時運作；船隻就沿岸邊校準路線入港靠泊、交換貨物、鳴笛離港。機場、貨櫃碼頭同巴士公司三者喺八號風球或以上都會暫停運作。" },
         ],
       },
       {
@@ -1467,11 +1576,16 @@ const SITE_GUIDE = {
       },
       {
         id: "transport",
-        title: "九、交通、機場與貨櫃碼頭",
+        title: "九、交通、公車公司、機場與貨櫃碼頭",
         blocks: [
           { type: "p", text: "道路每格 $10，橋樑每格 $75，維修支出跟著道路部門撥款滑桿浮動。交通壓力會依住宅／商業／工業的密度和建築規模產生，沿路網擴散，塞車情況會拉低快樂指數和商業／住宅需求。" },
-          { type: "p", text: "公車小巴純粹是背景視覺車流，不需要玩家安排路線，八號風球或以上會立即停駛。" },
-          { type: "p", text: "機場（12×12，經「玫瑰園計畫」解鎖）和貨櫃碼頭（4×4，人口 15,000 解鎖）都是視覺化模擬：飛機沿固定校正航線降落、滑行至閘口、再起飛，一次大約 3 到 4 架同時運作；船隻則沿岸邊校正路線入港靠泊、交換貨物、鳴笛離港。兩者在八號風球或以上都會暫停運作。" },
+          { type: "p", text: "小巴、計程車、私家車和貨車依然純粹是背景視覺車流，不需要玩家安排路線；公車則已經改為玩家親自經營的獨立公司——詳見下面。這類背景車流在八號風球或以上會立即停駛。" },
+          { type: "h3", text: "公車公司：獨立經營模式" },
+          { type: "p", text: "人口達 3,000 就解鎖「運輸營運」模式：點左上角「建設指引 CITY GUIDE」的 header 就可以在城市建設和公車公司經營之間切換——同一張地圖、同一個時鐘，但工具和介面會完全換成公車公司專用的路線、車隊、需求、車廠、財務和公司六個獨立可拖曳視窗，逐一從頂部工具列開關。" },
+          { type: "p", text: "公車公司有自己一套獨立資金（開業獲發 $600 啟動資金），和市政府庫房完全分開：市政府的稅收、貸款、部門撥款一律不會影響公車公司，公車公司虧損也不會拖垮市政府財政。連續三個月虧損，公司所有路線會自動暫停，需要調整車隊或路線才能重開。" },
+          { type: "p", text: "公車要在車廠逐輛購買（兩種車型 $210～$280），每個車廠只有 12 個車位；行駛久了要定期回廠保養，車齡和狀態會影響載客表現和故障機率。點任何一輛行駛中的公車，會開啟一個獨立追蹤視窗，即時鏡頭跟著這輛車，看得到即時位置、載客量和盈虧；點公車站就會顯示該站的候車人數。" },
+          { type: "p", text: "路線經營得好（覆蓋密集、載客率高）會為附近地區帶來四項實際效果：紓緩交通壅塞、提升商業區地價、增加工業區勞動力需求，以及提升 H 級或以下住宅的快樂指數——頂級豪宅（UH）不受惠，他們不搭公車。" },
+          { type: "p", text: "機場（12×12，經「玫瑰園計畫」解鎖）和貨櫃碼頭（4×4，人口 15,000 解鎖）依然是視覺化模擬：飛機沿固定校正航線降落、滑行至閘口、再起飛，一次大約 3 到 4 架同時運作；船隻則沿岸邊校正路線入港靠泊、交換貨物、鳴笛離港。機場、貨櫃碼頭和公車公司三者在八號風球或以上都會暫停運作。" },
         ],
       },
       {
@@ -1648,11 +1762,16 @@ const SITE_GUIDE = {
       },
       {
         id: "transport",
-        title: "9. Transport, Airport and Container Port",
+        title: "9. Transport, the Bus Company, Airport and Container Port",
         blocks: [
           { type: "p", text: "Roads cost $10/tile, bridges $75/tile, and upkeep spending scales with the road department's funding slider. Traffic load builds up based on the density and scale of residential/commercial/industrial buildings, spreads along the road network, and congestion drags down happiness and commercial/residential demand." },
-          { type: "p", text: "Buses and minibuses are purely ambient background traffic - the player never routes them - and they're grounded immediately at Typhoon Signal 8 or above." },
-          { type: "p", text: "Both the Airport (12×12, unlocked via the “I Love Rose Garden Project”) and the Container Port (4×4, unlocked at population 15,000) are visual simulations: aircraft follow a fixed, calibrated flight path to land, taxi to a gate and take off again, with roughly 3-4 aircraft active at once; vessels similarly follow a calibrated coastal route to berth, exchange cargo, sound their horn and depart. Both pause operations at Signal 8 or above." },
+          { type: "p", text: "Minibuses, taxis, private cars and trucks are still purely ambient background traffic that the player never routes. Buses, however, are now run as the player's own company - see below. This ambient traffic is grounded immediately at Typhoon Signal 8 or above." },
+          { type: "h3", text: "The Bus Company: a standalone operation" },
+          { type: "p", text: "Reaching population 3,000 unlocks Transport Mode: click the CITY GUIDE header in the top-left to switch between city building and running the bus company - same map, same clock, but the toolset and interface swap entirely to six independent, draggable Transport Company windows (Routes, Fleet, Demand, Depot, Finances, Company), each toggled from its own icon in the topbar." },
+          { type: "p", text: "The bus company keeps its own treasury (founded with $600 in start-up capital), fully separate from city hall's budget - city taxes, loans and department funding never touch it, and a losing bus company never drags down the city's own finances. Three consecutive losing months auto-suspends every route until the fleet or routes are adjusted." },
+          { type: "p", text: "Buses are bought individually at a depot (two classes, $210-$280), and each depot holds only 12 vehicles. A bus needs periodic servicing the longer it runs - age and condition affect ridership and breakdown risk. Clicking any moving bus opens its own live tracking window with a real camera following the vehicle, showing its position, passenger load and profit; clicking a bus stop shows how many passengers are waiting there." },
+          { type: "p", text: "A well-run route (dense coverage, high ridership) delivers four real effects to the surrounding area: eases traffic congestion, raises commercial land value, boosts industrial labour demand, and raises happiness for residents of wealth tier H and below - the wealthiest (UH) households don't ride the bus." },
+          { type: "p", text: "The Airport (12×12, unlocked via the “I Love Rose Garden Project”) and the Container Port (4×4, unlocked at population 15,000) remain visual simulations: aircraft follow a fixed, calibrated flight path to land, taxi to a gate and take off again, with roughly 3-4 aircraft active at once; vessels similarly follow a calibrated coastal route to berth, exchange cargo, sound their horn and depart. The airport, container port and bus company all pause operations at Signal 8 or above." },
         ],
       },
       {
@@ -1829,11 +1948,16 @@ const SITE_GUIDE = {
       },
       {
         id: "transport",
-        title: "9. 交通、空港、コンテナ港",
+        title: "9. 交通、バス会社、空港、コンテナ港",
         blocks: [
           { type: "p", text: "道路は1マス$10、橋は1マス$75で、維持費は道路部門の予算スライダーに応じて変動します。交通負荷は住宅・商業・工業の密度と建物規模に応じて発生し、道路網に沿って広がります。渋滞は幸福度と商業・住宅需要を押し下げます。" },
-          { type: "p", text: "バス・ミニバスは純粋な背景の視覚的交通であり、プレイヤーが経路を指定する必要はありません。台風シグナル8号以上では即座に運行停止となります。" },
-          { type: "p", text: "空港（12×12、「ローズガーデン計画」で解禁）とコンテナ港（4×4、人口15,000で解禁）はいずれもビジュアルシミュレーションです：航空機は固定の校正済み飛行経路に沿って着陸し、ゲートまでタキシングし、再び離陸します。同時に稼働するのはおおよそ3〜4機です。船舶も同様に、校正済みの沿岸経路に沿って入港・係留し、貨物を交換し、汽笛を鳴らして出港します。両者ともシグナル8号以上では運航を停止します。" },
+          { type: "p", text: "ミニバス・タクシー・自家用車・トラックは引き続き純粋な背景の視覚的交通で、プレイヤーが経路を指定する必要はありません。一方バスは、プレイヤー自身が経営する独立した会社に変わりました——詳細は以下参照。この背景交通は台風シグナル8号以上では即座に運行停止となります。" },
+          { type: "h3", text: "バス会社：独立経営モード" },
+          { type: "p", text: "人口3,000で「運輸経営」モードが解禁されます。左上の「建設ガイド CITY GUIDE」ヘッダーをクリックすると、都市建設とバス会社経営を切り替えられます——同じマップ、同じ時計のまま、ツールとUIがバス会社専用の6つの独立したドラッグ可能なウィンドウ（路線・車両・需要・車庫・財務・会社）に完全に切り替わり、それぞれ上部ツールバーのアイコンから開閉できます。" },
+          { type: "p", text: "バス会社は独自の資金（設立時に創業資金$600を獲得）を持ち、市の予算とは完全に分離されています。市の税収・借入・部門予算はバス会社に一切影響せず、バス会社が赤字でも市の財政を圧迫することはありません。3ヶ月連続赤字になると全路線が自動的に運休し、車両や路線を調整するまで再開しません。" },
+          { type: "p", text: "バスは車庫で1台ずつ購入し（2車種、$210～$280）、各車庫の収容台数は12台までです。走行を重ねると定期整備が必要になり、車齢と状態が乗車実績と故障リスクに影響します。運行中のバスをクリックすると、実際のカメラが車両を追跡する専用の追跡ウィンドウが開き、位置・乗客数・収支を確認できます。バス停をクリックするとその停留所の待機乗客数が表示されます。" },
+          { type: "p", text: "路線をうまく運営する（密なカバー範囲、高い乗車率）と、周辺地域に4つの実際の効果をもたらします：渋滞緩和、商業地区の地価上昇、工業地区の労働需要増加、そして富裕層（UH）を除く H 級以下の住民の幸福度上昇です——最富裕層（UH）はバスを利用しません。" },
+          { type: "p", text: "空港（12×12、「ローズガーデン計画」で解禁）とコンテナ港（4×4、人口15,000で解禁）は引き続きビジュアルシミュレーションです：航空機は固定の校正済み飛行経路に沿って着陸し、ゲートまでタキシングし、再び離陸します。同時に稼働するのはおおよそ3〜4機です。船舶も同様に、校正済みの沿岸経路に沿って入港・係留し、貨物を交換し、汽笛を鳴らして出港します。空港・コンテナ港・バス会社の3つはいずれもシグナル8号以上では運航を停止します。" },
         ],
       },
       {
@@ -1926,16 +2050,44 @@ function renderGalleryItems() {
   const grid = document.querySelector("[data-render='gallery']");
   if (!grid) return;
   grid.innerHTML = "";
-  getLocalizedGalleryItems().forEach((item) => {
+  const items = getLocalizedGalleryItems();
+  items.forEach((item, index) => {
     const figure = document.createElement("figure");
     figure.className = "gallery-item";
+
+    const zoomButton = document.createElement("button");
+    zoomButton.type = "button";
+    zoomButton.className = "gallery-zoom";
+    zoomButton.dataset.galleryOpen = "";
+    zoomButton.dataset.gallerySrc = item.src;
+    zoomButton.dataset.galleryTitle = item.title;
+    zoomButton.dataset.galleryCaption = item.caption;
+    zoomButton.dataset.galleryAlt = item.alt;
+    zoomButton.setAttribute("aria-label", `${siteT("gallery.openImage")}：${item.title}`);
+
     const img = document.createElement("img");
     img.src = item.src;
     img.alt = item.alt;
     img.loading = "lazy";
+    img.decoding = "async";
+
+    const zoomHint = document.createElement("span");
+    zoomHint.className = "gallery-zoom-hint";
+    zoomHint.setAttribute("aria-hidden", "true");
+    zoomHint.textContent = `＋ ${siteT("gallery.openImage")}`;
+
     const caption = document.createElement("figcaption");
-    caption.textContent = item.caption;
-    figure.append(img, caption);
+    const number = document.createElement("span");
+    number.className = "gallery-number";
+    number.textContent = `${String(index + 1).padStart(2, "0")} / ${String(items.length).padStart(2, "0")}`;
+    const title = document.createElement("h3");
+    title.textContent = item.title;
+    const description = document.createElement("p");
+    description.textContent = item.caption;
+
+    zoomButton.append(img, zoomHint);
+    caption.append(number, title, description);
+    figure.append(zoomButton, caption);
     grid.appendChild(figure);
   });
 }

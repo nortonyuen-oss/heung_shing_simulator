@@ -1,6 +1,6 @@
 const I18N_STORAGE_KEY = 'citybuilder.language';
 let appVersion = '4.0.0-beta.2';
-let appReleaseTheme = '【號外！香城巴士大亨】';
+let appReleaseTheme = '【香城巴士公司】';
 
 const LANGUAGES = {
   en: 'English',

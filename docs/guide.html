@@ -10,8 +10,8 @@
   <meta property="og:image" content="assets/backgroundTitle.png" />
   <meta name="theme-color" content="#17212d" />
   <link rel="icon" href="assets/icon.png" />
-  <link rel="stylesheet" href="styles.css?v=20260808-1" />
-  <script src="i18n.js?v=20260808-1" defer></script>
+  <link rel="stylesheet" href="styles.css?v=20260820-1" />
+  <script src="i18n.js?v=20260820-1" defer></script>
 </head>
 <body>
   <header class="site-header" aria-label="網站導覽">
@@ -20,12 +20,14 @@
       <span>香城模擬器</span>
     </a>
     <nav>
-      <a href="index.html#gallery" data-i18n="nav.gallery">截圖</a>
-      <a href="index.html#downloads" data-i18n="nav.downloads">下載</a>
-      <a href="index.html#manual" data-i18n="nav.manual">玩家手冊</a>
-      <a href="guide.html" data-i18n="nav.guide">遊戲指南</a>
-      <a href="index.html#changelog" data-i18n="nav.changelog">版本</a>
-      <a href="https://github.com/nortonyuen-oss/heung_shing_simulator" rel="noopener" data-i18n="nav.github">GitHub</a>
+      <div class="nav-links">
+        <a href="index.html#gallery" data-i18n="nav.gallery">截圖</a>
+        <a href="index.html#downloads" data-i18n="nav.downloads">下載</a>
+        <a href="index.html#manual" data-i18n="nav.manual">玩家手冊</a>
+        <a href="guide.html" data-i18n="nav.guide">遊戲指南</a>
+        <a href="index.html#changelog" data-i18n="nav.changelog">版本</a>
+        <a href="https://github.com/nortonyuen-oss/heung_shing_simulator" rel="noopener" data-i18n="nav.github">GitHub</a>
+      </div>
       <div class="lang-switcher" data-language-switcher></div>
     </nav>
   </header>
@@ -46,7 +48,7 @@
   </main>
 
   <footer>
-    <span>香城模擬器 v3.9.0 — 好岸居</span>
+    <span data-i18n="footer.tagline">香城模擬器 · 免費下載，歡迎分享</span>
     <div class="footer-links">
       <a href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest" rel="noopener" data-i18n="footer.releaseInfo">版本資訊</a>
       <a href="https://heungshingsimulator.blogspot.com/" rel="noopener" data-i18n="footer.blog">開發blog</a>

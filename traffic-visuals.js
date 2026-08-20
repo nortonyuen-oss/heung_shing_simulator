@@ -1,9 +1,13 @@
 const TRAFFIC_VISUAL_CONFIG = Object.freeze({
   zoomMin: 1.4,
   refreshMs: 250,
-  maxVehicles: 28,
+  // Raised from 28/3/4 - a busy city was reading as noticeably emptier than
+  // its traffic load implied. Roughly matches transport-visuals.js's own
+  // maxManagedVehicles (48), which the renderer batching fix (agent/
+  // performance) already sized for without a separate pipeline per vehicle.
+  maxVehicles: 44,
   minimumLoad: 0.02,
-  densityDivisor: 3,
+  densityDivisor: 2.4,
   laneOffsetTiles: 0.20,
   sameSignDiagonalLaneOffsetTiles: 0.12,
   northEastLaneOffsetTiles: 0.08,
@@ -15,7 +19,7 @@ const TRAFFIC_VISUAL_CONFIG = Object.freeze({
   maxResidentModels: 12,
   maxModelsPerLoadBatch: 1,
   maxPendingModels: 2,
-  maxSpawnsPerRefresh: 4,
+  maxSpawnsPerRefresh: 6,
   maxLegTransitionsPerFrame: 4,
   modelDiscoveryMs: 1500,
   depthRefreshMs: 250,

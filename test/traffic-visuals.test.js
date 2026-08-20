@@ -426,17 +426,17 @@ test('bus stop dwell speed factor tapers down from the approach window to the le
 
 test('vehicle target follows visible traffic load and respects threshold and cap', () => {
   assert.equal(computeTrafficVehicleTarget([0, 0.01, 0.02]), 0);
-  assert.equal(computeTrafficVehicleTarget(Array(16).fill(1)), 5);
+  assert.equal(computeTrafficVehicleTarget(Array(16).fill(1)), 6);
   assert.equal(computeTrafficVehicleTarget(Array(400).fill(1)), TRAFFIC_VISUAL_CONFIG.maxVehicles);
-  assert.equal(TRAFFIC_VISUAL_CONFIG.maxVehicles, 28);
+  assert.equal(TRAFFIC_VISUAL_CONFIG.maxVehicles, 44);
 });
 
 test('cold-start spawning is spread across bounded refresh batches', () => {
-  assert.equal(computeTrafficSpawnBudget(0, 28), 4);
-  assert.equal(computeTrafficSpawnBudget(24, 28), 4);
-  assert.equal(computeTrafficSpawnBudget(27, 28), 1);
-  assert.equal(computeTrafficSpawnBudget(28, 28), 0);
-  assert.equal(computeTrafficSpawnBudget(40, 28), 0);
+  assert.equal(computeTrafficSpawnBudget(0, 44), 6);
+  assert.equal(computeTrafficSpawnBudget(38, 44), 6);
+  assert.equal(computeTrafficSpawnBudget(43, 44), 1);
+  assert.equal(computeTrafficSpawnBudget(44, 44), 0);
+  assert.equal(computeTrafficSpawnBudget(50, 44), 0);
 });
 
 test('movement follows pause and simulation speed while clamping long frames', () => {

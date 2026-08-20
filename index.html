@@ -2086,6 +2086,12 @@
     #btn-map-music:not(.is-muted) .map-music-slash { display: none; }
 
     .map-zoom-control {
+      /* Top-right of the city view, just under the topbar's City Rating
+         card, instead of crowding the bottom-right rotate/mute cluster. */
+      position: fixed;
+      top: 100px;
+      right: 16px;
+      z-index: 11;
       display: grid;
       grid-template-columns: 34px 58px 34px;
       height: 38px;
@@ -2779,6 +2785,16 @@
       right: 0;
       z-index: 10;
       pointer-events: auto;
+      /* column-reverse (not the DOM order - #budget-strip is still first in
+         markup) keeps #budget-strip pinned to the true viewport bottom edge
+         no matter how tall #budget-detail's expanded content gets.
+         Otherwise, since this whole panel only has bottom:0 (no fixed
+         height), opening #budget-detail below #budget-strip in normal flow
+         grows the panel upward - which visibly shifts #status-more-btn's
+         on-screen position, so a second click "in the same spot" to
+         collapse it lands on empty space instead. */
+      display: flex;
+      flex-direction: column-reverse;
     }
 
     /* ── Tips ticker — lives INSIDE the budget strip ─────────────────────── */
@@ -6660,13 +6676,15 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
     <canvas id="terrain-minimap-canvas" width="256" height="256"></canvas>
   </aside>
 
+  <!-- Map zoom (top-right, below the topbar's City Rating card) -->
+  <div class="map-zoom-control" role="group" aria-label="Map zoom" data-i18n-aria="tool.mapZoom">
+    <button class="map-zoom-btn" id="btn-map-zoom-out" type="button" title="Zoom out" aria-label="Zoom out" data-i18n-title="overlay.zoomOut" data-i18n-aria="overlay.zoomOut">−</button>
+    <span id="map-zoom-label" aria-live="polite">1×</span>
+    <button class="map-zoom-btn" id="btn-map-zoom-in" type="button" title="Zoom in" aria-label="Zoom in" data-i18n-title="overlay.zoomIn" data-i18n-aria="overlay.zoomIn">+</button>
+  </div>
+
   <!-- Map view controls (bottom-right) -->
   <div id="rotate-cluster" aria-label="Map view controls" data-i18n-aria="tool.mapControls" aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight">
-    <div class="map-zoom-control" role="group" aria-label="Map zoom" data-i18n-aria="tool.mapZoom">
-      <button class="map-zoom-btn" id="btn-map-zoom-out" type="button" title="Zoom out" aria-label="Zoom out" data-i18n-title="overlay.zoomOut" data-i18n-aria="overlay.zoomOut">−</button>
-      <span id="map-zoom-label" aria-live="polite">1×</span>
-      <button class="map-zoom-btn" id="btn-map-zoom-in" type="button" title="Zoom in" aria-label="Zoom in" data-i18n-title="overlay.zoomIn" data-i18n-aria="overlay.zoomIn">+</button>
-    </div>
     <button class="rotate-btn" id="btn-map-music" type="button" title="Mute music" aria-label="Mute music" aria-pressed="false">
       <svg viewBox="0 0 32 32" aria-hidden="true">
         <path d="M5 13h5l6-5v16l-6-5H5z"/>

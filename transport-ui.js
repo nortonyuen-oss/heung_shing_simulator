@@ -110,6 +110,8 @@ function ensureTransportPanelStyle() {
     .transport-panel-window .transport-editor h3 { margin:0 0 9px; }
     .transport-panel-window .transport-fields { display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:7px; }
     .transport-panel-window label { display:grid; gap:3px; color:#5e5a50; }
+    .transport-panel-window .transport-checkbox-field { grid-column:1 / -1; display:flex; flex-direction:row; align-items:center; gap:6px; }
+    .transport-panel-window .transport-checkbox-field input { width:auto; }
     .transport-panel-window input { min-width:0; border:1px solid #9d9584; border-radius:4px; padding:5px; background:#fff; color:#222; }
     .transport-panel-window input[type="color"] { width:100%; min-height:29px; padding:2px; }
     .transport-panel-window .transport-stop-picker { display:flex; justify-content:space-between; align-items:center; gap:8px; margin:10px 0 6px; }
@@ -380,6 +382,7 @@ function renderTransportEditor() {
         <label>${transportEscapeHtml(t('transport.routeName'))}<input data-transport-field="name" maxlength="60" value="${transportEscapeHtml(editor.name)}" /></label>
         <label>${transportEscapeHtml(t('transport.routeColor'))}<input data-transport-field="color" type="color" value="${transportEscapeHtml(editor.color)}" /></label>
         <label>${transportEscapeHtml(t('transport.routeFare'))}<input data-transport-field="fare" type="number" min="15" max="60" step="5" value="${editor.fare}" /></label>
+        <label class="transport-checkbox-field"><input data-transport-field="pickupPassthroughStops" type="checkbox" ${editor.pickupPassthroughStops ? 'checked' : ''} /> ${transportEscapeHtml(t('transport.routePickupPassthroughStops'))}</label>
       </div>
       <div class="transport-stop-picker">
         <strong>${transportEscapeHtml(t('transport.routeStops'))} (${stops.length})</strong>
@@ -1119,6 +1122,7 @@ function beginTransportRouteEditor(route = null) {
     name: route?.name || getDefaultTransportRouteName(state.nextRouteId),
     color: route?.color || TRANSPORT_ROUTE_COLORS[routeIndex % TRANSPORT_ROUTE_COLORS.length],
     fare: route?.fare ?? TRANSPORT_DEFAULT_FARE,
+    pickupPassthroughStops: route?.pickupPassthroughStops === true,
     stopIds: Array.from(route?.stopIds || []),
   };
   transportUiState.pickingStops = false;
@@ -1156,26 +1160,12 @@ function saveTransportRouteEditor() {
     refreshTransportUi();
     return;
   }
-  if (selectedStops.some((stop) => {
-    const eligible = getBusStopEligibleSides(stop.row, stop.col);
-    return !Array.isArray(eligible) || eligible.length !== 2;
-  })) {
-    setTransportUiMessage(t('transport.error.unpairedStop'), 'error');
-    refreshTransportUi();
-    return;
-  }
-  const pairingCost = getTransportStopPairingCost(editor.stopIds);
-  if (pairingCost > 0 && !window.confirm(t('transport.confirmPairStops', { amount: pairingCost.toLocaleString() }))) return;
-  if (!ensureTransportStopPairs(editor.stopIds, activeScene)) {
-    setTransportUiMessage(t('transport.error.notEnoughFunds'), 'error');
-    refreshTransportUi();
-    return;
-  }
   try {
     const draft = {
       name: editor.name,
       color: editor.color,
       fare: editor.fare,
+      pickupPassthroughStops: editor.pickupPassthroughStops === true,
       stopIds: editor.stopIds,
     };
     if (editor.routeId) updateTransportRoute(editor.routeId, draft);
@@ -1196,6 +1186,8 @@ function handleTransportUiInput(event) {
   if (!field || !transportUiState.editor) return;
   if (field === 'fare') {
     transportUiState.editor.fare = normalizeTransportFare(event.target.value);
+  } else if (event.target.type === 'checkbox') {
+    transportUiState.editor[field] = event.target.checked;
   } else {
     transportUiState.editor[field] = event.target.value;
   }

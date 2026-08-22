@@ -10,7 +10,53 @@ const TRANSPORT_VISUAL_CONFIG = Object.freeze({
   maxManagedVehicles: 48,
   zoomMin: 1.4,
   overlayRefreshMs: 200,
+  // §1 restore: fraction of a stop-adjacent leg spent easing rather than at
+  // cruise speed - OpenTTD-style slow-in/slow-out around a dwell, purely a
+  // render-time remap of the backend's linear progress (never touches
+  // advanceTransportVehiclesByGameDays's timing, so game-speed economics are
+  // unaffected).
+  stopEaseFraction: 0.3,
+  fareFloatRiseY: 30,
+  fareFloatDurationMs: 900,
 });
+
+function transportEaseInQuad(t) { return t * t; }
+function transportEaseOutQuad(t) { const inv = 1 - t; return 1 - inv * inv; }
+
+// Remaps a leg's linear 0..1 progress so a vehicle decelerates into a stop
+// tile at the end of its leg and/or accelerates away from one at the start -
+// whichever ends of *this specific tile hop* actually touch a route stop.
+// Most hops touch neither end and pass through unchanged (current behaviour).
+function getTransportLegVisualProgress(progress, departingStop, approachingStop) {
+  const t = Math.min(1, Math.max(0, Number(progress) || 0));
+  const ease = TRANSPORT_VISUAL_CONFIG.stopEaseFraction;
+  if (departingStop && t < ease) return transportEaseInQuad(t / ease) * ease;
+  if (approachingStop && t > 1 - ease) {
+    const local = (t - (1 - ease)) / ease;
+    return (1 - ease) + transportEaseOutQuad(local) * ease;
+  }
+  return t;
+}
+
+// A stop's tile only ever appears at the two ends of a leg (the tile-by-tile
+// path is built stop-to-stop), so a plain row/col match against every stop on
+// the route is enough to tell whether *this* hop's near/far tile is a stop -
+// no need to re-derive the cycle's stop indices here.
+function getTransportRouteStopTileKeySet(route) {
+  const keys = new Set();
+  if (!route || typeof getTransportStopById !== 'function') return keys;
+  (route.stopIds || []).forEach((stopId) => {
+    const stop = getTransportStopById(stopId);
+    if (stop) keys.add(`${stop.row},${stop.col}`);
+  });
+  return keys;
+}
+
+function updateTransportVehicleLegStopFlags(vehicle) {
+  const keys = getTransportRouteStopTileKeySet(vehicle.route);
+  vehicle.departingStop = keys.has(`${vehicle.current.row},${vehicle.current.col}`);
+  vehicle.approachingStop = keys.has(`${vehicle.next.row},${vehicle.next.col}`);
+}
 
 function getTransportVisualState(scene) {
   if (!scene) return null;
@@ -153,12 +199,18 @@ function createManagedTransportVehicle(scene, route, runtime, model, vehicleId, 
     textureDirection: 'ne',
     leg: createTrafficLeg(scene, previous, current, next),
     lastPosition: null,
+    departingStop: false,
+    approachingStop: false,
+    lastSeenRevenueSerial: backing?.tripRevenueSerial || 0,
+    renderedProgress: 0,
   };
+  updateTransportVehicleLegStopFlags(vehicle);
+  vehicle.renderedProgress = getTransportLegVisualProgress(progress, vehicle.departingStop, vehicle.approachingStop);
   if (typeof markVehicleTrackerDynamicObject === 'function') {
     markVehicleTrackerDynamicObject(sprite);
     markVehicleTrackerDynamicObject(badge);
   }
-  setManagedTransportVehicleVisual(vehicle, evaluateTrafficLeg(vehicle.leg, progress), true);
+  setManagedTransportVehicleVisual(vehicle, evaluateTrafficLeg(vehicle.leg, vehicle.renderedProgress), true);
   return vehicle;
 }
 
@@ -240,13 +292,50 @@ function syncManagedTransportVehicles(scene, state, routeEntries) {
   if (scene.trafficVisualState) scene.trafficVisualState.dirty = true;
 }
 
+// Restores minimum following distance without ever touching the backend's
+// own timing: scans other bus visuals and ambient traffic sharing this exact
+// tile-to-tile leg for one ahead of us, using the SAME headway rule
+// traffic-visuals.js applies to ordinary vehicles (getTrafficLeaderEffectiveProgress/
+// TRAFFIC_VISUAL_CONFIG.minimumHeadwayTiles), so buses and cars read as one
+// shared traffic stream instead of two that ignore each other. Returns the
+// furthest progress this vehicle may render at this frame, or null if clear.
+function findTransportVisualLeaderCeiling(scene, vehicle) {
+  const current = vehicle.current;
+  const next = vehicle.next;
+  if (!current || !next || typeof getTrafficLeaderEffectiveProgress !== 'function') return null;
+  let ceiling = null;
+  const consider = (leaderProgress, leaderHeadwayFactor) => {
+    if (!(leaderProgress > vehicle.renderedProgress)) return;
+    const gap = TRAFFIC_VISUAL_CONFIG.minimumHeadwayTiles * Math.max(vehicle.model.headwayFactor, leaderHeadwayFactor);
+    const candidate = leaderProgress - gap;
+    if (ceiling === null || candidate < ceiling) ceiling = candidate;
+  };
+  for (const other of scene?.transportVisualState?.vehicles || []) {
+    if (
+      other === vehicle
+      || other.current?.row !== current.row || other.current?.col !== current.col
+      || other.next?.row !== next.row || other.next?.col !== next.col
+    ) continue;
+    consider(getTrafficLeaderEffectiveProgress(other), other.model.headwayFactor);
+  }
+  for (const other of scene?.trafficVisualState?.vehicles || []) {
+    if (
+      other.current?.row !== current.row || other.current?.col !== current.col
+      || other.next?.row !== next.row || other.next?.col !== next.col
+    ) continue;
+    consider(getTrafficLeaderEffectiveProgress(other), other.model.headwayFactor);
+  }
+  return ceiling;
+}
+
 function syncManagedTransportVehiclePosition(scene, vehicle, backing) {
   const target = typeof getTransportVehiclePathPosition === 'function'
     ? getTransportVehiclePathPosition(backing, vehicle.route, vehicle.runtime)
     : null;
   if (!target) return;
   vehicle.cycle = target.path;
-  if (vehicle.currentIndex !== target.currentIndex) {
+  const legChanged = vehicle.currentIndex !== target.currentIndex;
+  if (legChanged) {
     vehicle.currentIndex = target.currentIndex;
     vehicle.previous = vehicle.cycle[
       (vehicle.currentIndex - 1 + vehicle.cycle.length) % vehicle.cycle.length
@@ -254,9 +343,70 @@ function syncManagedTransportVehiclePosition(scene, vehicle, backing) {
     vehicle.current = vehicle.cycle[vehicle.currentIndex];
     vehicle.next = vehicle.cycle[(vehicle.currentIndex + 1) % vehicle.cycle.length];
     vehicle.leg = createTrafficLeg(scene, vehicle.previous, vehicle.current, vehicle.next);
+    updateTransportVehicleLegStopFlags(vehicle);
   }
   vehicle.progress = target.progress;
-  setManagedTransportVehicleVisual(vehicle, evaluateTrafficLeg(vehicle.leg, vehicle.progress));
+  const desiredProgress = getTransportLegVisualProgress(vehicle.progress, vehicle.departingStop, vehicle.approachingStop);
+  if (legChanged) {
+    // A fresh tile hop starts clean - lag from the previous leg's spacing
+    // does not carry forward into a leg where no leader has been checked yet.
+    vehicle.renderedProgress = desiredProgress;
+  } else {
+    const ceiling = findTransportVisualLeaderCeiling(scene, vehicle);
+    let allowed = ceiling === null ? desiredProgress : Math.min(desiredProgress, ceiling);
+    if (allowed < vehicle.renderedProgress) allowed = vehicle.renderedProgress;
+    if (allowed > desiredProgress) allowed = desiredProgress;
+    vehicle.renderedProgress = Math.min(1, Math.max(0, allowed));
+  }
+  setManagedTransportVehicleVisual(vehicle, evaluateTrafficLeg(vehicle.leg, vehicle.renderedProgress));
+}
+
+// §4 restore: OpenTTD-style floating fare readout - a small green "+$X" that
+// rises and fades where a bus just earned money, fired once per dwell event
+// (tripRevenueSerial) rather than by polling the dollar amount, so two
+// dwells that happen to earn the identical amount still both show.
+function spawnTransportFareFloatText(scene, x, y, amount, depth) {
+  if (!scene?.add?.text || !(amount > 0) || !Number.isFinite(x) || !Number.isFinite(y)) return;
+  const text = scene.add.text(x, y, `+$${Math.round(amount)}`, {
+    fontFamily: 'Arial, sans-serif',
+    fontSize: '12px',
+    fontStyle: 'bold',
+    color: '#3ddc5a',
+    stroke: '#0b2612',
+    strokeThickness: 3,
+  });
+  addToRenderLayer(scene, text, 'effectLayer');
+  text.setOrigin(0.5, 1);
+  text.setDepth((Number.isFinite(depth) ? depth : 0) + 1);
+  text.setMask(scene.worldMask);
+  if (typeof markVehicleTrackerDynamicObject === 'function') markVehicleTrackerDynamicObject(text);
+  scene.tweens?.add({
+    targets: text,
+    y: y - TRANSPORT_VISUAL_CONFIG.fareFloatRiseY,
+    alpha: 0,
+    duration: TRANSPORT_VISUAL_CONFIG.fareFloatDurationMs,
+    ease: 'Cubic.easeOut',
+    onComplete: () => text.destroy(),
+  });
+}
+
+function checkTransportVehicleFareFloat(scene, vehicle, backing) {
+  const serial = backing?.tripRevenueSerial || 0;
+  if (vehicle.lastSeenRevenueSerial === undefined) {
+    vehicle.lastSeenRevenueSerial = serial;
+    return;
+  }
+  if (serial === vehicle.lastSeenRevenueSerial) return;
+  vehicle.lastSeenRevenueSerial = serial;
+  if (backing.tripRevenueAccrued > 0 && vehicle.sprite?.active !== false) {
+    spawnTransportFareFloatText(
+      scene,
+      vehicle.sprite.x,
+      vehicle.sprite.y,
+      backing.tripRevenueAccrued,
+      vehicle.badge?.depth,
+    );
+  }
 }
 
 function ensureTransportRouteGraphic(scene, state) {
@@ -411,6 +561,7 @@ function updateTransportVisuals(time, delta) {
     const backing = allVehicles.find((entry) => entry.id === vehicle.vehicleId);
     if (!backing) return;
     syncManagedTransportVehiclePosition(scene, vehicle, backing);
+    checkTransportVehicleFareFloat(scene, vehicle, backing);
     if (backing?.status === 'broken_down') {
       // Frozen in place (§12's lightweight breakdown model) - a stalled bus
       // doesn't advance, it just visibly sits there until it self-recovers.

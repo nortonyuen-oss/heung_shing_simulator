@@ -372,6 +372,60 @@ function getHealthPollutionSources() {
   return sources;
 }
 
+// getLocalHealthPollutionPressure used to walk every pollution source (every
+// industrial tile and power plant citywide) for every residential building's
+// health query - O(residential x sources), which is the dominant cost of
+// updateHealthMetrics in a large city (thousands of each). Sources this far
+// apart can never affect each other (their falloff hits zero at `radius`
+// tiles), so bucketing them into a coarse grid and only visiting the handful
+// of buckets within reach of the query tile turns that into a small, local
+// scan instead. Keyed by the `sources` array's own identity (a WeakMap) so it
+// costs nothing extra to call - a fresh array from getHealthPollutionSources()
+// builds its index once on first use and the whole entry is garbage the
+// moment that array is no longer referenced, no manual invalidation needed.
+const HEALTH_POLLUTION_SOURCE_BUCKET_SIZE = 16;
+const healthPollutionSourceIndexCache = new WeakMap();
+
+function buildHealthPollutionSourceIndex(sources) {
+  const bucketSize = HEALTH_POLLUTION_SOURCE_BUCKET_SIZE;
+  const buckets = new Map();
+  let maxRadius = 0;
+  for (const source of sources) {
+    if (source.radius > maxRadius) maxRadius = source.radius;
+    const key = `${Math.floor(source.row / bucketSize)}:${Math.floor(source.col / bucketSize)}`;
+    let bucket = buckets.get(key);
+    if (!bucket) {
+      bucket = [];
+      buckets.set(key, bucket);
+    }
+    bucket.push(source);
+  }
+  return { buckets, bucketSize, cellSpan: Math.max(1, Math.ceil(maxRadius / bucketSize)) };
+}
+
+function getHealthPollutionSourceIndex(sources) {
+  let index = healthPollutionSourceIndexCache.get(sources);
+  if (!index) {
+    index = buildHealthPollutionSourceIndex(sources);
+    healthPollutionSourceIndexCache.set(sources, index);
+  }
+  return index;
+}
+
+function forEachNearbyHealthPollutionSource(sources, row, col, visit) {
+  if (sources.length === 0) return;
+  const { buckets, bucketSize, cellSpan } = getHealthPollutionSourceIndex(sources);
+  const bucketRow = Math.floor(row / bucketSize);
+  const bucketCol = Math.floor(col / bucketSize);
+  for (let dr = -cellSpan; dr <= cellSpan; dr++) {
+    for (let dc = -cellSpan; dc <= cellSpan; dc++) {
+      const bucket = buckets.get(`${bucketRow + dr}:${bucketCol + dc}`);
+      if (!bucket) continue;
+      for (const source of bucket) visit(source);
+    }
+  }
+}
+
 // getTreeInfluenceValue/getScenicValue each brute-force a ~(2*radius+1)^2 tile
 // scan. computeHappiness and getLocalHealthPollutionPressure both need them for
 // every residential tile, every single sim tick — in a mature city that's
@@ -415,7 +469,7 @@ function getLocalHealthPollutionPressure(row, col, pollutionSources = null) {
     * (isPolicyActive('smokingBan') ? 0.92 : 1);
 
   const sources = pollutionSources ?? getHealthPollutionSources();
-  sources.forEach((source) => {
+  forEachNearbyHealthPollutionSource(sources, row, col, (source) => {
     const dist = Math.hypot(row - source.row, col - source.col);
     const { radius, strength } = source;
     if (dist > radius) return;

@@ -399,6 +399,10 @@ function normalizeTransportRoute(raw, fallbackIndex) {
     // not here.
     fare: normalizeTransportFare(raw.fare ?? TRANSPORT_DEFAULT_FARE),
     status: raw.status === 'suspended' ? 'suspended' : 'active',
+    // §3 restore: opt-in - when true, a vehicle also boards/alights at any
+    // other present bus stop its path happens to pass, not only the stops
+    // the player explicitly added to stopIds.
+    pickupPassthroughStops: raw.pickupPassthroughStops === true,
     vehicleClassId,
     servicePlan: {
       ...(raw.servicePlan && typeof raw.servicePlan === 'object' && !Array.isArray(raw.servicePlan)
@@ -454,6 +458,10 @@ function normalizeTransportVehicle(raw) {
     // total) - a transient "just collected $X" figure for the vehicle
     // inspector, §6/§12.
     tripRevenueAccrued: Math.max(0, Number(raw.tripRevenueAccrued) || 0),
+    // Increments once per dwell (whether or not it earned revenue) so a
+    // renderer can detect "a new dwell just happened" even when two
+    // consecutive dwells happen to accrue the identical dollar amount.
+    tripRevenueSerial: Math.max(0, Math.floor(Number(raw.tripRevenueSerial) || 0)),
     // Tiles driven this calendar month - feeds tileRunningCost at
     // settleTransportMonth, then resets to 0. Distinct from odometerTiles
     // (lifetime, never resets).
@@ -1149,6 +1157,7 @@ function calculateTransportFareRevenue(passengers, farePerTile, distanceTiles) {
 function dwellTransportVehicleAtStop(vehicle, route, stop) {
   const vehicleClass = getTransportVehicleClass(vehicle.classId);
   vehicle.tripRevenueAccrued = 0;
+  vehicle.tripRevenueSerial = (Math.max(0, Math.floor(Number(vehicle.tripRevenueSerial) || 0))) + 1;
 
   if (vehicle.passengersAboard > 0) {
     const stops = route.stopIds.map(getTransportStopById).filter(Boolean);
@@ -1399,7 +1408,12 @@ function validateTransportRouteDraft(draft) {
   const stops = stopIds.map(getTransportStopById);
   if (stops.some((stop) => !stop)) throw createTransportError('missingStop');
   if (stops.some((stop) => !isTransportStopPresent(stop))) throw createTransportError('missingStop');
-  if (stops.some((stop) => !isTransportStopPaired(stop))) throw createTransportError('unpairedStop');
+  // A stop with only one road-shoulder shelter built is still a valid,
+  // one-sided stop - the pathfinder only needs to reach its tile, it never
+  // reasons about which curb a shelter sits on. Requiring both sides here
+  // used to force the player to pay to add the missing shelter just to use
+  // an otherwise-functional stop; that upgrade is now optional (see
+  // ensureTransportStopPairs), never mandatory.
   const path = buildTransportRoutePath(stopIds);
   if (!path) throw createTransportError('noPath');
   const connectedDepot = commissionFirstConnectedTransportDepot();
@@ -1407,6 +1421,7 @@ function validateTransportRouteDraft(draft) {
   return {
     stopIds,
     fare: normalizeTransportFare(draft.fare ?? TRANSPORT_DEFAULT_FARE),
+    pickupPassthroughStops: draft.pickupPassthroughStops === true,
     path,
   };
 }
@@ -1422,6 +1437,7 @@ function createTransportRoute(draft = {}) {
     color: draft.color,
     stopIds: valid.stopIds,
     fare: valid.fare,
+    pickupPassthroughStops: valid.pickupPassthroughStops,
     status: 'active',
     servicePlan: draft.servicePlan,
   }, state.routes.length);
@@ -1441,6 +1457,7 @@ function updateTransportRoute(routeId, draft = {}) {
   route.color = normalizeTransportColor(draft.color ?? route.color, state.routes.indexOf(route));
   route.stopIds = valid.stopIds;
   route.fare = valid.fare;
+  route.pickupPassthroughStops = valid.pickupPassthroughStops;
   markTransportRouteDirty(route.id);
   updateTransportSimulation();
   if (typeof queueCityChangeAutosave === 'function') queueCityChangeAutosave();
@@ -1670,6 +1687,25 @@ function getTransportVehiclePathPosition(vehicle, route = null, runtime = null) 
 // calls this for each fraction of a day before firing the next daily arrival
 // tick, which keeps queue growth and vehicle arrivals correctly ordered even
 // at fast-forward speeds.
+// §3 restore: scans forward from the vehicle's current position (in tiles,
+// within the *current* stop-to-stop segment) for the nearest other present
+// bus stop that isn't already one of the route's designated stops. Only
+// consulted when the route opts in (route.pickupPassthroughStops) - most
+// routes never pay this scan.
+function findTransportOpportunisticStopWithinSegment(route, runtime, startIndex, segmentTiles, fromTiles) {
+  const path = runtime.roundTripPath;
+  const len = path.length;
+  if (!Array.isArray(path) || len === 0) return null;
+  const stopIdSet = new Set(route.stopIds);
+  const firstStep = Math.max(1, Math.floor(fromTiles) + 1);
+  for (let steps = firstStep; steps < segmentTiles; steps++) {
+    const tile = path[(startIndex + steps) % len];
+    const stop = getTransportStopAt(tile.row, tile.col, { presentOnly: true });
+    if (stop && !stopIdSet.has(stop.id)) return { stop, tilesFromStart: steps };
+  }
+  return null;
+}
+
 function advanceTransportVehiclesByGameDays(gameDays) {
   const elapsedDays = Math.max(0, Number(gameDays) || 0);
   if (elapsedDays <= 0 || !isTransportExpansionActive() || isTransportSevereWeather()) return;
@@ -1702,15 +1738,31 @@ function advanceTransportVehiclesByGameDays(gameDays) {
           ? nextIndex - startIndex
           : runtime.roundTripPath.length - startIndex + nextIndex,
       );
-      const tilesToStop = Math.max(0, (1 - vehicle.progress) * segmentTiles);
-      if (tilesToStop <= 0.000001) {
-        vehicle.progress = 0;
-        vehicle.orderIndex = nextOrderIndex;
-        dwellTransportVehicleAtStop(vehicle, route, cycleStops[vehicle.orderIndex]);
+      const positionTiles = vehicle.progress * segmentTiles;
+      let targetTiles = segmentTiles;
+      let opportunisticStop = null;
+      if (route.pickupPassthroughStops) {
+        const found = findTransportOpportunisticStopWithinSegment(
+          route, runtime, startIndex, segmentTiles, positionTiles,
+        );
+        if (found) {
+          targetTiles = found.tilesFromStart;
+          opportunisticStop = found.stop;
+        }
+      }
+      const tilesToTarget = Math.max(0, targetTiles - positionTiles);
+      if (tilesToTarget <= 0.000001) {
+        if (opportunisticStop) {
+          dwellTransportVehicleAtStop(vehicle, route, opportunisticStop);
+        } else {
+          vehicle.progress = 0;
+          vehicle.orderIndex = nextOrderIndex;
+          dwellTransportVehicleAtStop(vehicle, route, cycleStops[vehicle.orderIndex]);
+        }
         transitions++;
         continue;
       }
-      const step = Math.min(distanceRemaining, tilesToStop);
+      const step = Math.min(distanceRemaining, tilesToTarget);
       vehicle.passengerDistanceTiles = Math.max(
         0,
         Number(vehicle.passengerDistanceTiles) || 0,
@@ -1718,10 +1770,14 @@ function advanceTransportVehiclesByGameDays(gameDays) {
       vehicle.progress += step / segmentTiles;
       travelled += step;
       distanceRemaining -= step;
-      if (vehicle.progress < 1 - 0.000001) break;
-      vehicle.progress = 0;
-      vehicle.orderIndex = nextOrderIndex;
-      dwellTransportVehicleAtStop(vehicle, route, cycleStops[vehicle.orderIndex]);
+      if (step < tilesToTarget - 0.000001) break;
+      if (opportunisticStop) {
+        dwellTransportVehicleAtStop(vehicle, route, opportunisticStop);
+      } else {
+        vehicle.progress = 0;
+        vehicle.orderIndex = nextOrderIndex;
+        dwellTransportVehicleAtStop(vehicle, route, cycleStops[vehicle.orderIndex]);
+      }
       transitions++;
     }
     vehicle.odometerTiles = Math.max(0, Number(vehicle.odometerTiles) || 0) + travelled;
@@ -1844,11 +1900,6 @@ function ensureTransportRouteRuntime() {
       brokenReason = 'missingStop';
       const missing = stops.find((stop) => !stop || !isTransportStopPresent(stop));
       if (missing) brokenPoint = { row: missing.row, col: missing.col };
-    } else if (stops.some((stop) => !isTransportStopPaired(stop))) {
-      status = 'broken';
-      brokenReason = 'unpairedStop';
-      const unpaired = stops.find((stop) => !isTransportStopPaired(stop));
-      if (unpaired) brokenPoint = { row: unpaired.row, col: unpaired.col };
     }
     let path = null;
     if (status === 'active') {

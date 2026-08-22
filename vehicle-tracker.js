@@ -18,6 +18,14 @@ const VEHICLE_TRACKER_CONFIG = Object.freeze({
   focusedRenderEstimateMs: 0.75,
 });
 
+// §5 restore: the info card sits collapsed by default; these left-rail icons
+// toggle which slice of it shows, instead of dumping every field at once.
+const VEHICLE_TRACKER_TABS = Object.freeze([
+  { id: 'passengers', icon: '👤', labelKey: 'transport.tracker.tabPassengers', labelFallback: 'Passengers' },
+  { id: 'condition', icon: '🔧', labelKey: 'transport.tracker.tabCondition', labelFallback: 'Condition' },
+  { id: 'route', icon: '🛣', labelKey: 'transport.tracker.tabRoute', labelFallback: 'Route' },
+]);
+
 const vehicleTrackerManager = {
   scene: null,
   trackers: new Map(),
@@ -77,7 +85,7 @@ function ensureVehicleTrackerStyle() {
   style.id = 'vehicle-tracker-style';
   style.textContent = `
     .vehicle-tracker-window {
-      position:fixed; z-index:380; width:324px; color:#20252a; border:2px solid #313b43;
+      position:fixed; z-index:380; width:354px; color:#20252a; border:2px solid #313b43;
       border-radius:5px; box-shadow:0 10px 26px rgba(0,0,0,.46); font:12px/1.35 Arial,sans-serif;
       overflow:hidden; background:transparent; user-select:none;
     }
@@ -86,21 +94,28 @@ function ensureVehicleTrackerStyle() {
     .vehicle-tracker-title { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:800; }
     .vehicle-tracker-head button { width:24px; height:22px; border:1px solid rgba(255,255,255,.32); border-radius:3px; padding:0; background:rgba(255,255,255,.08); color:#fff; cursor:pointer; font:bold 14px/18px Arial,sans-serif; }
     .vehicle-tracker-head button:hover { background:rgba(255,255,255,.22); }
-    .vehicle-tracker-viewport { position:relative; width:320px; height:180px; background:#161d21; pointer-events:none; overflow:hidden; }
+    .vehicle-tracker-body { display:flex; align-items:stretch; }
+    .vehicle-tracker-tabs { display:flex; flex-direction:column; flex:0 0 30px; width:30px; background:#1b242b; border-right:1px solid #313b43; }
+    .vehicle-tracker-tabs button { width:30px; height:30px; border:0; border-bottom:1px solid rgba(255,255,255,.1); background:transparent; color:#cfd8dc; cursor:pointer; font-size:14px; line-height:1; padding:0; display:flex; align-items:center; justify-content:center; }
+    .vehicle-tracker-tabs button:hover { background:rgba(255,255,255,.1); }
+    .vehicle-tracker-tabs button.is-active { background:#2f5a76; color:#fff; }
+    .vehicle-tracker-viewport { position:relative; width:320px; height:180px; background:#161d21; pointer-events:none; overflow:hidden; flex:0 0 320px; }
     .vehicle-tracker-surface { position:absolute; inset:0; z-index:0; display:block; width:320px; height:180px; background:#161d21; }
     .vehicle-tracker-unavailable { position:absolute; inset:0; z-index:1; display:grid; place-items:center; padding:20px; text-align:center; color:#fff; background:rgba(31,42,49,.86); font-weight:800; }
     .vehicle-tracker-unavailable[hidden] { display:none !important; }
-    .vehicle-tracker-status { display:grid; gap:4px; min-height:55px; padding:7px 8px; background:#ece7d8; border-top:1px solid #777064; }
+    .vehicle-tracker-panel { display:grid; gap:4px; padding:7px 8px; background:#ece7d8; border-top:1px solid #777064; }
+    .vehicle-tracker-panel[hidden] { display:none !important; }
     .vehicle-tracker-status-row { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:9px; align-items:center; }
     .vehicle-tracker-status-row span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#6a665c; }
-    .vehicle-tracker-status-row strong { max-width:205px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:right; }
-    .vehicle-tracker-actions { display:flex; justify-content:flex-end; gap:4px; flex-wrap:wrap; padding-top:3px; border-top:1px solid #c8c0ad; }
+    .vehicle-tracker-status-row strong { max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:right; }
+    .vehicle-tracker-actions { display:flex; justify-content:flex-end; gap:4px; flex-wrap:wrap; padding:5px 8px; border-top:1px solid #c8c0ad; background:#ece7d8; }
     .vehicle-tracker-actions:empty { display:none; }
     .vehicle-tracker-actions button { border:1px solid #52636f; border-radius:4px; padding:3px 7px; background:#f7f3e8; color:#26323a; cursor:pointer; font:inherit; }
     .vehicle-tracker-actions button.danger { color:#8b1f1f; border-color:#a75a5a; }
     .vehicle-tracker-window.is-minimized { width:250px; }
-    .vehicle-tracker-window.is-minimized .vehicle-tracker-viewport,
-    .vehicle-tracker-window.is-minimized .vehicle-tracker-status { display:none; }
+    .vehicle-tracker-window.is-minimized .vehicle-tracker-body,
+    .vehicle-tracker-window.is-minimized .vehicle-tracker-panel,
+    .vehicle-tracker-window.is-minimized .vehicle-tracker-actions { display:none; }
   `;
   document.head.appendChild(style);
 }
@@ -169,6 +184,7 @@ function resolveTransportTrackerTarget(scene, id) {
       ? getTransportVehicleApproximateTile(vehicle.id)
       : null,
     vehicle,
+    vehicleClass,
     routeEntity: route || null,
     unavailableText: severeWeather
       ? vehicleTrackerText('transport.tracker.weatherUnavailable', {}, 'Service suspended by severe weather')
@@ -815,18 +831,26 @@ function createVehicleTrackingWindow(type, id, pointer = null) {
   root.dataset.vehicleTrackerKey = key;
   root.setAttribute('role', 'dialog');
   root.setAttribute('aria-modal', 'false');
+  const tabDefs = type === 'transport' ? VEHICLE_TRACKER_TABS : [];
   root.innerHTML = `
     <div class="vehicle-tracker-head" data-vehicle-tracker-drag>
       <span class="vehicle-tracker-title" data-vehicle-tracker-title></span>
       <button type="button" data-vehicle-tracker-minimize aria-label="${vehicleTrackerText('transport.tracker.minimize', {}, 'Minimize')}">−</button>
       <button type="button" data-vehicle-tracker-close aria-label="${vehicleTrackerText('transport.tracker.close', {}, 'Close')}">×</button>
     </div>
-    <div class="vehicle-tracker-viewport" data-vehicle-tracker-viewport>
-      <canvas class="vehicle-tracker-surface" data-vehicle-tracker-surface width="320" height="180" aria-hidden="true"></canvas>
-      <div class="vehicle-tracker-unavailable" data-vehicle-tracker-unavailable hidden></div>
+    <div class="vehicle-tracker-body">
+      ${tabDefs.length ? `<div class="vehicle-tracker-tabs" data-vehicle-tracker-tabs>${tabDefs.map((tab) => (
+        `<button type="button" data-vehicle-tracker-tab="${tab.id}" title="${vehicleTrackerText(tab.labelKey, {}, tab.labelFallback)}" aria-label="${vehicleTrackerText(tab.labelKey, {}, tab.labelFallback)}">${tab.icon}</button>`
+      )).join('')}</div>` : ''}
+      <div class="vehicle-tracker-viewport" data-vehicle-tracker-viewport>
+        <canvas class="vehicle-tracker-surface" data-vehicle-tracker-surface width="320" height="180" aria-hidden="true"></canvas>
+        <div class="vehicle-tracker-unavailable" data-vehicle-tracker-unavailable hidden></div>
+      </div>
     </div>
-    <div class="vehicle-tracker-status" data-vehicle-tracker-status></div>
+    <div class="vehicle-tracker-panel" data-vehicle-tracker-panel hidden></div>
+    <div class="vehicle-tracker-actions" data-vehicle-tracker-actions></div>
   `;
+  if (!tabDefs.length) root.style.width = '324px';
   document.body.appendChild(root);
   const tracker = {
     key,
@@ -844,10 +868,12 @@ function createVehicleTrackingWindow(type, id, pointer = null) {
     layoutDirty: true,
     renderDirty: true,
     dragPointerId: null,
+    activeTab: null,
     lastRenderedAt: -Infinity,
     lastScheduledAt: -Infinity,
     lastStatusAt: -Infinity,
     lastStatusSignature: '',
+    lastActionsSignature: '',
     renderCount: 0,
     lastRenderMs: 0,
     averageRenderMs: 0,
@@ -870,11 +896,14 @@ function createVehicleTrackingWindow(type, id, pointer = null) {
   head.addEventListener('pointercancel', (event) => endVehicleTrackerDrag(event, tracker));
   root.querySelector('[data-vehicle-tracker-minimize]').addEventListener('click', (event) => handleVehicleTrackerAction(event, tracker));
   root.querySelector('[data-vehicle-tracker-close]').addEventListener('click', (event) => handleVehicleTrackerAction(event, tracker));
+  root.querySelectorAll('[data-vehicle-tracker-tab]').forEach((button) => {
+    button.addEventListener('click', (event) => handleVehicleTrackerTabClick(event, tracker));
+  });
   ['pointerdown', 'pointerup', 'click', 'dblclick', 'wheel', 'contextmenu'].forEach((eventName) => {
     root.addEventListener(eventName, (event) => event.stopPropagation());
   });
   root.addEventListener('pointerdown', () => focusVehicleTrackingWindow(tracker));
-  const x = pointer?.event?.clientX ?? Math.min(window.innerWidth - 340, 24 + ((tracker.windowId - 1) % 6) * 28);
+  const x = pointer?.event?.clientX ?? Math.min(window.innerWidth - 370, 24 + ((tracker.windowId - 1) % 6) * 28);
   const y = pointer?.event?.clientY ?? Math.min(window.innerHeight - 290, 112 + ((tracker.windowId - 1) % 6) * 24);
   setVehicleTrackingWindowPosition(tracker, x + (pointer ? 14 : 0), y + (pointer ? 14 : 0));
   focusVehicleTrackingWindow(tracker);
@@ -922,6 +951,81 @@ function bindVehicleTrackerActionButtons(tracker) {
   });
 }
 
+function handleVehicleTrackerTabClick(event, tracker) {
+  event.preventDefault();
+  event.stopPropagation();
+  const tabId = event.currentTarget.dataset.vehicleTrackerTab;
+  tracker.activeTab = tracker.activeTab === tabId ? null : tabId;
+  tracker.lastStatusSignature = '';
+  tracker.layoutDirty = true;
+  tracker.renderDirty = true;
+  refreshVehicleTrackingWindow(tracker, performance.now(), true);
+}
+
+function renderVehicleTrackerRows(rows) {
+  return rows.map(([label, value]) => (
+    `<div class="vehicle-tracker-status-row"><span>${typeof transportEscapeHtml === 'function' ? transportEscapeHtml(label) : label}</span><strong>${typeof transportEscapeHtml === 'function' ? transportEscapeHtml(value) : value}</strong></div>`
+  )).join('');
+}
+
+function getVehicleTrackerConditionRows(info) {
+  const vehicle = info?.vehicle;
+  const vehicleClass = info?.vehicleClass;
+  const conditionPct = vehicle ? `${Math.round(Math.max(0, Math.min(1, Number(vehicle.condition ?? 1))) * 100)}%` : '—';
+  const rows = [
+    [vehicleTrackerText('transport.inspector.status', {}, 'Status'), info?.status || '—'],
+    [vehicleTrackerText('transport.inspector.class', {}, 'Class'), vehicleClass?.label || vehicleClass?.name || vehicleClass?.id || '—'],
+    [vehicleTrackerText('transport.inspector.condition', {}, 'Condition'), conditionPct],
+    [vehicleTrackerText('transport.inspector.age', {}, 'Age'), vehicle ? `${Math.max(0, Math.floor(Number(vehicle.ageMonths) || 0))}` : '—'],
+    [vehicleTrackerText('transport.inspector.odometer', {}, 'Odometer'), vehicle ? `${Math.max(0, Math.floor(Number(vehicle.odometerTiles) || 0))}` : '—'],
+  ];
+  if (vehicle?.status === 'servicing' && vehicle.serviceDaysRemaining > 0) {
+    rows.push([vehicleTrackerText('transport.tracker.serviceDaysRemaining', {}, 'Service ends in'), `${vehicle.serviceDaysRemaining}`]);
+  }
+  if (vehicle?.status === 'broken_down' && vehicle.brokenDaysRemaining > 0) {
+    rows.push([vehicleTrackerText('transport.tracker.brokenDaysRemaining', {}, 'Back on road in'), `${vehicle.brokenDaysRemaining}`]);
+  }
+  return rows;
+}
+
+function renderVehicleTrackerPanel(tracker, info, position, status) {
+  const panel = tracker.root.querySelector('[data-vehicle-tracker-panel]');
+  if (!panel) return;
+  // Only the transport tracker has left-rail tabs and collapses by default;
+  // traffic/vessel/aircraft trackers have no tabs to reopen it with, so their
+  // one status card stays shown, same as before this restore.
+  if (tracker.type !== 'transport') {
+    panel.hidden = false;
+    panel.innerHTML = renderVehicleTrackerRows([
+      [vehicleTrackerText('transport.inspector.status', {}, 'Status'), status || '—'],
+      [vehicleTrackerText('transport.inspector.route', {}, 'Route'), info?.route || '—'],
+      [vehicleTrackerText('transport.inspector.currentLeg', {}, 'Current leg'), info?.leg || '—'],
+      [vehicleTrackerText('transport.inspector.passengers', {}, 'Passengers'), info?.passengers || '—'],
+      [vehicleTrackerText('transport.inspector.position', {}, 'Position'), position],
+    ]);
+    return;
+  }
+  panel.hidden = !tracker.activeTab;
+  if (!tracker.activeTab) return;
+  let rows;
+  if (tracker.activeTab === 'condition') {
+    rows = getVehicleTrackerConditionRows(info);
+  } else if (tracker.activeTab === 'route') {
+    rows = [
+      [vehicleTrackerText('transport.inspector.route', {}, 'Route'), info?.route || '—'],
+      [vehicleTrackerText('transport.inspector.currentLeg', {}, 'Current leg'), info?.leg || '—'],
+      [vehicleTrackerText('transport.inspector.position', {}, 'Position'), position],
+    ];
+  } else {
+    rows = [
+      [vehicleTrackerText('transport.inspector.passengers', {}, 'Passengers'), info?.passengers || '—'],
+      [vehicleTrackerText('transport.inspector.route', {}, 'Route'), info?.route || '—'],
+      [vehicleTrackerText('transport.inspector.currentLeg', {}, 'Current leg'), info?.leg || '—'],
+    ];
+  }
+  panel.innerHTML = renderVehicleTrackerRows(rows);
+}
+
 function refreshVehicleTrackingWindow(tracker, now, force = false, resolvedInfo = undefined) {
   if (!tracker?.root || tracker.minimized) return;
   if (!force && now - tracker.lastStatusAt < VEHICLE_TRACKER_CONFIG.statusRefreshMs) return;
@@ -935,25 +1039,26 @@ function refreshVehicleTrackingWindow(tracker, now, force = false, resolvedInfo 
   const position = info?.position && Number.isFinite(info.position.row) && Number.isFinite(info.position.col)
     ? `(${Math.round(info.position.row)}, ${Math.round(info.position.col)})`
     : '—';
-  const signature = [title, status, info?.route, info?.leg, info?.passengers, position, unavailable, info?.vehicle?.status].join('|');
+  const signature = [title, status, info?.route, info?.leg, info?.passengers, position, unavailable, info?.vehicle?.status, info?.vehicle?.condition, tracker.activeTab].join('|');
   tracker.root.querySelector('[data-vehicle-tracker-title]').textContent = title;
   const unavailableElement = tracker.root.querySelector('[data-vehicle-tracker-unavailable]');
   unavailableElement.hidden = !unavailable;
   unavailableElement.textContent = info?.unavailableText
     || vehicleTrackerText('transport.tracker.unavailable', {}, 'Vehicle unavailable');
+  tracker.root.querySelectorAll('[data-vehicle-tracker-tab]').forEach((button) => {
+    button.classList.toggle('is-active', button.dataset.vehicleTrackerTab === tracker.activeTab);
+  });
   if (force || signature !== tracker.lastStatusSignature) {
-    const rows = [
-      [vehicleTrackerText('transport.inspector.status', {}, 'Status'), status],
-      [vehicleTrackerText('transport.inspector.route', {}, 'Route'), info?.route || '—'],
-      [vehicleTrackerText('transport.inspector.currentLeg', {}, 'Current leg'), info?.leg || '—'],
-      [vehicleTrackerText('transport.inspector.passengers', {}, 'Passengers'), info?.passengers || '—'],
-      [vehicleTrackerText('transport.inspector.position', {}, 'Position'), position],
-    ];
-    tracker.root.querySelector('[data-vehicle-tracker-status]').innerHTML = rows.map(([label, value]) => (
-      `<div class="vehicle-tracker-status-row"><span>${typeof transportEscapeHtml === 'function' ? transportEscapeHtml(label) : label}</span><strong>${typeof transportEscapeHtml === 'function' ? transportEscapeHtml(value) : value}</strong></div>`
-    )).join('') + `<div class="vehicle-tracker-actions">${renderVehicleTrackerActions(tracker, info)}</div>`;
-    bindVehicleTrackerActionButtons(tracker);
+    renderVehicleTrackerPanel(tracker, info, position, status);
     tracker.lastStatusSignature = signature;
+    tracker.layoutDirty = true;
+  }
+  const actionsSignature = [info?.available, info?.routeEntity?.id, info?.vehicle?.status].join('|');
+  if (force || actionsSignature !== tracker.lastActionsSignature) {
+    const actionsElement = tracker.root.querySelector('[data-vehicle-tracker-actions]');
+    if (actionsElement) actionsElement.innerHTML = renderVehicleTrackerActions(tracker, info);
+    bindVehicleTrackerActionButtons(tracker);
+    tracker.lastActionsSignature = actionsSignature;
     tracker.layoutDirty = true;
   }
   tracker.lastStatusAt = now;

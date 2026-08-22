@@ -836,11 +836,20 @@ const SERVICE_BUILDING_TYPES = new Set([
 ]);
 
 function getBuildingCount(type) {
-  if (!_buildingCountCache) _buildingCountCache = {};
-  if (!(type in _buildingCountCache)) {
-    _buildingCountCache[type] = Object.values(buildingData).filter((r) => r.type === type).length;
+  // computeBudgetSnapshot/computeLandmarkFinancials query dozens of distinct
+  // building types every time they run - tallying every type in one pass on
+  // the first miss (like rebuildBuildingFacilityCache already does) turns
+  // that into a single O(buildings) scan per pulse instead of one full scan
+  // per distinct type requested.
+  if (!_buildingCountCache) {
+    _buildingCountCache = Object.create(null);
+    for (const record of Object.values(buildingData)) {
+      const recordType = record?.type;
+      if (!recordType) continue;
+      _buildingCountCache[recordType] = (_buildingCountCache[recordType] || 0) + 1;
+    }
   }
-  return _buildingCountCache[type];
+  return _buildingCountCache[type] || 0;
 }
 
 // Sums SPECIAL_BUILDING_EFFECTS.revenue/upkeep across every placed landmark +

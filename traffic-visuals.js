@@ -1933,23 +1933,32 @@ function refreshVisibleTraffic(scene, time) {
   state.dirty = false;
 }
 
+// A managed transport (real bus company) vehicle keeps a `renderedProgress`
+// distinct from its backend-driven `progress` (transport-visuals.js eases it
+// and clamps it for spacing) - anything reading a leader's position for
+// headway purposes should prefer that on-screen value over the raw backend
+// one, since that's what would actually visually overlap. Ordinary ambient
+// vehicles have no such split, so they fall back to their own `.progress`.
+function getTrafficLeaderEffectiveProgress(leader) {
+  return Number.isFinite(leader.renderedProgress) ? leader.renderedProgress : leader.progress;
+}
+
 function trafficVehicleHasBlockingLeader(vehicle, vehicles) {
-  return vehicles.some((leader) => (
-    leader !== vehicle
-    && leader.current
-    && leader.next
-    && vehicle.current
-    && vehicle.next
-    && leader.current.row === vehicle.current.row
-    && leader.current.col === vehicle.current.col
-    && leader.next.row === vehicle.next.row
-    && leader.next.col === vehicle.next.col
-    && leader.progress > vehicle.progress
-    && leader.progress - vehicle.progress < (
-      TRAFFIC_VISUAL_CONFIG.minimumHeadwayTiles
-      * Math.max(vehicle.model.headwayFactor, leader.model.headwayFactor)
-    )
-  ));
+  return vehicles.some((leader) => {
+    if (leader === vehicle || !leader.current || !leader.next || !vehicle.current || !vehicle.next) return false;
+    if (
+      leader.current.row !== vehicle.current.row
+      || leader.current.col !== vehicle.current.col
+      || leader.next.row !== vehicle.next.row
+      || leader.next.col !== vehicle.next.col
+    ) return false;
+    const leaderProgress = getTrafficLeaderEffectiveProgress(leader);
+    return leaderProgress > vehicle.progress
+      && leaderProgress - vehicle.progress < (
+        TRAFFIC_VISUAL_CONFIG.minimumHeadwayTiles
+        * Math.max(vehicle.model.headwayFactor, leader.model.headwayFactor)
+      );
+  });
 }
 
 function advanceTrafficVehicle(scene, vehicle, amount, viewRect, time) {
@@ -2036,9 +2045,12 @@ function updateTrafficVisuals(time, delta) {
   if (speedMultiplier <= 0 || state.vehicles.length === 0) return;
 
   const viewRect = getTrafficCameraRect(scene, TRAFFIC_VISUAL_CONFIG.viewportPaddingTiles);
+  // Real transport-company buses are on-screen obstacles too, not just other
+  // ambient vehicles - otherwise ordinary traffic drives straight through them.
+  const busLeaders = scene?.transportVisualState?.vehicles || [];
   const leaders = state.iceCreamEvent
-    ? [...state.vehicles, state.iceCreamEvent]
-    : state.vehicles;
+    ? [...state.vehicles, state.iceCreamEvent, ...busLeaders]
+    : [...state.vehicles, ...busLeaders];
   state.vehicles = state.vehicles.filter((vehicle) => {
     if (trafficVehicleHasBlockingLeader(vehicle, leaders)) return true;
 

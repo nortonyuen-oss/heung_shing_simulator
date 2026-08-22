@@ -1,0 +1,1429 @@
+{
+  "render_version": "1.0.0",
+  "preset": "Natural",
+  "scale": 4,
+  "project": "Landscaper",
+  "materials": {
+    "gary-bendig-6GMq7AGxNbE-unsplash": "24f12ae3efa1bb6eb6b3379f7bd1aa73e756d10707898a1933e4518262bc4d7a",
+    "80f8c1b3-6bb5-4316-9e9d-69f313d8f25c": "6d3f0659b7a9dbedbf894bde26272e7e4d542578f1d77ccc5bdc3b225b45ec46",
+    "ChatGPT Image 2026年8月22日 下午04_32_08 (1)": "1d50c1e3956082df619398ca54e621eb355962c391b5394a1d488b2780fa3a68",
+    "ChatGPT Image 2026年8月22日 下午04_32_09 (4)": "12ab88be212f9218b0e39efd2a969dfbd6f4d2f49f793caa8ac7b8b500492561",
+    "ChatGPT Image 2026年8月22日 下午04_32_09 (3)": "59cbc4f71e5d35095be7e58216d1c8ed81879e4b6308153e6babe03068804786",
+    "ChatGPT Image 2026年8月22日 下午04_39_28": "f00740fecbb6f211355852a2d6448ec93b468f4660aa320f5510d90cab12bef0",
+    "沙": "7643b718554b7b71dc44be7e2b0a1dfcde90d5c455109400975e715f283ad09e",
+    "草": "df556d2889101022471ed9e0836f9aa2f2da3cf81f3ff661b3f19ff74f26a788",
+    "海": "f00740fecbb6f211355852a2d6448ec93b468f4660aa320f5510d90cab12bef0",
+    "石仔地": "0f5812a0ad60ea076ca6410697f9f70f81e271b11c8713b156f5f9f04de256d9"
+  },
+  "parameters": {
+    "profile_id": "landscape-v1",
+    "assignments": [
+      {
+        "role": "water",
+        "material_id": "material-70970ab207",
+        "scope": "asset",
+        "target": "beachS.png"
+      },
+      {
+        "role": "water",
+        "material_id": "material-55402bff5b",
+        "scope": "family",
+        "target": "beach"
+      },
+      {
+        "role": "water",
+        "material_id": "material-55402bff5b",
+        "scope": "asset",
+        "target": "beachE.png"
+      },
+      {
+        "role": "water",
+        "material_id": "material-55402bff5b",
+        "scope": "family",
+        "target": "water"
+      },
+      {
+        "role": "water",
+        "material_id": "material-55402bff5b",
+        "scope": "asset",
+        "target": "water.png"
+      },
+      {
+        "role": "grass",
+        "material_id": "material-5a6fe56fbc",
+        "scope": "global",
+        "target": null
+      },
+      {
+        "role": "road",
+        "material_id": "material-7579a54f6d",
+        "scope": "global",
+        "target": null
+      },
+      {
+        "role": "water",
+        "material_id": "material-80aca2547c",
+        "scope": "global",
+        "target": null
+      },
+      {
+        "role": "sand",
+        "material_id": "material-e123c8b953",
+        "scope": "global",
+        "target": null
+      }
+    ],
+    "materials": [
+      {
+        "id": "material-ebc6447039",
+        "name": "gary-bendig-6GMq7AGxNbE-unsplash",
+        "texture_sha256": "24f12ae3efa1bb6eb6b3379f7bd1aa73e756d10707898a1933e4518262bc4d7a",
+        "wrap_mode": "edge-blend",
+        "uv_scale": 1.0,
+        "rotation": 0.0,
+        "offset_x": 0.0,
+        "offset_y": 0.0,
+        "tint": "#ffffff",
+        "saturation": 1.0,
+        "brightness": 1.0,
+        "contrast": 1.0,
+        "texture_strength": 0.82,
+        "shade_strength": 0.85,
+        "seed": 1
+      },
+      {
+        "id": "material-446b162e3c",
+        "name": "80f8c1b3-6bb5-4316-9e9d-69f313d8f25c",
+        "texture_sha256": "6d3f0659b7a9dbedbf894bde26272e7e4d542578f1d77ccc5bdc3b225b45ec46",
+        "wrap_mode": "mirror",
+        "uv_scale": 1.0,
+        "rotation": 0.0,
+        "offset_x": 0.0,
+        "offset_y": 0.0,
+        "tint": "#ffffff",
+        "saturation": 1.0,
+        "brightness": 1.0,
+        "contrast": 1.0,
+        "texture_strength": 0.82,
+        "shade_strength": 0.85,
+        "seed": 1
+      },
+      {
+        "id": "material-70970ab207",
+        "name": "ChatGPT Image 2026年8月22日 下午04_32_08 (1)",
+        "texture_sha256": "1d50c1e3956082df619398ca54e621eb355962c391b5394a1d488b2780fa3a68",
+        "wrap_mode": "mirror",
+        "uv_scale": 1.0,
+        "rotation": 0.0,
+        "offset_x": 0.0,
+        "offset_y": 0.0,
+        "tint": "#ffffff",
+        "saturation": 1.0,
+        "brightness": 1.0,
+        "contrast": 1.0,
+        "texture_strength": 0.82,
+        "shade_strength": 0.85,
+        "seed": 1
+      },
+      {
+        "id": "material-ca2665b903",
+        "name": "ChatGPT Image 2026年8月22日 下午04_32_09 (4)",
+        "texture_sha256": "12ab88be212f9218b0e39efd2a969dfbd6f4d2f49f793caa8ac7b8b500492561",
+        "wrap_mode": "mirror",
+        "uv_scale": 1.0,
+        "rotation": 0.0,
+        "offset_x": 0.0,
+        "offset_y": 0.0,
+        "tint": "#ffffff",
+        "saturation": 1.0,
+        "brightness": 1.0,
+        "contrast": 1.0,
+        "texture_strength": 0.82,
+        "shade_strength": 0.85,
+        "seed": 1
+      },
+      {
+        "id": "material-9f223ba1c7",
+        "name": "ChatGPT Image 2026年8月22日 下午04_32_09 (3)",
+        "texture_sha256": "59cbc4f71e5d35095be7e58216d1c8ed81879e4b6308153e6babe03068804786",
+        "wrap_mode": "mirror",
+        "uv_scale": 1.0,
+        "rotation": 0.0,
+        "offset_x": 0.0,
+        "offset_y": 0.0,
+        "tint": "#ffffff",
+        "saturation": 1.0,
+        "brightness": 1.0,
+        "contrast": 1.0,
+        "texture_strength": 0.82,
+        "shade_strength": 0.85,
+        "seed": 1
+      },
+      {
+        "id": "material-55402bff5b",
+        "name": "ChatGPT Image 2026年8月22日 下午04_39_28",
+        "texture_sha256": "f00740fecbb6f211355852a2d6448ec93b468f4660aa320f5510d90cab12bef0",
+        "wrap_mode": "mirror",
+        "uv_scale": 1.0,
+        "rotation": 0.0,
+        "offset_x": 0.0,
+        "offset_y": 0.0,
+        "tint": "#ffffff",
+        "saturation": 1.0,
+        "brightness": 1.0,
+        "contrast": 1.0,
+        "texture_strength": 0.82,
+        "shade_strength": 0.85,
+        "seed": 1
+      },
+      {
+        "id": "material-e123c8b953",
+        "name": "沙",
+        "texture_sha256": "7643b718554b7b71dc44be7e2b0a1dfcde90d5c455109400975e715f283ad09e",
+        "wrap_mode": "mirror",
+        "uv_scale": 1.0,
+        "rotation": 0.0,
+        "offset_x": 0.0,
+        "offset_y": 0.0,
+        "tint": "#ffffff",
+        "saturation": 1.0,
+        "brightness": 1.0,
+        "contrast": 1.0,
+        "texture_strength": 0.82,
+        "shade_strength": 0.85,
+        "seed": 1
+      },
+      {
+        "id": "material-5a6fe56fbc",
+        "name": "草",
+        "texture_sha256": "df556d2889101022471ed9e0836f9aa2f2da3cf81f3ff661b3f19ff74f26a788",
+        "wrap_mode": "mirror",
+        "uv_scale": 1.0,
+        "rotation": 0.0,
+        "offset_x": 0.0,
+        "offset_y": 0.0,
+        "tint": "#ffffff",
+        "saturation": 1.0,
+        "brightness": 1.0,
+        "contrast": 1.0,
+        "texture_strength": 0.82,
+        "shade_strength": 0.85,
+        "seed": 1
+      },
+      {
+        "id": "material-80aca2547c",
+        "name": "海",
+        "texture_sha256": "f00740fecbb6f211355852a2d6448ec93b468f4660aa320f5510d90cab12bef0",
+        "wrap_mode": "mirror",
+        "uv_scale": 1.0,
+        "rotation": 0.0,
+        "offset_x": 0.0,
+        "offset_y": 0.0,
+        "tint": "#ffffff",
+        "saturation": 1.0,
+        "brightness": 1.0,
+        "contrast": 1.0,
+        "texture_strength": 0.82,
+        "shade_strength": 0.85,
+        "seed": 1
+      },
+      {
+        "id": "material-7579a54f6d",
+        "name": "石仔地",
+        "texture_sha256": "0f5812a0ad60ea076ca6410697f9f70f81e271b11c8713b156f5f9f04de256d9",
+        "wrap_mode": "mirror",
+        "uv_scale": 1.0,
+        "rotation": 0.0,
+        "offset_x": 0.0,
+        "offset_y": 0.0,
+        "tint": "#ffffff",
+        "saturation": 1.0,
+        "brightness": 1.0,
+        "contrast": 1.0,
+        "texture_strength": 0.82,
+        "shade_strength": 0.85,
+        "seed": 1
+      },
+      {
+        "id": "material-c5a4c9cb35",
+        "name": "ChatGPT Image 2026年8月22日 下午04_32_09 (3)",
+        "texture_sha256": "59cbc4f71e5d35095be7e58216d1c8ed81879e4b6308153e6babe03068804786",
+        "wrap_mode": "mirror",
+        "uv_scale": 1.0,
+        "rotation": 0.0,
+        "offset_x": 0.0,
+        "offset_y": 0.0,
+        "tint": "#ffffff",
+        "saturation": 1.0,
+        "brightness": 1.0,
+        "contrast": 1.0,
+        "texture_strength": 0.82,
+        "shade_strength": 0.85,
+        "seed": 1
+      }
+    ],
+    "color_overrides": [
+      {
+        "rgb": "#9bd5e2",
+        "role": "water",
+        "scope": "family",
+        "target": "water",
+        "radius": 8.0
+      }
+    ]
+  },
+  "assets": [
+    {
+      "source": "beach.png",
+      "output": "beach.png",
+      "source_sha256": "ff095a0f76aa545696647c2a6a451c0817a5711096b7d290dff78fa331220e1d",
+      "output_sha256": "78cd3c16b38981c6b8217cdd8678941858cd4700c87ba0b2ef67c287d6cac099",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "beachCornerES.png",
+      "output": "beachCornerES.png",
+      "source_sha256": "337b3d3d325e8c6323121a27fa275a0d6d74ef5c2108fd8afb4a4ebb3e765764",
+      "output_sha256": "bc113f21ce339a538b5a7be40475c70686c602478378bbbb9a95ab41ed847b26",
+      "width": 400,
+      "height": 232,
+      "pivot": [
+        200,
+        232
+      ]
+    },
+    {
+      "source": "beachCornerNE.png",
+      "output": "beachCornerNE.png",
+      "source_sha256": "553820bd1dfc31304938c2c6c1004511f1c8840749eb7731969bfe4ea0fab950",
+      "output_sha256": "57a6e60ef0e8caa4de87e66c0737b8d5bfb0941ccc1aa1072ef019923f95a0ed",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "beachCornerNW.png",
+      "output": "beachCornerNW.png",
+      "source_sha256": "8c9598dda80084d178e5fb436980988891d6cca382ad48bcd2daf601ce09138e",
+      "output_sha256": "a24343c7124824f715a6a0490a5eb9fabdece11f53afcb17e330d471ab663b81",
+      "width": 400,
+      "height": 232,
+      "pivot": [
+        200,
+        232
+      ]
+    },
+    {
+      "source": "beachCornerSW.png",
+      "output": "beachCornerSW.png",
+      "source_sha256": "ff7d6f1d7566107ece2835af6cc5d82e28156100f219bb2c6fa45a44bc25e6ff",
+      "output_sha256": "68c6edc351a7a503d5d405326b69a1b56edd946bfed8906e17db9da21f8faffa",
+      "width": 400,
+      "height": 232,
+      "pivot": [
+        200,
+        232
+      ]
+    },
+    {
+      "source": "beachE.png",
+      "output": "beachE.png",
+      "source_sha256": "740217ef70cf7f106761285e62b7ac66ae27eeda1c8218f33e89046f5b5c6f8f",
+      "output_sha256": "c502ae7ed98262ef1ef4adb3cf964cce27bfdbb6ff499aa6f9fac1bd844ebbd0",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "beachES.png",
+      "output": "beachES.png",
+      "source_sha256": "f0c61c7a66ef76b5dafbb7f7f462c9febd0a9401e0ceed715fc9ec79fa2c2eb8",
+      "output_sha256": "fc1b963cb07e132141f8172a0940c0b8106165c64c2dfbbe4e66e98692fa758f",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "beachN.png",
+      "output": "beachN.png",
+      "source_sha256": "18d4c9e2cfa8ba785c609d277f25779c2f82ea9a8812e359576e4d53a98d835f",
+      "output_sha256": "3595e06667a5c69fcd4a200bd3927ec63e7aa7bdd3857faace840912ca7a5e8e",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "beachNE.png",
+      "output": "beachNE.png",
+      "source_sha256": "21e0cd9e3cb7a1dbd9c50d2f0e859c318bb5148c3d9649afa3ce3d5c8763c9d6",
+      "output_sha256": "e5884d14d6b34b29658fdb7a98cf1c90e2bf8832fafd257e73288fe77ae0377c",
+      "width": 400,
+      "height": 232,
+      "pivot": [
+        200,
+        232
+      ]
+    },
+    {
+      "source": "beachNW.png",
+      "output": "beachNW.png",
+      "source_sha256": "4200be52208e2cce09fe58ffd94c43e17335b41149f5f71470ed508b9eb03ed7",
+      "output_sha256": "48551403c47eedb8388e712766b2ce9bc89319731c6450bf560c309987100e7a",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "beachS.png",
+      "output": "beachS.png",
+      "source_sha256": "42d97e2c775e2d65f43dddef022f443377e829ef81d4ce45c01e066256c3a4e9",
+      "output_sha256": "b71f384bf965265dd46292902319657ac9c8974fc425ee7243561bf78426938d",
+      "width": 400,
+      "height": 232,
+      "pivot": [
+        200,
+        232
+      ]
+    },
+    {
+      "source": "beachSW.png",
+      "output": "beachSW.png",
+      "source_sha256": "c8f94556a41a804280d3e262db2690a10523882c12765332e8132a403deda2b9",
+      "output_sha256": "97df4eecdddb96e1b1f8d16f504d3d5d3fd0b375529835d876bf71413ab19843",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "beachW.png",
+      "output": "beachW.png",
+      "source_sha256": "e2de3d96420ff05229a678184b05dfaa5780900ac9b471e36ab0ccb316cffd35",
+      "output_sha256": "e7082cd30760bf46bf5242d391052cccee50765db190ce17db640ec2a25fdd61",
+      "width": 400,
+      "height": 232,
+      "pivot": [
+        200,
+        232
+      ]
+    },
+    {
+      "source": "bridgeEW.png",
+      "output": "bridgeEW.png",
+      "source_sha256": "7560dee78f0428976f6afbbfc949c519393c8957f32b03c4270ebfb3a249cb93",
+      "output_sha256": "11e70ea4370bafe52d283c2ce86d9b9d492146d9886d0ec88b1a1464be329c09",
+      "width": 400,
+      "height": 248,
+      "pivot": [
+        200,
+        248
+      ]
+    },
+    {
+      "source": "bridgeNS.png",
+      "output": "bridgeNS.png",
+      "source_sha256": "7b427b53c809920226add72021dc5b4a29637493c38348546aa00970607a33e9",
+      "output_sha256": "0f809c6a7f8c49eed1ddbda1cc9b89e2f60205e4eedcfa63888f768f0fbad436",
+      "width": 400,
+      "height": 248,
+      "pivot": [
+        200,
+        248
+      ]
+    },
+    {
+      "source": "coniferAltShort.png",
+      "output": "coniferAltShort.png",
+      "source_sha256": "5bd4443b36fad8e23622568f930a9591935528907c33ebbb453cbba25f64175e",
+      "output_sha256": "50bf8a314ac3b133294273200add281c75ee61ac398db280ad00f83e814cdb52",
+      "width": 56,
+      "height": 144,
+      "pivot": [
+        28,
+        144
+      ]
+    },
+    {
+      "source": "coniferAltTall.png",
+      "output": "coniferAltTall.png",
+      "source_sha256": "cb083c97faa83ab27734f442f4e64ddd632a49b35d22d2ccc54c12909a800d0f",
+      "output_sha256": "a44f765bf3fa739a019a9a32dc321061dfa172548171534680e93051ca85c29d",
+      "width": 76,
+      "height": 192,
+      "pivot": [
+        38,
+        192
+      ]
+    },
+    {
+      "source": "coniferShort.png",
+      "output": "coniferShort.png",
+      "source_sha256": "2185826214883aba2eb8ca047025c0354311c1faf36dd8180f0776f33621ab45",
+      "output_sha256": "1e057211ba372d316b3428f6ce119d7113fde8e8a19156eba964e1d7fcce4a23",
+      "width": 56,
+      "height": 144,
+      "pivot": [
+        28,
+        144
+      ]
+    },
+    {
+      "source": "coniferTall.png",
+      "output": "coniferTall.png",
+      "source_sha256": "8f6917965963a5ffcf109fe3380499f9340830608abddb1f18376a5d49c88e54",
+      "output_sha256": "5227e070b1d213eafd1dc926bfe3175e22d1bdb2ecac29e19b7b4e68401728f2",
+      "width": 76,
+      "height": 192,
+      "pivot": [
+        38,
+        192
+      ]
+    },
+    {
+      "source": "crossroad.png",
+      "output": "crossroad.png",
+      "source_sha256": "06703ab74edc057d4d2b1910b4af334ee62376226de5de2715985edc0468789f",
+      "output_sha256": "00b81f32f1e94ec87436f59c153fdc5e4a248a720622046c470aa205132f6884",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "crossroadESW.png",
+      "output": "crossroadESW.png",
+      "source_sha256": "35878a124caa2b918f92de048a8815f312f28e9dacbe65b5a2207ac83b5d52c5",
+      "output_sha256": "d3f403b2cd6d1fa1388627caa2e45868ec41a0f35f76a2d67fb913c01f4656f4",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "crossroadNES.png",
+      "output": "crossroadNES.png",
+      "source_sha256": "9f9dbe9839f3381f83a05c7a59ff0b061bda9823e3392eb47601054498b944ae",
+      "output_sha256": "dc9b66175abe79f01fae0d1b17726e7908d0f69beaffd0f12c7470ce15c5ae92",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "crossroadNEW.png",
+      "output": "crossroadNEW.png",
+      "source_sha256": "65a03aebfb14ecd995e9c64cddd2a5d0a1908802d577c6a39ddd6e45c4c9d0ef",
+      "output_sha256": "9a294cc46293ea38b93da9947c950f71c9de8d8a07723f10c308ca302f7ba189",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "crossroadNSW.png",
+      "output": "crossroadNSW.png",
+      "source_sha256": "849549fc70e8e43ee76e587f2e7b44035fbbc200e1771f8318708dca3bfdfd20",
+      "output_sha256": "8231e45f6f1a3f3e454d57b23ac2081c4e8bfef753386620bdc5824915b38854",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "dirt.png",
+      "output": "dirt.png",
+      "source_sha256": "0dc832c1163025d6e49d96687ea8a9facf7f955fb58a7fe2a6027a8ef68c2626",
+      "output_sha256": "c1953ced9da65bf7e5b20f8a917f71a3d9c1ba1c073dff5cf5678f83de605e90",
+      "width": 400,
+      "height": 232,
+      "pivot": [
+        200,
+        232
+      ]
+    },
+    {
+      "source": "dirtDouble.png",
+      "output": "dirtDouble.png",
+      "source_sha256": "cb8d881ac7fdba08d995fa0131721ca413e9b1db6cc22df013cb8a09c0c94ee9",
+      "output_sha256": "a7751c4243bacaf647ad2dab5812e3f43beb4e0f40dd42a4ff507ba446bb27cd",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "endE.png",
+      "output": "endE.png",
+      "source_sha256": "aed8e61038944415aa1a22a3c5e327936755b94c93137e12d53db1efa06d42cd",
+      "output_sha256": "7c84fb7956f6179e2ab2e5443e8ca02169e8af069af78d0bf23dfca841ef4268",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "endN.png",
+      "output": "endN.png",
+      "source_sha256": "4c64d801fe9763c664840d13857d5157090ae82cc8fb6065c82c629b615c60ca",
+      "output_sha256": "010ba7a4c3b35c4e7156572aebe6b9b0e75825c316d0c2f4811645b8c14ac394",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "endS.png",
+      "output": "endS.png",
+      "source_sha256": "f31d721516406d850ce27a7ba465b33acc65a6f07608bc1f4e2a83a4312cd03d",
+      "output_sha256": "e146dda33ae34f96a604f3d0960643b3f9897135579b7d78646d88d2b8c88c93",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "endW.png",
+      "output": "endW.png",
+      "source_sha256": "1ae34d7d038816f7eac81549e02e7091fbf9afc94ce0c08f4dfc2ca6e6058532",
+      "output_sha256": "b8e9ccb730bf404f3e6f1084a643983cc1e46197b3e22d746ef4f5d555c42841",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "exitE.png",
+      "output": "exitE.png",
+      "source_sha256": "f5b70d6ab86d72d96886ba736fcab5fc5602a5a1890bcfa434260098fc2ff165",
+      "output_sha256": "694ac1b589c9c5970c2429cc4a46cbe0a4a99e0e049731be29cc2a54e5cd2910",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "exitN.png",
+      "output": "exitN.png",
+      "source_sha256": "877f19bd4dd643733c688cf79bdca8939faf1dbe780a2486765d83f8d2867a72",
+      "output_sha256": "ebe59c5443463d42510424ea7ab7024cbd1921b0765334582f9658b9918d725c",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "exitS.png",
+      "output": "exitS.png",
+      "source_sha256": "a67b1bb1e00ac24399afd7489e9a40e958c0c0a610f23ded6bf936db683edab1",
+      "output_sha256": "8dd59d567dde72b008d84afd9970612b4b327d1b908e96227151ed9a63813448",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "exitW.png",
+      "output": "exitW.png",
+      "source_sha256": "bf83f928c28f8a16399a411ca97ee77aeee6b6ccd91aaeabe849c0249330bab9",
+      "output_sha256": "6953d1cf577b68651c01bb31e79126504104d44dd474655a538a888eaf534aaa",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "grass.png",
+      "output": "grass.png",
+      "source_sha256": "4f76b0cdfcbf51dd8fe75fcd3980dbd440dba26127d78c5d7ef384e14e57bbe6",
+      "output_sha256": "0c9452ecf0b082880e8bfe610714fa4bbbe03577c4efb30145db6d81dfe8c778",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "grassWhole.png",
+      "output": "grassWhole.png",
+      "source_sha256": "a7da168d60b06e0c880d20c0caba3bd4918800bebf4f37403e58ec9592be3cf5",
+      "output_sha256": "6588e02324b2d40c3e4fc372ef5d9debe3e970019a7f072f40a0142f7355e8c9",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "hillE.png",
+      "output": "hillE.png",
+      "source_sha256": "b0f80dd62a85bef6130331558fd3b39bf72fb542db3c07c7b80712b9a8223460",
+      "output_sha256": "9dcae7f75fa4a5a07eac36139c725c319a2a4d2763048a1a9ca182add0f26e5c",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "hillES.png",
+      "output": "hillES.png",
+      "source_sha256": "2a14f2e50ec9f9429fcef007681c09e84d1359d04a0a33d1b8c498129b57b8d3",
+      "output_sha256": "95ec618e7cb42d64971497e925beb9774962dc4fe0080ac69a7af22e7a5ccbdf",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "hillN.png",
+      "output": "hillN.png",
+      "source_sha256": "9e246c9d34e4c548dba89639f304a2e6d8d05c30761c3bfca06479a1ebe91c91",
+      "output_sha256": "53a6d5abb966a0e614452bcd635c2b92605f03058f2797d03b6f5bbbc22817eb",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "hillNE.png",
+      "output": "hillNE.png",
+      "source_sha256": "38690c1195f95e4b130016e760d2127704deae002b63a005ba918fe22ebe45ab",
+      "output_sha256": "3b2a289a798d13378c3229bf822533b883bbf6cefdd1810743047ee1dd3561d0",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "hillNW.png",
+      "output": "hillNW.png",
+      "source_sha256": "ecfe7727a5f356cf78c8e576a6b71ea61969afbad04baf0608dd4f4ac41fe852",
+      "output_sha256": "b0723d1436d21be4206f85b5582f6fdede1154292695cff84b01d22dc304bd23",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "hillS.png",
+      "output": "hillS.png",
+      "source_sha256": "1d21387451022d3893c1c3248ece6d744f13c6586dd52b513955acae14492915",
+      "output_sha256": "6c1e968f1ce4d3a85a65f080db5bee41974894eae46527bf590ec2f82dd637eb",
+      "width": 400,
+      "height": 320,
+      "pivot": [
+        200,
+        320
+      ]
+    },
+    {
+      "source": "hillSW.png",
+      "output": "hillSW.png",
+      "source_sha256": "bf45ada316664d0d75d88ad004e1aa4c05f91bb8d7a0f92ff0acb6b2c8b1d393",
+      "output_sha256": "c825af0580f5a77b192e5c907c8cab613a6a62112fa715796b802244939a8bea",
+      "width": 400,
+      "height": 320,
+      "pivot": [
+        200,
+        320
+      ]
+    },
+    {
+      "source": "hillW.png",
+      "output": "hillW.png",
+      "source_sha256": "74973bbcd8a751e825108be7c466fded1b33fa8cbe168dd8bc3293e487237ead",
+      "output_sha256": "5529dcddf281535a158be1fc3d62299f7ec3c51d2b95ea8e16152cd60ada94a8",
+      "width": 400,
+      "height": 320,
+      "pivot": [
+        200,
+        320
+      ]
+    },
+    {
+      "source": "lotE.png",
+      "output": "lotE.png",
+      "source_sha256": "4b4c97572a280eec4512858fc86f58a623a95fda747666c02c09e1c6eeebb7e4",
+      "output_sha256": "def822d775ca428aa6753a8d4ab965a05b5e0475e382a9257f2b7f5ed999559d",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "lotES.png",
+      "output": "lotES.png",
+      "source_sha256": "06adc8333bd4fb730f34fdc837539f0e3a2ab779c4c9cb58388431cf6c8212cc",
+      "output_sha256": "99447be39a93da45ddd4a343b329825bb60dc9d64d747e07df391d726ca653f0",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "lotN.png",
+      "output": "lotN.png",
+      "source_sha256": "7a9904d31354fda86607238a64d483eafef8a07837089dd3e0cf38a681931899",
+      "output_sha256": "a1fd585c46dfe651f926f9ba8d65071cd796c72405833dfe3119bf9530601eb1",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "lotNE.png",
+      "output": "lotNE.png",
+      "source_sha256": "3ecc5b27348bfb86761a1ea6d24924a1f793f4338542e3c44ca361a8726cc997",
+      "output_sha256": "2df769af514cdafaad93ad1827ebef5fa18c9647d861b492e91940cf32fad93f",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "lotNW.png",
+      "output": "lotNW.png",
+      "source_sha256": "fcd36f8ddc7aba93df64fed0805d71e725d05867f83dd7ed2392eea6bccda076",
+      "output_sha256": "0c2b1806aea338ef994364aa1796a7be530041df19b4bb3d28a03fdeb257e805",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "lotS.png",
+      "output": "lotS.png",
+      "source_sha256": "e387469b4cbb143451d3e0def107f513a45511f864adc02cee2c7d2e93aa62bd",
+      "output_sha256": "552a23b4d37016386613073a13e6a8064e62e1505c258e643a8e199e006b4052",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "lotSW.png",
+      "output": "lotSW.png",
+      "source_sha256": "84851a6dcd5daf8e18357f0677e299fcb27daaebe1f5f7f8bacce5c9d08bb7ba",
+      "output_sha256": "54a4b90478b05c50806e00b57603697827cd24452f0259743c78ccaf8af200c3",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "lotW.png",
+      "output": "lotW.png",
+      "source_sha256": "820559c79786257a1f9db5475f23de5687e87494ec7cc0ee84612aca2070578c",
+      "output_sha256": "d965dadf0a90ed2299ee14acc5d1391550c8cbc048f83b3d277d06212171bd82",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "riverBankedES.png",
+      "output": "riverBankedES.png",
+      "source_sha256": "676a77a391733c052ab8b6a7dbfeaa4c832343f9cd86d1650386be17d105df3a",
+      "output_sha256": "2691ab5f6851a1ef128a63f0e4df9d98951eb934824546db5ac25f33c34bde58",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "riverBankedEW.png",
+      "output": "riverBankedEW.png",
+      "source_sha256": "88f587c20301a3837954c1fbda3d891a4415329335a20bc4ee5f7e291c206094",
+      "output_sha256": "0e72df2009b2f62998e22e4086703c3d523b82c09737d1bd34b836608874cf65",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "riverBankedNE.png",
+      "output": "riverBankedNE.png",
+      "source_sha256": "300e95ddc3b10c0dfd18a85414a6626ecee2aa26807884f7632ffd010c1126d9",
+      "output_sha256": "85fd549816933ae5baa46f08067998b634c75e0de2b33713f792fac1e7f9186c",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "riverBankedNS.png",
+      "output": "riverBankedNS.png",
+      "source_sha256": "c6db0f4319eaff543c55eb6447227b5e48f46e85f0221260a43750d9ead84f92",
+      "output_sha256": "2ced4f84f4ed815cbbbae5d4a64c638ede8746400645c1d1c3cf13f8e04a116d",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "riverBankedNW.png",
+      "output": "riverBankedNW.png",
+      "source_sha256": "42fcec9b50a8c2bb96f4488d406aa6201050aec529e387a3489a029ab07d0a87",
+      "output_sha256": "ec2511e584f0f3191e1829cb94d2451c3955e7faa2665471f2c7d9d7b422d1bf",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "riverBankedSW.png",
+      "output": "riverBankedSW.png",
+      "source_sha256": "939024e6ce50c574a34348f7bffd2dbb8eee9238751332d285e4477a1dbce94e",
+      "output_sha256": "199dd331fd20b8001732fa3d3c46bcad8ca5f89145f36578350332087a08ba7c",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "riverES.png",
+      "output": "riverES.png",
+      "source_sha256": "8d67357194e38549d9436f1b564bdfcdc94d8eb4efdd59c4b1dde35632d91a94",
+      "output_sha256": "1d88b128334b1b846f0b0c28d63955760f82391b99b37722dfded3cd7b440a36",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "riverEW.png",
+      "output": "riverEW.png",
+      "source_sha256": "493f57265d52f82c10fd62a3e43676a95186304fdb794e99b4c7336a9ee590d7",
+      "output_sha256": "763cfecb5e4e669868f73a155f752a2e2306866b9f1405b2611723ed2e0804c1",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "riverNE.png",
+      "output": "riverNE.png",
+      "source_sha256": "a93b4ecbac4f2bd1f9e55ffc27a293e25c9999606a68cbb66e1addb5541cb8c5",
+      "output_sha256": "0b2429f3877a3d52e3971b36c2e00413a0b5bf033367785030ff1c94e07d568d",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "riverNS.png",
+      "output": "riverNS.png",
+      "source_sha256": "df4a7498d37b999af58a4463ce2d3d812a2eb914768dcd72a5d4b04008d09f05",
+      "output_sha256": "4964b7a91fa88964e8ab682afe4e18343666fbaf59c543b57d8b7f15984facbd",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "riverNW.png",
+      "output": "riverNW.png",
+      "source_sha256": "a1af9123036ab0b6ec4c7f76758fb8f518975a3a8862669260fedc14cac97d2e",
+      "output_sha256": "fb08c1bada3e143f26b080ff0b963ceff32c1a0dd72e06234aa76615b003e27b",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "riverSW.png",
+      "output": "riverSW.png",
+      "source_sha256": "5c44c7182ba6f7a870a1cb2fc8f6f9e3baba7eef25a732c25800a4e54747bb3b",
+      "output_sha256": "6c71338d575e7865685f0544162502ebf1ccc72b9744c51841813474488e1ed2",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "road.png",
+      "output": "road.png",
+      "source_sha256": "6cff0d8fea86a1bdb9ef69fb497e99c2ae0c94cc35f7642d1f549d7f9ef0a2d8",
+      "output_sha256": "bce9590a3c43971034ccc9f880644431563fde0aae8677ee6d8820f768aa3c81",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "roadES.png",
+      "output": "roadES.png",
+      "source_sha256": "2805f41ad5e61a536ecf85a3f3729f877178021e26f50f04735ef2eac8f52a80",
+      "output_sha256": "c2f300fe21c250fc59841bafd2051f566f8775d512275abe814c30c6bbd708d1",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "roadEW.png",
+      "output": "roadEW.png",
+      "source_sha256": "1517f8b0d596cfa351bb4bbdfdf5c22f29faeae54622c4b3b32935d347fa2a64",
+      "output_sha256": "dec0637f4f637ca743e25f94418f163b9029614fbee9c53084a26e2236f224d2",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "roadHill2E.png",
+      "output": "roadHill2E.png",
+      "source_sha256": "6a92ead6e4ad4ec34c896a7bc24c814a19eca4e31f9ecf95673c74517edbcf6c",
+      "output_sha256": "11e77d891a4460244343876f818feb850e06b2798528026fe49281e222293465",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "roadHill2N.png",
+      "output": "roadHill2N.png",
+      "source_sha256": "718a7ae40ffde15b4d7cd3c288183d9c5f10784ecba0bd3b8147fafd58d2c4f8",
+      "output_sha256": "46744eb57ecfa1e5dd0d63361a16220c812eb7f27d1f837ee5064266197c6c63",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "roadHill2S.png",
+      "output": "roadHill2S.png",
+      "source_sha256": "9c050318953872e19d8bfda7d38b1d754d68c874fdf0d5726e5e8fa678235aa9",
+      "output_sha256": "7e21f34a0d9404dd5abe5cc0320276ccb56dccf06d3f9483fda0b75c376a50d2",
+      "width": 400,
+      "height": 308,
+      "pivot": [
+        200,
+        308
+      ]
+    },
+    {
+      "source": "roadHill2W.png",
+      "output": "roadHill2W.png",
+      "source_sha256": "eee86488195995496dc4c86dfa61813bdceee0805bcca9d968898524e1f01460",
+      "output_sha256": "b0b294d83427087b7778c013b03e6a9c0ad87d43743c01151f60e91f66ac160f",
+      "width": 400,
+      "height": 308,
+      "pivot": [
+        200,
+        308
+      ]
+    },
+    {
+      "source": "roadHillE.png",
+      "output": "roadHillE.png",
+      "source_sha256": "556242b63b882a62352a63c2c0c8c160172cc7e88353defc03950959031dc82a",
+      "output_sha256": "63c073d6d23791af07fd10035845ea269faa5e59fb52f15feaefbb6116909bbb",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "roadHillN.png",
+      "output": "roadHillN.png",
+      "source_sha256": "3741a7c5b4a0d3fd71e938580bd595df22d3ebea6c410fb185353390c5bb1f7d",
+      "output_sha256": "024a4837b3b249f24aca5d3e4f3ee6e9b42580087689a1004bf092c2bdac9138",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "roadHillS.png",
+      "output": "roadHillS.png",
+      "source_sha256": "4b5b31b22f8c789aa4db3ff4b53bf14bb19d256fba332ea9dae83cc474490d60",
+      "output_sha256": "d13c97aea1c82cfea229112cfc9ee5a63b1193f5acc940f1e50eab1fee426891",
+      "width": 400,
+      "height": 320,
+      "pivot": [
+        200,
+        320
+      ]
+    },
+    {
+      "source": "roadHillW.png",
+      "output": "roadHillW.png",
+      "source_sha256": "4f6525e516ad39477d17a421ab08976fe18a2dfad349ecb14df80975e53b1418",
+      "output_sha256": "5c6a579fd36270b69c039dbab81232fc1ac89ecd238fedcd193dd6dccbbb135d",
+      "width": 400,
+      "height": 320,
+      "pivot": [
+        200,
+        320
+      ]
+    },
+    {
+      "source": "roadNE.png",
+      "output": "roadNE.png",
+      "source_sha256": "6c1e0ef1c0ddc852ed890da992447a7f81967ad7e39e26b88f1fe180f3fbf57e",
+      "output_sha256": "32b4a80b010f3e6b32c16f850d0843b1e74bbac509179b268b7f11c09893b0a4",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "roadNS.png",
+      "output": "roadNS.png",
+      "source_sha256": "851f1934249a6bd8c9193eb51e30ad8a0b48860b5042d807a77888053d12d064",
+      "output_sha256": "ace0f31dbf771f57a7a3158c90b265b9d47e7984a83be7b446aa6f2ac6d8f6ba",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "roadNW.png",
+      "output": "roadNW.png",
+      "source_sha256": "fd989ef020559809579c30c1d269ae9f405bd805eff53d2bb5c7ac0379cab8eb",
+      "output_sha256": "ddd83b8fa5200deb2c46bbbe1c136e698c8022c642d1cbba8dafb5b550e48b59",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "roadSW.png",
+      "output": "roadSW.png",
+      "source_sha256": "b3f59c577ca412393afa95b7231c193eb1d165695e5689221907dac731a1e60b",
+      "output_sha256": "b4fbf3977104aaae788acfda84f7016e8b96121df20dcfaa9f478f218dbc9116",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "treeAltShort.png",
+      "output": "treeAltShort.png",
+      "source_sha256": "3913415d8fc9fbcd789cc914f525acb229020c59132f45536cd277acdb743884",
+      "output_sha256": "0e026a8b20fa32e46b9d0e16859d71a8794c862b90af20b3694b366b097b5ddb",
+      "width": 44,
+      "height": 128,
+      "pivot": [
+        22,
+        128
+      ]
+    },
+    {
+      "source": "treeAltTall.png",
+      "output": "treeAltTall.png",
+      "source_sha256": "417f1cff32ba3b56a98f6699ba377288f12031daaa31be77e0d32d4e8bbff190",
+      "output_sha256": "801fbfc840a62a6b203002adcedb288f708d79258c04cfb15824f51b6659d644",
+      "width": 44,
+      "height": 164,
+      "pivot": [
+        22,
+        164
+      ]
+    },
+    {
+      "source": "treeShort.png",
+      "output": "treeShort.png",
+      "source_sha256": "85e29a5aca3e48f3175d8054e40cf09c508bf06839274c179869b516e4e50291",
+      "output_sha256": "8ba22dfd360f23f5a00ff20dcfe1c07e960eb29f73b788ac86f04099ca7d5da2",
+      "width": 44,
+      "height": 128,
+      "pivot": [
+        22,
+        128
+      ]
+    },
+    {
+      "source": "treeTall.png",
+      "output": "treeTall.png",
+      "source_sha256": "c354c5da734fcdfaad75ec397400cfbe880560f7e5806b8f1a3ad6056f7dfd6c",
+      "output_sha256": "bf46eb99b5e7f8cfdce541cfd20f4161f045318e08b034fb2de10dc0f18878d6",
+      "width": 48,
+      "height": 164,
+      "pivot": [
+        24,
+        164
+      ]
+    },
+    {
+      "source": "water.png",
+      "output": "water.png",
+      "source_sha256": "8a7000511ee9879ff4f357bf30b97195526db6af161aa37c894094f0dcd3204c",
+      "output_sha256": "4996a4296e8b27d0bd68e160e2bbe73e461be626fbef83d20921882bb3ffc3e6",
+      "width": 400,
+      "height": 232,
+      "pivot": [
+        200,
+        232
+      ]
+    },
+    {
+      "source": "waterCornerES.png",
+      "output": "waterCornerES.png",
+      "source_sha256": "e3123f12d76a4d33bd66078f3ed78cd3c703cd7e90d3b06ee984c55e6d01a8cc",
+      "output_sha256": "d80372c9f289208b6f84cb7a8fb456b94794c5eebeab48122be88e0244c7fc1a",
+      "width": 400,
+      "height": 232,
+      "pivot": [
+        200,
+        232
+      ]
+    },
+    {
+      "source": "waterCornerNE.png",
+      "output": "waterCornerNE.png",
+      "source_sha256": "d9eb40a612b9130a0dfea8332d1fcb1bf02be3e2d1e2cd17c500d13b23267ab5",
+      "output_sha256": "8d1ec36e841dff93aa8ff502195bad8f27b4b38f474438c3a361252d757f109e",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "waterCornerNW.png",
+      "output": "waterCornerNW.png",
+      "source_sha256": "f71fc8a4b625e7f4397d190ebfa85fda02e73c93a01024e8efa321e978aa071a",
+      "output_sha256": "f9cd52287f190f28eea04a1d4e52b9986cbdef306f2072d07e7f8a92555c9772",
+      "width": 400,
+      "height": 232,
+      "pivot": [
+        200,
+        232
+      ]
+    },
+    {
+      "source": "waterCornerSW.png",
+      "output": "waterCornerSW.png",
+      "source_sha256": "61c34607344890b693f2862735939f1f98e87c46aa61dfb50fa9060aa305909f",
+      "output_sha256": "a40aaa948416114a33c5cc7865b5901eb11c8990af57df78f2014cf0cb530c93",
+      "width": 400,
+      "height": 232,
+      "pivot": [
+        200,
+        232
+      ]
+    },
+    {
+      "source": "waterE.png",
+      "output": "waterE.png",
+      "source_sha256": "27136ebde69232e4b31616770e579a4ae067c7ae57a7628ffd26ab6f9e97ad11",
+      "output_sha256": "25124a2b5e148028b588b1b893efd24faa1fbc33eea1556bfbe3dd0f818658d3",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "waterES.png",
+      "output": "waterES.png",
+      "source_sha256": "001dc2276430315a53ce5a40df36526dafa37785e2ab02b28864862efe5aa1a1",
+      "output_sha256": "f1640884f5704fa860361224932dd5012b0328bbdd448c11fe256d4458454c93",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "waterN.png",
+      "output": "waterN.png",
+      "source_sha256": "fb5de6615841d3142930065bddf25bc13a560becf0a5e52a61f479430d8ab75d",
+      "output_sha256": "fe165d960465caa45bdf6a504eff056bd8ba7418761ae0905ef0da98960deae5",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "waterNE.png",
+      "output": "waterNE.png",
+      "source_sha256": "a9d28b4b5ac357818ce64689293d30f84c41ff409421bdfd9cfdc65f49bad4de",
+      "output_sha256": "20220d069c324761207967a2078bc90b64eac5aa7ad9e332bd289269ea8a5aa9",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "waterNW.png",
+      "output": "waterNW.png",
+      "source_sha256": "01c4bb0cc0ab0a2d7c7b6e9213eebc35efa907ffccd13bfad01c19d03c2cd5c4",
+      "output_sha256": "99b808154efce0f58e56b4ae87dcc34979bf7a8756707de4dde0ead579d5138e",
+      "width": 400,
+      "height": 260,
+      "pivot": [
+        200,
+        260
+      ]
+    },
+    {
+      "source": "waterS.png",
+      "output": "waterS.png",
+      "source_sha256": "b4841dd2b828900f2ea6ac4e00c3c6532eafc4e2469c823f70330eca91de5240",
+      "output_sha256": "8712d08af71589ea4a897091865dd17c65d418178c0c4578fc9d513edfa1e664",
+      "width": 400,
+      "height": 232,
+      "pivot": [
+        200,
+        232
+      ]
+    },
+    {
+      "source": "waterSW.png",
+      "output": "waterSW.png",
+      "source_sha256": "1fee736dcbbb02d398db5511945dc5ba3ae17e184307d7bb61cacba20bc3196c",
+      "output_sha256": "bfa69698c3ee087b8efa7affb1ec7de7e008d1c081531501380a143657255f84",
+      "width": 400,
+      "height": 232,
+      "pivot": [
+        200,
+        232
+      ]
+    },
+    {
+      "source": "waterW.png",
+      "output": "waterW.png",
+      "source_sha256": "874ced12cdd25b2c24b142137ae337c6c43d996e7da4d419589bfba9da0b23ed",
+      "output_sha256": "20b258efaf43f08f35dd0933652c52035fd50c722c38439a2adb8b6d374ad4fa",
+      "width": 400,
+      "height": 232,
+      "pivot": [
+        200,
+        232
+      ]
+    }
+  ]
+}

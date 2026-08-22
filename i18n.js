@@ -1,6 +1,6 @@
 const I18N_STORAGE_KEY = 'citybuilder.language';
-let appVersion = '4.0.0-beta.2';
-let appReleaseTheme = '【香城巴士公司】';
+let appVersion = '4.1.0';
+let appReleaseTheme = '【青山綠水】';
 
 const LANGUAGES = {
   en: 'English',
@@ -1475,6 +1475,7 @@ const I18N = {
     'window.foldJukebox': 'Fold jukebox',
     'toast.gameNotReady': 'Game not ready yet.',
     'toast.notEnoughFunds': 'Not enough funds!',
+    'toast.debrisCleared': 'Cleared derelict debris.',
     'toast.lowDensityLocked': 'This land was planned as low-density and can never be rezoned to medium/high density.',
     'toast.bridgeInvalid': 'Bridge must be dragged straight between two shores.',
     'toast.bridgeNeedsFlatShores': 'Bridge ends must be on flat shoreline tiles.',
@@ -3010,6 +3011,7 @@ const I18N = {
     'window.foldJukebox': '摺疊點唱機',
     'toast.gameNotReady': '遊戲尚未準備好。',
     'toast.notEnoughFunds': '資金不足！',
+    'toast.debrisCleared': '已清理廢棄物。',
     'toast.lowDensityLocked': '呢幅地已規劃為低密度，永遠不能提升為中／高密度。',
     'toast.bridgeInvalid': '橋樑必須由一邊岸直線拖到另一邊岸。',
     'toast.bridgeNeedsFlatShores': '橋頭必須在平坦岸邊。',
@@ -4203,6 +4205,7 @@ const I18N = {
     'window.foldJukebox': 'ジュークボックスを折りたたむ',
     'toast.gameNotReady': 'ゲームはまだ準備中です。',
     'toast.notEnoughFunds': '資金が足りません！',
+    'toast.debrisCleared': '廃棄物を撤去しました。',
     'toast.lowDensityLocked': 'この土地は低密度として計画済みのため、中密度・高密度に変更できません。',
     'toast.bridgeInvalid': '橋は両岸の間を直線でドラッグしてください。',
     'toast.bridgeNeedsFlatShores': '橋の両端は平坦な岸辺に置く必要があります。',

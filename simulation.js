@@ -84,6 +84,9 @@ function runLegacyCitySimulationPulse(scene) {
   runProfiledStep('demand', () => updateDemand());
   runProfiledStep('stocks', () => updateStockMarketTick());
   runProfiledStep('trees', () => updateTrees(scene));
+  runProfiledStep('debris', () => {
+    if (typeof updateDebris === 'function') updateDebris(scene);
+  });
   runProfiledStep('citizens', () => updateCitizenActivitySimulation());
   runProfiledStep('news', () => {
     if (typeof queueAiNewsGeneration === 'function') queueAiNewsGeneration();

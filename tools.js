@@ -191,6 +191,7 @@ function placeZone(scene, row, col, zoneType, density = DENSITY_LOW) {
   // Remove old overlay for this tile if re-zoning
   // (removeZoneOverlay clears zoneMap, so set zoneType AFTER it)
   removeTree(scene, row, col);
+  removeDebris(scene, row, col);
   removeZoneOverlay(scene, row, col);
   zoneMap[row][col] = zoneType;
   zoneDensityMap[row][col] = density;
@@ -257,6 +258,7 @@ function placePowerLine(scene, row, col) {
   }
 
   removeTree(scene, row, col);
+  removeDebris(scene, row, col);
   powerLineSet.add(id);
   drawPowerLineSprite(scene, row, col);
   if (typeof invalidateOverlayCache === 'function') invalidateOverlayCache();

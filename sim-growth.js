@@ -1329,6 +1329,56 @@ function updateTrees(scene) {
   });
 }
 
+// ── Debris self-healing sweep ─────────────────────────────────────────────
+// Debris has no growth/spread/aging of its own (unlike trees), but it needs
+// the same "land got repurposed out from under it" cleanup: a build, a road,
+// a rezone, or any other mutation that makes the tile no longer eligible bare
+// land should make the debris vanish on its own, without every single mutation
+// call site having to remember to call removeDebris. Mirrors
+// treeSimulationTilesCache/getTreeSimulationTiles/updateTrees above exactly,
+// just against debrisMap/scene.debrisSprites and canDebrisOccupyAt as the
+// single source of truth for "is this tile still valid bare land".
+let debrisSimulationTilesCache = null;
+
+function invalidateDebrisSimulationTiles() {
+  debrisSimulationTilesCache = null;
+}
+
+function getDebrisSimulationTiles(scene) {
+  if (debrisSimulationTilesCache) return debrisSimulationTilesCache;
+
+  const denseDebrisThreshold = Math.min(4096, MAP_WIDTH * MAP_HEIGHT * 0.0625);
+  if (scene?.debrisSprites instanceof Map && scene.debrisSprites.size <= denseDebrisThreshold) {
+    const tiles = [];
+    scene.debrisSprites.forEach((sprite, id) => {
+      const separator = id.indexOf(':');
+      const row = Number(id.slice(0, separator));
+      const col = Number(id.slice(separator + 1));
+      if (debrisMap[row]?.[col]) tiles.push([row, col]);
+    });
+    tiles.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+    debrisSimulationTilesCache = tiles;
+    return debrisSimulationTilesCache;
+  }
+
+  const tiles = [];
+  for (let row = 0; row < MAP_HEIGHT; row++) {
+    for (let col = 0; col < MAP_WIDTH; col++) {
+      if (debrisMap[row]?.[col]) tiles.push([row, col]);
+    }
+  }
+  debrisSimulationTilesCache = tiles;
+  return debrisSimulationTilesCache;
+}
+
+function updateDebris(scene) {
+  if (!scene || !debrisMap?.length) return;
+  for (const [r, c] of getDebrisSimulationTiles(scene)) {
+    if (!debrisMap[r]?.[c]) continue;
+    if (!canDebrisOccupyAt(scene, r, c)) removeDebris(scene, r, c);
+  }
+}
+
 function isHighScoreModelEligible(landScore) {
   return landScore >= 0.70 && (city.happiness ?? 0.5) >= 0.65;
 }

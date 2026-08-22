@@ -112,6 +112,7 @@ async function placeDistrictSign(scene, row, col) {
     }
 
     removeTree(scene, row, col);
+    removeDebris(scene, row, col);
     const sign = {
       id: `district-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
       name,

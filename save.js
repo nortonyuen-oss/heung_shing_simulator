@@ -7,6 +7,7 @@ const TERRAIN_LOCAL_KEY = 'citybuilder.terrainPresets';
 const COMPACT_SAVE_VERSION = 15;
 const COMPACT_RLE_ENCODING = 'rle-row-major-v1';
 const COMPACT_TREE_ENCODING = 'sparse-row-major-v1';
+const COMPACT_DEBRIS_ENCODING = 'sparse-row-major-v1';
 const COMPACT_BUS_STOP_ENCODING = 'sparse-row-major-v1';
 const COMPACT_TERRAIN_HEIGHT_MAX = 8;
 const COMPACT_TREE_AGE_MAX = 6;
@@ -418,6 +419,67 @@ function decodeCompactTreeMap(encoded) {
   return result;
 }
 
+function normalizeCompactDebrisEntry(debris, fieldName, location) {
+  if (!debris || typeof debris !== 'object' || Array.isArray(debris)) {
+    throw createCompactSaveError(fieldName, `invalid debris at ${location}`);
+  }
+  const kind = debris.kind;
+  const variant = debris.variant;
+  if (typeof kind !== 'string' || !kind.trim() || kind.length > 40) {
+    throw createCompactSaveError(fieldName, `invalid kind at ${location}`);
+  }
+  if (!Number.isFinite(variant) || variant < 0 || variant > 1) {
+    throw createCompactSaveError(fieldName, `invalid variant at ${location}`);
+  }
+  return { kind, variant };
+}
+
+function encodeCompactDebrisMap(source) {
+  const fieldName = 'debrisMap';
+  const { width, height } = getCompactMapDimensions();
+  assertCompactSourceMap(source, fieldName, width, height);
+  const entries = [];
+  for (let row = 0; row < height; row += 1) {
+    for (let col = 0; col < width; col += 1) {
+      if (source[row][col] == null) continue;
+      const index = row * width + col;
+      const debris = normalizeCompactDebrisEntry(source[row][col], fieldName, `${row}:${col}`);
+      entries.push([index, debris.kind, debris.variant]);
+    }
+  }
+  return { encoding: COMPACT_DEBRIS_ENCODING, width, height, entries };
+}
+
+function decodeCompactDebrisMap(encoded) {
+  const fieldName = 'debrisMap';
+  const { width, height, total } = getCompactMapDimensions();
+  if (!encoded || typeof encoded !== 'object' || Array.isArray(encoded)) {
+    throw createCompactSaveError(fieldName, 'sparse payload must be an object');
+  }
+  if (encoded.encoding !== COMPACT_DEBRIS_ENCODING || encoded.width !== width || encoded.height !== height) {
+    throw createCompactSaveError(fieldName, 'unsupported encoding or dimensions');
+  }
+  if (!Array.isArray(encoded.entries) || encoded.entries.length > total) {
+    throw createCompactSaveError(fieldName, 'invalid sparse entry list');
+  }
+
+  const result = Array.from({ length: height }, () => Array(width).fill(null));
+  let previousIndex = -1;
+  encoded.entries.forEach((entry, entryNumber) => {
+    if (!Array.isArray(entry) || entry.length !== 3) {
+      throw createCompactSaveError(fieldName, `invalid entry ${entryNumber}`);
+    }
+    const [index, kind, variant] = entry;
+    if (!Number.isInteger(index) || index < 0 || index >= total || index <= previousIndex) {
+      throw createCompactSaveError(fieldName, `invalid or duplicate index in entry ${entryNumber}`);
+    }
+    const debris = normalizeCompactDebrisEntry({ kind, variant }, fieldName, `entry ${entryNumber}`);
+    result[Math.floor(index / width)][index % width] = debris;
+    previousIndex = index;
+  });
+  return result;
+}
+
 const COMPACT_BUS_STOP_VALID_SIDES = ['n', 'e', 's', 'w'];
 
 function normalizeCompactBusStopSides(sides, fieldName, location) {
@@ -502,6 +564,11 @@ function decodeSaveDataForLoad(rawSave) {
     zoneMap: decodeCompactRleMap(rawSave.zoneMap, 'zoneMap'),
     zoneDensityMap: decodeCompactRleMap(rawSave.zoneDensityMap, 'zoneDensityMap'),
     treeMap: decodeCompactTreeMap(rawSave.treeMap),
+    // Saves from before bare-land debris existed have no debrisMap at all -
+    // decodeCompactDebrisMap requires an object, so only decode when present;
+    // restoreOrGenerateDebris already treats a missing debrisMap as "generate
+    // fresh", same as it does for an outdated bareLandVersion.
+    debrisMap: rawSave.debrisMap ? decodeCompactDebrisMap(rawSave.debrisMap) : null,
     busStopMap: decodeCompactBusStopMap(rawSave.busStopMap),
   };
 }
@@ -610,6 +677,8 @@ function buildSavePayload({ autosave = false, manualSaveId = currentSaveId } = {
       zoneDensityMap: encodeCompactRleMap(zoneDensityMap, 'zoneDensityMap'),
       treeVersion:   TREE_SYSTEM_VERSION,
       treeMap:       encodeCompactTreeMap(treeMap),
+      bareLandVersion: BARE_LAND_VERSION,
+      debrisMap:     encodeCompactDebrisMap(debrisMap),
       busStopMap:    encodeCompactBusStopMap(
         typeof busStopMap === 'undefined'
           ? Array.from({ length: MAP_HEIGHT }, () => Array(MAP_WIDTH).fill(null))
@@ -1356,6 +1425,13 @@ function applySaveData(scene, save) {
   // Restore building data
   Object.assign(buildingData, save.buildingData ?? {});
   restoreOrGenerateTrees(scene, save);
+  // A save from before bare-land dirt clusters existed has none baked into its
+  // mapData - scatter them once now (only touching still-vacant tiles) before
+  // deciding what debris the (now-current) dirt tiles should have.
+  if (save?.bareLandVersion !== BARE_LAND_VERSION && typeof scatterBareLandDirtClusters === 'function') {
+    scatterBareLandDirtClusters(scene);
+  }
+  if (typeof restoreOrGenerateDebris === 'function') restoreOrGenerateDebris(scene, save);
   restoreBusStopMap(save);
   if (typeof restoreExpansionState === 'function') restoreExpansionState(save.expansions);
 
@@ -1469,6 +1545,7 @@ function rebuildSceneFromSave(scene, save) {
   });
 
   if (typeof rebuildTreeSprites === 'function') rebuildTreeSprites(scene);
+  if (typeof rebuildDebrisSprites === 'function') rebuildDebrisSprites(scene);
   if (typeof rebuildBusStopSprites === 'function') rebuildBusStopSprites(scene);
   if (typeof rebuildDistrictSignSprites === 'function') rebuildDistrictSignSprites(scene);
   if (typeof sortWorldRenderLayers === 'function') sortWorldRenderLayers(scene);

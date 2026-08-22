@@ -506,6 +506,22 @@ const SCENIC_VIEW_RADIUS = 6;
 const SCENIC_HAPPINESS_BONUS_MAX = 0.08;
 const SCENIC_LAND_VALUE_BONUS_MAX = 0.16;
 
+// Bare land: dirt patches scattered across large flat grass regions, and
+// derelict debris (dumped vehicles/containers) scattered across those dirt
+// tiles. Both are purely decorative - see model-catalog.js's
+// BARE_LAND_DEBRIS_KINDS for the actual sprite/weight table.
+const BARE_LAND_VERSION = 3;                    // bump when either generator changes
+const BARE_LAND_DIRT_CLUSTER_MIN_REGION_TILES = 60;   // smallest flat-grass region eligible for clusters
+const BARE_LAND_DIRT_CLUSTER_TILES_PER_CLUSTER = 180; // ~1 cluster seed per this many eligible tiles
+const BARE_LAND_DIRT_CLUSTER_RADIUS_MIN = 2;
+const BARE_LAND_DIRT_CLUSTER_RADIUS_MAX = 4;
+const BARE_LAND_DEBRIS_SPAWN_CHANCE = 0.10;
+// Debris now renders at the same real-world scale as the game's own traffic
+// vehicles (see BARE_LAND_DEBRIS_KINDS) - a small sprite, so its jitter range
+// matches the tree canopy's (TREE_VISUAL_OFFSET_*), not a large prop's.
+const BARE_LAND_DEBRIS_VISUAL_OFFSET_COL_MAX = 4;
+const BARE_LAND_DEBRIS_VISUAL_OFFSET_ROW_MAX = 3;
+
 // Power plant model assets and logical footprints
 // Updated model canvases have an intentional isometric base point. Anchor that
 // true lowest corner to the map rather than the wider "stable" alpha row above it.

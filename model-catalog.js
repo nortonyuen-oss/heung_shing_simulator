@@ -427,6 +427,52 @@ const TREE_SPECIES = [
   { id: 'hillGreen',  shortKey: 'tree15', tallKey: 'tree15', hillWeight: 4 },
 ];
 
+// Derelict debris scattered on dirt/bare-land tiles (see BARE_LAND_* constants
+// and scatterBareLandDirtClusters/generateInitialDebris in main.js). Weight is
+// relative likelihood among debris (not spawn chance - that's the flat
+// BARE_LAND_DEBRIS_SPAWN_CHANCE per dirt tile). Small single wrecks are common
+// clutter; the multi-container piles are meant to read as rare, larger
+// landmarks within a bare patch, so they get progressively lower weight as
+// the pile gets bigger.
+//
+// scale is calibrated against the game's own ambient traffic sprites, not
+// guessed: each debris source image's content bounding box (its real pixel
+// footprint, ignoring transparent margin) is scaled so the vehicle reads at
+// the same *relative* on-screen size as the matching traffic model
+// (car_hrv/van_plain/truck_basic, all a 256px canvas) -
+//   onscreen = category model's (scale x contentWidth); car ~17.5px,
+//   van ~21.8px, truck ~26.4px.
+// Containers have no in-game reference vehicle, so their target size is
+// derived the same way but from a real-world length ratio instead: a 20ft
+// container (~6.1m) against the reference car's real length (~4.5m) at the
+// car's calibrated px-per-metre, giving a ~25.7px single-container target.
+// The multi-container piles show more than one container's face in frame
+// (side-by-side or with extra clutter), so their scale additionally divides
+// by how many container-widths the source image actually spans, keeping
+// every individual container the same real size relative to the others,
+// regardless of pile art.
+//
+// Those raw car/van/truck-matched numbers are calibrated for a small,
+// briefly-glimpsed *moving* vehicle at 1.0x camera zoom, though - stationary
+// bare-land debris has to actually be noticed sitting still in a big city
+// (often viewed zoomed out well below 1.0x) against dirt art that's a
+// similarly muted rust/grey palette, so it needs more presence than a
+// passing car gets. Went x2 (too big), then x0.4 of that on request (=x0.8,
+// under the raw reference - at a 0.59x camera zoom that put the smallest
+// wreck around 7-8px, unreadable). Settled on the raw calibration x1.3: the
+// ratios between debris kinds (car < van < truck < container piles) stay
+// exactly as measured regardless of the shared multiplier.
+const BARE_LAND_DEBRIS_KINDS = [
+  { id: 'sedanWreck',      key: 'bareland_car',              weight: 3,   scale: 0.0536 },
+  { id: 'burntWreck',      key: 'bareland_car_wreck',        weight: 3,   scale: 0.0558 },
+  { id: 'vanWreck',        key: 'bareland_van',              weight: 3,   scale: 0.0672 },
+  { id: 'truckWreck',      key: 'bareland_truck',            weight: 3,   scale: 0.0793 },
+  { id: 'containerSingle', key: 'bareland_container_single', weight: 3,   scale: 0.0870 },
+  { id: 'containerDouble', key: 'bareland_container_double', weight: 2,   scale: 0.0832 },
+  { id: 'containerFenced', key: 'bareland_container_fenced', weight: 1.2, scale: 0.1221 },
+  { id: 'containerQuad',   key: 'bareland_container_quad',   weight: 0.6, scale: 0.1114 },
+];
+
 const MUSIC_TRACKS = [
   {
     key: 'music_title',

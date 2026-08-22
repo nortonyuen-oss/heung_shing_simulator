@@ -405,6 +405,8 @@ function rebuildFreshMapSession(cityName) {
   if (!isTerrainCreatorMode) {
     generateInitialTrees(activeScene);
     rebuildTreeSprites(activeScene);
+    generateInitialDebris(activeScene);
+    rebuildDebrisSprites(activeScene);
   }
   city.name = cityName || getDefaultCityName();
   city.nameEn = '';

@@ -210,6 +210,13 @@ const SITE_FEATURE_LIST = {
 // ── Changelog ─────────────────────────────────────────────────────────────────
 const SITE_CHANGELOG = {
   "zh-HK": [
+    { version: "v4.1.0", date: "2026-08-23", dateLabel: "2026年8月23日", title: "青山綠水", items: [
+      "新增荒地廢棄物場景：大片平坦草地會長出一嚿嚿石仔地（dirt），石仔地上有一成機會出現廢棄車輛或貨櫃堆，尺寸按遊戲入面真實車輛模型校準，隨機偏移擺位；石仔地淨係生廢棄物，唔會再長樹。",
+      "廢棄物行為同樹木一樣識自我修復：地起咗建築、劃咗地帶或者鋪咗馬路，廢棄物會自動喺下個模擬循環消失；推土機掣可以即時清走廢棄物，同時保留返地下石仔地。",
+      "全套地形貼圖換上新一套「自然系」風格（草地、沙灘、河道、山坡、馬路等），並修正山坡貼圖同路面高度唔啱嘅樓梯級問題。",
+      "巴士站恢復入站減速/離站加速動畫、改為容許單邊擺放並支援沿途順道載客、收車資有 TTD 式浮動 \"+$\" 提示；車輛追蹤視窗重新設計做側邊圖示分頁。",
+      "修正巴士同背景車流互相疊埋嘅視覺問題；優化城市污染同財政預算計算效能，大城市長期運行更流暢。",
+    ] },
     { version: "v4.0.0", date: "2026-08-20", dateLabel: "2026年8月20日", title: "香城巴士公司", items: [
       "全新「運輸營運」模式：撳左上角「建設指引 CITY GUIDE」個 header，即可喺城市建設同經營巴士公司之間切換——同一個地圖、同一個時鐘，但工具同介面會換成路線、車隊、需求、車廠、財務、公司六個獨立可拖曳視窗，由頂部工具列逐個開關。",
       "巴士公司有自己一套獨立資金（開業獲發 $600 啟動資金），同市政府庫房完全分開；巴士要響車廠逐架購買（兩種車型 $210～$280），有 12 個泊位上限，行駛耐咗要定期返廠保養，連續三個月虧損會自動暫停所有路線。",
@@ -394,6 +401,13 @@ const SITE_CHANGELOG = {
 // title/items text.
 const SITE_CHANGELOG_TRANSLATIONS = {
   "zh-TW": {
+    "v4.1.0": { title: "青山綠水", items: [
+      "新增荒地廢棄物場景：大片平坦草地會長出一塊塊碎石地（dirt），碎石地上有一成機率出現廢棄車輛或貨櫃堆，尺寸依遊戲內真實車輛模型校準，隨機偏移擺放；碎石地只會出現廢棄物，不會再長樹。",
+      "廢棄物行為和樹木一樣會自我修復：地上蓋了建築、劃了地帶或鋪了馬路，廢棄物會在下一次模擬循環自動消失；推土機鈕可以即時清除廢棄物，同時保留地下的碎石地。",
+      "整套地形貼圖換成新一套「自然系」風格（草地、沙灘、河道、山坡、馬路等），並修正山坡貼圖和路面高度不合的階梯狀問題。",
+      "公車站恢復進站減速/離站加速動畫、改為允許單邊擺放並支援沿途順道載客、收到車資會有 TTD 式浮動 \"+$\" 提示；車輛追蹤視窗重新設計成側邊圖示分頁。",
+      "修正公車和背景車流互相重疊的視覺問題；優化城市污染和財政預算計算效能，大城市長期運行更流暢。",
+    ] },
     "v4.0.0": { title: "香城公車公司", items: [
       "全新「運輸營運」模式：點左上角「建設指引 CITY GUIDE」的 header，即可在城市建設和經營公車公司之間切換——同一張地圖、同一個時鐘，但工具和介面會換成路線、車隊、需求、車廠、財務、公司六個獨立可拖曳視窗，由頂部工具列逐一開關。",
       "公車公司有自己一套獨立資金（開業獲發 $600 啟動資金），和市政府庫房完全分開；公車要在車廠逐輛購買（兩種車型 $210～$280），有 12 個車位上限，行駛久了要定期回廠保養，連續三個月虧損會自動暫停所有路線。",
@@ -571,6 +585,13 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   en: {
+    "v4.1.0": { title: "Green Hills, Clear Waters", items: [
+      "Added a derelict bare-land scene: large flat grass regions now grow patches of dirt, and dirt tiles have a 10% chance of spawning an abandoned vehicle or shipping-container pile, sized to match the game's real vehicle models and randomly offset within the tile. Dirt only grows debris - it never grows trees.",
+      "Debris now self-heals just like trees: once its tile gets built on, rezoned, or paved over, the debris vanishes automatically on the next simulation tick; the bulldozer tool also clears debris instantly while leaving the dirt patch underneath intact.",
+      "Replaced the entire terrain tileset with a new 'natural' art style (grass, beach, river, hills, roads, etc.), and fixed a hill-tile height mismatch that produced a visible staircase seam on slopes.",
+      "Restored bus-stop deceleration/acceleration animation, bus stops can now be placed on a single side of the road and buses opportunistically pick up riders at any stop along their route, and fares now show a TTD-style floating \"+$\" popup; redesigned the vehicle tracker window into a collapsed side-tab layout (passengers/condition/route).",
+      "Fixed buses visually overlapping ambient traffic; optimized pollution and budget calculations for smoother long-running large cities.",
+    ] },
     "v4.0.0": { title: "The Heung Shing Bus Company", items: [
       "New Transport Mode: click the CITY GUIDE header in the top-left to switch between city building and running your own bus company - same map, same clock, but the toolset and interface swap to six independent, draggable windows (Routes, Fleet, Demand, Depot, Finances, Company), each toggled from the topbar.",
       "The bus company keeps its own treasury (founded with $600 in start-up capital), fully separate from city hall's budget. Buses are bought individually at a depot (two classes, $210-$280), each depot holds only 12 vehicles, buses need periodic servicing the longer they run, and three consecutive losing months auto-suspends every route.",
@@ -748,6 +769,13 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   ja: {
+    "v4.1.0": { title: "青山緑水", items: [
+      "新しい荒れ地の廃棄物シーン：広い平らな草地に土のパッチ（dirt）が自然に発生し、土タイルには10%の確率で放棄車両やコンテナの山が出現。サイズはゲーム内の実際の車両モデルに合わせて調整され、タイル内でランダムにずれて配置される。土タイルは廃棄物のみで、木は生えない。",
+      "廃棄物は樹木と同じく自己修復する：その土地に建物が建つ、ゾーニングされる、道路が敷かれると、次のシミュレーションで自動的に消える。ブルドーザーで即座に撤去することもでき、その際は下の土パッチはそのまま残る。",
+      "地形テクスチャ一式を新しい「ナチュラル系」スタイルに刷新（草地、ビーチ、川、丘、道路など）。丘タイルの高さが道路の高さと合わずに階段状の継ぎ目が見えていた問題も修正。",
+      "バス停の減速・加速アニメーションを復活、バス停を道路の片側だけに設置できるようになり、経路上の未登録バス停でも乗客を拾うように。運賃獲得時にTTD風の浮遊「+$」表示が追加。車両追跡ウィンドウは側面アイコンタブ（乗客／状態／路線）にまとめて再設計。",
+      "バスと背景交通が視覚的に重なる問題を修正。汚染と財政予算の計算を最適化し、大都市を長時間プレイしてもスムーズに。",
+    ] },
     "v4.0.0": { title: "香城バス会社", items: [
       "新機能「運輸経営」モード：左上の「建設ガイド CITY GUIDE」ヘッダーをクリックすると、都市建設と自分のバス会社経営を切り替えられます——同じマップ、同じ時計のまま、ツールとUIが路線・車両・需要・車庫・財務・会社の6つの独立したドラッグ可能なウィンドウに切り替わり、それぞれ上部ツールバーから開閉できます。",
       "バス会社は独自の資金（設立時に創業資金$600を獲得）を持ち、市の予算とは完全に分離。バスは車庫で1台ずつ購入し（2車種、$210～$280）、各車庫の収容台数は12台まで、走行を重ねると定期整備が必要になり、3ヶ月連続赤字になると全路線が自動的に運休します。",

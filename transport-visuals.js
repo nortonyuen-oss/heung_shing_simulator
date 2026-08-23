@@ -121,8 +121,21 @@ function invalidateTransportVisuals(scene, clear = false) {
   state.lastOverlaySignature = '';
 }
 
-function getManagedTransportVehicleCount(scene) {
-  return scene?.transportVisualState?.vehicles?.length ?? 0;
+// Counts only buses actually inside `rect` (defaults to the full managed
+// fleet when omitted). refreshVisibleTraffic subtracts this from a roads-in-
+// view-based ambient target so buses aren't double-counted as road capacity -
+// but that only makes sense scoped to the SAME viewport: the unscoped count
+// stays roughly constant regardless of zoom (it's driven by route coverage,
+// not the camera rect), while the roads-in-view target shrinks a lot at high
+// zoom, so subtracting the whole city's bus count could drive the ambient
+// target to zero even though the zoomed-in view has no buses in it at all.
+function getManagedTransportVehicleCount(scene, rect) {
+  const vehicles = scene?.transportVisualState?.vehicles;
+  if (!vehicles) return 0;
+  if (!rect) return vehicles.length;
+  return vehicles.filter((vehicle) => (
+    vehicle.sprite && trafficPointInRect({ x: vehicle.sprite.x, y: vehicle.sprite.y }, rect)
+  )).length;
 }
 
 function transportHexToNumber(value) {

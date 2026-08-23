@@ -1906,7 +1906,7 @@ function refreshVisibleTraffic(scene, time) {
   removeTrafficVehiclesOutside(scene, rect, time);
   const roads = collectVisibleTrafficRoads(scene, rect);
   const managedCount = typeof getManagedTransportVehicleCount === 'function'
-    ? getManagedTransportVehicleCount(scene)
+    ? getManagedTransportVehicleCount(scene, rect)
     : 0;
   const target = Math.max(0, computeTrafficVehicleTarget(roads.map((road) => road.load)) - managedCount);
 

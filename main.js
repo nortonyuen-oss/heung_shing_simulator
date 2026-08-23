@@ -6079,12 +6079,18 @@ function updateWeatherEffectsTier(scene) {
 // ── Dynamic lighting: sun-angle tint + cloud drift (screen-space, zoom-aware) ──
 
 // A handful of overlapping soft lobes baked into one texture reads as an
-// irregular cumulus patch instead of one perfectly round smudge.
+// irregular cumulus patch instead of one perfectly round smudge. Built with
+// real canvas radial gradients (continuous alpha falloff) rather than
+// Phaser Graphics' stacked flat-alpha circles, which banded into visible
+// concentric rings at each step boundary - a gradient has no steps to band.
 function generateCloudBlobTexture(scene) {
   if (scene.textures.exists('fx_cloud_blob')) return;
   const w = 380;
   const h = 220;
-  const g = scene.make.graphics({ x: 0, y: 0, add: false });
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d');
   const lobes = [
     { x: 0.30, y: 0.55, r: 0.34 },
     { x: 0.52, y: 0.38, r: 0.42 },
@@ -6093,28 +6099,56 @@ function generateCloudBlobTexture(scene) {
     { x: 0.20, y: 0.60, r: 0.22 },
     { x: 0.82, y: 0.62, r: 0.20 },
   ];
-  const steps = 8;
+  // 'lighter' (additive) blending lets overlapping lobes melt into each
+  // other smoothly instead of one lobe's hard circular edge cutting across
+  // another's gradient.
+  ctx.globalCompositeOperation = 'lighter';
   lobes.forEach(({ x, y, r }) => {
-    const cx = x * w; const cy = y * h; const maxRadius = r * h;
-    for (let i = steps; i >= 1; i--) {
-      const radius = maxRadius * (i / steps);
-      const alpha = 0.55 * (1 - i / steps) ** 1.3;
-      g.fillStyle(0xffffff, alpha);
-      g.fillCircle(cx, cy, radius);
-    }
+    const cx = x * w; const cy = y * h; const radius = r * h;
+    const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+    gradient.addColorStop(0, 'rgba(255,255,255,0.6)');
+    gradient.addColorStop(0.7, 'rgba(255,255,255,0.28)');
+    gradient.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+    ctx.fill();
   });
-  g.generateTexture('fx_cloud_blob', w, h);
-  g.destroy();
+  scene.textures.addCanvas('fx_cloud_blob', canvas);
 }
 
+// Clouds fade out over this zoom range and are fully gone at/above the end -
+// "descending through the cloud layer" as the camera zooms in, not a hard cut.
+const CLOUD_FADE_ZOOM_START = 0.9;
+const CLOUD_FADE_ZOOM_END = 1.2;
+
+// Cloud cover by getCloudDensityTier(): a handful of thin, near-white wisps
+// even on a clear day, building through cloudy/showers/heavy-rain to a
+// thick, dark ("烏雲") deck under black rainstorm warning or a severe
+// typhoon signal. frequency (lower = denser spawn rate) and lifespan
+// together set the roughly steady-state particle count (lifespan/frequency).
+// No tint at the light end: live-tested against the actual building palette,
+// a grey-blue tint blended into near-invisibility against this city's own
+// beige/grey rooftops even at full alpha - the texture's native soft white
+// reads clearly as drifting cloud/mist on its own. Darker tiers do tint,
+// deliberately, to read as heavier/stormier cloud.
+// Per-particle alpha is kept flat-to-lower across denser tiers, deliberately:
+// overlapping translucent particles compound toward opaque (three layers at
+// 0.6 alpha already reads as ~94% opaque), so "thicker" cloud cover mostly
+// comes from more particles overlapping more, not from cranking alpha - and
+// "darker/stormier" comes from the tint darkening, not from extra opacity on
+// top of the sky-darkening overlay/rain the storm already has.
+const CLOUD_DENSITY_TIERS = {
+  minimal: { frequency: 3500, lifespan: 40000, alpha: { min: 0.12, max: 0.20 }, scaleMul: 0.75, tint: null },
+  light: { frequency: 1200, lifespan: 45000, alpha: { min: 0.30, max: 0.45 }, scaleMul: 1.0, tint: null },
+  moderate: { frequency: 700, lifespan: 42000, alpha: { min: 0.28, max: 0.42 }, scaleMul: 1.1, tint: 0xe4e7ec },
+  heavy: { frequency: 450, lifespan: 38000, alpha: { min: 0.26, max: 0.40 }, scaleMul: 1.25, tint: 0xb0b6c2 },
+  extreme: { frequency: 300, lifespan: 34000, alpha: { min: 0.24, max: 0.38 }, scaleMul: 1.45, tint: 0x5c6175 },
+};
 const CLOUD_DRIFT_BASE_CONFIG = {
-  lifespan: 50000,
   speedX: { min: 12, max: 22 },
   speedY: 0,
-  alpha: { min: 0.22, max: 0.36 },
   quantity: 1,
-  frequency: 1200,
-  tint: 0x828da3,
 };
 
 function setupDynamicLighting(scene) {
@@ -6132,10 +6166,13 @@ function setupDynamicLighting(scene) {
   scene.cloudSpawnHeight = (scene.scale.height / 0.4) * 1.1;
   scene.cloudDriftEmitter = scene.add.particles(0, 0, 'fx_cloud_blob', {
     ...CLOUD_DRIFT_BASE_CONFIG,
+    frequency: CLOUD_DENSITY_TIERS.light.frequency,
+    lifespan: CLOUD_DENSITY_TIERS.light.lifespan,
+    alpha: CLOUD_DENSITY_TIERS.light.alpha,
     x: { min: -240, max: scene.cloudSpawnWidth },
     y: { min: -120, max: scene.cloudSpawnHeight },
     scale: { min: 1.4, max: 2.6 },
-  });
+  }); // real tier/scale applied immediately below by updateDynamicLighting()
   scene.cloudDriftEmitter.setScrollFactor(0);
   scene.cloudDriftEmitter.setDepth(999996);
   scene.cloudDriftEmitter.stop();
@@ -6173,22 +6210,46 @@ function updateDynamicLighting(scene) {
   }
 
   const zoom = scene.cameras?.main?.zoom ?? 1;
-  const cloudsActive = typeof isCloudyWeather === 'function' && isCloudyWeather() && zoom < 1.2;
+  // Like descending through a cloud layer from altitude: cover holds steady
+  // above CLOUD_FADE_ZOOM_START, thins out as the camera "descends" through
+  // it, and has fully broken clear by CLOUD_FADE_ZOOM_END - not a hard pop.
+  const cloudsActive = zoom < CLOUD_FADE_ZOOM_END;
   const cloudEmitter = scene.cloudDriftEmitter;
   if (cloudEmitter && cloudsActive) {
+    const tierName = typeof getCloudDensityTier === 'function' ? getCloudDensityTier() : 'light';
+    const tier = CLOUD_DENSITY_TIERS[tierName] || CLOUD_DENSITY_TIERS.light;
+    const fade = zoom <= CLOUD_FADE_ZOOM_START ? 1
+      : Math.max(0, 1 - (zoom - CLOUD_FADE_ZOOM_START) / (CLOUD_FADE_ZOOM_END - CLOUD_FADE_ZOOM_START));
     // scrollFactor(0) cancels camera *pan* but NOT *zoom* (see syncWeatherFxToCamera's
     // comment) - a fixed particle scale would shrink toward invisible at a heavily
     // zoomed-out view, so size is compensated up by 1/zoom the same way that
     // function enlarges the overlay rectangles' width/height.
     const zoomScale = Math.min(4, 1 / Math.max(0.25, zoom));
-    cloudEmitter.setConfig({
-      ...CLOUD_DRIFT_BASE_CONFIG,
-      x: { min: -240, max: scene.cloudSpawnWidth },
-      y: { min: -120, max: scene.cloudSpawnHeight },
-      scale: { min: 1.4 * zoomScale, max: 2.6 * zoomScale },
-    });
+    // setConfig() resets Phaser's internal frequency-elapsed timer back to zero
+    // (confirmed live: calling it every ~500ms tick against a 1200ms frequency
+    // meant the timer was wiped before it ever reached 1200ms, so the emitter
+    // sat "emitting" forever without ever actually emitting a single particle).
+    // Only reconfigure when the effective config (weather tier, zoom-driven
+    // scale, or fade amount) actually changed.
+    const fadeKey = Math.round(fade * 20); // 5%-step buckets - plenty smooth, avoids reconfiguring every tiny scroll delta
+    const configKey = `${tierName}:${zoomScale}:${fadeKey}`;
+    if (scene.cloudDriftLastConfigKey !== configKey) {
+      scene.cloudDriftLastConfigKey = configKey;
+      const baseScaleMul = tier.scaleMul * zoomScale;
+      cloudEmitter.setConfig({
+        ...CLOUD_DRIFT_BASE_CONFIG,
+        frequency: tier.frequency,
+        lifespan: tier.lifespan,
+        alpha: { min: tier.alpha.min * fade, max: tier.alpha.max * fade },
+        tint: tier.tint ?? 0xffffff,
+        x: { min: -240, max: scene.cloudSpawnWidth },
+        y: { min: -120, max: scene.cloudSpawnHeight },
+        scale: { min: 1.4 * baseScaleMul, max: 2.6 * baseScaleMul },
+      });
+    }
     if (!cloudEmitter.emitting) cloudEmitter.start();
   } else {
+    scene.cloudDriftLastConfigKey = null; // force a reconfigure next time clouds turn on
     cloudEmitter?.stop();
   }
 }

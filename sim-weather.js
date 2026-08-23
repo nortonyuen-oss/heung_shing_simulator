@@ -431,8 +431,23 @@ function getSunLightVisualState(elapsedMs) {
   };
 }
 
-function isCloudyWeather() {
-  return typeof city !== 'undefined' && city?.weather?.condition === 'cloudy';
+// Cloud cover scales with the weather, the same way getRainEffectTier() scales
+// rain: a handful of thin clouds even on a clear day, building up through
+// cloudy/showers/heavy-rain, to a thick dark deck under black rainstorm
+// warning or a severe typhoon signal - mirrors getRainEffectTier()'s exact
+// condition/rainWarning/typhoonStage thresholds so the cloud deck, rain, sky
+// darkening and lightning frequency all read as one coherent sky, not four
+// independently-rolled effects.
+function getCloudDensityTier() {
+  const weather = city.weather;
+  if (!weather) return 'minimal';
+  if (['signal8', 'signal9', 'signal10'].includes(weather.typhoonStage)) return 'extreme';
+  if (weather.rainWarning === 'black') return 'extreme';
+  if (weather.typhoonStage === 'signal3' || weather.rainWarning === 'red') return 'heavy';
+  if (weather.rainWarning === 'amber' || weather.condition === 'heavyRain') return 'heavy';
+  if (weather.condition === 'showers') return 'moderate';
+  if (weather.condition === 'cloudy' || weather.condition === 'windy') return 'light';
+  return 'minimal'; // clear, hot, cool
 }
 
 // Rain particle intensity tier — shares the same thresholds as getWeatherOverlayAlpha()

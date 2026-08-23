@@ -10,9 +10,9 @@
   <meta property="og:image" content="assets/backgroundTitle.png" />
   <meta name="theme-color" content="#17212d" />
   <link rel="icon" href="assets/icon.png" />
-  <link rel="stylesheet" href="styles.css?v=20260820-1" />
-  <script src="i18n.js?v=20260820-1" defer></script>
-  <script src="site.js?v=20260820-1" defer></script>
+  <link rel="stylesheet" href="styles.css?v=20260824-1" />
+  <script src="i18n.js?v=20260824-1" defer></script>
+  <script src="site.js?v=20260824-1" defer></script>
 </head>
 <body>
   <header class="site-header" aria-label="網站導覽">
@@ -200,11 +200,12 @@
           </div>
           <h3>【漁火閃閃】</h3>
           <ul>
-            <li>海面流動效果：開放水域嘅波浪紋理會跟住風速／風暴強度分五級變化，風平浪靜輕輕晃動，8號風球以上波濤洶湧。</li>
-            <li>夕陽波光粼粼：晴天日落時分，水面會泛起白熱金邊嘅閃光點，好似陽光反照水面咁閃閃生光。</li>
-            <li>落雨漣漪：落雨嗰陣水面會泛起橢圓形漣漪圈，密度跟雨勢一齊遞增。</li>
-            <li>新增香港18區自動命名系統：巴士站會自動跟返所屬地區改名（都可以自己重新命名），小地圖亦會標返實際地區名。</li>
-            <li>修正運輸車廠只得第一個先算「啟用」嘅舊 bug，同一個廢棄物殘留水面嘅地形編輯 bug。</li>
+            <li>海面流動效果：開放水域（大海／湖）嘅水面而家會有動態波浪紋理，跟住風速（颱風信號做保底）分五級——風平浪靜嗰陣輕輕晃動，8號風球以上會變到波濤洶湧、紋理明顯加大加快。可以喺 View 選單獨立開關「海面流動效果」。</li>
+            <li>夕陽波光粼粼：晴天、太陽循環行到接近日落嗰段時間，水面會出返一啲白熱金邊嘅閃光點，當中幾粒特別亮嘅「主角」閃光仲帶十字光芒，好似陽光喺水面反光咁閃閃生光。</li>
+            <li>落雨漣漪：落雨嗰陣開放水域會不時泛起橢圓形（跟返地圖 2:1 等角比例）嘅漣漪圈，密度同雨勢一齊遞增——小雨疏落，黑雨／8號風球會密到成片水面都係漣漪。</li>
+            <li>地區命名系統：新增香港18區，自動散佈喺地圖上（每個城市種子都有唔同排位）；巴士站冇自訂名就會自動跟返所屬地區改名（仲會揀方向／碼頭等字尾），亦可以隨時手動重新命名；小地圖「住宅」總覽而家都會標返實際地區名。</li>
+            <li>修正運輸車廠一直淨係第一個接駁到路嘅先算「啟用」嘅bug，而家所有已接駁嘅車廠都會正常啟用。</li>
+            <li>修正地形編輯bug：將水陸交界泥地（bare-land debris）嘅鄰居畫做水之後，個廢棄車／貨櫃堆會攤喺水面唔識消失，而家會跟住一齊清走。</li>
           </ul>
         </article>
 
@@ -215,12 +216,521 @@
           </div>
           <h3>【霧鎖香城】</h3>
           <ul>
-            <li>全新動態光影：晴天太陽會跟住一個獨立於遊戲曆嘅真實時間循環，由東面慢慢移到西面、黃昏轉橙紅色。</li>
-            <li>全天氣雲層系統：雲層密度同顏色跟住天氣分五級，落雨打風會變厚變深色，仲會自己飄動。</li>
-            <li>交通效能同顯示範圍優化：環境車輛 zoom 1x 就開始出現，高倍數 zoom 都唔會再無故消失。</li>
-            <li>速度掣重新編號做 1x／2x／4x／8x，更加直覺易睇。</li>
+            <li>全新動態光影：晴天先會出現，太陽光影會跟住一個獨立於遊戲曆嘅真實時間循環，慢慢由東面（金黃色）移到頭頂（中性）再到西面（橙紅色夕陽），可以喺 View 選單隨時開關。</li>
+            <li>全天氣雲層系統：由以前淨係陰天先有雲，改成所有天氣都會有雲飄過，密度同顏色跟住天氣分五級——晴天最少最淡、陰天中等、落雨轉厚、黑色暴雨／8號風球以上就會變做深灰色烏雲；雲層本身會自己飄動。Zoom入超過1.2倍雲會逐漸散去，好似穿過雲層咁清晰返；zoom出返就會再現。</li>
+            <li>交通效能同顯示範圍優化：重寫咗傳送／交通／船隻視覺嘅每幀掃描邏輯，大幅減少計算量；環境車輛而家zoom 1x就開始出現（舊版要1.4x）；修正咗高倍數zoom（2x以上）環境車輛會完全消失嘅bug。</li>
+            <li>速度掣重新編號：舊有0.15x／0.5x／1x／2x四檔改做1x／2x／4x／8x顯示，數字更加直覺；新開／載入城市預設維持返原有節奏（即係舊嘅0.15x檔）。</li>
+            <li>清理咗約53MB從未被實際使用嘅美術素材（重複貼圖、舊地形殘留圖等），減低安裝檔大細。</li>
           </ul>
         </article>
+
+        <article class="release-card">
+          <div class="release-meta">
+            <span>v4.1.0</span>
+            <span>2026年8月22日</span>
+          </div>
+          <h3>【青山綠水】</h3>
+          <ul>
+            <li>全新荒地廢棄物場景：大片平坦草地會自然長出一嚿嚿石仔地（dirt），石仔地上有一成機會出現廢棄車輛或貨櫃堆等雜物，尺寸按遊戲入面真實車輛模型校準，喺格仔入面隨機偏移擺位，唔會成排整整齊齊咁擺；石仔地淨係會生廢棄物，唔會再長樹。</li>
+            <li>廢棄物識自我修復：行為完全同樹木一樣——如果嗰塊地起咗建築、劃咗地帶或者鋪咗馬路，廢棄物會喺下一次模擬循環自動消失，唔使等玩家逐格清理；推土機掣亦都可以即時清走廢棄物，同時保留返地下嘅石仔地。</li>
+            <li>全套地形貼圖換新：草地、沙灘、河道、山坡、馬路等全部換成新一套「自然系」貼圖，並修正咗山坡貼圖同路面高度唔啱嘅樓梯級問題。</li>
+            <li>巴士站動畫同乘客體驗：恢復入站減速／離站加速動畫；巴士站改為容許單邊擺放，巴士行經未列明嘅站都會自動順道載客；收到車資會有 TTD 式浮動 "+$" 文字提示。</li>
+            <li>車輛追蹤視窗重新設計：收埋做側邊圖示分頁（乘客／狀況／路線），介面更加乾淨企理。</li>
+            <li>修正巴士同背景車流互相「疊埋」嘅視覺問題（雙方保持最少車距）；優化城市污染同財政預算計算效能，大城市長期運行更流暢。</li>
+          </ul>
+        </article>
+
+        <article class="release-card">
+          <div class="release-meta">
+            <span>v4.0.0</span>
+            <span>2026年8月20日</span>
+          </div>
+          <h3>【香城巴士公司】</h3>
+          <ul>
+            <li>全新「運輸營運」模式：撳左上角「建設指引 CITY GUIDE」個 header，即可喺城市建設同經營巴士公司之間切換——同一個地圖、同一個時鐘，工具同介面會換成路線、車隊、需求、車廠、財務、公司六個獨立可拖曳視窗，逐個喺頂部工具列開關。</li>
+            <li>獨立公司財政：巴士公司開業獲發 $600 啟動資金，同市政府庫房完全分開；市政府稅收、貸款、部門撥款一律唔會影響巴士公司，公司蝕本都唔會拖冧市政府財政。連續三個月虧損會自動暫停所有路線。</li>
+            <li>逐架擁有嘅車隊：巴士要響車廠逐架購買（兩種車型 $210～$280），每個車廠得 12 個泊位，行駛耐咗要定期返廠保養，車齡同狀態會影響載客表現同故障機會。</li>
+            <li>真實逐架模擬：每架巴士按實際路線行駛、上落客、賺車資即時入帳，唔再係公式估算；候車乘客按每日通勤需求重設，車輛到站先扣減隊列，避免候車人數無限累積。</li>
+            <li>即時追蹤視窗：撳任何一架行緊嘅巴士或者巴士站，就會開返一個獨立視窗——巴士有實時 Camera 跟實架車、可拖曳、可縮小、可同時開幾個；巴士站顯示即時候車人數。</li>
+            <li>四項實際城市效果：經營得好嘅路線會紓緩附近交通擠塞、提升商業區地價、增加工業區勞動力需求、提升 H 級或以下住宅嘅快樂指數（豪宅級 UH 唔受惠，佢哋唔搭巴士）。</li>
+            <li>修正城市資金列「更多資訊」展開後撳唔返收起嘅問題；縮放控制搬去城市畫面右上方；增加背景隨機車流數量，令城市睇落更加繁忙。</li>
+          </ul>
+        </article>
+
+        <article class="release-card">
+          <div class="release-meta">
+            <span>v3.14.0</span>
+            <span>2026年8月15日</span>
+          </div>
+          <h3>時空重置</h3>
+          <ul>
+            <li>全新時間系統：日曆由以前「約7.5日一個模擬周期」改成一日一日咁行，速度檔位改為 暫停／0.15x／0.5x／1x／2x（原本淨係1x/2x/4x/暫停），新開/載入城市預設1x。1x保持返同以前一樣嘅節奏（一個月約20秒、一年約4分鐘），重型城市模擬（經濟、人口增長、股市等）維持每個月4次唔變，只有天氣（同颱風）改為每日更新，令風球呢類短時間事件睇落唔再一嚟就過。</li>
+            <li>慢速唔再拖慢架車：以前揀0.15x/0.5x連馬路上啲車、船、飛機都會跟住慢到似定格，而家車速固定唔會跌穿正常1x（淨係2x先會加快），慢速淨係影響時間流逝快慢，唔會影響交通畫面觀感。</li>
+            <li>新增巴士站路邊裝飾：直路兩邊都可以擺放巴士站牌連簷篷（$20），四個方向自動貼返正確嗰邊路肩。</li>
+            <li>修正巴士站遮擋順序：其中兩個方向入站一刻會被巴士站簷篷蓋住半架車、行前少少先返正常嘅問題，而家四個方向都按路面規則穩定顯示——貼近行車線嗰邊巴士站企定喺前，另一邊就車企喺前。</li>
+          </ul>
+        </article>
+
+        <article class="release-card">
+          <div class="release-meta">
+            <span>v3.13.0</span>
+            <span>2026年8月9日</span>
+          </div>
+          <h3>官員專訪</h3>
+          <ul>
+            <li>新增十位官員議員嘅「人物專訪」金句：行政長官、財政司司長、警署署長、天文台台長、康樂及文化事務署署長，以及自由市場派、民主派、商界、宗教界、旅遊界議員，各有一句專屬性格quote，三語言（中／英／日）齊全。</li>
+            <li>「Profile feature」掣改咗做即時彈出效果：撳落去個人資料卡入面「核心理念」個quote box會即刻換成呢句人物專訪金句（換色highlight），6秒後自動變返原本嗰句。</li>
+            <li>修復咗「人物專訪」掣一直冇反應嘅Bug：原來撳落去淨係將句子塞入一個成個遊戲都冇讀嘅內部陣列，冇AI新聞就乜嘢都唔會顯示，難怪一直好似壞咗咁。</li>
+          </ul>
+        </article>
+
+        <article class="release-card">
+          <div class="release-meta">
+            <span>v3.12.0</span>
+            <span>2026年8月9日</span>
+          </div>
+          <h3>宣傳2</h3>
+          <ul>
+            <li>新增「住宅財富分區」制度：全地圖劃成 16×16 網格，按附近已建成住宅嘅平均地價分類做平民區／中產區／富人區／富豪區域四級，每級有固定嘅 L/M/H/UH 出現機率（富豪區域 UH 70%／H 30%，平民區 M 40%／L 60% 等），完全取代舊有嘅逐格質素分帶同UH「只限低密度」規則。</li>
+            <li>富豪區域加入額外門檻：除咗地價要達標，附近仲要有大型旗艦公園（維多利亞公園級別）、海邊，或者地標建築（廟宇、教堂、博物館、體育館等）先會解鎖；反過來，附近有工業區、發電廠、貨櫃碼頭或者機場嘅地方，就算地價幾高都會封頂喺中產區，唔會出現富人區同富豪區域。</li>
+            <li>新增建築「密度款式」（LD/MD/HD 低/中/高層樓身），同財富分區獨立疊加：低密度住宅區主要出現LD／MD款、高密度區主要出現MD／HD款，HD款式喺低密度區保證唔會出現。</li>
+            <li>修正Electron桌面版入面「幫建築物改名」冇反應嘅Bug：`window.prompt()` 喺Electron入面根本冇實現，撳落去乜嘢都唔會彈；改用返APP自家嘅彈窗（同「另存新城市」用緊嗰個一樣），連帶修埋「生成新地形」同「儲存地形預設」入面同一個問題。</li>
+            <li>新聞跑馬燈加入10款懷舊香城式廣告（時倉迷你昌、得城女傭、Why Me Me等），同城市新聞穿插出現，每3條就有1條係廣告。</li>
+          </ul>
+        </article>
+
+        <article class="release-card">
+          <div class="release-meta">
+            <span>v3.11.0</span>
+            <span>2026年8月8日</span>
+          </div>
+          <h3>大時代</h3>
+          <ul>
+            <li>新增「金融管理局」政府股票交易：股票交易所建成、庫房儲備超過1000萬後解鎖，可以動用庫房資金直接喺交易所買賣任何上市股票，交易會影響即市股價（買升賣跌），收0.25%手續費，單一股票持股上限15%，唔可以晒冷全城股市。</li>
+            <li>股市牛熊循環重新平衡：熊市由之前間唔中出現嘅短暫插曲，變成同牛市、橫行市況鼎足而立嘅真實週期；上市公司基本因素會隨市況上落，長遠恒指同每隻股票嘅合理值都封咗頂同底，唔會玩耐咗變到天文數字。</li>
+            <li>政府入市護盤、大手掃貨、賺大錢或者蝕大本都會上報紙頭條，新增兩張新聞插圖（股市造好／官員蝕錢）配合報導。</li>
+            <li>重新盤點全城住宅同商業建築嘅出現機率：修復咗UH豪宅嘅2x2「別墅」款式喺低密度住宅區永遠唔會出現嘅漏洞（而家會同3x3「大宅」款式一齊有機會出現）、大幅提高 4x4／5x5 住宅同商業大廈嘅出現率、將幾款過高過大嘅2x2 H級洋樓調低出現機率，等佢哋唔會成為街景嘅絕對主流。</li>
+            <li>新增「低密度屋苑活化」：如果一整個 3x3 街區嘅村屋通通達到UH豪宅嘅嚴格門檻（地價、景觀、環境、健康、經濟指數樣樣達標），有機會一次過重建做一座UH豪宅大宅。</li>
+          </ul>
+        </article>
+
+        <article class="release-card">
+          <div class="release-meta">
+            <span>v3.10.0</span>
+            <span>2026年8月8日</span>
+          </div>
+          <h3>廟街煲仔飯</h3>
+          <ul>
+            <li>大城市模擬效能優化：重整成熟城市嘅住宅/商業/工業模擬熱路徑，autosave 改為背景執行，減少大城市長期遊玩嘅卡頓。</li>
+            <li>補完 300 個一直漏咗嘅日文翻譯：立法會系統（十位官員議員嘅人物設定、政策取態、台詞）、報紙「號外」彈窗、股票交易所視窗、颱風信號同天氣狀態列、以及幾個政策/建築/工具標籤，之前呢啲喺日文版一直靜靜雞 fallback 顯示緊英文。加入自動測試防止未來再有翻譯漏咗都冇人知。</li>
+            <li>修正 `?performance=1` 效能測試模式會自動彈出面板嘅問題：而家背景會繼續收集數據，但面板要手動撳先會顯示，唔會再遮住個遊戲畫面。</li>
+            <li>官網加入四語言支援（中文香港／中文台灣／英文／日文），右上角有語言切換掣，全站內容（截圖、下載、玩家手冊、22 個版本嘅完整 changelog）全部四語言齊全。</li>
+            <li>官網新增完整遊戲指南頁（唔係 MD 檔案直出），詳細講解分區密度、經濟稅收、立法會、天氣颱風、特殊建築解鎖同交通系統。</li>
+            <li>官網截圖全面更新：加入機場運作、街道車流、香城討論區、立法會議案審議、城市改名、以及廟街風格傳統地攤建築群夜景等新截圖。</li>
+          </ul>
+        </article>
+
+        <article class="release-card">
+          <div class="release-meta">
+            <span>v3.9.0</span>
+            <span>2026年8月8日</span>
+          </div>
+          <h3>好岸居</h3>
+          <ul>
+            <li>重新設計住宅同商業建築嘅出現機率：公共/大眾房屋（L）喺中高密度區成為大宗，私樓（M）為次要，豪宅／甲級寫字樓（H）變返真正嘅少數，UH（罕有莊園／匯豐總行／中銀大廈呢類地標）維持極稀有。</li>
+            <li>新增「低密度規劃鎖定」：一幅地一經劃為低密度住宅，就永久唔可以再改做中／高密度，就算推倒重來、dezone 都好，保持低密度區嘅村屋／別墅風格永遠唔會被起樓起到變返屋邨。舊 save 讀取時會自動追溯鎖定現有嘅低密度地。</li>
+            <li>修正低密度 3x3「莊園」後門：觸發嗰陣一定揀返 UH 莊園 model，唔會再手多手甩揀成 20 層高嘅屋邨大廈。</li>
+            <li>加入「大地皮優先掃描」，解決 5x5 住宅大廈幾乎冧唔到嘅問題：高密度區入面一有完整空地就優先起大樓，唔會再被四周細屋搶晒地。</li>
+            <li>商業區加入兩款全新街市場景模型（4x4，女人街／廟街風）同一款分層商場大廈模型（1x1），並按上述原則重整商業機率分佈。</li>
+            <li>更新大廟（grand_temple）美術素材。</li>
+          </ul>
+        </article>
+
+        <article class="release-card">
+          <div class="release-meta">
+            <span>v3.8.1</span>
+            <span>2026年8月7日</span>
+          </div>
+          <h3>衝上雲霄</h3>
+          <ul>
+            <li>Recalibrated all four container-ship berth positions (ll/lr/ul/ur). v3.8.0's aircraft flight-curve rework had bundled in an unintended vessel berth recalibration that drifted noticeably from the verified v3.7.2 positions.</li>
+            <li>Fixed "Auto-replace aged power plants" not applying to nuclear plants: the replacement-cost and display-name lookups only recognised coal and solar, so nuclear plants were always abandoned at end of life regardless of the setting.</li>
+          </ul>
+        </article>
+
+        <article class="release-card">
+          <div class="release-meta">
+            <span>v3.8.0</span>
+            <span>2026年8月2日</span>
+          </div>
+          <h3>衝上雲霄</h3>
+          <ul>
+            <li>Added complete airport traffic with two airline liveries in four directions, curved approach and departure paths, landing and takeoff sounds, runway rolls, taxi routes and six calibrated gates.</li>
+            <li>Busy airports now average three to four concurrent aircraft while enforcing one aircraft per gate and one active runway movement at a time. Routes stay aligned with the 12×12 airport through every map rotation.</li>
+            <li>Signal 8 or above grounds new flights and keeps parked aircraft at their gates until conditions clear. Aircraft already in motion safely complete their current landing or departure leg.</li>
+            <li>Signal 8 or above immediately suspends buses and minibuses: vehicles already on the road disappear and no new ones spawn until the warning is lowered, while taxis, cars, vans and trucks continue running.</li>
+            <li>Recalibrated container-ship berths and moved route calibration to shipped metadata so every fresh install receives the same verified aircraft and vessel routes.</li>
+            <li>Updated the public download-site icon.</li>
+          </ul>
+        </article>
+
+        <article class="release-card">
+          <div class="release-meta">
+            <span>v3.7.2</span>
+            <span>2026年8月1日</span>
+          </div>
+          <h3>貨櫃碼頭！ (Stability &amp; performance hotfix)</h3>
+          <ul>
+            <li>Fixed a simulation-tick performance bug: `computeHappiness` and the health-metrics pass rebuilt every residential tile's tree-canopy and scenic-view score from scratch on every single tick (every 5s, or 1.25s at 4x speed), duplicating an uncached full-map radius scan already known to cause long GC pauses in mature cities. Scores are now cached for the game month and shared between both systems, matching the caching strategy already used for zone-growth land value.</li>
+            <li>Added renderer crash/hang recovery to the desktop app: if the game's display process crashes or stops responding for more than a few seconds, the app now offers to reload it in place instead of leaving a frozen, unrecoverable window that required a force-quit.</li>
+            <li>Added a close (✕) button to the hidden performance test-mode panel, so it can be dismissed directly instead of repeating the five-rapid-click icon gesture.</li>
+          </ul>
+        </article>
+
+        <article class="release-card">
+          <div class="release-meta">
+            <span>v3.7.0</span>
+            <span>2026年8月1日</span>
+          </div>
+          <h3>貨櫃碼頭！</h3>
+          <ul>
+            <li>Added animated cargo vessels for visible container ports, with empty, half-loaded and full cargo states in all four isometric directions.</li>
+            <li>Vessels enter from open water, approach and berth parallel to the quay, exchange cargo, sound their horn, then retrace a safe departure route.</li>
+            <li>Calibrated all four harbor artwork orientations so the vessel model centre aligns with the true quay centre while preserving the intended shore clearance.</li>
+            <li>The final three inbound tiles and first three outbound tiles remain parallel to the quay; farther out, routes follow the real connected waterway without treating the quay line as an infinite wall.</li>
+            <li>Added camera-aware route caching and viewport gating so ocean pathfinding is reused and off-screen ports add negligible frame cost.</li>
+            <li>Corrected near-berth layer ordering for the close LL/LR orientations so vessels remain visible in front of the harbor artwork where required.</li>
+            <li>Added bilingual Chinese/English city nameplates with selectable colours, plus broader viewport culling and frame-rate limits for smoother large-city rendering.</li>
+          </ul>
+        </article>
+
+        <article class="release-card">
+          <div class="release-meta">
+            <span>v3.6.0</span>
+            <span>2026年7月26日</span>
+          </div>
+          <h3>車公靈籤</h3>
+          <ul>
+            <li>Added Heung Shing's annual New Year fortune tradition with 18 original seven-character fortunes: six upper, six middle and six lower lots.</li>
+            <li>At the start of each year, a city with a temple draws one fortune. The odds gently respond to the economy, an active stock crash and epidemic severity, while avoiding repeats from the previous three years.</li>
+            <li>Every annual fortune publishes a forum report with the full poem, a government interpretation, temple keeper Cheung's interpretation and three fortune-specific satirical citizen replies. It appears in the ticker and forum without interrupting play with a popup.</li>
+            <li>Annual results and their economic snapshot are saved, preventing reloads from rerolling the fortune. Upper and lower lots also apply small temporary city effects.</li>
+            <li>Added the Industrial Building Revitalization policy: more industrial demand and revenue with less factory pollution, offset by substantially heavier local industrial traffic.</li>
+            <li>Added Strong Nation Manufacturing 20XX after the Science Development Act, including industrial and science-park boosts, a delayed subsidy-abuse story and a later research-success story.</li>
+            <li>Added rare secondary-school laboratory explosion reports, and kept stock-crash forum coverage protected by regression tests.</li>
+            <li>Forum categories now show their 15 most recent stories in newest-first order; the three industrial-policy breaking stories open as newspaper extras.</li>
+          </ul>
+        </article>
+
+        <article class="release-card">
+          <div class="release-meta">
+            <span>v3.5.0</span>
+            <span>2026年7月26日</span>
+          </div>
+          <h3>夢幻雪糕車</h3>
+          <ul>
+            <li>Added a dedicated ice cream truck event that can visit schools, colleges, universities and genuine visitor attractions during clear or cloudy weather.</li>
+            <li>The truck now enters from outside the player's current zoomed viewport, follows connected roads, approaches the correct Hong Kong left-driving curb and uses smooth forward parking and departure curves.</li>
+            <li>The ice cream truck stops on the sidewalk-side curb, mixes its melody with the city's ambient soundscape, then rejoins traffic and drives beyond the current view.</li>
+            <li>Added viewpoint persistence: every save now records the logical map centre, zoom and rotation, and restores them when the city is reloaded.</li>
+            <li>Removed repetitive population increase notifications while preserving meaningful unlock announcements.</li>
+            <li>Added regression coverage for event weather, destinations, viewport entry and exit, curb direction, parking motion, audio preloading and viewpoint saves.</li>
+          </ul>
+        </article>
+
+        <article class="release-card">
+          <div class="release-meta">
+            <span>v3.4.0</span>
+            <span>2026年7月25日</span>
+          </div>
+          <ul>
+            <li>Added 19 visual traffic models across buses, private cars, minibuses, taxis, trucks and vans, with 76 direction-specific sprites and vehicle-specific city scale factors.</li>
+            <li>Added left-hand traffic that follows connected roads, uses separate directional lanes, rounds junction turns and maintains spacing behind slower vehicles.</li>
+            <li>Connected vehicle density to the visible `trafficMap`, with weighted hotspot spawning and a bounded 28-vehicle viewport cap.</li>
+            <li>Added continuous vehicle movement across elevated roads, terrain slopes, crests, bridge ramps and bridge decks.</li>
+            <li>Added realistic grade behaviour: vehicles slow to 82% uphill and 94% downhill while retaining the correct screen-facing texture through every map rotation.</li>
+            <li>Added zoom-gated, lazy-loaded and viewport-only traffic rendering so off-screen vehicles and low-zoom traffic do not consume simulation resources.</li>
+            <li>Improved large-map responsiveness with live camera terrain culling, bounded spawn and route-transition work, batched depth updates and incremental traffic asset loading.</li>
+          </ul>
+        </article>
+
+        <article class="release-card">
+          <div class="release-meta">
+            <span>v3.3.0</span>
+            <span>2026年7月22日</span>
+          </div>
+          <ul>
+            <li>海洋公園改為 8×8 議會項目，需要人口、政府收入、財政盈餘及經濟指數達標後提交議案。</li>
+            <li>新增機場批准、海洋公園活動及兩則股災討論區新聞圖片。</li>
+            <li>八號或以上風球會按颱風名稱及天文台台長生成水浸與 KTV 避風新聞。</li>
+            <li>名人訪問、演唱會、企鵝保育、教堂及大學新聞改為與實際建築條件掛鉤。</li>
+            <li>加入完整特殊建築解鎖玩家手冊、遊戲內說明，以及議員風格首次解鎖走馬燈。</li>
+            <li>重新啟用 `sciencePark3-02`，保留先載入貼圖、成功後才替換舊工業建築的兩階段保護。</li>
+            <li>貨櫃碼頭支援沙灘後方接海水的海岸，移除模型外多餘岸邊，並修正四方向旋轉。</li>
+            <li>碼頭海邊判定改用索引，避免大型城市旋轉時產生數千萬次建築掃描。</li>
+            <li>機場、海洋公園及舊存檔保留安全 footprint fallback。</li>
+            <li>145 個模型以 lossless mipmapped WebP 封裝：來源約 151.0 MiB，封裝約 95.5 MiB，anchor 誤差 0px。</li>
+            <li>完整自動測試：78/78 通過。</li>
+          </ul>
+        </article>
+
+        <article class="release-card">
+          <div class="release-meta">
+            <span>v3.2.0</span>
+            <span>2026年7月19日</span>
+          </div>
+          <ul>
+            <li>Added L/M/H/UH residential and commercial progression driven by district quality and city conditions.</li>
+            <li>Restricted ultra-luxury homes to low-density residential zones and world-class towers to qualified high-density commercial zones.</li>
+            <li>Added the council-gated “I Love the Rose Garden Project” airport and upgraded it to a 12×12 footprint.</li>
+            <li>Reorganised civic, leisure and landmark construction menus for smaller screens.</li>
+            <li>Added sequential civic-building visual variants and improved isometric model anchoring.</li>
+            <li>Added lossless WebP release assets with power-of-two texture padding for smaller desktop packages.</li>
+          </ul>
+        </article>
+
+        <article class="release-card">
+          <div class="release-meta">
+            <span>v3.1.8</span>
+            <span>2026年7月15日</span>
+          </div>
+          <ul>
+            <li>Prevented built-in terrain preview generation from overwriting the active city's global elevation map.</li>
+            <li>Stopped language changes during gameplay from rebuilding the hidden landing-screen terrain previews.</li>
+            <li>Added a regression test that keeps preview generation isolated while preserving explicit terrain commits for new games.</li>
+          </ul>
+        </article>
+
+        <article class="release-card">
+          <div class="release-meta">
+            <span>v3.1.7</span>
+            <span>2026年7月13日</span>
+          </div>
+          <ul>
+            <li>Fixed three-month resolution-result news so both generation and the immediate popup resolve the packaged `UI/news/*.webp` image.</li>
+            <li>Removed startup requests for 78 deleted `Models/PNG/buildingTiles_*.png` assets and deleted the associated dead legacy placement/catalog code.</li>
+            <li>Removed one stale commercial fallback filename and verified every configured startup/fallback model file exists.</li>
+          </ul>
+        </article>
+
+        <article class="release-card">
+          <div class="release-meta">
+            <span>v3.1.6</span>
+            <span>2026年7月13日</span>
+          </div>
+          <ul>
+            <li>Fixed the city-state sanitizer that discarded every current `UI/news/*.webp` forum image path before the renderer created its `&lt;img&gt;` elements.</li>
+            <li>Legacy `UI/News/*.png` save references now migrate to the case-correct optimized WebP assets.</li>
+            <li>Added a release regression test covering both current and legacy forum image paths.</li>
+          </ul>
+        </article>
+
+        <article class="release-card">
+          <div class="release-meta">
+            <span>v3.1.5</span>
+            <span>2026年7月13日</span>
+          </div>
+          <ul>
+            <li>Window-title and About-dialog version labels now report v3.1.5 and are sourced from the packaged application metadata.</li>
+            <li>Forum WebP images and thumbnails are explicitly included in DMG and EXE packages.</li>
+            <li>Existing saved forum image paths continue to migrate to the case-correct optimized assets.</li>
+          </ul>
+        </article>
+
+        <article class="release-card">
+          <div class="release-meta">
+            <span>v3.1.4</span>
+            <span>2026年7月12日</span>
+          </div>
+          <ul>
+            <li>The v3.1.3 image-path fix called a helper function (`normalizeForumImagePath`) that, due to a packaging oversight, was never actually included in that release. As a result, every attempt to create a forum post — the monthly discussion post, resolution-outcome announcements, all of it — threw an error and silently failed. New games and existing saves alike stopped generating any forum content. The function is now defined directly where it's used, with no missing dependency.</li>
+          </ul>
+        </article>
+
+        <article class="release-card">
+          <div class="release-meta">
+            <span>v3.1.3</span>
+            <span>2026年7月12日</span>
+          </div>
+          <ul>
+            <li>15 forum "special event" images (typhoon, rainstorm, academic ranking, singer scandal, free ice cream, night drone show, and others) still pointed at their old pre-WebP-migration `.png` paths, which no longer exist on disk — every one of them showed as a broken image. All references now point at the real `.webp` files, and the image-path validator that builds each forum post now reuses the same normalization used elsewhere, instead of a separate check that only accepted the old format.</li>
+            <li>The discussion forum generated a new post every single in-game month, even when nothing notable happened, which added up to unnecessary churn over a long game. It now only posts every month when something actually triggers it (a typhoon, a new policy, a stat threshold, a seasonal event, etc.); if nothing did, it falls back to at most once every 3 months.</li>
+          </ul>
+        </article>
+
+        <article class="release-card">
+          <div class="release-meta">
+            <span>v3.1.2</span>
+            <span>2026年7月12日</span>
+          </div>
+          <ul>
+            <li>When the AI news backend was unavailable (e.g. a rate-limited or exhausted API key), the Heung Shing Forum retried every pending post's AI comment generation on every trigger with no backoff — up to 60 requests per sweep, repeated. This saturated the local server's connection pool and could starve unrelated requests (forum/newspaper images, and briefly audio) behind the queue, making them appear permanently broken even though the underlying files were fine.</li>
+            <li>AI News now has a proper circuit breaker shared across all three AI features (news ticker, council character news, forum comments): 3 consecutive failures anywhere turns AI News off entirely instead of each feature quietly retrying forever in the background. A toast explains what happened. Re-enabling AI News from Settings resets the counter and immediately fires a fresh test request, which is itself subject to the same 3-strikes rule.</li>
+          </ul>
+        </article>
+
+        <article class="release-card">
+          <div class="release-meta">
+            <span>v3.1.1</span>
+            <span>2026年7月12日</span>
+          </div>
+          <ul>
+            <li>v3.1.0 shipped with Heung Shing Forum and newspaper images referencing `.webp` files that were never committed to the repository, so every forum/news image showed as a broken link. The missing WebP assets (and their thumbnails) are now included.</li>
+          </ul>
+        </article>
+
+        <article class="release-card">
+          <div class="release-meta">
+            <span>v3.1.0</span>
+            <span>2026年7月12日</span>
+          </div>
+          <ul>
+            <li>Acts &amp; Ordinances is no longer one long scrolling list — the 18 permanent bills are grouped into six collapsible categories (Finance &amp; Economy, Public Safety &amp; Transport, Environment &amp; Urban Planning, Education &amp; Science, Social Welfare, Governance Reform), plus a dedicated Special Resolutions group for the one-off funding motions (Cash Handout, Tour Everywhere, the MENA concert, the Mui Kin-kwok match, the AI anti-drug girl group, and Fantasy fing Heung Shing).</li>
+            <li>Every bill and resolution now shows the portrait of the official or councillor who moved it, chosen from each character's real focus areas and interests.</li>
+            <li>The policy/resolution detail view and the in-progress council session both open with a "podium" header using the real chamber interior artwork and the mover's portrait; an active session shows its real debate/decision stage instead of a plain status line.</li>
+            <li>Official advice and councillors' initial positions are laid out as alternating left/right cards instead of a stacked list, reading more like an actual floor debate.</li>
+            <li>Forum posts can now get AI-generated comments — 2 to 3 from citizens and 1 to 2 in-character replies from named officials, clearly badged apart from the rule-based ones.</li>
+            <li>Fixed the root cause of AI comments silently never appearing: reasoning-capable cloud models were spending their entire token budget on hidden "thinking" and leaving nothing for the actual reply. Generation now detects this, learns which models do it, and automatically falls back to a working model instead of failing silently.</li>
+            <li>The forum popup now updates live if AI comments finish generating after the dialog is already open, instead of requiring it to be reopened.</li>
+            <li>Music volume and a new separate City Ambience volume (the background traffic/rain/typhoon soundscape) are now both remembered between sessions.</li>
+            <li>The Settings and View menus were reorganised: display toggles (district signs, weather visual effects) moved into View; the redundant speed controls and Budget Panel shortcut (already available on the top bar and HUD) were removed from Settings.</li>
+          </ul>
+        </article>
+
+        <article class="release-card">
+          <div class="release-meta">
+            <span>v3.0.0</span>
+            <span>2026年7月11日</span>
+          </div>
+          <ul>
+            <li>Adds 10 named officials and councillors with distinct beliefs, focus issues, and rule-based opinions that react to real city data (budget, tax, crime, pollution, health, and more).</li>
+            <li>Council overview and Acts &amp; Ordinances tabs open once the Legislative Council is built and the city has enough population; opinions stay locked until then.</li>
+            <li>Officials and councillors can be renamed by the player; stable internal IDs keep news, votes, and comments consistent across renames.</li>
+            <li>Policy actions generate rule-based council news immediately, with an optional AI-authored version layered on top when Ollama Cloud is enabled.</li>
+            <li>Adds a `council_character` story type so AI news can voice specific officials — policy reactions, on-demand "profile feature" pieces, and typhoon signal announcements from the Observatory Director.</li>
+            <li>AI output is validated against the authoritative facts the game engine already decided (no invented numbers, policies, or characters); a rule-based fallback always covers the same event if AI is disabled or fails.</li>
+            <li>Newspaper "Extra" front pages celebrate milestones — Legislative Council opening, Stock Exchange listing, and Typhoon Signal No. 8+ bulletins — using the same rule-first pipeline.</li>
+            <li>Typhoons are now named from the real Western North Pacific tropical cyclone list (Chinese and Japanese names included) and progress through realistic 1→3→8→(9→10)→8→3→1 signal arcs driven directly by simulated wind speed.</li>
+            <li>Rainstorm warnings (Amber/Red/Black) are derived from simulated rainfall using Hong Kong Observatory-style thresholds.</li>
+            <li>A topbar weather chip shows live condition, temperature, humidity, and active signal/rainstorm badges using official-style HKO iconography; click it for a detail legend.</li>
+            <li>Adds screen-space rain particles and lightning with thunder, both tied to the same storm-severity ladder as the sky-darkening effect — rain falls vertically in calm weather and leans further with rising wind speed.</li>
+            <li>A new Settings toggle lets players disable rain/lightning visual effects for lower-end machines while keeping the (near-zero-cost) sky darkening.</li>
+            <li>Adds a zoom-aware Hong Kong ambient soundscape: zooming into dense commercial/residential blocks fades in matching urban or residential room tone, layered with rain/typhoon audio when the weather turns.</li>
+            <li>Rebalances nuclear power plant pollution to better reflect its real lifecycle footprint relative to coal.</li>
+            <li>Fixes a topbar weather dialog bug where reopening it kept appending old readings instead of showing only the current weather.</li>
+            <li>Fixes screen-space weather effects (darkening, rain, lightning) not covering the full viewport when zoomed out.</li>
+          </ul>
+        </article>
+
+        <article class="release-card">
+          <div class="release-meta">
+            <span>v2.0.0</span>
+            <span>2026年7月10日</span>
+          </div>
+          <ul>
+            <li>Adds optional Ollama Cloud news generation with Hong Kong-style editorial language and a rule-based fallback.</li>
+            <li>Adds simulated weather, heavy rain, typhoon stages, and citizen activity that feed both the ticker and AI context.</li>
+            <li>Keeps local Ollama execution disabled so the game does not consume player CPU or memory for model inference.</li>
+            <li>Stores the selected cloud model, AI setting, and API key locally with encryption.</li>
+            <li>Adds bilingual Hong Kong-style district signs with Chinese and English names.</li>
+            <li>Each sign defines a 36-tile district whose traffic, education, health, pollution, land value, population, and facilities feed local news.</li>
+            <li>Query mode can edit signs; Settings can show or hide them without changing simulation data.</li>
+            <li>Sign placement, editing, removal, and visibility changes now autosave safely to the current city slot.</li>
+            <li>No Ollama API key is included in the source repository or release installers.</li>
+            <li>After installation, open Settings → AI News, paste your own Ollama API key, choose an available model, and enable AI headlines.</li>
+            <li>The game remains fully playable without an API key through simulated and rule-based news.</li>
+          </ul>
+        </article>
+
+        <article class="release-card">
+          <div class="release-meta">
+            <span>v1.1.0</span>
+            <span>2026年6月8日</span>
+          </div>
+          <ul>
+            <li>每條道路格子依鄰近區域類型與密度計算交通流量，工商業區交通需求明顯高於住宅區</li>
+            <li>高密度住宅區流量是低密度的 7 倍；商業區最高可達 14 倍、工業區 17 倍</li>
+            <li>高擠塞指數（&gt;40%）會壓低住宅需求，嚴重擠塞（&gt;60%）亦影響商業需求</li>
+            <li>城市發展指數「交通」評分現已結合道路覆蓋率與擠塞指數計算</li>
+            <li>新增 🚦 交通地圖，以綠（暢通）→ 黃（繁忙）→ 紅（擠塞）顯示各道路格子的即時負載</li>
+            <li>Detail panel 顯示城市整體擠塞指數、道路覆蓋率及流量狀態（繁中英三語）</li>
+            <li>所有地圖 Overlay 按鈕（污染、犯罪、火災、人口、地價、健康、電力、交通等）整合為單一「🗺️ 資訊地圖」按鈕</li>
+            <li>點擊直接開啟 Overlay 視窗，可在視窗內自由切換 10 種地圖類型</li>
+            <li>選單更簡潔，減少項目數量</li>
+          </ul>
+        </article>
+
+        <article class="release-card">
+          <div class="release-meta">
+            <span>v1.0.6</span>
+            <span>2026年6月7日</span>
+          </div>
+          <ul>
+            <li>Desktop installers for The City of Heung Shing v1.0.6. Windows auto-update metadata is included for installed desktop builds.</li>
+          </ul>
+        </article>
+
+        <article class="release-card">
+          <div class="release-meta">
+            <span>v1.0.5</span>
+            <span>2026年6月6日</span>
+          </div>
+          <ul>
+            <li>Desktop installers for The City of Heung Shing v1.0.5. Windows auto-update metadata is included for installed desktop builds.</li>
+          </ul>
+        </article>
+
+        <article class="release-card">
+          <div class="release-meta">
+            <span>v1.0.4</span>
+            <span>2026年6月6日</span>
+          </div>
+          <ul>
+            <li>Desktop installers for The City of Heung Shing v1.0.4.</li>
+          </ul>
+        </article>
+
+        <article class="release-card">
+          <div class="release-meta">
+            <span>v1.0.3</span>
+            <span>2026年6月6日</span>
+          </div>
+          <ul>
+            <li>Desktop installers for The City of Heung Shing v1.0.3.</li>
+          </ul>
+        </article>
+
+        <article class="release-card">
+          <div class="release-meta">
+            <span>v1.0.2</span>
+            <span>2026年6月6日</span>
+          </div>
+          <ul>
+            <li>Desktop installers for The City of Heung Shing v1.0.2.</li>
+          </ul>
+        </article>
+
+        <article class="release-card">
+          <div class="release-meta">
+            <span>v1.0.1</span>
+            <span>2026年6月5日</span>
+          </div>
+          <ul>
+            <li>Stop the title/loading theme when a saved game or new city enters gameplay.</li>
+            <li>Start gameplay jukebox music after loading into the city, preventing overlapping audio.</li>
+          </ul>
+        </article>
+
+        <article class="release-card">
+          <div class="release-meta">
+            <span>v1.0.0</span>
+            <span>2026年6月5日</span>
+          </div>
+          <ul>
+            <li>Initial desktop release for macOS and Windows.</li>
+          </ul>
+        </article>
+
       </div>
     </section>
 

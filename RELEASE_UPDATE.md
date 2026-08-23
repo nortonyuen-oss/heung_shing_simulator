@@ -58,7 +58,9 @@ The installer workflow uses the first `RELEASE_NOTES.md` heading as the GitHub R
 
 Also update the website release notes and counters:
 
-- Add the new release summary to the changelog section in `docs/index.html`.
+- Add a new `.release-card` (see existing ones in `docs/index.html` for the exact markup - `.release-meta` version+date, optional `<h3>` theme, `<ul>` highlights) as the FIRST card inside `<div class="release-list">`, and move `current-release` off the previous top card onto this one. This section has no JS renderer - `docs/site.js` only wires up download links/stats from the GitHub API, nothing populates the changelog automatically, so skipping this step silently leaves it stale.
+- Update the hero version badge/description (`hero.versionBadge` / `hero.versionDesc` in `docs/i18n.js`, all 4 languages: zh-HK, zh-TW, en, ja) to the new version and a one-line summary of what's new.
+- Bump the `?v=YYYYMMDD-N` cache-busting query string on `styles.css`, `i18n.js`, and `site.js` in `docs/index.html`'s `<head>` whenever any of those three files change. Forgetting this means visitors' browsers (and possibly the CDN) keep serving the stale cached file even after the new one is deployed - for `i18n.js` specifically, this makes any new `data-i18n` key render as the literal key name (e.g. "hero.versionBadge") instead of real text, since the old dictionary doesn't have it yet.
 - Confirm the `data-download-link` platform keys in `docs/index.html` still match the asset matchers in `docs/site.js`.
 
 Quick search:

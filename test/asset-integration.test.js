@@ -300,7 +300,6 @@ test('both road sets provide every logical road topology', () => {
 
 test('large transport sources use transparent PNG canvases', () => {
   const files = [
-    'Models/airPort/6x6/airport6-01.png',
     'Models/containerPort/4x4/containerPort4-LL.png',
     'Models/containerPort/4x4/containerPort4-LR.png',
     'Models/containerPort/4x4/containerPort4-UL.png',

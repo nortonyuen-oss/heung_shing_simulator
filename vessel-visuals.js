@@ -313,13 +313,7 @@ function requestVesselBundle(scene) {
 }
 
 function getVesselPortEntries() {
-  if (typeof buildingData === 'undefined' || !buildingData) return [];
-  return Object.entries(buildingData)
-    .filter(([, record]) => record?.type === 'container_port')
-    .map(([id, record]) => {
-      const [row, col] = id.split(':').map(Number);
-      return { id, row, col, record };
-    });
+  return typeof getBuildingFacilityEntries === 'function' ? getBuildingFacilityEntries('container_port') : [];
 }
 
 function getVesselFacilitySprite(scene, entry) {

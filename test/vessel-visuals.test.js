@@ -742,6 +742,7 @@ test('runtime update only starts work for a container port near the camera view'
     'city', 'buildingData', 'mapData', 'WATER', 'isoToScreen', 'simPaused',
     'simSpeedMul', 'isTerrainCreatorMode', 'TILE_WIDTH', 'TILE_HEIGHT',
     'TILE_IMAGE_HEIGHT', 'BUILDING_SURFACE_Y_OFFSET', 'getHarborRecordWaterSide',
+    'getBuildingFacilityEntries',
   ].map((key) => [key, global[key]]));
   const createdSprites = [];
   const makeSprite = (overrides = {}) => ({
@@ -790,6 +791,16 @@ test('runtime update only starts work for a container port near the camera view'
     global.buildingData = {
       '5:5': { type: 'container_port', footprintCols: 4, footprintRows: 4, harborWaterSide: 'e' },
     };
+    // getVesselPortEntries defers to city-state.js's cached facility lookup
+    // in production; that module isn't loaded by this test file (like
+    // aircraft-visuals.test.js's equivalent airport mock), so stand in with
+    // the same buildingData-scan the real cache builder does.
+    global.getBuildingFacilityEntries = (type) => Object.entries(global.buildingData)
+      .filter(([, record]) => record?.type === type)
+      .map(([id, record]) => {
+        const [row, col] = id.split(':').map(Number);
+        return { id, row, col, record };
+      });
 
     // Port sprite far outside the camera - nothing should be created.
     const offScreenScene = makeScene(makeSprite({ x: 50000, y: 50000 }));

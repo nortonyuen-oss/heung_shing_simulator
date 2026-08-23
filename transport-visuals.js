@@ -252,7 +252,7 @@ function getTransportVisibleVehicleIds(routeEntries) {
 // created/destroyed when a vehicle actually becomes/stops being eligible
 // (bought, sold, assigned, route breaks, etc.) - promoted from the old
 // formula-driven full-rebuild-on-signature-change (§13).
-function syncManagedTransportVehicles(scene, state, routeEntries) {
+function syncManagedTransportVehicles(scene, state, routeEntries, vehicleById) {
   const runtimeByRoute = new Map(routeEntries.map((entry) => [entry.route.id, entry]));
   // A tracked bus keeps its real shared sprite even if it falls beyond the
   // ordinary fleet cap. Tracker cameras render this same object; they never
@@ -276,11 +276,10 @@ function syncManagedTransportVehicles(scene, state, routeEntries) {
   const models = getTransportBusModels(scene);
   if (models.length === 0) return;
   const existingIds = new Set(state.vehicles.map((visual) => visual.vehicleId));
-  const allVehicles = getTransportExpansionState().vehicles;
   let modelCursor = state.vehicles.length;
   for (const vehicleId of visibleIds) {
     if (existingIds.has(vehicleId)) continue;
-    const vehicleEntity = allVehicles.find((entry) => entry.id === vehicleId);
+    const vehicleEntity = vehicleById.get(vehicleId);
     const entry = vehicleEntity ? runtimeByRoute.get(vehicleEntity.routeId) : null;
     if (!entry) continue;
     const model = models[modelCursor % models.length];
@@ -299,36 +298,30 @@ function syncManagedTransportVehicles(scene, state, routeEntries) {
 // TRAFFIC_VISUAL_CONFIG.minimumHeadwayTiles), so buses and cars read as one
 // shared traffic stream instead of two that ignore each other. Returns the
 // furthest progress this vehicle may render at this frame, or null if clear.
-function findTransportVisualLeaderCeiling(scene, vehicle) {
+// leaderBuckets groups every transport + ambient-traffic vehicle by its
+// current->next leg (see traffic-visuals.js's buildTrafficLegBuckets/
+// trafficLegBucketKey, shared globally) so this only ever compares against
+// vehicles that could plausibly block us, instead of the full transport +
+// traffic vehicle lists every frame per managed vehicle.
+function findTransportVisualLeaderCeiling(scene, vehicle, leaderBuckets) {
   const current = vehicle.current;
   const next = vehicle.next;
   if (!current || !next || typeof getTrafficLeaderEffectiveProgress !== 'function') return null;
+  const bucket = leaderBuckets.get(trafficLegBucketKey(current, next));
+  if (!bucket) return null;
   let ceiling = null;
-  const consider = (leaderProgress, leaderHeadwayFactor) => {
-    if (!(leaderProgress > vehicle.renderedProgress)) return;
-    const gap = TRAFFIC_VISUAL_CONFIG.minimumHeadwayTiles * Math.max(vehicle.model.headwayFactor, leaderHeadwayFactor);
+  for (const other of bucket) {
+    if (other === vehicle) continue;
+    const leaderProgress = getTrafficLeaderEffectiveProgress(other);
+    if (!(leaderProgress > vehicle.renderedProgress)) continue;
+    const gap = TRAFFIC_VISUAL_CONFIG.minimumHeadwayTiles * Math.max(vehicle.model.headwayFactor, other.model.headwayFactor);
     const candidate = leaderProgress - gap;
     if (ceiling === null || candidate < ceiling) ceiling = candidate;
-  };
-  for (const other of scene?.transportVisualState?.vehicles || []) {
-    if (
-      other === vehicle
-      || other.current?.row !== current.row || other.current?.col !== current.col
-      || other.next?.row !== next.row || other.next?.col !== next.col
-    ) continue;
-    consider(getTrafficLeaderEffectiveProgress(other), other.model.headwayFactor);
-  }
-  for (const other of scene?.trafficVisualState?.vehicles || []) {
-    if (
-      other.current?.row !== current.row || other.current?.col !== current.col
-      || other.next?.row !== next.row || other.next?.col !== next.col
-    ) continue;
-    consider(getTrafficLeaderEffectiveProgress(other), other.model.headwayFactor);
   }
   return ceiling;
 }
 
-function syncManagedTransportVehiclePosition(scene, vehicle, backing) {
+function syncManagedTransportVehiclePosition(scene, vehicle, backing, leaderBuckets) {
   const target = typeof getTransportVehiclePathPosition === 'function'
     ? getTransportVehiclePathPosition(backing, vehicle.route, vehicle.runtime)
     : null;
@@ -352,7 +345,7 @@ function syncManagedTransportVehiclePosition(scene, vehicle, backing) {
     // does not carry forward into a leg where no leader has been checked yet.
     vehicle.renderedProgress = desiredProgress;
   } else {
-    const ceiling = findTransportVisualLeaderCeiling(scene, vehicle);
+    const ceiling = findTransportVisualLeaderCeiling(scene, vehicle, leaderBuckets);
     let allowed = ceiling === null ? desiredProgress : Math.min(desiredProgress, ceiling);
     if (allowed < vehicle.renderedProgress) allowed = vehicle.renderedProgress;
     if (allowed > desiredProgress) allowed = desiredProgress;
@@ -551,16 +544,21 @@ function updateTransportVisuals(time, delta) {
     state.dirty = true;
     return;
   }
-  syncManagedTransportVehicles(scene, state, routeEntries);
+  const allVehicles = getTransportExpansionState().vehicles;
+  const vehicleById = new Map(allVehicles.map((entry) => [entry.id, entry]));
+  syncManagedTransportVehicles(scene, state, routeEntries, vehicleById);
   const showRouteMarkers = typeof isTransportRouteOverlayRequested === 'function'
     && isTransportRouteOverlayRequested();
   state.vehicles.forEach((vehicle) => vehicle.badge?.setVisible?.(showRouteMarkers));
   if (state.vehicles.length === 0) return;
-  const allVehicles = getTransportExpansionState().vehicles;
+  const leaderBuckets = buildTrafficLegBuckets([
+    ...state.vehicles,
+    ...(scene.trafficVisualState?.vehicles || []),
+  ]);
   state.vehicles.forEach((vehicle) => {
-    const backing = allVehicles.find((entry) => entry.id === vehicle.vehicleId);
+    const backing = vehicleById.get(vehicle.vehicleId);
     if (!backing) return;
-    syncManagedTransportVehiclePosition(scene, vehicle, backing);
+    syncManagedTransportVehiclePosition(scene, vehicle, backing, leaderBuckets);
     checkTransportVehicleFareFloat(scene, vehicle, backing);
     if (backing?.status === 'broken_down') {
       // Frozen in place (§12's lightweight breakdown model) - a stalled bus

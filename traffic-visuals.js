@@ -1,5 +1,5 @@
 const TRAFFIC_VISUAL_CONFIG = Object.freeze({
-  zoomMin: 1.4,
+  zoomMin: 1.0,
   refreshMs: 250,
   // Raised from 28/3/4 - a busy city was reading as noticeably emptier than
   // its traffic load implied. Roughly matches transport-visuals.js's own
@@ -1652,7 +1652,7 @@ function advanceIceCreamMovement(scene, state, event, delta, speedMultiplier) {
   event.next = descriptor.next;
   if (
     ['road', 'parkingApproach', 'parkingDeparture'].includes(descriptor.kind)
-    && trafficVehicleHasBlockingLeader(event, state.vehicles)
+    && trafficVehicleHasBlockingLeader(event, buildTrafficLegBuckets(state.vehicles))
   ) {
     return;
   }
@@ -1943,15 +1943,33 @@ function getTrafficLeaderEffectiveProgress(leader) {
   return Number.isFinite(leader.renderedProgress) ? leader.renderedProgress : leader.progress;
 }
 
-function trafficVehicleHasBlockingLeader(vehicle, vehicles) {
-  return vehicles.some((leader) => {
-    if (leader === vehicle || !leader.current || !leader.next || !vehicle.current || !vehicle.next) return false;
-    if (
-      leader.current.row !== vehicle.current.row
-      || leader.current.col !== vehicle.current.col
-      || leader.next.row !== vehicle.next.row
-      || leader.next.col !== vehicle.next.col
-    ) return false;
+// leaders on a given frame overwhelmingly sit on a handful of distinct
+// current->next legs, and only same-leg vehicles can ever block one another
+// - bucketing by leg turns the per-vehicle scan below from O(vehicles ×
+// leaders) into O(vehicles + leaders), same-leg group sizes staying tiny even
+// as citywide vehicle counts grow.
+function trafficLegBucketKey(current, next) {
+  return `${current.row},${current.col}|${next.row},${next.col}`;
+}
+
+function buildTrafficLegBuckets(vehicles) {
+  const buckets = new Map();
+  for (const vehicle of vehicles) {
+    if (!vehicle.current || !vehicle.next) continue;
+    const key = trafficLegBucketKey(vehicle.current, vehicle.next);
+    let bucket = buckets.get(key);
+    if (!bucket) buckets.set(key, bucket = []);
+    bucket.push(vehicle);
+  }
+  return buckets;
+}
+
+function trafficVehicleHasBlockingLeader(vehicle, leaderBuckets) {
+  if (!vehicle.current || !vehicle.next) return false;
+  const bucket = leaderBuckets.get(trafficLegBucketKey(vehicle.current, vehicle.next));
+  if (!bucket) return false;
+  return bucket.some((leader) => {
+    if (leader === vehicle) return false;
     const leaderProgress = getTrafficLeaderEffectiveProgress(leader);
     return leaderProgress > vehicle.progress
       && leaderProgress - vehicle.progress < (
@@ -2051,8 +2069,9 @@ function updateTrafficVisuals(time, delta) {
   const leaders = state.iceCreamEvent
     ? [...state.vehicles, state.iceCreamEvent, ...busLeaders]
     : [...state.vehicles, ...busLeaders];
+  const leaderBuckets = buildTrafficLegBuckets(leaders);
   state.vehicles = state.vehicles.filter((vehicle) => {
-    if (trafficVehicleHasBlockingLeader(vehicle, leaders)) return true;
+    if (trafficVehicleHasBlockingLeader(vehicle, leaderBuckets)) return true;
 
     if (vehicle.busDwellRemainingMs > 0) {
       if (!paused) vehicle.busDwellRemainingMs -= delta * speedMultiplier;

@@ -980,8 +980,17 @@ function formatMoney(amount) {
   return `${amount < 0 ? '-' : ''}$${abs.toLocaleString()}`;
 }
 
+// Called 20+ times per updateHUD(), which itself fires every calendar day -
+// caching the element lookup avoids repeating a full getElementById walk
+// that often that frequently. isConnected guards against a stale reference
+// if a node ever gets replaced (e.g. an ancestor's innerHTML rewrite).
+const _textContentElementCache = new Map();
 function setTextContent(id, text) {
-  const el = document.getElementById(id);
+  let el = _textContentElementCache.get(id);
+  if (!el || !el.isConnected) {
+    el = document.getElementById(id);
+    if (el) _textContentElementCache.set(id, el);
+  }
   if (el) el.textContent = text;
 }
 

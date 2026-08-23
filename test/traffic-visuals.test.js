@@ -726,8 +726,9 @@ test('zoom threshold loads only one starter quartet, then clears vehicles withou
   const callbacks = {};
   let starts = 0;
   let destroyed = 0;
+  const belowZoomMin = TRAFFIC_VISUAL_CONFIG.zoomMin - 0.01;
   const scene = {
-    cameras: { main: { zoom: 1.39 } },
+    cameras: { main: { zoom: belowZoomMin } },
     textures: { exists: (key) => loaded.has(key) },
     load: {
       isLoading: () => false,
@@ -741,7 +742,7 @@ test('zoom threshold loads only one starter quartet, then clears vehicles withou
   updateTrafficVisuals.call(scene, 0, 16);
   assert.equal(starts, 0);
 
-  scene.cameras.main.zoom = 1.4;
+  scene.cameras.main.zoom = TRAFFIC_VISUAL_CONFIG.zoomMin;
   updateTrafficVisuals.call(scene, 16, 16);
   updateTrafficVisuals.call(scene, 32, 16);
   assert.equal(queued.length, 4);
@@ -757,7 +758,7 @@ test('zoom threshold loads only one starter quartet, then clears vehicles withou
     model: TRAFFIC_MODEL_REGISTRY[0],
     sprite: { destroy: () => { destroyed++; } },
   });
-  scene.cameras.main.zoom = 1.39;
+  scene.cameras.main.zoom = belowZoomMin;
   updateTrafficVisuals.call(scene, 48, 16);
   assert.equal(destroyed, 1);
   assert.equal(state.vehicles.length, 0);

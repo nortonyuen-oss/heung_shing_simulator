@@ -210,6 +210,13 @@ const SITE_FEATURE_LIST = {
 // ── Changelog ─────────────────────────────────────────────────────────────────
 const SITE_CHANGELOG = {
   "zh-HK": [
+    { version: "v4.2.0", date: "2026-08-23", dateLabel: "2026年8月23日", title: "霧鎖香城", items: [
+      "新增動態光影：晴天會出現方向性太陽光影，跟住一個獨立於遊戲曆嘅真實時間循環，慢慢由東面金黃色移到頭頂中性光，再到西面橙紅色夕陽，可以喺 View 選單隨時開關。",
+      "全天氣雲層系統：由以前淨係陰天先有雲，改成所有天氣都會飄雲，密度同顏色跟住天氣分五級——晴天最少最淡、陰天中等、落雨轉厚、黑色暴雨／8號風球以上就會變做深灰色烏雲；雲層會自己飄動，zoom 入超過1.2倍會逐漸散去，好似穿過雲層咁清晰返，zoom 出返就會再現。",
+      "交通效能同顯示範圍優化：重寫傳送／交通／船隻視覺嘅每幀掃描邏輯，大幅減少計算量；環境車輛而家 zoom 1x 就開始出現（舊版要 1.4x）；修正高倍數 zoom（2x 以上）環境車輛會完全消失嘅 bug。",
+      "速度掣重新編號：舊有 0.15x／0.5x／1x／2x 四檔改做 1x／2x／4x／8x 顯示，數字更加直覺；新開／載入城市預設維持返原有節奏（即係舊嘅 0.15x 檔）。",
+      "清理咗約 53MB 從未被實際使用嘅美術素材（重複貼圖、舊地形殘留圖等），減低安裝檔大細。",
+    ] },
     { version: "v4.1.0", date: "2026-08-23", dateLabel: "2026年8月23日", title: "青山綠水", items: [
       "新增荒地廢棄物場景：大片平坦草地會長出一嚿嚿石仔地（dirt），石仔地上有一成機會出現廢棄車輛或貨櫃堆，尺寸按遊戲入面真實車輛模型校準，隨機偏移擺位；石仔地淨係生廢棄物，唔會再長樹。",
       "廢棄物行為同樹木一樣識自我修復：地起咗建築、劃咗地帶或者鋪咗馬路，廢棄物會自動喺下個模擬循環消失；推土機掣可以即時清走廢棄物，同時保留返地下石仔地。",
@@ -401,6 +408,13 @@ const SITE_CHANGELOG = {
 // title/items text.
 const SITE_CHANGELOG_TRANSLATIONS = {
   "zh-TW": {
+    "v4.2.0": { title: "霧鎖香城", items: [
+      "新增動態光影：晴天會出現方向性太陽光影，隨一個獨立於遊戲曆的真實時間循環，緩緩由東面金黃色移到頭頂中性光，再到西面橙紅色夕陽，可在 View 選單隨時開關。",
+      "全天氣雲層系統：由以前只有陰天才有雲，改成所有天氣都會飄雲，密度和顏色隨天氣分五級——晴天最少最淡、陰天中等、下雨轉厚、黑色暴雨／8號颱風以上就會變成深灰色烏雲；雲層會自己飄動，zoom 入超過1.2倍會逐漸散去，彷彿穿過雲層般清晰，zoom 出後又會重現。",
+      "交通效能和顯示範圍優化：重寫傳輸／交通／船隻視覺的每幀掃描邏輯，大幅減少計算量；環境車輛現在 zoom 1x 就會開始出現（舊版需要 1.4x）；修正高倍數 zoom（2x 以上）環境車輛會完全消失的 bug。",
+      "速度鈕重新編號：舊有 0.15x／0.5x／1x／2x 四檔改為 1x／2x／4x／8x 顯示，數字更加直覺；新建／載入城市預設維持原有節奏（即舊的 0.15x 檔）。",
+      "清理約 53MB 從未實際使用的美術素材（重複貼圖、舊地形殘留圖等），降低安裝檔大小。",
+    ] },
     "v4.1.0": { title: "青山綠水", items: [
       "新增荒地廢棄物場景：大片平坦草地會長出一塊塊碎石地（dirt），碎石地上有一成機率出現廢棄車輛或貨櫃堆，尺寸依遊戲內真實車輛模型校準，隨機偏移擺放；碎石地只會出現廢棄物，不會再長樹。",
       "廢棄物行為和樹木一樣會自我修復：地上蓋了建築、劃了地帶或鋪了馬路，廢棄物會在下一次模擬循環自動消失；推土機鈕可以即時清除廢棄物，同時保留地下的碎石地。",
@@ -585,6 +599,13 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   en: {
+    "v4.2.0": { title: "Mist-Locked City", items: [
+      "Added dynamic lighting: on clear weather, a direction-aware sun tint sweeps across the sky on a real-time cycle decoupled from the compressed in-game calendar - slowly moving from a golden east at sunrise, through neutral overhead light, to an orange sunset in the west. Toggle it anytime from the View menu.",
+      "All-weather cloud cover: clouds used to only appear on cloudy days - now they drift across the sky in every weather condition, with density and tint scaling across five tiers (clear is lightest, cloudy is moderate, rain thickens it, and black rainstorm/severe typhoon signals turn it into a dark grey overcast deck). Clouds drift on their own, and fade out smoothly above 1.2x zoom - like descending through the cloud layer - reappearing as you zoom back out.",
+      "Traffic performance and visibility range improvements: rewrote the per-frame scan logic behind transport/traffic/vessel visuals to cut computation significantly; ambient traffic now starts appearing at 1x zoom instead of 1.4x; fixed a bug where ambient traffic vanished entirely at high zoom (above 2x).",
+      "Speed buttons relabeled: the old 0.15x/0.5x/1x/2x tiers now display as 1x/2x/4x/8x for more intuitive numbers; new and loaded cities still default to the same pacing as before (the tier now labeled 1x).",
+      "Removed roughly 53MB of art assets that were never actually referenced by the app (duplicate textures, leftover terrain art, etc.), shrinking install size.",
+    ] },
     "v4.1.0": { title: "Green Hills, Clear Waters", items: [
       "Added a derelict bare-land scene: large flat grass regions now grow patches of dirt, and dirt tiles have a 10% chance of spawning an abandoned vehicle or shipping-container pile, sized to match the game's real vehicle models and randomly offset within the tile. Dirt only grows debris - it never grows trees.",
       "Debris now self-heals just like trees: once its tile gets built on, rezoned, or paved over, the debris vanishes automatically on the next simulation tick; the bulldozer tool also clears debris instantly while leaving the dirt patch underneath intact.",
@@ -769,6 +790,13 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   ja: {
+    "v4.2.0": { title: "霧鎖の街", items: [
+      "ダイナミックライティングを追加：晴天時に方向性のある太陽光が、圧縮されたゲーム内暦から独立したリアルタイムの周期でゆっくり移動——東からの黄金色の朝日、頭上の中立光、西への橙色の夕日へと変化する。View メニューからいつでもオン・オフ可能。",
+      "全天候の雲システム：これまで曇りの日にしか出なかった雲が、すべての天候で流れるように。密度と色は5段階で天候に応じて変化——晴天が最も薄く、曇りは中程度、雨で厚くなり、大雨警報（黒）や強い台風シグナル以上ではダークグレーの分厚い雲に。雲は自ら漂い、ズーム1.2倍を超えると雲層を抜けるように徐々に消え、ズームアウトすると再び現れる。",
+      "交通のパフォーマンスと表示範囲を改善：交通機関／一般車両／船舶ビジュアルの毎フレームスキャン処理を書き直し、計算量を大幅削減。一般交通は 1.4倍ではなく 1倍ズームから表示されるように。高倍率ズーム（2倍以上）で一般交通が完全に消えてしまうバグを修正。",
+      "速度ボタンの表示を変更：従来の 0.15x／0.5x／1x／2x を 1x／2x／4x／8x として表示、より直感的な数値に。新規／読み込み時のデフォルト速度は従来どおり（現在「1x」と表示される速度）。",
+      "実際には使用されていなかった約53MBのアートアセット（重複テクスチャ、旧地形素材の残骸など）を削除し、インストールサイズを削減。",
+    ] },
     "v4.1.0": { title: "青山緑水", items: [
       "新しい荒れ地の廃棄物シーン：広い平らな草地に土のパッチ（dirt）が自然に発生し、土タイルには10%の確率で放棄車両やコンテナの山が出現。サイズはゲーム内の実際の車両モデルに合わせて調整され、タイル内でランダムにずれて配置される。土タイルは廃棄物のみで、木は生えない。",
       "廃棄物は樹木と同じく自己修復する：その土地に建物が建つ、ゾーニングされる、道路が敷かれると、次のシミュレーションで自動的に消える。ブルドーザーで即座に撤去することもでき、その際は下の土パッチはそのまま残る。",

@@ -1,6 +1,6 @@
-# 香城模擬器 (The City of Heung Shing) v4.1.0 — 【青山綠水】
+# 香城模擬器 (The City of Heung Shing) v4.2.0 — 【霧鎖香城】
 
-香城模擬器 (The City of Heung Shing) v4.1.0 — 【青山綠水】 is a SimCity 2000-style city builder with a local SQLite save system, isometric map view, cloud-assisted district news, and a classic windowed UI.
+香城模擬器 (The City of Heung Shing) v4.2.0 — 【霧鎖香城】 is a SimCity 2000-style city builder with a local SQLite save system, isometric map view, cloud-assisted district news, and a classic windowed UI.
 
 <img width="1438" height="792" alt="image" src="https://github.com/user-attachments/assets/ec3cab6e-48af-4976-b00a-097bc901e429" />
 

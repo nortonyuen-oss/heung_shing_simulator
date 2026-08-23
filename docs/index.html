@@ -39,6 +39,8 @@
       <div class="hero-content">
         <p class="eyebrow" data-i18n="hero.eyebrowPrefix">香城模擬器</p>
         <h1 data-i18n="hero.title">香城模擬器</h1>
+        <p class="hero-version" data-i18n="hero.versionBadge">v4.3.0 — 【漁火閃閃】</p>
+        <p class="hero-version-desc" data-i18n="hero.versionDesc">最新版本新增會發光嘅海面：波浪跟風暴變化、夕陽時分波光粼粼、落雨會泛起漣漪；仲加咗香港18區自動命名系統。</p>
         <p class="lede" data-i18n="hero.lede">一款向 SimCity 2000 致敬、以香港城市生活為靈感嘅城市建設遊戲。起街道、規劃社區、經營自己嘅香城巴士公司、處理議會同天氣，再睇住一座有性格嘅香城慢慢成長。</p>
         <p class="hero-free-label" data-i18n="hero.freeLabel">完全免費 · macOS + Windows · 本機存檔</p>
         <div class="hero-actions">
@@ -190,7 +192,36 @@
         <h2 data-i18n="changelog.title">版本變更說明</h2>
       </div>
 
-      <div class="release-list" data-render="changelog"></div>
+      <div class="release-list">
+        <article class="release-card current-release">
+          <div class="release-meta">
+            <span>v4.3.0</span>
+            <span>2026年8月23日</span>
+          </div>
+          <h3>【漁火閃閃】</h3>
+          <ul>
+            <li>海面流動效果：開放水域嘅波浪紋理會跟住風速／風暴強度分五級變化，風平浪靜輕輕晃動，8號風球以上波濤洶湧。</li>
+            <li>夕陽波光粼粼：晴天日落時分，水面會泛起白熱金邊嘅閃光點，好似陽光反照水面咁閃閃生光。</li>
+            <li>落雨漣漪：落雨嗰陣水面會泛起橢圓形漣漪圈，密度跟雨勢一齊遞增。</li>
+            <li>新增香港18區自動命名系統：巴士站會自動跟返所屬地區改名（都可以自己重新命名），小地圖亦會標返實際地區名。</li>
+            <li>修正運輸車廠只得第一個先算「啟用」嘅舊 bug，同一個廢棄物殘留水面嘅地形編輯 bug。</li>
+          </ul>
+        </article>
+
+        <article class="release-card">
+          <div class="release-meta">
+            <span>v4.2.0</span>
+            <span>2026年8月23日</span>
+          </div>
+          <h3>【霧鎖香城】</h3>
+          <ul>
+            <li>全新動態光影：晴天太陽會跟住一個獨立於遊戲曆嘅真實時間循環，由東面慢慢移到西面、黃昏轉橙紅色。</li>
+            <li>全天氣雲層系統：雲層密度同顏色跟住天氣分五級，落雨打風會變厚變深色，仲會自己飄動。</li>
+            <li>交通效能同顯示範圍優化：環境車輛 zoom 1x 就開始出現，高倍數 zoom 都唔會再無故消失。</li>
+            <li>速度掣重新編號做 1x／2x／4x／8x，更加直覺易睇。</li>
+          </ul>
+        </article>
+      </div>
     </section>
 
     <section class="features">

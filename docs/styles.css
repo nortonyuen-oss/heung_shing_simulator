@@ -133,6 +133,26 @@ h1 {
   line-height: 1.5;
 }
 
+.hero-version {
+  display: inline-flex;
+  margin: 18px 0 0;
+  padding: 7px 12px;
+  color: #18202a;
+  background: var(--tram);
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+}
+
+.hero-version-desc {
+  max-width: 650px;
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
 .hero-free-label {
   display: inline-flex;
   margin: 18px 0 0;

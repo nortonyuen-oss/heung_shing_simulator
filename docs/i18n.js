@@ -1006,6 +1006,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
+      versionBadge: "v4.3.0 — 【漁火閃閃】",
+      versionDesc: "最新版本新增會發光嘅海面：波浪跟風暴變化、夕陽時分波光粼粼、落雨會泛起漣漪；仲加咗香港18區自動命名系統。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感嘅城市建設遊戲。起街道、規劃社區、經營自己嘅香城巴士公司、處理議會同天氣，再睇住一座有性格嘅香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1081,6 +1083,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
+      versionBadge: "v4.3.0 — 【漁火閃閃】",
+      versionDesc: "最新版本新增會發光的海面：波浪隨風暴變化、夕陽時分波光粼粼、下雨時會泛起漣漪；還加入了香港18區自動命名系統。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感的城市建設遊戲。興建街道、規劃社區、經營自己的香城公車公司、處理議會與天氣，看著一座有個性的香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1156,6 +1160,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "The City of Heung Shing",
       title: "The City of Heung Shing",
+      versionBadge: "v4.3.0 — Glimmering Fishing Lights",
+      versionDesc: "The latest release brings the sea to life: waves that build with the storm, golden glints at sunset, ripples in the rain, plus an auto-naming system based on Hong Kong's 18 districts.",
       lede: "A city-building game inspired by Hong Kong life and made in tribute to SimCity 2000. Build streets, shape neighbourhoods, run your own Heung Shing Bus Company, navigate council politics and weather, then watch a city with real personality grow.",
       freeLabel: "Completely free · macOS + Windows · Local saves",
       downloadBtn: "【Free Download】",
@@ -1232,6 +1238,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
+      versionBadge: "v4.3.0 — 漁火きらめく",
+      versionDesc: "最新版では海面に表情が生まれました。嵐で高まる波、夕暮れに輝く波光、雨に浮かぶ波紋。さらに香港18区にちなんだ自動命名システムも追加されました。",
       lede: "香港の都市生活から着想を得た、SimCity 2000へのオマージュとなる都市建設ゲーム。道路を築き、地区を計画し、自分だけの香城バス会社を経営し、議会や天候に向き合いながら、個性ある香城の成長を見守ります。",
       freeLabel: "完全無料 · macOS + Windows · ローカルセーブ",
       downloadBtn: "【無料ダウンロード】",

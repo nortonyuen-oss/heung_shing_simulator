@@ -156,6 +156,12 @@ function handleMenuAction(action) {
       }
       updateViewMenu();
       break;
+    case 'toggle-dynamic-lighting':
+      if (typeof setDynamicLightingEnabled === 'function') {
+        setDynamicLightingEnabled(!isDynamicLightingEnabled());
+      }
+      updateViewMenu();
+      break;
     case 'open-ai-news-settings':
       if (typeof openAiNewsSettings === 'function') openAiNewsSettings();
       break;
@@ -204,6 +210,8 @@ function updateViewMenu() {
     ?.classList.toggle('menu-checked', typeof areDistrictSignsVisible !== 'function' || areDistrictSignsVisible());
   document.getElementById('menu-weather-effects')
     ?.classList.toggle('menu-checked', typeof isWeatherEffectsEnabled !== 'function' || isWeatherEffectsEnabled());
+  document.getElementById('menu-dynamic-lighting')
+    ?.classList.toggle('menu-checked', typeof isDynamicLightingEnabled !== 'function' || isDynamicLightingEnabled());
 }
 
 // Keep the checkmarks live as the user presses F11 or Esc

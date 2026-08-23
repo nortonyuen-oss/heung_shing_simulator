@@ -5767,10 +5767,12 @@
 
         <div id="topbar-speed">
           <button class="topbar-speed-btn" data-speed="0" title="Pause" data-i18n-title="topbar.pause">II</button>
-          <button class="topbar-speed-btn" data-speed="0.15" title="0.15× speed" data-i18n-title="topbar.speed015">0.15x</button>
-          <button class="topbar-speed-btn" data-speed="0.5" title="0.5× speed" data-i18n-title="topbar.speed05">0.5x</button>
-          <button class="topbar-speed-btn is-active" data-speed="1" title="1× speed" data-i18n-title="topbar.speed1">1x</button>
-          <button class="topbar-speed-btn" data-speed="2" title="2× speed" data-i18n-title="topbar.speed2">2x</button>
+          <!-- data-speed keeps the original underlying multiplier (matches GAME_SPEEDS in
+               game-clock.js) - only the displayed label/title moved up a notch (1/2/4/8x). -->
+          <button class="topbar-speed-btn is-active" data-speed="0.15" title="1× speed" data-i18n-title="topbar.speed015">1x</button>
+          <button class="topbar-speed-btn" data-speed="0.5" title="2× speed" data-i18n-title="topbar.speed05">2x</button>
+          <button class="topbar-speed-btn" data-speed="1" title="4× speed" data-i18n-title="topbar.speed1">4x</button>
+          <button class="topbar-speed-btn" data-speed="2" title="8× speed" data-i18n-title="topbar.speed2">8x</button>
         </div>
 
         <div id="transport-topbar-tools" aria-label="Transport company windows" data-i18n-aria="transport.topbarToolsAria">
@@ -5843,6 +5845,7 @@
           <div class="menu-hr"></div>
           <button class="menu-drop-item" data-menu-action="toggle-district-signs" id="menu-district-signs" data-i18n="menu.showDistrictSigns">Show district signs</button>
           <button class="menu-drop-item" data-menu-action="toggle-weather-effects" id="menu-weather-effects" data-i18n="menu.weatherEffects">Weather visual effects (rain/lightning)</button>
+          <button class="menu-drop-item" data-menu-action="toggle-dynamic-lighting" id="menu-dynamic-lighting" data-i18n="menu.dynamicLighting">Dynamic lighting (sun angle/cloud drift)</button>
         </div>
       </div>
 

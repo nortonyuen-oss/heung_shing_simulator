@@ -135,6 +135,30 @@ function applyWeatherEffectsEnabledState(scene) {
   }
 }
 
+// Dynamic lighting (sun-angle tint on clear days + drifting cloud shadows on cloudy
+// days, zoomed out below 1.2x) — persisted like the other visual toggles above.
+const DYNAMIC_LIGHTING_SETTING_KEY = 'citybuilder.dynamicLighting.v1';
+let dynamicLightingEnabledCache = null;
+
+function isDynamicLightingEnabled() {
+  if (dynamicLightingEnabledCache !== null) return dynamicLightingEnabledCache;
+  try {
+    const raw = localStorage.getItem(DYNAMIC_LIGHTING_SETTING_KEY);
+    dynamicLightingEnabledCache = raw === null ? true : JSON.parse(raw) !== false;
+  } catch {
+    dynamicLightingEnabledCache = true;
+  }
+  return dynamicLightingEnabledCache;
+}
+
+function setDynamicLightingEnabled(enabled) {
+  dynamicLightingEnabledCache = !!enabled;
+  try {
+    localStorage.setItem(DYNAMIC_LIGHTING_SETTING_KEY, JSON.stringify(!!enabled));
+  } catch {}
+  if (activeScene) updateDynamicLighting(activeScene);
+}
+
 // Music volume — persisted so the level a player left it at carries into their next
 // session instead of resetting to the slider's hardcoded HTML default every launch.
 const MUSIC_VOLUME_SETTING_KEY = 'citybuilder.musicVolume.v1';
@@ -2011,6 +2035,7 @@ function create() {
   this.weatherOverlay.setAlpha(0);
 
   setupWeatherEffects(this);
+  setupDynamicLighting(this);
 
   this.scale.on('resize', () => {
     updateMapMetrics(this);
@@ -2021,6 +2046,7 @@ function create() {
     invalidateVesselVisualView(this, true);
     ensurePreviewOverlayDepth(this);
     syncWeatherFxToCamera(this);
+    if (typeof updateDynamicLighting === 'function') updateDynamicLighting(this);
     if (typeof markVehicleTrackerLayoutDirty === 'function') markVehicleTrackerLayoutDirty();
   });
 
@@ -2838,6 +2864,7 @@ function setMapZoom(scene, requestedZoom, anchorScreenX, anchorScreenY) {
   if (typeof invalidateAircraftVisualView === 'function') invalidateAircraftVisualView(scene);
   updateAmbientSoundscape(scene);
   syncWeatherFxToCamera(scene);
+  if (typeof updateDynamicLighting === 'function') updateDynamicLighting(scene); // cloud layer's zoom<1.2 gate reacts immediately
   updateMapNavigationControls(scene);
   return nextZoom;
 }
@@ -5967,6 +5994,7 @@ function syncWeatherFxToCamera(scene) {
   // property assignment of x/y is NOT), and only touches x/y — it won't disturb the
   // speedX/speedY/etc ops applyRainState() manages.
   scene.rainEmitter?.setPosition(x, y);
+  scene.cloudDriftEmitter?.setPosition(x, y);
 }
 
 // speedX/speedY/x/y/alpha/quantity/lifespan are all "EmitterOp"-backed properties in
@@ -6034,6 +6062,7 @@ function scheduleNextLightning(scene) {
 function updateWeatherEffectsTier(scene) {
   if (!scene) return;
   syncWeatherFxToCamera(scene); // sky darkening stays on regardless of the effects toggle
+  if (typeof updateDynamicLighting === 'function') updateDynamicLighting(scene); // own toggle, independent of the one below
   if (!isWeatherEffectsEnabled()) return;
 
   applyRainState(scene);
@@ -6044,6 +6073,123 @@ function updateWeatherEffectsTier(scene) {
   } else if (!eligible && scene.lightningTimer) {
     scene.lightningTimer.remove();
     scene.lightningTimer = null;
+  }
+}
+
+// ── Dynamic lighting: sun-angle tint + cloud drift (screen-space, zoom-aware) ──
+
+// A handful of overlapping soft lobes baked into one texture reads as an
+// irregular cumulus patch instead of one perfectly round smudge.
+function generateCloudBlobTexture(scene) {
+  if (scene.textures.exists('fx_cloud_blob')) return;
+  const w = 380;
+  const h = 220;
+  const g = scene.make.graphics({ x: 0, y: 0, add: false });
+  const lobes = [
+    { x: 0.30, y: 0.55, r: 0.34 },
+    { x: 0.52, y: 0.38, r: 0.42 },
+    { x: 0.72, y: 0.52, r: 0.32 },
+    { x: 0.45, y: 0.62, r: 0.30 },
+    { x: 0.20, y: 0.60, r: 0.22 },
+    { x: 0.82, y: 0.62, r: 0.20 },
+  ];
+  const steps = 8;
+  lobes.forEach(({ x, y, r }) => {
+    const cx = x * w; const cy = y * h; const maxRadius = r * h;
+    for (let i = steps; i >= 1; i--) {
+      const radius = maxRadius * (i / steps);
+      const alpha = 0.55 * (1 - i / steps) ** 1.3;
+      g.fillStyle(0xffffff, alpha);
+      g.fillCircle(cx, cy, radius);
+    }
+  });
+  g.generateTexture('fx_cloud_blob', w, h);
+  g.destroy();
+}
+
+const CLOUD_DRIFT_BASE_CONFIG = {
+  lifespan: 50000,
+  speedX: { min: 12, max: 22 },
+  speedY: 0,
+  alpha: { min: 0.22, max: 0.36 },
+  quantity: 1,
+  frequency: 1200,
+  tint: 0x828da3,
+};
+
+function setupDynamicLighting(scene) {
+  scene.dynamicLightingStartTime = performance.now();
+  scene.sunLightGraphics = scene.add.graphics();
+  scene.sunLightGraphics.setScrollFactor(0);
+  scene.sunLightGraphics.setDepth(999995); // below weatherOverlay/rain/lightning (999998+)
+
+  generateCloudBlobTexture(scene);
+  // Padded for the smallest supported zoom, same reasoning as scene.rainSpawnWidth
+  // in setupWeatherEffects: a scrollFactor(0) emitter's spawn offsets live in
+  // pre-zoom space, so they must be generous enough to still cover the full
+  // canvas once the camera's zoom transform shrinks everything back down.
+  scene.cloudSpawnWidth = (scene.scale.width / 0.4) * 1.1;
+  scene.cloudSpawnHeight = (scene.scale.height / 0.4) * 1.1;
+  scene.cloudDriftEmitter = scene.add.particles(0, 0, 'fx_cloud_blob', {
+    ...CLOUD_DRIFT_BASE_CONFIG,
+    x: { min: -240, max: scene.cloudSpawnWidth },
+    y: { min: -120, max: scene.cloudSpawnHeight },
+    scale: { min: 1.4, max: 2.6 },
+  });
+  scene.cloudDriftEmitter.setScrollFactor(0);
+  scene.cloudDriftEmitter.setDepth(999996);
+  scene.cloudDriftEmitter.stop();
+
+  updateDynamicLighting(scene);
+}
+
+// Called every AMBIENT_UPDATE_MS (~500ms, see updateWeatherEffectsTier) plus
+// immediately on zoom changes (setMapZoom) - the sun tint only needs to drift
+// slowly, but the cloud layer's zoom<1.2 gate should react right away.
+function updateDynamicLighting(scene) {
+  const graphics = scene?.sunLightGraphics;
+  if (!graphics) return;
+
+  if (!isDynamicLightingEnabled()) {
+    graphics.clear();
+    scene.cloudDriftEmitter?.stop();
+    return;
+  }
+
+  const elapsed = performance.now() - scene.dynamicLightingStartTime;
+  const sun = typeof getSunLightVisualState === 'function' ? getSunLightVisualState(elapsed) : { active: false };
+  graphics.clear();
+  if (sun.active && typeof lerpColorChannels === 'function') {
+    const camera = scene.cameras.main;
+    const zoom = camera?.zoom || 1;
+    const w = scene.scale.width / zoom;
+    const h = scene.scale.height / zoom;
+    const x = camera.centerX - w / 2;
+    const y = camera.centerY - h / 2;
+    const eastColor = lerpColorChannels(sun.warmColor, sun.shadowColor, sun.sunSide);
+    const westColor = lerpColorChannels(sun.shadowColor, sun.warmColor, sun.sunSide);
+    graphics.fillGradientStyle(eastColor, westColor, eastColor, westColor, sun.alpha, sun.alpha, sun.alpha, sun.alpha);
+    graphics.fillRect(x, y, w, h);
+  }
+
+  const zoom = scene.cameras?.main?.zoom ?? 1;
+  const cloudsActive = typeof isCloudyWeather === 'function' && isCloudyWeather() && zoom < 1.2;
+  const cloudEmitter = scene.cloudDriftEmitter;
+  if (cloudEmitter && cloudsActive) {
+    // scrollFactor(0) cancels camera *pan* but NOT *zoom* (see syncWeatherFxToCamera's
+    // comment) - a fixed particle scale would shrink toward invisible at a heavily
+    // zoomed-out view, so size is compensated up by 1/zoom the same way that
+    // function enlarges the overlay rectangles' width/height.
+    const zoomScale = Math.min(4, 1 / Math.max(0.25, zoom));
+    cloudEmitter.setConfig({
+      ...CLOUD_DRIFT_BASE_CONFIG,
+      x: { min: -240, max: scene.cloudSpawnWidth },
+      y: { min: -120, max: scene.cloudSpawnHeight },
+      scale: { min: 1.4 * zoomScale, max: 2.6 * zoomScale },
+    });
+    if (!cloudEmitter.emitting) cloudEmitter.start();
+  } else {
+    cloudEmitter?.stop();
   }
 }
 
@@ -9893,7 +10039,7 @@ function fullReset(scene) {
 // reads/writes them via getGameSpeed()/setGameSpeed() in game-clock.js.
 
 let simPaused   = false;
-let simSpeedMul = GAME_SPEEDS.NORMAL;
+let simSpeedMul = GAME_SPEEDS.SLOW; // default speed - topbar now labels this tier "1x"
 
 function startSimTimer() {
   if (isTerrainCreatorMode) {

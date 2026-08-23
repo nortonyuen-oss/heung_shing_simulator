@@ -552,12 +552,13 @@ async function startNewGame(cityName) {
       autosave: false,
     });
   }
-  // New games always start at 1x (speed is not persisted/carried over).
+  // New games always start at the default speed (speed is not persisted/carried
+  // over) - GAME_SPEEDS.SLOW (0.15) is the tier the topbar now labels "1x".
   if (typeof resetGameClockAccumulator === 'function') resetGameClockAccumulator();
-  if (typeof setGameSpeed === 'function') setGameSpeed(GAME_SPEEDS.NORMAL);
+  if (typeof setGameSpeed === 'function') setGameSpeed(GAME_SPEEDS.SLOW);
   else {
     simPaused = false;
-    simSpeedMul = 1;
+    simSpeedMul = 0.15;
   }
   startSimTimer();
   hideLandingScreen();

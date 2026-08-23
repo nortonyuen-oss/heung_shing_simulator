@@ -381,6 +381,60 @@ function updateWeatherVisualOverlay(scene) {
   scene.tweens.add({ targets: overlay, alpha: target, duration: 2000, ease: 'Sine.easeInOut' });
 }
 
+// ── Dynamic lighting: sun-angle tint (clear days) + cloud drift (cloudy days) ───
+// A real-time cycle, deliberately decoupled from the compressed in-game calendar
+// (a full sim day is under a second at 1x speed - tying a "sun crossing the sky"
+// effect to that would read as a flicker, not a slow drift). One cycle sweeps
+// sunrise(east)->noon->sunset(west) and then mirrors back sunset->noon->sunrise,
+// so the light swings smoothly forever with no jump-cut at the loop point.
+const SUN_LIGHT_CYCLE_MS = 240000; // 4 real minutes per sunrise<->sunset swing
+const SUN_LIGHT_KEYFRAMES = {
+  sunrise: { color: 0xffb066, alpha: 0.14 },
+  noon: { color: 0xfff6e0, alpha: 0.03 },
+  sunset: { color: 0xff7a3d, alpha: 0.17 },
+};
+const SUN_SHADOW_COLOR = 0x1c2a4a;
+
+function lerpColorChannels(colorA, colorB, t) {
+  const ar = (colorA >> 16) & 0xff; const ag = (colorA >> 8) & 0xff; const ab = colorA & 0xff;
+  const br = (colorB >> 16) & 0xff; const bg = (colorB >> 8) & 0xff; const bb = colorB & 0xff;
+  const r = Math.round(ar + (br - ar) * t);
+  const g = Math.round(ag + (bg - ag) * t);
+  const b = Math.round(ab + (bb - ab) * t);
+  return (r << 16) | (g << 8) | b;
+}
+
+// 0 = sunrise (sun due east), 0.5 = noon (overhead), 1 = sunset (sun due west),
+// then mirrors back down to 0 across the second half of the cycle.
+function getSunLightArcProgress(elapsedMs) {
+  const t = (((elapsedMs % SUN_LIGHT_CYCLE_MS) + SUN_LIGHT_CYCLE_MS) % SUN_LIGHT_CYCLE_MS) / SUN_LIGHT_CYCLE_MS;
+  return t <= 0.5 ? t * 2 : (1 - t) * 2;
+}
+
+// warmColor/alpha describe the sunlit side's tint at this point in the arc; sunSide
+// (0=east, 1=west) tells the renderer which screen side that warm tint belongs on -
+// the opposite side gets SUN_SHADOW_COLOR, giving the tint a direction instead of
+// just a flat wash.
+function getSunLightVisualState(elapsedMs) {
+  if (typeof city === 'undefined' || city?.weather?.condition !== 'clear') return { active: false };
+  const arc = getSunLightArcProgress(elapsedMs);
+  const rising = arc <= 0.5;
+  const localT = rising ? arc * 2 : (arc - 0.5) * 2;
+  const from = rising ? SUN_LIGHT_KEYFRAMES.sunrise : SUN_LIGHT_KEYFRAMES.noon;
+  const to = rising ? SUN_LIGHT_KEYFRAMES.noon : SUN_LIGHT_KEYFRAMES.sunset;
+  return {
+    active: true,
+    warmColor: lerpColorChannels(from.color, to.color, localT),
+    shadowColor: SUN_SHADOW_COLOR,
+    alpha: from.alpha + (to.alpha - from.alpha) * localT,
+    sunSide: arc,
+  };
+}
+
+function isCloudyWeather() {
+  return typeof city !== 'undefined' && city?.weather?.condition === 'cloudy';
+}
+
 // Rain particle intensity tier — shares the same thresholds as getWeatherOverlayAlpha()
 // so the sky dimming, rainfall, and lightning frequency all read as one coherent storm.
 function getRainEffectTier() {

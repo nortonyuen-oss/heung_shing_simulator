@@ -957,3 +957,63 @@ test('browser wiring keeps simulation state out of the visual frame loop', () =>
   assert.match(visuals, /getTransportVehiclePathPosition\(backing/);
   assert.doesNotMatch(visuals, /Math\.random\(\)|computeTrafficProgressAmount\(/);
 });
+
+test('an unnamed stop gets a district+direction default name that a player rename overrides', () => {
+  const context = createTransportVm();
+  context.getDistrictNameForTile = () => ({
+    zh: '油尖旺區', en: 'Yau Tsim Mong', zhRoot: '油尖旺', center: { row: 10, col: 5 },
+  });
+  context.isNearWaterfront = (row, col) => row === 5 && col === 2;
+  context.getCurrentLanguage = () => 'zhHant';
+  // Fixed RNG: index 0 always selects the geo-computed direction template.
+  context.createRandom = () => () => 0;
+
+  vm.runInContext(`
+    stops = listTransportStopSites({ presentOnly: false });
+    stopNorth = stops.find((stop) => stop.row === 5 && stop.col === 2);
+    stopNorthName = getTransportStopAutoName(stopNorth);
+    displayZh = getTransportStopDisplayName(stopNorth, 0);
+  `, context);
+  // stop is at row 5 above the district centre at row 10 -> north.
+  assert.equal(context.stopNorthName.zh, '油尖旺北');
+  assert.equal(context.stopNorthName.en, 'Yau Tsim Mong North');
+  assert.equal(context.displayZh, '油尖旺北');
+
+  context.getCurrentLanguage = () => 'en';
+  vm.runInContext('displayEn = getTransportStopDisplayName(stopNorth, 0);', context);
+  assert.equal(context.displayEn, 'Yau Tsim Mong North');
+
+  vm.runInContext(`
+    renamed = renameTransportStop(stopNorth.id, '  Custom Name  ');
+    displayAfterRename = getTransportStopDisplayName(getTransportStopById(stopNorth.id), 0);
+    reverted = renameTransportStop(stopNorth.id, '');
+    displayAfterRevert = getTransportStopDisplayName(getTransportStopById(stopNorth.id), 0);
+  `, context);
+  assert.equal(context.renamed, true);
+  assert.equal(context.displayAfterRename, 'Custom Name');
+  assert.equal(context.reverted, true);
+  assert.equal(context.displayAfterRevert, 'Yau Tsim Mong North');
+});
+
+test('the pier template only appears for stops the game considers near water', () => {
+  const context = createTransportVm();
+  context.getDistrictNameForTile = () => ({
+    zh: '油尖旺區', en: 'Yau Tsim Mong', zhRoot: '油尖旺', center: { row: 10, col: 5 },
+  });
+  // Index -1 (last template) picks "碼頭" only when it was pushed onto the
+  // candidate list, i.e. only when isNearWaterfront reports true.
+  context.createRandom = () => () => 0.999;
+
+  context.isNearWaterfront = (row, col) => row === 5 && col === 2;
+  vm.runInContext(`
+    stops = listTransportStopSites({ presentOnly: false });
+    waterStop = stops.find((stop) => stop.row === 5 && stop.col === 2);
+    waterName = getTransportStopAutoName(waterStop);
+  `, context);
+  assert.equal(context.waterName.zh, '油尖旺碼頭');
+  assert.equal(context.waterName.en, 'Yau Tsim Mong Pier');
+
+  context.isNearWaterfront = () => false;
+  vm.runInContext('landName = getTransportStopAutoName(waterStop);', context);
+  assert.notEqual(context.landName.zh, '油尖旺碼頭');
+});

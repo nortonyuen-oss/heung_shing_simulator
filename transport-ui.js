@@ -761,6 +761,7 @@ function renderTransportCompanyTab(state) {
 }
 
 function renderTransportDepotTab(state) {
+  commissionAllConnectedTransportDepots();
   const depots = listTransportDepots({ connectedOnly: true })
     .filter((depot) => state.commissionedDepotIds.includes(depot.id));
   if (depots.length === 0) {
@@ -1008,6 +1009,14 @@ function createTransportVehicleInspector() {
   `;
   root.addEventListener('pointerdown', (event) => event.stopPropagation());
   root.querySelector('[data-transport-inspector-close]').addEventListener('click', closeTransportInspector);
+  // This popup is its own DOM root (appended straight to <body>, not inside
+  // any transport panel), so it never receives the data-transport-action
+  // delegate wired in createTransportPanel - handle its one action directly.
+  root.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-transport-action="rename-stop"]');
+    if (!button) return;
+    renameTransportStopPrompt(button.dataset.stopId).catch((error) => console.warn('[Transport stop rename]', error));
+  });
   document.body.appendChild(root);
   transportInspectorState.root = root;
   return root;
@@ -1087,7 +1096,20 @@ function refreshTransportStopInspectorBody(root) {
   const routesLabel = servingRoutes.length > 0
     ? `<div class="transport-inspector-row"><span>${transportEscapeHtml(t('transport.stopInspector.routes'))}</span></div>`
     : '';
-  root.querySelector('[data-transport-inspector-body]').innerHTML = rows + routesLabel + routeChips;
+  const actions = `<div class="transport-inspector-actions"><button class="transport-btn" type="button" data-transport-action="rename-stop" data-stop-id="${transportEscapeHtml(stop.id)}">${transportEscapeHtml(t('transport.stopInspector.rename'))}</button></div>`;
+  root.querySelector('[data-transport-inspector-body]').innerHTML = rows + routesLabel + routeChips + actions;
+}
+
+async function renameTransportStopPrompt(stopId) {
+  const stop = typeof getTransportStopById === 'function' ? getTransportStopById(stopId) : null;
+  if (!stop) return;
+  const input = await showTextPromptDialog(t('transport.stopInspector.renamePrompt'), stop.name || '');
+  if (input === null) return;
+  renameTransportStop(stopId, input);
+  refreshTransportInspector();
+  refreshTransportUi();
+  if (typeof invalidateTransportVisuals === 'function') invalidateTransportVisuals(activeScene);
+  if (typeof queueCityChangeAutosave === 'function') queueCityChangeAutosave();
 }
 
 function resetTransportUiForCityChange() {

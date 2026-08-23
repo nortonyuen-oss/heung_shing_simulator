@@ -162,6 +162,12 @@ function handleMenuAction(action) {
       }
       updateViewMenu();
       break;
+    case 'toggle-sea-flow':
+      if (typeof setSeaFlowEnabled === 'function') {
+        setSeaFlowEnabled(!isSeaFlowEnabled());
+      }
+      updateViewMenu();
+      break;
     case 'open-ai-news-settings':
       if (typeof openAiNewsSettings === 'function') openAiNewsSettings();
       break;
@@ -212,6 +218,8 @@ function updateViewMenu() {
     ?.classList.toggle('menu-checked', typeof isWeatherEffectsEnabled !== 'function' || isWeatherEffectsEnabled());
   document.getElementById('menu-dynamic-lighting')
     ?.classList.toggle('menu-checked', typeof isDynamicLightingEnabled !== 'function' || isDynamicLightingEnabled());
+  document.getElementById('menu-sea-flow')
+    ?.classList.toggle('menu-checked', typeof isSeaFlowEnabled !== 'function' || isSeaFlowEnabled());
 }
 
 // Keep the checkmarks live as the user presses F11 or Esc

@@ -463,6 +463,23 @@ function getRainEffectTier() {
   return 'none';
 }
 
+// Sea state (wave height/roughness) tracks wind speed directly, the same windKph the
+// typhoon warning signal is derived from (getTyphoonStageForWind) - real wave height
+// scales with wind speed and fetch, not rainfall, so this deliberately keys off wind
+// rather than reusing getCloudDensityTier()/getRainEffectTier()'s rain-based bands.
+// A calm day can still be gray and drizzly (light rain, flat sea); a dry Signal 8
+// still whips up violent seas well before any rain warning fires.
+function getSeaStateTier() {
+  const weather = city.weather;
+  if (!weather) return 'minimal';
+  const wind = weather.windKph || 0;
+  if (['signal8', 'signal9', 'signal10'].includes(weather.typhoonStage) || wind >= 63) return 'extreme';
+  if (weather.typhoonStage === 'signal3' || wind >= 41) return 'heavy';
+  if (wind >= 30) return 'moderate';
+  if (wind >= 20 || weather.condition === 'windy') return 'light';
+  return 'minimal';
+}
+
 // Delay range (ms) between lightning strikes, or null when conditions don't warrant
 // thunder — only red rainstorm warning / Signal No.3+ and above qualify, matching how
 // amber/plain heavy rain in Hong Kong is usually thunder-free.

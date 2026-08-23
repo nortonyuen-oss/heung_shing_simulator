@@ -159,6 +159,45 @@ function setDynamicLightingEnabled(enabled) {
   if (activeScene) updateDynamicLighting(activeScene);
 }
 
+// Sea surface flow (animated shimmer on open-water tiles) — persisted like the other
+// visual toggles above. Kept separate from dynamic lighting/weather effects since it
+// touches terrain tile textures every tick, which is the one of these three most worth
+// disabling on slower machines.
+const SEA_FLOW_SETTING_KEY = 'citybuilder.seaFlow.v1';
+let seaFlowEnabledCache = null;
+
+function isSeaFlowEnabled() {
+  if (seaFlowEnabledCache !== null) return seaFlowEnabledCache;
+  try {
+    const raw = localStorage.getItem(SEA_FLOW_SETTING_KEY);
+    seaFlowEnabledCache = raw === null ? true : JSON.parse(raw) !== false;
+  } catch {
+    seaFlowEnabledCache = true;
+  }
+  return seaFlowEnabledCache;
+}
+
+function setSeaFlowEnabled(enabled) {
+  seaFlowEnabledCache = !!enabled;
+  try {
+    localStorage.setItem(SEA_FLOW_SETTING_KEY, JSON.stringify(!!enabled));
+  } catch {}
+  if (activeScene) applySeaFlowEnabledState(activeScene);
+}
+
+// Turning the toggle off doesn't wait for tiles to cycle back on their own - snap any
+// currently-animated water tile back to its real static texture immediately.
+function applySeaFlowEnabledState(scene) {
+  if (!scene || isSeaFlowEnabled() || !(scene.activeTerrainSpriteIds instanceof Set)) return;
+  for (const id of scene.activeTerrainSpriteIds) {
+    const row = Math.floor(id / MAP_WIDTH);
+    const col = id % MAP_WIDTH;
+    const tile = scene.tileSprites[row]?.[col];
+    if (!tile || !tile.texture?.key?.includes('_flow_')) continue;
+    tile.setTexture(resolveTileTextureKey(getTileKey(row, col)));
+  }
+}
+
 // Music volume — persisted so the level a player left it at carries into their next
 // session instead of resetting to the slider's hardcoded HTML default every launch.
 const MUSIC_VOLUME_SETTING_KEY = 'citybuilder.musicVolume.v1';
@@ -652,6 +691,8 @@ function updateGameFrame(time, delta) {
     syncVehicleTrackerTargetsBeforeRender(this, time);
   }
   updateTerrainViewportCulling(this);
+  if (typeof updateSeaFlowAnimation === 'function') updateSeaFlowAnimation(this, time);
+  if (typeof updateRainRipples === 'function') updateRainRipples(this, time);
   if (typeof finalizeVehicleTrackerCameraCulling === 'function') {
     finalizeVehicleTrackerCameraCulling(this);
   }
@@ -2015,6 +2056,9 @@ function create() {
       this.tileSprites[row][col] = tile;
     }
   }
+
+  if (typeof generateSeaFlowTextures === 'function') generateSeaFlowTextures(this);
+  if (typeof generateRippleRingTexture === 'function') generateRippleRingTexture(this);
 
   // Pre-generate zone overlay textures (RES/COM/IND coloured diamonds)
   preGenerateZoneTextures(this);
@@ -4667,6 +4711,7 @@ function applyToolAt(scene, row, col, pointer = null) {
     }
     reconcileSurfaceTerrainFromHeight(row, col, 2);
     refreshTileArea(scene, row, col);
+    invalidateOrphanedNeighborDebris(scene, row, col);
     if (typeof markTrafficNetworkDirty === 'function') markTrafficNetworkDirty([{ row, col }]);
     return;
   }
@@ -6117,6 +6162,328 @@ function generateCloudBlobTexture(scene) {
   scene.textures.addCanvas('fx_cloud_blob', canvas);
 }
 
+// ── Sea surface flow: animated shimmer on open-water tiles ─────────────────────
+//
+// Rather than hand-drawing new water tile art (there'd be 13 coastline edge/corner
+// variants to keep in sync with the terrain masking logic), this reuses the existing
+// static 'water_full' texture and bakes a handful of frames with a soft ripple-glint
+// overlay, the same "draw once onto canvas" trick as the cloud blob above. Only
+// water_full (open sea/lake, the overwhelming majority of visible water tiles) is
+// animated for now - the coastline edge/corner tiles paint land and water into the
+// same texture, so a blanket highlight would shimmer the land half too; those stay
+// static until that gets a proper per-pixel water mask.
+//
+// First cut used one hard-edged diagonal gradient swept across the tile - at a
+// glance it read as rain streaks, not water, because a single straight uniform-width
+// line is exactly what rain looks like. Real light-on-ripples is soft, scattered
+// dabs tracing a wavy (not straight) path, and it pulses rather than holding one
+// brightness - both are reproduced below.
+//
+// Sea state (getSeaStateTier(), sim-weather.js) scales three things together: how
+// fast the ripple/breathing cycle runs, how tall the wave bands are, and how bright
+// the glints get - so a Signal 8 sea visibly churns while a clear-day sea barely
+// breathes, without needing a separate whitecap/foam layer yet.
+const SEA_FLOW_FRAME_COUNT = 8;
+const SEA_FLOW_BASE_KEY = 'water_full';
+// 'light' matches the fixed tuning already approved for the default calm-weather
+// look (260ms/1.0/1.0) so the common case doesn't regress; 'minimal' only pulls back
+// a little from there, while heavy/extreme ramp up hard since escalating to visibly
+// rough seas under a typhoon is the actual point of this tier system.
+const SEA_FLOW_TIER_CONFIG = {
+  minimal:  { tickMs: 300, ampScale: 0.90, alphaScale: 0.90 },
+  light:    { tickMs: 260, ampScale: 1.00, alphaScale: 1.00 },
+  moderate: { tickMs: 220, ampScale: 1.20, alphaScale: 1.10 },
+  heavy:    { tickMs: 160, ampScale: 1.55, alphaScale: 1.35 },
+  extreme:  { tickMs: 100, ampScale: 2.00, alphaScale: 1.65 },
+};
+
+// Sunset glints: an extra scatter of small warm-tinted dabs baked into the same
+// texture, strength bucketed 0..4 (rather than continuous) so it fits the existing
+// "bake once, swap texture key" model instead of re-baking every frame. Only
+// meaningful near the top of the sun's arc (see getSeaFlowSunsetBucket below), so in
+// practice only a couple of buckets ever get generated in a given session.
+const SEA_FLOW_SUNSET_BUCKET_MAX = 4;
+
+function seaFlowRgba(colorInt, alpha) {
+  const r = (colorInt >> 16) & 0xff;
+  const g = (colorInt >> 8) & 0xff;
+  const b = colorInt & 0xff;
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+// A flat orange dab reads as a colour tint, not a glint - real sun-glitter on water
+// is a scatter of small, near-white-hot specular points that happen to sit on a warm
+// sky, not an orange smear. Every dab gets a white-hot core fading through the
+// sunset's gold into nothing, so it reads as a point of caught light; a minority are
+// "hero" glints - bigger, brighter, and given a thin four-point sparkle flare - mixed
+// among many small pinpricks, the way a few facets of real water catch the sun hard
+// while most only catch it faintly.
+function drawSeaFlowSunsetGlints(gctx, w, h, bucket) {
+  if (bucket <= 0) return;
+  const strength = bucket / SEA_FLOW_SUNSET_BUCKET_MAX;
+  const goldColor = (typeof SUN_LIGHT_KEYFRAMES !== 'undefined' && SUN_LIGHT_KEYFRAMES.sunset?.color) ?? 0xff7a3d;
+  const hotColor = 0xfff6dc;
+  const count = Math.round((7 + strength * 17) * 0.5);
+  for (let i = 0; i < count; i++) {
+    const x = Math.random() * w;
+    const y = Math.random() * h;
+    const isHero = Math.random() < 0.22;
+    const radius = isHero ? 2.0 + Math.random() * 1.7 : 0.7 + Math.random() * 0.9;
+    const alpha = (isHero ? 0.80 + Math.random() * 0.20 : 0.45 + Math.random() * 0.35) * strength;
+    const gradient = gctx.createRadialGradient(x, y, 0, x, y, radius);
+    gradient.addColorStop(0, seaFlowRgba(hotColor, alpha));
+    gradient.addColorStop(0.45, seaFlowRgba(goldColor, alpha * 0.65));
+    gradient.addColorStop(1, seaFlowRgba(goldColor, 0));
+    gctx.fillStyle = gradient;
+    gctx.beginPath();
+    gctx.arc(x, y, radius, 0, Math.PI * 2);
+    gctx.fill();
+    if (isHero) {
+      const flareLen = radius * 2.8;
+      gctx.strokeStyle = seaFlowRgba(hotColor, alpha * 0.5);
+      gctx.lineWidth = 0.6;
+      gctx.beginPath();
+      gctx.moveTo(x - flareLen, y);
+      gctx.lineTo(x + flareLen, y);
+      gctx.moveTo(x, y - flareLen);
+      gctx.lineTo(x, y + flareLen);
+      gctx.stroke();
+    }
+  }
+}
+
+// Only active on clear days near the peak of the real-time sun arc (see
+// getSunLightVisualState/SUN_LIGHT_CYCLE_MS, sim-weather.js) - a windy/rainy/typhoon
+// sky never lights this, and it also respects the dynamic-lighting toggle since it's
+// riding the same sun-arc state that system already gates.
+function getSeaFlowSunsetBucket(scene) {
+  if (typeof isDynamicLightingEnabled === 'function' && !isDynamicLightingEnabled()) return 0;
+  if (typeof getSunLightVisualState !== 'function' || !scene?.dynamicLightingStartTime) return 0;
+  const elapsed = performance.now() - scene.dynamicLightingStartTime;
+  const sun = getSunLightVisualState(elapsed);
+  if (!sun.active) return 0;
+  const strength = Math.max(0, Math.min(1, (sun.sunSide - 0.6) / 0.4));
+  return Math.round(strength * SEA_FLOW_SUNSET_BUCKET_MAX);
+}
+
+function generateSeaFlowTextures(scene, tier = 'moderate', sunBucket = 0) {
+  const comboKey = `${tier}:${sunBucket}`;
+  if (!(scene.seaFlowGeneratedTiers instanceof Set)) scene.seaFlowGeneratedTiers = new Set();
+  if (scene.seaFlowGeneratedTiers.has(comboKey)) return;
+  if (!scene.textures.exists(SEA_FLOW_BASE_KEY)) return;
+  const source = scene.textures.get(SEA_FLOW_BASE_KEY).getSourceImage();
+  const w = source.width;
+  const h = source.height;
+  const tierConfig = SEA_FLOW_TIER_CONFIG[tier] || SEA_FLOW_TIER_CONFIG.moderate;
+  // Two wavy bands at different heights/wavelengths so the tile doesn't read as one
+  // repeating stripe - closer to how real ripple crests overlap at different scales.
+  const bands = [
+    { yFrac: 0.34, wavelength: w * 0.55, ampFrac: 0.10 * tierConfig.ampScale, dabRadius: 3.4, peakAlpha: 0.16 * tierConfig.alphaScale },
+    { yFrac: 0.64, wavelength: w * 0.40, ampFrac: 0.07 * tierConfig.ampScale, dabRadius: 2.6, peakAlpha: 0.12 * tierConfig.alphaScale },
+  ];
+  for (let frame = 0; frame < SEA_FLOW_FRAME_COUNT; frame++) {
+    const frameKey = `${SEA_FLOW_BASE_KEY}_flow_${comboKey}_${frame}`;
+    if (scene.textures.exists(frameKey)) continue;
+
+    // One dim->bright->dim breath per full frame loop, so brightness pulses like a
+    // gentle swell instead of holding a constant glow.
+    const breath = 0.35 + 0.65 * (0.5 - 0.5 * Math.cos((frame / SEA_FLOW_FRAME_COUNT) * Math.PI * 2));
+    const wavePhase = (frame / SEA_FLOW_FRAME_COUNT) * Math.PI * 2;
+
+    // Dabs are additively blended on their own transparent canvas first so
+    // overlapping glints melt into soft continuous ripples; only the finished blend
+    // gets clipped to the tile's diamond silhouette in the pass below (clipping each
+    // dab individually would let 'source-atop' cut into glints not drawn yet).
+    const glintCanvas = document.createElement('canvas');
+    glintCanvas.width = w;
+    glintCanvas.height = h;
+    const gctx = glintCanvas.getContext('2d');
+    gctx.globalCompositeOperation = 'lighter';
+    bands.forEach((band, bandIndex) => {
+      const baseY = h * band.yFrac;
+      const amp = h * band.ampFrac;
+      const alpha = band.peakAlpha * breath;
+      if (alpha <= 0.01) return;
+      for (let x = 2; x < w - 2; x += 5) {
+        const y = baseY + Math.sin((x / band.wavelength) * Math.PI * 2 + wavePhase + bandIndex) * amp;
+        const gradient = gctx.createRadialGradient(x, y, 0, x, y, band.dabRadius);
+        gradient.addColorStop(0, `rgba(255,255,255,${alpha})`);
+        gradient.addColorStop(0.7, `rgba(255,255,255,${alpha * 0.35})`);
+        gradient.addColorStop(1, 'rgba(255,255,255,0)');
+        gctx.fillStyle = gradient;
+        gctx.beginPath();
+        gctx.arc(x, y, band.dabRadius, 0, Math.PI * 2);
+        gctx.fill();
+      }
+    });
+    // Sparkle points get their own random scatter each frame (unlike the smooth
+    // sine-path ripple dabs above), so cycling through the 8 frames reads as
+    // twinkling glints rather than a fixed pattern sliding around.
+    drawSeaFlowSunsetGlints(gctx, w, h, sunBucket);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(source, 0, 0, w, h);
+    // 'source-atop' only paints over pixels the base tile already occupies, so the
+    // glints stay clipped to the tile's own diamond silhouette instead of bleeding
+    // past its edge.
+    ctx.globalCompositeOperation = 'source-atop';
+    ctx.drawImage(glintCanvas, 0, 0);
+    scene.textures.addCanvas(frameKey, canvas);
+  }
+  scene.seaFlowGeneratedTiers.add(comboKey);
+}
+
+// Only walks the small camera-local set updateTerrainViewportCulling() already
+// maintains (a few hundred tiles at most), so this stays cheap regardless of the
+// 256x256 map size. Re-derives each tile's real key from live game state rather than
+// caching it at tile-creation time, so terraforming a water tile into land (or vice
+// versa) is picked up automatically instead of going stale.
+function updateSeaFlowAnimation(scene, time) {
+  if (!scene?.activeTerrainSpriteIds?.size || !isSeaFlowEnabled()) return;
+  const tier = typeof getSeaStateTier === 'function' ? getSeaStateTier() : 'moderate';
+  const tierConfig = SEA_FLOW_TIER_CONFIG[tier] || SEA_FLOW_TIER_CONFIG.moderate;
+  if (scene.seaFlowNextTickAt === undefined) scene.seaFlowNextTickAt = 0;
+  if (time < scene.seaFlowNextTickAt) return;
+  scene.seaFlowNextTickAt = time + tierConfig.tickMs;
+  const sunBucket = getSeaFlowSunsetBucket(scene);
+  const comboKey = `${tier}:${sunBucket}`;
+  if (!scene.seaFlowGeneratedTiers?.has(comboKey)) generateSeaFlowTextures(scene, tier, sunBucket);
+  scene.seaFlowFrame = ((scene.seaFlowFrame ?? 0) + 1) % SEA_FLOW_FRAME_COUNT;
+  for (const id of scene.activeTerrainSpriteIds) {
+    const row = Math.floor(id / MAP_WIDTH);
+    const col = id % MAP_WIDTH;
+    const tile = scene.tileSprites[row]?.[col];
+    if (!tile) continue;
+    if (resolveTileTextureKey(getTileKey(row, col)) !== SEA_FLOW_BASE_KEY) continue;
+    const phase = (scene.seaFlowFrame + row + col) % SEA_FLOW_FRAME_COUNT;
+    const frameKey = `${SEA_FLOW_BASE_KEY}_flow_${comboKey}_${phase}`;
+    if (scene.textures.exists(frameKey) && tile.texture?.key !== frameKey) {
+      tile.setTexture(frameKey);
+    }
+  }
+}
+
+// ── Rain ripples: transient rings on open water while it's raining ─────────────
+//
+// Unlike the ambient shimmer above (a per-tile texture swap, permanently on the
+// tile), a ripple is a one-off event at a specific point that expands and fades -
+// that's a transient world sprite + tween, the same shape as how rain streaks or
+// lightning already work, not another texture-bake variant.
+const RAIN_RIPPLE_BASE_KEY = 'water_full';
+// Density scales with getRainEffectTier() (sim-weather.js) - the same tier already
+// driving rain particle density and lightning frequency, so ripples get busier and
+// thin out in lockstep with the rest of the storm rather than being rolled
+// independently. Heavy/extreme also spawn more than one ripple per tick - shortening
+// the interval alone hits a point of diminishing returns (each ripple's own ~1s
+// lifespan caps how "busy" a single-spawn-at-a-time model can ever look), so a real
+// downpour needs multiple drops landing at once, not just landing faster.
+const RAIN_RIPPLE_CONFIG = {
+  none: null,
+  light: { intervalMs: 450, spawnCount: 1 },
+  moderate: { intervalMs: 260, spawnCount: 1 },
+  heavy: { intervalMs: 180, spawnCount: 2 },
+  extreme: { intervalMs: 120, spawnCount: 3 },
+};
+
+function generateRippleRingTexture(scene) {
+  if (scene.textures.exists('fx_ripple_ring')) return;
+  // A ripple is a circle lying flat on the ground plane, and this map is a 2:1
+  // isometric projection (TILE_WIDTH:TILE_HEIGHT, main.js:2-3) - a flat circle drawn
+  // as an actual circle here would read as a ring tilted up off the water, not lying
+  // on it. Draw it circular in a squashed coordinate space instead, so the baked
+  // texture itself comes out a 2:1 ellipse and stays that shape through the tween's
+  // uniform scale-up.
+  const w = 44;
+  const h = 22;
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  const r = w / 2 - 3;
+  ctx.save();
+  ctx.translate(w / 2, h / 2);
+  ctx.scale(1, h / w);
+  // A ring, not a filled disc: transparent center and outside, a soft bright band
+  // partway out - a raindrop's ripple, not a splash of paint.
+  const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
+  gradient.addColorStop(0, 'rgba(255,255,255,0)');
+  gradient.addColorStop(0.68, 'rgba(255,255,255,0)');
+  gradient.addColorStop(0.82, 'rgba(255,255,255,0.7)');
+  gradient.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = gradient;
+  ctx.beginPath();
+  ctx.arc(0, 0, r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+  scene.textures.addCanvas('fx_ripple_ring', canvas);
+}
+
+// A few random probes into the already-culled visible-tile set, not a scan of it -
+// good enough odds of landing on open water whenever there's a meaningful amount of
+// it on screen, without paying for a full pass on every spawn tick.
+function pickVisibleRainRippleTile(scene) {
+  const ids = scene?.activeTerrainSpriteIds;
+  if (!ids?.size) return null;
+  const idArray = Array.from(ids);
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const id = idArray[Math.floor(Math.random() * idArray.length)];
+    const row = Math.floor(id / MAP_WIDTH);
+    const col = id % MAP_WIDTH;
+    if (resolveTileTextureKey(getTileKey(row, col)) === RAIN_RIPPLE_BASE_KEY) return { row, col };
+  }
+  return null;
+}
+
+function spawnRainRipple(scene) {
+  const tile = pickVisibleRainRippleTile(scene);
+  if (!tile) return;
+  const { row, col } = tile;
+  const pos = isoToScreen(col, row);
+  // Scatter within the tile's own footprint rather than always its exact anchor
+  // point, so ripples don't all line up on the same isometric grid dot.
+  const x = pos.x + scene.offsetX + (Math.random() - 0.5) * TILE_WIDTH * 0.7;
+  const y = pos.y + scene.offsetY + TILE_HEIGHT * 0.5 + (Math.random() - 0.5) * TILE_HEIGHT * 0.5;
+  const ring = scene.add.image(x, y, 'fx_ripple_ring');
+  // getTerrainTileDepth() + 1 put this in the 'terrain' depth band (WORLD_LAYER_DEPTHS,
+  // main.js:349-354) alongside the water tiles themselves - a neighbouring tile whose
+  // own baseY happens to be even slightly higher paints right over a "+1" offset,
+  // which is exactly why debris/tree sprites use the 'object' band instead
+  // (placeDebrisSprite, main.js:7098) despite also sitting on open terrain. Same fix
+  // here: object band is always above every terrain tile, not just this one +1 unit.
+  ring.setDepth(getObjectTileDepth(row, col, y));
+  ring.setMask(scene.worldMask);
+  ring.setBlendMode('ADD');
+  ring.setScale(0.3);
+  ring.setAlpha(0.55);
+  scene.tweens.add({
+    targets: ring,
+    scale: 1.15,
+    alpha: 0,
+    duration: 850 + Math.random() * 300,
+    ease: 'Sine.easeOut',
+    onComplete: () => ring.destroy(),
+  });
+}
+
+// Rides the same isWeatherEffectsEnabled() toggle that already gates rain
+// particles/lightning (main.js:104) - ripples are visual load tied directly to rain,
+// so a player turning that off to save performance should lose these too, not need
+// a second switch for the same storm.
+function updateRainRipples(scene, time) {
+  if (!scene || !isWeatherEffectsEnabled()) return;
+  const tier = typeof getRainEffectTier === 'function' ? getRainEffectTier() : 'none';
+  const config = RAIN_RIPPLE_CONFIG[tier];
+  if (!config) return;
+  if (scene.rainRippleNextSpawnAt === undefined) scene.rainRippleNextSpawnAt = 0;
+  if (time < scene.rainRippleNextSpawnAt) return;
+  scene.rainRippleNextSpawnAt = time + config.intervalMs;
+  if (!scene.textures.exists('fx_ripple_ring')) generateRippleRingTexture(scene);
+  for (let i = 0; i < config.spawnCount; i++) spawnRainRipple(scene);
+}
+
 // Clouds fade out over this zoom range and are fully gone at/above the end -
 // "descending through the cloud layer" as the camera zooms in, not a hard cut.
 const CLOUD_FADE_ZOOM_START = 0.9;
@@ -6386,6 +6753,7 @@ function setTileType(scene, row, col, tileType) {
   if (tileType !== DIRT) {
     removeDebris(scene, row, col);
   }
+  invalidateOrphanedNeighborDebris(scene, row, col);
 
   if (tileType === HILL) {
     const neighbors = [
@@ -6902,6 +7270,28 @@ function canDebrisOccupyAt(scene, row, col, blockedTiles = null) {
 function canDebrisGrowAt(scene, row, col, blockedTiles = null) {
   if (debrisMap[row]?.[col]) return false;
   return canDebrisOccupyAt(scene, row, col, blockedTiles);
+}
+
+// Debris only ever spawns when every neighbour of its tile is also DIRT (see
+// isAdjacentToNonDirtTerrain) - that invariant is only checked once, at spawn time.
+// Editing a NEIGHBOUR's terrain (eg. painting it to water) doesn't touch the debris
+// tile itself, so nothing previously re-validated it: a lone DIRT tile could be left
+// surrounded by water with its derelict-vehicle/container prop still there, visually
+// overhanging onto the water around it. Call this on every tile whose type just
+// changed so its 8 neighbours get re-checked, not just the edited tile.
+function invalidateOrphanedNeighborDebris(scene, row, col) {
+  for (let dr = -1; dr <= 1; dr++) {
+    for (let dc = -1; dc <= 1; dc++) {
+      if (dr === 0 && dc === 0) continue;
+      const nr = row + dr;
+      const nc = col + dc;
+      if (!isInsideMap(nr, nc)) continue;
+      if (!debrisMap[nr]?.[nc]) continue;
+      if (mapData[nr][nc] === DIRT && isAdjacentToNonDirtTerrain(nr, nc)) {
+        removeDebris(scene, nr, nc);
+      }
+    }
+  }
 }
 
 // Same per-tile pseudo-random jitter technique as getTreeVisualOffset, just

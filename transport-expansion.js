@@ -19,6 +19,10 @@ const TRANSPORT_EXPANSION_UNLOCK_POPULATION = 3000;
 // ($280 + $210) with slack, exactly the spec's sizing intent.
 const TRANSPORT_STARTUP_CAPITAL = 600;
 const TRANSPORT_STOP_CATCHMENT_RADIUS = 5;
+// How close a stop needs to be to water/beach before its auto-generated
+// default name is allowed to draw the "XX碼頭" (pier) template - see
+// getTransportStopAutoName.
+const TRANSPORT_STOP_PIER_WATERFRONT_RADIUS = 4;
 const TRANSPORT_DEPOT_CAPACITY = 12;
 const TRANSPORT_DEPOT_MONTHLY_UPKEEP = 12;
 // Legacy v1 clamp only - a v1 save's raw `route.buses` count is clamped to
@@ -769,9 +773,66 @@ function isTransportStopPresent(stop) {
   return Array.isArray(sides) && sides.length > 0;
 }
 
+// §15 auto-naming: a stop with no player-chosen name is labelled after its
+// district (a nearby district sign, or else one of the 18 auto-scattered
+// HK districts, per city-districts.js) plus a template suffix - a compass
+// direction picked from the stop's real position relative to that district's
+// centre, "碼頭" only when the stop is actually near water, and the other
+// templates picked deterministically (per stop.id, stable across reloads)
+// from what's left. Nothing here is stored - it's recomputed every call, so
+// a stop's default name tracks its district live until the player renames it.
+function getTransportStopAutoName(stop) {
+  if (!stop || typeof getDistrictNameForTile !== 'function') return null;
+  const district = getDistrictNameForTile(stop.row, stop.col);
+  if (!district) return null;
+  const random = typeof createRandom === 'function' ? createRandom(`transport-stop-name:${stop.id}`) : Math.random;
+
+  const dRow = stop.row - district.center.row;
+  const dCol = stop.col - district.center.col;
+  let directionZh;
+  let directionEn;
+  if (dRow === 0 && dCol === 0) {
+    const options = [['北', 'North'], ['南', 'South'], ['東', 'East'], ['西', 'West']];
+    [directionZh, directionEn] = options[Math.floor(random() * options.length)];
+  } else if (Math.abs(dRow) >= Math.abs(dCol)) {
+    [directionZh, directionEn] = dRow < 0 ? ['北', 'North'] : ['南', 'South'];
+  } else {
+    [directionZh, directionEn] = dCol < 0 ? ['西', 'West'] : ['東', 'East'];
+  }
+
+  const nearWater = typeof isNearWaterfront === 'function'
+    && isNearWaterfront(stop.row, stop.col, TRANSPORT_STOP_PIER_WATERFRONT_RADIUS);
+  const templates = [
+    { zh: directionZh, en: ` ${directionEn}` },
+    { zh: '市中心', en: ' Town Centre' },
+    { zh: '新城', en: ' New Town' },
+    { zh: '廣場', en: ' Plaza' },
+    { zh: '花園', en: ' Garden' },
+  ];
+  if (nearWater) templates.push({ zh: '碼頭', en: ' Pier' });
+  const template = templates[Math.floor(random() * templates.length)];
+
+  return {
+    zh: `${district.zhRoot}${template.zh}`,
+    en: `${district.en}${template.en}`,
+  };
+}
+
 function getTransportStopDisplayName(stop, index = 0) {
   if (stop?.name) return stop.name;
+  const auto = getTransportStopAutoName(stop);
+  if (auto) {
+    const language = typeof getCurrentLanguage === 'function' ? getCurrentLanguage() : 'en';
+    return language === 'en' ? auto.en : auto.zh;
+  }
   return `${typeof t === 'function' ? t('transport.stop') : 'Stop'} ${index + 1}`;
+}
+
+function renameTransportStop(stopId, name) {
+  const stop = getTransportStopById(stopId);
+  if (!stop) return false;
+  stop.name = String(name || '').trim().slice(0, 60);
+  return true;
 }
 
 function listTransportStopSites(options = {}) {
@@ -873,14 +934,17 @@ function listTransportDepots(options = {}) {
     .filter((depot) => options.connectedOnly !== true || depot.connected);
 }
 
-function commissionFirstConnectedTransportDepot() {
+// Commissions every currently-connected depot (idempotent), not just the
+// first one ever seen - a depot only needs a road frontage to go into
+// service, so all of them should become selectable/usable as soon as
+// they're connected.
+function commissionAllConnectedTransportDepots() {
   const state = getTransportExpansionState();
   const connected = listTransportDepots({ connectedOnly: true });
-  if (connected.length === 0) return null;
-  const existing = connected.find((depot) => state.commissionedDepotIds.includes(depot.id));
-  const depot = existing ?? connected[0];
-  if (!state.commissionedDepotIds.includes(depot.id)) state.commissionedDepotIds.push(depot.id);
-  return depot;
+  connected.forEach((depot) => {
+    if (!state.commissionedDepotIds.includes(depot.id)) state.commissionedDepotIds.push(depot.id);
+  });
+  return connected;
 }
 
 function getConnectedCommissionedTransportDepots() {
@@ -1416,8 +1480,8 @@ function validateTransportRouteDraft(draft) {
   // ensureTransportStopPairs), never mandatory.
   const path = buildTransportRoutePath(stopIds);
   if (!path) throw createTransportError('noPath');
-  const connectedDepot = commissionFirstConnectedTransportDepot();
-  if (!connectedDepot) throw createTransportError('needsDepot');
+  const connectedDepots = commissionAllConnectedTransportDepots();
+  if (connectedDepots.length === 0) throw createTransportError('needsDepot');
   return {
     stopIds,
     fare: normalizeTransportFare(draft.fare ?? TRANSPORT_DEFAULT_FARE),
@@ -2399,6 +2463,9 @@ const transportExpansionTestApi = {
   getTransportStopWaitingCount,
   getTransportQueueRevision,
   getTransportVehicleApproximateTile,
+  getTransportStopDisplayName,
+  getTransportStopAutoName,
+  renameTransportStop,
 };
 
 if (typeof module !== 'undefined' && module.exports) module.exports = transportExpansionTestApi;

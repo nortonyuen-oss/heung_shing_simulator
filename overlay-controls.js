@@ -103,6 +103,9 @@ function _zoomAtPoint(mouseX, mouseY, factor) {
 function _applyCanvasTransform() {
   const canvas = document.getElementById('mini-map-canvas');
   if (canvas) canvas.style.transform = `translate(${mapViewPanX}px,${mapViewPanY}px) scale(${mapViewZoom})`;
+  // Labels are positioned in real pixels off the same pan/zoom values
+  // instead of riding the canvas's CSS transform - see positionDistrictNameLabels.
+  positionDistrictNameLabels();
   const label = document.getElementById('overlay-zoom-label');
   if (label) label.textContent = `${Math.round(mapViewZoom * 100)}%`;
 }
@@ -174,6 +177,7 @@ function getMiniMapDisplayCoords(row, col) {
 
 function drawOverlayAnnotations(ctx, type) {
   if (!ctx) return;
+  renderDistrictNameLabels(type === 'neighborhood');
   ctx.save();
 
   if (type === 'crime' || type === 'fire') {
@@ -260,6 +264,73 @@ function drawOverlayAnnotations(ctx, type) {
   }
 
   ctx.restore();
+}
+
+// Labels the "Residential Districts" overlay with the actual district each
+// area belongs to - a player-placed district sign where one covers the spot,
+// otherwise one of the 18 auto-scattered HK districts (city-districts.js).
+// Rendered as real DOM text (#mini-map-labels) instead of drawn into the
+// pixel canvas, which is deliberately `image-rendering: pixelated` for the
+// blocky terrain/overlay squares and would blur any text rasterized into it.
+//
+// The label container itself is NOT CSS-transformed together with the
+// canvas: a `transform: scale()` on a `will-change: transform` layer tends
+// to get GPU-composited from a bitmap rasterized at the pre-zoom size, which
+// blurs text just as badly as the canvas approach once zoomed in a lot.
+// Instead each label's pixel position and font-size are recomputed directly
+// from mapViewZoom/mapViewPanX/mapViewPanY on every pan/zoom (via
+// _applyCanvasTransform calling positionDistrictNameLabels), so the browser
+// actually re-lays-out and re-rasterizes the text at the new size every time.
+let districtLabelEntries = [];
+
+function renderDistrictNameLabels(active) {
+  const container = document.getElementById('mini-map-labels');
+  if (!container) return;
+  if (!active || typeof getBaseCityDistricts !== 'function') {
+    districtLabelEntries = [];
+    container.innerHTML = '';
+    return;
+  }
+  const language = typeof getCurrentLanguage === 'function' ? getCurrentLanguage() : 'zhHant';
+  const labels = getBaseCityDistricts().map((district) => ({
+    row: district.row,
+    col: district.col,
+    text: language === 'en' ? district.en : district.zh,
+  }));
+  if (typeof getDistrictSigns === 'function') {
+    getDistrictSigns().forEach((sign) => {
+      labels.push({
+        row: Number(sign.row),
+        col: Number(sign.col),
+        text: language === 'en' ? (sign.englishName || sign.name) : sign.name,
+      });
+    });
+  }
+  districtLabelEntries = labels.filter((entry) => entry.text);
+
+  container.innerHTML = '';
+  districtLabelEntries.forEach(() => {
+    container.appendChild(document.createElement('div')).className = 'district-label';
+  });
+  positionDistrictNameLabels();
+}
+
+function positionDistrictNameLabels() {
+  const container = document.getElementById('mini-map-labels');
+  if (!container || districtLabelEntries.length === 0) return;
+  const zoom = Number(mapViewZoom) || 1;
+  const panX = Number(mapViewPanX) || 0;
+  const panY = Number(mapViewPanY) || 0;
+  const fontSize = Math.max(6, Math.min(28, 6 * zoom));
+  container.querySelectorAll('.district-label').forEach((node, index) => {
+    const entry = districtLabelEntries[index];
+    if (!entry) return;
+    const pos = getMiniMapDisplayCoords(entry.row, entry.col);
+    node.textContent = entry.text;
+    node.style.left = `${pos.col * zoom + panX}px`;
+    node.style.top = `${pos.row * zoom + panY}px`;
+    node.style.fontSize = `${fontSize}px`;
+  });
 }
 
 function getBuildingMiniMapCenter(row, col, record) {

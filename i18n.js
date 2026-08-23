@@ -1,6 +1,6 @@
 const I18N_STORAGE_KEY = 'citybuilder.language';
-let appVersion = '4.2.0';
-let appReleaseTheme = '【霧鎖香城】';
+let appVersion = '4.3.0';
+let appReleaseTheme = '【漁火閃閃】';
 
 const LANGUAGES = {
   en: 'English',
@@ -112,6 +112,7 @@ const I18N = {
     'menu.showDistrictSigns': 'Show district signs',
     'menu.weatherEffects': 'Weather visual effects (rain/lightning)',
     'menu.dynamicLighting': 'Dynamic lighting (sun angle/cloud drift)',
+    'menu.seaFlow': 'Sea surface flow effect',
     'menu.aiNews': 'AI News…',
     'transport.menu.toggle': 'Enable Public Transport Expansion',
     'transport.newCity.enable': 'Enable Public Transport Expansion',
@@ -277,6 +278,8 @@ const I18N = {
     'transport.stopInspector.waiting': 'Waiting passengers',
     'transport.stopInspector.routes': 'Serving routes',
     'transport.stopInspector.noRoutes': 'None',
+    'transport.stopInspector.rename': 'Rename',
+    'transport.stopInspector.renamePrompt': 'Stop name (leave blank for the default name):',
     'transport.topbarToolsAria': 'Transport company windows',
     'transport.kpi.cash': 'Company Cash',
     'transport.kpi.revenue': 'Monthly Revenue',
@@ -1649,6 +1652,7 @@ const I18N = {
     'menu.showDistrictSigns': '顯示分區路牌',
     'menu.weatherEffects': '天氣視覺效果（落雨／閃電）',
     'menu.dynamicLighting': '動態光影（日照角度／飄雲）',
+    'menu.seaFlow': '海面流動效果',
     'menu.aiNews': 'AI 新聞…',
     'transport.menu.toggle': '啟用公共交通擴充',
     'transport.newCity.enable': '啟用公共交通擴充',
@@ -1814,6 +1818,8 @@ const I18N = {
     'transport.stopInspector.waiting': '候車乘客',
     'transport.stopInspector.routes': '途經路線',
     'transport.stopInspector.noRoutes': '未有路線',
+    'transport.stopInspector.rename': '重新命名',
+    'transport.stopInspector.renamePrompt': '巴士站名稱（留空使用預設名稱）：',
     'transport.topbarToolsAria': '運輸公司視窗',
     'transport.kpi.cash': '公司現金',
     'transport.kpi.revenue': '每月收入',
@@ -3157,6 +3163,7 @@ const I18N = {
     'menu.showDistrictSigns': '地区標識を表示',
     'menu.weatherEffects': '天候の視覚効果（雨／雷）',
     'menu.dynamicLighting': 'ダイナミックライティング（太陽の角度／雲の流れ）',
+    'menu.seaFlow': '海面の流れエフェクト',
     'menu.aiNews': 'AIニュース…',
     'transport.menu.toggle': '公共交通拡張を有効化',
     'transport.newCity.enable': '公共交通拡張を有効化',
@@ -3322,6 +3329,8 @@ const I18N = {
     'transport.stopInspector.waiting': '待機乗客',
     'transport.stopInspector.routes': '経由路線',
     'transport.stopInspector.noRoutes': '路線なし',
+    'transport.stopInspector.rename': '名前を変更',
+    'transport.stopInspector.renamePrompt': '停留所名（空欄でデフォルト名）：',
     'transport.topbarToolsAria': '運輸会社ウィンドウ',
     'transport.kpi.cash': '会社の現金',
     'transport.kpi.revenue': '月間収入',

@@ -210,6 +210,13 @@ const SITE_FEATURE_LIST = {
 // ── Changelog ─────────────────────────────────────────────────────────────────
 const SITE_CHANGELOG = {
   "zh-HK": [
+    { version: "v4.3.0", date: "2026-08-23", dateLabel: "2026年8月23日", title: "漁火閃閃", items: [
+      "海面流動效果：開放水域（大海／湖）嘅水面而家會有動態波浪紋理，跟住風速（颱風信號做保底）分五級變化——風平浪靜嗰陣輕輕晃動，8號風球以上會變到波濤洶湧、紋理明顯加大加快，可以喺 View 選單獨立開關「海面流動效果」。",
+      "夕陽波光粼粼：晴天、太陽循環行到接近日落嗰段時間，水面會出返一啲白熱金邊嘅閃光點，當中幾粒特別亮嘅「主角」閃光仲帶十字光芒，好似陽光喺水面反光咁閃閃生光。",
+      "落雨漣漪：落雨嗰陣開放水域會不時泛起橢圓形（跟返地圖 2:1 等角比例）嘅漣漪圈，密度同雨勢一齊遞增——小雨疏落，黑雨／8號風球會密到成片水面都係漣漪。",
+      "新增香港18區自動命名系統：巴士站冇自訂名就會自動跟返所屬地區改名（仲會揀方向／碼頭等字尾），亦可以隨時手動重新命名；小地圖「住宅」總覽而家都會標返實際地區名。",
+      "修正運輸車廠一直淨係第一個接駁到路嘅先算「啟用」嘅bug，同一個地形編輯bug：將水陸交界泥地嘅鄰居畫做水之後，個廢棄車／貨櫃堆會攤喺水面唔識消失，而家會跟住一齊清走。",
+    ] },
     { version: "v4.2.0", date: "2026-08-23", dateLabel: "2026年8月23日", title: "霧鎖香城", items: [
       "新增動態光影：晴天會出現方向性太陽光影，跟住一個獨立於遊戲曆嘅真實時間循環，慢慢由東面金黃色移到頭頂中性光，再到西面橙紅色夕陽，可以喺 View 選單隨時開關。",
       "全天氣雲層系統：由以前淨係陰天先有雲，改成所有天氣都會飄雲，密度同顏色跟住天氣分五級——晴天最少最淡、陰天中等、落雨轉厚、黑色暴雨／8號風球以上就會變做深灰色烏雲；雲層會自己飄動，zoom 入超過1.2倍會逐漸散去，好似穿過雲層咁清晰返，zoom 出返就會再現。",
@@ -408,6 +415,13 @@ const SITE_CHANGELOG = {
 // title/items text.
 const SITE_CHANGELOG_TRANSLATIONS = {
   "zh-TW": {
+    "v4.3.0": { title: "漁火閃閃", items: [
+      "海面流動效果：開放水域（大海／湖泊）的水面現在會有動態波浪紋理，隨風速（颱風信號做為下限）分五級變化——風平浪靜時輕輕晃動，8號颱風以上會變得波濤洶湧、紋理明顯加大加快，可在 View 選單獨立開關「海面流動效果」。",
+      "夕陽波光粼粼：晴天、太陽循環接近日落的那段時間，水面會浮現白熱金邊的閃光點，當中幾顆特別亮的「主角」閃光還帶十字光芒，彷彿陽光在水面反射般閃閃發光。",
+      "下雨漣漪：下雨時開放水域會不時泛起橢圓形（依地圖 2:1 等角比例）的漣漪圈，密度隨雨勢一起遞增——小雨稀疏，黑雨／8號颱風會密到整片水面都是漣漪。",
+      "新增香港18區自動命名系統：巴士站沒有自訂名稱就會自動依所屬地區命名（還會選方向／碼頭等字尾），也可以隨時手動重新命名；小地圖「住宅」總覽現在也會標示實際地區名。",
+      "修正運輸車廠一直只有第一個接上路的才算「啟用」的 bug，以及一個地形編輯 bug：把水陸交界泥地的鄰居畫成水之後，那堆廢棄車／貨櫃堆會留在水面上不會消失，現在會一併清除。",
+    ] },
     "v4.2.0": { title: "霧鎖香城", items: [
       "新增動態光影：晴天會出現方向性太陽光影，隨一個獨立於遊戲曆的真實時間循環，緩緩由東面金黃色移到頭頂中性光，再到西面橙紅色夕陽，可在 View 選單隨時開關。",
       "全天氣雲層系統：由以前只有陰天才有雲，改成所有天氣都會飄雲，密度和顏色隨天氣分五級——晴天最少最淡、陰天中等、下雨轉厚、黑色暴雨／8號颱風以上就會變成深灰色烏雲；雲層會自己飄動，zoom 入超過1.2倍會逐漸散去，彷彿穿過雲層般清晰，zoom 出後又會重現。",
@@ -599,6 +613,13 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   en: {
+    "v4.3.0": { title: "Glimmering Fishing Lights", items: [
+      "Added ambient sea-surface flow: open water (ocean/lakes) now shows a moving wave texture that scales through five tiers with wind speed (typhoon signal as a floor) - a gentle ripple in calm weather, building to visibly rough, fast-moving waves at Signal 8 and above. Toggle it independently from the View menu ('Sea surface flow effect').",
+      "Added sunset glitter: on clear days, as the sun's cycle nears sunset, the water surface picks up small white-hot, gold-rimmed glints - a few brighter 'hero' sparkles even carry a thin cross-shaped flare - like real sunlight catching ripples.",
+      "Added rain ripples: while it's raining, open water periodically shows expanding oval ripples (matching the map's 2:1 isometric proportions), with density scaling up with rain intensity - light under a shower, dense enough to cover the water under a black rainstorm or Signal 8+.",
+      "Added a Hong Kong 18-district auto-naming system: bus stops without a custom name are automatically named after their district (with a direction/pier-style suffix), and can still be renamed manually at any time; the minimap's residential overview now labels the real district names too.",
+      "Fixed a bug where only the first connected transport depot was ever treated as 'active' - every connected depot now activates correctly. Also fixed a terrain-editing bug where painting a bare-land debris tile's neighbour to water left the abandoned vehicle/container pile stranded on the water instead of disappearing with it.",
+    ] },
     "v4.2.0": { title: "Mist-Locked City", items: [
       "Added dynamic lighting: on clear weather, a direction-aware sun tint sweeps across the sky on a real-time cycle decoupled from the compressed in-game calendar - slowly moving from a golden east at sunrise, through neutral overhead light, to an orange sunset in the west. Toggle it anytime from the View menu.",
       "All-weather cloud cover: clouds used to only appear on cloudy days - now they drift across the sky in every weather condition, with density and tint scaling across five tiers (clear is lightest, cloudy is moderate, rain thickens it, and black rainstorm/severe typhoon signals turn it into a dark grey overcast deck). Clouds drift on their own, and fade out smoothly above 1.2x zoom - like descending through the cloud layer - reappearing as you zoom back out.",
@@ -790,6 +811,13 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   ja: {
+    "v4.3.0": { title: "漁火きらめく", items: [
+      "海面の流動エフェクトを追加：外洋・湖などの開けた水域に動く波のテクスチャが加わり、風速（台風シグナルを下限として）に応じて5段階で変化する——凪の日は穏やかに揺れ、8号シグナル以上では明らかに荒く速い波になる。View メニューから「海面流動効果」として個別にオン・オフ可能。",
+      "夕焼けの波光きらめきを追加：晴天時、太陽の周期が夕暮れに近づくと、水面に白熱した金縁の輝きが浮かぶ。特に明るい「主役」級の輝きには十字のフレアも付き、本物の夕日が波間で反射しているように見える。",
+      "雨の波紋を追加：雨天時、開けた水域に楕円形（地図の 2:1 アイソメトリック比率に合わせた形）の波紋が時折広がり、雨脚が強いほど密度が増す——小雨ではまばら、大雨警報（黒）／8号シグナル以上では水面いっぱいに波紋が広がる。",
+      "香港18区にちなんだ自動命名システムを追加：名前を設定していないバス停には、所属する地区名に方角や「埠頭」などの接尾語を付けた名前が自動的に付き、いつでも手動で改名もできる。ミニマップの「住宅」概観にも実際の地区名が表示されるようになった。",
+      "接続済みの運輸車庫が最初の1つしか「稼働」扱いにならなかったバグを修正——接続済みの車庫はすべて正しく稼働するようになった。あわせて、荒れ地の廃棄物タイルの隣接マスを水に変更した際、放置車両／コンテナの山が水面に取り残されたまま消えなかった地形編集のバグも修正。",
+    ] },
     "v4.2.0": { title: "霧鎖の街", items: [
       "ダイナミックライティングを追加：晴天時に方向性のある太陽光が、圧縮されたゲーム内暦から独立したリアルタイムの周期でゆっくり移動——東からの黄金色の朝日、頭上の中立光、西への橙色の夕日へと変化する。View メニューからいつでもオン・オフ可能。",
       "全天候の雲システム：これまで曇りの日にしか出なかった雲が、すべての天候で流れるように。密度と色は5段階で天候に応じて変化——晴天が最も薄く、曇りは中程度、雨で厚くなり、大雨警報（黒）や強い台風シグナル以上ではダークグレーの分厚い雲に。雲は自ら漂い、ズーム1.2倍を超えると雲層を抜けるように徐々に消え、ズームアウトすると再び現れる。",

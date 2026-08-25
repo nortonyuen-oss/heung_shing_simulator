@@ -66,9 +66,9 @@ function createTransportVm() {
   return context;
 }
 
-test('old cities default to a disabled schema-v2 state with no routes or vehicles', () => {
+test('old cities default to a disabled schema-v3 state with no routes or vehicles', () => {
   const oldCity = transport.normalizeTransportExpansionState(undefined);
-  assert.equal(oldCity.schemaVersion, 2);
+  assert.equal(oldCity.schemaVersion, 3);
   assert.equal(oldCity.enabled, false);
   assert.equal(oldCity.unlocked, false);
   assert.deepEqual(oldCity.routes, []);
@@ -77,7 +77,7 @@ test('old cities default to a disabled schema-v2 state with no routes or vehicle
   assert.equal(oldCity.company.cash, 0);
 });
 
-test('v1 saves migrate to schema v2: route bus counts become grandfathered vehicles, startup credit becomes company cash', () => {
+test('v1 saves migrate to schema v3: route bus counts become grandfathered vehicles, startup credit becomes company cash', () => {
   const history = Array.from({ length: 30 }, (_, index) => ({
     year: 1900 + Math.floor(index / 12),
     month: index % 12 + 1,
@@ -99,7 +99,7 @@ test('v1 saves migrate to schema v2: route bus counts become grandfathered vehic
       history,
     }],
   });
-  assert.equal(restored.schemaVersion, 2);
+  assert.equal(restored.schemaVersion, 3);
   assert.equal(restored.lastSettledMonthIndex, 0);
   // raw fare 9 is below the new TRANSPORT_FARE_MIN (15) and clamps up to it.
   assert.equal(restored.routes[0].fare, 15);
@@ -118,6 +118,50 @@ test('v1 saves migrate to schema v2: route bus counts become grandfathered vehic
   }
   assert.equal(restored.nextVehicleId, 9);
   assert.equal(restored.company.cash, 1500);
+});
+
+test('v2 companies receive the corrected founding grant once, without changing unfounded saves', () => {
+  const founded = transport.normalizeTransportExpansionState({
+    schemaVersion: 2,
+    enabled: true,
+    unlocked: true,
+    company: { cash: 40, foundedYear: 1900, foundedMonth: 1 },
+  });
+  assert.equal(founded.schemaVersion, 3);
+  assert.equal(founded.company.cash, 5440);
+
+  const restoredAgain = transport.normalizeTransportExpansionState(founded);
+  assert.equal(restoredAgain.company.cash, 5440, 'the correction must not be applied twice');
+
+  const notYetFounded = transport.normalizeTransportExpansionState({
+    schemaVersion: 2,
+    enabled: true,
+    unlocked: false,
+    company: { cash: 0, foundedYear: 0, foundedMonth: 0 },
+  });
+  assert.equal(notYetFounded.company.cash, 0);
+});
+
+test('startup capital pays for the required depot, a route, and two standard buses', () => {
+  const context = createTransportVm();
+  vm.runInContext(`
+    setExpansionEnabled('transport', true, { notify: false, autosave: false });
+    openingCash = getTransportExpansionState().company.cash;
+    depotPaid = spendTransportConstruction(4000);
+    stopIds = listTransportStopSites().map((stop) => stop.id);
+    route = createTransportRoute({ stopIds, fare: 35 });
+    depotId = getConnectedCommissionedTransportDepots()[0].id;
+    firstBus = buyTransportVehicle(depotId, 'standard_double_decker');
+    secondBus = buyTransportVehicle(depotId, 'standard_double_decker');
+    closingCash = getTransportExpansionState().company.cash;
+  `, context);
+
+  assert.equal(context.openingCash, 6000);
+  assert.equal(context.depotPaid, true);
+  assert.equal(context.route.id, 'route-1');
+  assert.equal(context.firstBus.purchasePrice, 280);
+  assert.equal(context.secondBus.purchasePrice, 280);
+  assert.equal(context.closingCash, 1440);
 });
 
 test('a pre-queue save receives one day of waiting passengers once, immediately on load', () => {

@@ -210,6 +210,10 @@ const SITE_FEATURE_LIST = {
 // ── Changelog ─────────────────────────────────────────────────────────────────
 const SITE_CHANGELOG = {
   "zh-HK": [
+    { version: "v4.3.1", date: "2026-08-25", dateLabel: "2026年8月25日", title: "漁火閃閃", items: [
+      "修正巴士 DLC 完全開唔到局嘅經濟問題：巴士公司啟動資金由 $600 提高到 $6,000，而家足夠支付一座 $4,000 車廠、建立路線，再買兩部標準雙層巴士，仲有 $1,440 營運資金。",
+      "舊版已成立巴士公司嘅存檔會在載入時一次過自動補發 $5,400 差額；重開遊戲、重複載入或開關 DLC 都唔會重複入帳。",
+    ] },
     { version: "v4.3.0", date: "2026-08-23", dateLabel: "2026年8月23日", title: "漁火閃閃", items: [
       "海面流動效果：開放水域（大海／湖）嘅水面而家會有動態波浪紋理，跟住風速（颱風信號做保底）分五級變化——風平浪靜嗰陣輕輕晃動，8號風球以上會變到波濤洶湧、紋理明顯加大加快，可以喺 View 選單獨立開關「海面流動效果」。",
       "夕陽波光粼粼：晴天、太陽循環行到接近日落嗰段時間，水面會出返一啲白熱金邊嘅閃光點，當中幾粒特別亮嘅「主角」閃光仲帶十字光芒，好似陽光喺水面反光咁閃閃生光。",
@@ -415,6 +419,10 @@ const SITE_CHANGELOG = {
 // title/items text.
 const SITE_CHANGELOG_TRANSLATIONS = {
   "zh-TW": {
+    "v4.3.1": { title: "漁火閃閃", items: [
+      "修正公車 DLC 完全無法開局的經濟問題：公車公司啟動資金由 $600 提高至 $6,000，現在足以支付一座 $4,000 車廠、建立路線，再購買兩輛標準雙層公車，並留有 $1,440 營運資金。",
+      "舊版已成立公車公司的存檔會在載入時一次性自動補發 $5,400 差額，重新開啟遊戲、重複載入或開關 DLC 都不會重複入帳。",
+    ] },
     "v4.3.0": { title: "漁火閃閃", items: [
       "海面流動效果：開放水域（大海／湖泊）的水面現在會有動態波浪紋理，隨風速（颱風信號做為下限）分五級變化——風平浪靜時輕輕晃動，8號颱風以上會變得波濤洶湧、紋理明顯加大加快，可在 View 選單獨立開關「海面流動效果」。",
       "夕陽波光粼粼：晴天、太陽循環接近日落的那段時間，水面會浮現白熱金邊的閃光點，當中幾顆特別亮的「主角」閃光還帶十字光芒，彷彿陽光在水面反射般閃閃發光。",
@@ -613,6 +621,10 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   en: {
+    "v4.3.1": { title: "Glimmering Fishing Lights", items: [
+      "Fixed the Bus DLC's blocked opening economy: company start-up capital rises from $600 to $6,000, enough to build the required $4,000 depot, create a route, buy two standard double-deckers, and retain $1,440 in working capital.",
+      "Existing saves with an already-founded bus company automatically receive the $5,400 difference once on load. Restarting, loading repeatedly, or toggling the DLC cannot apply the correction twice.",
+    ] },
     "v4.3.0": { title: "Glimmering Fishing Lights", items: [
       "Added ambient sea-surface flow: open water (ocean/lakes) now shows a moving wave texture that scales through five tiers with wind speed (typhoon signal as a floor) - a gentle ripple in calm weather, building to visibly rough, fast-moving waves at Signal 8 and above. Toggle it independently from the View menu ('Sea surface flow effect').",
       "Added sunset glitter: on clear days, as the sun's cycle nears sunset, the water surface picks up small white-hot, gold-rimmed glints - a few brighter 'hero' sparkles even carry a thin cross-shaped flare - like real sunlight catching ripples.",
@@ -811,6 +823,10 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   ja: {
+    "v4.3.1": { title: "漁火きらめく", items: [
+      "バス DLC で開業できなかった資金バランスを修正：創業資金を $600 から $6,000 に増額し、必須の $4,000 の車庫を建設し、路線を作成して標準型2階建てバスを2台購入しても、$1,440 の運転資金が残るようになった。",
+      "既にバス会社を設立済みの旧バージョンのセーブには、読み込み時に $5,400 の差額を1度だけ自動支給。再起動、繰り返し読み込み、DLC の切り替えで重複計上されることはない。",
+    ] },
     "v4.3.0": { title: "漁火きらめく", items: [
       "海面の流動エフェクトを追加：外洋・湖などの開けた水域に動く波のテクスチャが加わり、風速（台風シグナルを下限として）に応じて5段階で変化する——凪の日は穏やかに揺れ、8号シグナル以上では明らかに荒く速い波になる。View メニューから「海面流動効果」として個別にオン・オフ可能。",
       "夕焼けの波光きらめきを追加：晴天時、太陽の周期が夕暮れに近づくと、水面に白熱した金縁の輝きが浮かぶ。特に明るい「主役」級の輝きには十字のフレアも付き、本物の夕日が波間で反射しているように見える。",
@@ -1034,8 +1050,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.3.0 — 【漁火閃閃】",
-      versionDesc: "最新版本新增會發光嘅海面：波浪跟風暴變化、夕陽時分波光粼粼、落雨會泛起漣漪；仲加咗香港18區自動命名系統。",
+      versionBadge: "v4.3.1 — 【漁火閃閃】",
+      versionDesc: "巴士 DLC 修復版：啟動資金提高至 $6,000，而家可以正常起車廠、開路線同買巴士；舊存檔會自動補回差額。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感嘅城市建設遊戲。起街道、規劃社區、經營自己嘅香城巴士公司、處理議會同天氣，再睇住一座有性格嘅香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1111,8 +1127,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.3.0 — 【漁火閃閃】",
-      versionDesc: "最新版本新增會發光的海面：波浪隨風暴變化、夕陽時分波光粼粼、下雨時會泛起漣漪；還加入了香港18區自動命名系統。",
+      versionBadge: "v4.3.1 — 【漁火閃閃】",
+      versionDesc: "公車 DLC 修復版：啟動資金提高至 $6,000，現在可正常興建車廠、建立路線與購買公車；舊存檔會自動補發差額。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感的城市建設遊戲。興建街道、規劃社區、經營自己的香城公車公司、處理議會與天氣，看著一座有個性的香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1188,8 +1204,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "The City of Heung Shing",
       title: "The City of Heung Shing",
-      versionBadge: "v4.3.0 — Glimmering Fishing Lights",
-      versionDesc: "The latest release brings the sea to life: waves that build with the storm, golden glints at sunset, ripples in the rain, plus an auto-naming system based on Hong Kong's 18 districts.",
+      versionBadge: "v4.3.1 — Glimmering Fishing Lights",
+      versionDesc: "Bus DLC hotfix: start-up capital is now $6,000, enough to build a depot, create routes and buy buses; existing saves receive the corrected funding automatically.",
       lede: "A city-building game inspired by Hong Kong life and made in tribute to SimCity 2000. Build streets, shape neighbourhoods, run your own Heung Shing Bus Company, navigate council politics and weather, then watch a city with real personality grow.",
       freeLabel: "Completely free · macOS + Windows · Local saves",
       downloadBtn: "【Free Download】",
@@ -1266,8 +1282,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.3.0 — 漁火きらめく",
-      versionDesc: "最新版では海面に表情が生まれました。嵐で高まる波、夕暮れに輝く波光、雨に浮かぶ波紋。さらに香港18区にちなんだ自動命名システムも追加されました。",
+      versionBadge: "v4.3.1 — 漁火きらめく",
+      versionDesc: "バス DLC 修正版：創業資金を $6,000 に増額し、車庫建設・路線作成・バス購入が可能に。旧セーブにも差額が自動支給されます。",
       lede: "香港の都市生活から着想を得た、SimCity 2000へのオマージュとなる都市建設ゲーム。道路を築き、地区を計画し、自分だけの香城バス会社を経営し、議会や天候に向き合いながら、個性ある香城の成長を見守ります。",
       freeLabel: "完全無料 · macOS + Windows · ローカルセーブ",
       downloadBtn: "【無料ダウンロード】",
@@ -1488,7 +1504,7 @@ const SITE_GUIDE = {
           { type: "p", text: "小巴、的士、私家車同貨車依然純粹係背景視覺車流，唔使玩家安排路線；巴士就已經改為玩家親自經營嘅獨立公司——詳見下面。呢類背景車流喺八號風球或以上會即時停駛。" },
           { type: "h3", text: "巴士公司：獨立經營模式" },
           { type: "p", text: "人口達 3,000 就解鎖「運輸營運」模式：撳左上角「建設指引 CITY GUIDE」個 header 就可以喺城市建設同巴士公司經營之間切換——同一個地圖、同一個時鐘，但工具同介面會完全換成巴士公司專用嘅路線、車隊、需求、車廠、財務同公司六個獨立可拖曳視窗，逐個喺頂部工具列開關。" },
-          { type: "p", text: "巴士公司有自己一套獨立資金（開業獲發 $600 啟動資金），同市政府庫房完全分開：市政府嘅稅收、貸款、部門撥款一律唔會影響巴士公司，巴士公司蝕本都唔會拖冧市政府財政。連續三個月虧損，公司所有路線會自動暫停，等你調整車隊或者路線先再重開。" },
+          { type: "p", text: "巴士公司有自己一套獨立資金（開業獲發 $6,000 啟動資金），同市政府庫房完全分開：市政府嘅稅收、貸款、部門撥款一律唔會影響巴士公司，巴士公司蝕本都唔會拖冧市政府財政。連續三個月虧損，公司所有路線會自動暫停，等你調整車隊或者路線先再重開。" },
           { type: "p", text: "巴士要響車廠逐架購買（兩種車型 $210～$280），每個車廠得 12 個泊位；行駛耐咗要定期返廠保養，車齡同狀態會影響載客表現同故障機會。撳任何一架行緊嘅巴士，會開返一個獨立追蹤視窗，實時鏡頭跟實架車，睇到即時位置、載客量同盈虧；撳巴士站就會顯示嗰度嘅候車人數。" },
           { type: "p", text: "路線做得好（覆蓋密集、載客率高）會為附近地區帶嚟四樣實際效果：紓緩交通擠塞、提升商業區地價、增加工業區勞動力需求，同提升 H 級或以下住宅嘅快樂指數——豪宅級（UH）唔受惠，佢哋唔搭巴士。" },
           { type: "p", text: "機場（12×12，經「我愛玫瑰園計劃」解鎖）同貨櫃碼頭（4×4，人口 15,000 解鎖）依然係視覺化模擬：飛機沿固定校準航線降落、滑行去閘口、再起飛，一次大約 3 至 4 架同時運作；船隻就沿岸邊校準路線入港靠泊、交換貨物、鳴笛離港。機場、貨櫃碼頭同巴士公司三者喺八號風球或以上都會暫停運作。" },
@@ -1674,7 +1690,7 @@ const SITE_GUIDE = {
           { type: "p", text: "小巴、計程車、私家車和貨車依然純粹是背景視覺車流，不需要玩家安排路線；公車則已經改為玩家親自經營的獨立公司——詳見下面。這類背景車流在八號風球或以上會立即停駛。" },
           { type: "h3", text: "公車公司：獨立經營模式" },
           { type: "p", text: "人口達 3,000 就解鎖「運輸營運」模式：點左上角「建設指引 CITY GUIDE」的 header 就可以在城市建設和公車公司經營之間切換——同一張地圖、同一個時鐘，但工具和介面會完全換成公車公司專用的路線、車隊、需求、車廠、財務和公司六個獨立可拖曳視窗，逐一從頂部工具列開關。" },
-          { type: "p", text: "公車公司有自己一套獨立資金（開業獲發 $600 啟動資金），和市政府庫房完全分開：市政府的稅收、貸款、部門撥款一律不會影響公車公司，公車公司虧損也不會拖垮市政府財政。連續三個月虧損，公司所有路線會自動暫停，需要調整車隊或路線才能重開。" },
+          { type: "p", text: "公車公司有自己一套獨立資金（開業獲發 $6,000 啟動資金），和市政府庫房完全分開：市政府的稅收、貸款、部門撥款一律不會影響公車公司，公車公司虧損也不會拖垮市政府財政。連續三個月虧損，公司所有路線會自動暫停，需要調整車隊或路線才能重開。" },
           { type: "p", text: "公車要在車廠逐輛購買（兩種車型 $210～$280），每個車廠只有 12 個車位；行駛久了要定期回廠保養，車齡和狀態會影響載客表現和故障機率。點任何一輛行駛中的公車，會開啟一個獨立追蹤視窗，即時鏡頭跟著這輛車，看得到即時位置、載客量和盈虧；點公車站就會顯示該站的候車人數。" },
           { type: "p", text: "路線經營得好（覆蓋密集、載客率高）會為附近地區帶來四項實際效果：紓緩交通壅塞、提升商業區地價、增加工業區勞動力需求，以及提升 H 級或以下住宅的快樂指數——頂級豪宅（UH）不受惠，他們不搭公車。" },
           { type: "p", text: "機場（12×12，經「玫瑰園計畫」解鎖）和貨櫃碼頭（4×4，人口 15,000 解鎖）依然是視覺化模擬：飛機沿固定校正航線降落、滑行至閘口、再起飛，一次大約 3 到 4 架同時運作；船隻則沿岸邊校正路線入港靠泊、交換貨物、鳴笛離港。機場、貨櫃碼頭和公車公司三者在八號風球或以上都會暫停運作。" },
@@ -1860,7 +1876,7 @@ const SITE_GUIDE = {
           { type: "p", text: "Minibuses, taxis, private cars and trucks are still purely ambient background traffic that the player never routes. Buses, however, are now run as the player's own company - see below. This ambient traffic is grounded immediately at Typhoon Signal 8 or above." },
           { type: "h3", text: "The Bus Company: a standalone operation" },
           { type: "p", text: "Reaching population 3,000 unlocks Transport Mode: click the CITY GUIDE header in the top-left to switch between city building and running the bus company - same map, same clock, but the toolset and interface swap entirely to six independent, draggable Transport Company windows (Routes, Fleet, Demand, Depot, Finances, Company), each toggled from its own icon in the topbar." },
-          { type: "p", text: "The bus company keeps its own treasury (founded with $600 in start-up capital), fully separate from city hall's budget - city taxes, loans and department funding never touch it, and a losing bus company never drags down the city's own finances. Three consecutive losing months auto-suspends every route until the fleet or routes are adjusted." },
+          { type: "p", text: "The bus company keeps its own treasury (founded with $6,000 in start-up capital), fully separate from city hall's budget - city taxes, loans and department funding never touch it, and a losing bus company never drags down the city's own finances. Three consecutive losing months auto-suspends every route until the fleet or routes are adjusted." },
           { type: "p", text: "Buses are bought individually at a depot (two classes, $210-$280), and each depot holds only 12 vehicles. A bus needs periodic servicing the longer it runs - age and condition affect ridership and breakdown risk. Clicking any moving bus opens its own live tracking window with a real camera following the vehicle, showing its position, passenger load and profit; clicking a bus stop shows how many passengers are waiting there." },
           { type: "p", text: "A well-run route (dense coverage, high ridership) delivers four real effects to the surrounding area: eases traffic congestion, raises commercial land value, boosts industrial labour demand, and raises happiness for residents of wealth tier H and below - the wealthiest (UH) households don't ride the bus." },
           { type: "p", text: "The Airport (12×12, unlocked via the “I Love Rose Garden Project”) and the Container Port (4×4, unlocked at population 15,000) remain visual simulations: aircraft follow a fixed, calibrated flight path to land, taxi to a gate and take off again, with roughly 3-4 aircraft active at once; vessels similarly follow a calibrated coastal route to berth, exchange cargo, sound their horn and depart. The airport, container port and bus company all pause operations at Signal 8 or above." },
@@ -2046,7 +2062,7 @@ const SITE_GUIDE = {
           { type: "p", text: "ミニバス・タクシー・自家用車・トラックは引き続き純粋な背景の視覚的交通で、プレイヤーが経路を指定する必要はありません。一方バスは、プレイヤー自身が経営する独立した会社に変わりました——詳細は以下参照。この背景交通は台風シグナル8号以上では即座に運行停止となります。" },
           { type: "h3", text: "バス会社：独立経営モード" },
           { type: "p", text: "人口3,000で「運輸経営」モードが解禁されます。左上の「建設ガイド CITY GUIDE」ヘッダーをクリックすると、都市建設とバス会社経営を切り替えられます——同じマップ、同じ時計のまま、ツールとUIがバス会社専用の6つの独立したドラッグ可能なウィンドウ（路線・車両・需要・車庫・財務・会社）に完全に切り替わり、それぞれ上部ツールバーのアイコンから開閉できます。" },
-          { type: "p", text: "バス会社は独自の資金（設立時に創業資金$600を獲得）を持ち、市の予算とは完全に分離されています。市の税収・借入・部門予算はバス会社に一切影響せず、バス会社が赤字でも市の財政を圧迫することはありません。3ヶ月連続赤字になると全路線が自動的に運休し、車両や路線を調整するまで再開しません。" },
+          { type: "p", text: "バス会社は独自の資金（設立時に創業資金$6,000を獲得）を持ち、市の予算とは完全に分離されています。市の税収・借入・部門予算はバス会社に一切影響せず、バス会社が赤字でも市の財政を圧迫することはありません。3ヶ月連続赤字になると全路線が自動的に運休し、車両や路線を調整するまで再開しません。" },
           { type: "p", text: "バスは車庫で1台ずつ購入し（2車種、$210～$280）、各車庫の収容台数は12台までです。走行を重ねると定期整備が必要になり、車齢と状態が乗車実績と故障リスクに影響します。運行中のバスをクリックすると、実際のカメラが車両を追跡する専用の追跡ウィンドウが開き、位置・乗客数・収支を確認できます。バス停をクリックするとその停留所の待機乗客数が表示されます。" },
           { type: "p", text: "路線をうまく運営する（密なカバー範囲、高い乗車率）と、周辺地域に4つの実際の効果をもたらします：渋滞緩和、商業地区の地価上昇、工業地区の労働需要増加、そして富裕層（UH）を除く H 級以下の住民の幸福度上昇です——最富裕層（UH）はバスを利用しません。" },
           { type: "p", text: "空港（12×12、「ローズガーデン計画」で解禁）とコンテナ港（4×4、人口15,000で解禁）は引き続きビジュアルシミュレーションです：航空機は固定の校正済み飛行経路に沿って着陸し、ゲートまでタキシングし、再び離陸します。同時に稼働するのはおおよそ3〜4機です。船舶も同様に、校正済みの沿岸経路に沿って入港・係留し、貨物を交換し、汽笛を鳴らして出港します。空港・コンテナ港・バス会社の3つはいずれもシグナル8号以上では運航を停止します。" },

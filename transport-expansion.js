@@ -8,16 +8,18 @@
 // city-building rhythm.
 
 const TRANSPORT_EXPANSION_ID = 'transport';
-const TRANSPORT_EXPANSION_SCHEMA_VERSION = 2;
+const TRANSPORT_EXPANSION_SCHEMA_VERSION = 3;
 const TRANSPORT_EXPANSION_UNLOCK_POPULATION = 3000;
 // v1's "credit that falls through to city.budget" is gone as of schema v2 -
 // the company now has its own real treasury (company.cash), seeded once at
 // unlock and never topped up from or drained into city.budget again. See
 // TRANSPORT_TTD_SPEC.md §4. All company money uses the SAME stylized dollar
 // scale as the rest of the game (COST_HOSPITAL: 7200 etc.), where each $1
-// reads as 萬 - so $600 here is "600萬", enough for two double-deckers
-// ($280 + $210) with slack, exactly the spec's sizing intent.
-const TRANSPORT_STARTUP_CAPITAL = 600;
+// reads as 萬. The old $600 grant could buy buses but not the required
+// $4,000 depot, making a newly unlocked company impossible to start. $6,000
+// covers one depot, two standard double-deckers, and initial working capital.
+const TRANSPORT_LEGACY_STARTUP_CAPITAL = 600;
+const TRANSPORT_STARTUP_CAPITAL = 6000;
 const TRANSPORT_STOP_CATCHMENT_RADIUS = 5;
 // How close a stop needs to be to water/beach before its auto-generated
 // default name is allowed to draw the "XX碼頭" (pier) template - see
@@ -551,6 +553,19 @@ function normalizeTransportExpansionState(raw) {
     company = {
       ...company,
       cash: transportRoundMoney(source.startupCreditRemaining),
+    };
+  }
+
+  // v2 -> v3: the original $600 founding grant was lower than the mandatory
+  // $4,000 depot cost. Credit the $5,400 correction exactly once to companies
+  // that had already been founded; unfounded saves receive the full new grant
+  // normally when they unlock. The schema bump makes this migration idempotent.
+  if (sourceVersion < 3 && company.foundedYear > 0) {
+    company = {
+      ...company,
+      cash: Math.round(
+        company.cash + TRANSPORT_STARTUP_CAPITAL - TRANSPORT_LEGACY_STARTUP_CAPITAL,
+      ),
     };
   }
 

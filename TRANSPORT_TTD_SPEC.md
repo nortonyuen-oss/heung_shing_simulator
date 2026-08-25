@@ -4,7 +4,9 @@
 > in the game's existing stylized dollars, where each $1 *reads as* 萬 —
 > exactly the convention `COST_HOSPITAL: 7200` (7200萬) already uses. So a
 > double-decker is **stored and displayed as $280** (280萬), not $2,800,000,
-> and `TRANSPORT_STARTUP_CAPITAL` is **$600**. v0.5 stored the ×10,000
+> and `TRANSPORT_STARTUP_CAPITAL` is **$6,000**. The original $600 grant
+> could not cover the required $4,000 depot, so schema v3 raises it and gives
+> already-founded v2 companies the $5,400 difference once. v0.5 stored the ×10,000
 > "real dollar" figures, which (a) looked absurd next to every other price
 > in the game and (b) combined with a per-tile running-cost figure calibrated
 > for per-trip distances being applied to real monthly mileage (~20k
@@ -131,7 +133,7 @@ never touch the town's own money, only your company's.
   new `TRANSPORT_STARTUP_CAPITAL` constant, **replacing**
   `TRANSPORT_STARTUP_CREDIT` (2000 — a leftover from the small-dollar
   aggregate model, too small once vehicles cost millions — see §9):
-  `TRANSPORT_STARTUP_CAPITAL = 600` (**萬**, ten-thousands → **$6,000,000**
+  `TRANSPORT_STARTUP_CAPITAL = 6000` (**萬**, ten-thousands → **$60,000,000**
   — see §9 for why 萬 rather than "thousands" is the right unit here),
   framed narratively as the city investing in a new transport operator.
   Comfortably covers one depot ($4,000, unchanged/small — see below) plus

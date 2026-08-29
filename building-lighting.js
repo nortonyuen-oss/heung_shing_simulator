@@ -191,32 +191,145 @@ const BUILDING_LIGHT_CLASS_DEFAULTS = Object.freeze({
 });
 
 // Calibrated per-family profiles, baked from building-light-calibrator.js.
-// Empty until the first calibration pass; families fall back to the class
-// default above.
+// A family absent here falls back to the class default above.
 const BUILDING_LIGHT_PROFILES = {};
-
-// Calibrated per-model "hero" overrides, keyed by logical sprite key, baked from
-// building-light-calibrator.js. First-pass test set (2026-08-29) - rough.
-const BUILDING_LIGHT_HERO_PROFILES = {
-  house3x3_4: makeBuildingLightProfile({
-    class: 'res', ex: 0.512, ey: 0.935, er: 0.1, hasFloodlight: true,
-    panels: [
-      { c: [[0.321, 0.538], [0.641, 0.655], [0.635, 0.735], [0.325, 0.604]], rows: 2, cols: 5 },
-      { c: [[0.642, 0.655], [0.785, 0.582], [0.783, 0.649], [0.641, 0.723]], rows: 2, cols: 4 },
-    ],
-  }),
-  sports_ground_2x2: makeBuildingLightProfile({
-    class: 'off', ex: 0.529, ey: 0.698, er: 0.1,
-    panels: [
-      { c: [[0.091, 0.448], [0.387, 0.722], [0.394, 0.845], [0.096, 0.553]], rows: 1, cols: 1 },
-      { c: [[0.119, 0.529], [0.501, 0.166], [0.873, 0.487], [0.478, 0.878]], rows: 1, cols: 1 },
-    ],
-  }),
-  house2x2_12: makeBuildingLightProfile({
+Object.assign(BUILDING_LIGHT_PROFILES, {
+  residential2: makeBuildingLightProfile({
     class: 'res', ex: 0.5, ey: 0.9, er: 0.1,
     panels: [
-      { c: [[0.123, 0.27], [0.5, 0.351], [0.498, 0.87], [0.112, 0.77]], rows: 15, cols: 6 },
-      { c: [[0.506, 0.365], [0.865, 0.285], [0.871, 0.773], [0.494, 0.869]], rows: 13, cols: 4 },
+      { c: [[0.15, 0.233], [0.5, 0.317], [0.497, 0.877], [0.145, 0.789]], rows: 9, cols: 5 },
+      { c: [[0.5, 0.28], [0.85, 0.234], [0.85, 0.56], [0.5, 0.72]], rows: 9, cols: 5 },
+    ],
+  }),
+});
+
+// Calibrated per-model "hero" overrides, keyed by logical sprite key, baked from
+// building-light-calibrator.js (2026-08-30 pass).
+const BUILDING_LIGHT_HERO_PROFILES = {
+  house2x2_15: makeBuildingLightProfile({
+    class: 'res', ex: 0.729, ey: 0.888, er: 0.1,
+    panels: [
+      { c: [[0.147, 0.227], [0.5, 0.313], [0.497, 0.881], [0.142, 0.79]], rows: 14, cols: 5 },
+      { c: [[0.505, 0.316], [0.866, 0.227], [0.869, 0.791], [0.503, 0.884]], rows: 13, cols: 5 },
+    ],
+  }),
+  house3x3_8: makeBuildingLightProfile({
+    class: 'res', ex: 0.507, ey: 0.908, er: 0.1,
+    panels: [
+      { c: [[0.349, 0.176], [0.512, 0.242], [0.511, 0.809], [0.352, 0.74]], rows: 16, cols: 5 },
+      { c: [[0.515, 0.238], [0.654, 0.181], [0.658, 0.743], [0.511, 0.815]], rows: 16, cols: 5 },
+    ],
+  }),
+  university_4x4: makeBuildingLightProfile({
+    class: 'off', ex: 0.532, ey: 0.726, er: 0.1,
+    panels: [
+      { c: [[0.253, 0.452], [0.483, 0.538], [0.486, 0.665], [0.252, 0.579]], rows: 3, cols: 11 },
+      { c: [[0.566, 0.503], [0.789, 0.601], [0.788, 0.727], [0.565, 0.621]], rows: 3, cols: 9 },
+    ],
+  }),
+  hospital_4x4: makeBuildingLightProfile({
+    class: 'svc', ex: 0.5, ey: 0.9, er: 0.1, service: true,
+    panels: [
+      { c: [[0.104, 0.462], [0.626, 0.667], [0.63, 0.87], [0.105, 0.648]], rows: 8, cols: 5 },
+      { c: [[0.627, 0.675], [0.965, 0.521], [0.963, 0.675], [0.626, 0.836]], rows: 8, cols: 4 },
+    ],
+  }),
+  commercial_building_3x3_0: makeBuildingLightProfile({
+    class: 'off', ex: 0.5, ey: 0.9, er: 0.1,
+    panels: [
+      { c: [[0.347, 0.338], [0.493, 0.397], [0.491, 0.667], [0.346, 0.602]], rows: 12, cols: 4 },
+      { c: [[0.611, 0.456], [0.779, 0.381], [0.778, 0.616], [0.609, 0.694]], rows: 11, cols: 5 },
+    ],
+  }),
+  commercial_building_3x3_3: makeBuildingLightProfile({
+    class: 'off', ex: 0.325, ey: 0.758, er: 0.1,
+    panels: [
+      { c: [[0.353, 0.303], [0.496, 0.364], [0.499, 0.674], [0.342, 0.598]], rows: 12, cols: 4 },
+      { c: [[0.499, 0.367], [0.65, 0.296], [0.65, 0.597], [0.5, 0.669]], rows: 12, cols: 4 },
+    ],
+  }),
+  house2x2_16: makeBuildingLightProfile({
+    class: 'res', ex: 0.5, ey: 0.9, er: 0.1,
+    panels: [
+      { c: [[0.33, 0.281], [0.505, 0.35], [0.506, 0.747], [0.324, 0.652]], rows: 10, cols: 7 },
+      { c: [[0.521, 0.348], [0.672, 0.281], [0.671, 0.663], [0.522, 0.743]], rows: 11, cols: 6 },
+    ],
+  }),
+  house3x3_6: makeBuildingLightProfile({
+    class: 'res', ex: 0.625, ey: 0.874, er: 0.1,
+    panels: [
+      { c: [[0.383, 0.395], [0.493, 0.442], [0.49, 0.831], [0.379, 0.784]], rows: 15, cols: 6 },
+      { c: [[0.51, 0.445], [0.609, 0.397], [0.609, 0.779], [0.507, 0.836]], rows: 15, cols: 6 },
+    ],
+  }),
+  heritage_church_3x3: makeBuildingLightProfile({
+    class: 'res', ex: 0.5, ey: 0.9, er: 0.1,
+    panels: [
+      { c: [[0.286, 0.518], [0.328, 0.544], [0.341, 0.762], [0.294, 0.74]], rows: 2, cols: 1 },
+      { c: [[0.449, 0.781], [0.72, 0.658], [0.721, 0.718], [0.455, 0.835]], rows: 1, cols: 7 },
+    ],
+  }),
+  house2x2_6: makeBuildingLightProfile({
+    class: 'res', ex: 0.5, ey: 0.9, er: 0.1,
+    panels: [
+      { c: [[0.259, 0.259], [0.461, 0.349], [0.462, 0.642], [0.256, 0.565]], rows: 7, cols: 5 },
+      { c: [[0.714, 0.33], [0.756, 0.311], [0.76, 0.671], [0.714, 0.692]], rows: 7, cols: 1 },
+    ],
+  }),
+  house2x2_5: makeBuildingLightProfile({
+    class: 'res', ex: 0.507, ey: 0.811, er: 0.1,
+    panels: [
+      { c: [[0.279, 0.587], [0.475, 0.489], [0.475, 0.628], [0.276, 0.732]], rows: 4, cols: 4 },
+      { c: [[0.52, 0.471], [0.702, 0.567], [0.7, 0.717], [0.517, 0.624]], rows: 4, cols: 4 },
+    ],
+  }),
+  house2x2_4: makeBuildingLightProfile({
+    class: 'res', ex: 0.5, ey: 0.9, er: 0.1,
+    panels: [
+      { c: [[0.126, 0.269], [0.493, 0.353], [0.493, 0.852], [0.113, 0.761]], rows: 14, cols: 5 },
+      { c: [[0.501, 0.36], [0.871, 0.261], [0.868, 0.77], [0.504, 0.867]], rows: 14, cols: 5 },
+    ],
+  }),
+  park_large: makeBuildingLightProfile({
+    class: 'off', ex: 0.647, ey: 0.762, er: 0.1,
+    panels: [
+      { c: [[0.15, 0.11], [0.5, 0.28], [0.5, 0.72], [0.15, 0.56]], rows: 12, cols: 5, on: false },
+      { c: [[0.5, 0.28], [0.85, 0.11], [0.85, 0.56], [0.5, 0.72]], rows: 12, cols: 5, on: false },
+    ],
+  }),
+  house2x2_9: makeBuildingLightProfile({
+    class: 'res', ex: 0.5, ey: 0.9, er: 0.1,
+    panels: [
+      { c: [[0.321, 0.282], [0.501, 0.358], [0.501, 0.736], [0.322, 0.646]], rows: 14, cols: 5 },
+      { c: [[0.522, 0.358], [0.673, 0.293], [0.67, 0.635], [0.524, 0.707]], rows: 15, cols: 4 },
+    ],
+  }),
+  library_2x2: makeBuildingLightProfile({
+    class: 'off', ex: 0.5, ey: 0.9, er: 0.1,
+    panels: [
+      { c: [[0.325, 0.521], [0.525, 0.606], [0.52, 0.776], [0.323, 0.687]], rows: 4, cols: 3 },
+      { c: [[0.665, 0.662], [0.795, 0.607], [0.793, 0.708], [0.665, 0.772]], rows: 3, cols: 2 },
+    ],
+  }),
+  heritage_temple_2x2_alt: makeBuildingLightProfile({
+    class: 'res', ex: 0.225, ey: 0.778, er: 0.1,
+    panels: [
+      { c: [[0.274, 0.685], [0.541, 0.794], [0.538, 0.887], [0.276, 0.777]], rows: 1, cols: 1 },
+      { c: [[0.578, 0.798], [0.62, 0.775], [0.619, 0.812], [0.577, 0.833]], rows: 1, cols: 2 },
+    ],
+  }),
+  grand_temple_3x3: makeBuildingLightProfile({
+    class: 'res', ex: 0.529, ey: 0.862, er: 0.1,
+    panels: [
+      { c: [[0.351, 0.592], [0.636, 0.688], [0.631, 0.745], [0.352, 0.638]], rows: 1, cols: 3 },
+      { c: [[0.646, 0.69], [0.8, 0.626], [0.798, 0.67], [0.645, 0.739]], rows: 1, cols: 1 },
+    ],
+  }),
+  house3x3_4: makeBuildingLightProfile({
+    class: 'res', ex: 0.5, ey: 0.9, er: 0.1,
+    panels: [
+      { c: [[0.328, 0.538], [0.554, 0.626], [0.551, 0.711], [0.325, 0.604]], rows: 2, cols: 5 },
+      { c: [[0.654, 0.655], [0.786, 0.583], [0.785, 0.649], [0.653, 0.725]], rows: 2, cols: 5 },
     ],
   }),
 };

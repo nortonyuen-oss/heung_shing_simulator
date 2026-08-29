@@ -527,22 +527,29 @@ function markVehicleTrackerDynamicObject(object) {
 }
 
 function forEachVehicleTrackerDynamicObject(scene, visit) {
+  const visitVehicleLamps = (vehicle) => {
+    if (vehicle?.lampSprites) {
+      if (typeof forEachTrafficVehicleLamp === 'function') forEachTrafficVehicleLamp(vehicle, visit);
+      else Object.values(vehicle.lampSprites).forEach((lamp) => { if (lamp) visit(lamp); });
+    }
+    if (vehicle?.tubeSprites) {
+      if (typeof forEachTrafficVehicleTube === 'function') forEachTrafficVehicleTube(vehicle, visit);
+      else Object.values(vehicle.tubeSprites).forEach((bar) => { if (bar) visit(bar); });
+    }
+  };
   scene?.transportVisualState?.vehicles?.forEach((vehicle) => {
     if (vehicle.sprite) visit(vehicle.sprite);
     if (vehicle.badge) visit(vehicle.badge);
-    if (vehicle.headlightSprite) visit(vehicle.headlightSprite);
-    if (vehicle.taillightSprite) visit(vehicle.taillightSprite);
+    visitVehicleLamps(vehicle);
   });
   const traffic = scene?.trafficVisualState;
   traffic?.vehicles?.forEach((vehicle) => {
     if (vehicle.sprite) visit(vehicle.sprite);
-    if (vehicle.headlightSprite) visit(vehicle.headlightSprite);
-    if (vehicle.taillightSprite) visit(vehicle.taillightSprite);
+    visitVehicleLamps(vehicle);
   });
   if (traffic?.iceCreamEvent) {
     if (traffic.iceCreamEvent.sprite) visit(traffic.iceCreamEvent.sprite);
-    if (traffic.iceCreamEvent.headlightSprite) visit(traffic.iceCreamEvent.headlightSprite);
-    if (traffic.iceCreamEvent.taillightSprite) visit(traffic.iceCreamEvent.taillightSprite);
+    visitVehicleLamps(traffic.iceCreamEvent);
   }
   scene?.vesselVisualState?.portStates?.forEach?.((portState) => {
     if (portState?.event?.sprite) visit(portState.event.sprite);

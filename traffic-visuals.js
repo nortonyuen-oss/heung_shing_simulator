@@ -32,13 +32,23 @@ const TRAFFIC_VISUAL_CONFIG = Object.freeze({
   busStopDwellMinSpeedFactor: 0.08,
 });
 
-// Vehicle lamps are generated once as tiny transparent textures, then reused
-// by every road vehicle. Keeping exactly two companion sprites per vehicle
-// avoids allocating graphics during the frame loop while still letting the
-// headlamp beam and red rear lamps rotate smoothly through curved junctions.
+// Vehicle lamps are generated once as tiny transparent textures, then reused by
+// every road vehicle - nothing is allocated in the frame loop. Because the art
+// is a fixed four-view set (ne/nw/se/sw), each lamp sits at a per-view
+// screen-pixel offset from the vehicle's draw position instead of being
+// projected along the live travel vector, which keeps it pinned to the art
+// through turns and lets every model be tuned against its own render
+// (traffic-light-calibrator.js writes the per-model overrides read here).
+//
+// A lamp anchor is [dx, dy] or [dx, dy, on] - the optional third element (0/1,
+// default on) lets the calibrator switch off a lamp that the isometric angle
+// hides for that view. Buses additionally carry two interior fluorescent tubes
+// (upper + lower deck), each defined by its two endpoint anchors.
 const TRAFFIC_LIGHT_CONFIG = Object.freeze({
   headlightTextureKey: 'fx_traffic_headlights',
   taillightTextureKey: 'fx_traffic_taillights',
+  deckTubeTextureKey: 'fx_traffic_decktube',
+  deckTubeThickness: 2.6,
   nightOnsetAlpha: 0.01,
   nightFullAlpha: 0.32,
   weatherOnsetAlpha: 0.08,
@@ -47,15 +57,213 @@ const TRAFFIC_LIGHT_CONFIG = Object.freeze({
   visibleThreshold: 0.002,
 });
 
-const TRAFFIC_LIGHT_PROFILES = Object.freeze({
-  bus: Object.freeze({ frontOffset: 15, rearOffset: 10, bodyLift: 9, headScale: 1.00, tailScale: 0.92 }),
-  car: Object.freeze({ frontOffset: 7, rearOffset: 5, bodyLift: 5, headScale: 0.62, tailScale: 0.62 }),
-  minibus: Object.freeze({ frontOffset: 10, rearOffset: 7, bodyLift: 7, headScale: 0.78, tailScale: 0.76 }),
-  taxi: Object.freeze({ frontOffset: 7, rearOffset: 5, bodyLift: 5, headScale: 0.62, tailScale: 0.62 }),
-  truck: Object.freeze({ frontOffset: 11, rearOffset: 8, bodyLift: 7, headScale: 0.84, tailScale: 0.80 }),
-  van: Object.freeze({ frontOffset: 9, rearOffset: 7, bodyLift: 6, headScale: 0.74, tailScale: 0.72 }),
-  icecream: Object.freeze({ frontOffset: 9, rearOffset: 7, bodyLift: 6, headScale: 0.74, tailScale: 0.72 }),
+const TRAFFIC_LIGHT_VIEW_DIRECTIONS = Object.freeze(['ne', 'nw', 'se', 'sw']);
+const TRAFFIC_LIGHT_EXTERIOR_LAMPS = Object.freeze(['headL', 'headR', 'tailL', 'tailR']);
+const TRAFFIC_LIGHT_DECK_LAMPS = Object.freeze(['deckUpL', 'deckUpR', 'deckLoL', 'deckLoR']);
+// Kept as the historical name some callers/tests import.
+const TRAFFIC_LIGHT_LAMPS = TRAFFIC_LIGHT_EXTERIOR_LAMPS;
+// Interior tube = one stretched bar sprite spanning two endpoint anchors.
+const TRAFFIC_LIGHT_DECK_TUBES = Object.freeze([
+  Object.freeze({ key: 'upper', a: 'deckUpL', b: 'deckUpR' }),
+  Object.freeze({ key: 'lower', a: 'deckLoL', b: 'deckLoR' }),
+]);
+
+function trafficLampXY(value) {
+  return [Number(value?.[0]) || 0, Number(value?.[1]) || 0];
+}
+function trafficLampIsOn(value) {
+  return value != null && (value.length < 3 || !!value[2]);
+}
+
+// The screen-space unit vector each four-view render faces, on the 2:1 iso grid.
+// Only used to seed sensible per-view, per-lamp defaults from the legacy single
+// front/rear offset - a calibrated override (baked or live) replaces it wholesale.
+const TRAFFIC_LIGHT_VIEW_UNIT = Object.freeze({
+  ne: Object.freeze([0.8944, -0.4472]),
+  nw: Object.freeze([-0.8944, -0.4472]),
+  se: Object.freeze([0.8944, 0.4472]),
+  sw: Object.freeze([-0.8944, 0.4472]),
 });
+
+// An anchor set is { ne, nw, se, sw }, each carrying every lamp the profile uses
+// as a [dx, dy, on] screen-pixel offset from the vehicle draw position
+// (position.x/y), in world pixels so they follow camera zoom for free.
+function buildDefaultTrafficLightAnchors({ frontOffset, rearOffset, bodyLift, spread, deck }) {
+  return Object.freeze(Object.fromEntries(TRAFFIC_LIGHT_VIEW_DIRECTIONS.map((dir) => {
+    const [ux, uy] = TRAFFIC_LIGHT_VIEW_UNIT[dir];
+    // Screen perpendicular to the facing vector - the axle the lamp pair spreads
+    // along.
+    const [px, py] = [-uy, ux];
+    const frontX = ux * frontOffset;
+    const frontY = uy * frontOffset - bodyLift;
+    const rearX = -ux * rearOffset;
+    const rearY = -uy * rearOffset - bodyLift;
+    const entry = {
+      headL: Object.freeze([frontX - px * spread, frontY - py * spread, 1]),
+      headR: Object.freeze([frontX + px * spread, frontY + py * spread, 1]),
+      tailL: Object.freeze([rearX - px * spread, rearY - py * spread, 1]),
+      tailR: Object.freeze([rearX + px * spread, rearY + py * spread, 1]),
+    };
+    if (deck) {
+      // Tubes run along the body's long axis. Seed them spanning most of the
+      // length, lifted into the upper and lower window bands.
+      const half = (frontOffset + rearOffset) * 0.4;
+      const midX = (frontX + rearX) / 2;
+      const midY = (frontY + rearY) / 2;
+      const upperY = midY - 7;
+      const lowerY = midY - 1.5;
+      entry.deckUpL = Object.freeze([midX - ux * half, upperY - uy * half, 1]);
+      entry.deckUpR = Object.freeze([midX + ux * half, upperY + uy * half, 1]);
+      entry.deckLoL = Object.freeze([midX - ux * half, lowerY - uy * half, 1]);
+      entry.deckLoR = Object.freeze([midX + ux * half, lowerY + uy * half, 1]);
+    }
+    return [dir, Object.freeze(entry)];
+  })));
+}
+
+function makeTrafficLightProfile({ headScale, tailScale, deck = false, ...offsets }) {
+  return Object.freeze({
+    headScale,
+    tailScale,
+    deck,
+    lamps: deck
+      ? Object.freeze([...TRAFFIC_LIGHT_EXTERIOR_LAMPS, ...TRAFFIC_LIGHT_DECK_LAMPS])
+      : TRAFFIC_LIGHT_EXTERIOR_LAMPS,
+    tubes: deck ? TRAFFIC_LIGHT_DECK_TUBES : Object.freeze([]),
+    anchors: buildDefaultTrafficLightAnchors({ ...offsets, deck }),
+  });
+}
+
+const TRAFFIC_LIGHT_PROFILES = Object.freeze({
+  bus: makeTrafficLightProfile({ frontOffset: 15, rearOffset: 10, bodyLift: 9, spread: 7, deck: true, headScale: 1.00, tailScale: 0.92 }),
+  car: makeTrafficLightProfile({ frontOffset: 7, rearOffset: 5, bodyLift: 5, spread: 3.4, headScale: 0.62, tailScale: 0.62 }),
+  minibus: makeTrafficLightProfile({ frontOffset: 10, rearOffset: 7, bodyLift: 7, spread: 4.4, headScale: 0.78, tailScale: 0.76 }),
+  taxi: makeTrafficLightProfile({ frontOffset: 7, rearOffset: 5, bodyLift: 5, spread: 3.4, headScale: 0.62, tailScale: 0.62 }),
+  truck: makeTrafficLightProfile({ frontOffset: 11, rearOffset: 8, bodyLift: 7, spread: 5, headScale: 0.84, tailScale: 0.80 }),
+  van: makeTrafficLightProfile({ frontOffset: 9, rearOffset: 7, bodyLift: 6, spread: 4.2, headScale: 0.74, tailScale: 0.72 }),
+  icecream: makeTrafficLightProfile({ frontOffset: 9, rearOffset: 7, bodyLift: 6, spread: 4.2, headScale: 0.74, tailScale: 0.72 }),
+});
+
+// Per-model lamp anchors calibrated against each render in traffic-light-calibrator.js
+// (schema v3). [dx, dy] is a lit lamp, [dx, dy, 0] a lamp the isometric angle hides
+// for that view. createTrafficModel merges this in when the call passes no
+// lightAnchors of its own; a model absent here falls back to the category default.
+const TRAFFIC_LIGHT_ANCHOR_OVERRIDES = {
+  bus_kmb: {
+    ne: { headL: [-17.05, -9.05, 0], headR: [21.99, -11.62], tailL: [-21.32, 1.04], tailR: [-12.21, 5.41], deckUpL: [17.09, -14.96, 0], deckUpR: [-8.95, -1.33, 0], deckLoL: [-10.66, -7.97, 0], deckLoR: [18.53, -23.03, 0] },
+    nw: { headL: [-23.08, -12.03], headR: [-11.24, 12.57, 0], tailL: [14.11, 5.12], tailR: [21.72, 0.36], deckUpL: [11.88, -8.02, 0], deckUpR: [-20.43, -24.44, 0], deckLoL: [8.89, -0.48, 0], deckLoR: [-16.08, -13.23, 0] },
+    se: { headL: [21.04, 1.38], headR: [13.15, 5.74], tailL: [-5.81, -19.73, 0], tailR: [-22.14, -11.97], deckUpL: [-19.5, -24.52, 0], deckUpR: [5.74, -11.91, 0], deckLoL: [-17.73, -21.2, 0], deckLoR: [7.1, -6.95, 0] },
+    sw: { headL: [-13.15, 4.51], headR: [-21.17, 0.97], tailL: [21.86, -11.02], tailR: [33.96, -1.78, 0], deckUpL: [18.68, -23.16, 0], deckUpR: [-5.87, -11.09, 0], deckLoL: [18.14, -23.38, 0], deckLoR: [-7.51, -10.75, 0] },
+  },
+  bus_citybus: {
+    ne: { headL: [10.29, -21.97, 0], headR: [22.13, -10.95], tailL: [-21.05, 1.04], tailR: [-12.61, 5.54], deckUpL: [20.97, -27.57], deckUpR: [-11.88, -11.02], deckLoL: [18.93, -16.23], deckLoR: [-7.93, -2.79] },
+    nw: { headL: [-22.13, -10.95], headR: [-10.29, -21.97, 0], tailL: [12.61, 5.54], tailR: [21.05, 1.04], deckUpL: [11.88, -11.02], deckUpR: [-20.97, -27.57], deckLoL: [7.93, -2.79], deckLoR: [-18.93, -16.23] },
+    se: { headL: [22.81, 1.52], headR: [14.91, 5.87], tailL: [-5.81, -19.73, 0], tailR: [-23.09, -11.7], deckUpL: [-21.26, -28.87], deckUpR: [12.14, -12.45], deckLoL: [-19.36, -17.11], deckLoR: [7.38, -3.96] },
+    sw: { headL: [-14.91, 5.87], headR: [-22.81, 1.52], tailL: [23.09, -11.7], tailR: [5.81, -19.73, 0], deckUpL: [-12.14, -12.45], deckUpR: [21.26, -28.87], deckLoL: [-7.38, -3.96], deckLoR: [19.36, -17.11] },
+  },
+  car_hrv: {
+    ne: { headL: [4.74, -11.17, 0], headR: [8.44, -5.45], tailL: [-7.62, -3.26], tailR: [-3.25, -2.32] },
+    nw: { headL: [-8.44, -5.45], headR: [-4.74, -11.17, 0], tailL: [3.25, -2.32], tailR: [7.62, -3.26] },
+    se: { headL: [8.02, -2.73], headR: [2.08, -1.49], tailL: [-2.95, -10.28, 0], tailR: [-8.47, -6.5] },
+    sw: { headL: [-2.08, -1.49], headR: [-8.02, -2.73], tailL: [8.47, -6.5], tailR: [2.95, -10.28, 0] },
+  },
+  car_odyssey: {
+    ne: { headL: [3.22, -6.77, 0], headR: [9.29, -5.57], tailL: [-8.65, -1.81], tailR: [-3.55, -0.93] },
+    nw: { headL: [-9.29, -5.57], headR: [-3.22, -6.77, 0], tailL: [3.55, -0.93], tailR: [8.65, -1.81] },
+    se: { headL: [8.51, -1.59], headR: [2.32, -0.16], tailL: [-2.95, -10.28, 0], tailR: [-8.89, -6.56] },
+    sw: { headL: [-2.32, -0.16], headR: [-8.51, -1.59], tailL: [8.89, -6.56], tailR: [2.95, -10.28, 0] },
+  },
+  car_odyssey2: {
+    ne: { headL: [4.74, -11.05, 0], headR: [9.29, -5.75], tailL: [-8.41, -2.54], tailR: [-3.44, -0.93] },
+    nw: { headL: [-9.29, -5.75], headR: [-4.74, -11.05, 0], tailL: [3.44, -0.93], tailR: [8.41, -2.54] },
+    se: { headL: [8.26, -2.25], headR: [3.59, -0.41], tailL: [-2.95, -10.28, 0], tailR: [-9.26, -6.25] },
+    sw: { headL: [-3.59, -0.41], headR: [-8.26, -2.25], tailL: [9.26, -6.25], tailR: [2.95, -10.28, 0] },
+  },
+  minibus_green: {
+    ne: { headL: [-13.03, -10.27, 0], headR: [13.57, -6.75], tailL: [-12.22, -0.36], tailR: [-6.41, 1.95] },
+    nw: { headL: [-13.57, -6.75], headR: [13.03, -10.27, 0], tailL: [6.41, 1.95], tailR: [12.22, -0.36] },
+    se: { headL: [12.97, 0.25], headR: [6.86, 2.98], tailL: [-4.35, -14.19, 0], tailR: [-13.19, -7.05] },
+    sw: { headL: [-6.86, 2.98], headR: [-12.97, 0.25], tailL: [13.19, -7.05], tailR: [4.35, -14.19, 0] },
+  },
+  minibus_red1: {
+    ne: { headL: [0.39, -18.5, 0], headR: [13.27, -6.63], tailL: [-13.31, -0.55], tailR: [-6.53, 1.94] },
+    nw: { headL: [-13.27, -6.63], headR: [-0.39, -18.5, 0], tailL: [6.53, 1.94], tailR: [13.31, -0.55] },
+    se: { headL: [12.78, 0.55], headR: [6.44, 2.98], tailL: [-4.29, -14.01, 0], tailR: [-13.37, -6.62] },
+    sw: { headL: [-6.44, 2.98], headR: [-12.78, 0.55], tailL: [13.37, -6.62], tailR: [4.29, -14.01, 0] },
+  },
+  minibus_red2: {
+    ne: { headL: [-6.14, -13.78, 0], headR: [13.81, -6.27], tailL: [-13.43, -0.42], tailR: [-6.95, 2.55] },
+    nw: { headL: [-13.81, -6.27], headR: [6.14, -13.78, 0], tailL: [6.95, 2.55], tailR: [13.43, -0.42] },
+    se: { headL: [12.9, 0.25], headR: [6.79, 3.16], tailL: [-4.29, -14.07, 0], tailR: [-13.43, -7.05] },
+    sw: { headL: [-6.79, 3.16], headR: [-12.9, 0.25], tailL: [13.43, -7.05], tailR: [4.29, -14.07, 0] },
+  },
+  taxi_red: {
+    ne: { headL: [4.74, -11.17, 0], headR: [9.17, -4.42], tailL: [-8.41, -2.35], tailR: [-3.31, 0.04] },
+    nw: { headL: [-9.17, -4.42], headR: [-4.74, -11.17, 0], tailL: [3.31, 0.04], tailR: [8.41, -2.35] },
+    se: { headL: [8.14, -2.07], headR: [3.47, -0.16], tailL: [-2.95, -10.28, 0], tailR: [-9.01, -5.83] },
+    sw: { headL: [-3.47, -0.16], headR: [-8.14, -2.07], tailL: [9.01, -5.83], tailR: [2.95, -10.28, 0] },
+  },
+  taxi_green: {
+    ne: { headL: [-2.39, -13.83, 0], headR: [8.93, -4.73], tailL: [-8.35, -1.93], tailR: [-2.95, 0.28] },
+    nw: { headL: [-8.93, -4.73], headR: [2.39, -13.83, 0], tailL: [2.95, 0.28], tailR: [8.35, -1.93] },
+    se: { headL: [8.33, -1.52], headR: [4.5, 0.02], tailL: [-2.95, -10.28, 0], tailR: [-9.07, -6.38] },
+    sw: { headL: [-4.5, 0.02], headR: [-8.33, -1.52], tailL: [9.07, -6.38], tailR: [2.95, -10.28, 0] },
+  },
+  taxi_blue: {
+    ne: { headL: [4.74, -11.11, 0], headR: [8.75, -4.85], tailL: [-8.53, -2.17], tailR: [-2.95, 0.28] },
+    nw: { headL: [-8.75, -4.85], headR: [-4.74, -11.11, 0], tailL: [2.95, 0.28], tailR: [8.53, -2.17] },
+    se: { headL: [8.14, -1.83], headR: [3.35, 0.09], tailL: [-2.95, -10.28, 0], tailR: [-8.83, -5.71] },
+    sw: { headL: [-4.2, 0.15], headR: [-8.51, -1.59], tailL: [8.83, -5.71], tailR: [2.95, -10.28, 0] },
+  },
+  truck_basic: {
+    ne: { headL: [7.54, -16.03, 0], headR: [12.07, -7.45], tailL: [-11.63, -0.45], tailR: [-6.37, 2.92] },
+    nw: { headL: [-12.07, -7.45], headR: [-7.54, -16.03, 0], tailL: [6.37, 2.92], tailR: [11.63, -0.45] },
+    se: { headL: [11.83, -1.17], headR: [6.03, 1.91], tailL: [-6.43, 2.9, 0], tailR: [-13.2, -7.08] },
+    sw: { headL: [-6.03, 1.91], headR: [-11.83, -1.17], tailL: [13.2, -7.08], tailR: [6.43, 2.9, 0] },
+  },
+  truck_logistic: {
+    ne: { headL: [-9.21, -18.14, 0], headR: [11.83, -7.27], tailL: [-12.17, -1.3], tailR: [-5.88, 1.71] },
+    nw: { headL: [-11.83, -7.27], headR: [9.21, -18.14, 0], tailL: [5.88, 1.71], tailR: [12.17, -1.3] },
+    se: { headL: [12.14, -1.66], headR: [6.15, 1.54], tailL: [-5.34, -14.87, 0], tailR: [-12.65, -6.77] },
+    sw: { headL: [-6.15, 1.54], headR: [-12.14, -1.66], tailL: [12.65, -6.77], tailR: [5.34, -14.87, 0] },
+  },
+  truck_fish: {
+    ne: { headL: [-8.18, -7.68, 0], headR: [11.53, -5.15], tailL: [-11.26, 0.15], tailR: [-5.77, 2.74] },
+    nw: { headL: [-11.53, -5.15], headR: [8.18, -7.68, 0], tailL: [5.77, 2.74], tailR: [11.26, 0.15] },
+    se: { headL: [11.83, 0.52], headR: [7.6, 2.39], tailL: [-4.92, -15.05, 0], tailR: [-11.45, -5.81] },
+    sw: { headL: [-7.6, 2.39], headR: [-11.83, 0.52], tailL: [11.45, -5.81], tailR: [4.92, -15.05, 0] },
+  },
+  van_plain: {
+    ne: { headL: [6.17, -13.78, 0], headR: [10.95, -6.51], tailL: [-10.01, -1.85], tailR: [-3.9, -0.02] },
+    nw: { headL: [-10.95, -6.51], headR: [-6.17, -13.78, 0], tailL: [3.9, -0.02], tailR: [10.01, -1.85] },
+    se: { headL: [9.99, -2.59], headR: [3.51, -0.16], tailL: [-4.38, -12.89, 0], tailR: [-10.5, -6.58] },
+    sw: { headL: [-3.51, -0.16], headR: [-9.99, -2.59], tailL: [10.5, -6.58], tailR: [4.38, -12.89, 0] },
+  },
+  van_garden: {
+    ne: { headL: [5.75, -12.51], headR: [9.93, -6.27], tailL: [-10.86, -2.88], tailR: [-4.14, 0.41] },
+    nw: { headL: [-9.93, -6.27], headR: [-5.75, -12.51], tailL: [4.14, 0.41], tailR: [10.86, -2.88] },
+    se: { headL: [9.81, -2.41], headR: [3.69, 0.09], tailL: [-6.25, -12.29], tailR: [-10.8, -6.82] },
+    sw: { headL: [-3.69, 0.09], headR: [-9.81, -2.41], tailL: [10.8, -6.82], tailR: [6.25, -12.29] },
+  },
+  van_silver: {
+    ne: { headL: [4.96, -13.6], headR: [10.47, -6.27], tailL: [-10.2, -3.12], tailR: [-4.38, 0.89] },
+    nw: { headL: [-10.47, -6.27], headR: [-4.96, -13.6], tailL: [4.38, 0.89], tailR: [10.2, -3.12] },
+    se: { headL: [10.11, -2.29], headR: [3.57, -0.03], tailL: [-6.31, -13.31], tailR: [-11.04, -6.52] },
+    sw: { headL: [-3.57, -0.03], headR: [-10.11, -2.29], tailL: [11.04, -6.52], tailR: [6.31, -13.31] },
+  },
+  van_namkee: {
+    ne: { headL: [5.08, -13.24], headR: [10.41, -6.51], tailL: [-9.83, -2.82], tailR: [-3.41, -0.98] },
+    nw: { headL: [-10.41, -6.51], headR: [-5.08, -13.24], tailL: [3.41, -0.98], tailR: [9.83, -2.82] },
+    se: { headL: [10.41, -2.53], headR: [3.69, -0.34], tailL: [-4.38, -12.89], tailR: [-10.44, -6.46] },
+    sw: { headL: [-3.69, -0.34], headR: [-10.41, -2.53], tailL: [10.44, -6.46], tailR: [4.38, -12.89] },
+  },
+  icecream_van: {
+    ne: { headL: [1.88, -7.98], headR: [9.99, -5.18], tailL: [-9.71, 0.2], tailR: [-4.26, 2.04] },
+    nw: { headL: [-9.99, -5.18], headR: [-1.88, -7.98], tailL: [4.26, 2.04], tailR: [9.71, 0.2] },
+    se: { headL: [9.87, -0.59], headR: [4.97, -0.09], tailL: [-3.59, -8.84], tailR: [-10.98, -6.09] },
+    sw: { headL: [-4.97, -0.09], headR: [-9.87, -0.59], tailL: [10.98, -6.09], tailR: [3.59, -8.84] },
+  },
+};
 
 function smoothTrafficLightStep(value) {
   const t = Math.max(0, Math.min(1, Number(value) || 0));
@@ -82,65 +290,85 @@ function getTrafficLightProfile(model) {
   return TRAFFIC_LIGHT_PROFILES[model?.category] ?? TRAFFIC_LIGHT_PROFILES.car;
 }
 
-function getTrafficVehicleLightPose(position, profile, fallbackAngle = 0, ignoreVector = false) {
-  const dx = ignoreVector ? 0 : (Number(position?.dx) || 0);
-  const dy = ignoreVector ? 0 : (Number(position?.dy) || 0);
-  const length = Math.hypot(dx, dy);
-  const angle = length > 1e-5 ? Math.atan2(dy, dx) : fallbackAngle;
-  const unitX = Math.cos(angle);
-  const unitY = Math.sin(angle);
+// Merge order: a live calibration override (traffic-light-calibrator.js) wins,
+// then a baked per-model model.lightAnchors, then the per-category default set.
+function getTrafficVehicleLightAnchors(model) {
+  const override = typeof getTrafficLightCalibrationOverride === 'function'
+    ? getTrafficLightCalibrationOverride(model?.id)
+    : null;
+  return override || model?.lightAnchors || getTrafficLightProfile(model).anchors;
+}
+
+function getTrafficVehicleLightPose(position, anchors, direction = 'ne') {
+  const carAnchors = TRAFFIC_LIGHT_PROFILES.car.anchors;
+  const set = anchors?.[direction] || anchors?.ne
+    || carAnchors[direction] || carAnchors.ne;
   const baseX = Number(position?.x) || 0;
-  const baseY = (Number(position?.y) || 0) - profile.bodyLift;
-  return {
-    angle,
-    head: {
-      x: baseX + unitX * profile.frontOffset,
-      y: baseY + unitY * profile.frontOffset,
-    },
-    tail: {
-      x: baseX - unitX * profile.rearOffset,
-      y: baseY - unitY * profile.rearOffset,
-    },
-  };
+  const baseY = Number(position?.y) || 0;
+  const pts = {};
+  for (const key in set) {
+    const value = set[key];
+    if (!Array.isArray(value)) continue;
+    const [ox, oy] = trafficLampXY(value);
+    pts[key] = { x: baseX + ox, y: baseY + oy, on: trafficLampIsOn(value) };
+  }
+  return { direction, pts };
 }
 
 function ensureTrafficLightTextures(scene) {
   if (!scene?.textures?.exists || !scene?.make?.graphics) return false;
   const headReady = scene.textures.exists(TRAFFIC_LIGHT_CONFIG.headlightTextureKey);
   const tailReady = scene.textures.exists(TRAFFIC_LIGHT_CONFIG.taillightTextureKey);
-  if (headReady && tailReady) return true;
+  const deckReady = scene.textures.exists(TRAFFIC_LIGHT_CONFIG.deckTubeTextureKey);
+  if (headReady && tailReady && deckReady) return true;
 
   const graphic = scene.make.graphics({ x: 0, y: 0, add: false });
   if (!graphic) return false;
   if (!headReady) {
-    // Local +X points forward. Layered wedges give a short warm beam without
-    // a large full-screen lighting pass; the two bright dots read as a pair of
-    // dipped headlights at the vehicle nose.
-    graphic.fillStyle(0xffd27a, 0.045);
-    graphic.fillTriangle(3, 10, 47, 1, 47, 19);
-    graphic.fillStyle(0xffe2a3, 0.08);
-    graphic.fillTriangle(3, 10, 34, 5, 34, 15);
-    graphic.fillStyle(0xffd36b, 0.26);
-    graphic.fillCircle(4, 6.5, 3.2);
-    graphic.fillCircle(4, 13.5, 3.2);
-    graphic.fillStyle(0xfff5cf, 0.95);
-    graphic.fillCircle(4, 6.5, 1.25);
-    graphic.fillCircle(4, 13.5, 1.25);
-    graphic.generateTexture(TRAFFIC_LIGHT_CONFIG.headlightTextureKey, 48, 20);
+    // One warm headlamp: soft outer halo, a bright core, and a faint vertical
+    // and horizontal streak so it reads as a lamp rather than a plain dot. Two
+    // of these placed per vehicle make the pair.
+    graphic.fillStyle(0xffd27a, 0.07);
+    graphic.fillCircle(11, 11, 10);
+    graphic.fillStyle(0xffdd93, 0.16);
+    graphic.fillCircle(11, 11, 6);
+    graphic.fillStyle(0xffe9b8, 0.4);
+    graphic.fillCircle(11, 11, 3.4);
+    graphic.fillStyle(0xfff6da, 0.97);
+    graphic.fillCircle(11, 11, 1.5);
+    graphic.fillStyle(0xfff2cf, 0.28);
+    graphic.fillRect(10.2, 1, 1.6, 20);
+    graphic.fillRect(1, 10.2, 20, 1.6);
+    graphic.generateTexture(TRAFFIC_LIGHT_CONFIG.headlightTextureKey, 22, 22);
     graphic.clear();
   }
   if (!tailReady) {
-    graphic.fillStyle(0xff1e18, 0.16);
-    graphic.fillCircle(7, 4.5, 4);
-    graphic.fillCircle(7, 11.5, 4);
-    graphic.fillStyle(0xff2a20, 0.9);
-    graphic.fillCircle(7, 4.5, 1.65);
-    graphic.fillCircle(7, 11.5, 1.65);
-    graphic.generateTexture(TRAFFIC_LIGHT_CONFIG.taillightTextureKey, 14, 16);
+    // One red tail lamp - smaller, no streaks.
+    graphic.fillStyle(0xff2a1e, 0.14);
+    graphic.fillCircle(8, 8, 7);
+    graphic.fillStyle(0xff3324, 0.5);
+    graphic.fillCircle(8, 8, 3.4);
+    graphic.fillStyle(0xff6a4a, 0.95);
+    graphic.fillCircle(8, 8, 1.5);
+    graphic.generateTexture(TRAFFIC_LIGHT_CONFIG.taillightTextureKey, 16, 16);
+    graphic.clear();
+  }
+  if (!deckReady) {
+    // A cool fluorescent bar: soft outer bloom, a bright inner strip, a white
+    // core line. Drawn once at unit length and stretched between the calibrated
+    // endpoint anchors for each deck.
+    graphic.fillStyle(0xdfe9ff, 0.11);
+    graphic.fillRect(0, 0, 64, 10);
+    graphic.fillStyle(0xecf2ff, 0.46);
+    graphic.fillRect(2, 3, 60, 4);
+    graphic.fillStyle(0xffffff, 0.95);
+    graphic.fillRect(2, 4.4, 60, 1.2);
+    graphic.generateTexture(TRAFFIC_LIGHT_CONFIG.deckTubeTextureKey, 64, 10);
   }
   graphic.destroy?.();
   return scene.textures.exists(TRAFFIC_LIGHT_CONFIG.headlightTextureKey)
-    && scene.textures.exists(TRAFFIC_LIGHT_CONFIG.taillightTextureKey);
+    && scene.textures.exists(TRAFFIC_LIGHT_CONFIG.taillightTextureKey)
+    && scene.textures.exists(TRAFFIC_LIGHT_CONFIG.deckTubeTextureKey);
 }
 
 // The lamp strength is identical for every vehicle in a frame and its inputs
@@ -168,73 +396,122 @@ function getRuntimeTrafficLightStrength(scene) {
 
 function createTrafficVehicleLights(scene, vehicle) {
   if (!vehicle || !ensureTrafficLightTextures(scene)) return false;
-  const headlight = scene.add.image(0, 0, TRAFFIC_LIGHT_CONFIG.headlightTextureKey);
-  const taillight = scene.add.image(0, 0, TRAFFIC_LIGHT_CONFIG.taillightTextureKey);
-  addToRenderLayer(scene, headlight, 'objectLayer');
-  addToRenderLayer(scene, taillight, 'objectLayer');
-  headlight.setOrigin(0.08, 0.5);
-  taillight.setOrigin(0.5, 0.5);
   const profile = getTrafficLightProfile(vehicle.model);
-  headlight.setScale(profile.headScale);
-  taillight.setScale(profile.tailScale);
-  headlight.setMask(scene.worldMask);
-  taillight.setMask(scene.worldMask);
   const additiveBlend = typeof Phaser !== 'undefined' ? Phaser.BlendModes.ADD : 'ADD';
-  headlight.setBlendMode?.(additiveBlend);
-  taillight.setBlendMode?.(additiveBlend);
-  headlight.setAlpha(0);
-  taillight.setAlpha(0);
-  headlight.setVisible(false);
-  taillight.setVisible(false);
-  if (typeof markVehicleTrackerDynamicObject === 'function') {
-    markVehicleTrackerDynamicObject(headlight);
-    markVehicleTrackerDynamicObject(taillight);
-  }
+  const makeLamp = (textureKey, spriteScale) => {
+    const lamp = scene.add.image(0, 0, textureKey);
+    addToRenderLayer(scene, lamp, 'objectLayer');
+    lamp.setOrigin(0.5, 0.5);
+    lamp.setScale(spriteScale);
+    lamp.setMask(scene.worldMask);
+    lamp.setBlendMode?.(additiveBlend);
+    lamp.setAlpha(0);
+    lamp.setVisible(false);
+    if (typeof markVehicleTrackerDynamicObject === 'function') markVehicleTrackerDynamicObject(lamp);
+    return lamp;
+  };
+  const headKey = TRAFFIC_LIGHT_CONFIG.headlightTextureKey;
+  const tailKey = TRAFFIC_LIGHT_CONFIG.taillightTextureKey;
   vehicle.scene = scene;
-  vehicle.headlightSprite = headlight;
-  vehicle.taillightSprite = taillight;
-  vehicle.lightProfile = profile;
-  vehicle.lightAngle = 0;
+  vehicle.lampSprites = {
+    headL: makeLamp(headKey, profile.headScale),
+    headR: makeLamp(headKey, profile.headScale),
+    tailL: makeLamp(tailKey, profile.tailScale),
+    tailR: makeLamp(tailKey, profile.tailScale),
+  };
+  // Buses get two interior fluorescent tubes (upper + lower deck) - a stretched
+  // bar sprite each, spanning that deck's calibrated endpoint anchors.
+  if (profile.deck) {
+    const tubeKey = TRAFFIC_LIGHT_CONFIG.deckTubeTextureKey;
+    vehicle.tubeSprites = {};
+    for (let i = 0; i < TRAFFIC_LIGHT_DECK_TUBES.length; i++) {
+      vehicle.tubeSprites[TRAFFIC_LIGHT_DECK_TUBES[i].key] = makeLamp(tubeKey, 1);
+    }
+  }
+  vehicle.lightDirection = 'ne';
   vehicle.lightsVisible = false;
   return true;
+}
+
+function forEachTrafficVehicleLamp(vehicle, visit) {
+  const lamps = vehicle?.lampSprites;
+  if (!lamps) return;
+  for (let i = 0; i < TRAFFIC_LIGHT_EXTERIOR_LAMPS.length; i++) {
+    const lamp = lamps[TRAFFIC_LIGHT_EXTERIOR_LAMPS[i]];
+    if (lamp) visit(lamp, TRAFFIC_LIGHT_EXTERIOR_LAMPS[i]);
+  }
+}
+
+function forEachTrafficVehicleTube(vehicle, visit) {
+  const tubes = vehicle?.tubeSprites;
+  if (!tubes) return;
+  for (let i = 0; i < TRAFFIC_LIGHT_DECK_TUBES.length; i++) {
+    const desc = TRAFFIC_LIGHT_DECK_TUBES[i];
+    const bar = tubes[desc.key];
+    if (bar) visit(bar, desc);
+  }
 }
 
 function setTrafficVehicleLightDepth(vehicle, position) {
   if (!position) return;
   const depth = getWorldDepth('object', position.depthY + TILE_HEIGHT / 2);
-  vehicle?.headlightSprite?.setDepth?.(depth + 0.12);
-  vehicle?.taillightSprite?.setDepth?.(depth + 0.14);
+  forEachTrafficVehicleLamp(vehicle, (lamp, key) => {
+    lamp.setDepth?.(depth + (key[0] === 'h' ? 0.12 : 0.14));
+  });
+  forEachTrafficVehicleTube(vehicle, (bar) => bar.setDepth?.(depth + 0.1));
 }
 
 function updateTrafficVehicleLights(vehicle, position, forceDepth = false, preserveDirection = false) {
-  const headlight = vehicle?.headlightSprite;
-  const taillight = vehicle?.taillightSprite;
-  if (!headlight || !taillight || !position) return;
+  const lamps = vehicle?.lampSprites;
+  if (!lamps || !position) return;
 
-  const strength = getRuntimeTrafficLightStrength(vehicle.scene);
+  const scene = vehicle.scene;
+  // The calibrator forces every lamp fully lit so offsets can be judged in
+  // daylight; otherwise the shared per-frame strength decides.
+  const strength = scene?.trafficLightCalibrationActive
+    ? 1
+    : getRuntimeTrafficLightStrength(scene);
   const visible = strength > TRAFFIC_LIGHT_CONFIG.visibleThreshold;
 
   // Daytime is the common case. Once the lamps are dark there is nothing to
-  // pose or move, so skip the trig and the six transform writes entirely and
-  // only touch the sprites on the frame they actually switch off.
+  // pose or move, so skip the lookup and the transform writes entirely and only
+  // touch the sprites on the frame they actually switch off.
   if (!visible) {
     if (vehicle.lightsVisible !== false) {
-      headlight.setVisible(false).setAlpha(0);
-      taillight.setVisible(false).setAlpha(0);
+      forEachTrafficVehicleLamp(vehicle, (lamp) => { lamp.setVisible(false).setAlpha(0); });
+      forEachTrafficVehicleTube(vehicle, (bar) => { bar.setVisible(false).setAlpha(0); });
       vehicle.lightsVisible = false;
     }
     return;
   }
 
-  const profile = vehicle.lightProfile ?? getTrafficLightProfile(vehicle.model);
-  const pose = getTrafficVehicleLightPose(
-    position, profile, vehicle.lightAngle || 0, preserveDirection,
-  );
-  vehicle.lightAngle = pose.angle;
-  headlight.setPosition(pose.head.x, pose.head.y).setRotation(pose.angle);
-  taillight.setPosition(pose.tail.x, pose.tail.y).setRotation(pose.angle);
-  headlight.setVisible(true).setAlpha(strength * 0.92);
-  taillight.setVisible(true).setAlpha(strength);
+  const anchors = getTrafficVehicleLightAnchors(vehicle.model);
+  // The vehicle body sprite has already picked its four-view render this frame;
+  // pin the lamps to the same view so a curve can never desync them.
+  const direction = (!preserveDirection && (position.dx || position.dy))
+    ? getTrafficTextureDirection(
+      position.dx, position.dy, vehicle.textureDirection || vehicle.lightDirection || 'ne',
+    )
+    : (vehicle.textureDirection || vehicle.lightDirection || 'ne');
+  const { pts } = getTrafficVehicleLightPose(position, anchors, direction);
+  vehicle.lightDirection = direction;
+  const headAlpha = strength * 0.92;
+  forEachTrafficVehicleLamp(vehicle, (lamp, key) => {
+    const p = pts[key];
+    if (!p || !p.on) { lamp.setVisible(false).setAlpha(0); return; }
+    lamp.setPosition(p.x, p.y).setVisible(true).setAlpha(key[0] === 'h' ? headAlpha : strength);
+  });
+  forEachTrafficVehicleTube(vehicle, (bar, desc) => {
+    const a = pts[desc.a];
+    const b = pts[desc.b];
+    if (!a || !b || !a.on || !b.on) { bar.setVisible(false).setAlpha(0); return; }
+    const dxt = b.x - a.x;
+    const dyt = b.y - a.y;
+    bar.setPosition((a.x + b.x) / 2, (a.y + b.y) / 2);
+    bar.setRotation(Math.atan2(dyt, dxt));
+    bar.setDisplaySize(Math.hypot(dxt, dyt) || 1, TRAFFIC_LIGHT_CONFIG.deckTubeThickness);
+    bar.setVisible(true).setAlpha(strength * 0.8);
+  });
   vehicle.lightsVisible = true;
   if (forceDepth) setTrafficVehicleLightDepth(vehicle, position);
 }
@@ -312,6 +589,7 @@ function createTrafficModel({
   speedFactor,
   headwayFactor,
   originY,
+  lightAnchors,
 }) {
   return Object.freeze({
     id,
@@ -323,6 +601,9 @@ function createTrafficModel({
     originX: 0.5,
     originY,
     directions: createTrafficDirectionAssets(id, folder, baseName),
+    // Per-model lamp anchors: an explicit arg wins, else the calibrated block in
+    // TRAFFIC_LIGHT_ANCHOR_OVERRIDES, else null -> per-category defaults.
+    lightAnchors: lightAnchors ?? TRAFFIC_LIGHT_ANCHOR_OVERRIDES[id] ?? null,
   });
 }
 
@@ -964,8 +1245,8 @@ function setupTrafficVisuals(scene) {
 
 function destroyTrafficVehicle(vehicle) {
   vehicle?.sprite?.destroy?.();
-  vehicle?.headlightSprite?.destroy?.();
-  vehicle?.taillightSprite?.destroy?.();
+  forEachTrafficVehicleLamp(vehicle, (lamp) => lamp.destroy?.());
+  forEachTrafficVehicleTube(vehicle, (bar) => bar.destroy?.());
 }
 
 function randomIceCreamCooldown(initial = false, random = Math.random) {
@@ -2384,7 +2665,14 @@ const trafficVisualTestApi = {
   getTrafficTextureDirection,
   computeTrafficLightStrength,
   getTrafficLightProfile,
+  getTrafficVehicleLightAnchors,
   getTrafficVehicleLightPose,
+  trafficLampIsOn,
+  TRAFFIC_LIGHT_VIEW_DIRECTIONS,
+  TRAFFIC_LIGHT_LAMPS,
+  TRAFFIC_LIGHT_EXTERIOR_LAMPS,
+  TRAFFIC_LIGHT_DECK_LAMPS,
+  TRAFFIC_LIGHT_DECK_TUBES,
   getTrafficLeftLaneOffset,
   getTrafficLaneOffsetAmount,
   computeTrafficVehicleTarget,

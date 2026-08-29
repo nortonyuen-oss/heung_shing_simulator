@@ -177,6 +177,7 @@ function setVisualRouteCalibrationTestModeEnabled(enabled) {
     visualRouteCalibrationLiveStates.forEach((state) => {
       clearVisualRouteCalibrationTarget(state.scene);
     });
+    if (typeof teardownTrafficLightCalibrator === 'function') teardownTrafficLightCalibrator();
     visualRoutePerformanceSession.enabledAtMs = null;
     visualRoutePerformanceSession.baselineStartedAtMs = null;
     visualRoutePerformanceSession.operations = [];
@@ -607,7 +608,10 @@ function isVisualRouteCalibrationInputCaptured(scene) {
   // input listener guarded by this same function (road painting, drag-paint,
   // inspect clicks, building pointerdown…) is suppressed, so a drag on a
   // bus-stop sprite can't also fire whatever tool happens to be selected.
-  return typeof isBusStopPickerActive === 'function' && isBusStopPickerActive();
+  if (typeof isBusStopPickerActive === 'function' && isBusStopPickerActive()) return true;
+  // traffic-light-calibrator.js: same deal while its lamp-drag workbench is open.
+  return typeof isTrafficLightCalibrationInputActive === 'function'
+    && isTrafficLightCalibrationInputActive();
 }
 
 function clearVisualRouteCalibrationTarget(scene, targetId = '') {
@@ -1014,7 +1018,8 @@ function createVisualRoutePerformancePanel(scene) {
     + '<div class="vrp-actions"><button type="button" class="vrp-reset-btn">重置樣本</button>'
     + '<button type="button" class="vrp-copy-btn">複製 JSON</button></div>'
     + '<button type="button" class="vrp-airport-btn">機場路線校正</button>'
-    + '<button type="button" class="vrp-busstop-btn">巴士站位置微調</button>';
+    + '<button type="button" class="vrp-busstop-btn">巴士站位置微調</button>'
+    + '<button type="button" class="vrp-trafficlight-btn">車燈位置微調</button>';
   root.querySelector('.vrp-close-btn')?.addEventListener?.('click', () => {
     setVisualRouteCalibrationTestModeEnabled(false);
   });
@@ -1032,6 +1037,9 @@ function createVisualRoutePerformancePanel(scene) {
   });
   root.querySelector('.vrp-busstop-btn')?.addEventListener?.('click', () => {
     if (typeof toggleBusStopCalibrator === 'function') toggleBusStopCalibrator(scene);
+  });
+  root.querySelector('.vrp-trafficlight-btn')?.addEventListener?.('click', () => {
+    if (typeof toggleTrafficLightCalibrator === 'function') toggleTrafficLightCalibrator(scene);
   });
   document.body.appendChild(root);
   return root;

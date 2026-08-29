@@ -61,16 +61,35 @@ test('class and family derive from the building record', () => {
   assert.equal(getBuildingLightFamily({ type: 'hospital' }), 'hospital');
 });
 
-test('profile resolution: family override, else class default', () => {
+test('profile resolution: hero sprite key, then family, then class default', () => {
   const rec = { type: 'commercial', footprintCols: 3 };
   assert.equal(resolveBuildingLightProfile(rec), BUILDING_LIGHT_CLASS_DEFAULTS.off);
 
-  const { BUILDING_LIGHT_PROFILES } = require('../building-lighting'); // live object
+  const { BUILDING_LIGHT_PROFILES, BUILDING_LIGHT_HERO_PROFILES } = require('../building-lighting');
   BUILDING_LIGHT_PROFILES.commercial3 = makeBuildingLightProfile({
     class: 'off', panels: [{ c: [[0, 0], [1, 0], [1, 1], [0, 1]], rows: 4, cols: 4 }],
   });
   assert.equal(resolveBuildingLightProfile(rec).panels[0].rows, 4);
+
+  BUILDING_LIGHT_HERO_PROFILES.commercial3_hero = makeBuildingLightProfile({
+    class: 'off', panels: [{ c: [[0, 0], [1, 0], [1, 1], [0, 1]], rows: 9, cols: 9 }],
+  });
+  assert.equal(resolveBuildingLightProfile(rec, 'commercial3_hero').panels[0].rows, 9, 'hero key wins');
+  assert.equal(resolveBuildingLightProfile(rec, 'not_a_hero').panels[0].rows, 4, 'falls back to family');
+
   delete BUILDING_LIGHT_PROFILES.commercial3;
+  delete BUILDING_LIGHT_HERO_PROFILES.commercial3_hero;
+});
+
+test('the baked hero profiles are well-formed', () => {
+  const { BUILDING_LIGHT_HERO_PROFILES } = require('../building-lighting');
+  for (const [key, profile] of Object.entries(BUILDING_LIGHT_HERO_PROFILES)) {
+    assert.ok(Array.isArray(profile.panels) && profile.panels.length, `${key} has panels`);
+    profile.panels.forEach((p) => {
+      assert.equal(p.corners.length, 4, `${key} panel has 4 corners`);
+      assert.ok(p.rows >= 1 && p.cols >= 1);
+    });
+  }
 });
 
 test('default panels are two iso parallelograms meeting at the near edge', () => {

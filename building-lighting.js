@@ -195,6 +195,32 @@ const BUILDING_LIGHT_CLASS_DEFAULTS = Object.freeze({
 // default above.
 const BUILDING_LIGHT_PROFILES = {};
 
+// Calibrated per-model "hero" overrides, keyed by logical sprite key, baked from
+// building-light-calibrator.js. First-pass test set (2026-08-29) - rough.
+const BUILDING_LIGHT_HERO_PROFILES = {
+  house3x3_4: makeBuildingLightProfile({
+    class: 'res', ex: 0.512, ey: 0.935, er: 0.1, hasFloodlight: true,
+    panels: [
+      { c: [[0.321, 0.538], [0.641, 0.655], [0.635, 0.735], [0.325, 0.604]], rows: 2, cols: 5 },
+      { c: [[0.642, 0.655], [0.785, 0.582], [0.783, 0.649], [0.641, 0.723]], rows: 2, cols: 4 },
+    ],
+  }),
+  sports_ground_2x2: makeBuildingLightProfile({
+    class: 'off', ex: 0.529, ey: 0.698, er: 0.1,
+    panels: [
+      { c: [[0.091, 0.448], [0.387, 0.722], [0.394, 0.845], [0.096, 0.553]], rows: 1, cols: 1 },
+      { c: [[0.119, 0.529], [0.501, 0.166], [0.873, 0.487], [0.478, 0.878]], rows: 1, cols: 1 },
+    ],
+  }),
+  house2x2_12: makeBuildingLightProfile({
+    class: 'res', ex: 0.5, ey: 0.9, er: 0.1,
+    panels: [
+      { c: [[0.123, 0.27], [0.5, 0.351], [0.498, 0.87], [0.112, 0.77]], rows: 15, cols: 6 },
+      { c: [[0.506, 0.365], [0.865, 0.285], [0.871, 0.773], [0.494, 0.869]], rows: 13, cols: 4 },
+    ],
+  }),
+};
+
 function getBuildingLightClass(record) {
   const t = record?.type;
   if (BUILDING_LIGHT_RESIDENTIAL_TYPES.has(t)) return 'res';
@@ -216,7 +242,8 @@ function resolveBuildingLightProfile(record, spriteKey) {
     ? getBuildingLightCalibrationOverride(spriteKey, family)
     : null;
   if (override) return override;
-  return BUILDING_LIGHT_PROFILES[family]
+  return (spriteKey && BUILDING_LIGHT_HERO_PROFILES[spriteKey])
+    || BUILDING_LIGHT_PROFILES[family]
     || BUILDING_LIGHT_CLASS_DEFAULTS[getBuildingLightClass(record)]
     || BUILDING_LIGHT_CLASS_DEFAULTS.off;
 }
@@ -589,6 +616,7 @@ const buildingLightingTestApi = {
   BUILDING_LIGHT_CLASS_DEFAULTS,
   BUILDING_LIGHT_CLASS_COLOR,
   BUILDING_LIGHT_PROFILES,
+  BUILDING_LIGHT_HERO_PROFILES,
   hashBuildingLight,
   getBuildingLightSeed,
   getBuildingLightPersonality,

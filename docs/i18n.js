@@ -210,6 +210,14 @@ const SITE_FEATURE_LIST = {
 // ── Changelog ─────────────────────────────────────────────────────────────────
 const SITE_CHANGELOG = {
   "zh-HK": [
+    { version: "v4.4.0", date: "2026-08-29", dateLabel: "2026年8月29日", title: "華燈初上", items: [
+      "遊戲時鐘日夜循環：天空顏色同方向性太陽光影而家跟遊戲時間行（顯示 8x 速度下約一分鐘一日），並根據香港天文台 2026 年逐日日出、日落同曙暮光數據轉換；天光、黃昏、入黑、深夜各有其色。可喺 View 選單開關「動態光影」。",
+      "夜幕、星空、月亮：入黑後有紫藍色夜幕；晴天先見得到星空；月亮會跟月相變化，喺天空由東行到西。",
+      "時段交通：環境車流跟一日時段起伏——上下班繁忙時段最多車，深夜街上最冷清。",
+      "夜間車燈：19 款車全部有兩頭燈兩尾燈，天黑或落大雨時漸漸著起，跟返每張四方向圖逐一校正嘅位置，轉彎唔會再飄。",
+      "巴士車廂燈：雙層巴士上下層各有一條車廂燈管，夜晚透過車窗透出暖白光。",
+      "效能：車燈只喺夜晚／暴雨先計算，白天零成本；每格光暗強度每幀只計一次。",
+    ] },
     { version: "v4.3.1", date: "2026-08-25", dateLabel: "2026年8月25日", title: "漁火閃閃", items: [
       "修正巴士 DLC 完全開唔到局嘅經濟問題：巴士公司啟動資金由 $600 提高到 $6,000，而家足夠支付一座 $4,000 車廠、建立路線，再買兩部標準雙層巴士，仲有 $1,440 營運資金。",
       "舊版已成立巴士公司嘅存檔會在載入時一次過自動補發 $5,400 差額；重開遊戲、重複載入或開關 DLC 都唔會重複入帳。",
@@ -419,6 +427,14 @@ const SITE_CHANGELOG = {
 // title/items text.
 const SITE_CHANGELOG_TRANSLATIONS = {
   "zh-TW": {
+    "v4.4.0": { title: "華燈初上", items: [
+      "遊戲時鐘日夜循環：天空顏色與方向性太陽光影現在跟隨遊戲時間（顯示 8x 速度下約一分鐘一日），並依香港天文台 2026 年逐日日出、日落與曙暮光資料變換；天亮、黃昏、入夜、深夜各有其色。可在 View 選單開關「動態光影」。",
+      "夜幕、星空、月亮：入夜後出現紫藍色夜幕；晴天才看得到星空；月亮會依月相變化，在天空由東移到西。",
+      "時段交通：環境車流隨一日時段起伏——上下班尖峰時段車最多，深夜街上最冷清。",
+      "夜間車燈：19 款車全部有兩頭燈兩尾燈，天黑或下大雨時漸漸亮起，依每張四方向圖逐一校正的位置，轉彎不再飄移。",
+      "公車車廂燈：雙層公車上下層各有一條車廂燈管，夜間透過車窗透出暖白光。",
+      "效能：車燈只在夜間／暴雨時才計算，白天零成本；每格明暗強度每幀只計一次。",
+    ] },
     "v4.3.1": { title: "漁火閃閃", items: [
       "修正公車 DLC 完全無法開局的經濟問題：公車公司啟動資金由 $600 提高至 $6,000，現在足以支付一座 $4,000 車廠、建立路線，再購買兩輛標準雙層公車，並留有 $1,440 營運資金。",
       "舊版已成立公車公司的存檔會在載入時一次性自動補發 $5,400 差額，重新開啟遊戲、重複載入或開關 DLC 都不會重複入帳。",
@@ -621,6 +637,14 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   en: {
+    "v4.4.0": { title: "As the City Lights Come On", items: [
+      "Game-clock day/night cycle: sky colour and directional sunlight now follow in-game time (about one minute per day at the 8x display speed), driven by the Hong Kong Observatory's per-day sunrise, sunset and twilight data for 2026. Daylight, dusk, nightfall and deep night each get their own palette. Toggle it from the View menu ('Dynamic lighting').",
+      "Night sky, stars and moon: a violet-blue night overlay after dark; stars visible only on clear nights; a moon that changes phase and tracks east to west across the sky.",
+      "Time-of-day traffic: ambient traffic rises and falls over the day - heaviest at the morning and evening commute, sparsest late at night.",
+      "Night vehicle lamps: all 19 vehicle models now carry two headlamps and two tail lamps that fade in after dark or in heavy rain, each pinned to a position calibrated against its own four-view art so they no longer drift through turns.",
+      "Bus interior lights: double-deckers get one fluorescent tube per deck, glowing warm-white through the windows at night.",
+      "Performance: the lamps cost nothing in daylight - they're only computed at night or in a rainstorm - and the per-tile light strength is calculated once per frame, not once per vehicle.",
+    ] },
     "v4.3.1": { title: "Glimmering Fishing Lights", items: [
       "Fixed the Bus DLC's blocked opening economy: company start-up capital rises from $600 to $6,000, enough to build the required $4,000 depot, create a route, buy two standard double-deckers, and retain $1,440 in working capital.",
       "Existing saves with an already-founded bus company automatically receive the $5,400 difference once on load. Restarting, loading repeatedly, or toggling the DLC cannot apply the correction twice.",
@@ -823,6 +847,14 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   ja: {
+    "v4.4.0": { title: "街の灯がともる頃", items: [
+      "ゲーム内時計による昼夜サイクル：空の色と指向性のある太陽光が、ゲーム内時間（8x 表示速度で約1分＝1日）に連動するようになった。香港天文台の 2026 年の日ごとの日の出・日の入り・薄明データに基づき、昼・夕暮れ・日没・深夜でそれぞれ色合いが変わる。View メニューから「動的ライティング」としてオン・オフ可能。",
+      "夜空・星・月：日没後は青紫色の夜のオーバーレイがかかり、晴れた夜にだけ星が見える。月は月相に応じて満ち欠けし、空を東から西へ移動する。",
+      "時間帯別の交通量：環境車両の交通量が一日の時間帯に応じて増減する——朝夕の通勤時間帯が最も多く、深夜は最もまばら。",
+      "夜間の車両ライト：19 車種すべてに2つのヘッドライトと2つのテールライトが付き、日没後や大雨のときに徐々に点灯する。各車種の4方向スプライトに合わせて個別に位置を調整済みで、カーブでもずれなくなった。",
+      "バスの車内灯：2階建てバスの上下各デッキに蛍光灯が1本ずつ入り、夜間に窓越しに暖かい白色光を放つ。",
+      "パフォーマンス：ライトは夜間や雨天時のみ計算され、日中のコストはゼロ。タイルごとの光量は車両ごとではなく1フレームに1回だけ計算する。",
+    ] },
     "v4.3.1": { title: "漁火きらめく", items: [
       "バス DLC で開業できなかった資金バランスを修正：創業資金を $600 から $6,000 に増額し、必須の $4,000 の車庫を建設し、路線を作成して標準型2階建てバスを2台購入しても、$1,440 の運転資金が残るようになった。",
       "既にバス会社を設立済みの旧バージョンのセーブには、読み込み時に $5,400 の差額を1度だけ自動支給。再起動、繰り返し読み込み、DLC の切り替えで重複計上されることはない。",
@@ -1050,8 +1082,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.3.1 — 【漁火閃閃】",
-      versionDesc: "巴士 DLC 修復版：啟動資金提高至 $6,000，而家可以正常起車廠、開路線同買巴士；舊存檔會自動補回差額。",
+      versionBadge: "v4.4.0 — 【華燈初上】",
+      versionDesc: "遊戲時鐘日夜循環：天空同光影跟香港天文台真實日出日落數據轉換，入黑有夜幕、星空同月相；夜晚全城車輛亮起頭燈尾燈，雙層巴士連車廂燈都著。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感嘅城市建設遊戲。起街道、規劃社區、經營自己嘅香城巴士公司、處理議會同天氣，再睇住一座有性格嘅香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1127,8 +1159,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.3.1 — 【漁火閃閃】",
-      versionDesc: "公車 DLC 修復版：啟動資金提高至 $6,000，現在可正常興建車廠、建立路線與購買公車；舊存檔會自動補發差額。",
+      versionBadge: "v4.4.0 — 【華燈初上】",
+      versionDesc: "遊戲時鐘日夜循環：天空與光影依香港天文台真實日出日落資料變換，入夜有夜幕、星空與月相；夜間全城車輛亮起頭燈尾燈，雙層公車連車廂燈也會亮。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感的城市建設遊戲。興建街道、規劃社區、經營自己的香城公車公司、處理議會與天氣，看著一座有個性的香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1204,8 +1236,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "The City of Heung Shing",
       title: "The City of Heung Shing",
-      versionBadge: "v4.3.1 — Glimmering Fishing Lights",
-      versionDesc: "Bus DLC hotfix: start-up capital is now $6,000, enough to build a depot, create routes and buy buses; existing saves receive the corrected funding automatically.",
+      versionBadge: "v4.4.0 — As the City Lights Come On",
+      versionDesc: "A game-clock day/night cycle driven by the Hong Kong Observatory's real sunrise/sunset data, with a night sky, stars and moon phases; after dark the whole city's traffic switches on its headlamps and tail lamps, and double-deckers light up their interior tubes.",
       lede: "A city-building game inspired by Hong Kong life and made in tribute to SimCity 2000. Build streets, shape neighbourhoods, run your own Heung Shing Bus Company, navigate council politics and weather, then watch a city with real personality grow.",
       freeLabel: "Completely free · macOS + Windows · Local saves",
       downloadBtn: "【Free Download】",
@@ -1282,8 +1314,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.3.1 — 漁火きらめく",
-      versionDesc: "バス DLC 修正版：創業資金を $6,000 に増額し、車庫建設・路線作成・バス購入が可能に。旧セーブにも差額が自動支給されます。",
+      versionBadge: "v4.4.0 — 街の灯がともる頃",
+      versionDesc: "香港天文台の実際の日の出・日の入りデータに連動したゲーム内時計の昼夜サイクル。夜空・星・月相を追加し、日没後は街じゅうの車がヘッドライトとテールライトを点灯、2階建てバスは車内灯もともります。",
       lede: "香港の都市生活から着想を得た、SimCity 2000へのオマージュとなる都市建設ゲーム。道路を築き、地区を計画し、自分だけの香城バス会社を経営し、議会や天候に向き合いながら、個性ある香城の成長を見守ります。",
       freeLabel: "完全無料 · macOS + Windows · ローカルセーブ",
       downloadBtn: "【無料ダウンロード】",

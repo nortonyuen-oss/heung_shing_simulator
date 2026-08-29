@@ -79,7 +79,8 @@ function setupTransportVisuals(scene) {
 }
 
 function destroyManagedTransportVehicle(vehicle) {
-  vehicle?.sprite?.destroy?.();
+  if (typeof destroyTrafficVehicle === 'function') destroyTrafficVehicle(vehicle);
+  else vehicle?.sprite?.destroy?.();
   vehicle?.badge?.destroy?.();
 }
 
@@ -217,6 +218,9 @@ function createManagedTransportVehicle(scene, route, runtime, model, vehicleId, 
     lastSeenRevenueSerial: backing?.tripRevenueSerial || 0,
     renderedProgress: 0,
   };
+  if (typeof createTrafficVehicleLights === 'function') {
+    createTrafficVehicleLights(scene, vehicle);
+  }
   updateTransportVehicleLegStopFlags(vehicle);
   vehicle.renderedProgress = getTransportLegVisualProgress(progress, vehicle.departingStop, vehicle.approachingStop);
   if (typeof markVehicleTrackerDynamicObject === 'function') {
@@ -242,6 +246,9 @@ function setManagedTransportVehicleVisual(vehicle, position, forceDepth = false)
   const depth = getWorldDepth('object', position.depthY + TILE_HEIGHT / 2);
   vehicle.sprite.setDepth(depth);
   vehicle.badge.setDepth(getWorldDepth('effect', position.depthY + TILE_HEIGHT / 2));
+  if (typeof updateTrafficVehicleLights === 'function') {
+    updateTrafficVehicleLights(vehicle, position, true);
+  }
 }
 
 // Which real vehicles should currently have a sprite: assigned to an active

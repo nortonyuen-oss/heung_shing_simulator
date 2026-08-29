@@ -530,10 +530,20 @@ function forEachVehicleTrackerDynamicObject(scene, visit) {
   scene?.transportVisualState?.vehicles?.forEach((vehicle) => {
     if (vehicle.sprite) visit(vehicle.sprite);
     if (vehicle.badge) visit(vehicle.badge);
+    if (vehicle.headlightSprite) visit(vehicle.headlightSprite);
+    if (vehicle.taillightSprite) visit(vehicle.taillightSprite);
   });
   const traffic = scene?.trafficVisualState;
-  traffic?.vehicles?.forEach((vehicle) => { if (vehicle.sprite) visit(vehicle.sprite); });
-  if (traffic?.iceCreamEvent?.sprite) visit(traffic.iceCreamEvent.sprite);
+  traffic?.vehicles?.forEach((vehicle) => {
+    if (vehicle.sprite) visit(vehicle.sprite);
+    if (vehicle.headlightSprite) visit(vehicle.headlightSprite);
+    if (vehicle.taillightSprite) visit(vehicle.taillightSprite);
+  });
+  if (traffic?.iceCreamEvent) {
+    if (traffic.iceCreamEvent.sprite) visit(traffic.iceCreamEvent.sprite);
+    if (traffic.iceCreamEvent.headlightSprite) visit(traffic.iceCreamEvent.headlightSprite);
+    if (traffic.iceCreamEvent.taillightSprite) visit(traffic.iceCreamEvent.taillightSprite);
+  }
   scene?.vesselVisualState?.portStates?.forEach?.((portState) => {
     if (portState?.event?.sprite) visit(portState.event.sprite);
   });

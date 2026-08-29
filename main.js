@@ -6694,6 +6694,7 @@ function updateDynamicLighting(scene) {
   if (!isDynamicLightingEnabled()) {
     graphics.clear();
     scene.nightOverlay?.setAlpha(0);
+    scene.trafficLightStrength = 0;
     scene.starField?.setAlpha(0);
     scene.moonSprite?.setAlpha(0);
     camera?.setBackgroundColor?.(
@@ -6717,6 +6718,11 @@ function updateDynamicLighting(scene) {
   scene.nightOverlay?.setAlpha(
     typeof getNightOverlayAlpha === 'function' ? getNightOverlayAlpha(timeMinutes) : 0,
   );
+  // Cache the vehicle-lamp strength once per lighting tick; every road vehicle
+  // reads scene.trafficLightStrength instead of recomputing it per frame.
+  if (typeof computeRuntimeTrafficLightStrength === 'function') {
+    scene.trafficLightStrength = computeRuntimeTrafficLightStrength(scene);
+  }
   const stars = typeof getStarFieldVisualState === 'function'
     ? getStarFieldVisualState(timeMinutes)
     : { active: false, alpha: 0 };

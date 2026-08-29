@@ -32,6 +32,213 @@ const TRAFFIC_VISUAL_CONFIG = Object.freeze({
   busStopDwellMinSpeedFactor: 0.08,
 });
 
+// Vehicle lamps are generated once as tiny transparent textures, then reused
+// by every road vehicle. Keeping exactly two companion sprites per vehicle
+// avoids allocating graphics during the frame loop while still letting the
+// headlamp beam and red rear lamps rotate smoothly through curved junctions.
+const TRAFFIC_LIGHT_CONFIG = Object.freeze({
+  headlightTextureKey: 'fx_traffic_headlights',
+  taillightTextureKey: 'fx_traffic_taillights',
+  nightOnsetAlpha: 0.01,
+  nightFullAlpha: 0.32,
+  weatherOnsetAlpha: 0.08,
+  weatherFullAlpha: 0.30,
+  weatherMaximumStrength: 0.9,
+  visibleThreshold: 0.002,
+});
+
+const TRAFFIC_LIGHT_PROFILES = Object.freeze({
+  bus: Object.freeze({ frontOffset: 15, rearOffset: 10, bodyLift: 9, headScale: 1.00, tailScale: 0.92 }),
+  car: Object.freeze({ frontOffset: 7, rearOffset: 5, bodyLift: 5, headScale: 0.62, tailScale: 0.62 }),
+  minibus: Object.freeze({ frontOffset: 10, rearOffset: 7, bodyLift: 7, headScale: 0.78, tailScale: 0.76 }),
+  taxi: Object.freeze({ frontOffset: 7, rearOffset: 5, bodyLift: 5, headScale: 0.62, tailScale: 0.62 }),
+  truck: Object.freeze({ frontOffset: 11, rearOffset: 8, bodyLift: 7, headScale: 0.84, tailScale: 0.80 }),
+  van: Object.freeze({ frontOffset: 9, rearOffset: 7, bodyLift: 6, headScale: 0.74, tailScale: 0.72 }),
+  icecream: Object.freeze({ frontOffset: 9, rearOffset: 7, bodyLift: 6, headScale: 0.74, tailScale: 0.72 }),
+});
+
+function smoothTrafficLightStep(value) {
+  const t = Math.max(0, Math.min(1, Number(value) || 0));
+  return t * t * (3 - 2 * t);
+}
+
+function computeTrafficLightStrength(
+  nightAlpha,
+  weatherAlpha,
+  config = TRAFFIC_LIGHT_CONFIG,
+) {
+  const nightRange = Math.max(1e-6, config.nightFullAlpha - config.nightOnsetAlpha);
+  const weatherRange = Math.max(1e-6, config.weatherFullAlpha - config.weatherOnsetAlpha);
+  const night = smoothTrafficLightStep(
+    ((Number(nightAlpha) || 0) - config.nightOnsetAlpha) / nightRange,
+  );
+  const weather = smoothTrafficLightStep(
+    ((Number(weatherAlpha) || 0) - config.weatherOnsetAlpha) / weatherRange,
+  ) * config.weatherMaximumStrength;
+  return Math.max(night, weather);
+}
+
+function getTrafficLightProfile(model) {
+  return TRAFFIC_LIGHT_PROFILES[model?.category] ?? TRAFFIC_LIGHT_PROFILES.car;
+}
+
+function getTrafficVehicleLightPose(position, profile, fallbackAngle = 0, ignoreVector = false) {
+  const dx = ignoreVector ? 0 : (Number(position?.dx) || 0);
+  const dy = ignoreVector ? 0 : (Number(position?.dy) || 0);
+  const length = Math.hypot(dx, dy);
+  const angle = length > 1e-5 ? Math.atan2(dy, dx) : fallbackAngle;
+  const unitX = Math.cos(angle);
+  const unitY = Math.sin(angle);
+  const baseX = Number(position?.x) || 0;
+  const baseY = (Number(position?.y) || 0) - profile.bodyLift;
+  return {
+    angle,
+    head: {
+      x: baseX + unitX * profile.frontOffset,
+      y: baseY + unitY * profile.frontOffset,
+    },
+    tail: {
+      x: baseX - unitX * profile.rearOffset,
+      y: baseY - unitY * profile.rearOffset,
+    },
+  };
+}
+
+function ensureTrafficLightTextures(scene) {
+  if (!scene?.textures?.exists || !scene?.make?.graphics) return false;
+  const headReady = scene.textures.exists(TRAFFIC_LIGHT_CONFIG.headlightTextureKey);
+  const tailReady = scene.textures.exists(TRAFFIC_LIGHT_CONFIG.taillightTextureKey);
+  if (headReady && tailReady) return true;
+
+  const graphic = scene.make.graphics({ x: 0, y: 0, add: false });
+  if (!graphic) return false;
+  if (!headReady) {
+    // Local +X points forward. Layered wedges give a short warm beam without
+    // a large full-screen lighting pass; the two bright dots read as a pair of
+    // dipped headlights at the vehicle nose.
+    graphic.fillStyle(0xffd27a, 0.045);
+    graphic.fillTriangle(3, 10, 47, 1, 47, 19);
+    graphic.fillStyle(0xffe2a3, 0.08);
+    graphic.fillTriangle(3, 10, 34, 5, 34, 15);
+    graphic.fillStyle(0xffd36b, 0.26);
+    graphic.fillCircle(4, 6.5, 3.2);
+    graphic.fillCircle(4, 13.5, 3.2);
+    graphic.fillStyle(0xfff5cf, 0.95);
+    graphic.fillCircle(4, 6.5, 1.25);
+    graphic.fillCircle(4, 13.5, 1.25);
+    graphic.generateTexture(TRAFFIC_LIGHT_CONFIG.headlightTextureKey, 48, 20);
+    graphic.clear();
+  }
+  if (!tailReady) {
+    graphic.fillStyle(0xff1e18, 0.16);
+    graphic.fillCircle(7, 4.5, 4);
+    graphic.fillCircle(7, 11.5, 4);
+    graphic.fillStyle(0xff2a20, 0.9);
+    graphic.fillCircle(7, 4.5, 1.65);
+    graphic.fillCircle(7, 11.5, 1.65);
+    graphic.generateTexture(TRAFFIC_LIGHT_CONFIG.taillightTextureKey, 14, 16);
+  }
+  graphic.destroy?.();
+  return scene.textures.exists(TRAFFIC_LIGHT_CONFIG.headlightTextureKey)
+    && scene.textures.exists(TRAFFIC_LIGHT_CONFIG.taillightTextureKey);
+}
+
+// The lamp strength is identical for every vehicle in a frame and its inputs
+// (night + weather overlay alpha) only move on the 100ms day/night cadence, so
+// updateDynamicLighting caches the fresh value on scene.trafficLightStrength and
+// the per-vehicle path just reads it. computeRuntimeTrafficLightStrength is the
+// fallback for the first few frames before that cadence runs, and for tests.
+function computeRuntimeTrafficLightStrength(scene) {
+  const timeMinutes = typeof getGameTimeOfDayMinutes === 'function'
+    ? getGameTimeOfDayMinutes()
+    : 12 * 60;
+  const nightAlpha = Number.isFinite(Number(scene?.nightOverlay?.alpha))
+    ? Number(scene.nightOverlay.alpha)
+    : (typeof getNightOverlayAlpha === 'function' ? getNightOverlayAlpha(timeMinutes) : 0);
+  const weatherAlpha = Number.isFinite(Number(scene?.weatherOverlay?.alpha))
+    ? Number(scene.weatherOverlay.alpha)
+    : (typeof getWeatherOverlayAlpha === 'function' ? getWeatherOverlayAlpha() : 0);
+  return computeTrafficLightStrength(nightAlpha, weatherAlpha);
+}
+
+function getRuntimeTrafficLightStrength(scene) {
+  const cached = Number(scene?.trafficLightStrength);
+  return Number.isFinite(cached) ? cached : computeRuntimeTrafficLightStrength(scene);
+}
+
+function createTrafficVehicleLights(scene, vehicle) {
+  if (!vehicle || !ensureTrafficLightTextures(scene)) return false;
+  const headlight = scene.add.image(0, 0, TRAFFIC_LIGHT_CONFIG.headlightTextureKey);
+  const taillight = scene.add.image(0, 0, TRAFFIC_LIGHT_CONFIG.taillightTextureKey);
+  addToRenderLayer(scene, headlight, 'objectLayer');
+  addToRenderLayer(scene, taillight, 'objectLayer');
+  headlight.setOrigin(0.08, 0.5);
+  taillight.setOrigin(0.5, 0.5);
+  const profile = getTrafficLightProfile(vehicle.model);
+  headlight.setScale(profile.headScale);
+  taillight.setScale(profile.tailScale);
+  headlight.setMask(scene.worldMask);
+  taillight.setMask(scene.worldMask);
+  const additiveBlend = typeof Phaser !== 'undefined' ? Phaser.BlendModes.ADD : 'ADD';
+  headlight.setBlendMode?.(additiveBlend);
+  taillight.setBlendMode?.(additiveBlend);
+  headlight.setAlpha(0);
+  taillight.setAlpha(0);
+  headlight.setVisible(false);
+  taillight.setVisible(false);
+  if (typeof markVehicleTrackerDynamicObject === 'function') {
+    markVehicleTrackerDynamicObject(headlight);
+    markVehicleTrackerDynamicObject(taillight);
+  }
+  vehicle.scene = scene;
+  vehicle.headlightSprite = headlight;
+  vehicle.taillightSprite = taillight;
+  vehicle.lightProfile = profile;
+  vehicle.lightAngle = 0;
+  vehicle.lightsVisible = false;
+  return true;
+}
+
+function setTrafficVehicleLightDepth(vehicle, position) {
+  if (!position) return;
+  const depth = getWorldDepth('object', position.depthY + TILE_HEIGHT / 2);
+  vehicle?.headlightSprite?.setDepth?.(depth + 0.12);
+  vehicle?.taillightSprite?.setDepth?.(depth + 0.14);
+}
+
+function updateTrafficVehicleLights(vehicle, position, forceDepth = false, preserveDirection = false) {
+  const headlight = vehicle?.headlightSprite;
+  const taillight = vehicle?.taillightSprite;
+  if (!headlight || !taillight || !position) return;
+
+  const strength = getRuntimeTrafficLightStrength(vehicle.scene);
+  const visible = strength > TRAFFIC_LIGHT_CONFIG.visibleThreshold;
+
+  // Daytime is the common case. Once the lamps are dark there is nothing to
+  // pose or move, so skip the trig and the six transform writes entirely and
+  // only touch the sprites on the frame they actually switch off.
+  if (!visible) {
+    if (vehicle.lightsVisible !== false) {
+      headlight.setVisible(false).setAlpha(0);
+      taillight.setVisible(false).setAlpha(0);
+      vehicle.lightsVisible = false;
+    }
+    return;
+  }
+
+  const profile = vehicle.lightProfile ?? getTrafficLightProfile(vehicle.model);
+  const pose = getTrafficVehicleLightPose(
+    position, profile, vehicle.lightAngle || 0, preserveDirection,
+  );
+  vehicle.lightAngle = pose.angle;
+  headlight.setPosition(pose.head.x, pose.head.y).setRotation(pose.angle);
+  taillight.setPosition(pose.tail.x, pose.tail.y).setRotation(pose.angle);
+  headlight.setVisible(true).setAlpha(strength * 0.92);
+  taillight.setVisible(true).setAlpha(strength);
+  vehicle.lightsVisible = true;
+  if (forceDepth) setTrafficVehicleLightDepth(vehicle, position);
+}
+
 const ICE_CREAM_EVENT_CONFIG = Object.freeze({
   initialCooldownMinMs: 15000,
   initialCooldownMaxMs: 30000,
@@ -757,6 +964,8 @@ function setupTrafficVisuals(scene) {
 
 function destroyTrafficVehicle(vehicle) {
   vehicle?.sprite?.destroy?.();
+  vehicle?.headlightSprite?.destroy?.();
+  vehicle?.taillightSprite?.destroy?.();
 }
 
 function randomIceCreamCooldown(initial = false, random = Math.random) {
@@ -1429,6 +1638,7 @@ function setIceCreamTruckPosition(event, position, updateDirection = true) {
   event.sprite.setPosition(position.x, position.y);
   event.lastPosition = position;
   event.sprite.setDepth(getWorldDepth('object', position.depthY + TILE_HEIGHT / 2));
+  updateTrafficVehicleLights(event, position, true, true);
 }
 
 function isRuntimeIceCreamParkingRoad(row, col) {
@@ -1563,6 +1773,7 @@ function spawnIceCreamEvent(scene, state, random = Math.random) {
     musicElapsedMs: 0,
     musicComplete: false,
   };
+  createTrafficVehicleLights(scene, event);
   setIceCreamTruckPosition(event, evaluateTrafficLeg(movementLegs[0].leg, 0));
   state.iceCreamEvent = event;
   return true;
@@ -1782,6 +1993,7 @@ function setTrafficVehicleVisual(vehicle, position, time = 0, forceDepth = false
   if (forceDepth) {
     vehicle.sprite.setDepth(getWorldDepth('object', position.depthY + TILE_HEIGHT / 2));
   }
+  updateTrafficVehicleLights(vehicle, position, forceDepth);
 }
 
 function refreshTrafficVehicleDepths(state, time) {
@@ -1790,6 +2002,7 @@ function refreshTrafficVehicleDepths(state, time) {
     const position = vehicle.lastPosition;
     if (!position) return;
     vehicle.sprite.setDepth(getWorldDepth('object', position.depthY + TILE_HEIGHT / 2));
+    setTrafficVehicleLightDepth(vehicle, position);
   });
   state.nextDepthRefreshTime = time + TRAFFIC_VISUAL_CONFIG.depthRefreshMs;
 }
@@ -1877,6 +2090,7 @@ function spawnTrafficVehicle(scene, roads, random = Math.random, time = 0) {
       busDwellMatchedSide: undefined,
       busDepartTaperActive: false,
     };
+    createTrafficVehicleLights(scene, vehicle);
     vehicle.leg = createTrafficLeg(scene, vehicle.previous, vehicle.current, vehicle.next);
     setTrafficVehicleVisual(
       vehicle,
@@ -2158,6 +2372,8 @@ function updateTrafficVisuals(time, delta) {
 
 const trafficVisualTestApi = {
   TRAFFIC_VISUAL_CONFIG,
+  TRAFFIC_LIGHT_CONFIG,
+  TRAFFIC_LIGHT_PROFILES,
   ICE_CREAM_EVENT_CONFIG,
   ICE_CREAM_EDUCATION_TARGET_TYPES,
   ICE_CREAM_VISITOR_ATTRACTION_TYPES,
@@ -2166,6 +2382,9 @@ const trafficVisualTestApi = {
   TRAFFIC_MODEL_REGISTRY,
   TRAFFIC_MODEL_BY_ID,
   getTrafficTextureDirection,
+  computeTrafficLightStrength,
+  getTrafficLightProfile,
+  getTrafficVehicleLightPose,
   getTrafficLeftLaneOffset,
   getTrafficLaneOffsetAmount,
   computeTrafficVehicleTarget,
@@ -2197,6 +2416,8 @@ const trafficVisualTestApi = {
   evaluateTrafficLeg,
   getTrafficCameraRect,
   setTrafficVehicleVisual,
+  createTrafficVehicleLights,
+  updateTrafficVehicleLights,
   refreshTrafficVehicleDepths,
   trafficModelTexturesAreReady,
   getPinnedTrafficModelIds,
@@ -2205,6 +2426,7 @@ const trafficVisualTestApi = {
   getReadyTrafficModels,
   setupTrafficVisuals,
   updateTrafficVisuals,
+  destroyTrafficVehicle,
 };
 
 if (typeof module !== 'undefined' && module.exports) {

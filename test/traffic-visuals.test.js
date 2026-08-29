@@ -6,6 +6,8 @@ const path = require('node:path');
 const ROOT = path.resolve(__dirname, '..');
 const {
   TRAFFIC_VISUAL_CONFIG,
+  TRAFFIC_LIGHT_CONFIG,
+  TRAFFIC_LIGHT_PROFILES,
   ICE_CREAM_EDUCATION_TARGET_TYPES,
   ICE_CREAM_VISITOR_ATTRACTION_TYPES,
   ICE_CREAM_TARGET_TYPES,
@@ -13,6 +15,9 @@ const {
   TRAFFIC_MODEL_REGISTRY,
   TRAFFIC_MODEL_BY_ID,
   getTrafficTextureDirection,
+  computeTrafficLightStrength,
+  getTrafficLightProfile,
+  getTrafficVehicleLightPose,
   getTrafficLeftLaneOffset,
   getTrafficLaneOffsetAmount,
   computeTrafficVehicleTarget,
@@ -48,7 +53,135 @@ const {
   getReadyTrafficModels,
   setupTrafficVisuals,
   updateTrafficVisuals,
+  updateTrafficVehicleLights,
+  destroyTrafficVehicle,
 } = require('../traffic-visuals');
+
+test('vehicle lamps fade on smoothly at twilight and in bad weather', () => {
+  assert.equal(computeTrafficLightStrength(0, 0), 0);
+  assert.equal(computeTrafficLightStrength(0.54, 0), 1);
+  assert.equal(computeTrafficLightStrength(0, 0.06), 0, 'ordinary cloud cover keeps daytime lamps off');
+
+  const sunset = computeTrafficLightStrength(0.02, 0);
+  const dusk = computeTrafficLightStrength(0.18, 0);
+  const night = computeTrafficLightStrength(0.42, 0);
+  assert.ok(sunset > 0 && sunset < 0.02);
+  assert.ok(dusk > 0.5 && dusk < 0.7);
+  assert.equal(night, 1);
+
+  const showers = computeTrafficLightStrength(0, 0.15);
+  const heavyRain = computeTrafficLightStrength(0, 0.28);
+  const typhoon = computeTrafficLightStrength(0, 0.45);
+  assert.ok(showers > 0.15 && showers < 0.3);
+  assert.ok(heavyRain > 0.8 && heavyRain < typhoon);
+  assert.equal(typhoon, TRAFFIC_LIGHT_CONFIG.weatherMaximumStrength);
+});
+
+test('headlights and taillights follow the actual travel vector around turns', () => {
+  const profile = getTrafficLightProfile({ category: 'car' });
+  assert.equal(profile, TRAFFIC_LIGHT_PROFILES.car);
+  assert.equal(getTrafficLightProfile({ category: 'unknown' }), TRAFFIC_LIGHT_PROFILES.car);
+
+  const east = getTrafficVehicleLightPose({ x: 100, y: 200, dx: 8, dy: 0 }, profile);
+  assert.equal(east.angle, 0);
+  assert.deepEqual(east.head, { x: 107, y: 195 });
+  assert.deepEqual(east.tail, { x: 95, y: 195 });
+
+  const north = getTrafficVehicleLightPose({ x: 100, y: 200, dx: 0, dy: -8 }, profile);
+  assert.ok(Math.abs(north.angle + Math.PI / 2) < 1e-12);
+  assert.ok(Math.abs(north.head.x - 100) < 1e-12);
+  assert.equal(north.head.y, 188);
+  assert.ok(Math.abs(north.tail.x - 100) < 1e-12);
+  assert.equal(north.tail.y, 200);
+
+  const held = getTrafficVehicleLightPose(
+    { x: 50, y: 60, dx: 0, dy: 0 },
+    profile,
+    Math.PI / 4,
+  );
+  assert.equal(held.angle, Math.PI / 4, 'a stopped vehicle retains its last lamp direction');
+});
+
+test('lamp companions update without allocations and are destroyed with their vehicle', () => {
+  const makeLamp = () => ({
+    destroyed: false,
+    setPosition(x, y) { this.x = x; this.y = y; return this; },
+    setRotation(rotation) { this.rotation = rotation; return this; },
+    setScale(scale) { this.scale = scale; return this; },
+    setVisible(visible) { this.visible = visible; return this; },
+    setAlpha(alpha) { this.alpha = alpha; return this; },
+    destroy() { this.destroyed = true; },
+  });
+  const vehicle = {
+    model: { category: 'taxi' },
+    scene: { nightOverlay: { alpha: 0.54 }, weatherOverlay: { alpha: 0 } },
+    lightProfile: TRAFFIC_LIGHT_PROFILES.taxi,
+    lightAngle: 0,
+    sprite: makeLamp(),
+    headlightSprite: makeLamp(),
+    taillightSprite: makeLamp(),
+  };
+  const headlight = vehicle.headlightSprite;
+  const taillight = vehicle.taillightSprite;
+
+  updateTrafficVehicleLights(vehicle, { x: 20, y: 30, dx: 4, dy: 2, depthY: 30 });
+  assert.equal(vehicle.headlightSprite, headlight);
+  assert.equal(vehicle.taillightSprite, taillight);
+  assert.equal(headlight.visible, true);
+  assert.equal(taillight.visible, true);
+  assert.equal(headlight.alpha, 0.92);
+  assert.equal(taillight.alpha, 1);
+  assert.ok(headlight.x > 20 && headlight.y > 25);
+  assert.ok(taillight.x < 20 && taillight.y < 25);
+
+  vehicle.scene.nightOverlay.alpha = 0;
+  updateTrafficVehicleLights(vehicle, { x: 20, y: 30, dx: 4, dy: 2, depthY: 30 });
+  assert.equal(headlight.visible, false);
+  assert.equal(taillight.visible, false);
+  assert.equal(headlight.alpha, 0);
+  assert.equal(taillight.alpha, 0);
+
+  destroyTrafficVehicle(vehicle);
+  assert.equal(vehicle.sprite.destroyed, true);
+  assert.equal(headlight.destroyed, true);
+  assert.equal(taillight.destroyed, true);
+});
+
+test('lamp updates read the cached frame strength and skip all pose work by day', () => {
+  let poseWrites = 0;
+  const makeLamp = () => ({
+    setPosition() { poseWrites += 1; return this; },
+    setRotation() { poseWrites += 1; return this; },
+    setScale() { return this; },
+    setVisible(visible) { this.visible = visible; return this; },
+    setAlpha(alpha) { this.alpha = alpha; return this; },
+  });
+  const vehicle = {
+    model: { category: 'car' },
+    // Overlay alphas say night, but the cached per-frame value is the authority.
+    scene: { trafficLightStrength: 0, nightOverlay: { alpha: 0.9 }, weatherOverlay: { alpha: 0 } },
+    lightProfile: TRAFFIC_LIGHT_PROFILES.car,
+    lightAngle: 0,
+    lightsVisible: true,
+    headlightSprite: makeLamp(),
+    taillightSprite: makeLamp(),
+  };
+
+  updateTrafficVehicleLights(vehicle, { x: 10, y: 10, dx: 3, dy: 0, depthY: 10 });
+  assert.equal(vehicle.headlightSprite.visible, false);
+  assert.equal(vehicle.lightsVisible, false);
+  assert.equal(poseWrites, 0, 'daytime frames never touch position or rotation');
+
+  // A subsequent dark frame is a no-op once the lamps are already off.
+  updateTrafficVehicleLights(vehicle, { x: 12, y: 10, dx: 3, dy: 0, depthY: 10 });
+  assert.equal(poseWrites, 0);
+
+  vehicle.scene.trafficLightStrength = 1;
+  updateTrafficVehicleLights(vehicle, { x: 14, y: 10, dx: 3, dy: 0, depthY: 10 });
+  assert.equal(vehicle.lightsVisible, true);
+  assert.equal(vehicle.headlightSprite.alpha, 0.92);
+  assert.ok(poseWrites > 0, 'lamps pose again once the cached strength lights them');
+});
 
 test('vehicle texture directions match the supplied four-view convention', () => {
   assert.equal(getTrafficTextureDirection(-1, -1), 'nw');

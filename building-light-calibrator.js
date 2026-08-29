@@ -1,31 +1,28 @@
 // Building night-lighting calibrator (test-branch-only dev tool).
 //
 // Same mould as traffic-light-calibrator.js / bus-stop-calibrator.js: test-mode
-// gated, reached from the performance panel. You pick a placed building, and a
-// magnified copy of its render becomes the workbench - drag the window band's
-// four corners over the facade, set the grid density, drop the entrance glow,
-// pick a class colour, and scrub the time-of-night to watch it relight.
+// gated, reached from the performance panel. Pick a placed building and a
+// magnified, centred copy of its render becomes the workbench. A building's
+// window area is one or two PANELS - the visible isometric wall faces - each a
+// parallelogram you drag by its four corners so the grid follows the 1:2 iso
+// slope. Set the grid density per panel, drop the entrance glow, pick a class
+// colour, and scrub the time-of-night to watch it relight.
 //
-// Output is a BUILDING_LIGHT_PROFILES block keyed by model family, plus optional
-// per-model "hero" overrides, baked into building-lighting.js exactly like the
-// vehicle lamp anchors.
+// Output is a BUILDING_LIGHT_PROFILES block keyed by model family plus optional
+// per-model "hero" overrides, baked into building-lighting.js.
 
-const BUILDING_LIGHT_CALIBRATION_SCHEMA_VERSION = 1;
-const BUILDING_LIGHT_CALIBRATION_STORAGE_KEY = 'buildingLightCalibration.v1';
-const BUILDING_LIGHT_CALIBRATION_CLASSES = Object.freeze(['res', 'off', 'ind', 'svc']);
-const BUILDING_LIGHT_CALIBRATION_CLASS_LABEL = Object.freeze({
-  res: '住宅 (暖)', off: '辦公 (冷白)', ind: '工業 (暗黃)', svc: '服務 (通宵)',
-});
+const BUILDING_LIGHT_CALIBRATION_SCHEMA_VERSION = 2;
+const BUILDING_LIGHT_CALIBRATION_STORAGE_KEY = 'buildingLightCalibration.v2';
 const BUILDING_LIGHT_CALIBRATION_BUCKETS = Object.freeze([
   ['duskRamp', '黃昏'], ['eveningPeak', '晚高峰'], ['lateEvening', '晚間'],
   ['deepNight', '深夜'], ['dawnFade', '天光'],
 ]);
 const BUILDING_LIGHT_CALIBRATION_MIN_ZOOM = 1.5;
-const BUILDING_LIGHT_CALIBRATION_MAX_ZOOM = 7;
-const BUILDING_LIGHT_CALIBRATION_HANDLES = Object.freeze(['tl', 'tr', 'br', 'bl', 'ent']);
+const BUILDING_LIGHT_CALIBRATION_MAX_ZOOM = 8;
+const BUILDING_LIGHT_CALIBRATION_CORNER_IDS = Object.freeze(['c0', 'c1', 'c2', 'c3']);
 
-// { [family]: profileData, ['@'+spriteKey]: profileData }.
-// profileData = { class, x, y, w, h, rows, cols, ex, ey, er, entrance, service, hasSignage, hasFloodlight }
+// { [family]: data, ['@'+spriteKey]: data }
+// data = { class, panels:[{c:[[x,y]x4], rows, cols, on}], entrance, ex, ey, er, service, hasSignage, hasFloodlight }
 const buildingLightCalibrationOverrides = loadBuildingLightCalibrationOverrides();
 
 let buildingLightCalibrationActive = false;
@@ -34,9 +31,10 @@ let buildingLightCalibrationScene = null;
 let buildingLightCalibrationPanel = null;
 let buildingLightCalibrationZoom = 3;
 let buildingLightCalibrationBucket = 'eveningPeak';
-let buildingLightCalibrationHeroMode = false; // false = family default, true = this spriteKey only
-let buildingLightCalibrationTarget = null; // { family, spriteKey, textureKey, texW, texH, record }
-let buildingLightCalibrationPreview = null; // { body, gfx, handles: {}, worldX, worldY }
+let buildingLightCalibrationHeroMode = false;
+let buildingLightCalibrationPanelIndex = 0; // which wall face is being edited
+let buildingLightCalibrationTarget = null;  // { family, spriteKey, textureKey, texW, texH, record }
+let buildingLightCalibrationPreview = null; // { body, gfx, handles:{}, worldX, worldY }
 let buildingLightCalibrationKeyHandler = null;
 
 // ---------------------------------------------------------------------------
@@ -67,57 +65,72 @@ function buildingLightCalibrationRound(v) {
     : Math.round((Number(v) || 0) * 1000) / 1000;
 }
 
+function buildingLightCalibrationClamp01(v) {
+  return Math.max(0, Math.min(1, Number(v) || 0));
+}
+
 // ---------------------------------------------------------------------------
-// Profile data <-> runtime profile
+// data <-> runtime profile
 // ---------------------------------------------------------------------------
 
 function buildingLightCalibrationBaseProfile(record) {
   const cls = typeof getBuildingLightClass === 'function' ? getBuildingLightClass(record) : 'off';
   const def = (typeof BUILDING_LIGHT_CLASS_DEFAULTS !== 'undefined' && BUILDING_LIGHT_CLASS_DEFAULTS[cls])
-    || { class: cls, band: { x: 0.16, y: 0.06, w: 0.68, h: 0.6 }, rows: 8, cols: 5,
-         entrance: { x: 0.5, y: 0.92, r: 0.1 }, service: cls === 'svc' };
+    || (typeof makeBuildingLightProfile === 'function' ? makeBuildingLightProfile({ class: cls }) : null);
+  const panels = (def?.panels || []).map((p) => ({
+    c: p.corners.map((pt) => [pt[0], pt[1]]),
+    rows: p.rows, cols: p.cols, on: p.on !== false,
+  }));
   return {
-    class: def.class,
-    x: def.band.x, y: def.band.y, w: def.band.w, h: def.band.h,
-    rows: def.rows, cols: def.cols,
-    entrance: !!def.entrance,
-    ex: def.entrance?.x ?? 0.5, ey: def.entrance?.y ?? 0.92, er: def.entrance?.r ?? 0.1,
-    service: !!def.service, hasSignage: false, hasFloodlight: false,
+    class: cls,
+    panels: panels.length ? panels : [{ c: [[0.15, 0.1], [0.5, 0.28], [0.5, 0.72], [0.15, 0.56]], rows: 8, cols: 5, on: true }],
+    entrance: !!def?.entrance,
+    ex: def?.entrance?.x ?? 0.5, ey: def?.entrance?.y ?? 0.9, er: def?.entrance?.r ?? 0.1,
+    service: !!def?.service, hasSignage: false, hasFloodlight: false,
+  };
+}
+
+function buildingLightCalibrationCloneData(d) {
+  return {
+    class: d.class,
+    panels: d.panels.map((p) => ({ c: p.c.map((pt) => [pt[0], pt[1]]), rows: p.rows, cols: p.cols, on: p.on !== false })),
+    entrance: !!d.entrance, ex: d.ex, ey: d.ey, er: d.er,
+    service: !!d.service, hasSignage: !!d.hasSignage, hasFloodlight: !!d.hasFloodlight,
   };
 }
 
 function buildingLightCalibrationCurrentData() {
   const t = buildingLightCalibrationTarget;
   if (!t) return null;
-  const heroKey = '@' + t.spriteKey;
-  if (buildingLightCalibrationHeroMode && buildingLightCalibrationOverrides[heroKey]) {
-    return { ...buildingLightCalibrationOverrides[heroKey], __custom: true };
-  }
-  if (!buildingLightCalibrationHeroMode && buildingLightCalibrationOverrides[t.family]) {
-    return { ...buildingLightCalibrationOverrides[t.family], __custom: true };
-  }
-  return { ...buildingLightCalibrationBaseProfile(t.record), __custom: false };
+  const key = buildingLightCalibrationHeroMode ? '@' + t.spriteKey : t.family;
+  const stored = buildingLightCalibrationOverrides[key];
+  const data = stored
+    ? buildingLightCalibrationCloneData(stored)
+    : buildingLightCalibrationBaseProfile(t.record);
+  data.__custom = !!stored;
+  return data;
 }
 
 function buildingLightCalibrationWriteData(data) {
   const t = buildingLightCalibrationTarget;
   if (!t) return;
   const key = buildingLightCalibrationHeroMode ? '@' + t.spriteKey : t.family;
-  const clean = { ...data };
-  delete clean.__custom;
-  ['x', 'y', 'w', 'h', 'ex', 'ey', 'er'].forEach((k) => { clean[k] = buildingLightCalibrationRound(clean[k]); });
-  clean.rows = Math.max(1, Math.round(clean.rows));
-  clean.cols = Math.max(1, Math.round(clean.cols));
+  const clean = buildingLightCalibrationCloneData(data);
+  clean.panels.forEach((p) => {
+    p.c = p.c.map((pt) => [buildingLightCalibrationRound(pt[0]), buildingLightCalibrationRound(pt[1])]);
+    p.rows = Math.max(1, Math.round(p.rows));
+    p.cols = Math.max(1, Math.round(p.cols));
+  });
+  ['ex', 'ey', 'er'].forEach((k) => { clean[k] = buildingLightCalibrationRound(clean[k]); });
   buildingLightCalibrationOverrides[key] = clean;
   persistBuildingLightCalibrationOverrides();
 }
 
 function buildingLightCalibrationDataToProfile(data) {
-  if (typeof makeBuildingLightProfile !== 'function') return null;
+  if (typeof makeBuildingLightProfile !== 'function' || !data) return null;
   return makeBuildingLightProfile({
     class: data.class,
-    x: data.x, y: data.y, w: data.w, h: data.h,
-    rows: data.rows, cols: data.cols,
+    panels: data.panels.map((p) => ({ corners: p.c, rows: p.rows, cols: p.cols, on: p.on !== false })),
     entrance: data.entrance ? undefined : null,
     ex: data.ex, ey: data.ey, er: data.er,
     service: data.service, hasSignage: data.hasSignage, hasFloodlight: data.hasFloodlight,
@@ -136,14 +149,13 @@ function getBuildingLightCalibrationOverride(spriteKey, family) {
 }
 
 function isBuildingLightCalibrationActive() { return buildingLightCalibrationActive; }
-// Suppress normal tool input while picking a building or dragging a handle.
 function isBuildingLightCalibrationInputActive() {
   return buildingLightCalibrationActive
     && (buildingLightCalibrationPickerOn || !!buildingLightCalibrationPreview);
 }
 
 // ---------------------------------------------------------------------------
-// Picker - click a placed building
+// picker
 // ---------------------------------------------------------------------------
 
 function handleBuildingLightCalibrationPick(scene, sprite) {
@@ -160,14 +172,15 @@ function handleBuildingLightCalibrationPick(scene, sprite) {
     record,
   };
   buildingLightCalibrationPickerOn = false;
-  spawnBuildingLightCalibrationPreview();
+  buildingLightCalibrationPanelIndex = 0;
+  spawnBuildingLightCalibrationPreview(true);
   renderBuildingLightCalibrationPanel();
   setBuildingLightCalibrationMessage(`已選 ${buildingLightCalibrationTarget.family}`, 'success');
   return true;
 }
 
 // ---------------------------------------------------------------------------
-// Preview
+// preview
 // ---------------------------------------------------------------------------
 
 function buildingLightCalibrationCameraCentre(scene) {
@@ -194,26 +207,32 @@ function buildingLightCalibrationDepth(o) {
   return base + o;
 }
 
-function spawnBuildingLightCalibrationPreview() {
+function spawnBuildingLightCalibrationPreview(refit) {
   const scene = buildingLightCalibrationScene;
   const t = buildingLightCalibrationTarget;
   if (!scene?.add || !t) return;
   destroyBuildingLightCalibrationPreview();
   const centre = buildingLightCalibrationCameraCentre(scene);
 
+  if (refit) {
+    const fit = Math.min(360 / Math.max(1, t.texW), 470 / Math.max(1, t.texH));
+    buildingLightCalibrationZoom = Math.max(BUILDING_LIGHT_CALIBRATION_MIN_ZOOM,
+      Math.min(BUILDING_LIGHT_CALIBRATION_MAX_ZOOM, Math.round(fit * 2) / 2 || 3));
+  }
+
   const body = scene.textures.exists(t.textureKey)
     ? scene.add.image(centre.x, centre.y, t.textureKey)
     : null;
   if (body) {
-    body.setOrigin(0.5, 1);
+    body.setOrigin(0.5, 0.5); // centred, so the whole building shows
     body.setDepth(buildingLightCalibrationDepth(-8));
   }
   const gfx = scene.add.graphics();
   gfx.setDepth(buildingLightCalibrationDepth(-6));
 
   const handles = {};
-  BUILDING_LIGHT_CALIBRATION_HANDLES.forEach((id) => {
-    const dot = scene.add.circle(0, 0, 5, id === 'ent' ? 0xffce93 : 0x8fd6ff, 0.95);
+  [...BUILDING_LIGHT_CALIBRATION_CORNER_IDS, 'ent'].forEach((id) => {
+    const dot = scene.add.circle(0, 0, 5.5, id === 'ent' ? 0xffce93 : 0x8fd6ff, 0.95);
     dot.setStrokeStyle(1.5, 0x0a0f18, 0.9);
     dot.setDepth(buildingLightCalibrationDepth(-4));
     dot.setInteractive({ useHandCursor: true, draggable: true });
@@ -226,53 +245,32 @@ function spawnBuildingLightCalibrationPreview() {
   layoutBuildingLightCalibrationPreview();
 }
 
-// preview geometry: body drawn origin (0.5, 1) at (worldX, worldY), scaled by
-// zoom. Normalised (nx, ny) maps to world:
-//   wx = worldX + (nx - 0.5) * texW * zoom
-//   wy = worldY + (ny - 1)   * texH * zoom
+// preview body drawn origin (0.5, 0.5) at (worldX, worldY), scaled by zoom.
 function buildingLightCalibrationNormToWorld(nx, ny) {
   const p = buildingLightCalibrationPreview;
   const t = buildingLightCalibrationTarget;
   const z = buildingLightCalibrationZoom;
-  return {
-    x: p.worldX + (nx - 0.5) * t.texW * z,
-    y: p.worldY + (ny - 1) * t.texH * z,
-  };
+  return { x: p.worldX + (nx - 0.5) * t.texW * z, y: p.worldY + (ny - 0.5) * t.texH * z };
 }
 function buildingLightCalibrationWorldToNorm(wx, wy) {
   const p = buildingLightCalibrationPreview;
   const t = buildingLightCalibrationTarget;
   const z = buildingLightCalibrationZoom;
-  return {
-    nx: (wx - p.worldX) / (t.texW * z) + 0.5,
-    ny: (wy - p.worldY) / (t.texH * z) + 1,
-  };
+  return { nx: (wx - p.worldX) / (t.texW * z) + 0.5, ny: (wy - p.worldY) / (t.texH * z) + 0.5 };
 }
 
 function onBuildingLightCalibrationHandleDrag(id, dx, dy) {
   const data = buildingLightCalibrationCurrentData();
   if (!data) return;
   const n = buildingLightCalibrationWorldToNorm(dx, dy);
-  const clamp01 = (v) => Math.max(0, Math.min(1, v));
   if (id === 'ent') {
-    data.ex = clamp01(n.nx); data.ey = clamp01(n.ny);
+    data.ex = buildingLightCalibrationClamp01(n.nx);
+    data.ey = buildingLightCalibrationClamp01(n.ny);
   } else {
-    const x0 = data.x;
-    const y0 = data.y;
-    const x1 = data.x + data.w;
-    const y1 = data.y + data.h;
-    let nx0 = x0;
-    let ny0 = y0;
-    let nx1 = x1;
-    let ny1 = y1;
-    if (id === 'tl') { nx0 = n.nx; ny0 = n.ny; }
-    if (id === 'tr') { nx1 = n.nx; ny0 = n.ny; }
-    if (id === 'br') { nx1 = n.nx; ny1 = n.ny; }
-    if (id === 'bl') { nx0 = n.nx; ny1 = n.ny; }
-    data.x = clamp01(Math.min(nx0, nx1));
-    data.y = clamp01(Math.min(ny0, ny1));
-    data.w = clamp01(Math.abs(nx1 - nx0)) || 0.05;
-    data.h = clamp01(Math.abs(ny1 - ny0)) || 0.05;
+    const panel = data.panels[buildingLightCalibrationPanelIndex];
+    if (!panel) return;
+    const idx = BUILDING_LIGHT_CALIBRATION_CORNER_IDS.indexOf(id);
+    panel.c[idx] = [buildingLightCalibrationClamp01(n.nx), buildingLightCalibrationClamp01(n.ny)];
   }
   buildingLightCalibrationWriteData(data);
   layoutBuildingLightCalibrationPreview();
@@ -286,58 +284,63 @@ function layoutBuildingLightCalibrationPreview() {
   const z = buildingLightCalibrationZoom;
   const data = buildingLightCalibrationCurrentData();
   const profile = buildingLightCalibrationDataToProfile(data);
-
   if (p.body) p.body.setScale(z);
 
-  // handle positions
-  const put = (id, nx, ny) => {
-    const w = buildingLightCalibrationNormToWorld(nx, ny);
-    p.handles[id]?.setPosition(w.x, w.y);
-    p.handles[id]?.setVisible(id !== 'ent' || !!data.entrance);
-  };
-  put('tl', data.x, data.y);
-  put('tr', data.x + data.w, data.y);
-  put('br', data.x + data.w, data.y + data.h);
-  put('bl', data.x, data.y + data.h);
-  put('ent', data.ex, data.ey);
+  const sp = data.panels[buildingLightCalibrationPanelIndex] || data.panels[0];
 
-  // draw band + lit cells + entrance
+  // handles: 4 corners of the selected panel + entrance
+  BUILDING_LIGHT_CALIBRATION_CORNER_IDS.forEach((id, i) => {
+    const pt = sp.c[i];
+    const w = buildingLightCalibrationNormToWorld(pt[0], pt[1]);
+    p.handles[id]?.setPosition(w.x, w.y);
+    p.handles[id]?.setVisible(true);
+  });
+  const ew = buildingLightCalibrationNormToWorld(data.ex, data.ey);
+  p.handles.ent?.setPosition(ew.x, ew.y);
+  p.handles.ent?.setVisible(!!data.entrance);
+
   const g = p.gfx;
   g.clear();
-  const tl = buildingLightCalibrationNormToWorld(data.x, data.y);
-  const wpx = data.w * t.texW * z;
-  const hpx = data.h * t.texH * z;
-  g.lineStyle(1.5, 0x8fd6ff, 0.5);
-  g.strokeRect(tl.x, tl.y, wpx, hpx);
 
-  const seed = 1337;
-  const nonce = 3;
+  // panel outlines
+  data.panels.forEach((panel, pi) => {
+    const sel = pi === buildingLightCalibrationPanelIndex;
+    const pts = panel.c.map((c) => buildingLightCalibrationNormToWorld(c[0], c[1]));
+    g.lineStyle(sel ? 1.8 : 1, sel ? 0x8fd6ff : 0x4a7f9c, panel.on ? (sel ? 0.75 : 0.4) : 0.18);
+    g.beginPath();
+    g.moveTo(pts[0].x, pts[0].y);
+    for (let i = 1; i < 4; i++) g.lineTo(pts[i].x, pts[i].y);
+    g.closePath();
+    g.strokePath();
+  });
+
+  // lit cells for the current bucket
   const cells = typeof computeLitBuildingWindows === 'function'
-    ? computeLitBuildingWindows(profile, seed, buildingLightCalibrationBucket, nonce)
+    ? computeLitBuildingWindows(profile, 1337, buildingLightCalibrationBucket, 3)
     : [];
   const warm = data.class === 'res' || data.class === 'ind';
   const col = warm ? 0xffcf87 : 0xdfe8ff;
-  const cellW = (data.w / data.cols) * t.texW * z;
-  const cellH = (data.h / data.rows) * t.texH * z;
   cells.forEach((cell) => {
     const w = buildingLightCalibrationNormToWorld(cell.nx, cell.ny);
+    const cw = Math.max(2, cell.cellW * t.texW * z * 0.42);
+    const ch = Math.max(2, cell.cellH * t.texH * z * 0.42);
     if (cell.on) {
       g.fillStyle(col, Math.min(0.95, cell.alpha));
-      g.fillRect(w.x - cellW * 0.4, w.y - cellH * 0.4, cellW * 0.8, cellH * 0.8);
+      g.fillRect(w.x - cw, w.y - ch, cw * 2, ch * 2);
     } else {
-      g.fillStyle(0xffffff, 0.05);
-      g.fillRect(w.x - cellW * 0.32, w.y - cellH * 0.32, cellW * 0.64, cellH * 0.64);
+      g.fillStyle(0xffffff, 0.045);
+      g.fillRect(w.x - cw * 0.8, w.y - ch * 0.8, cw * 1.6, ch * 1.6);
     }
   });
+
   if (data.entrance) {
-    const e = buildingLightCalibrationNormToWorld(data.ex, data.ey);
-    g.fillStyle(0xffce93, 0.28);
-    g.fillCircle(e.x, e.y, data.er * t.texW * z);
+    g.fillStyle(0xffce93, 0.26);
+    g.fillCircle(ew.x, ew.y, data.er * t.texW * z);
   }
 }
 
 // ---------------------------------------------------------------------------
-// Panel
+// panel
 // ---------------------------------------------------------------------------
 
 function setBuildingLightCalibrationField(field, value) {
@@ -349,11 +352,30 @@ function setBuildingLightCalibrationField(field, value) {
   renderBuildingLightCalibrationPanel();
 }
 
+function stepBuildingLightCalibrationGrid(dim, delta) {
+  const data = buildingLightCalibrationCurrentData();
+  const panel = data?.panels?.[buildingLightCalibrationPanelIndex];
+  if (!panel) return;
+  panel[dim] = Math.max(1, panel[dim] + delta);
+  buildingLightCalibrationWriteData(data);
+  layoutBuildingLightCalibrationPreview();
+  renderBuildingLightCalibrationPanel();
+}
+
+function toggleBuildingLightCalibrationPanelOn() {
+  const data = buildingLightCalibrationCurrentData();
+  const panel = data?.panels?.[buildingLightCalibrationPanelIndex];
+  if (!panel) return;
+  panel.on = !panel.on;
+  buildingLightCalibrationWriteData(data);
+  layoutBuildingLightCalibrationPreview();
+  renderBuildingLightCalibrationPanel();
+}
+
 function resetBuildingLightCalibrationEntry() {
   const t = buildingLightCalibrationTarget;
   if (!t) return;
-  const key = buildingLightCalibrationHeroMode ? '@' + t.spriteKey : t.family;
-  delete buildingLightCalibrationOverrides[key];
+  delete buildingLightCalibrationOverrides[buildingLightCalibrationHeroMode ? '@' + t.spriteKey : t.family];
   persistBuildingLightCalibrationOverrides();
   layoutBuildingLightCalibrationPreview();
   renderBuildingLightCalibrationPanel();
@@ -362,46 +384,38 @@ function resetBuildingLightCalibrationEntry() {
 
 function buildingLightCalibrationProfileLiteral(data, indent) {
   const pad = ' '.repeat(indent);
-  const parts = [
-    `class: '${data.class}'`,
-    `x: ${buildingLightCalibrationRound(data.x)}`, `y: ${buildingLightCalibrationRound(data.y)}`,
-    `w: ${buildingLightCalibrationRound(data.w)}`, `h: ${buildingLightCalibrationRound(data.h)}`,
-    `rows: ${Math.round(data.rows)}`, `cols: ${Math.round(data.cols)}`,
-  ];
-  if (data.entrance) {
-    parts.push(`ex: ${buildingLightCalibrationRound(data.ex)}`,
-      `ey: ${buildingLightCalibrationRound(data.ey)}`,
-      `er: ${buildingLightCalibrationRound(data.er)}`);
-  } else {
-    parts.push('entrance: null');
-  }
+  const inner = ' '.repeat(indent + 2);
+  const rnd = buildingLightCalibrationRound;
+  const panelLines = data.panels.map((p) => {
+    const c = p.c.map((pt) => `[${rnd(pt[0])}, ${rnd(pt[1])}]`).join(', ');
+    return `${inner}  { c: [${c}], rows: ${Math.round(p.rows)}, cols: ${Math.round(p.cols)}${p.on === false ? ', on: false' : ''} },`;
+  });
+  const parts = [`class: '${data.class}'`];
+  if (data.entrance) parts.push(`ex: ${rnd(data.ex)}, ey: ${rnd(data.ey)}, er: ${rnd(data.er)}`);
+  else parts.push('entrance: null');
   if (data.service) parts.push('service: true');
   if (data.hasSignage) parts.push('hasSignage: true');
   if (data.hasFloodlight) parts.push('hasFloodlight: true');
-  return `${pad}makeBuildingLightProfile({ ${parts.join(', ')} })`;
+  return `makeBuildingLightProfile({\n${inner}${parts.join(', ')},\n${inner}panels: [\n${panelLines.join('\n')}\n${inner}],\n${pad}})`;
 }
 
 function buildBuildingLightCalibrationRecord() {
   const families = {};
   const heroes = {};
   Object.keys(buildingLightCalibrationOverrides).forEach((key) => {
-    const data = buildingLightCalibrationOverrides[key];
-    const literal = buildingLightCalibrationProfileLiteral(data, 4);
+    const literal = buildingLightCalibrationProfileLiteral(buildingLightCalibrationOverrides[key], 2);
     if (key.startsWith('@')) heroes[key.slice(1)] = literal;
     else families[key] = literal;
   });
   const famBlock = Object.keys(families).length
     ? 'Object.assign(BUILDING_LIGHT_PROFILES, {\n'
-      + Object.entries(families).map(([k, v]) => `  ${k}: ${v.trim()},`).join('\n')
-      + '\n});'
+      + Object.entries(families).map(([k, v]) => `  ${k}: ${v},`).join('\n') + '\n});'
     : '// no family calibrations';
   const heroBlock = Object.keys(heroes).length
     ? 'const BUILDING_LIGHT_HERO_PROFILES = {\n'
-      + Object.entries(heroes).map(([k, v]) => `  '${k}': ${v.trim()},`).join('\n')
-      + '\n};'
+      + Object.entries(heroes).map(([k, v]) => `  '${k}': ${v},`).join('\n') + '\n};'
     : '// no hero overrides';
-  return `// building-light-calibrator export · schema v${BUILDING_LIGHT_CALIBRATION_SCHEMA_VERSION}\n`
-    + `${famBlock}\n\n${heroBlock}`;
+  return `// building-light-calibrator export · schema v${BUILDING_LIGHT_CALIBRATION_SCHEMA_VERSION}\n${famBlock}\n\n${heroBlock}`;
 }
 
 function copyBuildingLightCalibrationText(text, ok) {
@@ -431,7 +445,8 @@ function createBuildingLightCalibrationPanel() {
         color:#eaf6ff;background:#123243;font:inherit;cursor:pointer}
       #building-light-calibrator-panel button:hover{background:#1a4a62}
       #building-light-calibrator-panel button[data-active="true"]{background:#1f9d5c;border-color:#7ce8a8;color:#06210f}
-      #building-light-calibrator-panel .bl-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:6px 0}
+      #building-light-calibrator-panel button[data-off="true"]{opacity:.5;text-decoration:line-through}
+      #building-light-calibrator-panel .bl-grid2{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:6px 0}
       #building-light-calibrator-panel .bl-buckets{display:grid;grid-template-columns:repeat(5,1fr);gap:3px;margin:6px 0}
       #building-light-calibrator-panel .bl-buckets button{padding:5px 2px;font-size:11px}
       #building-light-calibrator-panel .bl-step{display:flex;gap:4px;align-items:center}
@@ -450,12 +465,19 @@ function createBuildingLightCalibrationPanel() {
   root.hidden = true;
   root.innerHTML = `
     <div class="bl-title">夜間建築燈光校正</div>
-    <div class="bl-hint">開「選取器」再撳一棟建築;拖藍點＝窗帶四角,橙點＝入口</div>
+    <div class="bl-hint">開選取器撳一棟樓;每個面 4 個藍角跟返 1:2 iso 斜度,橙點＝入口</div>
     <button type="button" class="bl-pick" data-action="pick">建築選取器:關</button>
     <div class="bl-row"><span class="bl-fam">(未選)</span></div>
-    <div class="bl-grid">
+    <div class="bl-grid2">
       <button type="button" data-mode="family">改 family 預設</button>
       <button type="button" data-mode="hero">只改呢個 model</button>
+    </div>
+    <div class="bl-grid2">
+      <button type="button" data-face="0">左面</button>
+      <button type="button" data-face="1">右面</button>
+    </div>
+    <div class="bl-row">
+      <button type="button" data-action="panel-toggle" style="flex:1">呢個面:開</button>
     </div>
     <div class="bl-row">
       <span>類別</span>
@@ -467,9 +489,9 @@ function createBuildingLightCalibrationPanel() {
       </select>
     </div>
     <div class="bl-row">
-      <span>窗格</span>
+      <span>窗格 (呢個面)</span>
       <span class="bl-step"><button data-grid="rows-">−</button><b class="bl-rows">8</b><button data-grid="rows+">+</button>
-        &nbsp;行&nbsp; <button data-grid="cols-">−</button><b class="bl-cols">5</b><button data-grid="cols+">+</button> 列</span>
+        &nbsp;行&nbsp;<button data-grid="cols-">−</button><b class="bl-cols">5</b><button data-grid="cols+">+</button>列</span>
     </div>
     <div class="bl-flags">
       <label><input type="checkbox" class="bl-ent"> 入口燈</label>
@@ -477,7 +499,6 @@ function createBuildingLightCalibrationPanel() {
       <label><input type="checkbox" class="bl-sig"> 招牌 (v1.1)</label>
       <label><input type="checkbox" class="bl-flood"> 地面投光 (v1.1)</label>
     </div>
-    <div class="bl-row"><span>時段預覽</span></div>
     <div class="bl-buckets">
       <button data-bucket="duskRamp">黃昏</button>
       <button data-bucket="eveningPeak">晚高峰</button>
@@ -499,24 +520,23 @@ function createBuildingLightCalibrationPanel() {
   root.querySelector('[data-action="pick"]').addEventListener('click', () => {
     buildingLightCalibrationPickerOn = !buildingLightCalibrationPickerOn;
     renderBuildingLightCalibrationPanel();
-    setBuildingLightCalibrationMessage(
-      buildingLightCalibrationPickerOn ? '撳一棟建築' : '選取器已關', 'info');
+    setBuildingLightCalibrationMessage(buildingLightCalibrationPickerOn ? '撳一棟建築' : '選取器已關', 'info');
   });
   root.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('click', () => {
     buildingLightCalibrationHeroMode = b.dataset.mode === 'hero';
     layoutBuildingLightCalibrationPreview();
     renderBuildingLightCalibrationPanel();
   }));
-  root.querySelector('.bl-class').addEventListener('change', (e) => setBuildingLightCalibrationField('class', e.target.value));
-  root.querySelectorAll('[data-grid]').forEach((b) => b.addEventListener('click', () => {
-    const data = buildingLightCalibrationCurrentData();
-    if (!data) return;
-    const op = b.dataset.grid;
-    if (op === 'rows+') data.rows++; else if (op === 'rows-') data.rows = Math.max(1, data.rows - 1);
-    else if (op === 'cols+') data.cols++; else if (op === 'cols-') data.cols = Math.max(1, data.cols - 1);
-    buildingLightCalibrationWriteData(data);
+  root.querySelectorAll('[data-face]').forEach((b) => b.addEventListener('click', () => {
+    buildingLightCalibrationPanelIndex = Number(b.dataset.face);
     layoutBuildingLightCalibrationPreview();
     renderBuildingLightCalibrationPanel();
+  }));
+  root.querySelector('[data-action="panel-toggle"]').addEventListener('click', toggleBuildingLightCalibrationPanelOn);
+  root.querySelector('.bl-class').addEventListener('change', (e) => setBuildingLightCalibrationField('class', e.target.value));
+  root.querySelectorAll('[data-grid]').forEach((b) => b.addEventListener('click', () => {
+    const op = b.dataset.grid;
+    stepBuildingLightCalibrationGrid(op.startsWith('rows') ? 'rows' : 'cols', op.endsWith('+') ? 1 : -1);
   }));
   root.querySelector('.bl-ent').addEventListener('change', (e) => setBuildingLightCalibrationField('entrance', e.target.checked));
   root.querySelector('.bl-svc').addEventListener('change', (e) => setBuildingLightCalibrationField('service', e.target.checked));
@@ -529,7 +549,7 @@ function createBuildingLightCalibrationPanel() {
   }));
   root.querySelectorAll('[data-zoom]').forEach((b) => b.addEventListener('click', () => {
     buildingLightCalibrationZoom = Math.max(BUILDING_LIGHT_CALIBRATION_MIN_ZOOM,
-      Math.min(BUILDING_LIGHT_CALIBRATION_MAX_ZOOM, buildingLightCalibrationZoom + Number(b.dataset.zoom)));
+      Math.min(BUILDING_LIGHT_CALIBRATION_MAX_ZOOM, buildingLightCalibrationZoom + Number(b.dataset.zoom) * 0.5));
     layoutBuildingLightCalibrationPreview();
     renderBuildingLightCalibrationPanel();
   }));
@@ -540,9 +560,7 @@ function createBuildingLightCalibrationPanel() {
   root.querySelector('[data-action="close"]').addEventListener('click', teardownBuildingLightCalibrator);
 
   buildingLightCalibrationPanel = {
-    root,
-    fam: root.querySelector('.bl-fam'),
-    pick: root.querySelector('.bl-pick'),
+    root, fam: root.querySelector('.bl-fam'), pick: root.querySelector('.bl-pick'),
     msg: root.querySelector('.bl-msg'),
   };
   return buildingLightCalibrationPanel;
@@ -566,19 +584,26 @@ function renderBuildingLightCalibrationPanel() {
   const t = buildingLightCalibrationTarget;
   const data = buildingLightCalibrationCurrentData();
   panel.fam.textContent = t
-    ? `${t.family}  ·  ${buildingLightCalibrationHeroMode ? 'hero: ' + t.spriteKey : 'family'}  ·  ${data.__custom ? '已校正' : '預設'}`
+    ? `${t.family} · ${buildingLightCalibrationHeroMode ? 'hero:' + t.spriteKey : 'family'} · ${data.__custom ? '已校正' : '預設'}`
     : '(未選)';
   r.querySelectorAll('[data-mode]').forEach((b) => {
     b.dataset.active = String((b.dataset.mode === 'hero') === buildingLightCalibrationHeroMode);
+  });
+  r.querySelectorAll('[data-face]').forEach((b) => {
+    const i = Number(b.dataset.face);
+    b.dataset.active = String(i === buildingLightCalibrationPanelIndex);
+    b.dataset.off = String(data && data.panels[i] && data.panels[i].on === false);
   });
   r.querySelectorAll('[data-bucket]').forEach((b) => {
     b.dataset.active = String(b.dataset.bucket === buildingLightCalibrationBucket);
   });
   r.querySelector('.bl-zoom').textContent = `${buildingLightCalibrationZoom}×`;
   if (data) {
+    const sp = data.panels[buildingLightCalibrationPanelIndex] || data.panels[0];
+    r.querySelector('[data-action="panel-toggle"]').textContent = `呢個面:${sp.on === false ? '關' : '開'}`;
     r.querySelector('.bl-class').value = data.class;
-    r.querySelector('.bl-rows').textContent = Math.round(data.rows);
-    r.querySelector('.bl-cols').textContent = Math.round(data.cols);
+    r.querySelector('.bl-rows').textContent = Math.round(sp.rows);
+    r.querySelector('.bl-cols').textContent = Math.round(sp.cols);
     r.querySelector('.bl-ent').checked = !!data.entrance;
     r.querySelector('.bl-svc').checked = !!data.service;
     r.querySelector('.bl-sig').checked = !!data.hasSignage;
@@ -587,7 +612,7 @@ function renderBuildingLightCalibrationPanel() {
 }
 
 // ---------------------------------------------------------------------------
-// Lifecycle
+// lifecycle
 // ---------------------------------------------------------------------------
 
 function startBuildingLightCalibrator(scene) {
@@ -600,14 +625,21 @@ function startBuildingLightCalibrator(scene) {
   buildingLightCalibrationKeyHandler = (e) => {
     if (!buildingLightCalibrationActive || !buildingLightCalibrationTarget) return;
     const data = buildingLightCalibrationCurrentData();
-    if (!data) return;
+    const panel = data?.panels?.[buildingLightCalibrationPanelIndex];
+    if (!panel) return;
     const step = e.shiftKey ? 0.02 : 0.005;
-    if (e.key === 'ArrowLeft') data.x = Math.max(0, data.x - step);
-    else if (e.key === 'ArrowRight') data.x = Math.min(1, data.x + step);
-    else if (e.key === 'ArrowUp') data.y = Math.max(0, data.y - step);
-    else if (e.key === 'ArrowDown') data.y = Math.min(1, data.y + step);
+    let dx = 0;
+    let dy = 0;
+    if (e.key === 'ArrowLeft') dx = -step;
+    else if (e.key === 'ArrowRight') dx = step;
+    else if (e.key === 'ArrowUp') dy = -step;
+    else if (e.key === 'ArrowDown') dy = step;
     else return;
     e.preventDefault();
+    panel.c = panel.c.map((pt) => [
+      buildingLightCalibrationClamp01(pt[0] + dx),
+      buildingLightCalibrationClamp01(pt[1] + dy),
+    ]);
     buildingLightCalibrationWriteData(data);
     layoutBuildingLightCalibrationPreview();
     renderBuildingLightCalibrationPanel();
@@ -644,6 +676,7 @@ const buildingLightCalibratorTestApi = {
   isBuildingLightCalibrationInputActive,
   handleBuildingLightCalibrationPick,
   buildBuildingLightCalibrationRecord,
+  buildingLightCalibrationProfileLiteral,
   toggleBuildingLightCalibrator,
   _setEntryForTest(key, data) { buildingLightCalibrationOverrides[key] = data; },
   _clearForTest() { Object.keys(buildingLightCalibrationOverrides).forEach((k) => delete buildingLightCalibrationOverrides[k]); },

@@ -12,7 +12,8 @@ const {
   getBuildingLightClass,
   getBuildingLightFamily,
   resolveBuildingLightProfile,
-  buildingLightCorridorSet,
+  bilerpBuildingLight,
+  defaultBuildingLightPanels,
   computeLitBuildingWindows,
   computeBuildingLightStrength,
   makeBuildingLightProfile,
@@ -65,28 +66,61 @@ test('profile resolution: family override, else class default', () => {
   assert.equal(resolveBuildingLightProfile(rec), BUILDING_LIGHT_CLASS_DEFAULTS.off);
 
   const { BUILDING_LIGHT_PROFILES } = require('../building-lighting'); // live object
-  BUILDING_LIGHT_PROFILES.commercial3 = makeBuildingLightProfile({ class: 'off', rows: 4, cols: 4 });
-  assert.equal(resolveBuildingLightProfile(rec).rows, 4);
+  BUILDING_LIGHT_PROFILES.commercial3 = makeBuildingLightProfile({
+    class: 'off', panels: [{ c: [[0, 0], [1, 0], [1, 1], [0, 1]], rows: 4, cols: 4 }],
+  });
+  assert.equal(resolveBuildingLightProfile(rec).panels[0].rows, 4);
   delete BUILDING_LIGHT_PROFILES.commercial3;
 });
 
+test('default panels are two iso parallelograms meeting at the near edge', () => {
+  const panels = defaultBuildingLightPanels('off');
+  assert.equal(panels.length, 2);
+  // both share the near vertical edge at x = 0.5
+  assert.equal(panels[0].corners[1][0], 0.5);
+  assert.equal(panels[1].corners[0][0], 0.5);
+  // left panel: a course (v=const) rises to the right at the 1:2 iso slope
+  const l = panels[0].corners;
+  const slope = (l[1][1] - l[0][1]) / (l[1][0] - l[0][0]);
+  assert.ok(Math.abs(slope - 0.5) < 0.06, `iso slope ~0.5, got ${slope.toFixed(3)}`);
+
+  // industrial shows only the left face
+  const ind = defaultBuildingLightPanels('ind');
+  assert.equal(ind[1].on, false);
+});
+
+test('bilinear cell centres stay inside their panel parallelogram', () => {
+  const corners = [[0.2, 0.1], [0.6, 0.3], [0.6, 0.8], [0.2, 0.6]];
+  const mid = bilerpBuildingLight(corners, 0.5, 0.5);
+  const cx = (0.2 + 0.6 + 0.6 + 0.2) / 4;
+  const cy = (0.1 + 0.3 + 0.8 + 0.6) / 4;
+  assert.ok(Math.abs(mid[0] - cx) < 1e-9 && Math.abs(mid[1] - cy) < 1e-9);
+  assert.deepEqual(bilerpBuildingLight(corners, 0, 0), corners[0]);
+  assert.deepEqual(bilerpBuildingLight(corners, 1, 1), corners[2]);
+});
+
 test('lit windows are deterministic, corridor-forced, all-off by day, and track the target', () => {
-  const profile = makeBuildingLightProfile({ class: 'off', rows: 10, cols: 8, x: 0.1, y: 0.05, w: 0.8, h: 0.7 });
+  const profile = makeBuildingLightProfile({
+    class: 'off',
+    panels: [{ c: [[0.14, 0.1], [0.5, 0.28], [0.5, 0.72], [0.14, 0.55]], rows: 10, cols: 6 }],
+  });
   const seed = getBuildingLightSeed(12, 34);
   const pers = getBuildingLightPersonality(seed);
 
   const day = computeLitBuildingWindows(profile, seed, 'day', 0, pers);
-  assert.equal(day.length, 80);
+  assert.equal(day.length, 60);
   assert.ok(day.every((c) => !c.on));
-  // nx/ny are inside the band
-  assert.ok(day.every((c) => c.nx > 0.1 && c.nx < 0.9 && c.ny > 0.05 && c.ny < 0.75));
+  // nx/ny land inside the parallelogram's bounding box
+  assert.ok(day.every((c) => c.nx >= 0.14 && c.nx <= 0.5 && c.ny >= 0.1 && c.ny <= 0.72));
 
   const a = computeLitBuildingWindows(profile, seed, 'eveningPeak', 3, pers);
   const b = computeLitBuildingWindows(profile, seed, 'eveningPeak', 3, pers);
   assert.deepEqual(a.map((c) => c.on), b.map((c) => c.on), 'same inputs -> same pattern');
 
-  const corridor = buildingLightCorridorSet(seed, profile.cols, profile.rows, pers);
-  corridor.forEach((i) => assert.equal(a[i].on, true, 'corridor window is always lit at night'));
+  // a corridor column is fully lit on alternate rows at night
+  const litCols = {};
+  a.forEach((c, i) => { if (c.on) litCols[i % 6] = (litCols[i % 6] || 0) + 1; });
+  assert.ok(Object.values(litCols).some((n) => n >= 5), 'one column reads as an always-on corridor');
 
   const litPeak = a.filter((c) => c.on).length;
   const litDeep = computeLitBuildingWindows(profile, seed, 'deepNight', 3, pers).filter((c) => c.on).length;

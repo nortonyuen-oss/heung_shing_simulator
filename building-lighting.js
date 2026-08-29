@@ -119,19 +119,63 @@ function getBuildingLightTargetRatio(bucket, cls, personality) {
 // Profiles
 // ---------------------------------------------------------------------------
 
-// band x/y/w/h and entrance x/y/r are all normalised 0..1 of the building
-// texture (origin top-left), so a profile is texture-size independent.
+// A building's window area is described as one or two PANELS - the visible
+// isometric wall faces. Each panel is a parallelogram given by four normalised
+// texture corners [tl, tr, br, bl] (0..1, texture origin top-left); the grid is
+// laid out by bilinear interpolation inside it, so a row of windows follows the
+// 1:2 iso slope and a column stays vertical. entrance x/y/r is a single
+// normalised point + radius. Everything is texture-size independent.
+function bilerpBuildingLight(corners, u, v) {
+  const tl = corners[0];
+  const tr = corners[1];
+  const br = corners[2];
+  const bl = corners[3];
+  const a = 1 - u;
+  const b = 1 - v;
+  return [
+    a * b * tl[0] + u * b * tr[0] + u * v * br[0] + a * v * bl[0],
+    a * b * tl[1] + u * b * tr[1] + u * v * br[1] + a * v * bl[1],
+  ];
+}
+
+// Two parallelograms meeting at the near vertical edge (x = 0.5), each slanted
+// at the 1:2 iso rate. Rows/heights vary by class; sheds (ind) show one face.
+function defaultBuildingLightPanels(cls) {
+  const near = 0.5;
+  const farL = 0.15;
+  const farR = 0.85;
+  const shed = cls === 'ind';
+  const topN = shed ? 0.5 : 0.28;
+  const botN = shed ? 0.8 : 0.72;
+  const topF = shed ? 0.4 : 0.11;
+  const botF = shed ? 0.62 : 0.56;
+  const rows = cls === 'off' ? 12 : cls === 'res' ? 9 : cls === 'svc' ? 5 : 2;
+  const cols = shed ? 6 : 5;
+  return [
+    { corners: [[farL, topF], [near, topN], [near, botN], [farL, botF]], rows, cols, on: true },
+    { corners: [[near, topN], [farR, topF], [farR, botF], [near, botN]], rows, cols, on: !shed },
+  ];
+}
+
 function makeBuildingLightProfile(o = {}) {
+  const cls = o.class || 'off';
+  const src = (Array.isArray(o.panels) && o.panels.length) ? o.panels : defaultBuildingLightPanels(cls);
+  const panels = src.map((p) => {
+    const corners = (p.corners || p.c || [[0, 0], [1, 0], [1, 1], [0, 1]])
+      .map((pt) => Object.freeze([Number(pt[0]) || 0, Number(pt[1]) || 0]));
+    return Object.freeze({
+      corners: Object.freeze(corners),
+      rows: Math.max(1, Math.round(p.rows ?? 8)),
+      cols: Math.max(1, Math.round(p.cols ?? 5)),
+      on: p.on !== false,
+    });
+  });
   return Object.freeze({
-    class: o.class || 'off',
-    color: o.color ?? BUILDING_LIGHT_CLASS_COLOR[o.class || 'off'],
-    band: Object.freeze({
-      x: o.x ?? 0.16, y: o.y ?? 0.06, w: o.w ?? 0.68, h: o.h ?? 0.6,
-    }),
-    rows: Math.max(1, o.rows ?? 8),
-    cols: Math.max(1, o.cols ?? 5),
+    class: cls,
+    color: o.color ?? BUILDING_LIGHT_CLASS_COLOR[cls],
+    panels: Object.freeze(panels),
     entrance: o.entrance === null ? null : Object.freeze({
-      x: o.ex ?? 0.5, y: o.ey ?? 0.92, r: o.er ?? 0.1,
+      x: o.ex ?? 0.5, y: o.ey ?? 0.9, r: o.er ?? 0.1,
     }),
     service: !!o.service,
     hasSignage: !!o.hasSignage,   // v1.1 render
@@ -140,10 +184,10 @@ function makeBuildingLightProfile(o = {}) {
 }
 
 const BUILDING_LIGHT_CLASS_DEFAULTS = Object.freeze({
-  res: makeBuildingLightProfile({ class: 'res', rows: 9, cols: 5, y: 0.05, h: 0.64 }),
-  off: makeBuildingLightProfile({ class: 'off', rows: 11, cols: 6, y: 0.04, h: 0.72 }),
-  ind: makeBuildingLightProfile({ class: 'ind', rows: 3, cols: 5, y: 0.36, h: 0.3, entrance: null }),
-  svc: makeBuildingLightProfile({ class: 'svc', rows: 5, cols: 6, y: 0.12, h: 0.48, service: true }),
+  res: makeBuildingLightProfile({ class: 'res' }),
+  off: makeBuildingLightProfile({ class: 'off' }),
+  ind: makeBuildingLightProfile({ class: 'ind', entrance: null }),
+  svc: makeBuildingLightProfile({ class: 'svc', service: true }),
 });
 
 // Calibrated per-family profiles, baked from building-light-calibrator.js.
@@ -181,46 +225,53 @@ function resolveBuildingLightProfile(record, spriteKey) {
 // Window grid -> lit cells (the only "matrix", touched only on relight)
 // ---------------------------------------------------------------------------
 
-function buildingLightCorridorSet(seed, cols, rows, personality) {
-  const col = Math.floor((personality?.corridorCol ?? hashBuildingLight(seed >>> 0, 13, 0)) * cols);
-  const clamped = Math.max(0, Math.min(cols - 1, col));
-  const set = new Set();
-  for (let r = 0; r < rows; r++) if (r % 2 === 0) set.add(r * cols + clamped);
-  return set;
+// Corridor windows: one vertical column, in the first active panel, alternate
+// rows. Always lit while the building is dark-side - stops it going fully black.
+function buildingLightCorridorCol(panel, personality) {
+  return Math.max(0, Math.min(panel.cols - 1,
+    Math.floor((personality?.corridorCol ?? 0.5) * panel.cols)));
 }
 
-// Returns one entry per grid cell: { on, alpha, nx, ny } where nx/ny are the
-// cell centre in normalised texture space (0..1).
+// One entry per grid cell of every active panel:
+//   { on, alpha, nx, ny, panel, cellW, cellH }
+// nx/ny are the bilinear cell centre in normalised texture space; cellW/cellH
+// are the cell's normalised footprint (for sizing the glow stamp).
 function computeLitBuildingWindows(profile, seed, bucket, jitterNonce, personality) {
   const s = seed >>> 0;
   const pers = personality || getBuildingLightPersonality(s);
   const cls = profile.service ? 'svc' : (profile.class || 'off');
   const target = getBuildingLightTargetRatio(bucket, cls, pers);
-  const corridor = buildingLightCorridorSet(s, profile.cols, profile.rows, pers);
   const dark = bucket !== 'day';
-  const cellW = profile.band.w / profile.cols;
-  const cellH = profile.band.h / profile.rows;
+  const nonce = jitterNonce >>> 0;
+  const panels = profile.panels || [];
+  let corridorPanel = -1;
+  for (let pi = 0; pi < panels.length; pi++) { if (panels[pi].on) { corridorPanel = pi; break; } }
+  const corridorCol = corridorPanel >= 0
+    ? buildingLightCorridorCol(panels[corridorPanel], pers) : -1;
   const out = [];
-  for (let r = 0; r < profile.rows; r++) {
-    for (let c = 0; c < profile.cols; c++) {
-      const i = r * profile.cols + c;
-      let on = false;
-      let alpha = 0;
-      if (dark) {
-        if (corridor.has(i)) {
-          on = true;
-          alpha = BUILDING_LIGHT_CONFIG.corridorAlpha;
-        } else if (hashBuildingLight(s, i + 1, jitterNonce >>> 0) < target) {
-          on = true;
-          alpha = 0.6 + hashBuildingLight(s, i + 97, jitterNonce >>> 0) * 0.32;
+  for (let pi = 0; pi < panels.length; pi++) {
+    const panel = panels[pi];
+    if (!panel.on) continue;
+    for (let r = 0; r < panel.rows; r++) {
+      for (let c = 0; c < panel.cols; c++) {
+        const key = pi * 4096 + r * panel.cols + c;
+        let on = false;
+        let alpha = 0;
+        if (dark) {
+          if (pi === corridorPanel && c === corridorCol && r % 2 === 0) {
+            on = true;
+            alpha = BUILDING_LIGHT_CONFIG.corridorAlpha;
+          } else if (hashBuildingLight(s, key + 1, nonce) < target) {
+            on = true;
+            alpha = 0.6 + hashBuildingLight(s, key + 4099, nonce) * 0.32;
+          }
         }
+        const uv = bilerpBuildingLight(panel.corners, (c + 0.5) / panel.cols, (r + 0.5) / panel.rows);
+        out.push({
+          on, alpha, nx: uv[0], ny: uv[1], panel: pi,
+          cellW: 1 / panel.cols, cellH: 1 / panel.rows,
+        });
       }
-      out.push({
-        on,
-        alpha,
-        nx: profile.band.x + (c + 0.5) * cellW,
-        ny: profile.band.y + (r + 0.5) * cellH,
-      });
     }
   }
   return out;
@@ -381,20 +432,18 @@ function relightBuildingGlow(scene, sprite, glow, bucket, time) {
   rt.clear();
   const dotSrc = scene.textures.exists(winKey) ? winKey : null;
   const tint = profile.color;
-  const cellPx = Math.max(
-    2,
-    Math.min(glow.texW * profile.band.w / profile.cols, glow.texH * profile.band.h / profile.rows) * 0.9,
-  );
   if (dotSrc) {
+    const img = scene.__buildingLightStamp
+      || (scene.__buildingLightStamp = scene.make.image({ key: winKey, add: false }));
+    img.setOrigin(0.5, 0.5);
+    img.setTint(tint);
     for (let i = 0; i < cells.length; i++) {
       const cell = cells[i];
       if (!cell.on) continue;
-      const img = scene.__buildingLightStamp
-        || (scene.__buildingLightStamp = scene.make.image({ key: winKey, add: false }));
-      img.setTint(tint);
+      const w = Math.max(2, cell.cellW * glow.texW * 0.82);
+      const h = Math.max(2, cell.cellH * glow.texH * 0.82);
       img.setAlpha(cell.alpha);
-      img.setDisplaySize(cellPx, cellPx);
-      img.setOrigin(0.5, 0.5);
+      img.setDisplaySize(w, h);
       rt.draw(img, cell.nx * glow.texW, cell.ny * glow.texH);
     }
   }
@@ -517,7 +566,8 @@ const buildingLightingTestApi = {
   getBuildingLightClass,
   getBuildingLightFamily,
   resolveBuildingLightProfile,
-  buildingLightCorridorSet,
+  bilerpBuildingLight,
+  defaultBuildingLightPanels,
   computeLitBuildingWindows,
   computeBuildingLightStrength,
   ensureBuildingLightTextures,
@@ -541,6 +591,8 @@ if (typeof globalThis !== 'undefined') {
     getRuntimeBuildingLightBucket,
     computeLitBuildingWindows,
     makeBuildingLightProfile,
+    defaultBuildingLightPanels,
+    bilerpBuildingLight,
     BUILDING_LIGHT_PROFILES,
     BUILDING_LIGHT_CLASS_DEFAULTS,
   });

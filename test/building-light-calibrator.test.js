@@ -31,35 +31,41 @@ test('no override without an entry; runtime falls through to the class default',
   );
 });
 
+const PANEL = "{ c: [[0.15,0.1],[0.5,0.28],[0.5,0.72],[0.15,0.56]], rows: 4, cols: 4, on: true }";
+const HERO_PANEL = "{ c: [[0.1,0.05],[0.5,0.25],[0.5,0.8],[0.1,0.6]], rows: 14, cols: 8, on: true }";
+
 test('a family entry drives resolveBuildingLightProfile for every model in that family', () => {
   const run = createContext();
   run(`buildingLightCalibratorTestApi._setEntryForTest('commercial3',
-    { class: 'off', x: 0.1, y: 0.1, w: 0.5, h: 0.5, rows: 4, cols: 4, entrance: true, ex: 0.5, ey: 0.9, er: 0.1 })`);
-  assert.equal(run(`resolveBuildingLightProfile({ type: 'commercial', footprintCols: 3 }, 'anyKey').rows`), 4);
-  assert.equal(run(`resolveBuildingLightProfile({ type: 'commercial', footprintCols: 3 }, 'anyKey').cols`), 4);
+    { class: 'off', panels: [${PANEL}], entrance: true, ex: 0.5, ey: 0.9, er: 0.1 })`);
+  assert.equal(run(`resolveBuildingLightProfile({ type: 'commercial', footprintCols: 3 }, 'anyKey').panels[0].rows`), 4);
+  assert.equal(run(`resolveBuildingLightProfile({ type: 'commercial', footprintCols: 3 }, 'anyKey').panels[0].cols`), 4);
 });
 
 test('a hero @spriteKey entry beats the family entry', () => {
   const run = createContext();
   run(`buildingLightCalibratorTestApi._setEntryForTest('commercial3',
-    { class: 'off', x: 0, y: 0, w: 1, h: 1, rows: 4, cols: 4, entrance: false })`);
+    { class: 'off', panels: [${PANEL}], entrance: false })`);
   run(`buildingLightCalibratorTestApi._setEntryForTest('@sogo_5x5',
-    { class: 'off', x: 0, y: 0, w: 1, h: 1, rows: 12, cols: 9, entrance: true, ex: 0.5, ey: 0.95, er: 0.14, hasSignage: true })`);
-  assert.equal(run(`resolveBuildingLightProfile({ type: 'commercial', footprintCols: 3 }, 'sogo_5x5').cols`), 9);
-  assert.equal(run(`resolveBuildingLightProfile({ type: 'commercial', footprintCols: 3 }, 'other').cols`), 4);
+    { class: 'off', panels: [${HERO_PANEL}], entrance: true, ex: 0.5, ey: 0.95, er: 0.14, hasSignage: true })`);
+  assert.equal(run(`resolveBuildingLightProfile({ type: 'commercial', footprintCols: 3 }, 'sogo_5x5').panels[0].cols`), 8);
+  assert.equal(run(`resolveBuildingLightProfile({ type: 'commercial', footprintCols: 3 }, 'other').panels[0].cols`), 4);
 });
 
-test('the export splits families from hero overrides', () => {
+test('the export splits families from hero overrides and keeps the panel geometry', () => {
   const run = createContext();
   run(`buildingLightCalibratorTestApi._setEntryForTest('residential2',
-    { class: 'res', x: 0.15, y: 0.06, w: 0.7, h: 0.6, rows: 8, cols: 5, entrance: false })`);
+    { class: 'res', panels: [${PANEL}], entrance: false })`);
   run(`buildingLightCalibratorTestApi._setEntryForTest('@hotel_grand',
-    { class: 'off', x: 0.1, y: 0.03, w: 0.8, h: 0.8, rows: 14, cols: 8, entrance: true, ex: 0.5, ey: 0.94, er: 0.12 })`);
+    { class: 'off', panels: [${HERO_PANEL}], entrance: true, ex: 0.5, ey: 0.94, er: 0.12 })`);
   const out = run(`buildingLightCalibratorTestApi.buildBuildingLightCalibrationRecord()`);
   assert.match(out, /Object\.assign\(BUILDING_LIGHT_PROFILES, \{/);
-  assert.match(out, /residential2: makeBuildingLightProfile\(\{ class: 'res'/);
+  assert.match(out, /residential2: makeBuildingLightProfile\(\{/);
+  assert.match(out, /panels: \[/);
+  assert.match(out, /c: \[\[0\.15, 0\.1\], \[0\.5, 0\.28\]/);
   assert.match(out, /BUILDING_LIGHT_HERO_PROFILES = \{/);
-  assert.match(out, /'hotel_grand': makeBuildingLightProfile\(\{[^}]*rows: 14/);
+  assert.match(out, /'hotel_grand': makeBuildingLightProfile/);
+  assert.match(out, /rows: 14, cols: 8/);
 });
 
 test('index.html loads building-lighting before its calibrator, both before main.js', () => {

@@ -1368,7 +1368,14 @@ function applySaveData(scene, save) {
   resetGameState();
 
   // Restore city state
-  Object.assign(city, save.city ?? {});
+  const savedCityState = save.city ?? {};
+  Object.assign(city, savedCityState);
+  // Time-of-day traffic keeps a neutral baseline in new saves. Preserve the
+  // last known congestion as that baseline when loading an older save which
+  // only stored trafficIndex; updateTrafficMap will refine it on the next sim.
+  if (!Object.prototype.hasOwnProperty.call(savedCityState, 'trafficBaseIndex')) {
+    city.trafficBaseIndex = Number(city.trafficIndex) || 0;
+  }
   normalizeCityFinanceState();
   // Older saves predate the daily calendar (day was one of 1/8/15/22) —
   // those values are already inside the valid range, but clamp defensively

@@ -8,7 +8,7 @@ function updateHUD() {
   applyCityPlateColor();
   setTextContent('topbar-date-zh', formatTopbarDateZh(city.year, city.month, city.day));
   setTextContent('topbar-date-en', formatTopbarDateEn(city.year, city.month, city.day));
-  setTextContent('topbar-time', getPseudoClockTime(city.year, city.month, city.day));
+  updateTopbarGameTime();
   setTextContent('topbar-funds', formatMoney(city.budget));
   setTextContent('topbar-income', `+${formatMoney(city.monthlyIncome)}`);
   setTextContent('topbar-expense', `-${formatMoney(city.monthlyExpenses)}`);
@@ -40,6 +40,19 @@ function updateHUD() {
   if (typeof updateChartWindow === 'function') updateChartWindow();
   if (typeof updateMiniMap === 'function') updateMiniMap();
   if (typeof refreshTransportUi === 'function') refreshTransportUi({ passive: true });
+}
+
+function updateTopbarGameTime(payload = null) {
+  const label = payload?.label ?? (
+    typeof formatGameTimeOfDay === 'function'
+      ? formatGameTimeOfDay(city.timeOfDayMinutes)
+      : getPseudoClockTime(city.year, city.month, city.day)
+  );
+  setTextContent('topbar-time', label);
+}
+
+if (typeof onGameClockEvent === 'function') {
+  onGameClockEvent('gameclock:time', updateTopbarGameTime);
 }
 
 function updateStatusAlert() {

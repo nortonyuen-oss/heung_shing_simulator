@@ -115,6 +115,35 @@ function createGameApp(options = {}) {
     res.json(modelAssetManifest);
   });
 
+  app.get('/api/astronomy', (_req, res) => {
+    try {
+      const metadata = store.getAstronomyMetadata();
+      if (!metadata) return res.status(404).json({ error: 'Astronomy calendar unavailable' });
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+      return res.json(metadata);
+    } catch (error) {
+      console.error('[GET /api/astronomy]', error.message);
+      return res.status(500).json({ error: 'Could not read astronomy metadata' });
+    }
+  });
+
+  app.get('/api/astronomy/:month/:day', (req, res) => {
+    const month = Number(req.params.month);
+    const day = Number(req.params.day);
+    if (!Number.isInteger(month) || month < 1 || month > 12 || !Number.isInteger(day) || day < 1 || day > 31) {
+      return res.status(400).json({ error: 'Invalid astronomy date' });
+    }
+    try {
+      const astronomy = store.getAstronomyDay(month, day);
+      if (!astronomy) return res.status(404).json({ error: 'Astronomy date unavailable' });
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+      return res.json(astronomy);
+    } catch (error) {
+      console.error('[GET /api/astronomy/:month/:day]', error.message);
+      return res.status(500).json({ error: 'Could not read astronomy calendar' });
+    }
+  });
+
   // Model folder discovery
   // Returns a JSON array of image filenames for a given model folder.
   // Only whitelisted folder names are allowed (no path traversal).

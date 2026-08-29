@@ -17,7 +17,7 @@ const weatherSource = fs.readFileSync(path.join(ROOT, 'sim-weather.js'), 'utf8')
 function createClockContext(overrides = {}) {
   const calls = { daily: 0, pulse: 0, hud: 0, autosave: 0 };
   const events = [];
-  const city = { tick: 0, day: 1, month: 1, year: 1900 };
+  const city = { tick: 0, timeOfDayMinutes: 6 * 60, day: 1, month: 1, year: 1900 };
 
   const sandbox = {
     city,
@@ -79,6 +79,38 @@ test('vehicle visual speed never drops below 1x at slow-motion game speeds, but 
   assert.equal(speedFor(1), 1, '1x game speed moves vehicles at normal (1x) speed');
   assert.equal(speedFor(2), 2, '2x game speed doubles vehicle speed');
   assert.equal(speedFor(2, true), 0, 'pausing stops vehicle movement regardless of the stored speed');
+});
+
+test('environment clock takes eight real minutes per 24 hours at displayed 1x', () => {
+  const { context, city } = createClockContext({ simSpeedMul: 0.15 });
+  vm.runInContext('advanceGameTimeOfDay(GAME_DAY_NIGHT_CYCLE_REAL_MS / 2, GAME_SPEEDS.SLOW)', context);
+  assert.equal(city.timeOfDayMinutes, 18 * 60, 'half the cycle advances 06:00 to 18:00');
+  vm.runInContext('advanceGameTimeOfDay(GAME_DAY_NIGHT_CYCLE_REAL_MS / 2, GAME_SPEEDS.SLOW)', context);
+  assert.equal(city.timeOfDayMinutes, 6 * 60, 'the second half wraps through midnight to 06:00');
+});
+
+test('environment clock follows displayed 1x/2x/4x/8x speed labels and formats the topbar time', () => {
+  const minutesAfterOneRealMinute = (speed) => {
+    const { context, city } = createClockContext();
+    vm.runInContext(`advanceGameTimeOfDay(60000, ${speed})`, context);
+    return city.timeOfDayMinutes;
+  };
+
+  assert.equal(minutesAfterOneRealMinute(0.15), 9 * 60);
+  assert.equal(minutesAfterOneRealMinute(0.5), 12 * 60);
+  assert.equal(minutesAfterOneRealMinute(1), 18 * 60);
+  assert.equal(minutesAfterOneRealMinute(2), 6 * 60);
+
+  const { context } = createClockContext();
+  assert.equal(vm.runInContext('formatGameTimeOfDay(0)', context), '00:00');
+  assert.equal(vm.runInContext('formatGameTimeOfDay(15 * 60 + 11)', context), '15:11');
+  assert.equal(vm.runInContext('formatGameTimeOfDay(24 * 60)', context), '00:00');
+});
+
+test('pausing freezes the environment clock together with the simulation', () => {
+  const { context, city } = createClockContext({ simPaused: true, simSpeedMul: 0.15 });
+  vm.runInContext('startGameClock(); updateGameClock(null, 1000)', context);
+  assert.equal(city.timeOfDayMinutes, 6 * 60);
 });
 
 test('calendar: Jan 1 -> Jan 2, Jan 30 -> Feb 1, Dec 30 -> Jan 1 of next year (with autosave)', () => {

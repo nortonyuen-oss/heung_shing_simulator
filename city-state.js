@@ -184,6 +184,8 @@ const city = {
   monthlyVisitors: 0,
   tourismRevenue: 0,
   temporaryEffects: [],
+  trafficBaseIndex: 0,    // time-neutral road demand before the live 24-hour profile
+  trafficTimeMultiplier: 1,
   trafficIndex: 0,        // 0–1 city-wide congestion pressure (0 = free-flow, 1 = gridlock)
   trafficCoverage: 0,     // fraction of zoned tiles within road reach
   weather: {
@@ -223,6 +225,8 @@ const city = {
   landmarkRevenue: 0,
   landmarkUpkeep: 0,
   tick: 0,
+  // Environmental 24-hour clock; 06:00 gives a new city a readable sunrise.
+  timeOfDayMinutes: 6 * 60,
   day:   1,
   month: 1,
   year: 1900,
@@ -356,6 +360,8 @@ function resetGameState() {
   city.landmarkRevenue = 0;
   city.landmarkUpkeep = 0;
   city.temporaryEffects = [];
+  city.trafficBaseIndex = 0;
+  city.trafficTimeMultiplier = 1;
   city.trafficIndex = 0;
   city.trafficCoverage = 0;
   city.weather = {
@@ -393,6 +399,7 @@ function resetGameState() {
   city.lastForumMonthIndex = -1;
   if (typeof resetAiNewsRuntime === 'function') resetAiNewsRuntime();
   city.tick       = 0;
+  city.timeOfDayMinutes = 6 * 60;
   city.day        = 1;
   city.month      = 1;
   city.year       = 1900;
@@ -617,6 +624,7 @@ function normalizeCityFinanceState() {
   city.cityAttractiveness = Math.max(0, Math.min(100, toFiniteOr(city.cityAttractiveness, 50)));
   city.cityRidicule = Math.max(0, Math.min(100, toFiniteOr(city.cityRidicule, 0)));
   city.tourismAppeal = Math.max(0, Math.min(100, toFiniteOr(city.tourismAppeal, 40)));
+  city.timeOfDayMinutes = ((toFiniteOr(city.timeOfDayMinutes, 6 * 60) % (24 * 60)) + (24 * 60)) % (24 * 60);
   city.monthlyVisitors = Math.max(0, Math.round(toFiniteOr(city.monthlyVisitors, 0)));
   city.tourismRevenue = Math.max(0, Math.round(toFiniteOr(city.tourismRevenue, 0)));
   city.acknowledgedLandmarkUnlocks = Array.isArray(city.acknowledgedLandmarkUnlocks) ? city.acknowledgedLandmarkUnlocks : [];
@@ -639,7 +647,9 @@ function normalizeCityFinanceState() {
   }
   city.unemploymentRate = toFiniteOr(city.unemploymentRate, 0);
   city.highEduUnemploymentRate = toFiniteOr(city.highEduUnemploymentRate, 0);
-  city.trafficIndex    = toFiniteOr(city.trafficIndex, 0);
+  city.trafficBaseIndex = Math.max(0, Math.min(1, toFiniteOr(city.trafficBaseIndex, city.trafficIndex)));
+  city.trafficTimeMultiplier = Math.max(0, toFiniteOr(city.trafficTimeMultiplier, 1));
+  city.trafficIndex    = Math.max(0, Math.min(1, toFiniteOr(city.trafficIndex, 0)));
   city.trafficCoverage = toFiniteOr(city.trafficCoverage, 0);
   if (!isNormalizedCityStateObject(city.weather)) {
     const savedWeather = city.weather && typeof city.weather === 'object' ? city.weather : {};

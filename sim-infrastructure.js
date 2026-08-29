@@ -323,7 +323,8 @@ function bfsService(anchorId, key, radius, value = true) {
 // Each zone building generates traffic demand proportional to zone type and
 // density.  That demand radiates outward along the road network and decays
 // with distance.  The accumulated per-tile values are normalised to 0–1 and
-// stored in trafficMap; city.trafficIndex is the weighted mean load.
+// stored in trafficMap as time-neutral demand. traffic-demand.js applies the
+// live game-clock multiplier to city.trafficIndex and the rendered vehicles.
 //
 // Demand weights (arbitrary units):
 //   Residential  low=1  med=3  high=7
@@ -486,15 +487,11 @@ function updateTrafficMap() {
   }
 
   const roadCount = roadTiles.length;
-  city.trafficIndex    = roadCount > 0 ? clamp(totalLoad / roadCount, 0, 1) : 0;
-  const councilTraffic = typeof getCouncilTemporaryModifier === 'function'
-    ? getCouncilTemporaryModifier('traffic')
-    : 0;
-  city.trafficIndex = clamp(
-    city.trafficIndex + councilTraffic + (isPolicyActive('busSeatbeltMandate') ? 0.025 : 0)
-      - (isPolicyActive('elderlyTwoDollarFare') ? 0.012 : 0),
-    0,
-    1,
-  );
+  city.trafficBaseIndex = roadCount > 0 ? clamp(totalLoad / roadCount, 0, 1) : 0;
+  if (typeof updateTrafficIndexForTimeOfDay === 'function') {
+    updateTrafficIndexForTimeOfDay();
+  } else {
+    city.trafficIndex = city.trafficBaseIndex;
+  }
   city.trafficCoverage = zonedCount > 0 ? clamp(coveredZoned / zonedCount, 0, 1) : 0;
 }

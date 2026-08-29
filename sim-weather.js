@@ -381,19 +381,94 @@ function updateWeatherVisualOverlay(scene) {
   scene.tweens.add({ targets: overlay, alpha: target, duration: 2000, ease: 'Sine.easeInOut' });
 }
 
-// ── Dynamic lighting: sun-angle tint (clear days) + cloud drift (cloudy days) ───
-// A real-time cycle, deliberately decoupled from the compressed in-game calendar
-// (a full sim day is under a second at 1x speed - tying a "sun crossing the sky"
-// effect to that would read as a flicker, not a slow drift). One cycle sweeps
-// sunrise(east)->noon->sunset(west) and then mirrors back sunset->noon->sunrise,
-// so the light swings smoothly forever with no jump-cut at the loop point.
-const SUN_LIGHT_CYCLE_MS = 240000; // 4 real minutes per sunrise<->sunset swing
+// ── Dynamic lighting: one authoritative 24-hour visual timeline ─────────────
+// game-clock.js owns the current minute. These keys make the topbar clock, sky,
+// direct sun, sea glitter and night mask all describe the same moment instead
+// of maintaining separate real-time loops that can drift apart.
 const SUN_LIGHT_KEYFRAMES = {
+  midnight: { color: 0x59657b, alpha: 0 },
+  predawn: { color: 0x8f8799, alpha: 0 },
+  dawn: { color: 0xd49a87, alpha: 0.03 },
   sunrise: { color: 0xffb066, alpha: 0.14 },
   noon: { color: 0xfff6e0, alpha: 0.03 },
+  lateAfternoon: { color: 0xfff1d6, alpha: 0.04 },
+  goldenHour: { color: 0xffc77a, alpha: 0.10 },
   sunset: { color: 0xff7a3d, alpha: 0.17 },
+  dusk: { color: 0xc98273, alpha: 0.08 },
+  night: { color: 0x657080, alpha: 0 },
 };
+const SKY_BACKGROUND_KEYFRAMES = {
+  midnight: 0x02040a,
+  predawn: 0x10162a,
+  dawn: 0x4d5574,
+  sunrise: 0xb8a9b6,
+  noon: 0x87ceeb,
+  lateAfternoon: 0x83c8e8,
+  goldenHour: 0xe0b37d,
+  sunset: 0xd96f4f,
+  dusk: 0x776b8f,
+  night: 0x0b1020,
+};
+const SKY_BACKGROUND_DEFAULT_COLOR = SKY_BACKGROUND_KEYFRAMES.noon;
 const SUN_SHADOW_COLOR = 0x1c2a4a;
+const DAY_NIGHT_VISUAL_MINUTES = 24 * 60;
+const DEFAULT_ASTRONOMY_VISUAL_DAY = Object.freeze({
+  sunriseMinutes: 6 * 60,
+  solarTransitMinutes: 12 * 60,
+  sunsetMinutes: 18 * 60,
+  civilTwilightMinutes: 24,
+  nauticalTwilightMinutes: 52,
+  astronomicalTwilightMinutes: 80,
+  moonriseMinutes: null,
+  moonTransitMinutes: null,
+  moonsetMinutes: null,
+  moonPhase: 0.5,
+});
+
+function getAstronomyVisualDay() {
+  const data = typeof getCurrentAstronomyData === 'function' ? getCurrentAstronomyData() : null;
+  return { ...DEFAULT_ASTRONOMY_VISUAL_DAY, ...(data || {}) };
+}
+
+function clampVisualMinute(value, fallback) {
+  const number = Number(value);
+  return Math.max(0, Math.min(DAY_NIGHT_VISUAL_MINUTES, Number.isFinite(number) ? number : fallback));
+}
+
+// One schedule is rebuilt from today's HKO sunrise/sunset and twilight
+// durations. The three dusk/dawn stages correspond to civil, nautical and
+// astronomical twilight, so "dark" means a real Hong Kong astronomical night
+// rather than a fixed hour painted onto every season.
+function getDayNightVisualKeyframes(astronomy = getAstronomyVisualDay()) {
+  const sunrise = clampVisualMinute(astronomy.sunriseMinutes, 6 * 60);
+  const sunset = clampVisualMinute(astronomy.sunsetMinutes, 18 * 60);
+  const transit = Math.max(sunrise + 1, Math.min(sunset - 1,
+    clampVisualMinute(astronomy.solarTransitMinutes, (sunrise + sunset) / 2)));
+  const civil = Math.max(1, Number(astronomy.civilTwilightMinutes) || 24);
+  const nautical = Math.max(civil + 1, Number(astronomy.nauticalTwilightMinutes) || 52);
+  const astronomical = Math.max(nautical + 1, Number(astronomy.astronomicalTwilightMinutes) || 80);
+  // Keep the ordinary blue afternoon intact. Warmth begins 75 minutes before
+  // sunset, reaches a pale golden hour at T-30, and only then turns orange-red.
+  // Previously noon blended straight to sunset for five-plus hours, making a
+  // November sky roughly 75% orange by 15:51 despite a 17:40 sunset.
+  const lateAfternoon = Math.min(sunset - 2, Math.max(transit + 1, sunset - 75));
+  const goldenHour = Math.min(sunset - 1, Math.max(lateAfternoon + 1, sunset - 30));
+  return [
+    { minute: 0, key: 'midnight', nightAlpha: 0.54, sunsetStrength: 0 },
+    { minute: Math.max(1, sunrise - astronomical), key: 'midnight', nightAlpha: 0.54, sunsetStrength: 0 },
+    { minute: sunrise - nautical, key: 'predawn', nightAlpha: 0.46, sunsetStrength: 0 },
+    { minute: sunrise - civil, key: 'dawn', nightAlpha: 0.26, sunsetStrength: 0 },
+    { minute: sunrise, key: 'sunrise', nightAlpha: 0.08, sunsetStrength: 0 },
+    { minute: transit, key: 'noon', nightAlpha: 0, sunsetStrength: 0 },
+    { minute: lateAfternoon, key: 'lateAfternoon', nightAlpha: 0, sunsetStrength: 0 },
+    { minute: goldenHour, key: 'goldenHour', nightAlpha: 0, sunsetStrength: 0.22 },
+    { minute: sunset, key: 'sunset', nightAlpha: 0.02, sunsetStrength: 1 },
+    { minute: sunset + civil, key: 'dusk', nightAlpha: 0.18, sunsetStrength: 0.32 },
+    { minute: sunset + nautical, key: 'night', nightAlpha: 0.42, sunsetStrength: 0 },
+    { minute: Math.min(DAY_NIGHT_VISUAL_MINUTES - 1, sunset + astronomical), key: 'midnight', nightAlpha: 0.54, sunsetStrength: 0 },
+    { minute: DAY_NIGHT_VISUAL_MINUTES, key: 'midnight', nightAlpha: 0.54, sunsetStrength: 0 },
+  ];
+}
 
 function lerpColorChannels(colorA, colorB, t) {
   const ar = (colorA >> 16) & 0xff; const ag = (colorA >> 8) & 0xff; const ab = colorA & 0xff;
@@ -404,30 +479,134 @@ function lerpColorChannels(colorA, colorB, t) {
   return (r << 16) | (g << 8) | b;
 }
 
-// 0 = sunrise (sun due east), 0.5 = noon (overhead), 1 = sunset (sun due west),
-// then mirrors back down to 0 across the second half of the cycle.
-function getSunLightArcProgress(elapsedMs) {
-  const t = (((elapsedMs % SUN_LIGHT_CYCLE_MS) + SUN_LIGHT_CYCLE_MS) % SUN_LIGHT_CYCLE_MS) / SUN_LIGHT_CYCLE_MS;
-  return t <= 0.5 ? t * 2 : (1 - t) * 2;
+function normalizeDayNightVisualMinutes(value) {
+  const numeric = Number(value);
+  const safe = Number.isFinite(numeric) ? numeric : 6 * 60;
+  return ((safe % DAY_NIGHT_VISUAL_MINUTES) + DAY_NIGHT_VISUAL_MINUTES) % DAY_NIGHT_VISUAL_MINUTES;
 }
 
-// warmColor/alpha describe the sunlit side's tint at this point in the arc; sunSide
-// (0=east, 1=west) tells the renderer which screen side that warm tint belongs on -
-// the opposite side gets SUN_SHADOW_COLOR, giving the tint a direction instead of
-// just a flat wash.
-function getSunLightVisualState(elapsedMs) {
-  if (typeof city === 'undefined' || city?.weather?.condition !== 'clear') return { active: false };
-  const arc = getSunLightArcProgress(elapsedMs);
-  const rising = arc <= 0.5;
-  const localT = rising ? arc * 2 : (arc - 0.5) * 2;
-  const from = rising ? SUN_LIGHT_KEYFRAMES.sunrise : SUN_LIGHT_KEYFRAMES.noon;
-  const to = rising ? SUN_LIGHT_KEYFRAMES.noon : SUN_LIGHT_KEYFRAMES.sunset;
+function getDayNightVisualState(timeMinutes) {
+  const minute = normalizeDayNightVisualMinutes(timeMinutes);
+  const keyframes = getDayNightVisualKeyframes();
+  let from = keyframes[0];
+  let to = keyframes[1];
+  for (let i = 0; i < keyframes.length - 1; i++) {
+    const candidateFrom = keyframes[i];
+    const candidateTo = keyframes[i + 1];
+    if (minute >= candidateFrom.minute && minute < candidateTo.minute) {
+      from = candidateFrom;
+      to = candidateTo;
+      break;
+    }
+  }
+  const rawT = (minute - from.minute) / Math.max(1, to.minute - from.minute);
+  const localT = rawT * rawT * (3 - 2 * rawT); // ease without a slope kink at each keyframe
+  const fromSun = SUN_LIGHT_KEYFRAMES[from.key];
+  const toSun = SUN_LIGHT_KEYFRAMES[to.key];
   return {
-    active: true,
-    warmColor: lerpColorChannels(from.color, to.color, localT),
+    minute,
+    backgroundColor: lerpColorChannels(
+      SKY_BACKGROUND_KEYFRAMES[from.key],
+      SKY_BACKGROUND_KEYFRAMES[to.key],
+      localT,
+    ),
+    nightAlpha: from.nightAlpha + (to.nightAlpha - from.nightAlpha) * localT,
+    warmColor: lerpColorChannels(fromSun.color, toSun.color, localT),
+    sunAlpha: fromSun.alpha + (toSun.alpha - fromSun.alpha) * localT,
+    sunsetStrength: from.sunsetStrength + (to.sunsetStrength - from.sunsetStrength) * localT,
+  };
+}
+
+function getSkyBackgroundColor(timeMinutes) {
+  return getDayNightVisualState(timeMinutes).backgroundColor;
+}
+
+function getNightOverlayAlpha(timeMinutes) {
+  return getDayNightVisualState(timeMinutes).nightAlpha;
+}
+
+function isClearSkyCondition() {
+  const condition = typeof city !== 'undefined' ? city?.weather?.condition : 'clear';
+  return condition === 'clear' || condition === 'hot' || condition === 'cool';
+}
+
+function smoothVisualStep(value) {
+  const t = Math.max(0, Math.min(1, value));
+  return t * t * (3 - 2 * t);
+}
+
+function getAstronomicalNightStrength(timeMinutes, astronomy = getAstronomyVisualDay()) {
+  const minute = normalizeDayNightVisualMinutes(timeMinutes);
+  const sunrise = Number(astronomy.sunriseMinutes) || 6 * 60;
+  const sunset = Number(astronomy.sunsetMinutes) || 18 * 60;
+  const astronomical = Math.max(1, Number(astronomy.astronomicalTwilightMinutes) || 80);
+  const dawnStart = sunrise - astronomical;
+  const duskEnd = sunset + astronomical;
+  if (minute < dawnStart || minute >= duskEnd) return 1;
+  if (minute < sunrise) return 1 - smoothVisualStep((minute - dawnStart) / astronomical);
+  if (minute <= sunset) return 0;
+  return smoothVisualStep((minute - sunset) / astronomical);
+}
+
+function getStarFieldVisualState(timeMinutes) {
+  const strength = isClearSkyCondition() ? getAstronomicalNightStrength(timeMinutes) : 0;
+  return { active: strength > 0.002, alpha: strength * 0.9 };
+}
+
+function getMoonVisibleArc(timeMinutes, astronomy) {
+  const minute = normalizeDayNightVisualMinutes(timeMinutes);
+  const rise = astronomy.moonriseMinutes !== null && astronomy.moonriseMinutes !== undefined
+    && Number.isFinite(Number(astronomy.moonriseMinutes)) ? Number(astronomy.moonriseMinutes) : null;
+  const set = astronomy.moonsetMinutes !== null && astronomy.moonsetMinutes !== undefined
+    && Number.isFinite(Number(astronomy.moonsetMinutes)) ? Number(astronomy.moonsetMinutes) : null;
+  if (rise === null && set === null) return null;
+
+  let start = rise;
+  let end = set;
+  if (start === null) start = end - 12 * 60;
+  if (end === null) end = start + 12 * 60;
+  if (end <= start) end += DAY_NIGHT_VISUAL_MINUTES;
+  let adjustedMinute = minute;
+  if (adjustedMinute < start) adjustedMinute += DAY_NIGHT_VISUAL_MINUTES;
+  if (adjustedMinute < start || adjustedMinute > end) return null;
+  return Math.max(0, Math.min(1, (adjustedMinute - start) / Math.max(1, end - start)));
+}
+
+function getMoonVisualState(timeMinutes) {
+  const astronomy = getAstronomyVisualDay();
+  const progress = getMoonVisibleArc(timeMinutes, astronomy);
+  const nightAlpha = getNightOverlayAlpha(timeMinutes);
+  const clearAlpha = isClearSkyCondition() ? smoothVisualStep((nightAlpha - 0.05) / 0.4) : 0;
+  const altitude = progress === null ? 0 : Math.sin(Math.PI * progress);
+  const horizonFade = smoothVisualStep(Math.min(1, altitude / 0.2));
+  const phase = Math.max(0, Math.min(1, Number(astronomy.moonPhase) || 0));
+  const alpha = progress === null ? 0 : clearAlpha * (0.35 + 0.65 * horizonFade);
+  return {
+    active: alpha > 0.002,
+    alpha,
+    phase,
+    progress: progress ?? 0,
+    xRatio: progress === null ? 0 : 0.08 + progress * 0.84,
+    yRatio: progress === null ? 0.72 : 0.72 - altitude * 0.52,
+  };
+}
+
+// warmColor/alpha describe the sunlit side's tint; sunSide moves east->west
+// between 06:00 and 19:00. Direct sun is weather-gated, while the sky/night
+// timeline itself remains visible under clouds and the separate storm overlay.
+function getSunLightVisualState(timeMinutes) {
+  const visual = getDayNightVisualState(timeMinutes);
+  const astronomy = getAstronomyVisualDay();
+  const sunrise = Number(astronomy.sunriseMinutes) || 6 * 60;
+  const sunset = Number(astronomy.sunsetMinutes) || 18 * 60;
+  const sunSide = Math.max(0, Math.min(1, (visual.minute - sunrise) / Math.max(1, sunset - sunrise)));
+  return {
+    active: isClearSkyCondition() && visual.sunAlpha > 0.005,
+    warmColor: visual.warmColor,
     shadowColor: SUN_SHADOW_COLOR,
-    alpha: from.alpha + (to.alpha - from.alpha) * localT,
-    sunSide: arc,
+    alpha: visual.sunAlpha,
+    sunSide,
+    sunsetStrength: visual.sunsetStrength,
   };
 }
 

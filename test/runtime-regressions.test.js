@@ -495,3 +495,23 @@ test('app metadata and forum WebP assets are served by the desktop HTTP stack', 
   assert.match(modelResponse.headers.get('content-type') || '', /^image\/png\b/);
   assert.equal(modelResponse.headers.get('cache-control'), 'no-cache, must-revalidate');
 });
+
+test('desktop API serves versioned HKO astronomy days and simulated February fallback', async () => {
+  const metadataResponse = await fetch(`${gameServer.url}/api/astronomy`);
+  assert.equal(metadataResponse.status, 200);
+  const metadata = await metadataResponse.json();
+  assert.equal(metadata.sourceVersion, 'hko-almanac-2026-v1');
+  assert.equal(metadata.sourceYear, 2026);
+
+  const winterResponse = await fetch(`${gameServer.url}/api/astronomy/1/1`);
+  assert.equal(winterResponse.status, 200);
+  const winter = await winterResponse.json();
+  assert.equal(winter.sunriseMinutes, 423);
+  assert.equal(winter.sunsetMinutes, 1071);
+
+  const februaryResponse = await fetch(`${gameServer.url}/api/astronomy/2/30`);
+  assert.equal(februaryResponse.status, 200);
+  assert.equal((await februaryResponse.json()).day, 28);
+
+  assert.equal((await fetch(`${gameServer.url}/api/astronomy/13/1`)).status, 400);
+});

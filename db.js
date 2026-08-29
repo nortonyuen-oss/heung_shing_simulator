@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { DatabaseSync } = require('node:sqlite');
+const hkoAstronomySeed = require('./data/hko-astronomy-2026.json');
 
 const DEFAULT_DB_PATH = path.join(__dirname, '.data', 'citybuilder.sqlite');
 
@@ -55,6 +56,37 @@ function openGameDatabase(dbPath = resolveDbPath()) {
       updated_at    TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP
     )
   `);
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS astronomy_sources (
+      source_version  TEXT PRIMARY KEY,
+      source_year     INTEGER NOT NULL,
+      timezone        TEXT NOT NULL,
+      latitude        REAL NOT NULL,
+      longitude       REAL NOT NULL,
+      sources_json    TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS astronomy_calendar (
+      source_version          TEXT NOT NULL,
+      month                   INTEGER NOT NULL CHECK(month BETWEEN 1 AND 12),
+      day                     INTEGER NOT NULL CHECK(day BETWEEN 1 AND 31),
+      sunrise_minute          INTEGER NOT NULL,
+      solar_transit_minute    INTEGER NOT NULL,
+      sunset_minute           INTEGER NOT NULL,
+      moonrise_minute         INTEGER,
+      moon_transit_minute     INTEGER,
+      moonset_minute          INTEGER,
+      moon_phase              REAL,
+      civil_twilight_minutes  INTEGER NOT NULL,
+      nautical_twilight_minutes INTEGER NOT NULL,
+      astronomical_twilight_minutes INTEGER NOT NULL,
+      PRIMARY KEY (source_version, month, day),
+      FOREIGN KEY (source_version) REFERENCES astronomy_sources(source_version) ON DELETE CASCADE
+    );
+  `);
+
+  seedAstronomyCalendar(db, hkoAstronomySeed);
 
   const getSaveMetadataById = db.prepare(`
     SELECT id, city_name, population, year, month, budget, save_type, created_at, updated_at
@@ -209,10 +241,111 @@ function openGameDatabase(dbPath = resolveDbPath()) {
       db.prepare('DELETE FROM terrain_presets WHERE id = ?').run(id);
     },
 
+    getAstronomyDay(month, day, sourceVersion = hkoAstronomySeed.sourceVersion) {
+      const safeMonth = Math.max(1, Math.min(12, Math.floor(Number(month) || 1)));
+      const safeDay = Math.max(1, Math.min(31, Math.floor(Number(day) || 1)));
+      // The simulator uses 30-day months. February 29/30 therefore reuses the
+      // latest real HKO February row instead of failing the lookup.
+      return db.prepare(`
+        SELECT
+          source_version AS sourceVersion,
+          month,
+          day,
+          sunrise_minute AS sunriseMinutes,
+          solar_transit_minute AS solarTransitMinutes,
+          sunset_minute AS sunsetMinutes,
+          moonrise_minute AS moonriseMinutes,
+          moon_transit_minute AS moonTransitMinutes,
+          moonset_minute AS moonsetMinutes,
+          moon_phase AS moonPhase,
+          civil_twilight_minutes AS civilTwilightMinutes,
+          nautical_twilight_minutes AS nauticalTwilightMinutes,
+          astronomical_twilight_minutes AS astronomicalTwilightMinutes
+        FROM astronomy_calendar
+        WHERE source_version = ? AND month = ? AND day <= ?
+        ORDER BY day DESC
+        LIMIT 1
+      `).get(sourceVersion, safeMonth, safeDay) ?? null;
+    },
+
+    getAstronomyMetadata(sourceVersion = hkoAstronomySeed.sourceVersion) {
+      const row = db.prepare(`
+        SELECT source_version AS sourceVersion, source_year AS sourceYear,
+               timezone, latitude, longitude, sources_json AS sourcesJson
+        FROM astronomy_sources WHERE source_version = ?
+      `).get(sourceVersion);
+      if (!row) return null;
+      const { sourcesJson, ...metadata } = row;
+      return { ...metadata, sources: JSON.parse(sourcesJson) };
+    },
+
     close() {
       db.close();
     },
   };
+}
+
+function seedAstronomyCalendar(db, seed) {
+  if (!seed?.sourceVersion || !Array.isArray(seed.records) || seed.records.length < 365) {
+    throw new Error('Invalid bundled HKO astronomy seed');
+  }
+  const existingCount = Number(db.prepare(`
+    SELECT COUNT(*) AS count FROM astronomy_calendar WHERE source_version = ?
+  `).get(seed.sourceVersion)?.count ?? 0);
+  if (existingCount === seed.records.length) return;
+
+  const insertSource = db.prepare(`
+    INSERT INTO astronomy_sources
+      (source_version, source_year, timezone, latitude, longitude, sources_json)
+    VALUES (?, ?, ?, ?, ?, ?)
+    ON CONFLICT(source_version) DO UPDATE SET
+      source_year = excluded.source_year,
+      timezone = excluded.timezone,
+      latitude = excluded.latitude,
+      longitude = excluded.longitude,
+      sources_json = excluded.sources_json
+  `);
+  const insertDay = db.prepare(`
+    INSERT INTO astronomy_calendar (
+      source_version, month, day, sunrise_minute, solar_transit_minute, sunset_minute,
+      moonrise_minute, moon_transit_minute, moonset_minute, moon_phase,
+      civil_twilight_minutes, nautical_twilight_minutes, astronomical_twilight_minutes
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  db.exec('BEGIN IMMEDIATE');
+  try {
+    insertSource.run(
+      seed.sourceVersion,
+      seed.sourceYear,
+      seed.timezone,
+      seed.latitude,
+      seed.longitude,
+      JSON.stringify(seed.sources),
+    );
+    db.prepare('DELETE FROM astronomy_calendar WHERE source_version = ?').run(seed.sourceVersion);
+    seed.records.forEach((record) => {
+      insertDay.run(
+        seed.sourceVersion,
+        record.month,
+        record.day,
+        record.sunrise,
+        record.solarTransit,
+        record.sunset,
+        record.moonrise,
+        record.moonTransit,
+        record.moonset,
+        record.moonPhase,
+        record.civilTwilight,
+        record.nauticalTwilight,
+        record.astronomicalTwilight,
+      );
+    });
+    db.exec('COMMIT');
+  } catch (error) {
+    db.exec('ROLLBACK');
+    throw error;
+  }
 }
 
 function serializePayload(payload) {

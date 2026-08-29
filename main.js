@@ -665,6 +665,13 @@ function updateGameFrame(time, delta) {
     recordVisualRoutePerformanceFrameStart(this);
   }
   if (typeof updateGameClock === 'function') updateGameClock(this, delta);
+  // At displayed 8x the full day/night cycle is one minute, so the old 500ms
+  // ambient interval would visibly stair-step the sky. Ten updates/second keeps
+  // colour and mask transitions smooth without redrawing the overlay every frame.
+  if (typeof updateDynamicLighting === 'function' && time >= (this.nextDayNightVisualUpdateAt ?? 0)) {
+    this.nextDayNightVisualUpdateAt = time + 100;
+    updateDynamicLighting(this);
+  }
   updateKeyboardMapPan(this, delta);
   if (typeof beginVehicleTrackerFrame === 'function') beginVehicleTrackerFrame(this, time, delta);
 
@@ -6034,7 +6041,9 @@ function syncWeatherFxToCamera(scene) {
   const x = camera.centerX - w / 2;
   const y = camera.centerY - h / 2;
   scene.weatherOverlay?.setSize(w, h).setPosition(x, y);
+  scene.nightOverlay?.setSize(w, h).setPosition(x, y);
   scene.lightningFlash?.setSize(w, h).setPosition(x, y);
+  scene.starField?.setSize(w, h).setPosition(x, y).setTileScale(1 / zoom, 1 / zoom);
   // setPosition() is safe here (see the big comment on applyRainState() for why plain
   // property assignment of x/y is NOT), and only touches x/y — it won't disturb the
   // speedX/speedY/etc ops applyRainState() manages.
@@ -6252,17 +6261,17 @@ function drawSeaFlowSunsetGlints(gctx, w, h, bucket) {
   }
 }
 
-// Only active on clear days near the peak of the real-time sun arc (see
-// getSunLightVisualState/SUN_LIGHT_CYCLE_MS, sim-weather.js) - a windy/rainy/typhoon
-// sky never lights this, and it also respects the dynamic-lighting toggle since it's
-// riding the same sun-arc state that system already gates.
+// Only active on clear days near the 17:30 orange-red keyframe. The shared game
+// clock keeps it aligned with the topbar/sky; it recedes before the violet night.
 function getSeaFlowSunsetBucket(scene) {
   if (typeof isDynamicLightingEnabled === 'function' && !isDynamicLightingEnabled()) return 0;
-  if (typeof getSunLightVisualState !== 'function' || !scene?.dynamicLightingStartTime) return 0;
-  const elapsed = performance.now() - scene.dynamicLightingStartTime;
-  const sun = getSunLightVisualState(elapsed);
+  if (typeof getSunLightVisualState !== 'function') return 0;
+  const timeMinutes = typeof getGameTimeOfDayMinutes === 'function' ? getGameTimeOfDayMinutes() : 12 * 60;
+  const sun = getSunLightVisualState(timeMinutes);
   if (!sun.active) return 0;
-  const strength = Math.max(0, Math.min(1, (sun.sunSide - 0.6) / 0.4));
+  const strength = typeof sun.sunsetStrength === 'number'
+    ? sun.sunsetStrength
+    : Math.max(0, Math.min(1, (sun.sunSide - 0.6) / 0.4));
   return Math.round(strength * SEA_FLOW_SUNSET_BUCKET_MAX);
 }
 
@@ -6506,7 +6515,7 @@ const CLOUD_FADE_ZOOM_END = 1.2;
 // "darker/stormier" comes from the tint darkening, not from extra opacity on
 // top of the sky-darkening overlay/rain the storm already has.
 const CLOUD_DENSITY_TIERS = {
-  minimal: { frequency: 3500, lifespan: 40000, alpha: { min: 0.12, max: 0.20 }, scaleMul: 0.75, tint: null },
+  minimal: { frequency: 9000, lifespan: 30000, alpha: { min: 0.07, max: 0.12 }, scaleMul: 0.65, tint: null },
   light: { frequency: 1200, lifespan: 45000, alpha: { min: 0.30, max: 0.45 }, scaleMul: 1.0, tint: null },
   moderate: { frequency: 700, lifespan: 42000, alpha: { min: 0.28, max: 0.42 }, scaleMul: 1.1, tint: 0xe4e7ec },
   heavy: { frequency: 450, lifespan: 38000, alpha: { min: 0.26, max: 0.40 }, scaleMul: 1.25, tint: 0xb0b6c2 },
@@ -6517,12 +6526,138 @@ const CLOUD_DRIFT_BASE_CONFIG = {
   speedY: 0,
   quantity: 1,
 };
+const CLOUD_CLEARING_FADE_MS = 6500;
+
+function seededCelestialRandom(seedState) {
+  seedState.value = (seedState.value * 1664525 + 1013904223) >>> 0;
+  return seedState.value / 0x100000000;
+}
+
+function generateStarFieldTexture(scene) {
+  if (scene.textures.exists('fx_starfield')) return;
+  const canvas = document.createElement('canvas');
+  canvas.width = 768;
+  canvas.height = 512;
+  const ctx = canvas.getContext('2d');
+  const seed = { value: 0x48_4b_4f }; // deterministic Hong Kong sky texture
+  for (let i = 0; i < 185; i++) {
+    const x = seededCelestialRandom(seed) * canvas.width;
+    const y = seededCelestialRandom(seed) * canvas.height;
+    const radius = 0.45 + Math.pow(seededCelestialRandom(seed), 3) * 1.35;
+    const opacity = 0.32 + seededCelestialRandom(seed) * 0.68;
+    const warmth = seededCelestialRandom(seed);
+    const color = warmth > 0.82 ? '255,232,205' : warmth < 0.12 ? '205,224,255' : '245,248,255';
+    const glow = ctx.createRadialGradient(x, y, 0, x, y, radius * 2.4);
+    glow.addColorStop(0, `rgba(${color},${opacity})`);
+    glow.addColorStop(0.28, `rgba(${color},${opacity * 0.8})`);
+    glow.addColorStop(1, `rgba(${color},0)`);
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(x, y, radius * 2.4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  scene.textures.addCanvas('fx_starfield', canvas);
+}
+
+const MOON_PHASE_TEXTURE_COUNT = 24;
+
+function generateMoonPhaseTextures(scene) {
+  const size = 64;
+  for (let phaseIndex = 0; phaseIndex < MOON_PHASE_TEXTURE_COUNT; phaseIndex++) {
+    const key = `fx_moon_phase_${phaseIndex}`;
+    if (scene.textures.exists(key)) continue;
+    const phase = phaseIndex / MOON_PHASE_TEXTURE_COUNT;
+    const angle = Math.PI * 2 * phase;
+    const lightX = Math.sin(angle);
+    const lightZ = -Math.cos(angle);
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    const image = ctx.createImageData(size, size);
+    const radius = size * 0.41;
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        const nx = (x + 0.5 - size / 2) / radius;
+        const ny = (y + 0.5 - size / 2) / radius;
+        const radial = nx * nx + ny * ny;
+        if (radial > 1) continue;
+        const nz = Math.sqrt(Math.max(0, 1 - radial));
+        const illumination = Math.max(0, nx * lightX + nz * lightZ);
+        if (illumination <= 0) continue;
+        const edge = Math.min(1, (1 - radial) * 12);
+        const crater = 0.9 + 0.1 * Math.sin(x * 0.72 + y * 0.37) * Math.sin(y * 0.21);
+        const brightness = illumination * crater;
+        const offset = (y * size + x) * 4;
+        image.data[offset] = Math.round(226 + 24 * brightness);
+        image.data[offset + 1] = Math.round(218 + 25 * brightness);
+        image.data[offset + 2] = Math.round(185 + 45 * brightness);
+        image.data[offset + 3] = Math.round(255 * edge * Math.min(1, illumination * 3.5));
+      }
+    }
+    ctx.putImageData(image, 0, 0);
+    scene.textures.addCanvas(key, canvas);
+  }
+}
+
+function setupCelestialBackground(scene) {
+  generateStarFieldTexture(scene);
+  generateMoonPhaseTextures(scene);
+  scene.starField = scene.add.tileSprite(0, 0, scene.scale.width, scene.scale.height, 'fx_starfield');
+  scene.starField.setOrigin(0, 0);
+  scene.starField.setScrollFactor(0);
+  scene.starField.setDepth(-100);
+  scene.starField.setBlendMode('ADD');
+  scene.starField.setAlpha(0);
+
+  scene.moonSprite = scene.add.image(0, 0, 'fx_moon_phase_12');
+  scene.moonSprite.setScrollFactor(0);
+  scene.moonSprite.setDepth(-99);
+  scene.moonSprite.setBlendMode('ADD');
+  scene.moonSprite.setAlpha(0);
+}
+
+function cancelCloudClearingTransition(scene) {
+  scene.cloudClearingTween?.remove?.();
+  scene.cloudClearingTween = null;
+  scene.cloudDriftEmitter?.setAlpha(1);
+}
+
+function startCloudClearingTransition(scene, cloudEmitter) {
+  if (scene.cloudClearingTween) return;
+  cloudEmitter.stop(); // existing cloudy deck drifts on while dissolving; no new deck particles
+  scene.cloudClearingTween = scene.tweens.add({
+    targets: cloudEmitter,
+    alpha: 0,
+    duration: CLOUD_CLEARING_FADE_MS,
+    ease: 'Sine.easeInOut',
+    onComplete: () => {
+      cloudEmitter.killAll?.();
+      cloudEmitter.setAlpha(1);
+      scene.cloudClearingTween = null;
+      scene.cloudDriftWeatherTierName = 'minimal';
+      scene.cloudDriftLastConfigKey = null;
+      if (typeof getCloudDensityTier !== 'function' || getCloudDensityTier() === 'minimal') {
+        updateDynamicLighting(scene);
+      }
+    },
+  });
+}
 
 function setupDynamicLighting(scene) {
-  scene.dynamicLightingStartTime = performance.now();
+  setupCelestialBackground(scene);
   scene.sunLightGraphics = scene.add.graphics();
   scene.sunLightGraphics.setScrollFactor(0);
   scene.sunLightGraphics.setDepth(999995); // below weatherOverlay/rain/lightning (999998+)
+
+  // Separate from weatherOverlay: this is time-of-day darkness, not a storm.
+  // It sits above sun/clouds but below rain and weather so night dims the whole
+  // world coherently while lightning and rain streaks remain readable.
+  scene.nightOverlay = scene.add.rectangle(0, 0, scene.scale.width, scene.scale.height, 0x020713, 1);
+  scene.nightOverlay.setOrigin(0, 0);
+  scene.nightOverlay.setScrollFactor(0);
+  scene.nightOverlay.setDepth(999997);
+  scene.nightOverlay.setAlpha(0);
 
   generateCloudBlobTexture(scene);
   // Padded for the smallest supported zoom, same reasoning as scene.rainSpawnWidth
@@ -6544,39 +6679,73 @@ function setupDynamicLighting(scene) {
   scene.cloudDriftEmitter.setDepth(999996);
   scene.cloudDriftEmitter.stop();
 
+  syncWeatherFxToCamera(scene);
   updateDynamicLighting(scene);
 }
 
-// Called every AMBIENT_UPDATE_MS (~500ms, see updateWeatherEffectsTier) plus
-// immediately on zoom changes (setMapZoom) - the sun tint only needs to drift
-// slowly, but the cloud layer's zoom<1.2 gate should react right away.
+// Called by the 100ms day/night visual cadence, the ambient weather safety
+// interval, and immediately on zoom changes. Cloud reconfiguration remains
+// key-guarded below, so the faster sky cadence does not reset its emitter.
 function updateDynamicLighting(scene) {
   const graphics = scene?.sunLightGraphics;
   if (!graphics) return;
+  const camera = scene.cameras?.main;
 
   if (!isDynamicLightingEnabled()) {
     graphics.clear();
+    scene.nightOverlay?.setAlpha(0);
+    scene.starField?.setAlpha(0);
+    scene.moonSprite?.setAlpha(0);
+    camera?.setBackgroundColor?.(
+      typeof SKY_BACKGROUND_DEFAULT_COLOR === 'number' ? SKY_BACKGROUND_DEFAULT_COLOR : 0x87ceeb,
+    );
+    cancelCloudClearingTransition(scene);
     scene.cloudDriftEmitter?.stop();
     return;
   }
 
-  const elapsed = performance.now() - scene.dynamicLightingStartTime;
-  const sun = typeof getSunLightVisualState === 'function' ? getSunLightVisualState(elapsed) : { active: false };
+  const timeMinutes = typeof getGameTimeOfDayMinutes === 'function' ? getGameTimeOfDayMinutes() : 12 * 60;
+  const sun = typeof getSunLightVisualState === 'function' ? getSunLightVisualState(timeMinutes) : { active: false };
+  const zoom = camera?.zoom || 1;
+  const w = scene.scale.width / zoom;
+  const h = scene.scale.height / zoom;
+  const x = camera.centerX - w / 2;
+  const y = camera.centerY - h / 2;
+  camera?.setBackgroundColor?.(
+    typeof getSkyBackgroundColor === 'function' ? getSkyBackgroundColor(timeMinutes) : 0x87ceeb,
+  );
+  scene.nightOverlay?.setAlpha(
+    typeof getNightOverlayAlpha === 'function' ? getNightOverlayAlpha(timeMinutes) : 0,
+  );
+  const stars = typeof getStarFieldVisualState === 'function'
+    ? getStarFieldVisualState(timeMinutes)
+    : { active: false, alpha: 0 };
+  scene.starField?.setAlpha(stars.active ? stars.alpha : 0);
+  if (scene.starField) {
+    scene.starField.tilePositionX = -(timeMinutes / (24 * 60)) * 70;
+  }
+  const moon = typeof getMoonVisualState === 'function'
+    ? getMoonVisualState(timeMinutes)
+    : { active: false, alpha: 0, phase: 0.5, xRatio: 0.5, yRatio: 0.2 };
+  if (scene.moonSprite) {
+    const phaseIndex = Math.round((Number(moon.phase) || 0) * MOON_PHASE_TEXTURE_COUNT) % MOON_PHASE_TEXTURE_COUNT;
+    const moonTexture = `fx_moon_phase_${phaseIndex}`;
+    if (scene.moonSprite.texture?.key !== moonTexture && scene.textures.exists(moonTexture)) {
+      scene.moonSprite.setTexture(moonTexture);
+    }
+    scene.moonSprite
+      .setPosition(x + w * moon.xRatio, y + h * moon.yRatio)
+      .setScale(0.88 / zoom)
+      .setAlpha(moon.active ? moon.alpha : 0);
+  }
   graphics.clear();
   if (sun.active && typeof lerpColorChannels === 'function') {
-    const camera = scene.cameras.main;
-    const zoom = camera?.zoom || 1;
-    const w = scene.scale.width / zoom;
-    const h = scene.scale.height / zoom;
-    const x = camera.centerX - w / 2;
-    const y = camera.centerY - h / 2;
     const eastColor = lerpColorChannels(sun.warmColor, sun.shadowColor, sun.sunSide);
     const westColor = lerpColorChannels(sun.shadowColor, sun.warmColor, sun.sunSide);
     graphics.fillGradientStyle(eastColor, westColor, eastColor, westColor, sun.alpha, sun.alpha, sun.alpha, sun.alpha);
     graphics.fillRect(x, y, w, h);
   }
 
-  const zoom = scene.cameras?.main?.zoom ?? 1;
   // Like descending through a cloud layer from altitude: cover holds steady
   // above CLOUD_FADE_ZOOM_START, thins out as the camera "descends" through
   // it, and has fully broken clear by CLOUD_FADE_ZOOM_END - not a hard pop.
@@ -6584,6 +6753,12 @@ function updateDynamicLighting(scene) {
   const cloudEmitter = scene.cloudDriftEmitter;
   if (cloudEmitter && cloudsActive) {
     const tierName = typeof getCloudDensityTier === 'function' ? getCloudDensityTier() : 'light';
+    const previousTierName = scene.cloudDriftWeatherTierName;
+    if (tierName === 'minimal' && previousTierName && previousTierName !== 'minimal') {
+      startCloudClearingTransition(scene, cloudEmitter);
+      return;
+    }
+    if (tierName !== 'minimal' && scene.cloudClearingTween) cancelCloudClearingTransition(scene);
     const tier = CLOUD_DENSITY_TIERS[tierName] || CLOUD_DENSITY_TIERS.light;
     const fade = zoom <= CLOUD_FADE_ZOOM_START ? 1
       : Math.max(0, 1 - (zoom - CLOUD_FADE_ZOOM_START) / (CLOUD_FADE_ZOOM_END - CLOUD_FADE_ZOOM_START));
@@ -6613,9 +6788,11 @@ function updateDynamicLighting(scene) {
         y: { min: -120, max: scene.cloudSpawnHeight },
         scale: { min: 1.4 * baseScaleMul, max: 2.6 * baseScaleMul },
       });
+      scene.cloudDriftWeatherTierName = tierName;
     }
     if (!cloudEmitter.emitting) cloudEmitter.start();
   } else {
+    cancelCloudClearingTransition(scene);
     scene.cloudDriftLastConfigKey = null; // force a reconfigure next time clouds turn on
     cloudEmitter?.stop();
   }

@@ -431,6 +431,16 @@ test('vehicle target follows visible traffic load and respects threshold and cap
   assert.equal(TRAFFIC_VISUAL_CONFIG.maxVehicles, 44);
 });
 
+test('vehicle target follows the clock multiplier at commute peak and deep night', () => {
+  const loads = Array(100).fill(1);
+  const baseline = computeTrafficVehicleTarget(loads);
+  const deepNight = computeTrafficVehicleTarget(loads, TRAFFIC_VISUAL_CONFIG, 0.10);
+  const commutePeak = computeTrafficVehicleTarget(loads, TRAFFIC_VISUAL_CONFIG, 1.35);
+  assert.equal(baseline, 41);
+  assert.equal(deepNight, 4);
+  assert.equal(commutePeak, TRAFFIC_VISUAL_CONFIG.maxVehicles);
+});
+
 test('cold-start spawning is spread across bounded refresh batches', () => {
   assert.equal(computeTrafficSpawnBudget(0, 44), 6);
   assert.equal(computeTrafficSpawnBudget(38, 44), 6);

@@ -21,6 +21,14 @@ const GAME_SPEEDS = Object.freeze({
 const GAME_SPEED_VALUES = Object.freeze(Object.values(GAME_SPEEDS));
 
 const GAME_DAYS_PER_MONTH = 30;
+// The environmental clock is intentionally separate from the much faster
+// economy/calendar cadence below. At the topbar's displayed 1x speed it takes
+// eight real minutes to traverse a full 24 hours; the 2x/4x/8x buttons scale it
+// by their displayed labels, and pause freezes it. This keeps day/night legible
+// without stretching a game month into several real hours.
+const GAME_TIME_MINUTES_PER_DAY = 24 * 60;
+const GAME_DAY_NIGHT_CYCLE_REAL_MS = 8 * 60 * 1000;
+const GAME_DAY_START_MINUTES = 6 * 60;
 // 1x baseline preserved from the legacy SIM_TICK_MS(5000) * TICKS_PER_MONTH(4)
 // pacing: 20 real sec/game month, ~4 real min/game year.
 const BASE_REAL_MS_PER_GAME_DAY = 20000 / GAME_DAYS_PER_MONTH;
@@ -44,6 +52,7 @@ let gameClockAccumulatorMs = 0;
 let gameClockRunning = false;
 
 const gameClockListeners = {
+  'gameclock:time': [],
   'gameclock:day': [],
   'gameclock:month': [],
   'gameclock:year': [],
@@ -75,6 +84,53 @@ function getGameSpeed() {
 
 function isGamePaused() {
   return getGameSpeed() === GAME_SPEEDS.PAUSED;
+}
+
+function getDayNightSpeedMultiplier(speed = getGameSpeed()) {
+  if (speed === GAME_SPEEDS.PAUSED) return 0;
+  if (speed === GAME_SPEEDS.SLOW) return 1;
+  if (speed === GAME_SPEEDS.HALF) return 2;
+  if (speed === GAME_SPEEDS.NORMAL) return 4;
+  if (speed === GAME_SPEEDS.FAST) return 8;
+  return 1;
+}
+
+function normalizeGameTimeMinutes(value, fallback = GAME_DAY_START_MINUTES) {
+  const numeric = Number(value);
+  const safe = Number.isFinite(numeric) ? numeric : fallback;
+  return ((safe % GAME_TIME_MINUTES_PER_DAY) + GAME_TIME_MINUTES_PER_DAY) % GAME_TIME_MINUTES_PER_DAY;
+}
+
+function getGameTimeOfDayMinutes() {
+  return normalizeGameTimeMinutes(
+    typeof city === 'undefined' ? GAME_DAY_START_MINUTES : city.timeOfDayMinutes,
+  );
+}
+
+function formatGameTimeOfDay(value = getGameTimeOfDayMinutes()) {
+  const totalMinutes = Math.floor(normalizeGameTimeMinutes(value));
+  const hour = Math.floor(totalMinutes / 60);
+  const minute = totalMinutes % 60;
+  return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+}
+
+function advanceGameTimeOfDay(realDeltaMs, speed = getGameSpeed()) {
+  if (typeof city === 'undefined') return GAME_DAY_START_MINUTES;
+  const previous = getGameTimeOfDayMinutes();
+  const displaySpeed = getDayNightSpeedMultiplier(speed);
+  const deltaMinutes = (Math.max(0, Number(realDeltaMs) || 0) / GAME_DAY_NIGHT_CYCLE_REAL_MS)
+    * GAME_TIME_MINUTES_PER_DAY
+    * displaySpeed;
+  const next = normalizeGameTimeMinutes(previous + deltaMinutes);
+  city.timeOfDayMinutes = next;
+  if (Math.floor(previous) !== Math.floor(next)) {
+    emitGameClockEvent('gameclock:time', {
+      minutes: next,
+      label: formatGameTimeOfDay(next),
+      speed: displaySpeed,
+    });
+  }
+  return next;
 }
 
 // Traffic/vessel/aircraft visuals must never crawl slower than normal (1x) —
@@ -157,6 +213,7 @@ function updateGameClock(scene, realDeltaMs) {
 
   const speed = getGameSpeed();
   const clampedDeltaMs = Math.min(GAME_CLOCK_MAX_FRAME_DELTA_MS, Math.max(0, Number(realDeltaMs) || 0));
+  advanceGameTimeOfDay(clampedDeltaMs, speed);
   let scaledDeltaMs = clampedDeltaMs * speed;
 
   // Advance persistent transport entities in calendar-time slices. Splitting

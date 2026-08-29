@@ -234,12 +234,13 @@ function getTrafficLaneOffsetAmount(screenDeltaX, screenDeltaY, config = TRAFFIC
     : config.laneOffsetTiles;
 }
 
-function computeTrafficVehicleTarget(loads, config = TRAFFIC_VISUAL_CONFIG) {
+function computeTrafficVehicleTarget(loads, config = TRAFFIC_VISUAL_CONFIG, demandMultiplier = 1) {
   const score = Array.from(loads ?? []).reduce((sum, value) => {
     const load = Number(value);
     return load > config.minimumLoad ? sum + Math.sqrt(load) : sum;
   }, 0);
-  return Math.min(config.maxVehicles, Math.floor(score / config.densityDivisor));
+  const timeScale = Math.max(0, Number(demandMultiplier) || 0);
+  return Math.min(config.maxVehicles, Math.floor((score / config.densityDivisor) * timeScale));
 }
 
 function computeTrafficSpawnBudget(currentCount, targetCount, config = TRAFFIC_VISUAL_CONFIG) {
@@ -1128,16 +1129,22 @@ function getTrafficLogicalBounds(scene, rect) {
 function collectVisibleTrafficRoads(scene, rect) {
   const bounds = getTrafficLogicalBounds(scene, rect);
   const roads = [];
+  const timeMultiplier = typeof getTrafficTimeOfDayMultiplier === 'function'
+    ? getTrafficTimeOfDayMultiplier()
+    : 1;
   for (let row = bounds.minRow; row <= bounds.maxRow; row++) {
     for (let col = bounds.minCol; col <= bounds.maxCol; col++) {
       if (!isRuntimeTrafficRoad(row, col)) continue;
-      const load = Number(trafficMap?.[row]?.[col] ?? 0);
+      const baseLoad = Number(trafficMap?.[row]?.[col] ?? 0);
+      const load = typeof applyTrafficTimeOfDayMultiplier === 'function'
+        ? applyTrafficTimeOfDayMultiplier(baseLoad, timeMultiplier)
+        : Math.max(0, Math.min(1, baseLoad * timeMultiplier));
       if (load <= TRAFFIC_VISUAL_CONFIG.minimumLoad) continue;
       const neighbours = getTrafficRoadNeighbours(row, col);
       if (neighbours.length === 0) continue;
       const point = getTrafficSurfacePoint(scene, row, col);
       if (!trafficPointInRect(point, rect)) continue;
-      roads.push({ row, col, load, neighbours });
+      roads.push({ row, col, baseLoad, load, neighbours });
     }
   }
   return roads;
@@ -1908,7 +1915,14 @@ function refreshVisibleTraffic(scene, time) {
   const managedCount = typeof getManagedTransportVehicleCount === 'function'
     ? getManagedTransportVehicleCount(scene, rect)
     : 0;
-  const target = Math.max(0, computeTrafficVehicleTarget(roads.map((road) => road.load)) - managedCount);
+  const timeMultiplier = typeof getTrafficTimeOfDayMultiplier === 'function'
+    ? getTrafficTimeOfDayMultiplier()
+    : 1;
+  const target = Math.max(0, computeTrafficVehicleTarget(
+    roads.map((road) => road.baseLoad),
+    TRAFFIC_VISUAL_CONFIG,
+    timeMultiplier,
+  ) - managedCount);
 
   const excess = Math.max(0, state.vehicles.length - target);
   if (excess > 0) {

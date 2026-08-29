@@ -697,12 +697,18 @@ function computeOverlayMap(type) {
 }
 
 function computeTrafficOverlayMap() {
-  // trafficMap is maintained by updateTrafficMap() in sim-infrastructure.js.
-  // Return a shallow copy so the overlay cache is independent of live updates.
+  // trafficMap is maintained by updateTrafficMap() in sim-infrastructure.js as
+  // neutral demand. Snapshot it with the current clock multiplier so opening
+  // the overlay at 04:30 and 08:30 shows meaningfully different road pressure.
   const map = createFilledMap(0);
+  const timeMultiplier = typeof getTrafficTimeOfDayMultiplier === 'function'
+    ? getTrafficTimeOfDayMultiplier()
+    : 1;
   for (let r = 0; r < MAP_HEIGHT; r++)
     for (let c = 0; c < MAP_WIDTH; c++)
-      map[r][c] = trafficMap[r]?.[c] ?? 0;
+      map[r][c] = typeof applyTrafficTimeOfDayMultiplier === 'function'
+        ? applyTrafficTimeOfDayMultiplier(trafficMap[r]?.[c] ?? 0, timeMultiplier)
+        : Math.max(0, Math.min(1, (trafficMap[r]?.[c] ?? 0) * timeMultiplier));
   return map;
 }
 

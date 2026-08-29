@@ -113,6 +113,15 @@ test('lit windows are deterministic, corridor-forced, all-off by day, and track 
   // nx/ny land inside the parallelogram's bounding box
   assert.ok(day.every((c) => c.nx >= 0.14 && c.nx <= 0.5 && c.ny >= 0.1 && c.ny <= 0.72));
 
+  // each window is a sheared quad, not a screen-aligned rectangle: its top edge
+  // rises to the right on this panel, matching the iso slope
+  const w0 = day[0];
+  assert.equal(w0.quad.length, 4);
+  const topSlope = (w0.quad[1][1] - w0.quad[0][1]) / (w0.quad[1][0] - w0.quad[0][0]);
+  assert.ok(topSlope > 0.2 && topSlope < 0.8, `window top edge follows the iso slope, got ${topSlope.toFixed(2)}`);
+  // left/right edges stay vertical
+  assert.ok(Math.abs(w0.quad[3][0] - w0.quad[0][0]) < 1e-9);
+
   const a = computeLitBuildingWindows(profile, seed, 'eveningPeak', 3, pers);
   const b = computeLitBuildingWindows(profile, seed, 'eveningPeak', 3, pers);
   assert.deepEqual(a.map((c) => c.on), b.map((c) => c.on), 'same inputs -> same pattern');

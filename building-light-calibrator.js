@@ -320,16 +320,18 @@ function layoutBuildingLightCalibrationPreview() {
     : [];
   const warm = data.class === 'res' || data.class === 'ind';
   const col = warm ? 0xffcf87 : 0xdfe8ff;
+  // Each window is the same sheared parallelogram the runtime draws.
   cells.forEach((cell) => {
-    const w = buildingLightCalibrationNormToWorld(cell.nx, cell.ny);
-    const cw = Math.max(2, cell.cellW * t.texW * z * 0.42);
-    const ch = Math.max(2, cell.cellH * t.texH * z * 0.42);
+    const pts = cell.quad.map((c) => {
+      const w = buildingLightCalibrationNormToWorld(c[0], c[1]);
+      return { x: w.x, y: w.y };
+    });
     if (cell.on) {
       g.fillStyle(col, Math.min(0.95, cell.alpha));
-      g.fillRect(w.x - cw, w.y - ch, cw * 2, ch * 2);
+      g.fillPoints(pts, true);
     } else {
-      g.fillStyle(0xffffff, 0.045);
-      g.fillRect(w.x - cw * 0.8, w.y - ch * 0.8, cw * 1.6, ch * 1.6);
+      g.fillStyle(0xffffff, 0.05);
+      g.fillPoints(pts, true);
     }
   });
 

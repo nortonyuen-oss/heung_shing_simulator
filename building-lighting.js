@@ -232,10 +232,15 @@ function buildingLightCorridorCol(panel, personality) {
     Math.floor((personality?.corridorCol ?? 0.5) * panel.cols)));
 }
 
+// Fraction of a grid cell the lit window fills (rest is the mullion gap).
+const BUILDING_LIGHT_WINDOW_FILL = 0.72;
+
 // One entry per grid cell of every active panel:
-//   { on, alpha, nx, ny, panel, cellW, cellH }
-// nx/ny are the bilinear cell centre in normalised texture space; cellW/cellH
-// are the cell's normalised footprint (for sizing the glow stamp).
+//   { on, alpha, nx, ny, panel, quad }
+// nx/ny are the bilinear cell centre in normalised texture space; quad is the
+// window's four normalised corners, itself bilinear-interpolated on the panel -
+// so the window is a sheared parallelogram matching the iso face, not a
+// screen-aligned rectangle.
 function computeLitBuildingWindows(profile, seed, bucket, jitterNonce, personality) {
   const s = seed >>> 0;
   const pers = personality || getBuildingLightPersonality(s);
@@ -249,9 +254,12 @@ function computeLitBuildingWindows(profile, seed, bucket, jitterNonce, personali
   const corridorCol = corridorPanel >= 0
     ? buildingLightCorridorCol(panels[corridorPanel], pers) : -1;
   const out = [];
+  const f = BUILDING_LIGHT_WINDOW_FILL / 2;
   for (let pi = 0; pi < panels.length; pi++) {
     const panel = panels[pi];
     if (!panel.on) continue;
+    const du = 1 / panel.cols;
+    const dv = 1 / panel.rows;
     for (let r = 0; r < panel.rows; r++) {
       for (let c = 0; c < panel.cols; c++) {
         const key = pi * 4096 + r * panel.cols + c;
@@ -266,15 +274,36 @@ function computeLitBuildingWindows(profile, seed, bucket, jitterNonce, personali
             alpha = 0.6 + hashBuildingLight(s, key + 4099, nonce) * 0.32;
           }
         }
-        const uv = bilerpBuildingLight(panel.corners, (c + 0.5) / panel.cols, (r + 0.5) / panel.rows);
+        const uc = (c + 0.5) * du;
+        const vc = (r + 0.5) * dv;
+        const uv = bilerpBuildingLight(panel.corners, uc, vc);
         out.push({
-          on, alpha, nx: uv[0], ny: uv[1], panel: pi,
-          cellW: 1 / panel.cols, cellH: 1 / panel.rows,
+          on,
+          alpha,
+          panel: pi,
+          nx: uv[0],
+          ny: uv[1],
+          quad: [
+            bilerpBuildingLight(panel.corners, uc - f * du, vc - f * dv),
+            bilerpBuildingLight(panel.corners, uc + f * du, vc - f * dv),
+            bilerpBuildingLight(panel.corners, uc + f * du, vc + f * dv),
+            bilerpBuildingLight(panel.corners, uc - f * du, vc + f * dv),
+          ],
         });
       }
     }
   }
   return out;
+}
+
+// Scale a quad about its centroid (for the outer bloom pass).
+function scaleBuildingLightQuad(quad, factor) {
+  let cx = 0;
+  let cy = 0;
+  for (let i = 0; i < 4; i++) { cx += quad[i][0]; cy += quad[i][1]; }
+  cx /= 4;
+  cy /= 4;
+  return quad.map((p) => [cx + (p[0] - cx) * factor, cy + (p[1] - cy) * factor]);
 }
 
 // ---------------------------------------------------------------------------
@@ -365,7 +394,7 @@ function setupBuildingLights(scene) {
 }
 
 function destroyBuildingLightGlow(glow) {
-  glow?.rt?.destroy?.();
+  glow?.gfx?.destroy?.();
   glow?.entrance?.destroy?.();
 }
 
@@ -393,26 +422,30 @@ function buildingLightRecordFor(sprite) {
 }
 
 function createBuildingLightGlow(scene, sprite) {
-  if (!scene?.add?.renderTexture) return null;
+  if (!scene?.add?.graphics) return null;
   const w = Math.max(4, Math.round(sprite.width || sprite.displayWidth || 32));
   const h = Math.max(4, Math.round(sprite.height || sprite.displayHeight || 32));
-  const rt = scene.add.renderTexture(sprite.x, sprite.y, w, h);
-  rt.setOrigin(sprite.originX ?? 0.5, sprite.originY ?? 1);
-  rt.setScale(sprite.scaleX || 1, sprite.scaleY || 1);
-  rt.setDepth((sprite.depth || 0) + 0.1);
+  // A retained Graphics per building: redrawn only on relight, static between,
+  // one draw object in the display list. Local (0,0) is the sprite's draw
+  // position; windows are placed in local px = (n - origin) * texSize.
+  const gfx = scene.add.graphics();
+  gfx.setScale(sprite.scaleX || 1, sprite.scaleY || 1);
+  gfx.setDepth((sprite.depth || 0) + 0.1);
   const additive = typeof Phaser !== 'undefined' ? Phaser.BlendModes.ADD : 'ADD';
-  rt.setBlendMode?.(additive);
-  if (scene.worldMask) rt.setMask(scene.worldMask);
-  if (typeof addToRenderLayer === 'function') addToRenderLayer(scene, rt, 'objectLayer');
+  gfx.setBlendMode?.(additive);
+  if (scene.worldMask) gfx.setMask(scene.worldMask);
+  if (typeof addToRenderLayer === 'function') addToRenderLayer(scene, gfx, 'objectLayer');
   const record = buildingLightRecordFor(sprite);
   const seed = getBuildingLightSeed(sprite.mapRow, sprite.mapCol);
   return {
-    rt,
+    gfx,
     sprite,
     textureKey: sprite.texture?.key || null,
     entrance: null,
     texW: w,
     texH: h,
+    originX: sprite.originX ?? 0.5,
+    originY: sprite.originY ?? 1,
     seed,
     personality: getBuildingLightPersonality(seed),
     record,
@@ -427,25 +460,23 @@ function relightBuildingGlow(scene, sprite, glow, bucket, time) {
   glow.record = record;
   const profile = resolveBuildingLightProfile(record, sprite.logicalSpriteKey || sprite.renderTextureKey);
   const cells = computeLitBuildingWindows(profile, glow.seed, bucket, glow.jitterNonce, glow.personality);
-  const winKey = BUILDING_LIGHT_CONFIG.windowDotTextureKey;
-  const rt = glow.rt;
-  rt.clear();
-  const dotSrc = scene.textures.exists(winKey) ? winKey : null;
-  const tint = profile.color;
-  if (dotSrc) {
-    const img = scene.__buildingLightStamp
-      || (scene.__buildingLightStamp = scene.make.image({ key: winKey, add: false }));
-    img.setOrigin(0.5, 0.5);
-    img.setTint(tint);
-    for (let i = 0; i < cells.length; i++) {
-      const cell = cells[i];
-      if (!cell.on) continue;
-      const w = Math.max(2, cell.cellW * glow.texW * 0.82);
-      const h = Math.max(2, cell.cellH * glow.texH * 0.82);
-      img.setAlpha(cell.alpha);
-      img.setDisplaySize(w, h);
-      rt.draw(img, cell.nx * glow.texW, cell.ny * glow.texH);
-    }
+  const g = glow.gfx;
+  g.clear();
+  g.setPosition(sprite.x, sprite.y);
+  g.setDepth((sprite.depth || 0) + 0.1);
+  const tint = profile.color & 0xffffff;
+  // window normal-space -> Graphics-local px (relative to the sprite's origin)
+  const px = (q) => q.map((p) => ({
+    x: (p[0] - glow.originX) * glow.texW,
+    y: (p[1] - glow.originY) * glow.texH,
+  }));
+  for (let i = 0; i < cells.length; i++) {
+    const cell = cells[i];
+    if (!cell.on) continue;
+    g.fillStyle(tint, Math.min(0.5, cell.alpha * 0.3));
+    g.fillPoints(px(scaleBuildingLightQuad(cell.quad, 1.7)), true);
+    g.fillStyle(tint, Math.min(1, cell.alpha));
+    g.fillPoints(px(cell.quad), true);
   }
   // Entrance glow
   const wantEntrance = profile.entrance
@@ -522,7 +553,8 @@ function updateBuildingLights(scene, time) {
       if (queue.indexOf(id) === -1) queue.push(id);
       return;
     }
-    glow.rt.setAlpha(alpha);
+    glow.gfx.setAlpha(alpha);
+    if (glow.gfx.x !== sprite.x || glow.gfx.y !== sprite.y) glow.gfx.setPosition(sprite.x, sprite.y);
     if (glow.entrance) glow.entrance.setAlpha(entranceAlpha);
     if (bucketChanged || (jitterEnabled && time >= glow.nextJitterAt)) {
       if (queue.indexOf(id) === -1) queue.push(id);
@@ -543,7 +575,7 @@ function updateBuildingLights(scene, time) {
     const glow = glows.get(id);
     if (!glow || !glow.sprite?.visible) continue;
     relightBuildingGlow(s, glow.sprite, glow, bucket, time);
-    glow.rt.setAlpha(alpha);
+    glow.gfx.setAlpha(alpha);
   }
 }
 

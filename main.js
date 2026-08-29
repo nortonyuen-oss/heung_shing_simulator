@@ -698,6 +698,7 @@ function updateGameFrame(time, delta) {
     syncVehicleTrackerTargetsBeforeRender(this, time);
   }
   updateTerrainViewportCulling(this);
+  if (typeof updateBuildingLights === 'function') updateBuildingLights(this, time);
   if (typeof updateSeaFlowAnimation === 'function') updateSeaFlowAnimation(this, time);
   if (typeof updateRainRipples === 'function') updateRainRipples(this, time);
   if (typeof finalizeVehicleTrackerCameraCulling === 'function') {
@@ -2087,6 +2088,7 @@ function create() {
 
   setupWeatherEffects(this);
   setupDynamicLighting(this);
+  if (typeof setupBuildingLights === 'function') setupBuildingLights(this);
 
   this.scale.on('resize', () => {
     updateMapMetrics(this);
@@ -4135,6 +4137,11 @@ function placeSpriteBuilding(scene, row, col, key, options = {}) {
   building.anchorMode = options.anchorMode;
   building.setInteractive({ useHandCursor: true });
   building.on('pointerdown', (pointer) => {
+    if (typeof handleBuildingLightCalibrationPick === 'function'
+      && handleBuildingLightCalibrationPick(scene, building)) {
+      pointer.event?.stopPropagation();
+      return;
+    }
     if (typeof isVisualRouteCalibrationInputCaptured === 'function'
       && isVisualRouteCalibrationInputCaptured(scene)) return;
     // §10: in Transport Mode, clicking a depot opens its Depot window with
@@ -4384,6 +4391,7 @@ function removeBuilding(scene, row, col, options = {}) {
   }
   if (removedHarborSide) rebuildHarborFrontageTileCache();
 
+  if (typeof releaseBuildingLightGlow === 'function') releaseBuildingLightGlow(scene, building);
   building.destroy();
   getFootprintTiles(
     building.mapRow,
@@ -6695,6 +6703,7 @@ function updateDynamicLighting(scene) {
     graphics.clear();
     scene.nightOverlay?.setAlpha(0);
     scene.trafficLightStrength = 0;
+    scene.buildingLightStrength = 0;
     scene.starField?.setAlpha(0);
     scene.moonSprite?.setAlpha(0);
     camera?.setBackgroundColor?.(
@@ -6722,6 +6731,9 @@ function updateDynamicLighting(scene) {
   // reads scene.trafficLightStrength instead of recomputing it per frame.
   if (typeof computeRuntimeTrafficLightStrength === 'function') {
     scene.trafficLightStrength = computeRuntimeTrafficLightStrength(scene);
+  }
+  if (typeof computeRuntimeBuildingLightStrength === 'function') {
+    scene.buildingLightStrength = computeRuntimeBuildingLightStrength(scene);
   }
   const stars = typeof getStarFieldVisualState === 'function'
     ? getStarFieldVisualState(timeMinutes)
@@ -7054,6 +7066,7 @@ async function generateNewTerrain() {
 
 function clearBuildings(scene) {
   if (!scene?.buildingSprites) return;
+  if (typeof clearBuildingLights === 'function') clearBuildingLights(scene);
   new Set(scene.buildingSprites.values()).forEach((building) => {
     building.destroy();
   });

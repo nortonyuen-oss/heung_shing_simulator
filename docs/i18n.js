@@ -210,6 +210,11 @@ const SITE_FEATURE_LIST = {
 // ── Changelog ─────────────────────────────────────────────────────────────────
 const SITE_CHANGELOG = {
   "zh-HK": [
+    { version: "v4.6.0", date: "2026-08-30", dateLabel: "2026年8月30日", title: "萬家燈火", items: [
+      "夜景貼圖：40 個已校正嘅建築模型各焗兩張夜景貼圖（普通夜晚／深夜），入夜自動換圖。亮起嘅係原圖本身嗰啲窗——用校正格做遮罩去照亮真實窗戶，唔係喺上面畫方格，所以窗框、露台、玻璃質感全部保留，窗邊仲有柔和暖色光暈。",
+      "兩層夜色：深夜嘅樓宇立面更暗、亮燈窗戶疏落好多，成個城市會隨住夜深靜落嚟。夜色本身亦由一層拆成地面層（只蓋地形同道路）同大氣層（薄薄一層蓋全部），令亮窗唔會俾夜幕壓成灰色。整體夜晚暗度 0.45。",
+      "效能：同一個密集夜景 render 由 165 毫秒跌到 12 毫秒。街燈焗入貼圖，但只焗光暈完全落喺模型範圍內嗰啲。未校正嘅模型維持原本嘅即時光暈，並加入以鏡頭距離排序嘅 LOD。燈光校正資料改用檔名做 key，唔會再因為新增／刪除模型檔而錯位。",
+    ] },
     { version: "v4.5.0", date: "2026-08-30", dateLabel: "2026年8月30日", title: "輕舟已過", items: [
       "建築貼圖優化：一般建築模型由 1024² 焗細到 512²，機場、大會堂、貨櫃碼頭等大型地標保留 1024²。GPU 貼圖記憶體約減 62%（約 680 MB → 260 MB），城市存檔載入由約 3.5 秒縮到約 1.7 秒，正常縮放下畫質肉眼分唔到。原始 PNG 母檔保留。",
       "夜間建築燈光開關：View 選單新增「夜間建築燈光（亮燈窗戶／街燈）」，獨立於「動態光影」。關咗即刻清走現有光暈、之後每幀零成本，適合弱機或人口幾十萬嘅巨型城市。設定會記住，繁中／英／日界面齊備。",
@@ -432,6 +437,11 @@ const SITE_CHANGELOG = {
 // title/items text.
 const SITE_CHANGELOG_TRANSLATIONS = {
   "zh-TW": {
+    "v4.6.0": { title: "萬家燈火", items: [
+      "夜景貼圖：40 個已校正的建築模型各烘焙兩張夜景貼圖（一般夜晚／深夜），入夜自動換圖。亮起的是原圖本身那些窗——用校正格當遮罩去照亮真實窗戶，而非在上面畫方格，所以窗框、陽台、玻璃質感全部保留，窗邊還有柔和暖色光暈。",
+      "兩層夜色：深夜的樓宇立面更暗、亮燈窗戶疏落許多，整座城市會隨著夜深靜下來。夜色本身也由一層拆成地面層（只覆蓋地形與道路）與大氣層（薄薄一層覆蓋全部），讓亮窗不會被夜幕壓成灰色。整體夜晚暗度 0.45。",
+      "效能：同一個密集夜景 render 由 165 毫秒降到 12 毫秒。路燈烘焙進貼圖，但只烘焙光暈完全落在模型範圍內的那些。未校正的模型維持原本的即時光暈，並加入以鏡頭距離排序的 LOD。燈光校正資料改用檔名當 key，不會再因為新增／刪除模型檔而錯位。",
+    ] },
     "v4.5.0": { title: "輕舟已過", items: [
       "建築貼圖最佳化：一般建築模型由 1024² 縮到 512²，機場、大會堂、貨櫃碼頭等大型地標保留 1024²。GPU 貼圖記憶體約減 62%（約 680 MB → 260 MB），城市存檔載入由約 3.5 秒縮到約 1.7 秒，正常縮放下畫質看不出差異。原始 PNG 母檔保留。",
       "夜間建築燈光開關：View 選單新增「夜間建築燈光（亮燈窗戶／街燈）」，獨立於「動態光影」。關閉後立即清除現有光暈、之後每幀零成本，適合較弱的機器或人口數十萬的巨型城市。設定會記住，繁中／英／日介面齊備。",
@@ -647,6 +657,11 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   en: {
+    "v4.6.0": { title: "A City of Lit Windows", items: [
+      "Baked night textures: each of the 40 calibrated building models now ships two night variants (evening and deep night) that swap in automatically after dark. What lights up is the artwork's own windows - the calibrated grid is used as a mask to brighten the real glass rather than to paint rectangles over it, so frames, balconies and glazing all survive, with a soft warm halo around each lit window.",
+      "Two tiers of night: deep night darkens facades further and lights far fewer windows, so the city visibly settles down in the small hours. Night itself is now two passes - a ground pass over terrain and roads only, and a thin atmosphere pass over everything - so a lit window is no longer crushed to grey by the night overlay. Overall night darkness is 0.45.",
+      "Performance: the same dense night view renders in 12ms instead of 165ms. Street lamps are baked in, but only those whose glow falls entirely inside the model. Uncalibrated models keep the previous live glow, now with a camera-distance LOD. Light calibration data is keyed by filename, so it can no longer drift when model files are added or removed.",
+    ] },
     "v4.5.0": { title: "The Light Boat Sails Clear", items: [
       "Building texture optimisation: ordinary building models drop from 1024² to 512², while large landmarks (airport, cultural centre, container port, and the like) stay at 1024². GPU texture memory falls by about 62% (roughly 680 MB to 260 MB) and a city save now loads in about 1.7s instead of 3.5s, with no visible quality loss at normal zoom. The original PNG masters are kept.",
       "Night building-lights toggle: a new 'Night building lights (lit windows / lamps)' entry in the View menu, independent of 'Dynamic lighting'. Turning it off clears the existing glow immediately and costs nothing per frame afterwards - handy for weaker machines or a city of several hundred thousand people. The setting is remembered; available in Traditional Chinese, English and Japanese.",
@@ -862,6 +877,11 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   ja: {
+    "v4.6.0": { title: "万家の灯", items: [
+      "夜景テクスチャ：校正済みの建物モデル40種それぞれに2枚の夜景テクスチャ（通常の夜／深夜）を焼き込み、日没後に自動で切り替わります。光るのは元の絵にある窓そのもの——校正グリッドをマスクとして実際のガラスを明るくする方式なので、窓枠・バルコニー・ガラスの質感がすべて残り、窓の周りには柔らかな暖色のハローが付きます。",
+      "二段階の夜：深夜には外壁がさらに暗くなり、点灯した窓の数もぐっと減るため、街が夜更けとともに静まっていく様子が見えます。夜の暗さ自体も、地形と道路だけを覆う地面パスと、全体を薄く覆う大気パスの二層に分割。点灯した窓が夜のオーバーレイで灰色に潰れなくなりました。全体の夜の暗さは 0.45。",
+      "パフォーマンス：同じ高密度の夜景で render が 165ms から 12ms に短縮。街灯もテクスチャに焼き込みますが、光が完全にモデル内に収まるものだけです。未校正のモデルは従来のリアルタイム光を維持し、カメラ距離順の LOD を追加。照明校正データはファイル名をキーにしたため、モデルファイルの追加・削除でずれることがなくなりました。",
+    ] },
     "v4.5.0": { title: "軽舟すでに過ぐ", items: [
       "建物テクスチャの最適化：通常の建物モデルを 1024² から 512² に縮小し、空港・文化センター・コンテナターミナルなどの大型ランドマークは 1024² のまま維持。GPU テクスチャメモリが約 62%（約 680 MB → 260 MB）減り、都市セーブの読み込みが約 3.5 秒から約 1.7 秒に短縮。通常のズームでは画質の違いは分からない。元の PNG マスターは保持。",
       "夜間の建物ライトのトグル：View メニューに「夜間の建物の明かり（点灯した窓／街灯）」を追加。「動的ライティング」とは独立。オフにすると既存の光がすぐに消え、以降はフレームごとのコストがゼロ。非力なマシンや人口数十万の巨大都市に有効。設定は記憶され、繁体字中国語・英語・日本語に対応。",
@@ -1102,8 +1122,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.5.0 — 【輕舟已過】",
-      versionDesc: "跑得順啲：建築貼圖由 1024² 縮到 512²（地標保留），顯示卡記憶體減約六成、存檔載入快近一倍；夜間建築窗戶燈光而家喺 View 選單有獨立開關。",
+      versionBadge: "v4.6.0 — 【萬家燈火】",
+      versionDesc: "萬家燈火：40 個建築模型各焗咗兩張夜景貼圖，入夜自動換圖，亮起嘅係原圖本身嗰啲窗；深夜牆更暗、燈更疏。密集夜景 render 由 165 毫秒跌到 12 毫秒。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感嘅城市建設遊戲。起街道、規劃社區、經營自己嘅香城巴士公司、處理議會同天氣，再睇住一座有性格嘅香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1179,8 +1199,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.5.0 — 【輕舟已過】",
-      versionDesc: "跑得更順：建築貼圖由 1024² 縮到 512²（地標保留），顯示卡記憶體減約六成、存檔載入快近一倍；夜間建築窗戶燈光現在於 View 選單有獨立開關。",
+      versionBadge: "v4.6.0 — 【萬家燈火】",
+      versionDesc: "萬家燈火：40 個建築模型各烘焙了兩張夜景貼圖，入夜自動換圖，亮起的是原圖本身那些窗；深夜牆更暗、燈更疏。密集夜景 render 由 165 毫秒降到 12 毫秒。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感的城市建設遊戲。興建街道、規劃社區、經營自己的香城公車公司、處理議會與天氣，看著一座有個性的香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1256,8 +1276,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "The City of Heung Shing",
       title: "The City of Heung Shing",
-      versionBadge: "v4.5.0 — The Light Boat Sails Clear",
-      versionDesc: "Runs lighter: building textures drop from 1024² to 512² (landmarks kept large), cutting GPU texture memory by roughly 62% and halving city-save load time; night building-window lighting now has its own toggle in the View menu.",
+      versionBadge: "v4.6.0 — A City of Lit Windows",
+      versionDesc: "A city of lit windows: 40 building models ship two baked night textures each, swapping in after dark, lighting the artwork's own windows; deep night darkens facades further and lights far fewer of them. A dense night view renders in 12ms instead of 165ms.",
       lede: "A city-building game inspired by Hong Kong life and made in tribute to SimCity 2000. Build streets, shape neighbourhoods, run your own Heung Shing Bus Company, navigate council politics and weather, then watch a city with real personality grow.",
       freeLabel: "Completely free · macOS + Windows · Local saves",
       downloadBtn: "【Free Download】",
@@ -1334,8 +1354,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.5.0 — 軽舟すでに過ぐ",
-      versionDesc: "より軽快に：建物テクスチャを 1024² から 512² に縮小（ランドマークは大きいまま）。GPU テクスチャメモリを約 62% 削減し、都市セーブの読み込みを約半分に短縮。夜間の建物の窓明かりは View メニューに専用トグルを追加。",
+      versionBadge: "v4.6.0 — 万家の灯",
+      versionDesc: "万家の灯：建物モデル40種それぞれに2枚の夜景テクスチャを焼き込み、日没後に自動で切り替え。光るのは元の絵にある窓そのもの。深夜は外壁がより暗く、灯りもぐっと減ります。高密度の夜景で render が 165ms から 12ms に短縮。",
       lede: "香港の都市生活から着想を得た、SimCity 2000へのオマージュとなる都市建設ゲーム。道路を築き、地区を計画し、自分だけの香城バス会社を経営し、議会や天候に向き合いながら、個性ある香城の成長を見守ります。",
       freeLabel: "完全無料 · macOS + Windows · ローカルセーブ",
       downloadBtn: "【無料ダウンロード】",

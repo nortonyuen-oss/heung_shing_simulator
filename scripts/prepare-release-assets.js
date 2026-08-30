@@ -11,7 +11,20 @@ const DATA_ROOT = path.join(ROOT, '.data');
 const STAGE_ROOT = path.join(DATA_ROOT, 'package-assets');
 const NEXT_STAGE_ROOT = path.join(DATA_ROOT, 'package-assets.next');
 const CACHE_ROOT = path.join(DATA_ROOT, 'webp-cache');
-const MAX_DIMENSION = Number(process.env.ASSET_MAX_DIMENSION || 1024);
+const MAX_DIMENSION = Number(process.env.ASSET_MAX_DIMENSION || 512);
+// Landmark / large-footprint showpieces stay larger - they read at a much
+// bigger on-screen size and are usually viewed zoomed out. Override per top
+// folder with ASSET_LANDMARK_MAX / ASSET_LANDMARK_FOLDERS.
+const LANDMARK_MAX_DIMENSION = Number(process.env.ASSET_LANDMARK_MAX || 1024);
+const LANDMARK_FOLDERS = new Set(
+  (process.env.ASSET_LANDMARK_FOLDERS || 'specialSites,airPort,containerPort')
+    .split(',').map((s) => s.trim()).filter(Boolean),
+);
+
+function maxDimensionFor(relativeFromModels) {
+  const top = relativeFromModels.split('/')[0];
+  return LANDMARK_FOLDERS.has(top) ? LANDMARK_MAX_DIMENSION : MAX_DIMENSION;
+}
 // Bump whenever pixel processing changes so cached WebP files cannot retain an
 // older matte-removal, resize, padding, or encoder result.
 const SETTINGS_VERSION = 5;
@@ -131,11 +144,12 @@ async function prepareFile(sourcePath) {
   const packagedRelative = relativeFromModels.replace(/\.[^.]+$/, '.webp');
   const packagedPath = `Models/${packagedRelative}`;
   const shouldTrim = !relativeFromModels.startsWith('trees/');
+  const fileMaxDimension = maxDimensionFor(relativeFromModels);
   const cacheKey = sha256(Buffer.concat([
     sourceBuffer,
     Buffer.from(JSON.stringify({
       SETTINGS_VERSION,
-      MAX_DIMENSION,
+      MAX_DIMENSION: fileMaxDimension,
       shouldTrim,
       defringe: 'none-source-preserved',
       webp: 'lossless',
@@ -163,10 +177,10 @@ async function prepareFile(sourcePath) {
         channels: 4,
       },
     });
-    if (decoded.info.width > MAX_DIMENSION || decoded.info.height > MAX_DIMENSION) {
+    if (decoded.info.width > fileMaxDimension || decoded.info.height > fileMaxDimension) {
       pipeline = pipeline.resize({
-        width: MAX_DIMENSION,
-        height: MAX_DIMENSION,
+        width: fileMaxDimension,
+        height: fileMaxDimension,
         fit: 'inside',
         withoutEnlargement: true,
       });

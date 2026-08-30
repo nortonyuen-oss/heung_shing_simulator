@@ -9,19 +9,17 @@ const {
 } = require('./lib/defringe-model');
 
 const projectRoot = path.resolve(__dirname, '..');
-const modelRoots = [
-  path.join(projectRoot, 'Models', 'residential'),
-  path.join(projectRoot, 'Models', 'commercial'),
-  path.join(projectRoot, 'Models', 'industrial'),
-  path.join(projectRoot, 'Models', 'government'),
-  path.join(projectRoot, 'Models', 'parks'),
-  path.join(projectRoot, 'Models', 'powerStation'),
-  path.join(projectRoot, 'Models', 'specialSites'),
-  path.join(projectRoot, 'Models', 'airPort'),
-  path.join(projectRoot, 'Models', 'containerPort'),
-  path.join(projectRoot, 'Models', 'vessels'),
-  path.join(projectRoot, 'Models', 'trees'),
+// Which Models/* subfolders to process. Override with ASSET_MODEL_ROOTS
+// (comma-separated folder names) to run different max dimensions per group,
+// e.g. ASSET_MODEL_ROOTS=specialSites,airPort ASSET_MAX_DIMENSION=1024.
+const DEFAULT_MODEL_ROOT_NAMES = [
+  'residential', 'commercial', 'industrial', 'government', 'parks',
+  'powerStation', 'specialSites', 'airPort', 'containerPort', 'vessels', 'trees',
 ];
+const modelRoots = (process.env.ASSET_MODEL_ROOTS
+  ? process.env.ASSET_MODEL_ROOTS.split(',').map((s) => s.trim()).filter(Boolean)
+  : DEFAULT_MODEL_ROOT_NAMES
+).map((name) => path.join(projectRoot, 'Models', name));
 
 const MAX_DIMENSION = Number(process.env.ASSET_MAX_DIMENSION || 1024);
 const WEBP_QUALITY = Number(process.env.ASSET_WEBP_QUALITY || 82);

@@ -423,6 +423,43 @@ function createGameApp(options = {}) {
   }
   });
 
+  // Building night-lighting calibration store (dev tool; survives game resets).
+  app.get('/api/building-light-profiles', (_req, res) => {
+    try {
+      res.json({ entries: store.getBuildingLightProfiles() });
+    } catch (e) {
+      console.error('[GET /api/building-light-profiles]', e.message);
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.put('/api/building-light-profiles', (req, res) => {
+    try {
+      const entries = req.body && typeof req.body === 'object' ? (req.body.entries ?? req.body) : {};
+      res.json(store.replaceBuildingLightProfiles(entries));
+    } catch (e) {
+      sendStoreError(res, e, 'PUT /api/building-light-profiles');
+    }
+  });
+
+  app.put('/api/building-light-profiles/:key', (req, res) => {
+    try {
+      const data = req.body && typeof req.body === 'object' ? (req.body.data ?? req.body) : null;
+      res.json(store.putBuildingLightProfile(req.params.key, data));
+    } catch (e) {
+      sendStoreError(res, e, 'PUT /api/building-light-profiles/:key');
+    }
+  });
+
+  app.delete('/api/building-light-profiles/:key', (req, res) => {
+    try {
+      res.json(store.deleteBuildingLightProfile(req.params.key));
+    } catch (e) {
+      console.error('[DELETE /api/building-light-profiles/:key]', e.message);
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   // Keep body-parser failures machine-readable for the renderer and avoid
   // Express's default HTML error page (and development stack trace).
   app.use((error, _req, res, next) => {

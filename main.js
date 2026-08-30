@@ -699,7 +699,6 @@ function updateGameFrame(time, delta) {
   }
   updateTerrainViewportCulling(this);
   if (typeof updateBuildingLights === 'function') updateBuildingLights(this, time);
-  if (typeof syncBuildingLightCalibratorStage === 'function') syncBuildingLightCalibratorStage(this);
   if (typeof updateSeaFlowAnimation === 'function') updateSeaFlowAnimation(this, time);
   if (typeof updateRainRipples === 'function') updateRainRipples(this, time);
   if (typeof finalizeVehicleTrackerCameraCulling === 'function') {

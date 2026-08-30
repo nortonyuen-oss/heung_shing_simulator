@@ -86,6 +86,17 @@ function openGameDatabase(dbPath = resolveDbPath()) {
     );
   `);
 
+  // Dedicated store for building night-lighting calibration. Deliberately
+  // separate from game_saves: it holds authored/tool data, not city state, and
+  // must survive "new city", save deletion, and schema changes to the game.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS building_light_profiles (
+      sprite_key  TEXT PRIMARY KEY,
+      data        TEXT NOT NULL,
+      updated_at  TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
   seedAstronomyCalendar(db, hkoAstronomySeed);
 
   const getSaveMetadataById = db.prepare(`
@@ -277,6 +288,50 @@ function openGameDatabase(dbPath = resolveDbPath()) {
       if (!row) return null;
       const { sourcesJson, ...metadata } = row;
       return { ...metadata, sources: JSON.parse(sourcesJson) };
+    },
+
+    // ── Building night-lighting calibration ────────────────────────────────
+    getBuildingLightProfiles() {
+      const rows = db.prepare('SELECT sprite_key, data FROM building_light_profiles').all();
+      const entries = {};
+      for (const row of rows) {
+        try { entries[row.sprite_key] = JSON.parse(row.data); } catch { /* skip bad row */ }
+      }
+      return entries;
+    },
+    putBuildingLightProfile(spriteKey, data) {
+      const key = String(spriteKey || '').trim();
+      if (!key) throw createInvalidPayloadError('sprite_key is required');
+      assertJsonObject(data, 'profile data');
+      db.prepare(`
+        INSERT INTO building_light_profiles (sprite_key, data, updated_at)
+        VALUES (?, ?, CURRENT_TIMESTAMP)
+        ON CONFLICT(sprite_key) DO UPDATE SET data = excluded.data, updated_at = CURRENT_TIMESTAMP
+      `).run(key, JSON.stringify(data));
+      return { spriteKey: key };
+    },
+    deleteBuildingLightProfile(spriteKey) {
+      db.prepare('DELETE FROM building_light_profiles WHERE sprite_key = ?').run(String(spriteKey || ''));
+      return { ok: true };
+    },
+    replaceBuildingLightProfiles(entries) {
+      assertJsonObject(entries, 'entries');
+      db.exec('BEGIN');
+      try {
+        db.exec('DELETE FROM building_light_profiles');
+        const insert = db.prepare(`
+          INSERT INTO building_light_profiles (sprite_key, data) VALUES (?, ?)
+        `);
+        for (const [key, data] of Object.entries(entries)) {
+          if (!key || !data || typeof data !== 'object') continue;
+          insert.run(String(key), JSON.stringify(data));
+        }
+        db.exec('COMMIT');
+      } catch (error) {
+        db.exec('ROLLBACK');
+        throw error;
+      }
+      return { count: Object.keys(entries).length };
     },
 
     close() {

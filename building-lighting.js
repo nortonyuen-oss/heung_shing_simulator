@@ -243,6 +243,39 @@ const BUILDING_LIGHT_MINIMAL_PROFILE = makeBuildingLightProfile({
   class: 'off', panels: [], lamps: [{ x: 0.5, y: 0.88, r: 0.07 }],
 });
 
+// Live calibration store, keyed by sprite key, hydrated from the dedicated
+// SQLite table (GET /api/building-light-profiles) at scene setup and updated by
+// building-light-calibrator.js on Apply. This is the authoritative source for a
+// calibrated model; the baked BUILDING_LIGHT_HERO_PROFILES below are just the
+// last export snapshot that ships with a release.
+const BUILDING_LIGHT_DB_PROFILES = {};
+
+function setBuildingLightDbProfile(spriteKey, data) {
+  if (!spriteKey) return;
+  if (data == null) { delete BUILDING_LIGHT_DB_PROFILES[spriteKey]; return; }
+  try { BUILDING_LIGHT_DB_PROFILES[spriteKey] = makeBuildingLightProfile(data); }
+  catch { /* ignore a malformed entry */ }
+}
+
+function loadBuildingLightDbProfiles(entries) {
+  Object.keys(BUILDING_LIGHT_DB_PROFILES).forEach((k) => delete BUILDING_LIGHT_DB_PROFILES[k]);
+  Object.entries(entries || {}).forEach(([k, d]) => setBuildingLightDbProfile(k, d));
+}
+
+async function fetchBuildingLightDbProfiles(scene) {
+  if (typeof fetch !== 'function') return;
+  try {
+    const res = await fetch('/api/building-light-profiles');
+    if (!res.ok) return;
+    const json = await res.json();
+    loadBuildingLightDbProfiles(json && json.entries ? json.entries : {});
+    const target = scene || (typeof activeScene !== 'undefined' ? activeScene : null);
+    if (target && typeof refreshAllBuildingLightGlows === 'function') {
+      refreshAllBuildingLightGlows(target);
+    }
+  } catch { /* offline: baked profiles + calibrator still work */ }
+}
+
 // Calibrated per-family profiles, baked from building-light-calibrator.js.
 // A family absent here falls back to the class default above.
 const BUILDING_LIGHT_PROFILES = {};
@@ -404,11 +437,14 @@ function getBuildingLightFamily(record) {
 
 function resolveBuildingLightProfile(record, spriteKey) {
   const family = getBuildingLightFamily(record);
+  // in-editor live preview override (calibrator, optional) beats everything
   const override = typeof getBuildingLightCalibrationOverride === 'function'
     ? getBuildingLightCalibrationOverride(spriteKey, family)
     : null;
   if (override) return override;
-  return (spriteKey && BUILDING_LIGHT_HERO_PROFILES[spriteKey])
+  return (spriteKey && BUILDING_LIGHT_DB_PROFILES[spriteKey])
+    || BUILDING_LIGHT_DB_PROFILES[family]
+    || (spriteKey && BUILDING_LIGHT_HERO_PROFILES[spriteKey])
     || BUILDING_LIGHT_PROFILES[family]
     || BUILDING_LIGHT_MINIMAL_PROFILE;
 }
@@ -597,6 +633,8 @@ function ensureBuildingLightTextures(scene) {
 // Runtime: one RenderTexture glow per visible building, relit on a budget
 // ---------------------------------------------------------------------------
 
+let buildingLightDbFetched = false;
+
 function setupBuildingLights(scene) {
   if (!scene) return;
   ensureBuildingLightTextures(scene);
@@ -604,6 +642,10 @@ function setupBuildingLights(scene) {
   scene.buildingLightQueue = scene.buildingLightQueue || [];       // anchor tileIds pending relight
   scene.buildingLightBucket = scene.buildingLightBucket || null;
   scene.buildingLightsActive = false;
+  if (!buildingLightDbFetched) {
+    buildingLightDbFetched = true;
+    fetchBuildingLightDbProfiles(scene);
+  }
 }
 
 function destroyBuildingLightGlow(glow) {
@@ -847,6 +889,9 @@ const buildingLightingTestApi = {
   getBuildingLightClass,
   getBuildingLightFamily,
   resolveBuildingLightProfile,
+  setBuildingLightDbProfile,
+  loadBuildingLightDbProfiles,
+  BUILDING_LIGHT_DB_PROFILES,
   bilerpBuildingLight,
   defaultBuildingLightPanels,
   computeLitBuildingWindows,
@@ -866,6 +911,10 @@ if (typeof globalThis !== 'undefined') {
     clearBuildingLights,
     releaseBuildingLightGlow,
     refreshAllBuildingLightGlows,
+    setBuildingLightDbProfile,
+    loadBuildingLightDbProfiles,
+    fetchBuildingLightDbProfiles,
+    BUILDING_LIGHT_DB_PROFILES,
     resolveBuildingLightProfile,
     getBuildingLightClass,
     getBuildingLightFamily,

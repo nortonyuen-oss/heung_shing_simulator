@@ -62,17 +62,17 @@ function loadBuildingLightCalibrationOverrides() {
       return parsed && parsed.entries && typeof parsed.entries === 'object' ? parsed.entries : null;
     } catch { return null; }
   };
-  const current = read(BUILDING_LIGHT_CALIBRATION_STORAGE_KEY);
-  if (current) return current;
-  // migrate a v2 store (entrance/ex/ey/er -> lamps)
-  for (const legacy of BUILDING_LIGHT_CALIBRATION_LEGACY_KEYS) {
+  // Merge every store, oldest first, so a v2 entry is never lost just because a
+  // v3 store already exists. Current (v3) wins per key; the merged set is
+  // re-persisted under v3 so this only has to happen once.
+  const merged = {};
+  BUILDING_LIGHT_CALIBRATION_LEGACY_KEYS.forEach((legacy) => {
     const old = read(legacy);
-    if (!old) continue;
-    const out = {};
-    Object.entries(old).forEach(([k, d]) => { out[k] = migrateBuildingLightCalibrationData(d); });
-    return out;
-  }
-  return {};
+    if (old) Object.entries(old).forEach(([k, d]) => { merged[k] = migrateBuildingLightCalibrationData(d); });
+  });
+  const current = read(BUILDING_LIGHT_CALIBRATION_STORAGE_KEY);
+  if (current) Object.entries(current).forEach(([k, d]) => { merged[k] = migrateBuildingLightCalibrationData(d); });
+  return merged;
 }
 
 function migrateBuildingLightCalibrationData(d) {
@@ -233,8 +233,10 @@ function buildingLightCalibrationStoreKey() {
 function buildingLightCalibrationCurrentData() {
   const t = buildingLightCalibrationTarget;
   if (!t) return null;
-  const key = buildingLightCalibrationStoreKey();
-  const stored = buildingLightCalibrationOverrides[key];
+  // per-model entry first; then a pre-existing per-family entry (from before the
+  // mode toggle was dropped) so those aren't lost; else the class base.
+  const stored = buildingLightCalibrationOverrides['@' + t.key]
+    || (t.zone && t.family && buildingLightCalibrationOverrides[t.family]);
   const data = stored
     ? buildingLightCalibrationCloneData(stored)
     : buildingLightCalibrationBaseData(t.cls);
@@ -357,17 +359,21 @@ function loadBuildingLightCalibrationTexture(done) {
 }
 
 // ---------------------------------------------------------------------------
-// preview - a fixed screen-space STAGE, not the live city layer. All objects
-// use scrollFactor(0) so panning/zooming the map never moves them, and the
-// backdrop shows the ambient of the scrubbed condition so the glow reads true.
+// preview - a dedicated STAGE pinned to the viewport, not the city itself.
+// Objects live in world space (so drag input Just Works) but the stage geometry
+// is recomputed from the camera every frame - screen size / (1/zoom), centred on
+// the world point under the viewport - so panning or zooming the map never
+// drifts or rescales it. The backdrop shows the ambient of the scrubbed
+// condition so the glow reads against the right darkness.
 // ---------------------------------------------------------------------------
 
-const BUILDING_LIGHT_CALIBRATION_STAGE = Object.freeze({ w: 520, h: 560, inset: 0.84 });
+const BUILDING_LIGHT_CALIBRATION_STAGE = Object.freeze({ w: 520, h: 560, inset: 0.82 });
 const BUILDING_LIGHT_CALIBRATION_BUCKET_BG = Object.freeze({
   duskRamp: 0x2b2438, eveningPeak: 0x121b2c, lateEvening: 0x0c1322,
   deepNight: 0x080d18, dawnFade: 0x171f34,
 });
 let buildingLightCalibrationRain = false;
+let buildingLightCalibrationCamKey = '';
 
 function buildingLightCalibrationDepth(o) {
   const base = typeof VISUAL_ROUTE_CALIBRATION_INPUT_DEPTH === 'number'
@@ -375,14 +381,25 @@ function buildingLightCalibrationDepth(o) {
   return base + o;
 }
 
-function buildingLightCalibrationStageRect(scene) {
-  const sw = scene?.scale?.width || 1280;
-  const sh = scene?.scale?.height || 720;
-  const w = Math.min(BUILDING_LIGHT_CALIBRATION_STAGE.w, Math.max(320, sw - 380));
-  const h = Math.min(BUILDING_LIGHT_CALIBRATION_STAGE.h, sh - 40);
-  const cx = Math.max(w / 2 + 16, (sw - 356) / 2);
-  const cy = sh / 2;
-  return { w, h, cx, cy };
+// { cx, cy: world centre of the stage; w, h: world size; s: screen->world scale }
+function buildingLightCalibrationStageGeom(scene) {
+  const cam = scene?.cameras?.main;
+  const zoom = (cam && cam.zoom) || 1;
+  const s = 1 / zoom;
+  const screenW = (cam && cam.width) || scene?.scale?.width || 1280;
+  const screenH = (cam && cam.height) || scene?.scale?.height || 720;
+  const sw = Math.min(BUILDING_LIGHT_CALIBRATION_STAGE.w, Math.max(300, screenW - 380));
+  const sh = Math.min(BUILDING_LIGHT_CALIBRATION_STAGE.h, screenH - 36);
+  const scx = Math.max(sw / 2 + 14, (screenW - 356) / 2);
+  const scy = screenH / 2;
+  const wc = cam?.getWorldPoint ? cam.getWorldPoint(scx, scy) : { x: scx, y: scy };
+  return { cx: wc.x, cy: wc.y, w: sw * s, h: sh * s, s, zoom };
+}
+
+function buildingLightCalibrationCameraSignature(scene) {
+  const cam = scene?.cameras?.main;
+  if (!cam) return '';
+  return `${Math.round(cam.scrollX)},${Math.round(cam.scrollY)},${(cam.zoom || 1).toFixed(3)},${cam.width}x${cam.height}`;
 }
 
 function buildingLightCalibrationStageBg() {
@@ -413,32 +430,30 @@ function spawnBuildingLightCalibrationPreview(refit) {
   const t = buildingLightCalibrationTarget;
   if (!scene?.add || !t) return;
   destroyBuildingLightCalibrationPreview();
-  const rect = buildingLightCalibrationStageRect(scene);
+  const geom = buildingLightCalibrationStageGeom(scene);
 
   if (refit || !buildingLightCalibrationZoom) {
-    const fit = Math.min(
-      rect.w * BUILDING_LIGHT_CALIBRATION_STAGE.inset / Math.max(1, t.texW),
-      rect.h * BUILDING_LIGHT_CALIBRATION_STAGE.inset / Math.max(1, t.texH),
+    // screen px the model should fill
+    const screenFit = Math.min(
+      geom.w / geom.s * BUILDING_LIGHT_CALIBRATION_STAGE.inset / Math.max(1, t.texW),
+      geom.h / geom.s * BUILDING_LIGHT_CALIBRATION_STAGE.inset / Math.max(1, t.texH),
     );
     buildingLightCalibrationZoom = Math.max(BUILDING_LIGHT_CALIBRATION_MIN_ZOOM,
-      Math.min(BUILDING_LIGHT_CALIBRATION_MAX_ZOOM, Math.round((fit || 3) * 4) / 4 || 3));
+      Math.min(BUILDING_LIGHT_CALIBRATION_MAX_ZOOM, Math.round((screenFit || 3) * 4) / 4 || 3));
   }
 
-  const stage = scene.add.rectangle(rect.cx, rect.cy, rect.w, rect.h, buildingLightCalibrationStageBg(), 1);
-  stage.setScrollFactor(0);
-  stage.setStrokeStyle(1, 0x33475f, 0.9);
+  const stage = scene.add.rectangle(geom.cx, geom.cy, geom.w, geom.h, buildingLightCalibrationStageBg(), 1);
+  stage.setStrokeStyle(geom.s, 0x3a516b, 0.95);
   stage.setDepth(buildingLightCalibrationDepth(-12));
 
   const stageGfx = scene.add.graphics();
-  stageGfx.setScrollFactor(0);
   stageGfx.setDepth(buildingLightCalibrationDepth(-11));
 
   const body = t.textureKey && scene.textures.exists(t.textureKey)
-    ? scene.add.image(rect.cx, rect.cy, t.textureKey)
+    ? scene.add.image(geom.cx, geom.cy, t.textureKey)
     : null;
   if (body) {
     body.setOrigin(0.5, 0.5);
-    body.setScrollFactor(0);
     body.setDepth(buildingLightCalibrationDepth(-8));
     if (!t.texW || t.texW === 128) {
       const src = body.texture?.getSourceImage?.();
@@ -446,28 +461,38 @@ function spawnBuildingLightCalibrationPreview(refit) {
     }
   }
   const gfx = scene.add.graphics();
-  gfx.setScrollFactor(0);
   gfx.setDepth(buildingLightCalibrationDepth(-6));
 
-  buildingLightCalibrationPreview = {
-    stage, stageGfx, body, gfx, handles: {},
-    stageCX: rect.cx, stageCY: rect.cy, rect,
-  };
+  buildingLightCalibrationPreview = { stage, stageGfx, body, gfx, handles: {}, geom };
+  buildingLightCalibrationCamKey = buildingLightCalibrationCameraSignature(scene);
   refreshBuildingLightCalibrationHandles();
+  layoutBuildingLightCalibrationPreview();
+}
+
+// Called every frame from the game loop: keep the stage pinned when the map moves.
+function syncBuildingLightCalibratorStage(scene) {
+  if (!buildingLightCalibrationActive || !buildingLightCalibrationPreview) return;
+  const sig = buildingLightCalibrationCameraSignature(scene);
+  if (sig === buildingLightCalibrationCamKey) return;
+  buildingLightCalibrationCamKey = sig;
   layoutBuildingLightCalibrationPreview();
 }
 
 function buildingLightCalibrationNormToWorld(nx, ny) {
   const p = buildingLightCalibrationPreview;
   const t = buildingLightCalibrationTarget;
-  const z = buildingLightCalibrationZoom;
-  return { x: p.stageCX + (nx - 0.5) * t.texW * z, y: p.stageCY + (ny - 0.5) * t.texH * z };
+  const g = p.geom;
+  const scale = buildingLightCalibrationZoom * g.s;
+  return { x: g.cx + (nx - 0.5) * t.texW * scale, y: g.cy + (ny - 0.5) * t.texH * scale };
 }
 function buildingLightCalibrationWorldToNorm(sx, sy) {
   const p = buildingLightCalibrationPreview;
   const t = buildingLightCalibrationTarget;
-  const z = buildingLightCalibrationZoom;
-  return { nx: (sx - p.stageCX) / (t.texW * z) + 0.5, ny: (sy - p.stageCY) / (t.texH * z) + 0.5 };
+  const g = p.geom;
+  const cam = buildingLightCalibrationScene?.cameras?.main;
+  const w = cam?.getWorldPoint ? cam.getWorldPoint(sx, sy) : { x: sx, y: sy };
+  const scale = buildingLightCalibrationZoom * g.s;
+  return { nx: (w.x - g.cx) / (t.texW * scale) + 0.5, ny: (w.y - g.cy) / (t.texH * scale) + 0.5 };
 }
 
 function refreshBuildingLightCalibrationHandles() {
@@ -497,12 +522,11 @@ function refreshBuildingLightCalibrationHandles() {
       : id[0] === 'l' ? 0xffce93
         : beaconHex(data.beacons[Number(id.slice(1))]?.color);
     const dot = scene.add.circle(0, 0, id[0] === 'p' ? 5.5 : 6, color, 0.95);
-    dot.setScrollFactor(0);
     dot.setStrokeStyle(1.5, 0x0a0f18, 0.9);
     dot.setDepth(buildingLightCalibrationDepth(-4));
     dot.setInteractive({ useHandCursor: true, draggable: true });
     scene.input?.setDraggable?.(dot, true);
-    // screen-space stage: use the raw pointer position, not Phaser's world dragXY
+    // drag by raw screen pointer; WorldToNorm maps it through the camera
     dot.on('drag', (pointer) => onBuildingLightCalibrationHandleDrag(id, pointer.x, pointer.y));
     p.handles[id] = dot;
   });
@@ -532,37 +556,42 @@ function onBuildingLightCalibrationHandleDrag(id, dx, dy) {
 function layoutBuildingLightCalibrationPreview() {
   const p = buildingLightCalibrationPreview;
   const t = buildingLightCalibrationTarget;
+  const scene = buildingLightCalibrationScene;
   if (!p || !t) return;
-  const z = buildingLightCalibrationZoom;
   const data = buildingLightCalibrationCurrentData();
   const profile = buildingLightCalibrationDataToProfile(data);
-  if (p.body) p.body.setScale(z);
 
-  // backdrop condition + ground guide + rain
+  // re-pin the stage to the current camera
+  const geom = buildingLightCalibrationStageGeom(scene);
+  p.geom = geom;
+  const modelScale = buildingLightCalibrationZoom * geom.s;
+  const lw = geom.s; // 1 screen px in world units
+
+  p.stage?.setPosition?.(geom.cx, geom.cy);
+  p.stage?.setSize?.(geom.w, geom.h);
+  p.stage?.setStrokeStyle?.(lw, 0x3a516b, 0.95);
   p.stage?.setFillStyle?.(buildingLightCalibrationStageBg(), 1);
-  const rect = p.rect;
+  if (p.body) { p.body.setPosition(geom.cx, geom.cy); p.body.setScale(modelScale); }
+
+  const left = geom.cx - geom.w / 2;
+  const right = geom.cx + geom.w / 2;
   const sg = p.stageGfx;
   if (sg) {
     sg.clear();
     const groundY = buildingLightCalibrationNormToWorld(0, 1).y;
-    sg.lineStyle(1, 0x5a7fa0, 0.35);
-    sg.beginPath();
-    sg.moveTo(rect.cx - rect.w / 2, groundY);
-    sg.lineTo(rect.cx + rect.w / 2, groundY);
-    sg.strokePath();
+    sg.lineStyle(lw, 0x5a7fa0, 0.35);
+    sg.lineBetween(left, groundY, right, groundY);
     if (buildingLightCalibrationRain) {
-      sg.lineStyle(1, 0xaecbe6, 0.16);
+      sg.lineStyle(lw, 0xaecbe6, 0.16);
       for (let i = 0; i < 46; i++) {
-        const rx = rect.cx - rect.w / 2 + ((i * 97) % rect.w);
-        const ry = rect.cy - rect.h / 2 + ((i * 53) % rect.h);
-        sg.beginPath();
-        sg.moveTo(rx, ry);
-        sg.lineTo(rx - 4, ry + 13);
-        sg.strokePath();
+        const rx = left + ((i * 97) % geom.w);
+        const ry = geom.cy - geom.h / 2 + ((i * 53) % geom.h);
+        sg.lineBetween(rx, ry, rx - 4 * lw, ry + 13 * lw);
       }
     }
   }
 
+  Object.values(p.handles).forEach((dot) => dot.setScale(geom.s));
   const sp = data.panels[buildingLightCalibrationPanelIndex] || data.panels[0];
   for (let i = 0; i < 4; i++) {
     const has = sp && sp.c[i];
@@ -585,7 +614,7 @@ function layoutBuildingLightCalibrationPreview() {
   (data.panels || []).forEach((panel, pi) => {
     const sel = pi === buildingLightCalibrationPanelIndex;
     const pts = panel.c.map((c) => buildingLightCalibrationNormToWorld(c[0], c[1]));
-    g.lineStyle(sel ? 1.8 : 1, sel ? 0x8fd6ff : 0x4a7f9c, panel.on === false ? 0.16 : (sel ? 0.75 : 0.38));
+    g.lineStyle((sel ? 1.8 : 1) * lw, sel ? 0x8fd6ff : 0x4a7f9c, panel.on === false ? 0.16 : (sel ? 0.75 : 0.38));
     g.beginPath();
     g.moveTo(pts[0].x, pts[0].y);
     for (let i = 1; i < 4; i++) g.lineTo(pts[i].x, pts[i].y);
@@ -609,7 +638,7 @@ function layoutBuildingLightCalibrationPreview() {
   data.lamps.forEach((l) => {
     const w = buildingLightCalibrationNormToWorld(l.x, l.y);
     g.fillStyle(0xffdca8, 0.22);
-    g.fillCircle(w.x, w.y, l.r * t.texW * z);
+    g.fillCircle(w.x, w.y, l.r * t.texW * modelScale);
   });
 }
 
@@ -687,10 +716,14 @@ function cycleBuildingLightCalibrationBeaconColor(i) {
 }
 
 function resetBuildingLightCalibrationEntry() {
-  const key = buildingLightCalibrationStoreKey();
-  if (key) {
-    delete buildingLightCalibrationOverrides[key];
+  const t = buildingLightCalibrationTarget;
+  if (t) {
+    delete buildingLightCalibrationOverrides['@' + t.key];
+    if (t.zone && t.family) delete buildingLightCalibrationOverrides[t.family];
     persistBuildingLightCalibrationOverrides();
+    if (typeof refreshAllBuildingLightGlows === 'function' && buildingLightCalibrationScene) {
+      refreshAllBuildingLightGlows(buildingLightCalibrationScene, true);
+    }
   }
   refreshBuildingLightCalibrationHandles();
   layoutBuildingLightCalibrationPreview();
@@ -1075,6 +1108,8 @@ function startBuildingLightCalibrator(scene) {
   buildingLightCalibrationActive = true;
   buildingLightCalibrationScene = scene;
   if (scene) scene.buildingLightCalibrationActive = true;
+  // one-time: write the merged (v2 + v3) set back so nothing is lost later
+  persistBuildingLightCalibrationOverrides();
   buildingLightCalibrationCatalog = buildBuildingLightCatalog();
   createBuildingLightCalibrationPanel();
   populateBuildingLightCalibrationModelSelect();
@@ -1153,5 +1188,6 @@ if (typeof globalThis !== 'undefined') {
     isBuildingLightCalibrationActive,
     isBuildingLightCalibrationInputActive,
     handleBuildingLightCalibrationPick,
+    syncBuildingLightCalibratorStage,
   });
 }

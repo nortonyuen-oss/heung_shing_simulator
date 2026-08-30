@@ -159,6 +159,34 @@ function setDynamicLightingEnabled(enabled) {
   if (activeScene) updateDynamicLighting(activeScene);
 }
 
+// Night building lighting (lit windows, entrance and street-lamp glow after
+// dark). The heaviest of the visual toggles in a large, dense city — every
+// on-screen building draws a retained glow — so it gets its own opt-out,
+// independent of the day/night sky and vehicle lamps above.
+const BUILDING_LIGHTS_SETTING_KEY = 'citybuilder.buildingLights.v1';
+let buildingLightsEnabledCache = null;
+
+function isBuildingLightsEnabled() {
+  if (buildingLightsEnabledCache !== null) return buildingLightsEnabledCache;
+  try {
+    const raw = localStorage.getItem(BUILDING_LIGHTS_SETTING_KEY);
+    buildingLightsEnabledCache = raw === null ? true : JSON.parse(raw) !== false;
+  } catch {
+    buildingLightsEnabledCache = true;
+  }
+  return buildingLightsEnabledCache;
+}
+
+function setBuildingLightsEnabled(enabled) {
+  buildingLightsEnabledCache = !!enabled;
+  try {
+    localStorage.setItem(BUILDING_LIGHTS_SETTING_KEY, JSON.stringify(!!enabled));
+  } catch {}
+  if (!buildingLightsEnabledCache && activeScene && typeof clearBuildingLights === 'function') {
+    clearBuildingLights(activeScene);
+  }
+}
+
 // Sea surface flow (animated shimmer on open-water tiles) — persisted like the other
 // visual toggles above. Kept separate from dynamic lighting/weather effects since it
 // touches terrain tile textures every tick, which is the one of these three most worth
@@ -698,7 +726,10 @@ function updateGameFrame(time, delta) {
     syncVehicleTrackerTargetsBeforeRender(this, time);
   }
   updateTerrainViewportCulling(this);
-  if (typeof updateBuildingLights === 'function') updateBuildingLights(this, time);
+  if (typeof updateBuildingLights === 'function'
+    && (typeof isBuildingLightsEnabled !== 'function' || isBuildingLightsEnabled())) {
+    updateBuildingLights(this, time);
+  }
   if (typeof updateSeaFlowAnimation === 'function') updateSeaFlowAnimation(this, time);
   if (typeof updateRainRipples === 'function') updateRainRipples(this, time);
   if (typeof finalizeVehicleTrackerCameraCulling === 'function') {

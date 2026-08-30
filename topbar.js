@@ -162,6 +162,12 @@ function handleMenuAction(action) {
       }
       updateViewMenu();
       break;
+    case 'toggle-building-lights':
+      if (typeof setBuildingLightsEnabled === 'function') {
+        setBuildingLightsEnabled(!isBuildingLightsEnabled());
+      }
+      updateViewMenu();
+      break;
     case 'toggle-sea-flow':
       if (typeof setSeaFlowEnabled === 'function') {
         setSeaFlowEnabled(!isSeaFlowEnabled());
@@ -218,6 +224,8 @@ function updateViewMenu() {
     ?.classList.toggle('menu-checked', typeof isWeatherEffectsEnabled !== 'function' || isWeatherEffectsEnabled());
   document.getElementById('menu-dynamic-lighting')
     ?.classList.toggle('menu-checked', typeof isDynamicLightingEnabled !== 'function' || isDynamicLightingEnabled());
+  document.getElementById('menu-building-lights')
+    ?.classList.toggle('menu-checked', typeof isBuildingLightsEnabled !== 'function' || isBuildingLightsEnabled());
   document.getElementById('menu-sea-flow')
     ?.classList.toggle('menu-checked', typeof isSeaFlowEnabled !== 'function' || isSeaFlowEnabled());
 }

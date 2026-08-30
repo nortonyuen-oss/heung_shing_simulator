@@ -210,6 +210,11 @@ const SITE_FEATURE_LIST = {
 // ── Changelog ─────────────────────────────────────────────────────────────────
 const SITE_CHANGELOG = {
   "zh-HK": [
+    { version: "v4.5.0", date: "2026-08-30", dateLabel: "2026年8月30日", title: "輕舟已過", items: [
+      "建築貼圖優化：一般建築模型由 1024² 焗細到 512²，機場、大會堂、貨櫃碼頭等大型地標保留 1024²。GPU 貼圖記憶體約減 62%（約 680 MB → 260 MB），城市存檔載入由約 3.5 秒縮到約 1.7 秒，正常縮放下畫質肉眼分唔到。原始 PNG 母檔保留。",
+      "夜間建築燈光開關：View 選單新增「夜間建築燈光（亮燈窗戶／街燈）」，獨立於「動態光影」。關咗即刻清走現有光暈、之後每幀零成本，適合弱機或人口幾十萬嘅巨型城市。設定會記住，繁中／英／日界面齊備。",
+      "資產管線：發佈資產上限預設由 1024 改為 512，加入按資料夾嘅地標例外；發佈驗證器改為逐項記錄解析度。現有存檔完全兼容，唔需要遷移。",
+    ] },
     { version: "v4.4.0", date: "2026-08-29", dateLabel: "2026年8月29日", title: "華燈初上", items: [
       "遊戲時鐘日夜循環：天空顏色同方向性太陽光影而家跟遊戲時間行（顯示 8x 速度下約一分鐘一日），並根據香港天文台 2026 年逐日日出、日落同曙暮光數據轉換；天光、黃昏、入黑、深夜各有其色。可喺 View 選單開關「動態光影」。",
       "夜幕、星空、月亮：入黑後有紫藍色夜幕；晴天先見得到星空；月亮會跟月相變化，喺天空由東行到西。",
@@ -427,6 +432,11 @@ const SITE_CHANGELOG = {
 // title/items text.
 const SITE_CHANGELOG_TRANSLATIONS = {
   "zh-TW": {
+    "v4.5.0": { title: "輕舟已過", items: [
+      "建築貼圖最佳化：一般建築模型由 1024² 縮到 512²，機場、大會堂、貨櫃碼頭等大型地標保留 1024²。GPU 貼圖記憶體約減 62%（約 680 MB → 260 MB），城市存檔載入由約 3.5 秒縮到約 1.7 秒，正常縮放下畫質看不出差異。原始 PNG 母檔保留。",
+      "夜間建築燈光開關：View 選單新增「夜間建築燈光（亮燈窗戶／街燈）」，獨立於「動態光影」。關閉後立即清除現有光暈、之後每幀零成本，適合較弱的機器或人口數十萬的巨型城市。設定會記住，繁中／英／日介面齊備。",
+      "資產管線：發佈資產上限預設由 1024 改為 512，加入依資料夾的地標例外；發佈驗證器改為逐項記錄解析度。現有存檔完全相容，無需遷移。",
+    ] },
     "v4.4.0": { title: "華燈初上", items: [
       "遊戲時鐘日夜循環：天空顏色與方向性太陽光影現在跟隨遊戲時間（顯示 8x 速度下約一分鐘一日），並依香港天文台 2026 年逐日日出、日落與曙暮光資料變換；天亮、黃昏、入夜、深夜各有其色。可在 View 選單開關「動態光影」。",
       "夜幕、星空、月亮：入夜後出現紫藍色夜幕；晴天才看得到星空；月亮會依月相變化，在天空由東移到西。",
@@ -637,6 +647,11 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   en: {
+    "v4.5.0": { title: "The Light Boat Sails Clear", items: [
+      "Building texture optimisation: ordinary building models drop from 1024² to 512², while large landmarks (airport, cultural centre, container port, and the like) stay at 1024². GPU texture memory falls by about 62% (roughly 680 MB to 260 MB) and a city save now loads in about 1.7s instead of 3.5s, with no visible quality loss at normal zoom. The original PNG masters are kept.",
+      "Night building-lights toggle: a new 'Night building lights (lit windows / lamps)' entry in the View menu, independent of 'Dynamic lighting'. Turning it off clears the existing glow immediately and costs nothing per frame afterwards - handy for weaker machines or a city of several hundred thousand people. The setting is remembered; available in Traditional Chinese, English and Japanese.",
+      "Asset pipeline: the release-asset dimension cap defaults to 512 instead of 1024, with a per-folder landmark exception; the release verifier now records each entry's resolution. Existing saves are fully compatible - no migration needed.",
+    ] },
     "v4.4.0": { title: "As the City Lights Come On", items: [
       "Game-clock day/night cycle: sky colour and directional sunlight now follow in-game time (about one minute per day at the 8x display speed), driven by the Hong Kong Observatory's per-day sunrise, sunset and twilight data for 2026. Daylight, dusk, nightfall and deep night each get their own palette. Toggle it from the View menu ('Dynamic lighting').",
       "Night sky, stars and moon: a violet-blue night overlay after dark; stars visible only on clear nights; a moon that changes phase and tracks east to west across the sky.",
@@ -847,6 +862,11 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   ja: {
+    "v4.5.0": { title: "軽舟すでに過ぐ", items: [
+      "建物テクスチャの最適化：通常の建物モデルを 1024² から 512² に縮小し、空港・文化センター・コンテナターミナルなどの大型ランドマークは 1024² のまま維持。GPU テクスチャメモリが約 62%（約 680 MB → 260 MB）減り、都市セーブの読み込みが約 3.5 秒から約 1.7 秒に短縮。通常のズームでは画質の違いは分からない。元の PNG マスターは保持。",
+      "夜間の建物ライトのトグル：View メニューに「夜間の建物の明かり（点灯した窓／街灯）」を追加。「動的ライティング」とは独立。オフにすると既存の光がすぐに消え、以降はフレームごとのコストがゼロ。非力なマシンや人口数十万の巨大都市に有効。設定は記憶され、繁体字中国語・英語・日本語に対応。",
+      "アセットパイプライン：リリースアセットの寸法上限を既定で 1024 から 512 に変更し、フォルダ単位のランドマーク例外を追加。リリース検証ツールは各エントリの解像度を記録するように。既存のセーブは完全互換で移行は不要。",
+    ] },
     "v4.4.0": { title: "街の灯がともる頃", items: [
       "ゲーム内時計による昼夜サイクル：空の色と指向性のある太陽光が、ゲーム内時間（8x 表示速度で約1分＝1日）に連動するようになった。香港天文台の 2026 年の日ごとの日の出・日の入り・薄明データに基づき、昼・夕暮れ・日没・深夜でそれぞれ色合いが変わる。View メニューから「動的ライティング」としてオン・オフ可能。",
       "夜空・星・月：日没後は青紫色の夜のオーバーレイがかかり、晴れた夜にだけ星が見える。月は月相に応じて満ち欠けし、空を東から西へ移動する。",
@@ -1082,8 +1102,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.4.0 — 【華燈初上】",
-      versionDesc: "遊戲時鐘日夜循環：天空同光影跟香港天文台真實日出日落數據轉換，入黑有夜幕、星空同月相；夜晚全城車輛亮起頭燈尾燈，雙層巴士連車廂燈都著。",
+      versionBadge: "v4.5.0 — 【輕舟已過】",
+      versionDesc: "跑得順啲：建築貼圖由 1024² 縮到 512²（地標保留），顯示卡記憶體減約六成、存檔載入快近一倍；夜間建築窗戶燈光而家喺 View 選單有獨立開關。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感嘅城市建設遊戲。起街道、規劃社區、經營自己嘅香城巴士公司、處理議會同天氣，再睇住一座有性格嘅香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1159,8 +1179,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.4.0 — 【華燈初上】",
-      versionDesc: "遊戲時鐘日夜循環：天空與光影依香港天文台真實日出日落資料變換，入夜有夜幕、星空與月相；夜間全城車輛亮起頭燈尾燈，雙層公車連車廂燈也會亮。",
+      versionBadge: "v4.5.0 — 【輕舟已過】",
+      versionDesc: "跑得更順：建築貼圖由 1024² 縮到 512²（地標保留），顯示卡記憶體減約六成、存檔載入快近一倍；夜間建築窗戶燈光現在於 View 選單有獨立開關。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感的城市建設遊戲。興建街道、規劃社區、經營自己的香城公車公司、處理議會與天氣，看著一座有個性的香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1236,8 +1256,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "The City of Heung Shing",
       title: "The City of Heung Shing",
-      versionBadge: "v4.4.0 — As the City Lights Come On",
-      versionDesc: "A game-clock day/night cycle driven by the Hong Kong Observatory's real sunrise/sunset data, with a night sky, stars and moon phases; after dark the whole city's traffic switches on its headlamps and tail lamps, and double-deckers light up their interior tubes.",
+      versionBadge: "v4.5.0 — The Light Boat Sails Clear",
+      versionDesc: "Runs lighter: building textures drop from 1024² to 512² (landmarks kept large), cutting GPU texture memory by roughly 62% and halving city-save load time; night building-window lighting now has its own toggle in the View menu.",
       lede: "A city-building game inspired by Hong Kong life and made in tribute to SimCity 2000. Build streets, shape neighbourhoods, run your own Heung Shing Bus Company, navigate council politics and weather, then watch a city with real personality grow.",
       freeLabel: "Completely free · macOS + Windows · Local saves",
       downloadBtn: "【Free Download】",
@@ -1314,8 +1334,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.4.0 — 街の灯がともる頃",
-      versionDesc: "香港天文台の実際の日の出・日の入りデータに連動したゲーム内時計の昼夜サイクル。夜空・星・月相を追加し、日没後は街じゅうの車がヘッドライトとテールライトを点灯、2階建てバスは車内灯もともります。",
+      versionBadge: "v4.5.0 — 軽舟すでに過ぐ",
+      versionDesc: "より軽快に：建物テクスチャを 1024² から 512² に縮小（ランドマークは大きいまま）。GPU テクスチャメモリを約 62% 削減し、都市セーブの読み込みを約半分に短縮。夜間の建物の窓明かりは View メニューに専用トグルを追加。",
       lede: "香港の都市生活から着想を得た、SimCity 2000へのオマージュとなる都市建設ゲーム。道路を築き、地区を計画し、自分だけの香城バス会社を経営し、議会や天候に向き合いながら、個性ある香城の成長を見守ります。",
       freeLabel: "完全無料 · macOS + Windows · ローカルセーブ",
       downloadBtn: "【無料ダウンロード】",

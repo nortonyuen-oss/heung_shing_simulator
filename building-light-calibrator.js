@@ -45,7 +45,6 @@ let buildingLightCalibrationCatalog = null;
 let buildingLightCalibrationCategory = 'residential';
 let buildingLightCalibrationZoom = 3;
 let buildingLightCalibrationBucket = 'eveningPeak';
-let buildingLightCalibrationHeroMode = false;
 let buildingLightCalibrationPanelIndex = 0;
 let buildingLightCalibrationTarget = null;   // { key, path, texW, texH, zone, family, foot, cls }
 let buildingLightCalibrationPreview = null;  // { body, gfx, handles:{}, worldX, worldY }
@@ -223,10 +222,12 @@ function buildingLightCalibrationCloneData(d) {
   };
 }
 
+// Every calibration is per-model, keyed by the model's sprite key. (A baked
+// per-family default still exists in building-lighting.js; the tool just doesn't
+// write one, so there's no mode toggle to fat-finger.)
 function buildingLightCalibrationStoreKey() {
   const t = buildingLightCalibrationTarget;
-  if (!t) return null;
-  return (buildingLightCalibrationHeroMode || !t.zone) ? '@' + t.key : t.family;
+  return t ? '@' + t.key : null;
 }
 
 function buildingLightCalibrationCurrentData() {
@@ -307,7 +308,6 @@ function selectBuildingLightCalibrationModel(key, category) {
     foot: entry.footprintCols,
     cls,
   };
-  if (!entry.zone) buildingLightCalibrationHeroMode = true;
   buildingLightCalibrationPanelIndex = 0;
   loadBuildingLightCalibrationTexture(() => spawnBuildingLightCalibrationPreview(true));
   renderBuildingLightCalibrationPanel();
@@ -330,7 +330,6 @@ function handleBuildingLightCalibrationPick(scene, sprite) {
     cls: typeof getBuildingLightClass === 'function' ? getBuildingLightClass(record) : 'off',
     textureKey: sprite.texture?.key,
   };
-  if (!buildingLightCalibrationTarget.zone) buildingLightCalibrationHeroMode = true;
   buildingLightCalibrationMapPick = false;
   buildingLightCalibrationPanelIndex = 0;
   spawnBuildingLightCalibrationPreview(true);
@@ -780,10 +779,6 @@ function createBuildingLightCalibrationPanel() {
     <div class="bl-row"><button type="button" class="bl-mappick">或：從地圖選取</button>
       <span class="bl-key"></span></div>
 
-    <div class="bl-2">
-      <button type="button" data-mode="family">family 預設</button>
-      <button type="button" data-mode="hero">呢個 model</button>
-    </div>
     <div class="bl-row"><span>類別</span>
       <select class="bl-class" style="width:auto">
         <option value="res">住宅 (暖)</option><option value="off">辦公 (冷白)</option>
@@ -848,13 +843,6 @@ function createBuildingLightCalibrationPanel() {
     renderBuildingLightCalibrationPanel();
     setBuildingLightCalibrationMessage(buildingLightCalibrationMapPick ? '撳地圖上一棟建築' : '已關', 'info');
   });
-  root.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('click', () => {
-    if (buildingLightCalibrationTarget && !buildingLightCalibrationTarget.zone) return;
-    buildingLightCalibrationHeroMode = b.dataset.mode === 'hero';
-    refreshBuildingLightCalibrationHandles();
-    layoutBuildingLightCalibrationPreview();
-    renderBuildingLightCalibrationPanel();
-  }));
   root.querySelector('.bl-class').addEventListener('change', (e) => setBuildingLightCalibrationField('class', e.target.value));
   root.querySelector('.bl-face-add').addEventListener('click', addBuildingLightCalibrationPanel);
   root.querySelector('.bl-face-del').addEventListener('click', removeBuildingLightCalibrationPanel);
@@ -934,14 +922,9 @@ function renderBuildingLightCalibrationPanel() {
   const data = buildingLightCalibrationCurrentData();
   panel.cat.value = buildingLightCalibrationCategory;
   panel.key.textContent = t
-    ? `${t.key} · ${(buildingLightCalibrationHeroMode || !t.zone) ? 'hero' : t.family} · ${data?.__custom ? '已校正' : '預設'}`
+    ? `${t.key} · ${data?.__custom ? '已校正' : '預設'}`
     : '(未揀模型)';
   r.querySelector('.bl-mappick').dataset.active = String(buildingLightCalibrationMapPick);
-  r.querySelectorAll('[data-mode]').forEach((b) => {
-    const heroBtn = b.dataset.mode === 'hero';
-    b.dataset.active = String(heroBtn === (buildingLightCalibrationHeroMode || (t && !t.zone)));
-    b.disabled = !!(t && !t.zone);
-  });
   r.querySelectorAll('[data-bucket]').forEach((b) => {
     b.dataset.active = String(b.dataset.bucket === buildingLightCalibrationBucket);
   });

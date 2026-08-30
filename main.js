@@ -4160,6 +4160,10 @@ function placeSpriteBuilding(scene, row, col, key, options = {}) {
   building.mapRow = row;
   building.mapCol = col;
   building.logicalSpriteKey = key;
+  // Stable per-model identity for anything that must survive the model list
+  // changing - `key` is a discovery-order index and shifts when files are
+  // added or removed (see BUILDING_LIGHT_HERO_PROFILES).
+  building.modelSourceFileName = buildingData[getTileId(row, col)]?.sourceFileName ?? null;
   building.renderTextureKey = textureKey;
   building.footprintCols = footprintCols;
   building.footprintRows = footprintRows;

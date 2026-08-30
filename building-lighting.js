@@ -26,6 +26,18 @@ const BUILDING_LIGHT_CONFIG = Object.freeze({
   jitterMinMs: 22000,
   jitterMaxMs: 52000,
   corridorAlpha: 0.34,
+  // Glow LOD. Only the `windowBudget` buildings nearest the camera keep a
+  // visible glow at all; the rest are hidden. Night render cost turned out to
+  // be a flat ~0.34ms per VISIBLE additive Graphics - a per-object batch flush,
+  // independent of the geometry inside it - so the object count is the only
+  // thing that moves the number. Measured on one dense night view: 400 glows
+  // 165ms, 48 glows 46ms, identical drawn geometry.
+  windowBudget: 48,
+  // Per-building cap on drawn window cells. A calibrated profile can carry 300+
+  // cells, far more than resolves on screen; sampling every Nth cell keeps the
+  // pattern and the silhouette while cutting the polygon count. Barely affects
+  // frame time on its own (see above) but keeps relight work down.
+  maxWindowCells: 40,
 });
 
 // Warm homes, cool offices, dim amber sheds, clinical white for 24h services.
@@ -289,9 +301,14 @@ Object.assign(BUILDING_LIGHT_PROFILES, {
   }),
 });
 
-// Calibrated per-model "hero" overrides, keyed by logical sprite key, baked from
-// the calibrator SQLite store (2026-08-30: 32 residential models + the earlier
-// civic/commercial set).
+// Calibrated per-model "hero" overrides, baked from the calibrator SQLite store.
+//
+// Keyed by STABLE MODEL SLUG (the source filename without its extension, e.g.
+// "residential2-12-UH-LD"), never by the discovery-order logical key
+// ("house2x2_12"). Those index keys shift the moment a model file is added,
+// removed or renamed, which would silently point every later profile at the
+// wrong building. Service/park/special entries below (university_4x4 etc.) are
+// hand-authored sprite keys and already stable.
 const BUILDING_LIGHT_HERO_PROFILES = {
   university_4x4: makeBuildingLightProfile({
     class: 'off', ex: 0.532, ey: 0.726, er: 0.1,
@@ -307,14 +324,14 @@ const BUILDING_LIGHT_HERO_PROFILES = {
       { c: [[0.627, 0.675], [0.965, 0.521], [0.963, 0.675], [0.626, 0.836]], rows: 8, cols: 4 },
     ],
   }),
-  commercial_building_3x3_0: makeBuildingLightProfile({
+  "commercialBuilding3-03-M": makeBuildingLightProfile({
     class: 'off', ex: 0.5, ey: 0.9, er: 0.1,
     panels: [
       { c: [[0.347, 0.338], [0.493, 0.397], [0.491, 0.667], [0.346, 0.602]], rows: 12, cols: 4 },
       { c: [[0.611, 0.456], [0.779, 0.381], [0.778, 0.616], [0.609, 0.694]], rows: 11, cols: 5 },
     ],
   }),
-  commercial_building_3x3_3: makeBuildingLightProfile({
+  "commercialBuilding3-09-M": makeBuildingLightProfile({
     class: 'off', ex: 0.325, ey: 0.758, er: 0.1,
     panels: [
       { c: [[0.353, 0.303], [0.496, 0.364], [0.499, 0.674], [0.342, 0.598]], rows: 12, cols: 4 },
@@ -356,21 +373,21 @@ const BUILDING_LIGHT_HERO_PROFILES = {
       { c: [[0.646, 0.69], [0.8, 0.626], [0.798, 0.67], [0.645, 0.739]], rows: 1, cols: 1 },
     ],
   }),
-  house_0: makeBuildingLightProfile({
+  "house1-01-L-LD": makeBuildingLightProfile({
     class: 'res',
     panels: [
       { c: [[0.565, 0.567], [0.645, 0.608], [0.645, 0.725], [0.566, 0.693]], rows: 1, cols: 1 },
     ],
     lamps: [{ x: 0.685, y: 0.679, r: 0.06 }, { x: 0.478, y: 0.586, r: 0.06 }],
   }),
-  house_1: makeBuildingLightProfile({
+  "house1-02-L-LD": makeBuildingLightProfile({
     class: 'res',
     panels: [
       { c: [[0.57, 0.499], [0.652, 0.545], [0.647, 0.679], [0.569, 0.643]], rows: 1, cols: 1 },
     ],
     lamps: [{ x: 0.693, y: 0.63, r: 0.05 }, { x: 0.477, y: 0.513, r: 0.05 }, { x: 0.366, y: 0.764, r: 0.04 }, { x: 0.308, y: 0.733, r: 0.04 }, { x: 0.25, y: 0.719, r: 0.04 }],
   }),
-  house_2: makeBuildingLightProfile({
+  "house1-03-L-LD": makeBuildingLightProfile({
     class: 'res',
     panels: [
       { c: [[0.167, 0.57], [0.29, 0.634], [0.289, 0.766], [0.169, 0.712]], rows: 2, cols: 2 },
@@ -380,7 +397,7 @@ const BUILDING_LIGHT_HERO_PROFILES = {
     ],
     lamps: [{ x: 0.513, y: 0.539, r: 0.07 }, { x: 0.823, y: 0.747, r: 0.07 }, { x: 0.342, y: 0.772, r: 0.06 }, { x: 0.464, y: 0.606, r: 0.04 }, { x: 0.254, y: 0.497, r: 0.04 }, { x: 0.677, y: 0.497, r: 0.04 }, { x: 0.456, y: 0.395, r: 0.04 }, { x: 0.5, y: 0.85, r: 0.03 }],
   }),
-  house_3: makeBuildingLightProfile({
+  "house1-05-H-LD": makeBuildingLightProfile({
     class: 'res',
     panels: [
       { c: [[0.246, 0.397], [0.317, 0.431], [0.313, 0.602], [0.243, 0.567]], rows: 2, cols: 1 },
@@ -390,7 +407,7 @@ const BUILDING_LIGHT_HERO_PROFILES = {
     ],
     lamps: [{ x: 0.487, y: 0.892, r: 0.05 }, { x: 0.428, y: 0.851, r: 0.04 }, { x: 0.254, y: 0.783, r: 0.04 }, { x: 0.807, y: 0.634, r: 0.09 }, { x: 0.595, y: 0.769, r: 0.05 }, { x: 0.453, y: 0.699, r: 0.05 }, { x: 0.747, y: 0.441, r: 0.03 }, { x: 0.356, y: 0.278, r: 0.03 }, { x: 0.21, y: 0.632, r: 0.03 }, { x: 0.3, y: 0.678, r: 0.03 }],
   }),
-  house_4: makeBuildingLightProfile({
+  "house1-06-H-LD": makeBuildingLightProfile({
     class: 'res',
     panels: [
       { c: [[0.153, 0.514], [0.227, 0.537], [0.229, 0.734], [0.147, 0.695]], rows: 3, cols: 1 },
@@ -400,7 +417,7 @@ const BUILDING_LIGHT_HERO_PROFILES = {
     ],
     lamps: [{ x: 0.54, y: 0.883, r: 0.06 }, { x: 0.442, y: 0.882, r: 0.06 }, { x: 0.54, y: 0.757, r: 0.05 }, { x: 0.457, y: 0.758, r: 0.05 }, { x: 0.296, y: 0.828, r: 0.05 }, { x: 0.198, y: 0.779, r: 0.04 }, { x: 0.116, y: 0.74, r: 0.05 }, { x: 0.035, y: 0.696, r: 0.05 }, { x: 0.706, y: 0.829, r: 0.05 }, { x: 0.803, y: 0.781, r: 0.05 }, { x: 0.883, y: 0.739, r: 0.05 }, { x: 0.968, y: 0.698, r: 0.05 }],
   }),
-  house2x2_0: makeBuildingLightProfile({
+  "residential2-04-L-MD": makeBuildingLightProfile({
     class: 'res',
     panels: [
       { c: [[0.18, 0.222], [0.256, 0.263], [0.256, 0.651], [0.178, 0.612]], rows: 7, cols: 2 },
@@ -410,7 +427,7 @@ const BUILDING_LIGHT_HERO_PROFILES = {
     ],
     lamps: [{ x: 0.665, y: 0.816, r: 0.1 }, { x: 0.369, y: 0.829, r: 0.09 }, { x: 0.183, y: 0.725, r: 0.09 }, { x: 0.718, y: 0.682, r: 0.09 }],
   }),
-  house2x2_1: makeBuildingLightProfile({
+  "residential2-05-L-MD": makeBuildingLightProfile({
     class: 'res',
     panels: [
       { c: [[0.347, 0.259], [0.503, 0.338], [0.502, 0.774], [0.347, 0.704]], rows: 7, cols: 4 },
@@ -419,7 +436,7 @@ const BUILDING_LIGHT_HERO_PROFILES = {
     ],
     lamps: [{ x: 0.734, y: 0.765, r: 0.1 }, { x: 0.438, y: 0.804, r: 0.05 }, { x: 0.333, y: 0.753, r: 0.05 }],
   }),
-  house2x2_2: makeBuildingLightProfile({
+  "residential2-06-M-MD": makeBuildingLightProfile({
     class: 'res',
     panels: [
       { c: [[0.215, 0.298], [0.424, 0.395], [0.416, 0.774], [0.213, 0.68]], rows: 10, cols: 6 },
@@ -429,7 +446,7 @@ const BUILDING_LIGHT_HERO_PROFILES = {
     ],
     lamps: [{ x: 0.425, y: 0.88, r: 0.05 }, { x: 0.589, y: 0.801, r: 0.05 }, { x: 0.403, y: 0.806, r: 0.05 }, { x: 0.574, y: 0.879, r: 0.05 }, { x: 0.684, y: 0.827, r: 0.05 }, { x: 0.745, y: 0.798, r: 0.05 }, { x: 0.79, y: 0.773, r: 0.05 }, { x: 0.963, y: 0.691, r: 0.05 }, { x: 0.321, y: 0.825, r: 0.05 }, { x: 0.134, y: 0.736, r: 0.05 }, { x: 0.035, y: 0.688, r: 0.05 }, { x: 0.187, y: 0.693, r: 0.06 }, { x: 0.865, y: 0.735, r: 0.05 }],
   }),
-  house2x2_3: makeBuildingLightProfile({
+  "residential2-07-M-MD": makeBuildingLightProfile({
     class: 'res',
     panels: [
       { c: [[0.268, 0.287], [0.349, 0.324], [0.341, 0.723], [0.265, 0.684]], rows: 8, cols: 2 },
@@ -439,7 +456,7 @@ const BUILDING_LIGHT_HERO_PROFILES = {
     ],
     lamps: [{ x: 0.572, y: 0.809, r: 0.1 }, { x: 0.273, y: 0.739, r: 0.09 }, { x: 0.776, y: 0.738, r: 0.09 }, { x: 0.304, y: 0.828, r: 0.05 }, { x: 0.381, y: 0.861, r: 0.05 }],
   }),
-  house2x2_4: makeBuildingLightProfile({
+  "residential2-09-UH-MD": makeBuildingLightProfile({
     class: 'res',
     panels: [
       { c: [[0.113, 0.404], [0.246, 0.47], [0.24, 0.768], [0.107, 0.696]], rows: 6, cols: 2 },
@@ -449,7 +466,7 @@ const BUILDING_LIGHT_HERO_PROFILES = {
     ],
     lamps: [{ x: 0.5, y: 0.9, r: 0.1 }, { x: 0.51, y: 0.636, r: 0.09 }, { x: 0.576, y: 0.662, r: 0.09 }, { x: 0.216, y: 0.786, r: 0.09 }, { x: 0.022, y: 0.693, r: 0.09 }, { x: 0.79, y: 0.788, r: 0.09 }, { x: 0.983, y: 0.689, r: 0.09 }],
   }),
-  house2x2_5: makeBuildingLightProfile({
+  "residential2-03-UH-LD": makeBuildingLightProfile({
     class: 'res',
     panels: [
       { c: [[0.137, 0.556], [0.23, 0.597], [0.231, 0.774], [0.137, 0.722]], rows: 5, cols: 3 },
@@ -459,7 +476,7 @@ const BUILDING_LIGHT_HERO_PROFILES = {
     ],
     lamps: [{ x: 0.5, y: 0.9, r: 0.06 }, { x: 0.339, y: 0.826, r: 0.06 }, { x: 0.41, y: 0.855, r: 0.06 }, { x: 0.06, y: 0.717, r: 0.06 }, { x: 0.193, y: 0.783, r: 0.06 }, { x: 0.64, y: 0.844, r: 0.06 }, { x: 0.76, y: 0.786, r: 0.06 }, { x: 0.881, y: 0.729, r: 0.05 }, { x: 0.529, y: 0.735, r: 0.09 }],
   }),
-  house2x2_6: makeBuildingLightProfile({
+  "residential2-11-H-MD": makeBuildingLightProfile({
     class: 'res',
     panels: [
       { c: [[0.263, 0.259], [0.343, 0.298], [0.344, 0.608], [0.257, 0.56]], rows: 6, cols: 2 },
@@ -469,7 +486,7 @@ const BUILDING_LIGHT_HERO_PROFILES = {
     ],
     lamps: [{ x: 0.265, y: 0.727, r: 0.1 }, { x: 0.574, y: 0.804, r: 0.09 }, { x: 0.779, y: 0.724, r: 0.09 }, { x: 0.297, y: 0.824, r: 0.05 }, { x: 0.377, y: 0.857, r: 0.05 }],
   }),
-  house2x2_7: makeBuildingLightProfile({
+  "residential2-12-UH-LD": makeBuildingLightProfile({
     class: 'res',
     panels: [
       { c: [[0.272, 0.619], [0.361, 0.659], [0.36, 0.704], [0.274, 0.668]], rows: 1, cols: 16 },
@@ -479,7 +496,7 @@ const BUILDING_LIGHT_HERO_PROFILES = {
     ],
     lamps: [{ x: 0.584, y: 0.86, r: 0.05 }, { x: 0.423, y: 0.864, r: 0.07 }, { x: 0.544, y: 0.67, r: 0.07 }, { x: 0.47, y: 0.671, r: 0.05 }, { x: 0.284, y: 0.823, r: 0.05 }, { x: 0.141, y: 0.761, r: 0.05 }, { x: 0.046, y: 0.708, r: 0.05 }, { x: 0.754, y: 0.8, r: 0.05 }, { x: 0.96, y: 0.705, r: 0.05 }],
   }),
-  house2x2_8: makeBuildingLightProfile({
+  "residential2-13-UH-LD": makeBuildingLightProfile({
     class: 'res',
     panels: [
       { c: [[0.18, 0.545], [0.263, 0.58], [0.263, 0.636], [0.178, 0.601]], rows: 1, cols: 10 },
@@ -489,7 +506,7 @@ const BUILDING_LIGHT_HERO_PROFILES = {
     ],
     lamps: [{ x: 0.452, y: 0.613, r: 0.04 }, { x: 0.551, y: 0.614, r: 0.04 }, { x: 0.596, y: 0.846, r: 0.05 }, { x: 0.401, y: 0.844, r: 0.05 }, { x: 0.205, y: 0.779, r: 0.05 }, { x: 0.014, y: 0.687, r: 0.05 }, { x: 0.793, y: 0.781, r: 0.05 }, { x: 0.983, y: 0.685, r: 0.05 }],
   }),
-  house2x2_9: makeBuildingLightProfile({
+  "residential2-14-UH-LD": makeBuildingLightProfile({
     class: 'res',
     panels: [
       { c: [[0.115, 0.635], [0.249, 0.699], [0.248, 0.783], [0.113, 0.722]], rows: 2, cols: 3 },
@@ -499,7 +516,7 @@ const BUILDING_LIGHT_HERO_PROFILES = {
     ],
     lamps: [{ x: 0.503, y: 0.908, r: 0.06 }, { x: 0.695, y: 0.817, r: 0.05 }, { x: 0.747, y: 0.794, r: 0.05 }, { x: 0.338, y: 0.828, r: 0.05 }, { x: 0.271, y: 0.798, r: 0.05 }, { x: 0.125, y: 0.726, r: 0.05 }, { x: 0.025, y: 0.68, r: 0.05 }, { x: 0.876, y: 0.731, r: 0.05 }, { x: 0.971, y: 0.683, r: 0.05 }],
   }),
-  house2x2_10: makeBuildingLightProfile({
+  "residential2-01-M-HD": makeBuildingLightProfile({
     class: 'res',
     panels: [
       { c: [[0.166, 0.305], [0.243, 0.325], [0.237, 0.744], [0.163, 0.726]], rows: 18, cols: 2 },
@@ -509,7 +526,7 @@ const BUILDING_LIGHT_HERO_PROFILES = {
     ],
     lamps: [{ x: 0.43, y: 0.931, r: 0.08 }, { x: 0.22, y: 0.886, r: 0.05 }, { x: 0.771, y: 0.882, r: 0.05 }, { x: 0.911, y: 0.848, r: 0.05 }, { x: 0.096, y: 0.857, r: 0.05 }, { x: 0.159, y: 0.747, r: 0.05 }, { x: 0.42, y: 0.82, r: 0.05 }, { x: 0.59, y: 0.819, r: 0.05 }, { x: 0.876, y: 0.756, r: 0.05 }, { x: 0.577, y: 0.931, r: 0.08 }],
   }),
-  house2x2_11: makeBuildingLightProfile({
+  "residential2-02-M-HD": makeBuildingLightProfile({
     class: 'res',
     panels: [
       { c: [[0.136, 0.284], [0.27, 0.314], [0.271, 0.733], [0.14, 0.698]], rows: 24, cols: 4 },
@@ -519,7 +536,7 @@ const BUILDING_LIGHT_HERO_PROFILES = {
     ],
     lamps: [{ x: 0.488, y: 0.914, r: 0.1 }, { x: 0.25, y: 0.876, r: 0.09 }, { x: 0.066, y: 0.844, r: 0.09 }, { x: 0.645, y: 0.888, r: 0.09 }, { x: 0.791, y: 0.851, r: 0.09 }, { x: 0.93, y: 0.815, r: 0.09 }, { x: 0.487, y: 0.829, r: 0.05 }, { x: 0.772, y: 0.764, r: 0.05 }, { x: 0.175, y: 0.768, r: 0.05 }],
   }),
-  house2x2_12: makeBuildingLightProfile({
+  "residential2-15-H-HD": makeBuildingLightProfile({
     class: 'res',
     panels: [
       { c: [[0.119, 0.271], [0.26, 0.31], [0.259, 0.801], [0.118, 0.765]], rows: 27, cols: 2 },
@@ -529,7 +546,7 @@ const BUILDING_LIGHT_HERO_PROFILES = {
     ],
     lamps: [{ x: 0.572, y: 0.899, r: 0.05 }, { x: 0.278, y: 0.865, r: 0.05 }, { x: 0.198, y: 0.846, r: 0.05 }, { x: 0.094, y: 0.821, r: 0.05 }, { x: 0.411, y: 0.895, r: 0.05 }, { x: 0.658, y: 0.878, r: 0.05 }, { x: 0.785, y: 0.851, r: 0.05 }, { x: 0.911, y: 0.816, r: 0.05 }, { x: 0.421, y: 0.94, r: 0.07 }, { x: 0.574, y: 0.939, r: 0.07 }],
   }),
-  house2x2_13: makeBuildingLightProfile({
+  "residential2-16-H-HD": makeBuildingLightProfile({
     class: 'res',
     panels: [
       { c: [[0.306, 0.281], [0.505, 0.366], [0.505, 0.875], [0.304, 0.774]], rows: 27, cols: 5 },
@@ -539,7 +556,7 @@ const BUILDING_LIGHT_HERO_PROFILES = {
     ],
     lamps: [{ x: 0.504, y: 0.942, r: 0.1 }, { x: 0.289, y: 0.856, r: 0.09 }, { x: 0.69, y: 0.864, r: 0.09 }, { x: 0.546, y: 0.299, r: 0.02 }, { x: 0.428, y: 0.282, r: 0.03 }, { x: 0.489, y: 0.307, r: 0.03 }, { x: 0.599, y: 0.274, r: 0.03 }, { x: 0.353, y: 0.267, r: 0.03 }],
   }),
-  house2x2_14: makeBuildingLightProfile({
+  "residential2-17-H-HD": makeBuildingLightProfile({
     class: 'res',
     panels: [
       { c: [[0.153, 0.273], [0.502, 0.346], [0.52, 0.89], [0.149, 0.803]], rows: 24, cols: 5 },
@@ -549,7 +566,7 @@ const BUILDING_LIGHT_HERO_PROFILES = {
     ],
     lamps: [{ x: 0.519, y: 0.926, r: 0.1 }, { x: 0.149, y: 0.849, r: 0.09 }, { x: 0.871, y: 0.841, r: 0.09 }, { x: 0.323, y: 0.261, r: 0.03 }, { x: 0.735, y: 0.264, r: 0.03 }],
   }),
-  house2x2_15: makeBuildingLightProfile({
+  "residential2-18-H-HD": makeBuildingLightProfile({
     class: 'res',
     panels: [
       { c: [[0.147, 0.23], [0.498, 0.318], [0.491, 0.887], [0.139, 0.799]], rows: 21, cols: 6 },
@@ -559,7 +576,7 @@ const BUILDING_LIGHT_HERO_PROFILES = {
     ],
     lamps: [{ x: 0.499, y: 0.887, r: 0.1 }, { x: 0.141, y: 0.816, r: 0.09 }, { x: 0.659, y: 0.859, r: 0.09 }, { x: 0.788, y: 0.83, r: 0.09 }, { x: 0.877, y: 0.801, r: 0.09 }, { x: 0.342, y: 0.861, r: 0.09 }],
   }),
-  house2x2_16: makeBuildingLightProfile({
+  "residential2-10-H-MD": makeBuildingLightProfile({
     class: 'res',
     panels: [
       { c: [[0.324, 0.287], [0.506, 0.362], [0.505, 0.738], [0.325, 0.655]], rows: 19, cols: 7 },
@@ -569,7 +586,7 @@ const BUILDING_LIGHT_HERO_PROFILES = {
     ],
     lamps: [{ x: 0.545, y: 0.891, r: 0.1 }, { x: 0.662, y: 0.862, r: 0.09 }, { x: 0.464, y: 0.891, r: 0.09 }, { x: 0.301, y: 0.826, r: 0.09 }, { x: 0.758, y: 0.789, r: 0.09 }, { x: 0.277, y: 0.656, r: 0.04 }, { x: 0.449, y: 0.748, r: 0.04 }, { x: 0.548, y: 0.747, r: 0.04 }, { x: 0.715, y: 0.658, r: 0.04 }],
   }),
-  house3x3_0: makeBuildingLightProfile({
+  "residential3-01-L-MD": makeBuildingLightProfile({
     class: 'res',
     panels: [
       { c: [[0.169, 0.238], [0.297, 0.298], [0.294, 0.686], [0.172, 0.622]], rows: 14, cols: 3 },
@@ -579,7 +596,7 @@ const BUILDING_LIGHT_HERO_PROFILES = {
     ],
     lamps: [{ x: 0.587, y: 0.875, r: 0.1 }, { x: 0.408, y: 0.877, r: 0.09 }, { x: 0.701, y: 0.77, r: 0.09 }, { x: 0.293, y: 0.773, r: 0.09 }, { x: 0.163, y: 0.728, r: 0.09 }, { x: 0.546, y: 0.79, r: 0.09 }, { x: 0.452, y: 0.787, r: 0.09 }, { x: 0.838, y: 0.729, r: 0.09 }],
   }),
-  house3x3_1: makeBuildingLightProfile({
+  "residential3-02-L-MD": makeBuildingLightProfile({
     class: 'res',
     panels: [
       { c: [[0.271, 0.264], [0.322, 0.286], [0.319, 0.715], [0.271, 0.694]], rows: 18, cols: 2 },
@@ -589,7 +606,7 @@ const BUILDING_LIGHT_HERO_PROFILES = {
     ],
     lamps: [{ x: 0.5, y: 0.9, r: 0.1 }, { x: 0.297, y: 0.811, r: 0.09 }, { x: 0.606, y: 0.868, r: 0.09 }, { x: 0.929, y: 0.705, r: 0.09 }, { x: 0.094, y: 0.682, r: 0.09 }, { x: 0.439, y: 0.812, r: 0.09 }, { x: 0.356, y: 0.774, r: 0.09 }, { x: 0.804, y: 0.679, r: 0.09 }],
   }),
-  house3x3_2: makeBuildingLightProfile({
+  "residential3-03-H-MD": makeBuildingLightProfile({
     class: 'res',
     panels: [
       { c: [[0.257, 0.304], [0.415, 0.375], [0.409, 0.718], [0.257, 0.663]], rows: 9, cols: 3 },
@@ -599,7 +616,7 @@ const BUILDING_LIGHT_HERO_PROFILES = {
     ],
     lamps: [{ x: 0.541, y: 0.903, r: 0.05 }, { x: 0.464, y: 0.903, r: 0.05 }, { x: 0.64, y: 0.851, r: 0.05 }, { x: 0.373, y: 0.857, r: 0.05 }, { x: 0.018, y: 0.712, r: 0.05 }, { x: 0.17, y: 0.791, r: 0.05 }, { x: 0.825, y: 0.782, r: 0.05 }, { x: 0.974, y: 0.704, r: 0.05 }, { x: 0.556, y: 0.771, r: 0.05 }, { x: 0.458, y: 0.77, r: 0.05 }],
   }),
-  house3x3_3: makeBuildingLightProfile({
+  "residential3-04-H-MD": makeBuildingLightProfile({
     class: 'res',
     panels: [
       { c: [[0.261, 0.213], [0.526, 0.327], [0.524, 0.705], [0.264, 0.574]], rows: 12, cols: 4 },
@@ -609,7 +626,7 @@ const BUILDING_LIGHT_HERO_PROFILES = {
     ],
     lamps: [{ x: 0.5, y: 0.9, r: 0.05 }, { x: 0.689, y: 0.828, r: 0.05 }, { x: 0.954, y: 0.701, r: 0.05 }, { x: 0.386, y: 0.86, r: 0.05 }, { x: 0.305, y: 0.821, r: 0.05 }, { x: 0.22, y: 0.782, r: 0.05 }, { x: 0.142, y: 0.742, r: 0.05 }, { x: 0.038, y: 0.696, r: 0.05 }, { x: 0.791, y: 0.774, r: 0.05 }, { x: 0.861, y: 0.743, r: 0.05 }],
   }),
-  house3x3_4: makeBuildingLightProfile({
+  "residential3-05-UH-LD": makeBuildingLightProfile({
     class: 'res',
     panels: [
       { c: [[0.348, 0.55], [0.634, 0.654], [0.641, 0.74], [0.349, 0.622]], rows: 2, cols: 21 },
@@ -619,7 +636,7 @@ const BUILDING_LIGHT_HERO_PROFILES = {
     ],
     lamps: [{ x: 0.515, y: 0.927, r: 0.05 }, { x: 0.666, y: 0.792, r: 0.05 }, { x: 0.54, y: 0.854, r: 0.05 }, { x: 0.327, y: 0.845, r: 0.05 }, { x: 0.241, y: 0.812, r: 0.05 }, { x: 0.299, y: 0.682, r: 0.07 }, { x: 0.067, y: 0.664, r: 0.07 }, { x: 0.158, y: 0.624, r: 0.07 }, { x: 0.21, y: 0.718, r: 0.07 }, { x: 0.76, y: 0.821, r: 0.05 }, { x: 1, y: 0.701, r: 0.05 }, { x: 0.004, y: 0.711, r: 0.05 }],
   }),
-  house3x3_5: makeBuildingLightProfile({
+  "residential3-06-L-MD": makeBuildingLightProfile({
     class: 'res',
     panels: [
       { c: [[0.216, 0.343], [0.412, 0.429], [0.416, 0.772], [0.216, 0.679]], rows: 13, cols: 5 },
@@ -629,7 +646,7 @@ const BUILDING_LIGHT_HERO_PROFILES = {
     ],
     lamps: [{ x: 0.406, y: 0.822, r: 0.06 }, { x: 0.644, y: 0.84, r: 0.06 }, { x: 0.274, y: 0.802, r: 0.06 }, { x: 0.703, y: 0.822, r: 0.06 }, { x: 0.841, y: 0.763, r: 0.06 }, { x: 0.097, y: 0.704, r: 0.06 }, { x: 0.195, y: 0.773, r: 0.06 }, { x: 0.326, y: 0.834, r: 0.06 }],
   }),
-  house3x3_6: makeBuildingLightProfile({
+  "residential3-07-M-MD": makeBuildingLightProfile({
     class: 'res',
     panels: [
       { c: [[0.378, 0.404], [0.414, 0.421], [0.415, 0.8], [0.383, 0.776]], rows: 25, cols: 2 },
@@ -639,7 +656,7 @@ const BUILDING_LIGHT_HERO_PROFILES = {
     ],
     lamps: [{ x: 0.519, y: 0.894, r: 0.06 }, { x: 0.464, y: 0.886, r: 0.06 }, { x: 0.624, y: 0.875, r: 0.06 }, { x: 0.262, y: 0.798, r: 0.06 }, { x: 0.342, y: 0.866, r: 0.06 }],
   }),
-  house3x3_7: makeBuildingLightProfile({
+  "residential3-08-M-MD": makeBuildingLightProfile({
     class: 'res',
     panels: [
       { c: [[0.318, 0.407], [0.376, 0.437], [0.373, 0.765], [0.318, 0.731]], rows: 17, cols: 2 },
@@ -649,7 +666,7 @@ const BUILDING_LIGHT_HERO_PROFILES = {
     ],
     lamps: [{ x: 0.547, y: 0.893, r: 0.06 }, { x: 0.302, y: 0.837, r: 0.06 }, { x: 0.733, y: 0.808, r: 0.06 }, { x: 0.548, y: 0.824, r: 0.06 }, { x: 0.628, y: 0.799, r: 0.06 }, { x: 0.185, y: 0.763, r: 0.06 }],
   }),
-  house3x3_8: makeBuildingLightProfile({
+  "residential3-12-H-MD": makeBuildingLightProfile({
     class: 'res',
     panels: [
       { c: [[0.356, 0.181], [0.506, 0.238], [0.507, 0.822], [0.35, 0.746]], rows: 24, cols: 5 },
@@ -657,7 +674,7 @@ const BUILDING_LIGHT_HERO_PROFILES = {
     ],
     lamps: [{ x: 0.571, y: 0.881, r: 0.1 }, { x: 0.426, y: 0.88, r: 0.09 }, { x: 0.76, y: 0.8, r: 0.09 }, { x: 0.245, y: 0.81, r: 0.09 }],
   }),
-  house3x3_9: makeBuildingLightProfile({
+  "residential3-14-M-MD": makeBuildingLightProfile({
     class: 'res',
     panels: [
       { c: [[0.328, 0.354], [0.5, 0.437], [0.5, 0.816], [0.328, 0.732]], rows: 9, cols: 5 },
@@ -682,15 +699,30 @@ function getBuildingLightFamily(record) {
   return t || 'unknown';
 }
 
-function resolveBuildingLightProfile(record, spriteKey) {
+// The stable slug for a model: its source filename minus the extension. Unlike
+// the discovery-order logical key ("house2x2_12") this survives models being
+// added, removed or renamed, so a calibrated profile always follows its art.
+function getBuildingLightModelSlug(record, sprite) {
+  const file = sprite?.modelSourceFileName
+    ?? record?.sourceFileName
+    ?? (typeof record?.assetId === 'string' ? record.assetId.split('/').pop() : null);
+  if (!file) return null;
+  return String(file).replace(/\.[^.]+$/, '');
+}
+
+function resolveBuildingLightProfile(record, spriteKey, slug) {
   const family = getBuildingLightFamily(record);
   // in-editor live preview override (calibrator, optional) beats everything
   const override = typeof getBuildingLightCalibrationOverride === 'function'
-    ? getBuildingLightCalibrationOverride(spriteKey, family)
+    ? getBuildingLightCalibrationOverride(slug || spriteKey, family)
     : null;
   if (override) return override;
-  return (spriteKey && BUILDING_LIGHT_DB_PROFILES[spriteKey])
+  // Stable slug wins; the logical key stays as a fallback so calibrations saved
+  // under the old index keys keep resolving until they are re-saved.
+  return (slug && BUILDING_LIGHT_DB_PROFILES[slug])
+    || (spriteKey && BUILDING_LIGHT_DB_PROFILES[spriteKey])
     || BUILDING_LIGHT_DB_PROFILES[family]
+    || (slug && BUILDING_LIGHT_HERO_PROFILES[slug])
     || (spriteKey && BUILDING_LIGHT_HERO_PROFILES[spriteKey])
     || BUILDING_LIGHT_PROFILES[family]
     || BUILDING_LIGHT_MINIMAL_PROFILE;
@@ -943,6 +975,11 @@ function createBuildingLightGlow(scene, sprite) {
     gfx,
     sprite,
     textureKey: sprite.texture?.key || null,
+    // Window LOD state - set each time the camera settles; a new glow starts
+    // allowed so a building that pops in near the camera lights immediately.
+    windowsAllowed: true,
+    drewWindows: false,
+    drawnCells: 0,
     beacons: [],       // [{ sprite, period, phase }]
     hasBeacons: false,
     texW: w,
@@ -961,8 +998,11 @@ function createBuildingLightGlow(scene, sprite) {
 function relightBuildingGlow(scene, sprite, glow, bucket, time) {
   const record = glow.record || buildingLightRecordFor(sprite);
   glow.record = record;
-  const profile = resolveBuildingLightProfile(record, sprite.logicalSpriteKey || sprite.renderTextureKey);
-  const cells = computeLitBuildingWindows(profile, glow.seed, bucket, glow.jitterNonce, glow.personality);
+  const profile = resolveBuildingLightProfile(
+    record,
+    sprite.logicalSpriteKey || sprite.renderTextureKey,
+    getBuildingLightModelSlug(record, sprite),
+  );
   const g = glow.gfx;
   g.clear();
   g.setPosition(sprite.x, sprite.y);
@@ -973,13 +1013,31 @@ function relightBuildingGlow(scene, sprite, glow, bucket, time) {
     x: (p[0] - glow.originX) * glow.texW,
     y: (p[1] - glow.originY) * glow.texH,
   }));
-  for (let i = 0; i < cells.length; i++) {
-    const cell = cells[i];
-    if (!cell.on) continue;
-    g.fillStyle(tint, Math.min(0.5, cell.alpha * 0.3));
-    g.fillPoints(px(scaleBuildingLightQuad(cell.quad, 1.7)), true);
-    g.fillStyle(tint, Math.min(1, cell.alpha));
-    g.fillPoints(px(cell.quad), true);
+
+  // Windows are the expensive half and only drawn for buildings inside the
+  // window LOD budget (see BUILDING_LIGHT_CONFIG.windowBudget). Lamps below are
+  // always drawn - they are a few circles and carry the night read at distance.
+  glow.drewWindows = !!glow.windowsAllowed;
+  if (glow.windowsAllowed) {
+    const cells = computeLitBuildingWindows(profile, glow.seed, bucket, glow.jitterNonce, glow.personality);
+    // Cap drawn cells per building by sampling evenly across the lit set, so a
+    // 300-cell tower thins out instead of losing its whole upper half.
+    const lit = [];
+    for (let i = 0; i < cells.length; i++) if (cells[i].on) lit.push(cells[i]);
+    const cap = BUILDING_LIGHT_CONFIG.maxWindowCells;
+    const step = lit.length > cap ? lit.length / cap : 1;
+    const drawn = step === 1 ? lit.length : cap;
+    for (let n = 0; n < drawn; n++) {
+      const cell = lit[step === 1 ? n : Math.floor(n * step)];
+      if (!cell) continue;
+      g.fillStyle(tint, Math.min(0.5, cell.alpha * 0.3));
+      g.fillPoints(px(scaleBuildingLightQuad(cell.quad, 1.7)), true);
+      g.fillStyle(tint, Math.min(1, cell.alpha));
+      g.fillPoints(px(cell.quad), true);
+    }
+    glow.drawnCells = drawn;
+  } else {
+    glow.drawnCells = 0;
   }
 
   // Street / public lamps - the always-on layer, drawn into the same Graphics.
@@ -1102,6 +1160,45 @@ function updateBuildingLights(scene, time) {
     }
   });
 
+  // Window LOD: pick the nearest `windowBudget` glows to the camera centre and
+  // let only those draw their window grid. Re-evaluated on the same cadence as
+  // a camera move rather than every frame; a glow that changes side of the
+  // budget is queued for a redraw.
+  const cam = s.cameras && s.cameras.main;
+  const camKey = cam
+    ? `${Math.round(cam.scrollX / 24)}:${Math.round(cam.scrollY / 24)}:${(cam.zoom || 1).toFixed(2)}`
+    : '';
+  if (camKey !== s.__blLodKey || bucketChanged) {
+    s.__blLodKey = camKey;
+    const cx = cam ? cam.midPoint.x : 0;
+    const cy = cam ? cam.midPoint.y : 0;
+    const ranked = s.__blRanked || (s.__blRanked = []);
+    ranked.length = 0;
+    glows.forEach((glow, id) => {
+      const sp = glow.sprite;
+      if (!sp || !sp.visible) return;
+      const dx = sp.x - cx;
+      const dy = sp.y - cy;
+      ranked.push([dx * dx + dy * dy, id, glow]);
+    });
+    ranked.sort((a, b) => a[0] - b[0]);
+    const cap = BUILDING_LIGHT_CONFIG.windowBudget;
+    for (let i = 0; i < ranked.length; i++) {
+      const [, id, glow] = ranked[i];
+      const allowed = i < cap;
+      // Hide the whole glow outside the budget, not just its windows. Measured
+      // on a dense night view (same camera, ~430 visible buildings): 400 shown
+      // glows renders in 165ms, 48 in 46ms, with the same ~200 drawn window
+      // cells either way. The cost is ~0.34ms per visible additive Graphics
+      // regardless of what it contains - a per-object batch flush - so cutting
+      // objects is the only lever that moves render time.
+      if (glow.gfx.visible !== allowed) glow.gfx.setVisible(allowed);
+      if (glow.windowsAllowed === allowed) continue;
+      glow.windowsAllowed = allowed;
+      if (allowed !== glow.drewWindows && queue.indexOf(id) === -1) queue.push(id);
+    }
+  }
+
   let budget = BUILDING_LIGHT_CONFIG.relightsPerFrame;
   while (budget-- > 0 && queue.length) {
     const id = queue.shift();
@@ -1136,6 +1233,7 @@ const buildingLightingTestApi = {
   getBuildingLightClass,
   getBuildingLightFamily,
   resolveBuildingLightProfile,
+  getBuildingLightModelSlug,
   setBuildingLightDbProfile,
   loadBuildingLightDbProfiles,
   BUILDING_LIGHT_DB_PROFILES,
@@ -1163,6 +1261,7 @@ if (typeof globalThis !== 'undefined') {
     fetchBuildingLightDbProfiles,
     BUILDING_LIGHT_DB_PROFILES,
     resolveBuildingLightProfile,
+    getBuildingLightModelSlug,
     getBuildingLightClass,
     getBuildingLightFamily,
     computeRuntimeBuildingLightStrength,

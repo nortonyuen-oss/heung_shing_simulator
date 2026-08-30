@@ -357,17 +357,17 @@ function loadBuildingLightCalibrationTexture(done) {
 }
 
 // ---------------------------------------------------------------------------
-// preview
+// preview - a fixed screen-space STAGE, not the live city layer. All objects
+// use scrollFactor(0) so panning/zooming the map never moves them, and the
+// backdrop shows the ambient of the scrubbed condition so the glow reads true.
 // ---------------------------------------------------------------------------
 
-function buildingLightCalibrationCameraCentre(scene) {
-  const cam = scene?.cameras?.main;
-  if (!cam) return { x: 0, y: 0 };
-  return {
-    x: Number.isFinite(cam.midPoint?.x) ? cam.midPoint.x : cam.scrollX + cam.width / 2,
-    y: Number.isFinite(cam.midPoint?.y) ? cam.midPoint.y : cam.scrollY + cam.height / 2,
-  };
-}
+const BUILDING_LIGHT_CALIBRATION_STAGE = Object.freeze({ w: 520, h: 560, inset: 0.84 });
+const BUILDING_LIGHT_CALIBRATION_BUCKET_BG = Object.freeze({
+  duskRamp: 0x2b2438, eveningPeak: 0x121b2c, lateEvening: 0x0c1322,
+  deepNight: 0x080d18, dawnFade: 0x171f34,
+});
+let buildingLightCalibrationRain = false;
 
 function buildingLightCalibrationDepth(o) {
   const base = typeof VISUAL_ROUTE_CALIBRATION_INPUT_DEPTH === 'number'
@@ -375,9 +375,33 @@ function buildingLightCalibrationDepth(o) {
   return base + o;
 }
 
+function buildingLightCalibrationStageRect(scene) {
+  const sw = scene?.scale?.width || 1280;
+  const sh = scene?.scale?.height || 720;
+  const w = Math.min(BUILDING_LIGHT_CALIBRATION_STAGE.w, Math.max(320, sw - 380));
+  const h = Math.min(BUILDING_LIGHT_CALIBRATION_STAGE.h, sh - 40);
+  const cx = Math.max(w / 2 + 16, (sw - 356) / 2);
+  const cy = sh / 2;
+  return { w, h, cx, cy };
+}
+
+function buildingLightCalibrationStageBg() {
+  let bg = BUILDING_LIGHT_CALIBRATION_BUCKET_BG[buildingLightCalibrationBucket]
+    ?? BUILDING_LIGHT_CALIBRATION_BUCKET_BG.eveningPeak;
+  if (buildingLightCalibrationRain) {
+    const r = ((bg >> 16) & 0xff) * 0.55;
+    const g = ((bg >> 8) & 0xff) * 0.6;
+    const b = Math.min(255, (bg & 0xff) * 0.9 + 10);
+    bg = (Math.round(r) << 16) | (Math.round(g) << 8) | Math.round(b);
+  }
+  return bg;
+}
+
 function destroyBuildingLightCalibrationPreview() {
   const p = buildingLightCalibrationPreview;
   if (!p) return;
+  p.stage?.destroy?.();
+  p.stageGfx?.destroy?.();
   p.body?.destroy?.();
   p.gfx?.destroy?.();
   Object.values(p.handles || {}).forEach((h) => h?.destroy?.());
@@ -389,19 +413,32 @@ function spawnBuildingLightCalibrationPreview(refit) {
   const t = buildingLightCalibrationTarget;
   if (!scene?.add || !t) return;
   destroyBuildingLightCalibrationPreview();
-  const centre = buildingLightCalibrationCameraCentre(scene);
+  const rect = buildingLightCalibrationStageRect(scene);
 
-  if (refit) {
-    const fit = Math.min(360 / Math.max(1, t.texW), 470 / Math.max(1, t.texH));
+  if (refit || !buildingLightCalibrationZoom) {
+    const fit = Math.min(
+      rect.w * BUILDING_LIGHT_CALIBRATION_STAGE.inset / Math.max(1, t.texW),
+      rect.h * BUILDING_LIGHT_CALIBRATION_STAGE.inset / Math.max(1, t.texH),
+    );
     buildingLightCalibrationZoom = Math.max(BUILDING_LIGHT_CALIBRATION_MIN_ZOOM,
-      Math.min(BUILDING_LIGHT_CALIBRATION_MAX_ZOOM, Math.round((fit || 3) * 2) / 2 || 3));
+      Math.min(BUILDING_LIGHT_CALIBRATION_MAX_ZOOM, Math.round((fit || 3) * 4) / 4 || 3));
   }
 
+  const stage = scene.add.rectangle(rect.cx, rect.cy, rect.w, rect.h, buildingLightCalibrationStageBg(), 1);
+  stage.setScrollFactor(0);
+  stage.setStrokeStyle(1, 0x33475f, 0.9);
+  stage.setDepth(buildingLightCalibrationDepth(-12));
+
+  const stageGfx = scene.add.graphics();
+  stageGfx.setScrollFactor(0);
+  stageGfx.setDepth(buildingLightCalibrationDepth(-11));
+
   const body = t.textureKey && scene.textures.exists(t.textureKey)
-    ? scene.add.image(centre.x, centre.y, t.textureKey)
+    ? scene.add.image(rect.cx, rect.cy, t.textureKey)
     : null;
   if (body) {
     body.setOrigin(0.5, 0.5);
+    body.setScrollFactor(0);
     body.setDepth(buildingLightCalibrationDepth(-8));
     if (!t.texW || t.texW === 128) {
       const src = body.texture?.getSourceImage?.();
@@ -409,9 +446,13 @@ function spawnBuildingLightCalibrationPreview(refit) {
     }
   }
   const gfx = scene.add.graphics();
+  gfx.setScrollFactor(0);
   gfx.setDepth(buildingLightCalibrationDepth(-6));
 
-  buildingLightCalibrationPreview = { body, gfx, handles: {}, worldX: centre.x, worldY: centre.y };
+  buildingLightCalibrationPreview = {
+    stage, stageGfx, body, gfx, handles: {},
+    stageCX: rect.cx, stageCY: rect.cy, rect,
+  };
   refreshBuildingLightCalibrationHandles();
   layoutBuildingLightCalibrationPreview();
 }
@@ -420,13 +461,13 @@ function buildingLightCalibrationNormToWorld(nx, ny) {
   const p = buildingLightCalibrationPreview;
   const t = buildingLightCalibrationTarget;
   const z = buildingLightCalibrationZoom;
-  return { x: p.worldX + (nx - 0.5) * t.texW * z, y: p.worldY + (ny - 0.5) * t.texH * z };
+  return { x: p.stageCX + (nx - 0.5) * t.texW * z, y: p.stageCY + (ny - 0.5) * t.texH * z };
 }
-function buildingLightCalibrationWorldToNorm(wx, wy) {
+function buildingLightCalibrationWorldToNorm(sx, sy) {
   const p = buildingLightCalibrationPreview;
   const t = buildingLightCalibrationTarget;
   const z = buildingLightCalibrationZoom;
-  return { nx: (wx - p.worldX) / (t.texW * z) + 0.5, ny: (wy - p.worldY) / (t.texH * z) + 0.5 };
+  return { nx: (sx - p.stageCX) / (t.texW * z) + 0.5, ny: (sy - p.stageCY) / (t.texH * z) + 0.5 };
 }
 
 function refreshBuildingLightCalibrationHandles() {
@@ -456,11 +497,13 @@ function refreshBuildingLightCalibrationHandles() {
       : id[0] === 'l' ? 0xffce93
         : beaconHex(data.beacons[Number(id.slice(1))]?.color);
     const dot = scene.add.circle(0, 0, id[0] === 'p' ? 5.5 : 6, color, 0.95);
+    dot.setScrollFactor(0);
     dot.setStrokeStyle(1.5, 0x0a0f18, 0.9);
     dot.setDepth(buildingLightCalibrationDepth(-4));
     dot.setInteractive({ useHandCursor: true, draggable: true });
     scene.input?.setDraggable?.(dot, true);
-    dot.on('drag', (pointer, dx, dy) => onBuildingLightCalibrationHandleDrag(id, dx, dy));
+    // screen-space stage: use the raw pointer position, not Phaser's world dragXY
+    dot.on('drag', (pointer) => onBuildingLightCalibrationHandleDrag(id, pointer.x, pointer.y));
     p.handles[id] = dot;
   });
 }
@@ -494,6 +537,31 @@ function layoutBuildingLightCalibrationPreview() {
   const data = buildingLightCalibrationCurrentData();
   const profile = buildingLightCalibrationDataToProfile(data);
   if (p.body) p.body.setScale(z);
+
+  // backdrop condition + ground guide + rain
+  p.stage?.setFillStyle?.(buildingLightCalibrationStageBg(), 1);
+  const rect = p.rect;
+  const sg = p.stageGfx;
+  if (sg) {
+    sg.clear();
+    const groundY = buildingLightCalibrationNormToWorld(0, 1).y;
+    sg.lineStyle(1, 0x5a7fa0, 0.35);
+    sg.beginPath();
+    sg.moveTo(rect.cx - rect.w / 2, groundY);
+    sg.lineTo(rect.cx + rect.w / 2, groundY);
+    sg.strokePath();
+    if (buildingLightCalibrationRain) {
+      sg.lineStyle(1, 0xaecbe6, 0.16);
+      for (let i = 0; i < 46; i++) {
+        const rx = rect.cx - rect.w / 2 + ((i * 97) % rect.w);
+        const ry = rect.cy - rect.h / 2 + ((i * 53) % rect.h);
+        sg.beginPath();
+        sg.moveTo(rx, ry);
+        sg.lineTo(rx - 4, ry + 13);
+        sg.strokePath();
+      }
+    }
+  }
 
   const sp = data.panels[buildingLightCalibrationPanelIndex] || data.panels[0];
   for (let i = 0; i < 4; i++) {
@@ -806,11 +874,15 @@ function createBuildingLightCalibrationPanel() {
       <label><input type="checkbox" class="bl-flood"> 地面投光 (v1.1)</label>
     </div>
 
-    <h4>預覽時段</h4>
+    <h4>預覽舞台</h4>
     <div class="bl-buckets">
       <button data-bucket="duskRamp">黃昏</button><button data-bucket="eveningPeak">晚高峰</button>
       <button data-bucket="lateEvening">晚間</button><button data-bucket="deepNight">深夜</button>
       <button data-bucket="dawnFade">天光</button>
+    </div>
+    <div class="bl-2" style="margin-top:5px">
+      <button type="button" class="bl-rain">☔ 大雨背景:關</button>
+      <button type="button" class="bl-recenter">重設檢視</button>
     </div>
     <div class="bl-row"><span>放大</span><span class="bl-step">
       <button data-zoom="-1">−</button><b class="bl-zoom">3×</b><button data-zoom="1">+</button></span></div>
@@ -867,6 +939,14 @@ function createBuildingLightCalibrationPanel() {
     layoutBuildingLightCalibrationPreview();
     renderBuildingLightCalibrationPanel();
   }));
+  root.querySelector('.bl-rain').addEventListener('click', () => {
+    buildingLightCalibrationRain = !buildingLightCalibrationRain;
+    layoutBuildingLightCalibrationPreview();
+    renderBuildingLightCalibrationPanel();
+  });
+  root.querySelector('.bl-recenter').addEventListener('click', () => {
+    if (buildingLightCalibrationTarget) spawnBuildingLightCalibrationPreview(true);
+  });
   root.querySelector('.bl-apply').addEventListener('click', applyBuildingLightCalibration);
   root.querySelector('.bl-reset').addEventListener('click', resetBuildingLightCalibrationEntry);
   root.querySelector('.bl-copy').addEventListener('click', () => copyBuildingLightCalibrationText(buildBuildingLightCalibrationRecord(), '已複製 JS'));
@@ -929,6 +1009,9 @@ function renderBuildingLightCalibrationPanel() {
     b.dataset.active = String(b.dataset.bucket === buildingLightCalibrationBucket);
   });
   r.querySelector('.bl-zoom').textContent = `${buildingLightCalibrationZoom}×`;
+  const rainBtn = r.querySelector('.bl-rain');
+  rainBtn.textContent = `☔ 大雨背景:${buildingLightCalibrationRain ? '開' : '關'}`;
+  rainBtn.dataset.active = String(buildingLightCalibrationRain);
   if (!data) return;
 
   r.querySelector('.bl-class').value = data.class;

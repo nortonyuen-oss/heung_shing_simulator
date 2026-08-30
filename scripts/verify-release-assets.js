@@ -107,8 +107,26 @@ async function verify() {
     .filter((filePath) => IMAGE_EXTENSIONS.has(path.extname(filePath).toLowerCase()))
     .map((filePath) => `Models/${portable(path.relative(SOURCE_ROOT, filePath))}`)
     .sort();
-  const manifestLogicalPaths = Object.keys(manifest.entries).sort();
+  // Night variants are derived by scripts/bake-night-textures.js from the staged
+  // day texture, so they have no source image of their own. They are checked
+  // separately below against the day entry they came from.
+  const isNightVariant = (p) => /__night(deep)?\.png$/.test(p);
+  const manifestLogicalPaths = Object.keys(manifest.entries).filter((p) => !isNightVariant(p)).sort();
   assert.deepStrictEqual(manifestLogicalPaths, sourceLogicalPaths, 'manifest must exactly match source images');
+
+  const nightEntries = Object.entries(manifest.entries).filter(([p]) => isNightVariant(p));
+  for (const [logicalPath, entry] of nightEntries) {
+    const dayLogical = logicalPath.replace(/__night(deep)?\.png$/, '.png');
+    const day = manifest.entries[dayLogical];
+    assert.ok(day, `${logicalPath} has no day counterpart`);
+    const stagedPath = path.join(ROOT, '.data', 'package-assets', ...entry.packagedPath.split('/'));
+    assert.ok(fs.existsSync(stagedPath), `missing staged night output for ${logicalPath}`);
+    const meta = await sharp(stagedPath).metadata();
+    // A night variant must be pixel-aligned with its day texture, or the
+    // calibrated window positions land in the wrong place.
+    assert.equal(meta.width, day.outputWidth, `${logicalPath} width must match its day texture`);
+    assert.equal(meta.height, day.outputHeight, `${logicalPath} height must match its day texture`);
+  }
 
   const stagedFiles = walk(STAGE_ROOT);
   stagedFiles.forEach((filePath) => {
@@ -122,6 +140,7 @@ async function verify() {
   let maximumAnchorError = 0;
   let mipmapEligibleCount = 0;
   for (const [logicalPath, entry] of Object.entries(manifest.entries)) {
+    if (isNightVariant(logicalPath)) continue; // checked above
     assert.equal(path.extname(entry.packagedPath).toLowerCase(), '.webp', `${logicalPath} is not mapped to WebP`);
     const stagedPath = path.join(ROOT, '.data', 'package-assets', ...entry.packagedPath.split('/'));
     assert.ok(fs.existsSync(stagedPath), `missing staged output for ${logicalPath}`);
@@ -192,7 +211,10 @@ async function verify() {
     }
   }
   assert.ok(maximumAnchorError <= 1, `maximum PNG/WebP anchor error is ${maximumAnchorError.toFixed(2)}px`);
+  // totals.files counts the source-derived entries only; night variants are
+  // added afterwards by the bake step and verified separately above.
   assert.equal(mipmapEligibleCount, manifest.totals.files, 'not every staged model is mipmap eligible');
+  assert.equal(nightEntries.length % 2, 0, 'night variants must come in evening/deep pairs');
 
   const registrySources = ['constants.js', 'main.js'];
   const referencedModels = new Set(registrySources.flatMap((fileName) => {

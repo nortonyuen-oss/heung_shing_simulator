@@ -6743,6 +6743,126 @@ function setupDynamicLighting(scene) {
 // Called by the 100ms day/night visual cadence, the ambient weather safety
 // interval, and immediately on zoom changes. Cloud reconfiguration remains
 // key-guarded below, so the faster sky cadence does not reset its emitter.
+// ── Baked night textures ─────────────────────────────────────────────────────
+// A model with a calibrated light profile also ships a `<name>__night` variant
+// (scripts/bake-night-textures.js) with the dark facade, lit windows and lamp
+// pools already in its pixels. Swapping to it at dusk costs nothing per frame,
+// unlike the retained glow object it replaces - the whole reason the bake
+// exists. Buildings using one also skip the runtime night tint, since their
+// darkening is baked in.
+const BUILDING_NIGHT_TEXTURE_PREFIX = 'bl_night__';
+const BUILDING_NIGHT_DEEP_SUFFIX = '__deep';
+// Must match BAKE_DIM / DIM_TINT in scripts/bake-night-textures.js. A building
+// with baked art is tinted toward exactly this on its DAY texture as dusk comes
+// in, so that at the moment of the swap its facade brightness is already the
+// same and only the windows appear. Swapping straight from an untinted day
+// texture is a visible jolt.
+const BUILDING_BAKED_DIM = 0.55;
+const BUILDING_BAKED_TINT = 0x8f99b0;
+// Night level at which the pre-swap tint has finished ramping and the swap
+// happens. Below this the day texture is shown, progressively dimmed.
+const BUILDING_NIGHT_SWAP_AT = 0.30;
+const buildingNightPathBySlug = new Map();   // model slug -> logical night path
+let buildingNightIndexBuilt = false;
+
+function buildBuildingNightTextureIndex() {
+  if (buildingNightIndexBuilt) return buildingNightPathBySlug;
+  buildingNightIndexBuilt = true;
+  const entries = modelAssetManifest?.entries;
+  if (!entries) return buildingNightPathBySlug;
+  Object.keys(entries).forEach((logicalPath) => {
+    const file = logicalPath.split('/').pop() || '';
+    if (file.endsWith('__nightdeep.png')) {
+      buildingNightPathBySlug.set(
+        file.slice(0, -'__nightdeep.png'.length) + BUILDING_NIGHT_DEEP_SUFFIX, logicalPath,
+      );
+      return;
+    }
+    if (!file.endsWith('__night.png')) return;
+    buildingNightPathBySlug.set(file.slice(0, -'__night.png'.length), logicalPath);
+  });
+  return buildingNightPathBySlug;
+}
+
+function getBuildingNightTextureKey(sprite, deep = false) {
+  if (!sprite) return null;
+  const record = typeof buildingData !== 'undefined' && typeof getTileId === 'function'
+    ? buildingData[getTileId(sprite.mapRow, sprite.mapCol)] : null;
+  const file = sprite.modelSourceFileName ?? record?.sourceFileName;
+  if (!file) return null;
+  const slug = String(file).replace(/\.[^.]+$/, '');
+  if (!buildBuildingNightTextureIndex().has(slug)) return null;
+  return BUILDING_NIGHT_TEXTURE_PREFIX + slug + (deep ? BUILDING_NIGHT_DEEP_SUFFIX : '');
+}
+
+// Load on demand, one at a time, reusing the zone-texture loader's discipline
+// of never starting a load while another is in flight.
+const pendingNightTextureLoads = new Set();
+function requestBuildingNightTexture(scene, slug) {
+  const key = BUILDING_NIGHT_TEXTURE_PREFIX + slug;
+  if (scene.textures.exists(key) || pendingNightTextureLoads.has(key)) return;
+  const logicalPath = buildBuildingNightTextureIndex().get(slug);
+  if (!logicalPath) return;
+  pendingNightTextureLoads.add(key);
+  const start = () => {
+    if (scene.load.isLoading()) {
+      scene.load.once('complete', start);
+      return;
+    }
+    scene.load.image(key, resolveModelAssetPath(logicalPath));
+    scene.load.once('complete', () => pendingNightTextureLoads.delete(key));
+    scene.load.start();
+  };
+  start();
+}
+
+function applyBuildingNightTexture(scene, sprite, wantNight, deep) {
+  const key = getBuildingNightTextureKey(sprite, deep);
+  if (!key) return false;
+  if (wantNight) {
+    if (!scene.textures.exists(key)) {
+      requestBuildingNightTexture(scene, key.slice(BUILDING_NIGHT_TEXTURE_PREFIX.length));
+      return false;
+    }
+    if (sprite.texture.key !== key) {
+      sprite.__dayTextureKey = sprite.__dayTextureKey ?? sprite.texture.key;
+      sprite.setTexture(key);
+      sprite.clearTint?.();
+    }
+    sprite.skipNightTint = true;
+    return true;
+  }
+  if (sprite.__dayTextureKey) {
+    if (scene.textures.exists(sprite.__dayTextureKey)) sprite.setTexture(sprite.__dayTextureKey);
+    sprite.__dayTextureKey = null;
+  }
+  sprite.skipNightTint = false;
+  return false;
+}
+
+// Swap the visible set between day, evening and deep-night art. Runs on the
+// lighting tick, not per frame.
+function syncBuildingNightTextures(scene, rawNightAlpha, bucket) {
+  if (!scene?.buildingSprites) return;
+  const wantNight = rawNightAlpha >= BUILDING_NIGHT_SWAP_AT;
+  const deep = bucket === 'deepNight' || bucket === 'dawnFade';
+  const state = wantNight ? (deep ? 'deep' : 'night') : 'day';
+  if (scene.__blNightTexState === state && !scene.__blNightTexPending) return;
+  let pending = false;
+  const seen = scene.__blNightTexSeen || (scene.__blNightTexSeen = new Set());
+  seen.clear();
+  scene.buildingSprites.forEach((sprite) => {
+    if (!sprite || seen.has(sprite)) return;
+    seen.add(sprite);
+    if (!getBuildingNightTextureKey(sprite)) return;
+    if (!applyBuildingNightTexture(scene, sprite, wantNight, deep) && wantNight) pending = true;
+  });
+  seen.clear();
+  scene.__blNightTexState = state;
+  // textures still loading: come back next tick and finish the swap
+  scene.__blNightTexPending = pending;
+}
+
 // ── Night darkness split ─────────────────────────────────────────────────────
 // The visible night darkness players see, at its midnight peak. The keyframe
 // data in sim-weather.js still peaks at 0.54 and stays the authoritative input
@@ -6783,6 +6903,13 @@ function applyNightDarkness(scene, rawNightAlpha) {
   scene.nightDarkness = total;
   scene.nightOverlay?.setAlpha(atmosphere);
   scene.groundNightOverlay?.setAlpha(ground);
+  // Swap baked night art in slightly before the tint ramps, so a building never
+  // shows a fully lit facade next to an already-dark street.
+  syncBuildingNightTextures(
+    scene,
+    scene.nightRawAlpha,
+    typeof getRuntimeBuildingLightBucket === 'function' ? getRuntimeBuildingLightBucket(scene) : null,
+  );
   applyNightObjectTint(scene, ground);
 }
 
@@ -6790,7 +6917,10 @@ function applyNightDarkness(scene, rawNightAlpha) {
 // covered by the ground pass. Tint them by the same amount instead. Only
 // touched when the tint bucket actually changes, so this is free per frame.
 function applyNightObjectTint(scene, ground) {
-  const step = Math.round(Math.max(0, Math.min(1, ground)) * 20); // 5% buckets
+  // Quantised off the raw night curve rather than the ground pass: the baked-art
+  // pre-swap ramp below finishes by raw 0.30, which is only a few 5% steps of
+  // ground and would visibly stair-step.
+  const step = Math.round(Math.max(0, Number(scene.nightRawAlpha) || 0) * 100);
   if (scene.__nightTintStep === step) return;
   scene.__nightTintStep = step;
   const k = step / 20;
@@ -6813,6 +6943,17 @@ function applyNightObjectTint(scene, ground) {
   // Buildings take a lighter share (see NIGHT_BUILDING_DARKNESS_SHARE). Once a
   // model carries a baked night texture its darkening is in the pixels and it
   // opts out via `skipNightTint`.
+  //
+  // Before that swap happens, a building that HAS baked art is instead ramped
+  // toward the baked dim on its day texture, so the swap lands on a facade that
+  // already matches and only the windows change.
+  const raw = Math.max(0, Number(scene.nightRawAlpha) || 0);
+  const preK = Math.min(1, raw / BUILDING_NIGHT_SWAP_AT) * BUILDING_BAKED_DIM;
+  const preTint = preK <= 0 ? 0xffffff : (
+    (lerp(0xff, (BUILDING_BAKED_TINT >> 16) & 0xff, preK) << 16)
+    | (lerp(0xff, (BUILDING_BAKED_TINT >> 8) & 0xff, preK) << 8)
+    | lerp(0xff, BUILDING_BAKED_TINT & 0xff, preK)
+  );
   const bk = k * NIGHT_BUILDING_DARKNESS_SHARE;
   const buildingTint = bk <= 0 ? 0xffffff : (
     (lerp(0xff, (NIGHT_OBJECT_TINT >> 16) & 0xff, bk) << 16)
@@ -6823,12 +6964,15 @@ function applyNightObjectTint(scene, ground) {
   // same sprite - dedupe so a 5x5 landmark is not tinted 25 times.
   const seenBuildings = scene.__nightTintSeen || (scene.__nightTintSeen = new Set());
   seenBuildings.clear();
+  const hasBakedArt = typeof getBuildingNightTextureKey === 'function';
   scene.buildingSprites?.forEach((sprite) => {
     if (!sprite || sprite.skipNightTint || seenBuildings.has(sprite)) return;
     seenBuildings.add(sprite);
     if (typeof sprite.setTint !== 'function') return;
-    if (bk <= 0) sprite.clearTint?.();
-    else sprite.setTint(buildingTint);
+    const baked = hasBakedArt && getBuildingNightTextureKey(sprite);
+    const useK = baked ? preK : bk;
+    if (useK <= 0) sprite.clearTint?.();
+    else sprite.setTint(baked ? preTint : buildingTint);
   });
   seenBuildings.clear();
 }

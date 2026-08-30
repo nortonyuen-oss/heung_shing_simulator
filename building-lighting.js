@@ -1133,6 +1133,10 @@ function updateBuildingLights(scene, time) {
       return;
     }
     if (!glow) {
+      // A model with a baked night texture carries its glow in its own pixels -
+      // giving it a glow object too would both double the light and reintroduce
+      // the per-object render cost the bake exists to remove.
+      if (typeof getBuildingNightTextureKey === 'function' && getBuildingNightTextureKey(sprite)) return;
       glow = createBuildingLightGlow(s, sprite);
       if (!glow) return;
       glows.set(id, glow);

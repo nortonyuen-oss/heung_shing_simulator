@@ -241,6 +241,7 @@ async function prepareFile(sourcePath) {
     logicalPath,
     packagedPath,
     hash: cacheKey,
+    maxDimension: fileMaxDimension,
     sourceBytes: sourceBuffer.length,
     outputBytes: fs.statSync(cacheImage).size,
     ...metadata,

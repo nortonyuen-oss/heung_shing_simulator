@@ -148,10 +148,12 @@ async function verify() {
       .raw()
       .toBuffer({ resolveWithObject: true });
     let expectedPipeline = sharp(source.data, { raw: source.info });
-    if (source.info.width > manifest.settings.maxDimension || source.info.height > manifest.settings.maxDimension) {
+    // Landmark folders are capped larger than the baseline, recorded per entry.
+    const entryMaxDimension = entry.maxDimension ?? manifest.settings.maxDimension;
+    if (source.info.width > entryMaxDimension || source.info.height > entryMaxDimension) {
       expectedPipeline = expectedPipeline.resize({
-        width: manifest.settings.maxDimension,
-        height: manifest.settings.maxDimension,
+        width: entryMaxDimension,
+        height: entryMaxDimension,
         fit: 'inside',
         withoutEnlargement: true,
       });

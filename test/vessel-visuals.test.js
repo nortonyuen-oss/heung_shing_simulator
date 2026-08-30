@@ -847,7 +847,10 @@ test('desktop release pipeline discovers vessel PNG sources without an allowlist
   const prepare = source('scripts/prepare-release-assets.js');
   const optimize = source('scripts/optimize-model-assets.js');
   assert.match(prepare, /const SOURCE_ROOT = path\.join\(ROOT, 'Models'\)/);
-  assert.match(optimize, /Models', 'vessels'/);
+  // optimize walks a set of Models/* roots (vessels included) rather than an
+  // allowlist of vessel filenames
+  assert.match(optimize, /DEFAULT_MODEL_ROOT_NAMES[\s\S]*?'vessels'/);
+  assert.match(optimize, /path\.join\(projectRoot, 'Models', name\)/);
   assert.ok(fs.existsSync(path.join(ROOT, 'Models/vessels')));
   assert.ok(fs.readdirSync(path.join(ROOT, 'Models/vessels')).some((name) => name.endsWith('.png')));
 });

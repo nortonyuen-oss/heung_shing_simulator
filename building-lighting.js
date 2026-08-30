@@ -119,12 +119,35 @@ function getBuildingLightTargetRatio(bucket, cls, personality) {
 // Profiles
 // ---------------------------------------------------------------------------
 
-// A building's window area is described as one or two PANELS - the visible
-// isometric wall faces. Each panel is a parallelogram given by four normalised
-// texture corners [tl, tr, br, bl] (0..1, texture origin top-left); the grid is
-// laid out by bilinear interpolation inside it, so a row of windows follows the
-// 1:2 iso slope and a column stays vertical. entrance x/y/r is a single
-// normalised point + radius. Everything is texture-size independent.
+// A building's window area is described as up to four PANELS - the visible
+// isometric wall faces (A/B/C/D). Each panel is a parallelogram given by four
+// normalised texture corners [tl, tr, br, bl] (0..1, texture origin top-left);
+// the grid is laid out by bilinear interpolation inside it, so a row of windows
+// follows the 1:2 iso slope and a column stays vertical.
+//   lamps   - [{x,y,r}] soft street/entrance/public-light pools (the always-on
+//             layer; an uncalibrated building has exactly one).
+//   beacons - [{x,y,color,period}] blinking indicator lights (airport nav /
+//             rooftop warning). color is one of BUILDING_LIGHT_BEACON_COLORS.
+// Everything is normalised, so a profile is texture-size independent.
+const BUILDING_LIGHT_MAX_PANELS = 4;
+const BUILDING_LIGHT_PANEL_LABELS = Object.freeze(['A', 'B', 'C', 'D']);
+const BUILDING_LIGHT_BEACON_COLORS = Object.freeze({
+  red: 0xff3b30, blue: 0x3b82ff, white: 0xf4f8ff, yellow: 0xffd23b, green: 0x39d353,
+});
+const BUILDING_LIGHT_BEACON_DEFAULT_PERIOD = 1600; // ms per blink
+
+function bilerpBuildingLight(corners, u, v) {
+  const tl = corners[0];
+  const tr = corners[1];
+  const br = corners[2];
+  const bl = corners[3];
+  const a = 1 - u;
+  const b = 1 - v;
+  return [
+    a * b * tl[0] + u * b * tr[0] + u * v * br[0] + a * v * bl[0],
+    a * b * tl[1] + u * b * tr[1] + u * v * br[1] + a * v * bl[1],
+  ];
+}
 function bilerpBuildingLight(corners, u, v) {
   const tl = corners[0];
   const tr = corners[1];
@@ -159,8 +182,9 @@ function defaultBuildingLightPanels(cls) {
 
 function makeBuildingLightProfile(o = {}) {
   const cls = o.class || 'off';
-  const src = (Array.isArray(o.panels) && o.panels.length) ? o.panels : defaultBuildingLightPanels(cls);
-  const panels = src.map((p) => {
+  // Explicit panels: [] means "no windows"; omitted means the class default.
+  const src = Array.isArray(o.panels) ? o.panels : defaultBuildingLightPanels(cls);
+  const panels = src.slice(0, BUILDING_LIGHT_MAX_PANELS).map((p) => {
     const corners = (p.corners || p.c || [[0, 0], [1, 0], [1, 1], [0, 1]])
       .map((pt) => Object.freeze([Number(pt[0]) || 0, Number(pt[1]) || 0]));
     return Object.freeze({
@@ -170,16 +194,39 @@ function makeBuildingLightProfile(o = {}) {
       on: p.on !== false,
     });
   });
+
+  // lamps: explicit list wins; else the legacy single ex/ey/er point; else, for
+  // an omitted spec, one lamp near the base (entrance: null suppresses it).
+  let lamps;
+  if (Array.isArray(o.lamps)) {
+    lamps = o.lamps;
+  } else if (o.entrance === null) {
+    lamps = [];
+  } else if (o.ex != null || o.ey != null || o.er != null) {
+    lamps = [{ x: o.ex ?? 0.5, y: o.ey ?? 0.9, r: o.er ?? 0.1 }];
+  } else {
+    lamps = [{ x: 0.5, y: 0.9, r: 0.09 }];
+  }
+  const frozenLamps = Object.freeze(lamps.map((l) => Object.freeze({
+    x: Number(l.x) || 0, y: Number(l.y) || 0, r: Math.max(0.01, Number(l.r) || 0.08),
+  })));
+
+  const beacons = Object.freeze((Array.isArray(o.beacons) ? o.beacons : []).map((b) => Object.freeze({
+    x: Number(b.x) || 0,
+    y: Number(b.y) || 0,
+    color: BUILDING_LIGHT_BEACON_COLORS[b.color] ? b.color : 'red',
+    period: Math.max(200, Number(b.period) || BUILDING_LIGHT_BEACON_DEFAULT_PERIOD),
+  })));
+
   return Object.freeze({
     class: cls,
     color: o.color ?? BUILDING_LIGHT_CLASS_COLOR[cls],
     panels: Object.freeze(panels),
-    entrance: o.entrance === null ? null : Object.freeze({
-      x: o.ex ?? 0.5, y: o.ey ?? 0.9, r: o.er ?? 0.1,
-    }),
+    lamps: frozenLamps,
+    beacons,
     service: !!o.service,
-    hasSignage: !!o.hasSignage,   // v1.1 render
-    hasFloodlight: !!o.hasFloodlight, // v1.1 render
+    hasSignage: !!o.hasSignage,       // v1.1 render
+    hasFloodlight: !!o.hasFloodlight,  // v1.1 render
   });
 }
 
@@ -188,6 +235,12 @@ const BUILDING_LIGHT_CLASS_DEFAULTS = Object.freeze({
   off: makeBuildingLightProfile({ class: 'off' }),
   ind: makeBuildingLightProfile({ class: 'ind', entrance: null }),
   svc: makeBuildingLightProfile({ class: 'svc', service: true }),
+});
+
+// What every uncalibrated building gets: no windows, one dim street lamp - so a
+// fresh city reads as lit-but-quiet instead of a wall of glowing grids.
+const BUILDING_LIGHT_MINIMAL_PROFILE = makeBuildingLightProfile({
+  class: 'off', panels: [], lamps: [{ x: 0.5, y: 0.88, r: 0.07 }],
 });
 
 // Calibrated per-family profiles, baked from building-light-calibrator.js.
@@ -357,8 +410,7 @@ function resolveBuildingLightProfile(record, spriteKey) {
   if (override) return override;
   return (spriteKey && BUILDING_LIGHT_HERO_PROFILES[spriteKey])
     || BUILDING_LIGHT_PROFILES[family]
-    || BUILDING_LIGHT_CLASS_DEFAULTS[getBuildingLightClass(record)]
-    || BUILDING_LIGHT_CLASS_DEFAULTS.off;
+    || BUILDING_LIGHT_MINIMAL_PROFILE;
 }
 
 // ---------------------------------------------------------------------------
@@ -483,6 +535,27 @@ function getRuntimeBuildingLightBucket(scene) {
   );
 }
 
+// Force every building glow to re-resolve its profile and redraw. Used by the
+// calibrator's Apply so a change lands on the live city at once.
+function refreshAllBuildingLightGlows(scene, immediate) {
+  const glows = scene?.buildingLightGlows;
+  if (!glows) return;
+  const bucket = getRuntimeBuildingLightBucket(scene);
+  const now = (typeof performance !== 'undefined' && performance.now)
+    ? performance.now() : Date.now();
+  const q = scene.buildingLightQueue || (scene.buildingLightQueue = []);
+  let budget = immediate ? 96 : 0;
+  glows.forEach((glow, id) => {
+    if (budget > 0 && glow.sprite && glow.sprite.visible) {
+      relightBuildingGlow(scene, glow.sprite, glow, bucket, now);
+      budget -= 1;
+    } else if (q.indexOf(id) === -1) {
+      q.push(id);
+    }
+  });
+  scene.buildingLightBucket = null; // make the next tick treat every glow as dirty
+}
+
 // ---------------------------------------------------------------------------
 // Shared textures
 // ---------------------------------------------------------------------------
@@ -535,7 +608,7 @@ function setupBuildingLights(scene) {
 
 function destroyBuildingLightGlow(glow) {
   glow?.gfx?.destroy?.();
-  glow?.entrance?.destroy?.();
+  if (Array.isArray(glow?.beacons)) glow.beacons.forEach((b) => b.sprite?.destroy?.());
 }
 
 function clearBuildingLights(scene) {
@@ -581,7 +654,8 @@ function createBuildingLightGlow(scene, sprite) {
     gfx,
     sprite,
     textureKey: sprite.texture?.key || null,
-    entrance: null,
+    beacons: [],       // [{ sprite, period, phase }]
+    hasBeacons: false,
     texW: w,
     texH: h,
     originX: sprite.originX ?? 0.5,
@@ -618,29 +692,53 @@ function relightBuildingGlow(scene, sprite, glow, bucket, time) {
     g.fillStyle(tint, Math.min(1, cell.alpha));
     g.fillPoints(px(cell.quad), true);
   }
-  // Entrance glow
-  const wantEntrance = profile.entrance
-    && bucket !== 'day' && bucket !== 'deepNight' && profile.class !== 'ind';
-  if (wantEntrance) {
-    if (!glow.entrance) {
-      glow.entrance = scene.add.image(0, 0, BUILDING_LIGHT_CONFIG.entranceTextureKey);
-      glow.entrance.setBlendMode?.(typeof Phaser !== 'undefined' ? Phaser.BlendModes.ADD : 'ADD');
-      if (scene.worldMask) glow.entrance.setMask(scene.worldMask);
-      if (typeof addToRenderLayer === 'function') addToRenderLayer(scene, glow.entrance, 'objectLayer');
-      glow.entrance.setTint(0xffce93);
-    }
-    const localX = (profile.entrance.x - (sprite.originX ?? 0.5)) * glow.texW * (sprite.scaleX || 1);
-    const localY = (profile.entrance.y - (sprite.originY ?? 1)) * glow.texH * (sprite.scaleY || 1);
-    glow.entrance.setPosition(sprite.x + localX, sprite.y + localY);
-    glow.entrance.setDisplaySize(
-      profile.entrance.r * glow.texW * (sprite.scaleX || 1) * 2.4,
-      profile.entrance.r * glow.texW * (sprite.scaleX || 1) * 2.4,
-    );
-    glow.entrance.setDepth((sprite.depth || 0) + 0.09);
-    glow.entrance.setVisible(true);
-  } else if (glow.entrance) {
-    glow.entrance.setVisible(false);
+
+  // Street / public lamps - the always-on layer, drawn into the same Graphics.
+  // A touch dimmer in the deep-night bucket.
+  const lampScale = bucket === 'deepNight' ? 0.66 : 1;
+  const lampPx = (n) => ({
+    x: (n.x - glow.originX) * glow.texW,
+    y: (n.y - glow.originY) * glow.texH,
+  });
+  const lamps = profile.lamps || [];
+  for (let i = 0; i < lamps.length; i++) {
+    const lamp = lamps[i];
+    const p = lampPx(lamp);
+    const rad = lamp.r * glow.texW;
+    g.fillStyle(0xffdca8, 0.12 * lampScale);
+    g.fillCircle(p.x, p.y, rad);
+    g.fillStyle(0xffe6bf, 0.34 * lampScale);
+    g.fillCircle(p.x, p.y, rad * 0.5);
+    g.fillStyle(0xfff3df, 0.72 * lampScale);
+    g.fillCircle(p.x, p.y, rad * 0.18);
   }
+
+  // Blinking indicator beacons - separate sprites, pulsed per frame in
+  // updateBuildingLights. Reconcile the pool to the profile.
+  const beaconDefs = profile.beacons || [];
+  glow.hasBeacons = beaconDefs.length > 0;
+  while (glow.beacons.length > beaconDefs.length) glow.beacons.pop().sprite?.destroy?.();
+  for (let i = 0; i < beaconDefs.length; i++) {
+    const def = beaconDefs[i];
+    let b = glow.beacons[i];
+    if (!b) {
+      const sprite2 = scene.add.circle(0, 0, 2.4, 0xffffff, 1);
+      sprite2.setBlendMode?.(typeof Phaser !== 'undefined' ? Phaser.BlendModes.ADD : 'ADD');
+      if (scene.worldMask) sprite2.setMask(scene.worldMask);
+      if (typeof addToRenderLayer === 'function') addToRenderLayer(scene, sprite2, 'objectLayer');
+      b = { sprite: sprite2, period: def.period, phase: 0 };
+      glow.beacons[i] = b;
+    }
+    b.period = def.period;
+    b.phase = ((glow.seed >>> (i * 3)) & 0xff) / 255 * Math.PI * 2;
+    const colorHex = BUILDING_LIGHT_BEACON_COLORS[def.color] ?? BUILDING_LIGHT_BEACON_COLORS.red;
+    b.sprite.setFillStyle?.(colorHex, 1);
+    const lp = lampPx(def);
+    b.sprite.setPosition(sprite.x + lp.x * (sprite.scaleX || 1), sprite.y + lp.y * (sprite.scaleY || 1));
+    b.sprite.setRadius?.(Math.max(1.6, glow.texW * 0.012));
+    b.sprite.setDepth((sprite.depth || 0) + 0.13);
+  }
+
   glow.lastBucket = bucket;
   const span = BUILDING_LIGHT_CONFIG.jitterMaxMs - BUILDING_LIGHT_CONFIG.jitterMinMs;
   glow.nextJitterAt = time + BUILDING_LIGHT_CONFIG.jitterMinMs + glow.personality.jitterPhase * span;
@@ -666,7 +764,6 @@ function updateBuildingLights(scene, time) {
   const glows = s.buildingLightGlows;
   const queue = s.buildingLightQueue;
   const alpha = Math.min(1, strength * BUILDING_LIGHT_CONFIG.punchThrough);
-  const entranceAlpha = Math.min(1, strength * 1.3);
   const jitterEnabled = bucket !== 'day';
   const liveIds = new Set();
 
@@ -695,7 +792,14 @@ function updateBuildingLights(scene, time) {
     }
     glow.gfx.setAlpha(alpha);
     if (glow.gfx.x !== sprite.x || glow.gfx.y !== sprite.y) glow.gfx.setPosition(sprite.x, sprite.y);
-    if (glow.entrance) glow.entrance.setAlpha(entranceAlpha);
+    if (glow.hasBeacons) {
+      for (let bi = 0; bi < glow.beacons.length; bi++) {
+        const b = glow.beacons[bi];
+        const t = (time / b.period) * Math.PI * 2 + b.phase;
+        const pulse = 0.08 + 0.92 * Math.max(0, Math.sin(t));
+        b.sprite.setAlpha(strength * pulse);
+      }
+    }
     if (bucketChanged || (jitterEnabled && time >= glow.nextJitterAt)) {
       if (queue.indexOf(id) === -1) queue.push(id);
     }
@@ -728,6 +832,10 @@ const buildingLightingTestApi = {
   BUILDING_LIGHT_SERVICE_FLOOR,
   BUILDING_LIGHT_CLASS_DEFAULTS,
   BUILDING_LIGHT_CLASS_COLOR,
+  BUILDING_LIGHT_MINIMAL_PROFILE,
+  BUILDING_LIGHT_BEACON_COLORS,
+  BUILDING_LIGHT_MAX_PANELS,
+  BUILDING_LIGHT_PANEL_LABELS,
   BUILDING_LIGHT_PROFILES,
   BUILDING_LIGHT_HERO_PROFILES,
   hashBuildingLight,
@@ -757,6 +865,7 @@ if (typeof globalThis !== 'undefined') {
     updateBuildingLights,
     clearBuildingLights,
     releaseBuildingLightGlow,
+    refreshAllBuildingLightGlows,
     resolveBuildingLightProfile,
     getBuildingLightClass,
     getBuildingLightFamily,
@@ -766,6 +875,10 @@ if (typeof globalThis !== 'undefined') {
     makeBuildingLightProfile,
     defaultBuildingLightPanels,
     bilerpBuildingLight,
+    BUILDING_LIGHT_BEACON_COLORS,
+    BUILDING_LIGHT_MAX_PANELS,
+    BUILDING_LIGHT_PANEL_LABELS,
+    BUILDING_LIGHT_MINIMAL_PROFILE,
     BUILDING_LIGHT_PROFILES,
     BUILDING_LIGHT_CLASS_DEFAULTS,
   });

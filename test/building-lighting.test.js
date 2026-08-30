@@ -61,9 +61,13 @@ test('class and family derive from the building record', () => {
   assert.equal(getBuildingLightFamily({ type: 'hospital' }), 'hospital');
 });
 
-test('profile resolution: hero sprite key, then family, then class default', () => {
+test('profile resolution: hero sprite key, then family, then minimal', () => {
+  const { BUILDING_LIGHT_MINIMAL_PROFILE } = require('../building-lighting');
   const rec = { type: 'commercial', footprintCols: 3 };
-  assert.equal(resolveBuildingLightProfile(rec), BUILDING_LIGHT_CLASS_DEFAULTS.off);
+  // uncalibrated -> the minimal "no windows, one lamp" profile
+  assert.equal(resolveBuildingLightProfile(rec), BUILDING_LIGHT_MINIMAL_PROFILE);
+  assert.equal(BUILDING_LIGHT_MINIMAL_PROFILE.panels.length, 0);
+  assert.equal(BUILDING_LIGHT_MINIMAL_PROFILE.lamps.length, 1);
 
   const { BUILDING_LIGHT_PROFILES, BUILDING_LIGHT_HERO_PROFILES } = require('../building-lighting');
   BUILDING_LIGHT_PROFILES.commercial3 = makeBuildingLightProfile({
@@ -84,12 +88,36 @@ test('profile resolution: hero sprite key, then family, then class default', () 
 test('the baked hero profiles are well-formed', () => {
   const { BUILDING_LIGHT_HERO_PROFILES } = require('../building-lighting');
   for (const [key, profile] of Object.entries(BUILDING_LIGHT_HERO_PROFILES)) {
-    assert.ok(Array.isArray(profile.panels) && profile.panels.length, `${key} has panels`);
+    assert.ok(Array.isArray(profile.panels), `${key} has a panels array`);
     profile.panels.forEach((p) => {
       assert.equal(p.corners.length, 4, `${key} panel has 4 corners`);
       assert.ok(p.rows >= 1 && p.cols >= 1);
     });
+    assert.ok(Array.isArray(profile.lamps) && Array.isArray(profile.beacons));
+    // legacy ex/ey/er migrated to one lamp
+    if (key === 'house3x3_6') assert.equal(profile.lamps.length, 1);
   }
+});
+
+test('makeBuildingLightProfile normalises panels (<=4), lamps, and beacons', () => {
+  const p = makeBuildingLightProfile({
+    class: 'off',
+    panels: [{ c: [[0, 0], [1, 0], [1, 1], [0, 1]], rows: 3, cols: 3 }, {}, {}, {}, {}],
+    lamps: [{ x: 0.2, y: 0.9, r: 0.05 }, { x: 0.8, y: 0.9, r: 0.05 }],
+    beacons: [{ x: 0.5, y: 0.05, color: 'red', period: 1200 }, { x: 0.5, y: 0.1, color: 'nonsense' }],
+  });
+  assert.equal(p.panels.length, 4, 'capped at 4 panels');
+  assert.equal(p.lamps.length, 2);
+  assert.equal(p.beacons.length, 2);
+  assert.equal(p.beacons[0].color, 'red');
+  assert.equal(p.beacons[1].color, 'red', 'unknown colour falls back to red');
+  assert.ok(p.beacons[1].period >= 200);
+
+  // panels: [] means "no windows"; omitted means the class default
+  assert.equal(makeBuildingLightProfile({ class: 'res', panels: [] }).panels.length, 0);
+  assert.ok(makeBuildingLightProfile({ class: 'res' }).panels.length >= 1);
+  // entrance: null suppresses the auto lamp
+  assert.equal(makeBuildingLightProfile({ class: 'ind', entrance: null }).lamps.length, 0);
 });
 
 test('default panels are two iso parallelograms meeting at the near edge', () => {

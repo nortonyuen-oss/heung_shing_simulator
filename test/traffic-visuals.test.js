@@ -170,7 +170,7 @@ function makeVehicleWithLampStubs(overrides = {}, counters) {
 test('all four lamps light, follow their offsets, and are destroyed with the vehicle', () => {
   const vehicle = makeVehicleWithLampStubs({
     model: { category: 'taxi' },
-    scene: { nightOverlay: { alpha: 0.54 }, weatherOverlay: { alpha: 0 } },
+    scene: { nightRawAlpha: 0.54, weatherOverlay: { alpha: 0 } },
     sprite: makeLampStub(),
   });
   const lamps = vehicle.lampSprites;
@@ -185,7 +185,7 @@ test('all four lamps light, follow their offsets, and are destroyed with the veh
   assert.ok((lamps.headL.x + lamps.headR.x) / 2 > (lamps.tailL.x + lamps.tailR.x) / 2);
   assert.ok(lamps.headL.x !== lamps.headR.x || lamps.headL.y !== lamps.headR.y);
 
-  vehicle.scene.nightOverlay.alpha = 0;
+  vehicle.scene.nightRawAlpha = 0;
   updateTrafficVehicleLights(vehicle, { x: 20, y: 30, dx: 4, dy: 2, depthY: 30 });
   for (const key of TRAFFIC_LIGHT_LAMPS) {
     assert.equal(lamps[key].visible, false);
@@ -241,7 +241,7 @@ test('lamp updates read the cached frame strength and skip all pose work by day'
   const vehicle = makeVehicleWithLampStubs({
     model: { category: 'car' },
     // Overlay alphas say night, but the cached per-frame value is the authority.
-    scene: { trafficLightStrength: 0, nightOverlay: { alpha: 0.9 }, weatherOverlay: { alpha: 0 } },
+    scene: { trafficLightStrength: 0, nightRawAlpha: 0.9, weatherOverlay: { alpha: 0 } },
     lightsVisible: true,
   }, counters);
 

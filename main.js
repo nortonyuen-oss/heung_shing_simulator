@@ -6085,6 +6085,7 @@ function syncWeatherFxToCamera(scene) {
   const y = camera.centerY - h / 2;
   scene.weatherOverlay?.setSize(w, h).setPosition(x, y);
   scene.nightOverlay?.setSize(w, h).setPosition(x, y);
+  scene.groundNightOverlay?.setSize(w, h).setPosition(x, y);
   scene.lightningFlash?.setSize(w, h).setPosition(x, y);
   scene.starField?.setSize(w, h).setPosition(x, y).setTileScale(1 / zoom, 1 / zoom);
   // setPosition() is safe here (see the big comment on applyRainState() for why plain
@@ -6694,8 +6695,21 @@ function setupDynamicLighting(scene) {
   scene.sunLightGraphics.setDepth(999995); // below weatherOverlay/rain/lightning (999998+)
 
   // Separate from weatherOverlay: this is time-of-day darkness, not a storm.
-  // It sits above sun/clouds but below rain and weather so night dims the whole
-  // world coherently while lightning and rain streaks remain readable.
+  //
+  // Night darkness is split across TWO passes so that lit building windows can
+  // survive it. A single full-screen pass at the old 0.54 peak sat above every
+  // sprite, so anything drawn as ordinary pixels - such as a window baked into
+  // a building's night texture - came out as mid-grey rather than lit. The
+  // ground pass carries most of the darkening but sits UNDER the object band,
+  // dimming terrain and roads only; the atmosphere pass keeps a light wash over
+  // everything so the scene still reads as one image. Buildings supply their
+  // own darkening (baked or tinted) and trees/vehicles are tinted to match.
+  scene.groundNightOverlay = scene.add.rectangle(0, 0, scene.scale.width, scene.scale.height, 0x020713, 1);
+  scene.groundNightOverlay.setOrigin(0, 0);
+  scene.groundNightOverlay.setScrollFactor(0);
+  scene.groundNightOverlay.setDepth(getWorldDepth('object') - 1);
+  scene.groundNightOverlay.setAlpha(0);
+
   scene.nightOverlay = scene.add.rectangle(0, 0, scene.scale.width, scene.scale.height, 0x020713, 1);
   scene.nightOverlay.setOrigin(0, 0);
   scene.nightOverlay.setScrollFactor(0);
@@ -6729,6 +6743,96 @@ function setupDynamicLighting(scene) {
 // Called by the 100ms day/night visual cadence, the ambient weather safety
 // interval, and immediately on zoom changes. Cloud reconfiguration remains
 // key-guarded below, so the faster sky cadence does not reset its emitter.
+// ── Night darkness split ─────────────────────────────────────────────────────
+// The visible night darkness players see, at its midnight peak. The keyframe
+// data in sim-weather.js still peaks at 0.54 and stays the authoritative input
+// to the lamp ramps; this is the display target the two passes composite to.
+const NIGHT_DARKNESS_PEAK = 0.45;
+const NIGHT_KEYFRAME_PEAK = 0.54;
+// How much of that darkness stays in the pass above every sprite. The rest
+// goes below the object band. A lit window baked into a building texture only
+// has to survive this share, so keep it low enough that white stays white-ish:
+// 255 * (1 - 0.14) = ~219.
+const NIGHT_ATMOSPHERE_SHARE = 0.311;
+
+// Colour applied to objects in the object band (trees, vehicles, vessels) to
+// stand in for the ground pass they no longer sit under.
+const NIGHT_OBJECT_TINT = 0x9aa3b4;
+// Buildings sit above the ground pass too, but unlike trees they should NOT be
+// darkened all the way down to it - a lit facade catching street light reads
+// brighter than bare ground, and over-darkening kills the window glow the whole
+// split exists to protect. They absorb this share of the ground pass instead,
+// landing at ~0.30 total darkness against the ground's 0.45.
+const NIGHT_BUILDING_DARKNESS_SHARE = 0.5;
+
+function computeNightDarknessPasses(rawNightAlpha) {
+  const raw = Math.max(0, Math.min(NIGHT_KEYFRAME_PEAK, Number(rawNightAlpha) || 0));
+  const total = (raw / NIGHT_KEYFRAME_PEAK) * NIGHT_DARKNESS_PEAK;
+  const atmosphere = total * NIGHT_ATMOSPHERE_SHARE;
+  // Solve (1 - ground)(1 - atmosphere) = 1 - total so the two passes composite
+  // to exactly `total` over anything that sits under both.
+  const ground = atmosphere >= 1 ? 1 : 1 - (1 - total) / (1 - atmosphere);
+  return { total, atmosphere, ground: Math.max(0, Math.min(1, ground)) };
+}
+
+function applyNightDarkness(scene, rawNightAlpha) {
+  const { total, atmosphere, ground } = computeNightDarknessPasses(rawNightAlpha);
+  // The lamp ramps in building-lighting.js / traffic-visuals.js are calibrated
+  // against the original keyframe curve, not against either pass alpha.
+  scene.nightRawAlpha = Math.max(0, Number(rawNightAlpha) || 0);
+  scene.nightDarkness = total;
+  scene.nightOverlay?.setAlpha(atmosphere);
+  scene.groundNightOverlay?.setAlpha(ground);
+  applyNightObjectTint(scene, ground);
+}
+
+// Trees, vehicles and vessels live in the object band and so are no longer
+// covered by the ground pass. Tint them by the same amount instead. Only
+// touched when the tint bucket actually changes, so this is free per frame.
+function applyNightObjectTint(scene, ground) {
+  const step = Math.round(Math.max(0, Math.min(1, ground)) * 20); // 5% buckets
+  if (scene.__nightTintStep === step) return;
+  scene.__nightTintStep = step;
+  const k = step / 20;
+  const lerp = (a, b, t) => Math.round(a + (b - a) * t);
+  const tint = k <= 0 ? 0xffffff : (
+    (lerp(0xff, (NIGHT_OBJECT_TINT >> 16) & 0xff, k) << 16)
+    | (lerp(0xff, (NIGHT_OBJECT_TINT >> 8) & 0xff, k) << 8)
+    | lerp(0xff, NIGHT_OBJECT_TINT & 0xff, k)
+  );
+  const apply = (sprite) => {
+    if (!sprite || typeof sprite.setTint !== 'function') return;
+    if (k <= 0) sprite.clearTint?.();
+    else sprite.setTint(tint);
+  };
+  scene.treeSprites?.forEach((sprites) => {
+    if (Array.isArray(sprites)) sprites.forEach(apply);
+    else apply(sprites);
+  });
+
+  // Buildings take a lighter share (see NIGHT_BUILDING_DARKNESS_SHARE). Once a
+  // model carries a baked night texture its darkening is in the pixels and it
+  // opts out via `skipNightTint`.
+  const bk = k * NIGHT_BUILDING_DARKNESS_SHARE;
+  const buildingTint = bk <= 0 ? 0xffffff : (
+    (lerp(0xff, (NIGHT_OBJECT_TINT >> 16) & 0xff, bk) << 16)
+    | (lerp(0xff, (NIGHT_OBJECT_TINT >> 8) & 0xff, bk) << 8)
+    | lerp(0xff, NIGHT_OBJECT_TINT & 0xff, bk)
+  );
+  // buildingSprites holds one entry per footprint tile, all pointing at the
+  // same sprite - dedupe so a 5x5 landmark is not tinted 25 times.
+  const seenBuildings = scene.__nightTintSeen || (scene.__nightTintSeen = new Set());
+  seenBuildings.clear();
+  scene.buildingSprites?.forEach((sprite) => {
+    if (!sprite || sprite.skipNightTint || seenBuildings.has(sprite)) return;
+    seenBuildings.add(sprite);
+    if (typeof sprite.setTint !== 'function') return;
+    if (bk <= 0) sprite.clearTint?.();
+    else sprite.setTint(buildingTint);
+  });
+  seenBuildings.clear();
+}
+
 function updateDynamicLighting(scene) {
   const graphics = scene?.sunLightGraphics;
   if (!graphics) return;
@@ -6736,7 +6840,7 @@ function updateDynamicLighting(scene) {
 
   if (!isDynamicLightingEnabled()) {
     graphics.clear();
-    scene.nightOverlay?.setAlpha(0);
+    applyNightDarkness(scene, 0);
     scene.trafficLightStrength = 0;
     scene.buildingLightStrength = 0;
     scene.starField?.setAlpha(0);
@@ -6759,9 +6863,10 @@ function updateDynamicLighting(scene) {
   camera?.setBackgroundColor?.(
     typeof getSkyBackgroundColor === 'function' ? getSkyBackgroundColor(timeMinutes) : 0x87ceeb,
   );
-  scene.nightOverlay?.setAlpha(
-    typeof getNightOverlayAlpha === 'function' ? getNightOverlayAlpha(timeMinutes) : 0,
-  );
+  // rawNightAlpha keeps the original 0..0.54 curve: the vehicle and building
+  // lamp ramps below are calibrated against it and must not shift.
+  const rawNightAlpha = typeof getNightOverlayAlpha === 'function' ? getNightOverlayAlpha(timeMinutes) : 0;
+  applyNightDarkness(scene, rawNightAlpha);
   // Cache the vehicle-lamp strength once per lighting tick; every road vehicle
   // reads scene.trafficLightStrength instead of recomputing it per frame.
   if (typeof computeRuntimeTrafficLightStrength === 'function') {

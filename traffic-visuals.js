@@ -380,8 +380,10 @@ function computeRuntimeTrafficLightStrength(scene) {
   const timeMinutes = typeof getGameTimeOfDayMinutes === 'function'
     ? getGameTimeOfDayMinutes()
     : 12 * 60;
-  const nightAlpha = Number.isFinite(Number(scene?.nightOverlay?.alpha))
-    ? Number(scene.nightOverlay.alpha)
+  // scene.nightRawAlpha is the unsplit keyframe curve this ramp is calibrated
+  // against; nightOverlay.alpha is now only the atmosphere share of it.
+  const nightAlpha = Number.isFinite(Number(scene?.nightRawAlpha))
+    ? Number(scene.nightRawAlpha)
     : (typeof getNightOverlayAlpha === 'function' ? getNightOverlayAlpha(timeMinutes) : 0);
   const weatherAlpha = Number.isFinite(Number(scene?.weatherOverlay?.alpha))
     ? Number(scene.weatherOverlay.alpha)

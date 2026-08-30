@@ -94,8 +94,10 @@ test('the baked hero profiles are well-formed', () => {
       assert.ok(p.rows >= 1 && p.cols >= 1);
     });
     assert.ok(Array.isArray(profile.lamps) && Array.isArray(profile.beacons));
-    // legacy ex/ey/er migrated to one lamp
-    if (key === 'house3x3_6') assert.equal(profile.lamps.length, 1);
+    // legacy ex/ey/er (kept civic overrides) migrate to one entrance lamp
+    if (key === 'university_4x4') assert.equal(profile.lamps.length, 1);
+    // calibrator-baked house profiles carry explicit street-lamp arrays
+    if (key === 'house3x3_6') assert.ok(profile.lamps.length >= 1);
   }
 });
 

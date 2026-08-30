@@ -28,6 +28,14 @@
 // pixels are already bright, so a brightness multiplier saturates almost
 // immediately. DIM and WARM_MIX are the knobs that matter.
 //
+// WORKFLOW FOR A MODEL THAT IS NOT CALIBRATED YET
+// Nothing here touches it: with no profile there is no baked art, and
+// building-lighting.js falls back to its live glow (one dim street lamp from
+// BUILDING_LIGHT_MINIMAL_PROFILE), subject to the camera LOD. Calibrate it in
+// game, then re-run `npm run prepare:release-assets` to bake it in. While the
+// calibrator is open the live glow is used even for already-baked models, so
+// edits are visible instead of being hidden behind stale baked art.
+//
 //   node scripts/bake-night-textures.js                  # write __night.webp next to sources
 //   BAKE_SAMPLES=slug1,slug2 node scripts/...            # PNG samples to .data/night-samples
 //   BAKE_DIM=0.65 BAKE_WARM_MIX=0.85 node scripts/...    # stronger, moodier
@@ -53,6 +61,10 @@ const WARM = [0xff, 0xcf, 0x82];
 const HALO_RADIUS = Number(process.env.BAKE_HALO_RADIUS || 3.2);
 const HALO_ALPHA = Number(process.env.BAKE_HALO_ALPHA || 0.55);
 const HALO_COLOR = [0xff, 0xc8, 0x78];
+const LAMP_ALPHA = Number(process.env.BAKE_LAMP_ALPHA || 1);
+// Fraction of a lamp pool allowed to fall outside the model before the lamp is
+// dropped rather than baked with its glow clipped off.
+const LAMP_SPILL_TOLERANCE = Number(process.env.BAKE_LAMP_SPILL || 0.10);
 // Two tiers of night. Evening is the busy one; deep night has far fewer lit
 // windows (the schedule in building-lighting.js already thins them) and a
 // darker facade, so a city visibly settles down in the small hours.
@@ -63,6 +75,54 @@ const VARIANTS = [
 const SAMPLE_DIR = path.join(ROOT, '.data', 'night-samples');
 const STAGE_ROOT = path.join(ROOT, '.data', 'package-assets');
 const MANIFEST_PATH = path.join(STAGE_ROOT, 'Models', 'model-assets.json');
+
+// A lamp is only baked if its whole pool falls inside the model's silhouette.
+// One that spills onto the pavement or road cannot be baked at all: the texture
+// is clipped to the building's own alpha, so the overhanging part would simply
+// be cut off, and drawing those few lamps as separate objects costs a batch
+// flush each (measured: ~5 fps for 220 of them). Dropping them is the honest
+// trade - every lamp you see is one that actually fits.
+function lampFitsInsideSilhouette(alphaAt, W, H, lamp) {
+  const cx = lamp.x * W;
+  const cy = lamp.y * H;
+  const r = lamp.r * W;
+  if (r <= 0) return false;
+  let outside = 0;
+  let total = 0;
+  // sample the pool's disc on a coarse polar grid
+  for (let ring = 1; ring <= 3; ring++) {
+    const rr = (r * ring) / 3;
+    for (let step = 0; step < 16; step++) {
+      const a = (step / 16) * Math.PI * 2;
+      const x = Math.round(cx + Math.cos(a) * rr);
+      const y = Math.round(cy + Math.sin(a) * rr);
+      total += 1;
+      if (x < 0 || y < 0 || x >= W || y >= H || alphaAt(x, y) < 8) outside += 1;
+    }
+  }
+  return total > 0 && outside / total <= LAMP_SPILL_TOLERANCE;
+}
+
+function lampSvg(profile, W, H, alphaAt) {
+  const parts = [];
+  let kept = 0;
+  let dropped = 0;
+  for (const l of (profile.lamps || [])) {
+    if (!lampFitsInsideSilhouette(alphaAt, W, H, l)) { dropped += 1; continue; }
+    kept += 1;
+    const x = (l.x * W).toFixed(1);
+    const y = (l.y * H).toFixed(1);
+    const r = l.r * W;
+    parts.push(`<circle cx="${x}" cy="${y}" r="${r.toFixed(1)}" fill="#ffdca8" fill-opacity="${(0.12 * LAMP_ALPHA).toFixed(3)}"/>`);
+    parts.push(`<circle cx="${x}" cy="${y}" r="${(r * 0.5).toFixed(1)}" fill="#ffe6bf" fill-opacity="${(0.34 * LAMP_ALPHA).toFixed(3)}"/>`);
+    parts.push(`<circle cx="${x}" cy="${y}" r="${(r * 0.18).toFixed(1)}" fill="#fff3df" fill-opacity="${(0.78 * LAMP_ALPHA).toFixed(3)}"/>`);
+  }
+  return {
+    svg: `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">${parts.join('')}</svg>`,
+    kept,
+    dropped,
+  };
+}
 
 // White where a window is lit, feathered a little so the boost does not clip to
 // a hard polygon edge over the artwork.
@@ -91,19 +151,6 @@ function litWindowMaskSvg(profile, W, H, bucket) {
   return { svg, halo, lit };
 }
 
-function lampSvg(profile, W, H) {
-  const parts = [];
-  for (const l of (profile.lamps || [])) {
-    const x = (l.x * W).toFixed(1);
-    const y = (l.y * H).toFixed(1);
-    const r = l.r * W;
-    parts.push(`<circle cx="${x}" cy="${y}" r="${r.toFixed(1)}" fill="#ffdca8" fill-opacity="0.12"/>`);
-    parts.push(`<circle cx="${x}" cy="${y}" r="${(r * 0.5).toFixed(1)}" fill="#ffe6bf" fill-opacity="0.34"/>`);
-    parts.push(`<circle cx="${x}" cy="${y}" r="${(r * 0.18).toFixed(1)}" fill="#fff3df" fill-opacity="0.78"/>`);
-  }
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">${parts.join('')}</svg>`;
-}
-
 async function bakeOne(sourcePath, profile, variant) {
   // No resize: the staged texture is already the exact image the game shows,
   // which is what the calibration coordinates were authored against.
@@ -116,7 +163,10 @@ async function bakeOne(sourcePath, profile, variant) {
     .raw().toBuffer({ resolveWithObject: true })).data;
   const bloom = (await sharp(Buffer.from(halo)).resize(W, H).ensureAlpha()
     .raw().toBuffer({ resolveWithObject: true })).data;
-  const lamps = (await sharp(Buffer.from(lampSvg(profile, W, H))).resize(W, H).ensureAlpha()
+  const D0 = day.data;
+  const alphaAt = (x, y) => D0[(y * W + x) * 4 + 3];
+  const { svg: lampsSvg, kept, dropped } = lampSvg(profile, W, H, alphaAt);
+  const lamps = (await sharp(Buffer.from(lampsSvg)).resize(W, H).ensureAlpha()
     .raw().toBuffer({ resolveWithObject: true })).data;
 
   const D = day.data;
@@ -131,7 +181,7 @@ async function bakeOne(sourcePath, profile, variant) {
         const warmed = boosted * (1 - WARM_MIX) + WARM[c] * WARM_MIX;
         v = v * (1 - m) + warmed * m;
       }
-      // soft halo, then lamp pools, both screened over the result
+      // soft halo, then any lamp that fits inside the silhouette, screened over
       const ha = (bloom[i + 3] / 255) * HALO_ALPHA;
       if (ha > 0) v = 255 - ((255 - v) * (255 - HALO_COLOR[c] * ha)) / 255;
       const la = lamps[i + 3] / 255;
@@ -141,7 +191,7 @@ async function bakeOne(sourcePath, profile, variant) {
     // silhouette must stay byte-identical to the day art
     N[i + 3] = D[i + 3];
   }
-  return { raw: N, width: W, height: H, lit };
+  return { raw: N, width: W, height: H, lit, kept, dropped };
 }
 
 // Map model slug -> staged texture, using the manifest the game itself reads.
@@ -195,7 +245,7 @@ async function main() {
     }
     const counts = [];
     for (const variant of VARIANTS) {
-      const { raw, width, height, lit } = await bakeOne(src, profiles[slug], variant);
+      const { raw, width, height, lit, kept, dropped } = await bakeOne(src, profiles[slug], variant);
       const img = sharp(raw, { raw: { width, height, channels: 4 } });
       if (sampleOnly.length) {
         await img.png().toFile(path.join(SAMPLE_DIR, `${slug}${variant.suffix}.png`));
@@ -210,7 +260,7 @@ async function main() {
           outputHeight: height,
         };
       }
-      counts.push(`${variant.bucket} ${lit}`);
+      counts.push(`${variant.bucket} ${lit}w/${kept}L` + (dropped ? ` (${dropped} lamp(s) spill, dropped)` : ''));
       written += 1;
     }
     console.log(`${slug}: ${counts.join(', ')} lit windows`);

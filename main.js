@@ -6844,7 +6844,11 @@ function applyBuildingNightTexture(scene, sprite, wantNight, deep) {
 // lighting tick, not per frame.
 function syncBuildingNightTextures(scene, rawNightAlpha, bucket) {
   if (!scene?.buildingSprites) return;
-  const wantNight = rawNightAlpha >= BUILDING_NIGHT_SWAP_AT;
+  // With the calibrator open, stay on day art: building-lighting.js draws the
+  // live glow instead so edits are visible, and the baked art would fight it.
+  const calibrating = typeof isBuildingLightCalibrationInputActive === 'function'
+    && isBuildingLightCalibrationInputActive();
+  const wantNight = !calibrating && rawNightAlpha >= BUILDING_NIGHT_SWAP_AT;
   const deep = bucket === 'deepNight' || bucket === 'dawnFade';
   const state = wantNight ? (deep ? 'deep' : 'night') : 'day';
   if (scene.__blNightTexState === state && !scene.__blNightTexPending) return;

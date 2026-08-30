@@ -1135,8 +1135,17 @@ function updateBuildingLights(scene, time) {
     if (!glow) {
       // A model with a baked night texture carries its glow in its own pixels -
       // giving it a glow object too would both double the light and reintroduce
-      // the per-object render cost the bake exists to remove.
-      if (typeof getBuildingNightTextureKey === 'function' && getBuildingNightTextureKey(sprite)) return;
+      // the per-object render cost the bake exists to remove. Models with no
+      // baked art (not yet calibrated, or calibrated since the last bake) keep
+      // this live glow, so the calibrator workflow still shows something.
+      //
+      // While the calibrator is open the live glow wins even for baked models,
+      // otherwise an edit would appear to do nothing against the stale bake.
+      const calibrating = typeof isBuildingLightCalibrationInputActive === 'function'
+        && isBuildingLightCalibrationInputActive();
+      if (!calibrating
+        && typeof getBuildingNightTextureKey === 'function'
+        && getBuildingNightTextureKey(sprite)) return;
       glow = createBuildingLightGlow(s, sprite);
       if (!glow) return;
       glows.set(id, glow);

@@ -1,3 +1,39 @@
+# The City of Heung Shing v4.6.2 — 【萬家燈火】
+
+多 14 楝樓入夜著燈。呢批係新校正好嘅住宅同商業模型，夜景貼圖已經焗入去，入夜自動換圖。
+
+## Highlights
+
+- **新增 14 個已校正夜景模型**：
+  - 住宅 4x4：`residential4-01-M-MD`、`residential4-02-M-MD`
+  - 住宅 5x5：`residential5-01-H-MD`、`residential5-02-H-MD`、`residential5-03-L-HD`
+  - 商業 1x1：`commercialBuilding1-01-L`／`02-M`／`03-L`／`04-M`／`05-L`
+  - 商業 2x2：`commercialBuilding2-02-H`／`03-M`／`04-M`／`05-L`
+- 已 bake 嘅夜景模型由 40 個增加到 54 個，每個兩張（普通夜晚／深夜），共 108 張貼圖。
+- 商業模型嘅燈色跟校正時揀嘅類別行（辦公室冷白、工業暖黃、服務設施淡藍），唔係一刀切。
+- 街燈照舊只焗光暈完全落喺模型範圍內嗰啲；超出邊界嘅唔焗。
+- 未校正嘅模型維持原本嘅即時光暈路徑，行為不變。
+
+## Compatibility
+
+- 現有城市存檔完全兼容，唔需要遷移。
+- 夜間建築燈光開關（View 選單）維持有效。
+
+## Verification
+
+- 完整專案測試 419 項全部通過。
+- 發佈資產驗證器對 352 個 lossless WebP 全部通過（最大錨點誤差 0.00px）。
+- 已核對 46 個校正檔逐點吻合焗入去嘅預設值。
+
+## Downloads
+
+- macOS Apple Silicon DMG
+- macOS Intel DMG
+- Windows installer EXE
+- Windows portable EXE
+
+---
+
 # The City of Heung Shing v4.6.1 — 【萬家燈火】
 
 修正 v4.6.0 一個會影響現有城市嘅問題：夜景貼圖被誤當成建築模型列出，令每個模型重複三次，並打亂咗存檔用嚟認返自己建築嘅編號 —— 舊城市開返會見到建築變晒樣。建議所有 v4.6.0 用家更新。

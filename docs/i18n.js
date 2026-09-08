@@ -210,6 +210,11 @@ const SITE_FEATURE_LIST = {
 // ── Changelog ─────────────────────────────────────────────────────────────────
 const SITE_CHANGELOG = {
   "zh-HK": [
+    { version: "v4.6.2", date: "2026-09-08", dateLabel: "2026年9月8日", title: "萬家燈火", items: [
+      "新增 14 個已校正夜景模型：住宅 4x4 兩款、住宅 5x5 三款、商業 1x1 五款、商業 2x2 四款。已 bake 嘅夜景模型由 40 個增加到 54 個，每個兩張（普通夜晚／深夜），共 108 張貼圖。",
+      "商業模型嘅燈色跟校正時揀嘅類別行——辦公室冷白、工業暖黃、服務設施淡藍，唔係一刀切。街燈照舊只焗光暈完全落喺模型範圍內嗰啲。",
+      "未校正嘅模型維持原本嘅即時光暈路徑，行為不變；現有城市存檔完全兼容。",
+    ] },
     { version: "v4.6.1", date: "2026-08-30", dateLabel: "2026年8月30日", title: "萬家燈火", items: [
       "修正建築模型錯位（重要，建議所有 v4.6.0 用家更新）：夜景貼圖被誤當成建築模型列出，令每個模型重複三次。模型編號係按目錄次序編排，而存檔入面每楝建築就係靠呢個編號認返自己張圖——house2x2 由 17 個模型變成 51 個、第一格更加變咗夜景貼圖，令現有城市嘅建築靜靜咁換晒模型。現已喺伺服器同用戶端兩邊過濾走衍生嘅夜景貼圖，並加入回歸測試。更新後建築會恢復正確模型。",
     ] },
@@ -440,6 +445,11 @@ const SITE_CHANGELOG = {
 // title/items text.
 const SITE_CHANGELOG_TRANSLATIONS = {
   "zh-TW": {
+    "v4.6.2": { title: "萬家燈火", items: [
+      "新增 14 個已校正夜景模型：住宅 4x4 兩款、住宅 5x5 三款、商業 1x1 五款、商業 2x2 四款。已烘焙的夜景模型由 40 個增加到 54 個，每個兩張（普通夜晚／深夜），共 108 張貼圖。",
+      "商業模型的燈色依校正時選擇的類別而定——辦公室冷白、工業暖黃、服務設施淡藍，並非一刀切。路燈同樣只烘焙光暈完全落在模型範圍內的那些。",
+      "未校正的模型維持原本的即時光暈路徑，行為不變；現有城市存檔完全相容。",
+    ] },
     "v4.6.1": { title: "萬家燈火", items: [
       "修正建築模型錯位（重要，建議所有 v4.6.0 使用者更新）：夜景貼圖被誤當成建築模型列出，令每個模型重複三次。模型編號是按目錄順序編排，而存檔裡每棟建築就是靠這個編號找回自己的圖——house2x2 由 17 個模型變成 51 個、第一格更變成夜景貼圖，導致現有城市的建築悄悄換掉模型。現已在伺服器與用戶端兩邊過濾掉衍生的夜景貼圖，並加入回歸測試。更新後建築會恢復正確模型。",
     ] },
@@ -663,6 +673,11 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   en: {
+    "v4.6.2": { title: "A City of Lit Windows", items: [
+      "14 newly calibrated night models: two 4x4 residentials, three 5x5 residentials, five 1x1 commercials and four 2x2 commercials. Baked night models go from 40 to 54, two textures each (evening and deep night), 108 in total.",
+      "Commercial models take their light colour from the class picked during calibration - cool white for offices, warm amber for industrial, pale blue for services - rather than one colour for everything. Street lamps are still baked only when the whole pool fits inside the model's silhouette.",
+      "Uncalibrated models keep the live glow path unchanged, and existing city saves stay fully compatible.",
+    ] },
     "v4.6.1": { title: "A City of Lit Windows", items: [
       "Fixed buildings resolving to the wrong model (important - recommended for every v4.6.0 user). Baked night textures were being listed as models, so each one appeared three times. Model keys are assigned by discovery order, and every saved building resolves its art by that key: house2x2 went from 17 models to 51 with a night texture at the first slot, so an existing city silently swapped its buildings. Night variants are now filtered out on both the server and the client, with a regression test. Updating restores the correct models.",
     ] },
@@ -886,6 +901,11 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   ja: {
+    "v4.6.2": { title: "万家の灯", items: [
+      "新たに校正した夜景モデルを14種追加：住宅4x4が2種、住宅5x5が3種、商業1x1が5種、商業2x2が4種。焼き込み済みの夜景モデルは40種から54種になり、各2枚（通常の夜／深夜）で計108枚のテクスチャになりました。",
+      "商業モデルの灯りの色は校正時に選んだ区分に従います——オフィスは冷たい白、工業は暖かい琥珀、サービス施設は淡い青。街灯は従来どおり、光の輪がモデルの輪郭に完全に収まるものだけを焼き込みます。",
+      "未校正のモデルは従来のリアルタイム光暈のまま動作は変わりません。既存の都市セーブとの互換性も保たれます。",
+    ] },
     "v4.6.1": { title: "万家の灯", items: [
       "建物モデルの取り違えを修正（重要。v4.6.0 をお使いの方はすべて更新を推奨）：夜景テクスチャがモデルとして一覧に載ってしまい、各モデルが3回重複していました。モデルのキーは一覧順で割り当てられ、セーブ内の各建物はそのキーで自分の絵を参照するため、house2x2 は17個から51個に増え、先頭が夜景テクスチャになり、既存の都市の建物が知らないうちに別のモデルへ入れ替わっていました。サーバー側とクライアント側の両方で派生した夜景テクスチャを除外し、回帰テストを追加。更新すると正しいモデルに戻ります。",
     ] },
@@ -1135,7 +1155,7 @@ const SITE_TEXT = {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
       versionBadge: "v4.6.1 — 【萬家燈火】",
-      versionDesc: "修正 v4.6.0 一個會令現有城市建築換錯模型嘅問題，建議所有用家更新。夜景燈光功能不變：40 個建築模型各焗咗兩張夜景貼圖，入夜自動換圖。",
+      versionDesc: "多 14 楝樓入夜著燈：新校正嘅住宅同商業模型夜景貼圖已經焗入去。已 bake 嘅夜景模型由 40 個增加到 54 個，每個兩張，共 108 張貼圖。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感嘅城市建設遊戲。起街道、規劃社區、經營自己嘅香城巴士公司、處理議會同天氣，再睇住一座有性格嘅香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1212,7 +1232,7 @@ const SITE_TEXT = {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
       versionBadge: "v4.6.1 — 【萬家燈火】",
-      versionDesc: "修正 v4.6.0 一個會讓現有城市建築換錯模型的問題，建議所有使用者更新。夜景燈光功能不變：40 個建築模型各烘焙了兩張夜景貼圖，入夜自動換圖。",
+      versionDesc: "多 14 棟樓入夜亮燈：新校正的住宅與商業模型夜景貼圖已經烘焙進去。已烘焙的夜景模型由 40 個增加到 54 個，每個兩張，共 108 張貼圖。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感的城市建設遊戲。興建街道、規劃社區、經營自己的香城公車公司、處理議會與天氣，看著一座有個性的香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1289,7 +1309,7 @@ const SITE_TEXT = {
       eyebrowPrefix: "The City of Heung Shing",
       title: "The City of Heung Shing",
       versionBadge: "v4.6.1 — A City of Lit Windows",
-      versionDesc: "Fixes a v4.6.0 issue that made existing cities resolve their buildings to the wrong models - recommended for every user. Night lighting is unchanged: 40 building models ship two baked night textures each, swapping in after dark.",
+      versionDesc: "14 more buildings light up after dark: newly calibrated residential and commercial models now ship baked night art. Baked night models go from 40 to 54, two textures each, 108 in total.",
       lede: "A city-building game inspired by Hong Kong life and made in tribute to SimCity 2000. Build streets, shape neighbourhoods, run your own Heung Shing Bus Company, navigate council politics and weather, then watch a city with real personality grow.",
       freeLabel: "Completely free · macOS + Windows · Local saves",
       downloadBtn: "【Free Download】",
@@ -1367,7 +1387,7 @@ const SITE_TEXT = {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
       versionBadge: "v4.6.1 — 万家の灯",
-      versionDesc: "既存の都市で建物が別のモデルに入れ替わってしまう v4.6.0 の不具合を修正しました。すべての方に更新を推奨します。夜間ライティングの機能は変更なし：建物モデル40種それぞれに2枚の夜景テクスチャを焼き込み、日没後に自動で切り替えます。",
+      versionDesc: "日が暮れると灯る建物が14棟増えました：新たに校正した住宅・商業モデルの夜景テクスチャを焼き込み済みです。焼き込み済みの夜景モデルは40種から54種になり、各2枚で計108枚になりました。",
       lede: "香港の都市生活から着想を得た、SimCity 2000へのオマージュとなる都市建設ゲーム。道路を築き、地区を計画し、自分だけの香城バス会社を経営し、議会や天候に向き合いながら、個性ある香城の成長を見守ります。",
       freeLabel: "完全無料 · macOS + Windows · ローカルセーブ",
       downloadBtn: "【無料ダウンロード】",

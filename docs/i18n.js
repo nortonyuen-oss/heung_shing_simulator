@@ -210,6 +210,9 @@ const SITE_FEATURE_LIST = {
 // ── Changelog ─────────────────────────────────────────────────────────────────
 const SITE_CHANGELOG = {
   "zh-HK": [
+    { version: "v4.6.1", date: "2026-08-30", dateLabel: "2026年8月30日", title: "萬家燈火", items: [
+      "修正建築模型錯位（重要，建議所有 v4.6.0 用家更新）：夜景貼圖被誤當成建築模型列出，令每個模型重複三次。模型編號係按目錄次序編排，而存檔入面每楝建築就係靠呢個編號認返自己張圖——house2x2 由 17 個模型變成 51 個、第一格更加變咗夜景貼圖，令現有城市嘅建築靜靜咁換晒模型。現已喺伺服器同用戶端兩邊過濾走衍生嘅夜景貼圖，並加入回歸測試。更新後建築會恢復正確模型。",
+    ] },
     { version: "v4.6.0", date: "2026-08-30", dateLabel: "2026年8月30日", title: "萬家燈火", items: [
       "夜景貼圖：40 個已校正嘅建築模型各焗兩張夜景貼圖（普通夜晚／深夜），入夜自動換圖。亮起嘅係原圖本身嗰啲窗——用校正格做遮罩去照亮真實窗戶，唔係喺上面畫方格，所以窗框、露台、玻璃質感全部保留，窗邊仲有柔和暖色光暈。",
       "兩層夜色：深夜嘅樓宇立面更暗、亮燈窗戶疏落好多，成個城市會隨住夜深靜落嚟。夜色本身亦由一層拆成地面層（只蓋地形同道路）同大氣層（薄薄一層蓋全部），令亮窗唔會俾夜幕壓成灰色。整體夜晚暗度 0.45。",
@@ -437,6 +440,9 @@ const SITE_CHANGELOG = {
 // title/items text.
 const SITE_CHANGELOG_TRANSLATIONS = {
   "zh-TW": {
+    "v4.6.1": { title: "萬家燈火", items: [
+      "修正建築模型錯位（重要，建議所有 v4.6.0 使用者更新）：夜景貼圖被誤當成建築模型列出，令每個模型重複三次。模型編號是按目錄順序編排，而存檔裡每棟建築就是靠這個編號找回自己的圖——house2x2 由 17 個模型變成 51 個、第一格更變成夜景貼圖，導致現有城市的建築悄悄換掉模型。現已在伺服器與用戶端兩邊過濾掉衍生的夜景貼圖，並加入回歸測試。更新後建築會恢復正確模型。",
+    ] },
     "v4.6.0": { title: "萬家燈火", items: [
       "夜景貼圖：40 個已校正的建築模型各烘焙兩張夜景貼圖（一般夜晚／深夜），入夜自動換圖。亮起的是原圖本身那些窗——用校正格當遮罩去照亮真實窗戶，而非在上面畫方格，所以窗框、陽台、玻璃質感全部保留，窗邊還有柔和暖色光暈。",
       "兩層夜色：深夜的樓宇立面更暗、亮燈窗戶疏落許多，整座城市會隨著夜深靜下來。夜色本身也由一層拆成地面層（只覆蓋地形與道路）與大氣層（薄薄一層覆蓋全部），讓亮窗不會被夜幕壓成灰色。整體夜晚暗度 0.45。",
@@ -657,6 +663,9 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   en: {
+    "v4.6.1": { title: "A City of Lit Windows", items: [
+      "Fixed buildings resolving to the wrong model (important - recommended for every v4.6.0 user). Baked night textures were being listed as models, so each one appeared three times. Model keys are assigned by discovery order, and every saved building resolves its art by that key: house2x2 went from 17 models to 51 with a night texture at the first slot, so an existing city silently swapped its buildings. Night variants are now filtered out on both the server and the client, with a regression test. Updating restores the correct models.",
+    ] },
     "v4.6.0": { title: "A City of Lit Windows", items: [
       "Baked night textures: each of the 40 calibrated building models now ships two night variants (evening and deep night) that swap in automatically after dark. What lights up is the artwork's own windows - the calibrated grid is used as a mask to brighten the real glass rather than to paint rectangles over it, so frames, balconies and glazing all survive, with a soft warm halo around each lit window.",
       "Two tiers of night: deep night darkens facades further and lights far fewer windows, so the city visibly settles down in the small hours. Night itself is now two passes - a ground pass over terrain and roads only, and a thin atmosphere pass over everything - so a lit window is no longer crushed to grey by the night overlay. Overall night darkness is 0.45.",
@@ -877,6 +886,9 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   ja: {
+    "v4.6.1": { title: "万家の灯", items: [
+      "建物モデルの取り違えを修正（重要。v4.6.0 をお使いの方はすべて更新を推奨）：夜景テクスチャがモデルとして一覧に載ってしまい、各モデルが3回重複していました。モデルのキーは一覧順で割り当てられ、セーブ内の各建物はそのキーで自分の絵を参照するため、house2x2 は17個から51個に増え、先頭が夜景テクスチャになり、既存の都市の建物が知らないうちに別のモデルへ入れ替わっていました。サーバー側とクライアント側の両方で派生した夜景テクスチャを除外し、回帰テストを追加。更新すると正しいモデルに戻ります。",
+    ] },
     "v4.6.0": { title: "万家の灯", items: [
       "夜景テクスチャ：校正済みの建物モデル40種それぞれに2枚の夜景テクスチャ（通常の夜／深夜）を焼き込み、日没後に自動で切り替わります。光るのは元の絵にある窓そのもの——校正グリッドをマスクとして実際のガラスを明るくする方式なので、窓枠・バルコニー・ガラスの質感がすべて残り、窓の周りには柔らかな暖色のハローが付きます。",
       "二段階の夜：深夜には外壁がさらに暗くなり、点灯した窓の数もぐっと減るため、街が夜更けとともに静まっていく様子が見えます。夜の暗さ自体も、地形と道路だけを覆う地面パスと、全体を薄く覆う大気パスの二層に分割。点灯した窓が夜のオーバーレイで灰色に潰れなくなりました。全体の夜の暗さは 0.45。",
@@ -1122,8 +1134,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.6.0 — 【萬家燈火】",
-      versionDesc: "萬家燈火：40 個建築模型各焗咗兩張夜景貼圖，入夜自動換圖，亮起嘅係原圖本身嗰啲窗；深夜牆更暗、燈更疏。密集夜景 render 由 165 毫秒跌到 12 毫秒。",
+      versionBadge: "v4.6.1 — 【萬家燈火】",
+      versionDesc: "修正 v4.6.0 一個會令現有城市建築換錯模型嘅問題，建議所有用家更新。夜景燈光功能不變：40 個建築模型各焗咗兩張夜景貼圖，入夜自動換圖。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感嘅城市建設遊戲。起街道、規劃社區、經營自己嘅香城巴士公司、處理議會同天氣，再睇住一座有性格嘅香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1199,8 +1211,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.6.0 — 【萬家燈火】",
-      versionDesc: "萬家燈火：40 個建築模型各烘焙了兩張夜景貼圖，入夜自動換圖，亮起的是原圖本身那些窗；深夜牆更暗、燈更疏。密集夜景 render 由 165 毫秒降到 12 毫秒。",
+      versionBadge: "v4.6.1 — 【萬家燈火】",
+      versionDesc: "修正 v4.6.0 一個會讓現有城市建築換錯模型的問題，建議所有使用者更新。夜景燈光功能不變：40 個建築模型各烘焙了兩張夜景貼圖，入夜自動換圖。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感的城市建設遊戲。興建街道、規劃社區、經營自己的香城公車公司、處理議會與天氣，看著一座有個性的香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1276,8 +1288,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "The City of Heung Shing",
       title: "The City of Heung Shing",
-      versionBadge: "v4.6.0 — A City of Lit Windows",
-      versionDesc: "A city of lit windows: 40 building models ship two baked night textures each, swapping in after dark, lighting the artwork's own windows; deep night darkens facades further and lights far fewer of them. A dense night view renders in 12ms instead of 165ms.",
+      versionBadge: "v4.6.1 — A City of Lit Windows",
+      versionDesc: "Fixes a v4.6.0 issue that made existing cities resolve their buildings to the wrong models - recommended for every user. Night lighting is unchanged: 40 building models ship two baked night textures each, swapping in after dark.",
       lede: "A city-building game inspired by Hong Kong life and made in tribute to SimCity 2000. Build streets, shape neighbourhoods, run your own Heung Shing Bus Company, navigate council politics and weather, then watch a city with real personality grow.",
       freeLabel: "Completely free · macOS + Windows · Local saves",
       downloadBtn: "【Free Download】",
@@ -1354,8 +1366,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.6.0 — 万家の灯",
-      versionDesc: "万家の灯：建物モデル40種それぞれに2枚の夜景テクスチャを焼き込み、日没後に自動で切り替え。光るのは元の絵にある窓そのもの。深夜は外壁がより暗く、灯りもぐっと減ります。高密度の夜景で render が 165ms から 12ms に短縮。",
+      versionBadge: "v4.6.1 — 万家の灯",
+      versionDesc: "既存の都市で建物が別のモデルに入れ替わってしまう v4.6.0 の不具合を修正しました。すべての方に更新を推奨します。夜間ライティングの機能は変更なし：建物モデル40種それぞれに2枚の夜景テクスチャを焼き込み、日没後に自動で切り替えます。",
       lede: "香港の都市生活から着想を得た、SimCity 2000へのオマージュとなる都市建設ゲーム。道路を築き、地区を計画し、自分だけの香城バス会社を経営し、議会や天候に向き合いながら、個性ある香城の成長を見守ります。",
       freeLabel: "完全無料 · macOS + Windows · ローカルセーブ",
       downloadBtn: "【無料ダウンロード】",

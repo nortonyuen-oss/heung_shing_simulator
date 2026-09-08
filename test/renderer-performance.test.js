@@ -147,12 +147,50 @@ test('depth-sorted trees share the standard WebGL pipeline with buildings', () =
   assert.match(mainSource, /Keeping trees on[\s\S]*?default MultiPipeline[\s\S]*?same[\s\S]*?WebGL batch/);
 });
 
-test('bottom-right map controls expose music and live zoom without separate render pipelines', () => {
+test('map controls expose music and independently wired top-right zoom buttons', () => {
   assert.match(htmlSource, /id="btn-map-music"/);
   assert.match(htmlSource, /id="btn-map-zoom-out"[\s\S]*?id="map-zoom-label"[\s\S]*?id="btn-map-zoom-in"/);
   assert.match(mainSource, /btn\.id === 'btn-map-music'\) toggleMusic\(\)/);
-  assert.match(mainSource, /btn\.id === 'btn-map-zoom-in'\) changeMapZoom\(activeScene, 1\)/);
+  assert.match(mainSource, /const zoomControl = document\.querySelector\('\.map-zoom-control'\)/);
+  assert.match(mainSource, /zoomControl\.addEventListener\('click',[\s\S]*?btn\.id === 'btn-map-zoom-in'\) changeMapZoom\(activeScene, 1\)/);
+  assert.match(mainSource, /zoomOutButton\.disabled = !!camera && currentZoom <= MAP_ZOOM_MIN/);
+  assert.match(mainSource, /zoomInButton\.disabled = !!camera && currentZoom >= MAP_ZOOM_MAX/);
   assert.match(mainSource, /updateMapNavigationControls\(scene\)/);
+});
+
+test('top-right zoom buttons dispatch both zoom directions from their own container', () => {
+  const start = mainSource.indexOf('function setupRotateCluster()');
+  const end = mainSource.indexOf('// ── Jukebox floating window', start);
+  let zoomClick = null;
+  let pointerDown = null;
+  const directions = [];
+  const zoomControl = {
+    addEventListener(type, listener) {
+      if (type === 'click') zoomClick = listener;
+      if (type === 'pointerdown') pointerDown = listener;
+    },
+  };
+  const context = vm.createContext({
+    activeScene: { id: 'scene' },
+    changeMapZoom: (scene, direction) => directions.push([scene.id, direction]),
+    document: {
+      getElementById: () => null,
+      querySelector: (selector) => selector === '.map-zoom-control' ? zoomControl : null,
+    },
+    setupMapKeyboardNavigation: () => {},
+    updateMapNavigationControls: () => {},
+  });
+  vm.runInContext(mainSource.slice(start, end), context);
+  vm.runInContext('setupRotateCluster()', context);
+
+  assert.equal(typeof zoomClick, 'function');
+  let propagationStopped = false;
+  pointerDown({ stopPropagation: () => { propagationStopped = true; } });
+  assert.equal(propagationStopped, true);
+  zoomClick({ target: { closest: () => ({ id: 'btn-map-zoom-out', disabled: false }) } });
+  zoomClick({ target: { closest: () => ({ id: 'btn-map-zoom-in', disabled: false }) } });
+  zoomClick({ target: { closest: () => ({ id: 'btn-map-zoom-in', disabled: true }) } });
+  assert.deepEqual(directions, [['scene', -1], ['scene', 1]]);
 });
 
 test('arrow keys pan the camera continuously but leave form controls and dialogs alone', () => {

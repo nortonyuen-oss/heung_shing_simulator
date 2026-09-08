@@ -1,5 +1,7 @@
 // ── Top Menu Bar ──────────────────────────────────────────────────────────────
 
+let desktopFullscreenState = null;
+
 function setupMenuBar() {
   const topBar = document.getElementById('top-bar');
   const menuBar = document.getElementById('menu-bar');
@@ -103,6 +105,7 @@ function setupMenuBar() {
 
   updateSettingsMenu();
   updateSoundMenu();
+  setupDesktopFullscreenState();
   updateViewMenu();
 }
 
@@ -197,21 +200,72 @@ function handleMenuAction(action) {
 
 // ── Fullscreen ────────────────────────────────────────────────────────────────
 
-function enterFullscreen() {
-  const el = document.documentElement;
-  if (el.requestFullscreen)       el.requestFullscreen();
-  else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+function getDesktopWindowApi() {
+  return typeof window !== 'undefined' ? window.heungShingDesktop : null;
+}
+
+function applyDesktopFullscreenState(isFullscreen) {
+  desktopFullscreenState = isFullscreen === true;
   updateViewMenu();
 }
 
+function setupDesktopFullscreenState() {
+  const desktopWindow = getDesktopWindowApi();
+  if (!desktopWindow) return;
+  desktopWindow.onFullscreenChange?.(applyDesktopFullscreenState);
+  const request = desktopWindow.getFullscreen?.();
+  if (request?.then) {
+    request.then(applyDesktopFullscreenState)
+      .catch((error) => console.warn('[Fullscreen state]', error));
+  }
+}
+
+function settleFullscreenRequest(request, label) {
+  if (!request?.then) {
+    updateViewMenu();
+    return;
+  }
+  request.catch((error) => console.warn(`[${label}]`, error))
+    .finally(updateViewMenu);
+}
+
+function enterFullscreen() {
+  const desktopWindow = getDesktopWindowApi();
+  if (desktopWindow?.setFullscreen) {
+    desktopFullscreenState = true;
+    updateViewMenu();
+    settleFullscreenRequest(desktopWindow.setFullscreen(true), 'Enter fullscreen');
+    return;
+  }
+  const el = document.documentElement;
+  const request = el.requestFullscreen
+    ? el.requestFullscreen()
+    : el.webkitRequestFullscreen?.();
+  settleFullscreenRequest(request, 'Enter fullscreen');
+}
+
 function exitFullscreen() {
-  if (document.exitFullscreen)       document.exitFullscreen();
-  else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+  const htmlFullscreen = document.fullscreenElement || document.webkitFullscreenElement;
+  if (htmlFullscreen) {
+    const request = document.exitFullscreen
+      ? document.exitFullscreen()
+      : document.webkitExitFullscreen?.();
+    settleFullscreenRequest(request, 'Exit fullscreen');
+    return;
+  }
+
+  const desktopWindow = getDesktopWindowApi();
+  if (desktopWindow?.setFullscreen) {
+    desktopFullscreenState = false;
+    updateViewMenu();
+    settleFullscreenRequest(desktopWindow.setFullscreen(false), 'Exit fullscreen');
+    return;
+  }
   updateViewMenu();
 }
 
 function isFullscreen() {
-  return !!(document.fullscreenElement || document.webkitFullscreenElement);
+  return !!(document.fullscreenElement || document.webkitFullscreenElement || desktopFullscreenState === true);
 }
 
 function updateViewMenu() {

@@ -38,6 +38,12 @@ function sendStoreError(res, error, routeLabel) {
   res.status(status).json({ error: error.message });
 }
 
+// Night textures are derived from a model's day art by
+// scripts/bake-night-textures.js; they are never models in their own right.
+function isDerivedNightVariant(fileName) {
+  return /__night(deep)?\.[^.]+$/.test(String(fileName ?? ''));
+}
+
 function createGameApp(options = {}) {
   const app = express();
   const rootDir = path.resolve(options.rootDir || __dirname);
@@ -176,6 +182,11 @@ function createGameApp(options = {}) {
     .filter((logicalPath) => logicalPath.startsWith(logicalPrefix))
     .map((logicalPath) => logicalPath.slice(logicalPrefix.length))
     .filter((fileName) => fileName && !fileName.includes('/'))
+    // Baked night variants live in the manifest so the runtime can resolve them,
+    // but they are not models. Listing them here made every model appear three
+    // times AND shifted the discovery-order keys that saved buildings resolve
+    // by, so an existing city would silently swap models.
+    .filter((fileName) => !isDerivedNightVariant(fileName))
     .sort((a, b) => a.localeCompare(b));
   if (packagedLogicalFiles.length > 0) return res.json(packagedLogicalFiles);
   const folderPath = path.join(rootDir, 'Models', ...folderName.split('/'));

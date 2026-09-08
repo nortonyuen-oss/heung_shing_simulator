@@ -2,6 +2,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
+const vm = require('node:vm');
 
 // electron-main.js can't be required under plain `node --test`: outside an
 // Electron process, require('electron') resolves to a path string rather
@@ -13,8 +14,64 @@ const test = require('node:test');
 const ROOT = path.resolve(__dirname, '..');
 const mainSource = fs.readFileSync(path.join(ROOT, 'electron-main.js'), 'utf8');
 
-test('dialog module is imported for crash/unresponsive recovery prompts', () => {
-  assert.match(mainSource, /const \{ app, BrowserWindow, dialog, safeStorage, shell \} = require\('electron'\);/);
+test('dialog and IPC modules are imported for recovery and native window controls', () => {
+  assert.match(mainSource, /const \{ app, BrowserWindow, dialog, ipcMain, safeStorage, shell \} = require\('electron'\);/);
+});
+
+test('fullscreen controls use an isolated preload bridge and native BrowserWindow state', () => {
+  const preloadSource = fs.readFileSync(path.join(ROOT, 'electron-preload.js'), 'utf8');
+  const topbarSource = fs.readFileSync(path.join(ROOT, 'topbar.js'), 'utf8');
+  assert.match(mainSource, /preload: path\.join\(__dirname, 'electron-preload\.js'\)/);
+  assert.match(mainSource, /ipcMain\.handle\(WINDOW_FULLSCREEN_GET_CHANNEL/);
+  assert.match(mainSource, /targetWindow\.isFullScreen\(\)/);
+  assert.match(mainSource, /targetWindow\.setFullScreen\(requestedState === true\)/);
+  assert.match(mainSource, /mainWindow\.on\('enter-full-screen'/);
+  assert.match(mainSource, /mainWindow\.on\('leave-full-screen'/);
+  assert.match(preloadSource, /contextBridge\.exposeInMainWorld\('heungShingDesktop'/);
+  assert.match(preloadSource, /ipcRenderer\.invoke\(WINDOW_FULLSCREEN_SET_CHANNEL/);
+  assert.match(topbarSource, /desktopWindow\.setFullscreen\(false\)/);
+  assert.match(topbarSource, /desktopFullscreenState === true/);
+});
+
+test('renderer fullscreen controls send both enter and exit requests through the desktop bridge', async () => {
+  const topbarSource = fs.readFileSync(path.join(ROOT, 'topbar.js'), 'utf8');
+  const blockStart = topbarSource.indexOf('function getDesktopWindowApi()');
+  const blockEnd = topbarSource.indexOf('// ── Speed button highlight', blockStart);
+  const requestedStates = [];
+  let stateListener = null;
+  const context = vm.createContext({
+    console,
+    document: {
+      addEventListener: () => {},
+      documentElement: {},
+      fullscreenElement: null,
+      getElementById: () => null,
+      webkitFullscreenElement: null,
+    },
+    window: {
+      heungShingDesktop: {
+        getFullscreen: () => Promise.resolve(false),
+        onFullscreenChange: (listener) => { stateListener = listener; },
+        setFullscreen: (state) => {
+          requestedStates.push(state);
+          return Promise.resolve(state);
+        },
+      },
+    },
+  });
+  vm.runInContext(`let desktopFullscreenState = null;\n${topbarSource.slice(blockStart, blockEnd)}`, context);
+  vm.runInContext('setupDesktopFullscreenState()', context);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(vm.runInContext('isFullscreen()', context), false);
+
+  vm.runInContext('enterFullscreen()', context);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(vm.runInContext('isFullscreen()', context), true);
+  stateListener(true);
+  vm.runInContext('exitFullscreen()', context);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(vm.runInContext('isFullscreen()', context), false);
+  assert.deepEqual(requestedStates, [true, false]);
 });
 
 test('a dead renderer process gets offered a reload instead of staying frozen forever', () => {

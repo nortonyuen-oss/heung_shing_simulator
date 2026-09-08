@@ -1584,12 +1584,15 @@ const config = {
 initializeGame();
 
 async function initializeGame() {
+  // The menu is plain DOM UI and must stay usable while model discovery and
+  // Phaser's heavier startup work are still in flight. In particular, players
+  // need to be able to leave fullscreen even if asset loading stalls.
+  setupMenuBar();
   await loadModelAssetManifest();
   houseModelSets = await discoverHouseModelSets();
   commercialBuildingModels = await discoverCommercialBuildingModels();
   industrialBuildingModels = await discoverIndustrialBuildingModels();
   setupToolMenu();
-  setupMenuBar();
   setupRoadTileSetWindow();
   applyStoredMusicVolume();
   updateHouseToolUi();
@@ -1784,7 +1787,11 @@ function sortModelFiles(fileNames, config) {
   const dedupedByBaseName = new Map();
 
   const safeFileNames = (Array.isArray(fileNames) ? fileNames : [])
-    .filter((fileName) => typeof fileName === 'string' && fileName.trim().length > 0);
+    .filter((fileName) => typeof fileName === 'string' && fileName.trim().length > 0)
+    // Defence in depth against baked night art being treated as a model: these
+    // are derived from a model's day texture and must never take a discovery
+    // slot, because the slot index is the key saved buildings resolve by.
+    .filter((fileName) => !/__night(deep)?\.[^.]+$/.test(fileName));
 
   safeFileNames.filter((fileName) => !isDisabledModelFile(fileName, config.disabledFiles)).forEach((fileName) => {
     const canonicalFileName = getModelFileAlias(fileName, aliases);
@@ -2914,8 +2921,14 @@ function formatMapZoomLabel(zoom) {
 }
 
 function updateMapNavigationControls(scene = activeScene) {
+  const camera = scene?.cameras?.main;
+  const currentZoom = clampMapZoom(camera?.zoom ?? 1);
   const zoomLabel = document.getElementById('map-zoom-label');
-  if (zoomLabel) zoomLabel.textContent = formatMapZoomLabel(scene?.cameras?.main?.zoom ?? 1);
+  if (zoomLabel) zoomLabel.textContent = formatMapZoomLabel(currentZoom);
+  const zoomOutButton = document.getElementById('btn-map-zoom-out');
+  const zoomInButton = document.getElementById('btn-map-zoom-in');
+  if (zoomOutButton) zoomOutButton.disabled = !!camera && currentZoom <= MAP_ZOOM_MIN + 0.0001;
+  if (zoomInButton) zoomInButton.disabled = !!camera && currentZoom >= MAP_ZOOM_MAX - 0.0001;
 
   const musicButton = document.getElementById('btn-map-music');
   const musicLabel = document.getElementById('map-music-label');
@@ -3005,18 +3018,31 @@ function updateKeyboardMapPan(scene, deltaMs) {
 
 function setupRotateCluster() {
   const cluster = document.getElementById('rotate-cluster');
-  if (!cluster) return;
+  const zoomControl = document.querySelector('.map-zoom-control');
 
-  cluster.addEventListener('pointerdown', (e) => e.stopPropagation());
-  cluster.addEventListener('click', (e) => {
-    const btn = e.target.closest('button');
-    if (!btn || !activeScene) return;
-    if (btn.id === 'btn-rotate-cw')  rotateMap(activeScene, 1);
-    if (btn.id === 'btn-rotate-ccw') rotateMap(activeScene, -1);
-    if (btn.id === 'btn-map-zoom-in') changeMapZoom(activeScene, 1);
-    if (btn.id === 'btn-map-zoom-out') changeMapZoom(activeScene, -1);
-    if (btn.id === 'btn-map-music') toggleMusic();
-  });
+  if (cluster) {
+    cluster.addEventListener('pointerdown', (e) => e.stopPropagation());
+    cluster.addEventListener('click', (e) => {
+      const btn = e.target.closest('button');
+      if (!btn || !activeScene) return;
+      if (btn.id === 'btn-rotate-cw')  rotateMap(activeScene, 1);
+      if (btn.id === 'btn-rotate-ccw') rotateMap(activeScene, -1);
+      if (btn.id === 'btn-map-music') toggleMusic();
+    });
+  }
+
+  // This control used to live inside #rotate-cluster. It now sits at the top
+  // right, so it needs its own listener instead of relying on event bubbling to
+  // the old parent.
+  if (zoomControl) {
+    zoomControl.addEventListener('pointerdown', (e) => e.stopPropagation());
+    zoomControl.addEventListener('click', (e) => {
+      const btn = e.target.closest('.map-zoom-btn');
+      if (!btn || btn.disabled || !activeScene) return;
+      if (btn.id === 'btn-map-zoom-in') changeMapZoom(activeScene, 1);
+      if (btn.id === 'btn-map-zoom-out') changeMapZoom(activeScene, -1);
+    });
+  }
   setupMapKeyboardNavigation();
   updateMapNavigationControls();
 }

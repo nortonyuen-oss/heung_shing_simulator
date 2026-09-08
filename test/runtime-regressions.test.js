@@ -403,6 +403,37 @@ test('desktop package explicitly includes forum WebP assets', () => {
   assert.ok(packageJson.build.files.includes('UI/news/**/*.webp'));
 });
 
+test('menu controls bind before asynchronous model discovery and forum opening is failure-tolerant', () => {
+  const main = fs.readFileSync(path.join(ROOT, 'main.js'), 'utf8');
+  const newspaper = fs.readFileSync(path.join(ROOT, 'newspaper.js'), 'utf8');
+  const initializeStart = main.indexOf('async function initializeGame()');
+  const initializeEnd = main.indexOf('\nfunction loadModelAssetManifest()', initializeStart);
+  const initializeBody = main.slice(initializeStart, initializeEnd);
+  assert.ok(initializeBody.indexOf('setupMenuBar();') < initializeBody.indexOf('await loadModelAssetManifest();'));
+
+  const openStart = newspaper.indexOf('function openForumHistory()');
+  const openEnd = newspaper.indexOf('\nfunction announceCouncilBuiltNewspaper()', openStart);
+  const openBody = newspaper.slice(openStart, openEnd);
+  assert.ok(openBody.indexOf("showDialog('forum-history-dialog')") < openBody.indexOf('syncResolutionHistoryToForum();'));
+
+  const shown = [];
+  const warnings = [];
+  const context = vm.createContext({
+    console: { warn: (...args) => warnings.push(args) },
+    document: { getElementById: () => null },
+    hydrateRecentForumAiComments: () => Promise.reject(new Error('AI unavailable')),
+    renderForumHistory: () => { throw new Error('bad post'); },
+    showDialog: (id) => shown.push(id),
+    syncResolutionHistoryToForum: () => { throw new Error('bad history'); },
+  });
+  vm.runInContext(openBody, context);
+  assert.doesNotThrow(() => vm.runInContext('openForumHistory()', context));
+  assert.deepEqual(shown, ['forum-history-dialog']);
+  return new Promise((resolve) => setImmediate(resolve)).then(() => {
+    assert.equal(warnings.length, 3);
+  });
+});
+
 test('visible application version is sourced from package metadata', () => {
   const packageJson = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');

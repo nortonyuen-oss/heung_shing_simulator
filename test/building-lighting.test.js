@@ -192,3 +192,21 @@ test('strength is a clamped smoothstep of night alpha', () => {
   assert.ok(mid > 0.3 && mid < 0.7);
   assert.ok(computeBuildingLightStrength(0.05) < computeBuildingLightStrength(0.2));
 });
+
+test('baked night variants are never listed as models', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const ROOT = path.join(__dirname, '..');
+
+  // The manifest carries night entries so the runtime can resolve them, but the
+  // model listing API and the client sort must both drop them: they would
+  // otherwise take discovery slots, and the slot index is the key that saved
+  // buildings resolve by, so an existing city would silently swap models.
+  const server = fs.readFileSync(path.join(ROOT, 'server.js'), 'utf8');
+  assert.match(server, /isDerivedNightVariant/);
+  assert.match(server, /__night\(deep\)\?/);
+
+  const main = fs.readFileSync(path.join(ROOT, 'main.js'), 'utf8');
+  const sortFn = main.slice(main.indexOf('function sortModelFiles('));
+  assert.match(sortFn.slice(0, 2000), /__night\(deep\)\?/, 'sortModelFiles must filter night variants');
+});

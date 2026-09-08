@@ -1,6 +1,6 @@
 const path = require('path');
 const fs = require('fs');
-const { app, BrowserWindow, dialog, safeStorage, shell } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain, safeStorage, shell } = require('electron');
 const { scheduleUpdateChecks } = require('./electron-updates');
 
 const emitWarning = process.emitWarning.bind(process);
@@ -15,6 +15,28 @@ let mainWindow = null;
 let gameServer = null;
 const performanceModeEnabled = process.env.ELECTRON_PERFORMANCE_MODE === '1';
 const hasSingleInstanceLock = app.requestSingleInstanceLock();
+const WINDOW_FULLSCREEN_GET_CHANNEL = 'window-fullscreen:get';
+const WINDOW_FULLSCREEN_SET_CHANNEL = 'window-fullscreen:set';
+const WINDOW_FULLSCREEN_CHANGED_CHANNEL = 'window-fullscreen:changed';
+
+function getSenderWindow(event) {
+  const targetWindow = BrowserWindow.fromWebContents(event.sender);
+  return targetWindow && !targetWindow.isDestroyed() ? targetWindow : null;
+}
+
+ipcMain.handle(WINDOW_FULLSCREEN_GET_CHANNEL, (event) => {
+  const targetWindow = getSenderWindow(event);
+  return targetWindow ? targetWindow.isFullScreen() : false;
+});
+
+ipcMain.handle(WINDOW_FULLSCREEN_SET_CHANNEL, (event, requestedState) => {
+  const targetWindow = getSenderWindow(event);
+  if (!targetWindow) return false;
+  targetWindow.setFullScreen(requestedState === true);
+  // macOS transitions asynchronously; the authoritative result is sent by the
+  // enter/leave-full-screen event below.
+  return requestedState === true;
+});
 
 if (performanceModeEnabled) {
   // Chromium otherwise reports bucketed heap values. This switch is scoped to
@@ -191,8 +213,16 @@ async function createWindow() {
       nodeIntegration: false,
       sandbox: true,
       backgroundThrottling: !performanceModeEnabled,
+      preload: path.join(__dirname, 'electron-preload.js'),
     },
   });
+
+  const publishFullscreenState = (isFullscreen) => {
+    if (!mainWindow || mainWindow.isDestroyed() || mainWindow.webContents.isDestroyed()) return;
+    mainWindow.webContents.send(WINDOW_FULLSCREEN_CHANGED_CHANNEL, isFullscreen);
+  };
+  mainWindow.on('enter-full-screen', () => publishFullscreenState(true));
+  mainWindow.on('leave-full-screen', () => publishFullscreenState(false));
 
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();

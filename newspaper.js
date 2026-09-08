@@ -805,8 +805,16 @@ function renderForumHistory(filter = 'all') {
 }
 
 function openForumHistory() {
-  syncResolutionHistoryToForum();
-  hydrateRecentForumAiComments();
+  // Opening the window is the requested foreground action. Keep save migration
+  // and optional AI hydration from turning a recoverable data/service error into
+  // a menu button that appears to do nothing.
+  if (typeof showDialog === 'function') showDialog('forum-history-dialog');
+
+  try {
+    syncResolutionHistoryToForum();
+  } catch (error) {
+    console.warn('[Forum history sync]', error);
+  }
   const nav = document.getElementById('forum-history-nav');
   if (nav && nav.dataset.ready !== 'true') {
     nav.dataset.ready = 'true';
@@ -817,8 +825,18 @@ function openForumHistory() {
     });
   }
   const activeFilter = nav?.querySelector('.is-active[data-forum-filter]')?.dataset.forumFilter || 'all';
-  renderForumHistory(activeFilter);
-  if (typeof showDialog === 'function') showDialog('forum-history-dialog');
+  try {
+    renderForumHistory(activeFilter);
+  } catch (error) {
+    console.warn('[Forum history render]', error);
+  }
+
+  try {
+    const hydration = hydrateRecentForumAiComments();
+    if (hydration?.catch) hydration.catch((error) => console.warn('[Forum history AI comments]', error));
+  } catch (error) {
+    console.warn('[Forum history AI comments]', error);
+  }
 }
 
 function announceCouncilBuiltNewspaper() {

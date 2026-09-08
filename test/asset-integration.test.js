@@ -566,3 +566,32 @@ test('world mask expands dynamically for tall building sprites', () => {
   const growth = fs.readFileSync(path.join(ROOT, 'sim-growth.js'), 'utf8');
   assert.match(growth, /sprite\.setTexture\(newModel\.key\)[\s\S]*?ensureWorldMaskContainsBuilding\(scene, sprite\)/);
 });
+
+test('the bulkiest 2x2 residential towers stay dialed down in the spawn roll', () => {
+  // These read as a 3x3 building on a 2x2 lot (roughly 1.7-1.9x the height of
+  // an ordinary 2x2 block), so they are weighted down rather than excluded.
+  // 01/02-M-HD only started appearing at all once the 512-px texture baseline
+  // let the whole roster stay resident - the growth picker can only choose a
+  // model whose texture is loaded - so without an override they arrive at full
+  // rate in existing cities.
+  const catalog = loadScriptValues('model-catalog.js', 'HOUSE_MODEL_SETS');
+  const overrides = catalog.house2x2.fileOverrides ?? {};
+  [
+    'residential2-01-M-HD.png',
+    'residential2-02-M-HD.png',
+    'residential2-15-H-HD.png',
+    'residential2-16-H-HD.png',
+    'residential2-17-H-HD.png',
+    'residential2-18-H-HD.png',
+  ].forEach((fileName) => {
+    const weight = overrides[fileName]?.spawnWeight;
+    assert.ok(Number.isFinite(weight) && weight > 0 && weight < 1, `${fileName} needs a dialed-down spawnWeight`);
+  });
+
+  // The override is keyed by file name, so it has to survive the .png -> .webp
+  // swap that packaged builds serve, and it has to reach the weighted roll.
+  const main = fs.readFileSync(path.join(ROOT, 'main.js'), 'utf8');
+  assert.match(main, /config\.fileOverrides\?\.\[`\$\{baseName\}\.png`\][\s\S]*?config\.fileOverrides\?\.\[`\$\{baseName\}\.webp`\]/);
+  const growth = fs.readFileSync(path.join(ROOT, 'sim-growth.js'), 'utf8');
+  assert.match(growth, /weight \*= Number\.isFinite\(model\?\.spawnWeight\) \? model\.spawnWeight : 1;/);
+});

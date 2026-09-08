@@ -119,7 +119,19 @@ const HOUSE_MODEL_SETS = {
     // 15-18 are noticeably taller/bulkier than the rest of the 2x2 H roster
     // and look out of place popping up as often as the shorter H models.
     // Dialed down (not excluded) so they still appear, just less often.
+    //
+    // 01/02-M-HD are the same story and now need the same treatment. They had
+    // never once appeared in a city before v4.5.0: the growth picker only
+    // considers models whose texture is resident (isSelectableZoneModelTexture
+    // in sim-growth.js), the whole 1024-px roster cost ~413MB against a 192MB
+    // budget, and a model no existing building references is the first thing
+    // evicted - so a model that had never spawned could never spawn. The 512-px
+    // baseline drops the roster to ~103MB, nothing is evicted any more, and
+    // these two went from 0 to 29 lots in ten days at ~1.7-1.8x the height of
+    // an ordinary 2x2 block, which reads as a 3x3 building on a 2x2 lot.
     fileOverrides: {
+      'residential2-01-M-HD.png': { spawnWeight: 0.35 },
+      'residential2-02-M-HD.png': { spawnWeight: 0.35 },
       'residential2-15-H-HD.png': { spawnWeight: 0.35 },
       'residential2-16-H-HD.png': { spawnWeight: 0.35 },
       'residential2-17-H-HD.png': { spawnWeight: 0.35 },

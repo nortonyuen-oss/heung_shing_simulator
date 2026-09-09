@@ -1632,6 +1632,17 @@ function resolveModelAssetPath(logicalPath) {
   return `${encodeURI(entry.packagedPath)}?asset=${encodeURIComponent(String(entry.hash || modelAssetVersion).slice(0, 16))}`;
 }
 
+// True when the game is serving the packaged (trimmed + padded) model art
+// rather than the source PNGs. Building-light calibration is stored as
+// fractions of the model texture, and those two images do NOT place the
+// artwork identically - the packaged one is trimmed to its alpha bounds and
+// re-padded bottom-centre - so a profile calibrated against one is wrong
+// against the other, by as much as 10% of the texture height. The night bake
+// reads the packaged art, which makes it the authoritative space.
+function isPackagedModelArtActive() {
+  return Object.keys(modelAssetManifest.entries ?? {}).length > 0;
+}
+
 function getManifestZoneModelMetadata(model) {
   const logicalPath = normalizeModelLogicalPath(model.logicalPath);
   const entry = modelAssetManifest.entries?.[logicalPath];

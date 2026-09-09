@@ -57,10 +57,21 @@ const DIM_TINT = [0x8f, 0x99, 0xb0];
 // bright; WARM_MIX is what actually separates a lit window from a grey one.
 const BOOST = Number(process.env.BAKE_BOOST || 3.0);
 const WARM_MIX = Number(process.env.BAKE_WARM_MIX || 0.70);
-const WARM = [0xff, 0xcf, 0x82];
 const HALO_RADIUS = Number(process.env.BAKE_HALO_RADIUS || 3.2);
 const HALO_ALPHA = Number(process.env.BAKE_HALO_ALPHA || 0.55);
-const HALO_COLOR = [0xff, 0xc8, 0x78];
+// The lit-window colour is the profile's own class colour, the same one the
+// live glow uses (BUILDING_LIGHT_CLASS_COLOR): homes are warm, offices are a
+// cool white, industry amber, services pale blue. Baking one fixed warm tone
+// turned every calibrated office block yellow.
+function lightColor(profile) {
+  const rgb = Number.isFinite(profile?.color) ? profile.color : 0xffcf87;
+  return [(rgb >> 16) & 0xff, (rgb >> 8) & 0xff, rgb & 0xff];
+}
+// The halo is the same hue, lifted toward white so the bloom reads as light
+// spilling rather than as a coloured wash.
+function haloColor(profile) {
+  return lightColor(profile).map((c) => Math.round(c + (255 - c) * 0.25));
+}
 const LAMP_ALPHA = Number(process.env.BAKE_LAMP_ALPHA || 1);
 // Fraction of a lamp pool allowed to fall outside the model before the lamp is
 // dropped rather than baked with its glow clipped off.
@@ -107,6 +118,8 @@ function lampSvg(profile, W, H, alphaAt) {
   const parts = [];
   let kept = 0;
   let dropped = 0;
+  // Street lamps keep their own warm sodium tone whatever the building class -
+  // the pavement outside an office is still lit by the same lamp posts.
   for (const l of (profile.lamps || [])) {
     if (!lampFitsInsideSilhouette(alphaAt, W, H, l)) { dropped += 1; continue; }
     kept += 1;
@@ -157,6 +170,8 @@ async function bakeOne(sourcePath, profile, variant) {
   const day = await sharp(sourcePath)
     .ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   const { width: W, height: H } = day.info;
+  const LIGHT = lightColor(profile);
+  const HALO = haloColor(profile);
 
   const { svg, halo, lit } = litWindowMaskSvg(profile, W, H, variant.bucket);
   const mask = (await sharp(Buffer.from(svg)).resize(W, H).ensureAlpha()
@@ -178,12 +193,12 @@ async function bakeOne(sourcePath, profile, variant) {
       let v = D[i + c] * (1 - variant.dim) + D[i + c] * (DIM_TINT[c] / 255) * variant.dim;
       if (m > 0) {
         const boosted = Math.min(255, D[i + c] * BOOST);
-        const warmed = boosted * (1 - WARM_MIX) + WARM[c] * WARM_MIX;
-        v = v * (1 - m) + warmed * m;
+        const tinted = boosted * (1 - WARM_MIX) + LIGHT[c] * WARM_MIX;
+        v = v * (1 - m) + tinted * m;
       }
       // soft halo, then any lamp that fits inside the silhouette, screened over
       const ha = (bloom[i + 3] / 255) * HALO_ALPHA;
-      if (ha > 0) v = 255 - ((255 - v) * (255 - HALO_COLOR[c] * ha)) / 255;
+      if (ha > 0) v = 255 - ((255 - v) * (255 - HALO[c] * ha)) / 255;
       const la = lamps[i + 3] / 255;
       const g = lamps[i + c] * la;
       N[i + c] = Math.min(255, 255 - ((255 - v) * (255 - g)) / 255);
@@ -269,7 +284,7 @@ async function main() {
     fs.writeFileSync(MANIFEST_PATH, `${JSON.stringify(manifest, null, 2)}\n`);
   }
   console.log(`\n${written} texture(s)${sampleOnly.length ? ` -> ${path.relative(ROOT, SAMPLE_DIR)}` : ' baked into the staged tree + manifest'}.`);
-  console.log(`dim=${VARIANTS.map((v) => v.dim).join('/')} boost=${BOOST} warm=${WARM_MIX} halo=${HALO_RADIUS}@${HALO_ALPHA}`);
+  console.log(`dim=${VARIANTS.map((v) => v.dim).join('/')} boost=${BOOST} mix=${WARM_MIX} halo=${HALO_RADIUS}@${HALO_ALPHA} (window colour follows each profile's class)`);
 }
 
 main().catch((error) => {

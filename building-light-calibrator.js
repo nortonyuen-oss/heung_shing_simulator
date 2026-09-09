@@ -1119,7 +1119,20 @@ function startBuildingLightCalibrator(scene) {
   populateBuildingLightCalibrationModels();
   loadBuildingLightCalibrationStore().then(() => { populateBuildingLightCalibrationModels(); renderBuildingLightCalibration(); });
   renderBuildingLightCalibration();
-  setBuildingLightCalibrationMessage('揀大類 → 揀模型。拖藍角＝窗面，橙點＝路燈，彩點＝指示燈。', 'info');
+  // Calibration coordinates are fractions of the model texture, and the source
+  // PNG places the artwork differently from the packaged (trimmed + padded)
+  // one the night bake reads - up to ~10% of the texture height apart. Work
+  // done against the source art therefore bakes visibly shifted, so say so
+  // rather than letting it be discovered later in the baked city.
+  const packagedArt = typeof isPackagedModelArtActive === 'function'
+    ? isPackagedModelArtActive()
+    : true;
+  setBuildingLightCalibrationMessage(
+    packagedArt
+      ? '揀大類 → 揀模型。拖藍角＝窗面，橙點＝路燈，彩點＝指示燈。'
+      : '⚠ 而家用緊原始 PNG（未打包資產）。校正座標同 bake 出嚟嘅夜景會對唔上位，請用 npm run electron:perf 重開再校正。',
+    packagedArt ? 'info' : 'error',
+  );
 
   buildingLightCalibrationKeyHandler = (e) => {
     if (!buildingLightCalibrationActive) return;

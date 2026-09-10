@@ -576,6 +576,14 @@ test('the bulkiest 2x2 residential towers stay dialed down in the spawn roll', (
   // rate in existing cities.
   const catalog = loadScriptValues('model-catalog.js', 'HOUSE_MODEL_SETS');
   const overrides = catalog.house2x2.fileOverrides ?? {};
+  // Same lever on the 3x3 roster, for the opposite reading: scale fits the
+  // widest row of the art to the lot, and for these two that row is a plaza,
+  // so the building itself covers 42-44% of a 3x3 lot and looks like a 2x2.
+  const overrides3x3 = catalog.house3x3.fileOverrides ?? {};
+  ['residential3-14-M-MD.png', 'residential3-12-H-MD.png'].forEach((fileName) => {
+    const weight = overrides3x3[fileName]?.spawnWeight;
+    assert.ok(Number.isFinite(weight) && weight > 0 && weight < 1, `${fileName} needs a dialed-down spawnWeight`);
+  });
   [
     'residential2-01-M-HD.png',
     'residential2-02-M-HD.png',

@@ -158,6 +158,20 @@ const HOUSE_MODEL_SETS = {
       'residential3-12-H-MD.png',
       'residential3-14-M-MD.png',
     ],
+    // Sprite scale pins the WIDEST row of the artwork to the lot's screen
+    // width, and most of this roster draws a podium, plaza or planted deck
+    // around the tower - so it is the ground plane, not the building, that
+    // gets fitted to the lot. Measured across the 3x3 set, the building mass
+    // lands anywhere from 42% to 100% of the lot width (1.26 to 3.00 tiles,
+    // median 2.07), which is why two houses on identical 3x3 lots can read as
+    // different footprints. 14-M-MD (42%) and 12-H-MD (44%) are the two that
+    // read as a 2x2 sitting on a 3x3 lot; 14-M-MD in particular had never once
+    // spawned before the 512px texture baseline let the whole roster stay
+    // resident, and went straight to 8 lots in one city.
+    fileOverrides: {
+      'residential3-14-M-MD.png': { spawnWeight: 0.25 },
+      'residential3-12-H-MD.png': { spawnWeight: 0.25 },
+    },
     footprintCols: 3,
     footprintRows: 3,
   },

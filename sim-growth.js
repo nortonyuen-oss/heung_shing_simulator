@@ -348,6 +348,16 @@ function tryRedecoratePremiumBuilding(
   // Without this, Phaser keeps the old scale/origin while displaying the new
   // texture's pixel dimensions, producing an incorrect apparent size.
   sprite.setTexture(newModel.key);
+  // The night texture is resolved from this filename, and the packaged art in
+  // one folder is not all the same pixel size (a 2x2 slim tower stages to
+  // 256x512, its neighbours to 512x512). Leaving the old model's name here
+  // hands the sprite another building's night art, which is then drawn with
+  // this model's scale - half size, or double, with bare lot showing around it.
+  sprite.modelSourceFileName = newModel.sourceFileName ?? sprite.modelSourceFileName;
+  // Any day/night bookkeeping belongs to the model that just went away: the
+  // cached day key would restore the old art at dawn.
+  sprite.__dayTextureKey = null;
+  sprite.skipNightTint = false;
   sprite.setOrigin(meta.originX ?? 0.5, meta.originY ?? 1);
   if (meta.scaleX || meta.scaleY) {
     sprite.setScale(meta.scaleX ?? meta.scale ?? 1, meta.scaleY ?? meta.scale ?? 1);

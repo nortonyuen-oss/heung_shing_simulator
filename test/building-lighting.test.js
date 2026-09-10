@@ -210,3 +210,33 @@ test('baked night variants are never listed as models', () => {
   const sortFn = main.slice(main.indexOf('function sortModelFiles('));
   assert.match(sortFn.slice(0, 2000), /__night\(deep\)\?/, 'sortModelFiles must filter night variants');
 });
+
+test('a redeveloped lot never keeps the previous model\'s night art', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const ROOT = path.resolve(__dirname, '..');
+  const growth = fs.readFileSync(path.join(ROOT, 'sim-growth.js'), 'utf8');
+  const start = growth.indexOf('sprite.setTexture(newModel.key);');
+  const end = growth.indexOf('record.spriteKey  = newModel.key;', start);
+  assert.ok(start >= 0 && end > start);
+  const swap = growth.slice(start, end);
+  // Packaged art in one folder is not a uniform size (a 2x2 slim tower stages
+  // to 256x512 next to 512x512 neighbours), so a stale filename hands the
+  // sprite another building's night texture and it draws at the wrong size.
+  assert.match(swap, /sprite\.modelSourceFileName = newModel\.sourceFileName/);
+  assert.match(swap, /sprite\.__dayTextureKey = null/);
+  assert.match(swap, /sprite\.skipNightTint = false/);
+
+  const main = fs.readFileSync(path.join(ROOT, 'main.js'), 'utf8');
+  // The record is rewritten by placement, save load and redevelopment alike,
+  // so it has to win over the sprite's copy in both lookups.
+  const nightKey = main.slice(main.indexOf('function getBuildingNightTextureKey('));
+  assert.match(nightKey.slice(0, 600), /record\?\.sourceFileName \?\? sprite\.modelSourceFileName/);
+  // placeHouseModel writes buildingData after placeSpriteBuilding returns, so
+  // the placing model's own filename has to be used first.
+  assert.match(main, /building\.modelSourceFileName = options\.sourceFileName/);
+
+  const lighting = fs.readFileSync(path.join(ROOT, 'building-lighting.js'), 'utf8');
+  const slug = lighting.slice(lighting.indexOf('function getBuildingLightModelSlug('));
+  assert.match(slug.slice(0, 400), /record\?\.sourceFileName\s*\n?\s*\?\? sprite\?\.modelSourceFileName/);
+});

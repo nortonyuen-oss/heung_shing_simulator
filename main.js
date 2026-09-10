@@ -4199,8 +4199,13 @@ function placeSpriteBuilding(scene, row, col, key, options = {}) {
   building.logicalSpriteKey = key;
   // Stable per-model identity for anything that must survive the model list
   // changing - `key` is a discovery-order index and shifts when files are
-  // added or removed (see BUILDING_LIGHT_HERO_PROFILES).
-  building.modelSourceFileName = buildingData[getTileId(row, col)]?.sourceFileName ?? null;
+  // added or removed (see BUILDING_LIGHT_HERO_PROFILES). It must come from the
+  // model being placed: placeHouseModel writes buildingData AFTER this call, so
+  // reading the record here returns nothing on a fresh lot and the PREVIOUS
+  // model's file when a lot redevelops.
+  building.modelSourceFileName = options.sourceFileName
+    ?? buildingData[getTileId(row, col)]?.sourceFileName
+    ?? null;
   building.renderTextureKey = textureKey;
   building.footprintCols = footprintCols;
   building.footprintRows = footprintRows;
@@ -6825,7 +6830,10 @@ function getBuildingNightTextureKey(sprite, deep = false) {
   if (!sprite) return null;
   const record = typeof buildingData !== 'undefined' && typeof getTileId === 'function'
     ? buildingData[getTileId(sprite.mapRow, sprite.mapCol)] : null;
-  const file = sprite.modelSourceFileName ?? record?.sourceFileName;
+  // The record wins: it is rewritten by every path that changes a building's
+  // model (placement, save load, and redevelopment in sim-growth), so it can
+  // never name art the sprite is no longer showing.
+  const file = record?.sourceFileName ?? sprite.modelSourceFileName;
   if (!file) return null;
   const slug = String(file).replace(/\.[^.]+$/, '');
   if (!buildBuildingNightTextureIndex().has(slug)) return null;

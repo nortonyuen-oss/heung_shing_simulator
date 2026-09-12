@@ -150,7 +150,7 @@ test('economy protection: 30 calendar-day advances produce exactly 4 legacy simu
   }
   assert.equal(calls.pulse, 4, 'four pulses/month keeps monthly economy cadence (city.tick % TICKS_PER_MONTH) unchanged');
   assert.equal(city.tick, 4);
-  assert.equal(calls.daily, 30, 'daily systems (weather) run on every calendar day');
+  assert.equal(calls.daily, 30, 'daily systems (transport) run on every calendar day');
   assert.equal(calls.hud, 30, 'HUD refreshes once per calendar day');
 });
 
@@ -217,22 +217,37 @@ test('0.15x speed produces roughly 27 real minutes per game year (acceptance cri
   assert.ok(Math.abs(realMinutesPerYear - 26.67) < 0.5, `expected ~26.7 min/year, got ${realMinutesPerYear.toFixed(2)}`);
 });
 
-test('typhoon genesis: daily probability is re-derived so per-month storm odds match the legacy 4-evaluation/month chance', () => {
-  const context = vm.createContext({ TICKS_PER_MONTH: 4, GAME_DAYS_PER_MONTH: 30, Math });
-  vm.runInContext(weatherSource, context, { filename: 'sim-weather.js' });
+test('the environmental clock counts displayed minutes monotonically and hands weather each span', () => {
+  const spans = [];
+  const { context, city } = createClockContext({
+    simSpeedMul: 1,
+    advanceWeatherClock: (from, to) => spans.push([from, to]),
+  });
+  assert.equal(city.environmentMinutes ?? 0, 0);
+  // at NORMAL the day/night clock runs 4x: 8 real minutes -> 24h, so 2 real
+  // minutes is one full displayed day
+  vm.runInContext('advanceGameTimeOfDay(120000)', context);
+  assert.ok(Math.abs(city.environmentMinutes - 1440) < 1e-6, `one displayed day, got ${city.environmentMinutes}`);
+  // timeOfDayMinutes wrapped back to where it started; the counter did not
+  assert.ok(Math.abs(city.timeOfDayMinutes - 6 * 60) < 1e-6);
+  vm.runInContext('advanceGameTimeOfDay(30000)', context);
+  assert.ok(city.environmentMinutes > 1440);
+  // weather was handed every span, contiguous and in order
+  assert.equal(spans.length, 2);
+  assert.equal(spans[0][0], 0);
+  assert.ok(Math.abs(spans[0][1] - spans[1][0]) < 1e-9, 'spans are contiguous');
+  assert.ok(spans[1][1] > spans[1][0]);
+  // a paused clock hands weather nothing
+  const paused = createClockContext({ simPaused: true, advanceWeatherClock: (from, to) => spans.push([from, to]) });
+  vm.runInContext('updateGameClock(null, 5000)', paused.context);
+  assert.equal(spans.length, 2, 'no weather span while paused');
+});
 
-  const legacy = vm.runInContext('WEATHER_TYPHOON_GENESIS_CHANCE_LEGACY', context);
-  const daily = vm.runInContext('WEATHER_TYPHOON_GENESIS_CHANCE', context);
-
-  assert.ok(daily > 0 && daily < legacy, 'daily chance must be strictly smaller than the old per-evaluation chance');
-
-  // Probability of *no* genesis over a full game month must match between
-  // the old (4 evaluations/month) and new (30 evaluations/month) cadence -
-  // that's what keeps storms-per-year roughly unchanged.
-  const legacyNoGenesisPerMonth = (1 - legacy) ** 4;
-  const dailyNoGenesisPerMonth = (1 - daily) ** 30;
-  assert.ok(
-    Math.abs(legacyNoGenesisPerMonth - dailyNoGenesisPerMonth) < 1e-9,
-    `expected equal monthly no-genesis odds, got legacy=${legacyNoGenesisPerMonth} daily=${dailyNoGenesisPerMonth}`,
-  );
+test('weather no longer rides the calendar: the daily loop does not call it and the clock file owns the hook', () => {
+  const simulation = fs.readFileSync(path.join(ROOT, 'simulation.js'), 'utf8');
+  const daily = simulation.slice(simulation.indexOf('function runDailySystems('), simulation.indexOf('function runLegacyCitySimulationPulse('));
+  assert.doesNotMatch(daily, /updateWeatherSimulation\(\)/);
+  assert.match(clockSource, /advanceWeatherClock\(envBefore, envAfter\)/);
+  // legacy per-calendar-day genesis derivation is gone with it
+  assert.doesNotMatch(weatherSource, /WEATHER_TYPHOON_GENESIS_CHANCE/);
 });

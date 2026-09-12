@@ -53,6 +53,11 @@ function updateTopbarGameTime(payload = null) {
 
 if (typeof onGameClockEvent === 'function') {
   onGameClockEvent('gameclock:time', updateTopbarGameTime);
+  // Weather changes on its own clock now, between calendar days, so the
+  // weather strip cannot wait for the once-a-day HUD refresh.
+  onGameClockEvent('weather:change', () => {
+    if (typeof updateHUD === 'function') updateHUD();
+  });
 }
 
 function updateStatusAlert() {

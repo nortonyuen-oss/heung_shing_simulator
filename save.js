@@ -1557,6 +1557,9 @@ function rebuildSceneFromSave(scene, save) {
   if (typeof rebuildBusStopSprites === 'function') rebuildBusStopSprites(scene);
   if (typeof rebuildDistrictSignSprites === 'function') rebuildDistrictSignSprites(scene);
   if (typeof sortWorldRenderLayers === 'function') sortWorldRenderLayers(scene);
+  // Weather advances on the environmental clock and only repaints its overlay
+  // when something changes, so a freshly loaded city has to be painted once.
+  if (typeof syncWeatherVisuals === 'function') syncWeatherVisuals();
 }
 
 // ── Fallback sprite key for saves without spriteKey ───────────────────────────

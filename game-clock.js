@@ -58,6 +58,10 @@ const gameClockListeners = {
   'gameclock:year': [],
   'gameclock:speedchange': [],
   'gameclock:citypulse': [],
+  // Fired by sim-weather.js whenever the condition, a warning or a typhoon
+  // signal actually changes - weather now runs on the environmental clock
+  // below, not on calendar days, so this is what the HUD refreshes on.
+  'weather:change': [],
 };
 
 function onGameClockEvent(eventName, callback) {
@@ -114,6 +118,16 @@ function formatGameTimeOfDay(value = getGameTimeOfDayMinutes()) {
   return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
 }
 
+// Monotonic count of environmental (display) minutes since the city began.
+// timeOfDayMinutes wraps every 24h, which is fine for the sky but useless for
+// anything that has to know "is it later than when I started" across days -
+// weather durations and typhoon lifecycles are timed against this instead.
+function getEnvironmentMinutes() {
+  if (typeof city === 'undefined') return 0;
+  const value = Number(city.environmentMinutes);
+  return Number.isFinite(value) && value >= 0 ? value : 0;
+}
+
 function advanceGameTimeOfDay(realDeltaMs, speed = getGameSpeed()) {
   if (typeof city === 'undefined') return GAME_DAY_START_MINUTES;
   const previous = getGameTimeOfDayMinutes();
@@ -123,12 +137,21 @@ function advanceGameTimeOfDay(realDeltaMs, speed = getGameSpeed()) {
     * displaySpeed;
   const next = normalizeGameTimeMinutes(previous + deltaMinutes);
   city.timeOfDayMinutes = next;
+  const envBefore = getEnvironmentMinutes();
+  const envAfter = envBefore + deltaMinutes;
+  city.environmentMinutes = envAfter;
   if (Math.floor(previous) !== Math.floor(next)) {
     emitGameClockEvent('gameclock:time', {
       minutes: next,
       label: formatGameTimeOfDay(next),
       speed: displaySpeed,
+      environmentMinutes: envAfter,
     });
+  }
+  // Weather lives on this clock (see sim-weather.js). It advances in whole
+  // environmental hours, so it is handed the span rather than polled per frame.
+  if (typeof advanceWeatherClock === 'function' && deltaMinutes > 0) {
+    advanceWeatherClock(envBefore, envAfter);
   }
   return next;
 }

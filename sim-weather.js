@@ -6,17 +6,40 @@
 // is the in-world voice that announces signal changes.
 
 const WEATHER_TYPHOON_MONTHS = new Set([4, 5, 6, 7, 8, 9, 10, 11]);
-// Tuned for a once-per-sim-tick genesis check (TICKS_PER_MONTH=4 evaluations/
-// game month, back when weather only updated on the legacy heavy-sim tick).
-// The clock refactor moved weather to a daily update (GAME_DAYS_PER_MONTH=30
-// evaluations/month, ~7.5x more often) — kept unconverted, storms-per-year
-// would balloon by the same ~7.5x. Re-derive the equivalent per-day hazard
-// from the legacy per-evaluation chance so storm frequency stays the same.
-const WEATHER_TYPHOON_GENESIS_CHANCE_LEGACY = 0.035;
-const WEATHER_TYPHOON_GENESIS_CHANCE = 1 - Math.pow(
-  1 - WEATHER_TYPHOON_GENESIS_CHANCE_LEGACY,
-  TICKS_PER_MONTH / GAME_DAYS_PER_MONTH,
-);
+
+// ── Weather runs on the environmental (day/night) clock ─────────────────────
+// The calendar advances 108-180 days per displayed day, so weather keyed to
+// calendar days changed 60-180 times per sunrise-to-sunrise and a typhoon's
+// whole 1->3->8->3->1 arc flashed past in a few real seconds. Everything below
+// is timed in environmental minutes (city.environmentMinutes, game-clock.js):
+// a condition holds for a few displayed hours, a storm spans up to a day and a
+// half, and pausing the clock freezes the weather with it.
+const WEATHER_MINUTES_PER_HOUR = 60;
+const WEATHER_MINUTES_PER_DAY = 24 * WEATHER_MINUTES_PER_HOUR;
+// A condition holds 5-11 displayed hours (mean 8, so 2-3 rolls per displayed
+// day), and a roll keeps the current condition 40% of the time, so visible
+// changes come a little less often than rolls.
+const WEATHER_CONDITION_MIN_HOURS = 5;
+const WEATHER_CONDITION_MAX_HOURS = 11;
+const WEATHER_CONDITION_PERSIST_CHANCE = 0.40;
+// A rainstorm warning drops one band only once rainfall has fallen this far
+// below that band's threshold.
+const WEATHER_RAIN_WARNING_HYSTERESIS_MM = 8;
+// Genesis is checked once per displayed day, on the hour the environmental
+// clock started on (06:00 on the day/night clock, see GAME_DAY_START_MINUTES),
+// and inside the season a storm arrives every 4-6 displayed days rather than
+// on every calendar-day roll.
+const WEATHER_TYPHOON_CHECK_HOUR = 0;
+const WEATHER_TYPHOON_GAP_MIN_DAYS = 4;
+const WEATHER_TYPHOON_GAP_MAX_DAYS = 6;
+// Storm lifespan by intensity tier, in displayed hours: 18-36 in total, so the
+// strongest storm blows for a day and a half.
+const WEATHER_TYPHOON_TIERS = Object.freeze([
+  { chance: 0.55, peakMin: 34, peakSpread: 18, hoursMin: 18, hoursMax: 22 },
+  { chance: 0.27, peakMin: 64, peakSpread: 28, hoursMin: 22, hoursMax: 28 },
+  { chance: 0.14, peakMin: 100, peakSpread: 22, hoursMin: 28, hoursMax: 33 },
+  { chance: 0.04, peakMin: 124, peakSpread: 40, hoursMin: 33, hoursMax: 36 },
+]);
 
 // Real Western North Pacific / South China Sea tropical cyclone names, cross-referenced
 // against the China Meteorological Administration's official English–Chinese naming
@@ -148,6 +171,8 @@ function getTyphoonDisplayName(englishName) {
 // (10-minute mean) wind-speed bands. Signal 9 ("increasing gale or storm force winds")
 // only fires while a storm is still strengthening toward a severe peak — matching real
 // practice, where No.9 is never used while a storm is weakening.
+const TYPHOON_STAGE_ORDER = Object.freeze(['none', 'signal1', 'signal3', 'signal8', 'signal9', 'signal10']);
+
 function getTyphoonStageForWind(windKph, peakWindKph, rising) {
   if (windKph >= 118) return 'signal10';
   if (windKph >= 63) {
@@ -216,11 +241,16 @@ function getSeasonalWeatherProfile(month) {
 // a realistic 1→3→8→(9→10)→8→3→1 arc instead of being scripted stage-by-stage.
 
 function rollTyphoonGenesis() {
-  const roll = Math.random();
-  if (roll < 0.55) return { peakWindKph: 34 + Math.random() * 18, durationTicks: 4 };
-  if (roll < 0.82) return { peakWindKph: 64 + Math.random() * 28, durationTicks: 7 };
-  if (roll < 0.96) return { peakWindKph: 100 + Math.random() * 22, durationTicks: 8 };
-  return { peakWindKph: 124 + Math.random() * 40, durationTicks: 9 };
+  let roll = Math.random();
+  let tier = WEATHER_TYPHOON_TIERS[WEATHER_TYPHOON_TIERS.length - 1];
+  for (const candidate of WEATHER_TYPHOON_TIERS) {
+    if (roll < candidate.chance) { tier = candidate; break; }
+    roll -= candidate.chance;
+  }
+  return {
+    peakWindKph: tier.peakMin + Math.random() * tier.peakSpread,
+    durationHours: tier.hoursMin + Math.random() * (tier.hoursMax - tier.hoursMin),
+  };
 }
 
 function nextTyphoonName(weather) {
@@ -229,9 +259,14 @@ function nextTyphoonName(weather) {
   return TYPHOON_NAMES[index];
 }
 
+function rollTyphoonGapDays() {
+  return WEATHER_TYPHOON_GAP_MIN_DAYS
+    + Math.random() * (WEATHER_TYPHOON_GAP_MAX_DAYS - WEATHER_TYPHOON_GAP_MIN_DAYS);
+}
+
 function computeTyphoonWindProgress(weather) {
-  const duration = Math.max(1, weather.typhoonDurationTicks);
-  const progress = weatherClamp(weather.typhoonTicksElapsed / duration, 0, 1);
+  const duration = Math.max(1, weather.typhoonDurationHours);
+  const progress = weatherClamp(weather.typhoonHoursElapsed / duration, 0, 1);
   const shape = progress <= 0.5 ? progress / 0.5 : Math.max(0, 1 - (progress - 0.5) / 0.5);
   const jitter = 0.9 + Math.random() * 0.2;
   return { progress, windKph: Math.max(12, 16 + weather.typhoonPeakWindKph * shape * jitter) };
@@ -242,8 +277,8 @@ function startTyphoonGenesis(weather) {
   weather.typhoonActive = true;
   weather.typhoonName = nextTyphoonName(weather);
   weather.typhoonPeakWindKph = Math.round(genesis.peakWindKph);
-  weather.typhoonDurationTicks = genesis.durationTicks;
-  weather.typhoonTicksElapsed = 0;
+  weather.typhoonDurationHours = Math.round(genesis.durationHours);
+  weather.typhoonHoursElapsed = 0;
   weather.typhoonStage = 'none';
   weather.signal8ReachedThisStorm = false;
 }
@@ -255,34 +290,53 @@ function endTyphoon(weather) {
   weather.typhoonStage = 'none';
   weather.typhoonName = '';
   weather.typhoonPeakWindKph = 0;
-  weather.typhoonDurationTicks = 0;
-  weather.typhoonTicksElapsed = 0;
+  weather.typhoonDurationHours = 0;
+  weather.typhoonHoursElapsed = 0;
   weather.signal8ReachedThisStorm = false;
+  weather.typhoonNextInDays = rollTyphoonGapDays();
   if (previousStage !== 'none' && typeof announceTyphoonSignalChange === 'function') {
     announceTyphoonSignalChange(name, 'none', 0);
   }
 }
 
-function updateTyphoonState() {
-  const weather = city.weather;
+// Once per displayed day. Inside the season the countdown to the next storm
+// ticks down a day at a time; outside it the countdown holds, so the first
+// storm of a season lands 4-6 displayed days after the season opens.
+function checkTyphoonGenesis(weather) {
+  if (weather.typhoonActive) return false;
+  if (!WEATHER_TYPHOON_MONTHS.has(city.month)) return false;
+  // 0 (a fresh city, or a save from before storms were scheduled) means no
+  // countdown is running yet: start one, and let today count toward it.
+  if (!(weather.typhoonNextInDays > 0)) weather.typhoonNextInDays = rollTyphoonGapDays();
+  weather.typhoonNextInDays -= 1;
+  if (weather.typhoonNextInDays > 0) return false;
+  startTyphoonGenesis(weather);
+  return true;
+}
 
-  if (!weather.typhoonActive) {
-    if (WEATHER_TYPHOON_MONTHS.has(city.month) && Math.random() < WEATHER_TYPHOON_GENESIS_CHANCE) {
-      startTyphoonGenesis(weather);
-    } else {
-      return;
-    }
-  }
-
+// Once per displayed hour while a storm is active: wind follows the storm's
+// rise-and-fall shape and the warning signal is read straight off it.
+function advanceTyphoonHour(weather) {
+  if (!weather.typhoonActive) return false;
   const { progress, windKph } = computeTyphoonWindProgress(weather);
   const rising = progress < 0.5;
-  const stage = getTyphoonStageForWind(windKph, weather.typhoonPeakWindKph, rising);
+  const rawStage = getTyphoonStageForWind(windKph, weather.typhoonPeakWindKph, rising);
+  // The hourly wind reading carries a little jitter; the signal must not
+  // chatter across a threshold with it. While the storm builds a signal is
+  // only ever raised, while it decays only ever lowered.
+  const rank = (name) => TYPHOON_STAGE_ORDER.indexOf(name);
+  const currentRank = rank(weather.typhoonStage);
+  const stage = (rising && rank(rawStage) < currentRank) || (!rising && rank(rawStage) > currentRank)
+    ? weather.typhoonStage
+    : rawStage;
   weather.typhoonWindKph = Math.round(windKph);
+  let changed = false;
 
   if (stage !== weather.typhoonStage) {
     const firstSevereSignal = (stage === 'signal8' || stage === 'signal9' || stage === 'signal10')
       && !weather.signal8ReachedThisStorm;
     weather.typhoonStage = stage;
+    changed = true;
     if (firstSevereSignal) {
       weather.signal8ReachedThisStorm = true;
     }
@@ -294,31 +348,55 @@ function updateTyphoonState() {
     }
   }
 
-  weather.typhoonTicksElapsed += 1;
-  if (weather.typhoonTicksElapsed > weather.typhoonDurationTicks) {
+  weather.typhoonHoursElapsed += 1;
+  if (weather.typhoonHoursElapsed > weather.typhoonDurationHours) {
     endTyphoon(weather);
+    // the storm dictated the condition; let the season pick what follows
+    weather.conditionUntilMinutes = 0;
+    changed = true;
   }
+  return changed;
 }
 
+function rollWeatherConditionHold() {
+  return (WEATHER_CONDITION_MIN_HOURS
+    + Math.random() * (WEATHER_CONDITION_MAX_HOURS - WEATHER_CONDITION_MIN_HOURS))
+    * WEATHER_MINUTES_PER_HOUR;
+}
+
+// Pick the next condition for the season. Returns true when it differs from
+// the one that was showing.
+function rollWeatherCondition(weather, nowMinutes) {
+  const profile = getSeasonalWeatherProfile(city.month);
+  const previous = weather.condition;
+  const keep = Math.random() < WEATHER_CONDITION_PERSIST_CHANCE
+    && profile.conditions.some((option) => option.value === previous);
+  weather.condition = keep ? previous : pickWeightedWeather(profile.conditions);
+  // How hard this spell rains / blows / bakes, fixed for its whole duration.
+  // Redrawing it every hour made the rainstorm warning flap between bands.
+  weather.conditionIntensity = Math.random();
+  weather.conditionUntilMinutes = nowMinutes + rollWeatherConditionHold();
+  return weather.condition !== previous;
+}
+
+// Instrument readings for the current condition. Called once per displayed
+// hour; the numbers drift toward each hour's target instead of being redrawn
+// wholesale, so the HUD does not flicker between two readings of the same rain.
 function applyWeatherReadings() {
   const weather = city.weather;
   const profile = getSeasonalWeatherProfile(city.month);
+  const intensity = Number.isFinite(weather.conditionIntensity) ? weather.conditionIntensity : 0.5;
+  // small hourly wobble around the spell's own intensity
+  const wobble = () => 0.92 + Math.random() * 0.16;
 
-  if (weather.conditionTicksLeft <= 0) {
-    weather.condition = pickWeightedWeather(profile.conditions);
-    weather.conditionTicksLeft = 1 + Math.floor(Math.random() * 2);
-  } else {
-    weather.conditionTicksLeft--;
-  }
-
-  let temperature = profile.baseTemperature + (Math.random() * 5 - 2.5);
+  let temperature = profile.baseTemperature + (intensity * 5 - 2.5) * wobble();
   let rainfall = 0;
-  let wind = 7 + Math.random() * 15;
+  let wind = (7 + intensity * 15) * wobble();
 
   if (weather.condition === 'hot') temperature += 4;
   if (weather.condition === 'cool') temperature -= 5;
-  if (weather.condition === 'showers') rainfall = 4 + Math.random() * 18;
-  if (weather.condition === 'heavyRain') rainfall = 28 + Math.random() * 65;
+  if (weather.condition === 'showers') rainfall = (4 + intensity * 18) * wobble();
+  if (weather.condition === 'heavyRain') rainfall = (28 + intensity * 65) * wobble();
   if (weather.condition === 'windy') wind += 22;
 
   if (weather.typhoonActive && weather.typhoonStage !== 'none') {
@@ -329,9 +407,10 @@ function applyWeatherReadings() {
     weather.condition = wind >= 41 ? 'heavyRain' : 'windy';
   }
 
-  weather.temperatureC = Math.round(temperature);
-  weather.rainfallMm = Math.round(rainfall);
-  weather.windKph = Math.round(wind);
+  const drift = (current, target) => (Number.isFinite(current) ? current * 0.6 + target * 0.4 : target);
+  weather.temperatureC = Math.round(drift(weather.temperatureC, temperature));
+  weather.rainfallMm = Math.round(drift(weather.rainfallMm, rainfall));
+  weather.windKph = Math.round(drift(weather.windKph, wind));
 
   let humidity = 55 + Math.random() * 10;
   if (weather.condition === 'heavyRain') humidity = 88 + Math.random() * 8;
@@ -339,20 +418,90 @@ function applyWeatherReadings() {
   else if (weather.condition === 'hot') humidity = 65 + Math.random() * 12;
   else if (weather.condition === 'cool' || weather.condition === 'clear') humidity = 45 + Math.random() * 15;
   else if (weather.condition === 'windy') humidity = 55 + Math.random() * 10;
-  weather.humidityPct = Math.round(weatherClamp(humidity, 30, 99));
+  weather.humidityPct = Math.round(weatherClamp(drift(weather.humidityPct, humidity), 30, 99));
 
   // Rainstorm warning bands approximate HKO's published rainfall-rate thresholds
-  // (Amber >30mm, Red >50mm, Black >70mm in an hour).
-  weather.rainWarning = weather.rainfallMm >= 70 ? 'black'
-    : weather.rainfallMm >= 50 ? 'red'
-      : weather.rainfallMm >= 30 ? 'amber'
-        : 'none';
+  // (Amber >30mm, Red >50mm, Black >70mm in an hour). A warning is raised the
+  // hour the threshold is crossed but only lowered once the rain has eased
+  // clearly below it, the way the Observatory holds a signal rather than
+  // flipping it on every reading.
+  const bands = [['none', 0], ['amber', 30], ['red', 50], ['black', 70]];
+  const rank = (name) => Math.max(0, bands.findIndex(([band]) => band === name));
+  let target = 0;
+  for (let i = bands.length - 1; i >= 0; i--) {
+    if (weather.rainfallMm >= bands[i][1]) { target = i; break; }
+  }
+  const current = rank(weather.rainWarning);
+  if (target > current) {
+    weather.rainWarning = bands[target][0];
+  } else if (target < current && weather.rainfallMm < bands[current][1] - WEATHER_RAIN_WARNING_HYSTERESIS_MM) {
+    weather.rainWarning = bands[current - 1][0];
+  }
 }
 
+function emitWeatherChange(reason) {
+  const scene = typeof activeScene !== 'undefined' ? activeScene : null;
+  updateWeatherVisualOverlay(scene);
+  if (typeof emitGameClockEvent === 'function') {
+    emitGameClockEvent('weather:change', {
+      reason,
+      condition: city.weather.condition,
+      typhoonStage: city.weather.typhoonStage,
+      rainWarning: city.weather.rainWarning,
+    });
+  }
+}
+
+// Driven from game-clock.js's advanceGameTimeOfDay with the environmental
+// minutes the frame covered. Work happens on hour boundaries only; a fast-
+// forwarded frame that spans several hours replays each of them in order, so
+// a storm still traces its full arc rather than skipping signals.
+function advanceWeatherClock(fromMinutes, toMinutes) {
+  if (!city.weather) normalizeCityFinanceState();
+  const weather = city.weather;
+  const from = Math.max(0, Number(fromMinutes) || 0);
+  const to = Math.max(from, Number(toMinutes) || 0);
+  let changed = false;
+
+  if (!weather.typhoonActive
+    && (!Number.isFinite(weather.conditionUntilMinutes) || weather.conditionUntilMinutes <= from)) {
+    if (rollWeatherCondition(weather, from)) changed = true;
+  }
+
+  const firstHour = Math.floor(from / WEATHER_MINUTES_PER_HOUR) + 1;
+  const lastHour = Math.floor(to / WEATHER_MINUTES_PER_HOUR);
+  for (let hour = firstHour; hour <= lastHour; hour++) {
+    const minute = hour * WEATHER_MINUTES_PER_HOUR;
+    if (hour % 24 === WEATHER_TYPHOON_CHECK_HOUR && checkTyphoonGenesis(weather)) changed = true;
+    if (advanceTyphoonHour(weather)) changed = true;
+    // While a storm is active the wind field decides the condition (see
+    // applyWeatherReadings); a seasonal roll in the middle of it would flash
+    // 'clear' under a red rainstorm warning.
+    if (!weather.typhoonActive
+      && weather.conditionUntilMinutes <= minute
+      && rollWeatherCondition(weather, minute)) changed = true;
+    const before = `${weather.condition}|${weather.rainWarning}`;
+    applyWeatherReadings();
+    if (`${weather.condition}|${weather.rainWarning}` !== before) changed = true;
+  }
+
+  if (changed) emitWeatherChange('clock');
+  return changed;
+}
+
+// Repaint the overlay and refresh the HUD for whatever the current state is -
+// after a save loads, or a new city starts, before the clock has moved.
+function syncWeatherVisuals() {
+  if (!city.weather) normalizeCityFinanceState();
+  emitWeatherChange('sync');
+}
+
+// Legacy entry point (calendar-day cadence). Kept so anything still calling it
+// gets a coherent state; the environmental clock above is the real driver.
 function updateWeatherSimulation() {
   if (!city.weather) normalizeCityFinanceState();
-  updateTyphoonState();
-  applyWeatherReadings();
+  const now = typeof getEnvironmentMinutes === 'function' ? getEnvironmentMinutes() : 0;
+  advanceWeatherClock(now, now);
 }
 
 // Target darkness (0..~0.45) for the full-screen weather overlay — the sky dims

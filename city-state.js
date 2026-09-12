@@ -195,13 +195,17 @@ const city = {
     rainfallMm: 0,
     rainWarning: 'none',
     windKph: 10,
-    conditionTicksLeft: 1,
+    // environmental-clock timing (sim-weather.js): when the current condition
+    // expires, how far the active storm has run, and the countdown to the next
+    conditionUntilMinutes: 0,
+    conditionIntensity: 0.5,
     typhoonStage: 'none',
     typhoonActive: false,
     typhoonName: '',
     typhoonPeakWindKph: 0,
-    typhoonDurationTicks: 0,
-    typhoonTicksElapsed: 0,
+    typhoonDurationHours: 0,
+    typhoonHoursElapsed: 0,
+    typhoonNextInDays: 0,
     typhoonWindKph: 0,
     typhoonNameIndex: 0,
     signal8ReachedThisStorm: false,
@@ -227,6 +231,7 @@ const city = {
   tick: 0,
   // Environmental 24-hour clock; 06:00 gives a new city a readable sunrise.
   timeOfDayMinutes: 6 * 60,
+  environmentMinutes: 0,
   day:   1,
   month: 1,
   year: 1900,
@@ -371,13 +376,17 @@ function resetGameState() {
     rainfallMm: 0,
     rainWarning: 'none',
     windKph: 10,
-    conditionTicksLeft: 1,
+    // environmental-clock timing (sim-weather.js): when the current condition
+    // expires, how far the active storm has run, and the countdown to the next
+    conditionUntilMinutes: 0,
+    conditionIntensity: 0.5,
     typhoonStage: 'none',
     typhoonActive: false,
     typhoonName: '',
     typhoonPeakWindKph: 0,
-    typhoonDurationTicks: 0,
-    typhoonTicksElapsed: 0,
+    typhoonDurationHours: 0,
+    typhoonHoursElapsed: 0,
+    typhoonNextInDays: 0,
     typhoonWindKph: 0,
     typhoonNameIndex: 0,
     signal8ReachedThisStorm: false,
@@ -400,6 +409,7 @@ function resetGameState() {
   if (typeof resetAiNewsRuntime === 'function') resetAiNewsRuntime();
   city.tick       = 0;
   city.timeOfDayMinutes = 6 * 60;
+  city.environmentMinutes = 0;
   city.day        = 1;
   city.month      = 1;
   city.year       = 1900;
@@ -441,6 +451,33 @@ function normalizeForumImagePath(value) {
     .replace(/^UI\/News\//, 'UI/news/')
     .replace(/\.png$/i, '.webp');
   return /^UI\/news\/[a-zA-Z0-9_.-]+\.webp$/.test(migrated) ? migrated : '';
+}
+
+// Typhoon lifecycle used to be counted in calendar-day ticks (4-9 per storm);
+// it is now counted in displayed hours (18-36). A storm in a legacy save keeps
+// its fractional progress so the signal it was flying carries on from there.
+function migrateTyphoonLifecycle(savedWeather) {
+  const toFiniteOr = (value, fallback) => {
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? numeric : fallback;
+  };
+  const hours = toFiniteOr(savedWeather?.typhoonDurationHours, NaN);
+  if (Number.isFinite(hours)) {
+    const duration = Math.max(0, Math.floor(hours));
+    return {
+      typhoonDurationHours: duration,
+      typhoonHoursElapsed: Math.max(0, Math.min(duration, Math.floor(toFiniteOr(savedWeather.typhoonHoursElapsed, 0)))),
+    };
+  }
+  const ticks = Math.max(0, Math.floor(toFiniteOr(savedWeather?.typhoonDurationTicks, 0)));
+  if (ticks <= 0 || !savedWeather?.typhoonActive) return { typhoonDurationHours: 0, typhoonHoursElapsed: 0 };
+  const elapsed = Math.max(0, Math.min(ticks, Math.floor(toFiniteOr(savedWeather.typhoonTicksElapsed, 0))));
+  // legacy 4..9 ticks -> 18..36 hours, same proportion of the arc elapsed
+  const duration = Math.round(18 + ((Math.min(9, Math.max(4, ticks)) - 4) / 5) * 18);
+  return {
+    typhoonDurationHours: duration,
+    typhoonHoursElapsed: Math.round((elapsed / ticks) * duration),
+  };
 }
 
 function normalizeCityFinanceState() {
@@ -625,6 +662,7 @@ function normalizeCityFinanceState() {
   city.cityRidicule = Math.max(0, Math.min(100, toFiniteOr(city.cityRidicule, 0)));
   city.tourismAppeal = Math.max(0, Math.min(100, toFiniteOr(city.tourismAppeal, 40)));
   city.timeOfDayMinutes = ((toFiniteOr(city.timeOfDayMinutes, 6 * 60) % (24 * 60)) + (24 * 60)) % (24 * 60);
+  city.environmentMinutes = Math.max(0, toFiniteOr(city.environmentMinutes, 0));
   city.monthlyVisitors = Math.max(0, Math.round(toFiniteOr(city.monthlyVisitors, 0)));
   city.tourismRevenue = Math.max(0, Math.round(toFiniteOr(city.tourismRevenue, 0)));
   city.acknowledgedLandmarkUnlocks = Array.isArray(city.acknowledgedLandmarkUnlocks) ? city.acknowledgedLandmarkUnlocks : [];
@@ -666,13 +704,18 @@ function normalizeCityFinanceState() {
       rainfallMm: Math.max(0, toFiniteOr(savedWeather.rainfallMm, 0)),
       rainWarning: validRainWarnings.includes(savedWeather.rainWarning) ? savedWeather.rainWarning : 'none',
       windKph: Math.max(0, toFiniteOr(savedWeather.windKph, 10)),
-      conditionTicksLeft: Math.max(0, Math.floor(toFiniteOr(savedWeather.conditionTicksLeft, 1))),
+      // Saves from before weather moved onto the environmental clock timed
+      // the condition in calendar days (conditionTicksLeft): let it expire and
+      // re-roll on the first tick. A storm in progress keeps its place in the
+      // arc - its tick-based progress is mapped onto the hour-based lifespan.
+      conditionUntilMinutes: Math.max(0, toFiniteOr(savedWeather.conditionUntilMinutes, 0)),
+      conditionIntensity: Math.max(0, Math.min(1, toFiniteOr(savedWeather.conditionIntensity, 0.5))),
       typhoonStage: validTyphoonStages.includes(savedWeather.typhoonStage) ? savedWeather.typhoonStage : 'none',
       typhoonActive: !!savedWeather.typhoonActive || migratedTyphoonActive,
       typhoonName: typeof savedWeather.typhoonName === 'string' ? savedWeather.typhoonName.slice(0, 40) : '',
       typhoonPeakWindKph: Math.max(0, toFiniteOr(savedWeather.typhoonPeakWindKph, 0)),
-      typhoonDurationTicks: Math.max(0, Math.floor(toFiniteOr(savedWeather.typhoonDurationTicks, 0))),
-      typhoonTicksElapsed: Math.max(0, Math.floor(toFiniteOr(savedWeather.typhoonTicksElapsed, 0))),
+      ...migrateTyphoonLifecycle(savedWeather),
+      typhoonNextInDays: Math.max(0, toFiniteOr(savedWeather.typhoonNextInDays, 0)),
       typhoonWindKph: Math.max(0, toFiniteOr(savedWeather.typhoonWindKph, 0)),
       typhoonNameIndex: Math.max(0, Math.floor(toFiniteOr(savedWeather.typhoonNameIndex, 0))) % TYPHOON_NAMES.length,
       signal8ReachedThisStorm: !!savedWeather.signal8ReachedThisStorm,

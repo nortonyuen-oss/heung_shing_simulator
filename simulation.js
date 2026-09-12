@@ -26,13 +26,15 @@ function forEachSimulationZonedTile(action) {
 
 // Runs every calendar day (see game-clock.js's onCalendarDayAdvanced). Kept
 // cheap: it must not run the full heavy simulation 30 times a game month.
+// Weather is NOT advanced here any more: the calendar runs 108-180 days per
+// displayed day, so calendar-day weather changed dozens of times between one
+// sunrise and the next. It now follows the environmental clock (see
+// advanceWeatherClock in sim-weather.js, called from advanceGameTimeOfDay).
 function runDailySystems(scene) {
   if (!scene) return;
-  updateWeatherSimulation();
   if (typeof recordTransportDailyAvailability === 'function') recordTransportDailyAvailability();
   if (typeof simulateTransportVehiclesDaily === 'function') simulateTransportVehiclesDaily();
   if (typeof advanceTransportVehiclesDaily === 'function') advanceTransportVehiclesDaily();
-  updateWeatherVisualOverlay(scene);
 }
 
 // The legacy heavy city-simulation pulse — everything runSimTick used to run

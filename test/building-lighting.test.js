@@ -94,8 +94,8 @@ test('the baked hero profiles are well-formed', () => {
       assert.ok(p.rows >= 1 && p.cols >= 1);
     });
     assert.ok(Array.isArray(profile.lamps) && Array.isArray(profile.beacons));
-    // legacy ex/ey/er (kept civic overrides) migrate to one entrance lamp
-    if (key === 'university_4x4') assert.equal(profile.lamps.length, 1);
+    // calibrated civic profiles carry their own street-lamp arrays
+    if (key === 'university_4x4' || key === 'park_large') assert.ok(profile.lamps.length > 1);
     // calibrator-baked house profiles carry explicit street-lamp arrays
     if (key === 'house3x3_6') assert.ok(profile.lamps.length >= 1);
   }
@@ -111,6 +111,8 @@ test('makeBuildingLightProfile normalises panels (<=4), lamps, and beacons', () 
   assert.equal(p.panels.length, 4, 'capped at 4 panels');
   assert.equal(p.lamps.length, 2);
   assert.equal(p.beacons.length, 2);
+  // the legacy single ex/ey/er entrance point still migrates to one lamp
+  assert.equal(makeBuildingLightProfile({ class: 'off', ex: 0.5, ey: 0.9, er: 0.1 }).lamps.length, 1);
   assert.equal(p.beacons[0].color, 'red');
   assert.equal(p.beacons[1].color, 'red', 'unknown colour falls back to red');
   assert.ok(p.beacons[1].period >= 200);
@@ -231,7 +233,7 @@ test('a redeveloped lot never keeps the previous model\'s night art', () => {
   // The record is rewritten by placement, save load and redevelopment alike,
   // so it has to win over the sprite's copy in both lookups.
   const nightKey = main.slice(main.indexOf('function getBuildingNightTextureKey('));
-  assert.match(nightKey.slice(0, 600), /record\?\.sourceFileName \?\? sprite\.modelSourceFileName/);
+  assert.match(nightKey.slice(0, 1200), /record\?\.sourceFileName\s*\n?\s*\?\? sprite\.modelSourceFileName/);
   // placeHouseModel writes buildingData after placeSpriteBuilding returns, so
   // the placing model's own filename has to be used first.
   assert.match(main, /building\.modelSourceFileName = options\.sourceFileName/);
@@ -239,4 +241,49 @@ test('a redeveloped lot never keeps the previous model\'s night art', () => {
   const lighting = fs.readFileSync(path.join(ROOT, 'building-lighting.js'), 'utf8');
   const slug = lighting.slice(lighting.indexOf('function getBuildingLightModelSlug('));
   assert.match(slug.slice(0, 400), /record\?\.sourceFileName\s*\n?\s*\?\? sprite\?\.modelSourceFileName/);
+});
+
+test('a baked model keeps a beacons-only glow so its indicator lights still blink', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const src = fs.readFileSync(path.join(path.resolve(__dirname, '..'), 'building-lighting.js'), 'utf8');
+  const update = src.slice(src.indexOf('function updateBuildingLights('), src.indexOf('const buildingLightingTestApi'));
+  // Beacons pulse per frame, so they cannot be baked into a static texture. A
+  // baked model whose profile has none gets no glow at all (the whole point of
+  // the bake); one that has some gets a glow whose Graphics stays hidden.
+  assert.match(update, /if \(!\(profile\.beacons \|\| \[\]\)\.length\) return;/);
+  assert.match(update, /glow\.beaconsOnly = true;[\s\S]*?glow\.gfx\.setVisible\(false\);/);
+  // The window LOD must never flip that hidden Graphics back on.
+  assert.match(update, /if \(!sp \|\| !sp\.visible \|\| glow\.beaconsOnly\) return;/);
+  // And opening the calibrator rebuilds it as a full glow so edits are visible.
+  assert.match(update, /\(calibrating && glow\.beaconsOnly\)/);
+
+  const relight = src.slice(src.indexOf('function relightBuildingGlow('), src.indexOf('function updateBuildingLights('));
+  assert.match(relight, /const drawStatic = !glow\.beaconsOnly;/);
+  assert.match(relight, /if \(drawStatic && glow\.windowsAllowed\) \{/);
+  assert.match(relight, /const lamps = drawStatic \? \(profile\.lamps \|\| \[\]\) : \[\];/);
+
+  // The airport is the profile this exists for.
+  const { BUILDING_LIGHT_HERO_PROFILES } = require('../building-lighting.js');
+  assert.ok(BUILDING_LIGHT_HERO_PROFILES.airport_12x12.beacons.length >= 10);
+});
+
+test('a fixed building resolves its baked night art from the model table', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const main = fs.readFileSync(path.join(path.resolve(__dirname, '..'), 'main.js'), 'utf8');
+  // Service, landmark, power, port, depot and park records carry a sprite key
+  // and no filename; the bake names their night textures after the art file
+  // in the model table, so that is where the runtime has to look too.
+  const fn = main.slice(main.indexOf('function getBuildingNightTextureKey('));
+  assert.match(fn.slice(0, 900), /getFixedBuildingModelBySpriteKey\(record\?\.spriteKey \?\? sprite\.logicalSpriteKey\)\?\.path\?\.split\('\/'\)\.pop\(\)/);
+  const lookup = main.slice(main.indexOf('function getFixedBuildingModelBySpriteKey('));
+  ['POWER_PLANT_MODELS', 'getServiceBuildingModelBySpriteKey', 'getSpecialBuildingModelBySpriteKey', 'HARBOR_MODELS', 'BUS_DEPOT_MODELS', 'PARK_MODELS']
+    .forEach((table) => assert.ok(lookup.slice(0, 700).includes(table), `lookup covers ${table}`));
+  // Orientation swaps replace the texture directly and must drop the night
+  // bookkeeping, like the growth swap does.
+  const harbor = main.slice(main.indexOf('function refreshHarborSprites('), main.indexOf('function getBusDepotVisualCorner('));
+  assert.match(harbor, /sprite\.setTexture\(newKey\);[\s\S]{0,300}sprite\.__dayTextureKey = null;/);
+  const depot = main.slice(main.indexOf('function applyBusDepotVisualKey('), main.indexOf('function refreshBusDepotSprites('));
+  assert.match(depot, /sprite\.setTexture\(newKey\);[\s\S]{0,200}sprite\.__dayTextureKey = null;/);
 });

@@ -29,6 +29,7 @@ const BUILDING_LIGHT_CALIBRATION_BUCKET_BG = Object.freeze({
 const BUILDING_LIGHT_CALIBRATION_CATEGORIES = Object.freeze([
   ['residential', '住宅'], ['commercial', '商業'], ['industrial', '工業'],
   ['government', '政府'], ['special', '地標'], ['power', '能源'], ['transport', '交通'],
+  ['park', '公園'],
 ]);
 const BUILDING_LIGHT_CALIBRATION_BEACON_ORDER = Object.freeze(['red', 'blue', 'white', 'yellow', 'green']);
 const BUILDING_LIGHT_CALIBRATION_BEACON_LABEL = Object.freeze({
@@ -237,6 +238,11 @@ function buildBuildingLightCatalog() {
   if (typeof SERVICE_BUILDING_MODEL_VARIANTS !== 'undefined') addConst(SERVICE_BUILDING_MODEL_VARIANTS, 'government');
   if (typeof SPECIAL_BUILDING_MODELS !== 'undefined') addConst(SPECIAL_BUILDING_MODELS, 'special');
   if (typeof POWER_PLANT_MODELS !== 'undefined') addConst(POWER_PLANT_MODELS, 'power');
+  // The container port and bus depot come in four orientations, each its own
+  // sprite key and its own art, so each is calibrated on its own.
+  if (typeof HARBOR_MODELS !== 'undefined') addConst(HARBOR_MODELS, 'transport');
+  if (typeof BUS_DEPOT_MODELS !== 'undefined') addConst(BUS_DEPOT_MODELS, 'transport');
+  if (typeof PARK_MODELS !== 'undefined') addConst(PARK_MODELS, 'park');
 
   cats.special = cats.special.filter((m) => {
     if (/airport|bus_depot|ferry|pier|heliport|mtr|station/i.test(m.key)) { cats.transport.push(m); return false; }

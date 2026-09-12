@@ -1936,20 +1936,14 @@ function preload() {
   initialIndustrialModels.forEach((model) => {
     this.load.image(model.key, model.path);
   });
-  // Parks (new asset filenames)
-  this.load.image('park_small_open',       resolveModelAssetPath('Models/parks/park1x1/park1-01.png'));
-  this.load.image('park_small_playground', resolveModelAssetPath('Models/parks/park1x1/park1-02.png'));
-  this.load.image('park_small_garden',     resolveModelAssetPath('Models/parks/park1x1/park1-03.png'));
-  this.load.image('park_small_plaza',      resolveModelAssetPath('Models/parks/park1x1/park1-04.png'));
-  this.load.image('park_small_palm',       resolveModelAssetPath('Models/parks/park2x2/park2-02.png'));
-  this.load.image('park_large_highscore',  resolveModelAssetPath('Models/parks/park2x2/park2-03-highScore.png'));
-  this.load.image('park_large',            resolveModelAssetPath('Models/parks/park3x3/park3-01.png'));
+  // Parks: art paths live in PARK_MODELS (constants.js) so the night bake and
+  // the light calibrator see the same table.
+  Object.values(PARK_MODELS).forEach((model) => {
+    this.load.image(model.spriteKey, resolveModelAssetPath(model.path));
+  });
   // Sports grounds
   this.load.image('sports_ground_2x2',     resolveModelAssetPath('Models/parks/park2x2/sportField3-02.png'));
   this.load.image('sports_ground_3x3',     resolveModelAssetPath('Models/parks/park3x3/sportField3-01.png'));
-  // Swimming pool (park_large cosmetic variant) + Victoria Park (park_flagship tier)
-  this.load.image('park_large_pool',       resolveModelAssetPath('Models/parks/park3x3/swimmingPool3-01.png'));
-  this.load.image('park_flagship_victoria', resolveModelAssetPath('Models/parks/park4x4/victoriaPark4-01.png'));
   const fixedBuildingModels = [
     ...Object.values(POWER_PLANT_MODELS),
     ...Object.keys(SERVICE_BUILDING_MODELS).flatMap(getServiceBuildingModels),
@@ -4408,6 +4402,19 @@ function getSpecialBuildingModelBySpriteKey(key) {
     .find((model) => model.spriteKey === key) ?? null;
 }
 
+// Every fixed (non-zone) model keyed by its hand-authored sprite key, with the
+// art path the night bake names its textures after.
+function getFixedBuildingModelBySpriteKey(key) {
+  if (!key) return null;
+  return Object.values(POWER_PLANT_MODELS).find((model) => model.spriteKey === key)
+    ?? getServiceBuildingModelBySpriteKey(key)
+    ?? getSpecialBuildingModelBySpriteKey(key)
+    ?? HARBOR_MODELS[key]
+    ?? (typeof BUS_DEPOT_MODELS !== 'undefined' ? BUS_DEPOT_MODELS[key] : null)
+    ?? (typeof PARK_MODELS !== 'undefined' ? PARK_MODELS[key] : null)
+    ?? null;
+}
+
 function getSpriteBuildingTextureKey(key) {
   const powerModel = Object.values(POWER_PLANT_MODELS).find((model) => model.spriteKey === key);
   if (powerModel) return getFixedBuildingTextureKey(powerModel);
@@ -6832,8 +6839,13 @@ function getBuildingNightTextureKey(sprite, deep = false) {
     ? buildingData[getTileId(sprite.mapRow, sprite.mapCol)] : null;
   // The record wins: it is rewritten by every path that changes a building's
   // model (placement, save load, and redevelopment in sim-growth), so it can
-  // never name art the sprite is no longer showing.
-  const file = record?.sourceFileName ?? sprite.modelSourceFileName;
+  // never name art the sprite is no longer showing. Fixed buildings (services,
+  // landmarks, power, port, depot, parks) carry no filename at all - their
+  // record holds a hand-authored sprite key - so the art file is looked up
+  // from the model table, which is also what the bake named the texture after.
+  const file = record?.sourceFileName
+    ?? sprite.modelSourceFileName
+    ?? getFixedBuildingModelBySpriteKey(record?.spriteKey ?? sprite.logicalSpriteKey)?.path?.split('/').pop();
   if (!file) return null;
   const slug = String(file).replace(/\.[^.]+$/, '');
   if (!buildBuildingNightTextureIndex().has(slug)) return null;
@@ -10198,6 +10210,10 @@ function refreshHarborSprites(scene) {
     const sprite = scene?.buildingSprites?.get(id);
     if (!sprite) return;
     sprite.setTexture(newKey);
+    // The orientation's night art is a different texture; drop the day/night
+    // bookkeeping so dawn cannot restore the previous orientation's day art.
+    sprite.__dayTextureKey = null;
+    sprite.skipNightTint = false;
     const opts = harborModelMetadata[newKey];
     if (opts) {
       sprite.setOrigin(opts.originX ?? 0.5, opts.originY ?? 1);
@@ -10252,6 +10268,8 @@ function applyBusDepotVisualKey(scene, id, record, newKey) {
   const sprite = scene?.buildingSprites?.get(id);
   if (!sprite) return true;
   sprite.setTexture(newKey);
+  sprite.__dayTextureKey = null;
+  sprite.skipNightTint = false;
   const opts = busDepotModelMetadata[newKey];
   if (opts) {
     sprite.setOrigin(opts.originX ?? 0.5, opts.originY ?? 1);

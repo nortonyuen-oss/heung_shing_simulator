@@ -909,6 +909,67 @@ const HARBOR_MODELS = {
   },
 };
 
+// Parks and the two sports grounds' art, keyed by sprite key. The picker
+// tables in main.js (PARK_OPTIONS / SPORT_GROUND_OPTIONS) carry the gameplay
+// side; this is the one place the art path lives, so preload, the night bake
+// (which scans for spriteKey/path pairs) and the light calibrator all agree.
+const PARK_MODELS = {
+  park_small_open: {
+    spriteKey: 'park_small_open',
+    path: 'Models/parks/park1x1/park1-01.png',
+    footprintCols: 1,
+    footprintRows: 1,
+  },
+  park_small_playground: {
+    spriteKey: 'park_small_playground',
+    path: 'Models/parks/park1x1/park1-02.png',
+    footprintCols: 1,
+    footprintRows: 1,
+  },
+  park_small_garden: {
+    spriteKey: 'park_small_garden',
+    path: 'Models/parks/park1x1/park1-03.png',
+    footprintCols: 1,
+    footprintRows: 1,
+  },
+  park_small_plaza: {
+    spriteKey: 'park_small_plaza',
+    path: 'Models/parks/park1x1/park1-04.png',
+    footprintCols: 1,
+    footprintRows: 1,
+  },
+  park_small_palm: {
+    spriteKey: 'park_small_palm',
+    path: 'Models/parks/park2x2/park2-02.png',
+    footprintCols: 2,
+    footprintRows: 2,
+  },
+  park_large_highscore: {
+    spriteKey: 'park_large_highscore',
+    path: 'Models/parks/park2x2/park2-03-highScore.png',
+    footprintCols: 2,
+    footprintRows: 2,
+  },
+  park_large: {
+    spriteKey: 'park_large',
+    path: 'Models/parks/park3x3/park3-01.png',
+    footprintCols: 3,
+    footprintRows: 3,
+  },
+  park_large_pool: {
+    spriteKey: 'park_large_pool',
+    path: 'Models/parks/park3x3/swimmingPool3-01.png',
+    footprintCols: 3,
+    footprintRows: 3,
+  },
+  park_flagship_victoria: {
+    spriteKey: 'park_flagship_victoria',
+    path: 'Models/parks/park4x4/victoriaPark4-01.png',
+    footprintCols: 4,
+    footprintRows: 4,
+  },
+};
+
 // Bus depot: 3x3 directional garage, placed under the roads/highways tool
 // category. Unlike the harbor its orientation isn't derived from geography -
 // the player picks it directly (see getBusDepotRawSideForCorner, main.js):

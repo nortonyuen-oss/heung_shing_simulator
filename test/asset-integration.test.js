@@ -603,3 +603,40 @@ test('the bulkiest 2x2 residential towers stay dialed down in the spawn roll', (
   const growth = fs.readFileSync(path.join(ROOT, 'sim-growth.js'), 'utf8');
   assert.match(growth, /weight \*= Number\.isFinite\(model\?\.spawnWeight\) \? model\.spawnWeight : 1;/);
 });
+
+test('PARK_MODELS is the one art table the picker, preload, bake and calibrator share', () => {
+  const constants = loadScriptValues('constants.js', '({ PARK_MODELS, HARBOR_MODELS, BUS_DEPOT_MODELS })');
+  const main = fs.readFileSync(path.join(ROOT, 'main.js'), 'utf8');
+
+  // every park / sports-ground sprite key the pickers hand out has art here
+  const pickerKeys = [...main.matchAll(/spriteKey: '(park_[a-z_]+)'/g)].map((m) => m[1]);
+  assert.ok(pickerKeys.length >= 8, 'park pickers found');
+  pickerKeys.forEach((key) => {
+    assert.ok(constants.PARK_MODELS[key], `PARK_MODELS is missing ${key}`);
+  });
+  Object.values(constants.PARK_MODELS).forEach((model) => {
+    assert.equal(model.spriteKey, Object.keys(constants.PARK_MODELS).find((k) => constants.PARK_MODELS[k] === model));
+    assertAssetExists(model.path);
+  });
+  // preload no longer hardcodes park paths
+  assert.doesNotMatch(main, /this\.load\.image\('park_small_open'/);
+  assert.match(main, /Object\.values\(PARK_MODELS\)\.forEach/);
+
+  // the night bake finds fixed models by scanning for spriteKey/path pairs, so
+  // the table has to keep that shape - and the port and depot already do
+  const re = /spriteKey:\s*'([^']+)'[\s\S]{0,240}?path:\s*'(Models\/[^']+)'/g;
+  const sources = ['constants.js', 'main.js'].map((f) => fs.readFileSync(path.join(ROOT, f), 'utf8')).join('\n');
+  const hits = new Map();
+  for (const m of sources.matchAll(re)) if (!hits.has(m[1])) hits.set(m[1], m[2]);
+  ['park_large', 'park_small_open', 'park_flagship_victoria', 'harbor_ll', 'bus_depot_ll'].forEach((key) => {
+    const model = constants.PARK_MODELS[key] ?? constants.HARBOR_MODELS[key] ?? constants.BUS_DEPOT_MODELS[key];
+    assert.equal(hits.get(key), model.path, `bake cannot resolve ${key}`);
+  });
+
+  // and the calibrator lists all three tables
+  const calibrator = fs.readFileSync(path.join(ROOT, 'building-light-calibrator.js'), 'utf8');
+  assert.match(calibrator, /addConst\(HARBOR_MODELS, 'transport'\)/);
+  assert.match(calibrator, /addConst\(BUS_DEPOT_MODELS, 'transport'\)/);
+  assert.match(calibrator, /addConst\(PARK_MODELS, 'park'\)/);
+  assert.match(calibrator, /\['park', '公園'\]/);
+});

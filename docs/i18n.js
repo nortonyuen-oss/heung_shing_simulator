@@ -210,6 +210,11 @@ const SITE_FEATURE_LIST = {
 // ── Changelog ─────────────────────────────────────────────────────────────────
 const SITE_CHANGELOG = {
   "zh-HK": [
+    { version: "v4.7.0", date: "2026-09-12", dateLabel: "2026年9月12日", title: "風雨有時", items: [
+      "天氣跟日夜循環行：之前一個顯示日走 108～180 個日曆日，天氣每 1～2 個日曆日就換，日出到日落之間轉 60～180 次。而家每種天氣持續 5～11 個顯示小時、四成機會延續，一日轉兩三次；暫停時天氣凍結，速度同日夜一齊快慢。",
+      "颱風有頭有尾：季內每 4～6 個顯示日一個，打 18～36 個顯示小時，訊號 1→3→8→9→10→8→3→1 逐級升落，唔會喺 8 號 9 號之間抖。暴雨警告即時升級、雨明顯減弱先降級，唔會一個鐘內紅黃紅黑咁跳。",
+      "全部固定建築入夜著燈：新增 58 個校正模型（政府設施、地標、發電廠、貨櫃碼頭、巴士車廠、公園、工業 3x3），已 bake 夜景模型由 70 個增加到 133 個。修正咗固定建築之前一直冇用過 bake 圖嘅問題；機場、核電廠、碼頭嘅閃燈以輕量物件保留。",
+    ] },
     { version: "v4.6.3", date: "2026-09-10", dateLabel: "2026年9月10日", title: "萬家燈火", items: [
       "修正重建過嘅地皮會攞錯夜景貼圖（重要，建議 v4.6.0～v4.6.2 用家更新）：夜景貼圖同燈光校正都靠 sprite 記住嘅模型檔名去查，但呢個名只喺樓宇第一次起嗰陣寫入；地皮重建換咗模型之後冇更新，入夜就攞咗另一楝樓嘅貼圖。同一個資料夾嘅貼圖尺寸唔一定一樣，所以會畫大一倍或者細一半，地皮剩低嘅位露出草地；街燈同窗口亦會擺到第二楝樓嘅位置。現已改為以存檔記錄為準，重建時同步更新。",
       "夜燈顏色跟返建築類別：住宅暖黃、辦公室冷白、工業琥珀、服務設施淡藍，唔再一律暖黃。街燈維持暖鈉黃。",
@@ -450,6 +455,11 @@ const SITE_CHANGELOG = {
 // title/items text.
 const SITE_CHANGELOG_TRANSLATIONS = {
   "zh-TW": {
+    "v4.7.0": { title: "風雨有時", items: [
+      "天氣依日夜循環運行：之前一個顯示日經過 108～180 個日曆日，天氣每 1～2 個日曆日就換，日出到日落之間變化 60～180 次。現在每種天氣持續 5～11 個顯示小時、四成機率延續，一日變化兩三次；暫停時天氣凍結，速度與日夜同步。",
+      "颱風有始有終：季內每 4～6 個顯示日一個，持續 18～36 個顯示小時，訊號 1→3→8→9→10→8→3→1 逐級升降，不會在 8 號 9 號之間抖動。暴雨警告即時升級、雨明顯減弱才降級，不會一小時內紅黃紅黑地跳。",
+      "所有固定建築入夜亮燈：新增 58 個校正模型（政府設施、地標、發電廠、貨櫃碼頭、巴士車廠、公園、工業 3x3），已烘焙夜景模型由 70 個增加到 133 個。修正了固定建築先前從未使用烘焙貼圖的問題；機場、核電廠、碼頭的閃燈以輕量物件保留。",
+    ] },
     "v4.6.3": { title: "萬家燈火", items: [
       "修正重建過的地皮會取錯夜景貼圖（重要，建議 v4.6.0～v4.6.2 使用者更新）：夜景貼圖與燈光校正都靠 sprite 記住的模型檔名查找，但這個名稱只在建築第一次興建時寫入；地皮重建換了模型之後沒有更新，入夜就取到另一棟樓的貼圖。同一個資料夾的貼圖尺寸不一定相同，因此會畫大一倍或小一半，地皮剩下的位置露出草地；路燈與窗戶也會擺到另一棟樓的位置。現已改為以存檔記錄為準，重建時同步更新。",
       "夜燈顏色依建築類別而定：住宅暖黃、辦公室冷白、工業琥珀、服務設施淡藍，不再一律暖黃。路燈維持暖鈉黃。",
@@ -683,6 +693,11 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   en: {
+    "v4.7.0": { title: "Weather in Its Season", items: [
+      "Weather now runs on the day/night clock. The calendar advances 108-180 days per displayed day, so calendar-day weather changed 60-180 times between sunrise and sunset. A condition now holds 5-11 displayed hours and persists 40% of the time, so a day sees two or three changes; pausing freezes the weather and the speed buttons scale it with the sky.",
+      "Typhoons have a beginning and an end: one every 4-6 displayed days in season, lasting 18-36 displayed hours, with the signal stepping 1-3-8-9-10-8-3-1 and never chattering between 8 and 9. Rainstorm warnings are raised at once and lowered only once the rain has clearly eased, instead of flipping red/amber/red/black within an hour.",
+      "Every fixed building lights up after dark: 58 newly calibrated models - services, landmarks, power plants, the container port and bus depot in all orientations, the parks, and the last industrial 3x3s - take baked night models from 70 to 133. Fixes fixed buildings never actually using their baked art; the airport's, nuclear plant's and port's beacons keep blinking through a lightweight beacon-only object.",
+    ] },
     "v4.6.3": { title: "A City of Lit Windows", items: [
       "Fixed a redeveloped lot showing the wrong night texture (important - recommended for v4.6.0 through v4.6.2). Both the night texture and the light profile are looked up by the model filename the sprite remembers, and that was written once, when the building first went up; a lot that later redeveloped into a different model kept the old name. Packaged textures in one folder are not a uniform size, so the wrong one drawn at this model's scale rendered the building at double or half size with bare lot showing around it, and street lamps and windows landed where the other model's calibration had them. The saved record is authoritative now, and the swap keeps the sprite in step.",
       "Lit windows take their colour from the building's class - warm for homes, cool white for offices, amber for industry, pale blue for services - instead of one fixed warm tone. Street lamps stay warm sodium.",
@@ -916,6 +931,11 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   ja: {
+    "v4.7.0": { title: "風雨に時あり", items: [
+      "天気が昼夜サイクルに合わせて動くようになりました。暦は表示上の1日に108～180日進むため、暦基準の天気は日の出から日没までに60～180回も変わっていました。現在は各天気が表示時間で5～11時間続き、4割の確率で継続するので、1日に2～3回の変化に。ポーズ中は天気も止まり、速度ボタンで空と一緒に早送りされます。",
+      "台風に始まりと終わりができました。シーズン中は表示上4～6日に1つ、18～36時間続き、シグナルは1→3→8→9→10→8→3→1と段階的に上下し、8号と9号の間で揺れません。豪雨警報は即時に引き上げ、雨が明らかに弱まってから引き下げるため、1時間の中で赤・黄・赤・黒と揺れることはなくなりました。",
+      "すべての固定建物が夜に灯ります。新たに校正した58種（公共施設、ランドマーク、発電所、コンテナ港とバス車庫の全方向、公園、残りの工業3x3）で、焼き込み済み夜景モデルは70種から133種に。固定建物が焼き込み済みの絵を一度も使っていなかった不具合を修正し、空港・原発・港の点滅灯は軽量な専用オブジェクトで維持されます。",
+    ] },
     "v4.6.3": { title: "万家の灯", items: [
       "再開発された区画が誤った夜景テクスチャを表示する不具合を修正（重要。v4.6.0～v4.6.2 の方は更新を推奨）：夜景テクスチャも照明プロファイルも、スプライトが覚えているモデルのファイル名で参照します。この名前は建物が最初に建った時に一度だけ書き込まれるため、区画が別のモデルへ再開発されても更新されず、夜になると別の建物のテクスチャを掴んでいました。同じフォルダでもテクスチャの寸法は一定ではないので、建物が倍または半分の大きさで描かれ、区画の余った部分に地面が見えていました。街灯や窓も別の建物の校正位置に出ていました。現在はセーブ側の記録を正とし、再開発時にスプライト側も同期します。",
       "窓の灯りの色が建物の区分に従うようになりました。住宅は暖色、オフィスは冷たい白、工業は琥珀、サービス施設は淡い青。街灯は従来どおり暖かいナトリウム色です。",
@@ -1174,8 +1194,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.6.1 — 【萬家燈火】",
-      versionDesc: "修正重建過嘅地皮會攞錯夜景貼圖、以致樓宇大細出錯嘅問題，建議 v4.6.0～v4.6.2 用家更新。另外夜燈顏色跟返建築類別，並再多 18 個模型入夜著燈（共 70 個、140 張貼圖）。",
+      versionBadge: "v4.7.0 — 【風雨有時】",
+      versionDesc: "天氣改跟日夜循環行：一個顯示日轉兩三次，颱風由一號波升到十號再逐級落返，打足一日到一日半。全城所有固定建築——政府設施、地標、發電廠、碼頭、車廠、公園——全部入夜著燈，共 133 個模型。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感嘅城市建設遊戲。起街道、規劃社區、經營自己嘅香城巴士公司、處理議會同天氣，再睇住一座有性格嘅香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1251,8 +1271,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.6.1 — 【萬家燈火】",
-      versionDesc: "修正重建過的地皮會取錯夜景貼圖、導致建築大小出錯的問題，建議 v4.6.0～v4.6.2 使用者更新。另外夜燈顏色依建築類別而定，並再多 18 個模型入夜亮燈（共 70 個、140 張貼圖）。",
+      versionBadge: "v4.7.0 — 【風雨有時】",
+      versionDesc: "天氣改依日夜循環運行：一個顯示日變化兩三次，颱風由一號風球升到十號再逐級降回，持續一日到一日半。全城所有固定建築——政府設施、地標、發電廠、碼頭、車庫、公園——全部入夜亮燈，共 133 個模型。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感的城市建設遊戲。興建街道、規劃社區、經營自己的香城公車公司、處理議會與天氣，看著一座有個性的香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1328,8 +1348,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "The City of Heung Shing",
       title: "The City of Heung Shing",
-      versionBadge: "v4.6.1 — A City of Lit Windows",
-      versionDesc: "Fixes a redeveloped lot picking up the wrong night texture and rendering at the wrong size - recommended for v4.6.0 through v4.6.2. Lit windows also take their colour from the building's class, and 18 more models light up after dark (70 models, 140 textures).",
+      versionBadge: "v4.7.0 — Weather in Its Season",
+      versionDesc: "Weather now follows the day/night cycle: two or three changes per displayed day, and a typhoon climbs from Signal 1 to 10 and back down over a day to a day and a half. Every fixed building - services, landmarks, power plants, port, depots, parks - now lights up after dark, 133 models in all.",
       lede: "A city-building game inspired by Hong Kong life and made in tribute to SimCity 2000. Build streets, shape neighbourhoods, run your own Heung Shing Bus Company, navigate council politics and weather, then watch a city with real personality grow.",
       freeLabel: "Completely free · macOS + Windows · Local saves",
       downloadBtn: "【Free Download】",
@@ -1406,8 +1426,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.6.1 — 万家の灯",
-      versionDesc: "再開発された区画が誤った夜景テクスチャを掴み、建物が誤った大きさで描かれる不具合を修正しました。v4.6.0～v4.6.2 の方は更新を推奨します。窓の灯りの色も建物の区分に従うようになり、さらに18種のモデルが夜に灯ります（計70種・140枚）。",
+      versionBadge: "v4.7.0 — 風雨に時あり",
+      versionDesc: "天気が昼夜サイクルに合わせて動くように。表示上の1日に2～3回変わり、台風は1号から10号まで上がって段階的に下がり、1日から1日半続きます。公共施設、ランドマーク、発電所、港、車庫、公園といった固定建物すべてが夜に灯ります（計133種）。",
       lede: "香港の都市生活から着想を得た、SimCity 2000へのオマージュとなる都市建設ゲーム。道路を築き、地区を計画し、自分だけの香城バス会社を経営し、議会や天候に向き合いながら、個性ある香城の成長を見守ります。",
       freeLabel: "完全無料 · macOS + Windows · ローカルセーブ",
       downloadBtn: "【無料ダウンロード】",

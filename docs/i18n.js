@@ -242,7 +242,7 @@ const SITE_FEATURE_LIST = {
 // ── Changelog ─────────────────────────────────────────────────────────────────
 const SITE_CHANGELOG = {
   "zh-HK": [
-    { version: "v4.9.0", date: "2026-09-14", dateLabel: "2026年9月14日", title: "華燈初上", items: [
+    { version: "v4.9.0", date: "2026-09-14", dateLabel: "2026年9月14日", title: "香城夜色", items: [
       "黃昏開燈過渡：每個模型多一套「半亮」貼圖（共 532 張夜景貼圖）。日落後換圖一刻全城只有路燈，然後每棟樓喺自己嘅時間 路燈→半亮→全亮，最遲兩個幾鐘全部到位；23:00 熄燈亦改為逐級落。深夜真正變暗：由 23:00 開始加深，00:30～04:30 最暗，05:30 前回返。",
       "時鐘唔再跟幀率走：之前用 Phaser 平滑幀時間，視窗唔喺 focus 或讀檔後幀率未回復時時鐘會慢行再「自己加速」；而家用真實幀時間，任何幀率都係準確 1×，讀檔重設速度時 topbar 按鈕亦會同步。夜晚讀檔會先預載夜景貼圖、即刻著燈；夜晚新建或重建嘅樓下一個 tick 即刻套夜景。雪糕車 23:00～06:00 收工。",
       "全新 19 張遊戲截圖同四語說明，GitHub README 同本網站嘅遊戲介紹按現時版本重寫。",
@@ -496,7 +496,7 @@ const SITE_CHANGELOG = {
 // title/items text.
 const SITE_CHANGELOG_TRANSLATIONS = {
   "zh-TW": {
-    "v4.9.0": { title: "華燈初上", items: [
+    "v4.9.0": { title: "香城夜色", items: [
       "黃昏開燈過渡：每個模型多一套「半亮」貼圖（共 532 張夜景貼圖）。日落後換圖一刻全城只有路燈，然後每棟樓在自己的時間 路燈→半亮→全亮，最遲兩個多小時全部到位；23:00 熄燈也改為逐級下降。深夜真正變暗：由 23:00 開始加深，00:30～04:30 最暗，05:30 前回復。",
       "時鐘不再跟幀率走：之前用 Phaser 平滑幀時間，視窗不在 focus 或讀檔後幀率未回復時時鐘會慢行再「自行加速」；現在用真實幀時間，任何幀率都是準確 1×，讀檔重設速度時 topbar 按鈕也會同步。夜晚讀檔會先預載夜景貼圖、立即亮燈；夜晚新建或重建的樓下一個 tick 立即套用夜景。冰淇淋車 23:00～06:00 收工。",
       "全新 19 張遊戲截圖與四語說明，GitHub README 與本網站的遊戲介紹按現行版本重寫。",
@@ -743,7 +743,7 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   en: {
-    "v4.9.0": { title: "Lights Coming On", items: [
+    "v4.9.0": { title: "Heung Shing After Dark", items: [
       "A dusk ramp: every model gains a fourth, half-lit baked texture (532 night textures in all). At the swap after sunset the whole city shows street lamps only, then each building climbs lamps to half-lit to fully lit at its own minutes, everyone lit within about two and a half hours; the 23:00 fade steps down the same way. The small hours are darker for real: the night deepens from 23:00, is darkest 00:30-04:30 and eases back before 05:30.",
       "The clock no longer follows the frame rate: it used Phaser's smoothed frame time, which is clamped while the window is unfocused or the frame rate is recovering after a load, so the clock crawled and then \"sped up\" on its own; it now uses real frame time and is an exact 1x at any frame rate, and the topbar buttons follow the speed reset on load. A city loaded after dark pre-fetches its night art and is lit at once; a building built or redeveloped after dark is dressed on the next tick. The ice cream van clocks off from 23:00 to 06:00.",
       "Nineteen new gameplay screenshots with captions in four languages, and the game descriptions on GitHub and on this site rewritten for the current version.",
@@ -990,7 +990,7 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   ja: {
-    "v4.9.0": { title: "灯りがともる頃", items: [
+    "v4.9.0": { title: "香城の夜", items: [
       "夕暮れの点灯が段階的に：各モデルに「半点灯」の焼き込みテクスチャを追加（夜景テクスチャ計532枚）。日没後の切り替え時は街全体が街灯だけになり、その後は建物ごとに街灯→半点灯→全点灯へと進み、遅くとも2時間半ほどで出揃います。23時の消灯も同様に段階的に。深夜は本当に暗くなります：23時から深まり、0時半～4時半が最も暗く、5時半前に戻ります。",
       "時計がフレームレートに左右されなくなりました。従来は Phaser の平滑化されたフレーム時間を使っており、ウィンドウが非アクティブの間やロード後にフレームレートが回復するまでは時計が遅れ、その後「勝手に速く」なっていました。現在は実時間を使い、どのフレームレートでも正確な1倍速。ロード時の速度リセットにツールバーのボタンも追従します。夜間にロードした街は夜景テクスチャを先読みして即座に点灯し、夜間に建った・建て替わった建物は次のティックで夜景になります。アイスクリームカーは23時～6時は休業です。",
       "新しいゲーム画面19枚と4言語のキャプション。GitHub と本サイトのゲーム紹介を現行バージョンに合わせて書き直しました。",
@@ -1262,7 +1262,7 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.9.0 — 【華燈初上】",
+      versionBadge: "v4.9.0 — 【香城夜色】",
       versionDesc: "日落後街燈一齊亮起，窗燈喺一兩個鐘內逐棟填滿；凌晨過後整個城市真正暗落嚟。時鐘唔再跟幀率走、夜晚讀檔即刻著燈，加上全新 19 張截圖同重寫嘅遊戲介紹。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感嘅城市建設遊戲。起街道、規劃社區、經營自己嘅香城巴士公司、處理議會同天氣，再睇住一座有性格嘅香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
@@ -1339,7 +1339,7 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.9.0 — 【華燈初上】",
+      versionBadge: "v4.9.0 — 【香城夜色】",
       versionDesc: "日落後路燈一起亮起，窗燈在一兩個小時內逐棟填滿；凌晨過後整座城市真正暗下來。時鐘不再跟幀率走、夜晚讀檔立即亮燈，加上全新 19 張截圖與重寫的遊戲介紹。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感的城市建設遊戲。興建街道、規劃社區、經營自己的香城公車公司、處理議會與天氣，看著一座有個性的香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
@@ -1416,7 +1416,7 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "The City of Heung Shing",
       title: "The City of Heung Shing",
-      versionBadge: "v4.9.0 — Lights Coming On",
+      versionBadge: "v4.9.0 — Heung Shing After Dark",
       versionDesc: "After sunset the street lamps come on together and the windows fill in building by building over an hour or two; after midnight the city goes properly dark. The clock no longer follows the frame rate, a city loaded after dark is lit at once, and there are nineteen new screenshots with a rewritten game description.",
       lede: "A city-building game inspired by Hong Kong life and made in tribute to SimCity 2000. Build streets, shape neighbourhoods, run your own Heung Shing Bus Company, navigate council politics and weather, then watch a city with real personality grow.",
       freeLabel: "Completely free · macOS + Windows · Local saves",
@@ -1494,7 +1494,7 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.9.0 — 灯りがともる頃",
+      versionBadge: "v4.9.0 — 香城の夜",
       versionDesc: "日没後は街灯がいっせいに点き、窓の灯りは1～2時間かけて一棟ずつ増えていきます。深夜を過ぎると街は本当に暗くなります。時計はフレームレートに左右されず、夜間にロードした街は即座に点灯。新しいスクリーンショット19枚とゲーム紹介の書き直しも。",
       lede: "香港の都市生活から着想を得た、SimCity 2000へのオマージュとなる都市建設ゲーム。道路を築き、地区を計画し、自分だけの香城バス会社を経営し、議会や天候に向き合いながら、個性ある香城の成長を見守ります。",
       freeLabel: "完全無料 · macOS + Windows · ローカルセーブ",

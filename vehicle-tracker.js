@@ -996,11 +996,16 @@ function getVehicleTrackerConditionRows(info) {
     [vehicleTrackerText('transport.inspector.age', {}, 'Age'), vehicle ? `${Math.max(0, Math.floor(Number(vehicle.ageMonths) || 0))}` : '—'],
     [vehicleTrackerText('transport.inspector.odometer', {}, 'Odometer'), vehicle ? `${Math.max(0, Math.floor(Number(vehicle.odometerTiles) || 0))}` : '—'],
   ];
-  if (vehicle?.status === 'servicing' && vehicle.serviceDaysRemaining > 0) {
-    rows.push([vehicleTrackerText('transport.tracker.serviceDaysRemaining', {}, 'Service ends in'), `${vehicle.serviceDaysRemaining}`]);
+  // Countdowns are in displayed minutes (the sky clock), shown as h:mm.
+  const formatCountdown = (minutes) => {
+    const total = Math.max(0, Math.ceil(Number(minutes) || 0));
+    return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
+  };
+  if (vehicle?.status === 'servicing' && vehicle.serviceMinutesRemaining > 0) {
+    rows.push([vehicleTrackerText('transport.tracker.serviceDaysRemaining', {}, 'Service ends in'), formatCountdown(vehicle.serviceMinutesRemaining)]);
   }
-  if (vehicle?.status === 'broken_down' && vehicle.brokenDaysRemaining > 0) {
-    rows.push([vehicleTrackerText('transport.tracker.brokenDaysRemaining', {}, 'Back on road in'), `${vehicle.brokenDaysRemaining}`]);
+  if (vehicle?.status === 'broken_down' && vehicle.brokenMinutesRemaining > 0) {
+    rows.push([vehicleTrackerText('transport.tracker.brokenDaysRemaining', {}, 'Back on road in'), formatCountdown(vehicle.brokenMinutesRemaining)]);
   }
   return rows;
 }

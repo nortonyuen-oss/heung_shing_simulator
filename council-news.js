@@ -177,6 +177,7 @@ function getResolutionCanonicalFacts(resolutionId, outcome, extra = {}) {
     noise_complaints: zh ? '煙花及無人機表演引發大量噪音投訴，居民批評活動擾民。' : 'The fireworks and drone show drew widespread noise complaints from residents.',
     drone_crash: zh ? '表演期間有無人機失控墜毀，引發安全及擾民爭議。' : 'Drones lost control and crashed during the show, causing safety and nuisance concerns.',
     drones_wrong_city: zh ? '整批無人機飛到隔離城市完成表演，香城市民留在原地甚麼也看不到。' : 'The entire drone fleet flew to the neighbouring city and performed there, leaving local spectators with nothing to see.',
+    typhoon_cancelled: zh ? '每一場表演都因八號或以上風球取消，整個節目一場都冇放過。' : 'Every show was cancelled under a No. 8 signal or higher; not one performance took place.',
   };
   if (resolutionId === 'leagueMatchday') {
     return zh
@@ -188,9 +189,10 @@ function getResolutionCanonicalFacts(resolutionId, outcome, extra = {}) {
         : [`${title} descended into chaos outside the gates after fans clashed with security.`, `Partial refunds were issued at a cost of $${Number(extra.refundCost || 0).toLocaleString()}, and the city's ridicule score rose.`]);
   }
   if (resolutionId === 'fantasyFingHeungShing') {
+    const cancelled = Number(extra.cancelledCount || 0);
     const summary = zh
-      ? `全年共舉行 ${Number(extra.showCount || 4)} 場，成功 ${Number(extra.successCount || 0)} 場、失敗 ${Number(extra.failureCount || 0)} 場。`
-      : `${Number(extra.showCount || 4)} shows were held: ${Number(extra.successCount || 0)} succeeded and ${Number(extra.failureCount || 0)} failed.`;
+      ? `全年共安排 ${Number(extra.showCount || 4)} 場，成功 ${Number(extra.successCount || 0)} 場、失敗 ${Number(extra.failureCount || 0)} 場${cancelled ? `、因風球取消 ${cancelled} 場` : ''}。`
+      : `${Number(extra.showCount || 4)} shows were scheduled: ${Number(extra.successCount || 0)} succeeded, ${Number(extra.failureCount || 0)} failed${cancelled ? ` and ${cancelled} were cancelled for a typhoon signal` : ''}.`;
     return [droneFailureFacts[outcome] || (zh ? '四場煙花表演順利完成，帶動旅遊及城市吸引力。' : 'All four fireworks shows were completed successfully, boosting tourism and attractiveness.'), summary];
   }
   return [zh

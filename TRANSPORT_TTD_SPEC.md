@@ -491,12 +491,16 @@ while keeping the **demand model** (how many people want to ride) as-is.
   (`traffic-visuals.js`'s `findMatchingBusStopSide`/dwell fix) and the
   current decorative managed vehicles (`transport-visuals.js`). This is a
   promotion, not a rewrite: `vehicle.progress`, `vehicle.leg`, dwell state
-  move from being recomputed every render into the persisted vehicle record,
-  advanced once per simulation day (`onCalendarDayAdvanced`, `game-clock.js`)
-  rather than every rendered frame — the *visual* interpolation between two
-  daily positions can still run every frame for smoothness, but the
-  authoritative position only needs to update daily, matching every other
-  city system's cadence (see `game-clock.js`'s daily/pulse split).
+  move from being recomputed every render into the persisted vehicle record.
+  *(Revised with the one-clock change:)* the authoritative position advances
+  in **displayed minutes** on the day/night clock
+  (`advanceTransportVehiclesByDisplayMinutes`, driven from
+  `advanceGameTimeOfDay` via `advanceTransportClock`), at the same
+  `TRANSPORT_MINUTES_PER_ROAD_TILE` / `TRANSPORT_MINUTES_PER_STOP` model the
+  route editor's headway figure uses — so a route's shown 20-minute headway
+  is what the player watches on the map. One sky-day is one calendar month
+  (`game-clock.js`), so a bus completes ~18 round trips of a typical route
+  per month and month-end settlement sees the real mileage.
 - **Passenger pickup:** when a vehicle dwells at a stop, compute available
   riders at that stop using the *existing* catchment logic
   (`TRANSPORT_STOP_CATCHMENT_RADIUS`, `getTransportDestinationUnits`,
@@ -524,16 +528,19 @@ while keeping the **demand model** (how many people want to ride) as-is.
   monthly even though revenue is now real-time — no need to micro-debit
   fuel/upkeep per tile).
 - **Reliability / breakdown / mandatory service:** `condition` decays slowly
-  with age and distance; `daysSinceService` increments daily whenever
-  `status` isn't `'depot'`/`'servicing'`. Once `daysSinceService >=
-  TRANSPORT_SERVICE_INTERVAL_DAYS` (§10), the vehicle auto-returns to its
-  depot at the next leg boundary — this is the *primary* way condition stays
-  healthy, not an optional idle-time bonus. Independently, if `condition`
-  drops below a threshold (e.g. 0.35 — meaning service was skipped, most
-  likely because the depot was disconnected), a small monthly breakdown
-  chance sets `status: 'broken_down'` for a few days (vehicle stops moving,
-  visually shows a wrench/smoke icon), then self-recovers — a lightweight
-  stand-in for OpenTTD's full breakdown system, not a 1:1 port.
+  with age and distance; `minutesSinceService` (displayed minutes) accrues
+  whenever `status` isn't `'depot'`/`'servicing'`. Once it reaches
+  `TRANSPORT_SERVICE_INTERVAL_MINUTES` (four sky-days, §10), the vehicle
+  auto-returns to its depot at the next leg boundary for a
+  `TRANSPORT_SERVICE_DURATION_MINUTES` (three-hour) service — this is the
+  *primary* way condition stays healthy, not an optional idle-time bonus.
+  Independently, if `condition` drops below a threshold (0.35 — meaning
+  service was skipped, most likely because the depot was disconnected), a
+  3%-per-sky-day breakdown chance, rolled hourly, sets `status:
+  'broken_down'` for two hours (vehicle stops moving, visually shows a
+  wrench/smoke icon), then self-recovers — a lightweight stand-in for
+  OpenTTD's full breakdown system, not a 1:1 port. Saves that stored these
+  in calendar days migrate at 48 displayed minutes per day.
 - **Weather (signal 8+):** identical to today — `isTransportSevereWeather()`
   already grounds the aggregate system; individual vehicles instead get
   `status: 'depot'`-equivalent (parked in place, not simulated) for the

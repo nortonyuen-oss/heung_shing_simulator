@@ -520,8 +520,15 @@ function renderCouncilResolutionDetail(detail) {
   desc.textContent = t(definition.descKey);
   const facts = document.createElement('div');
   facts.className = 'council-policy-facts';
+  const upfrontCost = getCouncilResolutionUpfrontCost(definition.id);
+  const monthsOfIncome = Number(definition.monthsOfIncome) || 0;
   const factRows = [
-    [t('council.resolution.upfrontCost'), councilMoney(getCouncilResolutionUpfrontCost(definition.id))],
+    [
+      t('council.resolution.upfrontCost'),
+      monthsOfIncome > 0
+        ? `${councilMoney(upfrontCost)} (${t('council.resolution.monthsOfIncome', { count: monthsOfIncome })})`
+        : councilMoney(upfrontCost),
+    ],
     [t('council.resolution.duration'), t('council.monthCount', { count: definition.durationMonths })],
     [t('council.resolution.cooldown'), t('council.monthCount', { count: definition.cooldownMonths })],
   ];

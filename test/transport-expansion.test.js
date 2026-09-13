@@ -61,8 +61,23 @@ function createTransportVm() {
     isRoadTile: (row, col) => roadCells.has(`${row}:${col}`),
     t: (key) => key,
   });
+  // the commuter pools follow the road traffic's time-of-day curve
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'traffic-demand.js'), 'utf8'), context, { filename: 'traffic-demand.js' });
   const source = fs.readFileSync(path.join(ROOT, 'transport-expansion.js'), 'utf8');
   vm.runInContext(source, context, { filename: 'transport-expansion.js' });
+  // Buses run on the display clock (game-clock.js hands advanceTransportClock
+  // the span each frame covers). Drive it the same way: many small frames.
+  vm.runInContext(`
+    var __transportClockMinutes = 0;
+    function driveTransportMinutes(minutes, step = 15) {
+      const end = __transportClockMinutes + minutes;
+      while (__transportClockMinutes < end - 0.000001) {
+        const next = Math.min(end, __transportClockMinutes + step);
+        advanceTransportClock(__transportClockMinutes, next);
+        __transportClockMinutes = next;
+      }
+    }
+  `, context);
   return context;
 }
 
@@ -313,10 +328,8 @@ test('live expansion unlocks, routes, breaks, settles and restores without affec
     assignTransportVehicleToRoute(vehicleA.id, createdRoute.id);
     assignTransportVehicleToRoute(vehicleB.id, createdRoute.id);
     updateTransportSimulation();
-    for (let i = 0; i < 60; i++) {
-      simulateTransportVehiclesDaily();
-      advanceTransportVehiclesByGameDays(1);
-    }
+    simulateTransportVehiclesDaily();
+    driveTransportMinutes(6 * 60);
     updateTransportSimulation();
     activeResult = {
       unlocked: getTransportExpansionState().unlocked,
@@ -533,7 +546,7 @@ test('selling a vehicle out on a route requires it to return to depot first', ()
     cashBeforeSell = getTransportExpansionState().company.cash;
     firstSellAttempt = sellTransportVehicle(vehicle.id);
     statusAfterFirstAttempt = getTransportExpansionState().vehicles[0].status;
-    advanceTransportVehiclesDaily();
+    advanceTransportVehicleMaintenance(48);
     statusAfterOneDay = getTransportExpansionState().vehicles[0].status;
     conditionBeforeSell = getTransportExpansionState().vehicles[0].condition;
     secondSellAttempt = sellTransportVehicle(vehicle.id);
@@ -545,18 +558,18 @@ test('selling a vehicle out on a route requires it to return to depot first', ()
   assert.equal(context.statusAfterOneDay, 'depot');
   assert.equal(context.secondSellAttempt, true);
   assert.equal(context.vehiclesRemaining, 0);
-  // resale = purchasePrice * condition (decayed by the one day spent
-  // returning to depot) * TRANSPORT_VEHICLE_RESALE_FACTOR
+  // resale = purchasePrice * condition (decayed by the 48 displayed minutes
+  // spent returning to depot) * TRANSPORT_VEHICLE_RESALE_FACTOR
   assert.equal(
     context.cashAfterSell - context.cashBeforeSell,
     Math.round(280 * context.conditionBeforeSell * transport.TRANSPORT_VEHICLE_RESALE_FACTOR),
   );
 });
 
-test('mandatory periodic service recalls, services and resumes a vehicle', () => {
+test('mandatory periodic service recalls, services and resumes a vehicle, timed in displayed minutes', () => {
   const context = createTransportVm();
-  context.TRANSPORT_SERVICE_INTERVAL_DAYS = transport.TRANSPORT_SERVICE_INTERVAL_DAYS;
-  context.TRANSPORT_SERVICE_DURATION_DAYS = transport.TRANSPORT_SERVICE_DURATION_DAYS;
+  context.SERVICE_INTERVAL = transport.TRANSPORT_SERVICE_INTERVAL_MINUTES;
+  context.SERVICE_DURATION = transport.TRANSPORT_SERVICE_DURATION_MINUTES;
   vm.runInContext(`
     setExpansionEnabled('transport', true, { notify: false, autosave: false });
     stopIds = listTransportStopSites().map((stop) => stop.id);
@@ -566,27 +579,48 @@ test('mandatory periodic service recalls, services and resumes a vehicle', () =>
     vehicle = buyTransportVehicle(depotId, 'standard_double_decker');
     assignTransportVehicleToRoute(vehicle.id, route.id);
     const stored = () => getTransportExpansionState().vehicles.find((entry) => entry.id === vehicle.id);
-    stored().daysSinceService = TRANSPORT_SERVICE_INTERVAL_DAYS;
+    stored().minutesSinceService = SERVICE_INTERVAL;
     stored().condition = 0.4;
-    advanceTransportVehiclesDaily();
-    statusAfterOverdueDay = stored().status;
-    advanceTransportVehiclesDaily();
-    statusAfterReturnDay = stored().status;
-    serviceDaysRemainingAtStart = stored().serviceDaysRemaining;
-    for (let i = 0; i < TRANSPORT_SERVICE_DURATION_DAYS - 1; i++) advanceTransportVehiclesDaily();
+    advanceTransportVehicleMaintenance(1);
+    statusAfterOverdue = stored().status;
+    advanceTransportVehicleMaintenance(1);
+    statusAfterReturn = stored().status;
+    serviceMinutesRemainingAtStart = stored().serviceMinutesRemaining;
+    advanceTransportVehicleMaintenance(SERVICE_DURATION - 30);
     statusMidService = stored().status;
-    advanceTransportVehiclesDaily();
+    advanceTransportVehicleMaintenance(30);
     statusAfterService = stored().status;
     conditionAfterService = stored().condition;
-    daysSinceServiceAfterService = stored().daysSinceService;
+    minutesSinceServiceAfterService = stored().minutesSinceService;
   `, context);
-  assert.equal(context.statusAfterOverdueDay, 'returning_for_service');
-  assert.equal(context.statusAfterReturnDay, 'servicing');
-  assert.equal(context.serviceDaysRemainingAtStart, transport.TRANSPORT_SERVICE_DURATION_DAYS);
+  // four sky-days between services, a three-hour visit
+  assert.equal(transport.TRANSPORT_SERVICE_INTERVAL_DISPLAY_DAYS, 4);
+  assert.equal(transport.TRANSPORT_SERVICE_INTERVAL_MINUTES, 4 * 24 * 60);
+  assert.equal(transport.TRANSPORT_SERVICE_DURATION_MINUTES, 180);
+  assert.equal(context.statusAfterOverdue, 'returning_for_service');
+  assert.equal(context.statusAfterReturn, 'servicing');
+  assert.equal(context.serviceMinutesRemainingAtStart, transport.TRANSPORT_SERVICE_DURATION_MINUTES);
   assert.equal(context.statusMidService, 'servicing');
   assert.equal(context.statusAfterService, 'active');
   assert.equal(context.conditionAfterService, 1);
-  assert.equal(context.daysSinceServiceAfterService, 0);
+  assert.equal(context.minutesSinceServiceAfterService, 0);
+});
+
+test('a save from the calendar-day era migrates its service timers at 48 displayed minutes per day', () => {
+  const vehicle = transport.normalizeTransportVehicle({
+    id: 'v1', status: 'servicing', daysSinceService: 46, serviceDaysRemaining: 3, brokenDaysRemaining: 0,
+  });
+  assert.equal(vehicle.minutesSinceService, 46 * 48);
+  assert.equal(vehicle.serviceMinutesRemaining, 3 * 48);
+  assert.equal(vehicle.brokenMinutesRemaining, 0);
+  assert.equal(vehicle.dwellMinutesRemaining, 0);
+  assert.equal(vehicle.boardingsThisMonth, 0);
+  // new-format saves pass straight through
+  const fresh = transport.normalizeTransportVehicle({ id: 'v2', minutesSinceService: 500, serviceMinutesRemaining: 90 });
+  assert.equal(fresh.minutesSinceService, 500);
+  assert.equal(fresh.serviceMinutesRemaining, 90);
+  // the old 120-calendar-day interval and the new four-sky-day one are the same span
+  assert.equal(120 * transport.TRANSPORT_LEGACY_MINUTES_PER_CALENDAR_DAY, transport.TRANSPORT_SERVICE_INTERVAL_MINUTES);
 });
 
 test('individual vehicle simulation moves a vehicle, boards/alights riders, and credits revenue in real time', () => {
@@ -601,10 +635,9 @@ test('individual vehicle simulation moves a vehicle, boards/alights riders, and 
     assignTransportVehicleToRoute(vehicle.id, route.id);
     const stored = () => getTransportExpansionState().vehicles.find((entry) => entry.id === vehicle.id);
     cashBeforeDriving = getTransportExpansionState().company.cash;
-    for (let i = 0; i < 30; i++) {
-      simulateTransportVehiclesDaily();
-      advanceTransportVehiclesByGameDays(1);
-    }
+    // one sky-day is one calendar month: commuters accrue hour by hour and
+    // the bus runs round the clock
+    driveTransportMinutes(24 * 60);
     odometerAfterMonth = stored().odometerTiles;
     tilesThisMonthAfterMonth = stored().tilesThisMonth;
     cashAfterMonth = getTransportExpansionState().company.cash;
@@ -692,7 +725,7 @@ test('a broken route\'s vehicle idles in place instead of driving or boarding ri
     markTransportStopsDirty();
     updateTransportSimulation();
     simulateTransportVehiclesDaily();
-    advanceTransportVehiclesByGameDays(1);
+    driveTransportMinutes(60);
     const stored = () => getTransportExpansionState().vehicles.find((entry) => entry.id === vehicle.id);
     odometerAfterBrokenDay = stored().odometerTiles;
     passengersOnBrokenRoute = getTransportExpansionState().routes[0].monthToDatePassengers;
@@ -727,7 +760,7 @@ test('two vehicles dwelling at the same stop share, not double-claim, its persis
   assert.equal(context.waitingAfterBoth, 0);
 });
 
-test('bus stop queue resets to daily commuters and only falls when the vehicle actually arrives', () => {
+test('bus stop queue only falls when the vehicle actually arrives, on the display-minute movement model', () => {
   const context = createTransportVm();
   vm.runInContext(`
     setExpansionEnabled('transport', true, { notify: false, autosave: false });
@@ -740,40 +773,70 @@ test('bus stop queue resets to daily commuters and only falls when the vehicle a
     vehicle = buyTransportVehicle(depotId, 'standard_double_decker');
     assignTransportVehicleToRoute(vehicle.id, route.id);
     simulateTransportVehiclesDaily();
-    waitingAfterOneDay = getTransportStopWaitingCount(stop.id);
-    advanceTransportVehiclesByGameDays(1);
-    progressAfterOneDay = getTransportExpansionState().vehicles[0].progress;
-    waitingBeforeSecondDay = getTransportStopWaitingCount(stop.id);
+    waitingSeeded = getTransportStopWaitingCount(stop.id);
+    // stops are seven tiles apart at 0.75 minutes a tile: 3 minutes in the
+    // bus is four tiles down the road
+    advanceTransportVehiclesByDisplayMinutes(3);
+    progressMidLeg = getTransportExpansionState().vehicles[0].progress;
+    waitingMidLeg = getTransportStopWaitingCount(stop.id);
     simulateTransportVehiclesDaily();
-    waitingAfterSecondDay = getTransportStopWaitingCount(stop.id);
-    advanceTransportVehiclesByGameDays(1);
-    waitingWhileReturning = getTransportStopWaitingCount(stop.id);
-    simulateTransportVehiclesDaily();
-    advanceTransportVehiclesByGameDays(1);
+    waitingReseeded = getTransportStopWaitingCount(stop.id);
+    // 5.25 minutes to the far stop, 1.5 standing there, 5.25 back: at 12
+    // minutes the bus is back at this stop and boards its 70 seats
+    advanceTransportVehiclesByDisplayMinutes(3);
+    waitingWhileAtFarStop = getTransportStopWaitingCount(stop.id);
+    dwellAtFarStop = getTransportExpansionState().vehicles[0].dwellMinutesRemaining;
+    advanceTransportVehiclesByDisplayMinutes(6);
     waitingAfterActualArrival = getTransportStopWaitingCount(stop.id);
     simulateTransportVehiclesDaily();
-    waitingAfterNextDailyReset = getTransportStopWaitingCount(stop.id);
+    waitingAfterReseed = getTransportStopWaitingCount(stop.id);
     city.weather.typhoonStage = 'signal8';
     waitingDuringStorm = getTransportStopWaitingCount(stop.id);
     city.weather.typhoonStage = 'none';
     setExpansionEnabled('transport', false, { notify: false, autosave: false });
     waitingWhenDisabled = getTransportStopWaitingCount(stop.id);
   `, context);
-  // No daily passenger-generation tick has run yet.
   assert.equal(context.waitingBeforeAnyRoute, 0);
-  // Stops are seven tiles apart and a standard bus covers six per day: after
-  // one day it is still travelling, so nobody has boarded.
-  assert.equal(context.waitingAfterOneDay, 81);
-  assert.ok(context.progressAfterOneDay > 0 && context.progressAfterOneDay < 1);
-  assert.equal(context.waitingBeforeSecondDay, 81);
-  assert.equal(context.waitingAfterSecondDay, 81, 'midnight replaces rather than stacks the commuter pool');
-  assert.equal(context.waitingWhileReturning, 81);
-  // Day three resets to 81 again, then the bus physically reaches this stop
-  // and boards its 70-seat capacity, leaving 11.
+  // Fixture: '4:2' is a 3000-population residential building 1 tile from
+  // this stop -> originUnits 3000*0.18=540, day pool round(540*0.15)=81.
+  assert.equal(context.waitingSeeded, 81);
+  assert.ok(context.progressMidLeg > 0.5 && context.progressMidLeg < 0.6, `four of seven tiles, got ${context.progressMidLeg}`);
+  assert.equal(context.waitingMidLeg, 81);
+  assert.equal(context.waitingReseeded, 81, 'seeding replaces rather than stacks the pool');
+  assert.equal(context.waitingWhileAtFarStop, 81);
+  assert.ok(context.dwellAtFarStop > 0 && context.dwellAtFarStop <= 1.5, 'standing at the far stop');
   assert.equal(context.waitingAfterActualArrival, 11);
-  assert.equal(context.waitingAfterNextDailyReset, 81);
+  assert.equal(context.waitingAfterReseed, 81);
   assert.equal(context.waitingDuringStorm, 0);
   assert.equal(context.waitingWhenDisabled, 0);
+});
+
+test('commuters accrue hour by hour along the traffic curve and the pool is cleared before dawn', () => {
+  const context = createTransportVm();
+  vm.runInContext(`
+    setExpansionEnabled('transport', true, { notify: false, autosave: false });
+    stopIds = listTransportStopSites().map((stop) => stop.id);
+    ensureTransportStopPairs(stopIds, null);
+    stop = getTransportStopById(stopIds[0]);
+    perHour = [];
+    for (let hour = 0; hour < 24; hour++) {
+      const before = getTransportStopWaitingCount(stop.id);
+      accrueTransportStopCommutersForHour(hour);
+      perHour.push(getTransportStopWaitingCount(stop.id) - before);
+    }
+    afterFullDay = getTransportStopWaitingCount(stop.id);
+    accrueTransportStopCommutersForHour(TRANSPORT_STOP_POOL_RESET_HOUR);
+    afterReset = getTransportStopWaitingCount(stop.id);
+  `, context);
+  const perHour = JSON.parse(JSON.stringify(context.perHour));
+  // the reset hour clears yesterday, so the day's total is what accrued since
+  const accruedSinceReset = perHour.slice(transport.TRANSPORT_STOP_POOL_RESET_HOUR).reduce((a, b) => a + b, 0)
+    + perHour[transport.TRANSPORT_STOP_POOL_RESET_HOUR];
+  assert.ok(Math.abs(context.afterFullDay - 81) <= 4, `a day's accrual is the 81-rider pool, got ${context.afterFullDay}`);
+  assert.ok(perHour[8] > perHour[12] && perHour[12] > perHour[2], 'morning peak > midday > night');
+  assert.ok(perHour[18] > perHour[21], 'evening peak > late evening');
+  assert.ok(context.afterReset < context.afterFullDay, 'the reset hour clears the pool');
+  assert.ok(accruedSinceReset > 0);
 });
 
 test('pre-v0.6 dev saves with x10,000-scale money load back onto the stylized scale', () => {
@@ -870,10 +933,8 @@ test('industrial demand bonus (§14.3) activates only for served industrial buil
     depotId = getConnectedCommissionedTransportDepots()[0].id;
     vehicle = buyTransportVehicle(depotId, 'standard_double_decker');
     assignTransportVehicleToRoute(vehicle.id, route.id);
-    for (let i = 0; i < 30; i++) {
-      simulateTransportVehiclesDaily();
-      advanceTransportVehiclesByGameDays(1);
-    }
+    simulateTransportVehiclesDaily();
+    driveTransportMinutes(6 * 60);
     updateTransportSimulation();
     industrialBonus = getTransportIndustrialDemandBonus();
     city.weather.typhoonStage = 'signal8';

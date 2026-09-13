@@ -222,10 +222,16 @@ const COUNCIL_SPECIAL_EVENT_DEFS = Object.freeze([
 
 // One-off resolutions share the council debate/vote pipeline with ordinances, but
 // create temporary effects or scheduled programmes instead of toggling activePolicies.
+// One-off bills are priced as months of the city's current monthly income
+// (see getCouncilResolutionUpfrontCost): upfrontBase is a small floor so a
+// village still pays something, monthsOfIncome is the real price. The old
+// flat 0.5M-1.8M figures were 50-100 months of a mid-sized city's income and
+// never came within reach; a sky-day is a month now, so a bill of a few
+// months' income is something a city with a little surplus can actually pass.
 const COUNCIL_RESOLUTION_DEFS = Object.freeze([
   {
     id: 'cashHandout', titleKey: 'resolution.cashHandout.title', descKey: 'resolution.cashHandout.desc',
-    upfrontBase: 500000, costPerCitizen: 18, durationMonths: 3, cooldownMonths: 18, absurdity: 1,
+    upfrontBase: 20000, monthsOfIncome: 3, durationMonths: 3, cooldownMonths: 18, absurdity: 1,
     issues: { finance: -1, business: 1, governance: 0.5 },
     tags: ['cash_handout', 'welfare', 'consumer_spending'],
     leadOfficialIds: ['treasury_head', 'chief_executive'],
@@ -234,7 +240,7 @@ const COUNCIL_RESOLUTION_DEFS = Object.freeze([
   },
   {
     id: 'tourEverywhere', titleKey: 'resolution.tourEverywhere.title', descKey: 'resolution.tourEverywhere.desc',
-    upfrontBase: 900000, costPerCitizen: 2, durationMonths: 3, cooldownMonths: 18, absurdity: 2,
+    upfrontBase: 20000, monthsOfIncome: 2, durationMonths: 3, cooldownMonths: 18, absurdity: 2,
     issues: { tourism: 2, business: 1, environment: -0.5 },
     tags: ['tourism_campaign', 'photo_spot', 'crowding'],
     leadOfficialIds: ['culture_head', 'councillor_tourism'],
@@ -243,7 +249,7 @@ const COUNCIL_RESOLUTION_DEFS = Object.freeze([
   },
   {
     id: 'menaConcert', titleKey: 'resolution.menaConcert.title', descKey: 'resolution.menaConcert.desc',
-    upfrontBase: 1600000, costPerCitizen: 1, durationMonths: 3, cooldownMonths: 24, absurdity: 1,
+    upfrontBase: 40000, monthsOfIncome: 2.5, durationMonths: 3, cooldownMonths: 24, absurdity: 1,
     requiresBuildingTypes: ['airport', 'indoor_coliseum'],
     hideUntilBuildingRequirements: true,
     issues: { parks_culture: 2, tourism: 2, business: 1 },
@@ -254,7 +260,7 @@ const COUNCIL_RESOLUTION_DEFS = Object.freeze([
   },
   {
     id: 'muiKinKwokMatch', titleKey: 'resolution.muiKinKwokMatch.title', descKey: 'resolution.muiKinKwokMatch.desc',
-    upfrontBase: 1400000, costPerCitizen: 1, durationMonths: 3, cooldownMonths: 24, absurdity: 1,
+    upfrontBase: 40000, monthsOfIncome: 2.5, durationMonths: 3, cooldownMonths: 24, absurdity: 1,
     requiresBuildingTypes: ['airport', 'football_stadium'],
     hideUntilBuildingRequirements: true,
     issues: { tourism: 2, parks_culture: 1, business: 1, public_safety: 0.5 },
@@ -266,7 +272,7 @@ const COUNCIL_RESOLUTION_DEFS = Object.freeze([
   },
   {
     id: 'leagueMatchday', titleKey: 'resolution.leagueMatchday.title', descKey: 'resolution.leagueMatchday.desc',
-    upfrontBase: 260000, costPerCitizen: 0.2, durationMonths: 1, cooldownMonths: 3, absurdity: 0,
+    upfrontBase: 5000, monthsOfIncome: 0.5, durationMonths: 1, cooldownMonths: 3, absurdity: 0,
     requiresBuildingType: 'football_stadium',
     issues: { tourism: 1, parks_culture: 1, business: 1, public_safety: -0.5 },
     tags: ['football', 'sports_event', 'city_super_league', 'crowding'],
@@ -277,7 +283,7 @@ const COUNCIL_RESOLUTION_DEFS = Object.freeze([
   },
   {
     id: 'aiAntiDrugGirlGroup', titleKey: 'resolution.aiAntiDrugGirlGroup.title', descKey: 'resolution.aiAntiDrugGirlGroup.desc',
-    upfrontBase: 750000, costPerCitizen: 0.5, durationMonths: 3, cooldownMonths: 24, absurdity: 3,
+    upfrontBase: 10000, monthsOfIncome: 1.5, durationMonths: 3, cooldownMonths: 24, absurdity: 3,
     issues: { public_safety: 1, education: 1, science: 1, governance: -0.5 },
     tags: ['anti_drug', 'ai_girl_group', 'government_campaign'],
     leadOfficialIds: ['police_head', 'councillor_religion'],
@@ -289,7 +295,7 @@ const COUNCIL_RESOLUTION_DEFS = Object.freeze([
   },
   {
     id: 'fantasyFingHeungShing', titleKey: 'resolution.fantasyFingHeungShing.title', descKey: 'resolution.fantasyFingHeungShing.desc',
-    upfrontBase: 1800000, costPerCitizen: 1, durationMonths: 12, cooldownMonths: 24, absurdity: 2,
+    upfrontBase: 60000, monthsOfIncome: 5, durationMonths: 12, cooldownMonths: 24, absurdity: 2,
     issues: { tourism: 2, parks_culture: 2, business: 1, environment: -0.5 },
     tags: ['drone_show', 'light_show', 'spectacle', 'noise', 'energy_use'],
     leadOfficialIds: ['culture_head', 'observatory_head'],
@@ -302,7 +308,7 @@ const COUNCIL_RESOLUTION_DEFS = Object.freeze([
     titleKey: 'resolution.oceanParkDevelopmentProject.title',
     descKey: 'resolution.oceanParkDevelopmentProject.desc',
     upfrontBase: 10000,
-    costPerCitizen: 0,
+    monthsOfIncome: 0,
     durationMonths: 1,
     cooldownMonths: 0,
     absurdity: 0,
@@ -323,7 +329,7 @@ const COUNCIL_RESOLUTION_DEFS = Object.freeze([
     titleKey: 'resolution.roseGardenAirportProject.title',
     descKey: 'resolution.roseGardenAirportProject.desc',
     upfrontBase: 25000,
-    costPerCitizen: 0,
+    monthsOfIncome: 0,
     durationMonths: 1,
     cooldownMonths: 0,
     absurdity: 0,

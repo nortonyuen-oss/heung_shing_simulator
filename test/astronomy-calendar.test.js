@@ -32,7 +32,7 @@ test('bundled HKO calendar seeds versioned SQLite rows and supports 30-day Febru
   }
 });
 
-test('renderer astronomy client coalesces requests and caches once per game date', async () => {
+test('renderer astronomy client coalesces requests and caches once per game month', async () => {
   const source = fs.readFileSync(path.join(ROOT, 'astronomy-calendar.js'), 'utf8');
   const listeners = {};
   let fetchCount = 0;
@@ -64,28 +64,36 @@ test('renderer astronomy client coalesces requests and caches once per game date
   });
   vm.runInContext(source, context, { filename: 'astronomy-calendar.js' });
 
+  // One sky-day is one calendar month, so the sky samples the mid-month row
+  // (ASTRONOMY_SAMPLE_DAY) once per month rather than a row per calendar day.
   await Promise.all([
-    vm.runInContext('ensureAstronomyForDate(1, 1)', context),
-    vm.runInContext('ensureAstronomyForDate(1, 1)', context),
+    vm.runInContext('ensureAstronomyForDate(1)', context),
+    vm.runInContext('ensureAstronomyForDate(1)', context),
   ]);
   assert.equal(fetchCount, 1);
+  assert.equal(vm.runInContext('ASTRONOMY_SAMPLE_DAY', context), 15);
   assert.equal(vm.runInContext('getCurrentAstronomyData().sunriseMinutes', context), 423);
 
+  // the 30 calendar days inside the month do not refetch
   context.city.day = 2;
-  await listeners['gameclock:day']({ month: 1, day: 2 });
-  await vm.runInContext('ensureAstronomyForDate(1, 2)', context);
+  assert.equal(vm.runInContext('getCurrentAstronomyData().sunriseMinutes', context), 423);
+  assert.equal(fetchCount, 1);
+
+  context.city.month = 2;
+  await listeners['gameclock:month']({ month: 2, day: 1 });
+  await vm.runInContext('ensureAstronomyForDate(2)', context);
   assert.equal(fetchCount, 2);
 });
 
-test('date rollover holds the previous HKO row instead of flashing to the seasonal fallback', async () => {
+test('month rollover holds the previous HKO row instead of flashing to the seasonal fallback', async () => {
   const source = fs.readFileSync(path.join(ROOT, 'astronomy-calendar.js'), 'utf8');
   let resolveSecond;
   let fetchCount = 0;
-  const astronomyResponse = (day, sunsetMinutes) => ({
+  const astronomyResponse = (month, sunsetMinutes) => ({
     ok: true,
     json: async () => ({
-      month: 11,
-      day,
+      month,
+      day: 15,
       sunriseMinutes: 395,
       solarTransitMinutes: 728,
       sunsetMinutes,
@@ -103,19 +111,19 @@ test('date rollover holds the previous HKO row instead of flashing to the season
     console: { warn() {} },
     fetch: async () => {
       fetchCount++;
-      if (fetchCount === 1) return astronomyResponse(15, 1060);
+      if (fetchCount === 1) return astronomyResponse(11, 1060);
       return new Promise((resolve) => { resolveSecond = resolve; });
     },
   });
   vm.runInContext(source, context, { filename: 'astronomy-calendar.js' });
-  await vm.runInContext('ensureAstronomyForDate(11, 15)', context);
+  await vm.runInContext('ensureAstronomyForDate(11)', context);
 
-  context.city.day = 16;
+  context.city.month = 12;
   const heldSunset = vm.runInContext('getCurrentAstronomyData().sunsetMinutes', context);
   assert.equal(heldSunset, 1060);
   assert.notEqual(heldSunset, 1155, 'must not fall back to the March sunset during rollover');
-  resolveSecond(astronomyResponse(16, 1059));
-  await vm.runInContext('ensureAstronomyForDate(11, 16)', context);
+  resolveSecond(astronomyResponse(12, 1059));
+  await vm.runInContext('ensureAstronomyForDate(12)', context);
   assert.equal(vm.runInContext('getCurrentAstronomyData().sunsetMinutes', context), 1059);
 });
 

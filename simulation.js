@@ -30,11 +30,12 @@ function forEachSimulationZonedTile(action) {
 // displayed day, so calendar-day weather changed dozens of times between one
 // sunrise and the next. It now follows the environmental clock (see
 // advanceWeatherClock in sim-weather.js, called from advanceGameTimeOfDay).
+// The bus company's movement, commuter pools and servicing are likewise on
+// the environmental clock (advanceTransportClock, transport-expansion.js);
+// only the per-calendar-day weather availability record stays here.
 function runDailySystems(scene) {
   if (!scene) return;
   if (typeof recordTransportDailyAvailability === 'function') recordTransportDailyAvailability();
-  if (typeof simulateTransportVehiclesDaily === 'function') simulateTransportVehiclesDaily();
-  if (typeof advanceTransportVehiclesDaily === 'function') advanceTransportVehiclesDaily();
 }
 
 // The legacy heavy city-simulation pulse — everything runSimTick used to run

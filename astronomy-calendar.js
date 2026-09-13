@@ -30,19 +30,25 @@ const astronomyCalendarPending = new Map();
 let activeAstronomyDateKey = null;
 let activeAstronomyData = null;
 
+// One sky-day is one calendar month (game-clock.js), so the 30 calendar days
+// all pass inside a single sunrise-to-sunrise. Sampling the mid-month row
+// gives that sky-day one sunrise and one sunset instead of keyframes that
+// creep by a minute or two every 48 displayed minutes.
+const ASTRONOMY_SAMPLE_DAY = 15;
+
 function getAstronomyDateKey(
   month = typeof city !== 'undefined' ? city?.month : 1,
-  day = typeof city !== 'undefined' ? city?.day : 1,
+  day = ASTRONOMY_SAMPLE_DAY,
 ) {
   const safeMonth = Math.max(1, Math.min(12, Math.trunc(Number(month) || 1)));
-  const safeDay = Math.max(1, Math.min(30, Math.trunc(Number(day) || 1)));
+  const safeDay = Math.max(1, Math.min(31, Math.trunc(Number(day) || 1)));
   return `${safeMonth}-${safeDay}`;
 }
 
 function normalizeAstronomyData(data, month, day) {
   const normalized = { ...ASTRONOMY_FALLBACK, ...(data || {}) };
   normalized.month = Math.max(1, Math.min(12, Math.trunc(Number(month ?? normalized.month) || 1)));
-  normalized.day = Math.max(1, Math.min(30, Math.trunc(Number(day ?? normalized.day) || 1)));
+  normalized.day = Math.max(1, Math.min(31, Math.trunc(Number(day ?? normalized.day) || 1)));
   const minuteFields = [
     'sunriseMinutes', 'solarTransitMinutes', 'sunsetMinutes',
     'civilTwilightMinutes', 'nauticalTwilightMinutes', 'astronomicalTwilightMinutes',
@@ -81,7 +87,7 @@ function getCurrentAstronomyData() {
 
 async function ensureAstronomyForDate(
   month = typeof city !== 'undefined' ? city?.month : 1,
-  day = typeof city !== 'undefined' ? city?.day : 1,
+  day = ASTRONOMY_SAMPLE_DAY,
 ) {
   const key = getAstronomyDateKey(month, day);
   if (astronomyCalendarCache.has(key)) {
@@ -125,8 +131,8 @@ async function ensureAstronomyForDate(
 }
 
 if (typeof onGameClockEvent === 'function') {
-  onGameClockEvent('gameclock:day', ({ month, day }) => {
-    ensureAstronomyForDate(month, day).catch(() => {});
+  onGameClockEvent('gameclock:month', ({ month }) => {
+    ensureAstronomyForDate(month, ASTRONOMY_SAMPLE_DAY).catch(() => {});
   });
 }
 

@@ -1380,7 +1380,10 @@ function applySaveData(scene, save) {
   // Older saves predate the daily calendar (day was one of 1/8/15/22) —
   // those values are already inside the valid range, but clamp defensively
   // rather than trust an arbitrary stored number.
-  city.day = Math.min(GAME_DAYS_PER_MONTH, Math.max(1, Math.floor(Number(city.day) || 1)));
+  city.day = Math.min(
+    typeof getDaysInMonth === 'function' ? getDaysInMonth(city.month, city.year) : 31,
+    Math.max(1, Math.floor(Number(city.day) || 1)),
+  );
 
   // Restore infrastructure metadata
   roadTileCount = save.roadTileCount ?? 0;

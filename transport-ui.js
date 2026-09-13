@@ -655,7 +655,7 @@ function getTransportFinanceHistoryRows(state) {
 }
 
 function renderTransportFinancesTab(state) {
-  const dayFraction = transportClamp((typeof city === 'undefined' ? 30 : Math.max(1, city.day)) / 30, 1 / 30, 1);
+  const dayFraction = typeof getTransportMonthDayFraction === 'function' ? getTransportMonthDayFraction() : 1;
   const revenue = state.routes.reduce((sum, route) => sum + (Number(route.lastStats?.revenue) || 0), 0);
   const routeOperations = state.routes.reduce((sum, route) => sum + (Number(route.lastStats?.cost) || 0), 0);
   const depotUpkeep = Math.round(getConnectedCommissionedTransportDepots().length * TRANSPORT_DEPOT_MONTHLY_UPKEEP * dayFraction);

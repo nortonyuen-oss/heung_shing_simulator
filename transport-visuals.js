@@ -13,7 +13,7 @@ const TRANSPORT_VISUAL_CONFIG = Object.freeze({
   // §1 restore: fraction of a stop-adjacent leg spent easing rather than at
   // cruise speed - OpenTTD-style slow-in/slow-out around a dwell, purely a
   // render-time remap of the backend's linear progress (never touches
-  // advanceTransportVehiclesByGameDays's timing, so game-speed economics are
+  // advanceTransportVehiclesByDisplayMinutes's timing, so game-speed economics are
   // unaffected).
   stopEaseFraction: 0.3,
   fareFloatRiseY: 30,

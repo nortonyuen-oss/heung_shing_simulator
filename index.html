@@ -50,9 +50,14 @@
       overflow: hidden;
       pointer-events: none;
       opacity: 0;
-      background: linear-gradient(to bottom, rgba(3, 8, 27, 0.34), rgba(3, 8, 27, 0.08) 72%, transparent);
+      /* No sky tint: the show runs at 20:00, so the night itself provides
+         the darkness the old five-second overlay used to fake. */
+      background: transparent;
     }
-    #drone-show-overlay.is-playing { animation: drone-show-sky 5s ease-in-out both; }
+    /* Held for the show's thirty displayed minutes (council-effects.js keeps
+       re-launching volleys while .is-live is on), faded in and out. */
+    #drone-show-overlay { transition: opacity .9s ease-in-out; }
+    #drone-show-overlay.is-live { opacity: 1; }
     .firework-burst {
       position: absolute;
       left: var(--x);
@@ -85,13 +90,12 @@
       opacity: 0;
       transform-origin: 50% 5px;
     }
-    #drone-show-overlay.is-playing .firework-burst::before {
+    #drone-show-overlay.is-live .firework-burst::before {
       animation: firework-flash .42s ease-out var(--delay) both;
     }
-    #drone-show-overlay.is-playing .firework-burst i {
+    #drone-show-overlay.is-live .firework-burst i {
       animation: firework-spark 1.28s cubic-bezier(.16,.72,.32,1) var(--delay) both;
     }
-    @keyframes drone-show-sky { 0%,100% { opacity: 0; } 7%,90% { opacity: 1; } }
     @keyframes firework-flash { 0% { opacity: 0; transform: scale(.2); } 22% { opacity: 1; transform: scale(2.6); } 100% { opacity: 0; transform: scale(5); } }
     @keyframes firework-spark {
       0% { opacity: 0; transform: rotate(var(--angle)) translateY(0) scaleY(.4); }

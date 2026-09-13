@@ -44,11 +44,19 @@ const TRANSPORT_MINUTES_PER_STOP = 1.5;
 // Converts riders x per-tile fare x travelled tiles into company dollars on
 // the stylized 萬 scale. Sub-dollar amounts accrue via company.cashFraction,
 // so short trips are never lost to rounding.
+// Unchanged when buses moved onto the display clock: the route editor's
+// estimate (computeTransportRouteMetrics) was always priced at this rate and
+// capped by monthlyRidershipCap; the real sim simply never reached it while a
+// bus crawled six tiles a calendar day. Now that it makes ~18 round trips a
+// month the same cap binds in dwellTransportVehicleAtStop, so the estimate and
+// the money that actually arrives finally agree.
 const TRANSPORT_FARE_ECONOMY_SCALE = 0.00015;
-// A standard bus covers six authoritative tiles/day x 30 calendar days.
-// Express classes multiply this by their speedFactor. Month-end settlement
-// still charges each vehicle's exact tilesThisMonth.
-const TRANSPORT_ESTIMATED_TILES_PER_MONTH = 180;
+// A standard bus runs round the clock at 0.75 display minutes per tile: on a
+// typical 40-tile route with six stops each way that is a 78-minute round
+// trip, ~18 trips per sky-day (= calendar month), ~1500 tiles. Express
+// classes go further by their speedFactor. Month-end settlement still
+// charges each vehicle's exact tilesThisMonth.
+const TRANSPORT_ESTIMATED_TILES_PER_MONTH = 1500;
 const TRANSPORT_TRAFFIC_RELIEF_MAX = 0.25;
 const TRANSPORT_HAPPINESS_BONUS_MAX = 0.025;
 const TRANSPORT_COMMERCIAL_DEMAND_BONUS_MAX = 0.03;
@@ -86,13 +94,26 @@ const TRANSPORT_VEHICLE_CLASSES = Object.freeze({
     tileRunningCost: 0.0001,
   }),
 });
-// §10/§12: mandatory periodic servicing and the lightweight breakdown model.
-const TRANSPORT_SERVICE_INTERVAL_DAYS = 120;
-const TRANSPORT_SERVICE_DURATION_DAYS = 4;
-const TRANSPORT_CONDITION_DECAY_PER_DAY = 1 / (TRANSPORT_SERVICE_INTERVAL_DAYS * 3);
+// §10/§12: mandatory periodic servicing and the lightweight breakdown model,
+// timed on the display clock (one sky-day = one calendar month, see
+// game-clock.js). Every four sky-days a working bus goes home for a
+// three-hour service; a worn one (condition below the threshold) has a 3%
+// chance per sky-day of breaking down, rolled hourly, and is off the road for
+// two hours when it does. The service interval equals the old 120 calendar
+// days exactly (120 x 48 displayed minutes), so legacy saves migrate 1:1.
+const TRANSPORT_DISPLAY_MINUTES_PER_HOUR = 60;
+const TRANSPORT_DISPLAY_MINUTES_PER_DAY = 24 * TRANSPORT_DISPLAY_MINUTES_PER_HOUR;
+const TRANSPORT_SERVICE_INTERVAL_DISPLAY_DAYS = 4;
+const TRANSPORT_SERVICE_INTERVAL_MINUTES = TRANSPORT_SERVICE_INTERVAL_DISPLAY_DAYS * TRANSPORT_DISPLAY_MINUTES_PER_DAY;
+const TRANSPORT_SERVICE_DURATION_MINUTES = 180;
+const TRANSPORT_CONDITION_DECAY_PER_MINUTE = 1 / (TRANSPORT_SERVICE_INTERVAL_MINUTES * 3);
 const TRANSPORT_BREAKDOWN_CONDITION_THRESHOLD = 0.35;
-const TRANSPORT_BREAKDOWN_DAILY_CHANCE = 0.03;
-const TRANSPORT_BREAKDOWN_DURATION_DAYS = 2;
+const TRANSPORT_BREAKDOWN_CHANCE_PER_DAY = 0.03;
+const TRANSPORT_BREAKDOWN_CHANCE_PER_HOUR = 1 - Math.pow(1 - TRANSPORT_BREAKDOWN_CHANCE_PER_DAY, 1 / 24);
+const TRANSPORT_BREAKDOWN_DURATION_MINUTES = 120;
+// Saves from before the display clock timed these in calendar days; a
+// calendar day is 48 displayed minutes.
+const TRANSPORT_LEGACY_MINUTES_PER_CALENDAR_DAY = 48;
 // Resale value on Sell (§10): worn, aged vehicles fetch less than a fresh one.
 const TRANSPORT_VEHICLE_RESALE_FACTOR = 0.5;
 // §4/§16: v1's whole bankruptcy mechanic - after this many *consecutive*
@@ -100,17 +121,22 @@ const TRANSPORT_VEHICLE_RESALE_FACTOR = 0.5;
 // auto-suspended (running costs stop; the player sells vehicles or waits
 // out the grace period next time). No company loan mechanic in v1.
 const TRANSPORT_BANKRUPTCY_GRACE_MONTHS = 3;
-// §12 authoritative vehicle speed. A normal bus covers six road tiles per
-// calendar day, so a typical stop-to-stop journey spans several visible game
-// days (OpenTTD-style) while still completing useful trips before servicing.
-// Express buses apply their class speedFactor to this value. The game clock
-// advances this continuously; the map sprite only renders the saved progress.
-const TRANSPORT_VEHICLE_TILES_PER_GAME_DAY = 6;
-// §12 boarding: fraction of a stop's catchment origin units that forms that
-// day's commuter pool. Midnight replaces the previous queue with this value
-// instead of stacking yesterday's unserved riders indefinitely; vehicles
-// reaching the stop during the day subtract from the current pool.
+// §12 authoritative vehicle speed is the same model the route editor's
+// headway figure uses: TRANSPORT_MINUTES_PER_ROAD_TILE displayed minutes per
+// tile (express classes divide by their speedFactor) plus a
+// TRANSPORT_MINUTES_PER_STOP dwell at every stop. The headway the player is
+// shown is therefore what they see on the map. The game clock advances this
+// continuously; the map sprite only renders the saved progress.
+//
+// §12 boarding: fraction of a stop's catchment origin units that forms one
+// sky-day's commuter pool. It accrues hour by hour following the road
+// traffic's time-of-day curve (traffic-demand.js) - queues build toward the
+// 08:30 and 18:00 peaks and are empty before dawn - and the pool is cleared
+// once a day at TRANSPORT_STOP_POOL_RESET_HOUR so unserved riders do not
+// stack into an unrealistic crowd. Vehicles reaching the stop subtract from
+// the current pool.
 const TRANSPORT_STOP_DAILY_BOARDING_SHARE = 0.15;
+const TRANSPORT_STOP_POOL_RESET_HOUR = 4;
 const TRANSPORT_STOP_WAITING_CAP = 9999;
 // This epsilon keeps tile count strictly ahead of turn count even on a full
 // 256x256 route, while still breaking equal-length ties in favour of fewer
@@ -301,6 +327,21 @@ function transportClamp(value, min, max) {
   return Math.max(min, Math.min(max, numeric));
 }
 
+// Months are their real length (game-clock.js); the prorated month-to-date
+// figures divide by the current month's day count, not a flat thirty.
+function getTransportDaysInMonth() {
+  if (typeof getDaysInMonth === 'function' && typeof city !== 'undefined') {
+    return getDaysInMonth(city.month, city.year);
+  }
+  return 30;
+}
+
+function getTransportMonthDayFraction() {
+  const days = getTransportDaysInMonth();
+  const day = typeof city === 'undefined' ? days : Math.max(1, Number(city.day) || 1);
+  return transportClamp(day / days, 1 / days, 1);
+}
+
 function transportRoundMoney(value) {
   return Math.max(0, Math.round(Number(value) || 0));
 }
@@ -433,6 +474,15 @@ const TRANSPORT_VEHICLE_STATUSES = Object.freeze(new Set([
   'active', 'depot', 'servicing', 'broken_down', 'delivering_to_depot', 'returning_for_service',
 ]));
 
+function normalizeTransportLegacyDayMinutes(minutes, legacyDays) {
+  const numericMinutes = Number(minutes);
+  if (Number.isFinite(numericMinutes)) return Math.max(0, numericMinutes);
+  const numericDays = Number(legacyDays);
+  return Number.isFinite(numericDays)
+    ? Math.max(0, Math.floor(numericDays)) * TRANSPORT_LEGACY_MINUTES_PER_CALENDAR_DAY
+    : 0;
+}
+
 function normalizeTransportVehicle(raw) {
   if (!raw || typeof raw !== 'object') return null;
   const id = String(raw.id || '').slice(0, 80);
@@ -447,11 +497,19 @@ function normalizeTransportVehicle(raw) {
     ageMonths: Math.max(0, Math.floor(Number(raw.ageMonths) || 0)),
     odometerTiles: Math.max(0, Math.floor(Number(raw.odometerTiles) || 0)),
     condition: transportClamp(raw.condition ?? 1, 0, 1),
-    daysSinceService: Math.max(0, Math.floor(Number(raw.daysSinceService) || 0)),
+    // Timed in displayed minutes. Saves from before the display clock stored
+    // calendar days in the *DaysRemaining / daysSinceService fields; those
+    // convert at 48 minutes per day so a bus mid-service picks up where it was.
+    minutesSinceService: normalizeTransportLegacyDayMinutes(raw.minutesSinceService, raw.daysSinceService),
     status: TRANSPORT_VEHICLE_STATUSES.has(raw.status) ? raw.status : 'depot',
     // Counts down status: 'servicing' / 'broken_down' respectively; 0 when neither.
-    serviceDaysRemaining: Math.max(0, Math.floor(Number(raw.serviceDaysRemaining) || 0)),
-    brokenDaysRemaining: Math.max(0, Math.floor(Number(raw.brokenDaysRemaining) || 0)),
+    serviceMinutesRemaining: normalizeTransportLegacyDayMinutes(raw.serviceMinutesRemaining, raw.serviceDaysRemaining),
+    brokenMinutesRemaining: normalizeTransportLegacyDayMinutes(raw.brokenMinutesRemaining, raw.brokenDaysRemaining),
+    // Time left standing at the current stop before pulling away.
+    dwellMinutesRemaining: Math.max(0, Number(raw.dwellMinutesRemaining) || 0),
+    // Riders boarded this calendar month, capped by the class's
+    // monthlyRidershipCap in dwellTransportVehicleAtStop; reset at settlement.
+    boardingsThisMonth: Math.max(0, Math.floor(Number(raw.boardingsThisMonth) || 0)),
     purchasePrice: Math.max(0, normalizeTransportLegacyScaleMoney(raw.purchasePrice, 10000)),
     passengersAboard: Math.max(0, Math.floor(Number(raw.passengersAboard) || 0)),
     // Aggregate distance already travelled by everyone currently aboard.
@@ -1077,7 +1135,7 @@ function assignTransportVehicleToRoute(vehicleId, routeId) {
 // §10 Fleet tab "Sell": a vehicle out on a route must return to its depot
 // first (mirrors OpenTTD - no mid-road scrapping). Since real per-vehicle
 // movement isn't simulated yet (§12 lands later), this flags the return and
-// reports false; advanceTransportVehiclesDaily() resolves the trip once the
+// reports false; advanceTransportVehicleMaintenance() resolves the trip once the
 // depot is reachable, at which point a follow-up Sell call succeeds.
 function sellTransportVehicle(vehicleId) {
   const state = getTransportExpansionState();
@@ -1098,7 +1156,7 @@ function sellTransportVehicle(vehicleId) {
 
 // OpenTTD-style explicit "send to depot" command. A moving bus keeps its
 // route assignment until the daily movement state reaches its home depot;
-// advanceTransportVehiclesDaily() then parks and unassigns it so it can be
+// advanceTransportVehicleMaintenance() then parks and unassigns it so it can be
 // reassigned or sold without teleporting it off the road.
 function sendTransportVehicleToDepot(vehicleId) {
   const vehicle = getTransportExpansionState().vehicles.find((entry) => entry.id === vehicleId);
@@ -1116,8 +1174,13 @@ function sendTransportVehicleToDepot(vehicleId) {
 // or service recall), and rolls the lightweight breakdown chance for
 // vehicles whose service was skipped (most likely a disconnected depot).
 // Call once per simulated day, e.g. from game-clock.js's daily advance hook.
-function advanceTransportVehiclesDaily() {
-  if (!isTransportExpansionActive()) return;
+// Continuous part of §10/§12 maintenance, in displayed minutes: condition
+// decays while a bus works and recovers while it sits in the yard, service
+// and breakdown countdowns run, and a bus that is due goes home. Called from
+// advanceTransportClock with the span the frame covered.
+function advanceTransportVehicleMaintenance(elapsedMinutes) {
+  const minutes = Math.max(0, Number(elapsedMinutes) || 0);
+  if (minutes <= 0 || !isTransportExpansionActive()) return;
   const state = getTransportExpansionState();
   const connectedDepotIds = new Set(getConnectedCommissionedTransportDepots().map((depot) => depot.id));
   for (const vehicle of state.vehicles) {
@@ -1126,26 +1189,26 @@ function advanceTransportVehiclesDaily() {
       // always get to a bus that's sitting in the yard) - but a *working*
       // vehicle relies on the mandatory periodic service below, never this.
       vehicle.condition = transportClamp(
-        vehicle.condition + TRANSPORT_CONDITION_DECAY_PER_DAY * 2, 0, 1,
+        vehicle.condition + TRANSPORT_CONDITION_DECAY_PER_MINUTE * 2 * minutes, 0, 1,
       );
       continue;
     }
     if (vehicle.status === 'servicing') {
-      vehicle.serviceDaysRemaining = Math.max(0, vehicle.serviceDaysRemaining - 1);
-      if (vehicle.serviceDaysRemaining <= 0) {
+      vehicle.serviceMinutesRemaining = Math.max(0, vehicle.serviceMinutesRemaining - minutes);
+      if (vehicle.serviceMinutesRemaining <= 0) {
         vehicle.condition = 1;
-        vehicle.daysSinceService = 0;
+        vehicle.minutesSinceService = 0;
         vehicle.status = vehicle.routeId ? 'active' : 'depot';
       }
       continue;
     }
     if (vehicle.status === 'broken_down') {
-      vehicle.brokenDaysRemaining = Math.max(0, vehicle.brokenDaysRemaining - 1);
-      if (vehicle.brokenDaysRemaining <= 0) vehicle.status = vehicle.routeId ? 'active' : 'depot';
+      vehicle.brokenMinutesRemaining = Math.max(0, vehicle.brokenMinutesRemaining - minutes);
+      if (vehicle.brokenMinutesRemaining <= 0) vehicle.status = vehicle.routeId ? 'active' : 'depot';
       continue;
     }
-    vehicle.daysSinceService++;
-    vehicle.condition = transportClamp(vehicle.condition - TRANSPORT_CONDITION_DECAY_PER_DAY, 0, 1);
+    vehicle.minutesSinceService += minutes;
+    vehicle.condition = transportClamp(vehicle.condition - TRANSPORT_CONDITION_DECAY_PER_MINUTE * minutes, 0, 1);
     if (vehicle.status === 'delivering_to_depot' || vehicle.status === 'returning_for_service') {
       // No real movement sim yet (§12) - resolve the return the moment the
       // depot is reachable; otherwise the vehicle idles in place, unable to
@@ -1153,7 +1216,7 @@ function advanceTransportVehiclesDaily() {
       if (!vehicle.depotId || !connectedDepotIds.has(vehicle.depotId)) continue;
       if (vehicle.status === 'returning_for_service') {
         vehicle.status = 'servicing';
-        vehicle.serviceDaysRemaining = TRANSPORT_SERVICE_DURATION_DAYS;
+        vehicle.serviceMinutesRemaining = TRANSPORT_SERVICE_DURATION_MINUTES;
         vehicle.passengersAboard = 0;
         vehicle.passengerDistanceTiles = 0;
         vehicle.lastFareDistanceTiles = 0;
@@ -1167,20 +1230,29 @@ function advanceTransportVehiclesDaily() {
       continue;
     }
     if (vehicle.status !== 'active') continue;
-    if (vehicle.daysSinceService >= TRANSPORT_SERVICE_INTERVAL_DAYS) {
+    if (vehicle.minutesSinceService >= TRANSPORT_SERVICE_INTERVAL_MINUTES) {
       if (vehicle.depotId && connectedDepotIds.has(vehicle.depotId)) {
         vehicle.status = 'returning_for_service';
       }
       // Depot disconnected: service deferred, condition keeps decaying - the
       // natural in-fiction consequence, no special-case code needed (§10).
-      continue;
     }
+  }
+}
+
+// Hourly part of §12's breakdown model: a worn, working bus rolls once per
+// displayed hour at the per-hour equivalent of the per-day chance.
+function rollTransportVehicleBreakdowns() {
+  if (!isTransportExpansionActive()) return;
+  const state = getTransportExpansionState();
+  for (const vehicle of state.vehicles) {
+    if (vehicle.status !== 'active') continue;
     if (
       vehicle.condition < TRANSPORT_BREAKDOWN_CONDITION_THRESHOLD
-      && Math.random() < TRANSPORT_BREAKDOWN_DAILY_CHANCE
+      && Math.random() < TRANSPORT_BREAKDOWN_CHANCE_PER_HOUR
     ) {
       vehicle.status = 'broken_down';
-      vehicle.brokenDaysRemaining = TRANSPORT_BREAKDOWN_DURATION_DAYS;
+      vehicle.brokenMinutesRemaining = TRANSPORT_BREAKDOWN_DURATION_MINUTES;
     }
   }
 }
@@ -1282,19 +1354,62 @@ function dwellTransportVehicleAtStop(vehicle, route, stop) {
   }
 
   const waitingPool = Math.max(0, Math.floor(Number(stop.waitingPassengers) || 0));
-  const boardable = Math.max(0, vehicleClass.capacity - vehicle.passengersAboard);
-  const boarding = Math.min(waitingPool, boardable);
+  // Seats free now, and riders left under this month's per-vehicle cap. The
+  // cap used to live only in the route editor's estimate; with a bus making
+  // ~18 round trips a month it has to bind in the real sim too.
+  const seatsFree = Math.max(0, vehicleClass.capacity - vehicle.passengersAboard);
+  const monthAllowance = Math.max(
+    0,
+    vehicleClass.monthlyRidershipCap - Math.max(0, Math.floor(Number(vehicle.boardingsThisMonth) || 0)),
+  );
+  const boarding = Math.min(waitingPool, seatsFree, monthAllowance);
   if (boarding > 0) {
     vehicle.passengersAboard += boarding;
+    vehicle.boardingsThisMonth = Math.max(0, Math.floor(Number(vehicle.boardingsThisMonth) || 0)) + boarding;
     setTransportStopWaitingCount(stop, waitingPool - boarding);
   }
 }
 
-// §7/§12 daily commuter reset. Each station begins the day with its catchment-
-// based commuter pool; yesterday's unserved riders do not stack into an
-// unrealistic crowd. Boarding is exclusively performed by
-// advanceTransportVehiclesByGameDays when a vehicle reaches a stop, so
-// multiple vehicles during the same day naturally share one queue.
+// §7/§12 commuter pools follow the sky-day. Each displayed hour every stop
+// gains its share of the day's pool, weighted by the road traffic's
+// time-of-day curve so queues build toward the commute peaks and are empty
+// before dawn. The pool is cleared once a day at TRANSPORT_STOP_POOL_RESET_HOUR
+// so yesterday's unserved riders do not stack into an unrealistic crowd.
+// Boarding is exclusively performed by advanceTransportVehiclesByDisplayMinutes
+// when a vehicle reaches a stop, so several vehicles share one queue.
+let transportHourlyPoolWeights = null;
+function getTransportHourlyPoolWeights() {
+  if (transportHourlyPoolWeights) return transportHourlyPoolWeights;
+  const raw = [];
+  for (let hour = 0; hour < 24; hour++) {
+    raw.push(typeof getTrafficTimeOfDayMultiplier === 'function'
+      ? Math.max(0, Number(getTrafficTimeOfDayMultiplier(hour * 60 + 30)) || 0)
+      : 1);
+  }
+  const total = raw.reduce((sum, value) => sum + value, 0) || 24;
+  transportHourlyPoolWeights = raw.map((value) => value / total);
+  return transportHourlyPoolWeights;
+}
+
+function accrueTransportStopCommutersForHour(displayHour) {
+  if (!isTransportExpansionActive() || isTransportSevereWeather()) return;
+  const hour = ((Math.floor(Number(displayHour) || 0) % 24) + 24) % 24;
+  const weight = getTransportHourlyPoolWeights()[hour];
+  const state = getTransportExpansionState();
+  for (const stop of state.stops) {
+    if (!isTransportStopPresent(stop)) continue;
+    const current = hour === TRANSPORT_STOP_POOL_RESET_HOUR
+      ? 0
+      : Math.max(0, Math.floor(Number(stop.waitingPassengers) || 0));
+    const arrivals = Math.round(
+      getTransportStopCatchmentUnits(stop).originUnits * TRANSPORT_STOP_DAILY_BOARDING_SHARE * weight,
+    );
+    setTransportStopWaitingCount(stop, current + arrivals);
+  }
+}
+
+// Kept for callers that seed a whole day's pool at once (tests, route
+// editing previews): the same total the hourly accrual reaches over 24 hours.
 function simulateTransportVehiclesDaily() {
   if (!isTransportExpansionActive() || isTransportSevereWeather()) return;
   const state = getTransportExpansionState();
@@ -1785,9 +1900,14 @@ function findTransportOpportunisticStopWithinSegment(route, runtime, startIndex,
   return null;
 }
 
-function advanceTransportVehiclesByGameDays(gameDays) {
-  const elapsedDays = Math.max(0, Number(gameDays) || 0);
-  if (elapsedDays <= 0 || !isTransportExpansionActive() || isTransportSevereWeather()) return;
+// Authoritative movement in displayed minutes: a bus spends
+// TRANSPORT_MINUTES_PER_ROAD_TILE per tile (over its class speedFactor) and
+// stands TRANSPORT_MINUTES_PER_STOP at every stop, so a round trip takes the
+// same time the route editor's headway figure assumes. A frame that spans
+// more than one segment walks each in turn.
+function advanceTransportVehiclesByDisplayMinutes(displayMinutes) {
+  const elapsedMinutes = Math.max(0, Number(displayMinutes) || 0);
+  if (elapsedMinutes <= 0 || !isTransportExpansionActive() || isTransportSevereWeather()) return;
   ensureTransportRouteRuntime();
   const state = getTransportExpansionState();
   for (const vehicle of state.vehicles) {
@@ -1802,12 +1922,22 @@ function advanceTransportVehiclesByGameDays(gameDays) {
     vehicle.orderIndex = ((vehicle.orderIndex % cycleStops.length) + cycleStops.length) % cycleStops.length;
     vehicle.progress = transportClamp(vehicle.progress, 0, 1);
     const vehicleClass = getTransportVehicleClass(vehicle.classId);
-    let distanceRemaining = elapsedDays
-      * TRANSPORT_VEHICLE_TILES_PER_GAME_DAY
-      * vehicleClass.speedFactor;
+    const minutesPerTile = TRANSPORT_MINUTES_PER_ROAD_TILE / Math.max(0.05, vehicleClass.speedFactor || 1);
+    let minutesRemaining = elapsedMinutes;
     let travelled = 0;
     let transitions = 0;
-    while (distanceRemaining > 0.000001 && transitions < 1000) {
+    const arriveAt = (stop) => {
+      dwellTransportVehicleAtStop(vehicle, route, stop);
+      vehicle.dwellMinutesRemaining = TRANSPORT_MINUTES_PER_STOP;
+    };
+    while (minutesRemaining > 0.000001 && transitions < 1000) {
+      // still standing at the last stop
+      if (vehicle.dwellMinutesRemaining > 0) {
+        const hold = Math.min(minutesRemaining, vehicle.dwellMinutesRemaining);
+        vehicle.dwellMinutesRemaining -= hold;
+        minutesRemaining -= hold;
+        if (minutesRemaining <= 0.000001) break;
+      }
       const startIndex = stopIndices[vehicle.orderIndex];
       const nextOrderIndex = (vehicle.orderIndex + 1) % cycleStops.length;
       const nextIndex = stopIndices[nextOrderIndex];
@@ -1832,35 +1962,57 @@ function advanceTransportVehiclesByGameDays(gameDays) {
       const tilesToTarget = Math.max(0, targetTiles - positionTiles);
       if (tilesToTarget <= 0.000001) {
         if (opportunisticStop) {
-          dwellTransportVehicleAtStop(vehicle, route, opportunisticStop);
+          arriveAt(opportunisticStop);
         } else {
           vehicle.progress = 0;
           vehicle.orderIndex = nextOrderIndex;
-          dwellTransportVehicleAtStop(vehicle, route, cycleStops[vehicle.orderIndex]);
+          arriveAt(cycleStops[vehicle.orderIndex]);
         }
         transitions++;
         continue;
       }
-      const step = Math.min(distanceRemaining, tilesToTarget);
+      const step = Math.min(minutesRemaining / minutesPerTile, tilesToTarget);
       vehicle.passengerDistanceTiles = Math.max(
         0,
         Number(vehicle.passengerDistanceTiles) || 0,
       ) + vehicle.passengersAboard * step;
       vehicle.progress += step / segmentTiles;
       travelled += step;
-      distanceRemaining -= step;
+      minutesRemaining -= step * minutesPerTile;
       if (step < tilesToTarget - 0.000001) break;
       if (opportunisticStop) {
-        dwellTransportVehicleAtStop(vehicle, route, opportunisticStop);
+        arriveAt(opportunisticStop);
       } else {
         vehicle.progress = 0;
         vehicle.orderIndex = nextOrderIndex;
-        dwellTransportVehicleAtStop(vehicle, route, cycleStops[vehicle.orderIndex]);
+        arriveAt(cycleStops[vehicle.orderIndex]);
       }
       transitions++;
     }
     vehicle.odometerTiles = Math.max(0, Number(vehicle.odometerTiles) || 0) + travelled;
     vehicle.tilesThisMonth = Math.max(0, Number(vehicle.tilesThisMonth) || 0) + travelled;
+  }
+}
+
+// Driven from game-clock.js's advanceGameTimeOfDay with the environmental
+// minutes the frame covered (minute 0 of the environmental clock is 06:00 on
+// the sky). Movement, dwell and the maintenance countdowns are continuous;
+// commuter accrual and breakdown rolls happen on the hour.
+function advanceTransportClock(fromMinutes, toMinutes) {
+  if (!isTransportExpansionActive()) return;
+  const from = Math.max(0, Number(fromMinutes) || 0);
+  const to = Math.max(from, Number(toMinutes) || 0);
+  if (to <= from) return;
+  advanceTransportVehiclesByDisplayMinutes(to - from);
+  advanceTransportVehicleMaintenance(to - from);
+  const firstHour = Math.floor(from / TRANSPORT_DISPLAY_MINUTES_PER_HOUR) + 1;
+  const lastHour = Math.floor(to / TRANSPORT_DISPLAY_MINUTES_PER_HOUR);
+  const dayStartHour = typeof GAME_DAY_START_MINUTES === 'number'
+    ? Math.floor(GAME_DAY_START_MINUTES / TRANSPORT_DISPLAY_MINUTES_PER_HOUR)
+    : 6;
+  for (let hour = firstHour; hour <= lastHour; hour++) {
+    accrueTransportStopCommutersForHour((hour + dayStartHour) % 24);
+    rollTransportVehicleBreakdowns();
   }
 }
 
@@ -1949,7 +2101,7 @@ function recordTransportDailyAvailability() {
   if (state.lastWeatherDayKey === key) return;
   state.lastWeatherDayKey = key;
   if (isTransportSevereWeather()) {
-    state.weatherSuspendedDaysThisMonth = Math.min(30, state.weatherSuspendedDaysThisMonth + 1);
+    state.weatherSuspendedDaysThisMonth = Math.min(getTransportDaysInMonth(), state.weatherSuspendedDaysThisMonth + 1);
   }
 }
 
@@ -2041,7 +2193,7 @@ function updateTransportSimulation() {
 
   ensureTransportRouteRuntime();
   const state = getTransportExpansionState();
-  const weatherAvailability = transportClamp(1 - state.weatherSuspendedDaysThisMonth / 30, 0, 1);
+  const weatherAvailability = transportClamp(1 - state.weatherSuspendedDaysThisMonth / getTransportDaysInMonth(), 0, 1);
   const currentlySuspendedForWeather = isTransportSevereWeather();
   const residentialBenefits = new Map();
   const commercialBenefits = new Map();
@@ -2099,7 +2251,7 @@ function updateTransportSimulation() {
       ), 0) / runtime.path.length;
     }
     // §12/§14.1: route.lastStats is now real accrued data from per-vehicle
-    // arrivals (advanceTransportVehiclesByGameDays), not the aggregate
+    // arrivals (advanceTransportVehiclesByDisplayMinutes), not the aggregate
     // formula - the same numbers driving traffic relief/happiness/demand
     // now reflect actual usage, not an estimate. potentialPassengers/
     // capacity are prorated to "so far this month" so quality/loadFactor
@@ -2107,7 +2259,7 @@ function updateTransportSimulation() {
     // computeTransportRouteMetrics remains available separately as the
     // route editor's "potential ridership" ceiling preview (§13).
     const vehicleClass = getTransportVehicleClass(route.vehicleClassId);
-    const dayFraction = transportClamp((typeof city === 'undefined' ? 30 : Math.max(1, city.day)) / 30, 1 / 30, 1);
+    const dayFraction = getTransportMonthDayFraction();
     const potentialSoFar = potentialPassengers * dayFraction;
     const capacitySoFar = runtime.effectiveBuses * vehicleClass.monthlyRidershipCap * dayFraction;
     const servedPassengers = route.monthToDatePassengers;
@@ -2295,6 +2447,7 @@ function settleTransportMonth() {
   }
   for (const vehicle of state.vehicles) {
     vehicle.tilesThisMonth = 0;
+    vehicle.boardingsThisMonth = 0;
     vehicle.ageMonths++;
   }
   const depotUpkeep = getConnectedCommissionedTransportDepots().length * TRANSPORT_DEPOT_MONTHLY_UPKEEP;
@@ -2410,17 +2563,22 @@ const transportExpansionTestApi = {
   TRANSPORT_DEPOT_CAPACITY,
   TRANSPORT_DEPOT_MONTHLY_UPKEEP,
   TRANSPORT_MAX_ROUTES,
-  TRANSPORT_VEHICLE_TILES_PER_GAME_DAY,
+  TRANSPORT_MINUTES_PER_ROAD_TILE,
+  TRANSPORT_MINUTES_PER_STOP,
   TRANSPORT_STOP_DAILY_BOARDING_SHARE,
+  TRANSPORT_STOP_POOL_RESET_HOUR,
   TRANSPORT_STOP_WAITING_CAP,
   TRANSPORT_DEFAULT_VEHICLE_CLASS_ID,
   TRANSPORT_VEHICLE_CLASSES,
-  TRANSPORT_SERVICE_INTERVAL_DAYS,
-  TRANSPORT_SERVICE_DURATION_DAYS,
-  TRANSPORT_CONDITION_DECAY_PER_DAY,
+  TRANSPORT_SERVICE_INTERVAL_DISPLAY_DAYS,
+  TRANSPORT_SERVICE_INTERVAL_MINUTES,
+  TRANSPORT_SERVICE_DURATION_MINUTES,
+  TRANSPORT_CONDITION_DECAY_PER_MINUTE,
   TRANSPORT_BREAKDOWN_CONDITION_THRESHOLD,
-  TRANSPORT_BREAKDOWN_DAILY_CHANCE,
-  TRANSPORT_BREAKDOWN_DURATION_DAYS,
+  TRANSPORT_BREAKDOWN_CHANCE_PER_DAY,
+  TRANSPORT_BREAKDOWN_CHANCE_PER_HOUR,
+  TRANSPORT_BREAKDOWN_DURATION_MINUTES,
+  TRANSPORT_LEGACY_MINUTES_PER_CALENDAR_DAY,
   TRANSPORT_VEHICLE_RESALE_FACTOR,
   TRANSPORT_BANKRUPTCY_GRACE_MONTHS,
   TRANSPORT_FARE_MIN,
@@ -2460,7 +2618,6 @@ const transportExpansionTestApi = {
   sellTransportVehicle,
   sendTransportVehicleToDepot,
   assignTransportVehicleToRoute,
-  advanceTransportVehiclesDaily,
   getTransportDepotVehicleCount,
   getTransportRouteVehicles,
   getTransportRouteEffectiveVehicleCount,
@@ -2468,7 +2625,11 @@ const transportExpansionTestApi = {
   getTransportRequestedFleet,
   getTransportIndustrialDemandBonus,
   simulateTransportVehiclesDaily,
-  advanceTransportVehiclesByGameDays,
+  advanceTransportVehiclesByDisplayMinutes,
+  advanceTransportClock,
+  advanceTransportVehicleMaintenance,
+  rollTransportVehicleBreakdowns,
+  accrueTransportStopCommutersForHour,
   dwellTransportVehicleAtStop,
   getTransportStopCatchmentUnits,
   getTransportRouteCycleStops,

@@ -110,15 +110,21 @@ async function verify() {
   // Night variants are derived by scripts/bake-night-textures.js from the staged
   // day texture, so they have no source image of their own. They are checked
   // separately below against the day entry they came from.
-  const isNightVariant = (p) => /__night(deep)?\.png$/.test(p);
+  const isNightVariant = (p) => /__night(deep|lamps)?\.png$/.test(p);
   const manifestLogicalPaths = Object.keys(manifest.entries).filter((p) => !isNightVariant(p)).sort();
   assert.deepStrictEqual(manifestLogicalPaths, sourceLogicalPaths, 'manifest must exactly match source images');
 
   const nightEntries = Object.entries(manifest.entries).filter(([p]) => isNightVariant(p));
+  // The runtime picks one of the three per building (getBuildingNightVariant),
+  // so a model that has any night art must have all of it.
+  const nightVariantsByDay = new Map();
   for (const [logicalPath, entry] of nightEntries) {
-    const dayLogical = logicalPath.replace(/__night(deep)?\.png$/, '.png');
+    const dayLogical = logicalPath.replace(/__night(deep|lamps)?\.png$/, '.png');
     const day = manifest.entries[dayLogical];
     assert.ok(day, `${logicalPath} has no day counterpart`);
+    const set = nightVariantsByDay.get(dayLogical) || new Set();
+    set.add(logicalPath.slice(dayLogical.length - 4, -4));
+    nightVariantsByDay.set(dayLogical, set);
     const stagedPath = path.join(ROOT, '.data', 'package-assets', ...entry.packagedPath.split('/'));
     assert.ok(fs.existsSync(stagedPath), `missing staged night output for ${logicalPath}`);
     const meta = await sharp(stagedPath).metadata();
@@ -126,6 +132,12 @@ async function verify() {
     // calibrated window positions land in the wrong place.
     assert.equal(meta.width, day.outputWidth, `${logicalPath} width must match its day texture`);
     assert.equal(meta.height, day.outputHeight, `${logicalPath} height must match its day texture`);
+  }
+  for (const [dayLogical, variants] of nightVariantsByDay) {
+    assert.deepStrictEqual(
+      [...variants].sort(), ['__night', '__nightdeep', '__nightlamps'],
+      `${dayLogical} must ship all three night variants`,
+    );
   }
 
   const stagedFiles = walk(STAGE_ROOT);
@@ -214,7 +226,7 @@ async function verify() {
   // totals.files counts the source-derived entries only; night variants are
   // added afterwards by the bake step and verified separately above.
   assert.equal(mipmapEligibleCount, manifest.totals.files, 'not every staged model is mipmap eligible');
-  assert.equal(nightEntries.length % 2, 0, 'night variants must come in evening/deep pairs');
+  assert.equal(nightEntries.length, nightVariantsByDay.size * 3, 'night variants must come in evening/deep/lamps triples');
 
   const registrySources = ['constants.js', 'main.js'];
   const referencedModels = new Set(registrySources.flatMap((fileName) => {

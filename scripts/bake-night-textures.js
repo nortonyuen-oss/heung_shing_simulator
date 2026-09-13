@@ -76,12 +76,17 @@ const LAMP_ALPHA = Number(process.env.BAKE_LAMP_ALPHA || 1);
 // Fraction of a lamp pool allowed to fall outside the model before the lamp is
 // dropped rather than baked with its glow clipped off.
 const LAMP_SPILL_TOLERANCE = Number(process.env.BAKE_LAMP_SPILL || 0.10);
-// Two tiers of night. Evening is the busy one; deep night has far fewer lit
+// Three tiers of night. Evening is the busy one; deep night has far fewer lit
 // windows (the schedule in building-lighting.js already thins them) and a
-// darker facade, so a city visibly settles down in the small hours.
+// darker facade; lamps-only is the deep facade with no lit windows at all,
+// just the street lamps - the building has gone to bed. Which of the three a
+// building wears at a given minute is decided per building at runtime
+// (getBuildingNightVariant, building-lighting.js), so the city settles down
+// block by block rather than all at once.
 const VARIANTS = [
-  { suffix: '__night', bucket: 'eveningPeak', dim: Number(process.env.BAKE_DIM || 0.55) },
-  { suffix: '__nightdeep', bucket: 'deepNight', dim: Number(process.env.BAKE_DIM_DEEP || 0.68) },
+  { suffix: '__night', bucket: 'eveningPeak', dim: Number(process.env.BAKE_DIM || 0.55), windows: true },
+  { suffix: '__nightdeep', bucket: 'deepNight', dim: Number(process.env.BAKE_DIM_DEEP || 0.68), windows: true },
+  { suffix: '__nightlamps', bucket: 'deepNight', dim: Number(process.env.BAKE_DIM_DEEP || 0.68), windows: false },
 ];
 const SAMPLE_DIR = path.join(ROOT, '.data', 'night-samples');
 const STAGE_ROOT = path.join(ROOT, '.data', 'package-assets');
@@ -173,7 +178,12 @@ async function bakeOne(sourcePath, profile, variant) {
   const LIGHT = lightColor(profile);
   const HALO = haloColor(profile);
 
-  const { svg, halo, lit } = litWindowMaskSvg(profile, W, H, variant.bucket);
+  // The lamps-only variant bakes no windows at all: an empty mask and halo
+  // rather than a schedule row that happens to light nothing.
+  const emptySvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}"></svg>`;
+  const { svg, halo, lit } = variant.windows === false
+    ? { svg: emptySvg, halo: emptySvg, lit: 0 }
+    : litWindowMaskSvg(profile, W, H, variant.bucket);
   const mask = (await sharp(Buffer.from(svg)).resize(W, H).ensureAlpha()
     .raw().toBuffer({ resolveWithObject: true })).data;
   const bloom = (await sharp(Buffer.from(halo)).resize(W, H).ensureAlpha()

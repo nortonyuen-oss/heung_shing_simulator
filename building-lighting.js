@@ -128,6 +128,70 @@ function getBuildingLightTargetRatio(bucket, cls, personality) {
 }
 
 // ---------------------------------------------------------------------------
+// Baked night variant per building
+// ---------------------------------------------------------------------------
+// Every calibrated model ships three baked night textures: 'night' (the
+// eveningPeak windows), 'deep' (the deepNight windows) and 'lamps' (street
+// lamps only, not a single window). The schedule above decides how many
+// windows each texture HAS; this decides which texture a given building WEARS
+// at a given minute, so the city dims block by block instead of all at once:
+//   dusk .. 23:00      a share of each kind shows 'night', the rest 'deep'
+//   23:00 .. 01:00     each 'night' building drops to 'deep' at its own minute
+//   01:00 .. 03:00     half the buildings go 'lamps' at their own minute
+//   05:30 .. 06:00     ... and come back to 'deep' (early risers)
+// Every roll comes from the building's tile seed, so a tower keeps the same
+// habits night after night and across a reload. Emergency services never dim.
+const BUILDING_NIGHT_PEAK_SHARE = Object.freeze({
+  residential: 0.70, commercial: 0.50, industrial: 0.30, landmark: 1, emergency: 1,
+});
+const BUILDING_NIGHT_LAMPS_SHARE = 0.50;
+const BUILDING_NIGHT_FADE_START = 23 * 60;
+const BUILDING_NIGHT_FADE_SPAN = 120;
+const BUILDING_NIGHT_LAMPS_START = 24 * 60 + 60;       // 01:00, past midnight
+const BUILDING_NIGHT_LAMPS_SPAN = 120;
+const BUILDING_NIGHT_WAKE_START = 24 * 60 + 5 * 60 + 30; // 05:30
+const BUILDING_NIGHT_WAKE_SPAN = 30;
+const BUILDING_NIGHT_VARIANTS = Object.freeze(['night', 'deep', 'lamps']);
+
+// Landmarks stay fully lit until the 23:00 fade; port, depot and power plants
+// keep industrial hours. Anything else that is not a zone or a 24h service
+// (schools, library, legco, exchange, sports grounds, parks) keeps office hours.
+const BUILDING_NIGHT_LANDMARK_TYPES = new Set([
+  'exhibition_center', 'cultural_center', 'space_museum', 'buddha_statue',
+  'heritage_temple', 'grand_temple', 'heritage_church', 'indoor_coliseum',
+  'murray_house', 'ocean_park', 'football_stadium', 'airport',
+]);
+const BUILDING_NIGHT_INDUSTRIAL_TYPES = new Set([
+  'industrial', 'power_plant_coal', 'power_plant_solar', 'power_plant_nuclear',
+  'container_port', 'bus_depot',
+]);
+
+function getBuildingNightKind(record) {
+  const t = record?.type;
+  if (BUILDING_LIGHT_SERVICE_TYPES.has(t)) return 'emergency';
+  if (BUILDING_NIGHT_LANDMARK_TYPES.has(t)) return 'landmark';
+  if (BUILDING_LIGHT_RESIDENTIAL_TYPES.has(t)) return 'residential';
+  if (BUILDING_NIGHT_INDUSTRIAL_TYPES.has(t)) return 'industrial';
+  return 'commercial';
+}
+
+// The night is one continuous line from noon to noon, so "23:00" and "01:00"
+// compare the way the eye orders them rather than wrapping at midnight.
+function getBuildingNightVariant(kind, seed, minuteOfDay) {
+  if (kind === 'emergency') return 'night';
+  const m = (((Number(minuteOfDay) || 0) % 1440) + 1440) % 1440;
+  const n = m < 720 ? m + 1440 : m;
+  const s = seed >>> 0;
+  const share = BUILDING_NIGHT_PEAK_SHARE[kind] ?? BUILDING_NIGHT_PEAK_SHARE.commercial;
+  const fadeAt = BUILDING_NIGHT_FADE_START + hashBuildingLight(s, 22, 0) * BUILDING_NIGHT_FADE_SPAN;
+  if (n < fadeAt) return hashBuildingLight(s, 21, 0) < share ? 'night' : 'deep';
+  if (hashBuildingLight(s, 23, 0) >= BUILDING_NIGHT_LAMPS_SHARE) return 'deep';
+  const lampsOn = BUILDING_NIGHT_LAMPS_START + hashBuildingLight(s, 24, 0) * BUILDING_NIGHT_LAMPS_SPAN;
+  const lampsOff = BUILDING_NIGHT_WAKE_START + hashBuildingLight(s, 25, 0) * BUILDING_NIGHT_WAKE_SPAN;
+  return n >= lampsOn && n < lampsOff ? 'lamps' : 'deep';
+}
+
+// ---------------------------------------------------------------------------
 // Profiles
 // ---------------------------------------------------------------------------
 
@@ -2164,6 +2228,11 @@ const buildingLightingTestApi = {
   getBuildingLightPersonality,
   getBuildingLightBucket,
   getBuildingLightTargetRatio,
+  BUILDING_NIGHT_PEAK_SHARE,
+  BUILDING_NIGHT_LAMPS_SHARE,
+  BUILDING_NIGHT_VARIANTS,
+  getBuildingNightKind,
+  getBuildingNightVariant,
   makeBuildingLightProfile,
   getBuildingLightClass,
   getBuildingLightFamily,
@@ -2201,6 +2270,8 @@ if (typeof globalThis !== 'undefined') {
     getBuildingLightFamily,
     computeRuntimeBuildingLightStrength,
     getRuntimeBuildingLightBucket,
+    getBuildingNightKind,
+    getBuildingNightVariant,
     computeLitBuildingWindows,
     makeBuildingLightProfile,
     defaultBuildingLightPanels,

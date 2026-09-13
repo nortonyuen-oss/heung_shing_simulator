@@ -41,7 +41,7 @@ function sendStoreError(res, error, routeLabel) {
 // Night textures are derived from a model's day art by
 // scripts/bake-night-textures.js; they are never models in their own right.
 function isDerivedNightVariant(fileName) {
-  return /__night(deep)?\.[^.]+$/.test(String(fileName ?? ''));
+  return /__night(deep|lamps)?\.[^.]+$/.test(String(fileName ?? ''));
 }
 
 function createGameApp(options = {}) {

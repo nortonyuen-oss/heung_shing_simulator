@@ -1,26 +1,47 @@
-# 香城模擬器 (The City of Heung Shing) v4.8.0 — 【日月如梭】
+# 香城模擬器 (The City of Heung Shing) v4.9.0 — 【華燈初上】
 
-香城模擬器 (The City of Heung Shing) v4.8.0 — 【日月如梭】 is a SimCity 2000-style city builder with a local SQLite save system, isometric map view, cloud-assisted district news, and a classic windowed UI.
+香城模擬器 (The City of Heung Shing) v4.9.0 — 【華燈初上】 is a SimCity 2000-style city builder inspired by Hong Kong: isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run bus company, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
 
-<img width="1438" height="792" alt="image" src="https://github.com/user-attachments/assets/ec3cab6e-48af-4976-b00a-097bc901e429" />
+Website and downloads: https://nortonyuen-oss.github.io/heung_shing_simulator/
+
+![The Heung Shing skyline at night, zoomed out: dense lights, the airport and the harbour](docs/assets/gameplay/nightSkyline.webp)
+
+## What the game is
+
+**Build.** Zone residential, commercial and industrial land, lay roads and bridges, place parks, schools, hospitals, police and fire stations and power plants. Buildings grow, upgrade and redevelop on their own with demand and land value; every model is original pixel art, and 133 of them ship pre-baked night textures.
+
+**Run it.** Open a container port and cargo vessels sail in from open water, berth parallel to the quay and exchange cargo. Approve the airport and aircraft land along curved approaches and taxi to their gates. Found the Heung Shing Bus Company: build a depot, open routes, buy buses, and follow any of them with a live tracking camera.
+
+**Govern.** Ten officials sit in the council; special resolutions are priced in months of city income and each member takes a stance. What passes really happens - a football exhibition match, a drone light show every three months - and it all ends up in the Heung Shing Forum and the newspapers, with optional cloud AI headlines if you connect your own key.
+
+**Live through the day.** One displayed day is one game month: sunrise and sunset, weather, rainstorm warnings, typhoon signals, council bills and bus timetables all run on the same clock. After sunset the street lamps come on together and the windows fill in building by building; after 23:00 the towers wind down until half of them show nothing but street lamps, while hospitals and police stations stay lit until dawn.
+
+| | |
+|---|---|
+| ![Downtown Heung Shing by day](docs/assets/gameplay/citySence.webp) A city that feels like Hong Kong: from public housing to glass towers, with minibuses and taxis driving on the left. | ![Sports grounds, the stadium, Ocean Park and a church](docs/assets/gameplay/sportAndAttraction.webp) Landmarks and leisure facilities unlock one by one as the city grows. |
+| ![Low-density waterfront housing, a bridge and a temple](docs/assets/gameplay/newWaterfront.webp) Waterfront living: you set the zoning density, buildings upgrade themselves. | ![Housing on a hillside among autumn trees](docs/assets/gameplay/hillside.webp) Custom terrain - hills, slopes and woods are part of the map. |
+| ![Rose Garden International Airport with an airliner on the runway](docs/assets/gameplay/airport.webp) The airport in operation, beside a bilingual district sign you named yourself. | ![The container port at night with cranes lit and ships berthing](docs/assets/gameplay/containerPort.webp) The container port works through the night. |
+| ![Transport mode: the bus fleet list and live tracking cameras](docs/assets/gameplay/busTycoon.webp) Run your own bus company with per-vehicle load factors, takings and tracking cameras. | ![A residential district just after seven in the evening with windows lighting up](docs/assets/gameplay/nightSence2.webp) Lights coming on: street lamps together, windows one building at a time. |
+| ![The Big Buddha lit up at night beside a neon street](docs/assets/gameplay/buddhaAtNight.webp) Landmarks stay fully lit until one in the morning. | ![The harbour on a rainy night](docs/assets/gameplay/rainyNight.webp) Weather on the sky clock: rain, mist, warnings and typhoon signals step up and down. |
+| ![The council window with a special resolution and each member's stance](docs/assets/gameplay/legislativeCouncil.webp) A council, not just a menu: resolutions priced in months of income. | ![A forum post with the New Year fortune-drawing newspaper](docs/assets/gameplay/heungShingForum.webp) The Heung Shing Forum discusses everything, with illustrated newspaper pages. |
+| ![A forum news post about a drone that crashed mid-show](docs/assets/gameplay/news.webp) What the council passes really happens - and makes the news when it goes wrong. | ![The residential overlay minimap with custom district names](docs/assets/gameplay/minimap.webp) Overlays and the districts you named, on one minimap. |
+
+More screenshots: `docs/assets/gameplay/` (the same set the website gallery uses).
 
 ## Features
 
-- Zone residential, commercial, and industrial districts.
-- Build roads, parks, fire stations, police stations, and power plants.
-- Build and render bridge decks over water using isometric bridge textures.
-- Rotate the main map view and inspect the city with multiple overlay maps.
-- Manage budget, taxes, loans, department funding, and city policies.
-- Save and load cities locally through the bundled Node.js server.
-- View power plant age, output, loading, maintenance cost, and retirement warnings.
-- Use overlays for pollution, crime, fire risk, population, land value, electricity, and power plants.
-- Place bilingual Hong Kong-style district signs; each sign defines a 36-tile local news area whose traffic, education, health, pollution, land value, and population feed AI headlines. Select Query and click a sign to edit both names.
-- Simulate Hong Kong-style weather, typhoons, citizen activity, and district-aware news tickers.
-- Watch a weather-aware ice cream truck drive in from outside the current view, pull up beside schools, universities and visitor attractions, play its melody, then merge back into traffic.
-- Watch cargo vessels enter from open water, approach container ports parallel to the quay, exchange cargo, sound their horn, and depart along a cached ocean route.
-- Preserve the map viewpoint, zoom and rotation with every city save.
-- Draw one of 18 original annual fortunes at a city temple, with the odds gently shaped by the economy, stock crashes and epidemics.
-- Debate industrial revitalization and Strong Nation Manufacturing policies, then follow their traffic, pollution, research and forum-news consequences.
+- Zone residential, commercial and industrial districts at three densities; buildings grow, upgrade and redevelop with demand and land value.
+- Build roads and bridges, parks, schools, hospitals, police and fire stations, power plants, temples, churches and a growing list of landmarks (Ocean Park, the stadium, the coliseum, Murray House, the Big Buddha, the Space Museum and more).
+- A real day/night cycle: one displayed day is one game month with real month lengths and leap years. Every calibrated model ships four baked night textures (peak, half-lit, deep night, street lamps only); each building picks its own from its tile seed, so the city lights up at dusk and dims after midnight block by block, while emergency services stay lit all night.
+- Hong Kong weather on the same clock: conditions hold for hours, rainstorm warnings step amber/red/black with hysteresis, and typhoons arrive every few displayed days in season, climbing from Signal 1 to 10 and back over a day to a day and a half.
+- A Legislative Council with ten officials: special resolutions priced in months of city income, real effects when passed, and follow-up news.
+- The Heung Shing Bus Company (transport expansion): depots, routes, fleet purchases, maintenance and breakdowns on displayed time, per-vehicle load factors and takings, and live tracking cameras.
+- Container ports with cargo vessels that sail in from open water, berth parallel to the quay, exchange cargo and sound their horn; Rose Garden International Airport with aircraft landing along curved approaches and taxiing to their gates.
+- A weather-aware ice cream van that pulls up beside schools and attractions by day, plays its melody and merges back into traffic.
+- Bilingual Hong Kong-style district signs; each sign defines a local news area whose traffic, education, health, pollution, land value and population feed headlines. Rename districts and the city itself any time.
+- The Heung Shing Forum, illustrated newspapers, district news tickers, an annual temple fortune draw, a stock exchange tied to the economy, and optional cloud AI headlines (bring your own Ollama key).
+- Classic overlays for pollution, crime, fire risk, population, land value, electricity and power plants; a minimap; map rotation; the viewpoint, zoom and rotation saved with every city.
+- Budget, taxes, loans, department funding and city policies; a local SQLite save system with autosave.
 
 ## Electricity System
 
@@ -30,7 +51,7 @@
 - Power shortages slow growth and can stop city expansion.
 - The electricity overlay shows city power status and load.
 
-<img width="1081" height="722" alt="image" src="https://github.com/user-attachments/assets/f591c047-768d-4117-8dd6-63a1b41d33c4" />
+<img width="1081" height="722" alt="Electricity overlay showing city power status and load" src="https://github.com/user-attachments/assets/f591c047-768d-4117-8dd6-63a1b41d33c4" />
 
 
 ## Requirements

@@ -53,6 +53,11 @@ function updateTopbarGameTime(payload = null) {
 
 if (typeof onGameClockEvent === 'function') {
   onGameClockEvent('gameclock:time', updateTopbarGameTime);
+  // Loading a city and starting a new one both reset the speed to 1x through
+  // setGameSpeed, without going through the topbar; keep the buttons honest.
+  onGameClockEvent('gameclock:speedchange', () => {
+    if (typeof updateSpeedButtons === 'function') updateSpeedButtons();
+  });
   // Weather changes on its own clock now, between calendar days, so the
   // weather strip cannot wait for the once-a-day HUD refresh.
   onGameClockEvent('weather:change', () => {

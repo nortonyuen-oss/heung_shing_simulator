@@ -902,6 +902,16 @@ function isTrafficSevereWeather(weather) {
   return ['signal8', 'signal9', 'signal10'].includes(weather?.typhoonStage);
 }
 
+// No van after 23:00 or before 06:00 sky time: nobody buys ice cream at three
+// in the morning, and the jingle over a sleeping block is wrong. A van already
+// out at 23:00 finishes its stop and leaves on its own.
+const ICE_CREAM_QUIET_FROM_MINUTE = 23 * 60;
+const ICE_CREAM_QUIET_UNTIL_MINUTE = 6 * 60;
+function isIceCreamTruckHour(minuteOfDay) {
+  const m = (((Number(minuteOfDay) || 0) % 1440) + 1440) % 1440;
+  return m >= ICE_CREAM_QUIET_UNTIL_MINUTE && m < ICE_CREAM_QUIET_FROM_MINUTE;
+}
+
 function canSpawnIceCreamTruckForWeather(weather) {
   return (
     ICE_CREAM_TARGET_TYPES.length > 0
@@ -2210,6 +2220,7 @@ function updateIceCreamEvent(scene, state, delta, paused, speedMultiplier) {
     if (state.iceCreamCooldownMs > 0) return;
     const weather = typeof city === 'undefined' ? null : city.weather;
     if (!canSpawnIceCreamTruckForWeather(weather)) return;
+    if (typeof getGameTimeOfDayMinutes === 'function' && !isIceCreamTruckHour(getGameTimeOfDayMinutes())) return;
     if (!spawnIceCreamEvent(scene, state)) {
       state.iceCreamCooldownMs = ICE_CREAM_EVENT_CONFIG.retryCooldownMs;
       return;
@@ -2695,6 +2706,7 @@ const trafficVisualTestApi = {
   purgeSevereWeatherGroundedTraffic,
   purgeAmbientBusesForTransportExpansion,
   canSpawnIceCreamTruckForWeather,
+  isIceCreamTruckHour,
   isIceCreamTargetBuilding,
   findTrafficPathOutsideView,
   getTrafficVirtualOutsideTile,

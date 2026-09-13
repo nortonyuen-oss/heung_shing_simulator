@@ -327,3 +327,21 @@ test('weather no longer rides the calendar: the daily loop does not call it and 
   // legacy per-calendar-day genesis derivation is gone with it
   assert.doesNotMatch(weatherSource, /WEATHER_TYPHOON_GENESIS_CHANCE/);
 });
+
+test('the frame loop feeds the clock the raw frame delta and the topbar follows every speed change', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const ROOT = path.resolve(__dirname, '..');
+  const main = fs.readFileSync(path.join(ROOT, 'main.js'), 'utf8');
+  const frame = main.slice(main.indexOf('function updateGameFrame('), main.indexOf('function updateGameFrame(') + 1500);
+  // Phaser's smoothed delta is clamped to the 60fps target while the window
+  // is unfocused or cooling down, and averaged over ten frames; at 40fps it
+  // sums to two thirds of real time, so the clock crawled after a load and
+  // then "sped up" as the frame rate recovered. The raw delta is real time.
+  assert.match(frame, /this\.game\?\.loop\?\.rawDelta/);
+  assert.match(frame, /updateGameClock\(this, clockDeltaMs\)/);
+  // Loading and new-game reset the speed through setGameSpeed without touching
+  // the topbar; the buttons have to be told.
+  const hud = fs.readFileSync(path.join(ROOT, 'hud.js'), 'utf8');
+  assert.match(hud, /onGameClockEvent\('gameclock:speedchange', \(\) => \{\s*if \(typeof updateSpeedButtons === 'function'\) updateSpeedButtons\(\);/);
+});

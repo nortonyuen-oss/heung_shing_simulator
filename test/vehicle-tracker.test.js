@@ -68,7 +68,7 @@ test('tracker manager supports duplicate focus, minimise cleanup and target life
 
 test('the one game update loop schedules trackers and culls the union of independent camera views', () => {
   const main = source('main.js');
-  assert.match(main, /updateGameClock\(this, delta\);[\s\S]*?beginVehicleTrackerFrame\(this, time, delta\)/);
+  assert.match(main, /updateGameClock\(this, clockDeltaMs\);[\s\S]*?beginVehicleTrackerFrame\(this, time, delta\)/);
   assert.match(main, /syncVehicleTrackerTargetsBeforeRender\(this, time\);[\s\S]*?updateTerrainViewportCulling\(this\)/);
   assert.match(main, /getActiveWorldViewportCameras/);
   assert.match(main, /getVehicleTrackerCullCameras\(scene\)/);

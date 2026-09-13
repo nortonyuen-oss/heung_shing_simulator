@@ -41,6 +41,7 @@ const {
   chooseTrafficModelForSpawn,
   purgeSevereWeatherGroundedTraffic,
   canSpawnIceCreamTruckForWeather,
+  isIceCreamTruckHour,
   isIceCreamTargetBuilding,
   findTrafficPathOutsideView,
   getTrafficVirtualOutsideTile,
@@ -334,6 +335,22 @@ test('category weights match the planned Hong Kong traffic mix', () => {
   assert.equal(pickWeightedTrafficModel(() => 0).id, 'bus_kmb');
   assert.equal(pickWeightedTrafficModel(() => 0.999999).id, 'van_namkee');
   assert.notEqual(pickWeightedTrafficModel(() => 0.999999).id, 'icecream_van');
+});
+
+test('ice cream truck keeps daytime hours: nothing from 23:00 to 06:00', () => {
+  assert.equal(isIceCreamTruckHour(6 * 60), true);
+  assert.equal(isIceCreamTruckHour(12 * 60), true);
+  assert.equal(isIceCreamTruckHour(22 * 60 + 59), true);
+  assert.equal(isIceCreamTruckHour(23 * 60), false);
+  assert.equal(isIceCreamTruckHour(0), false);
+  assert.equal(isIceCreamTruckHour(3 * 60), false);
+  assert.equal(isIceCreamTruckHour(5 * 60 + 59), false);
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const src = fs.readFileSync(path.join(__dirname, '..', 'traffic-visuals.js'), 'utf8');
+  const start = src.indexOf('function updateIceCreamEvent(');
+  const update = src.slice(start, src.indexOf('\nfunction ', start + 1));
+  assert.match(update, /!isIceCreamTruckHour\(getGameTimeOfDayMinutes\(\)\)\) return;/);
 });
 
 test('ice cream truck only starts in dry clear or cloudy weather', () => {

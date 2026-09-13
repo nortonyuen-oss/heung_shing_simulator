@@ -210,6 +210,10 @@ const SITE_FEATURE_LIST = {
 // ── Changelog ─────────────────────────────────────────────────────────────────
 const SITE_CHANGELOG = {
   "zh-HK": [
+    { version: "v4.8.0", date: "2026-09-13", dateLabel: "2026年9月13日", title: "日月如梭", items: [
+      "一個顯示日就係一個日曆月：之前天空同日曆各自行，一個顯示日走 108～180 個日曆日，法案未到黃昏就到期、一架巴士日出到中午已經做完一個月。而家日曆由日夜時鐘推算，月份用真實長度（2 月 28／29 日、格里曆閏年），一年剛好 96 分鐘真實時間。議會法案改為按「幾多個月收入」定價（N 值減半、月收入下限 $2,000），巴士班次、保養、故障、乘客累積全部改用顯示時間；幻彩詠香城每三個月喺當月晚上 8 時開一場 30 分鐘，八號或以上風球取消。",
+      "每棟樓有自己嘅夜晚：每個模型多 bake 一套「只有路燈」貼圖（133 個模型、399 張）。入夜住宅七成、商業五成、工業三成開高峰燈，其餘直接深夜燈，地標全開；23:00～01:00 高峰樓逐棟轉深夜燈；01:00～03:00 一半樓逐棟熄剩路燈，05:30～06:00 早起人士陸續開返燈。醫院、警局、消防局、救護站通宵全開。",
+    ] },
     { version: "v4.7.0", date: "2026-09-12", dateLabel: "2026年9月12日", title: "風雨有時", items: [
       "天氣跟日夜循環行：之前一個顯示日走 108～180 個日曆日，天氣每 1～2 個日曆日就換，日出到日落之間轉 60～180 次。而家每種天氣持續 5～11 個顯示小時、四成機會延續，一日轉兩三次；暫停時天氣凍結，速度同日夜一齊快慢。",
       "颱風有頭有尾：季內每 4～6 個顯示日一個，打 18～36 個顯示小時，訊號 1→3→8→9→10→8→3→1 逐級升落，唔會喺 8 號 9 號之間抖。暴雨警告即時升級、雨明顯減弱先降級，唔會一個鐘內紅黃紅黑咁跳。",
@@ -455,6 +459,10 @@ const SITE_CHANGELOG = {
 // title/items text.
 const SITE_CHANGELOG_TRANSLATIONS = {
   "zh-TW": {
+    "v4.8.0": { title: "日月如梭", items: [
+      "一個顯示日就是一個日曆月：之前天空與日曆各自運行，一個顯示日經過 108～180 個日曆日，法案未到黃昏就到期、一輛公車日出到中午已經跑完一個月。現在日曆由日夜時鐘推算，月份使用真實長度（2 月 28／29 日、格里曆閏年），一年剛好 96 分鐘真實時間。議會法案改為按「幾個月收入」定價（N 值減半、月收入下限 $2,000），公車班次、保養、故障、乘客累積全部改用顯示時間；幻彩詠香城每三個月在當月晚上 8 時舉行一場 30 分鐘，八號或以上風球取消。",
+      "每棟樓有自己的夜晚：每個模型多烘焙一套「只有路燈」貼圖（133 個模型、399 張）。入夜住宅七成、商業五成、工業三成開高峰燈，其餘直接深夜燈，地標全開；23:00～01:00 高峰樓逐棟轉深夜燈；01:00～03:00 一半的樓逐棟熄到只剩路燈，05:30～06:00 早起的人陸續開燈。醫院、警局、消防局、救護站整夜全開。",
+    ] },
     "v4.7.0": { title: "風雨有時", items: [
       "天氣依日夜循環運行：之前一個顯示日經過 108～180 個日曆日，天氣每 1～2 個日曆日就換，日出到日落之間變化 60～180 次。現在每種天氣持續 5～11 個顯示小時、四成機率延續，一日變化兩三次；暫停時天氣凍結，速度與日夜同步。",
       "颱風有始有終：季內每 4～6 個顯示日一個，持續 18～36 個顯示小時，訊號 1→3→8→9→10→8→3→1 逐級升降，不會在 8 號 9 號之間抖動。暴雨警告即時升級、雨明顯減弱才降級，不會一小時內紅黃紅黑地跳。",
@@ -693,6 +701,10 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   en: {
+    "v4.8.0": { title: "Time Flies", items: [
+      "A displayed day is now a calendar month. The sky and the calendar used to run apart, so one displayed day swept 108-180 calendar days: council bills came due before dusk and a bus completed a month of service by noon. The calendar is now derived from the day/night clock, with real month lengths (February 28 or 29, Gregorian leap years), so a year is exactly 96 real minutes. Council resolutions are priced as months of income (halved, floored at $2,000 a month); bus timetables, maintenance, breakdowns and commuter accrual all run on displayed time; the drone show is every three months at 20:00, thirty minutes each, cancelled under a Signal 8 or higher.",
+      "Every building keeps its own hours after dark. Each model gains a third baked texture with the street lamps and no lit windows (133 models, 399 textures). At dusk 70% of homes, 50% of offices and 30% of industry show the evening-peak texture and the rest the deep one, landmarks stay lit; between 23:00 and 01:00 the peak buildings drop to deep one at a time; from 01:00 to 03:00 half the city goes to street lamps only, and early risers switch a few windows back on between 05:30 and 06:00. Hospitals, police, fire and ambulance stations stay fully lit all night.",
+    ] },
     "v4.7.0": { title: "Weather in Its Season", items: [
       "Weather now runs on the day/night clock. The calendar advances 108-180 days per displayed day, so calendar-day weather changed 60-180 times between sunrise and sunset. A condition now holds 5-11 displayed hours and persists 40% of the time, so a day sees two or three changes; pausing freezes the weather and the speed buttons scale it with the sky.",
       "Typhoons have a beginning and an end: one every 4-6 displayed days in season, lasting 18-36 displayed hours, with the signal stepping 1-3-8-9-10-8-3-1 and never chattering between 8 and 9. Rainstorm warnings are raised at once and lowered only once the rain has clearly eased, instead of flipping red/amber/red/black within an hour.",
@@ -931,6 +943,10 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   ja: {
+    "v4.8.0": { title: "光陰矢の如し", items: [
+      "表示上の1日が暦の1か月になりました。これまで空と暦は別々に進み、表示上の1日で暦は108～180日も進んでいたため、議会の法案は夕方前に期限を迎え、バスは正午までに1か月分の運行を終えていました。現在は暦を昼夜サイクルから算出し、月の長さは実際どおり（2月は28日または29日、グレゴリオ暦の閏年）で、1年はちょうど実時間96分です。議会の決議は「月収の何か月分」で価格が決まり（係数は半分、月収の下限は$2,000）、バスのダイヤ・整備・故障・乗客の蓄積はすべて表示時間で進みます。ドローンショーは3か月ごとに20時から30分間、シグナル8以上で中止です。",
+      "夜の建物がそれぞれの生活リズムを持つようになりました。各モデルに街灯だけで窓の灯りがない3枚目の焼き込みテクスチャを追加（133種・399枚）。日没後は住宅の7割、商業の5割、工業の3割がピークの灯りを見せ、残りは深夜の灯りに、ランドマークは全点灯。23時～1時にピークの建物が1棟ずつ深夜の灯りへ落ち、1時～3時に街の半分が街灯だけになり、5時半～6時には早起きの窓が少しずつ灯ります。病院・警察・消防・救急は一晩中点灯したままです。",
+    ] },
     "v4.7.0": { title: "風雨に時あり", items: [
       "天気が昼夜サイクルに合わせて動くようになりました。暦は表示上の1日に108～180日進むため、暦基準の天気は日の出から日没までに60～180回も変わっていました。現在は各天気が表示時間で5～11時間続き、4割の確率で継続するので、1日に2～3回の変化に。ポーズ中は天気も止まり、速度ボタンで空と一緒に早送りされます。",
       "台風に始まりと終わりができました。シーズン中は表示上4～6日に1つ、18～36時間続き、シグナルは1→3→8→9→10→8→3→1と段階的に上下し、8号と9号の間で揺れません。豪雨警報は即時に引き上げ、雨が明らかに弱まってから引き下げるため、1時間の中で赤・黄・赤・黒と揺れることはなくなりました。",
@@ -1194,8 +1210,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.7.0 — 【風雨有時】",
-      versionDesc: "天氣改跟日夜循環行：一個顯示日轉兩三次，颱風由一號波升到十號再逐級落返，打足一日到一日半。全城所有固定建築——政府設施、地標、發電廠、碼頭、車廠、公園——全部入夜著燈，共 133 個模型。",
+      versionBadge: "v4.8.0 — 【日月如梭】",
+      versionDesc: "成個遊戲搬到同一個時鐘：一個顯示日就係一個日曆月，議會法案按幾多個月收入定價，巴士班次、無人機表演全部跟返呢個節奏。夜晚每棟樓有自己嘅作息——入夜部分樓開高峰燈、深夜逐棟熄剩路燈，醫院警局消防通宵全開。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感嘅城市建設遊戲。起街道、規劃社區、經營自己嘅香城巴士公司、處理議會同天氣，再睇住一座有性格嘅香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1271,8 +1287,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.7.0 — 【風雨有時】",
-      versionDesc: "天氣改依日夜循環運行：一個顯示日變化兩三次，颱風由一號風球升到十號再逐級降回，持續一日到一日半。全城所有固定建築——政府設施、地標、發電廠、碼頭、車庫、公園——全部入夜亮燈，共 133 個模型。",
+      versionBadge: "v4.8.0 — 【日月如梭】",
+      versionDesc: "整個遊戲搬到同一個時鐘：一個顯示日就是一個日曆月，議會法案按幾個月收入定價，公車班次、無人機表演全部跟隨這個節奏。夜晚每棟樓有自己的作息——入夜部分樓開高峰燈、深夜逐棟熄到只剩路燈，醫院警局消防整夜全開。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感的城市建設遊戲。興建街道、規劃社區、經營自己的香城公車公司、處理議會與天氣，看著一座有個性的香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1348,8 +1364,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "The City of Heung Shing",
       title: "The City of Heung Shing",
-      versionBadge: "v4.7.0 — Weather in Its Season",
-      versionDesc: "Weather now follows the day/night cycle: two or three changes per displayed day, and a typhoon climbs from Signal 1 to 10 and back down over a day to a day and a half. Every fixed building - services, landmarks, power plants, port, depots, parks - now lights up after dark, 133 models in all.",
+      versionBadge: "v4.8.0 — Time Flies",
+      versionDesc: "The whole game runs on one clock: a displayed day is a calendar month, council bills are priced in months of income, and bus timetables and the drone show follow the same rhythm. After dark every building keeps its own hours - some lit at peak in the evening, dropping one by one to street lamps only in the small hours, while hospitals, police and fire stay lit all night.",
       lede: "A city-building game inspired by Hong Kong life and made in tribute to SimCity 2000. Build streets, shape neighbourhoods, run your own Heung Shing Bus Company, navigate council politics and weather, then watch a city with real personality grow.",
       freeLabel: "Completely free · macOS + Windows · Local saves",
       downloadBtn: "【Free Download】",
@@ -1426,8 +1442,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.7.0 — 風雨に時あり",
-      versionDesc: "天気が昼夜サイクルに合わせて動くように。表示上の1日に2～3回変わり、台風は1号から10号まで上がって段階的に下がり、1日から1日半続きます。公共施設、ランドマーク、発電所、港、車庫、公園といった固定建物すべてが夜に灯ります（計133種）。",
+      versionBadge: "v4.8.0 — 光陰矢の如し",
+      versionDesc: "ゲーム全体が一つの時計で動くように。表示上の1日が暦の1か月となり、議会の法案は月収の何か月分かで価格が決まり、バスのダイヤやドローンショーも同じリズムに。夜は建物ごとに生活リズムがあり、夕方はピークの灯り、深夜には1棟ずつ街灯だけに。病院・警察・消防は一晩中点灯します。",
       lede: "香港の都市生活から着想を得た、SimCity 2000へのオマージュとなる都市建設ゲーム。道路を築き、地区を計画し、自分だけの香城バス会社を経営し、議会や天候に向き合いながら、個性ある香城の成長を見守ります。",
       freeLabel: "完全無料 · macOS + Windows · ローカルセーブ",
       downloadBtn: "【無料ダウンロード】",

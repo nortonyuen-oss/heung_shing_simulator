@@ -58,6 +58,9 @@ const BUILDING_LIGHT_SCHEDULE = Object.freeze({
   day: Object.freeze({ res: 0, off: 0, ind: 0 }),
   duskRamp: Object.freeze({ res: 0.14, off: 0.38, ind: 0.10 }),
   eveningPeak: Object.freeze({ res: 0.32, off: 0.42, ind: 0.12 }),
+  // Not a clock bucket: the `__nighthalf` bake row, exactly half of peak in
+  // every class, worn on the way up at dusk and on the way down after 23:00.
+  halfPeak: Object.freeze({ res: 0.16, off: 0.21, ind: 0.06 }),
   lateEvening: Object.freeze({ res: 0.20, off: 0.15, ind: 0.06 }),
   deepNight: Object.freeze({ res: 0.06, off: 0.05, ind: 0.03 }),
   dawnFade: Object.freeze({ res: 0.08, off: 0.06, ind: 0.03 }),
@@ -130,28 +133,40 @@ function getBuildingLightTargetRatio(bucket, cls, personality) {
 // ---------------------------------------------------------------------------
 // Baked night variant per building
 // ---------------------------------------------------------------------------
-// Every calibrated model ships three baked night textures: 'night' (the
-// eveningPeak windows), 'deep' (the deepNight windows) and 'lamps' (street
-// lamps only, not a single window). The schedule above decides how many
-// windows each texture HAS; this decides which texture a given building WEARS
-// at a given minute, so the city dims block by block instead of all at once:
-//   dusk .. 23:00      a share of each kind shows 'night', the rest 'deep'
-//   23:00 .. 01:00     each 'night' building drops to 'deep' at its own minute
-//   01:00 .. 03:00     half the buildings go 'lamps' at their own minute
-//   05:30 .. 06:00     ... and come back to 'deep' (early risers)
+// Every calibrated model ships four baked night textures: 'night' (the
+// eveningPeak windows), 'half' (the halfPeak row, half of peak),
+// 'deep' (the deepNight windows) and 'lamps' (street lamps only, not a single
+// window). The schedule above decides how many windows each texture HAS; this
+// decides which texture a given building WEARS at a given minute, so the city
+// lights up and dims block by block instead of all at once:
+//   swap (dusk) .. +1h   every building shows street lamps only
+//   sunset+40 .. +2h40   windows come on: a share of each kind climbs
+//                        lamps -> half -> night at its own two minutes,
+//                        the rest lamps -> deep
+//   23:00 .. 01:00       each 'night' building steps night -> half -> deep
+//   01:00 .. 03:00       half the buildings go 'lamps' at their own minute
+//   05:30 .. 06:00       ... and come back to 'deep' (early risers)
 // Every roll comes from the building's tile seed, so a tower keeps the same
-// habits night after night and across a reload. Emergency services never dim.
+// habits night after night and across a reload. Emergency services never dim
+// and never ramp: they are fully lit from the swap.
 const BUILDING_NIGHT_PEAK_SHARE = Object.freeze({
   residential: 0.70, commercial: 0.50, industrial: 0.30, landmark: 1, emergency: 1,
 });
 const BUILDING_NIGHT_LAMPS_SHARE = 0.50;
+// Dusk ramp, relative to sunset. The texture swap itself lands at raw night
+// 0.30, about 38 minutes after sunset (sim-weather.js keyframes).
+const BUILDING_NIGHT_RAMP_OFFSET = 40;
+const BUILDING_NIGHT_RAMP_SPAN = 60;    // lamps -> half (or deep) at sunset+40 .. +100
+const BUILDING_NIGHT_RAMP_GAP = 15;     // a building sits half-lit at least this long
+const BUILDING_NIGHT_RAMP_SPAN2 = 45;   // half -> night, so full by sunset+160 at the latest
 const BUILDING_NIGHT_FADE_START = 23 * 60;
-const BUILDING_NIGHT_FADE_SPAN = 120;
+const BUILDING_NIGHT_FADE_SPAN = 100;   // night -> half at 23:00 .. 00:40
+const BUILDING_NIGHT_FADE_HALF_MINUTES = 20; // ... then half -> deep, everyone deep by 01:00
 const BUILDING_NIGHT_LAMPS_START = 24 * 60 + 60;       // 01:00, past midnight
 const BUILDING_NIGHT_LAMPS_SPAN = 120;
 const BUILDING_NIGHT_WAKE_START = 24 * 60 + 5 * 60 + 30; // 05:30
 const BUILDING_NIGHT_WAKE_SPAN = 30;
-const BUILDING_NIGHT_VARIANTS = Object.freeze(['night', 'deep', 'lamps']);
+const BUILDING_NIGHT_VARIANTS = Object.freeze(['night', 'half', 'deep', 'lamps']);
 
 // Landmarks stay fully lit until the 23:00 fade; port, depot and power plants
 // keep industrial hours. Anything else that is not a zone or a 24h service
@@ -177,14 +192,26 @@ function getBuildingNightKind(record) {
 
 // The night is one continuous line from noon to noon, so "23:00" and "01:00"
 // compare the way the eye orders them rather than wrapping at midnight.
-function getBuildingNightVariant(kind, seed, minuteOfDay) {
+function getBuildingNightVariant(kind, seed, minuteOfDay, sunsetMin) {
   if (kind === 'emergency') return 'night';
   const m = (((Number(minuteOfDay) || 0) % 1440) + 1440) % 1440;
   const n = m < 720 ? m + 1440 : m;
   const s = seed >>> 0;
+  const sunset = Number.isFinite(sunsetMin) ? sunsetMin : 18 * 60;
   const share = BUILDING_NIGHT_PEAK_SHARE[kind] ?? BUILDING_NIGHT_PEAK_SHARE.commercial;
-  const fadeAt = BUILDING_NIGHT_FADE_START + hashBuildingLight(s, 22, 0) * BUILDING_NIGHT_FADE_SPAN;
-  if (n < fadeAt) return hashBuildingLight(s, 21, 0) < share ? 'night' : 'deep';
+  const peak = hashBuildingLight(s, 21, 0) < share;
+  // Dusk: lamps first, then the windows fill in.
+  const rampUp = sunset + BUILDING_NIGHT_RAMP_OFFSET + hashBuildingLight(s, 26, 0) * BUILDING_NIGHT_RAMP_SPAN;
+  if (n < rampUp) return 'lamps';
+  if (!peak) {
+    // Straight to the deep texture, and there it stays until the lamps roll.
+  } else {
+    const fullAt = rampUp + BUILDING_NIGHT_RAMP_GAP + hashBuildingLight(s, 27, 0) * BUILDING_NIGHT_RAMP_SPAN2;
+    if (n < fullAt) return 'half';
+    const fadeAt = BUILDING_NIGHT_FADE_START + hashBuildingLight(s, 22, 0) * BUILDING_NIGHT_FADE_SPAN;
+    if (n < fadeAt) return 'night';
+    if (n < fadeAt + BUILDING_NIGHT_FADE_HALF_MINUTES) return 'half';
+  }
   if (hashBuildingLight(s, 23, 0) >= BUILDING_NIGHT_LAMPS_SHARE) return 'deep';
   const lampsOn = BUILDING_NIGHT_LAMPS_START + hashBuildingLight(s, 24, 0) * BUILDING_NIGHT_LAMPS_SPAN;
   const lampsOff = BUILDING_NIGHT_WAKE_START + hashBuildingLight(s, 25, 0) * BUILDING_NIGHT_WAKE_SPAN;

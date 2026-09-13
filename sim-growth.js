@@ -358,6 +358,7 @@ function tryRedecoratePremiumBuilding(
   // cached day key would restore the old art at dawn.
   sprite.__dayTextureKey = null;
   sprite.skipNightTint = false;
+  if (typeof markBuildingNightArtDirty === 'function') markBuildingNightArtDirty(scene);
   sprite.setOrigin(meta.originX ?? 0.5, meta.originY ?? 1);
   if (meta.scaleX || meta.scaleY) {
     sprite.setScale(meta.scaleX ?? meta.scale ?? 1, meta.scaleY ?? meta.scale ?? 1);

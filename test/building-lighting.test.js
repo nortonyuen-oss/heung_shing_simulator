@@ -206,16 +206,16 @@ test('baked night variants are never listed as models', () => {
   // buildings resolve by, so an existing city would silently swap models.
   const server = fs.readFileSync(path.join(ROOT, 'server.js'), 'utf8');
   assert.match(server, /isDerivedNightVariant/);
-  assert.match(server, /__night\(deep\|lamps\)\?/);
+  assert.match(server, /__night\(half\|deep\|lamps\)\?/);
 
   const main = fs.readFileSync(path.join(ROOT, 'main.js'), 'utf8');
   const sortFn = main.slice(main.indexOf('function sortModelFiles('));
-  assert.match(sortFn.slice(0, 2000), /__night\(deep\|lamps\)\?/, 'sortModelFiles must filter night variants');
+  assert.match(sortFn.slice(0, 2000), /__night\(half\|deep\|lamps\)\?/, 'sortModelFiles must filter night variants');
 
   // The release verifier pairs every night variant with its day art, so it
   // has to recognise all three suffixes too.
   const verify = fs.readFileSync(path.join(ROOT, 'scripts', 'verify-release-assets.js'), 'utf8');
-  assert.match(verify, /__night\(deep\|lamps\)\?\\\.png\$\/\.test/);
+  assert.match(verify, /__night\(half\|deep\|lamps\)\?\\\.png\$\/\.test/);
 });
 
 test('a redeveloped lot never keeps the previous model\'s night art', () => {
@@ -293,30 +293,54 @@ test('a fixed building resolves its baked night art from the model table', () =>
   assert.match(depot, /sprite\.setTexture\(newKey\);[\s\S]{0,200}sprite\.__dayTextureKey = null;/);
 });
 
-test('each building picks its own night variant, and the city dims block by block', () => {
+test('each building picks its own night variant, and the city lights up and dims block by block', () => {
   const {
     getBuildingNightVariant, getBuildingNightKind, getBuildingLightSeed,
-    BUILDING_NIGHT_PEAK_SHARE, BUILDING_NIGHT_LAMPS_SHARE,
+    BUILDING_NIGHT_PEAK_SHARE, BUILDING_NIGHT_LAMPS_SHARE, BUILDING_NIGHT_VARIANTS,
   } = require('../building-lighting.js');
+  assert.deepEqual([...BUILDING_NIGHT_VARIANTS], ['night', 'half', 'deep', 'lamps']);
   const N = 2000;
+  const SUNSET = 18 * 60;
   const seeds = Array.from({ length: N }, (_, i) => getBuildingLightSeed(i % 97, Math.floor(i / 97) * 3 + (i % 5)));
-  const share = (kind, minute, variant) => seeds
-    .filter((seed) => getBuildingNightVariant(kind, seed, minute) === variant).length / N;
+  const share = (kind, minute, variant, sunset = SUNSET) => seeds
+    .filter((seed) => getBuildingNightVariant(kind, seed, minute, sunset) === variant).length / N;
   const near = (actual, expected, tol, label) => assert.ok(
     Math.abs(actual - expected) <= tol, `${label}: ${actual.toFixed(3)} vs ${expected}`,
   );
+  const RES = BUILDING_NIGHT_PEAK_SHARE.residential;
+
+  // Dusk: the street lamps come on together (every building is lamps-only at
+  // the swap), then the windows fill in building by building over the next
+  // two hours - the peak group through half-lit to full, the rest to deep.
+  assert.equal(share('residential', SUNSET + 40, 'lamps'), 1, 'sunset+40 is lamps only');
+  assert.equal(share('landmark', SUNSET + 40, 'lamps'), 1);
+  near(share('residential', SUNSET + 70, 'lamps'), 0.5, 0.04, 'lamps sunset+70');
+  assert.ok(share('residential', SUNSET + 70, 'half') > 0.2, 'half-lit towers by sunset+70');
+  assert.ok(share('residential', SUNSET + 70, 'night') < 0.1, 'few fully lit yet at sunset+70');
+  assert.equal(share('residential', SUNSET + 100, 'lamps'), 0, 'everyone past lamps by sunset+100');
+  assert.ok(share('residential', SUNSET + 100, 'half') > 0.3, 'half-lit peak at sunset+100');
+  assert.equal(share('residential', SUNSET + 165, 'half'), 0, 'everyone full by sunset+165');
+  near(share('residential', SUNSET + 165, 'night'), RES, 0.03, 'res sunset+165');
+  near(share('residential', SUNSET + 165, 'deep'), 1 - RES, 0.03, 'res deep sunset+165');
+  // The ramp follows the sun, so a summer sunset lights up later.
+  assert.equal(share('residential', 19 * 60 + 50, 'lamps', 19 * 60 + 10), 1, 'summer: lamps only at 19:50');
+  near(share('residential', 21 * 60 + 50, 'night', 19 * 60 + 10), RES, 0.03, 'summer: full by 21:50');
 
   // Evening: a fixed share of each kind wears the peak texture, the rest deep.
-  near(share('residential', 21 * 60, 'night'), BUILDING_NIGHT_PEAK_SHARE.residential, 0.03, 'res 21:00');
+  near(share('residential', 21 * 60, 'night'), RES, 0.03, 'res 21:00');
   near(share('commercial', 21 * 60, 'night'), BUILDING_NIGHT_PEAK_SHARE.commercial, 0.03, 'com 21:00');
   near(share('industrial', 21 * 60, 'night'), BUILDING_NIGHT_PEAK_SHARE.industrial, 0.03, 'ind 21:00');
   assert.equal(share('landmark', 21 * 60, 'night'), 1);
   assert.equal(share('residential', 21 * 60, 'lamps'), 0);
-  // 23:00-01:00: the peak group drops to deep one building at a time.
-  near(share('residential', 0, 'night'), BUILDING_NIGHT_PEAK_SHARE.residential / 2, 0.04, 'res 00:00');
-  near(share('landmark', 0, 'night'), 0.5, 0.04, 'landmark 00:00');
+  assert.equal(share('residential', 21 * 60, 'half'), 0);
+  // 23:00-01:00: the peak group steps down through half-lit to deep, one
+  // building at a time; by 01:00 everyone is deep.
+  near(share('residential', 0, 'night'), RES * 0.4, 0.04, 'res night 00:00');
+  near(share('residential', 0, 'half'), RES * 0.2, 0.04, 'res half 00:00');
+  near(share('landmark', 0, 'night'), 0.4, 0.04, 'landmark 00:00');
   assert.equal(share('residential', 60, 'night'), 0, 'nobody is still peak at 01:00');
-  assert.equal(share('landmark', 60, 'night'), 0);
+  assert.equal(share('residential', 60, 'half'), 0, 'nobody is still half at 01:00');
+  assert.equal(share('landmark', 60, 'deep'), 1);
   // 01:00-03:00: half the city goes to street lamps only, gradually.
   assert.equal(share('residential', 59, 'lamps'), 0);
   near(share('residential', 2 * 60, 'lamps'), BUILDING_NIGHT_LAMPS_SHARE / 2, 0.04, 'lamps 02:00');
@@ -328,23 +352,33 @@ test('each building picks its own night variant, and the city dims block by bloc
   assert.equal(share('residential', 6 * 60, 'lamps'), 0);
   assert.equal(share('residential', 6 * 60, 'deep'), 1);
 
-  // Emergency services never dim.
+  // Emergency services never dim and never ramp.
   for (let m = 0; m < 1440; m += 15) {
     assert.equal(share('emergency', m, 'night'), 1, `emergency at ${m}`);
   }
 
-  // A building's night is monotone: night -> deep -> lamps -> deep, never back
-  // to night, never lamps before deep.
-  const order = { night: 0, deep: 1, lamps: 2 };
+  // A building's night is one forward walk through
+  //   lamps -> (half -> night -> half ->) deep -> (lamps -> deep)
+  // with no step taken backwards and no stage skipped.
+  const allowed = {
+    lamps: ['lamps', 'half', 'deep'],
+    half: ['half', 'night', 'deep'],
+    night: ['night', 'half'],
+    deep: ['deep', 'lamps'],
+  };
   seeds.slice(0, 300).forEach((seed) => {
-    let prev = 'night';
+    let prev = 'lamps';
+    let seenNight = false;
+    let leftPeak = false;
     let wokeUp = false;
-    for (let n = 18 * 60; n < 24 * 60 + 6 * 60; n += 1) {
-      const v = getBuildingNightVariant('residential', seed, n % 1440);
-      if (v === 'night') assert.equal(prev, 'night', `seed ${seed} went back to night at ${n}`);
-      if (v === 'deep' && prev === 'lamps') wokeUp = true;
-      if (v === 'lamps') assert.ok(!wokeUp && prev !== 'night', `seed ${seed} lamps out of order at ${n}`);
-      assert.ok(order[v] !== undefined);
+    for (let n = SUNSET + 40; n < 24 * 60 + 6 * 60; n += 1) {
+      const v = getBuildingNightVariant('residential', seed, n % 1440, SUNSET);
+      assert.ok(allowed[prev].includes(v), `seed ${seed}: ${prev} -> ${v} at ${n}`);
+      if (v === 'night') { assert.ok(!leftPeak, `seed ${seed} back to night at ${n}`); seenNight = true; }
+      if (v === 'half' && seenNight && prev === 'night') leftPeak = true;
+      if (v === 'half' && leftPeak) assert.equal(prev === 'night' || prev === 'half', true);
+      if (v === 'deep' && prev === 'lamps' && n > 24 * 60) wokeUp = true;
+      if (v === 'lamps' && n > 24 * 60) assert.ok(!wokeUp, `seed ${seed} lamps again after waking at ${n}`);
       prev = v;
     }
   });
@@ -376,9 +410,68 @@ test('each building picks its own night variant, and the city dims block by bloc
   const main = fs.readFileSync(path.join(ROOT, 'main.js'), 'utf8');
   const sync = main.slice(main.indexOf('function syncBuildingNightTextures('), main.indexOf('// ── Night darkness split'));
   assert.match(sync, /getBuildingNightVariant\(/);
-  assert.match(sync, /getBuildingLightSeed\(sprite\.mapRow, sprite\.mapCol\)/);
+  assert.match(sync, /getBuildingLightSeed\(sprite\.mapRow, sprite\.mapCol\), minute, sunset,/);
   assert.match(sync, /const state = wantNight \? `night:\$\{minute\}` : 'day';/);
+  assert.match(main, /half: '__nighthalf\.png'/);
   assert.match(main, /lamps: '__nightlamps\.png'/);
+  // The swap lands on the lamps-only texture, whose facade is the deep dim.
+  assert.match(main, /const BUILDING_BAKED_DIM = 0\.68;/);
   const bake = fs.readFileSync(path.join(ROOT, 'scripts', 'bake-night-textures.js'), 'utf8');
+  assert.match(bake, /suffix: '__nighthalf', bucket: 'halfPeak'[^\n]*windows: true/);
+  ['res', 'off', 'ind'].forEach((cls) => assert.equal(BUILDING_LIGHT_SCHEDULE.halfPeak[cls], BUILDING_LIGHT_SCHEDULE.eveningPeak[cls] / 2, cls));
   assert.match(bake, /suffix: '__nightlamps'[^\n]*windows: false/);
+});
+
+test('the small hours are darker than the evening, for the ground and the baked towers alike', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const ROOT = path.resolve(__dirname, '..');
+  const main = fs.readFileSync(path.join(ROOT, 'main.js'), 'utf8');
+  const passes = main.slice(main.indexOf('function computeNightDarknessPasses('), main.indexOf('function applyNightDarkness('));
+  assert.match(passes, /deepNightDepth = 0/);
+  assert.match(passes, /NIGHT_DARKNESS_PEAK \+ \(NIGHT_DARKNESS_DEEP_PEAK - NIGHT_DARKNESS_PEAK\) \* depth/);
+  assert.match(main, /const deepNightDepth = typeof getDeepNightDepth === 'function' \? getDeepNightDepth\(timeMinutes\) : 0;/);
+  // Baked sprites take the small-hours tint instead of opting out entirely,
+  // and a texture swap on the plateau keeps it.
+  const tint = main.slice(main.indexOf('function applyNightObjectTint('), main.indexOf('function updateDynamicLighting('));
+  assert.match(tint, /if \(sprite\.skipNightTint\) \{[\s\S]*?sprite\.setTint\(deepTint\)/);
+  assert.match(tint, /scene\.__nightBakedTint = deepK <= 0 \? null : deepTint;/);
+  const swap = main.slice(main.indexOf('function applyBuildingNightTexture('), main.indexOf('function syncBuildingNightTextures('));
+  assert.match(swap, /if \(scene\.__nightBakedTint\) sprite\.setTint\(scene\.__nightBakedTint\);/);
+});
+
+test('a city loaded after dark fetches its night art first, and a building built after dark is dressed on the next tick', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const ROOT = path.resolve(__dirname, '..');
+  const main = fs.readFileSync(path.join(ROOT, 'main.js'), 'utf8');
+  const save = fs.readFileSync(path.join(ROOT, 'save.js'), 'utf8');
+  const growth = fs.readFileSync(path.join(ROOT, 'sim-growth.js'), 'utf8');
+
+  // Load: the keys every saved building resolves to at the saved minute are
+  // fetched before applySaveData builds the sprites, and one lighting pass
+  // dresses them before the first frame renders.
+  const load = save.slice(save.indexOf('async function loadSaveById('), save.indexOf('function waitForLoadScene('));
+  assert.match(load, /await ensureSaveBuildingTextures\(readyScene, save\);[\s\S]*?await ensureSaveNightTextures\(readyScene, save\);[\s\S]*?applySaveData\(readyScene, save\);/);
+  const ensure = save.slice(save.indexOf('async function ensureSaveNightTextures('), save.indexOf('async function loadSaveById('));
+  assert.match(ensure, /getNightOverlayAlpha\(minute, forSave\) < swapAt\) return;/);
+  assert.match(ensure, /collectBuildingNightTextureKeys\(save\.buildingData, minute, Number\(forSave\.sunsetMinutes\)\)/);
+  const rebuild = save.slice(save.indexOf('function rebuildSceneFromSave('), save.indexOf('// ── Fallback sprite key'));
+  assert.match(rebuild, /syncWeatherVisuals\(\);[\s\S]*?updateDynamicLighting\(scene\);/);
+  const collect = main.slice(main.indexOf('function collectBuildingNightTextureKeys('), main.indexOf('function preloadBuildingNightTextures('));
+  assert.match(collect, /getBuildingNightVariant\(\s*getBuildingNightKind\(record\), getBuildingLightSeed\(row, col\), minute, sunsetMin,?\s*\)/);
+
+  // Placement, redevelopment and orientation swaps all flag the next tick,
+  // and a sprite whose night art is still loading waits at the baked dim
+  // instead of showing daylight-bright among lit neighbours.
+  assert.match(main.slice(main.indexOf('function placeSpriteBuilding(')).slice(0, 4000), /markBuildingNightArtDirty\(scene\);/);
+  assert.match(growth, /sprite\.skipNightTint = false;\s*\n\s*if \(typeof markBuildingNightArtDirty === 'function'\) markBuildingNightArtDirty\(scene\);/);
+  const harbor = main.slice(main.indexOf('function refreshHarborSprites('), main.indexOf('function getBusDepotVisualCorner('));
+  assert.match(harbor, /sprite\.skipNightTint = false;\s*markBuildingNightArtDirty\(scene\);/);
+  const depot = main.slice(main.indexOf('function applyBusDepotVisualKey('), main.indexOf('function refreshBusDepotSprites('));
+  assert.match(depot, /sprite\.skipNightTint = false;\s*markBuildingNightArtDirty\(scene\);/);
+  const apply = main.slice(main.indexOf('function applyBuildingNightTexture('), main.indexOf('function markBuildingNightArtDirty('));
+  assert.match(apply, /if \(!scene\.textures\.exists\(key\)\) \{[\s\S]*?sprite\.__nightArtPending = true;[\s\S]*?return false;/);
+  const tint = main.slice(main.indexOf('function applyNightObjectTint('), main.indexOf('function updateDynamicLighting('));
+  assert.match(tint, /if \(sprite\.__nightArtPending\) \{\s*if \(scene\.__nightBakedPreTint\) sprite\.setTint\(scene\.__nightBakedPreTint\);/);
 });

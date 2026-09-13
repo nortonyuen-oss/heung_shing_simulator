@@ -76,15 +76,18 @@ const LAMP_ALPHA = Number(process.env.BAKE_LAMP_ALPHA || 1);
 // Fraction of a lamp pool allowed to fall outside the model before the lamp is
 // dropped rather than baked with its glow clipped off.
 const LAMP_SPILL_TOLERANCE = Number(process.env.BAKE_LAMP_SPILL || 0.10);
-// Three tiers of night. Evening is the busy one; deep night has far fewer lit
-// windows (the schedule in building-lighting.js already thins them) and a
-// darker facade; lamps-only is the deep facade with no lit windows at all,
-// just the street lamps - the building has gone to bed. Which of the three a
-// building wears at a given minute is decided per building at runtime
-// (getBuildingNightVariant, building-lighting.js), so the city settles down
-// block by block rather than all at once.
+// Four tiers of night. Evening is the busy one; half-lit is exactly half of
+// peak in every class, worn on the way up at dusk and on the way down after
+// 23:00; deep night has far fewer lit windows (the schedule in
+// building-lighting.js already thins them) and a darker facade; lamps-only is
+// the deep facade with no lit windows at all, just the street lamps - the
+// building has gone to bed. Which of the four a building wears at a given
+// minute is decided per building at runtime (getBuildingNightVariant,
+// building-lighting.js), so the city lights up and settles down block by
+// block rather than all at once.
 const VARIANTS = [
   { suffix: '__night', bucket: 'eveningPeak', dim: Number(process.env.BAKE_DIM || 0.55), windows: true },
+  { suffix: '__nighthalf', bucket: 'halfPeak', dim: Number(process.env.BAKE_DIM || 0.55), windows: true },
   { suffix: '__nightdeep', bucket: 'deepNight', dim: Number(process.env.BAKE_DIM_DEEP || 0.68), windows: true },
   { suffix: '__nightlamps', bucket: 'deepNight', dim: Number(process.env.BAKE_DIM_DEEP || 0.68), windows: false },
 ];

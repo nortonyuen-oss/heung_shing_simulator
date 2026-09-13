@@ -1092,6 +1092,31 @@ async function ensureSaveBuildingTextures(scene, save) {
   if (typeof prepareIndustrialBuildingModelMetadata === 'function') prepareIndustrialBuildingModelMetadata(scene);
 }
 
+// A city loaded after dark should appear already lit. Resolve the night art
+// each saved building will wear at the saved time - under the saved month's
+// sunset, which the current city's astronomy may not share - and fetch it
+// before the sprites are built. Daytime saves have nothing to fetch.
+async function ensureSaveNightTextures(scene, save) {
+  if (!scene?.load || !save?.buildingData) return;
+  if (typeof collectBuildingNightTextureKeys !== 'function'
+    || typeof preloadBuildingNightTextures !== 'function'
+    || typeof getNightOverlayAlpha !== 'function') return;
+  const minute = Number(save.city?.timeOfDayMinutes);
+  if (!Number.isFinite(minute)) return;
+  let astronomy = null;
+  if (typeof ensureAstronomyForDate === 'function') {
+    try { astronomy = await ensureAstronomyForDate(save.city?.month); } catch { astronomy = null; }
+  }
+  const visualDay = typeof getAstronomyVisualDay === 'function' ? getAstronomyVisualDay() : {};
+  const forSave = astronomy ? { ...visualDay, ...astronomy } : visualDay;
+  const swapAt = typeof BUILDING_NIGHT_SWAP_AT === 'number' ? BUILDING_NIGHT_SWAP_AT : 0.30;
+  if (getNightOverlayAlpha(minute, forSave) < swapAt) return;
+  const keys = collectBuildingNightTextureKeys(save.buildingData, minute, Number(forSave.sunsetMinutes));
+  if (!keys.size) return;
+  await waitForSceneLoader(scene);
+  await preloadBuildingNightTextures(scene, keys);
+}
+
 async function loadSaveById(id, scene) {
   const performanceStartedAt = globalThis.performance?.now?.() ?? Date.now();
   let performanceScene = scene;
@@ -1123,6 +1148,8 @@ async function loadSaveById(id, scene) {
     if (loadGeneration !== loadRequestGeneration) return false;
     const save = decodeSaveDataForLoad(row.save_data);
     await ensureSaveBuildingTextures(readyScene, save);
+    if (loadGeneration !== loadRequestGeneration) return false;
+    await ensureSaveNightTextures(readyScene, save);
     if (loadGeneration !== loadRequestGeneration) return false;
 
     // Invalidate saves that may have been requested while the load fetch was in
@@ -1563,6 +1590,10 @@ function rebuildSceneFromSave(scene, save) {
   // Weather advances on the environmental clock and only repaints its overlay
   // when something changes, so a freshly loaded city has to be painted once.
   if (typeof syncWeatherVisuals === 'function') syncWeatherVisuals();
+  // Likewise the sky: the lighting tick runs ten times a second, which is a
+  // frame or two of daytime skyline after a night load. Dress the new sprites
+  // now, before anything renders; their night art was fetched before the load.
+  if (typeof updateDynamicLighting === 'function') updateDynamicLighting(scene);
 }
 
 // ── Fallback sprite key for saves without spriteKey ───────────────────────────

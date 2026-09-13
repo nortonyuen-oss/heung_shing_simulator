@@ -110,7 +110,7 @@ async function verify() {
   // Night variants are derived by scripts/bake-night-textures.js from the staged
   // day texture, so they have no source image of their own. They are checked
   // separately below against the day entry they came from.
-  const isNightVariant = (p) => /__night(deep|lamps)?\.png$/.test(p);
+  const isNightVariant = (p) => /__night(half|deep|lamps)?\.png$/.test(p);
   const manifestLogicalPaths = Object.keys(manifest.entries).filter((p) => !isNightVariant(p)).sort();
   assert.deepStrictEqual(manifestLogicalPaths, sourceLogicalPaths, 'manifest must exactly match source images');
 
@@ -119,7 +119,7 @@ async function verify() {
   // so a model that has any night art must have all of it.
   const nightVariantsByDay = new Map();
   for (const [logicalPath, entry] of nightEntries) {
-    const dayLogical = logicalPath.replace(/__night(deep|lamps)?\.png$/, '.png');
+    const dayLogical = logicalPath.replace(/__night(half|deep|lamps)?\.png$/, '.png');
     const day = manifest.entries[dayLogical];
     assert.ok(day, `${logicalPath} has no day counterpart`);
     const set = nightVariantsByDay.get(dayLogical) || new Set();
@@ -135,8 +135,8 @@ async function verify() {
   }
   for (const [dayLogical, variants] of nightVariantsByDay) {
     assert.deepStrictEqual(
-      [...variants].sort(), ['__night', '__nightdeep', '__nightlamps'],
-      `${dayLogical} must ship all three night variants`,
+      [...variants].sort(), ['__night', '__nightdeep', '__nighthalf', '__nightlamps'],
+      `${dayLogical} must ship all four night variants`,
     );
   }
 
@@ -226,7 +226,7 @@ async function verify() {
   // totals.files counts the source-derived entries only; night variants are
   // added afterwards by the bake step and verified separately above.
   assert.equal(mipmapEligibleCount, manifest.totals.files, 'not every staged model is mipmap eligible');
-  assert.equal(nightEntries.length, nightVariantsByDay.size * 3, 'night variants must come in evening/deep/lamps triples');
+  assert.equal(nightEntries.length, nightVariantsByDay.size * 4, 'night variants must come in evening/half/deep/lamps sets');
 
   const registrySources = ['constants.js', 'main.js'];
   const referencedModels = new Set(registrySources.flatMap((fileName) => {

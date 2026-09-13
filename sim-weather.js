@@ -634,9 +634,9 @@ function normalizeDayNightVisualMinutes(value) {
   return ((safe % DAY_NIGHT_VISUAL_MINUTES) + DAY_NIGHT_VISUAL_MINUTES) % DAY_NIGHT_VISUAL_MINUTES;
 }
 
-function getDayNightVisualState(timeMinutes) {
+function getDayNightVisualState(timeMinutes, astronomy = getAstronomyVisualDay()) {
   const minute = normalizeDayNightVisualMinutes(timeMinutes);
-  const keyframes = getDayNightVisualKeyframes();
+  const keyframes = getDayNightVisualKeyframes(astronomy);
   let from = keyframes[0];
   let to = keyframes[1];
   for (let i = 0; i < keyframes.length - 1; i++) {
@@ -670,8 +670,28 @@ function getSkyBackgroundColor(timeMinutes) {
   return getDayNightVisualState(timeMinutes).backgroundColor;
 }
 
-function getNightOverlayAlpha(timeMinutes) {
-  return getDayNightVisualState(timeMinutes).nightAlpha;
+function getNightOverlayAlpha(timeMinutes, astronomy = getAstronomyVisualDay()) {
+  return getDayNightVisualState(timeMinutes, astronomy).nightAlpha;
+}
+
+// How far into the small hours the city is, 0..1. The keyframe curve above is
+// flat from astronomical dusk to astronomical dawn, so 03:00 would otherwise
+// look exactly like 21:30; the night darkness passes and the baked-building
+// tint in main.js deepen by this much on top of it. Fixed clock times rather
+// than twilight-relative ones: it is the city going to bed, not the sky, and it
+// matches the lamps-only window in building-lighting.js. In winter the last
+// hour before sunrise is back at the ordinary level - early risers.
+const DEEP_NIGHT_IN_START = 23 * 60;
+const DEEP_NIGHT_IN_END = 24 * 60 + 30;
+const DEEP_NIGHT_OUT_START = 24 * 60 + 4 * 60 + 30;
+const DEEP_NIGHT_OUT_END = 24 * 60 + 5 * 60 + 30;
+function getDeepNightDepth(timeMinutes) {
+  const m = normalizeDayNightVisualMinutes(timeMinutes);
+  const n = m < 12 * 60 ? m + DAY_NIGHT_VISUAL_MINUTES : m;
+  if (n < DEEP_NIGHT_IN_START || n >= DEEP_NIGHT_OUT_END) return 0;
+  if (n < DEEP_NIGHT_IN_END) return smoothVisualStep((n - DEEP_NIGHT_IN_START) / (DEEP_NIGHT_IN_END - DEEP_NIGHT_IN_START));
+  if (n < DEEP_NIGHT_OUT_START) return 1;
+  return 1 - smoothVisualStep((n - DEEP_NIGHT_OUT_START) / (DEEP_NIGHT_OUT_END - DEEP_NIGHT_OUT_START));
 }
 
 function isClearSkyCondition() {

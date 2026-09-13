@@ -184,3 +184,33 @@ test('legacy saves migrate: calendar-tick storms keep their place in the arc, ol
   assert.match(cityStateSource, /conditionUntilMinutes: Math\.max\(0, toFiniteOr\(savedWeather\.conditionUntilMinutes, 0\)\)/);
   assert.doesNotMatch(cityStateSource, /conditionTicksLeft: Math\.max/);
 });
+
+test('the small hours deepen the night from 23:00, hold 00:30-04:30, and ease out by 05:30', () => {
+  const context = vm.createContext({ city: { weather: freshWeather() }, console });
+  vm.runInContext(weatherSource, context, { filename: 'sim-weather.js' });
+  const depth = (minute) => vm.runInContext(`getDeepNightDepth(${minute})`, context);
+  const H = 60;
+  assert.equal(depth(22 * H + 59), 0);
+  assert.equal(depth(21 * H), 0);
+  assert.equal(depth(12 * H), 0, 'noon');
+  assert.equal(depth(6 * H), 0);
+  assert.equal(depth(5 * H + 30), 0);
+  assert.ok(Math.abs(depth(23 * H + 45) - 0.5) < 1e-9, 'halfway in at 23:45');
+  assert.equal(depth(0 * H + 30), 1);
+  assert.equal(depth(2 * H), 1);
+  assert.equal(depth(4 * H + 30), 1);
+  assert.ok(Math.abs(depth(5 * H) - 0.5) < 1e-9, 'halfway out at 05:00');
+  // monotone on each ramp, and smooth (no jump larger than a few percent per minute)
+  let prev = depth(23 * H);
+  for (let m = 23 * H + 1; m < 24 * H + 30; m += 1) {
+    const d = depth(m % 1440);
+    assert.ok(d >= prev && d - prev < 0.05, `ramp in at ${m}`);
+    prev = d;
+  }
+  prev = depth(4 * H + 30);
+  for (let m = 4 * H + 31; m <= 5 * H + 30; m += 1) {
+    const d = depth(m);
+    assert.ok(d <= prev && prev - d < 0.05, `ramp out at ${m}`);
+    prev = d;
+  }
+});

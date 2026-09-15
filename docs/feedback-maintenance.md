@@ -8,7 +8,22 @@
 - 後端：`services/feedback/worker.mjs`（Cloudflare Worker）＋ D1 資料庫 `heung-shing-feedback`（schema 喺 `migrations/`）。
 - 生產地址：`https://heung-shing-feedback.nortonyuen.workers.dev`；Cloudflare 帳號 `nortonyuen@gmail.com`，wrangler 憑證存於本機 `~/Library/Preferences/.wrangler/config/default.toml`。
 - API：`GET /messages?state=all|open|closed&page=N`、`GET /messages/:n/replies?page=N`、`POST /messages`、`POST /messages/:n/replies`、`GET /health`。每頁 20 筆。
-- 保護：只接受 `ALLOWED_ORIGINS`（`wrangler.jsonc`）嘅 Origin；請求體上限 32 KB；標題 120 字、內容 6000 字、暱稱 40 字。
+- 保護：只接受 `ALLOWED_ORIGINS`（`wrangler.jsonc`）嘅 Origin；請求體上限 32 KB。
+- SQL injection：所有 SQL 都係 prepared statement 加 `.bind()`，用戶輸入永遠只作為參數傳入，唔會拼進 SQL 字串；`page`／`state`／路徑中嘅編號亦先經白名單或整數檢查。`moderate.mjs` 只接受經驗證嘅正整數。
+- 欄位限制（Worker `restrict()`，四語 `invalid` 提示）：
+
+  | 欄位 | 規則 |
+  |---|---|
+  | `type` | 只限 `bug`／`question`／`suggestion`／`comment` |
+  | `title` | 必填，≤120 字，單行 |
+  | `details` | 必填，≤6000 字，可換行同 tab，CRLF 統一為 LF |
+  | `nickname` | ≤40 字，單行 |
+  | `version` | ≤40 字，只限 `0-9 A-Z a-z . + _ - 空格`，首字必須係英數 |
+  | `platform` | 只限表格選項：`Windows`／`macOS (Apple Silicon)`／`macOS (Intel)`／`Other`／空 |
+  | `requestKey` | 16–80 個 `A-Z a-z 0-9 -` |
+  | 全部 | NFC 正規化；禁止控制字元（C0、DEL、C1、U+2028／2029）；JSON 內有未知欄位即拒絕 |
+
+- 資料庫第二道防線（`migrations/0003_field_restrictions.sql`）：`messages`／`replies` 嘅 BEFORE INSERT／UPDATE trigger 再檢查長度、`platform` 白名單、`request_key` 字元集，就算繞過 Worker 直接寫入都會被 `RAISE(ABORT)` 擋住。
 - 寫入限制：同一 IP 每分鐘最多 1 次、每小時最多 5 次（留言同回覆一齊計），由 D1 嘅 `write_log` 精確計數；數值喺 `wrangler.jsonc` 嘅 `WRITES_PER_MINUTE`／`WRITES_PER_HOUR` 調整後 deploy 即生效。另有 Cloudflare rate-limit binding（10 次／分鐘，各節點分開計）做前置防洪。前端每次提交帶 `requestKey`，重送同一內容會直接回傳已儲存嘅紀錄，唔會重複貼上亦唔計入限制。
 - 紙色（0–5）由後端喺建立時隨機分配並儲存，換語言、翻頁都唔會變。
 

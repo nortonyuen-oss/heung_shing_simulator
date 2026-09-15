@@ -116,6 +116,60 @@ test('malformed posts are rejected before they reach the database', async () => 
   assert.deepEqual((await api('GET', '/messages')).data, { items: [], hasNext: false });
 });
 
+test('SQL and HTML payloads in every field are stored inert as text and never executed', async () => {
+  const api = await worker();
+  const attack = "x'; DROP TABLE messages; --";
+  const tables = () => api.db.prepare("SELECT COUNT(*) AS n FROM sqlite_master WHERE type = 'table'").get().n;
+  const before = tables();
+  const posted = await api('POST', '/messages', message({ title: attack, details: `${attack}\n<script>alert(1)</script>\n" OR 1=1 --`, nickname: "Robert'); DELETE FROM replies; --", version: '4.9.0-beta', platform: 'Windows' }));
+  assert.equal(posted.status, 201);
+  assert.equal(posted.data.item.title, attack);
+  assert.equal(posted.data.item.nickname, "Robert'); DELETE FROM replies; --");
+  const reply = await api('POST', '/messages/1/replies', { details: "'); DROP TABLE replies; --", nickname: '\\x00', requestKey: `${KEY}r` }, fresh());
+  assert.equal(reply.status, 201);
+  assert.equal(tables(), before);
+  assert.equal((await api('GET', '/messages')).data.items[0].comments, 1);
+  assert.equal((await api('GET', "/messages?state=open' OR '1'='1")).status, 400);
+  assert.equal((await api('GET', '/messages/1 OR 1=1/replies')).status, 404);
+  assert.equal((await api('GET', "/messages?page=1;DROP")).status, 400);
+});
+
+test('field restrictions: closed lists, single-line fields, control characters and unknown keys', async () => {
+  const api = await worker();
+  const reject = async (patch, why) => assert.equal((await api('POST', '/messages', message(patch), fresh())).status, 400, why);
+  await reject({ platform: 'Linux' }, 'platform must come from the form list');
+  await reject({ platform: 'Windows; DROP' }, 'platform is exact-match');
+  await reject({ version: '4.9.0 <b>' }, 'version allows only version-like characters');
+  await reject({ version: "1' OR 1=1" }, 'version rejects quotes');
+  await reject({ title: 'line one\nline two' }, 'title is single-line');
+  await reject({ nickname: 'tab\tname' }, 'nickname has no tabs');
+  await reject({ title: 'null\u0000byte' }, 'no NUL');
+  await reject({ details: 'esc\u001b[31m' }, 'no C0 control characters');
+  await reject({ details: 'sep\u2028line' }, 'no unicode line separators');
+  await reject({ details: 'x', extra: 'field' }, 'unknown keys are refused');
+  await reject({ __proto__: { polluted: true }, ['__proto__']: 'x' }, 'prototype keys are refused');
+  await reject({ type: 'Bug' }, 'type is case-sensitive exact');
+  const ok = await api('POST', '/messages', message({ version: 'v4.9.0 build 12', platform: 'macOS (Intel)', details: 'crlf\r\nlines\ttabbed', nickname: 'e\u0301' }), fresh());
+  assert.equal(ok.status, 201);
+  assert.equal(ok.data.item.body, 'crlf\nlines\ttabbed', 'CRLF is normalised to LF; tabs stay in the body');
+  assert.equal(ok.data.item.nickname, '\u00e9', 'text is NFC-normalised');
+  const reply = await api('POST', '/messages/1/replies', { details: 'ok', requestKey: `${KEY}r`, title: 'not a reply field' }, fresh());
+  assert.equal(reply.status, 400, 'replies accept only reply fields');
+});
+
+test('the database refuses out-of-policy rows even when the Worker is bypassed', async () => {
+  const api = await worker();
+  const insert = (title, platform, key = KEY) => api.db.prepare('INSERT INTO messages (type, title, body, nickname, version, platform, color, created_at, request_key) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)').run('bug', title, 'b', '', '', platform, 'now', key);
+  insert('fine', 'Windows');
+  assert.throws(() => insert('x'.repeat(121), 'Windows', `${KEY}2`), /field restriction/);
+  assert.throws(() => insert('t', 'Linux', `${KEY}3`), /field restriction/);
+  assert.throws(() => insert('t', 'Other', "abc'; DROP TABLE messages; --"), /field restriction/);
+  assert.throws(() => api.db.prepare("UPDATE messages SET nickname = ? WHERE number = 1").run('n'.repeat(41)), /field restriction/);
+  assert.throws(() => api.db.prepare("INSERT INTO replies (message_number, body, nickname, created_at, request_key) VALUES (1, '', '', 'now', ?)").run(`${KEY}r`), /field restriction/);
+  api.db.prepare("UPDATE messages SET state = 'closed' WHERE number = 1").run();
+  assert.equal(api.db.prepare('SELECT COUNT(*) AS n FROM messages').get().n, 1);
+});
+
 test('the feed pages 20 at a time, newest first, and filters by state', async () => {
   const api = await worker();
   for (let i = 1; i <= 21; i++) await api('POST', '/messages', message({ title: `memo ${i}`, requestKey: `${KEY}${i}` }), fresh());

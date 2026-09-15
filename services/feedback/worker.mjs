@@ -6,16 +6,31 @@ const MESSAGE_QUERY = `SELECT ${MESSAGE_COLUMNS}, (SELECT COUNT(*) FROM replies 
 class ApiError extends Error {
   constructor(status, code) { super(code); this.status = status; }
 }
-function field(data, key, max, required = false) {
-  if (data[key] === undefined && !required) return '';
-  if (typeof data[key] !== 'string') throw new ApiError(400, 'invalid');
-  const value = data[key].trim();
-  if ((required && !value) || value.length > max) throw new ApiError(400, 'invalid');
-  return value;
-}
-function requestKey(data) {
-  if (typeof data.requestKey !== 'string' || !/^[a-zA-Z0-9-]{16,80}$/.test(data.requestKey)) throw new ApiError(400, 'invalid');
-  return data.requestKey;
+// Field restrictions. Every value reaches SQL only through bound parameters, so these rules are about
+// keeping stored text well-formed: no control characters, single-line where the form is single-line,
+// closed lists where the form offers a choice, and the same length caps the form enforces.
+const PLATFORMS = ['', 'Windows', 'macOS (Apple Silicon)', 'macOS (Intel)', 'Other'];
+const VERSION = /^[0-9A-Za-z][0-9A-Za-z .+_-]{0,39}$/;
+const CONTROL = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F\u2028\u2029]/;
+const LINE = /[\t\r\n]/;
+const FIELDS = {
+  message: { type: { max: 20, required: true, list: TYPES }, title: { max: 120, required: true }, details: { max: 6000, required: true, multiline: true }, nickname: { max: 40 }, version: { max: 40, pattern: VERSION }, platform: { max: 40, list: PLATFORMS }, requestKey: { max: 80, required: true, pattern: /^[a-zA-Z0-9-]{16,80}$/ } },
+  reply: { details: { max: 6000, required: true, multiline: true }, nickname: { max: 40 }, requestKey: { max: 80, required: true, pattern: /^[a-zA-Z0-9-]{16,80}$/ } },
+};
+function restrict(data, shape) {
+  for (const key of Object.keys(data)) if (!Object.hasOwn(shape, key)) throw new ApiError(400, 'invalid');
+  const out = {};
+  for (const [key, rule] of Object.entries(shape)) {
+    if (data[key] === undefined && !rule.required) { out[key] = ''; continue; }
+    if (typeof data[key] !== 'string') throw new ApiError(400, 'invalid');
+    const value = data[key].normalize('NFC').replace(/\r\n?/g, '\n').trim();
+    if ((rule.required && !value) || value.length > rule.max || CONTROL.test(value)) throw new ApiError(400, 'invalid');
+    if (!rule.multiline && LINE.test(value)) throw new ApiError(400, 'invalid');
+    if (rule.list && !rule.list.includes(value)) throw new ApiError(400, 'invalid');
+    if (rule.pattern && value && !rule.pattern.test(value)) throw new ApiError(400, 'invalid');
+    out[key] = value;
+  }
+  return out;
 }
 async function jsonBody(request) {
   if (!(request.headers.get('content-type') || '').toLowerCase().startsWith('application/json')) throw new ApiError(415, 'invalid');
@@ -97,10 +112,7 @@ export default {
       // Edge flood shield only; the per-minute and per-hour policy is enforced precisely below.
       if (env.POST_LIMIT && !(await env.POST_LIMIT.limit({ key: request.headers.get('CF-Connecting-IP') || 'unknown' })).success) throw new ApiError(429, 'limited');
       const data = await jsonBody(request);
-      const key = requestKey(data), body = field(data, 'details', 6000, true), nickname = field(data, 'nickname', 40);
-      const title = replyRoute ? '' : field(data, 'title', 120, true), type = replyRoute ? '' : field(data, 'type', 20, true);
-      const version = replyRoute ? '' : field(data, 'version', 40), platform = replyRoute ? '' : field(data, 'platform', 80);
-      if (!replyRoute && !TYPES.includes(type)) throw new ApiError(400, 'invalid');
+      const { requestKey: key, details: body, nickname, title, type, version, platform } = { title: '', type: '', version: '', platform: '', ...restrict(data, replyRoute ? FIELDS.reply : FIELDS.message) };
       const stored = replyRoute
         ? () => env.DB.prepare('SELECT id, message_number, body, nickname, created_at, source FROM replies WHERE request_key = ?').bind(key).first()
         : () => env.DB.prepare(`${MESSAGE_QUERY} WHERE m.request_key = ?`).bind(key).first();

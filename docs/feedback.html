@@ -85,7 +85,7 @@
             <label><span data-i18n="feedback.platform">作業系統</span><select name="platform"><option>Windows</option><option>macOS (Apple Silicon)</option><option>macOS (Intel)</option><option value="Other" selected data-i18n="feedback.other">其他／不適用</option></select></label>
           </div>
           <label><span data-i18n="feedback.subject">標題</span><input name="title" required maxlength="120" /></label>
-          <label><span data-i18n="feedback.version">遊戲版本（選填）</span><input name="version" maxlength="40" placeholder="4.9.0" /></label>
+          <label><span data-i18n="feedback.version">遊戲版本（選填）</span><input name="version" maxlength="40" placeholder="4.9.0" pattern="[0-9A-Za-z][0-9A-Za-z .+_\-]{0,39}" autocomplete="off" /></label>
           <label><span data-i18n="feedback.details">內容</span><textarea name="details" rows="8" required maxlength="6000" aria-describedby="feedback-details-help"></textarea></label>
           <p id="feedback-details-help" class="feedback-help" data-i18n="feedback.detailsHelp">回報問題時，請寫低發生咗乜事、重現步驟同預期結果。</p>
           <p class="feedback-help" data-i18n="feedback.privacy">請互相尊重，唔好貼密碼或私人資料。留言會公開儲存，管理者可以移除不適當內容。</p>

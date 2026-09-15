@@ -1,0 +1,15 @@
+{
+  "name": "heung-shing-feedback",
+  "private": true,
+  "description": "Cloudflare Worker + D1 backend for the Heung Shing website memo wall",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "migrate": "wrangler d1 migrations apply heung-shing-feedback --remote",
+    "dev": "wrangler dev",
+    "tail": "wrangler tail",
+    "moderate": "node moderate.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "^4.131.2"
+  }
+}

@@ -1,41 +1,156 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { preparePost, listUrl, issueUrl, publicIssues } = require('../docs/feedback.js');
+const fs = require('node:fs');
+const path = require('node:path');
+const { DatabaseSync } = require('node:sqlite');
+const { memoColor, payload } = require('../docs/feedback.js');
 
-test('a visitor post preserves Unicode and special characters without privileged label parameters', () => {
-  const post = preparePost({ type: 'bug', title: '存檔 & 載入 #問題', version: '4.9.0', platform: 'Windows', details: '第一行\n<img src=x onerror=alert(1)>\n?x=1&y=2' });
-  const url = new URL(post.url);
-  assert.equal(url.origin, 'https://github.com');
-  assert.equal(url.pathname, '/nortonyuen-oss/heung_shing_simulator/issues/new');
-  assert.equal(url.searchParams.get('template'), 'website-feedback.md');
-  assert.equal(url.searchParams.get('title'), '[bug] 存檔 & 載入 #問題');
-  assert.equal(url.searchParams.get('body'), post.body);
-  assert.ok(post.body.includes('第一行\n<img src=x onerror=alert(1)>\n?x=1&y=2'));
-  assert.equal(url.searchParams.has('labels'), false);
-  assert.equal(post.copyRequired, false);
+const SERVICE = path.resolve(__dirname, '..', 'services', 'feedback');
+const ORIGIN = 'https://nortonyuen-oss.github.io';
+const KEY = 'a'.repeat(20);
+
+// Minimal D1 surface (prepare/bind/all/first/run) over the in-process SQLite that ships with Node.
+function fakeD1() {
+  const db = new DatabaseSync(':memory:');
+  for (const file of fs.readdirSync(path.join(SERVICE, 'migrations')).sort()) {
+    db.exec(fs.readFileSync(path.join(SERVICE, 'migrations', file), 'utf8'));
+  }
+  return {
+    prepare(sql) {
+      const statement = db.prepare(sql);
+      let args = [];
+      return {
+        bind(...values) { args = values; return this; },
+        async all() { return { results: statement.all(...args) }; },
+        async first() { return statement.get(...args) ?? null; },
+        async run() { statement.run(...args); return { success: true }; },
+      };
+    },
+  };
+}
+
+async function worker(env = {}) {
+  const { default: handler } = await import('../services/feedback/worker.mjs');
+  const bindings = { DB: fakeD1(), ALLOWED_ORIGINS: ORIGIN, ...env };
+  return async (method, route, body, headers = {}) => {
+    const request = new Request(`https://feedback.example${route}`, {
+      method, headers: { Origin: ORIGIN, ...(body ? { 'Content-Type': 'application/json' } : {}), ...headers },
+      body: body === undefined ? undefined : (typeof body === 'string' ? body : JSON.stringify(body)),
+    });
+    const response = await handler.fetch(request, bindings);
+    return { status: response.status, headers: response.headers, data: response.status === 204 ? null : await response.json() };
+  };
+}
+
+function message(overrides = {}) {
+  return { type: 'comment', title: '存檔 & 載入 #問題', details: '第一行\n<img src=x onerror=alert(1)>', nickname: '市民', requestKey: KEY, ...overrides };
+}
+
+test('memo colours come from the record when valid, otherwise a random paper index', () => {
+  assert.equal(memoColor(3), 3);
+  assert.equal(memoColor(0), 0);
+  assert.equal(memoColor(6, () => 0.99), 5);
+  assert.equal(memoColor('2', () => 0), 0);
+  assert.equal(memoColor(undefined, () => 0.5), 3);
 });
 
-test('long multilingual posts offer a complete copy instead of an oversized or truncated URL', () => {
-  const details = '詳細情況'.repeat(1200);
-  const post = preparePost({ title: 'Long report', details, type: 'question' });
-  assert.equal(post.copyRequired, true);
-  assert.equal(new URL(post.url).searchParams.has('body'), false);
-  assert.ok(post.body.includes(details));
-  assert.ok(post.url.length < 7000);
+test('a visitor payload is trimmed, typed and carries its idempotency key', () => {
+  const body = payload({ type: 'hack', title: '  Title ', details: ' body ', nickname: undefined, version: '4.9.0 ', platform: 'Windows' }, KEY);
+  assert.deepEqual(body, { type: 'comment', title: 'Title', details: 'body', nickname: '', version: '4.9.0', platform: 'Windows', requestKey: KEY });
 });
 
-test('the feed always filters website messages and validates pagination', () => {
-  const url = new URL(listUrl('closed', 3));
-  assert.equal(url.searchParams.get('labels'), 'website-feedback');
-  assert.equal(url.searchParams.get('state'), 'closed');
-  assert.equal(url.searchParams.get('page'), '3');
-  assert.throws(() => listUrl('invalid', 1));
-  assert.throws(() => listUrl('all', -1));
-  assert.equal(issueUrl(12), 'https://github.com/nortonyuen-oss/heung_shing_simulator/issues/12');
-  assert.throws(() => issueUrl('javascript:alert(1)'));
+test('the API only answers the official site and reports health', async () => {
+  const api = await worker();
+  const health = await api('GET', '/health');
+  assert.equal(health.status, 200);
+  assert.equal(health.headers.get('Access-Control-Allow-Origin'), ORIGIN);
+  assert.equal(health.headers.get('Cache-Control'), 'no-store');
+  const foreign = await api('GET', '/messages', undefined, { Origin: 'https://evil.example' });
+  assert.equal(foreign.status, 403);
+  assert.equal(foreign.headers.get('Access-Control-Allow-Origin'), null);
+  assert.equal((await api('GET', '/nope')).status, 404);
+  assert.equal((await api('DELETE', '/messages')).status, 405);
+  const preflight = await api('OPTIONS', '/messages');
+  assert.equal(preflight.status, 204);
+  assert.equal(preflight.headers.get('Access-Control-Allow-Methods'), 'GET, POST, OPTIONS');
 });
 
-test('pull requests and malformed issue records are excluded from the board', () => {
-  assert.deepEqual(publicIssues([{ number: 1 }, { number: 2, pull_request: {} }, null, { number: '3' }, { number: -1 }]), [{ number: 1 }]);
-  assert.throws(() => publicIssues({ message: 'API error' }));
+test('posting stores unicode as-is, assigns a paper colour and is idempotent per request key', async () => {
+  const api = await worker();
+  const first = await api('POST', '/messages', message());
+  assert.equal(first.status, 201);
+  assert.equal(first.data.item.number, 1);
+  assert.equal(first.data.item.title, '存檔 & 載入 #問題');
+  assert.equal(first.data.item.body, '第一行\n<img src=x onerror=alert(1)>');
+  assert.equal(first.data.item.state, 'open');
+  assert.ok(first.data.item.color >= 0 && first.data.item.color <= 5);
+  assert.equal(first.data.item.comments, 0);
+  assert.equal(first.data.item.request_key, undefined, 'request keys never leave the server');
+  const replay = await api('POST', '/messages', message());
+  assert.equal(replay.status, 201);
+  assert.equal(replay.data.item.number, 1);
+  const conflict = await api('POST', '/messages', message({ title: 'changed' }));
+  assert.equal(conflict.status, 409);
+  const list = await api('GET', '/messages');
+  assert.equal(list.data.items.length, 1);
+});
+
+test('malformed posts are rejected before they reach the database', async () => {
+  const api = await worker();
+  assert.equal((await api('POST', '/messages', message({ type: 'hack' }))).status, 400);
+  assert.equal((await api('POST', '/messages', message({ title: '   ' }))).status, 400);
+  assert.equal((await api('POST', '/messages', message({ details: 'x'.repeat(6001) }))).status, 400);
+  assert.equal((await api('POST', '/messages', message({ requestKey: 'short' }))).status, 400);
+  assert.equal((await api('POST', '/messages', message({ nickname: 42 }))).status, 400);
+  assert.equal((await api('POST', '/messages', '[1,2]')).status, 400);
+  assert.equal((await api('POST', '/messages', 'not json')).status, 400);
+  assert.equal((await api('POST', '/messages', 'x', { 'Content-Type': 'text/plain' })).status, 415);
+  assert.equal((await api('POST', '/messages', message({ details: 'x'.repeat(40000) }))).status, 413);
+  assert.deepEqual((await api('GET', '/messages')).data, { items: [], hasNext: false });
+});
+
+test('the feed pages 20 at a time, newest first, and filters by state', async () => {
+  const api = await worker();
+  for (let i = 1; i <= 21; i++) await api('POST', '/messages', message({ title: `memo ${i}`, requestKey: `${KEY}${i}` }));
+  const page1 = await api('GET', '/messages');
+  assert.equal(page1.data.items.length, 20);
+  assert.equal(page1.data.hasNext, true);
+  assert.equal(page1.data.items[0].title, 'memo 21');
+  const page2 = await api('GET', '/messages?page=2');
+  assert.deepEqual(page2.data.items.map(item => item.title), ['memo 1']);
+  assert.equal(page2.data.hasNext, false);
+  assert.deepEqual((await api('GET', '/messages?state=closed')).data, { items: [], hasNext: false });
+  assert.equal((await api('GET', '/messages?state=deleted')).status, 400);
+  assert.equal((await api('GET', '/messages?page=0')).status, 400);
+  assert.equal((await api('GET', '/messages?page=abc')).status, 400);
+});
+
+test('replies attach to an existing memo and bump its reply count', async () => {
+  const api = await worker();
+  await api('POST', '/messages', message());
+  const missing = await api('POST', '/messages/999/replies', { details: 'hello', requestKey: `${KEY}r` });
+  assert.equal(missing.status, 404);
+  const reply = await api('POST', '/messages/1/replies', { details: ' 回覆 ', nickname: '', requestKey: `${KEY}r` });
+  assert.equal(reply.status, 201);
+  assert.equal(reply.data.item.body, '回覆');
+  assert.equal(reply.data.item.message_number, 1);
+  const replay = await api('POST', '/messages/1/replies', { details: '回覆', nickname: '', requestKey: `${KEY}r` });
+  assert.equal(replay.data.item.id, reply.data.item.id);
+  assert.equal((await api('POST', '/messages/1/replies', { details: 'other', requestKey: `${KEY}r` })).status, 409);
+  const thread = await api('GET', '/messages/1/replies');
+  assert.equal(thread.data.items.length, 1);
+  assert.equal((await api('GET', '/messages')).data.items[0].comments, 1);
+  assert.equal((await api('GET', '/messages/999/replies')).status, 404);
+});
+
+test('writes are refused with 429 once the per-IP rate limit binding says so', async () => {
+  const seen = [];
+  const api = await worker({ POST_LIMIT: { async limit({ key }) { seen.push(key); return { success: seen.length > 1 }; } } });
+  const limited = await api('POST', '/messages', message(), { 'CF-Connecting-IP': '203.0.113.9' });
+  assert.equal(limited.status, 429);
+  assert.equal(limited.data.error, 'limited');
+  assert.deepEqual(seen, ['203.0.113.9']);
+  assert.equal((await api('POST', '/messages', message())).status, 201);
+  assert.equal((await api('GET', '/messages')).status, 200, 'reads are never rate limited');
+  assert.deepEqual(seen, ['203.0.113.9', 'unknown']);
 });

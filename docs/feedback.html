@@ -10,10 +10,11 @@
   <meta property="og:image" content="assets/backgroundTitle.png" />
   <meta name="theme-color" content="#17212d" />
   <link rel="icon" href="assets/icon.png" />
-  <link rel="stylesheet" href="styles.css?v=20260915-wall1" />
-  <link rel="stylesheet" href="feedback.css?v=20260915-wall1" />
-  <script src="i18n.js?v=20260915-wall1" defer></script>
-  <script src="feedback.js?v=20260915-wall1" defer></script>
+  <link rel="stylesheet" href="styles.css?v=20260915-anon1" />
+  <link rel="stylesheet" href="feedback.css?v=20260915-anon1" />
+  <script src="i18n.js?v=20260915-anon1" defer></script>
+  <script src="feedback-config.js?v=20260915-anon1" defer></script>
+  <script src="feedback.js?v=20260915-anon1" defer></script>
 </head>
 <body data-page="feedback">
   <header class="site-header" aria-label="網站導覽">
@@ -57,7 +58,7 @@
       <section class="feedback-board" aria-labelledby="feedback-list-title">
         <div class="wall-heading"><div><p class="memo-section-number">01 / COMMUNITY VOICES</p>
         <h2 id="feedback-list-title" data-i18n="feedback.listTitle">大家嘅留言</h2></div><p class="wall-caption" data-i18n="feedback.wallCaption">每一張，都係香城嘅一把聲音。</p></div>
-        <p class="feedback-help" data-i18n="feedback.afterPost">在 GitHub 完成提交或回覆後，返嚟按「重新整理」就可以讀取最新紀錄。</p>
+        <p class="feedback-help" data-i18n="feedback.afterPost">直接喺牆上留言、回覆，毋須登入。按「重新整理」睇最新留言。</p>
         <div class="feedback-toolbar">
           <label><span data-i18n="feedback.filter">處理狀態</span><select data-feedback-filter><option value="all" data-i18n="feedback.all">全部</option><option value="open" data-i18n="feedback.open">處理中</option><option value="closed" data-i18n="feedback.closed">已關閉</option></select></label>
           <button type="button" class="feedback-secondary" data-feedback-refresh data-i18n="feedback.refresh">重新整理</button>
@@ -72,13 +73,13 @@
           <span data-feedback-page></span>
           <button type="button" class="feedback-secondary" data-feedback-next disabled data-i18n="feedback.next">下一頁</button>
         </div>
-        <a class="feedback-thread-link" href="https://github.com/nortonyuen-oss/heung_shing_simulator/issues?q=is%3Aissue%20label%3Awebsite-feedback" target="_blank" rel="noopener noreferrer" data-i18n="feedback.allOnGitHub">在 GitHub 查看所有留言 ↗</a>
       </section>
       <section class="feedback-compose" id="write-memo" aria-labelledby="feedback-compose-title">
         <p class="memo-section-number">02 / LEAVE A NOTE</p>
         <h2 id="feedback-compose-title" data-i18n="feedback.newPost">寫低你嘅問題或意見</h2>
-        <p class="feedback-help" data-i18n="feedback.publicNote">留言同回覆會公開顯示。發表時需要 GitHub 帳號，最後一步會到 GitHub 確認提交。</p>
+        <p class="feedback-help" data-i18n="feedback.publicNote">毋須登入，寫好就可以貼上牆。留言同回覆會公開顯示；暱稱由留言者自行填寫。</p>
         <form data-feedback-form>
+          <label><span data-i18n="feedback.nickname">暱稱（選填，毋須註冊）</span><input name="nickname" maxlength="40" autocomplete="off" /></label>
           <div class="feedback-fields">
             <label><span data-i18n="feedback.type">留言類別</span><select name="type"><option value="bug" data-i18n="feedback.bug">問題回報</option><option value="question" data-i18n="feedback.question">玩法疑問</option><option value="suggestion" data-i18n="feedback.suggestion">功能建議</option><option value="comment" data-i18n="feedback.comment">一般留言</option></select></label>
             <label><span data-i18n="feedback.platform">作業系統</span><select name="platform"><option>Windows</option><option>macOS (Apple Silicon)</option><option>macOS (Intel)</option><option value="Other" selected data-i18n="feedback.other">其他／不適用</option></select></label>
@@ -86,22 +87,12 @@
           <label><span data-i18n="feedback.subject">標題</span><input name="title" required maxlength="120" /></label>
           <label><span data-i18n="feedback.version">遊戲版本（選填）</span><input name="version" maxlength="40" placeholder="4.9.0" /></label>
           <label><span data-i18n="feedback.details">內容</span><textarea name="details" rows="8" required maxlength="6000" aria-describedby="feedback-details-help"></textarea></label>
-          <p id="feedback-details-help" class="feedback-help" data-i18n="feedback.detailsHelp">回報問題時，請寫低發生咗乜事、重現步驟同預期結果。截圖可以到 GitHub 提交時加入。</p>
-          <p class="feedback-help" data-i18n="feedback.privacy">請保持尊重，唔好公開 API key、密碼、個人資料或未遮蔽嘅私人存檔。留言儲存在 GitHub，帳號同內容亦受 GitHub 條款及私隱政策規管。</p>
-          <button class="button primary" type="submit" data-i18n="feedback.prepare">整理留言</button>
+          <p id="feedback-details-help" class="feedback-help" data-i18n="feedback.detailsHelp">回報問題時，請寫低發生咗乜事、重現步驟同預期結果。</p>
+          <p class="feedback-help" data-i18n="feedback.privacy">請互相尊重，唔好貼密碼或私人資料。留言會公開儲存，管理者可以移除不適當內容。</p>
+          <button class="button primary" type="submit" data-i18n="feedback.send">貼上留言</button>
           <p role="status" data-feedback-form-status></p>
         </form>
-        <div class="feedback-preview" data-feedback-preview hidden>
-          <h3 data-i18n="feedback.preview">檢查留言，再到 GitHub 發表</h3>
-          <p data-feedback-handoff></p>
-          <label><span data-i18n="feedback.draftLabel">留言全文</span><textarea data-feedback-draft readonly rows="8"></textarea></label>
-          <div class="feedback-actions">
-            <button type="button" class="feedback-secondary" data-feedback-copy data-i18n="feedback.copy">複製留言全文</button>
-            <a class="button primary" data-feedback-publish target="_blank" rel="noopener noreferrer" href="https://github.com/nortonyuen-oss/heung_shing_simulator/issues/new?template=website-feedback.md" data-i18n="feedback.publish">到 GitHub 確認發表 ↗</a>
-          </div>
-          <p role="status" data-feedback-copy-status></p>
-        </div>
-        <noscript><p>未啟用 JavaScript 仍可直接到 GitHub 查看及發表留言。 <a href="https://github.com/nortonyuen-oss/heung_shing_simulator/issues/new?template=website-feedback.md">GitHub ↗</a></p><style>[data-feedback-form], [data-feedback-status], .feedback-toolbar, .feedback-pagination { display: none; }</style></noscript>
+        <noscript><p>請啟用 JavaScript 以讀取及提交留言。 / Enable JavaScript to read and post messages.</p><style>[data-feedback-form], [data-feedback-status], .feedback-toolbar, .feedback-pagination { display: none; }</style></noscript>
       </section>
     </div>
   </main>

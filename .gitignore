@@ -11,3 +11,4 @@ test-results/
 **/process_log.csv
 **/settings.json
 /footballStarVisit.webp
+.wrangler/

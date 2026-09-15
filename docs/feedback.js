@@ -1,258 +1,215 @@
 (function () {
   'use strict';
-  const REPO = 'nortonyuen-oss/heung_shing_simulator';
-  const LABEL = 'website-feedback';
-  const API = `https://api.github.com/repos/${REPO}`;
-  const WEB = `https://github.com/${REPO}/issues`;
-  const TEMPLATE = 'website-feedback.md';
   const TYPES = ['bug', 'question', 'suggestion', 'comment'];
-
-  function issueUrl(number) {
-    if (!Number.isSafeInteger(number) || number < 1) throw new Error('Invalid issue number');
-    return `${WEB}/${number}`;
+  function memoColor(value, random = Math.random) {
+    return Number.isInteger(value) && value >= 0 && value < 6 ? value : Math.floor(random() * 6);
   }
-
-  function listUrl(state = 'all', page = 1) {
-    if (!['all', 'open', 'closed'].includes(state)) throw new Error('Invalid state');
-    if (!Number.isSafeInteger(page) || page < 1) throw new Error('Invalid page');
-    const url = new URL(`${API}/issues`);
-    url.search = new URLSearchParams({ labels: LABEL, state, sort: 'created', direction: 'desc', per_page: '20', page: String(page) });
-    return url.href;
+  function payload(values, requestKey) {
+    return {
+      type: TYPES.includes(values.type) ? values.type : 'comment',
+      title: String(values.title || '').trim(), details: String(values.details || '').trim(),
+      nickname: String(values.nickname || '').trim(), version: String(values.version || '').trim(),
+      platform: String(values.platform || '').trim(), requestKey,
+    };
   }
-
-  function preparePost({ type, title, version, platform, details }) {
-    const kind = TYPES.includes(type) ? type : 'comment';
-    const subject = `[${kind}] ${String(title || '').trim().slice(0, 120)}`;
-    const body = [
-      '## 類別 / Type', kind, '',
-      '## 遊戲版本 / Game version', String(version || '').trim() || '—', '',
-      '## 作業系統 / Platform', String(platform || '').trim() || '—', '',
-      '## 內容 / Details', String(details || '').trim(), '',
-      '---', 'Submitted via https://nortonyuen-oss.github.io/heung_shing_simulator/feedback.html',
-    ].join('\n');
-    const url = new URL(`${WEB}/new`);
-    // Labels come from the repository template. Ordinary visitors cannot use
-    // GitHub's labels query parameter without repository write permissions.
-    url.search = new URLSearchParams({ template: TEMPLATE, title: subject, body });
-    const copyRequired = url.href.length > 7000;
-    if (copyRequired) url.searchParams.delete('body');
-    return { url: url.href, body, copyRequired };
-  }
-
-  function publicIssues(items) {
-    if (!Array.isArray(items)) throw new Error('Invalid API response');
-    return items.filter(item => item && !item.pull_request && Number.isSafeInteger(item.number) && item.number > 0);
-  }
-
-  if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { issueUrl, listUrl, preparePost, publicIssues };
-  }
+  if (typeof module !== 'undefined' && module.exports) module.exports = { memoColor, payload };
   if (typeof document === 'undefined') return;
-
   document.addEventListener('DOMContentLoaded', () => {
     const form = document.querySelector('[data-feedback-form]');
     if (!form) return;
-    const t = key => siteT(`feedback.${key}`);
+    const api = String(window.FEEDBACK_API_URL || '').replace(/\/$/, '');
+    const phrase = key => siteT(`feedback.${key}`);
     const list = document.querySelector('[data-feedback-list]');
     const status = document.querySelector('[data-feedback-status]');
+    const formStatus = document.querySelector('[data-feedback-form-status]');
     const filter = document.querySelector('[data-feedback-filter]');
     const previous = document.querySelector('[data-feedback-previous]');
     const next = document.querySelector('[data-feedback-next]');
     const refresh = document.querySelector('[data-feedback-refresh]');
-    const composer = document.querySelector('[data-feedback-preview]');
-    const draft = document.querySelector('[data-feedback-draft]');
-    const publish = document.querySelector('[data-feedback-publish]');
-    const copyStatus = document.querySelector('[data-feedback-copy-status]');
-    let rows = [], page = 1, hasNext = false, sequence = 0, state = 'loading', prepared = null;
-    const threads = new Map();
-
+    const submit = form.querySelector('[type=submit]');
+    const threads = new Map(), colors = new Map();
+    let rows = [], page = 1, hasNext = false, sequence = 0, state = 'loading';
+    let sending = false, submissionKey = '', submissionSignature = '', formMessage = '';
     function node(tag, text, className) {
       const element = document.createElement(tag);
       if (text !== undefined) element.textContent = String(text);
       if (className) element.className = className;
       return element;
     }
-
-    function externalLink(url, text) {
-      const link = node('a', text);
-      link.href = url;
-      link.target = '_blank';
-      link.rel = 'noopener noreferrer';
-      return link;
-    }
-
     function authorAndDate(item) {
-      const author = typeof item.user?.login === 'string' ? item.user.login : t('unknownAuthor');
       const date = new Date(item.created_at);
       const formatted = Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString(SITE_INTL_LOCALE[siteCurrentLanguage]);
-      return `${author}${formatted ? ' · ' + formatted : ''}`;
+      return `${item.nickname || phrase('anonymous')}${formatted ? ' · ' + formatted : ''}`;
     }
-
-    async function readApi(url) {
+    async function request(path, body) {
+      if (!api) throw new Error('notConfigured');
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 15000);
       try {
-        const response = await fetch(url, {
-          headers: { Accept: 'application/vnd.github+json' },
-          credentials: 'omit', signal: controller.signal,
+        const response = await fetch(api + path, {
+          method: body ? 'POST' : 'GET', credentials: 'omit', cache: 'no-store',
+          headers: body ? { 'Content-Type': 'application/json' } : {},
+          body: body ? JSON.stringify(body) : undefined, signal: controller.signal,
         });
-        if (!response.ok) {
-          const error = new Error('GitHub API unavailable');
-          error.limited = response.status === 403 || response.status === 429;
-          throw error;
-        }
-        const data = await response.json();
-        if (!Array.isArray(data)) throw new Error('Invalid API response');
-        return { data, hasNext: /rel="next"/.test(response.headers.get('link') || '') };
+        if (!response.ok) throw new Error(response.status === 429 ? 'limited' : (response.status === 400 || response.status === 413 ? 'invalid' : 'error'));
+        return await response.json();
       } finally { clearTimeout(timeout); }
     }
-
-    function renderComposer() {
-      if (!prepared) return;
-      document.querySelector('[data-feedback-handoff]').textContent = t(prepared.copyRequired ? 'longPost' : 'handoff');
-      publish.textContent = t(prepared.copyRequired ? 'openAndPaste' : 'publish');
-      publish.href = prepared.url;
-      draft.value = prepared.body;
+    function collection(result) {
+      if (!result || !Array.isArray(result.items) || typeof result.hasNext !== 'boolean') throw new Error('error');
+      return result;
     }
-
+    function errorKey(error) { return ['notConfigured', 'limited', 'invalid'].includes(error.message) ? error.message : 'error'; }
+    function field(labelKey, name, value, multiline = false) {
+      const label = node('label');
+      const input = node(multiline ? 'textarea' : 'input');
+      input.name = name; input.value = value;
+      input.maxLength = multiline ? 6000 : 40;
+      if (multiline) { input.rows = 3; input.required = true; }
+      label.append(node('span', phrase(labelKey)), input);
+      return { label, input };
+    }
     function render() {
-      status.textContent = t(state === 'ready' ? (rows.length ? 'loaded' : 'empty') : state);
+      status.textContent = phrase(state === 'ready' ? (rows.length ? 'loaded' : 'empty') : state);
       previous.disabled = state === 'loading' || page === 1;
       next.disabled = state === 'loading' || !hasNext;
-      refresh.disabled = state === 'loading';
-      document.querySelector('[data-feedback-page]').textContent = `${t('page')} ${page}`;
+      refresh.disabled = state === 'loading' || !api;
+      submit.disabled = sending || !api;
+      submit.textContent = phrase(sending ? 'sending' : 'send');
+      formStatus.textContent = formMessage ? phrase(formMessage) : (!api ? phrase('notConfigured') : '');
+      document.querySelector('[data-feedback-page]').textContent = `${phrase('page')} ${page}`;
       list.setAttribute('aria-busy', String(state === 'loading'));
+      // Keep keyboard focus and typed reply drafts through background reads/language changes.
+      const active = list.contains(document.activeElement) ? document.activeElement : null;
+      const focusId = active?.id, selection = active?.selectionStart;
       list.replaceChildren();
       for (const item of rows) {
         const card = node('article', undefined, 'feedback-card');
-        const title = String(item.title || t('untitled'));
-        const match = title.match(/^\[(bug|question|suggestion|comment)\]\s*/);
-        const kind = match ? match[1] : 'comment';
+        card.id = `memo-${item.number}`;
+        const kind = TYPES.includes(item.type) ? item.type : 'comment';
         card.dataset.memoType = kind;
+        if (!colors.has(item.number)) colors.set(item.number, memoColor(item.color));
+        card.dataset.memoColor = String(colors.get(item.number));
         const stamp = node('div', undefined, 'memo-stamp');
-        stamp.append(node('span', t(kind)), node('span', `#${item.number}`));
-        const heading = node('h3');
-        heading.appendChild(externalLink(issueUrl(item.number), title.replace(/^\[(bug|question|suggestion|comment)\]\s*/, '')));
-        // Show the player's message on the paper, keeping the full original in details.
-        const rawBody = String(item.body || '');
-        const message = rawBody.includes('## 內容 / Details\n')
-          ? rawBody.split('## 內容 / Details\n').slice(1).join('## 內容 / Details\n').replace(/\n---\nSubmitted via https:\/\/nortonyuen-oss\.github\.io\/heung_shing_simulator\/feedback\.html\s*$/, '').trim()
-          : rawBody;
+        stamp.append(node('span', phrase(kind)), node('span', `#${item.number}`));
+        const heading = node('h3', item.title || phrase('untitled'));
+        const message = String(item.body || '');
         const excerpt = node('p', message.slice(0, 240) + (message.length > 240 ? '…' : ''), 'memo-excerpt');
         const meta = node('p', authorAndDate(item), 'feedback-meta');
-        const badge = node('span', t(item.state === 'closed' ? 'closed' : 'open'), 'feedback-badge');
-        meta.append(' · ', badge);
+        meta.append(' · ', node('span', phrase(item.state === 'closed' ? 'closed' : 'open'), 'feedback-badge'));
         const detail = node('details');
-        const summary = node('summary', `${t('readThread')} · ${Number(item.comments) || 0} ${t('replies')}`);
-        const body = node('div', item.body || t('noBody'), 'feedback-message');
-        detail.append(summary, body);
-        const thread = threads.get(item.number) || { open: false, loaded: false, loading: false, error: '', rows: [], page: 0, hasNext: false };
+        const summary = node('summary', `${phrase('readThread')} · ${Number(item.comments) || 0} ${phrase('replies')}`);
+        summary.id = `thread-${item.number}`;
+        detail.append(summary, node('div', message || phrase('noBody'), 'feedback-message'));
+        if (item.version || item.platform) detail.append(node('p', [item.version, item.platform].filter(Boolean).join(' · '), 'feedback-meta'));
+        const thread = threads.get(item.number) || { open: false, loaded: false, loading: false, error: '', rows: [], page: 0, hasNext: false, nickname: '', details: '', sending: false, key: '', signature: '', notice: '' };
         threads.set(item.number, thread);
         detail.open = thread.open;
         for (const comment of thread.rows) {
           const reply = node('div', undefined, 'feedback-reply');
-          reply.append(node('p', authorAndDate(comment), 'feedback-meta'), node('div', comment.body || t('noBody'), 'feedback-message'));
-          detail.appendChild(reply);
+          reply.append(node('p', authorAndDate(comment), 'feedback-meta'), node('div', comment.body || phrase('noBody'), 'feedback-message'));
+          detail.append(reply);
         }
-        if (thread.loading) detail.appendChild(node('p', t('loading'), 'feedback-meta'));
-        if (thread.error) {
-          detail.appendChild(node('p', t(thread.error), 'feedback-meta'));
-          const retry = node('button', t('retry'), 'feedback-secondary');
-          retry.type = 'button';
-          retry.addEventListener('click', () => loadComments(item.number));
-          detail.appendChild(retry);
-        }
-        if (thread.hasNext && !thread.loading && !thread.error) {
-          const more = node('button', t('moreReplies'), 'feedback-secondary');
-          more.type = 'button';
+        if (thread.loading) detail.append(node('p', phrase('loading'), 'feedback-meta'));
+        if (thread.error) detail.append(node('p', phrase(thread.error), 'feedback-meta'));
+        if ((thread.error || thread.hasNext) && !thread.loading) {
+          const more = node('button', phrase(thread.error ? 'retry' : 'moreReplies'), 'feedback-secondary');
+          more.type = 'button'; more.id = `more-${item.number}`;
           more.addEventListener('click', () => loadComments(item.number));
-          detail.appendChild(more);
+          detail.append(more);
         }
-        const replyLink = externalLink(`${issueUrl(item.number)}#new_comment_field`, t('reply'));
-        replyLink.className = 'feedback-thread-link';
-        detail.appendChild(replyLink);
+        const replyForm = node('form', undefined, 'memo-reply-form');
+        const nickname = field('nickname', 'nickname', thread.nickname);
+        const text = field('writeReply', 'details', thread.details, true);
+        const button = node('button', phrase(thread.sending ? 'sending' : 'sendReply'), 'feedback-secondary');
+        button.type = 'submit'; button.id = `reply-submit-${item.number}`;
+        const notice = node('p', thread.notice ? phrase(thread.notice) : '', 'feedback-meta'); notice.setAttribute('role', 'status');
+        for (const { input } of [nickname, text]) {
+          input.id = `reply-${input.name}-${item.number}`; input.disabled = thread.sending;
+          input.addEventListener('input', () => { thread[input.name] = input.value; thread.notice = ''; notice.textContent = ''; });
+        }
+        button.disabled = thread.sending || !api;
+        replyForm.append(nickname.label, text.label, button, notice);
+        replyForm.addEventListener('submit', async event => {
+          event.preventDefault();
+          if (thread.sending || !replyForm.reportValidity()) return;
+          if (!thread.details.trim()) { thread.notice = 'required'; render(); return; }
+          const signature = JSON.stringify([thread.nickname.trim(), thread.details.trim()]);
+          if (signature !== thread.signature) { thread.key = crypto.randomUUID(); thread.signature = signature; }
+          thread.sending = true; thread.notice = 'sending'; render();
+          try {
+            const result = await request(`/messages/${item.number}/replies`, { nickname: thread.nickname.trim(), details: thread.details.trim(), requestKey: thread.key });
+            if (!Number.isSafeInteger(result.item?.id)) throw new Error('error');
+            thread.details = ''; thread.key = ''; thread.signature = ''; thread.notice = 'replySent';
+            item.comments = Number(item.comments || 0) + 1;
+            thread.rows = []; thread.page = 0; thread.loaded = false; thread.hasNext = false;
+            await loadComments(item.number);
+          } catch (error) { thread.notice = errorKey(error) === 'error' ? 'sendError' : errorKey(error); }
+          finally { thread.sending = false; render(); }
+        });
+        detail.append(replyForm);
         detail.addEventListener('toggle', () => {
-          // Ignore toggle events from elements replaced during a refresh.
           if (!detail.isConnected) return;
           thread.open = detail.open;
           if (detail.open && !thread.loaded && !thread.loading && !thread.error && item.comments > 0) loadComments(item.number);
         });
-        card.append(stamp, heading, excerpt, meta, detail);
-        list.appendChild(card);
+        card.append(stamp, heading, excerpt, meta, detail); list.append(card);
       }
-      renderComposer();
+      if (focusId) {
+        const restored = document.getElementById(focusId);
+        restored?.focus({ preventScroll: true });
+        if (typeof selection === 'number' && restored?.setSelectionRange) restored.setSelectionRange(selection, selection);
+      }
     }
-
     async function loadComments(number) {
       const thread = threads.get(number);
       if (!thread || thread.loading) return;
-      thread.loading = true;
-      thread.error = '';
-      render();
+      thread.loading = true; thread.error = ''; render();
       try {
-        const result = await readApi(`${API}/issues/${number}/comments?per_page=20&page=${thread.page + 1}`);
+        const result = collection(await request(`/messages/${number}/replies?page=${thread.page + 1}`));
         if (threads.get(number) !== thread) return;
-        thread.rows.push(...result.data.filter(item => item && typeof item === 'object'));
-        thread.page++;
-        thread.loaded = true;
-        thread.hasNext = result.hasNext;
-      } catch (error) {
-        if (threads.get(number) !== thread) return;
-        thread.error = error.limited ? 'limited' : 'error';
-      } finally {
-        thread.loading = false;
-        if (threads.get(number) === thread) render();
-      }
+        thread.rows.push(...result.items); thread.page++; thread.loaded = true; thread.hasNext = result.hasNext;
+      } catch (error) { thread.error = errorKey(error); }
+      finally { thread.loading = false; if (threads.get(number) === thread) render(); }
     }
-
     async function loadList() {
-      const request = ++sequence;
-      state = 'loading';
-      rows = [];
-      hasNext = false;
+      const current = ++sequence;
+      state = api ? 'loading' : 'notConfigured'; rows = []; hasNext = false; render();
+      if (!api) return;
+      try {
+        const result = collection(await request(`/messages?state=${filter.value}&page=${page}`));
+        if (current !== sequence) return;
+        rows = result.items.filter(item => Number.isSafeInteger(item?.number) && item.number > 0);
+        hasNext = result.hasNext; state = 'ready';
+      } catch (error) { if (current === sequence) state = errorKey(error); }
+      if (current === sequence) render();
+    }
+    form.addEventListener('submit', async event => {
+      event.preventDefault();
+      if (sending || !form.reportValidity()) return;
+      const values = Object.fromEntries(new FormData(form));
+      if (!values.title.trim() || !values.details.trim()) { formMessage = 'required'; render(); return; }
+      const signature = JSON.stringify(payload(values, ''));
+      if (signature !== submissionSignature) { submissionKey = crypto.randomUUID(); submissionSignature = signature; }
+      sending = true; formMessage = 'sending';
+      for (const element of form.elements) element.disabled = true;
       render();
       try {
-        const result = await readApi(listUrl(filter.value, page));
-        if (request !== sequence) return;
-        rows = publicIssues(result.data);
-        hasNext = result.hasNext;
-        state = 'ready';
-      } catch (error) {
-        if (request !== sequence) return;
-        state = error.limited ? 'limited' : 'error';
-      }
-      if (request === sequence) render();
-    }
-
-    form.addEventListener('submit', event => {
-      event.preventDefault();
-      if (!form.reportValidity()) return;
-      const values = Object.fromEntries(new FormData(form));
-      if (!values.title.trim() || !values.details.trim()) {
-        document.querySelector('[data-feedback-form-status]').textContent = t('required');
-        return;
-      }
-      document.querySelector('[data-feedback-form-status]').textContent = '';
-      prepared = preparePost(values);
-      composer.hidden = false;
-      copyStatus.textContent = '';
-      renderComposer();
-      publish.focus();
+        const result = await request('/messages', payload(values, submissionKey));
+        if (!Number.isSafeInteger(result.item?.number)) throw new Error('error');
+        form.reset(); submissionKey = ''; submissionSignature = ''; formMessage = 'sent';
+        filter.value = 'all'; page = 1;
+        await loadList();
+        document.getElementById(`memo-${result.item.number}`)?.scrollIntoView({ block: 'center' });
+      } catch (error) { formMessage = errorKey(error) === 'error' ? 'sendError' : errorKey(error); }
+      finally { sending = false; for (const element of form.elements) element.disabled = false; render(); }
     });
-    form.addEventListener('input', () => {
-      prepared = null;
-      composer.hidden = true;
-      copyStatus.textContent = '';
-    });
-    document.querySelector('[data-feedback-copy]').addEventListener('click', async () => {
-      try { await navigator.clipboard.writeText(draft.value); copyStatus.textContent = t('copied'); }
-      catch { draft.focus(); draft.select(); copyStatus.textContent = t('copyManually'); }
-    });
-    filter.addEventListener('change', () => { page = 1; threads.clear(); loadList(); });
-    previous.addEventListener('click', () => { if (page > 1) { page--; threads.clear(); loadList(); } });
-    next.addEventListener('click', () => { if (hasNext) { page++; threads.clear(); loadList(); } });
-    refresh.addEventListener('click', () => { threads.clear(); loadList(); });
-    document.addEventListener('sitelanguagechange', () => { copyStatus.textContent = ''; render(); });
+    form.addEventListener('input', () => { if (!sending) { formMessage = ''; formStatus.textContent = ''; } });
+    filter.addEventListener('change', () => { page = 1; loadList(); });
+    previous.addEventListener('click', () => { if (page > 1) { page--; loadList(); } });
+    next.addEventListener('click', () => { if (hasNext) { page++; loadList(); } });
+    refresh.addEventListener('click', () => { for (const thread of threads.values()) { thread.loaded = false; thread.page = 0; thread.rows = []; thread.error = ''; } loadList(); });
+    document.addEventListener('sitelanguagechange', render);
     loadList();
   });
 }());

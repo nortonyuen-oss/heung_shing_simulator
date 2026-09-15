@@ -1258,7 +1258,7 @@ const SITE_TEXT = {
       description: "免費下載《香城模擬器》：一款向 SimCity 2000 致敬、以香港城市生活為靈感嘅城市建設遊戲。免費遊玩，分享及再利用請參閱版權條款。",
       ogDescription: "由街道、天氣到議會、股市同公共交通，一齊建設屬於你嘅香城。遊戲免費下載；歡迎分享官方連結，其他用途請參閱版權條款。",
     },
-    nav: { gallery: "玩法與截圖", downloads: "免費下載", manual: "玩家手冊", guide: "遊戲指南", stats: "統計", changelog: "版本", github: "GitHub" },
+    nav: { gallery: "玩法與截圖", downloads: "免費下載", guide: "遊戲指南", stats: "統計", changelog: "版本", github: "GitHub" },
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
@@ -1314,13 +1314,10 @@ const SITE_TEXT = {
       notice: "AI 新聞屬選用功能。安裝後請在「設定 → AI 新聞」貼上你自己嘅 Ollama API key；遊戲及安裝檔不包含任何開發者密鑰。未設定 AI 亦可照常使用模擬新聞。現時安裝檔尚未完成簽章，macOS Gatekeeper 或 Windows SmartScreen 可能會在第一次開啟時要求確認。",
     },
     manual: {
-      eyebrow: "User Manual",
-      title: "特殊建築解鎖規格",
       intro: "除資金、空地及 footprint 外，以下建築需要額外城市條件。首次達標時，遊戲走馬燈及香城討論區會發出一次解鎖通知。",
       tableHeaders: ["建築", "解鎖條件", "上限／選單行為"],
       notesTitle: "分區自然生成",
       sourceLink: "閱讀完整數值規格",
-      guideLink: "睇完整遊戲規則指南 →",
     },
     changelog: { eyebrow: "Release Notes", title: "版本變更說明" },
     features: {
@@ -1335,7 +1332,7 @@ const SITE_TEXT = {
       description: "免費下載《香城模擬器》：一款向 SimCity 2000 致敬、以香港城市生活為靈感的城市建設遊戲。免費遊玩，分享與再利用請參閱版權條款。",
       ogDescription: "從街道、天氣到議會、股市與公共運輸，一起建設屬於你的香城。遊戲免費下載；歡迎分享官方連結，其他用途請參閱版權條款。",
     },
-    nav: { gallery: "玩法與截圖", downloads: "免費下載", manual: "玩家手冊", guide: "遊戲指南", stats: "統計", changelog: "版本", github: "GitHub" },
+    nav: { gallery: "玩法與截圖", downloads: "免費下載", guide: "遊戲指南", stats: "統計", changelog: "版本", github: "GitHub" },
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
@@ -1391,13 +1388,10 @@ const SITE_TEXT = {
       notice: "AI 新聞屬選用功能。安裝後請在「設定 → AI 新聞」貼上你自己的 Ollama API key；遊戲及安裝檔不包含任何開發者金鑰。未設定 AI 也可照常使用模擬新聞。目前安裝檔尚未完成簽章，macOS Gatekeeper 或 Windows SmartScreen 可能會在第一次開啟時要求確認。",
     },
     manual: {
-      eyebrow: "User Manual",
-      title: "特殊建築解鎖規格",
       intro: "除資金、空地及 footprint 外，以下建築需要額外城市條件。首次達標時，遊戲跑馬燈及香城討論區會發出一次解鎖通知。",
       tableHeaders: ["建築", "解鎖條件", "上限／選單行為"],
       notesTitle: "分區自然生成",
       sourceLink: "閱讀完整數值規格",
-      guideLink: "查看完整遊戲規則指南 →",
     },
     changelog: { eyebrow: "Release Notes", title: "版本更新說明" },
     features: {
@@ -1412,7 +1406,7 @@ const SITE_TEXT = {
       description: "Download The City of Heung Shing for free: a city-building game inspired by Hong Kong life and made in tribute to SimCity 2000. Free to play; sharing and reuse are subject to the license.",
       ogDescription: "Build your own Heung Shing through streets, weather, council politics, markets and public transport. Free to download; see the license for sharing and reuse.",
     },
-    nav: { gallery: "Gameplay & Screenshots", downloads: "Free Download", manual: "Manual", guide: "Game Guide", stats: "Stats", changelog: "Changelog", github: "GitHub" },
+    nav: { gallery: "Gameplay & Screenshots", downloads: "Free Download", guide: "Game Guide", stats: "Stats", changelog: "Changelog", github: "GitHub" },
     hero: {
       eyebrowPrefix: "The City of Heung Shing",
       title: "The City of Heung Shing",
@@ -1469,13 +1463,10 @@ const SITE_TEXT = {
       notice: "AI news is an optional feature. After installing, paste your own Ollama API key under Settings → AI News; the game and installer never bundle any developer key. The game works fine with simulated news if you skip AI setup. Installers aren't code-signed yet, so macOS Gatekeeper or Windows SmartScreen may prompt for confirmation the first time you open them.",
     },
     manual: {
-      eyebrow: "User Manual",
-      title: "Special Building Unlock Specs",
       intro: "Beyond funds, empty space and footprint, the buildings below need extra city conditions. The first time a condition is met, the in-game ticker and the Heung Shing Forum post a one-time unlock notice.",
       tableHeaders: ["Building", "Unlock condition", "Cap / menu behaviour"],
       notesTitle: "Zone auto-generation",
       sourceLink: "Read the full numeric spec",
-      guideLink: "Read the full game guide →",
     },
     changelog: { eyebrow: "Release Notes", title: "Release Notes" },
     features: {
@@ -1490,7 +1481,7 @@ const SITE_TEXT = {
       description: "『香城模擬器』を無料ダウンロード。香港の都市生活から着想を得た、SimCity 2000へのオマージュとなる都市建設ゲームです。共有・再利用については利用条件をご確認ください。",
       ogDescription: "道路、天候、議会、株式市場、公共交通を通じて自分だけの香城を建設。無料でダウンロードでき、共有・再利用については利用条件をご確認ください。",
     },
-    nav: { gallery: "ゲーム内容と画像", downloads: "無料ダウンロード", manual: "プレイヤーマニュアル", guide: "ゲームガイド", stats: "統計", changelog: "更新履歴", github: "GitHub" },
+    nav: { gallery: "ゲーム内容と画像", downloads: "無料ダウンロード", guide: "ゲームガイド", stats: "統計", changelog: "更新履歴", github: "GitHub" },
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
@@ -1546,13 +1537,10 @@ const SITE_TEXT = {
       notice: "AIニュースはオプション機能です。インストール後、「設定 → AIニュース」でご自身のOllama APIキーを貼り付けてください。ゲームおよびインストーラーには開発者のキーは一切含まれていません。AIを設定しなくてもシミュレーテッドニュースは通常通り利用できます。現在インストーラーはコード署名が未完了のため、初回起動時にmacOS GatekeeperやWindows SmartScreenが確認を求める場合があります。",
     },
     manual: {
-      eyebrow: "User Manual",
-      title: "特殊建築の解禁条件",
       intro: "資金・空き地・フットプリントに加え、以下の建築には追加の都市条件が必要です。条件を初めて満たすと、ゲーム内ティッカーと香城フォーラムに解禁通知が一度だけ表示されます。",
       tableHeaders: ["建築", "解禁条件", "上限／メニューの挙動"],
       notesTitle: "区画の自然発生",
       sourceLink: "詳細な数値仕様を読む",
-      guideLink: "完全なゲームガイドを見る →",
     },
     changelog: { eyebrow: "Release Notes", title: "更新履歴" },
     features: {
@@ -1923,7 +1911,7 @@ const SITE_GUIDE = {
     metaTitle: "遊戲指南 | 香城模擬器",
     metaDescription: "香城模擬器完整遊戲規則指南：分區密度、經濟稅收、立法會、天氣颱風、特殊建築解鎖同交通系統一次睇晒。",
     pageTitle: "遊戲指南",
-    pageIntro: "呢頁詳細講解香城模擬器嘅所有核心機制——由分區起樓到立法會投票，由股市炒賣到八號風球。想快速查建築解鎖數值，可以睇返首頁嘅",
+    pageIntro: "呢頁詳細講解香城模擬器嘅所有核心機制——由分區起樓到立法會投票，由股市炒賣到八號風球。想快速查建築解鎖數值，可以直接跳到",
     pageIntroManualLink: "特殊建築解鎖規格",
     pageIntroSuffix: "。",
     toc: "目錄",
@@ -2040,24 +2028,11 @@ const SITE_GUIDE = {
         id: "landmarks",
         title: "八、特殊建築解鎖規格",
         blocks: [
-          { type: "p", text: "以下建築喺資金、空地同 footprint 之外，仲需要達到額外城市條件先可以起（表格同首頁「玩家手冊」一致，呢度作為完整版收錄）：" },
-          { type: "table", head: ["建築", "解鎖條件", "上限"], rows: [
-            ["社區廟宇", "人口 3,000", "最多 4 座"],
-            ["教堂", "人口 5,000", "最多 2 座"],
-            ["立法會", "人口 10,000", "最多 1 座"],
-            ["大佛", "人口 12,000", "最多 1 座"],
-            ["大型廟宇", "人口 12,000；城市吸引力 35", "最多 1 座"],
-            ["太空館", "人口 15,000；「科研發展法」生效", "最多 1 座"],
-            ["貨櫃碼頭", "人口 15,000；4×4 footprint 貼住連續四格水邊", "不限數量"],
-            ["文化中心", "人口 20,000", "最多 1 座"],
-            ["會展中心／紅磡體育館", "人口 30,000", "各最多 1 座"],
-            ["海洋公園", "立法會；人口 35,000；月收入 $6,000；月盈餘 $1,000；經濟 50；決議獲批", "最多 1 座"],
-            ["城超聯主場", "人口 40,000", "最多 1 座"],
-            ["股票交易所", "立法會；人口 50,000；「股票交易所法案」生效", "最多 1 座"],
-            ["美利樓", "城市吸引力 60", "最多 1 座"],
-            ["玫瑰園國際機場", "立法會；人口 80,000；月收入 $12,000；月盈餘 $2,000；經濟 65；決議獲批", "最多 1 座"],
-          ] },
-          { type: "p", text: "首次達標嗰陣，遊戲走馬燈同香城討論區都會刊登一次解鎖通知。" },
+          { type: "p", text: SITE_TEXT["zh-HK"].manual.intro },
+          { type: "table", head: SITE_TEXT["zh-HK"].manual.tableHeaders, rows: SITE_MANUAL_ROWS["zh-HK"] },
+          { type: "h3", text: SITE_TEXT["zh-HK"].manual.notesTitle },
+          { type: "ul", items: SITE_MANUAL_NOTES["zh-HK"] },
+          { type: "link", href: "user-manual.md", text: SITE_TEXT["zh-HK"].manual.sourceLink },
         ],
       },
       {
@@ -2109,7 +2084,7 @@ const SITE_GUIDE = {
     metaTitle: "遊戲指南 | 香城模擬器",
     metaDescription: "香城模擬器完整遊戲規則指南：分區密度、經濟稅收、立法會、天氣颱風、特殊建築解鎖和交通系統一次看懂。",
     pageTitle: "遊戲指南",
-    pageIntro: "這頁詳細說明香城模擬器的所有核心機制——從分區蓋房到立法會投票，從股市操作到八號風球。想快速查建築解鎖數值，可以看首頁的",
+    pageIntro: "這頁詳細說明香城模擬器的所有核心機制——從分區蓋房到立法會投票，從股市操作到八號風球。想快速查建築解鎖數值，可以直接跳到",
     pageIntroManualLink: "特殊建築解鎖規格",
     pageIntroSuffix: "。",
     toc: "目錄",
@@ -2226,24 +2201,11 @@ const SITE_GUIDE = {
         id: "landmarks",
         title: "八、特殊建築解鎖規格",
         blocks: [
-          { type: "p", text: "以下建築除了資金、空地和 footprint 之外，還需要達到額外城市條件才能興建（表格與首頁「玩家手冊」一致，這裡收錄完整版）：" },
-          { type: "table", head: ["建築", "解鎖條件", "上限"], rows: [
-            ["社區廟宇", "人口 3,000", "最多 4 座"],
-            ["教堂", "人口 5,000", "最多 2 座"],
-            ["立法會", "人口 10,000", "最多 1 座"],
-            ["大佛", "人口 12,000", "最多 1 座"],
-            ["大型廟宇", "人口 12,000；城市吸引力 35", "最多 1 座"],
-            ["太空館", "人口 15,000；「科研發展法」生效", "最多 1 座"],
-            ["貨櫃碼頭", "人口 15,000；4×4 footprint 緊貼連續四格水邊", "不限數量"],
-            ["文化中心", "人口 20,000", "最多 1 座"],
-            ["會展中心／紅磡體育館", "人口 30,000", "各最多 1 座"],
-            ["海洋公園", "立法會；人口 35,000；月收入 $6,000；月盈餘 $1,000；經濟 50；決議獲通過", "最多 1 座"],
-            ["城超聯主場", "人口 40,000", "最多 1 座"],
-            ["證券交易所", "立法會；人口 50,000；「證券交易所法案」生效", "最多 1 座"],
-            ["美利樓", "城市吸引力 60", "最多 1 座"],
-            ["玫瑰園國際機場", "立法會；人口 80,000；月收入 $12,000；月盈餘 $2,000；經濟 65；決議獲通過", "最多 1 座"],
-          ] },
-          { type: "p", text: "第一次達標時，遊戲跑馬燈和香城討論區都會刊登一次解鎖通知。" },
+          { type: "p", text: SITE_TEXT["zh-TW"].manual.intro },
+          { type: "table", head: SITE_TEXT["zh-TW"].manual.tableHeaders, rows: SITE_MANUAL_ROWS["zh-TW"] },
+          { type: "h3", text: SITE_TEXT["zh-TW"].manual.notesTitle },
+          { type: "ul", items: SITE_MANUAL_NOTES["zh-TW"] },
+          { type: "link", href: "user-manual.md", text: SITE_TEXT["zh-TW"].manual.sourceLink },
         ],
       },
       {
@@ -2295,7 +2257,7 @@ const SITE_GUIDE = {
     metaTitle: "Game Guide | The City of Heung Shing",
     metaDescription: "A complete rules guide for The City of Heung Shing: zoning density, taxes and economy, the Legislative Council, typhoon weather, special-building unlocks and the transport system, all in one place.",
     pageTitle: "Game Guide",
-    pageIntro: "This page walks through every core mechanic in The City of Heung Shing - from zoning and construction to Legislative Council votes, from the stock market to Typhoon Signal No. 8. For a quick lookup of building unlock numbers, see the homepage's",
+    pageIntro: "This page walks through every core mechanic in The City of Heung Shing - from zoning and construction to Legislative Council votes, from the stock market to Typhoon Signal No. 8. For a quick lookup of building unlock numbers, jump straight to",
     pageIntroManualLink: "Special Building Unlock Specs",
     pageIntroSuffix: ".",
     toc: "Contents",
@@ -2412,24 +2374,11 @@ const SITE_GUIDE = {
         id: "landmarks",
         title: "8. Special Building Unlock Specs",
         blocks: [
-          { type: "p", text: "Beyond funds, empty space and footprint, the buildings below need extra city conditions to unlock (this table matches the homepage's “User Manual” section, reproduced here in full):" },
-          { type: "table", head: ["Building", "Unlock condition", "Cap"], rows: [
-            ["Community Temple", "Population 3,000", "Max 4"],
-            ["Church", "Population 5,000", "Max 2"],
-            ["Legislative Council", "Population 10,000", "Max 1"],
-            ["Big Buddha", "Population 12,000", "Max 1"],
-            ["Grand Temple", "Population 12,000; attractiveness 35", "Max 1"],
-            ["Space Museum", "Population 15,000; “Science Development Act” in effect", "Max 1"],
-            ["Container Port", "Population 15,000; 4×4 footprint touching four contiguous waterfront tiles", "Unlimited"],
-            ["Cultural Centre", "Population 20,000", "Max 1"],
-            ["Convention Centre / Hung Hom Coliseum", "Population 30,000", "Max 1 each"],
-            ["Ocean Park", "Legislative Council; population 35,000; monthly income $6,000; monthly surplus $1,000; economy 50; resolution approved", "Max 1"],
-            ["Football Stadium", "Population 40,000", "Max 1"],
-            ["Stock Exchange", "Legislative Council; population 50,000; “Stock Exchange Act” in effect", "Max 1"],
-            ["Murray House", "City attractiveness 60", "Max 1"],
-            ["Rose Garden International Airport", "Legislative Council; population 80,000; monthly income $12,000; monthly surplus $2,000; economy 65; resolution approved", "Max 1"],
-          ] },
-          { type: "p", text: "The first time a condition is met, the in-game ticker and the Heung Shing Forum both post a one-time unlock notice." },
+          { type: "p", text: SITE_TEXT["en"].manual.intro },
+          { type: "table", head: SITE_TEXT["en"].manual.tableHeaders, rows: SITE_MANUAL_ROWS["en"] },
+          { type: "h3", text: SITE_TEXT["en"].manual.notesTitle },
+          { type: "ul", items: SITE_MANUAL_NOTES["en"] },
+          { type: "link", href: "user-manual.md", text: SITE_TEXT["en"].manual.sourceLink },
         ],
       },
       {
@@ -2481,7 +2430,7 @@ const SITE_GUIDE = {
     metaTitle: "ゲームガイド | 香城模擬器",
     metaDescription: "香城模擬器の完全ルールガイド：区画の密度、経済・税制、立法会、台風天候、特殊建築の解禁、交通システムをこのページで一挙解説。",
     pageTitle: "ゲームガイド",
-    pageIntro: "このページでは香城模擬器のすべての基本システムを解説します——区画・建設から立法会の投票、株式市場から台風シグナル8号まで。建築の解禁数値をすぐに調べたい場合はトップページの",
+    pageIntro: "このページでは香城模擬器のすべての基本システムを解説します——区画・建設から立法会の投票、株式市場から台風シグナル8号まで。建築の解禁数値をすぐに調べたい場合は",
     pageIntroManualLink: "特殊建築の解禁条件",
     pageIntroSuffix: "をご覧ください。",
     toc: "目次",
@@ -2598,24 +2547,11 @@ const SITE_GUIDE = {
         id: "landmarks",
         title: "8. 特殊建築の解禁条件一覧",
         blocks: [
-          { type: "p", text: "以下の建築は、資金・空き地・フットプリントに加えて、追加の都市条件を満たさないと建設できません（このテーブルはトップページの「プレイヤーマニュアル」セクションと同一内容を全件掲載したものです）。" },
-          { type: "table", head: ["建築", "解禁条件", "上限"], rows: [
-            ["地域寺院", "人口 3,000", "最大 4 棟"],
-            ["教会", "人口 5,000", "最大 2 棟"],
-            ["立法会", "人口 10,000", "最大 1 棟"],
-            ["大仏", "人口 12,000", "最大 1 棟"],
-            ["大型寺院", "人口 12,000；魅力度 35", "最大 1 棟"],
-            ["宇宙博物館", "人口 15,000；「科学研究発展法」施行中", "最大 1 棟"],
-            ["コンテナ港", "人口 15,000；4×4フットプリントが連続4マスの水辺に接している", "上限なし"],
-            ["文化センター", "人口 20,000", "最大 1 棟"],
-            ["コンベンションセンター／紅磡コロシアム", "人口 30,000", "各最大 1 棟"],
-            ["オーシャンパーク", "立法会；人口 35,000；月収 $6,000；月間黒字 $1,000；経済指数 50；決議可決", "最大 1 棟"],
-            ["サッカースタジアム", "人口 40,000", "最大 1 棟"],
-            ["証券取引所", "立法会；人口 50,000；「証券取引所法」施行中", "最大 1 棟"],
-            ["マレーハウス", "都市魅力度 60", "最大 1 棟"],
-            ["ローズガーデン国際空港", "立法会；人口 80,000；月収 $12,000；月間黒字 $2,000；経済指数 65；決議可決", "最大 1 棟"],
-          ] },
-          { type: "p", text: "条件を初めて満たした時点で、ゲーム内ティッカーと香城フォーラムの両方に解禁通知が一度だけ表示されます。" },
+          { type: "p", text: SITE_TEXT["ja"].manual.intro },
+          { type: "table", head: SITE_TEXT["ja"].manual.tableHeaders, rows: SITE_MANUAL_ROWS["ja"] },
+          { type: "h3", text: SITE_TEXT["ja"].manual.notesTitle },
+          { type: "ul", items: SITE_MANUAL_NOTES["ja"] },
+          { type: "link", href: "user-manual.md", text: SITE_TEXT["ja"].manual.sourceLink },
         ],
       },
       {
@@ -2664,6 +2600,117 @@ const SITE_GUIDE = {
     ],
   },
 };
+
+// Gameplay screenshots placed inside the guide. `at` is the block index the figure is inserted at
+// ("end" appends); captions are per language so every language keeps the same block count.
+const SITE_GUIDE_FIGURES = {
+  zoning: [{ at: 1, src: "assets/gameplay/minimap.webp", caption: {
+    "zh-HK": "分區 overlay 同小地圖：住宅、商業、工業分區喺地圖上一目了然，劃地時揀好密度就交畀城市自己發展。",
+    "zh-TW": "分區 overlay 與小地圖：住宅、商業、工業分區在地圖上一目了然，劃地時選好密度就交給城市自己發展。",
+    "en": "Zone overlay and minimap: residential, commercial and industrial zones at a glance — pick a density, then let the city grow into it.",
+    "ja": "区画オーバーレイとミニマップ：住宅・商業・工業の区画が一目でわかる。密度を選んだら、あとは街の成長に任せよう。" } }],
+  growth: [
+    { at: 1, src: "assets/gameplay/hillside.webp", caption: {
+      "zh-HK": "山邊嘅低密度住宅：只會起 1×1 村屋、別墅同宗祠，永遠唔會變成大樓。",
+      "zh-TW": "山邊的低密度住宅：只會蓋 1×1 的透天厝、別墅與宗祠，永遠不會變成大樓。",
+      "en": "Low-density housing on the hillside: only 1×1 village houses, villas and ancestral halls ever appear here.",
+      "ja": "山あいの低密度住宅：1×1 の村屋・別荘・祠堂だけが建ち、高層化することはない。" } },
+    { at: "end", src: "assets/gameplay/newWaterfront.webp", caption: {
+      "zh-HK": "海濱住宅區慢慢升級：地價、景觀同服務覆蓋到位，建築等級就會一級級升上去。",
+      "zh-TW": "海濱住宅區慢慢升級：地價、景觀與服務覆蓋到位，建築等級就會一級級提升。",
+      "en": "A waterfront district levelling up: once land value, views and services are in place, buildings climb the grades one step at a time.",
+      "ja": "海辺の住宅区が少しずつ成長：地価・眺望・公共サービスが揃うと、建物のグレードが段階的に上がる。" } },
+  ],
+  economy: [{ at: 1, src: "assets/gameplay/containerPort.webp", caption: {
+    "zh-HK": "貨櫃碼頭同工業區夜晚照常運作：工業同商業稅係城市收入嘅骨幹。",
+    "zh-TW": "貨櫃碼頭與工業區夜間照常運作：工業與商業稅是城市收入的骨幹。",
+    "en": "The container port and industrial zones keep working through the night — industrial and commercial tax are the backbone of city income.",
+    "ja": "夜も稼働するコンテナ港と工業区：工業税と商業税が都市収入の柱になる。" } }],
+  council: [{ at: 1, src: "assets/gameplay/legislativeCouncil.webp", caption: {
+    "zh-HK": "立法會會議：議員有自己嘅立場同派系，法案通過與否會直接改變城市規則。",
+    "zh-TW": "立法會會議：議員有自己的立場與派系，法案通過與否會直接改變城市規則。",
+    "en": "A Legislative Council session: councillors have their own stances and factions, and whether a bill passes changes the city's rules.",
+    "ja": "立法会の審議：議員にはそれぞれ立場と派閥があり、法案の可否が都市のルールを直接変える。" } }],
+  environment: [{ at: 1, src: "assets/gameplay/sparklingWaterfront.webp", caption: {
+    "zh-HK": "黃昏嘅海面：臨海、公園同景觀會推高地價；工業同交通就會帶嚟污染。",
+    "zh-TW": "黃昏的海面：臨海、公園與景觀會推高地價；工業與交通則會帶來污染。",
+    "en": "The harbour at dusk: waterfront, parks and views push land value up, while industry and traffic bring pollution.",
+    "ja": "夕暮れの海：水辺・公園・眺望は地価を押し上げ、工業と交通は汚染をもたらす。" } }],
+  weather: [
+    { at: 1, src: "assets/gameplay/rainyNight.webp", caption: {
+      "zh-HK": "落雨嘅晚上：天氣系統會影響交通、建築同市民心情。",
+      "zh-TW": "下雨的晚上：天氣系統會影響交通、建築與市民心情。",
+      "en": "A rainy night: the weather system affects traffic, buildings and how citizens feel.",
+      "ja": "雨の夜：天候システムは交通・建物・市民の気分に影響する。" } },
+    { at: "end", src: "assets/gameplay/cloudy.webp", caption: {
+      "zh-HK": "雲層飄過城市：颱風季前後，留意天文台嘅風球信號。",
+      "zh-TW": "雲層飄過城市：颱風季前後，留意天文台的風球信號。",
+      "en": "Clouds drifting over the city: around typhoon season, keep an eye on the Observatory's signals.",
+      "ja": "街の上を流れる雲：台風シーズンには天文台のシグナルに注意。" } },
+  ],
+  population: [{ at: 1, src: "assets/gameplay/citySence.webp", caption: {
+    "zh-HK": "一座有香港氣息嘅城市：人口、快樂指數同失業率互相牽動，決定城市會唔會繼續增長。",
+    "zh-TW": "一座有香港氣息的城市：人口、快樂指數與失業率互相牽動，決定城市會不會繼續成長。",
+    "en": "A city with a Hong Kong feel: population, happiness and unemployment pull on each other and decide whether the city keeps growing.",
+    "ja": "香港らしい街並み：人口・幸福度・失業率が互いに影響し、都市が成長し続けるかを決める。" } }],
+  landmarks: [
+    { at: 1, src: "assets/gameplay/buddhaAtNight.webp", caption: {
+      "zh-HK": "夜訪大佛：人口達 12,000 就可以起，係最早解鎖嘅大型地標之一。",
+      "zh-TW": "夜訪大佛：人口達 12,000 即可興建，是最早解鎖的大型地標之一。",
+      "en": "The Big Buddha at night: unlocked at 12,000 population, one of the earliest large landmarks.",
+      "ja": "夜の大仏：人口 12,000 で解禁される、最も早い大型ランドマークのひとつ。" } },
+    { at: "end", src: "assets/gameplay/sportAndAttraction.webp", caption: {
+      "zh-HK": "凌晨嘅海洋公園同大球場：兩者都要立法會決議或人口門檻先可以起。",
+      "zh-TW": "凌晨的海洋公園與大球場：兩者都需要立法會決議或人口門檻才能興建。",
+      "en": "Ocean Park and the stadium after midnight: both need a council resolution or a population threshold before they can be built.",
+      "ja": "深夜の海洋公園とスタジアム：どちらも立法会の決議か人口条件を満たさないと建てられない。" } },
+  ],
+  transport: [
+    { at: 1, src: "assets/gameplay/busTycoon.webp", caption: {
+      "zh-HK": "經營自己嘅香城巴士公司：起車廠、開路線、買巴士，睇住班次同收入。",
+      "zh-TW": "經營自己的香城巴士公司：蓋車廠、開路線、買巴士，看著班次與收入。",
+      "en": "Running your own Heung Shing bus company: build a depot, open routes, buy buses and watch the timetable and takings.",
+      "ja": "自分の香城バス会社を経営：車庫を建て、路線を開き、バスを買って、ダイヤと収入を見守る。" } },
+    { at: "end", src: "assets/gameplay/airport.webp", caption: {
+      "zh-HK": "玫瑰園國際機場：城市最大型嘅建設，需要立法會決議同穩定財政先可以動工。",
+      "zh-TW": "玫瑰園國際機場：城市最大型的建設，需要立法會決議與穩定財政才能動工。",
+      "en": "Rose Garden International Airport: the city's largest project, needing a council resolution and healthy finances before work can start.",
+      "ja": "ローズガーデン国際空港：都市最大の建設事業で、立法会の決議と健全な財政が着工の条件。" } },
+  ],
+  "ai-news": [
+    { at: 1, src: "assets/gameplay/news.webp", caption: {
+      "zh-HK": "新聞頻道：城市大事會即時變成新聞報道，接駁 AI 後文字會更貼近當下城市狀況。",
+      "zh-TW": "新聞頻道：城市大事會即時變成新聞報導，接上 AI 後文字會更貼近當下城市狀況。",
+      "en": "The news channel: city events become news reports on the spot; with AI connected, the writing tracks the city's current state more closely.",
+      "ja": "ニュースチャンネル：都市の出来事がその場でニュースになる。AI を接続すると、文章が今の都市の状況により沿ったものになる。" } },
+    { at: "end", src: "assets/gameplay/heungShingForum.webp", caption: {
+      "zh-HK": "香城討論區：市民留言、解鎖通知同議會消息都會喺度出現。",
+      "zh-TW": "香城討論區：市民留言、解鎖通知與議會消息都會在這裡出現。",
+      "en": "The Heung Shing Forum: citizen posts, unlock notices and council news all surface here.",
+      "ja": "香城フォーラム：市民の投稿、解禁通知、議会のニュースがここに集まる。" } },
+  ],
+  districts: [{ at: 1, src: "assets/gameplay/nightSkyline.webp", caption: {
+    "zh-HK": "夜晚嘅香城天際線：地圖上嘅雙語路牌標示每個分區嘅名字，可以隨時改名。",
+    "zh-TW": "夜晚的香城天際線：地圖上的雙語路牌標示每個分區的名字，可以隨時改名。",
+    "en": "The Heung Shing skyline at night: bilingual signs on the map mark every district's name, and you can rename them at any time.",
+    "ja": "夜の香城スカイライン：地図上のバイリンガル標識が各地区の名前を示し、いつでも改名できる。" } }],
+  ui: [{ at: 1, src: "assets/gameplay/nightSence.webp", caption: {
+    "zh-HK": "頂欄一眼睇晒日期、時間、天氣、資金同人口；左邊係建設指引，右下係城市指標。",
+    "zh-TW": "頂欄一眼看完日期、時間、天氣、資金與人口；左邊是建設指引，右下是城市指標。",
+    "en": "The top bar shows date, time, weather, funds and population at a glance; the build guide sits on the left and city indicators bottom right.",
+    "ja": "上部バーで日付・時刻・天気・資金・人口が一目でわかる。左は建設ガイド、右下は都市の指標。" } }],
+};
+
+for (const [language, guide] of Object.entries(SITE_GUIDE)) {
+  for (const section of guide.sections) {
+    const figures = SITE_GUIDE_FIGURES[section.id] || [];
+    // Insert from the end first so earlier indices stay valid.
+    for (const figure of [...figures].reverse()) {
+      const block = { type: "figure", src: figure.src, caption: figure.caption[language] };
+      if (figure.at === "end") section.blocks.push(block); else section.blocks.splice(figure.at, 0, block);
+    }
+  }
+}
 
 // ── Engine: lookup, rendering, language switching ───────────────────────────
 let siteCurrentLanguage = SITE_DEFAULT_LANGUAGE;
@@ -2786,49 +2833,6 @@ function renderDownloadCards() {
   });
 }
 
-function renderManualTable() {
-  const tbody = document.querySelector("[data-render='manual-table']");
-  if (!tbody) return;
-  const rows = SITE_MANUAL_ROWS[siteCurrentLanguage] || SITE_MANUAL_ROWS[SITE_DEFAULT_LANGUAGE];
-  const headers = SITE_TEXT[siteCurrentLanguage].manual.tableHeaders;
-  const thead = tbody.closest("table")?.querySelector("thead tr");
-  if (thead) {
-    thead.innerHTML = "";
-    headers.forEach((label) => {
-      const th = document.createElement("th");
-      th.textContent = label;
-      thead.appendChild(th);
-    });
-  }
-  tbody.innerHTML = "";
-  rows.forEach((row) => {
-    const tr = document.createElement("tr");
-    row.forEach((cell) => {
-      const td = document.createElement("td");
-      td.textContent = cell;
-      tr.appendChild(td);
-    });
-    tbody.appendChild(tr);
-  });
-}
-
-function renderManualNotes() {
-  const list = document.querySelector("[data-render='manual-notes']");
-  if (!list) return;
-  const notes = SITE_MANUAL_NOTES[siteCurrentLanguage] || SITE_MANUAL_NOTES[SITE_DEFAULT_LANGUAGE];
-  list.innerHTML = "";
-  notes.forEach((note) => {
-    const li = document.createElement("li");
-    if (note.label) {
-      const strong = document.createElement("strong");
-      strong.textContent = `${note.label}：`;
-      li.appendChild(strong);
-    }
-    li.appendChild(document.createTextNode(note.text));
-    list.appendChild(li);
-  });
-}
-
 function renderFeatureList() {
   const container = document.querySelector("[data-render='feature-list']");
   if (!container) return;
@@ -2924,7 +2928,7 @@ function renderGuidePage() {
     introEl.innerHTML = "";
     introEl.appendChild(document.createTextNode(guide.pageIntro + " "));
     const link = document.createElement("a");
-    link.href = "index.html#manual";
+    link.href = "#landmarks";
     link.textContent = guide.pageIntroManualLink;
     introEl.appendChild(link);
     introEl.appendChild(document.createTextNode(guide.pageIntroSuffix));
@@ -2961,12 +2965,43 @@ function renderGuidePage() {
         sectionEl.appendChild(h3);
       } else if (block.type === "ul") {
         const ul = document.createElement("ul");
-        block.items.forEach((itemText) => {
+        block.items.forEach((item) => {
           const li = document.createElement("li");
-          li.textContent = itemText;
+          if (item && typeof item === "object") {
+            if (item.label) {
+              const strong = document.createElement("strong");
+              strong.textContent = `${item.label}：`;
+              li.appendChild(strong);
+            }
+            li.appendChild(document.createTextNode(item.text));
+          } else {
+            li.textContent = item;
+          }
           ul.appendChild(li);
         });
         sectionEl.appendChild(ul);
+      } else if (block.type === "figure") {
+        const figure = document.createElement("figure");
+        figure.className = "guide-figure";
+        const img = document.createElement("img");
+        img.src = block.src;
+        img.alt = block.caption;
+        img.loading = "lazy";
+        img.decoding = "async";
+        img.width = 1600;
+        img.height = 900;
+        const caption = document.createElement("figcaption");
+        caption.textContent = block.caption;
+        figure.append(img, caption);
+        sectionEl.appendChild(figure);
+      } else if (block.type === "link") {
+        const p = document.createElement("p");
+        p.className = "guide-link";
+        const a = document.createElement("a");
+        a.href = block.href;
+        a.textContent = block.text;
+        p.appendChild(a);
+        sectionEl.appendChild(p);
       } else if (block.type === "table") {
         const wrap = document.createElement("div");
         wrap.className = "manual-table-wrap";
@@ -3007,8 +3042,6 @@ function applySiteLanguage() {
   applyStaticText();
   renderGalleryItems();
   renderDownloadCards();
-  renderManualTable();
-  renderManualNotes();
   renderFeatureList();
   renderChangelog();
   renderGuidePage();

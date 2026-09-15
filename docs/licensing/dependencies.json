@@ -5,7 +5,7 @@
   "scope": "Lockfile package paths, including platform alternatives; not an installer SBOM or legal approval.",
   "packageCount": 408,
   "nonDevPackageCount": 84,
-  "mediaCount": 613,
+  "mediaCount": 614,
   "dataFileCount": 4,
   "declaredLicenseCounts": {
     "MIT": 310,

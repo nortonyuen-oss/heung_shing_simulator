@@ -9,7 +9,7 @@ const source = (fileName) => fs.readFileSync(path.join(ROOT, fileName), 'utf8');
 
 test('manual and in-game help document every special build gate', () => {
   const manual = source('docs/user-manual.md');
-  const website = source('docs/index.html');
+  const website = source('docs/i18n.js');
   const i18n = source('i18n.js');
   const required = [
     '社區廟宇', '教堂', '立法會', '大佛', '大型廟宇', '太空館', '貨櫃碼頭',
@@ -18,8 +18,9 @@ test('manual and in-game help document every special build gate', () => {
     'UH 世界級摩天大樓',
   ];
   required.forEach((label) => assert.match(manual, new RegExp(label)));
-  assert.match(website, /id="manual"/);
-  assert.match(website, /user-manual\.md/);
+  // The unlock table lives in the game guide's landmarks section, fed from the manual data.
+  assert.match(website, /id: "landmarks"[\s\S]*rows: SITE_MANUAL_ROWS\["zh-HK"\][\s\S]*href: "user-manual\.md"/);
+  assert.doesNotMatch(source('docs/index.html'), /id="manual"/);
   assert.match(i18n, /'dialog\.unlockRules'/);
   assert.match(i18n, /人口 80,000[\s\S]*月收入 \$12,000[\s\S]*月盈餘 \$2,000[\s\S]*經濟 65/);
 });

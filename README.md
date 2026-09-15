@@ -4,7 +4,7 @@
 
 Website and downloads: https://nortonyuen-oss.github.io/heung_shing_simulator/
 
-Questions, bug reports and comments: [Player message board](https://nortonyuen-oss.github.io/heung_shing_simulator/feedback.html).
+Questions, bug reports and comments: [Heung Shing Lennon Wall](https://nortonyuen-oss.github.io/heung_shing_simulator/feedback.html).
 Read public posts and replies on the website; sign in to GitHub to confirm a new
 post or reply. Website messages are tracked with the `website-feedback` issue label.
 

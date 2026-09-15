@@ -38,6 +38,20 @@ async function jsonBody(request) {
     return result;
   } catch { throw new ApiError(400, 'invalid'); }
 }
+async function clientId(request, env) {
+  // Only a salted hash of the address is ever stored, and only for the length of the hour window.
+  const bytes = new TextEncoder().encode(`${env.IP_SALT || ''}|${request.headers.get('CF-Connecting-IP') || 'unknown'}`);
+  return [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+async function recordWrite(request, env) {
+  const now = Date.now();
+  const hourAgo = new Date(now - 3600e3).toISOString(), minuteAgo = new Date(now - 60e3).toISOString();
+  const client = await clientId(request, env);
+  await env.DB.prepare('DELETE FROM write_log WHERE created_at < ?').bind(hourAgo).run();
+  const usage = await env.DB.prepare('SELECT COUNT(*) AS hour, SUM(created_at > ?) AS minute FROM write_log WHERE client = ? AND created_at > ?').bind(minuteAgo, client, hourAgo).first();
+  if (Number(usage.minute) >= Number(env.WRITES_PER_MINUTE || 1) || Number(usage.hour) >= Number(env.WRITES_PER_HOUR || 5)) throw new ApiError(429, 'limited');
+  await env.DB.prepare('INSERT INTO write_log (client, created_at) VALUES (?, ?)').bind(client, new Date(now).toISOString()).run();
+}
 function pageNumber(url) {
   const value = url.searchParams.get('page') || '1';
   if (!/^\d+$/.test(value) || Number(value) < 1 || Number(value) > 10000) throw new ApiError(400, 'invalid');
@@ -80,26 +94,34 @@ export default {
         }
         return json({ items: result.results.slice(0, PAGE_SIZE), hasNext: result.results.length > PAGE_SIZE });
       }
-      // Anonymous writes are capped per client IP; the binding is optional so `wrangler dev` and tests run without it.
-      if (env.POST_LIMIT) {
-        const { success } = await env.POST_LIMIT.limit({ key: request.headers.get('CF-Connecting-IP') || 'unknown' });
-        if (!success) throw new ApiError(429, 'limited');
-      }
+      // Edge flood shield only; the per-minute and per-hour policy is enforced precisely below.
+      if (env.POST_LIMIT && !(await env.POST_LIMIT.limit({ key: request.headers.get('CF-Connecting-IP') || 'unknown' })).success) throw new ApiError(429, 'limited');
       const data = await jsonBody(request);
       const key = requestKey(data), body = field(data, 'details', 6000, true), nickname = field(data, 'nickname', 40);
+      const title = replyRoute ? '' : field(data, 'title', 120, true), type = replyRoute ? '' : field(data, 'type', 20, true);
+      const version = replyRoute ? '' : field(data, 'version', 40), platform = replyRoute ? '' : field(data, 'platform', 80);
+      if (!replyRoute && !TYPES.includes(type)) throw new ApiError(400, 'invalid');
+      const stored = replyRoute
+        ? () => env.DB.prepare('SELECT id, message_number, body, nickname, created_at, source FROM replies WHERE request_key = ?').bind(key).first()
+        : () => env.DB.prepare(`${MESSAGE_QUERY} WHERE m.request_key = ?`).bind(key).first();
+      const matches = row => replyRoute
+        ? row.message_number === number && row.body === body && row.nickname === nickname
+        : row.title === title && row.body === body && row.nickname === nickname && row.type === type && row.version === version && row.platform === platform;
+      // A retry of an already-stored request returns the stored row and never counts as a new write.
+      const existing = await stored();
+      if (existing) {
+        if (!matches(existing)) throw new ApiError(409, 'conflict');
+        return json({ item: existing }, 201);
+      }
+      await recordWrite(request, env);
       if (replyRoute) {
         await env.DB.prepare('INSERT INTO replies (message_number, body, nickname, created_at, request_key) VALUES (?, ?, ?, ?, ?) ON CONFLICT(request_key) DO NOTHING').bind(number, body, nickname, new Date().toISOString(), key).run();
-        const row = await env.DB.prepare('SELECT id, message_number, body, nickname, created_at, source FROM replies WHERE request_key = ?').bind(key).first();
-        if (row.message_number !== number || row.body !== body || row.nickname !== nickname) throw new ApiError(409, 'conflict');
-        return json({ item: row }, 201);
+      } else {
+        const color = Math.floor(Math.random() * 6);
+        await env.DB.prepare('INSERT INTO messages (type, title, body, nickname, version, platform, color, created_at, request_key) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(request_key) DO NOTHING').bind(type, title, body, nickname, version, platform, color, new Date().toISOString(), key).run();
       }
-      const title = field(data, 'title', 120, true), type = field(data, 'type', 20, true);
-      const version = field(data, 'version', 40), platform = field(data, 'platform', 80);
-      if (!TYPES.includes(type)) throw new ApiError(400, 'invalid');
-      const color = Math.floor(Math.random() * 6);
-      await env.DB.prepare('INSERT INTO messages (type, title, body, nickname, version, platform, color, created_at, request_key) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(request_key) DO NOTHING').bind(type, title, body, nickname, version, platform, color, new Date().toISOString(), key).run();
-      const row = await env.DB.prepare(`${MESSAGE_QUERY} WHERE m.request_key = ?`).bind(key).first();
-      if (row.title !== title || row.body !== body || row.nickname !== nickname || row.type !== type || row.version !== version || row.platform !== platform) throw new ApiError(409, 'conflict');
+      const row = await stored();
+      if (!matches(row)) throw new ApiError(409, 'conflict');
       return json({ item: row }, 201);
     } catch (error) {
       return json({ error: error instanceof ApiError ? error.message : 'unavailable' }, error instanceof ApiError ? error.status : 503);

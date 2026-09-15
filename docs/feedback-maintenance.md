@@ -1,6 +1,6 @@
-# 留言板管理
+# 香城連儂牆管理
 
-官網入口：`feedback.html`。留言及回覆儲存於 Cloudflare D1，由 `services/feedback` 嘅 Worker 提供 API；官網（GitHub Pages）只係靜態前端，透過 `feedback-config.js` 入面嘅公開 API 地址讀寫。玩家毋須登入。
+官網入口：`feedback.html`（頁面名稱【香城連儂牆】）。留言及回覆儲存於 Cloudflare D1，由 `services/feedback` 嘅 Worker 提供 API；官網（GitHub Pages）只係靜態前端，透過 `feedback-config.js` 入面嘅公開 API 地址讀寫。玩家毋須登入。
 
 ## 架構
 
@@ -8,7 +8,8 @@
 - 後端：`services/feedback/worker.mjs`（Cloudflare Worker）＋ D1 資料庫 `heung-shing-feedback`（schema 喺 `migrations/`）。
 - 生產地址：`https://heung-shing-feedback.nortonyuen.workers.dev`；Cloudflare 帳號 `nortonyuen@gmail.com`，wrangler 憑證存於本機 `~/Library/Preferences/.wrangler/config/default.toml`。
 - API：`GET /messages?state=all|open|closed&page=N`、`GET /messages/:n/replies?page=N`、`POST /messages`、`POST /messages/:n/replies`、`GET /health`。每頁 20 筆。
-- 保護：只接受 `ALLOWED_ORIGINS`（`wrangler.jsonc`）嘅 Origin；請求體上限 32 KB；標題 120 字、內容 6000 字、暱稱 40 字；每個 IP 每分鐘最多 6 次寫入（Cloudflare 各節點分開計，屬軟上限）。前端每次提交帶 `requestKey`，重送同一內容唔會重複貼上。
+- 保護：只接受 `ALLOWED_ORIGINS`（`wrangler.jsonc`）嘅 Origin；請求體上限 32 KB；標題 120 字、內容 6000 字、暱稱 40 字。
+- 寫入限制：同一 IP 每分鐘最多 1 次、每小時最多 5 次（留言同回覆一齊計），由 D1 嘅 `write_log` 精確計數；數值喺 `wrangler.jsonc` 嘅 `WRITES_PER_MINUTE`／`WRITES_PER_HOUR` 調整後 deploy 即生效。另有 Cloudflare rate-limit binding（10 次／分鐘，各節點分開計）做前置防洪。前端每次提交帶 `requestKey`，重送同一內容會直接回傳已儲存嘅紀錄，唔會重複貼上亦唔計入限制。
 - 紙色（0–5）由後端喺建立時隨機分配並儲存，換語言、翻頁都唔會變。
 
 ## 玩家流程
@@ -30,13 +31,14 @@
 
 部署：
 
+- `IP_SALT` 係 Worker secret（`npx wrangler secret put IP_SALT`，隨機字串即可）；本地 `wrangler dev` 用 `.dev.vars`（已 gitignore）提供。
 - 改 `worker.mjs` 或 `wrangler.jsonc` 後 `npm run deploy`。新增 migration 檔後 `npm run migrate`（生產）；本地開發用 `wrangler d1 migrations apply heung-shing-feedback --local` 再 `npm run dev`。
 - 本地測前端可以 `npx wrangler dev --var ALLOWED_ORIGINS:http://127.0.0.1:8765`，再另外用靜態伺服器開 `docs/`，並臨時將 `feedback-config.js` 指向 `http://127.0.0.1:8787`（唔好 commit）。
 - 加新網域時更新 `wrangler.jsonc` 嘅 `ALLOWED_ORIGINS`（逗號分隔）再 deploy。
 
 私隱與內容：
 
-- 後端只儲存玩家填寫嘅文字、類別、時間同隨機 `requestKey`；唔記錄 IP（速率限制用 IP 但唔寫入資料庫）、唔設 cookie、唔用任何第三方追蹤。
+- 後端只儲存玩家填寫嘅文字、類別、時間同隨機 `requestKey`；唔設 cookie、唔用任何第三方追蹤。寫入限制只保存 IP 經 `IP_SALT` 加鹽嘅 SHA-256 雜湊，最多保留 1 小時就自動清走，資料庫入面冇原始 IP。
 - 留言以純文字呈現，唔會執行留言入面嘅 HTML。
 - Cloudflare Workers／D1 免費額度：每日 10 萬次請求、5 GB 儲存；留言板規模遠低於此。
 

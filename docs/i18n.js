@@ -1673,8 +1673,8 @@ for (const [language, content] of Object.entries(SITE_COPYRIGHT)) {
 
 const SITE_FEEDBACK = {
   "zh-HK": {
-    "title": "玩家留言板",
-    "metaTitle": "玩家留言板 | 香城模擬器",
+    "title": "香城連儂牆",
+    "metaTitle": "香城連儂牆 | 香城模擬器",
     "intro": "下載或者遊玩時遇到問題？有新點子、感想想分享？喺呢度留言，同其他市民一齊改善香城。",
     "newPost": "寫低你嘅問題或意見",
     "publicNote": "毋須登入，寫好就可以貼上牆。留言同回覆會公開顯示；暱稱由留言者自行填寫。",
@@ -1696,7 +1696,7 @@ const SITE_FEEDBACK = {
     "sendError": "暫時貼唔到留言，請稍後重試。",
     "required": "請填寫標題同內容。",
     "invalid": "內容格式唔啱或者太長，請檢查後再試。",
-    "limited": "留言太密啦，請等一陣再試。",
+    "limited": "留言太密啦：每分鐘最多一則、每小時最多五則，請等一陣再試。",
     "notConfigured": "留言後台尚未接駁，暫時未能讀取或發表留言。",
     "listTitle": "大家嘅留言",
     "filter": "處理狀態",
@@ -1725,8 +1725,8 @@ const SITE_FEEDBACK = {
     "privacy": "請互相尊重，唔好貼密碼或私人資料。留言會公開儲存，管理者可以移除不適當內容。"
   },
   "zh-TW": {
-    "title": "玩家留言板",
-    "metaTitle": "玩家留言板 | 香城模擬器",
+    "title": "香城連儂牆",
+    "metaTitle": "香城連儂牆 | 香城模擬器",
     "intro": "下載或遊玩時遇到問題？有新點子、感想想分享？在這裡留言，和其他市民一起改善香城。",
     "newPost": "寫下你的問題或意見",
     "publicNote": "不必登入，寫好就能貼上牆。留言與回覆會公開顯示；暱稱由留言者自行填寫。",
@@ -1748,7 +1748,7 @@ const SITE_FEEDBACK = {
     "sendError": "暫時無法貼上留言，請稍後重試。",
     "required": "請填寫標題與內容。",
     "invalid": "內容格式不正確或太長，請檢查後再試。",
-    "limited": "留言太頻繁了，請稍等片刻再試。",
+    "limited": "留言太頻繁了：每分鐘最多一則、每小時最多五則，請稍後再試。",
     "notConfigured": "留言後台尚未連接，暫時無法讀取或發表留言。",
     "listTitle": "大家的留言",
     "filter": "處理狀態",
@@ -1777,8 +1777,8 @@ const SITE_FEEDBACK = {
     "privacy": "請互相尊重，不要貼上密碼或私人資料。留言會公開儲存，管理者可以移除不適當內容。"
   },
   "en": {
-    "title": "Player message board",
-    "metaTitle": "Player message board | The City of Heung Shing",
+    "title": "Heung Shing Lennon Wall",
+    "metaTitle": "Heung Shing Lennon Wall | The City of Heung Shing",
     "intro": "Trouble downloading or playing? Have an idea or a city story to share? Leave a message and help improve Heung Shing.",
     "newPost": "Write a question or comment",
     "publicNote": "No sign-in needed: write your note and stick it on the wall. Posts and replies are public; the nickname is whatever you choose to write.",
@@ -1800,7 +1800,7 @@ const SITE_FEEDBACK = {
     "sendError": "Your note could not be posted right now. Please try again later.",
     "required": "Please enter a title and message.",
     "invalid": "The message is malformed or too long. Please check it and try again.",
-    "limited": "Too many notes in a short time. Please wait a moment and try again.",
+    "limited": "Too many notes in a short time: one per minute and five per hour. Please wait and try again.",
     "notConfigured": "The message board backend is not connected yet, so notes cannot be read or posted.",
     "listTitle": "Community messages",
     "filter": "Status",
@@ -1829,8 +1829,8 @@ const SITE_FEEDBACK = {
     "privacy": "Be respectful, and do not post passwords or personal information. Messages are stored publicly; the maintainer may remove inappropriate content."
   },
   "ja": {
-    "title": "プレイヤー掲示板",
-    "metaTitle": "プレイヤー掲示板 | 香城模擬器",
+    "title": "香城レノンウォール",
+    "metaTitle": "香城レノンウォール | 香城模擬器",
     "intro": "ダウンロードやプレイで困っていますか？アイデアや感想も歓迎します。街のみなさんと一緒に香城をより良くしましょう。",
     "newPost": "質問・コメントを書く",
     "publicNote": "ログイン不要。書いたらそのまま壁に貼れます。投稿と返信は公開され、ニックネームは自由に記入できます。",
@@ -1852,7 +1852,7 @@ const SITE_FEEDBACK = {
     "sendError": "現在投稿できません。しばらくしてからもう一度お試しください。",
     "required": "タイトルと内容をご記入ください。",
     "invalid": "内容の形式が正しくないか、長すぎます。確認してもう一度お試しください。",
-    "limited": "短時間に投稿が多すぎます。少し待ってからもう一度お試しください。",
+    "limited": "短時間に投稿が多すぎます。1分に1件、1時間に5件までです。少し待ってからもう一度お試しください。",
     "notConfigured": "掲示板のバックエンドが未接続のため、現在は閲覧・投稿できません。",
     "listTitle": "みなさんの投稿",
     "filter": "状態",
@@ -1884,25 +1884,25 @@ const SITE_FEEDBACK = {
 
 const SITE_MEMO_WALL = {
   "zh-HK": {
-    "wallTitle": "香城留言牆",
+    "wallTitle": "香城連儂牆",
     "wallIntro": "行過、停低，留低你嘅聲音。一張 memo，一齊寫出香城嘅日常。",
     "writeMemo": "貼一張 memo",
     "wallCaption": "每一張，都係香城嘅一把聲音。"
   },
   "zh-TW": {
-    "wallTitle": "香城留言牆",
+    "wallTitle": "香城連儂牆",
     "wallIntro": "路過、停下，留下你的聲音。一張便利貼，一起寫下香城的日常。",
     "writeMemo": "貼一張便利貼",
     "wallCaption": "每一張，都是香城的一個聲音。"
   },
   "en": {
-    "wallTitle": "Heung Shing memo wall",
+    "wallTitle": "Heung Shing Lennon Wall",
     "wallIntro": "Slow down. Leave a little of your day here. One note at a time, we make this city our own.",
     "writeMemo": "Leave a memo",
     "wallCaption": "A little piece of paper. A voice in our city."
   },
   "ja": {
-    "wallTitle": "香城メモウォール",
+    "wallTitle": "香城レノンウォール",
     "wallIntro": "立ち止まって、あなたの声を残そう。一枚の付箋から、香城の日常を一緒につづろう。",
     "writeMemo": "付箋を貼る",
     "wallCaption": "一枚一枚が、この街の声。"

@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>玩家留言板 | 香城模擬器</title>
+  <meta name="description" content="下載或者遊玩時遇到問題？有新點子、感想想分享？喺呢度留言，同其他市民一齊改善香城。" />
+  <meta property="og:title" content="玩家留言板 | 香城模擬器" />
+  <meta property="og:description" content="下載或者遊玩時遇到問題？有新點子、感想想分享？喺呢度留言，同其他市民一齊改善香城。" />
+  <meta property="og:image" content="assets/backgroundTitle.png" />
+  <meta name="theme-color" content="#17212d" />
+  <link rel="icon" href="assets/icon.png" />
+  <link rel="stylesheet" href="styles.css?v=20260915-board1" />
+  <script src="i18n.js?v=20260915-board1" defer></script>
+  <script src="feedback.js?v=20260915-board1" defer></script>
+</head>
+<body data-page="feedback">
+  <header class="site-header" aria-label="網站導覽">
+    <a class="brand" href="index.html" aria-label="The City of Heung Shing">
+      <img src="assets/icon.png" alt="" />
+      <span>香城模擬器</span>
+    </a>
+    <nav>
+      <div class="nav-links">
+        <a href="index.html#gallery" data-i18n="nav.gallery">截圖</a>
+        <a href="index.html#downloads" data-i18n="nav.downloads">下載</a>
+        <a href="index.html#manual" data-i18n="nav.manual">玩家手冊</a>
+        <a href="guide.html" data-i18n="nav.guide">遊戲指南</a>
+        <a href="feedback.html" aria-current="page" data-i18n="nav.feedback">玩家留言板</a>
+        <a href="copyright.html" data-i18n="nav.copyright">版權與使用條款</a>
+        <a href="index.html#changelog" data-i18n="nav.changelog">版本</a>
+        <a href="https://github.com/nortonyuen-oss/heung_shing_simulator" rel="noopener" data-i18n="nav.github">GitHub</a>
+      </div>
+      <div class="lang-switcher" data-language-switcher></div>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section class="guide-hero">
+      <p class="eyebrow">HEUNG SHING · COMMUNITY</p>
+      <h1 data-i18n="feedback.title">玩家留言板</h1>
+      <p data-i18n="feedback.intro">下載或者遊玩時遇到問題？有新點子、感想想分享？喺呢度留言，同其他市民一齊改善香城。</p>
+      <p data-i18n="feedback.publicNote">留言同回覆會公開顯示。發表時需要 GitHub 帳號，最後一步會到 GitHub 確認提交。</p>
+    </section>
+    <div class="feedback-layout">
+      <section class="feedback-compose" aria-labelledby="feedback-compose-title">
+        <h2 id="feedback-compose-title" data-i18n="feedback.newPost">寫低你嘅問題或意見</h2>
+        <form data-feedback-form>
+          <div class="feedback-fields">
+            <label><span data-i18n="feedback.type">留言類別</span><select name="type"><option value="bug" data-i18n="feedback.bug">問題回報</option><option value="question" data-i18n="feedback.question">玩法疑問</option><option value="suggestion" data-i18n="feedback.suggestion">功能建議</option><option value="comment" data-i18n="feedback.comment">一般留言</option></select></label>
+            <label><span data-i18n="feedback.platform">作業系統</span><select name="platform"><option>Windows</option><option>macOS (Apple Silicon)</option><option>macOS (Intel)</option><option value="Other" selected data-i18n="feedback.other">其他／不適用</option></select></label>
+          </div>
+          <label><span data-i18n="feedback.subject">標題</span><input name="title" required maxlength="120" /></label>
+          <label><span data-i18n="feedback.version">遊戲版本（選填）</span><input name="version" maxlength="40" placeholder="4.9.0" /></label>
+          <label><span data-i18n="feedback.details">內容</span><textarea name="details" rows="8" required maxlength="6000" aria-describedby="feedback-details-help"></textarea></label>
+          <p id="feedback-details-help" class="feedback-help" data-i18n="feedback.detailsHelp">回報問題時，請寫低發生咗乜事、重現步驟同預期結果。截圖可以到 GitHub 提交時加入。</p>
+          <p class="feedback-help" data-i18n="feedback.privacy">請保持尊重，唔好公開 API key、密碼、個人資料或未遮蔽嘅私人存檔。留言儲存在 GitHub，帳號同內容亦受 GitHub 條款及私隱政策規管。</p>
+          <button class="button primary" type="submit" data-i18n="feedback.prepare">整理留言</button>
+          <p role="status" data-feedback-form-status></p>
+        </form>
+        <div class="feedback-preview" data-feedback-preview hidden>
+          <h3 data-i18n="feedback.preview">檢查留言，再到 GitHub 發表</h3>
+          <p data-feedback-handoff></p>
+          <label><span data-i18n="feedback.draftLabel">留言全文</span><textarea data-feedback-draft readonly rows="8"></textarea></label>
+          <div class="feedback-actions">
+            <button type="button" class="feedback-secondary" data-feedback-copy data-i18n="feedback.copy">複製留言全文</button>
+            <a class="button primary" data-feedback-publish target="_blank" rel="noopener noreferrer" href="https://github.com/nortonyuen-oss/heung_shing_simulator/issues/new?template=website-feedback.md" data-i18n="feedback.publish">到 GitHub 確認發表 ↗</a>
+          </div>
+          <p role="status" data-feedback-copy-status></p>
+        </div>
+        <noscript><p>未啟用 JavaScript 仍可直接到 GitHub 查看及發表留言。 <a href="https://github.com/nortonyuen-oss/heung_shing_simulator/issues/new?template=website-feedback.md">GitHub ↗</a></p><style>[data-feedback-form], [data-feedback-status], .feedback-toolbar, .feedback-pagination { display: none; }</style></noscript>
+      </section>
+      <section class="feedback-board" aria-labelledby="feedback-list-title">
+        <h2 id="feedback-list-title" data-i18n="feedback.listTitle">大家嘅留言</h2>
+        <p class="feedback-help" data-i18n="feedback.afterPost">在 GitHub 完成提交或回覆後，返嚟按「重新整理」就可以讀取最新紀錄。</p>
+        <div class="feedback-toolbar">
+          <label><span data-i18n="feedback.filter">處理狀態</span><select data-feedback-filter><option value="all" data-i18n="feedback.all">全部</option><option value="open" data-i18n="feedback.open">處理中</option><option value="closed" data-i18n="feedback.closed">已關閉</option></select></label>
+          <button type="button" class="feedback-secondary" data-feedback-refresh data-i18n="feedback.refresh">重新整理</button>
+        </div>
+        <p role="status" data-feedback-status data-i18n="feedback.loading">正在讀取留言…</p>
+        <div data-feedback-list aria-busy="true"></div>
+        <div class="feedback-pagination">
+          <button type="button" class="feedback-secondary" data-feedback-previous disabled data-i18n="feedback.previous">上一頁</button>
+          <span data-feedback-page></span>
+          <button type="button" class="feedback-secondary" data-feedback-next disabled data-i18n="feedback.next">下一頁</button>
+        </div>
+        <a class="feedback-thread-link" href="https://github.com/nortonyuen-oss/heung_shing_simulator/issues?q=is%3Aissue%20label%3Awebsite-feedback" target="_blank" rel="noopener noreferrer" data-i18n="feedback.allOnGitHub">在 GitHub 查看所有留言 ↗</a>
+      </section>
+    </div>
+  </main>
+
+  <footer>
+    <span data-i18n="footer.tagline">香城模擬器 · 免費遊玩，歡迎分享官方連結</span>
+    <div class="footer-links">
+      <a href="feedback.html" aria-current="page" data-i18n="nav.feedback">玩家留言板</a>
+        <a href="copyright.html" data-i18n="nav.copyright">版權與使用條款</a>
+      <a href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest" rel="noopener" data-i18n="footer.releaseInfo">版本資訊</a>
+      <a href="https://heungshingsimulator.blogspot.com/" rel="noopener" data-i18n="footer.blog">開發blog</a>
+    </div>
+  </footer>
+</body>
+</html>

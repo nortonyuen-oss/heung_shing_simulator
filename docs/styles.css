@@ -849,6 +849,82 @@ nav a[aria-current="page"] {
   color: var(--tram);
 }
 
+/* Player feedback: the form prepares a GitHub post; the board reads public issues. */
+.feedback-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.85fr) minmax(0, 1.15fr);
+  gap: clamp(24px, 4vw, 56px);
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 32px clamp(18px, 5vw, 70px) 72px;
+}
+
+.feedback-compose, .feedback-board { min-width: 0; }
+.feedback-layout h2 { margin-top: 0; font-size: 24px; }
+.feedback-layout h3 { margin-top: 0; font-size: 19px; }
+.feedback-layout label { display: grid; gap: 8px; margin-bottom: 16px; }
+.feedback-layout label > span { font-weight: 700; }
+.feedback-layout input, .feedback-layout select, .feedback-layout textarea {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid #60727d;
+  border-radius: 8px;
+  background: #101a24;
+  color: var(--ink);
+  font: inherit;
+  padding: 12px;
+}
+.feedback-layout textarea { resize: vertical; line-height: 1.7; }
+.feedback-layout :focus-visible { outline: 3px solid var(--tram); outline-offset: 3px; }
+.feedback-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.feedback-help, .feedback-meta, [data-feedback-status] { color: var(--muted); line-height: 1.7; }
+.feedback-help { font-size: 14px; }
+.feedback-toolbar, .feedback-actions, .feedback-pagination {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 20px 0;
+}
+.feedback-toolbar label { flex: 1; margin: 0; }
+.feedback-toolbar { align-items: flex-end; }
+.feedback-secondary {
+  padding: 11px 16px;
+  min-height: 44px;
+  border: 1px solid #70818a;
+  border-radius: 8px;
+  background: #22333d;
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+.feedback-layout button:disabled { opacity: .45; cursor: default; }
+.feedback-layout .button { font: inherit; cursor: pointer; text-align: center; }
+.feedback-preview, .feedback-card {
+  padding: 22px;
+  margin: 24px 0;
+  border: 1px solid rgba(247, 241, 223, .22);
+  border-radius: 12px;
+  background: var(--panel);
+}
+.feedback-preview[hidden] { display: none; }
+.feedback-card h3 a, .feedback-thread-link, .feedback-compose noscript a { color: var(--tram); }
+.feedback-card summary { cursor: pointer; padding: 10px 0; line-height: 1.6; }
+.feedback-message { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.8; margin: 16px 0; }
+.feedback-reply { border-top: 1px solid #43545f; padding-top: 12px; margin-top: 20px; }
+.feedback-badge { padding: 3px 9px; border: 1px solid #637b84; border-radius: 20px; font-size: 12px; }
+.feedback-thread-link { display: inline-block; margin-top: 12px; }
+@media (max-width: 960px) {
+  .feedback-layout { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 420px) {
+  .feedback-fields { grid-template-columns: minmax(0, 1fr); gap: 0; }
+}
+@media (min-width: 821px) {
+  .site-header nav { min-width: 0; flex-wrap: wrap; justify-content: flex-end; }
+  .nav-links { flex-wrap: wrap; justify-content: flex-end; gap: 8px 16px; }
+}
+
 .guide-hero {
   padding: 132px clamp(18px, 5vw, 70px) 40px;
   background: linear-gradient(180deg, rgba(23, 33, 45, 1) 0%, #16252d 100%);

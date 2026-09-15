@@ -4,6 +4,10 @@
 
 Website and downloads: https://nortonyuen-oss.github.io/heung_shing_simulator/
 
+Questions, bug reports and comments: [Player message board](https://nortonyuen-oss.github.io/heung_shing_simulator/feedback.html).
+Read public posts and replies on the website; sign in to GitHub to confirm a new
+post or reply. Website messages are tracked with the `website-feedback` issue label.
+
 ![The Heung Shing skyline at night, zoomed out: dense lights, the airport and the harbour](docs/assets/gameplay/nightSkyline.webp)
 
 ## What the game is

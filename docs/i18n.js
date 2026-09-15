@@ -1255,8 +1255,8 @@ const SITE_TEXT = {
   "zh-HK": {
     meta: {
       title: "香城模擬器 | The City of Heung Shing",
-      description: "免費下載《香城模擬器》：一款向 SimCity 2000 致敬、以香港城市生活為靈感嘅城市建設遊戲。歡迎下載同分享，註明出處就可以。",
-      ogDescription: "由街道、天氣到議會、股市同公共交通，一齊建設屬於你嘅香城。遊戲免費下載，歡迎分享，請註明出處。",
+      description: "免費下載《香城模擬器》：一款向 SimCity 2000 致敬、以香港城市生活為靈感嘅城市建設遊戲。免費遊玩，分享及再利用請參閱版權條款。",
+      ogDescription: "由街道、天氣到議會、股市同公共交通，一齊建設屬於你嘅香城。遊戲免費下載；歡迎分享官方連結，其他用途請參閱版權條款。",
     },
     nav: { gallery: "玩法與截圖", downloads: "免費下載", manual: "玩家手冊", guide: "遊戲指南", stats: "統計", changelog: "版本", github: "GitHub" },
     hero: {
@@ -1269,7 +1269,7 @@ const SITE_TEXT = {
       downloadBtn: "【免費下載】",
       latestBtn: "最新版本",
       guideBtn: "睇遊戲指南",
-      shareNote: "呢個遊戲主要係想同大家分享。鍾意就下載嚟玩，亦歡迎介紹畀朋友；註明《香城模擬器》同原始連結就可以。",
+      shareNote: "歡迎免費遊玩，同朋友分享官方連結、截圖同介紹。影片、素材同遊戲再散布嘅使用範圍，請參閱版權條款。",
     },
     sharing: {
       eyebrow: "Made to be shared",
@@ -1279,7 +1279,7 @@ const SITE_TEXT = {
       ariaLabel: "分享及出處說明",
       creditLabel: "分享時請註明",
       creditText: "《香城模擬器 / The City of Heung Shing》",
-      creditDesc: "歡迎分享遊戲、截圖或者介紹文章；保留作品名稱，同時附上官方 GitHub 或本頁連結就得。",
+      creditDesc: "分享官方連結、截圖同介紹時，請保留作品名稱及原始連結。影片、素材再利用同安裝包散布另依版權條款。",
     },
     gallery: {
       eyebrow: "Gameplay & Screenshots",
@@ -1309,7 +1309,7 @@ const SITE_TEXT = {
         { platform: "macOS", title: "Mac Apple Silicon", desc: "適合 M1、M2、M3、M4 或更新的 Mac。下載 DMG 後拖入「應用程式」即可安裝。", btn: "下載 ARM64 DMG" },
         { platform: "macOS", title: "Mac Intel", desc: "適合 Intel CPU 的 Mac。下載 DMG 後拖入「應用程式」即可安裝。", btn: "下載 Intel DMG" },
         { platform: "Windows", title: "Windows 安裝版", desc: "推薦大部分玩家使用。安裝後會加入一般應用程式捷徑。", btn: "下載安裝版 EXE" },
-        { platform: "Windows", title: "Windows 免安裝版", desc: "不用安裝，下載後直接執行。適合快速試玩或分享給朋友。", btn: "下載免安裝版 EXE" },
+        { platform: "Windows", title: "Windows 免安裝版", desc: "不用安裝，下載後直接執行。適合快速試玩。", btn: "下載免安裝版 EXE" },
       ],
       notice: "AI 新聞屬選用功能。安裝後請在「設定 → AI 新聞」貼上你自己嘅 Ollama API key；遊戲及安裝檔不包含任何開發者密鑰。未設定 AI 亦可照常使用模擬新聞。現時安裝檔尚未完成簽章，macOS Gatekeeper 或 Windows SmartScreen 可能會在第一次開啟時要求確認。",
     },
@@ -1327,13 +1327,13 @@ const SITE_TEXT = {
       title: "建設、治理、迭代",
       desc: "劃設住宅、商業與工業區，興建道路、公園、公共設施與發電廠；再起貨櫃碼頭、機場同自己嘅巴士公司，令城市真正運作起嚟。一個顯示日就係遊戲入面一個月：日出日落、天氣、颱風同議會法案全部跟同一個時鐘行，入夜之後每棟樓都有自己嘅開燈習慣。放置雙語路牌建立分區，再由討論區、報章同 AI 新聞講返你座城市嘅故事。",
     },
-    footer: { tagline: "香城模擬器 · 免費下載，歡迎分享", releaseInfo: "版本資訊", blog: "開發blog" },
+    footer: { tagline: "香城模擬器 · 免費遊玩，歡迎分享官方連結", releaseInfo: "版本資訊", blog: "開發blog" },
   },
   "zh-TW": {
     meta: {
       title: "香城模擬器 | The City of Heung Shing",
-      description: "免費下載《香城模擬器》：一款向 SimCity 2000 致敬、以香港城市生活為靈感的城市建設遊戲。歡迎下載與分享，請註明出處。",
-      ogDescription: "從街道、天氣到議會、股市與公共運輸，一起建設屬於你的香城。遊戲免費下載，歡迎分享並註明出處。",
+      description: "免費下載《香城模擬器》：一款向 SimCity 2000 致敬、以香港城市生活為靈感的城市建設遊戲。免費遊玩，分享與再利用請參閱版權條款。",
+      ogDescription: "從街道、天氣到議會、股市與公共運輸，一起建設屬於你的香城。遊戲免費下載；歡迎分享官方連結，其他用途請參閱版權條款。",
     },
     nav: { gallery: "玩法與截圖", downloads: "免費下載", manual: "玩家手冊", guide: "遊戲指南", stats: "統計", changelog: "版本", github: "GitHub" },
     hero: {
@@ -1346,7 +1346,7 @@ const SITE_TEXT = {
       downloadBtn: "【免費下載】",
       latestBtn: "最新版本",
       guideBtn: "查看遊戲指南",
-      shareNote: "這個遊戲主要是想和大家分享。喜歡就下載來玩，也歡迎介紹給朋友；註明《香城模擬器》與原始連結即可。",
+      shareNote: "歡迎免費遊玩，與朋友分享官方連結、截圖與介紹。影片、素材與遊戲再散布的使用範圍，請參閱版權條款。",
     },
     sharing: {
       eyebrow: "Made to be shared",
@@ -1356,7 +1356,7 @@ const SITE_TEXT = {
       ariaLabel: "分享與出處說明",
       creditLabel: "分享時請註明",
       creditText: "《香城模擬器 / The City of Heung Shing》",
-      creditDesc: "歡迎分享遊戲、截圖或介紹文章；保留作品名稱，並附上官方 GitHub 或本頁連結即可。",
+      creditDesc: "分享官方連結、截圖與介紹時，請保留作品名稱及原始連結。影片、素材再利用與安裝包散布另依版權條款。",
     },
     gallery: {
       eyebrow: "Gameplay & Screenshots",
@@ -1386,7 +1386,7 @@ const SITE_TEXT = {
         { platform: "macOS", title: "Mac Apple Silicon", desc: "適合 M1、M2、M3、M4 或更新的 Mac。下載 DMG 後拖曳到「應用程式」即可安裝。", btn: "下載 ARM64 DMG" },
         { platform: "macOS", title: "Mac Intel", desc: "適合 Intel CPU 的 Mac。下載 DMG 後拖曳到「應用程式」即可安裝。", btn: "下載 Intel DMG" },
         { platform: "Windows", title: "Windows 安裝版", desc: "推薦大多數玩家使用。安裝後會加入一般應用程式捷徑。", btn: "下載安裝版 EXE" },
-        { platform: "Windows", title: "Windows 免安裝版", desc: "不用安裝，下載後直接執行。適合快速試玩或分享給朋友。", btn: "下載免安裝版 EXE" },
+        { platform: "Windows", title: "Windows 免安裝版", desc: "不用安裝，下載後直接執行。適合快速試玩。", btn: "下載免安裝版 EXE" },
       ],
       notice: "AI 新聞屬選用功能。安裝後請在「設定 → AI 新聞」貼上你自己的 Ollama API key；遊戲及安裝檔不包含任何開發者金鑰。未設定 AI 也可照常使用模擬新聞。目前安裝檔尚未完成簽章，macOS Gatekeeper 或 Windows SmartScreen 可能會在第一次開啟時要求確認。",
     },
@@ -1404,13 +1404,13 @@ const SITE_TEXT = {
       title: "建設、治理、迭代",
       desc: "劃設住宅、商業與工業區，興建道路、公園、公共設施與發電廠；再蓋貨櫃碼頭、機場與自己的公車公司，讓城市真正運作起來。一個顯示日就是遊戲裡的一個月：日出日落、天氣、颱風與議會法案全部依同一個時鐘運行，入夜之後每棟樓都有自己的開燈習慣。放置雙語路牌建立分區，再由討論區、報紙與 AI 新聞說出你這座城市的故事。",
     },
-    footer: { tagline: "香城模擬器 · 免費下載，歡迎分享", releaseInfo: "版本資訊", blog: "開發部落格" },
+    footer: { tagline: "香城模擬器 · 免費遊玩，歡迎分享官方連結", releaseInfo: "版本資訊", blog: "開發部落格" },
   },
   en: {
     meta: {
       title: "The City of Heung Shing | 香城模擬器",
-      description: "Download The City of Heung Shing for free: a city-building game inspired by Hong Kong life and made in tribute to SimCity 2000. Free to play and share with attribution.",
-      ogDescription: "Build your own Heung Shing through streets, weather, council politics, markets and public transport. Free to download and share with attribution.",
+      description: "Download The City of Heung Shing for free: a city-building game inspired by Hong Kong life and made in tribute to SimCity 2000. Free to play; sharing and reuse are subject to the license.",
+      ogDescription: "Build your own Heung Shing through streets, weather, council politics, markets and public transport. Free to download; see the license for sharing and reuse.",
     },
     nav: { gallery: "Gameplay & Screenshots", downloads: "Free Download", manual: "Manual", guide: "Game Guide", stats: "Stats", changelog: "Changelog", github: "GitHub" },
     hero: {
@@ -1423,7 +1423,7 @@ const SITE_TEXT = {
       downloadBtn: "【Free Download】",
       latestBtn: "Latest release",
       guideBtn: "Read the game guide",
-      shareNote: "This game was made to be shared. Download it, play it and tell your friends; just credit The City of Heung Shing and include the original link.",
+      shareNote: "Play for free and share official links, screenshots and city stories. See the copyright terms for videos, asset reuse and game redistribution.",
     },
     sharing: {
       eyebrow: "Made to be shared",
@@ -1433,7 +1433,7 @@ const SITE_TEXT = {
       ariaLabel: "Sharing and attribution information",
       creditLabel: "Please credit",
       creditText: "The City of Heung Shing / 香城模擬器",
-      creditDesc: "You are welcome to share the game, screenshots or articles about it. Keep the project name and include a link to this page or the official GitHub repository.",
+      creditDesc: "Credit the game and include its official link when sharing screenshots and articles. Videos, asset reuse and installer redistribution are subject to the copyright terms.",
     },
     gallery: {
       eyebrow: "Gameplay & Screenshots",
@@ -1464,7 +1464,7 @@ const SITE_TEXT = {
         { platform: "macOS", title: "Mac Apple Silicon", desc: "For M1, M2, M3, M4 or newer Macs. Download the DMG and drag it into Applications to install.", btn: "Download ARM64 DMG" },
         { platform: "macOS", title: "Mac Intel", desc: "For Intel-based Macs. Download the DMG and drag it into Applications to install.", btn: "Download Intel DMG" },
         { platform: "Windows", title: "Windows Installer", desc: "Recommended for most players. Adds a standard shortcut after installing.", btn: "Download Setup EXE" },
-        { platform: "Windows", title: "Windows Portable", desc: "No installation needed - download and run directly. Great for a quick trial or sharing with friends.", btn: "Download Portable EXE" },
+        { platform: "Windows", title: "Windows Portable", desc: "No installation needed - download and run directly. Great for a quick trial.", btn: "Download Portable EXE" },
       ],
       notice: "AI news is an optional feature. After installing, paste your own Ollama API key under Settings → AI News; the game and installer never bundle any developer key. The game works fine with simulated news if you skip AI setup. Installers aren't code-signed yet, so macOS Gatekeeper or Windows SmartScreen may prompt for confirmation the first time you open them.",
     },
@@ -1482,13 +1482,13 @@ const SITE_TEXT = {
       title: "Build, govern, iterate",
       desc: "Zone residential, commercial and industrial land, build roads, parks, public services and power plants, then a container port, an airport and your own bus company to make the city actually run. One displayed day is one game month: sunrise and sunset, weather, typhoons and council bills all keep the same clock, and after dark every building keeps its own lighting habits. Place bilingual signs to define districts, and let the forum, the newspapers and optional AI news tell your city's story.",
     },
-    footer: { tagline: "The City of Heung Shing · Free to download and share", releaseInfo: "Release info", blog: "Dev blog" },
+    footer: { tagline: "The City of Heung Shing · Free to play · Share official links", releaseInfo: "Release info", blog: "Dev blog" },
   },
   ja: {
     meta: {
       title: "香城模擬器 | The City of Heung Shing",
-      description: "『香城模擬器』を無料ダウンロード。香港の都市生活から着想を得た、SimCity 2000へのオマージュとなる都市建設ゲームです。出典表記付きで共有できます。",
-      ogDescription: "道路、天候、議会、株式市場、公共交通を通じて自分だけの香城を建設。無料でダウンロードでき、出典表記付きで共有できます。",
+      description: "『香城模擬器』を無料ダウンロード。香港の都市生活から着想を得た、SimCity 2000へのオマージュとなる都市建設ゲームです。共有・再利用については利用条件をご確認ください。",
+      ogDescription: "道路、天候、議会、株式市場、公共交通を通じて自分だけの香城を建設。無料でダウンロードでき、共有・再利用については利用条件をご確認ください。",
     },
     nav: { gallery: "ゲーム内容と画像", downloads: "無料ダウンロード", manual: "プレイヤーマニュアル", guide: "ゲームガイド", stats: "統計", changelog: "更新履歴", github: "GitHub" },
     hero: {
@@ -1501,7 +1501,7 @@ const SITE_TEXT = {
       downloadBtn: "【無料ダウンロード】",
       latestBtn: "最新リリース",
       guideBtn: "ゲームガイドを見る",
-      shareNote: "このゲームはみなさんと楽しさを共有するために作りました。ダウンロードや友人への紹介は大歓迎です。作品名と元のリンクを明記してください。",
+      shareNote: "無料プレイや公式リンク、スクリーンショット、紹介記事の共有を歓迎します。動画、素材の再利用、ゲームの再配布については著作権と利用条件をご確認ください。",
     },
     sharing: {
       eyebrow: "Made to be shared",
@@ -1511,7 +1511,7 @@ const SITE_TEXT = {
       ariaLabel: "共有と出典表記について",
       creditLabel: "共有時のクレジット",
       creditText: "『香城模擬器 / The City of Heung Shing』",
-      creditDesc: "ゲーム、スクリーンショット、紹介記事は自由に共有できます。作品名を残し、公式 GitHub または本ページへのリンクを添えてください。",
+      creditDesc: "公式リンク、スクリーンショット、紹介記事には作品名と公式リンクを明記してください。動画、素材の再利用、インストーラーの配布には利用条件が適用されます。",
     },
     gallery: {
       eyebrow: "Gameplay & Screenshots",
@@ -1541,7 +1541,7 @@ const SITE_TEXT = {
         { platform: "macOS", title: "Mac Apple Silicon", desc: "M1、M2、M3、M4以降のMacに対応。DMGをダウンロードして「アプリケーション」にドラッグすればインストール完了です。", btn: "ARM64 DMG をダウンロード" },
         { platform: "macOS", title: "Mac Intel", desc: "Intel搭載Macに対応。DMGをダウンロードして「アプリケーション」にドラッグすればインストール完了です。", btn: "Intel DMG をダウンロード" },
         { platform: "Windows", title: "Windows インストーラー版", desc: "ほとんどのプレイヤーにおすすめ。インストール後、通常のショートカットが追加されます。", btn: "インストーラー EXE をダウンロード" },
-        { platform: "Windows", title: "Windows ポータブル版", desc: "インストール不要、ダウンロード後すぐ実行できます。お試しプレイや友人との共有に最適です。", btn: "ポータブル EXE をダウンロード" },
+        { platform: "Windows", title: "Windows ポータブル版", desc: "インストール不要、ダウンロード後すぐ実行できます。お試しプレイに最適です。", btn: "ポータブル EXE をダウンロード" },
       ],
       notice: "AIニュースはオプション機能です。インストール後、「設定 → AIニュース」でご自身のOllama APIキーを貼り付けてください。ゲームおよびインストーラーには開発者のキーは一切含まれていません。AIを設定しなくてもシミュレーテッドニュースは通常通り利用できます。現在インストーラーはコード署名が未完了のため、初回起動時にmacOS GatekeeperやWindows SmartScreenが確認を求める場合があります。",
     },
@@ -1559,9 +1559,117 @@ const SITE_TEXT = {
       title: "建設・統治・改善を繰り返す",
       desc: "住宅・商業・工業地区を区画し、道路・公園・公共施設・発電所を建設。さらにコンテナ港、空港、自分のバス会社を作って街を本当に動かします。表示上の1日がゲーム内の1か月：日の出と日没、天気、台風、議会の法案はすべて同じ時計で進み、日が暮れれば建物ごとに灯りの習慣があります。バイリンガルの標識で地区を定め、フォーラムと新聞、任意の AI ニュースがあなたの街の物語を語ります。",
     },
-    footer: { tagline: "香城模擬器 · 無料ダウンロード、共有歓迎", releaseInfo: "リリース情報", blog: "開発ブログ" },
+    footer: { tagline: "香城模擬器 · 無料プレイ・公式リンク共有歓迎", releaseInfo: "リリース情報", blog: "開発ブログ" },
   },
 };
+
+const SITE_COPYRIGHT = {
+  "zh-HK": {
+    "title": "版權與使用條款",
+    "metaTitle": "版權與使用條款 | 香城模擬器",
+    "intro": "免費遊玩，歡迎介紹香城。分享作品、影片同素材之前，請先了解各自嘅使用範圍。",
+    "version": "授權條款 v1.0 · 2026-09-15",
+    "owner": "由 nortonyuen-oss（香城模擬器開發者）就依法享有或有權授權嘅部分保留權利。",
+    "full": "閱讀正式授權全文（繁體中文）",
+    "notices": "第三方來源與限制",
+    "contact": "授權及權利查詢",
+    "playTitle": "免費遊玩與個人備份",
+    "play": "你可以喺自己控制嘅裝置安裝、遊玩同備份合法取得嘅遊戲，亦可分享自己嘅城市存檔。免費遊玩唔等於開源，公開原始碼亦唔代表可以重製或出售。",
+    "shareTitle": "截圖、攻略與實況",
+    "share": "歡迎分享官方連結、截圖、攻略、評論同遊玩影片。就開發者有權授權嘅部分，容許影片或實況透過廣告、訂閱或觀眾贊助營利。請註明「香城模擬器／The City of Heung Shing」並附官方連結。",
+    "musicTitle": "錄影前請留意音樂",
+    "music": "目前背景音樂由 Suno 免費方案產生，本遊戲授權唔包含呢啲音軌嘅商用或影片／直播營利權。製作營利內容時請關閉背景音樂；保留嘅音效亦要符合各自權利範圍。自行錄音唔會自動取得當中旋律、廣播或表演嘅權利。",
+    "reservedTitle": "需要另外授權嘅用途",
+    "reserved": "重新上傳安裝包、架設鏡像、改作或移植遊戲、重新包裝、轉售、商店上架同抽取自有素材另用，需要另外授權。法定權利、GitHub 平台內嘅既有權利，同第三方原授權容許嘅行為不受影響。",
+    "thirdTitle": "第三方素材與 AI",
+    "third": "套件依各自授權使用；Kenney 原始道路素材採 CC0。部分模型由 OpenAI 工具產生，唔代表全部 AI 圖像都有排他著作權。地景紀錄亦含 Unsplash 材質。天文台日月出沒資料來源須保留，年曆、警告圖示同 Google Earth 海岸線嘅具體使用範圍仍待核實；本頁唔授予呢啲內容額外商用權。",
+    "softwareTitle": "軟體與資料來源",
+    "software": "遊戲使用 Express、electron-updater、Electron、Phaser 等元件；electron-builder 同 sharp 用於建置。詳細版本、原授權與尚待補齊嘅通知，請參閱第三方聲明。第三方授權原文優先於呢頁摘要。",
+    "versionsTitle": "適用版本與既有許可",
+    "versions": "新條款適用於 2026-09-15 起發布並包含條款嘅原始碼版本及發行包，唔會追溯撤銷舊版已有效授予嘅權利。呢次更新係授權資訊發布，唔會自動更改之前嘅下載安裝包。",
+    "authority": "本頁係使用摘要；繁體中文 LICENSE 全文為正式條款。第三方權利與依法不能排除嘅使用權仍然保留。"
+  },
+  "zh-TW": {
+    "title": "版權與使用條款",
+    "metaTitle": "版權與使用條款 | 香城模擬器",
+    "intro": "免費遊玩，歡迎介紹香城。分享作品、影片與素材之前，請先了解各自的使用範圍。",
+    "version": "授權條款 v1.0 · 2026-09-15",
+    "owner": "由 nortonyuen-oss（香城模擬器開發者）就依法享有或有權授權的部分保留權利。",
+    "full": "閱讀正式授權全文（繁體中文）",
+    "notices": "第三方來源與限制",
+    "contact": "授權及權利查詢",
+    "playTitle": "免費遊玩與個人備份",
+    "play": "你可以在自己控制的裝置安裝、遊玩與備份合法取得的遊戲，也可分享自己的城市存檔。免費遊玩不等於開源，公開原始碼也不代表可以重製或出售。",
+    "shareTitle": "截圖、攻略與實況",
+    "share": "歡迎分享官方連結、截圖、攻略、評論與遊玩影片。就開發者有權授權的部分，允許影片或實況透過廣告、訂閱或觀眾贊助營利。請註明「香城模擬器／The City of Heung Shing」並附官方連結。",
+    "musicTitle": "錄影前請留意音樂",
+    "music": "目前背景音樂由 Suno 免費方案產生，本遊戲授權不包含這些音軌的商用或影片／直播營利權。製作營利內容時請關閉背景音樂；保留的音效也要符合各自權利範圍。自行錄音不會自動取得其中旋律、廣播或表演的權利。",
+    "reservedTitle": "需要另外授權的用途",
+    "reserved": "重新上傳安裝包、架設鏡像、改作或移植遊戲、重新包裝、轉售、商店上架與抽取自有素材另用，需要另外授權。法定權利、GitHub 平台內的既有權利，以及第三方原授權允許的行為不受影響。",
+    "thirdTitle": "第三方素材與 AI",
+    "third": "套件依各自授權使用；Kenney 原始道路素材採 CC0。部分模型由 OpenAI 工具產生，不代表全部 AI 圖像都有排他著作權。地景紀錄也含 Unsplash 材質。天文台日月出沒資料來源須保留，年曆、警告圖示與 Google Earth 海岸線的具體使用範圍仍待核實；本頁不授予這些內容額外商用權。",
+    "softwareTitle": "軟體與資料來源",
+    "software": "遊戲使用 Express、electron-updater、Electron、Phaser 等元件；electron-builder 與 sharp 用於建置。詳細版本、原授權與尚待補齊的通知，請參閱第三方聲明。第三方授權原文優先於本頁摘要。",
+    "versionsTitle": "適用版本與既有許可",
+    "versions": "新條款適用於 2026-09-15 起發布並包含條款的原始碼版本及發行包，不會追溯撤銷舊版已有效授予的權利。這次更新是授權資訊發布，不會自動更改之前的下載安裝包。",
+    "authority": "本頁是使用摘要；繁體中文 LICENSE 全文為正式條款。第三方權利與依法不能排除的使用權仍然保留。"
+  },
+  "en": {
+    "title": "Copyright & usage",
+    "metaTitle": "Copyright & usage | The City of Heung Shing",
+    "intro": "Free to play, and welcome to share your city stories. Check the permissions for the game, videos and individual assets before reusing them.",
+    "version": "License v1.0 · 15 September 2026",
+    "owner": "Rights reserved by nortonyuen-oss, the game developer, only for material the developer owns or is authorized to license.",
+    "full": "Read the full license (Traditional Chinese)",
+    "notices": "Third-party sources & restrictions",
+    "contact": "Licensing & rights enquiries",
+    "playTitle": "Free play & personal backups",
+    "play": "You may install, play and back up a lawfully obtained copy on devices you control, and share your own city saves. Free play and publicly visible source code do not grant an open-source license or permission to reproduce or sell the game.",
+    "shareTitle": "Screenshots, guides & streams",
+    "share": "Share official links, screenshots, guides, commentary and gameplay videos. For content the developer can license, videos and streams may earn advertising, subscription or viewer-support revenue. Credit The City of Heung Shing / 香城模擬器 and include the official link.",
+    "musicTitle": "Check the audio before recording",
+    "music": "The current background tracks were generated with Suno’s free plan. This game license does not grant commercial or monetized video/streaming rights to those tracks. Turn off the background music for monetized content and check the rights to any remaining audio. Recording a sound yourself does not automatically clear an underlying melody, broadcast or performance.",
+    "reservedTitle": "Uses requiring separate permission",
+    "reserved": "Reuploading installers, hosting mirrors, derivative games, ports, repackaging, resale, store listings and extracting proprietary assets for other uses require separate permission. Statutory rights, existing rights within GitHub and permissions under the original third-party licenses remain unaffected.",
+    "thirdTitle": "Third-party assets & AI",
+    "third": "Software retains its own licenses; the original Kenney road assets use CC0. Some models were generated with OpenAI tools; exclusive copyright is not claimed for every AI image. Landscape records also identify an Unsplash material. HKO sun/moon data needs source attribution. The exact permissions for almanac data, warning icons and Google Earth coastline sources remain under review; this page grants no additional commercial rights to them.",
+    "softwareTitle": "Software & data credits",
+    "software": "The game uses Express, electron-updater, Electron and Phaser; electron-builder and sharp are build tools. See the third-party notices for versions, original licenses and outstanding notice gaps. Original third-party terms take precedence over this summary.",
+    "versionsTitle": "Versions & existing permissions",
+    "versions": "These terms apply to source revisions and distributions published from 15 September 2026 that include them. They do not retroactively revoke valid permissions for older versions. Publishing this information does not change previously released installers.",
+    "authority": "This page is a summary. The complete Traditional Chinese LICENSE is authoritative. Third-party rights and rights that cannot legally be excluded remain intact."
+  },
+  "ja": {
+    "title": "著作権と利用条件",
+    "metaTitle": "著作権と利用条件 | 香城模擬器",
+    "intro": "無料で遊び、街の物語を紹介できます。ゲーム、動画、個別素材を利用する前に、それぞれの許可範囲をご確認ください。",
+    "version": "ライセンス v1.0 · 2026年9月15日",
+    "owner": "開発者 nortonyuen-oss が保有する、または許諾する権限を持つ部分に限り、権利を留保します。",
+    "full": "正式なライセンス全文（繁体字中国語）",
+    "notices": "第三者の出典と利用制限",
+    "contact": "ライセンス・権利に関するお問い合わせ",
+    "playTitle": "無料プレイと個人用バックアップ",
+    "play": "適法に入手したゲームを、自分が管理する端末でインストール、プレイ、バックアップし、自分の都市セーブデータを共有できます。無料配布やソースコードの公開は、オープンソースの許諾や複製・販売の許可を意味しません。",
+    "shareTitle": "スクリーンショット・攻略・配信",
+    "share": "公式リンク、スクリーンショット、攻略、レビュー、プレイ動画の共有を歓迎します。開発者が許諾できる部分については、広告、定期購読、視聴者の支援による動画・配信の収益化も可能です。「The City of Heung Shing / 香城模擬器」と公式リンクを明記してください。",
+    "musicTitle": "録画前に音声をご確認ください",
+    "music": "現在のBGMはSunoの無料プランで生成されています。本ゲームの許諾には、これらの音源の商用利用や動画・配信の収益化権は含まれません。収益化する場合はBGMをオフにし、残る効果音などの権利も確認してください。自分で録音しても、含まれる楽曲、放送、実演の権利まで取得できるわけではありません。",
+    "reservedTitle": "別途許可が必要な利用",
+    "reserved": "インストーラーの再アップロード、ミラー配布、派生ゲーム、移植、再パッケージ、転売、ストアへの掲載、独自素材の抽出・転用には別途許可が必要です。法令上の権利、GitHub内の既存の権利、第三者の原ライセンスによる許可は制限しません。",
+    "thirdTitle": "第三者素材とAI",
+    "third": "各ソフトウェアには独自のライセンスが適用され、Kenneyの元の道路素材はCC0です。一部のモデルにはOpenAIの生成ツールを使用していますが、すべてのAI画像に排他的著作権があるとは主張しません。地形の記録にはUnsplash素材も含まれます。香港天文台の日月出没データには出典表示が必要です。年鑑、警報図示、Google Earth由来の海岸線の利用範囲は確認中で、本ページは追加の商用利用権を付与しません。",
+    "softwareTitle": "ソフトウェアとデータの出典",
+    "software": "ゲームはExpress、electron-updater、Electron、Phaserなどを使用し、electron-builderとsharpはビルド用です。バージョン、原ライセンス、未確認の通知については第三者声明をご覧ください。第三者の原文条件が本概要に優先します。",
+    "versionsTitle": "適用バージョンと既存の許可",
+    "versions": "本条件は2026年9月15日以降に公開され、本条件を含むソースコードの版および配布物に適用されます。旧版について有効に付与された許可を遡って取り消しません。この情報公開で、既存のインストーラーが変更されることはありません。",
+    "authority": "本ページは概要です。繁体字中国語のLICENSE全文が正式な条項です。第三者の権利および法令上排除できない権利は留保されます。"
+  }
+};
+
+for (const [language, content] of Object.entries(SITE_COPYRIGHT)) {
+  SITE_TEXT[language].copyright = content;
+  SITE_TEXT[language].nav.copyright = content.title;
+}
 
 // ── Full game guide page content ─────────────────────────────────────────────
 // Structured as sections of typed blocks so guide.html can render it
@@ -2538,7 +2646,10 @@ function renderLanguageSwitcher() {
 }
 
 function applyMetaTags() {
-  const meta = SITE_TEXT[siteCurrentLanguage].meta;
+  const text = SITE_TEXT[siteCurrentLanguage];
+  const meta = document.body?.dataset.page === "copyright"
+    ? { title: text.copyright.metaTitle, description: text.copyright.intro, ogDescription: text.copyright.intro }
+    : text.meta;
   document.title = meta.title;
   document.documentElement.lang = siteCurrentLanguage === "zh-HK" ? "zh-Hant-HK"
     : siteCurrentLanguage === "zh-TW" ? "zh-Hant-TW"

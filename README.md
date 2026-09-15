@@ -214,3 +214,20 @@ npm run defringe:assets -- --match residential3 --output-dir .data/defringed
 
 - The game uses a local SQLite-backed save server.
 - Map overlays, plant aging, and power shortages are part of the current gameplay loop.
+
+## License and copyright
+
+Copyright © 2026 nortonyuen-oss, for the portions the developer owns or may license.
+The game is proprietary: free play, personal backups and specified sharing are
+permitted by [LICENSE](LICENSE). The public source code is not an open-source
+license grant. Repackaging, redistribution, derivative releases and asset reuse
+require separate permission unless applicable law or a third-party license allows them.
+
+Screenshots, guides and gameplay videos are welcome under the license, including
+monetized commentary for content the developer can license. Third-party music and
+other restricted content are excluded: the existing Suno free-plan tracks are not
+cleared here for monetized videos or streams. Existing valid permissions for older
+versions remain unaffected.
+
+See the [copyright page](https://nortonyuen-oss.github.io/heung_shing_simulator/copyright.html),
+[third-party notices](THIRD_PARTY_NOTICES.md) and [source inventory](docs/licensing/README.md).

@@ -823,6 +823,32 @@ footer a:hover {
 
 /* ── Guide page ────────────────────────────────────────────────────────────── */
 
+.copyright-body {
+  max-width: 1000px;
+  padding: 12px clamp(18px, 5vw, 70px) 64px;
+  margin: 0 auto;
+}
+
+.copyright-body .guide-section {
+  margin-bottom: 32px;
+  scroll-margin-top: 130px;
+}
+
+.copyright-authority {
+  padding-top: 24px;
+  border-top: 1px solid rgba(247, 241, 223, 0.18);
+  color: var(--muted);
+  line-height: 1.8;
+}
+
+.copyright-body .text-link {
+  color: var(--tram);
+}
+
+nav a[aria-current="page"] {
+  color: var(--tram);
+}
+
 .guide-hero {
   padding: 132px clamp(18px, 5vw, 70px) 40px;
   background: linear-gradient(180deg, rgba(23, 33, 45, 1) 0%, #16252d 100%);

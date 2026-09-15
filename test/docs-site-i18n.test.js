@@ -28,7 +28,7 @@ test('every data-i18n key used in the public site resolves to a real string in a
   const SITE_LANGUAGES = vm.runInContext('SITE_LANGUAGES', context);
 
   const usedKeys = new Set();
-  ['index.html', 'guide.html'].forEach((file) => {
+  ['index.html', 'guide.html', 'copyright.html'].forEach((file) => {
     const html = fs.readFileSync(path.join(DOCS, file), 'utf8');
     const regex = /data-i18n="([^"]+)"/g;
     let match;

@@ -125,8 +125,20 @@
       list.replaceChildren();
       for (const item of rows) {
         const card = node('article', undefined, 'feedback-card');
+        const title = String(item.title || t('untitled'));
+        const match = title.match(/^\[(bug|question|suggestion|comment)\]\s*/);
+        const kind = match ? match[1] : 'comment';
+        card.dataset.memoType = kind;
+        const stamp = node('div', undefined, 'memo-stamp');
+        stamp.append(node('span', t(kind)), node('span', `#${item.number}`));
         const heading = node('h3');
-        heading.appendChild(externalLink(issueUrl(item.number), `#${item.number} ${item.title || t('untitled')}`));
+        heading.appendChild(externalLink(issueUrl(item.number), title.replace(/^\[(bug|question|suggestion|comment)\]\s*/, '')));
+        // Show the player's message on the paper, keeping the full original in details.
+        const rawBody = String(item.body || '');
+        const message = rawBody.includes('## 內容 / Details\n')
+          ? rawBody.split('## 內容 / Details\n').slice(1).join('## 內容 / Details\n').replace(/\n---\nSubmitted via https:\/\/nortonyuen-oss\.github\.io\/heung_shing_simulator\/feedback\.html\s*$/, '').trim()
+          : rawBody;
+        const excerpt = node('p', message.slice(0, 240) + (message.length > 240 ? '…' : ''), 'memo-excerpt');
         const meta = node('p', authorAndDate(item), 'feedback-meta');
         const badge = node('span', t(item.state === 'closed' ? 'closed' : 'open'), 'feedback-badge');
         meta.append(' · ', badge);
@@ -165,7 +177,7 @@
           thread.open = detail.open;
           if (detail.open && !thread.loaded && !thread.loading && !thread.error && item.comments > 0) loadComments(item.number);
         });
-        card.append(heading, meta, detail);
+        card.append(stamp, heading, excerpt, meta, detail);
         list.appendChild(card);
       }
       renderComposer();

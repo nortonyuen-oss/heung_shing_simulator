@@ -1894,7 +1894,35 @@ const SITE_FEEDBACK = {
   }
 };
 
+const SITE_MEMO_WALL = {
+  "zh-HK": {
+    "wallTitle": "香城留言牆",
+    "wallIntro": "行過、停低，留低你嘅聲音。一張 memo，一齊寫出香城嘅日常。",
+    "writeMemo": "貼一張 memo",
+    "wallCaption": "每一張，都係香城嘅一把聲音。"
+  },
+  "zh-TW": {
+    "wallTitle": "香城留言牆",
+    "wallIntro": "路過、停下，留下你的聲音。一張便利貼，一起寫下香城的日常。",
+    "writeMemo": "貼一張便利貼",
+    "wallCaption": "每一張，都是香城的一個聲音。"
+  },
+  "en": {
+    "wallTitle": "Heung Shing memo wall",
+    "wallIntro": "Slow down. Leave a little of your day here. One note at a time, we make this city our own.",
+    "writeMemo": "Leave a memo",
+    "wallCaption": "A little piece of paper. A voice in our city."
+  },
+  "ja": {
+    "wallTitle": "香城メモウォール",
+    "wallIntro": "立ち止まって、あなたの声を残そう。一枚の付箋から、香城の日常を一緒につづろう。",
+    "writeMemo": "付箋を貼る",
+    "wallCaption": "一枚一枚が、この街の声。"
+  }
+};
+
 for (const [language, content] of Object.entries(SITE_FEEDBACK)) {
+  Object.assign(content, SITE_MEMO_WALL[language]);
   SITE_TEXT[language].feedback = content;
   SITE_TEXT[language].nav.feedback = content.title;
 }

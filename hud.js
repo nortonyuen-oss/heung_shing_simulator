@@ -323,6 +323,7 @@ function addCityNews(text) {
 // ── Toast notifications ───────────────────────────────────────────────────────
 
 function showToast(message, type = 'info') {
+  if (typeof isAttractModeActive === 'function' && isAttractModeActive()) return;
   const container = document.getElementById('toast-container');
   if (!container) return;
 

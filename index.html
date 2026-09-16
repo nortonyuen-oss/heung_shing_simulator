@@ -4527,16 +4527,37 @@
 
     /* ── Hong Kong title-screen redesign ───────────────────────────────── */
     #landing-screen {
-      background: #0b1118 url('UI/backgroundTitle.webp') center center / cover no-repeat;
+      background: transparent;
       backdrop-filter: none;
       overflow: hidden;
+    }
+
+    /* Static title artwork. Attract mode fades it out once the showcase city is rendering
+       underneath (attract-mode.js); if that never happens this layer simply stays. */
+    #landing-backdrop {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      background: #0b1118 url('UI/backgroundTitle.webp') center center / cover no-repeat;
+      transition: opacity 1.2s ease;
+      pointer-events: none;
+    }
+
+    #landing-screen.attract-live #landing-backdrop {
+      opacity: 0;
+    }
+
+    /* While the showcase city plays behind the menu, every gameplay layer between the canvas and
+       the landing screen (top bar, tool menu, HUD, zoom controls…) stays out of sight. */
+    body.attract-live > :not(#game-container):not(#landing-screen):not(script) {
+      visibility: hidden !important;
     }
 
     #landing-screen::before {
       content: '';
       position: absolute;
       inset: 0;
-      background: linear-gradient(180deg, rgba(15, 22, 30, 0.25) 0%, rgba(4, 8, 13, 0.5) 100%);
+      background: linear-gradient(180deg, rgba(15, 22, 30, 0.18) 0%, rgba(4, 8, 13, 0.42) 100%);
       pointer-events: none;
       z-index: 1;
     }
@@ -5887,6 +5908,7 @@
           <button class="menu-drop-item" data-menu-action="toggle-auto-replace-plants" id="menu-auto-replace-plants" data-i18n="menu.autoReplacePowerPlants">Auto-replace aged power plants</button>
           <button class="menu-drop-item" data-menu-action="open-ai-news-settings" id="menu-ai-news" data-i18n="menu.aiNews">AI News…</button>
           <button class="menu-drop-item" data-menu-action="toggle-transport-expansion" id="menu-transport-expansion" data-i18n="transport.menu.toggle">Enable Public Transport Expansion</button>
+          <button class="menu-drop-item" data-menu-action="toggle-attract-mode" id="menu-attract-mode" data-i18n="menu.attractMode">Live city behind the title screen</button>
           <div class="menu-hr"></div>
           <div class="menu-drop-empty" data-i18n="menu.language">Language</div>
           <button class="menu-drop-item" data-menu-action="language-en" id="menu-lang-en">English</button>
@@ -6160,6 +6182,7 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
 
   <!-- ── Landing screen ─────────────────────────────────────────────────── -->
   <div id="landing-screen" role="dialog" aria-label="The City of Heung Shing welcome screen" data-i18n-aria="app.name">
+    <div id="landing-backdrop" aria-hidden="true"></div>
     <div class="landing-card">
 
       <!-- Main menu state -->
@@ -7325,5 +7348,6 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
   <script src="inspect-panel.js"></script>
   <script src="terrain-presets.js"></script>
   <script src="landing-screen.js"></script>
+  <script src="attract-mode.js"></script>
 </body>
 </html>

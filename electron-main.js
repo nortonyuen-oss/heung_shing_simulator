@@ -198,6 +198,7 @@ async function createWindow() {
     rootDir: __dirname,
     modelAssetRootDir: getGameModelAssetRootDir(),
     aiNewsCredentialStore,
+    allowDevExports: !app.isPackaged,
   });
 
   mainWindow = new BrowserWindow({

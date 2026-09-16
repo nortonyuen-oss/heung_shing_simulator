@@ -146,6 +146,12 @@ function handleMenuAction(action) {
         toggleTransportExpansionForCity();
       }
       break;
+    case 'toggle-attract-mode':
+      if (typeof setAttractModeEnabled === 'function') {
+        setAttractModeEnabled(!isAttractModeEnabled());
+      }
+      updateSettingsMenu();
+      break;
     case 'toggle-district-signs':
       if (typeof setDistrictSignsVisible === 'function') {
         setDistrictSignsVisible(!areDistrictSignsVisible());
@@ -340,6 +346,8 @@ function updateSettingsMenu() {
     ?.classList.toggle('menu-checked', typeof isAiNewsEnabled === 'function' && isAiNewsEnabled());
   document.getElementById('menu-transport-expansion')
     ?.classList.toggle('menu-checked', typeof isExpansionEnabled === 'function' && isExpansionEnabled('transport'));
+  document.getElementById('menu-attract-mode')
+    ?.classList.toggle('menu-checked', typeof isAttractModeEnabled !== 'function' || isAttractModeEnabled());
   ['en', 'zhHant', 'ja'].forEach((language) => {
     document.getElementById(`menu-lang-${language}`)
       ?.classList.toggle('menu-checked', getCurrentLanguage() === language);

@@ -1,6 +1,16 @@
 # Title screen attract mode 設計計劃
 
-狀態：計劃（未實作）。第一步（靜態夜景背景 `UI/backgroundTitle.webp`）已於 2026-09-16 完成，作為本計劃嘅 placeholder 同回退方案。
+狀態：**已實作**（2026-09-16，`attract-mode.js`）。靜態夜景 `UI/backgroundTitle.webp` 係載入前嘅 placeholder 同所有失敗情況嘅回退。
+
+實作備註（同計劃唔同之處）：
+- 速度：attract 用 `GAME_SPEEDS.SLOW`（頂欄標示嘅 1x，8 分鐘一日）；離開時還原之前速度。`GAME_SPEEDS.NORMAL` 嘅日夜倍率係 4，太快。
+- `city.day` 係由 `environmentMinutes` 推導嘅顯示值，attract 期間仍會變；真正被凍結嘅係 `advanceCalendarDay`／`onCalendarDayAdvanced`（月、年、每日系統、pulse）。巴士公司時鐘（`advanceTransportClock`）照行，否則巴士唔會郁。
+- HUD、工具選單等 DOM 層本身就喺 canvas 之上，以前靠不透明背景遮住；attract 期間用 `body.attract-live` 隱藏所有非 canvas／landing 嘅頂層元素。
+- 地區路牌喺 attract 城市入面關閉（per-city 狀態，隨城市丟棄）。
+- FPS watchdog：暖機 4 秒後抽樣 5 秒；<5 fps 視為視窗被 throttle（例如失焦）而重新抽樣最多三次，唔會即刻退回。注意：由 sandbox／CI 啟動嘅 Electron 會用 SwiftShader 軟件渲染，量到嘅 1–2 fps 唔代表真機。
+- 展示城市 `UI/attract-city.json` 約 1.5 MB（太子，34.7 萬人口）；因為係本機 static 檔案，冇再 gzip。
+- 重新 export：開發模式開遊戲 → 載入太子 → 對準構圖 → DevTools console 執行 `exportAttractCity()`。packaged build 嘅 server 唔開放呢個 route。
+- 驗證：`test/attract-mode.test.js`（時鐘 gate、天文台映射、bundled 檔案可解碼、所有 gate 已接線）。
 目標：開遊戲時，title 選單後面播放一座真實嘅香城——用遊戲引擎即時渲染一個內置嘅展示城市，有日夜燈光、車流、船同飛機，鏡頭慢慢漂移；但**唔行城市模擬**，唔會有任何副作用。
 
 ## 1. 原則
@@ -99,7 +109,7 @@ boot ──assets complete──▶ attractLoading ──ok──▶ attractRunn
 | D | 鏡頭漂移 + 真實時間同步（3.4、3.5） | 2–3 小時 |
 | E | 開關、自動降級、性能量度（3.7）；Windows 同 Intel Mac 實機試 | 半日 |
 
-每個階段獨立 commit；A–C 之後已經可以 ship，D、E 係打磨。
+所有階段已於 2026-09-16 一次過完成並實機（開發模式）驗證三條離開路徑、toast／save 攔截、設定開關同天文台同步；真機 GPU 下嘅幀率仍待 Norton 實測。
 
 ## 5. 測試
 
@@ -114,9 +124,23 @@ boot ──assets complete──▶ attractLoading ──ok──▶ attractRunn
 - **存檔格式升級後 JSON 過期**：測試會 fail 提醒重新 export；載入失敗亦只係回到靜態圖。
 - **安裝包體積**：+數百 KB，可接受。
 
-## 7. 待你決定
+## 7. 已決定（2026-09-16）
 
-1. 展示城市用邊個存檔／構圖？（建議：有海港、機場同高密度天際線嘅中等城市，同官網夜景一致）
-2. 真實時間同步要唔要？定係固定夜晚（配合【香城夜色】主題）？
-3. 鏡頭要漂移定固定？（漂移更活，但 culling 更新有少少 CPU）
-4. 開關放 View menu 定設定頁？
+1. **展示城市：太子（Prince Edward）**。構圖要見到海港同路上行駛嘅車。用該存檔嘅視點 export，實機截圖確認後再微調。
+2. **真實時間同步：要**。天氣跟香港天文台實時觀測（`rhrread` 開放數據 API，有 CORS `*`，renderer 直接 fetch）；離線或失敗就用遊戲本身嘅季節性隨機天氣。
+3. **鏡頭：慢速漂移，效能優先**（見 3.4 修訂）。
+4. **開關放設定頁**。
+
+### 3.4（修訂）鏡頭：慢速單軸漂移 + 節流 culling
+
+- 沿等距地圖嘅其中一條軸慢速來回（約 5 px/s 世界座標，行程約 240 px，用 sine ease 折返），zoom 固定——固定 zoom 令 tile sprite 池穩定，係最大嘅慳位。
+- viewport culling 同交通／船／飛機 view invalidation 每 400 ms 更新一次而唔係每幀；漂移咁慢，邊緣露出唔會被察覺。
+- 自動降級：attract 首 5 秒平均 FPS < 40 → 停止漂移（固定鏡頭）；< 30 → 退回靜態圖。
+
+### 3.8 天文台實時天氣
+
+- 來源：`https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=rhrread&lang=tc`（觀測，含 `icon`、溫度、濕度、雨量）同 `dataType=warnsum`（暴雨／熱帶氣旋警告）。attract 開始時 fetch 一次，之後每 10 分鐘刷新；5 秒 timeout。
+- 映射到 `city.weather.condition`：50–52／70–77 → `clear`（天文台氣溫 ≥ 31 → `hot`；≤ 15 → `cool`）；53–54、62–63 → `showers`；60–61、82–85 → `cloudy`；64–65 → `heavyRain`；80 → `windy`；90 → `hot`；92–93 → `cool`。溫度、濕度、雨量直接寫入讀數。
+- 警告：`WRAIN` A/R/B → `rainWarning` amber/red/black；`WTCSGNL` TC1/TC3/TC8*/TC9/TC10 → `typhoonStage` signal1/3/8/9/10 並設 `typhoonActive`（只影響視覺同風速，模擬唔 tick）。
+- 同步成功後，attract 模式下跳過 `advanceWeatherClock`（唔畀遊戲自己再 roll）；失敗則照常行季節性隨機。
+- 所有天文台狀態只寫入 attract 城市嘅 `city.weather`，離開 attract 時隨城市一齊被替換，唔會滲入玩家存檔。

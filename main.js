@@ -708,6 +708,7 @@ function updateGameFrame(time, delta) {
     updateDynamicLighting(this);
   }
   updateKeyboardMapPan(this, delta);
+  if (typeof updateAttractCamera === 'function') updateAttractCamera(this, time);
   if (typeof beginVehicleTrackerFrame === 'function') beginVehicleTrackerFrame(this, time, delta);
 
   const profileSections = typeof isVisualRouteCalibrationTestModeEnabled === 'function'
@@ -2305,9 +2306,9 @@ function create() {
 
   startAmbientSoundscape(this);
 
-  // Sim timer starts once player dismisses the landing screen
-  // The landing page has its own static city artwork. Do not render or update
-  // the 65,536-tile Phaser world invisibly behind it.
+  // Sim timer starts once player dismisses the landing screen. The world stays hidden behind
+  // the landing artwork until attract mode (started from setupLandingScreen) has loaded the
+  // showcase city; if that is off or fails, nothing is rendered behind the menu.
   this.scene.setVisible(false);
   gameReady = true;
   if (typeof recordVisualRoutePerformanceMilestone === 'function') {
@@ -7331,6 +7332,8 @@ function sampleOnScreenBuildingDensity(scene) {
 }
 
 function updateAmbientSoundscape(scene) {
+  // Title music owns the speakers while the showcase city plays behind the menu.
+  if (typeof isAttractModeActive === 'function' && isAttractModeActive()) return;
   if (!scene?.ambientSounds || !scene.cameras?.main) return;
   const camera = scene.cameras.main;
 
@@ -11095,6 +11098,7 @@ function preGenerateZoneTextures(scene) {
 // Uses the same save slot so it silently overwrites without prompting.
 function triggerAutosave() {
   if (isTerrainCreatorMode) return;
+  if (typeof isAttractModeActive === 'function' && isAttractModeActive()) return;
   if (!activeScene || !gameReady) return;
   if (typeof scheduleAnnualAutosave === 'function') {
     scheduleAnnualAutosave();

@@ -116,6 +116,20 @@ function createGameApp(options = {}) {
     res.json({ version: APP_VERSION, releaseTheme: APP_RELEASE_THEME });
   });
 
+  // Development only: attract-mode.js's exportAttractCity() writes the title screen's showcase
+  // city here. Packaged builds never enable this, so the bundled file is read-only in the wild.
+  app.post('/api/dev/attract-city', (req, res) => {
+    if (!options.allowDevExports) return res.status(404).json({ error: 'not available' });
+    const body = req.body;
+    if (!body || body.format !== 'heung-shing-attract-city' || !body.save_data || typeof body.save_data !== 'object') {
+      return res.status(400).json({ error: 'expected an attract city payload' });
+    }
+    const target = path.join(rootDir, 'UI', 'attract-city.json');
+    const json = JSON.stringify(body);
+    fs.writeFileSync(target, json);
+    res.json({ path: path.relative(rootDir, target), bytes: Buffer.byteLength(json) });
+  });
+
   app.get('/api/model-assets', (_req, res) => {
     res.setHeader('Cache-Control', 'no-cache, must-revalidate');
     res.json(modelAssetManifest);
@@ -523,7 +537,7 @@ function startGameServer(options = {}) {
 }
 
 if (require.main === module) {
-  startGameServer({ port: DEFAULT_PORT })
+  startGameServer({ port: DEFAULT_PORT, allowDevExports: true })
     .then(({ port, store }) => {
       console.log(`\nCity Builder running at http://localhost:${port}`);
       console.log(`SQLite saves: ${store.path}\n`);

@@ -131,6 +131,7 @@ function cancelScheduledAnnualAutosave() {
 }
 
 function scheduleAnnualAutosave() {
+  if (typeof isAttractModeActive === 'function' && isAttractModeActive()) return;
   if (annualAutosaveSchedule) return false;
   const operationGeneration = saveSessionGeneration;
   const run = () => {
@@ -697,6 +698,8 @@ function buildSavePayload({ autosave = false, manualSaveId = currentSaveId } = {
 // ── Save ──────────────────────────────────────────────────────────────────────
 
 function saveGame(silent = false) {
+  // Ctrl+S on the title screen must never write the showcase city into a slot.
+  if (typeof isAttractModeActive === 'function' && isAttractModeActive()) return;
   if (!activeScene) {
     if (!silent) showToast(t('toast.gameNotReady'), 'warning');
     return Promise.resolve(false);
@@ -1117,11 +1120,22 @@ async function ensureSaveNightTextures(scene, save) {
   await preloadBuildingNightTextures(scene, keys);
 }
 
+// The attract-mode loader shares the load generation so a menu choice made while the showcase
+// city is still loading wins, exactly as a second Load Save click would.
+function beginLoadRequest() {
+  return ++loadRequestGeneration;
+}
+
+function isLoadRequestCurrent(generation) {
+  return generation === loadRequestGeneration;
+}
+
 async function loadSaveById(id, scene) {
+  if (typeof leaveAttractMode === 'function') leaveAttractMode('load');
   const performanceStartedAt = globalThis.performance?.now?.() ?? Date.now();
   let performanceScene = scene;
   let performanceSucceeded = false;
-  const loadGeneration = ++loadRequestGeneration;
+  const loadGeneration = beginLoadRequest();
   if (cityChangeAutosaveTimer) {
     clearTimeout(cityChangeAutosaveTimer);
     cityChangeAutosaveTimer = null;

@@ -212,7 +212,9 @@ function advanceGameTimeOfDay(realDeltaMs, speed = getGameSpeed()) {
   // whole environmental hours/minutes, so they are handed the span rather
   // than polled per frame.
   if (deltaMinutes > 0) {
-    if (typeof advanceWeatherClock === 'function') advanceWeatherClock(envBefore, envAfter);
+    // On the title screen the Observatory's readings own the weather (attract-mode.js).
+    const weatherPinned = typeof isAttractWeatherPinned === 'function' && isAttractWeatherPinned();
+    if (!weatherPinned && typeof advanceWeatherClock === 'function') advanceWeatherClock(envBefore, envAfter);
     if (typeof advanceTransportClock === 'function') advanceTransportClock(envBefore, envAfter);
   }
   return next;
@@ -320,6 +322,9 @@ function updateGameClock(scene, realDeltaMs) {
   const clampedDeltaMs = Math.min(GAME_CLOCK_MAX_FRAME_DELTA_MS, Math.max(0, Number(realDeltaMs) || 0));
   const envBefore = getEnvironmentMinutes();
   advanceGameTimeOfDay(clampedDeltaMs, speed);
+  // The title screen's showcase city only ever sees the sky move: no calendar days, so no
+  // daily systems, simulation pulses, autosave or news (attract-mode.js).
+  if (typeof isAttractModeActive === 'function' && isAttractModeActive()) return;
   advanceCalendarForEnvironmentMinutes(scene, envBefore, getEnvironmentMinutes());
 }
 

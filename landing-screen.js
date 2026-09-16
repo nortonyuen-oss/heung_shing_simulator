@@ -350,9 +350,15 @@ function setupLandingScreen() {
       reloadHouse4x4Models();
     }
   });
+
+  // Menu is wired; bring the showcase city up behind it (no-op when disabled or unavailable).
+  if (typeof startAttractMode === 'function') {
+    startAttractMode(typeof activeScene !== 'undefined' ? activeScene : null);
+  }
 }
 
 function hideLandingScreen() {
+  if (typeof leaveAttractMode === 'function') leaveAttractMode('play');
   const screen = document.getElementById('landing-screen');
   if (screen) screen.style.display = 'none';
   if (typeof setGameWorldVisible === 'function') setGameWorldVisible(true);
@@ -399,6 +405,7 @@ function copyTerrainToWorld(mapRows, heightRows) {
 }
 
 function rebuildFreshMapSession(cityName) {
+  if (typeof leaveAttractMode === 'function') leaveAttractMode('newCity');
   clearAllOverlays(activeScene);
   clearBuildings(activeScene);
   resetGameState();
@@ -416,6 +423,7 @@ function rebuildFreshMapSession(cityName) {
 }
 
 function startTerrainCreatorMode(profileType, seedText) {
+  if (typeof leaveAttractMode === 'function') leaveAttractMode('terrainCreator');
   if (!gameReady || !activeScene) return;
 
   stopSimTimer();

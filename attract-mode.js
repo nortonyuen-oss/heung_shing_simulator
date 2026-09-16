@@ -20,12 +20,15 @@ const ATTRACT_DRIFT_SPEED_PX_PER_S = 5;
 const ATTRACT_DRIFT_AXIS = Object.freeze({ x: 0.894, y: 0.447 });
 const ATTRACT_CULL_INTERVAL_MS = 400;
 // The frame rate is judged over five seconds once the city has settled: the first seconds after
-// applySaveData are spent uploading textures and are not representative. A sluggish rate freezes
-// the camera, a bad one gives the static artwork back.
-const ATTRACT_FPS_WARMUP_MS = 4000;
-const ATTRACT_FPS_SAMPLE_MS = 5000;
-const ATTRACT_FPS_FREEZE_CAMERA_BELOW = 40;
-const ATTRACT_FPS_FALLBACK_BELOW = 30;
+// applySaveData are spent uploading textures and are not representative. The response is
+// graded — night building lights cost more than half the frame on an integrated GPU (measured
+// 20 vs 45+ fps on an Intel Iris Plus 655), so they are the first thing to go, then the camera
+// stops drifting, and only a frame rate that is still poor after that brings the artwork back.
+const ATTRACT_FPS_WARMUP_MS = 3000;
+const ATTRACT_FPS_SAMPLE_MS = 4000;
+const ATTRACT_FPS_LIGHTS_OFF_BELOW = 30;
+const ATTRACT_FPS_FREEZE_CAMERA_BELOW = 24;
+const ATTRACT_FPS_FALLBACK_BELOW = 15;
 // Below this the window is almost certainly occluded or unfocused (Chromium throttles rAF to
 // ~1fps), not slow: sample again rather than judge.
 const ATTRACT_FPS_THROTTLED_BELOW = 5;
@@ -45,6 +48,7 @@ let attractWeatherTimer = null;
 let attractWeatherPinned = false;
 let attractKeyboardWasEnabled = true;
 let attractPreviousSpeed = null;
+let attractLightsSuppressed = false;
 
 function isAttractModeEnabled() {
   if (attractEnabledCache !== null) return attractEnabledCache;
@@ -73,6 +77,11 @@ function isAttractModeActive() {
 
 function isAttractModeRunning() {
   return attractState === 'running';
+}
+
+// Building lights switched off for the showcase only (the player's own setting is untouched).
+function isAttractLightsSuppressed() {
+  return attractState === 'running' && attractLightsSuppressed;
 }
 
 // While the Observatory's readings are applied, the game's seasonal weather roller stays off.
@@ -199,6 +208,7 @@ function leaveAttractMode(reason = 'player') {
   attractDrift = null;
   attractFpsSample = null;
   attractWeatherPinned = false;
+  attractLightsSuppressed = false;
   if (attractWeatherTimer) {
     clearInterval(attractWeatherTimer);
     attractWeatherTimer = null;
@@ -257,9 +267,18 @@ function updateAttractCamera(scene, time) {
     if (elapsed >= ATTRACT_FPS_SAMPLE_MS) {
       const fps = sample.frames / (elapsed / 1000);
       sample.attempts += 1;
+      const resample = () => { sample.startedAt = now + ATTRACT_FPS_WARMUP_MS; sample.frames = 0; };
       if (fps < ATTRACT_FPS_THROTTLED_BELOW && sample.attempts < ATTRACT_FPS_MAX_ATTEMPTS) {
-        sample.startedAt = now + ATTRACT_FPS_WARMUP_MS;
-        sample.frames = 0;
+        resample();
+        return;
+      }
+      const lightsOn = !attractLightsSuppressed
+        && (typeof isBuildingLightsEnabled !== 'function' || isBuildingLightsEnabled());
+      if (fps < ATTRACT_FPS_LIGHTS_OFF_BELOW && lightsOn) {
+        console.info(`[attract] ${fps.toFixed(1)} fps with building lights; showing the showcase without them`);
+        attractLightsSuppressed = true;
+        if (typeof clearBuildingLights === 'function') clearBuildingLights(scene);
+        resample();
         return;
       }
       sample.evaluated = true;
@@ -268,7 +287,10 @@ function updateAttractCamera(scene, time) {
         leaveAttractMode('degraded');
         return;
       }
-      if (fps < ATTRACT_FPS_FREEZE_CAMERA_BELOW && attractDrift) attractDrift.frozen = true;
+      if (fps < ATTRACT_FPS_FREEZE_CAMERA_BELOW && attractDrift) {
+        console.info(`[attract] ${fps.toFixed(1)} fps, holding the camera still`);
+        attractDrift.frozen = true;
+      }
     }
   }
 

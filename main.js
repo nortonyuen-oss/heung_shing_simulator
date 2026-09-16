@@ -735,7 +735,8 @@ function updateGameFrame(time, delta) {
   }
   updateTerrainViewportCulling(this);
   if (typeof updateBuildingLights === 'function'
-    && (typeof isBuildingLightsEnabled !== 'function' || isBuildingLightsEnabled())) {
+    && (typeof isBuildingLightsEnabled !== 'function' || isBuildingLightsEnabled())
+    && !(typeof isAttractLightsSuppressed === 'function' && isAttractLightsSuppressed())) {
     updateBuildingLights(this, time);
   }
   if (typeof updateSeaFlowAnimation === 'function') updateSeaFlowAnimation(this, time);

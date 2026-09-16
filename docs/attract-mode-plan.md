@@ -7,7 +7,9 @@
 - `city.day` 係由 `environmentMinutes` 推導嘅顯示值，attract 期間仍會變；真正被凍結嘅係 `advanceCalendarDay`／`onCalendarDayAdvanced`（月、年、每日系統、pulse）。巴士公司時鐘（`advanceTransportClock`）照行，否則巴士唔會郁。
 - HUD、工具選單等 DOM 層本身就喺 canvas 之上，以前靠不透明背景遮住；attract 期間用 `body.attract-live` 隱藏所有非 canvas／landing 嘅頂層元素。
 - 地區路牌喺 attract 城市入面關閉（per-city 狀態，隨城市丟棄）。
-- FPS watchdog：暖機 4 秒後抽樣 5 秒；<5 fps 視為視窗被 throttle（例如失焦）而重新抽樣最多三次，唔會即刻退回。注意：由 sandbox／CI 啟動嘅 Electron 會用 SwiftShader 軟件渲染，量到嘅 1–2 fps 唔代表真機。
+- FPS watchdog（分級）：暖機 3 秒後抽樣 4 秒。<30 fps 而建築燈光開緊 → 只喺 attract 城市關燈（`isAttractLightsSuppressed`，唔改玩家設定）再抽樣；之後 <24 fps 固定鏡頭；<15 fps 先退回靜態圖。<5 fps 視為視窗被 throttle（失焦／被遮）而重新抽樣最多三次。
+- 實測（2026-09-16，Intel Iris Plus 655，macOS 15.7，太子 34.7 萬人口，zoom 0.7）：夜間開燈 ~17–20 fps，關燈 45–50 fps；zoom 0.7→1.1 只差 2 fps；鏡頭漂移約 1–2 fps。同一部機正常遊玩旺角約 24 fps。即係夜間建築燈光佔咗過半渲染時間——呢個數字亦係 v4.5 夜燈 perf 問題嘅根源。
+- 注意：Safe Mode 開機或由冇 GPU 嘅 sandbox 啟動嘅 Electron 會用 SwiftShader 軟件渲染（1–2 fps），唔代表真機；用 `app.getGPUFeatureStatus()` 或 `WEBGL_debug_renderer_info` 確認渲染器係 ANGLE Metal 先好量度。
 - 展示城市 `UI/attract-city.json` 約 1.5 MB（太子，34.7 萬人口）；因為係本機 static 檔案，冇再 gzip。
 - 重新 export：開發模式開遊戲 → 載入太子 → 對準構圖 → DevTools console 執行 `exportAttractCity()`。packaged build 嘅 server 唔開放呢個 route。
 - 驗證：`test/attract-mode.test.js`（時鐘 gate、天文台映射、bundled 檔案可解碼、所有 gate 已接線）。

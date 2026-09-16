@@ -1126,6 +1126,10 @@ function beginLoadRequest() {
   return ++loadRequestGeneration;
 }
 
+function waitForPendingSaves() {
+  return saveOperationQueue.catch(() => {});
+}
+
 function isLoadRequestCurrent(generation) {
   return generation === loadRequestGeneration;
 }

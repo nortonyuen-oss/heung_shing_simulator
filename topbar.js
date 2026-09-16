@@ -363,10 +363,11 @@ function updateSoundMenu() {
 
 // ── File actions ──────────────────────────────────────────────────────────────
 
-function returnToMainMenu() {
+async function returnToMainMenu() {
   // Auto-save current game, then go back to landing screen
+  let pendingSave = Promise.resolve();
   if (!isTerrainCreatorMode) {
-    saveGame();   // async — fires in background; toast appears when done
+    pendingSave = saveGame() || Promise.resolve();   // async — fires in background; toast appears when done
   }
   isTerrainCreatorMode = false;
   if (typeof setTerrainEditorUiActive === 'function') setTerrainEditorUiActive(false);
@@ -384,6 +385,12 @@ function returnToMainMenu() {
   if (terrainForm) terrainForm.style.display = 'none';
   if (typeof setGameWorldVisible === 'function') setGameWorldVisible(false);
   if (typeof closeRoadTileSetWindow === 'function') closeRoadTileSetWindow();
+
+  // Once the save is on its way, let the title screen's showcase city take over again.
+  if (typeof restartAttractMode === 'function') {
+    await pendingSave.catch(() => {});
+    restartAttractMode(typeof activeScene !== 'undefined' ? activeScene : null);
+  }
 }
 
 // ── Dialog helpers ────────────────────────────────────────────────────────────

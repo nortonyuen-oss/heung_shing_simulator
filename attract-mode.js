@@ -145,6 +145,9 @@ async function startAttractMode(scene) {
     lap('fetchDecode');
     const readyScene = await waitForLoadScene(scene);
     if (!readyScene || !current()) return false;
+    // A save snapshot queued just before (Return to Main Menu autosaves) must finish first.
+    if (typeof waitForPendingSaves === 'function') await waitForPendingSaves();
+    if (!current()) return false;
     await ensureSaveBuildingTextures(readyScene, save);
     if (!current()) return false;
     await ensureSaveNightTextures(readyScene, save);
@@ -225,12 +228,18 @@ function leaveAttractMode(reason = 'player') {
     setGameSpeed(attractPreviousSpeed || (typeof GAME_SPEEDS !== 'undefined' ? GAME_SPEEDS.SLOW : attractPreviousSpeed));
     attractPreviousSpeed = null;
   }
-  const restoreArtwork = reason === 'disabled' || reason === 'degraded' || reason === 'failed';
-  document.body?.classList.remove('attract-live');
-  if (restoreArtwork) {
-    setLandingArtworkLive(false);
-    if (wasRunning && typeof setGameWorldVisible === 'function') setGameWorldVisible(false);
-  }
+  // The artwork always comes back (it fades in over the live city while a load replaces it, and
+  // is simply there the next time the landing screen shows). The world is only hidden when
+  // nothing else is about to take over the screen.
+  setLandingArtworkLive(false);
+  const hideWorld = reason === 'disabled' || reason === 'degraded' || reason === 'failed';
+  if (hideWorld && wasRunning && typeof setGameWorldVisible === 'function') setGameWorldVisible(false);
+}
+
+// "Return to Main Menu" brings the landing screen back after a game: run the showcase again.
+function restartAttractMode(scene) {
+  if (attractState === 'off') attractState = 'idle';
+  return startAttractMode(scene);
 }
 
 // ── Camera drift and frame-rate watchdog ─────────────────────────────────────

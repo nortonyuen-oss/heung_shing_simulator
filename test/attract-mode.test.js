@@ -145,7 +145,7 @@ test('every gate that keeps the showcase inert is wired', () => {
   assert.match(read('landing-screen.js'), /function startTerrainCreatorMode\([^)]*\) \{\n  if \(typeof leaveAttractMode/);
   assert.match(read('landing-screen.js'), /function hideLandingScreen\(\) \{\n  if \(typeof leaveAttractMode/);
   assert.match(read('index.html'), /<script src="attract-mode\.js"><\/script>/);
-  assert.match(read('index.html'), /body\.attract-live > :not\(#game-container\):not\(#landing-screen\)/);
+  assert.match(read('index.html'), /body\.attract-live > :not\(#game-container\):not\(#landing-screen\):not\(\.sim-dialog\)/, 'the Load Save modal must stay visible during attract mode');
   assert.match(read('server.js'), /allowDevExports/);
   assert.match(read('electron-main.js'), /allowDevExports: !app\.isPackaged/);
 });

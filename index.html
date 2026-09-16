@@ -4548,8 +4548,9 @@
     }
 
     /* While the showcase city plays behind the menu, every gameplay layer between the canvas and
-       the landing screen (top bar, tool menu, HUD, zoom controls…) stays out of sight. */
-    body.attract-live > :not(#game-container):not(#landing-screen):not(script) {
+       the landing screen (top bar, tool menu, HUD, zoom controls…) stays out of sight. Modal
+       dialogs are exempt: the Load Save list opens from this very menu. */
+    body.attract-live > :not(#game-container):not(#landing-screen):not(.sim-dialog):not(script) {
       visibility: hidden !important;
     }
 

@@ -406,6 +406,14 @@ function copyTerrainToWorld(mapRows, heightRows) {
 
 function rebuildFreshMapSession(cityName) {
   if (typeof leaveAttractMode === 'function') leaveAttractMode('newCity');
+  // The scene may still be showing another city — the title screen's showcase, or a game the
+  // player just left — so clear everything a load clears, not only what a pristine scene needs:
+  // vehicles, bus stops and the weather overlay all outlive resetGameState() otherwise.
+  if (typeof closeAllVehicleTrackingWindows === 'function') closeAllVehicleTrackingWindows();
+  if (typeof clearTrafficVisuals === 'function') clearTrafficVisuals(activeScene);
+  if (typeof clearTransportVisuals === 'function') clearTransportVisuals(activeScene);
+  if (typeof clearVesselVisuals === 'function') clearVesselVisuals(activeScene);
+  if (typeof clearAircraftVisuals === 'function') clearAircraftVisuals(activeScene);
   clearAllOverlays(activeScene);
   clearBuildings(activeScene);
   resetGameState();
@@ -415,10 +423,12 @@ function rebuildFreshMapSession(cityName) {
     generateInitialDebris(activeScene);
     rebuildDebrisSprites(activeScene);
   }
+  if (typeof rebuildBusStopSprites === 'function') rebuildBusStopSprites(activeScene);
   city.name = cityName || getDefaultCityName();
   city.nameEn = '';
   city.plateColor = 0;
   refreshAllTiles(activeScene);
+  if (typeof syncWeatherVisuals === 'function') syncWeatherVisuals();
   updateHUD();
 }
 

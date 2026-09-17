@@ -867,6 +867,24 @@ async function saveAsGame() {
   if (!saved && saveAsGeneration === saveSessionGeneration) currentSaveId = prevId;
 }
 
+// An autosave written while the city had no manual slot yet carries no link. If exactly one
+// manual save has the same city name, that is the slot the player means: saving (including the
+// autosave on Return to Main Menu) then updates it instead of minting a duplicate city.
+async function resolveAutosaveManualSlot(save) {
+  const name = String(save?.city?.name || '').trim();
+  if (!name) return null;
+  try {
+    const res = await fetch(API_BASE);
+    if (!res.ok) return null;
+    const rows = await res.json();
+    const matches = (Array.isArray(rows) ? rows : [])
+      .filter((r) => r && r.save_type !== 'autosave' && String(r.city_name || '').trim() === name);
+    return matches.length === 1 ? Number(matches[0].id) || null : null;
+  } catch {
+    return null;
+  }
+}
+
 // ── Load by ID ────────────────────────────────────────────────────────────────
 
 function getSaveModelCatalogByKey() {
@@ -1183,6 +1201,13 @@ async function loadSaveById(id, scene) {
     currentSaveId = row.save_type === 'autosave'
       ? (Number(save.autosave?.manualSaveId) || null)
       : id;
+    if (row.save_type === 'autosave' && currentSaveId === null) {
+      // Resolved in the background; only applied while this city is still the one loaded.
+      const sessionAtLoad = saveSessionGeneration;
+      resolveAutosaveManualSlot(save).then((resolved) => {
+        if (resolved && sessionAtLoad === saveSessionGeneration && currentSaveId === null) currentSaveId = resolved;
+      });
+    }
 
     showToast(t('toast.welcomeBack', { city: city.name }), 'info');
     performanceSucceeded = true;

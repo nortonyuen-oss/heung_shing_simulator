@@ -9,13 +9,14 @@
 - 地區路牌喺 attract 城市入面關閉（per-city 狀態，隨城市丟棄）。
 - FPS watchdog（分級）：暖機 3 秒後抽樣 4 秒。<30 fps 而建築燈光開緊 → 只喺 attract 城市關燈（`isAttractLightsSuppressed`，唔改玩家設定）再抽樣；之後 <24 fps 固定鏡頭；<15 fps 先退回靜態圖。<5 fps 視為視窗被 throttle（失焦／被遮）而重新抽樣最多三次。
 - 實測（2026-09-16/17，Intel Iris Plus 655，macOS 15.7，太子 34.7 萬人口，zoom 0.7）。**要分清 dev 同 release**：
-  - `npm run electron:dev` 讀源 PNG，manifest 冇 baked 夜景貼圖 → 全部建築行 live glow（最慢路徑）：夜間開燈 17–20 fps，關燈 45–50。
-  - Release／`ELECTRON_USE_STAGED_ASSETS=1`（staged WebP＋baked 貼圖，即玩家實際體驗）：太子展示 1935/1935 baked，穩定後約 43 fps；旺角遊玩夜晚 30 fps（同日間 28 一樣，燈光幾乎免費），香港 43–58。
+  - 未 `npm run prepare:release-assets` 嘅 dev 啟動只有源 PNG，manifest 冇 baked 夜景貼圖 → 全部建築行 live glow（最慢路徑）：夜間開燈 17–20 fps，關燈 45–50。
+  - Release／已 stage 嘅 dev 啟動（2026-09-17 起 dev 有 staged 樹就預設用；`ELECTRON_SOURCE_ASSETS=1` 先會讀源 PNG）：太子展示 1935/1935 baked，穩定後約 43 fps；旺角遊玩夜晚 30 fps（同日間 28 一樣，燈光幾乎免費），香港 43–58。
   - 結論：夜間燈光成本只存在於 dev 模式；release 嘅瓶頸係城市規模（sprite 數量）。zoom 0.7→1.1 只差 2 fps；鏡頭漂移約 1–2 fps。
   - `updateBuildingLights` 每幀對 baked 建築嘅 profile resolve 已 memo（4.3 → 2.4 ms／幀）；`syncBuildingNightTextures` 每次真正 walk 約 20 ms、每秒 3 次（1x），係下一個可優化位。
 - 注意：Safe Mode 開機或由冇 GPU 嘅 sandbox 啟動嘅 Electron 會用 SwiftShader 軟件渲染（1–2 fps），唔代表真機；用 `app.getGPUFeatureStatus()` 或 `WEBGL_debug_renderer_info` 確認渲染器係 ANGLE Metal 先好量度。
 - 展示城市 `UI/attract-city.json` 約 1.5 MB（太子，34.7 萬人口）；因為係本機 static 檔案，冇再 gzip。
 - 重新 export：開發模式開遊戲 → 載入太子 → 對準構圖 → DevTools console 執行 `exportAttractCity()`。packaged build 嘅 server 唔開放呢個 route。
+- 夜景貼圖：attract 載入前會將展示存檔嘅 `city.timeOfDayMinutes` 改成本地時間，令 `ensureSaveNightTextures` 喺 crossfade 前一次過預載該時刻嘅 baked 變體；否則（存檔係日間 export）會逐座 lazy load，天際線一座座慢慢着燈。
 - 驗證：`test/attract-mode.test.js`（時鐘 gate、天文台映射、bundled 檔案可解碼、所有 gate 已接線）。
 目標：開遊戲時，title 選單後面播放一座真實嘅香城——用遊戲引擎即時渲染一個內置嘅展示城市，有日夜燈光、車流、船同飛機，鏡頭慢慢漂移；但**唔行城市模擬**，唔會有任何副作用。
 

@@ -54,13 +54,15 @@ function getGameWindowUrl() {
 }
 
 // Packaged builds ship the staged WebP tree (with the baked night textures) as Models/. A dev
-// launch serves the source PNGs instead, so it renders the night through live glows — the slow
-// path players never see. ELECTRON_USE_STAGED_ASSETS=1 routes a dev launch through the staged
-// tree without the rest of performance mode (run `npm run prepare:release-assets` first).
+// launch uses the same staged tree whenever `npm run prepare:release-assets` has produced one,
+// so what you see matches a release; without it the source PNGs are served and the night is
+// rendered through live glows — a far slower path players never see. ELECTRON_SOURCE_ASSETS=1
+// forces the source tree for model work (a model missing from the manifest falls back to source
+// either way).
 function getGameModelAssetRootDir() {
-  if (!performanceModeEnabled && process.env.ELECTRON_USE_STAGED_ASSETS !== '1') return __dirname;
   const stagedRoot = path.join(__dirname, '.data', 'package-assets');
   const stagedManifest = path.join(stagedRoot, 'Models', 'model-assets.json');
+  if (!performanceModeEnabled && process.env.ELECTRON_SOURCE_ASSETS === '1') return __dirname;
   return fs.existsSync(stagedManifest) ? stagedRoot : __dirname;
 }
 

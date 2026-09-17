@@ -1621,9 +1621,9 @@ async function loadModelAssetManifest() {
     modelAssetVersion = String(manifest.version || 'development');
     modelMetadataCacheStore = loadModelMetadataCacheStore();
     if (!Object.keys(manifest.entries).length) {
-      console.info('[models] development launch: no staged manifest, so night art falls back to live glows '
-        + '(much slower than a release build). ELECTRON_USE_STAGED_ASSETS=1 or `npm run electron:perf` '
-        + 'renders with the baked night textures.');
+      console.info('[models] no staged manifest: serving source PNGs, so night art falls back to live glows '
+        + '(much slower than a release build). Run `npm run prepare:release-assets` once and relaunch '
+        + 'to render with the baked night textures.');
     }
   } catch {
     // Development server without a release manifest uses source PNG paths.

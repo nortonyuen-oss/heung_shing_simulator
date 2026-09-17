@@ -142,6 +142,10 @@ async function startAttractMode(scene) {
     if (!current()) return false;
     if (file?.format !== ATTRACT_CITY_FORMAT || !file.save_data) throw new Error('not an attract city file');
     const save = decodeSaveDataForLoad(file.save_data);
+    // The showcase starts at the local wall-clock time. Set it on the save itself so the
+    // night-art prefetch below sees the same hour the city will wake up in — otherwise a save
+    // exported by day fetches nothing and the skyline lights up one building at a time.
+    if (save.city && typeof save.city === 'object') save.city.timeOfDayMinutes = localTimeOfDayMinutes();
     lap('fetchDecode');
     const readyScene = await waitForLoadScene(scene);
     if (!readyScene || !current()) return false;
@@ -168,7 +172,6 @@ async function startAttractMode(scene) {
     if (typeof getGameSpeed === 'function') attractPreviousSpeed = getGameSpeed();
     if (typeof simPaused !== 'undefined') simPaused = false;
     if (typeof setGameSpeed === 'function' && typeof GAME_SPEEDS !== 'undefined') setGameSpeed(GAME_SPEEDS.SLOW);
-    if (typeof city !== 'undefined') city.timeOfDayMinutes = localTimeOfDayMinutes();
     if (typeof updateDynamicLighting === 'function') updateDynamicLighting(readyScene);
     // Per-city state, discarded with the showcase: the title screen has no use for signposts.
     if (typeof setDistrictSignsVisible === 'function') setDistrictSignsVisible(false);
@@ -281,7 +284,11 @@ function updateAttractCamera(scene, time) {
         resample();
         return;
       }
-      const lightsOn = !attractLightsSuppressed
+      // Only worth a try while some building is drawing a live glow: with baked night art
+      // (every release build) there is nothing to switch off, so go straight to the camera.
+      let liveGlows = false;
+      scene?.buildingLightGlows?.forEach((glow) => { if (!glow.beaconsOnly) liveGlows = true; });
+      const lightsOn = !attractLightsSuppressed && liveGlows
         && (typeof isBuildingLightsEnabled !== 'function' || isBuildingLightsEnabled());
       if (fps < ATTRACT_FPS_LIGHTS_OFF_BELOW && lightsOn) {
         console.info(`[attract] ${fps.toFixed(1)} fps with building lights; showing the showcase without them`);

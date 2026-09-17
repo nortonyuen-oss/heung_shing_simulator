@@ -256,7 +256,10 @@ test('a baked model keeps a beacons-only glow so its indicator lights still blin
   // Beacons pulse per frame, so they cannot be baked into a static texture. A
   // baked model whose profile has none gets no glow at all (the whole point of
   // the bake); one that has some gets a glow whose Graphics stays hidden.
-  assert.match(update, /if \(!\(profile\.beacons \|\| \[\]\)\.length\) return;/);
+  assert.match(update, /if \(!\(profile\.beacons \|\| \[\]\)\.length\) \{\n\s*sprite\.__blNoGlowFor = identity;\n\s*return;\n\s*\}/);
+  // ... and that answer is memoised on the sprite so the per-frame walk over a
+  // fully baked city never resolves the profile again (measured ~4ms a frame).
+  assert.match(update, /if \(!calibrating && sprite\.__blNoGlowFor === identity\) return;/);
   assert.match(update, /glow\.beaconsOnly = true;[\s\S]*?glow\.gfx\.setVisible\(false\);/);
   // The window LOD must never flip that hidden Graphics back on.
   assert.match(update, /if \(!sp \|\| !sp\.visible \|\| glow\.beaconsOnly\) return;/);

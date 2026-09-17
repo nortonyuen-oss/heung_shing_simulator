@@ -2134,6 +2134,15 @@ function updateBuildingLights(scene, time) {
       // the per-object render cost the bake exists to remove. Models with no
       // baked art (not yet calibrated, or calibrated since the last bake) keep
       // this live glow, so the calibrator workflow still shows something.
+      //
+      // In a release build that is every building, so the answer is memoised
+      // on the sprite against its model identity: resolving the night slug and
+      // the light profile for ~400 visible buildings cost ~4ms a frame just to
+      // conclude there is nothing to draw. A redeveloped lot gets a new model
+      // name (and usually a new sprite), which misses the memo and re-checks.
+      const record = buildingLightRecordFor(sprite);
+      const identity = `${record?.sourceFileName ?? sprite.modelSourceFileName ?? ''}|${sprite.logicalSpriteKey || sprite.renderTextureKey || ''}`;
+      if (!calibrating && sprite.__blNoGlowFor === identity) return;
       const baked = !calibrating
         && typeof getBuildingNightTextureKey === 'function'
         && !!getBuildingNightTextureKey(sprite);
@@ -2143,13 +2152,15 @@ function updateBuildingLights(scene, time) {
         // whose profile has any keeps a glow that carries only the beacon
         // sprites: its Graphics object stays hidden, so it never draws windows
         // or lamps and never joins the per-object render cost the bake removed.
-        const record = buildingLightRecordFor(sprite);
         const profile = resolveBuildingLightProfile(
           record,
           sprite.logicalSpriteKey || sprite.renderTextureKey,
           getBuildingLightModelSlug(record, sprite),
         );
-        if (!(profile.beacons || []).length) return;
+        if (!(profile.beacons || []).length) {
+          sprite.__blNoGlowFor = identity;
+          return;
+        }
         beaconsOnly = true;
       }
       glow = createBuildingLightGlow(s, sprite);

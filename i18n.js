@@ -1,6 +1,6 @@
 const I18N_STORAGE_KEY = 'citybuilder.language';
-let appVersion = '4.9.0';
-let appReleaseTheme = '【香城夜色】';
+let appVersion = '4.10.0';
+let appReleaseTheme = '【先敬羅衣】';
 
 const LANGUAGES = {
   en: 'English',

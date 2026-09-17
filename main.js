@@ -6635,6 +6635,25 @@ const CLOUD_DRIFT_BASE_CONFIG = {
   speedY: 0,
   quantity: 1,
 };
+// A cloud particle is bigger than the viewport, so it must not simply appear
+// at its full alpha and vanish at the end of its life: at the moderate tier
+// that is a screen-sized pale blob popping in every 0.7s, which reads as the
+// whole picture flickering. Each particle rolls its own alpha at birth and
+// eases in over the first share of its lifespan and out over the last.
+const CLOUD_FADE_LIFE_SHARE = 0.18;
+function cloudFadeEnvelope(lifeT) {
+  const edge = Math.min(1, Math.max(0, Math.min(lifeT, 1 - lifeT) / CLOUD_FADE_LIFE_SHARE));
+  return edge * edge * (3 - 2 * edge);
+}
+function cloudAlphaOp(min, max) {
+  return {
+    onEmit: (particle) => {
+      particle.cloudAlpha = min + Math.random() * (max - min);
+      return 0;
+    },
+    onUpdate: (particle, key, lifeT) => particle.cloudAlpha * cloudFadeEnvelope(lifeT),
+  };
+}
 const CLOUD_CLEARING_FADE_MS = 6500;
 
 function seededCelestialRandom(seedState) {
@@ -6792,7 +6811,7 @@ function setupDynamicLighting(scene) {
     ...CLOUD_DRIFT_BASE_CONFIG,
     frequency: CLOUD_DENSITY_TIERS.light.frequency,
     lifespan: CLOUD_DENSITY_TIERS.light.lifespan,
-    alpha: CLOUD_DENSITY_TIERS.light.alpha,
+    alpha: cloudAlphaOp(CLOUD_DENSITY_TIERS.light.alpha.min, CLOUD_DENSITY_TIERS.light.alpha.max),
     x: { min: -240, max: scene.cloudSpawnWidth },
     y: { min: -120, max: scene.cloudSpawnHeight },
     scale: { min: 1.4, max: 2.6 },
@@ -7287,7 +7306,7 @@ function updateDynamicLighting(scene) {
         ...CLOUD_DRIFT_BASE_CONFIG,
         frequency: tier.frequency,
         lifespan: tier.lifespan,
-        alpha: { min: tier.alpha.min * fade, max: tier.alpha.max * fade },
+        alpha: cloudAlphaOp(tier.alpha.min * fade, tier.alpha.max * fade),
         tint: tier.tint ?? 0xffffff,
         x: { min: -240, max: scene.cloudSpawnWidth },
         y: { min: -120, max: scene.cloudSpawnHeight },

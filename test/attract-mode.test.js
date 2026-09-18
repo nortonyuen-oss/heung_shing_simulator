@@ -151,3 +151,13 @@ test('every gate that keeps the showcase inert is wired', () => {
   assert.match(read('server.js'), /allowDevExports/);
   assert.match(read('electron-main.js'), /allowDevExports: !app\.isPackaged/);
 });
+
+test('the showcase city ships inside the packaged app and nothing else drags the website backend in', () => {
+  const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
+  const files = pkg.build.files.filter((entry) => typeof entry === 'string');
+  assert.ok(files.includes('**/*'), 'the app tree is packaged wholesale');
+  const excludedBy = files.filter((pattern) => pattern.startsWith('!') && path.matchesGlob('UI/attract-city.json', pattern.slice(1)));
+  assert.deepEqual(excludedBy, [], 'no exclusion may drop the bundled showcase city');
+  assert.ok(fs.existsSync(path.join(ROOT, 'UI', 'attract-city.json')));
+  assert.ok(files.includes('!services/**'), 'the Cloudflare worker (and its node_modules) stay out of the installer');
+});

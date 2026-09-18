@@ -52,6 +52,7 @@
 - 檔案：`UI/attract-city.json`（compact save 格式，同 DB 入面 `save_data` 一樣）。預期數百 KB；如超過 1 MB 改用 `.json.gz` 並喺載入時解壓。
 - 產生方法：新增 dev-only 指令（例如 debug console `exportAttractCity()`，或 View menu 隱藏項目），喺遊戲中對準構圖、zoom 同時間後執行，內容 = `buildSavePayload()` + 當時視點，寫到 `UI/attract-city.json`（Electron main process 負責寫檔，只喺非 packaged 環境開放）。
 - 唔入 `db.js`、唔出現喺存檔清單、唔可以由遊戲內覆寫。
+- 已用 v4.10.0 release DMG 驗證（2026-09-18）：`app.asar` 內有 `/UI/attract-city.json`；packaged app 以 asar 內嘅檔案啟動展示城市（1935/1935 baked）；`/api/dev/attract-city` 回 404；載入清單只來自玩家 DB。新玩家安裝後即有展示城市，而且冇途徑載入或覆寫佢。`services/**` 已由打包規則排除。
 - 城市名稱／市長等 identity 由 JSON 帶入，但 attract 模式唔會顯示 HUD，所以無所謂。
 - 測試：`test/attract-city.test.js` 讀 `UI/attract-city.json`，經 `decodeSaveDataForLoad` 解碼成功、版本等於 `COMPACT_SAVE_VERSION`、地圖尺寸正確。格式升級時呢個測試會提醒重新 export。
 

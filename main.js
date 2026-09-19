@@ -680,7 +680,10 @@ function updateSpriteViewportCulling(scene, bounds) {
   const mainBounds = Array.isArray(bounds) ? bounds[0] : bounds;
   collect(cullSpriteMapEntries(scene.buildingSprites, bounds, seen, mainCamera, mainBounds));
   collect(cullSpriteMapEntries(scene.treeSprites, bounds, seen, mainCamera, mainBounds));
+  collect(cullSpriteMapEntries(scene.debrisSprites, bounds, seen, mainCamera, mainBounds));
   collect(cullSpriteMapEntries(scene.busStopSprites, bounds, seen, mainCamera, mainBounds));
+  collect(cullSpriteMapEntries(scene.trafficSignalSprites, bounds, seen, mainCamera, mainBounds));
+  collect(cullSpriteMapEntries(scene.streetLampSprites, bounds, seen, mainCamera, mainBounds));
   collect(cullSpriteMapEntries(scene.zoneOverlays, bounds, seen, mainCamera, mainBounds));
   collect(cullSpriteMapEntries(scene.powerLineSprites, bounds, seen, mainCamera, mainBounds));
   collect(cullSpriteMapEntries(scene.bridgeSprites, bounds, seen, mainCamera, mainBounds));
@@ -715,6 +718,10 @@ function updateGameFrame(time, delta) {
     && isVisualRouteCalibrationTestModeEnabled()
     && typeof recordVisualRoutePerformanceDuration === 'function';
   let sectionStartedAt = profileSections ? performance.now() : 0;
+  // Signals advance before traffic so a vehicle reads this frame's phase.
+  if (typeof updateTrafficSignalVisuals === 'function') updateTrafficSignalVisuals(this, time, delta);
+  if (typeof updateStreetLampVisuals === 'function') updateStreetLampVisuals(this, time);
+  if (typeof advanceTransportVehicleMovement === 'function') advanceTransportVehicleMovement(this, delta);
   if (typeof updateTransportVisuals === 'function') updateTransportVisuals.call(this, time, delta);
   updateTrafficVisuals.call(this, time, delta);
   if (profileSections) {
@@ -1657,6 +1664,39 @@ function isPackagedModelArtActive() {
   return Object.keys(modelAssetManifest.entries ?? {}).length > 0;
 }
 
+// Props such as bus stops and traffic signals are authored at a fixed on-screen scale against
+// their source PNG, with their anchor at a known source pixel. The release pipeline
+// (scripts/prepare-release-assets.js) ships those same images resized to fit maxDimension,
+// alpha-trimmed and padded to a power of two, so the loaded texture is a different size with
+// the anchor in a different place. This maps a source-pixel anchor onto whichever texture is
+// actually loaded and returns the sprite origin plus the scale multiplier that keep the prop at
+// the same on-screen size and position in a dev launch and in a release build alike.
+function getPropTextureAnchor(logicalPath, sourceAnchorX, sourceAnchorY, texture) {
+  const width = Number(texture?.width) || 0;
+  const height = Number(texture?.height) || 0;
+  const entry = modelAssetManifest.entries?.[normalizeModelLogicalPath(logicalPath)];
+  const staged = entry && entry.trim && entry.padding && Number(entry.sourceWidth) > 0
+    && Number(entry.outputWidth) > 0 && Number(entry.outputHeight) > 0
+    && width === Number(entry.outputWidth) && height === Number(entry.outputHeight);
+  if (!staged) {
+    return {
+      originX: width ? sourceAnchorX / width : 0.5,
+      originY: height ? sourceAnchorY / height : 1,
+      scaleMultiplier: 1,
+    };
+  }
+  const longest = Math.max(Number(entry.sourceWidth), Number(entry.sourceHeight) || 0);
+  const maxDimension = Number(entry.maxDimension) || longest;
+  const resize = longest > maxDimension ? maxDimension / longest : 1;
+  const x = sourceAnchorX * resize - entry.trim.left + entry.padding.left;
+  const y = sourceAnchorY * resize - entry.trim.top + entry.padding.top;
+  return {
+    originX: x / entry.outputWidth,
+    originY: y / entry.outputHeight,
+    scaleMultiplier: 1 / resize,
+  };
+}
+
 function getManifestZoneModelMetadata(model) {
   const logicalPath = normalizeModelLogicalPath(model.logicalPath);
   const entry = modelAssetManifest.entries?.[logicalPath];
@@ -2041,6 +2081,19 @@ function preload() {
   this.load.image('bus_stop_ul', resolveModelAssetPath('Models/busStop/busStop_UL.png'));
   this.load.image('bus_stop_ll', resolveModelAssetPath('Models/busStop/busStop_LL.png'));
   this.load.image('bus_stop_lr', resolveModelAssetPath('Models/busStop/busStop_LR.png'));
+
+  // Junction traffic signal poles: one baked texture per facing and lamp state (traffic-signals.js)
+  if (typeof TRAFFIC_SIGNAL_TEXTURE_FILES !== 'undefined') {
+    Object.entries(TRAFFIC_SIGNAL_TEXTURE_FILES).forEach(([key, file]) => {
+      this.load.image(key, resolveModelAssetPath(file));
+    });
+  }
+  // Street lamp posts: day and baked night texture per arm direction (street-lamps.js)
+  if (typeof STREET_LAMP_TEXTURE_FILES !== 'undefined') {
+    Object.entries(STREET_LAMP_TEXTURE_FILES).forEach(([key, file]) => {
+      this.load.image(key, resolveModelAssetPath(file));
+    });
+  }
 }
 
 function create() {
@@ -2074,6 +2127,8 @@ function create() {
   this.treeSprites = new Map();
   this.debrisSprites = new Map();
   this.busStopSprites = new Map();
+  this.trafficSignalSprites = new Map();
+  this.streetLampSprites = new Map();
   this.districtSignSprites = new Map();
   createWorldRenderLayers(this);
 
@@ -3438,6 +3493,9 @@ function positionAllTiles(scene) {
   });
 
   scene.busStopSprites?.forEach((sprite) => positionBusStopSprite(scene, sprite));
+  // Signal poles and street lamps hang off the same map offsets (window resize) and facings (rotation).
+  if (typeof refreshAllTrafficSignalSprites === 'function') refreshAllTrafficSignalSprites(scene);
+  if (typeof refreshAllStreetLampSprites === 'function') refreshAllStreetLampSprites(scene);
 
   if (typeof repositionDistrictSignSprites === 'function') repositionDistrictSignSprites(scene);
 
@@ -7515,6 +7573,8 @@ function refreshTileArea(scene, row, col) {
     invalidateBusStopIfOrphaned(scene, tileRow, tileCol);
   });
 
+  if (typeof scheduleTrafficSignalRefresh === 'function') scheduleTrafficSignalRefresh(scene);
+  if (typeof scheduleStreetLampRefresh === 'function') scheduleStreetLampRefresh(scene);
   scheduleTerrainMiniMapUpdate();
 }
 
@@ -7531,6 +7591,8 @@ function refreshAllTiles(scene) {
     }
   }
   refreshAllBridgeSprites(scene);
+  if (typeof rebuildTrafficSignalSprites === 'function') rebuildTrafficSignalSprites(scene);
+  if (typeof rebuildStreetLampSprites === 'function') rebuildStreetLampSprites(scene);
   scheduleTerrainMiniMapUpdate();
 }
 
@@ -8051,6 +8113,7 @@ function placeDebrisSprite(scene, row, col) {
   sprite.mapRow = row;
   sprite.mapCol = col;
   scene.debrisSprites.set(getTileId(row, col), sprite);
+  scene.terrainViewportCacheKey = null;
   sortRenderLayer(scene, 'objectLayer');
 }
 
@@ -8324,8 +8387,7 @@ function placeBusStopSprite(scene, row, col, rawSide) {
   const anchor = getBusStopAnchorPoint(row, col, anchorCorner, scene.offsetX, scene.offsetY);
   const sprite = scene.add.image(anchor.x, anchor.y, `bus_stop_${corner}`);
   addToRenderLayer(scene, sprite, 'objectLayer');
-  sprite.setOrigin(0.5, 1);
-  sprite.setScale(BUS_STOP_SCALE);
+  applyBusStopTextureAnchor(scene, sprite, corner);
   sprite.setDepth(getBusStopSortDepth(row, col, corner));
   sprite.setMask(scene.worldMask);
   sprite.mapRow = row;
@@ -8351,9 +8413,23 @@ function positionBusStopSprite(scene, sprite) {
   if (sprite.texture?.key !== textureKey) sprite.setTexture(textureKey);
   const anchorCorner = getBusStopAnchorCorner(sprite.busStopRawSide);
   const anchor = getBusStopAnchorPoint(row, col, anchorCorner, scene.offsetX, scene.offsetY);
-  sprite.setOrigin(0.5, 1);
+  applyBusStopTextureAnchor(scene, sprite, corner);
   sprite.setPosition(anchor.x, anchor.y);
   sprite.setDepth(getBusStopSortDepth(row, col, corner));
+}
+
+// BUS_STOP_SCALE and the shoulder offsets were calibrated against the 1024px source art with
+// the origin at its bottom centre; getPropTextureAnchor keeps that true for the release
+// pipeline's resized and trimmed WebP too (which used to draw stops at half size, off their
+// anchor).
+const BUS_STOP_SOURCE_PATHS = { ur: 'Models/busStop/busStop_UR.png', ul: 'Models/busStop/busStop_UL.png', ll: 'Models/busStop/busStop_LL.png', lr: 'Models/busStop/busStop_LR.png' };
+function applyBusStopTextureAnchor(scene, sprite, corner) {
+  const texture = scene?.textures?.get?.(`bus_stop_${corner}`)?.getSourceImage?.();
+  const spec = texture
+    ? getPropTextureAnchor(BUS_STOP_SOURCE_PATHS[corner], 512, 1024, texture)
+    : { originX: 0.5, originY: 1, scaleMultiplier: 1 };
+  sprite.setOrigin(spec.originX, spec.originY);
+  sprite.setScale(BUS_STOP_SCALE * spec.scaleMultiplier);
 }
 
 function refreshBusStopSpriteAt(scene, row, col) {

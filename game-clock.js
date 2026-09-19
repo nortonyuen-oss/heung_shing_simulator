@@ -15,8 +15,8 @@
 //     17:12 and 22:48 of the sky-day, and the month's settlement lands on the
 //     06:00 one, so none of the existing tuning keyed on city.tick %
 //     TICKS_PER_MONTH needs to change;
-//   - weather (sim-weather.js) and the transport company's buses
-//     (transport-expansion.js) run in displayed hours and minutes.
+//   - weather and transport maintenance/commuter demand run in displayed
+//     hours and minutes; bus movement shares the road traffic frame step.
 //
 // Before this the calendar ran on its own 667 ms-per-day accumulator, so one
 // sky-day covered 108-180 calendar days: the morning and the evening of the

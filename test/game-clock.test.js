@@ -180,7 +180,7 @@ test('economy protection: one January (31 advances) produces exactly 4 legacy si
   assert.equal(calls.hud, 31, 'HUD refreshes once per calendar day');
 });
 
-test('the frame hands buses the displayed span before replaying the calendar days it crossed', () => {
+test('the frame hands transport maintenance and demand the displayed span before calendar days', () => {
   const sequence = [];
   const { context } = createClockContext({
     simSpeedMul: 2,   // x8 sky: 1000 real ms = 24 displayed minutes, so 7 frames = 168 = 3.5 calendar days
@@ -195,10 +195,10 @@ test('the frame hands buses the displayed span before replaying the calendar day
     .filter((index) => index >= 0);
   assert.equal(dailyIndices.length, 3, '168 displayed minutes cross three ~46-minute January days');
   for (const dailyIndex of dailyIndices) {
-    assert.equal(sequence[dailyIndex - 1][0], 'move', 'the frame moves buses before it replays the day boundary');
+    assert.equal(sequence[dailyIndex - 1][0], 'move', 'transport maintenance and demand run before the day boundary');
   }
   const moves = sequence.filter(([kind]) => kind === 'move');
-  assert.equal(moves.length, 7, 'one movement span per frame');
+  assert.equal(moves.length, 7, 'one environmental span per frame');
   const movedMinutes = moves.reduce((sum, [, from, to]) => sum + (to - from), 0);
   assert.ok(Math.abs(movedMinutes - 168) < 1e-6, `spans add up to the displayed minutes elapsed, got ${movedMinutes}`);
 });

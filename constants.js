@@ -478,6 +478,78 @@ const BUS_STOP_VEHICLE_WINS_CORNERS = new Set(['ur', 'lr']);
 // occlusion on neighbouring tiles is untouched.
 const BUS_STOP_DEPTH_PRIORITY_MARGIN_TILES = 0.25;
 
+// ── Junction traffic signals (traffic-signals.js) ────────────────────────────
+// Where on the approach tile the pole stands, in tile units from the tile centre: pushed
+// `forward` towards the junction (0.5 would be the shared edge) and `left` out to the
+// driver's-left kerb (Hong Kong keeps left; 0.5 would be the tile edge). Hand-tuned so the foot
+// lands on the pavement just before the junction's crossing, not in the traffic lane.
+const TRAFFIC_SIGNAL_LOGICAL_INSET = { forward: 0.40, left: 0.42 };
+// On-screen size of a pole relative to its 600px-tall source art (~20px at zoom 1).
+const TRAFFIC_SIGNAL_SCALE = 0.034;
+// Per-facing pixel nudges on top of the geometric anchor, recorded with the test-mode
+// traffic-signal calibrator on 2026-09-19 (facings are screen-relative: calibrate at the
+// default North view).
+const TRAFFIC_SIGNAL_ANCHOR_OFFSETS = {
+  sw: { dx: 5.667, dy: 2.667 },
+  se: { dx: 3.904, dy: -2.928 },
+  nw: { dx: -4, dy: 4 },
+  ne: { dx: -4, dy: -2.333 },
+};
+
+// Signal timing in visual milliseconds at 1x (the same clock ambient traffic moves on, so
+// pausing freezes the lights and fast-forward speeds them up together). Hong Kong sequence:
+// red -> red+amber -> green -> amber -> red, with an all-red intergreen between stages. A cross
+// junction runs two equal stages (~30 s cycle); a T junction favours its through road.
+const TRAFFIC_SIGNAL_TIMING = Object.freeze({
+  redAmberMs: 2000,
+  amberMs: 3000,
+  allRedMs: 2000,
+  crossGreenMs: 8000,
+  teeThroughGreenMs: 10000,
+  teeSideGreenMs: 5000,
+  // Green man flashes for the last pedFlashMs of the crossing traffic's green.
+  pedFlashMs: 3000,
+  pedFlashPeriodMs: 500,
+  // Neighbouring junctions along a road start their cycles this much later each, so a run of
+  // junctions reads as a green wave rather than the whole city changing together.
+  offsetStepMs: 1300,
+});
+// Where on the approach leg (0 = approach tile centre, 1 = junction centre; the junction's edge
+// is at 0.5) a car-length vehicle's anchor waits at a red: 0.10 is 8 m short of the junction
+// mouth on a 20 m tile. Longer vehicles hold further back so their nose stays clear too:
+// per unit of headwayFactor above a car's (0.55), TRAFFIC_SIGNAL_STOP_LONG_VEHICLE_SETBACK
+// tiles more (a bus, factor 1, waits at the approach tile centre).
+const TRAFFIC_SIGNAL_STOP_PROGRESS = 0.10;
+const TRAFFIC_SIGNAL_STOP_CAR_HEADWAY_FACTOR = 0.55;
+const TRAFFIC_SIGNAL_STOP_LONG_VEHICLE_SETBACK = 0.10;
+const TRAFFIC_SIGNAL_STOP_MIN_PROGRESS = 0.02;
+// A vehicle closer than this (in tiles) to the stop line when the light turns amber drives
+// through rather than braking.
+const TRAFFIC_SIGNAL_AMBER_COMMIT_TILES = 0.15;
+
+// Street lamps (street-lamps.js): derived from the road map like the signals, never saved.
+// Hong Kong Highways Department practice for 8-10 m posts on two-way streets: staggered
+// arrangement, ~30 m between consecutive posts (alternate sides). One tile is 20 m, so along
+// a straight the pattern repeats every 3 tiles: tile k%3==0 lamps side A pulled back a quarter
+// tile, k%3==1 side B pushed forward a quarter tile, k%3==2 none - consecutive lamps are
+// exactly 1.5 tiles (30 m) apart. Bends get one lamp on the outside.
+const STREET_LAMP_SPACING_PERIOD = 3;
+const STREET_LAMP_LOGICAL_INSET = { side: 0.42, along: 0.25, cornerOuter: 0.30 };
+// On-screen size relative to the 880px-tall baked canvas (post ~560px): a 10 m post ~40px.
+const STREET_LAMP_SCALE = 0.07;
+// Per-facing pixel nudges recorded with the test-mode street lamp calibrator (facings are the
+// arm direction on screen; calibrate at the default North view).
+const STREET_LAMP_ANCHOR_OFFSETS = {
+  nw: { dx: 0, dy: 0 },
+  ne: { dx: 0, dy: 0 },
+  sw: { dx: 0, dy: 0 },
+  se: { dx: 0, dy: 0 },
+};
+// Lamps switch to their baked night texture when the vehicle-lamp night strength passes ON and
+// back at OFF (hysteresis so dusk does not flicker).
+const STREET_LAMP_NIGHT_ON = 0.35;
+const STREET_LAMP_NIGHT_OFF = 0.25;
+
 // Tree simulation
 const TREE_SYSTEM_VERSION = 3;            // bump when generation algorithm changes
 const TREE_MATURE_AGE = 6;

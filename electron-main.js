@@ -219,7 +219,9 @@ async function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
-      backgroundThrottling: !performanceModeEnabled,
+      // scripts/drive-electron.js sets ELECTRON_NO_BACKGROUND_THROTTLING so a scripted check keeps
+      // running while its window is covered.
+      backgroundThrottling: !performanceModeEnabled && process.env.ELECTRON_NO_BACKGROUND_THROTTLING !== '1',
       preload: path.join(__dirname, 'electron-preload.js'),
     },
   });

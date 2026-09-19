@@ -135,6 +135,34 @@ test('terrain grid is created detached to avoid a quadratic first cull pass', ()
   );
 });
 
+test('signals and debris outside every camera are culled, while tracker-only props stay visible', () => {
+  const context = loadViewportCullingContext();
+  const prop = (x) => ({ x, y: 10, cameraFilter: 0, setVisible(value) { this.visible = value; } });
+  const nearSignal = prop(10);
+  const farSignal = prop(500);
+  const trackerDebris = prop(110);
+  const farDebris = prop(600);
+  const scene = {
+    cameras: { main: { id: 1 } },
+    trafficSignalSprites: new Map([['near', nearSignal], ['far', farSignal]]),
+    debrisSprites: new Map([['tracker', trackerDebris], ['far', farDebris]]),
+  };
+  context.scene = scene;
+  vm.runInContext(`updateSpriteViewportCulling(scene, [
+    { minX: 0, maxX: 50, minY: 0, maxY: 50 },
+    { minX: 100, maxX: 150, minY: 0, maxY: 50 },
+  ])`, context);
+  assert.equal(nearSignal.visible, true);
+  assert.equal(farSignal.visible, false);
+  assert.equal(trackerDebris.visible, true);
+  assert.equal(trackerDebris.cameraFilter & 1, 1);
+  assert.equal(farDebris.visible, false);
+  vm.runInContext('updateSpriteViewportCulling(scene, { minX: 450, maxX: 650, minY: 0, maxY: 50 })', context);
+  assert.equal(farSignal.visible, true, 'panning brings the signal back');
+  assert.equal(farDebris.visible, true, 'panning brings the debris back');
+  assert.equal(farSignal.cameraFilter & 1, 0);
+});
+
 test('Phaser follows display rAF without divisor-based hard frame limiting', () => {
   assert.match(mainSource, /fps:\s*\{\s*target:\s*60,\s*limit:\s*0,/);
   assert.doesNotMatch(mainSource, /fps:\s*\{\s*target:\s*60,\s*limit:\s*(?:60|75),/);

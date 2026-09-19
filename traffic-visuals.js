@@ -2154,7 +2154,7 @@ function beginIceCreamDeparture(scene, event) {
 }
 
 function advanceIceCreamMovement(scene, state, event, delta, speedMultiplier) {
-  const descriptor = event.movementLegs[event.movementIndex];
+  let descriptor = event.movementLegs[event.movementIndex];
   if (!descriptor) {
     event.phase = event.phase === 'leaving' ? 'finished' : event.phase;
     return;
@@ -2163,7 +2163,10 @@ function advanceIceCreamMovement(scene, state, event, delta, speedMultiplier) {
   event.next = descriptor.next;
   if (
     ['road', 'parkingApproach', 'parkingDeparture'].includes(descriptor.kind)
-    && trafficVehicleHasBlockingLeader(event, buildTrafficLegBuckets(state.vehicles))
+    && trafficVehicleHasBlockingLeader(event, buildTrafficLegBuckets([
+      ...state.vehicles,
+      ...(scene.transportVisualState?.vehicles || []),
+    ]))
   ) {
     return;
   }
@@ -2175,7 +2178,12 @@ function advanceIceCreamMovement(scene, state, event, delta, speedMultiplier) {
     TRAFFIC_VISUAL_CONFIG,
     event.model.speedFactor * getTrafficLegSpeedFactor(descriptor.leg),
   );
-  event.progress += progressAmount;
+  const hold = typeof getTrafficSignalHoldProgress === 'function'
+    ? getTrafficSignalHoldProgress(scene, event.current, event.next, event.progress)
+    : null;
+  event.progress = hold === null
+    ? event.progress + progressAmount
+    : Math.min(event.progress + progressAmount, hold);
   let transitions = 0;
   while (
     event.progress >= 1
@@ -2200,6 +2208,12 @@ function advanceIceCreamMovement(scene, state, event, delta, speedMultiplier) {
     }
     event.current = nextDescriptor.current;
     event.next = nextDescriptor.next;
+    descriptor = nextDescriptor;
+    // Carry-over progress must also obey the signal on the new leg.
+    const nextHold = typeof getTrafficSignalHoldProgress === 'function'
+      ? getTrafficSignalHoldProgress(scene, event.current, event.next, 0)
+      : null;
+    if (nextHold !== null) event.progress = Math.min(event.progress, nextHold);
   }
   const activeDescriptor = event.movementLegs[event.movementIndex];
   setIceCreamTruckPosition(
@@ -2474,30 +2488,54 @@ function trafficLegBucketKey(current, next) {
   return `${current.row},${current.col}|${next.row},${next.col}`;
 }
 
+function trafficTileBucketKey(tile) {
+  return `${tile.row},${tile.col}`;
+}
+
+// Two indexes over the same pass: leaders by leg (same-leg following) and leaders by the tile
+// they are on (`byTile`), so a vehicle can also see the one just ahead on the next tile - the
+// queue that forms behind a red signal or a dwelling bus spans legs.
 function buildTrafficLegBuckets(vehicles) {
   const buckets = new Map();
+  const byTile = new Map();
   for (const vehicle of vehicles) {
     if (!vehicle.current || !vehicle.next) continue;
     const key = trafficLegBucketKey(vehicle.current, vehicle.next);
     let bucket = buckets.get(key);
     if (!bucket) buckets.set(key, bucket = []);
     bucket.push(vehicle);
+    const tileKey = trafficTileBucketKey(vehicle.current);
+    let tileBucket = byTile.get(tileKey);
+    if (!tileBucket) byTile.set(tileKey, tileBucket = []);
+    tileBucket.push(vehicle);
   }
+  buckets.byTile = byTile;
   return buckets;
+}
+
+function trafficHeadwayFor(vehicle, leader) {
+  return TRAFFIC_VISUAL_CONFIG.minimumHeadwayTiles
+    * Math.max(vehicle.model?.headwayFactor ?? 1, leader.model?.headwayFactor ?? 1);
 }
 
 function trafficVehicleHasBlockingLeader(vehicle, leaderBuckets) {
   if (!vehicle.current || !vehicle.next) return false;
   const bucket = leaderBuckets.get(trafficLegBucketKey(vehicle.current, vehicle.next));
-  if (!bucket) return false;
-  return bucket.some((leader) => {
+  if (bucket?.some((leader) => {
     if (leader === vehicle) return false;
     const leaderProgress = getTrafficLeaderEffectiveProgress(leader);
     return leaderProgress > vehicle.progress
-      && leaderProgress - vehicle.progress < (
-        TRAFFIC_VISUAL_CONFIG.minimumHeadwayTiles
-        * Math.max(vehicle.model.headwayFactor, leader.model.headwayFactor)
-      );
+      && leaderProgress - vehicle.progress < trafficHeadwayFor(vehicle, leader);
+  })) return true;
+  // A leader already on the tile this leg ends at is (1 - progress) + its own progress ahead,
+  // unless it is oncoming traffic heading back onto our tile.
+  const ahead = leaderBuckets.byTile?.get(trafficTileBucketKey(vehicle.next));
+  if (!ahead) return false;
+  return ahead.some((leader) => {
+    if (leader === vehicle || !leader.next) return false;
+    if (leader.next.row === vehicle.current.row && leader.next.col === vehicle.current.col) return false;
+    const gap = (1 - vehicle.progress) + getTrafficLeaderEffectiveProgress(leader);
+    return gap < trafficHeadwayFor(vehicle, leader);
   });
 }
 
@@ -2613,6 +2651,14 @@ function updateTrafficVisuals(time, delta) {
       vehicle.model.speedFactor * getTrafficLegSpeedFactor(vehicle.leg),
     );
 
+    // Apply the stop line before bus-stop arrival can consume the step.
+    if (typeof getTrafficSignalHoldProgress === 'function') {
+      const hold = getTrafficSignalHoldProgress(scene, vehicle.current, vehicle.next, vehicle.progress, vehicle.model?.headwayFactor);
+      if (hold !== null && vehicle.progress + progressAmount > hold) {
+        progressAmount = Math.max(0, hold - vehicle.progress);
+      }
+    }
+
     if (vehicle.model.category === 'bus' && vehicle.current && vehicle.next) {
       // A leg's progress runs from AT vehicle.current (0) to AT vehicle.next
       // (1) - see createTrafficLeg - so the stop to check against is the tile
@@ -2694,6 +2740,8 @@ const trafficVisualTestApi = {
   pickWeightedTrafficModel,
   classifyTrafficTurn,
   chooseNextTrafficTile,
+  buildTrafficLegBuckets,
+  trafficVehicleHasBlockingLeader,
   isTrafficFlatRoadTile,
   getTrafficLegSpeedFactor,
   getTrafficCompassDirection,

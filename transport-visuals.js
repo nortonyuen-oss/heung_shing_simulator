@@ -574,6 +574,7 @@ function updateTransportVisuals(time, delta) {
   const leaderBuckets = buildTrafficLegBuckets([
     ...state.vehicles,
     ...(scene.trafficVisualState?.vehicles || []),
+    ...(scene.trafficVisualState?.iceCreamEvent ? [scene.trafficVisualState.iceCreamEvent] : []),
   ]);
   state.vehicles.forEach((vehicle) => {
     const backing = vehicleById.get(vehicle.vehicleId);

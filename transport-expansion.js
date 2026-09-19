@@ -121,12 +121,9 @@ const TRANSPORT_VEHICLE_RESALE_FACTOR = 0.5;
 // auto-suspended (running costs stop; the player sells vehicles or waits
 // out the grace period next time). No company loan mechanic in v1.
 const TRANSPORT_BANKRUPTCY_GRACE_MONTHS = 3;
-// §12 authoritative vehicle speed is the same model the route editor's
-// headway figure uses: TRANSPORT_MINUTES_PER_ROAD_TILE displayed minutes per
-// tile (express classes divide by their speedFactor) plus a
-// TRANSPORT_MINUTES_PER_STOP dwell at every stop. The headway the player is
-// shown is therefore what they see on the map. The game clock advances this
-// continuously; the map sprite only renders the saved progress.
+// Movement uses the road traffic clock; these minutes are movement units for
+// tile travel and dwell. Route headways are nominal estimates before signals.
+// The map sprite renders the same saved progress used for boarding and fares.
 //
 // §12 boarding: fraction of a stop's catchment origin units that forms one
 // sky-day's commuter pool. It accrues hour by hour following the road
@@ -1900,12 +1897,20 @@ function findTransportOpportunisticStopWithinSegment(route, runtime, startIndex,
   return null;
 }
 
-// Authoritative movement in displayed minutes: a bus spends
-// TRANSPORT_MINUTES_PER_ROAD_TILE per tile (over its class speedFactor) and
-// stands TRANSPORT_MINUTES_PER_STOP at every stop, so a round trip takes the
-// same time the route editor's headway figure assumes. A frame that spans
-// more than one segment walks each in turn.
-function advanceTransportVehiclesByDisplayMinutes(displayMinutes) {
+// Convert the shared road traffic step to the movement units used below.
+// This runs independently of sprite visibility, including zoomed-out buses.
+function advanceTransportVehicleMovement(scene, delta) {
+  const amount = computeTrafficProgressAmount(
+    delta,
+    typeof simPaused !== 'undefined' && simPaused,
+    getVehicleVisualSpeedMultiplier(),
+  );
+  advanceTransportVehiclesByDisplayMinutes(amount * TRANSPORT_MINUTES_PER_ROAD_TILE, scene);
+}
+
+// Authoritative movement, including stop dwell, boarding and mileage. Check
+// every tile crossed so a large step cannot skip a signal on a later leg.
+function advanceTransportVehiclesByDisplayMinutes(displayMinutes, scene = null) {
   const elapsedMinutes = Math.max(0, Number(displayMinutes) || 0);
   if (elapsedMinutes <= 0 || !isTransportExpansionActive() || isTransportSevereWeather()) return;
   ensureTransportRouteRuntime();
@@ -1971,15 +1976,29 @@ function advanceTransportVehiclesByDisplayMinutes(displayMinutes) {
         transitions++;
         continue;
       }
-      const step = Math.min(minutesRemaining / minutesPerTile, tilesToTarget);
+      const tileOffset = Math.floor(positionTiles + 1e-9);
+      const tileProgress = Math.max(0, positionTiles - tileOffset);
+      const current = runtime.roundTripPath[(startIndex + tileOffset) % runtime.roundTripPath.length];
+      const next = runtime.roundTripPath[(startIndex + tileOffset + 1) % runtime.roundTripPath.length];
+      const hold = typeof getTrafficSignalHoldProgress === 'function'
+        ? getTrafficSignalHoldProgress(scene, current, next, tileProgress)
+        : null;
+      const allowed = hold === null ? 1 - tileProgress : Math.max(0, hold - tileProgress);
+      if (allowed <= 1e-9) break;
+      const slopeFactor = scene && typeof getTrafficLegSurfaceLifts === 'function'
+        ? getTrafficLegSpeedFactor({ surfaceLifts: getTrafficLegSurfaceLifts(current, next) })
+        : 1;
+      const legMinutesPerTile = minutesPerTile / slopeFactor;
+      const step = Math.min(minutesRemaining / legMinutesPerTile, tilesToTarget, allowed);
       vehicle.passengerDistanceTiles = Math.max(
         0,
         Number(vehicle.passengerDistanceTiles) || 0,
       ) + vehicle.passengersAboard * step;
       vehicle.progress += step / segmentTiles;
       travelled += step;
-      minutesRemaining -= step * minutesPerTile;
-      if (step < tilesToTarget - 0.000001) break;
+      minutesRemaining -= step * legMinutesPerTile;
+      transitions++;
+      if (step < tilesToTarget - 0.000001) continue;
       if (opportunisticStop) {
         arriveAt(opportunisticStop);
       } else {
@@ -1996,14 +2015,13 @@ function advanceTransportVehiclesByDisplayMinutes(displayMinutes) {
 
 // Driven from game-clock.js's advanceGameTimeOfDay with the environmental
 // minutes the frame covered (minute 0 of the environmental clock is 06:00 on
-// the sky). Movement, dwell and the maintenance countdowns are continuous;
-// commuter accrual and breakdown rolls happen on the hour.
+// the sky). Maintenance, commuter accrual and breakdowns use this clock;
+// movement and dwell use the shared road traffic step in the scene update.
 function advanceTransportClock(fromMinutes, toMinutes) {
   if (!isTransportExpansionActive()) return;
   const from = Math.max(0, Number(fromMinutes) || 0);
   const to = Math.max(from, Number(toMinutes) || 0);
   if (to <= from) return;
-  advanceTransportVehiclesByDisplayMinutes(to - from);
   advanceTransportVehicleMaintenance(to - from);
   const firstHour = Math.floor(from / TRANSPORT_DISPLAY_MINUTES_PER_HOUR) + 1;
   const lastHour = Math.floor(to / TRANSPORT_DISPLAY_MINUTES_PER_HOUR);
@@ -2626,6 +2644,7 @@ const transportExpansionTestApi = {
   getTransportIndustrialDemandBonus,
   simulateTransportVehiclesDaily,
   advanceTransportVehiclesByDisplayMinutes,
+  advanceTransportVehicleMovement,
   advanceTransportClock,
   advanceTransportVehicleMaintenance,
   rollTransportVehicleBreakdowns,

@@ -21,8 +21,14 @@ const LANDMARK_FOLDERS = new Set(
     .split(',').map((s) => s.trim()).filter(Boolean),
 );
 
+// Small street props (junction signal poles, street lamps: ~20-60px on screen) never need
+// more than 256px. Matched by folder prefix under Models/.
+const SMALL_PROP_MAX_DIMENSION = 256;
+const SMALL_PROP_PREFIXES = ['trafficLight/', 'traffic/lightPost/'];
+
 function maxDimensionFor(relativeFromModels) {
   const top = relativeFromModels.split('/')[0];
+  if (SMALL_PROP_PREFIXES.some((prefix) => relativeFromModels.startsWith(prefix))) return SMALL_PROP_MAX_DIMENSION;
   return LANDMARK_FOLDERS.has(top) ? LANDMARK_MAX_DIMENSION : MAX_DIMENSION;
 }
 // Bump whenever pixel processing changes so cached WebP files cannot retain an

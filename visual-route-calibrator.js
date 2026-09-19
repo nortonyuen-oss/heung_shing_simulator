@@ -178,6 +178,13 @@ function setVisualRouteCalibrationTestModeEnabled(enabled) {
       clearVisualRouteCalibrationTarget(state.scene);
     });
     if (typeof teardownTrafficLightCalibrator === 'function') teardownTrafficLightCalibrator();
+    if (typeof teardownTrafficSignalCalibrator === 'function') teardownTrafficSignalCalibrator();
+    if (typeof teardownStreetLampCalibrator === 'function') teardownStreetLampCalibrator();
+    if (typeof setLiveBuildingLightsEnabled === 'function') {
+      setLiveBuildingLightsEnabled(false, typeof activeScene !== 'undefined' ? activeScene : null);
+      const button = document.querySelector?.('.vrp-livelights-btn');
+      if (button) { button.dataset.active = 'false'; button.textContent = '使用 Phaser 光源：關閉'; }
+    }
     if (typeof teardownBuildingLightCalibrator === 'function') teardownBuildingLightCalibrator();
     visualRoutePerformanceSession.enabledAtMs = null;
     visualRoutePerformanceSession.baselineStartedAtMs = null;
@@ -610,6 +617,9 @@ function isVisualRouteCalibrationInputCaptured(scene) {
   // inspect clicks, building pointerdown…) is suppressed, so a drag on a
   // bus-stop sprite can't also fire whatever tool happens to be selected.
   if (typeof isBusStopPickerActive === 'function' && isBusStopPickerActive()) return true;
+  // traffic-signal-calibrator.js: same picker toggle for the junction signal poles.
+  if (typeof isTrafficSignalPickerActive === 'function' && isTrafficSignalPickerActive()) return true;
+  if (typeof isStreetLampPickerActive === 'function' && isStreetLampPickerActive()) return true;
   // traffic-light-calibrator.js: same deal while its lamp-drag workbench is open.
   if (typeof isTrafficLightCalibrationInputActive === 'function'
     && isTrafficLightCalibrationInputActive()) return true;
@@ -1024,6 +1034,9 @@ function createVisualRoutePerformancePanel(scene) {
     + '<button type="button" class="vrp-airport-btn">機場路線校正</button>'
     + '<button type="button" class="vrp-busstop-btn">巴士站位置微調</button>'
     + '<button type="button" class="vrp-trafficlight-btn">車燈位置微調</button>'
+    + '<button type="button" class="vrp-trafficsignal-btn">路口交通燈位置微調</button>'
+    + '<button type="button" class="vrp-streetlamp-btn">路燈位置微調</button>'
+    + '<button type="button" class="vrp-livelights-btn" data-active="false">使用 Phaser 光源：關閉</button>'
     + '<button type="button" class="vrp-buildinglight-btn">夜間建築燈光校正</button>';
   root.querySelector('.vrp-close-btn')?.addEventListener?.('click', () => {
     setVisualRouteCalibrationTestModeEnabled(false);
@@ -1045,6 +1058,20 @@ function createVisualRoutePerformancePanel(scene) {
   });
   root.querySelector('.vrp-trafficlight-btn')?.addEventListener?.('click', () => {
     if (typeof toggleTrafficLightCalibrator === 'function') toggleTrafficLightCalibrator(scene);
+  });
+  root.querySelector('.vrp-trafficsignal-btn')?.addEventListener?.('click', () => {
+    if (typeof toggleTrafficSignalCalibrator === 'function') toggleTrafficSignalCalibrator(scene);
+  });
+  root.querySelector('.vrp-streetlamp-btn')?.addEventListener?.('click', () => {
+    if (typeof toggleStreetLampCalibrator === 'function') toggleStreetLampCalibrator(scene);
+  });
+  // Buildings without baked night art normally stay dark; this test-mode option brings back the
+  // live Phaser glow for them (building-lighting.js).
+  root.querySelector('.vrp-livelights-btn')?.addEventListener?.('click', (event) => {
+    if (typeof setLiveBuildingLightsEnabled !== 'function') return;
+    const enabled = setLiveBuildingLightsEnabled(!isLiveBuildingLightsEnabled(), scene);
+    event.currentTarget.dataset.active = String(enabled);
+    event.currentTarget.textContent = `使用 Phaser 光源：${enabled ? '開啟' : '關閉'}`;
   });
   root.querySelector('.vrp-buildinglight-btn')?.addEventListener?.('click', () => {
     if (typeof toggleBuildingLightCalibrator === 'function') toggleBuildingLightCalibrator(scene);

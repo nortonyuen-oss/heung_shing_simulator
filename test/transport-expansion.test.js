@@ -65,14 +65,15 @@ function createTransportVm() {
   vm.runInContext(fs.readFileSync(path.join(ROOT, 'traffic-demand.js'), 'utf8'), context, { filename: 'traffic-demand.js' });
   const source = fs.readFileSync(path.join(ROOT, 'transport-expansion.js'), 'utf8');
   vm.runInContext(source, context, { filename: 'transport-expansion.js' });
-  // Buses run on the display clock (game-clock.js hands advanceTransportClock
-  // the span each frame covers). Drive it the same way: many small frames.
+  // Drive the movement and environmental clocks explicitly for these
+  // service/economy fixtures. Runtime movement uses the road traffic clock.
   vm.runInContext(`
     var __transportClockMinutes = 0;
     function driveTransportMinutes(minutes, step = 15) {
       const end = __transportClockMinutes + minutes;
       while (__transportClockMinutes < end - 0.000001) {
         const next = Math.min(end, __transportClockMinutes + step);
+        advanceTransportVehiclesByDisplayMinutes(next - __transportClockMinutes);
         advanceTransportClock(__transportClockMinutes, next);
         __transportClockMinutes = next;
       }
@@ -80,6 +81,97 @@ function createTransportVm() {
   `, context);
   return context;
 }
+
+function createRoadTransportVm() {
+  const context = createTransportVm();
+  context.computeTrafficProgressAmount = trafficVisuals.computeTrafficProgressAmount;
+  context.simPaused = false;
+  context.simSpeedMul = 1;
+  for (const file of ['constants.js', 'game-clock.js', 'traffic-signals.js']) {
+    vm.runInContext(fs.readFileSync(path.join(ROOT, file), 'utf8'), context, { filename: file });
+  }
+  vm.runInContext(`
+    setExpansionEnabled('transport', true, { notify: false, autosave: false });
+    const stopIds = listTransportStopSites().map((stop) => stop.id);
+    ensureTransportStopPairs(stopIds, null);
+    const route = createTransportRoute({ stopIds, fare: 35 });
+    const depotId = getConnectedCommissionedTransportDepots()[0].id;
+    const bought = buyTransportVehicle(depotId, 'standard_double_decker');
+    assignTransportVehicleToRoute(bought.id, route.id);
+    var bus = getTransportExpansionState().vehicles.find((entry) => entry.id === bought.id);
+    var junction = describeTrafficSignalJunction(5, 5, 'road_cross');
+    var scene = { trafficSignalJunctions: new Map([['5:5', junction]]) };
+    function setBusSignal(phaseMs) { scene.trafficSignalClockMs = phaseMs - junction.offsetMs; }
+  `, context);
+  return context;
+}
+
+test('managed buses stop their authoritative mileage on red and red-amber, then resume on green', () => {
+  const context = createRoadTransportVm();
+  vm.runInContext(`
+    bus.passengersAboard = 10;
+    setBusSignal(TRAFFIC_SIGNAL_TIMING.redAmberMs + 1000); // west approach is red
+    advanceTransportVehiclesByDisplayMinutes(100, scene); // crosses multiple tiles
+    var stoppedDistance = bus.odometerTiles;
+    var stoppedPassengerDistance = bus.passengerDistanceTiles;
+    var stoppedProgress = bus.progress;
+    advanceTransportVehiclesByDisplayMinutes(100, scene);
+    setBusSignal(junction.starts[1]); // west approach red-amber
+    advanceTransportVehiclesByDisplayMinutes(100, scene);
+  `, context);
+  assert.ok(Math.abs(context.stoppedDistance - (2 + context.trafficSignalStopProgressFor(1))) < 1e-8, 'two tiles plus the bus stop line');
+  assert.equal(context.bus.odometerTiles, context.stoppedDistance);
+  assert.equal(context.bus.passengerDistanceTiles, context.stoppedPassengerDistance);
+  assert.equal(context.bus.progress, context.stoppedProgress);
+  assert.equal(context.bus.dwellMinutesRemaining, 0, 'waiting for a signal is not a stop arrival');
+  vm.runInContext(`
+    setBusSignal(junction.starts[1] + TRAFFIC_SIGNAL_TIMING.redAmberMs + 1000);
+    advanceTransportVehicleMovement(scene, 50);
+  `, context);
+  assert.ok(Math.abs(context.bus.odometerTiles - context.stoppedDistance - 0.045) < 1e-8);
+});
+
+test('managed buses share road speed at every game speed, pause, and long frame delta', () => {
+  const context = createRoadTransportVm();
+  vm.runInContext('scene.trafficSignalJunctions.clear()', context);
+  for (const speed of [0.15, 0.5, 1, 2]) {
+    for (const delta of [16, 50, 1000]) {
+      context.simSpeedMul = speed;
+      const before = context.bus.odometerTiles;
+      vm.runInContext(`advanceTransportVehicleMovement(scene, ${delta})`, context);
+      const expected = trafficVisuals.computeTrafficProgressAmount(delta, false, Math.max(1, speed));
+      assert.ok(Math.abs(context.bus.odometerTiles - before - expected) < 1e-8);
+    }
+  }
+  context.simPaused = true;
+  const before = context.bus.odometerTiles;
+  vm.runInContext('advanceTransportVehicleMovement(scene, 50)', context);
+  assert.equal(context.bus.odometerTiles, before);
+  vm.runInContext('advanceTransportClock(0, 1)', context);
+  assert.equal(context.bus.odometerTiles, before, 'environment clock must not advance buses a second time');
+});
+
+test('managed buses use road slope factors and retain stop dwell and boarding', () => {
+  const context = createRoadTransportVm();
+  context.getTrafficLegSurfaceLifts = () => ({ start: 0, end: 12 });
+  context.getTrafficLegSpeedFactor = trafficVisuals.getTrafficLegSpeedFactor;
+  vm.runInContext(`
+    scene.trafficSignalJunctions.clear();
+    advanceTransportVehicleMovement(scene, 50);
+  `, context);
+  assert.ok(Math.abs(context.bus.odometerTiles - 0.045 * trafficVisuals.TRAFFIC_VISUAL_CONFIG.uphillSpeedFactor) < 1e-8);
+  vm.runInContext(`
+    simulateTransportVehiclesDaily();
+    bus.progress = 0.999;
+    advanceTransportVehicleMovement(scene, 50);
+    var arrivalDistance = bus.odometerTiles;
+    var arrivalDwell = bus.dwellMinutesRemaining;
+    advanceTransportVehicleMovement(scene, 50);
+  `, context);
+  assert.equal(context.bus.orderIndex, 1);
+  assert.equal(context.bus.odometerTiles, context.arrivalDistance);
+  assert.ok(context.bus.dwellMinutesRemaining > 0 && context.bus.dwellMinutesRemaining < context.arrivalDwell);
+});
 
 test('old cities default to a disabled schema-v3 state with no routes or vehicles', () => {
   const oldCity = transport.normalizeTransportExpansionState(undefined);

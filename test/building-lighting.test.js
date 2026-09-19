@@ -478,3 +478,30 @@ test('a city loaded after dark fetches its night art first, and a building built
   const tint = main.slice(main.indexOf('function applyNightObjectTint('), main.indexOf('function updateDynamicLighting('));
   assert.match(tint, /if \(sprite\.__nightArtPending\) \{\s*if \(scene\.__nightBakedPreTint\) sprite\.setTint\(scene\.__nightBakedPreTint\);/);
 });
+
+test('live Phaser glows are off by default: an unbaked building stays dark unless the test-mode option is on', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const lighting = require('../building-lighting.js');
+  assert.equal(lighting.isLiveBuildingLightsEnabled(), false, 'default off');
+  // Toggling drops every glow and clears the per-sprite "nothing to draw" memo so the next tick re-decides.
+  let cleared = 0;
+  const sprite = { __blNoGlowFor: 'x' };
+  const scene = {
+    buildingLightGlows: new Map([['a', { gfx: { destroy() { cleared++; } }, beacons: [] }]]),
+    buildingLightQueue: [1],
+    buildingSprites: new Map([['a', sprite]]),
+  };
+  assert.equal(lighting.setLiveBuildingLightsEnabled(true, scene), true);
+  assert.equal(scene.buildingLightGlows.size, 0);
+  assert.equal(sprite.__blNoGlowFor, null);
+  assert.equal(lighting.setLiveBuildingLightsEnabled(false, scene), false);
+
+  const src = fs.readFileSync(path.join(path.resolve(__dirname, '..'), 'building-lighting.js'), 'utf8');
+  const update = src.slice(src.indexOf('function updateBuildingLights('), src.indexOf('const buildingLightingTestApi'));
+  assert.match(update, /if \(!baked && !calibrating && !liveBuildingLightsEnabled\) \{\n\s*\/\/[^\n]*\n\s*sprite\.__blNoGlowFor = identity;\n\s*return;\n\s*\}/,
+    'no baked art + live glows off = dark, memoised');
+  const panel = fs.readFileSync(path.join(path.resolve(__dirname, '..'), 'visual-route-calibrator.js'), 'utf8');
+  assert.ok(panel.includes('vrp-livelights-btn') && panel.includes('setLiveBuildingLightsEnabled(!isLiveBuildingLightsEnabled(), scene)'), 'the performance panel toggles it');
+  assert.ok(panel.includes('setLiveBuildingLightsEnabled(false,'), 'leaving test mode switches it back off');
+});

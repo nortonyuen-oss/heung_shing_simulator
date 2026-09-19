@@ -26,13 +26,11 @@ const BUILDING_LIGHT_CONFIG = Object.freeze({
   jitterMinMs: 22000,
   jitterMaxMs: 52000,
   corridorAlpha: 0.34,
-  // Glow LOD. Only the `windowBudget` buildings nearest the camera keep a
-  // visible glow at all; the rest are hidden. Night render cost turned out to
-  // be a flat ~0.34ms per VISIBLE additive Graphics - a per-object batch flush,
-  // independent of the geometry inside it - so the object count is the only
-  // thing that moves the number. Measured on one dense night view: 400 glows
-  // 165ms, 48 glows 46ms, identical drawn geometry.
+  // Only the nearest buildings retain a live glow bitmap. Geometry is painted
+  // on relight, never replayed by WebGL every frame. Together these limits cap
+  // the cache at 48 MiB of RGBA pixels (usually less after cropping).
   windowBudget: 48,
+  maxGlowTextureSize: 512,
   // Per-building cap on drawn window cells. A calibrated profile can carry 300+
   // cells, far more than resolves on screen; sampling every Nth cell keeps the
   // pattern and the silhouette while cutting the polygon count. Barely affects
@@ -1896,10 +1894,11 @@ function ensureBuildingLightTextures(scene) {
 }
 
 // ---------------------------------------------------------------------------
-// Runtime: one RenderTexture glow per visible building, relit on a budget
+// Runtime: one cached glow image per nearby building, relit on a budget
 // ---------------------------------------------------------------------------
 
 let buildingLightDbFetched = false;
+let buildingLightTextureSerial = 0;
 
 function setupBuildingLights(scene) {
   if (!scene) return;
@@ -1915,8 +1914,32 @@ function setupBuildingLights(scene) {
 }
 
 function destroyBuildingLightGlow(glow) {
+  releaseBuildingLightBitmap(glow);
   glow?.gfx?.destroy?.();
   if (Array.isArray(glow?.beacons)) glow.beacons.forEach((b) => b.sprite?.destroy?.());
+}
+
+// Live Phaser glows (a Graphics object per building) are the fallback for a model with no
+// baked night texture. Since 2026-09-19 they are off by default - every building wears its
+// baked art or stays dark - and only the test-mode option "使用 Phaser 光源" turns them on,
+// because a live glow per building is the slow path players should never hit. The building
+// light calibrator still forces a live glow for the model being edited.
+let liveBuildingLightsEnabled = false;
+
+function isLiveBuildingLightsEnabled() {
+  return liveBuildingLightsEnabled;
+}
+
+function setLiveBuildingLightsEnabled(enabled, scene = typeof activeScene !== 'undefined' ? activeScene : null) {
+  const next = !!enabled;
+  if (next === liveBuildingLightsEnabled) return liveBuildingLightsEnabled;
+  liveBuildingLightsEnabled = next;
+  // Drop every glow and forget the "nothing to draw" memos so the next tick re-decides.
+  if (scene) {
+    clearBuildingLights(scene);
+    scene.buildingSprites?.forEach((sprite) => { if (sprite) sprite.__blNoGlowFor = null; });
+  }
+  return liveBuildingLightsEnabled;
 }
 
 function clearBuildingLights(scene) {
@@ -1943,23 +1966,23 @@ function buildingLightRecordFor(sprite) {
 }
 
 function createBuildingLightGlow(scene, sprite) {
-  if (!scene?.add?.graphics) return null;
+  if (!scene?.make?.graphics) return null;
   const w = Math.max(4, Math.round(sprite.width || sprite.displayWidth || 32));
   const h = Math.max(4, Math.round(sprite.height || sprite.displayHeight || 32));
-  // A retained Graphics per building: redrawn only on relight, static between,
-  // one draw object in the display list. Local (0,0) is the sprite's draw
-  // position; windows are placed in local px = (n - origin) * texSize.
-  const gfx = scene.add.graphics();
+  // Detached painter: the display list contains only its cached Image. Local
+  // (0,0) is the building anchor, including art extending beyond its bounds.
+  const gfx = scene.make.graphics({ x: 0, y: 0, add: false });
   gfx.setScale(sprite.scaleX || 1, sprite.scaleY || 1);
   gfx.setDepth((sprite.depth || 0) + 0.1);
   const additive = typeof Phaser !== 'undefined' ? Phaser.BlendModes.ADD : 'ADD';
   gfx.setBlendMode?.(additive);
-  if (scene.worldMask) gfx.setMask(scene.worldMask);
-  if (typeof addToRenderLayer === 'function') addToRenderLayer(scene, gfx, 'objectLayer');
   const record = buildingLightRecordFor(sprite);
   const seed = getBuildingLightSeed(sprite.mapRow, sprite.mapCol);
   return {
     gfx,
+    image: null,
+    textureKeyForGlow: null,
+    textureManager: scene.textures,
     sprite,
     textureKey: sprite.texture?.key || null,
     // Window LOD state - set each time the camera settles; a new glow starts
@@ -1982,6 +2005,73 @@ function createBuildingLightGlow(scene, sprite) {
   };
 }
 
+function releaseBuildingLightBitmap(glow) {
+  glow?.image?.destroy?.();
+  if (!glow) return;
+  glow.image = null;
+  if (glow.textureKeyForGlow) glow.textureManager.remove(glow.textureKeyForGlow);
+  glow.textureKeyForGlow = null;
+}
+
+function syncBuildingLightBitmap(glow) {
+  const image = glow.image;
+  if (!image) return;
+  const g = glow.gfx;
+  image.setPosition(g.x, g.y);
+  image.setScale(g.scaleX / glow.bitmapScale, g.scaleY / glow.bitmapScale);
+  image.setAlpha(g.alpha);
+  if (image.depth !== g.depth) image.setDepth(g.depth);
+  image.setVisible(g.visible);
+}
+
+function cacheBuildingLightBitmap(scene, glow, bounds) {
+  if (!glow.windowsAllowed || glow.beaconsOnly || !Number.isFinite(bounds.minX)) {
+    releaseBuildingLightBitmap(glow);
+    return;
+  }
+  // Crop to the actual painted geometry, with a small antialiasing margin.
+  const left = Math.floor(bounds.minX) - 2;
+  const top = Math.floor(bounds.minY) - 2;
+  const sourceWidth = Math.ceil(bounds.maxX) + 2 - left;
+  const sourceHeight = Math.ceil(bounds.maxY) + 2 - top;
+  const scale = Math.min(1, BUILDING_LIGHT_CONFIG.maxGlowTextureSize / Math.max(sourceWidth, sourceHeight));
+  const width = Math.max(1, Math.ceil(sourceWidth * scale));
+  const height = Math.max(1, Math.ceil(sourceHeight * scale));
+  const key = glow.textureKeyForGlow || `fx_building_glow_${++buildingLightTextureSerial}`;
+  let texture = scene.textures.exists(key) ? scene.textures.get(key) : null;
+  if (texture && (texture.width !== width || texture.height !== height)) {
+    // A new window pattern may have different bounds. Drop the old canvas
+    // instead of keeping a growing collection of textures for this building.
+    releaseBuildingLightBitmap(glow);
+    texture = null;
+  }
+  if (texture) texture.context.clearRect(0, 0, width, height);
+
+  const g = glow.gfx;
+  const commands = g.commandBuffer;
+  const saved = { x: g.x, y: g.y, scaleX: g.scaleX, scaleY: g.scaleY, alpha: g.alpha };
+  g.commandBuffer = [];
+  g.translateCanvas(-left, -top);
+  g.commandBuffer.push(...commands);
+  try {
+    g.setPosition(0, 0).setScale(scale).setAlpha(1);
+    g.generateTexture(key, width, height);
+  } finally {
+    g.commandBuffer = commands;
+    g.setPosition(saved.x, saved.y).setScale(saved.scaleX, saved.scaleY).setAlpha(saved.alpha);
+  }
+  glow.textureKeyForGlow = key;
+  glow.bitmapScale = scale;
+  if (!glow.image) {
+    glow.image = scene.add.image(g.x, g.y, key);
+    glow.image.setBlendMode(g.blendMode);
+    if (scene.worldMask) glow.image.setMask(scene.worldMask);
+    if (typeof addToRenderLayer === 'function') addToRenderLayer(scene, glow.image, 'objectLayer');
+  }
+  glow.image.setOrigin(-left * scale / width, -top * scale / height);
+  syncBuildingLightBitmap(glow);
+}
+
 function relightBuildingGlow(scene, sprite, glow, bucket, time) {
   const record = glow.record || buildingLightRecordFor(sprite);
   glow.record = record;
@@ -1991,6 +2081,13 @@ function relightBuildingGlow(scene, sprite, glow, bucket, time) {
     getBuildingLightModelSlug(record, sprite),
   );
   const g = glow.gfx;
+  const bounds = { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity };
+  const include = (x, y) => {
+    bounds.minX = Math.min(bounds.minX, x);
+    bounds.minY = Math.min(bounds.minY, y);
+    bounds.maxX = Math.max(bounds.maxX, x);
+    bounds.maxY = Math.max(bounds.maxY, y);
+  };
   g.clear();
   g.setPosition(sprite.x, sprite.y);
   g.setDepth((sprite.depth || 0) + 0.1);
@@ -2019,8 +2116,10 @@ function relightBuildingGlow(scene, sprite, glow, bucket, time) {
     for (let n = 0; n < drawn; n++) {
       const cell = lit[step === 1 ? n : Math.floor(n * step)];
       if (!cell) continue;
+      const bloom = px(scaleBuildingLightQuad(cell.quad, 1.7));
+      bloom.forEach((point) => include(point.x, point.y));
       g.fillStyle(tint, Math.min(0.5, cell.alpha * 0.3));
-      g.fillPoints(px(scaleBuildingLightQuad(cell.quad, 1.7)), true);
+      g.fillPoints(bloom, true);
       g.fillStyle(tint, Math.min(1, cell.alpha));
       g.fillPoints(px(cell.quad), true);
     }
@@ -2041,6 +2140,8 @@ function relightBuildingGlow(scene, sprite, glow, bucket, time) {
     const lamp = lamps[i];
     const p = lampPx(lamp);
     const rad = lamp.r * glow.texW;
+    include(p.x - rad, p.y - rad);
+    include(p.x + rad, p.y + rad);
     g.fillStyle(0xffdca8, 0.12 * lampScale);
     g.fillCircle(p.x, p.y, rad);
     g.fillStyle(0xffe6bf, 0.34 * lampScale);
@@ -2048,6 +2149,7 @@ function relightBuildingGlow(scene, sprite, glow, bucket, time) {
     g.fillStyle(0xfff3df, 0.72 * lampScale);
     g.fillCircle(p.x, p.y, rad * 0.18);
   }
+  cacheBuildingLightBitmap(scene, glow, bounds);
 
   // Blinking indicator beacons - separate sprites, pulsed per frame in
   // updateBuildingLights. Reconcile the pool to the profile.
@@ -2102,6 +2204,7 @@ function updateBuildingLights(scene, time) {
   const alpha = Math.min(1, strength * BUILDING_LIGHT_CONFIG.punchThrough);
   const jitterEnabled = bucket !== 'day';
   const liveIds = new Set();
+  let glowsChanged = false;
   // While the calibrator is open the live glow wins even for baked models,
   // otherwise an edit would appear to do nothing against the stale bake.
   const calibrating = typeof isBuildingLightCalibrationInputActive === 'function'
@@ -2122,10 +2225,11 @@ function updateBuildingLights(scene, time) {
       // the lot's building was replaced (upgrade) - rebuild from scratch
       destroyBuildingLightGlow(glow);
       glows.delete(id);
+      glowsChanged = true;
       glow = null;
     }
     if (!sprite.visible) {
-      if (glow) { destroyBuildingLightGlow(glow); glows.delete(id); }
+      if (glow) { destroyBuildingLightGlow(glow); glows.delete(id); glowsChanged = true; }
       return;
     }
     if (!glow) {
@@ -2146,6 +2250,11 @@ function updateBuildingLights(scene, time) {
       const baked = !calibrating
         && typeof getBuildingNightTextureKey === 'function'
         && !!getBuildingNightTextureKey(sprite);
+      if (!baked && !calibrating && !liveBuildingLightsEnabled) {
+        // No baked art and live glows are off: the building stays dark.
+        sprite.__blNoGlowFor = identity;
+        return;
+      }
       let beaconsOnly = false;
       if (baked) {
         // Beacons blink, so they cannot live in a static texture. A baked model
@@ -2171,11 +2280,13 @@ function updateBuildingLights(scene, time) {
         glow.gfx.setVisible(false);
       }
       glows.set(id, glow);
+      glowsChanged = true;
       if (queue.indexOf(id) === -1) queue.push(id);
       return;
     }
     glow.gfx.setAlpha(alpha);
     if (glow.gfx.x !== sprite.x || glow.gfx.y !== sprite.y) glow.gfx.setPosition(sprite.x, sprite.y);
+    syncBuildingLightBitmap(glow);
     if (glow.hasBeacons) {
       for (let bi = 0; bi < glow.beacons.length; bi++) {
         const b = glow.beacons[bi];
@@ -2194,6 +2305,7 @@ function updateBuildingLights(scene, time) {
     if (!liveIds.has(id)) {
       destroyBuildingLightGlow(glow);
       glows.delete(id);
+      glowsChanged = true;
     }
   });
 
@@ -2205,7 +2317,7 @@ function updateBuildingLights(scene, time) {
   const camKey = cam
     ? `${Math.round(cam.scrollX / 24)}:${Math.round(cam.scrollY / 24)}:${(cam.zoom || 1).toFixed(2)}`
     : '';
-  if (camKey !== s.__blLodKey || bucketChanged) {
+  if (glowsChanged || camKey !== s.__blLodKey || bucketChanged) {
     s.__blLodKey = camKey;
     const cx = cam ? cam.midPoint.x : 0;
     const cy = cam ? cam.midPoint.y : 0;
@@ -2223,13 +2335,10 @@ function updateBuildingLights(scene, time) {
     for (let i = 0; i < ranked.length; i++) {
       const [, id, glow] = ranked[i];
       const allowed = i < cap;
-      // Hide the whole glow outside the budget, not just its windows. Measured
-      // on a dense night view (same camera, ~430 visible buildings): 400 shown
-      // glows renders in 165ms, 48 in 46ms, with the same ~200 drawn window
-      // cells either way. The cost is ~0.34ms per visible additive Graphics
-      // regardless of what it contains - a per-object batch flush - so cutting
-      // objects is the only lever that moves render time.
+      // Release distant bitmaps as well as hiding their painters, so panning
+      // across a large city cannot grow GPU memory beyond the window budget.
       if (glow.gfx.visible !== allowed) glow.gfx.setVisible(allowed);
+      if (!allowed) releaseBuildingLightBitmap(glow);
       if (glow.windowsAllowed === allowed) continue;
       glow.windowsAllowed = allowed;
       if (allowed !== glow.drewWindows && queue.indexOf(id) === -1) queue.push(id);
@@ -2243,12 +2352,15 @@ function updateBuildingLights(scene, time) {
     if (!glow || !glow.sprite?.visible) continue;
     relightBuildingGlow(s, glow.sprite, glow, bucket, time);
     glow.gfx.setAlpha(alpha);
+    syncBuildingLightBitmap(glow);
   }
 }
 
 // ---------------------------------------------------------------------------
 
 const buildingLightingTestApi = {
+  isLiveBuildingLightsEnabled,
+  setLiveBuildingLightsEnabled,
   BUILDING_LIGHT_CONFIG,
   BUILDING_LIGHT_BUCKETS,
   BUILDING_LIGHT_SCHEDULE,
@@ -2296,6 +2408,8 @@ if (typeof globalThis !== 'undefined') {
     setupBuildingLights,
     updateBuildingLights,
     clearBuildingLights,
+    isLiveBuildingLightsEnabled,
+    setLiveBuildingLightsEnabled,
     releaseBuildingLightGlow,
     refreshAllBuildingLightGlows,
     setBuildingLightDbProfile,

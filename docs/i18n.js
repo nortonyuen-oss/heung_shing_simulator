@@ -242,6 +242,12 @@ const SITE_FEATURE_LIST = {
 // ── Changelog ─────────────────────────────────────────────────────────────────
 const SITE_CHANGELOG = {
   "zh-HK": [
+    { version: "v4.11.0", date: "2026-09-20", dateLabel: "2026年9月20日", title: "明明綠燈 轉眼變為紅燈", items: [
+      "路口交通燈：每個 T 字同十字路口自動喺前一格、司機左邊（香港左軚）放燈柱，面向來車。燈序跟香港：紅 → 紅黃 → 綠 → 黃 → 紅，十字兩相位各綠 8 秒、T 字直路 10 秒支路 5 秒，行人綠公仔喺對面綠燈時亮、最後 3 秒閃。車輛喺路口前約 8 米停紅燈排隊（巴士停得更後），黃燈太近就衝過；路線巴士同雪糕車一樣聽燈。夜晚著燈嘅鏡片有光暈，跟「建築燈光」開關。",
+      "路燈：跟路政署街燈慣例——直路 30 米交錯排列（兩邊輪流）、彎位外側一支、橋面同斜路都有，路口交由交通燈柱。夜晚換上烘焙嘅高壓鈉燈貼圖（橙色鏡片、光錐同路面光池），日出熄燈，同「建築燈光」開關一齊關；全部由路網自動推導，唔佔存檔。",
+      "Mac 幀率提升三倍：Phaser 每個 render batch 用 gl.bufferSubData 寫入同一個 vertex buffer，喺 macOS 嘅 ANGLE→Metal 上每次都要等 GPU 讀完上一次；改成重新分配上傳之後，旺角由 13 fps 去到 45 fps（zoom 2 時 56）。另外每 7.5 日一次嘅模擬 pulse 由一次過 270 毫秒改成分幾幀逐步跑、巴士公司每小時對每個站掃全城建築（每幾秒卡 0.5 秒）改用網格快取、夜景貼圖每 0.1 秒全城重算改成記住每座下次轉變嘅時間。",
+      "修正：夜晚嘅樹變成古怪嘅紅色（夜間物件色調計錯，超出目標色）；release 版巴士站只有一半大、視窗改變大小後燈柱偏移；建築燈光預設永遠用烘焙貼圖，Phaser 即時光源只留喺測試模式；release pipeline 令所有半透明像素變白變亮（AA 邊緣淺色 fringe、橙色路燈光池變黃）——每個 raw buffer 聲明 straight alpha 後全部重新編碼。",
+    ] },
     { version: "v4.10.1", date: "2026-09-19", dateLabel: "2026年9月19日", title: "先敬羅衣", items: [
       "修正畫面「閃下閃下」：飄過城市嘅雲比整個視窗仲大，但一出生就係最終透明度、消失時一幀冇咗，驟雨天每 0.7 秒就有一團大雲直接彈出嚟。而家每片雲喺生命期頭尾各約 18%（六至八秒）慢慢淡入淡出。",
       "安裝檔唔再夾埋官網留言板嘅後台源碼；並以 release 安裝檔實測確認開場展示城市隨 app 一齊發佈、唔會出現喺載入清單、亦無法被覆寫。",
@@ -506,6 +512,12 @@ const SITE_CHANGELOG = {
 // title/items text.
 const SITE_CHANGELOG_TRANSLATIONS = {
   "zh-TW": {
+    "v4.11.0": { title: "明明綠燈 轉眼變為紅燈", items: [
+      "路口號誌：每個 T 字與十字路口自動在前一格、駕駛人左側（香港左駕）設置燈桿，面向來車。燈序依香港：紅 → 紅黃 → 綠 → 黃 → 紅，十字兩相位各綠 8 秒、T 字幹道 10 秒支路 5 秒，行人小綠人在對向綠燈時亮起、最後 3 秒閃爍。車輛在路口前約 8 公尺停紅燈排隊（巴士停得更後），黃燈太近就直接通過；路線巴士與冰淇淋車同樣遵守號誌。夜晚亮起的燈面有光暈，隨「建築燈光」開關。",
+      "路燈：依路政署街燈慣例——直路 30 公尺交錯排列（兩側輪流）、彎道外側一支、橋面與坡道都有，路口交給號誌桿。夜晚換上烘焙的高壓鈉燈貼圖（橙色燈面、光錐與路面光池），日出熄燈，隨「建築燈光」開關一起關閉；全部由路網自動推導，不佔存檔。",
+      "Mac 幀率提升三倍：Phaser 每個 render batch 以 gl.bufferSubData 寫入同一個 vertex buffer，在 macOS 的 ANGLE→Metal 上每次都得等 GPU 讀完上一次；改為重新配置上傳後，旺角由 13 fps 提升到 45 fps（zoom 2 時 56）。另外每 7.5 天一次的模擬 pulse 由一次 270 毫秒改為分數幀逐步執行、巴士公司每小時對每站掃描全城建築（每幾秒卡 0.5 秒）改用網格快取、夜景貼圖每 0.1 秒全城重算改為記住每棟下次變化的時間。",
+      "修正：夜晚的樹木變成詭異的紅色（夜間物件色調計算超出目標色）；release 版公車站只有一半大、視窗改變大小後燈桿偏移；建築燈光預設永遠使用烘焙貼圖，Phaser 即時光源只保留在測試模式；release pipeline 讓所有半透明像素變白變亮（AA 邊緣淺色 fringe、橙色路燈光池變黃）——每個 raw buffer 宣告 straight alpha 後全部重新編碼。",
+    ] },
     "v4.10.1": { title: "先敬羅衣", items: [
       "修正畫面「一閃一閃」：飄過城市的雲比整個視窗還大，但一出生就是最終透明度、消失時一幀就不見，陣雨天每 0.7 秒就有一團大雲直接彈出來。現在每片雲在生命期頭尾各約 18%（六至八秒）慢慢淡入淡出。",
       "安裝檔不再夾帶官網留言板的後端原始碼；並以 release 安裝檔實測確認開場展示城市隨 app 一起發佈、不會出現在載入清單、也無法被覆寫。",
@@ -763,6 +775,12 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   en: {
+    "v4.11.0": { title: "Green One Moment, Red the Next", items: [
+      "Junction traffic signals: every T and cross junction gets a pole on the tile before it, on the driver's left for Hong Kong's left-hand traffic, facing the oncoming lane. The sequence is Hong Kong's - red, red+amber, green, amber, red - with two stages (8 s green each at a cross, 10 s through / 5 s side at a T) and a green man on the crossing arms that flashes for its last 3 s. Vehicles stop and queue about 8 m short of the junction (buses further back), drive through if amber catches them close, and company buses and the ice-cream van obey too. Lit lamps glow at night, tied to the building-lights toggle.",
+      "Street lamps: laid out to Highways Department practice - a 30 m staggered arrangement along straights, one on the outside of every bend, on bridges and slopes too, with junctions left to the signal poles. After dark they swap to baked high-pressure-sodium textures (orange lantern, light cone and a pool on the road), off again at dawn and with the building-lights toggle; all derived from the road map, nothing saved.",
+      "Three times the frame rate on Mac: Phaser uploads every render batch with gl.bufferSubData into one reused vertex buffer, and Chromium's ANGLE-over-Metal waits for the GPU to finish reading it each time; uploading into a fresh allocation instead takes Mong Kok from 13 to 45 fps (56 at zoom 2). The once-per-7.5-days simulation pulse is spread over frames instead of one 270 ms stall, the bus company's hourly per-stop walk over every building (a half-second hitch every few seconds) is a grid cache, and the night-texture sync remembers when each building next changes instead of re-resolving the city ten times a second.",
+      "Fixes: trees turning a garbled red at night (the object tint overshot its target colour); bus stops drawn at half size in release builds; signal poles drifting after a window resize; building lights always wear their baked art, with Phaser's live glows kept to test mode; and the release pipeline brightening every semi-transparent pixel (pale fringes on edges, orange lamp pools rendering yellow) - every raw buffer now declares straight alpha and all art was re-encoded.",
+    ] },
     "v4.10.1": { title: "Dressed to Impress", items: [
       "Fixes the picture appearing to flicker: each drifting cloud is larger than the viewport, yet it was born at its full alpha and removed in a single frame, so under showers a screen-sized pale blob popped in every 0.7 seconds. Every cloud now eases in over the first 18% of its lifespan (six to eight seconds) and out over the last.",
       "The installer no longer carries the website message board's backend source, and the release installer was verified to ship the title-screen showcase city inside the app, keep it out of the load list and leave it impossible to overwrite.",
@@ -1020,6 +1038,12 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   ja: {
+    "v4.11.0": { title: "青だった信号が、瞬く間に赤に", items: [
+      "交差点の信号機：T字・十字路の手前のマスに、香港の左側通行に合わせてドライバーの左側へ自動で柱を立て、対向車に向けます。順序は香港式（赤→赤黄→青→黄→赤）で、十字路は各8秒、T字は本線10秒・支線5秒の2相。歩行者の青は対向が青の間に点き、最後の3秒は点滅。車は交差点の約8m手前で赤信号に停まって並び（バスはさらに後ろ）、黄色で近すぎれば通過。路線バスとアイスクリーム車も従います。夜は点灯レンズが光り、「建物の明かり」設定と連動。",
+      "街灯：路政署の街灯設計に従い、直線は30m千鳥配置、カーブは外側に1本、橋やスロープにも設置し、交差点は信号柱に任せます。夜は焼き込んだ高圧ナトリウム灯テクスチャ（橙色のレンズ、光の円錐、路面の光溜まり）に切り替わり、夜明けに消灯、「建物の明かり」と一緒にオフ。すべて道路網から自動生成され、セーブには含まれません。",
+      "Macのフレームレートが3倍に：Phaserは描画バッチごとにgl.bufferSubDataで同じ頂点バッファへ書き込み、macOSのANGLE→MetalではGPUの読み終わりを毎回待っていました。新規確保へのアップロードに変えると旺角が13fpsから45fps（ズーム2で56）に。7.5日ごとのシミュレーションパルスは一度の270msから複数フレームに分散、バス会社の毎時・全停留所×全建物走査（数秒ごとの0.5秒停止）はグリッドキャッシュに、夜景テクスチャの0.1秒ごとの全建物再計算は各建物の次の変化時刻を記憶する方式に。",
+      "修正：夜に木が奇妙な赤色になる（夜間の物体ティントが目標色を超えていた）、リリース版でバス停が半分の大きさ、ウィンドウサイズ変更後に信号柱がずれる、建物の明かりは常に焼き込みテクスチャを使い、Phaserのライブ光源はテストモード限定に、リリースパイプラインが半透明ピクセルを白く明るくしていた問題（縁の淡いフリンジ、橙色の街灯光溜まりが黄色に）——全rawバッファでストレートアルファを宣言し全アートを再エンコード。",
+    ] },
     "v4.10.1": { title: "まずは装いから", items: [
       "画面がちらつく問題を修正：街の上を流れる雲は画面より大きいのに、生まれた瞬間から最終的な不透明度で、消えるときも1フレームで消えていたため、にわか雨の日は0.7秒ごとに画面大の淡い塊が現れていました。各雲は寿命の最初と最後の約18%（6～8秒）でゆっくりフェードイン・アウトするようになりました。",
       "インストーラーにウェブサイト掲示板のバックエンドのソースが含まれなくなりました。またリリース版インストーラーで、タイトル画面のショーケース都市がアプリに同梱され、ロード一覧に現れず、上書きもできないことを確認しました。",
@@ -1302,8 +1326,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.10.1 — 【先敬羅衣】",
-      versionDesc: "開場畫面換上一座真正嘅香城：主選單後面即時渲染太子，日夜跟你本地時間、天氣跟香港天文台。另修正開新城市殘留巴士站、autosave 重複城市，夜景燈光每幀成本減半。",
+      versionBadge: "v4.11.0 — 【明明綠燈 轉眼變為紅燈】",
+      versionDesc: "路口有交通燈、街道有路燈：T 字同十字路口按香港左軚自動放燈，紅黃綠同行人公仔跟香港燈序，車輛會停紅燈排隊；路燈按路政署 30 米交錯排列，夜晚亮起鈉燈橙光。Mac 幀率提升三倍，並修正夜晚樹變紅。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感嘅城市建設遊戲。起街道、規劃社區、經營自己嘅香城巴士公司、處理議會同天氣，再睇住一座有性格嘅香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1404,8 +1428,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.10.1 — 【先敬羅衣】",
-      versionDesc: "開場畫面換上一座真正的香城：主選單後面即時渲染太子，日夜跟隨你的本地時間、天氣跟隨香港天文台。另修正開新城市殘留公車站、autosave 重複城市，夜景燈光每幀成本減半。",
+      versionBadge: "v4.11.0 — 【明明綠燈 轉眼變為紅燈】",
+      versionDesc: "路口有交通燈、街道有路燈：T 字與十字路口按香港左駕自動配置號誌，紅黃綠與行人小綠人依香港燈序，車輛會停紅燈排隊；路燈依路政署 30 公尺交錯排列，夜晚亮起鈉燈橙光。Mac 幀率提升三倍，並修正夜晚樹木變紅。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感的城市建設遊戲。興建街道、規劃社區、經營自己的香城公車公司、處理議會與天氣，看著一座有個性的香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1506,8 +1530,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "The City of Heung Shing",
       title: "The City of Heung Shing",
-      versionBadge: "v4.10.1 — Dressed to Impress",
-      versionDesc: "The title screen now shows a real Heung Shing: Prince Edward rendered live behind the menu, day and night following your local time and the weather following the Hong Kong Observatory. Also fixes leftover bus stops in a new city and duplicate cities from autosaves, and halves the per-frame night-lighting cost.",
+      versionBadge: "v4.11.0 — Green One Moment, Red the Next",
+      versionDesc: "Traffic signals at every junction and street lamps along every road: poles placed for Hong Kong's left-hand traffic with the local red-amber-green and green-man sequence, and traffic that stops and queues at red; lamps in the Highways Department's 30 m staggered pattern, glowing sodium orange after dark. Three times the frame rate on Mac, and no more red trees at night.",
       lede: "A city-building game inspired by Hong Kong life and made in tribute to SimCity 2000. Build streets, shape neighbourhoods, run your own Heung Shing Bus Company, navigate council politics and weather, then watch a city with real personality grow.",
       freeLabel: "Completely free · macOS + Windows · Local saves",
       downloadBtn: "【Free Download】",
@@ -1609,8 +1633,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.10.1 — まずは装いから",
-      versionDesc: "タイトル画面が本物の香城に：メニューの背後で太子をリアルタイム描画し、昼夜は現地時間、天気は香港天文台に追従。新しい街に残るバス停や自動保存による重複した街も修正し、夜景ライティングの毎フレームコストを半減。",
+      versionBadge: "v4.11.0 — 青だった信号が、瞬く間に赤に",
+      versionDesc: "交差点に信号機、通りに街灯：T字・十字路に香港の左側通行に合わせて自動配置され、赤・赤黄・青と歩行者信号は香港の順序で点灯し、車は赤で停止して並びます。街灯は路政署の30m千鳥配置で、夜はナトリウム灯の橙色に。Macでフレームレートが3倍になり、夜の木が赤くなる不具合も修正。",
       lede: "香港の都市生活から着想を得た、SimCity 2000へのオマージュとなる都市建設ゲーム。道路を築き、地区を計画し、自分だけの香城バス会社を経営し、議会や天候に向き合いながら、個性ある香城の成長を見守ります。",
       freeLabel: "完全無料 · macOS + Windows · ローカルセーブ",
       downloadBtn: "【無料ダウンロード】",

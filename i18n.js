@@ -1,6 +1,6 @@
 const I18N_STORAGE_KEY = 'citybuilder.language';
-let appVersion = '4.10.1';
-let appReleaseTheme = '【先敬羅衣】';
+let appVersion = '4.11.0';
+let appReleaseTheme = '【明明綠燈 轉眼變為紅燈】';
 
 const LANGUAGES = {
   en: 'English',

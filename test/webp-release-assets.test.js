@@ -53,7 +53,7 @@ test('release conversion preserves source edges and restores power-of-two mipmap
   assert.ok(paddingIndex > resizeIndex, 'power-of-two padding must follow resize and trim');
   assert.ok(extendIndex > paddingIndex, 'transparent padding must be applied before encoding');
   assert.ok(encodeIndex > extendIndex, 'WebP encoding must run after power-of-two padding');
-  assert.match(source, /const SETTINGS_VERSION = 5/);
+  assert.match(source, /const SETTINGS_VERSION = 6/);
   assert.doesNotMatch(source, /defringeWhiteMatteRgba/);
   assert.match(source, /defringe: 'none-source-preserved'/);
   assert.match(source, /lossless: true/);

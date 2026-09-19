@@ -1,3 +1,31 @@
+# The City of Heung Shing v4.10.1 — 【先敬羅衣】
+
+【先敬羅衣】嘅修正版：畫面唔再「閃下閃下」，安裝檔更乾淨，並以正式安裝檔驗證過開場展示城市嘅發佈方式。
+
+## Highlights
+
+- **修正畫面閃爍**：飄過城市嘅雲層粒子比整個視窗仲大（1100–1600 px），但一出生就係最終透明度、生命期完結時一幀消失。驟雨天氣（moderate tier）每 0.7 秒就有一團大雲直接彈出嚟，整個畫面一閃一閃。而家每片雲各自喺生命期頭 18% 慢慢淡入、尾 18% 淡出（約六至八秒）。逐幀像素比較：修正前每隔幾幀就有 3–50% 畫面突變，修正後連續 24 幀全部 ≤0.1%。
+- **安裝檔排除 `services/`**：官網留言板嘅 Cloudflare Worker 源碼（含 `wrangler.jsonc`）之前被夾入 app.asar；本地 `npm run dist` 仲會夾埋 248 MB node_modules。已加入打包排除。
+- **展示城市發佈方式已驗證**：用 v4.10.0 release DMG 實測——`app.asar` 內有 `UI/attract-city.json`，packaged app 以 app 內檔案啟動展示城市（1935/1935 bake 貼圖），載入清單只列玩家 DB，`/api/dev/attract-city` 回 404。新玩家安裝即有展示城市，冇途徑載入或覆寫佢。
+
+## Compatibility
+
+- 存檔完全兼容，無格式改動。
+
+## Verification
+
+- 完整專案測試 471 項全部通過（新增：打包規則永不排除展示城市、`services/**` 已排除）。
+- 雲層修正以 Phaser renderer snapshot 逐幀比對驗證；閃電效果（紅黑雨、三號風球以上）維持原設計不變。
+
+## Downloads
+
+- macOS Apple Silicon DMG
+- macOS Intel DMG
+- Windows installer EXE
+- Windows portable EXE
+
+---
+
 # The City of Heung Shing v4.10.0 — 【先敬羅衣】
 
 先敬羅衣後敬人。呢個版本換咗遊戲嘅「衫」：開場畫面唔再係一張舊圖，而係主選單後面即時渲染緊嘅一座香城；連同官網嘅新封面、新留言板同圖文版遊戲指南。

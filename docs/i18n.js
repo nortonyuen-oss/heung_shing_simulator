@@ -242,6 +242,10 @@ const SITE_FEATURE_LIST = {
 // ── Changelog ─────────────────────────────────────────────────────────────────
 const SITE_CHANGELOG = {
   "zh-HK": [
+    { version: "v4.10.1", date: "2026-09-19", dateLabel: "2026年9月19日", title: "先敬羅衣", items: [
+      "修正畫面「閃下閃下」：飄過城市嘅雲比整個視窗仲大，但一出生就係最終透明度、消失時一幀冇咗，驟雨天每 0.7 秒就有一團大雲直接彈出嚟。而家每片雲喺生命期頭尾各約 18%（六至八秒）慢慢淡入淡出。",
+      "安裝檔唔再夾埋官網留言板嘅後台源碼；並以 release 安裝檔實測確認開場展示城市隨 app 一齊發佈、唔會出現喺載入清單、亦無法被覆寫。",
+    ] },
     { version: "v4.10.0", date: "2026-09-17", dateLabel: "2026年9月17日", title: "先敬羅衣", items: [
       "開場畫面換上一座真正嘅香城：主選單後面即時渲染太子——海港、貨櫃碼頭、路上行駛嘅車，日夜燈光跟你本地時間，天氣跟香港天文台實時觀測（離線就用遊戲自己嘅天氣），鏡頭慢慢漂移。只渲染唔模擬：日曆凍結、唔會自動存檔、唔會有新聞或通知，亦唔會碰你任何存檔。機器食力嘅話會自動先關建築燈、再固定鏡頭、最後退回靜態夜景；設定選單可以整個關掉。未載入前嘅靜態封面亦換成最新嘅夜景天際線。",
       "修正開新城市時殘留上一座城市嘅巴士站、車輛同天氣：以前只重設資料冇清 sprite，由展示城市或者返回主選單後開新城市會見到一地巴士站。載入冇連結手動存檔槽嘅 autosave 時，如果剛好有一個同名手動存檔，會自動認領佢，返回主選單唔會再多出一個重複城市。",
@@ -502,6 +506,10 @@ const SITE_CHANGELOG = {
 // title/items text.
 const SITE_CHANGELOG_TRANSLATIONS = {
   "zh-TW": {
+    "v4.10.1": { title: "先敬羅衣", items: [
+      "修正畫面「一閃一閃」：飄過城市的雲比整個視窗還大，但一出生就是最終透明度、消失時一幀就不見，陣雨天每 0.7 秒就有一團大雲直接彈出來。現在每片雲在生命期頭尾各約 18%（六至八秒）慢慢淡入淡出。",
+      "安裝檔不再夾帶官網留言板的後端原始碼；並以 release 安裝檔實測確認開場展示城市隨 app 一起發佈、不會出現在載入清單、也無法被覆寫。",
+    ] },
     "v4.10.0": { title: "先敬羅衣", items: [
       "開場畫面換上一座真正的香城：主選單後面即時渲染太子——海港、貨櫃碼頭、路上行駛的車，日夜燈光跟隨你的本地時間，天氣跟隨香港天文台即時觀測（離線則用遊戲自己的天氣），鏡頭緩緩漂移。只渲染不模擬：日曆凍結、不會自動存檔、不會有新聞或通知，也不會碰你任何存檔。機器吃力時會自動先關建築燈、再固定鏡頭、最後退回靜態夜景；設定選單可以整個關閉。載入前的靜態封面也換成最新的夜景天際線。",
       "修正開新城市時殘留上一座城市的公車站、車輛與天氣：以前只重設資料沒有清 sprite，從展示城市或返回主選單後開新城市會看到滿地公車站。載入沒有連結手動存檔槽的 autosave 時，如果剛好有一個同名手動存檔，會自動認領它，返回主選單不會再多出一個重複城市。",
@@ -755,6 +763,10 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   en: {
+    "v4.10.1": { title: "Dressed to Impress", items: [
+      "Fixes the picture appearing to flicker: each drifting cloud is larger than the viewport, yet it was born at its full alpha and removed in a single frame, so under showers a screen-sized pale blob popped in every 0.7 seconds. Every cloud now eases in over the first 18% of its lifespan (six to eight seconds) and out over the last.",
+      "The installer no longer carries the website message board's backend source, and the release installer was verified to ship the title-screen showcase city inside the app, keep it out of the load list and leave it impossible to overwrite.",
+    ] },
     "v4.10.0": { title: "Dressed to Impress", items: [
       "The title screen now shows a real Heung Shing: Prince Edward is rendered live behind the menu - harbour, container port, traffic on the roads - with day and night following your local time, the weather following the Hong Kong Observatory's current readings (the game's own weather when offline) and a slowly drifting camera. It renders but never simulates: the calendar is frozen, nothing autosaves, no news or notices appear and none of your saves are touched. On a struggling machine it drops the building lights first, then holds the camera, and only then falls back to the static artwork; the Settings menu can switch it off entirely. The static cover shown before it loads is the current night skyline.",
       "Fixes a new city inheriting the previous city's bus stops, vehicles and weather: only the data was reset, never the sprites, so a new city started after the showcase or after Return to Main Menu was littered with bus stops. Loading an autosave that has no manual slot now adopts the one manual save with the same city name, so returning to the menu no longer mints a duplicate city.",
@@ -1008,6 +1020,10 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   ja: {
+    "v4.10.1": { title: "まずは装いから", items: [
+      "画面がちらつく問題を修正：街の上を流れる雲は画面より大きいのに、生まれた瞬間から最終的な不透明度で、消えるときも1フレームで消えていたため、にわか雨の日は0.7秒ごとに画面大の淡い塊が現れていました。各雲は寿命の最初と最後の約18%（6～8秒）でゆっくりフェードイン・アウトするようになりました。",
+      "インストーラーにウェブサイト掲示板のバックエンドのソースが含まれなくなりました。またリリース版インストーラーで、タイトル画面のショーケース都市がアプリに同梱され、ロード一覧に現れず、上書きもできないことを確認しました。",
+    ] },
     "v4.10.0": { title: "まずは装いから", items: [
       "タイトル画面が本物の香城になりました。メニューの背後で太子をリアルタイム描画——港、コンテナ埠頭、道路を走る車——昼夜はお使いの現地時間に、天気は香港天文台の最新観測に追従（オフライン時はゲーム内の天気）、カメラはゆっくり漂います。描画のみでシミュレーションは行いません：暦は止まり、自動保存も、ニュースや通知も、セーブデータへの影響も一切ありません。負荷が高い環境では建物の灯り→カメラ固定→静止画の順に自動で軽量化し、設定メニューで丸ごと無効化もできます。読み込み前の静止画も最新の夜景スカイラインに。",
       "新しい街に前の街のバス停・車両・天気が残る不具合を修正：データだけリセットされスプライトは残っていたため、ショーケースやメインメニュー復帰後に新しい街を始めるとバス停だらけになっていました。手動スロットに紐づかない自動保存を読み込んだ際、同名の手動保存が1つだけあればそれを引き継ぎ、メニューに戻っても重複した街が増えなくなりました。",
@@ -1286,7 +1302,7 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.10.0 — 【先敬羅衣】",
+      versionBadge: "v4.10.1 — 【先敬羅衣】",
       versionDesc: "開場畫面換上一座真正嘅香城：主選單後面即時渲染太子，日夜跟你本地時間、天氣跟香港天文台。另修正開新城市殘留巴士站、autosave 重複城市，夜景燈光每幀成本減半。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感嘅城市建設遊戲。起街道、規劃社區、經營自己嘅香城巴士公司、處理議會同天氣，再睇住一座有性格嘅香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
@@ -1360,7 +1376,7 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.10.0 — 【先敬羅衣】",
+      versionBadge: "v4.10.1 — 【先敬羅衣】",
       versionDesc: "開場畫面換上一座真正的香城：主選單後面即時渲染太子，日夜跟隨你的本地時間、天氣跟隨香港天文台。另修正開新城市殘留公車站、autosave 重複城市，夜景燈光每幀成本減半。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感的城市建設遊戲。興建街道、規劃社區、經營自己的香城公車公司、處理議會與天氣，看著一座有個性的香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
@@ -1434,7 +1450,7 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "The City of Heung Shing",
       title: "The City of Heung Shing",
-      versionBadge: "v4.10.0 — Dressed to Impress",
+      versionBadge: "v4.10.1 — Dressed to Impress",
       versionDesc: "The title screen now shows a real Heung Shing: Prince Edward rendered live behind the menu, day and night following your local time and the weather following the Hong Kong Observatory. Also fixes leftover bus stops in a new city and duplicate cities from autosaves, and halves the per-frame night-lighting cost.",
       lede: "A city-building game inspired by Hong Kong life and made in tribute to SimCity 2000. Build streets, shape neighbourhoods, run your own Heung Shing Bus Company, navigate council politics and weather, then watch a city with real personality grow.",
       freeLabel: "Completely free · macOS + Windows · Local saves",
@@ -1509,7 +1525,7 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.10.0 — まずは装いから",
+      versionBadge: "v4.10.1 — まずは装いから",
       versionDesc: "タイトル画面が本物の香城に：メニューの背後で太子をリアルタイム描画し、昼夜は現地時間、天気は香港天文台に追従。新しい街に残るバス停や自動保存による重複した街も修正し、夜景ライティングの毎フレームコストを半減。",
       lede: "香港の都市生活から着想を得た、SimCity 2000へのオマージュとなる都市建設ゲーム。道路を築き、地区を計画し、自分だけの香城バス会社を経営し、議会や天候に向き合いながら、個性ある香城の成長を見守ります。",
       freeLabel: "完全無料 · macOS + Windows · ローカルセーブ",

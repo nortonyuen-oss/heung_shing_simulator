@@ -43,61 +43,44 @@ function runDailySystems(scene) {
 // separated the calendar from this pulse. Still runs about four times per
 // game month (see game-clock.js's CITY_SIMULATION_PULSE_DAYS), the same
 // cadence TICKS_PER_MONTH-based tuning throughout the sim assumes.
-function runLegacyCitySimulationPulse(scene) {
-  if (!scene) return;
-  const performanceProfileStartedAt = (
-    typeof isVisualRouteCalibrationTestModeEnabled === 'function'
-    && isVisualRouteCalibrationTestModeEnabled()
-    && typeof recordVisualRoutePerformanceDuration === 'function'
-  ) ? performance.now() : null;
-  const runProfiledStep = (section, action) => {
-    if (performanceProfileStartedAt === null) return action();
-    const startedAt = performance.now();
-    const result = action();
-    recordVisualRoutePerformanceDuration(scene, `sim.${section}`, performance.now() - startedAt);
-    return result;
-  };
-
-  // A pulse refreshes aggregate counts, but facility anchors only change
-  // through placement/demolition/load paths which invalidate their cache
-  // explicitly.
-  invalidateBuildingCountCache({ facilities: false });
-
-  // Order matters:
-  // 1. Infrastructure state (power, services)
-  // 2. Population/pollution counts (needed for happiness)
-  // 3. Happiness (needed for demand)
-  // 4. Demand (needs fresh happiness)
-  // 5. Zone growth (needs fresh demand)
-  // 6. Economy, date, display
-  runProfiledStep('power', () => updatePowerGrid(scene));
-  runProfiledStep('services', () => updateServiceCoverage());
-  runProfiledStep('population', () => updatePopulationAndPollution());
-  runProfiledStep('transport', () => {
+// One pulse = these steps in this order. Order matters:
+// 1. Infrastructure state (power, services)
+// 2. Population/pollution counts (needed for happiness)
+// 3. Happiness (needed for demand)
+// 4. Demand (needs fresh happiness)
+// 5. Zone growth (needs fresh demand)
+// 6. Economy, date, display
+function buildCitySimulationPulseSteps(scene) {
+  const steps = [];
+  const step = (section, action) => steps.push({ section, action });
+  step('power', () => updatePowerGrid(scene));
+  step('services', () => updateServiceCoverage());
+  step('population', () => updatePopulationAndPollution());
+  step('transport', () => {
     if (typeof updateTransportSimulation === 'function') updateTransportSimulation();
   });
-  runProfiledStep('traffic', () => updateTrafficMap());
-  runProfiledStep('education', () => updateEducationLevels());
-  runProfiledStep('crime', () => updateCrimeRateIndex());
-  runProfiledStep('health', () => updateHealthMetrics());
-  runProfiledStep('happiness', () => computeHappiness(scene));
-  runProfiledStep('attractiveness', () => {
+  step('traffic', () => updateTrafficMap());
+  step('education', () => updateEducationLevels());
+  step('crime', () => updateCrimeRateIndex());
+  step('health', () => updateHealthMetrics());
+  step('happiness', () => computeHappiness(scene));
+  step('attractiveness', () => {
     if (typeof updateCityAttractivenessMetrics === 'function') updateCityAttractivenessMetrics();
   });
-  runProfiledStep('demand', () => updateDemand());
-  runProfiledStep('stocks', () => updateStockMarketTick());
-  runProfiledStep('trees', () => updateTrees(scene));
-  runProfiledStep('debris', () => {
+  step('demand', () => updateDemand());
+  step('stocks', () => updateStockMarketTick());
+  step('trees', () => updateTrees(scene));
+  step('debris', () => {
     if (typeof updateDebris === 'function') updateDebris(scene);
   });
-  runProfiledStep('citizens', () => updateCitizenActivitySimulation());
-  runProfiledStep('news', () => {
+  step('citizens', () => updateCitizenActivitySimulation());
+  step('news', () => {
     if (typeof queueAiNewsGeneration === 'function') queueAiNewsGeneration();
   });
-
-  // Keep the expensive full-map diagnostics available for development without
-  // charging every player for another zone/road scan once per game month.
-  if (SIM_DEBUG_LOGGING && city.tick % TICKS_PER_MONTH === 0) {
+  step('diagnostics', () => {
+    // Keep the expensive full-map diagnostics available for development without
+    // charging every player for another zone/road scan once per game month.
+    if (!(SIM_DEBUG_LOGGING && city.tick % TICKS_PER_MONTH === 0)) return;
     let zonedCount = 0, roadAdjacentZoned = 0, poweredZoned = 0;
     for (let r = 0; r < MAP_HEIGHT; r++)
       for (let c = 0; c < MAP_WIDTH; c++)
@@ -112,28 +95,109 @@ function runLegacyCitySimulationPulse(scene) {
       ` demandC=${city.demandC.toFixed(2)} demandI=${city.demandI.toFixed(2)}` +
       ` powerSources=${powerSources.size} budget=$${city.budget}`
     );
+  });
+  if (typeof buildZoneGrowthSteps === 'function') {
+    // Zone growth is the longest part of a pulse; its own steps (the tile walk in chunks)
+    // join the list so the frame scheduler can spread them too.
+    for (const growthStep of buildZoneGrowthSteps(scene)) step(growthStep.section, growthStep.action);
+  } else {
+    step('growth', () => growOrShrinkZones(scene));
   }
-
-  runProfiledStep('growth', () => growOrShrinkZones(scene));
-  runProfiledStep('economy', () => runEconomy(scene));
-  runProfiledStep('council', () => {
+  step('economy', () => runEconomy(scene));
+  step('council', () => {
     if (typeof updateCouncilTimedSystems === 'function') updateCouncilTimedSystems();
   });
-  runProfiledStep('overlay', () => refreshZoneOverlayTints(scene));
-  // Invalidate now so an open mini-map is recomputed once on the HUD refresh
-  // that follows this pulse (game-clock.js's onCalendarDayAdvanced), not once
-  // with stale data and then a second time immediately afterwards.
-  if (typeof activeOverlay === 'string' && activeOverlay) {
-    if (typeof invalidateOverlayCache === 'function') invalidateOverlayCache();
-    else overlayCache = {};
+  step('overlay', () => {
+    refreshZoneOverlayTints(scene);
+    // Invalidate now so an open mini-map is recomputed once on the HUD refresh
+    // that follows this pulse (game-clock.js's onCalendarDayAdvanced), not once
+    // with stale data and then a second time immediately afterwards.
+    if (typeof activeOverlay === 'string' && activeOverlay) {
+      if (typeof invalidateOverlayCache === 'function') invalidateOverlayCache();
+      else overlayCache = {};
+    }
+  });
+  return steps;
+}
+
+function isCitySimulationProfiling() {
+  return typeof isVisualRouteCalibrationTestModeEnabled === 'function'
+    && isVisualRouteCalibrationTestModeEnabled()
+    && typeof recordVisualRoutePerformanceDuration === 'function';
+}
+
+function runCitySimulationPulseStep(scene, step, profiling) {
+  if (!profiling) return step.action();
+  const startedAt = performance.now();
+  const result = step.action();
+  const elapsed = performance.now() - startedAt;
+  recordVisualRoutePerformanceDuration(scene, `sim.${step.section}`, elapsed);
+  return result;
+}
+
+function beginCitySimulationPulse() {
+  // A pulse refreshes aggregate counts, but facility anchors only change
+  // through placement/demolition/load paths which invalidate their cache
+  // explicitly.
+  invalidateBuildingCountCache({ facilities: false });
+}
+
+// The whole pulse in one go: tests, tools and any caller that needs the result now.
+function runLegacyCitySimulationPulse(scene) {
+  if (!scene) return;
+  const profiling = isCitySimulationProfiling();
+  const startedAt = profiling ? performance.now() : 0;
+  beginCitySimulationPulse();
+  for (const step of buildCitySimulationPulseSteps(scene)) runCitySimulationPulseStep(scene, step, profiling);
+  if (profiling) recordVisualRoutePerformanceDuration(scene, 'simulation', performance.now() - startedAt);
+}
+
+// In play the pulse is spread over frames instead: the same steps in the same order, one or
+// more per frame until CITY_PULSE_FRAME_BUDGET_MS is used up, so a ~270ms pulse in a big city
+// (旺角) no longer lands as one dropped frame every few seconds. Pulses queue if the calendar
+// outruns them; `onComplete` fires after the last step (game-clock.js bumps the tick there).
+const CITY_PULSE_FRAME_BUDGET_MS = 6;
+const citySimulationPulseQueue = [];
+
+function scheduleCitySimulationPulse(scene, onComplete = null) {
+  if (!scene) return false;
+  citySimulationPulseQueue.push({ scene, steps: null, index: 0, onComplete, elapsedMs: 0 });
+  return true;
+}
+
+function isCitySimulationPulsePending() {
+  return citySimulationPulseQueue.length > 0;
+}
+
+function pumpCitySimulationPulse(budgetMs = CITY_PULSE_FRAME_BUDGET_MS) {
+  if (!citySimulationPulseQueue.length) return false;
+  const startedAt = performance.now();
+  const profiling = isCitySimulationProfiling();
+  while (citySimulationPulseQueue.length) {
+    const job = citySimulationPulseQueue[0];
+    if (!job.steps) {
+      beginCitySimulationPulse();
+      job.steps = buildCitySimulationPulseSteps(job.scene);
+    }
+    while (job.index < job.steps.length) {
+      const stepStartedAt = performance.now();
+      runCitySimulationPulseStep(job.scene, job.steps[job.index], profiling);
+      job.elapsedMs += performance.now() - stepStartedAt;
+      job.index++;
+      // A finished pulse completes now, in this frame, budget or not.
+      if (job.index < job.steps.length && performance.now() - startedAt >= budgetMs) return true;
+    }
+    citySimulationPulseQueue.shift();
+    if (profiling) recordVisualRoutePerformanceDuration(job.scene, 'simulation', job.elapsedMs);
+    if (typeof job.onComplete === 'function') job.onComplete();
+    if (performance.now() - startedAt >= budgetMs) return citySimulationPulseQueue.length > 0;
   }
-  if (performanceProfileStartedAt !== null) {
-    recordVisualRoutePerformanceDuration(
-      scene,
-      'simulation',
-      performance.now() - performanceProfileStartedAt,
-    );
-  }
+  return false;
+}
+
+// Drain every queued pulse synchronously (before a save, or in tests).
+function flushCitySimulationPulses() {
+  while (citySimulationPulseQueue.length) pumpCitySimulationPulse(Infinity);
 }
 
 function updateEducationLevels() {

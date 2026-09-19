@@ -1022,6 +1022,17 @@ function getConnectedCommissionedTransportDepots() {
   return listTransportDepots({ connectedOnly: true }).filter((depot) => commissioned.has(depot.id));
 }
 
+// The maintenance step runs every frame and only needs the ids; listing depots walks every
+// building record (thousands in a big city, ~4ms a frame), so the answer is reused for a
+// second - a depot that has just been connected joins the next second.
+const TRANSPORT_DEPOT_ID_CACHE_MS = 1000;
+let transportDepotIdCache = { at: -Infinity, ids: new Set() };
+function getConnectedCommissionedTransportDepotIds(now = Date.now()) {
+  if (now - transportDepotIdCache.at < TRANSPORT_DEPOT_ID_CACHE_MS) return transportDepotIdCache.ids;
+  transportDepotIdCache = { at: now, ids: new Set(getConnectedCommissionedTransportDepots().map((depot) => depot.id)) };
+  return transportDepotIdCache.ids;
+}
+
 // §13: repurposed from an abstract per-route pool into literal depot parking
 // capacity - citywide total (reporting) and per-depot (purchase gating).
 function getTransportFleetCapacity() {
@@ -1179,7 +1190,7 @@ function advanceTransportVehicleMaintenance(elapsedMinutes) {
   const minutes = Math.max(0, Number(elapsedMinutes) || 0);
   if (minutes <= 0 || !isTransportExpansionActive()) return;
   const state = getTransportExpansionState();
-  const connectedDepotIds = new Set(getConnectedCommissionedTransportDepots().map((depot) => depot.id));
+  const connectedDepotIds = getConnectedCommissionedTransportDepotIds();
   for (const vehicle of state.vehicles) {
     if (vehicle.status === 'depot') {
       // §10: idle parked time slowly restores condition (a mechanic can
@@ -1788,26 +1799,75 @@ function getTransportDestinationUnits(record) {
 // isolation - a building within radius of two nearby stops can count toward
 // both (accepted simplification; the per-day claimed-riders tracking in
 // simulateTransportVehiclesDaily is what actually prevents double-boarding).
+// Catchment lookups used to walk every building record per stop, and they run per stop
+// every game hour and for every stop of a route at each bus arrival - in 旺角 that was a
+// ~500ms hitch every few seconds. The buildings are bucketed once into a coarse grid and each
+// stop's answer memoised; both are rebuilt after TRANSPORT_CATCHMENT_INDEX_MS, which is well
+// inside how fast the underlying population moves.
+const TRANSPORT_CATCHMENT_INDEX_MS = 2000;
+const TRANSPORT_CATCHMENT_CELL = TRANSPORT_STOP_CATCHMENT_RADIUS;
+let transportCatchmentIndex = { at: -Infinity, cells: new Map(), stops: new Map() };
+
+function buildTransportCatchmentIndex() {
+  const cells = new Map();
+  if (typeof buildingData !== 'undefined') {
+    for (const id in buildingData) {
+      const record = buildingData[id];
+      if (!record || record.type === 'bus_depot') continue;
+      const separator = id.indexOf(':');
+      const anchorRow = Number(id.slice(0, separator));
+      const anchorCol = Number(id.slice(separator + 1));
+      const row = anchorRow + (Math.max(1, Number(record.footprintRows) || 1) - 1) / 2;
+      const col = anchorCol + (Math.max(1, Number(record.footprintCols) || 1) - 1) / 2;
+      // §14.4: UH (ultra-rich) residents don't ride the bus at all, not just
+      // "don't count toward happiness" - they generate no boarding demand.
+      const originUnits = record.type === 'residential' && record.wealthTier !== 'UH'
+        ? Math.max(0, Number(record.population) || 0) * 0.18
+        : 0;
+      const destinationUnits = getTransportDestinationUnits(record);
+      if (!originUnits && !destinationUnits) continue;
+      const key = `${Math.floor(row / TRANSPORT_CATCHMENT_CELL)}:${Math.floor(col / TRANSPORT_CATCHMENT_CELL)}`;
+      let cell = cells.get(key);
+      if (!cell) cells.set(key, cell = []);
+      cell.push({ row, col, originUnits, destinationUnits });
+    }
+  }
+  transportCatchmentIndex = { at: Date.now(), cells, stops: new Map() };
+  return transportCatchmentIndex;
+}
+
+function getTransportCatchmentIndex(now = Date.now()) {
+  if (now - transportCatchmentIndex.at < TRANSPORT_CATCHMENT_INDEX_MS) return transportCatchmentIndex;
+  return buildTransportCatchmentIndex();
+}
+
 function getTransportStopCatchmentUnits(stop) {
   if (!stop || typeof buildingData === 'undefined') return { originUnits: 0, destinationUnits: 0 };
+  const index = getTransportCatchmentIndex();
+  const memoKey = `${stop.id ?? ''}@${stop.row}:${stop.col}`;
+  const memo = index.stops.get(memoKey);
+  if (memo) return memo;
   let originUnits = 0;
   let destinationUnits = 0;
-  for (const [id, record] of Object.entries(buildingData)) {
-    if (!record || record.type === 'bus_depot') continue;
-    const separator = id.indexOf(':');
-    const anchorRow = Number(id.slice(0, separator));
-    const anchorCol = Number(id.slice(separator + 1));
-    const row = anchorRow + (Math.max(1, Number(record.footprintRows) || 1) - 1) / 2;
-    const col = anchorCol + (Math.max(1, Number(record.footprintCols) || 1) - 1) / 2;
-    if (Math.abs(stop.row - row) + Math.abs(stop.col - col) > TRANSPORT_STOP_CATCHMENT_RADIUS) continue;
-    // §14.4: UH (ultra-rich) residents don't ride the bus at all, not just
-    // "don't count toward happiness" - they generate no boarding demand.
-    if (record.type === 'residential' && record.wealthTier !== 'UH') {
-      originUnits += Math.max(0, Number(record.population) || 0) * 0.18;
+  const radius = TRANSPORT_STOP_CATCHMENT_RADIUS;
+  const minCellRow = Math.floor((stop.row - radius) / TRANSPORT_CATCHMENT_CELL);
+  const maxCellRow = Math.floor((stop.row + radius) / TRANSPORT_CATCHMENT_CELL);
+  const minCellCol = Math.floor((stop.col - radius) / TRANSPORT_CATCHMENT_CELL);
+  const maxCellCol = Math.floor((stop.col + radius) / TRANSPORT_CATCHMENT_CELL);
+  for (let cellRow = minCellRow; cellRow <= maxCellRow; cellRow++) {
+    for (let cellCol = minCellCol; cellCol <= maxCellCol; cellCol++) {
+      const cell = index.cells.get(`${cellRow}:${cellCol}`);
+      if (!cell) continue;
+      for (const entry of cell) {
+        if (Math.abs(stop.row - entry.row) + Math.abs(stop.col - entry.col) > radius) continue;
+        originUnits += entry.originUnits;
+        destinationUnits += entry.destinationUnits;
+      }
     }
-    destinationUnits += getTransportDestinationUnits(record);
   }
-  return { originUnits, destinationUnits };
+  const result = { originUnits, destinationUnits };
+  index.stops.set(memoKey, result);
+  return result;
 }
 
 // §12 movement: a route's stops visited in round-trip cyclic order (forward

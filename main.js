@@ -703,6 +703,8 @@ function updateGameFrame(time, delta) {
   // frame at one second for the hidden-tab case.
   const clockDeltaMs = Number.isFinite(this.game?.loop?.rawDelta) ? this.game.loop.rawDelta : delta;
   if (typeof updateGameClock === 'function') updateGameClock(this, clockDeltaMs);
+  // A calendar pulse queued by the clock runs a few steps per frame (simulation.js).
+  if (typeof pumpCitySimulationPulse === 'function') pumpCitySimulationPulse();
   // At displayed 8x the full day/night cycle is one minute, so the old 500ms
   // ambient interval would visibly stair-step the sky. Ten updates/second keeps
   // colour and mask transitions smooth without redrawing the overlay every frame.
@@ -1618,6 +1620,31 @@ async function initializeGame() {
   new Phaser.Game(config);
 }
 
+// Phaser 3.60 uploads every render batch with gl.bufferSubData into the one vertex buffer it
+// owns. On Chromium's ANGLE-over-Metal (every Mac) that write lands on a buffer the GPU is
+// still reading, so the driver stalls the GPU process until the previous draw has finished:
+// ~150 uploads a frame in a dense city cost ~0.35ms each, and 旺角 sat at 14 fps with the
+// JavaScript side idle. Replacing that upload with gl.bufferData (a fresh, driver-streamed
+// allocation of just the used bytes) measured 14 -> 59 fps on an Intel Iris Plus 655 with the
+// same scene, so the shim rewrites exactly that call: ARRAY_BUFFER, offset 0, a typed-array
+// view. Phaser's only other partial upload (GameObjects.Shader) has the same shape and is
+// equally happy. Installed once per WebGL context, before the first frame renders.
+function installVertexUploadShim(renderer) {
+  const gl = renderer?.gl;
+  if (!gl || gl.__vertexUploadShim || typeof gl.bufferSubData !== 'function') return false;
+  const arrayBuffer = gl.ARRAY_BUFFER;
+  const dynamicDraw = gl.DYNAMIC_DRAW;
+  const original = gl.bufferSubData;
+  gl.bufferSubData = function shimmedBufferSubData(target, offset, data, ...rest) {
+    if (target === arrayBuffer && offset === 0 && rest.length === 0 && ArrayBuffer.isView(data)) {
+      return gl.bufferData(target, data, dynamicDraw);
+    }
+    return original.call(gl, target, offset, data, ...rest);
+  };
+  gl.__vertexUploadShim = true;
+  return true;
+}
+
 async function loadModelAssetManifest() {
   try {
     const response = await fetch('/api/model-assets', { cache: 'no-store' });
@@ -2097,6 +2124,7 @@ function preload() {
 }
 
 function create() {
+  installVertexUploadShim(this.game?.renderer);
   activeScene = this;
   if (typeof setupVisualRoutePerformanceHooks === 'function') {
     setupVisualRoutePerformanceHooks(this);
@@ -7091,22 +7119,47 @@ function syncBuildingNightTextures(scene, rawNightAlpha) {
     ? Number(getAstronomyVisualDay()?.sunsetMinutes) : NaN;
   const state = wantNight ? `night:${minute}` : 'day';
   if (scene.__blNightTexState === state && !scene.__blNightTexPending) return;
-  const pickVariant = typeof getBuildingNightVariant === 'function' && typeof getBuildingNightKind === 'function'
+  const pickVariant = typeof getBuildingNightVariantWindow === 'function' && typeof getBuildingNightKind === 'function'
     && typeof getBuildingLightSeed === 'function';
+  // At 1x a game minute passes every ~80ms, so this walk used to re-resolve every building on
+  // nearly every lighting tick (~9ms, 35ms peaks, in 旺角). Each building's schedule is a pure
+  // function of the minute, so remember the variant it wears and the minute it next changes
+  // (getBuildingNightVariantWindow) and skip it until then; a new night invalidates the memo.
+  if (wantNight && scene.__blNightTexState !== state && !String(scene.__blNightTexState || '').startsWith('night:')) {
+    scene.__blNightSession = (scene.__blNightSession || 0) + 1;
+  }
+  const session = scene.__blNightSession || 0;
+  const line = minute < 720 ? minute + 1440 : minute; // the noon-to-noon line the windows use
   let pending = false;
   const seen = scene.__blNightTexSeen || (scene.__blNightTexSeen = new Set());
   seen.clear();
   scene.buildingSprites.forEach((sprite) => {
     if (!sprite || seen.has(sprite)) return;
     seen.add(sprite);
+    if (wantNight && sprite.__nightWindowSession === session && sprite.__nightWindowApplied
+      && line < sprite.__nightWindowUntil
+      // ... as long as nothing else put the day art back on it meanwhile.
+      && typeof sprite.texture?.key === 'string' && sprite.texture.key.startsWith(BUILDING_NIGHT_TEXTURE_PREFIX)) return;
     const record = getBuildingNightRecord(sprite);
     if (!getBuildingNightSlug(sprite, record)) return;
-    const variant = wantNight && pickVariant
-      ? getBuildingNightVariant(
+    let variant = 'night';
+    let until = Infinity;
+    if (wantNight && pickVariant) {
+      const window = getBuildingNightVariantWindow(
         getBuildingNightKind(record), getBuildingLightSeed(sprite.mapRow, sprite.mapCol), minute, sunset,
-      )
-      : 'night';
-    if (!applyBuildingNightTexture(scene, sprite, wantNight, variant) && wantNight) pending = true;
+      );
+      variant = window.variant;
+      until = window.until;
+    }
+    const applied = applyBuildingNightTexture(scene, sprite, wantNight, variant);
+    if (wantNight) {
+      sprite.__nightWindowSession = session;
+      sprite.__nightWindowUntil = until;
+      sprite.__nightWindowApplied = applied;
+      if (!applied) pending = true;
+    } else {
+      sprite.__nightWindowApplied = false;
+    }
   });
   seen.clear();
   scene.__blNightTexState = state;

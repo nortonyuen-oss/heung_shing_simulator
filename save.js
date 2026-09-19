@@ -652,6 +652,8 @@ function restoreSavedViewpoint(scene, rawViewpoint) {
 }
 
 function buildSavePayload({ autosave = false, manualSaveId = currentSaveId } = {}) {
+  // Never snapshot a city halfway through a spread-out simulation pulse.
+  if (typeof flushCitySimulationPulses === 'function') flushCitySimulationPulses();
   const viewpoint = captureCurrentViewpoint(
     typeof activeScene === 'undefined' ? null : activeScene,
   );

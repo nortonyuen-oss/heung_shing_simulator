@@ -37,8 +37,13 @@ const CANVAS_H = 880;
 const FOOT_X = 480;
 const FOOT_Y = 600;
 
-// Hong Kong's classic high-pressure sodium orange.
-const SODIUM = { lens: [255, 214, 150], glow: [255, 168, 72], pool: [255, 156, 60] };
+// Hong Kong's classic high-pressure sodium (高壓鈉燈, 1900-2100 K, CRI ~20): a deep golden orange.
+// The blackbody colour of 2000 K is about #ff8a12; the lit lantern reads paler than the light it
+// throws, and the whole thing sits under the blue-grey night overlay, so the bake leans more
+// saturated than the target look.
+// Matched to Norton's night-city reference renders: a compact warm-yellow lantern glow and the
+// road washed in golden amber (not red-orange, not pale yellow).
+const SODIUM = { lens: [255, 226, 160], glow: [255, 178, 70], pool: [240, 150, 56] };
 
 const clamp255 = (v) => (v < 0 ? 0 : v > 255 ? 255 : v);
 
@@ -114,7 +119,7 @@ function paintNight(out, W, H, lantern, foot, facing) {
       if (d > 1) continue;
       const i = (y * W + x) * 4;
       if (out[i + 3] < 40) continue;
-      const w = 0.85 * (1 - d * d * 0.5);
+      const w = 0.92 * (1 - d * d * 0.4);
       out[i] = clamp255(out[i] + (SODIUM.lens[0] - out[i]) * w);
       out[i + 1] = clamp255(out[i + 1] + (SODIUM.lens[1] - out[i + 1]) * w);
       out[i + 2] = clamp255(out[i + 2] + (SODIUM.lens[2] - out[i + 2]) * w);
@@ -127,7 +132,7 @@ function paintNight(out, W, H, lantern, foot, facing) {
       if (x < 0 || y < 0 || x >= W || y >= H) continue;
       const d = Math.hypot(x - lantern.lensX, (y - lantern.lensY) * 1.15) / haloR;
       if (d > 1) continue;
-      addLight(out, (y * W + x) * 4, SODIUM.glow, 0.8 * (1 - d) ** 2.0);
+      addLight(out, (y * W + x) * 4, SODIUM.glow, 0.85 * (1 - d) ** 2.2);
     }
   }
   // 3. Cone from the lens down to the ground under the lantern, and 4. the pool there. The

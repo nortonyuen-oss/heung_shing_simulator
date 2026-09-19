@@ -412,7 +412,7 @@ test('each building picks its own night variant, and the city lights up and dims
   const ROOT = path.resolve(__dirname, '..');
   const main = fs.readFileSync(path.join(ROOT, 'main.js'), 'utf8');
   const sync = main.slice(main.indexOf('function syncBuildingNightTextures('), main.indexOf('// ── Night darkness split'));
-  assert.match(sync, /getBuildingNightVariant\(/);
+  assert.match(sync, /getBuildingNightVariantWindow\(/);
   assert.match(sync, /getBuildingLightSeed\(sprite\.mapRow, sprite\.mapCol\), minute, sunset,/);
   assert.match(sync, /const state = wantNight \? `night:\$\{minute\}` : 'day';/);
   assert.match(main, /half: '__nighthalf\.png'/);
@@ -504,4 +504,45 @@ test('live Phaser glows are off by default: an unbaked building stays dark unles
   const panel = fs.readFileSync(path.join(path.resolve(__dirname, '..'), 'visual-route-calibrator.js'), 'utf8');
   assert.ok(panel.includes('vrp-livelights-btn') && panel.includes('setLiveBuildingLightsEnabled(!isLiveBuildingLightsEnabled(), scene)'), 'the performance panel toggles it');
   assert.ok(panel.includes('setLiveBuildingLightsEnabled(false,'), 'leaving test mode switches it back off');
+});
+
+test('getBuildingNightVariantWindow agrees with the schedule and reports the next change minute', () => {
+  const { getBuildingNightVariant, getBuildingNightVariantWindow } = require('../building-lighting.js');
+  const SUNSET = 18 * 60 + 25;
+  const line = (m) => (m < 720 ? m + 1440 : m);
+  let checkedBoundaries = 0;
+  for (const kind of ['residential', 'commercial', 'industrial', 'landmark', 'emergency']) {
+    for (let seed = 1; seed <= 60; seed++) {
+      for (const start of [SUNSET + 30, 20 * 60, 22 * 60 + 30, 23 * 60 + 10, 30, 2 * 60, 5 * 60 + 40]) {
+        const window = getBuildingNightVariantWindow(kind, seed, start, SUNSET);
+        assert.equal(window.variant, getBuildingNightVariant(kind, seed, start, SUNSET));
+        // Every minute up to `until` wears the same variant ...
+        const from = line(start);
+        const stop = Math.min(window.until, from + 240);
+        for (let n = from; n < stop; n++) {
+          assert.equal(getBuildingNightVariant(kind, seed, n % 1440, SUNSET), window.variant, `${kind} seed ${seed} minute ${n}`);
+        }
+        // ... and the minute after it is a different one (when a change is scheduled).
+        if (Number.isFinite(window.until) && window.until < 2160) {
+          checkedBoundaries++;
+          assert.notEqual(getBuildingNightVariant(kind, seed, Math.ceil(window.until) % 1440, SUNSET), window.variant, `${kind} seed ${seed} changes at ${window.until}`);
+        }
+      }
+    }
+  }
+  assert.ok(checkedBoundaries > 100, 'the sweep covered real transitions');
+  assert.equal(getBuildingNightVariantWindow('emergency', 7, 20 * 60, SUNSET).until, Infinity);
+});
+
+test('the building-light walk runs ten times a second; beacons still pulse every frame', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const src = fs.readFileSync(path.join(path.resolve(__dirname, '..'), 'building-lighting.js'), 'utf8');
+  const update = src.slice(src.indexOf('function updateBuildingLights('), src.indexOf('const buildingLightingTestApi'));
+  assert.match(update, /if \(time < \(s\.__blNextWalkAt \|\| 0\)\) \{[\s\S]*?glow\.hasBeacons[\s\S]*?return;\n\s*\}\n\s*s\.__blNextWalkAt = time \+ BUILDING_LIGHT_WALK_INTERVAL_MS;/);
+  const main = fs.readFileSync(path.join(path.resolve(__dirname, '..'), 'main.js'), 'utf8');
+  const sync = main.slice(main.indexOf('function syncBuildingNightTextures('), main.indexOf('// ── Night darkness split'));
+  assert.match(sync, /getBuildingNightVariantWindow\(/, 'the night texture sync uses the window memo');
+  assert.match(sync, /line < sprite\.__nightWindowUntil/, 'a building is skipped until its next change');
+  assert.match(sync, /startsWith\(BUILDING_NIGHT_TEXTURE_PREFIX\)/, 'unless something put its day art back');
 });

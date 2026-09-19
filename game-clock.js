@@ -279,11 +279,19 @@ function onCalendarDayAdvanced(scene) {
   if (typeof runDailySystems === 'function') runDailySystems(scene);
 
   if (shouldRunCitySimulationPulse(city.day)) {
-    if (typeof runLegacyCitySimulationPulse === 'function') runLegacyCitySimulationPulse(scene);
-    city.tick++;
-    emitGameClockEvent('gameclock:citypulse', {
-      tick: city.tick, day: city.day, month: city.month, year: city.year,
-    });
+    const stamp = { day: city.day, month: city.month, year: city.year };
+    const finishPulse = (refreshHud) => {
+      city.tick++;
+      emitGameClockEvent('gameclock:citypulse', { tick: city.tick, ...stamp });
+      if (refreshHud && typeof updateHUD === 'function') updateHUD();
+    };
+    if (typeof scheduleCitySimulationPulse === 'function' && scheduleCitySimulationPulse(scene, () => finishPulse(true))) {
+      // Spread over the next frames (simulation.js pumpCitySimulationPulse); the tick, the
+      // event and a HUD refresh follow the last step.
+    } else {
+      if (typeof runLegacyCitySimulationPulse === 'function') runLegacyCitySimulationPulse(scene);
+      finishPulse(false); // the day-end refresh below already covers it
+    }
   }
 
   // Refreshed once per calendar day, after the daily systems and (if it ran)

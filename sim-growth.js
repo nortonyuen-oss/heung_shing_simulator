@@ -530,152 +530,172 @@ function scanForLowDensityEstateUpgrades(scene, qualityContexts) {
   }
 }
 
+// One pulse's zone growth as a list of steps (section, action). growOrShrinkZones runs them
+// all at once; simulation.js spreads them over frames, which is why the per-tile loop - the
+// longest part in a big city - is cut into ZONE_GROWTH_TILES_PER_STEP chunks.
+const ZONE_GROWTH_TILES_PER_STEP = 400;
+
+function buildZoneGrowthSteps(scene) {
+  const ctx = {
+    landValueMap: null,
+    residentialQualityContext: null,
+    commercialQualityContext: null,
+    commercialMergeBudget: 0,
+    qualityContexts: null,
+  };
+  const steps = [];
+  const step = (section, action) => steps.push({ section: `growth.${section}`, action });
+  step('decline', () => applyMonthlyZoneDecline(scene));
+  step('qualityContext', () => {
+    ctx.qualityContexts = getZoneGrowthQualityContexts();
+    ctx.landValueMap = ctx.qualityContexts.landValueMap;
+    ctx.residentialQualityContext = ctx.qualityContexts.residential;
+    ctx.commercialQualityContext = ctx.qualityContexts.commercial;
+    const tickGap = lastCommercialMergeScanTick === null ? Infinity : Math.abs(city.tick - lastCommercialMergeScanTick);
+    const runCommercialMerge = tickGap <= TICKS_PER_MONTH * 2
+      && city.tick > TICKS_PER_MONTH
+      && city.tick % TICKS_PER_MONTH === 0;
+    lastCommercialMergeScanTick = city.tick;
+    ctx.commercialMergeBudget = runCommercialMerge ? 4 : 0;
+  });
+  step('largeLots', () => scanForLargeResidentialLots(scene, ctx.qualityContexts));
+  step('estateUpgrades', () => scanForLowDensityEstateUpgrades(scene, ctx.qualityContexts));
+  // The tile list is read when the chunk runs (it is cached and may be invalidated by the
+  // steps before it); each chunk walks its own slice.
+  const tileCount = getZoneGrowthTiles().length;
+  const chunks = Math.max(1, Math.ceil(tileCount / ZONE_GROWTH_TILES_PER_STEP));
+  for (let chunk = 0; chunk < chunks; chunk++) {
+    step(chunks > 1 ? `tiles.${chunk + 1}/${chunks}` : 'tiles', () => {
+      const tiles = getZoneGrowthTiles();
+      const from = chunk * ZONE_GROWTH_TILES_PER_STEP;
+      const to = Math.min(tiles.length, from + ZONE_GROWTH_TILES_PER_STEP);
+      for (let index = from; index < to; index++) growZoneTile(scene, tiles[index], ctx);
+    });
+  }
+  return steps;
+}
+
 function growOrShrinkZones(scene) {
-  runZoneGrowthProfiledStep(scene, 'decline', () => applyMonthlyZoneDecline(scene));
-  const qualityContexts = runZoneGrowthProfiledStep(
-    scene,
-    'qualityContext',
-    () => getZoneGrowthQualityContexts(),
-  );
-  const landValueMap = qualityContexts.landValueMap;
-  const residentialQualityContext = qualityContexts.residential;
-  const commercialQualityContext = qualityContexts.commercial;
-  const tickGap = lastCommercialMergeScanTick === null ? Infinity : Math.abs(city.tick - lastCommercialMergeScanTick);
-  const runCommercialMerge = tickGap <= TICKS_PER_MONTH * 2
-    && city.tick > TICKS_PER_MONTH
-    && city.tick % TICKS_PER_MONTH === 0;
-  lastCommercialMergeScanTick = city.tick;
-  let commercialMergeBudget = runCommercialMerge ? 4 : 0;
+  for (const step of buildZoneGrowthSteps(scene)) {
+    runZoneGrowthProfiledStep(scene, step.section.replace(/^growth\./, ''), step.action);
+  }
+}
 
-  runZoneGrowthProfiledStep(
-    scene,
-    'largeLots',
-    () => scanForLargeResidentialLots(scene, qualityContexts),
-  );
+// One zoned tile's growth roll for this pulse.
+function growZoneTile(scene, { row: r, col: c, id }, ctx) {
+  const zone = zoneMap[r]?.[c] ?? ZONE_NONE;
+  if (zone === ZONE_NONE) return;
 
-  runZoneGrowthProfiledStep(
-    scene,
-    'estateUpgrades',
-    () => scanForLowDensityEstateUpgrades(scene, qualityContexts),
-  );
+  const hasBldg = scene.buildingSprites.has(id);
+  const powered = !!powerMap[r][c];
+  const hasRoad = hasAdjacentRoad(r, c);
+  const demand  = zone === ZONE_RES ? city.demandR
+                : zone === ZONE_COM ? city.demandC
+                : city.demandI;
 
-  runZoneGrowthProfiledStep(scene, 'tiles', () => {
-    for (const { row: r, col: c, id } of getZoneGrowthTiles()) {
-      const zone = zoneMap[r]?.[c] ?? ZONE_NONE;
-      if (zone === ZONE_NONE) continue;
+  // Power multiplies growth speed. A citywide shortage slows all powered
+  // tiles; unpowered tiles remain mostly stagnant.
+  const cityPower = city.powerRatio ?? 1;
+  const powerMul   = powered
+    ? Math.max(0.06, Math.min(1, 0.08 + cityPower * 0.92))
+    : 0.03;
+  const density    = zoneDensityMap[r][c] ?? DENSITY_LOW;
+  const densityMul = DENSITY_GROW_MUL[density] ?? 1.0;
+  const landScore = getZoneGrowthLandScore(r, c, zone, ctx.landValueMap);
+  const growthLandMul = 0.72 + landScore * 0.85;
+  const runMonthlyVisualCheck = shouldRunMonthlyZoneVisualCheck(r, c);
 
-      const hasBldg = scene.buildingSprites.has(id);
-      const powered = !!powerMap[r][c];
-      const hasRoad = hasAdjacentRoad(r, c);
-      const demand  = zone === ZONE_RES ? city.demandR
-                    : zone === ZONE_COM ? city.demandC
-                    : city.demandI;
+  if (!hasBldg) {
+    // Grow a new building
+    if (hasRoad && demand > 0 && Math.random() < demand * GROW_CHANCE_BASE * powerMul * densityMul * growthLandMul) {
+      spawnZoneBuilding(scene, r, c, zone, 1, density, {
+        landScore,
+        residentialQualityContext: ctx.residentialQualityContext,
+        commercialQualityContext: ctx.commercialQualityContext,
+      });
+    }
+  } else {
+    const record = buildingData[id];
+    if (!record || !['residential', 'commercial', 'industrial'].includes(record.type)) return;
 
-      // Power multiplies growth speed. A citywide shortage slows all powered
-      // tiles; unpowered tiles remain mostly stagnant.
-      const cityPower = city.powerRatio ?? 1;
-      const powerMul   = powered
-        ? Math.max(0.06, Math.min(1, 0.08 + cityPower * 0.92))
-        : 0.03;
-      const density    = zoneDensityMap[r][c] ?? DENSITY_LOW;
-      const densityMul = DENSITY_GROW_MUL[density] ?? 1.0;
-      const landScore = getZoneGrowthLandScore(r, c, zone, landValueMap);
-      const growthLandMul = 0.72 + landScore * 0.85;
-      const runMonthlyVisualCheck = shouldRunMonthlyZoneVisualCheck(r, c);
+    const footprintArea = (record.footprintCols ?? 1) * (record.footprintRows ?? 1);
+    const footprintTier = Math.max(0, Math.sqrt(footprintArea) - 1);
+    // Commercial upgrade gate is land-score-driven (not demand-gated) so that
+    // buildings level up based on neighbourhood quality even when overall commercial
+    // supply exceeds demand. Residential and industrial keep the original demand gate.
+    const upgradeDemandGate = zone === ZONE_COM
+      ? Math.max(-0.15, 0.10 - landScore * 0.25)
+      : Math.max(0.3, 0.5 - landScore * 0.2);
+    const upgradePremiumMul = 0.72 + landScore * 1.05 + footprintTier * 0.20;
 
-      if (!hasBldg) {
-        // Grow a new building
-        if (hasRoad && demand > 0 && Math.random() < demand * GROW_CHANCE_BASE * powerMul * densityMul * growthLandMul) {
-          spawnZoneBuilding(scene, r, c, zone, 1, density, {
-            landScore,
-            residentialQualityContext,
-            commercialQualityContext,
-          });
-        }
-      } else {
-        const record = buildingData[id];
-        if (!record || !['residential', 'commercial', 'industrial'].includes(record.type)) continue;
+    if (
+      ctx.commercialMergeBudget > 0
+      && zone === ZONE_COM
+      && record.level >= 3
+      && shouldScanCommercialMergeTile(r, c)
+      && tryMergeCommercialCluster(scene, r, c, record, landScore, ctx.commercialQualityContext)
+    ) {
+      ctx.commercialMergeBudget--;
+      return;
+    }
 
-        const footprintArea = (record.footprintCols ?? 1) * (record.footprintRows ?? 1);
-        const footprintTier = Math.max(0, Math.sqrt(footprintArea) - 1);
-        // Commercial upgrade gate is land-score-driven (not demand-gated) so that
-        // buildings level up based on neighbourhood quality even when overall commercial
-        // supply exceeds demand. Residential and industrial keep the original demand gate.
-        const upgradeDemandGate = zone === ZONE_COM
-          ? Math.max(-0.15, 0.10 - landScore * 0.25)
-          : Math.max(0.3, 0.5 - landScore * 0.2);
-        const upgradePremiumMul = 0.72 + landScore * 1.05 + footprintTier * 0.20;
-
-        if (
-          commercialMergeBudget > 0
-          && zone === ZONE_COM
-          && record.level >= 3
-          && shouldScanCommercialMergeTile(r, c)
-          && tryMergeCommercialCluster(scene, r, c, record, landScore, commercialQualityContext)
-        ) {
-          commercialMergeBudget--;
-          continue;
-        }
-
-        if (record.level < 3 && hasRoad && demand > upgradeDemandGate && Math.random() < UPGRADE_CHANCE * powerMul * densityMul * upgradePremiumMul) {
-          if (zone === ZONE_RES && tryMergeResidentialCluster(scene, r, c, record, residentialQualityContext)) continue;
-          upgradeZoneBuilding(scene, r, c, zone, landScore, residentialQualityContext, commercialQualityContext);
-        } else if (
-          record.level >= 3
-          && (zone === ZONE_RES || zone === ZONE_COM)
-          && runMonthlyVisualCheck
-          && isBuildingHighScoreVisual(record)
-          && Math.random() < PREMIUM_VISUAL_REBALANCE_CHANCE_PER_MONTH
-        ) {
-          // Mature skylines are periodically re-evaluated. This lets old saves
-          // shed excess towers gradually when local H/UH density is saturated.
-          tryRedecoratePremiumBuilding(
-            scene,
-            r,
-            c,
-            zone,
-            residentialQualityContext,
-            commercialQualityContext,
-          );
-        } else if (
-          record.level >= 3
-          && (zone === ZONE_RES || zone === ZONE_COM)
-          && runMonthlyVisualCheck
-          && isHighScoreModelEligible(landScore)
-          && (city.unemploymentRate ?? 1) < 0.12
-          && (city.demandC ?? 0) > 0.10
-          && !isBuildingHighScoreVisual(record)
-          && Math.random() < PREMIUM_VISUAL_UPGRADE_CHANCE_PER_MONTH
-        ) {
-          // Premium upgrades are checked monthly instead of every simulation
-          // tick, preventing H/UH visuals from accumulating across the map.
-          tryRedecoratePremiumBuilding(
-            scene,
-            r,
-            c,
-            zone,
-            residentialQualityContext,
-            commercialQualityContext,
-          );
-        } else if (
-          zone === ZONE_IND
-          && !isScienceParkIndustrialRecord(record)
-          && city.scienceParkUnlocked
-          && (record.footprintCols ?? 1) >= 2
-        ) {
-          // Per-tick science-park conversion — probability scales with higher
-          // education level and science-development policy.
-          const higherEdu = clamp(city.educationHigherIndex ?? 0, 0, 1);
-          const policyBonus = (isPolicyActive('scienceDevelopment') ? 0.005 : 0)
-            + (isPolicyActive('strongCountryManufacturing') ? 0.003 : 0);
-          const tickChance = clamp(0.003 + 0.012 * higherEdu + policyBonus, 0, 0.025);
-          if (Math.random() < tickChance) {
-            tryConvertSingleIndustrialToSciencePark(scene, r, c, record);
-          }
-        }
+    if (record.level < 3 && hasRoad && demand > upgradeDemandGate && Math.random() < UPGRADE_CHANCE * powerMul * densityMul * upgradePremiumMul) {
+      if (zone === ZONE_RES && tryMergeResidentialCluster(scene, r, c, record, ctx.residentialQualityContext)) return;
+      upgradeZoneBuilding(scene, r, c, zone, landScore, ctx.residentialQualityContext, ctx.commercialQualityContext);
+    } else if (
+      record.level >= 3
+      && (zone === ZONE_RES || zone === ZONE_COM)
+      && runMonthlyVisualCheck
+      && isBuildingHighScoreVisual(record)
+      && Math.random() < PREMIUM_VISUAL_REBALANCE_CHANCE_PER_MONTH
+    ) {
+      // Mature skylines are periodically re-evaluated. This lets old saves
+      // shed excess towers gradually when local H/UH density is saturated.
+      tryRedecoratePremiumBuilding(
+        scene,
+        r,
+        c,
+        zone,
+        ctx.residentialQualityContext,
+        ctx.commercialQualityContext,
+      );
+    } else if (
+      record.level >= 3
+      && (zone === ZONE_RES || zone === ZONE_COM)
+      && runMonthlyVisualCheck
+      && isHighScoreModelEligible(landScore)
+      && (city.unemploymentRate ?? 1) < 0.12
+      && (city.demandC ?? 0) > 0.10
+      && !isBuildingHighScoreVisual(record)
+      && Math.random() < PREMIUM_VISUAL_UPGRADE_CHANCE_PER_MONTH
+    ) {
+      // Premium upgrades are checked monthly instead of every simulation
+      // tick, preventing H/UH visuals from accumulating across the map.
+      tryRedecoratePremiumBuilding(
+        scene,
+        r,
+        c,
+        zone,
+        ctx.residentialQualityContext,
+        ctx.commercialQualityContext,
+      );
+    } else if (
+      zone === ZONE_IND
+      && !isScienceParkIndustrialRecord(record)
+      && city.scienceParkUnlocked
+      && (record.footprintCols ?? 1) >= 2
+    ) {
+      // Per-tick science-park conversion — probability scales with higher
+      // education level and science-development policy.
+      const higherEdu = clamp(city.educationHigherIndex ?? 0, 0, 1);
+      const policyBonus = (isPolicyActive('scienceDevelopment') ? 0.005 : 0)
+        + (isPolicyActive('strongCountryManufacturing') ? 0.003 : 0);
+      const tickChance = clamp(0.003 + 0.012 * higherEdu + policyBonus, 0, 0.025);
+      if (Math.random() < tickChance) {
+        tryConvertSingleIndustrialToSciencePark(scene, r, c, record);
       }
     }
-  });
+  }
 }
 
 function spawnZoneBuilding(scene, r, c, zone, level, density = DENSITY_LOW, optionsOverride = {}) {

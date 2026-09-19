@@ -216,6 +216,39 @@ function getBuildingNightVariant(kind, seed, minuteOfDay, sunsetMin) {
   return n >= lampsOn && n < lampsOff ? 'lamps' : 'deep';
 }
 
+// The same schedule, answered as a window: the variant now plus the noon-to-noon minute at
+// which this building next changes (Infinity when it is settled for the night). The night
+// texture sync (main.js) keeps that on the sprite and skips the building until then, so a
+// tick costs a comparison per building instead of a full re-resolve of ~2000 sprites.
+function getBuildingNightVariantWindow(kind, seed, minuteOfDay, sunsetMin) {
+  const variant = getBuildingNightVariant(kind, seed, minuteOfDay, sunsetMin);
+  if (kind === 'emergency') return { variant, until: Infinity };
+  const m = (((Number(minuteOfDay) || 0) % 1440) + 1440) % 1440;
+  const n = m < 720 ? m + 1440 : m;
+  const s = seed >>> 0;
+  const sunset = Number.isFinite(sunsetMin) ? sunsetMin : 18 * 60;
+  const share = BUILDING_NIGHT_PEAK_SHARE[kind] ?? BUILDING_NIGHT_PEAK_SHARE.commercial;
+  const peak = hashBuildingLight(s, 21, 0) < share;
+  const rampUp = sunset + BUILDING_NIGHT_RAMP_OFFSET + hashBuildingLight(s, 26, 0) * BUILDING_NIGHT_RAMP_SPAN;
+  const boundaries = [rampUp];
+  if (peak) {
+    const fullAt = rampUp + BUILDING_NIGHT_RAMP_GAP + hashBuildingLight(s, 27, 0) * BUILDING_NIGHT_RAMP_SPAN2;
+    const fadeAt = BUILDING_NIGHT_FADE_START + hashBuildingLight(s, 22, 0) * BUILDING_NIGHT_FADE_SPAN;
+    boundaries.push(fullAt, fadeAt, fadeAt + BUILDING_NIGHT_FADE_HALF_MINUTES);
+  }
+  if (hashBuildingLight(s, 23, 0) < BUILDING_NIGHT_LAMPS_SHARE) {
+    boundaries.push(
+      BUILDING_NIGHT_LAMPS_START + hashBuildingLight(s, 24, 0) * BUILDING_NIGHT_LAMPS_SPAN,
+      BUILDING_NIGHT_WAKE_START + hashBuildingLight(s, 25, 0) * BUILDING_NIGHT_WAKE_SPAN,
+    );
+  }
+  let until = Infinity;
+  for (const boundary of boundaries) {
+    if (boundary > n && boundary < until) until = boundary;
+  }
+  return { variant, until };
+}
+
 // ---------------------------------------------------------------------------
 // Profiles
 // ---------------------------------------------------------------------------
@@ -2182,6 +2215,8 @@ function relightBuildingGlow(scene, sprite, glow, bucket, time) {
   glow.nextJitterAt = time + BUILDING_LIGHT_CONFIG.jitterMinMs + glow.personality.jitterPhase * span;
 }
 
+const BUILDING_LIGHT_WALK_INTERVAL_MS = 250;
+
 function updateBuildingLights(scene, time) {
   const s = scene || this;
   if (!s?.buildingSprites || typeof getTileId !== 'function') return;
@@ -2195,11 +2230,29 @@ function updateBuildingLights(scene, time) {
   }
   s.buildingLightsActive = true;
 
+  const glows = s.buildingLightGlows;
+  // The discovery walk below touches every building sprite (~6600 references in 旺角, ~2.3ms
+  // a frame) only to conclude, in a baked city, that nothing needs a glow. It runs four times a
+  // second; between walks the only per-frame work is the beacon pulse on the glows that exist.
+  if (time < (s.__blNextWalkAt || 0)) {
+    if (glows.size) {
+      glows.forEach((glow) => {
+        if (!glow.hasBeacons) return;
+        for (let bi = 0; bi < glow.beacons.length; bi++) {
+          const b = glow.beacons[bi];
+          const t = (time / b.period) * Math.PI * 2 + b.phase;
+          b.sprite.setAlpha(strength * (0.08 + 0.92 * Math.max(0, Math.sin(t))));
+        }
+      });
+    }
+    return;
+  }
+  s.__blNextWalkAt = time + BUILDING_LIGHT_WALK_INTERVAL_MS;
+
   const bucket = getRuntimeBuildingLightBucket(s);
   const bucketChanged = bucket !== s.buildingLightBucket;
   s.buildingLightBucket = bucket;
 
-  const glows = s.buildingLightGlows;
   const queue = s.buildingLightQueue;
   const alpha = Math.min(1, strength * BUILDING_LIGHT_CONFIG.punchThrough);
   const jitterEnabled = bucket !== 'day';
@@ -2383,6 +2436,7 @@ const buildingLightingTestApi = {
   BUILDING_NIGHT_VARIANTS,
   getBuildingNightKind,
   getBuildingNightVariant,
+  getBuildingNightVariantWindow,
   makeBuildingLightProfile,
   getBuildingLightClass,
   getBuildingLightFamily,
@@ -2424,6 +2478,7 @@ if (typeof globalThis !== 'undefined') {
     getRuntimeBuildingLightBucket,
     getBuildingNightKind,
     getBuildingNightVariant,
+    getBuildingNightVariantWindow,
     computeLitBuildingWindows,
     makeBuildingLightProfile,
     defaultBuildingLightPanels,

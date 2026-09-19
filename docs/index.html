@@ -10,9 +10,9 @@
   <meta property="og:image" content="assets/backgroundTitle.jpg" />
   <meta name="theme-color" content="#17212d" />
   <link rel="icon" href="assets/icon.png" />
-  <link rel="stylesheet" href="styles.css?v=20260919-trailer1" />
-  <script src="i18n.js?v=20260919-trailer1" defer></script>
-  <script src="site.js?v=20260919-trailer1" defer></script>
+  <link rel="stylesheet" href="styles.css?v=20260919-specs1" />
+  <script src="i18n.js?v=20260919-specs1" defer></script>
+  <script src="site.js?v=20260919-specs1" defer></script>
 </head>
 <body>
   <header class="site-header" aria-label="網站導覽">
@@ -25,6 +25,7 @@
         <a href="#trailer" data-i18n="nav.trailer">預告片</a>
         <a href="#gallery" data-i18n="nav.gallery">截圖</a>
         <a href="#downloads" data-i18n="nav.downloads">下載</a>
+        <a href="#requirements" data-i18n="nav.requirements">配置要求</a>
         <a href="guide.html" data-i18n="nav.guide">遊戲指南</a>
         <a href="feedback.html" data-i18n="nav.feedback">香城連儂牆</a>
         <a href="copyright.html" data-i18n="nav.copyright">版權與使用條款</a>
@@ -179,6 +180,21 @@
       </div>
 
       <p class="notice" data-i18n="downloads.notice">AI 新聞屬選用功能。安裝後請在「設定 → AI 新聞」貼上你自己嘅 Ollama API key；遊戲及安裝檔不包含任何開發者密鑰。未設定 AI 亦可照常使用模擬新聞。現時安裝檔尚未完成簽章，macOS Gatekeeper 或 Windows SmartScreen 可能會在第一次開啟時要求確認。</p>
+    </section>
+
+    <section id="requirements" class="requirements" aria-labelledby="requirements-title">
+      <div class="section-head">
+        <p class="eyebrow" data-i18n="requirements.eyebrow">System Requirements</p>
+        <h2 id="requirements-title" data-i18n="requirements.title">硬體配置要求</h2>
+        <p class="requirements-intro" data-i18n="requirements.intro">遊戲以 Electron 桌面程式運行，用 WebGL 硬體加速渲染。城市越大、夜晚越多燈，對顯示卡嘅要求越高。</p>
+      </div>
+      <div class="manual-table-wrap">
+        <table class="manual-table requirements-table">
+          <thead><tr><th>項目</th><th>最低配置</th><th>建議配置</th></tr></thead>
+          <tbody data-render="requirements-table"></tbody>
+        </table>
+      </div>
+      <ul class="requirements-notes" data-render="requirements-notes"></ul>
     </section>
 
     <section id="changelog" class="changelog">

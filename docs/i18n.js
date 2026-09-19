@@ -1298,7 +1298,7 @@ const SITE_TEXT = {
       description: "免費下載《香城模擬器》：一款向 SimCity 2000 致敬、以香港城市生活為靈感嘅城市建設遊戲。免費遊玩，分享及再利用請參閱版權條款。",
       ogDescription: "由街道、天氣到議會、股市同公共交通，一齊建設屬於你嘅香城。遊戲免費下載；歡迎分享官方連結，其他用途請參閱版權條款。",
     },
-    nav: { trailer: "預告片", gallery: "玩法與截圖", downloads: "免費下載", guide: "遊戲指南", stats: "統計", changelog: "版本", github: "GitHub" },
+    nav: { trailer: "預告片", gallery: "玩法與截圖", downloads: "免費下載", requirements: "配置要求", guide: "遊戲指南", stats: "統計", changelog: "版本", github: "GitHub" },
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
@@ -1348,6 +1348,27 @@ const SITE_TEXT = {
       viewsNotAvailable: "瀏覽次數暫未提供",
       viewsAlt: "入口瀏覽次數",
     },
+    requirements: {
+      eyebrow: "System Requirements",
+      title: "硬體配置要求",
+      intro: "遊戲以 Electron 桌面程式運行，用 WebGL 硬體加速渲染。城市越大、夜晚越多燈，對顯示卡嘅要求越高。",
+      headers: ["項目", "最低配置", "建議配置"],
+      rows: [
+        ["作業系統", "macOS 12 Monterey 或以上；Windows 10（64 位元）或以上", "macOS 14 Sonoma 或以上；Windows 11"],
+        ["處理器", "64 位元雙核心（2018 年或之後嘅 Intel／AMD）", "四核心或以上（Intel Core i5 第 10 代／AMD Ryzen 5 或更新）；Apple Silicon M1 或以上"],
+        ["記憶體", "4 GB", "8 GB 或以上"],
+        ["顯示卡", "支援 WebGL 2 硬體加速嘅 GPU（Intel UHD 620／Iris Plus 或同級以上），並已安裝正常驅動程式", "Apple Silicon 內建 GPU，或獨立顯示卡（GeForce GTX 1050／Radeon RX 560 或以上）"],
+        ["儲存空間", "1 GB 可用空間（安裝檔約 340–370 MB，安裝後約 600 MB）", "2 GB 可用空間（預留存檔同自動更新）"],
+        ["顯示器", "1280 × 800（遊戲視窗最細 1024 × 700）", "1920 × 1080 或以上"],
+        ["網絡", "唔需要——遊戲完全離線可玩", "選用：開場畫面嘅天文台實時天氣、AI 新聞（自備 Ollama）、自動檢查更新"],
+        ["輸入裝置", "滑鼠（滾輪縮放）同鍵盤", "同上"],
+      ],
+      notes: [
+        "參考數據（Intel Core i5-8279U＋Iris Plus 655 內建顯示卡，1440 × 872）：10 萬人口城市日間 58 fps、夜晚 43 fps；34 萬人口城市約 30 fps。",
+        "虛擬機、遠端桌面或以 Safe Mode 開機時通常冇硬體加速，會退回軟件渲染（1–2 fps），唔建議喺呢啲環境遊玩。",
+        "安裝檔尚未簽章：macOS Gatekeeper 或 Windows SmartScreen 可能會喺第一次開啟時要求確認。",
+      ],
+    },
     downloads: {
       eyebrow: "Downloads",
       title: "選擇你的平台",
@@ -1379,7 +1400,7 @@ const SITE_TEXT = {
       description: "免費下載《香城模擬器》：一款向 SimCity 2000 致敬、以香港城市生活為靈感的城市建設遊戲。免費遊玩，分享與再利用請參閱版權條款。",
       ogDescription: "從街道、天氣到議會、股市與公共運輸，一起建設屬於你的香城。遊戲免費下載；歡迎分享官方連結，其他用途請參閱版權條款。",
     },
-    nav: { trailer: "預告片", gallery: "玩法與截圖", downloads: "免費下載", guide: "遊戲指南", stats: "統計", changelog: "版本", github: "GitHub" },
+    nav: { trailer: "預告片", gallery: "玩法與截圖", downloads: "免費下載", requirements: "配置要求", guide: "遊戲指南", stats: "統計", changelog: "版本", github: "GitHub" },
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
@@ -1429,6 +1450,27 @@ const SITE_TEXT = {
       viewsNotAvailable: "瀏覽次數暫無資料",
       viewsAlt: "網站瀏覽次數",
     },
+    requirements: {
+      eyebrow: "System Requirements",
+      title: "硬體配置需求",
+      intro: "遊戲以 Electron 桌面程式運行，使用 WebGL 硬體加速渲染。城市越大、夜晚燈光越多，對顯示卡的要求越高。",
+      headers: ["項目", "最低配置", "建議配置"],
+      rows: [
+        ["作業系統", "macOS 12 Monterey 或以上；Windows 10（64 位元）或以上", "macOS 14 Sonoma 或以上；Windows 11"],
+        ["處理器", "64 位元雙核心（2018 年或之後的 Intel／AMD）", "四核心或以上（Intel Core i5 第 10 代／AMD Ryzen 5 或更新）；Apple Silicon M1 或以上"],
+        ["記憶體", "4 GB", "8 GB 或以上"],
+        ["顯示卡", "支援 WebGL 2 硬體加速的 GPU（Intel UHD 620／Iris Plus 或同級以上），並已安裝正常驅動程式", "Apple Silicon 內建 GPU，或獨立顯示卡（GeForce GTX 1050／Radeon RX 560 或以上）"],
+        ["儲存空間", "1 GB 可用空間（安裝檔約 340–370 MB，安裝後約 600 MB）", "2 GB 可用空間（預留存檔與自動更新）"],
+        ["顯示器", "1280 × 800（遊戲視窗最小 1024 × 700）", "1920 × 1080 或以上"],
+        ["網路", "不需要——遊戲完全離線可玩", "選用：開場畫面的天文台即時天氣、AI 新聞（自備 Ollama）、自動檢查更新"],
+        ["輸入裝置", "滑鼠（滾輪縮放）與鍵盤", "同上"],
+      ],
+      notes: [
+        "參考數據（Intel Core i5-8279U＋Iris Plus 655 內建顯示卡，1440 × 872）：10 萬人口城市日間 58 fps、夜晚 43 fps；34 萬人口城市約 30 fps。",
+        "虛擬機、遠端桌面或以安全模式開機時通常沒有硬體加速，會退回軟體渲染（1–2 fps），不建議在這些環境遊玩。",
+        "安裝檔尚未簽章：macOS Gatekeeper 或 Windows SmartScreen 可能會在第一次開啟時要求確認。",
+      ],
+    },
     downloads: {
       eyebrow: "Downloads",
       title: "選擇你的平台",
@@ -1460,7 +1502,7 @@ const SITE_TEXT = {
       description: "Download The City of Heung Shing for free: a city-building game inspired by Hong Kong life and made in tribute to SimCity 2000. Free to play; sharing and reuse are subject to the license.",
       ogDescription: "Build your own Heung Shing through streets, weather, council politics, markets and public transport. Free to download; see the license for sharing and reuse.",
     },
-    nav: { trailer: "Trailer", gallery: "Gameplay & Screenshots", downloads: "Free Download", guide: "Game Guide", stats: "Stats", changelog: "Changelog", github: "GitHub" },
+    nav: { trailer: "Trailer", gallery: "Gameplay & Screenshots", downloads: "Free Download", requirements: "Requirements", guide: "Game Guide", stats: "Stats", changelog: "Changelog", github: "GitHub" },
     hero: {
       eyebrowPrefix: "The City of Heung Shing",
       title: "The City of Heung Shing",
@@ -1511,6 +1553,27 @@ const SITE_TEXT = {
       viewsNotAvailable: "View count unavailable",
       viewsAlt: "Page view count",
     },
+    requirements: {
+      eyebrow: "System Requirements",
+      title: "System requirements",
+      intro: "The game is an Electron desktop app rendered with hardware-accelerated WebGL. The bigger the city and the more lights after dark, the more it asks of the graphics chip.",
+      headers: ["", "Minimum", "Recommended"],
+      rows: [
+        ["OS", "macOS 12 Monterey or later; Windows 10 (64-bit) or later", "macOS 14 Sonoma or later; Windows 11"],
+        ["Processor", "64-bit dual-core (Intel/AMD from 2018 on)", "Quad-core or better (10th-gen Intel Core i5 / AMD Ryzen 5 or newer); Apple Silicon M1 or later"],
+        ["Memory", "4 GB", "8 GB or more"],
+        ["Graphics", "A GPU with hardware-accelerated WebGL 2 (Intel UHD 620 / Iris Plus or equivalent) and a working driver", "Apple Silicon integrated GPU, or a discrete card (GeForce GTX 1050 / Radeon RX 560 or better)"],
+        ["Storage", "1 GB free (installer 340–370 MB, about 600 MB installed)", "2 GB free (room for saves and updates)"],
+        ["Display", "1280 × 800 (the window is at least 1024 × 700)", "1920 × 1080 or larger"],
+        ["Network", "Not required — the game plays fully offline", "Optional: live Observatory weather on the title screen, AI news (your own Ollama), update checks"],
+        ["Input", "Mouse with scroll wheel (zoom) and keyboard", "Same"],
+      ],
+      notes: [
+        "Reference (Intel Core i5-8279U with integrated Iris Plus 655, 1440 × 872): a 100k-population city runs at 58 fps by day and 43 fps at night; a 340k city at about 30 fps.",
+        "Virtual machines, remote desktop and Safe Mode boots usually have no hardware acceleration and fall back to software rendering at 1–2 fps; playing there is not recommended.",
+        "The installers are not code-signed yet: macOS Gatekeeper or Windows SmartScreen may ask you to confirm on first launch.",
+      ],
+    },
     downloads: {
       eyebrow: "Downloads",
       title: "Choose your platform",
@@ -1542,7 +1605,7 @@ const SITE_TEXT = {
       description: "『香城模擬器』を無料ダウンロード。香港の都市生活から着想を得た、SimCity 2000へのオマージュとなる都市建設ゲームです。共有・再利用については利用条件をご確認ください。",
       ogDescription: "道路、天候、議会、株式市場、公共交通を通じて自分だけの香城を建設。無料でダウンロードでき、共有・再利用については利用条件をご確認ください。",
     },
-    nav: { trailer: "予告編", gallery: "ゲーム内容と画像", downloads: "無料ダウンロード", guide: "ゲームガイド", stats: "統計", changelog: "更新履歴", github: "GitHub" },
+    nav: { trailer: "予告編", gallery: "ゲーム内容と画像", downloads: "無料ダウンロード", requirements: "動作環境", guide: "ゲームガイド", stats: "統計", changelog: "更新履歴", github: "GitHub" },
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
@@ -1591,6 +1654,27 @@ const SITE_TEXT = {
       downloadCountNotAvailable: "ダウンロード数を取得できません",
       viewsNotAvailable: "閲覧数は現在取得できません",
       viewsAlt: "サイト閲覧数",
+    },
+    requirements: {
+      eyebrow: "System Requirements",
+      title: "動作環境",
+      intro: "ゲームは Electron 製デスクトップアプリで、WebGL のハードウェアアクセラレーションで描画します。街が大きく、夜の灯りが多いほど GPU への負荷が上がります。",
+      headers: ["項目", "最低環境", "推奨環境"],
+      rows: [
+        ["OS", "macOS 12 Monterey 以降／Windows 10（64bit）以降", "macOS 14 Sonoma 以降／Windows 11"],
+        ["CPU", "64bit デュアルコア（2018 年以降の Intel／AMD）", "クアッドコア以上（第 10 世代 Intel Core i5／AMD Ryzen 5 以降）、Apple Silicon M1 以降"],
+        ["メモリ", "4 GB", "8 GB 以上"],
+        ["GPU", "WebGL 2 のハードウェアアクセラレーションに対応した GPU（Intel UHD 620／Iris Plus 相当以上）と正常なドライバー", "Apple Silicon 内蔵 GPU、または外部 GPU（GeForce GTX 1050／Radeon RX 560 以上）"],
+        ["ストレージ", "空き 1 GB（インストーラー約 340～370 MB、インストール後約 600 MB）", "空き 2 GB（セーブデータと自動更新の余裕）"],
+        ["ディスプレイ", "1280 × 800（ウィンドウ最小 1024 × 700）", "1920 × 1080 以上"],
+        ["ネットワーク", "不要——完全オフラインでプレイ可能", "任意：タイトル画面の天文台リアルタイム天気、AI ニュース（各自の Ollama）、更新チェック"],
+        ["入力", "マウス（ホイールでズーム）とキーボード", "同上"],
+      ],
+      notes: [
+        "参考値（Intel Core i5-8279U＋内蔵 Iris Plus 655、1440 × 872）：人口 10 万の街は昼 58 fps・夜 43 fps、人口 34 万の街は約 30 fps。",
+        "仮想マシン、リモートデスクトップ、セーフモード起動ではハードウェアアクセラレーションが効かず、ソフトウェア描画（1～2 fps）になるため推奨しません。",
+        "インストーラーは未署名です。macOS の Gatekeeper や Windows の SmartScreen が初回起動時に確認を求めることがあります。",
+      ],
     },
     downloads: {
       eyebrow: "Downloads",
@@ -2901,6 +2985,42 @@ function renderDownloadCards() {
   });
 }
 
+function renderRequirements() {
+  const tbody = document.querySelector("[data-render='requirements-table']");
+  const notes = document.querySelector("[data-render='requirements-notes']");
+  if (!tbody && !notes) return;
+  const text = SITE_TEXT[siteCurrentLanguage]?.requirements || SITE_TEXT[SITE_DEFAULT_LANGUAGE].requirements;
+  if (tbody) {
+    const thead = tbody.closest("table")?.querySelector("thead tr");
+    if (thead) {
+      thead.innerHTML = "";
+      text.headers.forEach((label) => {
+        const th = document.createElement("th");
+        th.textContent = label;
+        thead.appendChild(th);
+      });
+    }
+    tbody.innerHTML = "";
+    text.rows.forEach((row) => {
+      const tr = document.createElement("tr");
+      row.forEach((cell) => {
+        const td = document.createElement("td");
+        td.textContent = cell;
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+  }
+  if (notes) {
+    notes.innerHTML = "";
+    text.notes.forEach((note) => {
+      const li = document.createElement("li");
+      li.textContent = note;
+      notes.appendChild(li);
+    });
+  }
+}
+
 function renderFeatureList() {
   const container = document.querySelector("[data-render='feature-list']");
   if (!container) return;
@@ -3110,6 +3230,7 @@ function applySiteLanguage() {
   applyStaticText();
   renderGalleryItems();
   renderDownloadCards();
+  renderRequirements();
   renderFeatureList();
   renderChangelog();
   renderGuidePage();

@@ -8,6 +8,7 @@
 - 同一時間改咗：建築燈光預設永遠用 baked 貼圖，冇 baked 嘅建築夜晚係暗嘅；只有 test mode 嘅「使用 Phaser 光源」先開返 live glow（`setLiveBuildingLightsEnabled`）。
 - 靠近鏡頭嗰邊行人路（e／s 邊）嘅燈柱會被相鄰高樓遮住（同交通燈、巴士站一樣嘅深度慣例），視覺上密集區似單邊排列。
 - 2026-09-20：橋面（`road_bridge_*`）、橋斜道／山坡（`road_hill_*`、`road_hill2_*`）都當直路放燈，燈柱腳用車輛嘅路面模型（`getTrafficRoadSurface`）沿軸插值升高——橋面 +15px、斜道由低端到高端漸升（`streetLampSurfaceLift`）。顏色再調成高壓鈉燈橙（鏡片 #ffd68c、光暈 #ff9e30、光池 #ec8226）。
+- 「點解遊戲入面仲係黃色」：release pipeline 用 sharp 0.34 把 raw RGBA buffer 傳來傳去，resize 之後嘅 `info.premultiplied` 係 `true`（bytes 其實係 straight alpha），再當 raw input 餵返入去就會被多 unpremultiply 一次——所有半透明像素變白變亮（光池 (235,130,38) 變成 (255,224,65)，建築 AA 邊緣亦變亮）。修正：`prepare-release-assets.js`／`verify-release-assets.js`／`bake-night-textures.js` 每個 raw input 都聲明 `premultiplied: false`，SETTINGS_VERSION 6 全部重新編碼；`test/asset-pipeline-alpha.test.js` 守住。
 
 原計劃如下。素材：`lightPost_sheet.png`（1254×1254 一張 2×2 sheet）。一格 = 20 m。
 

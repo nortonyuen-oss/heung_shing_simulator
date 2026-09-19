@@ -274,7 +274,9 @@ async function main() {
     const counts = [];
     for (const variant of VARIANTS) {
       const { raw, width, height, lit, kept, dropped } = await bakeOne(src, profiles[slug], variant);
-      const img = sharp(raw, { raw: { width, height, channels: 4 } });
+      // Straight alpha: without the flag sharp unpremultiplies on encode and the glow halos
+      // (semi-transparent) come out brighter and paler than baked.
+      const img = sharp(raw, { raw: { width, height, channels: 4, premultiplied: false } });
       if (sampleOnly.length) {
         await img.png().toFile(path.join(SAMPLE_DIR, `${slug}${variant.suffix}.png`));
       } else {

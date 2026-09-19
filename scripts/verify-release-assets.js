@@ -178,7 +178,9 @@ async function verify() {
       .ensureAlpha()
       .raw()
       .toBuffer({ resolveWithObject: true });
-    let expectedPipeline = sharp(source.data, { raw: source.info });
+    // Straight alpha, as the pipeline declares it (see prepare-release-assets.js rawInput).
+    const rawInput = (info) => ({ raw: { width: info.width, height: info.height, channels: info.channels ?? 4, premultiplied: false } });
+    let expectedPipeline = sharp(source.data, rawInput(source.info));
     // Landmark folders are capped larger than the baseline, recorded per entry.
     const entryMaxDimension = entry.maxDimension ?? manifest.settings.maxDimension;
     if (source.info.width > entryMaxDimension || source.info.height > entryMaxDimension) {
@@ -190,7 +192,7 @@ async function verify() {
       });
     }
     const resized = await expectedPipeline.raw().toBuffer({ resolveWithObject: true });
-    const expected = await sharp(resized.data, { raw: resized.info })
+    const expected = await sharp(resized.data, rawInput(resized.info))
       .extract(entry.trim)
       .extend({
         left: padding.left,

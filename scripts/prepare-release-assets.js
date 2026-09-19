@@ -33,7 +33,16 @@ function maxDimensionFor(relativeFromModels) {
 }
 // Bump whenever pixel processing changes so cached WebP files cannot retain an
 // older matte-removal, resize, padding, or encoder result.
-const SETTINGS_VERSION = 5;
+// 6: raw buffers are declared straight-alpha (premultiplied: false). sharp 0.34 otherwise
+//    unpremultiplies a raw RGBA input on encode, brightening every semi-transparent pixel -
+//    antialiased edges got lighter and the street lamps' orange light pools came out yellow.
+const SETTINGS_VERSION = 6;
+
+// Every raw RGBA buffer in this pipeline holds straight (non-premultiplied) alpha; say so, or
+// sharp treats it as premultiplied and divides the colour by alpha on the way out.
+function rawInput(info) {
+  return { raw: { width: info.width, height: info.height, channels: info.channels ?? 4, premultiplied: false } };
+}
 const SOURCE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg']);
 
 function walk(root) {
@@ -176,13 +185,7 @@ async function prepareFile(sourcePath) {
       .ensureAlpha()
       .raw()
       .toBuffer({ resolveWithObject: true });
-    let pipeline = sharp(decoded.data, {
-      raw: {
-        width: decoded.info.width,
-        height: decoded.info.height,
-        channels: 4,
-      },
-    });
+    let pipeline = sharp(decoded.data, rawInput(decoded.info));
     if (decoded.info.width > fileMaxDimension || decoded.info.height > fileMaxDimension) {
       pipeline = pipeline.resize({
         width: fileMaxDimension,
@@ -196,12 +199,12 @@ async function prepareFile(sourcePath) {
     const trim = shouldTrim
       ? findAlphaBounds(processedData, resized.info.width, resized.info.height)
       : { left: 0, top: 0, width: resized.info.width, height: resized.info.height };
-    const trimmedRaw = await sharp(processedData, { raw: resized.info })
+    const trimmedRaw = await sharp(processedData, rawInput(resized.info))
       .extract(trim)
       .raw()
       .toBuffer({ resolveWithObject: true });
     const padding = getPowerOfTwoPadding(trimmedRaw.info.width, trimmedRaw.info.height);
-    const paddedRaw = await sharp(trimmedRaw.data, { raw: trimmedRaw.info })
+    const paddedRaw = await sharp(trimmedRaw.data, rawInput(trimmedRaw.info))
       .extend({
         left: padding.left,
         top: padding.top,
@@ -211,7 +214,7 @@ async function prepareFile(sourcePath) {
       })
       .raw()
       .toBuffer({ resolveWithObject: true });
-    const webp = await sharp(paddedRaw.data, { raw: paddedRaw.info })
+    const webp = await sharp(paddedRaw.data, rawInput(paddedRaw.info))
       .webp({
         lossless: true,
         effort: 6,

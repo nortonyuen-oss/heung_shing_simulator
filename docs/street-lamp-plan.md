@@ -7,6 +7,7 @@
 - 實測旺角：1 473 支（直路 1 405、彎 68），同一畫面 A/B 幀率差異喺噪音內（20.2 vs 20.3 fps）。
 - 同一時間改咗：建築燈光預設永遠用 baked 貼圖，冇 baked 嘅建築夜晚係暗嘅；只有 test mode 嘅「使用 Phaser 光源」先開返 live glow（`setLiveBuildingLightsEnabled`）。
 - 靠近鏡頭嗰邊行人路（e／s 邊）嘅燈柱會被相鄰高樓遮住（同交通燈、巴士站一樣嘅深度慣例），視覺上密集區似單邊排列。
+- 2026-09-20：橋面（`road_bridge_*`）、橋斜道／山坡（`road_hill_*`、`road_hill2_*`）都當直路放燈，燈柱腳用車輛嘅路面模型（`getTrafficRoadSurface`）沿軸插值升高——橋面 +15px、斜道由低端到高端漸升（`streetLampSurfaceLift`）。顏色再調成高壓鈉燈橙（鏡片 #ffd68c、光暈 #ff9e30、光池 #ec8226）。
 
 原計劃如下。素材：`lightPost_sheet.png`（1254×1254 一張 2×2 sheet）。一格 = 20 m。
 

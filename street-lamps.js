@@ -34,10 +34,22 @@ const STREET_LAMP_DIRECTION_DELTA = Object.freeze({
   n: { row: -1, col: 0 }, e: { row: 0, col: 1 }, s: { row: 1, col: 0 }, w: { row: 0, col: -1 },
 });
 const STREET_LAMP_OPPOSITE = Object.freeze({ n: 's', e: 'w', s: 'n', w: 'e' });
-// Straight roads: the axis the road runs along and the two kerb sides.
+// Straight runs: the axis the road runs along and the two kerb sides. Bridge decks, bridge
+// ramps and hill slopes/crests are straights too - their lamps just stand on the raised
+// surface (streetLampSurfaceLift).
 const STREET_LAMP_STRAIGHTS = Object.freeze({
   road_straight_v: { axis: 's', sides: ['w', 'e'] },
   road_straight_h: { axis: 'e', sides: ['n', 's'] },
+  road_bridge_v: { axis: 's', sides: ['w', 'e'] },
+  road_bridge_h: { axis: 'e', sides: ['n', 's'] },
+  road_hill_n: { axis: 's', sides: ['w', 'e'] },
+  road_hill_s: { axis: 's', sides: ['w', 'e'] },
+  road_hill_e: { axis: 'e', sides: ['n', 's'] },
+  road_hill_w: { axis: 'e', sides: ['n', 's'] },
+  road_hill2_n: { axis: 's', sides: ['w', 'e'] },
+  road_hill2_s: { axis: 's', sides: ['w', 'e'] },
+  road_hill2_e: { axis: 'e', sides: ['n', 's'] },
+  road_hill2_w: { axis: 'e', sides: ['n', 's'] },
 });
 // Bends: the two connected arms; the lamp stands on the outside (the opposite corner).
 const STREET_LAMP_CORNERS = Object.freeze({
@@ -136,15 +148,42 @@ function streetLampScale() {
   return override ?? STREET_LAMP_SCALE;
 }
 
+// How far above the tile face (as getTileFaceGeometry draws it) the road surface sits at the
+// lamp's spot: a bridge deck is lifted BRIDGE_DECK_VISUAL_LIFT, a ramp or hill slope rises
+// along its axis. Uses the same surface model vehicles drive on (traffic-visuals.js), so the
+// post's foot meets the deck where the wheels do. Flat roads come out at 0.
+function streetLampSurfaceLift(placement) {
+  if (typeof getTrafficRoadSurface !== 'function' || typeof getTrafficRuntimeLayers !== 'function') return 0;
+  const surface = getTrafficRoadSurface(placement.row, placement.col, getTrafficRuntimeLayers());
+  if (!surface) return 0;
+  // The surface end the lamp is displaced towards (if any): interpolate centre -> that end.
+  let lift = surface.centerLift;
+  for (const direction of surface.directions || []) {
+    const delta = STREET_LAMP_DIRECTION_DELTA[direction];
+    if (!delta) continue;
+    const along = delta.row * placement.offsetRow + delta.col * placement.offsetCol; // tiles towards `direction`
+    const endpoint = surface.endpointLifts?.[direction];
+    if (along > 1e-9 && Number.isFinite(endpoint)) {
+      lift = surface.centerLift + (endpoint - surface.centerLift) * Math.min(1, along / 0.5);
+      break;
+    }
+  }
+  const alreadyDrawn = typeof getTerrainTileVisualOffset === 'function'
+    ? -getTerrainTileVisualOffset(placement.row, placement.col)
+    : 0;
+  return lift - alreadyDrawn;
+}
+
 // Screen anchor (post foot) and depth, in the same terms as the signal poles and vehicles.
 function streetLampAnchor(scene, placement, facing) {
   const geo = getTileFaceGeometry(placement.row, placement.col, scene.offsetX, scene.offsetY);
   const centre = isoToScreen(placement.col, placement.row);
   const shifted = isoToScreen(placement.col + placement.offsetCol, placement.row + placement.offsetRow);
   const offset = streetLampOffsetFor(facing);
+  const lift = streetLampSurfaceLift(placement);
   return {
     x: geo.center.x + (shifted.x - centre.x) + offset.dx,
-    y: geo.center.y + (shifted.y - centre.y) + offset.dy,
+    y: geo.center.y + (shifted.y - centre.y) + offset.dy - lift,
     depth: getWorldDepth('object', shifted.y + TILE_HEIGHT),
   };
 }
@@ -287,6 +326,7 @@ const streetLampsTestApi = {
   streetLampFacing,
   streetLampTextureKey,
   streetLampLeftOf,
+  streetLampSurfaceLift,
   streetLampsShouldBeLit,
   updateStreetLampVisuals,
 };

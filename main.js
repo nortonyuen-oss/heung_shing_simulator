@@ -7235,7 +7235,10 @@ function applyNightObjectTint(scene, ground) {
   const step = rawStep * 1000 + depthStep;
   if (scene.__nightTintStep === step) return;
   scene.__nightTintStep = step;
-  const k = rawStep / 20;
+  // The tint strength is the ground pass share (0..1). It used to be derived from rawStep
+  // (raw x 5, up to 2.7 at midnight), which overshot the lerp into negative channels and
+  // turned every tree a garbled red after dark.
+  const k = Math.max(0, Math.min(1, Number(ground) || 0));
   const lerp = (a, b, t) => Math.round(a + (b - a) * t);
   const tint = k <= 0 ? 0xffffff : (
     (lerp(0xff, (NIGHT_OBJECT_TINT >> 16) & 0xff, k) << 16)

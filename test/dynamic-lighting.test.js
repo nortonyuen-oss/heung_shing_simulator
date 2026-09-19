@@ -162,3 +162,28 @@ test('celestial layers stay behind terrain while weather and night masks stay ab
   assert.match(main, /minimal: \{ frequency: 9000, lifespan: 30000/);
   assert.match(main, /duration: CLOUD_CLEARING_FADE_MS/);
 });
+
+test('the night object tint never overshoots: k is the clamped ground share, so trees stay blue-grey, not red', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const vm = require('node:vm');
+  const main = fs.readFileSync(path.join(path.resolve(__dirname, '..'), 'main.js'), 'utf8');
+  const tint = main.slice(main.indexOf('function applyNightObjectTint('), main.indexOf('function updateDynamicLighting('));
+  assert.match(tint, /const k = Math\.max\(0, Math\.min\(1, Number\(ground\) \|\| 0\)\);/);
+  // Evaluate the tree tint the function produces at the midnight peak.
+  const context = vm.createContext({ Math, Number });
+  vm.runInContext(`
+    const NIGHT_OBJECT_TINT = 0x9aa3b4; const NIGHT_BAKED_DEEP_SHARE = 0.35; const BUILDING_NIGHT_SWAP_AT = 0.3;
+    const BUILDING_BAKED_DIM = 0.5; const BUILDING_BAKED_TINT = 0x808080; const NIGHT_BUILDING_DARKNESS_SHARE = 0.5;
+    var seen = [];
+    var scene = { nightRawAlpha: 0.54, nightDeepDepth: 1, treeSprites: new Map([[1, [{ setTint(t) { seen.push(t); } }]]]), buildingSprites: new Map() };
+    var getBuildingNightTextureKey = () => null;
+  `, context);
+  vm.runInContext(tint, context);
+  vm.runInContext('applyNightObjectTint(scene, 0.45)', context);
+  const value = vm.runInContext('seen[0]', context);
+  assert.ok(value >= 0 && value <= 0xffffff, `tint stays a valid 24-bit colour: ${value}`);
+  const r = (value >> 16) & 0xff; const g = (value >> 8) & 0xff; const b = value & 0xff;
+  assert.ok(r < g && g < b, `blue-grey, not red: ${r},${g},${b}`);
+  assert.ok(r >= 0x9a && b <= 0xff, 'never darker than NIGHT_OBJECT_TINT itself');
+});

@@ -103,7 +103,7 @@ test('horizontal straights use the column as the along-road coordinate and the n
   });
 });
 
-test('bends get one lamp on the outside; junctions, bridges, ends and isolated tiles get none', () => {
+test('bends get one lamp on the outside; junctions, ends and isolated tiles get none', () => {
   const run = createContext();
   const lamps = placementsFor(run, [
     '.....',
@@ -129,7 +129,6 @@ test('bends get one lamp on the outside; junctions, bridges, ends and isolated t
     '..|..',
   ]);
   assert.ok(!withJunctions.some((l) => l.row === 2 && l.col === 2), 'the junction carries the signal poles, not a lamp');
-  assert.ok(!withJunctions.some((l) => l.row === 3 && l.col === 2), 'bridge tiles keep their own art');
   assert.ok(!withJunctions.some((l) => l.kind !== 'straight' && l.kind !== 'corner'));
   const isolated = placementsFor(run, ['...', '.|.', '...']);
   assert.equal(isolated.length, 0);
@@ -269,4 +268,38 @@ test('main.js, index.html and the performance panel are wired for the lamps', ()
   assert.ok(factory >= 0 && lamps > factory && calibrator > lamps && main > calibrator);
   const panel = source('visual-route-calibrator.js');
   assert.ok(panel.includes('toggleStreetLampCalibrator(scene)') && panel.includes('teardownStreetLampCalibrator()') && panel.includes('isStreetLampPickerActive()'));
+});
+
+test('bridge decks, ramps and hill slopes carry lamps that stand on the raised surface', () => {
+  const run = createContext();
+  const lamps = placementsFor(run, ['.....', '..B..', '..B..', '..B..', '..B..', '.....'], false);
+  // Rows 1-4 of column 2 are bridge decks (road_bridge_v): lamps follow the same 30 m pattern.
+  const decks = lamps.filter((l) => l.col === 2);
+  assert.ok(decks.length >= 2, 'bridge decks are lamp-worthy');
+  decks.forEach((l) => assert.equal(l.kind, 'straight'));
+  const straights = run('STREET_LAMP_STRAIGHTS');
+  ['road_bridge_v', 'road_bridge_h', 'road_hill_n', 'road_hill_e', 'road_hill2_s', 'road_hill2_w'].forEach((key) => {
+    assert.ok(straights[key], `${key} is treated as a straight run`);
+  });
+
+  // Surface lift: a deck sits BRIDGE_DECK_VISUAL_LIFT above its (unlifted) water tile; a ramp
+  // rises along its axis; a flat road adds nothing.
+  run(`globalThis.getTrafficRuntimeLayers = () => ({});
+       globalThis.getTerrainTileVisualOffset = () => 0;
+       globalThis.getTrafficRoadSurface = (row, col) => {
+         if (row === 0) return { kind: 'bridge-deck', directions: ['n', 's'], centerLift: 15, endpointLifts: { n: 15, s: 15 } };
+         if (row === 1) return { kind: 'bridge-ramp', directions: ['n', 's'], centerLift: 7.5, endpointLifts: { n: 15, s: 0 } };
+         return { kind: 'flat', directions: ['n', 'e', 's', 'w'], centerLift: 0, endpointLifts: { n: 0, e: 0, s: 0, w: 0 } };
+       };`);
+  const lift = run('streetLampSurfaceLift');
+  assert.equal(lift({ row: 0, col: 0, offsetRow: -0.25, offsetCol: 0.42 }), 15, 'deck: the full lift everywhere');
+  assert.ok(Math.abs(lift({ row: 1, col: 0, offsetRow: -0.25, offsetCol: 0.42 }) - 11.25) < 1e-9, 'ramp: a quarter tile towards the high end');
+  assert.ok(Math.abs(lift({ row: 1, col: 0, offsetRow: 0.25, offsetCol: -0.42 }) - 3.75) < 1e-9, 'ramp: a quarter tile towards the low end');
+  assert.equal(lift({ row: 1, col: 0, offsetRow: 0, offsetCol: 0.42 }), 7.5, 'ramp centre');
+  assert.equal(lift({ row: 2, col: 0, offsetRow: 0.25, offsetCol: 0.42 }), 0, 'flat road');
+  // A hill slope whose tile face is already drawn at its base height: only the rise above that counts.
+  run(`globalThis.getTerrainTileVisualOffset = () => -12;
+       globalThis.getTrafficRoadSurface = () => ({ kind: 'terrain-slope', directions: ['n', 's'], centerLift: 18, endpointLifts: { n: 24, s: 12 } });`);
+  assert.equal(lift({ row: 5, col: 5, offsetRow: 0.25, offsetCol: 0 }), 3, 'slope: low end = 12 (base) + rise');
+  assert.equal(lift({ row: 5, col: 5, offsetRow: -0.25, offsetCol: 0 }), 9, 'slope: towards the high end');
 });

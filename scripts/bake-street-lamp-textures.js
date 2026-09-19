@@ -43,7 +43,7 @@ const FOOT_Y = 600;
 // saturated than the target look.
 // Matched to Norton's night-city reference renders: a compact warm-yellow lantern glow and the
 // road washed in golden amber (not red-orange, not pale yellow).
-const SODIUM = { lens: [255, 226, 160], glow: [255, 178, 70], pool: [240, 150, 56] };
+const SODIUM = { lens: [255, 214, 140], glow: [255, 158, 48], pool: [236, 130, 38] };
 
 const clamp255 = (v) => (v < 0 ? 0 : v > 255 ? 255 : v);
 

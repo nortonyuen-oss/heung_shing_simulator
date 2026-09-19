@@ -537,13 +537,13 @@ const STREET_LAMP_SPACING_PERIOD = 3;
 const STREET_LAMP_LOGICAL_INSET = { side: 0.42, along: 0.25, cornerOuter: 0.30 };
 // On-screen size relative to the 880px-tall baked canvas (post ~560px): a 10 m post ~40px.
 const STREET_LAMP_SCALE = 0.07;
-// Per-facing pixel nudges recorded with the test-mode street lamp calibrator (facings are the
-// arm direction on screen; calibrate at the default North view).
+// Per-facing pixel nudges recorded with the test-mode street lamp calibrator on 2026-09-20
+// (facings are the arm direction on screen; calibrate at the default North view).
 const STREET_LAMP_ANCHOR_OFFSETS = {
-  nw: { dx: 0, dy: 0 },
-  ne: { dx: 0, dy: 0 },
-  sw: { dx: 0, dy: 0 },
-  se: { dx: 0, dy: 0 },
+  nw: { dx: -2.72, dy: -2.176 },
+  ne: { dx: 2.172, dy: -1.448 },
+  sw: { dx: -2.897, dy: 5.069 },
+  se: { dx: 4.897, dy: 2.72 },
 };
 // Lamps switch to their baked night texture when the vehicle-lamp night strength passes ON and
 // back at OFF (hysteresis so dusk does not flicker).

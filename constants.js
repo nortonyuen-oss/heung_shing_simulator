@@ -550,6 +550,20 @@ const STREET_LAMP_ANCHOR_OFFSETS = {
 const STREET_LAMP_NIGHT_ON = 0.35;
 const STREET_LAMP_NIGHT_OFF = 0.25;
 
+// Bridge parapets (bridge-parapets.js): the concrete-and-rail barrier along both long edges of
+// every bridge deck and ramp tile, derived from the bridge map like the lamps, never saved.
+// One texture segment spans one tile edge; the baked art (scripts/bake-bridge-parapet-
+// textures.js) is ~630 px wide on its canvas, so a 50 px edge is scale 0.08.
+const BRIDGE_PARAPET_SCALE = 0.08;
+// Per-edge pixel nudges from the edge midpoint (test-mode 天橋護欄位置微調; facings are the
+// screen edge the segment stands on, calibrate at the default North view).
+const BRIDGE_PARAPET_ANCHOR_OFFSETS = {
+  ne: { dx: 0, dy: 0 },
+  se: { dx: 0, dy: 0 },
+  sw: { dx: 0, dy: 0 },
+  nw: { dx: 0, dy: 0 },
+};
+
 // Tree simulation
 const TREE_SYSTEM_VERSION = 3;            // bump when generation algorithm changes
 const TREE_MATURE_AGE = 6;

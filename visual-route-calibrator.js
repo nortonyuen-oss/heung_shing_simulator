@@ -180,6 +180,7 @@ function setVisualRouteCalibrationTestModeEnabled(enabled) {
     if (typeof teardownTrafficLightCalibrator === 'function') teardownTrafficLightCalibrator();
     if (typeof teardownTrafficSignalCalibrator === 'function') teardownTrafficSignalCalibrator();
     if (typeof teardownStreetLampCalibrator === 'function') teardownStreetLampCalibrator();
+    if (typeof teardownBridgeParapetCalibrator === 'function') teardownBridgeParapetCalibrator();
     if (typeof setLiveBuildingLightsEnabled === 'function') {
       setLiveBuildingLightsEnabled(false, typeof activeScene !== 'undefined' ? activeScene : null);
       const button = document.querySelector?.('.vrp-livelights-btn');
@@ -620,6 +621,7 @@ function isVisualRouteCalibrationInputCaptured(scene) {
   // traffic-signal-calibrator.js: same picker toggle for the junction signal poles.
   if (typeof isTrafficSignalPickerActive === 'function' && isTrafficSignalPickerActive()) return true;
   if (typeof isStreetLampPickerActive === 'function' && isStreetLampPickerActive()) return true;
+  if (typeof isBridgeParapetPickerActive === 'function' && isBridgeParapetPickerActive()) return true;
   // traffic-light-calibrator.js: same deal while its lamp-drag workbench is open.
   if (typeof isTrafficLightCalibrationInputActive === 'function'
     && isTrafficLightCalibrationInputActive()) return true;
@@ -1036,6 +1038,7 @@ function createVisualRoutePerformancePanel(scene) {
     + '<button type="button" class="vrp-trafficlight-btn">車燈位置微調</button>'
     + '<button type="button" class="vrp-trafficsignal-btn">路口交通燈位置微調</button>'
     + '<button type="button" class="vrp-streetlamp-btn">路燈位置微調</button>'
+    + '<button type="button" class="vrp-bridgeparapet-btn">天橋護欄位置微調</button>'
     + '<button type="button" class="vrp-livelights-btn" data-active="false">使用 Phaser 光源：關閉</button>'
     + '<button type="button" class="vrp-buildinglight-btn">夜間建築燈光校正</button>';
   root.querySelector('.vrp-close-btn')?.addEventListener?.('click', () => {
@@ -1064,6 +1067,9 @@ function createVisualRoutePerformancePanel(scene) {
   });
   root.querySelector('.vrp-streetlamp-btn')?.addEventListener?.('click', () => {
     if (typeof toggleStreetLampCalibrator === 'function') toggleStreetLampCalibrator(scene);
+  });
+  root.querySelector('.vrp-bridgeparapet-btn')?.addEventListener?.('click', () => {
+    if (typeof toggleBridgeParapetCalibrator === 'function') toggleBridgeParapetCalibrator(scene);
   });
   // Buildings without baked night art normally stay dark; this test-mode option brings back the
   // live Phaser glow for them (building-lighting.js).

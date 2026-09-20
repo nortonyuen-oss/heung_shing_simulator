@@ -682,6 +682,7 @@ function updateSpriteViewportCulling(scene, bounds) {
   collect(cullSpriteMapEntries(scene.busStopSprites, bounds, seen, mainCamera, mainBounds));
   collect(cullSpriteMapEntries(scene.trafficSignalSprites, bounds, seen, mainCamera, mainBounds));
   collect(cullSpriteMapEntries(scene.streetLampSprites, bounds, seen, mainCamera, mainBounds));
+  collect(cullSpriteMapEntries(scene.bridgeParapetSprites, bounds, seen, mainCamera, mainBounds));
   collect(cullSpriteMapEntries(scene.zoneOverlays, bounds, seen, mainCamera, mainBounds));
   collect(cullSpriteMapEntries(scene.powerLineSprites, bounds, seen, mainCamera, mainBounds));
   collect(cullSpriteMapEntries(scene.bridgeSprites, bounds, seen, mainCamera, mainBounds));
@@ -2119,6 +2120,12 @@ function preload() {
       this.load.image(key, resolveModelAssetPath(file));
     });
   }
+  // Bridge parapets: one segment per screen axis plus the ramp shears (bridge-parapets.js)
+  if (typeof BRIDGE_PARAPET_TEXTURE_FILES !== 'undefined') {
+    Object.entries(BRIDGE_PARAPET_TEXTURE_FILES).forEach(([key, file]) => {
+      this.load.image(key, resolveModelAssetPath(file));
+    });
+  }
 }
 
 function create() {
@@ -2155,6 +2162,7 @@ function create() {
   this.busStopSprites = new Map();
   this.trafficSignalSprites = new Map();
   this.streetLampSprites = new Map();
+  this.bridgeParapetSprites = new Map();
   this.districtSignSprites = new Map();
   createWorldRenderLayers(this);
 
@@ -3525,6 +3533,7 @@ function positionAllTiles(scene) {
   // Signal poles and street lamps hang off the same map offsets (window resize) and facings (rotation).
   if (typeof refreshAllTrafficSignalSprites === 'function') refreshAllTrafficSignalSprites(scene);
   if (typeof refreshAllStreetLampSprites === 'function') refreshAllStreetLampSprites(scene);
+  if (typeof refreshAllBridgeParapetSprites === 'function') refreshAllBridgeParapetSprites(scene);
 
   if (typeof repositionDistrictSignSprites === 'function') repositionDistrictSignSprites(scene);
 
@@ -7166,6 +7175,8 @@ function applyNightObjectTint(scene, ground) {
     if (Array.isArray(sprites)) sprites.forEach(apply);
     else apply(sprites);
   });
+  // Bridge parapets are unlit concrete: they darken with the trees.
+  scene.bridgeParapetSprites?.forEach(apply);
 
   // Buildings take a lighter share (see NIGHT_BUILDING_DARKNESS_SHARE). Once a
   // model carries a baked night texture its darkening is in the pixels and it
@@ -7543,6 +7554,7 @@ function refreshTileArea(scene, row, col) {
 
   if (typeof scheduleTrafficSignalRefresh === 'function') scheduleTrafficSignalRefresh(scene);
   if (typeof scheduleStreetLampRefresh === 'function') scheduleStreetLampRefresh(scene);
+  if (typeof scheduleBridgeParapetRefresh === 'function') scheduleBridgeParapetRefresh(scene);
   scheduleTerrainMiniMapUpdate();
 }
 
@@ -7561,6 +7573,7 @@ function refreshAllTiles(scene) {
   refreshAllBridgeSprites(scene);
   if (typeof rebuildTrafficSignalSprites === 'function') rebuildTrafficSignalSprites(scene);
   if (typeof rebuildStreetLampSprites === 'function') rebuildStreetLampSprites(scene);
+  if (typeof rebuildBridgeParapetSprites === 'function') rebuildBridgeParapetSprites(scene);
   scheduleTerrainMiniMapUpdate();
 }
 

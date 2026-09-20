@@ -308,7 +308,8 @@ test('rotation and resize re-anchor every tile-anchored sprite family, debris in
   const body = mainSource.slice(mainSource.indexOf('\nfunction positionAllTiles('));
   const positionAllTiles = body.slice(0, body.indexOf('\n}\n'));
   ['positionBuilding(scene, building)', 'positionTree(scene, sprite)', 'positionDebrisSprite(scene, sprite)', 'positionBusStopSprite(scene, sprite)',
-    'refreshAllTrafficSignalSprites(scene)', 'refreshAllStreetLampSprites(scene)', 'repositionDistrictSignSprites(scene)', 'repositionBridgeSprites(scene)'].forEach((call) => {
+    'refreshAllTrafficSignalSprites(scene)', 'refreshAllStreetLampSprites(scene)', 'refreshAllBridgeParapetSprites(scene)',
+    'repositionDistrictSignSprites(scene)', 'repositionBridgeSprites(scene)'].forEach((call) => {
     assert.ok(positionAllTiles.includes(call), `positionAllTiles repositions via ${call}`);
   });
   const place = mainSource.slice(mainSource.indexOf('\nfunction placeDebrisSprite('));

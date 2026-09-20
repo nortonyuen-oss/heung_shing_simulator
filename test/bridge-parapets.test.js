@@ -3,6 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const test = require('node:test');
+const sharp = require('sharp');
 
 const ROOT = path.resolve(__dirname, '..');
 const source = (fileName) => fs.readFileSync(path.join(ROOT, fileName), 'utf8');
@@ -217,5 +218,20 @@ test('street lamps on a bridge sort between the far and the near barrier', () =>
         assert.ok(vehicle < near && vehicle > far, `row ${row} along ${along} lane ${lane}: traffic between the barriers (${far} < ${vehicle} < ${near})`);
       }
     }
+  }
+});
+
+// Phaser (render.mipmapFilter in main.js) only mipmaps power-of-two textures, and a segment
+// is drawn at ~50 px from a 440 px one: without mipmaps the rail point-samples into jaggies.
+// The release pipeline pads to a power of two; the bake keeps a dev launch identical.
+test('the baked parapet textures are power-of-two so Phaser mipmaps them', async () => {
+  const run = createContext();
+  const files = toPlain(run('BRIDGE_PARAPET_TEXTURE_FILES'));
+  const anchor = toPlain(run('BRIDGE_PARAPET_SOURCE_ANCHOR'));
+  const isPow2 = (n) => n > 0 && (n & (n - 1)) === 0;
+  for (const file of Object.values(files)) {
+    const { width, height } = await sharp(path.join(ROOT, file)).metadata();
+    assert.ok(isPow2(width) && isPow2(height), `${file} is ${width}x${height}`);
+    assert.ok(anchor.x < width && anchor.y < height, 'the base-line anchor lies inside the canvas');
   }
 });

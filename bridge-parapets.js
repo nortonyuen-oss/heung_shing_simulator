@@ -24,8 +24,9 @@ const BRIDGE_PARAPET_TEXTURE_FILES = Object.freeze({
   bridge_parapet_v_high_ne: 'Models/roadAssessories/parapet_v_high_ne.png',
   bridge_parapet_v_high_sw: 'Models/roadAssessories/parapet_v_high_sw.png',
 });
-// The baked canvases are 700x600 with the base-line midpoint at (350, 360).
-const BRIDGE_PARAPET_SOURCE_ANCHOR = Object.freeze({ x: 350, y: 360 });
+// The baked canvases are 512x512 (a power of two, so Phaser mipmaps them and the ~9x
+// downscale to the screen stays smooth) with the base-line midpoint at (256, 280).
+const BRIDGE_PARAPET_SOURCE_ANCHOR = Object.freeze({ x: 256, y: 280 });
 // Facing = the screen edge the segment stands on.
 const BRIDGE_PARAPET_FACINGS = Object.freeze(['ne', 'se', 'sw', 'nw']);
 // A map-space edge seen on screen at the default view: n = NE, e = SE, s = SW, w = NW.

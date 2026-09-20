@@ -553,8 +553,9 @@ const STREET_LAMP_NIGHT_OFF = 0.25;
 // Bridge parapets (bridge-parapets.js): the concrete-and-rail barrier along both long edges of
 // every bridge deck and ramp tile, derived from the bridge map like the lamps, never saved.
 // One texture segment spans one tile edge; the baked art (scripts/bake-bridge-parapet-
-// textures.js) is ~630 px wide on its canvas, so a 50 px edge is scale 0.08.
-const BRIDGE_PARAPET_SCALE = 0.078;
+// textures.js) is 440 px wide on its 512 px canvas, so a 50 px edge is scale 0.1136. Norton
+// calibrated 0.078 against the earlier 650 px bake; this is that same on-screen size.
+const BRIDGE_PARAPET_SCALE = 0.1152;
 // Per-edge pixel nudges from the edge midpoint, recorded with the test-mode 天橋護欄位置微調
 // on 2026-09-20 (facings are the screen edge the segment stands on, calibrated at the default
 // North view).

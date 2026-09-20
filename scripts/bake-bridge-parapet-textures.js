@@ -29,15 +29,22 @@ const argValue = (flag) => { const i = args.indexOf(flag); return i >= 0 ? args[
 const OUT_DIR = path.resolve(argValue('--out') || path.join(ROOT, 'Models', 'roadAssessories'));
 const PREVIEW = argValue('--preview');
 
-// Output canvas (half the source resolution) with the base-line midpoint at ANCHOR.
+// Output canvas with the base-line midpoint at ANCHOR. It is a power of two on purpose:
+// Phaser only builds mipmaps (render.mipmapFilter, main.js) for power-of-two textures, and
+// without them a segment drawn at ~50 px from a 440 px one is point-sampled into jaggies.
+// The release pipeline pads to a power of two anyway; this keeps a dev launch, which loads
+// these PNGs as they are, looking the same.
 const SOURCE_SCALE = 0.5;
-const CANVAS_W = 700;
-const CANVAS_H = 600;
-const ANCHOR = { x: 350, y: 360 };
-// The base spans this many canvas px: a 50 px tile edge at BRIDGE_PARAPET_SCALE 0.08 plus a
-// pixel of overlap at each end so two anti-aliased cuts never show water through a seam.
-const TARGET_SPAN = 650;
+const CANVAS_W = 512;
+const CANVAS_H = 512;
+const ANCHOR = { x: 256, y: 280 };
+// The base spans this many canvas px: a 50 px tile edge at BRIDGE_PARAPET_SCALE ~0.114 plus
+// a pixel of overlap at each end so two anti-aliased cuts never show water through a seam.
+const TARGET_SPAN = 440;
 const HEIGHT_SCALE = Number(argValue('--height') || 0.5);
+// Samples per output pixel per axis: the body is drawn at about a third of the source's
+// density, so it needs more than a bilinear tap or the bake itself aliases.
+const SUPERSAMPLE = 4;
 // Ramp shear: the 15 px deck lift over a 50 px edge, in canvas terms (slope change).
 const RAMP_SHEAR = 15 / 50;
 // Pixels this faint are the renderer's dark halo, not the parapet.
@@ -139,7 +146,7 @@ function renderVariant(img, base, spec, variant) {
   const midY = baseAt(midX);
   const stretch = TARGET_SPAN / ((cropR - cropL) * SOURCE_SCALE);
   const out = Buffer.alloc(CANVAS_W * CANVAS_H * 4);
-  const n = 2; // supersample
+  const n = SUPERSAMPLE;
   for (let py = 0; py < CANVAS_H; py++) {
     for (let px = 0; px < CANVAS_W; px++) {
       let rr = 0; let gg = 0; let bb = 0; let aa = 0;
@@ -174,7 +181,7 @@ async function main() {
       throw new Error(`${spec.file}: base line slope ${base.slope.toFixed(3)}, expected ${spec.baseSlope} (2:1 isometric)`);
     }
     console.log(`${spec.file}: base midpoint (${base.x.toFixed(1)}, ${base.y.toFixed(1)}) slope ${base.slope.toFixed(3)}, `
-      + `solid span ${base.maxX - base.minX} px; body -> ${TARGET_SPAN} canvas px (${(TARGET_SPAN * 0.08).toFixed(0)} px per edge at scale 0.08), height x${HEIGHT_SCALE}`);
+      + `solid span ${base.maxX - base.minX} px; body -> ${TARGET_SPAN} canvas px (one 50 px tile edge at scale ${(50 / TARGET_SPAN).toFixed(4)}), height x${HEIGHT_SCALE}`);
     for (const variant of spec.variants) {
       const { pixels, stretch } = renderVariant(img, base, spec, variant);
       await sharp(pixels, { raw: { width: CANVAS_W, height: CANVAS_H, channels: 4, premultiplied: false } })
@@ -185,7 +192,7 @@ async function main() {
     }
   }
   if (PREVIEW) {
-    const scale = 0.5;
+    const scale = 0.7;
     const w = Math.round(CANVAS_W * scale); const h = Math.round(CANVAS_H * scale);
     const tiles = [];
     for (let i = 0; i < previews.length; i++) {

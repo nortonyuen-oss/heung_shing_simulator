@@ -20,8 +20,6 @@ const HEIGHT_STEP_PIXELS = 13;
 const BRIDGE_DECK_VISUAL_LIFT = 15;
 const BRIDGE_SPRITE_DEPTH_BOOST = 64;
 const BRIDGE_RAMP_BODY_DEPTH_OFFSET = 0.45;
-const BRIDGE_RAMP_SURFACE_CROSS_LIMIT = 0.42;
-const BRIDGE_RAMP_SURFACE_MARKING_RADIUS = 5;
 const BRIDGE_TOP_LAYER_CUTOFF_Y = 40;
 const BRIDGE_SIDE_LAYER_START_Y = 28;
 const TERRAIN_RAISE_BLOCK_RADIUS = 1;
@@ -3824,143 +3822,54 @@ function getAlphaBounds(imageData, width, height) {
   return bounds.maxX >= bounds.minX && bounds.maxY >= bounds.minY ? bounds : null;
 }
 
+// The part of a ramp that must draw in front of the deck it climbs to. The ramp body sits in the
+// terrain band (so its earth base stays under the neighbouring ground tiles), but the deck is in
+// the road band and its end and side faces would otherwise cover the ramp's shoulders and
+// retaining walls at the joint - the road looked broken where it met the bridge. The overlay
+// therefore carries every opaque pixel of the ramp's deck-side half except earth and grass, not
+// just the asphalt band it used to: shoulders, kerbs and walls included.
 function createBridgeRampSurfaceMask(imageData, width, height, bounds, visualDirection) {
-  const asphaltMask = new Uint8Array(width * height);
+  const surfaceMask = new Uint8Array(width * height);
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const pixelIndex = (y * width + x) * 4;
+      const a = imageData.data[pixelIndex + 3];
+      if (a < 16) continue;
       const r = imageData.data[pixelIndex];
       const g = imageData.data[pixelIndex + 1];
       const b = imageData.data[pixelIndex + 2];
-      const a = imageData.data[pixelIndex + 3];
-      if (!isBridgeRampAsphaltPixel(r, g, b, a)) continue;
-      if (!isInsideBridgeRampSurfaceCap(x, y, bounds, visualDirection)) continue;
-      asphaltMask[y * width + x] = 1;
+      if (isBridgeRampEarthPixel(r, g, b)) continue;
+      if (!isInsideBridgeRampDeckHalf(x, y, bounds, visualDirection)) continue;
+      surfaceMask[y * width + x] = 1;
     }
   }
-
-  const roadMask = getLargestConnectedMask(asphaltMask, width, height);
-  const nearRoadMask = expandPixelMask(roadMask, width, height, BRIDGE_RAMP_SURFACE_MARKING_RADIUS);
-  const surfaceMask = new Uint8Array(width * height);
-
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      const maskIndex = y * width + x;
-      if (roadMask[maskIndex]) {
-        surfaceMask[maskIndex] = 1;
-        continue;
-      }
-
-      const pixelIndex = maskIndex * 4;
-      const r = imageData.data[pixelIndex];
-      const g = imageData.data[pixelIndex + 1];
-      const b = imageData.data[pixelIndex + 2];
-      const a = imageData.data[pixelIndex + 3];
-      if (!nearRoadMask[maskIndex]) continue;
-      if (!isBridgeRampYellowMarkingPixel(r, g, b, a)) continue;
-      if (!isInsideBridgeRampSurfaceCap(x, y, bounds, visualDirection)) continue;
-      surfaceMask[maskIndex] = 1;
-    }
-  }
-
   return surfaceMask;
 }
 
-function getLargestConnectedMask(mask, width, height) {
-  const visited = new Uint8Array(mask.length);
-  let best = [];
-
-  for (let start = 0; start < mask.length; start++) {
-    if (!mask[start] || visited[start]) continue;
-    const stack = [start];
-    const component = [];
-    visited[start] = 1;
-
-    while (stack.length > 0) {
-      const index = stack.pop();
-      component.push(index);
-      const x = index % width;
-      const y = Math.floor(index / width);
-      [
-        x > 0 ? index - 1 : -1,
-        x < width - 1 ? index + 1 : -1,
-        y > 0 ? index - width : -1,
-        y < height - 1 ? index + width : -1,
-      ].forEach((next) => {
-        if (next < 0 || !mask[next] || visited[next]) return;
-        visited[next] = 1;
-        stack.push(next);
-      });
-    }
-
-    if (component.length > best.length) best = component;
-  }
-
-  const output = new Uint8Array(mask.length);
-  best.forEach((index) => {
-    output[index] = 1;
-  });
-  return output;
-}
-
-function expandPixelMask(mask, width, height, radius) {
-  const output = new Uint8Array(mask.length);
-  for (let index = 0; index < mask.length; index++) {
-    if (!mask[index]) continue;
-    const x = index % width;
-    const y = Math.floor(index / width);
-    for (let dy = -radius; dy <= radius; dy++) {
-      for (let dx = -radius; dx <= radius; dx++) {
-        if (Math.abs(dx) + Math.abs(dy) > radius) continue;
-        const nx = x + dx;
-        const ny = y + dy;
-        if (nx < 0 || nx >= width || ny < 0 || ny >= height) continue;
-        output[ny * width + nx] = 1;
-      }
-    }
-  }
-  return output;
-}
-
-function isBridgeRampAsphaltPixel(r, g, b, a) {
-  if (a < 16) return false;
-  const maxChannel = Math.max(r, g, b);
-  const minChannel = Math.min(r, g, b);
-  const luma = (r + g + b) / 3;
-  const neutral = maxChannel - minChannel <= 32;
-  const roadAsphalt = neutral && luma >= 45 && luma <= 130;
+// Grass or the brown earth base of a ramp: never part of the structure that fronts the deck.
+// Earth in the road art is a muted brown with a fairly high blue channel (e.g. 160,120,88);
+// the yellow kerb paint is the other warm colour and has very little blue (216,176,64), so
+// the blue floor keeps the paint on the structure side.
+function isBridgeRampEarthPixel(r, g, b) {
   const greenTerrain = g > r + 18 && g > b + 8;
-  const brownBody = r > g + 10 && g > b + 5 && r >= 80 && r <= 220;
-  return roadAsphalt && !greenTerrain && !brownBody;
+  const brownEarth = r > g + 24 && g > b + 16 && g - b <= 56 && b >= 76 && r >= 120 && r <= 220;
+  return greenTerrain || brownEarth;
 }
 
-function isBridgeRampYellowMarkingPixel(r, g, b, a) {
-  return a >= 16 && r >= 135 && g >= 105 && b <= 110 && r > b + 35 && g > b + 25;
-}
-
-function isInsideBridgeRampSurfaceCap(x, y, bounds, visualDirection) {
+// The half of the ramp's art nearest the deck it climbs to (the same axis test the old
+// asphalt-only cap used, without its cross-axis band).
+function isInsideBridgeRampDeckHalf(x, y, bounds, visualDirection) {
   const halfWidth = Math.max(1, (bounds.maxX - bounds.minX + 1) / 2);
   const halfHeight = Math.max(1, (bounds.maxY - bounds.minY + 1) / 2);
-  const midX = (bounds.minX + bounds.maxX) / 2;
-  const midY = (bounds.minY + bounds.maxY) / 2;
-  const xNorm = (x - midX) / halfWidth;
-  const yNorm = (y - midY) / halfHeight;
+  const xNorm = (x - (bounds.minX + bounds.maxX) / 2) / halfWidth;
+  const yNorm = (y - (bounds.minY + bounds.maxY) / 2) / halfHeight;
   let bridgeScore = xNorm - yNorm;
-  let crossScore = xNorm + yNorm;
-
-  if (visualDirection === 'e') {
-    bridgeScore = xNorm + yNorm;
-    crossScore = xNorm - yNorm;
-  } else if (visualDirection === 's') {
-    bridgeScore = -xNorm + yNorm;
-    crossScore = xNorm + yNorm;
-  } else if (visualDirection === 'w') {
-    bridgeScore = -xNorm - yNorm;
-    crossScore = xNorm - yNorm;
-  }
-
-  return bridgeScore >= -0.05 && Math.abs(crossScore) <= BRIDGE_RAMP_SURFACE_CROSS_LIMIT;
+  if (visualDirection === 'e') bridgeScore = xNorm + yNorm;
+  else if (visualDirection === 's') bridgeScore = -xNorm + yNorm;
+  else if (visualDirection === 'w') bridgeScore = -xNorm - yNorm;
+  return bridgeScore >= -0.05;
 }
+
 
 function getPowerPlantModelMetadata(scene, buildingType) {
   const model = POWER_PLANT_MODELS[buildingType];

@@ -99,7 +99,9 @@ function createGameApp(options = {}) {
     maxAge: STATIC_ASSET_CACHE_MAX_AGE,
     setHeaders(res, filePath) {
       const extension = path.extname(filePath).toLowerCase();
-      const isModelAsset = filePath.split(path.sep).includes('Models');
+      const parts = filePath.split(path.sep);
+      // Road tile sets are hand-edited in place under stable filenames too.
+      const isModelAsset = parts.includes('Models') || parts.includes('newRoadTiles') || parts.includes('kenney_isometric-roads');
       // Source files are not fingerprinted, so always revalidate code and markup.
       // Model art is also edited in place under stable filenames; conditional
       // revalidation prevents an updated sprite being hidden by the one-hour

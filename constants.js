@@ -484,8 +484,9 @@ const BUS_STOP_DEPTH_PRIORITY_MARGIN_TILES = 0.25;
 // driver's-left kerb (Hong Kong keeps left; 0.5 would be the tile edge). Hand-tuned so the foot
 // lands on the pavement just before the junction's crossing, not in the traffic lane.
 const TRAFFIC_SIGNAL_LOGICAL_INSET = { forward: 0.40, left: 0.42 };
-// On-screen size of a pole relative to its 600px-tall source art (~20px at zoom 1).
-const TRAFFIC_SIGNAL_SCALE = 0.034;
+// On-screen size of a pole relative to its 256px baked canvas, pole ~246px tall (~20px at
+// zoom 1; calibrated as 0.034 against the earlier 600px art, same size).
+const TRAFFIC_SIGNAL_SCALE = 0.0797;
 // Per-facing pixel nudges on top of the geometric anchor, recorded with the test-mode
 // traffic-signal calibrator on 2026-09-19 (facings are screen-relative: calibrate at the
 // default North view).
@@ -535,8 +536,9 @@ const TRAFFIC_SIGNAL_AMBER_COMMIT_TILES = 0.15;
 // exactly 1.5 tiles (30 m) apart. Bends get one lamp on the outside.
 const STREET_LAMP_SPACING_PERIOD = 3;
 const STREET_LAMP_LOGICAL_INSET = { side: 0.42, along: 0.25, cornerOuter: 0.30 };
-// On-screen size relative to the 880px-tall baked canvas (post ~560px): a 10 m post ~40px.
-const STREET_LAMP_SCALE = 0.07;
+// On-screen size relative to the 256px baked canvas (post ~150px): a 10 m post ~40px
+// (calibrated as 0.07 against the earlier 880px canvas, same size).
+const STREET_LAMP_SCALE = 0.2625;
 // Per-facing pixel nudges recorded with the test-mode street lamp calibrator on 2026-09-20
 // (facings are the arm direction on screen; calibrate at the default North view).
 const STREET_LAMP_ANCHOR_OFFSETS = {

@@ -47,8 +47,9 @@ const TRAFFIC_SIGNAL_TEXTURE_FILES = Object.freeze(Object.fromEntries(
     ]);
   }),
 ));
-// Each source image is 320x600 with the pole's foot at the bottom centre.
-const TRAFFIC_SIGNAL_SOURCE_ANCHOR = Object.freeze({ x: 160, y: 600 });
+// Each baked texture is a 256x256 canvas (a power of two, so Phaser mipmaps it) with the
+// pole's foot at (128, 256); the pole itself is ~246 px tall on it.
+const TRAFFIC_SIGNAL_SOURCE_ANCHOR = Object.freeze({ x: 128, y: 256 });
 const TRAFFIC_SIGNAL_VEHICLE_CODES = Object.freeze({ red: 'r', redAmber: 'ra', green: 'g', amber: 'a' });
 const TRAFFIC_SIGNAL_PED_CODES = Object.freeze({ red: 'pr', green: 'pg', off: 'px' });
 // A pole's texture updates at most this often (the flashing green man is 2 Hz).
@@ -56,20 +57,20 @@ const TRAFFIC_SIGNAL_VISUAL_INTERVAL_MS = 100;
 // Night glow: a small additive halo on each lit lamp the camera can see, drawn from one shared
 // pool of sprites that is re-dealt to the poles in view on every visual pass (so the pool only
 // ever holds as many sprites as there are lit lamps on screen). It follows the vehicle-lamp
-// night/weather strength and the View-menu building-lights toggle. Lens centres are source
+// night/weather strength and the View-menu building-lights toggle. Lens centres are texture
 // pixels from the pole foot, as printed by scripts/bake-traffic-signal-states.js.
 const TRAFFIC_SIGNAL_LAMP_ANCHORS = Object.freeze({
-  sw: { red: [-86, -468], amber: [-84, -393], green: [-84, -315], pedRed: [69, -242], pedGreen: [70, -180] },
-  se: { red: [93, -443], amber: [91, -365], green: [92, -284] },
-  nw: { pedRed: [-78, -248], pedGreen: [-74, -186] },
+  sw: { red: [-36.9, -199.7], amber: [-36.1, -167.9], green: [-36.1, -134.4], pedRed: [29.4, -103.5], pedGreen: [29.7, -77.0] },
+  se: { red: [39.5, -189.2], amber: [38.8, -155.9], green: [39.0, -121.4] },
+  nw: { pedRed: [-33.3, -105.8], pedGreen: [-31.8, -79.6] },
   ne: {},
 });
 const TRAFFIC_SIGNAL_GLOW_COLOURS = Object.freeze({
   red: 0xff4a30, amber: 0xffbe3c, green: 0x5cff8a, pedRed: 0xff4a30, pedGreen: 0x5cff8a,
 });
 const TRAFFIC_SIGNAL_GLOW_TEXTURE_KEY = 'fx_traffic_signal_glow';
-// Halo diameter relative to the pole scale: 16px texture x 0.034 x 13 = ~7px at zoom 1.
-const TRAFFIC_SIGNAL_GLOW_SCALE_FACTOR = 13;
+// Halo diameter relative to the pole scale: 16px texture x 0.0797 x 5.55 = ~7px at zoom 1.
+const TRAFFIC_SIGNAL_GLOW_SCALE_FACTOR = 5.55;
 const TRAFFIC_SIGNAL_GLOW_ALPHA = 0.85;
 const TRAFFIC_SIGNAL_NO_LAMPS = Object.freeze([]);
 // Signals run on the same clamped frame delta as ambient traffic so a slow frame holds both back.

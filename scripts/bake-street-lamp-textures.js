@@ -13,10 +13,13 @@
 // reserves __night* for the building night bakes it manages itself.
 //
 // The post is placed on a canvas wide enough for the ground pool, so each output's foot pixel
-// (the anchor, printed at the end) is found from the art, not assumed.
+// (the anchor, printed at the end) is found from the art, not assumed. That working canvas is
+// then finished on a 256x256 one (a power of two, so Phaser mipmaps it; the post is ~40 px on
+// screen) with the foot at (128, 160).
 const fs = require('fs');
 const path = require('path');
 const sharp = require('sharp');
+const { finishOnPowerOfTwoCanvas } = require('./lib/pot-prop-canvas');
 
 const ROOT = path.resolve(__dirname, '..');
 const SOURCE = path.join(ROOT, 'scripts', 'source-art', 'lightPost_sheet.png');
@@ -31,11 +34,15 @@ const QUADRANTS = [
   { facing: 'NW', col: 0, row: 1 },
   { facing: 'NE', col: 1, row: 1 },
 ];
-// Output canvas: the post sits at FOOT_X/FOOT_Y with room around it for the halo and the pool.
+// Working canvas: the post sits at FOOT_X/FOOT_Y with room around it for the halo and the pool.
 const CANVAS_W = 960;
 const CANVAS_H = 880;
 const FOOT_X = 480;
 const FOOT_Y = 600;
+// Output canvas: the working canvas scaled to fit 256 px wide, foot (480, 600) -> (128, 160).
+const OUT_SIZE = 256;
+const OUT_SCALE = OUT_SIZE / CANVAS_W;
+const OUT_FOOT = { x: 128, y: 160 };
 
 // Hong Kong's classic high-pressure sodium (高壓鈉燈, 1900-2100 K, CRI ~20): a deep golden orange.
 // The blackbody colour of 2000 K is about #ff8a12; the lit lantern reads paler than the light it
@@ -202,16 +209,22 @@ async function bake() {
     const ground = paintNight(night, CANVAS_W, CANVAS_H, lantern, footOut, quadrant.facing);
     const dayFile = path.join(OUT_DIR, `lightPost_${quadrant.facing}.png`);
     const nightFile = path.join(OUT_DIR, `lightPost_${quadrant.facing}__lit.png`);
-    await sharp(day, { raw: { width: CANVAS_W, height: CANVAS_H, channels: 4 } }).png().toFile(dayFile);
-    await sharp(night, { raw: { width: CANVAS_W, height: CANVAS_H, channels: 4 } }).png().toFile(nightFile);
+    await writeOutput(day, dayFile);
+    await writeOutput(night, nightFile);
     results.push({ facing: quadrant.facing, dayFile, nightFile, foot: footOut, lantern, ground, postHeight: footOut.bounds.maxY - footOut.bounds.minY });
   }
   return results;
 }
 
+async function writeOutput(pixels, file) {
+  const canvas = await finishOnPowerOfTwoCanvas(pixels, CANVAS_W, CANVAS_H, { scale: OUT_SCALE, size: OUT_SIZE, sourceAnchor: { x: FOOT_X, y: FOOT_Y }, anchor: OUT_FOOT });
+  await sharp(canvas, { raw: { width: OUT_SIZE, height: OUT_SIZE, channels: 4, premultiplied: false } })
+    .png({ compressionLevel: 9 }).toFile(file);
+}
+
 async function writePreview(results, file) {
-  const scale = 0.32;
-  const tileW = Math.round(CANVAS_W * scale); const tileH = Math.round(CANVAS_H * scale);
+  const scale = 1.1;
+  const tileW = Math.round(OUT_SIZE * scale); const tileH = Math.round(OUT_SIZE * scale);
   const labelH = 18;
   const width = 4 * (tileW + 8) + 8;
   const height = 2 * (tileH + labelH + 8) + 8;
@@ -229,8 +242,8 @@ async function writePreview(results, file) {
   await sharp({ create: { width, height, channels: 4, background } }).composite(composites).png().toFile(file);
   // A second strip on a dark road grey, at roughly the in-game night size.
   const nightBg = { r: 38, g: 40, b: 44, alpha: 1 };
-  const gameScale = 0.07 * 3; // zoom 3
-  const gw = Math.round(CANVAS_W * gameScale); const gh = Math.round(CANVAS_H * gameScale);
+  const gameScale = (0.07 / OUT_SCALE) * 3; // zoom 3
+  const gw = Math.round(OUT_SIZE * gameScale); const gh = Math.round(OUT_SIZE * gameScale);
   const strip = [];
   for (let i = 0; i < results.length; i++) {
     strip.push({ input: await sharp(results[i].nightFile).resize(gw, gh).png().toBuffer(), left: 8 + i * (gw + 8), top: 8 });
@@ -243,10 +256,11 @@ async function writePreview(results, file) {
   fs.mkdirSync(OUT_DIR, { recursive: true });
   const results = await bake();
   results.forEach((r) => {
-    console.log(`${r.facing}: foot (${r.foot.x}, ${r.foot.y}) post height ${r.postHeight}px lantern lens (${Math.round(r.lantern.lensX)}, ${Math.round(r.lantern.lensY)}) ground (${Math.round(r.ground.groundX)}, ${Math.round(r.ground.groundY)})`);
+    console.log(`${r.facing}: working foot (${r.foot.x}, ${r.foot.y}) post height ${r.postHeight}px lantern lens (${Math.round(r.lantern.lensX)}, ${Math.round(r.lantern.lensY)}) ground (${Math.round(r.ground.groundX)}, ${Math.round(r.ground.groundY)})`);
   });
-  console.log('Lantern lens from the foot (source px) - STREET_LAMP_LANTERN_ANCHORS:');
-  results.forEach((r) => console.log(`  ${r.facing.toLowerCase()}: [${Math.round(r.lantern.lensX - r.foot.x)}, ${Math.round(r.lantern.lensY - r.foot.y)}],`));
+  console.log(`Output ${OUT_SIZE}x${OUT_SIZE}, foot at (${OUT_FOOT.x}, ${OUT_FOOT.y}) = STREET_LAMP_SOURCE_ANCHOR; post ~${Math.round(results[0].postHeight * OUT_SCALE)}px tall.`);
+  console.log('Lantern lens from the foot (output px):');
+  results.forEach((r) => console.log(`  ${r.facing.toLowerCase()}: [${Math.round((r.lantern.lensX - r.foot.x) * OUT_SCALE)}, ${Math.round((r.lantern.lensY - r.foot.y) * OUT_SCALE)}],`));
   if (PREVIEW) {
     await writePreview(results, path.resolve(PREVIEW));
     console.log(`Preview: ${PREVIEW}`);

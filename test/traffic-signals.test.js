@@ -516,7 +516,11 @@ test('night glows sit on the lit lamps the camera can see, follow the lights tog
   assert.deepEqual(result.night.tint, [0x5cff8a], 'green halo');
   assert.ok(Math.abs(result.night.alpha[0] - 0.5 * 0.85) < 1e-9, 'alpha follows the night strength');
   const scale = run('TRAFFIC_SIGNAL_SCALE');
-  assert.ok(Math.abs(result.night.pos[0] - (10 + -84 * scale)) < 1e-9 && Math.abs(result.night.pos[1] - (10 + -315 * scale)) < 1e-9, 'halo sits on the green lens');
+  const lens = toPlain(run('TRAFFIC_SIGNAL_LAMP_ANCHORS.sw.green'));
+  assert.ok(Math.abs(result.night.pos[0] - (10 + lens[0] * scale)) < 1e-9 && Math.abs(result.night.pos[1] - (10 + lens[1] * scale)) < 1e-9, 'halo sits on the green lens');
+  // The lens anchors are texture pixels from the foot: the green lens is about 11 px up the
+  // pole on screen at zoom 1, whatever canvas the art is baked on.
+  assert.ok(Math.abs(lens[1] * scale + 10.7) < 0.5 && Math.abs(lens[0] * scale + 2.9) < 0.5, `green lens ~(-2.9, -10.7) px from the foot (${lens[0] * scale}, ${lens[1] * scale})`);
   assert.deepEqual(result.night.depth, [500.1], 'drawn just above its pole');
   assert.equal(result.redAmber.created, 3, 'red+amber adds one more glow to the pool');
   assert.equal(result.redAmber.visible, 3);
@@ -546,7 +550,7 @@ test('getPropTextureAnchor maps a source-pixel anchor through the release trim/p
   const run = createContext();
   const anchor = run('getPropTextureAnchor');
   // Unstaged (dev source art): plain proportional origin.
-  assert.deepEqual(toPlain(anchor('Models/trafficLight/trafficLight_SW.png', 160, 600, { width: 320, height: 600 })),
+  assert.deepEqual(toPlain(anchor('Models/trafficLight/trafficLight_SW.png', 128, 256, { width: 256, height: 256 })),
     { originX: 0.5, originY: 1, scaleMultiplier: 1 });
 
   // Staged like the bus stop LL art: 1024 source resized to 512, trimmed, padded to a power of two.

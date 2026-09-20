@@ -2,7 +2,7 @@
 
 狀態：**已實作**（2026-09-19）。實作備註（同計劃唔同之處）：
 - 原圖 sheet 搬到 `scripts/source-art/lightPost_sheet.png`。四格嘅臂向其實係：**上排臂向下傾＝指向鏡頭（左上 SW、右上 SE），下排臂向上＝背向鏡頭（左下 NW、右下 NE）**（等軸投影下水平臂指向鏡頭會喺螢幕上向下）。第一版當咗上排係 NW/NE，燈臂錯咗 90°，已改正。
-- `scripts/bake-street-lamp-textures.js` 生成 `Models/traffic/lightPost/lightPost_{SW,SE,NW,NE}.png` 同 `__lit` 版（960×880 畫布、柱腳 (480,600) 自動偵測）；夜間係高壓鈉燈橙色（鏡片 #ffd696、光暈 #ffa848、光池 #ff9c3c），光錐／光池要夠強先透得過夜色 overlay（cone 0.42、pool 0.6）。
+- `scripts/bake-street-lamp-textures.js` 生成 `Models/traffic/lightPost/lightPost_{SW,SE,NW,NE}.png` 同 `__lit` 版（960×880 工作畫布、柱腳 (480,600) 自動偵測，最後縮到 **256×256** 輸出、柱腳 (128,160)——2 的次方先有 Phaser mipmap，dev 直接載 PNG 都唔會鋸齒；2026-09-20 起，`STREET_LAMP_SCALE` 由 0.07 換算成 0.2625）；夜間係高壓鈉燈橙色（鏡片 #ffd696、光暈 #ffa848、光池 #ff9c3c），光錐／光池要夠強先透得過夜色 overlay（cone 0.42、pool 0.6）。
 - 夜間換圖係全城一齊（`streetLampsLit` 狀態一變就全部 setTexture 一次，一日兩次），唔係逐支視窗內換——否則日間望到啲仲著緊嘅燈；畫面外嘅燈由視窗剔除隱藏。
 - 實測旺角：1 473 支（直路 1 405、彎 68），同一畫面 A/B 幀率差異喺噪音內（20.2 vs 20.3 fps）。
 - 同一時間改咗：建築燈光預設永遠用 baked 貼圖，冇 baked 嘅建築夜晚係暗嘅；只有 test mode 嘅「使用 Phaser 光源」先開返 live glow（`setLiveBuildingLightsEnabled`）。

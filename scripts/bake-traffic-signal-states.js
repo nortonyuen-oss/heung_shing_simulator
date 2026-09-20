@@ -11,11 +11,14 @@
 //
 // Only lamps the camera can see get states: the isometric view shows the SW and SE poles'
 // vehicle heads and the SW and NW poles' pedestrian heads; NE shows its backs, so it keeps
-// its single texture. The outputs go to Models/trafficLight/ (the release pipeline stages
-// them like any other model art) and their names are the keys traffic-signals.js loads.
+// its single texture. Every output is finished on a 256x256 canvas (a power of two, so Phaser
+// mipmaps it; the pole is ~20 px on screen) with the foot at (128, 256): the outputs go to
+// Models/trafficLight/ (the release pipeline stages them like any other model art) and their
+// names are the keys traffic-signals.js loads.
 const fs = require('fs');
 const path = require('path');
 const sharp = require('sharp');
+const { finishOnPowerOfTwoCanvas } = require('./lib/pot-prop-canvas');
 
 const ROOT = path.resolve(__dirname, '..');
 const SOURCE_DIR = path.join(ROOT, 'scripts', 'source-art');
@@ -23,6 +26,12 @@ const args = process.argv.slice(2);
 const argValue = (flag) => { const i = args.indexOf(flag); return i >= 0 ? args[i + 1] : null; };
 const OUT_DIR = path.resolve(argValue('--out') || path.join(ROOT, 'Models', 'trafficLight'));
 const PREVIEW = argValue('--preview');
+
+// Output canvas: the 320x600 source scaled to fit 256 px tall, foot (160, 600) -> (128, 256).
+const OUT_SIZE = 256;
+const OUT_SCALE = OUT_SIZE / 600;
+const SOURCE_FOOT = { x: 160, y: 600 };
+const OUT_FOOT = { x: 128, y: 256 };
 
 // Vehicle lamps are on the head above y=330 of the 600px source; the pedestrian figures sit
 // below it. Blobs of one colour within a region are merged (the red man splits into two).
@@ -219,23 +228,29 @@ async function bakeFacing(facing) {
       else paintOff(out, W, H, lamp, 0.22);
     }
     const file = path.join(OUT_DIR, `trafficLight_${facing}__${state.name}.png`);
-    await sharp(out, { raw: { width: W, height: H, channels: 4 } }).png().toFile(file);
+    await writeOutput(out, W, H, file);
     outputs.push({ file, label: `${facing} ${state.name}` });
   }
   if (!STATES[facing].length) {
     // Nothing visible changes on this facing: ship the source as its only texture.
     const file = path.join(OUT_DIR, `trafficLight_${facing}.png`);
-    fs.copyFileSync(sourcePath, file);
+    await writeOutput(Buffer.from(data), W, H, file);
     outputs.push({ file, label: `${facing} (static)` });
   }
   return { facing, vehicleLamps, pedLamps, outputs };
 }
 
+async function writeOutput(pixels, W, H, file) {
+  const canvas = await finishOnPowerOfTwoCanvas(pixels, W, H, { scale: OUT_SCALE, size: OUT_SIZE, sourceAnchor: SOURCE_FOOT, anchor: OUT_FOOT });
+  await sharp(canvas, { raw: { width: OUT_SIZE, height: OUT_SIZE, channels: 4, premultiplied: false } })
+    .png({ compressionLevel: 9 }).toFile(file);
+}
+
 async function writePreview(results, file) {
   const tiles = results.flatMap((r) => r.outputs);
-  const scale = 0.45;
-  const tileW = Math.round(320 * scale); const tileH = Math.round(600 * scale);
-  const gameH = 64; const gameW = Math.round(320 * gameH / 600);
+  const scale = 0.9;
+  const tileW = Math.round(OUT_SIZE * scale); const tileH = Math.round(OUT_SIZE * scale);
+  const gameH = 64; const gameW = gameH;
   const cols = 7;
   const rows = Math.ceil(tiles.length / cols);
   const labelH = 18;
@@ -264,13 +279,14 @@ async function writePreview(results, file) {
     const describe = (lamps) => lamps.map((l) => `${l.colour}@${Math.round(l.cx)},${Math.round(l.cy)}`).join(' ') || '-';
     console.log(`${facing}: vehicle [${describe(result.vehicleLamps)}] ped [${describe(result.pedLamps)}] -> ${result.outputs.length} texture(s)`);
   }
-  // Lens centres relative to the pole foot (160, 600), in source pixels: paste into
+  // Lens centres relative to the pole foot, in output-canvas pixels: paste into
   // TRAFFIC_SIGNAL_LAMP_ANCHORS (traffic-signals.js) for the night glow sprites.
-  console.log('Lamp anchors (source px from the foot):');
+  const rel = (v, origin) => ((v - origin) * OUT_SCALE).toFixed(1);
+  console.log(`Lamp anchors (${OUT_SIZE}px canvas px from the foot at ${OUT_FOOT.x},${OUT_FOOT.y}):`);
   results.forEach((result) => {
     const entries = [
-      ...result.vehicleLamps.map((l) => `${l.colour}: [${Math.round(l.lensX - 160)}, ${Math.round(l.lensY - 600)}]`),
-      ...result.pedLamps.map((l) => `ped${l.colour[0].toUpperCase()}${l.colour.slice(1)}: [${Math.round(l.lensX - 160)}, ${Math.round(l.lensY - 600)}]`),
+      ...result.vehicleLamps.map((l) => `${l.colour}: [${rel(l.lensX, SOURCE_FOOT.x)}, ${rel(l.lensY, SOURCE_FOOT.y)}]`),
+      ...result.pedLamps.map((l) => `ped${l.colour[0].toUpperCase()}${l.colour.slice(1)}: [${rel(l.lensX, SOURCE_FOOT.x)}, ${rel(l.lensY, SOURCE_FOOT.y)}]`),
     ];
     console.log(`  ${result.facing.toLowerCase()}: { ${entries.join(', ')} },`);
   });

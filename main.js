@@ -2464,11 +2464,17 @@ function setupPreloadProgressUi(scene) {
   setPreloadProgressPercent(0);
   playTitleLoadingAudio();
 
-  scene.load.on('progress', (value) => {
+  // The landing bar reports the boot preload only. The same loader later runs one-file
+  // passes on demand (zone textures, building night bakes, vehicle bundles...) and every
+  // pass emits progress 0 then 100, so a listener left attached made the title screen's
+  // "loading assets" bar flash 0% / 100% for each building the attract city dressed at dusk.
+  const onProgress = (value) => {
     setPreloadProgressPercent(Math.max(0, Math.min(100, Math.round(value * 100))));
-  });
+  };
+  scene.load.on('progress', onProgress);
 
   scene.load.once('complete', () => {
+    scene.load.off('progress', onProgress);
     setPreloadProgressPercent(100);
     if (!isTitleLoadingAudioPlaying()) {
       playTitleLoadingAudio();

@@ -485,8 +485,9 @@ const BUS_STOP_DEPTH_PRIORITY_MARGIN_TILES = 0.25;
 // lands on the pavement just before the junction's crossing, not in the traffic lane.
 const TRAFFIC_SIGNAL_LOGICAL_INSET = { forward: 0.40, left: 0.42 };
 // On-screen size of a pole relative to its 256px baked canvas, pole ~246px tall (~20px at
-// zoom 1; calibrated as 0.034 against the earlier 600px art, same size).
-const TRAFFIC_SIGNAL_SCALE = 0.0797;
+// zoom 1). Recorded with the test-mode traffic-signal calibrator on 2026-09-20 against the
+// 256px bake.
+const TRAFFIC_SIGNAL_SCALE = 0.082;
 // Per-facing pixel nudges on top of the geometric anchor, recorded with the test-mode
 // traffic-signal calibrator on 2026-09-19 (facings are screen-relative: calibrate at the
 // default North view).

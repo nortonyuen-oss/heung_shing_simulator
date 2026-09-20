@@ -70,7 +70,7 @@ const TRAFFIC_SIGNAL_GLOW_COLOURS = Object.freeze({
   red: 0xff4a30, amber: 0xffbe3c, green: 0x5cff8a, pedRed: 0xff4a30, pedGreen: 0x5cff8a,
 });
 const TRAFFIC_SIGNAL_GLOW_TEXTURE_KEY = 'fx_traffic_signal_glow';
-// Halo diameter relative to the pole scale: 16px texture x 0.0797 x 5.55 = ~7px at zoom 1.
+// Halo diameter relative to the pole scale: 16px texture x 0.082 x 5.55 = ~7px at zoom 1.
 const TRAFFIC_SIGNAL_GLOW_SCALE_FACTOR = 5.55;
 const TRAFFIC_SIGNAL_GLOW_ALPHA = 0.85;
 const TRAFFIC_SIGNAL_NO_LAMPS = Object.freeze([]);

@@ -3,7 +3,7 @@
 狀態：**已實作**（2026-09-19）。實作備註（同計劃唔同之處）：
 - 巴士／雪糕車延伸：營運巴士實際行車進度同雪糕車入場、行路及離場都接入共用燈號查詢；營運巴士改用道路車流嘅速度倍率及步進，停燈時里程、到站及上落客亦同步停止。維修同乘客需求仍跟環境時鐘；路線班距為未計燈號嘅名義估算。
 - 燈號查詢、路口登記（`scene.trafficSignalJunctions`）、時鐘同貼圖更新全部喺 `traffic-signals.js`；車輛停燈同跨腿排隊喺 `traffic-visuals.js`（`getTrafficSignalHoldProgress`、`buildTrafficLegBuckets.byTile`）。
-- 狀態貼圖由 `scripts/bake-traffic-signal-states.js` 生成到 `Models/trafficLight/`（14 張），源圖搬到 `scripts/source-art/`；release pipeline 對 `trafficLight/` 上限 256px。2026-09-20 起輸出直接係 **256×256** 畫布（2 的次方先有 Phaser mipmap，dev 直接載 PNG 都唔會鋸齒）、柱腳 (128,256)；`TRAFFIC_SIGNAL_SCALE` 由 0.034 換算成 0.0797，`TRAFFIC_SIGNAL_LAMP_ANCHORS` 同 glow scale 亦按 256/600 換算。
+- 狀態貼圖由 `scripts/bake-traffic-signal-states.js` 生成到 `Models/trafficLight/`（14 張），源圖搬到 `scripts/source-art/`；release pipeline 對 `trafficLight/` 上限 256px。2026-09-20 起輸出直接係 **256×256** 畫布（2 的次方先有 Phaser mipmap，dev 直接載 PNG 都唔會鋸齒）、柱腳 (128,256)；`TRAFFIC_SIGNAL_SCALE` 由 0.034 換算成 0.0797（同日 Norton 再校準為 0.082），`TRAFFIC_SIGNAL_LAMP_ANCHORS` 同 glow scale 亦按 256/600 換算。
 - 綠公仔閃爍由「熄」開始（實心綠 → 熄 → 綠 …），最後一下係綠，之後對面轉黃就變紅公仔。
 - 實測（旺角，216 個路口、634 支燈柱，dev 用 staged 貼圖）：燈號同貼圖對應正確；紅燈車停喺 progress 0.34、紅黃仍停、綠燈起步；同一畫面 A/B（燈號開／關）幀率差異喺量度噪音以內（20.6 vs 21.2 fps）。
 - `scripts/drive-electron.js` 多咗 `bringToFront()`：視窗被遮住時 Phaser 會暫停 loop，截圖同量度前要先叫佢。

@@ -4,6 +4,13 @@ const TILE_HEIGHT = 50;
 const TILE_IMAGE_HEIGHT = 65;
 const TILE_PICK_Y_OFFSET = TILE_IMAGE_HEIGHT;
 const BUILDING_SURFACE_Y_OFFSET = TILE_IMAGE_HEIGHT - TILE_HEIGHT;
+// Where a tile-centred prop (tree, debris) puts its foot, from isoToScreen's y. That y is the
+// bottom of the 65 px tile image (tiles have origin 0.5,1), so the diamond's centre is 40 px
+// above it; the foot goes a few px lower still so the art's small ground patch sits on the
+// centre. (Trees used to be placed at +25 instead, which stood every tree and wreck on the
+// tile diagonally in front of its own - you had to bulldoze the tile behind to remove it - and,
+// sorted as if half a tile behind, let the house on the next tile draw over a tree in front.)
+const TILE_PROP_FOOT_OFFSET_Y = -TILE_IMAGE_HEIGHT + TILE_HEIGHT / 2 + 4;
 const MAP_WIDTH = 256;
 const MAP_HEIGHT = 256;
 // originX shifts the grid horizontally so it is centered on the screen
@@ -7874,12 +7881,13 @@ function placeTreeSprite(scene, row, col) {
   for (let i = 0; i < count; i++) {
     const sub = getTreeSubOffset(count, i, tree.variant);
     const sx = pos.x + scene.offsetX + baseOffset.x + sub.x;
-    const sy = pos.y + scene.offsetY + TILE_HEIGHT / 2 + elevOffset + baseOffset.y + sub.y;
+    const sy = pos.y + scene.offsetY + TILE_PROP_FOOT_OFFSET_Y + elevOffset + baseOffset.y + sub.y;
     const sprite = scene.add.image(sx, sy, getTreeSpriteKey(tree));
     addToRenderLayer(scene, sprite, 'objectLayer');
     sprite.setOrigin(0.5, 1);
     sprite.setScale(scale);
-    sprite.setDepth(getObjectTileDepth(row, col, pos.y + TILE_HEIGHT * 0.5 + elevOffset + baseOffset.y + sub.y));
+    // Same depth basis as a building, lamp or vehicle on this tile: tile y + TILE_HEIGHT.
+    sprite.setDepth(getObjectTileDepth(row, col, pos.y + TILE_HEIGHT + elevOffset + baseOffset.y + sub.y));
     sprite.setMask(scene.worldMask);
     sprite.mapRow = row;
     sprite.mapCol = col;
@@ -7949,9 +7957,9 @@ function positionTree(scene, sprite) {
   const sub = getTreeSubOffset(sprite.treeCount ?? 1, sprite.treeSubIndex ?? 0, treeMap[row]?.[col]?.variant ?? 0);
   sprite.setPosition(
     pos.x + scene.offsetX + baseOffset.x + sub.x,
-    pos.y + scene.offsetY + TILE_HEIGHT / 2 + elevOffset + baseOffset.y + sub.y,
+    pos.y + scene.offsetY + TILE_PROP_FOOT_OFFSET_Y + elevOffset + baseOffset.y + sub.y,
   );
-  sprite.setDepth(getObjectTileDepth(row, col, pos.y + TILE_HEIGHT * 0.5 + elevOffset + baseOffset.y + sub.y));
+  sprite.setDepth(getObjectTileDepth(row, col, pos.y + TILE_HEIGHT + elevOffset + baseOffset.y + sub.y));
   sortRenderLayer(scene, 'objectLayer');
 }
 
@@ -8126,9 +8134,9 @@ function positionDebrisSprite(scene, sprite) {
   const elevOffset = getElevationVisualOffset(row, col);
   sprite.setPosition(
     pos.x + scene.offsetX + baseOffset.x,
-    pos.y + scene.offsetY + TILE_HEIGHT / 2 + elevOffset + baseOffset.y,
+    pos.y + scene.offsetY + TILE_PROP_FOOT_OFFSET_Y + elevOffset + baseOffset.y,
   );
-  sprite.setDepth(getObjectTileDepth(row, col, pos.y + TILE_HEIGHT * 0.5 + elevOffset + baseOffset.y));
+  sprite.setDepth(getObjectTileDepth(row, col, pos.y + TILE_HEIGHT + elevOffset + baseOffset.y));
 }
 
 function refreshDebrisSprite(scene, row, col) {

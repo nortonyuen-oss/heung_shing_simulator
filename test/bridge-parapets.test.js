@@ -99,7 +99,9 @@ test('a barrier anchors on the edge midpoint of the lifted deck and sorts like a
        globalThis.getTerrainTileVisualOffset = () => 0;
        globalThis.getTrafficRoadSurface = (row) => (row === 1
          ? { kind: 'bridge-ramp', directions: ['n', 's'], centerLift: 7.5, endpointLifts: { n: 15, s: 0 } }
-         : { kind: 'bridge-deck', directions: ['n', 's'], centerLift: 15, endpointLifts: { n: 15, s: 15 } });`);
+         : { kind: 'bridge-deck', directions: ['n', 's'], centerLift: 15, endpointLifts: { n: 15, s: 15 } });
+       // Geometry only: the shipped per-edge nudges are checked separately below.
+       globalThis.getBridgeParapetCalibrationOffset = () => ({ dx: 0, dy: 0 });`);
   const anchor = run('bridgeParapetAnchor');
   const scene = { offsetX: 1000, offsetY: 2000 };
   // Deck at (2, 4): centre (100, 150) -> face centre (1100, 2110). Its e edge midpoint is half
@@ -113,10 +115,15 @@ test('a barrier anchors on the edge midpoint of the lifted deck and sorts like a
   // Ramp at (1, 4): the edge midpoint is level with the ramp centre, half the lift.
   const ramp = toPlain(anchor(scene, { row: 1, col: 4, side: 'e', high: 'n' }, 'se'));
   assert.equal(ramp.y, 2000 + 125 - 40 + 12.5 - 7.5);
-  // Calibration nudges apply per facing.
-  run(`globalThis.getBridgeParapetCalibrationOffset = (facing) => (facing === 'se' ? { dx: 3, dy: -2 } : null);`);
+  // Calibration nudges apply per facing, on top of the geometry.
+  run(`globalThis.getBridgeParapetCalibrationOffset = (facing) => (facing === 'se' ? { dx: 3, dy: -2 } : { dx: 0, dy: 0 });`);
   const nudged = toPlain(anchor(scene, { row: 2, col: 4, side: 'e', high: null }, 'se'));
   assert.deepEqual([nudged.x - east.x, nudged.y - east.y], [3, -2]);
+  // Without a live calibration the shipped constants are the nudge.
+  run(`globalThis.getBridgeParapetCalibrationOffset = () => null;`);
+  const shipped = toPlain(run('BRIDGE_PARAPET_ANCHOR_OFFSETS.se'));
+  const constant = toPlain(anchor(scene, { row: 2, col: 4, side: 'e', high: null }, 'se'));
+  assert.ok(Math.abs(constant.x - east.x - shipped.dx) < 1e-9 && Math.abs(constant.y - east.y - shipped.dy) < 1e-9);
 });
 
 test('the parapet calibrator is a street-prop calibrator instance over the barrier sprites', () => {

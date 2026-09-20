@@ -536,9 +536,9 @@ const TRAFFIC_SIGNAL_AMBER_COMMIT_TILES = 0.15;
 // exactly 1.5 tiles (30 m) apart. Bends get one lamp on the outside.
 const STREET_LAMP_SPACING_PERIOD = 3;
 const STREET_LAMP_LOGICAL_INSET = { side: 0.42, along: 0.25, cornerOuter: 0.30 };
-// On-screen size relative to the 256px baked canvas (post ~150px): a 10 m post ~40px
-// (calibrated as 0.07 against the earlier 880px canvas, same size).
-const STREET_LAMP_SCALE = 0.2625;
+// On-screen size relative to the 256px baked canvas (post ~150px): a 10 m post ~30px.
+// Recorded with the test-mode street lamp calibrator on 2026-09-20 against the 256px bake.
+const STREET_LAMP_SCALE = 0.2;
 // Per-facing pixel nudges recorded with the test-mode street lamp calibrator on 2026-09-20
 // (facings are the arm direction on screen; calibrate at the default North view).
 const STREET_LAMP_ANCHOR_OFFSETS = {

@@ -242,7 +242,7 @@ async function writePreview(results, file) {
   await sharp({ create: { width, height, channels: 4, background } }).composite(composites).png().toFile(file);
   // A second strip on a dark road grey, at roughly the in-game night size.
   const nightBg = { r: 38, g: 40, b: 44, alpha: 1 };
-  const gameScale = (0.07 / OUT_SCALE) * 3; // zoom 3
+  const gameScale = 0.2 * 3; // STREET_LAMP_SCALE at zoom 3
   const gw = Math.round(OUT_SIZE * gameScale); const gh = Math.round(OUT_SIZE * gameScale);
   const strip = [];
   for (let i = 0; i < results.length; i++) {

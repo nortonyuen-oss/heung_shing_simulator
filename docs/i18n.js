@@ -242,6 +242,13 @@ const SITE_FEATURE_LIST = {
 // ── Changelog ─────────────────────────────────────────────────────────────────
 const SITE_CHANGELOG = {
   "zh-HK": [
+    { version: "v4.12.0", date: "2026-09-20", dateLabel: "2026年9月20日", title: "各就各位", items: [
+      "行車天橋護欄：每條橋面、每段斜道兩邊而家都有護欄，跟住路面斜度起伏，兩端接口對得正；深度排序保證企喺橋上嘅燈柱同駛過嘅車，一定夾喺遠、近兩條護欄之間，唔會著咗喺護欄前面或後面唔啱次序。",
+      "修正樹木同雜物「企錯格」：之前每棵樹、每件雜物其實畫喺自己格斜前方嗰一格——要拆要撳返斜後方先拆得走；前後遮擋次序又跟住嗰個錯位計，於是前一格嘅樓宇反而遮住咗畫面上企喺佢前面嘅樹。而家樹同雜物企返自己格中心，同樓宇、燈柱、車一樣按地圖前後排序，四個地圖方向都驗證過。",
+      "種樹掣以前用緊「野生森林」嘅規則，唔畀貼路或者已劃區嘅地種樹——建成區入面幾乎冇位種得落，又冇任何提示。而家人工種植可以喺路邊同空置嘅劃區地種（起樓會自動清走嗰棵樹），種唔到嘅位加咗綠／紅格指引，同解釋原因嘅提示。",
+      "上斜路貼圖重新繪製：舊圖每上一格升高約 15px，同地形實際嘅 13px 唔夾，令爬斜嘅馬路每格拼口都有段差同錯位嘅路肩，甚至凸出嘅擋土牆尾巴。四款斜路貼圖已經對齊地形重畫。",
+      "交通燈同路燈嘅柱身喺縮圖時唔再有鋸齒（改用 2 的次方畫布烘焙令 Phaser 起到 mipmap），並重新校準大小；夜晚開場畫面嘅「載入遊戲素材中」進度條唔再周期性閃爍；官網「左軚」用詞改正為「右軚」；轉地圖方向後海面唔再有雜物殘留。",
+    ] },
     { version: "v4.11.0", date: "2026-09-20", dateLabel: "2026年9月20日", title: "明明綠燈 轉眼變為紅燈", items: [
       "路口交通燈：每個 T 字同十字路口自動喺前一格、司機左邊（香港右軚、靠左行車）放燈柱，面向來車。燈序跟香港：紅 → 紅黃 → 綠 → 黃 → 紅，十字兩相位各綠 8 秒、T 字直路 10 秒支路 5 秒，行人綠公仔喺對面綠燈時亮、最後 3 秒閃。車輛喺路口前約 8 米停紅燈排隊（巴士停得更後），黃燈太近就衝過；路線巴士同雪糕車一樣聽燈。夜晚著燈嘅鏡片有光暈，跟「建築燈光」開關。",
       "路燈：跟路政署街燈慣例——直路 30 米交錯排列（兩邊輪流）、彎位外側一支、橋面同斜路都有，路口交由交通燈柱。夜晚換上烘焙嘅高壓鈉燈貼圖（橙色鏡片、光錐同路面光池），日出熄燈，同「建築燈光」開關一齊關；全部由路網自動推導，唔佔存檔。",
@@ -512,6 +519,13 @@ const SITE_CHANGELOG = {
 // title/items text.
 const SITE_CHANGELOG_TRANSLATIONS = {
   "zh-TW": {
+    "v4.12.0": { title: "各就各位", items: [
+      "行車天橋護欄：每條橋面、每段坡道兩側現在都有護欄，隨路面坡度起伏，兩端接口對得正；深度排序確保站在橋上的燈桿與駛過的車輛，一定夾在遠、近兩側護欄之間，不會出現前後順序錯亂。",
+      "修正樹木與雜物「站錯格」：先前每棵樹、每件雜物其實畫在自己格子斜前方那一格——要拆得先點選斜後方那格；前後遮擋順序又依這個錯位計算，於是前一格的建築反而遮住了畫面上站在它前方的樹。現在樹木與雜物站回自己格子中心，與建築、燈桿、車輛一樣依地圖前後排序，四個地圖方向都已驗證。",
+      "種樹按鈕先前套用「野生森林」的規則，不准在貼路或已劃區的地種樹——建成區內幾乎無處可種，也沒有任何提示。現在人工種植可以在路邊與空置的劃區地種植（蓋房子會自動清除該樹），種不了的位置加上綠／紅格指引，以及說明原因的提示。",
+      "上坡道路貼圖重新繪製：舊圖每上一格升高約 15px，與地形實際的 13px 不吻合，導致爬坡道路每格接縫都有段差與錯位的路肩，甚至突出的擋土牆尾端。四款坡道貼圖已對齊地形重畫。",
+      "號誌燈與路燈的燈桿在縮小檢視時不再出現鋸齒（改用 2 的冪次畫布烘焙，讓 Phaser 產生 mipmap），並重新校準大小；夜晚開場畫面的「載入遊戲素材中」進度條不再週期性閃爍；官網「左駕」用詞更正為「右駕」；旋轉地圖方向後海面不再殘留雜物。",
+    ] },
     "v4.11.0": { title: "明明綠燈 轉眼變為紅燈", items: [
       "路口號誌：每個 T 字與十字路口自動在前一格、駕駛人左側（香港右駕、靠左行駛）設置燈桿，面向來車。燈序依香港：紅 → 紅黃 → 綠 → 黃 → 紅，十字兩相位各綠 8 秒、T 字幹道 10 秒支路 5 秒，行人小綠人在對向綠燈時亮起、最後 3 秒閃爍。車輛在路口前約 8 公尺停紅燈排隊（巴士停得更後），黃燈太近就直接通過；路線巴士與冰淇淋車同樣遵守號誌。夜晚亮起的燈面有光暈，隨「建築燈光」開關。",
       "路燈：依路政署街燈慣例——直路 30 公尺交錯排列（兩側輪流）、彎道外側一支、橋面與坡道都有，路口交給號誌桿。夜晚換上烘焙的高壓鈉燈貼圖（橙色燈面、光錐與路面光池），日出熄燈，隨「建築燈光」開關一起關閉；全部由路網自動推導，不佔存檔。",
@@ -775,6 +789,13 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   en: {
+    "v4.12.0": { title: "Everything in Its Place", items: [
+      "Bridge parapets: every deck and ramp now carries a barrier along both long edges, following the road's slope and meeting cleanly at both ends. Depth sorting bounds whatever stands on the deck - a lamp post, a passing car - between the near and far barrier, so nothing draws in front of the wrong one.",
+      "Fixed trees and roadside debris standing on the wrong tile: each one was actually drawn a full tile diagonally in front of the one it belonged to, so removing it meant clicking the tile behind instead, and a house on the next tile could draw over a tree that visually stood in front of it. Both now stand on the centre of their own tile and sort with the buildings, lamps and traffic around them, checked in all four map rotations.",
+      "The tree tool used the wild forest's own rule, which keeps trees off anything touching a road or a zoned lot - in a built-up city there was almost nowhere left to plant, with no explanation why. A planted tree may now stand beside a road and on an empty zoned lot (a building growing there still clears it), and the tool shows a green/red placement guide and a toast explaining a refusal.",
+      "Redrew the climbing road tiles: the old art rose about 15px per tile against the terrain's actual 13px step, so an uphill road showed a jog and a stray kerb overhang at every seam. All four slope tiles now rise exactly with the terrain.",
+      "Signal poles and lamp posts no longer alias when the view is zoomed out (their bakes are now power-of-two canvases Phaser can mipmap), and their on-screen size was recalibrated; the title screen's loading bar no longer flickers after dark; the site's Cantonese driving-side wording is corrected; and rotating the map no longer leaves stray debris floating over the sea.",
+    ] },
     "v4.11.0": { title: "Green One Moment, Red the Next", items: [
       "Junction traffic signals: every T and cross junction gets a pole on the tile before it, on the driver's left for Hong Kong's left-hand traffic, facing the oncoming lane. The sequence is Hong Kong's - red, red+amber, green, amber, red - with two stages (8 s green each at a cross, 10 s through / 5 s side at a T) and a green man on the crossing arms that flashes for its last 3 s. Vehicles stop and queue about 8 m short of the junction (buses further back), drive through if amber catches them close, and company buses and the ice-cream van obey too. Lit lamps glow at night, tied to the building-lights toggle.",
       "Street lamps: laid out to Highways Department practice - a 30 m staggered arrangement along straights, one on the outside of every bend, on bridges and slopes too, with junctions left to the signal poles. After dark they swap to baked high-pressure-sodium textures (orange lantern, light cone and a pool on the road), off again at dawn and with the building-lights toggle; all derived from the road map, nothing saved.",
@@ -1038,6 +1059,13 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   ja: {
+    "v4.12.0": { title: "すべてがあるべき場所へ", items: [
+      "高架橋の護欄（ガードレール）：すべての橋桁とスロープの両端に、路面の傾斜に沿って護欄が付きました。両端の継ぎ目もぴったり合います。奥行きの並び替えも見直し、橋の上に立つ街灯や通行する車は必ず手前と奥の護欄の間に収まり、順序が入れ替わることはありません。",
+      "木や放置ゴミが「隣のマスに立っていた」問題を修正：これまでは実際には自分のマスから斜め手前に1マスずれた位置に描かれており、撤去するには斜め奥のマスをクリックする必要がありました。奥行きの並びも同じズレで計算されていたため、手前のマスの建物が、画面上では手前に立って見える木を覆い隠すことがありました。現在は木もゴミも自分のマスの中心に立ち、建物・街灯・車と同じ基準で前後関係が決まります。4方向すべてで確認済みです。",
+      "植樹ボタンは野生の森と同じ規則を使っていたため、道路や区画済みの土地に接するマスには植えられず、市街地ではほとんど植える場所がない上に理由の説明もありませんでした。植えた木は道路脇や空いている区画済みの土地にも植えられるようになり（そこに建物が建てば自動的に撤去されます）、植えられない場所には緑／赤のガイド表示と理由を伝えるトーストが出ます。",
+      "坂道タイルを地形に合わせて描き直しました：従来の絵は1マスにつき約15px上昇していましたが、実際の地形は13px刻みのため、上り坂の道路は継ぎ目ごとに段差やずれた縁石が生じていました。4種類の坂道タイルすべてを地形と正確に一致するよう再構成しています。",
+      "信号柱と街灯柱は縮小表示でのジャギーが解消されました（Phaserがミップマップを生成できるよう2の累乗のキャンバスで焼き直し）。画面上の大きさも再調整。タイトル画面の「ゲーム素材を読み込み中」バーが日没後に点滅しなくなり、公式サイトの香港の通行方向に関する表記も修正、地図を回転させても瓦礫が海上に取り残されなくなりました。",
+    ] },
     "v4.11.0": { title: "青だった信号が、瞬く間に赤に", items: [
       "交差点の信号機：T字・十字路の手前のマスに、香港の左側通行に合わせてドライバーの左側へ自動で柱を立て、対向車に向けます。順序は香港式（赤→赤黄→青→黄→赤）で、十字路は各8秒、T字は本線10秒・支線5秒の2相。歩行者の青は対向が青の間に点き、最後の3秒は点滅。車は交差点の約8m手前で赤信号に停まって並び（バスはさらに後ろ）、黄色で近すぎれば通過。路線バスとアイスクリーム車も従います。夜は点灯レンズが光り、「建物の明かり」設定と連動。",
       "街灯：路政署の街灯設計に従い、直線は30m千鳥配置、カーブは外側に1本、橋やスロープにも設置し、交差点は信号柱に任せます。夜は焼き込んだ高圧ナトリウム灯テクスチャ（橙色のレンズ、光の円錐、路面の光溜まり）に切り替わり、夜明けに消灯、「建物の明かり」と一緒にオフ。すべて道路網から自動生成され、セーブには含まれません。",
@@ -1326,8 +1354,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.11.0 — 【明明綠燈 轉眼變為紅燈】",
-      versionDesc: "路口有交通燈、街道有路燈：T 字同十字路口按香港右軚靠左行車自動放燈，紅黃綠同行人公仔跟香港燈序，車輛會停紅燈排隊；路燈按路政署 30 米交錯排列，夜晚亮起鈉燈橙光。Mac 幀率提升三倍，並修正夜晚樹變紅。",
+      versionBadge: "v4.12.0 — 【各就各位】",
+      versionDesc: "橋面兩邊裝上護欄，同路面斜度一齊起伏；樹木同雜物之前企錯咗斜前方嗰格、又俾前面嘅樓宇錯誤遮擋，而家全部歸位；上斜路貼圖重新對齊地形。交通燈同路燈嘅柱身唔再鋸齒，種樹規則亦放寬到路邊同劃區地。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感嘅城市建設遊戲。起街道、規劃社區、經營自己嘅香城巴士公司、處理議會同天氣，再睇住一座有性格嘅香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1428,8 +1456,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.11.0 — 【明明綠燈 轉眼變為紅燈】",
-      versionDesc: "路口有交通燈、街道有路燈：T 字與十字路口按香港右駕靠左行駛自動配置號誌，紅黃綠與行人小綠人依香港燈序，車輛會停紅燈排隊；路燈依路政署 30 公尺交錯排列，夜晚亮起鈉燈橙光。Mac 幀率提升三倍，並修正夜晚樹木變紅。",
+      versionBadge: "v4.12.0 — 【各就各位】",
+      versionDesc: "橋面兩側裝上護欄，隨路面坡度一同起伏；樹木與雜物先前站錯了斜前方那格、又被前方建築錯誤遮擋，現在全部歸位；上坡道路貼圖重新對齊地形。號誌燈與路燈的燈桿不再鋸齒，種樹規則也放寬到路邊與劃區地。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感的城市建設遊戲。興建街道、規劃社區、經營自己的香城公車公司、處理議會與天氣，看著一座有個性的香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1530,8 +1558,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "The City of Heung Shing",
       title: "The City of Heung Shing",
-      versionBadge: "v4.11.0 — Green One Moment, Red the Next",
-      versionDesc: "Traffic signals at every junction and street lamps along every road: poles placed for Hong Kong's left-hand traffic with the local red-amber-green and green-man sequence, and traffic that stops and queues at red; lamps in the Highways Department's 30 m staggered pattern, glowing sodium orange after dark. Three times the frame rate on Mac, and no more red trees at night.",
+      versionBadge: "v4.12.0 — Everything in Its Place",
+      versionDesc: "Every bridge deck and ramp now has parapets that follow the road's slope; trees and roadside debris, which used to stand a tile off and be drawn over by the building in front, now stand in their own place; climbing roads were redrawn to align with the terrain. Signal poles and lamp posts no longer alias, and planting a tree got easier near roads and empty lots.",
       lede: "A city-building game inspired by Hong Kong life and made in tribute to SimCity 2000. Build streets, shape neighbourhoods, run your own Heung Shing Bus Company, navigate council politics and weather, then watch a city with real personality grow.",
       freeLabel: "Completely free · macOS + Windows · Local saves",
       downloadBtn: "【Free Download】",
@@ -1633,8 +1661,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.11.0 — 青だった信号が、瞬く間に赤に",
-      versionDesc: "交差点に信号機、通りに街灯：T字・十字路に香港の左側通行に合わせて自動配置され、赤・赤黄・青と歩行者信号は香港の順序で点灯し、車は赤で停止して並びます。街灯は路政署の30m千鳥配置で、夜はナトリウム灯の橙色に。Macでフレームレートが3倍になり、夜の木が赤くなる不具合も修正。",
+      versionBadge: "v4.12.0 — すべてがあるべき場所へ",
+      versionDesc: "すべての橋桁と坂道の両端に、路面の傾斜に沿った護欄が付きました。斜め手前のマスに立ち、手前の建物に誤って隠れていた木や瓦礫は、あるべき自分のマスへ。上り坂タイルも地形に合わせて描き直しました。信号柱と街灯柱のジャギーも解消し、植樹も道路脇や空き区画でしやすくなりました。",
       lede: "香港の都市生活から着想を得た、SimCity 2000へのオマージュとなる都市建設ゲーム。道路を築き、地区を計画し、自分だけの香城バス会社を経営し、議会や天候に向き合いながら、個性ある香城の成長を見守ります。",
       freeLabel: "完全無料 · macOS + Windows · ローカルセーブ",
       downloadBtn: "【無料ダウンロード】",

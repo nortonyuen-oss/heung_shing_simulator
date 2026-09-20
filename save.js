@@ -367,7 +367,11 @@ function normalizeCompactTreeEntry(tree, fieldName, location) {
   if (!Number.isInteger(count) || count < 1 || count > 3) {
     throw createCompactSaveError(fieldName, `invalid count at ${location}`);
   }
-  return { species, age, variant, count };
+  const planted = tree.planted ?? false;
+  if (planted !== false && planted !== true && planted !== 0 && planted !== 1) {
+    throw createCompactSaveError(fieldName, `invalid planted flag at ${location}`);
+  }
+  return planted ? { species, age, variant, count, planted: true } : { species, age, variant, count };
 }
 
 function encodeCompactTreeMap(source) {
@@ -380,7 +384,10 @@ function encodeCompactTreeMap(source) {
       if (source[row][col] == null) continue;
       const index = row * width + col;
       const tree = normalizeCompactTreeEntry(source[row][col], fieldName, `${row}:${col}`);
-      entries.push([index, tree.species, tree.age, tree.variant, tree.count]);
+      // A sixth element marks a player-planted tree; wild trees keep the five-element form.
+      entries.push(tree.planted
+        ? [index, tree.species, tree.age, tree.variant, tree.count, 1]
+        : [index, tree.species, tree.age, tree.variant, tree.count]);
     }
   }
   return { encoding: COMPACT_TREE_ENCODING, width, height, entries };
@@ -402,15 +409,15 @@ function decodeCompactTreeMap(encoded) {
   const result = Array.from({ length: height }, () => Array(width).fill(null));
   let previousIndex = -1;
   encoded.entries.forEach((entry, entryNumber) => {
-    if (!Array.isArray(entry) || entry.length !== 5) {
+    if (!Array.isArray(entry) || (entry.length !== 5 && entry.length !== 6)) {
       throw createCompactSaveError(fieldName, `invalid entry ${entryNumber}`);
     }
-    const [index, species, age, variant, count] = entry;
+    const [index, species, age, variant, count, planted = 0] = entry;
     if (!Number.isInteger(index) || index < 0 || index >= total || index <= previousIndex) {
       throw createCompactSaveError(fieldName, `invalid or duplicate index in entry ${entryNumber}`);
     }
     const tree = normalizeCompactTreeEntry(
-      { species, age, variant, count },
+      { species, age, variant, count, planted },
       fieldName,
       `entry ${entryNumber}`,
     );

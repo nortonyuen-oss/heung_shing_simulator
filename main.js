@@ -4711,6 +4711,7 @@ function isNewToolHandledByToolsModule(tool) {
 
 function getSelectedPlacementFootprint() {
   if (selectedTool === 'district-sign') return { footprintCols: 1, footprintRows: 1 };
+  if (selectedTool === 'tree') return { footprintCols: 1, footprintRows: 1 };
   if (selectedTool === 'house') {
     const config = HOUSE_MODEL_SETS[selectedHouseSet] ?? HOUSE_MODEL_SETS.house;
     return {
@@ -5879,7 +5880,9 @@ function updateBuildingPlacementGuide(scene, pointer) {
     ? canPlaceHarborFootprint(tile.row, tile.col)
     : selectedTool === 'bus-depot'
       ? canPlaceOrRotateBusDepot(scene, tile.row, tile.col)
-      : canPlaceBuildingFootprint(tile.row, tile.col, footprintCols, footprintRows);
+      : selectedTool === 'tree'
+        ? canPlantTreeAt(scene, tile.row, tile.col)
+        : canPlaceBuildingFootprint(tile.row, tile.col, footprintCols, footprintRows);
   drawFootprintGuide(scene, tile.row, tile.col, footprintCols, footprintRows, canPlace);
 }
 
@@ -7672,6 +7675,7 @@ function normalizeTreeRecord(tree, row, col) {
     age: Math.max(0, Math.min(TREE_MATURE_AGE, Math.round(Number(tree.age ?? 0)))),
     variant: Number.isFinite(Number(tree.variant)) ? Number(tree.variant) : Math.random(),
     count: Number.isFinite(rawCount) && rawCount >= 1 ? Math.min(3, Math.round(rawCount)) : 1,
+    planted: !!tree.planted,
   };
 }
 
@@ -7700,11 +7704,32 @@ function isTreeTerrainEligible(row, col) {
   return isInsideMap(row, col) && (mapData[row][col] === GROUND || mapData[row][col] === HILL);
 }
 
+// Where a wild tree may sprout (forest generation and spread, sim-growth.js updateTrees).
 function canTreeGrowAt(scene, row, col, blockedTiles = null) {
   if (!isTreeTerrainEligible(row, col)) return false;
-  const id = getTileId(row, col);
   if (treeMap[row]?.[col]) return false;
   return canTreeOccupyAt(scene, row, col, blockedTiles);
+}
+
+// Where the player may plant one (the tree tool). A planted tree is street furniture, not
+// forest: it may stand beside a road (the wild rule keeps canopies off the tarmac) and on an
+// empty zoned lot (placeSpriteBuilding clears it when the lot develops). Everything else -
+// water, roads, bridges, buildings, pylons, signs - still says no.
+function canPlantTreeAt(scene, row, col) {
+  return getTreePlantingBlockReason(scene, row, col) === null;
+}
+
+// Why the tree tool refuses a tile, for the hover guide and the toast; null when it may plant.
+function getTreePlantingBlockReason(scene, row, col) {
+  if (!isInsideMap(row, col)) return 'terrain';
+  if (mapData[row][col] === ROAD || roadUnderlayMap[row]?.[col] != null || bridgeMap[row]?.[col]) return 'road';
+  if (!isTreeTerrainEligible(row, col)) return 'terrain';
+  if (treeMap[row]?.[col]) return 'tree';
+  const id = getTileId(row, col);
+  if (buildingData[id] || scene?.buildingSprites?.has(id)) return 'building';
+  if (typeof hasDistrictSignAt === 'function' && hasDistrictSignAt(row, col)) return 'building';
+  if (powerLineSet.has(id)) return 'powerLine';
+  return null;
 }
 
 function isAdjacentToRoad(row, col) {
@@ -7721,13 +7746,15 @@ function isAdjacentToRoad(row, col) {
   return false;
 }
 
-function canTreeOccupyAt(scene, row, col, blockedTiles = null) {
+// Whether a tree standing at (row, col) may stay there. A player-planted tree (`planted`)
+// keeps its roadside or zoned lot; a wild one is culled off both (see canPlantTreeAt).
+function canTreeOccupyAt(scene, row, col, blockedTiles = null, { planted = false } = {}) {
   if (!isTreeTerrainEligible(row, col)) return false;
   if (mapData[row]?.[col] === ROAD) return false;
   if (roadUnderlayMap[row]?.[col] != null) return false;
-  if (isAdjacentToRoad(row, col)) return false;
+  if (!planted && isAdjacentToRoad(row, col)) return false;
   const id = getTileId(row, col);
-  if (zoneMap[row]?.[col] !== ZONE_NONE) return false;
+  if (!planted && zoneMap[row]?.[col] !== ZONE_NONE) return false;
   if (powerLineSet.has(id)) return false;
   if (bridgeMap[row]?.[col]) return false;
   if (blockedTiles?.has(id)) return false;
@@ -7842,7 +7869,7 @@ function restoreOrGenerateTrees(scene, save) {
   for (let row = 0; row < MAP_HEIGHT; row++) {
     for (let col = 0; col < MAP_WIDTH; col++) {
       const tree = normalizeTreeRecord(save.treeMap[row]?.[col], row, col);
-      treeMap[row][col] = tree && canTreeOccupyAt(scene, row, col) ? tree : null;
+      treeMap[row][col] = tree && canTreeOccupyAt(scene, row, col, null, { planted: tree.planted }) ? tree : null;
     }
   }
   if (typeof invalidateTreeSimulationTiles === 'function') invalidateTreeSimulationTiles();
@@ -7928,7 +7955,8 @@ function removeTree(scene, row, col) {
 }
 
 function placeTree(scene, row, col, options = {}) {
-  if (!canTreeGrowAt(scene, row, col)) return false;
+  const planted = !!options.planted;
+  if (!(planted ? canPlantTreeAt(scene, row, col) : canTreeGrowAt(scene, row, col))) return false;
   if (options.spend !== false && !spendBudget(COST_TREE)) {
     showToast(t('toast.notEnoughFunds'), 'warning');
     return false;
@@ -7941,6 +7969,7 @@ function placeTree(scene, row, col, options = {}) {
     species: species.id,
     age: options.age ?? 0,
     variant: Math.random(),
+    ...(planted ? { planted: true } : {}),
   };
   if (typeof invalidateTreeSimulationTiles === 'function') invalidateTreeSimulationTiles();
   if (typeof invalidateOverlayCache === 'function') invalidateOverlayCache();

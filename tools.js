@@ -79,7 +79,7 @@ function handleNewTool(scene, tile) {
   if (selectedTool === 'park-small')     return placePark(scene, row, col, { type: 'park_small', spriteKey: 'park_small_open', footprintCols: 1, footprintRows: 1 });
   if (selectedTool === 'park-large')     return placePark(scene, row, col, { type: 'park_large', spriteKey: 'park_large', footprintCols: 3, footprintRows: 3 });
   if (selectedTool === 'sports-ground')  return placeSelectedSportsGround(scene, row, col);
-  if (selectedTool === 'tree')           return placeTree(scene, row, col);
+  if (selectedTool === 'tree')           return plantTreeWithTool(scene, row, col);
   if (selectedTool === 'harbor')         return placeHarborBuilding(scene, row, col);
   if (LANDMARK_TOOL_BUILDING_TYPES[selectedTool] && selectedTool !== 'harbor') {
     return placeInfraBuilding(scene, row, col, LANDMARK_TOOL_BUILDING_TYPES[selectedTool]);
@@ -95,6 +95,23 @@ function handleNewTool(scene, tile) {
 }
 
 // ── Bus stop (decorative road-shoulder prop) ───────────────────────────────────
+// The tree tool: a planted tree may stand beside a road or on an empty zoned lot (see
+// canPlantTreeAt, main.js). When a tile refuses, say why - dragging across a block of tiles
+// would otherwise raise a toast per tile, so one reason is shown at most every second.
+let treeToolLastToastAt = 0;
+let treeToolLastReason = null;
+function plantTreeWithTool(scene, row, col) {
+  if (placeTree(scene, row, col, { planted: true })) return true;
+  const reason = getTreePlantingBlockReason(scene, row, col);
+  if (!reason || reason === 'tree') return false;
+  const now = Date.now();
+  if (reason === treeToolLastReason && now - treeToolLastToastAt < 1000) return false;
+  treeToolLastToastAt = now;
+  treeToolLastReason = reason;
+  showToast(t(`toast.treeBlocked.${reason}`), 'warning');
+  return false;
+}
+
 // Each click on the same straight-road tile cycles its shoulder state, read
 // straight off busStopMap (via getBusStopSides) rather than tracked
 // separately — nothing to get out of sync between clicks:

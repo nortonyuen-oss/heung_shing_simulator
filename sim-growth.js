@@ -1312,9 +1312,11 @@ function updateTrees(scene) {
     const tree = treeMap[r]?.[c];
     if (!tree) continue;
 
-    if (!isTreeTerrainEligible(r, c) || zoneMap[r]?.[c] !== ZONE_NONE || scene.buildingSprites.has(getTileId(r, c))
+    // Land repurposed under the tree: gone. A wild tree also gives way to zoning and keeps
+    // its canopy off the roads; one the player planted stays on its lot until it develops.
+    if (!isTreeTerrainEligible(r, c) || scene.buildingSprites.has(getTileId(r, c))
         || mapData[r]?.[c] === ROAD || roadUnderlayMap[r]?.[c] != null || bridgeMap[r]?.[c]
-        || isAdjacentToRoad(r, c)) {
+        || (!tree.planted && (zoneMap[r]?.[c] !== ZONE_NONE || isAdjacentToRoad(r, c)))) {
       removeTree(scene, r, c);
       continue;
     }

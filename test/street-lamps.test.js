@@ -303,3 +303,14 @@ test('bridge decks, ramps and hill slopes carry lamps that stand on the raised s
   assert.equal(lift({ row: 5, col: 5, offsetRow: 0.25, offsetCol: 0 }), 3, 'slope: low end = 12 (base) + rise');
   assert.equal(lift({ row: 5, col: 5, offsetRow: -0.25, offsetCol: 0 }), 9, 'slope: towards the high end');
 });
+
+test('rotation and resize re-anchor every tile-anchored sprite family, debris included', () => {
+  const body = mainSource.slice(mainSource.indexOf('\nfunction positionAllTiles('));
+  const positionAllTiles = body.slice(0, body.indexOf('\n}\n'));
+  ['positionBuilding(scene, building)', 'positionTree(scene, sprite)', 'positionDebrisSprite(scene, sprite)', 'positionBusStopSprite(scene, sprite)',
+    'refreshAllTrafficSignalSprites(scene)', 'refreshAllStreetLampSprites(scene)', 'repositionDistrictSignSprites(scene)', 'repositionBridgeSprites(scene)'].forEach((call) => {
+    assert.ok(positionAllTiles.includes(call), `positionAllTiles repositions via ${call}`);
+  });
+  const place = mainSource.slice(mainSource.indexOf('\nfunction placeDebrisSprite('));
+  assert.ok(place.slice(0, place.indexOf('\n}\n')).includes('positionDebrisSprite(scene, sprite)'), 'placement and repositioning share one anchor formula');
+});

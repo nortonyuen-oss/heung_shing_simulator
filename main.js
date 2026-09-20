@@ -3517,6 +3517,9 @@ function positionAllTiles(scene) {
   scene.treeSprites?.forEach((sprites) => {
     sprites.forEach((sprite) => positionTree(scene, sprite));
   });
+  // Debris (bare-land rubble) used to be skipped here, so every rotation left the old pile
+  // of sprites floating at their previous screen spots - over the sea, once the map turned.
+  scene.debrisSprites?.forEach((sprite) => positionDebrisSprite(scene, sprite));
 
   scene.busStopSprites?.forEach((sprite) => positionBusStopSprite(scene, sprite));
   // Signal poles and street lamps hang off the same map offsets (window resize) and facings (rotation).
@@ -8063,23 +8066,35 @@ function placeDebrisSprite(scene, row, col) {
   const debris = debrisMap[row]?.[col];
   if (!debris || !scene?.debrisSprites) return;
 
-  const pos = isoToScreen(col, row);
-  const baseOffset = getDebrisVisualOffset(debris);
-  const elevOffset = getElevationVisualOffset(row, col);
   const kind = getBareLandDebrisKind(debris.kind);
-  const sx = pos.x + scene.offsetX + baseOffset.x;
-  const sy = pos.y + scene.offsetY + TILE_HEIGHT / 2 + elevOffset + baseOffset.y;
-  const sprite = scene.add.image(sx, sy, kind.key);
+  const sprite = scene.add.image(0, 0, kind.key);
   addToRenderLayer(scene, sprite, 'objectLayer');
   sprite.setOrigin(0.5, 1);
   sprite.setScale(kind.scale);
-  sprite.setDepth(getObjectTileDepth(row, col, pos.y + TILE_HEIGHT * 0.5 + elevOffset + baseOffset.y));
   sprite.setMask(scene.worldMask);
   sprite.mapRow = row;
   sprite.mapCol = col;
+  positionDebrisSprite(scene, sprite);
   scene.debrisSprites.set(getTileId(row, col), sprite);
   scene.terrainViewportCacheKey = null;
   sortRenderLayer(scene, 'objectLayer');
+}
+
+// Screen position and depth from the debris tile; re-run on rotation and window resize
+// (positionAllTiles) like every other sprite anchored to a tile.
+function positionDebrisSprite(scene, sprite) {
+  const row = sprite.mapRow;
+  const col = sprite.mapCol;
+  const debris = debrisMap[row]?.[col];
+  if (!debris) return;
+  const pos = isoToScreen(col, row);
+  const baseOffset = getDebrisVisualOffset(debris);
+  const elevOffset = getElevationVisualOffset(row, col);
+  sprite.setPosition(
+    pos.x + scene.offsetX + baseOffset.x,
+    pos.y + scene.offsetY + TILE_HEIGHT / 2 + elevOffset + baseOffset.y,
+  );
+  sprite.setDepth(getObjectTileDepth(row, col, pos.y + TILE_HEIGHT * 0.5 + elevOffset + baseOffset.y));
 }
 
 function refreshDebrisSprite(scene, row, col) {

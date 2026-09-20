@@ -49,6 +49,7 @@ const TRAFFIC_SIGNAL_TEXTURE_FILES = Object.freeze(Object.fromEntries(
 ));
 // Each baked texture is a 256x256 canvas (a power of two, so Phaser mipmaps it) with the
 // pole's foot at (128, 256); the pole itself is ~246 px tall on it.
+const TRAFFIC_SIGNAL_SOURCE_CANVAS = Object.freeze({ width: 256, height: 256 });
 const TRAFFIC_SIGNAL_SOURCE_ANCHOR = Object.freeze({ x: 128, y: 256 });
 const TRAFFIC_SIGNAL_VEHICLE_CODES = Object.freeze({ red: 'r', redAmber: 'ra', green: 'g', amber: 'a' });
 const TRAFFIC_SIGNAL_PED_CODES = Object.freeze({ red: 'pr', green: 'pg', off: 'px' });
@@ -552,6 +553,7 @@ const trafficSignalsTestApi = {
   TRAFFIC_SIGNAL_APPROACH_KEYS,
   TRAFFIC_SIGNAL_FACING_FOR_TRAVEL,
   TRAFFIC_SIGNAL_TEXTURE_FILES,
+  TRAFFIC_SIGNAL_SOURCE_CANVAS,
   TRAFFIC_SIGNAL_SOURCE_ANCHOR,
   computeTrafficSignalPlacements,
   trafficSignalId,

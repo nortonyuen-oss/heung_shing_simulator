@@ -1679,6 +1679,21 @@ function resolveModelAssetPath(logicalPath) {
   return `${encodeURI(entry.packagedPath)}?asset=${encodeURIComponent(String(entry.hash || modelAssetVersion).slice(0, 16))}`;
 }
 
+// A baked prop (signal pole, lamp post, parapet) is authored on a canvas its module knows
+// (TRAFFIC_SIGNAL_SOURCE_CANVAS and friends) and its anchor is a pixel of that canvas. When
+// the staged tree was built from an earlier bake with a different canvas, the manifest's
+// source size disagrees with the code and getPropTextureAnchor would map the anchor and the
+// scale through the wrong geometry - every pole the wrong size in the wrong place, as a dev
+// launch in the window between changing a bake and re-staging showed. Such a stale entry is
+// skipped and the source PNG loaded instead, exactly what a not-yet-staged prop gets.
+function resolvePropAssetPath(logicalPath, canvas) {
+  const entry = modelAssetManifest.entries?.[normalizeModelLogicalPath(logicalPath)];
+  if (entry && canvas && (Number(entry.sourceWidth) !== canvas.width || Number(entry.sourceHeight) !== canvas.height)) {
+    return logicalPath;
+  }
+  return resolveModelAssetPath(logicalPath);
+}
+
 // True when the game is serving the packaged (trimmed + padded) model art
 // rather than the source PNGs. Building-light calibration is stored as
 // fractions of the model texture, and those two images do NOT place the
@@ -2111,19 +2126,19 @@ function preload() {
   // Junction traffic signal poles: one baked texture per facing and lamp state (traffic-signals.js)
   if (typeof TRAFFIC_SIGNAL_TEXTURE_FILES !== 'undefined') {
     Object.entries(TRAFFIC_SIGNAL_TEXTURE_FILES).forEach(([key, file]) => {
-      this.load.image(key, resolveModelAssetPath(file));
+      this.load.image(key, resolvePropAssetPath(file, TRAFFIC_SIGNAL_SOURCE_CANVAS));
     });
   }
   // Street lamp posts: day and baked night texture per arm direction (street-lamps.js)
   if (typeof STREET_LAMP_TEXTURE_FILES !== 'undefined') {
     Object.entries(STREET_LAMP_TEXTURE_FILES).forEach(([key, file]) => {
-      this.load.image(key, resolveModelAssetPath(file));
+      this.load.image(key, resolvePropAssetPath(file, STREET_LAMP_SOURCE_CANVAS));
     });
   }
   // Bridge parapets: one segment per screen axis plus the ramp shears (bridge-parapets.js)
   if (typeof BRIDGE_PARAPET_TEXTURE_FILES !== 'undefined') {
     Object.entries(BRIDGE_PARAPET_TEXTURE_FILES).forEach(([key, file]) => {
-      this.load.image(key, resolveModelAssetPath(file));
+      this.load.image(key, resolvePropAssetPath(file, BRIDGE_PARAPET_SOURCE_CANVAS));
     });
   }
 }

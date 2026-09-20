@@ -27,6 +27,7 @@ const STREET_LAMP_TEXTURE_FILES = Object.freeze(Object.fromEntries(
 ));
 // The baked canvases are 256x256 (a power of two, so Phaser mipmaps them) with the post's
 // foot at (128, 160); the post is ~150 px tall on them.
+const STREET_LAMP_SOURCE_CANVAS = Object.freeze({ width: 256, height: 256 });
 const STREET_LAMP_SOURCE_ANCHOR = Object.freeze({ x: 128, y: 160 });
 // The arm points across the road, i.e. against the side the post stands on; a map-space
 // direction seen on screen (n = NE, e = SE, s = SW, w = NW) maps to the sheet's arm facing.
@@ -322,6 +323,7 @@ function updateStreetLampVisuals(scene, time) {
 const streetLampsTestApi = {
   STREET_LAMP_FACINGS,
   STREET_LAMP_TEXTURE_FILES,
+  STREET_LAMP_SOURCE_CANVAS,
   STREET_LAMP_SOURCE_ANCHOR,
   STREET_LAMP_FACING_FOR_ARM,
   computeStreetLampPlacements,

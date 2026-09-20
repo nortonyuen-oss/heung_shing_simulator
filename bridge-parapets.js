@@ -26,6 +26,7 @@ const BRIDGE_PARAPET_TEXTURE_FILES = Object.freeze({
 });
 // The baked canvases are 512x512 (a power of two, so Phaser mipmaps them and the ~9x
 // downscale to the screen stays smooth) with the base-line midpoint at (256, 280).
+const BRIDGE_PARAPET_SOURCE_CANVAS = Object.freeze({ width: 512, height: 512 });
 const BRIDGE_PARAPET_SOURCE_ANCHOR = Object.freeze({ x: 256, y: 280 });
 // Facing = the screen edge the segment stands on.
 const BRIDGE_PARAPET_FACINGS = Object.freeze(['ne', 'se', 'sw', 'nw']);
@@ -245,6 +246,7 @@ function refreshAllBridgeParapetSprites(scene) {
 const bridgeParapetsTestApi = {
   BRIDGE_PARAPET_FACINGS,
   BRIDGE_PARAPET_TEXTURE_FILES,
+  BRIDGE_PARAPET_SOURCE_CANVAS,
   BRIDGE_PARAPET_SOURCE_ANCHOR,
   BRIDGE_PARAPET_SCREEN_EDGE,
   computeBridgeParapetPlacements,

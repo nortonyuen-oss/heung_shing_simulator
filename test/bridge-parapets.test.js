@@ -105,16 +105,23 @@ test('a barrier anchors on the edge midpoint of the lifted deck and sorts like a
   const anchor = run('bridgeParapetAnchor');
   const scene = { offsetX: 1000, offsetY: 2000 };
   // Deck at (2, 4): centre (100, 150) -> face centre (1100, 2110). Its e edge midpoint is half
-  // a tile towards +col: (+25, +12.5), then the 15 px deck lift.
+  // a tile towards +col: (+25, +12.5), then the 15 px deck lift. The edge's ends are 12.5 px
+  // above and below that midpoint; a near edge sorts by its lower end, a far edge by its upper.
   const east = toPlain(anchor(scene, { row: 2, col: 4, side: 'e', high: null }, 'se'));
-  assert.deepEqual(east, { x: 1125, y: 2110 + 12.5 - 15, depth: 200000 + 162.5 + 50 - 15 });
+  assert.deepEqual(east, { x: 1125, y: 2110 + 12.5 - 15, depth: 200000 + 175 + 50 - 15 });
   const west = toPlain(anchor(scene, { row: 2, col: 4, side: 'w', high: null }, 'nw'));
-  assert.deepEqual(west, { x: 1075, y: 2110 - 12.5 - 15, depth: 200000 + 137.5 + 50 - 15 });
-  assert.ok(west.depth < 200000 + 150 + 50 - 15 && east.depth > 200000 + 150 + 50 - 15,
-    'a vehicle at the tile centre (depthY + 25) draws between the far and the near barrier');
-  // Ramp at (1, 4): the edge midpoint is level with the ramp centre, half the lift.
+  assert.deepEqual(west, { x: 1075, y: 2110 - 12.5 - 15, depth: 200000 + 125 + 50 - 15 });
+  const vehicleAtCentre = 200000 + 150 + 25 - 15 + 25;
+  assert.ok(west.depth < vehicleAtCentre && east.depth > vehicleAtCentre,
+    'a vehicle at the tile centre draws between the far and the near barrier');
+  // Ramp at (1, 4) climbing n: the edge midpoint is level with the ramp centre, half the lift.
+  // Its near edge sorts as the ramp's foot end (lower on screen, lift 0), its far edge as the
+  // top end (higher, lift 15), so nothing driving or standing on the ramp crosses either.
   const ramp = toPlain(anchor(scene, { row: 1, col: 4, side: 'e', high: 'n' }, 'se'));
   assert.equal(ramp.y, 2000 + 125 - 40 + 12.5 - 7.5);
+  assert.equal(ramp.depth, 200000 + 150 + 50 - 0, 'near ramp edge: its foot end');
+  const rampFar = toPlain(anchor(scene, { row: 1, col: 4, side: 'w', high: 'n' }, 'nw'));
+  assert.equal(rampFar.depth, 200000 + 100 + 50 - 15, 'far ramp edge: its top end');
   // Calibration nudges apply per facing, on top of the geometry.
   run(`globalThis.getBridgeParapetCalibrationOffset = (facing) => (facing === 'se' ? { dx: 3, dy: -2 } : { dx: 0, dy: 0 });`);
   const nudged = toPlain(anchor(scene, { row: 2, col: 4, side: 'e', high: null }, 'se'));
@@ -168,4 +175,47 @@ test('main.js, index.html and the performance panel are wired for the parapets',
   assert.ok(lamps >= 0 && parapets > lamps && calibrator > parapets && main > calibrator);
   const panel = source('visual-route-calibrator.js');
   assert.ok(panel.includes('toggleBridgeParapetCalibrator(scene)') && panel.includes('teardownBridgeParapetCalibrator()') && panel.includes('isBridgeParapetPickerActive()'));
+});
+
+// The lamp posts stand on the pavement just inside the barrier (STREET_LAMP_LOGICAL_INSET.side
+// 0.42 of the edge's 0.5), so the near barrier must draw over a post's foot and the far post
+// over the far barrier - on a level deck and at both ends of a ramp.
+test('street lamps on a bridge sort between the far and the near barrier', () => {
+  const run = createContext();
+  run(`globalThis.mapRotation = 0;
+       globalThis.TILE_HEIGHT = 50;
+       globalThis.getWorldDepth = (layer, local) => 200000 + local;
+       globalThis.isoToScreen = (col, row) => ({ x: (col - row) * 50, y: (col + row) * 25 });
+       globalThis.getTileFaceGeometry = (row, col, ox, oy) => ({ center: { x: (col - row) * 50 + ox, y: (col + row) * 25 + oy - 40 } });
+       globalThis.getTrafficRuntimeLayers = () => ({});
+       globalThis.getTerrainTileVisualOffset = () => 0;
+       globalThis.getTrafficRoadSurface = (row) => (row === 1
+         ? { kind: 'bridge-ramp', directions: ['n', 's'], centerLift: 7.5, endpointLifts: { n: 15, s: 0 } }
+         : { kind: 'bridge-deck', directions: ['n', 's'], centerLift: 15, endpointLifts: { n: 15, s: 15 } });
+       globalThis.getBridgeParapetCalibrationOffset = () => ({ dx: 0, dy: 0 });
+       globalThis.getStreetLampCalibrationOffset = () => ({ dx: 0, dy: 0 });`);
+  const parapet = run('bridgeParapetAnchor');
+  const lamp = run('streetLampAnchor');
+  const scene = { offsetX: 0, offsetY: 0 };
+  const inset = toPlain(run('STREET_LAMP_LOGICAL_INSET'));
+  for (const row of [1, 2]) {
+    const near = parapet(scene, { row, col: 4, side: 'e', high: row === 1 ? 'n' : null }, 'se').depth;
+    const far = parapet(scene, { row, col: 4, side: 'w', high: row === 1 ? 'n' : null }, 'nw').depth;
+    for (const along of [-inset.along, inset.along]) {
+      const nearLamp = lamp(scene, { row, col: 4, offsetRow: along, offsetCol: inset.side }, 'nw').depth;
+      const farLamp = lamp(scene, { row, col: 4, offsetRow: along, offsetCol: -inset.side }, 'se').depth;
+      assert.ok(nearLamp < near, `row ${row} along ${along}: the near barrier covers the near post (${nearLamp} < ${near})`);
+      assert.ok(farLamp > far, `row ${row} along ${along}: the far post covers the far barrier (${farLamp} > ${far})`);
+    }
+    // Traffic (traffic-visuals.js: depthY = tile y + 25 + lane offset - surface lift, depth =
+    // depthY + 25) anywhere along the tile, in either lane, stays between the two barriers.
+    for (const along of [-0.5, 0, 0.5]) {
+      for (const lane of [-0.25, 0.25]) {
+        const y = 25 * (row + 4) + (along + lane) * 25;
+        const lift = row === 1 ? 7.5 - along * 15 : 15;
+        const vehicle = 200000 + y + 25 - lift + 25;
+        assert.ok(vehicle < near && vehicle > far, `row ${row} along ${along} lane ${lane}: traffic between the barriers (${far} < ${vehicle} < ${near})`);
+      }
+    }
+  }
 });

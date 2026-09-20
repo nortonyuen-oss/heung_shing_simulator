@@ -175,6 +175,8 @@ function streetLampSurfaceLift(placement) {
 }
 
 // Screen anchor (post foot) and depth, in the same terms as the signal poles and vehicles.
+// The depth subtracts the surface lift the way a vehicle's does (traffic-visuals.js), so on
+// a bridge deck a post sorts with the traffic beside it and behind the near parapet.
 function streetLampAnchor(scene, placement, facing) {
   const geo = getTileFaceGeometry(placement.row, placement.col, scene.offsetX, scene.offsetY);
   const centre = isoToScreen(placement.col, placement.row);
@@ -184,7 +186,7 @@ function streetLampAnchor(scene, placement, facing) {
   return {
     x: geo.center.x + (shifted.x - centre.x) + offset.dx,
     y: geo.center.y + (shifted.y - centre.y) + offset.dy - lift,
-    depth: getWorldDepth('object', shifted.y + TILE_HEIGHT),
+    depth: getWorldDepth('object', shifted.y + TILE_HEIGHT - lift),
   };
 }
 

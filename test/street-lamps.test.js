@@ -302,6 +302,20 @@ test('bridge decks, ramps and hill slopes carry lamps that stand on the raised s
        globalThis.getTrafficRoadSurface = () => ({ kind: 'terrain-slope', directions: ['n', 's'], centerLift: 18, endpointLifts: { n: 24, s: 12 } });`);
   assert.equal(lift({ row: 5, col: 5, offsetRow: 0.25, offsetCol: 0 }), 3, 'slope: low end = 12 (base) + rise');
   assert.equal(lift({ row: 5, col: 5, offsetRow: -0.25, offsetCol: 0 }), 9, 'slope: towards the high end');
+
+  // The post's depth comes down by the same lift as its foot, the way a vehicle's does, so a
+  // post on a deck sorts with the traffic beside it rather than 15 px in front of it.
+  run(`globalThis.mapRotation = 0; globalThis.TILE_HEIGHT = 50;
+       globalThis.getWorldDepth = (layer, local) => 200000 + local;
+       globalThis.isoToScreen = (col, row) => ({ x: (col - row) * 50, y: (col + row) * 25 });
+       globalThis.getTileFaceGeometry = () => ({ center: { x: 0, y: 0 } });
+       globalThis.getTerrainTileVisualOffset = () => 0;
+       globalThis.getStreetLampCalibrationOffset = () => ({ dx: 0, dy: 0 });
+       globalThis.getTrafficRoadSurface = () => ({ kind: 'bridge-deck', directions: ['n', 's'], centerLift: 15, endpointLifts: { n: 15, s: 15 } });`);
+  const anchor = run('streetLampAnchor');
+  const onDeck = anchor({ offsetX: 0, offsetY: 0 }, { row: 2, col: 4, offsetRow: 0, offsetCol: 0.42 }, 'nw');
+  assert.equal(onDeck.depth, 200000 + (150 + 10.5) + 50 - 15);
+  assert.equal(onDeck.y, 10.5 - 15);
 });
 
 test('rotation and resize re-anchor every tile-anchored sprite family, debris included', () => {

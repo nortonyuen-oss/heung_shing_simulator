@@ -11,8 +11,9 @@
 // sheared variant per ramp direction so a ramp's barrier follows its slope. Which axis a tile
 // needs is decided from its map-space edge after rotation, so the map can turn freely.
 //
-// Depth: a barrier sorts like a vehicle standing on its edge midpoint, so cars on the deck pass
-// between the far and the near barrier.
+// Depth: a barrier bounds everything standing on its deck - a near edge sorts as the lowest
+// point of the surface along it, a far edge as the highest - so posts and traffic on the deck
+// draw in front of the far barrier and behind the near one (bridgeParapetAnchor).
 
 const BRIDGE_PARAPET_TEXTURE_PREFIX = 'bridge_parapet_';
 const BRIDGE_PARAPET_TEXTURE_FILES = Object.freeze({
@@ -99,7 +100,35 @@ function bridgeParapetSurfaceLift(placement) {
   return streetLampSurfaceLift({ row: placement.row, col: placement.col, offsetRow: 0, offsetCol: 0 });
 }
 
+// The two ends of a segment's edge: screen y and surface lift at each, in the lamps' terms
+// (lift above the drawn tile face). A deck is level; a ramp's ends sit at its foot and top.
+function bridgeParapetEdgeEnds(placement) {
+  const centreLift = bridgeParapetSurfaceLift(placement);
+  const delta = BRIDGE_PARAPET_EDGE_DELTA[placement.side];
+  // The edge runs along the road axis: perpendicular to the side's own direction.
+  const axis = delta.row === 0 ? { row: 0.5, col: 0 } : { row: 0, col: 0.5 };
+  const surface = typeof getTrafficRoadSurface === 'function' && typeof getTrafficRuntimeLayers === 'function'
+    ? getTrafficRoadSurface(placement.row, placement.col, getTrafficRuntimeLayers())
+    : null;
+  return [1, -1].map((sign) => {
+    const row = placement.row + delta.row + axis.row * sign;
+    const col = placement.col + delta.col + axis.col * sign;
+    // Which map direction this end lies towards, for the surface's endpoint lift.
+    const towards = axis.row ? (sign > 0 ? 's' : 'n') : (sign > 0 ? 'e' : 'w');
+    const endpoint = surface?.endpointLifts?.[towards];
+    const lift = Number.isFinite(endpoint) && Number.isFinite(surface?.centerLift)
+      ? centreLift + (endpoint - surface.centerLift)
+      : centreLift;
+    return { y: isoToScreen(col, row).y, lift };
+  });
+}
+
 // Screen anchor (base-line midpoint on the edge) and depth, in the lamps' and vehicles' terms.
+// Everything on the deck (posts, traffic) sorts by its own screen y minus the lift under it,
+// and a barrier is a long thin thing along the road, so one mid-point depth would let a post
+// or a car near either end of the tile cross it. The barrier therefore takes the depth of its
+// farthest end when it is a far (NW/NE) edge and of its nearest end when it is a near (SE/SW)
+// edge: whatever stands on the deck draws in front of the far barrier and behind the near one.
 function bridgeParapetAnchor(scene, placement, facing) {
   const geo = getTileFaceGeometry(placement.row, placement.col, scene.offsetX, scene.offsetY);
   const centre = isoToScreen(placement.col, placement.row);
@@ -107,10 +136,12 @@ function bridgeParapetAnchor(scene, placement, facing) {
   const edge = isoToScreen(placement.col + delta.col, placement.row + delta.row);
   const offset = bridgeParapetOffsetFor(facing);
   const lift = bridgeParapetSurfaceLift(placement);
+  const near = facing === 'se' || facing === 'sw';
+  const endDepths = bridgeParapetEdgeEnds(placement).map((end) => end.y + TILE_HEIGHT - end.lift);
   return {
     x: geo.center.x + (edge.x - centre.x) + offset.dx,
     y: geo.center.y + (edge.y - centre.y) + offset.dy - lift,
-    depth: getWorldDepth('object', edge.y + TILE_HEIGHT - lift),
+    depth: getWorldDepth('object', near ? Math.max(...endDepths) : Math.min(...endDepths)),
   };
 }
 
@@ -220,6 +251,7 @@ const bridgeParapetsTestApi = {
   bridgeParapetFacing,
   bridgeParapetTextureKey,
   bridgeParapetSurfaceLift,
+  bridgeParapetEdgeEnds,
   bridgeParapetAnchor,
 };
 

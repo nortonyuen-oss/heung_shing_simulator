@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "projectVersion": "4.12.0",
+  "projectVersion": "4.13.0",
   "lockfileSha256": "b51c34b49c4b45b7d1e71107b8d32ca4abf68cddb42b8b4501e54ff3e33aef42",
   "scope": "Lockfile package paths, including platform alternatives; not an installer SBOM or legal approval.",
   "packageCount": 408,

@@ -1,3 +1,33 @@
+# The City of Heung Shing v4.13.0 — 【香城大小事 有你參與】
+
+官網新增【香城官方新聞】同【宣傳2-零速傳播】：大家可以留言、落廣告，經版主批准之後，就會出現喺遊戲入面嘅香城討論區同新聞走馬燈。所有內容入遊戲前都要版主審批，避免遊戲畀低俗或者攻擊性言論污染；連唔到網絡就靜默降級返用原本資料，遊玩完全唔受影響。
+
+## Highlights
+
+- **官方新聞**：官網新增 news.html，Norton 可以貼新聞相同內文，大家隨時留言。留言經版主批准之後，會變成遊戲入面【香城討論區】嘅「城中熱話」帖（`newspaper.js` 嘅 `syncPlayerNewsComments()`）。
+- **宣傳2-零速傳播**（前稱香城廣告街）：大家可以喺官網申請落一句 120 字內嘅廣告，經版主批准之後，就會加入遊戲新聞走馬燈，同原有嘅 10 句宣傳語一齊輪流播放（`hud-ticker.js` 嘅 `syncPlayerTickerAds()`）。
+- **版主審批**：所有經官網入嚟嘅內容（討論區帖、回覆、新聞留言、廣告）而家都要喺 `docs/moderate.html` 用版主密碼登入批准，先可以入到遊戲——網站本身照舊即時顯示，但入遊戲前必經審批，呢個係同上一個 citizen forum backend phase 最大分別。後台新增 `news_posts`／`news_comments`／`ads`／`login_attempts` 表，圖片經 Cloudflare R2 上傳同出。
+- **隨機暱稱**：官網所有暱稱欄（連儂牆、官方新聞留言、宣傳2）都加咗「隨機」掣，一撳就用返同遊戲 NPC 一樣嘅命名法幫你揀個名。
+- **離線降級**：以上內容全部經 `server.js` proxy 去 Cloudflare Worker 攞返嚟，連唔到、攞唔到都會靜默降級——遊戲照用返原本嘅 10 句宣傳語同 NPC 討論區帖，唔會卡住或者出錯。
+
+## Compatibility
+
+- 存檔完全兼容：呢個版本冇改任何存檔格式，全部新功能都係網絡層，離線都可以正常遊玩。
+
+## Verification
+
+- 完整專案測試 564 項全部通過。
+- 部署後直接對住 production Worker 行咗一次完整流程：登入 → 上傳相 → 出新聞 → 留言 → 落廣告 → 批准 → 確認遊戲端 feed 見到，再清走晒啲測試數據。
+
+## Downloads
+
+- macOS Apple Silicon DMG
+- macOS Intel DMG
+- Windows installer EXE
+- Windows portable EXE
+
+---
+
 # The City of Heung Shing v4.12.0 — 【各就各位】
 
 橋面兩邊裝上護欄；樹木、雜物同上斜道路貼圖全部歸位——修正咗企錯格、被前面樓宇錯誤遮擋同拼口對唔齊嘅問題。交通燈、路燈嘅柱身唔再鋸齒，種樹規則亦放寬到路邊同劃區地。

@@ -242,6 +242,13 @@ const SITE_FEATURE_LIST = {
 // ── Changelog ─────────────────────────────────────────────────────────────────
 const SITE_CHANGELOG = {
   "zh-HK": [
+    { version: "v4.13.0", date: "2026-09-23", dateLabel: "2026年9月23日", title: "香城大小事 有你參與", items: [
+      "官方新聞：官網新增【香城官方新聞】，可以貼新聞相同內文，大家隨時留言。留言經版主批准之後，會變成遊戲入面【香城討論區】嘅帖。",
+      "宣傳2-零速傳播（前稱香城廣告街）：大家可以喺官網申請落一句 120 字內嘅廣告，經版主批准之後，就會加入遊戲新聞走馬燈，同原有嘅宣傳語一齊輪流播放。",
+      "版主審批：所有經官網入嚟嘅內容（討論區帖、回覆、新聞留言、廣告）而家都要版主喺 docs/moderate.html 登入批准，先可以入到遊戲，避免遊戲畀低俗或者攻擊性言論污染。",
+      "官網所有暱稱欄加咗「隨機」掣，一撳就用返同遊戲 NPC 一樣嘅命名法幫你揀個名。",
+      "以上內容全部經網絡攞取，連唔到或者攞唔到就靜默降級，遊戲照常用返原本資料，唔會卡住或者出錯。",
+    ] },
     { version: "v4.12.0", date: "2026-09-20", dateLabel: "2026年9月20日", title: "各就各位", items: [
       "行車天橋護欄：每條橋面、每段斜道兩邊而家都有護欄，跟住路面斜度起伏，兩端接口對得正；深度排序保證企喺橋上嘅燈柱同駛過嘅車，一定夾喺遠、近兩條護欄之間，唔會著咗喺護欄前面或後面唔啱次序。",
       "修正樹木同雜物「企錯格」：之前每棵樹、每件雜物其實畫喺自己格斜前方嗰一格——要拆要撳返斜後方先拆得走；前後遮擋次序又跟住嗰個錯位計，於是前一格嘅樓宇反而遮住咗畫面上企喺佢前面嘅樹。而家樹同雜物企返自己格中心，同樓宇、燈柱、車一樣按地圖前後排序，四個地圖方向都驗證過。",
@@ -519,6 +526,13 @@ const SITE_CHANGELOG = {
 // title/items text.
 const SITE_CHANGELOG_TRANSLATIONS = {
   "zh-TW": {
+    "v4.13.0": { title: "香城大小事 有你參與", items: [
+      "官方新聞：官網新增【香城官方新聞】，可以貼新聞相片與內文，大家隨時留言。留言經版主核准後，會變成遊戲中【香城討論區】的貼文。",
+      "宣傳2-零速傳播（前稱香城廣告街）：大家可以在官網申請一則 120 字以內的廣告，經版主核准後，就會加入遊戲的新聞跑馬燈，與原有的宣傳詞一起輪流播放。",
+      "版主審核：所有經官網送出的內容（討論區貼文、回覆、新聞留言、廣告）現在都要版主在 docs/moderate.html 登入核准，才能進入遊戲，避免遊戲被低俗或攻擊性言論污染。",
+      "官網所有暱稱欄位新增「隨機」按鈕，按一下就用遊戲 NPC 同款的命名方式幫你選個名字。",
+      "以上內容全部經網路取得，連不上或取不到就會靜默降級，遊戲照常使用原本資料，不會卡住或出錯。",
+    ] },
     "v4.12.0": { title: "各就各位", items: [
       "行車天橋護欄：每條橋面、每段坡道兩側現在都有護欄，隨路面坡度起伏，兩端接口對得正；深度排序確保站在橋上的燈桿與駛過的車輛，一定夾在遠、近兩側護欄之間，不會出現前後順序錯亂。",
       "修正樹木與雜物「站錯格」：先前每棵樹、每件雜物其實畫在自己格子斜前方那一格——要拆得先點選斜後方那格；前後遮擋順序又依這個錯位計算，於是前一格的建築反而遮住了畫面上站在它前方的樹。現在樹木與雜物站回自己格子中心，與建築、燈桿、車輛一樣依地圖前後排序，四個地圖方向都已驗證。",
@@ -789,6 +803,13 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   en: {
+    "v4.13.0": { title: "The City Talks Back", items: [
+      "Official News: the site now has an Official News page where stories go up with a photo and body text, and anyone can comment. Approved comments turn into posts in the game's Heung Shing Forum.",
+      "Promo 2 – Zero-Speed Spread (formerly Advertisement Street): anyone can submit a 120-character ad on the site; once the moderator approves it, it joins the in-game news ticker alongside the existing promo lines.",
+      "Moderator approval: everything submitted through the website (forum posts, replies, news comments, ads) now needs the moderator to sign in at docs/moderate.html and approve it before it reaches the game, keeping the game free of vulgar or abusive content.",
+      "Every nickname field on the site now has a Random button that fills in a name using the same pool the in-game NPCs draw from.",
+      "All of the above is fetched over the network and degrades silently when it can't be reached — the game just falls back to its built-in content, with no hang and no error.",
+    ] },
     "v4.12.0": { title: "Everything in Its Place", items: [
       "Bridge parapets: every deck and ramp now carries a barrier along both long edges, following the road's slope and meeting cleanly at both ends. Depth sorting bounds whatever stands on the deck - a lamp post, a passing car - between the near and far barrier, so nothing draws in front of the wrong one.",
       "Fixed trees and roadside debris standing on the wrong tile: each one was actually drawn a full tile diagonally in front of the one it belonged to, so removing it meant clicking the tile behind instead, and a house on the next tile could draw over a tree that visually stood in front of it. Both now stand on the centre of their own tile and sort with the buildings, lamps and traffic around them, checked in all four map rotations.",
@@ -1059,6 +1080,13 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   ja: {
+    "v4.13.0": { title: "香城のニュースはみんなで作る", items: [
+      "公式ニュース：サイトに【香城公式ニュース】ページを新設。写真付きの記事を掲載でき、誰でもコメントできます。承認されたコメントはゲーム内【香城討論区】の投稿になります。",
+      "プロモ2・ゼロ速拡散（旧・香城広告通り）：サイトから120文字以内の広告を投稿でき、モデレーターの承認後にゲーム内のニュースティッカーへ既存の宣伝文句と一緒に加わります。",
+      "モデレーター承認：サイト経由の投稿（フォーラム投稿、返信、ニュースコメント、広告）はすべて、モデレーターが docs/moderate.html でログインして承認するまでゲームに反映されなくなりました。低俗・攻撃的な投稿からゲームを守ります。",
+      "サイトのニックネーム欄すべてに「ランダム」ボタンを追加。ゲーム内NPCと同じ名前プールから一つ選んでくれます。",
+      "以上はすべてネットワーク経由で取得し、接続できない場合は静かに元のデータへフォールバックします。ゲームが止まったりエラーになったりすることはありません。",
+    ] },
     "v4.12.0": { title: "すべてがあるべき場所へ", items: [
       "高架橋の護欄（ガードレール）：すべての橋桁とスロープの両端に、路面の傾斜に沿って護欄が付きました。両端の継ぎ目もぴったり合います。奥行きの並び替えも見直し、橋の上に立つ街灯や通行する車は必ず手前と奥の護欄の間に収まり、順序が入れ替わることはありません。",
       "木や放置ゴミが「隣のマスに立っていた」問題を修正：これまでは実際には自分のマスから斜め手前に1マスずれた位置に描かれており、撤去するには斜め奥のマスをクリックする必要がありました。奥行きの並びも同じズレで計算されていたため、手前のマスの建物が、画面上では手前に立って見える木を覆い隠すことがありました。現在は木もゴミも自分のマスの中心に立ち、建物・街灯・車と同じ基準で前後関係が決まります。4方向すべてで確認済みです。",
@@ -1354,8 +1382,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.12.0 — 【各就各位】",
-      versionDesc: "橋面兩邊裝上護欄，同路面斜度一齊起伏；樹木同雜物之前企錯咗斜前方嗰格、又俾前面嘅樓宇錯誤遮擋，而家全部歸位；上斜路貼圖重新對齊地形。交通燈同路燈嘅柱身唔再鋸齒，種樹規則亦放寬到路邊同劃區地。",
+      versionBadge: "v4.13.0 — 【香城大小事 有你參與】",
+      versionDesc: "官網新增官方新聞同宣傳2-零速傳播，留言同廣告經版主批准之後，會出現喺遊戲入面嘅香城討論區同新聞走馬燈；所有內容入遊戲前都要版主審批。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感嘅城市建設遊戲。起街道、規劃社區、經營自己嘅香城巴士公司、處理議會同天氣，再睇住一座有性格嘅香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1456,8 +1484,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.12.0 — 【各就各位】",
-      versionDesc: "橋面兩側裝上護欄，隨路面坡度一同起伏；樹木與雜物先前站錯了斜前方那格、又被前方建築錯誤遮擋，現在全部歸位；上坡道路貼圖重新對齊地形。號誌燈與路燈的燈桿不再鋸齒，種樹規則也放寬到路邊與劃區地。",
+      versionBadge: "v4.13.0 — 【香城大小事 有你參與】",
+      versionDesc: "官網新增官方新聞與宣傳2-零速傳播，留言與廣告經版主核准後，會出現在遊戲中的香城討論區與新聞跑馬燈；所有內容進入遊戲前都需版主審核。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感的城市建設遊戲。興建街道、規劃社區、經營自己的香城公車公司、處理議會與天氣，看著一座有個性的香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1558,8 +1586,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "The City of Heung Shing",
       title: "The City of Heung Shing",
-      versionBadge: "v4.12.0 — Everything in Its Place",
-      versionDesc: "Every bridge deck and ramp now has parapets that follow the road's slope; trees and roadside debris, which used to stand a tile off and be drawn over by the building in front, now stand in their own place; climbing roads were redrawn to align with the terrain. Signal poles and lamp posts no longer alias, and planting a tree got easier near roads and empty lots.",
+      versionBadge: "v4.13.0 — The City Talks Back",
+      versionDesc: "The site now has Official News and Promo 2 – Zero-Speed Spread; approved comments and ads show up in the game's Heung Shing Forum and news ticker. Everything goes through moderator approval before it reaches the game.",
       lede: "A city-building game inspired by Hong Kong life and made in tribute to SimCity 2000. Build streets, shape neighbourhoods, run your own Heung Shing Bus Company, navigate council politics and weather, then watch a city with real personality grow.",
       freeLabel: "Completely free · macOS + Windows · Local saves",
       downloadBtn: "【Free Download】",
@@ -1661,8 +1689,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.12.0 — すべてがあるべき場所へ",
-      versionDesc: "すべての橋桁と坂道の両端に、路面の傾斜に沿った護欄が付きました。斜め手前のマスに立ち、手前の建物に誤って隠れていた木や瓦礫は、あるべき自分のマスへ。上り坂タイルも地形に合わせて描き直しました。信号柱と街灯柱のジャギーも解消し、植樹も道路脇や空き区画でしやすくなりました。",
+      versionBadge: "v4.13.0 — 香城のニュースはみんなで作る",
+      versionDesc: "サイトに公式ニュースとプロモ2・ゼロ速拡散を新設。承認されたコメントや広告はゲーム内の香城討論区やニュースティッカーに反映されます。すべてゲームに届く前にモデレーターの承認を経ます。",
       lede: "香港の都市生活から着想を得た、SimCity 2000へのオマージュとなる都市建設ゲーム。道路を築き、地区を計画し、自分だけの香城バス会社を経営し、議会や天候に向き合いながら、個性ある香城の成長を見守ります。",
       freeLabel: "完全無料 · macOS + Windows · ローカルセーブ",
       downloadBtn: "【無料ダウンロード】",

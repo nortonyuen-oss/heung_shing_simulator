@@ -323,6 +323,7 @@ test('news comments show on the article immediately but only reach the game feed
   assert.equal(gameFeed.data.items.length, 1);
   assert.equal(gameFeed.data.items[0].news_headline, '停水通告');
   assert.equal(gameFeed.data.items[0].body, '幾時再有水？');
+  assert.equal(gameFeed.data.items[0].news_post_id, newsId, 'lets the game attach the comment to its article post, not just quote the headline');
 });
 
 test('news comments can only be posted on a visible news post', async () => {

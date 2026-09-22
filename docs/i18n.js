@@ -242,6 +242,10 @@ const SITE_FEATURE_LIST = {
 // ── Changelog ─────────────────────────────────────────────────────────────────
 const SITE_CHANGELOG = {
   "zh-HK": [
+    { version: "v4.13.1", date: "2026-09-23", dateLabel: "2026年9月23日", title: "香城大小事 有你參與", items: [
+      "官方新聞而家會連相同全文一齊出現喺【香城討論區】，唔再係得每條留言各自變成一個獨立帖；留言會變成嗰篇新聞底下嘅回覆，同真正嘅新聞＋留言關係一樣。",
+      "修正官方新聞留言／討論區帖同步落遊戲之後日期打錯：之前用緊現實世界嘅日期（例如 2026 年），但每個城市自己有獨立嘅模擬年曆（可以去到 3000 幾年），依家改用返城市自己嘅模擬年月，唔會再因為日期太「舊」而排到去討論區最底、見唔到。",
+    ] },
     { version: "v4.13.0", date: "2026-09-23", dateLabel: "2026年9月23日", title: "香城大小事 有你參與", items: [
       "官方新聞：官網新增【香城官方新聞】，可以貼新聞相同內文，大家隨時留言。留言經版主批准之後，會變成遊戲入面【香城討論區】嘅帖。",
       "宣傳2-零速傳播（前稱香城廣告街）：大家可以喺官網申請落一句 120 字內嘅廣告，經版主批准之後，就會加入遊戲新聞走馬燈，同原有嘅宣傳語一齊輪流播放。",
@@ -526,6 +530,10 @@ const SITE_CHANGELOG = {
 // title/items text.
 const SITE_CHANGELOG_TRANSLATIONS = {
   "zh-TW": {
+    "v4.13.1": { title: "香城大小事 有你參與", items: [
+      "官方新聞現在會連照片與全文一起出現在【香城討論區】，不再是每則留言各自變成一則獨立貼文；留言會變成該篇新聞下方的回覆，與真正的新聞＋留言關係一致。",
+      "修正官方新聞留言／討論區貼文同步進遊戲後日期打錯：先前使用現實世界的日期（例如 2026 年），但每座城市有自己獨立的模擬年曆（可能已經到 3000 多年），現在改用城市自己的模擬年月，不會再因為日期太「舊」而被排到討論區最底、看不到。",
+    ] },
     "v4.13.0": { title: "香城大小事 有你參與", items: [
       "官方新聞：官網新增【香城官方新聞】，可以貼新聞相片與內文，大家隨時留言。留言經版主核准後，會變成遊戲中【香城討論區】的貼文。",
       "宣傳2-零速傳播（前稱香城廣告街）：大家可以在官網申請一則 120 字以內的廣告，經版主核准後，就會加入遊戲的新聞跑馬燈，與原有的宣傳詞一起輪流播放。",
@@ -803,6 +811,10 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   en: {
+    "v4.13.1": { title: "The City Talks Back", items: [
+      "Official News now shows up in the Heung Shing Forum as a full post — photo and body text included — instead of turning each comment into its own standalone post. Comments now attach as replies under that article's post, the way a real article and its comments relate.",
+      "Fixed synced news comments and forum posts getting the wrong date: they were stamped with the real-world date (e.g. 2026), but every city runs its own simulated calendar (which can reach the year 3000s), so a real-world date sorted as ancient history and sank to the bottom of the forum, out of view. They're now stamped with the city's own simulated date instead.",
+    ] },
     "v4.13.0": { title: "The City Talks Back", items: [
       "Official News: the site now has an Official News page where stories go up with a photo and body text, and anyone can comment. Approved comments turn into posts in the game's Heung Shing Forum.",
       "Promo 2 – Zero-Speed Spread (formerly Advertisement Street): anyone can submit a 120-character ad on the site; once the moderator approves it, it joins the in-game news ticker alongside the existing promo lines.",
@@ -1080,6 +1092,10 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   ja: {
+    "v4.13.1": { title: "香城のニュースはみんなで作る", items: [
+      "公式ニュースが写真と本文つきの投稿として【香城討論区】に表示されるようになりました。以前はコメント1件ごとに別々の投稿になっていましたが、今はその記事の投稿にコメントが返信として紐づきます。",
+      "ニュースコメントやフォーラム投稿がゲームに反映されたあと日付がずれる不具合を修正：これまで現実の日付（例：2026年）を使っていましたが、各都市は独自のシミュレーション暦（3000年代まで進むことも）を持つため、現実の日付が古すぎる扱いになりフォーラムの一番下に埋もれて見えなくなっていました。今後は都市自身のシミュレーション年月を使用します。",
+    ] },
     "v4.13.0": { title: "香城のニュースはみんなで作る", items: [
       "公式ニュース：サイトに【香城公式ニュース】ページを新設。写真付きの記事を掲載でき、誰でもコメントできます。承認されたコメントはゲーム内【香城討論区】の投稿になります。",
       "プロモ2・ゼロ速拡散（旧・香城広告通り）：サイトから120文字以内の広告を投稿でき、モデレーターの承認後にゲーム内のニュースティッカーへ既存の宣伝文句と一緒に加わります。",
@@ -1382,7 +1398,7 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.13.0 — 【香城大小事 有你參與】",
+      versionBadge: "v4.13.1 — 【香城大小事 有你參與】",
       versionDesc: "官網新增官方新聞同宣傳2-零速傳播，留言同廣告經版主批准之後，會出現喺遊戲入面嘅香城討論區同新聞走馬燈；所有內容入遊戲前都要版主審批。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感嘅城市建設遊戲。起街道、規劃社區、經營自己嘅香城巴士公司、處理議會同天氣，再睇住一座有性格嘅香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
@@ -1484,7 +1500,7 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.13.0 — 【香城大小事 有你參與】",
+      versionBadge: "v4.13.1 — 【香城大小事 有你參與】",
       versionDesc: "官網新增官方新聞與宣傳2-零速傳播，留言與廣告經版主核准後，會出現在遊戲中的香城討論區與新聞跑馬燈；所有內容進入遊戲前都需版主審核。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感的城市建設遊戲。興建街道、規劃社區、經營自己的香城公車公司、處理議會與天氣，看著一座有個性的香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
@@ -1586,7 +1602,7 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "The City of Heung Shing",
       title: "The City of Heung Shing",
-      versionBadge: "v4.13.0 — The City Talks Back",
+      versionBadge: "v4.13.1 — The City Talks Back",
       versionDesc: "The site now has Official News and Promo 2 – Zero-Speed Spread; approved comments and ads show up in the game's Heung Shing Forum and news ticker. Everything goes through moderator approval before it reaches the game.",
       lede: "A city-building game inspired by Hong Kong life and made in tribute to SimCity 2000. Build streets, shape neighbourhoods, run your own Heung Shing Bus Company, navigate council politics and weather, then watch a city with real personality grow.",
       freeLabel: "Completely free · macOS + Windows · Local saves",
@@ -1689,7 +1705,7 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.13.0 — 香城のニュースはみんなで作る",
+      versionBadge: "v4.13.1 — 香城のニュースはみんなで作る",
       versionDesc: "サイトに公式ニュースとプロモ2・ゼロ速拡散を新設。承認されたコメントや広告はゲーム内の香城討論区やニュースティッカーに反映されます。すべてゲームに届く前にモデレーターの承認を経ます。",
       lede: "香港の都市生活から着想を得た、SimCity 2000へのオマージュとなる都市建設ゲーム。道路を築き、地区を計画し、自分だけの香城バス会社を経営し、議会や天候に向き合いながら、個性ある香城の成長を見守ります。",
       freeLabel: "完全無料 · macOS + Windows · ローカルセーブ",

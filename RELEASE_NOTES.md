@@ -1,3 +1,30 @@
+# The City of Heung Shing v4.13.1 — 【香城大小事 有你參與】
+
+【香城大小事 有你參與】嘅修正版：官方新聞而家連相同全文一齊出現喺【香城討論區】，留言變成嗰篇新聞底下嘅回覆；同時修正咗同步落嚟嘅內容日期打錯、沉晒去討論區最底見唔到嘅問題。
+
+## Highlights
+
+- **官方新聞連相同全文一齊入討論區**：之前每條留言各自變成一個獨立嘅「回應：xxx」帖，睇唔到新聞本身寫咩、有冇相。而家新聞一發佈，就會以完整標題、內文同相片喺【香城討論區】起一個帖（`syncPlayerNewsComments()` 改用 `/api/forum/news` 攞返成篇文，相經 `normalizeForumImagePath()` 新增嘅白名單規則接受 `/api/forum/images/:key` 呢個由本機 server proxy 去 R2 嘅路徑）；留言就變成嗰個帖底下嘅回覆（`post.social.comments`），跟遊戲原有嘅 AI 留言用同一套顯示，唔會再各自開新帖。後台 `/news-comments` 加咗 `news_post_id` 俾遊戲對得返落邊個帖。
+- **修正同步日期用錯咗現實世界年份**：`syncPlayerForumPosts()`／`syncPlayerNewsComments()` 之前用 `created_at` 嘅現實世界年份（例如 2026）嚟幫同步落嚟嘅帖打日期，但城市自己有獨立嘅模擬年曆（可以去到 3000 幾年）。討論區按呢個日期由新到舊排，現實世界日期比模擬年曆「舊」成千年，帖就沉晒去最底、俾 15 條上限截走，完全見唔到。而家改用返 `city.year`／`city.month`。
+
+## Compatibility
+
+- 存檔完全兼容，無格式改動。已經因為呢兩個 bug 卡咗喺你個 save 度嘅「回應：xxx」孤兒帖唔會自動修正，會慢慢俾之後嘅新帖擠出 60 條上限；新同步返嚟嘅內容即刻啱。
+
+## Verification
+
+- 完整專案測試 564 項全部通過。
+- 對住 production Worker 驗證 `/news-comments` 已經帶返 `news_post_id`。
+
+## Downloads
+
+- macOS Apple Silicon DMG
+- macOS Intel DMG
+- Windows installer EXE
+- Windows portable EXE
+
+---
+
 # The City of Heung Shing v4.13.0 — 【香城大小事 有你參與】
 
 官網新增【香城官方新聞】同【宣傳2-零速傳播】：大家可以留言、落廣告，經版主批准之後，就會出現喺遊戲入面嘅香城討論區同新聞走馬燈。所有內容入遊戲前都要版主審批，避免遊戲畀低俗或者攻擊性言論污染；連唔到網絡就靜默降級返用原本資料，遊玩完全唔受影響。

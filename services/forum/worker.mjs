@@ -153,7 +153,7 @@ export default {
       if (path === '/news-comments') {
         if (method !== 'GET') throw new ApiError(405, 'method');
         const page = pageNumber(url), offset = (page - 1) * PAGE_SIZE;
-        const result = await env.DB.prepare("SELECT nc.id, nc.body, nc.nickname, nc.created_at, n.headline AS news_headline FROM news_comments nc JOIN news_posts n ON n.id = nc.news_post_id WHERE nc.state = 'visible' AND nc.approved_for_game = 1 ORDER BY nc.id DESC LIMIT ? OFFSET ?").bind(PAGE_SIZE + 1, offset).all();
+        const result = await env.DB.prepare("SELECT nc.id, nc.body, nc.nickname, nc.created_at, nc.news_post_id, n.headline AS news_headline FROM news_comments nc JOIN news_posts n ON n.id = nc.news_post_id WHERE nc.state = 'visible' AND nc.approved_for_game = 1 ORDER BY nc.id DESC LIMIT ? OFFSET ?").bind(PAGE_SIZE + 1, offset).all();
         return json({ items: result.results.slice(0, PAGE_SIZE), hasNext: result.results.length > PAGE_SIZE });
       }
 

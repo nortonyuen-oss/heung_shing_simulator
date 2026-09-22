@@ -13,8 +13,13 @@ const forumAiCommentAttempts = new Set();
 // Forum images migrated from UI/News/*.png to UI/news/*.webp; this also runs on
 // values already in the new format, so it is safe to apply unconditionally to any
 // image path a forum post is built with (migrating old saves, validating new ones).
+// Also accepts a moderator-uploaded news photo proxied through the local server from
+// Cloudflare R2 (see syncPlayerNewsComments()) — the filename is a server-validated
+// UUID+extension, so it's as safe to use as an <img src> as a bundled build-time asset.
 function normalizeForumImagePath(value) {
-  const migrated = String(value || '')
+  const raw = String(value || '');
+  if (/^\/api\/forum\/images\/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}\.(jpg|jpeg|png|webp)$/.test(raw)) return raw;
+  const migrated = raw
     .replace(/^UI\/News\//, 'UI/news/')
     .replace(/\.png$/i, '.webp');
   return /^UI\/news\/[a-zA-Z0-9_.-]+\.webp$/.test(migrated) ? migrated : '';
@@ -447,18 +452,19 @@ async function syncPlayerForumPosts() {
   let added = false;
   for (const row of payload.items) {
     if (!Number.isSafeInteger(row?.id) || !row.headline) continue;
-    const created = new Date(row.created_at);
-    const year = Number.isNaN(created.getTime()) ? city.year : created.getFullYear();
-    const month = Number.isNaN(created.getTime()) ? city.month : created.getMonth() + 1;
+    // Stamped with the city's own simulated date, not row.created_at's real-world wall-clock
+    // date — the two run on unrelated timelines (a long-lived city can be centuries past 2026),
+    // and a real-world date sorts as ancient history against the city's calendar, burying the
+    // post under everything else in the recency-sorted forum.
     const post = addForumPost(
       { headline: row.headline, body: String(row.body || '').split('\n').filter(Boolean), source: 'local' },
       {
         id: `player-post-${row.id}`,
         category: row.category,
         author: row.nickname || '匿名市民',
-        date: `${tMonth(month)} ${year}`,
-        year,
-        month,
+        date: `${tMonth(city.month)} ${city.year}`,
+        year: city.year,
+        month: city.month,
         origin: 'player',
       },
     );
@@ -467,35 +473,66 @@ async function syncPlayerForumPosts() {
   return added;
 }
 
-// Same idea as syncPlayerForumPosts(), for the other approved-content channel: a reader's comment
-// on a 官網新聞 article becomes its own "城中熱話" post once the moderator approves it, since the
-// news article itself lives only on the website — there's no matching in-game post to thread a
-// reply under, so the comment surfaces as a standalone post quoting which article it responded to.
+// Same idea as syncPlayerForumPosts(), for the other approved-content channel: an official
+// 官網新聞 article becomes its own post (headline, full body and photo — publishing a news
+// article is itself the moderator's approval, so every article on /news is fair game), and
+// each approved reader comment attaches to that same post's social.comments instead of
+// spawning its own standalone post — matching how a real article and its replies relate.
 async function syncPlayerNewsComments() {
   if (typeof fetch !== 'function') return false;
-  const response = await fetch('/api/forum/news-comments');
-  if (!response.ok) return false;
-  const payload = await response.json();
-  if (!Array.isArray(payload?.items)) return false;
   let added = false;
-  for (const row of payload.items) {
-    if (!Number.isSafeInteger(row?.id) || !row.body || !row.news_headline) continue;
-    const created = new Date(row.created_at);
-    const year = Number.isNaN(created.getTime()) ? city.year : created.getFullYear();
-    const month = Number.isNaN(created.getTime()) ? city.month : created.getMonth() + 1;
-    const post = addForumPost(
-      { headline: `回應：${row.news_headline}`, body: [row.body], source: 'local' },
-      {
-        id: `news-comment-${row.id}`,
-        category: '城中熱話',
-        author: row.nickname || '匿名市民',
-        date: `${tMonth(month)} ${year}`,
-        year,
-        month,
-        origin: 'player',
-      },
-    );
-    if (post && post.id === `news-comment-${row.id}`) added = true;
+
+  const newsResponse = await fetch('/api/forum/news');
+  if (newsResponse.ok) {
+    const newsPayload = await newsResponse.json();
+    if (Array.isArray(newsPayload?.items)) {
+      for (const row of newsPayload.items) {
+        if (!Number.isSafeInteger(row?.id) || !row.headline) continue;
+        // Stamped with the city's own simulated date, not row.created_at's real-world date — the
+        // two run on unrelated timelines, and a real-world date sorts as ancient history against
+        // a long-lived city's calendar, burying the post under everything else in the forum.
+        const post = addForumPost(
+          {
+            headline: row.headline,
+            body: String(row.body || '').split('\n').filter(Boolean),
+            image: row.image_key ? `/api/forum/images/${row.image_key}` : '',
+            source: 'local',
+          },
+          {
+            id: `news-${row.id}`,
+            category: '城中熱話',
+            author: '香城政府新聞處',
+            date: `${tMonth(city.month)} ${city.year}`,
+            year: city.year,
+            month: city.month,
+            origin: 'player',
+          },
+        );
+        if (post && post.id === `news-${row.id}`) added = true;
+      }
+    }
+  }
+
+  const commentsResponse = await fetch('/api/forum/news-comments');
+  if (!commentsResponse.ok) return added;
+  const commentsPayload = await commentsResponse.json();
+  if (!Array.isArray(commentsPayload?.items)) return added;
+  for (const row of commentsPayload.items) {
+    if (!Number.isSafeInteger(row?.id) || !row.body || !Number.isSafeInteger(row?.news_post_id)) continue;
+    const post = (Array.isArray(city.forumPosts) ? city.forumPosts : []).find((item) => item.id === `news-${row.news_post_id}`);
+    if (!post) continue;
+    if (!post.social || typeof post.social !== 'object') post.social = {};
+    if (!Array.isArray(post.social.comments)) post.social.comments = [];
+    if (post.social.comments.some((comment) => comment.newsCommentId === row.id)) continue;
+    post.social.comments = [...post.social.comments, {
+      author: row.nickname || '匿名市民',
+      text: row.body,
+      newsCommentId: row.id,
+    }].slice(-8);
+    const priorCount = Number(String(post.social.commentCount || 0).replace(/,/g, '')) || 0;
+    post.social.commentCount = (priorCount + 1).toLocaleString();
+    if (typeof queueCityChangeAutosave === 'function') queueCityChangeAutosave();
+    added = true;
   }
   return added;
 }

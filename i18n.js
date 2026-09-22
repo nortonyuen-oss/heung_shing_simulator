@@ -1,5 +1,5 @@
 const I18N_STORAGE_KEY = 'citybuilder.language';
-let appVersion = '4.13.0';
+let appVersion = '4.13.1';
 let appReleaseTheme = '【香城大小事 有你參與】';
 
 const LANGUAGES = {

@@ -426,12 +426,13 @@ test('menu controls bind before asynchronous model discovery and forum opening i
     showDialog: (id) => shown.push(id),
     syncResolutionHistoryToForum: () => { throw new Error('bad history'); },
     syncPlayerForumPosts: () => Promise.reject(new Error('forum sync unavailable')),
+    syncPlayerNewsComments: () => Promise.reject(new Error('news comment sync unavailable')),
   });
   vm.runInContext(openBody, context);
   assert.doesNotThrow(() => vm.runInContext('openForumHistory()', context));
   assert.deepEqual(shown, ['forum-history-dialog']);
   return new Promise((resolve) => setImmediate(resolve)).then(() => {
-    assert.equal(warnings.length, 4);
+    assert.equal(warnings.length, 5);
   });
 });
 

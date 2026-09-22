@@ -312,6 +312,7 @@ function populateNewsMenu() {
   if (!dropdown) return;
   if (typeof syncResolutionHistoryToForum === 'function') syncResolutionHistoryToForum();
   if (typeof syncPlayerForumPosts === 'function') syncPlayerForumPosts().catch((error) => console.warn('[Forum player post sync]', error));
+  if (typeof syncPlayerNewsComments === 'function') syncPlayerNewsComments().catch((error) => console.warn('[Forum news comment sync]', error));
 
   if (typeof generateMonthlyForumPost === 'function' && !(city.forumPosts || []).length) {
     generateMonthlyForumPost();

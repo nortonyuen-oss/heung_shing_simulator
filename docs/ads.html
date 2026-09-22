@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>香城廣告街 | 香城模擬器</title>
+  <meta name="description" content="落一則廣告，獲批准後會喺香城模擬器遊戲入面嘅新聞走馬燈播放。" />
+  <meta property="og:title" content="香城廣告街 | 香城模擬器" />
+  <meta property="og:description" content="落一則廣告，獲批准後會喺香城模擬器遊戲入面嘅新聞走馬燈播放。" />
+  <meta property="og:image" content="assets/backgroundTitle.jpg" />
+  <meta name="theme-color" content="#17212d" />
+  <link rel="icon" href="assets/icon.png" />
+  <link rel="stylesheet" href="styles.css?v=20260920-release4" />
+  <link rel="stylesheet" href="ads.css?v=20260920-release4" />
+  <script src="i18n.js?v=20260920-release4" defer></script>
+  <script src="forum-config.js?v=20260920-release4" defer></script>
+  <script src="forum-common.js?v=20260920-release4" defer></script>
+  <script src="ads.js?v=20260920-release4" defer></script>
+</head>
+<body data-page="ads">
+  <header class="site-header" aria-label="網站導覽">
+    <a class="brand" href="index.html" aria-label="The City of Heung Shing">
+      <img src="assets/icon.png" alt="" />
+      <span>香城模擬器</span>
+    </a>
+    <nav>
+      <div class="nav-links">
+        <a href="index.html#trailer" data-i18n="nav.trailer">預告片</a>
+        <a href="index.html#gallery" data-i18n="nav.gallery">截圖</a>
+        <a href="index.html#downloads" data-i18n="nav.downloads">下載</a>
+        <a href="index.html#requirements" data-i18n="nav.requirements">配置要求</a>
+        <a href="guide.html" data-i18n="nav.guide">遊戲指南</a>
+        <a href="news.html" data-i18n="nav.news">官方新聞</a>
+        <a href="feedback.html" data-i18n="nav.feedback">香城連儂牆</a>
+        <a href="ads.html" aria-current="page" data-i18n="nav.ads">香城廣告街</a>
+        <a href="copyright.html" data-i18n="nav.copyright">版權與使用條款</a>
+        <a href="index.html#changelog" data-i18n="nav.changelog">版本</a>
+        <a href="https://github.com/nortonyuen-oss/heung_shing_simulator" rel="noopener" data-i18n="nav.github">GitHub</a>
+      </div>
+      <div class="lang-switcher" data-language-switcher></div>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section class="guide-hero">
+      <p class="eyebrow" data-i18n="ads.eyebrow">ADVERTISEMENT STREET</p>
+      <h1 data-i18n="ads.title">香城廣告街</h1>
+      <p data-i18n="ads.intro">落一則廣告，等版主批准之後，就會喺遊戲入面嘅新聞走馬燈度出現，同其他香城品牌一齊輪流播放。</p>
+    </section>
+    <div class="ads-layout">
+      <section class="ads-compose" aria-labelledby="ads-compose-title">
+        <h2 id="ads-compose-title" data-i18n="ads.newAd">落一則廣告</h2>
+        <p class="feedback-help" data-i18n="ads.publicNote">毋須登入。廣告會即刻喺呢頁見到；批准後先會喺遊戲入面播放。</p>
+        <form data-ads-form>
+          <label><span data-i18n="feedback.nickname">暱稱（選填，毋須註冊）</span>
+            <span class="nickname-row">
+              <input name="nickname" maxlength="40" autocomplete="off" list="ads-nickname-suggestions" />
+              <button type="button" class="feedback-secondary" data-random-nickname data-i18n="feedback.randomNickname">隨機</button>
+            </span>
+          </label>
+          <p class="feedback-help" data-i18n="feedback.nicknameHint">可以喺清單度揀個名，或者自己打都得。</p>
+          <datalist id="ads-nickname-suggestions"></datalist>
+          <label><span data-i18n="ads.text">廣告內容（一句就夠）</span><textarea name="adText" rows="2" required maxlength="120" aria-describedby="ads-text-help"></textarea></label>
+          <p id="ads-text-help" class="feedback-help" data-i18n="ads.textHelp">走馬燈得一行位，盡量精簡；最多 120 字。</p>
+          <button class="button primary" type="submit" data-i18n="ads.send">貼上廣告街</button>
+          <p role="status" data-ads-form-status></p>
+        </form>
+        <noscript><p data-i18n="ads.noscript">請啟用 JavaScript 以讀取及提交廣告。</p></noscript>
+      </section>
+      <section class="ads-board" aria-labelledby="ads-list-title">
+        <h2 id="ads-list-title" data-i18n="ads.listTitle">街坊廣告牌</h2>
+        <p role="status" data-ads-status data-i18n="feedback.loading">正在讀取留言…</p>
+        <div data-ads-list></div>
+        <div class="feedback-pagination">
+          <button type="button" class="feedback-secondary" data-ads-previous disabled data-i18n="feedback.previous">上一頁</button>
+          <span data-ads-page></span>
+          <button type="button" class="feedback-secondary" data-ads-next disabled data-i18n="feedback.next">下一頁</button>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer>
+    <span data-i18n="footer.tagline">香城模擬器 · 免費遊玩，歡迎分享官方連結</span>
+    <div class="footer-links">
+      <a href="news.html" data-i18n="nav.news">官方新聞</a>
+      <a href="feedback.html" data-i18n="nav.feedback">香城連儂牆</a>
+      <a href="ads.html" aria-current="page" data-i18n="nav.ads">香城廣告街</a>
+        <a href="copyright.html" data-i18n="nav.copyright">版權與使用條款</a>
+      <a href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest" rel="noopener" data-i18n="footer.releaseInfo">版本資訊</a>
+      <a href="https://heungshingsimulator.blogspot.com/" rel="noopener" data-i18n="footer.blog">開發blog</a>
+    </div>
+  </footer>
+</body>
+</html>

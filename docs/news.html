@@ -3,17 +3,21 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>遊戲指南 | 香城模擬器</title>
-  <meta name="description" content="香城模擬器完整遊戲規則指南：分區密度、經濟稅收、立法會、天氣颱風、特殊建築解鎖同交通系統一次睇晒。" />
-  <meta property="og:title" content="遊戲指南 | 香城模擬器" />
-  <meta property="og:description" content="香城模擬器完整遊戲規則指南：分區密度、經濟稅收、立法會、天氣颱風、特殊建築解鎖同交通系統一次睇晒。" />
+  <title>官方新聞 | 香城模擬器</title>
+  <meta name="description" content="香城模擬器官方新聞：開發近況、城市大事同截圖，歡迎留言分享你嘅睇法。" />
+  <meta property="og:title" content="官方新聞 | 香城模擬器" />
+  <meta property="og:description" content="香城模擬器官方新聞：開發近況、城市大事同截圖，歡迎留言分享你嘅睇法。" />
   <meta property="og:image" content="assets/backgroundTitle.jpg" />
   <meta name="theme-color" content="#17212d" />
   <link rel="icon" href="assets/icon.png" />
   <link rel="stylesheet" href="styles.css?v=20260920-release4" />
+  <link rel="stylesheet" href="news.css?v=20260920-release4" />
   <script src="i18n.js?v=20260920-release4" defer></script>
+  <script src="forum-config.js?v=20260920-release4" defer></script>
+  <script src="forum-common.js?v=20260920-release4" defer></script>
+  <script src="news.js?v=20260920-release4" defer></script>
 </head>
-<body>
+<body data-page="news">
   <header class="site-header" aria-label="網站導覽">
     <a class="brand" href="index.html" aria-label="The City of Heung Shing">
       <img src="assets/icon.png" alt="" />
@@ -26,7 +30,7 @@
         <a href="index.html#downloads" data-i18n="nav.downloads">下載</a>
         <a href="index.html#requirements" data-i18n="nav.requirements">配置要求</a>
         <a href="guide.html" data-i18n="nav.guide">遊戲指南</a>
-        <a href="news.html" data-i18n="nav.news">官方新聞</a>
+        <a href="news.html" aria-current="page" data-i18n="nav.news">官方新聞</a>
         <a href="feedback.html" data-i18n="nav.feedback">香城連儂牆</a>
         <a href="ads.html" data-i18n="nav.ads">香城廣告街</a>
         <a href="copyright.html" data-i18n="nav.copyright">版權與使用條款</a>
@@ -39,23 +43,26 @@
 
   <main id="top">
     <section class="guide-hero">
-      <h1 data-render="guide-title">遊戲指南</h1>
-      <p data-render="guide-intro"></p>
+      <p class="eyebrow" data-i18n="news.eyebrow">OFFICIAL NEWS</p>
+      <h1 data-i18n="news.title">香城官方新聞</h1>
+      <p data-i18n="news.intro">開發近況、城市大事同截圖，隨時更新。有意見想講，可以喺每篇新聞下面留言。</p>
     </section>
-
-    <section class="guide-layout">
-      <div class="guide-toc">
-        <p class="guide-toc-label" data-render="guide-toc-label">目錄</p>
-        <ul data-render="guide-toc"></ul>
+    <div class="news-layout">
+      <p role="status" data-news-status data-i18n="news.loading">正在讀取新聞…</p>
+      <div data-news-list></div>
+      <div class="feedback-pagination">
+        <button type="button" class="feedback-secondary" data-news-previous disabled data-i18n="feedback.previous">上一頁</button>
+        <span data-news-page></span>
+        <button type="button" class="feedback-secondary" data-news-next disabled data-i18n="feedback.next">下一頁</button>
       </div>
-      <div class="guide-body" data-render="guide-body"></div>
-    </section>
+      <noscript><p data-i18n="news.noscript">請啟用 JavaScript 以讀取新聞及留言。</p></noscript>
+    </div>
   </main>
 
   <footer>
     <span data-i18n="footer.tagline">香城模擬器 · 免費遊玩，歡迎分享官方連結</span>
     <div class="footer-links">
-      <a href="news.html" data-i18n="nav.news">官方新聞</a>
+      <a href="news.html" aria-current="page" data-i18n="nav.news">官方新聞</a>
       <a href="feedback.html" data-i18n="nav.feedback">香城連儂牆</a>
       <a href="ads.html" data-i18n="nav.ads">香城廣告街</a>
         <a href="copyright.html" data-i18n="nav.copyright">版權與使用條款</a>

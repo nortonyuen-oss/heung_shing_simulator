@@ -1,0 +1,20 @@
+body[data-page="moderate"] main { padding-top: 96px; }
+.moderate-layout { max-width: 760px; margin: 0 auto; padding: 24px clamp(18px, 5vw, 48px) 80px; display: grid; gap: 20px; }
+.moderate-login, .moderate-panel { background: var(--panel); border: 1px solid rgba(247, 241, 223, 0.14); border-radius: 10px; padding: clamp(18px, 3vw, 26px); }
+.moderate-login form, .moderate-panel form { margin-top: 16px; display: grid; gap: 12px; }
+.moderate-login label, .moderate-panel label { display: grid; gap: 4px; font-size: 12px; color: var(--muted); }
+.moderate-login input, .moderate-panel input, .moderate-panel textarea {
+  background: rgba(247, 241, 223, 0.06);
+  border: 1px solid rgba(247, 241, 223, 0.24);
+  border-radius: 6px;
+  color: var(--ink);
+  padding: 9px 11px;
+  font: inherit;
+}
+.moderate-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
+.moderate-toolbar p { margin: 0; font-size: 13px; color: var(--muted); }
+.moderate-queue-status { color: var(--muted); font-size: 13px; margin: 0; }
+.moderate-queue-item { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 12px 0; border-top: 1px solid rgba(247, 241, 223, 0.1); }
+.moderate-queue-item:first-child { border-top: none; }
+.moderate-queue-text { margin: 0; font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+.moderate-queue-actions { display: flex; gap: 8px; flex: none; }

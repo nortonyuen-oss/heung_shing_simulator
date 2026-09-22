@@ -1,0 +1,22 @@
+body[data-page="ads"] main { padding-top: 96px; }
+.ads-layout { max-width: 1000px; margin: 0 auto; padding: 24px clamp(18px, 5vw, 48px) 80px; display: grid; grid-template-columns: minmax(0, 380px) minmax(0, 1fr); gap: 32px; align-items: start; }
+.ads-compose, .ads-board { background: var(--panel); border: 1px solid rgba(247, 241, 223, 0.14); border-radius: 10px; padding: clamp(18px, 3vw, 26px); }
+.ads-compose form { margin-top: 18px; display: grid; gap: 12px; }
+.ads-compose label { display: grid; gap: 4px; font-size: 12px; color: var(--muted); }
+.ads-compose input, .ads-compose textarea {
+  background: rgba(247, 241, 223, 0.06);
+  border: 1px solid rgba(247, 241, 223, 0.24);
+  border-radius: 6px;
+  color: var(--ink);
+  padding: 9px 11px;
+  font: inherit;
+}
+[data-ads-list] { display: grid; gap: 12px; margin-top: 14px; }
+.ad-card { background: rgba(247, 241, 223, 0.05); border: 1px solid rgba(247, 241, 223, 0.12); border-radius: 8px; padding: 14px 16px; overflow-wrap: anywhere; }
+.ad-text { margin: 0 0 6px; font-weight: 700; }
+.ad-meta { margin: 0; font-size: 11px; color: var(--muted); }
+[data-ads-status] { color: var(--muted); font-size: 13px; }
+.feedback-pagination { display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 14px; font: 12px ui-monospace, monospace; }
+@media (max-width: 820px) {
+  .ads-layout { grid-template-columns: minmax(0, 1fr); }
+}

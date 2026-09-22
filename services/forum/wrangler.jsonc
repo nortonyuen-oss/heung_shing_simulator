@@ -21,9 +21,22 @@
       "migrations_dir": "migrations"
     }
   ],
+  "r2_buckets": [
+    {
+      "binding": "IMAGES",
+      // Placeholder: run `npx wrangler r2 bucket create heung-shing-news-images` before the first
+      // `npm run deploy` — R2 buckets aren't referenced by id in config, only by name, so nothing
+      // here needs updating once created.
+      "bucket_name": "heung-shing-news-images"
+    }
+  ],
   // Edge flood shield in front of the database; approximate (counted per Cloudflare node), so the
   // real policy lives in WRITES_PER_MINUTE / WRITES_PER_HOUR. namespace_id is unique within this Worker.
   "ratelimits": [
     { "name": "POST_LIMIT", "namespace_id": "1001", "simple": { "limit": 10, "period": 60 } }
   ]
+  // Secrets (not here — `wrangler secret put <name>`, or services/forum/.dev.vars for local dev):
+  //   IP_SALT             already required by the existing rate limiter
+  //   MODERATOR_PASSWORD  the single shared password docs/moderate.html logs in with
+  //   SESSION_SECRET      signs the bearer token a successful login returns
 }

@@ -467,6 +467,39 @@ async function syncPlayerForumPosts() {
   return added;
 }
 
+// Same idea as syncPlayerForumPosts(), for the other approved-content channel: a reader's comment
+// on a 官網新聞 article becomes its own "城中熱話" post once the moderator approves it, since the
+// news article itself lives only on the website — there's no matching in-game post to thread a
+// reply under, so the comment surfaces as a standalone post quoting which article it responded to.
+async function syncPlayerNewsComments() {
+  if (typeof fetch !== 'function') return false;
+  const response = await fetch('/api/forum/news-comments');
+  if (!response.ok) return false;
+  const payload = await response.json();
+  if (!Array.isArray(payload?.items)) return false;
+  let added = false;
+  for (const row of payload.items) {
+    if (!Number.isSafeInteger(row?.id) || !row.body || !row.news_headline) continue;
+    const created = new Date(row.created_at);
+    const year = Number.isNaN(created.getTime()) ? city.year : created.getFullYear();
+    const month = Number.isNaN(created.getTime()) ? city.month : created.getMonth() + 1;
+    const post = addForumPost(
+      { headline: `回應：${row.news_headline}`, body: [row.body], source: 'local' },
+      {
+        id: `news-comment-${row.id}`,
+        category: '城中熱話',
+        author: row.nickname || '匿名市民',
+        date: `${tMonth(month)} ${year}`,
+        year,
+        month,
+        origin: 'player',
+      },
+    );
+    if (post && post.id === `news-comment-${row.id}`) added = true;
+  }
+  return added;
+}
+
 function getForumNamedOfficials() {
   const renamed = Object.keys(city.council?.customNames || {});
   const ids = [...renamed, ...(typeof COUNCIL_OFFICIAL_IDS !== 'undefined' ? COUNCIL_OFFICIAL_IDS : [])];
@@ -876,6 +909,18 @@ function openForumHistory() {
     }
   } catch (error) {
     console.warn('[Forum player post sync]', error);
+  }
+
+  try {
+    const newsCommentSync = syncPlayerNewsComments();
+    if (newsCommentSync?.then) {
+      newsCommentSync.then((changed) => {
+        if (!changed) return;
+        try { renderForumHistory(activeFilter); } catch (error) { console.warn('[Forum history render]', error); }
+      }).catch((error) => console.warn('[Forum news comment sync]', error));
+    }
+  } catch (error) {
+    console.warn('[Forum news comment sync]', error);
   }
 
   try {

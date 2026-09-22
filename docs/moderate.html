@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>版主專區 | 香城模擬器</title>
+  <meta name="description" content="版主登入：批准／隱藏討論區內容，發佈官方新聞。" />
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="theme-color" content="#17212d" />
+  <link rel="icon" href="assets/icon.png" />
+  <link rel="stylesheet" href="styles.css?v=20260920-release4" />
+  <link rel="stylesheet" href="moderate.css?v=20260920-release4" />
+  <script src="i18n.js?v=20260920-release4" defer></script>
+  <script src="forum-config.js?v=20260920-release4" defer></script>
+  <script src="forum-common.js?v=20260920-release4" defer></script>
+  <script src="moderate.js?v=20260920-release4" defer></script>
+</head>
+<body data-page="moderate">
+  <header class="site-header" aria-label="網站導覽">
+    <a class="brand" href="index.html" aria-label="The City of Heung Shing">
+      <img src="assets/icon.png" alt="" />
+      <span>香城模擬器</span>
+    </a>
+    <nav>
+      <div class="nav-links">
+        <a href="index.html#trailer" data-i18n="nav.trailer">預告片</a>
+        <a href="index.html#gallery" data-i18n="nav.gallery">截圖</a>
+        <a href="index.html#downloads" data-i18n="nav.downloads">下載</a>
+        <a href="index.html#requirements" data-i18n="nav.requirements">配置要求</a>
+        <a href="guide.html" data-i18n="nav.guide">遊戲指南</a>
+        <a href="news.html" data-i18n="nav.news">官方新聞</a>
+        <a href="feedback.html" data-i18n="nav.feedback">香城連儂牆</a>
+        <a href="ads.html" data-i18n="nav.ads">香城廣告街</a>
+        <a href="copyright.html" data-i18n="nav.copyright">版權與使用條款</a>
+        <a href="index.html#changelog" data-i18n="nav.changelog">版本</a>
+        <a href="https://github.com/nortonyuen-oss/heung_shing_simulator" rel="noopener" data-i18n="nav.github">GitHub</a>
+      </div>
+      <div class="lang-switcher" data-language-switcher></div>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section class="guide-hero">
+      <p class="eyebrow" data-i18n="moderate.eyebrow">MODERATOR</p>
+      <h1 data-i18n="moderate.title">版主專區</h1>
+      <p data-i18n="moderate.intro">批准／隱藏討論區內容，發佈官方新聞。呢頁唔會喺導覽列出現，密碼由 Cloudflare Worker secret 管理。</p>
+    </section>
+
+    <div class="moderate-layout">
+      <section class="moderate-login" data-moderate-login aria-labelledby="moderate-login-title">
+        <h2 id="moderate-login-title" data-i18n="moderate.loginTitle">版主登入</h2>
+        <form data-moderate-login-form>
+          <label><span data-i18n="moderate.password">密碼</span><input name="password" type="password" required autocomplete="current-password" /></label>
+          <button class="button primary" type="submit" data-i18n="moderate.login">登入</button>
+          <p role="status" data-moderate-login-status></p>
+        </form>
+      </section>
+
+      <div data-moderate-dashboard hidden>
+        <div class="moderate-toolbar">
+          <p data-moderate-status></p>
+          <button type="button" class="feedback-secondary" data-moderate-logout data-i18n="moderate.logout">登出</button>
+        </div>
+
+        <section class="moderate-panel" aria-labelledby="moderate-publish-title">
+          <h2 id="moderate-publish-title" data-i18n="moderate.publishTitle">發佈新聞</h2>
+          <form data-moderate-news-form>
+            <label><span data-i18n="moderate.newsImage">新聞相（選填，jpg／png／webp，5MB 內）</span><input name="image" type="file" accept="image/jpeg,image/png,image/webp" /></label>
+            <label><span data-i18n="news.headline">標題</span><input name="headline" required maxlength="220" /></label>
+            <label><span data-i18n="news.body">內文</span><textarea name="body" rows="6" required maxlength="3000"></textarea></label>
+            <button class="button primary" type="submit" data-i18n="moderate.publish">發佈</button>
+            <p role="status" data-moderate-news-status></p>
+          </form>
+        </section>
+
+        <section class="moderate-panel" aria-labelledby="moderate-queue-posts-title">
+          <h2 id="moderate-queue-posts-title" data-i18n="moderate.queuePosts">待批准：討論區 post</h2>
+          <div data-moderate-queue="posts"></div>
+        </section>
+        <section class="moderate-panel" aria-labelledby="moderate-queue-comments-title">
+          <h2 id="moderate-queue-comments-title" data-i18n="moderate.queueComments">待批准：討論區回覆</h2>
+          <div data-moderate-queue="comments"></div>
+        </section>
+        <section class="moderate-panel" aria-labelledby="moderate-queue-news-comments-title">
+          <h2 id="moderate-queue-news-comments-title" data-i18n="moderate.queueNewsComments">待批准：新聞回應</h2>
+          <div data-moderate-queue="news-comments"></div>
+        </section>
+        <section class="moderate-panel" aria-labelledby="moderate-queue-ads-title">
+          <h2 id="moderate-queue-ads-title" data-i18n="moderate.queueAds">待批准：廣告街</h2>
+          <div data-moderate-queue="ads"></div>
+        </section>
+      </div>
+      <noscript><p data-i18n="moderate.noscript">請啟用 JavaScript 以使用版主專區。</p></noscript>
+    </div>
+  </main>
+
+  <footer>
+    <span data-i18n="footer.tagline">香城模擬器 · 免費遊玩，歡迎分享官方連結</span>
+    <div class="footer-links">
+      <a href="news.html" data-i18n="nav.news">官方新聞</a>
+      <a href="feedback.html" data-i18n="nav.feedback">香城連儂牆</a>
+      <a href="ads.html" data-i18n="nav.ads">香城廣告街</a>
+        <a href="copyright.html" data-i18n="nav.copyright">版權與使用條款</a>
+      <a href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest" rel="noopener" data-i18n="footer.releaseInfo">版本資訊</a>
+      <a href="https://heungshingsimulator.blogspot.com/" rel="noopener" data-i18n="footer.blog">開發blog</a>
+    </div>
+  </footer>
+</body>
+</html>

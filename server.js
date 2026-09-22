@@ -344,9 +344,14 @@ function createGameApp(options = {}) {
     try {
       const url = new URL(FORUM_API_URL + forumPath);
       for (const [key, value] of Object.entries(req.query)) url.searchParams.set(key, String(value));
+      const headers = {};
+      if (req.method === 'POST') headers['Content-Type'] = 'application/json';
+      // Forwarded as-is for /admin/* calls (docs/moderate.html's bearer token); harmless elsewhere,
+      // since the Worker only checks it on routes that require it.
+      if (req.headers.authorization) headers.Authorization = req.headers.authorization;
       const response = await fetch(url, {
         method: req.method,
-        headers: req.method === 'POST' ? { 'Content-Type': 'application/json' } : {},
+        headers,
         body: req.method === 'POST' ? JSON.stringify(req.body || {}) : undefined,
       });
       const data = await response.json().catch(() => ({}));
@@ -365,6 +370,60 @@ function createGameApp(options = {}) {
   app.post('/api/forum/posts/:id/comments', (req, res) => {
     if (!/^\d+$/.test(req.params.id)) return res.status(404).json({ error: 'notFound' });
     proxyForumRequest(req, res, `/posts/${req.params.id}/comments`);
+  });
+  app.get('/api/forum/news', (req, res) => proxyForumRequest(req, res, '/news'));
+  app.get('/api/forum/news/:id/comments', (req, res) => {
+    if (!/^\d+$/.test(req.params.id)) return res.status(404).json({ error: 'notFound' });
+    proxyForumRequest(req, res, `/news/${req.params.id}/comments`);
+  });
+  app.post('/api/forum/news/:id/comments', (req, res) => {
+    if (!/^\d+$/.test(req.params.id)) return res.status(404).json({ error: 'notFound' });
+    proxyForumRequest(req, res, `/news/${req.params.id}/comments`);
+  });
+  app.get('/api/forum/news-comments', (req, res) => proxyForumRequest(req, res, '/news-comments'));
+  app.get('/api/forum/ads', (req, res) => proxyForumRequest(req, res, '/ads'));
+  app.post('/api/forum/ads', (req, res) => proxyForumRequest(req, res, '/ads'));
+
+  app.post('/api/forum/admin/login', (req, res) => proxyForumRequest(req, res, '/admin/login'));
+  app.get('/api/forum/admin/queue/:resource', (req, res) => proxyForumRequest(req, res, `/admin/queue/${req.params.resource}`));
+  app.post('/api/forum/admin/news', (req, res) => proxyForumRequest(req, res, '/admin/news'));
+  app.post('/api/forum/admin/news/:id/hide', (req, res) => {
+    if (!/^\d+$/.test(req.params.id)) return res.status(404).json({ error: 'notFound' });
+    proxyForumRequest(req, res, `/admin/news/${req.params.id}/hide`);
+  });
+  app.post('/api/forum/admin/:resource/:id/:action', (req, res) => {
+    if (!/^\d+$/.test(req.params.id) || !['approve', 'hide'].includes(req.params.action)) return res.status(404).json({ error: 'notFound' });
+    proxyForumRequest(req, res, `/admin/${req.params.resource}/${req.params.id}/${req.params.action}`);
+  });
+
+  // Binary upload: the global express.json() above only engages for application/json, so this
+  // route gets its own raw-bytes parser and forwards the buffer straight through untouched.
+  app.post('/api/forum/admin/upload', express.raw({ type: ['image/jpeg', 'image/png', 'image/webp'], limit: '6mb' }), async (req, res) => {
+    try {
+      const headers = { 'Content-Type': req.headers['content-type'] || '' };
+      if (req.headers.authorization) headers.Authorization = req.headers.authorization;
+      const response = await fetch(new URL(FORUM_API_URL + '/admin/upload'), { method: 'POST', headers, body: Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0) });
+      const data = await response.json().catch(() => ({}));
+      res.status(response.status).json(data);
+    } catch (error) {
+      console.error('[forum proxy /admin/upload]', error.message);
+      res.status(503).json({ error: 'forumUnavailable' });
+    }
+  });
+
+  // Binary image serving: streams the Worker's response bytes through with its Content-Type/cache
+  // headers, rather than the JSON-shaped path proxyForumRequest() builds.
+  app.get('/api/forum/images/:key', async (req, res) => {
+    try {
+      const response = await fetch(new URL(`${FORUM_API_URL}/images/${req.params.key}`));
+      if (!response.ok) return res.status(response.status).end();
+      res.set('Content-Type', response.headers.get('Content-Type') || 'application/octet-stream');
+      res.set('Cache-Control', response.headers.get('Cache-Control') || 'public, max-age=31536000, immutable');
+      res.send(Buffer.from(await response.arrayBuffer()));
+    } catch (error) {
+      console.error('[forum proxy /images]', error.message);
+      res.status(503).end();
+    }
   });
 
 // GET /api/saves - list all saves (metadata only, no full JSON blob)

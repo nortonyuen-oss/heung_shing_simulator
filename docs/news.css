@@ -1,0 +1,29 @@
+body[data-page="news"] main { padding-top: 96px; }
+.news-layout { max-width: 820px; margin: 0 auto; padding: 24px clamp(18px, 5vw, 48px) 80px; display: grid; gap: 24px; }
+.news-card {
+  background: var(--panel);
+  border: 1px solid rgba(247, 241, 223, 0.14);
+  border-radius: 10px;
+  padding: clamp(18px, 3vw, 28px);
+  overflow-wrap: anywhere;
+}
+.news-card img { display: block; width: 100%; max-height: 420px; object-fit: cover; border-radius: 8px; margin-bottom: 18px; }
+.news-card h2 { margin: 0 0 12px; font-size: 22px; }
+.news-paragraph { margin: 0 0 10px; line-height: 1.8; color: var(--muted); }
+.news-card details { margin-top: 18px; border-top: 1px solid rgba(247, 241, 223, 0.14); padding-top: 14px; }
+.news-card summary { cursor: pointer; font-size: 13px; font-weight: 700; color: var(--muted); }
+.news-comment { margin: 14px 0; padding: 10px 0 0; border-top: 1px solid rgba(247, 241, 223, 0.08); }
+.news-comment-meta { font-size: 11px; color: var(--muted); margin: 0 0 4px; }
+.news-comment-body { font-size: 14px; line-height: 1.7; }
+.news-comment-form { margin-top: 16px; display: grid; gap: 10px; }
+.news-comment-form label { display: grid; gap: 4px; font-size: 12px; color: var(--muted); }
+.news-comment-form input, .news-comment-form textarea {
+  background: rgba(247, 241, 223, 0.06);
+  border: 1px solid rgba(247, 241, 223, 0.24);
+  border-radius: 6px;
+  color: var(--ink);
+  padding: 9px 11px;
+  font: inherit;
+}
+[data-news-status] { text-align: center; color: var(--muted); font-size: 13px; }
+.feedback-pagination { display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 8px; font: 12px ui-monospace, monospace; }

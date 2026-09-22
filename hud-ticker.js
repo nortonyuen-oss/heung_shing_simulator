@@ -30,6 +30,10 @@ let tickerShowNextTip = null;
 let lastTickerTopicId = '';
 let lastTickerAdId = '';
 let tickerCycleCount = 0;
+// Approved 香城廣告街 submissions, synced once per startTicker() call (see syncPlayerTickerAds()
+// below) and merged into TICKER_AD_MESSAGES at selection time. Unlike that fixed pool these have no
+// i18n key — {id, text} — so the code picking an ad below reads .text directly when .key is absent.
+let playerTickerAds = [];
 let tickerAdvanceTimer = null;
 let tickerTransitionEndHandler = null;
 let pendingLandmarkTickerNotices = [];
@@ -455,13 +459,14 @@ function buildTickerNewsCandidates() {
 function pickTickerNewsHeadline() {
   // Rotate as: 2 regular items, then 1 random ad.
   const shouldShowAd = tickerCycleCount % 3 === 0;
-  if (shouldShowAd && TICKER_AD_MESSAGES.length) {
-    let ad = TICKER_AD_MESSAGES[Math.floor(Math.random() * TICKER_AD_MESSAGES.length)];
-    if (ad.id === lastTickerAdId && TICKER_AD_MESSAGES.length > 1) {
-      ad = TICKER_AD_MESSAGES.find((item) => item.id !== lastTickerAdId) || ad;
+  const adPool = playerTickerAds.length ? TICKER_AD_MESSAGES.concat(playerTickerAds) : TICKER_AD_MESSAGES;
+  if (shouldShowAd && adPool.length) {
+    let ad = adPool[Math.floor(Math.random() * adPool.length)];
+    if (ad.id === lastTickerAdId && adPool.length > 1) {
+      ad = adPool.find((item) => item.id !== lastTickerAdId) || ad;
     }
     lastTickerAdId = ad.id;
-    return { id: ad.id, text: t(ad.key) };
+    return { id: ad.id, text: ad.key ? t(ad.key) : ad.text };
   }
 
   const urgent = getUrgentCityNews();
@@ -494,7 +499,28 @@ function pickTickerNewsHeadline() {
   return selected;
 }
 
+// Pulls moderator-approved 香城廣告街 submissions into the ad pool (via the local server's proxy,
+// same "renderer stays same-origin" posture as syncPlayerForumPosts() in newspaper.js). Replacing
+// the whole array on every call also picks up an ad the moderator later hid — nothing here is
+// additive/permanent the way a forum post's addForumPost() dedupe is. Offline or unreachable just
+// means the ticker falls back to the 10 built-in ads, same silent-degrade posture as AI News.
+async function syncPlayerTickerAds() {
+  if (typeof fetch !== 'function') return;
+  try {
+    const response = await fetch('/api/forum/ads?approved=1');
+    if (!response.ok) return;
+    const payload = await response.json();
+    if (!Array.isArray(payload?.items)) return;
+    playerTickerAds = payload.items
+      .filter((row) => Number.isSafeInteger(row?.id) && row.ad_text)
+      .map((row) => ({ id: `player-ad-${row.id}`, text: row.ad_text }));
+  } catch (error) {
+    console.warn('[Ticker ad sync]', error);
+  }
+}
+
 function startTicker() {
+  if (typeof syncPlayerTickerAds === 'function') syncPlayerTickerAds();
   const track = document.getElementById('tip-ticker-track');
   const inner = document.getElementById('tip-ticker-inner');
   if (!track || !inner) return;

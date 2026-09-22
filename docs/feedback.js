@@ -9,6 +9,11 @@
   function memoColor(value, random = Math.random) {
     return Number.isInteger(value) && value >= 0 && value < 6 ? value : Math.floor(random() * 6);
   }
+  function randomNickname(random = Math.random) {
+    const surname = NICKNAME_SURNAMES[Math.floor(random() * NICKNAME_SURNAMES.length)];
+    const given = NICKNAME_GIVEN_NAMES[Math.floor(random() * NICKNAME_GIVEN_NAMES.length)];
+    return surname + given;
+  }
   function payload(values, requestKey) {
     return {
       type: TYPES.includes(values.type) ? values.type : 'comment',
@@ -17,7 +22,7 @@
       platform: String(values.platform || '').trim(), requestKey,
     };
   }
-  if (typeof module !== 'undefined' && module.exports) module.exports = { memoColor, payload };
+  if (typeof module !== 'undefined' && module.exports) module.exports = { memoColor, payload, randomNickname };
   if (typeof document === 'undefined') return;
   document.addEventListener('DOMContentLoaded', () => {
     const form = document.querySelector('[data-feedback-form]');
@@ -42,6 +47,11 @@
         }
       }
     }
+    document.querySelector('[data-random-nickname]')?.addEventListener('click', () => {
+      const input = form.querySelector('[name=nickname]');
+      input.value = randomNickname();
+      input.focus();
+    });
     const threads = new Map(), colors = new Map();
     let rows = [], page = 1, hasNext = false, sequence = 0, state = 'loading';
     let sending = false, submissionKey = '', submissionSignature = '', formMessage = '';
@@ -81,6 +91,19 @@
       input.name = name; input.value = value;
       input.maxLength = multiline ? 6000 : 40;
       if (multiline) { input.rows = 3; input.required = true; }
+      if (name === 'nickname') {
+        const randomButton = node('button', phrase('randomNickname'), 'feedback-secondary');
+        randomButton.type = 'button';
+        randomButton.addEventListener('click', () => {
+          input.value = randomNickname();
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+          input.focus();
+        });
+        const row = node('span', undefined, 'nickname-row');
+        row.append(input, randomButton);
+        label.append(node('span', phrase(labelKey)), row);
+        return { label, input };
+      }
       label.append(node('span', phrase(labelKey)), input);
       return { label, input };
     }

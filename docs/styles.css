@@ -955,6 +955,9 @@ nav a[aria-current="page"] {
   font: inherit;
   cursor: pointer;
 }
+.nickname-row { display: flex; gap: 8px; }
+.nickname-row input { flex: 1; min-width: 0; }
+.nickname-row .feedback-secondary { flex: none; min-height: 0; padding: 0 14px; white-space: nowrap; }
 .feedback-layout button:disabled { opacity: .45; cursor: default; }
 .feedback-layout .button { font: inherit; cursor: pointer; text-align: center; }
 .feedback-preview, .feedback-card {

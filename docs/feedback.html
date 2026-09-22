@@ -29,7 +29,9 @@
         <a href="index.html#downloads" data-i18n="nav.downloads">下載</a>
         <a href="index.html#requirements" data-i18n="nav.requirements">配置要求</a>
         <a href="guide.html" data-i18n="nav.guide">遊戲指南</a>
+        <a href="news.html" data-i18n="nav.news">官方新聞</a>
         <a href="feedback.html" aria-current="page" data-i18n="nav.feedback">香城連儂牆</a>
+        <a href="ads.html" data-i18n="nav.ads">香城廣告街</a>
         <a href="copyright.html" data-i18n="nav.copyright">版權與使用條款</a>
         <a href="index.html#changelog" data-i18n="nav.changelog">版本</a>
         <a href="https://github.com/nortonyuen-oss/heung_shing_simulator" rel="noopener" data-i18n="nav.github">GitHub</a>
@@ -80,7 +82,12 @@
         <h2 id="feedback-compose-title" data-i18n="feedback.newPost">寫低你嘅問題或意見</h2>
         <p class="feedback-help" data-i18n="feedback.publicNote">毋須登入，寫好就可以貼上牆。留言同回覆會公開顯示；暱稱由留言者自行填寫。</p>
         <form data-feedback-form>
-          <label><span data-i18n="feedback.nickname">暱稱（選填，毋須註冊）</span><input name="nickname" maxlength="40" autocomplete="off" list="nickname-suggestions" /></label>
+          <label><span data-i18n="feedback.nickname">暱稱（選填，毋須註冊）</span>
+            <span class="nickname-row">
+              <input name="nickname" maxlength="40" autocomplete="off" list="nickname-suggestions" />
+              <button type="button" class="feedback-secondary" data-random-nickname data-i18n="feedback.randomNickname">隨機</button>
+            </span>
+          </label>
           <p class="feedback-help" data-i18n="feedback.nicknameHint">可以喺清單度揀個名，或者自己打都得。</p>
           <datalist id="nickname-suggestions"></datalist>
           <div class="feedback-fields">
@@ -103,7 +110,9 @@
   <footer>
     <span data-i18n="footer.tagline">香城模擬器 · 免費遊玩，歡迎分享官方連結</span>
     <div class="footer-links">
+      <a href="news.html" data-i18n="nav.news">官方新聞</a>
       <a href="feedback.html" aria-current="page" data-i18n="nav.feedback">香城連儂牆</a>
+      <a href="ads.html" data-i18n="nav.ads">香城廣告街</a>
         <a href="copyright.html" data-i18n="nav.copyright">版權與使用條款</a>
       <a href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest" rel="noopener" data-i18n="footer.releaseInfo">版本資訊</a>
       <a href="https://heungshingsimulator.blogspot.com/" rel="noopener" data-i18n="footer.blog">開發blog</a>

@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { DatabaseSync } = require('node:sqlite');
-const { memoColor, payload } = require('../docs/feedback.js');
+const { memoColor, payload, randomNickname } = require('../docs/feedback.js');
 
 const SERVICE = path.resolve(__dirname, '..', 'services', 'feedback');
 const ORIGIN = 'https://nortonyuen-oss.github.io';
@@ -59,6 +59,11 @@ test('memo colours come from the record when valid, otherwise a random paper ind
   assert.equal(memoColor(6, () => 0.99), 5);
   assert.equal(memoColor('2', () => 0), 0);
   assert.equal(memoColor(undefined, () => 0.5), 3);
+});
+
+test('a random nickname pairs one of the pool surnames with one of the pool given names', () => {
+  assert.equal(randomNickname(() => 0), '陳英秀');
+  assert.equal(randomNickname(() => 0.999999), '許允行');
 });
 
 test('a visitor payload is trimmed, typed and carries its idempotency key', () => {

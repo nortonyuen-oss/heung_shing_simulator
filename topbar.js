@@ -311,6 +311,7 @@ function populateNewsMenu() {
   const dropdown = document.getElementById('menu-news-list');
   if (!dropdown) return;
   if (typeof syncResolutionHistoryToForum === 'function') syncResolutionHistoryToForum();
+  if (typeof syncPlayerForumPosts === 'function') syncPlayerForumPosts().catch((error) => console.warn('[Forum player post sync]', error));
 
   if (typeof generateMonthlyForumPost === 'function' && !(city.forumPosts || []).length) {
     generateMonthlyForumPost();

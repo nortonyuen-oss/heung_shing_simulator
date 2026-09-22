@@ -1,0 +1,29 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "heung-shing-forum",
+  "account_id": "a6d7368702ab8725c1e8188b30da7edd",
+  "main": "worker.mjs",
+  "compatibility_date": "2026-09-15",
+  "workers_dev": true,
+  "vars": {
+    // Kept for a future website "compose" page; the game itself calls this Worker from the Electron
+    // main process (via server.js), which sends no Origin header, so this allowlist never gates it.
+    "ALLOWED_ORIGINS": "https://nortonyuen-oss.github.io",
+    // Per-client write windows enforced from the D1 write_log (posts and comments both count).
+    "WRITES_PER_MINUTE": "1",
+    "WRITES_PER_HOUR": "5"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "heung-shing-forum",
+      "database_id": "d6adb643-ad45-43c6-987b-4e1c1256a837",
+      "migrations_dir": "migrations"
+    }
+  ],
+  // Edge flood shield in front of the database; approximate (counted per Cloudflare node), so the
+  // real policy lives in WRITES_PER_MINUTE / WRITES_PER_HOUR. namespace_id is unique within this Worker.
+  "ratelimits": [
+    { "name": "POST_LIMIT", "namespace_id": "1001", "simple": { "limit": 10, "period": 60 } }
+  ]
+}

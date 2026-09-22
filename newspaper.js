@@ -432,6 +432,41 @@ function syncResolutionHistoryToForum() {
   return added;
 }
 
+// Pulls approved real-player posts from services/forum (via the local server's proxy, never the
+// Worker directly — same "renderer stays same-origin" posture as requestForumAiComments) and folds
+// them into city.forumPosts through the normal addForumPost() path, so they render in the existing
+// forum surfaces exactly like NPC posts and get saved into this player's own save file. `origin:
+// 'player'` is additive: nothing today reads it, it's there for a future NPC/player UI badge.
+// Offline or unreachable is not an error — it just means no community posts land this session.
+async function syncPlayerForumPosts() {
+  if (typeof fetch !== 'function') return false;
+  const response = await fetch('/api/forum/posts?category=all');
+  if (!response.ok) return false;
+  const payload = await response.json();
+  if (!Array.isArray(payload?.items)) return false;
+  let added = false;
+  for (const row of payload.items) {
+    if (!Number.isSafeInteger(row?.id) || !row.headline) continue;
+    const created = new Date(row.created_at);
+    const year = Number.isNaN(created.getTime()) ? city.year : created.getFullYear();
+    const month = Number.isNaN(created.getTime()) ? city.month : created.getMonth() + 1;
+    const post = addForumPost(
+      { headline: row.headline, body: String(row.body || '').split('\n').filter(Boolean), source: 'local' },
+      {
+        id: `player-post-${row.id}`,
+        category: row.category,
+        author: row.nickname || '匿名市民',
+        date: `${tMonth(month)} ${year}`,
+        year,
+        month,
+        origin: 'player',
+      },
+    );
+    if (post && post.id === `player-post-${row.id}`) added = true;
+  }
+  return added;
+}
+
 function getForumNamedOfficials() {
   const renamed = Object.keys(city.council?.customNames || {});
   const ids = [...renamed, ...(typeof COUNCIL_OFFICIAL_IDS !== 'undefined' ? COUNCIL_OFFICIAL_IDS : [])];
@@ -829,6 +864,18 @@ function openForumHistory() {
     renderForumHistory(activeFilter);
   } catch (error) {
     console.warn('[Forum history render]', error);
+  }
+
+  try {
+    const playerSync = syncPlayerForumPosts();
+    if (playerSync?.then) {
+      playerSync.then((changed) => {
+        if (!changed) return;
+        try { renderForumHistory(activeFilter); } catch (error) { console.warn('[Forum history render]', error); }
+      }).catch((error) => console.warn('[Forum player post sync]', error));
+    }
+  } catch (error) {
+    console.warn('[Forum player post sync]', error);
   }
 
   try {

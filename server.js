@@ -13,6 +13,10 @@ const {
 } = require('./ai-news-settings-store');
 
 const DEFAULT_PORT = process.env.PORT || 3000;
+// Same "renderer never talks to the external host directly" posture as the Ollama proxy below:
+// the citizen-forum Worker is reached only from here, so its URL never needs to ship to the
+// renderer and a local `wrangler dev` forum worker can be swapped in via the env var.
+const FORUM_API_URL = String(process.env.FORUM_API_URL || 'https://heung-shing-forum.nortonyuen.workers.dev').replace(/\/$/, '');
 const STATIC_ASSET_CACHE_MAX_AGE = '1h';
 const PACKAGE_INFO = require('./package.json');
 const APP_VERSION = PACKAGE_INFO.version;
@@ -330,6 +334,37 @@ function createGameApp(options = {}) {
       code: error.code || 'AI_NEWS_ERROR',
     });
   }
+  });
+
+  // Proxies the citizen-forum Worker (services/forum) so the game never fetches it directly — same
+  // reasoning as the /api/ai-news/generate proxy above. Failure here (offline, worker down,
+  // FORUM_API_URL not reachable) is never fatal: callers treat a non-2xx response the same as "no
+  // community posts this session" and keep showing NPC-only forum content.
+  async function proxyForumRequest(req, res, forumPath) {
+    try {
+      const url = new URL(FORUM_API_URL + forumPath);
+      for (const [key, value] of Object.entries(req.query)) url.searchParams.set(key, String(value));
+      const response = await fetch(url, {
+        method: req.method,
+        headers: req.method === 'POST' ? { 'Content-Type': 'application/json' } : {},
+        body: req.method === 'POST' ? JSON.stringify(req.body || {}) : undefined,
+      });
+      const data = await response.json().catch(() => ({}));
+      res.status(response.status).json(data);
+    } catch (error) {
+      console.error(`[forum proxy ${forumPath}]`, error.message);
+      res.status(503).json({ error: 'forumUnavailable' });
+    }
+  }
+  app.get('/api/forum/posts', (req, res) => proxyForumRequest(req, res, '/posts'));
+  app.post('/api/forum/posts', (req, res) => proxyForumRequest(req, res, '/posts'));
+  app.get('/api/forum/posts/:id/comments', (req, res) => {
+    if (!/^\d+$/.test(req.params.id)) return res.status(404).json({ error: 'notFound' });
+    proxyForumRequest(req, res, `/posts/${req.params.id}/comments`);
+  });
+  app.post('/api/forum/posts/:id/comments', (req, res) => {
+    if (!/^\d+$/.test(req.params.id)) return res.status(404).json({ error: 'notFound' });
+    proxyForumRequest(req, res, `/posts/${req.params.id}/comments`);
   });
 
 // GET /api/saves - list all saves (metadata only, no full JSON blob)

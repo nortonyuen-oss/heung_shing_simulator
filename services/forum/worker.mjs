@@ -157,13 +157,13 @@ export default {
         return json({ items: result.results.slice(0, PAGE_SIZE), hasNext: result.results.length > PAGE_SIZE });
       }
 
-      // ── 香城廣告街 ────────────────────────────────────────────────────────────────
+      // ── 宣傳2-零速傳播 ────────────────────────────────────────────────────────────
       if (path === '/ads') {
         if (!['GET', 'POST'].includes(method)) throw new ApiError(405, 'method');
         if (method === 'GET') {
           const page = pageNumber(url), offset = (page - 1) * PAGE_SIZE;
           // ?approved=1 is the game's feed (hud-ticker.js); the plain list is the website's live
-          // 廣告街 wall and includes anything not yet approved for the game, same split as posts.
+          // 宣傳2 wall and includes anything not yet approved for the game, same split as posts.
           const approvedOnly = url.searchParams.get('approved') === '1';
           const result = approvedOnly
             ? await env.DB.prepare("SELECT id, nickname, ad_text, created_at FROM ads WHERE state = 'visible' AND approved_for_game = 1 ORDER BY id DESC LIMIT ? OFFSET ?").bind(PAGE_SIZE + 1, offset).all()

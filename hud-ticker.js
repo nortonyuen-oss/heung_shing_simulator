@@ -30,7 +30,7 @@ let tickerShowNextTip = null;
 let lastTickerTopicId = '';
 let lastTickerAdId = '';
 let tickerCycleCount = 0;
-// Approved 香城廣告街 submissions, synced once per startTicker() call (see syncPlayerTickerAds()
+// Approved 宣傳2-零速傳播 submissions, synced once per startTicker() call (see syncPlayerTickerAds()
 // below) and merged into TICKER_AD_MESSAGES at selection time. Unlike that fixed pool these have no
 // i18n key — {id, text} — so the code picking an ad below reads .text directly when .key is absent.
 let playerTickerAds = [];
@@ -499,7 +499,7 @@ function pickTickerNewsHeadline() {
   return selected;
 }
 
-// Pulls moderator-approved 香城廣告街 submissions into the ad pool (via the local server's proxy,
+// Pulls moderator-approved 宣傳2-零速傳播 submissions into the ad pool (via the local server's proxy,
 // same "renderer stays same-origin" posture as syncPlayerForumPosts() in newspaper.js). Replacing
 // the whole array on every call also picks up an ad the moderator later hid — nothing here is
 // additive/permanent the way a forum post's addForumPost() dedupe is. Offline or unreachable just

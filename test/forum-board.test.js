@@ -272,7 +272,7 @@ test('one address may write once a minute and five times an hour; retries of a s
   assert.equal(api.db.prepare("SELECT COUNT(*) AS n FROM write_log WHERE client LIKE '198.%' OR client LIKE '%.%'").get().n, 0, 'no raw address is stored');
 });
 
-// ── 香城廣告街 (ads) ───────────────────────────────────────────────────────────────────
+// ── 宣傳2-零速傳播 (ads) ───────────────────────────────────────────────────────────────
 
 test('ads show on the website wall immediately but need approval to reach the ticker', async () => {
   const api = await worker();

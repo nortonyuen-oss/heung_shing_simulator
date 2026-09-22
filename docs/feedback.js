@@ -1,6 +1,11 @@
 (function () {
   'use strict';
   const TYPES = ['bug', 'question', 'suggestion', 'comment'];
+  // Same public-exam-Chinese-writing-paper name pool the in-game NPC forum uses
+  // (newspaper.js's getExamForumCitizenName) — duplicated here because the website
+  // has no shared build step with the game code, just a nickname suggestion list.
+  const NICKNAME_GIVEN_NAMES = ['英秀', '一心', '幼羚', '家寶', '念慈', '思賢', '有容', '向華', '修端', '允行'];
+  const NICKNAME_SURNAMES = ['陳', '李', '黃', '張', '梁', '林', '劉', '何', '鄭', '周', '羅', '許'];
   function memoColor(value, random = Math.random) {
     return Number.isInteger(value) && value >= 0 && value < 6 ? value : Math.floor(random() * 6);
   }
@@ -27,6 +32,16 @@
     const next = document.querySelector('[data-feedback-next]');
     const refresh = document.querySelector('[data-feedback-refresh]');
     const submit = form.querySelector('[type=submit]');
+    const nicknameSuggestions = document.getElementById('nickname-suggestions');
+    if (nicknameSuggestions) {
+      for (const surname of NICKNAME_SURNAMES) {
+        for (const given of NICKNAME_GIVEN_NAMES) {
+          const option = document.createElement('option');
+          option.value = surname + given;
+          nicknameSuggestions.append(option);
+        }
+      }
+    }
     const threads = new Map(), colors = new Map();
     let rows = [], page = 1, hasNext = false, sequence = 0, state = 'loading';
     let sending = false, submissionKey = '', submissionSignature = '', formMessage = '';
@@ -120,6 +135,7 @@
         }
         const replyForm = node('form', undefined, 'memo-reply-form');
         const nickname = field('nickname', 'nickname', thread.nickname);
+        nickname.input.setAttribute('list', 'nickname-suggestions');
         const text = field('writeReply', 'details', thread.details, true);
         const button = node('button', phrase(thread.sending ? 'sending' : 'sendReply'), 'feedback-secondary');
         button.type = 'submit'; button.id = `reply-submit-${item.number}`;

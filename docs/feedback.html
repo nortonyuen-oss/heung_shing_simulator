@@ -80,7 +80,9 @@
         <h2 id="feedback-compose-title" data-i18n="feedback.newPost">寫低你嘅問題或意見</h2>
         <p class="feedback-help" data-i18n="feedback.publicNote">毋須登入，寫好就可以貼上牆。留言同回覆會公開顯示；暱稱由留言者自行填寫。</p>
         <form data-feedback-form>
-          <label><span data-i18n="feedback.nickname">暱稱（選填，毋須註冊）</span><input name="nickname" maxlength="40" autocomplete="off" /></label>
+          <label><span data-i18n="feedback.nickname">暱稱（選填，毋須註冊）</span><input name="nickname" maxlength="40" autocomplete="off" list="nickname-suggestions" /></label>
+          <p class="feedback-help" data-i18n="feedback.nicknameHint">可以喺清單度揀個名，或者自己打都得。</p>
+          <datalist id="nickname-suggestions"></datalist>
           <div class="feedback-fields">
             <label><span data-i18n="feedback.type">留言類別</span><select name="type"><option value="bug" data-i18n="feedback.bug">問題回報</option><option value="question" data-i18n="feedback.question">玩法疑問</option><option value="suggestion" data-i18n="feedback.suggestion">功能建議</option><option value="comment" data-i18n="feedback.comment">一般留言</option></select></label>
             <label><span data-i18n="feedback.platform">作業系統</span><select name="platform"><option>Windows</option><option>macOS (Apple Silicon)</option><option>macOS (Intel)</option><option value="Other" selected data-i18n="feedback.other">其他／不適用</option></select></label>

@@ -120,6 +120,7 @@
       event.preventDefault();
       const values = Object.fromEntries(new FormData(newsForm).entries());
       const headline = String(values.headline || '').trim(), body = String(values.body || '').trim();
+      const category = String(values.category || '城中熱話');
       if (!headline || !body) { newsStatus.textContent = phrase('required'); return; }
       const fileInput = newsForm.querySelector('input[type=file]');
       const file = fileInput?.files?.[0];
@@ -139,7 +140,7 @@
           if (!response.ok) throw new Error(response.status === 401 ? 'unauthorized' : 'invalid');
           imageKey = data.key || '';
         }
-        await adminRequest('/admin/news', { headline, body, imageKey }, 'POST');
+        await adminRequest('/admin/news', { headline, body, imageKey, category }, 'POST');
         newsForm.reset();
         newsStatus.textContent = phrase('published');
       } catch (error) {

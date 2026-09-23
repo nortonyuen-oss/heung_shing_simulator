@@ -446,8 +446,13 @@ function rememberNormalizedCityStateObject(value) {
   return value;
 }
 
+// Kept in sync with the identically-named function in newspaper.js (loaded after this file, so
+// its definition is what actually runs at the global scope both files share — this copy exists
+// so a reader here isn't misled about what image paths a saved forum post can carry).
 function normalizeForumImagePath(value) {
-  const migrated = String(value || '')
+  const raw = String(value || '');
+  if (/^\/api\/forum\/images\/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}\.(jpg|jpeg|png|webp)$/.test(raw)) return raw;
+  const migrated = raw
     .replace(/^UI\/News\//, 'UI/news/')
     .replace(/\.png$/i, '.webp');
   return /^UI\/news\/[a-zA-Z0-9_.-]+\.webp$/.test(migrated) ? migrated : '';
@@ -801,12 +806,19 @@ function normalizeCityFinanceState() {
       angry: String(post?.social?.angry || '0').slice(0, 20),
       commentCount: String(post?.social?.commentCount || '0').slice(0, 20),
       shares: String(post?.social?.shares || '0').slice(0, 20),
+      clowns: String(post?.social?.clowns || '0').slice(0, 20),
       comments: (Array.isArray(post?.social?.comments) ? post.social.comments : []).slice(0, 8).map((comment) => ({
         author: String(comment?.author || '香城街坊').slice(0, 40),
         text: String(comment?.text || '').slice(0, 240),
         ai: comment?.ai === true,
         official: comment?.official === true,
         officialId: String(comment?.officialId || '').slice(0, 60),
+        // Marks a comment as already synced from a given services/forum news_comments row, so
+        // syncPlayerNewsComments() (newspaper.js) can dedupe on repeat syncs. Dropping this field
+        // here would silently re-add every previously-synced comment the next time this game's
+        // periodic re-normalization rebuilds city.forumPosts (e.g. whenever any new post is
+        // pushed elsewhere and slices the array to a fresh reference).
+        ...(Number.isSafeInteger(comment?.newsCommentId) ? { newsCommentId: comment.newsCommentId } : {}),
       })).filter((comment) => comment.text),
       },
     })).filter((post) => post.headline));

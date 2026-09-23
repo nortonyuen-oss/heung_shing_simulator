@@ -76,22 +76,18 @@ function renderReleaseStats() {
   const stats = SITE_TEXT[siteCurrentLanguage].stats;
 
   if (cachedReleaseError || !cachedLatestRelease) {
-    setText("[data-latest-downloads]", stats.notAvailable);
-    setText("[data-all-downloads]", stats.notAvailable);
-    setText("[data-download-count]", stats.downloadCountNotAvailable);
+    setText("[data-total-downloads]", stats.notAvailable);
     return;
   }
 
   const latestRelease = cachedLatestRelease.latest;
   const publicReleases = cachedLatestRelease.publicReleases;
-  const latestDownloads = sumReleaseDownloads(latestRelease);
-  const allDownloads = publicReleases.reduce((total, release) => total + sumReleaseDownloads(release), 0);
+  const totalDownloads = publicReleases.reduce((total, release) => total + sumReleaseDownloads(release), 0);
   const tagName = latestRelease.tag_name || stats.latestVersion;
   const publishedAt = latestRelease.published_at ? new Date(latestRelease.published_at) : null;
 
   setText("[data-latest-version]", tagName);
-  setText("[data-latest-downloads]", `${formatCount(latestDownloads)} ${stats.downloadsUnit}`);
-  setText("[data-all-downloads]", `${formatCount(allDownloads)} ${stats.downloadsUnit}`);
+  setText("[data-total-downloads]", `${formatCount(totalDownloads)} ${stats.downloadsUnit}`);
 
   const publishedLabel = formatPublishedDate(publishedAt);
   if (publishedLabel) setText("[data-latest-published]", publishedLabel);
@@ -101,13 +97,6 @@ function renderReleaseStats() {
   }
 
   const assets = latestRelease.assets || [];
-  document.querySelectorAll("[data-download-count]").forEach((element) => {
-    const asset = findAsset(assets, element.dataset.downloadCount);
-    element.textContent = asset
-      ? `${formatCount(getAssetDownloadCount(asset))} ${stats.downloadsUnit}`
-      : stats.downloadCountNotAvailable;
-  });
-
   document.querySelectorAll("[data-download-link]").forEach((link) => {
     const asset = findAsset(assets, link.dataset.downloadLink);
     if (asset?.browser_download_url) {

@@ -6,12 +6,17 @@
   "compatibility_date": "2026-09-15",
   "workers_dev": true,
   "vars": {
-    // Kept for a future website "compose" page; the game itself calls this Worker from the Electron
-    // main process (via server.js), which sends no Origin header, so this allowlist never gates it.
+    // The game itself calls this Worker from the Electron main process (via server.js), which
+    // sends no Origin header, so this allowlist never gates it — only the website's own compose
+    // pages need to be listed here.
     "ALLOWED_ORIGINS": "https://nortonyuen-oss.github.io",
-    // Per-client write windows enforced from the D1 write_log (posts and comments both count).
+    // Per-client write windows enforced from the D1 write_log (posts, comments, ads, news comments).
     "WRITES_PER_MINUTE": "1",
-    "WRITES_PER_HOUR": "5"
+    "WRITES_PER_HOUR": "5",
+    // A much looser budget for emoji reactions (D1 reaction_log) — a single click is far lower-risk
+    // than posting text, so it shouldn't share write_log's strict window.
+    "REACTIONS_PER_MINUTE": "20",
+    "REACTIONS_PER_HOUR": "300"
   },
   "d1_databases": [
     {
@@ -31,9 +36,11 @@
     }
   ],
   // Edge flood shield in front of the database; approximate (counted per Cloudflare node), so the
-  // real policy lives in WRITES_PER_MINUTE / WRITES_PER_HOUR. namespace_id is unique within this Worker.
+  // real policy lives in WRITES_PER_MINUTE/HOUR and REACTIONS_PER_MINUTE/HOUR. Raised from 10 to 40
+  // per 60s so reactions' looser budget isn't capped by this coarser outer limit first. namespace_id
+  // is unique within this Worker.
   "ratelimits": [
-    { "name": "POST_LIMIT", "namespace_id": "1001", "simple": { "limit": 10, "period": 60 } }
+    { "name": "POST_LIMIT", "namespace_id": "1001", "simple": { "limit": 40, "period": 60 } }
   ]
   // Secrets (not here — `wrangler secret put <name>`, or services/forum/.dev.vars for local dev):
   //   IP_SALT             already required by the existing rate limiter

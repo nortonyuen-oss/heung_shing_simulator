@@ -1,4 +1,4 @@
-import { ApiError, restrict, jsonBody, readBoundedBytes, recordWrite, pageNumber, resolveCors } from './lib/http-kit.mjs';
+import { ApiError, restrict, jsonBody, readBoundedBytes, recordWrite, recordReaction, pageNumber, resolveCors } from './lib/http-kit.mjs';
 import { verifyPassword, signSessionToken, requireAdmin, checkLoginRate } from './lib/admin-auth.mjs';
 
 const PAGE_SIZE = 20;
@@ -8,10 +8,13 @@ const KEY_PATTERN = /^[a-zA-Z0-9-]{16,80}$/;
 const IMAGE_KEY_PATTERN = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}\.(jpg|jpeg|png|webp)$/;
 const IMAGE_CONTENT_TYPES = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const REACTIONS = ['like', 'laugh', 'angry', 'share', 'clown'];
+const REACTION_COLUMNS = { like: 'likes', laugh: 'laughs', angry: 'angry', share: 'shares', clown: 'clowns' };
+const REACTION_SELECT = 'id, likes, laughs, angry, shares, clowns';
 
-const POST_COLUMNS = 'p.id, p.category, p.headline, p.body, p.nickname, p.created_at';
+const POST_COLUMNS = 'p.id, p.category, p.headline, p.body, p.nickname, p.created_at, p.likes, p.laughs, p.angry, p.shares, p.clowns';
 const POST_QUERY = `SELECT ${POST_COLUMNS}, (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id AND c.state = 'visible') AS comments FROM posts p`;
-const NEWS_COLUMNS = 'n.id, n.headline, n.body, n.image_key, n.created_at';
+const NEWS_COLUMNS = 'n.id, n.headline, n.body, n.image_key, n.category, n.created_at, n.likes, n.laughs, n.angry, n.shares, n.clowns';
 const NEWS_QUERY = `SELECT ${NEWS_COLUMNS}, (SELECT COUNT(*) FROM news_comments nc WHERE nc.news_post_id = n.id AND nc.state = 'visible') AS comments FROM news_posts n`;
 
 // FIELDS.login is deliberately NOT run through restrict() in handleLogin: that helper
@@ -22,7 +25,8 @@ const FIELDS = {
   post: { category: { max: 20, required: true, list: CATEGORIES }, headline: { max: 220, required: true }, body: { max: 1500, required: true, multiline: true }, nickname: { max: 40 }, requestKey: { max: 80, required: true, pattern: KEY_PATTERN } },
   comment: { body: { max: 1500, required: true, multiline: true }, nickname: { max: 40 }, requestKey: { max: 80, required: true, pattern: KEY_PATTERN } },
   ad: { adText: { max: 120, required: true }, nickname: { max: 40 }, requestKey: { max: 80, required: true, pattern: KEY_PATTERN } },
-  news: { headline: { max: 220, required: true }, body: { max: 3000, required: true, multiline: true }, imageKey: { max: 100, pattern: IMAGE_KEY_PATTERN } },
+  news: { headline: { max: 220, required: true }, body: { max: 3000, required: true, multiline: true }, imageKey: { max: 100, pattern: IMAGE_KEY_PATTERN }, category: { max: 20, required: true, list: CATEGORIES } },
+  reaction: { reaction: { max: 10, required: true, list: REACTIONS } },
 };
 
 // Tables an /admin/<resource>/:id/approve|hide route may touch — a fixed, hardcoded whitelist, so
@@ -91,15 +95,20 @@ export default {
         if (commentRoute && !await env.DB.prepare("SELECT id FROM posts WHERE id = ? AND state = 'visible'").bind(postId).first()) throw new ApiError(404, 'notFound');
         if (method === 'GET') {
           const page = pageNumber(url), offset = (page - 1) * PAGE_SIZE;
+          // ?approved=1 is the game's feed; the plain list is the website's live discussion board
+          // and includes anything not yet approved for the game — same split as ads/news-comments.
+          const approvedOnly = url.searchParams.get('approved') === '1';
           let result;
           if (commentRoute) {
-            result = await env.DB.prepare("SELECT id, body, nickname, created_at FROM comments WHERE post_id = ? AND state = 'visible' AND approved_for_game = 1 ORDER BY id ASC LIMIT ? OFFSET ?").bind(postId, PAGE_SIZE + 1, offset).all();
+            const gameClause = approvedOnly ? 'AND approved_for_game = 1' : '';
+            result = await env.DB.prepare(`SELECT id, body, nickname, created_at FROM comments WHERE post_id = ? AND state = 'visible' ${gameClause} ORDER BY id ASC LIMIT ? OFFSET ?`).bind(postId, PAGE_SIZE + 1, offset).all();
           } else {
             const category = url.searchParams.get('category') || 'all';
             if (category !== 'all' && !CATEGORIES.includes(category)) throw new ApiError(400, 'invalid');
+            const gameClause = approvedOnly ? 'AND p.approved_for_game = 1' : '';
             result = category === 'all'
-              ? await env.DB.prepare(`${POST_QUERY} WHERE p.state = 'visible' AND p.approved_for_game = 1 ORDER BY p.id DESC LIMIT ? OFFSET ?`).bind(PAGE_SIZE + 1, offset).all()
-              : await env.DB.prepare(`${POST_QUERY} WHERE p.state = 'visible' AND p.approved_for_game = 1 AND p.category = ? ORDER BY p.id DESC LIMIT ? OFFSET ?`).bind(category, PAGE_SIZE + 1, offset).all();
+              ? await env.DB.prepare(`${POST_QUERY} WHERE p.state = 'visible' ${gameClause} ORDER BY p.id DESC LIMIT ? OFFSET ?`).bind(PAGE_SIZE + 1, offset).all()
+              : await env.DB.prepare(`${POST_QUERY} WHERE p.state = 'visible' ${gameClause} AND p.category = ? ORDER BY p.id DESC LIMIT ? OFFSET ?`).bind(category, PAGE_SIZE + 1, offset).all();
           }
           return json({ items: result.results.slice(0, PAGE_SIZE), hasNext: result.results.length > PAGE_SIZE });
         }
@@ -118,6 +127,21 @@ export default {
         return json({ item }, status);
       }
 
+      // ── Emoji reactions — a much looser budget than text content (recordReaction(), not
+      // recordWrite()); no requestKey/idempotency, these are plain increments, not stored content.
+      const postReactRoute = path.match(/^\/posts\/([1-9]\d*)\/react$/);
+      if (postReactRoute) {
+        if (method !== 'POST') throw new ApiError(405, 'method');
+        const postId = Number(postReactRoute[1]);
+        const { reaction } = restrict(await jsonBody(request), FIELDS.reaction);
+        await recordReaction(request, env);
+        const column = REACTION_COLUMNS[reaction];
+        const result = await env.DB.prepare(`UPDATE posts SET ${column} = ${column} + 1 WHERE id = ? AND state = 'visible'`).bind(postId).run();
+        if (!result.success || !(result.meta?.changes ?? result.changes ?? 1)) throw new ApiError(404, 'notFound');
+        const row = await env.DB.prepare(`SELECT ${REACTION_SELECT} FROM posts WHERE id = ?`).bind(postId).first();
+        return json({ item: row });
+      }
+
       // ── News posts (moderator-authored) + comments (public) ────────────────────────
       const newsCommentRoute = path.match(/^\/news\/([1-9]\d*)\/comments$/);
       if (path === '/news' || newsCommentRoute) {
@@ -127,7 +151,11 @@ export default {
         if (path === '/news') {
           if (method !== 'GET') throw new ApiError(405, 'method');
           const page = pageNumber(url), offset = (page - 1) * PAGE_SIZE;
-          const result = await env.DB.prepare(`${NEWS_QUERY} WHERE n.state = 'visible' ORDER BY n.id DESC LIMIT ? OFFSET ?`).bind(PAGE_SIZE + 1, offset).all();
+          const category = url.searchParams.get('category') || 'all';
+          if (category !== 'all' && !CATEGORIES.includes(category)) throw new ApiError(400, 'invalid');
+          const result = category === 'all'
+            ? await env.DB.prepare(`${NEWS_QUERY} WHERE n.state = 'visible' ORDER BY n.id DESC LIMIT ? OFFSET ?`).bind(PAGE_SIZE + 1, offset).all()
+            : await env.DB.prepare(`${NEWS_QUERY} WHERE n.state = 'visible' AND n.category = ? ORDER BY n.id DESC LIMIT ? OFFSET ?`).bind(category, PAGE_SIZE + 1, offset).all();
           return json({ items: result.results.slice(0, PAGE_SIZE), hasNext: result.results.length > PAGE_SIZE });
         }
         if (!['GET', 'POST'].includes(method)) throw new ApiError(405, 'method');
@@ -147,7 +175,21 @@ export default {
         return json({ item }, status);
       }
 
-      // ── Flat, cross-article feed of approved news reactions — this is what the game's
+      // ── Emoji reactions on a news article — same posture as /posts/:id/react above.
+      const newsReactRoute = path.match(/^\/news\/([1-9]\d*)\/react$/);
+      if (newsReactRoute) {
+        if (method !== 'POST') throw new ApiError(405, 'method');
+        const reactNewsId = Number(newsReactRoute[1]);
+        const { reaction } = restrict(await jsonBody(request), FIELDS.reaction);
+        await recordReaction(request, env);
+        const column = REACTION_COLUMNS[reaction];
+        const result = await env.DB.prepare(`UPDATE news_posts SET ${column} = ${column} + 1 WHERE id = ? AND state = 'visible'`).bind(reactNewsId).run();
+        if (!result.success || !(result.meta?.changes ?? result.changes ?? 1)) throw new ApiError(404, 'notFound');
+        const row = await env.DB.prepare(`SELECT ${REACTION_SELECT} FROM news_posts WHERE id = ?`).bind(reactNewsId).first();
+        return json({ item: row });
+      }
+
+      // ── Flat, cross-article feed of approved news comments — this is what the game's
       // syncPlayerNewsComments() reads (see newspaper.js), never a specific article's thread
       // (GET /news/:id/comments above is the per-article website view and ignores approval).
       if (path === '/news-comments') {
@@ -233,8 +275,8 @@ export default {
 
         if (path === '/admin/news' && method === 'POST') {
           const data = await jsonBody(request);
-          const { headline, body, imageKey } = restrict(data, FIELDS.news);
-          const result = await env.DB.prepare('INSERT INTO news_posts (headline, body, image_key, created_at) VALUES (?, ?, ?, ?)').bind(headline, body, imageKey, new Date().toISOString()).run();
+          const { headline, body, imageKey, category } = restrict(data, FIELDS.news);
+          const result = await env.DB.prepare('INSERT INTO news_posts (headline, body, image_key, category, created_at) VALUES (?, ?, ?, ?, ?)').bind(headline, body, imageKey, category, new Date().toISOString()).run();
           const id = result.meta?.last_row_id ?? result.lastInsertRowid;
           const row = await env.DB.prepare(`${NEWS_QUERY} WHERE n.id = ?`).bind(id).first();
           return json({ item: row }, 201);

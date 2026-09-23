@@ -364,7 +364,7 @@ test('repeated city normalization preserves live forum and market references', (
       departmentBudgets: {}, activePolicies: {}, council: {}, loans: [], nextLoanId: 1,
       stockMarket: { hsi: 100, prevHsi: 100, regime: 'range', regimeMonthsLeft: 0, stocks: [{ symbol: 'A', price: 10, prevPrice: 10, history: [10], listed: true }] },
       temporaryEffects: [], weather: {}, districtSigns: [], aiNews: { history: [] },
-      forumPosts: [{ id: 'post-1', headline: 'Test', image: 'UI/News/rainstorm.png', body: ['Body'], social: { comments: [] } }],
+      forumPosts: [{ id: 'post-1', headline: 'Test', image: 'UI/News/rainstorm.png', body: ['Body'], social: { clowns: '3', comments: [] } }],
       year: 1900, month: 1,
     },
     clampDepartmentBudget: (value) => Number.isFinite(Number(value)) ? Number(value) : 100,
@@ -382,6 +382,7 @@ test('repeated city normalization preserves live forum and market references', (
   assert.equal(vm.runInContext('city.forumPosts[0] === postRef', context), true);
   assert.equal(vm.runInContext('city.stockMarket === marketRef', context), true);
   assert.equal(context.city.forumPosts[0].image, 'UI/news/rainstorm.webp');
+  assert.equal(context.city.forumPosts[0].social.clowns, '3', 'a reaction count must survive normalization, not just the fields already whitelisted before it was added');
 });
 
 test('forum image references are case-correct optimized assets with thumbnails', () => {

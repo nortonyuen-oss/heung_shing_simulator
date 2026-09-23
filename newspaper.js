@@ -110,7 +110,7 @@ function refreshOpenForumViews(post) {
     const reactions = document.getElementById('forum-reactions');
     if (reactions) {
       const social = post.social || {};
-      reactions.textContent = `👍 ${social.likes || 0}　😂 ${social.laughs || 0}　😡 ${social.angry || 0}　💬 ${social.commentCount || 0}　↗ ${social.shares || 0}`;
+      reactions.textContent = `👍 ${social.likes || 0}　😂 ${social.laughs || 0}　😡 ${social.angry || 0}　💬 ${social.commentCount || 0}　↗ ${social.shares || 0}　🤡 ${social.clowns || 0}`;
     }
   }
 }
@@ -244,7 +244,7 @@ function showResolutionNewspaper(article, postId = '') {
   if (engagement) engagement.hidden = false;
   if (reactions) {
     const social = article.social || {};
-    reactions.textContent = `👍 ${social.likes || 0}　😂 ${social.laughs || 0}　😡 ${social.angry || 0}　💬 ${social.commentCount || 0}　↗ ${social.shares || 0}`;
+    reactions.textContent = `👍 ${social.likes || 0}　😂 ${social.laughs || 0}　😡 ${social.angry || 0}　💬 ${social.commentCount || 0}　↗ ${social.shares || 0}　🤡 ${social.clowns || 0}`;
   }
   renderForumComments(comments, article.social?.comments || []);
 
@@ -443,9 +443,20 @@ function syncResolutionHistoryToForum() {
 // forum surfaces exactly like NPC posts and get saved into this player's own save file. `origin:
 // 'player'` is additive: nothing today reads it, it's there for a future NPC/player UI badge.
 // Offline or unreachable is not an error — it just means no community posts land this session.
+// Emoji reaction counts (unlike social.comments) are a plain tally, not a list — every sync just
+// overwrites them with whatever the server currently reports, no dedupe/append needed. Shared by
+// both sync functions below since posts and news articles carry the same 5 columns.
+function applyReactionCounts(post, row) {
+  if (!post) return;
+  if (!post.social || typeof post.social !== 'object') post.social = {};
+  for (const key of ['likes', 'laughs', 'angry', 'shares', 'clowns']) {
+    post.social[key] = String(Number(row?.[key]) || 0);
+  }
+}
+
 async function syncPlayerForumPosts() {
   if (typeof fetch !== 'function') return false;
-  const response = await fetch('/api/forum/posts?category=all');
+  const response = await fetch('/api/forum/posts?category=all&approved=1');
   if (!response.ok) return false;
   const payload = await response.json();
   if (!Array.isArray(payload?.items)) return false;
@@ -468,6 +479,7 @@ async function syncPlayerForumPosts() {
         origin: 'player',
       },
     );
+    applyReactionCounts(post, row);
     if (post && post.id === `player-post-${row.id}`) added = true;
   }
   return added;
@@ -500,7 +512,7 @@ async function syncPlayerNewsComments() {
           },
           {
             id: `news-${row.id}`,
-            category: '城中熱話',
+            category: row.category || '城中熱話',
             author: '香城政府新聞處',
             date: `${tMonth(city.month)} ${city.year}`,
             year: city.year,
@@ -508,6 +520,7 @@ async function syncPlayerNewsComments() {
             origin: 'player',
           },
         );
+        applyReactionCounts(post, row);
         if (post && post.id === `news-${row.id}`) added = true;
       }
     }
@@ -900,7 +913,7 @@ function renderForumHistory(filter = 'all') {
       content.appendChild(image);
     }
     (post.body || []).forEach((text) => { const p = document.createElement('p'); p.textContent = text; content.appendChild(p); });
-    const reaction = document.createElement('div'); reaction.className = 'forum-reactions'; reaction.textContent = `👍 ${post.social?.likes || 0}　😂 ${post.social?.laughs || 0}　😡 ${post.social?.angry || 0}　↗ ${post.social?.shares || 0}`; content.appendChild(reaction);
+    const reaction = document.createElement('div'); reaction.className = 'forum-reactions'; reaction.textContent = `👍 ${post.social?.likes || 0}　😂 ${post.social?.laughs || 0}　😡 ${post.social?.angry || 0}　↗ ${post.social?.shares || 0}　🤡 ${post.social?.clowns || 0}`; content.appendChild(reaction);
     const commentsWrap = document.createElement('div'); commentsWrap.className = 'forum-comments';
     renderForumComments(commentsWrap, post.social?.comments || []);
     content.appendChild(commentsWrap);

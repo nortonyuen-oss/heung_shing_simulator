@@ -28,7 +28,7 @@
         <a href="index.html#downloads" data-i18n="nav.downloads">下載</a>
         <a href="index.html#requirements" data-i18n="nav.requirements">配置要求</a>
         <a href="guide.html" data-i18n="nav.guide">遊戲指南</a>
-        <a href="news.html" data-i18n="nav.news">官方新聞</a>
+        <a href="news.html" data-i18n="nav.news">香城討論區</a>
         <a href="feedback.html" data-i18n="nav.feedback">香城連儂牆</a>
         <a href="ads.html" data-i18n="nav.ads">宣傳2-零速傳播</a>
         <a href="copyright.html" data-i18n="nav.copyright">版權與使用條款</a>
@@ -66,6 +66,14 @@
           <h2 id="moderate-publish-title" data-i18n="moderate.publishTitle">發佈新聞</h2>
           <form data-moderate-news-form>
             <label><span data-i18n="moderate.newsImage">新聞相（選填，jpg／png／webp，5MB 內）</span><input name="image" type="file" accept="image/jpeg,image/png,image/webp" /></label>
+            <label><span data-i18n="news.category">分類</span>
+              <select name="category">
+                <option value="城市發展" data-i18n="news.categoryCity">城市發展</option>
+                <option value="城中熱話" data-i18n="news.categoryBuzz" selected>城中熱話</option>
+                <option value="交通台" data-i18n="news.categoryTransport">交通台</option>
+                <option value="吹水台" data-i18n="news.categoryChat">吹水台</option>
+              </select>
+            </label>
             <label><span data-i18n="news.headline">標題</span><input name="headline" required maxlength="220" /></label>
             <label><span data-i18n="news.body">內文</span><textarea name="body" rows="6" required maxlength="3000"></textarea></label>
             <button class="button primary" type="submit" data-i18n="moderate.publish">發佈</button>
@@ -97,7 +105,7 @@
   <footer>
     <span data-i18n="footer.tagline">香城模擬器 · 免費遊玩，歡迎分享官方連結</span>
     <div class="footer-links">
-      <a href="news.html" data-i18n="nav.news">官方新聞</a>
+      <a href="news.html" data-i18n="nav.news">香城討論區</a>
       <a href="feedback.html" data-i18n="nav.feedback">香城連儂牆</a>
       <a href="ads.html" data-i18n="nav.ads">宣傳2-零速傳播</a>
         <a href="copyright.html" data-i18n="nav.copyright">版權與使用條款</a>

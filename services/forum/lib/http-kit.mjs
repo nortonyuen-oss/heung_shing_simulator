@@ -66,16 +66,30 @@ export async function clientId(request, env) {
   return [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-export async function recordWrite(request, env) {
+// Shared by recordWrite() and recordReaction() below: a sliding minute/hour budget against a
+// per-client ledger table. `table` is always one of a fixed set of literals from this file, never
+// request content, so interpolating it into SQL is safe — same posture as ADMIN_TABLES in worker.mjs.
+async function recordToLedger(request, env, { table, minuteLimit, hourLimit }) {
   // Edge flood shield only; the per-minute and per-hour policy is enforced precisely below.
   if (env.POST_LIMIT && !(await env.POST_LIMIT.limit({ key: request.headers.get('CF-Connecting-IP') || 'unknown' })).success) throw new ApiError(429, 'limited');
   const now = Date.now();
   const hourAgo = new Date(now - 3600e3).toISOString(), minuteAgo = new Date(now - 60e3).toISOString();
   const client = await clientId(request, env);
-  await env.DB.prepare('DELETE FROM write_log WHERE created_at < ?').bind(hourAgo).run();
-  const usage = await env.DB.prepare('SELECT COUNT(*) AS hour, SUM(created_at > ?) AS minute FROM write_log WHERE client = ? AND created_at > ?').bind(minuteAgo, client, hourAgo).first();
-  if (Number(usage.minute) >= Number(env.WRITES_PER_MINUTE || 1) || Number(usage.hour) >= Number(env.WRITES_PER_HOUR || 5)) throw new ApiError(429, 'limited');
-  await env.DB.prepare('INSERT INTO write_log (client, created_at) VALUES (?, ?)').bind(client, new Date(now).toISOString()).run();
+  await env.DB.prepare(`DELETE FROM ${table} WHERE created_at < ?`).bind(hourAgo).run();
+  const usage = await env.DB.prepare(`SELECT COUNT(*) AS hour, SUM(created_at > ?) AS minute FROM ${table} WHERE client = ? AND created_at > ?`).bind(minuteAgo, client, hourAgo).first();
+  if (Number(usage.minute) >= minuteLimit || Number(usage.hour) >= hourLimit) throw new ApiError(429, 'limited');
+  await env.DB.prepare(`INSERT INTO ${table} (client, created_at) VALUES (?, ?)`).bind(client, new Date(now).toISOString()).run();
+}
+
+export async function recordWrite(request, env) {
+  return recordToLedger(request, env, { table: 'write_log', minuteLimit: Number(env.WRITES_PER_MINUTE || 1), hourLimit: Number(env.WRITES_PER_HOUR || 5) });
+}
+
+// A single emoji click is far lower-risk than posting text, so it gets its own, much looser budget
+// (env-tunable without a redeploy of the limit values themselves) instead of sharing write_log's
+// strict 1/minute-5/hour — reacting a lot shouldn't burn the same budget as spamming comments.
+export async function recordReaction(request, env) {
+  return recordToLedger(request, env, { table: 'reaction_log', minuteLimit: Number(env.REACTIONS_PER_MINUTE || 20), hourLimit: Number(env.REACTIONS_PER_HOUR || 300) });
 }
 
 export function pageNumber(url) {

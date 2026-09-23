@@ -1,7 +1,7 @@
 {
   "name": "city-builder",
-  "version": "4.13.1",
-  "releaseTheme": "【香城大小事 有你參與】",
+  "version": "4.14.0",
+  "releaseTheme": "【香城討論區】",
   "description": "SimCity 2000-style city builder with local SQLite save system",
   "author": "The City of Heung Shing",
   "repository": {

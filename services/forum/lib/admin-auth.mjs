@@ -5,35 +5,10 @@
 // success a signed, time-limited bearer token the dashboard page keeps in sessionStorage and
 // resends as `Authorization: Bearer <token>` on every admin call. Stateless — nothing about a
 // session is stored in D1, so there's nothing to clean up or for a login to race against.
-import { ApiError, clientId } from './http-kit.mjs';
+import { ApiError, clientId, toBase64Url, fromBase64Url, hmacSha256, timingSafeEqual } from './http-kit.mjs';
 
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000; // 12 hours
 const LOGIN_ATTEMPTS_PER_HOUR = 5;
-
-function toBase64Url(bytes) {
-  let binary = '';
-  for (const byte of bytes) binary += String.fromCharCode(byte);
-  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
-function fromBase64Url(value) {
-  const padded = value.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - value.length % 4) % 4);
-  const binary = atob(padded);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-  return bytes;
-}
-async function hmacSha256(secret, message) {
-  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
-  return new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(message)));
-}
-// Constant-time over equal-length inputs; callers pad both sides to the same length first so an
-// early exit here never leaks a length difference (and thus a password-length oracle).
-function timingSafeEqual(a, b) {
-  if (a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return diff === 0;
-}
 
 export async function verifyPassword(password, env) {
   const expected = String(env.MODERATOR_PASSWORD || '');

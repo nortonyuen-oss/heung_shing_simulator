@@ -7,6 +7,34 @@ export class ApiError extends Error {
   constructor(status, code) { super(code); this.status = status; }
 }
 
+// Shared by admin-auth.mjs's moderator token and member-auth.mjs's member token — both are
+// stateless HMAC-signed {payload}.{signature} bearer tokens, differing only in payload shape and
+// which secret signs them.
+export function toBase64Url(bytes) {
+  let binary = '';
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+export function fromBase64Url(value) {
+  const padded = value.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - value.length % 4) % 4);
+  const binary = atob(padded);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+export async function hmacSha256(secret, message) {
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  return new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(message)));
+}
+// Constant-time over equal-length inputs; callers pad both sides to the same length first so an
+// early exit here never leaks a length difference (and thus a password-length oracle).
+export function timingSafeEqual(a, b) {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
 // Field restrictions. Every value reaches SQL only through bound parameters, so these rules are
 // about keeping stored text well-formed: no control characters, single-line where the form is
 // single-line, closed lists where the form offers a choice, and the same length caps the form

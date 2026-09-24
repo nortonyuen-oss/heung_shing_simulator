@@ -2618,6 +2618,134 @@ for (const [language, content] of Object.entries(SITE_MODERATE)) {
   SITE_TEXT[language].moderate = content;
 }
 
+// ── member.html: 香城街坊福利會（additive — 唔登記一樣可以自由用討論區）───────────
+const SITE_MEMBER = {
+  "zh-HK": {
+    "title": "香城街坊福利會",
+    "metaTitle": "香城街坊福利會 | 香城模擬器",
+    "eyebrow": "NEIGHBOURHOOD ASSOCIATION",
+    "intro": "唔登記一樣可以自由喺【香城討論區】發帖、留言、俾 emoji 回應——登記淨係俾你一個固定嘅街坊身份，日後福利會再加福利都係喺呢個身份上面加。",
+    "joinTitle": "登記 / 登入",
+    "registerTab": "登記",
+    "loginTab": "登入",
+    "username": "街坊名（2-24 字，中英文數字都得）",
+    "password": "密碼（最少 8 個字）",
+    "confirmPassword": "確認密碼",
+    "noEmailNote": "冇用 email 註冊，忘記密碼冇得重設，記得自己記低。",
+    "registerSubmit": "登記做街坊",
+    "loginSubmit": "登入",
+    "noscript": "請啟用 JavaScript 以登記或登入。",
+    "cardTitle": "街坊帳戶",
+    "cardNote": "日後福利會嘅新功能會喺呢度出現。",
+    "logout": "登出",
+    "memberSince": "加入日期：",
+    "registering": "登記緊…",
+    "loggingIn": "登入緊…",
+    "passwordMismatch": "兩次密碼唔一致。",
+    "wrongCredentials": "街坊名或者密碼唔啱，請再試。",
+    "conflict": "呢個街坊名有人用咗，請換一個。",
+    "invalid": "格式唔啱，請檢查後再試。",
+    "limited": "太密啦，請等一陣再試。",
+    "notConfigured": "後台尚未接駁，暫時未能登記或登入。",
+    "registerError": "暫時登記唔到，請稍後重試。",
+    "loginError": "暫時登入唔到，請稍後重試。"
+  },
+  "zh-TW": {
+    "title": "香城街坊福利會",
+    "metaTitle": "香城街坊福利會 | 香城模擬器",
+    "eyebrow": "NEIGHBOURHOOD ASSOCIATION",
+    "intro": "不註冊一樣可以自由在【香城討論區】發文、留言、給予 emoji 回應——註冊只是給你一個固定的街坊身份，日後福利會再加福利都是在這個身份上面加。",
+    "joinTitle": "註冊 / 登入",
+    "registerTab": "註冊",
+    "loginTab": "登入",
+    "username": "街坊名（2-24 字，中英文數字都可以）",
+    "password": "密碼（最少 8 個字）",
+    "confirmPassword": "確認密碼",
+    "noEmailNote": "沒有使用 email 註冊，忘記密碼無法重設，請自行記住。",
+    "registerSubmit": "註冊做街坊",
+    "loginSubmit": "登入",
+    "noscript": "請啟用 JavaScript 以註冊或登入。",
+    "cardTitle": "街坊帳戶",
+    "cardNote": "日後福利會的新功能會出現在這裡。",
+    "logout": "登出",
+    "memberSince": "加入於",
+    "registering": "註冊中…",
+    "loggingIn": "登入中…",
+    "passwordMismatch": "兩次密碼不一致。",
+    "wrongCredentials": "街坊名或密碼不正確，請再試一次。",
+    "conflict": "這個街坊名已經有人使用，請換一個。",
+    "invalid": "格式不正確，請檢查後再試。",
+    "limited": "太頻繁了，請稍後再試。",
+    "notConfigured": "後台尚未連接，暫時無法註冊或登入。",
+    "registerError": "暫時無法註冊，請稍後重試。",
+    "loginError": "暫時無法登入，請稍後重試。"
+  },
+  "en": {
+    "title": "Heung Shing Neighbourhood Association",
+    "metaTitle": "Neighbourhood Association | The City of Heung Shing",
+    "eyebrow": "NEIGHBOURHOOD ASSOCIATION",
+    "intro": "You don't need to join to post, comment or react in the Heung Shing Forum — joining just gives you a fixed neighbour identity that future Association perks will build on.",
+    "joinTitle": "Join / Sign in",
+    "registerTab": "Join",
+    "loginTab": "Sign in",
+    "username": "Neighbour name (2-24 characters, any script)",
+    "password": "Password (8+ characters)",
+    "confirmPassword": "Confirm password",
+    "noEmailNote": "No email is used to register, so a forgotten password can't be reset — keep it somewhere safe.",
+    "registerSubmit": "Join the Association",
+    "loginSubmit": "Sign in",
+    "noscript": "Enable JavaScript to join or sign in.",
+    "cardTitle": "Your account",
+    "cardNote": "Future Association features will appear here.",
+    "logout": "Sign out",
+    "memberSince": "Member since",
+    "registering": "Joining…",
+    "loggingIn": "Signing in…",
+    "passwordMismatch": "The two passwords don't match.",
+    "wrongCredentials": "That neighbour name or password isn't right. Please try again.",
+    "conflict": "That neighbour name is already taken. Please pick another.",
+    "invalid": "That's not a valid format. Please check it and try again.",
+    "limited": "Too many attempts in a short time. Please wait and try again.",
+    "notConfigured": "The backend is not connected yet, so you can't join or sign in right now.",
+    "registerError": "Could not join right now. Please try again later.",
+    "loginError": "Could not sign in right now. Please try again later."
+  },
+  "ja": {
+    "title": "香城街坊福利会",
+    "metaTitle": "香城街坊福利会 | 香城模擬器",
+    "eyebrow": "NEIGHBOURHOOD ASSOCIATION",
+    "intro": "登録しなくても【香城討論区】で自由に投稿・コメント・絵文字リアクションができます——登録すると固定の街坊（隣人）アイデンティティが手に入り、今後の福利会の特典はこの上に追加されていきます。",
+    "joinTitle": "登録 / ログイン",
+    "registerTab": "登録",
+    "loginTab": "ログイン",
+    "username": "街坊名（2〜24文字、言語は問いません）",
+    "password": "パスワード（8文字以上）",
+    "confirmPassword": "パスワード確認",
+    "noEmailNote": "メールアドレスは使用していないため、パスワードを忘れても再設定できません。大切に保管してください。",
+    "registerSubmit": "街坊として登録",
+    "loginSubmit": "ログイン",
+    "noscript": "登録・ログインには JavaScript を有効にしてください。",
+    "cardTitle": "街坊アカウント",
+    "cardNote": "今後の福利会の新機能はここに表示されます。",
+    "logout": "ログアウト",
+    "memberSince": "登録日：",
+    "registering": "登録中…",
+    "loggingIn": "ログイン中…",
+    "passwordMismatch": "パスワードが一致しません。",
+    "wrongCredentials": "街坊名またはパスワードが正しくありません。もう一度お試しください。",
+    "conflict": "その街坊名はすでに使われています。別の名前をお試しください。",
+    "invalid": "形式が正しくありません。確認してもう一度お試しください。",
+    "limited": "試行回数が多すぎます。しばらくして再度お試しください。",
+    "notConfigured": "裏側がまだ接続されていないため、現在登録・ログインできません。",
+    "registerError": "現在登録できません。しばらくして再度お試しください。",
+    "loginError": "現在ログインできません。しばらくして再度お試しください。"
+  }
+};
+for (const [language, content] of Object.entries(SITE_MEMBER)) {
+  SITE_TEXT[language].member = content;
+  SITE_TEXT[language].nav.member = content.title;
+}
+
 // ── Full game guide page content ─────────────────────────────────────────────
 // Structured as sections of typed blocks so guide.html can render it
 // generically: { type: 'p' }, { type: 'ul', items }, { type: 'table', head, rows }.
@@ -3647,7 +3775,7 @@ function renderLanguageSwitcher() {
 function applyMetaTags() {
   const text = SITE_TEXT[siteCurrentLanguage];
   const pageKey = document.body?.dataset.page;
-  const pageText = ["copyright", "feedback", "news", "ads"].includes(pageKey) ? text[pageKey] : null;
+  const pageText = ["copyright", "feedback", "news", "ads", "member"].includes(pageKey) ? text[pageKey] : null;
   const meta = pageText
     ? { title: pageText.metaTitle, description: pageText.intro, ogDescription: pageText.intro }
     : text.meta;

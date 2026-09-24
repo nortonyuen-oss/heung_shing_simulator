@@ -1,5 +1,6 @@
 import { ApiError, restrict, jsonBody, readBoundedBytes, recordWrite, recordReaction, pageNumber, resolveCors } from './lib/http-kit.mjs';
 import { verifyPassword, signSessionToken, requireAdmin, checkLoginRate } from './lib/admin-auth.mjs';
+import { hashPassword, verifyPasswordHash, signMemberToken, requireMember, checkMemberLoginRate } from './lib/member-auth.mjs';
 
 const PAGE_SIZE = 20;
 const ADMIN_QUEUE_SIZE = 50;
@@ -11,6 +12,10 @@ const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const REACTIONS = ['like', 'laugh', 'angry', 'share', 'clown'];
 const REACTION_COLUMNS = { like: 'likes', laugh: 'laughs', angry: 'angry', share: 'shares', clown: 'clowns' };
 const REACTION_SELECT = 'id, likes, laughs, angry, shares, clowns';
+// Chinese/Japanese/Korean names plus Latin letters, digits, underscore and hyphen — a member's
+// username is a public display identity, not a technical handle, so it needs to allow non-Latin
+// scripts the same as every nickname field elsewhere in this service.
+const USERNAME_PATTERN = /^[\p{L}\p{N}_-]{2,24}$/u;
 
 const POST_COLUMNS = 'p.id, p.category, p.headline, p.body, p.nickname, p.created_at, p.likes, p.laughs, p.angry, p.shares, p.clowns';
 const POST_QUERY = `SELECT ${POST_COLUMNS}, (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id AND c.state = 'visible') AS comments FROM posts p`;
@@ -27,6 +32,9 @@ const FIELDS = {
   ad: { adText: { max: 120, required: true }, nickname: { max: 40 }, requestKey: { max: 80, required: true, pattern: KEY_PATTERN } },
   news: { headline: { max: 220, required: true }, body: { max: 3000, required: true, multiline: true }, imageKey: { max: 100, pattern: IMAGE_KEY_PATTERN }, category: { max: 20, required: true, list: CATEGORIES } },
   reaction: { reaction: { max: 10, required: true, list: REACTIONS } },
+  // password is deliberately NOT here, same reasoning as the login comment above — restrict()'s
+  // NFC-normalize/trim would silently change what a member actually typed as their password.
+  member: { username: { max: 24, required: true, pattern: USERNAME_PATTERN } },
 };
 
 // Tables an /admin/<resource>/:id/approve|hide route may touch — a fixed, hardcoded whitelist, so
@@ -219,6 +227,44 @@ export default {
         const insert = () => env.DB.prepare('INSERT INTO ads (nickname, ad_text, created_at, request_key) VALUES (?, ?, ?, ?) ON CONFLICT(request_key) DO NOTHING').bind(nickname, adText, new Date().toISOString(), key).run();
         const { item, status } = await createWithIdempotency(env, request, { stored, matches, insert });
         return json({ item }, status);
+      }
+
+      // ── 香城街坊福利會 member accounts ───────────────────────────────────────────────
+      // Additive identity layer: nothing here gates posting/commenting/reacting, which all still
+      // work fully anonymously. A member is just a persistent username+password a visitor can
+      // optionally have — what that identity unlocks is future work.
+      if (path === '/members/register' && method === 'POST') {
+        await checkMemberLoginRate(request, env); // also guards against account-creation spam
+        const data = await jsonBody(request);
+        // password is checked by hand, not restrict(), same reasoning as FIELDS.member's comment —
+        // and this also rejects any unexpected extra key, since restrict() below only ever sees
+        // { username }, not the full body.
+        if (Object.keys(data).some((key) => key !== 'username' && key !== 'password')) throw new ApiError(400, 'invalid');
+        if (typeof data.password !== 'string' || data.password.length < 8 || data.password.length > 200) throw new ApiError(400, 'invalid');
+        const { username } = restrict({ username: data.username }, FIELDS.member);
+        const usernameLower = username.toLowerCase();
+        if (await env.DB.prepare('SELECT id FROM members WHERE username_lower = ?').bind(usernameLower).first()) throw new ApiError(409, 'conflict');
+        const passwordHash = await hashPassword(data.password);
+        const result = await env.DB.prepare('INSERT INTO members (username, username_lower, password_hash, created_at) VALUES (?, ?, ?, ?)').bind(username, usernameLower, passwordHash, new Date().toISOString()).run();
+        const memberId = result.meta?.last_row_id ?? result.lastInsertRowid;
+        return json({ token: await signMemberToken(memberId, env), username }, 201);
+      }
+
+      if (path === '/members/login' && method === 'POST') {
+        await checkMemberLoginRate(request, env);
+        const data = await jsonBody(request);
+        if (Object.keys(data).some((key) => key !== 'username' && key !== 'password')) throw new ApiError(400, 'invalid');
+        if (typeof data.username !== 'string' || typeof data.password !== 'string') throw new ApiError(400, 'invalid');
+        const member = await env.DB.prepare('SELECT id, username, password_hash FROM members WHERE username_lower = ?').bind(data.username.trim().toLowerCase()).first();
+        if (!member || !(await verifyPasswordHash(data.password, member.password_hash))) throw new ApiError(401, 'unauthorized');
+        return json({ token: await signMemberToken(member.id, env), username: member.username });
+      }
+
+      if (path === '/members/me' && method === 'GET') {
+        const memberId = await requireMember(request, env);
+        const member = await env.DB.prepare('SELECT username, created_at FROM members WHERE id = ?').bind(memberId).first();
+        if (!member) throw new ApiError(401, 'unauthorized'); // account deleted after the token was issued
+        return json({ username: member.username, createdAt: member.created_at });
       }
 
       // ── Uploaded news photos ────────────────────────────────────────────────────────

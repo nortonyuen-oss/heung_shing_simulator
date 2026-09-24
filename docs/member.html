@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>香城街坊福利會 | 香城模擬器</title>
+  <meta name="description" content="登記做香城街坊福利會會員：唔註冊一樣可以自由喺討論區發帖、留言、俾 emoji 回應；註冊淨係俾你一個固定身份，日後仲會加更多福利。" />
+  <meta property="og:title" content="香城街坊福利會 | 香城模擬器" />
+  <meta property="og:description" content="登記做香城街坊福利會會員：唔註冊一樣可以自由喺討論區發帖、留言、俾 emoji 回應；註冊淨係俾你一個固定身份，日後仲會加更多福利。" />
+  <meta property="og:image" content="assets/backgroundTitle.jpg" />
+  <meta name="theme-color" content="#17212d" />
+  <link rel="icon" href="assets/icon.png" />
+  <link rel="stylesheet" href="styles.css?v=20260924-release7" />
+  <link rel="stylesheet" href="member.css?v=20260924-release7" />
+  <script src="i18n.js?v=20260924-release7" defer></script>
+  <script src="forum-config.js?v=20260924-release7" defer></script>
+  <script src="forum-common.js?v=20260924-release7" defer></script>
+  <script src="member.js?v=20260924-release7" defer></script>
+</head>
+<body data-page="member">
+  <header class="site-header" aria-label="網站導覽">
+    <a class="brand" href="index.html" aria-label="The City of Heung Shing">
+      <img src="assets/icon.png" alt="" />
+      <span>香城模擬器</span>
+    </a>
+    <nav>
+      <div class="nav-links">
+        <a href="index.html#trailer" data-i18n="nav.trailer">預告片</a>
+        <a href="index.html#gallery" data-i18n="nav.gallery">截圖</a>
+        <a href="index.html#downloads" data-i18n="nav.downloads">下載</a>
+        <a href="index.html#requirements" data-i18n="nav.requirements">配置要求</a>
+        <a href="guide.html" data-i18n="nav.guide">遊戲指南</a>
+        <a href="news.html" data-i18n="nav.news">香城討論區</a>
+        <a href="feedback.html" data-i18n="nav.feedback">香城連儂牆</a>
+        <a href="ads.html" data-i18n="nav.ads">宣傳2-零速傳播</a>
+        <a href="member.html" aria-current="page" data-i18n="nav.member">香城街坊福利會</a>
+        <a href="copyright.html" data-i18n="nav.copyright">版權與使用條款</a>
+        <a href="index.html#changelog" data-i18n="nav.changelog">版本</a>
+        <a href="https://github.com/nortonyuen-oss/heung_shing_simulator" rel="noopener" data-i18n="nav.github">GitHub</a>
+      </div>
+      <div class="lang-switcher" data-language-switcher></div>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section class="guide-hero">
+      <p class="eyebrow" data-i18n="member.eyebrow">NEIGHBOURHOOD ASSOCIATION</p>
+      <h1 data-i18n="member.title">香城街坊福利會</h1>
+      <p data-i18n="member.intro">唔登記一樣可以自由喺【香城討論區】發帖、留言、俾 emoji 回應——登記淨係俾你一個固定嘅街坊身份，日後福利會再加福利都係喺呢個身份上面加。</p>
+    </section>
+
+    <div class="member-layout">
+      <section class="member-panel" data-member-guest aria-labelledby="member-guest-title">
+        <h2 id="member-guest-title" data-i18n="member.joinTitle">登記 / 登入</h2>
+        <div class="member-tabs" data-member-tabs>
+          <button type="button" class="is-active" data-member-tab="register" data-i18n="member.registerTab">登記</button>
+          <button type="button" data-member-tab="login" data-i18n="member.loginTab">登入</button>
+        </div>
+
+        <form data-member-register-form>
+          <label><span data-i18n="member.username">街坊名（2-24 字，中英文數字都得）</span><input name="username" required minlength="2" maxlength="24" autocomplete="username" /></label>
+          <label><span data-i18n="member.password">密碼（最少 8 個字）</span><input name="password" type="password" required minlength="8" maxlength="200" autocomplete="new-password" /></label>
+          <label><span data-i18n="member.confirmPassword">確認密碼</span><input name="confirmPassword" type="password" required minlength="8" maxlength="200" autocomplete="new-password" /></label>
+          <p class="feedback-help" data-i18n="member.noEmailNote">冇用 email 註冊，忘記密碼冇得重設，記得自己記低。</p>
+          <button class="button primary" type="submit" data-i18n="member.registerSubmit">登記做街坊</button>
+          <p role="status" data-member-register-status></p>
+        </form>
+
+        <form data-member-login-form hidden>
+          <label><span data-i18n="member.username">街坊名</span><input name="username" required autocomplete="username" /></label>
+          <label><span data-i18n="member.password">密碼</span><input name="password" type="password" required autocomplete="current-password" /></label>
+          <button class="button primary" type="submit" data-i18n="member.loginSubmit">登入</button>
+          <p role="status" data-member-login-status></p>
+        </form>
+        <noscript><p data-i18n="member.noscript">請啟用 JavaScript 以登記或登入。</p></noscript>
+      </section>
+
+      <section class="member-panel" data-member-card hidden aria-labelledby="member-card-title">
+        <h2 id="member-card-title" data-i18n="member.cardTitle">街坊帳戶</h2>
+        <div class="member-card">
+          <span class="member-card-name" data-member-username></span>
+          <span class="member-card-since" data-member-since></span>
+        </div>
+        <div class="member-toolbar">
+          <p data-i18n="member.cardNote">日後福利會嘅新功能會喺呢度出現。</p>
+          <button type="button" class="feedback-secondary" data-member-logout data-i18n="member.logout">登出</button>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer>
+    <span data-i18n="footer.tagline">香城模擬器 · 免費遊玩，歡迎分享官方連結</span>
+    <div class="footer-links">
+      <a href="news.html" data-i18n="nav.news">香城討論區</a>
+      <a href="feedback.html" data-i18n="nav.feedback">香城連儂牆</a>
+      <a href="ads.html" data-i18n="nav.ads">宣傳2-零速傳播</a>
+      <a href="member.html" aria-current="page" data-i18n="nav.member">香城街坊福利會</a>
+        <a href="copyright.html" data-i18n="nav.copyright">版權與使用條款</a>
+      <a href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest" rel="noopener" data-i18n="footer.releaseInfo">版本資訊</a>
+      <a href="https://heungshingsimulator.blogspot.com/" rel="noopener" data-i18n="footer.blog">開發blog</a>
+    </div>
+  </footer>
+</body>
+</html>

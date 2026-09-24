@@ -43,7 +43,9 @@
     { "name": "POST_LIMIT", "namespace_id": "1001", "simple": { "limit": 40, "period": 60 } }
   ]
   // Secrets (not here — `wrangler secret put <name>`, or services/forum/.dev.vars for local dev):
-  //   IP_SALT             already required by the existing rate limiter
-  //   MODERATOR_PASSWORD  the single shared password docs/moderate.html logs in with
-  //   SESSION_SECRET      signs the bearer token a successful login returns
+  //   IP_SALT               already required by the existing rate limiter
+  //   MODERATOR_PASSWORD    the single shared password docs/moderate.html logs in with
+  //   SESSION_SECRET        signs the moderator's bearer token
+  //   MEMBER_SESSION_SECRET signs a 香城街坊福利會 member's bearer token — deliberately a
+  //                         different secret from SESSION_SECRET, so leaking one can't forge the other
 }

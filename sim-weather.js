@@ -409,7 +409,10 @@ function applyWeatherReadings() {
 
   const drift = (current, target) => (Number.isFinite(current) ? current * 0.6 + target * 0.4 : target);
   weather.temperatureC = Math.round(drift(weather.temperatureC, temperature));
-  weather.rainfallMm = Math.round(drift(weather.rainfallMm, rainfall));
+  // Round down while drying out: round(1 * 0.6) stays at 1 forever,
+  // preventing dry-weather events such as the ice cream truck from returning.
+  const rainfallReading = drift(weather.rainfallMm, rainfall);
+  weather.rainfallMm = rainfall === 0 ? Math.floor(rainfallReading) : Math.round(rainfallReading);
   weather.windKph = Math.round(drift(weather.windKph, wind));
 
   let humidity = 55 + Math.random() * 10;

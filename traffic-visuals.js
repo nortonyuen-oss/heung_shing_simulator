@@ -518,11 +518,23 @@ function updateTrafficVehicleLights(vehicle, position, forceDepth = false, prese
   if (forceDepth) setTrafficVehicleLightDepth(vehicle, position);
 }
 
+// Cooldown is counted in displayed minutes — the same clock basis weather and
+// the calendar use (see game-clock.js's header comment) — not raw real ms.
+// It used to be a flat 90-180 real seconds, timed back when weather rerolled
+// almost continuously in real time, so waiting for a clear/cloudy window to
+// spawn in was nearly free. Since weather moved onto the day/night clock
+// (a condition now holds 5-11 displayed hours, and only ~30-55% of rolls are
+// clear/cloudy depending on season) that real-time cooldown routinely expired
+// and then sat idle for a whole weather-holding period waiting for a
+// qualifying roll, on top of the 23:00-06:00 quiet hours excluding another
+// ~29% of the day — the van all but vanished. Values below are shortened to
+// compensate for that lost eligible time, so the felt cadence during
+// clear/cloudy daytime is back to roughly what it was originally.
 const ICE_CREAM_EVENT_CONFIG = Object.freeze({
-  initialCooldownMinMs: 15000,
-  initialCooldownMaxMs: 30000,
-  cooldownMinMs: 90000,
-  cooldownMaxMs: 180000,
+  initialCooldownMinMinutes: 15,
+  initialCooldownMaxMinutes: 45,
+  cooldownMinMinutes: 30,
+  cooldownMaxMinutes: 90,
   retryCooldownMs: 5000,
   parkingOffsetTiles: 0.42,
   parkingCurveLeadTiles: 0.38,
@@ -1244,7 +1256,7 @@ function getTrafficState(scene) {
       lastModelDiscoveryTime: -Infinity,
       nextDepthRefreshTime: 0,
       iceCreamEvent: null,
-      iceCreamCooldownMs: randomIceCreamCooldown(true),
+      iceCreamCooldownMinutes: randomIceCreamCooldown(true),
       dirty: true,
     };
   }
@@ -1261,14 +1273,30 @@ function destroyTrafficVehicle(vehicle) {
   forEachTrafficVehicleTube(vehicle, (bar) => bar.destroy?.());
 }
 
+// Returns a cooldown length in displayed minutes (see ICE_CREAM_EVENT_CONFIG).
 function randomIceCreamCooldown(initial = false, random = Math.random) {
   const min = initial
-    ? ICE_CREAM_EVENT_CONFIG.initialCooldownMinMs
-    : ICE_CREAM_EVENT_CONFIG.cooldownMinMs;
+    ? ICE_CREAM_EVENT_CONFIG.initialCooldownMinMinutes
+    : ICE_CREAM_EVENT_CONFIG.cooldownMinMinutes;
   const max = initial
-    ? ICE_CREAM_EVENT_CONFIG.initialCooldownMaxMs
-    : ICE_CREAM_EVENT_CONFIG.cooldownMaxMs;
+    ? ICE_CREAM_EVENT_CONFIG.initialCooldownMaxMinutes
+    : ICE_CREAM_EVENT_CONFIG.cooldownMaxMinutes;
   return min + Math.max(0, Math.min(1, Number(random()) || 0)) * (max - min);
+}
+
+// How many displayed minutes passed this frame, the same conversion
+// game-clock.js's advanceGameTimeOfDay uses for weather/the calendar — not
+// getVehicleVisualSpeedMultiplier(), which floors at 1x purely to keep moving
+// sprites from crawling at slow-motion sim speeds and would leave this timer
+// badly out of step with how fast the weather it waits on actually changes.
+function getDisplayedMinutesElapsed(deltaMs) {
+  if (
+    typeof getDayNightSpeedMultiplier !== 'function'
+    || typeof GAME_DAY_NIGHT_CYCLE_REAL_MS === 'undefined'
+    || typeof GAME_TIME_MINUTES_PER_DAY === 'undefined'
+  ) return 0;
+  const displaySpeed = getDayNightSpeedMultiplier();
+  return (Math.max(0, Number(deltaMs) || 0) / GAME_DAY_NIGHT_CYCLE_REAL_MS) * GAME_TIME_MINUTES_PER_DAY * displaySpeed;
 }
 
 function destroyIceCreamEvent(event) {
@@ -1326,7 +1354,7 @@ function clearTrafficVisuals(scene) {
   clearOrdinaryTrafficVisuals(state);
   destroyIceCreamEvent(state.iceCreamEvent);
   state.iceCreamEvent = null;
-  state.iceCreamCooldownMs = randomIceCreamCooldown(true);
+  state.iceCreamCooldownMinutes = randomIceCreamCooldown(true);
   state.dirty = true;
 }
 
@@ -1355,7 +1383,7 @@ function invalidateTrafficVisualNetwork(scene) {
   if (eventRouteBroken) {
     destroyIceCreamEvent(event);
     state.iceCreamEvent = null;
-    state.iceCreamCooldownMs = randomIceCreamCooldown();
+    state.iceCreamCooldownMinutes = randomIceCreamCooldown();
   }
   state.dirty = true;
 }
@@ -2227,16 +2255,16 @@ function updateIceCreamEvent(scene, state, delta, paused, speedMultiplier) {
   const event = state.iceCreamEvent;
   if (!event) {
     if (paused || scene.cameras.main.zoom < TRAFFIC_VISUAL_CONFIG.zoomMin) return;
-    state.iceCreamCooldownMs = Math.max(
+    state.iceCreamCooldownMinutes = Math.max(
       0,
-      state.iceCreamCooldownMs - Math.min(1000, Math.max(0, delta)) * speedMultiplier,
+      state.iceCreamCooldownMinutes - getDisplayedMinutesElapsed(Math.min(1000, Math.max(0, delta))),
     );
-    if (state.iceCreamCooldownMs > 0) return;
+    if (state.iceCreamCooldownMinutes > 0) return;
     const weather = typeof city === 'undefined' ? null : city.weather;
     if (!canSpawnIceCreamTruckForWeather(weather)) return;
     if (typeof getGameTimeOfDayMinutes === 'function' && !isIceCreamTruckHour(getGameTimeOfDayMinutes())) return;
     if (!spawnIceCreamEvent(scene, state)) {
-      state.iceCreamCooldownMs = ICE_CREAM_EVENT_CONFIG.retryCooldownMs;
+      state.iceCreamCooldownMinutes = getDisplayedMinutesElapsed(ICE_CREAM_EVENT_CONFIG.retryCooldownMs);
       return;
     }
     return;
@@ -2247,7 +2275,7 @@ function updateIceCreamEvent(scene, state, delta, paused, speedMultiplier) {
   if (!targetStillExists && !['parkedPlaying', 'leaving'].includes(event.phase)) {
     destroyIceCreamEvent(event);
     state.iceCreamEvent = null;
-    state.iceCreamCooldownMs = randomIceCreamCooldown();
+    state.iceCreamCooldownMinutes = randomIceCreamCooldown();
     return;
   }
 
@@ -2279,7 +2307,7 @@ function updateIceCreamEvent(scene, state, delta, paused, speedMultiplier) {
   if (event.phase === 'finished') {
     destroyIceCreamEvent(event);
     state.iceCreamEvent = null;
-    state.iceCreamCooldownMs = randomIceCreamCooldown();
+    state.iceCreamCooldownMinutes = randomIceCreamCooldown();
   }
 }
 
@@ -2608,7 +2636,7 @@ function updateTrafficVisuals(time, delta) {
     ) {
       destroyIceCreamEvent(state.iceCreamEvent);
       state.iceCreamEvent = null;
-      state.iceCreamCooldownMs = randomIceCreamCooldown(true);
+      state.iceCreamCooldownMinutes = randomIceCreamCooldown(true);
     }
     return;
   }

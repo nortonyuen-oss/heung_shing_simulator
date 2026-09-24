@@ -242,6 +242,11 @@ const SITE_FEATURE_LIST = {
 // ── Changelog ─────────────────────────────────────────────────────────────────
 const SITE_CHANGELOG = {
   "zh-HK": [
+    { version: "v4.14.1", date: "2026-09-25", dateLabel: "2026年9月25日", title: "香城討論區", items: [
+      "修正落雨後雨量卡喺 1 mm，令雪糕車放晴後仍然唔出車嘅問題。",
+      "雪糕車出車冷卻時間跟返遊戲時鐘同速度，縮短天氣合適時嘅等待時間。",
+      "舊存檔兼容；雨量會喺遊戲天氣更新時自動回落。",
+    ] },
     { version: "v4.14.0", date: "2026-09-24", dateLabel: "2026年9月24日", title: "香城討論區", items: [
       "官網「官方新聞」頁變成真正嘅香城討論區：4 個分類 tab（城市發展／城中熱話／交通台／吹水台）同遊戲入面一致，官方新聞同街坊自己開嘅帖一齊出現（官方新聞有「官方」標籤），加咗開新帖表單——唔再淨係得留言，大家可以直接開新話題。",
       "帖同新聞而家可以俾 emoji 回應：👍Like／😂笑／😡憎／↗分享／新增🤡小丑，經版主批准之後會同步落遊戲嘅討論區顯示。呢啲反應用返鬆啲嘅獨立額度，唔會同文字留言爭嗰個嚴格嘅每分鐘限額。",
@@ -536,6 +541,11 @@ const SITE_CHANGELOG = {
 // title/items text.
 const SITE_CHANGELOG_TRANSLATIONS = {
   "zh-TW": {
+    "v4.14.1": { title: "香城討論區", items: [
+      "修正下雨後雨量卡在 1 mm，導致冰淇淋車放晴後仍無法出現的問題。",
+      "冰淇淋車的出車冷卻時間改為跟隨遊戲時鐘與速度，縮短天氣合適時的等待時間。",
+      "相容舊存檔；雨量會在遊戲天氣更新時自動回落。",
+    ] },
     "v4.14.0": { title: "香城討論區", items: [
       "官網「官方新聞」頁變成真正的香城討論區：4 個分類 tab（城市發展／城中熱話／交通台／吹水台）與遊戲中一致，官方新聞與街坊自己開的貼文一起出現（官方新聞有「官方」標籤），新增開新貼文表單——不再只能留言，大家可以直接開新話題。",
       "貼文與新聞現在可以獲得 emoji 回應：👍讚／😂笑／😡怒／↗分享／新增🤡小丑，經版主核准後會同步到遊戲的討論區顯示。這些反應使用較寬鬆的獨立額度，不會與文字留言搶用同一個嚴格的每分鐘限額。",
@@ -823,6 +833,11 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   en: {
+    "v4.14.1": { title: "Heung Shing Forum", items: [
+      "Fixed rainfall getting stuck at 1 mm after rain, preventing ice cream vans from returning in dry weather.",
+      "Ice cream van cooldowns now follow the game clock and speed, with shorter waits during suitable weather.",
+      "Existing saves remain compatible; rainfall recovers automatically as the weather updates.",
+    ] },
     "v4.14.0": { title: "Heung Shing Forum", items: [
       "The site's Official News page is now a real Heung Shing Forum: the same 4 category tabs the game uses (City Development / City Buzz / Transport / Off-topic), official news and citizen posts shown together (news badged Official), and a new compose form — no longer just comments, anyone can start a new topic.",
       "Posts and news can now get emoji reactions: 👍 Like / 😂 Laugh / 😡 Angry / ↗ Share / a new 🤡 Clown, synced into the game's forum once the moderator approves them. Reactions draw from their own looser budget, so they never compete with text comments' strict per-minute limit.",
@@ -1110,6 +1125,11 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   ja: {
+    "v4.14.1": { title: "香城討論区", items: [
+      "雨がやんだ後も降水量が1 mmのまま下がらず、アイスクリーム販売車が出現しなくなる不具合を修正しました。",
+      "出現までの待ち時間をゲーム内の時計と速度に合わせ、天候が適しているときの待ち時間を短縮しました。",
+      "既存のセーブデータに対応。天候の更新に伴い、降水量は自動的に下がります。",
+    ] },
     "v4.14.0": { title: "香城討論区", items: [
       "サイトの公式ニュースページが本物の香城討論区になりました：ゲームと同じ4つのカテゴリータブ（都市開発／街の話題／交通板／雑談板）、公式ニュースと市民の投稿が一緒に表示され（公式ニュースには「公式」バッジ）、新規投稿フォームを追加——コメントだけでなく、誰でも新しい話題を始められます。",
       "投稿とニュースに絵文字リアクションが付けられるようになりました：👍いいね／😂笑い／😡怒り／↗シェア／新しい🤡ピエロ。モデレーターが承認するとゲームのフォーラムに同期されます。リアクションは独自のゆるい上限を使うため、コメントの厳しい毎分制限とは競合しません。",
@@ -1422,8 +1442,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.14.0 — 【香城討論區】",
-      versionDesc: "官網嘅官方新聞頁變成真正嘅香城討論區：官方新聞同街坊自己開嘅帖一齊出現，可以開新帖、留言，仲可以俾 emoji 回應；經版主批准之後會出現喺遊戲入面。",
+      versionBadge: "v4.14.1 — 【香城討論區】",
+      versionDesc: "4.14.1 修正版：修正雨量卡住令雪糕車唔出現，並調整出車冷卻時間。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感嘅城市建設遊戲。起街道、規劃社區、經營自己嘅香城巴士公司、處理議會同天氣，再睇住一座有性格嘅香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1522,8 +1542,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.14.0 — 【香城討論區】",
-      versionDesc: "官網的官方新聞頁變成真正的香城討論區：官方新聞與街坊自己開的貼文一起出現，可以開新貼文、留言，還能給予 emoji 回應；經版主核准後會出現在遊戲中。",
+      versionBadge: "v4.14.1 — 【香城討論區】",
+      versionDesc: "4.14.1 修正版：修正雨量卡住導致冰淇淋車無法出現，並調整出車冷卻時間。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感的城市建設遊戲。興建街道、規劃社區、經營自己的香城公車公司、處理議會與天氣，看著一座有個性的香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1622,8 +1642,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "The City of Heung Shing",
       title: "The City of Heung Shing",
-      versionBadge: "v4.14.0 — Heung Shing Forum",
-      versionDesc: "The site's news page is now a real Heung Shing Forum: official news and citizen posts show up together, anyone can start a post or comment, and posts can get emoji reactions. Everything reaches the game once the moderator approves it.",
+      versionBadge: "v4.14.1 — Heung Shing Forum",
+      versionDesc: "4.14.1 bugfix: ice cream vans return after rain, with cooldowns aligned to the game clock.",
       lede: "A city-building game inspired by Hong Kong life and made in tribute to SimCity 2000. Build streets, shape neighbourhoods, run your own Heung Shing Bus Company, navigate council politics and weather, then watch a city with real personality grow.",
       freeLabel: "Completely free · macOS + Windows · Local saves",
       downloadBtn: "【Free Download】",
@@ -1723,8 +1743,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.14.0 — 香城討論区",
-      versionDesc: "サイトのニュースページが本物の香城討論区になりました：公式ニュースと市民の投稿が一緒に表示され、誰でも投稿やコメントができ、絵文字リアクションも可能です。モデレーターの承認後にゲームへ反映されます。",
+      versionBadge: "v4.14.1 — 香城討論区",
+      versionDesc: "4.14.1 修正版：雨の後にアイスクリーム販売車が出現しなくなる問題を修正し、待ち時間を調整しました。",
       lede: "香港の都市生活から着想を得た、SimCity 2000へのオマージュとなる都市建設ゲーム。道路を築き、地区を計画し、自分だけの香城バス会社を経営し、議会や天候に向き合いながら、個性ある香城の成長を見守ります。",
       freeLabel: "完全無料 · macOS + Windows · ローカルセーブ",
       downloadBtn: "【無料ダウンロード】",

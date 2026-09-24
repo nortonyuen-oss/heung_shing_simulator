@@ -61,6 +61,72 @@ function createWeatherContext({ month = 7, random = seededRandom(7) } = {}) {
   return { context, city, signals, changes, advance, walk };
 }
 
+test('rainfall settles to zero after rain, including saves stuck at 1 mm', () => {
+  for (const condition of ['clear', 'cloudy', 'hot', 'cool', 'windy']) {
+    for (const rainfallMm of [1, 20, 95]) {
+      const { city, advance } = createWeatherContext({ month: 1 });
+      Object.assign(city.weather, { condition, rainfallMm, conditionUntilMinutes: 2 * DAY });
+      let previous = rainfallMm;
+      for (let hour = 0; hour < 12; hour++) {
+        advance(hour * HOUR, (hour + 1) * HOUR);
+        assert.ok(city.weather.rainfallMm >= 0 && city.weather.rainfallMm <= previous);
+        previous = city.weather.rainfallMm;
+      }
+      assert.equal(city.weather.rainfallMm, 0, `${condition} after ${rainfallMm} mm`);
+    }
+  }
+});
+
+test('rainy conditions still produce rainfall and block ice cream trucks', () => {
+  const { canSpawnIceCreamTruckForWeather } = require('../traffic-visuals');
+  for (const condition of ['showers', 'heavyRain']) {
+    const { city, advance } = createWeatherContext({ month: 1 });
+    Object.assign(city.weather, { condition, conditionUntilMinutes: DAY });
+    advance(0, HOUR);
+    assert.ok(city.weather.rainfallMm > 0);
+    assert.equal(canSpawnIceCreamTruckForWeather(city.weather), false);
+  }
+});
+
+test('a dry daytime city spawns an ice cream truck again after the last rain reading clears', () => {
+  const { context, city, advance } = createWeatherContext({ month: 1 });
+  Object.assign(city.weather, { condition: 'clear', rainfallMm: 1, conditionUntilMinutes: DAY });
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'traffic-visuals.js'), 'utf8'), context);
+  vm.runInContext(`
+    const TILE_WIDTH = 64, TILE_HEIGHT = 32, TILE_IMAGE_HEIGHT = 32;
+    const BUILDING_SURFACE_Y_OFFSET = 0, ROAD = 2;
+    const mapData = Array.from({ length: 3 }, (_, row) => Array(31).fill(row === 1 ? ROAD : 0));
+    const heightMap = [], bridgeMap = [], roadUnderlayMap = [];
+    const buildingData = { '0:15': { type: 'primary_school', footprintRows: 1, footprintCols: 1 } };
+    function isInsideMap(row, col) { return row >= 0 && row < 3 && col >= 0 && col < 31; }
+    function isoToScreen(col, row) { return { x: (col - row) * 32, y: (col + row) * 16 }; }
+    function getGameTimeOfDayMinutes() { return 12 * 60; }
+    function getWorldDepth(_layer, y) { return y; }
+    function addToRenderLayer() {}
+    const sprite = {
+      setOrigin() {}, setScale() {}, setMask() {}, setTexture() {}, setPosition() {}, setDepth() {},
+    };
+    const scene = {
+      offsetX: 0, offsetY: 0,
+      cameras: { main: { zoom: 1, width: 128, height: 128, scrollX: 384, scrollY: 176 } },
+      textures: { exists: () => true },
+      add: { image: () => sprite },
+    };
+    const state = setupTrafficVisuals(scene);
+    state.iceCreamCooldownMinutes = 0;
+    updateIceCreamEvent(scene, state, 16, false, 1);
+  `, context);
+  assert.equal(vm.runInContext('state.iceCreamEvent', context), null, 'residual rainfall blocks spawning');
+  advance(0, HOUR);
+  vm.runInContext('updateIceCreamEvent(scene, state, 16, false, 1)', context);
+  const event = vm.runInContext('state.iceCreamEvent', context);
+  assert.ok(event, 'the truck must spawn once dry');
+  assert.equal(event.model.id, 'icecream_van');
+  assert.equal(event.targetId, '0:15');
+  assert.equal(event.phase, 'entering');
+  assert.ok(event.movementLegs.some((leg) => leg.kind === 'parkingApproach'));
+});
+
 test('a condition holds 5-11 displayed hours, so a displayed day sees 2-3 rolls', () => {
   const { city, walk } = createWeatherContext({ month: 3 }); // no typhoon season
   const rollsPerDay = [];

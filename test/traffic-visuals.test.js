@@ -2,6 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const vm = require('node:vm');
 
 const ROOT = path.resolve(__dirname, '..');
 const {
@@ -335,6 +336,27 @@ test('category weights match the planned Hong Kong traffic mix', () => {
   assert.equal(pickWeightedTrafficModel(() => 0).id, 'bus_kmb');
   assert.equal(pickWeightedTrafficModel(() => 0.999999).id, 'van_namkee');
   assert.notEqual(pickWeightedTrafficModel(() => 0.999999).id, 'icecream_van');
+});
+
+test('ice cream cooldown follows the displayed clock at every speed and stops when paused', () => {
+  const context = vm.createContext({ TICKS_PER_MONTH: 4, simPaused: false, simSpeedMul: 0.15 });
+  for (const file of ['game-clock.js', 'traffic-visuals.js']) {
+    vm.runInContext(fs.readFileSync(path.join(ROOT, file), 'utf8'), context, { filename: file });
+  }
+  vm.runInContext(`
+    const scene = { cameras: { main: { zoom: 1 } } };
+    const state = setupTrafficVisuals(scene);
+  `, context);
+  for (const [speed, minutesPerSecond] of [[0.15, 3], [0.5, 6], [1, 12], [2, 24]]) {
+    context.simSpeedMul = speed;
+    vm.runInContext('state.iceCreamCooldownMinutes = 90; updateIceCreamEvent(scene, state, 1000, false, 1)', context);
+    assert.equal(vm.runInContext('state.iceCreamCooldownMinutes', context), 90 - minutesPerSecond);
+  }
+  context.simPaused = true;
+  const before = vm.runInContext('state.iceCreamCooldownMinutes', context);
+  vm.runInContext('updateIceCreamEvent(scene, state, 1000, true, 0)', context);
+  assert.equal(vm.runInContext('state.iceCreamCooldownMinutes', context), before);
+  assert.equal(vm.runInContext('getDisplayedMinutesElapsed(1000)', context), 0);
 });
 
 test('ice cream truck keeps daytime hours: nothing from 23:00 to 06:00', () => {

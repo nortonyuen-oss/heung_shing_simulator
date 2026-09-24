@@ -1418,7 +1418,7 @@ const SITE_TEXT = {
       description: "免費下載《香城模擬器》：一款向 SimCity 2000 致敬、以香港城市生活為靈感嘅城市建設遊戲。免費遊玩，分享及再利用請參閱版權條款。",
       ogDescription: "由街道、天氣到議會、股市同公共交通，一齊建設屬於你嘅香城。遊戲免費下載；歡迎分享官方連結，其他用途請參閱版權條款。",
     },
-    nav: { trailer: "預告片", gallery: "玩法與截圖", downloads: "免費下載", requirements: "配置要求", guide: "遊戲指南", stats: "統計", changelog: "版本", github: "GitHub" },
+    nav: { home: "首頁", trailer: "預告片", gallery: "玩法與截圖", downloads: "免費下載", requirements: "配置要求", guide: "遊戲指南", stats: "統計", changelog: "版本", github: "GitHub" },
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
@@ -1518,7 +1518,7 @@ const SITE_TEXT = {
       description: "免費下載《香城模擬器》：一款向 SimCity 2000 致敬、以香港城市生活為靈感的城市建設遊戲。免費遊玩，分享與再利用請參閱版權條款。",
       ogDescription: "從街道、天氣到議會、股市與公共運輸，一起建設屬於你的香城。遊戲免費下載；歡迎分享官方連結，其他用途請參閱版權條款。",
     },
-    nav: { trailer: "預告片", gallery: "玩法與截圖", downloads: "免費下載", requirements: "配置要求", guide: "遊戲指南", stats: "統計", changelog: "版本", github: "GitHub" },
+    nav: { home: "首頁", trailer: "預告片", gallery: "玩法與截圖", downloads: "免費下載", requirements: "配置要求", guide: "遊戲指南", stats: "統計", changelog: "版本", github: "GitHub" },
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
@@ -1618,7 +1618,7 @@ const SITE_TEXT = {
       description: "Download The City of Heung Shing for free: a city-building game inspired by Hong Kong life and made in tribute to SimCity 2000. Free to play; sharing and reuse are subject to the license.",
       ogDescription: "Build your own Heung Shing through streets, weather, council politics, markets and public transport. Free to download; see the license for sharing and reuse.",
     },
-    nav: { trailer: "Trailer", gallery: "Gameplay & Screenshots", downloads: "Free Download", requirements: "Requirements", guide: "Game Guide", stats: "Stats", changelog: "Changelog", github: "GitHub" },
+    nav: { home: "Home", trailer: "Trailer", gallery: "Gameplay & Screenshots", downloads: "Free Download", requirements: "Requirements", guide: "Game Guide", stats: "Stats", changelog: "Changelog", github: "GitHub" },
     hero: {
       eyebrowPrefix: "The City of Heung Shing",
       title: "The City of Heung Shing",
@@ -1719,7 +1719,7 @@ const SITE_TEXT = {
       description: "『香城模擬器』を無料ダウンロード。香港の都市生活から着想を得た、SimCity 2000へのオマージュとなる都市建設ゲームです。共有・再利用については利用条件をご確認ください。",
       ogDescription: "道路、天候、議会、株式市場、公共交通を通じて自分だけの香城を建設。無料でダウンロードでき、共有・再利用については利用条件をご確認ください。",
     },
-    nav: { trailer: "予告編", gallery: "ゲーム内容と画像", downloads: "無料ダウンロード", requirements: "動作環境", guide: "ゲームガイド", stats: "統計", changelog: "更新履歴", github: "GitHub" },
+    nav: { home: "ホーム", trailer: "予告編", gallery: "ゲーム内容と画像", downloads: "無料ダウンロード", requirements: "動作環境", guide: "ゲームガイド", stats: "統計", changelog: "更新履歴", github: "GitHub" },
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",

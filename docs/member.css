@@ -24,7 +24,11 @@ body[data-page="member"] main { padding-top: 96px; }
   cursor: pointer;
 }
 .member-tabs button.is-active { background: var(--tram); border-color: var(--tram); color: #17212d; font-weight: 700; }
-.member-card { display: grid; gap: 4px; }
+.member-card { display: flex; align-items: center; gap: 14px; }
+.member-card-avatar { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; border: 1px solid rgba(247, 241, 223, 0.24); }
+.member-card-identity { display: grid; gap: 4px; }
 .member-card-name { font-size: 22px; font-weight: 700; }
 .member-card-since { color: var(--muted); font-size: 13px; }
+.member-avatar-upload { display: flex; align-items: center; gap: 12px; margin-top: 14px; }
+.member-avatar-upload label.button { cursor: pointer; }
 .member-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 16px; }

@@ -13,6 +13,9 @@
 //   node moderate.mjs news-show <id>                  one news post with all its comments
 //   node moderate.mjs news-hide <id> / news-unhide <id>
 //   node moderate.mjs news-delete <id>                remove a news post and its comments
+//   node moderate.mjs list-avatars                    recently-updated member avatars (show-then-review)
+//   node moderate.mjs hide-avatar <memberId>          pull an avatar off the site (member row stays)
+//   node moderate.mjs unhide-avatar <memberId>
 //
 // Day-to-day moderation is expected to happen through docs/moderate.html (the web dashboard, same
 // login); this CLI stays as the fast/scriptable fallback the way it always has been.
@@ -22,7 +25,7 @@ const TABLES = { posts: 'posts', comments: 'comments', 'news-comments': 'news_co
 const [command, ...rest] = process.argv.slice(2);
 
 function usage() {
-  console.error('usage: node moderate.mjs <list [visible|hidden] | show N | hide N | unhide N | delete N | delete-comment ID | queue TABLE | approve TABLE N | news-list [visible|hidden] | news-show N | news-hide N | news-unhide N | news-delete N>');
+  console.error('usage: node moderate.mjs <list [visible|hidden] | show N | hide N | unhide N | delete N | delete-comment ID | queue TABLE | approve TABLE N | news-list [visible|hidden] | news-show N | news-hide N | news-unhide N | news-delete N | list-avatars | hide-avatar N | unhide-avatar N>');
   process.exit(2);
 }
 
@@ -77,6 +80,12 @@ if (command === 'list') {
 } else if (command === 'news-delete') {
   const id = checkedId(rest[0]);
   sql = `DELETE FROM news_comments WHERE news_post_id = ${id}; DELETE FROM news_posts WHERE id = ${id}`;
+} else if (command === 'list-avatars') {
+  sql = "SELECT id, username, avatar_state, avatar_updated_at FROM members WHERE avatar_key IS NOT NULL ORDER BY avatar_updated_at DESC LIMIT 40";
+} else if (command === 'hide-avatar') {
+  sql = `UPDATE members SET avatar_state = 'hidden' WHERE id = ${checkedId(rest[0])}`;
+} else if (command === 'unhide-avatar') {
+  sql = `UPDATE members SET avatar_state = 'visible' WHERE id = ${checkedId(rest[0])}`;
 } else {
   usage();
 }

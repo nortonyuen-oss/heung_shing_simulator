@@ -1,26 +1,26 @@
 (function () {
   'use strict';
   const TYPES = ['bug', 'question', 'suggestion', 'comment'];
-  // Same public-exam-Chinese-writing-paper name pool the in-game NPC forum uses
-  // (newspaper.js's getExamForumCitizenName) — duplicated here because the website
-  // has no shared build step with the game code, just a nickname suggestion list.
-  const NICKNAME_GIVEN_NAMES = ['英秀', '一心', '幼羚', '家寶', '念慈', '思賢', '有容', '向華', '修端', '允行'];
-  const NICKNAME_SURNAMES = ['陳', '李', '黃', '張', '梁', '林', '劉', '何', '鄭', '周', '羅', '許'];
   function memoColor(value, random = Math.random) {
     return Number.isInteger(value) && value >= 0 && value < 6 ? value : Math.floor(random() * 6);
-  }
-  function randomNickname(random = Math.random) {
-    const surname = NICKNAME_SURNAMES[Math.floor(random() * NICKNAME_SURNAMES.length)];
-    const given = NICKNAME_GIVEN_NAMES[Math.floor(random() * NICKNAME_GIVEN_NAMES.length)];
-    return surname + given;
   }
   function payload(values, requestKey) {
     return {
       type: TYPES.includes(values.type) ? values.type : 'comment',
       title: String(values.title || '').trim(), details: String(values.details || '').trim(),
-      nickname: String(values.nickname || '').trim(), version: String(values.version || '').trim(),
+      version: String(values.version || '').trim(),
       platform: String(values.platform || '').trim(), requestKey,
     };
+  }
+  // randomNickname stays exported even though the free-text nickname UI is gone (留言權: a memo now
+  // always displays the poster's fixed member username) — kept for test/interface stability rather
+  // than deleted outright; nothing in this file calls it anymore.
+  function randomNickname(random = Math.random) {
+    const givenNames = ['英秀', '一心', '幼羚', '家寶', '念慈', '思賢', '有容', '向華', '修端', '允行'];
+    const surnames = ['陳', '李', '黃', '張', '梁', '林', '劉', '何', '鄭', '周', '羅', '許'];
+    const surname = surnames[Math.floor(random() * surnames.length)];
+    const given = givenNames[Math.floor(random() * givenNames.length)];
+    return surname + given;
   }
   if (typeof module !== 'undefined' && module.exports) module.exports = { memoColor, payload, randomNickname };
   if (typeof document === 'undefined') return;
@@ -28,30 +28,20 @@
     const form = document.querySelector('[data-feedback-form]');
     if (!form) return;
     const api = String(window.FEEDBACK_API_URL || '').replace(/\/$/, '');
+    const { request: forumRequest, imageUrl, getMemberToken } = window.ForumCommon || {};
     const phrase = key => siteT(`feedback.${key}`);
     const list = document.querySelector('[data-feedback-list]');
     const status = document.querySelector('[data-feedback-status]');
     const formStatus = document.querySelector('[data-feedback-form-status]');
+    const composeGate = document.querySelector('[data-feedback-compose-gate]');
     const filter = document.querySelector('[data-feedback-filter]');
     const previous = document.querySelector('[data-feedback-previous]');
     const next = document.querySelector('[data-feedback-next]');
     const refresh = document.querySelector('[data-feedback-refresh]');
     const submit = form.querySelector('[type=submit]');
-    const nicknameSuggestions = document.getElementById('nickname-suggestions');
-    if (nicknameSuggestions) {
-      for (const surname of NICKNAME_SURNAMES) {
-        for (const given of NICKNAME_GIVEN_NAMES) {
-          const option = document.createElement('option');
-          option.value = surname + given;
-          nicknameSuggestions.append(option);
-        }
-      }
-    }
-    document.querySelector('[data-random-nickname]')?.addEventListener('click', () => {
-      const input = form.querySelector('[name=nickname]');
-      input.value = randomNickname();
-      input.focus();
-    });
+    const loggedIn = !!getMemberToken?.();
+    form.hidden = !loggedIn;
+    if (composeGate) composeGate.hidden = loggedIn;
     const threads = new Map(), colors = new Map();
     let rows = [], page = 1, hasNext = false, sequence = 0, state = 'loading';
     let sending = false, submissionKey = '', submissionSignature = '', formMessage = '';
@@ -61,49 +51,33 @@
       if (className) element.className = className;
       return element;
     }
-    function authorAndDate(item) {
+    function authorBadge(item) {
       const date = new Date(item.created_at);
       const formatted = Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString(SITE_INTL_LOCALE[siteCurrentLanguage]);
-      return `${item.nickname || phrase('anonymous')}${formatted ? ' · ' + formatted : ''}`;
+      const badge = node('span', undefined, 'author-badge');
+      badge.append(node('span', item.nickname || phrase('anonymous'), 'author-name'));
+      if (item.isGuest) badge.append(node('span', phrase('guestBadge'), 'author-guest-badge'));
+      if (formatted) badge.append(node('span', formatted, 'news-card-date'));
+      return badge;
     }
+    // Wired through ForumCommon.request() (options.baseUrl) rather than this service's own fetch
+    // wrapper — 留言權 means every write now needs an Authorization header, and that plumbing
+    // already exists in the shared helper; this avoids duplicating it a third time.
     async function request(path, body) {
-      if (!api) throw new Error('notConfigured');
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 15000);
-      try {
-        const response = await fetch(api + path, {
-          method: body ? 'POST' : 'GET', credentials: 'omit', cache: 'no-store',
-          headers: body ? { 'Content-Type': 'application/json' } : {},
-          body: body ? JSON.stringify(body) : undefined, signal: controller.signal,
-        });
-        if (!response.ok) throw new Error(response.status === 429 ? 'limited' : (response.status === 400 || response.status === 413 ? 'invalid' : 'error'));
-        return await response.json();
-      } finally { clearTimeout(timeout); }
+      if (!forumRequest) throw new Error('notConfigured');
+      return forumRequest(path, body, { baseUrl: api, token: getMemberToken?.() });
     }
     function collection(result) {
       if (!result || !Array.isArray(result.items) || typeof result.hasNext !== 'boolean') throw new Error('error');
       return result;
     }
-    function errorKey(error) { return ['notConfigured', 'limited', 'invalid'].includes(error.message) ? error.message : 'error'; }
+    function errorKey(error) { return ['notConfigured', 'limited', 'invalid', 'unauthorized'].includes(error.message) ? error.message : 'error'; }
     function field(labelKey, name, value, multiline = false) {
       const label = node('label');
       const input = node(multiline ? 'textarea' : 'input');
       input.name = name; input.value = value;
       input.maxLength = multiline ? 6000 : 40;
       if (multiline) { input.rows = 3; input.required = true; }
-      if (name === 'nickname') {
-        const randomButton = node('button', phrase('randomNickname'), 'feedback-secondary');
-        randomButton.type = 'button';
-        randomButton.addEventListener('click', () => {
-          input.value = randomNickname();
-          input.dispatchEvent(new Event('input', { bubbles: true }));
-          input.focus();
-        });
-        const row = node('span', undefined, 'nickname-row');
-        row.append(input, randomButton);
-        label.append(node('span', phrase(labelKey)), row);
-        return { label, input };
-      }
       label.append(node('span', phrase(labelKey)), input);
       return { label, input };
     }
@@ -133,19 +107,21 @@
         const heading = node('h3', item.title || phrase('untitled'));
         const message = String(item.body || '');
         const excerpt = node('p', message.slice(0, 240) + (message.length > 240 ? '…' : ''), 'memo-excerpt');
-        const meta = node('p', authorAndDate(item), 'feedback-meta');
-        meta.append(' · ', node('span', phrase(item.state === 'closed' ? 'closed' : 'open'), 'feedback-badge'));
+        const meta = node('p', undefined, 'feedback-meta');
+        meta.append(authorBadge(item), ' · ', node('span', phrase(item.state === 'closed' ? 'closed' : 'open'), 'feedback-badge'));
         const detail = node('details');
         const summary = node('summary', `${phrase('readThread')} · ${Number(item.comments) || 0} ${phrase('replies')}`);
         summary.id = `thread-${item.number}`;
         detail.append(summary, node('div', message || phrase('noBody'), 'feedback-message'));
         if (item.version || item.platform) detail.append(node('p', [item.version, item.platform].filter(Boolean).join(' · '), 'feedback-meta'));
-        const thread = threads.get(item.number) || { open: false, loaded: false, loading: false, error: '', rows: [], page: 0, hasNext: false, nickname: '', details: '', sending: false, key: '', signature: '', notice: '' };
+        const thread = threads.get(item.number) || { open: false, loaded: false, loading: false, error: '', rows: [], page: 0, hasNext: false, details: '', sending: false, key: '', signature: '', notice: '' };
         threads.set(item.number, thread);
         detail.open = thread.open;
         for (const comment of thread.rows) {
           const reply = node('div', undefined, 'feedback-reply');
-          reply.append(node('p', authorAndDate(comment), 'feedback-meta'), node('div', comment.body || phrase('noBody'), 'feedback-message'));
+          const replyMeta = node('p', undefined, 'feedback-meta');
+          replyMeta.append(authorBadge(comment));
+          reply.append(replyMeta, node('div', comment.body || phrase('noBody'), 'feedback-message'));
           detail.append(reply);
         }
         if (thread.loading) detail.append(node('p', phrase('loading'), 'feedback-meta'));
@@ -156,37 +132,42 @@
           more.addEventListener('click', () => loadComments(item.number));
           detail.append(more);
         }
-        const replyForm = node('form', undefined, 'memo-reply-form');
-        const nickname = field('nickname', 'nickname', thread.nickname);
-        nickname.input.setAttribute('list', 'nickname-suggestions');
-        const text = field('writeReply', 'details', thread.details, true);
-        const button = node('button', phrase(thread.sending ? 'sending' : 'sendReply'), 'feedback-secondary');
-        button.type = 'submit'; button.id = `reply-submit-${item.number}`;
-        const notice = node('p', thread.notice ? phrase(thread.notice) : '', 'feedback-meta'); notice.setAttribute('role', 'status');
-        for (const { input } of [nickname, text]) {
-          input.id = `reply-${input.name}-${item.number}`; input.disabled = thread.sending;
-          input.addEventListener('input', () => { thread[input.name] = input.value; thread.notice = ''; notice.textContent = ''; });
+        if (loggedIn) {
+          const replyForm = node('form', undefined, 'memo-reply-form');
+          const text = field('writeReply', 'details', thread.details, true);
+          const button = node('button', phrase(thread.sending ? 'sending' : 'sendReply'), 'feedback-secondary');
+          button.type = 'submit'; button.id = `reply-submit-${item.number}`;
+          const notice = node('p', thread.notice ? phrase(thread.notice) : '', 'feedback-meta'); notice.setAttribute('role', 'status');
+          text.input.id = `reply-details-${item.number}`; text.input.disabled = thread.sending;
+          text.input.addEventListener('input', () => { thread.details = text.input.value; thread.notice = ''; notice.textContent = ''; });
+          button.disabled = thread.sending || !api;
+          replyForm.append(text.label, button, notice);
+          replyForm.addEventListener('submit', async event => {
+            event.preventDefault();
+            if (thread.sending || !replyForm.reportValidity()) return;
+            if (!thread.details.trim()) { thread.notice = 'required'; render(); return; }
+            const signature = JSON.stringify([thread.details.trim()]);
+            if (signature !== thread.signature) { thread.key = crypto.randomUUID(); thread.signature = signature; }
+            thread.sending = true; thread.notice = 'sending'; render();
+            try {
+              const result = await request(`/messages/${item.number}/replies`, { details: thread.details.trim(), requestKey: thread.key });
+              if (!Number.isSafeInteger(result.item?.id)) throw new Error('error');
+              thread.details = ''; thread.key = ''; thread.signature = ''; thread.notice = 'replySent';
+              item.comments = Number(item.comments || 0) + 1;
+              thread.rows = []; thread.page = 0; thread.loaded = false; thread.hasNext = false;
+              await loadComments(item.number);
+            } catch (error) { thread.notice = errorKey(error) === 'error' ? 'sendError' : errorKey(error); }
+            finally { thread.sending = false; render(); }
+          });
+          detail.append(replyForm);
+        } else {
+          const gate = node('p', undefined, 'feedback-meta');
+          gate.append(`${phrase('loginRequired')} `);
+          const link = node('a', siteT('member.registerTab'));
+          link.href = 'member.html';
+          gate.append(link);
+          detail.append(gate);
         }
-        button.disabled = thread.sending || !api;
-        replyForm.append(nickname.label, text.label, button, notice);
-        replyForm.addEventListener('submit', async event => {
-          event.preventDefault();
-          if (thread.sending || !replyForm.reportValidity()) return;
-          if (!thread.details.trim()) { thread.notice = 'required'; render(); return; }
-          const signature = JSON.stringify([thread.nickname.trim(), thread.details.trim()]);
-          if (signature !== thread.signature) { thread.key = crypto.randomUUID(); thread.signature = signature; }
-          thread.sending = true; thread.notice = 'sending'; render();
-          try {
-            const result = await request(`/messages/${item.number}/replies`, { nickname: thread.nickname.trim(), details: thread.details.trim(), requestKey: thread.key });
-            if (!Number.isSafeInteger(result.item?.id)) throw new Error('error');
-            thread.details = ''; thread.key = ''; thread.signature = ''; thread.notice = 'replySent';
-            item.comments = Number(item.comments || 0) + 1;
-            thread.rows = []; thread.page = 0; thread.loaded = false; thread.hasNext = false;
-            await loadComments(item.number);
-          } catch (error) { thread.notice = errorKey(error) === 'error' ? 'sendError' : errorKey(error); }
-          finally { thread.sending = false; render(); }
-        });
-        detail.append(replyForm);
         detail.addEventListener('toggle', () => {
           if (!detail.isConnected) return;
           thread.open = detail.open;

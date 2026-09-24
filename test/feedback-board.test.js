@@ -8,6 +8,7 @@ const { memoColor, payload, randomNickname } = require('../docs/feedback.js');
 const SERVICE = path.resolve(__dirname, '..', 'services', 'feedback');
 const ORIGIN = 'https://nortonyuen-oss.github.io';
 const KEY = 'a'.repeat(20);
+const MEMBER_SESSION_SECRET = 'test-member-session-secret';
 
 // Minimal D1 surface (prepare/bind/all/first/run) over the in-process SQLite that ships with Node.
 function fakeD1() {
@@ -32,7 +33,7 @@ function fakeD1() {
 
 async function worker(env = {}) {
   const { default: handler } = await import('../services/feedback/worker.mjs');
-  const bindings = { DB: fakeD1(), ALLOWED_ORIGINS: ORIGIN, IP_SALT: 'test-salt', ...env };
+  const bindings = { DB: fakeD1(), ALLOWED_ORIGINS: ORIGIN, IP_SALT: 'test-salt', MEMBER_SESSION_SECRET, ...env };
   const api = async (method, route, body, headers = {}) => {
     const request = new Request(`https://feedback.example${route}`, {
       method, headers: { Origin: ORIGIN, ...(body ? { 'Content-Type': 'application/json' } : {}), ...headers },
@@ -49,8 +50,22 @@ let addresses = 0;
 function fresh() { return { 'CF-Connecting-IP': `203.0.113.${++addresses % 250}` }; }
 function backdate(db, minutes) { db.prepare("UPDATE write_log SET created_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now', ?)").run(`-${minutes} minutes`); }
 
+// 留言權: every write here now needs a member token. Real ones are only ever minted by
+// services/forum (this service has no members table to register/log in against — see
+// services/feedback/lib/member-auth.mjs's own comment) so tests build one exactly the way
+// production does: mint it with forum's real signMemberToken against the same shared secret this
+// worker() harness configures, proving the two services' token shapes actually interoperate.
+let memberSeq = 0;
+async function member() {
+  const { signMemberToken } = await import('../services/forum/lib/member-auth.mjs');
+  const memberId = ++memberSeq;
+  const username = `m${memberId}`;
+  const token = await signMemberToken(memberId, username, { MEMBER_SESSION_SECRET });
+  return { memberId, username, headers: { Authorization: `Bearer ${token}` } };
+}
+
 function message(overrides = {}) {
-  return { type: 'comment', title: '存檔 & 載入 #問題', details: '第一行\n<img src=x onerror=alert(1)>', nickname: '市民', requestKey: KEY, ...overrides };
+  return { type: 'comment', title: '存檔 & 載入 #問題', details: '第一行\n<img src=x onerror=alert(1)>', requestKey: KEY, ...overrides };
 }
 
 test('memo colours come from the record when valid, otherwise a random paper index', () => {
@@ -67,8 +82,8 @@ test('a random nickname pairs one of the pool surnames with one of the pool give
 });
 
 test('a visitor payload is trimmed, typed and carries its idempotency key', () => {
-  const body = payload({ type: 'hack', title: '  Title ', details: ' body ', nickname: undefined, version: '4.9.0 ', platform: 'Windows' }, KEY);
-  assert.deepEqual(body, { type: 'comment', title: 'Title', details: 'body', nickname: '', version: '4.9.0', platform: 'Windows', requestKey: KEY });
+  const body = payload({ type: 'hack', title: '  Title ', details: ' body ', version: '4.9.0 ', platform: 'Windows' }, KEY);
+  assert.deepEqual(body, { type: 'comment', title: 'Title', details: 'body', version: '4.9.0', platform: 'Windows', requestKey: KEY });
 });
 
 test('the API only answers the official site and reports health', async () => {
@@ -87,9 +102,39 @@ test('the API only answers the official site and reports health', async () => {
   assert.equal(preflight.headers.get('Access-Control-Allow-Methods'), 'GET, POST, OPTIONS');
 });
 
+test('posting a memo or a reply requires a member token; reading the wall never does', async () => {
+  const api = await worker();
+  assert.equal((await api('POST', '/messages', message())).status, 401, 'posting with no token');
+  assert.equal((await api('POST', '/messages', message(), { Authorization: 'Bearer not-a-real-token' })).status, 401, 'tampered/fake token');
+  const { headers: auth } = await member();
+  const posted = await api('POST', '/messages', message(), auth);
+  assert.equal(posted.status, 201);
+  assert.equal((await api('POST', `/messages/${posted.data.item.number}/replies`, { details: 'hi', requestKey: `${KEY}r` })).status, 401, 'replying with no token');
+  assert.equal((await api('GET', '/messages')).status, 200, 'reading is never gated');
+});
+
+test('a member\'s memo/reply always displays their fixed username, never a free-text nickname, and rejects a stray nickname field', async () => {
+  const api = await worker();
+  const { headers: auth, username } = await member();
+  const posted = await api('POST', '/messages', message(), auth);
+  assert.equal(posted.status, 201);
+  assert.equal(posted.data.item.nickname, username);
+  assert.equal(posted.data.item.isGuest, false);
+  assert.equal((await api('POST', '/messages', message({ nickname: 'x', requestKey: `${KEY}n` }), auth)).status, 400);
+});
+
+test('a guest/legacy memo (posted before 留言權, member_id NULL) keeps its original nickname and is tagged isGuest', async () => {
+  const api = await worker();
+  api.db.prepare("INSERT INTO messages (type, title, body, nickname, color, created_at, request_key) VALUES ('comment', '舊留言', 'b', '街坊甲', 0, 'now', ?)").run(KEY);
+  const list = (await api('GET', '/messages')).data.items;
+  assert.equal(list[0].isGuest, true);
+  assert.equal(list[0].nickname, '街坊甲');
+});
+
 test('posting stores unicode as-is, assigns a paper colour and is idempotent per request key', async () => {
   const api = await worker();
-  const first = await api('POST', '/messages', message());
+  const { headers: auth } = await member();
+  const first = await api('POST', '/messages', message(), auth);
   assert.equal(first.status, 201);
   assert.equal(first.data.item.number, 1);
   assert.equal(first.data.item.title, '存檔 & 載入 #問題');
@@ -98,10 +143,10 @@ test('posting stores unicode as-is, assigns a paper colour and is idempotent per
   assert.ok(first.data.item.color >= 0 && first.data.item.color <= 5);
   assert.equal(first.data.item.comments, 0);
   assert.equal(first.data.item.request_key, undefined, 'request keys never leave the server');
-  const replay = await api('POST', '/messages', message());
+  const replay = await api('POST', '/messages', message(), auth);
   assert.equal(replay.status, 201);
   assert.equal(replay.data.item.number, 1);
-  const conflict = await api('POST', '/messages', message({ title: 'changed' }));
+  const conflict = await api('POST', '/messages', message({ title: 'changed' }), auth);
   assert.equal(conflict.status, 409);
   const list = await api('GET', '/messages');
   assert.equal(list.data.items.length, 1);
@@ -109,28 +154,30 @@ test('posting stores unicode as-is, assigns a paper colour and is idempotent per
 
 test('malformed posts are rejected before they reach the database', async () => {
   const api = await worker();
-  assert.equal((await api('POST', '/messages', message({ type: 'hack' }))).status, 400);
-  assert.equal((await api('POST', '/messages', message({ title: '   ' }))).status, 400);
-  assert.equal((await api('POST', '/messages', message({ details: 'x'.repeat(6001) }))).status, 400);
-  assert.equal((await api('POST', '/messages', message({ requestKey: 'short' }))).status, 400);
-  assert.equal((await api('POST', '/messages', message({ nickname: 42 }))).status, 400);
-  assert.equal((await api('POST', '/messages', '[1,2]')).status, 400);
-  assert.equal((await api('POST', '/messages', 'not json')).status, 400);
-  assert.equal((await api('POST', '/messages', 'x', { 'Content-Type': 'text/plain' })).status, 415);
-  assert.equal((await api('POST', '/messages', message({ details: 'x'.repeat(40000) }))).status, 413);
+  const { headers: auth } = await member();
+  const submit = (overrides) => api('POST', '/messages', message(overrides), auth);
+  assert.equal((await submit({ type: 'hack' })).status, 400);
+  assert.equal((await submit({ title: '   ' })).status, 400);
+  assert.equal((await submit({ details: 'x'.repeat(6001) })).status, 400);
+  assert.equal((await submit({ requestKey: 'short' })).status, 400);
+  assert.equal((await api('POST', '/messages', '[1,2]', auth)).status, 400);
+  assert.equal((await api('POST', '/messages', 'not json', auth)).status, 400);
+  assert.equal((await api('POST', '/messages', 'x', { ...auth, 'Content-Type': 'text/plain' })).status, 415);
+  assert.equal((await submit({ details: 'x'.repeat(40000) })).status, 413);
   assert.deepEqual((await api('GET', '/messages')).data, { items: [], hasNext: false });
 });
 
 test('SQL and HTML payloads in every field are stored inert as text and never executed', async () => {
   const api = await worker();
+  const { headers: auth, username } = await member();
   const attack = "x'; DROP TABLE messages; --";
   const tables = () => api.db.prepare("SELECT COUNT(*) AS n FROM sqlite_master WHERE type = 'table'").get().n;
   const before = tables();
-  const posted = await api('POST', '/messages', message({ title: attack, details: `${attack}\n<script>alert(1)</script>\n" OR 1=1 --`, nickname: "Robert'); DELETE FROM replies; --", version: '4.9.0-beta', platform: 'Windows' }));
+  const posted = await api('POST', '/messages', message({ title: attack, details: `${attack}\n<script>alert(1)</script>\n" OR 1=1 --`, version: '4.9.0-beta', platform: 'Windows' }), auth);
   assert.equal(posted.status, 201);
   assert.equal(posted.data.item.title, attack);
-  assert.equal(posted.data.item.nickname, "Robert'); DELETE FROM replies; --");
-  const reply = await api('POST', '/messages/1/replies', { details: "'); DROP TABLE replies; --", nickname: '\\x00', requestKey: `${KEY}r` }, fresh());
+  assert.equal(posted.data.item.nickname, username);
+  const reply = await api('POST', '/messages/1/replies', { details: "'); DROP TABLE replies; --", requestKey: `${KEY}r` }, { ...fresh(), ...auth });
   assert.equal(reply.status, 201);
   assert.equal(tables(), before);
   assert.equal((await api('GET', '/messages')).data.items[0].comments, 1);
@@ -141,24 +188,23 @@ test('SQL and HTML payloads in every field are stored inert as text and never ex
 
 test('field restrictions: closed lists, single-line fields, control characters and unknown keys', async () => {
   const api = await worker();
-  const reject = async (patch, why) => assert.equal((await api('POST', '/messages', message(patch), fresh())).status, 400, why);
+  const { headers: auth } = await member();
+  const reject = async (patch, why) => assert.equal((await api('POST', '/messages', message(patch), { ...fresh(), ...auth })).status, 400, why);
   await reject({ platform: 'Linux' }, 'platform must come from the form list');
   await reject({ platform: 'Windows; DROP' }, 'platform is exact-match');
   await reject({ version: '4.9.0 <b>' }, 'version allows only version-like characters');
   await reject({ version: "1' OR 1=1" }, 'version rejects quotes');
   await reject({ title: 'line one\nline two' }, 'title is single-line');
-  await reject({ nickname: 'tab\tname' }, 'nickname has no tabs');
   await reject({ title: 'null\u0000byte' }, 'no NUL');
   await reject({ details: 'esc\u001b[31m' }, 'no C0 control characters');
-  await reject({ details: 'sep\u2028line' }, 'no unicode line separators');
+  await reject({ details: 'sep line' }, 'no unicode line separators');
   await reject({ details: 'x', extra: 'field' }, 'unknown keys are refused');
   await reject({ __proto__: { polluted: true }, ['__proto__']: 'x' }, 'prototype keys are refused');
   await reject({ type: 'Bug' }, 'type is case-sensitive exact');
-  const ok = await api('POST', '/messages', message({ version: 'v4.9.0 build 12', platform: 'macOS (Intel)', details: 'crlf\r\nlines\ttabbed', nickname: 'e\u0301' }), fresh());
+  const ok = await api('POST', '/messages', message({ version: 'v4.9.0 build 12', platform: 'macOS (Intel)', details: 'crlf\r\nlines\ttabbed' }), { ...fresh(), ...auth });
   assert.equal(ok.status, 201);
   assert.equal(ok.data.item.body, 'crlf\nlines\ttabbed', 'CRLF is normalised to LF; tabs stay in the body');
-  assert.equal(ok.data.item.nickname, '\u00e9', 'text is NFC-normalised');
-  const reply = await api('POST', '/messages/1/replies', { details: 'ok', requestKey: `${KEY}r`, title: 'not a reply field' }, fresh());
+  const reply = await api('POST', '/messages/1/replies', { details: 'ok', requestKey: `${KEY}r`, title: 'not a reply field' }, { ...fresh(), ...auth });
   assert.equal(reply.status, 400, 'replies accept only reply fields');
 });
 
@@ -171,13 +217,15 @@ test('the database refuses out-of-policy rows even when the Worker is bypassed',
   assert.throws(() => insert('t', 'Other', "abc'; DROP TABLE messages; --"), /field restriction/);
   assert.throws(() => api.db.prepare("UPDATE messages SET nickname = ? WHERE number = 1").run('n'.repeat(41)), /field restriction/);
   assert.throws(() => api.db.prepare("INSERT INTO replies (message_number, body, nickname, created_at, request_key) VALUES (1, '', '', 'now', ?)").run(`${KEY}r`), /field restriction/);
+  assert.throws(() => api.db.prepare("UPDATE messages SET source = 'hacked' WHERE number = 1").run(), /field restriction/, 'source is still a closed list, just widened to admit \'member\'');
   api.db.prepare("UPDATE messages SET state = 'closed' WHERE number = 1").run();
   assert.equal(api.db.prepare('SELECT COUNT(*) AS n FROM messages').get().n, 1);
 });
 
 test('the feed pages 20 at a time, newest first, and filters by state', async () => {
   const api = await worker();
-  for (let i = 1; i <= 21; i++) await api('POST', '/messages', message({ title: `memo ${i}`, requestKey: `${KEY}${i}` }), fresh());
+  const { headers: auth } = await member();
+  for (let i = 1; i <= 21; i++) await api('POST', '/messages', message({ title: `memo ${i}`, requestKey: `${KEY}${i}` }), { ...fresh(), ...auth });
   const page1 = await api('GET', '/messages');
   assert.equal(page1.data.items.length, 20);
   assert.equal(page1.data.hasNext, true);
@@ -193,16 +241,17 @@ test('the feed pages 20 at a time, newest first, and filters by state', async ()
 
 test('replies attach to an existing memo and bump its reply count', async () => {
   const api = await worker();
-  await api('POST', '/messages', message());
-  const missing = await api('POST', '/messages/999/replies', { details: 'hello', requestKey: `${KEY}r` });
+  const { headers: auth } = await member();
+  await api('POST', '/messages', message(), auth);
+  const missing = await api('POST', '/messages/999/replies', { details: 'hello', requestKey: `${KEY}r` }, { ...fresh(), ...auth });
   assert.equal(missing.status, 404);
-  const reply = await api('POST', '/messages/1/replies', { details: ' 回覆 ', nickname: '', requestKey: `${KEY}r` }, fresh());
+  const reply = await api('POST', '/messages/1/replies', { details: ' 回覆 ', requestKey: `${KEY}r` }, { ...fresh(), ...auth });
   assert.equal(reply.status, 201);
   assert.equal(reply.data.item.body, '回覆');
   assert.equal(reply.data.item.message_number, 1);
-  const replay = await api('POST', '/messages/1/replies', { details: '回覆', nickname: '', requestKey: `${KEY}r` });
+  const replay = await api('POST', '/messages/1/replies', { details: '回覆', requestKey: `${KEY}r` }, auth);
   assert.equal(replay.data.item.id, reply.data.item.id);
-  assert.equal((await api('POST', '/messages/1/replies', { details: 'other', requestKey: `${KEY}r` })).status, 409);
+  assert.equal((await api('POST', '/messages/1/replies', { details: 'other', requestKey: `${KEY}r` }, auth)).status, 409);
   const thread = await api('GET', '/messages/1/replies');
   assert.equal(thread.data.items.length, 1);
   assert.equal((await api('GET', '/messages')).data.items[0].comments, 1);
@@ -212,10 +261,11 @@ test('replies attach to an existing memo and bump its reply count', async () => 
 test('the edge flood shield refuses writes before the body is read', async () => {
   const seen = [];
   const api = await worker({ POST_LIMIT: { async limit({ key }) { seen.push(key); return { success: seen.length > 1 }; } } });
-  const limited = await api('POST', '/messages', message(), { 'CF-Connecting-IP': '203.0.113.9' });
+  const { headers: auth } = await member();
+  const limited = await api('POST', '/messages', message(), { ...auth, 'CF-Connecting-IP': '203.0.113.9' });
   assert.equal(limited.status, 429);
   assert.equal(limited.data.error, 'limited');
-  assert.equal((await api('POST', '/messages', message())).status, 201);
+  assert.equal((await api('POST', '/messages', message(), auth)).status, 201);
   assert.equal((await api('GET', '/messages')).status, 200, 'reads are never rate limited');
   assert.deepEqual(seen, ['203.0.113.9', 'unknown']);
 });
@@ -223,26 +273,28 @@ test('the edge flood shield refuses writes before the body is read', async () =>
 test('one address may write once a minute and five times an hour; retries of a stored request are free', async () => {
   const api = await worker();
   const me = { 'CF-Connecting-IP': '198.51.100.7' }, other = { 'CF-Connecting-IP': '198.51.100.8' };
-  assert.equal((await api('POST', '/messages', message(), me)).status, 201);
-  const second = await api('POST', '/messages', message({ requestKey: `${KEY}2` }), me);
+  const { headers: authMe } = await member();
+  const { headers: authOther } = await member();
+  assert.equal((await api('POST', '/messages', message(), { ...me, ...authMe })).status, 201);
+  const second = await api('POST', '/messages', message({ requestKey: `${KEY}2` }), { ...me, ...authMe });
   assert.equal(second.status, 429);
   assert.equal(second.data.error, 'limited');
-  assert.equal((await api('POST', '/messages', message(), me)).status, 201, 'same request key replays without counting');
-  assert.equal((await api('POST', '/messages/1/replies', { details: 'hi', requestKey: `${KEY}r` }, me)).status, 429, 'replies share the window');
-  assert.equal((await api('POST', '/messages', message({ requestKey: `${KEY}o` }), other)).status, 201, 'another address is unaffected');
+  assert.equal((await api('POST', '/messages', message(), { ...me, ...authMe })).status, 201, 'same request key replays without counting');
+  assert.equal((await api('POST', '/messages/1/replies', { details: 'hi', requestKey: `${KEY}r` }, { ...me, ...authMe })).status, 429, 'replies share the window');
+  assert.equal((await api('POST', '/messages', message({ requestKey: `${KEY}o` }), { ...other, ...authOther })).status, 201, 'another address is unaffected');
   backdate(api.db, 2);
-  assert.equal((await api('POST', '/messages', message({ requestKey: `${KEY}2` }), me)).status, 201);
+  assert.equal((await api('POST', '/messages', message({ requestKey: `${KEY}2` }), { ...me, ...authMe })).status, 201);
   backdate(api.db, 2);
-  assert.equal((await api('POST', '/messages/1/replies', { details: 'hi', requestKey: `${KEY}r` }, me)).status, 201);
+  assert.equal((await api('POST', '/messages/1/replies', { details: 'hi', requestKey: `${KEY}r` }, { ...me, ...authMe })).status, 201);
   backdate(api.db, 2);
-  assert.equal((await api('POST', '/messages', message({ requestKey: `${KEY}4` }), me)).status, 201);
+  assert.equal((await api('POST', '/messages', message({ requestKey: `${KEY}4` }), { ...me, ...authMe })).status, 201);
   backdate(api.db, 2);
-  assert.equal((await api('POST', '/messages', message({ requestKey: `${KEY}5` }), me)).status, 201);
+  assert.equal((await api('POST', '/messages', message({ requestKey: `${KEY}5` }), { ...me, ...authMe })).status, 201);
   backdate(api.db, 2);
   assert.equal(api.db.prepare("SELECT COUNT(*) AS n FROM write_log WHERE client = (SELECT client FROM write_log LIMIT 1)").get().n, 5);
-  assert.equal((await api('POST', '/messages', message({ requestKey: `${KEY}6` }), me)).status, 429, 'fifth write in the hour closes the window');
+  assert.equal((await api('POST', '/messages', message({ requestKey: `${KEY}6` }), { ...me, ...authMe })).status, 429, 'fifth write in the hour closes the window');
   backdate(api.db, 61);
-  assert.equal((await api('POST', '/messages', message({ requestKey: `${KEY}6` }), me)).status, 201, 'entries older than an hour are pruned');
+  assert.equal((await api('POST', '/messages', message({ requestKey: `${KEY}6` }), { ...me, ...authMe })).status, 201, 'entries older than an hour are pruned');
   assert.equal(api.db.prepare('SELECT COUNT(*) AS n FROM write_log').get().n, 1);
   assert.equal(api.db.prepare("SELECT COUNT(*) AS n FROM write_log WHERE client LIKE '198.%' OR client LIKE '%.%'").get().n, 0, 'no raw address is stored');
 });

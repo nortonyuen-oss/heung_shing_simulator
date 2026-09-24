@@ -4,9 +4,9 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>香城街坊福利會 | 香城模擬器</title>
-  <meta name="description" content="登記做香城街坊福利會會員：唔註冊一樣可以自由喺討論區發帖、留言、俾 emoji 回應；註冊淨係俾你一個固定身份，日後仲會加更多福利。" />
+  <meta name="description" content="登記做香城街坊福利會會員：登記先可以喺討論區發帖、留言、俾 emoji 回應，同喺連儂牆留言；有咗固定身份，日後仲會加更多福利。" />
   <meta property="og:title" content="香城街坊福利會 | 香城模擬器" />
-  <meta property="og:description" content="登記做香城街坊福利會會員：唔註冊一樣可以自由喺討論區發帖、留言、俾 emoji 回應；註冊淨係俾你一個固定身份，日後仲會加更多福利。" />
+  <meta property="og:description" content="登記做香城街坊福利會會員：登記先可以喺討論區發帖、留言、俾 emoji 回應，同喺連儂牆留言；有咗固定身份，日後仲會加更多福利。" />
   <meta property="og:image" content="assets/backgroundTitle.jpg" />
   <meta name="theme-color" content="#17212d" />
   <link rel="icon" href="assets/icon.png" />
@@ -42,7 +42,7 @@
     <section class="guide-hero">
       <p class="eyebrow" data-i18n="member.eyebrow">NEIGHBOURHOOD ASSOCIATION</p>
       <h1 data-i18n="member.title">香城街坊福利會</h1>
-      <p data-i18n="member.intro">唔登記一樣可以自由喺【香城討論區】發帖、留言、俾 emoji 回應——登記淨係俾你一個固定嘅街坊身份，日後福利會再加福利都係喺呢個身份上面加。</p>
+      <p data-i18n="member.intro">登記做街坊，先可以喺【香城討論區】發帖、留言、俾 emoji 回應，同喺【香城連儂牆】留言——登記俾你一個固定嘅街坊身份，日後福利會再加福利都係喺呢個身份上面加。</p>
     </section>
 
     <div class="member-layout">
@@ -74,8 +74,18 @@
       <section class="member-panel" data-member-card hidden aria-labelledby="member-card-title">
         <h2 id="member-card-title" data-i18n="member.cardTitle">街坊帳戶</h2>
         <div class="member-card">
-          <span class="member-card-name" data-member-username></span>
-          <span class="member-card-since" data-member-since></span>
+          <img class="member-card-avatar" data-member-avatar alt="" hidden />
+          <div class="member-card-identity">
+            <span class="member-card-name" data-member-username></span>
+            <span class="member-card-since" data-member-since></span>
+          </div>
+        </div>
+        <div class="member-avatar-upload">
+          <label class="button feedback-secondary" data-i18n="member.avatarUpload">
+            上傳頭像
+            <input type="file" accept="image/jpeg,image/png,image/webp" data-member-avatar-input hidden />
+          </label>
+          <p role="status" data-member-avatar-status></p>
         </div>
         <div class="member-toolbar">
           <p data-i18n="member.cardNote">日後福利會嘅新功能會喺呢度出現。</p>

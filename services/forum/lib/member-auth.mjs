@@ -40,14 +40,19 @@ async function deriveBits(password, salt, iterations) {
   return crypto.subtle.deriveBits({ name: 'PBKDF2', salt, iterations, hash: 'SHA-256' }, key, 256);
 }
 
-export async function signMemberToken(memberId, env) {
-  const payloadB64 = toBase64Url(new TextEncoder().encode(JSON.stringify({ sub: memberId, exp: Date.now() + MEMBER_SESSION_TTL_MS })));
+// username rides along in the payload (not just looked up from `sub` at verify time) so that a
+// sibling service with no access to the members table — services/feedback, which has its own D1
+// and cannot cross-database join into this one — can still resolve a poster's display name from
+// the token alone, as long as it holds the same MEMBER_SESSION_SECRET. Safe to trust indefinitely
+// since there is no rename feature: a member's username never changes after registration.
+export async function signMemberToken(memberId, username, env) {
+  const payloadB64 = toBase64Url(new TextEncoder().encode(JSON.stringify({ sub: memberId, username, exp: Date.now() + MEMBER_SESSION_TTL_MS })));
   const signatureB64 = toBase64Url(await hmacSha256(env.MEMBER_SESSION_SECRET || '', payloadB64));
   return `${payloadB64}.${signatureB64}`;
 }
 
-// Returns the member id on success, or null — never throws, so callers decide whether a missing/
-// expired token is a hard failure (requireMember) or just "not logged in" (an optional check).
+// Returns { memberId, username } on success, or null — never throws, so callers decide whether a
+// missing/expired token is a hard failure (requireMember) or just "not logged in" (an optional check).
 export async function verifyMemberToken(token, env) {
   const parts = String(token || '').split('.');
   if (parts.length !== 2) return null;
@@ -56,15 +61,15 @@ export async function verifyMemberToken(token, env) {
   if (signatureB64.length !== expectedB64.length || !timingSafeEqual(signatureB64, expectedB64)) return null;
   let payload;
   try { payload = JSON.parse(new TextDecoder().decode(fromBase64Url(payloadB64))); } catch { return null; }
-  if (!Number.isSafeInteger(payload?.sub) || !Number.isFinite(payload?.exp) || payload.exp <= Date.now()) return null;
-  return payload.sub;
+  if (!Number.isSafeInteger(payload?.sub) || typeof payload?.username !== 'string' || !payload.username || !Number.isFinite(payload?.exp) || payload.exp <= Date.now()) return null;
+  return { memberId: payload.sub, username: payload.username };
 }
 
 export async function requireMember(request, env) {
   const match = (request.headers.get('Authorization') || '').match(/^Bearer (.+)$/);
-  const memberId = match && await verifyMemberToken(match[1], env);
-  if (!memberId) throw new ApiError(401, 'unauthorized');
-  return memberId;
+  const member = match && await verifyMemberToken(match[1], env);
+  if (!member) throw new ApiError(401, 'unauthorized');
+  return member;
 }
 
 // Independent of both recordWrite()'s content budget and admin-auth.mjs's checkLoginRate(): real

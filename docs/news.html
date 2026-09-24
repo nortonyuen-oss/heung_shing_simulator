@@ -56,14 +56,11 @@
 
       <section class="news-compose" aria-labelledby="news-compose-title">
         <h2 id="news-compose-title" data-i18n="news.newPostTitle">開新帖</h2>
+        <p class="feedback-help" data-news-compose-gate hidden>
+          <span data-i18n="news.loginRequired">登記做街坊先可以開帖、留言、俾 emoji 回應。</span>
+          <a href="member.html" data-i18n="member.registerTab">登記</a>
+        </p>
         <form data-news-compose-form>
-          <label><span data-i18n="feedback.nickname">暱稱（選填，毋須註冊）</span>
-            <span class="nickname-row">
-              <input name="nickname" maxlength="40" autocomplete="off" list="news-compose-nickname-suggestions" />
-              <button type="button" class="feedback-secondary" data-random-nickname data-i18n="feedback.randomNickname">隨機</button>
-            </span>
-          </label>
-          <datalist id="news-compose-nickname-suggestions"></datalist>
           <label><span data-i18n="news.category">分類</span>
             <select name="category">
               <option value="城市發展" data-i18n="news.categoryCity">城市發展</option>

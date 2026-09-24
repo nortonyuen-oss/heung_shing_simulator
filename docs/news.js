@@ -12,23 +12,23 @@
   const REACTION_COLUMN = { like: 'likes', laugh: 'laughs', angry: 'angry', share: 'shares', clown: 'clowns' };
 
   document.addEventListener('DOMContentLoaded', () => {
-    const { request, populateNicknameSuggestions, randomNickname, newRequestKey, imageUrl } = window.ForumCommon || {};
+    const { request, newRequestKey, imageUrl, getMemberToken } = window.ForumCommon || {};
     if (!request) return;
     const phrase = (key, params) => siteT(`news.${key}`, params);
     const tabsNav = document.querySelector('[data-news-tabs]');
     const composeForm = document.querySelector('[data-news-compose-form]');
     const composeStatus = document.querySelector('[data-news-compose-status]');
+    const composeGate = document.querySelector('[data-news-compose-gate]');
     const list = document.querySelector('[data-news-list]');
     const status = document.querySelector('[data-news-status]');
     const previous = document.querySelector('[data-news-previous]');
     const next = document.querySelector('[data-news-next]');
     if (!list || !status || !composeForm) return;
-    populateNicknameSuggestions(document.getElementById('news-compose-nickname-suggestions'));
-    composeForm.querySelector('[data-random-nickname]')?.addEventListener('click', () => {
-      const input = composeForm.querySelector('[name=nickname]');
-      input.value = randomNickname();
-      input.focus();
-    });
+    // 留言權: checked once per page load (a full navigation, e.g. back from member.html after
+    // logging in, re-fires DOMContentLoaded, so this never goes stale within one view).
+    const loggedIn = !!getMemberToken();
+    composeForm.hidden = !loggedIn;
+    if (composeGate) composeGate.hidden = loggedIn;
 
     const threads = new Map();
     let activeCategory = 'all';
@@ -48,34 +48,19 @@
     function commentsRoute(item) { return item.kind === 'news' ? `/news/${item.id}/comments` : `/posts/${item.id}/comments`; }
     function reactRoute(item) { return item.kind === 'news' ? `/news/${item.id}/react` : `/posts/${item.id}/react`; }
 
-    function field(labelKey, name, value) {
-      const label = node('label');
-      const input = node('input');
-      input.name = name; input.value = value; input.maxLength = 40; input.autocomplete = 'off';
-      if (name === 'nickname') {
-        const datalistId = 'news-nickname-suggestions';
-        input.setAttribute('list', datalistId);
-        let datalist = document.getElementById(datalistId);
-        if (!datalist) {
-          datalist = node('datalist');
-          datalist.id = datalistId;
-          document.body.append(datalist);
-        }
-        populateNicknameSuggestions(datalist);
-        const randomButton = node('button', siteT('feedback.randomNickname'), 'feedback-secondary');
-        randomButton.type = 'button';
-        randomButton.addEventListener('click', () => {
-          input.value = randomNickname();
-          input.dispatchEvent(new Event('input', { bubbles: true }));
-          input.focus();
-        });
-        const row = node('span', undefined, 'nickname-row');
-        row.append(input, randomButton);
-        label.append(node('span', phrase(labelKey)), row);
-        return { label, input };
+    // A member's avatar (if any and not moderator-hidden) plus a "訪客" tag on guest/legacy content —
+    // shared shape for both the post meta line and each comment row.
+    function authorBadge(item) {
+      const badge = node('span', undefined, 'author-badge');
+      if (item.avatarKey) {
+        const img = node('img', undefined, 'author-avatar');
+        img.src = imageUrl(item.avatarKey);
+        img.alt = '';
+        badge.append(img);
       }
-      label.append(node('span', phrase(labelKey)), input);
-      return { label, input };
+      badge.append(node('span', item.nickname || phrase('anonymous'), 'author-name'));
+      if (item.isGuest) badge.append(node('span', phrase('guestBadge'), 'author-guest-badge'));
+      return badge;
     }
 
     function renderTabs() {
@@ -93,9 +78,15 @@
         button.setAttribute('aria-label', phrase(reaction.label));
         button.addEventListener('click', async () => {
           if (button.disabled) return;
+          if (!loggedIn) {
+            const notice = node('p', phrase('loginRequired'), 'news-comment-meta');
+            bar.after(notice);
+            setTimeout(() => notice.remove(), 4000);
+            return;
+          }
           bar.querySelectorAll('button').forEach((el) => { el.disabled = true; });
           try {
-            const result = await request(reactRoute(item), { reaction: reaction.key });
+            const result = await request(reactRoute(item), { reaction: reaction.key }, { token: getMemberToken() });
             Object.assign(item, result.item);
             render();
           } catch (error) {
@@ -134,8 +125,10 @@
         article.append(heading);
         const created = new Date(item.created_at);
         const formatted = Number.isNaN(created.getTime()) ? '' : created.toLocaleDateString(SITE_INTL_LOCALE[siteCurrentLanguage]);
-        const metaParts = [item.kind === 'post' ? (item.nickname || phrase('anonymous')) : '', formatted].filter(Boolean);
-        article.append(node('p', metaParts.join(' · '), 'news-card-meta'));
+        const metaLine = node('p', undefined, 'news-card-meta');
+        if (item.kind === 'post') metaLine.append(authorBadge(item));
+        if (formatted) metaLine.append(node('span', formatted, 'news-card-date'));
+        article.append(metaLine);
         for (const paragraph of String(item.body || '').split('\n').filter(Boolean)) {
           article.append(node('p', paragraph, 'news-paragraph'));
         }
@@ -145,14 +138,17 @@
         const summary = node('summary', `${phrase('readComments')} · ${Number(item.comments) || 0} ${phrase('comments')}`);
         detail.append(summary);
         const key = threadKey(item);
-        const thread = threads.get(key) || { open: false, loaded: false, loading: false, error: '', rows: [], page: 0, hasNext: false, nickname: '', details: '', sending: false, key: '', signature: '', notice: '' };
+        const thread = threads.get(key) || { open: false, loaded: false, loading: false, error: '', rows: [], page: 0, hasNext: false, details: '', sending: false, key: '', signature: '', notice: '' };
         threads.set(key, thread);
         detail.open = thread.open;
         for (const comment of thread.rows) {
           const row = node('div', undefined, 'news-comment');
           const commentDate = new Date(comment.created_at);
           const commentFormatted = Number.isNaN(commentDate.getTime()) ? '' : commentDate.toLocaleDateString(SITE_INTL_LOCALE[siteCurrentLanguage]);
-          row.append(node('p', `${comment.nickname || phrase('anonymous')}${commentFormatted ? ' · ' + commentFormatted : ''}`, 'news-comment-meta'));
+          const meta = node('p', undefined, 'news-comment-meta');
+          meta.append(authorBadge(comment));
+          if (commentFormatted) meta.append(node('span', commentFormatted, 'news-card-date'));
+          row.append(meta);
           row.append(node('div', comment.body || '', 'news-comment-body'));
           detail.append(row);
         }
@@ -164,40 +160,46 @@
           more.addEventListener('click', () => loadComments(item));
           detail.append(more);
         }
-        const form = node('form', undefined, 'news-comment-form');
-        const nickname = field('nickname', 'nickname', thread.nickname);
-        const textLabel = node('label');
-        const textarea = node('textarea');
-        textarea.name = 'details'; textarea.value = thread.details; textarea.rows = 3; textarea.required = true; textarea.maxLength = 1500;
-        textLabel.append(node('span', phrase('writeComment')), textarea);
-        const button = node('button', phrase(thread.sending ? 'sending' : 'sendComment'), 'feedback-secondary');
-        button.type = 'submit';
-        const notice = node('p', thread.notice ? phrase(thread.notice) : '', 'news-comment-meta');
-        notice.setAttribute('role', 'status');
-        for (const input of [nickname.input, textarea]) {
-          input.id = `news-${input.name}-${key}`;
-          input.disabled = thread.sending;
-          input.addEventListener('input', () => { thread[input.name] = input.value; thread.notice = ''; notice.textContent = ''; });
+        if (loggedIn) {
+          const form = node('form', undefined, 'news-comment-form');
+          const textLabel = node('label');
+          const textarea = node('textarea');
+          textarea.name = 'details'; textarea.value = thread.details; textarea.rows = 3; textarea.required = true; textarea.maxLength = 1500;
+          textLabel.append(node('span', phrase('writeComment')), textarea);
+          const button = node('button', phrase(thread.sending ? 'sending' : 'sendComment'), 'feedback-secondary');
+          button.type = 'submit';
+          const notice = node('p', thread.notice ? phrase(thread.notice) : '', 'news-comment-meta');
+          notice.setAttribute('role', 'status');
+          textarea.id = `news-details-${key}`;
+          textarea.disabled = thread.sending;
+          textarea.addEventListener('input', () => { thread.details = textarea.value; thread.notice = ''; notice.textContent = ''; });
+          button.disabled = thread.sending;
+          form.append(textLabel, button, notice);
+          form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            if (thread.sending || !form.reportValidity()) return;
+            if (!thread.details.trim()) { thread.notice = 'required'; render(); return; }
+            const signature = JSON.stringify([thread.details.trim()]);
+            if (signature !== thread.signature) { thread.key = newRequestKey(); thread.signature = signature; }
+            thread.sending = true; thread.notice = 'sending'; render();
+            try {
+              await request(commentsRoute(item), { body: thread.details.trim(), requestKey: thread.key }, { token: getMemberToken() });
+              thread.details = ''; thread.key = ''; thread.signature = ''; thread.notice = 'commentSent';
+              item.comments = Number(item.comments || 0) + 1;
+              thread.rows = []; thread.page = 0; thread.loaded = false; thread.hasNext = false;
+              await loadComments(item);
+            } catch (error) { thread.notice = errorKey(error) === 'error' ? 'sendError' : errorKey(error); }
+            finally { thread.sending = false; render(); }
+          });
+          detail.append(form);
+        } else {
+          const gate = node('p', undefined, 'news-comment-meta');
+          gate.append(`${phrase('loginRequired')} `);
+          const link = node('a', siteT('member.registerTab'));
+          link.href = 'member.html';
+          gate.append(link);
+          detail.append(gate);
         }
-        button.disabled = thread.sending;
-        form.append(nickname.label, textLabel, button, notice);
-        form.addEventListener('submit', async (event) => {
-          event.preventDefault();
-          if (thread.sending || !form.reportValidity()) return;
-          if (!thread.details.trim()) { thread.notice = 'required'; render(); return; }
-          const signature = JSON.stringify([thread.nickname.trim(), thread.details.trim()]);
-          if (signature !== thread.signature) { thread.key = newRequestKey(); thread.signature = signature; }
-          thread.sending = true; thread.notice = 'sending'; render();
-          try {
-            await request(commentsRoute(item), { nickname: thread.nickname.trim(), body: thread.details.trim(), requestKey: thread.key });
-            thread.details = ''; thread.key = ''; thread.signature = ''; thread.notice = 'commentSent';
-            item.comments = Number(item.comments || 0) + 1;
-            thread.rows = []; thread.page = 0; thread.loaded = false; thread.hasNext = false;
-            await loadComments(item);
-          } catch (error) { thread.notice = errorKey(error) === 'error' ? 'sendError' : errorKey(error); }
-          finally { thread.sending = false; render(); }
-        });
-        detail.append(form);
         detail.addEventListener('toggle', () => {
           if (!detail.isConnected) return;
           thread.open = detail.open;
@@ -262,7 +264,6 @@
       event.preventDefault();
       if (composeSending || !composeForm.reportValidity()) return;
       const values = Object.fromEntries(new FormData(composeForm));
-      const nickname = String(values.nickname || '').trim();
       const category = CATEGORIES.includes(values.category) ? values.category : '城中熱話';
       const headline = String(values.headline || '').trim();
       const body = String(values.body || '').trim();
@@ -271,7 +272,7 @@
       composeStatus.textContent = phrase('sending');
       for (const element of composeForm.elements) element.disabled = true;
       try {
-        await request('/posts', { category, headline, body, nickname, requestKey: newRequestKey() });
+        await request('/posts', { category, headline, body, requestKey: newRequestKey() }, { token: getMemberToken() });
         composeForm.reset();
         composeStatus.textContent = phrase('postSent');
         page = 1;

@@ -2,28 +2,26 @@
   'use strict';
   if (typeof document === 'undefined') return;
   document.addEventListener('DOMContentLoaded', () => {
-    const { request, populateNicknameSuggestions, randomNickname, newRequestKey } = window.ForumCommon || {};
+    const { request, newRequestKey, getMemberToken } = window.ForumCommon || {};
     if (!request) return;
     const phrase = (key, params) => siteT(`ads.${key}`, params);
     const form = document.querySelector('[data-ads-form]');
+    const composeGate = document.querySelector('[data-ads-compose-gate]');
     const status = document.querySelector('[data-ads-status]');
     const formStatus = document.querySelector('[data-ads-form-status]');
     const ticker = document.getElementById('ads-ticker');
     const tickerTrack = document.getElementById('ads-ticker-track');
     const tickerInner = document.getElementById('ads-ticker-inner');
     if (!form || !status || !ticker || !tickerTrack || !tickerInner) return;
-    populateNicknameSuggestions(document.getElementById('ads-nickname-suggestions'));
-    form.querySelector('[data-random-nickname]')?.addEventListener('click', () => {
-      const input = form.querySelector('[name=nickname]');
-      input.value = randomNickname();
-      input.focus();
-    });
+    const loggedIn = !!getMemberToken();
+    form.hidden = !loggedIn;
+    if (composeGate) composeGate.hidden = loggedIn;
 
     let rows = [], sequence = 0, state = 'loading';
     let sending = false, submissionKey = '', submissionSignature = '', formMessage = '';
 
     function errorKey(error) {
-      return ['notConfigured', 'limited', 'invalid'].includes(error.message) ? error.message : 'error';
+      return ['notConfigured', 'limited', 'invalid', 'unauthorized'].includes(error.message) ? error.message : 'error';
     }
 
     function renderStatus() {
@@ -74,15 +72,15 @@
       event.preventDefault();
       if (sending || !form.reportValidity()) return;
       const values = Object.fromEntries(new FormData(form));
-      const adText = String(values.adText || '').trim(), nickname = String(values.nickname || '').trim();
+      const adText = String(values.adText || '').trim();
       if (!adText) { formMessage = 'required'; render(); return; }
-      const signature = JSON.stringify([nickname, adText]);
+      const signature = JSON.stringify([adText]);
       if (signature !== submissionSignature) { submissionKey = newRequestKey(); submissionSignature = signature; }
       sending = true; formMessage = 'sending';
       for (const element of form.elements) element.disabled = true;
       render();
       try {
-        await request('/ads', { nickname, adText, requestKey: submissionKey });
+        await request('/ads', { adText, requestKey: submissionKey }, { token: getMemberToken() });
         form.reset(); submissionKey = ''; submissionSignature = ''; formMessage = 'sent';
         await loadList();
       } catch (error) { formMessage = errorKey(error) === 'error' ? 'sendError' : errorKey(error); }

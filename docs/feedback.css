@@ -68,7 +68,16 @@ body[data-page="feedback"] main {
 .feedback-card h3 a:hover { text-decoration: underline; text-underline-offset: 4px; }
 .memo-excerpt { font-family: "Kaiti TC", "KaiTi", "STKaiti", serif; font-size: 19px; line-height: 1.65; white-space: pre-wrap; display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; margin: 12px 0 22px; }
 .memo-excerpt:empty { display: none; }
-.feedback-card .feedback-meta { font-size: 11px; line-height: 1.9; color: #4c594c; }
+.feedback-card .feedback-meta { font-size: 11px; line-height: 1.9; color: #4c594c; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.feedback-meta .author-badge { display: inline-flex; align-items: center; gap: 6px; }
+.feedback-meta .author-guest-badge {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: #58665014;
+  border: 1px solid #58665040;
+  color: #4c594c;
+}
 .feedback-card .feedback-badge { display: inline-block; border-color: #58665070; font-size: 10px; padding: 0 7px; vertical-align: middle; }
 .feedback-card summary { border-top: 1px solid #5c60362e; font-size: 12px; font-weight: 600; padding: 12px 0 0; }
 .feedback-card .feedback-message { font-size: 14px; }

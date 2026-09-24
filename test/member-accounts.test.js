@@ -34,14 +34,16 @@ async function worker(env = {}) {
   const { default: handler } = await import('../services/forum/worker.mjs');
   const bindings = { DB: fakeD1(), ALLOWED_ORIGINS: ORIGIN, IP_SALT: 'test-salt', MEMBER_SESSION_SECRET: 'test-member-session-secret', ...env };
   const api = async (method, route, body, headers = {}) => {
+    const isBinary = body instanceof Uint8Array;
     const request = new Request(`https://forum.example${route}`, {
-      method, headers: { Origin: ORIGIN, ...(body ? { 'Content-Type': 'application/json' } : {}), ...headers },
-      body: body === undefined ? undefined : (typeof body === 'string' ? body : JSON.stringify(body)),
+      method, headers: { Origin: ORIGIN, ...(body && !isBinary ? { 'Content-Type': 'application/json' } : {}), ...headers },
+      body: body === undefined ? undefined : (isBinary || typeof body === 'string' ? body : JSON.stringify(body)),
     });
     const response = await handler.fetch(request, bindings);
     return { status: response.status, headers: response.headers, data: response.status === 204 ? null : await response.json() };
   };
   api.db = bindings.DB.raw;
+  api.images = bindings.IMAGES;
   return api;
 }
 // Every registration/login in these tests comes from a distinct address unless a test is about the
@@ -125,6 +127,71 @@ test('member_login_attempts is independent of login_attempts and write_log', asy
   // The moderator's own login_attempts table is untouched by any of this.
   assert.equal(api.db.prepare('SELECT COUNT(*) AS n FROM login_attempts').get().n, 0);
   assert.equal(api.db.prepare('SELECT COUNT(*) AS n FROM member_login_attempts').get().n, 5);
-  // Posting content from the same address is unaffected — member login has its own ledger.
-  assert.equal((await api('POST', '/posts', { category: '城中熱話', headline: 'h', body: 'b', nickname: '', requestKey: 'a'.repeat(20) }, attacker)).status, 201);
+  // Posting content from the same address is unaffected — member login has its own ledger. (The
+  // token itself has to come from a member registered on a different address, since attacker's own
+  // member_login_attempts budget is now spent — but write_log, which gates the post below, is keyed
+  // on attacker's address regardless of whose token is presented.)
+  const registered = await api('POST', '/members/register', { username: '有容2', password: 'correcthorsebattery' }, fresh());
+  assert.equal((await api('POST', '/posts', { category: '城中熱話', headline: 'h', body: 'b', requestKey: 'a'.repeat(20) }, { ...attacker, ...bearer(registered.data.token) })).status, 201);
+});
+
+test('a member token carries the username, so posting works without a database round trip to look it up', async () => {
+  const api = await worker();
+  const registered = await api('POST', '/members/register', { username: '英秀', password: 'correcthorsebattery' }, fresh());
+  const posted = await api('POST', '/posts', { category: '城中熱話', headline: 'h', body: 'b', requestKey: 'a'.repeat(20) }, { ...fresh(), ...bearer(registered.data.token) });
+  assert.equal(posted.status, 201);
+  assert.equal(posted.data.item.nickname, '英秀', 'a member post displays the fixed username, not a free-text nickname');
+  assert.equal(posted.data.item.isGuest, false);
+});
+
+// ── Avatar upload ──────────────────────────────────────────────────────────────────────
+
+function fakeR2() {
+  const store = new Map();
+  return {
+    async put(key, bytes, options) { store.set(key, { body: bytes, httpMetadata: options?.httpMetadata || {} }); },
+    async get(key) { return store.has(key) ? store.get(key) : null; },
+    async delete(key) { store.delete(key); },
+    size: () => store.size,
+  };
+}
+
+test('a member can upload an avatar, which shows up on /members/me and gets replaced (not duplicated) on re-upload', async () => {
+  const api = await worker({ IMAGES: fakeR2() });
+  const registered = await api('POST', '/members/register', { username: '思賢', password: 'correcthorsebattery' }, fresh());
+  const auth = bearer(registered.data.token);
+  const bytes = new Uint8Array([0xff, 0xd8, 0xff, 0xdb]);
+  const anonymous = await api('POST', '/members/me/avatar', bytes, { 'Content-Type': 'image/jpeg' });
+  assert.equal(anonymous.status, 401);
+  const uploaded = await api('POST', '/members/me/avatar', bytes, { ...auth, 'Content-Type': 'image/jpeg' });
+  assert.equal(uploaded.status, 201);
+  assert.match(uploaded.data.avatarKey, /^[a-f0-9-]{36}\.jpg$/);
+  const me = await api('GET', '/members/me', undefined, auth);
+  assert.equal(me.data.avatarKey, uploaded.data.avatarKey);
+  const replaced = await api('POST', '/members/me/avatar', bytes, { ...auth, 'Content-Type': 'image/png' });
+  assert.equal(replaced.status, 201);
+  assert.notEqual(replaced.data.avatarKey, uploaded.data.avatarKey);
+  assert.equal(api.images.size(), 1, 'the old avatar blob is deleted, not left orphaned');
+});
+
+test('avatar upload rejects an unaccepted content type and a file over the 2MB cap', async () => {
+  const api = await worker({ IMAGES: fakeR2() });
+  const registered = await api('POST', '/members/register', { username: '允行', password: 'correcthorsebattery' }, fresh());
+  const auth = bearer(registered.data.token);
+  const wrongType = await api('POST', '/members/me/avatar', new Uint8Array([1, 2]), { ...auth, 'Content-Type': 'image/gif' });
+  assert.equal(wrongType.status, 400);
+  const tooBig = await api('POST', '/members/me/avatar', new Uint8Array(2 * 1024 * 1024 + 1), { ...auth, 'Content-Type': 'image/jpeg' });
+  assert.equal(tooBig.status, 413);
+});
+
+test('a moderator can hide a member\'s avatar; /members/me then stops returning it', async () => {
+  const api = await worker({ IMAGES: fakeR2() });
+  const registered = await api('POST', '/members/register', { username: '和悅', password: 'correcthorsebattery' }, fresh());
+  const auth = bearer(registered.data.token);
+  await api('POST', '/members/me/avatar', new Uint8Array([1]), { ...auth, 'Content-Type': 'image/jpeg' });
+  const { username } = registered.data;
+  const memberId = api.db.prepare('SELECT id FROM members WHERE username = ?').get(username).id;
+  api.db.prepare("UPDATE members SET avatar_state = 'hidden' WHERE id = ?").run(memberId);
+  const me = await api('GET', '/members/me', undefined, auth);
+  assert.equal(me.data.avatarKey, null, 'a hidden avatar never reaches the response, even though the row still has the key');
 });

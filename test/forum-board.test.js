@@ -30,19 +30,20 @@ function fakeD1() {
   };
 }
 
-// Minimal R2 surface (put/get) over an in-memory Map.
+// Minimal R2 surface (put/get/delete) over an in-memory Map.
 function fakeR2() {
   const store = new Map();
   return {
     async put(key, bytes, options) { store.set(key, { body: bytes, httpMetadata: options?.httpMetadata || {} }); },
     async get(key) { return store.has(key) ? store.get(key) : null; },
+    async delete(key) { store.delete(key); },
     size: () => store.size,
   };
 }
 
 async function worker(env = {}) {
   const { default: handler } = await import('../services/forum/worker.mjs');
-  const bindings = { DB: fakeD1(), IMAGES: fakeR2(), ALLOWED_ORIGINS: ORIGIN, IP_SALT: 'test-salt', MODERATOR_PASSWORD: PASSWORD, SESSION_SECRET: 'test-session-secret', ...env };
+  const bindings = { DB: fakeD1(), IMAGES: fakeR2(), ALLOWED_ORIGINS: ORIGIN, IP_SALT: 'test-salt', MODERATOR_PASSWORD: PASSWORD, SESSION_SECRET: 'test-session-secret', MEMBER_SESSION_SECRET: 'test-member-session-secret', ...env };
   const api = async (method, route, body, headers = {}) => {
     const isBinary = body instanceof Uint8Array;
     const request = new Request(`https://forum.example${route}`, {
@@ -64,7 +65,7 @@ function fresh() { return { 'CF-Connecting-IP': `203.0.113.${++addresses % 250}`
 function backdate(db, minutes) { db.prepare("UPDATE write_log SET created_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now', ?)").run(`-${minutes} minutes`); }
 
 function post(overrides = {}) {
-  return { category: '城中熱話', headline: '存檔 & 載入 #問題', body: '第一行\n<img src=x onerror=alert(1)>', nickname: '市民', requestKey: KEY, ...overrides };
+  return { category: '城中熱話', headline: '存檔 & 載入 #問題', body: '第一行\n<img src=x onerror=alert(1)>', requestKey: KEY, ...overrides };
 }
 // Named newsPayload, not news, because most call sites bind their own `const news = await api(...)`
 // result right after calling this — same name would shadow the helper before its own initializer runs.
@@ -77,6 +78,15 @@ async function login(api, headers = fresh()) {
   return result.data.token;
 }
 function bearer(token) { return { Authorization: `Bearer ${token}` }; }
+// 留言權: every write route now needs a member token — this registers a fresh member (on its own
+// address, so it never eats into the caller's own write_log/member_login_attempts budget unless the
+// same headers are reused on purpose) and returns ready-to-spread Authorization headers.
+async function member(api, headers = fresh()) {
+  const username = `m${Math.random().toString(36).slice(2, 10)}`;
+  const result = await api('POST', '/members/register', { username, password: 'correcthorsebattery' }, headers);
+  assert.equal(result.status, 201, 'test setup: member registration must succeed');
+  return { username, token: result.data.token, headers: bearer(result.data.token) };
+}
 function approveDirect(api, table, id) { api.db.prepare(`UPDATE ${table} SET approved_for_game = 1 WHERE id = ?`).run(id); }
 
 test('the API only answers the official site and reports health', async () => {
@@ -103,9 +113,60 @@ test('a request with no Origin header (the game client) is never rejected by the
   assert.equal(response.headers.get('Access-Control-Allow-Origin'), null);
 });
 
+// ── 留言權: every write route requires a member token ─────────────────────────────────
+
+test('posting, commenting, reacting and submitting an ad all require a member token; browsing never does', async () => {
+  const api = await worker();
+  assert.equal((await api('POST', '/posts', post())).status, 401, 'posting with no token');
+  assert.equal((await api('POST', '/posts', post(), { Authorization: 'Bearer not-a-real-token' })).status, 401, 'tampered/fake token');
+  const { headers: auth } = await member(api);
+  const posted = await api('POST', '/posts', post(), auth);
+  assert.equal(posted.status, 201);
+  assert.equal((await api('POST', `/posts/${posted.data.item.id}/comments`, { body: 'hi', requestKey: `${KEY}r` })).status, 401, 'commenting with no token');
+  assert.equal((await api('POST', `/posts/${posted.data.item.id}/react`, { reaction: 'like' })).status, 401, 'reacting with no token');
+  assert.equal((await api('POST', '/ads', { adText: 'ad', requestKey: `${KEY}d` })).status, 401, 'ad submission with no token');
+  // Reading is never gated.
+  assert.equal((await api('GET', '/posts')).status, 200);
+  assert.equal((await api('GET', `/posts/${posted.data.item.id}/comments`)).status, 200);
+  assert.equal((await api('GET', '/ads')).status, 200);
+});
+
+test('a member\'s post/comment/ad always displays their fixed username, never a free-text nickname', async () => {
+  const api = await worker();
+  const { headers: auth, username } = await member(api);
+  const posted = await api('POST', '/posts', post(), auth);
+  assert.equal(posted.status, 201);
+  assert.equal(posted.data.item.nickname, username);
+  assert.equal(posted.data.item.isGuest, false);
+  const comment = await api('POST', `/posts/${posted.data.item.id}/comments`, { body: 'hi', requestKey: `${KEY}r` }, { ...fresh(), ...auth });
+  assert.equal(comment.data.item.nickname, username);
+  assert.equal(comment.data.item.isGuest, false);
+  const ad = await api('POST', '/ads', { adText: 'ad', requestKey: `${KEY}d` }, { ...fresh(), ...auth });
+  assert.equal(ad.data.item.nickname, username);
+  assert.equal(ad.data.item.isGuest, false);
+  // Sending a nickname field at all is now an unknown-key rejection, same as any other stray field.
+  assert.equal((await api('POST', '/posts', post({ nickname: 'x', requestKey: `${KEY}n` }), auth)).status, 400);
+});
+
+test('a guest/legacy row (posted before 留言權, member_id NULL) keeps its original nickname and is tagged isGuest', async () => {
+  const api = await worker();
+  api.db.prepare('INSERT INTO posts (category, headline, body, nickname, created_at, request_key) VALUES (?, ?, ?, ?, ?, ?)')
+    .run('城中熱話', '舊街坊貼文', 'b', '油尖旺 金毛玲', 'now', KEY);
+  api.db.prepare('INSERT INTO posts (category, headline, body, nickname, created_at, request_key) VALUES (?, ?, ?, ?, ?, ?)')
+    .run('城中熱話', '冇名嘅舊貼文', 'b', '', 'now', `${KEY}2`);
+  const list = (await api('GET', '/posts')).data.items;
+  const named = list.find((item) => item.headline === '舊街坊貼文');
+  const unnamed = list.find((item) => item.headline === '冇名嘅舊貼文');
+  assert.equal(named.isGuest, true);
+  assert.equal(named.nickname, '油尖旺 金毛玲', 'an existing guest nickname is preserved as-is');
+  assert.equal(unnamed.isGuest, true);
+  assert.equal(unnamed.nickname, '訪客', 'a blank legacy nickname falls back to a guest label');
+});
+
 test('a post shows on the website discussion board immediately but stays out of the game feed until the moderator approves it', async () => {
   const api = await worker();
-  const first = await api('POST', '/posts', post());
+  const { headers: auth } = await member(api);
+  const first = await api('POST', '/posts', post(), auth);
   assert.equal(first.status, 201);
   assert.equal(first.data.item.id, 1);
   assert.equal(first.data.item.headline, '存檔 & 載入 #問題');
@@ -113,10 +174,10 @@ test('a post shows on the website discussion board immediately but stays out of 
   const wall = await api('GET', '/posts');
   assert.equal(wall.data.items.length, 1, 'the website board shows a post immediately, so the author sees their own post');
   assert.deepEqual((await api('GET', '/posts?approved=1')).data, { items: [], hasNext: false }, 'the game feed only shows approved posts');
-  const replay = await api('POST', '/posts', post());
+  const replay = await api('POST', '/posts', post(), auth);
   assert.equal(replay.status, 201);
   assert.equal(replay.data.item.id, 1, 'idempotent replay never double-counts, approved or not');
-  const conflict = await api('POST', '/posts', post({ headline: 'changed' }));
+  const conflict = await api('POST', '/posts', post({ headline: 'changed' }), auth);
   assert.equal(conflict.status, 409);
   approveDirect(api, 'posts', 1);
   const list = await api('GET', '/posts?approved=1');
@@ -126,28 +187,30 @@ test('a post shows on the website discussion board immediately but stays out of 
 
 test('malformed posts are rejected before they reach the database', async () => {
   const api = await worker();
-  assert.equal((await api('POST', '/posts', post({ category: '未知台' }))).status, 400);
-  assert.equal((await api('POST', '/posts', post({ headline: '   ' }))).status, 400);
-  assert.equal((await api('POST', '/posts', post({ body: 'x'.repeat(1501) }))).status, 400);
-  assert.equal((await api('POST', '/posts', post({ requestKey: 'short' }))).status, 400);
-  assert.equal((await api('POST', '/posts', post({ nickname: 42 }))).status, 400);
-  assert.equal((await api('POST', '/posts', '[1,2]')).status, 400);
-  assert.equal((await api('POST', '/posts', 'not json')).status, 400);
-  assert.equal((await api('POST', '/posts', 'x', { 'Content-Type': 'text/plain' })).status, 415);
-  assert.equal((await api('POST', '/posts', post({ body: 'x'.repeat(40000) }))).status, 413);
+  const { headers: auth } = await member(api);
+  const submit = (overrides) => api('POST', '/posts', post(overrides), auth);
+  assert.equal((await submit({ category: '未知台' })).status, 400);
+  assert.equal((await submit({ headline: '   ' })).status, 400);
+  assert.equal((await submit({ body: 'x'.repeat(1501) })).status, 400);
+  assert.equal((await submit({ requestKey: 'short' })).status, 400);
+  assert.equal((await api('POST', '/posts', '[1,2]', auth)).status, 400);
+  assert.equal((await api('POST', '/posts', 'not json', auth)).status, 400);
+  assert.equal((await api('POST', '/posts', 'x', { ...auth, 'Content-Type': 'text/plain' })).status, 415);
+  assert.equal((await submit({ body: 'x'.repeat(40000) })).status, 413);
   assert.deepEqual((await api('GET', '/posts')).data, { items: [], hasNext: false });
 });
 
 test('SQL and HTML payloads in every field are stored inert as text and never executed', async () => {
   const api = await worker();
+  const { headers: auth, username } = await member(api);
   const attack = "x'; DROP TABLE posts; --";
   const tables = () => api.db.prepare("SELECT COUNT(*) AS n FROM sqlite_master WHERE type = 'table'").get().n;
   const before = tables();
-  const posted = await api('POST', '/posts', post({ headline: attack, body: `${attack}\n<script>alert(1)</script>\n" OR 1=1 --`, nickname: "Robert'); DELETE FROM comments; --" }));
+  const posted = await api('POST', '/posts', post({ headline: attack, body: `${attack}\n<script>alert(1)</script>\n" OR 1=1 --` }), auth);
   assert.equal(posted.status, 201);
   assert.equal(posted.data.item.headline, attack);
-  assert.equal(posted.data.item.nickname, "Robert'); DELETE FROM comments; --");
-  const comment = await api('POST', '/posts/1/comments', { body: "'); DROP TABLE comments; --", nickname: '\\x00', requestKey: `${KEY}r` }, fresh());
+  assert.equal(posted.data.item.nickname, username);
+  const comment = await api('POST', '/posts/1/comments', { body: "'); DROP TABLE comments; --", requestKey: `${KEY}r` }, { ...fresh(), ...auth });
   assert.equal(comment.status, 201, 'commenting does not require the parent post to be approved yet');
   assert.equal(tables(), before);
   approveDirect(api, 'posts', 1);
@@ -160,20 +223,19 @@ test('SQL and HTML payloads in every field are stored inert as text and never ex
 
 test('field restrictions: closed category list, single-line headline, control characters and unknown keys', async () => {
   const api = await worker();
-  const reject = async (patch, why) => assert.equal((await api('POST', '/posts', post(patch), fresh())).status, 400, why);
+  const { headers: auth } = await member(api);
+  const reject = async (patch, why) => assert.equal((await api('POST', '/posts', post(patch), { ...fresh(), ...auth })).status, 400, why);
   await reject({ category: '吹水台; DROP' }, 'category is exact-match against the closed list');
   await reject({ headline: 'line one\nline two' }, 'headline is single-line');
-  await reject({ nickname: 'tab\tname' }, 'nickname has no tabs');
   await reject({ headline: 'null\u0000byte' }, 'no NUL');
   await reject({ body: 'esc\u001b[31m' }, 'no C0 control characters');
   await reject({ body: 'sep line' }, 'no unicode line separators');
   await reject({ body: 'x', extra: 'field' }, 'unknown keys are refused');
   await reject({ __proto__: { polluted: true }, ['__proto__']: 'x' }, 'prototype keys are refused');
-  const ok = await api('POST', '/posts', post({ body: 'crlf\r\nlines\ttabbed', nickname: 'é' }), fresh());
+  const ok = await api('POST', '/posts', post({ body: 'crlf\r\nlines\ttabbed' }), { ...fresh(), ...auth });
   assert.equal(ok.status, 201);
   assert.equal(ok.data.item.body, 'crlf\nlines\ttabbed', 'CRLF is normalised to LF; tabs stay in the body');
-  assert.equal(ok.data.item.nickname, 'é', 'text is NFC-normalised');
-  const comment = await api('POST', '/posts/1/comments', { body: 'ok', requestKey: `${KEY}r`, headline: 'not a comment field' }, fresh());
+  const comment = await api('POST', '/posts/1/comments', { body: 'ok', requestKey: `${KEY}r`, headline: 'not a comment field' }, { ...fresh(), ...auth });
   assert.equal(comment.status, 400, 'comments accept only comment fields');
 });
 
@@ -192,19 +254,21 @@ test('the database refuses out-of-policy rows even when the Worker is bypassed',
 
 test('a hidden post disappears from the public feed even if it was already approved for the game', async () => {
   const api = await worker();
-  await api('POST', '/posts', post());
+  const { headers: auth } = await member(api);
+  await api('POST', '/posts', post(), auth);
   approveDirect(api, 'posts', 1);
   assert.equal((await api('GET', '/posts')).data.items.length, 1);
   api.db.prepare("UPDATE posts SET state = 'hidden' WHERE id = 1").run();
   assert.deepEqual((await api('GET', '/posts')).data, { items: [], hasNext: false });
-  assert.equal((await api('POST', '/posts/1/comments', { body: 'hi', requestKey: `${KEY}r` }, fresh())).status, 404);
+  assert.equal((await api('POST', '/posts/1/comments', { body: 'hi', requestKey: `${KEY}r` }, { ...fresh(), ...auth })).status, 404);
   assert.equal((await api('GET', '/posts/1/comments')).status, 404);
 });
 
 test('the feed pages 20 at a time, newest first, and filters by category', async () => {
   const api = await worker();
+  const { headers: auth } = await member(api);
   for (let i = 1; i <= 21; i++) {
-    await api('POST', '/posts', post({ headline: `memo ${i}`, requestKey: `${KEY}${i}` }), fresh());
+    await api('POST', '/posts', post({ headline: `memo ${i}`, requestKey: `${KEY}${i}` }), { ...fresh(), ...auth });
   }
   const page1 = await api('GET', '/posts');
   assert.equal(page1.data.items.length, 20);
@@ -221,8 +285,9 @@ test('the feed pages 20 at a time, newest first, and filters by category', async
 
 test('the ?approved=1 game feed paginates and filters the same way, over only the approved subset', async () => {
   const api = await worker();
+  const { headers: auth } = await member(api);
   for (let i = 1; i <= 21; i++) {
-    await api('POST', '/posts', post({ headline: `memo ${i}`, requestKey: `${KEY}${i}` }), fresh());
+    await api('POST', '/posts', post({ headline: `memo ${i}`, requestKey: `${KEY}${i}` }), { ...fresh(), ...auth });
     if (i !== 5) approveDirect(api, 'posts', i);
   }
   assert.equal((await api('GET', '/posts')).data.items.length, 20, 'the website board still shows every visible post, approved or not');
@@ -236,16 +301,17 @@ test('the ?approved=1 game feed paginates and filters the same way, over only th
 
 test('comments attach to an existing post, bump its comment count once approved, and are independent of the post\'s own approval', async () => {
   const api = await worker();
-  await api('POST', '/posts', post());
-  const missing = await api('POST', '/posts/999/comments', { body: 'hello', requestKey: `${KEY}r` });
+  const { headers: auth } = await member(api);
+  await api('POST', '/posts', post(), auth);
+  const missing = await api('POST', '/posts/999/comments', { body: 'hello', requestKey: `${KEY}r` }, { ...fresh(), ...auth });
   assert.equal(missing.status, 404);
-  const comment = await api('POST', '/posts/1/comments', { body: ' 回覆 ', nickname: '', requestKey: `${KEY}r` }, fresh());
+  const comment = await api('POST', '/posts/1/comments', { body: ' 回覆 ', requestKey: `${KEY}r` }, { ...fresh(), ...auth });
   assert.equal(comment.status, 201);
   assert.equal(comment.data.item.body, '回覆');
   assert.equal(comment.data.item.post_id, 1);
-  const replay = await api('POST', '/posts/1/comments', { body: '回覆', nickname: '', requestKey: `${KEY}r` });
+  const replay = await api('POST', '/posts/1/comments', { body: '回覆', requestKey: `${KEY}r` }, auth);
   assert.equal(replay.data.item.id, comment.data.item.id);
-  assert.equal((await api('POST', '/posts/1/comments', { body: 'other', requestKey: `${KEY}r` })).status, 409);
+  assert.equal((await api('POST', '/posts/1/comments', { body: 'other', requestKey: `${KEY}r` }, auth)).status, 409);
   const websiteThread = await api('GET', '/posts/1/comments');
   assert.equal(websiteThread.data.items.length, 1, 'the website thread shows the comment immediately');
   assert.deepEqual((await api('GET', '/posts/1/comments?approved=1')).data, { items: [], hasNext: false }, 'the comment itself is still pending for the game feed');
@@ -260,10 +326,11 @@ test('comments attach to an existing post, bump its comment count once approved,
 test('the edge flood shield refuses writes before the body is read', async () => {
   const seen = [];
   const api = await worker({ POST_LIMIT: { async limit({ key }) { seen.push(key); return { success: seen.length > 1 }; } } });
-  const limited = await api('POST', '/posts', post(), { 'CF-Connecting-IP': '203.0.113.9' });
+  const { headers: auth } = await member(api);
+  const limited = await api('POST', '/posts', post(), { ...auth, 'CF-Connecting-IP': '203.0.113.9' });
   assert.equal(limited.status, 429);
   assert.equal(limited.data.error, 'limited');
-  assert.equal((await api('POST', '/posts', post())).status, 201);
+  assert.equal((await api('POST', '/posts', post(), auth)).status, 201);
   assert.equal((await api('GET', '/posts')).status, 200, 'reads are never rate limited');
   assert.deepEqual(seen, ['203.0.113.9', 'unknown']);
 });
@@ -271,26 +338,28 @@ test('the edge flood shield refuses writes before the body is read', async () =>
 test('one address may write once a minute and five times an hour; retries of a stored request are free', async () => {
   const api = await worker();
   const me = { 'CF-Connecting-IP': '198.51.100.7' }, other = { 'CF-Connecting-IP': '198.51.100.8' };
-  assert.equal((await api('POST', '/posts', post(), me)).status, 201);
-  const second = await api('POST', '/posts', post({ requestKey: `${KEY}2` }), me);
+  const { headers: authMe } = await member(api, me);
+  const { headers: authOther } = await member(api, other);
+  assert.equal((await api('POST', '/posts', post(), { ...me, ...authMe })).status, 201);
+  const second = await api('POST', '/posts', post({ requestKey: `${KEY}2` }), { ...me, ...authMe });
   assert.equal(second.status, 429);
   assert.equal(second.data.error, 'limited');
-  assert.equal((await api('POST', '/posts', post(), me)).status, 201, 'same request key replays without counting');
-  assert.equal((await api('POST', '/posts/1/comments', { body: 'hi', requestKey: `${KEY}r` }, me)).status, 429, 'comments share the window');
-  assert.equal((await api('POST', '/posts', post({ requestKey: `${KEY}o` }), other)).status, 201, 'another address is unaffected');
+  assert.equal((await api('POST', '/posts', post(), { ...me, ...authMe })).status, 201, 'same request key replays without counting');
+  assert.equal((await api('POST', '/posts/1/comments', { body: 'hi', requestKey: `${KEY}r` }, { ...me, ...authMe })).status, 429, 'comments share the window');
+  assert.equal((await api('POST', '/posts', post({ requestKey: `${KEY}o` }), { ...other, ...authOther })).status, 201, 'another address is unaffected');
   backdate(api.db, 2);
-  assert.equal((await api('POST', '/posts', post({ requestKey: `${KEY}2` }), me)).status, 201);
+  assert.equal((await api('POST', '/posts', post({ requestKey: `${KEY}2` }), { ...me, ...authMe })).status, 201);
   backdate(api.db, 2);
-  assert.equal((await api('POST', '/posts/1/comments', { body: 'hi', requestKey: `${KEY}r` }, me)).status, 201);
+  assert.equal((await api('POST', '/posts/1/comments', { body: 'hi', requestKey: `${KEY}r` }, { ...me, ...authMe })).status, 201);
   backdate(api.db, 2);
-  assert.equal((await api('POST', '/posts', post({ requestKey: `${KEY}4` }), me)).status, 201);
+  assert.equal((await api('POST', '/posts', post({ requestKey: `${KEY}4` }), { ...me, ...authMe })).status, 201);
   backdate(api.db, 2);
-  assert.equal((await api('POST', '/posts', post({ requestKey: `${KEY}5` }), me)).status, 201);
+  assert.equal((await api('POST', '/posts', post({ requestKey: `${KEY}5` }), { ...me, ...authMe })).status, 201);
   backdate(api.db, 2);
   assert.equal(api.db.prepare("SELECT COUNT(*) AS n FROM write_log WHERE client = (SELECT client FROM write_log LIMIT 1)").get().n, 5);
-  assert.equal((await api('POST', '/posts', post({ requestKey: `${KEY}6` }), me)).status, 429, 'sixth write in the hour closes the window');
+  assert.equal((await api('POST', '/posts', post({ requestKey: `${KEY}6` }), { ...me, ...authMe })).status, 429, 'sixth write in the hour closes the window');
   backdate(api.db, 61);
-  assert.equal((await api('POST', '/posts', post({ requestKey: `${KEY}6` }), me)).status, 201, 'entries older than an hour are pruned');
+  assert.equal((await api('POST', '/posts', post({ requestKey: `${KEY}6` }), { ...me, ...authMe })).status, 201, 'entries older than an hour are pruned');
   assert.equal(api.db.prepare('SELECT COUNT(*) AS n FROM write_log').get().n, 1);
   assert.equal(api.db.prepare("SELECT COUNT(*) AS n FROM write_log WHERE client LIKE '198.%' OR client LIKE '%.%'").get().n, 0, 'no raw address is stored');
 });
@@ -299,8 +368,10 @@ test('one address may write once a minute and five times an hour; retries of a s
 
 test('ads show on the website wall immediately but need approval to reach the ticker', async () => {
   const api = await worker();
-  const posted = await api('POST', '/ads', { adText: '[時代迷你昌] 有平嘢賣', nickname: '街坊', requestKey: KEY });
+  const { headers: auth, username } = await member(api);
+  const posted = await api('POST', '/ads', { adText: '[時代迷你昌] 有平嘢賣', requestKey: KEY }, auth);
   assert.equal(posted.status, 201);
+  assert.equal(posted.data.item.nickname, username);
   const wall = await api('GET', '/ads');
   assert.equal(wall.data.items.length, 1, 'the website wall shows everything visible, approved or not');
   assert.deepEqual((await api('GET', '/ads?approved=1')).data, { items: [], hasNext: false }, 'the game feed only shows approved ads');
@@ -312,8 +383,9 @@ test('ads show on the website wall immediately but need approval to reach the ti
 
 test('ad text is capped shorter than a forum post body, matching the ticker\'s one-line format', async () => {
   const api = await worker();
-  assert.equal((await api('POST', '/ads', { adText: 'x'.repeat(121), nickname: '', requestKey: KEY })).status, 400);
-  assert.equal((await api('POST', '/ads', { adText: 'x'.repeat(120), nickname: '', requestKey: KEY })).status, 201);
+  const { headers: auth } = await member(api);
+  assert.equal((await api('POST', '/ads', { adText: 'x'.repeat(121), requestKey: KEY }, auth)).status, 400);
+  assert.equal((await api('POST', '/ads', { adText: 'x'.repeat(120), requestKey: KEY }, auth)).status, 201);
 });
 
 // ── News posts (moderator-authored) + comments ────────────────────────────────────────
@@ -349,9 +421,10 @@ test('news articles filter by category the same way posts do, for the unified di
 test('news comments show on the article immediately but only reach the game feed once approved', async () => {
   const api = await worker();
   const token = await login(api);
+  const { headers: auth } = await member(api);
   const news = await api('POST', '/admin/news', newsPayload({ headline: '停水通告', body: '維修期間停水。' }), bearer(token));
   const newsId = news.data.item.id;
-  const comment = await api('POST', `/news/${newsId}/comments`, { body: '幾時再有水？', nickname: '住戶', requestKey: KEY }, fresh());
+  const comment = await api('POST', `/news/${newsId}/comments`, { body: '幾時再有水？', requestKey: KEY }, auth);
   assert.equal(comment.status, 201);
   const thread = await api('GET', `/news/${newsId}/comments`);
   assert.equal(thread.data.items.length, 1, 'visible on the article right away');
@@ -366,11 +439,12 @@ test('news comments show on the article immediately but only reach the game feed
 
 test('news comments can only be posted on a visible news post', async () => {
   const api = await worker();
-  assert.equal((await api('POST', '/news/999/comments', { body: 'x', requestKey: KEY })).status, 404);
+  const { headers: auth } = await member(api);
+  assert.equal((await api('POST', '/news/999/comments', { body: 'x', requestKey: KEY }, auth)).status, 404);
   const token = await login(api);
   const news = await api('POST', '/admin/news', newsPayload({ headline: 'h', body: 'b' }), bearer(token));
   await api('POST', `/admin/news/${news.data.item.id}/hide`, undefined, bearer(token));
-  assert.equal((await api('POST', `/news/${news.data.item.id}/comments`, { body: 'x', requestKey: KEY })).status, 404);
+  assert.equal((await api('POST', `/news/${news.data.item.id}/comments`, { body: 'x', requestKey: KEY }, auth)).status, 404);
 });
 
 // ── Uploaded news photos ────────────────────────────────────────────────────────────────
@@ -431,7 +505,8 @@ test('five wrong-password attempts in an hour lock out further login tries from 
   const sixth = await api('POST', '/admin/login', { password: PASSWORD }, attacker);
   assert.equal(sixth.status, 429, 'even the correct password is locked out once the attempt budget is spent');
   // A normal content post from the same address is unaffected — logins have their own budget.
-  assert.equal((await api('POST', '/posts', post(), attacker)).status, 201);
+  const { headers: auth } = await member(api, fresh());
+  assert.equal((await api('POST', '/posts', post(), { ...attacker, ...auth })).status, 201);
 });
 
 // ── Moderator queues and approve/hide actions ─────────────────────────────────────────
@@ -439,14 +514,16 @@ test('five wrong-password attempts in an hour lock out further login tries from 
 test('the moderator queue lists pending posts, comments, news comments and ads with context, and approve/hide act on exactly one row', async () => {
   const api = await worker();
   const token = await login(api);
-  await api('POST', '/posts', post());
-  const comment = await api('POST', '/posts/1/comments', { body: 'c', requestKey: `${KEY}c` }, fresh());
-  await api('POST', '/ads', { adText: 'ad', nickname: '', requestKey: `${KEY}d` }, fresh());
+  const { headers: auth, username } = await member(api);
+  await api('POST', '/posts', post(), auth);
+  const comment = await api('POST', '/posts/1/comments', { body: 'c', requestKey: `${KEY}c` }, { ...fresh(), ...auth });
+  await api('POST', '/ads', { adText: 'ad', requestKey: `${KEY}d` }, { ...fresh(), ...auth });
   const news = await api('POST', '/admin/news', newsPayload({ headline: 'n', body: 'b' }), bearer(token));
-  const newsComment = await api('POST', `/news/${news.data.item.id}/comments`, { body: 'nc', requestKey: `${KEY}e` }, fresh());
+  const newsComment = await api('POST', `/news/${news.data.item.id}/comments`, { body: 'nc', requestKey: `${KEY}e` }, { ...fresh(), ...auth });
 
   const postsQueue = await api('GET', '/admin/queue/posts', undefined, bearer(token));
   assert.equal(postsQueue.data.items.length, 1);
+  assert.equal(postsQueue.data.items[0].nickname, username, 'the queue resolves the poster\'s username, not a raw member_id');
   const commentsQueue = await api('GET', '/admin/queue/comments', undefined, bearer(token));
   assert.equal(commentsQueue.data.items[0].post_headline, '存檔 & 載入 #問題', 'comment queue carries its parent post headline for context');
   const newsCommentsQueue = await api('GET', '/admin/queue/news-comments', undefined, bearer(token));
@@ -471,12 +548,13 @@ test('the moderator queue lists pending posts, comments, news comments and ads w
 
 test('reacting to a post increments exactly the matching counter and returns the fresh totals', async () => {
   const api = await worker();
-  await api('POST', '/posts', post());
-  const like = await api('POST', '/posts/1/react', { reaction: 'like' }, fresh());
+  const { headers: auth } = await member(api);
+  await api('POST', '/posts', post(), auth);
+  const like = await api('POST', '/posts/1/react', { reaction: 'like' }, { ...fresh(), ...auth });
   assert.equal(like.status, 200);
   assert.deepEqual(like.data.item, { id: 1, likes: 1, laughs: 0, angry: 0, shares: 0, clowns: 0 });
-  await api('POST', '/posts/1/react', { reaction: 'clown' }, fresh());
-  const clown = await api('POST', '/posts/1/react', { reaction: 'clown' }, fresh());
+  await api('POST', '/posts/1/react', { reaction: 'clown' }, { ...fresh(), ...auth });
+  const clown = await api('POST', '/posts/1/react', { reaction: 'clown' }, { ...fresh(), ...auth });
   assert.deepEqual(clown.data.item, { id: 1, likes: 1, laughs: 0, angry: 0, shares: 0, clowns: 2 });
   // The counts ride along on the ordinary list/detail queries, no separate fetch needed.
   assert.equal((await api('GET', '/posts')).data.items[0].clowns, 2);
@@ -484,35 +562,38 @@ test('reacting to a post increments exactly the matching counter and returns the
 
 test('reacting rejects an unknown reaction name and 404s on a missing or hidden post', async () => {
   const api = await worker();
-  await api('POST', '/posts', post());
-  assert.equal((await api('POST', '/posts/1/react', { reaction: 'sad' }, fresh())).status, 400);
-  assert.equal((await api('POST', '/posts/1/react', { reaction: 'like', extra: 1 }, fresh())).status, 400);
-  assert.equal((await api('POST', '/posts/999/react', { reaction: 'like' }, fresh())).status, 404);
+  const { headers: auth } = await member(api);
+  await api('POST', '/posts', post(), auth);
+  assert.equal((await api('POST', '/posts/1/react', { reaction: 'sad' }, { ...fresh(), ...auth })).status, 400);
+  assert.equal((await api('POST', '/posts/1/react', { reaction: 'like', extra: 1 }, { ...fresh(), ...auth })).status, 400);
+  assert.equal((await api('POST', '/posts/999/react', { reaction: 'like' }, { ...fresh(), ...auth })).status, 404);
   api.db.prepare("UPDATE posts SET state = 'hidden' WHERE id = 1").run();
-  assert.equal((await api('POST', '/posts/1/react', { reaction: 'like' }, fresh())).status, 404, 'a hidden post cannot be reacted to');
+  assert.equal((await api('POST', '/posts/1/react', { reaction: 'like' }, { ...fresh(), ...auth })).status, 404, 'a hidden post cannot be reacted to');
 });
 
 test('reacting to a news article works the same way as a post, independent of its own approval status', async () => {
   const api = await worker();
   const token = await login(api);
+  const { headers: auth } = await member(api);
   const article = await api('POST', '/admin/news', newsPayload(), bearer(token));
-  const angry = await api('POST', `/news/${article.data.item.id}/react`, { reaction: 'angry' }, fresh());
+  const angry = await api('POST', `/news/${article.data.item.id}/react`, { reaction: 'angry' }, auth);
   assert.equal(angry.status, 200);
   assert.equal(angry.data.item.angry, 1);
   assert.equal((await api('GET', '/news')).data.items[0].angry, 1);
-  assert.equal((await api('POST', `/news/999/react`, { reaction: 'angry' }, fresh())).status, 404);
+  assert.equal((await api('POST', `/news/999/react`, { reaction: 'angry' }, auth)).status, 404);
 });
 
 test('reactions draw from their own loose budget, independent of the strict write_log used for text content', async () => {
   const api = await worker({ REACTIONS_PER_MINUTE: '2', REACTIONS_PER_HOUR: '10' });
   const me = { 'CF-Connecting-IP': '203.0.113.200' };
-  await api('POST', '/posts', post(), fresh());
-  assert.equal((await api('POST', '/posts/1/react', { reaction: 'like' }, me)).status, 200);
-  assert.equal((await api('POST', '/posts/1/react', { reaction: 'laugh' }, me)).status, 200);
-  const third = await api('POST', '/posts/1/react', { reaction: 'angry' }, me);
+  const { headers: auth } = await member(api, me);
+  await api('POST', '/posts', post(), { ...fresh(), ...auth });
+  assert.equal((await api('POST', '/posts/1/react', { reaction: 'like' }, { ...me, ...auth })).status, 200);
+  assert.equal((await api('POST', '/posts/1/react', { reaction: 'laugh' }, { ...me, ...auth })).status, 200);
+  const third = await api('POST', '/posts/1/react', { reaction: 'angry' }, { ...me, ...auth });
   assert.equal(third.status, 429, 'reaction_log has its own per-minute budget, separate from write_log');
   // Posting text from the same address is unaffected — reacting never touches write_log's budget.
-  assert.equal((await api('POST', '/posts', post({ requestKey: `${KEY}z` }), me)).status, 201);
+  assert.equal((await api('POST', '/posts', post({ requestKey: `${KEY}z` }), { ...me, ...auth })).status, 201);
   assert.equal(api.db.prepare("SELECT COUNT(*) AS n FROM write_log WHERE client = (SELECT client FROM reaction_log LIMIT 1)").get().n, 1, "me's own write_log entry: only the one text post, no reaction rows leaked in");
   assert.equal(api.db.prepare('SELECT COUNT(*) AS n FROM reaction_log').get().n, 2, 'the two successful reactions, not the rejected third');
 });

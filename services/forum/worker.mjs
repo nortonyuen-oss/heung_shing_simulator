@@ -9,6 +9,7 @@ const KEY_PATTERN = /^[a-zA-Z0-9-]{16,80}$/;
 const IMAGE_KEY_PATTERN = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}\.(jpg|jpeg|png|webp)$/;
 const IMAGE_CONTENT_TYPES = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
 const REACTIONS = ['like', 'laugh', 'angry', 'share', 'clown'];
 const REACTION_COLUMNS = { like: 'likes', laugh: 'laughs', angry: 'angry', share: 'shares', clown: 'clowns' };
 const REACTION_SELECT = 'id, likes, laughs, angry, shares, clowns';
@@ -17,8 +18,29 @@ const REACTION_SELECT = 'id, likes, laughs, angry, shares, clowns';
 // scripts the same as every nickname field elsewhere in this service.
 const USERNAME_PATTERN = /^[\p{L}\p{N}_-]{2,24}$/u;
 
-const POST_COLUMNS = 'p.id, p.category, p.headline, p.body, p.nickname, p.created_at, p.likes, p.laughs, p.angry, p.shares, p.clowns';
-const POST_QUERY = `SELECT ${POST_COLUMNS}, (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id AND c.state = 'visible') AS comments FROM posts p`;
+// Appended to any posts/comments/news_comments/ads query aliased `x` — resolves a row's member
+// (if any) so withAuthor() below can compute the display name/guest flag/avatar without a second
+// round trip. A hidden avatar resolves to NULL here, same posture as a hidden post disappearing
+// from the public feed.
+function authorJoin(alias) {
+  return `${alias}.member_id, m.username AS member_username, (CASE WHEN m.avatar_state = 'visible' THEN m.avatar_key END) AS member_avatar_key`;
+}
+const AUTHOR_FROM = (table, alias) => `${table} ${alias} LEFT JOIN members m ON m.id = ${alias}.member_id`;
+
+// Turns a raw joined row into the response shape: a member's post always displays their fixed
+// username (no more free-text nickname for new content); a guest/legacy row (member_id NULL) keeps
+// whatever nickname it was originally posted under, falling back to a literal "訪客" label if that
+// was blank. `nickname` stays the field name for backward compatibility with existing consumers
+// (the website's render code, and the game's newspaper.js sync) — only where its value comes from
+// changes.
+function withAuthor(row) {
+  if (!row) return row;
+  const { member_id, member_username, member_avatar_key, nickname, ...rest } = row;
+  return { ...rest, nickname: member_id ? member_username : (nickname || '訪客'), isGuest: member_id == null, avatarKey: member_avatar_key || null };
+}
+
+const POST_COLUMNS = `p.id, p.category, p.headline, p.body, p.nickname, ${authorJoin('p')}, p.created_at, p.likes, p.laughs, p.angry, p.shares, p.clowns`;
+const POST_QUERY = `SELECT ${POST_COLUMNS}, (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id AND c.state = 'visible') AS comments FROM ${AUTHOR_FROM('posts', 'p')}`;
 const NEWS_COLUMNS = 'n.id, n.headline, n.body, n.image_key, n.category, n.created_at, n.likes, n.laughs, n.angry, n.shares, n.clowns';
 const NEWS_QUERY = `SELECT ${NEWS_COLUMNS}, (SELECT COUNT(*) FROM news_comments nc WHERE nc.news_post_id = n.id AND nc.state = 'visible') AS comments FROM news_posts n`;
 
@@ -27,9 +49,11 @@ const NEWS_QUERY = `SELECT ${NEWS_COLUMNS}, (SELECT COUNT(*) FROM news_comments 
 // credential — it must compare exactly against what `wrangler secret put` stored, not a "cleaned
 // up" version of what was typed.
 const FIELDS = {
-  post: { category: { max: 20, required: true, list: CATEGORIES }, headline: { max: 220, required: true }, body: { max: 1500, required: true, multiline: true }, nickname: { max: 40 }, requestKey: { max: 80, required: true, pattern: KEY_PATTERN } },
-  comment: { body: { max: 1500, required: true, multiline: true }, nickname: { max: 40 }, requestKey: { max: 80, required: true, pattern: KEY_PATTERN } },
-  ad: { adText: { max: 120, required: true }, nickname: { max: 40 }, requestKey: { max: 80, required: true, pattern: KEY_PATTERN } },
+  // No more client-supplied nickname — 留言權 requires login for every write below, and a member's
+  // display name is always their fixed username (from the verified token), never free text.
+  post: { category: { max: 20, required: true, list: CATEGORIES }, headline: { max: 220, required: true }, body: { max: 1500, required: true, multiline: true }, requestKey: { max: 80, required: true, pattern: KEY_PATTERN } },
+  comment: { body: { max: 1500, required: true, multiline: true }, requestKey: { max: 80, required: true, pattern: KEY_PATTERN } },
+  ad: { adText: { max: 120, required: true }, requestKey: { max: 80, required: true, pattern: KEY_PATTERN } },
   news: { headline: { max: 220, required: true }, body: { max: 3000, required: true, multiline: true }, imageKey: { max: 100, pattern: IMAGE_KEY_PATTERN }, category: { max: 20, required: true, list: CATEGORIES } },
   reaction: { reaction: { max: 10, required: true, list: REACTIONS } },
   // password is deliberately NOT here, same reasoning as the login comment above — restrict()'s
@@ -98,6 +122,10 @@ export default {
         const postId = commentRoute ? Number(commentRoute[1]) : null;
         if (postId !== null && !Number.isSafeInteger(postId)) throw new ApiError(400, 'invalid');
         if (!['GET', 'POST'].includes(method)) throw new ApiError(405, 'method');
+        // 留言權: posting/replying requires login; browsing stays fully public. Checked before any
+        // DB work, same posture as recordWrite() below it — an unauthenticated request shouldn't
+        // even learn whether the parent post exists.
+        const member = method === 'POST' ? await requireMember(request, env) : null;
         // A comment's own approved_for_game gates what the game actually fetches (below); whether
         // the parent post itself is approved yet is unrelated — any visible post can be commented on.
         if (commentRoute && !await env.DB.prepare("SELECT id FROM posts WHERE id = ? AND state = 'visible'").bind(postId).first()) throw new ApiError(404, 'notFound');
@@ -108,8 +136,8 @@ export default {
           const approvedOnly = url.searchParams.get('approved') === '1';
           let result;
           if (commentRoute) {
-            const gameClause = approvedOnly ? 'AND approved_for_game = 1' : '';
-            result = await env.DB.prepare(`SELECT id, body, nickname, created_at FROM comments WHERE post_id = ? AND state = 'visible' ${gameClause} ORDER BY id ASC LIMIT ? OFFSET ?`).bind(postId, PAGE_SIZE + 1, offset).all();
+            const gameClause = approvedOnly ? 'AND c.approved_for_game = 1' : '';
+            result = await env.DB.prepare(`SELECT c.id, c.body, ${authorJoin('c')}, c.created_at FROM ${AUTHOR_FROM('comments', 'c')} WHERE c.post_id = ? AND c.state = 'visible' ${gameClause} ORDER BY c.id ASC LIMIT ? OFFSET ?`).bind(postId, PAGE_SIZE + 1, offset).all();
           } else {
             const category = url.searchParams.get('category') || 'all';
             if (category !== 'all' && !CATEGORIES.includes(category)) throw new ApiError(400, 'invalid');
@@ -118,21 +146,22 @@ export default {
               ? await env.DB.prepare(`${POST_QUERY} WHERE p.state = 'visible' ${gameClause} ORDER BY p.id DESC LIMIT ? OFFSET ?`).bind(PAGE_SIZE + 1, offset).all()
               : await env.DB.prepare(`${POST_QUERY} WHERE p.state = 'visible' ${gameClause} AND p.category = ? ORDER BY p.id DESC LIMIT ? OFFSET ?`).bind(category, PAGE_SIZE + 1, offset).all();
           }
-          return json({ items: result.results.slice(0, PAGE_SIZE), hasNext: result.results.length > PAGE_SIZE });
+          return json({ items: result.results.slice(0, PAGE_SIZE).map(withAuthor), hasNext: result.results.length > PAGE_SIZE });
         }
+        const { memberId } = member;
         const data = await jsonBody(request);
-        const { requestKey: key, body, nickname, category, headline } = { category: '', headline: '', ...restrict(data, commentRoute ? FIELDS.comment : FIELDS.post) };
+        const { requestKey: key, body, category, headline } = { category: '', headline: '', ...restrict(data, commentRoute ? FIELDS.comment : FIELDS.post) };
         const stored = commentRoute
-          ? () => env.DB.prepare('SELECT id, post_id, body, nickname, created_at FROM comments WHERE request_key = ?').bind(key).first()
+          ? () => env.DB.prepare(`SELECT c.id, c.post_id, c.body, ${authorJoin('c')}, c.created_at FROM ${AUTHOR_FROM('comments', 'c')} WHERE c.request_key = ?`).bind(key).first()
           : () => env.DB.prepare(`${POST_QUERY} WHERE p.request_key = ?`).bind(key).first();
         const matches = (row) => commentRoute
-          ? row.post_id === postId && row.body === body && row.nickname === nickname
-          : row.category === category && row.headline === headline && row.body === body && row.nickname === nickname;
+          ? row.post_id === postId && row.body === body && row.member_id === memberId
+          : row.category === category && row.headline === headline && row.body === body && row.member_id === memberId;
         const insert = () => commentRoute
-          ? env.DB.prepare('INSERT INTO comments (post_id, body, nickname, created_at, request_key) VALUES (?, ?, ?, ?, ?) ON CONFLICT(request_key) DO NOTHING').bind(postId, body, nickname, new Date().toISOString(), key).run()
-          : env.DB.prepare('INSERT INTO posts (category, headline, body, nickname, created_at, request_key) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(request_key) DO NOTHING').bind(category, headline, body, nickname, new Date().toISOString(), key).run();
+          ? env.DB.prepare('INSERT INTO comments (post_id, body, nickname, member_id, created_at, request_key) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(request_key) DO NOTHING').bind(postId, body, '', memberId, new Date().toISOString(), key).run()
+          : env.DB.prepare('INSERT INTO posts (category, headline, body, nickname, member_id, created_at, request_key) VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(request_key) DO NOTHING').bind(category, headline, body, '', memberId, new Date().toISOString(), key).run();
         const { item, status } = await createWithIdempotency(env, request, { stored, matches, insert });
-        return json({ item }, status);
+        return json({ item: withAuthor(item) }, status);
       }
 
       // ── Emoji reactions — a much looser budget than text content (recordReaction(), not
@@ -140,6 +169,7 @@ export default {
       const postReactRoute = path.match(/^\/posts\/([1-9]\d*)\/react$/);
       if (postReactRoute) {
         if (method !== 'POST') throw new ApiError(405, 'method');
+        await requireMember(request, env); // 留言權: reacting requires login, same as posting
         const postId = Number(postReactRoute[1]);
         const { reaction } = restrict(await jsonBody(request), FIELDS.reaction);
         await recordReaction(request, env);
@@ -155,6 +185,8 @@ export default {
       if (path === '/news' || newsCommentRoute) {
         const newsId = newsCommentRoute ? Number(newsCommentRoute[1]) : null;
         if (newsId !== null && !Number.isSafeInteger(newsId)) throw new ApiError(400, 'invalid');
+        // 留言權: replying to a news article requires login; reading it and the news list stays public.
+        const member = (newsCommentRoute && method === 'POST') ? await requireMember(request, env) : null;
         if (newsCommentRoute && !await env.DB.prepare("SELECT id FROM news_posts WHERE id = ? AND state = 'visible'").bind(newsId).first()) throw new ApiError(404, 'notFound');
         if (path === '/news') {
           if (method !== 'GET') throw new ApiError(405, 'method');
@@ -171,22 +203,24 @@ export default {
           const page = pageNumber(url), offset = (page - 1) * PAGE_SIZE;
           // Comments show on the website as soon as posted (state='visible'); approved_for_game
           // gates only the separate feed the game reads (see /posts above) — same split as forum.
-          const result = await env.DB.prepare("SELECT id, body, nickname, created_at FROM news_comments WHERE news_post_id = ? AND state = 'visible' ORDER BY id ASC LIMIT ? OFFSET ?").bind(newsId, PAGE_SIZE + 1, offset).all();
-          return json({ items: result.results.slice(0, PAGE_SIZE), hasNext: result.results.length > PAGE_SIZE });
+          const result = await env.DB.prepare(`SELECT nc.id, nc.body, ${authorJoin('nc')}, nc.created_at FROM ${AUTHOR_FROM('news_comments', 'nc')} WHERE nc.news_post_id = ? AND nc.state = 'visible' ORDER BY nc.id ASC LIMIT ? OFFSET ?`).bind(newsId, PAGE_SIZE + 1, offset).all();
+          return json({ items: result.results.slice(0, PAGE_SIZE).map(withAuthor), hasNext: result.results.length > PAGE_SIZE });
         }
+        const { memberId } = member;
         const data = await jsonBody(request);
-        const { requestKey: key, body, nickname } = restrict(data, FIELDS.comment);
-        const stored = () => env.DB.prepare('SELECT id, news_post_id, body, nickname, created_at FROM news_comments WHERE request_key = ?').bind(key).first();
-        const matches = (row) => row.news_post_id === newsId && row.body === body && row.nickname === nickname;
-        const insert = () => env.DB.prepare('INSERT INTO news_comments (news_post_id, body, nickname, created_at, request_key) VALUES (?, ?, ?, ?, ?) ON CONFLICT(request_key) DO NOTHING').bind(newsId, body, nickname, new Date().toISOString(), key).run();
+        const { requestKey: key, body } = restrict(data, FIELDS.comment);
+        const stored = () => env.DB.prepare(`SELECT nc.id, nc.news_post_id, nc.body, ${authorJoin('nc')}, nc.created_at FROM ${AUTHOR_FROM('news_comments', 'nc')} WHERE nc.request_key = ?`).bind(key).first();
+        const matches = (row) => row.news_post_id === newsId && row.body === body && row.member_id === memberId;
+        const insert = () => env.DB.prepare('INSERT INTO news_comments (news_post_id, body, nickname, member_id, created_at, request_key) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(request_key) DO NOTHING').bind(newsId, body, '', memberId, new Date().toISOString(), key).run();
         const { item, status } = await createWithIdempotency(env, request, { stored, matches, insert });
-        return json({ item }, status);
+        return json({ item: withAuthor(item) }, status);
       }
 
       // ── Emoji reactions on a news article — same posture as /posts/:id/react above.
       const newsReactRoute = path.match(/^\/news\/([1-9]\d*)\/react$/);
       if (newsReactRoute) {
         if (method !== 'POST') throw new ApiError(405, 'method');
+        await requireMember(request, env);
         const reactNewsId = Number(newsReactRoute[1]);
         const { reaction } = restrict(await jsonBody(request), FIELDS.reaction);
         await recordReaction(request, env);
@@ -203,8 +237,8 @@ export default {
       if (path === '/news-comments') {
         if (method !== 'GET') throw new ApiError(405, 'method');
         const page = pageNumber(url), offset = (page - 1) * PAGE_SIZE;
-        const result = await env.DB.prepare("SELECT nc.id, nc.body, nc.nickname, nc.created_at, nc.news_post_id, n.headline AS news_headline FROM news_comments nc JOIN news_posts n ON n.id = nc.news_post_id WHERE nc.state = 'visible' AND nc.approved_for_game = 1 ORDER BY nc.id DESC LIMIT ? OFFSET ?").bind(PAGE_SIZE + 1, offset).all();
-        return json({ items: result.results.slice(0, PAGE_SIZE), hasNext: result.results.length > PAGE_SIZE });
+        const result = await env.DB.prepare(`SELECT nc.id, nc.body, ${authorJoin('nc')}, nc.created_at, nc.news_post_id, n.headline AS news_headline FROM news_comments nc JOIN news_posts n ON n.id = nc.news_post_id LEFT JOIN members m ON m.id = nc.member_id WHERE nc.state = 'visible' AND nc.approved_for_game = 1 ORDER BY nc.id DESC LIMIT ? OFFSET ?`).bind(PAGE_SIZE + 1, offset).all();
+        return json({ items: result.results.slice(0, PAGE_SIZE).map(withAuthor), hasNext: result.results.length > PAGE_SIZE });
       }
 
       // ── 宣傳2-零速傳播 ────────────────────────────────────────────────────────────
@@ -216,23 +250,21 @@ export default {
           // 宣傳2 wall and includes anything not yet approved for the game, same split as posts.
           const approvedOnly = url.searchParams.get('approved') === '1';
           const result = approvedOnly
-            ? await env.DB.prepare("SELECT id, nickname, ad_text, created_at FROM ads WHERE state = 'visible' AND approved_for_game = 1 ORDER BY id DESC LIMIT ? OFFSET ?").bind(PAGE_SIZE + 1, offset).all()
-            : await env.DB.prepare("SELECT id, nickname, ad_text, created_at FROM ads WHERE state = 'visible' ORDER BY id DESC LIMIT ? OFFSET ?").bind(PAGE_SIZE + 1, offset).all();
-          return json({ items: result.results.slice(0, PAGE_SIZE), hasNext: result.results.length > PAGE_SIZE });
+            ? await env.DB.prepare(`SELECT a.id, ${authorJoin('a')}, a.ad_text, a.created_at FROM ${AUTHOR_FROM('ads', 'a')} WHERE a.state = 'visible' AND a.approved_for_game = 1 ORDER BY a.id DESC LIMIT ? OFFSET ?`).bind(PAGE_SIZE + 1, offset).all()
+            : await env.DB.prepare(`SELECT a.id, ${authorJoin('a')}, a.ad_text, a.created_at FROM ${AUTHOR_FROM('ads', 'a')} WHERE a.state = 'visible' ORDER BY a.id DESC LIMIT ? OFFSET ?`).bind(PAGE_SIZE + 1, offset).all();
+          return json({ items: result.results.slice(0, PAGE_SIZE).map(withAuthor), hasNext: result.results.length > PAGE_SIZE });
         }
+        const { memberId } = await requireMember(request, env); // 留言權: submitting an ad requires login
         const data = await jsonBody(request);
-        const { requestKey: key, adText, nickname } = restrict(data, FIELDS.ad);
-        const stored = () => env.DB.prepare('SELECT id, nickname, ad_text, created_at FROM ads WHERE request_key = ?').bind(key).first();
-        const matches = (row) => row.ad_text === adText && row.nickname === nickname;
-        const insert = () => env.DB.prepare('INSERT INTO ads (nickname, ad_text, created_at, request_key) VALUES (?, ?, ?, ?) ON CONFLICT(request_key) DO NOTHING').bind(nickname, adText, new Date().toISOString(), key).run();
+        const { requestKey: key, adText } = restrict(data, FIELDS.ad);
+        const stored = () => env.DB.prepare(`SELECT a.id, ${authorJoin('a')}, a.ad_text, a.created_at FROM ${AUTHOR_FROM('ads', 'a')} WHERE a.request_key = ?`).bind(key).first();
+        const matches = (row) => row.ad_text === adText && row.member_id === memberId;
+        const insert = () => env.DB.prepare('INSERT INTO ads (nickname, ad_text, member_id, created_at, request_key) VALUES (?, ?, ?, ?, ?) ON CONFLICT(request_key) DO NOTHING').bind('', adText, memberId, new Date().toISOString(), key).run();
         const { item, status } = await createWithIdempotency(env, request, { stored, matches, insert });
-        return json({ item }, status);
+        return json({ item: withAuthor(item) }, status);
       }
 
       // ── 香城街坊福利會 member accounts ───────────────────────────────────────────────
-      // Additive identity layer: nothing here gates posting/commenting/reacting, which all still
-      // work fully anonymously. A member is just a persistent username+password a visitor can
-      // optionally have — what that identity unlocks is future work.
       if (path === '/members/register' && method === 'POST') {
         await checkMemberLoginRate(request, env); // also guards against account-creation spam
         const data = await jsonBody(request);
@@ -247,7 +279,7 @@ export default {
         const passwordHash = await hashPassword(data.password);
         const result = await env.DB.prepare('INSERT INTO members (username, username_lower, password_hash, created_at) VALUES (?, ?, ?, ?)').bind(username, usernameLower, passwordHash, new Date().toISOString()).run();
         const memberId = result.meta?.last_row_id ?? result.lastInsertRowid;
-        return json({ token: await signMemberToken(memberId, env), username }, 201);
+        return json({ token: await signMemberToken(memberId, username, env), username }, 201);
       }
 
       if (path === '/members/login' && method === 'POST') {
@@ -257,14 +289,33 @@ export default {
         if (typeof data.username !== 'string' || typeof data.password !== 'string') throw new ApiError(400, 'invalid');
         const member = await env.DB.prepare('SELECT id, username, password_hash FROM members WHERE username_lower = ?').bind(data.username.trim().toLowerCase()).first();
         if (!member || !(await verifyPasswordHash(data.password, member.password_hash))) throw new ApiError(401, 'unauthorized');
-        return json({ token: await signMemberToken(member.id, env), username: member.username });
+        return json({ token: await signMemberToken(member.id, member.username, env), username: member.username });
       }
 
       if (path === '/members/me' && method === 'GET') {
-        const memberId = await requireMember(request, env);
-        const member = await env.DB.prepare('SELECT username, created_at FROM members WHERE id = ?').bind(memberId).first();
+        const { memberId } = await requireMember(request, env);
+        const member = await env.DB.prepare('SELECT username, created_at, avatar_key, avatar_state FROM members WHERE id = ?').bind(memberId).first();
         if (!member) throw new ApiError(401, 'unauthorized'); // account deleted after the token was issued
-        return json({ username: member.username, createdAt: member.created_at });
+        return json({ username: member.username, createdAt: member.created_at, avatarKey: member.avatar_state === 'visible' ? member.avatar_key : null });
+      }
+
+      // Avatar upload — same pattern as /admin/upload below (bounded raw-binary body, fixed
+      // content-type allowlist, stored in the same IMAGES bucket/key format so the existing public
+      // GET /images/:key route serves it back unchanged). Show-then-review: the avatar is live
+      // site-wide immediately; a moderator can only hide it after the fact (moderate.mjs).
+      if (path === '/members/me/avatar' && method === 'POST') {
+        const { memberId } = await requireMember(request, env);
+        const contentType = (request.headers.get('content-type') || '').toLowerCase();
+        const extension = IMAGE_CONTENT_TYPES[contentType];
+        if (!extension || !env.IMAGES) throw new ApiError(400, 'invalid');
+        const bytes = await readBoundedBytes(request, MAX_AVATAR_BYTES);
+        if (!bytes.length) throw new ApiError(400, 'invalid');
+        const previous = await env.DB.prepare('SELECT avatar_key FROM members WHERE id = ?').bind(memberId).first();
+        const key = `${crypto.randomUUID()}.${extension}`;
+        await env.IMAGES.put(key, bytes, { httpMetadata: { contentType } });
+        await env.DB.prepare("UPDATE members SET avatar_key = ?, avatar_state = 'visible', avatar_updated_at = ? WHERE id = ?").bind(key, new Date().toISOString(), memberId).run();
+        if (previous?.avatar_key) await env.IMAGES.delete(previous.avatar_key).catch(() => {}); // best-effort, avoid orphaning the old blob
+        return json({ avatarKey: key }, 201);
       }
 
       // ── Uploaded news photos ────────────────────────────────────────────────────────
@@ -293,13 +344,13 @@ export default {
           if (resource === 'posts') {
             result = await env.DB.prepare(`${POST_QUERY} WHERE p.state = 'visible' AND p.approved_for_game = 0 ORDER BY p.id DESC LIMIT ?`).bind(ADMIN_QUEUE_SIZE).all();
           } else if (resource === 'comments') {
-            result = await env.DB.prepare("SELECT c.id, c.post_id, c.body, c.nickname, c.created_at, p.headline AS post_headline FROM comments c JOIN posts p ON p.id = c.post_id WHERE c.state = 'visible' AND c.approved_for_game = 0 ORDER BY c.id DESC LIMIT ?").bind(ADMIN_QUEUE_SIZE).all();
+            result = await env.DB.prepare(`SELECT c.id, c.post_id, c.body, ${authorJoin('c')}, c.created_at, p.headline AS post_headline FROM comments c JOIN posts p ON p.id = c.post_id LEFT JOIN members m ON m.id = c.member_id WHERE c.state = 'visible' AND c.approved_for_game = 0 ORDER BY c.id DESC LIMIT ?`).bind(ADMIN_QUEUE_SIZE).all();
           } else if (resource === 'news-comments') {
-            result = await env.DB.prepare("SELECT nc.id, nc.news_post_id, nc.body, nc.nickname, nc.created_at, n.headline AS news_headline FROM news_comments nc JOIN news_posts n ON n.id = nc.news_post_id WHERE nc.state = 'visible' AND nc.approved_for_game = 0 ORDER BY nc.id DESC LIMIT ?").bind(ADMIN_QUEUE_SIZE).all();
+            result = await env.DB.prepare(`SELECT nc.id, nc.news_post_id, nc.body, ${authorJoin('nc')}, nc.created_at, n.headline AS news_headline FROM news_comments nc JOIN news_posts n ON n.id = nc.news_post_id LEFT JOIN members m ON m.id = nc.member_id WHERE nc.state = 'visible' AND nc.approved_for_game = 0 ORDER BY nc.id DESC LIMIT ?`).bind(ADMIN_QUEUE_SIZE).all();
           } else {
-            result = await env.DB.prepare("SELECT id, nickname, ad_text, created_at FROM ads WHERE state = 'visible' AND approved_for_game = 0 ORDER BY id DESC LIMIT ?").bind(ADMIN_QUEUE_SIZE).all();
+            result = await env.DB.prepare(`SELECT a.id, ${authorJoin('a')}, a.ad_text, a.created_at FROM ${AUTHOR_FROM('ads', 'a')} WHERE a.state = 'visible' AND a.approved_for_game = 0 ORDER BY a.id DESC LIMIT ?`).bind(ADMIN_QUEUE_SIZE).all();
           }
-          return json({ items: result.results });
+          return json({ items: result.results.map(withAuthor) });
         }
 
         const moderateRoute = path.match(/^\/admin\/(posts|comments|news-comments|ads)\/([1-9]\d*)\/(approve|hide)$/);

@@ -97,6 +97,19 @@ function openGameDatabase(dbPath = resolveDbPath()) {
     )
   `);
 
+  // Road line marking (馬路劃線) calibration - same rationale as building_light_profiles:
+  // authored/tool data (road-line-calibrator.js), not city state. tile_key is a composite
+  // "<logicalTileKey>::<variantId>" (road-line-calibrator.js roadLineCalibrationKey) since one
+  // tile shape prints several variants (plain/busStop/stopLine/parkingBay/...); `data` is that
+  // one variant's placement array.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS road_line_profiles (
+      tile_key    TEXT PRIMARY KEY,
+      data        TEXT NOT NULL,
+      updated_at  TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
   seedAstronomyCalendar(db, hkoAstronomySeed);
 
   const getSaveMetadataById = db.prepare(`
@@ -324,6 +337,52 @@ function openGameDatabase(dbPath = resolveDbPath()) {
         `);
         for (const [key, data] of Object.entries(entries)) {
           if (!key || !data || typeof data !== 'object') continue;
+          insert.run(String(key), JSON.stringify(data));
+        }
+        db.exec('COMMIT');
+      } catch (error) {
+        db.exec('ROLLBACK');
+        throw error;
+      }
+      return { count: Object.keys(entries).length };
+    },
+
+    // ── Road line marking calibration ──────────────────────────────────────
+    getRoadLineProfiles() {
+      const rows = db.prepare('SELECT tile_key, data FROM road_line_profiles').all();
+      const entries = {};
+      for (const row of rows) {
+        try { entries[row.tile_key] = JSON.parse(row.data); } catch { /* skip bad row */ }
+      }
+      return entries;
+    },
+    putRoadLineProfile(tileKey, data) {
+      const key = String(tileKey || '').trim();
+      if (!key) throw createInvalidPayloadError('tile_key is required');
+      // Unlike a building light profile, a road line entry IS an array (its placement list),
+      // so assertJsonObject (which rejects arrays) doesn't apply here.
+      if (!Array.isArray(data)) throw createInvalidPayloadError('profile data must be an array of placements');
+      db.prepare(`
+        INSERT INTO road_line_profiles (tile_key, data, updated_at)
+        VALUES (?, ?, CURRENT_TIMESTAMP)
+        ON CONFLICT(tile_key) DO UPDATE SET data = excluded.data, updated_at = CURRENT_TIMESTAMP
+      `).run(key, JSON.stringify(data));
+      return { tileKey: key };
+    },
+    deleteRoadLineProfile(tileKey) {
+      db.prepare('DELETE FROM road_line_profiles WHERE tile_key = ?').run(String(tileKey || ''));
+      return { ok: true };
+    },
+    replaceRoadLineProfiles(entries) {
+      assertJsonObject(entries, 'entries');
+      db.exec('BEGIN');
+      try {
+        db.exec('DELETE FROM road_line_profiles');
+        const insert = db.prepare(`
+          INSERT INTO road_line_profiles (tile_key, data) VALUES (?, ?)
+        `);
+        for (const [key, data] of Object.entries(entries)) {
+          if (!key || !data) continue;
           insert.run(String(key), JSON.stringify(data));
         }
         db.exec('COMMIT');

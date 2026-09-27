@@ -19,7 +19,7 @@
     "electron:dev": "node scripts/run-electron.js",
     "electron:perf": "npm run prepare:release-assets && node scripts/run-electron.js --performance",
     "rebuild:electron": "electron-builder install-app-deps",
-    "prepare:release-assets": "node scripts/prepare-release-assets.js && node scripts/bake-night-textures.js",
+    "prepare:release-assets": "node scripts/prepare-release-assets.js && node scripts/bake-night-textures.js && node scripts/bake-road-line-textures.js",
     "verify:release-assets": "node scripts/verify-release-assets.js",
     "dist": "npm run prepare:release-assets && npm run verify:release-assets && electron-builder",
     "dist:mac": "npm run prepare:release-assets && npm run verify:release-assets && electron-builder --mac",
@@ -30,6 +30,7 @@
     "defringe:assets": "node scripts/defringe-model-assets.js",
     "sync:hko-astronomy": "node scripts/sync-hko-astronomy-data.js",
     "bake:night-textures": "node scripts/bake-night-textures.js",
+    "bake:road-line-textures": "node scripts/bake-road-line-textures.js",
     "audit:licenses": "node scripts/audit-licenses.js",
     "sync:legal": "node scripts/sync-legal-docs.js",
     "check:legal": "node scripts/sync-legal-docs.js --check"

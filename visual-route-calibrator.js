@@ -1040,7 +1040,8 @@ function createVisualRoutePerformancePanel(scene) {
     + '<button type="button" class="vrp-streetlamp-btn">路燈位置微調</button>'
     + '<button type="button" class="vrp-bridgeparapet-btn">天橋護欄位置微調</button>'
     + '<button type="button" class="vrp-livelights-btn" data-active="false">使用 Phaser 光源：關閉</button>'
-    + '<button type="button" class="vrp-buildinglight-btn">夜間建築燈光校正</button>';
+    + '<button type="button" class="vrp-buildinglight-btn">夜間建築燈光校正</button>'
+    + '<button type="button" class="vrp-roadline-btn">馬路劃線位置校正</button>';
   root.querySelector('.vrp-close-btn')?.addEventListener?.('click', () => {
     setVisualRouteCalibrationTestModeEnabled(false);
   });
@@ -1081,6 +1082,9 @@ function createVisualRoutePerformancePanel(scene) {
   });
   root.querySelector('.vrp-buildinglight-btn')?.addEventListener?.('click', () => {
     if (typeof toggleBuildingLightCalibrator === 'function') toggleBuildingLightCalibrator(scene);
+  });
+  root.querySelector('.vrp-roadline-btn')?.addEventListener?.('click', () => {
+    if (typeof toggleRoadLineCalibrator === 'function') toggleRoadLineCalibrator(scene);
   });
   document.body.appendChild(root);
   return root;

@@ -129,10 +129,47 @@ function getRoadTileSetBridgeRampMode(tileSetId = currentRoadTileSetId) {
   return getRoadTileSet(tileSetId).bridgeRampMode ?? 'hill2';
 }
 
+// A set's art may be drawn above its on-screen footprint (canvasWidth) so baked line markings
+// stay crisp when zoomed in - e.g. newRoadTiles at 512×256 for a 160×80 footprint. Returns the
+// sprite scale that draws `texture` (a Phaser Texture) back at footprint size; 1 for anything
+// that isn't an oversized road texture. Derived canvas textures (bridge ramp surfaces) carry
+// the set's prefix and their source's size, so they scale the same way.
+function getRoadTextureDisplayScale(texture) {
+  const key = texture?.key;
+  const width = texture?.source?.[0]?.width;
+  if (!key || !width) return 1;
+  const set = ROAD_TILE_SETS.find((candidate) => key.startsWith(`${candidate.texturePrefix}_`));
+  if (!set || width <= set.canvasWidth) return 1;
+  return set.canvasWidth / width;
+}
+
 function getRoadTilePreviewAssets(tileSetId = currentRoadTileSetId) {
   return [
     getRoadTileAssetPath('road_straight_h', tileSetId),
     getRoadTileAssetPath('road_cross', tileSetId),
     getRoadTileAssetPath('road_bridge_h', tileSetId),
   ].filter(Boolean);
+}
+
+// Node-side consumers (scripts/bake-road-line-textures.js, tests) need these as a plain
+// require() - everything above already works as a browser global via plain top-level
+// declarations, this just also exposes them under module.exports the way every other
+// feature module in this codebase does (e.g. bridge-parapets.js).
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    ROAD_TILE_LOGICAL_FILES,
+    NEW_ROAD_TILE_LOGICAL_FILES,
+    ROAD_TILE_SETS,
+    getRoadTileSets,
+    getRoadTileSet,
+    normalizeRoadTileSetId,
+    setCurrentRoadTileSetId,
+    getCurrentRoadTileSetId,
+    isRoadTileLogicalKey,
+    getRoadTileTextureKey,
+    getRoadTileAssetPath,
+    getRoadTileSetBridgeRampMode,
+    getRoadTextureDisplayScale,
+    getRoadTilePreviewAssets,
+  };
 }

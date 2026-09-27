@@ -581,6 +581,42 @@ function createGameApp(options = {}) {
     }
   });
 
+  app.get('/api/road-line-profiles', (_req, res) => {
+    try {
+      res.json({ entries: store.getRoadLineProfiles() });
+    } catch (e) {
+      console.error('[GET /api/road-line-profiles]', e.message);
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.put('/api/road-line-profiles', (req, res) => {
+    try {
+      const entries = req.body && typeof req.body === 'object' ? (req.body.entries ?? req.body) : {};
+      res.json(store.replaceRoadLineProfiles(entries));
+    } catch (e) {
+      sendStoreError(res, e, 'PUT /api/road-line-profiles');
+    }
+  });
+
+  app.put('/api/road-line-profiles/:key', (req, res) => {
+    try {
+      const data = req.body && typeof req.body === 'object' ? (req.body.data ?? req.body) : null;
+      res.json(store.putRoadLineProfile(req.params.key, data));
+    } catch (e) {
+      sendStoreError(res, e, 'PUT /api/road-line-profiles/:key');
+    }
+  });
+
+  app.delete('/api/road-line-profiles/:key', (req, res) => {
+    try {
+      res.json(store.deleteRoadLineProfile(req.params.key));
+    } catch (e) {
+      console.error('[DELETE /api/road-line-profiles/:key]', e.message);
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   // Keep body-parser failures machine-readable for the renderer and avoid
   // Express's default HTML error page (and development stack trace).
   app.use((error, _req, res, next) => {

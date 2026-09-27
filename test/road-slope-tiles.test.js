@@ -57,7 +57,9 @@ test('each hill slope tile continues the straight tile profile at both its low a
         const neighbours = [-0.02, 0, 0.02].map((d) => {
           const nc = spec.axis === 'c' ? c : c + d;
           const nr = spec.axis === 'c' ? r + d : r;
-          return pixelAt(straight, screenOf(nc, nr, 0).x, screenOf(nc, nr, 0).y);
+          // Straight tiles may ship above the 160x80 footprint (512x256 for sharp line markings).
+          const { x: sx, y: sy } = screenOf(nc, nr, 0);
+          return pixelAt(straight, sx * (straight.width / 160), sy * (straight.height / 80));
         });
         if (Math.min(...neighbours.map((n) => colourDistance(n, actual))) > 40) mismatches++;
         samples++;

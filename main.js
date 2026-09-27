@@ -228,6 +228,7 @@ function applySeaFlowEnabledState(scene) {
     const tile = scene.tileSprites[row]?.[col];
     if (!tile || !tile.texture?.key?.includes('_flow_')) continue;
     tile.setTexture(resolveTileTextureKey(getTileKey(row, col)));
+    applyTileTextureDisplayScale(tile);
   }
 }
 
@@ -798,6 +799,16 @@ function resolveTileTextureKey(logicalKey) {
     return resolveCanonicalTextureKey(textureKey);
   }
   return resolveCanonicalTextureKey(logicalKey);
+}
+
+// Call after any setTexture on a terrain/road sprite: oversized road-set art is drawn back
+// down to its footprint (getRoadTextureDisplayScale, road-tile-sets.js); everything else is 1.
+function applyTileTextureDisplayScale(sprite) {
+  if (!sprite) return;
+  const scale = typeof getRoadTextureDisplayScale === 'function'
+    ? getRoadTextureDisplayScale(sprite.texture)
+    : 1;
+  if (sprite.scaleX !== scale || sprite.scaleY !== scale) sprite.setScale(scale);
 }
 
 function ensurePreviewOverlayDepth(scene) {
@@ -2067,6 +2078,19 @@ function preload() {
     getRoadTileSets().forEach((set) => {
       Object.keys(ROAD_TILE_LOGICAL_FILES).forEach((logicalKey) => {
         this.load.image(`${set.texturePrefix}_${logicalKey}`, getRoadTileAssetPath(logicalKey, set.id));
+        // Baked line-marking variants (road-line-markings.js) for this (tile shape, road tile
+        // set) - only whichever variants are actually calibrated for this shape, so a shape
+        // with none queues nothing. Loading one that has no baked file on disk (e.g. a variant
+        // calibrated for newRoadTiles but not classic) just 404s silently: applyRoadLineTexture
+        // already checks scene.textures.exists() before ever using it, the same defensive check
+        // applyBuildingNightTexture uses for a building's night bake.
+        if (typeof getRoadLineVariantIds === 'function') {
+          getRoadLineVariantIds(logicalKey).forEach((variantId) => {
+            const lineKey = getRoadLineTextureKey(logicalKey, variantId, set.id);
+            const lineAssetPath = getRoadLineBakedAssetPath(logicalKey, variantId, set.id);
+            if (lineKey && lineAssetPath) this.load.image(lineKey, lineAssetPath);
+          });
+        }
       });
     });
   }
@@ -2229,6 +2253,7 @@ function create() {
       tile.setDepth(getTerrainTileDepth(row, col, key, pos.y));
       tile.setMask(worldMask);
       applyTileVisualStyle(tile, row, col, key);
+      applyTileTextureDisplayScale(tile);
       this.tileSprites[row][col] = tile;
     }
   }
@@ -5560,6 +5585,7 @@ function refreshBridgeSprite(scene, row, col) {
 
   if (existing) {
     existing.setTexture(resolveTileTextureKey(key));
+    applyTileTextureDisplayScale(existing);
     existing.setPosition(x, y);
     existing.setDepth(depth);
     sortRenderLayer(scene, 'roadLayer');
@@ -5567,6 +5593,7 @@ function refreshBridgeSprite(scene, row, col) {
   }
 
   const bridge = scene.add.image(x, y, resolveTileTextureKey(key));
+  applyTileTextureDisplayScale(bridge);
   addToRenderLayer(scene, bridge, 'roadLayer');
   bridge.setOrigin(0.5, 1);
   bridge.setDepth(depth);
@@ -5610,6 +5637,7 @@ function repositionBridgeSprites(scene) {
       return;
     }
     entry.setTexture(resolveTileTextureKey(key));
+    applyTileTextureDisplayScale(entry);
     entry.setPosition(x, y);
     entry.setDepth(depth);
   });
@@ -5628,6 +5656,7 @@ function upsertBridgeRampSprite(scene, existing, row, col, key, x, y, baseY) {
 
   if (existing?.body) {
     existing.body.setTexture(sourceKey);
+    applyTileTextureDisplayScale(existing.body);
     existing.body.setPosition(x, y);
     existing.body.setDepth(bodyDepth);
     if (surfaceKey) {
@@ -5638,6 +5667,7 @@ function upsertBridgeRampSprite(scene, existing, row, col, key, x, y, baseY) {
         existing.top.setMask(scene.worldMask);
       }
       existing.top.setTexture(surfaceKey);
+      applyTileTextureDisplayScale(existing.top);
       existing.top.setPosition(x, y);
       existing.top.setDepth(surfaceDepth);
     } else if (existing.top) {
@@ -5650,6 +5680,7 @@ function upsertBridgeRampSprite(scene, existing, row, col, key, x, y, baseY) {
   if (existing) destroyBridgeSpriteEntry(existing);
 
   const body = scene.add.image(x, y, sourceKey);
+  applyTileTextureDisplayScale(body);
   addToRenderLayer(scene, body, 'terrainLayer');
   body.setOrigin(0.5, 1);
   body.setDepth(bodyDepth);
@@ -5658,6 +5689,7 @@ function upsertBridgeRampSprite(scene, existing, row, col, key, x, y, baseY) {
   let top = null;
   if (surfaceKey) {
     top = scene.add.image(x, y, surfaceKey);
+    applyTileTextureDisplayScale(top);
     addToRenderLayer(scene, top, 'roadLayer');
     top.setOrigin(0.5, 1);
     top.setDepth(surfaceDepth);
@@ -7572,14 +7604,43 @@ function setTileType(scene, row, col, tileType) {
 // that function's comment for why the wide per-tile refresh was too slow to do N times.
 let carriagewayWideRefreshSuppressed = false;
 
+// Bus stop sides already converted to rotation-resolved corners (ur/ul/lr/ll — see
+// getBusStopVisualCorner) for getRoadLineVariantAt, or null when this tile has no stop.
+function getRoadLineBusStopCornersAt(row, col) {
+  if (typeof getBusStopSides !== 'function' || typeof getBusStopVisualCorner !== 'function') return null;
+  const sides = getBusStopSides(row, col);
+  return sides ? sides.map(getBusStopVisualCorner) : null;
+}
+
+// Swaps a road tile's sprite onto its calibrated line-marking variant (busStop/arrow/
+// zebraCrossing — see road-line-variants.js), or restores the plain tile when none applies.
+// `key` is the tile's current (rotated) getTileKey result — only road_straight_v/h can have a
+// variant, and getRoadLineVariantAt itself no-ops for anything else, so this is a cheap call
+// for every other tile shape.
+function applyRoadLineVariantForTile(scene, sprite, row, col, key, baseTextureKey) {
+  if (typeof getRoadLineVariantAt !== 'function' || typeof applyRoadLineTexture !== 'function') return;
+  const variantId = getRoadLineVariantAt(row, col, {
+    roadKeyAt: getTileKey,
+    baseRoadKeyAt: getBaseTileKey,
+    rotation: mapRotation,
+    busStopVisualCornersAt: getRoadLineBusStopCornersAt,
+    carriagewayBandAt: typeof getRoadCarriagewayBand === 'function' ? getRoadCarriagewayBand : undefined,
+  });
+  const tileSetId = typeof getCurrentRoadTileSetId === 'function' ? getCurrentRoadTileSetId() : undefined;
+  applyRoadLineTexture(scene, sprite, key, variantId, tileSetId, baseTextureKey);
+}
+
 function refreshTileSprite(scene, tileRow, tileCol) {
   const key = getTileKey(tileRow, tileCol);
+  const baseTextureKey = resolveTileTextureKey(key);
   const pos = isoToScreen(tileCol, tileRow);
   const sprite = scene.tileSprites[tileRow][tileCol];
-  sprite.setTexture(resolveTileTextureKey(key));
+  sprite.setTexture(baseTextureKey);
   sprite.setPosition(pos.x + scene.offsetX, pos.y + scene.offsetY + getTerrainTileVisualOffset(tileRow, tileCol, key));
   sprite.setDepth(getTerrainTileDepth(tileRow, tileCol, key, pos.y));
   applyTileVisualStyle(sprite, tileRow, tileCol, key);
+  applyRoadLineVariantForTile(scene, sprite, tileRow, tileCol, key, baseTextureKey);
+  applyTileTextureDisplayScale(sprite);
   refreshBridgeSprite(scene, tileRow, tileCol);
   invalidateBusStopIfOrphaned(scene, tileRow, tileCol);
 }
@@ -7629,11 +7690,48 @@ function refreshTileArea(scene, row, col) {
   }
 
   refreshTileList(scene, tilesToRefresh);
+  if (touchesRoad) {
+    const w = CARRIAGEWAY_MAX_BAND_WIDTH;
+    refreshRoadLineRunsLeaving(scene, row - w, row + w, col - w, col + w);
+  }
 
   if (typeof scheduleTrafficSignalRefresh === 'function') scheduleTrafficSignalRefresh(scene);
   if (typeof scheduleStreetLampRefresh === 'function') scheduleStreetLampRefresh(scene);
   if (typeof scheduleBridgeParapetRefresh === 'function') scheduleBridgeParapetRefresh(scene);
   scheduleTerrainMiniMapUpdate();
+}
+
+// Zebra crossings are laid out per straight run (road-line-variants.js), so a change anywhere
+// in a run can move zebras at its far end, past any fixed refresh radius. After a rectangular
+// refresh, follow every straight run that crosses the rectangle's edge outward to its end:
+// any run whose layout changed must pass through the refreshed rectangle.
+function refreshRoadLineRunsLeaving(scene, rowMin, rowMax, colMin, colMax) {
+  const rMin = Math.max(0, rowMin), rMax = Math.min(MAP_HEIGHT - 1, rowMax);
+  const cMin = Math.max(0, colMin), cMax = Math.min(MAP_WIDTH - 1, colMax);
+  const tiles = [];
+  // road_straight_v runs along rows, road_straight_h along columns (getRoadKey).
+  const walk = (row, col, dr, dc, key) => {
+    for (let r = row + dr, c = col + dc; isInsideMap(r, c) && getBaseTileKey(r, c) === key; r += dr, c += dc) {
+      tiles.push([r, c]);
+    }
+  };
+  for (let r = rMin; r <= rMax; r++) {
+    walk(r, cMin, 0, -1, 'road_straight_h');
+    walk(r, cMax, 0, 1, 'road_straight_h');
+  }
+  for (let c = cMin; c <= cMax; c++) {
+    walk(rMin, c, -1, 0, 'road_straight_v');
+    walk(rMax, c, 1, 0, 'road_straight_v');
+  }
+  refreshTileList(scene, tiles);
+}
+
+// Same idea for a single tile whose plainness changed without a region refresh (a bus stop
+// added/removed): re-key its whole straight run.
+function refreshRoadLineRunThrough(scene, row, col) {
+  const key = getBaseTileKey(row, col);
+  if (key !== 'road_straight_v' && key !== 'road_straight_h') return;
+  refreshRoadLineRunsLeaving(scene, row, row, col, col);
 }
 
 // Re-keys every tile in [rowMin-W, rowMax+W] × [colMin-W, colMax+W] against FINAL map
@@ -7656,6 +7754,7 @@ function refreshCarriagewayBandRegion(scene, rowMin, rowMax, colMin, colMax) {
     }
   }
   refreshTileList(scene, tilesToRefresh);
+  refreshRoadLineRunsLeaving(scene, rowMin - w, rowMax + w, colMin - w, colMax + w);
 
   if (typeof scheduleTrafficSignalRefresh === 'function') scheduleTrafficSignalRefresh(scene);
   if (typeof scheduleStreetLampRefresh === 'function') scheduleStreetLampRefresh(scene);
@@ -7667,12 +7766,15 @@ function refreshAllTiles(scene) {
   for (let row = 0; row < MAP_HEIGHT; row++) {
     for (let col = 0; col < MAP_WIDTH; col++) {
       const key = getTileKey(row, col);
+      const baseTextureKey = resolveTileTextureKey(key);
       const pos = isoToScreen(col, row);
       const sprite = scene.tileSprites[row][col];
-      sprite.setTexture(resolveTileTextureKey(key));
+      sprite.setTexture(baseTextureKey);
       sprite.setPosition(pos.x + scene.offsetX, pos.y + scene.offsetY + getTerrainTileVisualOffset(row, col, key));
       sprite.setDepth(getTerrainTileDepth(row, col, key, pos.y));
       applyTileVisualStyle(sprite, row, col, key);
+      applyRoadLineVariantForTile(scene, sprite, row, col, key, baseTextureKey);
+      applyTileTextureDisplayScale(sprite);
     }
   }
   refreshAllBridgeSprites(scene);
@@ -8566,6 +8668,13 @@ function refreshBusStopSpriteAt(scene, row, col) {
       scene.busStopSprites.delete(key);
     }
   });
+  // The road tile itself shows a busStop line-marking variant that overrides everything else
+  // (getRoadLineVariantAt) - re-key it every time a stop is added or removed here, or the
+  // marking would only update on some unrelated later refresh (a nearby road edit, a rotation).
+  if (scene?.tileSprites?.[row]?.[col]) {
+    refreshTileSprite(scene, row, col);
+    refreshRoadLineRunThrough(scene, row, col);
+  }
   const sides = getBusStopSides(row, col);
   if (!sides || !scene) return;
   sides.forEach((side) => placeBusStopSprite(scene, row, col, side));

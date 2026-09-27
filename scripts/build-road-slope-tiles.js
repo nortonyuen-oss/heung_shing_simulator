@@ -97,6 +97,12 @@ function sampleBilinear(img, x, y) {
   return [out[0] / out[3], out[1] / out[3], out[2] / out[3], (out[3] / weight) * 255];
 }
 
+// The straight tiles may ship above the 160x80 footprint (e.g. 512x256 so baked line markings
+// stay sharp - road-tile-sets.js getRoadTextureDisplayScale); sample them in footprint space.
+function sampleStraight(straight, x, y) {
+  return sampleBilinear(straight, x * (straight.width / CANVAS_W), y * (straight.height / CANVAS_H));
+}
+
 // Colour of the slope tile at screen point (x, y): surface, wall, earth base or nothing.
 function shadeAt(spec, straight, x, y) {
   const { c, r } = slopePointAt(spec.high, x, y);
@@ -110,7 +116,7 @@ function shadeAt(spec, straight, x, y) {
     // on a seam, and let the supersampling coverage anti-alias this tile's own outline.
     const cc = Math.max(-0.5 + EDGE_INSET, Math.min(0.5 - EDGE_INSET, c));
     const rr = Math.max(-0.5 + EDGE_INSET, Math.min(0.5 - EDGE_INSET, r));
-    const [sr, sg, sb] = sampleBilinear(straight, CENTER_X + (cc - rr) * HALF_W, CENTER_Y + (cc + rr) * HALF_H);
+    const [sr, sg, sb] = sampleStraight(straight, CENTER_X + (cc - rr) * HALF_W, CENTER_Y + (cc + rr) * HALF_H);
     return [sr, sg, sb, 255];
   }
   // Faces under the SE edge (c = 0.5) and the SW edge (r = 0.5): a wall from the raised edge
@@ -120,14 +126,14 @@ function shadeAt(spec, straight, x, y) {
     const groundY = CENTER_Y + (0.5 + edgeR) * HALF_H;
     const wall = riseAt(spec.high, 0.5, edgeR);
     if (y >= groundY - wall && y < groundY) return [spec.wallSE, spec.wallSE, spec.wallSE, 255];
-    if (y >= groundY && y < groundY + BASE_HEIGHT) return sampleBilinear(straight, x, y);
+    if (y >= groundY && y < groundY + BASE_HEIGHT) return sampleStraight(straight, x, y);
   }
   if (x >= CENTER_X - HALF_W && x < CENTER_X) {
     const edgeC = 0.5 + (x - CENTER_X) / HALF_W;
     const groundY = CENTER_Y + (edgeC + 0.5) * HALF_H;
     const wall = riseAt(spec.high, edgeC, 0.5);
     if (y >= groundY - wall && y < groundY) return [spec.wallSW, spec.wallSW, spec.wallSW, 255];
-    if (y >= groundY && y < groundY + BASE_HEIGHT) return sampleBilinear(straight, x, y);
+    if (y >= groundY && y < groundY + BASE_HEIGHT) return sampleStraight(straight, x, y);
   }
   return [0, 0, 0, 0];
 }

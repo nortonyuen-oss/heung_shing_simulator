@@ -9,8 +9,6 @@ const TRAFFIC_VISUAL_CONFIG = Object.freeze({
   minimumLoad: 0.02,
   densityDivisor: 2.4,
   laneOffsetTiles: 0.20,
-  sameSignDiagonalLaneOffsetTiles: 0.12,
-  northEastLaneOffsetTiles: 0.08,
   baseSpeedTilesPerSecond: 0.9,
   minimumHeadwayTiles: 0.65,
   viewportPaddingTiles: 1,
@@ -721,19 +719,46 @@ function getTrafficLeftLaneOffset(deltaRow, deltaCol, amount = TRAFFIC_VISUAL_CO
   };
 }
 
-function getTrafficLaneOffsetAmount(screenDeltaX, screenDeltaY, config = TRAFFIC_VISUAL_CONFIG) {
-  // The NE render's apparent wheel-contact centre sits farther toward the
-  // nearside edge than its SW counterpart, so only NE travel needs this
-  // smaller offset to remain centred in the lane.
-  if (screenDeltaX > 0 && screenDeltaY < 0) {
-    return config.northEastLaneOffsetTiles;
-  }
-  // The NW↔SE screen diagonal (both components share a sign) needs a smaller
-  // logical offset in this road art. A larger value pushes the wheel contact
-  // point through the nearside lane and onto the pavement.
-  return screenDeltaX * screenDeltaY > 0
-    ? config.sameSignDiagonalLaneOffsetTiles
-    : config.laneOffsetTiles;
+// Where a vehicle drives across a road tile: a signed distance in tiles to the driver's left of
+// the tile centre, per kind of lane and per SCREEN direction of travel (kept per direction
+// because each render's apparent wheel-contact point can sit differently on the road art).
+//   single    - a two-way road: the keep-left lane.
+//   dualOuter - a one-way tile of a widened road: the kerb lane.
+//   dualInner - the same tile's other lane, beside the centre line (negative = right of centre).
+// Calibrated with traffic-lane-calibrator.js (test mode -> 校正工具 -> 行車線位置校正) on
+// 2026-09-27 against the 512x256 road art: 0.12 reads centred in every lane and direction.
+const TRAFFIC_LANE_OFFSETS = Object.freeze({
+  single: Object.freeze({ ne: 0.12, se: 0.12, sw: 0.12, nw: 0.12 }),
+  dualOuter: Object.freeze({ ne: 0.12, se: 0.12, sw: 0.12, nw: 0.12 }),
+  dualInner: Object.freeze({ ne: -0.12, se: -0.12, sw: -0.12, nw: -0.12 }),
+});
+const TRAFFIC_LANE_KINDS = Object.freeze(Object.keys(TRAFFIC_LANE_OFFSETS));
+const TRAFFIC_LANE_SCREEN_DIRECTIONS = Object.freeze(['ne', 'se', 'sw', 'nw']);
+
+function getTrafficLaneScreenDirection(screenDeltaX, screenDeltaY) {
+  if (screenDeltaX > 0 && screenDeltaY < 0) return 'ne';
+  if (screenDeltaX * screenDeltaY > 0) return screenDeltaX > 0 ? 'se' : 'nw';
+  return 'sw';
+}
+
+function getTrafficLaneOffsetAmount(screenDeltaX, screenDeltaY, kind = 'single') {
+  const direction = getTrafficLaneScreenDirection(screenDeltaX, screenDeltaY);
+  const override = typeof getTrafficLaneCalibrationOffset === 'function'
+    ? getTrafficLaneCalibrationOffset(kind, direction)
+    : null;
+  if (Number.isFinite(override)) return override;
+  return (TRAFFIC_LANE_OFFSETS[kind] ?? TRAFFIC_LANE_OFFSETS.single)[direction];
+}
+
+// Which kind of lane a vehicle on `tile` moving by (deltaRow, deltaCol) is in: a one-way tile of
+// a widened road running this way has two lanes (`lane` picks 'outer' or 'inner'); everything
+// else - two-way roads, junctions, a shared middle lane, a move against the band - is 'single'.
+function getTrafficLaneKind(tile, deltaRow, deltaCol, lane = 'outer') {
+  if (typeof getRoadCarriagewayBand !== 'function') return 'single';
+  const band = getRoadCarriagewayBand(tile.row, tile.col);
+  if (!band || band.direction === 'shared') return 'single';
+  if (TRAFFIC_BAND_DIRECTION_CODE[band.direction] !== getTrafficDirectionForDelta(deltaRow, deltaCol)) return 'single';
+  return lane === 'inner' ? 'dualInner' : 'dualOuter';
 }
 
 function computeTrafficVehicleTarget(loads, config = TRAFFIC_VISUAL_CONFIG, demandMultiplier = 1) {
@@ -1668,24 +1693,18 @@ function getTrafficSurfacePoint(scene, row, col) {
 }
 
 // On a one-way tile of a widened road (getRoadCarriagewayBand), the whole tile carries
-// one direction in two lanes: 'outer' is the usual keep-left (kerb) lane, 'inner' the
-// mirror-image lane beside the centre line. Everywhere else — two-way tiles, junctions,
-// or a tile whose band direction doesn't match this move — `lane` is ignored and the
-// point sits in the normal keep-left lane.
+// one direction in two lanes: 'outer' is the kerb lane, 'inner' the lane beside the centre
+// line. Everywhere else — two-way tiles, junctions, or a tile whose band direction doesn't
+// match this move — `lane` is ignored and the point sits in the normal keep-left lane
+// (getTrafficLaneKind / TRAFFIC_LANE_OFFSETS).
 function getTrafficLanePoint(scene, tile, deltaRow, deltaCol, lane = 'outer') {
   const centerScreen = isoToScreen(tile.col, tile.row);
   const nextScreen = isoToScreen(tile.col + deltaCol, tile.row + deltaRow);
-  let amount = getTrafficLaneOffsetAmount(
+  const amount = getTrafficLaneOffsetAmount(
     nextScreen.x - centerScreen.x,
     nextScreen.y - centerScreen.y,
+    getTrafficLaneKind(tile, deltaRow, deltaCol, lane),
   );
-  if (lane === 'inner' && typeof getRoadCarriagewayBand === 'function') {
-    const band = getRoadCarriagewayBand(tile.row, tile.col);
-    const direction = getTrafficDirectionForDelta(deltaRow, deltaCol);
-    if (band && band.direction !== 'shared' && TRAFFIC_BAND_DIRECTION_CODE[band.direction] === direction) {
-      amount = -amount;
-    }
-  }
   const offset = getTrafficLeftLaneOffset(deltaRow, deltaCol, amount);
   const center = getTrafficSurfacePoint(scene, tile.row, tile.col);
   const shifted = isoToScreen(tile.col + offset.col, tile.row + offset.row);
@@ -1770,6 +1789,20 @@ function getTrafficLegSurfaceLifts(current, next, layers = getTrafficRuntimeLaye
     boundary: (currentBoundaryLift + nextBoundaryLift) / 2,
     end: nextSurface.centerLift,
   };
+}
+
+// Re-plot every ambient vehicle's current leg (keeping its progress along it) after the lane
+// offsets change, so a calibration shows on the cars already on the road straight away.
+function rebuildTrafficVehicleLegs(scene) {
+  const vehicles = scene?.trafficVisualState?.vehicles;
+  if (!Array.isArray(vehicles)) return 0;
+  let rebuilt = 0;
+  vehicles.forEach((vehicle) => {
+    if (!vehicle?.leg || !vehicle.previous || !vehicle.current || !vehicle.next) return;
+    vehicle.leg = createTrafficLeg(scene, vehicle.previous, vehicle.current, vehicle.next, vehicle.bandLane);
+    rebuilt++;
+  });
+  return rebuilt;
 }
 
 function createTrafficLeg(scene, previous, current, next, lane = 'outer') {
@@ -2843,6 +2876,12 @@ const trafficVisualTestApi = {
   TRAFFIC_LIGHT_DECK_TUBES,
   getTrafficLeftLaneOffset,
   getTrafficLaneOffsetAmount,
+  getTrafficLaneScreenDirection,
+  getTrafficLaneKind,
+  TRAFFIC_LANE_OFFSETS,
+  TRAFFIC_LANE_KINDS,
+  TRAFFIC_LANE_SCREEN_DIRECTIONS,
+  rebuildTrafficVehicleLegs,
   computeTrafficVehicleTarget,
   computeTrafficSpawnBudget,
   computeTrafficProgressAmount,

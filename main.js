@@ -691,6 +691,8 @@ function updateSpriteViewportCulling(scene, bounds) {
   collect(cullSpriteMapEntries(scene.trafficSignalSprites, bounds, seen, mainCamera, mainBounds));
   collect(cullSpriteMapEntries(scene.streetLampSprites, bounds, seen, mainCamera, mainBounds));
   collect(cullSpriteMapEntries(scene.bridgeParapetSprites, bounds, seen, mainCamera, mainBounds));
+  collect(cullSpriteMapEntries(scene.pedestrianRailingSprites, bounds, seen, mainCamera, mainBounds));
+  collect(cullSpriteMapEntries(scene.streetFurnitureSprites, bounds, seen, mainCamera, mainBounds));
   collect(cullSpriteMapEntries(scene.zoneOverlays, bounds, seen, mainCamera, mainBounds));
   collect(cullSpriteMapEntries(scene.powerLineSprites, bounds, seen, mainCamera, mainBounds));
   collect(cullSpriteMapEntries(scene.bridgeSprites, bounds, seen, mainCamera, mainBounds));
@@ -2172,6 +2174,18 @@ function preload() {
       this.load.image(key, resolvePropAssetPath(file, BRIDGE_PARAPET_SOURCE_CANVAS));
     });
   }
+  // Pedestrian railings: one run per screen axis (pedestrian-railings.js)
+  if (typeof PEDESTRIAN_RAILING_TEXTURE_FILES !== 'undefined') {
+    Object.entries(PEDESTRIAN_RAILING_TEXTURE_FILES).forEach(([key, file]) => {
+      this.load.image(key, resolvePropAssetPath(file, PEDESTRIAN_RAILING_SOURCE_CANVAS));
+    });
+  }
+  // Roadside furniture: bins, cabinets, posting boxes, parking meters (street-furniture.js)
+  if (typeof STREET_FURNITURE_TEXTURE_FILES !== 'undefined') {
+    Object.entries(STREET_FURNITURE_TEXTURE_FILES).forEach(([key, file]) => {
+      this.load.image(key, resolvePropAssetPath(file, STREET_FURNITURE_SOURCE_CANVAS));
+    });
+  }
 }
 
 function create() {
@@ -2209,6 +2223,8 @@ function create() {
   this.trafficSignalSprites = new Map();
   this.streetLampSprites = new Map();
   this.bridgeParapetSprites = new Map();
+  this.pedestrianRailingSprites = new Map();
+  this.streetFurnitureSprites = new Map();
   this.districtSignSprites = new Map();
   createWorldRenderLayers(this);
 
@@ -3587,6 +3603,8 @@ function positionAllTiles(scene) {
   if (typeof refreshAllTrafficSignalSprites === 'function') refreshAllTrafficSignalSprites(scene);
   if (typeof refreshAllStreetLampSprites === 'function') refreshAllStreetLampSprites(scene);
   if (typeof refreshAllBridgeParapetSprites === 'function') refreshAllBridgeParapetSprites(scene);
+  if (typeof refreshAllPedestrianRailingSprites === 'function') refreshAllPedestrianRailingSprites(scene);
+  if (typeof refreshAllStreetFurnitureSprites === 'function') refreshAllStreetFurnitureSprites(scene);
 
   if (typeof repositionDistrictSignSprites === 'function') repositionDistrictSignSprites(scene);
 
@@ -4239,6 +4257,8 @@ function placeHouseModel(scene, row, col, tool, requestedModelKey = null) {
 
 function placeSpriteBuilding(scene, row, col, key, options = {}) {
   options = normalizeSpriteBuildingOptions(key, options);
+  // Roadside furniture follows how built-up each street is (street-furniture.js).
+  if (typeof scheduleStreetFurnitureRefresh === 'function') scheduleStreetFurnitureRefresh(scene, { delayMs: STREET_FURNITURE_GROWTH_REFRESH_MS, recomputeTraffic: false });
   const textureKey = getSpriteBuildingTextureKey(key);
   const footprintCols = options.footprintCols ?? 1;
   const footprintRows = options.footprintRows ?? 1;
@@ -4528,6 +4548,7 @@ function removeBuilding(scene, row, col, options = {}) {
   const tileId = getTileId(row, col);
   const building = scene.buildingSprites.get(tileId);
   if (!building) return false;
+  if (typeof scheduleStreetFurnitureRefresh === 'function') scheduleStreetFurnitureRefresh(scene, { delayMs: STREET_FURNITURE_GROWTH_REFRESH_MS, recomputeTraffic: false });
 
   // Clean up simulation data keyed to anchor tile
   const anchorId = getTileId(building.mapRow, building.mapCol);
@@ -7247,8 +7268,10 @@ function applyNightObjectTint(scene, ground) {
     if (Array.isArray(sprites)) sprites.forEach(apply);
     else apply(sprites);
   });
-  // Bridge parapets are unlit concrete: they darken with the trees.
+  // Bridge parapets and pedestrian railings are unlit: they darken with the trees.
   scene.bridgeParapetSprites?.forEach(apply);
+  scene.pedestrianRailingSprites?.forEach(apply);
+  scene.streetFurnitureSprites?.forEach(apply);
 
   // Buildings take a lighter share (see NIGHT_BUILDING_DARKNESS_SHARE). Once a
   // model carries a baked night texture its darkening is in the pixels and it
@@ -7698,6 +7721,8 @@ function refreshTileArea(scene, row, col) {
   if (typeof scheduleTrafficSignalRefresh === 'function') scheduleTrafficSignalRefresh(scene);
   if (typeof scheduleStreetLampRefresh === 'function') scheduleStreetLampRefresh(scene);
   if (typeof scheduleBridgeParapetRefresh === 'function') scheduleBridgeParapetRefresh(scene);
+  if (typeof schedulePedestrianRailingRefresh === 'function') schedulePedestrianRailingRefresh(scene);
+  if (typeof scheduleStreetFurnitureRefresh === 'function') scheduleStreetFurnitureRefresh(scene);
   scheduleTerrainMiniMapUpdate();
 }
 
@@ -7759,6 +7784,8 @@ function refreshCarriagewayBandRegion(scene, rowMin, rowMax, colMin, colMax) {
   if (typeof scheduleTrafficSignalRefresh === 'function') scheduleTrafficSignalRefresh(scene);
   if (typeof scheduleStreetLampRefresh === 'function') scheduleStreetLampRefresh(scene);
   if (typeof scheduleBridgeParapetRefresh === 'function') scheduleBridgeParapetRefresh(scene);
+  if (typeof schedulePedestrianRailingRefresh === 'function') schedulePedestrianRailingRefresh(scene);
+  if (typeof scheduleStreetFurnitureRefresh === 'function') scheduleStreetFurnitureRefresh(scene);
   scheduleTerrainMiniMapUpdate();
 }
 
@@ -7781,6 +7808,8 @@ function refreshAllTiles(scene) {
   if (typeof rebuildTrafficSignalSprites === 'function') rebuildTrafficSignalSprites(scene);
   if (typeof rebuildStreetLampSprites === 'function') rebuildStreetLampSprites(scene);
   if (typeof rebuildBridgeParapetSprites === 'function') rebuildBridgeParapetSprites(scene);
+  if (typeof rebuildPedestrianRailingSprites === 'function') rebuildPedestrianRailingSprites(scene);
+  if (typeof rebuildStreetFurnitureSprites === 'function') rebuildStreetFurnitureSprites(scene);
   scheduleTerrainMiniMapUpdate();
 }
 
@@ -8674,6 +8703,8 @@ function refreshBusStopSpriteAt(scene, row, col) {
   if (scene?.tileSprites?.[row]?.[col]) {
     refreshTileSprite(scene, row, col);
     refreshRoadLineRunThrough(scene, row, col);
+    if (typeof schedulePedestrianRailingRefresh === 'function') schedulePedestrianRailingRefresh(scene);
+    if (typeof scheduleStreetFurnitureRefresh === 'function') scheduleStreetFurnitureRefresh(scene);
   }
   const sides = getBusStopSides(row, col);
   if (!sides || !scene) return;

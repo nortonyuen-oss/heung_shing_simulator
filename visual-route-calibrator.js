@@ -179,8 +179,11 @@ function setVisualRouteCalibrationTestModeEnabled(enabled) {
     });
     if (typeof teardownTrafficLightCalibrator === 'function') teardownTrafficLightCalibrator();
     if (typeof teardownTrafficSignalCalibrator === 'function') teardownTrafficSignalCalibrator();
+    if (typeof teardownTrafficLaneCalibrator === 'function') teardownTrafficLaneCalibrator();
     if (typeof teardownStreetLampCalibrator === 'function') teardownStreetLampCalibrator();
     if (typeof teardownBridgeParapetCalibrator === 'function') teardownBridgeParapetCalibrator();
+    if (typeof teardownPedestrianRailingCalibrator === 'function') teardownPedestrianRailingCalibrator();
+    if (typeof teardownStreetFurnitureCalibrator === 'function') teardownStreetFurnitureCalibrator();
     if (typeof setLiveBuildingLightsEnabled === 'function') {
       setLiveBuildingLightsEnabled(false, typeof activeScene !== 'undefined' ? activeScene : null);
       const button = document.querySelector?.('.vrp-livelights-btn');
@@ -1017,6 +1020,16 @@ function createVisualRoutePerformancePanel(scene) {
         font: inherit; cursor: pointer;
       }
       #visual-route-performance-panel button:hover { background: #1a5145; }
+      #visual-route-performance-panel .vrp-tools { margin-top: 8px; border-top: 1px solid rgba(112, 221, 160, .3); padding-top: 6px; }
+      #visual-route-performance-panel .vrp-tools > summary {
+        cursor: pointer; color: #70dda0; font-weight: 800; letter-spacing: .06em; list-style: none;
+      }
+      #visual-route-performance-panel .vrp-tools > summary::-webkit-details-marker { display: none; }
+      #visual-route-performance-panel .vrp-tools > summary::before { content: '▸ '; }
+      #visual-route-performance-panel .vrp-tools[open] > summary::before { content: '▾ '; }
+      #visual-route-performance-panel .vrp-group-label { margin: 7px 0 2px; color: #9fc9b1; font-size: 10px; letter-spacing: .08em; }
+      #visual-route-performance-panel .vrp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+      #visual-route-performance-panel .vrp-grid button { margin-top: 0; padding: 4px 5px; }
       #visual-route-performance-panel .vrp-close-btn {
         position: absolute; top: 8px; right: 8px; width: 20px; height: 20px;
         margin-top: 0; padding: 0; display: flex; align-items: center; justify-content: center;
@@ -1033,15 +1046,25 @@ function createVisualRoutePerformancePanel(scene) {
     + '<div class="vrp-title">PERFORMANCE · PHASE 0</div><pre></pre>'
     + '<div class="vrp-actions"><button type="button" class="vrp-reset-btn">重置樣本</button>'
     + '<button type="button" class="vrp-copy-btn">複製 JSON</button></div>'
-    + '<button type="button" class="vrp-airport-btn">機場路線校正</button>'
+    // Every calibration tool sits in one collapsible, grouped section so the panel stays a
+    // compact metrics readout until a tool is actually wanted.
+    + '<details class="vrp-tools"><summary>校正工具</summary>'
+    + '<div class="vrp-group-label">交通</div><div class="vrp-grid">'
+    + '<button type="button" class="vrp-trafficlane-btn">行車線位置校正</button>'
+    + '<button type="button" class="vrp-trafficsignal-btn">路口交通燈位置微調</button>'
     + '<button type="button" class="vrp-busstop-btn">巴士站位置微調</button>'
     + '<button type="button" class="vrp-trafficlight-btn">車燈位置微調</button>'
-    + '<button type="button" class="vrp-trafficsignal-btn">路口交通燈位置微調</button>'
+    + '<button type="button" class="vrp-airport-btn">機場路線校正</button>'
+    + '</div><div class="vrp-group-label">街道</div><div class="vrp-grid">'
+    + '<button type="button" class="vrp-roadline-btn">馬路劃線位置校正</button>'
     + '<button type="button" class="vrp-streetlamp-btn">路燈位置微調</button>'
     + '<button type="button" class="vrp-bridgeparapet-btn">天橋護欄位置微調</button>'
-    + '<button type="button" class="vrp-livelights-btn" data-active="false">使用 Phaser 光源：關閉</button>'
+    + '<button type="button" class="vrp-pedestrianrailing-btn">行人路欄杆位置微調</button>'
+    + '<button type="button" class="vrp-streetfurniture-btn">路邊設施位置微調</button>'
+    + '</div><div class="vrp-group-label">燈光</div><div class="vrp-grid">'
     + '<button type="button" class="vrp-buildinglight-btn">夜間建築燈光校正</button>'
-    + '<button type="button" class="vrp-roadline-btn">馬路劃線位置校正</button>';
+    + '<button type="button" class="vrp-livelights-btn" data-active="false">使用 Phaser 光源：關閉</button>'
+    + '</div></details>';
   root.querySelector('.vrp-close-btn')?.addEventListener?.('click', () => {
     setVisualRouteCalibrationTestModeEnabled(false);
   });
@@ -1057,6 +1080,17 @@ function createVisualRoutePerformancePanel(scene) {
   root.querySelector('.vrp-airport-btn')?.addEventListener?.('click', () => {
     if (typeof toggleAirportRouteCalibrator === 'function') toggleAirportRouteCalibrator(scene);
   });
+  root.querySelector('.vrp-trafficlane-btn')?.addEventListener?.('click', () => {
+    if (typeof toggleTrafficLaneCalibrator === 'function') toggleTrafficLaneCalibrator(scene);
+  });
+  // Remember whether the tool section was left open (a per-viewer convenience only).
+  const tools = root.querySelector('.vrp-tools');
+  try {
+    if (tools && globalThis.localStorage?.getItem('vrp-tools-open') === '1') tools.open = true;
+  } catch { /* storage unavailable */ }
+  tools?.addEventListener?.('toggle', () => {
+    try { globalThis.localStorage?.setItem('vrp-tools-open', tools.open ? '1' : '0'); } catch { /* storage unavailable */ }
+  });
   root.querySelector('.vrp-busstop-btn')?.addEventListener?.('click', () => {
     if (typeof toggleBusStopCalibrator === 'function') toggleBusStopCalibrator(scene);
   });
@@ -1068,6 +1102,12 @@ function createVisualRoutePerformancePanel(scene) {
   });
   root.querySelector('.vrp-streetlamp-btn')?.addEventListener?.('click', () => {
     if (typeof toggleStreetLampCalibrator === 'function') toggleStreetLampCalibrator(scene);
+  });
+  root.querySelector('.vrp-streetfurniture-btn')?.addEventListener?.('click', () => {
+    if (typeof toggleStreetFurnitureCalibrator === 'function') toggleStreetFurnitureCalibrator(scene);
+  });
+  root.querySelector('.vrp-pedestrianrailing-btn')?.addEventListener?.('click', () => {
+    if (typeof togglePedestrianRailingCalibrator === 'function') togglePedestrianRailingCalibrator(scene);
   });
   root.querySelector('.vrp-bridgeparapet-btn')?.addEventListener?.('click', () => {
     if (typeof toggleBridgeParapetCalibrator === 'function') toggleBridgeParapetCalibrator(scene);

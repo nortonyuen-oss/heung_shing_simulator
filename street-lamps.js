@@ -261,7 +261,12 @@ function rebuildStreetLampSprites(scene) {
   if (!sprites || typeof getRoadKey !== 'function' || typeof isRoadLikeTile !== 'function') return;
   const roadKeyAt = (row, col) => (isRoadLikeTile(row, col) ? getRoadKey(row, col) : null);
   const signalPlacements = typeof computeTrafficSignalPlacements === 'function'
-    ? computeTrafficSignalPlacements({ mapWidth: MAP_WIDTH, mapHeight: MAP_HEIGHT, roadKeyAt })
+    ? computeTrafficSignalPlacements({
+      mapWidth: MAP_WIDTH,
+      mapHeight: MAP_HEIGHT,
+      roadKeyAt,
+      carriagewayBandAt: typeof getRoadCarriagewayBand === 'function' ? getRoadCarriagewayBand : undefined,
+    })
     : [];
   const placements = computeStreetLampPlacements({ mapWidth: MAP_WIDTH, mapHeight: MAP_HEIGHT, roadKeyAt, signalPlacements });
   const wanted = new Map(placements.map((placement) => [streetLampId(placement), placement]));

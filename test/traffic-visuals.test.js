@@ -629,11 +629,11 @@ test('left-hand traffic offsets to the logical left of every travel direction', 
   assert.deepEqual(getTrafficLeftLaneOffset(0, -1), { row: 0.20, col: 0 });
 });
 
-test('same-sign diagonals and NE travel use their calibrated narrower lane offsets', () => {
+test('each screen direction of travel reads its calibrated keep-left lane offset', () => {
   assert.equal(getTrafficLaneOffsetAmount(50, 25), 0.12);
   assert.equal(getTrafficLaneOffsetAmount(-50, -25), 0.12);
-  assert.equal(getTrafficLaneOffsetAmount(-50, 25), 0.20);
-  assert.equal(getTrafficLaneOffsetAmount(50, -25), 0.08);
+  assert.equal(getTrafficLaneOffsetAmount(-50, 25), 0.12);
+  assert.equal(getTrafficLaneOffsetAmount(50, -25), 0.12);
 });
 
 test('traffic compass direction reads off the dominant row/col delta', () => {

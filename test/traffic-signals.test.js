@@ -658,3 +658,91 @@ test('main.js rebuilds the poles with the road tiles and index.html loads the mo
   assert.ok(panel.includes('teardownTrafficSignalCalibrator()'), 'leaving test mode closes it');
   assert.ok(panel.includes('isTrafficSignalPickerActive()'), 'the picker captures tool input');
 });
+
+// Two dual carriageways crossing: a 2x2 block of cross tiles at rows/cols 7-8. N-S lanes are
+// cols 7 (northbound, west side) and 8 (southbound); E-W lanes rows 7 (eastbound, north side)
+// and 8 (westbound). Keys and bands are what getRoadKey / getRoadCarriagewayBand give there.
+function dualCrossing({ nsCols = { 7: 'north', 8: 'south' }, ewRows = { 7: 'east', 8: 'west' } } = {}) {
+  const size = 16;
+  const isNs = (c) => nsCols[c] !== undefined;
+  const isEw = (r) => ewRows[r] !== undefined;
+  const roadKeyAt = (row, col) => {
+    if (row < 0 || col < 0 || row >= size || col >= size) return null;
+    if (isNs(col) && isEw(row)) return 'road_cross';
+    if (isNs(col)) return 'road_straight_v';
+    if (isEw(row)) return 'road_straight_h';
+    return null;
+  };
+  const carriagewayBandAt = (row, col) => {
+    const key = roadKeyAt(row, col);
+    if (key === 'road_straight_v') return { orientation: 'v', direction: nsCols[col] };
+    if (key === 'road_straight_h') return { orientation: 'h', direction: ewRows[row] };
+    return null;
+  };
+  return { mapWidth: size, mapHeight: size, roadKeyAt, carriagewayBandAt };
+}
+
+test('dual carriageway crossing: one pole per side, only on the carriageway entering the junction, at its kerb', () => {
+  const run = createContext();
+  const placements = toPlain(run('computeTrafficSignalPlacements')(dualCrossing()));
+  assert.deepEqual(Object.keys(byId(placements)).sort(), ['6:8:s', '7:6:e', '8:9:w', '9:7:n'].sort(),
+    'southbound enters from the north, northbound from the south, eastbound from the west, westbound from the east');
+  // Every pole is on the driver's left of its own traffic, which on an inbound carriageway is the
+  // pavement, never the median between the two carriageways.
+  const left = run('trafficSignalLeftOf');
+  const map = dualCrossing();
+  placements.forEach((p) => {
+    const l = left(p.travel);
+    assert.equal(map.roadKeyAt(p.row + l.row, p.col + l.col), null, `${p.row}:${p.col} pole kerb is off the road`);
+    assert.deepEqual([p.clusterRow, p.clusterCol], [7, 7], 'all four belong to the one junction block');
+  });
+});
+
+test('a carriageway several tiles wide gets one pole, on its kerbside tile; a shared middle lane gets none', () => {
+  const run = createContext();
+  const compute = run('computeTrafficSignalPlacements');
+  const wide = toPlain(compute(dualCrossing({ nsCols: { 6: 'north', 7: 'north', 8: 'south', 9: 'south' } })));
+  const northSide = wide.filter((p) => p.travel === 's').map((p) => `${p.row}:${p.col}`);
+  assert.deepEqual(northSide, ['6:9'], 'southbound cols 8-9: only the eastern (kerbside) tile');
+  const southSide = wide.filter((p) => p.travel === 'n').map((p) => `${p.row}:${p.col}`);
+  assert.deepEqual(southSide, ['9:6'], 'northbound cols 6-7: only the western (kerbside) tile');
+  const shared = toPlain(compute(dualCrossing({ nsCols: { 6: 'north', 7: 'shared', 8: 'south' } })));
+  assert.ok(!shared.some((p) => p.col === 7 && (p.travel === 'n' || p.travel === 's')), 'no pole on the shared lane');
+});
+
+test('a junction block runs one cycle, and traffic inside the box is never held again', () => {
+  const run = createContext();
+  const map = dualCrossing();
+  const clusters = run('computeTrafficSignalJunctionClusters')(map);
+  const block = clusters.get('7:7');
+  assert.equal(block.tiles.length, 4);
+  ['7:8', '8:7', '8:8'].forEach((key) => assert.equal(clusters.get(key), block, `${key} is in the same block`));
+  assert.deepEqual(toPlain(block.arms), ['n', 'e', 's', 'w']);
+
+  const junction = run('describeTrafficSignalJunctionArms')(block.row, block.col, block.arms);
+  const junctions = new Map(block.tiles.map((t) => [`${t.row}:${t.col}`, junction]));
+  const hold = run('getTrafficSignalHoldProgress');
+  const timing = run('TRAFFIC_SIGNAL_TIMING');
+  const car = 0.55;
+  let heldEntering = 0;
+  for (let t = 0; t < junction.cycleMs; t += 250) {
+    const scene = { trafficSignalJunctions: junctions, trafficSignalClockMs: t };
+    if (hold(scene, { row: 6, col: 8 }, { row: 7, col: 8 }, 0.05, car) !== null) heldEntering++;
+    assert.equal(hold(scene, { row: 7, col: 8 }, { row: 8, col: 8 }, 0.05, car), null, `t=${t}: moving within the box`);
+    assert.equal(hold(scene, { row: 7, col: 8 }, { row: 7, col: 7 }, 0.05, car), null, `t=${t}: turning within the box`);
+  }
+  assert.ok(heldEntering > 0, 'entering the block still stops at red');
+  assert.ok(junction.cycleMs === 2 * (timing.redAmberMs + timing.amberMs + timing.allRedMs + timing.crossGreenMs), 'a four-sided block runs as a cross');
+});
+
+test('a one-tile junction times exactly as before (its own tile is the block anchor)', () => {
+  const run = createContext();
+  const describe = run('describeTrafficSignalJunction');
+  const describeArms = run('describeTrafficSignalJunctionArms');
+  const arms = run('TRAFFIC_SIGNAL_JUNCTION_ARMS');
+  for (const key of ['road_cross', 'road_t_n', 'road_t_e', 'road_t_s', 'road_t_w']) {
+    assert.deepEqual(toPlain(describeArms(12, 5, arms[key])), toPlain(describe(12, 5, key)), key);
+  }
+  const clusters = run('computeTrafficSignalJunctionClusters')({ mapWidth: 5, mapHeight: 5, roadKeyAt: roadKeyAtFor(['..|..', '..|..', '--+--', '..|..', '..|..']) });
+  assert.deepEqual(toPlain(clusters.get('2:2')), { row: 2, col: 2, tiles: [{ row: 2, col: 2 }], arms: ['n', 'e', 's', 'w'] });
+});

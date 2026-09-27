@@ -569,6 +569,29 @@ const BRIDGE_PARAPET_ANCHOR_OFFSETS = {
   nw: { dx: 8.069, dy: 2.897 },
 };
 
+// ── Pedestrian railings (pedestrian-railings.js) ─────────────────────────────
+// A run is two ~5 m sets (half a tile edge): the bake spans 440 canvas px, half a 50 px tile
+// edge is 25 screen px at zoom 1.
+const PEDESTRIAN_RAILING_SCALE = 25 / 440;
+// Where a run stands, in tile units from the tile centre: `lateral` out to the pavement just
+// behind the kerb (the 512 road art's yellow kerb line is at ±0.25, kerb stones ±0.28-0.36),
+// `forward` to the middle of the tile's half nearest the junction or zebra crossing.
+const PEDESTRIAN_RAILING_LOGICAL_INSET = { lateral: 0.30, forward: 0.25 };
+// Per-facing pixel nudges on top of the geometric anchor (test-mode 行人路欄杆位置微調).
+const PEDESTRIAN_RAILING_ANCHOR_OFFSETS = {
+  ne: { dx: 0, dy: 0 },
+  se: { dx: 0, dy: 0 },
+  sw: { dx: 0, dy: 0 },
+  nw: { dx: 0, dy: 0 },
+};
+
+// ── Roadside furniture (street-furniture.js) ─────────────────────────────────
+// Overall size multiplier on top of each kind's real height (STREET_FURNITURE_KINDS), and
+// per kind-and-view pixel nudges from the geometric foot (test-mode 路邊設施位置微調). Facing
+// keys are `${kind}_${view}`, e.g. bin_sw.
+const STREET_FURNITURE_SCALE = 1;
+const STREET_FURNITURE_ANCHOR_OFFSETS = {};
+
 // Tree simulation
 const TREE_SYSTEM_VERSION = 3;            // bump when generation algorithm changes
 const TREE_MATURE_AGE = 6;

@@ -106,15 +106,63 @@ function trafficSignalLeftOf(travel) {
   return { row: -d.col, col: d.row };
 }
 
+const TRAFFIC_SIGNAL_BAND_TRAVEL = Object.freeze({ north: 'n', east: 'e', south: 's', west: 'w' });
+
+// Pure: groups touching junction tiles into one signalised junction each. Where two dual
+// carriageways cross, the crossing is a 2x2 (or larger) block of junction tiles; run as one
+// junction it has one cycle, and traffic already inside the box is never held again. Returns a
+// Map of "row:col" (every junction tile) -> cluster { row, col, tiles, arms }, where row/col is
+// the block's first tile in row-major order (a lone tile is its own anchor, so a one-tile
+// junction keeps exactly its old timing offset) and `arms` are the sides roads leave it by.
+function computeTrafficSignalJunctionClusters({ mapWidth, mapHeight, roadKeyAt }) {
+  const clusters = new Map();
+  const isJunction = (row, col) => row >= 0 && row < mapHeight && col >= 0 && col < mapWidth
+    && Boolean(TRAFFIC_SIGNAL_JUNCTION_ARMS[roadKeyAt(row, col)]);
+  for (let row = 0; row < mapHeight; row++) {
+    for (let col = 0; col < mapWidth; col++) {
+      if (clusters.has(`${row}:${col}`) || !isJunction(row, col)) continue;
+      const cluster = { row, col, tiles: [], arms: [] };
+      const armSet = new Set();
+      const stack = [[row, col]];
+      clusters.set(`${row}:${col}`, cluster);
+      while (stack.length) {
+        const [r, c] = stack.pop();
+        cluster.tiles.push({ row: r, col: c });
+        for (const arm of TRAFFIC_SIGNAL_JUNCTION_ARMS[roadKeyAt(r, c)]) {
+          const delta = TRAFFIC_SIGNAL_DIRECTION_DELTA[arm];
+          const nr = r + delta.row;
+          const nc = c + delta.col;
+          if (!isJunction(nr, nc)) { armSet.add(arm); continue; }
+          if (clusters.has(`${nr}:${nc}`)) continue;
+          clusters.set(`${nr}:${nc}`, cluster);
+          stack.push([nr, nc]);
+        }
+      }
+      cluster.arms = ['n', 'e', 's', 'w'].filter((arm) => armSet.has(arm));
+    }
+  }
+  return clusters;
+}
+
 // Pure: every pole the road map calls for. `roadKeyAt(row, col)` returns the road tile key
-// (getRoadKey) or a non-road key. Each placement is the approach tile plus the direction traffic
-// travels along it into the junction.
-function computeTrafficSignalPlacements({ mapWidth, mapHeight, roadKeyAt }) {
+// (getRoadKey) or a non-road key; `carriagewayBandAt(row, col)` is getRoadCarriagewayBand (map
+// frame). Each placement is the approach tile plus the direction traffic travels along it into
+// the junction. On a dual carriageway (a band tile) only the carriageway whose one-way traffic
+// enters the junction gets a pole - the one leaving it carries no traffic towards a signal, and
+// its "driver's left" kerb would be the central median - and only on its kerbside tile, so a
+// carriageway several tiles wide shares one pole on the pavement side.
+function computeTrafficSignalPlacements({ mapWidth, mapHeight, roadKeyAt, carriagewayBandAt = () => null }) {
+  const clusters = computeTrafficSignalJunctionClusters({ mapWidth, mapHeight, roadKeyAt });
+  const inbound = (row, col, travel) => {
+    const band = carriagewayBandAt(row, col);
+    return !band || TRAFFIC_SIGNAL_BAND_TRAVEL[band.direction] === travel;
+  };
   const placements = [];
   for (let row = 0; row < mapHeight; row++) {
     for (let col = 0; col < mapWidth; col++) {
       const arms = TRAFFIC_SIGNAL_JUNCTION_ARMS[roadKeyAt(row, col)];
       if (!arms) continue;
+      const cluster = clusters.get(`${row}:${col}`);
       for (const arm of arms) {
         const delta = TRAFFIC_SIGNAL_DIRECTION_DELTA[arm];
         const approachRow = row + delta.row;
@@ -122,12 +170,23 @@ function computeTrafficSignalPlacements({ mapWidth, mapHeight, roadKeyAt }) {
         if (approachRow < 0 || approachRow >= mapHeight || approachCol < 0 || approachCol >= mapWidth) continue;
         const approachKey = roadKeyAt(approachRow, approachCol);
         if (!TRAFFIC_SIGNAL_APPROACH_KEYS.has(approachKey)) continue;
+        const travel = TRAFFIC_SIGNAL_OPPOSITE[arm];
+        const band = carriagewayBandAt(approachRow, approachCol);
+        if (band) {
+          if (!inbound(approachRow, approachCol, travel)) continue;
+          const left = trafficSignalLeftOf(travel);
+          const kerbRow = approachRow + left.row;
+          const kerbCol = approachCol + left.col;
+          if (carriagewayBandAt(kerbRow, kerbCol) && inbound(kerbRow, kerbCol, travel)) continue;
+        }
         placements.push({
           row: approachRow,
           col: approachCol,
-          travel: TRAFFIC_SIGNAL_OPPOSITE[arm],
+          travel,
           junctionRow: row,
           junctionCol: col,
+          clusterRow: cluster.row,
+          clusterCol: cluster.col,
         });
       }
     }
@@ -174,16 +233,23 @@ function trafficSignalTextureKey(facing, phase = null) {
 // A cross runs {n,s} then {e,w}; a T runs its through pair then the side arm.
 function describeTrafficSignalJunction(row, col, roadKey, timing = TRAFFIC_SIGNAL_TIMING) {
   const arms = TRAFFIC_SIGNAL_JUNCTION_ARMS[roadKey];
-  if (!arms) return null;
+  return arms ? describeTrafficSignalJunctionArms(row, col, arms, timing) : null;
+}
+
+// Same, from the sides a junction (or a whole junction block, computeTrafficSignalJunctionClusters)
+// is entered by: four sides run as a cross, fewer as a T (through pair, then the rest).
+function describeTrafficSignalJunctionArms(row, col, arms, timing = TRAFFIC_SIGNAL_TIMING) {
+  if (!arms?.length) return null;
   let groups;
   let greens;
-  if (roadKey === 'road_cross') {
+  if (arms.length === 4) {
     groups = [['n', 's'], ['e', 'w']];
     greens = [timing.crossGreenMs, timing.crossGreenMs];
   } else {
     const through = arms.includes('n') && arms.includes('s') ? ['n', 's'] : ['e', 'w'];
     groups = [through, arms.filter((arm) => !through.includes(arm))];
     greens = [timing.teeThroughGreenMs, timing.teeSideGreenMs];
+    if (!groups[1].length) { groups = [groups[0]]; greens = [greens[0]]; }
   }
   const stageOverheadMs = timing.redAmberMs + timing.amberMs + timing.allRedMs;
   const starts = [];
@@ -197,7 +263,7 @@ function describeTrafficSignalJunction(row, col, roadKey, timing = TRAFFIC_SIGNA
   return {
     row,
     col,
-    roadKey,
+    arms,
     groups,
     greens,
     starts,
@@ -270,6 +336,8 @@ function getTrafficSignalHoldProgress(scene, current, next, progress, headwayFac
   if (!junctions?.size || !current || !next) return null;
   const junction = junctions.get(trafficSignalJunctionKey(next.row, next.col));
   if (!junction) return null;
+  // Already inside the same junction block: it was let in at the stop line, never hold it again.
+  if (junctions.get(trafficSignalJunctionKey(current.row, current.col)) === junction) return null;
   const stop = trafficSignalStopProgressFor(headwayFactor);
   if (progress > stop + 1e-6) return null;
   const arm = trafficSignalDirectionForDelta(current.row - next.row, current.col - next.col);
@@ -499,14 +567,19 @@ function rebuildTrafficSignalSprites(scene) {
   const sprites = ensureTrafficSignalSprites(scene);
   if (!sprites || typeof getRoadKey !== 'function' || typeof isRoadLikeTile !== 'function') return;
   const roadKeyAt = (row, col) => (isRoadLikeTile(row, col) ? getRoadKey(row, col) : null);
-  const placements = computeTrafficSignalPlacements({ mapWidth: MAP_WIDTH, mapHeight: MAP_HEIGHT, roadKeyAt });
-  // The junction registry the phase queries read; a junction only counts once it has a pole.
+  const carriagewayBandAt = typeof getRoadCarriagewayBand === 'function' ? getRoadCarriagewayBand : undefined;
+  const mapSize = { mapWidth: MAP_WIDTH, mapHeight: MAP_HEIGHT, roadKeyAt };
+  const placements = computeTrafficSignalPlacements({ ...mapSize, carriagewayBandAt });
+  // The junction registry the phase queries read: every tile of a junction block maps to the
+  // block's one shared description. A block only counts once it has a pole.
+  const clusters = computeTrafficSignalJunctionClusters(mapSize);
   const junctions = new Map();
   placements.forEach((placement) => {
-    const key = trafficSignalJunctionKey(placement.junctionRow, placement.junctionCol);
-    if (junctions.has(key)) return;
-    const junction = describeTrafficSignalJunction(placement.junctionRow, placement.junctionCol, roadKeyAt(placement.junctionRow, placement.junctionCol));
-    if (junction) junctions.set(key, junction);
+    if (junctions.has(trafficSignalJunctionKey(placement.junctionRow, placement.junctionCol))) return;
+    const cluster = clusters.get(trafficSignalJunctionKey(placement.junctionRow, placement.junctionCol));
+    const junction = cluster && describeTrafficSignalJunctionArms(cluster.row, cluster.col, cluster.arms);
+    if (!junction) return;
+    cluster.tiles.forEach((tile) => junctions.set(trafficSignalJunctionKey(tile.row, tile.col), junction));
   });
   scene.trafficSignalJunctions = junctions;
   const wanted = new Map(placements.map((placement) => [trafficSignalId(placement), placement]));
@@ -555,6 +628,7 @@ const trafficSignalsTestApi = {
   TRAFFIC_SIGNAL_TEXTURE_FILES,
   TRAFFIC_SIGNAL_SOURCE_CANVAS,
   TRAFFIC_SIGNAL_SOURCE_ANCHOR,
+  computeTrafficSignalJunctionClusters,
   computeTrafficSignalPlacements,
   trafficSignalId,
   trafficSignalLeftOf,
@@ -562,6 +636,7 @@ const trafficSignalsTestApi = {
   trafficSignalFacing,
   trafficSignalTextureKey,
   describeTrafficSignalJunction,
+  describeTrafficSignalJunctionArms,
   getTrafficSignalPhase,
   getTrafficSignalHoldProgress,
   trafficSignalStopProgressFor,

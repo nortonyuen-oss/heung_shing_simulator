@@ -1,6 +1,6 @@
 const I18N_STORAGE_KEY = 'citybuilder.language';
-let appVersion = '4.14.1';
-let appReleaseTheme = '【香城討論區】';
+let appVersion = '4.15.0';
+let appReleaseTheme = '【路上觀察研討會】';
 
 const LANGUAGES = {
   en: 'English',

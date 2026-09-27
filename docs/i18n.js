@@ -242,6 +242,13 @@ const SITE_FEATURE_LIST = {
 // ── Changelog ─────────────────────────────────────────────────────────────────
 const SITE_CHANGELOG = {
   "zh-HK": [
+    { version: "v4.15.0", date: "2026-09-28", dateLabel: "2026年9月28日", title: "路上觀察研討會", items: [
+      "兩條並排嘅同向道路會自動變成單向雙線（靠左行車），車輛分兩條線行，巴士行近行人路嗰條。",
+      "馬路劃線：巴士站路面有「巴士站 BUS STOP」字、長直路每隔 4 格有斑馬線、黃格仔路口前有停車線同箭嘴（單線同雙線各有畫法）；道路貼圖提升到 512×256，放大都睇得清。",
+      "雙線路口紅綠燈重新整理：成個路口同一個燈號循環，燈柱只企喺駛入嗰邊嘅行人路，車入咗黃格仔唔會再被截停。",
+      "路口前同斑馬線前後有行人路方柱欄杆；街邊按樓宇密度、住宅區同交通量出現垃圾桶、電箱、交通燈控制箱、郵筒同咪錶，比例參考香港真實數據。",
+      "車輛喺行車線入面嘅位置重新校正；舊存檔兼容。",
+    ] },
     { version: "v4.14.1", date: "2026-09-25", dateLabel: "2026年9月25日", title: "香城討論區", items: [
       "修正落雨後雨量卡喺 1 mm，令雪糕車放晴後仍然唔出車嘅問題。",
       "雪糕車出車冷卻時間跟返遊戲時鐘同速度，縮短天氣合適時嘅等待時間。",
@@ -541,6 +548,13 @@ const SITE_CHANGELOG = {
 // title/items text.
 const SITE_CHANGELOG_TRANSLATIONS = {
   "zh-TW": {
+    "v4.15.0": { title: "路上觀察研討會", items: [
+      "兩條並排的同向道路會自動變成單向雙線（靠左行駛），車輛分兩條線行駛，公車走靠人行道那條。",
+      "道路標線：公車站路面有「巴士站 BUS STOP」字樣、長直路每隔 4 格有斑馬線、黃網格路口前有停止線與箭頭（單線與雙線各有畫法）；道路貼圖提升到 512×256，放大也看得清楚。",
+      "雙線路口紅綠燈重新整理：整個路口共用同一個燈號循環，燈桿只設在駛入那側的人行道，車輛進入黃網格後不會再被攔停。",
+      "路口前與斑馬線前後設有人行道方柱欄杆；街邊依建築密度、住宅區與交通量出現垃圾桶、電箱、號誌控制箱、郵筒與停車收費錶，比例參考香港真實數據。",
+      "車輛在車道內的位置重新校正；相容舊存檔。",
+    ] },
     "v4.14.1": { title: "香城討論區", items: [
       "修正下雨後雨量卡在 1 mm，導致冰淇淋車放晴後仍無法出現的問題。",
       "冰淇淋車的出車冷卻時間改為跟隨遊戲時鐘與速度，縮短天氣合適時的等待時間。",
@@ -833,6 +847,13 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   en: {
+    "v4.15.0": { title: "Street Observation Seminar", items: [
+      "Two side-by-side roads running the same way now merge into a one-way dual carriageway (keep-left), with traffic in two lanes and buses in the kerb lane.",
+      "Road markings: bus stops read 'BUS STOP' on the road, long straights get a zebra crossing every 4 tiles, and the tile before each yellow-box junction gets stop lines and arrows (drawn differently for single and dual carriageways). Road art is now 512×256, sharp even zoomed in.",
+      "Dual-carriageway junctions run as one junction on one signal cycle, with poles only on the pavement side of the carriageway entering it, and traffic already in the yellow box is never stopped again.",
+      "Pedestrian railings line the pavement before junctions and around zebra crossings; litter bins, utility and signal cabinets, posting boxes and parking meters appear by street density, residential frontage and traffic, at rates based on real Hong Kong figures.",
+      "Vehicle positions within their lanes are recalibrated. Existing saves remain compatible.",
+    ] },
     "v4.14.1": { title: "Heung Shing Forum", items: [
       "Fixed rainfall getting stuck at 1 mm after rain, preventing ice cream vans from returning in dry weather.",
       "Ice cream van cooldowns now follow the game clock and speed, with shorter waits during suitable weather.",
@@ -1125,6 +1146,13 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   ja: {
+    "v4.15.0": { title: "路上観察研討会", items: [
+      "並んだ同じ向きの2本の道路が自動的に一方通行の2車線道路（左側通行）になり、車両は2車線に分かれて走り、バスは歩道側の車線を走ります。",
+      "路面標示：バス停の路面に「巴士站 BUS STOP」の文字、長い直線道路には4マスごとに横断歩道、黄色ボックス交差点の手前には停止線と矢印（1車線と2車線で描き方が異なります）。道路テクスチャを512×256に高精細化し、拡大してもはっきり見えます。",
+      "2車線道路の交差点の信号を整理：交差点全体で1つの信号サイクルになり、信号柱は交差点に入る側の歩道だけに立ち、黄色ボックスに入った車両が止められることはなくなりました。",
+      "交差点の手前と横断歩道の前後に歩道の柵を設置。建物の密度・住宅地・交通量に応じてごみ箱、電気ボックス、信号制御箱、郵便ポスト、パーキングメーターが現れ、割合は香港の実データを参考にしています。",
+      "車線内の車両の位置を再調整。既存のセーブデータに対応しています。",
+    ] },
     "v4.14.1": { title: "香城討論区", items: [
       "雨がやんだ後も降水量が1 mmのまま下がらず、アイスクリーム販売車が出現しなくなる不具合を修正しました。",
       "出現までの待ち時間をゲーム内の時計と速度に合わせ、天候が適しているときの待ち時間を短縮しました。",
@@ -1442,8 +1470,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.14.1 — 【香城討論區】",
-      versionDesc: "4.14.1 修正版：修正雨量卡住令雪糕車唔出現，並調整出車冷卻時間。",
+      versionBadge: "v4.15.0 — 【路上觀察研討會】",
+      versionDesc: "兩條並排嘅路自動變單向雙線、馬路劃線同斑馬線、雙線路口紅綠燈重新整理，仲有行人路欄杆同按樓宇密度出現嘅垃圾桶、電箱、郵筒同咪錶。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感嘅城市建設遊戲。起街道、規劃社區、經營自己嘅香城巴士公司、處理議會同天氣，再睇住一座有性格嘅香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1542,8 +1570,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.14.1 — 【香城討論區】",
-      versionDesc: "4.14.1 修正版：修正雨量卡住導致冰淇淋車無法出現，並調整出車冷卻時間。",
+      versionBadge: "v4.15.0 — 【路上觀察研討會】",
+      versionDesc: "兩條並排的道路自動變成單向雙線、道路標線與斑馬線、雙線路口紅綠燈重新整理，還有人行道欄杆，以及依建築密度出現的垃圾桶、電箱、郵筒與停車收費錶。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感的城市建設遊戲。興建街道、規劃社區、經營自己的香城公車公司、處理議會與天氣，看著一座有個性的香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1642,8 +1670,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "The City of Heung Shing",
       title: "The City of Heung Shing",
-      versionBadge: "v4.14.1 — Heung Shing Forum",
-      versionDesc: "4.14.1 bugfix: ice cream vans return after rain, with cooldowns aligned to the game clock.",
+      versionBadge: "v4.15.0 — Street Observation Seminar",
+      versionDesc: "Side-by-side roads become one-way dual carriageways, roads get markings and zebra crossings, dual-carriageway junction signals are reorganised, and pavements gain railings plus bins, cabinets, posting boxes and parking meters placed by street density.",
       lede: "A city-building game inspired by Hong Kong life and made in tribute to SimCity 2000. Build streets, shape neighbourhoods, run your own Heung Shing Bus Company, navigate council politics and weather, then watch a city with real personality grow.",
       freeLabel: "Completely free · macOS + Windows · Local saves",
       downloadBtn: "【Free Download】",
@@ -1743,8 +1771,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.14.1 — 香城討論区",
-      versionDesc: "4.14.1 修正版：雨の後にアイスクリーム販売車が出現しなくなる問題を修正し、待ち時間を調整しました。",
+      versionBadge: "v4.15.0 — 路上観察研討会",
+      versionDesc: "並んだ道路が一方通行の2車線に、路面標示と横断歩道、2車線交差点の信号を整理、さらに歩道の柵と、建物の密度に応じて現れるごみ箱・電気ボックス・郵便ポスト・パーキングメーター。",
       lede: "香港の都市生活から着想を得た、SimCity 2000へのオマージュとなる都市建設ゲーム。道路を築き、地区を計画し、自分だけの香城バス会社を経営し、議会や天候に向き合いながら、個性ある香城の成長を見守ります。",
       freeLabel: "完全無料 · macOS + Windows · ローカルセーブ",
       downloadBtn: "【無料ダウンロード】",

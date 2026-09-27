@@ -1213,6 +1213,31 @@ function isRuntimeTrafficRoad(row, col) {
     && !!getTrafficRoadSurface(row, col, getTrafficRuntimeLayers());
 }
 
+// A widened road's interior tiles are one-way (getRoadCarriagewayBand, main.js): on a
+// 2-wide road the left tile only carries traffic up and the right tile only down, per
+// Hong Kong keep-left. A move must agree with the band direction of the tile it leaves
+// AND the tile it enters, which also rules out hopping sideways between the two lanes.
+// Junctions, corners, ends and ordinary single-lane roads aren't band tiles and stay
+// two-way in every direction. An odd-width band's middle lane is shared: either way
+// along the road, never sideways.
+const TRAFFIC_BAND_DIRECTION_CODE = Object.freeze({ north: 'n', east: 'e', south: 's', west: 'w' });
+
+function trafficCarriagewayBandAllows(band, direction) {
+  if (!band) return true;
+  if (band.direction === 'shared') {
+    return band.orientation === 'v'
+      ? direction === 'n' || direction === 's'
+      : direction === 'e' || direction === 'w';
+  }
+  return TRAFFIC_BAND_DIRECTION_CODE[band.direction] === direction;
+}
+
+function trafficCarriagewayAllowsMove(fromRow, fromCol, toRow, toCol, direction) {
+  if (typeof getRoadCarriagewayBand !== 'function') return true;
+  return trafficCarriagewayBandAllows(getRoadCarriagewayBand(fromRow, fromCol), direction)
+    && trafficCarriagewayBandAllows(getRoadCarriagewayBand(toRow, toCol), direction);
+}
+
 function getTrafficRoadNeighbours(row, col) {
   const layers = getTrafficRuntimeLayers();
   const surface = getTrafficRoadSurface(row, col, layers);
@@ -1221,7 +1246,30 @@ function getTrafficRoadNeighbours(row, col) {
     const tile = { row: row + delta.row, col: col + delta.col };
     if (!isInsideMap(tile.row, tile.col)) return [];
     const nextSurface = getTrafficRoadSurface(tile.row, tile.col, layers);
-    return trafficRoadSurfacesConnect(surface, nextSurface, direction) ? [tile] : [];
+    return trafficRoadSurfacesConnect(surface, nextSurface, direction)
+      && trafficCarriagewayAllowsMove(row, col, tile.row, tile.col, direction)
+      ? [tile]
+      : [];
+  });
+}
+
+// The tiles a vehicle may legally arrive at (row, col) FROM — the reverse of
+// getTrafficRoadNeighbours. Needed wherever a route is searched backwards from its
+// destination and then reversed (an ice cream truck's arrival), because one-way band
+// tiles mean "B is reachable from A" no longer implies "A is reachable from B".
+function getTrafficRoadIncomingNeighbours(row, col) {
+  const layers = getTrafficRuntimeLayers();
+  const surface = getTrafficRoadSurface(row, col, layers);
+  if (!surface) return [];
+  return Object.entries(TRAFFIC_LOGICAL_DIRECTIONS).flatMap(([direction, delta]) => {
+    const tile = { row: row + delta.row, col: col + delta.col };
+    if (!isInsideMap(tile.row, tile.col)) return [];
+    const inbound = TRAFFIC_OPPOSITE_DIRECTION[direction];
+    const fromSurface = getTrafficRoadSurface(tile.row, tile.col, layers);
+    return trafficRoadSurfacesConnect(fromSurface, surface, inbound)
+      && trafficCarriagewayAllowsMove(tile.row, tile.col, row, col, inbound)
+      ? [tile]
+      : [];
   });
 }
 
@@ -1236,7 +1284,7 @@ function runtimeTrafficTilesConnect(current, next, layers = getTrafficRuntimeLay
     getTrafficRoadSurface(current.row, current.col, layers),
     getTrafficRoadSurface(next.row, next.col, layers),
     direction,
-  );
+  ) && trafficCarriagewayAllowsMove(current.row, current.col, next.row, next.col, direction);
 }
 
 function getTrafficState(scene) {
@@ -1619,13 +1667,25 @@ function getTrafficSurfacePoint(scene, row, col) {
   };
 }
 
-function getTrafficLanePoint(scene, tile, deltaRow, deltaCol) {
+// On a one-way tile of a widened road (getRoadCarriagewayBand), the whole tile carries
+// one direction in two lanes: 'outer' is the usual keep-left (kerb) lane, 'inner' the
+// mirror-image lane beside the centre line. Everywhere else — two-way tiles, junctions,
+// or a tile whose band direction doesn't match this move — `lane` is ignored and the
+// point sits in the normal keep-left lane.
+function getTrafficLanePoint(scene, tile, deltaRow, deltaCol, lane = 'outer') {
   const centerScreen = isoToScreen(tile.col, tile.row);
   const nextScreen = isoToScreen(tile.col + deltaCol, tile.row + deltaRow);
-  const amount = getTrafficLaneOffsetAmount(
+  let amount = getTrafficLaneOffsetAmount(
     nextScreen.x - centerScreen.x,
     nextScreen.y - centerScreen.y,
   );
+  if (lane === 'inner' && typeof getRoadCarriagewayBand === 'function') {
+    const band = getRoadCarriagewayBand(tile.row, tile.col);
+    const direction = getTrafficDirectionForDelta(deltaRow, deltaCol);
+    if (band && band.direction !== 'shared' && TRAFFIC_BAND_DIRECTION_CODE[band.direction] === direction) {
+      amount = -amount;
+    }
+  }
   const offset = getTrafficLeftLaneOffset(deltaRow, deltaCol, amount);
   const center = getTrafficSurfacePoint(scene, tile.row, tile.col);
   const shifted = isoToScreen(tile.col + offset.col, tile.row + offset.row);
@@ -1712,7 +1772,7 @@ function getTrafficLegSurfaceLifts(current, next, layers = getTrafficRuntimeLaye
   };
 }
 
-function createTrafficLeg(scene, previous, current, next) {
+function createTrafficLeg(scene, previous, current, next, lane = 'outer') {
   const incoming = {
     row: current.row - previous.row,
     col: current.col - previous.col,
@@ -1721,8 +1781,8 @@ function createTrafficLeg(scene, previous, current, next) {
     row: next.row - current.row,
     col: next.col - current.col,
   };
-  const start = getTrafficLanePoint(scene, current, incoming.row, incoming.col);
-  const end = getTrafficLanePoint(scene, next, outgoing.row, outgoing.col);
+  const start = getTrafficLanePoint(scene, current, incoming.row, incoming.col, lane);
+  const end = getTrafficLanePoint(scene, next, outgoing.row, outgoing.col, lane);
   const turn = classifyTrafficTurn(previous, current, next);
   const control = turn === 'straight'
     ? {
@@ -1730,7 +1790,7 @@ function createTrafficLeg(scene, previous, current, next) {
         y: (start.y + end.y) / 2,
         depthY: (start.depthY + end.depthY) / 2,
       }
-    : getTrafficLanePoint(scene, current, outgoing.row, outgoing.col);
+    : getTrafficLanePoint(scene, current, outgoing.row, outgoing.col, lane);
   return {
     start,
     control,
@@ -1968,7 +2028,11 @@ function isRuntimeIceCreamParkingRoad(row, col) {
   return surface?.kind === 'flat' || surface?.kind === 'elevated-flat';
 }
 
-function getRuntimeIceCreamRouteOutsideView(scene, parking, firstTravelDelta) {
+// `getNeighbours` must be getTrafficRoadIncomingNeighbours when the result's `path` (the
+// reversed search) is what gets driven — an arrival — since one-way band tiles make the
+// forward graph unsafe to walk backwards. Departures drive `targetToOutside` directly and
+// keep the default outgoing neighbours.
+function getRuntimeIceCreamRouteOutsideView(scene, parking, firstTravelDelta, getNeighbours = getTrafficRoadNeighbours) {
   const visibleRect = getTrafficCameraRect(scene);
   const spawnRect = getTrafficCameraRect(
     scene,
@@ -1987,7 +2051,7 @@ function getRuntimeIceCreamRouteOutsideView(scene, parking, firstTravelDelta) {
   const targetToOutside = findTrafficPathOutsideView(
     parking.road,
     (row, col) => !trafficPointInRect(getTrafficSurfacePoint(scene, row, col), spawnRect),
-    getTrafficRoadNeighbours,
+    getNeighbours,
     { firstStep },
   );
   if (!targetToOutside || targetToOutside.length < 2) return null;
@@ -2019,6 +2083,7 @@ function collectRuntimeIceCreamTargets(scene, random = Math.random) {
         scene,
         parking,
         arrivalOutboundDirection,
+        getTrafficRoadIncomingNeighbours,
       );
       const departureRoute = getRuntimeIceCreamRouteOutsideView(
         scene,
@@ -2425,9 +2490,12 @@ function spawnTrafficVehicle(scene, roads, random = Math.random, time = 0) {
       busDwellHandledForLeg: false,
       busDwellMatchedSide: undefined,
       busDepartTaperActive: false,
+      // Which of a widened road's two same-direction lanes this car keeps to (see
+      // getTrafficLanePoint). Buses stay on the kerb side, where their stops are.
+      bandLane: model.category === 'bus' || random() < 0.5 ? 'outer' : 'inner',
     };
     createTrafficVehicleLights(scene, vehicle);
-    vehicle.leg = createTrafficLeg(scene, vehicle.previous, vehicle.current, vehicle.next);
+    vehicle.leg = createTrafficLeg(scene, vehicle.previous, vehicle.current, vehicle.next, vehicle.bandLane);
     setTrafficVehicleVisual(
       vehicle,
       evaluateTrafficLeg(vehicle.leg, vehicle.progress),
@@ -2546,11 +2614,22 @@ function trafficHeadwayFor(vehicle, leader) {
     * Math.max(vehicle.model?.headwayFactor ?? 1, leader.model?.headwayFactor ?? 1);
 }
 
+// Two cars heading onto the same one-way widened-road tile in different lanes (see
+// getTrafficLanePoint) are side by side, not nose to tail — neither should queue behind
+// the other. Where the lanes merge again (a junction, a plain road) they do queue.
+function trafficVehiclesInSeparateBandLanes(vehicle, leader, tile) {
+  if ((vehicle.bandLane ?? 'outer') === (leader.bandLane ?? 'outer')) return false;
+  if (typeof getRoadCarriagewayBand !== 'function') return false;
+  const band = getRoadCarriagewayBand(tile.row, tile.col);
+  return !!band && band.direction !== 'shared';
+}
+
 function trafficVehicleHasBlockingLeader(vehicle, leaderBuckets) {
   if (!vehicle.current || !vehicle.next) return false;
   const bucket = leaderBuckets.get(trafficLegBucketKey(vehicle.current, vehicle.next));
   if (bucket?.some((leader) => {
     if (leader === vehicle) return false;
+    if (trafficVehiclesInSeparateBandLanes(vehicle, leader, vehicle.next)) return false;
     const leaderProgress = getTrafficLeaderEffectiveProgress(leader);
     return leaderProgress > vehicle.progress
       && leaderProgress - vehicle.progress < trafficHeadwayFor(vehicle, leader);
@@ -2562,6 +2641,7 @@ function trafficVehicleHasBlockingLeader(vehicle, leaderBuckets) {
   return ahead.some((leader) => {
     if (leader === vehicle || !leader.next) return false;
     if (leader.next.row === vehicle.current.row && leader.next.col === vehicle.current.col) return false;
+    if (trafficVehiclesInSeparateBandLanes(vehicle, leader, vehicle.next)) return false;
     const gap = (1 - vehicle.progress) + getTrafficLeaderEffectiveProgress(leader);
     return gap < trafficHeadwayFor(vehicle, leader);
   });
@@ -2585,7 +2665,7 @@ function advanceTrafficVehicle(scene, vehicle, amount, viewRect, time) {
     vehicle.previous = previous;
     vehicle.current = current;
     vehicle.next = { row: next.row, col: next.col };
-    vehicle.leg = createTrafficLeg(scene, vehicle.previous, vehicle.current, vehicle.next);
+    vehicle.leg = createTrafficLeg(scene, vehicle.previous, vehicle.current, vehicle.next, vehicle.bandLane);
     vehicle.busDwellHandledForLeg = false;
     vehicle.busDwellMatchedSide = undefined;
     const tracked = typeof isVehicleTrackerTarget === 'function'
@@ -2749,6 +2829,7 @@ const trafficVisualTestApi = {
   TRAFFIC_DIRECTIONS,
   TRAFFIC_MODEL_REGISTRY,
   TRAFFIC_MODEL_BY_ID,
+  trafficCarriagewayBandAllows,
   getTrafficTextureDirection,
   computeTrafficLightStrength,
   getTrafficLightProfile,

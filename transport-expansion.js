@@ -1618,6 +1618,8 @@ function validateTransportRouteDraft(draft) {
   // ensureTransportStopPairs), never mandatory.
   const path = buildTransportRoutePath(stopIds);
   if (!path) throw createTransportError('noPath');
+  // One-way widened roads mean a route can be drivable out but not back.
+  if (!buildTransportRoutePath([...stopIds].reverse())) throw createTransportError('noPath');
   const connectedDepots = commissionAllConnectedTransportDepots();
   if (connectedDepots.length === 0) throw createTransportError('needsDepot');
   return {
@@ -1704,9 +1706,11 @@ function normalizeTransportChangedTiles(changedTiles) {
 function transportRuntimeTouchesTiles(runtime, changedTiles) {
   if (!runtime || runtime.status === 'broken') return true;
   const route = getTransportExpansionState().routes.find((entry) => entry.id === runtime.routeId);
-  const points = Array.isArray(runtime.path) && runtime.path.length > 0
-    ? runtime.path
-    : (route?.stopIds || []).map(getTransportStopById).filter(Boolean);
+  const points = Array.isArray(runtime.roundTripPath) && runtime.roundTripPath.length > 0
+    ? runtime.roundTripPath
+    : Array.isArray(runtime.path) && runtime.path.length > 0
+      ? runtime.path
+      : (route?.stopIds || []).map(getTransportStopById).filter(Boolean);
   if (points.length === 0) return true;
   let minRow = Infinity;
   let maxRow = -Infinity;
@@ -1718,10 +1722,13 @@ function transportRuntimeTouchesTiles(runtime, changedTiles) {
     minCol = Math.min(minCol, point.col);
     maxCol = Math.max(maxCol, point.col);
   }
-  minRow--;
-  maxRow++;
-  minCol--;
-  maxCol++;
+  // A tile's one-way status (getRoadCarriagewayBand, main.js) can change because of an
+  // edit up to a band's full width away, so pad by that much rather than by 1.
+  const pad = 1 + (typeof CARRIAGEWAY_MAX_BAND_WIDTH === 'number' ? CARRIAGEWAY_MAX_BAND_WIDTH : 0);
+  minRow -= pad;
+  maxRow += pad;
+  minCol -= pad;
+  maxCol += pad;
   return changedTiles.some((tile) => (
     tile.row >= minRow && tile.row <= maxRow && tile.col >= minCol && tile.col <= maxCol
   ));
@@ -2211,16 +2218,26 @@ function ensureTransportRouteRuntime() {
       if (missing) brokenPoint = { row: missing.row, col: missing.col };
     }
     let path = null;
+    let returnPath = null;
     if (status === 'active') {
       if (rebuildPath) {
         const result = buildTransportRoutePathResult(route.stopIds);
         path = result.path;
         brokenPoint = result.brokenPoint;
+        // The inbound leg is planned on its own through the stops in reverse, not by
+        // retracing the outbound tiles backwards: widened roads are one-way per lane
+        // (getRoadCarriagewayBand), so the way out is not necessarily a legal way back.
+        if (path) {
+          const back = buildTransportRoutePathResult([...route.stopIds].reverse());
+          returnPath = back.path;
+          if (!returnPath) brokenPoint = back.brokenPoint;
+        }
       } else {
         path = previous.path;
+        returnPath = previous.returnPath ?? null;
         brokenPoint = previous.brokenPoint ?? null;
       }
-      if (!path) {
+      if (!path || !returnPath) {
         status = 'broken';
         brokenReason = 'noPath';
       }
@@ -2240,8 +2257,13 @@ function ensureTransportRouteRuntime() {
       brokenReason,
       brokenPoint,
       path,
-      roundTripPath: path && path.length >= 2
-        ? [...path, ...path.slice(1, -1).reverse()]
+      returnPath,
+      // Outbound through every stop, then the separately-planned inbound leg minus its
+      // two ends (they are the outbound's last and first tiles) — the cycle wraps back
+      // to path[0]. The inbound leg passes the interior stops in reverse order, matching
+      // getTransportRouteCycleStops.
+      roundTripPath: path && returnPath && path.length >= 2
+        ? [...path, ...returnPath.slice(1, -1)]
         : null,
       effectiveBuses,
       coveredBuildingIds: rebuildPath ? [] : Array.from(previous?.coveredBuildingIds || []),

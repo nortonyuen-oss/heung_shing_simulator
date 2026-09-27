@@ -5428,9 +5428,18 @@ function buildRoadPath(scene, path) {
     return;
   }
 
-  uniqueTiles.forEach(({ row, col }) => {
-    setTileType(scene, row, col, ROAD);
-  });
+  carriagewayWideRefreshSuppressed = true;
+  try {
+    uniqueTiles.forEach(({ row, col }) => {
+      setTileType(scene, row, col, ROAD);
+    });
+  } finally {
+    carriagewayWideRefreshSuppressed = false;
+  }
+  const rows = uniqueTiles.map((tile) => tile.row);
+  const cols = uniqueTiles.map((tile) => tile.col);
+  refreshCarriagewayBandRegion(scene, Math.min(...rows), Math.max(...rows), Math.min(...cols), Math.max(...cols));
+
   if (typeof updateHUD === 'function') updateHUD();
 }
 
@@ -7557,6 +7566,35 @@ function setTileType(scene, row, col, tileType) {
   }
 }
 
+// Set true by a batch placement (e.g. buildRoadPath) around its own setTileType loop, so
+// each individual tile only pays for the cheap 3×3 refresh below; the batch then does ONE
+// refreshCarriagewayBandRegion call over its whole footprint once every tile is down. See
+// that function's comment for why the wide per-tile refresh was too slow to do N times.
+let carriagewayWideRefreshSuppressed = false;
+
+function refreshTileSprite(scene, tileRow, tileCol) {
+  const key = getTileKey(tileRow, tileCol);
+  const pos = isoToScreen(tileCol, tileRow);
+  const sprite = scene.tileSprites[tileRow][tileCol];
+  sprite.setTexture(resolveTileTextureKey(key));
+  sprite.setPosition(pos.x + scene.offsetX, pos.y + scene.offsetY + getTerrainTileVisualOffset(tileRow, tileCol, key));
+  sprite.setDepth(getTerrainTileDepth(tileRow, tileCol, key, pos.y));
+  applyTileVisualStyle(sprite, tileRow, tileCol, key);
+  refreshBridgeSprite(scene, tileRow, tileCol);
+  invalidateBusStopIfOrphaned(scene, tileRow, tileCol);
+}
+
+function refreshTileList(scene, tileList) {
+  const refreshedTiles = new Set();
+  tileList.forEach(([tileRow, tileCol]) => {
+    if (!isInsideMap(tileRow, tileCol)) return;
+    const dedupeKey = tileRow * MAP_WIDTH + tileCol;
+    if (refreshedTiles.has(dedupeKey)) return;
+    refreshedTiles.add(dedupeKey);
+    refreshTileSprite(scene, tileRow, tileCol);
+  });
+}
+
 function refreshTileArea(scene, row, col) {
   const tilesToRefresh = [
     [row, col],
@@ -7570,18 +7608,54 @@ function refreshTileArea(scene, row, col) {
     [row - 1, col - 1],
   ];
 
-  tilesToRefresh.forEach(([tileRow, tileCol]) => {
-    if (!isInsideMap(tileRow, tileCol)) return;
-    const key = getTileKey(tileRow, tileCol);
-    const pos = isoToScreen(tileCol, tileRow);
-    const sprite = scene.tileSprites[tileRow][tileCol];
-    sprite.setTexture(resolveTileTextureKey(key));
-    sprite.setPosition(pos.x + scene.offsetX, pos.y + scene.offsetY + getTerrainTileVisualOffset(tileRow, tileCol, key));
-    sprite.setDepth(getTerrainTileDepth(tileRow, tileCol, key, pos.y));
-    applyTileVisualStyle(sprite, tileRow, tileCol, key);
-    refreshBridgeSprite(scene, tileRow, tileCol);
-    invalidateBusStopIfOrphaned(scene, tileRow, tileCol);
-  });
+  // A carriageway band's lane count/direction can depend on neighbours far beyond this
+  // usual 3×3 (see getRoadCarriagewayBand, CARRIAGEWAY_MAX_BAND_WIDTH), so placing or
+  // removing a road tile that touches (or used to touch) a band must re-key the whole
+  // square region around it — not just its own row and column (see
+  // refreshCarriagewayBandRegion's comment for why a cross-shaped refresh isn't enough).
+  // Skipped when a batch placement is running its own loop (carriagewayWideRefreshSuppressed)
+  // — that batch instead does this once over its whole footprint when the loop finishes,
+  // which is far cheaper than paying the full square's cost on every single tile placed.
+  const touchesRoad = !carriagewayWideRefreshSuppressed && (
+    isRoadLikeTile(row - 1, col) || isRoadLikeTile(row + 1, col)
+    || isRoadLikeTile(row, col - 1) || isRoadLikeTile(row, col + 1)
+  );
+  if (touchesRoad) {
+    for (let dr = -CARRIAGEWAY_MAX_BAND_WIDTH; dr <= CARRIAGEWAY_MAX_BAND_WIDTH; dr++) {
+      for (let dc = -CARRIAGEWAY_MAX_BAND_WIDTH; dc <= CARRIAGEWAY_MAX_BAND_WIDTH; dc++) {
+        tilesToRefresh.push([row + dr, col + dc]);
+      }
+    }
+  }
+
+  refreshTileList(scene, tilesToRefresh);
+
+  if (typeof scheduleTrafficSignalRefresh === 'function') scheduleTrafficSignalRefresh(scene);
+  if (typeof scheduleStreetLampRefresh === 'function') scheduleStreetLampRefresh(scene);
+  if (typeof scheduleBridgeParapetRefresh === 'function') scheduleBridgeParapetRefresh(scene);
+  scheduleTerrainMiniMapUpdate();
+}
+
+// Re-keys every tile in [rowMin-W, rowMax+W] × [colMin-W, colMax+W] against FINAL map
+// state (W = CARRIAGEWAY_MAX_BAND_WIDTH). A batch road placement (e.g. dragging a second
+// lane in tile-by-tile beside an already-finished first lane) calls this ONCE after its
+// whole path is down, instead of paying refreshTileArea's per-tile wide refresh N times:
+// confirmed by driving the app that doing it per-tile is correct but costs ~40ms/tile (a
+// 30-tile drag blocked for over a second) — a "+"-shaped per-tile refresh isn't a cheaper
+// substitute either, because each new tile's row-refresh only re-keys the row it lands on
+// using whatever (incomplete) state exists at that instant, and no later placement's
+// refresh ever revisits that specific earlier row again once its own moment has passed.
+// One full-region pass after the whole batch settles re-keys everything against the truly
+// final state exactly once.
+function refreshCarriagewayBandRegion(scene, rowMin, rowMax, colMin, colMax) {
+  const w = CARRIAGEWAY_MAX_BAND_WIDTH;
+  const tilesToRefresh = [];
+  for (let r = rowMin - w; r <= rowMax + w; r++) {
+    for (let c = colMin - w; c <= colMax + w; c++) {
+      tilesToRefresh.push([r, c]);
+    }
+  }
+  refreshTileList(scene, tilesToRefresh);
 
   if (typeof scheduleTrafficSignalRefresh === 'function') scheduleTrafficSignalRefresh(scene);
   if (typeof scheduleStreetLampRefresh === 'function') scheduleStreetLampRefresh(scene);
@@ -10249,6 +10323,125 @@ function screenToIso(x, y) {
   /* rotation 3 */       return { x: MAP_WIDTH - 1 - vizRow, y: vizCol };
 }
 
+// ── Carriageway widening (parallel roads placed side-by-side) ───────────────
+// Hong Kong dual-carriageway convention (see docs/road-widening-plan.md): two or more
+// straight, same-orientation road cells placed side-by-side form ONE widened road
+// rather than each cell independently reading its neighbours as a T/cross junction —
+// but ONLY the unambiguous straight middle of that band. Per direct product decision,
+// a road's own end — including where two widened lanes terminate together, which the
+// plain bitmask reads as a corner joining them into a loop, and every corner/T/cross
+// of a wide band turning or meeting another band — keeps EXACTLY the original
+// single-cell 4-neighbour bitmask below, unchanged. So getRoadCarriagewayBand requires
+// strict through-connection on the travel axis (both neighbours present, not just one)
+// before a cell is even considered, only counts lateral neighbours that are themselves
+// parallel lanes, and bails if any other road touches the band's edge at that row.
+const CARRIAGEWAY_MAX_BAND_WIDTH = 12; // generous — real HK roads rarely exceed ~6 lanes each way
+
+// Status of a width range at one row/column: 'full' (every cell road), 'none' (none),
+// or 'partial' (a mix). Used by getRoadCarriagewayBand's run-length tie-break.
+function roadRowWidthStatus(row, colStart, colEnd) {
+  let any = false, all = true;
+  for (let c = colStart; c <= colEnd; c++) {
+    if (isRoadLikeTile(row, c)) any = true; else all = false;
+  }
+  return all ? 'full' : any ? 'partial' : 'none';
+}
+
+function roadColWidthStatus(col, rowStart, rowEnd) {
+  let any = false, all = true;
+  for (let r = rowStart; r <= rowEnd; r++) {
+    if (isRoadLikeTile(r, col)) any = true; else all = false;
+  }
+  return all ? 'full' : any ? 'partial' : 'none';
+}
+
+function getVerticalCarriagewayCandidate(row, col) {
+  // Strict through required (both sides) — a road's own end must fall through to the
+  // plain bitmask below, so only cells unambiguously mid-run reach the width scan.
+  if (!isRoadLikeTile(row - 1, col) || !isRoadLikeTile(row + 1, col)) return null;
+  // Only widen into a neighbour that is itself a parallel lane (road directly above AND
+  // below it too). A plain "is it road" scan picks up a crossing band's whole row at a
+  // loop corner (width 6 instead of the true 2), which then needed fragile look-ahead
+  // heuristics to undo — and those in turn misfired on a legitimate 1→2 lane widening.
+  let start = col, end = col;
+  while (start > col - CARRIAGEWAY_MAX_BAND_WIDTH && isRoadLikeTile(row, start - 1)
+    && isRoadLikeTile(row - 1, start - 1) && isRoadLikeTile(row + 1, start - 1)) start--;
+  while (end < col + CARRIAGEWAY_MAX_BAND_WIDTH && isRoadLikeTile(row, end + 1)
+    && isRoadLikeTile(row - 1, end + 1) && isRoadLikeTile(row + 1, end + 1)) end++;
+  const width = end - start + 1;
+  if (width < 2 || width > CARRIAGEWAY_MAX_BAND_WIDTH) return null;
+  // Road right beyond the matched lanes is a real branch at this row (a crossing band's
+  // row, a side street) — a genuine junction, so keep the original bitmask here.
+  if (isRoadLikeTile(row, start - 1) || isRoadLikeTile(row, end + 1)) return null;
+  return { start, end, width, index: col - start };
+}
+
+function getHorizontalCarriagewayCandidate(row, col) {
+  // Mirror of getVerticalCarriagewayCandidate onto the other axis.
+  if (!isRoadLikeTile(row, col - 1) || !isRoadLikeTile(row, col + 1)) return null;
+  let start = row, end = row;
+  while (start > row - CARRIAGEWAY_MAX_BAND_WIDTH && isRoadLikeTile(start - 1, col)
+    && isRoadLikeTile(start - 1, col - 1) && isRoadLikeTile(start - 1, col + 1)) start--;
+  while (end < row + CARRIAGEWAY_MAX_BAND_WIDTH && isRoadLikeTile(end + 1, col)
+    && isRoadLikeTile(end + 1, col - 1) && isRoadLikeTile(end + 1, col + 1)) end++;
+  const height = end - start + 1;
+  if (height < 2 || height > CARRIAGEWAY_MAX_BAND_WIDTH) return null;
+  if (isRoadLikeTile(start - 1, col) || isRoadLikeTile(end + 1, col)) return null;
+  return { start, end, width: height, index: row - start };
+}
+
+// Returns null when (row, col) is not part of a widened band (either a lone 1-wide
+// road, or a genuine end/junction/corner/cross that the existing bitmask below should
+// keep handling unchanged). Otherwise returns this cell's position within the band:
+// `index` counts from the west edge (vertical bands) or north edge (horizontal
+// bands); `direction` is which way that lane carries traffic, assigned by Hong
+// Kong's keep-left rule (see getTrafficLeftLaneOffset, traffic-visuals.js): for a
+// vertical band the west half is northbound and the east half southbound; for a
+// horizontal band the north half is eastbound and the south half westbound. An
+// odd-width band's exact middle lane is a shared/reversible lane, not a fixed
+// direction — see docs/road-widening-plan.md section 3.
+function getRoadCarriagewayBand(row, col) {
+  const v = getVerticalCarriagewayCandidate(row, col);
+  const h = getHorizontalCarriagewayCandidate(row, col);
+
+  let orientation = null, band = null;
+  if (v && h) {
+    // Both passed the checks above — a genuine ambiguous solid rectangle (any solid
+    // W×L block reads validly both ways, not just perfect squares). Break the tie
+    // using the band's actual run length along its OWN travel axis, not its lane
+    // count: whichever elongation is longer is the real orientation.
+    let vRun = 1;
+    for (let r = row - 1; roadRowWidthStatus(r, v.start, v.end) === 'full'; r--) vRun++;
+    for (let r = row + 1; roadRowWidthStatus(r, v.start, v.end) === 'full'; r++) vRun++;
+    let hRun = 1;
+    for (let c = col - 1; roadColWidthStatus(c, h.start, h.end) === 'full'; c--) hRun++;
+    for (let c = col + 1; roadColWidthStatus(c, h.start, h.end) === 'full'; c++) hRun++;
+    if (vRun !== hRun) { orientation = vRun > hRun ? 'v' : 'h'; band = vRun > hRun ? v : h; }
+  } else if (v) { orientation = 'v'; band = v; }
+  else if (h) { orientation = 'h'; band = h; }
+
+  if (!band) return null;
+  return {
+    orientation,
+    width: band.width,
+    index: band.index,
+    direction: getCarriagewayLaneDirection(band.width, band.index, orientation === 'v'),
+  };
+}
+
+function getCarriagewayLaneDirection(width, index, vertical) {
+  const half = Math.floor(width / 2);
+  let side;
+  if (width % 2 === 0) {
+    side = index < half ? 'A' : 'B';
+  } else {
+    side = index < half ? 'A' : index > half ? 'B' : 'shared';
+  }
+  if (side === 'shared') return 'shared';
+  if (vertical) return side === 'A' ? 'north' : 'south';
+  return side === 'A' ? 'east' : 'west';
+}
+
 // Determine which road tile to use based on neighbouring roads
 function getRoadKey(row, col) {
   if (isBridgeTile(row, col)) {
@@ -10262,6 +10455,12 @@ function getRoadKey(row, col) {
   const slopeKey = getRoadSlopeKey(row, col);
   if (slopeKey === 'road_slope_corner') return 'road_isolated';
   if (slopeKey) return slopeKey;
+
+  // A cell that is part of a widened (multi-lane) parallel band always renders as
+  // a plain straight tile — it must never fall into the junction bitmask below,
+  // which would otherwise misread the lateral band-mate as a perpendicular branch.
+  const band = getRoadCarriagewayBand(row, col);
+  if (band) return band.orientation === 'v' ? 'road_straight_v' : 'road_straight_h';
 
   // Determine adjacency on diagonal edges (NE, SE, SW, NW).  The 'north' tile in mapData corresponds
   // to the NE edge of the isometric tile, 'east' corresponds to SE, 'south' to SW and 'west' to NW.

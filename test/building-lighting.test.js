@@ -546,3 +546,28 @@ test('the building-light walk runs ten times a second; beacons still pulse every
   assert.match(sync, /line < sprite\.__nightWindowUntil/, 'a building is skipped until its next change');
   assert.match(sync, /startsWith\(BUILDING_NIGHT_TEXTURE_PREFIX\)/, 'unless something put its day art back');
 });
+
+test('beacons are small tail-lamp style lights, not discs scaled with the building texture', () => {
+  const { ensureBuildingBeaconTexture, BUILDING_LIGHT_BEACON_SCALE } = require('../building-lighting.js');
+  const made = new Map();
+  const circles = [];
+  const scene = {
+    textures: { exists: (key) => made.has(key) },
+    make: { graphics: () => ({
+      fillStyle(color, alpha) { this.style = { color, alpha }; },
+      fillCircle(x, y, r) { circles.push({ r, ...this.style }); },
+      generateTexture(key, w, h) { made.set(key, { w, h }); },
+      destroy() {},
+    }) },
+  };
+  assert.equal(ensureBuildingBeaconTexture(scene, 'red'), 'fx_building_beacon_red');
+  assert.deepEqual(made.get('fx_building_beacon_red'), { w: 16, h: 16 }, 'the tail lamp texture size');
+  assert.deepEqual(circles.map((c) => c.r), [7, 3.6, 1.8], 'halo, ring, core');
+  assert.ok(circles[0].alpha <= 0.25 && circles[2].alpha > 0.9, 'faint halo, hot core');
+  assert.equal(ensureBuildingBeaconTexture(scene, 'nonsense'), 'fx_building_beacon_red', 'unknown colours fall back to red');
+  assert.equal(circles.length, 3, 'each colour is drawn once');
+  assert.ok(BUILDING_LIGHT_BEACON_SCALE <= 0.8, 'about a van tail lamp');
+  const src = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'building-lighting.js'), 'utf8');
+  assert.doesNotMatch(src, /scene\.add\.circle\(/, 'no flat circle beacons');
+  assert.doesNotMatch(src, /texW \* 0\.012/, 'beacon size no longer follows the texture width');
+});

@@ -1893,6 +1893,38 @@ function refreshAllBuildingLightGlows(scene, immediate) {
 // Shared textures
 // ---------------------------------------------------------------------------
 
+// Blinking indicator beacons are drawn like the vehicle tail lamps: a 16px texture per colour -
+// faint outer halo, a half-bright ring, a hot core lifted toward white - shown at a fixed
+// on-screen size (about a van's tail lamp).
+const BUILDING_LIGHT_BEACON_TEXTURE_PREFIX = 'fx_building_beacon_';
+const BUILDING_LIGHT_BEACON_SCALE = 0.7;
+
+function ensureBuildingBeaconTexture(scene, colorName) {
+  const name = BUILDING_LIGHT_BEACON_COLORS[colorName] !== undefined ? colorName : 'red';
+  const key = BUILDING_LIGHT_BEACON_TEXTURE_PREFIX + name;
+  if (!scene?.textures?.exists || scene.textures.exists(key) || !scene?.make?.graphics) return key;
+  const rgb = BUILDING_LIGHT_BEACON_COLORS[name];
+  const lift = (amount) => {
+    const channel = (shift) => {
+      const c = (rgb >> shift) & 0xff;
+      return Math.round(c + (255 - c) * amount);
+    };
+    return (channel(16) << 16) | (channel(8) << 8) | channel(0);
+  };
+  const g = scene.make.graphics({ x: 0, y: 0, add: false });
+  if (!g) return key;
+  // A notch brighter than the tail lamp: beacons are meant to be seen from afar.
+  g.fillStyle(rgb, 0.2);
+  g.fillCircle(8, 8, 7);
+  g.fillStyle(lift(0.1), 0.66);
+  g.fillCircle(8, 8, 3.6);
+  g.fillStyle(lift(0.4), 1);
+  g.fillCircle(8, 8, 1.8);
+  g.generateTexture(key, 16, 16);
+  g.destroy?.();
+  return key;
+}
+
 function ensureBuildingLightTextures(scene) {
   if (!scene?.textures?.exists || !scene?.make?.graphics) return false;
   const winKey = BUILDING_LIGHT_CONFIG.windowDotTextureKey;
@@ -2192,8 +2224,13 @@ function relightBuildingGlow(scene, sprite, glow, bucket, time) {
   for (let i = 0; i < beaconDefs.length; i++) {
     const def = beaconDefs[i];
     let b = glow.beacons[i];
+    const textureKey = ensureBuildingBeaconTexture(scene, def.color);
     if (!b) {
-      const sprite2 = scene.add.circle(0, 0, 2.4, 0xffffff, 1);
+      // A small lamp sprite like a vehicle tail lamp (traffic-visuals.js): a hot core in a soft
+      // halo, the same size on every building - not a flat disc scaled with the texture.
+      const sprite2 = scene.add.image(0, 0, textureKey);
+      sprite2.setOrigin?.(0.5, 0.5);
+      sprite2.setScale?.(BUILDING_LIGHT_BEACON_SCALE);
       sprite2.setBlendMode?.(typeof Phaser !== 'undefined' ? Phaser.BlendModes.ADD : 'ADD');
       if (scene.worldMask) sprite2.setMask(scene.worldMask);
       if (typeof addToRenderLayer === 'function') addToRenderLayer(scene, sprite2, 'objectLayer');
@@ -2202,11 +2239,9 @@ function relightBuildingGlow(scene, sprite, glow, bucket, time) {
     }
     b.period = def.period;
     b.phase = ((glow.seed >>> (i * 3)) & 0xff) / 255 * Math.PI * 2;
-    const colorHex = BUILDING_LIGHT_BEACON_COLORS[def.color] ?? BUILDING_LIGHT_BEACON_COLORS.red;
-    b.sprite.setFillStyle?.(colorHex, 1);
+    if (b.sprite.texture?.key !== textureKey) b.sprite.setTexture?.(textureKey);
     const lp = lampPx(def);
     b.sprite.setPosition(sprite.x + lp.x * (sprite.scaleX || 1), sprite.y + lp.y * (sprite.scaleY || 1));
-    b.sprite.setRadius?.(Math.max(1.6, glow.texW * 0.012));
     b.sprite.setDepth((sprite.depth || 0) + 0.13);
   }
 
@@ -2450,6 +2485,8 @@ const buildingLightingTestApi = {
   computeLitBuildingWindows,
   computeBuildingLightStrength,
   ensureBuildingLightTextures,
+  ensureBuildingBeaconTexture,
+  BUILDING_LIGHT_BEACON_SCALE,
   setupBuildingLights,
   updateBuildingLights,
   clearBuildingLights,

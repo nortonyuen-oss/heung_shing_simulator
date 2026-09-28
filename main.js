@@ -645,6 +645,7 @@ function cullSpriteMapEntries(map, bounds, seen = null, mainCamera = null, mainB
     sprite.setVisible(visible);
     if (visible) {
       stats.visible++;
+      if (sprite.__nightTintDirty && typeof applyDeferredNightTint === 'function') applyDeferredNightTint(sprite);
       if (mainCamera && mainBounds) {
         if (isPointWithinCullBounds(sprite.x, sprite.y, mainBounds)) {
           sprite.cameraFilter &= ~mainCamera.id;
@@ -7547,10 +7548,18 @@ function applyNightObjectTint(scene, ground) {
     | (lerp(0xff, (NIGHT_OBJECT_TINT >> 8) & 0xff, k) << 8)
     | lerp(0xff, NIGHT_OBJECT_TINT & 0xff, k)
   );
+  scene.__nightPropTint = k <= 0 ? null : tint;
+  // Only what is on screen is re-tinted now; the rest (~80% of the city at zoom 1) is marked and
+  // picks up the current tint when the viewport culling shows it (applyDeferredNightTint). Each
+  // step of dusk, dawn and the deep-night ramp used to re-tint all ~10,000 sprites: up to 128 ms.
   const apply = (sprite) => {
     if (!sprite || typeof sprite.setTint !== 'function') return;
-    if (k <= 0) sprite.clearTint?.();
-    else sprite.setTint(tint);
+    if (!sprite.visible) {
+      sprite.__nightTintDirty = 'prop';
+      return;
+    }
+    sprite.__nightTintDirty = null;
+    applyNightPropTint(scene, sprite);
   };
   scene.treeSprites?.forEach((sprites) => {
     if (Array.isArray(sprites)) sprites.forEach(apply);
@@ -7597,25 +7606,58 @@ function applyNightObjectTint(scene, ground) {
   // same sprite - dedupe so a 5x5 landmark is not tinted 25 times.
   const seenBuildings = scene.__nightTintSeen || (scene.__nightTintSeen = new Set());
   seenBuildings.clear();
-  const hasBakedArt = typeof getBuildingNightTextureKey === 'function';
+  scene.__nightBuildingTint = bk <= 0 ? null : buildingTint;
+  scene.__nightBuildingPreK = preK;
+  scene.__nightBuildingPreTint = preTint;
   scene.buildingSprites?.forEach((sprite) => {
     if (!sprite || seenBuildings.has(sprite)) return;
     seenBuildings.add(sprite);
     if (typeof sprite.setTint !== 'function') return;
-    if (sprite.skipNightTint) {
-      // wearing baked night art - or still waiting for it on a dimmed day texture
-      if (sprite.__nightArtPending) {
-        if (scene.__nightBakedPreTint) sprite.setTint(scene.__nightBakedPreTint);
-      } else if (deepK <= 0) sprite.clearTint?.();
-      else sprite.setTint(deepTint);
+    if (!sprite.visible) {
+      sprite.__nightTintDirty = 'building';
       return;
     }
-    const baked = hasBakedArt && getBuildingNightTextureKey(sprite);
-    const useK = baked ? preK : bk;
-    if (useK <= 0) sprite.clearTint?.();
-    else sprite.setTint(baked ? preTint : buildingTint);
+    sprite.__nightTintDirty = null;
+    applyNightBuildingTint(scene, sprite);
   });
   seenBuildings.clear();
+}
+
+function applyNightPropTint(scene, sprite) {
+  const tint = scene.__nightPropTint;
+  if (tint === null || tint === undefined) sprite.clearTint?.();
+  else sprite.setTint(tint);
+}
+
+// The per-building part of applyNightObjectTint, from the tints it left on the scene.
+function applyNightBuildingTint(scene, sprite) {
+  const hasBakedArt = typeof getBuildingNightTextureKey === 'function';
+  const deepTint = scene.__nightBakedTint;
+  const preK = scene.__nightBuildingPreK || 0;
+  const preTint = scene.__nightBuildingPreTint;
+  if (sprite.skipNightTint) {
+    // wearing baked night art - or still waiting for it on a dimmed day texture
+    if (sprite.__nightArtPending) {
+      if (scene.__nightBakedPreTint) sprite.setTint(scene.__nightBakedPreTint);
+    } else if (!deepTint) sprite.clearTint?.();
+    else sprite.setTint(deepTint);
+    return;
+  }
+  const baked = hasBakedArt && getBuildingNightTextureKey(sprite);
+  const tint = baked ? (preK > 0 ? preTint : null) : scene.__nightBuildingTint;
+  if (!tint) sprite.clearTint?.();
+  else sprite.setTint(tint);
+}
+
+// Called by the viewport culling as a sprite comes on screen: catch up on a night tint step
+// that passed while it was off screen.
+function applyDeferredNightTint(sprite) {
+  const kind = sprite?.__nightTintDirty;
+  const scene = sprite?.scene;
+  if (!kind || !scene) return;
+  sprite.__nightTintDirty = null;
+  if (kind === 'building') applyNightBuildingTint(scene, sprite);
+  else applyNightPropTint(scene, sprite);
 }
 
 function updateDynamicLighting(scene) {

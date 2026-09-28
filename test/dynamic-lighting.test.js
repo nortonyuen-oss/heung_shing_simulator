@@ -176,7 +176,7 @@ test('the night object tint never overshoots: k is the clamped ground share, so 
     const NIGHT_OBJECT_TINT = 0x9aa3b4; const NIGHT_BAKED_DEEP_SHARE = 0.35; const BUILDING_NIGHT_SWAP_AT = 0.3;
     const BUILDING_BAKED_DIM = 0.5; const BUILDING_BAKED_TINT = 0x808080; const NIGHT_BUILDING_DARKNESS_SHARE = 0.5;
     var seen = [];
-    var scene = { nightRawAlpha: 0.54, nightDeepDepth: 1, treeSprites: new Map([[1, [{ setTint(t) { seen.push(t); } }]]]), buildingSprites: new Map() };
+    var scene = { nightRawAlpha: 0.54, nightDeepDepth: 1, treeSprites: new Map([[1, [{ visible: true, setTint(t) { seen.push(t); } }]]]), buildingSprites: new Map() };
     var getBuildingNightTextureKey = () => null;
   `, context);
   vm.runInContext(tint, context);
@@ -186,4 +186,34 @@ test('the night object tint never overshoots: k is the clamped ground share, so 
   const r = (value >> 16) & 0xff; const g = (value >> 8) & 0xff; const b = value & 0xff;
   assert.ok(r < g && g < b, `blue-grey, not red: ${r},${g},${b}`);
   assert.ok(r >= 0x9a && b <= 0xff, 'never darker than NIGHT_OBJECT_TINT itself');
+});
+
+test('a night tint step re-tints what is on screen now and the rest as it comes into view', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const vm = require('node:vm');
+  const main = fs.readFileSync(path.join(path.resolve(__dirname, '..'), 'main.js'), 'utf8');
+  const tint = main.slice(main.indexOf('function applyNightObjectTint('), main.indexOf('function updateDynamicLighting('));
+  const context = vm.createContext({ Math, Number });
+  vm.runInContext(`
+    const NIGHT_OBJECT_TINT = 0x9aa3b4; const NIGHT_BAKED_DEEP_SHARE = 0.35; const BUILDING_NIGHT_SWAP_AT = 0.3;
+    const BUILDING_BAKED_DIM = 0.5; const BUILDING_BAKED_TINT = 0x808080; const NIGHT_BUILDING_DARKNESS_SHARE = 0.5;
+    var getBuildingNightTextureKey = () => null;
+    const sprite = (visible) => ({ visible, tints: [], setTint(t) { this.tints.push(t); }, clearTint() { this.tints.push('clear'); } });
+    var onTree = sprite(true); var offTree = sprite(false); var offBuilding = sprite(false);
+    var scene = { nightRawAlpha: 0.54, nightDeepDepth: 0, treeSprites: new Map([[1, [onTree, offTree]]]), buildingSprites: new Map([['b', offBuilding]]) };
+    offTree.scene = scene; offBuilding.scene = scene;
+  `, context);
+  vm.runInContext(tint, context);
+  vm.runInContext('applyNightObjectTint(scene, 0.45)', context);
+  const read = (expr) => JSON.parse(JSON.stringify(vm.runInContext(expr, context)));
+  assert.equal(read('onTree.tints.length'), 1, 'on screen: tinted now');
+  assert.deepEqual(read('offTree.tints'), [], 'off screen: left for later');
+  assert.equal(read('offTree.__nightTintDirty'), 'prop');
+  assert.equal(read('offBuilding.__nightTintDirty'), 'building');
+  vm.runInContext('offTree.visible = true; applyDeferredNightTint(offTree); applyDeferredNightTint(offBuilding)', context);
+  assert.deepEqual(read('offTree.tints'), read('onTree.tints'), 'catches up to the same tint when shown');
+  assert.equal(read('offTree.__nightTintDirty'), null);
+  assert.equal(read('offBuilding.tints.length'), 1, 'buildings catch up too');
+  assert.match(main, /if \(sprite\.__nightTintDirty && typeof applyDeferredNightTint === 'function'\) applyDeferredNightTint\(sprite\);/, 'the culling calls it');
 });

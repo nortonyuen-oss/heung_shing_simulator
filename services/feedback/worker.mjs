@@ -38,8 +38,11 @@ export default {
     const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers });
     try {
       if (origin && !allowed.includes(origin)) throw new ApiError(403, 'origin');
+      // 留言權: the site sends the member token as an Authorization header (ForumCommon.request),
+      // on reads as well as writes. Without it here the browser's preflight fails and a logged-in
+      // visitor sees an empty wall and cannot post.
       if (request.method === 'OPTIONS') {
-        return new Response(null, { status: 204, headers: { ...headers, 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type', 'Access-Control-Max-Age': '86400' } });
+        return new Response(null, { status: 204, headers: { ...headers, 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type, Authorization', 'Access-Control-Max-Age': '86400' } });
       }
       const url = new URL(request.url);
       if (url.pathname === '/health' && request.method === 'GET') {

@@ -100,6 +100,7 @@ test('the API only answers the official site and reports health', async () => {
   const preflight = await api('OPTIONS', '/messages');
   assert.equal(preflight.status, 204);
   assert.equal(preflight.headers.get('Access-Control-Allow-Methods'), 'GET, POST, OPTIONS');
+  assert.equal(preflight.headers.get('Access-Control-Allow-Headers'), 'Content-Type, Authorization', 'a logged-in visitor\'s token header passes the preflight');
 });
 
 test('posting a memo or a reply requires a member token; reading the wall never does', async () => {

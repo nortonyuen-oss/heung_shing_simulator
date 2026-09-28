@@ -242,6 +242,11 @@ const SITE_FEATURE_LIST = {
 // ── Changelog ─────────────────────────────────────────────────────────────────
 const SITE_CHANGELOG = {
   "zh-HK": [
+    { version: "v4.16.1", date: "2026-09-28", dateLabel: "2026年9月28日", title: "東風夜放花千樹", items: [
+      "離開城市越遠，夜晚越暗：建築同道路附近維持而家嘅夜色，荒野同遠海慢慢暗到只剩兩成幾光，過渡平滑；可以喺「檢視」選單開關。",
+      "夜晚嘅雲唔再發白：雲層跟住夜色變暗，帶少少灰藍，城市唔會被蓋到白濛濛。",
+      "只係多一層貼圖，幾乎唔影響流暢度；舊存檔兼容。",
+    ] },
     { version: "v4.16.0", date: "2026-09-28", dateLabel: "2026年9月28日", title: "東風夜放花千樹", items: [
       "夜景路燈改為燈頭亮點加地面光池，照亮下面嘅地磚同草地；核電廠、機場等嘅訊號燈改為好似汽車尾燈嘅細光點。",
       "夜晚地面同馬路更暗，建築窗光同路燈更突出；大雨、黑雨同颱風嘅雲霧同陰暗層調薄，城市仍然睇得清楚。",
@@ -555,6 +560,11 @@ const SITE_CHANGELOG = {
 // title/items text.
 const SITE_CHANGELOG_TRANSLATIONS = {
   "zh-TW": {
+    "v4.16.1": { title: "東風夜放花千樹", items: [
+      "離城市越遠，夜晚越暗：建築與道路附近維持原本的夜色，荒野與遠海逐漸暗到只剩兩成多的光線，過渡平滑；可在「檢視」選單開關。",
+      "夜晚的雲不再發白：雲層隨夜色變暗並帶些灰藍，城市不會被蓋得白茫茫。",
+      "只多一層貼圖，幾乎不影響流暢度；相容舊存檔。",
+    ] },
     "v4.16.0": { title: "東風夜放花千樹", items: [
       "夜景路燈改為燈頭亮點加地面光池，照亮下方的地磚與草地；核電廠、機場等的警示燈改為像汽車尾燈的小光點。",
       "夜晚地面與道路更暗，建築窗光與路燈更突出；大雨、黑雨與颱風的雲霧和陰暗層調薄，城市依然清楚可見。",
@@ -861,6 +871,11 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   en: {
+    "v4.16.1": { title: "A Thousand Trees in Bloom on the East Wind", items: [
+      "Nights grow darker the further you are from the city: streets and buildings keep today's night light, while open country and distant sea fade smoothly down to about a quarter of daylight. Toggle it from the View menu.",
+      "Night clouds no longer glow white: the cover darkens with the sky and takes a slate-blue cast, so the city is not washed out.",
+      "It costs a single extra texture layer, with no noticeable effect on frame rate. Existing saves remain compatible.",
+    ] },
     "v4.16.0": { title: "A Thousand Trees in Bloom on the East Wind", items: [
       "Night lamps baked into the buildings now shine as a hot lamp head over a pool of light on the ground, lighting the paving and grass beneath; the beacons on the nuclear plant, airport and port glow like small tail lamps instead of large discs.",
       "Nights are darker on the ground and roads, so lit windows and lamps stand out; the cloud deck and dark wash of heavy rain, black rain and typhoons are thinner, and the city stays readable.",
@@ -1167,6 +1182,11 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   ja: {
+    "v4.16.1": { title: "東風夜放花千樹", items: [
+      "街から離れるほど夜が暗く：建物や道路の近くは今までどおりの夜の明るさ、荒野や遠い海は日中の約4分の1までなめらかに暗くなります。「表示」メニューで切り替えられます。",
+      "夜の雲が白く浮かなくなりました：雲は夜空とともに暗くなり、青みがかった灰色になるので、街が白くかすみません。",
+      "テクスチャを1枚重ねるだけなので、動作の滑らかさにはほぼ影響しません。既存のセーブデータに対応しています。",
+    ] },
     "v4.16.0": { title: "東風夜放花千樹", items: [
       "建物の夜景に描かれた街灯は、灯具の光点と地面の光だまりになり、足元の舗装や芝生を照らします。原子力発電所や空港などの航空障害灯は、大きな円ではなくテールランプのような小さな光点になりました。",
       "夜の地面と道路がより暗くなり、窓明かりや街灯が際立ちます。大雨・黒色暴雨・台風時の雲と暗い膜を薄くし、街がはっきり見えます。",
@@ -1498,8 +1518,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.16.0 — 【東風夜放花千樹】",
-      versionDesc: "夜景路燈變成照亮地面嘅暖黃燈點、訊號燈好似車尾燈、夜色更深；街角多咗路牌、消防龍頭、電話亭、報紙檔同車柱；風雨天唔再成個畫面矇晒，大城市更順滑。",
+      versionBadge: "v4.16.1 — 【東風夜放花千樹】",
+      versionDesc: "4.16.1 更新：離開城市越遠夜晚越暗，荒野同遠海更有夜色；夜晚嘅雲唔再發白。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感嘅城市建設遊戲。起街道、規劃社區、經營自己嘅香城巴士公司、處理議會同天氣，再睇住一座有性格嘅香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1598,8 +1618,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.16.0 — 【東風夜放花千樹】",
-      versionDesc: "夜景路燈改為照亮地面的暖黃燈點、警示燈像車尾燈、夜色更深；街角新增路名牌、消防栓、電話亭、報攤與車阻柱；風雨天不再整個畫面朦朧，大城市更流暢。",
+      versionBadge: "v4.16.1 — 【東風夜放花千樹】",
+      versionDesc: "4.16.1 更新：離城市越遠夜晚越暗，荒野與遠海更有夜色；夜晚的雲不再發白。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感的城市建設遊戲。興建街道、規劃社區、經營自己的香城公車公司、處理議會與天氣，看著一座有個性的香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1698,8 +1718,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "The City of Heung Shing",
       title: "The City of Heung Shing",
-      versionBadge: "v4.16.0 — A Thousand Trees in Bloom on the East Wind",
-      versionDesc: "Night lamps become warm points that light the ground, beacons glow like tail lamps and nights run deeper; street corners gain name signs, fire hydrants, phone booths, newsstands and bollards; storms no longer blur the city, and big cities run smoother.",
+      versionBadge: "v4.16.1 — A Thousand Trees in Bloom on the East Wind",
+      versionDesc: "4.16.1 update: nights grow darker away from the city, over open country and distant sea, and night clouds no longer glow white.",
       lede: "A city-building game inspired by Hong Kong life and made in tribute to SimCity 2000. Build streets, shape neighbourhoods, run your own Heung Shing Bus Company, navigate council politics and weather, then watch a city with real personality grow.",
       freeLabel: "Completely free · macOS + Windows · Local saves",
       downloadBtn: "【Free Download】",
@@ -1799,8 +1819,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.16.0 — 東風夜放花千樹",
-      versionDesc: "夜の街灯は地面を照らす暖かな光点に、航空障害灯はテールランプのように、夜はより深く。街角には道路名標識・消火栓・電話ボックス・新聞スタンド・車止めが加わり、嵐でも街がかすまず、大きな都市もより滑らかに動きます。",
+      versionBadge: "v4.16.1 — 東風夜放花千樹",
+      versionDesc: "4.16.1 更新：街から離れるほど夜が暗くなり、荒野や遠い海に夜らしさが出ます。夜の雲も白く浮かなくなりました。",
       lede: "香港の都市生活から着想を得た、SimCity 2000へのオマージュとなる都市建設ゲーム。道路を築き、地区を計画し、自分だけの香城バス会社を経営し、議会や天候に向き合いながら、個性ある香城の成長を見守ります。",
       freeLabel: "完全無料 · macOS + Windows · ローカルセーブ",
       downloadBtn: "【無料ダウンロード】",

@@ -1,5 +1,5 @@
 const I18N_STORAGE_KEY = 'citybuilder.language';
-let appVersion = '4.16.0';
+let appVersion = '4.16.1';
 let appReleaseTheme = '【東風夜放花千樹】';
 
 const LANGUAGES = {

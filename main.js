@@ -1694,6 +1694,154 @@ function installVertexUploadShim(renderer) {
   return true;
 }
 
+// Phaser 3.60 re-sorts the scene's whole display list (a merge sort, StableSort) on the next
+// render after ANY child's depth is set - even to the value it already had. Every object in
+// the city lives in that one list (~10,600 on 太子), and moving vehicles and their lamps set
+// their depth every frame, so the full sort ran every frame: 5.5 ms a frame on average at
+// zoom 1, 127 ms at worst, more than Phaser's own render pass.
+//
+// Only ~100 objects actually change depth in a few seconds, so the sort now works on those
+// alone. The depth setter of every class in the list is wrapped to record which objects
+// changed (and to ignore a set to the same value), as is the list's add. At sort time the
+// recorded objects are pulled out in one pass - the rest of the list is still sorted - and
+// put back by binary search. Even a scan of the whole list is slow here: reading _depth off
+// ~10,000 objects of a dozen classes is a megamorphic load each, ~3 ms a scan under load.
+// Anything else (too many moved objects, a sort queued for a reason not seen) falls back to
+// an insertion sort over the list, and past ADAPTIVE_DEPTH_SORT_MAX_DESCENTS out-of-order
+// neighbours (a view rotation, a rebuild) to Phaser's own merge sort.
+const ADAPTIVE_DEPTH_SORT_MAX_DESCENTS = 128;
+const ADAPTIVE_DEPTH_SORT_MAX_MOVED = 256;
+const ADAPTIVE_DEPTH_SORT_SEARCH_MOVED = 24;
+
+// `items` is sorted by _depth except for the objects in `moved`: pull those out, then put each
+// back after every object of a lower or equal depth. Objects of equal depth keep their order
+// except that a moved one lands after the unmoved ones of its depth.
+function reinsertMovedByDepth(items, moved) {
+  let pulled;
+  if (moved.size <= ADAPTIVE_DEPTH_SORT_SEARCH_MOVED) {
+    // A handful (usually one or two objects a frame): find each with the native indexOf, which
+    // compares references only - far cheaper than a JS pass over ~10,000 objects.
+    const found = [];
+    moved.forEach((item) => {
+      const index = items.indexOf(item);
+      if (index >= 0) found.push([item, index]);
+    });
+    found.sort((a, b) => b[1] - a[1]); // from the back, so the earlier indices stay valid
+    found.forEach(([, index]) => items.splice(index, 1));
+    pulled = found.reverse().map(([item]) => item); // back in their old order
+  } else {
+    pulled = [];
+    let write = 0;
+    for (let read = 0; read < items.length; read++) {
+      const item = items[read];
+      if (moved.has(item)) pulled.push(item);
+      else items[write++] = item;
+    }
+    items.length = write;
+  }
+  if (pulled.length > 1) {
+    const order = new Map(pulled.map((item, index) => [item, index]));
+    pulled.sort((a, b) => (a._depth - b._depth) || (order.get(a) - order.get(b)));
+  }
+  for (const item of pulled) {
+    const depth = item._depth;
+    let lo = 0;
+    let hi = items.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >>> 1;
+      if (items[mid]._depth <= depth) lo = mid + 1;
+      else hi = mid;
+    }
+    items.splice(lo, 0, item);
+  }
+  return pulled.length;
+}
+
+// Sorts `items` by _depth in place, keeping the order of equal depths, and returns true - or
+// returns false without touching them when they are too far from sorted for it to pay.
+function sortNearlySortedByDepth(items, maxDescents = ADAPTIVE_DEPTH_SORT_MAX_DESCENTS) {
+  const count = items.length;
+  let descents = 0;
+  for (let i = 1; i < count; i++) {
+    if (items[i - 1]._depth > items[i]._depth && ++descents > maxDescents) return false;
+  }
+  if (descents === 0) return true;
+  for (let i = 1; i < count; i++) {
+    const item = items[i];
+    const depth = item._depth;
+    if (items[i - 1]._depth <= depth) continue;
+    let j = i - 1;
+    while (j >= 0 && items[j]._depth > depth) {
+      items[j + 1] = items[j];
+      j--;
+    }
+    items[j + 1] = item;
+  }
+  return true;
+}
+
+function installAdaptiveDepthSort(displayList) {
+  if (!displayList || displayList.__adaptiveDepthSort || typeof displayList.depthSort !== 'function') return false;
+  const fullSort = displayList.depthSort;
+  const moved = new Set();
+  const wrappedPrototypes = new WeakSet();
+  let tracking = true; // false once a class's depth setter could not be wrapped
+  displayList.__depthMoved = moved;
+
+  // Wrap the depth setter of the class `gameObject` belongs to (once per class).
+  const track = (gameObject) => {
+    let proto = gameObject ? Object.getPrototypeOf(gameObject) : null;
+    while (proto && !Object.prototype.hasOwnProperty.call(proto, 'depth')) proto = Object.getPrototypeOf(proto);
+    if (!proto || wrappedPrototypes.has(proto)) return;
+    wrappedPrototypes.add(proto);
+    const descriptor = Object.getOwnPropertyDescriptor(proto, 'depth');
+    if (!descriptor || typeof descriptor.set !== 'function' || descriptor.configurable === false) {
+      tracking = false;
+      return;
+    }
+    Object.defineProperty(proto, 'depth', {
+      ...descriptor,
+      set(value) {
+        if (value === this._depth) return; // Phaser would queue a full sort for this
+        const list = this.displayList;
+        if (list && list.__depthMoved) list.__depthMoved.add(this);
+        descriptor.set.call(this, value);
+      },
+    });
+  };
+  displayList.list.forEach((item) => { track(item); moved.add(item); });
+  ['add', 'addAt'].forEach((method) => {
+    const original = displayList[method];
+    if (typeof original !== 'function') return;
+    displayList[method] = function trackedAdd(child, ...rest) {
+      (Array.isArray(child) ? child : [child]).forEach((item) => {
+        if (!item) return;
+        track(item);
+        moved.add(item);
+      });
+      return original.call(this, child, ...rest);
+    };
+  });
+
+  displayList.depthSort = function adaptiveDepthSort() {
+    if (!this.sortChildrenFlag) return;
+    if (tracking && moved.size > 0 && moved.size <= ADAPTIVE_DEPTH_SORT_MAX_MOVED) {
+      reinsertMovedByDepth(this.list, moved);
+      moved.clear();
+      this.sortChildrenFlag = false;
+      return;
+    }
+    moved.clear();
+    if (sortNearlySortedByDepth(this.list)) {
+      this.sortChildrenFlag = false;
+      return;
+    }
+    fullSort.call(this);
+  };
+  displayList.__adaptiveDepthSort = true;
+  return true;
+}
+
 async function loadModelAssetManifest() {
   try {
     const response = await fetch('/api/model-assets', { cache: 'no-store' });
@@ -2315,6 +2463,7 @@ function preload() {
 
 function create() {
   installVertexUploadShim(this.game?.renderer);
+  installAdaptiveDepthSort(this.sys?.displayList);
   activeScene = this;
   if (typeof setupVisualRoutePerformanceHooks === 'function') {
     setupVisualRoutePerformanceHooks(this);

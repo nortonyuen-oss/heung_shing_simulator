@@ -594,28 +594,47 @@ const PEDESTRIAN_RAILING_ANCHOR_OFFSETS = {
 // kind-and-kerb-edge pixel nudges from the geometric foot (test-mode 路邊設施位置微調). Facing
 // keys are `${kind}_${edge}` with the kerb's screen edge at the North view, e.g. bin_ne.
 // Recorded with the test-mode 路邊設施位置微調 on 2026-09-28 at the default North view.
-const STREET_FURNITURE_KIND_SCALES = { bin: 1.05, cabinet: 1, signalCabinet: 1.05, postbox: 1.05, parkingMeter: 1.05 };
+const STREET_FURNITURE_KIND_SCALES = {
+  bin: 1.1, cabinet: 1.1, signalCabinet: 1.05, postbox: 1.05, parkingMeter: 1.05,
+  hydrant: 1.1, phoneBooth: 1.1, newsstand: 1, bollard: 1,
+};
 const STREET_FURNITURE_ANCHOR_OFFSETS = {
   bin_ne: { dx: -8.47, dy: 1.613 },
   bin_nw: { dx: 13.713, dy: -1.21 },
-  bin_se: { dx: -12.1, dy: 2.42 },
+  bin_se: { dx: -10.99, dy: 2.42 },
   bin_sw: { dx: 2.017, dy: -2.42 },
-  cabinet_ne: { dx: 0, dy: 0 },
+  cabinet_ne: { dx: -9.448, dy: 2.953 },
   cabinet_nw: { dx: 14.923, dy: -0.403 },
-  cabinet_se: { dx: 0, dy: 0 },
+  cabinet_se: { dx: -4, dy: -3 },
   cabinet_sw: { dx: 0, dy: 0 },
   signalCabinet_ne: { dx: -14.52, dy: 0 },
   signalCabinet_nw: { dx: 14.923, dy: 0 },
   signalCabinet_se: { dx: 2.42, dy: -5.647 },
   signalCabinet_sw: { dx: -3.227, dy: -6.05 },
-  postbox_ne: { dx: 5.647, dy: -3.227 },
+  postbox_ne: { dx: 5.647, dy: -2.046 },
   postbox_nw: { dx: -2.42, dy: -3.227 },
-  postbox_se: { dx: 0, dy: 0 },
+  postbox_se: { dx: 4.608, dy: 5.267 },
   postbox_sw: { dx: -3.227, dy: 3.63 },
   parkingMeter_ne: { dx: -4.033, dy: 1.613 },
   parkingMeter_nw: { dx: 2.42, dy: 2.823 },
   parkingMeter_se: { dx: 0, dy: 0 },
   parkingMeter_sw: { dx: 0, dy: 0 },
+  hydrant_ne: { dx: 4.258, dy: 4.62 },
+  hydrant_nw: { dx: 2.362, dy: 1.181 },
+  hydrant_se: { dx: -1.181, dy: 0 },
+  hydrant_sw: { dx: -2.282, dy: -2.027 },
+  phoneBooth_ne: { dx: 0, dy: 0 },
+  phoneBooth_nw: { dx: 11.81, dy: 1.181 },
+  phoneBooth_se: { dx: 0, dy: -2.806 },
+  phoneBooth_sw: { dx: 0.591, dy: -0.591 },
+  newsstand_ne: { dx: 0, dy: 0 },
+  newsstand_nw: { dx: 0, dy: 0 },
+  newsstand_se: { dx: 0, dy: 0 },
+  newsstand_sw: { dx: 0, dy: 0 },
+  bollard_ne: { dx: 0, dy: 0 },
+  bollard_nw: { dx: 0, dy: 0 },
+  bollard_se: { dx: 0, dy: 0 },
+  bollard_sw: { dx: 0, dy: 0 },
 };
 
 // Tree simulation

@@ -1,13 +1,14 @@
-// Roadside furniture (路邊設施): litter bins, utility and traffic-signal cabinets, posting boxes
-// and parking meters. Derived from the map every rebuild and never saved, like the lamps,
+// Roadside furniture (路邊設施): litter bins, utility and traffic-signal cabinets, posting boxes,
+// parking meters, fire hydrants, phone booths, newspaper stalls and (industrial) bollards. Derived from the map every rebuild and never saved, like the lamps,
 // signals and railings. Design and the Hong Kong figures behind the rates:
 // docs/street-furniture-plan.md.
 //
 // Where things can stand: a "slot" is one half (towards `half`) of one kerb (`side`) of a
 // straight road tile, on a kerb with pavement (no road across it). A slot already holding a
 // railing or a lamp, or on a tile with a bus stop, is taken. Each slot holds at most one prop,
-// claimed in priority order: signal cabinets, posting boxes, bins at bus stops, parking meters,
-// then bins and utility cabinets by street density. All chance draws are a fixed hash of the
+// claimed in priority order: signal cabinets, posting boxes, bins and phone booths at bus stops,
+// newspaper stalls at shopping junctions, fire hydrants every ~100 m, parking meters, bollards
+// outside industrial buildings, then bins, utility cabinets and phone booths by street density. All chance draws are a fixed hash of the
 // tile, so a street keeps its furniture across rebuilds until its surroundings change.
 
 const STREET_FURNITURE_TEXTURE_PREFIX = 'street_furniture_';
@@ -25,6 +26,12 @@ const STREET_FURNITURE_KINDS = Object.freeze({
   signalCabinet: { heightM: 1.4, lateral: 0.42, label: '交通燈控制箱' },
   postbox: { heightM: 1.3, lateral: 0.38, label: '郵筒' },
   parkingMeter: { heightM: 1.5, lateral: 0.33, label: '咪錶' },
+  hydrant: { heightM: 0.9, lateral: 0.32, label: '消防龍頭' },
+  phoneBooth: { heightM: 2.3, lateral: 0.4, label: '電話亭' },
+  newsstand: { heightM: 2.1, lateral: 0.42, label: '報紙檔' },
+  // A pair of 1 m posts 1.5 m apart along the kerb: the baked pair is 1.375 posts tall
+  // (scripts/bake-street-furniture-textures.js BOLLARD_PAIR_DY).
+  bollard: { heightM: 1.375, lateral: 0.3, label: '車柱（工業區）' },
 });
 const STREET_FURNITURE_VIEWS = Object.freeze(['sw', 'se']);
 const STREET_FURNITURE_TEXTURE_FILES = Object.freeze(Object.fromEntries(
@@ -53,6 +60,24 @@ const STREET_FURNITURE_RATES = Object.freeze({
   meterLowTraffic: 0.15,
   meterNoTraffic: 0.35,    // no meters at or above this traffic load
   meterMinDensity: 0.3,    // meters serve the shops and flats along the street
+  // Fire hydrants (WSD: normally 100 m apart): one every hydrantEvery tiles along a street with
+  // buildings, every hydrantEverySparse where it is thinly built; 0 turns them off.
+  hydrantEvery: 5,
+  hydrantEverySparse: 8,
+  hydrantDenseDensity: 0.4, // average street density from which the 100 m spacing applies
+  hydrantMinBuiltShare: 0.2, // share of kerb cells with a building before a street gets any
+  // Phone booths (~1,560 on streets in 2017 and falling, ~1/7 as many as street bins): next to
+  // some bus stops, and now and then along built-up streets.
+  phoneAtBusStop: 0.25,
+  phoneDense: 0.03,        // * density^2 per tile
+  // Newspaper stalls (~300 in Hong Kong, ~15% as many as signalised junctions): at junctions
+  // among shops, on an approach tile's shop kerb, none within newsstandSpacing tiles of another.
+  newsstandMax: 0.5,       // * share of commercial frontage around the junction
+  newsstandMinCommercial: 0.25,
+  newsstandMinDensity: 0.4,
+  newsstandSpacing: 4,
+  // Bollards: the yellow-black posts outside industrial buildings (loading bays, entrances).
+  bollardIndustrial: 0.3,  // per industrial kerb of a straight tile
 });
 
 const STREET_FURNITURE_DELTA = Object.freeze({
@@ -77,7 +102,10 @@ function streetFurnitureHash(row, col, salt) {
   return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
 }
 
-const STREET_FURNITURE_SALT = Object.freeze({ bin: 1, cabinet: 2, postbox: 3, meter: 4, busStopBin: 5 });
+const STREET_FURNITURE_SALT = Object.freeze({
+  bin: 1, cabinet: 2, postbox: 3, meter: 4, busStopBin: 5,
+  hydrant: 6, phone: 7, newsstand: 8, bollard: 9, busStopPhone: 10,
+});
 
 // How built-up the street is at a tile: the cells across both kerbs of it and its two
 // neighbours along the road, each 0 (empty) or 0.7 / 0.85 / 1.0 for a level 1 / 2 / 3 building.
@@ -246,8 +274,93 @@ function computeStreetFurniturePlacements({
       if (claimOnTile('bin', row + d.row, col + d.col, straight.kerbs, [STREET_FURNITURE_OPPOSITE[toward], toward])) break;
     }
   });
+  //    ...and some have a phone booth, on the tile beyond the other side of the stop.
+  straightTiles.forEach(({ row, col, straight }) => {
+    if (!busStopAt(row, col)) return;
+    if (streetFurnitureHash(row, col, STREET_FURNITURE_SALT.busStopPhone) >= rates.phoneAtBusStop) return;
+    for (const toward of [...straight.along].reverse()) {
+      const d = STREET_FURNITURE_DELTA[toward];
+      if (claimOnTile('phoneBooth', row + d.row, col + d.col, straight.kerbs, [STREET_FURNITURE_OPPOSITE[toward], toward])) break;
+    }
+  });
 
-  // 4. Parking meters: kerbside of a low-traffic dual carriageway that has buildings along it
+  // 4. Newspaper stalls: a junction among shops may have one at a corner - on the shop kerb of an
+  //    approach tile, trying the tile next to the junction then the one beyond - and never
+  //    within newsstandSpacing tiles of another (a dual-carriageway junction is several junction
+  //    tiles; it still gets one at most).
+  if (rates.newsstandMax > 0) {
+    const stalls = [];
+    for (let r = 0; r < mapHeight; r++) {
+      for (let c = 0; c < mapWidth; c++) {
+        if (!isStreetFurnitureJunctionKey(keyAt(r, c))) continue;
+        if (stalls.some((stall) => Math.abs(stall.row - r) + Math.abs(stall.col - c) <= rates.newsstandSpacing)) continue;
+        const approaches = [];
+        let cells = 0; let commercial = 0; let density = 0;
+        Object.entries(STREET_FURNITURE_DELTA).forEach(([toward, d]) => {
+          const ar = r + d.row; const ac = c + d.col;
+          const straight = straightAt(ar, ac);
+          if (!straight || !straight.along.includes(toward)) return;
+          approaches.push({ row: ar, col: ac, straight, toward });
+          density += densityAt(ar, ac, straight);
+          straight.kerbs.forEach((side) => {
+            cells++;
+            if (builtSide(ar, ac, side)?.type === 'commercial') commercial++;
+          });
+        });
+        if (!approaches.length || !cells) continue;
+        const share = commercial / cells;
+        density /= approaches.length;
+        if (share < rates.newsstandMinCommercial || density < rates.newsstandMinDensity) continue;
+        if (streetFurnitureHash(r, c, STREET_FURNITURE_SALT.newsstand) >= rates.newsstandMax * share) continue;
+        let placed = false;
+        for (const { row: ar, col: ac, straight, toward } of approaches) {
+          const shopKerbs = straight.kerbs.filter((side) => builtSide(ar, ac, side)?.type === 'commercial');
+          const d = STREET_FURNITURE_DELTA[toward];
+          const back = STREET_FURNITURE_OPPOSITE[toward]; // the half towards the junction
+          for (const [tr, tc] of [[ar, ac], [ar + d.row, ac + d.col]]) {
+            if (shopKerbs.length && claimOnTile('newsstand', tr, tc, shopKerbs, [back, toward])) {
+              stalls.push({ row: r, col: c });
+              placed = true;
+              break;
+            }
+          }
+          if (placed) break;
+        }
+      }
+    }
+  }
+
+  // 5. Fire hydrants: the Water Supplies Department spaces them about 100 m (5 tiles) apart along
+  //    the mains; a thinly built street gets them further apart, an unbuilt one none. They stand
+  //    on the built-up kerb, at a fixed per-street offset so the rows don't all line up.
+  if (rates.hydrantEvery > 0) {
+    streets.forEach(({ straight, tiles }) => {
+      let cells = 0; let built = 0; let density = 0;
+      tiles.forEach(({ row, col }) => {
+        straight.kerbs.forEach((side) => { cells++; if (builtSide(row, col, side)) built++; });
+        density += densityAt(row, col, straight);
+      });
+      if (!built || built < cells * rates.hydrantMinBuiltShare) return;
+      density /= tiles.length;
+      const every = density >= rates.hydrantDenseDensity ? rates.hydrantEvery : (rates.hydrantEverySparse || rates.hydrantEvery);
+      const first = tiles[0];
+      let index = Math.floor(streetFurnitureHash(first.row, first.col, STREET_FURNITURE_SALT.hydrant) * every);
+      while (index < tiles.length) {
+        // Slide along up to two tiles when the spot is taken.
+        let placedAt = -1;
+        for (let step = 0; step <= 2 && index + step < tiles.length; step++) {
+          const tile = tiles[index + step];
+          if (claimOnTile('hydrant', tile.row, tile.col, kerbsByFrontage(tile.row, tile.col, straight), straight.along)) {
+            placedAt = index + step;
+            break;
+          }
+        }
+        index = (placedAt >= 0 ? placedAt : index) + every;
+      }
+    });
+  }
+
+  // 6. Parking meters: kerbside of a low-traffic dual carriageway that has buildings along it
   //    (meters serve the frontage - a quiet road through empty land has no one to park for),
   //    clear of junctions, zebra crossings and bus stops, one meter per tile on a built-up kerb
   //    (Hong Kong: ~1.8 metered spaces per meter).
@@ -269,7 +382,18 @@ function computeStreetFurniturePlacements({
     claimOnTile('parkingMeter', row, col, builtKerbs, straight.along);
   });
 
-  // 5-6. Bins and utility cabinets by how built-up the street is.
+  // 7. Bollards: outside industrial buildings, on the kerb in front of them.
+  if (rates.bollardIndustrial > 0) {
+    straightTiles.forEach(({ row, col, straight }) => {
+      straight.kerbs.forEach((side) => {
+        if (builtSide(row, col, side)?.type !== 'industrial') return;
+        if (streetFurnitureHash(row, col, STREET_FURNITURE_SALT.bollard + (side === straight.kerbs[0] ? 0 : 100)) >= rates.bollardIndustrial) return;
+        claimOnTile('bollard', row, col, [side], straight.along);
+      });
+    });
+  }
+
+  // 8. Bins, utility cabinets and phone booths by how built-up the street is.
   straightTiles.forEach(({ row, col, straight }) => {
     {
       if (busStopAt(row, col)) return;
@@ -286,6 +410,9 @@ function computeStreetFurniturePlacements({
       const cabinetChance = rates.cabinetBase + rates.cabinetDense * density;
       if (streetFurnitureHash(row, col, STREET_FURNITURE_SALT.cabinet) < cabinetChance) {
         claimOnTile('cabinet', row, col, kerbs, [...straight.along].reverse());
+      }
+      if (streetFurnitureHash(row, col, STREET_FURNITURE_SALT.phone) < rates.phoneDense * density * density) {
+        claimOnTile('phoneBooth', row, col, kerbs, straight.along);
       }
     }
   });

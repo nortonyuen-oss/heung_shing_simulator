@@ -1,5 +1,5 @@
-// Bake the roadside furniture textures (垃圾桶 / 電箱 / 郵筒 / 咪錶) from the source renders in
-// Models/roadAssessories/.
+// Bake the roadside furniture textures (垃圾桶 / 電箱 / 郵筒 / 咪錶 / 消防龍頭 / 電話亭 / 報紙檔 /
+// 車柱) from the source renders in Models/roadAssessories/.
 //
 //   node scripts/bake-street-furniture-textures.js [--out <dir>] [--preview <png>]
 //
@@ -10,6 +10,11 @@
 // is trimmed, scaled to a common height and stood on a fixed power-of-two canvas with its base
 // (bottom centre of the solid bounds) on one anchor, the way the lamp posts and signal poles are.
 // The in-game size per prop is STREET_FURNITURE_KINDS[kind].heightM (street-furniture.js).
+//
+// Bollards stand in groups, so their views are a pair (`pair`): two copies of the post
+// BOLLARD_SPACING_M apart along the kerb, i.e. along the road's screen direction for that view
+// (sw: NW-SE, se: SW-NE), the far one drawn first. The pair is then baked like any single prop,
+// so its heightM is the pair's drawn height: BOLLARD_PAIR_HEIGHT_RATIO post heights.
 const path = require('path');
 const sharp = require('sharp');
 
@@ -25,6 +30,12 @@ const CANVAS = 256;
 const ANCHOR = { x: 128, y: 248 };
 const BAKED_HEIGHT = 200;
 const SOLID_ALPHA = 96;
+// Keep in step with STREET_FURNITURE_KINDS.bollard.heightM (street-furniture.js): a 1 m post
+// (Highways Department standard bollard height), pairs 1.5 m apart. Along a road, one metre is
+// 2.5 screen px across and 1.25 down at zoom 1, against 5 px per metre of height.
+const BOLLARD_SPACING_M = 1.5;
+const BOLLARD_PAIR_DX = BOLLARD_SPACING_M * 2.5 / 5;   // in post heights
+const BOLLARD_PAIR_DY = BOLLARD_SPACING_M * 1.25 / 5;  // = BOLLARD_PAIR_HEIGHT_RATIO - 1
 
 // part: which object of a two-object render (0 = left, 1 = right, null = the whole image).
 const VIEWS = [
@@ -38,6 +49,14 @@ const VIEWS = [
   { out: 'streetFurniture_postbox_se.png', file: 'postbox_red_dualView.png', part: 1, flip: false },
   { out: 'streetFurniture_parkingMeter_sw.png', file: 'parkingMeter_dualView.png', part: 1, flip: false },
   { out: 'streetFurniture_parkingMeter_se.png', file: 'parkingMeter_dualView.png', part: 1, flip: true },
+  { out: 'streetFurniture_hydrant_sw.png', file: 'fireHydrant_red_dualView.png', part: 1, flip: false },
+  { out: 'streetFurniture_hydrant_se.png', file: 'fireHydrant_red_dualView.png', part: 1, flip: true },
+  { out: 'streetFurniture_phoneBooth_sw.png', file: 'phoneBooth_red.png', part: null, flip: false },
+  { out: 'streetFurniture_phoneBooth_se.png', file: 'phoneBooth_red.png', part: null, flip: true },
+  { out: 'streetFurniture_newsstand_sw.png', file: 'newsstand_realistic_noUmbrella.png', part: 1, flip: false },
+  { out: 'streetFurniture_newsstand_se.png', file: 'newsstand_realistic_noUmbrella.png', part: 1, flip: true },
+  { out: 'streetFurniture_bollard_sw.png', file: 'bollard_yellowBlack_dualView.png', part: 0, flip: false, pair: 'sw' },
+  { out: 'streetFurniture_bollard_se.png', file: 'bollard_yellowBlack_dualView.png', part: 0, flip: false, pair: 'se' },
 ];
 
 async function loadRaw(file) {
@@ -93,22 +112,37 @@ async function bakeView(view, cache) {
     if (view.part === 0) x1 = split; else x0 = split;
   }
   const b = solidBounds(img, x0, x1);
-  const w = b.maxX - b.minX + 1;
-  const h = b.maxY - b.minY + 1;
+  let w = b.maxX - b.minX + 1;
+  let h = b.maxY - b.minY + 1;
+  let object = await sharp(img.data, { raw: { width: img.width, height: img.height, channels: 4 } })
+    .extract({ left: b.minX, top: b.minY, width: w, height: h })
+    .png()
+    .toBuffer();
+  if (view.pair) {
+    const dx = Math.round(BOLLARD_PAIR_DX * h);
+    const dy = Math.round(BOLLARD_PAIR_DY * h);
+    // sw: the road runs NW-SE on screen, the far post up-left; se: SW-NE, the far post up-right.
+    const far = view.pair === 'sw' ? { left: 0, top: 0 } : { left: dx, top: 0 };
+    const near = view.pair === 'sw' ? { left: dx, top: dy } : { left: 0, top: dy };
+    object = await sharp({ create: { width: w + dx, height: h + dy, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
+      .composite([{ input: object, ...far }, { input: object, ...near }])
+      .png()
+      .toBuffer();
+    w += dx;
+    h += dy;
+  }
   const scale = BAKED_HEIGHT / h;
   const outW = Math.round(w * scale);
   if (outW > CANVAS) throw new Error(`${view.out}: ${outW}px wide at ${BAKED_HEIGHT}px tall does not fit the canvas`);
-  let pipeline = sharp(img.data, { raw: { width: img.width, height: img.height, channels: 4 } })
-    .extract({ left: b.minX, top: b.minY, width: w, height: h })
-    .resize(outW, BAKED_HEIGHT, { kernel: 'lanczos3' });
+  let pipeline = sharp(object).resize(outW, BAKED_HEIGHT, { kernel: 'lanczos3' });
   if (view.flip) pipeline = pipeline.flop();
-  const object = await pipeline.png().toBuffer();
+  const baked = await pipeline.png().toBuffer();
   const out = await sharp({ create: { width: CANVAS, height: CANVAS, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
-    .composite([{ input: object, left: Math.round(ANCHOR.x - outW / 2), top: ANCHOR.y - BAKED_HEIGHT }])
+    .composite([{ input: baked, left: Math.round(ANCHOR.x - outW / 2), top: ANCHOR.y - BAKED_HEIGHT }])
     .png({ compressionLevel: 9 })
     .toBuffer();
   await sharp(out).toFile(path.join(OUT_DIR, view.out));
-  console.log(`${view.out}: ${view.file}${view.part === null ? '' : ` part ${view.part}`}${view.flip ? ' mirrored' : ''} -> ${outW}x${BAKED_HEIGHT}`);
+  console.log(`${view.out}: ${view.file}${view.part === null ? '' : ` part ${view.part}`}${view.flip ? ' mirrored' : ''}${view.pair ? ` pair ${view.pair}` : ''} -> ${outW}x${BAKED_HEIGHT}`);
   return out;
 }
 
@@ -119,7 +153,7 @@ async function main() {
   if (PREVIEW) {
     const marker = Buffer.from(`<svg width="${CANVAS}" height="${CANVAS}"><circle cx="${ANCHOR.x}" cy="${ANCHOR.y}" r="3" fill="red"/></svg>`);
     const tiles = await Promise.all(outputs.map((png) => sharp(png).composite([{ input: marker }]).png().toBuffer()));
-    await sharp({ create: { width: CANVAS * 5, height: CANVAS * 2, channels: 4, background: '#8a9a7a' } })
+    await sharp({ create: { width: CANVAS * Math.ceil(outputs.length / 2), height: CANVAS * 2, channels: 4, background: '#8a9a7a' } })
       .composite(tiles.map((input, i) => ({ input, left: Math.floor(i / 2) * CANVAS, top: (i % 2) * CANVAS })))
       .png()
       .toFile(PREVIEW);

@@ -166,3 +166,89 @@ test('the two kerbs of one road share a baked view but are calibrated separately
   assert.equal(streetFurnitureFacing({ kind: 'postbox', side: 'e' }, 0), 'postbox_se');
   assert.equal(streetFurnitureFacing({ kind: 'postbox', side: 'w' }, 0), 'postbox_nw');
 });
+
+test('fire hydrants: about every 100 m (5 tiles) along a built street, sparser when thinly built, none on empty land', () => {
+  const hydrants = (built, size = 60) => computeStreetFurniturePlacements({
+    ...street({ size, built }),
+    rates: rates({ hydrantEvery: 5, hydrantEverySparse: 8, hydrantDenseDensity: 0.4, hydrantMinBuiltShare: 0.2 }),
+  }).filter((p) => p.kind === 'hydrant');
+  const dense = hydrants(() => ({ type: 'commercial', level: 3 }));
+  assert.equal(dense.length, 12, '60 tiles / 5');
+  const rows = dense.map((p) => p.row).sort((a, b) => a - b);
+  rows.slice(1).forEach((row, i) => assert.equal(row - rows[i], 5, 'evenly spaced'));
+  // One kerb built at level 1 in every other cell: density ~0.18, the sparse spacing.
+  const sparse = hydrants((r, c) => (c === 6 && r % 2 === 0 ? { type: 'residential', level: 1 } : null));
+  assert.ok(sparse.length >= 7 && sparse.length <= 8, `sparse ${sparse.length}`);
+  assert.ok(sparse.every((p) => p.side === 'e'), 'on the built-up kerb');
+  assert.equal(hydrants(() => null).length, 0);
+});
+
+test('phone booths: beside some bus stops, and a few along dense streets', () => {
+  const atStop = computeStreetFurniturePlacements({
+    ...street({ extra: { busStopAt: (r) => r === 12 } }),
+    rates: rates({ phoneAtBusStop: 1, binAtBusStop: 1 }),
+  });
+  const phone = atStop.filter((p) => p.kind === 'phoneBooth');
+  const bin = atStop.filter((p) => p.kind === 'bin');
+  assert.equal(phone.length, 1);
+  assert.equal(bin.length, 1);
+  assert.notEqual(phone[0].row, bin[0].row, 'the booth and the bin flank the stop on opposite sides');
+  assert.ok([11, 13].includes(phone[0].row));
+  const count = (built) => computeStreetFurniturePlacements({ ...street({ size: 1000, built }), rates: rates({ phoneDense: 0.03 }) })
+    .filter((p) => p.kind === 'phoneBooth').length;
+  const dense = count(() => ({ type: 'commercial', level: 3 }));
+  assert.ok(dense >= 15 && dense <= 50, `~3% of dense tiles: ${dense}`);
+  assert.equal(count(() => null), 0);
+});
+
+// A cross junction at (10, 5) with approaches on all four sides; frontage by type around it.
+function junction(type, extra = {}) {
+  const roadKeyAt = (r, c) => {
+    if (r === 10 && c === 5) return 'road_cross';
+    if (c === 5 && r >= 0 && r < 21) return 'road_straight_v';
+    if (r === 10 && c >= 0 && c < 11) return 'road_straight_h';
+    return null;
+  };
+  const frontageAt = (r, c) => (roadKeyAt(r, c) ? null : { type, level: 3 });
+  return { mapWidth: 11, mapHeight: 21, roadKeyAt, frontageAt, ...extra };
+}
+
+test('newspaper stalls: at a shopping junction on a shop kerb next to it, never at a residential one', () => {
+  const on = rates({ newsstandMax: 1, newsstandMinCommercial: 0.25, newsstandMinDensity: 0.4, newsstandSpacing: 4 });
+  const shops = computeStreetFurniturePlacements({ ...junction('commercial'), rates: on }).filter((p) => p.kind === 'newsstand');
+  assert.equal(shops.length, 1);
+  const distance = Math.abs(shops[0].row - 10) + Math.abs(shops[0].col - 5);
+  assert.ok(distance <= 2, `beside the junction: ${JSON.stringify(shops[0])}`);
+  const homes = computeStreetFurniturePlacements({ ...junction('residential'), rates: on }).filter((p) => p.kind === 'newsstand');
+  assert.equal(homes.length, 0);
+  // Railings take the tile next to the junction: the stall moves one tile out.
+  const railed = computeStreetFurniturePlacements({
+    ...junction('commercial', { occupiedAt: (r, c) => Math.abs(r - 10) + Math.abs(c - 5) === 1 }),
+    rates: on,
+  }).filter((p) => p.kind === 'newsstand');
+  assert.equal(railed.length, 1);
+  assert.equal(Math.abs(railed[0].row - 10) + Math.abs(railed[0].col - 5), 2);
+});
+
+test('yellow-black bollards stand only in front of industrial buildings', () => {
+  const placements = computeStreetFurniturePlacements({
+    ...street({ size: 200, built: (r, c) => (c === 4 ? { type: 'industrial', level: 2 } : { type: 'commercial', level: 2 }) }),
+    rates: rates({ bollardIndustrial: 0.3 }),
+  }).filter((p) => p.kind === 'bollard');
+  assert.ok(placements.length > 40 && placements.length < 80, `~30% of 200 tiles: ${placements.length}`);
+  assert.ok(placements.every((p) => p.side === 'w'), 'on the industrial (west) kerb only');
+});
+
+test('every kind has both baked views on a power-of-two canvas', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const { STREET_FURNITURE_TEXTURE_FILES, STREET_FURNITURE_KINDS } = require('../street-furniture.js');
+  const files = Object.values(STREET_FURNITURE_TEXTURE_FILES);
+  assert.equal(files.length, Object.keys(STREET_FURNITURE_KINDS).length * 2);
+  files.forEach((file) => {
+    const png = fs.readFileSync(path.join(__dirname, '..', file));
+    const width = png.readUInt32BE(16);
+    const height = png.readUInt32BE(20);
+    assert.ok(width === 256 && height === 256, `${file} ${width}x${height}`);
+  });
+});

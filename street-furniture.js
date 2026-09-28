@@ -519,7 +519,9 @@ function streetFurnitureLogicalPoint(placement) {
   };
 }
 
-// Screen anchor (foot) and depth, in the same terms as the signal poles.
+// Screen anchor (foot) and depth, in the same terms as the signal poles. The calibrated nudge
+// moves the foot, so it moves the depth too: a street sign nudged 15 px down the pavement has to
+// sort in front of a car in the lane behind it, not at the slot's geometric point above the car.
 function streetFurnitureAnchor(scene, placement, facing) {
   const point = streetFurnitureLogicalPoint(placement);
   const geo = getTileFaceGeometry(placement.row, placement.col, scene.offsetX, scene.offsetY);
@@ -529,7 +531,7 @@ function streetFurnitureAnchor(scene, placement, facing) {
   return {
     x: geo.center.x + (shifted.x - centre.x) + offset.dx,
     y: geo.center.y + (shifted.y - centre.y) + offset.dy,
-    depth: getWorldDepth('object', shifted.y + TILE_HEIGHT),
+    depth: getWorldDepth('object', shifted.y + offset.dy + TILE_HEIGHT),
   };
 }
 
@@ -715,6 +717,7 @@ const streetFurnitureTestApi = {
   streetFurnitureEdge,
   streetFurnitureFacing,
   streetFurnitureTextureKey,
+  streetFurnitureAnchor,
   STREET_FURNITURE_STRAIGHTS,
 };
 

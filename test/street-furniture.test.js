@@ -292,3 +292,26 @@ test('street name signs: a junction block of several junction tiles still names 
   }).filter((p) => p.kind.startsWith('streetSign'));
   assert.equal(signs.length, 2, `got ${JSON.stringify(signs)}`);
 });
+
+test('a calibrated nudge moves a prop\'s depth with its foot, so traffic behind it stays behind', () => {
+  const { streetFurnitureAnchor } = require('../street-furniture.js');
+  const saved = {};
+  const stubs = {
+    getTileFaceGeometry: () => ({ center: { x: 0, y: 0 } }),
+    isoToScreen: (col, row) => ({ x: (col - row) * 50, y: (col + row) * 25 }),
+    getWorldDepth: (layer, local) => local,
+    TILE_HEIGHT: 50,
+    STREET_FURNITURE_ANCHOR_OFFSETS: { streetSign_se: { dx: -17.8, dy: 6.767 } },
+    STREET_FURNITURE_KIND_SCALES: {},
+  };
+  Object.keys(stubs).forEach((key) => { saved[key] = global[key]; global[key] = stubs[key]; });
+  try {
+    const placement = { kind: 'streetSign', row: 10, col: 10, side: 'e', half: 'n' };
+    const nudged = streetFurnitureAnchor({ offsetX: 0, offsetY: 0 }, placement, 'streetSign_se');
+    const plain = streetFurnitureAnchor({ offsetX: 0, offsetY: 0 }, placement, 'streetSign_ne');
+    assert.ok(Math.abs((nudged.y - plain.y) - 6.767) < 1e-9, 'the foot moves down by the nudge');
+    assert.ok(Math.abs((nudged.depth - plain.depth) - 6.767) < 1e-9, 'and the depth follows it');
+  } finally {
+    Object.keys(stubs).forEach((key) => { if (saved[key] === undefined) delete global[key]; else global[key] = saved[key]; });
+  }
+});

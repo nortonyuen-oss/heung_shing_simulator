@@ -242,6 +242,13 @@ const SITE_FEATURE_LIST = {
 // ── Changelog ─────────────────────────────────────────────────────────────────
 const SITE_CHANGELOG = {
   "zh-HK": [
+    { version: "v4.16.0", date: "2026-09-28", dateLabel: "2026年9月28日", title: "東風夜放花千樹", items: [
+      "夜景路燈改為燈頭亮點加地面光池，照亮下面嘅地磚同草地；核電廠、機場等嘅訊號燈改為好似汽車尾燈嘅細光點。",
+      "夜晚地面同馬路更暗，建築窗光同路燈更突出；大雨、黑雨同颱風嘅雲霧同陰暗層調薄，城市仍然睇得清楚。",
+      "每個路口為每條街豎一塊黑白雙語街名牌（雙線大路用雙柱長牌）；新增消防龍頭、電話亭、報紙檔同工業區車柱，數量參考香港真實數據。",
+      "唔少建築模型按地盤角重新對位，唔再向路邊溢出；雙線行車線按方向微調。",
+      "大城市更順滑：每幀只重新排序有郁動嘅物件、夜色只為畫面見到嘅物件上色、細道具合併成一張貼圖；舊存檔兼容。",
+    ] },
     { version: "v4.15.0", date: "2026-09-28", dateLabel: "2026年9月28日", title: "路上觀察研討會", items: [
       "兩條並排嘅同向道路會自動變成單向雙線（靠左行車），車輛分兩條線行，巴士行近行人路嗰條。",
       "馬路劃線：巴士站路面有「巴士站 BUS STOP」字、長直路每隔 4 格有斑馬線、黃格仔路口前有停車線同箭嘴（單線同雙線各有畫法）；道路貼圖提升到 512×256，放大都睇得清。",
@@ -548,6 +555,13 @@ const SITE_CHANGELOG = {
 // title/items text.
 const SITE_CHANGELOG_TRANSLATIONS = {
   "zh-TW": {
+    "v4.16.0": { title: "東風夜放花千樹", items: [
+      "夜景路燈改為燈頭亮點加地面光池，照亮下方的地磚與草地；核電廠、機場等的警示燈改為像汽車尾燈的小光點。",
+      "夜晚地面與道路更暗，建築窗光與路燈更突出；大雨、黑雨與颱風的雲霧和陰暗層調薄，城市依然清楚可見。",
+      "每個路口為每條街設置一塊黑白雙語路名牌（雙線大路使用雙柱長牌）；新增消防栓、電話亭、報攤與工業區車阻柱，數量參考香港真實數據。",
+      "許多建築模型依地基角點重新對位，不再溢出到路邊；雙線車道依方向微調。",
+      "大城市更流暢：每幀只重新排序有移動的物件、夜色只為畫面中可見的物件上色、小型道具合併為一張貼圖；相容舊存檔。",
+    ] },
     "v4.15.0": { title: "路上觀察研討會", items: [
       "兩條並排的同向道路會自動變成單向雙線（靠左行駛），車輛分兩條線行駛，公車走靠人行道那條。",
       "道路標線：公車站路面有「巴士站 BUS STOP」字樣、長直路每隔 4 格有斑馬線、黃網格路口前有停止線與箭頭（單線與雙線各有畫法）；道路貼圖提升到 512×256，放大也看得清楚。",
@@ -847,6 +861,13 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   en: {
+    "v4.16.0": { title: "A Thousand Trees in Bloom on the East Wind", items: [
+      "Night lamps baked into the buildings now shine as a hot lamp head over a pool of light on the ground, lighting the paving and grass beneath; the beacons on the nuclear plant, airport and port glow like small tail lamps instead of large discs.",
+      "Nights are darker on the ground and roads, so lit windows and lamps stand out; the cloud deck and dark wash of heavy rain, black rain and typhoons are thinner, and the city stays readable.",
+      "Every junction now names each street that meets it with a black-and-white bilingual street sign (a long two-post plate on dual carriageways); fire hydrants, phone booths, newsstands and industrial bollards join the kerbside, at rates based on real Hong Kong figures.",
+      "Many building models are re-seated on their lots by their ground corners and no longer spill over the kerb; dual-carriageway lanes are fine-tuned per direction.",
+      "Big cities run smoother: only objects that moved are re-sorted each frame, night tints touch only what is on screen, and small street props share one texture. Existing saves remain compatible.",
+    ] },
     "v4.15.0": { title: "Street Observation Seminar", items: [
       "Two side-by-side roads running the same way now merge into a one-way dual carriageway (keep-left), with traffic in two lanes and buses in the kerb lane.",
       "Road markings: bus stops read 'BUS STOP' on the road, long straights get a zebra crossing every 4 tiles, and the tile before each yellow-box junction gets stop lines and arrows (drawn differently for single and dual carriageways). Road art is now 512×256, sharp even zoomed in.",
@@ -1146,6 +1167,13 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   ja: {
+    "v4.16.0": { title: "東風夜放花千樹", items: [
+      "建物の夜景に描かれた街灯は、灯具の光点と地面の光だまりになり、足元の舗装や芝生を照らします。原子力発電所や空港などの航空障害灯は、大きな円ではなくテールランプのような小さな光点になりました。",
+      "夜の地面と道路がより暗くなり、窓明かりや街灯が際立ちます。大雨・黒色暴雨・台風時の雲と暗い膜を薄くし、街がはっきり見えます。",
+      "交差点ごとに、交わる各通りの白黒二言語の道路名標識を設置（2車線道路は2本柱の長い標識）。消火栓、電話ボックス、新聞スタンド、工業地区の車止めを追加し、数は香港の実データを参考にしています。",
+      "多くの建物モデルを敷地の角に合わせて配置し直し、歩道側にはみ出さなくなりました。2車線道路の車線位置を方向ごとに微調整しました。",
+      "大きな都市がより滑らかに：毎フレーム、動いたオブジェクトだけを並べ替え、夜の色付けは画面内のものだけに、小さな道路小物は1枚のテクスチャにまとめました。既存のセーブデータに対応しています。",
+    ] },
     "v4.15.0": { title: "路上観察研討会", items: [
       "並んだ同じ向きの2本の道路が自動的に一方通行の2車線道路（左側通行）になり、車両は2車線に分かれて走り、バスは歩道側の車線を走ります。",
       "路面標示：バス停の路面に「巴士站 BUS STOP」の文字、長い直線道路には4マスごとに横断歩道、黄色ボックス交差点の手前には停止線と矢印（1車線と2車線で描き方が異なります）。道路テクスチャを512×256に高精細化し、拡大してもはっきり見えます。",
@@ -1470,8 +1498,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.15.0 — 【路上觀察研討會】",
-      versionDesc: "兩條並排嘅路自動變單向雙線、馬路劃線同斑馬線、雙線路口紅綠燈重新整理，仲有行人路欄杆同按樓宇密度出現嘅垃圾桶、電箱、郵筒同咪錶。",
+      versionBadge: "v4.16.0 — 【東風夜放花千樹】",
+      versionDesc: "夜景路燈變成照亮地面嘅暖黃燈點、訊號燈好似車尾燈、夜色更深；街角多咗路牌、消防龍頭、電話亭、報紙檔同車柱；風雨天唔再成個畫面矇晒，大城市更順滑。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感嘅城市建設遊戲。起街道、規劃社區、經營自己嘅香城巴士公司、處理議會同天氣，再睇住一座有性格嘅香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1570,8 +1598,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.15.0 — 【路上觀察研討會】",
-      versionDesc: "兩條並排的道路自動變成單向雙線、道路標線與斑馬線、雙線路口紅綠燈重新整理，還有人行道欄杆，以及依建築密度出現的垃圾桶、電箱、郵筒與停車收費錶。",
+      versionBadge: "v4.16.0 — 【東風夜放花千樹】",
+      versionDesc: "夜景路燈改為照亮地面的暖黃燈點、警示燈像車尾燈、夜色更深；街角新增路名牌、消防栓、電話亭、報攤與車阻柱；風雨天不再整個畫面朦朧，大城市更流暢。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感的城市建設遊戲。興建街道、規劃社區、經營自己的香城公車公司、處理議會與天氣，看著一座有個性的香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1670,8 +1698,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "The City of Heung Shing",
       title: "The City of Heung Shing",
-      versionBadge: "v4.15.0 — Street Observation Seminar",
-      versionDesc: "Side-by-side roads become one-way dual carriageways, roads get markings and zebra crossings, dual-carriageway junction signals are reorganised, and pavements gain railings plus bins, cabinets, posting boxes and parking meters placed by street density.",
+      versionBadge: "v4.16.0 — A Thousand Trees in Bloom on the East Wind",
+      versionDesc: "Night lamps become warm points that light the ground, beacons glow like tail lamps and nights run deeper; street corners gain name signs, fire hydrants, phone booths, newsstands and bollards; storms no longer blur the city, and big cities run smoother.",
       lede: "A city-building game inspired by Hong Kong life and made in tribute to SimCity 2000. Build streets, shape neighbourhoods, run your own Heung Shing Bus Company, navigate council politics and weather, then watch a city with real personality grow.",
       freeLabel: "Completely free · macOS + Windows · Local saves",
       downloadBtn: "【Free Download】",
@@ -1771,8 +1799,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.15.0 — 路上観察研討会",
-      versionDesc: "並んだ道路が一方通行の2車線に、路面標示と横断歩道、2車線交差点の信号を整理、さらに歩道の柵と、建物の密度に応じて現れるごみ箱・電気ボックス・郵便ポスト・パーキングメーター。",
+      versionBadge: "v4.16.0 — 東風夜放花千樹",
+      versionDesc: "夜の街灯は地面を照らす暖かな光点に、航空障害灯はテールランプのように、夜はより深く。街角には道路名標識・消火栓・電話ボックス・新聞スタンド・車止めが加わり、嵐でも街がかすまず、大きな都市もより滑らかに動きます。",
       lede: "香港の都市生活から着想を得た、SimCity 2000へのオマージュとなる都市建設ゲーム。道路を築き、地区を計画し、自分だけの香城バス会社を経営し、議会や天候に向き合いながら、個性ある香城の成長を見守ります。",
       freeLabel: "完全無料 · macOS + Windows · ローカルセーブ",
       downloadBtn: "【無料ダウンロード】",

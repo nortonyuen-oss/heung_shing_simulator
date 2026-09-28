@@ -4726,6 +4726,7 @@ function placeSpriteBuilding(scene, row, col, key, options = {}) {
     }
     scene.buildingSprites.set(getTileId(tileRow, tileCol), building);
   });
+  if (typeof markNightRemoteDarknessDirty === 'function') markNightRemoteDarknessDirty(scene);
   invalidateBuildingCountCache();
   if (typeof invalidateOverlayCache === 'function') invalidateOverlayCache();
 }
@@ -4933,6 +4934,7 @@ function removeBuilding(scene, row, col, options = {}) {
   const tileId = getTileId(row, col);
   const building = scene.buildingSprites.get(tileId);
   if (!building) return false;
+  if (typeof markNightRemoteDarknessDirty === 'function') markNightRemoteDarknessDirty(scene);
   if (typeof scheduleStreetFurnitureRefresh === 'function') scheduleStreetFurnitureRefresh(scene, { delayMs: STREET_FURNITURE_GROWTH_REFRESH_MS, recomputeTraffic: false });
 
   // Clean up simulation data keyed to anchor tile
@@ -7146,6 +7148,31 @@ function cloudAlphaOp(min, max) {
     onUpdate: (particle, key, lifeT) => particle.cloudAlpha * cloudFadeEnvelope(lifeT),
   };
 }
+// Clouds sit above the ground night pass (only the light atmosphere pass covers them), so at
+// night they stayed near-white over a dark map. Each particle's tint is instead re-read every
+// frame: the weather tier's colour, dimmed by the ground pass and cooled toward a slate blue, so
+// the cover darkens with the sky through dusk and the small hours without a setConfig (which
+// resets the emitter's timer, see updateDynamicLighting).
+const CLOUD_NIGHT_TINT = 0x8c9bb8;
+let cloudNightDim = 0; // the ground pass alpha, set by applyNightDarkness
+function getCloudNightTint(baseTint) {
+  const k = Math.max(0, Math.min(1, cloudNightDim));
+  if (k <= 0) return baseTint;
+  const channel = (shift) => {
+    const base = (baseTint >> shift) & 0xff;
+    const night = (CLOUD_NIGHT_TINT >> shift) & 0xff;
+    const hue = base + ((base * night) / 255 - base) * k;
+    return Math.round(hue * (1 - k)) & 0xff;
+  };
+  return (channel(16) << 16) | (channel(8) << 8) | channel(0);
+}
+function cloudTintOp(baseTint) {
+  const tint = baseTint ?? 0xffffff;
+  return {
+    onEmit: () => getCloudNightTint(tint),
+    onUpdate: () => getCloudNightTint(tint),
+  };
+}
 const CLOUD_CLEARING_FADE_MS = 6500;
 
 function seededCelestialRandom(seedState) {
@@ -7285,6 +7312,8 @@ function setupDynamicLighting(scene) {
   scene.groundNightOverlay.setScrollFactor(0);
   scene.groundNightOverlay.setDepth(getWorldDepth('object') - 1);
   scene.groundNightOverlay.setAlpha(0);
+  // Extra darkness away from the city: a map-shaped pass just above this one (night-remote-darkness.js).
+  if (typeof createNightRemoteDarknessLayer === 'function') createNightRemoteDarknessLayer(scene);
 
   scene.nightOverlay = scene.add.rectangle(0, 0, scene.scale.width, scene.scale.height, 0x020713, 1);
   scene.nightOverlay.setOrigin(0, 0);
@@ -7304,6 +7333,7 @@ function setupDynamicLighting(scene) {
     frequency: CLOUD_DENSITY_TIERS.light.frequency,
     lifespan: CLOUD_DENSITY_TIERS.light.lifespan,
     alpha: cloudAlphaOp(CLOUD_DENSITY_TIERS.light.alpha.min, CLOUD_DENSITY_TIERS.light.alpha.max),
+    tint: cloudTintOp(CLOUD_DENSITY_TIERS.light.tint),
     x: { min: -240, max: scene.cloudSpawnWidth },
     y: { min: -120, max: scene.cloudSpawnHeight },
     scale: { min: 1.4, max: 2.6 },
@@ -7627,9 +7657,14 @@ function applyNightDarkness(scene, rawNightAlpha, deepNightDepth = 0) {
   scene.nightDarkness = total;
   scene.nightOverlay?.setAlpha(atmosphere);
   scene.groundNightOverlay?.setAlpha(ground);
+  cloudNightDim = ground;
   // Swap baked night art in slightly before the tint ramps, so a building never
   // shows a fully lit facade next to an already-dark street.
   syncBuildingNightTextures(scene, scene.nightRawAlpha);
+  // Before the object tint: trees far from the city read this pass's alpha for their tint.
+  if (typeof updateNightRemoteDarkness === 'function') {
+    updateNightRemoteDarkness(scene, scene.nightRawAlpha, scene.nightDeepDepth, total);
+  }
   applyNightObjectTint(scene, ground);
 }
 
@@ -7732,7 +7767,11 @@ function applyNightObjectTint(scene, ground) {
 
 function applyNightPropTint(scene, sprite) {
   const tint = scene.__nightPropTint;
-  if (tint === null || tint === undefined) sprite.clearTint?.();
+  // Away from the city the ground takes an extra pass (night-remote-darkness.js); these props
+  // sit above it, so they take the same amount on their tint.
+  const remote = typeof getNightRemoteDimAt === 'function' ? getNightRemoteDimAt(scene, sprite.x, sprite.y) : 0;
+  if (remote > 0.004) sprite.setTint(scaleNightTint(tint ?? 0xffffff, 1 - remote));
+  else if (tint === null || tint === undefined) sprite.clearTint?.();
   else sprite.setTint(tint);
 }
 
@@ -7876,7 +7915,7 @@ function updateDynamicLighting(scene) {
         frequency: tier.frequency,
         lifespan: tier.lifespan,
         alpha: cloudAlphaOp(tier.alpha.min * fade, tier.alpha.max * fade),
-        tint: tier.tint ?? 0xffffff,
+        tint: cloudTintOp(tier.tint),
         x: { min: -240, max: scene.cloudSpawnWidth },
         y: { min: -120, max: scene.cloudSpawnHeight },
         scale: { min: 1.4 * baseScaleMul, max: 2.6 * baseScaleMul },
@@ -8103,6 +8142,7 @@ function refreshTileSprite(scene, tileRow, tileCol) {
   applyTileTextureDisplayScale(sprite);
   refreshBridgeSprite(scene, tileRow, tileCol);
   invalidateBusStopIfOrphaned(scene, tileRow, tileCol);
+  if (typeof markNightRemoteDarknessDirty === 'function') markNightRemoteDarknessDirty(scene);
 }
 
 function refreshTileList(scene, tileList) {
@@ -8295,6 +8335,7 @@ function clearBuildings(scene) {
     building.destroy();
   });
   scene.buildingSprites.clear();
+  if (typeof markNightRemoteDarknessDirty === 'function') markNightRemoteDarknessDirty(scene);
   // The night-art and tint passes skip their walk while nothing has changed;
   // the sprites placed after this are new, so make the next tick look again.
   scene.__blNightTexState = null;

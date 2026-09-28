@@ -191,6 +191,7 @@ function setVisualRouteCalibrationTestModeEnabled(enabled) {
       if (button) { button.dataset.active = 'false'; button.textContent = '使用 Phaser 光源：關閉'; }
     }
     if (typeof teardownBuildingLightCalibrator === 'function') teardownBuildingLightCalibrator();
+    if (typeof teardownNightRemoteDarknessCalibrator === 'function') teardownNightRemoteDarknessCalibrator();
     visualRoutePerformanceSession.enabledAtMs = null;
     visualRoutePerformanceSession.baselineStartedAtMs = null;
     visualRoutePerformanceSession.operations = [];
@@ -1126,6 +1127,7 @@ function createVisualRoutePerformancePanel(scene) {
     + '<button type="button" class="vrp-buildingground-btn">建築地盤校正</button>'
     + '</div><div class="vrp-group-label">燈光</div><div class="vrp-grid">'
     + '<button type="button" class="vrp-buildinglight-btn">夜間建築燈光校正</button>'
+    + '<button type="button" class="vrp-nightremote-btn">遠離市區夜色校正</button>'
     + '<button type="button" class="vrp-livelights-btn" data-active="false">使用 Phaser 光源：關閉</button>'
     + '</div></details>';
   root.querySelector('.vrp-close-btn')?.addEventListener?.('click', () => {
@@ -1187,6 +1189,9 @@ function createVisualRoutePerformancePanel(scene) {
   });
   root.querySelector('.vrp-buildinglight-btn')?.addEventListener?.('click', () => {
     if (typeof toggleBuildingLightCalibrator === 'function') toggleBuildingLightCalibrator(scene);
+  });
+  root.querySelector('.vrp-nightremote-btn')?.addEventListener?.('click', () => {
+    if (typeof toggleNightRemoteDarknessCalibrator === 'function') toggleNightRemoteDarknessCalibrator(scene);
   });
   root.querySelector('.vrp-buildingground-btn')?.addEventListener?.('click', () => {
     if (typeof toggleBuildingGroundCalibrator === 'function') toggleBuildingGroundCalibrator(scene);

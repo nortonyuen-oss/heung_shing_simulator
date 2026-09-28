@@ -94,7 +94,7 @@ test('a moving car on a lane that just became one-way the other way is recognise
   assert.equal(vm.runInContext('runtimeTrafficTilesConnect({ row: 7, col: 5 }, { row: 7, col: 6 })', context), false);
 });
 
-test('both lanes of a one-way widened tile carry traffic: inner lane mirrors the kerb lane', () => {
+test('both lanes of a one-way widened tile carry traffic, on either side of the centre line', () => {
   const context = createRoadContext(16, (r, c) => (c === 5 || c === 6) && r >= 2 && r <= 12);
   Object.assign(context, {
     isoToScreen: (col, row) => ({ x: (col - row) * 50, y: (col + row) * 25 }),
@@ -109,7 +109,9 @@ test('both lanes of a one-way widened tile carry traffic: inner lane mirrors the
   const outer = point(7, 5, -1, 0, 'outer');
   const inner = point(7, 5, -1, 0, 'inner');
   assert.notDeepEqual(outer, inner, 'the two lanes are different positions');
-  assert.deepEqual({ x: outer.x + inner.x, y: outer.y + inner.y }, { x: centre.x * 2, y: centre.y * 2 }, 'mirror images about the tile centre');
+  // Calibrated per direction, so not exact mirror images - but always either side of the centre.
+  const dot = (outer.x - centre.x) * (inner.x - centre.x) + (outer.y - centre.y) * (inner.y - centre.y);
+  assert.ok(dot < 0, 'the two lanes sit on opposite sides of the tile centre');
   // Not a band tile (single lane above the road's end corners are junction tiles): inner is ignored.
   assert.deepEqual(point(2, 5, 0, 1, 'inner'), point(2, 5, 0, 1, 'outer'));
   // Moving against the tile's direction (never happens, but must not flip lanes): ignored.

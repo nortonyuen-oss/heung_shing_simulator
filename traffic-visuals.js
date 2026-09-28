@@ -726,11 +726,12 @@ function getTrafficLeftLaneOffset(deltaRow, deltaCol, amount = TRAFFIC_VISUAL_CO
 //   dualOuter - a one-way tile of a widened road: the kerb lane.
 //   dualInner - the same tile's other lane, beside the centre line (negative = right of centre).
 // Calibrated with traffic-lane-calibrator.js (test mode -> 校正工具 -> 行車線位置校正) on
-// 2026-09-27 against the 512x256 road art: 0.12 reads centred in every lane and direction.
+// 2026-09-27 against the 512x256 road art: 0.12 reads centred in every lane and direction;
+// the dual-carriageway lanes were fine-tuned per direction on 2026-09-28.
 const TRAFFIC_LANE_OFFSETS = Object.freeze({
   single: Object.freeze({ ne: 0.12, se: 0.12, sw: 0.12, nw: 0.12 }),
-  dualOuter: Object.freeze({ ne: 0.12, se: 0.12, sw: 0.12, nw: 0.12 }),
-  dualInner: Object.freeze({ ne: -0.12, se: -0.12, sw: -0.12, nw: -0.12 }),
+  dualOuter: Object.freeze({ ne: 0.12, se: 0.11, sw: 0.13, nw: 0.125 }),
+  dualInner: Object.freeze({ ne: -0.135, se: -0.12, sw: -0.12, nw: -0.12 }),
 });
 const TRAFFIC_LANE_KINDS = Object.freeze(Object.keys(TRAFFIC_LANE_OFFSETS));
 const TRAFFIC_LANE_SCREEN_DIRECTIONS = Object.freeze(['ne', 'se', 'sw', 'nw']);

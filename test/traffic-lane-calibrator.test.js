@@ -14,16 +14,17 @@ Object.assign(global, {
 });
 const calibrator = require('../traffic-lane-calibrator');
 
-test('shipped lane offsets are the 2026-09-27 calibration; the inner dual lane mirrors the kerb lane', () => {
+test('shipped lane offsets are the 2026-09-28 calibration; the inner dual lane is across the centre line', () => {
   const { TRAFFIC_LANE_OFFSETS } = visuals;
   assert.deepEqual({ ...TRAFFIC_LANE_OFFSETS.single }, { ne: 0.12, se: 0.12, sw: 0.12, nw: 0.12 });
-  assert.deepEqual({ ...TRAFFIC_LANE_OFFSETS.dualOuter }, { ...TRAFFIC_LANE_OFFSETS.single });
+  assert.deepEqual({ ...TRAFFIC_LANE_OFFSETS.dualOuter }, { ne: 0.12, se: 0.11, sw: 0.13, nw: 0.125 });
+  assert.deepEqual({ ...TRAFFIC_LANE_OFFSETS.dualInner }, { ne: -0.135, se: -0.12, sw: -0.12, nw: -0.12 });
   for (const direction of visuals.TRAFFIC_LANE_SCREEN_DIRECTIONS) {
-    assert.equal(TRAFFIC_LANE_OFFSETS.dualInner[direction], -TRAFFIC_LANE_OFFSETS.dualOuter[direction]);
+    assert.ok(TRAFFIC_LANE_OFFSETS.dualOuter[direction] > 0 && TRAFFIC_LANE_OFFSETS.dualInner[direction] < 0, direction);
   }
   // Screen deltas of one iso step: NE (+,-), SE (+,+), SW (-,+), NW (-,-).
-  assert.equal(visuals.getTrafficLaneOffsetAmount(50, -25, 'dualInner'), -0.12);
-  assert.equal(visuals.getTrafficLaneOffsetAmount(-50, 25, 'dualOuter'), 0.12);
+  assert.equal(visuals.getTrafficLaneOffsetAmount(50, -25, 'dualInner'), -0.135);
+  assert.equal(visuals.getTrafficLaneOffsetAmount(-50, 25, 'dualOuter'), 0.13);
   assert.deepEqual(
     [[50, -25], [50, 25], [-50, 25], [-50, -25]].map(([dx, dy]) => visuals.getTrafficLaneScreenDirection(dx, dy)),
     ['ne', 'se', 'sw', 'nw'],
@@ -51,7 +52,7 @@ test('a calibrated value overrides the shipped one for that lane kind and direct
   global.getTrafficLaneCalibrationOffset = calibrator.getTrafficLaneCalibrationOffset;
   try {
     assert.equal(visuals.getTrafficLaneOffsetAmount(-50, 25, 'dualInner'), -0.155);
-    assert.equal(visuals.getTrafficLaneOffsetAmount(-50, 25, 'dualOuter'), 0.12, 'other kinds untouched');
+    assert.equal(visuals.getTrafficLaneOffsetAmount(-50, 25, 'dualOuter'), 0.13, 'other kinds untouched');
     assert.equal(visuals.getTrafficLaneOffsetAmount(50, 25, 'dualInner'), -0.12, 'other directions untouched');
   } finally {
     delete global.getTrafficLaneCalibrationOffset;
@@ -72,8 +73,8 @@ test('"複製 JS" produces a literal that evaluates to the full table with the s
   const table = new Function(`${source}\nreturn TRAFFIC_LANE_OFFSETS;`)();
   assert.deepEqual(JSON.parse(JSON.stringify(table)), {
     single: { ne: 0.12, se: 0.12, sw: 0.12, nw: 0.12 },
-    dualOuter: { ne: 0.12, se: 0.12, sw: 0.12, nw: 0.14 },
-    dualInner: { ne: -0.12, se: -0.12, sw: -0.12, nw: -0.12 },
+    dualOuter: { ne: 0.12, se: 0.11, sw: 0.13, nw: 0.14 },
+    dualInner: { ne: -0.135, se: -0.12, sw: -0.12, nw: -0.12 },
   });
   calibrator.resetTrafficLaneCalibration();
 });

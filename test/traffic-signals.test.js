@@ -27,6 +27,7 @@ function createContext({ withCalibrator = false } = {}) {
   vm.runInContext('let modelAssetManifest = { version: "test", entries: {} };', context);
   vm.runInContext(sliceFunction('normalizeModelLogicalPath'), context, { filename: 'main.js#normalizeModelLogicalPath' });
   vm.runInContext(sliceFunction('getPropTextureAnchor'), context, { filename: 'main.js#getPropTextureAnchor' });
+  vm.runInContext(sliceFunction('getModelTexturePixelMapping'), context, { filename: 'main.js#getModelTexturePixelMapping' });
   vm.runInContext(source('traffic-signals.js'), context, { filename: 'traffic-signals.js' });
   if (withCalibrator) {
     vm.runInContext(source('visual-route-calibrator.js'), context, { filename: 'visual-route-calibrator.js' });

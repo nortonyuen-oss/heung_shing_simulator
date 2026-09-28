@@ -184,6 +184,7 @@ function setVisualRouteCalibrationTestModeEnabled(enabled) {
     if (typeof teardownBridgeParapetCalibrator === 'function') teardownBridgeParapetCalibrator();
     if (typeof teardownPedestrianRailingCalibrator === 'function') teardownPedestrianRailingCalibrator();
     if (typeof teardownStreetFurnitureCalibrator === 'function') teardownStreetFurnitureCalibrator();
+    if (typeof teardownBuildingGroundCalibrator === 'function') teardownBuildingGroundCalibrator();
     if (typeof setLiveBuildingLightsEnabled === 'function') {
       setLiveBuildingLightsEnabled(false, typeof activeScene !== 'undefined' ? activeScene : null);
       const button = document.querySelector?.('.vrp-livelights-btn');
@@ -1121,6 +1122,8 @@ function createVisualRoutePerformancePanel(scene) {
     + '<button type="button" class="vrp-bridgeparapet-btn">天橋護欄位置微調</button>'
     + '<button type="button" class="vrp-pedestrianrailing-btn">行人路欄杆位置微調</button>'
     + '<button type="button" class="vrp-streetfurniture-btn">路邊設施位置微調</button>'
+    + '</div><div class="vrp-group-label">建築</div><div class="vrp-grid">'
+    + '<button type="button" class="vrp-buildingground-btn">建築地盤校正</button>'
     + '</div><div class="vrp-group-label">燈光</div><div class="vrp-grid">'
     + '<button type="button" class="vrp-buildinglight-btn">夜間建築燈光校正</button>'
     + '<button type="button" class="vrp-livelights-btn" data-active="false">使用 Phaser 光源：關閉</button>'
@@ -1184,6 +1187,9 @@ function createVisualRoutePerformancePanel(scene) {
   });
   root.querySelector('.vrp-buildinglight-btn')?.addEventListener?.('click', () => {
     if (typeof toggleBuildingLightCalibrator === 'function') toggleBuildingLightCalibrator(scene);
+  });
+  root.querySelector('.vrp-buildingground-btn')?.addEventListener?.('click', () => {
+    if (typeof toggleBuildingGroundCalibrator === 'function') toggleBuildingGroundCalibrator(scene);
   });
   root.querySelector('.vrp-roadline-btn')?.addEventListener?.('click', () => {
     if (typeof toggleRoadLineCalibrator === 'function') toggleRoadLineCalibrator(scene);

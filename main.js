@@ -1765,27 +1765,122 @@ function isPackagedModelArtActive() {
 function getPropTextureAnchor(logicalPath, sourceAnchorX, sourceAnchorY, texture) {
   const width = Number(texture?.width) || 0;
   const height = Number(texture?.height) || 0;
-  const entry = modelAssetManifest.entries?.[normalizeModelLogicalPath(logicalPath)];
-  const staged = entry && entry.trim && entry.padding && Number(entry.sourceWidth) > 0
-    && Number(entry.outputWidth) > 0 && Number(entry.outputHeight) > 0
-    && width === Number(entry.outputWidth) && height === Number(entry.outputHeight);
-  if (!staged) {
+  const mapping = getModelTexturePixelMapping(logicalPath, texture);
+  if (!mapping.staged) {
     return {
       originX: width ? sourceAnchorX / width : 0.5,
       originY: height ? sourceAnchorY / height : 1,
       scaleMultiplier: 1,
     };
   }
+  return {
+    originX: (sourceAnchorX * mapping.resize + mapping.offsetX) / width,
+    originY: (sourceAnchorY * mapping.resize + mapping.offsetY) / height,
+    scaleMultiplier: 1 / mapping.resize,
+  };
+}
+
+// How a source-PNG pixel lands in the loaded texture: texture = source * resize + offset. Identity
+// unless the loaded image is the staged (resized, trimmed, padded) copy the manifest describes.
+function getModelTexturePixelMapping(logicalPath, texture) {
+  const width = Number(texture?.width) || 0;
+  const height = Number(texture?.height) || 0;
+  const entry = modelAssetManifest.entries?.[normalizeModelLogicalPath(logicalPath)];
+  const staged = entry && entry.trim && entry.padding && Number(entry.sourceWidth) > 0
+    && Number(entry.outputWidth) > 0 && Number(entry.outputHeight) > 0
+    && width === Number(entry.outputWidth) && height === Number(entry.outputHeight);
+  if (!staged) return { staged: false, resize: 1, offsetX: 0, offsetY: 0 };
   const longest = Math.max(Number(entry.sourceWidth), Number(entry.sourceHeight) || 0);
   const maxDimension = Number(entry.maxDimension) || longest;
-  const resize = longest > maxDimension ? maxDimension / longest : 1;
-  const x = sourceAnchorX * resize - entry.trim.left + entry.padding.left;
-  const y = sourceAnchorY * resize - entry.trim.top + entry.padding.top;
   return {
-    originX: x / entry.outputWidth,
-    originY: y / entry.outputHeight,
-    scaleMultiplier: 1 / resize,
+    staged: true,
+    resize: longest > maxDimension ? maxDimension / longest : 1,
+    offsetX: entry.padding.left - entry.trim.left,
+    offsetY: entry.padding.top - entry.trim.top,
   };
+}
+
+// ── Ground-corner fit (building-ground-fit.js) ──────────────────────────────
+// A building model listed in BUILDING_GROUND_CORNERS (or being calibrated in the 建築地盤校正
+// tool) is sized and anchored by where its lot meets the ground rather than by its whole visible
+// width, so signs and off-centre art no longer push it over the kerb.
+
+function getBuildingModelLogicalPath(key) {
+  if (!key) return null;
+  const zoneModel = getHouseModelBySpriteKey(key)
+    ?? getCommercialBuildingModelBySpriteKey(key)
+    ?? getIndustrialBuildingModelBySpriteKey(key);
+  const path = zoneModel?.logicalPath ?? getFixedBuildingModelBySpriteKey(key)?.path ?? null;
+  return path ? normalizeModelLogicalPath(path) : null;
+}
+
+function getBuildingGroundCorners(logicalPath) {
+  if (!logicalPath) return null;
+  // The calibrator's value wins while it has one; null there means "use the default fit".
+  const calibrated = typeof getBuildingGroundCalibrationCorners === 'function'
+    ? getBuildingGroundCalibrationCorners(logicalPath)
+    : undefined;
+  if (calibrated !== undefined) return calibrated;
+  return (typeof BUILDING_GROUND_CORNERS !== 'undefined' && BUILDING_GROUND_CORNERS[logicalPath]) || null;
+}
+
+function applyBuildingGroundFit(scene, key, options) {
+  const footprintCols = options.footprintCols ?? 1;
+  const footprintRows = options.footprintRows ?? 1;
+  // The fit centres the lot between its side corners, which is the front corner only for a
+  // square footprint.
+  if (footprintCols !== footprintRows || typeof fitBuildingToGroundCorners !== 'function') return options;
+  const logicalPath = getBuildingModelLogicalPath(key);
+  const corners = getBuildingGroundCorners(logicalPath);
+  if (!corners) return options;
+  const textureKey = getSpriteBuildingTextureKey(key);
+  if (!scene?.textures?.exists?.(textureKey)) return options;
+  const source = scene.textures.get(textureKey)?.getSourceImage?.();
+  if (!source?.width || !source?.height) return options;
+  const mapping = getModelTexturePixelMapping(logicalPath, source);
+  const toTexture = ([x, y]) => [x * mapping.resize + mapping.offsetX, y * mapping.resize + mapping.offsetY];
+  const fit = fitBuildingToGroundCorners({
+    left: toTexture(corners.left),
+    front: toTexture(corners.front),
+    right: toTexture(corners.right),
+  }, getFootprintScreenWidth(footprintCols, footprintRows));
+  if (!fit) return options;
+  const baseScale = options.scale || 1;
+  return {
+    ...options,
+    originX: fit.originX / source.width,
+    originY: fit.originY / source.height,
+    scale: fit.scale,
+    scaleX: fit.scale * ((options.scaleX ?? baseScale) / baseScale),
+    scaleY: fit.scale * ((options.scaleY ?? baseScale) / baseScale),
+    groundFit: true,
+  };
+}
+
+// Re-applies size and anchor to every standing building of one model (or all of them), after its
+// ground corners changed in the calibrator.
+function refitBuildingSprites(scene, logicalPath = null) {
+  if (!scene?.buildingSprites) return 0;
+  let count = 0;
+  new Set(scene.buildingSprites.values()).forEach((building) => {
+    if (!building?.active || !building.logicalSpriteKey) return;
+    if (logicalPath && building.modelLogicalPath !== logicalPath) return;
+    const key = building.logicalSpriteKey;
+    const options = applyBuildingGroundFit(scene, key, normalizeSpriteBuildingOptions(key, {
+      footprintCols: building.footprintCols,
+      footprintRows: building.footprintRows,
+    }));
+    building.setOrigin(options.originX ?? 0.5, options.originY ?? 1);
+    building.setScale(options.scaleX ?? options.scale ?? 1, options.scaleY ?? options.scale ?? 1);
+    building.spriteOffsetX = options.offsetX ?? 0;
+    building.spriteOffsetY = options.offsetY ?? 0;
+    positionBuilding(scene, building);
+    ensureWorldMaskContainsBuilding(scene, building);
+    // Window glows were laid out on the old origin; the lighting tick rebuilds them.
+    if (typeof releaseBuildingLightGlow === 'function') releaseBuildingLightGlow(scene, building);
+    count++;
+  });
+  return count;
 }
 
 function getManifestZoneModelMetadata(model) {
@@ -4288,7 +4383,7 @@ function placeHouseModel(scene, row, col, tool, requestedModelKey = null) {
 }
 
 function placeSpriteBuilding(scene, row, col, key, options = {}) {
-  options = normalizeSpriteBuildingOptions(key, options);
+  options = applyBuildingGroundFit(scene, key, normalizeSpriteBuildingOptions(key, options));
   // Roadside furniture follows how built-up each street is (street-furniture.js).
   if (typeof scheduleStreetFurnitureRefresh === 'function') scheduleStreetFurnitureRefresh(scene, { delayMs: STREET_FURNITURE_GROWTH_REFRESH_MS, recomputeTraffic: false });
   const textureKey = getSpriteBuildingTextureKey(key);
@@ -4317,6 +4412,7 @@ function placeSpriteBuilding(scene, row, col, key, options = {}) {
   building.mapRow = row;
   building.mapCol = col;
   building.logicalSpriteKey = key;
+  building.modelLogicalPath = getBuildingModelLogicalPath(key);
   // Stable per-model identity for anything that must survive the model list
   // changing - `key` is a discovery-order index and shifts when files are
   // added or removed (see BUILDING_LIGHT_HERO_PROFILES). It must come from the

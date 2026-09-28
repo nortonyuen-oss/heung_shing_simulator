@@ -667,6 +667,56 @@ const BARE_LAND_DEBRIS_VISUAL_OFFSET_ROW_MAX = 3;
 // true lowest corner to the map rather than the wider "stable" alpha row above it.
 const DEFAULT_BUILDING_ANCHOR_MODE = 'effective-bottom-to-map-bottom';
 
+// Ground corners of building models whose picture is wider than their lot (signs, flagpoles, a
+// bridge stub) or whose front corner is not centred under it (art drawn a little off 45°): the
+// left, front and right points where the lot meets the ground, in source-PNG pixels. A model listed
+// here is sized by its left-to-right ground span and anchored on its lot's centre line and front
+// corner (building-ground-fit.js) instead of by its whole visible width; the front corner may lie
+// below the canvas when the art's tip is clipped or its corner is chamfered. Proposed by
+// scripts/detect-building-ground-corners.js and hand-calibrated with the 建築地盤校正 test-mode tool
+// (2026-09-28). A corner may lie outside the canvas: that shrinks art drawn larger than its lot.
+const BUILDING_GROUND_CORNERS = {
+  'Models/commercial/1x1/commercialBuilding1-03-L.png': { left: [172, 864.3], front: [545.4, 1066.9], right: [871.3, 871.8] },
+  'Models/commercial/3x3/commercialBuilding3-07-M.png': { left: [-1.3, 626.1], front: [508.8, 892.2], right: [1012.5, 668.6] },
+  'Models/commercial/3x3/commercialBuilding3-10-M.png': { left: [11, 771.3], front: [539.3, 1019.7], right: [1013, 785.2] },
+  'Models/commercial/3x3/commercialBuilding3-11-H.png': { left: [-32.4, 732.5], front: [547.2, 1037.8], right: [1066.9, 756.8] },
+  'Models/commercial/4x4/commercialBuilding4-02-H.png': { left: [16, 739], front: [531, 996.4], right: [1014.3, 749.6] },
+  'Models/commercial/4x4/commercialBuilding4-03-L.png': { left: [17, 709.7], front: [531.6, 967], right: [1007, 729.3] },
+  'Models/commercial/4x4/commercialBuilding4-04-L.png': { left: [14, 710.8], front: [526.6, 967.1], right: [1017, 721.9] },
+  'Models/government/2x2/fireStation2-01.png': { left: [-14.5, 695.7], front: [539.1, 981.8], right: [1057.9, 719.2] },
+  'Models/government/2x2/firestation2-02.png': { left: [4, 741.6], front: [516.9, 998.1], right: [1019, 747] },
+  'Models/government/3x3/college3-01.png': { left: [162, 862.3], front: [528.8, 1036.5], right: [860, 867.6] },
+  'Models/government/3x3/college3-02.png': { left: [162, 859.7], front: [515.7, 1034.8], right: [860, 867.8] },
+  'Models/government/3x3/college3-03.png': { left: [158, 858.5], front: [519.5, 1033.9], right: [865, 861.2] },
+  'Models/government/4x4/hospital4.png': { left: [-43, 680.6], front: [549.1, 980.4], right: [1110.8, 691.1] },
+  'Models/industrial/1x1/industrialBuilding1-01.png': { left: [72, 789.3], front: [485.3, 996], right: [936, 741.6] },
+  'Models/industrial/1x1/industrialBuilding1-02.png': { left: [70, 774.5], front: [545.3, 1005], right: [1004, 773.3] },
+  'Models/industrial/2x2/industrialBuilding2-04.png': { left: [20, 783.5], front: [507.7, 1027.4], right: [1006, 783.3] },
+  'Models/industrial/2x2/industrialBuilding2-05.png': { left: [24, 778.1], front: [509.3, 1008.6], right: [1006, 772.6] },
+  'Models/industrial/2x2/industrialBuilding2-06.png': { left: [7, 770.9], front: [463.8, 999.4], right: [1023, 719.8] },
+  'Models/industrial/2x2/industrialBuilding2-07.png': { left: [18, 740.5], front: [533.4, 998.2], right: [1005, 762.4] },
+  'Models/industrial/2x2/sciencePark2-04.png': { left: [0, 759.6], front: [504.3, 1011.8], right: [1023, 755] },
+  'Models/industrial/3x3/industrialBuilding3-01.png': { left: [1, 756.6], front: [546, 1018.2], right: [1023, 784.5] },
+  'Models/industrial/3x3/sciencePark3-02.png': { left: [0, 741.9], front: [518.6, 1001.2], right: [1023, 749] },
+  'Models/parks/park3x3/sportField3-01.png': { left: [8, 754.9], front: [500.7, 1001.2], right: [1017, 743] },
+  'Models/powerStation/nuclearPower4x4.png': { left: [-90, 670.4], front: [513.2, 968.8], right: [1110.8, 666.2] },
+  'Models/residential/house1x1/house1-01-L-LD.png': { left: [41, 782.7], front: [486.5, 1005.4], right: [972, 762.6] },
+  'Models/residential/house1x1/house1-02-L-LD.png': { left: [18, 755.2], front: [518.2, 1018.2], right: [1076.2, 726.9] },
+  'Models/residential/house1x1/house1-05-H-LD.png': { left: [0, 765.6], front: [498.3, 1014.7], right: [1021, 753.3] },
+  'Models/residential/house2x2/residential2-02-M-HD.png': { left: [220, 1000.1], front: [501.5, 1140.8], right: [801, 991] },
+  'Models/residential/house2x2/residential2-03-UH-LD.png': { left: [15, 775.4], front: [501.8, 1016.4], right: [1008, 763.3] },
+  'Models/residential/house2x2/residential2-16-H-HD.png': { left: [212, 991], front: [520.5, 1146.8], right: [807, 999.3] },
+  'Models/residential/house2x2/residential2-17-H-HD.png': { left: [232, 1000.6], front: [515.5, 1142.3], right: [791, 1004.6] },
+  'Models/residential/house3x3/residential3-05-UH-LD.png': { left: [-82.9, 698.2], front: [516.2, 1001.6], right: [1103.8, 711.6] },
+  'Models/residential/house4x4/residential4-02-M-MD.png': { left: [-54.9, 726.7], front: [511.7, 1012.5], right: [1108, 724.6] },
+  'Models/residential/house5x5/residential5-01-H-MD.png': { left: [21, 717.9], front: [523.7, 966.7], right: [1008, 722.2] },
+  'Models/specialSites/2x2/murrayHouse2-01.png': { left: [3, 708.9], front: [521.4, 968.1], right: [1021, 718.3] },
+  'Models/specialSites/2x2/tample2-01.png': { left: [21, 718.3], front: [518.2, 966.9], right: [1002, 724.9] },
+  'Models/specialSites/3x3/hungHomColiseum3-01_fixed.png': { left: [18, 720.6], front: [519.8, 971.4], right: [1006, 728.3] },
+  'Models/specialSites/3x3/tample3-01.png': { left: [9, 699.6], front: [563.6, 971.4], right: [1012, 753.9] },
+  'Models/specialSites/4x4/culturalCentre4-01.png': { left: [5, 905.8], front: [524.7, 1165.7], right: [1014, 921] },
+};
+
 const POWER_PLANT_MODELS = {
   power_plant_coal: {
     spriteKey: 'power_plant_coal_2x2',

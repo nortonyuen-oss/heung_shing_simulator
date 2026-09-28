@@ -7313,16 +7313,20 @@ function syncBuildingNightTextures(scene, rawNightAlpha) {
 // The visible night darkness players see, at its midnight peak. The keyframe
 // data in sim-weather.js still peaks at 0.54 and stays the authoritative input
 // to the lamp ramps; this is the display target the two passes composite to.
-const NIGHT_DARKNESS_PEAK = 0.45;
+// Deepened 2026-09-28 (0.45/0.56 -> 0.62/0.71: the ground's remaining light cut
+// by ~15% and then another 20%) with the atmosphere share cut so the pass over
+// the buildings stays ~0.14: the extra dark lands on the ground only, and the
+// lit windows, lamp pools and beacons stand out against it.
+const NIGHT_DARKNESS_PEAK = 0.62;
 // ... and in the small hours (getDeepNightDepth, sim-weather.js), when the
 // keyframe curve is flat but the city has gone to bed.
-const NIGHT_DARKNESS_DEEP_PEAK = 0.56;
+const NIGHT_DARKNESS_DEEP_PEAK = 0.71;
 const NIGHT_KEYFRAME_PEAK = 0.54;
 // How much of that darkness stays in the pass above every sprite. The rest
 // goes below the object band. A lit window baked into a building texture only
 // has to survive this share, so keep it low enough that white stays white-ish:
-// 255 * (1 - 0.14) = ~219.
-const NIGHT_ATMOSPHERE_SHARE = 0.311;
+// 255 * (1 - 0.14) = ~219 (0.62 * 0.226).
+const NIGHT_ATMOSPHERE_SHARE = 0.226;
 
 // Colour applied to objects in the object band (trees, vehicles, vessels) to
 // stand in for the ground pass they no longer sit under.
@@ -7331,7 +7335,7 @@ const NIGHT_OBJECT_TINT = 0x9aa3b4;
 // darkened all the way down to it - a lit facade catching street light reads
 // brighter than bare ground, and over-darkening kills the window glow the whole
 // split exists to protect. They absorb this share of the ground pass instead,
-// landing at ~0.30 total darkness against the ground's 0.45.
+// landing at ~0.37 total darkness against the ground's 0.62.
 const NIGHT_BUILDING_DARKNESS_SHARE = 0.5;
 // A building wearing baked night art has its darkening in the pixels, but the
 // same texture is worn at 21:00 and at 03:00; in the small hours it takes this

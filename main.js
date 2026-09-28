@@ -1856,6 +1856,99 @@ function installAdaptiveDepthSort(displayList) {
   return true;
 }
 
+// Roadside props (furniture, railings, lamp posts, signal poles, bridge parapets, bus stops) are
+// ~60 small textures scattered through the depth order among the buildings, and Phaser's batch
+// breaks whenever it runs out of its 16 texture units: hiding them alone took a zoom-1 frame
+// from 57 to 38 draw calls (62 -> 29 at zoom 1.5), each draw one more vertex upload - the cost
+// the ANGLE/Metal shim above is about. Once they have loaded, they are copied into one atlas
+// canvas and every prop key is rebuilt as a frame of it, so they share a single GPU texture
+// and batch together. The keys stay: code keeps calling setTexture(key), and reads a prop's
+// size off its base frame (texture.get()), never its source image. Keys must not be removed
+// afterwards - their textures share the atlas source.
+const PROP_ATLAS_KEY = '__street_prop_atlas';
+const PROP_ATLAS_WIDTH = 2048;
+const PROP_ATLAS_PADDING = 4; // transparent px around each frame, so mip levels do not bleed
+
+function getStreetPropAtlasKeys() {
+  const groups = [
+    typeof STREET_FURNITURE_TEXTURE_FILES !== 'undefined' ? STREET_FURNITURE_TEXTURE_FILES : null,
+    typeof PEDESTRIAN_RAILING_TEXTURE_FILES !== 'undefined' ? PEDESTRIAN_RAILING_TEXTURE_FILES : null,
+    typeof STREET_LAMP_TEXTURE_FILES !== 'undefined' ? STREET_LAMP_TEXTURE_FILES : null,
+    typeof TRAFFIC_SIGNAL_TEXTURE_FILES !== 'undefined' ? TRAFFIC_SIGNAL_TEXTURE_FILES : null,
+    typeof BRIDGE_PARAPET_TEXTURE_FILES !== 'undefined' ? BRIDGE_PARAPET_TEXTURE_FILES : null,
+  ];
+  const keys = groups.flatMap((files) => (files ? Object.keys(files) : []));
+  ['ul', 'ur', 'll', 'lr'].forEach((corner) => keys.push(`bus_stop_${corner}`));
+  return keys;
+}
+
+// Shelf-packs rectangles (tallest first) into a fixed width; returns positions and the
+// power-of-two height the atlas needs, or null if one does not fit the width.
+function layoutPropAtlas(items, width = PROP_ATLAS_WIDTH, padding = PROP_ATLAS_PADDING) {
+  const order = [...items].sort((a, b) => (b.height - a.height) || (b.width - a.width));
+  const placed = new Map();
+  let x = 0;
+  let y = 0;
+  let rowHeight = 0;
+  for (const item of order) {
+    const w = item.width + padding * 2;
+    const h = item.height + padding * 2;
+    if (w > width) return null;
+    if (x + w > width) {
+      y += rowHeight;
+      x = 0;
+      rowHeight = 0;
+    }
+    placed.set(item.key, { x: x + padding, y: y + padding });
+    x += w;
+    rowHeight = Math.max(rowHeight, h);
+  }
+  const used = y + rowHeight;
+  let height = 1;
+  while (height < used) height *= 2;
+  return { placed, width, height };
+}
+
+function packStreetPropTextures(scene) {
+  const manager = scene?.textures;
+  if (!manager || manager.exists(PROP_ATLAS_KEY) || typeof document === 'undefined'
+    || typeof Phaser === 'undefined' || !Phaser.Textures?.Texture) return 0;
+  const items = [];
+  getStreetPropAtlasKeys().forEach((key) => {
+    if (!manager.exists(key)) return;
+    const texture = manager.get(key);
+    // Only plain single-image textures: one source, just the base frame.
+    if (texture.source?.length !== 1 || texture.frameTotal > 1) return;
+    const image = texture.getSourceImage?.();
+    if (!image?.width || !image?.height) return;
+    items.push({ key, image, width: image.width, height: image.height });
+  });
+  if (items.length < 2) return 0;
+  const layout = layoutPropAtlas(items);
+  const maxSize = scene.game?.renderer?.gl?.getParameter?.(scene.game.renderer.gl.MAX_TEXTURE_SIZE) || 4096;
+  if (!layout || layout.height > maxSize) return 0;
+  const canvas = document.createElement('canvas');
+  canvas.width = layout.width;
+  canvas.height = layout.height;
+  const context = canvas.getContext('2d');
+  items.forEach((item) => {
+    const at = layout.placed.get(item.key);
+    context.drawImage(item.image, at.x, at.y);
+  });
+  const atlas = manager.addCanvas(PROP_ATLAS_KEY, canvas);
+  const sharedSource = atlas?.source?.[0];
+  if (!sharedSource) return 0;
+  items.forEach((item) => {
+    const at = layout.placed.get(item.key);
+    manager.remove(item.key); // frees the prop's own GPU texture
+    const texture = new Phaser.Textures.Texture(manager, item.key, []);
+    texture.source.push(sharedSource);
+    texture.add('__BASE', 0, at.x, at.y, item.width, item.height);
+    manager.list[item.key] = texture;
+  });
+  return items.length;
+}
+
 async function loadModelAssetManifest() {
   try {
     const response = await fetch('/api/model-assets', { cache: 'no-store' });
@@ -2478,6 +2571,7 @@ function preload() {
 function create() {
   installVertexUploadShim(this.game?.renderer);
   installAdaptiveDepthSort(this.sys?.displayList);
+  packStreetPropTextures(this);
   activeScene = this;
   if (typeof setupVisualRoutePerformanceHooks === 'function') {
     setupVisualRoutePerformanceHooks(this);
@@ -9023,7 +9117,8 @@ function positionBusStopSprite(scene, sprite) {
 // anchor).
 const BUS_STOP_SOURCE_PATHS = { ur: 'Models/busStop/busStop_UR.png', ul: 'Models/busStop/busStop_UL.png', ll: 'Models/busStop/busStop_LL.png', lr: 'Models/busStop/busStop_LR.png' };
 function applyBusStopTextureAnchor(scene, sprite, corner) {
-  const texture = scene?.textures?.get?.(`bus_stop_${corner}`)?.getSourceImage?.();
+  // The base frame, not the source image: the texture may be a frame of the prop atlas.
+  const texture = scene?.textures?.get?.(`bus_stop_${corner}`)?.get?.();
   const spec = texture
     ? getPropTextureAnchor(BUS_STOP_SOURCE_PATHS[corner], 512, 1024, texture)
     : { originX: 0.5, originY: 1, scaleMultiplier: 1 };

@@ -538,7 +538,8 @@ function streetFurnitureAnchor(scene, placement, facing) {
 function applyStreetFurnitureSpriteTexture(scene, sprite, kind, textureKey) {
   if (!scene.textures.exists(textureKey)) return false;
   if (sprite.texture?.key !== textureKey) sprite.setTexture(textureKey);
-  const texture = scene.textures.get(textureKey)?.getSourceImage?.();
+  // The base frame, not the source image: the texture may be a frame of the prop atlas.
+  const texture = scene.textures.get(textureKey)?.get?.();
   const anchorSpec = typeof getPropTextureAnchor === 'function' && texture
     ? getPropTextureAnchor(STREET_FURNITURE_TEXTURE_FILES[textureKey], STREET_FURNITURE_SOURCE_ANCHOR.x, STREET_FURNITURE_SOURCE_ANCHOR.y, texture)
     : { originX: STREET_FURNITURE_SOURCE_ANCHOR.x / STREET_FURNITURE_SOURCE_CANVAS.width, originY: STREET_FURNITURE_SOURCE_ANCHOR.y / STREET_FURNITURE_SOURCE_CANVAS.height, scaleMultiplier: 1 };

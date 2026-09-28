@@ -30,13 +30,15 @@ function getStreetPropAlphaMask(scene, textureKey) {
   if (streetPropAlphaMasks.has(textureKey)) return streetPropAlphaMasks.get(textureKey);
   let mask = null;
   try {
-    const source = scene?.textures?.get?.(textureKey)?.getSourceImage?.();
+    // Read the base frame's own pixels: the texture may be one frame of the prop atlas.
+    const frame = scene?.textures?.get?.(textureKey)?.get?.();
+    const source = frame?.source?.image;
     if (source && typeof document !== 'undefined') {
       const canvas = document.createElement('canvas');
-      canvas.width = source.width;
-      canvas.height = source.height;
+      canvas.width = frame.cutWidth || source.width;
+      canvas.height = frame.cutHeight || source.height;
       const context = canvas.getContext('2d', { willReadFrequently: true });
-      context.drawImage(source, 0, 0);
+      context.drawImage(source, frame.cutX || 0, frame.cutY || 0, canvas.width, canvas.height, 0, 0, canvas.width, canvas.height);
       const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
       const alpha = new Uint8Array(canvas.width * canvas.height);
       let minX = Infinity; let minY = Infinity; let maxX = -1; let maxY = -1;

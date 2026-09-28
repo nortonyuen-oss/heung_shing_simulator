@@ -31,11 +31,28 @@
 - **修正**（`main.js installAdaptiveDepthSort`，`create()` 安裝）：包住 display list 內每個 class 嘅 depth setter（同一數值唔再觸發重排，改咗就記低）同 `add`。排序時只處理記低咗嘅物件：≤24 個用原生 `indexOf` 搵出、抽走，再二分搜尋插返；≤256 個用一次過抽出；其他情況用 insertion sort，太亂先交返 Phaser merge sort。
 - **結果**：每次排序平均 0.32 ms（中位數 0.1 ms，通常每幀只有 1 個物件郁）；zoom 0.5 時完全唔使排。CPU profile：`StableSort` 6% → 消失，idle 9.6% → 43.6%。fps（受負載影響，只供參考）：日間 zoom 1 24.7 → 47.2、zoom 0.5 24.1 → 46.9，超過 50 ms 嘅幀 43 → 0。每秒檢查清單排序：全部正確。
 
+## 2026-09-28：夜晚重新上色、遠景燈柱、細道具 atlas
+
+1. **夜晚卡頓嘅真正元兇係重新上色，唔係貼圖上傳。** 逐幀計時：`applyNightObjectTint` 最長 128 ms——夜色每變 1%（黃昏、清晨、入深夜共百幾次）就對全城約 10,000 個樹／欄杆／路邊設施／建築 `setTint`。修正：只即時處理畫面見到嘅（zoom 1 約 1,800 個），其餘標記 `__nightTintDirty`，由 `cullSpriteMapEntries` 喺佢入返畫面時 `applyDeferredNightTint` 補色。結果：最長 128 → 8.8 ms，`updateDynamicLighting` 最長 131 → 10.5 ms（黃昏 27 ms），夜晚 >50 ms 幀 13 → 4。移鏡頭後畫面見到嘅物件冇一個未補色。
+   夜景貼圖本身已經逐張載入（`requestBuildingNightTexture` 一次一張），單次上傳（含 mipmap）喺高負載下最長約 50 ms；預載只會提早同一批上傳，冇做。
+2. **遠景日間隱藏燈柱**（`ROAD_POLE_MIN_ZOOM` 0.7）：路燈同交通燈柱喺 zoom 0.7 以下、日間隱藏；天黑（`scene.streetLampsLit`）或者開住佢哋嘅校正工具就保留；開關燈嗰刻清 `terrainViewportCacheKey` 即時重新 cull。zoom 0.5 日間畫面物件 4,711 → 3,837。
+3. **細道具 atlas**（`packStreetPropTextures`，`create()` 入面、放任何道具之前）：先量——隱藏細道具後 draw call zoom 1.5 62 → 29、zoom 1 57 → 38，即佔三至五成（Phaser 16 個 texture unit 用完就斷 batch）。載入後將 58 張細道具貼圖（路邊設施、欄杆、路燈、交通燈、天橋護欄、巴士站，約 380 萬像素）shelf-pack 入一張 2048×4096 canvas（每格留 4 px 透明邊防 mipmap 滲色），每個 key 重建成共用同一個 TextureSource 嘅 frame——key 唔變，代碼照舊 `setTexture(key)`；讀尺寸改用 base frame（`texture.get()`），校正工具 alpha mask 只剪 frame 嗰格。驗證：54 張逐像素同原檔比較，差異 0。draw call：zoom 1.5 62 → 29、zoom 1 57 → 42（連 LOD 後 32）、zoom 0.8 62 → 40。**呢啲 key 之後唔可以 `textures.remove`**（會連 atlas 一齊 destroy）。
+
+太子，由今日最初到三項加上排序修正之後（量度時負載由 load average ~70 跌到 ~20，fps 只供參考；draw call 同物件數唔受影響）：
+
+| 場景 | fps 前 → 後 | >50 ms 幀 | draw call |
+|---|---|---|---|
+| 日間 zoom 1 | 24.7 → 55.7 | 43 → 1 | 91 → 32 |
+| 夜晚 zoom 1 | 43.3 → 57.3 | 19 → 0 | 108 → 103 |
+| 日間 zoom 0.5 | 24.1 → 43.0 | 26 → 2 | 210 → 66 |
+| 大雨 zoom 0.8 | 50.5 → 59.4 | 14 → 1 | 121 → 108 |
+| 2× 速度 | 46.3 → 59.8 | 16 → 0 | 139 → 127 |
+
 ## 仍然會見到嘅卡頓（下一步）
 
-- 夜晚：夜景貼圖第一次上傳 GPU（每 8 秒約 90 次 texImage2D），最長幀 200–300 ms。可以預熱或者分批上傳。
-- zoom 0.5 時 Phaser render 平均 10 ms（約 4,800 個物件）：路燈（1,839）、交通燈（754）喺咩 zoom 都畫，可以好似欄杆咁做 LOD。
-- 每幀 draw call 50–210：細道具（路邊設施、欄杆、路燈、交通燈）用幾十張獨立貼圖，打包 atlas 可以減少。
+- 夜晚 draw call 仍然 100–210：每款建築嘅夜景圖係獨立貼圖（四個 variant），拉遠時斷 batch 最多。可以考慮按區域或者按 variant 打包。
+- 夜景圖單次上傳 GPU（含 mipmap）最長約 50 ms。
+- 模擬 pulse 個別步驟仍然會超出 6 ms 預算（量到 43–157 ms）。
 
 - `sim.growth.qualityContext` 一步 30–110 ms（land value map 等全圖計算）——可以快取或再拆。
 - `sim.transport`（`updateTransportSimulation`）20–60 ms 一步。

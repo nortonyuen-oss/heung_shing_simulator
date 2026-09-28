@@ -150,7 +150,8 @@ function bridgeParapetAnchor(scene, placement, facing) {
 function applyBridgeParapetSpriteTexture(scene, sprite, textureKey) {
   if (!scene.textures.exists(textureKey)) return false;
   if (sprite.texture?.key !== textureKey) sprite.setTexture(textureKey);
-  const texture = scene.textures.get(textureKey)?.getSourceImage?.();
+  // The base frame, not the source image: the texture may be a frame of the prop atlas.
+  const texture = scene.textures.get(textureKey)?.get?.();
   const anchorSpec = typeof getPropTextureAnchor === 'function' && texture
     ? getPropTextureAnchor(BRIDGE_PARAPET_TEXTURE_FILES[textureKey], BRIDGE_PARAPET_SOURCE_ANCHOR.x, BRIDGE_PARAPET_SOURCE_ANCHOR.y, texture)
     : { originX: 0.5, originY: 0.6, scaleMultiplier: 1 };

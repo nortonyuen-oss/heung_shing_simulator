@@ -386,7 +386,8 @@ function ensureTrafficSignalSprites(scene) {
 function applyTrafficSignalSpriteTexture(scene, sprite, textureKey) {
   if (!scene.textures.exists(textureKey)) return false;
   if (sprite.texture?.key !== textureKey) sprite.setTexture(textureKey);
-  const texture = scene.textures.get(textureKey)?.getSourceImage?.();
+  // The base frame, not the source image: the texture may be a frame of the prop atlas.
+  const texture = scene.textures.get(textureKey)?.get?.();
   const anchorSpec = typeof getPropTextureAnchor === 'function' && texture
     ? getPropTextureAnchor(TRAFFIC_SIGNAL_TEXTURE_FILES[textureKey], TRAFFIC_SIGNAL_SOURCE_ANCHOR.x, TRAFFIC_SIGNAL_SOURCE_ANCHOR.y, texture)
     : { originX: 0.5, originY: 1, scaleMultiplier: 1 };

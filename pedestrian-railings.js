@@ -184,7 +184,8 @@ function pedestrianRailingAnchor(scene, run, facing) {
 function applyPedestrianRailingSpriteTexture(scene, sprite, textureKey, halves = 1) {
   if (!scene.textures.exists(textureKey)) return false;
   if (sprite.texture?.key !== textureKey) sprite.setTexture(textureKey);
-  const texture = scene.textures.get(textureKey)?.getSourceImage?.();
+  // The base frame, not the source image: the texture may be a frame of the prop atlas.
+  const texture = scene.textures.get(textureKey)?.get?.();
   const anchorSpec = typeof getPropTextureAnchor === 'function' && texture
     ? getPropTextureAnchor(PEDESTRIAN_RAILING_TEXTURE_FILES[textureKey], PEDESTRIAN_RAILING_SOURCE_ANCHOR.x, PEDESTRIAN_RAILING_SOURCE_ANCHOR.y, texture)
     : { originX: PEDESTRIAN_RAILING_SOURCE_ANCHOR.x / PEDESTRIAN_RAILING_SOURCE_CANVAS.width, originY: PEDESTRIAN_RAILING_SOURCE_ANCHOR.y / PEDESTRIAN_RAILING_SOURCE_CANVAS.height, scaleMultiplier: 1 };

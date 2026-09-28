@@ -6851,12 +6851,19 @@ const CLOUD_FADE_ZOOM_END = 1.2;
 // comes from more particles overlapping more, not from cranking alpha - and
 // "darker/stormier" comes from the tint darkening, not from extra opacity on
 // top of the sky-darkening overlay/rain the storm already has.
+// Thinned 2026-09-28: at the old density (steady ~60 / 84 / 113 screen-sized
+// particles for moderate / heavy / extreme) the deck compounded to near-opaque
+// and a black-rain or Signal 8 city lost ~60% of its contrast - the whole
+// picture read as blurred. Fewer, fainter particles keep the gaps between them
+// open so the city shows through the storm. Measured on 太子 at zoom 0.8 with
+// getWeatherOverlayAlpha trimmed alongside (luminance std-dev, 45 with no
+// weather): heavy rain 31 -> 34, black rain 17 -> 29, Signal 8 17 -> 28.
 const CLOUD_DENSITY_TIERS = {
   minimal: { frequency: 9000, lifespan: 30000, alpha: { min: 0.07, max: 0.12 }, scaleMul: 0.65, tint: null },
-  light: { frequency: 1200, lifespan: 45000, alpha: { min: 0.30, max: 0.45 }, scaleMul: 1.0, tint: null },
-  moderate: { frequency: 700, lifespan: 42000, alpha: { min: 0.28, max: 0.42 }, scaleMul: 1.1, tint: 0xe4e7ec },
-  heavy: { frequency: 450, lifespan: 38000, alpha: { min: 0.26, max: 0.40 }, scaleMul: 1.25, tint: 0xb0b6c2 },
-  extreme: { frequency: 300, lifespan: 34000, alpha: { min: 0.24, max: 0.38 }, scaleMul: 1.45, tint: 0x5c6175 },
+  light: { frequency: 1500, lifespan: 45000, alpha: { min: 0.22, max: 0.34 }, scaleMul: 1.0, tint: null },
+  moderate: { frequency: 1100, lifespan: 42000, alpha: { min: 0.20, max: 0.30 }, scaleMul: 1.1, tint: 0xe4e7ec },
+  heavy: { frequency: 800, lifespan: 38000, alpha: { min: 0.18, max: 0.28 }, scaleMul: 1.25, tint: 0xb0b6c2 },
+  extreme: { frequency: 600, lifespan: 34000, alpha: { min: 0.18, max: 0.28 }, scaleMul: 1.45, tint: 0x5c6175 },
 };
 const CLOUD_DRIFT_BASE_CONFIG = {
   speedX: { min: 12, max: 22 },

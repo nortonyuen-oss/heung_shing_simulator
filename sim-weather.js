@@ -509,17 +509,21 @@ function updateWeatherSimulation() {
 
 // Target darkness (0..~0.45) for the full-screen weather overlay — the sky dims
 // progressively with rain intensity and tropical cyclone severity.
+// A flat dark wash over the whole picture: it cuts contrast by its own alpha, so
+// with the cloud deck on top the old storm values (0.42 black rain, 0.45 Signal
+// 8+) left the city a grey smear. Trimmed 2026-09-28; the order of severity is
+// unchanged.
 function getWeatherOverlayAlpha() {
   const weather = city.weather;
   if (!weather) return 0;
-  if (['signal8', 'signal9', 'signal10'].includes(weather.typhoonStage)) return 0.45;
-  if (weather.typhoonStage === 'signal3') return 0.3;
-  if (weather.typhoonStage === 'signal1') return 0.18;
-  if (weather.rainWarning === 'black') return 0.42;
-  if (weather.rainWarning === 'red') return 0.34;
-  if (weather.rainWarning === 'amber') return 0.24;
-  if (weather.condition === 'heavyRain') return 0.28;
-  if (weather.condition === 'showers') return 0.15;
+  if (['signal8', 'signal9', 'signal10'].includes(weather.typhoonStage)) return 0.32;
+  if (weather.typhoonStage === 'signal3') return 0.24;
+  if (weather.typhoonStage === 'signal1') return 0.14;
+  if (weather.rainWarning === 'black') return 0.3;
+  if (weather.rainWarning === 'red') return 0.26;
+  if (weather.rainWarning === 'amber') return 0.2;
+  if (weather.condition === 'heavyRain') return 0.22;
+  if (weather.condition === 'showers') return 0.12;
   if (weather.condition === 'cloudy') return 0.06;
   return 0;
 }

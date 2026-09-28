@@ -205,7 +205,8 @@ function streetLampsShouldBeLit(scene) {
 function applyStreetLampSpriteTexture(scene, sprite, textureKey) {
   if (!scene.textures.exists(textureKey)) return false;
   if (sprite.texture?.key !== textureKey) sprite.setTexture(textureKey);
-  const texture = scene.textures.get(textureKey)?.getSourceImage?.();
+  // The base frame, not the source image: the texture may be a frame of the prop atlas.
+  const texture = scene.textures.get(textureKey)?.get?.();
   const anchorSpec = typeof getPropTextureAnchor === 'function' && texture
     ? getPropTextureAnchor(STREET_LAMP_TEXTURE_FILES[textureKey], STREET_LAMP_SOURCE_ANCHOR.x, STREET_LAMP_SOURCE_ANCHOR.y, texture)
     : { originX: 0.5, originY: 1, scaleMultiplier: 1 };
@@ -322,6 +323,7 @@ function updateStreetLampVisuals(scene, time) {
   if (scene.scene?.isVisible && !scene.scene.isVisible()) return;
   const lit = streetLampsShouldBeLit(scene);
   if (lit === !!scene.streetLampsLit && scene.streetLampTexturesApplied) return;
+  if (lit !== !!scene.streetLampsLit) scene.terrainViewportCacheKey = null; // poles show or hide (ROAD_POLE_MIN_ZOOM)
   scene.streetLampsLit = lit;
   scene.streetLampTexturesApplied = true;
   sprites.forEach((sprite) => {

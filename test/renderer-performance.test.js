@@ -187,6 +187,37 @@ test('railings and roadside furniture only show once zoomed in past SMALL_STREET
   assert.equal(bin.visible, true);
 });
 
+test('lamp posts and signal poles hide when zoomed far out in daylight, and stay after dark', () => {
+  const context = loadViewportCullingContext();
+  const prop = (x) => ({ x, y: 10, cameraFilter: 0, visible: true, setVisible(value) { this.visible = value; } });
+  const lamp = prop(10);
+  const signal = prop(20);
+  const building = prop(30);
+  const scene = {
+    cameras: { main: { id: 1, zoom: 0.5 } },
+    streetLampSprites: new Map([['l', lamp]]),
+    trafficSignalSprites: new Map([['s', signal]]),
+    buildingSprites: new Map([['b', building]]),
+  };
+  context.scene = scene;
+  const cull = () => vm.runInContext('updateSpriteViewportCulling(scene, { minX: 0, maxX: 50, minY: 0, maxY: 50 })', context);
+  cull();
+  assert.equal(lamp.visible, false, 'a few pixels tall at zoom 0.5 in daylight');
+  assert.equal(signal.visible, false);
+  assert.equal(building.visible, true, 'buildings are unaffected');
+  scene.streetLampsLit = true;
+  cull();
+  assert.equal(lamp.visible, true, 'after dark the lit lamps draw the streets');
+  assert.equal(signal.visible, true, 'and the signal halos with them');
+  scene.streetLampsLit = false;
+  scene.cameras.main.zoom = 0.8;
+  cull();
+  assert.equal(lamp.visible, true, 'zoomed in past ROAD_POLE_MIN_ZOOM');
+  assert.equal(signal.visible, true);
+  const lamps = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'street-lamps.js'), 'utf8');
+  assert.match(lamps, /if \(lit !== !!scene\.streetLampsLit\) scene\.terrainViewportCacheKey = null;/, 'dusk and dawn re-cull');
+});
+
 test('Phaser follows display rAF without divisor-based hard frame limiting', () => {
   assert.match(mainSource, /fps:\s*\{\s*target:\s*60,\s*limit:\s*0,/);
   assert.doesNotMatch(mainSource, /fps:\s*\{\s*target:\s*60,\s*limit:\s*(?:60|75),/);

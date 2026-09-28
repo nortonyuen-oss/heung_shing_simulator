@@ -572,6 +572,10 @@ const BRIDGE_PARAPET_ANCHOR_OFFSETS = {
 // Railings and roadside furniture are a few pixels tall below this zoom - barely visible, yet
 // thousands of sprites on a big city - so the viewport culling hides them there.
 const SMALL_STREET_PROP_MIN_ZOOM = 1.2;
+// Lamp posts and signal poles are a few pixels tall when zoomed far out, and ~2,600 of them on a
+// big city cost a tenth of the render pass there: in daylight they are hidden below this zoom.
+// After dark they stay - the lit lamps and the signal halos are what draw the streets at night.
+const ROAD_POLE_MIN_ZOOM = 0.7;
 
 // ── Pedestrian railings (pedestrian-railings.js) ─────────────────────────────
 // A run is two ~5 m sets (half a tile edge): the bake spans 440 canvas px, half a 50 px tile

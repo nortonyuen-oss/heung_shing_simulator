@@ -706,8 +706,21 @@ function updateSpriteViewportCulling(scene, bounds) {
   collect(cullSpriteMapEntries(scene.treeSprites, bounds, seen, mainCamera, mainBounds));
   collect(cullSpriteMapEntries(scene.debrisSprites, bounds, seen, mainCamera, mainBounds));
   collect(cullSpriteMapEntries(scene.busStopSprites, bounds, seen, mainCamera, mainBounds));
-  collect(cullSpriteMapEntries(scene.trafficSignalSprites, bounds, seen, mainCamera, mainBounds));
-  collect(cullSpriteMapEntries(scene.streetLampSprites, bounds, seen, mainCamera, mainBounds));
+  // Lamp posts and signal poles: hidden in daylight when zoomed far out (ROAD_POLE_MIN_ZOOM),
+  // kept after dark and while either calibrator is open.
+  const polesShown = (Number(mainCamera?.zoom) || 1) >= (typeof ROAD_POLE_MIN_ZOOM === 'number' ? ROAD_POLE_MIN_ZOOM : 0.7)
+    || !!scene.streetLampsLit
+    || (typeof isStreetLampCalibrationActive === 'function' && isStreetLampCalibrationActive())
+    || (typeof isTrafficSignalCalibrationActive === 'function' && isTrafficSignalCalibrationActive());
+  [scene.trafficSignalSprites, scene.streetLampSprites].forEach((map) => {
+    if (polesShown) {
+      collect(cullSpriteMapEntries(map, bounds, seen, mainCamera, mainBounds));
+      return;
+    }
+    map?.forEach((sprite) => {
+      if (sprite?.visible && typeof sprite.setVisible === 'function') sprite.setVisible(false);
+    });
+  });
   collect(cullSpriteMapEntries(scene.bridgeParapetSprites, bounds, seen, mainCamera, mainBounds));
   // Small street props only draw once zoomed in far enough to read (SMALL_STREET_PROP_MIN_ZOOM).
   const smallPropMinZoom = typeof SMALL_STREET_PROP_MIN_ZOOM === 'number' ? SMALL_STREET_PROP_MIN_ZOOM : 1.2;

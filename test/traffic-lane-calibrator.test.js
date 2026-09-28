@@ -18,12 +18,12 @@ test('shipped lane offsets are the 2026-09-28 calibration; the inner dual lane i
   const { TRAFFIC_LANE_OFFSETS } = visuals;
   assert.deepEqual({ ...TRAFFIC_LANE_OFFSETS.single }, { ne: 0.12, se: 0.12, sw: 0.12, nw: 0.12 });
   assert.deepEqual({ ...TRAFFIC_LANE_OFFSETS.dualOuter }, { ne: 0.12, se: 0.11, sw: 0.13, nw: 0.125 });
-  assert.deepEqual({ ...TRAFFIC_LANE_OFFSETS.dualInner }, { ne: -0.135, se: -0.12, sw: -0.12, nw: -0.12 });
+  assert.deepEqual({ ...TRAFFIC_LANE_OFFSETS.dualInner }, { ne: -0.14, se: -0.12, sw: -0.11, nw: -0.12 });
   for (const direction of visuals.TRAFFIC_LANE_SCREEN_DIRECTIONS) {
     assert.ok(TRAFFIC_LANE_OFFSETS.dualOuter[direction] > 0 && TRAFFIC_LANE_OFFSETS.dualInner[direction] < 0, direction);
   }
   // Screen deltas of one iso step: NE (+,-), SE (+,+), SW (-,+), NW (-,-).
-  assert.equal(visuals.getTrafficLaneOffsetAmount(50, -25, 'dualInner'), -0.135);
+  assert.equal(visuals.getTrafficLaneOffsetAmount(50, -25, 'dualInner'), -0.14);
   assert.equal(visuals.getTrafficLaneOffsetAmount(-50, 25, 'dualOuter'), 0.13);
   assert.deepEqual(
     [[50, -25], [50, 25], [-50, 25], [-50, -25]].map(([dx, dy]) => visuals.getTrafficLaneScreenDirection(dx, dy)),
@@ -74,7 +74,7 @@ test('"複製 JS" produces a literal that evaluates to the full table with the s
   assert.deepEqual(JSON.parse(JSON.stringify(table)), {
     single: { ne: 0.12, se: 0.12, sw: 0.12, nw: 0.12 },
     dualOuter: { ne: 0.12, se: 0.11, sw: 0.13, nw: 0.14 },
-    dualInner: { ne: -0.135, se: -0.12, sw: -0.12, nw: -0.12 },
+    dualInner: { ne: -0.14, se: -0.12, sw: -0.11, nw: -0.12 },
   });
   calibrator.resetTrafficLaneCalibration();
 });

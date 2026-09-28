@@ -731,7 +731,7 @@ function getTrafficLeftLaneOffset(deltaRow, deltaCol, amount = TRAFFIC_VISUAL_CO
 const TRAFFIC_LANE_OFFSETS = Object.freeze({
   single: Object.freeze({ ne: 0.12, se: 0.12, sw: 0.12, nw: 0.12 }),
   dualOuter: Object.freeze({ ne: 0.12, se: 0.11, sw: 0.13, nw: 0.125 }),
-  dualInner: Object.freeze({ ne: -0.135, se: -0.12, sw: -0.12, nw: -0.12 }),
+  dualInner: Object.freeze({ ne: -0.14, se: -0.12, sw: -0.11, nw: -0.12 }),
 });
 const TRAFFIC_LANE_KINDS = Object.freeze(Object.keys(TRAFFIC_LANE_OFFSETS));
 const TRAFFIC_LANE_SCREEN_DIRECTIONS = Object.freeze(['ne', 'se', 'sw', 'nw']);

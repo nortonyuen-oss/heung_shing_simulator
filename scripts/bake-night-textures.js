@@ -73,6 +73,20 @@ function haloColor(profile) {
   return lightColor(profile).map((c) => Math.round(c + (255 - c) * 0.25));
 }
 const LAMP_ALPHA = Number(process.env.BAKE_LAMP_ALPHA || 1);
+// A calibrated lamp point is the lamp HEAD (the top of a post or pillar lamp, a
+// sign's spotlight), and r its reach. It is drawn as a light, not a disc:
+//  - the head: a small hot core with a soft bloom, falling off smoothly;
+//  - the pool it throws: an isometric ellipse (2:1, lying on the ground) a
+//    little below the head, which brightens and warms the art underneath -
+//    paving, grass and walls read as lit - instead of pasting colour over it.
+// Every falloff is continuous, so there are no rings.
+const LAMP_POOL_DROP = Number(process.env.BAKE_LAMP_POOL_DROP || 0.45);   // pool centre below the head, in r
+const LAMP_POOL_GAIN = Number(process.env.BAKE_LAMP_POOL_GAIN || 1.5);    // brightening of the lit art
+const LAMP_POOL_HAZE = Number(process.env.BAKE_LAMP_POOL_HAZE || 0.1);    // light in the air over it
+const LAMP_HEAD_CORE = Number(process.env.BAKE_LAMP_HEAD_CORE || 0.07);   // core radius, in r
+const LAMP_HEAD_BLOOM = Number(process.env.BAKE_LAMP_HEAD_BLOOM || 0.28); // bloom radius, in r
+const LAMP_POOL_COLOR = [0xff, 0xc4, 0x82]; // sodium/warm LED on the ground
+const LAMP_HEAD_COLOR = [0xff, 0xf0, 0xd2];
 // Fraction of a lamp pool allowed to fall outside the model before the lamp is
 // dropped rather than baked with its glow clipped off.
 const LAMP_SPILL_TOLERANCE = Number(process.env.BAKE_LAMP_SPILL || 0.10);
@@ -122,27 +136,48 @@ function lampFitsInsideSilhouette(alphaAt, W, H, lamp) {
   return total > 0 && outside / total <= LAMP_SPILL_TOLERANCE;
 }
 
-function lampSvg(profile, W, H, alphaAt) {
-  const parts = [];
+// Per-pixel light from every lamp that fits: `pool` (0..1, how lit the ground
+// under it is) and `head` (0..1, the lamp's own glow).
+function lampLightField(profile, W, H, alphaAt) {
+  const pool = new Float32Array(W * H);
+  const head = new Float32Array(W * H);
   let kept = 0;
   let dropped = 0;
-  // Street lamps keep their own warm sodium tone whatever the building class -
-  // the pavement outside an office is still lit by the same lamp posts.
   for (const l of (profile.lamps || [])) {
     if (!lampFitsInsideSilhouette(alphaAt, W, H, l)) { dropped += 1; continue; }
     kept += 1;
-    const x = (l.x * W).toFixed(1);
-    const y = (l.y * H).toFixed(1);
-    const r = l.r * W;
-    parts.push(`<circle cx="${x}" cy="${y}" r="${r.toFixed(1)}" fill="#ffdca8" fill-opacity="${(0.12 * LAMP_ALPHA).toFixed(3)}"/>`);
-    parts.push(`<circle cx="${x}" cy="${y}" r="${(r * 0.5).toFixed(1)}" fill="#ffe6bf" fill-opacity="${(0.34 * LAMP_ALPHA).toFixed(3)}"/>`);
-    parts.push(`<circle cx="${x}" cy="${y}" r="${(r * 0.18).toFixed(1)}" fill="#fff3df" fill-opacity="${(0.78 * LAMP_ALPHA).toFixed(3)}"/>`);
+    const hx = l.x * W;
+    const hy = l.y * H;
+    const r = Math.max(2, l.r * W);
+    const px = hx;
+    const py = hy + r * LAMP_POOL_DROP;
+    const core = Math.max(0.9, r * LAMP_HEAD_CORE);
+    const bloom = Math.max(2, r * LAMP_HEAD_BLOOM);
+    const x0 = Math.max(0, Math.floor(hx - r - 1));
+    const x1 = Math.min(W - 1, Math.ceil(hx + r + 1));
+    const y0 = Math.max(0, Math.floor(hy - bloom * 2));
+    const y1 = Math.min(H - 1, Math.ceil(py + r * 0.5 + 1));
+    for (let y = y0; y <= y1; y++) {
+      for (let x = x0; x <= x1; x++) {
+        const i = y * W + x;
+        // Pool: smooth 2:1 ellipse, (1 - d^2)^2 so it fades to nothing at its rim.
+        const ex = (x - px) / r;
+        const ey = (y - py) / (r * 0.5);
+        const d2 = ex * ex + ey * ey;
+        if (d2 < 1) {
+          const f = (1 - d2) * (1 - d2);
+          pool[i] = 1 - (1 - pool[i]) * (1 - f * LAMP_ALPHA);
+        }
+        // Head: a gaussian core plus a wider, weaker bloom.
+        const dx = x - hx;
+        const dy = y - hy;
+        const q = dx * dx + dy * dy;
+        const g = Math.exp(-q / (core * core)) + 0.45 * Math.exp(-q / (bloom * bloom));
+        if (g > 0.004) head[i] = Math.min(1, head[i] + g * LAMP_ALPHA);
+      }
+    }
   }
-  return {
-    svg: `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">${parts.join('')}</svg>`,
-    kept,
-    dropped,
-  };
+  return { pool, head, kept, dropped };
 }
 
 // White where a window is lit, feathered a little so the boost does not clip to
@@ -193,9 +228,7 @@ async function bakeOne(sourcePath, profile, variant) {
     .raw().toBuffer({ resolveWithObject: true })).data;
   const D0 = day.data;
   const alphaAt = (x, y) => D0[(y * W + x) * 4 + 3];
-  const { svg: lampsSvg, kept, dropped } = lampSvg(profile, W, H, alphaAt);
-  const lamps = (await sharp(Buffer.from(lampsSvg)).resize(W, H).ensureAlpha()
-    .raw().toBuffer({ resolveWithObject: true })).data;
+  const { pool, head, kept, dropped } = lampLightField(profile, W, H, alphaAt);
 
   const D = day.data;
   const N = Buffer.alloc(D.length);
@@ -212,9 +245,17 @@ async function bakeOne(sourcePath, profile, variant) {
       // soft halo, then any lamp that fits inside the silhouette, screened over
       const ha = (bloom[i + 3] / 255) * HALO_ALPHA;
       if (ha > 0) v = 255 - ((255 - v) * (255 - HALO[c] * ha)) / 255;
-      const la = lamps[i + 3] / 255;
-      const g = lamps[i + c] * la;
-      N[i + c] = Math.min(255, 255 - ((255 - v) * (255 - g)) / 255);
+      // Lamp pool: the art under it is brightened and warmed, plus a little haze.
+      const p = pool[i / 4];
+      if (p > 0) {
+        v = Math.min(255, v * (1 + LAMP_POOL_GAIN * p * (LAMP_POOL_COLOR[c] / 255)));
+        const haze = LAMP_POOL_COLOR[c] * p * LAMP_POOL_HAZE;
+        v = 255 - ((255 - v) * (255 - haze)) / 255;
+      }
+      // Lamp head: screened on top, so the core goes near white.
+      const h = head[i / 4];
+      if (h > 0) v = 255 - ((255 - v) * (255 - LAMP_HEAD_COLOR[c] * h)) / 255;
+      N[i + c] = Math.min(255, Math.round(v));
     }
     // silhouette must stay byte-identical to the day art
     N[i + 3] = D[i + 3];

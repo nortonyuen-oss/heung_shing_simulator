@@ -677,7 +677,7 @@ const DEFAULT_BUILDING_ANCHOR_MODE = 'effective-bottom-to-map-bottom';
 // (2026-09-28). A corner may lie outside the canvas: that shrinks art drawn larger than its lot.
 const BUILDING_GROUND_CORNERS = {
   'Models/commercial/1x1/commercialBuilding1-03-L.png': { left: [172, 864.3], front: [545.4, 1066.9], right: [871.3, 871.8] },
-  'Models/commercial/3x3/commercialBuilding3-07-M.png': { left: [-1.3, 626.1], front: [508.8, 892.2], right: [1012.5, 668.6] },
+  'Models/commercial/3x3/commercialBuilding3-07-M.png': { left: [-47.2, 612.5], front: [558.7, 930.4], right: [1062.1, 656.9] },
   'Models/commercial/3x3/commercialBuilding3-10-M.png': { left: [11, 771.3], front: [539.3, 1019.7], right: [1013, 785.2] },
   'Models/commercial/3x3/commercialBuilding3-11-H.png': { left: [-32.4, 732.5], front: [547.2, 1037.8], right: [1066.9, 756.8] },
   'Models/commercial/4x4/commercialBuilding4-02-H.png': { left: [16, 739], front: [531, 996.4], right: [1014.3, 749.6] },
@@ -708,7 +708,7 @@ const BUILDING_GROUND_CORNERS = {
   'Models/residential/house2x2/residential2-16-H-HD.png': { left: [212, 991], front: [520.5, 1146.8], right: [807, 999.3] },
   'Models/residential/house2x2/residential2-17-H-HD.png': { left: [232, 1000.6], front: [515.5, 1142.3], right: [791, 1004.6] },
   'Models/residential/house3x3/residential3-05-UH-LD.png': { left: [-82.9, 698.2], front: [516.2, 1001.6], right: [1103.8, 711.6] },
-  'Models/residential/house4x4/residential4-02-M-MD.png': { left: [-54.9, 726.7], front: [511.7, 1012.5], right: [1108, 724.6] },
+  'Models/residential/house4x4/residential4-02-M-MD.png': { left: [-43.7, 720.6], front: [529.6, 1003.8], right: [1084, 696.3] },
   'Models/residential/house5x5/residential5-01-H-MD.png': { left: [21, 717.9], front: [523.7, 966.7], right: [1008, 722.2] },
   'Models/specialSites/2x2/murrayHouse2-01.png': { left: [3, 708.9], front: [521.4, 968.1], right: [1021, 718.3] },
   'Models/specialSites/2x2/tample2-01.png': { left: [21, 718.3], front: [518.2, 966.9], right: [1002, 724.9] },

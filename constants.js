@@ -597,6 +597,7 @@ const PEDESTRIAN_RAILING_ANCHOR_OFFSETS = {
 const STREET_FURNITURE_KIND_SCALES = {
   bin: 1.1, cabinet: 1.1, signalCabinet: 1.05, postbox: 1.05, parkingMeter: 1.05,
   hydrant: 1.1, phoneBooth: 1.1, newsstand: 1, bollard: 1,
+  streetSign: 1.05, streetSignSingle: 1.05,
 };
 const STREET_FURNITURE_ANCHOR_OFFSETS = {
   bin_ne: { dx: -8.47, dy: 1.613 },
@@ -623,7 +624,7 @@ const STREET_FURNITURE_ANCHOR_OFFSETS = {
   hydrant_nw: { dx: 2.362, dy: 1.181 },
   hydrant_se: { dx: -1.181, dy: 0 },
   hydrant_sw: { dx: -2.282, dy: -2.027 },
-  phoneBooth_ne: { dx: 0, dy: 0 },
+  phoneBooth_ne: { dx: -2.928, dy: 5.856 },
   phoneBooth_nw: { dx: 11.81, dy: 1.181 },
   phoneBooth_se: { dx: 0, dy: -2.806 },
   phoneBooth_sw: { dx: 0.591, dy: -0.591 },
@@ -635,6 +636,14 @@ const STREET_FURNITURE_ANCHOR_OFFSETS = {
   bollard_nw: { dx: 0, dy: 0 },
   bollard_se: { dx: 0, dy: 0 },
   bollard_sw: { dx: 0, dy: 0 },
+  streetSign_ne: { dx: -2, dy: 4.667 },
+  streetSign_nw: { dx: -19.033, dy: 14.641 },
+  streetSign_se: { dx: -17.8, dy: 6.767 },
+  streetSign_sw: { dx: 36.333, dy: 15.333 },
+  streetSignSingle_ne: { dx: -32.333, dy: -12.667 },
+  streetSignSingle_nw: { dx: -28.333, dy: 18 },
+  streetSignSingle_se: { dx: -2.667, dy: -1.667 },
+  streetSignSingle_sw: { dx: -15.333, dy: -9.333 },
 };
 
 // Tree simulation

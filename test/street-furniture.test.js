@@ -252,3 +252,43 @@ test('every kind has both baked views on a power-of-two canvas', () => {
     assert.ok(width === 256 && height === 256, `${file} ${width}x${height}`);
   });
 });
+
+test('street name signs: each junction names each street once, next to the junction', () => {
+  const on = rates({ streetSignPerJunction: 1, streetSignSpacing: 3 });
+  const signs = computeStreetFurniturePlacements({ ...junction('commercial'), rates: on })
+    .filter((p) => p.kind === 'streetSign' || p.kind === 'streetSignSingle');
+  assert.equal(signs.length, 2, 'one for the n-s street, one for the e-w street');
+  const axes = signs.map((p) => (p.col === 5 ? 'ns' : 'ew')).sort();
+  assert.deepEqual(axes, ['ew', 'ns']);
+  signs.forEach((p) => {
+    assert.equal(Math.abs(p.row - 10) + Math.abs(p.col - 5), 1, 'on the tile next to the junction');
+    assert.equal(p.kind, 'streetSignSingle', 'an ordinary street takes the single-post plate');
+    const towardJunction = p.col === 5 ? (p.row < 10 ? 's' : 'n') : (p.col < 5 ? 'e' : 'w');
+    assert.equal(p.half, towardJunction, 'in the half next to the junction');
+  });
+  // Railings on the tiles next to the junction: the signs move one tile out.
+  const railed = computeStreetFurniturePlacements({
+    ...junction('commercial', { occupiedAt: (r, c) => Math.abs(r - 10) + Math.abs(c - 5) === 1 }), rates: on,
+  }).filter((p) => p.kind.startsWith('streetSign'));
+  assert.equal(railed.length, 2);
+  railed.forEach((p) => assert.equal(Math.abs(p.row - 10) + Math.abs(p.col - 5), 2));
+  // A dual carriageway gets the long two-post plate.
+  const dual = computeStreetFurniturePlacements({ ...junction('commercial', { bandAt: () => ({ direction: 'north' }) }), rates: on })
+    .filter((p) => p.kind.startsWith('streetSign'));
+  assert.ok(dual.length === 2 && dual.every((p) => p.kind === 'streetSign'));
+});
+
+test('street name signs: a junction block of several junction tiles still names each street once', () => {
+  // Two cross junctions side by side at (10, 5) and (10, 6): one block.
+  const roadKeyAt = (r, c) => {
+    if (r === 10 && (c === 5 || c === 6)) return 'road_cross';
+    if ((c === 5 || c === 6) && r >= 0 && r < 21) return 'road_straight_v';
+    if (r === 10 && c >= 0 && c < 12) return 'road_straight_h';
+    return null;
+  };
+  const signs = computeStreetFurniturePlacements({
+    mapWidth: 12, mapHeight: 21, roadKeyAt, frontageAt: () => null,
+    rates: rates({ streetSignPerJunction: 1, streetSignSpacing: 3 }),
+  }).filter((p) => p.kind.startsWith('streetSign'));
+  assert.equal(signs.length, 2, `got ${JSON.stringify(signs)}`);
+});

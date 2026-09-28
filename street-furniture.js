@@ -1,12 +1,13 @@
 // Roadside furniture (路邊設施): litter bins, utility and traffic-signal cabinets, posting boxes,
-// parking meters, fire hydrants, phone booths, newspaper stalls and (industrial) bollards. Derived from the map every rebuild and never saved, like the lamps,
+// parking meters, fire hydrants, phone booths, newspaper stalls, (industrial) bollards and street
+// name signs. Derived from the map every rebuild and never saved, like the lamps,
 // signals and railings. Design and the Hong Kong figures behind the rates:
 // docs/street-furniture-plan.md.
 //
 // Where things can stand: a "slot" is one half (towards `half`) of one kerb (`side`) of a
 // straight road tile, on a kerb with pavement (no road across it). A slot already holding a
 // railing or a lamp, or on a tile with a bus stop, is taken. Each slot holds at most one prop,
-// claimed in priority order: signal cabinets, posting boxes, bins and phone booths at bus stops,
+// claimed in priority order: signal cabinets, street name signs, posting boxes, bins and phone booths at bus stops,
 // newspaper stalls at shopping junctions, fire hydrants every ~100 m, parking meters, bollards
 // outside industrial buildings, then bins, utility cabinets and phone booths by street density. All chance draws are a fixed hash of the
 // tile, so a street keeps its furniture across rebuilds until its surroundings change.
@@ -32,6 +33,10 @@ const STREET_FURNITURE_KINDS = Object.freeze({
   // A pair of 1 m posts 1.5 m apart along the kerb: the baked pair is 1.375 posts tall
   // (scripts/bake-street-furniture-textures.js BOLLARD_PAIR_DY).
   bollard: { heightM: 1.375, lateral: 0.3, label: '車柱（工業區）' },
+  // Street name plates (黑白雙語路牌): the long two-post plate on dual carriageways, the
+  // single-post one on ordinary streets. heightM is the plate's top above the pavement.
+  streetSign: { heightM: 2.8, lateral: 0.36, label: '路牌（雙柱）' },
+  streetSignSingle: { heightM: 2.6, lateral: 0.36, label: '路牌（單柱）' },
 });
 const STREET_FURNITURE_VIEWS = Object.freeze(['sw', 'se']);
 const STREET_FURNITURE_TEXTURE_FILES = Object.freeze(Object.fromEntries(
@@ -78,6 +83,11 @@ const STREET_FURNITURE_RATES = Object.freeze({
   newsstandSpacing: 4,
   // Bollards: the yellow-black posts outside industrial buildings (loading bays, entrances).
   bollardIndustrial: 0.3,  // per industrial kerb of a straight tile
+  // Street name signs: every junction names each street that meets it, once - one sign per
+  // street axis per junction, none within streetSignSpacing tiles of another for the same axis
+  // (a dual-carriageway junction is several junction tiles). 0 turns them off.
+  streetSignPerJunction: 1,
+  streetSignSpacing: 3,
 });
 
 const STREET_FURNITURE_DELTA = Object.freeze({
@@ -104,7 +114,7 @@ function streetFurnitureHash(row, col, salt) {
 
 const STREET_FURNITURE_SALT = Object.freeze({
   bin: 1, cabinet: 2, postbox: 3, meter: 4, busStopBin: 5,
-  hydrant: 6, phone: 7, newsstand: 8, bollard: 9, busStopPhone: 10,
+  hydrant: 6, phone: 7, newsstand: 8, bollard: 9, busStopPhone: 10, streetSign: 11,
 });
 
 // How built-up the street is at a tile: the cells across both kerbs of it and its two
@@ -234,6 +244,46 @@ function computeStreetFurniturePlacements({
     for (let r = row, c = col; keyAt(r, c) === key; r += forward.row, c += forward.col) tiles.push({ row: r, col: c });
     streets.push({ straight, tiles });
   });
+
+  // 1b. Street name signs: at each junction, one plate for each street (axis) that meets it, on an
+  //    approach tile of that street - the arm picked by hash, in the half next to the junction
+  //    (one tile out when railings or a cabinet hold it), on the kerb with more frontage. A dual
+  //    carriageway's street gets the long two-post plate, an ordinary one the single-post plate.
+  if (rates.streetSignPerJunction > 0) {
+    const signs = { ns: [], ew: [] };
+    for (let r = 0; r < mapHeight; r++) {
+      for (let c = 0; c < mapWidth; c++) {
+        if (!isStreetFurnitureJunctionKey(keyAt(r, c))) continue;
+        [['ns', ['n', 's']], ['ew', ['e', 'w']]].forEach(([axis, dirs]) => {
+          if (signs[axis].some((sign) => Math.abs(sign.row - r) + Math.abs(sign.col - c) <= rates.streetSignSpacing)) return;
+          const arms = dirs.filter((toward) => {
+            const d = STREET_FURNITURE_DELTA[toward];
+            return straightAt(r + d.row, c + d.col)?.along.includes(toward);
+          });
+          if (!arms.length) return;
+          const first = Math.floor(streetFurnitureHash(r, c, STREET_FURNITURE_SALT.streetSign + (axis === 'ns' ? 0 : 100)) * arms.length);
+          const ordered = [...arms.slice(first), ...arms.slice(0, first)];
+          for (const toward of ordered) {
+            const d = STREET_FURNITURE_DELTA[toward];
+            const back = STREET_FURNITURE_OPPOSITE[toward];
+            const ar = r + d.row;
+            const ac = c + d.col;
+            const straight = straightAt(ar, ac);
+            const kind = bandAt(ar, ac) ? 'streetSign' : 'streetSignSingle';
+            let placed = false;
+            for (const [tr, tc] of [[ar, ac], [ar + d.row, ac + d.col]]) {
+              if (straightAt(tr, tc) !== straight) break;
+              if (claimOnTile(kind, tr, tc, kerbsByFrontage(tr, tc, straight), [back, toward])) { placed = true; break; }
+            }
+            if (placed) {
+              signs[axis].push({ row: r, col: c });
+              break;
+            }
+          }
+        });
+      }
+    }
+  }
 
   // 2. Posting boxes: a residential street gets one with a chance that grows with its density.
   streets.forEach(({ straight, tiles }) => {

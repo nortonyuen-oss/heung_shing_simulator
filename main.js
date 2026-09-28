@@ -672,6 +672,23 @@ function cullSpriteMapEntries(map, bounds, seen = null, mainCamera = null, mainB
   return stats;
 }
 
+// A road-key lookup for one whole-map rebuild pass (signals, lamps, railings, furniture):
+// getRoadKey runs the carriageway-band scan, and those passes ask about the same tiles many
+// times over, so each tile is read once and kept in a flat array for the pass.
+function createRoadKeyReader() {
+  const cache = new Array(MAP_WIDTH * MAP_HEIGHT);
+  return (row, col) => {
+    if (row < 0 || col < 0 || row >= MAP_HEIGHT || col >= MAP_WIDTH) return null;
+    const index = row * MAP_WIDTH + col;
+    let key = cache[index];
+    if (key === undefined) {
+      key = isRoadLikeTile(row, col) ? getRoadKey(row, col) : null;
+      cache[index] = key;
+    }
+    return key;
+  };
+}
+
 function updateSpriteViewportCulling(scene, bounds) {
   // A multi-tile building is registered under buildingSprites once per
   // footprint tile it occupies, all pointing at the same sprite object -
@@ -691,8 +708,21 @@ function updateSpriteViewportCulling(scene, bounds) {
   collect(cullSpriteMapEntries(scene.trafficSignalSprites, bounds, seen, mainCamera, mainBounds));
   collect(cullSpriteMapEntries(scene.streetLampSprites, bounds, seen, mainCamera, mainBounds));
   collect(cullSpriteMapEntries(scene.bridgeParapetSprites, bounds, seen, mainCamera, mainBounds));
-  collect(cullSpriteMapEntries(scene.pedestrianRailingSprites, bounds, seen, mainCamera, mainBounds));
-  collect(cullSpriteMapEntries(scene.streetFurnitureSprites, bounds, seen, mainCamera, mainBounds));
+  // Small street props only draw once zoomed in far enough to read (SMALL_STREET_PROP_MIN_ZOOM).
+  const smallPropMinZoom = typeof SMALL_STREET_PROP_MIN_ZOOM === 'number' ? SMALL_STREET_PROP_MIN_ZOOM : 1.2;
+  // ...or while their calibrator is open, so they can be picked at any zoom.
+  const smallPropsShown = (Number(mainCamera?.zoom) || 1) >= smallPropMinZoom
+    || (typeof isPedestrianRailingCalibrationActive === 'function' && isPedestrianRailingCalibrationActive())
+    || (typeof isStreetFurnitureCalibrationActive === 'function' && isStreetFurnitureCalibrationActive());
+  [scene.pedestrianRailingSprites, scene.streetFurnitureSprites].forEach((map) => {
+    if (smallPropsShown) {
+      collect(cullSpriteMapEntries(map, bounds, seen, mainCamera, mainBounds));
+      return;
+    }
+    map?.forEach((sprite) => {
+      if (sprite?.visible && typeof sprite.setVisible === 'function') sprite.setVisible(false);
+    });
+  });
   collect(cullSpriteMapEntries(scene.zoneOverlays, bounds, seen, mainCamera, mainBounds));
   collect(cullSpriteMapEntries(scene.powerLineSprites, bounds, seen, mainCamera, mainBounds));
   collect(cullSpriteMapEntries(scene.bridgeSprites, bounds, seen, mainCamera, mainBounds));
@@ -2341,9 +2371,11 @@ function create() {
   this.busStopHighlightGraphic.setDepth(getPreviewOverlayDepth(1));
 
   // Paint roads on left click; start panning on right click.
+  // While a calibrator owns the mouse (isVisualRouteCalibrationInputCaptured) the tools stand
+  // down, but right-drag still pans the camera so the calibrator can be moved around the city.
   this.input.on('pointerdown', (pointer) => {
     if (typeof isVisualRouteCalibrationInputCaptured === 'function'
-      && isVisualRouteCalibrationInputCaptured(this)) return;
+      && isVisualRouteCalibrationInputCaptured(this) && pointer.button !== 2) return;
     if (pointer.button === 0) {
       if (typeof isTransportRoutePicking === 'function' && isTransportRoutePicking()) {
         const routeStopTile = pointerToTile(this, pointer);
@@ -2368,7 +2400,7 @@ function create() {
 
   this.input.on('pointerup', (pointer) => {
     if (typeof isVisualRouteCalibrationInputCaptured === 'function'
-      && isVisualRouteCalibrationInputCaptured(this)) return;
+      && isVisualRouteCalibrationInputCaptured(this) && pointer.button !== 2) return;
     if (pointer.button === 0 && selectedTool === 'inspect') {
       applySelectedTool(this, pointer);
     }
@@ -2383,7 +2415,7 @@ function create() {
   // Adjust camera scroll during panning
   this.input.on('pointermove', (pointer) => {
     if (typeof isVisualRouteCalibrationInputCaptured === 'function'
-      && isVisualRouteCalibrationInputCaptured(this)) return;
+      && isVisualRouteCalibrationInputCaptured(this) && !this.isPanning) return;
     if (isPainting && pointer.isDown) {
       if (selectedTool === 'road' && dragStartTile) {
         const cur = pointerToTile(this, pointer);

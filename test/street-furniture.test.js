@@ -155,3 +155,14 @@ test('the view shown keeps the prop front towards the camera and follows rotatio
     delete global.rotateDirection;
   }
 });
+
+test('the two kerbs of one road share a baked view but are calibrated separately', () => {
+  const { streetFurnitureFacing, streetFurnitureView } = require('../street-furniture.js');
+  const far = { kind: 'bin', side: 'n' };  // NE kerb of an e-w road
+  const near = { kind: 'bin', side: 's' }; // SW kerb of the same road
+  assert.equal(streetFurnitureView(far, 0), streetFurnitureView(near, 0), 'same art');
+  assert.equal(streetFurnitureFacing(far, 0), 'bin_ne');
+  assert.equal(streetFurnitureFacing(near, 0), 'bin_sw');
+  assert.equal(streetFurnitureFacing({ kind: 'postbox', side: 'e' }, 0), 'postbox_se');
+  assert.equal(streetFurnitureFacing({ kind: 'postbox', side: 'w' }, 0), 'postbox_nw');
+});

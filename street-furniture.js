@@ -296,11 +296,16 @@ function streetFurnitureId(placement) {
   return `${placement.kind}:${placement.row}:${placement.col}:${placement.side}:${placement.half}`;
 }
 
+// The screen edge of the tile a prop's kerb is on (ne/se/sw/nw), after rotation.
+function streetFurnitureEdge(placement, rotation = typeof mapRotation !== 'undefined' ? mapRotation : 0) {
+  const visualSide = typeof rotateDirection === 'function' ? rotateDirection(placement.side, rotation) : placement.side;
+  return STREET_FURNITURE_SCREEN_EDGE[visualSide] ?? 'sw';
+}
+
 // Which baked view shows the prop's front: a kerb along a road running NW-SE on screen (NE/SW
 // edge) takes the SW view, one along SW-NE (SE/NW edge) the SE view.
 function streetFurnitureView(placement, rotation = typeof mapRotation !== 'undefined' ? mapRotation : 0) {
-  const visualSide = typeof rotateDirection === 'function' ? rotateDirection(placement.side, rotation) : placement.side;
-  const edge = STREET_FURNITURE_SCREEN_EDGE[visualSide] ?? 'sw';
+  const edge = streetFurnitureEdge(placement, rotation);
   return edge === 'ne' || edge === 'sw' ? 'sw' : 'se';
 }
 
@@ -308,9 +313,11 @@ function streetFurnitureTextureKey(kind, view) {
   return `${STREET_FURNITURE_TEXTURE_PREFIX}${kind}_${view}`;
 }
 
-// Calibration facing: one nudge per prop kind and view.
-function streetFurnitureFacing(placement, rotation) {
-  return `${placement.kind}_${streetFurnitureView(placement, rotation)}`;
+// Calibration facing: one nudge per prop kind and kerb edge. The two kerbs of one road share a
+// baked view but not a position (the far kerb's prop sits against the pavement's back edge on
+// screen, the near kerb's against the road), so each side is calibrated on its own.
+function streetFurnitureFacing(placement, rotation = typeof mapRotation !== 'undefined' ? mapRotation : 0) {
+  return `${placement.kind}_${streetFurnitureEdge(placement, rotation)}`;
 }
 
 function streetFurnitureOffsetFor(facing) {
@@ -319,8 +326,8 @@ function streetFurnitureOffsetFor(facing) {
 }
 
 function streetFurnitureScaleFor(kind) {
-  const override = typeof getStreetFurnitureCalibrationScale === 'function' ? getStreetFurnitureCalibrationScale() : null;
-  const multiplier = override ?? STREET_FURNITURE_SCALE;
+  const override = typeof getStreetFurnitureCalibrationScale === 'function' ? getStreetFurnitureCalibrationScale(kind) : null;
+  const multiplier = override ?? STREET_FURNITURE_KIND_SCALES[kind] ?? 1;
   const heightM = STREET_FURNITURE_KINDS[kind]?.heightM ?? 1;
   return multiplier * (heightM * STREET_FURNITURE_PX_PER_METRE) / STREET_FURNITURE_BAKED_HEIGHT;
 }
@@ -365,18 +372,21 @@ function positionStreetFurnitureSprite(scene, sprite) {
   if (!scene || !sprite?.streetFurniture) return;
   const placement = sprite.streetFurniture;
   const view = streetFurnitureView(placement);
-  const facing = `${placement.kind}_${view}`;
+  const facing = streetFurnitureFacing(placement);
   sprite.streetFurnitureFacing = facing;
   applyStreetFurnitureSpriteTexture(scene, sprite, placement.kind, streetFurnitureTextureKey(placement.kind, view));
   const anchor = streetFurnitureAnchor(scene, placement, facing);
   sprite.setPosition(anchor.x, anchor.y);
   sprite.setDepth(anchor.depth);
+  sprite.__placedRotation = typeof mapRotation !== 'undefined' ? mapRotation : 0;
 }
 
 function createStreetFurnitureSprite(scene, placement) {
   const textureKey = streetFurnitureTextureKey(placement.kind, streetFurnitureView(placement));
   if (!scene.textures.exists(textureKey)) return null;
   const sprite = scene.add.image(0, 0, textureKey);
+  // Hidden until the viewport culling shows it (it also hides small props when zoomed out).
+  sprite.setVisible(false);
   if (typeof addToRenderLayer === 'function') addToRenderLayer(scene, sprite, 'objectLayer');
   if (scene.worldMask) sprite.setMask(scene.worldMask);
   sprite.streetFurniture = placement;
@@ -414,7 +424,9 @@ function rebuildStreetFurnitureSprites(scene, { recomputeTraffic = true } = {}) 
   if (scene.streetLampRefreshPending && typeof rebuildStreetLampSprites === 'function') rebuildStreetLampSprites(scene);
   if (scene.trafficSignalRefreshPending && typeof rebuildTrafficSignalSprites === 'function') rebuildTrafficSignalSprites(scene);
 
-  const roadKeyAt = (row, col) => (isRoadLikeTile(row, col) ? getRoadKey(row, col) : null);
+  const roadKeyAt = typeof createRoadKeyReader === 'function'
+    ? createRoadKeyReader()
+    : (row, col) => (isRoadLikeTile(row, col) ? getRoadKey(row, col) : null);
   const bandAt = typeof getRoadCarriagewayBand === 'function' ? getRoadCarriagewayBand : () => null;
   const frontageAt = (row, col) => {
     const building = scene.buildingSprites?.get(getTileId(row, col));
@@ -428,9 +440,7 @@ function rebuildStreetFurnitureSprites(scene, { recomputeTraffic = true } = {}) 
   };
   const occupied = new Set();
   const railingTiles = new Set();
-  scene.pedestrianRailingSprites?.forEach((sprite) => {
-    const p = sprite.pedestrianRailing;
-    if (!p) return;
+  (scene.pedestrianRailingPlacements ?? []).forEach((p) => {
     occupied.add(`${p.row}:${p.col}:${p.side}:${p.toward}`);
     railingTiles.add(`${p.row}:${p.col}`);
   });
@@ -466,19 +476,27 @@ function rebuildStreetFurnitureSprites(scene, { recomputeTraffic = true } = {}) 
     signalPlacements,
   });
   const wanted = new Map(placements.map((placement) => [streetFurnitureId(placement), placement]));
+  const rotation = typeof mapRotation !== 'undefined' ? mapRotation : 0;
   sprites.forEach((sprite, id) => {
     if (wanted.has(id)) return;
     sprite.destroy();
     sprites.delete(id);
   });
   wanted.forEach((placement, id) => {
-    // Same id = same kind, tile, kerb and half: already standing where it should
-    // (rotation and resize reposition everything through refreshAllStreetFurnitureSprites).
-    if (sprites.has(id)) return;
+    // Same id = same kind, tile, kerb and half: already standing where it should, unless it was
+    // placed under another view rotation - e.g. by the title screen's showcase city before a
+    // save with a different rotation loaded over it. (Resize and calibration reposition
+    // everything through refreshAllStreetFurnitureSprites.)
+    const existing = sprites.get(id);
+    if (existing) {
+      if (existing.__placedRotation !== rotation) positionStreetFurnitureSprite(scene, existing);
+      return;
+    }
     const sprite = createStreetFurnitureSprite(scene, placement);
     if (sprite) sprites.set(id, sprite);
   });
   if (typeof sortRenderLayer === 'function') sortRenderLayer(scene, 'objectLayer');
+  scene.terrainViewportCacheKey = null; // re-cull so new props show (or stay hidden when zoomed out)
   scene.streetFurnitureRefreshPending = false;
   scene.streetFurnitureRecomputeTraffic = false;
 }
@@ -517,6 +535,8 @@ const streetFurnitureTestApi = {
   streetFurnitureHash,
   streetFurnitureId,
   streetFurnitureView,
+  streetFurnitureEdge,
+  streetFurnitureFacing,
   streetFurnitureTextureKey,
   STREET_FURNITURE_STRAIGHTS,
 };

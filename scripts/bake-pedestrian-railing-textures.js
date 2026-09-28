@@ -29,9 +29,14 @@ const SET_SPAN = 220;
 // Pixels this faint are the renderer's dark halo, not the railing.
 const FRINGE_ALPHA = 96;
 
+// A half-tile run is two sets; a full-tile run (two touching half-tile runs merged,
+// pedestrian-railings.js mergePedestrianRailingRuns) is four sets squeezed into the same 440 px
+// span, drawn in game at twice the scale.
 const SOURCES = [
-  { file: 'railing_squareBaluster_orientationA.png', out: 'pedestrianRailing_h.png', slope: 0.5 },
-  { file: 'railing_squareBaluster_orientationB.png', out: 'pedestrianRailing_v.png', slope: -0.5 },
+  { file: 'railing_squareBaluster_orientationA.png', out: 'pedestrianRailing_h.png', slope: 0.5, sets: 2 },
+  { file: 'railing_squareBaluster_orientationB.png', out: 'pedestrianRailing_v.png', slope: -0.5, sets: 2 },
+  { file: 'railing_squareBaluster_orientationA.png', out: 'pedestrianRailing_h_long.png', slope: 0.5, sets: 4 },
+  { file: 'railing_squareBaluster_orientationB.png', out: 'pedestrianRailing_v_long.png', slope: -0.5, sets: 4 },
 ];
 
 async function loadRaw(file) {
@@ -76,7 +81,7 @@ async function bake(source) {
   if (Math.sign(m.slope) !== Math.sign(source.slope)) {
     throw new Error(`${source.file}: base slope ${m.slope.toFixed(2)} is not along the expected axis`);
   }
-  const k = SET_SPAN / (m.maxX - m.minX);
+  const k = (SET_SPAN * 2 / source.sets) / (m.maxX - m.minX);
   const cropW = m.maxX - m.minX + 1;
   const cropH = m.maxY - m.minY + 1;
   const width = Math.round(cropW * k);
@@ -89,10 +94,16 @@ async function bake(source) {
   // Base-line ends of one set, in its own resized pixels.
   const left = { x: 0, y: (m.base(m.minX) - m.minY) * k };
   const right = { x: (m.maxX - m.minX) * k, y: (m.base(m.maxX) - m.minY) * k };
-  // First set ends at the anchor, second starts there. The lower (nearer) set draws last.
-  const first = { input: set, left: Math.round(ANCHOR.x - right.x), top: Math.round(ANCHOR.y - right.y) };
-  const second = { input: set, left: Math.round(ANCHOR.x - left.x), top: Math.round(ANCHOR.y - left.y) };
-  const layers = source.slope > 0 ? [first, second] : [second, first];
+  // Sets laid end to end along the base line, centred on the anchor. The lower (nearer) end of
+  // the run draws last.
+  const step = { x: right.x - left.x, y: right.y - left.y };
+  const start = { x: ANCHOR.x - step.x * source.sets / 2, y: ANCHOR.y - step.y * source.sets / 2 };
+  const layers = Array.from({ length: source.sets }, (_, i) => ({
+    input: set,
+    left: Math.round(start.x + step.x * i - left.x),
+    top: Math.round(start.y + step.y * i - left.y),
+  }));
+  if (source.slope < 0) layers.reverse();
   for (const layer of layers) {
     if (layer.left < 0 || layer.top < 0 || layer.left + width > CANVAS_W || layer.top + height > CANVAS_H) {
       throw new Error(`${source.file}: a set falls outside the ${CANVAS_W}x${CANVAS_H} canvas`);
@@ -107,7 +118,7 @@ async function bake(source) {
     .png({ compressionLevel: 9 })
     .toBuffer();
   await sharp(out).toFile(path.join(OUT_DIR, source.out));
-  console.log(`${source.out}: two sets of ${source.file} at ${k.toFixed(4)}x, base slope ${m.slope.toFixed(3)} sheared to ${source.slope}`);
+  console.log(`${source.out}: ${source.sets} sets of ${source.file} at ${k.toFixed(4)}x, base slope ${m.slope.toFixed(3)} sheared to ${source.slope}`);
   return out;
 }
 
@@ -145,7 +156,7 @@ async function main() {
   if (PREVIEW) {
     const marker = Buffer.from(`<svg width="${CANVAS_W}" height="${CANVAS_H}"><circle cx="${ANCHOR.x}" cy="${ANCHOR.y}" r="4" fill="red"/></svg>`);
     const tiles = await Promise.all(outputs.map((png) => sharp(png).composite([{ input: marker }]).png().toBuffer()));
-    await sharp({ create: { width: CANVAS_W * 2, height: CANVAS_H, channels: 4, background: '#8a9a7a' } })
+    await sharp({ create: { width: CANVAS_W * outputs.length, height: CANVAS_H, channels: 4, background: '#8a9a7a' } })
       .composite(tiles.map((input, i) => ({ input, left: i * CANVAS_W, top: 0 })))
       .png()
       .toFile(PREVIEW);

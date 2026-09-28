@@ -176,7 +176,8 @@ function ensureTrafficLaneCalibrationStyle() {
       user-select: text; pointer-events: auto;
     }
     #traffic-lane-calibrator-panel[hidden] { display: none !important; }
-    #traffic-lane-calibrator-panel .tlc-title { font-weight: 800; color: #ffc45a; letter-spacing: .04em; margin-bottom: 6px; }
+    #traffic-lane-calibrator-panel .tlc-title { font-weight: 800; color: #ffc45a; letter-spacing: .04em; margin-bottom: 6px; display: flex; justify-content: space-between; }
+    #traffic-lane-calibrator-panel .tlc-title::after { content: '⠿'; color: #b07a2a; font-weight: 400; }
     #traffic-lane-calibrator-panel .tlc-hint { color: #f0d6a8; margin-bottom: 8px; }
     #traffic-lane-calibrator-panel .tlc-kinds { display: grid; gap: 4px; margin-bottom: 8px; }
     #traffic-lane-calibrator-panel .tlc-kinds button[data-selected="true"] { background: #1f9d5c; border-color: #7ce8a8; color: #06210f; font-weight: 700; }
@@ -233,6 +234,9 @@ function createTrafficLaneCalibrationPanel() {
     <div class="tlc-message"></div>
   `;
   document.body.appendChild(root);
+  if (typeof makeCalibratorPanelDraggable === 'function') {
+    makeCalibratorPanelDraggable(root, root.querySelector('.tlc-title'), 'calibrator-panel:traffic-lane');
+  }
   state.panel = { root, message: root.querySelector('.tlc-message') };
   root.querySelectorAll('[data-kind]').forEach((button) => button.addEventListener('click', () => {
     state.kind = button.dataset.kind;

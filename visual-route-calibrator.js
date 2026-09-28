@@ -352,6 +352,55 @@ function setVisualRouteCalibrationMessage(state, text, tone = 'info') {
   node.dataset.tone = tone;
 }
 
+// Let a calibrator panel be dragged by `handle` (its title bar) so it can be moved off whatever
+// it covers. The spot is kept per panel in localStorage (a per-viewer convenience only) and
+// clamped inside the window; double-clicking the handle puts the panel back where it started.
+function makeCalibratorPanelDraggable(root, handle, storageKey) {
+  if (!root || !handle || root.__calibratorDraggable) return;
+  root.__calibratorDraggable = true;
+  const defaults = { left: root.style.left, top: root.style.top, right: root.style.right, bottom: root.style.bottom };
+  const place = (left, top) => {
+    const width = root.offsetWidth || 300;
+    const clampedLeft = Math.max(0, Math.min((globalThis.innerWidth || 1440) - width, left));
+    const clampedTop = Math.max(0, Math.min((globalThis.innerHeight || 900) - 40, top));
+    root.style.left = `${clampedLeft}px`;
+    root.style.top = `${clampedTop}px`;
+    root.style.right = 'auto';
+    root.style.bottom = 'auto';
+    return { left: clampedLeft, top: clampedTop };
+  };
+  try {
+    const saved = JSON.parse(globalThis.localStorage?.getItem(storageKey) || 'null');
+    if (saved && Number.isFinite(saved.left) && Number.isFinite(saved.top)) place(saved.left, saved.top);
+  } catch { /* storage unavailable */ }
+  handle.style.cursor = 'move';
+  handle.style.userSelect = 'none';
+  handle.title = '拖曳移動面板（雙擊回到原位）';
+  handle.addEventListener('pointerdown', (event) => {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    const rect = root.getBoundingClientRect();
+    const grabX = event.clientX - rect.left;
+    const grabY = event.clientY - rect.top;
+    handle.setPointerCapture?.(event.pointerId);
+    let last = null;
+    const move = (moveEvent) => { last = place(moveEvent.clientX - grabX, moveEvent.clientY - grabY); };
+    const up = () => {
+      handle.releasePointerCapture?.(event.pointerId);
+      handle.removeEventListener('pointermove', move);
+      handle.removeEventListener('pointerup', up);
+      if (!last) return;
+      try { globalThis.localStorage?.setItem(storageKey, JSON.stringify(last)); } catch { /* storage unavailable */ }
+    };
+    handle.addEventListener('pointermove', move);
+    handle.addEventListener('pointerup', up);
+  });
+  handle.addEventListener('dblclick', () => {
+    Object.assign(root.style, defaults);
+    try { globalThis.localStorage?.removeItem(storageKey); } catch { /* storage unavailable */ }
+  });
+}
+
 async function copyVisualRouteCalibrationText(text) {
   if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
     await navigator.clipboard.writeText(text);
@@ -625,6 +674,9 @@ function isVisualRouteCalibrationInputCaptured(scene) {
   if (typeof isTrafficSignalPickerActive === 'function' && isTrafficSignalPickerActive()) return true;
   if (typeof isStreetLampPickerActive === 'function' && isStreetLampPickerActive()) return true;
   if (typeof isBridgeParapetPickerActive === 'function' && isBridgeParapetPickerActive()) return true;
+  // street-prop-calibrator.js: any of its calibrators (signals, lamps, parapets, railings,
+  // roadside furniture) owns the mouse for as long as it is open.
+  if (typeof isAnyStreetPropCalibratorCapturing === 'function' && isAnyStreetPropCalibratorCapturing()) return true;
   // traffic-light-calibrator.js: same deal while its lamp-drag workbench is open.
   if (typeof isTrafficLightCalibrationInputActive === 'function'
     && isTrafficLightCalibrationInputActive()) return true;
@@ -1020,6 +1072,12 @@ function createVisualRoutePerformancePanel(scene) {
         font: inherit; cursor: pointer;
       }
       #visual-route-performance-panel button:hover { background: #1a5145; }
+      #visual-route-performance-panel .vrp-metrics > summary {
+        cursor: pointer; list-style: none; padding-right: 26px;
+      }
+      #visual-route-performance-panel .vrp-metrics > summary::-webkit-details-marker { display: none; }
+      #visual-route-performance-panel .vrp-metrics > summary::before { content: '▸ '; }
+      #visual-route-performance-panel .vrp-metrics[open] > summary::before { content: '▾ '; }
       #visual-route-performance-panel .vrp-tools { margin-top: 8px; border-top: 1px solid rgba(112, 221, 160, .3); padding-top: 6px; }
       #visual-route-performance-panel .vrp-tools > summary {
         cursor: pointer; color: #70dda0; font-weight: 800; letter-spacing: .06em; list-style: none;
@@ -1043,9 +1101,11 @@ function createVisualRoutePerformancePanel(scene) {
   root.hidden = !visualRouteCalibrationTestModeEnabled;
   root.setAttribute('aria-label', 'Phase 0 performance baseline metrics');
   root.innerHTML = '<button type="button" class="vrp-close-btn" aria-label="Close performance panel" title="Close">✕</button>'
-    + '<div class="vrp-title">PERFORMANCE · PHASE 0</div><pre></pre>'
+    // The live figures fold away too (collapsed by default) so the panel stays two short rows
+    // until either section is wanted.
+    + '<details class="vrp-metrics"><summary class="vrp-title">PERFORMANCE · PHASE 0</summary><pre></pre>'
     + '<div class="vrp-actions"><button type="button" class="vrp-reset-btn">重置樣本</button>'
-    + '<button type="button" class="vrp-copy-btn">複製 JSON</button></div>'
+    + '<button type="button" class="vrp-copy-btn">複製 JSON</button></div></details>'
     // Every calibration tool sits in one collapsible, grouped section so the panel stays a
     // compact metrics readout until a tool is actually wanted.
     + '<details class="vrp-tools"><summary>校正工具</summary>'
@@ -1083,13 +1143,15 @@ function createVisualRoutePerformancePanel(scene) {
   root.querySelector('.vrp-trafficlane-btn')?.addEventListener?.('click', () => {
     if (typeof toggleTrafficLaneCalibrator === 'function') toggleTrafficLaneCalibrator(scene);
   });
-  // Remember whether the tool section was left open (a per-viewer convenience only).
-  const tools = root.querySelector('.vrp-tools');
-  try {
-    if (tools && globalThis.localStorage?.getItem('vrp-tools-open') === '1') tools.open = true;
-  } catch { /* storage unavailable */ }
-  tools?.addEventListener?.('toggle', () => {
-    try { globalThis.localStorage?.setItem('vrp-tools-open', tools.open ? '1' : '0'); } catch { /* storage unavailable */ }
+  // Remember whether each section was left open (a per-viewer convenience only).
+  [['.vrp-tools', 'vrp-tools-open'], ['.vrp-metrics', 'vrp-metrics-open']].forEach(([selector, key]) => {
+    const section = root.querySelector(selector);
+    try {
+      if (section && globalThis.localStorage?.getItem(key) === '1') section.open = true;
+    } catch { /* storage unavailable */ }
+    section?.addEventListener?.('toggle', () => {
+      try { globalThis.localStorage?.setItem(key, section.open ? '1' : '0'); } catch { /* storage unavailable */ }
+    });
   });
   root.querySelector('.vrp-busstop-btn')?.addEventListener?.('click', () => {
     if (typeof toggleBusStopCalibrator === 'function') toggleBusStopCalibrator(scene);
@@ -1199,6 +1261,8 @@ function updateVisualRoutePerformanceProfiler(scene, time, delta) {
   const output = root?.querySelector?.('pre');
   if (!root || !output) return false;
   root.hidden = false;
+  // Folded away: nothing on screen to update.
+  if (root.querySelector?.('.vrp-metrics')?.open === false) return true;
   const heapText = heapUsed === null
     ? 'RAM (JS heap)   n/a'
     : `RAM (JS heap)   ${heapUsed.toFixed(1)} / ${heapTotal?.toFixed(1) ?? '?'} MiB`;
@@ -1299,6 +1363,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = visualRout
 
 if (typeof globalThis !== 'undefined') {
   Object.assign(globalThis, {
+    makeCalibratorPanelDraggable,
     syncVisualRouteCalibrationTarget,
     isVisualRouteCalibrationInputCaptured,
     isVisualRouteCalibrationTestModeEnabled,

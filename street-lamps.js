@@ -259,8 +259,14 @@ function clearStreetLampSprites(scene) {
 function rebuildStreetLampSprites(scene) {
   const sprites = ensureStreetLampSprites(scene);
   if (!sprites || typeof getRoadKey !== 'function' || typeof isRoadLikeTile !== 'function') return;
-  const roadKeyAt = (row, col) => (isRoadLikeTile(row, col) ? getRoadKey(row, col) : null);
-  const signalPlacements = typeof computeTrafficSignalPlacements === 'function'
+  const roadKeyAt = typeof createRoadKeyReader === 'function'
+    ? createRoadKeyReader()
+    : (row, col) => (isRoadLikeTile(row, col) ? getRoadKey(row, col) : null);
+  // The poles from the latest signal rebuild (traffic-signals.js), unless that rebuild is still
+  // queued behind this one - then work them out here.
+  const signalPlacements = Array.isArray(scene.trafficSignalPlacements) && !scene.trafficSignalRefreshPending
+    ? scene.trafficSignalPlacements
+    : typeof computeTrafficSignalPlacements === 'function'
     ? computeTrafficSignalPlacements({
       mapWidth: MAP_WIDTH,
       mapHeight: MAP_HEIGHT,

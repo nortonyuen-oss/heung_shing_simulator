@@ -163,6 +163,30 @@ test('signals and debris outside every camera are culled, while tracker-only pro
   assert.equal(farSignal.cameraFilter & 1, 0);
 });
 
+test('railings and roadside furniture only show once zoomed in past SMALL_STREET_PROP_MIN_ZOOM', () => {
+  const context = loadViewportCullingContext();
+  const prop = (x) => ({ x, y: 10, cameraFilter: 0, visible: true, setVisible(value) { this.visible = value; } });
+  const railing = prop(10);
+  const bin = prop(20);
+  const signal = prop(30);
+  const scene = {
+    cameras: { main: { id: 1, zoom: 1 } },
+    pedestrianRailingSprites: new Map([['r', railing]]),
+    streetFurnitureSprites: new Map([['b', bin]]),
+    trafficSignalSprites: new Map([['s', signal]]),
+  };
+  context.scene = scene;
+  const cull = () => vm.runInContext('updateSpriteViewportCulling(scene, { minX: 0, maxX: 50, minY: 0, maxY: 50 })', context);
+  cull();
+  assert.equal(railing.visible, false, 'a few pixels tall at zoom 1: hidden');
+  assert.equal(bin.visible, false);
+  assert.equal(signal.visible, true, 'signals are unaffected');
+  scene.cameras.main.zoom = 1.6;
+  cull();
+  assert.equal(railing.visible, true, 'zoomed in: back on screen');
+  assert.equal(bin.visible, true);
+});
+
 test('Phaser follows display rAF without divisor-based hard frame limiting', () => {
   assert.match(mainSource, /fps:\s*\{\s*target:\s*60,\s*limit:\s*0,/);
   assert.doesNotMatch(mainSource, /fps:\s*\{\s*target:\s*60,\s*limit:\s*(?:60|75),/);

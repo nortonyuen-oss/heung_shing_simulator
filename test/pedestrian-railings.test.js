@@ -2,6 +2,7 @@ const assert = require('node:assert/strict');
 const test = require('node:test');
 const {
   computePedestrianRailingPlacements,
+  mergePedestrianRailingRuns,
   pedestrianRailingFacing,
   pedestrianRailingTextureKey,
   pedestrianRailingId,
@@ -91,4 +92,27 @@ test('a run faces the screen edge of its kerb and follows the view rotation', ()
   } finally {
     delete global.rotateDirection;
   }
+});
+
+test('touching half-tile runs on one kerb merge into one full-tile run; others stay apart', () => {
+  // Zebra at row 2 with its clear half to the south: kerb e gets row 1 (south half), row 2
+  // (south half) and row 3 (north half). Rows 2S and 3N touch; 1S and 2S do not (2N is the
+  // stripes).
+  const placements = computePedestrianRailingPlacements(mapFrom(['.|.', '.|.', '.Z.', '.|.', '.|.']));
+  const runs = mergePedestrianRailingRuns(placements);
+  assert.equal(runs.length, 4, 'six half-tile runs become four sprites');
+  const east = runs.filter((run) => run.side === 'e').map((run) => run.cells.map((c) => `${c.row}${c.toward}`));
+  assert.deepEqual(east.sort(), [['1s'], ['2s', '3n']]);
+  assert.equal(runs.reduce((sum, run) => sum + run.cells.length, 0), placements.length, 'every half tile is still covered');
+});
+
+test('runs never merge across kerbs, across a gap, or beyond a full tile', () => {
+  const cell = (row, col, side, toward) => ({ row, col, side, toward });
+  const runs = mergePedestrianRailingRuns([
+    cell(5, 1, 'e', 's'), cell(6, 1, 'e', 'n'), cell(6, 1, 'e', 's'), // three touching halves
+    cell(5, 1, 'w', 's'), // same tile, other kerb
+    cell(9, 1, 'e', 'n'), // gap
+  ]);
+  const lengths = runs.map((run) => `${run.side}:${run.cells.length}`).sort();
+  assert.deepEqual(lengths, ['e:1', 'e:1', 'e:2', 'w:1']);
 });

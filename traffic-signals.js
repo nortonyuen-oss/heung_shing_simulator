@@ -151,8 +151,8 @@ function computeTrafficSignalJunctionClusters({ mapWidth, mapHeight, roadKeyAt }
 // enters the junction gets a pole - the one leaving it carries no traffic towards a signal, and
 // its "driver's left" kerb would be the central median - and only on its kerbside tile, so a
 // carriageway several tiles wide shares one pole on the pavement side.
-function computeTrafficSignalPlacements({ mapWidth, mapHeight, roadKeyAt, carriagewayBandAt = () => null }) {
-  const clusters = computeTrafficSignalJunctionClusters({ mapWidth, mapHeight, roadKeyAt });
+function computeTrafficSignalPlacements({ mapWidth, mapHeight, roadKeyAt, carriagewayBandAt = () => null, clusters = null }) {
+  clusters = clusters ?? computeTrafficSignalJunctionClusters({ mapWidth, mapHeight, roadKeyAt });
   const inbound = (row, col, travel) => {
     const band = carriagewayBandAt(row, col);
     return !band || TRAFFIC_SIGNAL_BAND_TRAVEL[band.direction] === travel;
@@ -566,13 +566,18 @@ function clearTrafficSignalSprites(scene) {
 function rebuildTrafficSignalSprites(scene) {
   const sprites = ensureTrafficSignalSprites(scene);
   if (!sprites || typeof getRoadKey !== 'function' || typeof isRoadLikeTile !== 'function') return;
-  const roadKeyAt = (row, col) => (isRoadLikeTile(row, col) ? getRoadKey(row, col) : null);
+  const roadKeyAt = typeof createRoadKeyReader === 'function'
+    ? createRoadKeyReader()
+    : (row, col) => (isRoadLikeTile(row, col) ? getRoadKey(row, col) : null);
   const carriagewayBandAt = typeof getRoadCarriagewayBand === 'function' ? getRoadCarriagewayBand : undefined;
   const mapSize = { mapWidth: MAP_WIDTH, mapHeight: MAP_HEIGHT, roadKeyAt };
-  const placements = computeTrafficSignalPlacements({ ...mapSize, carriagewayBandAt });
+  // The junction blocks feed both the pole placements and the registry below.
+  const clusters = computeTrafficSignalJunctionClusters(mapSize);
+  const placements = computeTrafficSignalPlacements({ ...mapSize, carriagewayBandAt, clusters });
+  // Street lamps step aside for these poles; they read this list rather than recomputing it.
+  scene.trafficSignalPlacements = placements;
   // The junction registry the phase queries read: every tile of a junction block maps to the
   // block's one shared description. A block only counts once it has a pole.
-  const clusters = computeTrafficSignalJunctionClusters(mapSize);
   const junctions = new Map();
   placements.forEach((placement) => {
     if (junctions.has(trafficSignalJunctionKey(placement.junctionRow, placement.junctionCol))) return;

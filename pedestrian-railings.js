@@ -10,16 +10,22 @@
 // carriageway, a parallel street) has no pavement to fence, and a tile with a bus stop keeps
 // its kerb open. Like the signals and lamps the set is derived from the map and never saved.
 //
-// Each run is one static Image (scripts/bake-pedestrian-railing-textures.js): _h along screen
-// NW-SE for the NE and SW kerbs, _v along SW-NE for the SE and NW kerbs, anchored at the run's
-// base-line midpoint. Depth follows the bridge parapets: a run along a near (SE/SW) kerb sorts
+// Half-tile runs that touch along the same kerb (a zebra tile's stripe-free half and the tile
+// after it) are merged into one full-tile run (mergePedestrianRailingRuns), so a crossing costs
+// fewer sprites. Each run is one static Image (scripts/bake-pedestrian-railing-textures.js): _h
+// along screen NW-SE for the NE and SW kerbs, _v along SW-NE for the SE and NW kerbs, _long for
+// a full tile, anchored at the run's base-line midpoint. Depth follows the bridge parapets: a run along a near (SE/SW) kerb sorts
 // at its nearest end and one along a far (NE/NW) kerb at its farthest, so traffic draws in
 // front of the far railing and behind the near one.
 
 const PEDESTRIAN_RAILING_TEXTURE_FILES = Object.freeze({
   pedestrian_railing_h: 'Models/roadAssessories/pedestrianRailing_h.png',
   pedestrian_railing_v: 'Models/roadAssessories/pedestrianRailing_v.png',
+  pedestrian_railing_h_long: 'Models/roadAssessories/pedestrianRailing_h_long.png',
+  pedestrian_railing_v_long: 'Models/roadAssessories/pedestrianRailing_v_long.png',
 });
+// The longest run one Image covers, in half tiles (the _long bake: a full tile edge).
+const PEDESTRIAN_RAILING_MAX_RUN_HALVES = 2;
 // Keep in step with scripts/bake-pedestrian-railing-textures.js.
 const PEDESTRIAN_RAILING_SOURCE_CANVAS = Object.freeze({ width: 512, height: 512 });
 const PEDESTRIAN_RAILING_SOURCE_ANCHOR = Object.freeze({ x: 256, y: 300 });
@@ -83,13 +89,46 @@ function pedestrianRailingId(placement) {
   return `${placement.row}:${placement.col}:${placement.side}:${placement.toward}`;
 }
 
+// Pure: merge half-tile placements that touch along one kerb into runs of up to
+// PEDESTRIAN_RAILING_MAX_RUN_HALVES halves. A kerb line is one side of one row (e-w road) or
+// column (n-s road); along it each half tile has an index (two per tile), and consecutive
+// indices touch. Each run keeps the placements (`cells`) it covers.
+function mergePedestrianRailingRuns(placements) {
+  const lines = new Map();
+  placements.forEach((cell) => {
+    const vertical = cell.toward === 'n' || cell.toward === 's';
+    const line = vertical ? `v:${cell.col}:${cell.side}` : `h:${cell.row}:${cell.side}`;
+    const index = vertical ? cell.row * 2 + (cell.toward === 's' ? 1 : 0) : cell.col * 2 + (cell.toward === 'e' ? 1 : 0);
+    if (!lines.has(line)) lines.set(line, new Map());
+    lines.get(line).set(index, cell);
+  });
+  const runs = [];
+  lines.forEach((cells, line) => {
+    const indices = [...cells.keys()].sort((a, b) => a - b);
+    let chunk = [];
+    const flush = () => {
+      if (!chunk.length) return;
+      const first = cells.get(chunk[0]);
+      runs.push({ id: `${line}:${chunk[0]}:${chunk.length}`, side: first.side, row: first.row, col: first.col, cells: chunk.map((index) => cells.get(index)) });
+      chunk = [];
+    };
+    indices.forEach((index) => {
+      if (chunk.length && (index !== chunk[chunk.length - 1] + 1 || chunk.length >= PEDESTRIAN_RAILING_MAX_RUN_HALVES)) flush();
+      chunk.push(index);
+    });
+    flush();
+  });
+  return runs;
+}
+
 function pedestrianRailingFacing(placement, rotation = typeof mapRotation !== 'undefined' ? mapRotation : 0) {
   const visualSide = typeof rotateDirection === 'function' ? rotateDirection(placement.side, rotation) : placement.side;
   return PEDESTRIAN_RAILING_SCREEN_EDGE[visualSide] ?? 'ne';
 }
 
-function pedestrianRailingTextureKey(facing) {
-  return facing === 'ne' || facing === 'sw' ? 'pedestrian_railing_h' : 'pedestrian_railing_v';
+function pedestrianRailingTextureKey(facing, halves = 1) {
+  const axis = facing === 'ne' || facing === 'sw' ? 'h' : 'v';
+  return `pedestrian_railing_${axis}${halves > 1 ? '_long' : ''}`;
 }
 
 function pedestrianRailingOffsetFor(facing) {
@@ -102,7 +141,8 @@ function pedestrianRailingScale() {
   return override ?? PEDESTRIAN_RAILING_SCALE;
 }
 
-// Map-space point of a run at `forward` tiles along it towards the junction/crossing, on its kerb.
+// Map-space point of a half-tile run at `forward` tiles along it towards the junction/crossing,
+// on its kerb.
 function pedestrianRailingLogicalPoint(placement, forward, inset = PEDESTRIAN_RAILING_LOGICAL_INSET) {
   const across = PEDESTRIAN_RAILING_DELTA[placement.side];
   const ahead = PEDESTRIAN_RAILING_DELTA[placement.toward];
@@ -112,19 +152,26 @@ function pedestrianRailingLogicalPoint(placement, forward, inset = PEDESTRIAN_RA
   };
 }
 
-// Screen anchor (the run's base-line midpoint) and depth, in the same terms as the parapets.
-function pedestrianRailingAnchor(scene, placement, facing) {
+// Screen anchor (the run's base-line midpoint) and depth, in the same terms as the parapets: the
+// middle of its cells' own midpoints, and depth from the run's two ends.
+function pedestrianRailingAnchor(scene, run, facing) {
   const inset = PEDESTRIAN_RAILING_LOGICAL_INSET;
-  const geo = getTileFaceGeometry(placement.row, placement.col, scene.offsetX, scene.offsetY);
-  const centre = isoToScreen(placement.col, placement.row);
-  const middle = pedestrianRailingLogicalPoint(placement, inset.forward);
+  const middles = run.cells.map((cell) => pedestrianRailingLogicalPoint(cell, inset.forward));
+  const middle = {
+    row: middles.reduce((sum, point) => sum + point.row, 0) / middles.length,
+    col: middles.reduce((sum, point) => sum + point.col, 0) / middles.length,
+  };
+  const vertical = run.cells[0].toward === 'n' || run.cells[0].toward === 's';
+  const halfLength = 0.25 * run.cells.length;
+  const ends = [-halfLength, halfLength].map((d) => (vertical
+    ? { row: middle.row + d, col: middle.col }
+    : { row: middle.row, col: middle.col + d }));
+  const geo = getTileFaceGeometry(run.row, run.col, scene.offsetX, scene.offsetY);
+  const centre = isoToScreen(run.col, run.row);
   const point = isoToScreen(middle.col, middle.row);
   const offset = pedestrianRailingOffsetFor(facing);
   const near = facing === 'se' || facing === 'sw';
-  const endDepths = [inset.forward - 0.25, inset.forward + 0.25].map((forward) => {
-    const end = pedestrianRailingLogicalPoint(placement, forward);
-    return isoToScreen(end.col, end.row).y + TILE_HEIGHT;
-  });
+  const endDepths = ends.map((end) => isoToScreen(end.col, end.row).y + TILE_HEIGHT);
   return {
     x: geo.center.x + (point.x - centre.x) + offset.dx,
     y: geo.center.y + (point.y - centre.y) + offset.dy,
@@ -132,7 +179,9 @@ function pedestrianRailingAnchor(scene, placement, facing) {
   };
 }
 
-function applyPedestrianRailingSpriteTexture(scene, sprite, textureKey) {
+// A full-tile (_long) bake spans the same canvas width as a half-tile one, so it draws at twice
+// the scale.
+function applyPedestrianRailingSpriteTexture(scene, sprite, textureKey, halves = 1) {
   if (!scene.textures.exists(textureKey)) return false;
   if (sprite.texture?.key !== textureKey) sprite.setTexture(textureKey);
   const texture = scene.textures.get(textureKey)?.getSourceImage?.();
@@ -140,30 +189,32 @@ function applyPedestrianRailingSpriteTexture(scene, sprite, textureKey) {
     ? getPropTextureAnchor(PEDESTRIAN_RAILING_TEXTURE_FILES[textureKey], PEDESTRIAN_RAILING_SOURCE_ANCHOR.x, PEDESTRIAN_RAILING_SOURCE_ANCHOR.y, texture)
     : { originX: PEDESTRIAN_RAILING_SOURCE_ANCHOR.x / PEDESTRIAN_RAILING_SOURCE_CANVAS.width, originY: PEDESTRIAN_RAILING_SOURCE_ANCHOR.y / PEDESTRIAN_RAILING_SOURCE_CANVAS.height, scaleMultiplier: 1 };
   sprite.setOrigin(anchorSpec.originX, anchorSpec.originY);
-  sprite.setScale(pedestrianRailingScale() * anchorSpec.scaleMultiplier);
+  sprite.setScale(pedestrianRailingScale() * anchorSpec.scaleMultiplier * halves);
   return true;
 }
 
 function positionPedestrianRailingSprite(scene, sprite) {
-  if (!scene || !sprite?.pedestrianRailing) return;
-  const placement = sprite.pedestrianRailing;
-  const facing = pedestrianRailingFacing(placement);
+  if (!scene || !sprite?.pedestrianRailingRun) return;
+  const run = sprite.pedestrianRailingRun;
+  const facing = pedestrianRailingFacing(run);
   sprite.pedestrianRailingFacing = facing;
-  applyPedestrianRailingSpriteTexture(scene, sprite, pedestrianRailingTextureKey(facing));
-  const anchor = pedestrianRailingAnchor(scene, placement, facing);
+  applyPedestrianRailingSpriteTexture(scene, sprite, pedestrianRailingTextureKey(facing, run.cells.length), run.cells.length);
+  const anchor = pedestrianRailingAnchor(scene, run, facing);
   sprite.setPosition(anchor.x, anchor.y);
   sprite.setDepth(anchor.depth);
 }
 
-function createPedestrianRailingSprite(scene, placement) {
-  const textureKey = pedestrianRailingTextureKey(pedestrianRailingFacing(placement));
+function createPedestrianRailingSprite(scene, run) {
+  const textureKey = pedestrianRailingTextureKey(pedestrianRailingFacing(run), run.cells.length);
   if (!scene.textures.exists(textureKey)) return null;
   const sprite = scene.add.image(0, 0, textureKey);
+  // Hidden until the viewport culling shows it (it also hides small props when zoomed out).
+  sprite.setVisible(false);
   if (typeof addToRenderLayer === 'function') addToRenderLayer(scene, sprite, 'objectLayer');
   if (scene.worldMask) sprite.setMask(scene.worldMask);
-  sprite.pedestrianRailing = placement;
-  sprite.mapRow = placement.row;
-  sprite.mapCol = placement.col;
+  sprite.pedestrianRailingRun = run;
+  sprite.mapRow = run.row;
+  sprite.mapCol = run.col;
   positionPedestrianRailingSprite(scene, sprite);
   if (typeof isPedestrianRailingCalibrationActive === 'function' && isPedestrianRailingCalibrationActive()
     && typeof makePedestrianRailingSpriteDraggable === 'function') {
@@ -190,7 +241,9 @@ function clearPedestrianRailingSprites(scene) {
 function rebuildPedestrianRailingSprites(scene) {
   const sprites = ensurePedestrianRailingSprites(scene);
   if (!sprites || typeof getRoadKey !== 'function' || typeof isRoadLikeTile !== 'function') return;
-  const roadKeyAt = (row, col) => (isRoadLikeTile(row, col) ? getRoadKey(row, col) : null);
+  const roadKeyAt = typeof createRoadKeyReader === 'function'
+    ? createRoadKeyReader()
+    : (row, col) => (isRoadLikeTile(row, col) ? getRoadKey(row, col) : null);
   const rotation = typeof mapRotation !== 'undefined' ? mapRotation : 0;
   const zebraFarSideAt = (row, col) => {
     const match = /road_straight_([vh])__lines_zebra/.exec(scene.tileSprites?.[row]?.[col]?.texture?.key ?? '');
@@ -203,23 +256,26 @@ function rebuildPedestrianRailingSprites(scene) {
     return Array.isArray(sides) && sides.length > 0;
   };
   const placements = computePedestrianRailingPlacements({ mapWidth: MAP_WIDTH, mapHeight: MAP_HEIGHT, roadKeyAt, zebraFarSideAt, hasBusStopAt });
-  const wanted = new Map(placements.map((placement) => [pedestrianRailingId(placement), placement]));
+  // Roadside furniture reads the half-tile cells to keep its props out of the railings.
+  scene.pedestrianRailingPlacements = placements;
+  const wanted = new Map(mergePedestrianRailingRuns(placements).map((run) => [run.id, run]));
   sprites.forEach((sprite, id) => {
     if (wanted.has(id)) return;
     sprite.destroy();
     sprites.delete(id);
   });
-  wanted.forEach((placement, id) => {
+  wanted.forEach((run, id) => {
     const existing = sprites.get(id);
     if (existing) {
-      existing.pedestrianRailing = placement;
+      existing.pedestrianRailingRun = run;
       positionPedestrianRailingSprite(scene, existing);
       return;
     }
-    const sprite = createPedestrianRailingSprite(scene, placement);
+    const sprite = createPedestrianRailingSprite(scene, run);
     if (sprite) sprites.set(id, sprite);
   });
   if (typeof sortRenderLayer === 'function') sortRenderLayer(scene, 'objectLayer');
+  scene.terrainViewportCacheKey = null; // re-cull so new runs show (or stay hidden when zoomed out)
   scene.pedestrianRailingRefreshPending = false;
 }
 
@@ -245,6 +301,7 @@ const pedestrianRailingsTestApi = {
   PEDESTRIAN_RAILING_SOURCE_ANCHOR,
   PEDESTRIAN_RAILING_ZEBRA_FAR_SIDE,
   computePedestrianRailingPlacements,
+  mergePedestrianRailingRuns,
   pedestrianRailingId,
   pedestrianRailingFacing,
   pedestrianRailingTextureKey,

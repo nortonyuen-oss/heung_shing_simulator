@@ -3,25 +3,75 @@
 // (traffic-signal-calibrator.js, street-lamp-calibrator.js); the family's own module reads
 // getOffset(facing) / getScale() while the calibrator is open.
 //
-// Workflow: the real sprites already standing in the city are the targets. Dragging any
-// sprite of a facing records that facing's pixel nudge relative to its geometric anchor and
-// immediately moves every other sprite of the same facing; arrow keys nudge the last-touched
-// facing by a pixel (Shift: five); [ and ] shrink or grow every sprite. "複製 JSON" copies the
-// values to paste into constants.js. Calibrate at the default North view: facings are
-// screen-relative.
+// Workflow: the real sprites already standing in the city are the targets. While a calibrator is
+// open it owns the mouse: the game's tools stand down (isVisualRouteCalibrationInputCaptured), the
+// cursor becomes a hand, the prop under it is outlined, and a click picks the prop whose drawn
+// pixels are under the pointer (not its padded canvas). The picked prop is highlighted, with a
+// fainter outline on every other prop of the same facing, since they all move together.
+// Dragging records that facing's pixel nudge relative to its geometric anchor; arrow keys nudge
+// the picked facing by a pixel (Shift: five), Esc drops the pick, [ and ] resize. Right-drag
+// still pans the camera. "複製 JSON" copies the values to paste into constants.js. Calibrate at
+// the default North view: facings are screen-relative.
 
 const STREET_PROP_CALIBRATION_SCHEMA_VERSION = 1;
+// Every calibrator made here, so the game's input guard can ask whether any of them is open.
+const STREET_PROP_CALIBRATORS = [];
+const STREET_PROP_PICK_ALPHA = 24;       // a texture pixel this opaque counts as the prop
+const STREET_PROP_PICK_TOLERANCE_PX = 4; // screen pixels of slack around a thin prop
+const STREET_PROP_HIGHLIGHT = 0x7ce8a8;
+
+function isAnyStreetPropCalibratorCapturing() {
+  return STREET_PROP_CALIBRATORS.some((calibrator) => calibrator.isPickerActive());
+}
+
+// Alpha mask and drawn bounds of a prop texture, read once per texture key from its source image.
+const streetPropAlphaMasks = new Map();
+function getStreetPropAlphaMask(scene, textureKey) {
+  if (streetPropAlphaMasks.has(textureKey)) return streetPropAlphaMasks.get(textureKey);
+  let mask = null;
+  try {
+    const source = scene?.textures?.get?.(textureKey)?.getSourceImage?.();
+    if (source && typeof document !== 'undefined') {
+      const canvas = document.createElement('canvas');
+      canvas.width = source.width;
+      canvas.height = source.height;
+      const context = canvas.getContext('2d', { willReadFrequently: true });
+      context.drawImage(source, 0, 0);
+      const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
+      const alpha = new Uint8Array(canvas.width * canvas.height);
+      let minX = Infinity; let minY = Infinity; let maxX = -1; let maxY = -1;
+      for (let y = 0; y < canvas.height; y++) {
+        for (let x = 0; x < canvas.width; x++) {
+          const a = pixels[(y * canvas.width + x) * 4 + 3];
+          alpha[y * canvas.width + x] = a;
+          if (a < STREET_PROP_PICK_ALPHA) continue;
+          if (x < minX) minX = x;
+          if (x > maxX) maxX = x;
+          if (y < minY) minY = y;
+          if (y > maxY) maxY = y;
+        }
+      }
+      mask = { width: canvas.width, height: canvas.height, alpha, bbox: maxX >= 0 ? { minX, minY, maxX, maxY } : null };
+    }
+  } catch { mask = null; }
+  streetPropAlphaMasks.set(textureKey, mask);
+  return mask;
+}
 
 function createStreetPropCalibrator(options) {
   const {
     id,                 // e.g. 'traffic-signal' (panel element id, record kind)
     title,              // panel title
     facings,            // ['sw', 'se', 'nw', 'ne']
-    facingLabels,       // { sw: '...' }
+    facingLabels = {},  // { sw: '...' }
     facingOf,           // (sprite) => facing
     sprites,            // (scene) => Map of sprites
     shippedOffsets,     // () => { facing: { dx, dy } }
-    shippedScale,       // () => number
+    shippedScale,       // () => number, or (group) => number with scaleGroupOf
+    // Optional: facing => group key. Each group then keeps its own size (e.g. one per prop
+    // kind), adjusted through whichever facing was last dragged; without it there is one size.
+    scaleGroupOf = null,
+    scaleGroupLabels = {},
     refresh,            // (scene) => reposition every sprite
     note = '',          // sentence for the copied JSON
     extraRecord = () => ({}),
@@ -32,13 +82,21 @@ function createStreetPropCalibrator(options) {
   } = options;
 
   const offsets = {}; // facing -> { dx, dy }
-  let scale = null;   // null = shipped
+  let scale = null;   // null = shipped (single-size calibrators)
+  const groupScales = {}; // group -> size (scaleGroupOf calibrators)
   let active = false;
   let scene = null;
   let panel = null;
   let pickerActive = false;
   let selectedFacing = null;
   let keyHandler = null;
+  // The in-city selector (installed while open).
+  let selectedSprite = null;
+  let hoverSprite = null;
+  let drag = null;
+  let overlay = null;
+  let inputHandlers = null;
+  let savedCursor = null;
 
   const round = (value) => Math.round(value * 1000) / 1000;
   const shippedOffset = (facing) => shippedOffsets()[facing] ?? { dx: 0, dy: 0 };
@@ -47,9 +105,13 @@ function createStreetPropCalibrator(options) {
     return offsets[facing] ?? null;
   }
 
-  function getScale() {
+  function getScale(group) {
+    if (scaleGroupOf) return groupScales[group] ?? null;
     return scale;
   }
+
+  const scaleGroups = () => (scaleGroupOf ? [...new Set(facings.map(scaleGroupOf))] : []);
+  const selectedGroup = () => (scaleGroupOf && selectedFacing ? scaleGroupOf(selectedFacing) : null);
 
   function isActive() {
     return active;
@@ -58,8 +120,9 @@ function createStreetPropCalibrator(options) {
   // While the picker is on, every normal-tool input listener guarded by
   // isVisualRouteCalibrationInputCaptured (visual-route-calibrator.js) is suppressed, so a drag
   // on a sprite can't also bulldoze the road under it.
+  // Open = owns the mouse. (setPickerActive remains for callers that capture without opening.)
   function isPickerActive() {
-    return pickerActive;
+    return active || pickerActive;
   }
 
   function setPickerActive(value) {
@@ -85,7 +148,9 @@ function createStreetPropCalibrator(options) {
       kind: `${id}-anchor-offset`,
       note,
       ...extraRecord(),
-      scale: round(scale ?? shippedScale()),
+      ...(scaleGroupOf
+        ? { scales: Object.fromEntries(scaleGroups().map((group) => [group, round(groupScales[group] ?? shippedScale(group))])) }
+        : { scale: round(scale ?? shippedScale()) }),
       facings: facingsOut,
       recordedAt: new Date().toISOString(),
     };
@@ -99,6 +164,8 @@ function createStreetPropCalibrator(options) {
   }
 
   function makeSpriteDraggable(targetScene, sprite) {
+    // The in-city selector handles picking and dragging for every sprite while it is installed.
+    if (inputHandlers) return;
     if (!targetScene || !sprite || sprite.__streetPropCalibrationWired) return;
     sprite.__streetPropCalibrationWired = true;
     sprite.setInteractive({ useHandCursor: true });
@@ -118,10 +185,6 @@ function createStreetPropCalibrator(options) {
     });
   }
 
-  function enableDrag(targetScene) {
-    sprites(targetScene)?.forEach((sprite) => makeSpriteDraggable(targetScene, sprite));
-  }
-
   function disableDrag(targetScene) {
     sprites(targetScene)?.forEach((sprite) => {
       if (!sprite.__streetPropCalibrationWired) return;
@@ -135,29 +198,202 @@ function createStreetPropCalibrator(options) {
 
   function nudge(dx, dy) {
     if (!selectedFacing) {
-      setMessage('先拖曳一支，再用方向鍵微調', 'info');
+      setMessage('先點選一件，再用方向鍵微調', 'info');
       return;
     }
     const current = offsets[selectedFacing] ?? shippedOffset(selectedFacing);
     offsets[selectedFacing] = { dx: current.dx + dx, dy: current.dy + dy };
     doRefresh();
     renderPanel();
+    drawOverlay();
+  }
+
+  // ── In-city selector ─────────────────────────────────────────────────────
+
+  const isLive = (sprite) => !!sprite && sprite.scene !== undefined && sprite.active !== false;
+
+  // Where a sprite's drawn pixels sit in world space (its canvas minus transparent padding).
+  function drawnBounds(sprite) {
+    const scaleX = Math.abs(sprite.scaleX || 1);
+    const scaleY = Math.abs(sprite.scaleY || 1);
+    const left = sprite.x - (sprite.displayOriginX ?? 0) * scaleX;
+    const top = sprite.y - (sprite.displayOriginY ?? 0) * scaleY;
+    const bbox = getStreetPropAlphaMask(scene, sprite.texture?.key)?.bbox;
+    if (!bbox) return { x: left, y: top, width: (sprite.width || 0) * scaleX, height: (sprite.height || 0) * scaleY, left, top, scaleX, scaleY };
+    return {
+      x: left + bbox.minX * scaleX,
+      y: top + bbox.minY * scaleY,
+      width: (bbox.maxX - bbox.minX + 1) * scaleX,
+      height: (bbox.maxY - bbox.minY + 1) * scaleY,
+      left, top, scaleX, scaleY,
+    };
+  }
+
+  // The prop under a world point: the highest-drawn one whose opaque pixels are within a few
+  // screen pixels of it, else the nearest one whose drawn bounds are that close.
+  function pickSpriteAt(worldX, worldY) {
+    const zoom = scene?.cameras?.main?.zoom || 1;
+    const slack = STREET_PROP_PICK_TOLERANCE_PX / zoom;
+    let best = null;
+    let bestDepth = -Infinity;
+    let nearest = null;
+    let nearestDistance = Infinity;
+    sprites(scene)?.forEach((sprite) => {
+      if (!isLive(sprite) || !sprite.visible) return;
+      const bounds = drawnBounds(sprite);
+      if (worldX < bounds.x - slack || worldX > bounds.x + bounds.width + slack
+        || worldY < bounds.y - slack || worldY > bounds.y + bounds.height + slack) return;
+      const dx = Math.max(bounds.x - worldX, 0, worldX - (bounds.x + bounds.width));
+      const dy = Math.max(bounds.y - worldY, 0, worldY - (bounds.y + bounds.height));
+      const distance = Math.hypot(dx, dy);
+      if (distance < nearestDistance) { nearest = sprite; nearestDistance = distance; }
+      const mask = getStreetPropAlphaMask(scene, sprite.texture?.key);
+      if (!mask) return;
+      const px = (worldX - bounds.left) / bounds.scaleX;
+      const py = (worldY - bounds.top) / bounds.scaleY;
+      const tol = slack / bounds.scaleX;
+      let hit = false;
+      for (const oy of [-tol, 0, tol]) {
+        for (const ox of [-tol, 0, tol]) {
+          const ix = Math.floor(px + ox);
+          const iy = Math.floor(py + oy);
+          if (ix < 0 || iy < 0 || ix >= mask.width || iy >= mask.height) continue;
+          if (mask.alpha[iy * mask.width + ix] >= STREET_PROP_PICK_ALPHA) { hit = true; break; }
+        }
+        if (hit) break;
+      }
+      if (hit && (sprite.depth ?? 0) >= bestDepth) { best = sprite; bestDepth = sprite.depth ?? 0; }
+    });
+    return best ?? nearest;
+  }
+
+  function drawOverlay() {
+    if (!overlay) return;
+    overlay.clear();
+    if (selectedSprite && !isLive(selectedSprite)) selectedSprite = null;
+    if (hoverSprite && !isLive(hoverSprite)) hoverSprite = null;
+    const camera = scene?.cameras?.main;
+    const zoom = camera?.zoom || 1;
+    const view = camera?.worldView;
+    const pad = 2 / zoom;
+    const outline = (sprite, width, color, alpha, fillAlpha = 0) => {
+      const b = drawnBounds(sprite);
+      if (fillAlpha > 0) {
+        overlay.fillStyle(color, fillAlpha);
+        overlay.fillRect(b.x - pad, b.y - pad, b.width + pad * 2, b.height + pad * 2);
+      }
+      overlay.lineStyle(width / zoom, color, alpha);
+      overlay.strokeRect(b.x - pad, b.y - pad, b.width + pad * 2, b.height + pad * 2);
+    };
+    if (selectedSprite) {
+      const facing = facingOf(selectedSprite);
+      sprites(scene)?.forEach((sprite) => {
+        if (sprite === selectedSprite || !isLive(sprite) || !sprite.visible || facingOf(sprite) !== facing) return;
+        if (view && (sprite.x < view.x || sprite.x > view.right || sprite.y < view.y || sprite.y > view.bottom)) return;
+        outline(sprite, 1, STREET_PROP_HIGHLIGHT, 0.45);
+      });
+      outline(selectedSprite, 2.5, STREET_PROP_HIGHLIGHT, 1, 0.2);
+    }
+    if (hoverSprite && hoverSprite !== selectedSprite) outline(hoverSprite, 1.5, 0xffffff, 0.9);
+  }
+
+  function select(sprite) {
+    selectedSprite = sprite;
+    selectedFacing = sprite ? facingOf(sprite) : null;
+    renderPanel();
+    drawOverlay();
+  }
+
+  function installSelector(targetScene) {
+    if (inputHandlers || !targetScene?.input?.on) return;
+    const depth = typeof VISUAL_ROUTE_CALIBRATION_INPUT_DEPTH === 'number' ? VISUAL_ROUTE_CALIBRATION_INPUT_DEPTH - 3 : 1e9;
+    overlay = targetScene.add?.graphics?.()?.setDepth?.(depth) ?? null;
+    inputHandlers = {
+      pointerdown: (pointer) => {
+        if (pointer.button !== 0) return;
+        const hit = pickSpriteAt(pointer.worldX, pointer.worldY);
+        if (!hit) {
+          select(null);
+          setMessage('冇揀中：點道具本身（放大睇會易揀啲）', 'info');
+          return;
+        }
+        select(hit);
+        drag = { sprite: hit, startX: pointer.worldX, startY: pointer.worldY, spriteX: hit.x, spriteY: hit.y, base: geometricAnchor(hit) };
+        setMessage(`已選：${facingLabels[selectedFacing] ?? selectedFacing}（同類嘅會一齊移）`, 'info');
+      },
+      pointermove: (pointer) => {
+        if (drag && !pointer.isDown) drag = null; // released outside the canvas
+        if (drag) {
+          const facing = facingOf(drag.sprite);
+          offsets[facing] = {
+            dx: drag.spriteX + (pointer.worldX - drag.startX) - drag.base.x,
+            dy: drag.spriteY + (pointer.worldY - drag.startY) - drag.base.y,
+          };
+          doRefresh();
+          renderPanel();
+          drawOverlay();
+          return;
+        }
+        const hover = pickSpriteAt(pointer.worldX, pointer.worldY);
+        if (hover !== hoverSprite) {
+          hoverSprite = hover;
+          drawOverlay();
+        }
+      },
+      pointerup: () => {
+        if (!drag) return;
+        drag = null;
+        setMessage(`${facingLabels[selectedFacing] ?? selectedFacing} 已記錄（方向鍵 1px，Shift 5px）`, 'success');
+      },
+    };
+    Object.entries(inputHandlers).forEach(([event, handler]) => targetScene.input.on(event, handler));
+    savedCursor = targetScene.input.manager?.defaultCursor ?? '';
+    targetScene.input.setDefaultCursor?.('pointer');
+  }
+
+  function uninstallSelector(targetScene) {
+    if (inputHandlers && targetScene?.input?.off) {
+      Object.entries(inputHandlers).forEach(([event, handler]) => targetScene.input.off(event, handler));
+      targetScene.input.setDefaultCursor?.(savedCursor || '');
+    }
+    inputHandlers = null;
+    drag = null;
+    selectedSprite = null;
+    hoverSprite = null;
+    overlay?.destroy?.();
+    overlay = null;
   }
 
   function adjustScale(delta) {
-    const current = scale ?? shippedScale();
-    scale = Math.max(minScale, Math.min(maxScale, current + delta));
+    if (scaleGroupOf) {
+      const group = selectedGroup();
+      if (!group) {
+        setMessage('先點選一件，再調嗰種嘅大小', 'info');
+        return;
+      }
+      const current = groupScales[group] ?? shippedScale(group);
+      groupScales[group] = Math.max(minScale, Math.min(maxScale, current + delta));
+    } else {
+      const current = scale ?? shippedScale();
+      scale = Math.max(minScale, Math.min(maxScale, current + delta));
+    }
     doRefresh();
     renderPanel();
+    drawOverlay();
   }
 
   function handleKey(event) {
-    if (!active || !pickerActive) return;
+    if (!isPickerActive()) return;
     const target = event.target;
     if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return;
     const step = event.shiftKey ? 5 : 1;
     const moves = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] };
-    if (moves[event.key]) {
+    if (event.key === 'Escape' && selectedFacing) {
+      select(null);
+      return;
+    }
+    // Nothing picked: leave the arrow keys to the camera.
+    if (moves[event.key] && selectedFacing) {
       event.preventDefault();
       nudge(...moves[event.key]);
     } else if (event.key === '[' || event.key === ']') {
@@ -169,7 +405,9 @@ function createStreetPropCalibrator(options) {
   function start(targetScene) {
     active = true;
     scene = targetScene;
-    enableDrag(targetScene);
+    installSelector(targetScene);
+    // Props the viewport culling hides when zoomed out come back while being calibrated.
+    targetScene.terrainViewportCacheKey = null;
     createPanel();
     renderPanel();
     if (!keyHandler && typeof document !== 'undefined') {
@@ -177,13 +415,15 @@ function createStreetPropCalibrator(options) {
       document.addEventListener('keydown', keyHandler);
     }
     const count = sprites(targetScene)?.size ?? 0;
-    setMessage(count ? `城中有 ${count} 支，拖曳任何一支` : '城中未有呢種道具：先起啲路', 'info');
+    setMessage(count ? `城中有 ${count} 件：點選一件嚟調整` : '城中未有呢種道具：先起啲路', 'info');
   }
 
   function teardown() {
     active = false;
     pickerActive = false;
+    uninstallSelector(scene);
     disableDrag(scene);
+    if (scene) scene.terrainViewportCacheKey = null;
     if (keyHandler && typeof document !== 'undefined') {
       document.removeEventListener('keydown', keyHandler);
       keyHandler = null;
@@ -205,8 +445,10 @@ function createStreetPropCalibrator(options) {
   function reset() {
     facings.forEach((facing) => { delete offsets[facing]; });
     scale = null;
+    Object.keys(groupScales).forEach((group) => { delete groupScales[group]; });
     doRefresh();
     renderPanel();
+    drawOverlay();
     setMessage('已重設為原本位置同大小', 'info');
   }
 
@@ -227,7 +469,9 @@ function createStreetPropCalibrator(options) {
         user-select: text; pointer-events: auto; backdrop-filter: blur(8px);
       }
       .street-prop-calibrator-panel[hidden] { display: none !important; }
-      .street-prop-calibrator-panel .spc-title { font-weight: 800; color: #ffc45a; letter-spacing: .04em; margin-bottom: 6px; }
+      .street-prop-calibrator-panel .spc-title { font-weight: 800; color: #ffc45a; letter-spacing: .04em; margin-bottom: 6px; display: flex; justify-content: space-between; }
+      .street-prop-calibrator-panel .spc-title::after { content: '⠿'; color: #b07a2a; font-weight: 400; }
+      .street-prop-calibrator-panel .spc-list { max-height: 34vh; overflow-y: auto; padding-right: 4px; }
       .street-prop-calibrator-panel .spc-hint { color: #f0d6a8; margin-bottom: 8px; }
       .street-prop-calibrator-panel .spc-row { display: flex; justify-content: space-between; gap: 8px; padding: 2px 0; }
       .street-prop-calibrator-panel .spc-row[data-selected="true"] { color: #ffe3a3; font-weight: 700; }
@@ -263,8 +507,7 @@ function createStreetPropCalibrator(options) {
     root.setAttribute('aria-label', `${title} calibrator`);
     root.innerHTML = `
       <div class="spc-title">${title}</div>
-      <div class="spc-hint">預設（北）視角：拖曳任何一支；方向鍵 1px、Shift 5px；[ ] 縮放</div>
-      <button type="button" class="spc-picker-btn" data-action="toggle-picker" data-active="false">選取器：關閉</button>
+      <div class="spc-hint">預設（北）視角。遊戲工具已暫停：點選道具（綠框）後拖曳，同類嘅會一齊移（淡綠框）；方向鍵 1px、Shift 5px、Esc 取消選取；[ ] 縮放；右鍵拖曳移動鏡頭</div>
       <div class="spc-list"></div>
       <div class="spc-scale"><span>大小</span><span class="spc-scale-value"></span><span><button type="button" data-action="scale-down">−</button> <button type="button" data-action="scale-up">＋</button></span></div>
       <div class="spc-actions">
@@ -274,17 +517,16 @@ function createStreetPropCalibrator(options) {
       <div class="spc-message"></div>
     `;
     document.body.appendChild(root);
+    if (typeof makeCalibratorPanelDraggable === 'function') {
+      makeCalibratorPanelDraggable(root, root.querySelector('.spc-title'), `calibrator-panel:${id}`);
+    }
     panel = {
       root,
-      picker: root.querySelector('.spc-picker-btn'),
+      picker: null,
       list: root.querySelector('.spc-list'),
       scaleValue: root.querySelector('.spc-scale-value'),
       message: root.querySelector('.spc-message'),
     };
-    root.querySelector('[data-action="toggle-picker"]').addEventListener('click', () => {
-      const on = setPickerActive(!pickerActive);
-      setMessage(on ? '選取器已開啟：滑鼠掣只會拖曳道具，鍵盤微調生效' : '選取器已關閉：滑鼠掣回復正常工具操作', 'info');
-    });
     root.querySelector('[data-action="scale-down"]').addEventListener('click', () => adjustScale(-scaleStep));
     root.querySelector('[data-action="scale-up"]').addEventListener('click', () => adjustScale(scaleStep));
     root.querySelector('[data-action="reset"]').addEventListener('click', () => reset());
@@ -315,7 +557,12 @@ function createStreetPropCalibrator(options) {
       const facing = facingOf(sprite);
       counts[facing] = (counts[facing] || 0) + 1;
     });
-    panel.list.replaceChildren(...facings.map((facing) => {
+    // A long list (e.g. roadside furniture: kind x kerb edge) only shows facings the city has, or
+    // that already carry a nudge, so the panel stays short.
+    const listed = facings.length > 8
+      ? facings.filter((facing) => counts[facing] || offsets[facing] || facing === selectedFacing)
+      : facings;
+    panel.list.replaceChildren(...listed.map((facing) => {
       const override = offsets[facing];
       const row = document.createElement('div');
       row.className = 'spc-row';
@@ -328,10 +575,17 @@ function createStreetPropCalibrator(options) {
       row.append(name, value);
       return row;
     }));
-    panel.scaleValue.textContent = round(scale ?? shippedScale()) + (scale === null ? '（原值）' : '');
+    if (scaleGroupOf) {
+      const group = selectedGroup();
+      panel.scaleValue.textContent = group
+        ? `${scaleGroupLabels[group] ?? group} ${round(groupScales[group] ?? shippedScale(group))}${groupScales[group] === undefined ? '（原值）' : ''}`
+        : '先拖曳一件';
+    } else {
+      panel.scaleValue.textContent = round(scale ?? shippedScale()) + (scale === null ? '（原值）' : '');
+    }
   }
 
-  return {
+  const calibrator = {
     id,
     getOffset,
     getScale,
@@ -345,12 +599,15 @@ function createStreetPropCalibrator(options) {
     nudge,
     adjustScale,
     buildRecord,
+    pickSpriteAt: (worldX, worldY) => pickSpriteAt(worldX, worldY),
   };
+  STREET_PROP_CALIBRATORS.push(calibrator);
+  return calibrator;
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { createStreetPropCalibrator, STREET_PROP_CALIBRATION_SCHEMA_VERSION };
+  module.exports = { createStreetPropCalibrator, isAnyStreetPropCalibratorCapturing, STREET_PROP_CALIBRATION_SCHEMA_VERSION };
 }
 if (typeof globalThis !== 'undefined') {
-  Object.assign(globalThis, { createStreetPropCalibrator });
+  Object.assign(globalThis, { createStreetPropCalibrator, isAnyStreetPropCalibratorCapturing });
 }

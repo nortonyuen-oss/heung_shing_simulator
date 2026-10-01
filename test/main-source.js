@@ -19,6 +19,7 @@ const MAIN_SOURCE_FILES = [
   'day-night-lighting.js',
   'audio.js',
   'model-assets.js',
+  'model-metadata.js',
   'main.js',
 ];
 

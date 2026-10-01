@@ -8,6 +8,7 @@ const ROOT = path.resolve(__dirname, '..');
 // between these files without its tests having to follow it.
 const MAIN_SOURCE_FILES = [
   'trees.js',
+  'debris.js',
   'main.js',
 ];
 

@@ -18,6 +18,7 @@ const MAIN_SOURCE_FILES = [
   'weather-effects.js',
   'day-night-lighting.js',
   'audio.js',
+  'model-assets.js',
   'main.js',
 ];
 

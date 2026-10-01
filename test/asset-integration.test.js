@@ -162,7 +162,7 @@ test('industrial catalog keeps both 3x3 science parks and classifies every scien
 
   const main = require('./main-source').mainSource;
   const start = main.indexOf('function sortModelFiles(');
-  const end = main.indexOf('\nfunction preload(', start);
+  const end = main.indexOf('\n}\n', main.indexOf('function createModelEntries(', start)) + 3;
   const context = vm.createContext({
     ...catalog,
     DEFAULT_BUILDING_ANCHOR_MODE: 'effective-bottom-to-map-bottom',

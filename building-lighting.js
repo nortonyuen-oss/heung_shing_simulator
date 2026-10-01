@@ -282,18 +282,6 @@ function bilerpBuildingLight(corners, u, v) {
     a * b * tl[1] + u * b * tr[1] + u * v * br[1] + a * v * bl[1],
   ];
 }
-function bilerpBuildingLight(corners, u, v) {
-  const tl = corners[0];
-  const tr = corners[1];
-  const br = corners[2];
-  const bl = corners[3];
-  const a = 1 - u;
-  const b = 1 - v;
-  return [
-    a * b * tl[0] + u * b * tr[0] + u * v * br[0] + a * v * bl[0],
-    a * b * tl[1] + u * b * tr[1] + u * v * br[1] + a * v * bl[1],
-  ];
-}
 
 // Two parallelograms meeting at the near vertical edge (x = 0.5), each slanted
 // at the 1:2 iso rate. Rows/heights vary by class; sheds (ind) show one face.

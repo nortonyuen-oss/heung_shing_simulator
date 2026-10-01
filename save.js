@@ -1265,7 +1265,7 @@ function waitForLoadScene(scene, timeoutMs = 15000) {
   });
 }
 
-function normalizeBridgeMapValue(value) {
+function normalizeSavedBridgeMapValue(value) {
   if (value === null || value === undefined) return null;
   if (typeof value !== 'string') return null;
 
@@ -1291,24 +1291,6 @@ function normalizeBridgeMapValue(value) {
   if (namedDir) return `ramp:${namedDir}`;
 
   return null;
-}
-
-function normalizeSavedTreeValue(value) {
-  if (!value || typeof value !== 'object') return null;
-
-  const species = typeof value.species === 'string' && value.species.trim()
-    ? value.species.trim()
-    : 'pine';
-  const age = Number(value.age);
-  const variant = Number(value.variant);
-  const count = Number(value.count);
-
-  return {
-    species,
-    age: Number.isFinite(age) ? Math.max(0, Math.round(age)) : 0,
-    variant: Number.isFinite(variant) ? Math.max(0, Math.min(1, variant)) : 0,
-    count: Number.isFinite(count) ? Math.max(1, Math.min(3, Math.round(count))) : 1,
-  };
 }
 
 const TERRAIN_ELEVATION_REPAIR_THRESHOLD = 64;
@@ -1383,25 +1365,6 @@ function normalizeSavedTerrainElevation(save) {
   };
 }
 
-function restoreOrGenerateTrees(scene, save) {
-  treeMap = createFilledMap(null);
-  if (typeof invalidateTreeSimulationTiles === 'function') invalidateTreeSimulationTiles();
-
-  if (Array.isArray(save?.treeMap)) {
-    for (let r = 0; r < MAP_HEIGHT; r++) {
-      for (let c = 0; c < MAP_WIDTH; c++) {
-        treeMap[r][c] = normalizeSavedTreeValue((save.treeMap?.[r] ?? [])[c]);
-      }
-    }
-    return;
-  }
-
-  // Legacy saves may not carry tree data. Prefer existing tree generation hooks.
-  if (typeof seedTreesOnMap === 'function') {
-    seedTreesOnMap(scene);
-  }
-}
-
 function restoreBusStopMap(save) {
   busStopMap = createFilledMap(null);
   if (!Array.isArray(save?.busStopMap)) return;
@@ -1471,7 +1434,7 @@ function applySaveData(scene, save) {
   for (let r = 0; r < MAP_HEIGHT; r++) {
     for (let c = 0; c < MAP_WIDTH; c++) {
       const bridgeValue = (save.bridgeMap?.[r] ?? [])[c];
-      bridgeMap[r][c] = normalizeBridgeMapValue(bridgeValue);
+      bridgeMap[r][c] = normalizeSavedBridgeMapValue(bridgeValue);
       const underlay = Number((save.roadUnderlayMap?.[r] ?? [])[c]);
       roadUnderlayMap[r][c] = [GROUND, ROAD, DIRT, BEACH, WATER, HILL].includes(underlay) ? underlay : null;
       if (bridgeMap[r][c]?.startsWith('deck:') && roadUnderlayMap[r][c] !== null && roadUnderlayMap[r][c] !== ROAD) {

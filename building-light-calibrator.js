@@ -409,7 +409,7 @@ function buildingLightCalibrationCanvasToNorm(canvas, x, y) {
   const r = buildingLightCalibrationModelRect(canvas);
   return { nx: (x - r.cx) / r.dw + 0.5, ny: (y - r.cy) / r.dh + 0.5 };
 }
-function clamp01(v) { return Math.max(0, Math.min(1, Number(v) || 0)); }
+function buildingLightCalibrationClamp01(v) { return Math.max(0, Math.min(1, Number(v) || 0)); }
 
 function buildingLightCalibrationHandles(data) {
   const list = [];
@@ -640,8 +640,8 @@ function onBuildingLightCalibrationWorkMove(ev) {
   }
   const data = buildingLightCalibrationCurrentData();
   const n = buildingLightCalibrationCanvasToNorm(dom.work, x, y);
-  const nx = clamp01(n.nx);
-  const ny = clamp01(n.ny);
+  const nx = buildingLightCalibrationClamp01(n.nx);
+  const ny = buildingLightCalibrationClamp01(n.ny);
   const idx = Number(drag.id.slice(1));
   if (drag.id[0] === 'p') {
     const panel = data.panels[buildingLightCalibrationPanelIndex];
@@ -1156,7 +1156,7 @@ function startBuildingLightCalibrator(scene) {
     else if (e.key === 'ArrowDown') dy = step;
     else return;
     e.preventDefault();
-    panel.c = panel.c.map((pt) => [clamp01(pt[0] + dx), clamp01(pt[1] + dy)]);
+    panel.c = panel.c.map((pt) => [buildingLightCalibrationClamp01(pt[0] + dx), buildingLightCalibrationClamp01(pt[1] + dy)]);
     buildingLightCalibrationCommit(data);
     renderBuildingLightCalibration();
   };

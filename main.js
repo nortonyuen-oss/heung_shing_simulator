@@ -5063,16 +5063,6 @@ function removeTreesInFootprint(scene, row, col, footprintCols = 1, footprintRow
   });
 }
 
-function getFootprintTiles(row, col, footprintCols = 1, footprintRows = 1) {
-  const tiles = [];
-  for (let rowOffset = 0; rowOffset < footprintRows; rowOffset++) {
-    for (let colOffset = 0; colOffset < footprintCols; colOffset++) {
-      tiles.push([row + rowOffset, col + colOffset]);
-    }
-  }
-  return tiles;
-}
-
 function getBuildingAnchor(row, col, footprintCols = 1, footprintRows = 1, anchorMode = 'bottom') {
   // The building sprite's origin is (0.5, 1): its base sits at the visually
   // lowest tile of the footprint (maximum screen-Y vertex of the isometric
@@ -5102,10 +5092,6 @@ function getBuildingSortDepth(anchorY, footprintCols = 1, footprintRows = 1, ele
 
 function getFootprintScreenWidth(footprintCols = 1, footprintRows = 1) {
   return (footprintCols + footprintRows) * (TILE_WIDTH / 2);
-}
-
-function getTileId(row, col) {
-  return `${row}:${col}`;
 }
 
 // ── Tool helpers ──────────────────────────────────────────────────────────────
@@ -6185,6 +6171,8 @@ function getOppositeDirection(direction) {
   return { n: 's', e: 'w', s: 'n', w: 'e' }[direction] ?? direction;
 }
 
+// Runs per tile on hot paths, so it only accepts canonical values; older save
+// spellings are folded in once at load by normalizeSavedBridgeMapValue (save.js).
 function normalizeBridgeMapValue(value) {
   if (value === 'row' || value === 'col') return `deck:${value}`;
   if (value === 'deck:row' || value === 'deck:col') return value;

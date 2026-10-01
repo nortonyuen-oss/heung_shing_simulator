@@ -446,9 +446,13 @@ function rememberNormalizedCityStateObject(value) {
   return value;
 }
 
-// Kept in sync with the identically-named function in newspaper.js (loaded after this file, so
-// its definition is what actually runs at the global scope both files share — this copy exists
-// so a reader here isn't misled about what image paths a saved forum post can carry).
+// Forum images migrated from UI/News/*.png to UI/news/*.webp; this also runs on
+// values already in the new format, so it is safe to apply unconditionally to any
+// image path a forum post is built with (migrating old saves, validating new ones).
+// Also accepts a moderator-uploaded news photo proxied through the local server from
+// Cloudflare R2 (see syncPlayerNewsComments()) — the filename is a server-validated
+// UUID+extension, so it's as safe to use as an <img src> as a bundled build-time asset.
+// newspaper.js uses this too; it loads after this file.
 function normalizeForumImagePath(value) {
   const raw = String(value || '');
   if (/^\/api\/forum\/images\/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}\.(jpg|jpeg|png|webp)$/.test(raw)) return raw;

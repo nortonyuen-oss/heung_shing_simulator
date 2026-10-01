@@ -167,8 +167,8 @@ function migrateRoadLinePlacement(p) {
   const cx = p.x * tileW;
   const cy = p.y * tileH;
   const corners = [[-hw, -hh], [hw, -hh], [hw, hh], [-hw, hh]].map(([dx, dy]) => [
-    clamp01((cx + (dx * cos - dy * sin)) / tileW),
-    clamp01((cy + (dx * sin + dy * cos)) / tileH),
+    roadLineCalibrationClamp01((cx + (dx * cos - dy * sin)) / tileW),
+    roadLineCalibrationClamp01((cy + (dx * sin + dy * cos)) / tileH),
   ]);
   const migrated = { marking: p.marking, corners };
   if (typeof p.opacity === 'number') migrated.opacity = p.opacity;
@@ -358,7 +358,7 @@ function roadLineCalibrationCanvasToNorm(canvas, x, y) {
   return { x: (x - r.cx) / r.w + 0.5, y: (y - r.cy) / r.h + 0.5 };
 }
 
-function clamp01(v) { return Math.max(0, Math.min(1, Number(v) || 0)); }
+function roadLineCalibrationClamp01(v) { return Math.max(0, Math.min(1, Number(v) || 0)); }
 
 // Default corners for a freshly-added marking: a centred rectangle matching its own aspect
 // ratio, sized so its longer edge spans 55% of the tile's SHORTER side (these tiles are a wide
@@ -567,12 +567,12 @@ function onRoadLineCalibrationWorkMove(ev) {
   if (!placement) return;
   if (drag.type === 'corner') {
     const n = roadLineCalibrationCanvasToNorm(dom.work, x, y);
-    placement.corners[drag.corner] = [clamp01(n.x), clamp01(n.y)];
+    placement.corners[drag.corner] = [roadLineCalibrationClamp01(n.x), roadLineCalibrationClamp01(n.y)];
   } else if (drag.type === 'move') {
     const tileRect = roadLineCalibrationTileRect(dom.work);
     const dxNorm = (x - drag.sx) / tileRect.w;
     const dyNorm = (y - drag.sy) / tileRect.h;
-    placement.corners = drag.startCorners.map(([cx, cy]) => [clamp01(cx + dxNorm), clamp01(cy + dyNorm)]);
+    placement.corners = drag.startCorners.map(([cx, cy]) => [roadLineCalibrationClamp01(cx + dxNorm), roadLineCalibrationClamp01(cy + dyNorm)]);
   }
   roadLineCalibrationCommit();
   renderRoadLineCalibration();
@@ -596,10 +596,10 @@ function roadLineCalibrationNudgeSelected(dx, dy) {
   const placement = roadLineCalibrationCurrentPlacements()[roadLineCalibrationSelected];
   if (!placement) return;
   if (roadLineCalibrationSelectedCorner === null) {
-    placement.corners = placement.corners.map(([x, y]) => [clamp01(x + dx), clamp01(y + dy)]);
+    placement.corners = placement.corners.map(([x, y]) => [roadLineCalibrationClamp01(x + dx), roadLineCalibrationClamp01(y + dy)]);
   } else {
     const [x, y] = placement.corners[roadLineCalibrationSelectedCorner];
-    placement.corners[roadLineCalibrationSelectedCorner] = [clamp01(x + dx), clamp01(y + dy)];
+    placement.corners[roadLineCalibrationSelectedCorner] = [roadLineCalibrationClamp01(x + dx), roadLineCalibrationClamp01(y + dy)];
   }
   roadLineCalibrationCommit();
   renderRoadLineCalibrationList();

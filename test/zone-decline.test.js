@@ -7,7 +7,6 @@ const vm = require('node:vm');
 const ROOT = path.resolve(__dirname, '..');
 const growthSource = fs.readFileSync(path.join(ROOT, 'sim-growth.js'), 'utf8');
 const mainSource = fs.readFileSync(path.join(ROOT, 'main.js'), 'utf8');
-const mapUtilsSource = fs.readFileSync(path.join(ROOT, 'map-utils.js'), 'utf8');
 
 function createDeclineContext(buildingCount = 1000) {
   const buildingData = {};
@@ -121,7 +120,6 @@ test('power shortage alone does not bypass demand to directly decline buildings'
 test('simulation removals skip immediate full-city refresh while player removals keep it', () => {
   assert.match(mainSource, /function removeBuilding\(scene, row, col, options = \{\}\)/);
   assert.match(mainSource, /options\.refreshInfrastructure !== false[\s\S]*?refreshInfrastructureEffects\(scene\)/);
-  assert.match(mapUtilsSource, /options\.refreshInfrastructure !== false[\s\S]*?refreshInfrastructureEffects\(scene\)/);
   assert.doesNotMatch(
     growthSource,
     /removeBuilding\(scene,\s*(?:r|row),\s*(?:c|col)\s*\)/,

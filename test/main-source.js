@@ -12,6 +12,7 @@ const MAIN_SOURCE_FILES = [
   'bus-stops.js',
   'harbor.js',
   'bridges.js',
+  'terrain-generation.js',
   'main.js',
 ];
 

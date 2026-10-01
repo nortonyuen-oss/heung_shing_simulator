@@ -15,6 +15,7 @@ const MAIN_SOURCE_FILES = [
   'terrain-generation.js',
   'terrain-scenarios.js',
   'tile-keys.js',
+  'weather-effects.js',
   'main.js',
 ];
 

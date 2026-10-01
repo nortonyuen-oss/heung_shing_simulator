@@ -135,8 +135,8 @@ test('the bundled showcase city decodes with the current save format', () => {
 test('every gate that keeps the showcase inert is wired', () => {
   const read = (file) => fs.readFileSync(path.join(ROOT, file), 'utf8');
   assert.match(read('game-clock.js'), /isAttractModeActive\(\)\) return;\n  advanceCalendarForEnvironmentMinutes/);
-  assert.match(read('main.js'), /function triggerAutosave\(\) \{[\s\S]{0,200}isAttractModeActive/);
-  assert.match(read('main.js'), /function updateAmbientSoundscape\(scene\) \{[\s\S]{0,200}isAttractModeActive/);
+  assert.match(require('./main-source').mainSource, /function triggerAutosave\(\) \{[\s\S]{0,200}isAttractModeActive/);
+  assert.match(require('./main-source').mainSource, /function updateAmbientSoundscape\(scene\) \{[\s\S]{0,200}isAttractModeActive/);
   assert.match(read('hud.js'), /function showToast\([^)]*\) \{\n  if \(typeof isAttractModeActive/);
   assert.match(read('save.js'), /function saveGame\([^)]*\) \{[\s\S]{0,200}isAttractModeActive/);
   assert.match(read('save.js'), /function scheduleAnnualAutosave\(\) \{\n  if \(typeof isAttractModeActive/);

@@ -205,7 +205,7 @@ test('paused target becomes draggable, records drag end and releases ownership o
 
 test('browser script loads generic calibrator before domain adapters', () => {
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  const main = fs.readFileSync(path.join(ROOT, 'main.js'), 'utf8');
+  const main = require('./main-source').mainSource;
   assert.match(
     html,
     /traffic-visuals\.js[\s\S]*vessel-route-metadata\.js[\s\S]*visual-route-calibrator\.js[\s\S]*vessel-visuals\.js[\s\S]*main\.js/,

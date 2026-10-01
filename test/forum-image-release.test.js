@@ -36,7 +36,7 @@ test('resolution result news uses packaged WebP assets at generation and display
 });
 
 test('startup does not request the removed legacy building tile set', () => {
-  const main = fs.readFileSync(path.join(ROOT, 'main.js'), 'utf8');
+  const main = require('./main-source').mainSource;
   const catalog = fs.readFileSync(path.join(ROOT, 'model-catalog.js'), 'utf8');
   assert.doesNotMatch(main, /Models\/PNG\/buildingTiles_/);
   assert.doesNotMatch(main, /BUILDING_KEYS\.forEach/);

@@ -155,7 +155,7 @@ test('moon crosses east to west over a clear cross-midnight HKO rise/set arc', (
 });
 
 test('celestial layers stay behind terrain while weather and night masks stay above it', () => {
-  const main = fs.readFileSync(path.join(ROOT, 'main.js'), 'utf8');
+  const main = require('./main-source').mainSource;
   assert.match(main, /scene\.starField\.setDepth\(-100\)/);
   assert.match(main, /scene\.moonSprite\.setDepth\(-99\)/);
   assert.match(main, /scene\.nightOverlay\.setDepth\(999997\)/);
@@ -167,7 +167,7 @@ test('the night object tint never overshoots: k is the clamped ground share, so 
   const fs = require('node:fs');
   const path = require('node:path');
   const vm = require('node:vm');
-  const main = fs.readFileSync(path.join(path.resolve(__dirname, '..'), 'main.js'), 'utf8');
+  const main = require('./main-source').mainSource;
   const tint = main.slice(main.indexOf('function applyNightObjectTint('), main.indexOf('function updateDynamicLighting('));
   assert.match(tint, /const k = Math\.max\(0, Math\.min\(1, Number\(ground\) \|\| 0\)\);/);
   // Evaluate the tree tint the function produces at the midnight peak.
@@ -192,7 +192,7 @@ test('a night tint step re-tints what is on screen now and the rest as it comes 
   const fs = require('node:fs');
   const path = require('node:path');
   const vm = require('node:vm');
-  const main = fs.readFileSync(path.join(path.resolve(__dirname, '..'), 'main.js'), 'utf8');
+  const main = require('./main-source').mainSource;
   const tint = main.slice(main.indexOf('function applyNightObjectTint('), main.indexOf('function updateDynamicLighting('));
   const context = vm.createContext({ Math, Number });
   vm.runInContext(`

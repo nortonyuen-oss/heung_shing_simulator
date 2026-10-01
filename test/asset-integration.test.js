@@ -117,7 +117,7 @@ test('zone-model fallback catalogs contain only files that ship', () => {
 });
 
 test('lazy zone metadata scans do not query Phaser for unloaded texture keys', () => {
-  const main = fs.readFileSync(path.join(ROOT, 'main.js'), 'utf8');
+  const main = require('./main-source').mainSource;
   const helperStart = main.indexOf('function getLoadedZoneModelSource(');
   const helperEnd = main.indexOf('\nfunction prepareHouseModelMetadata(', helperStart);
   const helperSource = main.slice(helperStart, helperEnd);
@@ -160,7 +160,7 @@ test('industrial catalog keeps both 3x3 science parks and classifies every scien
   assert.equal(config3x3.disabledFiles, undefined);
   assert.equal(catalog.isScienceParkModel({ sourceFileName: 'sicencePark2-03.webp' }), true);
 
-  const main = fs.readFileSync(path.join(ROOT, 'main.js'), 'utf8');
+  const main = require('./main-source').mainSource;
   const start = main.indexOf('function sortModelFiles(');
   const end = main.indexOf('\nfunction preload(', start);
   const context = vm.createContext({
@@ -316,7 +316,7 @@ test('large transport sources use transparent PNG canvases', () => {
 });
 
 test('container-port suffixes match the isometric screen edge containing water', () => {
-  const source = fs.readFileSync(path.join(ROOT, 'main.js'), 'utf8');
+  const source = require('./main-source').mainSource;
   const rotateStart = source.indexOf('function rotateDirection(');
   const rotateEnd = source.indexOf('\nfunction rotateTileKey(', rotateStart);
   const harborStart = source.indexOf('function getHarborWaterSides(');
@@ -413,7 +413,7 @@ test('container-port suffixes match the isometric screen edge containing water',
 test('updated model metadata anchors the true lowest corner to the map', () => {
   const constants = fs.readFileSync(path.join(ROOT, 'constants.js'), 'utf8');
   const catalog = fs.readFileSync(path.join(ROOT, 'model-catalog.js'), 'utf8');
-  const main = fs.readFileSync(path.join(ROOT, 'main.js'), 'utf8');
+  const main = require('./main-source').mainSource;
 
   assert.match(constants, /DEFAULT_BUILDING_ANCHOR_MODE\s*=\s*'effective-bottom-to-map-bottom'/);
   assert.match(catalog, /modelMetadata:v10/);
@@ -528,7 +528,7 @@ test('religious buildings have bounded community-support effects', () => {
 
 test('new airports load as 12x12 while old saves retain safe 6x6 and 8x8 fallbacks', () => {
   const constants = fs.readFileSync(path.join(ROOT, 'constants.js'), 'utf8');
-  const main = fs.readFileSync(path.join(ROOT, 'main.js'), 'utf8');
+  const main = require('./main-source').mainSource;
   const save = fs.readFileSync(path.join(ROOT, 'save.js'), 'utf8');
 
   assert.match(constants, /airport:\s*\{[\s\S]*?spriteKey:\s*'airport_12x12'[\s\S]*?cacheVersion:[\s\S]*?footprintCols:\s*12[\s\S]*?footprintRows:\s*12/);
@@ -542,7 +542,7 @@ test('new airports load as 12x12 while old saves retain safe 6x6 and 8x8 fallbac
 });
 
 test('world mask expands dynamically for tall building sprites', () => {
-  const main = fs.readFileSync(path.join(ROOT, 'main.js'), 'utf8');
+  const main = require('./main-source').mainSource;
   const start = main.indexOf('const WORLD_MASK_BASE_EDGE_BLEED');
   const end = main.indexOf('function drawWorldMask', start);
   assert.ok(start >= 0 && end > start);
@@ -598,7 +598,7 @@ test('the bulkiest 2x2 residential towers stay dialed down in the spawn roll', (
 
   // The override is keyed by file name, so it has to survive the .png -> .webp
   // swap that packaged builds serve, and it has to reach the weighted roll.
-  const main = fs.readFileSync(path.join(ROOT, 'main.js'), 'utf8');
+  const main = require('./main-source').mainSource;
   assert.match(main, /config\.fileOverrides\?\.\[`\$\{baseName\}\.png`\][\s\S]*?config\.fileOverrides\?\.\[`\$\{baseName\}\.webp`\]/);
   const growth = fs.readFileSync(path.join(ROOT, 'sim-growth.js'), 'utf8');
   assert.match(growth, /weight \*= Number\.isFinite\(model\?\.spawnWeight\) \? model\.spawnWeight : 1;/);
@@ -606,7 +606,7 @@ test('the bulkiest 2x2 residential towers stay dialed down in the spawn roll', (
 
 test('PARK_MODELS is the one art table the picker, preload, bake and calibrator share', () => {
   const constants = loadScriptValues('constants.js', '({ PARK_MODELS, HARBOR_MODELS, BUS_DEPOT_MODELS })');
-  const main = fs.readFileSync(path.join(ROOT, 'main.js'), 'utf8');
+  const main = require('./main-source').mainSource;
 
   // every park / sports-ground sprite key the pickers hand out has art here
   const pickerKeys = [...main.matchAll(/spriteKey: '(park_[a-z_]+)'/g)].map((m) => m[1]);
@@ -625,7 +625,7 @@ test('PARK_MODELS is the one art table the picker, preload, bake and calibrator 
   // the night bake finds fixed models by scanning for spriteKey/path pairs, so
   // the table has to keep that shape - and the port and depot already do
   const re = /spriteKey:\s*'([^']+)'[\s\S]{0,240}?path:\s*'(Models\/[^']+)'/g;
-  const sources = ['constants.js', 'main.js'].map((f) => fs.readFileSync(path.join(ROOT, f), 'utf8')).join('\n');
+  const sources = [fs.readFileSync(path.join(ROOT, 'constants.js'), 'utf8'), require('./main-source').mainSource].join('\n');
   const hits = new Map();
   for (const m of sources.matchAll(re)) if (!hits.has(m[1])) hits.set(m[1], m[2]);
   ['park_large', 'park_small_open', 'park_flagship_victoria', 'harbor_ll', 'bus_depot_ll'].forEach((key) => {

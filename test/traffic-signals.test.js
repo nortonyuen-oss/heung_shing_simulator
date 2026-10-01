@@ -6,7 +6,7 @@ const test = require('node:test');
 
 const ROOT = path.resolve(__dirname, '..');
 const source = (fileName) => fs.readFileSync(path.join(ROOT, fileName), 'utf8');
-const mainSource = source('main.js');
+const { mainSource } = require('./main-source');
 
 // Slice a top-level `function name(...) {...}` out of main.js so the placement logic runs
 // against the real helpers it depends on in the browser.

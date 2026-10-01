@@ -5,7 +5,7 @@ const vm = require('node:vm');
 const test = require('node:test');
 
 const ROOT = path.resolve(__dirname, '..');
-const main = fs.readFileSync(path.join(ROOT, 'main.js'), 'utf8');
+const main = require('./main-source').mainSource;
 const slice = (name) => {
   const start = main.indexOf(`\nfunction ${name}(`);
   assert.ok(start >= 0, `${name} must remain extractable`);

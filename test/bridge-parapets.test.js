@@ -7,7 +7,7 @@ const sharp = require('sharp');
 
 const ROOT = path.resolve(__dirname, '..');
 const source = (fileName) => fs.readFileSync(path.join(ROOT, fileName), 'utf8');
-const mainSource = source('main.js');
+const { mainSource } = require('./main-source');
 
 function sliceFunction(name) {
   const start = mainSource.indexOf(`\nfunction ${name}(`);

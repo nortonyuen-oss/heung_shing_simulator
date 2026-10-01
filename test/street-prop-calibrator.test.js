@@ -127,7 +127,7 @@ test('an open calibrator owns the mouse: a click picks the prop under it, a miss
 });
 
 test('while a calibrator owns the mouse, right-drag still pans the camera', () => {
-  const main = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'main.js'), 'utf8');
+  const main = require('./main-source').mainSource;
   assert.match(main, /this\.input\.on\('pointerdown',[\s\S]{0,200}isVisualRouteCalibrationInputCaptured\(this\) && pointer\.button !== 2\) return;/);
   assert.match(main, /this\.input\.on\('pointermove',[\s\S]{0,200}isVisualRouteCalibrationInputCaptured\(this\) && !this\.isPanning\) return;/);
   const guard = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'visual-route-calibrator.js'), 'utf8');

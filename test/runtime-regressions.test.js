@@ -405,7 +405,7 @@ test('desktop package explicitly includes forum WebP assets', () => {
 });
 
 test('menu controls bind before asynchronous model discovery and forum opening is failure-tolerant', () => {
-  const main = fs.readFileSync(path.join(ROOT, 'main.js'), 'utf8');
+  const main = require('./main-source').mainSource;
   const newspaper = fs.readFileSync(path.join(ROOT, 'newspaper.js'), 'utf8');
   const initializeStart = main.indexOf('async function initializeGame()');
   const initializeEnd = main.indexOf('\nfunction loadModelAssetManifest()', initializeStart);

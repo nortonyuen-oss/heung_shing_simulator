@@ -16,7 +16,7 @@ const sliceFunction = (src, name) => {
 
 test('the vertex upload shim turns Phaser\'s whole-batch bufferSubData into bufferData and nothing else', () => {
   const context = vm.createContext({ ArrayBuffer, Uint8Array, Float32Array });
-  vm.runInContext(sliceFunction(source('main.js'), 'installVertexUploadShim'), context);
+  vm.runInContext(sliceFunction(require('./main-source').mainSource, 'installVertexUploadShim'), context);
   const calls = [];
   const gl = {
     ARRAY_BUFFER: 34962, ELEMENT_ARRAY_BUFFER: 34963, DYNAMIC_DRAW: 35048,
@@ -39,7 +39,7 @@ test('the vertex upload shim turns Phaser\'s whole-batch bufferSubData into buff
   gl.bufferSubData(gl.ARRAY_BUFFER, 0, view, 4, 8);
   assert.equal(calls.at(-1)[0], 'bufferSubData', 'the srcOffset/length overload is left alone');
 
-  const main = source('main.js');
+  const main = require('./main-source').mainSource;
   const create = main.slice(main.indexOf('\nfunction create() {'));
   assert.ok(create.slice(0, 200).includes('installVertexUploadShim(this.game?.renderer)'), 'installed before the first frame renders');
 });
@@ -100,7 +100,7 @@ test('the calendar schedules the pulse, the frame loop pumps it, and a save flus
   assert.ok(day.includes('scheduleCitySimulationPulse(scene, () => finishPulse(true))'), 'a pulse day schedules the pulse');
   assert.ok(day.includes('runLegacyCitySimulationPulse(scene);\n      finishPulse(false)'), 'without a scheduler it still runs synchronously');
   assert.match(day, /const finishPulse = \(refreshHud\) => \{\n\s*city\.tick\+\+;\n\s*emitGameClockEvent\('gameclock:citypulse'/, 'the tick and the event follow the last step');
-  const main = source('main.js');
+  const main = require('./main-source').mainSource;
   const frame = main.slice(main.indexOf('\nfunction updateGameFrame('), main.indexOf('\nfunction addToRenderLayer('));
   assert.ok(frame.includes('pumpCitySimulationPulse()'), 'the frame loop pumps queued pulses');
   const save = source('save.js');

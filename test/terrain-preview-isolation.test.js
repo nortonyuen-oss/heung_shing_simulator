@@ -13,7 +13,7 @@ function getFunctionSource(source, functionName) {
 }
 
 test('terrain previews cannot overwrite the active city elevation state', () => {
-  const main = fs.readFileSync(path.join(ROOT, 'main.js'), 'utf8');
+  const main = require('./main-source').mainSource;
   const landing = fs.readFileSync(path.join(ROOT, 'landing-screen.js'), 'utf8');
   const generator = getFunctionSource(main, 'generateRealisticTerrainMap');
   const defaultWorldGenerator = getFunctionSource(main, 'generateTerrainMap');

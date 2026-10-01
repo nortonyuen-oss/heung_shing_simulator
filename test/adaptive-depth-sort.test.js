@@ -4,7 +4,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 const test = require('node:test');
 
-const mainSource = fs.readFileSync(path.join(__dirname, '..', 'main.js'), 'utf8');
+const { mainSource } = require('./main-source');
 
 function sliceFunction(name) {
   const start = mainSource.indexOf(`\nfunction ${name}(`);

@@ -6,7 +6,7 @@ const vm = require('node:vm');
 
 const ROOT = path.resolve(__dirname, '..');
 const growthSource = fs.readFileSync(path.join(ROOT, 'sim-growth.js'), 'utf8');
-const mainSource = fs.readFileSync(path.join(ROOT, 'main.js'), 'utf8');
+const { mainSource } = require('./main-source');
 
 function createDeclineContext(buildingCount = 1000) {
   const buildingData = {};

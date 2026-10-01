@@ -17,7 +17,7 @@ function source(fileName) {
 }
 
 test('vessel sound registry ships a playable horn effect', () => {
-  const main = source('main.js');
+  const main = require('./main-source').mainSource;
   assert.match(main, /key: 'vessel_horn'.*file: 'Sounds\/vesselFlute\.m4a'/);
   const filePath = path.join(ROOT, 'Sounds/vesselFlute.m4a');
   assert.ok(fs.existsSync(filePath));
@@ -727,7 +727,7 @@ test('cached port route is reused while its spawn point stays off-screen, recomp
 
 test('vessel module is wired into Phaser lifecycle and remains visual-only', () => {
   const html = source('index.html');
-  const main = source('main.js');
+  const main = require('./main-source').mainSource;
   const moduleSource = source('vessel-visuals.js');
   assert.match(html, /traffic-visuals\.js[\s\S]*vessel-route-metadata\.js[\s\S]*visual-route-calibrator\.js[\s\S]*vessel-visuals\.js[\s\S]*main\.js/);
   assert.match(main, /setupVesselVisuals\(this\)/);

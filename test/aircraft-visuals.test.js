@@ -25,7 +25,7 @@ function source(fileName) {
 }
 
 test('aircraft sound registry ships playable landing and takeoff effects', () => {
-  const main = source('main.js');
+  const main = require('./main-source').mainSource;
   assert.match(main, /key: 'aircraft_landing'.*file: 'Sounds\/aircraftLanding\.m4a'/);
   assert.match(main, /key: 'aircraft_takeoff'.*file: 'Sounds\/aircraftTakeoff\.m4a'/);
   ['Sounds/aircraftLanding.m4a', 'Sounds/aircraftTakeoff.m4a'].forEach((file) => {
@@ -662,7 +662,7 @@ test('an aircraft event walks inbound -> landingRoll -> taxiIn -> parked -> taxi
 
 test('aircraft module is wired into Phaser lifecycle and remains visual-only', () => {
   const html = source('index.html');
-  const main = source('main.js');
+  const main = require('./main-source').mainSource;
   const moduleSource = source('aircraft-visuals.js');
   assert.match(html, /vessel-visuals\.js[\s\S]*?aircraft-route-metadata\.js[\s\S]*?aircraft-visuals\.js[\s\S]*?main\.js/);
   assert.match(main, /setupAircraftVisuals\(this\)/);

@@ -332,7 +332,7 @@ test('the frame loop feeds the clock the raw frame delta and the topbar follows 
   const fs = require('node:fs');
   const path = require('node:path');
   const ROOT = path.resolve(__dirname, '..');
-  const main = fs.readFileSync(path.join(ROOT, 'main.js'), 'utf8');
+  const main = require('./main-source').mainSource;
   const frame = main.slice(main.indexOf('function updateGameFrame('), main.indexOf('function updateGameFrame(') + 1500);
   // Phaser's smoothed delta is clamped to the 60fps target while the window
   // is unfocused or cooling down, and averaged over ten frames; at 40fps it

@@ -1059,7 +1059,7 @@ test('traffic texture LRU never evicts a model used by a managed route bus', () 
 
 test('traffic module is loaded before main and wired into lifecycle invalidation hooks', () => {
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  const main = fs.readFileSync(path.join(ROOT, 'main.js'), 'utf8');
+  const main = require('./main-source').mainSource;
   const landing = fs.readFileSync(path.join(ROOT, 'landing-screen.js'), 'utf8');
   const topbar = fs.readFileSync(path.join(ROOT, 'topbar.js'), 'utf8');
   const save = fs.readFileSync(path.join(ROOT, 'save.js'), 'utf8');
@@ -1092,7 +1092,7 @@ test('traffic module is loaded before main and wired into lifecycle invalidation
 
 test('all traffic textures resolve through the model asset pipeline without legacy bus paths', () => {
   const trafficSource = fs.readFileSync(path.join(ROOT, 'traffic-visuals.js'), 'utf8');
-  const main = fs.readFileSync(path.join(ROOT, 'main.js'), 'utf8');
+  const main = require('./main-source').mainSource;
   assert.match(trafficSource, /resolveModelAssetPath\(path\)/);
   assert.doesNotMatch(trafficSource, /kmb[A-Z]{2}_fixed\.png/);
   assert.doesNotMatch(trafficSource, /TRAFFIC_BUS_TEXTURES/);

@@ -63,11 +63,11 @@ test('tracker manager supports duplicate focus, minimise cleanup and target life
   assert.match(moduleSource, /function closeAllVehicleTrackingWindows\(/);
   assert.match(moduleSource, /transport\.tracker\.unavailable/);
   assert.match(source('transport-ui.js'), /closeAllVehicleTrackingWindows\(\)/);
-  assert.match(source('main.js'), /function fullReset\(scene\) \{[\s\S]*?closeAllVehicleTrackingWindows\(\)/);
+  assert.match(require('./main-source').mainSource, /function fullReset\(scene\) \{[\s\S]*?closeAllVehicleTrackingWindows\(\)/);
 });
 
 test('the one game update loop schedules trackers and culls the union of independent camera views', () => {
-  const main = source('main.js');
+  const main = require('./main-source').mainSource;
   assert.match(main, /updateGameClock\(this, clockDeltaMs\);[\s\S]*?beginVehicleTrackerFrame\(this, time, delta\)/);
   assert.match(main, /syncVehicleTrackerTargetsBeforeRender\(this, time\);[\s\S]*?updateTerrainViewportCulling\(this\)/);
   assert.match(main, /getActiveWorldViewportCameras/);

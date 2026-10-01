@@ -208,7 +208,7 @@ test('baked night variants are never listed as models', () => {
   assert.match(server, /isDerivedNightVariant/);
   assert.match(server, /__night\(half\|deep\|lamps\)\?/);
 
-  const main = fs.readFileSync(path.join(ROOT, 'main.js'), 'utf8');
+  const main = require('./main-source').mainSource;
   const sortFn = main.slice(main.indexOf('function sortModelFiles('));
   assert.match(sortFn.slice(0, 2000), /__night\(half\|deep\|lamps\)\?/, 'sortModelFiles must filter night variants');
 
@@ -234,7 +234,7 @@ test('a redeveloped lot never keeps the previous model\'s night art', () => {
   assert.match(swap, /sprite\.__dayTextureKey = null/);
   assert.match(swap, /sprite\.skipNightTint = false/);
 
-  const main = fs.readFileSync(path.join(ROOT, 'main.js'), 'utf8');
+  const main = require('./main-source').mainSource;
   // The record is rewritten by placement, save load and redevelopment alike,
   // so it has to win over the sprite's copy in both lookups.
   const nightKey = main.slice(main.indexOf('function getBuildingNightSlug('));
@@ -279,7 +279,7 @@ test('a baked model keeps a beacons-only glow so its indicator lights still blin
 test('a fixed building resolves its baked night art from the model table', () => {
   const fs = require('node:fs');
   const path = require('node:path');
-  const main = fs.readFileSync(path.join(path.resolve(__dirname, '..'), 'main.js'), 'utf8');
+  const main = require('./main-source').mainSource;
   // Service, landmark, power, port, depot and park records carry a sprite key
   // and no filename; the bake names their night textures after the art file
   // in the model table, so that is where the runtime has to look too.
@@ -410,7 +410,7 @@ test('each building picks its own night variant, and the city lights up and dims
   const fs = require('node:fs');
   const path = require('node:path');
   const ROOT = path.resolve(__dirname, '..');
-  const main = fs.readFileSync(path.join(ROOT, 'main.js'), 'utf8');
+  const main = require('./main-source').mainSource;
   const sync = main.slice(main.indexOf('function syncBuildingNightTextures('), main.indexOf('// ── Night darkness split'));
   assert.match(sync, /getBuildingNightVariantWindow\(/);
   assert.match(sync, /getBuildingLightSeed\(sprite\.mapRow, sprite\.mapCol\), minute, sunset,/);
@@ -429,7 +429,7 @@ test('the small hours are darker than the evening, for the ground and the baked 
   const fs = require('node:fs');
   const path = require('node:path');
   const ROOT = path.resolve(__dirname, '..');
-  const main = fs.readFileSync(path.join(ROOT, 'main.js'), 'utf8');
+  const main = require('./main-source').mainSource;
   const passes = main.slice(main.indexOf('function computeNightDarknessPasses('), main.indexOf('function applyNightDarkness('));
   assert.match(passes, /deepNightDepth = 0/);
   assert.match(passes, /NIGHT_DARKNESS_PEAK \+ \(NIGHT_DARKNESS_DEEP_PEAK - NIGHT_DARKNESS_PEAK\) \* depth/);
@@ -447,7 +447,7 @@ test('a city loaded after dark fetches its night art first, and a building built
   const fs = require('node:fs');
   const path = require('node:path');
   const ROOT = path.resolve(__dirname, '..');
-  const main = fs.readFileSync(path.join(ROOT, 'main.js'), 'utf8');
+  const main = require('./main-source').mainSource;
   const save = fs.readFileSync(path.join(ROOT, 'save.js'), 'utf8');
   const growth = fs.readFileSync(path.join(ROOT, 'sim-growth.js'), 'utf8');
 
@@ -540,7 +540,7 @@ test('the building-light walk runs ten times a second; beacons still pulse every
   const src = fs.readFileSync(path.join(path.resolve(__dirname, '..'), 'building-lighting.js'), 'utf8');
   const update = src.slice(src.indexOf('function updateBuildingLights('), src.indexOf('const buildingLightingTestApi'));
   assert.match(update, /if \(time < \(s\.__blNextWalkAt \|\| 0\)\) \{[\s\S]*?glow\.hasBeacons[\s\S]*?return;\n\s*\}\n\s*s\.__blNextWalkAt = time \+ BUILDING_LIGHT_WALK_INTERVAL_MS;/);
-  const main = fs.readFileSync(path.join(path.resolve(__dirname, '..'), 'main.js'), 'utf8');
+  const main = require('./main-source').mainSource;
   const sync = main.slice(main.indexOf('function syncBuildingNightTextures('), main.indexOf('// ── Night darkness split'));
   assert.match(sync, /getBuildingNightVariantWindow\(/, 'the night texture sync uses the window memo');
   assert.match(sync, /line < sprite\.__nightWindowUntil/, 'a building is skipped until its next change');

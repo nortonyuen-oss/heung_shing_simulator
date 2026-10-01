@@ -62,7 +62,7 @@ test('release conversion preserves source edges and restores power-of-two mipmap
 });
 
 test('Phaser model literals are routed through the model asset resolver', () => {
-  const main = fs.readFileSync(path.join(ROOT, 'main.js'), 'utf8');
+  const main = require('./main-source').mainSource;
   const directModelLoads = main.split('\n').filter((line) => (
     line.includes('.load.image(') && line.includes('Models/')
   ));

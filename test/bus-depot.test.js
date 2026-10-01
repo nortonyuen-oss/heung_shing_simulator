@@ -5,7 +5,7 @@ const test = require('node:test');
 const vm = require('node:vm');
 
 const ROOT = path.resolve(__dirname, '..');
-const mainSource = fs.readFileSync(path.join(ROOT, 'main.js'), 'utf8');
+const { mainSource } = require('./main-source');
 
 // Pulls the real getBusDepotVisualCorner/getBusDepotVisualKey/
 // getBusDepotRawSideForCorner bodies straight out of main.js (rather than

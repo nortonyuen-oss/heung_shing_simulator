@@ -32,7 +32,7 @@ test('all airport footprint profiles resolve to one canonical texture key', () =
 });
 
 test('fixed-building manifest geometry produces footprint-specific metadata without image scans', () => {
-  const main = fs.readFileSync(path.join(ROOT, 'main.js'), 'utf8');
+  const main = require('./main-source').mainSource;
   const source = getFunctionSource(main, 'getManifestFixedBuildingModelMetadata');
   const context = vm.createContext({
     modelAssetManifest: {

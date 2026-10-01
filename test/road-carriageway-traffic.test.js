@@ -30,7 +30,7 @@ function createRoadContext(size, isRoad) {
   for (const file of ['game-clock.js', 'traffic-visuals.js']) {
     vm.runInContext(fs.readFileSync(path.join(ROOT, file), 'utf8'), context, { filename: file });
   }
-  const main = fs.readFileSync(path.join(ROOT, 'main.js'), 'utf8');
+  const main = require('./main-source').mainSource;
   const start = main.indexOf('const CARRIAGEWAY_MAX_BAND_WIDTH');
   const end = main.indexOf('// Determine which road tile to use based on neighbouring roads');
   vm.runInContext(main.slice(start, end), context, { filename: 'main.js#carriageway' });

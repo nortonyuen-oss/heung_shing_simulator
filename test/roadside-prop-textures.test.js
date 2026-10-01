@@ -30,7 +30,7 @@ for (const [family, files, anchor] of [
 
 const fs = require('node:fs');
 const vm = require('node:vm');
-const mainSource = fs.readFileSync(path.join(ROOT, 'main.js'), 'utf8');
+const { mainSource } = require('./main-source');
 const sliceFunction = (name) => {
   const start = mainSource.indexOf(`\nfunction ${name}(`);
   assert.ok(start >= 0, `${name} must remain extractable from main.js`);

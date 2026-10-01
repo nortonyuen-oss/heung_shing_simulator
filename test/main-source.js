@@ -10,6 +10,7 @@ const MAIN_SOURCE_FILES = [
   'trees.js',
   'debris.js',
   'bus-stops.js',
+  'harbor.js',
   'main.js',
 ];
 

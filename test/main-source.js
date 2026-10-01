@@ -9,6 +9,7 @@ const ROOT = path.resolve(__dirname, '..');
 const MAIN_SOURCE_FILES = [
   'trees.js',
   'debris.js',
+  'bus-stops.js',
   'main.js',
 ];
 

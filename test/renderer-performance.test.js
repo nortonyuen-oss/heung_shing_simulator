@@ -243,7 +243,7 @@ test('map controls expose music and independently wired top-right zoom buttons',
 
 test('top-right zoom buttons dispatch both zoom directions from their own container', () => {
   const start = mainSource.indexOf('function setupRotateCluster()');
-  const end = mainSource.indexOf('// ── Jukebox floating window', start);
+  const end = mainSource.indexOf('\n}\n', start) + 3;
   let zoomClick = null;
   let pointerDown = null;
   const directions = [];

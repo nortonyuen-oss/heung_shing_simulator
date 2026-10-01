@@ -17,6 +17,7 @@ const MAIN_SOURCE_FILES = [
   'tile-keys.js',
   'weather-effects.js',
   'day-night-lighting.js',
+  'audio.js',
   'main.js',
 ];
 

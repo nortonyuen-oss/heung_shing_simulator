@@ -13,6 +13,7 @@ const MAIN_SOURCE_FILES = [
   'harbor.js',
   'bridges.js',
   'terrain-generation.js',
+  'terrain-scenarios.js',
   'main.js',
 ];
 

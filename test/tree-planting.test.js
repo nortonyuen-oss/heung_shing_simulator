@@ -6,7 +6,7 @@ const test = require('node:test');
 
 const ROOT = path.resolve(__dirname, '..');
 const source = (name) => fs.readFileSync(path.join(ROOT, name), 'utf8');
-const mainSource = source('main.js');
+const { mainSource } = require('./main-source');
 const growthSource = source('sim-growth.js');
 
 function sliceFunction(text, name) {

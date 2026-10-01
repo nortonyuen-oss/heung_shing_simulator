@@ -5,7 +5,7 @@ const vm = require('node:vm');
 const test = require('node:test');
 
 const ROOT = path.resolve(__dirname, '..');
-const mainSource = fs.readFileSync(path.join(ROOT, 'main.js'), 'utf8');
+const { mainSource } = require('./main-source');
 const htmlSource = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 const growthSource = fs.readFileSync(path.join(ROOT, 'sim-growth.js'), 'utf8');
 const simulationSource = fs.readFileSync(path.join(ROOT, 'simulation.js'), 'utf8');

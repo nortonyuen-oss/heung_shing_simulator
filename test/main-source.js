@@ -22,6 +22,7 @@ const MAIN_SOURCE_FILES = [
   'model-metadata.js',
   'render-performance.js',
   'viewport-culling.js',
+  'building-placement.js',
   'main.js',
 ];
 

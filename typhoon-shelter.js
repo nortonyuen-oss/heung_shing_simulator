@@ -28,11 +28,13 @@ const TYPHOON_SHELTER_MIN_SHORE_RUN = 3;
 const TYPHOON_SHELTER_MIN_RING_RUN = 2;
 const TYPHOON_SHELTER_CHANNEL_WIDTH = 2;
 const TYPHOON_SHELTER_DEFAULT_RESERVE_PCT = 20;
+// Rough per-tile figures for the planning preview; the bill a plan is charged comes from its
+// actual works list (typhoon-shelter-works.js), which these mirror.
 const TYPHOON_SHELTER_COST = Object.freeze({
-  breakwaterPerTile: 900,
-  head: 2500,
-  demolishPerTile: 300,
-  maintenancePerTile: 15,
+  breakwaterPerTile: 30,
+  head: 200,
+  demolishPerTile: 10,
+  maintenancePerTile: 0.5,
 });
 
 const TS_DIRS = Object.freeze({
@@ -644,7 +646,8 @@ function normalizeTyphoonShelterPlan(raw) {
       .slice(0, 6)
       .map((e) => ({ side: e.side, along: Math.round(e.along), width: Math.max(1, Math.min(3, Math.round(e.width || 2))) })),
     reservePct: Number.isFinite(raw.reservePct) ? Math.max(0, Math.min(40, Math.round(raw.reservePct))) : TYPHOON_SHELTER_DEFAULT_RESERVE_PCT,
-    status: ['planned', 'queued', 'building', 'operational'].includes(raw.status) ? raw.status : 'planned',
+    // planned -> built (all works up, pier not on a road yet) -> operational
+    status: ['planned', 'built', 'operational'].includes(raw.status) ? raw.status : (raw.works?.approved ? 'built' : 'planned'),
     // Phase 2 construction (typhoon-shelter-works.js)
     ...(raw.works && typeof normalizeTyphoonShelterWorks === 'function' ? { works: normalizeTyphoonShelterWorks(raw.works) } : {}),
   };

@@ -10,6 +10,12 @@
 // data/typhoon-shelter-placement.json, calibrated with the 避風塘素材校準 tool.
 
 const TYPHOON_SHELTER_PLACEMENT_URL = 'data/typhoon-shelter-placement.json';
+// How far a shore-aligned object (a pier on the water's edge) reaches over the shoreline, in metres:
+// the water tiles along a coast draw part of the shore in their own art, so a pier merely touching
+// its tile's edge still looks adrift.
+const TYPHOON_SHELTER_SHORE_OVERLAP_M = 8;
+const TYPHOON_SHELTER_LOGICAL_STEP = Object.freeze({ n: [-1, 0], e: [0, 1], s: [1, 0], w: [0, -1] });
+const TYPHOON_SHELTER_LOGICAL_BACK = Object.freeze({ n: 's', s: 'n', e: 'w', w: 'e' });
 const TYPHOON_SHELTER_TEXTURE_PREFIX = 'typhoonShelter:';
 
 let typhoonShelterPlacement = { parts: {}, objects: {} };
@@ -233,10 +239,31 @@ function positionTyphoonShelterObject(scene, record) {
     sprite.setOrigin(0.5, 1);
     sprite.setScale((diamond.right[0] - diamond.left[0]) / texture.width);
   }
-  const at = fit ? [fit.x, fit.y] : diamond.front;
+  const at = fit ? [fit.x, fit.y] : [...diamond.front];
+  // A shore-aligned object is pushed back toward the land until it reaches over the shoreline.
+  if (record.shoreAlign && art) {
+    const along = choice.facing === 'se' || choice.facing === 'nw' ? art.seM : art.swM;
+    const shiftM = Math.max(0, (TYPHOON_SHELTER_TILE_M - along) / 2) + TYPHOON_SHELTER_SHORE_OVERLAP_M;
+    const [dr, dc] = TYPHOON_SHELTER_LOGICAL_STEP[record.shoreDir || TYPHOON_SHELTER_LOGICAL_BACK[record.facing]];
+    const a = isoToScreen(record.col, record.row);
+    const b = isoToScreen(record.col + dc, record.row + dr);
+    const k = shiftM / TYPHOON_SHELTER_TILE_M;
+    at[0] += (b.x - a.x) * k;
+    at[1] += (b.y - a.y) * k;
+  }
+  // alongM: slide along the facing (several short sections making up one tile of walkway)
+  if (record.alongM) {
+    const [dr, dc] = TYPHOON_SHELTER_LOGICAL_STEP[record.facing];
+    const a = isoToScreen(record.col, record.row);
+    const b = isoToScreen(record.col + dc, record.row + dr);
+    const k = record.alongM / TYPHOON_SHELTER_TILE_M;
+    at[0] += (b.x - a.x) * k;
+    at[1] += (b.y - a.y) * k;
+  }
   sprite.setPosition(at[0] + scene.offsetX, at[1] + scene.offsetY);
   const anchor = getBuildingAnchor(record.row, record.col, fp.cols, fp.rows);
-  sprite.setDepth(getBuildingSortDepth(anchor.y, fp.cols, fp.rows, 0));
+  // depthBias lifts one object over another on the same tile (a landing stage over its walkway)
+  sprite.setDepth(getBuildingSortDepth(anchor.y, fp.cols, fp.rows, 0) + (record.depthBias || 0));
   sprite.setAlpha(Number.isFinite(record.alpha) ? record.alpha : 1);
   if (record.tint) sprite.setTint(record.tint); else sprite.clearTint();
   sprite.setVisible(true);
@@ -262,6 +289,10 @@ async function addTyphoonShelterObject(scene, spec) {
     variant: spec.variant ?? 0,
     tag: spec.tag || null,
     footprintOverride: spec.footprintOverride || null,
+    shoreAlign: !!spec.shoreAlign,
+    shoreDir: spec.shoreDir || null,
+    depthBias: spec.depthBias || 0,
+    alongM: spec.alongM || 0,
     alpha: spec.alpha,
     tint: spec.tint || null,
     sprite: null,

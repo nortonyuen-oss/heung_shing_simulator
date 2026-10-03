@@ -421,7 +421,9 @@ const TYPHOON_SHELTER_REAL_SIZES = Object.freeze({
   speedboat1: { lengthM: 13 }, speedboat2: { lengthM: 18 },  // 遊艇
   sanpan1: { lengthM: 8 }, sanpan2: { lengthM: 8 }, sanpan3: { lengthM: 8 }, sanpan4: { lengthM: 9 }, sanpan5: { lengthM: 7 },
   floatingHome: { lengthM: 10 }, floatingChef: { lengthM: 14 }, floatingGasStation: { lengthM: 18 }, floatingWorkshop: { lengthM: 16 },
-  floatingPier1: { lengthM: 14 }, floatingPier2: { lengthM: 24 }, floatingPier3: { lengthM: 18 }, floatingPier4: { lengthM: 10 },
+  // floatingPier2 is a walkway section: real floating walkways are 2-4 m wide, the art is 2:1, so a
+  // section is 8 m and a 20 m tile of walkway takes three; floatingPier1 is its landing stage
+  floatingPier1: { lengthM: 9 }, floatingPier2: { lengthM: 8 }, floatingPier3: { lengthM: 18 }, floatingPier4: { lengthM: 10 },
   pierSet1: { lengthM: 20 }, pierSet2: { lengthM: 16 }, pierShop1: { lengthM: 10 }, pierShop2: { lengthM: 8 },
   causeway1: { lengthM: 30 }, causeway1b: { lengthM: 22 }, causeway2: { lengthM: 16 }, causeway3: { lengthM: 16 },
   // 珍寶海鮮舫 ~76 m

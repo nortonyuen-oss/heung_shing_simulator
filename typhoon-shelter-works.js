@@ -1,37 +1,40 @@
-// 避風塘工程 (Phase 2): what gets built for an approved shelter plan, in what order, and the daily
-// construction schedule with its money. Pure functions over a plan, its analysis
-// (typhoon-shelter.js) and a small context, so it runs under node for tests; the game side
-// (typhoon-shelter-planning.js) runs it once a game day and draws the results with the Phase 0
-// sprites (typhoon-shelter-sprites.js).
+// 避風塘工程 (Phase 2): what gets built for an approved shelter plan, and what it costs. Pure
+// functions over a plan, its analysis (typhoon-shelter.js) and a small context, so it runs under
+// node for tests; the game side (typhoon-shelter-planning.js) applies the result and draws it with
+// the Phase 0 sprites (typhoon-shelter-sprites.js).
 //
 // Layout is derived, deterministically, from the plan: the same plan always asks for the same
-// works, so rotating the map or reloading a save never re-rolls it. The works themselves (what is
-// queued, building, done) are stored on the plan, and reconciled against the layout whenever the
-// plan changes: missing works are queued, works no longer wanted are torn down (built ones) or
-// dropped (not started).
+// works, so rotating the map or reloading a save never re-rolls it. The works themselves are
+// stored on the plan and reconciled against the layout whenever the plan changes: missing works
+// are added, works no longer wanted are torn down.
 //
-// Money: a work is paid in full, once, the day it starts; nothing is charged while queued. Each
-// shelter has a monthly works quota the player sets; starts stop when this month's spending would
-// pass it, or when the treasury cannot pay. Built works cost upkeep every month (budget line
-// 「避風塘維護」).
+// Building is instant (Norton, 2026-10-03: nobody should wait for a shelter): approving a plan, or
+// changing an approved one, builds everything it needs at once and charges the whole bill then,
+// once. Prices sit with a school or a sports ground so a shelter fits an early city. Built works
+// cost a little upkeep every month (budget line 「避風塘維護」).
 
+// A middle-sized shelter (~110 tiles of water, ~30 of breakwater) comes to about $2,600 and
+// $40 a month; the smallest legal one to about $1,200.
 const TYPHOON_SHELTER_WORK_KINDS = Object.freeze({
-  // 基本碼頭 first - a shelter is useless without a landing
-  pier: Object.freeze({ objectId: 'pierSet1', cost: 3000, days: 20, upkeep: 40, priority: 1, label: '碼頭' }),
+  pier: Object.freeze({ objectId: 'pierSet1', cost: 400, upkeep: 6, label: '碼頭' }),
   // breakwater heads at the entrances carry the navigation lights
-  head: Object.freeze({ objectId: 'causeway2', cost: 2500, days: 15, upkeep: 30, priority: 2, label: '燈塔堤頭' }),
-  breakwater: Object.freeze({ objectId: 'causeway1', cost: 900, days: 6, upkeep: 15, priority: 3, label: '防波堤' }),
-  navBuoyRed: Object.freeze({ objectId: 'bout1_a', cost: 400, days: 4, upkeep: 5, priority: 4, label: '航標（紅）' }),
-  navBuoyGreen: Object.freeze({ objectId: 'bout1_b', cost: 400, days: 4, upkeep: 5, priority: 4, label: '航標（綠）' }),
-  floatingPier: Object.freeze({ objectId: 'floatingPier1', cost: 1500, days: 10, upkeep: 20, priority: 5, label: '浮橋' }),
-  mooringBuoy: Object.freeze({ objectId: 'bout2', cost: 200, days: 3, upkeep: 2, priority: 6, label: '繫泊浮泡' }),
+  head: Object.freeze({ objectId: 'causeway2', cost: 200, upkeep: 2, label: '燈塔堤頭' }),
+  breakwater: Object.freeze({ objectId: 'causeway1', cost: 30, upkeep: 0.5, label: '防波堤' }),
+  navBuoyRed: Object.freeze({ objectId: 'bout1_a', cost: 40, upkeep: 1, label: '航標（紅）' }),
+  navBuoyGreen: Object.freeze({ objectId: 'bout1_b', cost: 40, upkeep: 1, label: '航標（綠）' }),
+  // the landing stage at a walkway's shore end (steps up to the shore) and the walkway itself
+  floatingPier: Object.freeze({ objectId: 'floatingPier1', cost: 100, upkeep: 1, label: '浮橋登岸位' }),
+  pontoon: Object.freeze({ objectId: 'floatingPier2', cost: 40, upkeep: 0.5, label: '浮橋' }),
+  mooringBuoy: Object.freeze({ objectId: 'bout2', cost: 10, upkeep: 0.2, label: '繫泊浮泡' }),
 });
-const TYPHOON_SHELTER_DEMOLISH = Object.freeze({ cost: 300, days: 4, label: '拆卸' });
-const TYPHOON_SHELTER_MAX_CONCURRENT_WORKS = 3;
-const TYPHOON_SHELTER_DEFAULT_QUOTA = 10000;
+const TYPHOON_SHELTER_DEMOLISH = Object.freeze({ cost: 10, label: '拆卸' });
 const TYPHOON_SHELTER_ROAD_REACH = 3;          // tiles from the pier's landing to a road
-const TYPHOON_SHELTER_BERTHS_PER_FLOATING_PIER = 20;
-const TYPHOON_SHELTER_MAX_FLOATING_PIERS = 3;
+// Floating walkways (浮橋): like a fishing village's or a marina's, each runs straight out from the
+// shore, a landing stage with steps up to the shore at its root, boats moored along both sides.
+const TYPHOON_SHELTER_BERTHS_PER_WALKWAY = 12;
+const TYPHOON_SHELTER_MAX_WALKWAYS = 4;
+const TYPHOON_SHELTER_WALKWAY_MAX_TILES = 5;   // root included: up to 100 m out
+const TYPHOON_SHELTER_WALKWAY_SPACING = 3;     // tiles between roots along the shore
 const TYPHOON_SHELTER_TILES_PER_MOORING_BUOY = 8;
 
 const TW_DIRS = Object.freeze({ n: [-1, 0], e: [0, 1], s: [1, 0], w: [0, -1] });
@@ -58,9 +61,11 @@ function twRunFacing(analysis, k) {
  * The works a plan asks for: [{ key, kind, row, col, facing }].
  * @param {object} plan  the shelter plan (needs seed)
  * @param {object} analysis analyzeTyphoonShelter(plan, map)
- * @param {{ roadDistance?: (row, col) => number, isOpenWater?: (row, col) => boolean }} [ctx]
+ * @param {{ roadDistance?: (row, col) => number, isOpenWater?: (row, col) => boolean,
+ *   isFreeBeach?: (row, col) => boolean }} [ctx]
  *   roadDistance: tiles from a land tile to the nearest road (Infinity when none near) - the pier
- *   goes where the road is closest; isOpenWater: where a navigation buoy may go
+ *   goes where the road is closest; isOpenWater: where a navigation buoy may go; isFreeBeach: an
+ *   empty beach tile, where a pier on that shore stands
  */
 function layoutTyphoonShelterWorks(plan, analysis, ctx = {}) {
   const works = [];
@@ -86,30 +91,69 @@ function layoutTyphoonShelterWorks(plan, analysis, ctx = {}) {
     else add('breakwater', k, twRunFacing(analysis, k));
   });
 
-  // the pier: a basin tile on the shore, off the channel, nearest a road (seeded tie-break)
+  // the pier: a basin tile on the shore, off the channel, nearest a road (seeded tie-break).
+  // Where the shore is a beach, the pier stands on the beach tile instead: a beach tile is drawn
+  // as sand running down into shallow water, so a pier one tile out would float clear of it.
   const shoreTiles = new Map();
+  const isBeach = ctx.isFreeBeach || (() => false);
   analysis.shoreEdges.forEach((e) => {
     const k = twKey(e.r, e.c);
     if (analysis.channel.has(k)) return;
     const d = roadDistance(e.out[0], e.out[1]);
     const prev = shoreTiles.get(k);
-    if (!prev || d < prev.d) shoreTiles.set(k, { k, side: e.side, d });
+    const site = isBeach(e.out[0], e.out[1]) ? twKey(e.out[0], e.out[1]) : k;
+    if (!prev || d < prev.d) shoreTiles.set(k, { k, site, side: e.side, d });
   });
   const shoreList = [...shoreTiles.values()].sort((a, b) => a.d - b.d || twHash(seed, ...twParse(a.k)) - twHash(seed, ...twParse(b.k)));
   const pier = shoreList[0];
-  if (pier) add('pier', pier.k, TW_OPPOSITE[pier.side]);
+  const sitesUsed = new Set();
+  if (pier) { add('pier', pier.site, TW_OPPOSITE[pier.side]); sitesUsed.add(pier.site); }
 
-  // floating piers along the shore, nearest the pier first
+  // floating walkways straight out from the shore, nearest the pier first, spaced apart so boats
+  // can lie along both sides. Each walkway runs out from its root (the basin tile on the shore, or
+  // the beach tile in front of it) over open basin water; it may reach the channel's edge but not
+  // enter it, and keeps a tile of water short of the breakwater or the far shore.
   if (pier) {
     const [pr, pc] = twParse(pier.k);
-    const count = Math.min(TYPHOON_SHELTER_MAX_FLOATING_PIERS, Math.floor(analysis.berths.total / TYPHOON_SHELTER_BERTHS_PER_FLOATING_PIER));
+    const count = Math.max(1, Math.min(TYPHOON_SHELTER_MAX_WALKWAYS, Math.floor(analysis.berths.total / TYPHOON_SHELTER_BERTHS_PER_WALKWAY)));
+    const roots = [];
+    // open basin water, with water (not the breakwater) on both sides for boats to lie alongside
+    const free = (k, out) => {
+      if (!analysis.basin.has(k) || analysis.channel.has(k) || used.has(k)) return false;
+      const [r, c] = twParse(k);
+      return !analysis.ring.has(twKey(r + out[1], c + out[0])) && !analysis.ring.has(twKey(r - out[1], c - out[0]));
+    };
     shoreList
-      .filter((s) => !used.has(s.k))
-      .map((s) => { const [r, c] = twParse(s.k); return { ...s, dist: Math.abs(r - pr) + Math.abs(c - pc) }; })
+      .filter((s) => s.k !== pier.k && !sitesUsed.has(s.site))
+      .map((s) => { const [r, c] = twParse(s.k); return { ...s, r, c, dist: Math.abs(r - pr) + Math.abs(c - pc) }; })
       .filter((s) => s.dist >= 2)
-      .sort((a, b) => a.dist - b.dist || twHash(seed, ...twParse(a.k)) - twHash(seed, ...twParse(b.k)))
-      .slice(0, count)
-      .forEach((s) => add('floatingPier', s.k, TW_OPPOSITE[s.side]));
+      .sort((a, b) => a.dist - b.dist || twHash(seed, a.r, a.c) - twHash(seed, b.r, b.c))
+      .forEach((s) => {
+        if (roots.length >= count) return;
+        if (roots.some((o) => Math.abs(o.r - s.r) + Math.abs(o.c - s.c) < TYPHOON_SHELTER_WALKWAY_SPACING)) return;
+        const out = TW_DIRS[TW_OPPOSITE[s.side]];
+        const line = [];
+        if (s.site !== s.k) line.push(s.site);           // the beach tile in front, if any
+        let [r, c] = [s.r, s.c];
+        while (line.length < TYPHOON_SHELTER_WALKWAY_MAX_TILES) {
+          const k = twKey(r, c);
+          const next = twKey(r + out[0], c + out[1]);
+          // a tile of water short of the breakwater or the far shore...
+          if (!free(k, out) || !analysis.basin.has(next)) break;
+          line.push(k);
+          // ...but right up to the fairway's edge, never into it
+          if (analysis.channel.has(next)) break;
+          r += out[0];
+          c += out[1];
+        }
+        if (line.length < 2) return;
+        roots.push(s);
+        sitesUsed.add(s.site);
+        const facing = TW_OPPOSITE[s.side];
+        line.forEach((k) => add('pontoon', k, facing));
+        // the landing stage faces the shore: its steps lead up onto the land
+        add('floatingPier', line[0], s.side);
+      });
   }
 
   // navigation buoys outside each entrance: red on the port hand coming in, green on starboard
@@ -129,8 +173,9 @@ function layoutTyphoonShelterWorks(plan, analysis, ctx = {}) {
 
   // mooring buoys spread over the berth water, never on the channel or by the shore works
   const target = Math.floor(analysis.berths.mooringTiles / TYPHOON_SHELTER_TILES_PER_MOORING_BUOY);
+  const nearWorks = (k) => { const [r, c] = twParse(k); return [[0, 1], [0, -1], [1, 0], [-1, 0]].some(([dr, dc]) => used.has(twKey(r + dr, c + dc))); };
   const candidates = [...analysis.basin]
-    .filter((k) => !analysis.channel.has(k) && !used.has(k) && !shoreTiles.has(k))
+    .filter((k) => !analysis.channel.has(k) && !used.has(k) && !shoreTiles.has(k) && !nearWorks(k))
     .sort((a, b) => twHash(seed, ...twParse(a)) - twHash(seed, ...twParse(b)));
   const buoys = [];
   for (const k of candidates) {
@@ -143,13 +188,13 @@ function layoutTyphoonShelterWorks(plan, analysis, ctx = {}) {
   return works;
 }
 
-function createTyphoonShelterWorks(quota = TYPHOON_SHELTER_DEFAULT_QUOTA) {
-  return { approved: false, quota, month: '', spent: 0, items: [], log: [] };
+function createTyphoonShelterWorks() {
+  return { approved: false, items: [] };
 }
 
 /**
- * Bring a plan's stored works in line with its layout. Returns a new works object.
- * Built (or building) works no longer wanted are torn down; queued ones are dropped.
+ * Bring a plan's stored works in line with its layout. Returns a new works object: new works are
+ * 'queued', works no longer wanted are 'demolishing'. completeTyphoonShelterWorks builds them.
  */
 function reconcileTyphoonShelterWorks(works, layout) {
   const wanted = new Map(layout.map((w) => [w.key, w]));
@@ -158,79 +203,29 @@ function reconcileTyphoonShelterWorks(works, layout) {
   (works.items || []).forEach((item) => {
     const want = wanted.get(item.key);
     seen.add(item.key);
-    if (want) {
-      // wanted again while being torn down: the torn-down part was already paid, it stays up
-      const state = item.state === 'demolishing' ? 'done' : item.state;
-      items.push({ ...item, facing: want.facing, state, progress: item.state === 'demolishing' ? 0 : item.progress });
-      return;
-    }
+    if (want) { items.push({ ...item, facing: want.facing, state: item.state === 'demolishing' ? 'done' : item.state }); return; }
     if (item.state === 'queued') return;
-    if (item.state === 'demolishing') { items.push(item); return; }
-    items.push({ ...item, state: 'demolishing', progress: 0, paid: false });
+    items.push({ ...item, state: 'demolishing' });
   });
   layout.forEach((w) => {
-    if (!seen.has(w.key)) items.push({ ...w, state: 'queued', progress: 0, paid: false });
+    if (!seen.has(w.key)) items.push({ ...w, state: 'queued' });
   });
   return { ...works, items };
 }
 
-function getTyphoonShelterWorkCost(item) {
-  return item.state === 'demolishing' ? TYPHOON_SHELTER_DEMOLISH.cost : TYPHOON_SHELTER_WORK_KINDS[item.kind]?.cost || 0;
-}
-function getTyphoonShelterWorkDays(item) {
-  return item.state === 'demolishing' ? TYPHOON_SHELTER_DEMOLISH.days : TYPHOON_SHELTER_WORK_KINDS[item.kind]?.days || 1;
-}
-
-// Queue order: tear-downs first (they free the line), then by kind priority, then nearest the
-// pier... simply by key for a stable order within a kind.
-function twQueueOrder(a, b) {
-  const pa = a.state === 'demolishing' ? 0 : TYPHOON_SHELTER_WORK_KINDS[a.kind]?.priority ?? 9;
-  const pb = b.state === 'demolishing' ? 0 : TYPHOON_SHELTER_WORK_KINDS[b.kind]?.priority ?? 9;
-  return pa - pb || a.key.localeCompare(b.key);
-}
-
-/**
- * One game day of construction for one shelter.
- * @param {object} works stored works (already reconciled)
- * @param {{ monthKey: string, legal: boolean, spend: (cost) => boolean }} ctx
- *   spend: try to pay from the treasury; false when it cannot
- * @returns {{ works, events: string[], blocked: string|null }}
- */
-function advanceTyphoonShelterWorks(works, ctx) {
-  let next = { ...works, items: works.items.map((i) => ({ ...i })) };
-  const events = [];
-  if (!next.approved) return { works: next, events, blocked: null };
-  if (next.month !== ctx.monthKey) next = { ...next, month: ctx.monthKey, spent: 0 };
-
-  // progress what is under way
-  const finished = new Set();
-  next.items.forEach((item) => {
-    if (item.state !== 'building' && !(item.state === 'demolishing' && item.paid)) return;
-    item.progress += 1;
-    if (item.progress < getTyphoonShelterWorkDays(item)) return;
-    if (item.state === 'demolishing') { finished.add(item.key); events.push(`removed:${item.key}`); return; }
-    item.state = 'done';
-    item.progress = getTyphoonShelterWorkDays(item);
-    events.push(`done:${item.key}`);
+// Build what is queued and remove what is being torn down, all at once: { works, cost, built,
+// removed }. The cost is the whole bill, to be paid once.
+function completeTyphoonShelterWorks(works) {
+  let cost = 0;
+  let built = 0;
+  let removed = 0;
+  const items = [];
+  (works.items || []).forEach((item) => {
+    if (item.state === 'demolishing') { cost += TYPHOON_SHELTER_DEMOLISH.cost; removed += 1; return; }
+    if (item.state === 'queued') { cost += TYPHOON_SHELTER_WORK_KINDS[item.kind]?.cost || 0; built += 1; }
+    items.push({ ...item, state: 'done' });
   });
-  next.items = next.items.filter((i) => !finished.has(i.key));
-
-  if (!ctx.legal) return { works: next, events, blocked: 'illegal' };
-  const active = next.items.filter((i) => i.state === 'building' || (i.state === 'demolishing' && i.paid)).length;
-  if (active >= TYPHOON_SHELTER_MAX_CONCURRENT_WORKS) return { works: next, events, blocked: null };
-  const waiting = next.items.filter((i) => i.state === 'queued' || (i.state === 'demolishing' && !i.paid)).sort(twQueueOrder);
-  if (!waiting.length) return { works: next, events, blocked: null };
-  // one start a day per shelter
-  const item = waiting[0];
-  const cost = getTyphoonShelterWorkCost(item);
-  if (next.spent + cost > next.quota) return { works: next, events, blocked: 'quota' };
-  if (!ctx.spend(cost)) return { works: next, events, blocked: 'funds' };
-  next.spent += cost;
-  if (item.state === 'queued') item.state = 'building';
-  item.paid = true;
-  item.progress = 0;
-  events.push(`started:${item.key}`);
-  return { works: next, events, blocked: null };
+  return { works: { ...works, items }, cost, built, removed };
 }
 
 /**
@@ -245,21 +240,15 @@ function summarizeTyphoonShelterWorks(works, analysis, { pierConnected = false }
   const essentialDone = essential.length > 0 && essential.every((i) => i.state === 'done');
   const pier = doneKinds('pier').find((i) => i.state === 'done');
   const operational = essentialDone && !!pier && pierConnected;
-  const occupied = items.filter((i) => ['pier', 'floatingPier'].includes(i.kind) && analysis?.basin?.has(twKey(i.row, i.col))).length;
+  const occupied = new Set(items.filter((i) => ['pier', 'floatingPier', 'pontoon'].includes(i.kind) && analysis?.basin?.has(twKey(i.row, i.col)))
+    .map((i) => twKey(i.row, i.col))).size;
   const mooring = Math.max(0, (analysis?.berths?.mooringTiles || 0) - occupied);
   const total = Math.floor(mooring / 2);
   const reserved = Math.ceil((total * (analysis?.berths?.reserved || 0)) / Math.max(1, analysis?.berths?.total || 1));
-  const remainingCost = items
-    .filter((i) => i.state === 'queued' || (i.state === 'demolishing' && !i.paid))
-    .reduce((sum, i) => sum + getTyphoonShelterWorkCost(i), 0);
   const upkeep = items.filter((i) => i.state === 'done').reduce((sum, i) => sum + (TYPHOON_SHELTER_WORK_KINDS[i.kind]?.upkeep || 0), 0);
   return {
-    queued: count((i) => i.state === 'queued'),
-    building: count((i) => i.state === 'building'),
     done: count((i) => i.state === 'done'),
-    demolishing: count((i) => i.state === 'demolishing'),
     total: items.length,
-    remainingCost,
     upkeep,
     operational,
     pierBuilt: !!pier,
@@ -268,45 +257,35 @@ function summarizeTyphoonShelterWorks(works, analysis, { pierConnected = false }
   };
 }
 
+// Saved works -> clean works. Anything a save holds is built (older saves from the scheduled
+// prototype may still say queued or building; those finish on load).
 function normalizeTyphoonShelterWorks(raw) {
   if (!raw || typeof raw !== 'object') return null;
   const kinds = Object.keys(TYPHOON_SHELTER_WORK_KINDS);
-  return {
-    approved: !!raw.approved,
-    quota: Number.isFinite(raw.quota) ? Math.max(0, Math.min(1e6, Math.round(raw.quota))) : TYPHOON_SHELTER_DEFAULT_QUOTA,
-    month: typeof raw.month === 'string' ? raw.month.slice(0, 12) : '',
-    spent: Number.isFinite(raw.spent) ? Math.max(0, raw.spent) : 0,
-    items: (Array.isArray(raw.items) ? raw.items : [])
-      .filter((i) => kinds.includes(i?.kind) && Number.isInteger(i?.row) && Number.isInteger(i?.col))
-      .slice(0, 2000)
-      .map((i) => ({
-        key: `${i.kind}:${i.row}:${i.col}`,
-        kind: i.kind,
-        row: i.row,
-        col: i.col,
-        facing: ['n', 'e', 's', 'w'].includes(i.facing) ? i.facing : 'e',
-        state: ['queued', 'building', 'done', 'demolishing'].includes(i.state) ? i.state : 'queued',
-        progress: Number.isFinite(i.progress) ? Math.max(0, Math.round(i.progress)) : 0,
-        paid: !!i.paid,
-      })),
-    log: [],
-  };
+  const items = (Array.isArray(raw.items) ? raw.items : [])
+    .filter((i) => kinds.includes(i?.kind) && Number.isInteger(i?.row) && Number.isInteger(i?.col) && i.state !== 'demolishing')
+    .slice(0, 2000)
+    .map((i) => ({
+      key: `${i.kind}:${i.row}:${i.col}`,
+      kind: i.kind,
+      row: i.row,
+      col: i.col,
+      facing: ['n', 'e', 's', 'w'].includes(i.facing) ? i.facing : 'e',
+      state: 'done',
+    }));
+  return { approved: !!raw.approved, items: raw.approved ? items : [] };
 }
 
 const typhoonShelterWorksApi = {
   TYPHOON_SHELTER_WORK_KINDS,
   TYPHOON_SHELTER_DEMOLISH,
-  TYPHOON_SHELTER_MAX_CONCURRENT_WORKS,
-  TYPHOON_SHELTER_DEFAULT_QUOTA,
   TYPHOON_SHELTER_ROAD_REACH,
   layoutTyphoonShelterWorks,
   createTyphoonShelterWorks,
   reconcileTyphoonShelterWorks,
-  advanceTyphoonShelterWorks,
+  completeTyphoonShelterWorks,
   summarizeTyphoonShelterWorks,
   normalizeTyphoonShelterWorks,
-  getTyphoonShelterWorkCost,
-  getTyphoonShelterWorkDays,
 };
 
 if (typeof module !== 'undefined' && module.exports) module.exports = typhoonShelterWorksApi;

@@ -20,6 +20,7 @@ const MAIN_SOURCE_FILES = [
   'audio.js',
   'model-assets.js',
   'model-metadata.js',
+  'render-performance.js',
   'main.js',
 ];
 

@@ -451,6 +451,7 @@ function updateBudgetWindow() {
   setTextContent('budget-expense-policy', formatMoney(current.expenses.policy));
   setTextContent('budget-expense-loans', formatMoney(current.expenses.loans));
   setTextContent('budget-expense-transport', formatMoney(current.expenses.transport ?? 0));
+  setTextContent('budget-expense-marine', formatMoney(current.expenses.marine ?? 0));
   setTextContent('budget-expense-total', formatMoney(current.totalExpenses));
 
   setTextContent('budget-net-monthly', formatMoney(current.net));

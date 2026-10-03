@@ -31,6 +31,7 @@
     "sync:hko-astronomy": "node scripts/sync-hko-astronomy-data.js",
     "bake:night-textures": "node scripts/bake-night-textures.js",
     "bake:road-line-textures": "node scripts/bake-road-line-textures.js",
+    "bake:typhoon-shelter": "node scripts/bake-typhoon-shelter-textures.js",
     "audit:licenses": "node scripts/audit-licenses.js",
     "sync:legal": "node scripts/sync-legal-docs.js",
     "check:legal": "node scripts/sync-legal-docs.js --check"

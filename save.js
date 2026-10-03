@@ -1601,6 +1601,8 @@ function rebuildSceneFromSave(scene, save) {
   if (typeof rebuildDebrisSprites === 'function') rebuildDebrisSprites(scene);
   if (typeof rebuildBusStopSprites === 'function') rebuildBusStopSprites(scene);
   if (typeof rebuildDistrictSignSprites === 'function') rebuildDistrictSignSprites(scene);
+  // 避風塘 works stand where the save left them (typhoon-shelter-planning.js).
+  if (typeof syncTyphoonShelterFacilitySprites === 'function') syncTyphoonShelterFacilitySprites(scene);
   if (typeof sortWorldRenderLayers === 'function') sortWorldRenderLayers(scene);
   // Weather advances on the environmental clock and only repaints its overlay
   // when something changes, so a freshly loaded city has to be painted once.

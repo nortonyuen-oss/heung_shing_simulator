@@ -1,0 +1,515 @@
+{
+ "causeway1.png": {
+  "views": [
+   {
+    "down": 0.827,
+    "up": 0.603
+   },
+   {
+    "down": 0.404,
+    "up": 0.844
+   }
+  ]
+ },
+ "causeway2.png": {
+  "views": [
+   {
+    "down": 0.649,
+    "up": 0.388
+   },
+   {
+    "down": 0.635,
+    "up": 0.32
+   }
+  ]
+ },
+ "causeway3.png": {
+  "views": [
+   {
+    "down": 0.549,
+    "up": 0.351
+   },
+   {
+    "down": 0.508,
+    "up": 0.403
+   }
+  ]
+ },
+ "pierSet1.png": {
+  "views": [
+   {
+    "down": 0.7,
+    "up": 0.41
+   },
+   {
+    "down": 0.638,
+    "up": 0.39
+   }
+  ]
+ },
+ "pierSet2.png": {
+  "views": [
+   {
+    "down": 1.199,
+    "up": 0.261
+   },
+   {
+    "down": 0.724,
+    "up": 0.479
+   }
+  ],
+  "seam": [
+   700,
+   800
+  ]
+ },
+ "floatingPier1.png": {
+  "views": [
+   {
+    "down": 0.683,
+    "up": 0.288
+   },
+   {
+    "down": 0.708,
+    "up": 0.273
+   }
+  ]
+ },
+ "floatingPier2.png": {
+  "views": [
+   {
+    "down": 1.189,
+    "up": 0.52
+   },
+   {
+    "down": 0.713,
+    "up": 0.439
+   }
+  ]
+ },
+ "floatingPier3.png": {
+  "views": [
+   {
+    "down": 0.667,
+    "up": 0.362
+   },
+   {
+    "down": 0.662,
+    "up": 0.433
+   }
+  ]
+ },
+ "floatingPier4.png": {
+  "views": [
+   {
+    "down": 1.097,
+    "up": 0.282
+   },
+   {
+    "down": 0.514,
+    "up": 0.546
+   }
+  ]
+ },
+ "floatingHome.png": {
+  "views": [
+   {
+    "down": 0.471,
+    "up": 0.342
+   },
+   {
+    "down": 0.533,
+    "up": 0.408
+   }
+  ]
+ },
+ "floatingGasStation.png": {
+  "views": [
+   {
+    "down": 0.645,
+    "up": 0.371
+   },
+   {
+    "down": 0.657,
+    "up": 0.496
+   }
+  ],
+  "seam": [
+   680,
+   800
+  ]
+ },
+ "floatingWorkshop.png": {
+  "views": [
+   {
+    "down": 0.838,
+    "up": 0.307
+   },
+   {
+    "down": 0.754,
+    "up": 0.33
+   }
+  ],
+  "seam": [
+   680,
+   800
+  ]
+ },
+ "floatingChef.png": {
+  "views": [
+   {
+    "down": 0.381,
+    "up": 0.603
+   },
+   {
+    "down": 0.586,
+    "up": 0.375
+   }
+  ],
+  "seam": [
+   640,
+   820
+  ]
+ },
+ "homeBoat3.png": {
+  "views": [
+   {
+    "down": 0.777,
+    "up": 0.352
+   },
+   {
+    "down": 0.58,
+    "up": 0.26
+   }
+  ]
+ },
+ "pierShop1.png": {
+  "views": [
+   {
+    "down": 0.84,
+    "up": 0.323
+   },
+   {
+    "down": 0.571,
+    "up": 0.359
+   }
+  ],
+  "seam": [
+   700,
+   800
+  ]
+ },
+ "pierShop2.png": {
+  "views": [
+   {
+    "down": 0.513,
+    "up": 0.381
+   },
+   {
+    "down": 0.445,
+    "up": 0.436
+   }
+  ]
+ },
+ "floatingRestaurant1.png": {
+  "views": [
+   {
+    "down": 0.475,
+    "up": 0.589
+   }
+  ],
+  "whole": true
+ },
+ "floatingRestaurant2.png": {
+  "views": [
+   {
+    "down": 0.544,
+    "up": 0.396
+   }
+  ],
+  "whole": true
+ },
+ "floatingRestaurant3.png": {
+  "views": [
+   {
+    "down": 0.423,
+    "up": 0.534
+   }
+  ],
+  "whole": true
+ },
+ "kaido1.png": {
+  "views": [
+   {
+    "down": 0.59,
+    "up": 0.44
+   },
+   {
+    "down": 0.415,
+    "up": 0.6
+   }
+  ],
+  "seam": [
+   600,
+   760
+  ]
+ },
+ "fishingBoat1.png": {
+  "views": [
+   {
+    "axis": 0.56,
+    "sinE": 0.4
+   },
+   {
+    "axis": 0.506,
+    "sinE": 0.4
+   }
+  ],
+  "seam": [
+   600,
+   820
+  ]
+ },
+ "fishingBoat2.png": {
+  "views": [
+   {
+    "axis": 0.53,
+    "sinE": 0.43
+   },
+   {
+    "d": 1.1,
+    "c": 0.0
+   }
+  ]
+ },
+ "fishingBoat3.png": {
+  "views": [
+   {
+    "axis": 0.52,
+    "sinE": 0.43
+   },
+   {
+    "axis": 0.37,
+    "sinE": 0.43
+   }
+  ]
+ },
+ "fishingBoat4.png": {
+  "views": [
+   {
+    "axis": 0.5,
+    "sinE": 0.43
+   },
+   {
+    "axis": 0.345,
+    "sinE": 0.43
+   }
+  ]
+ },
+ "homeBoat1.png": {
+  "views": [
+   {
+    "axis": 0.5,
+    "sinE": 0.43
+   },
+   {
+    "axis": 0.34,
+    "sinE": 0.43
+   }
+  ]
+ },
+ "homeBoat2.png": {
+  "views": [
+   {
+    "axis": 0.64,
+    "sinE": 0.43
+   },
+   {
+    "axis": 0.39,
+    "sinE": 0.43
+   }
+  ]
+ },
+ "sanpan1.png": {
+  "views": [
+   {
+    "axis": 0.79,
+    "sinE": 0.43
+   },
+   {
+    "axis": 0.295,
+    "sinE": 0.43
+   }
+  ]
+ },
+ "sanpan2.png": {
+  "views": [
+   {
+    "axis": 0.771,
+    "sinE": 0.43
+   },
+   {
+    "axis": 0.301,
+    "sinE": 0.43
+   }
+  ]
+ },
+ "sanpan3.png": {
+  "views": [
+   {
+    "axis": 0.68,
+    "sinE": 0.43
+   },
+   {
+    "axis": 0.273,
+    "sinE": 0.43
+   }
+  ]
+ },
+ "sanpan4.png": {
+  "views": [
+   {
+    "axis": 0.752,
+    "sinE": 0.43
+   },
+   {
+    "axis": 0.411,
+    "sinE": 0.43
+   }
+  ]
+ },
+ "sanpan5.png": {
+  "views": [
+   {
+    "axis": 0.594,
+    "sinE": 0.43
+   },
+   {
+    "axis": 0.396,
+    "sinE": 0.43
+   }
+  ]
+ },
+ "speedboat1.png": {
+  "views": [
+   {
+    "axis": 0.48,
+    "sinE": 0.43
+   },
+   {
+    "axis": 0.86,
+    "sinE": 0.43
+   }
+  ]
+ },
+ "speedboat2.png": {
+  "views": [
+   {
+    "axis": 0.652,
+    "sinE": 0.43
+   },
+   {
+    "axis": 0.785,
+    "sinE": 0.43
+   }
+  ]
+ },
+ "shoreAssessories1.png": {
+  "views": [
+   {
+    "ellipse": 0.43
+   },
+   {
+    "ellipse": 0.43
+   }
+  ]
+ },
+ "shoreAssessories2.png": {
+  "views": [
+   {
+    "down": 0.485,
+    "up": 0.43
+   },
+   {
+    "d": 1.09,
+    "c": 0.0
+   }
+  ]
+ },
+ "shoreAssessories3.png": {
+  "views": [
+   {
+    "ellipse": 0.43
+   },
+   {
+    "ellipse": 0.43
+   }
+  ]
+ },
+ "shoreAssessories4.png": {
+  "views": [
+   {
+    "ellipse": 0.43
+   },
+   {
+    "ellipse": 0.43
+   }
+  ]
+ },
+ "shoreFence.png": {
+  "views": [
+   {
+    "down": 0.512,
+    "up": 0.387
+   },
+   {
+    "line": 0.599
+   },
+   {
+    "line": 0.488
+   },
+   {
+    "line": 0.434
+   }
+  ]
+ },
+ "pierAssessories.png": {
+  "views": [
+   {
+    "down": 0.48,
+    "up": 0.38
+   }
+  ],
+  "whole": true
+ },
+ "bout1.png": {
+  "views": [
+   {
+    "ellipse": 0.45
+   },
+   {
+    "ellipse": 0.45
+   }
+  ]
+ },
+ "bout2.png": {
+  "views": [
+   {
+    "ellipse": 0.51
+   },
+   {
+    "ellipse": 0.46
+   }
+  ]
+ },
+ "bout3.png": {
+  "views": [
+   {
+    "ellipse": 0.48
+   },
+   {
+    "ellipse": 0.48
+   }
+  ]
+ }
+}

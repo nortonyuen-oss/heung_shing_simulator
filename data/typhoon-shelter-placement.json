@@ -1,0 +1,1806 @@
+{
+ "schemaVersion": 1,
+ "parts": {
+  "bout1_a": {
+   "ground": {
+    "left": [
+     120,
+     809
+    ],
+    "front": [
+     245,
+     901
+    ],
+    "right": [
+     392,
+     814
+    ]
+   },
+   "top": 399,
+   "facing": "se",
+   "auto": true,
+   "method": "outline"
+  },
+  "bout1_b": {
+   "ground": {
+    "left": [
+     123,
+     815
+    ],
+    "front": [
+     246,
+     906
+    ],
+    "right": [
+     388,
+     822
+    ]
+   },
+   "top": 427,
+   "facing": "se",
+   "auto": true,
+   "method": "outline"
+  },
+  "bout2_a": {
+   "ground": {
+    "left": [
+     133,
+     135
+    ],
+    "front": [
+     235,
+     208
+    ],
+    "right": [
+     378,
+     185
+    ]
+   },
+   "top": 20,
+   "facing": "se",
+   "auto": true,
+   "method": "outline"
+  },
+  "bout2_b": {
+   "ground": {
+    "left": [
+     136,
+     370
+    ],
+    "front": [
+     240,
+     459
+    ],
+    "right": [
+     376,
+     422
+    ]
+   },
+   "top": 250,
+   "facing": "se",
+   "auto": true,
+   "method": "outline"
+  },
+  "bout3_a": {
+   "ground": {
+    "left": [
+     96,
+     375
+    ],
+    "front": [
+     364,
+     454
+    ],
+    "right": [
+     415,
+     412
+    ]
+   },
+   "top": 228,
+   "facing": "se",
+   "auto": true,
+   "method": "outline"
+  },
+  "bout3_b": {
+   "ground": {
+    "left": [
+     111,
+     289
+    ],
+    "front": [
+     346,
+     449
+    ],
+    "right": [
+     401,
+     418
+    ]
+   },
+   "top": 204,
+   "facing": "se",
+   "auto": true,
+   "method": "outline"
+  },
+  "causeway1_a": {
+   "ground": {
+    "left": [
+     98,
+     335
+    ],
+    "front": [
+     294,
+     456
+    ],
+    "right": [
+     412,
+     420
+    ]
+   },
+   "facing": "se",
+   "auto": false,
+   "method": "outline",
+   "top": 235
+  },
+  "causeway1_b": {
+   "ground": {
+    "left": [
+     113,
+     388
+    ],
+    "front": [
+     223,
+     450
+    ],
+    "right": [
+     399,
+     340
+    ]
+   },
+   "top": 203,
+   "facing": "sw",
+   "auto": true,
+   "method": "outline"
+  },
+  "causeway2_a": {
+   "ground": {
+    "left": [
+     83,
+     807
+    ],
+    "front": [
+     239,
+     908
+    ],
+    "right": [
+     428,
+     813
+    ]
+   },
+   "facing": "se",
+   "auto": false,
+   "method": "outline",
+   "top": 437
+  },
+  "causeway2_b": {
+   "ground": {
+    "left": [
+     89,
+     751
+    ],
+    "front": [
+     213,
+     903
+    ],
+    "right": [
+     424,
+     716
+    ]
+   },
+   "facing": "se",
+   "auto": false,
+   "method": "outline",
+   "top": 412
+  },
+  "causeway3_a": {
+   "ground": {
+    "left": [
+     93,
+     860
+    ],
+    "front": [
+     152,
+     901
+    ],
+    "right": [
+     417,
+     677
+    ]
+   },
+   "top": 400,
+   "facing": "sw",
+   "auto": true,
+   "method": "outline"
+  },
+  "causeway3_b": {
+   "ground": {
+    "left": [
+     148,
+     827.1
+    ],
+    "front": [
+     285.6,
+     923.4
+    ],
+    "right": [
+     404,
+     862.9
+    ]
+   },
+   "top": 437,
+   "facing": "se",
+   "auto": true,
+   "method": "lot"
+  },
+  "fishingBoat1_a": {
+   "ground": {
+    "left": [
+     80,
+     672
+    ],
+    "front": [
+     342,
+     903
+    ],
+    "right": [
+     431,
+     783
+    ]
+   },
+   "top": 411,
+   "facing": "se",
+   "auto": true,
+   "method": "outline"
+  },
+  "fishingBoat1_b": {
+   "ground": {
+    "left": [
+     73,
+     636
+    ],
+    "front": [
+     349,
+     901
+    ],
+    "right": [
+     438,
+     781
+    ]
+   },
+   "top": 400,
+   "facing": "nw",
+   "auto": true,
+   "method": "outline"
+  },
+  "fishingBoat2_a": {
+   "ground": {
+    "left": [
+     111,
+     215
+    ],
+    "front": [
+     344,
+     416
+    ],
+    "right": [
+     399,
+     336
+    ]
+   },
+   "top": 28,
+   "facing": "se",
+   "auto": true,
+   "method": "outline"
+  },
+  "fishingBoat2_b": {
+   "ground": {
+    "left": [
+     63,
+     284
+    ],
+    "front": [
+     337,
+     440
+    ],
+    "right": [
+     450,
+     343
+    ]
+   },
+   "top": 151,
+   "facing": "se",
+   "auto": true,
+   "method": "outline"
+  },
+  "fishingBoat3_a": {
+   "ground": {
+    "left": [
+     105,
+     688
+    ],
+    "front": [
+     335,
+     918
+    ],
+    "right": [
+     407,
+     783
+    ]
+   },
+   "facing": "se",
+   "auto": false,
+   "method": "outline",
+   "top": 488
+  },
+  "fishingBoat3_b": {
+   "ground": {
+    "left": [
+     58,
+     629
+    ],
+    "front": [
+     357,
+     922
+    ],
+    "right": [
+     454,
+     813
+    ]
+   },
+   "facing": "nw",
+   "auto": false,
+   "method": "outline",
+   "top": 509
+  },
+  "fishingBoat4_a": {
+   "ground": {
+    "left": [
+     93,
+     702
+    ],
+    "front": [
+     354,
+     925
+    ],
+    "right": [
+     417,
+     817
+    ]
+   },
+   "facing": "se",
+   "auto": false,
+   "method": "outline",
+   "top": 523
+  },
+  "fishingBoat4_b": {
+   "ground": {
+    "left": [
+     71,
+     154
+    ],
+    "front": [
+     338,
+     420
+    ],
+    "right": [
+     441,
+     325
+    ]
+   },
+   "facing": "nw",
+   "auto": false,
+   "method": "outline",
+   "top": 48
+  },
+  "floatingChef_a": {
+   "ground": {
+    "left": [
+     69,
+     781
+    ],
+    "front": [
+     158,
+     917
+    ],
+    "right": [
+     443,
+     733
+    ]
+   },
+   "top": 482,
+   "facing": "sw",
+   "auto": true,
+   "method": "outline"
+  },
+  "floatingChef_b": {
+   "ground": {
+    "left": [
+     78,
+     852
+    ],
+    "front": [
+     140,
+     909
+    ],
+    "right": [
+     433,
+     711
+    ]
+   },
+   "top": 442,
+   "facing": "sw",
+   "auto": true,
+   "method": "outline"
+  },
+  "floatingGasStation_a": {
+   "ground": {
+    "left": [
+     78,
+     314.6
+    ],
+    "front": [
+     273.9,
+     429.2
+    ],
+    "right": [
+     375,
+     378.2
+    ]
+   },
+   "top": 55,
+   "facing": "se",
+   "auto": true,
+   "method": "lot"
+  },
+  "floatingGasStation_b": {
+   "ground": {
+    "left": [
+     77,
+     277
+    ],
+    "front": [
+     294,
+     434
+    ],
+    "right": [
+     434,
+     361
+    ]
+   },
+   "top": 119,
+   "facing": "se",
+   "auto": true,
+   "method": "outline"
+  },
+  "floatingHome_a": {
+   "ground": {
+    "left": [
+     83,
+     781
+    ],
+    "front": [
+     259,
+     909
+    ],
+    "right": [
+     428,
+     779
+    ]
+   },
+   "top": 440,
+   "facing": "se",
+   "auto": true,
+   "method": "outline"
+  },
+  "floatingHome_b": {
+   "ground": {
+    "left": [
+     90,
+     351.5
+    ],
+    "front": [
+     205.9,
+     415.3
+    ],
+    "right": [
+     363,
+     338.3
+    ]
+   },
+   "top": 27,
+   "facing": "se",
+   "auto": true,
+   "method": "lot"
+  },
+  "floatingPier1_a": {
+   "ground": {
+    "left": [
+     77,
+     243
+    ],
+    "front": [
+     335,
+     420
+    ],
+    "right": [
+     435,
+     367
+    ]
+   },
+   "top": 48,
+   "facing": "se",
+   "auto": true,
+   "method": "outline"
+  },
+  "floatingPier1_b": {
+   "ground": {
+    "left": [
+     89,
+     275
+    ],
+    "front": [
+     345,
+     421
+    ],
+    "right": [
+     424,
+     381
+    ]
+   },
+   "top": 52,
+   "facing": "se",
+   "auto": true,
+   "method": "outline"
+  },
+  "floatingPier2_a": {
+   "ground": {
+    "left": [
+     64,
+     338
+    ],
+    "front": [
+     315,
+     457
+    ],
+    "right": [
+     444,
+     396
+    ]
+   },
+   "top": 239,
+   "facing": "se",
+   "auto": true,
+   "method": "outline"
+  },
+  "floatingPier2_b": {
+   "ground": {
+    "left": [
+     73,
+     332
+    ],
+    "front": [
+     319,
+     451
+    ],
+    "right": [
+     438,
+     371
+    ]
+   },
+   "top": 208,
+   "facing": "se",
+   "auto": true,
+   "method": "outline"
+  },
+  "floatingPier3_a": {
+   "ground": {
+    "left": [
+     72,
+     304
+    ],
+    "front": [
+     254,
+     420
+    ],
+    "right": [
+     438,
+     316
+    ]
+   },
+   "top": 48,
+   "facing": "se",
+   "auto": true,
+   "method": "outline"
+  },
+  "floatingPier3_b": {
+   "ground": {
+    "left": [
+     95,
+     346
+    ],
+    "front": [
+     263,
+     430
+    ],
+    "right": [
+     416,
+     319
+    ]
+   },
+   "top": 101,
+   "facing": "se",
+   "auto": true,
+   "method": "outline"
+  },
+  "floatingPier4_a": {
+   "ground": {
+    "left": [
+     106,
+     120
+    ],
+    "front": [
+     253,
+     208
+    ],
+    "right": [
+     404,
+     133
+    ]
+   },
+   "top": 21,
+   "facing": "sw",
+   "auto": true,
+   "method": "outline"
+  },
+  "floatingPier4_b": {
+   "ground": {
+    "left": [
+     85,
+     324
+    ],
+    "front": [
+     304,
+     453
+    ],
+    "right": [
+     427,
+     376
+    ]
+   },
+   "top": 217,
+   "facing": "se",
+   "auto": true,
+   "method": "outline"
+  },
+  "floatingRestaurant1_a": {
+   "ground": {
+    "left": [
+     265,
+     700.2
+    ],
+    "front": [
+     668.3,
+     907.9
+    ],
+    "right": [
+     846,
+     829.7
+    ]
+   },
+   "top": 416,
+   "facing": "sw",
+   "auto": true,
+   "method": "lot"
+  },
+  "floatingRestaurant2_a": {
+   "ground": {
+    "left": [
+     192,
+     814
+    ],
+    "front": [
+     324,
+     901
+    ],
+    "right": [
+     831,
+     621
+    ]
+   },
+   "top": 400,
+   "facing": "se",
+   "auto": true,
+   "method": "outline"
+  },
+  "floatingRestaurant3_a": {
+   "ground": {
+    "left": [
+     306,
+     720.9
+    ],
+    "front": [
+     665.7,
+     902.5
+    ],
+    "right": [
+     831,
+     816.6
+    ]
+   },
+   "top": 400,
+   "facing": "sw",
+   "auto": true,
+   "method": "lot"
+  },
+  "floatingWorkshop_a": {
+   "ground": {
+    "left": [
+     67,
+     285
+    ],
+    "front": [
+     269,
+     427
+    ],
+    "right": [
+     445,
+     301
+    ]
+   },
+   "top": 86,
+   "facing": "se",
+   "auto": true,
+   "method": "outline"
+  },
+  "floatingWorkshop_b": {
+   "ground": {
+    "left": [
+     74,
+     280
+    ],
+    "front": [
+     272,
+     427
+    ],
+    "right": [
+     437,
+     291
+    ]
+   },
+   "top": 83,
+   "facing": "se",
+   "auto": true,
+   "method": "outline"
+  },
+  "homeBoat1_a": {
+   "ground": {
+    "left": [
+     90,
+     697
+    ],
+    "front": [
+     346,
+     922
+    ],
+    "right": [
+     419,
+     825
+    ]
+   },
+   "top": 510,
+   "facing": "se",
+   "auto": true,
+   "method": "outline"
+  },
+  "homeBoat1_b": {
+   "ground": {
+    "left": [
+     67,
+     182
+    ],
+    "front": [
+     339,
+     418
+    ],
+    "right": [
+     445,
+     327
+    ]
+   },
+   "top": 37,
+   "facing": "nw",
+   "auto": true,
+   "method": "outline"
+  },
+  "homeBoat2_a": {
+   "ground": {
+    "left": [
+     94,
+     749
+    ],
+    "front": [
+     349,
+     927
+    ],
+    "right": [
+     418,
+     833
+    ]
+   },
+   "top": 534,
+   "facing": "se",
+   "auto": true,
+   "method": "outline"
+  },
+  "homeBoat2_b": {
+   "ground": {
+    "left": [
+     66,
+     707
+    ],
+    "front": [
+     338,
+     923
+    ],
+    "right": [
+     445,
+     833
+    ]
+   },
+   "top": 513,
+   "facing": "nw",
+   "auto": true,
+   "method": "outline"
+  },
+  "homeBoat3_a": {
+   "ground": {
+    "left": [
+     61,
+     301
+    ],
+    "front": [
+     282,
+     424
+    ],
+    "right": [
+     451,
+     318
+    ]
+   },
+   "top": 70,
+   "facing": "se",
+   "auto": true,
+   "method": "outline"
+  },
+  "homeBoat3_b": {
+   "ground": {
+    "left": [
+     82,
+     716
+    ],
+    "front": [
+     290,
+     913
+    ],
+    "right": [
+     430,
+     789
+    ]
+   },
+   "top": 462,
+   "facing": "se",
+   "auto": true,
+   "method": "outline"
+  },
+  "kaido1_a": {
+   "ground": {
+    "left": [
+     91,
+     704
+    ],
+    "front": [
+     331,
+     920
+    ],
+    "right": [
+     420,
+     820
+    ]
+   },
+   "top": 500,
+   "facing": "se",
+   "auto": true,
+   "method": "outline"
+  },
+  "kaido1_b": {
+   "ground": {
+    "left": [
+     57,
+     667
+    ],
+    "front": [
+     359,
+     923
+    ],
+    "right": [
+     455,
+     840
+    ]
+   },
+   "top": 515,
+   "facing": "nw",
+   "auto": true,
+   "method": "outline"
+  },
+  "pierAssessories_bollardDouble": {
+   "ground": {
+    "left": [
+     142,
+     389.7
+    ],
+    "front": [
+     267.2,
+     457.3
+    ],
+    "right": [
+     369,
+     399.3
+    ]
+   },
+   "top": 240,
+   "facing": "se",
+   "auto": true,
+   "method": "lot"
+  },
+  "pierAssessories_bollardRope": {
+   "ground": {
+    "left": [
+     32,
+     396.9
+    ],
+    "front": [
+     123.9,
+     452.4
+    ],
+    "right": [
+     223,
+     402.9
+    ]
+   },
+   "top": 209,
+   "facing": "se",
+   "auto": true,
+   "method": "lot"
+  },
+  "pierAssessories_bollardSmall": {
+   "ground": {
+    "left": [
+     72,
+     196.9
+    ],
+    "front": [
+     117.8,
+     228.8
+    ],
+    "right": [
+     184,
+     195.7
+    ]
+   },
+   "top": 116,
+   "facing": "se",
+   "auto": true,
+   "method": "lot"
+  },
+  "pierAssessories_bollardTall": {
+   "ground": {
+    "left": [
+     72,
+     193.4
+    ],
+    "front": [
+     119.4,
+     221.6
+    ],
+    "right": [
+     183,
+     189.8
+    ]
+   },
+   "top": 86,
+   "facing": "se",
+   "auto": true,
+   "method": "lot"
+  },
+  "pierAssessories_bollardTimber": {
+   "ground": {
+    "left": [
+     41,
+     413.9
+    ],
+    "front": [
+     129.1,
+     461.9
+    ],
+    "right": [
+     211,
+     404.1
+    ]
+   },
+   "top": 251,
+   "facing": "se",
+   "auto": true,
+   "method": "lot"
+  },
+  "pierAssessories_cleat": {
+   "ground": {
+    "left": [
+     45,
+     185.9
+    ],
+    "front": [
+     85.4,
+     210.8
+    ],
+    "right": [
+     217,
+     143.6
+    ]
+   },
+   "top": 28,
+   "facing": "se",
+   "auto": true,
+   "method": "lot"
+  },
+  "pierAssessories_cleatSmall": {
+   "ground": {
+    "left": [
+     49,
+     198
+    ],
+    "front": [
+     175,
+     229
+    ],
+    "right": [
+     206,
+     203
+    ]
+   },
+   "top": 126,
+   "facing": "se",
+   "auto": true,
+   "method": "outline"
+  },
+  "pierAssessories_cleatTimber": {
+   "ground": {
+    "left": [
+     122,
+     157
+    ],
+    "front": [
+     289,
+     215
+    ],
+    "right": [
+     388,
+     143
+    ]
+   },
+   "top": 55,
+   "facing": "se",
+   "auto": true,
+   "method": "outline"
+  },
+  "pierAssessories_mooringRing": {
+   "ground": {
+    "left": [
+     65,
+     185.4
+    ],
+    "front": [
+     137.9,
+     220.4
+    ],
+    "right": [
+     190,
+     186
+    ]
+   },
+   "top": 73,
+   "facing": "se",
+   "auto": true,
+   "method": "lot"
+  },
+  "pierSet1_a": {
+   "ground": {
+    "left": [
+     132,
+     351.6
+    ],
+    "front": [
+     293.2,
+     452.4
+    ],
+    "right": [
+     390,
+     406.5
+    ]
+   },
+   "facing": "se",
+   "auto": false,
+   "method": "lot",
+   "top": 227
+  },
+  "pierSet1_b": {
+   "ground": {
+    "left": [
+     111,
+     346.8
+    ],
+    "front": [
+     286,
+     459.6
+    ],
+    "right": [
+     400,
+     398.6
+    ]
+   },
+   "facing": "se",
+   "auto": false,
+   "method": "lot",
+   "top": 203
+  },
+  "pierSet2_a": {
+   "ground": {
+    "left": [
+     66,
+     262
+    ],
+    "front": [
+     289,
+     435
+    ],
+    "right": [
+     446,
+     280
+    ]
+   },
+   "top": 125,
+   "facing": "se",
+   "auto": true,
+   "method": "outline"
+  },
+  "pierSet2_b": {
+   "ground": {
+    "left": [
+     74,
+     237
+    ],
+    "front": [
+     312,
+     431
+    ],
+    "right": [
+     437,
+     274
+    ]
+   },
+   "top": 103,
+   "facing": "se",
+   "auto": true,
+   "method": "outline"
+  },
+  "pierShop1_a": {
+   "ground": {
+    "left": [
+     58,
+     314
+    ],
+    "front": [
+     200,
+     416
+    ],
+    "right": [
+     447,
+     250
+    ]
+   },
+   "top": 27,
+   "facing": "se",
+   "auto": true,
+   "method": "outline"
+  },
+  "pierShop1_b": {
+   "ground": {
+    "left": [
+     79,
+     762
+    ],
+    "front": [
+     305,
+     914
+    ],
+    "right": [
+     433,
+     789
+    ]
+   },
+   "top": 469,
+   "facing": "se",
+   "auto": true,
+   "method": "outline"
+  },
+  "pierShop2_a": {
+   "ground": {
+    "left": [
+     88,
+     767
+    ],
+    "front": [
+     275,
+     908
+    ],
+    "right": [
+     424,
+     793
+    ]
+   },
+   "top": 438,
+   "facing": "se",
+   "auto": true,
+   "method": "outline"
+  },
+  "pierShop2_b": {
+   "ground": {
+    "left": [
+     86,
+     750
+    ],
+    "front": [
+     286,
+     907
+    ],
+    "right": [
+     426,
+     810
+    ]
+   },
+   "top": 430,
+   "facing": "se",
+   "auto": true,
+   "method": "outline"
+  },
+  "sanpan1_a": {
+   "ground": {
+    "left": [
+     34,
+     306
+    ],
+    "front": [
+     167,
+     459
+    ],
+    "right": [
+     222,
+     385
+    ]
+   },
+   "top": 261,
+   "facing": "se",
+   "auto": true,
+   "method": "outline"
+  },
+  "sanpan1_b": {
+   "ground": {
+    "left": [
+     110,
+     297
+    ],
+    "front": [
+     352,
+     452
+    ],
+    "right": [
+     402,
+     396
+    ]
+   },
+   "top": 222,
+   "facing": "se",
+   "auto": true,
+   "method": "outline"
+  },
+  "sanpan2_a": {
+   "ground": {
+    "left": [
+     130,
+     263
+    ],
+    "front": [
+     326,
+     446
+    ],
+    "right": [
+     382,
+     358
+    ]
+   },
+   "top": 182,
+   "facing": "se",
+   "auto": true,
+   "method": "outline"
+  },
+  "sanpan2_b": {
+   "ground": {
+    "left": [
+     73,
+     213
+    ],
+    "front": [
+     372,
+     437
+    ],
+    "right": [
+     438,
+     377
+    ]
+   },
+   "top": 137,
+   "facing": "se",
+   "auto": true,
+   "method": "outline"
+  },
+  "sanpan3_a": {
+   "ground": {
+    "left": [
+     121,
+     233
+    ],
+    "front": [
+     321,
+     439
+    ],
+    "right": [
+     390,
+     335
+    ]
+   },
+   "top": 147,
+   "facing": "se",
+   "auto": true,
+   "method": "outline"
+  },
+  "sanpan3_b": {
+   "ground": {
+    "left": [
+     67,
+     207
+    ],
+    "front": [
+     380,
+     434
+    ],
+    "right": [
+     445,
+     351
+    ]
+   },
+   "top": 119,
+   "facing": "se",
+   "auto": true,
+   "method": "outline"
+  },
+  "sanpan4_a": {
+   "ground": {
+    "left": [
+     105,
+     209
+    ],
+    "front": [
+     335,
+     433
+    ],
+    "right": [
+     406,
+     348
+    ]
+   },
+   "top": 115,
+   "facing": "se",
+   "auto": true,
+   "method": "outline"
+  },
+  "sanpan4_b": {
+   "ground": {
+    "left": [
+     61,
+     231
+    ],
+    "front": [
+     372,
+     426
+    ],
+    "right": [
+     449,
+     328
+    ]
+   },
+   "top": 79,
+   "facing": "se",
+   "auto": true,
+   "method": "outline"
+  },
+  "sanpan5_a": {
+   "ground": {
+    "left": [
+     93,
+     186
+    ],
+    "front": [
+     347,
+     424
+    ],
+    "right": [
+     418,
+     334
+    ]
+   },
+   "top": 67,
+   "facing": "se",
+   "auto": true,
+   "method": "outline"
+  },
+  "sanpan5_b": {
+   "ground": {
+    "left": [
+     77,
+     227
+    ],
+    "front": [
+     354,
+     430
+    ],
+    "right": [
+     434,
+     331
+    ]
+   },
+   "top": 99,
+   "facing": "se",
+   "auto": true,
+   "method": "outline"
+  },
+  "shoreAssessories1_a": {
+   "ground": {
+    "left": [
+     94,
+     298
+    ],
+    "front": [
+     257,
+     432
+    ],
+    "right": [
+     417,
+     314
+    ]
+   },
+   "top": 108,
+   "facing": "se",
+   "auto": true,
+   "method": "outline"
+  },
+  "shoreAssessories1_b": {
+   "ground": {
+    "left": [
+     93,
+     817
+    ],
+    "front": [
+     208,
+     926
+    ],
+    "right": [
+     418,
+     790
+    ]
+   },
+   "top": 527,
+   "facing": "se",
+   "auto": true,
+   "method": "outline"
+  },
+  "shoreAssessories2_a": {
+   "ground": {
+    "left": [
+     21,
+     844
+    ],
+    "front": [
+     165,
+     913
+    ],
+    "right": [
+     233,
+     591
+    ]
+   },
+   "top": 460,
+   "facing": "se",
+   "auto": true,
+   "method": "outline"
+  },
+  "shoreAssessories2_b": {
+   "ground": {
+    "left": [
+     120,
+     647
+    ],
+    "front": [
+     238,
+     920
+    ],
+    "right": [
+     391,
+     575
+    ]
+   },
+   "top": 497,
+   "facing": "se",
+   "auto": true,
+   "method": "outline"
+  },
+  "shoreAssessories3_a": {
+   "ground": {
+    "left": [
+     79,
+     717
+    ],
+    "front": [
+     278,
+     917
+    ],
+    "right": [
+     432,
+     768
+    ]
+   },
+   "top": 481,
+   "facing": "se",
+   "auto": true,
+   "method": "outline"
+  },
+  "shoreAssessories3_b": {
+   "ground": {
+    "left": [
+     95,
+     232
+    ],
+    "front": [
+     259,
+     416
+    ],
+    "right": [
+     417,
+     190
+    ]
+   },
+   "top": 28,
+   "facing": "se",
+   "auto": true,
+   "method": "outline"
+  },
+  "shoreAssessories4_a": {
+   "ground": {
+    "left": [
+     86,
+     285
+    ],
+    "front": [
+     177,
+     421
+    ],
+    "right": [
+     427,
+     263
+    ]
+   },
+   "top": 52,
+   "facing": "se",
+   "auto": true,
+   "method": "outline"
+  },
+  "shoreAssessories4_b": {
+   "ground": {
+    "left": [
+     90,
+     272
+    ],
+    "front": [
+     269,
+     419
+    ],
+    "right": [
+     421,
+     262
+    ]
+   },
+   "top": 41,
+   "facing": "se",
+   "auto": true,
+   "method": "outline"
+  },
+  "shoreFence_corner": {
+   "ground": {
+    "left": [
+     99,
+     443
+    ],
+    "front": [
+     129,
+     462
+    ],
+    "right": [
+     413,
+     425
+    ]
+   },
+   "top": 266,
+   "facing": "se",
+   "auto": true,
+   "method": "outline"
+  },
+  "shoreFence_gate": {
+   "ground": {
+    "left": [
+     58,
+     195
+    ],
+    "front": [
+     93,
+     217
+    ],
+    "right": [
+     197,
+     148
+    ]
+   },
+   "top": 67,
+   "facing": "se",
+   "auto": true,
+   "method": "outline"
+  },
+  "shoreFence_straightA": {
+   "ground": {
+    "left": [
+     118,
+     339
+    ],
+    "front": [
+     357,
+     452
+    ],
+    "right": [
+     394,
+     428
+    ]
+   },
+   "top": 213,
+   "facing": "se",
+   "auto": true,
+   "method": "outline"
+  },
+  "shoreFence_straightB": {
+   "ground": {
+    "left": [
+     110,
+     320
+    ],
+    "front": [
+     368,
+     449
+    ],
+    "right": [
+     402,
+     427
+    ]
+   },
+   "top": 198,
+   "facing": "se",
+   "auto": true,
+   "method": "outline"
+  },
+  "speedboat1_a": {
+   "ground": {
+    "left": [
+     75,
+     729
+    ],
+    "front": [
+     354,
+     914
+    ],
+    "right": [
+     435,
+     845
+    ]
+   },
+   "top": 469,
+   "facing": "se",
+   "auto": true,
+   "method": "outline"
+  },
+  "speedboat1_b": {
+   "ground": {
+    "left": [
+     145,
+     383.8
+    ],
+    "front": [
+     285.8,
+     443.7
+    ],
+    "right": [
+     421,
+     363.9
+    ]
+   },
+   "top": 130,
+   "facing": "nw",
+   "auto": true,
+   "method": "lot"
+  },
+  "speedboat2_a": {
+   "ground": {
+    "left": [
+     66,
+     243
+    ],
+    "front": [
+     362,
+     421
+    ],
+    "right": [
+     447,
+     355
+    ]
+   },
+   "top": 54,
+   "facing": "se",
+   "auto": true,
+   "method": "outline"
+  },
+  "speedboat2_b": {
+   "ground": {
+    "left": [
+     65,
+     232
+    ],
+    "front": [
+     336,
+     441
+    ],
+    "right": [
+     448,
+     360
+    ]
+   },
+   "top": 157,
+   "facing": "nw",
+   "auto": true,
+   "method": "outline"
+  }
+ },
+ "objects": {}
+}

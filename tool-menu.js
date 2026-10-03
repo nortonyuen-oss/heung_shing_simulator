@@ -57,7 +57,7 @@ function setupToolMenu() {
   initSportsGroundToolMenu(menu);
   setupGroupedToolMenus(menu);
 
-  window.addEventListener('pointerup', () => {
+  window.addEventListener('pointerup', (event) => {
     const wasPainting = isPainting;
     // ── Zone rect-fill (BEFORE clearing state) ────────────────────────────────
     // Phaser defers its own pointerup event to the next update() frame, so the
@@ -70,6 +70,15 @@ function setupToolMenu() {
     if (isPainting && dragStartTile && selectedTool === 'road' && activeScene) {
       const endTile = lastKnownTile ?? dragStartTile;
       commitRoadDrag(activeScene, dragStartTile, endTile);
+    }
+    // 避風塘 水域: a drag adds (or with Shift cuts) a rectangle; a click without a drag does nothing.
+    if (isPainting && dragStartTile && activeScene && typeof isTyphoonShelterBasinDrag === 'function' && isTyphoonShelterBasinDrag()) {
+      const endTile = lastKnownTile ?? dragStartTile;
+      if (endTile.row !== dragStartTile.row || endTile.col !== dragStartTile.col) {
+        commitTyphoonShelterDrag(activeScene, dragStartTile, endTile, !!event?.shiftKey);
+      } else {
+        cancelTyphoonShelterDrag(activeScene);
+      }
     }
     if (activeScene?.zonePreviewGraphic)        activeScene.zonePreviewGraphic.clear();
     if (activeScene?.bridgePreviewGraphic)      activeScene.bridgePreviewGraphic.clear();
@@ -318,7 +327,7 @@ function setupToolMenu() {
 
 function getToolCategoryForTool(tool) {
   if (tool === 'inspect') return 'inspect';
-  if (tool === 'terrain') return 'terrain';
+  if (tool === 'terrain' || tool === 'typhoon-shelter') return 'terrain';
   if (tool === 'road') return 'roads';
   if (tool === 'bus-stop' || tool === 'bus-depot') return 'transport';
   if (tool === 'district-sign') return 'maps';
@@ -363,6 +372,8 @@ function getToolCategoryForTool(tool) {
 function updateToolCategoryState(menu = document.getElementById('tool-menu'), tool = selectedTool) {
   if (!menu) return;
   clearPlacementGuides();
+  // 避風塘: shows its mode bar and planning overlay while selected, hides them otherwise.
+  if (typeof syncTyphoonShelterTool === 'function') syncTyphoonShelterTool();
   const activeCategory = getToolCategoryForTool(tool);
   menu.querySelectorAll('[data-tool-category]').forEach((button) => {
     button.classList.toggle('is-active', button.dataset.toolCategory === activeCategory);

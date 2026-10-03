@@ -682,6 +682,8 @@ function isVisualRouteCalibrationInputCaptured(scene) {
   // traffic-light-calibrator.js: same deal while its lamp-drag workbench is open.
   if (typeof isTrafficLightCalibrationInputActive === 'function'
     && isTrafficLightCalibrationInputActive()) return true;
+  // sea-light-calibrator.js: its modal workbench owns input while open.
+  if (typeof isSeaLightCalibrationActive === 'function' && isSeaLightCalibrationActive()) return true;
   // building-light-calibrator.js: while its building picker is armed.
   return typeof isBuildingLightCalibrationInputActive === 'function'
     && isBuildingLightCalibrationInputActive();
@@ -1125,8 +1127,11 @@ function createVisualRoutePerformancePanel(scene) {
     + '<button type="button" class="vrp-streetfurniture-btn">路邊設施位置微調</button>'
     + '</div><div class="vrp-group-label">建築</div><div class="vrp-grid">'
     + '<button type="button" class="vrp-buildingground-btn">建築地盤校正</button>'
+    + '</div><div class="vrp-group-label">避風塘</div><div class="vrp-grid">'
+    + '<button type="button" class="vrp-typhoonshelter-btn">避風塘素材校準</button>'
     + '</div><div class="vrp-group-label">燈光</div><div class="vrp-grid">'
     + '<button type="button" class="vrp-buildinglight-btn">夜間建築燈光校正</button>'
+    + '<button type="button" class="vrp-sealight-btn">海上燈光校正（漁火）</button>'
     + '<button type="button" class="vrp-nightremote-btn">遠離市區夜色校正</button>'
     + '<button type="button" class="vrp-livelights-btn" data-active="false">使用 Phaser 光源：關閉</button>'
     + '</div></details>';
@@ -1189,6 +1194,12 @@ function createVisualRoutePerformancePanel(scene) {
   });
   root.querySelector('.vrp-buildinglight-btn')?.addEventListener?.('click', () => {
     if (typeof toggleBuildingLightCalibrator === 'function') toggleBuildingLightCalibrator(scene);
+  });
+  root.querySelector('.vrp-typhoonshelter-btn')?.addEventListener?.('click', () => {
+    if (typeof toggleTyphoonShelterCalibrator === 'function') toggleTyphoonShelterCalibrator(scene);
+  });
+  root.querySelector('.vrp-sealight-btn')?.addEventListener?.('click', () => {
+    if (typeof toggleSeaLightCalibrator === 'function') toggleSeaLightCalibrator(scene);
   });
   root.querySelector('.vrp-nightremote-btn')?.addEventListener?.('click', () => {
     if (typeof toggleNightRemoteDarknessCalibrator === 'function') toggleNightRemoteDarknessCalibrator(scene);

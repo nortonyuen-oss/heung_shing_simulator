@@ -1048,6 +1048,15 @@ function create() {
           lastKnownTile = { row: cur.row, col: cur.col };
           drawRoadDragPreview(this, dragStartTile, cur);
         }
+      } else if (selectedTool === 'typhoon-shelter') {
+        // 避風塘 水域: preview the rectangle and the plan it would make; committed on pointerup.
+        // In the other modes a drag does nothing (no per-tile repeat of the entrance click).
+        const cur = pointerToTile(this, pointer);
+        if (typeof isTyphoonShelterBasinDrag === 'function' && isTyphoonShelterBasinDrag()
+          && cur && dragStartTile && (!lastKnownTile || cur.row !== lastKnownTile.row || cur.col !== lastKnownTile.col)) {
+          lastKnownTile = { row: cur.row, col: cur.col };
+          drawTyphoonShelterDragPreview(this, dragStartTile, cur, !!pointer.event?.shiftKey);
+        }
       } else if (isZoneTool()) {
         // Zone tools: update the tracked end-tile and redraw the ISO rectangle preview.
         // Actual zone fill happens in the window 'pointerup' listener.
@@ -1771,6 +1780,9 @@ function positionAllTiles(scene) {
   if (typeof refreshAllBridgeParapetSprites === 'function') refreshAllBridgeParapetSprites(scene);
   if (typeof refreshAllPedestrianRailingSprites === 'function') refreshAllPedestrianRailingSprites(scene);
   if (typeof refreshAllStreetFurnitureSprites === 'function') refreshAllStreetFurnitureSprites(scene);
+  // 避風塘 objects re-pick their texture for the new rotation as well as moving.
+  if (typeof refreshAllTyphoonShelterSprites === 'function') refreshAllTyphoonShelterSprites(scene);
+  if (typeof redrawTyphoonShelterPlanning === 'function') redrawTyphoonShelterPlanning(scene);
 
   if (typeof repositionDistrictSignSprites === 'function') repositionDistrictSignSprites(scene);
 
@@ -1954,7 +1966,14 @@ function applyToolAt(scene, row, col, pointer = null) {
       editDistrictSign(scene, districtSign).catch((error) => console.warn('[District sign edit]', error));
       return;
     }
+    if (typeof inspectTyphoonShelterAt === 'function' && inspectTyphoonShelterAt(scene, row, col)) return;
     showInspectPanel(scene, row, col, pointer);
+    return;
+  }
+
+  // 避風塘: basin drags are handled on pointermove/pointerup; clicks pick entrances or inspect.
+  if (selectedTool === 'typhoon-shelter') {
+    if (typeof handleTyphoonShelterToolClick === 'function') handleTyphoonShelterToolClick(scene, row, col);
     return;
   }
 
@@ -2157,6 +2176,12 @@ function commitRoadDrag(scene, start, end) {
   const pathInfo = getStraightDragPath(start, end);
   const bridge = analyzeBridgePath(scene, pathInfo);
   if (bridge.crossesWater) {
+    // A planned 避風塘's water and breakwater line are kept clear (boats cannot pass under bridges).
+    if (typeof findTyphoonShelterAt === 'function'
+      && pathInfo.path.some(({ row, col }) => findTyphoonShelterAt(row, col))) {
+      showToast(t('toast.bridgeOverTyphoonShelter'), 'warning');
+      return;
+    }
     if (!bridge.valid) {
       showToast(getBridgeErrorMessage(bridge.reason), 'warning');
       return;

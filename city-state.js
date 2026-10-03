@@ -225,6 +225,8 @@ const city = {
   },
   forumPosts: [],
   lastForumMonthIndex: -1,
+  // 避風塘 plans (typhoon-shelter.js); only the basin and entrances are stored.
+  typhoonShelters: { version: 1, nextId: 1, shelters: [] },
   acknowledgedLandmarkUnlocks: [],
   landmarkRevenue: 0,
   landmarkUpkeep: 0,
@@ -406,6 +408,8 @@ function resetGameState() {
   };
   city.forumPosts = [];
   city.lastForumMonthIndex = -1;
+  city.typhoonShelters = { version: 1, nextId: 1, shelters: [] };
+  if (typeof resetTyphoonShelterPlanning === 'function') resetTyphoonShelterPlanning();
   if (typeof resetAiNewsRuntime === 'function') resetAiNewsRuntime();
   city.tick       = 0;
   city.timeOfDayMinutes = 6 * 60;
@@ -787,6 +791,11 @@ function normalizeCityFinanceState() {
       })).filter((item) => item.headline),
     });
   }
+  if (!isNormalizedCityStateObject(city.typhoonShelters)) {
+    city.typhoonShelters = rememberNormalizedCityStateObject(typeof normalizeTyphoonShelterState === 'function'
+      ? normalizeTyphoonShelterState(city.typhoonShelters)
+      : (city.typhoonShelters && typeof city.typhoonShelters === 'object' ? city.typhoonShelters : { version: 1, nextId: 1, shelters: [] }));
+  }
   if (!isNormalizedCityStateObject(city.forumPosts)) {
     city.forumPosts = rememberNormalizedCityStateObject((Array.isArray(city.forumPosts) ? city.forumPosts : []).slice(-60).map((post, index) => ({
     id: String(post?.id || `forum-loaded-${index}`).slice(0, 120),
@@ -1015,12 +1024,14 @@ function computeBudgetSnapshot(options = {}) {
   // must never be counted a second time in the mayor's city budget.
   const transportIncome = 0;
   const transportCost = 0;
+  // 避風塘: upkeep of built breakwaters, piers and buoys (typhoon-shelter-planning.js).
+  const marineUpkeep = typeof getTyphoonShelterMonthlyUpkeep === 'function' ? getTyphoonShelterMonthlyUpkeep() : 0;
   const totalIncome = Math.round(
     grossIncome + policyTaxAdjustment + tourismIncome + landmarkIncome + transportIncome
   );
   const totalExpenses = Math.round(
     roadsUpkeep + fireUpkeep + policeUpkeep + powerUpkeep + educationUpkeep + healthUpkeep
-    + parksUpkeep + policyCost + loanPayment + landmarkUpkeep + transportCost
+    + parksUpkeep + policyCost + loanPayment + landmarkUpkeep + transportCost + marineUpkeep
   );
   const net = totalIncome - totalExpenses;
   city.landmarkRevenue = Math.round(landmarkIncome);
@@ -1048,6 +1059,7 @@ function computeBudgetSnapshot(options = {}) {
       policy: Math.round(policyCost),
       loans: Math.round(loanPayment),
       transport: Math.round(transportCost),
+      marine: Math.round(marineUpkeep),
     },
     totalIncome,
     totalExpenses,

@@ -1,0 +1,2009 @@
+{
+ "textures": {
+  "ts_bout1_a": {
+   "file": "Models/typhoonShelter/ts_bout1_a.png",
+   "part": "bout1_a",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 257,
+    "y": 902
+   },
+   "mirrored": false
+  },
+  "ts_bout1_a_m": {
+   "file": "Models/typhoonShelter/ts_bout1_a_m.png",
+   "part": "bout1_a",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 255,
+    "y": 902
+   },
+   "mirrored": true
+  },
+  "ts_bout1_b": {
+   "file": "Models/typhoonShelter/ts_bout1_b.png",
+   "part": "bout1_b",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 256,
+    "y": 907
+   },
+   "mirrored": false
+  },
+  "ts_bout1_b_m": {
+   "file": "Models/typhoonShelter/ts_bout1_b_m.png",
+   "part": "bout1_b",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 256,
+    "y": 907
+   },
+   "mirrored": true
+  },
+  "ts_bout2_a": {
+   "file": "Models/typhoonShelter/ts_bout2_a.png",
+   "part": "bout2_a",
+   "width": 512,
+   "height": 256,
+   "anchor": {
+    "x": 256,
+    "y": 209
+   },
+   "mirrored": false
+  },
+  "ts_bout2_a_m": {
+   "file": "Models/typhoonShelter/ts_bout2_a_m.png",
+   "part": "bout2_a",
+   "width": 512,
+   "height": 256,
+   "anchor": {
+    "x": 256,
+    "y": 209
+   },
+   "mirrored": true
+  },
+  "ts_bout2_b": {
+   "file": "Models/typhoonShelter/ts_bout2_b.png",
+   "part": "bout2_b",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 257,
+    "y": 460
+   },
+   "mirrored": false
+  },
+  "ts_bout2_b_m": {
+   "file": "Models/typhoonShelter/ts_bout2_b_m.png",
+   "part": "bout2_b",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 255,
+    "y": 460
+   },
+   "mirrored": true
+  },
+  "ts_bout3_a": {
+   "file": "Models/typhoonShelter/ts_bout3_a.png",
+   "part": "bout3_a",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 456
+   },
+   "mirrored": false
+  },
+  "ts_bout3_a_m": {
+   "file": "Models/typhoonShelter/ts_bout3_a_m.png",
+   "part": "bout3_a",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 456
+   },
+   "mirrored": true
+  },
+  "ts_bout3_b": {
+   "file": "Models/typhoonShelter/ts_bout3_b.png",
+   "part": "bout3_b",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 257,
+    "y": 451
+   },
+   "mirrored": false
+  },
+  "ts_bout3_b_m": {
+   "file": "Models/typhoonShelter/ts_bout3_b_m.png",
+   "part": "bout3_b",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 255,
+    "y": 451
+   },
+   "mirrored": true
+  },
+  "ts_causeway1_a": {
+   "file": "Models/typhoonShelter/ts_causeway1_a.png",
+   "part": "causeway1_a",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 457
+   },
+   "mirrored": false
+  },
+  "ts_causeway1_a_m": {
+   "file": "Models/typhoonShelter/ts_causeway1_a_m.png",
+   "part": "causeway1_a",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 457
+   },
+   "mirrored": true
+  },
+  "ts_causeway1_b": {
+   "file": "Models/typhoonShelter/ts_causeway1_b.png",
+   "part": "causeway1_b",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 257,
+    "y": 451
+   },
+   "mirrored": false
+  },
+  "ts_causeway1_b_m": {
+   "file": "Models/typhoonShelter/ts_causeway1_b_m.png",
+   "part": "causeway1_b",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 255,
+    "y": 451
+   },
+   "mirrored": true
+  },
+  "ts_causeway2_a": {
+   "file": "Models/typhoonShelter/ts_causeway2_a.png",
+   "part": "causeway2_a",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 256,
+    "y": 909
+   },
+   "mirrored": false
+  },
+  "ts_causeway2_a_m": {
+   "file": "Models/typhoonShelter/ts_causeway2_a_m.png",
+   "part": "causeway2_a",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 256,
+    "y": 909
+   },
+   "mirrored": true
+  },
+  "ts_causeway2_b": {
+   "file": "Models/typhoonShelter/ts_causeway2_b.png",
+   "part": "causeway2_b",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 257,
+    "y": 904
+   },
+   "mirrored": false
+  },
+  "ts_causeway2_b_m": {
+   "file": "Models/typhoonShelter/ts_causeway2_b_m.png",
+   "part": "causeway2_b",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 255,
+    "y": 904
+   },
+   "mirrored": true
+  },
+  "ts_causeway3_a": {
+   "file": "Models/typhoonShelter/ts_causeway3_a.png",
+   "part": "causeway3_a",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 256,
+    "y": 902
+   },
+   "mirrored": false
+  },
+  "ts_causeway3_a_m": {
+   "file": "Models/typhoonShelter/ts_causeway3_a_m.png",
+   "part": "causeway3_a",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 256,
+    "y": 902
+   },
+   "mirrored": true
+  },
+  "ts_causeway3_b": {
+   "file": "Models/typhoonShelter/ts_causeway3_b.png",
+   "part": "causeway3_b",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 256,
+    "y": 909
+   },
+   "mirrored": false
+  },
+  "ts_causeway3_b_m": {
+   "file": "Models/typhoonShelter/ts_causeway3_b_m.png",
+   "part": "causeway3_b",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 256,
+    "y": 909
+   },
+   "mirrored": true
+  },
+  "ts_fishingBoat1_a": {
+   "file": "Models/typhoonShelter/ts_fishingBoat1_a.png",
+   "part": "fishingBoat1_a",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 256,
+    "y": 904
+   },
+   "mirrored": false,
+   "facing": "se"
+  },
+  "ts_fishingBoat1_a_m": {
+   "file": "Models/typhoonShelter/ts_fishingBoat1_a_m.png",
+   "part": "fishingBoat1_a",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 256,
+    "y": 904
+   },
+   "mirrored": true,
+   "facing": "sw"
+  },
+  "ts_fishingBoat1_b": {
+   "file": "Models/typhoonShelter/ts_fishingBoat1_b.png",
+   "part": "fishingBoat1_b",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 256,
+    "y": 902
+   },
+   "mirrored": false,
+   "facing": "nw"
+  },
+  "ts_fishingBoat1_b_m": {
+   "file": "Models/typhoonShelter/ts_fishingBoat1_b_m.png",
+   "part": "fishingBoat1_b",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 256,
+    "y": 902
+   },
+   "mirrored": true,
+   "facing": "ne"
+  },
+  "ts_fishingBoat2_a": {
+   "file": "Models/typhoonShelter/ts_fishingBoat2_a.png",
+   "part": "fishingBoat2_a",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 417
+   },
+   "mirrored": false,
+   "facing": "se"
+  },
+  "ts_fishingBoat2_a_m": {
+   "file": "Models/typhoonShelter/ts_fishingBoat2_a_m.png",
+   "part": "fishingBoat2_a",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 417
+   },
+   "mirrored": true,
+   "facing": "sw"
+  },
+  "ts_fishingBoat2_b": {
+   "file": "Models/typhoonShelter/ts_fishingBoat2_b.png",
+   "part": "fishingBoat2_b",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 257,
+    "y": 441
+   },
+   "mirrored": false,
+   "facing": "se"
+  },
+  "ts_fishingBoat2_b_m": {
+   "file": "Models/typhoonShelter/ts_fishingBoat2_b_m.png",
+   "part": "fishingBoat2_b",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 255,
+    "y": 441
+   },
+   "mirrored": true,
+   "facing": "sw"
+  },
+  "ts_fishingBoat3_a": {
+   "file": "Models/typhoonShelter/ts_fishingBoat3_a.png",
+   "part": "fishingBoat3_a",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 257,
+    "y": 919
+   },
+   "mirrored": false,
+   "facing": "se"
+  },
+  "ts_fishingBoat3_a_m": {
+   "file": "Models/typhoonShelter/ts_fishingBoat3_a_m.png",
+   "part": "fishingBoat3_a",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 255,
+    "y": 919
+   },
+   "mirrored": true,
+   "facing": "sw"
+  },
+  "ts_fishingBoat3_b": {
+   "file": "Models/typhoonShelter/ts_fishingBoat3_b.png",
+   "part": "fishingBoat3_b",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 257,
+    "y": 923
+   },
+   "mirrored": false,
+   "facing": "nw"
+  },
+  "ts_fishingBoat3_b_m": {
+   "file": "Models/typhoonShelter/ts_fishingBoat3_b_m.png",
+   "part": "fishingBoat3_b",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 255,
+    "y": 923
+   },
+   "mirrored": true,
+   "facing": "ne"
+  },
+  "ts_fishingBoat4_a": {
+   "file": "Models/typhoonShelter/ts_fishingBoat4_a.png",
+   "part": "fishingBoat4_a",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 256,
+    "y": 926
+   },
+   "mirrored": false,
+   "facing": "se"
+  },
+  "ts_fishingBoat4_a_m": {
+   "file": "Models/typhoonShelter/ts_fishingBoat4_a_m.png",
+   "part": "fishingBoat4_a",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 256,
+    "y": 926
+   },
+   "mirrored": true,
+   "facing": "sw"
+  },
+  "ts_fishingBoat4_b": {
+   "file": "Models/typhoonShelter/ts_fishingBoat4_b.png",
+   "part": "fishingBoat4_b",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 257,
+    "y": 421
+   },
+   "mirrored": false,
+   "facing": "nw"
+  },
+  "ts_fishingBoat4_b_m": {
+   "file": "Models/typhoonShelter/ts_fishingBoat4_b_m.png",
+   "part": "fishingBoat4_b",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 255,
+    "y": 421
+   },
+   "mirrored": true,
+   "facing": "ne"
+  },
+  "ts_floatingChef_a": {
+   "file": "Models/typhoonShelter/ts_floatingChef_a.png",
+   "part": "floatingChef_a",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 257,
+    "y": 918
+   },
+   "mirrored": false
+  },
+  "ts_floatingChef_a_m": {
+   "file": "Models/typhoonShelter/ts_floatingChef_a_m.png",
+   "part": "floatingChef_a",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 255,
+    "y": 918
+   },
+   "mirrored": true
+  },
+  "ts_floatingChef_b": {
+   "file": "Models/typhoonShelter/ts_floatingChef_b.png",
+   "part": "floatingChef_b",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 256,
+    "y": 910
+   },
+   "mirrored": false
+  },
+  "ts_floatingChef_b_m": {
+   "file": "Models/typhoonShelter/ts_floatingChef_b_m.png",
+   "part": "floatingChef_b",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 256,
+    "y": 910
+   },
+   "mirrored": true
+  },
+  "ts_floatingGasStation_a": {
+   "file": "Models/typhoonShelter/ts_floatingGasStation_a.png",
+   "part": "floatingGasStation_a",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 257,
+    "y": 422
+   },
+   "mirrored": false
+  },
+  "ts_floatingGasStation_a_m": {
+   "file": "Models/typhoonShelter/ts_floatingGasStation_a_m.png",
+   "part": "floatingGasStation_a",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 255,
+    "y": 422
+   },
+   "mirrored": true
+  },
+  "ts_floatingGasStation_b": {
+   "file": "Models/typhoonShelter/ts_floatingGasStation_b.png",
+   "part": "floatingGasStation_b",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 435
+   },
+   "mirrored": false
+  },
+  "ts_floatingGasStation_b_m": {
+   "file": "Models/typhoonShelter/ts_floatingGasStation_b_m.png",
+   "part": "floatingGasStation_b",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 435
+   },
+   "mirrored": true
+  },
+  "ts_floatingHome_a": {
+   "file": "Models/typhoonShelter/ts_floatingHome_a.png",
+   "part": "floatingHome_a",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 256,
+    "y": 910
+   },
+   "mirrored": false
+  },
+  "ts_floatingHome_a_m": {
+   "file": "Models/typhoonShelter/ts_floatingHome_a_m.png",
+   "part": "floatingHome_a",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 256,
+    "y": 910
+   },
+   "mirrored": true
+  },
+  "ts_floatingHome_b": {
+   "file": "Models/typhoonShelter/ts_floatingHome_b.png",
+   "part": "floatingHome_b",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 417
+   },
+   "mirrored": false
+  },
+  "ts_floatingHome_b_m": {
+   "file": "Models/typhoonShelter/ts_floatingHome_b_m.png",
+   "part": "floatingHome_b",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 417
+   },
+   "mirrored": true
+  },
+  "ts_floatingPier1_a": {
+   "file": "Models/typhoonShelter/ts_floatingPier1_a.png",
+   "part": "floatingPier1_a",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 257,
+    "y": 421
+   },
+   "mirrored": false
+  },
+  "ts_floatingPier1_a_m": {
+   "file": "Models/typhoonShelter/ts_floatingPier1_a_m.png",
+   "part": "floatingPier1_a",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 255,
+    "y": 421
+   },
+   "mirrored": true
+  },
+  "ts_floatingPier1_b": {
+   "file": "Models/typhoonShelter/ts_floatingPier1_b.png",
+   "part": "floatingPier1_b",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 257,
+    "y": 422
+   },
+   "mirrored": false
+  },
+  "ts_floatingPier1_b_m": {
+   "file": "Models/typhoonShelter/ts_floatingPier1_b_m.png",
+   "part": "floatingPier1_b",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 255,
+    "y": 422
+   },
+   "mirrored": true
+  },
+  "ts_floatingPier2_a": {
+   "file": "Models/typhoonShelter/ts_floatingPier2_a.png",
+   "part": "floatingPier2_a",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 458
+   },
+   "mirrored": false
+  },
+  "ts_floatingPier2_a_m": {
+   "file": "Models/typhoonShelter/ts_floatingPier2_a_m.png",
+   "part": "floatingPier2_a",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 458
+   },
+   "mirrored": true
+  },
+  "ts_floatingPier2_b": {
+   "file": "Models/typhoonShelter/ts_floatingPier2_b.png",
+   "part": "floatingPier2_b",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 452
+   },
+   "mirrored": false
+  },
+  "ts_floatingPier2_b_m": {
+   "file": "Models/typhoonShelter/ts_floatingPier2_b_m.png",
+   "part": "floatingPier2_b",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 452
+   },
+   "mirrored": true
+  },
+  "ts_floatingPier3_a": {
+   "file": "Models/typhoonShelter/ts_floatingPier3_a.png",
+   "part": "floatingPier3_a",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 421
+   },
+   "mirrored": false
+  },
+  "ts_floatingPier3_a_m": {
+   "file": "Models/typhoonShelter/ts_floatingPier3_a_m.png",
+   "part": "floatingPier3_a",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 421
+   },
+   "mirrored": true
+  },
+  "ts_floatingPier3_b": {
+   "file": "Models/typhoonShelter/ts_floatingPier3_b.png",
+   "part": "floatingPier3_b",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 431
+   },
+   "mirrored": false
+  },
+  "ts_floatingPier3_b_m": {
+   "file": "Models/typhoonShelter/ts_floatingPier3_b_m.png",
+   "part": "floatingPier3_b",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 431
+   },
+   "mirrored": true
+  },
+  "ts_floatingPier4_a": {
+   "file": "Models/typhoonShelter/ts_floatingPier4_a.png",
+   "part": "floatingPier4_a",
+   "width": 512,
+   "height": 256,
+   "anchor": {
+    "x": 256,
+    "y": 209
+   },
+   "mirrored": false
+  },
+  "ts_floatingPier4_a_m": {
+   "file": "Models/typhoonShelter/ts_floatingPier4_a_m.png",
+   "part": "floatingPier4_a",
+   "width": 512,
+   "height": 256,
+   "anchor": {
+    "x": 256,
+    "y": 209
+   },
+   "mirrored": true
+  },
+  "ts_floatingPier4_b": {
+   "file": "Models/typhoonShelter/ts_floatingPier4_b.png",
+   "part": "floatingPier4_b",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 257,
+    "y": 454
+   },
+   "mirrored": false
+  },
+  "ts_floatingPier4_b_m": {
+   "file": "Models/typhoonShelter/ts_floatingPier4_b_m.png",
+   "part": "floatingPier4_b",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 255,
+    "y": 454
+   },
+   "mirrored": true
+  },
+  "ts_floatingRestaurant1_a": {
+   "file": "Models/typhoonShelter/ts_floatingRestaurant1_a.png",
+   "part": "floatingRestaurant1_a",
+   "width": 1024,
+   "height": 1024,
+   "anchor": {
+    "x": 512,
+    "y": 905
+   },
+   "mirrored": false
+  },
+  "ts_floatingRestaurant2_a": {
+   "file": "Models/typhoonShelter/ts_floatingRestaurant2_a.png",
+   "part": "floatingRestaurant2_a",
+   "width": 1024,
+   "height": 1024,
+   "anchor": {
+    "x": 512,
+    "y": 902
+   },
+   "mirrored": false
+  },
+  "ts_floatingRestaurant3_a": {
+   "file": "Models/typhoonShelter/ts_floatingRestaurant3_a.png",
+   "part": "floatingRestaurant3_a",
+   "width": 1024,
+   "height": 1024,
+   "anchor": {
+    "x": 513,
+    "y": 902
+   },
+   "mirrored": false
+  },
+  "ts_floatingWorkshop_a": {
+   "file": "Models/typhoonShelter/ts_floatingWorkshop_a.png",
+   "part": "floatingWorkshop_a",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 257,
+    "y": 428
+   },
+   "mirrored": false
+  },
+  "ts_floatingWorkshop_a_m": {
+   "file": "Models/typhoonShelter/ts_floatingWorkshop_a_m.png",
+   "part": "floatingWorkshop_a",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 255,
+    "y": 428
+   },
+   "mirrored": true
+  },
+  "ts_floatingWorkshop_b": {
+   "file": "Models/typhoonShelter/ts_floatingWorkshop_b.png",
+   "part": "floatingWorkshop_b",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 428
+   },
+   "mirrored": false
+  },
+  "ts_floatingWorkshop_b_m": {
+   "file": "Models/typhoonShelter/ts_floatingWorkshop_b_m.png",
+   "part": "floatingWorkshop_b",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 428
+   },
+   "mirrored": true
+  },
+  "ts_homeBoat1_a": {
+   "file": "Models/typhoonShelter/ts_homeBoat1_a.png",
+   "part": "homeBoat1_a",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 256,
+    "y": 923
+   },
+   "mirrored": false,
+   "facing": "se"
+  },
+  "ts_homeBoat1_a_m": {
+   "file": "Models/typhoonShelter/ts_homeBoat1_a_m.png",
+   "part": "homeBoat1_a",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 256,
+    "y": 923
+   },
+   "mirrored": true,
+   "facing": "sw"
+  },
+  "ts_homeBoat1_b": {
+   "file": "Models/typhoonShelter/ts_homeBoat1_b.png",
+   "part": "homeBoat1_b",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 257,
+    "y": 419
+   },
+   "mirrored": false,
+   "facing": "nw"
+  },
+  "ts_homeBoat1_b_m": {
+   "file": "Models/typhoonShelter/ts_homeBoat1_b_m.png",
+   "part": "homeBoat1_b",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 255,
+    "y": 419
+   },
+   "mirrored": true,
+   "facing": "ne"
+  },
+  "ts_homeBoat2_a": {
+   "file": "Models/typhoonShelter/ts_homeBoat2_a.png",
+   "part": "homeBoat2_a",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 257,
+    "y": 928
+   },
+   "mirrored": false,
+   "facing": "se"
+  },
+  "ts_homeBoat2_a_m": {
+   "file": "Models/typhoonShelter/ts_homeBoat2_a_m.png",
+   "part": "homeBoat2_a",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 255,
+    "y": 928
+   },
+   "mirrored": true,
+   "facing": "sw"
+  },
+  "ts_homeBoat2_b": {
+   "file": "Models/typhoonShelter/ts_homeBoat2_b.png",
+   "part": "homeBoat2_b",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 257,
+    "y": 924
+   },
+   "mirrored": false,
+   "facing": "nw"
+  },
+  "ts_homeBoat2_b_m": {
+   "file": "Models/typhoonShelter/ts_homeBoat2_b_m.png",
+   "part": "homeBoat2_b",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 255,
+    "y": 924
+   },
+   "mirrored": true,
+   "facing": "ne"
+  },
+  "ts_homeBoat3_a": {
+   "file": "Models/typhoonShelter/ts_homeBoat3_a.png",
+   "part": "homeBoat3_a",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 257,
+    "y": 425
+   },
+   "mirrored": false
+  },
+  "ts_homeBoat3_a_m": {
+   "file": "Models/typhoonShelter/ts_homeBoat3_a_m.png",
+   "part": "homeBoat3_a",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 255,
+    "y": 425
+   },
+   "mirrored": true
+  },
+  "ts_homeBoat3_b": {
+   "file": "Models/typhoonShelter/ts_homeBoat3_b.png",
+   "part": "homeBoat3_b",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 256,
+    "y": 914
+   },
+   "mirrored": false
+  },
+  "ts_homeBoat3_b_m": {
+   "file": "Models/typhoonShelter/ts_homeBoat3_b_m.png",
+   "part": "homeBoat3_b",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 256,
+    "y": 914
+   },
+   "mirrored": true
+  },
+  "ts_kaido1_a": {
+   "file": "Models/typhoonShelter/ts_kaido1_a.png",
+   "part": "kaido1_a",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 256,
+    "y": 921
+   },
+   "mirrored": false,
+   "facing": "se"
+  },
+  "ts_kaido1_a_m": {
+   "file": "Models/typhoonShelter/ts_kaido1_a_m.png",
+   "part": "kaido1_a",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 256,
+    "y": 921
+   },
+   "mirrored": true,
+   "facing": "sw"
+  },
+  "ts_kaido1_b": {
+   "file": "Models/typhoonShelter/ts_kaido1_b.png",
+   "part": "kaido1_b",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 257,
+    "y": 924
+   },
+   "mirrored": false,
+   "facing": "nw"
+  },
+  "ts_kaido1_b_m": {
+   "file": "Models/typhoonShelter/ts_kaido1_b_m.png",
+   "part": "kaido1_b",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 255,
+    "y": 924
+   },
+   "mirrored": true,
+   "facing": "ne"
+  },
+  "ts_pierAssessories_bollardDouble": {
+   "file": "Models/typhoonShelter/ts_pierAssessories_bollardDouble.png",
+   "part": "pierAssessories_bollardDouble",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 458
+   },
+   "mirrored": false
+  },
+  "ts_pierAssessories_bollardDouble_m": {
+   "file": "Models/typhoonShelter/ts_pierAssessories_bollardDouble_m.png",
+   "part": "pierAssessories_bollardDouble",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 458
+   },
+   "mirrored": true
+  },
+  "ts_pierAssessories_bollardRope": {
+   "file": "Models/typhoonShelter/ts_pierAssessories_bollardRope.png",
+   "part": "pierAssessories_bollardRope",
+   "width": 256,
+   "height": 512,
+   "anchor": {
+    "x": 129,
+    "y": 452
+   },
+   "mirrored": false
+  },
+  "ts_pierAssessories_bollardRope_m": {
+   "file": "Models/typhoonShelter/ts_pierAssessories_bollardRope_m.png",
+   "part": "pierAssessories_bollardRope",
+   "width": 256,
+   "height": 512,
+   "anchor": {
+    "x": 127,
+    "y": 452
+   },
+   "mirrored": true
+  },
+  "ts_pierAssessories_bollardSmall": {
+   "file": "Models/typhoonShelter/ts_pierAssessories_bollardSmall.png",
+   "part": "pierAssessories_bollardSmall",
+   "width": 256,
+   "height": 256,
+   "anchor": {
+    "x": 128,
+    "y": 228
+   },
+   "mirrored": false
+  },
+  "ts_pierAssessories_bollardSmall_m": {
+   "file": "Models/typhoonShelter/ts_pierAssessories_bollardSmall_m.png",
+   "part": "pierAssessories_bollardSmall",
+   "width": 256,
+   "height": 256,
+   "anchor": {
+    "x": 128,
+    "y": 228
+   },
+   "mirrored": true
+  },
+  "ts_pierAssessories_bollardTall": {
+   "file": "Models/typhoonShelter/ts_pierAssessories_bollardTall.png",
+   "part": "pierAssessories_bollardTall",
+   "width": 256,
+   "height": 256,
+   "anchor": {
+    "x": 128,
+    "y": 222
+   },
+   "mirrored": false
+  },
+  "ts_pierAssessories_bollardTall_m": {
+   "file": "Models/typhoonShelter/ts_pierAssessories_bollardTall_m.png",
+   "part": "pierAssessories_bollardTall",
+   "width": 256,
+   "height": 256,
+   "anchor": {
+    "x": 128,
+    "y": 222
+   },
+   "mirrored": true
+  },
+  "ts_pierAssessories_bollardTimber": {
+   "file": "Models/typhoonShelter/ts_pierAssessories_bollardTimber.png",
+   "part": "pierAssessories_bollardTimber",
+   "width": 256,
+   "height": 512,
+   "anchor": {
+    "x": 128,
+    "y": 460
+   },
+   "mirrored": false
+  },
+  "ts_pierAssessories_bollardTimber_m": {
+   "file": "Models/typhoonShelter/ts_pierAssessories_bollardTimber_m.png",
+   "part": "pierAssessories_bollardTimber",
+   "width": 256,
+   "height": 512,
+   "anchor": {
+    "x": 128,
+    "y": 460
+   },
+   "mirrored": true
+  },
+  "ts_pierAssessories_cleat": {
+   "file": "Models/typhoonShelter/ts_pierAssessories_cleat.png",
+   "part": "pierAssessories_cleat",
+   "width": 256,
+   "height": 256,
+   "anchor": {
+    "x": 128,
+    "y": 211
+   },
+   "mirrored": false
+  },
+  "ts_pierAssessories_cleat_m": {
+   "file": "Models/typhoonShelter/ts_pierAssessories_cleat_m.png",
+   "part": "pierAssessories_cleat",
+   "width": 256,
+   "height": 256,
+   "anchor": {
+    "x": 128,
+    "y": 211
+   },
+   "mirrored": true
+  },
+  "ts_pierAssessories_cleatSmall": {
+   "file": "Models/typhoonShelter/ts_pierAssessories_cleatSmall.png",
+   "part": "pierAssessories_cleatSmall",
+   "width": 256,
+   "height": 256,
+   "anchor": {
+    "x": 128,
+    "y": 230
+   },
+   "mirrored": false
+  },
+  "ts_pierAssessories_cleatSmall_m": {
+   "file": "Models/typhoonShelter/ts_pierAssessories_cleatSmall_m.png",
+   "part": "pierAssessories_cleatSmall",
+   "width": 256,
+   "height": 256,
+   "anchor": {
+    "x": 128,
+    "y": 230
+   },
+   "mirrored": true
+  },
+  "ts_pierAssessories_cleatTimber": {
+   "file": "Models/typhoonShelter/ts_pierAssessories_cleatTimber.png",
+   "part": "pierAssessories_cleatTimber",
+   "width": 512,
+   "height": 256,
+   "anchor": {
+    "x": 256,
+    "y": 216
+   },
+   "mirrored": false
+  },
+  "ts_pierAssessories_cleatTimber_m": {
+   "file": "Models/typhoonShelter/ts_pierAssessories_cleatTimber_m.png",
+   "part": "pierAssessories_cleatTimber",
+   "width": 512,
+   "height": 256,
+   "anchor": {
+    "x": 256,
+    "y": 216
+   },
+   "mirrored": true
+  },
+  "ts_pierAssessories_mooringRing": {
+   "file": "Models/typhoonShelter/ts_pierAssessories_mooringRing.png",
+   "part": "pierAssessories_mooringRing",
+   "width": 256,
+   "height": 256,
+   "anchor": {
+    "x": 129,
+    "y": 219
+   },
+   "mirrored": false
+  },
+  "ts_pierAssessories_mooringRing_m": {
+   "file": "Models/typhoonShelter/ts_pierAssessories_mooringRing_m.png",
+   "part": "pierAssessories_mooringRing",
+   "width": 256,
+   "height": 256,
+   "anchor": {
+    "x": 127,
+    "y": 219
+   },
+   "mirrored": true
+  },
+  "ts_pierSet1_a": {
+   "file": "Models/typhoonShelter/ts_pierSet1_a.png",
+   "part": "pierSet1_a",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 257,
+    "y": 456
+   },
+   "mirrored": false
+  },
+  "ts_pierSet1_a_m": {
+   "file": "Models/typhoonShelter/ts_pierSet1_a_m.png",
+   "part": "pierSet1_a",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 255,
+    "y": 456
+   },
+   "mirrored": true
+  },
+  "ts_pierSet1_b": {
+   "file": "Models/typhoonShelter/ts_pierSet1_b.png",
+   "part": "pierSet1_b",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 257,
+    "y": 451
+   },
+   "mirrored": false
+  },
+  "ts_pierSet1_b_m": {
+   "file": "Models/typhoonShelter/ts_pierSet1_b_m.png",
+   "part": "pierSet1_b",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 255,
+    "y": 451
+   },
+   "mirrored": true
+  },
+  "ts_pierSet2_a": {
+   "file": "Models/typhoonShelter/ts_pierSet2_a.png",
+   "part": "pierSet2_a",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 257,
+    "y": 436
+   },
+   "mirrored": false
+  },
+  "ts_pierSet2_a_m": {
+   "file": "Models/typhoonShelter/ts_pierSet2_a_m.png",
+   "part": "pierSet2_a",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 255,
+    "y": 436
+   },
+   "mirrored": true
+  },
+  "ts_pierSet2_b": {
+   "file": "Models/typhoonShelter/ts_pierSet2_b.png",
+   "part": "pierSet2_b",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 432
+   },
+   "mirrored": false
+  },
+  "ts_pierSet2_b_m": {
+   "file": "Models/typhoonShelter/ts_pierSet2_b_m.png",
+   "part": "pierSet2_b",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 432
+   },
+   "mirrored": true
+  },
+  "ts_pierShop1_a": {
+   "file": "Models/typhoonShelter/ts_pierShop1_a.png",
+   "part": "pierShop1_a",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 257,
+    "y": 417
+   },
+   "mirrored": false
+  },
+  "ts_pierShop1_a_m": {
+   "file": "Models/typhoonShelter/ts_pierShop1_a_m.png",
+   "part": "pierShop1_a",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 255,
+    "y": 417
+   },
+   "mirrored": true
+  },
+  "ts_pierShop1_b": {
+   "file": "Models/typhoonShelter/ts_pierShop1_b.png",
+   "part": "pierShop1_b",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 257,
+    "y": 915
+   },
+   "mirrored": false
+  },
+  "ts_pierShop1_b_m": {
+   "file": "Models/typhoonShelter/ts_pierShop1_b_m.png",
+   "part": "pierShop1_b",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 255,
+    "y": 915
+   },
+   "mirrored": true
+  },
+  "ts_pierShop2_a": {
+   "file": "Models/typhoonShelter/ts_pierShop2_a.png",
+   "part": "pierShop2_a",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 257,
+    "y": 909
+   },
+   "mirrored": false
+  },
+  "ts_pierShop2_a_m": {
+   "file": "Models/typhoonShelter/ts_pierShop2_a_m.png",
+   "part": "pierShop2_a",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 255,
+    "y": 909
+   },
+   "mirrored": true
+  },
+  "ts_pierShop2_b": {
+   "file": "Models/typhoonShelter/ts_pierShop2_b.png",
+   "part": "pierShop2_b",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 257,
+    "y": 908
+   },
+   "mirrored": false
+  },
+  "ts_pierShop2_b_m": {
+   "file": "Models/typhoonShelter/ts_pierShop2_b_m.png",
+   "part": "pierShop2_b",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 255,
+    "y": 908
+   },
+   "mirrored": true
+  },
+  "ts_sanpan1_a": {
+   "file": "Models/typhoonShelter/ts_sanpan1_a.png",
+   "part": "sanpan1_a",
+   "width": 256,
+   "height": 512,
+   "anchor": {
+    "x": 128,
+    "y": 462
+   },
+   "mirrored": false,
+   "facing": "se"
+  },
+  "ts_sanpan1_a_m": {
+   "file": "Models/typhoonShelter/ts_sanpan1_a_m.png",
+   "part": "sanpan1_a",
+   "width": 256,
+   "height": 512,
+   "anchor": {
+    "x": 128,
+    "y": 462
+   },
+   "mirrored": true,
+   "facing": "sw"
+  },
+  "ts_sanpan1_b": {
+   "file": "Models/typhoonShelter/ts_sanpan1_b.png",
+   "part": "sanpan1_b",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 257,
+    "y": 455
+   },
+   "mirrored": false,
+   "facing": "se"
+  },
+  "ts_sanpan1_b_m": {
+   "file": "Models/typhoonShelter/ts_sanpan1_b_m.png",
+   "part": "sanpan1_b",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 255,
+    "y": 455
+   },
+   "mirrored": true,
+   "facing": "sw"
+  },
+  "ts_sanpan2_a": {
+   "file": "Models/typhoonShelter/ts_sanpan2_a.png",
+   "part": "sanpan2_a",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 447
+   },
+   "mirrored": false,
+   "facing": "se"
+  },
+  "ts_sanpan2_a_m": {
+   "file": "Models/typhoonShelter/ts_sanpan2_a_m.png",
+   "part": "sanpan2_a",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 447
+   },
+   "mirrored": true,
+   "facing": "sw"
+  },
+  "ts_sanpan2_b": {
+   "file": "Models/typhoonShelter/ts_sanpan2_b.png",
+   "part": "sanpan2_b",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 438
+   },
+   "mirrored": false,
+   "facing": "se"
+  },
+  "ts_sanpan2_b_m": {
+   "file": "Models/typhoonShelter/ts_sanpan2_b_m.png",
+   "part": "sanpan2_b",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 438
+   },
+   "mirrored": true,
+   "facing": "sw"
+  },
+  "ts_sanpan3_a": {
+   "file": "Models/typhoonShelter/ts_sanpan3_a.png",
+   "part": "sanpan3_a",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 440
+   },
+   "mirrored": false,
+   "facing": "se"
+  },
+  "ts_sanpan3_a_m": {
+   "file": "Models/typhoonShelter/ts_sanpan3_a_m.png",
+   "part": "sanpan3_a",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 440
+   },
+   "mirrored": true,
+   "facing": "sw"
+  },
+  "ts_sanpan3_b": {
+   "file": "Models/typhoonShelter/ts_sanpan3_b.png",
+   "part": "sanpan3_b",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 257,
+    "y": 435
+   },
+   "mirrored": false,
+   "facing": "se"
+  },
+  "ts_sanpan3_b_m": {
+   "file": "Models/typhoonShelter/ts_sanpan3_b_m.png",
+   "part": "sanpan3_b",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 255,
+    "y": 435
+   },
+   "mirrored": true,
+   "facing": "sw"
+  },
+  "ts_sanpan4_a": {
+   "file": "Models/typhoonShelter/ts_sanpan4_a.png",
+   "part": "sanpan4_a",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 257,
+    "y": 434
+   },
+   "mirrored": false,
+   "facing": "se"
+  },
+  "ts_sanpan4_a_m": {
+   "file": "Models/typhoonShelter/ts_sanpan4_a_m.png",
+   "part": "sanpan4_a",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 255,
+    "y": 434
+   },
+   "mirrored": true,
+   "facing": "sw"
+  },
+  "ts_sanpan4_b": {
+   "file": "Models/typhoonShelter/ts_sanpan4_b.png",
+   "part": "sanpan4_b",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 427
+   },
+   "mirrored": false,
+   "facing": "se"
+  },
+  "ts_sanpan4_b_m": {
+   "file": "Models/typhoonShelter/ts_sanpan4_b_m.png",
+   "part": "sanpan4_b",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 427
+   },
+   "mirrored": true,
+   "facing": "sw"
+  },
+  "ts_sanpan5_a": {
+   "file": "Models/typhoonShelter/ts_sanpan5_a.png",
+   "part": "sanpan5_a",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 425
+   },
+   "mirrored": false,
+   "facing": "se"
+  },
+  "ts_sanpan5_a_m": {
+   "file": "Models/typhoonShelter/ts_sanpan5_a_m.png",
+   "part": "sanpan5_a",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 425
+   },
+   "mirrored": true,
+   "facing": "sw"
+  },
+  "ts_sanpan5_b": {
+   "file": "Models/typhoonShelter/ts_sanpan5_b.png",
+   "part": "sanpan5_b",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 431
+   },
+   "mirrored": false,
+   "facing": "se"
+  },
+  "ts_sanpan5_b_m": {
+   "file": "Models/typhoonShelter/ts_sanpan5_b_m.png",
+   "part": "sanpan5_b",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 431
+   },
+   "mirrored": true,
+   "facing": "sw"
+  },
+  "ts_shoreAssessories1_a": {
+   "file": "Models/typhoonShelter/ts_shoreAssessories1_a.png",
+   "part": "shoreAssessories1_a",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 433
+   },
+   "mirrored": false
+  },
+  "ts_shoreAssessories1_a_m": {
+   "file": "Models/typhoonShelter/ts_shoreAssessories1_a_m.png",
+   "part": "shoreAssessories1_a",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 433
+   },
+   "mirrored": true
+  },
+  "ts_shoreAssessories1_b": {
+   "file": "Models/typhoonShelter/ts_shoreAssessories1_b.png",
+   "part": "shoreAssessories1_b",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 257,
+    "y": 927
+   },
+   "mirrored": false
+  },
+  "ts_shoreAssessories1_b_m": {
+   "file": "Models/typhoonShelter/ts_shoreAssessories1_b_m.png",
+   "part": "shoreAssessories1_b",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 255,
+    "y": 927
+   },
+   "mirrored": true
+  },
+  "ts_shoreAssessories2_a": {
+   "file": "Models/typhoonShelter/ts_shoreAssessories2_a.png",
+   "part": "shoreAssessories2_a",
+   "width": 256,
+   "height": 1024,
+   "anchor": {
+    "x": 128,
+    "y": 914
+   },
+   "mirrored": false
+  },
+  "ts_shoreAssessories2_a_m": {
+   "file": "Models/typhoonShelter/ts_shoreAssessories2_a_m.png",
+   "part": "shoreAssessories2_a",
+   "width": 256,
+   "height": 1024,
+   "anchor": {
+    "x": 128,
+    "y": 914
+   },
+   "mirrored": true
+  },
+  "ts_shoreAssessories2_b": {
+   "file": "Models/typhoonShelter/ts_shoreAssessories2_b.png",
+   "part": "shoreAssessories2_b",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 256,
+    "y": 921
+   },
+   "mirrored": false
+  },
+  "ts_shoreAssessories2_b_m": {
+   "file": "Models/typhoonShelter/ts_shoreAssessories2_b_m.png",
+   "part": "shoreAssessories2_b",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 256,
+    "y": 921
+   },
+   "mirrored": true
+  },
+  "ts_shoreAssessories3_a": {
+   "file": "Models/typhoonShelter/ts_shoreAssessories3_a.png",
+   "part": "shoreAssessories3_a",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 256,
+    "y": 918
+   },
+   "mirrored": false
+  },
+  "ts_shoreAssessories3_a_m": {
+   "file": "Models/typhoonShelter/ts_shoreAssessories3_a_m.png",
+   "part": "shoreAssessories3_a",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 256,
+    "y": 918
+   },
+   "mirrored": true
+  },
+  "ts_shoreAssessories3_b": {
+   "file": "Models/typhoonShelter/ts_shoreAssessories3_b.png",
+   "part": "shoreAssessories3_b",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 257,
+    "y": 417
+   },
+   "mirrored": false
+  },
+  "ts_shoreAssessories3_b_m": {
+   "file": "Models/typhoonShelter/ts_shoreAssessories3_b_m.png",
+   "part": "shoreAssessories3_b",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 255,
+    "y": 417
+   },
+   "mirrored": true
+  },
+  "ts_shoreAssessories4_a": {
+   "file": "Models/typhoonShelter/ts_shoreAssessories4_a.png",
+   "part": "shoreAssessories4_a",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 257,
+    "y": 422
+   },
+   "mirrored": false
+  },
+  "ts_shoreAssessories4_a_m": {
+   "file": "Models/typhoonShelter/ts_shoreAssessories4_a_m.png",
+   "part": "shoreAssessories4_a",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 255,
+    "y": 422
+   },
+   "mirrored": true
+  },
+  "ts_shoreAssessories4_b": {
+   "file": "Models/typhoonShelter/ts_shoreAssessories4_b.png",
+   "part": "shoreAssessories4_b",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 257,
+    "y": 420
+   },
+   "mirrored": false
+  },
+  "ts_shoreAssessories4_b_m": {
+   "file": "Models/typhoonShelter/ts_shoreAssessories4_b_m.png",
+   "part": "shoreAssessories4_b",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 255,
+    "y": 420
+   },
+   "mirrored": true
+  },
+  "ts_shoreFence_corner": {
+   "file": "Models/typhoonShelter/ts_shoreFence_corner.png",
+   "part": "shoreFence_corner",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 257,
+    "y": 463
+   },
+   "mirrored": false
+  },
+  "ts_shoreFence_corner_m": {
+   "file": "Models/typhoonShelter/ts_shoreFence_corner_m.png",
+   "part": "shoreFence_corner",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 255,
+    "y": 463
+   },
+   "mirrored": true
+  },
+  "ts_shoreFence_gate": {
+   "file": "Models/typhoonShelter/ts_shoreFence_gate.png",
+   "part": "shoreFence_gate",
+   "width": 256,
+   "height": 256,
+   "anchor": {
+    "x": 128,
+    "y": 218
+   },
+   "mirrored": false
+  },
+  "ts_shoreFence_gate_m": {
+   "file": "Models/typhoonShelter/ts_shoreFence_gate_m.png",
+   "part": "shoreFence_gate",
+   "width": 256,
+   "height": 256,
+   "anchor": {
+    "x": 128,
+    "y": 218
+   },
+   "mirrored": true
+  },
+  "ts_shoreFence_straightA": {
+   "file": "Models/typhoonShelter/ts_shoreFence_straightA.png",
+   "part": "shoreFence_straightA",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 257,
+    "y": 453
+   },
+   "mirrored": false
+  },
+  "ts_shoreFence_straightA_m": {
+   "file": "Models/typhoonShelter/ts_shoreFence_straightA_m.png",
+   "part": "shoreFence_straightA",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 255,
+    "y": 453
+   },
+   "mirrored": true
+  },
+  "ts_shoreFence_straightB": {
+   "file": "Models/typhoonShelter/ts_shoreFence_straightB.png",
+   "part": "shoreFence_straightB",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 257,
+    "y": 450
+   },
+   "mirrored": false
+  },
+  "ts_shoreFence_straightB_m": {
+   "file": "Models/typhoonShelter/ts_shoreFence_straightB_m.png",
+   "part": "shoreFence_straightB",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 255,
+    "y": 450
+   },
+   "mirrored": true
+  },
+  "ts_speedboat1_a": {
+   "file": "Models/typhoonShelter/ts_speedboat1_a.png",
+   "part": "speedboat1_a",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 256,
+    "y": 915
+   },
+   "mirrored": false,
+   "facing": "se"
+  },
+  "ts_speedboat1_a_m": {
+   "file": "Models/typhoonShelter/ts_speedboat1_a_m.png",
+   "part": "speedboat1_a",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 256,
+    "y": 915
+   },
+   "mirrored": true,
+   "facing": "sw"
+  },
+  "ts_speedboat1_b": {
+   "file": "Models/typhoonShelter/ts_speedboat1_b.png",
+   "part": "speedboat1_b",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 437
+   },
+   "mirrored": false,
+   "facing": "nw"
+  },
+  "ts_speedboat1_b_m": {
+   "file": "Models/typhoonShelter/ts_speedboat1_b_m.png",
+   "part": "speedboat1_b",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 437
+   },
+   "mirrored": true,
+   "facing": "ne"
+  },
+  "ts_speedboat2_a": {
+   "file": "Models/typhoonShelter/ts_speedboat2_a.png",
+   "part": "speedboat2_a",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 257,
+    "y": 422
+   },
+   "mirrored": false,
+   "facing": "se"
+  },
+  "ts_speedboat2_a_m": {
+   "file": "Models/typhoonShelter/ts_speedboat2_a_m.png",
+   "part": "speedboat2_a",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 255,
+    "y": 422
+   },
+   "mirrored": true,
+   "facing": "sw"
+  },
+  "ts_speedboat2_b": {
+   "file": "Models/typhoonShelter/ts_speedboat2_b.png",
+   "part": "speedboat2_b",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 257,
+    "y": 442
+   },
+   "mirrored": false,
+   "facing": "nw"
+  },
+  "ts_speedboat2_b_m": {
+   "file": "Models/typhoonShelter/ts_speedboat2_b_m.png",
+   "part": "speedboat2_b",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 255,
+    "y": 442
+   },
+   "mirrored": true,
+   "facing": "ne"
+  }
+ },
+ "formatVersion": 1,
+ "scale": 0.5
+}

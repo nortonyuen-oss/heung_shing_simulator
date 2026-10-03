@@ -36,6 +36,8 @@ function forEachSimulationZonedTile(action) {
 function runDailySystems(scene) {
   if (!scene) return;
   if (typeof recordTransportDailyAvailability === 'function') recordTransportDailyAvailability();
+  // 避風塘 construction advances one game day at a time.
+  if (typeof runTyphoonShelterWorksDaily === 'function') runTyphoonShelterWorksDaily(scene);
 }
 
 // The legacy heavy city-simulation pulse — everything runSimTick used to run

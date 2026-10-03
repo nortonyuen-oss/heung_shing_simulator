@@ -136,6 +136,54 @@ function createGameApp(options = {}) {
     res.json({ path: path.relative(rootDir, target), bytes: Buffer.byteLength(json) });
   });
 
+  // Development only: the 海上燈光校正 tool (sea-light-calibrator.js) edits the sea light profiles
+  // in the checked-in file scripts/bake-typhoon-shelter-textures.js bakes from, so calibrating and
+  // baking need no copy-paste step. It reads the raw baked day textures through its own route: in
+  // a staged dev launch the model middleware above would answer a Models/ PNG URL with the
+  // trimmed, re-padded release WebP, whose layout the profile coordinates are not in.
+  const seaLightProfilesPath = path.join(rootDir, 'scripts', 'source-art', 'typhoonShelter', 'sea-lights.json');
+  app.get('/api/dev/sea-light-profiles', (_req, res) => {
+    if (!options.allowDevExports) return res.status(404).json({ error: 'not available' });
+    try {
+      const parsed = fs.existsSync(seaLightProfilesPath) ? JSON.parse(fs.readFileSync(seaLightProfilesPath, 'utf8')) : {};
+      res.json({ entries: parsed?.entries && typeof parsed.entries === 'object' ? parsed.entries : {} });
+    } catch (e) {
+      sendStoreError(res, e, 'GET /api/dev/sea-light-profiles');
+    }
+  });
+  app.put('/api/dev/sea-light-profiles', (req, res) => {
+    if (!options.allowDevExports) return res.status(404).json({ error: 'not available' });
+    const entries = req.body?.entries;
+    if (!entries || typeof entries !== 'object' || Array.isArray(entries)) {
+      return res.status(400).json({ error: 'expected { entries: { partId: profile } }' });
+    }
+    if (!fs.existsSync(path.dirname(seaLightProfilesPath))) return res.status(404).json({ error: 'no source-art folder' });
+    const sorted = Object.fromEntries(Object.keys(entries).sort().map((key) => [key, entries[key]]));
+    fs.writeFileSync(seaLightProfilesPath, `${JSON.stringify({ schemaVersion: 1, entries: sorted }, null, 1)}\n`);
+    res.json({ count: Object.keys(sorted).length });
+  });
+  // Development only: the 避風塘素材校準 tool saves ground corners, facings and footprint sizes to
+  // the shipped data file the game reads them from.
+  app.put('/api/dev/typhoon-shelter-placement', (req, res) => {
+    if (!options.allowDevExports) return res.status(404).json({ error: 'not available' });
+    const parts = req.body?.parts;
+    const objects = req.body?.objects;
+    if (!parts || typeof parts !== 'object' || Array.isArray(parts) || (objects && typeof objects !== 'object')) {
+      return res.status(400).json({ error: 'expected { parts, objects }' });
+    }
+    const sort = (o) => Object.fromEntries(Object.keys(o || {}).sort().map((k) => [k, o[k]]));
+    const target = path.join(rootDir, 'data', 'typhoon-shelter-placement.json');
+    fs.writeFileSync(target, `${JSON.stringify({ schemaVersion: 1, parts: sort(parts), objects: sort(objects) }, null, 1)}\n`);
+    res.json({ parts: Object.keys(parts).length, objects: Object.keys(objects || {}).length });
+  });
+  app.get('/api/dev/typhoon-shelter-texture/:file', (req, res) => {
+    if (!options.allowDevExports || !/^ts_[\w]+\.png$/.test(req.params.file)) return res.status(404).end();
+    const file = path.join(rootDir, 'Models', 'typhoonShelter', req.params.file);
+    if (!fs.existsSync(file)) return res.status(404).end();
+    res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+    return res.sendFile(file);
+  });
+
   app.get('/api/model-assets', (_req, res) => {
     res.setHeader('Cache-Control', 'no-cache, must-revalidate');
     res.json(modelAssetManifest);

@@ -15,7 +15,7 @@ const calibrator = require('../visual-route-calibrator.js');
 
 function loadViewportCullingContext() {
   const start = mainSource.indexOf('function getCameraWorldViewRect');
-  const end = mainSource.indexOf('function updateGameFrame', start);
+  const end = mainSource.indexOf('\n}\n', mainSource.indexOf('function updateSpriteViewportCulling', start)) + 3;
   assert.ok(start >= 0 && end > start, 'viewport culling functions must remain extractable');
   const context = vm.createContext({
     MAP_WIDTH: 16,

@@ -23,6 +23,7 @@ const MAIN_SOURCE_FILES = [
   'render-performance.js',
   'viewport-culling.js',
   'building-placement.js',
+  'terrain-editing.js',
   'main.js',
 ];
 

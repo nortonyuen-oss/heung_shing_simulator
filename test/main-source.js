@@ -24,6 +24,7 @@ const MAIN_SOURCE_FILES = [
   'viewport-culling.js',
   'building-placement.js',
   'terrain-editing.js',
+  'placement-previews.js',
   'main.js',
 ];
 

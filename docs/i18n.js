@@ -242,6 +242,11 @@ const SITE_FEATURE_LIST = {
 // ── Changelog ─────────────────────────────────────────────────────────────────
 const SITE_CHANGELOG = {
   "zh-HK": [
+    { version: "v4.16.2", date: "2026-10-03", dateLabel: "2026年10月3日", title: "東風夜放花千樹", items: [
+      "整理遊戲程式結構：原本一萬二千幾行嘅主程式拆出十九個按主題分好嘅檔案（樹、橋、地形、天氣、日夜光影、音效等），之後改嘢同加新功能都容易好多；玩法同畫面完全唔變。",
+      "修正：好早期存檔格式入面嘅橋樑記錄而家讀得返，唔會喺讀檔時消失。",
+      "實測開機時間同大城市流暢度同上一版一樣；舊存檔兼容。",
+    ] },
     { version: "v4.16.1", date: "2026-09-28", dateLabel: "2026年9月28日", title: "東風夜放花千樹", items: [
       "離開城市越遠，夜晚越暗：建築同道路附近維持而家嘅夜色，荒野同遠海慢慢暗到只剩兩成幾光，過渡平滑；可以喺「檢視」選單開關。",
       "夜晚嘅雲唔再發白：雲層跟住夜色變暗，帶少少灰藍，城市唔會被蓋到白濛濛。",
@@ -560,6 +565,11 @@ const SITE_CHANGELOG = {
 // title/items text.
 const SITE_CHANGELOG_TRANSLATIONS = {
   "zh-TW": {
+    "v4.16.2": { title: "東風夜放花千樹", items: [
+      "整理遊戲程式結構：原本一萬兩千多行的主程式拆出十九個依主題分類的檔案（樹木、橋樑、地形、天氣、日夜光影、音效等），之後修改與加入新功能都更容易；玩法與畫面完全不變。",
+      "修正：很早期存檔格式中的橋樑紀錄現在能正確讀取，不會在讀檔時消失。",
+      "實測啟動時間與大城市流暢度和上一版相同；相容舊存檔。",
+    ] },
     "v4.16.1": { title: "東風夜放花千樹", items: [
       "離城市越遠，夜晚越暗：建築與道路附近維持原本的夜色，荒野與遠海逐漸暗到只剩兩成多的光線，過渡平滑；可在「檢視」選單開關。",
       "夜晚的雲不再發白：雲層隨夜色變暗並帶些灰藍，城市不會被蓋得白茫茫。",
@@ -871,6 +881,11 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   en: {
+    "v4.16.2": { title: "A Thousand Trees in Bloom on the East Wind", items: [
+      "The game's code has been reorganized: nineteen topic files (trees, bridges, terrain, weather, day and night lighting, audio and more) have been split out of the 12,000-line main script, making future changes and new features easier. Gameplay and visuals are unchanged.",
+      "Fix: bridges recorded in very early save formats now load correctly instead of disappearing.",
+      "Start-up time and frame rate in large cities measure the same as the previous version. Existing saves remain compatible.",
+    ] },
     "v4.16.1": { title: "A Thousand Trees in Bloom on the East Wind", items: [
       "Nights grow darker the further you are from the city: streets and buildings keep today's night light, while open country and distant sea fade smoothly down to about a quarter of daylight. Toggle it from the View menu.",
       "Night clouds no longer glow white: the cover darkens with the sky and takes a slate-blue cast, so the city is not washed out.",
@@ -1182,6 +1197,11 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   ja: {
+    "v4.16.2": { title: "東風夜放花千樹", items: [
+      "ゲームのプログラム構成を整理しました。1万2千行あったメインスクリプトから、木・橋・地形・天気・昼夜の光・サウンドなどテーマ別の19ファイルを切り出し、今後の修正や新機能の追加がしやすくなりました。遊び方と見た目は変わりません。",
+      "修正：ごく初期のセーブ形式に記録された橋が、読み込み時に消えずに正しく読み込まれるようになりました。",
+      "起動時間と大きな都市での動作の滑らかさは前バージョンと同じです。既存のセーブデータに対応しています。",
+    ] },
     "v4.16.1": { title: "東風夜放花千樹", items: [
       "街から離れるほど夜が暗く：建物や道路の近くは今までどおりの夜の明るさ、荒野や遠い海は日中の約4分の1までなめらかに暗くなります。「表示」メニューで切り替えられます。",
       "夜の雲が白く浮かなくなりました：雲は夜空とともに暗くなり、青みがかった灰色になるので、街が白くかすみません。",
@@ -1518,8 +1538,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.16.1 — 【東風夜放花千樹】",
-      versionDesc: "4.16.1 更新：離開城市越遠夜晚越暗，荒野同遠海更有夜色；夜晚嘅雲唔再發白。",
+      versionBadge: "v4.16.2 — 【東風夜放花千樹】",
+      versionDesc: "4.16.2 更新：重新整理遊戲程式結構，方便之後加新功能；玩法同畫面不變，開機同流暢度同上一版一樣。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感嘅城市建設遊戲。起街道、規劃社區、經營自己嘅香城巴士公司、處理議會同天氣，再睇住一座有性格嘅香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1618,8 +1638,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.16.1 — 【東風夜放花千樹】",
-      versionDesc: "4.16.1 更新：離城市越遠夜晚越暗，荒野與遠海更有夜色；夜晚的雲不再發白。",
+      versionBadge: "v4.16.2 — 【東風夜放花千樹】",
+      versionDesc: "4.16.2 更新：重新整理遊戲程式結構，方便之後加入新功能；玩法與畫面不變，啟動與流暢度與上一版相同。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感的城市建設遊戲。興建街道、規劃社區、經營自己的香城公車公司、處理議會與天氣，看著一座有個性的香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1718,8 +1738,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "The City of Heung Shing",
       title: "The City of Heung Shing",
-      versionBadge: "v4.16.1 — A Thousand Trees in Bloom on the East Wind",
-      versionDesc: "4.16.1 update: nights grow darker away from the city, over open country and distant sea, and night clouds no longer glow white.",
+      versionBadge: "v4.16.2 — A Thousand Trees in Bloom on the East Wind",
+      versionDesc: "4.16.2 update: the game's code is reorganized to make future work easier; gameplay, visuals, start-up time and frame rate are unchanged.",
       lede: "A city-building game inspired by Hong Kong life and made in tribute to SimCity 2000. Build streets, shape neighbourhoods, run your own Heung Shing Bus Company, navigate council politics and weather, then watch a city with real personality grow.",
       freeLabel: "Completely free · macOS + Windows · Local saves",
       downloadBtn: "【Free Download】",
@@ -1819,8 +1839,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.16.1 — 東風夜放花千樹",
-      versionDesc: "4.16.1 更新：街から離れるほど夜が暗くなり、荒野や遠い海に夜らしさが出ます。夜の雲も白く浮かなくなりました。",
+      versionBadge: "v4.16.2 — 東風夜放花千樹",
+      versionDesc: "4.16.2 更新：今後の開発をしやすくするため、ゲームのプログラム構成を整理しました。遊び方・見た目・起動時間・動作の滑らかさは変わりません。",
       lede: "香港の都市生活から着想を得た、SimCity 2000へのオマージュとなる都市建設ゲーム。道路を築き、地区を計画し、自分だけの香城バス会社を経営し、議会や天候に向き合いながら、個性ある香城の成長を見守ります。",
       freeLabel: "完全無料 · macOS + Windows · ローカルセーブ",
       downloadBtn: "【無料ダウンロード】",

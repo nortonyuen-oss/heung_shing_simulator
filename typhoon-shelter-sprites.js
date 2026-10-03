@@ -45,9 +45,11 @@ function setTyphoonShelterPlacement(data) {
 
 function getTyphoonShelterPlacement() { return typhoonShelterPlacement; }
 
+// Per part: its calibrated facing, or 'off' for art switched off in calibration (part.disabled -
+// drawn at the wrong proportions, say), which the game then never uses.
 function getTyphoonShelterFacingOverrides() {
   return Object.fromEntries(Object.entries(typhoonShelterPlacement.parts)
-    .filter(([, p]) => p?.facing).map(([id, p]) => [id, p.facing]));
+    .filter(([, p]) => p?.facing || p?.disabled).map(([id, p]) => [id, p.disabled ? 'off' : p.facing]));
 }
 
 function getTyphoonShelterTextureKey(texturePath) {
@@ -84,7 +86,8 @@ function getTyphoonShelterObjectSize(objectId) {
 // heightM } along and across its facing. null until that texture has ground corners.
 function getTyphoonShelterObjectMetres(objectId) {
   const def = TYPHOON_SHELTER_OBJECTS_BY_ID[objectId];
-  const partId = Object.keys(def.parts)[0];
+  const ids = Object.keys(def.parts);
+  const partId = ids.find((id) => !typhoonShelterPlacement.parts[id]?.disabled) || ids[0];
   const part = typhoonShelterPlacement.parts[partId];
   const art = part?.ground && measureTyphoonShelterArt(part.ground, getTyphoonShelterObjectSize(objectId), part.top);
   if (!art) return null;
@@ -197,6 +200,56 @@ function getTyphoonShelterTextureGround(choice, texture) {
   };
 }
 
+// A part with an art warp (calibration, see normalizeTyphoonShelterWarp) is drawn from a canvas
+// texture `<key>~w`, the day art redrawn through the warp; it is redrawn in place when the warp
+// changes. Returns the key to draw `choice` with (the plain one when there is no warp).
+function resolveTyphoonShelterTextureKey(scene, choice) {
+  const key = getTyphoonShelterTextureKey(choice.texture);
+  const partWarp = typhoonShelterPlacement.parts[choice.partId]?.warp;
+  if (!scene.textures.exists(key) || isTyphoonShelterWarpIdentity(partWarp)) return key;
+  const src = scene.textures.get(key).getSourceImage();
+  const ground = getTyphoonShelterTextureGround(choice, src);
+  if (!ground) return key;
+  const warp = choice.mirrored ? mirrorTyphoonShelterWarp(partWarp) : normalizeTyphoonShelterWarp(partWarp);
+  const front = ground.front;
+  const stamp = `${warp.k}|${warp.s}|${warp.h}|${front.join(',')}`;
+  const wkey = `${key}~w`;
+  let tex = scene.textures.exists(wkey) ? scene.textures.get(wkey) : null;
+  if (tex?.typhoonShelterWarp?.stamp === stamp) return wkey;
+  const box = getTyphoonShelterWarpCanvas(src.width, src.height, front, warp);
+  if (!tex) tex = scene.textures.createCanvas(wkey, box.width, box.height);
+  else tex.setSize(box.width, box.height);
+  const ctx = tex.getContext();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, box.width, box.height);
+  ctx.setTransform(...getTyphoonShelterWarpTransform(front, warp, box));
+  ctx.drawImage(src, 0, 0);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  tex.refresh();
+  tex.typhoonShelterWarp = {
+    stamp, warp, front, dx: box.dx, dy: box.dy, baseWidth: src.width, baseHeight: src.height,
+    version: (tex.typhoonShelterWarp?.version || 0) + 1,
+  };
+  return wkey;
+}
+
+// The ground corners (and top) of `choice` in the pixels of the texture `key` it is drawn with.
+function getTyphoonShelterSpriteGround(scene, choice, key) {
+  const tex = scene.textures.get(key);
+  const info = tex?.typhoonShelterWarp;
+  if (!info || !key.endsWith('~w')) return getTyphoonShelterTextureGround(choice, tex.getSourceImage());
+  const ground = getTyphoonShelterTextureGround(choice, { width: info.baseWidth, height: info.baseHeight });
+  if (!ground) return null;
+  const P = (pt) => { const [x, y] = warpTyphoonShelterPoint(pt, info.front, info.warp); return [x + info.dx, y + info.dy]; };
+  return {
+    left: P(ground.left),
+    front: P(ground.front),
+    right: P(ground.right),
+    // the top's x is not recorded: taken above the front corner
+    top: Number.isFinite(ground.top) ? P([info.front[0], ground.top])[1] : undefined,
+  };
+}
+
 function positionTyphoonShelterObject(scene, record) {
   const rotation = typeof mapRotation === 'number' ? mapRotation : 0;
   const screenFacing = getTyphoonShelterScreenFacing(record.facing, rotation);
@@ -214,19 +267,21 @@ function positionTyphoonShelterObject(scene, record) {
   record.tiles = getTyphoonShelterFootprintTiles(record.row, record.col, fp.cols, fp.rows);
   const diamond = getTyphoonShelterFootprintDiamond(record.row, record.col, fp.cols, fp.rows);
   record.diamond = diamond;
-  const key = choice && getTyphoonShelterTextureKey(choice.texture);
+  const key = choice && resolveTyphoonShelterTextureKey(scene, choice);
   if (!choice || !scene.textures.exists(key)) {
     record.sprite?.setVisible(false);
     return false;
   }
+  const warpVersion = scene.textures.get(key).typhoonShelterWarp?.version || 0;
   if (!record.sprite) {
     record.sprite = scene.add.image(0, 0, key);
     record.sprite.typhoonShelterId = record.id;
-  } else if (record.sprite.texture.key !== key) {
-    record.sprite.setTexture(key);
+  } else if (record.sprite.texture.key !== key || record.warpVersion !== warpVersion) {
+    record.sprite.setTexture(key); // again after a redraw, for the canvas's new size
   }
+  record.warpVersion = warpVersion;
   const texture = scene.textures.get(key).getSourceImage();
-  const ground = getTyphoonShelterTextureGround(choice, texture);
+  const ground = getTyphoonShelterSpriteGround(scene, choice, key);
   // drawn at its real size, centred on the footprint
   const art = ground && measureTyphoonShelterArt(ground, getTyphoonShelterObjectSize(record.objectId), ground.top);
   const fit = ground && fitTyphoonShelterGround(ground, diamond, art?.scale);
@@ -251,7 +306,10 @@ function positionTyphoonShelterObject(scene, record) {
     at[0] += (b.x - a.x) * k;
     at[1] += (b.y - a.y) * k;
   }
-  // alongM: slide along the facing (several short sections making up one tile of walkway)
+  // alongM: slide along the facing (several short sections making up one tile of walkway or
+  // breakwater); for those sections the slide counts in the depth too, so the one nearer the
+  // viewer is drawn over
+  let slideY = 0;
   if (record.alongM) {
     const [dr, dc] = TYPHOON_SHELTER_LOGICAL_STEP[record.facing];
     const a = isoToScreen(record.col, record.row);
@@ -259,11 +317,19 @@ function positionTyphoonShelterObject(scene, record) {
     const k = record.alongM / TYPHOON_SHELTER_TILE_M;
     at[0] += (b.x - a.x) * k;
     at[1] += (b.y - a.y) * k;
+    if (record.sectioned) slideY = (b.y - a.y) * k;
   }
+  (record.offsets || []).forEach(([dir, m]) => {
+    const [dr, dc] = TYPHOON_SHELTER_LOGICAL_STEP[dir] || [0, 0];
+    const a = isoToScreen(record.col, record.row);
+    const b = isoToScreen(record.col + dc, record.row + dr);
+    at[0] += ((b.x - a.x) * m) / TYPHOON_SHELTER_TILE_M;
+    at[1] += ((b.y - a.y) * m) / TYPHOON_SHELTER_TILE_M;
+  });
   sprite.setPosition(at[0] + scene.offsetX, at[1] + scene.offsetY);
   const anchor = getBuildingAnchor(record.row, record.col, fp.cols, fp.rows);
   // depthBias lifts one object over another on the same tile (a landing stage over its walkway)
-  sprite.setDepth(getBuildingSortDepth(anchor.y, fp.cols, fp.rows, 0) + (record.depthBias || 0));
+  sprite.setDepth(getBuildingSortDepth(anchor.y + slideY, fp.cols, fp.rows, 0) + (record.depthBias || 0));
   sprite.setAlpha(Number.isFinite(record.alpha) ? record.alpha : 1);
   if (record.tint) sprite.setTint(record.tint); else sprite.clearTint();
   sprite.setVisible(true);
@@ -293,6 +359,10 @@ async function addTyphoonShelterObject(scene, spec) {
     shoreDir: spec.shoreDir || null,
     depthBias: spec.depthBias || 0,
     alongM: spec.alongM || 0,
+    // one of several sections along a tile: sorted by where it slid to
+    sectioned: !!spec.sectioned,
+    // [[logical direction, metres], ...]: moved off the tile's centre (a quay to its water edge)
+    offsets: Array.isArray(spec.offsets) ? spec.offsets : null,
     alpha: spec.alpha,
     tint: spec.tint || null,
     sprite: null,
@@ -321,9 +391,14 @@ function clearTyphoonShelterObjects(scene, tag = undefined) {
 }
 
 // Map rotation, window resize and placement-data edits all come through here.
+let typhoonShelterPlacementRevision = 0; // bumped on every refresh: moving boats re-read their fit
+
 function refreshAllTyphoonShelterSprites(scene) {
+  typhoonShelterPlacementRevision += 1;
   scene?.typhoonShelterObjects?.forEach((record) => positionTyphoonShelterObject(scene, record));
 }
+
+function getTyphoonShelterPlacementRevision() { return typhoonShelterPlacementRevision; }
 
 const typhoonShelterSpritesApi = {
   loadTyphoonShelterPlacement,
@@ -341,6 +416,9 @@ const typhoonShelterSpritesApi = {
   clearTyphoonShelterObjects,
   positionTyphoonShelterObject,
   refreshAllTyphoonShelterSprites,
+  getTyphoonShelterPlacementRevision,
+  resolveTyphoonShelterTextureKey,
+  getTyphoonShelterSpriteGround,
 };
 
 if (typeof module !== 'undefined' && module.exports) module.exports = typhoonShelterSpritesApi;

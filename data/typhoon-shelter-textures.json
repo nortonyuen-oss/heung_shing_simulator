@@ -139,7 +139,7 @@
    "height": 512,
    "anchor": {
     "x": 256,
-    "y": 457
+    "y": 452
    },
    "mirrored": false
   },
@@ -150,7 +150,7 @@
    "height": 512,
    "anchor": {
     "x": 256,
-    "y": 457
+    "y": 452
    },
    "mirrored": true
   },
@@ -268,10 +268,10 @@
    "file": "Models/typhoonShelter/ts_fishingBoat1_a.png",
    "part": "fishingBoat1_a",
    "width": 512,
-   "height": 1024,
+   "height": 512,
    "anchor": {
-    "x": 256,
-    "y": 904
+    "x": 257,
+    "y": 432
    },
    "mirrored": false,
    "facing": "se"
@@ -280,10 +280,10 @@
    "file": "Models/typhoonShelter/ts_fishingBoat1_a_m.png",
    "part": "fishingBoat1_a",
    "width": 512,
-   "height": 1024,
+   "height": 512,
    "anchor": {
-    "x": 256,
-    "y": 904
+    "x": 255,
+    "y": 432
    },
    "mirrored": true,
    "facing": "sw"
@@ -292,10 +292,10 @@
    "file": "Models/typhoonShelter/ts_fishingBoat1_b.png",
    "part": "fishingBoat1_b",
    "width": 512,
-   "height": 1024,
+   "height": 512,
    "anchor": {
     "x": 256,
-    "y": 902
+    "y": 423
    },
    "mirrored": false,
    "facing": "nw"
@@ -304,10 +304,10 @@
    "file": "Models/typhoonShelter/ts_fishingBoat1_b_m.png",
    "part": "fishingBoat1_b",
    "width": 512,
-   "height": 1024,
+   "height": 512,
    "anchor": {
     "x": 256,
-    "y": 902
+    "y": 423
    },
    "mirrored": true,
    "facing": "ne"
@@ -318,8 +318,8 @@
    "width": 512,
    "height": 512,
    "anchor": {
-    "x": 256,
-    "y": 417
+    "x": 257,
+    "y": 450
    },
    "mirrored": false,
    "facing": "se"
@@ -330,8 +330,8 @@
    "width": 512,
    "height": 512,
    "anchor": {
-    "x": 256,
-    "y": 417
+    "x": 255,
+    "y": 450
    },
    "mirrored": true,
    "facing": "sw"
@@ -343,7 +343,7 @@
    "height": 512,
    "anchor": {
     "x": 257,
-    "y": 441
+    "y": 437
    },
    "mirrored": false,
    "facing": "se"
@@ -355,7 +355,7 @@
    "height": 512,
    "anchor": {
     "x": 255,
-    "y": 441
+    "y": 437
    },
    "mirrored": true,
    "facing": "sw"
@@ -364,10 +364,10 @@
    "file": "Models/typhoonShelter/ts_fishingBoat3_a.png",
    "part": "fishingBoat3_a",
    "width": 512,
-   "height": 1024,
+   "height": 512,
    "anchor": {
     "x": 257,
-    "y": 919
+    "y": 440
    },
    "mirrored": false,
    "facing": "se"
@@ -376,10 +376,10 @@
    "file": "Models/typhoonShelter/ts_fishingBoat3_a_m.png",
    "part": "fishingBoat3_a",
    "width": 512,
-   "height": 1024,
+   "height": 512,
    "anchor": {
     "x": 255,
-    "y": 919
+    "y": 440
    },
    "mirrored": true,
    "facing": "sw"
@@ -388,10 +388,10 @@
    "file": "Models/typhoonShelter/ts_fishingBoat3_b.png",
    "part": "fishingBoat3_b",
    "width": 512,
-   "height": 1024,
+   "height": 512,
    "anchor": {
     "x": 257,
-    "y": 923
+    "y": 428
    },
    "mirrored": false,
    "facing": "nw"
@@ -400,10 +400,10 @@
    "file": "Models/typhoonShelter/ts_fishingBoat3_b_m.png",
    "part": "fishingBoat3_b",
    "width": 512,
-   "height": 1024,
+   "height": 512,
    "anchor": {
     "x": 255,
-    "y": 923
+    "y": 428
    },
    "mirrored": true,
    "facing": "ne"
@@ -412,10 +412,10 @@
    "file": "Models/typhoonShelter/ts_fishingBoat4_a.png",
    "part": "fishingBoat4_a",
    "width": 512,
-   "height": 1024,
+   "height": 512,
    "anchor": {
     "x": 256,
-    "y": 926
+    "y": 436
    },
    "mirrored": false,
    "facing": "se"
@@ -424,10 +424,10 @@
    "file": "Models/typhoonShelter/ts_fishingBoat4_a_m.png",
    "part": "fishingBoat4_a",
    "width": 512,
-   "height": 1024,
+   "height": 512,
    "anchor": {
     "x": 256,
-    "y": 926
+    "y": 436
    },
    "mirrored": true,
    "facing": "sw"
@@ -439,7 +439,7 @@
    "height": 512,
    "anchor": {
     "x": 257,
-    "y": 421
+    "y": 429
    },
    "mirrored": false,
    "facing": "nw"
@@ -451,7 +451,7 @@
    "height": 512,
    "anchor": {
     "x": 255,
-    "y": 421
+    "y": 429
    },
    "mirrored": true,
    "facing": "ne"
@@ -845,10 +845,10 @@
    "file": "Models/typhoonShelter/ts_homeBoat1_a.png",
    "part": "homeBoat1_a",
    "width": 512,
-   "height": 1024,
+   "height": 512,
    "anchor": {
     "x": 256,
-    "y": 923
+    "y": 449
    },
    "mirrored": false,
    "facing": "se"
@@ -857,10 +857,10 @@
    "file": "Models/typhoonShelter/ts_homeBoat1_a_m.png",
    "part": "homeBoat1_a",
    "width": 512,
-   "height": 1024,
+   "height": 512,
    "anchor": {
     "x": 256,
-    "y": 923
+    "y": 449
    },
    "mirrored": true,
    "facing": "sw"
@@ -872,7 +872,7 @@
    "height": 512,
    "anchor": {
     "x": 257,
-    "y": 419
+    "y": 425
    },
    "mirrored": false,
    "facing": "nw"
@@ -884,7 +884,7 @@
    "height": 512,
    "anchor": {
     "x": 255,
-    "y": 419
+    "y": 425
    },
    "mirrored": true,
    "facing": "ne"
@@ -893,10 +893,10 @@
    "file": "Models/typhoonShelter/ts_homeBoat2_a.png",
    "part": "homeBoat2_a",
    "width": 512,
-   "height": 1024,
+   "height": 512,
    "anchor": {
     "x": 257,
-    "y": 928
+    "y": 433
    },
    "mirrored": false,
    "facing": "se"
@@ -905,10 +905,10 @@
    "file": "Models/typhoonShelter/ts_homeBoat2_a_m.png",
    "part": "homeBoat2_a",
    "width": 512,
-   "height": 1024,
+   "height": 512,
    "anchor": {
     "x": 255,
-    "y": 928
+    "y": 433
    },
    "mirrored": true,
    "facing": "sw"
@@ -917,10 +917,10 @@
    "file": "Models/typhoonShelter/ts_homeBoat2_b.png",
    "part": "homeBoat2_b",
    "width": 512,
-   "height": 1024,
+   "height": 512,
    "anchor": {
     "x": 257,
-    "y": 924
+    "y": 427
    },
    "mirrored": false,
    "facing": "nw"
@@ -929,10 +929,10 @@
    "file": "Models/typhoonShelter/ts_homeBoat2_b_m.png",
    "part": "homeBoat2_b",
    "width": 512,
-   "height": 1024,
+   "height": 512,
    "anchor": {
     "x": 255,
-    "y": 924
+    "y": 427
    },
    "mirrored": true,
    "facing": "ne"
@@ -1012,7 +1012,7 @@
    "height": 1024,
    "anchor": {
     "x": 257,
-    "y": 924
+    "y": 926
    },
    "mirrored": false,
    "facing": "nw"
@@ -1024,7 +1024,7 @@
    "height": 1024,
    "anchor": {
     "x": 255,
-    "y": 924
+    "y": 926
    },
    "mirrored": true,
    "facing": "ne"
@@ -1121,10 +1121,10 @@
    "file": "Models/typhoonShelter/ts_pierAssessories_bollardTimber.png",
    "part": "pierAssessories_bollardTimber",
    "width": 256,
-   "height": 512,
+   "height": 256,
    "anchor": {
     "x": 128,
-    "y": 460
+    "y": 211
    },
    "mirrored": false
   },
@@ -1132,10 +1132,10 @@
    "file": "Models/typhoonShelter/ts_pierAssessories_bollardTimber_m.png",
    "part": "pierAssessories_bollardTimber",
    "width": 256,
-   "height": 512,
+   "height": 256,
    "anchor": {
     "x": 128,
-    "y": 460
+    "y": 211
    },
    "mirrored": true
   },
@@ -1168,7 +1168,7 @@
    "height": 256,
    "anchor": {
     "x": 128,
-    "y": 230
+    "y": 226
    },
    "mirrored": false
   },
@@ -1179,7 +1179,7 @@
    "height": 256,
    "anchor": {
     "x": 128,
-    "y": 230
+    "y": 226
    },
    "mirrored": true
   },
@@ -1212,7 +1212,7 @@
    "height": 256,
    "anchor": {
     "x": 129,
-    "y": 219
+    "y": 223
    },
    "mirrored": false
   },
@@ -1223,7 +1223,7 @@
    "height": 256,
    "anchor": {
     "x": 127,
-    "y": 219
+    "y": 223
    },
    "mirrored": true
   },
@@ -1234,7 +1234,7 @@
    "height": 512,
    "anchor": {
     "x": 257,
-    "y": 456
+    "y": 458
    },
    "mirrored": false
   },
@@ -1245,7 +1245,7 @@
    "height": 512,
    "anchor": {
     "x": 255,
-    "y": 456
+    "y": 458
    },
    "mirrored": true
   },
@@ -1403,14 +1403,86 @@
    },
    "mirrored": true
   },
+  "ts_quayDeck_a": {
+   "file": "Models/typhoonShelter/ts_quayDeck_a.png",
+   "part": "quayDeck_a",
+   "width": 1024,
+   "height": 512,
+   "anchor": {
+    "x": 513,
+    "y": 450
+   },
+   "mirrored": false,
+   "facing": "nw"
+  },
+  "ts_quayDeck_a_m": {
+   "file": "Models/typhoonShelter/ts_quayDeck_a_m.png",
+   "part": "quayDeck_a",
+   "width": 1024,
+   "height": 512,
+   "anchor": {
+    "x": 511,
+    "y": 450
+   },
+   "mirrored": true,
+   "facing": "ne"
+  },
+  "ts_quayDeckSquare_a": {
+   "file": "Models/typhoonShelter/ts_quayDeckSquare_a.png",
+   "part": "quayDeckSquare_a",
+   "width": 512,
+   "height": 256,
+   "anchor": {
+    "x": 256,
+    "y": 219
+   },
+   "mirrored": false,
+   "facing": "se"
+  },
+  "ts_quayDeckSquare_a_m": {
+   "file": "Models/typhoonShelter/ts_quayDeckSquare_a_m.png",
+   "part": "quayDeckSquare_a",
+   "width": 512,
+   "height": 256,
+   "anchor": {
+    "x": 256,
+    "y": 219
+   },
+   "mirrored": true,
+   "facing": "sw"
+  },
+  "ts_quayStraight_a": {
+   "file": "Models/typhoonShelter/ts_quayStraight_a.png",
+   "part": "quayStraight_a",
+   "width": 1024,
+   "height": 512,
+   "anchor": {
+    "x": 513,
+    "y": 434
+   },
+   "mirrored": false,
+   "facing": "se"
+  },
+  "ts_quayStraight_a_m": {
+   "file": "Models/typhoonShelter/ts_quayStraight_a_m.png",
+   "part": "quayStraight_a",
+   "width": 1024,
+   "height": 512,
+   "anchor": {
+    "x": 511,
+    "y": 434
+   },
+   "mirrored": true,
+   "facing": "sw"
+  },
   "ts_sanpan1_a": {
    "file": "Models/typhoonShelter/ts_sanpan1_a.png",
    "part": "sanpan1_a",
-   "width": 256,
-   "height": 512,
+   "width": 512,
+   "height": 256,
    "anchor": {
-    "x": 128,
-    "y": 462
+    "x": 256,
+    "y": 213
    },
    "mirrored": false,
    "facing": "se"
@@ -1418,11 +1490,11 @@
   "ts_sanpan1_a_m": {
    "file": "Models/typhoonShelter/ts_sanpan1_a_m.png",
    "part": "sanpan1_a",
-   "width": 256,
-   "height": 512,
+   "width": 512,
+   "height": 256,
    "anchor": {
-    "x": 128,
-    "y": 462
+    "x": 256,
+    "y": 213
    },
    "mirrored": true,
    "facing": "sw"
@@ -1434,7 +1506,7 @@
    "height": 512,
    "anchor": {
     "x": 257,
-    "y": 455
+    "y": 457
    },
    "mirrored": false,
    "facing": "se"
@@ -1446,7 +1518,7 @@
    "height": 512,
    "anchor": {
     "x": 255,
-    "y": 455
+    "y": 457
    },
    "mirrored": true,
    "facing": "sw"
@@ -1457,8 +1529,8 @@
    "width": 512,
    "height": 512,
    "anchor": {
-    "x": 256,
-    "y": 447
+    "x": 257,
+    "y": 460
    },
    "mirrored": false,
    "facing": "se"
@@ -1469,8 +1541,8 @@
    "width": 512,
    "height": 512,
    "anchor": {
-    "x": 256,
-    "y": 447
+    "x": 255,
+    "y": 460
    },
    "mirrored": true,
    "facing": "sw"
@@ -1482,7 +1554,7 @@
    "height": 512,
    "anchor": {
     "x": 256,
-    "y": 438
+    "y": 445
    },
    "mirrored": false,
    "facing": "se"
@@ -1494,7 +1566,7 @@
    "height": 512,
    "anchor": {
     "x": 256,
-    "y": 438
+    "y": 445
    },
    "mirrored": true,
    "facing": "sw"
@@ -1505,8 +1577,8 @@
    "width": 512,
    "height": 512,
    "anchor": {
-    "x": 256,
-    "y": 440
+    "x": 257,
+    "y": 457
    },
    "mirrored": false,
    "facing": "se"
@@ -1517,8 +1589,8 @@
    "width": 512,
    "height": 512,
    "anchor": {
-    "x": 256,
-    "y": 440
+    "x": 255,
+    "y": 457
    },
    "mirrored": true,
    "facing": "sw"
@@ -1529,8 +1601,8 @@
    "width": 512,
    "height": 512,
    "anchor": {
-    "x": 257,
-    "y": 435
+    "x": 256,
+    "y": 444
    },
    "mirrored": false,
    "facing": "se"
@@ -1541,8 +1613,8 @@
    "width": 512,
    "height": 512,
    "anchor": {
-    "x": 255,
-    "y": 435
+    "x": 256,
+    "y": 444
    },
    "mirrored": true,
    "facing": "sw"
@@ -1553,8 +1625,8 @@
    "width": 512,
    "height": 512,
    "anchor": {
-    "x": 257,
-    "y": 434
+    "x": 256,
+    "y": 445
    },
    "mirrored": false,
    "facing": "se"
@@ -1565,8 +1637,8 @@
    "width": 512,
    "height": 512,
    "anchor": {
-    "x": 255,
-    "y": 434
+    "x": 256,
+    "y": 445
    },
    "mirrored": true,
    "facing": "sw"
@@ -1601,8 +1673,8 @@
    "width": 512,
    "height": 512,
    "anchor": {
-    "x": 256,
-    "y": 425
+    "x": 257,
+    "y": 439
    },
    "mirrored": false,
    "facing": "se"
@@ -1613,8 +1685,8 @@
    "width": 512,
    "height": 512,
    "anchor": {
-    "x": 256,
-    "y": 425
+    "x": 255,
+    "y": 439
    },
    "mirrored": true,
    "facing": "sw"
@@ -1626,7 +1698,7 @@
    "height": 512,
    "anchor": {
     "x": 256,
-    "y": 431
+    "y": 444
    },
    "mirrored": false,
    "facing": "se"
@@ -1638,7 +1710,7 @@
    "height": 512,
    "anchor": {
     "x": 256,
-    "y": 431
+    "y": 444
    },
    "mirrored": true,
    "facing": "sw"
@@ -1913,8 +1985,8 @@
    "width": 512,
    "height": 1024,
    "anchor": {
-    "x": 256,
-    "y": 915
+    "x": 257,
+    "y": 924
    },
    "mirrored": false,
    "facing": "se"
@@ -1925,8 +1997,8 @@
    "width": 512,
    "height": 1024,
    "anchor": {
-    "x": 256,
-    "y": 915
+    "x": 255,
+    "y": 924
    },
    "mirrored": true,
    "facing": "sw"
@@ -1937,8 +2009,8 @@
    "width": 512,
    "height": 512,
    "anchor": {
-    "x": 256,
-    "y": 437
+    "x": 257,
+    "y": 429
    },
    "mirrored": false,
    "facing": "nw"
@@ -1949,8 +2021,8 @@
    "width": 512,
    "height": 512,
    "anchor": {
-    "x": 256,
-    "y": 437
+    "x": 255,
+    "y": 429
    },
    "mirrored": true,
    "facing": "ne"
@@ -1961,8 +2033,8 @@
    "width": 512,
    "height": 512,
    "anchor": {
-    "x": 257,
-    "y": 422
+    "x": 256,
+    "y": 416
    },
    "mirrored": false,
    "facing": "se"
@@ -1973,8 +2045,8 @@
    "width": 512,
    "height": 512,
    "anchor": {
-    "x": 255,
-    "y": 422
+    "x": 256,
+    "y": 416
    },
    "mirrored": true,
    "facing": "sw"
@@ -1986,7 +2058,7 @@
    "height": 512,
    "anchor": {
     "x": 257,
-    "y": 442
+    "y": 445
    },
    "mirrored": false,
    "facing": "nw"
@@ -1998,7 +2070,7 @@
    "height": 512,
    "anchor": {
     "x": 255,
-    "y": 442
+    "y": 445
    },
    "mirrored": true,
    "facing": "ne"

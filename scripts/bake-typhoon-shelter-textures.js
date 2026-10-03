@@ -1,6 +1,12 @@
 // Bake the 避風塘 textures from the isometric-corrected source sheets.
 //
-//   node scripts/bake-typhoon-shelter-textures.js [--only <id,id>] [--preview <png>]
+//   node scripts/bake-typhoon-shelter-textures.js [--only <id,id>] [--preview <png>] [--apply-warps]
+//
+// A part calibrated with an art warp (避風塘素材校準: 上下伸縮 / 上下斜 / 左右斜) is drawn through
+// it at runtime from a non-power-of-two canvas. --apply-warps bakes those warps into the textures:
+// each such part is re-baked through its warp, its ground corners and top are converted into the
+// new texture's pixels, and the warp moves from part.warp (runtime) to part.bake (applied by every
+// later bake, so a re-bake from the sheets gives the same art) in data/typhoon-shelter-placement.json.
 //
 // For every part in typhoon-shelter-assets.js this cuts the object out of its sheet (only the
 // pixels of the object itself - neighbouring props on a sheet overlap each other's rectangles),
@@ -28,10 +34,12 @@ const SOURCE_DIR = path.join(ROOT, assets.TYPHOON_SHELTER_SOURCE_DIR);
 const OUT_DIR = path.join(ROOT, assets.TYPHOON_SHELTER_TEXTURE_DIR);
 const LIGHTS_FILE = path.join(SOURCE_DIR, 'sea-lights.json');
 const META_FILE = path.join(ROOT, 'data', 'typhoon-shelter-textures.json');
+const PLACEMENT_FILE = path.join(ROOT, 'data', 'typhoon-shelter-placement.json');
 const args = process.argv.slice(2);
 const argValue = (flag) => { const i = args.indexOf(flag); return i >= 0 ? args[i + 1] : null; };
 const ONLY = (argValue('--only') || '').split(',').map((s) => s.trim()).filter(Boolean);
 const PREVIEW = argValue('--preview');
+const APPLY_WARPS = args.includes('--apply-warps');
 
 // The sheets are drawn ~2x the size anything is shown in game; the release pipeline caps model
 // textures at 512 px anyway (prepare-release-assets.js).
@@ -148,20 +156,86 @@ function solidBounds(data, W, H) {
   return { minX, maxX, minY, maxY };
 }
 
-// Scale the cut-out and stand it on its canvas. Returns the day RGBA and the anchor.
-async function layoutPart(cut) {
+// 2x3 affine maps { a, b, c, d, e, f }: X = a x + b y + e, Y = c x + d y + f.
+const IDENTITY_LINEAR = Object.freeze([1, 0, 0, 1]);
+const affine = (m, [x, y]) => [m.a * x + m.b * y + m.e, m.c * x + m.d * y + m.f];
+function invertAffine(m) {
+  const det = m.a * m.d - m.b * m.c;
+  const a = m.d / det; const b = -m.b / det; const c = -m.c / det; const d = m.a / det;
+  return { a, b, c, d, e: -(a * m.e + b * m.f), f: -(c * m.e + d * m.f) };
+}
+const isIdentityLinear = (L) => L.every((v, i) => Math.abs(v - IDENTITY_LINEAR[i]) < 1e-9);
+
+// RGBA through the linear map L = [a, b, c, d] (X = a x + b y, Y = c x + d y), sampled bilinearly
+// on premultiplied colour so transparent pixels never bleed a fringe into the edges. Returns the
+// image, its size, and where the source origin landed ({ minX, minY }: X_out = L(x) - min).
+function warpRGBA(src, W, H, L) {
+  const [a, b, c, d] = L;
+  const pts = [[0, 0], [W, 0], [0, H], [W, H]].map(([x, y]) => [a * x + b * y, c * x + d * y]);
+  const minX = Math.floor(Math.min(...pts.map((p) => p[0])));
+  const minY = Math.floor(Math.min(...pts.map((p) => p[1])));
+  const OW = Math.ceil(Math.max(...pts.map((p) => p[0]))) - minX;
+  const OH = Math.ceil(Math.max(...pts.map((p) => p[1]))) - minY;
+  const det = a * d - b * c;
+  const ia = d / det; const ib = -b / det; const ic = -c / det; const id = a / det;
+  const out = Buffer.alloc(OW * OH * 4);
+  const px = (x, y, ch) => (x < 0 || y < 0 || x >= W || y >= H ? 0 : src[(y * W + x) * 4 + ch]);
+  for (let Y = 0; Y < OH; Y++) {
+    for (let X = 0; X < OW; X++) {
+      const gx = X + 0.5 + minX;
+      const gy = Y + 0.5 + minY;
+      const sx = ia * gx + ib * gy - 0.5;
+      const sy = ic * gx + id * gy - 0.5;
+      const x0 = Math.floor(sx); const y0 = Math.floor(sy);
+      if (x0 < -1 || y0 < -1 || x0 >= W || y0 >= H) continue;
+      const fx = sx - x0; const fy = sy - y0;
+      const w = [(1 - fx) * (1 - fy), fx * (1 - fy), (1 - fx) * fy, fx * fy];
+      const taps = [[x0, y0], [x0 + 1, y0], [x0, y0 + 1], [x0 + 1, y0 + 1]];
+      let A = 0; let R = 0; let G = 0; let B = 0;
+      taps.forEach(([tx, ty], i) => {
+        const al = px(tx, ty, 3) * w[i];
+        A += al; R += px(tx, ty, 0) * al; G += px(tx, ty, 1) * al; B += px(tx, ty, 2) * al;
+      });
+      if (A < 0.5) continue;
+      const o = (Y * OW + X) * 4;
+      out[o] = Math.round(R / A); out[o + 1] = Math.round(G / A); out[o + 2] = Math.round(B / A);
+      out[o + 3] = Math.round(A);
+    }
+  }
+  return { data: out, width: OW, height: OH, minX, minY };
+}
+
+// Scale the cut-out (and warp it through the part's baked linear map L, if any) and stand it on
+// its canvas. Returns the day RGBA, the anchor, and `toTexture` - the affine map from the scaled
+// cut-out's pixels to the texture's, which --apply-warps converts calibration points with.
+async function layoutPart(cut, L = IDENTITY_LINEAR) {
   const b = solidBounds(cut.data, cut.width, cut.height);
   const pad = 2;
   const left = Math.max(0, b.minX - pad);
   const top = Math.max(0, b.minY - pad);
   const cw = Math.min(cut.width, b.maxX + pad + 1) - left;
   const ch = Math.min(cut.height, b.maxY + pad + 1) - top;
-  const sw = Math.max(1, Math.round(cw * SCALE));
-  const sh = Math.max(1, Math.round(ch * SCALE));
-  const scaled = await sharp(cut.data, { raw: { width: cut.width, height: cut.height, channels: 4, premultiplied: false } })
+  const sw0 = Math.max(1, Math.round(cw * SCALE));
+  const sh0 = Math.max(1, Math.round(ch * SCALE));
+  let scaled = await sharp(cut.data, { raw: { width: cut.width, height: cut.height, channels: 4, premultiplied: false } })
     .extract({ left, top, width: cw, height: ch })
-    .resize(sw, sh, { kernel: 'lanczos3', fit: 'fill' })
+    .resize(sw0, sh0, { kernel: 'lanczos3', fit: 'fill' })
     .raw().toBuffer();
+  let sw = sw0;
+  let sh = sh0;
+  let toScaled = { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 };
+  if (!isIdentityLinear(L)) {
+    const warped = warpRGBA(scaled, sw0, sh0, L);
+    // trim the empty corners a skew leaves
+    const wb = solidBounds(warped.data, warped.width, warped.height);
+    const tl = Math.max(0, wb.minX - pad);
+    const tt = Math.max(0, wb.minY - pad);
+    sw = Math.min(warped.width, wb.maxX + pad + 1) - tl;
+    sh = Math.min(warped.height, wb.maxY + pad + 1) - tt;
+    scaled = Buffer.alloc(sw * sh * 4);
+    for (let y = 0; y < sh; y++) warped.data.copy(scaled, y * sw * 4, ((y + tt) * warped.width + tl) * 4, ((y + tt) * warped.width + tl + sw) * 4);
+    toScaled = { a: L[0], b: L[1], c: L[2], d: L[3], e: -warped.minX - tl, f: -warped.minY - tt };
+  }
   const side = Math.max(MARGIN_MIN, Math.round(sw * MARGIN_SIDE));
   const mTop = Math.max(MARGIN_MIN, Math.round(sh * MARGIN_TOP));
   const mBottom = Math.max(MARGIN_MIN, Math.round(sh * MARGIN_BOTTOM));
@@ -172,7 +246,8 @@ async function layoutPart(cut) {
   const day = Buffer.alloc(W * H * 4);
   for (let y = 0; y < sh; y++) scaled.copy(day, ((y + oy) * W + ox) * 4, y * sw * 4, (y + 1) * sw * 4);
   const sb = solidBounds(day, W, H);
-  return { day, W, H, anchor: { x: Math.round((sb.minX + sb.maxX + 1) / 2), y: sb.maxY + 1 } };
+  const toTexture = { ...toScaled, e: toScaled.e + ox, f: toScaled.f + oy };
+  return { day, W, H, anchor: { x: Math.round((sb.minX + sb.maxX + 1) / 2), y: sb.maxY + 1 }, toTexture };
 }
 
 function mirrorRGBA(data, W, H) {
@@ -189,6 +264,22 @@ async function writePng(data, W, H, rel) {
     .toFile(path.join(ROOT, rel));
 }
 
+function readPlacement() {
+  return fs.existsSync(PLACEMENT_FILE) ? JSON.parse(fs.readFileSync(PLACEMENT_FILE, 'utf8')) : { parts: {}, objects: {} };
+}
+
+// Same layout as the calibrator's save (server.js /api/dev/typhoon-shelter-placement).
+function writePlacement(data) {
+  const sort = (o) => Object.fromEntries(Object.keys(o || {}).sort().map((k) => [k, o[k]]));
+  fs.writeFileSync(PLACEMENT_FILE, `${JSON.stringify({ schemaVersion: 1, parts: sort(data.parts), objects: sort(data.objects) }, null, 1)}\n`);
+}
+
+// The part's baked linear map: the warps applied by earlier --apply-warps runs.
+function getBakedLinear(part) {
+  const m = part?.bake?.m;
+  return Array.isArray(m) && m.length === 4 && m.every(Number.isFinite) ? m : IDENTITY_LINEAR;
+}
+
 function readLightProfiles() {
   if (!fs.existsSync(LIGHTS_FILE)) return {};
   const parsed = JSON.parse(fs.readFileSync(LIGHTS_FILE, 'utf8'));
@@ -202,11 +293,24 @@ async function main() {
     throw new Error(`unknown part id(s): ${unknown.join(', ')}`);
   }
   fs.mkdirSync(OUT_DIR, { recursive: true });
+  // the textures the calibration was done on, measured before a full bake clears the folder
+  const onDiskSize = new Map();
+  if (APPLY_WARPS) {
+    for (const p of parts) {
+      const file = path.join(ROOT, assets.getTyphoonShelterTexturePath(p.id));
+      if (fs.existsSync(file)) { const m = await sharp(file).metadata(); onDiskSize.set(p.id, [m.width, m.height]); }
+    }
+  }
   if (!ONLY.length) {
     // a full bake owns the folder: drop textures of parts or light profiles that are gone
     fs.readdirSync(OUT_DIR).filter((f) => /^ts_.*\.png$/.test(f)).forEach((f) => fs.unlinkSync(path.join(OUT_DIR, f)));
   }
   const profiles = readLightProfiles();
+  const placement = readPlacement();
+  const applied = [];
+  if (APPLY_WARPS && Object.keys(profiles).length) {
+    throw new Error('--apply-warps does not convert sea light profiles yet; bake the warps before calibrating lights');
+  }
   const meta = fs.existsSync(META_FILE) && ONLY.length ? JSON.parse(fs.readFileSync(META_FILE, 'utf8')) : { textures: {} };
   meta.formatVersion = 1;
   meta.scale = SCALE;
@@ -219,7 +323,38 @@ async function main() {
       sheets.set(p.sheet, { img, comps: labelComponents(img) });
     }
     const { img, comps } = sheets.get(p.sheet);
-    const { day, W, H, anchor } = await layoutPart(cutPart(img, comps, p.rect));
+    const cut = cutPart(img, comps, p.rect);
+    const part = placement.parts[p.id];
+    let linear = getBakedLinear(part);
+    const warp = APPLY_WARPS && part?.warp ? assets.normalizeTyphoonShelterWarp(part.warp) : null;
+    let convert = null;
+    if (warp && !assets.isTyphoonShelterWarpIdentity(warp)) {
+      // the art as calibrated (the texture on disk, through `linear`) and as it will be
+      const before = await layoutPart(cut, linear);
+      const [dw, dh] = onDiskSize.get(p.id) || [];
+      if (dw !== before.W || dh !== before.H) {
+        throw new Error(`${p.id}: the texture on disk (${dw}x${dh}) is not this bake's (${before.W}x${before.H}); bake once without --apply-warps first`);
+      }
+      // the runtime warp's linear part, [[1, -h], [s, k]], after what is baked already
+      const M = [1, -warp.h, warp.s, warp.k];
+      linear = [
+        M[0] * linear[0] + M[1] * linear[2], M[0] * linear[1] + M[1] * linear[3],
+        M[2] * linear[0] + M[3] * linear[2], M[2] * linear[1] + M[3] * linear[3],
+      ];
+      convert = before.toTexture;
+    }
+    const { day, W, H, anchor, toTexture } = await layoutPart(cut, linear);
+    if (convert) {
+      const map = (pt) => affine(toTexture, affine(invertAffine(convert), pt));
+      const r1 = ([x, y]) => [Math.round(x * 10) / 10, Math.round(y * 10) / 10];
+      const next = { ...part };
+      if (part.ground) next.ground = { left: r1(map(part.ground.left)), front: r1(map(part.ground.front)), right: r1(map(part.ground.right)) };
+      if (Number.isFinite(part.top) && part.ground) next.top = r1(map([part.ground.front[0], part.top]))[1];
+      delete next.warp;
+      next.bake = { m: linear.map((v) => Math.round(v * 1e6) / 1e6) };
+      placement.parts[p.id] = next;
+      applied.push(p.id);
+    }
     const profile = profiles[p.id] ? seaLighting.normalizeSeaLightProfile(profiles[p.id]) : null;
     const hasLights = profile && !seaLighting.isSeaLightProfileEmpty(profile);
     for (const tex of assets.getTyphoonShelterPartTextures(p)) {
@@ -256,6 +391,12 @@ async function main() {
     }
     console.log(`${p.id}: ${W}x${H}${p.mirror ? ' +mirror' : ''}${hasLights ? ` · ${profile.lamps.length} lamp(s), ${profile.areas.length} area(s)` : ''}`);
   }
+  if (applied.length) {
+    writePlacement(placement);
+    console.log(`\nbaked the warps of ${applied.length} part(s) into their textures: ${applied.join(', ')}`);
+  }
+  const pending = Object.entries(placement.parts).filter(([, pt]) => pt?.warp && !assets.isTyphoonShelterWarpIdentity(pt.warp)).map(([id]) => id);
+  if (pending.length) console.log(`runtime warps not baked (run with --apply-warps): ${pending.join(', ')}`);
   fs.mkdirSync(path.dirname(META_FILE), { recursive: true });
   meta.textures = Object.fromEntries(Object.entries(meta.textures).sort(([a], [b]) => a.localeCompare(b)));
   fs.writeFileSync(META_FILE, `${JSON.stringify(meta, null, 1)}\n`);

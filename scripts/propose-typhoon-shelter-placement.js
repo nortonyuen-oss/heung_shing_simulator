@@ -49,7 +49,9 @@ async function main() {
         const alongSe = object.depth >= object.width ? seExtent >= swExtent : seExtent < swExtent;
         facing = object.depth === object.width ? 'se' : (alongSe ? 'se' : 'sw');
       }
-      parts[partId] = { ground, top, facing, auto: true, method: useLot ? 'lot' : 'outline' };
+      // an art warp is set by hand in the calibrator and kept through a re-proposal
+      const warp = parts[partId]?.warp;
+      parts[partId] = { ground, top, facing, auto: true, method: useLot ? 'lot' : 'outline', ...(warp ? { warp } : {}) };
       proposed += 1;
     }
   }

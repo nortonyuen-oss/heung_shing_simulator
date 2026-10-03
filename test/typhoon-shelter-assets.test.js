@@ -307,3 +307,41 @@ test('a fixed real-size scale only positions the art', () => {
   assert.equal(fit.scale, 0.3);
   assert.deepEqual([fit.x, fit.y], [75, 12.5]);
 });
+
+test('art warp: x:y and shear about the front corner, verticals upright, undone exactly', () => {
+  const a = require('../typhoon-shelter-assets.js');
+  const front = [300, 900];
+  const warp = a.normalizeTyphoonShelterWarp({ k: 0.8, s: -0.2 });
+  assert.deepEqual(a.warpTyphoonShelterPoint(front, front, warp), front, 'the front corner stays put');
+  const top = a.warpTyphoonShelterPoint([300, 500], front, warp);
+  assert.equal(top[0], 300, 'a mast stays vertical');
+  assert.equal(top[1], 900 - 0.8 * 400);
+  // a hull line drawn at slope 0.9 comes out at 0.9 * 0.8 - 0.2 = 0.52
+  const [x1, y1] = a.warpTyphoonShelterPoint([200, 810], front, warp);
+  assert.ok(Math.abs((900 - y1) / (300 - x1) - 0.52) < 1e-9);
+  const back = a.unwarpTyphoonShelterPoint(a.warpTyphoonShelterPoint([123, 456], front, warp), front, warp);
+  assert.ok(Math.abs(back[0] - 123) < 1e-9 && Math.abs(back[1] - 456) < 1e-9);
+  assert.ok(a.isTyphoonShelterWarpIdentity(undefined));
+  assert.ok(a.isTyphoonShelterWarpIdentity({ k: 1, s: 0 }));
+  assert.ok(!a.isTyphoonShelterWarpIdentity(warp));
+  assert.deepEqual(a.normalizeTyphoonShelterWarp({ k: -3, s: 'x' }), { k: 1, s: 0, h: 0 });
+});
+
+test('art warp: left-right skew leans the top, mirrors flip both skews, canvas transform agrees', () => {
+  const a = require('../typhoon-shelter-assets.js');
+  const front = [300, 900];
+  const lean = { h: 0.1 };
+  assert.deepEqual(a.warpTyphoonShelterPoint([300, 500], front, lean), [340, 500], '+ leans the top right');
+  assert.deepEqual(a.warpTyphoonShelterPoint(front, front, lean), front);
+  assert.deepEqual(a.mirrorTyphoonShelterWarp({ k: 0.9, s: 0.2, h: 0.1 }), { k: 0.9, s: -0.2, h: -0.1 });
+  const warp = { k: 0.85, s: -0.15, h: 0.12 };
+  const box = a.getTyphoonShelterWarpCanvas(512, 1024, front, warp);
+  const [A, B, C, D, E, F] = a.getTyphoonShelterWarpTransform(front, warp, box);
+  [[0, 0], [512, 0], [0, 1024], [512, 1024], [123, 456]].forEach(([x, y]) => {
+    const [X, Y] = a.warpTyphoonShelterPoint([x, y], front, warp);
+    assert.ok(Math.abs(A * x + C * y + E - (X + box.dx)) < 1e-9 && Math.abs(B * x + D * y + F - (Y + box.dy)) < 1e-9);
+    assert.ok(X + box.dx >= 0 && X + box.dx <= box.width && Y + box.dy >= 0 && Y + box.dy <= box.height, 'on the canvas');
+    const back = a.unwarpTyphoonShelterPoint([X, Y], front, warp);
+    assert.ok(Math.abs(back[0] - x) < 1e-9 && Math.abs(back[1] - y) < 1e-9);
+  });
+});

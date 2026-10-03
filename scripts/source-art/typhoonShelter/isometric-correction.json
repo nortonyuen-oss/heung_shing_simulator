@@ -511,5 +511,122 @@
     "ellipse": 0.48
    }
   ]
+ },
+ "quayStraightA.png": {
+  "views": [
+   {
+    "down": 0.586,
+    "up": 0.531
+   }
+  ],
+  "whole": true
+ },
+ "quayStraightB.png": {
+  "views": [
+   {
+    "down": 0.625,
+    "up": 0.568
+   }
+  ],
+  "whole": true
+ },
+ "quayOuterCorner.png": {
+  "views": [
+   {
+    "down": 0.628,
+    "up": 0.572
+   }
+  ],
+  "whole": true
+ },
+ "quayInnerCorner.png": {
+  "views": [
+   {
+    "down": 0.574,
+    "up": 0.568
+   }
+  ],
+  "whole": true
+ },
+ "quayEnd.png": {
+  "views": [
+   {
+    "down": 0.588,
+    "up": 0.566
+   }
+  ],
+  "whole": true
+ },
+ "quaySteps.png": {
+  "views": [
+   {
+    "down": 0.652,
+    "up": 0.525
+   }
+  ],
+  "whole": true
+ },
+ "promenadeStraight.png": {
+  "views": [
+   {
+    "down": 0.588,
+    "up": 0.542
+   }
+  ],
+  "whole": true
+ },
+ "promenadeOuterCorner.png": {
+  "views": [
+   {
+    "down": 0.571,
+    "up": 0.559
+   }
+  ],
+  "whole": true
+ },
+ "promenadeInnerCorner.png": {
+  "views": [
+   {
+    "down": 0.59,
+    "up": 0.578
+   }
+  ],
+  "whole": true
+ },
+ "promenadeJog.png": {
+  "views": [
+   {
+    "down": 0.588,
+    "up": 0.561
+   }
+  ],
+  "whole": true
+ },
+ "promenadeSteps.png": {
+  "views": [
+   {
+    "down": 0.579,
+    "up": 0.563
+   }
+  ],
+  "whole": true
+ },
+ "promenadeRevetment.png": {
+  "views": [
+   {
+    "down": 0.623,
+    "up": 0.564
+   }
+  ],
+  "whole": true
+ },
+ "promenadeStrip.png": {
+  "views": [
+   {
+    "down": 0.642,
+    "up": 0.537
+   }
+  ],
+  "whole": true
  }
 }

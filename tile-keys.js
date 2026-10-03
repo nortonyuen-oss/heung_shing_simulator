@@ -70,11 +70,16 @@ function getBaseTileKey(row, col) {
   let key;
   if      (tileType === ROAD)  key = getRoadKey(row, col);
   else if (tileType === DIRT)  key = 'dirt_full';
-  else if (tileType === BEACH) key = getBeachKey(row, col);
+  // a typhoon shelter's quay (海堤) faces this beach: the land behind the quay is plain ground
+  else if (tileType === BEACH) key = isTyphoonShelterQuayTileSafe(row, col) ? 'ground_full' : getBeachKey(row, col);
   else if (tileType === WATER) key = getWaterKey(row, col);
   else if (hasHeight)          key = getHillKey(row, col);
   else                         key = 'ground_full';
   return key;
+}
+
+function isTyphoonShelterQuayTileSafe(row, col) {
+  return typeof isTyphoonShelterQuayTile === 'function' && isTyphoonShelterQuayTile(row, col);
 }
 
 function getBaseTileType(row, col) {
@@ -339,8 +344,11 @@ function getWaterPatternKey(row, col) {
   // quay meets open water without a duplicate bank.
   if (isHarborFrontageTile(row, col)) return 'water_full';
   if (isOnMapEdge(row, col)) return 'water_full';
+  // a quay wall meets the water square, as a container port's does: no bank toward it
+  const quayEdges = [['n', -1, 0], ['e', 0, 1], ['s', 1, 0], ['w', 0, -1]]
+    .filter(([, dr, dc]) => isTyphoonShelterQuayTileSafe(row + dr, col + dc)).map(([direction]) => direction);
   const connectedEdges = getAdjacentEdges(row, col, WATER)
-    .concat(getAdjacentEdges(row, col, BEACH));
+    .concat(getAdjacentEdges(row, col, BEACH), quayEdges);
   const openEdges = ['n', 'e', 's', 'w'].filter((direction) => !connectedEdges.includes(direction));
   return getEdgePatternKey(openEdges, 'water', 'water_full');
 }

@@ -124,6 +124,21 @@ test('floating walkways run straight out from the shore, landing stage on the be
   plain.filter((w) => w.kind === 'floatingPier').forEach((w) => assert.equal(w.row, 2));
 });
 
+test('a breakwater that meets the shore gets a root section reaching onto the land', () => {
+  const { f, plan, analysis } = setup();
+  const kindAt = (r, c) => f.map.kind(r, c);
+  const layout = layoutTyphoonShelterWorks(plan, analysis, { ...f, isLand: (r, c) => kindAt(r, c) === 'land' });
+  const roots = layout.filter((w) => w.kind === 'breakwaterRoot');
+  // the bay's mouth wall (row 7) ends at both headlands, which sit just round the corner (row 6)
+  assert.deepEqual(roots.map((w) => [w.row, w.col, w.facing]).sort(), [[7, 11, 'e'], [7, 2, 'w']]);
+  roots.forEach((w) => {
+    const step = { e: [0, 1], w: [0, -1] }[w.facing];
+    assert.equal(kindAt(w.row - 1, w.col + step[1]), 'land', `${w.key} reaches the headland`);
+  });
+  // without the land test, no roots
+  assert.equal(layoutTyphoonShelterWorks(plan, analysis, f).filter((w) => w.kind === 'breakwaterRoot').length, 0);
+});
+
 test('building a plan builds every work at once and charges the whole bill', () => {
   const { f, plan, analysis } = setup();
   const layout = layoutTyphoonShelterWorks(plan, analysis, f);
@@ -170,4 +185,67 @@ test('built works survive the save normaliser', () => {
   assert.deepEqual(loaded.works.items, works.items);
   assert.equal(loaded.works.approved, true);
   assert.equal(loaded.status, 'built');
+});
+
+test('a beach pier may face the fairway when the fairway hugs the whole shore', () => {
+  // a sandy shore with the road behind it; the fairway is made to run along every shore tile,
+  // as it does on a diagonal coast between two entrances
+  const f = fixture([
+    '######R#########',
+    '#bbbbbbbbbbbbbb#',
+    '##..........####',
+    '##..........####',
+    '##..........####',
+    '##..........####',
+    '##..........####',
+    '##..........####',
+    '~~~~~~~~~~~~~~~~',
+    '~~~~~~~~~~~~~~~~',
+  ]);
+  const plan = { id: 'ts1', seed: 42, basin: shelter.encodeTyphoonShelterBasin(f.basin), entrances: [], reservePct: 20 };
+  plan.entrances = shelter.suggestTyphoonShelterEntrances(plan, f.map);
+  const analysis = shelter.analyzeTyphoonShelter(plan, f.map);
+  analysis.shoreEdges.forEach((e) => analysis.channel.add(`${e.r}:${e.c}`));
+  const pier = layoutTyphoonShelterWorks(plan, analysis, f).find((w) => w.kind === 'pier');
+  assert.ok(pier, 'a pier on the beach');
+  assert.equal(pier.row, 1, 'standing on the sand, clear of the fairway');
+  // a pier out in the water would block the fairway: none
+  assert.equal(layoutTyphoonShelterWorks(plan, analysis, { ...f, isFreeBeach: () => false }).filter((w) => w.kind === 'pier').length, 0);
+});
+
+test('海堤: a quay along every shore edge, corner fills, piers off the quay, keys that survive a save', () => {
+  const { f, plan, analysis } = setup();
+  const land = (r, c) => f.map.kind(r, c) === 'land';
+  const ctx = { ...f, isFreeBeach: land, isQuaySite: land };
+  const layout = layoutTyphoonShelterWorks(plan, analysis, ctx);
+  const quays = layout.filter((w) => w.kind === 'quay');
+  // one per edge where the basin meets land, on the land tile, its wall toward the water
+  assert.equal(quays.length, analysis.shoreEdges.filter((e) => land(...e.out)).length);
+  const step = { n: [-1, 0], e: [0, 1], s: [1, 0], w: [0, -1] };
+  quays.forEach((q) => {
+    assert.ok(land(q.row, q.col), q.key);
+    assert.ok(analysis.basin.has(`${q.row + step[q.facing][0]}:${q.col + step[q.facing][1]}`), `${q.key} faces the basin`);
+  });
+  assert.equal(new Set(layout.map((w) => w.key)).size, layout.length, 'keys are unique');
+  // the bay's two inner corners (north-west and north-east) are filled on the diagonal land tile
+  const fills = layout.filter((w) => w.kind === 'quayFill').map((w) => [w.row, w.col, w.corner]);
+  assert.deepEqual(fills.sort(), [[0, 1, 'se'], [0, 12, 'sw']]);
+  // the quay faces the shore: piers and landing stages stand in the water
+  layout.filter((w) => w.kind === 'pier' || w.kind === 'floatingPier').forEach((w) => assert.ok(analysis.basin.has(`${w.row}:${w.col}`), w.key));
+  // built, saved and loaded: nothing to build again
+  const built = completeTyphoonShelterWorks(reconcileTyphoonShelterWorks(createTyphoonShelterWorks(), layout)).works;
+  const loaded = works.normalizeTyphoonShelterWorks(JSON.parse(JSON.stringify({ ...built, approved: true })));
+  assert.deepEqual(loaded.items.map((i) => i.key).sort(), built.items.map((i) => i.key).sort());
+  const again = completeTyphoonShelterWorks(reconcileTyphoonShelterWorks(loaded, layout));
+  assert.equal(again.cost, 0);
+  assert.equal(again.built, 0);
+});
+
+test('against a quay, the pier may stand on a fairway that hugs the whole shore', () => {
+  const { f, plan, analysis } = setup();
+  analysis.shoreEdges.forEach((e) => analysis.channel.add(`${e.r}:${e.c}`));
+  const land = (r, c) => f.map.kind(r, c) === 'land';
+  const pier = layoutTyphoonShelterWorks(plan, analysis, { ...f, isFreeBeach: () => false, isQuaySite: land }).find((w) => w.kind === 'pier');
+  assert.ok(pier && analysis.basin.has(`${pier.row}:${pier.col}`), 'a pier in the water at the quay');
+  assert.equal(layoutTyphoonShelterWorks(plan, analysis, { ...f, isFreeBeach: () => false }).filter((w) => w.kind === 'pier').length, 0, 'not without one');
 });

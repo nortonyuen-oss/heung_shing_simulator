@@ -650,6 +650,8 @@ function normalizeTyphoonShelterPlan(raw) {
     status: ['planned', 'built', 'operational'].includes(raw.status) ? raw.status : (raw.works?.approved ? 'built' : 'planned'),
     // Phase 2 construction (typhoon-shelter-works.js)
     ...(raw.works && typeof normalizeTyphoonShelterWorks === 'function' ? { works: normalizeTyphoonShelterWorks(raw.works) } : {}),
+    // Phase 3 boats (typhoon-shelter-fleet.js)
+    ...(raw.fleet && typeof normalizeTyphoonShelterFleet === 'function' ? { fleet: normalizeTyphoonShelterFleet(raw.fleet) } : {}),
   };
 }
 

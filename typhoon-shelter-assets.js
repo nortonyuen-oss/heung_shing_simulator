@@ -29,6 +29,7 @@ const TYPHOON_SHELTER_CATEGORIES = Object.freeze([
   ['landmark', '海鮮舫'],
   ['marker', '浮標'],
   ['prop', '岸邊配件'],
+  ['seawall', '海堤／海濱'],
 ]);
 
 // [id suffix, rect [x, y, w, h] on the corrected sheet, extra]
@@ -110,6 +111,12 @@ const TYPHOON_SHELTER_PARTS = Object.freeze([
     ['bollardTimber', [1279, 146, 347, 418], { label: '木座纜樁 (纜)' }],
     ['mooringRing', [1364, 677, 254, 292], { label: '繫船環' }],
   ]),
+  // 海堤 (seawall / quay) kit, derived from quayStraightA by tools/seawall.py: a section with its
+  // wall on the water side (front-right, se), and the deck alone for a quay whose wall faces away
+  // from the camera (hidden under the deck). `facing` is the water side. Laid one per shore edge.
+  ...typhoonShelterPart('quayStraight', 'seawall', '海堤', [['a', [9, 383, 1005, 633], { facing: 'se', label: '直段' }]]),
+  ...typhoonShelterPart('quayDeck', 'seawall', '海堤', [['a', [9, 383, 1005, 507], { facing: 'nw', label: '背向' }]]),
+  ...typhoonShelterPart('quayDeckSquare', 'seawall', '海堤', [['a', [224, 491, 575, 292], { facing: 'se', label: '轉角填位' }]]),
 ]);
 
 const TYPHOON_SHELTER_PARTS_BY_ID = Object.freeze(Object.fromEntries(TYPHOON_SHELTER_PARTS.map((p) => [p.id, p])));
@@ -177,7 +184,9 @@ const TYPHOON_SHELTER_BREAKWATER = Object.freeze({
   segments: Object.freeze({
     causeway1_a: Object.freeze({
       width: 512, axis: 'nwse', step: 170, deckAcross: 48,
-      ends: Object.freeze({ nw: Object.freeze([170, 252]), se: Object.freeze([352, 341]) }),
+      // measured before the calibration warp was baked into the art (x:y 1.13, up-down skew
+      // -0.12, 2026-10-03) and carried through it: x is unchanged, so step and deckAcross are too
+      ends: Object.freeze({ nw: Object.freeze([170, 236]), se: Object.freeze([352, 314]) }),
     }),
     causeway1_b: Object.freeze({
       width: 512, axis: 'nesw', step: 160, deckAcross: 64,
@@ -381,6 +390,10 @@ const TYPHOON_SHELTER_OBJECTS = Object.freeze([
   ...typhoonShelterSingleObjects('shoreAssessories2', 'land', 1, 1),
   ...typhoonShelterSingleObjects('shoreFence', 'land', 1, 1),
   ...typhoonShelterSingleObjects('pierAssessories', 'land', 1, 1),
+  // a quay along one edge of a shore tile, its wall on the water side: drawn with the wall when the
+  // water side faces the camera, as the deck alone when it faces away
+  typhoonShelterObject('quayStraight', '海堤', 'seawall', 'land', { quayStraight_a: 'se', quayDeck_a: 'nw' }, 1, 1),
+  typhoonShelterObject('quayDeckSquare', '海堤轉角填位', 'seawall', 'land', { quayDeckSquare_a: 'se' }, 1, 1),
 ]);
 const TYPHOON_SHELTER_OBJECTS_BY_ID = Object.freeze(Object.fromEntries(TYPHOON_SHELTER_OBJECTS.map((o) => [o.id, o])));
 
@@ -425,7 +438,12 @@ const TYPHOON_SHELTER_REAL_SIZES = Object.freeze({
   // section is 8 m and a 20 m tile of walkway takes three; floatingPier1 is its landing stage
   floatingPier1: { lengthM: 9 }, floatingPier2: { lengthM: 8 }, floatingPier3: { lengthM: 18 }, floatingPier4: { lengthM: 10 },
   pierSet1: { lengthM: 20 }, pierSet2: { lengthM: 16 }, pierShop1: { lengthM: 10 }, pierShop2: { lengthM: 8 },
-  causeway1: { lengthM: 30 }, causeway1b: { lengthM: 22 }, causeway2: { lengthM: 16 }, causeway3: { lengthM: 16 },
+  // breakwater sections: a 16 m causeway1 stands ~10 m across with its deck ~4.5 m above the water
+  // (Hong Kong typhoon-shelter breakwater crests are 3-5 m above the sea), level with the
+  // lighthouse head's platform; a tile of breakwater is drawn as two overlapping sections
+  causeway1: { lengthM: 16 }, causeway1b: { lengthM: 12 },
+  // a quay section is one tile's edge long (its deck ~8 m deep, wall ~2.3 m); the fill is 8 x 8 m
+  quayStraight: { lengthM: 20 }, quayDeckSquare: { lengthM: 8 }, causeway2: { lengthM: 16 }, causeway3: { lengthM: 16 },
   // 珍寶海鮮舫 ~76 m
   floatingRestaurant1: { lengthM: 76 }, floatingRestaurant2: { lengthM: 76 }, floatingRestaurant3: { lengthM: 76 },
   bout1_a: { heightM: 5.5 }, bout1_b: { heightM: 5.5 }, bout2: { heightM: 1.6 }, bout3: { heightM: 1.6 },
@@ -490,8 +508,8 @@ function getTyphoonShelterFootprint(objectId, logicalFacing, override = null) {
 }
 
 // Every texture an object can be drawn with: [{ partId, mirrored, texture, facing }]. `facings`
-// overrides the table's facings per part (calibration data); a part with no facing anywhere is
-// left out.
+// overrides the table's facings per part (calibration data); a part with no facing anywhere, or
+// switched off in calibration (facing 'off'), is left out.
 function getTyphoonShelterObjectTextures(objectId, facings = {}) {
   const def = TYPHOON_SHELTER_OBJECTS_BY_ID[objectId];
   if (!def) throw new Error(`unknown typhoon shelter object ${objectId}`);
@@ -499,7 +517,7 @@ function getTyphoonShelterObjectTextures(objectId, facings = {}) {
   Object.entries(def.parts).forEach(([partId, tableFacing]) => {
     const facing = facings[partId] || tableFacing;
     const partDef = TYPHOON_SHELTER_PARTS_BY_ID[partId];
-    if (!facing || !partDef) return;
+    if (!facing || facing === 'off' || !partDef) return;
     list.push({ partId, mirrored: false, texture: getTyphoonShelterTexturePath(partId), facing });
     if (partDef.mirror) {
       list.push({ partId, mirrored: true, texture: getTyphoonShelterTexturePath(partId, { mirrored: true }), facing: TYPHOON_SHELTER_MIRRORED_FACING[facing] });
@@ -528,6 +546,69 @@ function mirrorTyphoonShelterGroundCorners(corners, width) {
     front: [width - corners.front[0], corners.front[1]],
     right: [width - corners.left[0], corners.left[1]],
   };
+}
+
+/**
+ * Art warp (calibration, per part): brings art drawn at a slightly wrong angle close to isometric.
+ * About the ground's front corner F, which stays put:
+ *   X = x - h (y - F.y)                     h: left-right skew (the top leans right for h > 0)
+ *   Y = F.y + k (y - F.y) + s (x - F.x)     k: x:y squash or stretch; s: up-down skew (the right
+ *                                              side drops for s > 0)
+ * With h = 0 verticals stay vertical (masts upright). A mirrored texture skews the other way
+ * (h and s change sign).
+ */
+function normalizeTyphoonShelterWarp(warp) {
+  const k = Number(warp?.k);
+  const s = Number(warp?.s);
+  const h = Number(warp?.h);
+  const ok = (v) => Number.isFinite(v) && Math.abs(v) < 2;
+  return { k: k > 0.2 && k < 5 ? k : 1, s: ok(s) ? s : 0, h: ok(h) ? h : 0 };
+}
+
+function isTyphoonShelterWarpIdentity(warp) {
+  const w = normalizeTyphoonShelterWarp(warp);
+  return Math.abs(w.k - 1) < 1e-3 && Math.abs(w.s) < 1e-3 && Math.abs(w.h) < 1e-3;
+}
+
+function mirrorTyphoonShelterWarp(warp) {
+  const w = normalizeTyphoonShelterWarp(warp);
+  return { k: w.k, s: -w.s, h: -w.h };
+}
+
+function warpTyphoonShelterPoint([x, y], front, warp) {
+  const { k, s, h } = normalizeTyphoonShelterWarp(warp);
+  const u = x - front[0];
+  const v = y - front[1];
+  return [front[0] + u - h * v, front[1] + s * u + k * v];
+}
+
+function unwarpTyphoonShelterPoint([X, Y], front, warp) {
+  const { k, s, h } = normalizeTyphoonShelterWarp(warp);
+  const U = X - front[0];
+  const V = Y - front[1];
+  const det = k + h * s;
+  return [front[0] + (k * U + h * V) / det, front[1] + (V - s * U) / det];
+}
+
+// Where the warped art lands: the bounds of a w x h texture's corners, as { dx, dy, width,
+// height } - the offset that keeps them on a canvas starting at 0, 0.
+function getTyphoonShelterWarpCanvas(width, height, front, warp) {
+  const pts = [[0, 0], [width, 0], [0, height], [width, height]].map((pt) => warpTyphoonShelterPoint(pt, front, warp));
+  const minX = Math.floor(Math.min(...pts.map((p) => p[0])));
+  const minY = Math.floor(Math.min(...pts.map((p) => p[1])));
+  return {
+    dx: -minX,
+    dy: -minY,
+    width: Math.max(1, Math.ceil(Math.max(...pts.map((p) => p[0]))) - minX),
+    height: Math.max(1, Math.ceil(Math.max(...pts.map((p) => p[1]))) - minY),
+  };
+}
+
+// The 2D canvas transform (setTransform a..f) that draws a texture through the warp, offset onto
+// its canvas.
+function getTyphoonShelterWarpTransform(front, warp, { dx = 0, dy = 0 } = {}) {
+  const { k, s, h } = normalizeTyphoonShelterWarp(warp);
+  return [1, s, -h, k, h * front[1] + dx, front[1] * (1 - k) - s * front[0] + dy];
 }
 
 /**
@@ -627,6 +708,13 @@ const typhoonShelterAssetsApi = {
   getTyphoonShelterObjectTextures,
   pickTyphoonShelterTexture,
   mirrorTyphoonShelterGroundCorners,
+  normalizeTyphoonShelterWarp,
+  isTyphoonShelterWarpIdentity,
+  warpTyphoonShelterPoint,
+  unwarpTyphoonShelterPoint,
+  mirrorTyphoonShelterWarp,
+  getTyphoonShelterWarpCanvas,
+  getTyphoonShelterWarpTransform,
   fitTyphoonShelterGround,
   proposeTyphoonShelterGroundCorners,
 };

@@ -25,6 +25,7 @@ const MAIN_SOURCE_FILES = [
   'building-placement.js',
   'terrain-editing.js',
   'placement-previews.js',
+  'tile-inspector.js',
   'main.js',
 ];
 

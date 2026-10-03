@@ -110,7 +110,7 @@ async function verify() {
   // Night variants are derived by scripts/bake-night-textures.js from the staged
   // day texture, so they have no source image of their own. They are checked
   // separately below against the day entry they came from.
-  const isNightVariant = (p) => /__night(half|deep|lamps)?\.png$/.test(p);
+  const isNightVariant = (p) => /__night(half|deep|lamps|christmas)?\.png$/.test(p);
   const manifestLogicalPaths = Object.keys(manifest.entries).filter((p) => !isNightVariant(p)).sort();
   assert.deepStrictEqual(manifestLogicalPaths, sourceLogicalPaths, 'manifest must exactly match source images');
 
@@ -119,7 +119,7 @@ async function verify() {
   // so a model that has any night art must have all of it.
   const nightVariantsByDay = new Map();
   for (const [logicalPath, entry] of nightEntries) {
-    const dayLogical = logicalPath.replace(/__night(half|deep|lamps)?\.png$/, '.png');
+    const dayLogical = logicalPath.replace(/__night(half|deep|lamps|christmas)?\.png$/, '.png');
     const day = manifest.entries[dayLogical];
     assert.ok(day, `${logicalPath} has no day counterpart`);
     const set = nightVariantsByDay.get(dayLogical) || new Set();

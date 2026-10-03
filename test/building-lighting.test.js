@@ -206,16 +206,16 @@ test('baked night variants are never listed as models', () => {
   // buildings resolve by, so an existing city would silently swap models.
   const server = fs.readFileSync(path.join(ROOT, 'server.js'), 'utf8');
   assert.match(server, /isDerivedNightVariant/);
-  assert.match(server, /__night\(half\|deep\|lamps\)\?/);
+  assert.match(server, /__night\(half\|deep\|lamps\|christmas\)\?/);
 
   const main = require('./main-source').mainSource;
   const sortFn = main.slice(main.indexOf('function sortModelFiles('));
-  assert.match(sortFn.slice(0, 2000), /__night\(half\|deep\|lamps\)\?/, 'sortModelFiles must filter night variants');
+  assert.match(sortFn.slice(0, 2000), /__night\(half\|deep\|lamps\|christmas\)\?/, 'sortModelFiles must filter night variants');
 
   // The release verifier pairs every night variant with its day art, so it
   // has to recognise all three suffixes too.
   const verify = fs.readFileSync(path.join(ROOT, 'scripts', 'verify-release-assets.js'), 'utf8');
-  assert.match(verify, /__night\(half\|deep\|lamps\)\?\\\.png\$\/\.test/);
+  assert.match(verify, /__night\(half\|deep\|lamps\|christmas\)\?\\\.png\$\/\.test/);
 });
 
 test('a redeveloped lot never keeps the previous model\'s night art', () => {
@@ -414,7 +414,7 @@ test('each building picks its own night variant, and the city lights up and dims
   const sync = main.slice(main.indexOf('function syncBuildingNightTextures('), main.indexOf('// ── Night darkness split'));
   assert.match(sync, /getBuildingNightVariantWindow\(/);
   assert.match(sync, /getBuildingLightSeed\(sprite\.mapRow, sprite\.mapCol\), minute, sunset,/);
-  assert.match(sync, /const state = wantNight \? `night:\$\{minute\}` : 'day';/);
+  assert.match(sync, /const state = wantNight \? `night:\$\{minute\}:\$\{season\}` : 'day';/);
   assert.match(main, /half: '__nighthalf\.png'/);
   assert.match(main, /lamps: '__nightlamps\.png'/);
   // The swap lands on the lamps-only texture, whose facade is the deep dim.

@@ -278,7 +278,7 @@ function sortModelFiles(fileNames, config) {
     // Defence in depth against baked night art being treated as a model: these
     // are derived from a model's day texture and must never take a discovery
     // slot, because the slot index is the key saved buildings resolve by.
-    .filter((fileName) => !/__night(half|deep|lamps)?\.[^.]+$/.test(fileName));
+    .filter((fileName) => !/__night(half|deep|lamps|christmas)?\.[^.]+$/.test(fileName));
 
   safeFileNames.filter((fileName) => !isDisabledModelFile(fileName, config.disabledFiles)).forEach((fileName) => {
     const canonicalFileName = getModelFileAlias(fileName, aliases);

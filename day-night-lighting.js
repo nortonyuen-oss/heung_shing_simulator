@@ -316,9 +316,9 @@ function setupDynamicLighting(scene) {
 // (building-lighting.js), per building, so the city lights up and dims block
 // by block.
 const BUILDING_NIGHT_TEXTURE_PREFIX = 'bl_night__';
-const BUILDING_NIGHT_VARIANT_SUFFIX = Object.freeze({ night: '', half: '__half', deep: '__deep', lamps: '__lamps' });
+const BUILDING_NIGHT_VARIANT_SUFFIX = Object.freeze({ night: '', half: '__half', deep: '__deep', lamps: '__lamps', christmas: '__christmas' });
 const BUILDING_NIGHT_VARIANT_FILE_SUFFIX = Object.freeze({
-  night: '__night.png', half: '__nighthalf.png', deep: '__nightdeep.png', lamps: '__nightlamps.png',
+  night: '__night.png', half: '__nighthalf.png', deep: '__nightdeep.png', lamps: '__nightlamps.png', christmas: '__nightchristmas.png',
 });
 // Must match BAKE_DIM_DEEP / DIM_TINT in scripts/bake-night-textures.js: the
 // swap always lands on the lamps-only variant, which wears the deep facade. A
@@ -343,7 +343,7 @@ function buildBuildingNightTextureIndex() {
     const file = logicalPath.split('/').pop() || '';
     // Longest suffix first: `x__nightdeep.png` also ends with `deep.png`, not
     // with `__night.png`, but keep the order explicit anyway.
-    for (const variant of ['half', 'deep', 'lamps', 'night']) {
+    for (const variant of ['christmas', 'half', 'deep', 'lamps', 'night']) {
       const fileSuffix = BUILDING_NIGHT_VARIANT_FILE_SUFFIX[variant];
       if (!file.endsWith(fileSuffix)) continue;
       buildingNightPathBySlug.set(
@@ -377,10 +377,15 @@ function getBuildingNightSlug(sprite, record) {
   return buildBuildingNightTextureIndex().has(slug) ? slug : null;
 }
 
+function getSeasonalBuildingNightVariant(slug, record, variant, month = typeof city !== 'undefined' ? city.month : 0) {
+  return Number(month) === 12 && record?.type === 'commercial' && buildBuildingNightTextureIndex().has(slug + '__christmas') ? 'christmas' : variant;
+}
+
 function getBuildingNightTextureKey(sprite, variant = 'night') {
   if (!sprite) return null;
   const slug = getBuildingNightSlug(sprite, getBuildingNightRecord(sprite));
   if (!slug) return null;
+  variant = getSeasonalBuildingNightVariant(slug, getBuildingNightRecord(sprite), variant);
   return BUILDING_NIGHT_TEXTURE_PREFIX + slug + (BUILDING_NIGHT_VARIANT_SUFFIX[variant] ?? '');
 }
 
@@ -418,9 +423,10 @@ function collectBuildingNightTextureKeys(records, minute, sunsetMin) {
     const slug = getBuildingNightSlug({ logicalSpriteKey: record.spriteKey }, record);
     if (!slug) return;
     const [row, col] = String(id).split(':').map(Number);
-    const variant = getBuildingNightVariant(
+    let variant = getBuildingNightVariant(
       getBuildingNightKind(record), getBuildingLightSeed(row, col), minute, sunsetMin,
     );
+    variant = getSeasonalBuildingNightVariant(slug, record, variant);
     keys.add(BUILDING_NIGHT_TEXTURE_PREFIX + slug + (BUILDING_NIGHT_VARIANT_SUFFIX[variant] ?? ''));
   });
   return keys;
@@ -507,7 +513,8 @@ function syncBuildingNightTextures(scene, rawNightAlpha) {
   // The dusk ramp is anchored to today's sunset, not the clock.
   const sunset = typeof getAstronomyVisualDay === 'function'
     ? Number(getAstronomyVisualDay()?.sunsetMinutes) : NaN;
-  const state = wantNight ? `night:${minute}` : 'day';
+  const season = typeof city !== 'undefined' && Number(city.month) === 12 ? 12 : 0;
+  const state = wantNight ? `night:${minute}:${season}` : 'day';
   if (scene.__blNightTexState === state && !scene.__blNightTexPending) return;
   const pickVariant = typeof getBuildingNightVariantWindow === 'function' && typeof getBuildingNightKind === 'function'
     && typeof getBuildingLightSeed === 'function';
@@ -526,7 +533,7 @@ function syncBuildingNightTextures(scene, rawNightAlpha) {
   scene.buildingSprites.forEach((sprite) => {
     if (!sprite || seen.has(sprite)) return;
     seen.add(sprite);
-    if (wantNight && sprite.__nightWindowSession === session && sprite.__nightWindowApplied
+    if (wantNight && sprite.__nightSeason === season && sprite.__nightWindowSession === session && sprite.__nightWindowApplied
       && line < sprite.__nightWindowUntil
       // ... as long as nothing else put the day art back on it meanwhile.
       && typeof sprite.texture?.key === 'string' && sprite.texture.key.startsWith(BUILDING_NIGHT_TEXTURE_PREFIX)) return;
@@ -543,6 +550,7 @@ function syncBuildingNightTextures(scene, rawNightAlpha) {
     }
     const applied = applyBuildingNightTexture(scene, sprite, wantNight, variant);
     if (wantNight) {
+      sprite.__nightSeason = season;
       sprite.__nightWindowSession = session;
       sprite.__nightWindowUntil = until;
       sprite.__nightWindowApplied = applied;

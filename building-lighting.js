@@ -346,6 +346,9 @@ function makeBuildingLightProfile(o = {}) {
     panels: Object.freeze(panels),
     lamps: frozenLamps,
     beacons,
+    christmasWalls: Object.freeze((Array.isArray(o.christmasWalls) ? o.christmasWalls : []).slice(0, 4)
+      .filter(w => w && typeof w.asset === 'string' && Array.isArray(w.c) && w.c.length === 4)
+      .map(w => Object.freeze({ asset: w.asset, c: Object.freeze(w.c.map(p => Object.freeze([...p]))) }))),
     service: !!o.service,
     hasSignage: !!o.hasSignage,       // v1.1 render
     hasFloodlight: !!o.hasFloodlight,  // v1.1 render

@@ -43,6 +43,9 @@
 const fs = require('fs');
 const path = require('path');
 const sharp = require('sharp');
+const { normalizeChristmasWalls, compositeChristmasWall } = require('../christmas-wall.js');
+const { DatabaseSync } = require('node:sqlite');
+const vm = require('node:vm');
 
 const ROOT = path.resolve(__dirname, '..');
 const bl = require(path.join(ROOT, 'building-lighting.js'));
@@ -286,6 +289,23 @@ function buildStagedIndex(manifest) {
     const entry = manifest.entries?.[relPath];
     if (entry?.packagedPath) bySlug.set(spriteKey, { logicalPath: relPath, entry });
   }
+  // Zone calibrations use discovery slot keys; textures use source filenames.
+  // Reuse the game's sorter so preferred files, aliases and disabled art agree.
+  const context = vm.createContext({ console, window: {} });
+  for (const file of ['model-catalog.js', 'model-assets.js']) {
+    vm.runInContext(fs.readFileSync(path.join(ROOT, file), 'utf8'), context, { filename: file });
+  }
+  const configs = vm.runInContext('[...Object.entries(HOUSE_MODEL_SETS).map(([keyPrefix, config]) => ({ ...config, keyPrefix })), ...COMMERCIAL_BUILDING_MODEL_SETS, ...INDUSTRIAL_BUILDING_MODEL_SETS]', context);
+  for (const config of configs) {
+    const files = Object.keys(manifest.entries || {}).filter(p => p.startsWith(config.folder))
+      .map(p => p.slice(config.folder.length)).filter(f => !f.includes('/') && !f.includes('__night'));
+    context.bakeFiles = files; context.bakeConfig = config;
+    const models = vm.runInContext('sortModelFiles(bakeFiles, bakeConfig)', context).map((file, index) => ({ key: `${config.keyPrefix}_${index}`, logicalPath: `${config.folder}${file.sourceFileName}` }));
+    for (const model of models) {
+      const entry = manifest.entries[model.logicalPath];
+      if(entry?.packagedPath) bySlug.set(model.key, { logicalPath: model.logicalPath, entry });
+    }
+  }
   return bySlug;
 }
 
@@ -294,11 +314,43 @@ async function main() {
     throw new Error('No staged manifest. Run `npm run prepare:release-assets` first.');
   }
   const manifest = JSON.parse(fs.readFileSync(MANIFEST_PATH, 'utf8'));
-  const profiles = bl.BUILDING_LIGHT_HERO_PROFILES;
+  const profiles = { ...bl.BUILDING_LIGHT_HERO_PROFILES };
+  const wallProfiles = {};
+  const dbPath = process.env.CITY_DB_PATH || path.join(ROOT, '.data', 'citybuilder.sqlite');
+  const profileJsonPath = process.env.BAKE_PROFILE_JSON;
+  const christmasOnly = process.env.BAKE_CHRISTMAS_ONLY === '1';
+  if (profileJsonPath) {
+    const parsed = JSON.parse(fs.readFileSync(profileJsonPath, 'utf8'));
+    for (const [key, data] of Object.entries(parsed.entries || parsed)) {
+      profiles[key.replace(/^@/, '')] = bl.makeBuildingLightProfile(data);
+      wallProfiles[key.replace(/^@/, '')] = normalizeChristmasWalls(data.christmasWalls);
+    }
+  } else if (fs.existsSync(dbPath)) {
+    const db = new DatabaseSync(dbPath, { readOnly: true });
+    try {
+      if(db.prepare("SELECT name FROM sqlite_master WHERE name='building_light_profiles'").get()) {
+        for(const row of db.prepare('SELECT sprite_key, data FROM building_light_profiles').all()) {
+          const data = JSON.parse(row.data), key = row.sprite_key.replace(/^@/, '');
+          profiles[key] = bl.makeBuildingLightProfile(data);
+          wallProfiles[key] = normalizeChristmasWalls(data.christmasWalls);
+        }
+      }
+    } finally { db.close(); }
+  }
   const staged = buildStagedIndex(manifest);
   const sampleOnly = (process.env.BAKE_SAMPLES || '').split(',').map((s) => s.trim()).filter(Boolean);
   const slugs = Object.keys(profiles).filter((s) => staged.has(s));
-  const targets = sampleOnly.length ? slugs.filter((s) => sampleOnly.includes(s)) : slugs;
+  const selected = sampleOnly.length ? slugs.filter((s) => sampleOnly.includes(s)) : slugs;
+  const targets = christmasOnly ? selected.filter(s => wallProfiles[s]?.length) : selected;
+  if(christmasOnly) {
+    for(const [key,walls] of Object.entries(wallProfiles)) {
+      if(walls.length && !staged.has(key)) throw new Error(`No staged model for Christmas calibration: ${key}`);
+    }
+    for(const key of targets) {
+      const source = staged.get(key).entry.packagedPath.replace(/\.webp$/, '__nightdeep.webp');
+      if(!fs.existsSync(path.join(STAGE_ROOT,source))) throw new Error(`Missing existing deep-night texture: ${source}`);
+    }
+  }
 
   const missing = Object.keys(profiles).filter((s) => !staged.has(s));
   if (missing.length) console.warn(`No staged art for ${missing.length} profile(s): ${missing.join(', ')}`);
@@ -313,7 +365,14 @@ async function main() {
       fs.copyFileSync(src, path.join(SAMPLE_DIR, `${slug}--day.webp`));
     }
     const counts = [];
-    for (const variant of VARIANTS) {
+    const walls = wallProfiles[slug] || normalizeChristmasWalls(profiles[slug].christmasWalls);
+    const christmasLogical = logicalPath.replace(/\.[^.]+$/, '__nightchristmas.png');
+    // A removed calibration must also remove stale seasonal art from the manifest.
+    if (!walls.length && manifest.entries[christmasLogical]) {
+      const old = manifest.entries[christmasLogical];
+      if(!sampleOnly.length) { fs.rmSync(path.join(STAGE_ROOT, old.packagedPath), { force: true }); delete manifest.entries[christmasLogical]; }
+    }
+    for (const variant of christmasOnly ? [] : VARIANTS) {
       const { raw, width, height, lit, kept, dropped } = await bakeOne(src, profiles[slug], variant);
       // Straight alpha: without the flag sharp unpremultiplies on encode and the glow halos
       // (semi-transparent) come out brighter and paler than baked.
@@ -334,7 +393,25 @@ async function main() {
       counts.push(`${variant.bucket} ${lit}w/${kept}L` + (dropped ? ` (${dropped} lamp(s) spill, dropped)` : ''));
       written += 1;
     }
-    console.log(`${slug}: ${counts.join(', ')} lit windows`);
+    if(walls.length) {
+      const deep = sampleOnly.length && !christmasOnly ? path.join(SAMPLE_DIR, `${slug}__nightdeep.png`) : path.join(STAGE_ROOT, entry.packagedPath.replace(/\.webp$/, '__nightdeep.webp'));
+      const base = await sharp(deep).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+      const { width, height } = base.info;
+      for(const wall of walls) {
+        const packaged = manifest.entries[wall.asset]?.packagedPath;
+        const art = await sharp(packaged ? path.join(STAGE_ROOT, packaged) : path.join(ROOT,wall.asset)).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+        compositeChristmasWall(base.data,width,height,art.data,art.info.width,art.info.height,wall.c);
+      }
+      const img = sharp(base.data,{ raw: { width,height,channels:4 } });
+      if(sampleOnly.length) await img.png().toFile(path.join(SAMPLE_DIR,`${slug}__nightchristmas.png`));
+      else {
+        const packagedPath = entry.packagedPath.replace(/\.webp$/, '__nightchristmas.webp');
+        await img.webp({ lossless:true }).toFile(path.join(STAGE_ROOT,packagedPath));
+        manifest.entries[christmasLogical] = { logicalPath:christmasLogical,packagedPath,hash: require('crypto').createHash('sha256').update(base.data).digest('hex'),outputWidth:width,outputHeight:height };
+      }
+      written++;
+    }
+    console.log(`${slug}: ${christmasOnly ? `${walls.length} Christmas wall(s)` : counts.join(', ') + ' lit windows'}`);
   }
   if (!sampleOnly.length && written) {
     fs.writeFileSync(MANIFEST_PATH, `${JSON.stringify(manifest, null, 2)}\n`);

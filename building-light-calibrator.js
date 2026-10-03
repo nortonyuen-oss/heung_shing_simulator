@@ -51,6 +51,9 @@ let buildingLightCalibrationCatalog = null;
 let buildingLightCalibrationCategory = 'residential';
 let buildingLightCalibrationWorkBucket = 'eveningPeak';
 let buildingLightCalibrationEffectBucket = 'eveningPeak';
+let buildingLightCalibrationChristmasIndex = 0;
+let buildingLightCalibrationChristmasMode = false;
+const buildingLightChristmasImages = new Map();
 let buildingLightCalibrationPanelIndex = 0;
 let buildingLightCalibrationTarget = null;   // { key, cls, zone, family, img, imgW, imgH }
 let buildingLightCalibrationView = { zoom: 1, panX: 0, panY: 0 };
@@ -82,6 +85,7 @@ function migrateBuildingLightCalibrationData(d) {
     cols: Math.max(1, Math.round(p.cols ?? 5)),
     on: p.on !== false,
   }));
+  data.christmasWalls = typeof normalizeChristmasWalls === 'function' ? normalizeChristmasWalls(data.christmasWalls) : [];
   return data;
 }
 
@@ -291,6 +295,7 @@ function buildingLightCalibrationBaseData(cls) {
     panels: buildingLightCalibrationDefaultPanels(cls),
     lamps: [{ x: 0.5, y: 0.9, r: 0.1 }],
     beacons: [],
+    christmasWalls: [],
     service: cls === 'svc',
     hasSignage: false,
     hasFloodlight: false,
@@ -320,6 +325,7 @@ function buildingLightCalibrationCommit(data) {
   const round = (v) => Math.round((Number(v) || 0) * 1000) / 1000;
   const clean = {
     class: data.class,
+    christmasWalls: normalizeChristmasWalls(data.christmasWalls),
     panels: data.panels.map((p) => ({
       c: p.c.map((pt) => [round(pt[0]), round(pt[1])]),
       rows: Math.max(1, Math.round(p.rows)),
@@ -360,6 +366,7 @@ function selectBuildingLightCalibrationModel(key) {
     img: null, imgW: 128, imgH: 128,
   };
   buildingLightCalibrationTarget = target;
+  buildingLightCalibrationChristmasIndex = 0;
   buildingLightCalibrationPanelIndex = 0;
   const img = new Image();
   img.onload = () => {
@@ -413,6 +420,10 @@ function buildingLightCalibrationClamp01(v) { return Math.max(0, Math.min(1, Num
 
 function buildingLightCalibrationHandles(data) {
   const list = [];
+  if (buildingLightCalibrationChristmasMode) {
+    const wall = data.christmasWalls[buildingLightCalibrationChristmasIndex];
+    return wall ? wall.c.map((pt, i) => ({ id: "c" + i, nx: pt[0], ny: pt[1], color: "#7dff9b", r: 7 })) : [];
+  }
   const sp = data.panels[buildingLightCalibrationPanelIndex];
   if (sp) sp.c.forEach((pt, i) => list.push({ id: 'p' + i, nx: pt[0], ny: pt[1], color: '#8fd6ff', r: 6 }));
   data.lamps.forEach((l, i) => list.push({ id: 'l' + i, nx: l.x, ny: l.y, color: '#ffce93', r: 7 }));
@@ -467,6 +478,33 @@ function buildingLightCalibrationDrawGlow(ctx, canvas, data, bucket, opts) {
   ctx.restore();
 }
 
+function drawBuildingChristmasPreview(ctx, t, data, x, y, width, height) {
+  const entry = buildingLightCalibrationCatalogEntry(t.key);
+  const logical = typeof modelAssetManifest !== 'undefined' ? Object.entries(modelAssetManifest?.entries || {}).find(([,v]) => v.packagedPath && decodeURI(entry?.path.split('?')[0] || '') === v.packagedPath)?.[0] : null;
+  const deepLogical = (logical || entry?.path)?.replace(/\.(png|webp)$/i, '__nightdeep.png');
+  const deepPath = deepLogical && typeof resolveModelAssetPath === 'function' ? resolveModelAssetPath(deepLogical) : deepLogical;
+  const load = path => {
+    if(!path) return null;
+    if(!buildingLightChristmasImages.has(path)) {
+      const img = new Image(); buildingLightChristmasImages.set(path, { img, loaded: false });
+      img.onload = () => { buildingLightChristmasImages.get(path).loaded = true; renderBuildingLightCalibration(); };
+      img.onerror = () => setBuildingLightCalibrationMessage('未有深夜貼圖或素材：' + path + '，請先 bake 夜景。', 'error'); img.src = path;
+    }
+    return buildingLightChristmasImages.get(path);
+  };
+  const deep = load(deepPath);
+  const base = document.createElement('canvas'); base.width = t.imgW; base.height = t.imgH;
+  const bctx = base.getContext('2d'); bctx.drawImage(deep?.loaded ? deep.img : t.img, 0, 0, base.width, base.height);
+  const pixels = bctx.getImageData(0,0,base.width,base.height);
+  for(const wall of data.christmasWalls) {
+    const art = load(typeof resolveModelAssetPath === 'function' ? resolveModelAssetPath(wall.asset) : wall.asset); if(!art?.loaded) continue;
+    const source = document.createElement('canvas'); source.width = art.img.naturalWidth; source.height = art.img.naturalHeight;
+    const sc = source.getContext('2d'); sc.drawImage(art.img,0,0);
+    compositeChristmasWall(pixels.data,base.width,base.height,sc.getImageData(0,0,source.width,source.height).data,source.width,source.height,wall.c);
+  }
+  bctx.putImageData(pixels,0,0); ctx.drawImage(base,x,y,width,height);
+}
+
 function renderBuildingLightCalibrationWork() {
   const dom = buildingLightCalibrationDom;
   if (!dom) return;
@@ -510,8 +548,15 @@ function renderBuildingLightCalibrationWork() {
     ctx.stroke();
   });
 
-  buildingLightCalibrationDrawGlow(ctx, canvas, data, buildingLightCalibrationWorkBucket, { showGrid: true, additive: false });
+  if(buildingLightCalibrationChristmasMode && t.img) drawBuildingChristmasPreview(ctx,t,data,r.cx-r.dw/2,r.cy-r.dh/2,r.dw,r.dh);
+  else buildingLightCalibrationDrawGlow(ctx, canvas, data, buildingLightCalibrationWorkBucket, { showGrid: true, additive: false });
 
+  if(buildingLightCalibrationChristmasMode) data.christmasWalls.forEach((wall, i) => {
+    ctx.beginPath(); wall.c.forEach((point, j) => {
+      const p = buildingLightCalibrationNormToCanvas(canvas, ...point);
+      if(j) ctx.lineTo(p.x,p.y); else ctx.moveTo(p.x,p.y);
+    }); ctx.closePath(); ctx.strokeStyle = i === buildingLightCalibrationChristmasIndex ? '#7dff9b' : '#3c8050'; ctx.stroke();
+  });
   // handles
   buildingLightCalibrationHandles(data).forEach((h) => {
     const p = buildingLightCalibrationNormToCanvas(canvas, h.nx, h.ny);
@@ -551,6 +596,9 @@ function renderBuildingLightCalibrationEffect() {
   ctx.fillRect(cx - dw / 2, cy - dh / 2, dw, dh);
   ctx.restore();
 
+  if(buildingLightCalibrationChristmasMode) {
+    drawBuildingChristmasPreview(ctx,t,data,cx-dw/2,cy-dh/2,dw,dh); return;
+  }
   // glow, in this mini space
   const toXY = (n) => ({ x: cx + (n[0] - 0.5) * dw, y: cy + (n[1] - 0.5) * dh });
   const profile = buildingLightCalibrationDataToProfile(data);
@@ -643,7 +691,10 @@ function onBuildingLightCalibrationWorkMove(ev) {
   const nx = buildingLightCalibrationClamp01(n.nx);
   const ny = buildingLightCalibrationClamp01(n.ny);
   const idx = Number(drag.id.slice(1));
-  if (drag.id[0] === 'p') {
+  if (drag.id[0] === 'c') {
+    const wall = data.christmasWalls[buildingLightCalibrationChristmasIndex];
+    if (wall) wall.c[idx] = [nx, ny];
+  } else if (drag.id[0] === 'p') {
     const panel = data.panels[buildingLightCalibrationPanelIndex];
     if (panel) panel.c[idx] = [nx, ny];
   } else if (drag.id[0] === 'l') {
@@ -771,6 +822,13 @@ function createBuildingLightCalibrationDom() {
             <option value="ind">工業 (暗黃)</option><option value="svc">服務 (通宵)</option>
           </select></div>
 
+        <h4>聖誕燈飾牆（商業大樓 · 最多 4 塊）</h4>
+        <label><input type="checkbox" class="bl-christmas-mode"> 校正聖誕燈飾（深夜貼圖底）</label>
+        <select class="bl-christmas-asset"></select>
+        <img class="bl-christmas-thumb" alt="所選聖誕燈飾" style="width:100%;height:90px;object-fit:contain;background:#080d18">
+        <div class="bl-christmas-list bl-faces"></div>
+        <div class="bl-2"><button type="button" class="bl-christmas-add">＋燈飾</button><button type="button" class="bl-christmas-del">－燈飾</button></div>
+        <div>拖綠色四角貼牆；12 月夜晚顯示。儲存後重新 bake 生效。</div>
         <h4>窗面 (A–D)</h4>
         <div class="bl-faces"></div>
         <div class="bl-2"><button type="button" class="bl-face-add">＋面</button><button type="button" class="bl-face-del">－面</button></div>
@@ -850,6 +908,26 @@ function createBuildingLightCalibrationDom() {
     renderBuildingLightCalibration();
   }));
   modal.querySelector('.bl-fit').addEventListener('click', () => { fitBuildingLightCalibrationView(); renderBuildingLightCalibration(); });
+  const assetSelect = modal.querySelector('.bl-christmas-asset');
+  CHRISTMAS_WALL_ASSETS.forEach((asset, i) => {
+    const option = document.createElement('option'); option.value = asset; option.textContent = `聖誕燈飾 ${i + 1}`; assetSelect.append(option);
+  });
+  modal.querySelector('.bl-christmas-mode').addEventListener('change', e => {
+    buildingLightCalibrationChristmasMode = e.target.checked; renderBuildingLightCalibration();
+  });
+  assetSelect.addEventListener('change', e => mutateBuildingLightCalibration(d => {
+    const wall = d.christmasWalls[buildingLightCalibrationChristmasIndex]; if(wall) wall.asset = e.target.value;
+  }));
+  modal.querySelector('.bl-christmas-add').addEventListener('click', () => mutateBuildingLightCalibration(d => {
+    if(buildingLightCalibrationCategory !== 'commercial' || d.christmasWalls.length >= 4) return;
+    d.christmasWalls.push({ asset: assetSelect.value, c: [[.2,.2],[.6,.3],[.6,.7],[.2,.6]] });
+    buildingLightCalibrationChristmasIndex = d.christmasWalls.length - 1; buildingLightCalibrationChristmasMode = true;
+  }));
+  assetSelect.addEventListener('change', () => renderBuildingLightCalibration());
+  modal.querySelector('.bl-christmas-del').addEventListener('click', () => mutateBuildingLightCalibration(d => {
+    d.christmasWalls.splice(buildingLightCalibrationChristmasIndex, 1);
+    buildingLightCalibrationChristmasIndex = Math.max(0, buildingLightCalibrationChristmasIndex - 1);
+  }));
   modal.querySelector('.bl-face-add').addEventListener('click', () => mutateBuildingLightCalibration((d) => {
     if (d.panels.length >= 4) return;
     d.panels.push({ c: [[0.35, 0.3], [0.65, 0.4], [0.65, 0.7], [0.35, 0.6]], rows: 8, cols: 4, on: true });
@@ -972,6 +1050,17 @@ function renderBuildingLightCalibrationPanel() {
   dom.zoom.textContent = `${Math.round(buildingLightCalibrationView.zoom * 100)}%`;
   dom.modal.querySelectorAll('[data-work]').forEach((b) => { b.dataset.active = String(b.dataset.work === buildingLightCalibrationWorkBucket); });
   dom.modal.querySelectorAll('[data-effect]').forEach((b) => { b.dataset.active = String(b.dataset.effect === buildingLightCalibrationEffectBucket); });
+  dom.modal.querySelector('.bl-christmas-mode').checked = buildingLightCalibrationChristmasMode;
+  dom.modal.querySelector('.bl-christmas-add').disabled = !data || buildingLightCalibrationCategory !== 'commercial' || data.christmasWalls.length >= 4;
+  dom.modal.querySelector('.bl-christmas-del').disabled = !data || !data.christmasWalls.length;
+  dom.modal.querySelector('.bl-christmas-list').replaceChildren(...(data?.christmasWalls || []).map((wall, i) => {
+    const b = document.createElement('button'); b.textContent = `燈飾 ${i+1}`; b.dataset.active = String(i === buildingLightCalibrationChristmasIndex);
+    b.onclick = () => { buildingLightCalibrationChristmasIndex = i; buildingLightCalibrationChristmasMode = true; renderBuildingLightCalibration(); }; return b;
+  }));
+  const selectedWall = data?.christmasWalls[buildingLightCalibrationChristmasIndex];
+  if(selectedWall) dom.modal.querySelector('.bl-christmas-asset').value = selectedWall.asset;
+  const thumbnailAsset = dom.modal.querySelector('.bl-christmas-asset').value;
+  dom.modal.querySelector('.bl-christmas-thumb').src = typeof resolveModelAssetPath === 'function' ? resolveModelAssetPath(thumbnailAsset) : thumbnailAsset;
   if (!data) return;
 
   dom.right.querySelector('.bl-class').value = data.class;
@@ -1053,6 +1142,7 @@ function buildingLightCalibrationProfileLiteral(data, indent) {
     : null;
   const lines = ['makeBuildingLightProfile({', `${inner}${parts.join(', ')},`, `${inner}panels: [`, ...panelLines, `${inner}],`, lampLine];
   if (beaconLine) lines.push(beaconLine);
+  if (data.christmasWalls?.length) lines.push(`${inner}christmasWalls: ${JSON.stringify(data.christmasWalls)},`);
   lines.push(`${pad}})`);
   return lines.join('\n');
 }
@@ -1145,7 +1235,8 @@ function startBuildingLightCalibrator(scene) {
     if (e.key === 'Escape') { teardownBuildingLightCalibrator(); return; }
     if (!buildingLightCalibrationTarget) return;
     const data = buildingLightCalibrationCurrentData();
-    const panel = data?.panels?.[buildingLightCalibrationPanelIndex];
+    if (/INPUT|SELECT|TEXTAREA/.test(e.target?.tagName)) return;
+    const panel = buildingLightCalibrationChristmasMode ? data?.christmasWalls?.[buildingLightCalibrationChristmasIndex] : data?.panels?.[buildingLightCalibrationPanelIndex];
     if (!panel) return;
     const step = e.shiftKey ? 0.02 : 0.005;
     let dx = 0;

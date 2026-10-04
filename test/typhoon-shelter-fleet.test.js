@@ -107,16 +107,23 @@ test('bad weather keeps boats in and turns those out for home', () => {
   const day = 5;
   const { depart } = typhoonShelterBoatTimes(7, boat.id, day);
   const L = 20;
+  const t0 = day * 1440;
+  const hold = (from, until = null) => ({ holds: [{ from, until }], standbys: [] });
   // held before it left: it never goes
-  const early = { day, from: depart - 10 };
-  assert.equal(typhoonShelterBoatState(boat, L, day * 1440 + depart + 30, { seed: 7, hold: early }).mode, 'moored');
+  assert.equal(typhoonShelterBoatState(boat, L, t0 + depart + 30, { seed: 7, storm: hold(t0 + depart - 10) }).mode, 'moored');
   // held while out: it turns for home at once
-  const late = { day, from: depart + 10 };
-  const turning = typhoonShelterBoatState(boat, L, day * 1440 + depart + 12, { seed: 7, hold: late });
+  const turning = typhoonShelterBoatState(boat, L, t0 + depart + 12, { seed: 7, storm: hold(t0 + depart + 10) });
   assert.equal(turning.mode, 'in');
   assert.ok(turning.distance < 10 * TYPHOON_SHELTER_FLEET.speedTilesPerMinute);
-  // a hold from another day does nothing
-  assert.equal(typhoonShelterBoatState(boat, L, (day + 1) * 1440 + 900, { seed: 7, hold: late }).mode, 'away');
+  // a hold still open the next morning keeps it in; one closed overnight lets it sail
+  const next = (day + 1) * 1440;
+  const nextDepart = typhoonShelterBoatTimes(7, boat.id, day + 1).depart;
+  assert.equal(typhoonShelterBoatState(boat, L, next + nextDepart + 30, { seed: 7, storm: hold(t0 + depart + 10) }).mode, 'moored');
+  assert.notEqual(typhoonShelterBoatState(boat, L, next + nextDepart + 30, { seed: 7, storm: hold(t0 + depart + 10, next) }).mode, 'moored');
+  // closed after its departure time that day: it stays in until tomorrow (no late starts)
+  assert.equal(typhoonShelterBoatState(boat, L, next + 900, { seed: 7, storm: hold(t0 + depart + 10, next + nextDepart + 1) }).mode, 'moored');
+  // a boat laid up for repairs stays in
+  assert.equal(typhoonShelterBoatState({ ...boat, repairUntil: next + 1440 }, L, next + nextDepart + 30, { seed: 7 }).mode, 'moored');
   assert.ok(isTyphoonShelterFishingWeatherBad({ typhoonStage: 'signal3', rainWarning: 'none' }));
   assert.ok(isTyphoonShelterFishingWeatherBad({ typhoonStage: 'none', rainWarning: 'black' }));
   assert.ok(!isTyphoonShelterFishingWeatherBad({ typhoonStage: 'signal1', rainWarning: 'amber' }));
@@ -146,11 +153,13 @@ test('the fleet survives the save normaliser', () => {
   const { plan, analysis, items } = setup();
   const slots = computeTyphoonShelterBerths(analysis, items);
   const f = reconcileTyphoonShelterFleet(createTyphoonShelterFleet(), slots, 6, { seed: 7 });
+  f.boats[0].repairUntil = 9000;
   f.hold = { day: 3, from: 300 };
   const saved = JSON.parse(JSON.stringify({ shelters: [{ ...plan, works: { approved: true, items }, fleet: f }], nextId: 2 }));
   const loaded = shelter.normalizeTyphoonShelterState(saved).shelters[0].fleet;
   assert.deepEqual(loaded.boats, f.boats);
-  assert.deepEqual(loaded.hold, f.hold);
+  assert.equal(loaded.boats[0].repairUntil, 9000);
+  assert.equal(loaded.hold, undefined, 'the Phase 3 one-day hold is dropped');
   assert.equal(loaded.nextId, f.nextId);
 });
 
@@ -171,12 +180,13 @@ test('a boat turned back by the weather lands only part of its catch', () => {
   const boats = reconcileTyphoonShelterFleet(createTyphoonShelterFleet(), slots, 12, { seed: 7 }).boats;
   const day = 9;
   const evening = day * 1440 + 23 * 60;
-  const base = { ...plan, id: 'calm', works: { approved: true, items }, fleet: { nextId: 13, boats, hold: null } };
-  const calm = fleet.summarizeTyphoonShelterFleet(base, analysis, evening);
+  const base = { ...plan, id: 'calm', works: { approved: true, items }, fleet: { nextId: 13, boats } };
+  const calm = fleet.summarizeTyphoonShelterFleet(base, analysis, evening, null);
   assert.ok(calm.fishing > 0);
   assert.equal(calm.tripsToday, calm.fishing);
   assert.equal(calm.catchToday, Math.round(calm.fishing * TYPHOON_SHELTER_FLEET.catchTonnesPerTrip * 10) / 10);
-  const stormy = fleet.summarizeTyphoonShelterFleet({ ...base, id: 'stormy', fleet: { ...base.fleet, hold: { day, from: 9 * 60 } } }, analysis, evening);
+  const storm = { holds: [{ from: day * 1440 + 9 * 60, until: null }], standbys: [] };
+  const stormy = fleet.summarizeTyphoonShelterFleet({ ...base, id: 'stormy' }, analysis, evening, storm);
   assert.equal(stormy.tripsToday, calm.tripsToday, 'everyone was out by 08:00');
   assert.ok(stormy.catchToday < calm.catchToday / 2, `${stormy.catchToday} vs ${calm.catchToday}`);
   assert.equal(stormy.held, true);
@@ -245,4 +255,26 @@ test('the fleet sails in order: nearest the entrance out first, furthest in home
   // a house boat is not in the order
   plan.fleet.boats.push({ id: 9, model: 'homeBoat1', slot: 's9' });
   assert.equal(fleet.typhoonShelterFleetSchedule(plan, (b) => len[b.slot] || 5, 3).has(9), false);
+});
+
+test('the fleet leaves the reserved berths free for storm visitors', () => {
+  const { plan, analysis, items, map } = setup();
+  Object.assign(globalThis, {
+    WATER: 0, MAP_WIDTH: map.width, MAP_HEIGHT: map.height,
+    mapData: BAY.map((row) => [...row].map((ch) => (ch === '#' || ch === 'R' ? 1 : 0))),
+    isInsideMap: (r, c) => r >= 0 && c >= 0 && r < map.height && c < map.width,
+  });
+  const p = { ...plan, id: 'reserve', works: { approved: true, items } };
+  const geometry = fleet.getTyphoonShelterFleetGeometry(p, analysis);
+  const usable = geometry.slots.filter((s) => geometry.routeBySlot.get(s.key)).length;
+  // the summary's estimate says more berths than were laid out: the fleet still stops short of
+  // the reserved ones
+  const summaries = new Map([['reserve', { operational: true, berths: { total: usable + 10, reserved: 3, daily: usable + 7 } }]]);
+  let state = { shelters: [p] };
+  for (let day = 0; day < 20; day++) state = { shelters: fleet.updateTyphoonShelterFleets(state, new Map([['reserve', analysis]]), summaries) || state.shelters };
+  assert.equal(state.shelters[0].fleet.boats.length, usable - 3);
+  // and nothing grows while a storm keeps the boats in
+  const stormy = { shelters: [{ ...p, fleet: { nextId: 1, boats: [] } }], storm: { holds: [{ from: 0, until: null }], standbys: [], visitors: [] } };
+  globalThis.isTyphoonShelterStormFreeze = require('../typhoon-shelter-storm.js').isTyphoonShelterStormFreeze;
+  assert.equal(fleet.updateTyphoonShelterFleets(stormy, new Map([['reserve', analysis]]), summaries), null);
 });

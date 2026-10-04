@@ -659,7 +659,9 @@ function normalizeTyphoonShelterPlan(raw) {
 function normalizeTyphoonShelterState(raw) {
   const shelters = (Array.isArray(raw?.shelters) ? raw.shelters : []).map(normalizeTyphoonShelterPlan).filter(Boolean);
   const maxId = shelters.reduce((m, s) => Math.max(m, Number(String(s.id).replace(/\D/g, '')) || 0), 0);
-  return { version: 1, nextId: Math.max(Number(raw?.nextId) || 1, maxId + 1), shelters };
+  // Phase 4: the city's storm (typhoon-shelter-storm.js)
+  const storm = raw?.storm && typeof normalizeTyphoonShelterStorm === 'function' ? normalizeTyphoonShelterStorm(raw.storm) : null;
+  return { version: 1, nextId: Math.max(Number(raw?.nextId) || 1, maxId + 1), shelters, ...(storm ? { storm } : {}) };
 }
 
 const typhoonShelterApi = {

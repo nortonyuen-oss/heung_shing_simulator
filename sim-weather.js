@@ -486,6 +486,8 @@ function advanceWeatherClock(fromMinutes, toMinutes) {
     const before = `${weather.condition}|${weather.rainWarning}`;
     applyWeatherReadings();
     if (`${weather.condition}|${weather.rainWarning}` !== before) changed = true;
+    // the typhoon shelters' recall, visitors and damage follow this hour's signal (typhoon-shelter-storm.js)
+    if (typeof advanceTyphoonShelterStormHour === 'function') advanceTyphoonShelterStormHour(weather, minute);
   }
 
   if (changed) emitWeatherChange('clock');

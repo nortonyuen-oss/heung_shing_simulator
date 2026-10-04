@@ -73,6 +73,12 @@ function loadTyphoonShelterTextures(scene, texturePaths) {
   });
 }
 
+// The texture's size as drawn (its base frame).
+function getTyphoonShelterTextureSize(scene, key) {
+  const frame = scene.textures.get(key)?.get?.();
+  return frame ? { width: frame.width, height: frame.height } : { width: 0, height: 0 };
+}
+
 // Every texture an object could need across the four rotations.
 function getTyphoonShelterObjectTexturePaths(objectId) {
   return getTyphoonShelterObjectTextures(objectId, getTyphoonShelterFacingOverrides()).map((t) => t.texture);
@@ -207,7 +213,8 @@ function resolveTyphoonShelterTextureKey(scene, choice) {
   const key = getTyphoonShelterTextureKey(choice.texture);
   const partWarp = typhoonShelterPlacement.parts[choice.partId]?.warp;
   if (!scene.textures.exists(key) || isTyphoonShelterWarpIdentity(partWarp)) return key;
-  const src = scene.textures.get(key).getSourceImage();
+  const baseFrame = scene.textures.get(key).get();
+  const src = { width: baseFrame.width, height: baseFrame.height };
   const ground = getTyphoonShelterTextureGround(choice, src);
   if (!ground) return key;
   const warp = choice.mirrored ? mirrorTyphoonShelterWarp(partWarp) : normalizeTyphoonShelterWarp(partWarp);
@@ -223,7 +230,8 @@ function resolveTyphoonShelterTextureKey(scene, choice) {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, box.width, box.height);
   ctx.setTransform(...getTyphoonShelterWarpTransform(front, warp, box));
-  ctx.drawImage(src, 0, 0);
+  ctx.drawImage(baseFrame.source.image, baseFrame.cutX, baseFrame.cutY, baseFrame.cutWidth, baseFrame.cutHeight,
+    0, 0, baseFrame.cutWidth, baseFrame.cutHeight);
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   tex.refresh();
   tex.typhoonShelterWarp = {
@@ -237,7 +245,7 @@ function resolveTyphoonShelterTextureKey(scene, choice) {
 function getTyphoonShelterSpriteGround(scene, choice, key) {
   const tex = scene.textures.get(key);
   const info = tex?.typhoonShelterWarp;
-  if (!info || !key.endsWith('~w')) return getTyphoonShelterTextureGround(choice, tex.getSourceImage());
+  if (!info || !key.endsWith('~w')) return getTyphoonShelterTextureGround(choice, getTyphoonShelterTextureSize(scene, key));
   const ground = getTyphoonShelterTextureGround(choice, { width: info.baseWidth, height: info.baseHeight });
   if (!ground) return null;
   const P = (pt) => { const [x, y] = warpTyphoonShelterPoint(pt, info.front, info.warp); return [x + info.dx, y + info.dy]; };
@@ -248,6 +256,27 @@ function getTyphoonShelterSpriteGround(scene, choice, key) {
     // the top's x is not recorded: taken above the front corner
     top: Number.isFinite(ground.top) ? P([info.front[0], ground.top])[1] : undefined,
   };
+}
+
+// The world mask the terrain, the props and the ships are drawn under. Phaser flushes its sprite
+// batch whenever the mask changes from one object to the next, and nearly everything round a
+// shelter (water, shore, roads, lamps) carries this mask: an unmasked shelter sprite between them
+// costs three draw calls (end the mask, draw, start it again) - a shelter on screen took a frame
+// from 42 batches to 156 and an Intel Mac from 55 fps to 25. Under the same mask it batches in.
+function maskTyphoonShelterSprite(scene, sprite) {
+  if (scene?.worldMask && sprite && typeof sprite.setMask === 'function') sprite.setMask(scene.worldMask);
+}
+
+// Whether a sprite's anchor lies in the camera view padded as the viewport culling pads it (so a
+// sprite placed or moved between culling passes agrees with the next pass).
+function isTyphoonShelterSpriteInView(scene, sprite) {
+  const camera = scene?.cameras?.main;
+  if (!camera?.worldView || typeof getPaddedWorldViewportBounds !== 'function') return true;
+  // the building sprites' padding in updateTerrainViewportCulling
+  const padX = TILE_WIDTH * 6;
+  const padY = TILE_IMAGE_HEIGHT * 6 + MAX_TERRAIN_HEIGHT * HEIGHT_STEP_PIXELS + TILE_HEIGHT * 4;
+  const b = getPaddedWorldViewportBounds(camera, padX, padY);
+  return sprite.x >= b.minX && sprite.x <= b.maxX && sprite.y >= b.minY && sprite.y <= b.maxY;
 }
 
 function positionTyphoonShelterObject(scene, record) {
@@ -269,18 +298,21 @@ function positionTyphoonShelterObject(scene, record) {
   record.diamond = diamond;
   const key = choice && resolveTyphoonShelterTextureKey(scene, choice);
   if (!choice || !scene.textures.exists(key)) {
+    record.drawable = false;
     record.sprite?.setVisible(false);
     return false;
   }
+  record.drawable = true;
   const warpVersion = scene.textures.get(key).typhoonShelterWarp?.version || 0;
   if (!record.sprite) {
     record.sprite = scene.add.image(0, 0, key);
     record.sprite.typhoonShelterId = record.id;
+    maskTyphoonShelterSprite(scene, record.sprite);
   } else if (record.sprite.texture.key !== key || record.warpVersion !== warpVersion) {
     record.sprite.setTexture(key); // again after a redraw, for the canvas's new size
   }
   record.warpVersion = warpVersion;
-  const texture = scene.textures.get(key).getSourceImage();
+  const texture = getTyphoonShelterTextureSize(scene, key);
   const ground = getTyphoonShelterSpriteGround(scene, choice, key);
   // drawn at its real size, centred on the footprint
   const art = ground && measureTyphoonShelterArt(ground, getTyphoonShelterObjectSize(record.objectId), ground.top);
@@ -325,6 +357,7 @@ function positionTyphoonShelterObject(scene, record) {
     const b = isoToScreen(record.col + dc, record.row + dr);
     at[0] += ((b.x - a.x) * m) / TYPHOON_SHELTER_TILE_M;
     at[1] += ((b.y - a.y) * m) / TYPHOON_SHELTER_TILE_M;
+    if (record.sectioned) slideY += ((b.y - a.y) * m) / TYPHOON_SHELTER_TILE_M;
   });
   sprite.setPosition(at[0] + scene.offsetX, at[1] + scene.offsetY);
   const anchor = getBuildingAnchor(record.row, record.col, fp.cols, fp.rows);
@@ -332,7 +365,8 @@ function positionTyphoonShelterObject(scene, record) {
   sprite.setDepth(getBuildingSortDepth(anchor.y + slideY, fp.cols, fp.rows, 0) + (record.depthBias || 0));
   sprite.setAlpha(Number.isFinite(record.alpha) ? record.alpha : 1);
   if (record.tint) sprite.setTint(record.tint); else sprite.clearTint();
-  sprite.setVisible(true);
+  // shown only inside the camera's (padded) view, as viewport-culling.js keeps it
+  sprite.setVisible(isTyphoonShelterSpriteInView(scene, sprite));
   record.fit = fit;
   return true;
 }
@@ -416,7 +450,10 @@ const typhoonShelterSpritesApi = {
   clearTyphoonShelterObjects,
   positionTyphoonShelterObject,
   refreshAllTyphoonShelterSprites,
+  isTyphoonShelterSpriteInView,
   getTyphoonShelterPlacementRevision,
+  getTyphoonShelterTextureSize,
+  maskTyphoonShelterSprite,
   resolveTyphoonShelterTextureKey,
   getTyphoonShelterSpriteGround,
 };

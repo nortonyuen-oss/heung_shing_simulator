@@ -36,7 +36,14 @@ function maxDimensionFor(relativeFromModels) {
 // 6: raw buffers are declared straight-alpha (premultiplied: false). sharp 0.34 otherwise
 //    unpremultiplies a raw RGBA input on encode, brightening every semi-transparent pixel -
 //    antialiased edges got lighter and the street lamps' orange light pools came out yellow.
-const SETTINGS_VERSION = 6;
+// 7: a texture whose content comes out just over a power of two (up to POW2_FIT_SLACK over) is
+//    scaled down a little to fit it, instead of being padded to twice the size (see fitPowerOfTwo).
+const SETTINGS_VERSION = 7;
+
+// Padding to a power of two doubles a side that is even one pixel over; up to this much over, the
+// texture is shrunk to fit instead (at most ~20% smaller, a quarter or half the memory). Not for the
+// small props, whose anchors are calibrated against their exact canvas.
+const POW2_FIT_SLACK = Number(process.env.ASSET_POW2_FIT_SLACK || 1.25);
 
 // Every raw RGBA buffer in this pipeline holds straight (non-premultiplied) alpha; say so, or
 // sharp treats it as premultiplied and divides the colour by alpha on the way out.
@@ -67,6 +74,17 @@ function nextPowerOfTwo(value) {
     throw new TypeError('Texture dimensions must be positive integers.');
   }
   return 2 ** Math.ceil(Math.log2(value));
+}
+
+// The factor (< 1) that brings a content just over a power of two down to it on that side - the
+// smaller of the two sides' factors - or 1 when neither side is within POW2_FIT_SLACK of fitting.
+function fitPowerOfTwo(width, height) {
+  let k = 1;
+  [width, height].forEach((v) => {
+    const half = nextPowerOfTwo(v) / 2;
+    if (v > half && v <= half * POW2_FIT_SLACK) k = Math.min(k, half / v);
+  });
+  return k;
 }
 
 function getPowerOfTwoPadding(width, height) {
@@ -160,6 +178,7 @@ async function prepareFile(sourcePath) {
   const packagedPath = `Models/${packagedRelative}`;
   const shouldTrim = !relativeFromModels.startsWith('trees/');
   const fileMaxDimension = maxDimensionFor(relativeFromModels);
+  const fitsPowerOfTwo = shouldTrim && !SMALL_PROP_PREFIXES.some((prefix) => relativeFromModels.startsWith(prefix));
   const cacheKey = sha256(Buffer.concat([
     sourceBuffer,
     Buffer.from(JSON.stringify({
@@ -169,6 +188,7 @@ async function prepareFile(sourcePath) {
       defringe: 'none-source-preserved',
       webp: 'lossless',
       mipmapLayout: 'power-of-two-bottom-center',
+      pow2Fit: fitsPowerOfTwo ? POW2_FIT_SLACK : 0,
     })),
   ]));
   const cacheImage = path.join(CACHE_ROOT, `${cacheKey}.webp`);
@@ -185,24 +205,36 @@ async function prepareFile(sourcePath) {
       .ensureAlpha()
       .raw()
       .toBuffer({ resolveWithObject: true });
-    let pipeline = sharp(decoded.data, rawInput(decoded.info));
-    if (decoded.info.width > fileMaxDimension || decoded.info.height > fileMaxDimension) {
-      pipeline = pipeline.resize({
-        width: fileMaxDimension,
-        height: fileMaxDimension,
-        fit: 'inside',
-        withoutEnlargement: true,
-      });
+    // the size cap, then the trim; a content just over a power of two is redone a little smaller
+    const shrinkTo = async (dimension) => {
+      let pipeline = sharp(decoded.data, rawInput(decoded.info));
+      if (decoded.info.width > dimension || decoded.info.height > dimension) {
+        pipeline = pipeline.resize({ width: dimension, height: dimension, fit: 'inside', withoutEnlargement: true });
+      }
+      const resized = await pipeline.raw().toBuffer({ resolveWithObject: true });
+      const trim = shouldTrim
+        ? findAlphaBounds(resized.data, resized.info.width, resized.info.height)
+        : { left: 0, top: 0, width: resized.info.width, height: resized.info.height };
+      const trimmed = await sharp(resized.data, rawInput(resized.info)).extract(trim).raw().toBuffer({ resolveWithObject: true });
+      return { trim, trimmedRaw: trimmed };
+    };
+    let effectiveMax = Math.min(fileMaxDimension, Math.max(decoded.info.width, decoded.info.height));
+    let { trim, trimmedRaw } = await shrinkTo(effectiveMax);
+    const fitFactor = fitsPowerOfTwo ? fitPowerOfTwo(trimmedRaw.info.width, trimmedRaw.info.height) : 1;
+    if (fitFactor < 1) {
+      const targetW = nextPowerOfTwo(trimmedRaw.info.width) / (trimmedRaw.info.width > nextPowerOfTwo(trimmedRaw.info.width) / 2 * POW2_FIT_SLACK ? 1 : 2);
+      const targetH = nextPowerOfTwo(trimmedRaw.info.height) / (trimmedRaw.info.height > nextPowerOfTwo(trimmedRaw.info.height) / 2 * POW2_FIT_SLACK ? 1 : 2);
+      for (let k = fitFactor, tries = 0; tries < 6; tries++, k *= 0.99) {
+        const dimension = Math.max(1, Math.floor(effectiveMax * k));
+        const next = await shrinkTo(dimension);
+        if (next.trimmedRaw.info.width <= Math.max(targetW, 1) && next.trimmedRaw.info.height <= Math.max(targetH, 1)) {
+          ({ trim, trimmedRaw } = next);
+          effectiveMax = dimension;
+          break;
+        }
+      }
     }
-    const resized = await pipeline.raw().toBuffer({ resolveWithObject: true });
-    const processedData = resized.data;
-    const trim = shouldTrim
-      ? findAlphaBounds(processedData, resized.info.width, resized.info.height)
-      : { left: 0, top: 0, width: resized.info.width, height: resized.info.height };
-    const trimmedRaw = await sharp(processedData, rawInput(resized.info))
-      .extract(trim)
-      .raw()
-      .toBuffer({ resolveWithObject: true });
+    const processedMax = effectiveMax;
     const padding = getPowerOfTwoPadding(trimmedRaw.info.width, trimmedRaw.info.height);
     const paddedRaw = await sharp(trimmedRaw.data, rawInput(trimmedRaw.info))
       .extend({
@@ -225,6 +257,9 @@ async function prepareFile(sourcePath) {
     metadata = {
       sourceWidth: decoded.info.width,
       sourceHeight: decoded.info.height,
+      // the longest side after the size cap (and any fit to a power of two): the scale the game
+      // maps source pixels by (getModelTexturePixelMapping)
+      maxDimension: processedMax,
       contentWidth: trimmedRaw.info.width,
       contentHeight: trimmedRaw.info.height,
       outputWidth: paddedRaw.info.width,
@@ -250,10 +285,10 @@ async function prepareFile(sourcePath) {
     logicalPath,
     packagedPath,
     hash: cacheKey,
-    maxDimension: fileMaxDimension,
     sourceBytes: sourceBuffer.length,
     outputBytes: fs.statSync(cacheImage).size,
     ...metadata,
+    maxDimension: metadata.maxDimension ?? fileMaxDimension,
   };
 }
 

@@ -42,7 +42,7 @@ test('every raw buffer in the asset scripts is declared straight alpha', () => {
   const prepare = source('scripts/prepare-release-assets.js');
   assert.match(prepare, /premultiplied: false/);
   assert.equal((prepare.match(/sharp\([^)]*\{ raw: [a-zA-Z.]+ \}\)/g) || []).length, 0, 'no bare `{ raw: info }` inputs remain in prepare-release-assets.js');
-  assert.match(prepare, /const SETTINGS_VERSION = 6;/, 'the cache key changed with the fix');
+  assert.match(prepare, /const SETTINGS_VERSION = ([6-9]|[1-9][0-9]);/, "the cache key changed with the fix (and has moved on since)");
   const verify = source('scripts/verify-release-assets.js');
   assert.equal((verify.match(/sharp\([^)]*\{ raw: [a-zA-Z.]+ \}\)/g) || []).length, 0, 'no bare `{ raw: info }` inputs remain in verify-release-assets.js');
   assert.match(verify, /premultiplied: false/);

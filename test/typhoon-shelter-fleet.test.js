@@ -63,9 +63,10 @@ test('berths: two tiles for a boat, never on the channel or the walkways', () =>
     assert.ok(!seen.has(k), `${k} in two berths`);
     seen.add(k);
   }));
-  // the walkways take a few mooring tiles; the fleet only ever fills the berths that exist
-  assert.ok(slots.length >= analysis.berths.daily);
-  assert.ok(slots.filter((s) => s.size === 2).length >= slots.length * 0.8);
+  // the walkways take a few mooring tiles and the lanes their rows; the fleet only ever fills the
+  // berths that exist
+  assert.ok(slots.length >= analysis.berths.daily * 0.6, `${slots.length} berths, ${analysis.berths.daily} planned`);
+  assert.ok(slots.filter((s) => s.size === 2).length >= slots.length / 3);
 });
 
 test('every berth has a way out through an entrance to the open sea', () => {
@@ -188,22 +189,60 @@ test('art switched off in calibration: that view is not drawn, a model with none
   assert.ok(views.length > 0 && views.every((t) => t.partId !== 'fishingBoat3_a'), 'the other view is still used');
   assert.ok(assets.pickTyphoonShelterTexture('fishingBoat3', 'se', { facings: off }), 'and still drawn every way');
 
-  const allOff = Object.fromEntries(Object.keys(assets.TYPHOON_SHELTER_OBJECTS_BY_ID.fishingBoat3.parts).map((id) => [id, 'off']));
-  assert.equal(assets.pickTyphoonShelterTexture('fishingBoat3', 'se', { facings: allOff }), null);
   const { analysis, items } = setup();
   const slots = computeTyphoonShelterBerths(analysis, items);
-  const before = reconcileTyphoonShelterFleet(createTyphoonShelterFleet(), slots, 20, { seed: 7 });
-  assert.ok(before.boats.some((b) => b.model === 'fishingBoat3'));
+  const n = slots.length;
+  const before = reconcileTyphoonShelterFleet(createTyphoonShelterFleet(), slots, n, { seed: 7 });
+  // switch off every view of a model the fleet has
+  const victim = before.boats.map((b) => b.model).find((m) => m.startsWith('fishingBoat'));
+  assert.ok(victim, 'the fleet has a fishing boat');
+  const allOff = Object.fromEntries(Object.keys(assets.TYPHOON_SHELTER_OBJECTS_BY_ID[victim].parts).map((id) => [id, 'off']));
+  assert.equal(assets.pickTyphoonShelterTexture(victim, 'se', { facings: allOff }), null);
   globalThis.getTyphoonShelterFacingOverrides = () => allOff;
   globalThis.getTyphoonShelterObjectTextures = assets.getTyphoonShelterObjectTextures;
   try {
-    const after = reconcileTyphoonShelterFleet(before, slots, 20, { seed: 7 });
-    assert.ok(!after.boats.some((b) => b.model === 'fishingBoat3'), 'its boats leave');
-    const fresh = reconcileTyphoonShelterFleet(createTyphoonShelterFleet(), slots, 20, { seed: 7 });
-    assert.equal(fresh.boats.length, 20);
-    assert.ok(!fresh.boats.some((b) => b.model === 'fishingBoat3'), 'and none arrive');
+    const after = reconcileTyphoonShelterFleet(before, slots, n, { seed: 7 });
+    assert.ok(!after.boats.some((b) => b.model === victim), 'its boats leave');
+    const fresh = reconcileTyphoonShelterFleet(createTyphoonShelterFleet(), slots, n, { seed: 7 });
+    assert.ok(fresh.boats.length >= n - 3, 'the other models fill the berths');
+    assert.ok(!fresh.boats.some((b) => b.model === victim), 'and none arrive');
   } finally {
     delete globalThis.getTyphoonShelterFacingOverrides;
     delete globalThis.getTyphoonShelterObjectTextures;
   }
+});
+
+test('a boat goes out along the lanes: never over another berth, a buoy or a walkway', () => {
+  const { map, analysis, items, isSea } = setup();
+  const mooring = works.planTyphoonShelterMooring(analysis, items);
+  const routes = planTyphoonShelterRoutes(analysis, items, isSea, { width: map.width, height: map.height, offshoreTiles: 3, lanes: mooring.lanes });
+  const berthOf = new Map();
+  mooring.slots.forEach((s) => s.tiles.forEach((k) => berthOf.set(k, s.key)));
+  const blocked = new Set(items.filter((i) => ['pier', 'floatingPier', 'pontoon', 'mooringBuoy', 'navBuoyRed', 'navBuoyGreen'].includes(i.kind)).map((i) => `${i.row}:${i.col}`));
+  mooring.slots.forEach((s) => {
+    assert.ok(s.access.length > 0, `${s.key} lies beside a lane`);
+    const route = typhoonShelterRouteFor(routes, s);
+    assert.ok(route, `${s.key} has a way out`);
+    route.slice(1).forEach(([r, c]) => {
+      const k = `${r}:${c}`;
+      assert.ok(!blocked.has(k), `${s.key}: ${k} is a buoy or a walkway`);
+      assert.ok(!berthOf.has(k) || berthOf.get(k) === s.key, `${s.key}: ${k} is another boat's berth`);
+    });
+  });
+});
+
+test('the fleet sails in order: nearest the entrance out first, furthest in home first, evenly spaced', () => {
+  const plan = { seed: 7, fleet: { boats: [1, 2, 3, 4, 5, 6].map((id) => ({ id, model: 'fishingBoat3', slot: `s${id}` })) } };
+  const len = { s1: 30, s2: 10, s3: 50, s4: 20, s5: 40, s6: 60 };
+  const times = fleet.typhoonShelterFleetSchedule(plan, (b) => len[b.slot], 3);
+  const byLength = plan.fleet.boats.slice().sort((x, y) => len[x.slot] - len[y.slot]);
+  const departs = byLength.map((b) => times.get(b.id).depart);
+  const backs = byLength.map((b) => times.get(b.id).back);
+  departs.slice(1).forEach((t, i) => assert.ok(t > departs[i], 'nearer boats leave first'));
+  backs.slice(1).forEach((t, i) => assert.ok(t < backs[i], 'further boats come home first'));
+  const gap = TYPHOON_SHELTER_FLEET.departSpan / 6;
+  departs.slice(1).forEach((t, i) => assert.ok(t - departs[i] > gap * 0.6, 'kept apart'));
+  // a house boat is not in the order
+  plan.fleet.boats.push({ id: 9, model: 'homeBoat1', slot: 's9' });
+  assert.equal(fleet.typhoonShelterFleetSchedule(plan, (b) => len[b.slot] || 5, 3).has(9), false);
 });

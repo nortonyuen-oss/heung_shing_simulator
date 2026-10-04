@@ -70,16 +70,23 @@ function getBaseTileKey(row, col) {
   let key;
   if      (tileType === ROAD)  key = getRoadKey(row, col);
   else if (tileType === DIRT)  key = 'dirt_full';
-  // a typhoon shelter's quay (海堤) faces this beach: the land behind the quay is plain ground
-  else if (tileType === BEACH) key = isTyphoonShelterQuayTileSafe(row, col) ? 'ground_full' : getBeachKey(row, col);
+  // a typhoon shelter's waterfront: the quay's beach and the open ground beside it are paved (石仔地)
+  else if (tileType === BEACH) {
+    key = isTyphoonShelterPavedTileSafe(row, col) ? 'dirt_full'
+      : isTyphoonShelterQuayTileSafe(row, col) ? 'ground_full' : getBeachKey(row, col);
+  }
   else if (tileType === WATER) key = getWaterKey(row, col);
   else if (hasHeight)          key = getHillKey(row, col);
-  else                         key = 'ground_full';
+  else                         key = isTyphoonShelterPavedTileSafe(row, col) ? 'dirt_full' : 'ground_full';
   return key;
 }
 
 function isTyphoonShelterQuayTileSafe(row, col) {
   return typeof isTyphoonShelterQuayTile === 'function' && isTyphoonShelterQuayTile(row, col);
+}
+
+function isTyphoonShelterPavedTileSafe(row, col) {
+  return typeof isTyphoonShelterPavedTile === 'function' && isTyphoonShelterPavedTile(row, col);
 }
 
 function getBaseTileType(row, col) {

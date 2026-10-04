@@ -64,7 +64,17 @@ test('layout: breakwater on the line, lit heads at the entrance, a pier by the r
   assert.equal(of('navBuoyGreen').length, 1);
   // entering northward from the south, red (port) is to the west of green
   assert.ok(of('navBuoyRed')[0].col < of('navBuoyGreen')[0].col);
-  assert.ok(of('mooringBuoy').length >= 3);
+  // mooring buoys only on water no boat uses: never a lane or a big boat's berth
+  const mooring = works.planTyphoonShelterMooring(analysis, layout.filter((w) => w.kind !== 'mooringBuoy'));
+  const bigBerths = new Set(mooring.slots.filter((sl) => sl.size === 2).flatMap((sl) => sl.tiles));
+  of('mooringBuoy').forEach((w) => {
+    assert.ok(!mooring.lanes.has(`${w.row}:${w.col}`) && !bigBerths.has(`${w.row}:${w.col}`), `buoy ${w.key} is in the boats' way`);
+  });
+  // the entrance buoys flank the way out: the tiles straight out from the entrance are clear
+  const entrance = analysis.entrances[0];
+  const out = { n: [-1, 0], s: [1, 0], e: [0, 1], w: [0, -1] }[entrance.side];
+  const navTiles = new Set([...of('navBuoyRed'), ...of('navBuoyGreen')].map((w) => `${w.row}:${w.col}`));
+  entrance.tiles.forEach((k) => { const [r, c] = k.split(':').map(Number); assert.ok(!navTiles.has(`${r + out[0]}:${c + out[1]}`)); });
   layout.filter((w) => w.kind === 'mooringBuoy').forEach((w) => assert.ok(!analysis.channel.has(`${w.row}:${w.col}`)));
   // the same plan always lays out the same works
   assert.deepEqual(layoutTyphoonShelterWorks(plan, analysis, f), layout);
@@ -219,13 +229,21 @@ test('海堤: a quay along every shore edge, corner fills, piers off the quay, k
   const ctx = { ...f, isFreeBeach: land, isQuaySite: land };
   const layout = layoutTyphoonShelterWorks(plan, analysis, ctx);
   const quays = layout.filter((w) => w.kind === 'quay');
-  // one per edge where the basin meets land, on the land tile, its wall toward the water
-  assert.equal(quays.length, analysis.shoreEdges.filter((e) => land(...e.out)).length);
+  // one per edge where the basin meets land, on the land tile, its wall toward the water...
   const step = { n: [-1, 0], e: [0, 1], s: [1, 0], w: [0, -1] };
-  quays.forEach((q) => {
-    assert.ok(land(q.row, q.col), q.key);
-    assert.ok(analysis.basin.has(`${q.row + step[q.facing][0]}:${q.col + step[q.facing][1]}`), `${q.key} faces the basin`);
+  const faces = (q) => `${q.row + step[q.facing][0]}:${q.col + step[q.facing][1]}`;
+  const inner = quays.filter((q) => analysis.basin.has(faces(q)));
+  assert.equal(inner.length, analysis.shoreEdges.filter((e) => land(...e.out)).length);
+  quays.forEach((q) => assert.ok(land(q.row, q.col), q.key));
+  // ...and on along the coast past the breakwater's ends, facing the open sea (the land either side
+  // of the bay's mouth, row 6, looks south onto the sea beyond the breakwater)
+  const outer = quays.filter((q) => !analysis.basin.has(faces(q)));
+  assert.ok(outer.length > 0);
+  outer.forEach((q) => {
+    assert.ok(f.isOpenWater(...faces(q).split(':').map(Number)), `${q.key} faces open sea`);
+    assert.ok(!analysis.ring.has(faces(q)), `${q.key} does not face the breakwater`);
   });
+  assert.deepEqual(outer.map((q) => [q.row, q.facing]).sort(), [[6, 's'], [6, 's'], [6, 's'], [6, 's']]);
   assert.equal(new Set(layout.map((w) => w.key)).size, layout.length, 'keys are unique');
   // the bay's two inner corners (north-west and north-east) are filled on the diagonal land tile
   const fills = layout.filter((w) => w.kind === 'quayFill').map((w) => [w.row, w.col, w.corner]);
@@ -248,4 +266,52 @@ test('against a quay, the pier may stand on a fairway that hugs the whole shore'
   const pier = layoutTyphoonShelterWorks(plan, analysis, { ...f, isFreeBeach: () => false, isQuaySite: land }).find((w) => w.kind === 'pier');
   assert.ok(pier && analysis.basin.has(`${pier.row}:${pier.col}`), 'a pier in the water at the quay');
   assert.equal(layoutTyphoonShelterWorks(plan, analysis, { ...f, isFreeBeach: () => false }).filter((w) => w.kind === 'pier').length, 0, 'not without one');
+});
+
+test('a beach by the shelter that faces no sea is paved over too, at no cost', () => {
+  const { f, plan, analysis } = setup();
+  const land = (r, c) => f.map.kind(r, c) === 'land';
+  // (5, 0): land two tiles from the breakwater, with no water beside it
+  const layout = layoutTyphoonShelterWorks(plan, analysis, { ...f, isQuaySite: land, isBeach: (r, c) => r === 5 && c === 0 });
+  const paved = layout.filter((w) => w.kind === 'quayGround');
+  assert.deepEqual(paved.map((w) => [w.row, w.col]), [[5, 0]]);
+  assert.equal(TYPHOON_SHELTER_WORK_KINDS.quayGround.cost, 0);
+  assert.equal(TYPHOON_SHELTER_WORK_KINDS.quayGround.objectId, null, 'drawn by the terrain, not a sprite');
+  const built = completeTyphoonShelterWorks(reconcileTyphoonShelterWorks(createTyphoonShelterWorks(), layout)).works;
+  const loaded = works.normalizeTyphoonShelterWorks(JSON.parse(JSON.stringify({ ...built, approved: true })));
+  assert.ok(loaded.items.some((i) => i.kind === 'quayGround' && i.row === 5 && i.col === 0));
+});
+
+test('the promenade runs on past a breakwater that meets the shore, the breakwater against its wall', () => {
+  // the bay's mouth wall (row 7) runs into land at both ends: the headlands reach down to row 7
+  const f = fixture([
+    '#############R##',
+    '##..........##R#',
+    '##..........####',
+    '##..........####',
+    '##..........####',
+    '##..........####',
+    '##..........####',
+    '##~~~~~~~~~~####',
+    '~~~~~~~~~~~~~~~~',
+    '~~~~~~~~~~~~~~~~',
+  ]);
+  const plan = { id: 'ts1', seed: 42, basin: shelter.encodeTyphoonShelterBasin(f.basin), entrances: [], reservePct: 20 };
+  plan.entrances = shelter.suggestTyphoonShelterEntrances(plan, f.map);
+  const analysis = shelter.analyzeTyphoonShelter(plan, f.map);
+  const land = (r, c) => f.map.kind(r, c) === 'land';
+  const layout = layoutTyphoonShelterWorks(plan, analysis, { ...f, isLand: land, isQuaySite: land });
+  const quays = new Set(layout.filter((w) => w.kind === 'quay').map((w) => `${w.row}:${w.col}:${w.facing}`));
+  const step = { n: [-1, 0], e: [0, 1], s: [1, 0], w: [0, -1] };
+  const opposite = { n: 's', s: 'n', e: 'w', w: 'e' };
+  let met = 0;
+  analysis.ring.forEach((k) => {
+    const [r, c] = k.split(':').map(Number);
+    Object.entries(step).forEach(([d, [dr, dc]]) => {
+      if (!land(r + dr, c + dc) || analysis.basin.has(`${r + dr}:${c + dc}`)) return;
+      met += 1;
+      assert.ok(quays.has(`${r + dr}:${c + dc}:${opposite[d]}`), `the shore at ${r + dr}:${c + dc} faces the breakwater at ${k}`);
+    });
+  });
+  assert.ok(met >= 2, 'the wall meets the shore at both ends');
 });

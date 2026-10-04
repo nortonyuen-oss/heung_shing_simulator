@@ -345,3 +345,14 @@ test('art warp: left-right skew leans the top, mirrors flip both skews, canvas t
     assert.ok(Math.abs(back[0] - x) < 1e-9 && Math.abs(back[1] - y) < 1e-9);
   });
 });
+
+test('calibration keeps the facings judged by eye (verified objects) as the table has them', () => {
+  const a = require('../typhoon-shelter-assets.js');
+  const placement = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'typhoon-shelter-placement.json'), 'utf8'));
+  a.TYPHOON_SHELTER_OBJECTS.filter((o) => o.verified).forEach((o) => {
+    Object.entries(o.parts).forEach(([partId, facing]) => {
+      const calibrated = placement.parts[partId]?.facing;
+      if (facing && calibrated) assert.equal(calibrated, facing, `${partId}: calibrated ${calibrated}, judged ${facing}`);
+    });
+  });
+});

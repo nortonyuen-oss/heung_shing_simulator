@@ -90,7 +90,7 @@ test('fjord: breakwaters only at the two ends, two entrances suggested end to en
   // between them is open to waves from outside
   assert.deepEqual(a.protection.parts, { shore: 31, breakwater: 27, exposure: 13 });
   assert.equal(a.protection.score, 71);
-  assert.equal(a.berths.total, Math.floor((a.basin.size - a.channel.size) / 2));
+  assert.equal(a.berths.total, Math.floor((a.basin.size - a.channel.size) / 3), "a boat to two tiles, a lane row in three");
   assert.equal(a.berths.reserved, Math.ceil(a.berths.total * 0.2));
   // heads: each side of both entrances, plus the four ends where the breakwater meets the shore
   assert.equal(a.heads.size, 8);

@@ -59,72 +59,43 @@ function tfHash(...parts) {
 // berths and routes
 // ---------------------------------------------------------------------------
 
-// Tiles boats cannot lie on or pass through: piers, walkways, landing stages.
+// Tiles boats cannot lie on or pass through: piers, walkways, landing stages, buoys.
+const TYPHOON_SHELTER_BOAT_BLOCKERS = Object.freeze(['pier', 'floatingPier', 'pontoon', 'mooringBuoy', 'navBuoyRed', 'navBuoyGreen']);
+
 function typhoonShelterBlockedTiles(worksItems = []) {
-  return new Set(worksItems.filter((i) => ['pier', 'floatingPier', 'pontoon'].includes(i.kind)).map((i) => tfKey(i.row, i.col)));
+  return new Set(worksItems.filter((i) => TYPHOON_SHELTER_BOAT_BLOCKERS.includes(i.kind)).map((i) => tfKey(i.row, i.col)));
 }
 
-/**
- * Berths: the mooring water (basin, off the channel and the walkways) cut into slots - two tiles
- * end to end for a fishing boat, one for a sampan - nearest the walkways and the pier first, so a
- * small fleet lies along the walkways like a marina. Returns [{ key, tiles, size, axis, centre }].
- */
+// The berths (see planTyphoonShelterMooring).
 function computeTyphoonShelterBerths(analysis, worksItems = []) {
-  const blocked = typhoonShelterBlockedTiles(worksItems);
-  const free = new Set([...analysis.basin].filter((k) => !analysis.channel.has(k) && !blocked.has(k)));
-  const landings = [...blocked].map(tfParse);
-  const near = (k) => {
-    const [r, c] = tfParse(k);
-    return landings.length ? Math.min(...landings.map(([lr, lc]) => Math.abs(lr - r) + Math.abs(lc - c))) : 0;
-  };
-  // walk the tiles nearest the works first, pairing each with a free neighbour
-  const order = [...free].sort((a, b) => near(a) - near(b) || a.localeCompare(b));
-  const used = new Set();
-  const slots = [];
-  order.forEach((k) => {
-    if (used.has(k)) return;
-    const [r, c] = tfParse(k);
-    // lie parallel to a neighbouring walkway when there is one
-    const alongWalk = blocked.has(tfKey(r - 1, c)) || blocked.has(tfKey(r + 1, c)) ? ['e', 's'] : ['s', 'e'];
-    let pair = null;
-    for (const axis of alongWalk) {
-      const [dr, dc] = TF_DIRS[axis];
-      const other = tfKey(r + dr, c + dc);
-      if (free.has(other) && !used.has(other)) { pair = { other, axis }; break; }
-    }
-    used.add(k);
-    if (pair) {
-      used.add(pair.other);
-      const [r2, c2] = tfParse(pair.other);
-      slots.push({ key: k, tiles: [k, pair.other], size: 2, axis: pair.axis, centre: [(r + r2) / 2, (c + c2) / 2] });
-    } else {
-      slots.push({ key: k, tiles: [k], size: 1, axis: 'e', centre: [r, c] });
-    }
-  });
-  return slots;
+  return planTyphoonShelterMooring(analysis, worksItems).slots;
 }
 
 /**
- * Routes out: for every basin tile, the way to the nearest entrance through open basin water, and
- * from each entrance a run straight out to sea down the distance-to-the-map-edge gradient.
+ * Routes out: along the lanes from every lane tile to the nearest entrance, and from each entrance
+ * a run straight out to sea down the distance-to-the-map-edge gradient, clear of the shelter's own
+ * works (its breakwater, its entrance buoys).
  * @param {(r, c) => boolean} isSea open sea a boat may cross (not land, not any shelter's works)
  */
-function planTyphoonShelterRoutes(analysis, worksItems, isSea, { offshoreTiles = TYPHOON_SHELTER_FLEET.offshoreTiles, width, height } = {}) {
+function planTyphoonShelterRoutes(analysis, worksItems, isSea, { offshoreTiles = TYPHOON_SHELTER_FLEET.offshoreTiles, width, height, lanes = null } = {}) {
+  const laneSet = lanes || planTyphoonShelterMooring(analysis, worksItems).lanes;
   const blocked = typhoonShelterBlockedTiles(worksItems);
-  const passable = (k) => analysis.basin.has(k) && !blocked.has(k);
+  const openSea = (r, c) => isSea(r, c) && !blocked.has(tfKey(r, c));
   const parent = new Map();
+  const depth = new Map();
   const exitOf = new Map();
   const queue = [];
   analysis.entrances.filter((e) => e.status === 'ok').forEach((e, i) => {
-    e.tiles.forEach((k) => { parent.set(k, null); exitOf.set(k, i); queue.push(k); });
+    e.tiles.forEach((k) => { parent.set(k, null); depth.set(k, 0); exitOf.set(k, i); queue.push(k); });
   });
   for (let qi = 0; qi < queue.length; qi++) {
     const k = queue[qi];
     const [r, c] = tfParse(k);
     Object.values(TF_DIRS).forEach(([dr, dc]) => {
       const n = tfKey(r + dr, c + dc);
-      if (parent.has(n) || !passable(n)) return;
+      if (parent.has(n) || !laneSet.has(n)) return;
       parent.set(n, k);
+      depth.set(n, depth.get(k) + 1);
       exitOf.set(n, exitOf.get(k));
       queue.push(n);
     });
@@ -137,30 +108,32 @@ function planTyphoonShelterRoutes(analysis, worksItems, isSea, { offshoreTiles =
     let [r, c] = [mid[0] + out[0], mid[1] + out[1]];
     const seen = new Set();
     const edgeDist = (rr, cc) => Math.min(rr, cc, (height ?? Infinity) - 1 - rr, (width ?? Infinity) - 1 - cc);
-    for (let i = 0; i < offshoreTiles && isSea(r, c) && !seen.has(tfKey(r, c)); i++) {
+    for (let i = 0; i < offshoreTiles && openSea(r, c) && !seen.has(tfKey(r, c)); i++) {
       run.push([r, c]);
       seen.add(tfKey(r, c));
       // keep heading out; bend toward the nearer map edge when the way ahead is blocked
       const options = Object.values(TF_DIRS)
         .map(([dr, dc]) => [r + dr, c + dc, dr, dc])
-        .filter(([nr, nc]) => isSea(nr, nc) && !seen.has(tfKey(nr, nc)) && !analysis.basin.has(tfKey(nr, nc)));
+        .filter(([nr, nc]) => openSea(nr, nc) && !seen.has(tfKey(nr, nc)) && !analysis.basin.has(tfKey(nr, nc)));
       if (!options.length) break;
-      options.sort((a, b) => (b[2] === out[0] && b[3] === out[1]) - (a[2] === out[0] && a[3] === out[1])
-        || edgeDist(a[0], a[1]) - edgeDist(b[0], b[1]));
+      options.sort((x, y) => (y[2] === out[0] && y[3] === out[1]) - (x[2] === out[0] && x[3] === out[1])
+        || edgeDist(x[0], x[1]) - edgeDist(y[0], y[1]));
       [r, c] = options[0];
     }
     return run;
   });
-  return { parent, exitOf, seaRuns };
+  return { parent, depth, exitOf, seaRuns };
 }
 
-// A boat's whole route out, as tile centres: berth -> entrance -> open sea.
+// A berth's way out: off the berth onto the lane beside it nearest an entrance, along the lanes,
+// out through the entrance and away to sea.
 function typhoonShelterRouteFor(routes, slot) {
-  const start = slot.tiles[0];
-  if (!routes.parent.has(start)) return null;
+  const access = (slot.access || slot.tiles).filter((k) => routes.parent.has(k))
+    .sort((x, y) => routes.depth.get(x) - routes.depth.get(y) || x.localeCompare(y))[0];
+  if (!access) return null;
   const path = [slot.centre];
-  for (let k = routes.parent.get(start); k !== null && k !== undefined; k = routes.parent.get(k)) path.push(tfParse(k));
-  const run = routes.seaRuns[routes.exitOf.get(start)] || [];
+  for (let k = access; k !== null && k !== undefined; k = routes.parent.get(k)) path.push(tfParse(k));
+  const run = routes.seaRuns[routes.exitOf.get(access)] || [];
   return path.concat(run);
 }
 
@@ -245,7 +218,41 @@ function reconcileTyphoonShelterFleet(fleet, slots, target, { seed = 0, arrivals
   return { ...fleet, nextId, boats };
 }
 
-// Today's times for one boat: { depart, back } in minutes of the sky-day.
+/**
+ * Today's sailing order for a shelter's fishing boats: Map boatId -> { depart, back } (minutes of
+ * the sky-day). Out in the morning the boats nearest the entrance go first, so no boat ever comes up
+ * behind a slower start on its lane; home in the evening the boats going furthest in come first, so
+ * none waits behind a boat turning into its berth. The window is shared out evenly - with all at one
+ * speed, boats on a common lane stay that many minutes apart - with a little play each day.
+ */
+function typhoonShelterFleetSchedule(plan, routeLengthOf, day) {
+  const F = TYPHOON_SHELTER_FLEET;
+  const boats = (plan.fleet?.boats || []).filter((b) => isTyphoonShelterFishingModel(b.model));
+  const len = (b) => routeLengthOf(b) || 0;
+  const out = [...boats].sort((x, y) => len(x) - len(y) || x.id - y.id);
+  const home = [...boats].sort((x, y) => len(y) - len(x) || x.id - y.id);
+  const n = Math.max(1, boats.length);
+  const slot = (i, from, span, salt, b) => from + ((i + 0.5 + (tfHash(plan.seed, salt, b.id, day) - 0.5) * 0.3) / n) * span;
+  const times = new Map(boats.map((b) => [b.id, {}]));
+  out.forEach((b, i) => { times.get(b.id).depart = slot(i, F.departFrom, F.departSpan, 'out', b); });
+  home.forEach((b, i) => { times.get(b.id).back = slot(i, F.returnFrom, F.returnSpan, 'in', b); });
+  return times;
+}
+
+// The day's schedule, worked out once per shelter, day, fleet and layout (the boats ask every frame).
+const typhoonShelterScheduleCache = new Map();
+
+function getTyphoonShelterFleetScheduleCached(plan, geometry, day) {
+  const boats = plan.fleet?.boats || [];
+  const key = `${day}|${geometry.key}|${boats.map((b) => `${b.id}:${b.slot}:${b.model}`).join(',')}`;
+  const hit = typhoonShelterScheduleCache.get(plan.id);
+  if (hit && hit.key === key) return hit.times;
+  const times = typhoonShelterFleetSchedule(plan, (b) => geometry.routeBySlot.get(b.slot)?.length, day);
+  typhoonShelterScheduleCache.set(plan.id, { key, times });
+  return times;
+}
+
+// One boat's own times, for a boat outside a schedule: { depart, back } in minutes of the sky-day.
 function typhoonShelterBoatTimes(seed, boatId, day) {
   const F = TYPHOON_SHELTER_FLEET;
   return {
@@ -260,11 +267,11 @@ function typhoonShelterBoatTimes(seed, boatId, day) {
  * route from the berth. `hold` ({ day, from }) keeps boats in from that minute of that day: no one
  * leaves after it, and anyone out turns for home at it.
  */
-function typhoonShelterBoatState(boat, routeLength, env, { seed = 0, hold = null, fishing = true } = {}) {
+function typhoonShelterBoatState(boat, routeLength, env, { seed = 0, hold = null, fishing = true, times = null } = {}) {
   if (!fishing || !(routeLength > 0)) return { mode: 'moored', distance: 0 };
   const day = Math.floor(env / TYPHOON_SHELTER_MINUTES_PER_DAY);
   const minute = env - day * TYPHOON_SHELTER_MINUTES_PER_DAY;
-  const { depart, back: scheduledBack } = typhoonShelterBoatTimes(seed, boat.id, day);
+  const { depart, back: scheduledBack } = times || typhoonShelterBoatTimes(seed, boat.id, day);
   const held = hold && hold.day === day ? hold.from : Infinity;
   if (depart >= held) return { mode: 'moored', distance: 0 };
   const travel = routeLength / TYPHOON_SHELTER_FLEET.speedTilesPerMinute;
@@ -316,7 +323,8 @@ function getTyphoonShelterFleetGeometry(plan, analysis) {
   const key = `${plan.basin}|${JSON.stringify(plan.entrances)}|${items.length}`;
   const cached = typhoonShelterFleetCache.get(plan.id);
   if (cached && cached.key === key) return cached;
-  const slots = computeTyphoonShelterBerths(analysis, items);
+  const mooring = planTyphoonShelterMooring(analysis, items);
+  const slots = mooring.slots;
   const taken = new Set();
   if (typeof getTyphoonShelterAnalyses === 'function') {
     getTyphoonShelterAnalyses().forEach((a) => { a.basin.forEach((k) => taken.add(k)); a.ring.forEach((k) => taken.add(k)); });
@@ -324,7 +332,7 @@ function getTyphoonShelterFleetGeometry(plan, analysis) {
   analysis.entrances.forEach((e) => e.tiles.forEach((k) => taken.delete(k)));
   const isSea = (r, c) => isInsideMap(r, c) && mapData[r][c] === WATER
     && !(typeof isBridgeTile === 'function' && isBridgeTile(r, c)) && !taken.has(`${r}:${c}`);
-  const routes = planTyphoonShelterRoutes(analysis, items, isSea, { width: MAP_WIDTH, height: MAP_HEIGHT });
+  const routes = planTyphoonShelterRoutes(analysis, items, isSea, { width: MAP_WIDTH, height: MAP_HEIGHT, lanes: mooring.lanes });
   const routeBySlot = new Map(slots.map((s) => {
     const route = typhoonShelterRouteFor(routes, s);
     return [s.key, route ? { route, length: typhoonShelterRouteLength(route) } : null];
@@ -371,19 +379,20 @@ function summarizeTyphoonShelterFleet(plan, analysis, env = getTyphoonShelterFle
   const day = Math.floor(env / TYPHOON_SHELTER_MINUTES_PER_DAY);
   const minute = env - day * TYPHOON_SHELTER_MINUTES_PER_DAY;
   out.held = !!(fleet.hold && fleet.hold.day === day);
+  const schedule = getTyphoonShelterFleetScheduleCached(plan, geometry, day);
   let catchTonnes = 0;
   fleet.boats.forEach((b) => {
     out.boats += 1;
     const fishing = isTyphoonShelterFishingModel(b.model);
     if (fishing) out.fishing += 1;
     const rl = geometry.routeBySlot.get(b.slot)?.length || 0;
-    const st = typhoonShelterBoatState(b, rl, env, { seed: plan.seed, hold: fleet.hold, fishing });
+    const st = typhoonShelterBoatState(b, rl, env, { seed: plan.seed, hold: fleet.hold, fishing, times: schedule.get(b.id) });
     if (st.mode === 'out') out.out += 1;
     else if (st.mode === 'away') out.away += 1;
     else if (st.mode === 'in') out.home += 1;
     else out.moored += 1;
     if (fishing) {
-      const { depart, back } = typhoonShelterBoatTimes(plan.seed, b.id, day);
+      const { depart, back } = schedule.get(b.id) || typhoonShelterBoatTimes(plan.seed, b.id, day);
       const held = out.held ? fleet.hold.from : Infinity;
       if (depart < minute && depart < held) {
         out.tripsToday += 1;
@@ -416,12 +425,13 @@ function updateTyphoonShelterBoats(scene) {
     noteTyphoonShelterWeatherHold(plan, env);
     const geometry = getTyphoonShelterFleetGeometry(plan, analysis);
     const slotByKey = new Map(geometry.slots.map((s) => [s.key, s]));
+    const schedule = getTyphoonShelterFleetScheduleCached(plan, geometry, Math.floor(env / TYPHOON_SHELTER_MINUTES_PER_DAY));
     plan.fleet.boats.forEach((boat) => {
       const slot = slotByKey.get(boat.slot);
       const r = geometry.routeBySlot.get(boat.slot);
       if (!slot || !r) return;
       const fishing = isTyphoonShelterFishingModel(boat.model);
-      const st = typhoonShelterBoatState(boat, r.length, env, { seed: plan.seed, hold: plan.fleet.hold, fishing });
+      const st = typhoonShelterBoatState(boat, r.length, env, { seed: plan.seed, hold: plan.fleet.hold, fishing, times: schedule.get(boat.id) });
       const id = `${plan.id}|${boat.id}`;
       if (st.mode === 'away') return;
       live.add(id);
@@ -471,6 +481,8 @@ function drawTyphoonShelterBoat(scene, id, objectId, point, rotation, facings) {
   let rec = scene.typhoonShelterBoats.get(id);
   if (!rec) {
     rec = { sprite: scene.add.image(0, 0, key), key: null };
+    // under the world mask, as the shelter's works are (see maskTyphoonShelterSprite)
+    if (typeof maskTyphoonShelterSprite === 'function') maskTyphoonShelterSprite(scene, rec.sprite);
     scene.typhoonShelterBoats.set(id, rec);
   }
   const sprite = rec.sprite;
@@ -479,7 +491,8 @@ function drawTyphoonShelterBoat(scene, id, objectId, point, rotation, facings) {
   if (rec.key !== stamp) {
     sprite.setTexture(key);
     rec.key = stamp;
-    const texture = scene.textures.get(key).getSourceImage();
+    const texture = typeof getTyphoonShelterTextureSize === 'function'
+      ? getTyphoonShelterTextureSize(scene, key) : scene.textures.get(key).getSourceImage();
     const ground = getTyphoonShelterSpriteGround(scene, choice, key);
     const size = getTyphoonShelterObjectSize(objectId);
     const art = ground && measureTyphoonShelterArt(ground, size, ground.top);
@@ -493,8 +506,9 @@ function drawTyphoonShelterBoat(scene, id, objectId, point, rotation, facings) {
   const p = isoToScreen(point.c, point.r);
   const x = p.x + scene.offsetX;
   const y = p.y + scene.offsetY - BUILDING_SURFACE_Y_OFFSET - TILE_HEIGHT / 2;
-  sprite.setVisible(true);
   sprite.setPosition(x, y);
+  // off screen it is not drawn: a boat's texture between the buildings splits the sprite batch
+  sprite.setVisible(typeof isTyphoonShelterSpriteInView !== 'function' || isTyphoonShelterSpriteInView(scene, sprite));
   sprite.setDepth(getBuildingSortDepth(p.y, 1, 1, 0));
 }
 
@@ -502,6 +516,7 @@ function clearTyphoonShelterBoats(scene) {
   scene?.typhoonShelterBoats?.forEach((rec) => rec.sprite?.destroy());
   scene?.typhoonShelterBoats?.clear();
   typhoonShelterFleetCache.clear();
+  typhoonShelterScheduleCache.clear();
 }
 
 const typhoonShelterFleetApi = {
@@ -514,6 +529,7 @@ const typhoonShelterFleetApi = {
   createTyphoonShelterFleet,
   reconcileTyphoonShelterFleet,
   typhoonShelterBoatTimes,
+  typhoonShelterFleetSchedule,
   typhoonShelterBoatState,
   isTyphoonShelterFishingModel,
   normalizeTyphoonShelterFleet,

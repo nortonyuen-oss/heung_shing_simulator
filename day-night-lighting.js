@@ -456,6 +456,27 @@ function preloadBuildingNightTextures(scene, keys) {
   });
 }
 
+// Night art ships at a fraction of its day texture's size (scripts/bake-night-textures.js,
+// NIGHT_TEXTURE_SCALE) - the same canvas, scaled. Give the loaded night texture its day texture's
+// size: Phaser draws a frame at its size and maps it onto the image by size / source size, so the
+// small image is stretched over the full frame, and a sprite swapped onto it keeps its scale,
+// origin and footprint. Done once per night texture.
+function fitNightTextureToDay(scene, nightKey, dayKey) {
+  const night = scene.textures.get(nightKey);
+  const day = dayKey && scene.textures.exists(dayKey) ? scene.textures.get(dayKey) : null;
+  if (!night || !day || night.__fittedToDay === dayKey) return;
+  const source = night.source?.[0];
+  const dayFrame = day.get();
+  const frame = night.get();
+  if (!source || !dayFrame || !frame) return;
+  if (source.width !== dayFrame.width || source.height !== dayFrame.height) {
+    source.width = dayFrame.width;
+    source.height = dayFrame.height;
+    frame.setSize(dayFrame.width, dayFrame.height);
+  }
+  night.__fittedToDay = dayKey;
+}
+
 function applyBuildingNightTexture(scene, sprite, wantNight, variant = 'night') {
   const key = getBuildingNightTextureKey(sprite, variant);
   if (!key) return false;
@@ -472,6 +493,7 @@ function applyBuildingNightTexture(scene, sprite, wantNight, variant = 'night') 
     }
     if (sprite.texture.key !== key) {
       sprite.__dayTextureKey = sprite.__dayTextureKey ?? sprite.texture.key;
+      fitNightTextureToDay(scene, key, sprite.__dayTextureKey);
       sprite.setTexture(key);
       // The small-hours tint (applyNightObjectTint) only re-walks the sprites
       // when the depth moves, so a swap mid-plateau has to keep it itself.

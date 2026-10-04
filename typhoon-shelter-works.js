@@ -16,7 +16,9 @@
 // A middle-sized shelter (~110 tiles of water, ~30 of breakwater) comes to about $2,600 and
 // $40 a month; the smallest legal one to about $1,200.
 const TYPHOON_SHELTER_WORK_KINDS = Object.freeze({
-  pier: Object.freeze({ objectId: 'pierSet1', cost: 400, upkeep: 6, label: '碼頭' }),
+  // the landing where the road meets the shelter (it makes the shelter run); its stone-pier art is
+  // out of scale beside the promenade, so it is not drawn for now (Norton, 2026-10-04)
+  pier: Object.freeze({ objectId: 'pierSet1', cost: 400, upkeep: 6, label: '碼頭', drawn: false }),
   // breakwater heads at the entrances carry the navigation lights
   head: Object.freeze({ objectId: 'causeway2', cost: 200, upkeep: 2, label: '燈塔堤頭' }),
   breakwater: Object.freeze({ objectId: 'causeway1', cost: 30, upkeep: 0.5, label: '防波堤' }),
@@ -33,12 +35,15 @@ const TYPHOON_SHELTER_WORK_KINDS = Object.freeze({
   // the basin, and a square of deck filling each concave corner
   quay: Object.freeze({ objectId: 'quayStraight', cost: 20, upkeep: 0.3, label: '海堤' }),
   quayFill: Object.freeze({ objectId: 'quayDeckSquare', cost: 5, upkeep: 0.1, label: '海堤轉角' }),
+  // a beach by the shelter that no promenade faces the sea from: paved over all the same (drawn as
+  // plain ground - no sprite), so no stretch of sand is left between the walkway and the sea
+  quayGround: Object.freeze({ objectId: null, cost: 0, upkeep: 0, label: '鋪平沙灘' }),
 });
 const TYPHOON_SHELTER_DEMOLISH = Object.freeze({ cost: 10, label: '拆卸' });
 const TYPHOON_SHELTER_ROAD_REACH = 3;          // tiles from the pier's landing to a road
 // Floating walkways (浮橋): like a fishing village's or a marina's, each runs straight out from the
 // shore, a landing stage with steps up to the shore at its root, boats moored along both sides.
-const TYPHOON_SHELTER_BERTHS_PER_WALKWAY = 12;
+const TYPHOON_SHELTER_BERTHS_PER_WALKWAY = 8;    // (berths net of the lanes)
 const TYPHOON_SHELTER_MAX_WALKWAYS = 4;
 const TYPHOON_SHELTER_WALKWAY_MAX_TILES = 5;   // root included: up to 100 m out
 const TYPHOON_SHELTER_WALKWAY_SPACING = 3;     // tiles between roots along the shore
@@ -66,6 +71,15 @@ function twRunFacing(analysis, k) {
   const ring = analysis.ring;
   if (ring.has(twKey(r, c - 1)) || ring.has(twKey(r, c + 1))) return 'e';
   return 'n';
+}
+
+// A head's facing: toward the breakwater it caps. The head art has its landing steps on its facing
+// side, so they meet the breakwater, which is drawn on over them - the steps stay hidden and the head
+// joins the wall instead of standing apart from it.
+function twHeadFacing(analysis, k) {
+  const [r, c] = twParse(k);
+  return Object.keys(TW_DIRS).find((d) => analysis.breakwater.has(twKey(r + TW_DIRS[d][0], c + TW_DIRS[d][1])))
+    || twRunFacing(analysis, k);
 }
 
 /**
@@ -98,7 +112,7 @@ function layoutTyphoonShelterWorks(plan, analysis, ctx = {}) {
     [run[first - 1], run[last + 1]].forEach((k) => { if (k && analysis.breakwater.has(k)) entranceHeads.add(k); });
   });
   analysis.breakwater.forEach((k) => {
-    if (entranceHeads.has(k)) add('head', k, twRunFacing(analysis, k));
+    if (entranceHeads.has(k)) add('head', k, twHeadFacing(analysis, k));
     else add('breakwater', k, twRunFacing(analysis, k));
   });
   // breakwater roots: a line's last tile, with land straight on beyond it - or the headland just
@@ -126,27 +140,72 @@ function layoutTyphoonShelterWorks(plan, analysis, ctx = {}) {
   const quayTiles = new Set();
   if (ctx.isQuaySite) {
     const strips = new Set();
-    analysis.shoreEdges.forEach((e) => {
-      const [lr, lc] = e.out;
-      if (!ctx.isQuaySite(lr, lc)) return;
-      const facing = TW_OPPOSITE[e.side];
+    const faced = new Set();                // the water tiles the quay faces
+    const addStrip = (lr, lc, facing) => {
       const key = twWorkKey('quay', lr, lc, facing);
       if (strips.has(key)) return;
       strips.add(key);
       quayTiles.add(twKey(lr, lc));
+      faced.add(twKey(lr + TW_DIRS[facing][0], lc + TW_DIRS[facing][1]));
       works.push({ key, kind: 'quay', row: lr, col: lc, facing });
+    };
+    analysis.shoreEdges.forEach((e) => {
+      if (ctx.isQuaySite(e.out[0], e.out[1])) addStrip(e.out[0], e.out[1], TW_OPPOSITE[e.side]);
     });
+    // Where the breakwater meets the shore, the promenade runs on along the seawall behind it and the
+    // breakwater butts against the wall (it does not cut the walkway in two): the shore beside a
+    // breakwater tile is faced like the shore beside the water.
+    [...analysis.ring].sort().forEach((k) => {
+      const [r, c] = twParse(k);
+      Object.entries(TW_DIRS).forEach(([dir, [dr, dc]]) => {
+        const [lr, lc] = [r + dr, c + dc];
+        if (!analysis.basin.has(twKey(lr, lc)) && ctx.isQuaySite(lr, lc)) addStrip(lr, lc, TW_OPPOSITE[dir]);
+      });
+    });
+    // The coast round the shelter: land (a beach too - it is paved over) within two tiles of it that
+    // meets the open sea gets the promenade as well, so the walkway runs on to the water's edge past
+    // the breakwater's ends instead of giving way to sand.
+    if (ctx.isOpenWater) {
+      const near = new Set();
+      [...analysis.basin, ...analysis.ring].forEach((k) => {
+        const [r, c] = twParse(k);
+        for (let dr = -2; dr <= 2; dr++) for (let dc = -2; dc <= 2; dc++) near.add(twKey(r + dr, c + dc));
+      });
+      [...near].sort().forEach((k) => {
+        const [r, c] = twParse(k);
+        if (analysis.basin.has(k) || analysis.ring.has(k) || !ctx.isQuaySite(r, c)) return;
+        Object.entries(TW_DIRS).forEach(([facing, [dr, dc]]) => {
+          const w = twKey(r + dr, c + dc);
+          if (!analysis.basin.has(w) && !analysis.ring.has(w) && ctx.isOpenWater(r + dr, c + dc)) addStrip(r, c, facing);
+        });
+      });
+    }
+    // ...and a beach near the shelter that faces no sea is paved over too (see quayGround)
+    const nearBeaches = [];
+    if (ctx.isBeach) {
+      const zone = new Set();
+      [...analysis.basin, ...analysis.ring].forEach((k) => {
+        const [r, c] = twParse(k);
+        for (let dr = -2; dr <= 2; dr++) for (let dc = -2; dc <= 2; dc++) zone.add(twKey(r + dr, c + dc));
+      });
+      [...zone].sort().forEach((k) => {
+        const [r, c] = twParse(k);
+        if (ctx.isBeach(r, c) && ctx.isQuaySite(r, c)) nearBeaches.push(k);
+      });
+    }
+    // where two strips meet round a concave corner, a square of paving fills the corner (on the
+    // land tile diagonal to the water)
     const hasStrip = (r, c, facing) => strips.has(twWorkKey('quay', r, c, facing));
     const fills = new Set();
-    analysis.basin.forEach((k) => {
+    [...faced].sort().forEach((k) => {
       const [br, bc] = twParse(k);
       [[-1, -1], [-1, 1], [1, -1], [1, 1]].forEach(([dr, dc]) => {
         const [tr, tc] = [br + dr, bc + dc];
-        // the two tiles beside the corner both face this basin tile with a quay
-        const vertical = dr > 0 ? 'n' : 's';   // from them, the basin tile lies that way
+        // the two tiles beside the corner both face this water tile with a quay
+        const vertical = dr > 0 ? 'n' : 's';   // from them, the water tile lies that way
         const horizontal = dc > 0 ? 'w' : 'e';
         if (!hasStrip(br + dr, bc, vertical) || !hasStrip(br, bc + dc, horizontal)) return;
-        if (analysis.basin.has(twKey(tr, tc)) || !ctx.isQuaySite(tr, tc)) return;
+        if (faced.has(twKey(tr, tc)) || analysis.basin.has(twKey(tr, tc)) || !ctx.isQuaySite(tr, tc)) return;
         const corner = `${vertical}${horizontal}`;
         const key = twWorkKey('quayFill', tr, tc, null, corner);
         if (fills.has(key)) return;
@@ -154,6 +213,12 @@ function layoutTyphoonShelterWorks(plan, analysis, ctx = {}) {
         quayTiles.add(twKey(tr, tc));
         works.push({ key, kind: 'quayFill', row: tr, col: tc, facing: vertical, corner });
       });
+    });
+    nearBeaches.forEach((k) => {
+      if (quayTiles.has(k)) return;
+      const [r, c] = twParse(k);
+      quayTiles.add(k);
+      works.push({ key: twWorkKey('quayGround', r, c), kind: 'quayGround', row: r, col: c, facing: 'n' });
     });
   }
 
@@ -237,18 +302,25 @@ function layoutTyphoonShelterWorks(plan, analysis, ctx = {}) {
     const ends = [e.tiles[0], e.tiles[e.tiles.length - 1]].map(twParse);
     const along = (t) => t[0] * port[0] + t[1] * port[1];
     const [portEnd, starboardEnd] = along(ends[0]) >= along(ends[1]) ? ends : [ends[1], ends[0]];
-    const outside = (t) => twKey(t[0] + out[0], t[1] + out[1]);
-    [['navBuoyRed', outside(portEnd)], ['navBuoyGreen', outside(starboardEnd)]].forEach(([kind, k]) => {
+    // one tile out and one to the side of each end: the boats pass between them, not over them
+    const outside = (t, side) => twKey(t[0] + out[0] + side[0], t[1] + out[1] + side[1]);
+    [['navBuoyRed', outside(portEnd, port)], ['navBuoyGreen', outside(starboardEnd, [-port[0], -port[1]])]].forEach(([kind, k]) => {
       if (!ctx.isOpenWater || ctx.isOpenWater(...twParse(k))) add(kind, k, e.side);
     });
   });
 
-  // mooring buoys spread over the berth water, never on the channel or by the shore works
+  // mooring buoys on the water the boats leave free: not a lane, not a berth (see
+  // planTyphoonShelterMooring), never on the channel or by the shore works
   const target = Math.floor(analysis.berths.mooringTiles / TYPHOON_SHELTER_TILES_PER_MOORING_BUOY);
   const nearWorks = (k) => { const [r, c] = twParse(k); return [[0, 1], [0, -1], [1, 0], [-1, 0]].some(([dr, dc]) => used.has(twKey(r + dr, c + dc))); };
+  // (water no boat uses first, then a sampan's one-tile berth - a sampan lies at a buoy anyway)
+  const mooring = planTyphoonShelterMooring(analysis, works);
+  const boatWater = new Set([...mooring.lanes, ...mooring.slots.flatMap((sl) => sl.tiles)]);
+  const sampanBerths = new Set(mooring.slots.filter((sl) => sl.size === 1).map((sl) => sl.key));
   const candidates = [...analysis.basin]
-    .filter((k) => !analysis.channel.has(k) && !used.has(k) && !shoreTiles.has(k) && !nearWorks(k))
-    .sort((a, b) => twHash(seed, ...twParse(a)) - twHash(seed, ...twParse(b)));
+    .filter((k) => !analysis.channel.has(k) && !used.has(k) && !shoreTiles.has(k) && !nearWorks(k)
+      && (!boatWater.has(k) || sampanBerths.has(k)))
+    .sort((a, b) => boatWater.has(a) - boatWater.has(b) || twHash(seed, ...twParse(a)) - twHash(seed, ...twParse(b)));
   const buoys = [];
   for (const k of candidates) {
     if (buoys.length >= target) break;
@@ -258,6 +330,115 @@ function layoutTyphoonShelterWorks(plan, analysis, ctx = {}) {
     add('mooringBuoy', k, 'e');
   }
   return works;
+}
+
+/**
+ * Lanes and berths (水道與泊位). A boat moves only along lanes, so it never passes over another
+ * boat. The fairway between the entrances is the main lane; more lanes run in straight lines
+ * parallel to the walkways (perpendicular to the shore) - walkway, berth, lane, walkway: boats lie
+ * along each walkway with a lane beside them - or, with no walkways, parallel to the fairway, a lane
+ * every third line. A lane cut off from the fairway is joined to it by the shortest way across.
+ * Berths are the open water beside a lane: two tiles for a big boat lying along the lane, one for a
+ * sampan. Mooring buoys are not obstacles here (they are put on water no lane or berth uses).
+ * Returns { lanes: Set, slots: [{ key, tiles, size, axis, centre, access: [lane keys] }] }.
+ */
+function planTyphoonShelterMooring(analysis, worksItems = []) {
+  const solid = new Set(worksItems.filter((i) => ['pier', 'floatingPier', 'pontoon'].includes(i.kind)).map((i) => twKey(i.row, i.col)));
+  const buoys = new Set(worksItems.filter((i) => i.kind === 'mooringBuoy').map((i) => twKey(i.row, i.col)));
+  const free = new Set([...analysis.basin].filter((k) => !solid.has(k)));
+  const near = (k) => { const [r, c] = twParse(k); return Object.values(TW_DIRS).map(([dr, dc]) => twKey(r + dr, c + dc)); };
+  const lanes = new Set([...analysis.channel].filter((k) => free.has(k)));
+  // the lane lines
+  const walk = worksItems.find((i) => i.kind === 'pontoon');
+  let lineOf;
+  let laneAt;
+  if (walk) {
+    const rows = walk.facing === 'e' || walk.facing === 'w';   // a walkway along a row
+    lineOf = (r, c) => (rows ? r : c);
+    const origin = rows ? walk.row : walk.col;
+    laneAt = (v) => (((v - origin) % 3) + 3) % 3 === 2;
+  } else {
+    const ch = [...analysis.channel].map(twParse);
+    const span = (i) => (ch.length ? Math.max(...ch.map((p) => p[i])) - Math.min(...ch.map((p) => p[i])) : 0);
+    const rows = span(1) >= span(0);                           // the fairway runs along a row
+    lineOf = (r, c) => (rows ? r : c);
+    const vals = ch.map((p) => (rows ? p[0] : p[1])).sort((x, y) => x - y);
+    const origin = vals.length ? vals[Math.floor(vals.length / 2)] : 0;
+    laneAt = (v) => (((v - origin) % 3) + 3) % 3 === 0;
+  }
+  free.forEach((k) => { const [r, c] = twParse(k); if (laneAt(lineOf(r, c)) && !buoys.has(k)) lanes.add(k); });
+  if (!lanes.size) {
+    analysis.entrances.forEach((e) => {
+      const inward = TW_DIRS[TW_OPPOSITE[e.side]];
+      e.tiles.forEach((k) => { const [r, c] = twParse(k); const n = twKey(r + inward[0], c + inward[1]); if (free.has(n)) lanes.add(n); });
+    });
+  }
+  // join every lane to the fairway: grow the connected lanes out over the water, nearest first
+  const connected = new Set();
+  const flood = (seeds) => {
+    const q = [...seeds];
+    for (let i = 0; i < q.length; i++) {
+      near(q[i]).forEach((n) => { if (lanes.has(n) && !connected.has(n)) { connected.add(n); q.push(n); } });
+    }
+  };
+  const fairway = [...analysis.channel].filter((k) => lanes.has(k));
+  (fairway.length ? fairway : [...lanes].slice(0, 1)).forEach((k) => connected.add(k));
+  flood([...connected]);
+  for (let guard = 0; guard < 400; guard++) {
+    const loose = [...lanes].filter((k) => !connected.has(k));
+    if (!loose.length) break;
+    const prev = new Map([...connected].map((k) => [k, null]));
+    const q = [...connected].sort();
+    let hit = null;
+    for (let i = 0; i < q.length && !hit; i++) {
+      for (const n of near(q[i])) {
+        if (!free.has(n) || buoys.has(n) || prev.has(n)) continue;
+        prev.set(n, q[i]);
+        if (lanes.has(n) && !connected.has(n)) { hit = n; break; }
+        q.push(n);
+      }
+    }
+    if (!hit) {
+      loose.forEach((k) => lanes.delete(k));   // water no lane can reach: no lane, no berths there
+      break;
+    }
+    for (let k = prev.get(hit); k && !connected.has(k); k = prev.get(k)) { lanes.add(k); connected.add(k); }
+    connected.add(hit);
+    flood([...connected]);
+  }
+  // berths: open water beside a lane, nearest the walkways and the pier first
+  const isBerth = (k) => free.has(k) && !connected.has(k) && !buoys.has(k) && near(k).some((n) => connected.has(n));
+  const landings = [...solid].map(twParse);
+  const toWorks = (k) => {
+    const [r, c] = twParse(k);
+    return landings.length ? Math.min(...landings.map(([lr, lc]) => Math.abs(lr - r) + Math.abs(lc - c))) : 0;
+  };
+  const order = [...free].filter(isBerth).sort((x, y) => toWorks(x) - toWorks(y) || x.localeCompare(y));
+  const used = new Set();
+  const slots = [];
+  order.forEach((k) => {
+    if (used.has(k)) return;
+    const [r, c] = twParse(k);
+    // a big boat lies along its lane: pair with the berth beside it in the lane's direction
+    const laneDir = Object.entries(TW_DIRS).find(([, [dr, dc]]) => connected.has(twKey(r + dr, c + dc)))?.[0];
+    const axes = laneDir === 'n' || laneDir === 's' ? ['e', 's'] : ['s', 'e'];
+    let pair = null;
+    for (const axis of axes) {
+      const [dr, dc] = TW_DIRS[axis];
+      for (const sign of [1, -1]) {
+        const other = twKey(r + sign * dr, c + sign * dc);
+        if (isBerth(other) && !used.has(other)) { pair = { other, axis }; break; }
+      }
+      if (pair) break;
+    }
+    used.add(k);
+    const tiles = pair ? [k, pair.other] : [k];
+    if (pair) used.add(pair.other);
+    const access = [...new Set(tiles.flatMap((t) => near(t).filter((n) => connected.has(n))))];
+    const centre = [tiles.reduce((s2, t) => s2 + twParse(t)[0], 0) / tiles.length, tiles.reduce((s2, t) => s2 + twParse(t)[1], 0) / tiles.length];
+    slots.push({ key: k, tiles, size: tiles.length, axis: pair ? pair.axis : 'e', centre, access });
+  });
+  return { lanes: connected, slots };
 }
 
 function createTyphoonShelterWorks() {
@@ -315,7 +496,7 @@ function summarizeTyphoonShelterWorks(works, analysis, { pierConnected = false }
   const occupied = new Set(items.filter((i) => ['pier', 'floatingPier', 'pontoon'].includes(i.kind) && analysis?.basin?.has(twKey(i.row, i.col)))
     .map((i) => twKey(i.row, i.col))).size;
   const mooring = Math.max(0, (analysis?.berths?.mooringTiles || 0) - occupied);
-  const total = Math.floor(mooring / 2);
+  const total = Math.floor(mooring / 3);   // as analyzeTyphoonShelter: lanes take a row in three
   const reserved = Math.ceil((total * (analysis?.berths?.reserved || 0)) / Math.max(1, analysis?.berths?.total || 1));
   const upkeep = items.filter((i) => i.state === 'done').reduce((sum, i) => sum + (TYPHOON_SHELTER_WORK_KINDS[i.kind]?.upkeep || 0), 0);
   return {
@@ -358,6 +539,7 @@ const typhoonShelterWorksApi = {
   TYPHOON_SHELTER_DEMOLISH,
   TYPHOON_SHELTER_ROAD_REACH,
   layoutTyphoonShelterWorks,
+  planTyphoonShelterMooring,
   createTyphoonShelterWorks,
   reconcileTyphoonShelterWorks,
   completeTyphoonShelterWorks,

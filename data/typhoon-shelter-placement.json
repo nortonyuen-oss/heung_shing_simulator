@@ -432,7 +432,7 @@
      388.6
     ]
    },
-   "facing": "ne",
+   "facing": "se",
    "auto": false,
    "method": "outline",
    "top": 117.1,
@@ -1425,6 +1425,159 @@
    "top": 430,
    "facing": "se",
    "auto": true,
+   "method": "outline"
+  },
+  "promenadeDeck_a": {
+   "ground": {
+    "left": [
+     286,
+     384
+    ],
+    "front": [
+     429.5,
+     455
+    ],
+    "right": [
+     736,
+     305
+    ]
+   },
+   "facing": "nw",
+   "auto": false,
+   "method": "deck"
+  },
+  "promenadeEdgeBack_a": {
+   "ground": {
+    "left": [
+     42.2,
+     92.3
+    ],
+    "front": [
+     187.4,
+     165
+    ],
+    "right": [
+     332.4,
+     93.5
+    ]
+   },
+   "facing": "nw",
+   "auto": false,
+   "method": "cell"
+  },
+  "promenadeEdgeFront_a": {
+   "ground": {
+    "left": [
+     -75.8,
+     118.9
+    ],
+    "front": [
+     69,
+     191.6
+    ],
+    "right": [
+     213.6,
+     120.2
+    ]
+   },
+   "facing": "se",
+   "auto": false,
+   "method": "cell"
+  },
+  "promenadeFill_a": {
+   "ground": {
+    "left": [
+     112,
+     147
+    ],
+    "front": [
+     256.5,
+     219
+    ],
+    "right": [
+     400,
+     148
+    ]
+   },
+   "facing": "se",
+   "auto": false,
+   "method": "deck"
+  },
+  "promenadeFront_a": {
+   "ground": {
+    "left": [
+     286,
+     342
+    ],
+    "front": [
+     430.5,
+     414
+    ],
+    "right": [
+     737,
+     264
+    ]
+   },
+   "facing": "se",
+   "auto": false,
+   "method": "deck"
+  },
+  "promenadeKerbBack_a": {
+   "ground": {
+    "left": [
+     46.2,
+     97.3
+    ],
+    "front": [
+     191.4,
+     170.1
+    ],
+    "right": [
+     336.5,
+     98.5
+    ]
+   },
+   "facing": "nw",
+   "auto": false,
+   "method": "cell"
+  },
+  "promenadeKerbFront_a": {
+   "ground": {
+    "left": [
+     -80.1,
+     33.9
+    ],
+    "front": [
+     65,
+     106.7
+    ],
+    "right": [
+     210.1,
+     35.2
+    ]
+   },
+   "facing": "se",
+   "auto": false,
+   "method": "cell"
+  },
+  "promenadeLamp_a": {
+   "ground": {
+    "left": [
+     43,
+     204
+    ],
+    "front": [
+     63,
+     214
+    ],
+    "right": [
+     85,
+     203
+    ]
+   },
+   "top": 52,
+   "facing": "se",
+   "auto": false,
    "method": "outline"
   },
   "quayDeckSquare_a": {

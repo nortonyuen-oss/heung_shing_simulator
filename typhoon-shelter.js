@@ -325,7 +325,8 @@ function analyzeTyphoonShelter(plan, map) {
   // berths
   const channelSet = channel || new Set();
   const mooring = [...basin].filter((k) => !channelSet.has(k)).length;
-  const berthsTotal = Math.floor(mooring / 2);
+  // lanes keep one row of water in three clear (typhoon-shelter-fleet.js); a boat takes two tiles
+  const berthsTotal = Math.floor(mooring / 3);
   const reservePct = Number.isFinite(plan.reservePct) ? plan.reservePct : TYPHOON_SHELTER_DEFAULT_RESERVE_PCT;
   const reserved = Math.ceil((berthsTotal * reservePct) / 100);
   const berths = { total: berthsTotal, reserved, daily: berthsTotal - reserved, mooringTiles: mooring };

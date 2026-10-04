@@ -233,6 +233,9 @@ function cullSpriteMapEntries(map, bounds, seen = null, mainCamera = null, mainB
       for (const sprite of value) apply(sprite);
     } else if (typeof value.setVisible === 'function') {
       apply(value);
+    } else if (value.sprite && typeof value.sprite.setVisible === 'function') {
+      // a typhoon shelter record ({ sprite, drawable }): culled only once it can be drawn
+      if (value.drawable !== false) apply(value.sprite);
     } else if (value.body || value.top) {
       // Bridge ramp entries are a plain { body, top } pair of images rather
       // than a single game object (see upsertBridgeRampSprite).
@@ -295,5 +298,9 @@ function updateSpriteViewportCulling(scene, bounds) {
   collect(cullSpriteMapEntries(scene.powerLineSprites, bounds, seen, mainCamera, mainBounds));
   collect(cullSpriteMapEntries(scene.bridgeSprites, bounds, seen, mainCamera, mainBounds));
   collect(cullSpriteMapEntries(scene.districtSignSprites, bounds, seen, mainCamera, mainBounds));
+  // 避風塘 works and props: each is a texture of its own between the buildings, so drawing one off
+  // screen still splits the sprite batch (and on ANGLE/Metal each split stalls) - cull them like
+  // the buildings. The boats move every frame and cull themselves (typhoon-shelter-fleet.js).
+  collect(cullSpriteMapEntries(scene.typhoonShelterObjects, bounds, seen, mainCamera, mainBounds));
   return totals;
 }

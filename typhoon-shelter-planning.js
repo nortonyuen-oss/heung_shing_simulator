@@ -20,6 +20,10 @@ const TYPHOON_SHELTER_COLORS = Object.freeze({
 });
 
 let typhoonShelterMode = 'basin';            // 'basin' | 'entrance' | 'inspect'
+// A drag that changes a built shelter (擴建 / 削減) waits here, drawn as a preview with its price,
+// until 「確定擴建」 builds it (or 「取消」 drops it): built works are rebuilt and paid for at once, so
+// the change is not made on the mouse button's release.
+let typhoonShelterPendingEdit = null;
 let typhoonShelterSelectedId = null;
 let typhoonShelterDragPreview = null;        // { result, rect, mode, targetId }
 let typhoonShelterGraphics = null;
@@ -41,6 +45,7 @@ function setTyphoonShelterState(state) {
   city.typhoonShelters = typeof rememberNormalizedCityStateObject === 'function'
     ? rememberNormalizedCityStateObject(state) : state;
   typhoonShelterAnalysisCache = { key: '', byId: new Map() };
+  typhoonShelterTerrainCheck = { at: -Infinity, stamp: null };
 }
 
 // The terrain alone: water, land, bridge or occupied water.
@@ -53,10 +58,18 @@ function typhoonShelterBaseKind(r, c) {
 }
 
 // Every shelter's tiles (basin + breakwater line), from the terrain alone.
+// The boats ask for the analyses every frame: the terrain round the shelters is re-checked at most
+// twice a second (a change there shows within half a second), the plans themselves every call.
+let typhoonShelterTerrainCheck = { at: -Infinity, stamp: null };
+
 function getTyphoonShelterAnalyses() {
   const state = getTyphoonShelterState();
   const key = state.shelters.map((s) => `${s.id}|${s.basin}|${JSON.stringify(s.entrances)}|${s.reservePct}`).join('#');
-  if (typhoonShelterAnalysisCache.key === key && typhoonShelterAnalysisCache.terrainStamp === typhoonShelterTerrainStamp()) {
+  const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+  if (typhoonShelterAnalysisCache.key !== key || now - typhoonShelterTerrainCheck.at > 500) {
+    typhoonShelterTerrainCheck = { at: now, stamp: typhoonShelterTerrainStamp() };
+  }
+  if (typhoonShelterAnalysisCache.key === key && typhoonShelterAnalysisCache.terrainStamp === typhoonShelterTerrainCheck.stamp) {
     return typhoonShelterAnalysisCache.byId;
   }
   const baseMap = { width: MAP_WIDTH, height: MAP_HEIGHT, kind: typhoonShelterBaseKind };
@@ -65,7 +78,7 @@ function getTyphoonShelterAnalyses() {
     return [s.id, new Set([...a.basin, ...a.ring])];
   }));
   const byId = new Map(state.shelters.map((s) => [s.id, analyzeTyphoonShelter(s, getTyphoonShelterMap(s.id, footprints))]));
-  typhoonShelterAnalysisCache = { key, terrainStamp: typhoonShelterTerrainStamp(), byId, footprints };
+  typhoonShelterAnalysisCache = { key, terrainStamp: typhoonShelterTerrainCheck.stamp, byId, footprints };
   return byId;
 }
 
@@ -181,7 +194,35 @@ function commitTyphoonShelterDrag(scene, start, end, subtract) {
     redrawTyphoonShelterPlanning(scene);
     return false;
   }
+  const target = result.targetId && getTyphoonShelterState().shelters.find((s) => s.id === result.targetId);
+  if (target?.works?.approved) {
+    typhoonShelterPendingEdit = { ...result, subtract: !!subtract };
+    typhoonShelterSelectedId = target.id;
+    redrawTyphoonShelterPlanning(scene);
+    return true;
+  }
+  typhoonShelterPendingEdit = null;
   return commitTyphoonShelterPlan(scene, result.plan, result.analysis);
+}
+
+// 「確定擴建」: build the waiting change to a built shelter (charged now, refused if it cannot be paid).
+function confirmTyphoonShelterPendingEdit(scene = typeof activeScene !== 'undefined' ? activeScene : null) {
+  const pending = typhoonShelterPendingEdit;
+  if (!pending) return false;
+  typhoonShelterPendingEdit = null;
+  const ok = commitTyphoonShelterPlan(scene, pending.plan, pending.analysis);
+  if (!ok) typhoonShelterPendingEdit = pending;
+  if (ok && typeof showToast === 'function') {
+    showToast(tsT('typhoonShelter.toast.expanded', `「${pending.plan.name}」已經改好。`, { name: pending.plan.name }), 'success');
+  }
+  redrawTyphoonShelterPlanning(scene);
+  return ok;
+}
+
+function cancelTyphoonShelterPendingEdit(scene = typeof activeScene !== 'undefined' ? activeScene : null) {
+  if (!typhoonShelterPendingEdit) return;
+  typhoonShelterPendingEdit = null;
+  redrawTyphoonShelterPlanning(scene);
 }
 
 // Store a new or changed plan. A built shelter is rebuilt to match at once and the bill paid
@@ -316,7 +357,7 @@ function redrawTyphoonShelterPlanning(scene = typeof activeScene !== 'undefined'
   g.clear();
   if (!visible) return;
   const analyses = getTyphoonShelterAnalyses();
-  const preview = typhoonShelterDragPreview;
+  const preview = typhoonShelterDragPreview || typhoonShelterPendingEdit;
   analyses.forEach((a, id) => {
     if (preview && !preview.rejected && preview.targetId === id) return;
     drawTyphoonShelterAnalysis(g, scene, a, { selected: id === typhoonShelterSelectedId });
@@ -368,6 +409,8 @@ function createTyphoonShelterDom() {
       #ts-modebar .ts-confirm{background:#1f9d5c;border-color:#7ce8a8;color:#06210f;font-weight:700;margin-left:8px}
       #ts-modebar .ts-confirm:disabled{background:#2a3a48;border-color:#3f5566;color:#8aa0b2;cursor:not-allowed}
       #ts-modebar .ts-confirm-note{color:#ffd27a;font-size:12px;max-width:320px}
+      #ts-modebar .ts-cancel{margin-left:4px}
+      #ts-panel .ts-expand{background:#1f6f9d;border-color:#7cc8e8;color:#eaf6ff;font-weight:700}
       #ts-modebar .ts-confirm-note.ok{color:#9be89b}
       #ts-panel{position:fixed;top:140px;right:16px;width:300px;z-index:900;background:rgba(12,24,38,.95);border:1px solid #3f6f8c;
         border-radius:12px;padding:12px 14px;color:#eaf6ff;font:13px/1.5 system-ui,-apple-system,"PingFang HK","Noto Sans TC",sans-serif;
@@ -398,6 +441,7 @@ function createTyphoonShelterDom() {
     <button type="button" data-ts-mode="inspect">${tsT('typhoonShelter.mode.inspect', '檢視')}</button>
     <span class="ts-hint"></span>
     <button type="button" class="ts-confirm" hidden></button>
+    <button type="button" class="ts-cancel" hidden>${tsT('typhoonShelter.cancel', '取消')}</button>
     <span class="ts-confirm-note"></span>`;
   document.body.appendChild(bar);
   const panel = document.createElement('div');
@@ -414,7 +458,7 @@ function createTyphoonShelterDom() {
       <dl class="ts-works-stats"></dl>
       <div class="ts-note ts-works-block"></div>
     </div>
-    <div class="ts-row"><button type="button" class="ts-approve">${tsT('typhoonShelter.approve', '開展工程')}</button><button type="button" class="ts-delete">${tsT('typhoonShelter.delete', '刪除規劃')}</button></div>
+    <div class="ts-row"><button type="button" class="ts-approve">${tsT('typhoonShelter.approve', '開展工程')}</button><button type="button" class="ts-expand" hidden>${tsT('typhoonShelter.expand', '擴建')}</button><button type="button" class="ts-delete">${tsT('typhoonShelter.delete', '刪除規劃')}</button></div>
     <div class="ts-note ts-stage-note"></div>`;
   document.body.appendChild(panel);
   typhoonShelterDom = { bar, panel };
@@ -424,6 +468,7 @@ function createTyphoonShelterDom() {
   }));
   panel.querySelector('.ts-close').addEventListener('click', () => {
     typhoonShelterSelectedId = null;
+    typhoonShelterPendingEdit = null;
     redrawTyphoonShelterPlanning();
   });
   panel.querySelector('.ts-name').addEventListener('change', (e) => updateSelectedTyphoonShelter({ name: e.target.value.trim().slice(0, 40) }));
@@ -443,7 +488,18 @@ function createTyphoonShelterDom() {
     redrawTyphoonShelterPlanning();
   });
   panel.querySelector('.ts-approve').addEventListener('click', () => approveTyphoonShelterWorks(typhoonShelterSelectedId));
-  bar.querySelector('.ts-confirm').addEventListener('click', () => approveTyphoonShelterWorks(typhoonShelterSelectedId));
+  bar.querySelector('.ts-confirm').addEventListener('click', () => {
+    if (typhoonShelterPendingEdit) confirmTyphoonShelterPendingEdit();
+    else approveTyphoonShelterWorks(typhoonShelterSelectedId);
+  });
+  bar.querySelector('.ts-cancel').addEventListener('click', () => cancelTyphoonShelterPendingEdit());
+  panel.querySelector('.ts-expand').addEventListener('click', () => {
+    typhoonShelterMode = 'basin';
+    syncTyphoonShelterTool();
+    if (typeof showToast === 'function') {
+      showToast(tsT('typhoonShelter.toast.expandHow', '由避風塘水域邊向外拖曳，劃出要加嘅水域，然後撳「確定擴建」。'), 'info');
+    }
+  });
   ['pointerdown', 'wheel'].forEach((type) => {
     bar.addEventListener(type, (e) => e.stopPropagation());
     panel.addEventListener(type, (e) => e.stopPropagation());
@@ -466,14 +522,17 @@ function renderTyphoonShelterPanel() {
   if (!typhoonShelterDom) return;
   const { panel, bar } = typhoonShelterDom;
   bar.querySelectorAll('[data-ts-mode]').forEach((b) => { b.dataset.active = String(b.dataset.tsMode === typhoonShelterMode); });
+  const selectedPlan = getTyphoonShelterState().shelters.find((s) => s.id === typhoonShelterSelectedId);
   bar.querySelector('.ts-hint').textContent = typhoonShelterMode === 'basin'
-    ? tsT('typhoonShelter.hint.basin', '拖曳加入水域；Shift＋拖曳削減。最少 6×8 格，一邊要靠岸。')
+    ? (selectedPlan?.works?.approved
+      ? tsT('typhoonShelter.hint.expand', '擴建：由避風塘水域邊向外拖曳；Shift＋拖曳削減；然後撳「確定擴建」。')
+      : tsT('typhoonShelter.hint.basin', '拖曳加入水域；Shift＋拖曳削減。最少 6×8 格，一邊要靠岸。'))
     : typhoonShelterMode === 'entrance'
       ? tsT('typhoonShelter.hint.entrance', '撳防波堤開 2 格出入口；撳旁邊加闊（長過 10 格嘅邊）；撳出入口取消。')
       : tsT('typhoonShelter.hint.inspect', '撳避風塘睇資料。');
-  const preview = typhoonShelterDragPreview;
+  const preview = typhoonShelterDragPreview || typhoonShelterPendingEdit;
   const state = getTyphoonShelterState();
-  renderTyphoonShelterConfirm(bar, state.shelters.find((s) => s.id === typhoonShelterSelectedId), !!preview);
+  renderTyphoonShelterConfirm(bar, state.shelters.find((s) => s.id === typhoonShelterSelectedId), !!typhoonShelterDragPreview);
   const plan = preview?.plan || state.shelters.find((s) => s.id === typhoonShelterSelectedId);
   const a = preview?.analysis || (plan && getTyphoonShelterAnalyses().get(plan.id));
   if (!plan || !a) {
@@ -516,6 +575,9 @@ function renderTyphoonShelterPanel() {
   panel.querySelector('.ts-reserve').value = plan.reservePct;
   panel.querySelector('.ts-reserve-value').textContent = `${plan.reservePct}%`;
   panel.querySelector('.ts-delete').hidden = !!preview?.plan && !preview.targetId;
+  const expand = panel.querySelector('.ts-expand');
+  expand.hidden = !state.shelters.find((s) => s.id === plan.id)?.works?.approved || !!typhoonShelterPendingEdit;
+  expand.dataset.active = String(typhoonShelterMode === 'basin');
   renderTyphoonShelterWorksPanel(panel, plan, a, !!preview);
 }
 
@@ -530,6 +592,24 @@ function renderTyphoonShelterConfirm(bar, plan, previewing) {
     return;
   }
   const a = getTyphoonShelterAnalyses().get(plan.id);
+  const cancel = bar.querySelector('.ts-cancel');
+  cancel.hidden = true;
+  const pending = typhoonShelterPendingEdit;
+  if (pending && pending.targetId === plan.id && plan.works?.approved) {
+    const cost = Math.max(0, Math.round(pending.bill?.cost || 0));
+    const budget = typeof city !== 'undefined' ? Math.floor(Number(city.budget) || 0) : Infinity;
+    const grows = pending.analysis.basin.size >= (a?.basin.size || 0) && !pending.subtract;
+    const verb = grows ? tsT('typhoonShelter.confirmExpand', '確定擴建') : tsT('typhoonShelter.confirmEdit', '確定修改');
+    button.hidden = false;
+    cancel.hidden = false;
+    button.textContent = `${verb}（$${cost.toLocaleString()}）`;
+    const why = !pending.analysis.legal ? (pending.analysis.problems[0]?.message || '')
+      : cost > budget ? tsT('typhoonShelter.notEnoughFunds', `市庫唔夠錢：要 $${cost.toLocaleString()}，而家得 $${budget.toLocaleString()}`, { cost: cost.toLocaleString(), budget: budget.toLocaleString() })
+        : '';
+    button.disabled = !!why;
+    note.textContent = why;
+    return;
+  }
   if (plan.works?.approved) {
     button.hidden = true;
     const sum = typhoonShelterWorkSummaries.get(plan.id) || summarizeTyphoonShelterWorks(plan.works, a, { pierConnected: typhoonShelterPierConnected(plan.works) });
@@ -556,7 +636,7 @@ function renderTyphoonShelterWorksPanel(panel, plan, a, previewing) {
   approve.title = a.legal ? '' : tsT('typhoonShelter.approveBlocked', '規劃未可行，未能興建');
   panel.querySelector('.ts-works').hidden = !works?.approved;
   panel.querySelector('.ts-stage-note').textContent = works?.approved
-    ? tsT('typhoonShelter.builtNote', '改動已建成嘅避風塘會即時重建，並即時收費。')
+    ? tsT('typhoonShelter.builtNote', '擴建或削減：拖曳之後撳「確定擴建」，先會重建同收費。')
     : tsT('typhoonShelter.planningOnly', '規劃中：撳「確定興建」即時建成，一次過收費。');
   if (!works?.approved) return;
   const sum = typhoonShelterWorkSummaries.get(plan.id) || summarizeTyphoonShelterWorks(works, a, { pierConnected: typhoonShelterPierConnected(works) });
@@ -588,6 +668,7 @@ function syncTyphoonShelterTool() {
   typhoonShelterDom.bar.hidden = !active;
   if (!active) {
     typhoonShelterDragPreview = null;
+    typhoonShelterPendingEdit = null;   // leaving the tool drops an unconfirmed change
     if (!typhoonShelterSelectedId) typhoonShelterDom.panel.hidden = true;
   }
   redrawTyphoonShelterPlanning();
@@ -597,9 +678,12 @@ function syncTyphoonShelterTool() {
 function resetTyphoonShelterPlanning() {
   typhoonShelterSelectedId = null;
   typhoonShelterDragPreview = null;
+  typhoonShelterPendingEdit = null;
   typhoonShelterAnalysisCache = { key: '', byId: new Map() };
+  typhoonShelterTerrainCheck = { at: -Infinity, stamp: null };
   typhoonShelterWorkSummaries.clear();
   typhoonShelterQuayTiles = new Set();
+  typhoonShelterPavedTiles = new Set();
   if (typhoonShelterDom) typhoonShelterDom.panel.hidden = true;
   if (typhoonShelterGraphics && typhoonShelterGraphics.scene) typhoonShelterGraphics.clear();
   const scene = typeof activeScene !== 'undefined' ? activeScene : null;
@@ -643,6 +727,7 @@ function typhoonShelterWorksContext() {
     // a shore tile the quay may face: open ground or beach, no road, building or bridge on it
     isQuaySite: (r, c) => typhoonShelterBaseKind(r, c) === 'land' && mapData[r][c] !== ROAD
       && !buildingData?.[getTileId(r, c)] && !taken.has(`${r}:${c}`),
+    isBeach: (r, c) => isInsideMap(r, c) && mapData[r][c] === BEACH,
   };
 }
 
@@ -744,9 +829,110 @@ function typhoonShelterWorksEstimate(plan, analysis) {
   }, { cost: 0, upkeep: 0, count: 0 });
 }
 
-// The railing along a quay's water edge: 海旁欄杆 sections (3.4 m), six to a tile, set in from the
-// edge, with a gap where boats come alongside.
-const QUAY_RAILING = Object.freeze({ objectId: 'shoreFence_straightA', sectionM: 3.4, perTile: 6, insetM: 0.6, landingGapM: 8 });
+// The fittings along a promenade's sea edge, on its coping (metres in from the edge, and along it
+// from the tile's middle): as the harbourfront render has them.
+const QUAY_EDGE = Object.freeze({
+  insetM: 0.9,
+  fittings: Object.freeze([
+    ['pierAssessories_bollardSmall', -7.5], ['pierAssessories_mooringRing', -2.5],
+    ['pierAssessories_mooringRing', 2.5], ['pierAssessories_bollardSmall', 7.5],
+  ]),
+});
+
+// How far from a head's centre the breakwater joining it reaches in (metres): over its steps, short
+// of the lighthouse.
+const HEAD_JOIN_INNER_M = 3;
+
+// 海濱步道, cell by cell. Each shore tile is four 10 m cells; the two cells along a quay side, and a
+// corner fill's cell, are promenade. Every promenade cell gets brick, and each of its four sides:
+// nothing toward more promenade (the brick runs on), the coping - with the wall below it where that
+// side faces the camera - toward the sea or a breakwater, the kerb toward the land. So corners wrap
+// their wall round, the ends of a run close with a kerb, and no kerb ever crosses the brick.
+const PROMENADE_CELL_SIDE = Object.freeze({ n: [[0, 0], [0, 1]], s: [[1, 0], [1, 1]], w: [[0, 0], [1, 0]], e: [[0, 1], [1, 1]] });
+
+function layTyphoonShelterPromenade(plan, wanted, basin = null) {
+  const band = new Set();
+  (plan.works?.items || []).forEach((i) => {
+    if (i.state !== 'done') return;
+    if (i.kind === 'quay') {
+      (PROMENADE_CELL_SIDE[i.facing] || []).forEach(([dr, dc]) => band.add(`${2 * i.row + dr}:${2 * i.col + dc}`));
+    } else if (i.kind === 'quayFill') {
+      const [v, h] = [...(i.corner || 'nw')];
+      band.add(`${2 * i.row + (v === 's' ? 1 : 0)}:${2 * i.col + (h === 'e' ? 1 : 0)}`);
+    }
+  });
+  const half = TYPHOON_SHELTER_TILE_M / 4;   // a cell's centre, out from its tile's centre
+  const step = { n: [-1, 0], e: [0, 1], s: [1, 0], w: [0, -1] };
+  band.forEach((key) => {
+    const [R, C] = key.split(':').map(Number);
+    const row = Math.floor(R / 2);
+    const col = Math.floor(C / 2);
+    const offsets = [[R % 2 ? 's' : 'n', half], [C % 2 ? 'e' : 'w', half]];
+    const piece = (suffix, objectId, facing, depthBias) => wanted.set(`${plan.id}|promenade:${key}${suffix}`, {
+      item: { key: `promenade:${key}`, kind: 'promenade', row, col, facing, state: 'done' },
+      objectId, alpha: 1, tint: null, footprintOverride: { cols: 1, rows: 1 }, shoreAlign: false, shoreDir: null,
+      offsets, sectioned: true, depthBias, alongM: 0,
+    });
+    piece('', 'quayDeckSquare', 'e', 0);
+    Object.entries(step).forEach(([side, [dr, dc]]) => {
+      const [nr, nc] = [R + dr, C + dc];
+      if (band.has(`${nr}:${nc}`)) return;
+      const [tr, tc] = [Math.floor(nr / 2), Math.floor(nc / 2)];
+      const sea = (tr !== row || tc !== col) && mapData[tr]?.[tc] === WATER;
+      piece(`#${side}`, sea ? 'promenadeEdge' : 'promenadeKerb', side, sea ? 0.04 : 0.02);
+      // a railing along the open coast: the sea outside the shelter, or behind its breakwater (the
+      // basin side is where boats come alongside, and keeps its bollards instead)
+      if (sea && basin && !basin.has(`${tr}:${tc}`)) {
+        const run = side === 'n' || side === 's' ? 'e' : 'n';
+        const edge = half - PROMENADE_RAILING.insetM;
+        PROMENADE_RAILING.along.forEach((along, i) => wanted.set(`${plan.id}|promenade:${key}#rail${side}${i}`, {
+          item: { key: `promenade:${key}`, kind: 'promenade', row, col, facing: run, state: 'done' },
+          objectId: PROMENADE_RAILING.objectId, alpha: 1, tint: null, footprintOverride: { cols: 1, rows: 1 },
+          shoreAlign: false, shoreDir: null, sectioned: true, depthBias: 0.06, alongM: 0,
+          offsets: [...offsets, [side, edge], [run, along]],
+        }));
+      }
+    });
+  });
+  return band;
+}
+
+// The railing on the open coast: 海旁欄杆 sections (3.4 m, 1.2 m high), three to a cell side, set
+// in from the sea edge onto the coping.
+const PROMENADE_RAILING = Object.freeze({ objectId: 'shoreFence_straightA', insetM: 0.6, along: Object.freeze([-3.33, 0, 3.33]) });
+
+// Gear left about the waterfront's gravel (石仔地): fishing-gear piles (2-3 m across, 2.2-2.4 m
+// high) on about one cell in four, placed and turned by a hash of the cell, so they stay put.
+const WATERFRONT_CLUTTER = Object.freeze(['shoreAssessories1', 'shoreAssessories3', 'shoreAssessories4']);
+
+function typhoonShelterCellHash(r, c, salt) {
+  let h = (Math.imul(r + 101, 0x9e3779b1) ^ Math.imul(c + 37, 0x85ebca6b) ^ Math.imul(salt + 7, 0xc2b2ae35)) >>> 0;
+  h ^= h >>> 15; h = Math.imul(h, 0x2c1b3c6d) >>> 0; h ^= h >>> 12;
+  return (h >>> 0) / 4294967296;
+}
+
+function layTyphoonShelterClutter(promenadeCells, wanted) {
+  const half = TYPHOON_SHELTER_TILE_M / 4;
+  const dirs = ['n', 'e', 's', 'w'];
+  typhoonShelterPavedTiles.forEach((tile) => {
+    const [row, col] = tile.split(':').map(Number);
+    if (buildingData?.[getTileId(row, col)]) return;
+    for (let dr = 0; dr < 2; dr++) {
+      for (let dc = 0; dc < 2; dc++) {
+        const [R, C] = [2 * row + dr, 2 * col + dc];
+        if (promenadeCells.has(`${R}:${C}`) || typhoonShelterCellHash(R, C, 1) > 0.25) continue;
+        const objectId = WATERFRONT_CLUTTER[Math.floor(typhoonShelterCellHash(R, C, 2) * WATERFRONT_CLUTTER.length)];
+        const jitter = (salt) => (typhoonShelterCellHash(R, C, salt) - 0.5) * 3;
+        wanted.set(`clutter|${R}:${C}`, {
+          item: { key: `clutter:${R}:${C}`, kind: 'clutter', row, col, facing: dirs[Math.floor(typhoonShelterCellHash(R, C, 3) * 4)], state: 'done' },
+          objectId, alpha: 1, tint: null, footprintOverride: { cols: 1, rows: 1 }, shoreAlign: false, shoreDir: null,
+          sectioned: true, depthBias: 0.1, alongM: 0, variant: Math.floor(typhoonShelterCellHash(R, C, 6) * 8),
+          offsets: [[dr ? 's' : 'n', half + jitter(4)], [dc ? 'e' : 'w', half + jitter(5)]],
+        });
+      }
+    }
+  });
+}
 
 // The land tiles a built quay (海堤) stands on: terrain draws them as plain ground (not beach) and
 // the water beside them without a bank (tile-keys.js).
@@ -756,20 +942,60 @@ function isTyphoonShelterQuayTile(row, col) {
   return typhoonShelterQuayTiles.has(`${row}:${col}`);
 }
 
+// The open ground of the waterfront, drawn as 石仔地 (dirt_full): the quay's tiles and the flat,
+// free ground beside them (no road, building or bridge) - the land a shelter's works are
+// built on. Visual only: mapData keeps its terrain, so pulling a shelter down restores the grass.
+let typhoonShelterPavedTiles = new Set();
+
+function isTyphoonShelterPavedTile(row, col) {
+  return typhoonShelterPavedTiles.has(`${row}:${col}`);
+}
+
+function typhoonShelterPaveable(r, c) {
+  return isInsideMap(r, c) && (mapData[r][c] === GROUND || mapData[r][c] === BEACH)
+    && getTileHeight(r, c) === 0 && !buildingData?.[getTileId(r, c)]
+    && !(typeof isBridgeTile === 'function' && isBridgeTile(r, c));
+}
+
 function syncTyphoonShelterQuayTerrain(scene) {
   const next = new Set();
+  const strips = new Set();
   getTyphoonShelterState().shelters.forEach((plan) => (plan.works?.items || []).forEach((item) => {
-    if (item.state === 'done' && (item.kind === 'quay' || item.kind === 'quayFill')) next.add(`${item.row}:${item.col}`);
+    if (item.state !== 'done' || !['quay', 'quayFill', 'quayGround'].includes(item.kind)) return;
+    next.add(`${item.row}:${item.col}`);
+    if (item.kind !== 'quayGround') strips.add(`${item.row}:${item.col}`);
   }));
-  const changed = [...next].filter((k) => !typhoonShelterQuayTiles.has(k))
-    .concat([...typhoonShelterQuayTiles].filter((k) => !next.has(k)));
-  const added = new Set([...next].filter((k) => !typhoonShelterQuayTiles.has(k)));
+  // the gravel spreads from the promenade: its tiles, the open ground round them, and the paved-over
+  // beaches that touch either (a beach patch off on its own stays plain ground)
+  const paved = new Set([...strips].filter((k) => typhoonShelterPaveable(...k.split(':').map(Number))));
+  strips.forEach((k) => {
+    const [r, c] = k.split(':').map(Number);
+    for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+      // beside the quay only open ground: a beach left there meets the sea without a wall
+      if (mapData[r + dr]?.[c + dc] === GROUND && typhoonShelterPaveable(r + dr, c + dc)) paved.add(`${r + dr}:${c + dc}`);
+    }
+  });
+  for (let grown = true; grown;) {
+    grown = false;
+    next.forEach((k) => {
+      if (paved.has(k) || strips.has(k)) return;
+      const [r, c] = k.split(':').map(Number);
+      if ([[-1, 0], [1, 0], [0, -1], [0, 1]].some(([dr, dc]) => paved.has(`${r + dr}:${c + dc}`)) && typhoonShelterPaveable(r, c)) {
+        paved.add(k);
+        grown = true;
+      }
+    });
+  }
+  const before = new Set([...typhoonShelterQuayTiles, ...typhoonShelterPavedTiles]);
+  const after = new Set([...next, ...paved]);
+  const changed = [...after].filter((k) => !before.has(k)).concat([...before].filter((k) => !after.has(k)));
   typhoonShelterQuayTiles = next;
+  typhoonShelterPavedTiles = paved;
   if (!scene || typeof refreshTileArea !== 'function') return;
   changed.forEach((k) => {
     const [r, c] = k.split(':').map(Number);
-    // the quay is built over the ground: no tree stands on it
-    if (added.has(k) && typeof removeTree === 'function') removeTree(scene, r, c);
+    // the waterfront is built over the ground: no tree stands on it
+    if (after.has(k) && typeof removeTree === 'function') removeTree(scene, r, c);
     refreshTileArea(scene, r, c);
   });
 }
@@ -808,17 +1034,16 @@ function syncTyphoonShelterFacilitySprites(scene = typeof activeScene !== 'undef
     return Array.from({ length: n }, (_, i) => (n === 1 ? first : first + ((last - first) * i) / (n - 1)));
   })();
   const ARM_STEP = { n: [-1, 0], e: [0, 1], s: [1, 0], w: [0, -1] };
-  // the water tiles where a landing stage or the pier meets the quay
-  const landings = new Set();
-  getTyphoonShelterState().shelters.forEach((plan) => (plan.works?.items || []).forEach((i) => {
-    if (i.state === 'done' && (i.kind === 'floatingPier' || i.kind === 'pier')) landings.add(`${i.row}:${i.col}`);
-  }));
+  const promenadeCells = new Set();
   getTyphoonShelterState().shelters.forEach((plan) => {
     const walls = new Set((plan.works?.items || []).filter((i) => i.state === 'done' && (i.kind === 'breakwater' || i.kind === 'head'))
       .map((i) => `${i.row}:${i.col}`));
     const armsOf = (item) => Object.keys(ARM_STEP).filter((d) => walls.has(`${item.row + ARM_STEP[d][0]}:${item.col + ARM_STEP[d][1]}`));
+    const analysis = getTyphoonShelterAnalyses().get(plan.id);
+    layTyphoonShelterPromenade(plan, wanted, analysis?.basin).forEach((k) => promenadeCells.add(k));
     (plan.works?.items || []).forEach((item) => {
-      if (item.state !== 'done') return;
+      const workKind = TYPHOON_SHELTER_WORK_KINDS[item.kind];
+      if (item.state !== 'done' || !workKind?.objectId || workKind.drawn === false) return;
       const base = {
         item,
         alpha: 1,
@@ -835,38 +1060,43 @@ function syncTyphoonShelterFacilitySprites(scene = typeof activeScene !== 'undef
       // a quay section lies along its tile's water edge, the wall on the tile edge: 20 m long, its
     // deck ~8 m deep, so its middle is ~6 m out from the tile's centre; a corner fill (8 x 8 m) sits
     // in its corner of the tile, 6 m out both ways
-    if (item.kind === 'quay') {
-      const deckM = getTyphoonShelterObjectMetres('quayStraight')?.acrossM || 8;
-      wanted.set(`${plan.id}|${item.key}`, { ...base, offsets: [[item.facing, (TYPHOON_SHELTER_TILE_M - deckM) / 2]] });
-      // On the deck: a railing along the water edge, open where a landing stage or the pier comes
-      // in (two bollards either side instead), and a lamp on every other tile, near the land side.
-      const run = item.facing === 'n' || item.facing === 's' ? 'e' : 'n';
-      const [dr, dc] = ARM_STEP[item.facing];
-      const landing = landings.has(`${item.row + dr}:${item.col + dc}`);
-      const decor = (suffix, objectId, offsets, facing = item.facing, depthBias = 0.2) => wanted.set(
-        `${plan.id}|${item.key}#${suffix}`, { ...base, objectId, item: { ...item, facing }, offsets, depthBias },
-      );
-      const edgeM = TYPHOON_SHELTER_TILE_M / 2 - QUAY_RAILING.insetM;
-      for (let i = 0; i < QUAY_RAILING.perTile; i++) {
-        const along = (i + 0.5 - QUAY_RAILING.perTile / 2) * QUAY_RAILING.sectionM;
-        if (landing && Math.abs(along) < QUAY_RAILING.landingGapM / 2) continue;
-        decor(`rail${i}`, QUAY_RAILING.objectId, [[item.facing, edgeM], [run, along]], run);
+      if (item.kind === 'quay') {
+        // the promenade itself is laid cell by cell (below); a quay side carries its fittings: on the
+        // coping, as on a working waterfront, bollards and mooring rings along the sea edge
+        // (bollard, ring, ring, bollard each tile), and a lamp on every other tile by the land side
+        const run = item.facing === 'n' || item.facing === 's' ? 'e' : 'n';
+        const decor = (suffix, objectId, offsets, facing = item.facing, depthBias = 0.2) => wanted.set(
+          `${plan.id}|${item.key}#${suffix}`, { ...base, objectId, item: { ...item, facing }, offsets, depthBias },
+        );
+        const edgeM = TYPHOON_SHELTER_TILE_M / 2 - QUAY_EDGE.insetM;
+        // only where boats lie alongside - in the basin; the open coast has its railing instead
+        const [fr, fc] = [item.row + ARM_STEP[item.facing][0], item.col + ARM_STEP[item.facing][1]];
+        if (analysis?.basin.has(`${fr}:${fc}`)) QUAY_EDGE.fittings.forEach(([objectId, along], i) => decor(`fit${i}`, objectId, [[item.facing, edgeM], [run, along]], run));
+        if ((item.row + item.col) % 2 === 0) decor('lamp', 'promenadeLamp', [[item.facing, 1.5]], item.facing, 0.3);
+        return;
       }
-      if (landing) [-1, 1].forEach((side) => decor(`bollard${side}`, 'pierAssessories_bollardSmall', [[item.facing, edgeM - 0.4], [run, side * (QUAY_RAILING.landingGapM / 2 + 0.6)]]));
-      if ((item.row + item.col) % 2 === 0) decor('lamp', 'shoreAssessories2_a', [[item.facing, (TYPHOON_SHELTER_TILE_M - deckM) / 2 - deckM / 2 + 1.5]], item.facing, 0.3);
-      return;
-    }
-    if (item.kind === 'quayFill') {
-      const sideM = (TYPHOON_SHELTER_TILE_M - (getTyphoonShelterObjectMetres('quayDeckSquare')?.alongM || 8)) / 2;
-      wanted.set(`${plan.id}|${item.key}`, { ...base, offsets: [...(item.corner || 'nw')].map((d) => [d, sideM]) });
-      return;
-    }
+      if (item.kind === 'quayFill') return;
     // a breakwater root reaches on toward the land, its rocks up over the shoreline: 12 m when the
       // land is straight ahead, a whole tile when it is the headland round the corner
       if (item.kind === 'breakwaterRoot') {
         const step = { n: [-1, 0], s: [1, 0], e: [0, 1], w: [0, -1] }[item.facing];
+        // against a promenade the breakwater ends at its seawall (its own tile's sections reach it):
+        // reaching on would cover the walkway
+        if (isTyphoonShelterQuayTile(item.row + step[0], item.col + step[1])) return;
         const ahead = mapData[item.row + step[0]]?.[item.col + step[1]];
         wanted.set(`${plan.id}|${item.key}`, { ...base, alongM: ahead === WATER ? 20 : 12, depthBias: -0.5 });
+        return;
+      }
+      // a head: the breakwater it caps runs on into its tile, over the head's side (its steps), so
+      // the two read as one; sorted by where it reaches, it is behind the head when that side faces
+      // away from the camera
+      if (item.kind === 'head') {
+        wanted.set(`${plan.id}|${item.key}`, base);
+        const L = wallM?.alongM || TYPHOON_SHELTER_TILE_M;
+        armsOf(item).forEach((arm) => wanted.set(`${plan.id}|${item.key}#join${arm}`, {
+          ...base, objectId: TYPHOON_SHELTER_WORK_KINDS.breakwater.objectId, item: { ...item, facing: arm },
+          alongM: HEAD_JOIN_INNER_M + L / 2, sectioned: true,
+        }));
         return;
       }
       if (item.kind === 'breakwater') {
@@ -887,6 +1117,7 @@ function syncTyphoonShelterFacilitySprites(scene = typeof activeScene !== 'undef
       }
     });
   });
+  layTyphoonShelterClutter(promenadeCells, wanted);
   [...scene.typhoonShelterObjects.values()].forEach((rec) => {
     if (rec.tag === 'works' && !wanted.has(rec.id)) removeTyphoonShelterObject(scene, rec.id);
   });
@@ -915,7 +1146,7 @@ function syncTyphoonShelterFacilitySprites(scene = typeof activeScene !== 'undef
       alongM: w.alongM,
       sectioned: w.sectioned,
       offsets: w.offsets,
-      variant: (w.item.row * 31 + w.item.col) & 7,
+      variant: w.variant ?? ((w.item.row * 31 + w.item.col) & 7),
     }).catch((error) => console.warn('[typhoon shelter] sprite', error?.message));
   });
 }
@@ -937,10 +1168,14 @@ const typhoonShelterPlanningApi = {
   resetTyphoonShelterPlanning,
   isTyphoonShelterToolActive,
   approveTyphoonShelterWorks,
+  confirmTyphoonShelterPendingEdit,
+  cancelTyphoonShelterPendingEdit,
   runTyphoonShelterWorksDaily,
   getTyphoonShelterMonthlyUpkeep,
   syncTyphoonShelterFacilitySprites,
   isTyphoonShelterQuayTile,
+  isTyphoonShelterPavedTile,
+  layTyphoonShelterPromenade,
 };
 
 if (typeof module !== 'undefined' && module.exports) module.exports = typhoonShelterPlanningApi;

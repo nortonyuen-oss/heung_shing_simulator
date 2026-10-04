@@ -130,8 +130,10 @@ async function verify() {
     const meta = await sharp(stagedPath).metadata();
     // A night variant must be pixel-aligned with its day texture, or the
     // calibrated window positions land in the wrong place.
-    assert.equal(meta.width, day.outputWidth, `${logicalPath} width must match its day texture`);
-    assert.equal(meta.height, day.outputHeight, `${logicalPath} height must match its day texture`);
+    // (it may ship scaled down - entry.nightScale - as long as it is the whole day canvas, scaled)
+    const nightScale = Number(entry.nightScale) || 1;
+    assert.equal(meta.width, Math.max(1, Math.round(day.outputWidth * nightScale)), `${logicalPath} width must match its day texture`);
+    assert.equal(meta.height, Math.max(1, Math.round(day.outputHeight * nightScale)), `${logicalPath} height must match its day texture`);
   }
   for (const [dayLogical, variants] of nightVariantsByDay) {
     assert.deepStrictEqual(

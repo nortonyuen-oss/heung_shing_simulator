@@ -110,6 +110,21 @@ const VARIANTS = [
 ];
 const SAMPLE_DIR = path.join(ROOT, '.data', 'night-samples');
 const STAGE_ROOT = path.join(ROOT, '.data', 'package-assets');
+// Night art can ship at a fraction of its day texture's size (both sides) to save texture memory -
+// a lit model carries four night variants. Full size by default: at half size the lit windows
+// were visibly too soft (Norton, 2026-10-04). The bake itself always runs at full size - the
+// calibrated windows are in the day texture's pixels - and only the written file is scaled;
+// day-night-lighting.js gives a loaded night texture its day texture's size either way.
+const NIGHT_TEXTURE_SCALE = Number(process.env.BAKE_NIGHT_SCALE || 1);
+
+// The baked RGBA as it is shipped: scaled by NIGHT_TEXTURE_SCALE (sharp premultiplies for the resize).
+function shippedNightImage(raw, width, height) {
+  const img = sharp(raw, { raw: { width, height, channels: 4, premultiplied: false } });
+  if (!(NIGHT_TEXTURE_SCALE > 0 && NIGHT_TEXTURE_SCALE < 1)) return { img, width, height };
+  const w = Math.max(1, Math.round(width * NIGHT_TEXTURE_SCALE));
+  const h = Math.max(1, Math.round(height * NIGHT_TEXTURE_SCALE));
+  return { img: img.resize(w, h, { kernel: 'lanczos3', fit: 'fill' }), width: w, height: h };
+}
 const MANIFEST_PATH = path.join(STAGE_ROOT, 'Models', 'model-assets.json');
 
 // A lamp is only baked if its whole pool falls inside the model's silhouette.
@@ -372,8 +387,10 @@ async function main() {
       const old = manifest.entries[christmasLogical];
       if(!sampleOnly.length) { fs.rmSync(path.join(STAGE_ROOT, old.packagedPath), { force: true }); delete manifest.entries[christmasLogical]; }
     }
+    let deepFull = null;   // the full-size deep-night bake, for the Christmas walls below
     for (const variant of christmasOnly ? [] : VARIANTS) {
       const { raw, width, height, lit, kept, dropped } = await bakeOne(src, profiles[slug], variant);
+      if (variant.suffix === '__nightdeep') deepFull = { raw, width, height };
       // Straight alpha: without the flag sharp unpremultiplies on encode and the glow halos
       // (semi-transparent) come out brighter and paler than baked.
       const img = sharp(raw, { raw: { width, height, channels: 4, premultiplied: false } });
@@ -381,33 +398,41 @@ async function main() {
         await img.png().toFile(path.join(SAMPLE_DIR, `${slug}${variant.suffix}.png`));
       } else {
         const packagedPath = entry.packagedPath.replace(/\.webp$/, `${variant.suffix}.webp`);
-        await img.webp({ lossless: true }).toFile(path.join(STAGE_ROOT, packagedPath));
+        const shipped = shippedNightImage(raw, width, height);
+        await shipped.img.webp({ lossless: true }).toFile(path.join(STAGE_ROOT, packagedPath));
         manifest.entries[logicalPath.replace(/\.[^.]+$/, `${variant.suffix}.png`)] = {
           logicalPath: logicalPath.replace(/\.[^.]+$/, `${variant.suffix}.png`),
           packagedPath,
           hash: `${entry.hash}${variant.suffix}`,
-          outputWidth: width,
-          outputHeight: height,
+          outputWidth: shipped.width,
+          outputHeight: shipped.height,
+          nightScale: shipped.width / width,
         };
       }
       counts.push(`${variant.bucket} ${lit}w/${kept}L` + (dropped ? ` (${dropped} lamp(s) spill, dropped)` : ''));
       written += 1;
     }
     if(walls.length) {
-      const deep = sampleOnly.length && !christmasOnly ? path.join(SAMPLE_DIR, `${slug}__nightdeep.png`) : path.join(STAGE_ROOT, entry.packagedPath.replace(/\.webp$/, '__nightdeep.webp'));
-      const base = await sharp(deep).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+      // composited at full size, on the deep-night bake (baked again when only the walls changed)
+      if (!deepFull) {
+        const deepVariant = VARIANTS.find((v) => v.suffix === '__nightdeep');
+        const baked = await bakeOne(src, profiles[slug], deepVariant);
+        deepFull = { raw: baked.raw, width: baked.width, height: baked.height };
+      }
+      const base = { data: Buffer.from(deepFull.raw), info: { width: deepFull.width, height: deepFull.height } };
       const { width, height } = base.info;
       for(const wall of walls) {
         const packaged = manifest.entries[wall.asset]?.packagedPath;
         const art = await sharp(packaged ? path.join(STAGE_ROOT, packaged) : path.join(ROOT,wall.asset)).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
         compositeChristmasWall(base.data,width,height,art.data,art.info.width,art.info.height,wall.c);
       }
-      const img = sharp(base.data,{ raw: { width,height,channels:4 } });
+      const img = sharp(base.data,{ raw: { width,height,channels:4,premultiplied:false } });
       if(sampleOnly.length) await img.png().toFile(path.join(SAMPLE_DIR,`${slug}__nightchristmas.png`));
       else {
         const packagedPath = entry.packagedPath.replace(/\.webp$/, '__nightchristmas.webp');
-        await img.webp({ lossless:true }).toFile(path.join(STAGE_ROOT,packagedPath));
-        manifest.entries[christmasLogical] = { logicalPath:christmasLogical,packagedPath,hash: require('crypto').createHash('sha256').update(base.data).digest('hex'),outputWidth:width,outputHeight:height };
+        const shipped = shippedNightImage(base.data, width, height);
+        await shipped.img.webp({ lossless:true }).toFile(path.join(STAGE_ROOT,packagedPath));
+        manifest.entries[christmasLogical] = { logicalPath:christmasLogical,packagedPath,hash: require('crypto').createHash('sha256').update(base.data).digest('hex'),outputWidth:shipped.width,outputHeight:shipped.height,nightScale:shipped.width / width };
       }
       written++;
     }

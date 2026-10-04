@@ -1403,6 +1403,196 @@
    },
    "mirrored": true
   },
+  "ts_promenadeDeck_a": {
+   "file": "Models/typhoonShelter/ts_promenadeDeck_a.png",
+   "part": "promenadeDeck_a",
+   "width": 1024,
+   "height": 512,
+   "anchor": {
+    "x": 512,
+    "y": 457
+   },
+   "mirrored": false,
+   "facing": "nw"
+  },
+  "ts_promenadeDeck_a_m": {
+   "file": "Models/typhoonShelter/ts_promenadeDeck_a_m.png",
+   "part": "promenadeDeck_a",
+   "width": 1024,
+   "height": 512,
+   "anchor": {
+    "x": 512,
+    "y": 457
+   },
+   "mirrored": true,
+   "facing": "ne"
+  },
+  "ts_promenadeEdgeBack_a": {
+   "file": "Models/typhoonShelter/ts_promenadeEdgeBack_a.png",
+   "part": "promenadeEdgeBack_a",
+   "width": 256,
+   "height": 128,
+   "anchor": {
+    "x": 129,
+    "y": 106
+   },
+   "mirrored": false,
+   "facing": "nw"
+  },
+  "ts_promenadeEdgeBack_a_m": {
+   "file": "Models/typhoonShelter/ts_promenadeEdgeBack_a_m.png",
+   "part": "promenadeEdgeBack_a",
+   "width": 256,
+   "height": 128,
+   "anchor": {
+    "x": 127,
+    "y": 106
+   },
+   "mirrored": true,
+   "facing": "ne"
+  },
+  "ts_promenadeEdgeFront_a": {
+   "file": "Models/typhoonShelter/ts_promenadeEdgeFront_a.png",
+   "part": "promenadeEdgeFront_a",
+   "width": 256,
+   "height": 256,
+   "anchor": {
+    "x": 129,
+    "y": 226
+   },
+   "mirrored": false,
+   "facing": "se"
+  },
+  "ts_promenadeEdgeFront_a_m": {
+   "file": "Models/typhoonShelter/ts_promenadeEdgeFront_a_m.png",
+   "part": "promenadeEdgeFront_a",
+   "width": 256,
+   "height": 256,
+   "anchor": {
+    "x": 127,
+    "y": 226
+   },
+   "mirrored": true,
+   "facing": "sw"
+  },
+  "ts_promenadeFill_a": {
+   "file": "Models/typhoonShelter/ts_promenadeFill_a.png",
+   "part": "promenadeFill_a",
+   "width": 512,
+   "height": 256,
+   "anchor": {
+    "x": 257,
+    "y": 220
+   },
+   "mirrored": false,
+   "facing": "se"
+  },
+  "ts_promenadeFill_a_m": {
+   "file": "Models/typhoonShelter/ts_promenadeFill_a_m.png",
+   "part": "promenadeFill_a",
+   "width": 512,
+   "height": 256,
+   "anchor": {
+    "x": 255,
+    "y": 220
+   },
+   "mirrored": true,
+   "facing": "sw"
+  },
+  "ts_promenadeFront_a": {
+   "file": "Models/typhoonShelter/ts_promenadeFront_a.png",
+   "part": "promenadeFront_a",
+   "width": 1024,
+   "height": 512,
+   "anchor": {
+    "x": 512,
+    "y": 449
+   },
+   "mirrored": false,
+   "facing": "se"
+  },
+  "ts_promenadeFront_a_m": {
+   "file": "Models/typhoonShelter/ts_promenadeFront_a_m.png",
+   "part": "promenadeFront_a",
+   "width": 1024,
+   "height": 512,
+   "anchor": {
+    "x": 512,
+    "y": 449
+   },
+   "mirrored": true,
+   "facing": "sw"
+  },
+  "ts_promenadeKerbBack_a": {
+   "file": "Models/typhoonShelter/ts_promenadeKerbBack_a.png",
+   "part": "promenadeKerbBack_a",
+   "width": 256,
+   "height": 128,
+   "anchor": {
+    "x": 129,
+    "y": 107
+   },
+   "mirrored": false,
+   "facing": "nw"
+  },
+  "ts_promenadeKerbBack_a_m": {
+   "file": "Models/typhoonShelter/ts_promenadeKerbBack_a_m.png",
+   "part": "promenadeKerbBack_a",
+   "width": 256,
+   "height": 128,
+   "anchor": {
+    "x": 127,
+    "y": 107
+   },
+   "mirrored": true,
+   "facing": "ne"
+  },
+  "ts_promenadeKerbFront_a": {
+   "file": "Models/typhoonShelter/ts_promenadeKerbFront_a.png",
+   "part": "promenadeKerbFront_a",
+   "width": 256,
+   "height": 128,
+   "anchor": {
+    "x": 129,
+    "y": 107
+   },
+   "mirrored": false,
+   "facing": "se"
+  },
+  "ts_promenadeKerbFront_a_m": {
+   "file": "Models/typhoonShelter/ts_promenadeKerbFront_a_m.png",
+   "part": "promenadeKerbFront_a",
+   "width": 256,
+   "height": 128,
+   "anchor": {
+    "x": 127,
+    "y": 107
+   },
+   "mirrored": true,
+   "facing": "sw"
+  },
+  "ts_promenadeLamp_a": {
+   "file": "Models/typhoonShelter/ts_promenadeLamp_a.png",
+   "part": "promenadeLamp_a",
+   "width": 128,
+   "height": 256,
+   "anchor": {
+    "x": 65,
+    "y": 215
+   },
+   "mirrored": false
+  },
+  "ts_promenadeLamp_a_m": {
+   "file": "Models/typhoonShelter/ts_promenadeLamp_a_m.png",
+   "part": "promenadeLamp_a",
+   "width": 128,
+   "height": 256,
+   "anchor": {
+    "x": 63,
+    "y": 215
+   },
+   "mirrored": true
+  },
   "ts_quayDeck_a": {
    "file": "Models/typhoonShelter/ts_quayDeck_a.png",
    "part": "quayDeck_a",

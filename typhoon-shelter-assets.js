@@ -117,6 +117,21 @@ const TYPHOON_SHELTER_PARTS = Object.freeze([
   ...typhoonShelterPart('quayStraight', 'seawall', '海堤', [['a', [9, 383, 1005, 633], { facing: 'se', label: '直段' }]]),
   ...typhoonShelterPart('quayDeck', 'seawall', '海堤', [['a', [9, 383, 1005, 507], { facing: 'nw', label: '背向' }]]),
   ...typhoonShelterPart('quayDeckSquare', 'seawall', '海堤', [['a', [224, 491, 575, 292], { facing: 'se', label: '轉角填位' }]]),
+  // 海濱步道 kit, from the harbourfront render by tools/promenade.py (2026-10-04): coping on the sea
+  // edge, red brick, kerb on the land side. The deck as drawn (sea beyond it, nw), the same paving
+  // turned round with the wall below its near edge (sea in front, se), and a brick corner fill.
+  ...typhoonShelterPart('promenadeDeck', 'seawall', '海濱步道', [['a', [60, 58, 904, 446], { facing: 'nw', label: '背向' }]]),
+  ...typhoonShelterPart('promenadeFront', 'seawall', '海濱步道', [['a', [60, 502, 904, 514], { facing: 'se', label: '直段' }]]),
+  ...typhoonShelterPart('promenadeFill', 'seawall', '海濱步道', [['a', [223, 217, 577, 287], { facing: 'se', label: '轉角填位' }]]),
+  // the modular kit (2026-10-04): a 10 x 10 m cell, one layer each - laid cell by cell (see
+  // syncTyphoonShelterFacilitySprites): brick (promenadeFill), and on each side the coping (with the
+  // wall below where it faces the camera) toward the sea or the kerb toward the land
+  ...typhoonShelterPart('promenadeEdgeFront', 'seawall', '海濱步道', [['a', [85, 11, 342, 237], { facing: 'se', label: '海邊壓頂（連牆）' }]]),
+  ...typhoonShelterPart('promenadeEdgeBack', 'seawall', '海濱步道', [['a', [85, 79, 341, 169], { facing: 'nw', label: '海邊壓頂' }]]),
+  ...typhoonShelterPart('promenadeKerbFront', 'seawall', '海濱步道', [['a', [93, 87, 325, 161], { facing: 'se', label: '路邊石' }]]),
+  ...typhoonShelterPart('promenadeKerbBack', 'seawall', '海濱步道', [['a', [93, 87, 325, 161], { facing: 'nw', label: '路邊石（背）' }]]),
+  // the vintage lamp standing on the promenade in the same render (tools/lamp.py)
+  ...typhoonShelterPart('promenadeLamp', 'prop', '海濱街燈', [['a', [17, 170, 94, 334]]]),
 ]);
 
 const TYPHOON_SHELTER_PARTS_BY_ID = Object.freeze(Object.fromEntries(TYPHOON_SHELTER_PARTS.map((p) => [p.id, p])));
@@ -392,8 +407,16 @@ const TYPHOON_SHELTER_OBJECTS = Object.freeze([
   ...typhoonShelterSingleObjects('pierAssessories', 'land', 1, 1),
   // a quay along one edge of a shore tile, its wall on the water side: drawn with the wall when the
   // water side faces the camera, as the deck alone when it faces away
-  typhoonShelterObject('quayStraight', '海堤', 'seawall', 'land', { quayStraight_a: 'se', quayDeck_a: 'nw' }, 1, 1),
-  typhoonShelterObject('quayDeckSquare', '海堤轉角填位', 'seawall', 'land', { quayDeckSquare_a: 'se' }, 1, 1),
+  // (the 海濱步道 art, since 2026-10-04; the earlier quay pieces stay as parts)
+  typhoonShelterObject('quayStraight', '海濱步道', 'seawall', 'land', { promenadeFront_a: 'se', promenadeDeck_a: 'nw' }, 1, 1),
+  typhoonShelterObject('quayDeckSquare', '海濱步道轉角填位', 'seawall', 'land', { promenadeFill_a: 'se' }, 1, 1),
+  // the kit's sides: facing = the side of the cell the coping / kerb lies on
+  typhoonShelterObject('promenadeEdge', '海濱步道海邊', 'seawall', 'land', { promenadeEdgeFront_a: 'se', promenadeEdgeBack_a: 'nw' }, 1, 1),
+  typhoonShelterObject('promenadeKerb', '海濱步道路邊石', 'seawall', 'land', { promenadeKerbFront_a: 'se', promenadeKerbBack_a: 'nw' }, 1, 1),
+  typhoonShelterObject('promenadeLamp', '海濱街燈', 'prop', 'land', { promenadeLamp_a: 'se' }, 1, 1),
+  // the first quay pieces (a taller grey stone wall), kept as their own objects
+  typhoonShelterObject('quayWall', '海堤（石牆）', 'seawall', 'land', { quayStraight_a: 'se', quayDeck_a: 'nw' }, 1, 1),
+  typhoonShelterObject('quayWallFill', '海堤（石牆）轉角填位', 'seawall', 'land', { quayDeckSquare_a: 'se' }, 1, 1),
 ]);
 const TYPHOON_SHELTER_OBJECTS_BY_ID = Object.freeze(Object.fromEntries(TYPHOON_SHELTER_OBJECTS.map((o) => [o.id, o])));
 
@@ -442,8 +465,12 @@ const TYPHOON_SHELTER_REAL_SIZES = Object.freeze({
   // (Hong Kong typhoon-shelter breakwater crests are 3-5 m above the sea), level with the
   // lighthouse head's platform; a tile of breakwater is drawn as two overlapping sections
   causeway1: { lengthM: 16 }, causeway1b: { lengthM: 12 },
-  // a quay section is one tile's edge long (its deck ~8 m deep, wall ~2.3 m); the fill is 8 x 8 m
-  quayStraight: { lengthM: 20 }, quayDeckSquare: { lengthM: 8 }, causeway2: { lengthM: 16 }, causeway3: { lengthM: 16 },
+  // a promenade section is one tile's edge long (its deck ~9.4 m deep); the fill is a square of it
+  quayStraight: { lengthM: 20 }, quayDeckSquare: { lengthM: 10 }, promenadeEdge: { lengthM: 10 }, promenadeKerb: { lengthM: 10 },
+  // a Victorian-style harbourfront lamp: ~4.2 m to the top of its lantern
+  promenadeLamp: { heightM: 4.2 }, quayWall: { lengthM: 20 }, quayWallFill: { lengthM: 8 },
+  // breakwater heads: as wide as the breakwater (~10 m), the light ~12 m above the water
+  causeway2: { lengthM: 12 }, causeway3: { lengthM: 12 },
   // 珍寶海鮮舫 ~76 m
   floatingRestaurant1: { lengthM: 76 }, floatingRestaurant2: { lengthM: 76 }, floatingRestaurant3: { lengthM: 76 },
   bout1_a: { heightM: 5.5 }, bout1_b: { heightM: 5.5 }, bout2: { heightM: 1.6 }, bout3: { heightM: 1.6 },

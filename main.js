@@ -327,6 +327,8 @@ function updateGameFrame(time, delta) {
   updateVesselVisuals.call(this, time, delta);
   // 避風塘 boats: their positions follow the environment clock (typhoon-shelter-fleet.js)
   if (typeof updateTyphoonShelterBoats === 'function') updateTyphoonShelterBoats(this);
+  if (typeof updateTyphoonShelterBobbing === 'function') updateTyphoonShelterBobbing(this, time);
+  if (typeof updateTyphoonShelterLights === 'function') updateTyphoonShelterLights(this, time);
   if (profileSections) {
     recordVisualRoutePerformanceDuration(this, 'vessel', performance.now() - sectionStartedAt);
     sectionStartedAt = performance.now();

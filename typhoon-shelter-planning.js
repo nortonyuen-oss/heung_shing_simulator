@@ -938,6 +938,11 @@ function layTyphoonShelterClutter(promenadeCells, wanted) {
 // the water beside them without a bank (tile-keys.js).
 let typhoonShelterQuayTiles = new Set();
 
+// A landing stage against a promenade: its shore end stands this far off the seawall, in metres
+// (negative: short of the shoreline), so the pontoon floats in front of the wall and only its rails
+// rise past the coping (tried in game at 1.5, 0, -1.5 and -3 m, 2026-10-04).
+const TYPHOON_SHELTER_PROMENADE_LANDING_OVERLAP_M = -2;
+
 function isTyphoonShelterQuayTile(row, col) {
   return typhoonShelterQuayTiles.has(`${row}:${col}`);
 }
@@ -1054,6 +1059,11 @@ function syncTyphoonShelterFacilitySprites(scene = typeof activeScene !== 'undef
         // sand); a walkway's landing stage always reaches up onto the shore, beach or not
         shoreAlign: item.kind === 'floatingPier' || (item.kind === 'pier' && mapData[item.row]?.[item.col] === WATER),
         shoreDir: item.kind === 'floatingPier' ? item.facing : null,
+        // against a promenade the landing stage floats on the water, alongside the seawall (pushed
+        // the usual 8 m onto the shore it stood on the paving)
+        shoreOverlapM: item.kind === 'floatingPier'
+          && isTyphoonShelterQuayTile(item.row + (ARM_STEP[item.facing]?.[0] || 0), item.col + (ARM_STEP[item.facing]?.[1] || 0))
+          ? TYPHOON_SHELTER_PROMENADE_LANDING_OVERLAP_M : null,
         depthBias: item.kind === 'floatingPier' ? 1 : 0,
         alongM: 0,
       };
@@ -1091,7 +1101,14 @@ function syncTyphoonShelterFacilitySprites(scene = typeof activeScene !== 'undef
       // the two read as one; sorted by where it reaches, it is behind the head when that side faces
       // away from the camera
       if (item.kind === 'head') {
-        wanted.set(`${plan.id}|${item.key}`, base);
+        // its lantern flashes the colour of the entrance buoy on its side: red to port coming in,
+        // green to starboard (layoutTyphoonShelterWorks)
+        const buoy = (plan.works?.items || []).filter((i) => i.kind === 'navBuoyRed' || i.kind === 'navBuoyGreen')
+          .reduce((best, i) => {
+            const d = (i.row - item.row) ** 2 + (i.col - item.col) ** 2;
+            return !best || d < best.d ? { d, kind: i.kind } : best;
+          }, null);
+        wanted.set(`${plan.id}|${item.key}`, { ...base, light: `beacon:${buoy?.kind === 'navBuoyGreen' ? 'green' : 'red'}` });
         const L = wallM?.alongM || TYPHOON_SHELTER_TILE_M;
         armsOf(item).forEach((arm) => wanted.set(`${plan.id}|${item.key}#join${arm}`, {
           ...base, objectId: TYPHOON_SHELTER_WORK_KINDS.breakwater.objectId, item: { ...item, facing: arm },
@@ -1123,16 +1140,21 @@ function syncTyphoonShelterFacilitySprites(scene = typeof activeScene !== 'undef
   });
   wanted.forEach((w, id) => {
     const rec = scene.typhoonShelterObjects.get(id);
+    const objectId = w.objectId || TYPHOON_SHELTER_WORK_KINDS[w.item.kind].objectId;
+    const light = getTyphoonShelterRecordLight({ objectId, light: w.light });
     if (rec) {
-      if (rec.alpha !== w.alpha || rec.tint !== w.tint || rec.facing !== w.item.facing) {
-        Object.assign(rec, { alpha: w.alpha, tint: w.tint, facing: w.item.facing });
+      const shoreOverlapM = w.shoreOverlapM ?? null;
+      if (rec.alpha !== w.alpha || rec.tint !== w.tint || rec.facing !== w.item.facing || rec.light !== light
+        || rec.shoreOverlapM !== shoreOverlapM) {
+        Object.assign(rec, { alpha: w.alpha, tint: w.tint, facing: w.item.facing, light, shoreOverlapM });
         positionTyphoonShelterObject(scene, rec);
       }
       return;
     }
     addTyphoonShelterObject(scene, {
       id,
-      objectId: w.objectId || TYPHOON_SHELTER_WORK_KINDS[w.item.kind].objectId,
+      objectId,
+      light,
       row: w.item.row,
       col: w.item.col,
       facing: w.item.facing,
@@ -1142,6 +1164,7 @@ function syncTyphoonShelterFacilitySprites(scene = typeof activeScene !== 'undef
       footprintOverride: w.footprintOverride,
       shoreAlign: w.shoreAlign,
       shoreDir: w.shoreDir,
+      shoreOverlapM: w.shoreOverlapM,
       depthBias: w.depthBias,
       alongM: w.alongM,
       sectioned: w.sectioned,

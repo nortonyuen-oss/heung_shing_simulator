@@ -695,6 +695,10 @@ function applyNightObjectTint(scene, ground) {
   scene.bridgeParapetSprites?.forEach(apply);
   scene.pedestrianRailingSprites?.forEach(apply);
   scene.streetFurnitureSprites?.forEach(apply);
+  // So do the bare-land clutter and the typhoon shelters' works (one being previewed keeps its
+  // own tint); the shelter boats take theirs as they are drawn each frame.
+  scene.debrisSprites?.forEach(apply);
+  scene.typhoonShelterObjects?.forEach((record) => { if (!record.tint) apply(record.sprite); });
 
   // Buildings take a lighter share (see NIGHT_BUILDING_DARKNESS_SHARE). Once a
   // model carries a baked night texture its darkening is in the pixels and it

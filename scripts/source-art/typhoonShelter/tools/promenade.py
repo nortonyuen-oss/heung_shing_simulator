@@ -1,6 +1,7 @@
 """promenade.py - the 海濱步道 (harbourfront promenade) kit from Norton's waterfront render.
 
-    python3 promenade.py          (run from this folder; reads ../original/seawall/promenadeEdge.png)
+    python3 promenade.py [--paving grey|weathered|render]
+                                  (run from this folder; reads ../original/seawall/promenadeEdge.png)
 
 The render (2026-10-04) is a whole waterfront: sea behind, a strip of coping, red brick paving and
 kerb along it, the road in front; on an opaque, painted chequerboard. It is the promenade seen with
@@ -17,6 +18,12 @@ and promenade-geometry.json: each output's deck corners (left, front, right) in 
 The coping is rebuilt from the kerb (the same stone, mirrored across the strip), which drops the
 bollards and mooring rings standing on it - the game places its own along the edge - and the cut
 leaves out the sea, the road and the chequerboard.
+
+The render's brick is a flat, saturated red (Norton, 2026-10-04: "太鮮艷"). The fill's paving is
+toned (tone_paving): 'grey' (the default, Norton's pick) concrete pavers, 'weathered' a dull,
+brownish brick like the park paths, 'render' the render's own colour. Each is mottled and grimed with
+noise that repeats exactly across the cell, so neighbouring cells meet without a seam. (The whole
+strip pieces, promenadeDeck / promenadeFront, are no longer drawn and keep the render's colour.)
 
 Steps: the render is brought to 2:1 isometric (X = x, Y = d y + c (x - cx)), the strip is located
 by its two long edges (water/coping and kerb, fitted on the render) and cut as a parallelogram.
@@ -39,6 +46,40 @@ COPING_V = 0.18               # the coping band, as a fraction of the strip's de
 KERB_V = 0.875                # where the kerb band starts (measured, 0.863-0.888 along it)
 END_FACE_X = 264.0            # the strip's left end (its face is the wall texture)
 FILL_U = (0.30, 0.30)         # where the fill square's brick is taken from (u start; size set below)
+# the paving tone: how much of the render's colour is kept, the colour it is pulled toward
+# (multiplied by each pixel's luminance, so the mortar lines and shading stay), and a brightness
+PAVING_STYLES = {
+    'render': None,
+    'weathered': {'keep': 0.28, 'tint': (1.16, 0.93, 0.80), 'gain': 0.95},
+    'grey': {'keep': 0.0, 'tint': (1.02, 1.0, 0.95), 'gain': 1.12},
+}
+
+
+def tone_paving(pix, u, v, style, seed=7):
+    """pix (..., 3) at cell coordinates u, v in [0, 1]: toned to `style`. The noise is a sum of
+    whole-period waves in u and v, so the cell's opposite edges agree."""
+    spec = PAVING_STYLES[style]
+    if spec is None:
+        return pix
+    rgb = pix.astype(float)
+    lum = rgb @ np.array([0.299, 0.587, 0.114])
+    rng = np.random.default_rng(seed)
+    def waves(freqs, amp):
+        n = np.zeros_like(u)
+        for f in freqs:
+            for _ in range(3):
+                i, j = rng.integers(-f, f + 1, 2)
+                if i == 0 and j == 0:
+                    continue
+                n += np.cos(2 * np.pi * (i * u + j * v) + rng.uniform(0, 2 * np.pi))
+        return amp * n / np.sqrt(max(1, 3 * len(freqs)))
+    # weathering patches (large), mottling about a paver across (small), and a fine grain
+    shade = 1 + waves([1, 2, 3], 0.035) + waves([9, 12, 15], 0.03) + rng.normal(0, 0.025, u.shape)
+    toned = lum[..., None] * np.array(spec['tint']) * (1 - spec['keep']) + rgb * spec['keep']
+    toned *= spec['gain'] * shade[..., None]
+    # grime settles a little warmer and darker in the low patches
+    dirt = np.clip(-waves([2, 4], 0.6), 0, 1)[..., None] * np.array([0.0, 2.0, 5.0])
+    return np.clip(toned - dirt, 0, 255)
 
 
 def correct(img):
@@ -54,7 +95,7 @@ def correct(img):
     return out, (lambda x, y: (x, D * y + C * (x - cx) + T))
 
 
-def main():
+def main(paving='grey'):
     src = Image.open(SRC).convert('RGB')
     img, P = correct(src)
     a = np.asarray(img).astype(np.int32)
@@ -132,6 +173,7 @@ def main():
     sxp = A0[0] + u * U[0] + v_src * V[0]
     syp = A0[1] + u * U[1] + v_src * V[1]
     fill_pix = a[np.clip(np.round(syp).astype(int), 0, Hh - 1), np.clip(np.round(sxp).astype(int), 0, Ww - 1)]
+    fill_pix = tone_paving(fill_pix, (u - fu0) / side, v, paving)
     fill_img = rgba(fill_mask, fill_pix)
 
     # 5. the modular kit: 10 x 10 m cells of the strip, each holding one layer, so the game can lay
@@ -183,4 +225,8 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    import sys
+    style = sys.argv[sys.argv.index('--paving') + 1] if '--paving' in sys.argv else 'grey'
+    if style not in PAVING_STYLES:
+        sys.exit(f'--paving: one of {", ".join(PAVING_STYLES)}')
+    main(style)

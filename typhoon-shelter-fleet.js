@@ -506,9 +506,19 @@ function drawTyphoonShelterBoat(scene, id, objectId, point, rotation, facings) {
   const p = isoToScreen(point.c, point.r);
   const x = p.x + scene.offsetX;
   const y = p.y + scene.offsetY - BUILDING_SURFACE_Y_OFFSET - TILE_HEIGHT / 2;
-  sprite.setPosition(x, y);
+  // riding the swell (typhoon-shelter-sprites.js): heave and a little roll
+  if (rec.bobSeed === undefined) {
+    rec.bobSeed = typeof getTyphoonShelterRecordSeed === 'function' ? getTyphoonShelterRecordSeed(id) : 0;
+    rec.bobLengthM = (typeof getTyphoonShelterObjectMetres === 'function' && getTyphoonShelterObjectMetres(objectId)?.alongM) || 8;
+  }
+  const bob = typeof getTyphoonShelterBob === 'function'
+    ? getTyphoonShelterBob(scene.time?.now || 0, point.r, point.c, rec.bobSeed, rec.bobLengthM) : { dy: 0, roll: 0 };
+  sprite.setPosition(x, y + bob.dy);
+  sprite.setRotation(bob.roll);
   // off screen it is not drawn: a boat's texture between the buildings splits the sprite batch
   sprite.setVisible(typeof isTyphoonShelterSpriteInView !== 'function' || isTyphoonShelterSpriteInView(scene, sprite));
+  // darkened after dark like the other unlit props (re-read as it moves: the remote dim is per tile)
+  if (sprite.visible && typeof applyNightPropTint === 'function') applyNightPropTint(scene, sprite);
   sprite.setDepth(getBuildingSortDepth(p.y, 1, 1, 0));
 }
 

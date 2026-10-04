@@ -138,6 +138,8 @@ function placeDebrisSprite(scene, row, col) {
   sprite.mapRow = row;
   sprite.mapCol = col;
   positionDebrisSprite(scene, sprite);
+  // darkened with the trees after dark (day-night-lighting.js keeps it in step from now on)
+  if (typeof applyNightPropTint === 'function') applyNightPropTint(scene, sprite);
   scene.debrisSprites.set(getTileId(row, col), sprite);
   scene.terrainViewportCacheKey = null;
   sortRenderLayer(scene, 'objectLayer');

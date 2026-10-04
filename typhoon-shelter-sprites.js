@@ -186,6 +186,32 @@ function checkTyphoonShelterPlacement(scene, objectId, row, col, facing, ignoreI
 
 // Ground corners of a texture in its loaded pixels (the staged release copy is resized, trimmed
 // and padded, so source pixels are mapped through the manifest).
+// A source-PNG pixel -> the loaded texture's pixel: the staged (release) copy is trimmed and
+// resized (model-assets.js); mirrored art is the source flipped across its width.
+function getTyphoonShelterTexturePointMap(choice, texture) {
+  const logical = choice.texture;
+  const entry = typeof modelAssetManifest !== 'undefined'
+    ? modelAssetManifest.entries?.[normalizeModelLogicalPath(logical)] : null;
+  const mapping = typeof getModelTexturePixelMapping === 'function'
+    ? getModelTexturePixelMapping(logical, texture)
+    : { staged: false, resize: 1, offsetX: 0, offsetY: 0 };
+  const sourceWidth = mapping.staged ? Number(entry?.sourceWidth) : Number(texture.width);
+  return { sourceWidth, map: ([x, y]) => [x * mapping.resize + mapping.offsetX, y * mapping.resize + mapping.offsetY] };
+}
+
+// Where a point of the (unmirrored) source art is on a sprite's texture, through the staged copy's
+// trim and the calibrator's warp, as getTyphoonShelterSpriteGround places the ground.
+function getTyphoonShelterSpriteTexturePoint(scene, choice, key, [x, y]) {
+  const info = scene.textures.get(key)?.typhoonShelterWarp;
+  const warped = !!info && key.endsWith('~w');
+  const texture = warped ? { width: info.baseWidth, height: info.baseHeight } : getTyphoonShelterTextureSize(scene, key);
+  const { sourceWidth, map } = getTyphoonShelterTexturePointMap(choice, texture);
+  const p = map([choice.mirrored ? sourceWidth - x : x, y]);
+  if (!warped) return p;
+  const [wx, wy] = warpTyphoonShelterPoint(p, info.front, info.warp);
+  return [wx + info.dx, wy + info.dy];
+}
+
 function getTyphoonShelterTextureGround(choice, texture) {
   const part = typhoonShelterPlacement.parts[choice.partId];
   if (!part?.ground) return null;
@@ -330,7 +356,8 @@ function positionTyphoonShelterObject(scene, record) {
   // A shore-aligned object is pushed back toward the land until it reaches over the shoreline.
   if (record.shoreAlign && art) {
     const along = choice.facing === 'se' || choice.facing === 'nw' ? art.seM : art.swM;
-    const shiftM = Math.max(0, (TYPHOON_SHELTER_TILE_M - along) / 2) + TYPHOON_SHELTER_SHORE_OVERLAP_M;
+    const overlapM = Number.isFinite(record.shoreOverlapM) ? record.shoreOverlapM : TYPHOON_SHELTER_SHORE_OVERLAP_M;
+    const shiftM = Math.max(0, (TYPHOON_SHELTER_TILE_M - along) / 2) + overlapM;
     const [dr, dc] = TYPHOON_SHELTER_LOGICAL_STEP[record.shoreDir || TYPHOON_SHELTER_LOGICAL_BACK[record.facing]];
     const a = isoToScreen(record.col, record.row);
     const b = isoToScreen(record.col + dc, record.row + dr);
@@ -360,15 +387,257 @@ function positionTyphoonShelterObject(scene, record) {
     if (record.sectioned) slideY += ((b.y - a.y) * m) / TYPHOON_SHELTER_TILE_M;
   });
   sprite.setPosition(at[0] + scene.offsetX, at[1] + scene.offsetY);
+  // a buoy rides the swell from here (updateTyphoonShelterBobbing)
+  record.baseX = sprite.x;
+  record.baseY = sprite.y;
+  if (isTyphoonShelterFloater(record.objectId) && !record.tint) {
+    if (!scene.typhoonShelterFloaters) scene.typhoonShelterFloaters = new Set();
+    scene.typhoonShelterFloaters.add(record);
+  }
   const anchor = getBuildingAnchor(record.row, record.col, fp.cols, fp.rows);
   // depthBias lifts one object over another on the same tile (a landing stage over its walkway)
   sprite.setDepth(getBuildingSortDepth(anchor.y + slideY, fp.cols, fp.rows, 0) + (record.depthBias || 0));
   sprite.setAlpha(Number.isFinite(record.alpha) ? record.alpha : 1);
-  if (record.tint) sprite.setTint(record.tint); else sprite.clearTint();
+  // a preview carries its own tint; the built works darken after dark like the other unlit props
+  if (record.tint) sprite.setTint(record.tint);
+  else if (typeof applyNightPropTint === 'function') applyNightPropTint(scene, sprite);
+  else sprite.clearTint();
   // shown only inside the camera's (padded) view, as viewport-culling.js keeps it
   sprite.setVisible(isTyphoonShelterSpriteInView(scene, sprite));
   record.fit = fit;
+  placeTyphoonShelterLight(scene, record);
   return true;
+}
+
+// ---------------------------------------------------------------------------
+// 浮沉: the boats and buoys ride the swell of the sea flow animation (weather-effects.js), whose
+// 8-frame shimmer runs along the diagonals (each tile's phase is frame + row + col) and quickens and
+// grows with the sea state. They heave a pixel or two and roll a little, half as fast as the
+// shimmer (a hull answers the swell, not every ripple), a small sampan or buoy more than a big boat.
+// ---------------------------------------------------------------------------
+
+const TYPHOON_SHELTER_BOB = Object.freeze({
+  heavePx: 1.3,        // at zoom 1, for a ~8 m hull on a light sea
+  rollRad: 0.014,      // ~0.8 degree
+  periodWaves: 2,      // one heave per this many shimmer cycles
+  refLengthM: 8,
+});
+
+function isTyphoonShelterFloater(objectId) {
+  return typeof objectId === 'string' && objectId.startsWith('bout');
+}
+
+// { dy, roll } for something floating at (row, col) - fractional for a moving boat. `seed` (0..1)
+// shifts it a little off its neighbours; `lengthM` its size.
+function getTyphoonShelterBob(time, row, col, seed = 0, lengthM = TYPHOON_SHELTER_BOB.refLengthM) {
+  if (typeof isSeaFlowEnabled === 'function' && !isSeaFlowEnabled()) return { dy: 0, roll: 0 };
+  const tier = typeof getSeaStateTier === 'function' ? getSeaStateTier() : 'light';
+  const config = (typeof SEA_FLOW_TIER_CONFIG !== 'undefined' && (SEA_FLOW_TIER_CONFIG[tier] || SEA_FLOW_TIER_CONFIG.light))
+    || { tickMs: 260, ampScale: 1 };
+  const frames = typeof SEA_FLOW_FRAME_COUNT === 'number' ? SEA_FLOW_FRAME_COUNT : 8;
+  const periodMs = config.tickMs * frames * TYPHOON_SHELTER_BOB.periodWaves;
+  const phase = 2 * Math.PI * (time / periodMs + (row + col) / frames + seed * 0.2);
+  const size = Math.max(0.55, Math.min(1.4, Math.sqrt(TYPHOON_SHELTER_BOB.refLengthM / Math.max(1, lengthM))));
+  const k = config.ampScale * size;
+  // the roll lags the heave by a quarter turn: the hull tips as the crest passes under it
+  return { dy: TYPHOON_SHELTER_BOB.heavePx * k * Math.sin(phase), roll: TYPHOON_SHELTER_BOB.rollRad * k * Math.sin(phase - Math.PI / 2) };
+}
+
+function getTyphoonShelterRecordSeed(id) {
+  let h = 0;
+  for (const ch of String(id)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return (h & 0xffff) / 0xffff;
+}
+
+// Every frame: the buoys in view bob (the boats bob as they are drawn, typhoon-shelter-fleet.js).
+function updateTyphoonShelterBobbing(scene, time) {
+  const floaters = scene?.typhoonShelterFloaters;
+  if (!floaters?.size) return;
+  floaters.forEach((record) => {
+    const sprite = record.sprite;
+    if (!sprite?.active) { floaters.delete(record); return; }
+    if (!sprite.visible || !Number.isFinite(record.baseY)) return;
+    if (record.bobSeed === undefined) record.bobSeed = getTyphoonShelterRecordSeed(record.id);
+    if (record.bobLengthM === undefined) record.bobLengthM = record.metres?.seM || 2;
+    const bob = getTyphoonShelterBob(time, record.row, record.col, record.bobSeed, record.bobLengthM);
+    sprite.setPosition(record.baseX, record.baseY + bob.dy);
+    sprite.setRotation(bob.roll);
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Night lights: the promenade lamps' lanterns glow while the street lamps are lit, and the
+// entrance heads' lanterns blink as the airport beacons do (building-lighting.js). Each is one
+// additive sprite over its object, shown only while the object is drawn.
+// ---------------------------------------------------------------------------
+
+// Where each light sits on its source art (Models/typhoonShelter/ts_<part>.png, px; measured on the
+// glass). The loaded texture may be the staged copy, trimmed and resized, or a warped one: these
+// go through the same mapping as the ground corners (getTyphoonShelterSpriteTexturePoint).
+const TYPHOON_SHELTER_LIGHT_ANCHORS = Object.freeze({
+  causeway2_a: Object.freeze([255.8, 492.7]),
+  causeway2_b: Object.freeze([283.3, 473.1]),
+});
+// The lamp's glow is drawn on the lamp art's own 128 x 256 grid, widened to 512 x 512 for the pool
+// of light round its foot: lantern glass at (64, 82), foot at (64, 214). The lamp is small on
+// screen (~25 px tall at zoom 1), so its light reaches well past it, as a street lamp's does: drawn
+// at the lamp's own size it was a few pixels and could not be seen (2026-10-04).
+const TYPHOON_SHELTER_LAMP_GLOW_KEY = 'fx_ts_lamp_glow';
+const TYPHOON_SHELTER_LAMP_ART_WIDTH = 128;
+const TYPHOON_SHELTER_LAMP_GLOW_SIZE = 512;
+const TYPHOON_SHELTER_LAMP_GLOW_PAD = (TYPHOON_SHELTER_LAMP_GLOW_SIZE - TYPHOON_SHELTER_LAMP_ART_WIDTH) / 2;
+const TYPHOON_SHELTER_LAMP_GLASS = Object.freeze({ x: 63.6, y: 81.7, rx: 11, ry: 14 });
+const TYPHOON_SHELTER_LAMP_FOOT = Object.freeze({ x: 64, y: 214 });
+// A harbour light flashes slower than an airport beacon (a navigation light is "Fl 2s"-ish).
+const TYPHOON_SHELTER_BEACON_PERIOD = 2400;
+
+// A record's light: 'lamp', 'beacon:<colour>' or null.
+function getTyphoonShelterRecordLight(spec) {
+  if (spec.light) return spec.light;
+  return spec.objectId === 'promenadeLamp' ? 'lamp' : null;
+}
+
+// The vintage lantern lit warm white: the glass itself, a halo round it and a soft pool on the
+// paving below - the colours of the street lamps' bake (scripts/bake-street-lamp-textures.js),
+// paler, as these are not sodium lamps.
+function ensureTyphoonShelterLampGlowTexture(scene) {
+  const key = TYPHOON_SHELTER_LAMP_GLOW_KEY;
+  if (scene.textures.exists(key)) return key;
+  if (typeof scene.textures.addCanvas !== 'function' || typeof document === 'undefined') return null;
+  const pad = TYPHOON_SHELTER_LAMP_GLOW_PAD;
+  const W = TYPHOON_SHELTER_LAMP_GLOW_SIZE;
+  const H = TYPHOON_SHELTER_LAMP_GLOW_SIZE;
+  // drawn first and handed to Phaser after: the game mipmaps power-of-two textures (main.js), and a
+  // CanvasTexture made empty and refreshed later keeps the empty mipmaps - drawn small, as the lamp
+  // is, it showed nothing
+  const canvas = document.createElement('canvas');
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return null;
+  const glass = TYPHOON_SHELTER_LAMP_GLASS;
+  const foot = TYPHOON_SHELTER_LAMP_FOOT;
+  const blob = (x, y, rx, ry, stops) => {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(1, ry / rx);
+    const g = ctx.createRadialGradient(0, 0, 0, 0, 0, rx);
+    stops.forEach(([at, colour]) => g.addColorStop(at, colour));
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(0, 0, rx, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  };
+  ctx.globalCompositeOperation = 'lighter';
+  // the pool on the ground (a 2:1 ellipse in the isometric view), about the lamp's height across
+  blob(foot.x + pad, foot.y, 125, 62, [[0, 'rgba(240,170,80,0.6)'], [0.5, 'rgba(236,150,60,0.25)'], [1, 'rgba(236,150,60,0)']]);
+  // the light falling from the lantern to it
+  const fall = ctx.createLinearGradient(0, glass.y, 0, foot.y);
+  fall.addColorStop(0, 'rgba(255,190,100,0.32)');
+  fall.addColorStop(1, 'rgba(255,190,100,0.04)');
+  ctx.fillStyle = fall;
+  ctx.beginPath();
+  ctx.moveTo(glass.x + pad - glass.rx * 1.4, glass.y);
+  ctx.lineTo(glass.x + pad + glass.rx * 1.4, glass.y);
+  ctx.lineTo(foot.x + pad + 75, foot.y);
+  ctx.lineTo(foot.x + pad - 75, foot.y);
+  ctx.closePath();
+  ctx.fill();
+  // the halo, then the glass
+  blob(glass.x + pad, glass.y, glass.rx * 7, glass.rx * 6.5, [[0, 'rgba(255,200,120,0.8)'], [0.3, 'rgba(255,176,72,0.35)'], [1, 'rgba(255,176,72,0)']]);
+  blob(glass.x + pad, glass.y, glass.rx * 1.6, glass.ry * 1.5, [[0, 'rgba(255,244,214,1)'], [0.6, 'rgba(255,226,160,0.9)'], [1, 'rgba(255,226,160,0)']]);
+  scene.textures.addCanvas(key, canvas);
+  return key;
+}
+
+function placeTyphoonShelterLight(scene, record) {
+  const sprite = record.sprite;
+  const light = record.light;
+  if (!light || !sprite || !record.drawable) {
+    if (record.lightSprite) record.lightSprite.setVisible(false);
+    return;
+  }
+  const lamp = light === 'lamp';
+  const key = lamp
+    ? ensureTyphoonShelterLampGlowTexture(scene)
+    : (typeof ensureBuildingBeaconTexture === 'function' ? ensureBuildingBeaconTexture(scene, light.split(':')[1]) : null);
+  if (!key) return;
+  if (!record.lightSprite) {
+    const glow = scene.add.image(0, 0, key);
+    // The lamps' glow is drawn normally (alpha-blended): it then batches in with the works round it.
+    // Added, each of a shelter's ~20 lamps split the sprite batch - 179 draw calls a frame became 202
+    // (2026-10-04) - for a look hardly different at night. The few beacons stay added, as the
+    // airport's are: their hot core reads through the red lantern.
+    if (!lamp) glow.setBlendMode(typeof Phaser !== 'undefined' ? Phaser.BlendModes.ADD : 'ADD');
+    maskTyphoonShelterSprite(scene, glow);
+    glow.setVisible(false);
+    record.lightSprite = glow;
+    if (!scene.typhoonShelterLights) scene.typhoonShelterLights = new Set();
+    scene.typhoonShelterLights.add(record);
+  } else if (record.lightSprite.texture?.key !== key) {
+    record.lightSprite.setTexture(key);
+  }
+  const glow = record.lightSprite;
+  const key0 = sprite.texture.key;
+  const choice = record.choice;
+  // a texture point -> the world, through the sprite's origin and scale
+  const world = ([x, y]) => [
+    sprite.x + (x - sprite.originX * sprite.frame.width) * sprite.scaleX,
+    sprite.y + (y - sprite.originY * sprite.frame.height) * sprite.scaleY,
+  ];
+  const sourcePoint = (pt) => world(getTyphoonShelterSpriteTexturePoint(scene, choice, key0, pt));
+  if (lamp) {
+    // the glow is drawn on the lamp art's own grid: put its glass on the lamp's glass, sized by
+    // the glass-to-foot height (the staged copy is resized, a warp may stretch it)
+    const glass = TYPHOON_SHELTER_LAMP_GLASS;
+    const foot = TYPHOON_SHELTER_LAMP_FOOT;
+    const [gx, gy] = sourcePoint([glass.x, glass.y]);
+    const [, fy] = sourcePoint([foot.x, foot.y]);
+    const k = (fy - gy) / (foot.y - glass.y);
+    glow.setOrigin((glass.x + TYPHOON_SHELTER_LAMP_GLOW_PAD) / glow.frame.width, glass.y / glow.frame.height);
+    glow.setScale(k);
+    glow.setPosition(gx, gy);
+    glow.setDepth(sprite.depth + 0.01);
+  } else {
+    const anchor = TYPHOON_SHELTER_LIGHT_ANCHORS[choice?.partId];
+    const [bx, by] = anchor ? sourcePoint(anchor) : [sprite.x, sprite.y - sprite.displayHeight * 0.5];
+    glow.setOrigin(0.5, 0.5);
+    glow.setScale(typeof BUILDING_LIGHT_BEACON_SCALE === 'number' ? BUILDING_LIGHT_BEACON_SCALE : 0.7);
+    glow.setPosition(bx, by);
+    glow.setDepth(sprite.depth + 0.13);
+    if (!Number.isFinite(record.lightPhase)) {
+      let h = 0;
+      for (const ch of String(record.id)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+      record.lightPhase = ((h & 0xff) / 255) * Math.PI * 2;
+    }
+  }
+}
+
+// Every frame: the lamps follow the street lamps' lit state; the beacons pulse with the building
+// lights' strength. A light shows only while its object is drawn (the viewport cull hides that).
+function updateTyphoonShelterLights(scene, time) {
+  const lights = scene?.typhoonShelterLights;
+  if (!lights?.size) return;
+  const allowed = (typeof isBuildingLightsEnabled !== 'function' || isBuildingLightsEnabled())
+    && !(typeof isAttractLightsSuppressed === 'function' && isAttractLightsSuppressed());
+  const lampsLit = allowed && typeof streetLampsShouldBeLit === 'function' && streetLampsShouldBeLit(scene);
+  const strength = allowed && typeof getRuntimeBuildingLightStrength === 'function' ? getRuntimeBuildingLightStrength(scene) : 0;
+  lights.forEach((record) => {
+    const glow = record.lightSprite;
+    if (!glow?.active) { lights.delete(record); return; }
+    const shown = !!(record.light && record.drawable && record.sprite?.visible);
+    if (record.light === 'lamp') {
+      const on = shown && lampsLit;
+      if (glow.visible !== on) glow.setVisible(on);
+      return;
+    }
+    const on = shown && strength > 0.01;
+    if (glow.visible !== on) glow.setVisible(on);
+    if (!on) return;
+    const t = (time / TYPHOON_SHELTER_BEACON_PERIOD) * Math.PI * 2 + record.lightPhase;
+    glow.setAlpha(strength * (0.08 + 0.92 * Math.max(0, Math.sin(t))));
+  });
 }
 
 /**
@@ -391,6 +660,8 @@ async function addTyphoonShelterObject(scene, spec) {
     footprintOverride: spec.footprintOverride || null,
     shoreAlign: !!spec.shoreAlign,
     shoreDir: spec.shoreDir || null,
+    // how far it reaches over the shoreline (default TYPHOON_SHELTER_SHORE_OVERLAP_M)
+    shoreOverlapM: Number.isFinite(spec.shoreOverlapM) ? spec.shoreOverlapM : null,
     depthBias: spec.depthBias || 0,
     alongM: spec.alongM || 0,
     // one of several sections along a tile: sorted by where it slid to
@@ -399,6 +670,8 @@ async function addTyphoonShelterObject(scene, spec) {
     offsets: Array.isArray(spec.offsets) ? spec.offsets : null,
     alpha: spec.alpha,
     tint: spec.tint || null,
+    // a night light over it: 'lamp' (the promenade lamp's lantern) or 'beacon:<colour>'
+    light: getTyphoonShelterRecordLight(spec),
     sprite: null,
     tiles: [],
   };
@@ -413,6 +686,9 @@ function removeTyphoonShelterObject(scene, id) {
   const record = scene?.typhoonShelterObjects?.get(id);
   if (!record) return false;
   record.sprite?.destroy();
+  record.lightSprite?.destroy();
+  scene.typhoonShelterFloaters?.delete(record);
+  scene.typhoonShelterLights?.delete(record);
   scene.typhoonShelterObjects.delete(id);
   return true;
 }
@@ -456,6 +732,14 @@ const typhoonShelterSpritesApi = {
   maskTyphoonShelterSprite,
   resolveTyphoonShelterTextureKey,
   getTyphoonShelterSpriteGround,
+  getTyphoonShelterRecordLight,
+  getTyphoonShelterSpriteTexturePoint,
+  updateTyphoonShelterLights,
+  TYPHOON_SHELTER_LIGHT_ANCHORS,
+  getTyphoonShelterBob,
+  getTyphoonShelterRecordSeed,
+  updateTyphoonShelterBobbing,
+  isTyphoonShelterFloater,
 };
 
 if (typeof module !== 'undefined' && module.exports) module.exports = typhoonShelterSpritesApi;

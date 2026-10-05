@@ -666,15 +666,17 @@ const TRAFFIC_MODEL_REGISTRY = Object.freeze([
   }),
   createTrafficModel({
     id: 'truck_basic', category: 'truck', folder: 'truck', baseName: 'basicTruck',
-    scale: 0.1032, weight: 2.8, speedFactor: 0.82, headwayFactor: 0.76, originY: 0.81,
+    scale: 0.1032, weight: 3.45, speedFactor: 0.82, headwayFactor: 0.76, originY: 0.81,
   }),
   createTrafficModel({
     id: 'truck_logistic', category: 'truck', folder: 'truck', baseName: 'logisticTruck',
-    scale: 0.1032, weight: 2.45, speedFactor: 0.82, headwayFactor: 0.76, originY: 0.81,
+    scale: 0.1032, weight: 3.05, speedFactor: 0.82, headwayFactor: 0.76, originY: 0.81,
   }),
   createTrafficModel({
+    // rarer among the ambient traffic (the other trucks take up its share of the 7% truck mix):
+    // before dawn they queue at the typhoon shelters' 魚檔
     id: 'truck_fish', category: 'truck', folder: 'truck', baseName: 'fishTruck',
-    scale: 0.0984, weight: 1.75, speedFactor: 0.85, headwayFactor: 0.72, originY: 0.81,
+    scale: 0.0984, weight: 0.5, speedFactor: 0.85, headwayFactor: 0.72, originY: 0.81,
   }),
   createTrafficModel({
     id: 'van_plain', category: 'van', folder: 'van', baseName: 'plainVan',
@@ -1429,6 +1431,8 @@ function clearTrafficVisuals(scene) {
   destroyIceCreamEvent(state.iceCreamEvent);
   state.iceCreamEvent = null;
   state.iceCreamCooldownMinutes = randomIceCreamCooldown(true);
+  state.fishTrucks?.forEach(destroyTrafficVehicle);
+  state.fishTrucks?.clear();
   state.dirty = true;
 }
 
@@ -1459,6 +1463,12 @@ function invalidateTrafficVisualNetwork(scene) {
     state.iceCreamEvent = null;
     state.iceCreamCooldownMinutes = randomIceCreamCooldown();
   }
+  // a fish truck whose road was dug up goes (its pile still empties on the clock)
+  state.fishTrucks?.forEach((truck, key) => {
+    const broken = truck.movementLegs?.slice(truck.movementIndex)
+      .some((descriptor) => descriptor.kind === 'road' && !runtimeTrafficTilesConnect(descriptor.current, descriptor.next));
+    if (broken) { destroyTrafficVehicle(truck); state.fishTrucks.delete(key); }
+  });
   state.dirty = true;
 }
 
@@ -1503,6 +1513,9 @@ function getPinnedTrafficModelIds(scene, state) {
   if (state?.iceCreamEvent?.model?.id) {
     pinnedModelIds.add(state.iceCreamEvent.model.id);
   }
+  state?.fishTrucks?.forEach((truck) => { if (truck?.model?.id) pinnedModelIds.add(truck.model.id); });
+  // kept loaded while there is a 魚檔 for the trucks to come to (typhoon-shelter-market.js)
+  if (typeof isTyphoonShelterFishTruckModelNeeded === 'function' && isTyphoonShelterFishTruckModelNeeded()) pinnedModelIds.add('truck_fish');
   // Managed route buses share the ambient traffic model registry and texture
   // cache, but live in transportVisualState rather than state.vehicles. Keep
   // their models resident too: removing one while its Phaser Image still
@@ -1911,9 +1924,12 @@ function createIceCreamPointLeg(start, end) {
 
 function getIceCreamParkingPoint(scene, parking) {
   const center = getTrafficSurfacePoint(scene, parking.road.row, parking.road.col);
+  // `shift` (tiles, optional) moves the spot along the curb: the fish trucks queue one behind
+  // another (typhoon-shelter-market.js)
+  const shift = parking.shift || { row: 0, col: 0 };
   const shifted = isoToScreen(
-    parking.road.col + parking.buildingSide.col * ICE_CREAM_EVENT_CONFIG.parkingOffsetTiles,
-    parking.road.row + parking.buildingSide.row * ICE_CREAM_EVENT_CONFIG.parkingOffsetTiles,
+    parking.road.col + parking.buildingSide.col * ICE_CREAM_EVENT_CONFIG.parkingOffsetTiles + shift.col,
+    parking.road.row + parking.buildingSide.row * ICE_CREAM_EVENT_CONFIG.parkingOffsetTiles + shift.row,
   );
   const unshifted = isoToScreen(parking.road.col, parking.road.row);
   const surface = getTrafficRoadSurface(
@@ -2280,7 +2296,8 @@ function beginIceCreamDeparture(scene, event) {
   event.next = movementLegs[0].next;
 }
 
-function advanceIceCreamMovement(scene, state, event, delta, speedMultiplier) {
+// Also drives the fish trucks (typhoon-shelter-market.js), which park with their own `onParked`.
+function advanceIceCreamMovement(scene, state, event, delta, speedMultiplier, onParked = completeIceCreamParking) {
   let descriptor = event.movementLegs[event.movementIndex];
   if (!descriptor) {
     event.phase = event.phase === 'leaving' ? 'finished' : event.phase;
@@ -2293,6 +2310,8 @@ function advanceIceCreamMovement(scene, state, event, delta, speedMultiplier) {
     && trafficVehicleHasBlockingLeader(event, buildTrafficLegBuckets([
       ...state.vehicles,
       ...(scene.transportVisualState?.vehicles || []),
+      // the fish trucks follow one another into their queue
+      ...(state.fishTrucks ? [...state.fishTrucks.values()].filter((truck) => truck !== event) : []),
     ]))
   ) {
     return;
@@ -2324,7 +2343,7 @@ function advanceIceCreamMovement(scene, state, event, delta, speedMultiplier) {
       event.current = null;
       event.next = null;
       if (event.phase === 'leaving') event.phase = 'finished';
-      else completeIceCreamParking(scene, event);
+      else onParked(scene, event);
       return;
     }
     if (
@@ -2718,7 +2737,7 @@ function updateTrafficVisuals(time, delta) {
   if (!state || !camera) return;
 
   if (scene.scene?.isVisible && !scene.scene.isVisible()) {
-    if (state.vehicles.length > 0 || state.iceCreamEvent) clearTrafficVisuals(scene);
+    if (state.vehicles.length > 0 || state.iceCreamEvent || state.fishTrucks?.size) clearTrafficVisuals(scene);
     return;
   }
 
@@ -2732,6 +2751,8 @@ function updateTrafficVisuals(time, delta) {
 
   if (!(typeof isTerrainCreatorMode !== 'undefined' && isTerrainCreatorMode)) {
     updateIceCreamEvent(scene, state, delta, paused, speedMultiplier);
+    // the fish trucks queueing at the typhoon shelters' 魚檔 before dawn
+    if (typeof updateTyphoonShelterFishTrucks === 'function') updateTyphoonShelterFishTrucks(scene, state, delta, paused, speedMultiplier);
   }
 
   if (
@@ -2768,9 +2789,10 @@ function updateTrafficVisuals(time, delta) {
   // Real transport-company buses are on-screen obstacles too, not just other
   // ambient vehicles - otherwise ordinary traffic drives straight through them.
   const busLeaders = scene?.transportVisualState?.vehicles || [];
+  const fishTruckLeaders = state.fishTrucks ? [...state.fishTrucks.values()] : [];
   const leaders = state.iceCreamEvent
-    ? [...state.vehicles, state.iceCreamEvent, ...busLeaders]
-    : [...state.vehicles, ...busLeaders];
+    ? [...state.vehicles, state.iceCreamEvent, ...busLeaders, ...fishTruckLeaders]
+    : [...state.vehicles, ...busLeaders, ...fishTruckLeaders];
   const leaderBuckets = buildTrafficLegBuckets(leaders);
   state.vehicles = state.vehicles.filter((vehicle) => {
     if (trafficVehicleHasBlockingLeader(vehicle, leaderBuckets)) return true;

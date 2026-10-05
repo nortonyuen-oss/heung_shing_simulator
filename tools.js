@@ -49,6 +49,10 @@ const LANDMARK_TOOL_BUILDING_TYPES = {
   'football-stadium':  'football_stadium',
   'airport':           'airport',
   'harbor':            HARBOR_BUILDING_TYPE,
+  // 海事處 (typhoon-shelter-market.js)
+  'fish-market':        'fish_market',
+  'seafood-restaurant': 'seafood_restaurant',
+  'fish-loading-bay':   'fish_loading_bay',
 };
 
 // ── Main dispatch (called from applySelectedTool in main.js) ──────────────────
@@ -333,8 +337,10 @@ function placeInfraBuilding(scene, row, col, buildingType) {
   const existingSpecialCount = specialModels.length > 0
     ? Object.values(buildingData).filter((record) => record?.type === buildingType).length
     : 0;
+  // (as do the fish markets and seafood restaurants: each new one is the next model)
+  const cyclesModels = buildingType === 'heritage_temple' || buildingType === 'fish_market' || buildingType === 'seafood_restaurant';
   const specialModel = specialModels.length > 0
-    ? specialModels[buildingType === 'heritage_temple'
+    ? specialModels[cyclesModels
       ? existingSpecialCount % specialModels.length
       : Math.floor(Math.random() * specialModels.length)]
     : null;
@@ -342,7 +348,15 @@ function placeInfraBuilding(scene, row, col, buildingType) {
   if (!buildingModel) return false;
   const footprintCols = buildingModel.footprintCols;
   const footprintRows = buildingModel.footprintRows;
-  if (!canPlaceBuildingFootprint(row, col, footprintCols, footprintRows)) return false;
+  // 海事處 buildings go on a typhoon shelter's waterfront, beside a road (typhoon-shelter-market.js)
+  const marine = typeof isTyphoonShelterBuildingType === 'function' && isTyphoonShelterBuildingType(buildingType);
+  if (marine) {
+    const why = whyNotTyphoonShelterBuilding(row, col, footprintCols, footprintRows);
+    if (why) {
+      showToast(why, 'warning');
+      return false;
+    }
+  } else if (!canPlaceBuildingFootprint(row, col, footprintCols, footprintRows)) return false;
 
   const cost = INFRA_COSTS[buildingType];
   if (!spendBudget(cost)) {
@@ -384,6 +398,8 @@ function placeInfraBuilding(scene, row, col, buildingType) {
     powerSources.add(id);
   }
   refreshInfrastructureEffects(scene);
+
+  if (marine && typeof onTyphoonShelterBuildingsChanged === 'function') onTyphoonShelterBuildingsChanged(scene);
 
   if (buildingType === 'legislative_council' && typeof announceCouncilBuiltNewspaper === 'function') {
     announceCouncilBuiltNewspaper();

@@ -235,7 +235,8 @@ function cullSpriteMapEntries(map, bounds, seen = null, mainCamera = null, mainB
       apply(value);
     } else if (value.sprite && typeof value.sprite.setVisible === 'function') {
       // a typhoon shelter record ({ sprite, drawable }): culled only once it can be drawn
-      if (value.drawable !== false) apply(value.sprite);
+      // (a hidden one - a 魚檔's crate pile while the quay is empty - stays out of sight)
+      if (value.hidden) { if (value.sprite.visible) value.sprite.setVisible(false); } else if (value.drawable !== false) apply(value.sprite);
     } else if (value.body || value.top) {
       // Bridge ramp entries are a plain { body, top } pair of images rather
       // than a single game object (see upsertBridgeRampSprite).

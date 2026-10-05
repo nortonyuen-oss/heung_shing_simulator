@@ -327,7 +327,9 @@ function setupToolMenu() {
 
 function getToolCategoryForTool(tool) {
   if (tool === 'inspect') return 'inspect';
-  if (tool === 'terrain' || tool === 'typhoon-shelter') return 'terrain';
+  if (tool === 'terrain') return 'terrain';
+  // 海事處: the shelters and their waterfront buildings
+  if (tool === 'typhoon-shelter' || tool === 'fish-market' || tool === 'seafood-restaurant' || tool === 'fish-loading-bay') return 'marine';
   if (tool === 'road') return 'roads';
   if (tool === 'bus-stop' || tool === 'bus-depot') return 'transport';
   if (tool === 'district-sign') return 'maps';

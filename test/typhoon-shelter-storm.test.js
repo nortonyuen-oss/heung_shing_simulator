@@ -161,18 +161,19 @@ test('the far boats stay in under 一號 and those out come home early', () => {
   const boat = { id: 3, model: 'fishingBoat3', slot: 'x' };
   const day = 5;
   const t0 = day * 1440;
-  const times = { depart: 300, back: 1000, resumeOffset: 0, longRoute: true };
-  const standby = { holds: [], standbys: [{ from: t0 + 200, until: null }] };
-  assert.equal(fleet.typhoonShelterBoatTrip(boat, day, { storm: standby, times }), null, 'a far boat does not sail');
-  const near = fleet.typhoonShelterBoatTrip(boat, day, { storm: standby, times: { ...times, longRoute: false } });
-  assert.equal(near.backAbs, t0 + 300 + fleet.TYPHOON_SHELTER_FLEET.standbyTurnBackMin, 'a near one is back within two hours');
+  const L = 20;
+  const times = { depart: 1080, arrive: 1700, resumeOffset: 0, longRoute: true };
+  const trip = (storm, t = times) => fleet.typhoonShelterBoatTrip(boat, day, { storm, times: t, routeLength: L });
+  const standby = { holds: [], standbys: [{ from: t0 + 1000, until: null }] };
+  assert.equal(trip(standby), null, 'a far boat does not sail');
+  assert.equal(trip(standby, { ...times, longRoute: false }).backAbs, t0 + 1080 + fleet.TYPHOON_SHELTER_FLEET.standbyTurnBackMin,
+    'a near one is back within two hours');
   // a boat already out when 一號 goes up turns for home within two hours of it
-  const out = fleet.typhoonShelterBoatTrip(boat, day, { storm: { holds: [], standbys: [{ from: t0 + 400, until: null }] }, times });
-  assert.equal(out.backAbs, t0 + 400 + fleet.TYPHOON_SHELTER_FLEET.standbyTurnBackMin);
+  assert.equal(trip({ holds: [], standbys: [{ from: t0 + 1200, until: null }] }).backAbs, t0 + 1200 + fleet.TYPHOON_SHELTER_FLEET.standbyTurnBackMin);
   // after a storm the boats sail one by one: each its own minutes after the hold closes
-  const hold = { holds: [{ from: t0 - 600, until: t0 + 290 }], standbys: [] };
-  assert.ok(fleet.typhoonShelterBoatTrip(boat, day, { storm: hold, times: { ...times, resumeOffset: 0 } }));
-  assert.equal(fleet.typhoonShelterBoatTrip(boat, day, { storm: hold, times: { ...times, resumeOffset: 20 } }), null);
+  const hold = { holds: [{ from: t0 - 600, until: t0 + 1070 }], standbys: [] };
+  assert.ok(trip(hold, { ...times, resumeOffset: 0 }));
+  assert.equal(trip(hold, { ...times, resumeOffset: 20 }), null);
 });
 
 test('the storm survives the save normaliser and an empty one is dropped', () => {

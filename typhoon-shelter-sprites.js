@@ -396,14 +396,20 @@ function positionTyphoonShelterObject(scene, record) {
   }
   const anchor = getBuildingAnchor(record.row, record.col, fp.cols, fp.rows);
   // depthBias lifts one object over another on the same tile (a landing stage over its walkway)
-  sprite.setDepth(getBuildingSortDepth(anchor.y + slideY, fp.cols, fp.rows, 0) + (record.depthBias || 0));
+  let depth = getBuildingSortDepth(anchor.y + slideY, fp.cols, fp.rows, 0) + (record.depthBias || 0);
+  if (record.aboveFootprint) {
+    const f = record.aboveFootprint;
+    const under = getBuildingSortDepth(getBuildingAnchor(f.row, f.col, f.cols, f.rows).y, f.cols, f.rows, 0);
+    depth = Math.max(depth, under + 0.05 + slideY * 1e-4);
+  }
+  sprite.setDepth(depth);
   sprite.setAlpha(Number.isFinite(record.alpha) ? record.alpha : 1);
   // a preview carries its own tint; the built works darken after dark like the other unlit props
   if (record.tint) sprite.setTint(record.tint);
   else if (typeof applyNightPropTint === 'function') applyNightPropTint(scene, sprite);
   else sprite.clearTint();
   // shown only inside the camera's (padded) view, as viewport-culling.js keeps it
-  sprite.setVisible(isTyphoonShelterSpriteInView(scene, sprite));
+  sprite.setVisible(!record.hidden && isTyphoonShelterSpriteInView(scene, sprite));
   record.fit = fit;
   placeTyphoonShelterLight(scene, record);
   return true;
@@ -670,6 +676,10 @@ async function addTyphoonShelterObject(scene, spec) {
     offsets: Array.isArray(spec.offsets) ? spec.offsets : null,
     alpha: spec.alpha,
     tint: spec.tint || null,
+    // kept out of sight whatever the camera (a loading bay's crate pile while it is empty)
+    hidden: !!spec.hidden,
+    // drawn over this building footprint's sprite ({ row, col, cols, rows }): a crate pile in a bay
+    aboveFootprint: spec.aboveFootprint || null,
     // a night light over it: 'lamp' (the promenade lamp's lantern) or 'beacon:<colour>'
     light: getTyphoonShelterRecordLight(spec),
     sprite: null,

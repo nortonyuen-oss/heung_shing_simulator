@@ -83,23 +83,54 @@ test('every berth has a way out through an entrance to the open sea', () => {
   });
 });
 
-test('a boat leaves before dawn, is away at the grounds, and is home by night', () => {
+test('a boat goes out in the evening, fishes the night and is alongside before dawn', () => {
   const boat = { id: 3, model: 'fishingBoat3', slot: 'x' };
   const day = 5;
-  const env = (minute) => day * 1440 + minute;
-  const { depart, back } = typhoonShelterBoatTimes(7, boat.id, day);
-  assert.ok(depart >= 240 && depart < 480 && back >= 900 && back < 1260);
+  const t0 = day * 1440;
+  const { depart, arrive } = typhoonShelterBoatTimes(7, boat.id, day, boat.model);
+  assert.ok(depart >= 17 * 60 && depart < 19 * 60, `out at ${depart / 60}h`);
+  assert.ok(arrive >= 27 * 60 && arrive < 29 * 60, 'alongside 03:00-05:00 the next morning');
   const L = 20;
-  const at = (minute, opts = {}) => typhoonShelterBoatState(boat, L, env(minute), { seed: 7, ...opts });
+  const travel = L / TYPHOON_SHELTER_FLEET.speedTilesPerMinute;
+  const at = (minute, opts = {}) => typhoonShelterBoatState(boat, L, t0 + minute, { seed: 7, ...opts });
   assert.equal(at(depart - 1).mode, 'moored');
   assert.equal(at(depart + 1).mode, 'out');
-  assert.equal(at(depart + L / TYPHOON_SHELTER_FLEET.speedTilesPerMinute + 1).mode, 'away');
-  assert.equal(at(back + 1).mode, 'in');
-  assert.equal(at(back + L / TYPHOON_SHELTER_FLEET.speedTilesPerMinute + 1).mode, 'moored');
-  // house boats and sampans stay put
+  assert.equal(at(depart + travel + 1).mode, 'away');
+  assert.equal(at(arrive - travel + 1).mode, 'in');
+  assert.equal(at(arrive + 1).mode, 'moored');
+  // the night belongs to the day it started: a trip day runs 06:00 to 06:00
+  assert.equal(fleet.getTyphoonShelterTripDay(t0 + 26 * 60), day);
+  assert.equal(fleet.getTyphoonShelterTripDay(t0 + 30 * 60), day + 1);
+  // house boats and sampans stay put; a night off is a night in
   assert.equal(at(depart + 30, { fishing: false }).mode, 'moored');
+  assert.equal(at(depart + 30, { times: { ...typhoonShelterBoatTimes(7, boat.id, day, boat.model), rest: true } }).mode, 'moored');
   // the same moment always gives the same answer: positions are never stored
   assert.deepEqual(at(depart + 7), at(depart + 7));
+});
+
+test('trip types: lamp boats and gill-netters leave at dusk, trawlers earlier and not in the 休漁期', () => {
+  assert.equal(fleet.getTyphoonShelterBoatTrip('fishingBoat1'), 'light');
+  assert.equal(fleet.getTyphoonShelterBoatTrip('fishingBoat3'), 'gillnet');
+  assert.equal(fleet.getTyphoonShelterBoatTrip('fishingBoat4'), 'trawler');
+  const boats = [1, 2, 3, 4, 5, 6].map((id) => ({ id, model: id % 2 ? 'fishingBoat4' : 'fishingBoat1', slot: `s${id}` }));
+  const plan = { seed: 7, fleet: { boats } };
+  const normal = fleet.typhoonShelterFleetSchedule(plan, () => 20, 3);
+  boats.filter((b) => b.model === 'fishingBoat4').forEach((b) => assert.ok(normal.get(b.id).depart < 17 * 60 && !normal.get(b.id).rest));
+  boats.filter((b) => b.model === 'fishingBoat1').forEach((b) => assert.ok(normal.get(b.id).depart >= 17 * 60));
+  const moratorium = fleet.typhoonShelterFleetSchedule(plan, () => 20, 3, { moratorium: true });
+  boats.forEach((b) => assert.equal(!!moratorium.get(b.id).rest, b.model === 'fishingBoat4' || !!normal.get(b.id).rest));
+  // the month of a trip day, counted from today's: May to August is the 休漁期
+  globalThis.city = { month: 4, environmentMinutes: 10 * 1440 + 100 };
+  globalThis.getEnvironmentMinutes = () => globalThis.city.environmentMinutes;
+  try {
+    assert.equal(fleet.isTyphoonShelterMoratoriumDay(10), false, 'April');
+    assert.equal(fleet.isTyphoonShelterMoratoriumDay(11), true, 'May');
+    assert.equal(fleet.isTyphoonShelterMoratoriumDay(14), true, 'August');
+    assert.equal(fleet.isTyphoonShelterMoratoriumDay(15), false, 'September');
+  } finally {
+    delete globalThis.city;
+    delete globalThis.getEnvironmentMinutes;
+  }
 });
 
 test('bad weather keeps boats in and turns those out for home', () => {
@@ -179,15 +210,15 @@ test('a boat turned back by the weather lands only part of its catch', () => {
   const slots = computeTyphoonShelterBerths(analysis, items);
   const boats = reconcileTyphoonShelterFleet(createTyphoonShelterFleet(), slots, 12, { seed: 7 }).boats;
   const day = 9;
-  const evening = day * 1440 + 23 * 60;
+  // the next morning, 07:00: last night's trips and catch
+  const morning = (day + 1) * 1440 + 7 * 60;
   const base = { ...plan, id: 'calm', works: { approved: true, items }, fleet: { nextId: 13, boats } };
-  const calm = fleet.summarizeTyphoonShelterFleet(base, analysis, evening, null);
-  assert.ok(calm.fishing > 0);
-  assert.equal(calm.tripsToday, calm.fishing);
-  assert.equal(calm.catchToday, Math.round(calm.fishing * TYPHOON_SHELTER_FLEET.catchTonnesPerTrip * 10) / 10);
-  const storm = { holds: [{ from: day * 1440 + 9 * 60, until: null }], standbys: [] };
-  const stormy = fleet.summarizeTyphoonShelterFleet({ ...base, id: 'stormy' }, analysis, evening, storm);
-  assert.equal(stormy.tripsToday, calm.tripsToday, 'everyone was out by 08:00');
+  const calm = fleet.summarizeTyphoonShelterFleet(base, analysis, morning, null);
+  assert.ok(calm.fishing > 0 && calm.tripsToday > 0 && calm.tripsToday <= calm.fishing, 'a few take the night off');
+  assert.equal(calm.catchToday, Math.round(calm.tripsToday * TYPHOON_SHELTER_FLEET.catchTonnesPerTrip * 10) / 10);
+  const storm = { holds: [{ from: day * 1440 + 21 * 60, until: null }], standbys: [] };
+  const stormy = fleet.summarizeTyphoonShelterFleet({ ...base, id: 'stormy' }, analysis, morning, storm);
+  assert.equal(stormy.tripsToday, calm.tripsToday, 'everyone was out by 19:00');
   assert.ok(stormy.catchToday < calm.catchToday / 2, `${stormy.catchToday} vs ${calm.catchToday}`);
   assert.equal(stormy.held, true);
 });
@@ -247,10 +278,10 @@ test('the fleet sails in order: nearest the entrance out first, furthest in home
   const times = fleet.typhoonShelterFleetSchedule(plan, (b) => len[b.slot], 3);
   const byLength = plan.fleet.boats.slice().sort((x, y) => len[x.slot] - len[y.slot]);
   const departs = byLength.map((b) => times.get(b.id).depart);
-  const backs = byLength.map((b) => times.get(b.id).back);
+  const backs = byLength.map((b) => times.get(b.id).arrive);
   departs.slice(1).forEach((t, i) => assert.ok(t > departs[i], 'nearer boats leave first'));
   backs.slice(1).forEach((t, i) => assert.ok(t < backs[i], 'further boats come home first'));
-  const gap = TYPHOON_SHELTER_FLEET.departSpan / 6;
+  const gap = TYPHOON_SHELTER_FLEET.trips.gillnet.departSpan / 6;
   departs.slice(1).forEach((t, i) => assert.ok(t - departs[i] > gap * 0.6, 'kept apart'));
   // a house boat is not in the order
   plan.fleet.boats.push({ id: 9, model: 'homeBoat1', slot: 's9' });

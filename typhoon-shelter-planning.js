@@ -671,10 +671,12 @@ function renderTyphoonShelterWorksPanel(panel, plan, a, previewing) {
     rows.push(
       [tsT('typhoonShelter.fleet', '船隊'), `${f.boats} 艘（漁船 ${f.fishing}）`],
       [tsT('typhoonShelter.fleetNow', '而家'), `停泊 ${f.moored} · 出海 ${f.out + f.away} · 返港 ${f.home}`],
-      [tsT('typhoonShelter.catchToday', '今日漁獲'), `${f.tripsToday} 船次 · 約 ${f.catchToday} 噸`],
+      [tsT('typhoonShelter.catchToday', '最近一晚漁獲'), `${f.tripsToday} 船次 · 約 ${f.catchToday} 噸`],
     );
+    if (f.moratorium) rows.push([tsT('typhoonShelter.moratorium', '休漁期'), tsT('typhoonShelter.moratoriumNote', '5 月至 8 月：拖網船留港')]);
     if (f.repairing) rows.push([tsT('typhoonShelter.repairing', '維修中'), `${f.repairing} 艘（風災受損）`]);
   }
+  if (typeof typhoonShelterMarketRows === 'function' && sum.operational) rows.push(...typhoonShelterMarketRows(plan.id));
   rows.push(...typhoonShelterStormRows(plan, a));
   panel.querySelector('.ts-works-stats').innerHTML = rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
   panel.querySelector('.ts-works-block').textContent = sum.pierConnected ? ''
@@ -867,7 +869,9 @@ function runTyphoonShelterWorksDaily() {
 function getTyphoonShelterMonthlyUpkeep() {
   return getTyphoonShelterState().shelters.reduce((sum, plan) => sum + (plan.works?.items || [])
     .filter((i) => i.state === 'done')
-    .reduce((s, i) => s + (TYPHOON_SHELTER_WORK_KINDS[i.kind]?.upkeep || 0), 0), 0);
+    .reduce((s, i) => s + (TYPHOON_SHELTER_WORK_KINDS[i.kind]?.upkeep || 0), 0), 0)
+    // and the 海事處 buildings on the waterfront (typhoon-shelter-market.js)
+    + (typeof getTyphoonShelterBuildingsUpkeep === 'function' ? getTyphoonShelterBuildingsUpkeep() : 0);
 }
 
 // What the works for a plan would cost: { cost, upkeep, count }.
@@ -954,39 +958,6 @@ function layTyphoonShelterPromenade(plan, wanted, basin = null) {
 // The railing on the open coast: 海旁欄杆 sections (3.4 m, 1.2 m high), three to a cell side, set
 // in from the sea edge onto the coping.
 const PROMENADE_RAILING = Object.freeze({ objectId: 'shoreFence_straightA', insetM: 0.6, along: Object.freeze([-3.33, 0, 3.33]) });
-
-// Gear left about the waterfront's gravel (石仔地): fishing-gear piles (2-3 m across, 2.2-2.4 m
-// high) on about one cell in four, placed and turned by a hash of the cell, so they stay put.
-const WATERFRONT_CLUTTER = Object.freeze(['shoreAssessories1', 'shoreAssessories3', 'shoreAssessories4']);
-
-function typhoonShelterCellHash(r, c, salt) {
-  let h = (Math.imul(r + 101, 0x9e3779b1) ^ Math.imul(c + 37, 0x85ebca6b) ^ Math.imul(salt + 7, 0xc2b2ae35)) >>> 0;
-  h ^= h >>> 15; h = Math.imul(h, 0x2c1b3c6d) >>> 0; h ^= h >>> 12;
-  return (h >>> 0) / 4294967296;
-}
-
-function layTyphoonShelterClutter(promenadeCells, wanted) {
-  const half = TYPHOON_SHELTER_TILE_M / 4;
-  const dirs = ['n', 'e', 's', 'w'];
-  typhoonShelterPavedTiles.forEach((tile) => {
-    const [row, col] = tile.split(':').map(Number);
-    if (buildingData?.[getTileId(row, col)]) return;
-    for (let dr = 0; dr < 2; dr++) {
-      for (let dc = 0; dc < 2; dc++) {
-        const [R, C] = [2 * row + dr, 2 * col + dc];
-        if (promenadeCells.has(`${R}:${C}`) || typhoonShelterCellHash(R, C, 1) > 0.25) continue;
-        const objectId = WATERFRONT_CLUTTER[Math.floor(typhoonShelterCellHash(R, C, 2) * WATERFRONT_CLUTTER.length)];
-        const jitter = (salt) => (typhoonShelterCellHash(R, C, salt) - 0.5) * 3;
-        wanted.set(`clutter|${R}:${C}`, {
-          item: { key: `clutter:${R}:${C}`, kind: 'clutter', row, col, facing: dirs[Math.floor(typhoonShelterCellHash(R, C, 3) * 4)], state: 'done' },
-          objectId, alpha: 1, tint: null, footprintOverride: { cols: 1, rows: 1 }, shoreAlign: false, shoreDir: null,
-          sectioned: true, depthBias: 0.1, alongM: 0, variant: Math.floor(typhoonShelterCellHash(R, C, 6) * 8),
-          offsets: [[dr ? 's' : 'n', half + jitter(4)], [dc ? 'e' : 'w', half + jitter(5)]],
-        });
-      }
-    }
-  });
-}
 
 // The land tiles a built quay (海堤) stands on: terrain draws them as plain ground (not beach) and
 // the water beside them without a bank (tile-keys.js).
@@ -1093,13 +1064,12 @@ function syncTyphoonShelterFacilitySprites(scene = typeof activeScene !== 'undef
     return Array.from({ length: n }, (_, i) => (n === 1 ? first : first + ((last - first) * i) / (n - 1)));
   })();
   const ARM_STEP = { n: [-1, 0], e: [0, 1], s: [1, 0], w: [0, -1] };
-  const promenadeCells = new Set();
   getTyphoonShelterState().shelters.forEach((plan) => {
     const walls = new Set((plan.works?.items || []).filter((i) => i.state === 'done' && (i.kind === 'breakwater' || i.kind === 'head'))
       .map((i) => `${i.row}:${i.col}`));
     const armsOf = (item) => Object.keys(ARM_STEP).filter((d) => walls.has(`${item.row + ARM_STEP[d][0]}:${item.col + ARM_STEP[d][1]}`));
     const analysis = getTyphoonShelterAnalyses().get(plan.id);
-    layTyphoonShelterPromenade(plan, wanted, analysis?.basin).forEach((k) => promenadeCells.add(k));
+    layTyphoonShelterPromenade(plan, wanted, analysis?.basin);
     (plan.works?.items || []).forEach((item) => {
       const workKind = TYPHOON_SHELTER_WORK_KINDS[item.kind];
       if (item.state !== 'done' || !workKind?.objectId || workKind.drawn === false) return;
@@ -1188,7 +1158,9 @@ function syncTyphoonShelterFacilitySprites(scene = typeof activeScene !== 'undef
       }
     });
   });
-  layTyphoonShelterClutter(promenadeCells, wanted);
+  // the catch is landed and piled at one 魚檔 per shelter (typhoon-shelter-market.js); the quays
+  // are no longer strewn with random crate piles
+  if (typeof layTyphoonShelterMarkets === 'function') layTyphoonShelterMarkets(wanted);
   [...scene.typhoonShelterObjects.values()].forEach((rec) => {
     if (rec.tag === 'works' && !wanted.has(rec.id)) removeTyphoonShelterObject(scene, rec.id);
   });
@@ -1224,6 +1196,8 @@ function syncTyphoonShelterFacilitySprites(scene = typeof activeScene !== 'undef
       sectioned: w.sectioned,
       offsets: w.offsets,
       variant: w.variant ?? ((w.item.row * 31 + w.item.col) & 7),
+      hidden: !!w.hidden,
+      aboveFootprint: w.aboveFootprint || null,
     }).catch((error) => console.warn('[typhoon shelter] sprite', error?.message));
   });
 }

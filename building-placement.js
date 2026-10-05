@@ -441,6 +441,11 @@ function removeBuilding(scene, row, col, options = {}) {
       powerSources.delete(anchorId);
     }
     delete buildingData[anchorId];
+    // a 海事處 building gone: the promenade comes back on its tiles, its market or bay goes
+    if (typeof isTyphoonShelterBuildingType === 'function' && isTyphoonShelterBuildingType(record.type)
+      && typeof onTyphoonShelterBuildingsChanged === 'function') {
+      setTimeout(() => onTyphoonShelterBuildingsChanged(scene), 0);
+    }
     markPowerGridDirty();
     if (SERVICE_BUILDING_TYPES.has(record.type)) markServiceCoverageDirty();
     invalidateBuildingCountCache();

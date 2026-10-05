@@ -119,7 +119,9 @@ function updateBuildingPlacementGuide(scene, pointer) {
       ? canPlaceOrRotateBusDepot(scene, tile.row, tile.col)
       : selectedTool === 'tree'
         ? canPlantTreeAt(scene, tile.row, tile.col)
-        : canPlaceBuildingFootprint(tile.row, tile.col, footprintCols, footprintRows);
+        : typeof isTyphoonShelterBuildingTool === 'function' && isTyphoonShelterBuildingTool(selectedTool)
+          ? !whyNotTyphoonShelterBuilding(tile.row, tile.col, footprintCols, footprintRows)
+          : canPlaceBuildingFootprint(tile.row, tile.col, footprintCols, footprintRows);
   drawFootprintGuide(scene, tile.row, tile.col, footprintCols, footprintRows, canPlace);
 }
 

@@ -6334,6 +6334,15 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
       <span class="tool-category-accent" aria-hidden="true"></span>
       <span class="tool-category-hotkey" aria-hidden="true">T</span>
     </button>
+    <button class="tool-category-button" type="button" data-tool-category="marine" title="Marine Department" data-i18n-title="toolCategory.marine">
+      <span class="tool-category-icon" aria-hidden="true">⚓</span>
+      <span class="tool-category-labels">
+        <span class="tool-category-title" data-i18n="toolCategory.marineTitle">海事處</span>
+        <span class="tool-category-subtitle" data-i18n="toolCategory.marineSubtitle">Marine</span>
+      </span>
+      <span class="tool-category-accent" aria-hidden="true"></span>
+      <span class="tool-category-hotkey" aria-hidden="true">H</span>
+    </button>
     <button class="tool-category-button" type="button" data-tool-category="inspect" title="Inspect" data-i18n-title="toolCategory.inspect">
       <span class="tool-category-icon" aria-hidden="true">🔍</span>
       <span class="tool-category-labels">
@@ -6353,13 +6362,20 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
       <span class="tool-category-hotkey" aria-hidden="true">D</span>
     </button>
 
+    <section class="tool-flyout" data-tool-panel="marine">
+      <div class="tool-flyout-title" data-i18n="toolCategory.marine">Marine Department</div>
+      <button class="tool-row" type="button" data-tool="typhoon-shelter">
+        <span class="tool-row-icon">⚓</span><span class="tool-row-text" data-i18n="toolRow.typhoonShelter">Typhoon Shelter</span>
+      </button>
+      <button class="tool-row" type="button" data-tool="fish-market"><span class="tool-row-icon">🐟</span><span class="tool-row-text" data-i18n="toolRow.fishMarket">Fish Market</span><span class="tool-row-cost">$3200</span></button>
+      <button class="tool-row" type="button" data-tool="seafood-restaurant"><span class="tool-row-icon">🦀</span><span class="tool-row-text" data-i18n="toolRow.seafoodRestaurant">Seafood Restaurant</span><span class="tool-row-cost">$2400</span></button>
+      <button class="tool-row" type="button" data-tool="fish-loading-bay"><span class="tool-row-icon">🚚</span><span class="tool-row-text" data-i18n="toolRow.fishLoadingBay">Loading Bay</span><span class="tool-row-cost">$1500</span></button>
+    </section>
+
     <section class="tool-flyout" data-tool-panel="terrain">
       <div class="tool-flyout-title" data-i18n="toolCategory.terrain">Terrain</div>
       <button class="tool-row" type="button" data-tool="terrain">
         <span class="tool-row-icon">🎨</span><span class="tool-row-text" data-i18n="toolRow.terrainBrush">Terrain Brush</span>
-      </button>
-      <button class="tool-row" type="button" data-tool="typhoon-shelter">
-        <span class="tool-row-icon">⚓</span><span class="tool-row-text" data-i18n="toolRow.typhoonShelter">Typhoon Shelter</span>
       </button>
       <button class="tool-row" type="button" data-action="generate">
         <span class="tool-row-icon">🔄</span><span class="tool-row-text" data-i18n="tool.generate">Generate Terrain</span>
@@ -7360,6 +7376,7 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
   <script src="typhoon-shelter-works.js"></script>
   <script src="typhoon-shelter-fleet.js"></script>
   <script src="typhoon-shelter-storm.js"></script>
+  <script src="typhoon-shelter-market.js"></script>
   <script src="typhoon-shelter-planning.js"></script>
   <script src="typhoon-shelter-sprites.js"></script>
   <script src="typhoon-shelter-calibrator.js"></script>

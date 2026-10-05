@@ -328,6 +328,7 @@ function updateGameFrame(time, delta) {
   // 避風塘 boats: their positions follow the environment clock (typhoon-shelter-fleet.js)
   if (typeof updateTyphoonShelterBoats === 'function') updateTyphoonShelterBoats(this);
   if (typeof updateTyphoonShelterBobbing === 'function') updateTyphoonShelterBobbing(this, time);
+  if (typeof updateTyphoonShelterMarkets === 'function') updateTyphoonShelterMarkets(this, time);
   if (typeof updateTyphoonShelterLights === 'function') updateTyphoonShelterLights(this, time);
   if (profileSections) {
     recordVisualRoutePerformanceDuration(this, 'vessel', performance.now() - sectionStartedAt);
@@ -602,6 +603,9 @@ function getBuildingTypeLabel(type) {
     park_large: 'building.largePark',
     airport: 'building.airport',
     heritage_temple: 'building.heritageTemple',
+    fish_market: 'building.fishMarket',
+    seafood_restaurant: 'building.seafoodRestaurant',
+    fish_loading_bay: 'building.fishLoadingBay',
     grand_temple: 'building.grandTemple',
     heritage_church: 'building.heritageChurch',
     indoor_coliseum: 'building.indoorColiseum',

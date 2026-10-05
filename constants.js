@@ -1070,7 +1070,37 @@ const LEGACY_OCEAN_PARK_MODEL = {
   footprintRows: 4,
 };
 
+// 海事處 (typhoon-shelter-market.js): built on a typhoon shelter's waterfront gravel, beside a
+// road - a wholesale fish market where the boats land their catch, a seafood restaurant, and a
+// loading bay the fish trucks pull into and the catch is piled up in.
+SPECIAL_BUILDING_MODELS.fish_market = {
+  spriteKey: 'fish_market_1x1',
+  path: 'Models/specialSites/1x1/fishMarket1-01.png',
+  footprintCols: 1,
+  footprintRows: 1,
+};
+SPECIAL_BUILDING_MODELS.seafood_restaurant = {
+  spriteKey: 'seafood_restaurant_1x1',
+  path: 'Models/specialSites/1x1/seafoodRestaurant1-01.png',
+  footprintCols: 1,
+  footprintRows: 1,
+};
+SPECIAL_BUILDING_MODELS.fish_loading_bay = {
+  spriteKey: 'fish_loading_bay_2x2',
+  path: 'Models/specialSites/2x2/fishLoadingBay2-01.png',
+  footprintCols: 2,
+  footprintRows: 2,
+};
+
 const SPECIAL_BUILDING_MODEL_VARIANTS = {
+  fish_market: [
+    SPECIAL_BUILDING_MODELS.fish_market,
+    { spriteKey: 'fish_market_1x1_alt', path: 'Models/specialSites/1x1/fishMarket1-02.png', footprintCols: 1, footprintRows: 1 },
+  ],
+  seafood_restaurant: [
+    SPECIAL_BUILDING_MODELS.seafood_restaurant,
+    { spriteKey: 'seafood_restaurant_1x1_alt', path: 'Models/specialSites/1x1/seafoodRestaurant1-02.png', footprintCols: 1, footprintRows: 1 },
+  ],
   heritage_temple: [
     SPECIAL_BUILDING_MODELS.heritage_temple,
     {
@@ -1286,6 +1316,8 @@ const SPECIAL_BUILDING_EFFECTS = {
     nuisanceRadius: 12, nuisanceStrength: 0.28,
     revenue: 500, upkeep: 700,
   },
+  // 海事處: their upkeep is the typhoon shelters' (getTyphoonShelterMonthlyUpkeep), not a landmark's
+  seafood_restaurant: { attractivenessBonus: 1, landValueBonus: 0.02, landValueRadius: 4 },
 };
 
 const SPECIAL_BUILDING_COSTS = {
@@ -1294,6 +1326,9 @@ const SPECIAL_BUILDING_COSTS = {
   space_museum:       6500,
   buddha_statue:       4200,
   heritage_temple:     2600,
+  fish_market:         3200,
+  seafood_restaurant:  2400,
+  fish_loading_bay:    1500,
   grand_temple:        6200,
   heritage_church:     3200,
   indoor_coliseum:    12000,
@@ -1377,6 +1412,9 @@ const BUILDING_POWER_DEMAND = {
   space_museum: 10,
   buddha_statue: 4,
   heritage_temple: 3,
+  fish_market: 6,
+  seafood_restaurant: 4,
+  fish_loading_bay: 1,
   grand_temple: 7,
   heritage_church: 4,
   indoor_coliseum: 18,

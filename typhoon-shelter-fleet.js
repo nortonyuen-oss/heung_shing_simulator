@@ -15,19 +15,31 @@
 const TYPHOON_SHELTER_FLEET = Object.freeze({
   // the fleet's make-up; fishing boats go out, house boats and sampans stay at their berths
   models: Object.freeze([
-    Object.freeze({ objectId: 'fishingBoat1', weight: 20, fishing: true, size: 2 }),
-    Object.freeze({ objectId: 'fishingBoat3', weight: 25, fishing: true, size: 2 }),
-    Object.freeze({ objectId: 'fishingBoat4', weight: 25, fishing: true, size: 2 }),
+    // trip: how it fishes (TYPHOON_SHELTER_FLEET.trips) - read off the art: boat 1 hangs lamps
+    // (燈光漁船), boat 3 has a net winch (刺網), boat 4 a stern gantry and net drum (拖網)
+    Object.freeze({ objectId: 'fishingBoat1', weight: 20, fishing: true, size: 2, trip: 'light' }),
+    Object.freeze({ objectId: 'fishingBoat3', weight: 25, fishing: true, size: 2, trip: 'gillnet' }),
+    Object.freeze({ objectId: 'fishingBoat4', weight: 25, fishing: true, size: 2, trip: 'trawler' }),
     Object.freeze({ objectId: 'homeBoat1', weight: 8, fishing: false, size: 2 }),
     Object.freeze({ objectId: 'homeBoat2', weight: 7, fishing: false, size: 2 }),
     Object.freeze({ objectId: 'sanpan1', weight: 5, fishing: false, size: 1 }),
     Object.freeze({ objectId: 'sanpan3', weight: 5, fishing: false, size: 1 }),
     Object.freeze({ objectId: 'sanpan5', weight: 5, fishing: false, size: 1 }),
   ]),
-  departFrom: 4 * 60,          // sky-time window boats leave in (minutes after midnight)
-  departSpan: 4 * 60,
-  returnFrom: 15 * 60,         // and come home in
-  returnSpan: 6 * 60,
+  // Hong Kong's fishing boats work the night: out in the late afternoon and evening, alongside
+  // again at 03:00-05:00 to land the catch for the wholesale market (香港仔魚類批發市場 opens at
+  // 04:00, its trucks queue from 03:00). A trip day runs from 06:00 to 06:00 - the sky-day, which
+  // is also the calendar month (game-clock.js) - so one night's trip falls in one month. Times are
+  // sky minutes from the trip day's midnight: 27 * 60 is 03:00 the next morning.
+  dayStart: 6 * 60,
+  trips: Object.freeze({
+    light: Object.freeze({ departFrom: 17 * 60, departSpan: 2 * 60, restShare: 0.1 }),
+    gillnet: Object.freeze({ departFrom: 17 * 60, departSpan: 2 * 60, restShare: 0.25 }),
+    // 休漁期: the South China Sea moratorium (from 1 May to mid-August) keeps the trawlers in
+    trawler: Object.freeze({ departFrom: 15 * 60, departSpan: 2 * 60, restShare: 0, moratoriumMonths: Object.freeze([5, 6, 7, 8]) }),
+  }),
+  arriveFrom: 27 * 60,         // alongside at the berth, catch landed
+  arriveSpan: 2 * 60,
   speedTilesPerMinute: 0.5,    // ~1.5 tiles a second on screen at 1x
   offshoreTiles: 30,           // how far out a boat is still drawn before it is "at the grounds"
   catchTonnesPerTrip: 1.5,
@@ -228,68 +240,104 @@ function reconcileTyphoonShelterFleet(fleet, slots, target, { seed = 0, arrivals
  * none waits behind a boat turning into its berth. The window is shared out evenly - with all at one
  * speed, boats on a common lane stay that many minutes apart - with a little play each day.
  */
-function typhoonShelterFleetSchedule(plan, routeLengthOf, day) {
+function typhoonShelterFleetSchedule(plan, routeLengthOf, day, { moratorium = false } = {}) {
   const F = TYPHOON_SHELTER_FLEET;
   const boats = (plan.fleet?.boats || []).filter((b) => isTyphoonShelterFishingModel(b.model));
   const len = (b) => routeLengthOf(b) || 0;
-  const out = [...boats].sort((x, y) => len(x) - len(y) || x.id - y.id);
-  const home = [...boats].sort((x, y) => len(y) - len(x) || x.id - y.id);
   const n = Math.max(1, boats.length);
-  const slot = (i, from, span, salt, b) => from + ((i + 0.5 + (tfHash(plan.seed, salt, b.id, day) - 0.5) * 0.3) / n) * span;
+  const slot = (i, count, from, span, salt, b) => from + ((i + 0.5 + (tfHash(plan.seed, salt, b.id, day) - 0.5) * 0.3) / Math.max(1, count)) * span;
   const times = new Map(boats.map((b) => [b.id, {}]));
-  // the far half stay in under 一號 (typhoon-shelter-storm.js); after a storm they sail one by one,
-  // nearest the entrance first
-  const median = out.length ? len(out[Math.floor((out.length - 1) / 2)]) : 0;
-  out.forEach((b, i) => {
-    Object.assign(times.get(b.id), {
-      depart: slot(i, F.departFrom, F.departSpan, 'out', b),
-      resumeOffset: i * F.resumeStaggerMin,
-      longRoute: len(b) > median,
+  // out by kind, each in its own window, nearest the entrance first
+  const byTrip = new Map();
+  boats.forEach((b) => {
+    const trip = getTyphoonShelterBoatTrip(b.model);
+    if (!byTrip.has(trip)) byTrip.set(trip, []);
+    byTrip.get(trip).push(b);
+  });
+  byTrip.forEach((list, trip) => {
+    const t = F.trips[trip];
+    [...list].sort((x, y) => len(x) - len(y) || x.id - y.id).forEach((b, i) => {
+      Object.assign(times.get(b.id), {
+        depart: slot(i, list.length, t.departFrom, t.departSpan, 'out', b),
+        // a night off, or the trawlers' 休漁期
+        rest: (moratorium && !!t.moratoriumMonths) || tfHash(plan.seed, 'rest', b.id, day) < t.restShare,
+      });
     });
   });
-  home.forEach((b, i) => { times.get(b.id).back = slot(i, F.returnFrom, F.returnSpan, 'in', b); });
+  // the far half stay in under 一號 (typhoon-shelter-storm.js); after a storm they sail one by one,
+  // nearest the entrance first
+  const out = [...boats].sort((x, y) => len(x) - len(y) || x.id - y.id);
+  const median = out.length ? len(out[Math.floor((out.length - 1) / 2)]) : 0;
+  out.forEach((b, i) => Object.assign(times.get(b.id), { resumeOffset: i * F.resumeStaggerMin, longRoute: len(b) > median }));
+  // home before dawn, the boats going furthest in first, so none waits behind one turning in
+  [...boats].sort((x, y) => len(y) - len(x) || x.id - y.id)
+    .forEach((b, i) => { times.get(b.id).arrive = slot(i, n, F.arriveFrom, F.arriveSpan, 'in', b); });
   return times;
 }
 
 // The day's schedule, worked out once per shelter, day, fleet and layout (the boats ask every frame).
 const typhoonShelterScheduleCache = new Map();
 
-function getTyphoonShelterFleetScheduleCached(plan, geometry, day) {
+function getTyphoonShelterFleetScheduleCached(plan, geometry, day, moratorium = isTyphoonShelterMoratoriumDay(day)) {
   const boats = plan.fleet?.boats || [];
-  const key = `${day}|${geometry.key}|${boats.map((b) => `${b.id}:${b.slot}:${b.model}`).join(',')}`;
+  const key = `${day}|${moratorium}|${geometry.key}|${boats.map((b) => `${b.id}:${b.slot}:${b.model}`).join(',')}`;
   const hit = typhoonShelterScheduleCache.get(plan.id);
   if (hit && hit.key === key) return hit.times;
-  const times = typhoonShelterFleetSchedule(plan, (b) => geometry.routeBySlot.get(b.slot)?.length, day);
+  const times = typhoonShelterFleetSchedule(plan, (b) => geometry.routeBySlot.get(b.slot)?.length, day, { moratorium });
   typhoonShelterScheduleCache.set(plan.id, { key, times });
   return times;
 }
 
-// One boat's own times, for a boat outside a schedule: { depart, back } in minutes of the sky-day.
-function typhoonShelterBoatTimes(seed, boatId, day) {
+// The trip day a moment belongs to: from 06:00 to 06:00, the sky-day and calendar month.
+function getTyphoonShelterTripDay(t) {
+  return Math.floor((t - TYPHOON_SHELTER_FLEET.dayStart) / TYPHOON_SHELTER_MINUTES_PER_DAY);
+}
+
+function getTyphoonShelterBoatTrip(objectId) {
+  return TYPHOON_SHELTER_FLEET.models.find((m) => m.objectId === objectId)?.trip || 'gillnet';
+}
+
+// Whether trip day `day` falls in the trawlers' 休漁期: the month that day is (the calendar rolls
+// over with the trip day at 06:00, so it is this month, counted back or on from today).
+function isTyphoonShelterMoratoriumDay(day) {
+  if (typeof city === 'undefined' || !Number.isFinite(Number(city.month))) return false;
+  const today = getTyphoonShelterTripDay(getTyphoonShelterFleetClock());
+  const month = ((((Number(city.month) - 1 - (today - day)) % 12) + 12) % 12) + 1;
+  return TYPHOON_SHELTER_FLEET.trips.trawler.moratoriumMonths.includes(month);
+}
+
+// One boat's own times, for a boat outside a schedule: sky minutes from its trip day's midnight.
+function typhoonShelterBoatTimes(seed, boatId, day, objectId = 'fishingBoat3') {
   const F = TYPHOON_SHELTER_FLEET;
+  const t = F.trips[getTyphoonShelterBoatTrip(objectId)];
   return {
-    depart: F.departFrom + tfHash(seed, 'out', boatId, day) * F.departSpan,
-    back: F.returnFrom + tfHash(seed, 'in', boatId, day) * F.returnSpan,
+    depart: t.departFrom + tfHash(seed, 'out', boatId, day) * t.departSpan,
+    arrive: F.arriveFrom + tfHash(seed, 'in', boatId, day) * F.arriveSpan,
     resumeOffset: 0,
     longRoute: false,
+    rest: false,
   };
 }
 
 /**
- * A boat's trip on sky-day `day`, in environment minutes: { departAbs, backAbs, scheduledBackAbs }
- * - backAbs being when it turns for home - or null when it stays in (laid up for repairs, or held
- * by the storm). `storm` (typhoon-shelter-storm.js) holds the intervals:
+ * A boat's trip on trip day `day`, in fleet-clock minutes: { departAbs, backAbs, scheduledBackAbs,
+ * arriveAbs } - backAbs being when it turns for home (worked back from its arrival so it is
+ * alongside on time) - or null when it stays in: a night off, laid up for repairs, or held by the
+ * storm. `storm` (typhoon-shelter-storm.js) holds the intervals:
  *   holds     no one sails from `from` until `until` (+ the boat's place in the line); a boat out
  *             when one starts turns for home at once
  *   standbys  一號: the far boats (longRoute) do not sail; a boat out turns for home within
  *             standbyTurnBackMin
  */
-function typhoonShelterBoatTrip(boat, day, { seed = 0, storm = null, times = null } = {}) {
+function typhoonShelterBoatTrip(boat, day, { seed = 0, storm = null, times = null, routeLength = 0 } = {}) {
   const F = TYPHOON_SHELTER_FLEET;
-  const t = times || typhoonShelterBoatTimes(seed, boat.id, day);
+  const t = times || typhoonShelterBoatTimes(seed, boat.id, day, boat.model);
+  if (t.rest) return null;
   const dayStart = day * TYPHOON_SHELTER_MINUTES_PER_DAY;
   const departAbs = dayStart + t.depart;
-  const scheduledBackAbs = dayStart + t.back;
+  const travel = Math.max(0, routeLength) / F.speedTilesPerMinute;
+  // turn for home in time to be alongside at its hour (but not before it has reached the grounds)
+  const scheduledBackAbs = Math.max(departAbs + travel, dayStart + t.arrive - travel);
   let backAbs = scheduledBackAbs;
   if (Number(boat.repairUntil) > departAbs) return null;
   for (const h of storm?.holds || []) {
@@ -303,7 +351,8 @@ function typhoonShelterBoatTrip(boat, day, { seed = 0, storm = null, times = nul
     const turn = Math.max(departAbs, w.from) + F.standbyTurnBackMin;
     if (w.from < backAbs && departAbs < until && turn < backAbs) backAbs = turn;
   }
-  return { departAbs, backAbs, scheduledBackAbs };
+  const reached = Math.min(Math.max(0, routeLength), (backAbs - departAbs) * F.speedTilesPerMinute);
+  return { departAbs, backAbs, scheduledBackAbs, arriveAbs: backAbs + reached / F.speedTilesPerMinute };
 }
 
 /**
@@ -313,8 +362,8 @@ function typhoonShelterBoatTrip(boat, day, { seed = 0, storm = null, times = nul
  */
 function typhoonShelterBoatState(boat, routeLength, env, { seed = 0, storm = null, fishing = true, times = null } = {}) {
   if (!fishing || !(routeLength > 0)) return { mode: 'moored', distance: 0 };
-  const day = Math.floor(env / TYPHOON_SHELTER_MINUTES_PER_DAY);
-  const trip = typhoonShelterBoatTrip(boat, day, { seed, storm, times });
+  const day = getTyphoonShelterTripDay(env);
+  const trip = typhoonShelterBoatTrip(boat, day, { seed, storm, times, routeLength });
   if (!trip || env < trip.departAbs) return { mode: 'moored', distance: 0 };
   const speed = TYPHOON_SHELTER_FLEET.speedTilesPerMinute;
   const { departAbs, backAbs } = trip;
@@ -407,16 +456,23 @@ function updateTyphoonShelterFleets(state, analyses, summaries) {
   return changed ? shelters : null;
 }
 
-// Counts for the panel: { boats, fishing, out, away, home, moored, repairing, held, tripsToday,
-// catchToday }. `storm`: the city's storm record (typhoon-shelter-storm.js).
+// Counts for the panel: { boats, fishing, out, away, home, moored, repairing, held, moratorium,
+// tripsToday, catchToday } - the trips and catch of the latest night: tonight's once the first
+// boats are out (15:00), last night's before. `storm`: the city's storm record
+// (typhoon-shelter-storm.js).
 function summarizeTyphoonShelterFleet(plan, analysis, env = getTyphoonShelterFleetClock(), storm = typeof getTyphoonShelterStorm === 'function' ? getTyphoonShelterStorm() : null) {
   const fleet = plan.fleet;
-  const out = { boats: 0, fishing: 0, out: 0, away: 0, home: 0, moored: 0, repairing: 0, held: false, tripsToday: 0, catchToday: 0 };
+  const out = { boats: 0, fishing: 0, out: 0, away: 0, home: 0, moored: 0, repairing: 0, held: false, moratorium: false, tripsToday: 0, catchToday: 0 };
   if (!fleet || !analysis) return out;
   const geometry = getTyphoonShelterFleetGeometry(plan, analysis);
-  const day = Math.floor(env / TYPHOON_SHELTER_MINUTES_PER_DAY);
+  const day = getTyphoonShelterTripDay(env);
   out.held = !!(storm?.holds || []).find((h) => h.until == null);
-  const schedule = getTyphoonShelterFleetScheduleCached(plan, geometry, day);
+  out.moratorium = isTyphoonShelterMoratoriumDay(day);
+  const schedule = getTyphoonShelterFleetScheduleCached(plan, geometry, day, out.moratorium);
+  const firstOut = Math.min(...Object.values(TYPHOON_SHELTER_FLEET.trips).map((t) => t.departFrom));
+  const catchDay = env < day * TYPHOON_SHELTER_MINUTES_PER_DAY + firstOut ? day - 1 : day;
+  const catchSchedule = catchDay === day ? schedule
+    : typhoonShelterFleetSchedule(plan, (b) => geometry.routeBySlot.get(b.slot)?.length, catchDay, { moratorium: isTyphoonShelterMoratoriumDay(catchDay) });
   let catchTonnes = 0;
   fleet.boats.forEach((b) => {
     out.boats += 1;
@@ -425,12 +481,13 @@ function summarizeTyphoonShelterFleet(plan, analysis, env = getTyphoonShelterFle
     const rl = geometry.routeBySlot.get(b.slot)?.length || 0;
     const st = typhoonShelterBoatState(b, rl, env, { seed: plan.seed, storm, fishing, times: schedule.get(b.id) });
     if (Number(b.repairUntil) > env) out.repairing += 1;
+    // (a boat still inbound from last night, past 06:00, is counted moored: arrivals end by 05:00)
     if (st.mode === 'out') out.out += 1;
     else if (st.mode === 'away') out.away += 1;
     else if (st.mode === 'in') out.home += 1;
     else out.moored += 1;
     if (fishing) {
-      const trip = typhoonShelterBoatTrip(b, day, { seed: plan.seed, storm, times: schedule.get(b.id) });
+      const trip = typhoonShelterBoatTrip(b, catchDay, { seed: plan.seed, storm, times: catchSchedule.get(b.id), routeLength: rl });
       if (trip && trip.departAbs < env) {
         out.tripsToday += 1;
         // the catch is for time on the grounds: a boat turned back by the weather lands less
@@ -442,6 +499,28 @@ function summarizeTyphoonShelterFleet(plan, analysis, env = getTyphoonShelterFle
   });
   out.catchToday = Math.round(catchTonnes * 10) / 10;
   return out;
+}
+
+/**
+ * The night's landings for one shelter: [{ at, tonnes }] sorted by time - each fishing boat that
+ * sailed on trip day `day`, when it comes alongside and what it brings (a boat turned back by the
+ * weather lands only what it caught). For the 魚檔 (typhoon-shelter-market.js).
+ */
+function typhoonShelterNightLandings(plan, geometry, day, { storm = null, moratorium = false } = {}) {
+  const F = TYPHOON_SHELTER_FLEET;
+  const schedule = typhoonShelterFleetSchedule(plan, (b) => geometry.routeBySlot.get(b.slot)?.length, day, { moratorium });
+  const out = [];
+  (plan.fleet?.boats || []).forEach((b) => {
+    if (!isTyphoonShelterFishingModel(b.model)) return;
+    const rl = geometry.routeBySlot.get(b.slot)?.length || 0;
+    if (!(rl > 0)) return;
+    const trip = typhoonShelterBoatTrip(b, day, { seed: plan.seed, storm, times: schedule.get(b.id), routeLength: rl });
+    if (!trip) return;
+    const atGrounds = trip.departAbs + rl / F.speedTilesPerMinute;
+    const fished = Math.min(1, Math.max(0, trip.backAbs - atGrounds) / Math.max(1, trip.scheduledBackAbs - atGrounds));
+    out.push({ at: trip.arriveAbs, tonnes: fished * F.catchTonnesPerTrip, boat: b.id });
+  });
+  return out.sort((a, b) => a.at - b.at);
 }
 
 // Every frame: place each visible boat.
@@ -464,7 +543,7 @@ function updateTyphoonShelterBoats(scene) {
     if (!analysis) return;
     const geometry = getTyphoonShelterFleetGeometry(plan, analysis);
     const slotByKey = new Map(geometry.slots.map((s) => [s.key, s]));
-    const schedule = getTyphoonShelterFleetScheduleCached(plan, geometry, Math.floor(env / TYPHOON_SHELTER_MINUTES_PER_DAY));
+    const schedule = getTyphoonShelterFleetScheduleCached(plan, geometry, getTyphoonShelterTripDay(env));
     const mooredAt = (slot, seedId) => {
       // lie along the berth, bow chosen per boat
       const flip = tfHash(plan.seed, 'bow', seedId) < 0.5;
@@ -593,6 +672,10 @@ const typhoonShelterFleetApi = {
   reconcileTyphoonShelterFleet,
   typhoonShelterBoatTimes,
   typhoonShelterBoatTrip,
+  typhoonShelterNightLandings,
+  getTyphoonShelterTripDay,
+  getTyphoonShelterBoatTrip,
+  isTyphoonShelterMoratoriumDay,
   typhoonShelterFleetSchedule,
   typhoonShelterBoatState,
   isTyphoonShelterFishingModel,

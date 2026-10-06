@@ -242,6 +242,10 @@ const SITE_FEATURE_LIST = {
 // ── Changelog ─────────────────────────────────────────────────────────────────
 const SITE_CHANGELOG = {
   "zh-HK": [
+    { version: "v4.17.1", date: "2026-10-07", dateLabel: "2026年10月7日", title: "漁民樂", items: [
+      "聖誕燈飾：12 月成晚，15 款商廈外牆換上聖誕燈飾（聖誕老人雪橇、雪花、聖誕樹等），每棟一至三幅，按外牆透視貼合；其他月份照舊。",
+      "同 4.17.0 一樣包括避風塘、漁船、海事處建築同打風等全部內容；舊存檔兼容。",
+    ] },
     { version: "v4.17.0", date: "2026-10-07", dateLabel: "2026年10月7日", title: "漁民樂", items: [
       "新增避風塘（海事處選單）：拉出一片水域做船塘，外圍自動規劃防波堤同出入口，檢查 11 項條件、估算泊位同造價；一按「確定興建」即時建成，附浮橋、登岸浮台、浮泡、燈塔頭同海濱步道，細城市都負擔得起。",
       "漁船跟香港漁民作息：傍晚出海、凌晨 3 至 5 點靠岸卸魚，5 至 8 月休漁期拖網船留港；夜晚亮起一閃一閃嘅漁火、隨海浪起伏，只沿航道行，唔會穿過其他船或者浮橋。舢舨泊喺浮台兩側，載漁民上船同幫手卸貨。",
@@ -572,6 +576,10 @@ const SITE_CHANGELOG = {
 // title/items text.
 const SITE_CHANGELOG_TRANSLATIONS = {
   "zh-TW": {
+    "v4.17.1": { title: "漁民樂", items: [
+      "聖誕燈飾：12 月整晚，15 款商業大樓外牆換上聖誕燈飾（聖誕老人雪橇、雪花、聖誕樹等），每棟一至三幅，依外牆透視貼合；其他月份不變。",
+      "包含 4.17.0 的避風塘、漁船、海事處建築與颱風等全部內容；相容舊存檔。",
+    ] },
     "v4.17.0": { title: "漁民樂", items: [
       "新增避風塘（海事處選單）：拉出一片水域作為船塘，外圍自動規劃防波堤與出入口，檢查 11 項條件、估算泊位與造價；按下「確定興建」即時建成，附浮橋、登岸浮台、浮筒、燈塔堤頭與海濱步道，小城市也負擔得起。",
       "漁船依香港漁民作息：傍晚出海、凌晨 3 至 5 點靠岸卸魚，5 至 8 月休漁期拖網船留港；夜晚亮起閃爍的漁火、隨海浪起伏，只沿航道行駛，不會穿過其他船隻或浮橋。舢舨停在浮台兩側，載漁民上船並協助卸貨。",
@@ -895,6 +903,10 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   en: {
+    "v4.17.1": { title: "Fishermen's Joy", items: [
+      "Christmas lights: all night in December, 15 commercial towers wear Christmas displays on their curtain walls (Santa's sleigh, snowflakes, Christmas trees and more), one to three per tower, fitted to the facade's perspective; other months are unchanged.",
+      "Includes everything in 4.17.0 - typhoon shelters, the fishing fleet, Marine Department buildings and typhoons. Existing saves remain compatible.",
+    ] },
     "v4.17.0": { title: "Fishermen's Joy", items: [
       "Typhoon shelters (Marine Department menu): drag out a basin and its breakwater and entrances are planned round it, checked against 11 rules with berths and cost estimated; one press of 「確定興建」 builds it at once, with floating walkways, landing stages, buoys, lit entrance heads and a waterfront promenade - affordable even for a small city.",
       "The fleet keeps Hong Kong fishermen's hours: out at dusk, alongside at 03:00-05:00 to land the catch, trawlers in port for the May-August moratorium. At night their lamps twinkle and they ride the swell, keeping to the lanes - never across another boat or a walkway. Sampans tie up by the landing stages, taking crews out and helping unload.",
@@ -1218,6 +1230,10 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   ja: {
+    "v4.17.1": { title: "漁民楽", items: [
+      "クリスマスイルミネーション：12 月の夜、15 種類の商業ビルの外壁にクリスマスの電飾（サンタのそり、雪の結晶、クリスマスツリーなど）が 1 棟につき 1〜3 面、外壁の遠近に合わせて灯ります。ほかの月は従来どおりです。",
+      "4.17.0 の避風塘、漁船団、海事処の建物、台風などの内容をすべて含みます。既存のセーブデータに対応しています。",
+    ] },
     "v4.17.0": { title: "漁民楽", items: [
       "避風塘（海事処メニュー）：水域をドラッグして船だまりを作ると、周囲に防波堤と出入口が自動で計画され、11 項目の条件チェックと係留数・費用の見積もりが行われます。「確定興建」を押せば即座に完成。浮き桟橋、上陸用浮き台、ブイ、灯台付き堤頭、海浜プロムナード付きで、小さな街でも手が届きます。",
       "漁船は香港の漁師の生活リズムに合わせて動きます。夕方に出漁し、午前 3〜5 時に帰港して水揚げ。5〜8 月の休漁期はトロール船が港に残ります。夜は漁火がまたたき、波に揺れながら航路だけを進み、他の船や桟橋を横切りません。サンパンは浮き台の脇に係留し、漁師を船へ送り、水揚げを手伝います。",
@@ -1566,8 +1582,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.17.0 — 【漁民樂】",
-      versionDesc: "香城多咗避風塘：喺海事處規劃防波堤同浮橋，漁船夜晚出海、凌晨亮住漁火返嚟卸魚；起魚類批發市場、海鮮酒家同卸貨區，睇住魚貨車排隊上貨；打風時漁船避入塘，仲會收留外來船隻。",
+      versionBadge: "v4.17.1 — 【漁民樂】",
+      versionDesc: "4.17.1 更新：12 月晚上，15 款商廈外牆亮起聖誕燈飾——聖誕老人雪橇、雪花、聖誕樹，香城都有維港兩岸嘅節日氣氛。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感嘅城市建設遊戲。起街道、規劃社區、經營自己嘅香城巴士公司、處理議會同天氣，再睇住一座有性格嘅香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1666,8 +1682,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.17.0 — 【漁民樂】",
-      versionDesc: "香城新增避風塘：在海事處規劃防波堤與浮橋，漁船夜晚出海、凌晨點著漁火回港卸魚；興建魚類批發市場、海鮮酒家與卸貨區，看魚貨車排隊上貨；颱風來襲時漁船躲進塘內，也會收容外來船隻。",
+      versionBadge: "v4.17.1 — 【漁民樂】",
+      versionDesc: "4.17.1 更新：12 月夜晚，15 款商業大樓外牆亮起聖誕燈飾——聖誕老人雪橇、雪花、聖誕樹，香城也有維港兩岸的節日氣氛。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感的城市建設遊戲。興建街道、規劃社區、經營自己的香城公車公司、處理議會與天氣，看著一座有個性的香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1766,8 +1782,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "The City of Heung Shing",
       title: "The City of Heung Shing",
-      versionBadge: "v4.17.0 — Fishermen's Joy",
-      versionDesc: "Typhoon shelters come to Heung Shing: plan breakwaters and floating walkways from the Marine Department, watch the fleet sail at dusk and come home before dawn under its lamps, build a fish market, seafood restaurant and loading bay for the fish trucks, and take in visiting boats when the typhoon signals go up.",
+      versionBadge: "v4.17.1 — Fishermen's Joy",
+      versionDesc: "4.17.1 update: on December nights, 15 commercial towers light up their curtain walls with Christmas displays - Santa's sleigh, snowflakes and Christmas trees, like the harbourfront towers of Hong Kong.",
       lede: "A city-building game inspired by Hong Kong life and made in tribute to SimCity 2000. Build streets, shape neighbourhoods, run your own Heung Shing Bus Company, navigate council politics and weather, then watch a city with real personality grow.",
       freeLabel: "Completely free · macOS + Windows · Local saves",
       downloadBtn: "【Free Download】",
@@ -1867,8 +1883,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.17.0 — 漁民楽",
-      versionDesc: "香城に避風塘が登場。海事処メニューから防波堤と浮き桟橋を計画し、漁船は夕方に出漁して夜明け前に漁火を灯して帰港。魚卸売市場・海鮮レストラン・荷捌き場を建てれば、魚を運ぶトラックが列を作ります。台風時は漁船が塘内に避難し、よその船も受け入れます。",
+      versionBadge: "v4.17.1 — 漁民楽",
+      versionDesc: "4.17.1 更新：12 月の夜、15 種類の商業ビルの外壁にクリスマスのイルミネーションが灯ります。サンタのそり、雪の結晶、クリスマスツリーなど、香港のビクトリア・ハーバーのような祝祭の夜景に。",
       lede: "香港の都市生活から着想を得た、SimCity 2000へのオマージュとなる都市建設ゲーム。道路を築き、地区を計画し、自分だけの香城バス会社を経営し、議会や天候に向き合いながら、個性ある香城の成長を見守ります。",
       freeLabel: "完全無料 · macOS + Windows · ローカルセーブ",
       downloadBtn: "【無料ダウンロード】",

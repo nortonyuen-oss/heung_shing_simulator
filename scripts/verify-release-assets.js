@@ -136,8 +136,9 @@ async function verify() {
     assert.equal(meta.height, Math.max(1, Math.round(day.outputHeight * nightScale)), `${logicalPath} height must match its day texture`);
   }
   for (const [dayLogical, variants] of nightVariantsByDay) {
+    // __nightchristmas is extra: only the models with calibrated Christmas walls have it
     assert.deepStrictEqual(
-      [...variants].sort(), ['__night', '__nightdeep', '__nighthalf', '__nightlamps'],
+      [...variants].filter((v) => v !== '__nightchristmas').sort(), ['__night', '__nightdeep', '__nighthalf', '__nightlamps'],
       `${dayLogical} must ship all four night variants`,
     );
   }
@@ -230,7 +231,8 @@ async function verify() {
   // totals.files counts the source-derived entries only; night variants are
   // added afterwards by the bake step and verified separately above.
   assert.equal(mipmapEligibleCount, manifest.totals.files, 'not every staged model is mipmap eligible');
-  assert.equal(nightEntries.length, nightVariantsByDay.size * 4, 'night variants must come in evening/half/deep/lamps sets');
+  const christmasCount = nightEntries.filter(([p]) => p.endsWith('__nightchristmas.png')).length;
+  assert.equal(nightEntries.length - christmasCount, nightVariantsByDay.size * 4, 'night variants must come in evening/half/deep/lamps sets');
 
   const registrySources = ['constants.js', 'main.js'];
   const referencedModels = new Set(registrySources.flatMap((fileName) => {

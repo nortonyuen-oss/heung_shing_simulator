@@ -452,6 +452,7 @@ const BUILDING_LIGHT_HERO_PROFILES = {
       { c: [[0.548, 0.445], [0.571, 0.454], [0.575, 0.699], [0.548, 0.685]], rows: 11, cols: 2 },
     ],
     lamps: [{ x: 0.45, y: 0.716, r: 0.06 }, { x: 0.337, y: 0.667, r: 0.06 }, { x: 0.597, y: 0.735, r: 0.06 }, { x: 0.697, y: 0.694, r: 0.06 }, { x: 0.753, y: 0.671, r: 0.06 }],
+    christmasWalls: [{"asset":"Models/festivals/Christmas/buildingDeco/BuildingDeco4.png","c":[[0.3529,0.3253],[0.4833,0.3794],[0.4808,0.6624],[0.3551,0.6049]]},{"asset":"Models/festivals/Christmas/buildingDeco/BuildingDeco10.png","c":[[0.581,0.4563],[0.8123,0.3589],[0.8109,0.6117],[0.5792,0.7165]]}],
   }),
   "commercialBuilding3-09-M": makeBuildingLightProfile({
     class: 'off',
@@ -462,6 +463,7 @@ const BUILDING_LIGHT_HERO_PROFILES = {
       { c: [[0.524, 0.309], [0.586, 0.281], [0.603, 0.312], [0.543, 0.34]], rows: 1, cols: 6 },
     ],
     lamps: [{ x: 0.396, y: 0.771, r: 0.06 }, { x: 0.521, y: 0.808, r: 0.06 }, { x: 0.652, y: 0.758, r: 0.06 }, { x: 0.276, y: 0.708, r: 0.06 }, { x: 0.737, y: 0.709, r: 0.06 }],
+    christmasWalls: [{"asset":"Models/festivals/Christmas/buildingDeco/BuildingDeco34.png","c":[[0.3179,0.2767],[0.5314,0.364],[0.5313,0.6906],[0.3217,0.5886]]},{"asset":"Models/festivals/Christmas/buildingDeco/BuildingDeco39.png","c":[[0.4703,0.3651],[0.672,0.2772],[0.6725,0.5858],[0.4692,0.6815]]}],
   }),
   heritage_church_3x3: makeBuildingLightProfile({
     class: 'svc',
@@ -923,6 +925,7 @@ const BUILDING_LIGHT_HERO_PROFILES = {
       { c: [[0.445, 0.378], [0.553, 0.38], [0.555, 0.676], [0.447, 0.682]], rows: 6, cols: 4 },
     ],
     lamps: [{ x: 0.5, y: 0.9, r: 0.06 }, { x: 0.571, y: 0.755, r: 0.06 }, { x: 0.429, y: 0.754, r: 0.06 }, { x: 0.729, y: 0.774, r: 0.06 }, { x: 0.268, y: 0.78, r: 0.06 }],
+    christmasWalls: [{"asset":"Models/festivals/Christmas/buildingDeco/BuildingDeco2.png","c":[[0.2125,0.3125],[0.3777,0.3913],[0.372,0.695],[0.2151,0.6267]]},{"asset":"Models/festivals/Christmas/buildingDeco/BuildingDeco7.png","c":[[0.6266,0.3778],[0.7906,0.3048],[0.7941,0.6266],[0.6213,0.7008]]}],
   }),
   "commercialBuilding2-04-M": makeBuildingLightProfile({
     class: 'res',
@@ -961,6 +964,7 @@ const BUILDING_LIGHT_HERO_PROFILES = {
       { c: [[0.675, 0.232], [0.768, 0.19], [0.772, 0.542], [0.674, 0.592]], rows: 8, cols: 7 },
     ],
     lamps: [{ x: 0.496, y: 0.889, r: 0.06 }, { x: 0.717, y: 0.782, r: 0.06 }, { x: 0.838, y: 0.728, r: 0.06 }, { x: 0.262, y: 0.778, r: 0.06 }, { x: 0.164, y: 0.725, r: 0.06 }, { x: 0.497, y: 0.705, r: 0.09 }, { x: 0.659, y: 0.654, r: 0.09 }, { x: 0.343, y: 0.65, r: 0.09 }],
+    christmasWalls: [{"asset":"Models/festivals/Christmas/buildingDeco/BuildingDeco10.png","c":[[0.3546,0.1695],[0.528,0.2503],[0.5296,0.6578],[0.3581,0.5774]]},{"asset":"Models/festivals/Christmas/buildingDeco/BuildingDeco18.png","c":[[0.6499,0.2356],[0.7926,0.1766],[0.7949,0.5381],[0.6531,0.6059]]}],
   }),
   "commercialBuilding3-04-H": makeBuildingLightProfile({
     class: 'off',
@@ -971,6 +975,7 @@ const BUILDING_LIGHT_HERO_PROFILES = {
       { c: [[0.488, 0.424], [0.563, 0.456], [0.561, 0.642], [0.487, 0.61]], rows: 5, cols: 2 },
     ],
     lamps: [{ x: 0.525, y: 0.894, r: 0.05 }, { x: 0.56, y: 0.759, r: 0.05 }, { x: 0.466, y: 0.729, r: 0.05 }, { x: 0.642, y: 0.734, r: 0.05 }, { x: 0.715, y: 0.705, r: 0.05 }, { x: 0.784, y: 0.666, r: 0.05 }, { x: 0.294, y: 0.657, r: 0.05 }, { x: 0.227, y: 0.631, r: 0.05 }, { x: 0.454, y: 0.656, r: 0.05 }, { x: 0.3, y: 0.598, r: 0.05 }],
+    christmasWalls: [{"asset":"Models/festivals/Christmas/buildingDeco/BuildingDeco14.png","c":[[0.1713,0.2435],[0.6388,0.4352],[0.6351,0.7047],[0.1728,0.5024]]},{"asset":"Models/festivals/Christmas/buildingDeco/BuildingDeco19.png","c":[[0.5251,0.4333],[0.8343,0.2937],[0.8352,0.5367],[0.5216,0.6908]]}],
   }),
   "commercialBuilding3-05-UH": makeBuildingLightProfile({
     class: 'off',
@@ -989,6 +994,7 @@ const BUILDING_LIGHT_HERO_PROFILES = {
       { x: 0.314, y: 0.506, color: 'red' },
       { x: 0.55, y: 0.604, color: 'red' },
     ],
+    christmasWalls: [{"asset":"Models/festivals/Christmas/buildingDeco/BuildingDeco30.png","c":[[0.3078,0.1662],[0.5643,0.2746],[0.5632,0.6245],[0.3085,0.5253]]}],
   }),
   "commercialBuilding3-07-M": makeBuildingLightProfile({
     class: 'off',
@@ -1003,6 +1009,7 @@ const BUILDING_LIGHT_HERO_PROFILES = {
       { x: 0.373, y: 0.167, color: 'red' },
       { x: 0.729, y: 0.309, color: 'red' },
     ],
+    christmasWalls: [{"asset":"Models/festivals/Christmas/buildingDeco/BuildingDeco35.png","c":[[0.2459,0.2427],[0.3695,0.302],[0.3669,0.4937],[0.2484,0.4353]]},{"asset":"Models/festivals/Christmas/buildingDeco/BuildingDeco36.png","c":[[0.5364,0.2897],[0.699,0.3648],[0.6944,0.6261],[0.5387,0.5449]]}],
   }),
   "commercialBuilding3-10-M": makeBuildingLightProfile({
     class: 'off',
@@ -1013,6 +1020,7 @@ const BUILDING_LIGHT_HERO_PROFILES = {
       { c: [[0.473, 0.709], [0.543, 0.739], [0.543, 0.817], [0.471, 0.785]], rows: 2, cols: 4 },
     ],
     lamps: [{ x: 0.432, y: 0.761, r: 0.06 }, { x: 0.247, y: 0.676, r: 0.06 }, { x: 0.659, y: 0.773, r: 0.06 }, { x: 0.839, y: 0.693, r: 0.06 }, { x: 0.745, y: 0.74, r: 0.06 }],
+    christmasWalls: [{"asset":"Models/festivals/Christmas/buildingDeco/BuildingDeco21.png","c":[[0.2286,0.1498],[0.564,0.2825],[0.5613,0.7701],[0.2234,0.6275]]},{"asset":"Models/festivals/Christmas/buildingDeco/BuildingDeco45.png","c":[[0.6683,0.2878],[0.8117,0.2209],[0.8128,0.6505],[0.6707,0.7166]]}],
   }),
   "commercialBuilding3-11-H": makeBuildingLightProfile({
     class: 'off',
@@ -1022,6 +1030,7 @@ const BUILDING_LIGHT_HERO_PROFILES = {
       { c: [[0.68, 0.294], [0.797, 0.233], [0.799, 0.59], [0.681, 0.654]], rows: 7, cols: 6 },
     ],
     lamps: [{ x: 0.487, y: 0.856, r: 0.1 }, { x: 0.668, y: 0.75, r: 0.09 }, { x: 0.451, y: 0.713, r: 0.09 }, { x: 0.247, y: 0.629, r: 0.09 }, { x: 0.803, y: 0.679, r: 0.09 }],
+    christmasWalls: [{"asset":"Models/festivals/Christmas/buildingDeco/BuildingDeco23.png","c":[[0.144,0.1458],[0.5934,0.3519],[0.5939,0.6564],[0.1451,0.4582]]},{"asset":"Models/festivals/Christmas/buildingDeco/BuildingDeco27.png","c":[[0.6555,0.2917],[0.8294,0.2037],[0.8315,0.5854],[0.6543,0.6736]]}],
   }),
   "commercialBuilding3-13-H": makeBuildingLightProfile({
     class: 'off',
@@ -1032,6 +1041,7 @@ const BUILDING_LIGHT_HERO_PROFILES = {
       { c: [[0.454, 0.498], [0.548, 0.499], [0.544, 0.56], [0.456, 0.561]], rows: 2, cols: 3 },
     ],
     lamps: [{ x: 0.596, y: 0.817, r: 0.05 }, { x: 0.412, y: 0.818, r: 0.05 }, { x: 0.278, y: 0.821, r: 0.05 }, { x: 0.188, y: 0.786, r: 0.05 }, { x: 0.103, y: 0.747, r: 0.05 }, { x: 0.703, y: 0.831, r: 0.05 }, { x: 0.808, y: 0.786, r: 0.05 }, { x: 0.892, y: 0.743, r: 0.05 }, { x: 0.548, y: 0.896, r: 0.05 }, { x: 0.45, y: 0.897, r: 0.05 }],
+    christmasWalls: [{"asset":"Models/festivals/Christmas/buildingDeco/BuildingDeco16.png","c":[[0.3536,0.532],[0.66,0.5303],[0.6584,0.7581],[0.3491,0.7554]]},{"asset":"Models/festivals/Christmas/buildingDeco/BuildingDeco27.png","c":[[0.0725,0.5416],[0.26,0.6196],[0.2603,0.7999],[0.0702,0.7112]]},{"asset":"Models/festivals/Christmas/buildingDeco/BuildingDeco31.png","c":[[0.7365,0.6256],[0.9396,0.5363],[0.9328,0.7058],[0.735,0.7993]]}],
   }),
   "commercialBuilding3-08-H": makeBuildingLightProfile({
     class: 'off',
@@ -1041,6 +1051,7 @@ const BUILDING_LIGHT_HERO_PROFILES = {
       { c: [[0.513, 0.697], [0.749, 0.577], [0.75, 0.639], [0.514, 0.763]], rows: 1, cols: 5, on: false },
     ],
     lamps: [{ x: 0.517, y: 0.819, r: 0.1 }, { x: 0.364, y: 0.76, r: 0.09 }, { x: 0.653, y: 0.769, r: 0.09 }, { x: 0.179, y: 0.686, r: 0.09 }, { x: 0.274, y: 0.724, r: 0.09 }, { x: 0.809, y: 0.694, r: 0.09 }, { x: 0.312, y: 0.641, r: 0.05 }, { x: 0.397, y: 0.677, r: 0.05 }, { x: 0.496, y: 0.712, r: 0.05 }, { x: 0.245, y: 0.611, r: 0.05 }, { x: 0.704, y: 0.618, r: 0.05 }, { x: 0.605, y: 0.664, r: 0.05 }],
+    christmasWalls: [{"asset":"Models/festivals/Christmas/buildingDeco/BuildingDeco31.png","c":[[0.1668,0.0686],[0.5641,0.2509],[0.562,0.7337],[0.1621,0.5621]]},{"asset":"Models/festivals/Christmas/buildingDeco/BuildingDeco46.png","c":[[0.4841,0.2566],[0.7154,0.1374],[0.7249,0.5581],[0.4817,0.6916]]}],
   }),
   "commercialBuilding3-12-M": makeBuildingLightProfile({
     class: 'off',
@@ -1051,6 +1062,7 @@ const BUILDING_LIGHT_HERO_PROFILES = {
       { c: [[0.769, 0.585], [0.883, 0.531], [0.88, 0.687], [0.772, 0.738]], rows: 9, cols: 4 },
     ],
     lamps: [{ x: 0.57, y: 0.881, r: 0.06 }, { x: 0.452, y: 0.897, r: 0.06 }, { x: 0.277, y: 0.809, r: 0.06 }, { x: 0.735, y: 0.811, r: 0.06 }, { x: 0.849, y: 0.746, r: 0.06 }, { x: 0.118, y: 0.743, r: 0.06 }, { x: 0.263, y: 0.687, r: 0.07 }, { x: 0.263, y: 0.57, r: 0.07 }, { x: 0.197, y: 0.652, r: 0.07 }, { x: 0.197, y: 0.544, r: 0.07 }, { x: 0.26, y: 0.762, r: 0.07 }, { x: 0.196, y: 0.739, r: 0.07 }, { x: 0.688, y: 0.703, r: 0.07 }, { x: 0.743, y: 0.677, r: 0.07 }, { x: 0.69, y: 0.595, r: 0.07 }, { x: 0.744, y: 0.57, r: 0.07 }, { x: 0.691, y: 0.783, r: 0.07 }, { x: 0.747, y: 0.758, r: 0.07 }, { x: 0.485, y: 0.631, r: 0.09 }, { x: 0.546, y: 0.438, r: 0.07 }, { x: 0.641, y: 0.399, r: 0.07 }],
+    christmasWalls: [{"asset":"Models/festivals/Christmas/buildingDeco/BuildingDeco44.png","c":[[0.7484,0.4676],[0.9011,0.4109],[0.9039,0.701],[0.7487,0.7747]]}],
   }),
   "commercialBuilding4-01-H": makeBuildingLightProfile({
     class: 'off',
@@ -1061,6 +1073,7 @@ const BUILDING_LIGHT_HERO_PROFILES = {
       { c: [[0.589, 0.387], [0.616, 0.399], [0.619, 0.564], [0.588, 0.548]], rows: 8, cols: 4 },
     ],
     lamps: [{ x: 0.5, y: 0.9, r: 0.07 }, { x: 0.655, y: 0.818, r: 0.07 }, { x: 0.786, y: 0.695, r: 0.06 }, { x: 0.636, y: 0.703, r: 0.06 }, { x: 0.369, y: 0.709, r: 0.06 }, { x: 0.286, y: 0.715, r: 0.06 }, { x: 0.221, y: 0.682, r: 0.06 }, { x: 0.502, y: 0.707, r: 0.06 }, { x: 0.292, y: 0.78, r: 0.07 }, { x: 0.836, y: 0.675, r: 0.06 }],
+    christmasWalls: [{"asset":"Models/festivals/Christmas/buildingDeco/BuildingDeco23.png","c":[[0.5491,0.3149],[0.8243,0.4264],[0.8214,0.6694],[0.5431,0.5344]]}],
   }),
   "commercialBuilding4-02-H": makeBuildingLightProfile({
     class: 'off',
@@ -1071,6 +1084,7 @@ const BUILDING_LIGHT_HERO_PROFILES = {
       { c: [[0.376, 0.397], [0.412, 0.413], [0.411, 0.513], [0.376, 0.5]], rows: 8, cols: 4 },
     ],
     lamps: [{ x: 0.5, y: 0.9, r: 0.06 }, { x: 0.316, y: 0.756, r: 0.06 }, { x: 0.505, y: 0.799, r: 0.06 }, { x: 0.178, y: 0.694, r: 0.06 }, { x: 0.712, y: 0.758, r: 0.06 }, { x: 0.344, y: 0.615, r: 0.06 }, { x: 0.834, y: 0.705, r: 0.06 }],
+    christmasWalls: [{"asset":"Models/festivals/Christmas/buildingDeco/BuildingDeco13.png","c":[[0.4309,0.4625],[0.581,0.5199],[0.5794,0.6903],[0.4348,0.6339]]},{"asset":"Models/festivals/Christmas/buildingDeco/BuildingDeco14.png","c":[[0.6598,0.3478],[0.7372,0.3137],[0.7334,0.5622],[0.6594,0.5942]]}],
   }),
   "commercialBuilding4-03-L": makeBuildingLightProfile({
     class: 'res',
@@ -1101,6 +1115,7 @@ const BUILDING_LIGHT_HERO_PROFILES = {
       { c: [[0.503, 0.545], [0.573, 0.51], [0.569, 0.804], [0.496, 0.845]], rows: 11, cols: 8 },
     ],
     lamps: [{ x: 0.5, y: 0.9, r: 0.08 }, { x: 0.338, y: 0.819, r: 0.08 }, { x: 0.264, y: 0.764, r: 0.08 }, { x: 0.678, y: 0.793, r: 0.08 }, { x: 0.631, y: 0.688, r: 0.04 }],
+    christmasWalls: [{"asset":"Models/festivals/Christmas/buildingDeco/BuildingDeco1.png","c":[[0.4135,0.7014],[0.496,0.7414],[0.4998,0.8428],[0.4141,0.8013]]}],
   }),
   "industrialBuilding1-01": makeBuildingLightProfile({
     class: 'ind',

@@ -242,6 +242,13 @@ const SITE_FEATURE_LIST = {
 // ── Changelog ─────────────────────────────────────────────────────────────────
 const SITE_CHANGELOG = {
   "zh-HK": [
+    { version: "v4.17.0", date: "2026-10-07", dateLabel: "2026年10月7日", title: "漁民樂", items: [
+      "新增避風塘（海事處選單）：拉出一片水域做船塘，外圍自動規劃防波堤同出入口，檢查 11 項條件、估算泊位同造價；一按「確定興建」即時建成，附浮橋、登岸浮台、浮泡、燈塔頭同海濱步道，細城市都負擔得起。",
+      "漁船跟香港漁民作息：傍晚出海、凌晨 3 至 5 點靠岸卸魚，5 至 8 月休漁期拖網船留港；夜晚亮起一閃一閃嘅漁火、隨海浪起伏，只沿航道行，唔會穿過其他船或者浮橋。舢舨泊喺浮台兩側，載漁民上船同幫手卸貨。",
+      "海事處新建築：魚類批發市場、海鮮酒家（各兩款）同卸貨區，要起喺避風塘嘅石仔地、旁邊有馬路；04:00 開市後魚貨車排隊上貨，卸貨區堆滿一箱箱魚貨；市場同酒家正面向海，日頭收市會熄燈。",
+      "打風：一號波遠處漁船唔出、三號波或黑雨全部返港、八號波全部留塘，按防護程度計損毀同維修費；外來船隻會入塘避風，泊位唔夠就要拒絕。",
+      "飛機降落後沿滑行道轉入閘口、再沿滑行道出跑道，唔再斜斜咁穿過機場；舊存檔兼容。",
+    ] },
     { version: "v4.16.2", date: "2026-10-03", dateLabel: "2026年10月3日", title: "東風夜放花千樹", items: [
       "整理遊戲程式結構：原本一萬二千幾行嘅主程式拆出十九個按主題分好嘅檔案（樹、橋、地形、天氣、日夜光影、音效等），之後改嘢同加新功能都容易好多；玩法同畫面完全唔變。",
       "修正：好早期存檔格式入面嘅橋樑記錄而家讀得返，唔會喺讀檔時消失。",
@@ -565,6 +572,13 @@ const SITE_CHANGELOG = {
 // title/items text.
 const SITE_CHANGELOG_TRANSLATIONS = {
   "zh-TW": {
+    "v4.17.0": { title: "漁民樂", items: [
+      "新增避風塘（海事處選單）：拉出一片水域作為船塘，外圍自動規劃防波堤與出入口，檢查 11 項條件、估算泊位與造價；按下「確定興建」即時建成，附浮橋、登岸浮台、浮筒、燈塔堤頭與海濱步道，小城市也負擔得起。",
+      "漁船依香港漁民作息：傍晚出海、凌晨 3 至 5 點靠岸卸魚，5 至 8 月休漁期拖網船留港；夜晚亮起閃爍的漁火、隨海浪起伏，只沿航道行駛，不會穿過其他船隻或浮橋。舢舨停在浮台兩側，載漁民上船並協助卸貨。",
+      "海事處新建築：魚類批發市場、海鮮酒家（各兩款）與卸貨區，須建在避風塘的碎石地上、旁邊有道路；04:00 開市後魚貨車排隊上貨，卸貨區堆滿一箱箱魚貨；市場與酒家正面朝海，白天休市會熄燈。",
+      "颱風：一號風球時遠處漁船不出海、三號風球或黑雨全部回港、八號風球全部留在塘內，依防護程度計算損毀與維修費；外來船隻會入塘避風，泊位不足時須拒絕。",
+      "飛機降落後沿滑行道轉入登機門，再沿滑行道駛出跑道，不再斜穿機場；相容舊存檔。",
+    ] },
     "v4.16.2": { title: "東風夜放花千樹", items: [
       "整理遊戲程式結構：原本一萬兩千多行的主程式拆出十九個依主題分類的檔案（樹木、橋樑、地形、天氣、日夜光影、音效等），之後修改與加入新功能都更容易；玩法與畫面完全不變。",
       "修正：很早期存檔格式中的橋樑紀錄現在能正確讀取，不會在讀檔時消失。",
@@ -881,6 +895,13 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   en: {
+    "v4.17.0": { title: "Fishermen's Joy", items: [
+      "Typhoon shelters (Marine Department menu): drag out a basin and its breakwater and entrances are planned round it, checked against 11 rules with berths and cost estimated; one press of 「確定興建」 builds it at once, with floating walkways, landing stages, buoys, lit entrance heads and a waterfront promenade - affordable even for a small city.",
+      "The fleet keeps Hong Kong fishermen's hours: out at dusk, alongside at 03:00-05:00 to land the catch, trawlers in port for the May-August moratorium. At night their lamps twinkle and they ride the swell, keeping to the lanes - never across another boat or a walkway. Sampans tie up by the landing stages, taking crews out and helping unload.",
+      "New Marine Department buildings: a wholesale fish market and a seafood restaurant (two models each) and a loading bay, built on a shelter's waterfront gravel beside a road. From 04:00 the fish trucks queue to load and the bay fills with crates of fish; markets and restaurants face the sea and turn their lights off when shut by day.",
+      "Typhoons: at signal 1 the far boats stay in, at signal 3 or black rain all come home, at signal 8 all stay in the shelter and damage and repairs follow its protection; visiting boats come in to shelter, and are turned away when the berths run out.",
+      "Aircraft taxi along the taxiway from the runway to the gates and back, instead of cutting across the airfield. Existing saves remain compatible.",
+    ] },
     "v4.16.2": { title: "A Thousand Trees in Bloom on the East Wind", items: [
       "The game's code has been reorganized: nineteen topic files (trees, bridges, terrain, weather, day and night lighting, audio and more) have been split out of the 12,000-line main script, making future changes and new features easier. Gameplay and visuals are unchanged.",
       "Fix: bridges recorded in very early save formats now load correctly instead of disappearing.",
@@ -1197,6 +1218,13 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   ja: {
+    "v4.17.0": { title: "漁民楽", items: [
+      "避風塘（海事処メニュー）：水域をドラッグして船だまりを作ると、周囲に防波堤と出入口が自動で計画され、11 項目の条件チェックと係留数・費用の見積もりが行われます。「確定興建」を押せば即座に完成。浮き桟橋、上陸用浮き台、ブイ、灯台付き堤頭、海浜プロムナード付きで、小さな街でも手が届きます。",
+      "漁船は香港の漁師の生活リズムに合わせて動きます。夕方に出漁し、午前 3〜5 時に帰港して水揚げ。5〜8 月の休漁期はトロール船が港に残ります。夜は漁火がまたたき、波に揺れながら航路だけを進み、他の船や桟橋を横切りません。サンパンは浮き台の脇に係留し、漁師を船へ送り、水揚げを手伝います。",
+      "海事処の新しい建物：魚卸売市場と海鮮レストラン（各 2 種）、荷捌き場。避風塘の砂利敷きの岸辺で、道路に面した場所に建てられます。04:00 の開場とともに魚のトラックが列を作り、荷捌き場には魚箱が積み上がります。市場とレストランは正面を海に向け、昼の休業中は明かりを消します。",
+      "台風：シグナル 1 では遠くの漁船は出漁せず、シグナル 3 または黒色暴雨では全船帰港、シグナル 8 では全船が塘内に留まり、防護の度合いに応じて損傷と修理費が発生します。よその船も避難に来ますが、係留場所が足りなければ断ることになります。",
+      "飛行機は着陸後、誘導路に沿って直角に曲がりながらゲートへ向かい、誘導路を通って滑走路へ戻ります。空港を斜めに横切らなくなりました。既存のセーブデータに対応しています。",
+    ] },
     "v4.16.2": { title: "東風夜放花千樹", items: [
       "ゲームのプログラム構成を整理しました。1万2千行あったメインスクリプトから、木・橋・地形・天気・昼夜の光・サウンドなどテーマ別の19ファイルを切り出し、今後の修正や新機能の追加がしやすくなりました。遊び方と見た目は変わりません。",
       "修正：ごく初期のセーブ形式に記録された橋が、読み込み時に消えずに正しく読み込まれるようになりました。",
@@ -1538,8 +1566,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.16.2 — 【東風夜放花千樹】",
-      versionDesc: "4.16.2 更新：重新整理遊戲程式結構，方便之後加新功能；玩法同畫面不變，開機同流暢度同上一版一樣。",
+      versionBadge: "v4.17.0 — 【漁民樂】",
+      versionDesc: "香城多咗避風塘：喺海事處規劃防波堤同浮橋，漁船夜晚出海、凌晨亮住漁火返嚟卸魚；起魚類批發市場、海鮮酒家同卸貨區，睇住魚貨車排隊上貨；打風時漁船避入塘，仲會收留外來船隻。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感嘅城市建設遊戲。起街道、規劃社區、經營自己嘅香城巴士公司、處理議會同天氣，再睇住一座有性格嘅香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1638,8 +1666,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.16.2 — 【東風夜放花千樹】",
-      versionDesc: "4.16.2 更新：重新整理遊戲程式結構，方便之後加入新功能；玩法與畫面不變，啟動與流暢度與上一版相同。",
+      versionBadge: "v4.17.0 — 【漁民樂】",
+      versionDesc: "香城新增避風塘：在海事處規劃防波堤與浮橋，漁船夜晚出海、凌晨點著漁火回港卸魚；興建魚類批發市場、海鮮酒家與卸貨區，看魚貨車排隊上貨；颱風來襲時漁船躲進塘內，也會收容外來船隻。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感的城市建設遊戲。興建街道、規劃社區、經營自己的香城公車公司、處理議會與天氣，看著一座有個性的香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1738,8 +1766,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "The City of Heung Shing",
       title: "The City of Heung Shing",
-      versionBadge: "v4.16.2 — A Thousand Trees in Bloom on the East Wind",
-      versionDesc: "4.16.2 update: the game's code is reorganized to make future work easier; gameplay, visuals, start-up time and frame rate are unchanged.",
+      versionBadge: "v4.17.0 — Fishermen's Joy",
+      versionDesc: "Typhoon shelters come to Heung Shing: plan breakwaters and floating walkways from the Marine Department, watch the fleet sail at dusk and come home before dawn under its lamps, build a fish market, seafood restaurant and loading bay for the fish trucks, and take in visiting boats when the typhoon signals go up.",
       lede: "A city-building game inspired by Hong Kong life and made in tribute to SimCity 2000. Build streets, shape neighbourhoods, run your own Heung Shing Bus Company, navigate council politics and weather, then watch a city with real personality grow.",
       freeLabel: "Completely free · macOS + Windows · Local saves",
       downloadBtn: "【Free Download】",
@@ -1839,8 +1867,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.16.2 — 東風夜放花千樹",
-      versionDesc: "4.16.2 更新：今後の開発をしやすくするため、ゲームのプログラム構成を整理しました。遊び方・見た目・起動時間・動作の滑らかさは変わりません。",
+      versionBadge: "v4.17.0 — 漁民楽",
+      versionDesc: "香城に避風塘が登場。海事処メニューから防波堤と浮き桟橋を計画し、漁船は夕方に出漁して夜明け前に漁火を灯して帰港。魚卸売市場・海鮮レストラン・荷捌き場を建てれば、魚を運ぶトラックが列を作ります。台風時は漁船が塘内に避難し、よその船も受け入れます。",
       lede: "香港の都市生活から着想を得た、SimCity 2000へのオマージュとなる都市建設ゲーム。道路を築き、地区を計画し、自分だけの香城バス会社を経営し、議会や天候に向き合いながら、個性ある香城の成長を見守ります。",
       freeLabel: "完全無料 · macOS + Windows · ローカルセーブ",
       downloadBtn: "【無料ダウンロード】",

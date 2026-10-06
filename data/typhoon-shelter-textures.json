@@ -9,7 +9,11 @@
     "x": 257,
     "y": 902
    },
-   "mirrored": false
+   "mirrored": false,
+   "night": [
+    "Models/typhoonShelter/ts_bout1_a__lit.png",
+    "Models/typhoonShelter/ts_bout1_a__litb.png"
+   ]
   },
   "ts_bout1_a_m": {
    "file": "Models/typhoonShelter/ts_bout1_a_m.png",
@@ -20,7 +24,11 @@
     "x": 255,
     "y": 902
    },
-   "mirrored": true
+   "mirrored": true,
+   "night": [
+    "Models/typhoonShelter/ts_bout1_a_m__lit.png",
+    "Models/typhoonShelter/ts_bout1_a_m__litb.png"
+   ]
   },
   "ts_bout1_b": {
    "file": "Models/typhoonShelter/ts_bout1_b.png",
@@ -31,7 +39,11 @@
     "x": 256,
     "y": 907
    },
-   "mirrored": false
+   "mirrored": false,
+   "night": [
+    "Models/typhoonShelter/ts_bout1_b__lit.png",
+    "Models/typhoonShelter/ts_bout1_b__litb.png"
+   ]
   },
   "ts_bout1_b_m": {
    "file": "Models/typhoonShelter/ts_bout1_b_m.png",
@@ -42,7 +54,11 @@
     "x": 256,
     "y": 907
    },
-   "mirrored": true
+   "mirrored": true,
+   "night": [
+    "Models/typhoonShelter/ts_bout1_b_m__lit.png",
+    "Models/typhoonShelter/ts_bout1_b_m__litb.png"
+   ]
   },
   "ts_bout2_a": {
    "file": "Models/typhoonShelter/ts_bout2_a.png",
@@ -274,7 +290,11 @@
     "y": 432
    },
    "mirrored": false,
-   "facing": "se"
+   "facing": "se",
+   "night": [
+    "Models/typhoonShelter/ts_fishingBoat1_a__lit.png",
+    "Models/typhoonShelter/ts_fishingBoat1_a__litb.png"
+   ]
   },
   "ts_fishingBoat1_a_m": {
    "file": "Models/typhoonShelter/ts_fishingBoat1_a_m.png",
@@ -286,7 +306,11 @@
     "y": 432
    },
    "mirrored": true,
-   "facing": "sw"
+   "facing": "sw",
+   "night": [
+    "Models/typhoonShelter/ts_fishingBoat1_a_m__lit.png",
+    "Models/typhoonShelter/ts_fishingBoat1_a_m__litb.png"
+   ]
   },
   "ts_fishingBoat1_b": {
    "file": "Models/typhoonShelter/ts_fishingBoat1_b.png",
@@ -298,7 +322,11 @@
     "y": 423
    },
    "mirrored": false,
-   "facing": "nw"
+   "facing": "nw",
+   "night": [
+    "Models/typhoonShelter/ts_fishingBoat1_b__lit.png",
+    "Models/typhoonShelter/ts_fishingBoat1_b__litb.png"
+   ]
   },
   "ts_fishingBoat1_b_m": {
    "file": "Models/typhoonShelter/ts_fishingBoat1_b_m.png",
@@ -310,7 +338,11 @@
     "y": 423
    },
    "mirrored": true,
-   "facing": "ne"
+   "facing": "ne",
+   "night": [
+    "Models/typhoonShelter/ts_fishingBoat1_b_m__lit.png",
+    "Models/typhoonShelter/ts_fishingBoat1_b_m__litb.png"
+   ]
   },
   "ts_fishingBoat2_a": {
    "file": "Models/typhoonShelter/ts_fishingBoat2_a.png",
@@ -322,7 +354,11 @@
     "y": 450
    },
    "mirrored": false,
-   "facing": "se"
+   "facing": "se",
+   "night": [
+    "Models/typhoonShelter/ts_fishingBoat2_a__lit.png",
+    "Models/typhoonShelter/ts_fishingBoat2_a__litb.png"
+   ]
   },
   "ts_fishingBoat2_a_m": {
    "file": "Models/typhoonShelter/ts_fishingBoat2_a_m.png",
@@ -334,7 +370,11 @@
     "y": 450
    },
    "mirrored": true,
-   "facing": "sw"
+   "facing": "sw",
+   "night": [
+    "Models/typhoonShelter/ts_fishingBoat2_a_m__lit.png",
+    "Models/typhoonShelter/ts_fishingBoat2_a_m__litb.png"
+   ]
   },
   "ts_fishingBoat2_b": {
    "file": "Models/typhoonShelter/ts_fishingBoat2_b.png",
@@ -346,7 +386,11 @@
     "y": 437
    },
    "mirrored": false,
-   "facing": "se"
+   "facing": "se",
+   "night": [
+    "Models/typhoonShelter/ts_fishingBoat2_b__lit.png",
+    "Models/typhoonShelter/ts_fishingBoat2_b__litb.png"
+   ]
   },
   "ts_fishingBoat2_b_m": {
    "file": "Models/typhoonShelter/ts_fishingBoat2_b_m.png",
@@ -358,7 +402,11 @@
     "y": 437
    },
    "mirrored": true,
-   "facing": "sw"
+   "facing": "sw",
+   "night": [
+    "Models/typhoonShelter/ts_fishingBoat2_b_m__lit.png",
+    "Models/typhoonShelter/ts_fishingBoat2_b_m__litb.png"
+   ]
   },
   "ts_fishingBoat3_a": {
    "file": "Models/typhoonShelter/ts_fishingBoat3_a.png",
@@ -370,7 +418,11 @@
     "y": 440
    },
    "mirrored": false,
-   "facing": "se"
+   "facing": "se",
+   "night": [
+    "Models/typhoonShelter/ts_fishingBoat3_a__lit.png",
+    "Models/typhoonShelter/ts_fishingBoat3_a__litb.png"
+   ]
   },
   "ts_fishingBoat3_a_m": {
    "file": "Models/typhoonShelter/ts_fishingBoat3_a_m.png",
@@ -382,7 +434,11 @@
     "y": 440
    },
    "mirrored": true,
-   "facing": "sw"
+   "facing": "sw",
+   "night": [
+    "Models/typhoonShelter/ts_fishingBoat3_a_m__lit.png",
+    "Models/typhoonShelter/ts_fishingBoat3_a_m__litb.png"
+   ]
   },
   "ts_fishingBoat3_b": {
    "file": "Models/typhoonShelter/ts_fishingBoat3_b.png",
@@ -394,7 +450,11 @@
     "y": 428
    },
    "mirrored": false,
-   "facing": "nw"
+   "facing": "nw",
+   "night": [
+    "Models/typhoonShelter/ts_fishingBoat3_b__lit.png",
+    "Models/typhoonShelter/ts_fishingBoat3_b__litb.png"
+   ]
   },
   "ts_fishingBoat3_b_m": {
    "file": "Models/typhoonShelter/ts_fishingBoat3_b_m.png",
@@ -406,7 +466,11 @@
     "y": 428
    },
    "mirrored": true,
-   "facing": "ne"
+   "facing": "ne",
+   "night": [
+    "Models/typhoonShelter/ts_fishingBoat3_b_m__lit.png",
+    "Models/typhoonShelter/ts_fishingBoat3_b_m__litb.png"
+   ]
   },
   "ts_fishingBoat4_a": {
    "file": "Models/typhoonShelter/ts_fishingBoat4_a.png",
@@ -418,7 +482,11 @@
     "y": 436
    },
    "mirrored": false,
-   "facing": "se"
+   "facing": "se",
+   "night": [
+    "Models/typhoonShelter/ts_fishingBoat4_a__lit.png",
+    "Models/typhoonShelter/ts_fishingBoat4_a__litb.png"
+   ]
   },
   "ts_fishingBoat4_a_m": {
    "file": "Models/typhoonShelter/ts_fishingBoat4_a_m.png",
@@ -430,7 +498,11 @@
     "y": 436
    },
    "mirrored": true,
-   "facing": "sw"
+   "facing": "sw",
+   "night": [
+    "Models/typhoonShelter/ts_fishingBoat4_a_m__lit.png",
+    "Models/typhoonShelter/ts_fishingBoat4_a_m__litb.png"
+   ]
   },
   "ts_fishingBoat4_b": {
    "file": "Models/typhoonShelter/ts_fishingBoat4_b.png",
@@ -442,7 +514,11 @@
     "y": 429
    },
    "mirrored": false,
-   "facing": "nw"
+   "facing": "nw",
+   "night": [
+    "Models/typhoonShelter/ts_fishingBoat4_b__lit.png",
+    "Models/typhoonShelter/ts_fishingBoat4_b__litb.png"
+   ]
   },
   "ts_fishingBoat4_b_m": {
    "file": "Models/typhoonShelter/ts_fishingBoat4_b_m.png",
@@ -454,7 +530,11 @@
     "y": 429
    },
    "mirrored": true,
-   "facing": "ne"
+   "facing": "ne",
+   "night": [
+    "Models/typhoonShelter/ts_fishingBoat4_b_m__lit.png",
+    "Models/typhoonShelter/ts_fishingBoat4_b_m__litb.png"
+   ]
   },
   "ts_floatingChef_a": {
    "file": "Models/typhoonShelter/ts_floatingChef_a.png",
@@ -851,7 +931,11 @@
     "y": 449
    },
    "mirrored": false,
-   "facing": "se"
+   "facing": "se",
+   "night": [
+    "Models/typhoonShelter/ts_homeBoat1_a__lit.png",
+    "Models/typhoonShelter/ts_homeBoat1_a__litb.png"
+   ]
   },
   "ts_homeBoat1_a_m": {
    "file": "Models/typhoonShelter/ts_homeBoat1_a_m.png",
@@ -863,7 +947,11 @@
     "y": 449
    },
    "mirrored": true,
-   "facing": "sw"
+   "facing": "sw",
+   "night": [
+    "Models/typhoonShelter/ts_homeBoat1_a_m__lit.png",
+    "Models/typhoonShelter/ts_homeBoat1_a_m__litb.png"
+   ]
   },
   "ts_homeBoat1_b": {
    "file": "Models/typhoonShelter/ts_homeBoat1_b.png",
@@ -875,7 +963,11 @@
     "y": 425
    },
    "mirrored": false,
-   "facing": "nw"
+   "facing": "nw",
+   "night": [
+    "Models/typhoonShelter/ts_homeBoat1_b__lit.png",
+    "Models/typhoonShelter/ts_homeBoat1_b__litb.png"
+   ]
   },
   "ts_homeBoat1_b_m": {
    "file": "Models/typhoonShelter/ts_homeBoat1_b_m.png",
@@ -887,7 +979,11 @@
     "y": 425
    },
    "mirrored": true,
-   "facing": "ne"
+   "facing": "ne",
+   "night": [
+    "Models/typhoonShelter/ts_homeBoat1_b_m__lit.png",
+    "Models/typhoonShelter/ts_homeBoat1_b_m__litb.png"
+   ]
   },
   "ts_homeBoat2_a": {
    "file": "Models/typhoonShelter/ts_homeBoat2_a.png",
@@ -899,7 +995,11 @@
     "y": 433
    },
    "mirrored": false,
-   "facing": "se"
+   "facing": "se",
+   "night": [
+    "Models/typhoonShelter/ts_homeBoat2_a__lit.png",
+    "Models/typhoonShelter/ts_homeBoat2_a__litb.png"
+   ]
   },
   "ts_homeBoat2_a_m": {
    "file": "Models/typhoonShelter/ts_homeBoat2_a_m.png",
@@ -911,7 +1011,11 @@
     "y": 433
    },
    "mirrored": true,
-   "facing": "sw"
+   "facing": "sw",
+   "night": [
+    "Models/typhoonShelter/ts_homeBoat2_a_m__lit.png",
+    "Models/typhoonShelter/ts_homeBoat2_a_m__litb.png"
+   ]
   },
   "ts_homeBoat2_b": {
    "file": "Models/typhoonShelter/ts_homeBoat2_b.png",
@@ -923,7 +1027,11 @@
     "y": 427
    },
    "mirrored": false,
-   "facing": "nw"
+   "facing": "nw",
+   "night": [
+    "Models/typhoonShelter/ts_homeBoat2_b__lit.png",
+    "Models/typhoonShelter/ts_homeBoat2_b__litb.png"
+   ]
   },
   "ts_homeBoat2_b_m": {
    "file": "Models/typhoonShelter/ts_homeBoat2_b_m.png",
@@ -935,7 +1043,11 @@
     "y": 427
    },
    "mirrored": true,
-   "facing": "ne"
+   "facing": "ne",
+   "night": [
+    "Models/typhoonShelter/ts_homeBoat2_b_m__lit.png",
+    "Models/typhoonShelter/ts_homeBoat2_b_m__litb.png"
+   ]
   },
   "ts_homeBoat3_a": {
    "file": "Models/typhoonShelter/ts_homeBoat3_a.png",
@@ -991,7 +1103,11 @@
     "y": 921
    },
    "mirrored": false,
-   "facing": "se"
+   "facing": "se",
+   "night": [
+    "Models/typhoonShelter/ts_kaido1_a__lit.png",
+    "Models/typhoonShelter/ts_kaido1_a__litb.png"
+   ]
   },
   "ts_kaido1_a_m": {
    "file": "Models/typhoonShelter/ts_kaido1_a_m.png",
@@ -1003,7 +1119,11 @@
     "y": 921
    },
    "mirrored": true,
-   "facing": "sw"
+   "facing": "sw",
+   "night": [
+    "Models/typhoonShelter/ts_kaido1_a_m__lit.png",
+    "Models/typhoonShelter/ts_kaido1_a_m__litb.png"
+   ]
   },
   "ts_kaido1_b": {
    "file": "Models/typhoonShelter/ts_kaido1_b.png",
@@ -1015,7 +1135,11 @@
     "y": 926
    },
    "mirrored": false,
-   "facing": "nw"
+   "facing": "nw",
+   "night": [
+    "Models/typhoonShelter/ts_kaido1_b__lit.png",
+    "Models/typhoonShelter/ts_kaido1_b__litb.png"
+   ]
   },
   "ts_kaido1_b_m": {
    "file": "Models/typhoonShelter/ts_kaido1_b_m.png",
@@ -1027,7 +1151,11 @@
     "y": 926
    },
    "mirrored": true,
-   "facing": "ne"
+   "facing": "ne",
+   "night": [
+    "Models/typhoonShelter/ts_kaido1_b_m__lit.png",
+    "Models/typhoonShelter/ts_kaido1_b_m__litb.png"
+   ]
   },
   "ts_pierAssessories_bollardDouble": {
    "file": "Models/typhoonShelter/ts_pierAssessories_bollardDouble.png",
@@ -1723,7 +1851,11 @@
     "y": 460
    },
    "mirrored": false,
-   "facing": "se"
+   "facing": "se",
+   "night": [
+    "Models/typhoonShelter/ts_sanpan2_a__lit.png",
+    "Models/typhoonShelter/ts_sanpan2_a__litb.png"
+   ]
   },
   "ts_sanpan2_a_m": {
    "file": "Models/typhoonShelter/ts_sanpan2_a_m.png",
@@ -1735,7 +1867,11 @@
     "y": 460
    },
    "mirrored": true,
-   "facing": "sw"
+   "facing": "sw",
+   "night": [
+    "Models/typhoonShelter/ts_sanpan2_a_m__lit.png",
+    "Models/typhoonShelter/ts_sanpan2_a_m__litb.png"
+   ]
   },
   "ts_sanpan2_b": {
    "file": "Models/typhoonShelter/ts_sanpan2_b.png",
@@ -1747,7 +1883,11 @@
     "y": 445
    },
    "mirrored": false,
-   "facing": "se"
+   "facing": "se",
+   "night": [
+    "Models/typhoonShelter/ts_sanpan2_b__lit.png",
+    "Models/typhoonShelter/ts_sanpan2_b__litb.png"
+   ]
   },
   "ts_sanpan2_b_m": {
    "file": "Models/typhoonShelter/ts_sanpan2_b_m.png",
@@ -1759,7 +1899,11 @@
     "y": 445
    },
    "mirrored": true,
-   "facing": "sw"
+   "facing": "sw",
+   "night": [
+    "Models/typhoonShelter/ts_sanpan2_b_m__lit.png",
+    "Models/typhoonShelter/ts_sanpan2_b_m__litb.png"
+   ]
   },
   "ts_sanpan3_a": {
    "file": "Models/typhoonShelter/ts_sanpan3_a.png",
@@ -1819,7 +1963,11 @@
     "y": 445
    },
    "mirrored": false,
-   "facing": "se"
+   "facing": "se",
+   "night": [
+    "Models/typhoonShelter/ts_sanpan4_a__lit.png",
+    "Models/typhoonShelter/ts_sanpan4_a__litb.png"
+   ]
   },
   "ts_sanpan4_a_m": {
    "file": "Models/typhoonShelter/ts_sanpan4_a_m.png",
@@ -1831,7 +1979,11 @@
     "y": 445
    },
    "mirrored": true,
-   "facing": "sw"
+   "facing": "sw",
+   "night": [
+    "Models/typhoonShelter/ts_sanpan4_a_m__lit.png",
+    "Models/typhoonShelter/ts_sanpan4_a_m__litb.png"
+   ]
   },
   "ts_sanpan4_b": {
    "file": "Models/typhoonShelter/ts_sanpan4_b.png",
@@ -1843,7 +1995,11 @@
     "y": 427
    },
    "mirrored": false,
-   "facing": "se"
+   "facing": "se",
+   "night": [
+    "Models/typhoonShelter/ts_sanpan4_b__lit.png",
+    "Models/typhoonShelter/ts_sanpan4_b__litb.png"
+   ]
   },
   "ts_sanpan4_b_m": {
    "file": "Models/typhoonShelter/ts_sanpan4_b_m.png",
@@ -1855,7 +2011,11 @@
     "y": 427
    },
    "mirrored": true,
-   "facing": "sw"
+   "facing": "sw",
+   "night": [
+    "Models/typhoonShelter/ts_sanpan4_b_m__lit.png",
+    "Models/typhoonShelter/ts_sanpan4_b_m__litb.png"
+   ]
   },
   "ts_sanpan5_a": {
    "file": "Models/typhoonShelter/ts_sanpan5_a.png",
@@ -1867,7 +2027,11 @@
     "y": 439
    },
    "mirrored": false,
-   "facing": "se"
+   "facing": "se",
+   "night": [
+    "Models/typhoonShelter/ts_sanpan5_a__lit.png",
+    "Models/typhoonShelter/ts_sanpan5_a__litb.png"
+   ]
   },
   "ts_sanpan5_a_m": {
    "file": "Models/typhoonShelter/ts_sanpan5_a_m.png",
@@ -1879,7 +2043,11 @@
     "y": 439
    },
    "mirrored": true,
-   "facing": "sw"
+   "facing": "sw",
+   "night": [
+    "Models/typhoonShelter/ts_sanpan5_a_m__lit.png",
+    "Models/typhoonShelter/ts_sanpan5_a_m__litb.png"
+   ]
   },
   "ts_sanpan5_b": {
    "file": "Models/typhoonShelter/ts_sanpan5_b.png",
@@ -1891,7 +2059,11 @@
     "y": 444
    },
    "mirrored": false,
-   "facing": "se"
+   "facing": "se",
+   "night": [
+    "Models/typhoonShelter/ts_sanpan5_b__lit.png",
+    "Models/typhoonShelter/ts_sanpan5_b__litb.png"
+   ]
   },
   "ts_sanpan5_b_m": {
    "file": "Models/typhoonShelter/ts_sanpan5_b_m.png",
@@ -1903,7 +2075,11 @@
     "y": 444
    },
    "mirrored": true,
-   "facing": "sw"
+   "facing": "sw",
+   "night": [
+    "Models/typhoonShelter/ts_sanpan5_b_m__lit.png",
+    "Models/typhoonShelter/ts_sanpan5_b_m__litb.png"
+   ]
   },
   "ts_shoreAssessories1_a": {
    "file": "Models/typhoonShelter/ts_shoreAssessories1_a.png",
@@ -2179,7 +2355,11 @@
     "y": 924
    },
    "mirrored": false,
-   "facing": "se"
+   "facing": "se",
+   "night": [
+    "Models/typhoonShelter/ts_speedboat1_a__lit.png",
+    "Models/typhoonShelter/ts_speedboat1_a__litb.png"
+   ]
   },
   "ts_speedboat1_a_m": {
    "file": "Models/typhoonShelter/ts_speedboat1_a_m.png",
@@ -2191,7 +2371,11 @@
     "y": 924
    },
    "mirrored": true,
-   "facing": "sw"
+   "facing": "sw",
+   "night": [
+    "Models/typhoonShelter/ts_speedboat1_a_m__lit.png",
+    "Models/typhoonShelter/ts_speedboat1_a_m__litb.png"
+   ]
   },
   "ts_speedboat1_b": {
    "file": "Models/typhoonShelter/ts_speedboat1_b.png",
@@ -2203,7 +2387,11 @@
     "y": 429
    },
    "mirrored": false,
-   "facing": "nw"
+   "facing": "nw",
+   "night": [
+    "Models/typhoonShelter/ts_speedboat1_b__lit.png",
+    "Models/typhoonShelter/ts_speedboat1_b__litb.png"
+   ]
   },
   "ts_speedboat1_b_m": {
    "file": "Models/typhoonShelter/ts_speedboat1_b_m.png",
@@ -2215,7 +2403,11 @@
     "y": 429
    },
    "mirrored": true,
-   "facing": "ne"
+   "facing": "ne",
+   "night": [
+    "Models/typhoonShelter/ts_speedboat1_b_m__lit.png",
+    "Models/typhoonShelter/ts_speedboat1_b_m__litb.png"
+   ]
   },
   "ts_speedboat2_a": {
    "file": "Models/typhoonShelter/ts_speedboat2_a.png",
@@ -2227,7 +2419,11 @@
     "y": 416
    },
    "mirrored": false,
-   "facing": "se"
+   "facing": "se",
+   "night": [
+    "Models/typhoonShelter/ts_speedboat2_a__lit.png",
+    "Models/typhoonShelter/ts_speedboat2_a__litb.png"
+   ]
   },
   "ts_speedboat2_a_m": {
    "file": "Models/typhoonShelter/ts_speedboat2_a_m.png",
@@ -2239,7 +2435,11 @@
     "y": 416
    },
    "mirrored": true,
-   "facing": "sw"
+   "facing": "sw",
+   "night": [
+    "Models/typhoonShelter/ts_speedboat2_a_m__lit.png",
+    "Models/typhoonShelter/ts_speedboat2_a_m__litb.png"
+   ]
   },
   "ts_speedboat2_b": {
    "file": "Models/typhoonShelter/ts_speedboat2_b.png",
@@ -2251,7 +2451,11 @@
     "y": 445
    },
    "mirrored": false,
-   "facing": "nw"
+   "facing": "nw",
+   "night": [
+    "Models/typhoonShelter/ts_speedboat2_b__lit.png",
+    "Models/typhoonShelter/ts_speedboat2_b__litb.png"
+   ]
   },
   "ts_speedboat2_b_m": {
    "file": "Models/typhoonShelter/ts_speedboat2_b_m.png",
@@ -2263,7 +2467,11 @@
     "y": 445
    },
    "mirrored": true,
-   "facing": "ne"
+   "facing": "ne",
+   "night": [
+    "Models/typhoonShelter/ts_speedboat2_b_m__lit.png",
+    "Models/typhoonShelter/ts_speedboat2_b_m__litb.png"
+   ]
   }
  },
  "formatVersion": 1,

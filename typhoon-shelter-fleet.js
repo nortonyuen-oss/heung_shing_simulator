@@ -22,10 +22,10 @@ const TYPHOON_SHELTER_FLEET = Object.freeze({
     Object.freeze({ objectId: 'fishingBoat4', weight: 25, fishing: true, size: 2, trip: 'trawler' }),
     Object.freeze({ objectId: 'homeBoat1', weight: 8, fishing: false, size: 2 }),
     Object.freeze({ objectId: 'homeBoat2', weight: 7, fishing: false, size: 2 }),
-    Object.freeze({ objectId: 'sanpan1', weight: 5, fishing: false, size: 1 }),
-    Object.freeze({ objectId: 'sanpan3', weight: 5, fishing: false, size: 1 }),
-    Object.freeze({ objectId: 'sanpan5', weight: 5, fishing: false, size: 1 }),
   ]),
+  // 舢舨: not berthed like the boats - they tie up alongside the landing stages and run between
+  // them and the boats: crews out before the boats sail, help unloading when they come in
+  // (TYPHOON_SHELTER_TENDERS)
   // Hong Kong's fishing boats work the night: out in the late afternoon and evening, alongside
   // again at 03:00-05:00 to land the catch for the wholesale market (香港仔魚類批發市場 opens at
   // 04:00, its trucks queue from 03:00). A trip day runs from 06:00 to 06:00 - the sky-day, which
@@ -48,6 +48,23 @@ const TYPHOON_SHELTER_FLEET = Object.freeze({
   resumeStaggerMin: 10,        // after a storm: one boat sails this many minutes after the last
 });
 const TYPHOON_SHELTER_MINUTES_PER_DAY = 24 * 60;
+
+const TYPHOON_SHELTER_TENDERS = Object.freeze({
+  models: Object.freeze(['sanpan1', 'sanpan3', 'sanpan5']),
+  boatsPerTender: 4,             // one sampan to so many fishing boats
+  perStage: 4,                   // two to a side of each landing stage
+  speedTilesPerMinute: 0.4,
+  crewLead: 35,                  // out to a boat this long before it sails, crew aboard
+  crewStay: 8,
+  unloadAfter: 3,                // alongside a boat this soon after it is in, to help unload
+  unloadStay: 15,
+  maxReach: 30,                  // tiles of water route: a boat further from the stage is not served
+  // the way through the shelter: along the lanes, else across a free berth (a gap between the
+  // boats), a berth with a boat lying in it only as a last resort; never over a walkway or ashore
+  laneCost: 1,
+  berthCost: 3,
+  boatCost: 40,
+});
 
 // The fleet keeps sky-clock time counted from a midnight. Environment minute 0 is the sky-day's
 // 06:00 start, so the schedule's 04:00 departures would otherwise land at 10:00.
@@ -426,7 +443,7 @@ function getTyphoonShelterFleetGeometry(plan, analysis) {
     const route = typhoonShelterRouteFor(routes, s);
     return [s.key, route ? { route, length: typhoonShelterRouteLength(route) } : null];
   }));
-  const geometry = { key, slots, routes, routeBySlot };
+  const geometry = { key, slots, routes, routeBySlot, lanes: mooring.lanes, blocked: typhoonShelterBlockedTiles(items), basin: analysis.basin };
   typhoonShelterFleetCache.set(plan.id, geometry);
   return geometry;
 }
@@ -444,8 +461,11 @@ function updateTyphoonShelterFleets(state, analyses, summaries) {
     const slots = geometry.slots.filter((s) => geometry.routeBySlot.get(s.key));
     // the reserved berths stay free for boats sheltering from a storm (typhoon-shelter-storm.js):
     // the summary's berth count is an estimate (mooring water / 3), the berths laid out can be fewer
+    // (sampans tie up at the landing stages, not on berths: the one-tile berths are left to the
+    // visiting sampans in a storm)
+    const boatBerths = slots.filter((sl) => sl.size >= 2).length;
     const target = summary?.operational
-      ? Math.max(0, Math.min(summary.berths.daily, slots.length - summary.berths.reserved)) : 0;
+      ? Math.max(0, Math.min(summary.berths.daily, boatBerths - summary.berths.reserved)) : 0;
     const fleet = plan.fleet || createTyphoonShelterFleet();
     const arrivals = Math.max(1, Math.ceil(target / TYPHOON_SHELTER_FLEET.arrivalsPerDayShare));
     const next = reconcileTyphoonShelterFleet(fleet, slots, target, { seed: plan.seed, arrivals });
@@ -523,11 +543,172 @@ function typhoonShelterNightLandings(plan, geometry, day, { storm = null, morato
   return out.sort((a, b) => a.at - b.at);
 }
 
+// Where a shelter's sampans tie up: alongside its landing stages, two to a side, by the stage's
+// shore end. [{ r, c, dir, start }] (dir: the way the stage points, the sampans lie along it;
+// start: the tile of water beside the stage they set off across).
+function getTyphoonShelterTenderSpots(worksItems) {
+  const spots = [];
+  (worksItems || []).filter((i) => i.kind === 'floatingPier' && i.state === 'done').forEach((stage) => {
+    const [sr, sc] = TF_DIRS[stage.facing] || [0, 0];          // toward the shore
+    const sides = stage.facing === 'n' || stage.facing === 's' ? [[0, 1], [0, -1]] : [[1, 0], [-1, 0]];
+    sides.forEach(([pr, pc]) => [0.25, -0.05].forEach((along) => {
+      spots.push({
+        r: stage.row + sr * along + pr * 0.42, c: stage.col + sc * along + pc * 0.42, dir: stage.facing,
+        start: tfKey(stage.row + pr, stage.col + pc),
+      });
+    }));
+  });
+  return spots;
+}
+
+/**
+ * The cheapest way through the shelter's water from tile `startKey`, as a sampan goes: in straight
+ * runs along the lanes, across a free berth where it must (a gap between the boats), past a
+ * berthed boat only as a last resort, never over a walkway, a buoy or ashore. Dijkstra over the
+ * basin's tiles: { dist, prev }.
+ *   world: { basin: Set, lanes: Set, blocked: Set, occupied: Set (berth tiles with a boat) }
+ */
+function typhoonShelterTenderField(startKey, world) {
+  const T = TYPHOON_SHELTER_TENDERS;
+  const dist = new Map();
+  const prev = new Map();
+  const ok = (k) => world.basin.has(k) && !world.blocked.has(k);
+  if (!ok(startKey)) return { dist, prev };
+  const cost = (k) => (world.lanes.has(k) ? T.laneCost : world.occupied.has(k) ? T.boatCost : T.berthCost);
+  dist.set(startKey, 0);
+  const open = [[0, startKey]];
+  while (open.length) {
+    // a small binary-free queue: the basin is a few hundred tiles
+    let best = 0;
+    for (let i = 1; i < open.length; i++) if (open[i][0] < open[best][0]) best = i;
+    const [d, k] = open.splice(best, 1)[0];
+    if (d > (dist.get(k) ?? Infinity)) continue;
+    const [r, c] = tfParse(k);
+    Object.values(TF_DIRS).forEach(([dr, dc]) => {
+      const n = tfKey(r + dr, c + dc);
+      if (!ok(n)) return;
+      const nd = d + cost(n);
+      if (nd < (dist.get(n) ?? Infinity)) { dist.set(n, nd); prev.set(n, k); open.push([nd, n]); }
+    });
+  }
+  return { dist, prev };
+}
+
+/**
+ * A sampan's way from its spot to a boat's berth: { route: [[r, c], ...], length } or null. Out
+ * across the water beside the stage, along the field's cheapest path tile by tile (straight runs,
+ * square turns) to the lane beside the berth, and alongside the boat.
+ */
+function typhoonShelterTenderPath(field, home, slot) {
+  const target = (slot.access || []).filter((k) => field.dist.has(k))
+    .sort((a, b) => field.dist.get(a) - field.dist.get(b))[0];
+  if (!target) return null;
+  const tiles = [];
+  for (let k = target; k != null; k = field.prev.get(k)) tiles.unshift(tfParse(k));
+  // alongside: from the lane tile a little way toward the nearest tile of the berth
+  const [lr, lc] = tfParse(target);
+  const near = (slot.tiles || []).map(tfParse).sort((a, b) => Math.hypot(a[0] - lr, a[1] - lc) - Math.hypot(b[0] - lr, b[1] - lc))[0] || [lr, lc];
+  const alongside = [lr + (near[0] - lr) * 0.55, lc + (near[1] - lc) * 0.55];
+  const route = [[home.r, home.c], ...tiles, alongside];
+  return { route, length: typhoonShelterRouteLength(route) };
+}
+
+/**
+ * A night's work for the sampans: for each tender, its runs [{ start, route, length, travel, stay }]
+ * - out from its spot to a boat along `route` and back the same way. Crews go out before each boat
+ * sails; when a boat is in, a sampan comes alongside to help unload. Jobs go to the sampan free
+ * soonest; one no sampan can reach in time is let go. Pure: pathFor(spotIndex, boat) gives the way.
+ *   boats: [{ id, slot, departAbs, arriveAbs }]
+ */
+function planTyphoonShelterTenderRuns(spots, boats, pathFor) {
+  const T = TYPHOON_SHELTER_TENDERS;
+  const tenders = spots.map((home) => ({ home, free: -Infinity, runs: [] }));
+  if (!tenders.length) return [];
+  const jobs = [];
+  boats.forEach((b) => {
+    if (Number.isFinite(b.departAbs)) jobs.push({ boat: b, want: b.departAbs - T.crewLead, stay: T.crewStay, by: b.departAbs });
+    if (Number.isFinite(b.arriveAbs)) jobs.push({ boat: b, want: b.arriveAbs + T.unloadAfter, stay: T.unloadStay, by: Infinity });
+  });
+  jobs.sort((x, y) => x.want - y.want);
+  jobs.forEach((job) => {
+    let best = null;
+    tenders.forEach((t, i) => {
+      const path = pathFor(i, job.boat);
+      if (!path || path.length > T.maxReach) return;
+      const travel = path.length / T.speedTilesPerMinute;
+      const start = Math.max(job.want - travel, t.free);
+      // the crew must be aboard before the boat sails
+      if (start + travel > job.by) return;
+      if (!best || start < best.start) best = { t, start, travel, path };
+    });
+    if (!best) return;
+    best.t.runs.push({ start: best.start, route: best.path.route, length: best.path.length, travel: best.travel, stay: job.stay });
+    best.t.free = best.start + 2 * best.travel + job.stay;
+  });
+  return tenders.map((t) => t.runs);
+}
+
+// Where a sampan is at `env`: { r, c, dir } - at its spot, or out on a run along its route.
+function typhoonShelterTenderPoint(home, runs, env) {
+  const speed = TYPHOON_SHELTER_TENDERS.speedTilesPerMinute;
+  for (const run of runs) {
+    const outEnd = run.start + run.travel;
+    const backStart = outEnd + run.stay;
+    const backEnd = backStart + run.travel;
+    if (env < run.start || env >= backEnd) continue;
+    if (env < outEnd) return typhoonShelterPointAlong(run.route, (env - run.start) * speed);
+    if (env < backStart) return typhoonShelterPointAlong(run.route, run.length);
+    return typhoonShelterPointAlong([...run.route].reverse(), (env - backStart) * speed);
+  }
+  return { r: home.r, c: home.c, dir: home.dir };
+}
+
+// A shelter's sampans for trip day `day`: { spots, runs, models }, worked out once per day and layout.
+const typhoonShelterTenderCache = new Map();
+function getTyphoonShelterTenders(plan, geometry, day, storm) {
+  const T = TYPHOON_SHELTER_TENDERS;
+  const boats = (plan.fleet?.boats || []).filter((b) => isTyphoonShelterFishingModel(b.model));
+  const key = `${day}|${geometry.key}|${boats.map((b) => `${b.id}:${b.slot}:${b.repairUntil || 0}`).join(',')}|${JSON.stringify(storm?.holds || [])}|${JSON.stringify(storm?.standbys || [])}`;
+  const hit = typhoonShelterTenderCache.get(plan.id);
+  if (hit && hit.key === key) return hit;
+  const allSpots = getTyphoonShelterTenderSpots(plan.works?.items);
+  const count = Math.min(allSpots.length, Math.ceil(boats.length / T.boatsPerTender));
+  const spots = allSpots.slice(0, count);
+  const slotByKey = new Map(geometry.slots.map((sl) => [sl.key, sl]));
+  const schedule = typhoonShelterFleetSchedule(plan, (b) => geometry.routeBySlot.get(b.slot)?.length, day, { moratorium: isTyphoonShelterMoratoriumDay(day) });
+  const trips = boats.map((b) => {
+    const slot = slotByKey.get(b.slot);
+    const rl = geometry.routeBySlot.get(b.slot)?.length || 0;
+    const trip = slot && rl > 0 ? typhoonShelterBoatTrip(b, day, { seed: plan.seed, storm, times: schedule.get(b.id), routeLength: rl }) : null;
+    return trip ? { id: b.id, slot, departAbs: trip.departAbs, arriveAbs: trip.arriveAbs } : null;
+  }).filter(Boolean);
+  // the water as the sampans see it: every berth with a boat of the fleet in it is in the way
+  const occupied = new Set((plan.fleet?.boats || []).flatMap((b) => slotByKey.get(b.slot)?.tiles || []));
+  const world = { basin: geometry.basin || new Set(), lanes: geometry.lanes || new Set(), blocked: geometry.blocked || new Set(), occupied };
+  const fields = spots.map((spot) => typhoonShelterTenderField(spot.start, world));
+  const paths = new Map();
+  const pathFor = (i, boat) => {
+    const k = `${i}|${boat.slot.key}`;
+    if (!paths.has(k)) paths.set(k, typhoonShelterTenderPath(fields[i], spots[i], boat.slot));
+    return paths.get(k);
+  };
+  const out = {
+    key,
+    spots,
+    runs: planTyphoonShelterTenderRuns(spots, trips, pathFor),
+    models: spots.map((_, i) => T.models[Math.floor(tfHash(plan.seed, 'tender', i) * T.models.length)]),
+  };
+  typhoonShelterTenderCache.set(plan.id, out);
+  return out;
+}
+
 // Every frame: place each visible boat.
 function updateTyphoonShelterBoats(scene) {
   if (!scene || typeof getTyphoonShelterState !== 'function') return;
   const state = getTyphoonShelterState();
   if (!scene.typhoonShelterBoats) scene.typhoonShelterBoats = new Map();
+  // the sea lights follow the street lamps (typhoon-shelter-sprites.js), read once a frame
+  scene.typhoonShelterSeaLit = typeof isTyphoonShelterSeaLit === 'function' && isTyphoonShelterSeaLit(scene);
   const live = new Set();
   const env = getTyphoonShelterFleetClock();
   const storm = state.storm || null;
@@ -579,6 +760,13 @@ function updateTyphoonShelterBoats(scene) {
       const point = st.mode === 'moored' ? mooredAt(slot, `v${v.id}`) : along(r.route, st.mode, st.distance);
       drawTyphoonShelterBoat(scene, id, v.model, point, rotation, facings);
     });
+    // 舢舨: alongside the landing stages, out to the boats and back
+    const tenders = getTyphoonShelterTenders(plan, geometry, getTyphoonShelterTripDay(env), storm);
+    tenders.spots.forEach((home, i) => {
+      const id = `${plan.id}|t${i}`;
+      live.add(id);
+      drawTyphoonShelterBoat(scene, id, tenders.models[i], typhoonShelterTenderPoint(home, tenders.runs[i] || [], env), rotation, facings);
+    });
   });
   scene.typhoonShelterBoats.forEach((rec, id) => {
     if (!live.has(id)) { rec.sprite?.destroy(); scene.typhoonShelterBoats.delete(id); }
@@ -602,7 +790,11 @@ function drawTyphoonShelterBoat(scene, id, objectId, point, rotation, facings) {
     scene.typhoonShelterBoats.get(id)?.sprite?.setVisible(false);
     return;
   }
-  const key = resolveTyphoonShelterTextureKey(scene, choice);
+  let rec0 = scene.typhoonShelterBoats.get(id);
+  if (rec0 && rec0.bobSeed === undefined && typeof getTyphoonShelterRecordSeed === 'function') rec0.bobSeed = getTyphoonShelterRecordSeed(id);
+  // 漁火 at night: the twinkling night frames (typhoon-shelter-sprites.js)
+  const drawn = typeof getTyphoonShelterLitChoice === 'function' ? getTyphoonShelterLitChoice(scene, choice, rec0?.bobSeed || 0) : choice;
+  const key = resolveTyphoonShelterTextureKey(scene, drawn);
   if (!scene.textures.exists(key)) {
     if (!typhoonShelterBoatTexturesRequested.has(objectId)) {
       typhoonShelterBoatTexturesRequested.add(objectId);
@@ -625,7 +817,7 @@ function drawTyphoonShelterBoat(scene, id, objectId, point, rotation, facings) {
     rec.key = stamp;
     const texture = typeof getTyphoonShelterTextureSize === 'function'
       ? getTyphoonShelterTextureSize(scene, key) : scene.textures.get(key).getSourceImage();
-    const ground = getTyphoonShelterSpriteGround(scene, choice, key);
+    const ground = getTyphoonShelterSpriteGround(scene, drawn, key);
     const size = getTyphoonShelterObjectSize(objectId);
     const art = ground && measureTyphoonShelterArt(ground, size, ground.top);
     if (art) {
@@ -650,7 +842,8 @@ function drawTyphoonShelterBoat(scene, id, objectId, point, rotation, facings) {
   // off screen it is not drawn: a boat's texture between the buildings splits the sprite batch
   sprite.setVisible(typeof isTyphoonShelterSpriteInView !== 'function' || isTyphoonShelterSpriteInView(scene, sprite));
   // darkened after dark like the other unlit props (re-read as it moves: the remote dim is per tile)
-  if (sprite.visible && typeof applyNightPropTint === 'function') applyNightPropTint(scene, sprite);
+  if (drawn.night) sprite.clearTint();  // the 漁火 art carries its own night
+  else if (sprite.visible && typeof applyNightPropTint === 'function') applyNightPropTint(scene, sprite);
   sprite.setDepth(getBuildingSortDepth(p.y, 1, 1, 0));
 }
 
@@ -673,6 +866,12 @@ const typhoonShelterFleetApi = {
   typhoonShelterBoatTimes,
   typhoonShelterBoatTrip,
   typhoonShelterNightLandings,
+  TYPHOON_SHELTER_TENDERS,
+  getTyphoonShelterTenderSpots,
+  typhoonShelterTenderField,
+  typhoonShelterTenderPath,
+  planTyphoonShelterTenderRuns,
+  typhoonShelterTenderPoint,
   getTyphoonShelterTripDay,
   getTyphoonShelterBoatTrip,
   isTyphoonShelterMoratoriumDay,

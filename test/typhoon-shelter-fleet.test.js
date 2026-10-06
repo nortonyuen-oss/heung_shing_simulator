@@ -167,8 +167,11 @@ test('the fleet grows a few boats a day to its berths and keeps them when berths
   f = reconcileTyphoonShelterFleet(f, slots, 10, { seed: 7, arrivals: 3 });
   assert.equal(f.boats.length, 3);
   for (let i = 0; i < 5; i++) f = reconcileTyphoonShelterFleet(f, slots, 10, { seed: 7, arrivals: 3 });
-  assert.equal(f.boats.length, 10);
-  assert.equal(new Set(f.boats.map((b) => b.slot)).size, 10, 'one boat a berth');
+  // boats only on the two-tile berths: the sampans tie up at the landing stages instead
+  const full = Math.min(10, slots.filter((sl) => sl.size >= 2).length);
+  assert.equal(f.boats.length, full);
+  assert.equal(new Set(f.boats.map((b) => b.slot)).size, full, 'one boat a berth');
+  assert.ok(f.boats.every((b) => !b.model.startsWith('sanpan')));
   // a big boat only takes a two-tile berth
   const sizeOf = new Map(slots.map((s) => [s.key, s.size]));
   f.boats.forEach((b) => assert.ok(TYPHOON_SHELTER_FLEET.models.find((m) => m.objectId === b.model).size <= sizeOf.get(b.slot)));
@@ -177,7 +180,7 @@ test('the fleet grows a few boats a day to its berths and keeps them when berths
   const moved = reconcileTyphoonShelterFleet(f, fewer, 10, { seed: 7 });
   assert.ok(moved.boats.length <= 6);
   assert.ok(moved.boats.every((b) => fewer.some((s) => s.key === b.slot)));
-  assert.equal(reconcileTyphoonShelterFleet(f, slots, 4, { seed: 7 }).boats.length, 4);
+  assert.equal(reconcileTyphoonShelterFleet(f, slots, 4, { seed: 7 }).boats.length, Math.min(4, full));
 });
 
 test('the fleet survives the save normaliser', () => {
@@ -297,7 +300,7 @@ test('the fleet leaves the reserved berths free for storm visitors', () => {
   });
   const p = { ...plan, id: 'reserve', works: { approved: true, items } };
   const geometry = fleet.getTyphoonShelterFleetGeometry(p, analysis);
-  const usable = geometry.slots.filter((s) => geometry.routeBySlot.get(s.key)).length;
+  const usable = geometry.slots.filter((s) => geometry.routeBySlot.get(s.key) && s.size >= 2).length;
   // the summary's estimate says more berths than were laid out: the fleet still stops short of
   // the reserved ones
   const summaries = new Map([['reserve', { operational: true, berths: { total: usable + 10, reserved: 3, daily: usable + 7 } }]]);
@@ -308,4 +311,45 @@ test('the fleet leaves the reserved berths free for storm visitors', () => {
   const stormy = { shelters: [{ ...p, fleet: { nextId: 1, boats: [] } }], storm: { holds: [{ from: 0, until: null }], standbys: [], visitors: [] } };
   globalThis.isTyphoonShelterStormFreeze = require('../typhoon-shelter-storm.js').isTyphoonShelterStormFreeze;
   assert.equal(fleet.updateTyphoonShelterFleets(stormy, new Map([['reserve', analysis]]), summaries), null);
+});
+
+test('the sampans tie up at the landing stages and run crews out and catches in', () => {
+  const { TYPHOON_SHELTER_TENDERS: T, getTyphoonShelterTenderSpots, typhoonShelterTenderField, typhoonShelterTenderPath,
+    planTyphoonShelterTenderRuns, typhoonShelterTenderPoint } = fleet;
+  // a walkway runs south from the shore (row 0) down col 3; berths either side of it (cols 2, 4), a
+  // lane beyond them (col 1, and col 5), and a lane across the bottom (row 8)
+  const key = (r, c) => `${r}:${c}`;
+  const basin = new Set();
+  for (let r = 0; r <= 8; r++) for (let c = 0; c <= 6; c++) basin.add(key(r, c));
+  const blocked = new Set([0, 1, 2, 3, 4, 5, 6].map((r) => key(r, 3)));     // the walkway
+  const lanes = new Set([...[0, 1, 2, 3, 4, 5, 6, 7, 8].flatMap((r) => [key(r, 1), key(r, 5)]), ...[0, 1, 2, 3, 4, 5, 6].map((c) => key(8, c))]);
+  // berths along col 4, boats in all but rows 3-4 (a gap)
+  const occupied = new Set([1, 2, 5, 6].map((r) => key(r, 4)));
+  const spots = getTyphoonShelterTenderSpots([{ kind: 'floatingPier', state: 'done', row: 0, col: 3, facing: 'n' }]);
+  assert.equal(spots.length, T.perStage);
+  spots.forEach((s) => assert.ok(Math.abs(s.c - 3) > 0.3 && Math.abs(s.r) < 0.5, 'alongside, by the stage'));
+  const east = spots.find((s) => s.c > 3);
+  const field = typhoonShelterTenderField(east.start, { basin, lanes, blocked, occupied });
+  // to a boat berthed beyond the walkway's west lane, at (6, 2)
+  const slot = { key: '6:2', tiles: ['6:2'], access: ['6:1'] };
+  const way = typhoonShelterTenderPath(field, east, slot);
+  assert.ok(way, 'a way round');
+  const tiles = way.route.slice(1, -1);
+  tiles.forEach(([r, c]) => assert.ok(!blocked.has(key(r, c)), `never over the walkway (${r}:${c})`));
+  tiles.slice(1).forEach(([r, c], i) => assert.equal(Math.abs(r - tiles[i][0]) + Math.abs(c - tiles[i][1]), 1, 'square steps, no diagonals'));
+  // through the gap between the berthed boats rather than over one
+  const crossed = tiles.filter(([r, c]) => occupied.has(key(r, c)));
+  assert.equal(crossed.length, 0, 'between the boats, not through them');
+  // the night's runs: crews aboard before each boat sails; one run at a time
+  const boats = [1, 2, 3].map((id) => ({ id, slot, departAbs: 1000 + id * 20, arriveAbs: 1700 + id * 30 }));
+  const runs = planTyphoonShelterTenderRuns([east], boats, () => way)[0];
+  assert.ok(runs.length >= 3, `${runs.length} runs`);
+  runs.forEach((run, i) => { if (i) assert.ok(run.start >= runs[i - 1].start + 2 * runs[i - 1].travel + runs[i - 1].stay - 1e-9); });
+  const crew = runs.find((run) => run.stay === T.crewStay);
+  assert.ok(crew.start + crew.travel <= 1020);
+  assert.deepEqual(typhoonShelterTenderPoint(east, runs, 0), { r: east.r, c: east.c, dir: east.dir });
+  const there = typhoonShelterTenderPoint(east, runs, runs[0].start + runs[0].travel + 1);
+  assert.ok(Math.abs(there.r - way.route.at(-1)[0]) < 1e-6 && Math.abs(there.c - way.route.at(-1)[1]) < 1e-6, 'alongside the boat');
+  // out of reach: let go
+  assert.equal(planTyphoonShelterTenderRuns([east], boats, () => ({ route: way.route, length: 99 }))[0].length, 0);
 });

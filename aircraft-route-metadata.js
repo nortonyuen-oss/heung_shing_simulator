@@ -43,6 +43,9 @@ const AIRCRAFT_ROUTE_METADATA_VALUE = Object.freeze({
   calibratedMapRotation: 3,
   footprintCols: 12,
   footprintRows: 12,
+  // the taxiway between runway and gates: the column (relative to the anchor) the planes taxi along,
+  // parallel to the runway - the apron edge on the art (aircraft-visuals.js buildAircraftRoute)
+  taxiwayDCol: 6.0,
   pointsByKey: Object.freeze({
     approachSpawn: Object.freeze({ dRow: -12.2391, dCol: 7.3641, direction: 'se' }),
     approachCurve: Object.freeze({ dRow: -4.9788, dCol: 5.2030, direction: 'se' }),

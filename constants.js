@@ -1117,8 +1117,34 @@ function getSpecialBuildingModels(buildingType) {
     ?? (SPECIAL_BUILDING_MODELS[buildingType] ? [SPECIAL_BUILDING_MODELS[buildingType]] : []);
 }
 
+// The 海事處 markets and restaurants keep their front (or back) to the sea however the map turns,
+// and the loading bay an open side to the road: each model has its mirror image, chosen per
+// rotation (refreshTyphoonShelterBuildingSprites, typhoon-shelter-market.js). Not a variant of its own.
+const SPECIAL_BUILDING_MIRROR_MODELS = Object.freeze(Object.fromEntries([
+  ['fish_market_1x1', 'Models/specialSites/1x1/fishMarket1-01_m.png', 1],
+  ['fish_market_1x1_alt', 'Models/specialSites/1x1/fishMarket1-02_m.png', 1],
+  ['seafood_restaurant_1x1', 'Models/specialSites/1x1/seafoodRestaurant1-01_m.png', 1],
+  ['seafood_restaurant_1x1_alt', 'Models/specialSites/1x1/seafoodRestaurant1-02_m.png', 1],
+  ['fish_loading_bay_2x2', 'Models/specialSites/2x2/fishLoadingBay2-01_m.png', 2],
+].map(([key, path, size]) => [key, Object.freeze({ spriteKey: `${key}_m`, path, footprintCols: size, footprintRows: size })])));
+
+// And each (and its mirror) by day with the lights off, drawn while it is shut in daylight - the
+// plain art is lit, as it is when open and all night (refreshTyphoonShelterBuildingSprites).
+const SPECIAL_BUILDING_DAY_MODELS = Object.freeze(Object.fromEntries(
+  [
+    ...Object.entries(SPECIAL_BUILDING_MIRROR_MODELS).flatMap(([key, mirror]) => [
+      { ...mirror, spriteKey: key, path: mirror.path.replace(/_m\.png$/, '.png') }, mirror,
+    ]),
+  ].map((model) => [model.spriteKey, Object.freeze({
+    spriteKey: `${model.spriteKey}_day`, path: model.path.replace(/(_m)?\.png$/, '_day$1.png'),
+    footprintCols: model.footprintCols, footprintRows: model.footprintRows,
+  })]),
+));
+
 function getAllSpecialBuildingModels(buildingType) {
-  const models = getSpecialBuildingModels(buildingType);
+  const plain = getSpecialBuildingModels(buildingType);
+  const facing = [...plain, ...plain.map((model) => SPECIAL_BUILDING_MIRROR_MODELS[model.spriteKey]).filter(Boolean)];
+  const models = [...facing, ...facing.map((model) => SPECIAL_BUILDING_DAY_MODELS[model.spriteKey]).filter(Boolean)];
   if (buildingType === 'airport') return [...models, LEGACY_AIRPORT_MODEL, LEGACY_AIRPORT_8X8_MODEL];
   if (buildingType === 'ocean_park') return [...models, LEGACY_OCEAN_PARK_MODEL];
   return models;

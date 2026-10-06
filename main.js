@@ -329,6 +329,7 @@ function updateGameFrame(time, delta) {
   if (typeof updateTyphoonShelterBoats === 'function') updateTyphoonShelterBoats(this);
   if (typeof updateTyphoonShelterBobbing === 'function') updateTyphoonShelterBobbing(this, time);
   if (typeof updateTyphoonShelterMarkets === 'function') updateTyphoonShelterMarkets(this, time);
+  if (typeof updateTyphoonShelterBuildingLighting === 'function') updateTyphoonShelterBuildingLighting(this);
   if (typeof updateTyphoonShelterLights === 'function') updateTyphoonShelterLights(this, time);
   if (profileSections) {
     recordVisualRoutePerformanceDuration(this, 'vessel', performance.now() - sectionStartedAt);
@@ -3081,6 +3082,11 @@ function rotateMap(scene, steps = 1) {
   refreshAllTiles(scene);
   refreshHarborSprites(scene);
   refreshBusDepotSprites(scene);
+  // 海事處 markets and restaurants keep their front to the sea (typhoon-shelter-market.js)
+  if (typeof refreshTyphoonShelterBuildingSprites === 'function') refreshTyphoonShelterBuildingSprites(scene);
+  // and the crate piles in their loading bays are laid out for the new view
+  if (typeof syncTyphoonShelterFacilitySprites === 'function' && typeof getTyphoonShelterState === 'function'
+    && getTyphoonShelterState().shelters.length) syncTyphoonShelterFacilitySprites(scene);
 
   // Reposition every sprite that uses isoToScreen
   positionAllTiles(scene);

@@ -26,11 +26,21 @@ const TYPHOON_SHELTER_MARKET = Object.freeze({
   gridM: 5,                      // a tile (20 m) is laid out on a 4 x 4 grid of 5 m cells
   pileObjects: Object.freeze(['shoreAssessories1', 'shoreAssessories3', 'shoreAssessories4']),
   maxBayPiles: 24,
+  bayShedDepth: 0.36,            // the bay art's covered shed: this deep from its top-right edge
+  bayTruckClearTiles: 0.8,       // and the piles keep this clear of the road edge, where trucks stand
   shelterReach: 4,               // a market serves the shelter whose waterfront is nearest, this close
   bayReach: 2,                   // a loading bay belongs to a market this close (tiles between them)
   bayInsideTiles: 1,             // a truck in a bay stands this far in from the middle of the road
   // monthly upkeep, on the typhoon shelters' budget line (getTyphoonShelterMonthlyUpkeep)
   upkeep: Object.freeze({ fish_market: 90, seafood_restaurant: 60, fish_loading_bay: 30 }),
+  // opening hours, sky minutes [from, to): lit art while open and all night, the lights-off day art
+  // while shut in daylight - the market from the trucks' queue to the morning's last loads, the
+  // restaurant lunch to late
+  hours: Object.freeze({
+    fish_market: Object.freeze([3 * 60, 10 * 60]),
+    fish_loading_bay: Object.freeze([3 * 60, 10 * 60]),     // the bay works the market's hours
+    seafood_restaurant: Object.freeze([11 * 60, 23 * 60]),
+  }),
 });
 
 const TYPHOON_SHELTER_BUILDING_TYPES = Object.freeze(['fish_market', 'seafood_restaurant', 'fish_loading_bay']);
@@ -119,24 +129,43 @@ function assignTyphoonShelterMarkets({ markets, bays, shelters }, isRoad) {
 }
 
 /**
- * Where the crate piles stand in a loading bay: [{ row, col, offsets }] - on the two tiles away
- * from the road (the trucks stand on the two by it), the cells nearest the trucks first.
+ * Where the crate piles stand in a loading bay: [{ cell, row, col, offsets }], up to maxBayPiles.
+ * The bay's art does not turn with the map: its covered shed runs along the top-right (north-east)
+ * edge on screen - the top-left in the `mirrored` art - so the piles go on the open lot clear of
+ * the shed and of the trucks' half by the road, the cells nearest the shed first. `toScreen(col,
+ * row)` is isoToScreen (tile centres at whole numbers); the layout is redone when the map turns.
  */
-function layoutTyphoonShelterBayPiles(bay) {
-  const g = TYPHOON_SHELTER_MARKET.gridM;
-  const toward = bay.road.side;
-  const across = TS_MARKET_ACROSS[toward];
-  const [dr, dc] = TS_MARKET_DIRS[toward];
-  const tiles = tsMarketFootprint(bay.row, bay.col, 2, 2);
-  // the back pair: tiles whose neighbour toward the road is inside the bay
-  const back = tiles.filter(([r, c]) => tiles.some(([r2, c2]) => r2 === r + dr && c2 === c + dc));
-  const steps = [1.5, 0.5, -0.5, -1.5].map((k) => k * g);
+function layoutTyphoonShelterBayPiles(bay, toScreen, mirrored = false) {
+  const M = TYPHOON_SHELTER_MARKET;
+  const g = M.gridM;
+  const corners = [[-0.5, -0.5], [-0.5, 1.5], [1.5, -0.5], [1.5, 1.5]]
+    .map(([dr, dc]) => toScreen(bay.col + dc, bay.row + dr));
+  const top = corners.reduce((p, q) => (q.y < p.y ? q : p));
+  const right = corners.reduce((p, q) => (q.x > p.x ? q : p));
+  const left = corners.reduce((p, q) => (q.x < p.x ? q : p));
+  // P = top + a (right - top) + b (left - top): b is the depth from the shed's edge
+  const ux = right.x - top.x; const uy = right.y - top.y;
+  const vx = left.x - top.x; const vy = left.y - top.y;
+  const det = ux * vy - uy * vx;
+  const edge = { n: (r) => r - (bay.row - 0.5), s: (r) => bay.row + 1.5 - r, w: (r, c) => c - (bay.col - 0.5), e: (r, c) => bay.col + 1.5 - c }[bay.road.side];
+  const steps = [-1.5, -0.5, 0.5, 1.5].map((k) => k * g);
   const cells = [];
-  back.forEach(([row, col]) => steps.forEach((a) => steps.forEach((b) => {
-    cells.push({ row, col, a, b, offsets: [[toward, a], [across, b]] });
+  tsMarketFootprint(bay.row, bay.col, 2, 2).forEach(([row, col]) => steps.forEach((dy) => steps.forEach((dx) => {
+    const r = row + dy / 20;
+    const c = col + dx / 20;
+    const p = toScreen(c, r);
+    const px = p.x - top.x; const py = p.y - top.y;
+    // a runs along the shed's edge, b is the depth from it
+    const along = (px * vy - py * vx) / det;
+    const depth = (ux * py - uy * px) / det;
+    const a = mirrored ? depth : along;
+    const b = mirrored ? along : depth;
+    if (b < M.bayShedDepth || a < 0.08 || a > 0.92 || b > 0.92) return;
+    if (edge(r, c) < M.bayTruckClearTiles) return;
+    cells.push({ cell: `${row}:${col}:${dy}:${dx}`, row, col, a, b, offsets: [['s', dy], ['e', dx]] });
   })));
-  cells.sort((x, y) => y.a - x.a || (x.row * 1000 + x.col) - (y.row * 1000 + y.col) || x.b - y.b);
-  return cells.slice(0, TYPHOON_SHELTER_MARKET.maxBayPiles).map(({ row, col, offsets }) => ({ row, col, offsets }));
+  cells.sort((x, y) => x.b - y.b || x.a - y.a);
+  return cells.slice(0, M.maxBayPiles).map(({ cell, row, col, offsets }) => ({ cell, row, col, offsets }));
 }
 
 /**
@@ -165,6 +194,21 @@ function typhoonShelterMarketStock(landings, haul, t) {
   landings.forEach((l) => { if (l.at <= t) landed += l.tonnes; });
   let hauled = 0;
   haul.forEach((h) => { if (h.at <= t) hauled += h.tonnes; });
+  return Math.max(0, landed - Math.min(landed, hauled));
+}
+
+// What is to be seen at the market at `t`: as typhoonShelterMarketStock, but a load comes off when
+// its truck - if one is drawn - has pulled in and loads, not on the clock. loadState(k): 'loaded',
+// 'waiting' (its truck is on the way or standing, not yet loading) or null (no truck drawn: the
+// clock decides).
+function typhoonShelterMarketStockShown(landings, haul, t, loadState = () => null) {
+  let landed = 0;
+  landings.forEach((l) => { if (l.at <= t) landed += l.tonnes; });
+  let hauled = 0;
+  haul.forEach((h, k) => {
+    const state = loadState(k);
+    if (state === 'loaded' || (state !== 'waiting' && h.at <= t)) hauled += h.tonnes;
+  });
   return Math.max(0, landed - Math.min(landed, hauled));
 }
 
@@ -345,6 +389,7 @@ function spawnTyphoonShelterFishTruck(scene, state, market, plan, key) {
     textureDirection: 'ne',
     lastPosition: null,
     sound: null,
+    loadAt: plan.loadAt,
     leaveAt: plan.leaveAt,
   };
   createTrafficVehicleLights(scene, truck);
@@ -390,8 +435,134 @@ function whyNotTyphoonShelterBuilding(row, col, cols = 1, rows = 1) {
   return typeof tsT === 'function' ? tsT(key, fallback) : fallback;
 }
 
+// Which way the sea lies from a waterfront building: the logical direction of the nearest water
+// within two tiles, or null.
+function getTyphoonShelterSeaSide(row, col, isWater) {
+  for (let d = 1; d <= 2; d++) {
+    for (const dir of ['s', 'e', 'n', 'w']) {
+      const [dr, dc] = TS_MARKET_DIRS[dir];
+      if (isWater(row + dr * d, col + dc * d)) return dir;
+    }
+  }
+  return null;
+}
+
+// Whether a market or restaurant is open at sky minute `skyMinute` (0-1439).
+function isTyphoonShelterBuildingOpen(type, skyMinute) {
+  const hours = TYPHOON_SHELTER_MARKET.hours[type];
+  if (!hours) return true;
+  const m = ((skyMinute % 1440) + 1440) % 1440;
+  return hours[0] <= hours[1] ? m >= hours[0] && m < hours[1] : m >= hours[0] || m < hours[1];
+}
+
+// The day (lights off) art for a facing key when the building is shut in daylight and has one.
+function getTyphoonShelterLightingKey(facingKey, shutByDay, hasDayArt) {
+  return shutByDay && hasDayArt ? `${facingKey}_day` : facingKey;
+}
+
+// The loading bay's art is open on three sides, its shed along the top-right edge on screen (the
+// mirror's top-left) and its way in from the bottom-left (the mirror's bottom-right): with the road
+// to the south-east or north-east the mirror, else the plain art - an open side always on the road.
+function isTyphoonShelterBayMirrored(roadScreen) {
+  return roadScreen === 'se' || roadScreen === 'ne';
+}
+
+// Whether a bay (with its `road` from chooseTyphoonShelterRoadSide) is drawn mirrored at `rotation`.
+function isTyphoonShelterBayDrawnMirrored(bay, rotation) {
+  if (typeof SPECIAL_BUILDING_MIRROR_MODELS === 'undefined' || !SPECIAL_BUILDING_MIRROR_MODELS[SPECIAL_BUILDING_MODELS.fish_loading_bay.spriteKey]) return false;
+  const side = bay?.road?.side;
+  const screen = side && typeof getTyphoonShelterScreenFacing === 'function' ? getTyphoonShelterScreenFacing(side, rotation) : null;
+  return isTyphoonShelterBayMirrored(screen);
+}
+
+/**
+ * The market or restaurant model to draw for a sea lying `seaScreen` (the screen diagonal: se, sw,
+ * ne, nw): the art's front faces screen south-west, its mirror's south-east - so with the sea to the
+ * south-west or north-east the plain art (front or back to it), else the mirror. Never a side.
+ */
+function getTyphoonShelterFacingKey(baseKey, seaScreen, hasMirror) {
+  if (!hasMirror || !seaScreen) return baseKey;
+  return seaScreen === 'se' || seaScreen === 'nw' ? `${baseKey}_m` : baseKey;
+}
+
+// Lit or not, from the clock and the dark: { dark, open: { type: bool } }, also the key the frame
+// check compares.
+function getTyphoonShelterBuildingLighting(scene) {
+  const dark = typeof isTyphoonShelterSeaLit === 'function' ? !!isTyphoonShelterSeaLit(scene) : true;
+  const sky = typeof getTyphoonShelterFleetClock === 'function' ? getTyphoonShelterFleetClock() % 1440 : 12 * 60;
+  const open = Object.fromEntries(Object.keys(TYPHOON_SHELTER_MARKET.hours).map((type) => [type, isTyphoonShelterBuildingOpen(type, sky)]));
+  return { dark, open, key: `${dark}|${Object.values(open).join('|')}` };
+}
+
+// On a map turn, a load, a placement, and when one opens or shuts or night falls: each market and
+// restaurant drawn with its front to the sea, each loading bay with its open side to the road, and
+// all of them with their lights on or off.
+function refreshTyphoonShelterBuildingSprites(scene) {
+  if (typeof buildingData === 'undefined' || typeof SPECIAL_BUILDING_MIRROR_MODELS === 'undefined') return;
+  const rotation = typeof mapRotation === 'number' ? mapRotation : 0;
+  const isWater = (r, c) => isInsideMap(r, c) && mapData[r][c] === WATER;
+  const lighting = getTyphoonShelterBuildingLighting(scene);
+  if (scene) scene.typhoonShelterBuildingLighting = lighting.key;
+  const dayArt = typeof SPECIAL_BUILDING_DAY_MODELS !== 'undefined' ? SPECIAL_BUILDING_DAY_MODELS : {};
+  Object.entries(buildingData).forEach(([id, record]) => {
+    if (!TYPHOON_SHELTER_MARKET.hours[record?.type]) return;
+    const baseKey = String(record.spriteKey || '').replace(/(_m)?(_day)?$/, '');
+    const [row, col] = id.split(':').map(Number);
+    let facingKey;
+    if (record.type === 'fish_loading_bay') {
+      // the bay turns its open side to the road
+      const road = chooseTyphoonShelterRoadSide(tsMarketFootprint(row, col, 2, 2), isTyphoonShelterMarketRoad);
+      facingKey = isTyphoonShelterBayDrawnMirrored({ road }, rotation) ? `${baseKey}_m` : baseKey;
+    } else {
+      // the market and the restaurant their front (or back) to the sea
+      const sea = getTyphoonShelterSeaSide(row, col, isWater);
+      const seaScreen = sea && typeof getTyphoonShelterScreenFacing === 'function' ? getTyphoonShelterScreenFacing(sea, rotation) : null;
+      facingKey = getTyphoonShelterFacingKey(baseKey, seaScreen, !!SPECIAL_BUILDING_MIRROR_MODELS[baseKey]);
+    }
+    const shutByDay = !lighting.dark && !lighting.open[record.type];
+    const key = getTyphoonShelterLightingKey(facingKey, shutByDay, !!dayArt[facingKey]);
+    if (key === record.spriteKey) return;
+    const model = getSpecialBuildingModelBySpriteKey(key);
+    const opts = specialBuildingModelMetadata[key];
+    const sprite = scene?.buildingSprites?.get(id);
+    if (!model || (sprite && !scene.textures.exists(key))) return;
+    record.spriteKey = key;
+    record.assetId = model.path;
+    if (opts) {
+      Object.assign(record, {
+        originX: opts.originX, originY: opts.originY, scale: opts.scale, scaleX: opts.scaleX, scaleY: opts.scaleY,
+        offsetX: opts.offsetX, offsetY: opts.offsetY, anchorMode: opts.anchorMode,
+      });
+    }
+    if (!sprite) return;
+    sprite.setTexture(key);
+    // its night art is a different texture: drop the day/night bookkeeping, as the harbor does
+    sprite.__dayTextureKey = null;
+    sprite.skipNightTint = false;
+    if (typeof markBuildingNightArtDirty === 'function') markBuildingNightArtDirty(scene);
+    if (opts) {
+      sprite.setOrigin(opts.originX ?? 0.5, opts.originY ?? 1);
+      if (opts.scaleX || opts.scaleY) sprite.setScale(opts.scaleX ?? opts.scale ?? 1, opts.scaleY ?? opts.scale ?? 1);
+      else if (opts.scale) sprite.setScale(opts.scale);
+      sprite.spriteOffsetX = opts.offsetX ?? 0;
+      sprite.spriteOffsetY = opts.offsetY ?? 0;
+      sprite.anchorMode = opts.anchorMode;
+    }
+    positionBuilding(scene, sprite);
+  });
+}
+
+// Every frame: when a market or restaurant opens or shuts, or night falls or lifts, swap its art.
+function updateTyphoonShelterBuildingLighting(scene) {
+  if (!scene) return;
+  const key = getTyphoonShelterBuildingLighting(scene).key;
+  if (key === scene.typhoonShelterBuildingLighting) return;
+  refreshTyphoonShelterBuildingSprites(scene);
+}
+
 // A building placed or pulled down: the waterfront is laid again round it.
 function onTyphoonShelterBuildingsChanged(scene) {
+  refreshTyphoonShelterBuildingSprites(scene);
   if (typeof syncTyphoonShelterFacilitySprites === 'function') syncTyphoonShelterFacilitySprites(scene);
   if (typeof renderTyphoonShelterPanel === 'function' && typeof typhoonShelterDom !== 'undefined' && typhoonShelterDom && !typhoonShelterDom.panel.hidden) {
     renderTyphoonShelterPanel();
@@ -424,6 +595,8 @@ function getTyphoonShelterBuildingTypeAt(row, col) {
  */
 function layTyphoonShelterMarkets(wanted) {
   typhoonShelterMarketSites.clear();
+  // (a loaded save may have been made at another map rotation)
+  if (typeof activeScene !== 'undefined' && activeScene) refreshTyphoonShelterBuildingSprites(activeScene);
   const UNDER_BUILDING = new Set(['quayDeckSquare', 'promenadeKerb', 'promenadeLamp']);
   wanted.forEach((w, id) => {
     if (UNDER_BUILDING.has(w.objectId) && isTyphoonShelterBuildingType(getTyphoonShelterBuildingTypeAt(w.item.row, w.item.col))) wanted.delete(id);
@@ -439,12 +612,15 @@ function layTyphoonShelterMarkets(wanted) {
     shelters,
   }, isTyphoonShelterMarketRoad);
   markets.forEach((m) => {
-    const piles = m.bay ? layoutTyphoonShelterBayPiles(m.bay) : [];
-    typhoonShelterMarketSites.set(m.id, { ...m, slots: piles.length });
+    const rotation = typeof mapRotation === 'number' ? mapRotation : 0;
+    const piles = m.bay ? layoutTyphoonShelterBayPiles(m.bay, isoToScreen, isTyphoonShelterBayDrawnMirrored(m.bay, rotation)) : [];
+    // ids by cell: when the map turns the layout changes, and so do the records
+    const pileIds = piles.map((pile) => `${m.id}|pile@${pile.cell}`);
+    typhoonShelterMarketSites.set(m.id, { ...m, slots: piles.length, pileIds });
     piles.forEach((pile, i) => {
-      const hash = (salt) => tsMarketHash(m.id, salt, i);
-      wanted.set(`${m.id}|pile${i}`, {
-        item: { key: `marketPile:${m.id}:${i}`, kind: 'marketPile', row: pile.row, col: pile.col,
+      const hash = (salt) => tsMarketHash(m.id, salt, pile.cell);
+      wanted.set(pileIds[i], {
+        item: { key: `marketPile:${m.id}:${pile.cell}`, kind: 'marketPile', row: pile.row, col: pile.col,
           facing: ['n', 'e', 's', 'w'][Math.floor(hash('face') * 4)], state: 'done' },
         objectId: TYPHOON_SHELTER_MARKET.pileObjects[Math.floor(hash('kind') * TYPHOON_SHELTER_MARKET.pileObjects.length)],
         alpha: 1, tint: null, footprintOverride: { cols: 1, rows: 1 }, shoreAlign: false, shoreDir: null,
@@ -507,11 +683,18 @@ function updateTyphoonShelterMarkets(scene, time) {
   if (!scene?.typhoonShelterObjects || !typhoonShelterMarketSites.size) return;
   if (time < (scene.typhoonShelterMarketNextAt || 0)) return;
   scene.typhoonShelterMarketNextAt = time + 250;
+  const trucks = scene.trafficVisualState;
   getTyphoonShelterMarkets().forEach((m) => {
     if (!m.slots) return;
-    const shown = typhoonShelterMarketPiles(m.stock, m.slots);
+    const loadState = (k) => {
+      const key = `${m.id}|${m.night}|${k}`;
+      if (trucks?.fishTrucksLoaded?.has(key)) return 'loaded';
+      return trucks?.fishTrucks?.has(key) ? 'waiting' : null;
+    };
+    const stock = typhoonShelterMarketStockShown(m.landings, m.haul, getTyphoonShelterFleetClock(), loadState);
+    const shown = typhoonShelterMarketPiles(stock, m.slots);
     for (let i = 0; i < m.slots; i++) {
-      const rec = scene.typhoonShelterObjects.get(`${m.id}|pile${i}`);
+      const rec = scene.typhoonShelterObjects.get(m.pileIds[i]);
       if (!rec) continue;
       const hidden = i >= shown;
       if (rec.hidden === hidden) continue;
@@ -546,12 +729,18 @@ function isTyphoonShelterFishTruckModelNeeded() {
 function updateTyphoonShelterFishTrucks(scene, state, delta, paused, speedMultiplier) {
   if (!state.fishTrucks) state.fishTrucks = new Map();
   if (!state.fishTrucksSeen) state.fishTrucksSeen = new Set();
+  if (!state.fishTrucksLoaded) state.fishTrucksLoaded = new Set();
   const env = getTyphoonShelterFleetClock();
   state.fishTrucks.forEach((truck, key) => {
+    // standing at the market at its time: it loads, and the catch comes off the piles now
+    if (truck.phase === 'parked' && !truck.loaded && env >= truck.loadAt) {
+      truck.loaded = true;
+      state.fishTrucksLoaded.add(key);
+    }
     if (!paused) {
       if (truck.phase === 'entering' || truck.phase === 'drivingToTarget' || truck.phase === 'leaving') {
         advanceIceCreamMovement(scene, state, truck, delta, speedMultiplier, parkTyphoonShelterFishTruck);
-      } else if (truck.phase === 'parked' && env >= truck.leaveAt
+      } else if (truck.phase === 'parked' && truck.loaded && env >= truck.leaveAt
         && (scene.time?.now || 0) - (truck.parkedAt || 0) >= TYPHOON_SHELTER_TRUCKS.minStandMs) {
         beginIceCreamDeparture(scene, truck);
       }
@@ -577,7 +766,7 @@ function updateTyphoonShelterFishTrucks(scene, state, delta, paused, speedMultip
       if (spawnTyphoonShelterFishTruck(scene, state, market, plan, key)) state.fishTrucksSeen.add(key);
     });
   });
-  if (state.fishTrucksSeen.size > 200) state.fishTrucksSeen.clear();
+  if (state.fishTrucksSeen.size > 200) { state.fishTrucksSeen.clear(); state.fishTrucksLoaded.clear(); }
 }
 
 const typhoonShelterMarketApi = {
@@ -591,6 +780,7 @@ const typhoonShelterMarketApi = {
   layoutTyphoonShelterBayPiles,
   planTyphoonShelterHaul,
   typhoonShelterMarketStock,
+  typhoonShelterMarketStockShown,
   typhoonShelterMarketPiles,
   getTyphoonShelterMarketNight,
   splitTyphoonShelterLandings,
@@ -602,6 +792,13 @@ const typhoonShelterMarketApi = {
   getTyphoonShelterBuildingsUpkeep,
   layTyphoonShelterMarkets,
   getTyphoonShelterMarkets,
+  getTyphoonShelterSeaSide,
+  getTyphoonShelterFacingKey,
+  isTyphoonShelterBayMirrored,
+  refreshTyphoonShelterBuildingSprites,
+  isTyphoonShelterBuildingOpen,
+  getTyphoonShelterLightingKey,
+  updateTyphoonShelterBuildingLighting,
   updateTyphoonShelterMarkets,
   typhoonShelterMarketRows,
   updateTyphoonShelterFishTrucks,

@@ -10,6 +10,9 @@
 // data/typhoon-shelter-placement.json, calibrated with the 避風塘素材校準 tool.
 
 const TYPHOON_SHELTER_PLACEMENT_URL = 'data/typhoon-shelter-placement.json';
+// written by scripts/bake-typhoon-shelter-textures.js: each texture's night (漁火) frames, if any
+const TYPHOON_SHELTER_TEXTURES_URL = 'data/typhoon-shelter-textures.json';
+let typhoonShelterNightArt = new Map();   // day texture path -> [lit, litb] paths
 // How far a shore-aligned object (a pier on the water's edge) reaches over the shoreline, in metres:
 // the water tiles along a coast draw part of the shore in their own art, so a pier merely touching
 // its tile's edge still looks adrift.
@@ -28,6 +31,8 @@ function loadTyphoonShelterPlacement(force = false) {
     try {
       const res = await fetch(`${TYPHOON_SHELTER_PLACEMENT_URL}?v=${Date.now()}`, { cache: 'no-store' });
       if (res.ok) setTyphoonShelterPlacement(await res.json());
+      const tex = await fetch(`${TYPHOON_SHELTER_TEXTURES_URL}?v=${Date.now()}`, { cache: 'no-store' }).catch(() => null);
+      if (tex?.ok) setTyphoonShelterNightArt(await tex.json());
     } catch (error) {
       console.warn('[typhoon shelter] placement data unavailable', error?.message);
     }
@@ -44,6 +49,42 @@ function setTyphoonShelterPlacement(data) {
 }
 
 function getTyphoonShelterPlacement() { return typhoonShelterPlacement; }
+
+function setTyphoonShelterNightArt(meta) {
+  typhoonShelterNightArt = new Map(Object.values(meta?.textures || {})
+    .filter((t) => typeof t?.file === 'string' && Array.isArray(t.night) && t.night.length)
+    .map((t) => [t.file, t.night.slice(0, 2)]));
+}
+
+// 漁火: a sea asset's night frame (0 or 1, the two twinkle frames) for its day texture, or null.
+function getTyphoonShelterNightTexture(choice, frame) {
+  const night = choice && typhoonShelterNightArt.get(choice.texture);
+  return night ? night[frame % night.length] : null;
+}
+
+// Whether the sea lights are on: with the street lamps (street-lamps.js), and the lights toggle.
+function isTyphoonShelterSeaLit(scene) {
+  return typeof streetLampsShouldBeLit === 'function' && streetLampsShouldBeLit(scene);
+}
+
+// The night frame a choice is drawn with right now, loaded if need be: the choice itself by day, or
+// until its night art has loaded. `seed` staggers the twinkle from one boat to the next.
+const typhoonShelterNightRequested = new Set();
+function getTyphoonShelterLitChoice(scene, choice, seed = 0) {
+  if (!scene.typhoonShelterSeaLit) return choice;
+  const frame = Math.floor(((scene.time?.now || 0) + seed * 1000) / 650) % 2;
+  const path = getTyphoonShelterNightTexture(choice, frame);
+  if (!path) return choice;
+  if (!scene.textures.exists(getTyphoonShelterTextureKey(path))) {
+    const both = typhoonShelterNightArt.get(choice.texture) || [];
+    if (!typhoonShelterNightRequested.has(choice.texture)) {
+      typhoonShelterNightRequested.add(choice.texture);
+      loadTyphoonShelterTextures(scene, both);
+    }
+    return choice;
+  }
+  return { ...choice, texture: path, night: true };
+}
 
 // Per part: its calibrated facing, or 'off' for art switched off in calibration (part.disabled -
 // drawn at the wrong proportions, say), which the game then never uses.
@@ -313,6 +354,9 @@ function positionTyphoonShelterObject(scene, record) {
   });
   record.screenFacing = screenFacing;
   record.choice = choice;
+  // a buoy's 漁火 frame (updateTyphoonShelterBobbing keeps it twinkling)
+  const drawn = record.nightFrame != null && isTyphoonShelterFloater(record.objectId)
+    ? getTyphoonShelterLitChoice(scene, choice, record.bobSeed || 0) : choice;
   // A breakwater section is drawn per tile of the line (footprintOverride 1x1), overlapping its
   // neighbours into one wall; other objects cover the tiles their real size needs.
   const fp = record.footprintOverride
@@ -322,8 +366,8 @@ function positionTyphoonShelterObject(scene, record) {
   record.tiles = getTyphoonShelterFootprintTiles(record.row, record.col, fp.cols, fp.rows);
   const diamond = getTyphoonShelterFootprintDiamond(record.row, record.col, fp.cols, fp.rows);
   record.diamond = diamond;
-  const key = choice && resolveTyphoonShelterTextureKey(scene, choice);
-  if (!choice || !scene.textures.exists(key)) {
+  const key = drawn && resolveTyphoonShelterTextureKey(scene, drawn);
+  if (!drawn || !scene.textures.exists(key)) {
     record.drawable = false;
     record.sprite?.setVisible(false);
     return false;
@@ -339,7 +383,7 @@ function positionTyphoonShelterObject(scene, record) {
   }
   record.warpVersion = warpVersion;
   const texture = getTyphoonShelterTextureSize(scene, key);
-  const ground = getTyphoonShelterSpriteGround(scene, choice, key);
+  const ground = getTyphoonShelterSpriteGround(scene, drawn, key);
   // drawn at its real size, centred on the footprint
   const art = ground && measureTyphoonShelterArt(ground, getTyphoonShelterObjectSize(record.objectId), ground.top);
   const fit = ground && fitTyphoonShelterGround(ground, diamond, art?.scale);
@@ -406,6 +450,7 @@ function positionTyphoonShelterObject(scene, record) {
   sprite.setAlpha(Number.isFinite(record.alpha) ? record.alpha : 1);
   // a preview carries its own tint; the built works darken after dark like the other unlit props
   if (record.tint) sprite.setTint(record.tint);
+  else if (drawn.night) sprite.clearTint();  // the 漁火 art carries its own night
   else if (typeof applyNightPropTint === 'function') applyNightPropTint(scene, sprite);
   else sprite.clearTint();
   // shown only inside the camera's (padded) view, as viewport-culling.js keeps it
@@ -459,11 +504,20 @@ function getTyphoonShelterRecordSeed(id) {
 function updateTyphoonShelterBobbing(scene, time) {
   const floaters = scene?.typhoonShelterFloaters;
   if (!floaters?.size) return;
+  const lit = !!scene.typhoonShelterSeaLit;
   floaters.forEach((record) => {
     const sprite = record.sprite;
     if (!sprite?.active) { floaters.delete(record); return; }
-    if (!sprite.visible || !Number.isFinite(record.baseY)) return;
     if (record.bobSeed === undefined) record.bobSeed = getTyphoonShelterRecordSeed(record.id);
+    // 漁火: the night frame follows the lights and the twinkle; redrawn when it changes
+    const frame = lit && getTyphoonShelterNightTexture(record.choice, 0)
+      ? Math.floor(((scene.time?.now || 0) + record.bobSeed * 1000) / 650) % 2 : null;
+    if (frame !== (record.nightFrame ?? null) || (frame != null && record.nightKeyMissing)) {
+      record.nightFrame = frame;
+      positionTyphoonShelterObject(scene, record);
+      record.nightKeyMissing = frame != null && !String(sprite.texture?.key || '').includes('__lit');
+    }
+    if (!sprite.visible || !Number.isFinite(record.baseY)) return;
     if (record.bobLengthM === undefined) record.bobLengthM = record.metres?.seM || 2;
     const bob = getTyphoonShelterBob(time, record.row, record.col, record.bobSeed, record.bobLengthM);
     sprite.setPosition(record.baseX, record.baseY + bob.dy);
@@ -747,6 +801,10 @@ const typhoonShelterSpritesApi = {
   updateTyphoonShelterLights,
   TYPHOON_SHELTER_LIGHT_ANCHORS,
   getTyphoonShelterBob,
+  getTyphoonShelterNightTexture,
+  getTyphoonShelterLitChoice,
+  isTyphoonShelterSeaLit,
+  setTyphoonShelterNightArt,
   getTyphoonShelterRecordSeed,
   updateTyphoonShelterBobbing,
   isTyphoonShelterFloater,

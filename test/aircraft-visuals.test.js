@@ -557,13 +557,40 @@ test('the ground track visits landStart, landEnd, the chosen gate, takeoffStart 
   const points = aircraft.getAircraftAbsolutePoints(entry);
   const route = aircraft.buildAircraftRoute(entry, 'gate2');
   assert.equal(route.gateKey, 'gate2');
-  assert.deepEqual(route.groundTrack.points, [
-    points.landStart, points.landEnd, points.gate2, points.takeoffStart, points.liftoff,
-  ]);
-  assertClose(route.landingRollDistance, route.groundTrack.segments[0].length);
-  assertClose(route.taxiInDistance, route.landingRollDistance + route.groundTrack.segments[1].length);
-  assertClose(route.taxiOutDistance, route.taxiInDistance + route.groundTrack.segments[2].length);
-  assert.ok(route.taxiOutDistance < route.groundTrack.total);
+  const track = route.groundTrack;
+  const at = (distance) => {
+    let d = 0;
+    for (const seg of track.segments) { if (Math.abs(d - distance) < 1e-9) return seg.start; d += seg.length; }
+    return track.points.at(-1);
+  };
+  const same = (p, q) => Math.abs(p.row - q.row) < 1e-9 && Math.abs(p.col - q.col) < 1e-9;
+  assert.ok(same(track.points[0], points.landStart));
+  assert.ok(same(at(route.landingRollDistance), points.landEnd), 'the roll ends at landEnd');
+  assert.ok(same(at(route.taxiInDistance), points.gate2), 'taxi in ends at the gate');
+  assert.ok(same(at(route.taxiOutDistance), points.takeoffStart), 'taxi out ends at takeoffStart');
+  assert.ok(same(track.points.at(-1), points.liftoff));
+  assert.ok(route.landingRollDistance < route.taxiInDistance && route.taxiInDistance < route.taxiOutDistance
+    && route.taxiOutDistance < track.total);
+  // on the ground between the runway and the gate the plane keeps to the taxiway: square legs, the
+  // corners only short arcs - no long diagonal across the apron
+  track.segments.forEach((seg) => {
+    if (seg.startDistance < route.landingRollDistance - 1e-9 || seg.startDistance >= route.taxiOutDistance - 1e-9) return;
+    const dr = Math.abs(seg.end.row - seg.start.row);
+    const dc = Math.abs(seg.end.col - seg.start.col);
+    assert.ok(Math.min(dr, dc) < 1e-9 || seg.length < 0.5, `a diagonal ${seg.length.toFixed(2)} tiles long`);
+  });
+  const taxiCol = entry.col + aircraft.AIRCRAFT_DEFAULT_TAXIWAY_DCOL;
+  assert.ok(track.points.some((p) => Math.abs(p.col - taxiCol) < 1e-9 && Math.abs(p.row - points.gate2.row) > 1), 'along the taxiway');
+});
+
+test('a taxi path\'s square turns are rounded, its key points kept exactly', () => {
+  const path = aircraft.roundAircraftTaxiPath([
+    { row: 0, col: 0, key: 'a' }, { row: 0, col: 3, round: true }, { row: 4, col: 3, key: 'b' },
+  ], 0.5, 4);
+  assert.deepEqual(path.points[path.keys.a], { row: 0, col: 0 });
+  assert.deepEqual(path.points[path.keys.b], { row: 4, col: 3 });
+  assert.ok(!path.points.some((p) => p.row === 0 && p.col === 3), 'the corner is cut by the arc');
+  assert.equal(path.points.length, 2 + 5);
 });
 
 function assertClose(actual, expected, message = '') {

@@ -412,6 +412,49 @@ function buildAircraftCurvePoints(p0, midpoint, p1, samples) {
   return points;
 }
 
+// The taxiway the planes use between the runway and the gates: a line parallel to the runway (it
+// runs along the airport's rows), at this column of the airport (aircraft-route-metadata.js
+// taxiwayDCol; this is the apron edge of the 12x12 art, measured over it 2026-10-07).
+const AIRCRAFT_DEFAULT_TAXIWAY_DCOL = 6.0;
+const AIRCRAFT_TAXI_TURN_RADIUS = 0.45;   // tiles: a turn onto or off the taxiway is a short arc
+
+// A ground path through `points`, square turns rounded off where `round` is set on a point: the
+// corner is replaced by a short curve from `radius` before it to `radius` after (never more than
+// 45% of either leg). Key points (not rounded) are kept exactly. Returns { points, keys } - keys:
+// the index of each point that carried a `key`.
+function roundAircraftTaxiPath(points, radius = AIRCRAFT_TAXI_TURN_RADIUS, samples = 4) {
+  const out = [];
+  const keys = {};
+  points.forEach((p, i) => {
+    const a = points[i - 1];
+    const b = points[i + 1];
+    if (!p.round || !a || !b) {
+      if (p.key) keys[p.key] = out.length;
+      out.push({ row: p.row, col: p.col });
+      return;
+    }
+    const la = Math.hypot(a.row - p.row, a.col - p.col);
+    const lb = Math.hypot(b.row - p.row, b.col - p.col);
+    if (la < 1e-6 || lb < 1e-6) { out.push({ row: p.row, col: p.col }); return; }
+    const ta = Math.min(radius / la, 0.45);
+    const tb = Math.min(radius / lb, 0.45);
+    const p1 = { row: p.row + (a.row - p.row) * ta, col: p.col + (a.col - p.col) * ta };
+    const p2 = { row: p.row + (b.row - p.row) * tb, col: p.col + (b.col - p.col) * tb };
+    for (let k = 0; k <= samples; k++) out.push(evaluateQuadraticBezierPoint(p1, p, p2, k / samples));
+  });
+  // drop repeats
+  const clean = [];
+  const remap = new Map();
+  out.forEach((q, i) => {
+    const last = clean[clean.length - 1];
+    if (last && Math.abs(last.row - q.row) < 1e-9 && Math.abs(last.col - q.col) < 1e-9) { remap.set(i, clean.length - 1); return; }
+    remap.set(i, clean.length);
+    clean.push(q);
+  });
+  Object.keys(keys).forEach((k) => { keys[k] = remap.get(keys[k]); });
+  return { points: clean, keys };
+}
+
 // Builds one visit's full route: a single ground track (L2 touchdown -> L3
 // end of roll -> gate -> T0 start of roll -> T1 liftoff) plus two curved
 // airborne tracks - approach (L0 spawn -> L1 curve point -> L2 touchdown)
@@ -428,9 +471,33 @@ function buildAircraftRoute(entry, gateKey) {
   ];
   if (!points || required.some((key) => !points[key])) return null;
   const gate = points[gateKey];
-  const groundPoints = [points.landStart, points.landEnd, gate, points.takeoffStart, points.liftoff];
-  const groundTrack = buildVesselTrackMetrics(groundPoints);
+  // On the ground the planes keep to the taxiway: off the runway square to it, along it to the
+  // gate's row, square in to the gate; out the same way and along it to the runway's start - not
+  // straight across the apron and the grass.
+  const taxiCol = entry.col + (Number(getAircraftRouteMetadata()?.taxiwayDCol) || AIRCRAFT_DEFAULT_TAXIWAY_DCOL);
+  const on = (row, extra = {}) => ({ row, col: taxiCol, round: true, ...extra });
+  const path = roundAircraftTaxiPath([
+    { ...points.landStart, key: 'landStart' },
+    { ...points.landEnd, key: 'landEnd' },
+    on(points.landEnd.row),
+    on(gate.row),
+    { ...gate, key: 'gate' },
+    on(gate.row),
+    on(points.takeoffStart.row),
+    { ...points.takeoffStart, key: 'takeoffStart' },
+    { ...points.liftoff, key: 'liftoff' },
+  ]);
+  const groundTrack = buildVesselTrackMetrics(path.points);
   if (groundTrack.segments.length < 4) return null;
+  const distanceTo = (key) => {
+    const target = path.points[path.keys[key]];
+    let d = 0;
+    for (const seg of groundTrack.segments) {
+      if (seg.start === target) return d;
+      d += seg.length;
+    }
+    return d;
+  };
   const approachPath = buildAircraftCurvePoints(
     points.approachSpawn, points.approachCurve, points.landStart, AIRCRAFT_VISUAL_CONFIG.curveSamples,
   );
@@ -446,9 +513,9 @@ function buildAircraftRoute(entry, gateKey) {
     groundTrack,
     approachTrack,
     departureTrack,
-    landingRollDistance: groundTrack.segments[0].length,
-    taxiInDistance: groundTrack.segments[0].length + groundTrack.segments[1].length,
-    taxiOutDistance: groundTrack.segments[0].length + groundTrack.segments[1].length + groundTrack.segments[2].length,
+    landingRollDistance: distanceTo('landEnd'),
+    taxiInDistance: distanceTo('gate'),
+    taxiOutDistance: distanceTo('takeoffStart'),
   };
 }
 
@@ -871,6 +938,8 @@ const aircraftVisualTestApi = {
   updateAircraftVisuals,
   clearAircraftVisuals,
   invalidateAircraftVisualView,
+  roundAircraftTaxiPath,
+  AIRCRAFT_DEFAULT_TAXIWAY_DCOL,
 };
 
 if (typeof module !== 'undefined' && module.exports) module.exports = aircraftVisualTestApi;

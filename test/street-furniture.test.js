@@ -278,6 +278,21 @@ test('street name signs: each junction names each street once, next to the junct
   assert.ok(dual.length === 2 && dual.every((p) => p.kind === 'streetSign'));
 });
 
+test('street name signs on the railings: every run carries one, and the junction it guards gets no second plate', () => {
+  const { computePedestrianRailingPlacements, mergePedestrianRailingRuns } = require('../pedestrian-railings.js');
+  const j = junction('commercial');
+  const runs = mergePedestrianRailingRuns(computePedestrianRailingPlacements({ mapWidth: j.mapWidth, mapHeight: j.mapHeight, roadKeyAt: j.roadKeyAt }));
+  assert.equal(runs.length, 8, 'both kerbs of all four approaches');
+  const on = rates({ streetSignPerJunction: 1, streetSignSpacing: 3, streetSignAtRailings: 1 });
+  const signs = computeStreetFurniturePlacements({ ...j, railingRuns: runs, rates: on }).filter((p) => p.kind.startsWith('streetSign'));
+  assert.equal(signs.length, 8, 'one per run, none more a tile further out');
+  const slots = new Set(runs.map((run) => slotOf({ ...run.cells[0], half: run.cells[0].toward })));
+  signs.forEach((p) => assert.ok(slots.has(slotOf(p)), `on its run: ${slotOf(p)}`));
+  // off: the junction signs as before
+  const off = computeStreetFurniturePlacements({ ...j, railingRuns: runs, rates: { ...on, streetSignAtRailings: 0 } }).filter((p) => p.kind.startsWith('streetSign'));
+  assert.equal(off.length, 2);
+});
+
 test('street name signs: a junction block of several junction tiles still names each street once', () => {
   // Two cross junctions side by side at (10, 5) and (10, 6): one block.
   const roadKeyAt = (r, c) => {

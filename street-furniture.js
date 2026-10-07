@@ -88,6 +88,9 @@ const STREET_FURNITURE_RATES = Object.freeze({
   // (a dual-carriageway junction is several junction tiles). 0 turns them off.
   streetSignPerJunction: 1,
   streetSignSpacing: 3,
+  // ...and, as Hong Kong bolts its name plates to the guard rails, every run of pedestrian railing
+  // (junction approach or zebra crossing) carries one, just behind it; 0 turns them off.
+  streetSignAtRailings: 1,
 });
 
 const STREET_FURNITURE_DELTA = Object.freeze({
@@ -144,11 +147,12 @@ function streetFurnitureDensity(row, col, straight, frontageAt) {
 //   railingTileAt(r, c)   the tile carries railings (junction approach / zebra)
 //   trafficAt(r, c)       0..1 traffic load (parking meters only)
 //   signalPlacements      computeTrafficSignalPlacements output (one cabinet per junction block)
+//   railingRuns           mergePedestrianRailingRuns output: each run gets a street name sign
 // Returns [{ kind, row, col, side, half }].
 function computeStreetFurniturePlacements({
   mapWidth, mapHeight, roadKeyAt, bandAt = () => null, frontageAt: readFrontage = () => null,
   busStopAt = () => false, occupiedAt = () => false, railingTileAt = () => false,
-  trafficAt = () => 0, signalPlacements = [], rates = STREET_FURNITURE_RATES,
+  trafficAt = () => 0, signalPlacements = [], railingRuns = [], rates = STREET_FURNITURE_RATES,
 }) {
   const inside = (r, c) => r >= 0 && c >= 0 && r < mapHeight && c < mapWidth;
   // getRoadKey runs the carriageway-band scan and every tile is asked about several times below:
@@ -245,12 +249,29 @@ function computeStreetFurniturePlacements({
     streets.push({ straight, tiles });
   });
 
+  // 1a. Street name signs on the railings: one for each run, in its first half tile, standing just
+  //    behind the rail (a sign's lateral is past the railing's). The junction a run guards counts
+  //    as named for that street, so 1b adds no second plate a tile further out.
+  const signs = { ns: [], ew: [] };
+  if (rates.streetSignAtRailings > 0) {
+    railingRuns.forEach((run) => {
+      const cell = run.cells?.[0];
+      if (!cell) return;
+      const key = slotKey(cell.row, cell.col, cell.side, cell.toward);
+      if (claimed.has(key) || !straightAt(cell.row, cell.col)) return;
+      claim(bandAt(cell.row, cell.col) ? 'streetSign' : 'streetSignSingle', cell.row, cell.col, cell.side, cell.toward);
+      const d = STREET_FURNITURE_DELTA[cell.toward];
+      if (isStreetFurnitureJunctionKey(keyAt(cell.row + d.row, cell.col + d.col))) {
+        signs[cell.toward === 'n' || cell.toward === 's' ? 'ns' : 'ew'].push({ row: cell.row + d.row, col: cell.col + d.col });
+      }
+    });
+  }
+
   // 1b. Street name signs: at each junction, one plate for each street (axis) that meets it, on an
   //    approach tile of that street - the arm picked by hash, in the half next to the junction
   //    (one tile out when railings or a cabinet hold it), on the kerb with more frontage. A dual
   //    carriageway's street gets the long two-post plate, an ordinary one the single-post plate.
   if (rates.streetSignPerJunction > 0) {
-    const signs = { ns: [], ew: [] };
     for (let r = 0; r < mapHeight; r++) {
       for (let c = 0; c < mapWidth; c++) {
         if (!isStreetFurnitureJunctionKey(keyAt(r, c))) continue;
@@ -654,6 +675,7 @@ function rebuildStreetFurnitureSprites(scene, { recomputeTraffic = true } = {}) 
     railingTileAt: (row, col) => railingTiles.has(`${row}:${col}`),
     trafficAt,
     signalPlacements,
+    railingRuns: typeof mergePedestrianRailingRuns === 'function' ? mergePedestrianRailingRuns(scene.pedestrianRailingPlacements ?? []) : [],
   });
   const wanted = new Map(placements.map((placement) => [streetFurnitureId(placement), placement]));
   const rotation = typeof mapRotation !== 'undefined' ? mapRotation : 0;

@@ -155,7 +155,7 @@ function placeSpriteBuilding(scene, row, col, key, options = {}) {
   } else if (options.scale) {
     building.setScale(options.scale);
   }
-  building.setDepth(getBuildingSortDepth(anchor.y, footprintCols, footprintRows, elevOffset));
+  building.setDepth(getBuildingSpriteDepth(textureKey, anchor.y, footprintCols, footprintRows, elevOffset));
   sortRenderLayer(scene, 'objectLayer');
   building.setMask(scene.worldMask);
   ensureWorldMaskContainsBuilding(scene, building);
@@ -493,7 +493,7 @@ function positionBuilding(scene, building) {
     anchor.x + scene.offsetX + (building.spriteOffsetX ?? 0),
     anchor.y + scene.offsetY - BUILDING_SURFACE_Y_OFFSET + elevOffset + (building.spriteOffsetY ?? 0),
   );
-  building.setDepth(getBuildingSortDepth(anchor.y, footprintCols, footprintRows, elevOffset));
+  building.setDepth(getBuildingSpriteDepth(building.texture?.key, anchor.y, footprintCols, footprintRows, elevOffset));
 }
 
 function canPlaceBuilding(row, col) {
@@ -544,6 +544,14 @@ function getBuildingAnchor(row, col, footprintCols = 1, footprintRows = 1, ancho
     default: anchorRow = row + footprintRows - 1; anchorCol = col + footprintCols - 1; break;
   }
   return isoToScreen(anchorCol, anchorRow);
+}
+
+// A building that is only ground - the loading bay's open lot - sorts with the roads, under every
+// vehicle and prop standing on it, instead of over those on its back half.
+const FLAT_GROUND_BUILDING_TEXTURE = /^fish_loading_bay_2x2(_m)?$/;
+function getBuildingSpriteDepth(textureKey, anchorY, footprintCols = 1, footprintRows = 1, elevOffset = 0) {
+  if (FLAT_GROUND_BUILDING_TEXTURE.test(String(textureKey || ''))) return getWorldDepth('road', anchorY + TILE_HEIGHT + elevOffset);
+  return getBuildingSortDepth(anchorY, footprintCols, footprintRows, elevOffset);
 }
 
 function getBuildingSortDepth(anchorY, footprintCols = 1, footprintRows = 1, elevOffset = 0) {

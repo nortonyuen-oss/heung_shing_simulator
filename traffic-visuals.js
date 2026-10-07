@@ -1991,9 +1991,11 @@ function createIceCreamArrivalLegs(scene, path, outside, parking) {
     col: finalRoadLeg.next.col - finalRoadLeg.current.col,
   };
   const parkingPoint = getIceCreamParkingPoint(scene, parking);
+  // a spot with a `heading` (a fish truck's parking bay, typhoon-shelter-market.js) is driven into
+  // nose first, the curve ending that way; otherwise the vehicle pulls in along the road
   const forward = getIceCreamForwardScreenVector(
     parking.road,
-    arrivalDirection,
+    parking.heading || arrivalDirection,
     ICE_CREAM_EVENT_CONFIG.parkingCurveLeadTiles,
   );
   finalRoadLeg.kind = 'parkingApproach';
@@ -2030,9 +2032,10 @@ function createIceCreamDepartureLegs(scene, path, outside, parking) {
     col: firstRoadLeg.next.col - firstRoadLeg.current.col,
   };
   const parkingPoint = getIceCreamParkingPoint(scene, parking);
+  // out of a parking bay it backs out the way it went in, then drives off
   const forward = getIceCreamForwardScreenVector(
     parking.road,
-    departureDirection,
+    parking.heading ? { row: -parking.heading.row, col: -parking.heading.col } : departureDirection,
     ICE_CREAM_EVENT_CONFIG.parkingCurveLeadTiles,
   );
   firstRoadLeg.kind = 'parkingDeparture';

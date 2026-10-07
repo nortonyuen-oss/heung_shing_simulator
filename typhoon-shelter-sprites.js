@@ -461,37 +461,94 @@ function positionTyphoonShelterObject(scene, record) {
 }
 
 // ---------------------------------------------------------------------------
-// 浮沉: the boats and buoys ride the swell of the sea flow animation (weather-effects.js), whose
-// 8-frame shimmer runs along the diagonals (each tile's phase is frame + row + col) and quickens and
-// grows with the sea state. They heave a pixel or two and roll a little, half as fast as the
-// shimmer (a hull answers the swell, not every ripple), a small sampan or buoy more than a big boat.
+// 浮沉: the boats, buoys and floating walkways ride the swell of the sea flow animation
+// (weather-effects.js), whose 8-frame shimmer runs along the diagonals (each tile's phase is frame
+// + row + col) and quickens with the sea state. They heave a pixel or two and roll a little, half
+// as fast as the shimmer (a hull answers the swell, not every ripple), a small sampan or buoy more
+// than a big boat. The swell grows with the wind (getTyphoonShelterSwell): in a typhoon several
+// times a calm day's, and uneven, a bigger sea now and then.
 // ---------------------------------------------------------------------------
 
 const TYPHOON_SHELTER_BOB = Object.freeze({
   heavePx: 1.3,        // at zoom 1, for a ~8 m hull on a light sea
   rollRad: 0.014,      // ~0.8 degree
+  maxRollRad: 0.09,    // ~5 degrees, however hard it blows
   periodWaves: 2,      // one heave per this many shimmer cycles
   refLengthM: 8,
+  // swell by wind speed (km/h): [wind, scale], straight lines between; 41 km/h is signal 3's
+  // strong wind, 63 signal 8's gale, 118 a hurricane
+  swellByWind: Object.freeze([[0, 0.9], [20, 1], [30, 1.2], [41, 1.6], [63, 2.6], [88, 3.4], [118, 4.2]]),
+  // the least swell a signal brings, whatever the wind reading
+  swellBySignal: Object.freeze({ signal3: 1.6, signal8: 2.6, signal9: 3.2, signal10: 3.8 }),
 });
 
+// How each floating thing answers the swell: { heave, roll } shares of a boat's. The walkway
+// sections and landing stages are moored, heavy and joined end to end: they heave less, and do not
+// roll, or the sections would part.
+const TYPHOON_SHELTER_FLOATERS = Object.freeze({
+  bout: Object.freeze({ heave: 1, roll: 1 }),
+  // the walkways by their real size (typhoon-shelter-assets.js), not their art's
+  floatingPier1: Object.freeze({ heave: 0.45, roll: 0, lengthM: 9 }),
+  floatingPier2: Object.freeze({ heave: 0.55, roll: 0, lengthM: 8 }),
+  floatingPier3: Object.freeze({ heave: 0.6, roll: 0.3, lengthM: 18 }),
+  floatingPier4: Object.freeze({ heave: 0.6, roll: 0.3, lengthM: 10 }),
+});
+
+function getTyphoonShelterFloatProfile(objectId) {
+  if (typeof objectId !== 'string') return null;
+  const key = Object.keys(TYPHOON_SHELTER_FLOATERS).find((k) => objectId.startsWith(k));
+  return key ? TYPHOON_SHELTER_FLOATERS[key] : null;
+}
+
 function isTyphoonShelterFloater(objectId) {
-  return typeof objectId === 'string' && objectId.startsWith('bout');
+  return !!getTyphoonShelterFloatProfile(objectId);
+}
+
+// The swell's size, a share of a light sea's: { scale, gust } from the wind and the signal; gust
+// (0..1) is how uneven it is. Without weather, the sea state's band (weather-effects.js).
+function getTyphoonShelterSwell(weather = typeof city !== 'undefined' ? city?.weather : null, tier = null) {
+  const B = TYPHOON_SHELTER_BOB;
+  let scale;
+  if (weather && Number.isFinite(Number(weather.windKph))) {
+    const wind = Math.max(0, Number(weather.windKph));
+    const table = B.swellByWind;
+    scale = table[table.length - 1][1];
+    for (let i = 1; i < table.length; i++) {
+      if (wind <= table[i][0]) {
+        const [w0, s0] = table[i - 1]; const [w1, s1] = table[i];
+        scale = s0 + ((s1 - s0) * (wind - w0)) / (w1 - w0);
+        break;
+      }
+    }
+    scale = Math.max(scale, B.swellBySignal[weather.typhoonStage] || 0);
+  } else {
+    const config = typeof SEA_FLOW_TIER_CONFIG !== 'undefined' && (SEA_FLOW_TIER_CONFIG[tier] || SEA_FLOW_TIER_CONFIG.light);
+    scale = config?.ampScale || 1;
+  }
+  return { scale, gust: Math.max(0, Math.min(1, (scale - 1.2) / 2)) };
 }
 
 // { dy, roll } for something floating at (row, col) - fractional for a moving boat. `seed` (0..1)
 // shifts it a little off its neighbours; `lengthM` its size.
-function getTyphoonShelterBob(time, row, col, seed = 0, lengthM = TYPHOON_SHELTER_BOB.refLengthM) {
+function getTyphoonShelterBob(time, row, col, seed = 0, lengthM = TYPHOON_SHELTER_BOB.refLengthM, profile = null) {
   if (typeof isSeaFlowEnabled === 'function' && !isSeaFlowEnabled()) return { dy: 0, roll: 0 };
+  const B = TYPHOON_SHELTER_BOB;
   const tier = typeof getSeaStateTier === 'function' ? getSeaStateTier() : 'light';
   const config = (typeof SEA_FLOW_TIER_CONFIG !== 'undefined' && (SEA_FLOW_TIER_CONFIG[tier] || SEA_FLOW_TIER_CONFIG.light))
     || { tickMs: 260, ampScale: 1 };
   const frames = typeof SEA_FLOW_FRAME_COUNT === 'number' ? SEA_FLOW_FRAME_COUNT : 8;
-  const periodMs = config.tickMs * frames * TYPHOON_SHELTER_BOB.periodWaves;
+  const periodMs = config.tickMs * frames * B.periodWaves;
   const phase = 2 * Math.PI * (time / periodMs + (row + col) / frames + seed * 0.2);
-  const size = Math.max(0.55, Math.min(1.4, Math.sqrt(TYPHOON_SHELTER_BOB.refLengthM / Math.max(1, lengthM))));
-  const k = config.ampScale * size;
+  const size = Math.max(0.55, Math.min(1.4, Math.sqrt(B.refLengthM / Math.max(1, lengthM))));
+  const swell = getTyphoonShelterSwell(undefined, tier);
+  const k = swell.scale * size;
+  // a rough sea is uneven: a slower second swell now and then lifts a crest higher
+  const wave = Math.sin(phase) + 0.45 * swell.gust * Math.sin(0.37 * phase + seed * 6.28);
+  const heave = profile ? profile.heave : 1;
+  const rollShare = profile ? profile.roll : 1;
   // the roll lags the heave by a quarter turn: the hull tips as the crest passes under it
-  return { dy: TYPHOON_SHELTER_BOB.heavePx * k * Math.sin(phase), roll: TYPHOON_SHELTER_BOB.rollRad * k * Math.sin(phase - Math.PI / 2) };
+  const roll = Math.max(-B.maxRollRad, Math.min(B.maxRollRad, B.rollRad * k * Math.sin(phase - Math.PI / 2)));
+  return { dy: B.heavePx * k * heave * wave, roll: roll * rollShare };
 }
 
 function getTyphoonShelterRecordSeed(id) {
@@ -500,7 +557,21 @@ function getTyphoonShelterRecordSeed(id) {
   return (h & 0xffff) / 0xffff;
 }
 
-// Every frame: the buoys in view bob (the boats bob as they are drawn, typhoon-shelter-fleet.js).
+// Where a floating thing lies, [row, col] - fractional for the sections slid along a tile.
+function getTyphoonShelterFloatPoint(record) {
+  let r = record.row; let c = record.col;
+  if (record.alongM && TYPHOON_SHELTER_LOGICAL_STEP[record.facing]) {
+    const [dr, dc] = TYPHOON_SHELTER_LOGICAL_STEP[record.facing];
+    r += (dr * record.alongM) / TYPHOON_SHELTER_TILE_M; c += (dc * record.alongM) / TYPHOON_SHELTER_TILE_M;
+  }
+  (record.offsets || []).forEach(([dir, m]) => {
+    const [dr, dc] = TYPHOON_SHELTER_LOGICAL_STEP[dir] || [0, 0];
+    r += (dr * m) / TYPHOON_SHELTER_TILE_M; c += (dc * m) / TYPHOON_SHELTER_TILE_M;
+  });
+  return [r, c];
+}
+
+// Every frame: the buoys and walkways in view bob (the boats bob as they are drawn, typhoon-shelter-fleet.js).
 function updateTyphoonShelterBobbing(scene, time) {
   const floaters = scene?.typhoonShelterFloaters;
   if (!floaters?.size) return;
@@ -518,8 +589,12 @@ function updateTyphoonShelterBobbing(scene, time) {
       record.nightKeyMissing = frame != null && !String(sprite.texture?.key || '').includes('__lit');
     }
     if (!sprite.visible || !Number.isFinite(record.baseY)) return;
-    if (record.bobLengthM === undefined) record.bobLengthM = record.metres?.seM || 2;
-    const bob = getTyphoonShelterBob(time, record.row, record.col, record.bobSeed, record.bobLengthM);
+    const profile = getTyphoonShelterFloatProfile(record.objectId);
+    if (record.bobLengthM === undefined) record.bobLengthM = profile.lengthM || record.metres?.seM || 2;
+    if (record.bobAt === undefined) record.bobAt = getTyphoonShelterFloatPoint(record);
+    // a walkway's sections share one swell, by where each actually lies: it runs down the walkway
+    const seed = profile.roll ? record.bobSeed : 0;
+    const bob = getTyphoonShelterBob(time, record.bobAt[0], record.bobAt[1], seed, record.bobLengthM, profile);
     sprite.setPosition(record.baseX, record.baseY + bob.dy);
     sprite.setRotation(bob.roll);
   });
@@ -801,6 +876,8 @@ const typhoonShelterSpritesApi = {
   updateTyphoonShelterLights,
   TYPHOON_SHELTER_LIGHT_ANCHORS,
   getTyphoonShelterBob,
+  getTyphoonShelterSwell,
+  getTyphoonShelterFloatProfile,
   getTyphoonShelterNightTexture,
   getTyphoonShelterLitChoice,
   isTyphoonShelterSeaLit,

@@ -182,3 +182,41 @@ test('boats and buoys ride the swell: a pixel or two, more on a rough sea and fo
     ['SEA_FLOW_TIER_CONFIG', 'SEA_FLOW_FRAME_COUNT', 'getSeaStateTier', 'isSeaFlowEnabled'].forEach((k) => delete globalThis[k]);
   }
 });
+
+test('the swell grows with the wind, several times over in a typhoon; walkways heave less and do not roll', () => {
+  const { getTyphoonShelterSwell, getTyphoonShelterBob, getTyphoonShelterFloatProfile, isTyphoonShelterFloater } = require('../typhoon-shelter-sprites.js');
+  const calm = getTyphoonShelterSwell({ windKph: 10 }).scale;
+  const fresh = getTyphoonShelterSwell({ windKph: 35 }).scale;
+  const gale = getTyphoonShelterSwell({ windKph: 70, typhoonStage: 'signal8' });
+  const hurricane = getTyphoonShelterSwell({ windKph: 130, typhoonStage: 'signal10' });
+  assert.ok(calm < fresh && fresh < gale.scale && gale.scale < hurricane.scale, `${calm} ${fresh} ${gale.scale} ${hurricane.scale}`);
+  assert.ok(hurricane.scale >= 4, 'a hurricane: four times a light sea');
+  assert.ok(getTyphoonShelterSwell({ windKph: 20, typhoonStage: 'signal8' }).scale >= 2.6, 'a signal brings its sea whatever the reading');
+  assert.equal(getTyphoonShelterSwell({ windKph: 10 }).gust, 0, 'a calm sea is even');
+  assert.ok(hurricane.gust > 0.9);
+  // walkways, landing stages and buoys float; the breakwater does not
+  assert.ok(isTyphoonShelterFloater('floatingPier2') && isTyphoonShelterFloater('floatingPier1') && isTyphoonShelterFloater('bout2'));
+  assert.equal(isTyphoonShelterFloater('causeway1'), false);
+  globalThis.SEA_FLOW_FRAME_COUNT = 8;
+  globalThis.city = { weather: { windKph: 10 } };
+  try {
+    const peak = (profile, lengthM = 8) => {
+      let dy = 0; let roll = 0;
+      for (let t = 0; t < 20000; t += 20) {
+        const b = getTyphoonShelterBob(t, 10, 10, 0.3, lengthM, profile);
+        dy = Math.max(dy, Math.abs(b.dy)); roll = Math.max(roll, Math.abs(b.roll));
+      }
+      return { dy, roll };
+    };
+    const boatCalm = peak(null);
+    const pier = peak(getTyphoonShelterFloatProfile('floatingPier2'));
+    assert.ok(pier.dy < boatCalm.dy * 0.7 && pier.dy > 0, `walkway ${pier.dy} vs boat ${boatCalm.dy}`);
+    assert.equal(pier.roll, 0, 'the sections stay joined');
+    city.weather = { windKph: 130, typhoonStage: 'signal10' };
+    const boatStorm = peak(null);
+    assert.ok(boatStorm.dy > boatCalm.dy * 4, `storm ${boatStorm.dy} vs calm ${boatCalm.dy}`);
+    assert.ok(boatStorm.roll <= 0.09 + 1e-9, 'it rolls, but no more than ~5 degrees');
+  } finally {
+    ['SEA_FLOW_FRAME_COUNT', 'city'].forEach((k) => delete globalThis[k]);
+  }
+});

@@ -490,11 +490,11 @@ const TYPHOON_SHELTER_FLOATERS = Object.freeze({
   // the walkways by their real size (typhoon-shelter-assets.js), not their art's
   floatingPier1: Object.freeze({ heave: 0.45, roll: 0, lengthM: 9 }),
   floatingPier2: Object.freeze({ heave: 0.55, roll: 0, lengthM: 8 }),
-  floatingPier3: Object.freeze({ heave: 0.6, roll: 0.3, lengthM: 18 }),
+  floatingPier3: Object.freeze({ heave: 0.6, roll: 0.3, lengthM: 12 }),
   floatingPier4: Object.freeze({ heave: 0.6, roll: 0.3, lengthM: 10 }),
   // the fuel station and the workshop: big moored hulls
-  floatingGasStation: Object.freeze({ heave: 0.5, roll: 0.3, lengthM: 18 }),
-  floatingWorkshop: Object.freeze({ heave: 0.5, roll: 0.3, lengthM: 16 }),
+  floatingGasStation: Object.freeze({ heave: 0.5, roll: 0.3, lengthM: 12 }),
+  floatingWorkshop: Object.freeze({ heave: 0.5, roll: 0.3, lengthM: 11 }),
 });
 
 function getTyphoonShelterFloatProfile(objectId) {

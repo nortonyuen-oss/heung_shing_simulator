@@ -456,10 +456,10 @@ const TYPHOON_SHELTER_REAL_SIZES = Object.freeze({
   kaido1: { lengthM: 22 },                                   // 街渡
   speedboat1: { lengthM: 13 }, speedboat2: { lengthM: 18 },  // 遊艇
   sanpan1: { lengthM: 8 }, sanpan2: { lengthM: 8 }, sanpan3: { lengthM: 8 }, sanpan4: { lengthM: 9 }, sanpan5: { lengthM: 7 },
-  floatingHome: { lengthM: 10 }, floatingChef: { lengthM: 14 }, floatingGasStation: { lengthM: 18 }, floatingWorkshop: { lengthM: 16 },
+  floatingHome: { lengthM: 10 }, floatingChef: { lengthM: 14 }, floatingGasStation: { lengthM: 12 }, floatingWorkshop: { lengthM: 11 },
   // floatingPier2 is a walkway section: real floating walkways are 2-4 m wide, the art is 2:1, so a
   // section is 8 m and a 20 m tile of walkway takes three; floatingPier1 is its landing stage
-  floatingPier1: { lengthM: 9 }, floatingPier2: { lengthM: 8 }, floatingPier3: { lengthM: 18 }, floatingPier4: { lengthM: 10 },
+  floatingPier1: { lengthM: 9 }, floatingPier2: { lengthM: 8 }, floatingPier3: { lengthM: 12 }, floatingPier4: { lengthM: 10 },
   pierSet1: { lengthM: 20 }, pierSet2: { lengthM: 16 }, pierShop1: { lengthM: 10 }, pierShop2: { lengthM: 8 },
   // breakwater sections: a 16 m causeway1 stands ~10 m across with its deck ~4.5 m above the water
   // (Hong Kong typhoon-shelter breakwater crests are 3-5 m above the sea), level with the

@@ -242,6 +242,13 @@ const SITE_FEATURE_LIST = {
 // ── Changelog ─────────────────────────────────────────────────────────────────
 const SITE_CHANGELOG = {
   "zh-HK": [
+    { version: "v4.17.2", date: "2026-10-08", dateLabel: "2026年10月8日", title: "漁民樂", items: [
+      "漁業入帳：漁船船員、舢舨同魚市場職位計入就業；每月按上月實際漁獲收漁業稅（跟市稅率）同魚市場佣金，預算多咗兩行；船隊上限跟泊位、人手同魚市場處理量，冇魚市場只容 4 艘船。",
+      "自動擴建：船多咗會自動加建卸魚平台、水上油站同水上工場（可以喺面板關掉改為批准），油站令漁獲多一成，工場令風災維修快一倍、平三成。",
+      "卸貨區換成柏油停車場新圖，車道永遠對住馬路；貨車停入 6 個車位上落貨，魚貨堆喺黃色斜線上落貨區；魚市場同海鮮酒家部分鏡像圖換成招牌字正常嘅版本。",
+      "浮橋同登岸浮台跟浪起伏；漁船、浮橋同浮泡嘅起伏跟風速加大，十號風球大約係平時六倍。",
+      "街名牌跟路政署擺法：路口街角、掘頭路尾同長路段中間；修正部分街名牌企咗喺路口斑馬線上面嘅問題。",
+    ] },
     { version: "v4.17.1", date: "2026-10-07", dateLabel: "2026年10月7日", title: "漁民樂", items: [
       "聖誕燈飾：12 月成晚，15 款商廈外牆換上聖誕燈飾（聖誕老人雪橇、雪花、聖誕樹等），每棟一至三幅，按外牆透視貼合；其他月份照舊。",
       "同 4.17.0 一樣包括避風塘、漁船、海事處建築同打風等全部內容；舊存檔兼容。",
@@ -576,6 +583,13 @@ const SITE_CHANGELOG = {
 // title/items text.
 const SITE_CHANGELOG_TRANSLATIONS = {
   "zh-TW": {
+    "v4.17.2": { title: "漁民樂", items: [
+      "漁業入帳：漁船船員、舢舨與魚市場職位計入就業；每月依上月實際漁獲收取漁業稅（依市稅率）與魚市場佣金，預算多了兩行；船隊上限依泊位、人手與魚市場處理量，沒有魚市場只容 4 艘船。",
+      "自動擴建：船多了會自動加建卸魚平台、水上加油站與水上工場（可在面板關閉改為批准），加油站使漁獲多一成，工場使風災維修快一倍、省三成。",
+      "卸貨區換成柏油停車場新圖，車道永遠對著道路；貨車停入 6 個車位上下貨，魚貨堆在黃色斜線上下貨區；魚市場與海鮮酒家部分鏡像圖換成招牌字正常的版本。",
+      "浮橋與登岸浮台隨浪起伏；漁船、浮橋與浮筒的起伏隨風速加大，十號風球約為平時六倍。",
+      "路名牌依路政署方式擺放：路口街角、死巷盡頭與長路段中間；修正部分路名牌站在路口斑馬線上的問題。",
+    ] },
     "v4.17.1": { title: "漁民樂", items: [
       "聖誕燈飾：12 月整晚，15 款商業大樓外牆換上聖誕燈飾（聖誕老人雪橇、雪花、聖誕樹等），每棟一至三幅，依外牆透視貼合；其他月份不變。",
       "包含 4.17.0 的避風塘、漁船、海事處建築與颱風等全部內容；相容舊存檔。",
@@ -903,6 +917,13 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   en: {
+    "v4.17.2": { title: "Fishermen's Joy", items: [
+      "The fishery joins the economy: fishing crews, sampan boatmen and fish market hands count as jobs; each month a fishery tax (at the city's tax rate) and the fish markets' commission are taken on the last month's actual catch, in two new budget lines; fleets are held to their berths, hands and fish market throughput, and a shelter with no fish market keeps only 4 boats.",
+      "Demand-driven expansion: busy shelters add landing platforms, floating fuel stations and floating workshops on their own (or as suggestions to approve, from the panel); a fuel station adds a tenth to the catch, a workshop halves storm repair time and cuts its cost by 30%.",
+      "The loading bay is a new asphalt lot whose driveway always faces the road; trucks load in its six parking bays and the catch is piled on the hatched loading areas. Some fish market and restaurant mirrors now read the right way round.",
+      "Floating walkways and landing stages ride the swell, and boats, walkways and buoys heave harder as the wind rises - about six times a calm day at signal 10.",
+      "Street name plates are placed as the Highways Department places them - at junction corners, at the ends of roads and along long streets - and no longer stand out in the crossing at some junctions.",
+    ] },
     "v4.17.1": { title: "Fishermen's Joy", items: [
       "Christmas lights: all night in December, 15 commercial towers wear Christmas displays on their curtain walls (Santa's sleigh, snowflakes, Christmas trees and more), one to three per tower, fitted to the facade's perspective; other months are unchanged.",
       "Includes everything in 4.17.0 - typhoon shelters, the fishing fleet, Marine Department buildings and typhoons. Existing saves remain compatible.",
@@ -1230,6 +1251,13 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   ja: {
+    "v4.17.2": { title: "漁民楽", items: [
+      "漁業が経済に参加：漁船の乗組員、サンパンの船頭、魚市場の作業員が雇用に計上され、毎月、前月の実際の漁獲に対して漁業税（市の税率）と魚市場手数料が予算の新しい2行に入ります。船団の上限は係留数・人手・魚市場の処理量で決まり、魚市場がない避風塘は4隻まで。",
+      "需要に応じた増設：忙しい避風塘は荷揚げ台、水上給油所、水上作業場を自動で増設（パネルで承認制に切り替え可）。給油所で漁獲が1割増え、作業場で台風後の修理期間が半分、費用が3割減ります。",
+      "荷捌き場は新しいアスファルトの駐車場に。通路は常に道路側を向き、トラックは6つの駐車枠で荷積みし、魚箱は黄色の斜線の荷捌きエリアに積まれます。魚市場と海鮮レストランの一部の鏡像画像は看板の文字が正しい向きになりました。",
+      "浮き桟橋と上陸用浮き台が波に揺れ、漁船・浮き桟橋・ブイの揺れは風速とともに大きくなり、シグナル10では平時の約6倍になります。",
+      "道路名標識は路政署の設置方法どおり、交差点の角・道路の終点・長い道路の途中に置かれます。一部の交差点で標識が横断歩道に立っていた問題を修正しました。",
+    ] },
     "v4.17.1": { title: "漁民楽", items: [
       "クリスマスイルミネーション：12 月の夜、15 種類の商業ビルの外壁にクリスマスの電飾（サンタのそり、雪の結晶、クリスマスツリーなど）が 1 棟につき 1〜3 面、外壁の遠近に合わせて灯ります。ほかの月は従来どおりです。",
       "4.17.0 の避風塘、漁船団、海事処の建物、台風などの内容をすべて含みます。既存のセーブデータに対応しています。",
@@ -1582,8 +1610,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.17.1 — 【漁民樂】",
-      versionDesc: "4.17.1 更新：12 月晚上，15 款商廈外牆亮起聖誕燈飾——聖誕老人雪橇、雪花、聖誕樹，香城都有維港兩岸嘅節日氣氛。",
+      versionBadge: "v4.17.2 — 【漁民樂】",
+      versionDesc: "4.17.2 更新：避風塘漁業正式入帳——漁民職位、每月漁業稅同魚市場佣金、船多咗自動加建油站同工場；卸貨區換新圖，貨車停入車位上落貨；浮橋跟浪起伏，打風浪更大；街名牌跟路政署擺法。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感嘅城市建設遊戲。起街道、規劃社區、經營自己嘅香城巴士公司、處理議會同天氣，再睇住一座有性格嘅香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1682,8 +1710,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.17.1 — 【漁民樂】",
-      versionDesc: "4.17.1 更新：12 月夜晚，15 款商業大樓外牆亮起聖誕燈飾——聖誕老人雪橇、雪花、聖誕樹，香城也有維港兩岸的節日氣氛。",
+      versionBadge: "v4.17.2 — 【漁民樂】",
+      versionDesc: "4.17.2 更新：避風塘漁業正式入帳——漁民職位、每月漁業稅與魚市場佣金、船多了自動加建加油站與工場；卸貨區換新圖，貨車停入車位上下貨；浮橋隨浪起伏，颱風時浪更大；路名牌依路政署方式擺放。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感的城市建設遊戲。興建街道、規劃社區、經營自己的香城公車公司、處理議會與天氣，看著一座有個性的香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1782,8 +1810,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "The City of Heung Shing",
       title: "The City of Heung Shing",
-      versionBadge: "v4.17.1 — Fishermen's Joy",
-      versionDesc: "4.17.1 update: on December nights, 15 commercial towers light up their curtain walls with Christmas displays - Santa's sleigh, snowflakes and Christmas trees, like the harbourfront towers of Hong Kong.",
+      versionBadge: "v4.17.2 — Fishermen's Joy",
+      versionDesc: "4.17.2 update: the shelters' fishery joins the economy - fishing jobs, a monthly fishery tax and fish market commission, and fuel stations and workshops added as fleets grow; a new loading bay where trucks load in parking bays; walkways ride the swell, harder in a typhoon; street name plates placed as Hong Kong places them.",
       lede: "A city-building game inspired by Hong Kong life and made in tribute to SimCity 2000. Build streets, shape neighbourhoods, run your own Heung Shing Bus Company, navigate council politics and weather, then watch a city with real personality grow.",
       freeLabel: "Completely free · macOS + Windows · Local saves",
       downloadBtn: "【Free Download】",
@@ -1883,8 +1911,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.17.1 — 漁民楽",
-      versionDesc: "4.17.1 更新：12 月の夜、15 種類の商業ビルの外壁にクリスマスのイルミネーションが灯ります。サンタのそり、雪の結晶、クリスマスツリーなど、香港のビクトリア・ハーバーのような祝祭の夜景に。",
+      versionBadge: "v4.17.2 — 漁民楽",
+      versionDesc: "4.17.2 更新：避風塘の漁業が経済に参加。漁業の雇用、毎月の漁業税と魚市場手数料、船が増えると給油所や作業場を自動で増設。荷捌き場を新しい駐車場に、トラックは駐車枠で荷積み。浮き桟橋が波に揺れ、台風時はさらに大きく。道路名標識は香港の設置方法どおりに。",
       lede: "香港の都市生活から着想を得た、SimCity 2000へのオマージュとなる都市建設ゲーム。道路を築き、地区を計画し、自分だけの香城バス会社を経営し、議会や天候に向き合いながら、個性ある香城の成長を見守ります。",
       freeLabel: "完全無料 · macOS + Windows · ローカルセーブ",
       downloadBtn: "【無料ダウンロード】",

@@ -1,6 +1,6 @@
-# 香城模擬器 (The City of Heung Shing) v4.17.1 — 【漁民樂】
+# 香城模擬器 (The City of Heung Shing) v4.17.2 — 【漁民樂】
 
-香城模擬器 (The City of Heung Shing) v4.17.1 — 【漁民樂】 is a SimCity 2000-style city builder inspired by Hong Kong: isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run bus company, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
+香城模擬器 (The City of Heung Shing) v4.17.2 — 【漁民樂】 is a SimCity 2000-style city builder inspired by Hong Kong: isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run bus company, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
 
 Website and downloads: https://nortonyuen-oss.github.io/heung_shing_simulator/
 

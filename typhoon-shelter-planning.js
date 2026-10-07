@@ -504,6 +504,19 @@ function createTyphoonShelterDom() {
     redrawTyphoonShelterPlanning();
   });
   panel.querySelector('.ts-approve').addEventListener('click', () => approveTyphoonShelterWorks(typhoonShelterSelectedId));
+  // 漁業 rows (typhoon-shelter-fishery.js): the auto-expand switch and a suggested facility's 確定興建
+  const stats = panel.querySelector('.ts-works-stats');
+  stats.addEventListener('change', (event) => {
+    const box = event.target.closest?.('[data-ts-auto-expand]');
+    if (!box || typeof setTyphoonShelterAutoExpand !== 'function') return;
+    setTyphoonShelterAutoExpand(box.dataset.tsAutoExpand, box.checked);
+    renderTyphoonShelterPanel();
+  });
+  stats.addEventListener('click', (event) => {
+    const button = event.target.closest?.('[data-ts-facility]');
+    if (!button || typeof approveTyphoonShelterFacility !== 'function') return;
+    if (approveTyphoonShelterFacility(button.dataset.tsFacility)) renderTyphoonShelterPanel();
+  });
   bar.querySelector('.ts-confirm').addEventListener('click', () => {
     if (typhoonShelterPendingEdit) confirmTyphoonShelterPendingEdit();
     else approveTyphoonShelterWorks(typhoonShelterSelectedId);
@@ -677,6 +690,7 @@ function renderTyphoonShelterWorksPanel(panel, plan, a, previewing) {
     if (f.repairing) rows.push([tsT('typhoonShelter.repairing', '維修中'), `${f.repairing} 艘（風災受損）`]);
   }
   if (typeof typhoonShelterMarketRows === 'function' && sum.operational) rows.push(...typhoonShelterMarketRows(plan.id));
+  if (typeof typhoonShelterFisheryRows === 'function' && sum.operational) rows.push(...typhoonShelterFisheryRows(plan));
   rows.push(...typhoonShelterStormRows(plan, a));
   panel.querySelector('.ts-works-stats').innerHTML = rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
   panel.querySelector('.ts-works-block').textContent = sum.pierConnected ? ''
@@ -1078,7 +1092,8 @@ function syncTyphoonShelterFacilitySprites(scene = typeof activeScene !== 'undef
         alpha: 1,
         tint: null,
         // breakwater and walkway sections are drawn one tile at a time, overlapping into a line
-        footprintOverride: ['breakwater', 'breakwaterRoot', 'head', 'pontoon', 'quay', 'quayFill'].includes(item.kind) ? { cols: 1, rows: 1 } : null,
+        footprintOverride: ['breakwater', 'breakwaterRoot', 'head', 'pontoon', 'quay', 'quayFill', 'landingPlatform', 'gasStation', 'workshop'].includes(item.kind)
+          ? { cols: 1, rows: 1 } : null,
         // the pier on the water's edge reaches over the shoreline (one on a beach stands on the
         // sand); a walkway's landing stage always reaches up onto the shore, beach or not
         shoreAlign: item.kind === 'floatingPier' || (item.kind === 'pier' && mapData[item.row]?.[item.col] === WATER),

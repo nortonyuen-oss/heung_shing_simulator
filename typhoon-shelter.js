@@ -653,6 +653,8 @@ function normalizeTyphoonShelterPlan(raw) {
     ...(raw.works && typeof normalizeTyphoonShelterWorks === 'function' ? { works: normalizeTyphoonShelterWorks(raw.works) } : {}),
     // Phase 3 boats (typhoon-shelter-fleet.js)
     ...(raw.fleet && typeof normalizeTyphoonShelterFleet === 'function' ? { fleet: normalizeTyphoonShelterFleet(raw.fleet) } : {}),
+    // Phase 5 fishery: its facilities, auto-expand switch, months short of hands (typhoon-shelter-fishery.js)
+    ...(raw.fishery && typeof normalizeTyphoonShelterFishery === 'function' ? { fishery: normalizeTyphoonShelterFishery(raw.fishery) } : {}),
   };
 }
 

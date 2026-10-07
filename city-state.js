@@ -227,6 +227,8 @@ const city = {
   lastForumMonthIndex: -1,
   // 避風塘 plans (typhoon-shelter.js); only the basin and entrances are stored.
   typhoonShelters: { version: 1, nextId: 1, shelters: [] },
+  // 漁業 (typhoon-shelter-fishery.js): the last night settled and the months' catch and money
+  fishery: { lastSettledDay: null, lastMonth: null, history: [] },
   acknowledgedLandmarkUnlocks: [],
   landmarkRevenue: 0,
   landmarkUpkeep: 0,
@@ -409,6 +411,8 @@ function resetGameState() {
   city.forumPosts = [];
   city.lastForumMonthIndex = -1;
   city.typhoonShelters = { version: 1, nextId: 1, shelters: [] };
+  city.fishery = { lastSettledDay: null, lastMonth: null, history: [] };
+  city.fisheryLabour = null;
   if (typeof resetTyphoonShelterPlanning === 'function') resetTyphoonShelterPlanning();
   if (typeof resetAiNewsRuntime === 'function') resetAiNewsRuntime();
   city.tick       = 0;
@@ -796,6 +800,11 @@ function normalizeCityFinanceState() {
       ? normalizeTyphoonShelterState(city.typhoonShelters)
       : (city.typhoonShelters && typeof city.typhoonShelters === 'object' ? city.typhoonShelters : { version: 1, nextId: 1, shelters: [] }));
   }
+  if (!isNormalizedCityStateObject(city.fishery)) {
+    city.fishery = rememberNormalizedCityStateObject(typeof normalizeCityFishery === 'function'
+      ? normalizeCityFishery(city.fishery)
+      : (city.fishery && typeof city.fishery === 'object' ? city.fishery : { lastSettledDay: null, lastMonth: null, history: [] }));
+  }
   if (!isNormalizedCityStateObject(city.forumPosts)) {
     city.forumPosts = rememberNormalizedCityStateObject((Array.isArray(city.forumPosts) ? city.forumPosts : []).slice(-60).map((post, index) => ({
     id: String(post?.id || `forum-loaded-${index}`).slice(0, 120),
@@ -986,7 +995,8 @@ function computeBudgetSnapshot(options = {}) {
 
   const taxScale = city.taxRate / 0.09;
   const residentialTax = city.population * TAX_PER_RESIDENT * taxScale;
-  const commercialTax = city.commercialCount * TAX_PER_COMMERCIAL * taxScale;
+  // a seafood restaurant (typhoon-shelter-market.js) pays as a shop does
+  const commercialTax = (city.commercialCount + getBuildingCount('seafood_restaurant')) * TAX_PER_COMMERCIAL * taxScale;
   const industrialTax = city.industrialCount * TAX_PER_INDUSTRIAL * taxScale
     * (isPolicyActive('industrialBuildingRevitalization') ? 1.10 : 1);
   const grossIncome = residentialTax + commercialTax + industrialTax;
@@ -1017,6 +1027,11 @@ function computeBudgetSnapshot(options = {}) {
     : getMonthlyLoanDue();
 
   const tourismIncome = Math.max(0, Number(city.tourismRevenue || 0));
+  // 漁業 (typhoon-shelter-fishery.js): the tax on last month's catch and the fish markets' commission,
+  // with the restaurants' fresh-seafood takings - settled at the turn of the month, not the catch's value
+  const fisheryMonth = city.fishery?.lastMonth;
+  const fisheryIncome = Math.max(0, Number(fisheryMonth?.tax || 0));
+  const fishMarketIncome = Math.max(0, Number(fisheryMonth?.commission || 0) + Number(fisheryMonth?.fresh || 0));
   const landmarkIncome = landmarkFinancials.revenue;
   const landmarkUpkeep = landmarkFinancials.upkeep;
   // Transport Mode owns a separate OpenTTD-style company treasury. Fare
@@ -1028,6 +1043,7 @@ function computeBudgetSnapshot(options = {}) {
   const marineUpkeep = typeof getTyphoonShelterMonthlyUpkeep === 'function' ? getTyphoonShelterMonthlyUpkeep() : 0;
   const totalIncome = Math.round(
     grossIncome + policyTaxAdjustment + tourismIncome + landmarkIncome + transportIncome
+    + fisheryIncome + fishMarketIncome
   );
   const totalExpenses = Math.round(
     roadsUpkeep + fireUpkeep + policeUpkeep + powerUpkeep + educationUpkeep + healthUpkeep
@@ -1046,6 +1062,8 @@ function computeBudgetSnapshot(options = {}) {
       tourism: Math.round(tourismIncome),
       landmarks: Math.round(landmarkIncome),
       transport: Math.round(transportIncome),
+      fishery: Math.round(fisheryIncome),
+      fishMarket: Math.round(fishMarketIncome),
     },
     expenses: {
       roads: Math.round(roadsUpkeep),

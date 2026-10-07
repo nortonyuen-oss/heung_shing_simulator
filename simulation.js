@@ -599,6 +599,12 @@ function updateDemand() {
       else regularIndJobCap += jobs;
     }
   });
+  // 漁業 (typhoon-shelter-fishery.js): the crews, boatmen and market hands are traditional work,
+  // the seafood restaurants commercial - jobs only: no industrial count, tax or pollution
+  const fisheryJobs = typeof getTyphoonShelterFisheryJobs === 'function'
+    ? getTyphoonShelterFisheryJobs() : { traditional: 0, commercial: 0 };
+  regularIndJobCap += fisheryJobs.traditional;
+  comJobCap += fisheryJobs.commercial;
   const totalJobCap       = comJobCap + sciParkJobCap + regularIndJobCap;
 
   // High-edu workers compete for commercial AND science-park slots
@@ -609,6 +615,8 @@ function updateDemand() {
   // Low-edu workers compete for traditional industrial slots
   const lowEduWorkers    = labourForce * (1 - higherEdu) * LOW_EDU_IND_PREFERENCE;
   const lowEduJobGap     = lowEduWorkers - regularIndJobCap;
+  // the fleet grows only into low-education workers who have no job yet
+  if (typeof recordTyphoonShelterFisheryLabour === 'function') recordTyphoonShelterFisheryLabour(lowEduJobGap, fisheryJobs.traditional, lowEduWorkers, regularIndJobCap);
 
   city.unemploymentRate = labourForce > 0
     ? clamp(1 - totalJobCap / labourForce, 0, 1)

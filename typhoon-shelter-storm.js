@@ -33,6 +33,8 @@ const TYPHOON_SHELTER_STORM = Object.freeze({
   boatDamageCap: 0.3,
   repairDaysMin: 1,
   repairDaysMax: 3,
+  workshopRepairDays: 0.5,       // with a floating workshop in the shelter: half the days laid up
+  workshopRepairBill: 0.7,       // and 30% off the repairs
 });
 const TYPHOON_SHELTER_STORM_DAY = 24 * 60;
 
@@ -252,14 +254,14 @@ function settleTyphoonShelterStormDamage(storm, shelters, minute, seed = 0) {
   shelters.forEach((sh) => {
     const damage = storm.damage[sh.id] || 0;
     if (!(damage > 0)) return;
-    const repair = Math.round((sh.worksValue || 0) * Math.min(S.repairCap, S.repairPerDamage * damage));
+    const repair = Math.round((sh.worksValue || 0) * Math.min(S.repairCap, S.repairPerDamage * damage) * (sh.workshop ? S.workshopRepairBill : 1));
     const visitors = storm.visitors.filter((v) => v.shelterId === sh.id && v.startAt <= minute);
     const hulls = [...(sh.boats || []).map((id) => ({ local: true, id })), ...visitors.map((v) => ({ local: false, id: v.id }))];
     const count = Math.round(hulls.length * Math.min(S.boatDamageCap, S.boatDamagePerDamage * damage));
     const hit = [...hulls].sort((a, b) => tsStormHash(seed, 'hit', minute, a.local, a.id) - tsStormHash(seed, 'hit', minute, b.local, b.id)).slice(0, count);
     const damagedBoats = hit.filter((h) => h.local).map((h) => ({
       id: h.id,
-      repairUntil: minute + TYPHOON_SHELTER_STORM_DAY
+      repairUntil: minute + TYPHOON_SHELTER_STORM_DAY * (sh.workshop ? S.workshopRepairDays : 1)
         * (S.repairDaysMin + Math.floor(tsStormHash(seed, 'days', minute, h.id) * (S.repairDaysMax - S.repairDaysMin + 1))),
     }));
     hit.filter((h) => !h.local).forEach((h) => { const v = storm.visitors.find((x) => x.id === h.id); if (v) v.damaged = true; });
@@ -327,6 +329,8 @@ function buildTyphoonShelterStormShelters() {
       .reduce((sum, i) => sum + (TYPHOON_SHELTER_WORK_KINDS[i.kind]?.cost || 0), 0);
     return {
       id: plan.id, name: plan.name, protection: analysis.protection?.score || 0, worksValue,
+      // a floating workshop (Phase 5, typhoon-shelter-fishery.js) mends the boats sooner and cheaper
+      workshop: (plan.works?.items || []).some((i) => i.kind === 'workshop' && i.state === 'done'),
       boats: (plan.fleet?.boats || []).map((b) => b.id), free,
     };
   }).filter(Boolean);

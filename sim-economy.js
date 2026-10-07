@@ -38,6 +38,11 @@ function runEconomy(scene) {
 
   runEconomyProfiledStep(scene, 'powerPlants', () => agePowerPlants(scene));
 
+  // 漁業: the night just landed is this month's catch; settled before the budget reads it
+  runEconomyProfiledStep(scene, 'fishery', () => {
+    if (typeof settleTyphoonShelterFishery === 'function') settleTyphoonShelterFishery();
+  });
+
   const snapshot = runEconomyProfiledStep(
     scene,
     'budget',

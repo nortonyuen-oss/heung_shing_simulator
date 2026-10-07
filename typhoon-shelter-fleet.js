@@ -92,7 +92,8 @@ function tfHash(...parts) {
 // ---------------------------------------------------------------------------
 
 // Tiles boats cannot lie on or pass through: piers, walkways, landing stages, buoys.
-const TYPHOON_SHELTER_BOAT_BLOCKERS = Object.freeze(['pier', 'floatingPier', 'pontoon', 'mooringBuoy', 'navBuoyRed', 'navBuoyGreen']);
+const TYPHOON_SHELTER_BOAT_BLOCKERS = Object.freeze(['pier', 'floatingPier', 'pontoon', 'mooringBuoy', 'navBuoyRed', 'navBuoyGreen',
+  'landingPlatform', 'gasStation', 'workshop']);
 
 function typhoonShelterBlockedTiles(worksItems = []) {
   return new Set(worksItems.filter((i) => TYPHOON_SHELTER_BOAT_BLOCKERS.includes(i.kind)).map((i) => tfKey(i.row, i.col)));
@@ -448,11 +449,14 @@ function getTyphoonShelterFleetGeometry(plan, analysis) {
   return geometry;
 }
 
-// Once a calendar day: operational shelters gain boats toward their berths - not while a storm
-// keeps the boats in or visitors still lie on the free berths (typhoon-shelter-storm.js).
+// Once a calendar day: operational shelters gain boats toward their berths - as many as there are
+// hands and fish markets for (typhoon-shelter-fishery.js) - not while a storm keeps the boats in or
+// visitors still lie on the free berths (typhoon-shelter-storm.js).
 function updateTyphoonShelterFleets(state, analyses, summaries) {
   if (typeof isTyphoonShelterStormFreeze === 'function' && isTyphoonShelterStormFreeze(state.storm)) return null;
   let changed = false;
+  const markets = typeof getTyphoonShelterMarketsByShelter === 'function' ? getTyphoonShelterMarketsByShelter() : null;
+  const monthIndex = typeof city !== 'undefined' ? (Number(city.year) || 0) * 12 + (Number(city.month) || 0) : 0;
   const shelters = state.shelters.map((plan) => {
     const summary = summaries.get(plan.id);
     const analysis = analyses.get(plan.id);
@@ -464,14 +468,19 @@ function updateTyphoonShelterFleets(state, analyses, summaries) {
     // (sampans tie up at the landing stages, not on berths: the one-tile berths are left to the
     // visiting sampans in a storm)
     const boatBerths = slots.filter((sl) => sl.size >= 2).length;
-    const target = summary?.operational
+    const berthTarget = summary?.operational
       ? Math.max(0, Math.min(summary.berths.daily, boatBerths - summary.berths.reserved)) : 0;
     const fleet = plan.fleet || createTyphoonShelterFleet();
-    const arrivals = Math.max(1, Math.ceil(target / TYPHOON_SHELTER_FLEET.arrivalsPerDayShare));
+    // Phase 5: held to the hands and the markets; below today's boats for want of them, one a month
+    const target = markets && summary?.operational && typeof getTyphoonShelterFleetCaps === 'function'
+      ? getTyphoonShelterFleetCaps({ ...plan, fleet }, berthTarget, markets).target : berthTarget;
+    const arrivals = Math.max(1, Math.ceil(berthTarget / TYPHOON_SHELTER_FLEET.arrivalsPerDayShare));
     const next = reconcileTyphoonShelterFleet(fleet, slots, target, { seed: plan.seed, arrivals });
     if (JSON.stringify(next.boats) === JSON.stringify(fleet.boats) && plan.fleet) return plan;
     changed = true;
-    return { ...plan, fleet: next };
+    // a boat let go for want of hands or a market: the month's one
+    const lostToCaps = next.boats.length < fleet.boats.length && target < berthTarget;
+    return lostToCaps ? { ...plan, fleet: next, fishery: { ...(plan.fishery || {}), shrinkMonth: monthIndex } } : { ...plan, fleet: next };
   });
   return changed ? shelters : null;
 }

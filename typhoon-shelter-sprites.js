@@ -492,6 +492,9 @@ const TYPHOON_SHELTER_FLOATERS = Object.freeze({
   floatingPier2: Object.freeze({ heave: 0.55, roll: 0, lengthM: 8 }),
   floatingPier3: Object.freeze({ heave: 0.6, roll: 0.3, lengthM: 18 }),
   floatingPier4: Object.freeze({ heave: 0.6, roll: 0.3, lengthM: 10 }),
+  // the fuel station and the workshop: big moored hulls
+  floatingGasStation: Object.freeze({ heave: 0.5, roll: 0.3, lengthM: 18 }),
+  floatingWorkshop: Object.freeze({ heave: 0.5, roll: 0.3, lengthM: 16 }),
 });
 
 function getTyphoonShelterFloatProfile(objectId) {

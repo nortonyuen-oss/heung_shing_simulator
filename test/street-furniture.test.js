@@ -253,59 +253,99 @@ test('every kind has both baked views on a power-of-two canvas', () => {
   });
 });
 
-test('street name signs: each junction names each street once, next to the junction', () => {
-  const on = rates({ streetSignPerJunction: 1, streetSignSpacing: 3 });
-  const signs = computeStreetFurniturePlacements({ ...junction('commercial'), rates: on })
-    .filter((p) => p.kind === 'streetSign' || p.kind === 'streetSignSingle');
-  assert.equal(signs.length, 2, 'one for the n-s street, one for the e-w street');
-  const axes = signs.map((p) => (p.col === 5 ? 'ns' : 'ew')).sort();
-  assert.deepEqual(axes, ['ew', 'ns']);
+const plates = (opts) => computeStreetFurniturePlacements({ rates: rates({ streetSigns: 1, streetSignIntermediateFrom: 20, streetSignIntermediateEvery: 15, streetSignBusStopReach: 3 }), ...opts })
+  .filter((p) => p.kind === 'streetSign' || p.kind === 'streetSignSingle');
+// the corner a plate stands at, from the junction at (10, 5): its arm and kerb
+const cornerOf = (p) => {
+  const arm = p.col === 5 ? (p.row < 10 ? 'n' : 's') : (p.col < 5 ? 'w' : 'e');
+  return arm === 'n' || arm === 's' ? `${arm}${p.side}` : `${p.side}${arm}`;
+};
+
+test('street name plates (HyD): a cross of narrow streets has them at two opposite corners, one for each street', () => {
+  const signs = plates(junction('commercial'));
+  assert.equal(signs.length, 4, JSON.stringify(signs));
+  const corners = [...new Set(signs.map(cornerOf))].sort();
+  assert.ok(JSON.stringify(corners) === '["ne","sw"]' || JSON.stringify(corners) === '["nw","se"]', `opposite corners: ${corners}`);
   signs.forEach((p) => {
     assert.equal(Math.abs(p.row - 10) + Math.abs(p.col - 5), 1, 'on the tile next to the junction');
-    assert.equal(p.kind, 'streetSignSingle', 'an ordinary street takes the single-post plate');
     const towardJunction = p.col === 5 ? (p.row < 10 ? 's' : 'n') : (p.col < 5 ? 'e' : 'w');
-    assert.equal(p.half, towardJunction, 'in the half next to the junction');
+    assert.equal(p.half, towardJunction, 'within 3 m of the corner');
+    assert.equal(p.kind, 'streetSignSingle');
   });
-  // Railings on the tiles next to the junction: the signs move one tile out.
-  const railed = computeStreetFurniturePlacements({
-    ...junction('commercial', { occupiedAt: (r, c) => Math.abs(r - 10) + Math.abs(c - 5) === 1 }), rates: on,
-  }).filter((p) => p.kind.startsWith('streetSign'));
-  assert.equal(railed.length, 2);
-  railed.forEach((p) => assert.equal(Math.abs(p.row - 10) + Math.abs(p.col - 5), 2));
-  // A dual carriageway gets the long two-post plate.
-  const dual = computeStreetFurniturePlacements({ ...junction('commercial', { bandAt: () => ({ direction: 'north' }) }), rates: on })
-    .filter((p) => p.kind.startsWith('streetSign'));
-  assert.ok(dual.length === 2 && dual.every((p) => p.kind === 'streetSign'));
+  // each corner names both streets
+  corners.forEach((k) => assert.equal(signs.filter((p) => cornerOf(p) === k).length, 2));
 });
 
-test('street name signs on the railings: every run carries one, and the junction it guards gets no second plate', () => {
-  const { computePedestrianRailingPlacements, mergePedestrianRailingRuns } = require('../pedestrian-railings.js');
-  const j = junction('commercial');
-  const runs = mergePedestrianRailingRuns(computePedestrianRailingPlacements({ mapWidth: j.mapWidth, mapHeight: j.mapHeight, roadKeyAt: j.roadKeyAt }));
-  assert.equal(runs.length, 8, 'both kerbs of all four approaches');
-  const on = rates({ streetSignPerJunction: 1, streetSignSpacing: 3, streetSignAtRailings: 1 });
-  const signs = computeStreetFurniturePlacements({ ...j, railingRuns: runs, rates: on }).filter((p) => p.kind.startsWith('streetSign'));
-  assert.equal(signs.length, 8, 'one per run, none more a tile further out');
-  const slots = new Set(runs.map((run) => slotOf({ ...run.cells[0], half: run.cells[0].toward })));
-  signs.forEach((p) => assert.ok(slots.has(slotOf(p)), `on its run: ${slotOf(p)}`));
-  // off: the junction signs as before
-  const off = computeStreetFurniturePlacements({ ...j, railingRuns: runs, rates: { ...on, streetSignAtRailings: 0 } }).filter((p) => p.kind.startsWith('streetSign'));
-  assert.equal(off.length, 2);
+test('street name plates (HyD): a wide road\'s junction has them at every corner', () => {
+  const signs = plates(junction('commercial', { bandAt: () => ({ direction: 'north' }) }));
+  assert.equal(signs.length, 8);
+  assert.deepEqual([...new Set(signs.map(cornerOf))].sort(), ['ne', 'nw', 'se', 'sw']);
+  assert.ok(signs.every((p) => p.kind === 'streetSign'), 'the long two-post plate');
 });
 
-test('street name signs: a junction block of several junction tiles still names each street once', () => {
-  // Two cross junctions side by side at (10, 5) and (10, 6): one block.
+test('street name plates (HyD): a narrow T has one corner; a railing takes the plate, a lamp moves it a half out', () => {
+  // a T: the e-w street through, the n-s one ending at it from the south
+  const roadKeyAt = (r, c) => {
+    if (r === 10 && c === 5) return 'road_t_n';
+    if (c === 5 && r > 10 && r < 21) return 'road_straight_v';
+    if (r === 10 && c >= 0 && c < 11) return 'road_straight_h';
+    return null;
+  };
+  const t = { mapWidth: 11, mapHeight: 21, roadKeyAt, frontageAt: (r, c) => (roadKeyAt(r, c) ? null : { type: 'commercial', level: 3 }) };
+  const signs = plates(t);
+  assert.equal(signs.length, 2, JSON.stringify(signs));
+  assert.equal(new Set(signs.map(cornerOf)).size, 1);
+  assert.ok(['se', 'sw'].includes(cornerOf(signs[0])), 'a corner of the T, not its far side');
+  // a railing in the slot: the plate is bolted to it
+  const slot = signs[0];
+  const railingRuns = [{ cells: [{ row: slot.row, col: slot.col, side: slot.side, toward: slot.half }] }];
+  const occupiedAt = (r, c, side, half) => r === slot.row && c === slot.col && side === slot.side && half === slot.half;
+  assert.ok(plates({ ...t, railingRuns, occupiedAt }).some((p) => slotOf(p) === slotOf(slot)));
+  // a lamp there: one half further out
+  const moved = plates({ ...t, occupiedAt }).find((p) => p.row === slot.row && p.col === slot.col && p.side === slot.side);
+  assert.ok(moved && moved.half !== slot.half);
+});
+
+test('street name plates (HyD): a junction block of several junction tiles is one junction', () => {
+  // two cross junctions side by side at (10, 5) and (10, 6), narrow: two opposite corners
   const roadKeyAt = (r, c) => {
     if (r === 10 && (c === 5 || c === 6)) return 'road_cross';
     if ((c === 5 || c === 6) && r >= 0 && r < 21) return 'road_straight_v';
     if (r === 10 && c >= 0 && c < 12) return 'road_straight_h';
     return null;
   };
-  const signs = computeStreetFurniturePlacements({
-    mapWidth: 12, mapHeight: 21, roadKeyAt, frontageAt: () => null,
-    rates: rates({ streetSignPerJunction: 1, streetSignSpacing: 3 }),
-  }).filter((p) => p.kind.startsWith('streetSign'));
-  assert.equal(signs.length, 2, `got ${JSON.stringify(signs)}`);
+  const signs = plates({ mapWidth: 12, mapHeight: 21, roadKeyAt, frontageAt: () => null });
+  assert.equal(signs.length, 4, JSON.stringify(signs));
+  // never on the median between the two parallel arms
+  signs.filter((p) => p.col === 5 || p.col === 6).forEach((p) => assert.equal(p.side, p.col === 5 ? 'w' : 'e'));
+});
+
+test('street name plates (HyD): at a dead end, and every 300 m along a long built-up street - by a bus stop if near', () => {
+  // a n-s street from row 2 to row 37 at col 5: a dead end at the top, a junction at the bottom
+  const roadKeyAt = (r, c) => {
+    if (r === 38 && c === 5) return 'road_t_n';
+    if (c === 5 && r >= 2 && r < 38) return 'road_straight_v';
+    if (r === 38 && c >= 0 && c < 11) return 'road_straight_h';
+    return null;
+  };
+  const built = (r, c) => (c === 6 && r >= 2 && r < 38 ? { type: 'residential', level: 2 } : null);
+  const base = { mapWidth: 11, mapHeight: 45, roadKeyAt, frontageAt: built };
+  const signs = plates(base).filter((p) => p.col === 5 && p.row < 37);
+  assert.ok(signs.some((p) => p.row === 2), 'the end of the road');
+  const middle = signs.filter((p) => p.row > 2);
+  assert.equal(middle.length, 2, `36 tiles between the end and the junction: two intermediate plates (${JSON.stringify(middle)})`);
+  assert.ok(middle.every((p) => p.side === 'e'), 'one side of a narrow street, the built-up one');
+  // a bus stop near the first: the plate moves beside it
+  const first = Math.min(...middle.map((p) => p.row));
+  const withStop = plates({ ...base, busStopAt: (r, c) => c === 5 && r === first + 2 }).filter((p) => p.col === 5 && p.row > 2 && p.row < 37);
+  assert.ok(withStop.some((p) => Math.abs(p.row - (first + 2)) === 1), JSON.stringify(withStop));
+  // nothing built along it: no intermediate plates
+  assert.equal(plates({ ...base, frontageAt: () => null }).filter((p) => p.col === 5 && p.row > 2 && p.row < 37).length, 0);
+});
+
+test('street name plates (HyD): never over a zebra crossing', () => {
+  const zebraAt = (r, c) => Math.abs(r - 10) + Math.abs(c - 5) === 1;
+  assert.equal(plates({ ...junction('commercial'), zebraAt }).filter((p) => zebraAt(p.row, p.col)).length, 0);
 });
 
 test('a calibrated nudge moves a prop\'s depth with its foot, so traffic behind it stays behind', () => {

@@ -83,14 +83,17 @@ const STREET_FURNITURE_RATES = Object.freeze({
   newsstandSpacing: 4,
   // Bollards: the yellow-black posts outside industrial buildings (loading bays, entrances).
   bollardIndustrial: 0.3,  // per industrial kerb of a straight tile
-  // Street name signs: every junction names each street that meets it, once - one sign per
-  // street axis per junction, none within streetSignSpacing tiles of another for the same axis
-  // (a dual-carriageway junction is several junction tiles). 0 turns them off.
-  streetSignPerJunction: 1,
-  streetSignSpacing: 3,
-  // ...and, as Hong Kong bolts its name plates to the guard rails, every run of pedestrian railing
-  // (junction approach or zebra crossing) carries one, just behind it; 0 turns them off.
-  streetSignAtRailings: 1,
+  // Street name plates, placed as the Highways Department places them (RD/GN/031B, MAH 11.5.2):
+  // at each corner of a junction, a plate for each of the two streets, within 3 m of the corner -
+  // all four corners where a wide road (a dual carriageway) meets it, only two opposite corners at
+  // a cross of narrow streets and one corner at a narrow T; at the end of a road; and, where
+  // junctions are over 400 m apart along a built-up street, intermediate plates 150-400 m apart,
+  // near a bus stop if there is one, on one side of a narrow street. Never over a zebra crossing.
+  // A plate goes on a post; where a railing stands in its place, on the railing. 0 turns them off.
+  streetSigns: 1,
+  streetSignIntermediateFrom: 20,   // tiles between junctions (400 m) before intermediate plates
+  streetSignIntermediateEvery: 15,  // tiles between them (300 m)
+  streetSignBusStopReach: 3,        // an intermediate plate moves this far to stand by a bus stop
 });
 
 const STREET_FURNITURE_DELTA = Object.freeze({
@@ -147,12 +150,13 @@ function streetFurnitureDensity(row, col, straight, frontageAt) {
 //   railingTileAt(r, c)   the tile carries railings (junction approach / zebra)
 //   trafficAt(r, c)       0..1 traffic load (parking meters only)
 //   signalPlacements      computeTrafficSignalPlacements output (one cabinet per junction block)
-//   railingRuns           mergePedestrianRailingRuns output: each run gets a street name sign
+//   railingRuns           mergePedestrianRailingRuns output: a street name plate may be bolted to one
+//   zebraAt(r, c)         the tile shows a zebra crossing (no plate over it)
 // Returns [{ kind, row, col, side, half }].
 function computeStreetFurniturePlacements({
   mapWidth, mapHeight, roadKeyAt, bandAt = () => null, frontageAt: readFrontage = () => null,
   busStopAt = () => false, occupiedAt = () => false, railingTileAt = () => false,
-  trafficAt = () => 0, signalPlacements = [], railingRuns = [], rates = STREET_FURNITURE_RATES,
+  trafficAt = () => 0, signalPlacements = [], railingRuns = [], zebraAt = () => false, rates = STREET_FURNITURE_RATES,
 }) {
   const inside = (r, c) => r >= 0 && c >= 0 && r < mapHeight && c < mapWidth;
   // getRoadKey runs the carriageway-band scan and every tile is asked about several times below:
@@ -249,61 +253,119 @@ function computeStreetFurniturePlacements({
     streets.push({ straight, tiles });
   });
 
-  // 1a. Street name signs on the railings: one for each run, in its first half tile, standing just
-  //    behind the rail (a sign's lateral is past the railing's). The junction a run guards counts
-  //    as named for that street, so 1b adds no second plate a tile further out.
-  const signs = { ns: [], ew: [] };
-  if (rates.streetSignAtRailings > 0) {
-    railingRuns.forEach((run) => {
-      const cell = run.cells?.[0];
-      if (!cell) return;
-      const key = slotKey(cell.row, cell.col, cell.side, cell.toward);
-      if (claimed.has(key) || !straightAt(cell.row, cell.col)) return;
-      claim(bandAt(cell.row, cell.col) ? 'streetSign' : 'streetSignSingle', cell.row, cell.col, cell.side, cell.toward);
-      const d = STREET_FURNITURE_DELTA[cell.toward];
-      if (isStreetFurnitureJunctionKey(keyAt(cell.row + d.row, cell.col + d.col))) {
-        signs[cell.toward === 'n' || cell.toward === 's' ? 'ns' : 'ew'].push({ row: cell.row + d.row, col: cell.col + d.col });
+  // 1b. Street name plates (STREET_FURNITURE_RATES.streetSigns; Highways Department practice).
+  if (rates.streetSigns > 0) {
+    const railingSlot = new Set();
+    railingRuns.forEach((run) => (run.cells || []).forEach((cell) => railingSlot.add(slotKey(cell.row, cell.col, cell.side, cell.toward))));
+    const signKind = (r, c) => (bandAt(r, c) ? 'streetSign' : 'streetSignSingle');
+    // a plate's slot: free, or holding a railing it can be bolted to - never a zebra tile
+    const plateSlot = (r, c, side, half) => {
+      const key = slotKey(r, c, side, half);
+      const straight = straightAt(r, c);
+      if (!straight || !straight.kerbs.includes(side) || claimed.has(key) || busStopAt(r, c) || zebraAt(r, c)) return false;
+      const across = STREET_FURNITURE_DELTA[side];
+      if (keyAt(r + across.row, c + across.col)) return false;
+      return railingSlot.has(key) || !occupiedAt(r, c, side, half);
+    };
+    const placePlate = (r, c, side, halves) => {
+      for (const half of halves) {
+        if (plateSlot(r, c, side, half)) { claim(signKind(r, c), r, c, side, half); return true; }
       }
-    });
-  }
+      return false;
+    };
 
-  // 1b. Street name signs: at each junction, one plate for each street (axis) that meets it, on an
-  //    approach tile of that street - the arm picked by hash, in the half next to the junction
-  //    (one tile out when railings or a cabinet hold it), on the kerb with more frontage. A dual
-  //    carriageway's street gets the long two-post plate, an ordinary one the single-post plate.
-  if (rates.streetSignPerJunction > 0) {
-    for (let r = 0; r < mapHeight; r++) {
-      for (let c = 0; c < mapWidth; c++) {
-        if (!isStreetFurnitureJunctionKey(keyAt(r, c))) continue;
-        [['ns', ['n', 's']], ['ew', ['e', 'w']]].forEach(([axis, dirs]) => {
-          if (signs[axis].some((sign) => Math.abs(sign.row - r) + Math.abs(sign.col - c) <= rates.streetSignSpacing)) return;
-          const arms = dirs.filter((toward) => {
-            const d = STREET_FURNITURE_DELTA[toward];
-            return straightAt(r + d.row, c + d.col)?.along.includes(toward);
+    // Junction blocks: junction tiles joined side by side (a dual carriageway's crossing is several).
+    const seen = new Set();
+    for (let r0 = 0; r0 < mapHeight; r0++) {
+      for (let c0 = 0; c0 < mapWidth; c0++) {
+        if (!isStreetFurnitureJunctionKey(keyAt(r0, c0)) || seen.has(r0 * mapWidth + c0)) continue;
+        const block = [];
+        const stack = [[r0, c0]];
+        seen.add(r0 * mapWidth + c0);
+        while (stack.length) {
+          const [r, c] = stack.pop();
+          block.push([r, c]);
+          Object.values(STREET_FURNITURE_DELTA).forEach((d) => {
+            const nr = r + d.row; const nc = c + d.col;
+            if (inside(nr, nc) && !seen.has(nr * mapWidth + nc) && isStreetFurnitureJunctionKey(keyAt(nr, nc))) {
+              seen.add(nr * mapWidth + nc);
+              stack.push([nr, nc]);
+            }
           });
-          if (!arms.length) return;
-          const first = Math.floor(streetFurnitureHash(r, c, STREET_FURNITURE_SALT.streetSign + (axis === 'ns' ? 0 : 100)) * arms.length);
-          const ordered = [...arms.slice(first), ...arms.slice(0, first)];
-          for (const toward of ordered) {
-            const d = STREET_FURNITURE_DELTA[toward];
-            const back = STREET_FURNITURE_OPPOSITE[toward];
-            const ar = r + d.row;
-            const ac = c + d.col;
+        }
+        const inBlock = new Set(block.map(([r, c]) => `${r}:${c}`));
+        // the arms: straight tiles leading into the block, and the corners their pavements reach
+        const corners = new Map();   // 'ne' -> [{ row, col, side, toward }]
+        const armDirs = new Set();
+        let wide = false;
+        block.forEach(([r, c]) => {
+          Object.entries(STREET_FURNITURE_DELTA).forEach(([dir, d]) => {
+            const ar = r + d.row; const ac = c + d.col;
+            if (inBlock.has(`${ar}:${ac}`)) return;
             const straight = straightAt(ar, ac);
-            const kind = bandAt(ar, ac) ? 'streetSign' : 'streetSignSingle';
-            let placed = false;
-            for (const [tr, tc] of [[ar, ac], [ar + d.row, ac + d.col]]) {
-              if (straightAt(tr, tc) !== straight) break;
-              if (claimOnTile(kind, tr, tc, kerbsByFrontage(tr, tc, straight), [back, toward])) { placed = true; break; }
-            }
-            if (placed) {
-              signs[axis].push({ row: r, col: c });
-              break;
-            }
-          }
+            if (!straight?.along.includes(dir)) return;
+            armDirs.add(dir);
+            if (bandAt(ar, ac)) wide = true;
+            straight.kerbs.forEach((side) => {
+              const across = STREET_FURNITURE_DELTA[side];
+              if (keyAt(ar + across.row, ac + across.col)) return; // the median of a dual carriageway
+              const corner = (dir === 'n' || dir === 's') ? `${dir}${side}` : `${side}${dir}`;
+              if (!corners.has(corner)) corners.set(corner, []);
+              corners.get(corner).push({ row: ar, col: ac, side, toward: STREET_FURNITURE_OPPOSITE[dir], away: dir });
+            });
+          });
         });
+        // a corner is where two arms meet
+        let chosen = ['ne', 'nw', 'se', 'sw'].filter((k) => corners.has(k) && armDirs.has(k[0]) && armDirs.has(k[1]));
+        const [br, bc] = block[0];
+        const pick = streetFurnitureHash(br, bc, STREET_FURNITURE_SALT.streetSign);
+        if (!wide && chosen.length === 4) {
+          // a cross of narrow streets: two opposite corners
+          chosen = pick < 0.5 ? ['ne', 'sw'] : ['nw', 'se'];
+        } else if (!wide && chosen.length > 1) {
+          chosen = [chosen[Math.floor(pick * chosen.length)]];
+        }
+        chosen.forEach((k) => corners.get(k).forEach((spot) => {
+          // within 3 m of the corner: the half next to the junction, else the next one out
+          placePlate(spot.row, spot.col, spot.side, [spot.toward, spot.away]);
+        }));
       }
     }
+
+    // Along each street run: the end of a road, and intermediate plates on long built-up blocks.
+    const endsAtJunction = (tile, dir) => {
+      const d = STREET_FURNITURE_DELTA[dir];
+      return isStreetFurnitureJunctionKey(keyAt(tile.row + d.row, tile.col + d.col));
+    };
+    streets.forEach(({ straight, tiles }) => {
+      const kerbs = (tile) => kerbsByFrontage(tile.row, tile.col, straight);
+      // the end of a road: a dead end (not the map's edge, not a junction, not a bend into more road)
+      [[tiles[0], straight.along[0]], [tiles[tiles.length - 1], straight.along[1]]].forEach(([tile, dir]) => {
+        const d = STREET_FURNITURE_DELTA[dir];
+        const nr = tile.row + d.row; const nc = tile.col + d.col;
+        if (!inside(nr, nc) || keyAt(nr, nc)) return;
+        for (const side of kerbs(tile)) if (placePlate(tile.row, tile.col, side, [dir, STREET_FURNITURE_OPPOSITE[dir]])) break;
+      });
+      // intermediate: a block over 400 m between junctions, with buildings along it
+      const bounded = endsAtJunction(tiles[0], straight.along[0]) || endsAtJunction(tiles[tiles.length - 1], straight.along[1]);
+      if (!bounded || tiles.length <= rates.streetSignIntermediateFrom) return;
+      if (!tiles.some((t) => straight.kerbs.some((side) => builtSide(t.row, t.col, side)))) return;
+      const every = rates.streetSignIntermediateEvery;
+      const count = Math.floor((tiles.length - 1) / every);
+      for (let k = 1; k <= count; k++) {
+        const target = Math.round((k * tiles.length) / (count + 1));
+        // near a bus stop if there is one within reach
+        const reach = rates.streetSignBusStopReach;
+        let at = target;
+        for (let off = 0; off <= reach; off++) {
+          const hit = [target - off, target + off].find((i) => i >= 0 && i < tiles.length && busStopAt(tiles[i].row, tiles[i].col));
+          if (hit !== undefined) { at = hit + (hit + 1 < tiles.length ? 1 : -1); break; }
+        }
+        const tile = tiles[Math.max(0, Math.min(tiles.length - 1, at))];
+        // one side of a narrow street; each carriageway of a wide one has its own pavement kerb
+        for (const side of kerbs(tile)) if (placePlate(tile.row, tile.col, side, straight.along)) break;
+      }
+    });
   }
 
   // 2. Posting boxes: a residential street gets one with a chance that grows with its density.
@@ -676,6 +738,8 @@ function rebuildStreetFurnitureSprites(scene, { recomputeTraffic = true } = {}) 
     trafficAt,
     signalPlacements,
     railingRuns: typeof mergePedestrianRailingRuns === 'function' ? mergePedestrianRailingRuns(scene.pedestrianRailingPlacements ?? []) : [],
+    // a zebra crossing is read off the tile's rendered texture, as the railings read it
+    zebraAt: (row, col) => /__lines_zebra/.test(scene.tileSprites?.[row]?.[col]?.texture?.key ?? ''),
   });
   const wanted = new Map(placements.map((placement) => [streetFurnitureId(placement), placement]));
   const rotation = typeof mapRotation !== 'undefined' ? mapRotation : 0;

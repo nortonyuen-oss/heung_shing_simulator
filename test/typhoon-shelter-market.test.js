@@ -47,24 +47,39 @@ test('a market serves the nearest shelter in reach, and a loading bay beside it 
   assert.equal(both.filter((m) => m.bay?.id === '5:7').length, 1);
 });
 
-test('a loading bay\'s crate piles stand on the open lot: clear of the shed and of the trucks', () => {
-  const toScreen = (col, row) => ({ x: (col - row) * 32, y: (col + row) * 16 });
-  const bay = { row: 5, col: 7, road: { side: 's', road: { row: 7, col: 7 }, through: 2 } };
-  const piles = layoutTyphoonShelterBayPiles(bay, toScreen);
-  assert.ok(piles.length > 8 && piles.length <= M.maxBayPiles, `${piles.length} piles`);
-  assert.equal(new Set(piles.map((p) => p.cell)).size, piles.length);
-  // the shed runs along the top-right edge on screen: between the top and right corners
+// a point's place in the bay's art: across the driveway (0, 1: the sides with parking bays) and
+// along it, from the corners of the 2 x 2 lot on screen
+function bayArtCoords(bay, toScreen, p, mirrored) {
   const top = toScreen(bay.col - 0.5, bay.row - 0.5);
   const right = toScreen(bay.col + 1.5, bay.row - 0.5);
-  piles.forEach((p) => {
-    const r = p.row + p.offsets[0][1] / 20;
-    const c = p.col + p.offsets[1][1] / 20;
-    const pt = toScreen(c, r);
-    // distance from the shed's edge, as a share of the bay's depth
-    const ex = right.x - top.x; const ey = right.y - top.y;
-    const across = Math.abs((pt.x - top.x) * ey - (pt.y - top.y) * ex) / Math.hypot(ex, ey);
-    assert.ok(across > 0.3 * 2 * 32 * Math.SQRT2 * 0.7, 'clear of the shed');
-    assert.ok(bay.row + 1.5 - r >= M.bayTruckClearTiles, 'clear of the trucks by the road');
+  const left = toScreen(bay.col - 0.5, bay.row + 1.5);
+  const r = p.row + p.offsets[0][1] / 20;
+  const c = p.col + p.offsets[1][1] / 20;
+  const pt = toScreen(c, r);
+  const ux = right.x - top.x; const uy = right.y - top.y; const vx = left.x - top.x; const vy = left.y - top.y;
+  const det = ux * vy - uy * vx;
+  const u = ((pt.x - top.x) * vy - (pt.y - top.y) * vx) / det;
+  const v = (ux * (pt.y - top.y) - uy * (pt.x - top.x)) / det;
+  return { across: mirrored ? v : u, along: mirrored ? u : v, r, c };
+}
+
+test('a loading bay\'s crate piles stand in its parking bays: clear of the driveway, the hatched corners and the road', () => {
+  const toScreen = (col, row) => ({ x: (col - row) * 32, y: (col + row) * 16 });
+  [[false, { side: 's', road: { row: 7, col: 7 }, through: 2 }], [true, { side: 'e', road: { row: 5, col: 9 }, through: 2 }]].forEach(([mirrored, road]) => {
+    const bay = { row: 5, col: 7, road };
+    const piles = layoutTyphoonShelterBayPiles(bay, toScreen, mirrored);
+    assert.ok(piles.length >= 8 && piles.length <= M.maxBayPiles, `${piles.length} piles`);
+    assert.equal(new Set(piles.map((p) => p.cell)).size, piles.length);
+    let sides = 0;
+    piles.forEach((p) => {
+      const { across, along, r, c } = bayArtCoords(bay, toScreen, p, mirrored);
+      assert.ok(across < M.bayStallDepth || across > 1 - M.bayStallDepth, `in a parking bay, not the driveway (${across.toFixed(2)})`);
+      assert.ok(along >= M.bayStallFrom && along <= M.bayStallTo, 'clear of the hatched corners');
+      const fromRoad = road.side === 's' ? bay.row + 1.5 - r : bay.col + 1.5 - c;
+      assert.ok(fromRoad >= M.bayTruckClearTiles, 'clear of the road edge');
+      sides |= across < 0.5 ? 1 : 2;
+    });
+    assert.equal(sides, 3, 'both rows of parking bays');
   });
 });
 
@@ -159,12 +174,13 @@ test('the trucks pull up from 03:00 and queue along the curb, loading in turn', 
     const dead = getTyphoonShelterTruckParking(market, 0, (r, c) => stub.has(`${r}:${c}`));
     assert.equal(dead.arrival.col, -1, 'comes from the east');
     assert.equal(dead.departure.col, 1, 'turns round and leaves east');
-    // a bay: the first two drive in, the further one first; the third waits at the curb behind
+    // a bay: the first two drive up its driveway, which runs in from between its two road tiles
+    // (cols 11 and 12), one behind the other, the first further in; the third waits at the curb
     const withBay = { ...market, bay: { row: 10, col: 11, road: { side: 'n', road: { row: 9, col: 11 }, through: 2 } } };
     const in0 = getTyphoonShelterTruckParking(withBay, 0, isRoad);
     const in1 = getTyphoonShelterTruckParking(withBay, 1, isRoad);
-    assert.deepEqual([in0.road.col, in1.road.col], [11, 12], 'travelling west, col 11 is further along');
-    assert.ok(in0.shift.row > 0.5, 'in off the road');
+    assert.deepEqual([in0.road.col + in0.shift.col, in1.road.col + in1.shift.col], [11.5, 11.5], 'in the driveway');
+    assert.ok(in0.shift.row > in1.shift.row + 0.55 && in1.shift.row > 0.4, 'in off the road, the first further in, a truck length apart');
     const queued = getTyphoonShelterTruckParking(withBay, 2, isRoad);
     assert.ok(queued.road.col >= 12 && Math.abs(queued.shift.row) < 1e-9, 'at the curb');
   } finally {
@@ -185,36 +201,19 @@ test('markets and restaurants face the sea, and draw their lights-off day art on
   assert.equal(isTyphoonShelterBuildingOpen('fish_market', 14 * 60 + 1440 * 3), false, 'any day');
   assert.equal(isTyphoonShelterBuildingOpen('seafood_restaurant', 9 * 60), false);
   assert.equal(isTyphoonShelterBuildingOpen('seafood_restaurant', 19 * 60), true);
-  assert.equal(isTyphoonShelterBuildingOpen('fish_loading_bay', 14 * 60), false, 'the bay works the market\'s hours');
-  assert.equal(isTyphoonShelterBuildingOpen('fish_loading_bay', 4 * 60), true);
+  assert.equal(isTyphoonShelterBuildingOpen('fish_loading_bay', 14 * 60), true, 'the bay is an open lot: no lights to put out');
   assert.equal(isTyphoonShelterBuildingOpen('harbor', 14 * 60), true, 'no hours: always as drawn');
   assert.equal(getTyphoonShelterLightingKey('fish_market_1x1_m', true, true), 'fish_market_1x1_m_day');
   assert.equal(getTyphoonShelterLightingKey('fish_market_1x1_m', false, true), 'fish_market_1x1_m');
   assert.equal(getTyphoonShelterLightingKey('fish_market_1x1', true, false), 'fish_market_1x1', 'no day art: the lit art');
 });
 
-test('a loading bay turns an open side to the road: the mirror for a road to the south-east or north-east', () => {
+test('a loading bay turns its driveway to the road: the mirror for a road to the south-east or north-west', () => {
   const { isTyphoonShelterBayMirrored } = market;
-  // plain art: shed top-right, open bottom-left, bottom-right and top-left; the mirror the other way
+  // plain art: the driveway opens bottom-left and top-right; the mirror bottom-right and top-left
   assert.equal(isTyphoonShelterBayMirrored('sw'), false);
-  assert.equal(isTyphoonShelterBayMirrored('nw'), false);
+  assert.equal(isTyphoonShelterBayMirrored('ne'), false);
   assert.equal(isTyphoonShelterBayMirrored('se'), true);
-  assert.equal(isTyphoonShelterBayMirrored('ne'), true);
+  assert.equal(isTyphoonShelterBayMirrored('nw'), true);
   assert.equal(isTyphoonShelterBayMirrored(null), false);
-  // and in the mirror the crate piles keep clear of the shed along the top-left edge instead
-  const toScreen = (col, row) => ({ x: (col - row) * 32, y: (col + row) * 16 });
-  const bay = { row: 5, col: 7, road: { side: 'e', road: { row: 5, col: 9 }, through: 2 } };
-  const piles = layoutTyphoonShelterBayPiles(bay, toScreen, true);
-  assert.ok(piles.length > 8, `${piles.length} piles`);
-  const top = toScreen(bay.col - 0.5, bay.row - 0.5);
-  const left = toScreen(bay.col - 0.5, bay.row + 1.5);
-  const ex = left.x - top.x; const ey = left.y - top.y;
-  piles.forEach((p) => {
-    const r = p.row + p.offsets[0][1] / 20;
-    const c = p.col + p.offsets[1][1] / 20;
-    const pt = toScreen(c, r);
-    const across = Math.abs((pt.x - top.x) * ey - (pt.y - top.y) * ex) / Math.hypot(ex, ey);
-    assert.ok(across > 0.3 * 2 * 32 * Math.SQRT2 * 0.7, 'clear of the shed');
-    assert.ok(bay.col + 1.5 - c >= M.bayTruckClearTiles, 'clear of the trucks by the road');
-  });
 });

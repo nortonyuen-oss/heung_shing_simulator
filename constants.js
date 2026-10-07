@@ -1118,7 +1118,7 @@ function getSpecialBuildingModels(buildingType) {
 }
 
 // The 海事處 markets and restaurants keep their front (or back) to the sea however the map turns,
-// and the loading bay an open side to the road: each model has its mirror image, chosen per
+// and the loading bay its driveway to the road: each model has its mirror image, chosen per
 // rotation (refreshTyphoonShelterBuildingSprites, typhoon-shelter-market.js). Not a variant of its own.
 const SPECIAL_BUILDING_MIRROR_MODELS = Object.freeze(Object.fromEntries([
   ['fish_market_1x1', 'Models/specialSites/1x1/fishMarket1-01_m.png', 1],
@@ -1128,11 +1128,12 @@ const SPECIAL_BUILDING_MIRROR_MODELS = Object.freeze(Object.fromEntries([
   ['fish_loading_bay_2x2', 'Models/specialSites/2x2/fishLoadingBay2-01_m.png', 2],
 ].map(([key, path, size]) => [key, Object.freeze({ spriteKey: `${key}_m`, path, footprintCols: size, footprintRows: size })])));
 
-// And each (and its mirror) by day with the lights off, drawn while it is shut in daylight - the
-// plain art is lit, as it is when open and all night (refreshTyphoonShelterBuildingSprites).
+// And each market and restaurant (and its mirror) by day with the lights off, drawn while it is shut
+// in daylight - the plain art is lit, as it is when open and all night
+// (refreshTyphoonShelterBuildingSprites). The loading bay is an open lot with no lights of its own.
 const SPECIAL_BUILDING_DAY_MODELS = Object.freeze(Object.fromEntries(
   [
-    ...Object.entries(SPECIAL_BUILDING_MIRROR_MODELS).flatMap(([key, mirror]) => [
+    ...Object.entries(SPECIAL_BUILDING_MIRROR_MODELS).filter(([key]) => key !== 'fish_loading_bay_2x2').flatMap(([key, mirror]) => [
       { ...mirror, spriteKey: key, path: mirror.path.replace(/_m\.png$/, '.png') }, mirror,
     ]),
   ].map((model) => [model.spriteKey, Object.freeze({

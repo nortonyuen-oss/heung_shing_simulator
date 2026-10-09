@@ -20,8 +20,12 @@ const TYPHOON_SHELTER_FLEET = Object.freeze({
     Object.freeze({ objectId: 'fishingBoat1', weight: 20, fishing: true, size: 2, trip: 'light' }),
     Object.freeze({ objectId: 'fishingBoat3', weight: 25, fishing: true, size: 2, trip: 'gillnet' }),
     Object.freeze({ objectId: 'fishingBoat4', weight: 25, fishing: true, size: 2, trip: 'trawler' }),
-    Object.freeze({ objectId: 'homeBoat1', weight: 8, fishing: false, size: 2 }),
-    Object.freeze({ objectId: 'homeBoat2', weight: 7, fishing: false, size: 2 }),
+    // 住家艇: the boat people's homes - a few families still live aboard (TYPHOON_SHELTER_RESIDENTS_PER_HOME,
+    // counted in the city's population by simulation.js)
+    Object.freeze({ objectId: 'homeBoat1', weight: 6, fishing: false, home: true, size: 2 }),
+    Object.freeze({ objectId: 'homeBoat2', weight: 5, fishing: false, home: true, size: 2 }),
+    Object.freeze({ objectId: 'homeBoat3', weight: 3, fishing: false, home: true, size: 2 }),
+    Object.freeze({ objectId: 'floatingHome', weight: 1, fishing: false, home: true, size: 2 }),
     // 遊艇: pleasure craft, in a shelter given over partly to them (TYPHOON_SHELTER_USES) - out for the
     // day now and then, never fishing; drawn only as that share of the berths asks for them
     Object.freeze({ objectId: 'speedboat1', weight: 1, fishing: false, leisure: true, size: 2, trip: 'leisure' }),

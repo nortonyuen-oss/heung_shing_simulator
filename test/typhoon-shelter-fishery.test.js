@@ -40,7 +40,10 @@ test('the fleet is held to berths, hands and markets, and shrinks one boat a mon
   // hands: a boat joins only for a crew's worth of workers
   assert.equal(typhoonShelterFleetCaps({ ...base, labourGap: 13 }).target, 12, 'two more crews');
   assert.equal(typhoonShelterFleetCaps({ ...base, labourGap: 5 }).target, 10, 'not enough for a crew: no new boat');
-  assert.equal(typhoonShelterFleetCaps({ ...base, labourGap: -50 }).target, 10, 'short, but not yet for long: no boat lost');
+  assert.equal(typhoonShelterFleetCaps({ ...base, labourGap: -50, staffedShare: 0.25 }).target, 10, 'short, but not yet for long: no boat lost');
+  // a new shelter in a city short of hands still gets its fair share of the berths
+  assert.equal(typhoonShelterFleetCaps({ ...base, current: 0, labourGap: -3000, staffedShare: 0.87 }).caps.labour, 26);
+  assert.equal(typhoonShelterFleetCaps({ ...base, current: 0, labourGap: -3000, staffedShare: 0.87 }).target, 24, 'to the market\'s cap');
   assert.equal(typhoonShelterFleetCaps({ ...base, labourGap: 5 }).bottleneck, 'labour');
   // short for months: the berths' boats times the share of jobs the traditional trades fill, one
   // boat leaving a month, and no further - the shortage is the city's, the fishery cannot close it
@@ -48,7 +51,7 @@ test('the fleet is held to berths, hands and markets, and shrinks one boat a mon
   assert.equal(typhoonShelterFleetCaps({ ...base, shortage: true, staffedShare: 0.25 }).target, 9);
   assert.equal(typhoonShelterFleetCaps({ ...base, shortage: true, staffedShare: 0.25, shrinkAllowed: false }).target, 10, 'this month\'s boat has gone');
   assert.equal(typhoonShelterFleetCaps({ ...base, current: 7, shortage: true, staffedShare: 0.25 }).target, 7, 'it settles');
-  assert.equal(typhoonShelterFleetCaps({ ...base, shortage: true, staffedShare: 0.9 }).target, 10, 'a fleet under its share keeps its boats');
+  assert.equal(typhoonShelterFleetCaps({ ...base, shortage: true, staffedShare: 0.9 }).caps.labour, 27, 'a fleet under its share may grow to it');
   // the market pulled down: one a month, not all at once
   assert.equal(typhoonShelterFleetCaps({ ...base, current: 20, marketTonnes: 0, hasMarket: false }).target, 19);
   // fewer berths: at once (a boat cannot lie where there is no berth)
@@ -136,4 +139,12 @@ test('saves: the shelter\'s fishery and the city\'s months come back clean; old 
   assert.equal(city.lastMonth.tonnes, 30);
   assert.equal(city.lastMonth.byShelter.ts1.tax, 189);
   assert.equal(city.history.length, F.history);
+});
+
+test('住家艇: a household of four aboard each house boat', () => {
+  const { typhoonShelterResidents, TYPHOON_SHELTER_RESIDENTS_PER_HOME } = fishery;
+  const boats = [{ model: 'homeBoat1' }, { model: 'homeBoat3' }, { model: 'floatingHome' }, { model: 'fishingBoat1' }, { model: 'speedboat1' }];
+  assert.equal(typhoonShelterResidents(boats), 3 * TYPHOON_SHELTER_RESIDENTS_PER_HOME);
+  assert.equal(TYPHOON_SHELTER_RESIDENTS_PER_HOME, 4);
+  assert.equal(typhoonShelterResidents([]), 0);
 });

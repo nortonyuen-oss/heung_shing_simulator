@@ -109,8 +109,9 @@ function typhoonShelterMarketTonnes(markets = [], restaurants = 0) {
  * - berths: the berth target as before (typhoon-shelter-fleet.js), for all boats.
  * - market: the fishing boats its markets can take a catch from, as all boats (÷ fishingShare).
  * - labour: with workers to spare, today's boats plus as many as they make crews for; short of them,
- *   today's boats; short for months (`shortage`), the berths' boats times the share of their jobs
- *   the traditional trades fill (`staffedShare`).
+ *   the berths' boats times the share of their jobs the traditional trades fill (`staffedShare`) -
+ *   a smaller fleet grows to that, a bigger one keeps its boats until the shortage has lasted
+ *   (`shortage`), then comes down to it.
  * Below today's boats for want of market or hands, the fleet loses one boat a month at most
  * (`shrinkAllowed` says whether this month's has gone).
  */
@@ -122,10 +123,19 @@ function typhoonShelterFleetCaps({
   const tonnesPerBoat = typeof TYPHOON_SHELTER_FLEET !== 'undefined' ? TYPHOON_SHELTER_FLEET.catchTonnesPerTrip : 1.5;
   const fishingMarket = hasMarket ? Math.floor(marketTonnes / tonnesPerBoat) : F.noMarketBoats + Math.floor(marketTonnes / tonnesPerBoat);
   const market = Math.floor(fishingMarket / Math.max(0.05, fishingShare));
-  const extra = Number.isFinite(labourGap) ? Math.max(0, Math.floor(labourGap / Math.max(1, avgCrew))) : Infinity;
-  const labour = shortage
-    ? Math.min(current, Math.floor(Math.max(0, berthTarget) * Math.max(0, Math.min(1, staffedShare))))
-    : current + extra;
+  // hands: with workers to spare, as many more boats as they make crews; short of them, the fishery
+  // gets the share of its berths the traditional trades fill - a fleet below that may still grow to
+  // it (a new shelter in a city short of hands is not left empty), one above it keeps its boats
+  // until the shortage has lasted, then loses one a month
+  const fairShare = Math.floor(Math.max(0, berthTarget) * Math.max(0, Math.min(1, staffedShare)));
+  let labour;
+  if (shortage) {
+    labour = fairShare;
+  } else if (!Number.isFinite(labourGap) || labourGap >= 0) {
+    labour = current + (Number.isFinite(labourGap) ? Math.floor(labourGap / Math.max(1, avgCrew)) : Infinity);
+  } else {
+    labour = Math.max(current, fairShare);
+  }
   const caps = { berths: Math.max(0, berthTarget), labour, market };
   let target = Math.min(caps.berths, caps.labour, caps.market);
   // the berths go at once (a boat cannot lie on water that is no longer a berth); the rest slowly
@@ -379,6 +389,21 @@ const TYPHOON_SHELTER_FISHING_SHARE = (() => {
   const all = working.reduce((s, m) => s + m.weight, 0);
   return working.filter((m) => m.fishing).reduce((s, m) => s + m.weight, 0) / Math.max(1, all);
 })();
+
+// 住家艇: people living aboard the house boats of the working shelters, counted in the city's
+// population (simulation.js updatePopulationAndPollution) - a household to a boat.
+const TYPHOON_SHELTER_RESIDENTS_PER_HOME = 4;
+function typhoonShelterResidents(boats = []) {
+  const homes = boats.filter((b) => typeof TYPHOON_SHELTER_FLEET !== 'undefined'
+    && TYPHOON_SHELTER_FLEET.models.find((m) => m.objectId === b.model)?.home).length;
+  return homes * TYPHOON_SHELTER_RESIDENTS_PER_HOME;
+}
+
+function getTyphoonShelterResidents() {
+  if (typeof getTyphoonShelterState !== 'function') return 0;
+  return getTyphoonShelterState().shelters.filter((p) => p.status === 'operational')
+    .reduce((n, p) => n + typhoonShelterResidents(p.fleet?.boats || []), 0);
+}
 
 // The yachts in the working shelters.
 function getTyphoonShelterYachtCount() {
@@ -656,6 +681,9 @@ const typhoonShelterFisheryApi = {
   settleTyphoonShelterFishery,
   approveTyphoonShelterFacility,
   setTyphoonShelterUse,
+  TYPHOON_SHELTER_RESIDENTS_PER_HOME,
+  typhoonShelterResidents,
+  getTyphoonShelterResidents,
   getTyphoonShelterYachtCount,
   getTyphoonShelterMooringFees,
   setTyphoonShelterAutoExpand,

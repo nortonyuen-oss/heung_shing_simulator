@@ -763,6 +763,8 @@ function updatePopulationAndPollution() {
       city.pollution += POLLUTION_NUCLEAR_PLANT;
     }
   });
+  // 住家艇: the families living aboard in the typhoon shelters (typhoon-shelter-fishery.js)
+  if (typeof getTyphoonShelterResidents === 'function') city.population += getTyphoonShelterResidents();
   if (typeof getMatureTreeCount === 'function' && city.pollution > 0) {
     const treeReduction = Math.min(
       city.pollution * TREE_POLLUTION_REDUCTION_MAX_RATIO,

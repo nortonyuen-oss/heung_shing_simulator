@@ -242,6 +242,13 @@ const SITE_FEATURE_LIST = {
 // ── Changelog ─────────────────────────────────────────────────────────────────
 const SITE_CHANGELOG = {
   "zh-HK": [
+    { version: "v4.18.0", date: "2026-10-09", dateLabel: "2026年10月9日", title: "黃金海岸", items: [
+      "避風塘旅遊：運作中嘅避風塘每月帶嚟遊客，海鮮酒家、遊艇、海鮮舫同酒店再加；「無處不旅遊」期間避風塘遊客多幾倍，議案費用改為按旅遊收入計，唔會再蝕本。",
+      "遊艇：避風塘面板揀用途——漁業優先、漁業同遊艇、遊艇優先、遊艇專用（100%）；遊艇日頭出海傍晚返嚟，每月交泊位費；新增飛橋遊艇、快艇、豪華快艇同帆船 4 款新遊艇。",
+      "新海事處建築：遊艇會（避風塘岸邊，景觀大升、較易變富豪地段、多兩成泊位畀遊艇）、珍寶海鮮舫（泊喺避風塘入面，綠／紅預覽框、右鍵轉 90 度、可以拆走）同黃金海岸酒店（4×4，要起喺遊艇會 8 格內）。",
+      "住家艇嘅居民計入人口；避風塘造價同維修費按公共工程重新定價，漁業稅按工業職位嘅九成計。",
+      "修正：「用途」選單撳開即刻收埋、落咗風球全部避風塘都停工、拆除工具令海變陸地、海洋公園摩天輪白底、貨櫃碼頭白色變透明。",
+    ] },
     { version: "v4.17.2", date: "2026-10-08", dateLabel: "2026年10月8日", title: "漁民樂", items: [
       "漁業入帳：漁船船員、舢舨同魚市場職位計入就業；每月按上月實際漁獲收漁業稅（跟市稅率）同魚市場佣金，預算多咗兩行；船隊上限跟泊位、人手同魚市場處理量，冇魚市場只容 4 艘船。",
       "自動擴建：船多咗會自動加建卸魚平台、水上油站同水上工場（可以喺面板關掉改為批准），油站令漁獲多一成，工場令風災維修快一倍、平三成。",
@@ -583,6 +590,13 @@ const SITE_CHANGELOG = {
 // title/items text.
 const SITE_CHANGELOG_TRANSLATIONS = {
   "zh-TW": {
+    "v4.18.0": { title: "黃金海岸", items: [
+      "避風塘旅遊：運作中的避風塘每月帶來遊客，海鮮酒家、遊艇、海鮮舫與酒店另外加計；「無處不旅遊」期間避風塘遊客多出數倍，議案費用改為依旅遊收入計算，不會再虧本。",
+      "遊艇：在避風塘面板選擇用途——漁業優先、漁業與遊艇、遊艇優先、遊艇專用（100%）；遊艇白天出海、傍晚回港，每月繳泊位費；新增飛橋遊艇、快艇、豪華快艇與帆船 4 款新遊艇。",
+      "新海事處建築：遊艇會（避風塘岸邊，景觀大幅提升、較易成為富豪地段、多兩成泊位給遊艇）、珍寶海鮮舫（停泊在避風塘內，綠／紅預覽框、右鍵旋轉 90 度、可以拆除）與黃金海岸酒店（4×4，須建在遊艇會 8 格內）。",
+      "住家艇的居民計入人口；避風塘造價與維修費依公共工程重新定價，漁業稅以工業職位的九成計算。",
+      "修正：「用途」選單一打開就收起、解除颱風訊號後所有避風塘都停工、拆除工具使海面變陸地、海洋公園摩天輪白底、貨櫃碼頭白色變透明。",
+    ] },
     "v4.17.2": { title: "漁民樂", items: [
       "漁業入帳：漁船船員、舢舨與魚市場職位計入就業；每月依上月實際漁獲收取漁業稅（依市稅率）與魚市場佣金，預算多了兩行；船隊上限依泊位、人手與魚市場處理量，沒有魚市場只容 4 艘船。",
       "自動擴建：船多了會自動加建卸魚平台、水上加油站與水上工場（可在面板關閉改為批准），加油站使漁獲多一成，工場使風災維修快一倍、省三成。",
@@ -917,6 +931,13 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   en: {
+    "v4.18.0": { title: "Gold Coast", items: [
+      "Shelter tourism: a working shelter brings visitors every month, with more for its seafood restaurants, yachts, floating restaurant and hotel; during the Tour Everywhere Campaign shelter visitors multiply, and the campaign is now priced on tourism income so it no longer runs at a loss.",
+      "Yachts: choose a shelter's use in its panel - fishing first, fishing and yachts, yachts first or a 100% marina; yachts go out by day and come back in the evening, paying a monthly mooring fee. Four new yachts: a flybridge cruiser, a bowrider, an express cruiser and a sailing yacht.",
+      "New Marine Department buildings: the yacht club (on a shelter's waterfront - a strong view, a better chance of a millionaires' district, a fifth more berths for yachts), the Jumbo floating restaurant (moored inside a shelter, with a green/red preview box, right-click to turn it 90 degrees, and the bulldozer to tow it away) and the Gold Coast Hotel (4x4, within 8 tiles of a yacht club).",
+      "House-boat families count in the population; shelter works are repriced as public works and the fishery is taxed at nine tenths of an industrial job.",
+      "Fixes: the use dropdown closing as soon as it opened, every shelter waiting to build after a typhoon, the bulldozer turning sea into land, the white left inside Ocean Park's Ferris wheel, and the container port's whites showing see-through.",
+    ] },
     "v4.17.2": { title: "Fishermen's Joy", items: [
       "The fishery joins the economy: fishing crews, sampan boatmen and fish market hands count as jobs; each month a fishery tax (at the city's tax rate) and the fish markets' commission are taken on the last month's actual catch, in two new budget lines; fleets are held to their berths, hands and fish market throughput, and a shelter with no fish market keeps only 4 boats.",
       "Demand-driven expansion: busy shelters add landing platforms, floating fuel stations and floating workshops on their own (or as suggestions to approve, from the panel); a fuel station adds a tenth to the catch, a workshop halves storm repair time and cuts its cost by 30%.",
@@ -1251,6 +1272,13 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   ja: {
+    "v4.18.0": { title: "ゴールドコースト", items: [
+      "避風塘の観光：稼働中の避風塘は毎月観光客を呼び、海鮮レストラン、ヨット、海上レストラン、ホテルでさらに増えます。「どこでも観光」キャンペーン中は避風塘の観光客が数倍になり、キャンペーン費用は観光収入に応じた額になって赤字になりません。",
+      "ヨット：避風塘のパネルで用途を選択――漁業優先、漁業とヨット、ヨット優先、ヨット専用（100%）。ヨットは昼に出港して夕方に戻り、毎月係留料を払います。フライブリッジ艇、ボウライダー、エクスプレスクルーザー、セーリングヨットの4種類を追加。",
+      "海事処の新しい建物：ヨットクラブ（避風塘の岸辺に。景観が大きく向上し、富豪地区になりやすく、ヨットの係留枠が2割増）、ジャンボ海上レストラン（避風塘内に係留。緑／赤のプレビュー枠、右クリックで90度回転、解体も可能）、ゴールドコーストホテル（4×4、ヨットクラブから8マス以内）。",
+      "住家艇の住民が人口に計上されます。避風塘の工事費と維持費は公共事業として見直し、漁業税は工業雇用の9割で計算します。",
+      "修正：用途メニューが開いてすぐ閉じる、台風後にすべての避風塘が工事待ちになる、解体ツールで海が陸地になる、海洋公園の観覧車に白い背景が残る、コンテナ港の白い部分が透ける問題。",
+    ] },
     "v4.17.2": { title: "漁民楽", items: [
       "漁業が経済に参加：漁船の乗組員、サンパンの船頭、魚市場の作業員が雇用に計上され、毎月、前月の実際の漁獲に対して漁業税（市の税率）と魚市場手数料が予算の新しい2行に入ります。船団の上限は係留数・人手・魚市場の処理量で決まり、魚市場がない避風塘は4隻まで。",
       "需要に応じた増設：忙しい避風塘は荷揚げ台、水上給油所、水上作業場を自動で増設（パネルで承認制に切り替え可）。給油所で漁獲が1割増え、作業場で台風後の修理期間が半分、費用が3割減ります。",
@@ -1610,8 +1638,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.17.2 — 【漁民樂】",
-      versionDesc: "4.17.2 更新：避風塘漁業正式入帳——漁民職位、每月漁業稅同魚市場佣金、船多咗自動加建油站同工場；卸貨區換新圖，貨車停入車位上落貨；浮橋跟浪起伏，打風浪更大；街名牌跟路政署擺法。",
+      versionBadge: "v4.18.0 — 【黃金海岸】",
+      versionDesc: "4.18.0 更新：避風塘變埋旅遊景點——遊艇會、遊艇專用避風塘同 4 款新遊艇，泊一艘珍寶海鮮舫，遊艇會旁邊起黃金海岸酒店；避風塘每月帶嚟遊客，住家艇嘅人計入人口。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感嘅城市建設遊戲。起街道、規劃社區、經營自己嘅香城巴士公司、處理議會同天氣，再睇住一座有性格嘅香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1710,8 +1738,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.17.2 — 【漁民樂】",
-      versionDesc: "4.17.2 更新：避風塘漁業正式入帳——漁民職位、每月漁業稅與魚市場佣金、船多了自動加建加油站與工場；卸貨區換新圖，貨車停入車位上下貨；浮橋隨浪起伏，颱風時浪更大；路名牌依路政署方式擺放。",
+      versionBadge: "v4.18.0 — 【黃金海岸】",
+      versionDesc: "4.18.0 更新：避風塘成為旅遊景點——遊艇會、遊艇專用避風塘與 4 款新遊艇，停泊一艘珍寶海鮮舫，遊艇會旁興建黃金海岸酒店；避風塘每月帶來遊客，住家艇居民計入人口。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感的城市建設遊戲。興建街道、規劃社區、經營自己的香城公車公司、處理議會與天氣，看著一座有個性的香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1810,8 +1838,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "The City of Heung Shing",
       title: "The City of Heung Shing",
-      versionBadge: "v4.17.2 — Fishermen's Joy",
-      versionDesc: "4.17.2 update: the shelters' fishery joins the economy - fishing jobs, a monthly fishery tax and fish market commission, and fuel stations and workshops added as fleets grow; a new loading bay where trucks load in parking bays; walkways ride the swell, harder in a typhoon; street name plates placed as Hong Kong places them.",
+      versionBadge: "v4.18.0 — Gold Coast",
+      versionDesc: "4.18.0 update: the typhoon shelters become a sight to see - a yacht club, marinas and four new yachts, the Jumbo floating restaurant moored in a shelter and the Gold Coast Hotel beside the club; shelters bring visitors every month, and house-boat families count in the population.",
       lede: "A city-building game inspired by Hong Kong life and made in tribute to SimCity 2000. Build streets, shape neighbourhoods, run your own Heung Shing Bus Company, navigate council politics and weather, then watch a city with real personality grow.",
       freeLabel: "Completely free · macOS + Windows · Local saves",
       downloadBtn: "【Free Download】",
@@ -1911,8 +1939,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.17.2 — 漁民楽",
-      versionDesc: "4.17.2 更新：避風塘の漁業が経済に参加。漁業の雇用、毎月の漁業税と魚市場手数料、船が増えると給油所や作業場を自動で増設。荷捌き場を新しい駐車場に、トラックは駐車枠で荷積み。浮き桟橋が波に揺れ、台風時はさらに大きく。道路名標識は香港の設置方法どおりに。",
+      versionBadge: "v4.18.0 — ゴールドコースト",
+      versionDesc: "4.18.0 更新：避風塘が観光名所に。ヨットクラブ、ヨット専用の避風塘と新しいヨット4種類、避風塘に係留するジャンボ海上レストラン、ヨットクラブ隣のゴールドコーストホテル。避風塘が毎月観光客を呼び、住家艇の住民も人口に計上されます。",
       lede: "香港の都市生活から着想を得た、SimCity 2000へのオマージュとなる都市建設ゲーム。道路を築き、地区を計画し、自分だけの香城バス会社を経営し、議会や天候に向き合いながら、個性ある香城の成長を見守ります。",
       freeLabel: "完全無料 · macOS + Windows · ローカルセーブ",
       downloadBtn: "【無料ダウンロード】",

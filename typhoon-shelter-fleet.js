@@ -120,10 +120,11 @@ function tfHash(...parts) {
 
 // Tiles boats cannot lie on or pass through: piers, walkways, landing stages, buoys.
 const TYPHOON_SHELTER_BOAT_BLOCKERS = Object.freeze(['pier', 'floatingPier', 'pontoon', 'mooringBuoy', 'navBuoyRed', 'navBuoyGreen',
-  'landingPlatform', 'gasStation', 'workshop']);
+  'landingPlatform', 'gasStation', 'workshop', 'floatingRestaurant']);
 
 function typhoonShelterBlockedTiles(worksItems = []) {
-  return new Set(worksItems.filter((i) => TYPHOON_SHELTER_BOAT_BLOCKERS.includes(i.kind)).map((i) => tfKey(i.row, i.col)));
+  const tilesOf = typeof typhoonShelterWorkTiles === 'function' ? typhoonShelterWorkTiles : (i) => [tfKey(i.row, i.col)];
+  return new Set(worksItems.filter((i) => TYPHOON_SHELTER_BOAT_BLOCKERS.includes(i.kind)).flatMap(tilesOf));
 }
 
 // The berths (see planTyphoonShelterMooring).

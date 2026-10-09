@@ -59,9 +59,23 @@ const TYPHOON_SHELTER_FACILITIES = Object.freeze({
   landingPlatform: Object.freeze({ objectId: 'floatingPier3', cost: 1500, upkeep: 12, label: '卸魚平台' }),
   gasStation: Object.freeze({ objectId: 'floatingGasStation', cost: 4000, upkeep: 30, label: '水上油站', minBoats: 12, catchBonus: 0.1 }),
   workshop: Object.freeze({ objectId: 'floatingWorkshop', cost: 3000, upkeep: 24, label: '水上工場', minBoats: 16, minDamaged: 3, repairDays: 0.5, repairBill: 0.7 }),
+  // the player's, never added on its own (placeTyphoonShelterFloatingRestaurant)
+  floatingRestaurant: Object.freeze({ objectId: 'floatingRestaurant1', cost: 20000, upkeep: 300, label: '海鮮舫', manual: true }),
+});
+
+// 海鮮舫: one to a shelter, moored on 4 x 3 tiles of open water - its 76 m hull and three-storey
+// superstructure fill the three tiles between two walkways; a landmark - tourists, a view, a
+// restaurant's takings and its staff
+const TYPHOON_SHELTER_FLOATING_RESTAURANT = Object.freeze({
+  cols: 4, rows: 3,
+  visitors: 3000,               // a month, three times as many while 「無處不旅遊」 runs
+  attractiveness: 6,
+  landValueBonus: 0.08, landValueRadius: 10,
+  revenue: 500,                 // a month, to the treasury (landmarks line)
+  jobs: 120,                    // commercial
 });
 const TYPHOON_SHELTER_FACILITY_KINDS = Object.freeze(Object.keys(TYPHOON_SHELTER_FACILITIES));
-const TYPHOON_SHELTER_FACILITY_ORDER = Object.freeze(['landingPlatform', 'gasStation', 'workshop']);
+const TYPHOON_SHELTER_FACILITY_ORDER = Object.freeze(['landingPlatform', 'gasStation', 'workshop', 'floatingRestaurant']);
 
 // ---------------------------------------------------------------------------
 // pure rules (tested in test/typhoon-shelter-fishery.test.js)
@@ -227,7 +241,11 @@ function normalizeTyphoonShelterFishery(raw) {
   const facilities = (Array.isArray(raw?.facilities) ? raw.facilities : [])
     .filter((f) => TYPHOON_SHELTER_FACILITY_KINDS.includes(f?.kind) && Number.isFinite(f.row) && Number.isFinite(f.col))
     .slice(0, 24)
-    .map((f) => ({ kind: f.kind, row: Math.round(f.row), col: Math.round(f.col), facing: ['n', 'e', 's', 'w'].includes(f.facing) ? f.facing : 'n' }));
+    .map((f) => ({
+      kind: f.kind, row: Math.round(f.row), col: Math.round(f.col), facing: ['n', 'e', 's', 'w'].includes(f.facing) ? f.facing : 'n',
+      ...(Number.isFinite(f.cols) && Number.isFinite(f.rows)
+        ? { cols: Math.max(1, Math.min(6, Math.round(f.cols))), rows: Math.max(1, Math.min(6, Math.round(f.rows))) } : {}),
+    }));
   return {
     autoExpand: raw?.autoExpand !== false,
     shortageMonths: Math.max(0, Math.min(99, Math.round(Number(raw?.shortageMonths) || 0))),
@@ -334,9 +352,84 @@ function getTyphoonShelterCampaignMultiplier(effects, monthIndex) {
 }
 
 // Visitors a month the working shelters can take (their restaurants included).
-function typhoonShelterTouristCapacity({ shelters = 0, restaurants = 0, yachts = 0, multiplier = 1 }) {
+function typhoonShelterTouristCapacity({ shelters = 0, restaurants = 0, yachts = 0, floatingRestaurants = 0, multiplier = 1 }) {
   const T = TYPHOON_SHELTER_TOURISM;
-  return Math.round((shelters * T.shelterVisitors + restaurants * T.restaurantVisitors + yachts * T.yachtVisitors) * multiplier);
+  return Math.round((shelters * T.shelterVisitors + restaurants * T.restaurantVisitors + yachts * T.yachtVisitors
+    + floatingRestaurants * TYPHOON_SHELTER_FLOATING_RESTAURANT.visitors) * multiplier);
+}
+
+// The 海鮮舫 moored in the working shelters: [{ planId, row, col, cols, rows }].
+function getTyphoonShelterFloatingRestaurants() {
+  if (typeof getTyphoonShelterState !== 'function') return [];
+  return getTyphoonShelterState().shelters.filter((p) => p.status === 'operational').flatMap((p) => (p.works?.items || [])
+    .filter((i) => i.kind === 'floatingRestaurant' && i.state === 'done')
+    .map((i) => ({ planId: p.id, row: i.row, col: i.col, cols: i.cols || 4, rows: i.rows || 3 })));
+}
+
+// Their landmark effects: attractiveness (council-effects.js), takings (city-state.js) and the view
+// round them (overlay-controls.js computeLandValueInfluenceMaps).
+function getTyphoonShelterAttractivenessBonus() {
+  return getTyphoonShelterFloatingRestaurants().length * TYPHOON_SHELTER_FLOATING_RESTAURANT.attractiveness;
+}
+function getTyphoonShelterLandmarkRevenue() {
+  return getTyphoonShelterFloatingRestaurants().length * TYPHOON_SHELTER_FLOATING_RESTAURANT.revenue;
+}
+function getTyphoonShelterLandValueSources() {
+  const F = TYPHOON_SHELTER_FLOATING_RESTAURANT;
+  return getTyphoonShelterFloatingRestaurants().map((r) => ({
+    row: Math.round(r.row + (r.rows - 1) / 2), col: Math.round(r.col + (r.cols - 1) / 2), radius: F.landValueRadius, strength: F.landValueBonus,
+  }));
+}
+
+/**
+ * Where a 海鮮舫 can moor with (row, col) under it: { row, col, cols, rows } or null - the 4 x 2 (or
+ * 2 x 4) of the shelter's basin covering that tile with no work, no channel and no other on it.
+ */
+function findTyphoonShelterFloatingRestaurantSite({ row, col, basin, channel, items }) {
+  const F = TYPHOON_SHELTER_FLOATING_RESTAURANT;
+  const key = (r, c) => `${r}:${c}`;
+  const used = new Set((items || []).filter((i) => i.state !== 'demolishing')
+    .flatMap((i) => (typeof typhoonShelterWorkTiles === 'function' ? typhoonShelterWorkTiles(i) : [key(i.row, i.col)])));
+  for (const [cols, rows] of [[F.cols, F.rows], [F.rows, F.cols]]) {
+    for (let dr = 0; dr < rows; dr++) {
+      for (let dc = 0; dc < cols; dc++) {
+        const r0 = row - dr; const c0 = col - dc;
+        let ok = true;
+        for (let r = r0; r < r0 + rows && ok; r++) for (let c = c0; c < c0 + cols && ok; c++) {
+          const k = key(r, c);
+          if (!basin.has(k) || channel?.has(k) || used.has(k)) ok = false;
+        }
+        if (ok) return { row: r0, col: c0, cols, rows };
+      }
+    }
+  }
+  return null;
+}
+
+// The 海事處 menu's 海鮮舫: moor one in the shelter under (row, col).
+function placeTyphoonShelterFloatingRestaurant(scene, row, col) {
+  const say = tsFisheryT;
+  const state = getTyphoonShelterState();
+  const analyses = getTyphoonShelterAnalyses();
+  const plan = state.shelters.find((p) => analyses.get(p.id)?.basin.has(`${row}:${col}`));
+  const warn = (key, fallback) => { if (typeof showToast === 'function') showToast(say(key, fallback), 'warning'); return false; };
+  if (!plan) return warn('typhoonShelter.floatingRestaurant.notInShelter', '海鮮舫要泊喺避風塘入面。');
+  if (plan.status !== 'operational') return warn('typhoonShelter.floatingRestaurant.notOperational', '避風塘要運作中先可以泊海鮮舫。');
+  if ((plan.works?.items || []).some((i) => i.kind === 'floatingRestaurant')) return warn('typhoonShelter.floatingRestaurant.one', '每個避風塘只可以泊一艘海鮮舫。');
+  if (typeof isTyphoonShelterStormFreeze === 'function' && isTyphoonShelterStormFreeze(state.storm)) return warn('typhoonShelter.floatingRestaurant.storm', '打風期間唔可以泊海鮮舫。');
+  const analysis = analyses.get(plan.id);
+  const site = findTyphoonShelterFloatingRestaurantSite({ row, col, basin: analysis.basin, channel: analysis.channel, items: plan.works?.items });
+  if (!site) return warn('typhoonShelter.floatingRestaurant.noRoom', '呢度唔夠位：海鮮舫要 4 × 3 格開闊水面，唔可以擋航道或者浮橋。');
+  const cost = TYPHOON_SHELTER_FACILITIES.floatingRestaurant.cost;
+  if (typeof spendBudget === 'function' && !spendBudget(cost)) return warn('toast.notEnoughFunds', '市庫唔夠錢。');
+  const item = { key: `floatingRestaurant:${site.row}:${site.col}`, kind: 'floatingRestaurant', row: site.row, col: site.col, cols: site.cols, rows: site.rows, facing: 'n', state: 'done' };
+  const fishery = normalizeTyphoonShelterFishery(plan.fishery);
+  fishery.facilities = [...fishery.facilities, { kind: 'floatingRestaurant', row: site.row, col: site.col, cols: site.cols, rows: site.rows, facing: 'n' }];
+  setTyphoonShelterState({ ...state, shelters: state.shelters.map((p) => (p.id === plan.id ? { ...p, works: { ...p.works, items: [...(p.works?.items || []), item] }, fishery } : p)) });
+  if (typeof showToast === 'function') showToast(say('typhoonShelter.floatingRestaurant.built', `「${plan.name}」泊咗一艘海鮮舫。`, { name: plan.name }), 'success');
+  if (typeof updateHUD === 'function') updateHUD();
+  if (typeof syncTyphoonShelterFacilitySprites === 'function') syncTyphoonShelterFacilitySprites(scene);
+  return true;
 }
 
 function getTyphoonShelterTouristCapacity() {
@@ -346,7 +439,8 @@ function getTyphoonShelterTouristCapacity() {
   const markets = getTyphoonShelterMarketsByShelter();
   const restaurants = shelters.reduce((n, p) => n + (markets.get(p.id)?.restaurants || 0), 0);
   const monthIndex = typeof getCityMonthIndex === 'function' ? getCityMonthIndex() : 0;
-  return typhoonShelterTouristCapacity({ shelters: shelters.length, restaurants, yachts: getTyphoonShelterYachtCount(), multiplier: getTyphoonShelterCampaignMultiplier(city.temporaryEffects, monthIndex) });
+  return typhoonShelterTouristCapacity({ shelters: shelters.length, restaurants, yachts: getTyphoonShelterYachtCount(),
+    floatingRestaurants: getTyphoonShelterFloatingRestaurants().length, multiplier: getTyphoonShelterCampaignMultiplier(city.temporaryEffects, monthIndex) });
 }
 
 // The city's fishery jobs (simulation.js updateDemand): { traditional, commercial, byShelter }.
@@ -362,6 +456,9 @@ function getTyphoonShelterFisheryJobs() {
       tenders: getTyphoonShelterTenderCount(plan),
       buildings: { fish_market: m?.markets.length || 0, fish_loading_bay: m?.bays || 0, seafood_restaurant: m?.restaurants || 0 },
     });
+    // a 海鮮舫's kitchen and floor staff
+    jobs.commercial += (plan.works?.items || []).filter((i) => i.kind === 'floatingRestaurant' && i.state === 'done').length
+      * TYPHOON_SHELTER_FLOATING_RESTAURANT.jobs;
     out.byShelter[plan.id] = jobs;
     out.traditional += jobs.traditional;
     out.commercial += jobs.commercial;
@@ -684,6 +781,13 @@ const typhoonShelterFisheryApi = {
   settleTyphoonShelterFishery,
   approveTyphoonShelterFacility,
   setTyphoonShelterUse,
+  TYPHOON_SHELTER_FLOATING_RESTAURANT,
+  findTyphoonShelterFloatingRestaurantSite,
+  placeTyphoonShelterFloatingRestaurant,
+  getTyphoonShelterFloatingRestaurants,
+  getTyphoonShelterAttractivenessBonus,
+  getTyphoonShelterLandmarkRevenue,
+  getTyphoonShelterLandValueSources,
   TYPHOON_SHELTER_RESIDENTS_PER_HOME,
   typhoonShelterResidents,
   getTyphoonShelterResidents,

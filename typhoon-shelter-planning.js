@@ -1171,6 +1171,18 @@ function syncTyphoonShelterFacilitySprites(scene = typeof activeScene !== 'undef
           return;
         }
       }
+      // the 海鮮舫's art is one view: its long side running down or up the screen - the one that
+      // matches how its footprint lies at this rotation
+      if (item.kind === 'floatingRestaurant') {
+        const along = (item.cols || 1) >= (item.rows || 1) ? 'e' : 's';
+        const screen = getTyphoonShelterScreenFacing(along, typeof mapRotation === 'number' ? mapRotation : 0);
+        wanted.set(`${plan.id}|${item.key}`, {
+          ...base,
+          objectId: screen === 'se' || screen === 'nw' ? 'floatingRestaurant1' : 'floatingRestaurant2',
+          footprintOverride: { cols: item.cols || 4, rows: item.rows || 3 },
+        });
+        return;
+      }
       const n = perTile[item.kind];
       if (!n || n === 1) { wanted.set(`${plan.id}|${item.key}`, base); return; }
       for (let i = 0; i < n; i++) {

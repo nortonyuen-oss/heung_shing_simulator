@@ -934,6 +934,17 @@ function computeLandValueInfluenceMaps() {
       }
     }
   });
+  // the 海鮮舫 moored in the typhoon shelters (typhoon-shelter-fishery.js) lift the waterfront round them
+  (typeof getTyphoonShelterLandValueSources === 'function' ? getTyphoonShelterLandValueSources() : []).forEach((src) => {
+    for (let dr = -src.radius; dr <= src.radius; dr++) {
+      for (let dc = -src.radius; dc <= src.radius; dc++) {
+        const r = src.row + dr, c = src.col + dc;
+        const dist = Math.abs(dr) + Math.abs(dc);
+        if (!isInsideMap(r, c) || dist > src.radius) continue;
+        landmarkBonus[r][c] = Math.min(0.3, landmarkBonus[r][c] + src.strength * (1 - dist / Math.max(1, src.radius)));
+      }
+    }
+  });
   return { nuisance, landmarkBonus };
 }
 

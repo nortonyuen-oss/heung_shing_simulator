@@ -44,9 +44,21 @@ const TYPHOON_SHELTER_WORK_KINDS = Object.freeze({
   landingPlatform: Object.freeze({ objectId: 'floatingPier3', cost: 1500, upkeep: 12, label: '卸魚平台' }),
   gasStation: Object.freeze({ objectId: 'floatingGasStation', cost: 4000, upkeep: 30, label: '水上油站' }),
   workshop: Object.freeze({ objectId: 'floatingWorkshop', cost: 3000, upkeep: 24, label: '水上工場' }),
+  // 海鮮舫: a floating restaurant the player moors in the shelter (typhoon-shelter-fishery.js), 76 m
+  // long - four tiles by three (item.cols x item.rows)
+  floatingRestaurant: Object.freeze({ objectId: 'floatingRestaurant1', cost: 20000, upkeep: 300, label: '海鮮舫' }),
 });
 // the works that stand in the water and take the tile they are on from the boats
-const TYPHOON_SHELTER_SOLID_WORKS = Object.freeze(['pier', 'floatingPier', 'pontoon', 'landingPlatform', 'gasStation', 'workshop']);
+const TYPHOON_SHELTER_SOLID_WORKS = Object.freeze(['pier', 'floatingPier', 'pontoon', 'landingPlatform', 'gasStation', 'workshop', 'floatingRestaurant']);
+
+// The tiles a work covers: its own, or its whole cols x rows footprint (the 海鮮舫).
+function typhoonShelterWorkTiles(item) {
+  const cols = Math.max(1, Math.round(Number(item?.cols) || 1));
+  const rows = Math.max(1, Math.round(Number(item?.rows) || 1));
+  const tiles = [];
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) tiles.push(twKey(item.row + r, item.col + c));
+  return tiles;
+}
 const TYPHOON_SHELTER_DEMOLISH = Object.freeze({ cost: 10, label: '拆卸' });
 const TYPHOON_SHELTER_ROAD_REACH = 3;          // tiles from the pier's landing to a road
 // Floating walkways (浮橋): like a fishing village's or a marina's, each runs straight out from the
@@ -320,10 +332,11 @@ function layoutTyphoonShelterWorks(plan, analysis, ctx = {}) {
   // the facilities the shelter has added for itself (Phase 5) stay while their water is in the basin
   // and nothing else has been laid there; before the buoys, which keep off them
   (plan.fishery?.facilities || []).forEach((f) => {
-    const k = twKey(f.row, f.col);
-    if (!analysis.basin.has(k) || used.has(k) || !TYPHOON_SHELTER_WORK_KINDS[f.kind]) return;
-    works.push({ key: `${f.kind}:${f.row}:${f.col}`, kind: f.kind, row: f.row, col: f.col, facing: f.facing || 'n' });
-    used.add(k);
+    const tiles = typhoonShelterWorkTiles(f);
+    if (!TYPHOON_SHELTER_WORK_KINDS[f.kind] || tiles.some((k) => !analysis.basin.has(k) || used.has(k))) return;
+    works.push({ key: `${f.kind}:${f.row}:${f.col}`, kind: f.kind, row: f.row, col: f.col, facing: f.facing || 'n',
+      ...(f.cols ? { cols: f.cols, rows: f.rows } : {}) });
+    tiles.forEach((k) => used.add(k));
   });
 
   // mooring buoys on the water the boats leave free: not a lane, not a berth (see
@@ -360,7 +373,7 @@ function layoutTyphoonShelterWorks(plan, analysis, ctx = {}) {
  * Returns { lanes: Set, slots: [{ key, tiles, size, axis, centre, access: [lane keys] }] }.
  */
 function planTyphoonShelterMooring(analysis, worksItems = []) {
-  const solid = new Set(worksItems.filter((i) => TYPHOON_SHELTER_SOLID_WORKS.includes(i.kind)).map((i) => twKey(i.row, i.col)));
+  const solid = new Set(worksItems.filter((i) => TYPHOON_SHELTER_SOLID_WORKS.includes(i.kind)).flatMap(typhoonShelterWorkTiles));
   const buoys = new Set(worksItems.filter((i) => i.kind === 'mooringBuoy').map((i) => twKey(i.row, i.col)));
   const free = new Set([...analysis.basin].filter((k) => !solid.has(k)));
   const near = (k) => { const [r, c] = twParse(k); return Object.values(TW_DIRS).map(([dr, dc]) => twKey(r + dr, c + dc)); };
@@ -553,6 +566,7 @@ function normalizeTyphoonShelterWorks(raw) {
 
 const typhoonShelterWorksApi = {
   TYPHOON_SHELTER_SOLID_WORKS,
+  typhoonShelterWorkTiles,
   TYPHOON_SHELTER_WORK_KINDS,
   TYPHOON_SHELTER_DEMOLISH,
   TYPHOON_SHELTER_ROAD_REACH,

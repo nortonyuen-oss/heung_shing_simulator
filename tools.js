@@ -86,6 +86,8 @@ function handleNewTool(scene, tile) {
   if (selectedTool === 'sports-ground')  return placeSelectedSportsGround(scene, row, col);
   if (selectedTool === 'tree')           return plantTreeWithTool(scene, row, col);
   if (selectedTool === 'harbor')         return placeHarborBuilding(scene, row, col);
+  // 海鮮舫: moored on a typhoon shelter's water (typhoon-shelter-fishery.js)
+  if (selectedTool === 'floating-restaurant') return placeTyphoonShelterFloatingRestaurant(scene, row, col);
   if (LANDMARK_TOOL_BUILDING_TYPES[selectedTool] && selectedTool !== 'harbor') {
     return placeInfraBuilding(scene, row, col, LANDMARK_TOOL_BUILDING_TYPES[selectedTool]);
   }

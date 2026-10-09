@@ -495,6 +495,8 @@ const TYPHOON_SHELTER_FLOATERS = Object.freeze({
   // the fuel station and the workshop: big moored hulls
   floatingGasStation: Object.freeze({ heave: 0.5, roll: 0.3, lengthM: 12 }),
   floatingWorkshop: Object.freeze({ heave: 0.5, roll: 0.3, lengthM: 11 }),
+  // the 海鮮舫: a 76 m hulk, barely moving
+  floatingRestaurant: Object.freeze({ heave: 0.25, roll: 0, lengthM: 76 }),
 });
 
 function getTyphoonShelterFloatProfile(objectId) {

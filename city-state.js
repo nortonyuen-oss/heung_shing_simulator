@@ -1036,7 +1036,9 @@ function computeBudgetSnapshot(options = {}) {
   const fishMarketIncome = Math.max(0, Number(fisheryMonth?.commission || 0) + Number(fisheryMonth?.fresh || 0));
   // the yachts' mooring fees in the shelters (typhoon-shelter-fishery.js)
   const marinaIncome = typeof getTyphoonShelterMooringFees === 'function' ? getTyphoonShelterMooringFees() : 0;
-  const landmarkIncome = landmarkFinancials.revenue;
+  // with the 海鮮舫's takings (typhoon-shelter-fishery.js); their upkeep is on the shelters' line
+  const landmarkIncome = landmarkFinancials.revenue
+    + (typeof getTyphoonShelterLandmarkRevenue === 'function' ? getTyphoonShelterLandmarkRevenue() : 0);
   const landmarkUpkeep = landmarkFinancials.upkeep;
   // Transport Mode owns a separate OpenTTD-style company treasury. Fare
   // revenue and bus/depot costs are settled in transport-expansion.js and

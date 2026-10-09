@@ -148,3 +148,27 @@ test('住家艇: a household of four aboard each house boat', () => {
   assert.equal(TYPHOON_SHELTER_RESIDENTS_PER_HOME, 4);
   assert.equal(typhoonShelterResidents([]), 0);
 });
+
+test('海鮮舫: a 4 x 2 of open basin under the click, clear of the channel and the works', () => {
+  const { findTyphoonShelterFloatingRestaurantSite, typhoonShelterTouristCapacity, TYPHOON_SHELTER_FLOATING_RESTAURANT: F } = fishery;
+  require('../typhoon-shelter-works.js');
+  const basin = new Set();
+  for (let r = 0; r < 6; r++) for (let c = 0; c < 8; c++) basin.add(`${r}:${c}`);
+  const channel = new Set(['5:0', '5:1', '5:2', '5:3', '5:4', '5:5', '5:6', '5:7']);
+  const items = [{ kind: 'pontoon', row: 0, col: 0, state: 'done' }];
+  const site = findTyphoonShelterFloatingRestaurantSite({ row: 2, col: 3, basin, channel, items });
+  assert.ok(site);
+  const tiles = [];
+  for (let r = site.row; r < site.row + site.rows; r++) for (let c = site.col; c < site.col + site.cols; c++) tiles.push(`${r}:${c}`);
+  assert.equal(tiles.length, F.cols * F.rows);
+  assert.ok(tiles.includes('2:3'), 'under the click');
+  assert.ok(tiles.every((k) => basin.has(k) && !channel.has(k) && k !== '0:0'));
+  // a strip too narrow either way: nowhere
+  assert.equal(findTyphoonShelterFloatingRestaurantSite({ row: 0, col: 0, basin: new Set(['0:0', '0:1', '0:2']), channel: new Set(), items: [] }), null);
+  // its tourists, three times over in a campaign
+  assert.equal(typhoonShelterTouristCapacity({ floatingRestaurants: 1 }), 3000);
+  assert.equal(typhoonShelterTouristCapacity({ floatingRestaurants: 1, multiplier: 3 }), 9000);
+  // saved with its footprint
+  assert.deepEqual(normalizeTyphoonShelterFishery({ facilities: [{ kind: 'floatingRestaurant', row: 2, col: 1, cols: 4, rows: 2 }] }).facilities,
+    [{ kind: 'floatingRestaurant', row: 2, col: 1, facing: 'n', cols: 4, rows: 2 }]);
+});

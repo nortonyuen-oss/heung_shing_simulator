@@ -124,7 +124,9 @@ function updateCityAttractivenessMetrics() {
   const ridicule = councilEffectClamp(city.cityRidicule, 0, 100);
   const memeBonus = ridicule <= 45 ? ridicule * 0.12 : Math.max(0, 5.4 - (ridicule - 45) * 0.05);
   const reputationPenalty = Math.max(0, ridicule - 65) * 0.25;
-  const landmarkBonus = typeof sumSpecialBuildingEffect === 'function' ? sumSpecialBuildingEffect('attractivenessBonus') : 0;
+  const landmarkBonus = (typeof sumSpecialBuildingEffect === 'function' ? sumSpecialBuildingEffect('attractivenessBonus') : 0)
+    // the 海鮮舫 moored in the typhoon shelters (typhoon-shelter-fishery.js)
+    + (typeof getTyphoonShelterAttractivenessBonus === 'function' ? getTyphoonShelterAttractivenessBonus() : 0);
 
   city.cityAttractiveness = councilEffectClamp(
     100 * (happiness * 0.25 + safety * 0.16 + environment * 0.17 + access * 0.12 + economy * 0.18 + culture * 0.12)

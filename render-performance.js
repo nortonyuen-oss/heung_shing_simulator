@@ -36,19 +36,24 @@ function installVertexUploadShim(renderer) {
 // Only ~100 objects actually change depth in a few seconds, so the sort now works on those
 // alone. The depth setter of every class in the list is wrapped to record which objects
 // changed (and to ignore a set to the same value), as is the list's add. At sort time the
-// recorded objects are pulled out in one pass - the rest of the list is still sorted - and
-// put back by binary search. Even a scan of the whole list is slow here: reading _depth off
+// recorded objects are pulled out - the rest of the list is still sorted - and put back: a
+// few by binary search, many (a zoom-out brings ~2,000 terrain tiles back into the list at
+// once) by one merge. Even a scan of the whole list is slow here: reading _depth off
 // ~10,000 objects of a dozen classes is a megamorphic load each, ~3 ms a scan under load.
-// Anything else (too many moved objects, a sort queued for a reason not seen) falls back to
-// an insertion sort over the list, and past ADAPTIVE_DEPTH_SORT_MAX_DESCENTS out-of-order
-// neighbours (a view rotation, a rebuild) to Phaser's own merge sort.
+// Anything else (a sort queued for a reason not seen) falls back to an insertion sort over
+// the list, and past ADAPTIVE_DEPTH_SORT_MAX_DESCENTS out-of-order neighbours (a view
+// rotation, a rebuild) or ADAPTIVE_DEPTH_SORT_MAX_SHIFTS_PER_ITEM steps per object to
+// Phaser's own merge sort.
 const ADAPTIVE_DEPTH_SORT_MAX_DESCENTS = 128;
-const ADAPTIVE_DEPTH_SORT_MAX_MOVED = 256;
+const ADAPTIVE_DEPTH_SORT_MAX_SHIFTS_PER_ITEM = 2;
 const ADAPTIVE_DEPTH_SORT_SEARCH_MOVED = 24;
 
 // `items` is sorted by _depth except for the objects in `moved`: pull those out, then put each
 // back after every object of a lower or equal depth. Objects of equal depth keep their order
-// except that a moved one lands after the unmoved ones of its depth.
+// except that a moved one lands after the unmoved ones of its depth. A splice per object is
+// a shift of the whole list each, so past a handful they go back in one merge instead: 2,000
+// tiles spliced (or insertion-sorted) one by one into a 12,000-object list held a zoom-out
+// frame for ~1 s.
 function reinsertMovedByDepth(items, moved) {
   let pulled;
   if (moved.size <= ADAPTIVE_DEPTH_SORT_SEARCH_MOVED) {
@@ -76,6 +81,18 @@ function reinsertMovedByDepth(items, moved) {
     const order = new Map(pulled.map((item, index) => [item, index]));
     pulled.sort((a, b) => (a._depth - b._depth) || (order.get(a) - order.get(b)));
   }
+  if (pulled.length > ADAPTIVE_DEPTH_SORT_SEARCH_MOVED) {
+    // Merge from the back, in place: on equal depth the moved object goes after.
+    let rest = items.length - 1;
+    let next = pulled.length - 1;
+    let write = items.length + pulled.length - 1;
+    items.length = write + 1;
+    while (next >= 0) {
+      if (rest >= 0 && items[rest]._depth > pulled[next]._depth) items[write--] = items[rest--];
+      else items[write--] = pulled[next--];
+    }
+    return pulled.length;
+  }
   for (const item of pulled) {
     const depth = item._depth;
     let lo = 0;
@@ -91,14 +108,18 @@ function reinsertMovedByDepth(items, moved) {
 }
 
 // Sorts `items` by _depth in place, keeping the order of equal depths, and returns true - or
-// returns false without touching them when they are too far from sorted for it to pay.
-function sortNearlySortedByDepth(items, maxDescents = ADAPTIVE_DEPTH_SORT_MAX_DESCENTS) {
+// returns false when they are too far from sorted for it to pay: untouched when there are too
+// many out-of-order neighbours, part sorted (equal depths still in their order, so a stable
+// sort after it comes out the same) when the objects have too far to travel.
+function sortNearlySortedByDepth(items, maxDescents = ADAPTIVE_DEPTH_SORT_MAX_DESCENTS,
+  maxShifts = items.length * ADAPTIVE_DEPTH_SORT_MAX_SHIFTS_PER_ITEM) {
   const count = items.length;
   let descents = 0;
   for (let i = 1; i < count; i++) {
     if (items[i - 1]._depth > items[i]._depth && ++descents > maxDescents) return false;
   }
   if (descents === 0) return true;
+  let shifts = 0;
   for (let i = 1; i < count; i++) {
     const item = items[i];
     const depth = item._depth;
@@ -109,6 +130,8 @@ function sortNearlySortedByDepth(items, maxDescents = ADAPTIVE_DEPTH_SORT_MAX_DE
       j--;
     }
     items[j + 1] = item;
+    shifts += i - 1 - j;
+    if (shifts > maxShifts) return false;
   }
   return true;
 }
@@ -158,7 +181,7 @@ function installAdaptiveDepthSort(displayList) {
 
   displayList.depthSort = function adaptiveDepthSort() {
     if (!this.sortChildrenFlag) return;
-    if (tracking && moved.size > 0 && moved.size <= ADAPTIVE_DEPTH_SORT_MAX_MOVED) {
+    if (tracking && moved.size > 0) {
       reinsertMovedByDepth(this.list, moved);
       moved.clear();
       this.sortChildrenFlag = false;

@@ -86,6 +86,64 @@ test('terrain viewport keeps only camera-local tiles on the Phaser display list'
   );
 });
 
+test('a zoom step moves its tiles onto and off the display list in one pass, with Phaser\'s bookkeeping', () => {
+  const context = loadViewportCullingContext();
+  context.Phaser = {
+    GameObjects: { Events: { ADDED_TO_SCENE: 'addedtoscene', REMOVED_FROM_SCENE: 'removedfromscene' } },
+    Scenes: { Events: { ADDED_TO_SCENE: 'addedtoscene', REMOVED_FROM_SCENE: 'removedfromscene' } },
+  };
+  const sceneEvents = [];
+  const others = [{ name: 'building' }, { name: 'car' }];
+  const children = {
+    list: [...others],
+    sorts: 0,
+    __depthMoved: new Set(),
+    queueDepthSort() { this.sorts++; },
+    events: { emit: (name, tile) => sceneEvents.push([name, tile]) },
+  };
+  const makeTile = (x, y) => ({
+    ...createTerrainTile(x, y),
+    displayList: null,
+    visible: false,
+    seen: [],
+    emit(name) { this.seen.push(name); },
+    addToDisplayList() { throw new Error('one at a time'); },
+    removeFromDisplayList() { throw new Error('one at a time'); },
+  });
+  const scene = {
+    cameras: { main: { width: 40, height: 40, zoom: 1, originX: 0, originY: 0, scrollX: 0, scrollY: 0 } },
+    tileSprites: Array.from({ length: 16 }, (_, row) => Array.from({ length: 16 }, (_, col) => makeTile(col * 10, row * 10))),
+    activeTerrainSpriteIds: new Set(),
+    buildingSprites: new Map(),
+    treeSprites: new Map(),
+    zoneOverlays: new Map(),
+    powerLineSprites: new Map(),
+    bridgeSprites: new Map(),
+    districtSignSprites: new Map(),
+    children,
+  };
+  context.scene = scene;
+  vm.runInContext('updateTerrainViewportCulling(scene, true)', context);
+  const onList = () => scene.tileSprites.flat().filter((tile) => tile.displayList === children);
+  const active = onList();
+  assert.ok(active.length > 0 && active.length < 256);
+  assert.deepEqual(children.list, [...others, ...active.sort((a, b) => children.list.indexOf(a) - children.list.indexOf(b))]);
+  assert.ok(active.every((tile) => tile.visible && tile.seen.join() === 'addedtoscene' && children.__depthMoved.has(tile)));
+  assert.equal(sceneEvents.length, active.length);
+  assert.ok(children.sorts > 0);
+
+  // pan away: the ones left behind come off, the rest of the list keeps its order
+  scene.cameras.main.scrollX = 60;
+  vm.runInContext('updateTerrainViewportCulling(scene)', context);
+  const gone = active.filter((tile) => !tile.displayList);
+  assert.ok(gone.length > 0);
+  assert.ok(gone.every((tile) => !tile.visible && tile.seen.join() === 'addedtoscene,removedfromscene'));
+  assert.deepEqual(children.list.slice(0, 2), others);
+  assert.equal(children.list.length, 2 + onList().length);
+  assert.equal(new Set(children.list).size, children.list.length, 'no tile twice');
+  assert.equal(onList().length, scene.activeTerrainSpriteIds.size);
+});
+
 test('terrain culling keeps distant tracker tiles active but filters them from the main camera', () => {
   const context = loadViewportCullingContext();
   const trackerCamera = {

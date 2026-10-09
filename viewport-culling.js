@@ -33,6 +33,63 @@ function setTerrainSpriteViewportActive(tile, active, scene = null) {
   }
 }
 
+// Phaser's addToDisplayList scans the whole list twice (exists, then add) and
+// removeFromDisplayList scans and splices it, per object: the ~2,000 tiles a zoom
+// step brings in or drops, through a ~12,000-object list, held that frame for
+// 30-60 ms. Tiles come and go in batches, so they are pushed onto (or filtered out
+// of) the list in one pass with the same bookkeeping - the object's displayList,
+// both scenes' events, a depth sort (the adaptive sort merges the pushed ones into
+// place, render-performance.js).
+function setTerrainSpritesViewportActive(scene, tiles, active) {
+  const displayList = scene?.children;
+  const events = typeof Phaser !== 'undefined' ? Phaser : null;
+  if (!tiles.length) return;
+  if (!Array.isArray(displayList?.list) || !events?.GameObjects?.Events || !events.Scenes?.Events) {
+    tiles.forEach((tile) => setTerrainSpriteViewportActive(tile, active, scene));
+    return;
+  }
+  const objectEvent = active ? events.GameObjects.Events.ADDED_TO_SCENE : events.GameObjects.Events.REMOVED_FROM_SCENE;
+  const sceneEvent = active ? events.Scenes.Events.ADDED_TO_SCENE : events.Scenes.Events.REMOVED_FROM_SCENE;
+  const changed = [];
+  if (active) {
+    const moved = displayList.__depthMoved;
+    for (const tile of tiles) {
+      if (!tile) continue;
+      tile.setVisible?.(true);
+      if (typeof syncVehicleTrackerObjectCameraFilters === 'function') syncVehicleTrackerObjectCameraFilters(scene, tile);
+      if (tile.displayList) continue;
+      tile.displayList = displayList;
+      displayList.list.push(tile);
+      if (moved) moved.add(tile);
+      changed.push(tile);
+    }
+  } else {
+    const leaving = new Set();
+    for (const tile of tiles) {
+      if (!tile) continue;
+      tile.setVisible?.(false);
+      if (tile.displayList === displayList) leaving.add(tile);
+    }
+    if (leaving.size) {
+      const list = displayList.list;
+      let write = 0;
+      for (let read = 0; read < list.length; read++) {
+        const item = list[read];
+        if (leaving.has(item)) changed.push(item);
+        else list[write++] = item;
+      }
+      list.length = write;
+      changed.forEach((tile) => { tile.displayList = null; });
+    }
+  }
+  if (!changed.length) return;
+  displayList.queueDepthSort();
+  for (const tile of changed) {
+    tile.emit?.(objectEvent, tile, scene);
+    displayList.events?.emit?.(sceneEvent, tile, scene);
+  }
+}
+
 function getTerrainViewportLogicalRange(scene, bounds) {
   const corners = [
     worldToLogicalPoint(scene, bounds.minX, bounds.minY),
@@ -144,8 +201,8 @@ function updateTerrainViewportCulling(scene, force = false) {
     }
   }
 
-  let terrainEntered = 0;
-  let terrainExited = 0;
+  const terrainEntering = [];
+  const terrainExiting = [];
   const mainTerrainBounds = terrainBounds[0];
   for (const id of nextActiveTerrainIds) {
     const row = Math.floor(id / MAP_WIDTH);
@@ -162,16 +219,18 @@ function updateTerrainViewportCulling(scene, force = false) {
     if (nextActiveTerrainIds.has(id)) continue;
     const row = Math.floor(id / MAP_WIDTH);
     const col = id % MAP_WIDTH;
-    setTerrainSpriteViewportActive(scene.tileSprites[row]?.[col], false, scene);
-    terrainExited++;
+    terrainExiting.push(scene.tileSprites[row]?.[col]);
   }
   for (const id of nextActiveTerrainIds) {
     if (scene.activeTerrainSpriteIds.has(id)) continue;
     const row = Math.floor(id / MAP_WIDTH);
     const col = id % MAP_WIDTH;
-    setTerrainSpriteViewportActive(scene.tileSprites[row]?.[col], true, scene);
-    terrainEntered++;
+    terrainEntering.push(scene.tileSprites[row]?.[col]);
   }
+  setTerrainSpritesViewportActive(scene, terrainExiting, false);
+  setTerrainSpritesViewportActive(scene, terrainEntering, true);
+  const terrainEntered = terrainEntering.length;
+  const terrainExited = terrainExiting.length;
   scene.activeTerrainSpriteIds = nextActiveTerrainIds;
   if (terrainEntered > 0) scene.children?.queueDepthSort?.();
 

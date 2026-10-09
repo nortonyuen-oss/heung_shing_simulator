@@ -48,6 +48,18 @@
 | 大雨 zoom 0.8 | 50.5 → 59.4 | 14 → 1 | 121 → 108 |
 | 2× 速度 | 46.3 → 59.8 | 16 → 0 | 139 → 127 |
 
+## 2026-10-09：拉遠（zoom 1 → 0.4）一下一下咁卡
+
+量度：太子 autosave（display list 12,000 → 15,500），量度時 load average 30–57（VS Code、openclaw-node、contactsd 食 CPU），fps 只供參考。
+
+- **停定喺 0.4 其實冇事**：約 50–55 fps，逐類隱藏（避風塘物件、船、車、樹、地形）都只係喺噪音範圍內郁，所以「1x 以下暫停某啲 render」幫唔到手。
+- **卡嘅係拉遠嗰下**：每撳一下 zoom 就有一幀 500–1,100 ms（第一次拉遠 5 秒）。LoAF（`long-animation-frame`）指去 Phaser 嘅 rAF，CDP profiler：7.8 秒入面 `adaptiveDepthSort` 佔 4.85 秒。
+- **原因**：每下拉遠有 ~2,000 塊地形 tile 由 culling 加返入 display list 尾。超過 256 個 moved 物件就跌落 insertion sort；tile 逐行加，亂序鄰居（每行一個）未夠 128 個，所以真係行 insertion sort——每塊低 depth 嘅 tile 要逐格移過 ~10,000 個道路／建築，約 2,000 萬次搬動。另外 Phaser `addToDisplayList`／`removeFromDisplayList` 每個物件掃成個清單一至兩次（`exists` + `add`，移除仲要 `splice`），一下 zoom 30–60 ms。
+- **修正**：
+  1. `reinsertMovedByDepth`（`render-performance.js`）：多過 24 個 moved 物件就抽出、排好、由後面一次 merge 返入去（O(n + m log m)），取消 256 嘅上限。`sortNearlySortedByDepth` 加移動上限（每物件 2 步），超過就交 Phaser merge sort（insertion sort 唔會改相同 depth 嘅次序，所以結果一樣）。
+  2. `setTerrainSpritesViewportActive`（`viewport-culling.js`）：成批地形 tile 一次 push／一次過濾出清單，照做 Phaser 嘅記帳（`displayList`、兩個 `addedtoscene`／`removedfromscene` 事件、`queueDepthSort`、adaptive sort 嘅 moved set）。
+- **結果**：拉遠時 `adaptiveDepthSort` 4,853 → 95 ms，最慢一幀 500–1,100 ms（第一次 5 秒）→ 115–175 ms（負載 40–50 之下）。剩低主要係 Phaser 自己 render ~15,000 個物件。
+
 ## 仍然會見到嘅卡頓（下一步）
 
 - 夜晚 draw call 仍然 100–210：每款建築嘅夜景圖係獨立貼圖（四個 variant），拉遠時斷 batch 最多。可以考慮按區域或者按 variant 打包。

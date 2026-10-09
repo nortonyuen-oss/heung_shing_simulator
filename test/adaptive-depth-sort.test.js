@@ -15,7 +15,7 @@ function sliceFunction(name) {
 
 function createContext() {
   const context = vm.createContext({});
-  vm.runInContext('const ADAPTIVE_DEPTH_SORT_MAX_DESCENTS = 128; const ADAPTIVE_DEPTH_SORT_MAX_MOVED = 256; const ADAPTIVE_DEPTH_SORT_SEARCH_MOVED = 24;', context);
+  vm.runInContext('const ADAPTIVE_DEPTH_SORT_MAX_DESCENTS = 128; const ADAPTIVE_DEPTH_SORT_MAX_SHIFTS_PER_ITEM = 2; const ADAPTIVE_DEPTH_SORT_SEARCH_MOVED = 24;', context);
   ['sortNearlySortedByDepth', 'reinsertMovedByDepth', 'installAdaptiveDepthSort'].forEach((name) => {
     vm.runInContext(sliceFunction(name), context, { filename: `main.js#${name}` });
   });
@@ -63,6 +63,14 @@ test('an already sorted list is left alone; a scrambled one is handed back untou
   const before = scrambled.map((item) => item.id);
   assert.equal(sortNearlySortedByDepth(scrambled, 128), false, 'too far from sorted to pay');
   assert.deepEqual(scrambled.map((item) => item.id), before, 'nothing moved');
+
+  // Few out-of-order neighbours, but far to travel - a block of low depths appended to a long
+  // list: the insertion sort gives up, and a stable sort after it still gives Phaser's order.
+  const appended = [...Array.from({ length: 3000 }, (_, id) => ({ id, _depth: 10 + (id >> 2) })),
+    ...Array.from({ length: 400 }, (_, i) => ({ id: 3000 + i, _depth: i % 40 }))];
+  const expected = referenceSort(appended).map((item) => item.id);
+  assert.equal(sortNearlySortedByDepth(appended, 128), false, 'too far to travel');
+  assert.deepEqual(referenceSort(appended).map((item) => item.id), expected);
 });
 
 test('the installed depthSort sorts adaptively and falls back to Phaser\'s full sort', () => {
@@ -100,8 +108,8 @@ test('pulling out the moved objects and putting them back matches the stable sor
   for (let round = 0; round < 60; round++) {
     const items = Array.from({ length: 3000 }, (_, id) => ({ id, _depth: Math.floor(id / 3) }));
     const moved = new Set();
-    // Alternate a few moves (found by indexOf) and many (one pass over the list).
-    const moveCount = round % 2 ? 60 : 1 + (round % 20);
+    // A few moves (found by indexOf), many (one pass and a merge), and a zoom-out's worth.
+    const moveCount = round % 3 === 2 ? 1200 : (round % 2 ? 60 : 1 + (round % 20));
     for (let moves = 0; moves < moveCount; moves++) {
       const item = items[Math.floor(rand() * items.length)];
       item._depth += (rand() - 0.5) * 40;
@@ -169,6 +177,14 @@ test('only the objects whose depth changed are re-placed, and a same-value set s
   displayList.depthSort();
   assert.equal(displayList.list[0], late);
   assert.equal(fullSorts(), 0);
+
+  // A zoom-out: thousands of terrain tiles of low depth come back into the list at its end.
+  const tiles = Array.from({ length: 2000 }, (_, i) => displayList.add(new GameObject((i % 97) - 0.5)));
+  const expected = referenceSort(displayList.list);
+  displayList.depthSort();
+  assert.equal(fullSorts(), 0, 'merged back, not sorted');
+  assert.deepEqual(displayList.list, expected);
+  assert.equal(displayList.list.length, 501 + tiles.length);
 });
 
 test('the scene installs the adaptive sort on its display list at create', () => {

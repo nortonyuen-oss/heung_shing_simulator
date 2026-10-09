@@ -1793,6 +1793,54 @@
    "mirrored": true,
    "facing": "sw"
   },
+  "ts_sailboat1_a": {
+   "file": "Models/typhoonShelter/ts_sailboat1_a.png",
+   "part": "sailboat1_a",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 439
+   },
+   "mirrored": false,
+   "facing": "nw"
+  },
+  "ts_sailboat1_a_m": {
+   "file": "Models/typhoonShelter/ts_sailboat1_a_m.png",
+   "part": "sailboat1_a",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 439
+   },
+   "mirrored": true,
+   "facing": "ne"
+  },
+  "ts_sailboat1_b": {
+   "file": "Models/typhoonShelter/ts_sailboat1_b.png",
+   "part": "sailboat1_b",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 257,
+    "y": 446
+   },
+   "mirrored": false,
+   "facing": "ne"
+  },
+  "ts_sailboat1_b_m": {
+   "file": "Models/typhoonShelter/ts_sailboat1_b_m.png",
+   "part": "sailboat1_b",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 255,
+    "y": 446
+   },
+   "mirrored": true,
+   "facing": "nw"
+  },
   "ts_sanpan1_a": {
    "file": "Models/typhoonShelter/ts_sanpan1_a.png",
    "part": "sanpan1_a",
@@ -2472,6 +2520,150 @@
     "Models/typhoonShelter/ts_speedboat2_b_m__lit.png",
     "Models/typhoonShelter/ts_speedboat2_b_m__litb.png"
    ]
+  },
+  "ts_speedboat3_a": {
+   "file": "Models/typhoonShelter/ts_speedboat3_a.png",
+   "part": "speedboat3_a",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 257,
+    "y": 451
+   },
+   "mirrored": false,
+   "facing": "nw"
+  },
+  "ts_speedboat3_a_m": {
+   "file": "Models/typhoonShelter/ts_speedboat3_a_m.png",
+   "part": "speedboat3_a",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 255,
+    "y": 451
+   },
+   "mirrored": true,
+   "facing": "ne"
+  },
+  "ts_speedboat3_b": {
+   "file": "Models/typhoonShelter/ts_speedboat3_b.png",
+   "part": "speedboat3_b",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 257,
+    "y": 455
+   },
+   "mirrored": false,
+   "facing": "ne"
+  },
+  "ts_speedboat3_b_m": {
+   "file": "Models/typhoonShelter/ts_speedboat3_b_m.png",
+   "part": "speedboat3_b",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 255,
+    "y": 455
+   },
+   "mirrored": true,
+   "facing": "nw"
+  },
+  "ts_speedboat4_a": {
+   "file": "Models/typhoonShelter/ts_speedboat4_a.png",
+   "part": "speedboat4_a",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 257,
+    "y": 461
+   },
+   "mirrored": false,
+   "facing": "nw"
+  },
+  "ts_speedboat4_a_m": {
+   "file": "Models/typhoonShelter/ts_speedboat4_a_m.png",
+   "part": "speedboat4_a",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 255,
+    "y": 461
+   },
+   "mirrored": true,
+   "facing": "ne"
+  },
+  "ts_speedboat4_b": {
+   "file": "Models/typhoonShelter/ts_speedboat4_b.png",
+   "part": "speedboat4_b",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 257,
+    "y": 459
+   },
+   "mirrored": false,
+   "facing": "ne"
+  },
+  "ts_speedboat4_b_m": {
+   "file": "Models/typhoonShelter/ts_speedboat4_b_m.png",
+   "part": "speedboat4_b",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 255,
+    "y": 459
+   },
+   "mirrored": true,
+   "facing": "nw"
+  },
+  "ts_speedboat5_a": {
+   "file": "Models/typhoonShelter/ts_speedboat5_a.png",
+   "part": "speedboat5_a",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 257,
+    "y": 456
+   },
+   "mirrored": false,
+   "facing": "nw"
+  },
+  "ts_speedboat5_a_m": {
+   "file": "Models/typhoonShelter/ts_speedboat5_a_m.png",
+   "part": "speedboat5_a",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 255,
+    "y": 456
+   },
+   "mirrored": true,
+   "facing": "ne"
+  },
+  "ts_speedboat5_b": {
+   "file": "Models/typhoonShelter/ts_speedboat5_b.png",
+   "part": "speedboat5_b",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 257,
+    "y": 456
+   },
+   "mirrored": false,
+   "facing": "ne"
+  },
+  "ts_speedboat5_b_m": {
+   "file": "Models/typhoonShelter/ts_speedboat5_b_m.png",
+   "part": "speedboat5_b",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 255,
+    "y": 456
+   },
+   "mirrored": true,
+   "facing": "nw"
   }
  },
  "formatVersion": 1,

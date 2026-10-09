@@ -87,6 +87,8 @@ test('a working shelter draws tourists, three times as many while 「無處不�
   const { typhoonShelterTouristCapacity, getTyphoonShelterCampaignMultiplier } = fishery;
   assert.equal(typhoonShelterTouristCapacity({ shelters: 1, restaurants: 4 }), 4000);
   assert.equal(typhoonShelterTouristCapacity({ shelters: 0, restaurants: 0 }), 0);
+  // a 黃金海岸酒店's guests
+  assert.equal(typhoonShelterTouristCapacity({ shelters: 1, hotels: 1 }), 2000 + fishery.TYPHOON_SHELTER_TOURISM.hotelVisitors);
   const effects = [{ sourceId: 'tourEverywhere', startMonthIndex: 100, endMonthIndex: 102, outcome: 'success' }];
   assert.equal(getTyphoonShelterCampaignMultiplier(effects, 101), 3);
   assert.equal(getTyphoonShelterCampaignMultiplier(effects, 103), 1, 'over');
@@ -163,6 +165,21 @@ test('海鮮舫: a 4 x 2 of open basin under the click, clear of the channel and
   assert.equal(tiles.length, F.cols * F.rows);
   assert.ok(tiles.includes('2:3'), 'under the click');
   assert.ok(tiles.every((k) => basin.has(k) && !channel.has(k) && k !== '0:0'));
+  // land along row -1 (the top of the basin): the row of water against it is shore, and stays clear
+  const shore = fishery.typhoonShelterShoreWater(basin, (r) => r < 0);
+  assert.deepEqual([...shore].sort(), ['0:0', '0:1', '0:2', '0:3', '0:4', '0:5', '0:6', '0:7']);
+  const off = findTyphoonShelterFloatingRestaurantSite({ row: 1, col: 3, basin, channel, items, shore });
+  assert.ok(off && off.row >= 1, 'a tile off the shore');
+  // the bulldozer finds it by any tile of its lot
+  const moored = [{ id: 'ts1', works: { items: [{ kind: 'floatingRestaurant', row: 10, col: 20, cols: 4, rows: 3 }] } }];
+  assert.equal(fishery.findTyphoonShelterFloatingRestaurantAt(moored, 12, 23)?.plan.id, 'ts1');
+  assert.equal(fishery.findTyphoonShelterFloatingRestaurantAt(moored, 13, 23), null);
+  assert.equal(fishery.findTyphoonShelterFloatingRestaurantAt(moored, 12, 24), null);
+  // turned by a right-click: only that way round
+  const long = findTyphoonShelterFloatingRestaurantSite({ row: 2, col: 3, basin, channel, items, turn: 'cols' });
+  const deep = findTyphoonShelterFloatingRestaurantSite({ row: 2, col: 3, basin, channel, items, turn: 'rows' });
+  assert.deepEqual([long.cols, long.rows], [F.cols, F.rows]);
+  assert.deepEqual([deep.cols, deep.rows], [F.rows, F.cols]);
   // a strip too narrow either way: nowhere
   assert.equal(findTyphoonShelterFloatingRestaurantSite({ row: 0, col: 0, basin: new Set(['0:0', '0:1', '0:2']), channel: new Set(), items: [] }), null);
   // its tourists, three times over in a campaign

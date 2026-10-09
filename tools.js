@@ -54,6 +54,7 @@ const LANDMARK_TOOL_BUILDING_TYPES = {
   'seafood-restaurant': 'seafood_restaurant',
   'fish-loading-bay':   'fish_loading_bay',
   'yacht-club':         'yacht_club',
+  'gold-coast-hotel':   'gold_coast_hotel',
 };
 
 // ── Main dispatch (called from applySelectedTool in main.js) ──────────────────
@@ -360,6 +361,14 @@ function placeInfraBuilding(scene, row, col, buildingType) {
       return false;
     }
   } else if (!canPlaceBuildingFootprint(row, col, footprintCols, footprintRows)) return false;
+  // 黃金海岸酒店 stands by a yacht club
+  if (buildingType === 'gold_coast_hotel' && typeof whyNotGoldCoastHotel === 'function') {
+    const why = whyNotGoldCoastHotel(row, col, footprintCols, footprintRows);
+    if (why) {
+      showToast(why, 'warning');
+      return false;
+    }
+  }
 
   const cost = INFRA_COSTS[buildingType];
   if (!spendBudget(cost)) {
@@ -403,6 +412,8 @@ function placeInfraBuilding(scene, row, col, buildingType) {
   refreshInfrastructureEffects(scene);
 
   if (marine && typeof onTyphoonShelterBuildingsChanged === 'function') onTyphoonShelterBuildingsChanged(scene);
+  // (the hotel's lights: lit art after dark, the day art by day)
+  if (buildingType === 'gold_coast_hotel' && typeof refreshTyphoonShelterBuildingSprites === 'function') refreshTyphoonShelterBuildingSprites(scene);
 
   if (buildingType === 'legislative_council' && typeof announceCouncilBuiltNewspaper === 'function') {
     announceCouncilBuiltNewspaper();

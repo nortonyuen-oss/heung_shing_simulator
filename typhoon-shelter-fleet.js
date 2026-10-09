@@ -30,6 +30,10 @@ const TYPHOON_SHELTER_FLEET = Object.freeze({
     // day now and then, never fishing; drawn only as that share of the berths asks for them
     Object.freeze({ objectId: 'speedboat1', weight: 1, fishing: false, leisure: true, size: 2, trip: 'leisure' }),
     Object.freeze({ objectId: 'speedboat2', weight: 1, fishing: false, leisure: true, size: 2, trip: 'leisure' }),
+    Object.freeze({ objectId: 'speedboat3', weight: 1, fishing: false, leisure: true, size: 2, trip: 'leisure' }),
+    Object.freeze({ objectId: 'speedboat4', weight: 1, fishing: false, leisure: true, size: 2, trip: 'leisure' }),
+    Object.freeze({ objectId: 'speedboat5', weight: 1, fishing: false, leisure: true, size: 2, trip: 'leisure' }),
+    Object.freeze({ objectId: 'sailboat1', weight: 1, fishing: false, leisure: true, size: 2, trip: 'leisure' }),
   ]),
   // 舢舨: not berthed like the boats - they tie up alongside the landing stages and run between
   // them and the boats: crews out before the boats sail, help unloading when they come in
@@ -66,14 +70,17 @@ const TYPHOON_SHELTER_USES = Object.freeze({
   fishing: Object.freeze({ leisure: 0, label: '漁業優先' }),
   mixed: Object.freeze({ leisure: 0.4, label: '漁業同遊艇' }),
   leisure: Object.freeze({ leisure: 0.8, label: '遊艇優先' }),
+  marina: Object.freeze({ leisure: 1, label: '遊艇專用' }),   // a marina: no working boats at all
 });
 
 // The share of berths for yachts: the shelter's use, and a fifth more with a yacht club on its
-// waterfront (`clubs`, from getTyphoonShelterMarketsByShelter).
+// waterfront (`clubs`, from getTyphoonShelterMarketsByShelter) - the club alone leaves a working
+// shelter a tenth of its boats; only 遊艇專用 gives it every berth.
 const TYPHOON_SHELTER_CLUB_LEISURE = 0.2;
+const TYPHOON_SHELTER_CLUB_LEISURE_CAP = 0.9;
 function getTyphoonShelterLeisureShare(plan, clubs = 0) {
   const base = (TYPHOON_SHELTER_USES[plan?.use] || TYPHOON_SHELTER_USES.fishing).leisure;
-  return Math.min(0.9, base + (clubs > 0 ? TYPHOON_SHELTER_CLUB_LEISURE : 0));
+  return Math.min(Math.max(TYPHOON_SHELTER_CLUB_LEISURE_CAP, base), base + (clubs > 0 ? TYPHOON_SHELTER_CLUB_LEISURE : 0));
 }
 
 const TYPHOON_SHELTER_TENDERS = Object.freeze({
@@ -516,14 +523,14 @@ function getTyphoonShelterFleetGeometry(plan, analysis) {
 // hands and fish markets for (typhoon-shelter-fishery.js) - not while a storm keeps the boats in or
 // visitors still lie on the free berths (typhoon-shelter-storm.js).
 function updateTyphoonShelterFleets(state, analyses, summaries) {
-  if (typeof isTyphoonShelterStormFreeze === 'function' && isTyphoonShelterStormFreeze(state.storm)) return null;
+  const frozen = (id) => typeof isTyphoonShelterStormFreeze === 'function' && isTyphoonShelterStormFreeze(state.storm, undefined, id);
   let changed = false;
   const markets = typeof getTyphoonShelterMarketsByShelter === 'function' ? getTyphoonShelterMarketsByShelter() : null;
   const monthIndex = typeof city !== 'undefined' ? (Number(city.year) || 0) * 12 + (Number(city.month) || 0) : 0;
   const shelters = state.shelters.map((plan) => {
     const summary = summaries.get(plan.id);
     const analysis = analyses.get(plan.id);
-    if (!analysis || !plan.works?.approved) return plan;
+    if (!analysis || !plan.works?.approved || frozen(plan.id)) return plan;
     const geometry = getTyphoonShelterFleetGeometry(plan, analysis);
     const slots = geometry.slots.filter((s) => geometry.routeBySlot.get(s.key));
     // the reserved berths stay free for boats sheltering from a storm (typhoon-shelter-storm.js):

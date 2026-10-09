@@ -364,6 +364,13 @@ test('a shelter given partly to yachts: its share of the fleet, a boat a day cha
   const mixed = reconcileTyphoonShelterFleet(createTyphoonShelterFleet(), slots, 20, { seed: 7, leisureShare: 0.4 });
   assert.equal(mixed.boats.length, 20);
   assert.equal(yachts(mixed), 8);
+  // 遊艇專用: every berth a yacht's; a club tops a working shelter up to nine in ten, no further
+  assert.equal(getTyphoonShelterLeisureShare({ use: 'marina' }), 1);
+  assert.equal(getTyphoonShelterLeisureShare({ use: 'marina' }, 1), 1);
+  assert.equal(getTyphoonShelterLeisureShare({ use: 'leisure' }, 1), 0.9);
+  const marina = reconcileTyphoonShelterFleet(createTyphoonShelterFleet(), slots, 20, { seed: 7, leisureShare: 1 });
+  assert.equal(marina.boats.length, 20);
+  assert.equal(yachts(marina), 20);
   // a fishing shelter turned over to yachts: one boat a day makes way, its berth a yacht's next
   const fishingOnly = reconcileTyphoonShelterFleet(createTyphoonShelterFleet(), slots, 20, { seed: 7 });
   assert.equal(yachts(fishingOnly), 0);

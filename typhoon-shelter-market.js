@@ -38,6 +38,7 @@ const TYPHOON_SHELTER_MARKET = Object.freeze({
   ]),
   shelterReach: 4,               // a market serves the shelter whose waterfront is nearest, this close
   bayReach: 2,                   // a loading bay belongs to a market this close (tiles between them)
+  hotelReach: 8,                 // 黃金海岸酒店: a yacht club this close (tiles between them)
   bayInsideTiles: 1,             // a truck in a bay stands this far in from the middle of the road
   bayDriveTiles: Object.freeze([1.55, 0.9]),  // with no parking bays laid out: two trucks in the driveway
   // monthly upkeep, on the typhoon shelters' budget line (getTyphoonShelterMonthlyUpkeep)
@@ -497,6 +498,30 @@ const TS_BUILDING_REFUSALS = Object.freeze({
   noRoad: ['typhoonShelter.building.noRoad', '旁邊要有馬路連接先可以起。'],
 });
 
+// 黃金海岸酒店: a yacht club within `reach` tiles of its lot (tiles between the two). Pure:
+// clubs [{ row, col, cols, rows }] (row, col the top corner). Returns the nearest gap, or null.
+function goldCoastHotelClubGap(row, col, cols, rows, clubs, reach = TYPHOON_SHELTER_MARKET.hotelReach) {
+  let best = null;
+  clubs.forEach((c) => {
+    const gapR = Math.max(0, c.row - (row + rows), row - (c.row + c.rows));
+    const gapC = Math.max(0, c.col - (col + cols), col - (c.col + c.cols));
+    const gap = Math.max(gapR, gapC);
+    if (gap <= reach && (best === null || gap < best)) best = gap;
+  });
+  return best;
+}
+
+// Why the 黃金海岸酒店 may not stand at (row, col) - beside no yacht club; null when it may (the lot
+// itself is the usual footprint check).
+function whyNotGoldCoastHotel(row, col, cols = 4, rows = 4) {
+  const clubs = Object.entries(typeof buildingData !== 'undefined' ? buildingData : {})
+    .filter(([, r]) => r?.type === 'yacht_club')
+    .map(([id, r]) => { const [cr, cc] = id.split(':').map(Number); return { row: cr, col: cc, cols: r.footprintCols || 2, rows: r.footprintRows || 2 }; });
+  if (goldCoastHotelClubGap(row, col, cols, rows, clubs) !== null) return null;
+  const fallback = `要起喺遊艇會 ${TYPHOON_SHELTER_MARKET.hotelReach} 格範圍內。`;
+  return typeof tsT === 'function' ? tsT('typhoonShelter.hotel.noClub', fallback, { reach: TYPHOON_SHELTER_MARKET.hotelReach }) : fallback;
+}
+
 // Why a 海事處 building may not stand at (row, col), as a sentence for the player; null when it may.
 function whyNotTyphoonShelterBuilding(row, col, cols = 1, rows = 1) {
   const code = whyNotTyphoonShelterBuildingAt(tsMarketFootprint(row, col, cols, rows), {
@@ -585,7 +610,7 @@ function refreshTyphoonShelterBuildingSprites(scene) {
   if (scene) scene.typhoonShelterBuildingLighting = lighting.key;
   const dayArt = typeof SPECIAL_BUILDING_DAY_MODELS !== 'undefined' ? SPECIAL_BUILDING_DAY_MODELS : {};
   Object.entries(buildingData).forEach(([id, record]) => {
-    if (!['fish_market', 'seafood_restaurant', 'fish_loading_bay', 'yacht_club'].includes(record?.type)) return;
+    if (!['fish_market', 'seafood_restaurant', 'fish_loading_bay', 'yacht_club', 'gold_coast_hotel'].includes(record?.type)) return;
     const baseKey = String(record.spriteKey || '').replace(/(_m)?(_day)?$/, '');
     const [row, col] = id.split(':').map(Number);
     let facingKey;
@@ -871,6 +896,8 @@ const typhoonShelterMarketApi = {
   planTyphoonShelterFishTrucks,
   getTyphoonShelterTruckParking,
   whyNotTyphoonShelterBuilding,
+  goldCoastHotelClubGap,
+  whyNotGoldCoastHotel,
   onTyphoonShelterBuildingsChanged,
   getTyphoonShelterBuildingsUpkeep,
   layTyphoonShelterMarkets,

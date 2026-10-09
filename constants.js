@@ -1097,6 +1097,15 @@ SPECIAL_BUILDING_MODELS.yacht_club = {
   footprintCols: 2,
   footprintRows: 2,
 };
+// 黃金海岸酒店: a resort hotel by a yacht club (whyNotGoldCoastHotel, typhoon-shelter-market.js) - its
+// guests count in the city's tourism (getTyphoonShelterTouristCapacity). Never mirrored (its name is
+// on the tower); its lights come on at dusk (refreshTyphoonShelterBuildingSprites).
+SPECIAL_BUILDING_MODELS.gold_coast_hotel = {
+  spriteKey: 'gold_coast_hotel_4x4',
+  path: 'Models/specialSites/4x4/goldCoastHotel4-01.png',
+  footprintCols: 4,
+  footprintRows: 4,
+};
 SPECIAL_BUILDING_MODELS.fish_loading_bay = {
   spriteKey: 'fish_loading_bay_2x2',
   path: 'Models/specialSites/2x2/fishLoadingBay2-01.png',
@@ -1149,6 +1158,7 @@ const SPECIAL_BUILDING_DAY_MODELS = Object.freeze(Object.fromEntries(
     ...Object.entries(SPECIAL_BUILDING_MIRROR_MODELS).filter(([key]) => key !== 'fish_loading_bay_2x2').flatMap(([key, mirror]) => [
       { ...mirror, spriteKey: key, path: mirror.path.replace(/_m\.png$/, '.png') }, mirror,
     ]),
+    SPECIAL_BUILDING_MODELS.gold_coast_hotel,
   ].map((model) => [model.spriteKey, Object.freeze({
     spriteKey: `${model.spriteKey}_day`, path: model.path.replace(/(_m)?\.png$/, '_day$1.png'),
     footprintCols: model.footprintCols, footprintRows: model.footprintRows,
@@ -1360,6 +1370,8 @@ const SPECIAL_BUILDING_EFFECTS = {
   seafood_restaurant: { attractivenessBonus: 1, landValueBonus: 0.02, landValueRadius: 4 },
   // the strongest view in the game: the marina, the club, the money it draws
   yacht_club:         { attractivenessBonus: 6, landValueBonus: 0.15, landValueRadius: 14, revenue: 400, upkeep: 300 },
+  // its guests are the tourism (TYPHOON_SHELTER_TOURISM.hotelVisitors); this is the view and the rooms' rent
+  gold_coast_hotel:   { attractivenessBonus: 5, landValueBonus: 0.1, landValueRadius: 12, revenue: 900, upkeep: 450 },
 };
 
 const SPECIAL_BUILDING_COSTS = {
@@ -1372,6 +1384,7 @@ const SPECIAL_BUILDING_COSTS = {
   seafood_restaurant:  2400,
   fish_loading_bay:    1500,
   yacht_club:         16000,
+  gold_coast_hotel:   45000,
   grand_temple:        6200,
   heritage_church:     3200,
   indoor_coliseum:    12000,
@@ -1459,6 +1472,7 @@ const BUILDING_POWER_DEMAND = {
   seafood_restaurant: 4,
   fish_loading_bay: 1,
   yacht_club: 5,
+  gold_coast_hotel: 16,
   grand_temple: 7,
   heritage_church: 4,
   indoor_coliseum: 18,

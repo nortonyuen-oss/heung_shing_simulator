@@ -608,6 +608,7 @@ function getBuildingTypeLabel(type) {
     seafood_restaurant: 'building.seafoodRestaurant',
     fish_loading_bay: 'building.fishLoadingBay',
     yacht_club: 'building.yachtClub',
+    gold_coast_hotel: 'building.goldCoastHotel',
     grand_temple: 'building.grandTemple',
     heritage_church: 'building.heritageChurch',
     indoor_coliseum: 'building.indoorColiseum',
@@ -1032,6 +1033,7 @@ function create() {
       this.isPanning = true;
       this.panPrevX = pointer.x;
       this.panPrevY = pointer.y;
+      this.rightDownAt = { x: pointer.x, y: pointer.y };
     }
   });
 
@@ -1046,7 +1048,19 @@ function create() {
     // All other cleanup (zone fill, isPainting, dragStartTile…) is handled by
     // the window 'pointerup' listener, which fires synchronously before Phaser's
     // deferred event queue processes this callback.
-    if (pointer.button === 2) this.isPanning = false;
+    if (pointer.button === 2) {
+      this.isPanning = false;
+      // 海鮮舫: a right-click (not a pan) turns it 90 degrees (typhoon-shelter-fishery.js)
+      const still = this.rightDownAt && Math.hypot(pointer.x - this.rightDownAt.x, pointer.y - this.rightDownAt.y) < 5;
+      if (still && selectedTool === 'floating-restaurant' && typeof turnTyphoonShelterFloatingRestaurant === 'function') {
+        const tile = pointerToTile(this, pointer);
+        if (tile) {
+          turnTyphoonShelterFloatingRestaurant(tile.row, tile.col);
+          if (typeof updateBuildingPlacementGuide === 'function') updateBuildingPlacementGuide(this, pointer);
+        }
+      }
+      this.rightDownAt = null;
+    }
   });
 
   // Adjust camera scroll during panning
@@ -1902,6 +1916,12 @@ function getSelectedPlacementFootprint() {
   if (selectedTool === 'park-small') return { footprintCols: 1, footprintRows: 1 };
   if (selectedTool === 'park-large') return { footprintCols: 3, footprintRows: 3 };
   if (selectedTool === 'bus-depot') return { footprintCols: BUS_DEPOT_FOOTPRINT_COLS, footprintRows: BUS_DEPOT_FOOTPRINT_ROWS };
+  if (selectedTool === 'floating-restaurant' && typeof TYPHOON_SHELTER_FLOATING_RESTAURANT !== 'undefined') {
+    // (turned by a right-click: typhoonShelterFloatingRestaurantTurn)
+    const F = TYPHOON_SHELTER_FLOATING_RESTAURANT;
+    const turned = typeof typhoonShelterFloatingRestaurantTurn !== 'undefined' && typhoonShelterFloatingRestaurantTurn === 'rows';
+    return turned ? { footprintCols: F.rows, footprintRows: F.cols } : { footprintCols: F.cols, footprintRows: F.rows };
+  }
 
   const infraTypeByTool = {
     'power-coal':    'power_plant_coal',
@@ -2001,6 +2021,8 @@ function applyToolAt(scene, row, col, pointer = null) {
   if (selectedTool === 'house')    { placeHouse(scene, row, col);    return; }
 
   if (selectedTool === 'bulldoze') {
+    // a 海鮮舫 is towed away, not knocked down tile by tile (typhoon-shelter-fishery.js)
+    if (typeof demolishTyphoonShelterFloatingRestaurantAt === 'function' && demolishTyphoonShelterFloatingRestaurantAt(scene, row, col)) return;
     spendBudget(COST_BULLDOZE);
     if (typeof removeDistrictSignAt === 'function') removeDistrictSignAt(scene, row, col);
     removeBuilding(scene, row, col);
@@ -2024,7 +2046,8 @@ function applyToolAt(scene, row, col, pointer = null) {
       // itself in place so clearing an eyesore doesn't also force the tile
       // back to grass for a player who's fine with the scrubland look.
       if (typeof showToast === 'function') showToast(t('toast.debrisCleared'), 'info');
-    } else {
+    } else if (mapData[row][col] !== WATER) {
+      // (the sea stays sea: clearing what is on it reclaims no land)
       if (mapData[row][col] === ROAD) roadTileCount = Math.max(0, roadTileCount - 1);
       mapData[row][col] = bulldozeHeight > 0 ? HILL : GROUND;
     }

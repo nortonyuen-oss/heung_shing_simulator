@@ -113,6 +113,13 @@ function updateBuildingPlacementGuide(scene, pointer) {
   }
 
   const { footprintCols, footprintRows } = footprint;
+  // 海鮮舫: green on the 4 x 3 it would moor on (it fits itself round the pointer), red where it may not
+  if (selectedTool === 'floating-restaurant' && typeof getTyphoonShelterFloatingRestaurantPlacement === 'function') {
+    const { site } = getTyphoonShelterFloatingRestaurantPlacement(tile.row, tile.col);
+    if (site) drawFootprintGuide(scene, site.row, site.col, site.cols, site.rows, true);
+    else drawFootprintGuide(scene, tile.row - Math.floor(footprintRows / 2), tile.col - Math.floor(footprintCols / 2), footprintCols, footprintRows, false);
+    return;
+  }
   const canPlace = selectedTool === 'harbor' && typeof canPlaceHarborFootprint === 'function'
     ? canPlaceHarborFootprint(tile.row, tile.col)
     : selectedTool === 'bus-depot'
@@ -121,7 +128,10 @@ function updateBuildingPlacementGuide(scene, pointer) {
         ? canPlantTreeAt(scene, tile.row, tile.col)
         : typeof isTyphoonShelterBuildingTool === 'function' && isTyphoonShelterBuildingTool(selectedTool)
           ? !whyNotTyphoonShelterBuilding(tile.row, tile.col, footprintCols, footprintRows)
-          : canPlaceBuildingFootprint(tile.row, tile.col, footprintCols, footprintRows);
+          : canPlaceBuildingFootprint(tile.row, tile.col, footprintCols, footprintRows)
+            // (黃金海岸酒店: and a yacht club within reach)
+            && !(selectedTool === 'gold-coast-hotel' && typeof whyNotGoldCoastHotel === 'function'
+              && whyNotGoldCoastHotel(tile.row, tile.col, footprintCols, footprintRows));
   drawFootprintGuide(scene, tile.row, tile.col, footprintCols, footprintRows, canPlace);
 }
 

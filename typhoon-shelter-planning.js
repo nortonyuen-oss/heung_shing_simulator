@@ -207,14 +207,14 @@ function commitTyphoonShelterDrag(scene, start, end, subtract) {
 
 // 風暴期間暫停工程 (typhoon-shelter-storm.js): while the boats shelter, or visitors still lie on
 // the free berths, nothing is built, rebuilt or pulled down. Says so when `tell`.
-function isTyphoonShelterWorksPaused() {
-  return typeof isTyphoonShelterStormFreeze === 'function' && isTyphoonShelterStormFreeze(getTyphoonShelterState().storm);
+function isTyphoonShelterWorksPaused(shelterId) {
+  return typeof isTyphoonShelterStormFreeze === 'function' && isTyphoonShelterStormFreeze(getTyphoonShelterState().storm, undefined, shelterId);
 }
 function typhoonShelterWorksPausedNote() {
   return tsT('typhoonShelter.storm.worksPaused', '風暴期間暫停工程：等漁船復航、外來船離開之後先可以興建、擴建或者拆除。');
 }
-function refuseTyphoonShelterWorksInStorm() {
-  if (!isTyphoonShelterWorksPaused()) return false;
+function refuseTyphoonShelterWorksInStorm(shelterId) {
+  if (!isTyphoonShelterWorksPaused(shelterId)) return false;
   if (typeof showToast === 'function') showToast(typhoonShelterWorksPausedNote(), 'warning');
   return true;
 }
@@ -223,7 +223,7 @@ function refuseTyphoonShelterWorksInStorm() {
 function confirmTyphoonShelterPendingEdit(scene = typeof activeScene !== 'undefined' ? activeScene : null) {
   const pending = typhoonShelterPendingEdit;
   if (!pending) return false;
-  if (refuseTyphoonShelterWorksInStorm()) return false;
+  if (refuseTyphoonShelterWorksInStorm(pending.targetId)) return false;
   typhoonShelterPendingEdit = null;
   const ok = commitTyphoonShelterPlan(scene, pending.plan, pending.analysis);
   if (!ok) typhoonShelterPendingEdit = pending;
@@ -493,7 +493,7 @@ function createTyphoonShelterDom() {
     const plan = state.shelters.find((s) => s.id === typhoonShelterSelectedId);
     if (!plan) return;
     const built = !!plan.works?.approved;
-    if (built && refuseTyphoonShelterWorksInStorm()) return;
+    if (built && refuseTyphoonShelterWorksInStorm(plan.id)) return;
     const question = built
       ? tsT('typhoonShelter.confirmDeleteBuilt', `「${plan.name}」已經建成，刪除會拆走全部設施，唔會退款。繼續？`, { name: plan.name })
       : tsT('typhoonShelter.confirmDelete', `刪除「${plan.name}」嘅規劃？`, { name: plan.name });
@@ -510,6 +510,7 @@ function createTyphoonShelterDom() {
     const use = event.target.closest?.('[data-ts-use]');
     if (use && typeof setTyphoonShelterUse === 'function') {
       setTyphoonShelterUse(use.dataset.tsUse, use.value);
+      use.blur();
       renderTyphoonShelterPanel();
       return;
     }
@@ -639,7 +640,7 @@ function renderTyphoonShelterConfirm(bar, plan, previewing) {
     cancel.hidden = false;
     button.textContent = `${verb}（$${cost.toLocaleString()}）`;
     const why = !pending.analysis.legal ? (pending.analysis.problems[0]?.message || '')
-      : isTyphoonShelterWorksPaused() ? typhoonShelterWorksPausedNote()
+      : isTyphoonShelterWorksPaused(plan.id) ? typhoonShelterWorksPausedNote()
       : cost > budget ? tsT('typhoonShelter.notEnoughFunds', `市庫唔夠錢：要 $${cost.toLocaleString()}，而家得 $${budget.toLocaleString()}`, { cost: cost.toLocaleString(), budget: budget.toLocaleString() })
         : '';
     button.disabled = !!why;
@@ -657,10 +658,11 @@ function renderTyphoonShelterConfirm(bar, plan, previewing) {
   }
   const estimate = typhoonShelterWorksEstimate(plan, a);
   button.hidden = false;
-  button.disabled = !a?.legal || isTyphoonShelterWorksPaused();
-  if (a?.legal && isTyphoonShelterWorksPaused()) note.textContent = typhoonShelterWorksPausedNote();
+  const paused = isTyphoonShelterWorksPaused(plan.id);
+  button.disabled = !a?.legal || paused;
+  if (a?.legal && paused) note.textContent = typhoonShelterWorksPausedNote();
   button.textContent = tsT('typhoonShelter.confirm', `確定興建（$${estimate.cost.toLocaleString()}）`, { cost: estimate.cost.toLocaleString() });
-  if (!isTyphoonShelterWorksPaused() || !a?.legal) note.textContent = a?.legal ? '' : (a?.problems[0]?.message || '');
+  if (!paused || !a?.legal) note.textContent = a?.legal ? '' : (a?.problems[0]?.message || '');
 }
 
 function renderTyphoonShelterWorksPanel(panel, plan, a, previewing) {
@@ -668,7 +670,7 @@ function renderTyphoonShelterWorksPanel(panel, plan, a, previewing) {
   const works = plan.works;
   const approve = panel.querySelector('.ts-approve');
   approve.hidden = previewing || !!works?.approved;
-  const paused = isTyphoonShelterWorksPaused();
+  const paused = isTyphoonShelterWorksPaused(plan.id);
   approve.disabled = !a.legal || paused;
   approve.textContent = tsT('typhoonShelter.approve', '確定興建');
   approve.title = !a.legal ? tsT('typhoonShelter.approveBlocked', '規劃未可行，未能興建') : paused ? typhoonShelterWorksPausedNote() : '';
@@ -698,7 +700,10 @@ function renderTyphoonShelterWorksPanel(panel, plan, a, previewing) {
   if (typeof typhoonShelterMarketRows === 'function' && sum.operational) rows.push(...typhoonShelterMarketRows(plan.id));
   if (typeof typhoonShelterFisheryRows === 'function' && sum.operational) rows.push(...typhoonShelterFisheryRows(plan));
   rows.push(...typhoonShelterStormRows(plan, a));
-  panel.querySelector('.ts-works-stats').innerHTML = rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
+  // not under an open dropdown (用途): the fleet counts redraw this every second, which would shut it
+  const worksStats = panel.querySelector('.ts-works-stats');
+  const picking = document.activeElement?.tagName === 'SELECT' && worksStats.contains(document.activeElement);
+  if (!picking) worksStats.innerHTML = rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
   panel.querySelector('.ts-works-block').textContent = sum.pierConnected ? ''
     : tsT('typhoonShelter.block.road', '碼頭未接路：要喺碼頭岸邊 3 格內有道路，避風塘先可以運作。');
 }
@@ -839,7 +844,7 @@ function approveTyphoonShelterWorks(id) {
   const plan = state.shelters.find((s) => s.id === id);
   const analysis = plan && getTyphoonShelterAnalyses().get(id);
   if (!plan || !analysis?.legal || plan.works?.approved) return false;
-  if (refuseTyphoonShelterWorksInStorm()) return false;
+  if (refuseTyphoonShelterWorksInStorm(plan.id)) return false;
   const bill = priceTyphoonShelterChange(plan, plan, analysis);
   if (!payTyphoonShelterBill(bill.cost)) return false;
   const built = { ...plan, works: { ...bill.works, approved: true } };
@@ -1198,9 +1203,14 @@ function syncTyphoonShelterFacilitySprites(scene = typeof activeScene !== 'undef
     if (rec.tag === 'works' && !wanted.has(rec.id)) removeTyphoonShelterObject(scene, rec.id);
   });
   wanted.forEach((w, id) => {
-    const rec = scene.typhoonShelterObjects.get(id);
+    let rec = scene.typhoonShelterObjects.get(id);
     const objectId = w.objectId || TYPHOON_SHELTER_WORK_KINDS[w.item.kind].objectId;
     const light = getTyphoonShelterRecordLight({ objectId, light: w.light });
+    // another model for the same work - the 海鮮舫's other view after a map turn: drawn afresh
+    if (rec && rec.objectId !== objectId) {
+      removeTyphoonShelterObject(scene, id);
+      rec = null;
+    }
     if (rec) {
       const shoreOverlapM = w.shoreOverlapM ?? null;
       if (rec.alpha !== w.alpha || rec.tint !== w.tint || rec.facing !== w.item.facing || rec.light !== light

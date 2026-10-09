@@ -227,3 +227,13 @@ test('a loading bay turns its driveway to the road: the mirror for a road to the
   assert.equal(isTyphoonShelterBayMirrored('nw'), true);
   assert.equal(isTyphoonShelterBayMirrored(null), false);
 });
+
+test('the 黃金海岸酒店 stands within reach of a yacht club', () => {
+  const { goldCoastHotelClubGap } = market;
+  const club = { row: 10, col: 10, cols: 2, rows: 2 };
+  // a 4x4 lot right beside the club, then one 8 tiles off, then one too far
+  assert.equal(goldCoastHotelClubGap(10, 12, 4, 4, [club]), 0);
+  assert.equal(goldCoastHotelClubGap(10, 20, 4, 4, [club], 8), 8);
+  assert.equal(goldCoastHotelClubGap(10, 21, 4, 4, [club], 8), null);
+  assert.equal(goldCoastHotelClubGap(0, 0, 4, 4, [], 8), null);
+});

@@ -52,6 +52,7 @@ const TYPHOON_SHELTER_TOURISM = Object.freeze({
   campaignMultiplier: Object.freeze({ success: 3, failure: 1.5 }),
   yachtVisitors: 100,            // each yacht in a shelter: its owners' guests, the harbour cruise
   yachtMooringFee: 8,            // a month, to the treasury, at the 9% base tax rate
+  hotelVisitors: 4000,           // each 黃金海岸酒店 by a yacht club: its guests
 });
 
 // The facilities a shelter adds for itself (works kinds of the same names, typhoon-shelter-works.js).
@@ -352,10 +353,10 @@ function getTyphoonShelterCampaignMultiplier(effects, monthIndex) {
 }
 
 // Visitors a month the working shelters can take (their restaurants included).
-function typhoonShelterTouristCapacity({ shelters = 0, restaurants = 0, yachts = 0, floatingRestaurants = 0, multiplier = 1 }) {
+function typhoonShelterTouristCapacity({ shelters = 0, restaurants = 0, yachts = 0, floatingRestaurants = 0, hotels = 0, multiplier = 1 }) {
   const T = TYPHOON_SHELTER_TOURISM;
   return Math.round((shelters * T.shelterVisitors + restaurants * T.restaurantVisitors + yachts * T.yachtVisitors
-    + floatingRestaurants * TYPHOON_SHELTER_FLOATING_RESTAURANT.visitors) * multiplier);
+    + floatingRestaurants * TYPHOON_SHELTER_FLOATING_RESTAURANT.visitors + hotels * T.hotelVisitors) * multiplier);
 }
 
 // The 海鮮舫 moored in the working shelters: [{ planId, row, col, cols, rows }].
@@ -382,44 +383,120 @@ function getTyphoonShelterLandValueSources() {
 }
 
 /**
- * Where a 海鮮舫 can moor with (row, col) under it: { row, col, cols, rows } or null - the 4 x 2 (or
- * 2 x 4) of the shelter's basin covering that tile with no work, no channel and no other on it.
+ * Where a 海鮮舫 can moor for a click at (row, col): { row, col, cols, rows } or null - the 4 x 3 (or
+ * 3 x 4) of the shelter's basin covering that tile, or else one beside it, with no work, no channel,
+ * no other and no `shore` water (typhoonShelterShoreWater) on it.
  */
-function findTyphoonShelterFloatingRestaurantSite({ row, col, basin, channel, items }) {
+function findTyphoonShelterFloatingRestaurantSite({ row, col, basin, channel, items, shore = null, turn = null }) {
   const F = TYPHOON_SHELTER_FLOATING_RESTAURANT;
   const key = (r, c) => `${r}:${c}`;
   const used = new Set((items || []).filter((i) => i.state !== 'demolishing')
     .flatMap((i) => (typeof typhoonShelterWorkTiles === 'function' ? typhoonShelterWorkTiles(i) : [key(i.row, i.col)])));
-  for (const [cols, rows] of [[F.cols, F.rows], [F.rows, F.cols]]) {
-    for (let dr = 0; dr < rows; dr++) {
-      for (let dc = 0; dc < cols; dc++) {
-        const r0 = row - dr; const c0 = col - dc;
-        let ok = true;
-        for (let r = r0; r < r0 + rows && ok; r++) for (let c = c0; c < c0 + cols && ok; c++) {
-          const k = key(r, c);
-          if (!basin.has(k) || channel?.has(k) || used.has(k)) ok = false;
+  const fits = (r0, c0, cols, rows) => {
+    for (let r = r0; r < r0 + rows; r++) for (let c = c0; c < c0 + cols; c++) {
+      const k = key(r, c);
+      if (!basin.has(k) || channel?.has(k) || used.has(k) || shore?.has(k)) return false;
+    }
+    return true;
+  };
+  // over the click; failing that, one tile off it (a click by the shore moors it a tile out)
+  for (const reach of [0, 1]) {
+    // either way round, or only the way the player turned it ('cols': long along the columns)
+    const ways = turn === 'cols' ? [[F.cols, F.rows]] : turn === 'rows' ? [[F.rows, F.cols]] : [[F.cols, F.rows], [F.rows, F.cols]];
+    for (const [cols, rows] of ways) {
+      for (let dr = -reach; dr < rows + reach; dr++) {
+        for (let dc = -reach; dc < cols + reach; dc++) {
+          if (fits(row - dr, col - dc, cols, rows)) return { row: row - dr, col: col - dc, cols, rows };
         }
-        if (ok) return { row: r0, col: c0, cols, rows };
       }
     }
   }
   return null;
 }
 
-// The 海事處 menu's 海鮮舫: moor one in the shelter under (row, col).
-function placeTyphoonShelterFloatingRestaurant(scene, row, col) {
+// The basin's water within a tile of land (8 round): the promenade and seawall art reach over it, so
+// a 海鮮舫 moored there would sit half on the shore. Pure: isLand(row, col).
+function typhoonShelterShoreWater(basin, isLand) {
+  const out = new Set();
+  basin.forEach((k) => {
+    const [r, c] = k.split(':').map(Number);
+    for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+      if ((dr || dc) && isLand(r + dr, c + dc)) { out.add(k); return; }
+    }
+  });
+  return out;
+}
+
+// The way round the player wants the 海鮮舫 (right-click while placing): null either way it fits,
+// 'cols' long along the columns, 'rows' long along the rows.
+let typhoonShelterFloatingRestaurantTurn = null;
+
+// The 海鮮舫 whose lot covers (row, col): { plan, item } or null. Pure on `shelters`.
+function findTyphoonShelterFloatingRestaurantAt(shelters, row, col) {
+  for (const plan of shelters || []) {
+    const item = (plan.works?.items || []).find((i) => i.kind === 'floatingRestaurant'
+      && row >= i.row && row < i.row + (i.rows || 3) && col >= i.col && col < i.col + (i.cols || 4));
+    if (item) return { plan, item };
+  }
+  return null;
+}
+
+// The bulldozer on a 海鮮舫: tow it away (asked first; nothing back), not while a storm holds its
+// shelter's works. True when the click was on one, whether or not it went.
+function demolishTyphoonShelterFloatingRestaurantAt(scene, row, col) {
+  const state = getTyphoonShelterState();
+  const hit = findTyphoonShelterFloatingRestaurantAt(state.shelters, row, col);
+  if (!hit) return false;
+  const { plan, item } = hit;
   const say = tsFisheryT;
+  if (typeof isTyphoonShelterStormFreeze === 'function' && isTyphoonShelterStormFreeze(state.storm, undefined, plan.id)) {
+    if (typeof showToast === 'function') showToast(say('typhoonShelter.floatingRestaurant.stormDemolish', '打風期間唔可以拆海鮮舫。'), 'warning');
+    return true;
+  }
+  const question = say('typhoonShelter.floatingRestaurant.confirmDemolish', `拆走「${plan.name}」嘅海鮮舫？唔會退款。`, { name: plan.name });
+  if (typeof confirm === 'function' && !confirm(question)) return true;
+  const fishery = normalizeTyphoonShelterFishery(plan.fishery);
+  fishery.facilities = fishery.facilities.filter((f) => !(f.kind === 'floatingRestaurant' && f.row === item.row && f.col === item.col));
+  setTyphoonShelterState({ ...state, shelters: state.shelters.map((p) => (p.id === plan.id
+    ? { ...p, works: { ...p.works, items: p.works.items.filter((i) => i !== item) }, fishery } : p)) });
+  if (typeof showToast === 'function') showToast(say('typhoonShelter.floatingRestaurant.demolished', `「${plan.name}」嘅海鮮舫已經拆走。`, { name: plan.name }), 'info');
+  if (typeof updateHUD === 'function') updateHUD();
+  if (typeof syncTyphoonShelterFacilitySprites === 'function') syncTyphoonShelterFacilitySprites(scene);
+  return true;
+}
+
+// Right-click with the 海鮮舫 tool: turn it 90 degrees from the way it would moor at (row, col) now.
+function turnTyphoonShelterFloatingRestaurant(row, col) {
+  const now = typhoonShelterFloatingRestaurantTurn
+    || (() => { const site = getTyphoonShelterFloatingRestaurantPlacement(row, col).site; return site && site.rows > site.cols ? 'rows' : 'cols'; })();
+  typhoonShelterFloatingRestaurantTurn = now === 'cols' ? 'rows' : 'cols';
+  return typhoonShelterFloatingRestaurantTurn;
+}
+
+// Where a 海鮮舫 would moor for a click at (row, col): { state, plan, site }, or { why: [key, fallback] }
+// when it may not - for the placement and the tool's red/green hover box alike.
+function getTyphoonShelterFloatingRestaurantPlacement(row, col) {
   const state = getTyphoonShelterState();
   const analyses = getTyphoonShelterAnalyses();
   const plan = state.shelters.find((p) => analyses.get(p.id)?.basin.has(`${row}:${col}`));
-  const warn = (key, fallback) => { if (typeof showToast === 'function') showToast(say(key, fallback), 'warning'); return false; };
-  if (!plan) return warn('typhoonShelter.floatingRestaurant.notInShelter', '海鮮舫要泊喺避風塘入面。');
-  if (plan.status !== 'operational') return warn('typhoonShelter.floatingRestaurant.notOperational', '避風塘要運作中先可以泊海鮮舫。');
-  if ((plan.works?.items || []).some((i) => i.kind === 'floatingRestaurant')) return warn('typhoonShelter.floatingRestaurant.one', '每個避風塘只可以泊一艘海鮮舫。');
-  if (typeof isTyphoonShelterStormFreeze === 'function' && isTyphoonShelterStormFreeze(state.storm)) return warn('typhoonShelter.floatingRestaurant.storm', '打風期間唔可以泊海鮮舫。');
+  if (!plan) return { why: ['typhoonShelter.floatingRestaurant.notInShelter', '海鮮舫要泊喺避風塘入面。'] };
+  if (plan.status !== 'operational') return { why: ['typhoonShelter.floatingRestaurant.notOperational', '避風塘要運作中先可以泊海鮮舫。'] };
+  if ((plan.works?.items || []).some((i) => i.kind === 'floatingRestaurant')) return { why: ['typhoonShelter.floatingRestaurant.one', '每個避風塘只可以泊一艘海鮮舫。'] };
+  if (typeof isTyphoonShelterStormFreeze === 'function' && isTyphoonShelterStormFreeze(state.storm, undefined, plan.id)) return { why: ['typhoonShelter.floatingRestaurant.storm', '打風期間唔可以泊海鮮舫。'] };
   const analysis = analyses.get(plan.id);
-  const site = findTyphoonShelterFloatingRestaurantSite({ row, col, basin: analysis.basin, channel: analysis.channel, items: plan.works?.items });
-  if (!site) return warn('typhoonShelter.floatingRestaurant.noRoom', '呢度唔夠位：海鮮舫要 4 × 3 格開闊水面，唔可以擋航道或者浮橋。');
+  const site = findTyphoonShelterFloatingRestaurantSite({ row, col, basin: analysis.basin, channel: analysis.channel, items: plan.works?.items,
+    turn: typhoonShelterFloatingRestaurantTurn,
+    shore: typhoonShelterShoreWater(analysis.basin, (r, c) => typeof isInsideMap === 'function' && isInsideMap(r, c) && mapData[r][c] !== WATER) });
+  if (!site) return { why: ['typhoonShelter.floatingRestaurant.noRoom', '呢度唔夠位：海鮮舫要 4 × 3 格開闊水面，唔可以擋航道、浮橋，亦要離岸邊一格。'] };
+  return { state, plan, site };
+}
+
+// The 海事處 menu's 海鮮舫: moor one in the shelter under (row, col).
+function placeTyphoonShelterFloatingRestaurant(scene, row, col) {
+  const say = tsFisheryT;
+  const warn = (key, fallback) => { if (typeof showToast === 'function') showToast(say(key, fallback), 'warning'); return false; };
+  const { state, plan, site, why } = getTyphoonShelterFloatingRestaurantPlacement(row, col);
+  if (why) return warn(...why);
   const cost = TYPHOON_SHELTER_FACILITIES.floatingRestaurant.cost;
   if (typeof spendBudget === 'function' && !spendBudget(cost)) return warn('toast.notEnoughFunds', '市庫唔夠錢。');
   const item = { key: `floatingRestaurant:${site.row}:${site.col}`, kind: 'floatingRestaurant', row: site.row, col: site.col, cols: site.cols, rows: site.rows, facing: 'n', state: 'done' };
@@ -439,8 +516,9 @@ function getTyphoonShelterTouristCapacity() {
   const markets = getTyphoonShelterMarketsByShelter();
   const restaurants = shelters.reduce((n, p) => n + (markets.get(p.id)?.restaurants || 0), 0);
   const monthIndex = typeof getCityMonthIndex === 'function' ? getCityMonthIndex() : 0;
+  const hotels = Object.values(typeof buildingData !== 'undefined' ? buildingData : {}).filter((r) => r?.type === 'gold_coast_hotel').length;
   return typhoonShelterTouristCapacity({ shelters: shelters.length, restaurants, yachts: getTyphoonShelterYachtCount(),
-    floatingRestaurants: getTyphoonShelterFloatingRestaurants().length, multiplier: getTyphoonShelterCampaignMultiplier(city.temporaryEffects, monthIndex) });
+    floatingRestaurants: getTyphoonShelterFloatingRestaurants().length, hotels, multiplier: getTyphoonShelterCampaignMultiplier(city.temporaryEffects, monthIndex) });
 }
 
 // The city's fishery jobs (simulation.js updateDemand): { traditional, commercial, byShelter }.
@@ -599,7 +677,7 @@ function settleTyphoonShelterFishery() {
       fishingBoats, landingBoats, facilities: fisheryState.facilities,
       damagedLastStorm: plan.fleet.boats.filter((b) => Number(b.repairUntil) > env - TYPHOON_SHELTER_MINUTES_PER_DAY).length,
     });
-    const frozen = typeof isTyphoonShelterStormFreeze === 'function' && isTyphoonShelterStormFreeze(storm);
+    const frozen = typeof isTyphoonShelterStormFreeze === 'function' && isTyphoonShelterStormFreeze(storm, undefined, plan.id);
     // once a month: only when the month is settled (a reload replaying the turn adds nothing)
     if (already) return plan;
     delete next.suggest;
@@ -656,7 +734,7 @@ function approveTyphoonShelterFacility(planId) {
   const analysis = plan && getTyphoonShelterAnalyses().get(planId);
   const want = plan?.fishery?.suggest;
   if (!plan || !analysis || !want) return false;
-  if (typeof isTyphoonShelterStormFreeze === 'function' && isTyphoonShelterStormFreeze(state.storm)) return false;
+  if (typeof isTyphoonShelterStormFreeze === 'function' && isTyphoonShelterStormFreeze(state.storm, undefined, plan.id)) return false;
   const geometry = getTyphoonShelterFleetGeometry(plan, analysis);
   const site = chooseTyphoonShelterFacilitySite({
     basin: analysis.basin, channel: analysis.channel, lanes: geometry.lanes, slots: geometry.slots,
@@ -686,7 +764,7 @@ function setTyphoonShelterUse(planId, use) {
     shelters: state.shelters.map((p) => {
       if (p.id !== planId) return p;
       const next = { ...p };
-      if (['mixed', 'leisure'].includes(use)) next.use = use; else delete next.use;
+      if (['mixed', 'leisure', 'marina'].includes(use)) next.use = use; else delete next.use;
       return next;
     }),
   });
@@ -782,7 +860,12 @@ const typhoonShelterFisheryApi = {
   approveTyphoonShelterFacility,
   setTyphoonShelterUse,
   TYPHOON_SHELTER_FLOATING_RESTAURANT,
+  typhoonShelterShoreWater,
   findTyphoonShelterFloatingRestaurantSite,
+  findTyphoonShelterFloatingRestaurantAt,
+  demolishTyphoonShelterFloatingRestaurantAt,
+  turnTyphoonShelterFloatingRestaurant,
+  getTyphoonShelterFloatingRestaurantPlacement,
   placeTyphoonShelterFloatingRestaurant,
   getTyphoonShelterFloatingRestaurants,
   getTyphoonShelterAttractivenessBonus,

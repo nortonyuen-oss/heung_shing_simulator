@@ -657,7 +657,7 @@ function normalizeTyphoonShelterPlan(raw) {
     // Phase 5 fishery: its facilities, auto-expand switch, months short of hands (typhoon-shelter-fishery.js)
     ...(raw.fishery && typeof normalizeTyphoonShelterFishery === 'function' ? { fishery: normalizeTyphoonShelterFishery(raw.fishery) } : {}),
     // what it is for: fishing (default), mixed, or leisure - the yachts' share of the berths
-    ...(['mixed', 'leisure'].includes(raw.use) ? { use: raw.use } : {}),
+    ...(['mixed', 'leisure', 'marina'].includes(raw.use) ? { use: raw.use } : {}),
   };
 }
 

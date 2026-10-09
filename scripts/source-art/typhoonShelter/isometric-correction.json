@@ -628,5 +628,53 @@
    }
   ],
   "whole": true
+ },
+ "speedboat3.png": {
+  "views": [
+   {
+    "down": 0.52,
+    "up": 0.515
+   },
+   {
+    "down": 0.55,
+    "up": 0.62
+   }
+  ]
+ },
+ "speedboat4.png": {
+  "views": [
+   {
+    "down": 0.7425,
+    "up": 0.385
+   },
+   {
+    "down": 0.495,
+    "up": 0.7825
+   }
+  ]
+ },
+ "speedboat5.png": {
+  "views": [
+   {
+    "down": 0.665,
+    "up": 0.415
+   },
+   {
+    "down": 0.485,
+    "up": 0.685
+   }
+  ]
+ },
+ "sailboat1.png": {
+  "views": [
+   {
+    "down": 0.5525,
+    "up": 0.5
+   },
+   {
+    "down": 0.645,
+    "up": 0.5475
+   }
+  ]
  }
 }

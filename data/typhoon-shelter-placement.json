@@ -756,22 +756,22 @@
   "floatingRestaurant1_a": {
    "ground": {
     "left": [
-     265,
-     700.2
+     157.0,
+     644.6
     ],
     "front": [
      668.3,
      907.9
     ],
     "right": [
-     846,
-     829.7
+     867.0,
+     820.5
     ]
    },
    "top": 416,
    "facing": "sw",
-   "auto": true,
-   "method": "lot"
+   "auto": false,
+   "method": "hull"
   },
   "floatingRestaurant2_a": {
    "ground": {
@@ -796,22 +796,22 @@
   "floatingRestaurant3_a": {
    "ground": {
     "left": [
-     306,
-     720.9
+     188.0,
+     661.3
     ],
     "front": [
      665.7,
      902.5
     ],
     "right": [
-     831,
-     816.6
+     837.0,
+     813.5
     ]
    },
    "top": 400,
    "facing": "sw",
-   "auto": true,
-   "method": "lot"
+   "auto": false,
+   "method": "hull"
   },
   "floatingWorkshop_a": {
    "ground": {
@@ -2260,6 +2260,166 @@
      0.94
     ]
    }
+  },
+  "speedboat3_a": {
+   "ground": {
+    "left": [
+     90.0,
+     333.7
+    ],
+    "front": [
+     323.7,
+     450.5
+    ],
+    "right": [
+     423.0,
+     400.8
+    ]
+   },
+   "top": 204,
+   "facing": "nw",
+   "auto": true,
+   "method": "outline"
+  },
+  "speedboat3_b": {
+   "ground": {
+    "left": [
+     86.0,
+     403.7
+    ],
+    "front": [
+     187.7,
+     454.5
+    ],
+    "right": [
+     427.0,
+     334.8
+    ]
+   },
+   "top": 224,
+   "facing": "ne",
+   "auto": true,
+   "method": "outline"
+  },
+  "speedboat4_a": {
+   "ground": {
+    "left": [
+     81.0,
+     341.9
+    ],
+    "front": [
+     318.2,
+     460.5
+    ],
+    "right": [
+     432.0,
+     403.6
+    ]
+   },
+   "top": 254,
+   "facing": "nw",
+   "auto": true,
+   "method": "outline"
+  },
+  "speedboat4_b": {
+   "ground": {
+    "left": [
+     77.0,
+     397.3
+    ],
+    "front": [
+     199.3,
+     458.5
+    ],
+    "right": [
+     436.0,
+     340.2
+    ]
+   },
+   "top": 244,
+   "facing": "ne",
+   "auto": true,
+   "method": "outline"
+  },
+  "speedboat5_a": {
+   "ground": {
+    "left": [
+     79.0,
+     329.2
+    ],
+    "front": [
+     331.6,
+     455.5
+    ],
+    "right": [
+     434.0,
+     404.3
+    ]
+   },
+   "top": 228,
+   "facing": "nw",
+   "auto": true,
+   "method": "outline"
+  },
+  "speedboat5_b": {
+   "ground": {
+    "left": [
+     75.0,
+     405.8
+    ],
+    "front": [
+     174.4,
+     455.5
+    ],
+    "right": [
+     438.0,
+     323.7
+    ]
+   },
+   "top": 228,
+   "facing": "ne",
+   "auto": true,
+   "method": "outline"
+  },
+  "sailboat1_a": {
+   "ground": {
+    "left": [
+     138.0,
+     338.1
+    ],
+    "front": [
+     338.8,
+     438.5
+    ],
+    "right": [
+     374.0,
+     420.9
+    ]
+   },
+   "top": 143,
+   "facing": "nw",
+   "auto": true,
+   "method": "outline"
+  },
+  "sailboat1_b": {
+   "ground": {
+    "left": [
+     130.0,
+     428.1
+    ],
+    "front": [
+     164.8,
+     445.5
+    ],
+    "right": [
+     383.0,
+     336.4
+    ]
+   },
+   "top": 176,
+   "facing": "ne",
+   "auto": true,
+   "method": "outline"
   }
  },
  "objects": {

@@ -145,11 +145,14 @@ function getTyphoonShelterStormPhase(storm, weather, env) {
   return 'clear';
 }
 
-// Works and fleet changes wait while boats shelter or visitors are still in (`env`: now).
-function isTyphoonShelterStormFreeze(storm, env = typeof getTyphoonShelterFleetClock === 'function' ? getTyphoonShelterFleetClock() : Infinity) {
+// Works and fleet changes wait while boats shelter (everywhere) or visitors are still in (`env`:
+// now). With `shelterId`, only that shelter's visitors count: once the signals are down, a shelter
+// the visitors never came to is free to build at while they leave another.
+function isTyphoonShelterStormFreeze(storm, env = typeof getTyphoonShelterFleetClock === 'function' ? getTyphoonShelterFleetClock() : Infinity, shelterId) {
   if (!storm) return false;
   return !!openInterval(storm.holds || [])
-    || (storm.visitors || []).some((v) => v.leaveAt == null || env < v.leaveAt + TYPHOON_SHELTER_STORM.visitorGoneAfter);
+    || (storm.visitors || []).some((v) => (shelterId == null || v.shelterId === shelterId)
+      && (v.leaveAt == null || env < v.leaveAt + TYPHOON_SHELTER_STORM.visitorGoneAfter));
 }
 
 /**

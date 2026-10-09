@@ -121,6 +121,12 @@ test('a storm, hour by hour: standby, recall, visitors, shelter, two safe hours,
   assert.ok(isTyphoonShelterStormFreeze(at(10), log[10].minute + 60), 'works wait until the visitors are gone');
   const lastOut = Math.max(...leaving.map((v) => v.leaveAt)) + S.visitorGoneAfter;
   assert.ok(!isTyphoonShelterStormFreeze(at(10), lastOut + 1));
+  // signals down: only the shelter the visitors lie in waits; another builds while they leave
+  const visited = leaving[0].shelterId;
+  assert.ok(isTyphoonShelterStormFreeze(at(10), log[10].minute + 60, visited));
+  assert.ok(!isTyphoonShelterStormFreeze(at(10), log[10].minute + 60, 'ts-elsewhere'));
+  // but while the signals are up, every shelter waits
+  assert.ok(isTyphoonShelterStormFreeze(at(9), log[9].minute, 'ts-elsewhere'));
   // stepping the same hour twice changes nothing
   const again = stepTyphoonShelterStorm(at(10), { weather: weather('none'), minute: log[10].minute, shelters, totalBerths: 30 });
   assert.equal(again.events.length, 0);

@@ -440,6 +440,7 @@ function updateBudgetWindow() {
   setTextContent('budget-income-tourism', formatMoney(current.income.tourism));
   setTextContent('budget-income-fishery', formatMoney(current.income.fishery ?? 0));
   setTextContent('budget-income-fish-market', formatMoney(current.income.fishMarket ?? 0));
+  setTextContent('budget-income-marina', formatMoney(current.income.marina ?? 0));
   setTextContent('budget-income-transport', formatMoney(current.income.transport ?? 0));
   setTextContent('budget-income-total', formatMoney(current.totalIncome));
 

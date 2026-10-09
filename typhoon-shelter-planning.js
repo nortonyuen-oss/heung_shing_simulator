@@ -507,6 +507,12 @@ function createTyphoonShelterDom() {
   // 漁業 rows (typhoon-shelter-fishery.js): the auto-expand switch and a suggested facility's 確定興建
   const stats = panel.querySelector('.ts-works-stats');
   stats.addEventListener('change', (event) => {
+    const use = event.target.closest?.('[data-ts-use]');
+    if (use && typeof setTyphoonShelterUse === 'function') {
+      setTyphoonShelterUse(use.dataset.tsUse, use.value);
+      renderTyphoonShelterPanel();
+      return;
+    }
     const box = event.target.closest?.('[data-ts-auto-expand]');
     if (!box || typeof setTyphoonShelterAutoExpand !== 'function') return;
     setTyphoonShelterAutoExpand(box.dataset.tsAutoExpand, box.checked);
@@ -682,7 +688,7 @@ function renderTyphoonShelterWorksPanel(panel, plan, a, previewing) {
   if (typeof summarizeTyphoonShelterFleet === 'function' && plan.fleet) {
     const f = summarizeTyphoonShelterFleet(plan, a);
     rows.push(
-      [tsT('typhoonShelter.fleet', '船隊'), `${f.boats} 艘（漁船 ${f.fishing}）`],
+      [tsT('typhoonShelter.fleet', '船隊'), `${f.boats} 艘（漁船 ${f.fishing}${f.yachts ? ` · 遊艇 ${f.yachts}` : ''}）`],
       [tsT('typhoonShelter.fleetNow', '而家'), `停泊 ${f.moored} · 出海 ${f.out + f.away} · 返港 ${f.home}`],
       [tsT('typhoonShelter.catchToday', '最近一晚漁獲'), `${f.tripsToday} 船次 · 約 ${f.catchToday} 噸`],
     );

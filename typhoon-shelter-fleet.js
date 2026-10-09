@@ -22,6 +22,10 @@ const TYPHOON_SHELTER_FLEET = Object.freeze({
     Object.freeze({ objectId: 'fishingBoat4', weight: 25, fishing: true, size: 2, trip: 'trawler' }),
     Object.freeze({ objectId: 'homeBoat1', weight: 8, fishing: false, size: 2 }),
     Object.freeze({ objectId: 'homeBoat2', weight: 7, fishing: false, size: 2 }),
+    // 遊艇: pleasure craft, in a shelter given over partly to them (TYPHOON_SHELTER_USES) - out for the
+    // day now and then, never fishing; drawn only as that share of the berths asks for them
+    Object.freeze({ objectId: 'speedboat1', weight: 1, fishing: false, leisure: true, size: 2, trip: 'leisure' }),
+    Object.freeze({ objectId: 'speedboat2', weight: 1, fishing: false, leisure: true, size: 2, trip: 'leisure' }),
   ]),
   // 舢舨: not berthed like the boats - they tie up alongside the landing stages and run between
   // them and the boats: crews out before the boats sail, help unloading when they come in
@@ -37,6 +41,8 @@ const TYPHOON_SHELTER_FLEET = Object.freeze({
     gillnet: Object.freeze({ departFrom: 17 * 60, departSpan: 2 * 60, restShare: 0.25 }),
     // 休漁期: the South China Sea moratorium (from 1 May to mid-August) keeps the trawlers in
     trawler: Object.freeze({ departFrom: 15 * 60, departSpan: 2 * 60, restShare: 0, moratoriumMonths: Object.freeze([5, 6, 7, 8]) }),
+    // a yacht's day out: off in the morning, back in the late afternoon, two days in five
+    leisure: Object.freeze({ departFrom: 10 * 60, departSpan: 3 * 60, arriveFrom: 16 * 60, arriveSpan: 2 * 60, restShare: 0.6, pleasure: true }),
   }),
   arriveFrom: 27 * 60,         // alongside at the berth, catch landed
   arriveSpan: 2 * 60,
@@ -48,6 +54,19 @@ const TYPHOON_SHELTER_FLEET = Object.freeze({
   resumeStaggerMin: 10,        // after a storm: one boat sails this many minutes after the last
 });
 const TYPHOON_SHELTER_MINUTES_PER_DAY = 24 * 60;
+
+// What a shelter is for (plan.use): the share of its berths given to pleasure craft. Hong Kong's
+// shelters take any vessel - Causeway Bay's is almost all yachts, Aberdeen South's mostly, the
+// fishing ports' hardly any (Marine Department).
+const TYPHOON_SHELTER_USES = Object.freeze({
+  fishing: Object.freeze({ leisure: 0, label: '漁業優先' }),
+  mixed: Object.freeze({ leisure: 0.4, label: '漁業同遊艇' }),
+  leisure: Object.freeze({ leisure: 0.8, label: '遊艇優先' }),
+});
+
+function getTyphoonShelterLeisureShare(plan) {
+  return (TYPHOON_SHELTER_USES[plan?.use] || TYPHOON_SHELTER_USES.fishing).leisure;
+}
 
 const TYPHOON_SHELTER_TENDERS = Object.freeze({
   models: Object.freeze(['sanpan1', 'sanpan3', 'sanpan5']),
@@ -210,8 +229,8 @@ function isTyphoonShelterBoatModelAvailable(objectId) {
   return getTyphoonShelterObjectTextures(objectId, getTyphoonShelterFacingOverrides()).length > 0;
 }
 
-function pickTyphoonShelterBoatModel(seed, id, size) {
-  const models = TYPHOON_SHELTER_FLEET.models.filter((m) => m.size <= size && isTyphoonShelterBoatModelAvailable(m.objectId));
+function pickTyphoonShelterBoatModel(seed, id, size, leisure = false) {
+  const models = TYPHOON_SHELTER_FLEET.models.filter((m) => m.size <= size && !!m.leisure === !!leisure && isTyphoonShelterBoatModelAvailable(m.objectId));
   if (!models.length) return null;
   const total = models.reduce((s, m) => s + m.weight, 0);
   let x = tfHash(seed, 'model', id) * total;
@@ -222,9 +241,11 @@ function pickTyphoonShelterBoatModel(seed, id, size) {
 /**
  * Bring a fleet toward `target` boats on `slots`: boats on berths that are gone move to free ones
  * (or leave), the fleet grows by up to `arrivals` boats, and shrinks (berth-side boats first) when
- * the target drops. Returns a new fleet.
+ * the target drops. `leisureShare` of the target are yachts (TYPHOON_SHELTER_USES): a new boat is a
+ * yacht while there are fewer than that, and when the share changes one boat a call makes way for
+ * the other kind. Returns a new fleet.
  */
-function reconcileTyphoonShelterFleet(fleet, slots, target, { seed = 0, arrivals = Infinity } = {}) {
+function reconcileTyphoonShelterFleet(fleet, slots, target, { seed = 0, arrivals = Infinity, leisureShare = 0 } = {}) {
   const bySlot = new Map(slots.map((s) => [s.key, s]));
   const taken = new Set();
   const boats = [];
@@ -236,12 +257,26 @@ function reconcileTyphoonShelterFleet(fleet, slots, target, { seed = 0, arrivals
     if (free) { taken.add(free.key); boats.push({ ...b, slot: free.key }); }
   });
   while (boats.length > target) boats.pop();
+  // the mix: one boat of the kind there are too many of makes way
+  const wantLeisure = Math.round(target * Math.max(0, Math.min(1, leisureShare)));
+  const leisureCount = () => boats.filter((b) => isTyphoonShelterLeisureModel(b.model)).length;
+  const makeWay = (leisure) => {
+    for (let i = boats.length - 1; i >= 0; i--) {
+      if (isTyphoonShelterLeisureModel(boats[i].model) !== leisure) continue;
+      taken.delete(boats[i].slot);
+      boats.splice(i, 1);
+      return;
+    }
+  };
+  if (leisureCount() > wantLeisure) makeWay(true);
+  else if (leisureCount() < wantLeisure && boats.length >= target && pickTyphoonShelterBoatModel(seed, 0, 2, true)) makeWay(false);
   let nextId = fleet.nextId || 1;
   let added = 0;
   for (const slot of slots) {
     if (boats.length >= target || added >= arrivals) break;
     if (taken.has(slot.key)) continue;
-    const model = pickTyphoonShelterBoatModel(seed, nextId, slot.size);
+    const model = pickTyphoonShelterBoatModel(seed, nextId, slot.size, leisureCount() < wantLeisure)
+      || pickTyphoonShelterBoatModel(seed, nextId, slot.size, false);
     if (!model) continue;
     boats.push({ id: nextId, model: model.objectId, slot: slot.key });
     taken.add(slot.key);
@@ -260,9 +295,8 @@ function reconcileTyphoonShelterFleet(fleet, slots, target, { seed = 0, arrivals
  */
 function typhoonShelterFleetSchedule(plan, routeLengthOf, day, { moratorium = false } = {}) {
   const F = TYPHOON_SHELTER_FLEET;
-  const boats = (plan.fleet?.boats || []).filter((b) => isTyphoonShelterFishingModel(b.model));
+  const boats = (plan.fleet?.boats || []).filter((b) => isTyphoonShelterSailingModel(b.model));
   const len = (b) => routeLengthOf(b) || 0;
-  const n = Math.max(1, boats.length);
   const slot = (i, count, from, span, salt, b) => from + ((i + 0.5 + (tfHash(plan.seed, salt, b.id, day) - 0.5) * 0.3) / Math.max(1, count)) * span;
   const times = new Map(boats.map((b) => [b.id, {}]));
   // out by kind, each in its own window, nearest the entrance first
@@ -287,9 +321,20 @@ function typhoonShelterFleetSchedule(plan, routeLengthOf, day, { moratorium = fa
   const out = [...boats].sort((x, y) => len(x) - len(y) || x.id - y.id);
   const median = out.length ? len(out[Math.floor((out.length - 1) / 2)]) : 0;
   out.forEach((b, i) => Object.assign(times.get(b.id), { resumeOffset: i * F.resumeStaggerMin, longRoute: len(b) > median }));
-  // home before dawn, the boats going furthest in first, so none waits behind one turning in
-  [...boats].sort((x, y) => len(y) - len(x) || x.id - y.id)
-    .forEach((b, i) => { times.get(b.id).arrive = slot(i, n, F.arriveFrom, F.arriveSpan, 'in', b); });
+  // home - the fishing boats before dawn, the yachts in the late afternoon - each window's boats
+  // going furthest in first, so none waits behind one turning in
+  const byArrival = new Map();
+  boats.forEach((b) => {
+    const t = F.trips[getTyphoonShelterBoatTrip(b.model)];
+    const key = `${t.arriveFrom ?? F.arriveFrom}|${t.arriveSpan ?? F.arriveSpan}`;
+    if (!byArrival.has(key)) byArrival.set(key, []);
+    byArrival.get(key).push(b);
+  });
+  byArrival.forEach((list, key) => {
+    const [from, span] = key.split('|').map(Number);
+    [...list].sort((x, y) => len(y) - len(x) || x.id - y.id)
+      .forEach((b, i) => { times.get(b.id).arrive = slot(i, list.length, from, span, 'in', b); });
+  });
   return times;
 }
 
@@ -330,7 +375,7 @@ function typhoonShelterBoatTimes(seed, boatId, day, objectId = 'fishingBoat3') {
   const t = F.trips[getTyphoonShelterBoatTrip(objectId)];
   return {
     depart: t.departFrom + tfHash(seed, 'out', boatId, day) * t.departSpan,
-    arrive: F.arriveFrom + tfHash(seed, 'in', boatId, day) * F.arriveSpan,
+    arrive: (t.arriveFrom ?? F.arriveFrom) + tfHash(seed, 'in', boatId, day) * (t.arriveSpan ?? F.arriveSpan),
     resumeOffset: 0,
     longRoute: false,
     rest: false,
@@ -399,6 +444,15 @@ function typhoonShelterBoatState(boat, routeLength, env, { seed = 0, storm = nul
 
 function isTyphoonShelterFishingModel(objectId) {
   return !!TYPHOON_SHELTER_FLEET.models.find((m) => m.objectId === objectId)?.fishing;
+}
+
+function isTyphoonShelterLeisureModel(objectId) {
+  return !!TYPHOON_SHELTER_FLEET.models.find((m) => m.objectId === objectId)?.leisure;
+}
+
+// Boats that go out: the fishing boats at night, the yachts for the day.
+function isTyphoonShelterSailingModel(objectId) {
+  return isTyphoonShelterFishingModel(objectId) || isTyphoonShelterLeisureModel(objectId);
 }
 
 function normalizeTyphoonShelterFleet(raw) {
@@ -471,11 +525,15 @@ function updateTyphoonShelterFleets(state, analyses, summaries) {
     const berthTarget = summary?.operational
       ? Math.max(0, Math.min(summary.berths.daily, boatBerths - summary.berths.reserved)) : 0;
     const fleet = plan.fleet || createTyphoonShelterFleet();
-    // Phase 5: held to the hands and the markets; below today's boats for want of them, one a month
+    // the yachts' share of the berths (plan.use); the rest held to the hands and the markets (Phase 5)
+    // - below today's boats for want of them, one a month
+    const leisureSlots = Math.round(berthTarget * getTyphoonShelterLeisureShare(plan));
+    const workFleet = { ...fleet, boats: (fleet.boats || []).filter((b) => !isTyphoonShelterLeisureModel(b.model)) };
     const target = markets && summary?.operational && typeof getTyphoonShelterFleetCaps === 'function'
-      ? getTyphoonShelterFleetCaps({ ...plan, fleet }, berthTarget, markets).target : berthTarget;
+      ? getTyphoonShelterFleetCaps({ ...plan, fleet: workFleet }, berthTarget - leisureSlots, markets).target + leisureSlots
+      : berthTarget;
     const arrivals = Math.max(1, Math.ceil(berthTarget / TYPHOON_SHELTER_FLEET.arrivalsPerDayShare));
-    const next = reconcileTyphoonShelterFleet(fleet, slots, target, { seed: plan.seed, arrivals });
+    const next = reconcileTyphoonShelterFleet(fleet, slots, target, { seed: plan.seed, arrivals, leisureShare: target > 0 ? leisureSlots / target : 0 });
     if (JSON.stringify(next.boats) === JSON.stringify(fleet.boats) && plan.fleet) return plan;
     changed = true;
     // a boat let go for want of hands or a market: the month's one
@@ -491,14 +549,14 @@ function updateTyphoonShelterFleets(state, analyses, summaries) {
 // (typhoon-shelter-storm.js).
 function summarizeTyphoonShelterFleet(plan, analysis, env = getTyphoonShelterFleetClock(), storm = typeof getTyphoonShelterStorm === 'function' ? getTyphoonShelterStorm() : null) {
   const fleet = plan.fleet;
-  const out = { boats: 0, fishing: 0, out: 0, away: 0, home: 0, moored: 0, repairing: 0, held: false, moratorium: false, tripsToday: 0, catchToday: 0 };
+  const out = { boats: 0, fishing: 0, yachts: 0, out: 0, away: 0, home: 0, moored: 0, repairing: 0, held: false, moratorium: false, tripsToday: 0, catchToday: 0 };
   if (!fleet || !analysis) return out;
   const geometry = getTyphoonShelterFleetGeometry(plan, analysis);
   const day = getTyphoonShelterTripDay(env);
   out.held = !!(storm?.holds || []).find((h) => h.until == null);
   out.moratorium = isTyphoonShelterMoratoriumDay(day);
   const schedule = getTyphoonShelterFleetScheduleCached(plan, geometry, day, out.moratorium);
-  const firstOut = Math.min(...Object.values(TYPHOON_SHELTER_FLEET.trips).map((t) => t.departFrom));
+  const firstOut = Math.min(...Object.values(TYPHOON_SHELTER_FLEET.trips).filter((t) => !t.pleasure).map((t) => t.departFrom));
   const catchDay = env < day * TYPHOON_SHELTER_MINUTES_PER_DAY + firstOut ? day - 1 : day;
   const catchSchedule = catchDay === day ? schedule
     : typhoonShelterFleetSchedule(plan, (b) => geometry.routeBySlot.get(b.slot)?.length, catchDay, { moratorium: isTyphoonShelterMoratoriumDay(catchDay) });
@@ -507,8 +565,9 @@ function summarizeTyphoonShelterFleet(plan, analysis, env = getTyphoonShelterFle
     out.boats += 1;
     const fishing = isTyphoonShelterFishingModel(b.model);
     if (fishing) out.fishing += 1;
+    if (isTyphoonShelterLeisureModel(b.model)) out.yachts += 1;
     const rl = geometry.routeBySlot.get(b.slot)?.length || 0;
-    const st = typhoonShelterBoatState(b, rl, env, { seed: plan.seed, storm, fishing, times: schedule.get(b.id) });
+    const st = typhoonShelterBoatState(b, rl, env, { seed: plan.seed, storm, fishing: isTyphoonShelterSailingModel(b.model), times: schedule.get(b.id) });
     if (Number(b.repairUntil) > env) out.repairing += 1;
     // (a boat still inbound from last night, past 06:00, is counted moored: arrivals end by 05:00)
     if (st.mode === 'out') out.out += 1;
@@ -764,8 +823,7 @@ function updateTyphoonShelterBoats(scene) {
       const slot = slotByKey.get(boat.slot);
       const r = geometry.routeBySlot.get(boat.slot);
       if (!slot || !r) return;
-      const fishing = isTyphoonShelterFishingModel(boat.model);
-      const st = typhoonShelterBoatState(boat, r.length, env, { seed: plan.seed, storm, fishing, times: schedule.get(boat.id) });
+      const st = typhoonShelterBoatState(boat, r.length, env, { seed: plan.seed, storm, fishing: isTyphoonShelterSailingModel(boat.model), times: schedule.get(boat.id) });
       const id = `${plan.id}|${boat.id}`;
       if (st.mode === 'away') return;
       live.add(id);
@@ -904,6 +962,10 @@ const typhoonShelterFleetApi = {
   typhoonShelterFleetSchedule,
   typhoonShelterBoatState,
   isTyphoonShelterFishingModel,
+  isTyphoonShelterLeisureModel,
+  TYPHOON_SHELTER_USES,
+  getTyphoonShelterLeisureShare,
+  isTyphoonShelterSailingModel,
   normalizeTyphoonShelterFleet,
   isTyphoonShelterFishingWeatherBad,
   updateTyphoonShelterFleets,

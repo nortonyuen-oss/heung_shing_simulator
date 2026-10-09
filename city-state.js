@@ -243,6 +243,8 @@ const city = {
 };
 
 function resetGameState() {
+  if (typeof stopCoastalWeatherSession === 'function') stopCoastalWeatherSession();
+  city.coastalWeather = null;
   if (typeof resetExpansionState === 'function') resetExpansionState();
   zoneMap        = createFilledMap(ZONE_NONE);
   zoneDensityMap = createFilledMap(DENSITY_LOW);
@@ -1032,6 +1034,8 @@ function computeBudgetSnapshot(options = {}) {
   const fisheryMonth = city.fishery?.lastMonth;
   const fisheryIncome = Math.max(0, Number(fisheryMonth?.tax || 0));
   const fishMarketIncome = Math.max(0, Number(fisheryMonth?.commission || 0) + Number(fisheryMonth?.fresh || 0));
+  // the yachts' mooring fees in the shelters (typhoon-shelter-fishery.js)
+  const marinaIncome = typeof getTyphoonShelterMooringFees === 'function' ? getTyphoonShelterMooringFees() : 0;
   const landmarkIncome = landmarkFinancials.revenue;
   const landmarkUpkeep = landmarkFinancials.upkeep;
   // Transport Mode owns a separate OpenTTD-style company treasury. Fare
@@ -1043,7 +1047,7 @@ function computeBudgetSnapshot(options = {}) {
   const marineUpkeep = typeof getTyphoonShelterMonthlyUpkeep === 'function' ? getTyphoonShelterMonthlyUpkeep() : 0;
   const totalIncome = Math.round(
     grossIncome + policyTaxAdjustment + tourismIncome + landmarkIncome + transportIncome
-    + fisheryIncome + fishMarketIncome
+    + fisheryIncome + fishMarketIncome + marinaIncome
   );
   const totalExpenses = Math.round(
     roadsUpkeep + fireUpkeep + policeUpkeep + powerUpkeep + educationUpkeep + healthUpkeep
@@ -1064,6 +1068,7 @@ function computeBudgetSnapshot(options = {}) {
       transport: Math.round(transportIncome),
       fishery: Math.round(fisheryIncome),
       fishMarket: Math.round(fishMarketIncome),
+      marina: Math.round(marinaIncome),
     },
     expenses: {
       roads: Math.round(roadsUpkeep),

@@ -353,3 +353,39 @@ test('the sampans tie up at the landing stages and run crews out and catches in'
   // out of reach: let go
   assert.equal(planTyphoonShelterTenderRuns([east], boats, () => ({ route: way.route, length: 99 }))[0].length, 0);
 });
+
+test('a shelter given partly to yachts: its share of the fleet, a boat a day changing over, out for the day', () => {
+  const { isTyphoonShelterLeisureModel, typhoonShelterFleetSchedule, TYPHOON_SHELTER_USES, getTyphoonShelterLeisureShare } = fleet;
+  const slots = Array.from({ length: 20 }, (_, i) => ({ key: `s${i}`, size: 2 }));
+  const yachts = (f) => f.boats.filter((b) => isTyphoonShelterLeisureModel(b.model)).length;
+  assert.equal(getTyphoonShelterLeisureShare({}), 0, 'fishing by default');
+  assert.equal(getTyphoonShelterLeisureShare({ use: 'mixed' }), TYPHOON_SHELTER_USES.mixed.leisure);
+  // a new mixed shelter fills to its share of yachts
+  const mixed = reconcileTyphoonShelterFleet(createTyphoonShelterFleet(), slots, 20, { seed: 7, leisureShare: 0.4 });
+  assert.equal(mixed.boats.length, 20);
+  assert.equal(yachts(mixed), 8);
+  // a fishing shelter turned over to yachts: one boat a day makes way, its berth a yacht's next
+  const fishingOnly = reconcileTyphoonShelterFleet(createTyphoonShelterFleet(), slots, 20, { seed: 7 });
+  assert.equal(yachts(fishingOnly), 0);
+  let f = fishingOnly;
+  f = reconcileTyphoonShelterFleet(f, slots, 20, { seed: 7, leisureShare: 0.8, arrivals: 1 });
+  assert.equal(yachts(f), 1, 'a day: one fishing boat out, one yacht in');
+  for (let day = 0; day < 30; day++) f = reconcileTyphoonShelterFleet(f, slots, 20, { seed: 7, leisureShare: 0.8, arrivals: 1 });
+  assert.equal(yachts(f), 16);
+  assert.equal(f.boats.length, 20);
+  // and back again
+  for (let day = 0; day < 30; day++) f = reconcileTyphoonShelterFleet(f, slots, 20, { seed: 7, leisureShare: 0, arrivals: 1 });
+  assert.equal(yachts(f), 0);
+  // the yachts go out by day and are home in the late afternoon; the fishing boats keep the night
+  const plan = { seed: 3, fleet: mixed };
+  const times = typhoonShelterFleetSchedule(plan, () => 10, 100);
+  mixed.boats.forEach((b) => {
+    const t = times.get(b.id);
+    if (isTyphoonShelterLeisureModel(b.model)) {
+      assert.ok(t.depart >= 10 * 60 && t.depart <= 13 * 60, `out ${t.depart}`);
+      assert.ok(t.arrive >= 16 * 60 && t.arrive <= 18 * 60, `in ${t.arrive}`);
+    } else if (t) {
+      assert.ok(t.arrive >= 27 * 60, 'fishing boats home before dawn');
+    }
+  });
+});

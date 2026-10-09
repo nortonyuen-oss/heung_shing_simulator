@@ -272,7 +272,7 @@ function typhoonShelterMarketPiles(stock, slots) {
 // The night a moment reports on: tonight's once the first boats are out, else last night's.
 function getTyphoonShelterMarketNight(t) {
   const day = getTyphoonShelterTripDay(t);
-  const firstOut = Math.min(...Object.values(TYPHOON_SHELTER_FLEET.trips).map((x) => x.departFrom));
+  const firstOut = Math.min(...Object.values(TYPHOON_SHELTER_FLEET.trips).filter((x) => !x.pleasure).map((x) => x.departFrom));
   return t < day * 1440 + firstOut ? day - 1 : day;
 }
 

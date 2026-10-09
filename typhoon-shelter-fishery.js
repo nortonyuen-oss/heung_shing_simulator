@@ -50,6 +50,8 @@ const TYPHOON_SHELTER_TOURISM = Object.freeze({
   restaurantVisitors: 500,
   campaign: 'tourEverywhere',
   campaignMultiplier: Object.freeze({ success: 3, failure: 1.5 }),
+  yachtVisitors: 100,            // each yacht in a shelter: its owners' guests, the harbour cruise
+  yachtMooringFee: 8,            // a month, to the treasury, at the 9% base tax rate
 });
 
 // The facilities a shelter adds for itself (works kinds of the same names, typhoon-shelter-works.js).
@@ -319,9 +321,9 @@ function getTyphoonShelterCampaignMultiplier(effects, monthIndex) {
 }
 
 // Visitors a month the working shelters can take (their restaurants included).
-function typhoonShelterTouristCapacity({ shelters = 0, restaurants = 0, multiplier = 1 }) {
+function typhoonShelterTouristCapacity({ shelters = 0, restaurants = 0, yachts = 0, multiplier = 1 }) {
   const T = TYPHOON_SHELTER_TOURISM;
-  return Math.round((shelters * T.shelterVisitors + restaurants * T.restaurantVisitors) * multiplier);
+  return Math.round((shelters * T.shelterVisitors + restaurants * T.restaurantVisitors + yachts * T.yachtVisitors) * multiplier);
 }
 
 function getTyphoonShelterTouristCapacity() {
@@ -331,7 +333,7 @@ function getTyphoonShelterTouristCapacity() {
   const markets = getTyphoonShelterMarketsByShelter();
   const restaurants = shelters.reduce((n, p) => n + (markets.get(p.id)?.restaurants || 0), 0);
   const monthIndex = typeof getCityMonthIndex === 'function' ? getCityMonthIndex() : 0;
-  return typhoonShelterTouristCapacity({ shelters: shelters.length, restaurants, multiplier: getTyphoonShelterCampaignMultiplier(city.temporaryEffects, monthIndex) });
+  return typhoonShelterTouristCapacity({ shelters: shelters.length, restaurants, yachts: getTyphoonShelterYachtCount(), multiplier: getTyphoonShelterCampaignMultiplier(city.temporaryEffects, monthIndex) });
 }
 
 // The city's fishery jobs (simulation.js updateDemand): { traditional, commercial, byShelter }.
@@ -370,11 +372,27 @@ function getTyphoonShelterLabourGap() {
   return L.gap - Math.max(0, now - (L.jobs || 0));
 }
 
+// The fishing boats' share of a working (non-yacht) fleet: the house boats make up the rest.
 const TYPHOON_SHELTER_FISHING_SHARE = (() => {
   if (typeof TYPHOON_SHELTER_FLEET === 'undefined') return 0.82;
-  const all = TYPHOON_SHELTER_FLEET.models.reduce((s, m) => s + m.weight, 0);
-  return TYPHOON_SHELTER_FLEET.models.filter((m) => m.fishing).reduce((s, m) => s + m.weight, 0) / Math.max(1, all);
+  const working = TYPHOON_SHELTER_FLEET.models.filter((m) => !m.leisure);
+  const all = working.reduce((s, m) => s + m.weight, 0);
+  return working.filter((m) => m.fishing).reduce((s, m) => s + m.weight, 0) / Math.max(1, all);
 })();
+
+// The yachts in the working shelters.
+function getTyphoonShelterYachtCount() {
+  if (typeof getTyphoonShelterState !== 'function') return 0;
+  return getTyphoonShelterState().shelters.filter((p) => p.status === 'operational')
+    .reduce((n, p) => n + (p.fleet?.boats || []).filter((b) => typeof isTyphoonShelterLeisureModel === 'function' && isTyphoonShelterLeisureModel(b.model)).length, 0);
+}
+
+// The yachts' mooring fees a month (budget line 遊艇泊位費, city-state.js).
+function getTyphoonShelterMooringFees() {
+  if (typeof city === 'undefined') return 0;
+  const taxScale = (Number.isFinite(Number(city.taxRate)) ? Number(city.taxRate) : 0.09) / 0.09;
+  return getTyphoonShelterYachtCount() * TYPHOON_SHELTER_TOURISM.yachtMooringFee * taxScale;
+}
 
 // The fleet target for a shelter (typhoon-shelter-fleet.js updateTyphoonShelterFleets): the berth
 // target held to the hands and the markets. `marketsByShelter` from getTyphoonShelterMarketsByShelter.
@@ -535,6 +553,20 @@ function approveTyphoonShelterFacility(planId) {
   return true;
 }
 
+// The panel's 用途: what the shelter is for; the fleet's mix follows a boat a day.
+function setTyphoonShelterUse(planId, use) {
+  const state = getTyphoonShelterState();
+  setTyphoonShelterState({
+    ...state,
+    shelters: state.shelters.map((p) => {
+      if (p.id !== planId) return p;
+      const next = { ...p };
+      if (['mixed', 'leisure'].includes(use)) next.use = use; else delete next.use;
+      return next;
+    }),
+  });
+}
+
 function setTyphoonShelterAutoExpand(planId, on) {
   const state = getTyphoonShelterState();
   setTyphoonShelterState({
@@ -551,12 +583,20 @@ function typhoonShelterFisheryRows(plan) {
   const markets = getTyphoonShelterMarketsByShelter();
   const jobs = getTyphoonShelterFisheryJobs().byShelter[plan.id] || { traditional: 0, commercial: 0 };
   const summary = typeof typhoonShelterWorkSummaries !== 'undefined' ? typhoonShelterWorkSummaries.get(plan.id) : null;
-  const rows = [[say('typhoonShelter.fishery.jobs', '漁業職位'), `${jobs.traditional + jobs.commercial}${jobs.commercial ? `（酒家 ${jobs.commercial}）` : ''}`]];
+  const uses = typeof TYPHOON_SHELTER_USES !== 'undefined' ? TYPHOON_SHELTER_USES : {};
+  const options = Object.entries(uses).map(([k, u]) => `<option value="${k}"${(plan.use || 'fishing') === k ? ' selected' : ''}>${u.label}${u.leisure ? `（遊艇 ${Math.round(u.leisure * 100)}%）` : ''}</option>`).join('');
+  const rows = [
+    [say('typhoonShelter.use', '用途'), `<select class="ts-use" data-ts-use="${plan.id}">${options}</select>`],
+    [say('typhoonShelter.fishery.jobs', '漁業職位'), `${jobs.traditional + jobs.commercial}${jobs.commercial ? `（酒家 ${jobs.commercial}）` : ''}`],
+  ];
   if (summary?.berths) {
     const geometry = getTyphoonShelterFleetGeometry(plan, getTyphoonShelterAnalyses().get(plan.id));
     const boatBerths = geometry.slots.filter((s) => s.size >= 2 && geometry.routeBySlot.get(s.key)).length;
     const berthTarget = Math.max(0, Math.min(summary.berths.daily, boatBerths - summary.berths.reserved));
-    const caps = getTyphoonShelterFleetCaps(plan, berthTarget, markets);
+    // the working fleet's caps: the yachts' berths aside (plan.use)
+    const leisureSlots = Math.round(berthTarget * (typeof getTyphoonShelterLeisureShare === 'function' ? getTyphoonShelterLeisureShare(plan) : 0));
+    const workPlan = { ...plan, fleet: { ...(plan.fleet || {}), boats: (plan.fleet?.boats || []).filter((b) => !(typeof isTyphoonShelterLeisureModel === 'function' && isTyphoonShelterLeisureModel(b.model))) } };
+    const caps = getTyphoonShelterFleetCaps(workPlan, berthTarget - leisureSlots, markets);
     const label = { berths: say('typhoonShelter.fishery.capBerths', '泊位'), labour: say('typhoonShelter.fishery.capLabour', '人手'), market: say('typhoonShelter.fishery.capMarket', '魚市場') };
     const fmt = (k) => (Number.isFinite(caps.caps[k]) ? caps.caps[k] : '∞');
     rows.push([say('typhoonShelter.fishery.caps', '船隊上限'),
@@ -615,6 +655,9 @@ const typhoonShelterFisheryApi = {
   getTyphoonShelterLandingBoats,
   settleTyphoonShelterFishery,
   approveTyphoonShelterFacility,
+  setTyphoonShelterUse,
+  getTyphoonShelterYachtCount,
+  getTyphoonShelterMooringFees,
   setTyphoonShelterAutoExpand,
   typhoonShelterFisheryRows,
 };

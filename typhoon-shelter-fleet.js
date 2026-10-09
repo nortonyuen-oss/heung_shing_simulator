@@ -711,6 +711,12 @@ function getTyphoonShelterTenders(plan, geometry, day, storm) {
   return out;
 }
 
+// Sampans (舢舨) are only drawn from this zoom in.
+const TYPHOON_SHELTER_SMALL_CRAFT_MIN_ZOOM = 1;
+function isTyphoonShelterSmallCraft(objectId) {
+  return typeof objectId === 'string' && objectId.startsWith('sanpan');
+}
+
 // Every frame: place each visible boat.
 function updateTyphoonShelterBoats(scene) {
   if (!scene || typeof getTyphoonShelterState !== 'function') return;
@@ -728,6 +734,15 @@ function updateTyphoonShelterBoats(scene) {
   const analyses = getTyphoonShelterAnalyses();
   const rotation = typeof mapRotation === 'number' ? mapRotation : 0;
   const facings = typeof getTyphoonShelterFacingOverrides === 'function' ? getTyphoonShelterFacingOverrides() : {};
+  // zoomed out below 1x the sampans are a few pixels long: not drawn at all, their sprites kept
+  // hidden (not destroyed) so zooming back in costs nothing
+  const smallCraftHidden = (scene.cameras?.main?.zoom ?? 1) < TYPHOON_SHELTER_SMALL_CRAFT_MIN_ZOOM;
+  const hideSmallCraft = (id) => {
+    const rec = scene.typhoonShelterBoats.get(id);
+    if (!rec) return;
+    live.add(id);
+    if (rec.sprite?.visible) rec.sprite.setVisible(false);
+  };
   shelters.forEach((plan) => {
     const analysis = analyses.get(plan.id);
     if (!analysis) return;
@@ -759,6 +774,7 @@ function updateTyphoonShelterBoats(scene) {
     });
     // 外來避風船: in from the sea along a berth's route, out again after the storm
     (visitorsOf.get(plan.id) || []).forEach((v) => {
+      if (smallCraftHidden && isTyphoonShelterSmallCraft(v.model)) { hideSmallCraft(`${plan.id}|v${v.id}`); return; }
       const slot = slotByKey.get(v.slot);
       const r = geometry.routeBySlot.get(v.slot);
       if (!slot || !r || typeof typhoonShelterVisitorState !== 'function') return;
@@ -773,6 +789,7 @@ function updateTyphoonShelterBoats(scene) {
     const tenders = getTyphoonShelterTenders(plan, geometry, getTyphoonShelterTripDay(env), storm);
     tenders.spots.forEach((home, i) => {
       const id = `${plan.id}|t${i}`;
+      if (smallCraftHidden) { hideSmallCraft(id); return; }
       live.add(id);
       drawTyphoonShelterBoat(scene, id, tenders.models[i], typhoonShelterTenderPoint(home, tenders.runs[i] || [], env), rotation, facings);
     });

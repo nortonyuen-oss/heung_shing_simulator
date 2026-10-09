@@ -748,7 +748,9 @@ function preload() {
         // calibrated for newRoadTiles but not classic) just 404s silently: applyRoadLineTexture
         // already checks scene.textures.exists() before ever using it, the same defensive check
         // applyBuildingNightTexture uses for a building's night bake.
-        if (typeof getRoadLineVariantIds === 'function') {
+        // only for a set the line bake covers (road-tile-sets.js bakedLines): asking for the others'
+        // files just fills the console with 404s
+        if (set.bakedLines && typeof getRoadLineVariantIds === 'function') {
           getRoadLineVariantIds(logicalKey).forEach((variantId) => {
             const lineKey = getRoadLineTextureKey(logicalKey, variantId, set.id);
             const lineAssetPath = getRoadLineBakedAssetPath(logicalKey, variantId, set.id);

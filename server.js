@@ -5,6 +5,7 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
+const { createCoastalWeatherService } = require('./coastal-weather-service');
 const { openGameDatabase } = require('./db');
 const { generateOllamaNews, generateOllamaCouncilNews, generateOllamaForumComments, getOllamaStatus } = require('./ai-news-provider');
 const {
@@ -50,6 +51,7 @@ function isDerivedNightVariant(fileName) {
 
 function createGameApp(options = {}) {
   const app = express();
+  const coastalWeatherService = createCoastalWeatherService(options.coastalWeatherFetch);
   const rootDir = path.resolve(options.rootDir || __dirname);
   // Performance/dev launches can serve the application source from the repo
   // while routing models through the exact staged WebP tree used by packaged
@@ -120,6 +122,15 @@ function createGameApp(options = {}) {
   // by electron-builder for DMG/EXE names and native application metadata.
   app.get('/api/app-info', (_req, res) => {
     res.json({ version: APP_VERSION, releaseTheme: APP_RELEASE_THEME });
+  });
+
+  app.get('/api/weather/coastal', async (_req, res) => {
+    res.setHeader('Cache-Control', 'no-store');
+    try {
+      res.json(await coastalWeatherService.refresh());
+    } catch (_) {
+      res.status(503).json({ error: 'Coastal weather temporarily unavailable' });
+    }
   });
 
   // Development only: attract-mode.js's exportAttractCity() writes the title screen's showcase
@@ -286,7 +297,9 @@ function createGameApp(options = {}) {
   }
   const apiKey = aiNewsCredentialStore.get();
   const status = await getOllamaStatus({ provider, apiKey });
-  res.status(status.available ? 200 : 503).json({
+  // a status, not a failure: "not set up" is reported in the body (available: false), so a game with
+  // no AI key does not log a failed request on every start
+  res.json({
     ...status,
     hasApiKey: !!apiKey,
     credentialStorage: aiNewsCredentialStore.persistent ? 'encrypted' : 'memory',

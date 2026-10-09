@@ -82,6 +82,8 @@ const ROAD_TILE_SETS = [
     renderScale: 1,
     bridgeRampMode: 'hill2',
     files: NEW_ROAD_TILE_LOGICAL_FILES,
+    // the only set scripts/bake-road-line-textures.js bakes line markings for
+    bakedLines: true,
   },
 ];
 

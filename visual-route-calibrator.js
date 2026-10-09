@@ -1129,6 +1129,7 @@ function createVisualRoutePerformancePanel(scene) {
     + '<button type="button" class="vrp-buildingground-btn">建築地盤校正</button>'
     + '</div><div class="vrp-group-label">避風塘</div><div class="vrp-grid">'
     + '<button type="button" class="vrp-typhoonshelter-btn">避風塘素材校準</button>'
+    + '<button type="button" class="vrp-ferryberth-btn">渡輪泊位校正</button>'
     + '</div><div class="vrp-group-label">燈光</div><div class="vrp-grid">'
     + '<button type="button" class="vrp-buildinglight-btn">夜間建築燈光校正</button>'
     + '<button type="button" class="vrp-sealight-btn">海上燈光校正（漁火）</button>'
@@ -1197,6 +1198,9 @@ function createVisualRoutePerformancePanel(scene) {
   });
   root.querySelector('.vrp-typhoonshelter-btn')?.addEventListener?.('click', () => {
     if (typeof toggleTyphoonShelterCalibrator === 'function') toggleTyphoonShelterCalibrator(scene);
+  });
+  root.querySelector('.vrp-ferryberth-btn')?.addEventListener?.('click', () => {
+    if (typeof toggleFerryBerthCalibrator === 'function') toggleFerryBerthCalibrator(scene);
   });
   root.querySelector('.vrp-sealight-btn')?.addEventListener?.('click', () => {
     if (typeof toggleSeaLightCalibrator === 'function') toggleSeaLightCalibrator(scene);

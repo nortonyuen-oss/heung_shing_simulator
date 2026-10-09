@@ -882,15 +882,17 @@ function updateTyphoonShelterBoats(scene) {
 
 const typhoonShelterBoatTexturesRequested = new Set();
 
-function drawTyphoonShelterBoat(scene, id, objectId, point, rotation, facings) {
+// `store`: the sprite map it lives in - the shelter's boats by default; the ferries keep their own
+// (ferry.js), so the fleet's per-frame sweep of boats it no longer has leaves them alone.
+function drawTyphoonShelterBoat(scene, id, objectId, point, rotation, facings, store = scene.typhoonShelterBoats) {
   const screenFacing = getTyphoonShelterScreenFacing(point.dir, rotation);
   const choice = pickTyphoonShelterTexture(objectId, screenFacing, { facings });
   if (!choice) {
     // its art was switched off in calibration: gone at once, replaced at the next daily update
-    scene.typhoonShelterBoats.get(id)?.sprite?.setVisible(false);
+    store.get(id)?.sprite?.setVisible(false);
     return;
   }
-  let rec0 = scene.typhoonShelterBoats.get(id);
+  let rec0 = store.get(id);
   if (rec0 && rec0.bobSeed === undefined && typeof getTyphoonShelterRecordSeed === 'function') rec0.bobSeed = getTyphoonShelterRecordSeed(id);
   // 漁火 at night: the twinkling night frames (typhoon-shelter-sprites.js)
   const drawn = typeof getTyphoonShelterLitChoice === 'function' ? getTyphoonShelterLitChoice(scene, choice, rec0?.bobSeed || 0) : choice;
@@ -902,12 +904,12 @@ function drawTyphoonShelterBoat(scene, id, objectId, point, rotation, facings) {
     }
     return;
   }
-  let rec = scene.typhoonShelterBoats.get(id);
+  let rec = store.get(id);
   if (!rec) {
     rec = { sprite: scene.add.image(0, 0, key), key: null };
     // under the world mask, as the shelter's works are (see maskTyphoonShelterSprite)
     if (typeof maskTyphoonShelterSprite === 'function') maskTyphoonShelterSprite(scene, rec.sprite);
-    scene.typhoonShelterBoats.set(id, rec);
+    store.set(id, rec);
   }
   const sprite = rec.sprite;
   // the fit is re-read when the texture, its warp or the calibration changes

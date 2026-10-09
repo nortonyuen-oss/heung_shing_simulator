@@ -377,8 +377,11 @@ function getShorelineKey(row, col) {
       return `beach_corner_water_${rotateCornerSuffixCCW(waterCorner)}`;
     }
   }
-  const beachEdges = getAdjacentEdges(row, col, BEACH);
-  const shorelineEdges = waterEdges.length > 0 ? waterEdges : getOppositeEdges(beachEdges);
+  // Sand with no water beside it (painted inland with the terrain tool, or the generator's corner
+  // infill) is plain sand: the edge and corner pieces below are mostly water with a strip of
+  // beach, and picking one from the sand around it put a pool in the middle of the land.
+  if (waterEdges.length === 0) return 'beach_full';
+  const shorelineEdges = waterEdges;
   if (shorelineEdges.length === 2) {
     const corner = getCornerPairSuffix(shorelineEdges);
     if (corner) return `beach_corner_${rotateCornerSuffix180(corner)}`;
@@ -403,11 +406,6 @@ function getAdjacentEdges(row, col, terrainType) {
 function getOpenEdges(row, col, terrainType) {
   const connectedEdges = getAdjacentEdges(row, col, terrainType);
   return ['n', 'e', 's', 'w'].filter((direction) => !connectedEdges.includes(direction));
-}
-
-function getOppositeEdges(edges) {
-  const opposite = { n: 's', e: 'w', s: 'n', w: 'e' };
-  return edges.map((edge) => opposite[edge]);
 }
 
 function getCornerPairSuffix(edges) {

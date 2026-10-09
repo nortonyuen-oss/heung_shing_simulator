@@ -98,6 +98,9 @@ function handleNewTool(scene, tile) {
   }
   if (selectedTool === 'bus-stop') return placeBusStop(scene, row, col);
   if (selectedTool === 'bus-depot') return placeBusDepotBuilding(scene, row, col);
+  // 渡海小輪 (ferry.js)
+  if (selectedTool === 'ferry-pier') return placeFerryPier(scene, row, col);
+  if (selectedTool === 'ferry-route') return handleFerryRouteClick(scene, row, col);
 
   return false;
 }

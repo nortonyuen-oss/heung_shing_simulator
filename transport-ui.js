@@ -899,7 +899,8 @@ function setTransportModeActive(active) {
     // never invisibly build with a hidden city tool.
     transportModeSavedTool = typeof selectedTool === 'string' ? selectedTool : '';
     if (typeof selectedTool !== 'undefined') selectedTool = 'inspect';
-    openTransportPanel('routes');
+    // no window opens on its own (Norton, 2026-10-09: the routes panel was in the way); the
+    // company's tool rows open each one
     updateTransportTopbarKpis();
   } else {
     closeAllTransportPanels();

@@ -36,9 +36,9 @@ test('every part has a unique id and a crop inside its source sheet', () => {
   }
 });
 
-test('lettered restaurants are never mirrored; everything else is', () => {
+test('lettered art (the restaurants, the ferry pier) is never mirrored; everything else is', () => {
   for (const p of TYPHOON_SHELTER_PARTS) {
-    assert.equal(p.mirror, !p.id.startsWith('floatingRestaurant'), p.id);
+    assert.equal(p.mirror, !p.id.startsWith('floatingRestaurant') && !p.id.startsWith('ferryPier'), p.id);
   }
 });
 

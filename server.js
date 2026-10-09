@@ -187,6 +187,24 @@ function createGameApp(options = {}) {
     fs.writeFileSync(target, `${JSON.stringify({ schemaVersion: 1, parts: sort(parts), objects: sort(objects) }, null, 1)}\n`);
     res.json({ parts: Object.keys(parts).length, objects: Object.keys(objects || {}).length });
   });
+  // Development only: the 渡輪泊位校正 tool (ferry-berth-calibrator.js) saves its nudges to the
+  // shipped data file ferry.js reads at start-up.
+  app.put('/api/dev/ferry-berths', (req, res) => {
+    if (!options.allowDevExports) return res.status(404).json({ error: 'not available' });
+    const berths = req.body?.berths;
+    if (!berths || typeof berths !== 'object' || Array.isArray(berths)) {
+      return res.status(400).json({ error: 'expected { berths: { "<shore>|<side>": { gapM, outM } } }' });
+    }
+    const clean = {};
+    Object.keys(berths).sort().forEach((key) => {
+      if (!/^(ne|nw|se|sw)\|(left|right)$/.test(key)) return;
+      const gapM = Math.round((Number(berths[key]?.gapM) || 0) * 10) / 10;
+      const outM = Math.round((Number(berths[key]?.outM) || 0) * 10) / 10;
+      if (gapM || outM) clean[key] = { gapM, outM };
+    });
+    fs.writeFileSync(path.join(rootDir, 'data', 'ferry-berths.json'), `${JSON.stringify({ schemaVersion: 1, berths: clean }, null, 1)}\n`);
+    res.json({ berths: Object.keys(clean).length });
+  });
   app.get('/api/dev/typhoon-shelter-texture/:file', (req, res) => {
     if (!options.allowDevExports || !/^ts_[\w]+\.png$/.test(req.params.file)) return res.status(404).end();
     const file = path.join(rootDir, 'Models', 'typhoonShelter', req.params.file);

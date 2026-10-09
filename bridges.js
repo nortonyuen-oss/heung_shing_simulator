@@ -206,6 +206,12 @@ function analyzeBridgePath(scene, pathInfo) {
   result.crossesWater = path.some(({ row, col }) => mapData[row]?.[col] === WATER);
   if (!result.crossesWater) return result;
 
+  // never within two tiles of a ferry pier (ferry.js): the span would hide the ferries at its berths
+  if (typeof isNearFerryPier === 'function' && path.some(({ row, col }) => isNearFerryPier(row, col))) {
+    result.reason = 'bridge-near-ferry-pier';
+    return result;
+  }
+
   if (getTileHeight(start.row, start.col) > 0 || getTileHeight(end.row, end.col) > 0) {
     result.reason = 'bridge-flat-shores';
     return result;
@@ -230,6 +236,7 @@ function analyzeBridgePath(scene, pathInfo) {
       return result;
     }
   }
+
 
   result.valid = true;
   result.cost = (path.length * COST_ROAD) + (interior.length * COST_BRIDGE);
@@ -524,6 +531,7 @@ function getBridgeErrorMessage(reason) {
   if (reason === 'bridge-two-shores') return t('toast.bridgeNeedsTwoShores');
   if (reason === 'bridge-needs-water') return t('toast.bridgeNeedsWater');
   if (reason === 'bridge-blocked') return t('toast.bridgeBlocked');
+  if (reason === 'bridge-near-ferry-pier') return t('toast.bridgeNearFerryPier');
   return t('toast.bridgeInvalid');
 }
 

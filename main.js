@@ -327,6 +327,7 @@ function updateGameFrame(time, delta) {
   updateVesselVisuals.call(this, time, delta);
   // 避風塘 boats: their positions follow the environment clock (typhoon-shelter-fleet.js)
   if (typeof updateTyphoonShelterBoats === 'function') updateTyphoonShelterBoats(this);
+  if (typeof updateFerries === 'function') updateFerries(this);
   if (typeof updateTyphoonShelterBobbing === 'function') updateTyphoonShelterBobbing(this, time);
   if (typeof updateTyphoonShelterMarkets === 'function') updateTyphoonShelterMarkets(this, time);
   if (typeof updateTyphoonShelterBuildingLighting === 'function') updateTyphoonShelterBuildingLighting(this);
@@ -1881,7 +1882,9 @@ function isNewToolHandledByToolsModule(tool) {
     || tool === 'sports-ground'
     || tool === 'tree'
     || tool === 'district-sign'
-    || tool === 'bus-stop';
+    || tool === 'bus-stop'
+    || tool === 'ferry-pier'
+    || tool === 'ferry-route';
 }
 
 function getSelectedPlacementFootprint() {
@@ -1916,6 +1919,7 @@ function getSelectedPlacementFootprint() {
   if (selectedTool === 'park-small') return { footprintCols: 1, footprintRows: 1 };
   if (selectedTool === 'park-large') return { footprintCols: 3, footprintRows: 3 };
   if (selectedTool === 'bus-depot') return { footprintCols: BUS_DEPOT_FOOTPRINT_COLS, footprintRows: BUS_DEPOT_FOOTPRINT_ROWS };
+  if (selectedTool === 'ferry-pier' && typeof FERRY !== 'undefined') return { footprintCols: FERRY.pierCols, footprintRows: FERRY.pierRows };
   if (selectedTool === 'floating-restaurant' && typeof TYPHOON_SHELTER_FLOATING_RESTAURANT !== 'undefined') {
     // (turned by a right-click: typhoonShelterFloatingRestaurantTurn)
     const F = TYPHOON_SHELTER_FLOATING_RESTAURANT;
@@ -2023,6 +2027,8 @@ function applyToolAt(scene, row, col, pointer = null) {
   if (selectedTool === 'bulldoze') {
     // a 海鮮舫 is towed away, not knocked down tile by tile (typhoon-shelter-fishery.js)
     if (typeof demolishTyphoonShelterFloatingRestaurantAt === 'function' && demolishTyphoonShelterFloatingRestaurantAt(scene, row, col)) return;
+    // and a ferry pier pulled down with its routes (ferry.js)
+    if (typeof demolishFerryPierAt === 'function' && demolishFerryPierAt(scene, row, col)) return;
     spendBudget(COST_BULLDOZE);
     if (typeof removeDistrictSignAt === 'function') removeDistrictSignAt(scene, row, col);
     removeBuilding(scene, row, col);
@@ -2080,7 +2086,12 @@ function applyToolAt(scene, row, col, pointer = null) {
     return;
   }
 
-  setTileType(scene, row, col, TOOL_TERRAIN[terrainKey] ?? GROUND);
+  // Only the terrain tools paint the ground. Any other tool that gets this far placed nothing - a
+  // building that did not fit, refused with a toast - and must leave the tile as it was (it used
+  // to fall back to GROUND, turning the sea under a refused 海鮮舫 or yacht club into land).
+  const terrainType = TOOL_TERRAIN[terrainKey];
+  if (terrainType === undefined) return;
+  setTileType(scene, row, col, terrainType);
 }
 
 function applySelectedTool(scene, pointer) {
@@ -3110,6 +3121,8 @@ function rotateMap(scene, steps = 1) {
   refreshBusDepotSprites(scene);
   // 海事處 markets and restaurants keep their front to the sea (typhoon-shelter-market.js)
   if (typeof refreshTyphoonShelterBuildingSprites === 'function') refreshTyphoonShelterBuildingSprites(scene);
+  // 渡輪泊位校正: which berth is left and right changes with the view (ferry-berth-calibrator.js)
+  if (typeof refreshFerryBerthCalibrator === 'function') refreshFerryBerthCalibrator();
   // and the crate piles in their loading bays are laid out for the new view
   if (typeof syncTyphoonShelterFacilitySprites === 'function' && typeof getTyphoonShelterState === 'function'
     && getTyphoonShelterState().shelters.length) syncTyphoonShelterFacilitySprites(scene);

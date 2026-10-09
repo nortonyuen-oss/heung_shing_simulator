@@ -1,0 +1,37 @@
+{
+ "schemaVersion": 1,
+ "berths": {
+  "ne|left": {
+   "gapM": -0.5,
+   "outM": -18
+  },
+  "ne|right": {
+   "gapM": -4,
+   "outM": -13.5
+  },
+  "nw|left": {
+   "gapM": -6.5,
+   "outM": -12.5
+  },
+  "nw|right": {
+   "gapM": -1,
+   "outM": -8
+  },
+  "se|left": {
+   "gapM": -6.5,
+   "outM": -16.5
+  },
+  "se|right": {
+   "gapM": 3.5,
+   "outM": -14
+  },
+  "sw|left": {
+   "gapM": 1.5,
+   "outM": -20
+  },
+  "sw|right": {
+   "gapM": -4,
+   "outM": -20
+  }
+ }
+}

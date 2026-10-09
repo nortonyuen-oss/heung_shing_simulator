@@ -6399,7 +6399,7 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
       <span class="tool-category-icon" aria-hidden="true">🚌</span>
       <span class="tool-category-labels">
         <span class="tool-category-title" data-i18n="toolCategory.transportTitle">運輸公司</span>
-        <span class="tool-category-subtitle" data-i18n="toolCategory.transportSubtitle">Bus Company</span>
+        <span class="tool-category-subtitle" data-i18n="toolCategory.transportSubtitle">Transport Co.</span>
       </span>
       <span class="tool-category-accent" aria-hidden="true"></span>
       <span class="tool-category-hotkey" aria-hidden="true"></span>
@@ -6412,6 +6412,12 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
       </button>
       <button class="tool-row" type="button" data-tool="bus-depot" title="Bus depot ($4,000) — click a placed depot again to rotate it">
         <span class="tool-row-icon">🚌</span><span class="tool-row-text" data-i18n="toolRow.busDepot">Bus Depot</span><span class="tool-row-cost">$4,000</span>
+      </button>
+      <button class="tool-row" type="button" data-tool="ferry-pier" title="Ferry pier ($2,500) — 2 x 2 on the water against the shore, a road within 3 tiles">
+        <span class="tool-row-icon">⚓</span><span class="tool-row-text" data-i18n="toolRow.ferryPier">Ferry Pier</span><span class="tool-row-cost">$2,500</span>
+      </button>
+      <button class="tool-row" type="button" data-tool="ferry-route" title="Ferry route — click one pier, then another">
+        <span class="tool-row-icon">⛴</span><span class="tool-row-text" data-i18n="toolRow.ferryRoute">Ferry Route</span>
       </button>
       <button class="tool-row" type="button" data-action="open-transport-tab" data-transport-tab="routes">
         <span class="tool-row-icon">🗺</span><span class="tool-row-text" data-i18n="transport.tool.routes">Routes &amp; Orders</span>
@@ -7388,6 +7394,8 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
   <script src="typhoon-shelter-planning.js"></script>
   <script src="typhoon-shelter-sprites.js"></script>
   <script src="typhoon-shelter-calibrator.js"></script>
+  <script src="ferry.js"></script>
+  <script src="ferry-berth-calibrator.js"></script>
   <script src="sea-lighting.js"></script>
   <script src="sea-light-calibrator.js"></script>
   <script src="building-ground-fit.js"></script>

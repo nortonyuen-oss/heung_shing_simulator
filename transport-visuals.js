@@ -401,6 +401,7 @@ function spawnTransportFareFloatText(scene, x, y, amount, depth) {
     ease: 'Cubic.easeOut',
     onComplete: () => text.destroy(),
   });
+  return text;
 }
 
 function checkTransportVehicleFareFloat(scene, vehicle, backing) {
@@ -411,7 +412,9 @@ function checkTransportVehicleFareFloat(scene, vehicle, backing) {
   }
   if (serial === vehicle.lastSeenRevenueSerial) return;
   vehicle.lastSeenRevenueSerial = serial;
-  if (backing.tripRevenueAccrued > 0 && vehicle.sprite?.active !== false) {
+  // only in Transport Mode: the mayor's map stays clear of the company's takings
+  const transportMode = typeof isTransportModeActive !== 'undefined' && isTransportModeActive;
+  if (transportMode && backing.tripRevenueAccrued > 0 && vehicle.sprite?.active !== false) {
     spawnTransportFareFloatText(
       scene,
       vehicle.sprite.x,

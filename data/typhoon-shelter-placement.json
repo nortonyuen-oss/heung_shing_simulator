@@ -2420,6 +2420,86 @@
    "facing": "ne",
    "auto": true,
    "method": "outline"
+  },
+  "starFerry_a": {
+   "ground": {
+    "left": [
+     38.2,
+     398.5
+    ],
+    "front": [
+     110.2,
+     434.5
+    ],
+    "right": [
+     430.0,
+     274.6
+    ]
+   },
+   "top": 122,
+   "facing": "ne",
+   "auto": true,
+   "method": "hull"
+  },
+  "starFerry_b": {
+   "ground": {
+    "left": [
+     91.0,
+     290.6
+    ],
+    "front": [
+     390.8,
+     440.5
+    ],
+    "right": [
+     458.3,
+     406.8
+    ]
+   },
+   "top": 150,
+   "facing": "nw",
+   "auto": true,
+   "method": "hull"
+  },
+  "ferryPier_a": {
+   "ground": {
+    "left": [
+     38.0,
+     319.2
+    ],
+    "front": [
+     256.5,
+     428.5
+    ],
+    "right": [
+     475.0,
+     319.2
+    ]
+   },
+   "top": 89,
+   "facing": "se",
+   "auto": true,
+   "method": "square"
+  },
+  "ferryPier_b": {
+   "ground": {
+    "left": [
+     49.0,
+     325.8
+    ],
+    "front": [
+     256.5,
+     429.5
+    ],
+    "right": [
+     464.0,
+     325.8
+    ]
+   },
+   "top": 94,
+   "facing": "sw",
+   "auto": true,
+   "method": "square"
   }
  },
  "objects": {

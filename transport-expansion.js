@@ -637,6 +637,8 @@ function normalizeTransportExpansionState(raw) {
     stops,
     routes,
     vehicles,
+    // 渡海小輪 (ferry.js): its piers, routes and ferries, in the same company
+    ferry: typeof normalizeFerryState === 'function' ? normalizeFerryState(source.ferry) : source.ferry,
     commissionedDepotIds: Array.from(new Set(
       (Array.isArray(source.commissionedDepotIds) ? source.commissionedDepotIds : [])
         .map((id) => String(id || '').slice(0, 80))
@@ -1851,12 +1853,13 @@ function getTransportCatchmentIndex(now = Date.now()) {
 function getTransportStopCatchmentUnits(stop) {
   if (!stop || typeof buildingData === 'undefined') return { originUnits: 0, destinationUnits: 0 };
   const index = getTransportCatchmentIndex();
-  const memoKey = `${stop.id ?? ''}@${stop.row}:${stop.col}`;
+  // (a stop may reach further than a bus stop's: a ferry pier's riders walk to it - ferry.js)
+  const radius = Number(stop.radius) > 0 ? Number(stop.radius) : TRANSPORT_STOP_CATCHMENT_RADIUS;
+  const memoKey = `${stop.id ?? ''}@${stop.row}:${stop.col}/${radius}`;
   const memo = index.stops.get(memoKey);
   if (memo) return memo;
   let originUnits = 0;
   let destinationUnits = 0;
-  const radius = TRANSPORT_STOP_CATCHMENT_RADIUS;
   const minCellRow = Math.floor((stop.row - radius) / TRANSPORT_CATCHMENT_CELL);
   const maxCellRow = Math.floor((stop.row + radius) / TRANSPORT_CATCHMENT_CELL);
   const minCellCol = Math.floor((stop.col - radius) / TRANSPORT_CATCHMENT_CELL);
@@ -2099,6 +2102,8 @@ function advanceTransportClock(fromMinutes, toMinutes) {
     accrueTransportStopCommutersForHour((hour + dayStartHour) % 24);
     rollTransportVehicleBreakdowns();
   }
+  // 渡海小輪 (ferry.js): its piers' queues and every berthing in the span, on the same clock
+  if (typeof advanceFerryClock === 'function') advanceFerryClock(from, to);
 }
 
 function getTransportQueueRevision() {
@@ -2550,6 +2555,9 @@ function settleTransportMonth() {
     vehicle.boardingsThisMonth = 0;
     vehicle.ageMonths++;
   }
+  // the ferries' fares, credited as they berthed (ferry.js), reported with the buses'
+  const ferryMonth = typeof settleFerryMonth === 'function' ? settleFerryMonth() : { revenue: 0, passengers: 0 };
+  revenue += ferryMonth.revenue;
   const depotUpkeep = getConnectedCommissionedTransportDepots().length * TRANSPORT_DEPOT_MONTHLY_UPKEEP;
   const cost = transportRoundMoney(routeOperations + depotUpkeep);
   const roundedRevenue = transportRoundMoney(revenue);
@@ -2569,7 +2577,7 @@ function settleTransportMonth() {
     month: city.month,
     passengers: state.routes.reduce((sum, route) => (
       sum + (route.history.at(-1)?.passengers || 0)
-    ), 0),
+    ), 0) + ferryMonth.passengers,
     ...state.lastFinancials,
     closingCash: state.company.cash,
   });

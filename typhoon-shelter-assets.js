@@ -59,6 +59,8 @@ const TYPHOON_SHELTER_PARTS = Object.freeze([
   ...typhoonShelterPart('speedboat3', 'boat', '遊艇 3 (飛橋)', [['a', [331, 6, 673, 502], { facing: 'nw' }], ['b', [1028, 38, 689, 470], { facing: 'ne' }]]),
   ...typhoonShelterPart('speedboat4', 'boat', '遊艇 4 (快艇)', [['a', [294, 86, 710, 422], { facing: 'nw' }], ['b', [1028, 70, 726, 438], { facing: 'ne' }]]),
   ...typhoonShelterPart('speedboat5', 'boat', '遊艇 5', [['a', [286, 45, 719, 463], { facing: 'nw' }], ['b', [1029, 45, 733, 463], { facing: 'ne' }]]),
+  // 渡海小輪 (ferry.js): double-ended, so one view per diagonal serves both headings on it
+  ...typhoonShelterPart('starFerry', 'boat', '天星小輪', [['a', [326, 386, 704, 634], { facing: 'ne' }], ['b', [1054, 430, 667, 590], { facing: 'nw' }]]),
   ...typhoonShelterPart('sailboat1', 'boat', '帆船 1', [['a', [4, 421, 479, 599], { facing: 'nw' }], ['b', [507, 473, 513, 547], { facing: 'ne' }]]),
   // 舢舨: both renders are bow-on (b is the longer, more side-on one).
   ...typhoonShelterPart('sanpan1', 'boat', '舢舨 1', [['a', [10, 100, 383, 401], { facing: 'se' }], ['b', [425, 36, 589, 466], { facing: 'se' }]]),
@@ -87,6 +89,8 @@ const TYPHOON_SHELTER_PARTS = Object.freeze([
 
   // The restaurant sheets are three renders, not views of one model: 1 and 3 lie along one
   // diagonal, 2 along the other. Never mirrored - the 珍寶 signs would read backwards.
+  // 渡輪碼頭 (ferry.js): its 香港渡輪 sign faces the camera's right (a) or left (b); never mirrored
+  ...typhoonShelterPart('ferryPier', 'pier', '渡輪碼頭', [['a', [153, 332, 881, 688], { facing: 'se' }], ['b', [1058, 340, 837, 680], { facing: 'sw' }]], { mirror: false }),
   ...typhoonShelterPart('floatingRestaurant1', 'landmark', '珍寶海鮮舫 1', [['a', [314, 39, 1420, 977]]], { mirror: false }),
   ...typhoonShelterPart('floatingRestaurant2', 'landmark', '珍寶海鮮舫 2', [['a', [384, 12, 1279, 1004]]], { mirror: false }),
   ...typhoonShelterPart('floatingRestaurant3', 'landmark', '珍寶海鮮舫 3', [['a', [375, 12, 1297, 1003]]], { mirror: false }),
@@ -384,7 +388,7 @@ const TYPHOON_SHELTER_OBJECTS = Object.freeze([
   typhoonShelterObject('causeway2', '防波堤燈塔', 'pier', 'water', { causeway2_a: 'se', causeway2_b: 'se' }, 2, 2, { verified: true }),
 
   ...['fishingBoat1', 'fishingBoat2', 'homeBoat1', 'homeBoat2', 'kaido1', 'speedboat1', 'speedboat2', 'speedboat3', 'speedboat4',
-    'speedboat5', 'sailboat1']
+    'speedboat5', 'sailboat1', 'starFerry']
     .map((s) => typhoonShelterSheetObject(s, 'water', 2, 1)),
   ...['sanpan1', 'sanpan2', 'sanpan3', 'sanpan4', 'sanpan5'].map((s) => typhoonShelterSheetObject(s, 'water', 1, 1)),
   typhoonShelterSheetObject('homeBoat3', 'water', 2, 1),
@@ -397,6 +401,7 @@ const TYPHOON_SHELTER_OBJECTS = Object.freeze([
   typhoonShelterSheetObject('floatingPier3', 'water', 2, 2),
   typhoonShelterSheetObject('floatingPier4', 'water', 2, 1),
   typhoonShelterSheetObject('pierSet2', 'shore', 2, 2),
+  typhoonShelterSheetObject('ferryPier', 'water', 2, 2),
   typhoonShelterSheetObject('pierShop1', 'shore', 2, 2),
   typhoonShelterSheetObject('pierShop2', 'shore', 2, 2),
   // the shorter, wider section render - not to be mixed with causeway1 in one run
@@ -461,6 +466,7 @@ const TYPHOON_SHELTER_REAL_SIZES = Object.freeze({
   homeBoat1: { lengthM: 15 }, homeBoat2: { lengthM: 15 }, homeBoat3: { lengthM: 14 },
   kaido1: { lengthM: 22 },                                   // 街渡
   speedboat1: { lengthM: 13 }, speedboat2: { lengthM: 18 },  // 遊艇
+  starFerry: { lengthM: 30 }, ferryPier: { lengthM: 28 },  // 渡海小輪 (the pier straddles its 2 x 2 lot's shoreline)
   speedboat3: { lengthM: 15 }, speedboat4: { lengthM: 7 }, speedboat5: { lengthM: 12 }, sailboat1: { lengthM: 12 },
   sanpan1: { lengthM: 8 }, sanpan2: { lengthM: 8 }, sanpan3: { lengthM: 8 }, sanpan4: { lengthM: 9 }, sanpan5: { lengthM: 7 },
   floatingHome: { lengthM: 10 }, floatingChef: { lengthM: 14 }, floatingGasStation: { lengthM: 12 }, floatingWorkshop: { lengthM: 11 },

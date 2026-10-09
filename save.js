@@ -1603,6 +1603,8 @@ function rebuildSceneFromSave(scene, save) {
   if (typeof rebuildDistrictSignSprites === 'function') rebuildDistrictSignSprites(scene);
   // 避風塘 works stand where the save left them (typhoon-shelter-planning.js).
   if (typeof syncTyphoonShelterFacilitySprites === 'function') syncTyphoonShelterFacilitySprites(scene);
+  // and the ferry piers (ferry.js)
+  if (typeof syncFerryPiers === 'function') syncFerryPiers(scene);
   if (typeof sortWorldRenderLayers === 'function') sortWorldRenderLayers(scene);
   // Weather advances on the environmental clock and only repaints its overlay
   // when something changes, so a freshly loaded city has to be painted once.

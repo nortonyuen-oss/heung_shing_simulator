@@ -280,6 +280,30 @@
    },
    "mirrored": true
   },
+  "ts_ferryPier_a": {
+   "file": "Models/typhoonShelter/ts_ferryPier_a.png",
+   "part": "ferryPier_a",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 257,
+    "y": 429
+   },
+   "mirrored": false,
+   "facing": "se"
+  },
+  "ts_ferryPier_b": {
+   "file": "Models/typhoonShelter/ts_ferryPier_b.png",
+   "part": "ferryPier_b",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 257,
+    "y": 430
+   },
+   "mirrored": false,
+   "facing": "sw"
+  },
   "ts_fishingBoat1_a": {
    "file": "Models/typhoonShelter/ts_fishingBoat1_a.png",
    "part": "fishingBoat1_a",
@@ -2664,6 +2688,54 @@
    },
    "mirrored": true,
    "facing": "nw"
+  },
+  "ts_starFerry_a": {
+   "file": "Models/typhoonShelter/ts_starFerry_a.png",
+   "part": "starFerry_a",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 435
+   },
+   "mirrored": false,
+   "facing": "ne"
+  },
+  "ts_starFerry_a_m": {
+   "file": "Models/typhoonShelter/ts_starFerry_a_m.png",
+   "part": "starFerry_a",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 435
+   },
+   "mirrored": true,
+   "facing": "nw"
+  },
+  "ts_starFerry_b": {
+   "file": "Models/typhoonShelter/ts_starFerry_b.png",
+   "part": "starFerry_b",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 441
+   },
+   "mirrored": false,
+   "facing": "nw"
+  },
+  "ts_starFerry_b_m": {
+   "file": "Models/typhoonShelter/ts_starFerry_b_m.png",
+   "part": "starFerry_b",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 441
+   },
+   "mirrored": true,
+   "facing": "ne"
   }
  },
  "formatVersion": 1,

@@ -522,12 +522,13 @@ function renderCouncilResolutionDetail(detail) {
   facts.className = 'council-policy-facts';
   const upfrontCost = getCouncilResolutionUpfrontCost(definition.id);
   const monthsOfIncome = Number(definition.monthsOfIncome) || 0;
+  const monthsOfTourism = Number(definition.monthsOfTourism) || 0;
+  const costNote = monthsOfIncome > 0 ? t('council.resolution.monthsOfIncome', { count: monthsOfIncome })
+    : monthsOfTourism > 0 ? t('council.resolution.monthsOfTourism', { count: monthsOfTourism }) : '';
   const factRows = [
     [
       t('council.resolution.upfrontCost'),
-      monthsOfIncome > 0
-        ? `${councilMoney(upfrontCost)} (${t('council.resolution.monthsOfIncome', { count: monthsOfIncome })})`
-        : councilMoney(upfrontCost),
+      costNote ? `${councilMoney(upfrontCost)} (${costNote})` : councilMoney(upfrontCost),
     ],
     [t('council.resolution.duration'), t('council.monthCount', { count: definition.durationMonths })],
     [t('council.resolution.cooldown'), t('council.monthCount', { count: definition.cooldownMonths })],

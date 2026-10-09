@@ -156,13 +156,13 @@ test('building a plan builds every work at once and charges the whole bill', () 
   assert.ok(bill.works.items.every((i) => i.state === 'done'));
   assert.equal(bill.built, layout.length);
   assert.equal(bill.cost, layout.reduce((sum, w) => sum + TYPHOON_SHELTER_WORK_KINDS[w.kind].cost, 0));
-  // cheap enough for a young city: a small bay shelter costs about as much as a school
-  assert.ok(bill.cost < 2000, `bill ${bill.cost}`);
+  // a public work: a small bay shelter costs less than a container port ($12,000)
+  assert.ok(bill.cost < 10000, `bill ${bill.cost}`);
   // building the same plan again costs nothing
   assert.equal(completeTyphoonShelterWorks(reconcileTyphoonShelterWorks(bill.works, layout)).cost, 0);
   const summary = summarizeTyphoonShelterWorks(bill.works, analysis, { pierConnected: true });
   assert.ok(summary.operational);
-  assert.ok(summary.upkeep > 0 && summary.upkeep < 60);
+  assert.ok(summary.upkeep > 0 && summary.upkeep < 180, `upkeep ${summary.upkeep}`);
   assert.ok(summary.berths.total > 0 && summary.berths.total <= analysis.berths.total);
   assert.ok(!summarizeTyphoonShelterWorks(bill.works, analysis, { pierConnected: false }).operational, 'no road, no shelter');
 });

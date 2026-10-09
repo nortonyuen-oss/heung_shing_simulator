@@ -239,13 +239,18 @@ const COUNCIL_RESOLUTION_DEFS = Object.freeze([
     riskModifiers: { happiness: 0.02, commercialDemand: 0.05, ridicule: 3 },
   },
   {
+    // Priced on a month of tourism takings (2026-10-09): at two months of the whole budget it could
+    // never pay for itself - tourism is a sliver of the budget and appeal soon tops out at 100. It
+    // brings 35% more visitors for its three months (5% if it flops), and three times the visitors
+    // to any working typhoon shelter (typhoon-shelter-fishery.js), so it pays back about its price,
+    // and more with a shelter.
     id: 'tourEverywhere', titleKey: 'resolution.tourEverywhere.title', descKey: 'resolution.tourEverywhere.desc',
-    upfrontBase: 20000, monthsOfIncome: 2, durationMonths: 3, cooldownMonths: 18, absurdity: 2,
+    upfrontBase: 3000, monthsOfIncome: 0, monthsOfTourism: 1, durationMonths: 3, cooldownMonths: 18, absurdity: 2,
     issues: { tourism: 2, business: 1, environment: -0.5 },
     tags: ['tourism_campaign', 'photo_spot', 'crowding'],
     leadOfficialIds: ['culture_head', 'councillor_tourism'],
-    successModifiers: { happiness: 0.03, commercialDemand: 0.09, tourism: 16, attractiveness: 8, traffic: 0.05 },
-    riskModifiers: { happiness: -0.03, tourism: 4, attractiveness: -2, traffic: 0.12, ridicule: 7 },
+    successModifiers: { happiness: 0.03, commercialDemand: 0.09, tourism: 16, attractiveness: 8, traffic: 0.05, tourismCapacity: 0.35 },
+    riskModifiers: { happiness: -0.03, tourism: 4, attractiveness: -2, traffic: 0.12, ridicule: 7, tourismCapacity: 0.05 },
   },
   {
     id: 'menaConcert', titleKey: 'resolution.menaConcert.title', descKey: 'resolution.menaConcert.desc',

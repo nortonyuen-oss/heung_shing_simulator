@@ -140,7 +140,11 @@ function updateCityAttractivenessMetrics() {
     0,
     100,
   );
-  const capacity = Math.max(200, city.commercialCount * 42 + city.population * 0.035);
+  // the typhoon shelters draw tourists of their own (typhoon-shelter-fishery.js), and a campaign like
+  // 「無處不旅遊」 brings more of every kind for as long as it runs
+  const shelterVisitors = typeof getTyphoonShelterTouristCapacity === 'function' ? getTyphoonShelterTouristCapacity() : 0;
+  const capacity = Math.max(200, city.commercialCount * 42 + city.population * 0.035 + shelterVisitors)
+    * (1 + Math.max(0, getCouncilTemporaryModifier('tourismCapacity')));
   city.monthlyVisitors = Math.max(0, Math.round(capacity * (0.2 + city.tourismAppeal / 100)));
   city.tourismRevenue = Math.max(0, Math.round(city.monthlyVisitors * (0.45 + city.tourismAppeal / 220)));
 }
@@ -150,12 +154,18 @@ function updateCityAttractivenessMetrics() {
 // income keeps a brand-new city from getting a big programme for nothing.
 const COUNCIL_RESOLUTION_INCOME_FLOOR = 2000;
 
+// A tourism campaign is priced on what tourism brings in instead (monthsOfTourism), so it can pay
+// for itself: its takings are tourism's, not the whole budget's.
+const COUNCIL_RESOLUTION_TOURISM_FLOOR = 1000;
+
 function getCouncilResolutionUpfrontCost(resolutionId) {
   const definition = getCouncilResolutionDefinition(resolutionId);
   if (!definition) return 0;
   const monthlyIncome = Math.max(COUNCIL_RESOLUTION_INCOME_FLOOR, Number(city.monthlyIncome) || 0);
+  const tourism = Math.max(COUNCIL_RESOLUTION_TOURISM_FLOOR, Number(city.tourismRevenue) || 0);
   return Math.round(
-    Number(definition.upfrontBase || 0) + monthlyIncome * Number(definition.monthsOfIncome || 0),
+    Number(definition.upfrontBase || 0) + monthlyIncome * Number(definition.monthsOfIncome || 0)
+      + tourism * Number(definition.monthsOfTourism || 0),
   );
 }
 

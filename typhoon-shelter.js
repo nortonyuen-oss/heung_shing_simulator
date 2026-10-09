@@ -30,11 +30,12 @@ const TYPHOON_SHELTER_CHANNEL_WIDTH = 2;
 const TYPHOON_SHELTER_DEFAULT_RESERVE_PCT = 20;
 // Rough per-tile figures for the planning preview; the bill a plan is charged comes from its
 // actual works list (typhoon-shelter-works.js), which these mirror.
+// The planning estimate, in step with TYPHOON_SHELTER_WORK_KINDS (typhoon-shelter-works.js).
 const TYPHOON_SHELTER_COST = Object.freeze({
-  breakwaterPerTile: 30,
-  head: 200,
+  breakwaterPerTile: 150,
+  head: 1000,
   demolishPerTile: 10,
-  maintenancePerTile: 0.5,
+  maintenancePerTile: 1.5,
 });
 
 const TS_DIRS = Object.freeze({

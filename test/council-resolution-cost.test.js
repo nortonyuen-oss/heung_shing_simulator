@@ -48,8 +48,25 @@ test('every priced resolution is a few months of income, not fifty', () => {
     assert.ok(!('costPerCitizen' in def), `${def.id} still carries the retired costPerCitizen field`);
     assert.ok(Number.isFinite(def.monthsOfIncome), `${def.id} needs monthsOfIncome`);
     if (def.oneTime) continue;
-    assert.ok(def.monthsOfIncome >= 0.5 && def.monthsOfIncome <= 5, `${def.id}: ${def.monthsOfIncome} months`);
+    if (def.monthsOfTourism > 0) {
+      // a tourism campaign is priced on tourism takings, so it can pay for itself
+      assert.equal(def.monthsOfIncome, 0, `${def.id} is priced on tourism, not the budget`);
+      assert.ok(def.monthsOfTourism <= 3, `${def.id}: ${def.monthsOfTourism} months of tourism`);
+    } else {
+      assert.ok(def.monthsOfIncome >= 0.5 && def.monthsOfIncome <= 5, `${def.id}: ${def.monthsOfIncome} months`);
+    }
     const cost = vm.runInContext(`getCouncilResolutionUpfrontCost('${def.id}')`, context);
     assert.ok(cost / 25000 <= 8, `${def.id} costs ${cost}, more than 8 months of a 25 000 income`);
   }
+});
+
+test('「無處不旅遊」 is priced on a month of tourism takings and brings 35% more visitors', () => {
+  const context = createCostContext({ population: 392715, monthlyIncome: 252000 });
+  vm.runInContext('city.tourismRevenue = 35000;', context);
+  const cost = vm.runInContext("getCouncilResolutionUpfrontCost('tourEverywhere')", context);
+  assert.equal(cost, 3000 + 35000, 'not two months of the whole budget');
+  const def = vm.runInContext("COUNCIL_RESOLUTION_DEFS.find((d) => d.id === 'tourEverywhere')", context);
+  assert.equal(def.successModifiers.tourismCapacity, 0.35);
+  // three months of 35% more tourism takings pay back about its price
+  assert.ok(3 * 0.35 * 35000 >= cost * 0.95);
 });

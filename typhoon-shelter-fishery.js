@@ -15,9 +15,13 @@ const TYPHOON_SHELTER_FISHERY = Object.freeze({
   // the 海事處 buildings' jobs: the market and its bay are traditional (low-education) work, the
   // restaurant commercial
   buildingJobs: Object.freeze({ fish_market: 30, fish_loading_bay: 10, seafood_restaurant: 20 }),
-  pricePerTonne: 70,             // wholesale, in game dollars (a tile of industry pays $40 a month in tax)
-  commission: 0.05,              // the market's cut of what it sells, to the treasury
-  restaurantFresh: 10,           // a month, a restaurant by a shelter with a fish market
+  pricePerTonne: 70,             // wholesale, in game dollars: the catch's value, shown, not taxed
+  // The treasury's take (2026-10-09 review): per job, nine tenths of what a traditional industrial
+  // job pays (TAX_PER_INDUSTRIAL over a 1x1 building's JOBS_PER_IND * ANCHOR_RATIO jobs), the
+  // crews' as fishery tax and the market hands' as its commission - scaled by how good the month's
+  // catch was against every boat's full night, up to maxCatchShare (the fuel station's bonus)
+  industryShare: 0.9,
+  maxCatchShare: 1.1,
   // what the markets take a night, in tonnes
   marketTonnes: 24,
   bayTonnes: 12,                 // a loading bay adds this to its market
@@ -38,11 +42,21 @@ const TYPHOON_SHELTER_FISHERY = Object.freeze({
   history: 12,                   // months kept for the panel
 });
 
+// Tourists (2026-10-09): a working shelter draws them - the boats, the 漁火, the seafood - so it adds
+// to the city's monthly visitor capacity (council-effects.js updateCityAttractivenessMetrics), and
+// far more while 「無處不旅遊」 runs.
+const TYPHOON_SHELTER_TOURISM = Object.freeze({
+  shelterVisitors: 2000,
+  restaurantVisitors: 500,
+  campaign: 'tourEverywhere',
+  campaignMultiplier: Object.freeze({ success: 3, failure: 1.5 }),
+});
+
 // The facilities a shelter adds for itself (works kinds of the same names, typhoon-shelter-works.js).
 const TYPHOON_SHELTER_FACILITIES = Object.freeze({
-  landingPlatform: Object.freeze({ objectId: 'floatingPier3', cost: 300, upkeep: 4, label: '卸魚平台' }),
-  gasStation: Object.freeze({ objectId: 'floatingGasStation', cost: 800, upkeep: 10, label: '水上油站', minBoats: 12, catchBonus: 0.1 }),
-  workshop: Object.freeze({ objectId: 'floatingWorkshop', cost: 600, upkeep: 8, label: '水上工場', minBoats: 16, minDamaged: 3, repairDays: 0.5, repairBill: 0.7 }),
+  landingPlatform: Object.freeze({ objectId: 'floatingPier3', cost: 1500, upkeep: 12, label: '卸魚平台' }),
+  gasStation: Object.freeze({ objectId: 'floatingGasStation', cost: 4000, upkeep: 30, label: '水上油站', minBoats: 12, catchBonus: 0.1 }),
+  workshop: Object.freeze({ objectId: 'floatingWorkshop', cost: 3000, upkeep: 24, label: '水上工場', minBoats: 16, minDamaged: 3, repairDays: 0.5, repairBill: 0.7 }),
 });
 const TYPHOON_SHELTER_FACILITY_KINDS = Object.freeze(Object.keys(TYPHOON_SHELTER_FACILITIES));
 const TYPHOON_SHELTER_FACILITY_ORDER = Object.freeze(['landingPlatform', 'gasStation', 'workshop']);
@@ -56,17 +70,25 @@ function isTyphoonShelterFishingBoat(model) {
 }
 
 /**
- * The fishery's jobs: { traditional, commercial }. `boats` are fleet boats ({ model }), `tenders`
- * the shelter's sampans, `buildings` counts of the 海事處 buildings. Jobs go with the fleet, not with
- * the night's sailing: a storm or the moratorium does not put the crews out of work.
+ * The fishery's jobs: { traditional, commercial, crews, market }. `boats` are fleet boats
+ * ({ model }), `tenders` the shelter's sampans, `buildings` counts of the 海事處 buildings; `crews`
+ * (boats and sampans) and `market` (the market and its bay) split the traditional jobs. Jobs go
+ * with the fleet, not with the night's sailing: a storm or the moratorium does not put the crews
+ * out of work.
  */
 function typhoonShelterFisheryJobs({ boats = [], tenders = 0, buildings = {} } = {}) {
   const F = TYPHOON_SHELTER_FISHERY;
-  const crews = boats.reduce((s, b) => s + (F.crew[b.model] || 0), 0);
-  const traditional = crews + tenders * F.tenderJobs
-    + (buildings.fish_market || 0) * F.buildingJobs.fish_market
+  const crews = boats.reduce((s, b) => s + (F.crew[b.model] || 0), 0) + tenders * F.tenderJobs;
+  const market = (buildings.fish_market || 0) * F.buildingJobs.fish_market
     + (buildings.fish_loading_bay || 0) * F.buildingJobs.fish_loading_bay;
-  return { traditional, commercial: (buildings.seafood_restaurant || 0) * F.buildingJobs.seafood_restaurant };
+  return { traditional: crews + market, commercial: (buildings.seafood_restaurant || 0) * F.buildingJobs.seafood_restaurant, crews, market };
+}
+
+// The treasury's take per fishery job a month at full catch: nine tenths of an industrial job's tax.
+function typhoonShelterFisheryTaxPerJob(taxScale = 1) {
+  const tax = typeof TAX_PER_INDUSTRIAL === 'number' ? TAX_PER_INDUSTRIAL : 40;
+  const jobs = (typeof JOBS_PER_IND === 'number' ? JOBS_PER_IND : 12) * (typeof ANCHOR_RATIO === 'number' ? ANCHOR_RATIO : 30);
+  return (TYPHOON_SHELTER_FISHERY.industryShare * tax * Math.max(0, taxScale)) / jobs;
 }
 
 /**
@@ -121,20 +143,25 @@ function typhoonShelterLandingEfficiency(fishingBoats, landingBoats) {
 
 /**
  * A month's money from one shelter's night: { tonnes, value, tax, commission }. `tonnes` landed
- * (before the fuel station's bonus), the markets' `marketTonnes` (what they can sell; the rest goes
- * on the quay), `taxRate` the city's.
+ * (before the fuel station's bonus) against `fullTonnes`, every fishing boat's full night; the
+ * shelter's `crews` and `marketJobs`; the markets' `marketTonnes` a night (an idle market earns
+ * less); `taxScale` the city's tax rate over the 9% base. `value` is the catch's worth, for show:
+ * the treasury takes the per-job tax (typhoonShelterFisheryTaxPerJob), not the catch's value.
  */
-function settleTyphoonShelterNight({ tonnes = 0, marketTonnes = 0, hasMarket = false, taxRate = 0.09, catchBonus = 0, efficiency = 1 }) {
+function settleTyphoonShelterNight({
+  tonnes = 0, fullTonnes = 0, crews = 0, marketJobs = 0, marketTonnes = 0, hasMarket = false,
+  taxScale = 1, catchBonus = 0, efficiency = 1,
+}) {
   const F = TYPHOON_SHELTER_FISHERY;
   const landed = tonnes * (1 + catchBonus);
-  const value = landed * F.pricePerTonne * efficiency;
-  const sold = hasMarket ? Math.min(landed, marketTonnes) : 0;
-  const marketValue = landed > 0 ? value * (sold / landed) : 0;
+  const share = fullTonnes > 0 ? Math.min(F.maxCatchShare, (landed * efficiency) / fullTonnes) : 0;
+  const perJob = typhoonShelterFisheryTaxPerJob(taxScale);
+  const busy = hasMarket && marketTonnes > 0 ? Math.min(1, landed / marketTonnes) : 0;
   return {
     tonnes: Math.round(landed * 10) / 10,
-    value: Math.round(value),
-    tax: Math.round(value * Math.max(0, taxRate)),
-    commission: Math.round(marketValue * F.commission),
+    value: Math.round(landed * F.pricePerTonne * efficiency),
+    tax: Math.round(perJob * crews * share),
+    commission: Math.round(perJob * marketJobs * busy * Math.min(1, share)),
   };
 }
 
@@ -282,6 +309,31 @@ function getTyphoonShelterTenderCount(plan) {
   return Math.min(getTyphoonShelterTenderSpots(plan.works?.items).length, Math.ceil(fishing / per));
 }
 
+// The 「無處不旅遊」 multiplier on the shelters' tourists this month: 1 unless the campaign runs.
+function getTyphoonShelterCampaignMultiplier(effects, monthIndex) {
+  const T = TYPHOON_SHELTER_TOURISM;
+  const live = (effects || []).find((e) => e?.sourceId === T.campaign
+    && monthIndex >= Number(e.startMonthIndex) && monthIndex <= Number(e.endMonthIndex));
+  if (!live) return 1;
+  return live.outcome === 'success' ? T.campaignMultiplier.success : T.campaignMultiplier.failure;
+}
+
+// Visitors a month the working shelters can take (their restaurants included).
+function typhoonShelterTouristCapacity({ shelters = 0, restaurants = 0, multiplier = 1 }) {
+  const T = TYPHOON_SHELTER_TOURISM;
+  return Math.round((shelters * T.shelterVisitors + restaurants * T.restaurantVisitors) * multiplier);
+}
+
+function getTyphoonShelterTouristCapacity() {
+  if (typeof getTyphoonShelterState !== 'function' || typeof city === 'undefined') return 0;
+  const shelters = getTyphoonShelterState().shelters.filter((p) => p.status === 'operational');
+  if (!shelters.length) return 0;
+  const markets = getTyphoonShelterMarketsByShelter();
+  const restaurants = shelters.reduce((n, p) => n + (markets.get(p.id)?.restaurants || 0), 0);
+  const monthIndex = typeof getCityMonthIndex === 'function' ? getCityMonthIndex() : 0;
+  return typhoonShelterTouristCapacity({ shelters: shelters.length, restaurants, multiplier: getTyphoonShelterCampaignMultiplier(city.temporaryEffects, monthIndex) });
+}
+
 // The city's fishery jobs (simulation.js updateDemand): { traditional, commercial, byShelter }.
 function getTyphoonShelterFisheryJobs() {
   const out = { traditional: 0, commercial: 0, byShelter: {} };
@@ -358,12 +410,8 @@ function settleTyphoonShelterFishery() {
   const analyses = getTyphoonShelterAnalyses();
   const markets = getTyphoonShelterMarketsByShelter();
   const storm = state.storm || null;
-  const taxRate = Number.isFinite(Number(city.taxRate)) ? Number(city.taxRate) : 0.09;
-  const fresh = (() => {
-    let n = 0;
-    markets.forEach((m) => { if (m.markets.length) n += m.restaurants; });
-    return n * TYPHOON_SHELTER_FISHERY.restaurantFresh;
-  })();
+  const taxScale = (Number.isFinite(Number(city.taxRate)) ? Number(city.taxRate) : 0.09) / 0.09;
+  const fresh = 0;   // the restaurants pay commercial tax and draw tourists (getTyphoonShelterTouristCapacity)
   const already = fishery.lastSettledDay != null && day <= fishery.lastSettledDay;
   const month = { year: city.year, month: city.month, tonnes: 0, value: 0, tax: 0, commission: 0, fresh, byShelter: {} };
   const staffed = Number.isFinite(city.fisheryLabour?.staffed) ? city.fisheryLabour.staffed : 1;
@@ -381,11 +429,15 @@ function settleTyphoonShelterFishery() {
     if (!already) {
       const landings = typhoonShelterNightLandings(plan, geometry, day, { storm, moratorium: isTyphoonShelterMoratoriumDay(day) });
       const tonnes = landings.reduce((s, l) => s + l.tonnes, 0);
+      const shelterJobs = jobs.byShelter[plan.id] || { crews: 0, market: 0 };
       const r = settleTyphoonShelterNight({
         tonnes,
+        fullTonnes: fishingBoats * (typeof TYPHOON_SHELTER_FLEET !== 'undefined' ? TYPHOON_SHELTER_FLEET.catchTonnesPerTrip : 1.5),
+        crews: shelterJobs.crews,
+        marketJobs: shelterJobs.market,
         marketTonnes: typhoonShelterMarketTonnes(m?.markets || [], m?.restaurants || 0),
         hasMarket: !!m?.markets.length,
-        taxRate,
+        taxScale,
         catchBonus: getTyphoonShelterFacilityCount(plan, 'gasStation') ? TYPHOON_SHELTER_FACILITIES.gasStation.catchBonus : 0,
         efficiency: typhoonShelterLandingEfficiency(fishingBoats, landingBoats),
       });
@@ -547,6 +599,11 @@ const typhoonShelterFisheryApi = {
   typhoonShelterFleetCaps,
   typhoonShelterLandingEfficiency,
   settleTyphoonShelterNight,
+  TYPHOON_SHELTER_TOURISM,
+  getTyphoonShelterCampaignMultiplier,
+  typhoonShelterTouristCapacity,
+  getTyphoonShelterTouristCapacity,
+  typhoonShelterFisheryTaxPerJob,
   nextTyphoonShelterFacility,
   chooseTyphoonShelterFacilitySite,
   normalizeTyphoonShelterFishery,

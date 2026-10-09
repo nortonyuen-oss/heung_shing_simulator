@@ -14,9 +14,11 @@ test('fishery jobs go with the fleet and the 海事處 buildings: crews by boat,
   const jobs = typhoonShelterFisheryJobs({ boats, tenders: 1, buildings: { fish_market: 1, fish_loading_bay: 1, seafood_restaurant: 2 } });
   assert.equal(jobs.traditional, 6 + 4 + 8 + 0 + 1 + 30 + 10, 'crews, a boatman, the market and its bay; house boats have none');
   assert.equal(jobs.commercial, 40);
+  assert.equal(jobs.crews, 6 + 4 + 8 + 1);
+  assert.equal(jobs.market, 40);
   // a storm or the moratorium keeps boats in, not crews out of work: the jobs never look at the night
-  assert.deepEqual(typhoonShelterFisheryJobs({ boats }), { traditional: 18, commercial: 0 });
-  assert.deepEqual(typhoonShelterFisheryJobs(), { traditional: 0, commercial: 0 });
+  assert.deepEqual(typhoonShelterFisheryJobs({ boats }), { traditional: 18, commercial: 0, crews: 18, market: 0 });
+  assert.deepEqual(typhoonShelterFisheryJobs(), { traditional: 0, commercial: 0, crews: 0, market: 0 });
 });
 
 test('the markets take a night: 24 t each, 12 more with a bay, half with no road out; restaurants a tonne', () => {
@@ -56,18 +58,38 @@ test('the fleet is held to berths, hands and markets, and shrinks one boat a mon
   assert.equal(typhoonShelterFleetCaps({ ...base, berthTarget: 40, fishingShare: 0.82 }).caps.market, 29);
 });
 
-test('a month\'s money: the tax rate and the market\'s commission on the catch, never its whole value', () => {
-  const r = settleTyphoonShelterNight({ tonnes: 30, marketTonnes: 36, hasMarket: true, taxRate: 0.09 });
-  assert.deepEqual(r, { tonnes: 30, value: 2100, tax: 189, commission: 105 }, 'the design\'s worked example');
-  assert.ok(r.tax + r.commission < r.value);
-  // more than the markets take: the rest is sold on the quay, taxed but no commission
-  assert.equal(settleTyphoonShelterNight({ tonnes: 30, marketTonnes: 15, hasMarket: true }).commission, 53);
-  assert.equal(settleTyphoonShelterNight({ tonnes: 30, hasMarket: false }).commission, 0);
-  // the fuel station's bonus, the queue at the stages
-  assert.equal(settleTyphoonShelterNight({ tonnes: 30, catchBonus: 0.1, hasMarket: true, marketTonnes: 99 }).tonnes, 33);
-  assert.equal(settleTyphoonShelterNight({ tonnes: 30, efficiency: 0.8, hasMarket: true, marketTonnes: 99 }).value, 1680);
-  // a storm night, no catch: nothing
-  assert.deepEqual(settleTyphoonShelterNight({ tonnes: 0, hasMarket: true, marketTonnes: 36 }), { tonnes: 0, value: 0, tax: 0, commission: 0 });
+test('a month\'s money: per job nine tenths of an industrial job\'s tax, by how good the catch was', () => {
+  const { typhoonShelterFisheryTaxPerJob } = fishery;
+  const perJob = typhoonShelterFisheryTaxPerJob(1);
+  assert.ok(Math.abs(perJob - (0.9 * 40) / 360) < 1e-12, 'a 1x1 industrial building pays $40 for 360 jobs');
+  // a full night: every boat back with its 1.5 t
+  const full = settleTyphoonShelterNight({ tonnes: 30, fullTonnes: 30, crews: 150, marketJobs: 40, marketTonnes: 36, hasMarket: true });
+  assert.equal(full.tax, Math.round(perJob * 150));
+  assert.equal(full.commission, Math.round(perJob * 40 * (30 / 36)), 'a market five-sixths busy');
+  assert.equal(full.value, 2100, 'the catch\'s worth, shown, not taxed');
+  // a storm night: half the catch, half the take; none at all, nothing
+  assert.equal(settleTyphoonShelterNight({ tonnes: 15, fullTonnes: 30, crews: 150 }).tax, Math.round(perJob * 75));
+  assert.deepEqual(settleTyphoonShelterNight({ tonnes: 0, fullTonnes: 30, crews: 150, marketJobs: 40, marketTonnes: 36, hasMarket: true }),
+    { tonnes: 0, value: 0, tax: 0, commission: 0 });
+  // no market: no commission; a higher tax rate, more tax
+  assert.equal(settleTyphoonShelterNight({ tonnes: 30, fullTonnes: 30, crews: 150, marketJobs: 40 }).commission, 0);
+  assert.equal(settleTyphoonShelterNight({ tonnes: 30, fullTonnes: 30, crews: 150, taxScale: 2 }).tax, Math.round(perJob * 2 * 150));
+  // the fuel station's tenth, at most
+  assert.equal(settleTyphoonShelterNight({ tonnes: 30, fullTonnes: 30, crews: 150, catchBonus: 0.5 }).tax, Math.round(perJob * 150 * 1.1));
+  // the fishery pays less a job than industry, never more
+  assert.ok(full.tax / 150 < 40 / 360);
+});
+
+test('a working shelter draws tourists, three times as many while 「無處不旅遊」 runs', () => {
+  const { typhoonShelterTouristCapacity, getTyphoonShelterCampaignMultiplier } = fishery;
+  assert.equal(typhoonShelterTouristCapacity({ shelters: 1, restaurants: 4 }), 4000);
+  assert.equal(typhoonShelterTouristCapacity({ shelters: 0, restaurants: 0 }), 0);
+  const effects = [{ sourceId: 'tourEverywhere', startMonthIndex: 100, endMonthIndex: 102, outcome: 'success' }];
+  assert.equal(getTyphoonShelterCampaignMultiplier(effects, 101), 3);
+  assert.equal(getTyphoonShelterCampaignMultiplier(effects, 103), 1, 'over');
+  assert.equal(getTyphoonShelterCampaignMultiplier([{ ...effects[0], outcome: 'failure' }], 100), 1.5);
+  assert.equal(getTyphoonShelterCampaignMultiplier([], 100), 1);
+  assert.equal(typhoonShelterTouristCapacity({ shelters: 1, restaurants: 4, multiplier: 3 }), 12000);
 });
 
 test('boats queue to unload when the stages are short: up to a fifth of the catch\'s value', () => {

@@ -15,33 +15,35 @@
 
 // A middle-sized shelter (~110 tiles of water, ~30 of breakwater) comes to about $2,600 and
 // $40 a month; the smallest legal one to about $1,200.
+// Prices (2026-10-09 review: five times the first ones, upkeep three times): a shelter is a large
+// public work - a mid-sized one costs about as much as a container port or an ocean park.
 const TYPHOON_SHELTER_WORK_KINDS = Object.freeze({
   // the landing where the road meets the shelter (it makes the shelter run); its stone-pier art is
   // out of scale beside the promenade, so it is not drawn for now (Norton, 2026-10-04)
-  pier: Object.freeze({ objectId: 'pierSet1', cost: 400, upkeep: 6, label: '碼頭', drawn: false }),
+  pier: Object.freeze({ objectId: 'pierSet1', cost: 2000, upkeep: 18, label: '碼頭', drawn: false }),
   // breakwater heads at the entrances carry the navigation lights
-  head: Object.freeze({ objectId: 'causeway2', cost: 200, upkeep: 2, label: '燈塔堤頭' }),
-  breakwater: Object.freeze({ objectId: 'causeway1', cost: 30, upkeep: 0.5, label: '防波堤' }),
+  head: Object.freeze({ objectId: 'causeway2', cost: 1000, upkeep: 6, label: '燈塔堤頭' }),
+  breakwater: Object.freeze({ objectId: 'causeway1', cost: 150, upkeep: 1.5, label: '防波堤' }),
   // the root of a breakwater where it meets the shore: one more section, drawn reaching up onto
   // the land (the shore tiles draw their own shoreline, so the line would otherwise stop short)
-  breakwaterRoot: Object.freeze({ objectId: 'causeway1', cost: 30, upkeep: 0.5, label: '防波堤堤根' }),
-  navBuoyRed: Object.freeze({ objectId: 'bout1_a', cost: 40, upkeep: 1, label: '航標（紅）' }),
-  navBuoyGreen: Object.freeze({ objectId: 'bout1_b', cost: 40, upkeep: 1, label: '航標（綠）' }),
+  breakwaterRoot: Object.freeze({ objectId: 'causeway1', cost: 150, upkeep: 1.5, label: '防波堤堤根' }),
+  navBuoyRed: Object.freeze({ objectId: 'bout1_a', cost: 200, upkeep: 3, label: '航標（紅）' }),
+  navBuoyGreen: Object.freeze({ objectId: 'bout1_b', cost: 200, upkeep: 3, label: '航標（綠）' }),
   // the landing stage at a walkway's shore end (steps up to the shore) and the walkway itself
-  floatingPier: Object.freeze({ objectId: 'floatingPier1', cost: 100, upkeep: 1, label: '浮橋登岸位' }),
-  pontoon: Object.freeze({ objectId: 'floatingPier2', cost: 40, upkeep: 0.5, label: '浮橋' }),
-  mooringBuoy: Object.freeze({ objectId: 'bout2', cost: 10, upkeep: 0.2, label: '繫泊浮泡' }),
+  floatingPier: Object.freeze({ objectId: 'floatingPier1', cost: 500, upkeep: 3, label: '浮橋登岸位' }),
+  pontoon: Object.freeze({ objectId: 'floatingPier2', cost: 200, upkeep: 1.5, label: '浮橋' }),
+  mooringBuoy: Object.freeze({ objectId: 'bout2', cost: 50, upkeep: 0.6, label: '繫泊浮泡' }),
   // 海堤: the shore is faced with a quay - one section along each edge of a shore tile that meets
   // the basin, and a square of deck filling each concave corner
-  quay: Object.freeze({ objectId: 'quayStraight', cost: 20, upkeep: 0.3, label: '海堤' }),
-  quayFill: Object.freeze({ objectId: 'quayDeckSquare', cost: 5, upkeep: 0.1, label: '海堤轉角' }),
+  quay: Object.freeze({ objectId: 'quayStraight', cost: 100, upkeep: 0.9, label: '海堤' }),
+  quayFill: Object.freeze({ objectId: 'quayDeckSquare', cost: 25, upkeep: 0.3, label: '海堤轉角' }),
   // a beach by the shelter that no promenade faces the sea from: paved over all the same (drawn as
   // plain ground - no sprite), so no stretch of sand is left between the walkway and the sea
   quayGround: Object.freeze({ objectId: null, cost: 0, upkeep: 0, label: '鋪平沙灘' }),
   // Phase 5: what a busy shelter adds for itself (typhoon-shelter-fishery.js), one tile of water each
-  landingPlatform: Object.freeze({ objectId: 'floatingPier3', cost: 300, upkeep: 4, label: '卸魚平台' }),
-  gasStation: Object.freeze({ objectId: 'floatingGasStation', cost: 800, upkeep: 10, label: '水上油站' }),
-  workshop: Object.freeze({ objectId: 'floatingWorkshop', cost: 600, upkeep: 8, label: '水上工場' }),
+  landingPlatform: Object.freeze({ objectId: 'floatingPier3', cost: 1500, upkeep: 12, label: '卸魚平台' }),
+  gasStation: Object.freeze({ objectId: 'floatingGasStation', cost: 4000, upkeep: 30, label: '水上油站' }),
+  workshop: Object.freeze({ objectId: 'floatingWorkshop', cost: 3000, upkeep: 24, label: '水上工場' }),
 });
 // the works that stand in the water and take the tile they are on from the boats
 const TYPHOON_SHELTER_SOLID_WORKS = Object.freeze(['pier', 'floatingPier', 'pontoon', 'landingPlatform', 'gasStation', 'workshop']);

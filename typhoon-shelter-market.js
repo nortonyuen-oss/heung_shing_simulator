@@ -48,10 +48,11 @@ const TYPHOON_SHELTER_MARKET = Object.freeze({
   hours: Object.freeze({
     fish_market: Object.freeze([3 * 60, 10 * 60]),
     seafood_restaurant: Object.freeze([11 * 60, 23 * 60]),
+    yacht_club: Object.freeze([17 * 60, 24 * 60]),            // its bars and dining room, evenings
   }),
 });
 
-const TYPHOON_SHELTER_BUILDING_TYPES = Object.freeze(['fish_market', 'seafood_restaurant', 'fish_loading_bay']);
+const TYPHOON_SHELTER_BUILDING_TYPES = Object.freeze(['fish_market', 'seafood_restaurant', 'fish_loading_bay', 'yacht_club']);
 const TS_MARKET_DIRS = Object.freeze({ n: [-1, 0], e: [0, 1], s: [1, 0], w: [0, -1] });
 const TS_MARKET_ACROSS = Object.freeze({ n: 'e', s: 'e', e: 's', w: 's' });
 
@@ -94,9 +95,16 @@ function chooseTyphoonShelterRoadSide(tiles, isRoad) {
  * ctx: { isInside, isRoad, isWaterfront, isFree, isFlat }.
  */
 function whyNotTyphoonShelterBuildingAt(tiles, ctx) {
+  // a 1x1 stands on the waterfront gravel; a bigger one needs a whole side of it there (a 2x2 two
+  // tiles) - its front on the water's edge, its back on flat ground behind
+  const needed = tiles.length > 1 ? Math.round(Math.sqrt(tiles.length)) : 1;
+  let waterfront = 0;
   for (const [r, c] of tiles) {
     if (!ctx.isInside(r, c)) return 'outside';
-    if (!ctx.isWaterfront(r, c)) return 'notWaterfront';
+    if (ctx.isWaterfront(r, c)) waterfront += 1;
+  }
+  if (waterfront < needed) return 'notWaterfront';
+  for (const [r, c] of tiles) {
     if (ctx.isRoad(r, c) || !ctx.isFree(r, c)) return 'occupied';
     if (!ctx.isFlat(r, c)) return 'notFlat';
   }
@@ -577,7 +585,7 @@ function refreshTyphoonShelterBuildingSprites(scene) {
   if (scene) scene.typhoonShelterBuildingLighting = lighting.key;
   const dayArt = typeof SPECIAL_BUILDING_DAY_MODELS !== 'undefined' ? SPECIAL_BUILDING_DAY_MODELS : {};
   Object.entries(buildingData).forEach(([id, record]) => {
-    if (!['fish_market', 'seafood_restaurant', 'fish_loading_bay'].includes(record?.type)) return;
+    if (!['fish_market', 'seafood_restaurant', 'fish_loading_bay', 'yacht_club'].includes(record?.type)) return;
     const baseKey = String(record.spriteKey || '').replace(/(_m)?(_day)?$/, '');
     const [row, col] = id.split(':').map(Number);
     let facingKey;

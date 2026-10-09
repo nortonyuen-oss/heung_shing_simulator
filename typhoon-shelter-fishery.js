@@ -299,6 +299,9 @@ function getTyphoonShelterMarketsByShelter() {
   });
   assignTyphoonShelterMarkets({ markets: collectTyphoonShelterBuildings('seafood_restaurant'), bays: [], shelters }, isRoad)
     .forEach((r) => { if (r.shelterId) entry(r.shelterId).restaurants += 1; });
+  // 遊艇會: a club on a shelter's waterfront gives more of its berths to yachts
+  assignTyphoonShelterMarkets({ markets: collectTyphoonShelterBuildings('yacht_club'), bays: [], shelters }, isRoad)
+    .forEach((c) => { if (c.shelterId) entry(c.shelterId).clubs = (entry(c.shelterId).clubs || 0) + 1; });
   return out;
 }
 
@@ -619,7 +622,7 @@ function typhoonShelterFisheryRows(plan) {
     const boatBerths = geometry.slots.filter((s) => s.size >= 2 && geometry.routeBySlot.get(s.key)).length;
     const berthTarget = Math.max(0, Math.min(summary.berths.daily, boatBerths - summary.berths.reserved));
     // the working fleet's caps: the yachts' berths aside (plan.use)
-    const leisureSlots = Math.round(berthTarget * (typeof getTyphoonShelterLeisureShare === 'function' ? getTyphoonShelterLeisureShare(plan) : 0));
+    const leisureSlots = Math.round(berthTarget * (typeof getTyphoonShelterLeisureShare === 'function' ? getTyphoonShelterLeisureShare(plan, markets.get(plan.id)?.clubs || 0) : 0));
     const workPlan = { ...plan, fleet: { ...(plan.fleet || {}), boats: (plan.fleet?.boats || []).filter((b) => !(typeof isTyphoonShelterLeisureModel === 'function' && isTyphoonShelterLeisureModel(b.model))) } };
     const caps = getTyphoonShelterFleetCaps(workPlan, berthTarget - leisureSlots, markets);
     const label = { berths: say('typhoonShelter.fishery.capBerths', '泊位'), labour: say('typhoonShelter.fishery.capLabour', '人手'), market: say('typhoonShelter.fishery.capMarket', '魚市場') };

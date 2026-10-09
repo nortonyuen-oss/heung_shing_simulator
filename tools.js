@@ -53,6 +53,7 @@ const LANDMARK_TOOL_BUILDING_TYPES = {
   'fish-market':        'fish_market',
   'seafood-restaurant': 'seafood_restaurant',
   'fish-loading-bay':   'fish_loading_bay',
+  'yacht-club':         'yacht_club',
 };
 
 // ── Main dispatch (called from applySelectedTool in main.js) ──────────────────

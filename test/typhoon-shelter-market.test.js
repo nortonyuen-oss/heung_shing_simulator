@@ -23,6 +23,10 @@ test('海事處 buildings go on a shelter\'s waterfront gravel, flat and free, w
   assert.equal(whyNotTyphoonShelterBuildingAt([[9, 9]], ctx), 'noRoad', 'gravel, but no road beside it');
   assert.equal(whyNotTyphoonShelterBuildingAt([[3, 3]], ctx), 'notWaterfront');
   assert.equal(whyNotTyphoonShelterBuildingAt([[5, 5], [5, 6], [6, 5], [6, 6]], ctx), 'occupied');
+  // a 2x2 needs a whole side on the waterfront, its back on flat ground: rows 5-6 gravel, 4 is road
+  const half = { ...ctx, isFree: () => true, isWaterfront: (r, c) => r === 6 && (c === 5 || c === 6) };
+  assert.equal(whyNotTyphoonShelterBuildingAt([[5, 5], [5, 6], [6, 5], [6, 6]], half), null, 'front on the water, back on land');
+  assert.equal(whyNotTyphoonShelterBuildingAt([[5, 5], [5, 6], [6, 5], [6, 6]], { ...half, isWaterfront: (r, c) => r === 6 && c === 6 }), 'notWaterfront', 'a corner is not a side');
   assert.equal(whyNotTyphoonShelterBuildingAt([[5, 5]], { ...ctx, isFlat: () => false }), 'notFlat');
   // the road along the side: through both ways for the trucks, or a dead end
   assert.deepEqual(chooseTyphoonShelterRoadSide([[5, 5]], ctx.isRoad), { side: 'n', road: { row: 4, col: 5 }, through: 2 });

@@ -607,6 +607,7 @@ function getBuildingTypeLabel(type) {
     fish_market: 'building.fishMarket',
     seafood_restaurant: 'building.seafoodRestaurant',
     fish_loading_bay: 'building.fishLoadingBay',
+    yacht_club: 'building.yachtClub',
     grand_temple: 'building.grandTemple',
     heritage_church: 'building.heritageChurch',
     indoor_coliseum: 'building.indoorColiseum',

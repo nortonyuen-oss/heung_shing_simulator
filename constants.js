@@ -320,7 +320,7 @@ const WEALTH_DISTRICT_ULTRA_RICH_LANDMARK_RADIUS = 18;
 const WEALTH_DISTRICT_ULTRA_RICH_LANDMARK_TYPES = Object.freeze([
   'exhibition_center', 'cultural_center', 'space_museum', 'buddha_statue',
   'heritage_temple', 'grand_temple', 'heritage_church', 'indoor_coliseum',
-  'murray_house', 'ocean_park', 'football_stadium',
+  'murray_house', 'ocean_park', 'football_stadium', 'yacht_club',
 ]);
 // The flip side of the amenity requirement above: a cell within reach of a
 // noxious facility - industrial buildings, any power plant, the container
@@ -1088,6 +1088,15 @@ SPECIAL_BUILDING_MODELS.seafood_restaurant = {
   footprintCols: 1,
   footprintRows: 1,
 };
+// 遊艇會: a yacht club's house on a shelter's waterfront - a strong view and a wealthy neighbourhood
+// (SPECIAL_BUILDING_EFFECTS, WEALTH_DISTRICT_ULTRA_RICH_LANDMARK_TYPES), and more of its shelter's
+// berths given to yachts (typhoon-shelter-fishery.js).
+SPECIAL_BUILDING_MODELS.yacht_club = {
+  spriteKey: 'yacht_club_2x2',
+  path: 'Models/specialSites/2x2/yachtClub2-01.png',
+  footprintCols: 2,
+  footprintRows: 2,
+};
 SPECIAL_BUILDING_MODELS.fish_loading_bay = {
   spriteKey: 'fish_loading_bay_2x2',
   path: 'Models/specialSites/2x2/fishLoadingBay2-01.png',
@@ -1129,6 +1138,7 @@ const SPECIAL_BUILDING_MIRROR_MODELS = Object.freeze(Object.fromEntries([
   ['seafood_restaurant_1x1', 'Models/specialSites/1x1/seafoodRestaurant1-01_m.png', 1],
   ['seafood_restaurant_1x1_alt', 'Models/specialSites/1x1/seafoodRestaurant1-02_m.png', 1],
   ['fish_loading_bay_2x2', 'Models/specialSites/2x2/fishLoadingBay2-01_m.png', 2],
+  ['yacht_club_2x2', 'Models/specialSites/2x2/yachtClub2-01_m.png', 2],
 ].map(([key, path, size]) => [key, Object.freeze({ spriteKey: `${key}_m`, path, footprintCols: size, footprintRows: size })])));
 
 // And each market and restaurant (and its mirror) by day with the lights off, drawn while it is shut
@@ -1348,6 +1358,8 @@ const SPECIAL_BUILDING_EFFECTS = {
   },
   // 海事處: their upkeep is the typhoon shelters' (getTyphoonShelterMonthlyUpkeep), not a landmark's
   seafood_restaurant: { attractivenessBonus: 1, landValueBonus: 0.02, landValueRadius: 4 },
+  // the strongest view in the game: the marina, the club, the money it draws
+  yacht_club:         { attractivenessBonus: 6, landValueBonus: 0.15, landValueRadius: 14, revenue: 400, upkeep: 300 },
 };
 
 const SPECIAL_BUILDING_COSTS = {
@@ -1359,6 +1371,7 @@ const SPECIAL_BUILDING_COSTS = {
   fish_market:         3200,
   seafood_restaurant:  2400,
   fish_loading_bay:    1500,
+  yacht_club:         16000,
   grand_temple:        6200,
   heritage_church:     3200,
   indoor_coliseum:    12000,
@@ -1445,6 +1458,7 @@ const BUILDING_POWER_DEMAND = {
   fish_market: 6,
   seafood_restaurant: 4,
   fish_loading_bay: 1,
+  yacht_club: 5,
   grand_temple: 7,
   heritage_church: 4,
   indoor_coliseum: 18,

@@ -68,8 +68,12 @@ const TYPHOON_SHELTER_USES = Object.freeze({
   leisure: Object.freeze({ leisure: 0.8, label: '遊艇優先' }),
 });
 
-function getTyphoonShelterLeisureShare(plan) {
-  return (TYPHOON_SHELTER_USES[plan?.use] || TYPHOON_SHELTER_USES.fishing).leisure;
+// The share of berths for yachts: the shelter's use, and a fifth more with a yacht club on its
+// waterfront (`clubs`, from getTyphoonShelterMarketsByShelter).
+const TYPHOON_SHELTER_CLUB_LEISURE = 0.2;
+function getTyphoonShelterLeisureShare(plan, clubs = 0) {
+  const base = (TYPHOON_SHELTER_USES[plan?.use] || TYPHOON_SHELTER_USES.fishing).leisure;
+  return Math.min(0.9, base + (clubs > 0 ? TYPHOON_SHELTER_CLUB_LEISURE : 0));
 }
 
 const TYPHOON_SHELTER_TENDERS = Object.freeze({
@@ -531,7 +535,7 @@ function updateTyphoonShelterFleets(state, analyses, summaries) {
     const fleet = plan.fleet || createTyphoonShelterFleet();
     // the yachts' share of the berths (plan.use); the rest held to the hands and the markets (Phase 5)
     // - below today's boats for want of them, one a month
-    const leisureSlots = Math.round(berthTarget * getTyphoonShelterLeisureShare(plan));
+    const leisureSlots = Math.round(berthTarget * getTyphoonShelterLeisureShare(plan, markets?.get(plan.id)?.clubs || 0));
     const workFleet = { ...fleet, boats: (fleet.boats || []).filter((b) => !isTyphoonShelterLeisureModel(b.model)) };
     const target = markets && summary?.operational && typeof getTyphoonShelterFleetCaps === 'function'
       ? getTyphoonShelterFleetCaps({ ...plan, fleet: workFleet }, berthTarget - leisureSlots, markets).target + leisureSlots

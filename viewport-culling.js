@@ -345,7 +345,8 @@ function updateSpriteViewportCulling(scene, bounds) {
   const smallPropsShown = (Number(mainCamera?.zoom) || 1) >= smallPropMinZoom
     || (typeof isPedestrianRailingCalibrationActive === 'function' && isPedestrianRailingCalibrationActive())
     || (typeof isStreetFurnitureCalibrationActive === 'function' && isStreetFurnitureCalibrationActive());
-  [scene.pedestrianRailingSprites, scene.streetFurnitureSprites].forEach((map) => {
+  // (and the 海濱步道's benches and bins, promenade.js)
+  [scene.pedestrianRailingSprites, scene.streetFurnitureSprites, scene.promenadePropSprites].forEach((map) => {
     if (smallPropsShown) {
       collect(cullSpriteMapEntries(map, bounds, seen, mainCamera, mainBounds));
       return;

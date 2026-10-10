@@ -264,6 +264,10 @@ function updateServiceCoverage() {
     if (record.type === 'sports_ground_small')  bfsService(anchorId, 'sportsGround', SPORTS_GROUND_RADIUS, 1);
     if (record.type === 'sports_ground_large')  bfsService(anchorId, 'sportsGround', SPORTS_GROUND_RADIUS, 2);
   });
+  // 海濱步道 (promenade.js): each tile as a small park
+  if (typeof getPromenadeServiceTiles === 'function') {
+    getPromenadeServiceTiles().forEach((id) => bfsService(id, 'park', PROMENADE.parkRadius, 1));
+  }
 }
 
 function getServiceCoverageAnchorId(id, record) {

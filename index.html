@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>香城模擬器 | The City of Heung Shing v4.18.0 — 【黃金海岸】</title>
+  <title>香城模擬器 | The City of Heung Shing v4.19.0 — 【成碟青瓜過大海】</title>
   <link rel="icon" type="image/png" href="build/icon.png" />
   <style>
     * { box-sizing: border-box; }
@@ -351,6 +351,21 @@
       flex-wrap: wrap;
       gap: 8px;
       margin-bottom: 12px;
+    }
+    .weather-coastal-section {
+      border-top: 1px solid #a7a08d;
+      padding-top: 8px;
+      white-space: normal;
+    }
+    .weather-coastal-report {
+      max-height: 180px;
+      overflow-y: auto;
+      padding: 8px 10px;
+      border: 1px solid #a7a08d;
+      background: #f7f9fc;
+      font-family: Arial, sans-serif;
+      line-height: 1.8;
+      overflow-wrap: anywhere;
     }
     .weather-legend-active-chip {
       display: flex;
@@ -5899,6 +5914,8 @@
           <button class="menu-drop-item" data-menu-action="toggle-building-lights" id="menu-building-lights" data-i18n="menu.buildingLights">Night building lights</button>
           <button class="menu-drop-item" data-menu-action="toggle-night-remote-darkness" id="menu-night-remote-darkness" data-i18n="menu.nightRemoteDarkness">Darker nights away from the city</button>
           <button class="menu-drop-item" data-menu-action="toggle-sea-flow" id="menu-sea-flow" data-i18n="menu.seaFlow">Sea surface flow effect</button>
+          <button class="menu-drop-item" data-menu-action="toggle-vessel-wakes" id="menu-vessel-wakes" data-i18n="menu.vesselWakes">Boat wakes</button>
+          <button class="menu-drop-item" data-menu-action="toggle-shore-reflections" id="menu-shore-reflections" data-i18n="menu.shoreReflections">Waterfront light reflections at night</button>
         </div>
       </div>
 
@@ -6023,11 +6040,11 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
         <button id="about-app-icon" class="about-app-icon" type="button" aria-label="City icon" aria-pressed="false">🏙️</button>
         <div style="font-size:18px; font-weight:900; margin-bottom:6px" data-i18n="app.name">The City of Heung Shing</div>
         <div style="color:#5a5648; font-size:12px" data-i18n="dialog.aboutEnglishName">The City of Heung Shing</div>
-        <div style="color:#5a5648; font-size:12px" data-i18n="dialog.version">Version 4.18.0 — 【黃金海岸】</div>
+        <div style="color:#5a5648; font-size:12px" data-i18n="dialog.version">Version 4.19.0 — 【成碟青瓜過大海】</div>
         <div id="visual-route-calibration-test-mode-label" hidden>【test mode】</div>
         <div style="color:#5a5648; font-size:12px" data-i18n="dialog.aboutInspired">A Hong Kong-themed city simulation brand title</div>
         <div style="margin-top:14px; font-size:12px; line-height:1.8; color:#3a3530">
-          <span data-i18n-html="dialog.aboutBuilt">The City of Heung Shing v4.18.0 — 【黃金海岸】<br>Plan · Build · Govern · Thrive</span>
+          <span data-i18n-html="dialog.aboutBuilt">The City of Heung Shing v4.19.0 — 【成碟青瓜過大海】<br>Plan · Build · Govern · Thrive</span>
         </div>
         <div class="about-links">
           <a class="about-link" href="https://github.com/nortonyuen-oss/heung_shing_simulator" target="_blank" rel="noopener noreferrer" data-i18n="dialog.githubLink">GitHub</a>
@@ -6160,6 +6177,10 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
       <div class="dialog-body">
         <div id="weather-legend-summary" class="weather-legend-summary"></div>
         <div id="weather-legend-active" class="weather-legend-active"></div>
+        <section class="weather-coastal-section" aria-labelledby="weather-coastal-title">
+          <h3 id="weather-coastal-title" data-i18n="weather.coastal.title">華南海域天氣報告</h3>
+          <div id="weather-coastal-report" class="weather-coastal-report" tabindex="0"></div>
+        </section>
       </div>
       <div class="dialog-footer">
         <button class="dialog-ok-btn" data-close-dialog="weather-legend-dialog" data-i18n="dialog.close">Close</button>
@@ -6521,6 +6542,7 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
       <div class="tool-group-items" data-tool-group-items="parks-greenery" hidden>
         <button class="tool-row" type="button" data-tool="park"><span class="tool-row-icon">🌳</span><span class="tool-row-text" data-i18n="toolRow.parkPicker">Park Picker</span></button>
         <button class="tool-row" type="button" data-tool="tree" title="Plant Tree ($15)" aria-label="Plant Tree" data-i18n-title="tool.tree" data-i18n-aria="tool.tree"><span class="tool-row-icon">🌲</span><span class="tool-row-text" data-i18n="toolRow.tree">Tree</span><span class="tool-row-cost">$15</span></button>
+        <button class="tool-row" type="button" data-tool="promenade" title="Waterfront promenade ($400 a tile; right-click a tile for a public pier)" data-i18n-title="tool.promenade"><span class="tool-row-icon">🚶</span><span class="tool-row-text" data-i18n="toolRow.promenade">Waterfront Promenade</span><span class="tool-row-cost">$400</span></button>
       </div>
       <button class="tool-row tool-group-row" type="button" data-tool-group="cultural-facilities"><span class="tool-row-icon">🎭</span><span class="tool-row-text" data-i18n="toolGroup.culturalFacilities">Cultural Facilities</span><span class="tool-group-chevron">▶</span></button>
       <div class="tool-group-items" data-tool-group-items="cultural-facilities" hidden>
@@ -7395,6 +7417,8 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
   <script src="typhoon-shelter-sprites.js"></script>
   <script src="typhoon-shelter-calibrator.js"></script>
   <script src="ferry.js"></script>
+  <script src="water-effects.js"></script>
+  <script src="promenade.js"></script>
   <script src="ferry-berth-calibrator.js"></script>
   <script src="sea-lighting.js"></script>
   <script src="sea-light-calibrator.js"></script>

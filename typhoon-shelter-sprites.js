@@ -441,6 +441,16 @@ function positionTyphoonShelterObject(scene, record) {
   const anchor = getBuildingAnchor(record.row, record.col, fp.cols, fp.rows);
   // depthBias lifts one object over another on the same tile (a landing stage over its walkway)
   let depth = getBuildingSortDepth(anchor.y + slideY, fp.cols, fp.rows, 0) + (record.depthBias || 0);
+  // ground: paving (the 海濱步道, promenade.js), in the terrain band with the ground it lies on - over
+  // the row of tiles in front of its own (the sea its wall hangs over) but under a bridge ramp's
+  // embankment on that row (getBridgeRampBodyDepth, +0.45), and under every road and bridge deck.
+  // Kept in order among itself by where it lies (the slide and bias are hundredths at most).
+  if (record.ground) {
+    const terrain = typeof getTerrainTileDepth === 'function'
+      ? getTerrainTileDepth(record.row, record.col, getTileKey(record.row, record.col), isoToScreen(record.col, record.row).y)
+      : getWorldDepth('terrain', isoToScreen(record.col, record.row).y);
+    depth = terrain + TILE_HEIGHT / 2 + 0.2 + (slideY + (record.depthBias || 0)) / 1000;
+  }
   if (record.aboveFootprint) {
     const f = record.aboveFootprint;
     const under = getBuildingSortDepth(getBuildingAnchor(f.row, f.col, f.cols, f.rows).y, f.cols, f.rows, 0);
@@ -812,6 +822,8 @@ async function addTyphoonShelterObject(scene, spec) {
     tint: spec.tint || null,
     // kept out of sight whatever the camera (a loading bay's crate pile while it is empty)
     hidden: !!spec.hidden,
+    // drawn under every road and bridge (positionTyphoonShelterObject): the 海濱步道's paving
+    ground: !!spec.ground,
     // drawn over this building footprint's sprite ({ row, col, cols, rows }): a crate pile in a bay
     aboveFootprint: spec.aboveFootprint || null,
     // a night light over it: 'lamp' (the promenade lamp's lantern) or 'beacon:<colour>'

@@ -205,13 +205,14 @@ function commitTyphoonShelterDrag(scene, start, end, subtract) {
   return commitTyphoonShelterPlan(scene, result.plan, result.analysis);
 }
 
-// 風暴期間暫停工程 (typhoon-shelter-storm.js): while the boats shelter, or visitors still lie on
-// the free berths, nothing is built, rebuilt or pulled down. Says so when `tell`.
+// 風暴期間暫停工程 (typhoon-shelter-storm.js): while the boats are held in - the signals up and
+// two safe hours after - nothing is built, rebuilt or pulled down; the visitors sailing home after
+// that do not hold the works up (isTyphoonShelterStormHolding). The promenade is never held up.
 function isTyphoonShelterWorksPaused(shelterId) {
-  return typeof isTyphoonShelterStormFreeze === 'function' && isTyphoonShelterStormFreeze(getTyphoonShelterState().storm, undefined, shelterId);
+  return typeof isTyphoonShelterStormHolding === 'function' && isTyphoonShelterStormHolding(getTyphoonShelterState().storm);
 }
 function typhoonShelterWorksPausedNote() {
-  return tsT('typhoonShelter.storm.worksPaused', '風暴期間暫停工程：等漁船復航、外來船離開之後先可以興建、擴建或者拆除。');
+  return tsT('typhoonShelter.storm.worksPaused', '風暴期間暫停工程：等風球除下、漁船復航之後先可以興建、擴建或者拆除。');
 }
 function refuseTyphoonShelterWorksInStorm(shelterId) {
   if (!isTyphoonShelterWorksPaused(shelterId)) return false;
@@ -426,6 +427,8 @@ function createTyphoonShelterDom() {
       #ts-modebar .ts-confirm-note{color:#ffd27a;font-size:12px;max-width:320px}
       #ts-modebar .ts-cancel{margin-left:4px}
       #ts-panel .ts-expand{background:#1f6f9d;border-color:#7cc8e8;color:#eaf6ff;font-weight:700}
+      #ts-panel .ts-promenade{background:#6b5a2f;border-color:#e0c27a;color:#fff6dd;font-weight:700}
+      #ts-panel .ts-promenade:disabled{background:#2a3a48;border-color:#3f5566;color:#8aa0b2;cursor:not-allowed}
       #ts-modebar .ts-confirm-note.ok{color:#9be89b}
       #ts-panel{position:fixed;top:140px;right:16px;width:300px;z-index:900;background:rgba(12,24,38,.95);border:1px solid #3f6f8c;
         border-radius:12px;padding:12px 14px;color:#eaf6ff;font:13px/1.5 system-ui,-apple-system,"PingFang HK","Noto Sans TC",sans-serif;
@@ -473,7 +476,7 @@ function createTyphoonShelterDom() {
       <dl class="ts-works-stats"></dl>
       <div class="ts-note ts-works-block"></div>
     </div>
-    <div class="ts-row"><button type="button" class="ts-approve">${tsT('typhoonShelter.approve', '開展工程')}</button><button type="button" class="ts-expand" hidden>${tsT('typhoonShelter.expand', '擴建')}</button><button type="button" class="ts-delete">${tsT('typhoonShelter.delete', '刪除規劃')}</button></div>
+    <div class="ts-row"><button type="button" class="ts-approve">${tsT('typhoonShelter.approve', '開展工程')}</button><button type="button" class="ts-expand" hidden>${tsT('typhoonShelter.expand', '擴建')}</button><button type="button" class="ts-promenade" hidden></button><button type="button" class="ts-delete">${tsT('typhoonShelter.delete', '刪除規劃')}</button></div>
     <div class="ts-note ts-stage-note"></div>`;
   document.body.appendChild(panel);
   typhoonShelterDom = { bar, panel };
@@ -498,7 +501,9 @@ function createTyphoonShelterDom() {
       ? tsT('typhoonShelter.confirmDeleteBuilt', `「${plan.name}」已經建成，刪除會拆走全部設施，唔會退款。繼續？`, { name: plan.name })
       : tsT('typhoonShelter.confirmDelete', `刪除「${plan.name}」嘅規劃？`, { name: plan.name });
     if (typeof confirm === 'function' && !confirm(question)) return;
-    setTyphoonShelterState({ ...state, shelters: state.shelters.filter((s) => s.id !== plan.id) });
+    // its visitors from the last storm (still sailing home) go with it
+    const storm = state.storm ? { ...state.storm, visitors: (state.storm.visitors || []).filter((v) => v.shelterId !== plan.id) } : state.storm;
+    setTyphoonShelterState({ ...state, storm, shelters: state.shelters.filter((s) => s.id !== plan.id) });
     typhoonShelterSelectedId = null;
     syncTyphoonShelterFacilitySprites();
     redrawTyphoonShelterPlanning();
@@ -529,6 +534,9 @@ function createTyphoonShelterDom() {
     else approveTyphoonShelterWorks(typhoonShelterSelectedId);
   });
   bar.querySelector('.ts-cancel').addEventListener('click', () => cancelTyphoonShelterPendingEdit());
+  panel.querySelector('.ts-promenade').addEventListener('click', () => {
+    if (rebuildTyphoonShelterPromenade(typhoonShelterSelectedId)) renderTyphoonShelterPanel();
+  });
   panel.querySelector('.ts-expand').addEventListener('click', () => {
     typhoonShelterMode = 'basin';
     syncTyphoonShelterTool();
@@ -614,6 +622,17 @@ function renderTyphoonShelterPanel() {
   const expand = panel.querySelector('.ts-expand');
   expand.hidden = !state.shelters.find((s) => s.id === plan.id)?.works?.approved || !!typhoonShelterPendingEdit;
   expand.dataset.active = String(typhoonShelterMode === 'basin');
+  // 「重建海濱步道」: offered while a built shelter's shore is missing some of its promenade
+  const built = state.shelters.find((s) => s.id === plan.id);
+  const missing = built?.works?.approved && !preview
+    ? getMissingTyphoonShelterPromenade(built, getTyphoonShelterAnalyses().get(built.id)) : [];
+  const promenade = panel.querySelector('.ts-promenade');
+  promenade.hidden = !missing.length;
+  if (missing.length) {
+    const cost = missing.reduce((sum, w) => sum + (TYPHOON_SHELTER_WORK_KINDS[w.kind]?.cost || 0), 0);
+    promenade.textContent = tsT('typhoonShelter.rebuildPromenade', `重建海濱步道（${missing.length} 段，$${cost.toLocaleString()}）`, { count: missing.length, cost: cost.toLocaleString() });
+    promenade.disabled = false;
+  }
   renderTyphoonShelterWorksPanel(panel, plan, a, !!preview);
 }
 
@@ -804,11 +823,54 @@ function typhoonShelterWorksContext() {
     isFreeBeach: (r, c) => isInsideMap(r, c) && mapData[r][c] === BEACH && !buildingData?.[getTileId(r, c)]
       && !(typeof isBridgeTile === 'function' && isBridgeTile(r, c)),
     isLand: (r, c) => typhoonShelterBaseKind(r, c) === 'land',
-    // a shore tile the quay may face: open ground or beach, no road, building or bridge on it
+    // a shore tile the quay may face: open ground or beach, no road, building or bridge on it - a
+    // 海事處 building aside, which stands on the promenade (an edit of the shelter once took the
+    // quay off from under the markets on it, and nothing brought it back)
     isQuaySite: (r, c) => typhoonShelterBaseKind(r, c) === 'land' && mapData[r][c] !== ROAD
-      && !buildingData?.[getTileId(r, c)] && !taken.has(`${r}:${c}`),
+      && !isTyphoonShelterQuayBlockedByBuilding(buildingData?.[getTileId(r, c)]) && !taken.has(`${r}:${c}`),
     isBeach: (r, c) => isInsideMap(r, c) && mapData[r][c] === BEACH,
   };
+}
+
+function isTyphoonShelterQuayBlockedByBuilding(record) {
+  if (!record) return false;
+  return !(typeof isTyphoonShelterBuildingType === 'function' && isTyphoonShelterBuildingType(record.type));
+}
+
+// The 海濱步道 a built shelter's shore would have now but its works lack: quay sections and corner
+// fills an earlier edit dropped (a building stood on the shore then) or that ground freed since
+// (a building or a road gone) has room for. Layout items, not yet built.
+function getMissingTyphoonShelterPromenade(plan, analysis) {
+  if (!plan?.works?.approved || !analysis) return [];
+  const have = new Set((plan.works.items || []).filter((i) => i.state !== 'demolishing').map((i) => i.key));
+  return layoutTyphoonShelterWorks(plan, analysis, typhoonShelterWorksContext())
+    .filter((w) => (w.kind === 'quay' || w.kind === 'quayFill') && !have.has(w.key));
+}
+
+// 「重建海濱步道」: build the missing promenade of a built shelter, paying for it at once.
+function rebuildTyphoonShelterPromenade(id) {
+  const state = getTyphoonShelterState();
+  const plan = state.shelters.find((s) => s.id === id);
+  const analysis = plan && getTyphoonShelterAnalyses().get(id);
+  // (not held up by a storm: the promenade is on land, in no boat's way)
+  if (!plan?.works?.approved) return false;
+  const missing = getMissingTyphoonShelterPromenade(plan, analysis);
+  if (!missing.length) return false;
+  const bill = completeTyphoonShelterWorks({ ...plan.works, items: [...plan.works.items, ...missing.map((w) => ({ ...w, state: 'queued' }))] });
+  if (!payTyphoonShelterBill(bill.cost)) {
+    if (typeof showToast === 'function') showToast(tsT('toast.notEnoughFunds', '資金不足'), 'warning');
+    return false;
+  }
+  const built = { ...plan, works: { ...bill.works, approved: true } };
+  setTyphoonShelterState({ ...state, shelters: state.shelters.map((s) => (s.id === id ? built : s)) });
+  typhoonShelterWorkSummaries.set(id, summarizeTyphoonShelterWorks(built.works, analysis, { pierConnected: built.status === 'operational' }));
+  if (typeof showToast === 'function') {
+    showToast(tsT('typhoonShelter.toast.promenadeRebuilt', `「${plan.name}」嘅海濱步道重建好咗（${missing.length} 段）。`, { name: plan.name, count: missing.length }), 'success');
+  }
+  if (typeof updateHUD === 'function') updateHUD();
+  syncTyphoonShelterFacilitySprites();
+  redrawTyphoonShelterPlanning();
+  return true;
 }
 
 function typhoonShelterPierConnected(works) {
@@ -1020,6 +1082,9 @@ function syncTyphoonShelterQuayTerrain(scene) {
     next.add(`${item.row}:${item.col}`);
     if (item.kind !== 'quayGround') strips.add(`${item.row}:${item.col}`);
   }));
+  // and the 海濱步道 built from the parks menu (promenade.js): hard standing with the water walled
+  // beside it, no gravel spread round it
+  if (typeof getPromenadeTileKeys === 'function') getPromenadeTileKeys().forEach((k) => next.add(k));
   // the gravel spreads from the promenade: its tiles, the open ground round them, and the paved-over
   // beaches that touch either (a beach patch off on its own stays plain ground)
   const paved = new Set([...strips].filter((k) => typhoonShelterPaveable(...k.split(':').map(Number))));

@@ -695,6 +695,7 @@ function applyNightObjectTint(scene, ground) {
   scene.bridgeParapetSprites?.forEach(apply);
   scene.pedestrianRailingSprites?.forEach(apply);
   scene.streetFurnitureSprites?.forEach(apply);
+  scene.promenadePropSprites?.forEach(apply);
   // So do the bare-land clutter and the typhoon shelters' works (one being previewed keeps its
   // own tint); the shelter boats take theirs as they are drawn each frame.
   scene.debrisSprites?.forEach(apply);

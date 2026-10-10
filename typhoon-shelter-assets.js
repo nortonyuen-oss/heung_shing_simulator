@@ -132,6 +132,8 @@ const TYPHOON_SHELTER_PARTS = Object.freeze([
   ...typhoonShelterPart('promenadeDeck', 'seawall', '海濱步道', [['a', [60, 58, 904, 446], { facing: 'nw', label: '背向' }]]),
   ...typhoonShelterPart('promenadeFront', 'seawall', '海濱步道', [['a', [60, 502, 904, 514], { facing: 'se', label: '直段' }]]),
   ...typhoonShelterPart('promenadeFill', 'seawall', '海濱步道', [['a', [223, 217, 577, 287], { facing: 'se', label: '轉角填位' }]]),
+  // the same cell in the parks' dark red brick, for the 海濱步道 built from the parks menu (promenade.js)
+  ...typhoonShelterPart('promenadeBrick', 'seawall', '海濱步道（公園紅磚）', [['a', [223, 217, 577, 287], { facing: 'se', label: '紅磚' }]]),
   // the modular kit (2026-10-04): a 10 x 10 m cell, one layer each - laid cell by cell (see
   // syncTyphoonShelterFacilitySprites): brick (promenadeFill), and on each side the coping (with the
   // wall below where it faces the camera) toward the sea or the kerb toward the land
@@ -421,6 +423,7 @@ const TYPHOON_SHELTER_OBJECTS = Object.freeze([
   // (the 海濱步道 art, since 2026-10-04; the earlier quay pieces stay as parts)
   typhoonShelterObject('quayStraight', '海濱步道', 'seawall', 'land', { promenadeFront_a: 'se', promenadeDeck_a: 'nw' }, 1, 1),
   typhoonShelterObject('quayDeckSquare', '海濱步道轉角填位', 'seawall', 'land', { promenadeFill_a: 'se' }, 1, 1),
+  typhoonShelterObject('promenadeBrickSquare', '海濱步道紅磚', 'seawall', 'land', { promenadeBrick_a: 'se' }, 1, 1),
   // the kit's sides: facing = the side of the cell the coping / kerb lies on
   typhoonShelterObject('promenadeEdge', '海濱步道海邊', 'seawall', 'land', { promenadeEdgeFront_a: 'se', promenadeEdgeBack_a: 'nw' }, 1, 1),
   typhoonShelterObject('promenadeKerb', '海濱步道路邊石', 'seawall', 'land', { promenadeKerbFront_a: 'se', promenadeKerbBack_a: 'nw' }, 1, 1),
@@ -479,7 +482,7 @@ const TYPHOON_SHELTER_REAL_SIZES = Object.freeze({
   // lighthouse head's platform; a tile of breakwater is drawn as two overlapping sections
   causeway1: { lengthM: 16 }, causeway1b: { lengthM: 12 },
   // a promenade section is one tile's edge long (its deck ~9.4 m deep); the fill is a square of it
-  quayStraight: { lengthM: 20 }, quayDeckSquare: { lengthM: 10 }, promenadeEdge: { lengthM: 10 }, promenadeKerb: { lengthM: 10 },
+  quayStraight: { lengthM: 20 }, quayDeckSquare: { lengthM: 10 }, promenadeBrickSquare: { lengthM: 10 }, promenadeEdge: { lengthM: 10 }, promenadeKerb: { lengthM: 10 },
   // a Victorian-style harbourfront lamp: ~4.2 m to the top of its lantern
   promenadeLamp: { heightM: 4.2 }, quayWall: { lengthM: 20 }, quayWallFill: { lengthM: 8 },
   // breakwater heads: as wide as the breakwater (~10 m), the light ~12 m above the water

@@ -370,6 +370,7 @@ function hideLandingScreen() {
 
   // Start ticker only once the game session actually begins (not at page load).
   // startTicker() is re-entrant-safe: it clears any existing timer before restarting.
+  if (typeof startCoastalWeatherSession === 'function' && !coastalSessionActive && !isTerrainCreatorMode) startCoastalWeatherSession();
   if (typeof startTicker === 'function') startTicker();
 }
 

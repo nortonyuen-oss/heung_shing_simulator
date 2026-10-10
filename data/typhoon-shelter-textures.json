@@ -1555,6 +1555,30 @@
    },
    "mirrored": true
   },
+  "ts_promenadeBrick_a": {
+   "file": "Models/typhoonShelter/ts_promenadeBrick_a.png",
+   "part": "promenadeBrick_a",
+   "width": 512,
+   "height": 256,
+   "anchor": {
+    "x": 257,
+    "y": 220
+   },
+   "mirrored": false,
+   "facing": "se"
+  },
+  "ts_promenadeBrick_a_m": {
+   "file": "Models/typhoonShelter/ts_promenadeBrick_a_m.png",
+   "part": "promenadeBrick_a",
+   "width": 512,
+   "height": 256,
+   "anchor": {
+    "x": 255,
+    "y": 220
+   },
+   "mirrored": true,
+   "facing": "sw"
+  },
   "ts_promenadeDeck_a": {
    "file": "Models/typhoonShelter/ts_promenadeDeck_a.png",
    "part": "promenadeDeck_a",

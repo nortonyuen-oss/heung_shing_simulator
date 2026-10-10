@@ -27,6 +27,37 @@ function installVertexUploadShim(renderer) {
   return true;
 }
 
+// Phaser 3.60's requestAnimationFrame loop asks for the next frame only after the current one
+// returns, so a single exception anywhere in a frame (an update, a sort, a draw) stops the game
+// for good: the map freezes on its last frame while the HTML around it - menus, buttons, the
+// clock panel - carries on as if nothing happened. The loop's callback is wrapped so a frame that
+// throws is logged and skipped and the next one still comes; each distinct error is reported
+// once (console, a toast, window.__frameErrors for the drive scripts).
+function installFrameErrorGuard(game) {
+  const loop = game?.loop;
+  if (!loop || loop.__frameErrorGuard || typeof loop.callback !== 'function') return false;
+  const step = loop.callback;
+  const seen = new Set();
+  loop.callback = function guardedFrame(...args) {
+    try {
+      return step.apply(this, args);
+    } catch (error) {
+      const text = String(error?.stack || error);
+      const errors = (typeof window !== 'undefined') ? (window.__frameErrors || (window.__frameErrors = [])) : [];
+      if (errors.length < 50) errors.push({ at: Date.now(), text });
+      if (seen.has(text)) return undefined;
+      seen.add(text);
+      console.error('[frame] a frame threw and was skipped:', error);
+      if (seen.size === 1 && typeof showToast === 'function') {
+        try { showToast(`畫面更新出錯，已自動繼續：${String(error?.message || error).slice(0, 80)}`, 'warning'); } catch {}
+      }
+      return undefined;
+    }
+  };
+  loop.__frameErrorGuard = true;
+  return true;
+}
+
 // Phaser 3.60 re-sorts the scene's whole display list (a merge sort, StableSort) on the next
 // render after ANY child's depth is set - even to the value it already had. Every object in
 // the city lives in that one list (~10,600 on 太子), and moving vehicles and their lamps set

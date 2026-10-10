@@ -188,5 +188,5 @@ test('only the objects whose depth changed are re-placed, and a same-value set s
 });
 
 test('the scene installs the adaptive sort on its display list at create', () => {
-  assert.match(mainSource, /function create\(\) \{\n  installVertexUploadShim\(this\.game\?\.renderer\);\n  installAdaptiveDepthSort\(this\.sys\?\.displayList\);/);
+  assert.match(mainSource, /function create\(\) \{\n  installFrameErrorGuard\(this\.game\);\n  installVertexUploadShim\(this\.game\?\.renderer\);\n  installAdaptiveDepthSort\(this\.sys\?\.displayList\);/);
 });

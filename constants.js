@@ -602,6 +602,8 @@ const STREET_FURNITURE_KIND_SCALES = {
   bin: 1.1, cabinet: 1.1, signalCabinet: 1.05, postbox: 1.05, parkingMeter: 1.05,
   hydrant: 1.1, phoneBooth: 1.1, newsstand: 1, bollard: 1,
   streetSign: 1.05, streetSignSingle: 1.05,
+  // the 海濱步道's bench (promenade.js): its render is drawn small for its height
+  bench: 1.6,
 };
 const STREET_FURNITURE_ANCHOR_OFFSETS = {
   bin_ne: { dx: -8.47, dy: 1.613 },
@@ -1092,10 +1094,10 @@ SPECIAL_BUILDING_MODELS.seafood_restaurant = {
 // (SPECIAL_BUILDING_EFFECTS, WEALTH_DISTRICT_ULTRA_RICH_LANDMARK_TYPES), and more of its shelter's
 // berths given to yachts (typhoon-shelter-fishery.js).
 SPECIAL_BUILDING_MODELS.yacht_club = {
-  spriteKey: 'yacht_club_2x2',
-  path: 'Models/specialSites/2x2/yachtClub2-01.png',
-  footprintCols: 2,
-  footprintRows: 2,
+  spriteKey: 'yacht_club_1x1',
+  path: 'Models/specialSites/1x1/yachtClub1-01.png',
+  footprintCols: 1,
+  footprintRows: 1,
 };
 // 黃金海岸酒店: a resort hotel by a yacht club (whyNotGoldCoastHotel, typhoon-shelter-market.js) - its
 // guests count in the city's tourism (getTyphoonShelterTouristCapacity). Never mirrored (its name is
@@ -1147,7 +1149,7 @@ const SPECIAL_BUILDING_MIRROR_MODELS = Object.freeze(Object.fromEntries([
   ['seafood_restaurant_1x1', 'Models/specialSites/1x1/seafoodRestaurant1-01_m.png', 1],
   ['seafood_restaurant_1x1_alt', 'Models/specialSites/1x1/seafoodRestaurant1-02_m.png', 1],
   ['fish_loading_bay_2x2', 'Models/specialSites/2x2/fishLoadingBay2-01_m.png', 2],
-  ['yacht_club_2x2', 'Models/specialSites/2x2/yachtClub2-01_m.png', 2],
+  ['yacht_club_1x1', 'Models/specialSites/1x1/yachtClub1-01_m.png', 1],
 ].map(([key, path, size]) => [key, Object.freeze({ spriteKey: `${key}_m`, path, footprintCols: size, footprintRows: size })])));
 
 // And each market and restaurant (and its mirror) by day with the lights off, drawn while it is shut

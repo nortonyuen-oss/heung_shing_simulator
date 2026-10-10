@@ -1503,6 +1503,25 @@
    "auto": false,
    "method": "deck"
   },
+  "promenadeBrick_a": {
+   "ground": {
+    "left": [
+     112,
+     147
+    ],
+    "front": [
+     256.5,
+     219
+    ],
+    "right": [
+     400,
+     148
+    ]
+   },
+   "facing": "se",
+   "auto": false,
+   "method": "deck"
+  },
   "promenadeFront_a": {
    "ground": {
     "left": [

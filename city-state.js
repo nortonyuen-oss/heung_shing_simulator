@@ -227,6 +227,8 @@ const city = {
   lastForumMonthIndex: -1,
   // 避風塘 plans (typhoon-shelter.js); only the basin and entrances are stored.
   typhoonShelters: { version: 1, nextId: 1, shelters: [] },
+  // 海濱步道 built from the parks menu (promenade.js): its tiles and their public piers
+  promenade: { version: 1, tiles: {} },
   // 漁業 (typhoon-shelter-fishery.js): the last night settled and the months' catch and money
   fishery: { lastSettledDay: null, lastMonth: null, history: [] },
   acknowledgedLandmarkUnlocks: [],
@@ -413,6 +415,7 @@ function resetGameState() {
   city.forumPosts = [];
   city.lastForumMonthIndex = -1;
   city.typhoonShelters = { version: 1, nextId: 1, shelters: [] };
+  city.promenade = { version: 1, tiles: {} };
   city.fishery = { lastSettledDay: null, lastMonth: null, history: [] };
   city.fisheryLabour = null;
   if (typeof resetTyphoonShelterPlanning === 'function') resetTyphoonShelterPlanning();
@@ -802,6 +805,11 @@ function normalizeCityFinanceState() {
       ? normalizeTyphoonShelterState(city.typhoonShelters)
       : (city.typhoonShelters && typeof city.typhoonShelters === 'object' ? city.typhoonShelters : { version: 1, nextId: 1, shelters: [] }));
   }
+  if (!isNormalizedCityStateObject(city.promenade)) {
+    city.promenade = rememberNormalizedCityStateObject(typeof normalizePromenadeState === 'function'
+      ? normalizePromenadeState(city.promenade)
+      : (city.promenade && typeof city.promenade === 'object' ? city.promenade : { version: 1, tiles: {} }));
+  }
   if (!isNormalizedCityStateObject(city.fishery)) {
     city.fishery = rememberNormalizedCityStateObject(typeof normalizeCityFishery === 'function'
       ? normalizeCityFishery(city.fishery)
@@ -971,6 +979,8 @@ function sumSpecialBuildingEffect(field) {
     if (!count) return;
     total += count * (SPECIAL_BUILDING_EFFECTS[type][field] || 0);
   });
+  // a stroll along the 海濱步道 (promenade.js) draws visitors too
+  if (field === 'attractivenessBonus' && typeof getPromenadeAttractiveness === 'function') total += getPromenadeAttractiveness();
   return total;
 }
 
@@ -1022,6 +1032,8 @@ function computeBudgetSnapshot(options = {}) {
     + flagshipParks * UPKEEP_PARK_FLAGSHIP
     + sportsGroundSmall * UPKEEP_SPORTS_GROUND_SMALL
     + sportsGroundLarge * UPKEEP_SPORTS_GROUND_LARGE
+    // 海濱步道 (promenade.js)
+    + (typeof getPromenadeMonthlyUpkeep === 'function' ? getPromenadeMonthlyUpkeep() : 0)
   ) * getDepartmentFunding('parks');
   const policyCost = getPolicyMonthlyCost();
   const loanPayment = Number.isFinite(options.loanPayment)

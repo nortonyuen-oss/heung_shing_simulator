@@ -880,6 +880,11 @@ function setVesselVisual(scene, event, logicalPoint, forcedDirection = null, sid
   if (Number.isFinite(depth)) event.sprite.setDepth(depth);
   event.lastWorld = world;
   event.lastLogical = logicalPoint;
+  // 船尾浪花 (water-effects.js): its length off the drawn hull, which lies along a diagonal
+  if (typeof trackVesselWake === 'function') {
+    const lengthTiles = (Number(event.sprite.displayWidth) || TILE_WIDTH) / (TILE_WIDTH / 2) / 1.2;
+    trackVesselWake(scene, event, logicalPoint.col, logicalPoint.row, lengthTiles, event.sprite.visible !== false);
+  }
 }
 
 function getVesselCalibrationLogicalPoint(scene, worldX, worldY) {

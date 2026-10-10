@@ -145,7 +145,15 @@ function getTyphoonShelterStormPhase(storm, weather, env) {
   return 'clear';
 }
 
-// Works and fleet changes wait while boats shelter (everywhere) or visitors are still in (`env`:
+// Works wait only while the boats are held in (the signals up, and two safe hours after): once the
+// hold lifts the 海事處 may build, rebuild or pull down again, while the visitors still sail home
+// over the next hours (Norton, 2026-10-10 - the visitors' slow leaving kept every shelter shut to
+// works most of the typhoon season, and its deletion out of reach).
+function isTyphoonShelterStormHolding(storm) {
+  return !!storm && !!openInterval(storm.holds || []);
+}
+
+// Fleet changes wait while boats shelter (everywhere) or visitors are still in (`env`:
 // now). With `shelterId`, only that shelter's visitors count: once the signals are down, a shelter
 // the visitors never came to is free to build at while they leave another.
 function isTyphoonShelterStormFreeze(storm, env = typeof getTyphoonShelterFleetClock === 'function' ? getTyphoonShelterFleetClock() : Infinity, shelterId) {
@@ -412,6 +420,7 @@ const typhoonShelterStormApi = {
   createTyphoonShelterStorm,
   getTyphoonShelterStormPhase,
   isTyphoonShelterStormFreeze,
+  isTyphoonShelterStormHolding,
   stepTyphoonShelterStorm,
   settleTyphoonShelterStormDamage,
   normalizeTyphoonShelterStorm,

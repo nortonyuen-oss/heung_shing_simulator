@@ -189,6 +189,18 @@ function handleMenuAction(action) {
       }
       updateViewMenu();
       break;
+    case 'toggle-vessel-wakes':
+      if (typeof setVesselWakesEnabled === 'function') {
+        setVesselWakesEnabled(!isVesselWakesEnabled());
+      }
+      updateViewMenu();
+      break;
+    case 'toggle-shore-reflections':
+      if (typeof setShoreReflectionsEnabled === 'function') {
+        setShoreReflectionsEnabled(!isShoreReflectionsEnabled());
+      }
+      updateViewMenu();
+      break;
     case 'open-ai-news-settings':
       if (typeof openAiNewsSettings === 'function') openAiNewsSettings();
       break;
@@ -296,6 +308,10 @@ function updateViewMenu() {
     ?.classList.toggle('menu-checked', typeof isNightRemoteDarknessEnabled !== 'function' || isNightRemoteDarknessEnabled());
   document.getElementById('menu-sea-flow')
     ?.classList.toggle('menu-checked', typeof isSeaFlowEnabled !== 'function' || isSeaFlowEnabled());
+  document.getElementById('menu-vessel-wakes')
+    ?.classList.toggle('menu-checked', typeof isVesselWakesEnabled !== 'function' || isVesselWakesEnabled());
+  document.getElementById('menu-shore-reflections')
+    ?.classList.toggle('menu-checked', typeof isShoreReflectionsEnabled !== 'function' || isShoreReflectionsEnabled());
 }
 
 // Keep the checkmarks live as the user presses F11 or Esc

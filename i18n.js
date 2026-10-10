@@ -1,6 +1,11 @@
 const I18N_STORAGE_KEY = 'citybuilder.language';
-let appVersion = '4.18.0';
-let appReleaseTheme = '【黃金海岸】';
+let appVersion = '4.19.0';
+let appReleaseTheme = '【成碟青瓜過大海】';
+const APP_RELEASE_THEMES = { en: '【Star Ferry】', zhHant: '【皇后碼頭】', ja: '【スターフェリー】' };
+function localizedReleaseTheme() {
+  if (currentLanguage === 'zhHant' && /^zh-(hk|mo)\b/i.test(navigator.language || '')) return appReleaseTheme;
+  return APP_RELEASE_THEMES[currentLanguage] || appReleaseTheme;
+}
 
 const LANGUAGES = {
   en: 'English',
@@ -154,6 +159,8 @@ const I18N = {
     'menu.buildingLights': 'Night building lights (lit windows / lamps)',
     'menu.nightRemoteDarkness': 'Darker nights away from the city',
     'menu.seaFlow': 'Sea surface flow effect',
+    'menu.vesselWakes': 'Boat wakes',
+    'menu.shoreReflections': 'Waterfront light reflections at night',
     'menu.aiNews': 'AI News…',
     'transport.menu.toggle': 'Enable Public Transport Expansion',
     'menu.attractMode': 'Live city behind the title screen',
@@ -1072,6 +1079,8 @@ const I18N = {
     'news.weather.rainstormRed': 'Red Rainstorm Warning: {city} records {rain} mm of rain; heavy traffic disruption expected.',
     'news.weather.rainstormBlack': 'Black Rainstorm Warning: {city} records {rain} mm of rain; residents should avoid unnecessary travel.',
     'topbar.currentWeather': 'Current weather',
+    'weather.coastal.title': 'South China Coastal Waters Bulletin',
+    'weather.coastal.unavailable': 'The coastal weather bulletin is currently unavailable.',
     'weather.condition.clear': 'Clear',
     'weather.condition.cloudy': 'Cloudy',
     'weather.condition.rain': 'Rain',
@@ -1366,6 +1375,12 @@ const I18N = {
     'toolRow.parkPicker': 'Park Picker',
     'toolRow.sportsGround': 'Sports Ground',
     'toolRow.tree': 'Tree',
+    'toolRow.promenade': 'Waterfront Promenade',
+    'tool.promenade': 'Waterfront promenade ($400 a tile; right-click a tile for a public pier)',
+    'promenade.toast.notShore': 'A promenade goes on land right by the sea.',
+    'promenade.toast.occupied': 'There is a road, building or bridge here - no promenade.',
+    'promenade.toast.pierOn': 'A public pier here: no railing, bollards on the edge.',
+    'promenade.toast.pierOff': 'No public pier here: the railing runs on.',
     'toolRow.house': 'House',
     'toolRow.districtSign': 'Place district sign',
     'toolRow.charts': 'Charts',
@@ -1749,6 +1764,8 @@ const I18N = {
     'menu.buildingLights': '夜間建築燈光（亮燈窗戶／街燈）',
     'menu.nightRemoteDarkness': '遠離市區夜色更暗',
     'menu.seaFlow': '海面流動效果',
+    'menu.vesselWakes': '船尾浪花',
+    'menu.shoreReflections': '夜間岸邊燈光倒影',
     'menu.aiNews': 'AI 新聞…',
     'transport.menu.toggle': '啟用公共交通擴充',
     'menu.attractMode': '開場畫面即時城市背景',
@@ -2667,6 +2684,8 @@ const I18N = {
     'news.weather.rainstormRed': '【紅色暴雨警告】{city}錄得 {rain} 毫米雨量，交通嚴重受阻。',
     'news.weather.rainstormBlack': '【黑色暴雨警告】{city}錄得 {rain} 毫米雨量，市民應避免不必要外出。',
     'topbar.currentWeather': '目前天氣',
+    'weather.coastal.title': '華南海域天氣報告',
+    'weather.coastal.unavailable': '暫時未有華南海域天氣報告。',
     'weather.condition.clear': '晴',
     'weather.condition.cloudy': '陰',
     'weather.condition.rain': '雨',
@@ -2961,6 +2980,12 @@ const I18N = {
     'toolRow.parkPicker': '公園選擇',
     'toolRow.sportsGround': '運動場',
     'toolRow.tree': '樹木',
+    'toolRow.promenade': '海濱步道',
+    'tool.promenade': '海濱步道（每格 $400；右鍵撳步道設公眾碼頭）',
+    'promenade.toast.notShore': '海濱步道要起喺貼住海嘅陸地。',
+    'promenade.toast.occupied': '呢格有路、建築或者橋，起唔到海濱步道。',
+    'promenade.toast.pierOn': '呢度設咗公眾碼頭：冇欄杆，碼頭邊有繫纜樁。',
+    'promenade.toast.pierOff': '呢度唔設公眾碼頭：欄杆照圍。',
     'toolRow.house': '房屋',
     'toolRow.districtSign': '放置分區路牌',
     'toolRow.charts': '統計圖表',
@@ -3276,6 +3301,8 @@ const I18N = {
     'menu.buildingLights': '夜間の建物の明かり（点灯した窓／街灯）',
     'menu.nightRemoteDarkness': '市街地から離れるほど夜を暗く',
     'menu.seaFlow': '海面の流れエフェクト',
+    'menu.vesselWakes': '船の航跡',
+    'menu.shoreReflections': '夜の岸辺の灯りの映り込み',
     'menu.aiNews': 'AIニュース…',
     'transport.menu.toggle': '公共交通拡張を有効化',
     'menu.attractMode': 'タイトル画面にライブの街を表示',
@@ -4023,6 +4050,12 @@ const I18N = {
     'toolRow.parkPicker': '公園選択',
     'toolRow.sportsGround': 'スポーツ施設',
     'toolRow.tree': '木',
+    'toolRow.promenade': '海浜プロムナード',
+    'tool.promenade': '海浜プロムナード（1マス $400、右クリックで公共桟橋）',
+    'promenade.toast.notShore': 'プロムナードは海に面した陸地に建てます。',
+    'promenade.toast.occupied': '道路・建物・橋があるため建てられません。',
+    'promenade.toast.pierOn': 'ここを公共桟橋に：柵なし、岸壁に係船柱。',
+    'promenade.toast.pierOff': 'ここは公共桟橋なし：柵が続きます。',
     'toolRow.house': '家',
     'toolRow.districtSign': '地区標識を設置',
     'toolRow.charts': '統計チャート',
@@ -4771,6 +4804,8 @@ const I18N = {
     'news.weather.rainstormRed': '【赤色暴風雨警報】{city}では{rain}ミリの降水量を記録。交通への大きな支障が予想されます。',
     'news.weather.rainstormBlack': '【黒色暴風雨警報】{city}では{rain}ミリの降水量を記録。市民は不要不急の外出を避けてください。',
     'topbar.currentWeather': '現在の天気',
+    'weather.coastal.title': '華南沿岸海域の天気予報',
+    'weather.coastal.unavailable': '沿岸海域の天気予報は現在取得できません。',
     'weather.condition.clear': '晴れ',
     'weather.condition.cloudy': '曇り',
     'weather.condition.rain': '雨',
@@ -4811,12 +4846,12 @@ function detectInitialLanguage() {
 
 function t(key, params = {}) {
   const template = I18N[currentLanguage]?.[key] ?? I18N.en[key] ?? key;
-  const values = { version: appVersion, theme: appReleaseTheme, ...params };
+  const values = { version: appVersion, theme: localizedReleaseTheme(), ...params };
   return template.replace(/\{(\w+)\}/g, (_, name) => values[name] ?? '');
 }
 
 function applyAppVersion() {
-  document.title = `香城模擬器 | The City of Heung Shing v${appVersion} — ${appReleaseTheme}`;
+  document.title = `香城模擬器 | The City of Heung Shing v${appVersion} — ${localizedReleaseTheme()}`;
   applyTranslations();
 }
 
@@ -4858,6 +4893,7 @@ function setLanguage(language) {
 }
 
 function applyTranslations(root = document) {
+  document.title = `香城模擬器 | The City of Heung Shing v${appVersion} — ${localizedReleaseTheme()}`;
   document.documentElement.lang = currentLanguage === 'zhHant' ? 'zh-Hant' : currentLanguage;
 
   root.querySelectorAll('[data-i18n]').forEach((el) => {

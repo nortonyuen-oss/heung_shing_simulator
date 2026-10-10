@@ -196,3 +196,14 @@ test('the storm survives the save normaliser and an empty one is dropped', () =>
   const done = run(['none'], { shelters, from: { ...s, holds: [{ from: 0, until: 60 }], standbys: [], visitors: [] }, start: 20 * 1440 });
   assert.equal(done.storm, null);
 });
+
+test('works wait only while the boats are held in; the visitors sailing home after do not hold them up', () => {
+  const { isTyphoonShelterStormHolding: holding } = storm;
+  assert.equal(holding(null), false);
+  const held = { holds: [{ from: 0, until: null, shelterFrom: null, safeSince: 600 }], standbys: [], visitors: [{ shelterId: 'ts2', leaveAt: null }] };
+  assert.equal(holding(held), true, 'the signals are down, but not two safe hours yet');
+  const lifted = { holds: [{ from: 0, until: 720 }], standbys: [], visitors: [{ shelterId: 'ts2', leaveAt: 900 }] };
+  assert.equal(holding(lifted), false, 'the hold has lifted');
+  // the fleet still waits for the visitors at that shelter
+  assert.equal(isTyphoonShelterStormFreeze(lifted, 1000, 'ts2'), true);
+});

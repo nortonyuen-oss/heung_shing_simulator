@@ -255,6 +255,7 @@ function updateWeatherLegendDialog() {
     chip.appendChild(text);
     return chip;
   }));
+  if (typeof updateCoastalWeatherPanel === 'function') updateCoastalWeatherPanel();
 }
 
 // ── Demand bars ───────────────────────────────────────────────────────────────

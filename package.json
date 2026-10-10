@@ -1,7 +1,7 @@
 {
   "name": "city-builder",
-  "version": "4.18.0",
-  "releaseTheme": "【黃金海岸】",
+  "version": "4.19.0",
+  "releaseTheme": "【成碟青瓜過大海】",
   "description": "SimCity 2000-style city builder with local SQLite save system",
   "author": "The City of Heung Shing",
   "repository": {
@@ -28,6 +28,7 @@
     "migrate:pg-to-sqlite": "node scripts/migrate-pg-to-sqlite.js",
     "optimize:assets": "node scripts/optimize-model-assets.js",
     "defringe:assets": "node scripts/defringe-model-assets.js",
+    "audit:building-footprints": "node scripts/audit-building-footprints.js",
     "sync:hko-astronomy": "node scripts/sync-hko-astronomy-data.js",
     "bake:night-textures": "node scripts/bake-night-textures.js",
     "bake:road-line-textures": "node scripts/bake-road-line-textures.js",
@@ -106,5 +107,11 @@
       "createStartMenuShortcut": true
     }
   },
-  "license": "SEE LICENSE IN LICENSE"
+  "license": "SEE LICENSE IN LICENSE",
+  "releaseThemes": {
+    "zh-HK": "【成碟青瓜過大海】",
+    "zh-TW": "【皇后碼頭】",
+    "en": "【Star Ferry】",
+    "ja": "【スターフェリー】"
+  }
 }

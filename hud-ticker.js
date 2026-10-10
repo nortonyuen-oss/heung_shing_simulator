@@ -457,6 +457,15 @@ function buildTickerNewsCandidates() {
 }
 
 function pickTickerNewsHeadline() {
+  // A bulletin's segments stay together; emergencies can interrupt and resume it.
+  if (typeof coastalSessionActive !== 'undefined' && coastalSessionActive && ensureCoastalCityState().pending.length) {
+    if (tickerCycleCount % 2 === 0) {
+      const interruption = getUrgentCityNews();
+      if (interruption) return { id: 'urgent', text: t('news.breakingPrefix', { headline: interruption }) };
+    }
+    const coastal = takePendingCoastalTickerHeadline();
+    if (coastal) return coastal;
+  }
   // Rotate as: 2 regular items, then 1 random ad.
   const shouldShowAd = tickerCycleCount % 3 === 0;
   const adPool = playerTickerAds.length ? TICKER_AD_MESSAGES.concat(playerTickerAds) : TICKER_AD_MESSAGES;

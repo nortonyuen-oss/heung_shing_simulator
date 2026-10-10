@@ -943,6 +943,12 @@ function drawTyphoonShelterBoat(scene, id, objectId, point, rotation, facings, s
   sprite.setRotation(bob.roll);
   // off screen it is not drawn: a boat's texture between the buildings splits the sprite batch
   sprite.setVisible(typeof isTyphoonShelterSpriteInView !== 'function' || isTyphoonShelterSpriteInView(scene, sprite));
+  // 船尾浪花 while it is under way (water-effects.js)
+  if (typeof trackVesselWake === 'function') {
+    // along the axis its art was picked for (point.dir), whichever way it actually moves on it
+    const axis = point.dir === 'n' || point.dir === 's' ? 'r' : point.dir === 'e' || point.dir === 'w' ? 'c' : null;
+    trackVesselWake(scene, rec, point.c, point.r, (rec.bobLengthM || 8) / METRES_PER_TILE, sprite.visible, axis);
+  }
   // darkened after dark like the other unlit props (re-read as it moves: the remote dim is per tile)
   if (drawn.night) sprite.clearTint();  // the 漁火 art carries its own night
   else if (sprite.visible && typeof applyNightPropTint === 'function') applyNightPropTint(scene, sprite);

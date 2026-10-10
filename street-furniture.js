@@ -28,6 +28,8 @@ const STREET_FURNITURE_KINDS = Object.freeze({
   postbox: { heightM: 1.3, lateral: 0.38, label: '郵筒' },
   parkingMeter: { heightM: 1.5, lateral: 0.33, label: '咪錶' },
   hydrant: { heightM: 0.9, lateral: 0.32, label: '消防龍頭' },
+  // the 海濱步道's benches (promenade.js), never laid along a road
+  bench: { heightM: 0.85, lateral: 0.4, label: '長凳（海濱步道）' },
   phoneBooth: { heightM: 2.3, lateral: 0.4, label: '電話亭' },
   newsstand: { heightM: 2.1, lateral: 0.42, label: '報紙檔' },
   // A pair of 1 m posts 1.5 m apart along the kerb: the baked pair is 1.375 posts tall

@@ -126,6 +126,8 @@ function updateBuildingPlacementGuide(scene, pointer) {
       ? canPlaceOrRotateBusDepot(scene, tile.row, tile.col)
       : selectedTool === 'ferry-pier' && typeof whyNotFerryPier === 'function'
         ? !whyNotFerryPier(tile.row, tile.col)
+      : selectedTool === 'promenade' && typeof whyNotPromenadeAt === 'function'
+        ? !whyNotPromenadeAt(tile.row, tile.col)
       : selectedTool === 'tree'
         ? canPlantTreeAt(scene, tile.row, tile.col)
         : typeof isTyphoonShelterBuildingTool === 'function' && isTyphoonShelterBuildingTool(selectedTool)

@@ -332,6 +332,8 @@ function updateGameFrame(time, delta) {
   if (typeof updateTyphoonShelterMarkets === 'function') updateTyphoonShelterMarkets(this, time);
   if (typeof updateTyphoonShelterBuildingLighting === 'function') updateTyphoonShelterBuildingLighting(this);
   if (typeof updateTyphoonShelterLights === 'function') updateTyphoonShelterLights(this, time);
+  // after every vessel above has been drawn (water-effects.js)
+  if (typeof updateVesselWakes === 'function') updateVesselWakes(this, time);
   if (profileSections) {
     recordVisualRoutePerformanceDuration(this, 'vessel', performance.now() - sectionStartedAt);
     sectionStartedAt = performance.now();
@@ -350,6 +352,9 @@ function updateGameFrame(time, delta) {
     updateBuildingLights(this, time);
   }
   if (typeof updateSeaFlowAnimation === 'function') updateSeaFlowAnimation(this, time);
+  // 海濱步道: a tile a road, building or the sea has since taken goes (promenade.js)
+  if (typeof updatePromenade === 'function') updatePromenade(this, time);
+  if (typeof updateShoreReflections === 'function') updateShoreReflections(this, time);
   if (typeof updateRainRipples === 'function') updateRainRipples(this, time);
   if (typeof finalizeVehicleTrackerCameraCulling === 'function') {
     finalizeVehicleTrackerCameraCulling(this);
@@ -856,6 +861,7 @@ function preload() {
 }
 
 function create() {
+  installFrameErrorGuard(this.game);
   installVertexUploadShim(this.game?.renderer);
   installAdaptiveDepthSort(this.sys?.displayList);
   packStreetPropTextures(this);
@@ -1059,6 +1065,11 @@ function create() {
           turnTyphoonShelterFloatingRestaurant(tile.row, tile.col);
           if (typeof updateBuildingPlacementGuide === 'function') updateBuildingPlacementGuide(this, pointer);
         }
+      }
+      // 海濱步道: a right-click on a tile of it makes (or unmakes) a public pier there (promenade.js)
+      if (still && selectedTool === 'promenade' && typeof togglePromenadePierAt === 'function') {
+        const tile = pointerToTile(this, pointer);
+        if (tile) togglePromenadePierAt(this, tile.row, tile.col);
       }
       this.rightDownAt = null;
     }
@@ -1807,6 +1818,7 @@ function positionAllTiles(scene) {
   if (typeof refreshAllBridgeParapetSprites === 'function') refreshAllBridgeParapetSprites(scene);
   if (typeof refreshAllPedestrianRailingSprites === 'function') refreshAllPedestrianRailingSprites(scene);
   if (typeof refreshAllStreetFurnitureSprites === 'function') refreshAllStreetFurnitureSprites(scene);
+  if (typeof refreshPromenadeProps === 'function') refreshPromenadeProps(scene);
   // 避風塘 objects re-pick their texture for the new rotation as well as moving.
   if (typeof refreshAllTyphoonShelterSprites === 'function') refreshAllTyphoonShelterSprites(scene);
   if (typeof redrawTyphoonShelterPlanning === 'function') redrawTyphoonShelterPlanning(scene);
@@ -1884,12 +1896,14 @@ function isNewToolHandledByToolsModule(tool) {
     || tool === 'district-sign'
     || tool === 'bus-stop'
     || tool === 'ferry-pier'
-    || tool === 'ferry-route';
+    || tool === 'ferry-route'
+    || tool === 'promenade';
 }
 
 function getSelectedPlacementFootprint() {
   if (selectedTool === 'district-sign') return { footprintCols: 1, footprintRows: 1 };
   if (selectedTool === 'tree') return { footprintCols: 1, footprintRows: 1 };
+  if (selectedTool === 'promenade') return { footprintCols: 1, footprintRows: 1 };
   if (selectedTool === 'house') {
     const config = HOUSE_MODEL_SETS[selectedHouseSet] ?? HOUSE_MODEL_SETS.house;
     return {
@@ -2029,6 +2043,8 @@ function applyToolAt(scene, row, col, pointer = null) {
     if (typeof demolishTyphoonShelterFloatingRestaurantAt === 'function' && demolishTyphoonShelterFloatingRestaurantAt(scene, row, col)) return;
     // and a ferry pier pulled down with its routes (ferry.js)
     if (typeof demolishFerryPierAt === 'function' && demolishFerryPierAt(scene, row, col)) return;
+    // and a tile of 海濱步道 taken up (promenade.js)
+    if (typeof demolishPromenadeAt === 'function' && demolishPromenadeAt(scene, row, col)) return;
     spendBudget(COST_BULLDOZE);
     if (typeof removeDistrictSignAt === 'function') removeDistrictSignAt(scene, row, col);
     removeBuilding(scene, row, col);

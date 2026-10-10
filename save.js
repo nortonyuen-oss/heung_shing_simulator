@@ -1205,6 +1205,7 @@ async function loadSaveById(id, scene) {
     if (typeof activeTerrainProfileType !== 'undefined') activeTerrainProfileType = 'custom';
     if (typeof setTerrainEditorUiActive === 'function') setTerrainEditorUiActive(false);
     applySaveData(readyScene, save);
+    if (typeof startCoastalWeatherSession === 'function') startCoastalWeatherSession();
     // An autosave remembers which manual slot it came from. Loading it must not
     // make a later Ctrl+S overwrite the autosave slot itself.
     currentSaveId = row.save_type === 'autosave'
@@ -1605,6 +1606,8 @@ function rebuildSceneFromSave(scene, save) {
   if (typeof syncTyphoonShelterFacilitySprites === 'function') syncTyphoonShelterFacilitySprites(scene);
   // and the ferry piers (ferry.js)
   if (typeof syncFerryPiers === 'function') syncFerryPiers(scene);
+  // and the 海濱步道 (promenade.js; its ground came with the shelters' quay terrain above)
+  if (typeof syncPromenadeSprites === 'function') syncPromenadeSprites(scene);
   if (typeof sortWorldRenderLayers === 'function') sortWorldRenderLayers(scene);
   // Weather advances on the environmental clock and only repaints its overlay
   // when something changes, so a freshly loaded city has to be painted once.

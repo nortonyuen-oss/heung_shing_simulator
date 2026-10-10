@@ -1,6 +1,6 @@
 """promenade.py - the 海濱步道 (harbourfront promenade) kit from Norton's waterfront render.
 
-    python3 promenade.py [--paving grey|weathered|render]
+    python3 promenade.py [--paving grey|weathered|render] [--only promenadeBrick]
                                   (run from this folder; reads ../original/seawall/promenadeEdge.png)
 
 The render (2026-10-04) is a whole waterfront: sea behind, a strip of coping, red brick paving and
@@ -13,6 +13,8 @@ of the strip and writes, beside the other sheets:
   promenadeFront.png  the same paving turned round, the coping on the near edge, with the wall
                       below it (built from the render's own end face): the sea faces the camera
   promenadeFill.png   a square of the brick paving, filling a concave corner
+  promenadeBrick.png  the same square in the parks' dark red brick, for the 海濱步道 built from the
+                      parks menu (promenade.js) - `--only promenadeBrick` writes it alone
 and promenade-geometry.json: each output's deck corners (left, front, right) in texture px.
 
 The coping is rebuilt from the kerb (the same stone, mirrored across the strip), which drops the
@@ -52,6 +54,8 @@ PAVING_STYLES = {
     'render': None,
     'weathered': {'keep': 0.28, 'tint': (1.16, 0.93, 0.80), 'gain': 0.95},
     'grey': {'keep': 0.0, 'tint': (1.02, 1.0, 0.95), 'gain': 1.12},
+    # the parks' dark red brick (park1-02 / park1-04's paving, ~(172, 97, 77)): Norton, 2026-10-10
+    'park': {'keep': 0.30, 'tint': (1.30, 0.80, 0.66), 'gain': 1.12},
 }
 
 
@@ -95,7 +99,7 @@ def correct(img):
     return out, (lambda x, y: (x, D * y + C * (x - cx) + T))
 
 
-def main(paving='grey'):
+def main(paving='grey', only=None):
     src = Image.open(SRC).convert('RGB')
     img, P = correct(src)
     a = np.asarray(img).astype(np.int32)
@@ -173,6 +177,7 @@ def main(paving='grey'):
     sxp = A0[0] + u * U[0] + v_src * V[0]
     syp = A0[1] + u * U[1] + v_src * V[1]
     fill_pix = a[np.clip(np.round(syp).astype(int), 0, Hh - 1), np.clip(np.round(sxp).astype(int), 0, Ww - 1)]
+    brick_img = rgba(fill_mask, tone_paving(fill_pix, (u - fu0) / side, v, 'park'))
     fill_pix = tone_paving(fill_pix, (u - fu0) / side, v, paving)
     fill_img = rgba(fill_mask, fill_pix)
 
@@ -202,9 +207,12 @@ def main(paving='grey'):
         'promenadeDeck.png': (A0, A0 + V, A1 + V, A1, deck_img),
         'promenadeFront.png': (A0, A0 + V, A1 + V, A1, front_img),
         'promenadeFill.png': (A0 + fu0 * U, A0 + fu0 * U + V, A0 + (fu0 + side) * U + V, A0 + (fu0 + side) * U, fill_img),
+        'promenadeBrick.png': (A0 + fu0 * U, A0 + fu0 * U + V, A0 + (fu0 + side) * U + V, A0 + (fu0 + side) * U, brick_img),
     }
     geometry = {}
     for name, (left, front, right, top, pix) in corners.items():
+        if only and name != f'{only}.png':
+            continue
         alpha = pix[..., 3] > 0
         yy, xx = np.nonzero(alpha)
         x_lo, x_hi, y_lo, y_hi = xx.min() - 8, xx.max() + 9, yy.min() - 8, yy.max() + 9
@@ -220,6 +228,8 @@ def main(paving='grey'):
         geometry[name] = {k: (p + shift).round(1).tolist() for k, p in
                           (('left', left), ('front', front), ('right', right), ('top', top))}
         print(name, (W2, H2), geometry[name])
+    if only:
+        return
     json.dump(geometry, open('../promenade-geometry.json', 'w'), indent=1)
     print('depth/length', round(depth / U[0], 3), 'wall face px', face_h)
 
@@ -229,4 +239,5 @@ if __name__ == '__main__':
     style = sys.argv[sys.argv.index('--paving') + 1] if '--paving' in sys.argv else 'grey'
     if style not in PAVING_STYLES:
         sys.exit(f'--paving: one of {", ".join(PAVING_STYLES)}')
-    main(style)
+    only = sys.argv[sys.argv.index('--only') + 1] if '--only' in sys.argv else None
+    main(style, only)

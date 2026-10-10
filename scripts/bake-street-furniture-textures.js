@@ -51,6 +51,10 @@ const VIEWS = [
   { out: 'streetFurniture_parkingMeter_se.png', file: 'parkingMeter_dualView.png', part: 1, flip: true },
   { out: 'streetFurniture_hydrant_sw.png', file: 'fireHydrant_red_dualView.png', part: 1, flip: false },
   { out: 'streetFurniture_hydrant_se.png', file: 'fireHydrant_red_dualView.png', part: 1, flip: true },
+  // the park bench of the 海濱步道 (promenade.js): both renders face the lower left, so the other
+  // view is the mirror
+  { out: 'streetFurniture_bench_sw.png', file: 'bench_wooden_dualView.png', part: 0, flip: false },
+  { out: 'streetFurniture_bench_se.png', file: 'bench_wooden_dualView.png', part: 0, flip: true },
   { out: 'streetFurniture_phoneBooth_sw.png', file: 'phoneBooth_red.png', part: null, flip: false },
   { out: 'streetFurniture_phoneBooth_se.png', file: 'phoneBooth_red.png', part: null, flip: true },
   { out: 'streetFurniture_newsstand_sw.png', file: 'newsstand_realistic_noUmbrella.png', part: 1, flip: false },

@@ -8,6 +8,8 @@ const transportUiState = {
   selectedDepotId: '',
   expandedRouteId: '',
   fleetSort: 'number',
+  // the tab each window shows (2026-10: six windows folded into four)
+  panelTabs: { routes: 'bus', fleet: 'list', finances: 'overview' },
 };
 
 // §5/§10/§11: six independent, freely-movable operation windows (OpenTTD-
@@ -15,15 +17,49 @@ const transportUiState = {
 // lazily on first open and lives in this map keyed by id; transportUiState
 // above holds cross-window state (the route editor, fleet sort, etc.) that
 // doesn't belong to any single window.
-const TRANSPORT_PANEL_IDS = ['routes', 'fleet', 'demand', 'depot', 'finances', 'company'];
+//
+// 2026-10 (Norton: "唔知個button喺邊，代表咩"): four windows, each named on the
+// topbar, with tabs inside - the depot's buying moved into Fleet, the company
+// card into Finances, and ferry routes got their own tab beside the buses.
+const TRANSPORT_PANEL_IDS = ['routes', 'fleet', 'demand', 'finances'];
 const TRANSPORT_PANEL_META = {
-  routes: { icon: '🗺', labelKey: 'transport.tab.routes', width: '760px' },
-  fleet: { icon: '🚌', labelKey: 'transport.tab.fleet', width: '760px' },
-  demand: { icon: '👥', labelKey: 'transport.tab.demand', width: '760px' },
-  depot: { icon: '🏭', labelKey: 'transport.tab.depot', width: '460px' },
-  finances: { icon: '📈', labelKey: 'transport.tab.finances', width: '760px' },
-  company: { icon: '🏢', labelKey: 'transport.tab.company', width: '420px' },
+  routes: { icon: '🗺', labelKey: 'transport.nav.routes', width: '760px', tabs: ['bus', 'ferry'] },
+  fleet: { icon: '🚌', labelKey: 'transport.nav.fleet', width: '760px', tabs: ['list', 'buy'] },
+  demand: { icon: '👥', labelKey: 'transport.nav.demand', width: '760px' },
+  finances: { icon: '📊', labelKey: 'transport.nav.finances', width: '760px', tabs: ['overview', 'history', 'company'] },
 };
+// the old window ids still open the window and tab that took them over
+const TRANSPORT_PANEL_ALIASES = {
+  depot: ['fleet', 'buy'],
+  company: ['finances', 'company'],
+  ferry: ['routes', 'ferry'],
+};
+
+function resolveTransportPanel(id, tab = '') {
+  const alias = TRANSPORT_PANEL_ALIASES[id];
+  const panelId = alias ? alias[0] : id;
+  const meta = TRANSPORT_PANEL_META[panelId];
+  if (!meta) return null;
+  const wanted = tab || (alias ? alias[1] : '');
+  if (wanted && meta.tabs?.includes(wanted)) transportUiState.panelTabs[panelId] = wanted;
+  return panelId;
+}
+
+function getTransportPanelTab(id) {
+  const tabs = TRANSPORT_PANEL_META[id]?.tabs;
+  if (!tabs) return '';
+  const tab = transportUiState.panelTabs[id];
+  return tabs.includes(tab) ? tab : tabs[0];
+}
+
+function renderTransportPanelTabs(id, labels = {}) {
+  const tabs = TRANSPORT_PANEL_META[id]?.tabs;
+  if (!tabs) return '';
+  const current = getTransportPanelTab(id);
+  return `<div class="transport-panel-tabs" role="tablist">${tabs.map((tab) => `
+    <button type="button" role="tab" class="transport-panel-tab${tab === current ? ' is-active' : ''}" aria-selected="${tab === current}" data-transport-action="panel-tab" data-panel-id="${id}" data-tab="${tab}">${transportEscapeHtml(labels[tab] ?? t(`transport.panelTab.${id}.${tab}`))}</button>`).join('')}
+  </div>`;
+}
 const transportPanels = new Map();
 let transportPanelCascade = 0;
 let transportPanelZCounter = 0;
@@ -72,6 +108,17 @@ function ensureTransportPanelStyle() {
     .transport-panel-close { border:0; background:transparent; color:#fff; font-size:18px; line-height:1; padding:0 2px; cursor:pointer; }
     .transport-panel-close:hover { color:#ffb4b4; }
     .transport-panel-body { overflow:auto; padding:12px; }
+    .transport-panel-window.is-picking .transport-panel-tabs,
+    .transport-panel-window.is-picking .transport-summary,
+    .transport-panel-window.is-picking .transport-depots,
+    .transport-panel-window.is-picking .transport-note { display:none; }
+    .transport-panel-window.is-picking .transport-fields { grid-template-columns:1fr 1fr; }
+    .transport-panel-window.is-picking .transport-picker-hint { font-weight:700; color:#164f6e; }
+    .transport-panel-window .transport-panel-tabs { display:flex; gap:2px; margin:-12px -12px 12px; padding:6px 10px 0; background:#d9d2bf; border-bottom:2px solid #52636f; }
+    .transport-panel-window .transport-panel-tab { border:1px solid #8f8774; border-bottom:0; border-radius:6px 6px 0 0; padding:6px 14px; background:#e6e0cf; color:#4f5960; font-weight:700; cursor:pointer; margin-bottom:-2px; }
+    .transport-panel-window .transport-panel-tab:hover { background:#f4efe1; color:#26323a; }
+    .transport-panel-window .transport-panel-tab.is-active { background:#ece7d8; color:#123f58; border-color:#52636f; border-bottom:2px solid #ece7d8; }
+    .transport-panel-window .transport-btn[disabled] { opacity:.45; cursor:not-allowed; }
     .transport-panel-window .transport-gate { text-align:center; padding:28px 18px; }
     .transport-panel-window .transport-gate h3 { margin:0 0 8px; font-size:18px; }
     .transport-panel-window .transport-gate p { margin:0 auto 14px; max-width:430px; color:#58616a; }
@@ -86,7 +133,7 @@ function ensureTransportPanelStyle() {
     .transport-panel-window .transport-summary-card strong { display:block; margin-top:2px; font-size:14px; }
     .transport-panel-window .transport-depots { margin:0 0 10px; color:#4f5960; }
     .transport-panel-window .transport-section-title { margin:14px 0 6px; font-size:13px; color:#263a48; border-top:1px solid #c8c0ad; padding-top:10px; }
-    .transport-panel-window .transport-routes { display:grid; gap:7px; }
+    .transport-panel-window .transport-routes { display:grid; grid-template-columns:minmax(0,1fr); gap:7px; }
     .transport-panel-window .transport-empty { padding:18px; text-align:center; border:1px dashed #a69d89; border-radius:6px; color:#686155; }
     .transport-panel-window .transport-route { border:1px solid #aaa18e; border-left:7px solid var(--route-color); border-radius:6px; padding:8px; background:#f8f4e8; }
     .transport-panel-window .transport-route-head { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; }
@@ -269,8 +316,9 @@ function createTransportPanel(id) {
   return panel;
 }
 
-function openTransportPanel(id) {
-  if (!TRANSPORT_PANEL_META[id]) return;
+function openTransportPanel(requestedId, tab = '') {
+  const id = resolveTransportPanel(requestedId, tab);
+  if (!id) return;
   const panel = createTransportPanel(id);
   if (!panel) return;
   panel.root.hidden = false;
@@ -292,7 +340,9 @@ function closeTransportPanel(id) {
   if (typeof invalidateTransportVisuals === 'function') invalidateTransportVisuals(activeScene);
 }
 
-function toggleTransportPanel(id) {
+function toggleTransportPanel(requestedId) {
+  const id = resolveTransportPanel(requestedId);
+  if (!id) return;
   const panel = transportPanels.get(id);
   if (panel && !panel.root.hidden) closeTransportPanel(id);
   else openTransportPanel(id);
@@ -458,6 +508,8 @@ function renderTransportRouteCard(route, index) {
         : ''}
       <div class="transport-metrics">${metrics}</div>
       <div class="transport-actions">
+        <button class="transport-btn primary" type="button" data-transport-action="route-add-bus" data-route-id="${transportEscapeHtml(route.id)}">${transportEscapeHtml(t('transport.route.addBus', { price: transportFormatMoney(getTransportVehicleClass(route.vehicleClassId).purchasePrice) }))}</button>
+        <button class="transport-btn" type="button" data-transport-action="route-withdraw-bus" data-route-id="${transportEscapeHtml(route.id)}"${routeVehicles.some((vehicle) => vehicle.status === 'active') ? '' : ' disabled'}>${transportEscapeHtml(t('transport.route.withdrawBus'))}</button>
         <button class="transport-btn" type="button" data-transport-action="edit-route" data-route-id="${transportEscapeHtml(route.id)}">${transportEscapeHtml(t('transport.orders.edit'))}</button>
         <button class="transport-btn" type="button" data-transport-action="toggle-route" data-route-id="${transportEscapeHtml(route.id)}">${transportEscapeHtml(t(route.status === 'suspended' ? 'transport.resume' : 'transport.suspend'))}</button>
         <button class="transport-btn danger" type="button" data-transport-action="delete-route" data-route-id="${transportEscapeHtml(route.id)}">${transportEscapeHtml(t('transport.delete'))}</button>
@@ -473,19 +525,27 @@ function renderTransportRoutesTab(state) {
   const summaryCards = [
     [t('transport.summary.routes'), `${summary.activeRoutes} / ${summary.totalRoutes}`],
     [t('transport.summary.passengers'), Math.round(summary.monthlyPassengers).toLocaleString()],
-    [t('transport.summary.coverage'), transportFormatPercent(summary.residentialCoverage)],
+    [t('transport.summary.coverage'), transportFormatPercent(summary.residentialReach ?? summary.residentialCoverage)],
     [t('transport.summary.fleet'), `${summary.fleetAllocated} / ${summary.fleetCapacity}`],
     [t('transport.summary.finance'), transportFormatMoney(financials.net, true)],
   ].map(([label, value]) => `<div class="transport-summary-card"><span>${transportEscapeHtml(label)}</span><strong>${transportEscapeHtml(value)}</strong></div>`).join('');
   const routes = state.routes.length > 0
     ? state.routes.map(renderTransportRouteCard).join('')
     : `<div class="transport-empty">${transportEscapeHtml(t('transport.noRoutes'))}</div>`;
+  const ferryRoutes = typeof getFerryState === 'function' ? getFerryState().routes.length : 0;
+  const tabs = renderTransportPanelTabs('routes', {
+    bus: t('transport.panelTab.routes.busCount', { count: state.routes.length }),
+    ferry: t('transport.panelTab.routes.ferryCount', { count: ferryRoutes }),
+  });
+  if (getTransportPanelTab('routes') === 'ferry') {
+    return tabs + (typeof renderFerryRoutesSection === 'function' ? renderFerryRoutesSection() : '');
+  }
   return `
+    ${tabs}
     ${transportUiState.editor ? '' : `<div class="transport-actions"><button class="transport-btn primary" type="button" data-transport-action="new-route">${transportEscapeHtml(t('transport.newRoute'))}</button></div>`}
     <div class="transport-summary">${summaryCards}</div>
     <p class="transport-depots">${transportEscapeHtml(t('transport.depots', { connected: connectedDepots, total: depots.length }))}</p>
     ${transportUiState.editor ? renderTransportEditor() : `<div class="transport-routes">${routes}</div>`}
-    ${transportUiState.editor || typeof renderFerryRoutesSection !== 'function' ? '' : renderFerryRoutesSection()}
   `;
 }
 
@@ -601,7 +661,7 @@ function renderTransportDemandTab(state) {
     [t('transport.demand.waitingTotal'), waitingTotal.toLocaleString()],
     [t('transport.demand.servedStops'), `${servedStops} / ${stopRows.length}`],
     [t('transport.demand.unserved'), unservedDemand.toLocaleString()],
-    [t('transport.summary.coverage'), transportFormatPercent(summary.residentialCoverage)],
+    [t('transport.summary.coverage'), transportFormatPercent(summary.residentialReach ?? summary.residentialCoverage)],
     [t('transport.demand.monthlyPassengers'), Math.round(summary.monthlyPassengers).toLocaleString()],
   ].map(([label, value]) => `<div class="transport-summary-card"><span>${transportEscapeHtml(label)}</span><strong>${transportEscapeHtml(value)}</strong></div>`).join('');
   const rows = stopRows.map((entry) => {
@@ -656,7 +716,7 @@ function getTransportFinanceHistoryRows(state) {
     .slice(0, 12);
 }
 
-function renderTransportFinancesTab(state) {
+function renderTransportFinancesTab(state, tab = 'overview') {
   const dayFraction = typeof getTransportMonthDayFraction === 'function' ? getTransportMonthDayFraction() : 1;
   const revenue = state.routes.reduce((sum, route) => sum + (Number(route.lastStats?.revenue) || 0), 0);
   const routeOperations = state.routes.reduce((sum, route) => sum + (Number(route.lastStats?.cost) || 0), 0);
@@ -696,6 +756,11 @@ function renderTransportFinancesTab(state) {
         <td>${transportEscapeHtml(transportFormatPercent(stats.loadFactor || 0))}</td>
       </tr>`;
   }).join('');
+  if (tab === 'history') {
+    return historyRows.length === 0
+      ? `<div class="transport-empty">${transportEscapeHtml(t('transport.finance.noHistory'))}</div>`
+      : `<div class="transport-table-wrap"><table class="transport-table"><thead><tr><th>${transportEscapeHtml(t('transport.finance.month'))}</th><th>${transportEscapeHtml(t('transport.metric.passengers'))}</th><th>${transportEscapeHtml(t('transport.finance.revenue'))}</th><th>${transportEscapeHtml(t('transport.finance.routeOperations'))}</th><th>${transportEscapeHtml(t('transport.finance.depotUpkeep'))}</th><th>${transportEscapeHtml(t('transport.finance.totalCost'))}</th><th>${transportEscapeHtml(t('transport.metric.net'))}</th><th>${transportEscapeHtml(t('transport.finance.closingCash'))}</th></tr></thead><tbody>${history}</tbody></table></div>`;
+  }
   return `
     <div class="transport-section-head"><div><h3>${transportEscapeHtml(t('transport.finance.title'))}</h3><p>${transportEscapeHtml(t('transport.finance.subtitle'))}</p></div></div>
     <div class="transport-summary">${cards}</div>
@@ -703,10 +768,6 @@ function renderTransportFinancesTab(state) {
     ${state.routes.length === 0
       ? `<div class="transport-empty">${transportEscapeHtml(t('transport.noRoutes'))}</div>`
       : `<div class="transport-table-wrap"><table class="transport-table"><thead><tr><th>${transportEscapeHtml(t('transport.finance.route'))}</th><th>${transportEscapeHtml(t('transport.finance.vehicles'))}</th><th>${transportEscapeHtml(t('transport.metric.passengers'))}</th><th>${transportEscapeHtml(t('transport.metric.fareDistance'))}</th><th>${transportEscapeHtml(t('transport.metric.revenue'))}</th><th>${transportEscapeHtml(t('transport.metric.cost'))}</th><th>${transportEscapeHtml(t('transport.metric.net'))}</th><th>${transportEscapeHtml(t('transport.metric.load'))}</th></tr></thead><tbody>${routeRows}</tbody></table></div>`}
-    <h4>${transportEscapeHtml(t('transport.finance.history'))}</h4>
-    ${historyRows.length === 0
-      ? `<div class="transport-empty">${transportEscapeHtml(t('transport.finance.noHistory'))}</div>`
-      : `<div class="transport-table-wrap"><table class="transport-table"><thead><tr><th>${transportEscapeHtml(t('transport.finance.month'))}</th><th>${transportEscapeHtml(t('transport.metric.passengers'))}</th><th>${transportEscapeHtml(t('transport.finance.revenue'))}</th><th>${transportEscapeHtml(t('transport.finance.routeOperations'))}</th><th>${transportEscapeHtml(t('transport.finance.depotUpkeep'))}</th><th>${transportEscapeHtml(t('transport.finance.totalCost'))}</th><th>${transportEscapeHtml(t('transport.metric.net'))}</th><th>${transportEscapeHtml(t('transport.finance.closingCash'))}</th></tr></thead><tbody>${history}</tbody></table></div>`}
   `;
 }
 
@@ -722,14 +783,39 @@ function refreshTransportPanel(id, options = {}) {
   panel.titleEl.textContent = t(TRANSPORT_PANEL_META[id].labelKey);
   const state = getTransportExpansionState();
   if (renderTransportGate(panel.body, state)) return;
+  const tab = getTransportPanelTab(id);
   let html = '';
-  if (id === 'fleet') html = renderTransportFleetTab(state);
-  else if (id === 'demand') html = renderTransportDemandTab(state);
-  else if (id === 'depot') html = renderTransportDepotTab(state);
-  else if (id === 'finances') html = renderTransportFinancesTab(state);
-  else if (id === 'company') html = renderTransportCompanyTab(state);
-  else html = renderTransportRoutesTab(state);
+  if (id === 'fleet') {
+    html = renderTransportPanelTabs('fleet') + (tab === 'buy'
+      ? renderTransportDepotTab(state)
+      : renderTransportFleetTab(state) + (typeof renderFerryFleetSection === 'function' ? renderFerryFleetSection() : ''));
+  } else if (id === 'demand') html = renderTransportDemandTab(state);
+  else if (id === 'finances') {
+    html = renderTransportPanelTabs('finances') + (tab === 'company'
+      ? renderTransportCompanyTab(state)
+      : renderTransportFinancesTab(state, tab));
+  } else html = renderTransportRoutesTab(state);
   panel.body.innerHTML = html;
+  if (id === 'routes') syncTransportRoutePickingLayout(panel);
+}
+
+// While stops are being picked the routes window shrinks to just the editor and
+// slides to the screen's right edge, so the stops it wants clicked stay in view;
+// it returns to its size and place when picking ends.
+function syncTransportRoutePickingLayout(panel) {
+  const picking = isTransportRoutePicking();
+  const root = panel.root;
+  if (picking === root.classList.contains('is-picking')) return;
+  root.classList.toggle('is-picking', picking);
+  if (picking) {
+    panel.restoreLayout = { width: root.style.width, left: root.style.left, top: root.style.top };
+    root.style.width = 'min(380px, calc(100vw - 44px))';
+    root.style.left = `${Math.max(12, window.innerWidth - 380 - 16)}px`;
+    root.style.top = '92px';
+  } else if (panel.restoreLayout) {
+    Object.assign(root.style, panel.restoreLayout);
+    panel.restoreLayout = null;
+  }
 }
 
 function refreshTransportUi(options = {}) {
@@ -843,16 +929,66 @@ function openTransportWindow() {
   openTransportPanel('routes');
 }
 
-function openTransportWindowTab(tabId) {
+function openTransportWindowTab(tabId, tab = '') {
   if (typeof setTransportModeActive === 'function') setTransportModeActive(true);
-  openTransportPanel(TRANSPORT_PANEL_META[tabId] ? tabId : 'routes');
+  openTransportPanel(resolveTransportPanel(tabId) ? tabId : 'routes', tab);
+}
+
+// The bus tools' "new bus route": the routes window, a fresh route, and the
+// map already picking stops.
+function startNewTransportRoute() {
+  openTransportWindowTab('routes', 'bus');
+  if (!transportUiState.editor) beginTransportRouteEditor();
+  transportUiState.pickingStops = true;
+  refreshTransportUi();
+  if (typeof invalidateTransportVisuals === 'function') invalidateTransportVisuals(activeScene);
+}
+
+// "+ bus" on a route card: buys the route's bus class at the nearest
+// connected depot with room and sends it straight out.
+function addTransportBusToRoute(routeId) {
+  const state = getTransportExpansionState();
+  const route = state.routes.find((entry) => entry.id === routeId);
+  if (!route) return;
+  commissionAllConnectedTransportDepots();
+  const first = getTransportStopById(route.stopIds[0]);
+  const depots = listTransportDepots({ connectedOnly: true })
+    .filter((depot) => state.commissionedDepotIds.includes(depot.id)
+      && getTransportDepotVehicleCount(depot.id) < TRANSPORT_DEPOT_CAPACITY);
+  if (depots.length === 0) {
+    showToast(t(listTransportDepots({ connectedOnly: true }).length ? 'transport.error.depotFull' : 'transport.error.needsDepot'), 'warning');
+    return;
+  }
+  const distance = (depot) => {
+    const [row, col] = String(depot.id).split(':').map(Number);
+    return first ? Math.abs(row - first.row) + Math.abs(col - first.col) : 0;
+  };
+  depots.sort((a, b) => distance(a) - distance(b));
+  try {
+    const vehicle = buyTransportVehicle(depots[0].id, getTransportVehicleClass(route.vehicleClassId).id);
+    assignTransportVehicleToRoute(vehicle.id, route.id);
+    showToast(t('transport.toast.busAdded', { route: route.name }), 'info');
+  } catch (error) {
+    showToast(transportRouteErrorMessage(error), 'warning');
+  }
+}
+
+// "- bus": the most worn bus on the route heads back to its depot, where it
+// waits unassigned to be sold or sent elsewhere.
+function withdrawTransportBusFromRoute(routeId) {
+  const active = getTransportRouteVehicles(routeId)
+    .filter((vehicle) => vehicle.status === 'active')
+    .sort((a, b) => a.condition - b.condition);
+  if (active.length === 0) return;
+  const sent = sendTransportVehicleToDepot(active[0].id);
+  showToast(t(sent ? 'transport.toast.vehicleSentDepot' : 'transport.error.vehicleNotAvailable'), sent ? 'info' : 'warning');
 }
 
 // §10: map click on a depot building (main.js's building pointerdown) lands
 // here - jump straight to that depot's window with it preselected.
 function openTransportDepotWindowFor(depotId) {
   transportUiState.selectedDepotId = String(depotId || '');
-  openTransportPanel('depot');
+  openTransportPanel('fleet', 'buy');
 }
 
 // Closing an operation window no longer exits the mode - like OpenTTD,
@@ -919,6 +1055,32 @@ function setTransportModeActive(active) {
   }
   if (typeof closeToolCategoryFlyouts === 'function') closeToolCategoryFlyouts();
   refreshTransportModeHeader();
+  refreshPlayModeSwitch();
+  // not switched on yet, or not unlocked: the routes window says why and how
+  if (next) {
+    const state = getTransportExpansionState();
+    if (!state.enabled || !state.unlocked) openTransportPanel('routes');
+  }
+}
+
+function refreshPlayModeSwitch() {
+  if (typeof document === 'undefined') return;
+  document.querySelectorAll('#play-mode-switch [data-play-mode]').forEach((button) => {
+    const active = (button.dataset.playMode === 'transport') === isTransportModeActive;
+    button.classList.toggle('is-active', active);
+    button.setAttribute('aria-selected', String(active));
+  });
+}
+
+function canSwitchPlayMode() {
+  return !(typeof isTerrainCreatorMode !== 'undefined' && isTerrainCreatorMode);
+}
+
+// Picks a transport tool as if its row in the tool menu were clicked.
+function selectTransportModeTool(tool) {
+  if (typeof document === 'undefined') return;
+  if (!isTransportModeActive) setTransportModeActive(true);
+  document.querySelector(`#tool-menu [data-tool="${tool}"]`)?.click();
 }
 
 // §5: while Transport Mode is open, the mayor's funds strip has nothing to
@@ -1265,6 +1427,22 @@ function handleTransportUiClick(event) {
   const action = button.dataset.transportAction;
   // the ferry routes and their ferries (ferry-ui.js)
   if (typeof handleFerryUiAction === 'function' && handleFerryUiAction(action, button)) return;
+  if (action === 'panel-tab') {
+    const panelId = button.dataset.panelId;
+    if (TRANSPORT_PANEL_META[panelId]?.tabs?.includes(button.dataset.tab)) {
+      transportUiState.panelTabs[panelId] = button.dataset.tab;
+      refreshTransportPanel(panelId);
+    }
+    return;
+  }
+  if (action === 'route-add-bus') {
+    addTransportBusToRoute(button.dataset.routeId);
+    return refreshTransportUi();
+  }
+  if (action === 'route-withdraw-bus') {
+    withdrawTransportBusFromRoute(button.dataset.routeId);
+    return refreshTransportUi();
+  }
   if (action === 'enable') {
     setExpansionEnabled('transport', true);
     showToast(t('transport.toast.enabled'), 'info');
@@ -1404,7 +1582,36 @@ function getTransportRouteEditorStopIds() {
 // (transportFocusedPanelId, set by focusTransportPanel on open/click/drag) -
 // same "closest window wins" precedence as the vehicle tracker windows,
 // checked first since those float above everything else.
+function isTransportHotkeyBlocked(event) {
+  if (event.altKey || event.ctrlKey || event.metaKey || event.repeat) return true;
+  if (typeof document === 'undefined' || typeof gameReady === 'undefined' || !gameReady) return true;
+  if (event.target?.closest?.('input, textarea, select, [contenteditable="true"]')) return true;
+  // the title screen or a dialog has the keyboard (as for the arrow-key map pan, main.js)
+  const landing = document.getElementById('landing-screen');
+  if (landing && getComputedStyle(landing).display !== 'none') return true;
+  return [...document.querySelectorAll('.sim-dialog')].some((dialog) => getComputedStyle(dialog).display !== 'none');
+}
+
+// T flips between city building and the transport company; in transport mode
+// 1-4 open the four windows in the order the topbar shows them.
+function handleTransportHotkey(event) {
+  if (isTransportHotkeyBlocked(event)) return false;
+  if ((event.key === 't' || event.key === 'T') && canSwitchPlayMode()) {
+    setTransportModeActive(!isTransportModeActive);
+    return true;
+  }
+  if (!isTransportModeActive) return false;
+  const index = ['1', '2', '3', '4'].indexOf(event.key);
+  if (index < 0) return false;
+  toggleTransportPanel(TRANSPORT_PANEL_IDS[index]);
+  return true;
+}
+
 function handleTransportUiKeydown(event) {
+  if (handleTransportHotkey(event)) {
+    event.preventDefault();
+    return;
+  }
   if (event.key === 'Escape' && typeof closeFocusedVehicleTrackingWindow === 'function'
     && closeFocusedVehicleTrackingWindow()) {
     event.preventDefault();
@@ -1450,6 +1657,11 @@ function setupTransportUi() {
     const button = event.target.closest('[data-transport-topbar-panel]');
     if (!button) return;
     toggleTransportPanel(button.dataset.transportTopbarPanel);
+  });
+  document.getElementById('play-mode-switch')?.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-play-mode]');
+    if (!button || !canSwitchPlayMode()) return;
+    setTransportModeActive(button.dataset.playMode === 'transport');
   });
 }
 

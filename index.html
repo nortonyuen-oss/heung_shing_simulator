@@ -5123,19 +5123,74 @@
       display: none !important;
     }
 
-    #tool-menu [data-tool-category="transport"] {
+    #tool-menu [data-tool-category="transport"],
+    #tool-menu [data-tool-category="transport-ferry"] {
       display: none;
     }
 
-    body.transport-mode #tool-menu [data-tool-category="transport"] {
+    body.transport-mode #tool-menu [data-tool-category="transport"],
+    body.transport-mode #tool-menu [data-tool-category="transport-ferry"] {
       display: grid;
     }
 
     body.transport-mode #tool-menu .tool-menu-divider,
-    body.transport-mode #tool-menu .tool-flyout:not([data-tool-panel="transport"]),
-    body.transport-mode #tool-menu [data-tool-category]:not([data-tool-category="transport"]):not([data-tool-category="inspect"]) {
+    body.transport-mode #tool-menu .tool-flyout:not([data-tool-panel="transport"]):not([data-tool-panel="transport-ferry"]),
+    body.transport-mode #tool-menu [data-tool-category]:not([data-tool-category="transport"]):not([data-tool-category="transport-ferry"]):not([data-tool-category="inspect"]) {
       display: none !important;
     }
+
+    /* in transport mode its own tools come first, above inspect and demolish */
+    body.transport-mode #tool-menu .tool-menu-guide { order: -3; }
+    body.transport-mode #tool-menu [data-tool-category="transport"] { order: -2; }
+    body.transport-mode #tool-menu [data-tool-category="transport-ferry"] { order: -1; }
+
+    /* the transport tools say what they do under their names */
+    .transport-tool-flyout { min-width: 300px; }
+    .transport-tool-flyout .tool-row-desc {
+      font-size: 10.5px;
+      font-weight: 400;
+      color: #5f5a4c;
+      white-space: normal;
+      line-height: 1.25;
+    }
+
+    /* City | Transport: the two play modes, side by side at the top left */
+    #play-mode-switch {
+      display: flex;
+      flex-shrink: 0;
+      padding: 2px;
+      gap: 2px;
+      border: 1px solid #8f9cab;
+      border-radius: 8px;
+      background: #dfe6ee;
+    }
+    #play-mode-switch button {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      height: 28px;
+      padding: 0 11px;
+      border: 0;
+      border-radius: 6px;
+      background: transparent;
+      color: #3c4954;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    #play-mode-switch button:hover { background: #f7f9fc; }
+    #play-mode-switch button.is-active {
+      background: #ffffff;
+      color: #1f2327;
+      box-shadow: 0 1px 3px rgba(0,0,0,.25);
+    }
+    #play-mode-switch button[data-play-mode="transport"].is-active {
+      background: #14506e;
+      color: #ffffff;
+    }
+    #play-mode-switch button.is-locked { opacity: .55; }
 
     .tool-menu-guide { cursor: pointer; }
     .tool-menu-guide:hover .tool-guide-rail { background: #ffffff; }
@@ -5161,13 +5216,18 @@
     }
 
     #transport-topbar-tools button {
-      width: 34px;
-      height: 34px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 0 10px;
+      font-weight: 700;
+      white-space: nowrap;
+      height: 30px;
       border: 1px solid #164f6e;
       border-radius: 6px;
       background: #eef3f9;
       color: #14506e;
-      font-size: 16px;
+      font-size: 13px;
       line-height: 1;
       cursor: pointer;
     }
@@ -5806,6 +5866,11 @@
 
     <div id="topbar-main">
       <div id="topbar-primary">
+        <div id="play-mode-switch" role="tablist" aria-label="Play mode" data-i18n-aria="mode.switchAria">
+          <button type="button" role="tab" data-play-mode="city" class="is-active" aria-selected="true" title="City building (T)" data-i18n-title="mode.cityTitle"><span aria-hidden="true">🏙</span><span data-i18n="mode.city">City</span></button>
+          <button type="button" role="tab" data-play-mode="transport" aria-selected="false" title="Run the transport company (T)" data-i18n-title="mode.transportTitle"><span aria-hidden="true">🚌</span><span data-i18n="mode.transport">Transport</span></button>
+        </div>
+
         <div class="topbar-chip" aria-label="Current date" data-i18n-aria="topbar.currentDate">
           <span class="topbar-chip-icon">🗓️</span>
           <div class="topbar-chip-main">
@@ -5841,12 +5906,10 @@
         </div>
 
         <div id="transport-topbar-tools" aria-label="Transport company windows" data-i18n-aria="transport.topbarToolsAria">
-          <button type="button" data-transport-topbar-panel="routes" title="Routes &amp; Orders" data-i18n-title="transport.tool.routes" aria-label="Routes &amp; Orders" data-i18n-aria="transport.tool.routes">🗺</button>
-          <button type="button" data-transport-topbar-panel="fleet" title="Vehicle List" data-i18n-title="transport.tool.fleet" aria-label="Vehicle List" data-i18n-aria="transport.tool.fleet">🚌</button>
-          <button type="button" data-transport-topbar-panel="demand" title="Passenger Demand" data-i18n-title="transport.tool.demand" aria-label="Passenger Demand" data-i18n-aria="transport.tool.demand">👥</button>
-          <button type="button" data-transport-topbar-panel="depot" title="Depots" data-i18n-title="transport.tab.depot" aria-label="Depots" data-i18n-aria="transport.tab.depot">🏭</button>
-          <button type="button" data-transport-topbar-panel="finances" title="Profit &amp; Loss" data-i18n-title="transport.tool.finances" aria-label="Profit &amp; Loss" data-i18n-aria="transport.tool.finances">📈</button>
-          <button type="button" data-transport-topbar-panel="company" title="Company" data-i18n-title="transport.tab.company" aria-label="Company" data-i18n-aria="transport.tab.company">🏢</button>
+          <button type="button" data-transport-topbar-panel="routes" title="Bus and ferry routes (1)" data-i18n-title="transport.nav.routesTitle"><span aria-hidden="true">🗺</span><span data-i18n="transport.nav.routes">Routes</span></button>
+          <button type="button" data-transport-topbar-panel="fleet" title="Every bus and ferry; buy buses (2)" data-i18n-title="transport.nav.fleetTitle"><span aria-hidden="true">🚌</span><span data-i18n="transport.nav.fleet">Fleet</span></button>
+          <button type="button" data-transport-topbar-panel="demand" title="Riders waiting at each stop (3)" data-i18n-title="transport.nav.demandTitle"><span aria-hidden="true">👥</span><span data-i18n="transport.nav.demand">Riders</span></button>
+          <button type="button" data-transport-topbar-panel="finances" title="Profit and loss, monthly records, company (4)" data-i18n-title="transport.nav.financesTitle"><span aria-hidden="true">📊</span><span data-i18n="transport.nav.finances">Finances</span></button>
         </div>
 
         <button id="topbar-more-btn" type="button" aria-label="Open menu" title="More" data-i18n-aria="topbar.openMenu" data-i18n-title="topbar.more">☰</button>
@@ -6416,41 +6479,55 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
       </button>
     </section>
 
-    <button class="tool-category-button" type="button" data-tool-category="transport" title="Transport Company" data-i18n-title="toolCategory.transport">
-      <span class="tool-category-icon" aria-hidden="true">🚌</span>
+    <button class="tool-category-button" type="button" data-tool-category="transport" title="Bus stops, depots and bus routes" data-i18n-title="toolCategory.busTitleHint">
+      <span class="tool-category-icon" aria-hidden="true">🚏</span>
       <span class="tool-category-labels">
-        <span class="tool-category-title" data-i18n="toolCategory.transportTitle">運輸公司</span>
-        <span class="tool-category-subtitle" data-i18n="toolCategory.transportSubtitle">Transport Co.</span>
+        <span class="tool-category-title" data-i18n="toolCategory.busTitle">巴士</span>
+        <span class="tool-category-subtitle" data-i18n="toolCategory.busSubtitle">Bus</span>
       </span>
       <span class="tool-category-accent" aria-hidden="true"></span>
       <span class="tool-category-hotkey" aria-hidden="true"></span>
     </button>
 
-    <section class="tool-flyout" data-tool-panel="transport">
-      <div class="tool-flyout-title" data-i18n="toolCategory.transport">Transport Company</div>
-      <button class="tool-row" type="button" data-tool="bus-stop" title="Bus stop ($20) — click a straight road for the near shoulder, click again for the far shoulder">
-        <span class="tool-row-icon">🚏</span><span class="tool-row-text" data-i18n="toolRow.busStop">Bus Stop</span><span class="tool-row-cost">$20</span>
+    <section class="tool-flyout transport-tool-flyout" data-tool-panel="transport">
+      <div class="tool-flyout-title" data-i18n="toolCategory.busTitle">Bus</div>
+      <button class="tool-row" type="button" data-tool="bus-stop">
+        <span class="tool-row-icon">🚏</span>
+        <span class="tool-row-main"><span class="tool-row-text" data-i18n="toolRow.busStop">Bus Stop</span><span class="tool-row-desc" data-i18n="toolRow.busStopDesc">Click a straight road; click again for the far side</span></span>
+        <span class="tool-row-cost">$20</span>
       </button>
-      <button class="tool-row" type="button" data-tool="bus-depot" title="Bus depot ($4,000) — click a placed depot again to rotate it">
-        <span class="tool-row-icon">🚌</span><span class="tool-row-text" data-i18n="toolRow.busDepot">Bus Depot</span><span class="tool-row-cost">$4,000</span>
+      <button class="tool-row" type="button" data-tool="bus-depot">
+        <span class="tool-row-icon">🏭</span>
+        <span class="tool-row-main"><span class="tool-row-text" data-i18n="toolRow.busDepot">Bus Depot</span><span class="tool-row-desc" data-i18n="toolRow.busDepotDesc">Buses live here; its door must face a road</span></span>
+        <span class="tool-row-cost">$4,000</span>
       </button>
-      <button class="tool-row" type="button" data-tool="ferry-pier" title="Ferry pier ($2,500) — 2 x 2 on the water against the shore, a road within 3 tiles">
-        <span class="tool-row-icon">⚓</span><span class="tool-row-text" data-i18n="toolRow.ferryPier">Ferry Pier</span><span class="tool-row-cost">$2,500</span>
+      <button class="tool-row" type="button" data-action="new-bus-route">
+        <span class="tool-row-icon">➕</span>
+        <span class="tool-row-main"><span class="tool-row-text" data-i18n="toolRow.newBusRoute">New Bus Route</span><span class="tool-row-desc" data-i18n="toolRow.newBusRouteDesc">Click the stops on the map in order</span></span>
       </button>
-      <button class="tool-row" type="button" data-tool="ferry-route" title="Ferry route — click one pier, then another">
-        <span class="tool-row-icon">⛴</span><span class="tool-row-text" data-i18n="toolRow.ferryRoute">Ferry Route</span>
+    </section>
+
+    <button class="tool-category-button" type="button" data-tool-category="transport-ferry" title="Ferry piers and ferry routes" data-i18n-title="toolCategory.ferryTitleHint">
+      <span class="tool-category-icon" aria-hidden="true">⛴</span>
+      <span class="tool-category-labels">
+        <span class="tool-category-title" data-i18n="toolCategory.ferryTitle">渡輪</span>
+        <span class="tool-category-subtitle" data-i18n="toolCategory.ferrySubtitle">Ferry</span>
+      </span>
+      <span class="tool-category-accent" aria-hidden="true"></span>
+      <span class="tool-category-hotkey" aria-hidden="true"></span>
+    </button>
+
+    <section class="tool-flyout transport-tool-flyout" data-tool-panel="transport-ferry">
+      <div class="tool-flyout-title" data-i18n="toolCategory.ferryTitle">Ferry</div>
+      <button class="tool-row" type="button" data-tool="ferry-pier">
+        <span class="tool-row-icon">⚓</span>
+        <span class="tool-row-main"><span class="tool-row-text" data-i18n="toolRow.ferryPier">Ferry Pier</span><span class="tool-row-desc" data-i18n="toolRow.ferryPierDesc">2 × 2 on the water by the shore, a road within 3 tiles</span></span>
+        <span class="tool-row-cost">$2,500</span>
       </button>
-      <button class="tool-row" type="button" data-action="open-transport-tab" data-transport-tab="routes">
-        <span class="tool-row-icon">🗺</span><span class="tool-row-text" data-i18n="transport.tool.routes">Routes &amp; Orders</span>
-      </button>
-      <button class="tool-row" type="button" data-action="open-transport-tab" data-transport-tab="fleet">
-        <span class="tool-row-icon">🚌</span><span class="tool-row-text" data-i18n="transport.tool.fleet">Vehicle List</span>
-      </button>
-      <button class="tool-row" type="button" data-action="open-transport-tab" data-transport-tab="demand">
-        <span class="tool-row-icon">👥</span><span class="tool-row-text" data-i18n="transport.tool.demand">Passenger Demand</span>
-      </button>
-      <button class="tool-row" type="button" data-action="open-transport-tab" data-transport-tab="finances">
-        <span class="tool-row-icon">📈</span><span class="tool-row-text" data-i18n="transport.tool.finances">Profit &amp; Loss</span>
+      <button class="tool-row" type="button" data-tool="ferry-route">
+        <span class="tool-row-icon">➕</span>
+        <span class="tool-row-main"><span class="tool-row-text" data-i18n="toolRow.newFerryRoute">New Ferry Route</span><span class="tool-row-desc" data-i18n="toolRow.newFerryRouteDesc">Click one pier, then another; buys the first ferry</span></span>
+        <span class="tool-row-cost">$900</span>
       </button>
     </section>
 

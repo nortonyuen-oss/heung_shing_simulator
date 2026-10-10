@@ -13,10 +13,26 @@ test('transport tool palette uses direct OpenTTD-style operation windows, not th
 
   assert.doesNotMatch(html, /transport\.manage|Manage Bus Network|管理巴士網絡/);
   assert.doesNotMatch(translations, /'transport\.manage'/);
+  // the four windows open from named topbar buttons; the tool menu holds only map tools
   for (const tab of ['routes', 'fleet', 'demand', 'finances']) {
-    assert.match(html, new RegExp(`data-action="open-transport-tab" data-transport-tab="${tab}"`));
+    assert.match(html, new RegExp(`data-transport-topbar-panel="${tab}"[^>]*>.*data-i18n="transport\\.nav\\.${tab}"`));
   }
+  assert.doesNotMatch(html, /data-action="open-transport-tab"/);
+  assert.match(html, /data-tool-category="transport"/);
+  assert.match(html, /data-tool-category="transport-ferry"/);
+  assert.match(html, /id="play-mode-switch"/);
+  assert.match(html, /data-action="new-bus-route"/);
+  assert.match(menu, /startNewTransportRoute\(\)/);
   assert.match(menu, /openTransportWindowTab\(actionButton\.dataset\.transportTab\)/);
+});
+
+test('the six old transport windows fold into four, and old ids open the tab that took them over', () => {
+  const ui = source('transport-ui.js');
+  assert.match(ui, /const TRANSPORT_PANEL_IDS = \['routes', 'fleet', 'demand', 'finances'\];/);
+  assert.match(ui, /depot: \['fleet', 'buy'\]/);
+  assert.match(ui, /company: \['finances', 'company'\]/);
+  assert.match(ui, /data-transport-action="route-add-bus"/);
+  assert.match(ui, /data-transport-action="route-withdraw-bus"/);
 });
 
 test('transport console exposes routes, fleet, demand, depot, finances and company workflows', () => {

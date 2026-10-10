@@ -328,6 +328,7 @@ function createEmptyTransportSummary() {
     monthlyPassengers: 0,
     averageReliability: 0,
     residentialCoverage: 0,
+    residentialReach: 0,
     serviceQuality: 0,
     connectedDepots: 0,
     fleetCapacity: 0,
@@ -2360,6 +2361,8 @@ function updateTransportSimulation() {
   const weatherAvailability = transportClamp(1 - state.weatherSuspendedDaysThisMonth / getTransportDaysInMonth(), 0, 1);
   const currentlySuspendedForWeather = isTransportSevereWeather();
   const residentialBenefits = new Map();
+  // homes within walking range of a running route, however good the service
+  const residentialReached = new Set();
   const commercialBenefits = new Map();
   const industrialBenefits = new Map();
   let reliabilityTotal = 0;
@@ -2459,6 +2462,9 @@ function updateTransportSimulation() {
     route.lastStats = stats;
     runtime.stats = stats;
     runtime.coveredBuildingIds = assignments.map((entry) => entry.id);
+    for (const assignment of assignments) {
+      if (assignment.record.type === 'residential') residentialReached.add(assignment.id);
+    }
     runtime.currentlySuspendedForWeather = currentlySuspendedForWeather;
     activeRoutes++;
     monthlyPassengers += servedPassengers;
@@ -2532,6 +2538,16 @@ function updateTransportSimulation() {
   const residentialCoverage = typeof city === 'undefined' || city.population <= 0
     ? 0
     : transportClamp(coveredResidentialPopulation / city.population, 0, 1);
+  // What the player reads as 住宅覆蓋: the share of residents a stop on a running route
+  // reaches. residentialCoverage above is that weighted by service quality - it drives the
+  // happiness bonus, but shown as coverage it read 0% beside eleven working routes.
+  let reachedResidentialPopulation = 0;
+  for (const id of residentialReached) {
+    reachedResidentialPopulation += Math.max(0, Number(buildingData[id]?.population) || 0);
+  }
+  const residentialReach = typeof city === 'undefined' || city.population <= 0
+    ? 0
+    : transportClamp(reachedResidentialPopulation / city.population, 0, 1);
   const averageQuality = activeRoutes > 0 ? qualityTotal / activeRoutes : 0;
   transportRuntime.happinessBonus = Math.min(
     TRANSPORT_HAPPINESS_BONUS_MAX,
@@ -2556,6 +2572,7 @@ function updateTransportSimulation() {
     monthlyPassengers,
     averageReliability: activeRoutes > 0 ? reliabilityTotal / activeRoutes : 0,
     residentialCoverage,
+    residentialReach,
     serviceQuality: averageQuality,
     connectedDepots,
     fleetCapacity: connectedDepots * TRANSPORT_DEPOT_CAPACITY,

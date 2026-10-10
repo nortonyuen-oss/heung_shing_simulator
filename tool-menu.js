@@ -184,6 +184,12 @@ function setupToolMenu() {
       closeToolCategoryFlyouts();
       return;
     }
+    if (actionButton?.dataset.action === 'new-bus-route') {
+      if (isTerrainCreatorMode) return;
+      if (typeof startNewTransportRoute === 'function') startNewTransportRoute();
+      closeToolCategoryFlyouts();
+      return;
+    }
     if (actionButton?.dataset.action === 'open-transport-tab') {
       if (isTerrainCreatorMode) return;
       if (typeof openTransportWindowTab === 'function') {
@@ -332,6 +338,7 @@ function getToolCategoryForTool(tool) {
   if (tool === 'typhoon-shelter' || tool === 'fish-market' || tool === 'seafood-restaurant' || tool === 'fish-loading-bay') return 'marine';
   if (tool === 'road') return 'roads';
   if (tool === 'bus-stop' || tool === 'bus-depot') return 'transport';
+  if (tool === 'ferry-pier' || tool === 'ferry-route') return 'transport-ferry';
   if (tool === 'district-sign') return 'maps';
   if (tool === 'zone-res' || tool === 'zone-com' || tool === 'zone-ind' || tool === 'dezone') return 'zones';
   if (tool === 'power-line' || tool === 'power-coal' || tool === 'power-solar') return 'power';

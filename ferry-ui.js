@@ -107,9 +107,32 @@ function renderFerryRoutesSection() {
     ? state.routes.map((route) => renderFerryRouteCard(route, state)).join('')
     : `<div class="transport-empty">${ferryUiEscape(ferryT('ferry.routes.empty', '未有渡輪航線：先起兩個渡輪碼頭，再用「渡輪航線」工具撳兩個碼頭。'))}</div>`;
   return `
-    <h3 class="transport-section-title">⛴ ${ferryUiEscape(ferryT('ferry.routes.title', '渡輪航線'))}</h3>
-    <div class="transport-actions"><button class="transport-btn" type="button" data-transport-action="ferry-new-route">${ferryUiEscape(ferryT('ferry.routes.new', '新增渡輪航線'))}</button></div>
+    <div class="transport-actions"><button class="transport-btn primary" type="button" data-transport-action="ferry-new-route">${ferryUiEscape(ferryT('ferry.routes.new', '新增渡輪航線'))}</button></div>
     <div class="transport-routes">${cards}</div>`;
+}
+
+// The fleet window's list tab: every ferry under the buses, one row each.
+function renderFerryFleetSection() {
+  if (typeof getFerryState !== 'function') return '';
+  const state = getFerryState();
+  if (!state.vessels.length) return '';
+  const head = ['ferry.fleet.vessel', 'ferry.fleet.route', 'ferry.fleet.status', 'ferry.fleet.aboard', 'ferry.fleet.condition', 'ferry.fleet.revenue']
+    .map((key, i) => `<th>${ferryUiEscape(ferryT(key, ['船', '航線', '狀態', '船上', '狀況', '本月收入'][i]))}</th>`).join('');
+  const rows = state.vessels.map((v) => {
+    const route = state.routes.find((r) => r.id === v.routeId);
+    return `<tr>
+      <td><strong>⛴ ${ferryUiEscape(v.id)}</strong></td>
+      <td>${route ? `<span class="transport-line-cell"><i class="transport-line-swatch" style="--route-color:${ferryUiEscape(route.color)}"></i>${ferryUiEscape(getFerryRouteName(route, state))}</span>` : '—'}</td>
+      <td>${ferryUiEscape(ferryVesselStatusText(v))}</td>
+      <td>👤 ${Math.round(v.aboard || 0)}</td>
+      <td>${ferryUiEscape(typeof transportFormatPercent === 'function' ? transportFormatPercent(v.condition) : `${Math.round(v.condition * 100)}%`)}</td>
+      <td>${ferryUiEscape(ferryUiMoney(v.monthToDateRevenue || 0))}</td>
+      <td><button class="transport-btn" type="button" data-transport-action="ferry-inspect" data-ferry-id="${ferryUiEscape(v.id)}">${ferryUiEscape(ferryT('ferry.locate', '睇位置'))}</button></td>
+    </tr>`;
+  }).join('');
+  return `
+    <h3 class="transport-section-title">⛴ ${ferryUiEscape(ferryT('ferry.fleet.title', '渡輪'))}</h3>
+    <div class="transport-table-wrap"><table class="transport-table"><thead><tr>${head}<th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
 function ferryUiToast(text, kind = 'info') {
@@ -165,7 +188,8 @@ function handleFerryUiAction(action, button) {
   const routeId = button.dataset.routeId;
   const route = routeId && state.routes.find((r) => r.id === routeId);
   if (action === 'ferry-new-route') {
-    document.querySelector('[data-tool="ferry-route"]')?.click();
+    if (typeof selectTransportModeTool === 'function') selectTransportModeTool('ferry-route');
+    else document.querySelector('[data-tool="ferry-route"]')?.click();
     ferryUiToast(ferryT('ferry.toast.newRouteHow', '撳一個渡輪碼頭，再撳另一個，就開到航線。'), 'info');
     return true;
   }

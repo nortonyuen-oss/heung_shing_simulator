@@ -242,7 +242,7 @@ const SITE_FEATURE_LIST = {
 // ── Changelog ─────────────────────────────────────────────────────────────────
 const SITE_CHANGELOG = {
   "zh-HK": [
-    { version: "v4.19.0", date: "2026-10-10", dateLabel: "2026年10月10日", title: "成碟青瓜過大海", items: ["渡海小輪：興建碼頭、規劃航線，天星小輪接載乘客並賺取船費；新增海濱長廊、海面效果及沿岸天氣，改善縮放效能，補齊 Electron 啟動所需檔案。"] },
+    { version: "v4.19.0", date: "2026-10-10", dateLabel: "2026年10月10日", title: "成碟青瓜過大海", items: ["渡海小輪：興建渡輪碼頭、規劃航線，天星小輪來回泊岸接載乘客；船費收入計入運輸公司帳目。", "海濱長廊：沿海陸地逐格鋪設，右鍵切換公共碼頭；更新遊艇會模型同避風塘規劃。", "海面更生動：船尾浪花、夜間岸邊燈光倒影，以及華南海域天氣報告。", "改善大城市縮放及畫面物件排序效能；修正放置失敗時改變地形、內陸沙地出現海水邊緣，以及 Electron 啟動漏檔問題。"] },
     { version: "v4.18.0", date: "2026-10-09", dateLabel: "2026年10月9日", title: "黃金海岸", items: [
       "避風塘旅遊：運作中嘅避風塘每月帶嚟遊客，海鮮酒家、遊艇、海鮮舫同酒店再加；「無處不旅遊」期間避風塘遊客多幾倍，議案費用改為按旅遊收入計，唔會再蝕本。",
       "遊艇：避風塘面板揀用途——漁業優先、漁業同遊艇、遊艇優先、遊艇專用（100%）；遊艇日頭出海傍晚返嚟，每月交泊位費；新增飛橋遊艇、快艇、豪華快艇同帆船 4 款新遊艇。",
@@ -591,7 +591,7 @@ const SITE_CHANGELOG = {
 // title/items text.
 const SITE_CHANGELOG_TRANSLATIONS = {
   "zh-TW": {
-    "v4.19.0": { title: "皇后碼頭", items: ["渡輪運輸：興建碼頭、規劃航線，天星小輪載客並收取船費；新增海濱步道、海面效果與沿岸天氣，改善縮放效能，補齊 Electron 啟動所需檔案。"] },
+    "v4.19.0": { title: "皇后碼頭", items: ["渡輪運輸：興建渡輪碼頭、規劃航線，天星小輪往返靠岸載客；船費收入納入運輸公司帳目。", "海濱步道：沿海陸地逐格鋪設，右鍵切換公共碼頭；更新遊艇會模型與避風塘規劃。", "更生動的海面：船尾浪花、夜間岸邊燈光倒影，以及華南海域天氣報告。", "改善大城市縮放與畫面物件排序效能；修正放置失敗時改變地形、內陸沙地出現海水邊緣，以及 Electron 啟動漏檔問題。"] },
     "v4.18.0": { title: "黃金海岸", items: [
       "避風塘旅遊：運作中的避風塘每月帶來遊客，海鮮酒家、遊艇、海鮮舫與酒店另外加計；「無處不旅遊」期間避風塘遊客多出數倍，議案費用改為依旅遊收入計算，不會再虧本。",
       "遊艇：在避風塘面板選擇用途——漁業優先、漁業與遊艇、遊艇優先、遊艇專用（100%）；遊艇白天出海、傍晚回港，每月繳泊位費；新增飛橋遊艇、快艇、豪華快艇與帆船 4 款新遊艇。",
@@ -933,7 +933,7 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   en: {
-    "v4.19.0": { title: "Star Ferry", items: ["Build ferry piers and routes, carry passengers and earn fares. Adds waterfront promenades, water effects and coastal weather, improves zoom performance and includes missing Electron startup files."] },
+    "v4.19.0": { title: "Star Ferry", items: ["Ferry transport: build piers and routes, carry passengers between berths and earn fares through your transport company.", "Waterfront promenades: lay tiles along the coast and right-click to switch public piers; updated yacht club models and typhoon shelter planning.", "A livelier sea: boat wakes, waterfront light reflections at night and South China coastal weather reports.", "Smoother zooming and object sorting in large cities. Fixes unintended terrain painting after refused placements, water edges on inland sand and missing Electron startup files."] },
     "v4.18.0": { title: "Gold Coast", items: [
       "Shelter tourism: a working shelter brings visitors every month, with more for its seafood restaurants, yachts, floating restaurant and hotel; during the Tour Everywhere Campaign shelter visitors multiply, and the campaign is now priced on tourism income so it no longer runs at a loss.",
       "Yachts: choose a shelter's use in its panel - fishing first, fishing and yachts, yachts first or a 100% marina; yachts go out by day and come back in the evening, paying a monthly mooring fee. Four new yachts: a flybridge cruiser, a bowrider, an express cruiser and a sailing yacht.",
@@ -1275,7 +1275,7 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   ja: {
-    "v4.19.0": { title: "スターフェリー", items: ["フェリー埠頭と航路を整備し、乗客を運んで運賃を獲得。海辺の遊歩道、水面効果、沿岸の天気を追加。ズーム性能を改善し、Electron の起動に必要なファイルを同梱。"] },
+    "v4.19.0": { title: "スターフェリー", items: ["フェリー輸送：埠頭と航路を整備し、両岸で乗客を乗降させます。運賃収入は運輸会社の会計に反映されます。", "海辺の遊歩道：海沿いの陸地に敷設し、右クリックで公共埠頭に切り替え。ヨットクラブのモデルと避風塘の計画も更新。", "生き生きとした海：船の航跡、夜の岸辺の照明の水面反射、華南沿岸海域の気象情報を追加。", "大都市のズームと描画順の処理を改善。設置に失敗した際の地形変更、内陸の砂地に出る水際表示、Electron の起動ファイル不足を修正。"] },
     "v4.18.0": { title: "ゴールドコースト", items: [
       "避風塘の観光：稼働中の避風塘は毎月観光客を呼び、海鮮レストラン、ヨット、海上レストラン、ホテルでさらに増えます。「どこでも観光」キャンペーン中は避風塘の観光客が数倍になり、キャンペーン費用は観光収入に応じた額になって赤字になりません。",
       "ヨット：避風塘のパネルで用途を選択――漁業優先、漁業とヨット、ヨット優先、ヨット専用（100%）。ヨットは昼に出港して夕方に戻り、毎月係留料を払います。フライブリッジ艇、ボウライダー、エクスプレスクルーザー、セーリングヨットの4種類を追加。",
@@ -1643,7 +1643,7 @@ const SITE_TEXT = {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
       versionBadge: "v4.19.0 — 【成碟青瓜過大海】",
-      versionDesc: "4.19.0：渡海小輪：興建碼頭、規劃航線，天星小輪接載乘客並賺取船費；新增海濱長廊、海面效果及沿岸天氣，改善縮放效能，補齊 Electron 啟動所需檔案。",
+      versionDesc: "4.19.0 更新：搭天星小輪過海——起碼頭、開航線、接載乘客賺船費。沿岸鋪海濱長廊，睇船尾浪花同夜間燈光倒影；縮放大城市亦更順。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感嘅城市建設遊戲。起街道、規劃社區、經營自己嘅香城巴士公司、處理議會同天氣，再睇住一座有性格嘅香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1743,7 +1743,7 @@ const SITE_TEXT = {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
       versionBadge: "v4.19.0 — 【皇后碼頭】",
-      versionDesc: "4.19.0：渡輪運輸：興建碼頭、規劃航線，天星小輪載客並收取船費；新增海濱步道、海面效果與沿岸天氣，改善縮放效能，補齊 Electron 啟動所需檔案。",
+      versionDesc: "4.19.0 更新：搭乘天星小輪渡海——興建碼頭、開闢航線、載客收取船費。沿岸鋪設海濱步道，欣賞船尾浪花與夜間燈光倒影；大城市縮放也更流暢。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感的城市建設遊戲。興建街道、規劃社區、經營自己的香城公車公司、處理議會與天氣，看著一座有個性的香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1843,7 +1843,7 @@ const SITE_TEXT = {
       eyebrowPrefix: "The City of Heung Shing",
       title: "The City of Heung Shing",
       versionBadge: "v4.19.0 — 【Star Ferry】",
-      versionDesc: "4.19.0：Build ferry piers and routes, carry passengers and earn fares. Adds waterfront promenades, water effects and coastal weather, improves zoom performance and includes missing Electron startup files.",
+      versionDesc: "4.19.0 update: sail across the harbour on the Star Ferry. Build piers, open routes and earn passenger fares. Add waterfront promenades, boat wakes and night reflections, with smoother zooming in large cities.",
       lede: "A city-building game inspired by Hong Kong life and made in tribute to SimCity 2000. Build streets, shape neighbourhoods, run your own Heung Shing Bus Company, navigate council politics and weather, then watch a city with real personality grow.",
       freeLabel: "Completely free · macOS + Windows · Local saves",
       downloadBtn: "【Free Download】",
@@ -1944,7 +1944,7 @@ const SITE_TEXT = {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
       versionBadge: "v4.19.0 — 【スターフェリー】",
-      versionDesc: "4.19.0：フェリー埠頭と航路を整備し、乗客を運んで運賃を獲得。海辺の遊歩道、水面効果、沿岸の天気を追加。ズーム性能を改善し、Electron の起動に必要なファイルを同梱。",
+      versionDesc: "4.19.0 更新：スターフェリーで港を横断。埠頭と航路を整備し、乗客を運んで運賃を獲得。海辺の遊歩道、船の航跡、夜の水面反射を追加し、大都市のズームも改善しました。",
       lede: "香港の都市生活から着想を得た、SimCity 2000へのオマージュとなる都市建設ゲーム。道路を築き、地区を計画し、自分だけの香城バス会社を経営し、議会や天候に向き合いながら、個性ある香城の成長を見守ります。",
       freeLabel: "完全無料 · macOS + Windows · ローカルセーブ",
       downloadBtn: "【無料ダウンロード】",

@@ -108,6 +108,7 @@ function renderReleaseStats() {
 async function loadReleaseStats() {
   try {
     const response = await fetch(RELEASES_API, {
+      cache: "no-store",
       headers: {
         Accept: "application/vnd.github+json",
       },

@@ -242,6 +242,7 @@ const SITE_FEATURE_LIST = {
 // ── Changelog ─────────────────────────────────────────────────────────────────
 const SITE_CHANGELOG = {
   "zh-HK": [
+    { version: "v4.20.0", date: "2026-10-10", dateLabel: "2026年10月10日", title: "有落", items: ["運輸模式重新設計：一鍵切換城市建設／運輸公司，工具分巴士同渡輪兩組，四個有字視窗取代一排冇字圖示。", "新手指引：開業清單、工具提示列、放巴士站即睇服務範圍同預計乘客、每個視窗都有「?」說明，路線出問題有按鈕即刻處理。", "財務圖表同路線乘客趨勢線；城市趨勢圖表加入運輸公司數據。渡輪可以按航線加減船。", "站頭乘客大增：職位同目的地會產生返屋企乘客；八號風球過後人潮湧返站頭，唔再蝕成個月生意。"] },
     { version: "v4.19.0", date: "2026-10-10", dateLabel: "2026年10月10日", title: "成碟青瓜過大海", items: ["渡海小輪：興建渡輪碼頭、規劃航線，天星小輪來回泊岸接載乘客；船費收入計入運輸公司帳目。", "海濱長廊：沿海陸地逐格鋪設，右鍵切換公共碼頭；更新遊艇會模型同避風塘規劃。", "海面更生動：船尾浪花、夜間岸邊燈光倒影，以及華南海域天氣報告。", "改善大城市縮放及畫面物件排序效能；修正放置失敗時改變地形、內陸沙地出現海水邊緣，以及 Electron 啟動漏檔問題。"] },
     { version: "v4.18.0", date: "2026-10-09", dateLabel: "2026年10月9日", title: "黃金海岸", items: [
       "避風塘旅遊：運作中嘅避風塘每月帶嚟遊客，海鮮酒家、遊艇、海鮮舫同酒店再加；「無處不旅遊」期間避風塘遊客多幾倍，議案費用改為按旅遊收入計，唔會再蝕本。",
@@ -591,6 +592,7 @@ const SITE_CHANGELOG = {
 // title/items text.
 const SITE_CHANGELOG_TRANSLATIONS = {
   "zh-TW": {
+    "v4.20.0": { title: "下一站", items: ["運輸模式重新設計：一鍵切換城市建設／運輸公司，工具分為公車與渡輪兩組，四個附文字的視窗取代一排無標示圖示。", "新手引導：開業清單、工具提示列、放置公車站時即可看到服務範圍與預估乘客、每個視窗都有「?」說明，路線出問題可直接按鈕處理。", "財務圖表與路線乘客趨勢線；城市趨勢圖表加入運輸公司數據。渡輪可依航線增減船隻。", "站牌乘客大增：工作地點與目的地會產生返家乘客；八號風球解除後人潮湧回站牌，不再損失整個月的營收。"] },
     "v4.19.0": { title: "皇后碼頭", items: ["渡輪運輸：興建渡輪碼頭、規劃航線，天星小輪往返靠岸載客；船費收入納入運輸公司帳目。", "海濱步道：沿海陸地逐格鋪設，右鍵切換公共碼頭；更新遊艇會模型與避風塘規劃。", "更生動的海面：船尾浪花、夜間岸邊燈光倒影，以及華南海域天氣報告。", "改善大城市縮放與畫面物件排序效能；修正放置失敗時改變地形、內陸沙地出現海水邊緣，以及 Electron 啟動漏檔問題。"] },
     "v4.18.0": { title: "黃金海岸", items: [
       "避風塘旅遊：運作中的避風塘每月帶來遊客，海鮮酒家、遊艇、海鮮舫與酒店另外加計；「無處不旅遊」期間避風塘遊客多出數倍，議案費用改為依旅遊收入計算，不會再虧本。",
@@ -933,6 +935,7 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   en: {
+    "v4.20.0": { title: "Next Stop", items: ["Transport mode redesigned: one switch between city building and the transport company, bus and ferry tools in their own groups, and four named windows instead of a row of unlabelled icons.", "Getting started: a starter checklist, a hint bar for the tool in hand, a stop's walking range and expected riders before you place it, a \"?\" in every window, and route problems shown with the button that fixes them.", "Finance charts and rider trend lines on every route; transport figures in the city charts. Ferry routes can add or remove ferries.", "Much busier stops: jobs and destinations send riders home, and after a No. 8 signal the waiting crowds return instead of a whole month's fares being lost."] },
     "v4.19.0": { title: "Star Ferry", items: ["Ferry transport: build piers and routes, carry passengers between berths and earn fares through your transport company.", "Waterfront promenades: lay tiles along the coast and right-click to switch public piers; updated yacht club models and typhoon shelter planning.", "A livelier sea: boat wakes, waterfront light reflections at night and South China coastal weather reports.", "Smoother zooming and object sorting in large cities. Fixes unintended terrain painting after refused placements, water edges on inland sand and missing Electron startup files."] },
     "v4.18.0": { title: "Gold Coast", items: [
       "Shelter tourism: a working shelter brings visitors every month, with more for its seafood restaurants, yachts, floating restaurant and hotel; during the Tour Everywhere Campaign shelter visitors multiply, and the campaign is now priced on tourism income so it no longer runs at a loss.",
@@ -1275,6 +1278,7 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   ja: {
+    "v4.20.0": { title: "次、停まります", items: ["運輸モードを刷新：都市建設と運輸会社をワンタッチで切り替え、バスとフェリーのツールを分け、ラベルのないアイコン列を名前付きの 4 つのウィンドウに。", "はじめての方へ：開業チェックリスト、使用中ツールのヒント表示、停留所を置く前に徒歩圏と予想乗客を表示、各ウィンドウに「?」、路線の問題は解決ボタン付きで表示。", "財務グラフと路線ごとの乗客推移を追加し、都市グラフにも運輸会社のデータを表示。フェリー航路は船の増減が可能に。", "停留所の乗客が大幅増：職場や目的地から帰宅する乗客が生まれ、8 号シグナル解除後は待ち客が戻るため、1 か月分の運賃を失わなくなりました。"] },
     "v4.19.0": { title: "スターフェリー", items: ["フェリー輸送：埠頭と航路を整備し、両岸で乗客を乗降させます。運賃収入は運輸会社の会計に反映されます。", "海辺の遊歩道：海沿いの陸地に敷設し、右クリックで公共埠頭に切り替え。ヨットクラブのモデルと避風塘の計画も更新。", "生き生きとした海：船の航跡、夜の岸辺の照明の水面反射、華南沿岸海域の気象情報を追加。", "大都市のズームと描画順の処理を改善。設置に失敗した際の地形変更、内陸の砂地に出る水際表示、Electron の起動ファイル不足を修正。"] },
     "v4.18.0": { title: "ゴールドコースト", items: [
       "避風塘の観光：稼働中の避風塘は毎月観光客を呼び、海鮮レストラン、ヨット、海上レストラン、ホテルでさらに増えます。「どこでも観光」キャンペーン中は避風塘の観光客が数倍になり、キャンペーン費用は観光収入に応じた額になって赤字になりません。",
@@ -1642,8 +1646,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.19.0 — 【成碟青瓜過大海】",
-      versionDesc: "4.19.0 更新：搭天星小輪過海——起碼頭、開航線、接載乘客賺船費。沿岸鋪海濱長廊，睇船尾浪花同夜間燈光倒影；縮放大城市亦更順。",
+      versionBadge: "v4.20.0 — 【有落】",
+      versionDesc: "4.20.0 更新：運輸模式全面重新設計——一鍵切換、工具分巴士同渡輪、四個有字視窗、開業清單同圖表；站頭乘客大增，八號風球過後人潮湧返。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感嘅城市建設遊戲。起街道、規劃社區、經營自己嘅香城巴士公司、處理議會同天氣，再睇住一座有性格嘅香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1742,8 +1746,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.19.0 — 【皇后碼頭】",
-      versionDesc: "4.19.0 更新：搭乘天星小輪渡海——興建碼頭、開闢航線、載客收取船費。沿岸鋪設海濱步道，欣賞船尾浪花與夜間燈光倒影；大城市縮放也更流暢。",
+      versionBadge: "v4.20.0 — 【下一站】",
+      versionDesc: "4.20.0 更新：運輸模式全面重新設計——一鍵切換、工具分為公車與渡輪、四個附文字視窗、開業清單與圖表；站牌乘客大增，八號風球解除後人潮湧回。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感的城市建設遊戲。興建街道、規劃社區、經營自己的香城公車公司、處理議會與天氣，看著一座有個性的香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1842,8 +1846,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "The City of Heung Shing",
       title: "The City of Heung Shing",
-      versionBadge: "v4.19.0 — 【Star Ferry】",
-      versionDesc: "4.19.0 update: sail across the harbour on the Star Ferry. Build piers, open routes and earn passenger fares. Add waterfront promenades, boat wakes and night reflections, with smoother zooming in large cities.",
+      versionBadge: "v4.20.0 — 【Next Stop】",
+      versionDesc: "4.20.0 update: a redesigned transport mode with a one-click switch, bus and ferry tool groups, four named windows, a starter checklist and charts. Stops get far busier, and crowds return after a No. 8 signal.",
       lede: "A city-building game inspired by Hong Kong life and made in tribute to SimCity 2000. Build streets, shape neighbourhoods, run your own Heung Shing Bus Company, navigate council politics and weather, then watch a city with real personality grow.",
       freeLabel: "Completely free · macOS + Windows · Local saves",
       downloadBtn: "【Free Download】",
@@ -1943,8 +1947,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.19.0 — 【スターフェリー】",
-      versionDesc: "4.19.0 更新：スターフェリーで港を横断。埠頭と航路を整備し、乗客を運んで運賃を獲得。海辺の遊歩道、船の航跡、夜の水面反射を追加し、大都市のズームも改善しました。",
+      versionBadge: "v4.20.0 — 【次、停まります】",
+      versionDesc: "4.20.0 更新：運輸モードを全面刷新。ワンタッチ切替、バスとフェリーのツール、名前付きの 4 ウィンドウ、開業チェックリストとグラフを追加。停留所の乗客が大幅に増え、8 号シグナル解除後は待ち客が戻ります。",
       lede: "香港の都市生活から着想を得た、SimCity 2000へのオマージュとなる都市建設ゲーム。道路を築き、地区を計画し、自分だけの香城バス会社を経営し、議会や天候に向き合いながら、個性ある香城の成長を見守ります。",
       freeLabel: "完全無料 · macOS + Windows · ローカルセーブ",
       downloadBtn: "【無料ダウンロード】",

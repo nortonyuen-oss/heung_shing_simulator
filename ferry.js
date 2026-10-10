@@ -67,7 +67,9 @@ function normalizeFerryState(raw) {
     if (!p?.id || !Number.isFinite(row) || !Number.isFinite(col) || !FERRY_DIRS[p.land]) return null;
     return { id: String(p.id).slice(0, 40), row, col, land: p.land, name: String(p.name || '').slice(0, 40),
       // its queue: fractional, so a quiet pier's few riders an hour still add up
-      waiting: Math.max(0, Math.min(9999, Number(p.waiting) || 0)) };
+      waiting: Math.max(0, Math.min(9999, Number(p.waiting) || 0)),
+      // riders held back by a storm signal (as for bus stops, transport-expansion.js)
+      stormBacklog: Math.max(0, Math.min(9999, Number(p.stormBacklog) || 0)) };
   }).filter(Boolean);
   const pierIds = new Set(piers.map((p) => p.id));
   const legacyFleet = new Map();   // a save from before the fleet: route id -> [ferries' passengers aboard]
@@ -108,7 +110,12 @@ function normalizeFerryState(raw) {
   }
   const used = vessels.map((v) => Number(String(v.id).replace(/^ferry-/, '')) || 0);
   nextVesselId = Math.max(nextVesselId, ...used.map((n) => n + 1));
-  return { piers, routes, vessels, nextId: Math.max(1, Math.floor(Number(src.nextId) || 1)), nextVesselId };
+  const surge = Number(src.stormSurgeHour);
+  return {
+    piers, routes, vessels, nextId: Math.max(1, Math.floor(Number(src.nextId) || 1)), nextVesselId,
+    // the hour a storm's held-back riders last reached the piers (accrueFerryPiersForHour)
+    stormSurgeHour: src.stormSurgeHour !== null && Number.isInteger(surge) && surge >= 0 && surge < 24 ? surge : null,
+  };
 }
 
 // One ferry of the company's (a Star Ferry): its place in its route's timetable (`phase`, the share
@@ -733,18 +740,33 @@ function ferryHash(id, n) {
 }
 
 function accrueFerryPiersForHour(state, envHour) {
-  if (typeof isTransportSevereWeather === 'function' && isTransportSevereWeather()) return;
   if (typeof getTransportStopRidersForHour !== 'function') return;
+  const severe = typeof isTransportSevereWeather === 'function' && isTransportSevereWeather();
+  const keep = typeof TRANSPORT_STORM_BACKLOG_KEEP === 'number' ? TRANSPORT_STORM_BACKLOG_KEEP : 0.7;
   const dayStart = typeof GAME_DAY_START_MINUTES === 'number' ? GAME_DAY_START_MINUTES : 360;
   const hour = ((envHour + Math.floor(dayStart / 60)) % 24 + 24) % 24;
   const served = new Set(state.routes.flatMap((r) => r.pierIds));
   const resetHour = typeof TRANSPORT_STOP_POOL_RESET_HOUR === 'number' ? TRANSPORT_STOP_POOL_RESET_HOUR : 4;
   const share = (typeof TRANSPORT_STOP_DAILY_BOARDING_SHARE === 'number' ? TRANSPORT_STOP_DAILY_BOARDING_SHARE : 0.75) * FERRY.boardingShare;
+  if (severe) {
+    // the ferries are tied up; the crossings people meant to make wait for the signal to drop
+    state.piers.forEach((pier) => {
+      if (!served.has(pier.id)) return;
+      pier.stormBacklog = Math.min(9999, (Number(pier.stormBacklog) || 0) + getTransportStopRidersForHour(ferryPierCatchmentPoint(pier), hour, share));
+    });
+    return;
+  }
+  const releasing = state.piers.some((pier) => (Number(pier.stormBacklog) || 0) > 0);
+  const reset = hour === resetHour && !releasing
+    && (typeof shouldClearTransportPoolAfterStorm !== 'function' || shouldClearTransportPoolAfterStorm(state, hour));
   state.piers.forEach((pier) => {
+    const backlog = Number(pier.stormBacklog) || 0;
+    pier.stormBacklog = 0;
     if (!served.has(pier.id)) { pier.waiting = 0; return; }
-    const current = hour === resetHour ? 0 : (Number(pier.waiting) || 0);
-    pier.waiting = Math.min(9999, current + getTransportStopRidersForHour(ferryPierCatchmentPoint(pier), hour, share));
+    const current = reset ? 0 : (Number(pier.waiting) || 0);
+    pier.waiting = Math.min(9999, current + getTransportStopRidersForHour(ferryPierCatchmentPoint(pier), hour, share) + backlog * keep);
   });
+  if (releasing) state.stormSurgeHour = hour;
 }
 
 // Every ferry that berthed in environment minutes (from, to]: lands its passengers, takes the
@@ -884,7 +906,7 @@ function setFerryRouteSuspended(routeId, suspended) {
 // The month for the company's books (settleTransportMonth): the fares (credited as they berthed),
 // the passengers, and the costs - each ferry's upkeep and its tiles sailed, each pier's upkeep.
 // Each route's month goes into its history; the counts start again.
-function settleFerryMonth() {
+function settleFerryMonth(ended = null) {
   const state = getFerryState();
   const out = { revenue: 0, passengers: 0, cost: 0, vesselCost: 0, pierCost: 0 };
   state.routes.forEach((route) => {
@@ -895,7 +917,8 @@ function settleFerryMonth() {
     out.vesselCost += cost;
     if (!Array.isArray(route.history)) route.history = [];
     route.history.push({
-      year: typeof city !== 'undefined' ? city.year : 0, month: typeof city !== 'undefined' ? city.month : 0,
+      year: ended ? ended.year : (typeof city !== 'undefined' ? city.year : 0),
+      month: ended ? ended.month : (typeof city !== 'undefined' ? city.month : 0),
       passengers: route.monthToDatePassengers, revenue: Math.round(route.monthToDateRevenue * 100) / 100,
       cost: Math.round(cost * 100) / 100, net: Math.round((route.monthToDateRevenue - cost) * 100) / 100,
     });

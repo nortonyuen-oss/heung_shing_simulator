@@ -122,7 +122,7 @@ test('the ferry state keeps only what is whole: piers with a shore side, routes 
   assert.equal(s.vessels.length, 1);
   assert.equal(s.vessels[0].routeId, 'f1');
   assert.equal(s.nextId, 7);
-  assert.deepEqual(normalizeFerryState(undefined), { piers: [], routes: [], vessels: [], nextId: 1, nextVesselId: 1 });
+  assert.deepEqual(normalizeFerryState(undefined), { piers: [], routes: [], vessels: [], nextId: 1, nextVesselId: 1, stormSurgeHour: null });
 });
 
 test('the fleet: two ferries of a legacy route spaced evenly, their passengers kept; ferries of a lost route dropped', () => {

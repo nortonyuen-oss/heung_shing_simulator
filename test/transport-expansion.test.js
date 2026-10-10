@@ -173,9 +173,9 @@ test('managed buses use road slope factors and retain stop dwell and boarding', 
   assert.ok(context.bus.dwellMinutesRemaining > 0 && context.bus.dwellMinutesRemaining < context.arrivalDwell);
 });
 
-test('old cities default to a disabled schema-v3 state with no routes or vehicles', () => {
+test('old cities default to a disabled schema-v4 state with no routes or vehicles', () => {
   const oldCity = transport.normalizeTransportExpansionState(undefined);
-  assert.equal(oldCity.schemaVersion, 3);
+  assert.equal(oldCity.schemaVersion, 4);
   assert.equal(oldCity.enabled, false);
   assert.equal(oldCity.unlocked, false);
   assert.deepEqual(oldCity.routes, []);
@@ -184,7 +184,7 @@ test('old cities default to a disabled schema-v3 state with no routes or vehicle
   assert.equal(oldCity.company.cash, 0);
 });
 
-test('v1 saves migrate to schema v3: route bus counts become grandfathered vehicles, startup credit becomes company cash', () => {
+test('v1 saves migrate to schema v4: route bus counts become grandfathered vehicles, startup credit becomes company cash', () => {
   const history = Array.from({ length: 30 }, (_, index) => ({
     year: 1900 + Math.floor(index / 12),
     month: index % 12 + 1,
@@ -206,7 +206,7 @@ test('v1 saves migrate to schema v3: route bus counts become grandfathered vehic
       history,
     }],
   });
-  assert.equal(restored.schemaVersion, 3);
+  assert.equal(restored.schemaVersion, 4);
   assert.equal(restored.lastSettledMonthIndex, 0);
   // raw fare 9 is below the new TRANSPORT_FARE_MIN (15) and clamps up to it.
   assert.equal(restored.routes[0].fare, 15);
@@ -234,7 +234,7 @@ test('v2 companies receive the corrected founding grant once, without changing u
     unlocked: true,
     company: { cash: 40, foundedYear: 1900, foundedMonth: 1 },
   });
-  assert.equal(founded.schemaVersion, 3);
+  assert.equal(founded.schemaVersion, 4);
   assert.equal(founded.company.cash, 5440);
 
   const restoredAgain = transport.normalizeTransportExpansionState(founded);
@@ -970,6 +970,57 @@ test('workplaces send riders home in the evening, and fractional arrivals are ca
   assert.ok(home.every((n) => n >= 0) && work.filter((n) => n === 0).length < 6, 'even quiet hours add riders once the carry fills');
 });
 
+test('riders held back by signal 8 join the queues when it comes down, and the next 04:00 clear waits for them', () => {
+  const context = createTransportVm();
+  vm.runInContext(`
+    setExpansionEnabled('transport', true, { notify: false, autosave: false });
+    stopIds = listTransportStopSites().map((stop) => stop.id);
+    ensureTransportStopPairs(stopIds, null);
+    stop = getTransportStopById(stopIds.find((id) => getTransportStopById(id).col === 2));
+    accrueTransportStopCommutersForHour(TRANSPORT_STOP_POOL_RESET_HOUR);
+    city.weather.typhoonStage = 'signal8';
+    for (let hour = 6; hour < 18; hour++) accrueTransportStopCommutersForHour(hour);
+    storedDuringStorm = stop.waitingPassengers;
+    backlog = stop.stormBacklog;
+    expectedBacklog = 0;
+    for (let hour = 6; hour < 18; hour++) expectedBacklog += getTransportStopRidersForHour(stop, hour);
+    city.weather.typhoonStage = 'none';
+    beforeRelease = getTransportStopWaitingCount(stop.id);
+    accrueTransportStopCommutersForHour(18);
+    afterRelease = getTransportStopWaitingCount(stop.id);
+    hourAlone = getTransportStopRidersForHour(stop, 18);
+    // through to 04:00 the next morning (hour 28), ten hours after the signal came down
+    for (let hour = 19; hour <= 28; hour++) accrueTransportStopCommutersForHour(hour % 24);
+    afterSkippedClear = getTransportStopWaitingCount(stop.id);
+    surgeAfterClear = getTransportExpansionState().stormSurgeHour;
+    // and on to the following 04:00 (hour 52)
+    for (let hour = 29; hour <= 52; hour++) accrueTransportStopCommutersForHour(hour % 24);
+    afterNormalClear = getTransportStopWaitingCount(stop.id);
+  `, context);
+  assert.ok(Math.abs(context.backlog - context.expectedBacklog) < 1e-6, 'every storm hour is held back');
+  assert.equal(context.storedDuringStorm, context.beforeRelease, 'nobody joins the visible queue during the storm');
+  const released = context.afterRelease - context.beforeRelease;
+  assert.ok(Math.abs(released - (context.backlog * 0.7 + context.hourAlone)) <= 1, `70% of the backlog arrives at once, got ${released}`);
+  assert.ok(context.afterSkippedClear > context.afterRelease, 'the 04:00 ten hours later does not clear the surge');
+  assert.equal(context.surgeAfterClear, null);
+  assert.ok(context.afterNormalClear < context.afterSkippedClear, 'the next day clears as usual');
+});
+
+test('v3 saves move their history back to the month it covers, once', () => {
+  const v3 = {
+    schemaVersion: 3,
+    enabled: true,
+    financeHistory: [{ year: 3027, month: 1, passengers: 9 }, { year: 3027, month: 2, passengers: 8 }],
+    routes: [{ id: 'route-1', name: 'A', stopIds: [], history: [{ year: 3027, month: 9, passengers: 5 }] }],
+  };
+  const migrated = transport.normalizeTransportExpansionState(v3);
+  assert.equal(migrated.schemaVersion, 4);
+  assert.deepEqual(migrated.financeHistory.map((e) => [e.year, e.month]), [[3026, 12], [3027, 1]]);
+  assert.deepEqual(migrated.routes[0].history.map((e) => [e.year, e.month]), [[3027, 8]]);
+  const again = transport.normalizeTransportExpansionState(JSON.parse(JSON.stringify(migrated)));
+  assert.deepEqual(again.financeHistory.map((e) => [e.year, e.month]), [[3026, 12], [3027, 1]]);
+});
+
 test('pre-v0.6 dev saves with x10,000-scale money load back onto the stylized scale', () => {
   const restored = transport.normalizeTransportExpansionState({
     schemaVersion: 2,
@@ -1022,9 +1073,10 @@ test('three consecutive months in the red auto-suspend every route, and vehicles
   assert.equal(context.monthsInDebtAfterSuspend, 0);
   assert.equal(context.ageAfterThreeMonths, 3);
   assert.equal(context.financeHistory.length, 3);
+  // each settlement, run as months 1, 2 and 3 begin, reports the month that just ended
   assert.deepEqual(
     Array.from(context.financeHistory, (entry) => entry.month),
-    [1, 2, 3],
+    [12, 1, 2],
   );
   assert.ok(context.financeHistory.every((entry) => Number.isFinite(entry.net)));
 });
@@ -1188,7 +1240,9 @@ test('browser wiring keeps simulation state out of the visual frame loop', () =>
   assert.ok(html.indexOf('transport-expansion.js') < html.indexOf('transport-visuals.js'));
   assert.ok(html.indexOf('transport-visuals.js') < html.indexOf('main.js'));
   assert.match(simulation, /updateTransportSimulation\(\)[\s\S]*updateTrafficMap\(\)/);
-  assert.match(economy, /settleTransportMonth\(\)/);
+  // the company's month closes as the calendar turns, not on the pulse count
+  assert.doesNotMatch(economy, /settleTransportMonth\(\)/);
+  assert.match(fs.readFileSync(path.join(ROOT, 'game-clock.js'), 'utf8'), /monthAdvanced && typeof settleTransportMonth === 'function'\) settleTransportMonth\(\)/);
   assert.doesNotMatch(visuals, /Object\.entries\(buildingData\)|for\s*\([^)]*MAP_(?:WIDTH|HEIGHT)/);
   assert.match(visuals, /getTransportVehiclePathPosition\(backing/);
   assert.doesNotMatch(visuals, /Math\.random\(\)|computeTrafficProgressAmount\(/);

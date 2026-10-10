@@ -8,7 +8,7 @@
 // city-building rhythm.
 
 const TRANSPORT_EXPANSION_ID = 'transport';
-const TRANSPORT_EXPANSION_SCHEMA_VERSION = 3;
+const TRANSPORT_EXPANSION_SCHEMA_VERSION = 4;
 const TRANSPORT_EXPANSION_UNLOCK_POPULATION = 3000;
 // v1's "credit that falls through to city.budget" is gone as of schema v2 -
 // the company now has its own real treasury (company.cash), seeded once at
@@ -148,6 +148,13 @@ const TRANSPORT_RETURN_HOUR_BIAS = Object.freeze([
   0.5, 0.5, 0.5, 0.5, 1, 1, 1, 1, 1, 1, 1, 0.4,
 ]);
 const TRANSPORT_STOP_POOL_RESET_HOUR = 4;
+// At signal 8 and above nothing runs, but the trips people meant to make pile up behind the
+// signal (stop.stormBacklog). When it comes down most of them still want to travel and join
+// the queues at once, and the next 04:00 clear is skipped if it falls within
+// TRANSPORT_STORM_SURGE_HOLD_HOURS of that, so the crowd is still there to be carried. With a
+// sky-day a whole month, a storm used to wipe out most of a month's riders.
+const TRANSPORT_STORM_BACKLOG_KEEP = 0.7;
+const TRANSPORT_STORM_SURGE_HOLD_HOURS = 12;
 const TRANSPORT_STOP_WAITING_CAP = 9999;
 // This epsilon keeps tile count strictly ahead of turn count even on a full
 // 256x256 route, while still breaking equal-length ties in favour of fewer
@@ -394,6 +401,7 @@ function normalizeTransportStop(raw, fallbackIndex) {
     waitingPassengers: transportClamp(
       Math.floor(Number(raw.waitingPassengers) || 0), 0, TRANSPORT_STOP_WAITING_CAP,
     ),
+    stormBacklog: transportClamp(Number(raw.stormBacklog) || 0, 0, TRANSPORT_STOP_WAITING_CAP),
   };
   // Saves created before persistent queues existed have no queue value to
   // restore. Preserve that distinction as a non-enumerable migration marker;
@@ -642,6 +650,14 @@ function normalizeTransportExpansionState(raw) {
     };
   }
 
+  let financeHistory = normalizeTransportFinanceHistory(source.financeHistory);
+  const ferry = typeof normalizeFerryState === 'function' ? normalizeFerryState(source.ferry) : source.ferry;
+  if (sourceVersion < 4) {
+    financeHistory = shiftTransportHistoryMonthBack(financeHistory);
+    routes.forEach((route) => { route.history = shiftTransportHistoryMonthBack(route.history); });
+    (ferry?.routes || []).forEach((route) => { route.history = shiftTransportHistoryMonthBack(route.history); });
+  }
+
   return {
     ...defaults,
     schemaVersion: TRANSPORT_EXPANSION_SCHEMA_VERSION,
@@ -656,7 +672,7 @@ function normalizeTransportExpansionState(raw) {
     routes,
     vehicles,
     // 渡海小輪 (ferry.js): its piers, routes and ferries, in the same company
-    ferry: typeof normalizeFerryState === 'function' ? normalizeFerryState(source.ferry) : source.ferry,
+    ferry,
     commissionedDepotIds: Array.from(new Set(
       (Array.isArray(source.commissionedDepotIds) ? source.commissionedDepotIds : [])
         .map((id) => String(id || '').slice(0, 80))
@@ -675,9 +691,25 @@ function normalizeTransportExpansionState(raw) {
         ? Object.fromEntries(Object.entries(source.lastFinancials).map(([key, value]) => [key, Number(value) || 0]))
         : {}),
     },
-    financeHistory: normalizeTransportFinanceHistory(source.financeHistory),
+    financeHistory,
     monthsInDebt: Math.max(0, Math.floor(Number(source.monthsInDebt) || 0)),
+    // the hour a storm's backlog last joined the queues, until the next 04:00 clear
+    stormSurgeHour: normalizeTransportStormSurgeHour(source.stormSurgeHour),
   };
+}
+
+function normalizeTransportStormSurgeHour(value) {
+  const hour = Number(value);
+  return value !== null && Number.isInteger(hour) && hour >= 0 && hour < 24 ? hour : null;
+}
+
+// Whether the 04:00 clear goes ahead, given the hour a storm's riders were last let
+// loose (null when none since the last clear). Clears the mark either way.
+function shouldClearTransportPoolAfterStorm(holder, hour) {
+  const surge = holder.stormSurgeHour;
+  holder.stormSurgeHour = null;
+  if (surge === null || surge === undefined) return true;
+  return ((hour - surge + 24) % 24) >= TRANSPORT_STORM_SURGE_HOLD_HOURS;
 }
 
 function getTransportExpansionState() {
@@ -1455,19 +1487,35 @@ function getTransportStopAlightingDraw(stop) {
 const transportStopArrivalRemainders = new Map();
 
 function accrueTransportStopCommutersForHour(displayHour) {
-  if (!isTransportExpansionActive() || isTransportSevereWeather()) return;
+  if (!isTransportExpansionActive()) return;
   const hour = ((Math.floor(Number(displayHour) || 0) % 24) + 24) % 24;
-  const reset = hour === TRANSPORT_STOP_POOL_RESET_HOUR;
   const state = getTransportExpansionState();
+  if (isTransportSevereWeather()) {
+    for (const stop of state.stops) {
+      if (!isTransportStopPresent(stop)) continue;
+      stop.stormBacklog = Math.min(
+        TRANSPORT_STOP_WAITING_CAP,
+        (Number(stop.stormBacklog) || 0) + getTransportStopRidersForHour(stop, hour),
+      );
+    }
+    return;
+  }
+  const releasing = state.stops.some((stop) => (Number(stop.stormBacklog) || 0) > 0 && isTransportStopPresent(stop));
+  const reset = hour === TRANSPORT_STOP_POOL_RESET_HOUR && !releasing
+    && shouldClearTransportPoolAfterStorm(state, hour);
   for (const stop of state.stops) {
     if (!isTransportStopPresent(stop)) continue;
+    const backlog = Number(stop.stormBacklog) || 0;
+    stop.stormBacklog = 0;
     const current = reset ? 0 : Math.max(0, Math.floor(Number(stop.waitingPassengers) || 0));
     const exact = (reset ? 0 : transportStopArrivalRemainders.get(stop.id) || 0)
-      + getTransportStopRidersForHour(stop, hour);
+      + getTransportStopRidersForHour(stop, hour)
+      + backlog * TRANSPORT_STORM_BACKLOG_KEEP;
     const arrivals = Math.floor(exact);
     transportStopArrivalRemainders.set(stop.id, exact - arrivals);
     setTransportStopWaitingCount(stop, current + arrivals);
   }
+  if (releasing) state.stormSurgeHour = hour;
 }
 
 // Kept for callers that seed a whole day's pool at once (tests, route
@@ -2583,6 +2631,24 @@ function updateTransportSimulation() {
   return transportRuntime.summary;
 }
 
+// The month a settlement reports on: the one that just ended. Settlement runs as the
+// calendar turns (game-clock.js), with city.month already the new month.
+function getTransportEndedMonth() {
+  const year = typeof city === 'undefined' ? 0 : city.year;
+  const month = typeof city === 'undefined' ? 1 : city.month;
+  return month > 1 ? { year, month: month - 1 } : { year: year - 1, month: 12 };
+}
+
+// v3 -> v4: history used to be labelled with the month a settlement ran in, the month
+// after the one it covered. Each entry moves back to its own month, once.
+function shiftTransportHistoryMonthBack(entries) {
+  return (Array.isArray(entries) ? entries : []).map((entry) => {
+    if (!entry || typeof entry !== 'object') return entry;
+    const month = Math.floor(Number(entry.month) || 1);
+    return month > 1 ? { ...entry, month: month - 1 } : { ...entry, year: Math.floor(Number(entry.year) || 0) - 1, month: 12 };
+  });
+}
+
 function settleTransportMonth() {
   const state = getTransportExpansionState();
   const monthIndex = typeof city === 'undefined' ? 0 : city.year * 12 + city.month - 1;
@@ -2594,6 +2660,7 @@ function settleTransportMonth() {
     return state.lastFinancials;
   }
   updateTransportSimulation();
+  const ended = getTransportEndedMonth();
   // §12: revenue was already credited to company.cash in real time as each
   // rider alighted (dwellTransportVehicleAtStop) - this pass only *reports*
   // the month's real totals and debits the month's real running costs
@@ -2611,8 +2678,8 @@ function settleTransportMonth() {
       routeOperations += routeCost;
     }
     route.history.push({
-      year: city.year,
-      month: city.month,
+      year: ended.year,
+      month: ended.month,
       passengers: route.monthToDatePassengers,
       revenue: transportRoundMoney(route.monthToDateRevenue),
       cost: routeCost,
@@ -2633,7 +2700,7 @@ function settleTransportMonth() {
   }
   // the ferries' fares, credited as they berthed (ferry.js), reported with the buses' - and their
   // costs, the ferries' upkeep and running and the piers', paid with the depots'
-  const ferryMonth = typeof settleFerryMonth === 'function' ? settleFerryMonth() : { revenue: 0, passengers: 0, cost: 0 };
+  const ferryMonth = typeof settleFerryMonth === 'function' ? settleFerryMonth(ended) : { revenue: 0, passengers: 0, cost: 0 };
   revenue += ferryMonth.revenue;
   const depotUpkeep = getConnectedCommissionedTransportDepots().length * TRANSPORT_DEPOT_MONTHLY_UPKEEP;
   const ferryOperations = Number(ferryMonth.cost) || 0;
@@ -2652,8 +2719,8 @@ function settleTransportMonth() {
     net: roundedRevenue - cost,
   };
   state.financeHistory.push({
-    year: city.year,
-    month: city.month,
+    year: ended.year,
+    month: ended.month,
     passengers: state.routes.reduce((sum, route) => (
       sum + (route.history.at(-1)?.passengers || 0)
     ), 0) + ferryMonth.passengers,
@@ -2759,6 +2826,7 @@ const transportExpansionTestApi = {
   TRANSPORT_STOP_DAILY_BOARDING_SHARE,
   TRANSPORT_RIDER_SHARE,
   TRANSPORT_STOP_POOL_RESET_HOUR,
+  TRANSPORT_STORM_BACKLOG_KEEP,
   TRANSPORT_STOP_WAITING_CAP,
   TRANSPORT_DEFAULT_VEHICLE_CLASS_ID,
   TRANSPORT_VEHICLE_CLASSES,

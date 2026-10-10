@@ -260,6 +260,11 @@ function advanceCalendarDay() {
     }
   }
 
+  // The transport company's month closes as the calendar turns. It used to close on
+  // every fourth simulation pulse, which only matched the calendar while the pulse
+  // count stayed in step with it (transport-expansion.js).
+  if (monthAdvanced && typeof settleTransportMonth === 'function') settleTransportMonth();
+
   const payload = { day: city.day, month: city.month, year: city.year, speed: getGameSpeed() };
   emitGameClockEvent('gameclock:day', payload);
   if (monthAdvanced) {

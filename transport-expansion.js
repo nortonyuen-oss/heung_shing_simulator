@@ -131,8 +131,22 @@ const TRANSPORT_BANKRUPTCY_GRACE_MONTHS = 3;
 // 08:30 and 18:00 peaks and are empty before dawn - and the pool is cleared
 // once a day at TRANSPORT_STOP_POOL_RESET_HOUR so unserved riders do not
 // stack into an unrealistic crowd. Vehicles reaching the stop subtract from
-// the current pool.
-const TRANSPORT_STOP_DAILY_BOARDING_SHARE = 0.15;
+// the current pool. One sky-day is a whole calendar month of fares, so the
+// share was raised from 0.15 to 0.75 (2026-10): at 0.15 a stop by 9,000
+// residents queued ~245 riders a month and every bus ran ~1% full.
+//
+// Riders are counted from both ends of the commute: residents leave home
+// (origin units, along the whole traffic curve) and workers and visitors head
+// home again from their jobs and destinations (return units, weighted to the
+// evening by TRANSPORT_RETURN_HOUR_BIAS), so stops in shopping and industrial
+// streets have a queue too.
+const TRANSPORT_STOP_DAILY_BOARDING_SHARE = 0.75;
+// share of residents (origin) and of destination units (return) who ride
+const TRANSPORT_RIDER_SHARE = 0.18;
+const TRANSPORT_RETURN_HOUR_BIAS = Object.freeze([
+  0.4, 0.4, 0.4, 0.4, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.5,
+  0.5, 0.5, 0.5, 0.5, 1, 1, 1, 1, 1, 1, 1, 0.4,
+]);
 const TRANSPORT_STOP_POOL_RESET_HOUR = 4;
 const TRANSPORT_STOP_WAITING_CAP = 9999;
 // This epsilon keeps tile count strictly ahead of turn count even on a full
@@ -255,6 +269,8 @@ function createEmptyTransportFinancials() {
     revenue: 0,
     routeOperations: 0,
     depotUpkeep: 0,
+    // the ferries' and piers' upkeep and running (ferry.js)
+    ferryOperations: 0,
     cost: 0,
     net: 0,
   };
@@ -276,6 +292,7 @@ function normalizeTransportFinanceHistory(raw) {
         revenue: transportRoundMoney(financials.revenue),
         routeOperations: transportRoundMoney(financials.routeOperations),
         depotUpkeep: transportRoundMoney(financials.depotUpkeep),
+        ferryOperations: transportRoundMoney(financials.ferryOperations),
         cost: transportRoundMoney(financials.cost),
         net: Math.round(Number(financials.net) || 0),
         closingCash: Math.round(Number(entry.closingCash) || 0),
@@ -1285,10 +1302,7 @@ function seedLegacyTransportWaitingQueues() {
   for (const stop of getTransportExpansionState().stops) {
     if (stop.needsWaitingPassengerSeed !== true) continue;
     const arrivals = isTransportStopPresent(stop)
-      ? Math.round(
-          getTransportStopCatchmentUnits(stop).originUnits
-          * TRANSPORT_STOP_DAILY_BOARDING_SHARE,
-        )
+      ? Math.round(getTransportStopDailyRiders(stop))
       : 0;
     setTransportStopWaitingCount(stop, arrivals);
     delete stop.needsWaitingPassengerSeed;
@@ -1323,8 +1337,8 @@ function dwellTransportVehicleAtStop(vehicle, route, stop) {
   if (vehicle.passengersAboard > 0) {
     const stops = route.stopIds.map(getTransportStopById).filter(Boolean);
     let totalDestinationUnits = 0;
-    for (const routeStop of stops) totalDestinationUnits += getTransportStopCatchmentUnits(routeStop).destinationUnits;
-    const stopDestinationUnits = getTransportStopCatchmentUnits(stop).destinationUnits;
+    for (const routeStop of stops) totalDestinationUnits += getTransportStopAlightingDraw(routeStop);
+    const stopDestinationUnits = getTransportStopAlightingDraw(stop);
     const alightShare = totalDestinationUnits > 0
       ? transportClamp(stopDestinationUnits / totalDestinationUnits, 0.05, 0.6)
       : 0.2;
@@ -1388,6 +1402,7 @@ function dwellTransportVehicleAtStop(vehicle, route, stop) {
 // Boarding is exclusively performed by advanceTransportVehiclesByDisplayMinutes
 // when a vehicle reaches a stop, so several vehicles share one queue.
 let transportHourlyPoolWeights = null;
+let transportReturnHourlyPoolWeights = null;
 function getTransportHourlyPoolWeights() {
   if (transportHourlyPoolWeights) return transportHourlyPoolWeights;
   const raw = [];
@@ -1401,19 +1416,55 @@ function getTransportHourlyPoolWeights() {
   return transportHourlyPoolWeights;
 }
 
+// The homeward half of the commute: the same traffic curve leant towards the
+// evening, so a stop among offices and factories fills after work.
+function getTransportReturnHourlyPoolWeights() {
+  if (transportReturnHourlyPoolWeights) return transportReturnHourlyPoolWeights;
+  const raw = getTransportHourlyPoolWeights().map((value, hour) => value * TRANSPORT_RETURN_HOUR_BIAS[hour]);
+  const total = raw.reduce((sum, value) => sum + value, 0) || 1;
+  transportReturnHourlyPoolWeights = raw.map((value) => value / total);
+  return transportReturnHourlyPoolWeights;
+}
+
+// Riders a stop's catchment sends out in a whole sky-day, both directions.
+function getTransportStopDailyRiders(stop, share = TRANSPORT_STOP_DAILY_BOARDING_SHARE) {
+  const units = getTransportStopCatchmentUnits(stop);
+  return (units.originUnits + (units.returnUnits || 0)) * share;
+}
+
+// ...and in one hour of it (unrounded: the caller keeps the fraction).
+function getTransportStopRidersForHour(stop, hour, share = TRANSPORT_STOP_DAILY_BOARDING_SHARE) {
+  const units = getTransportStopCatchmentUnits(stop);
+  return (
+    units.originUnits * getTransportHourlyPoolWeights()[hour]
+    + (units.returnUnits || 0) * getTransportReturnHourlyPoolWeights()[hour]
+  ) * share;
+}
+
+// Where riders get off: workplaces and destinations for the outward trip,
+// homes for the trip back.
+function getTransportStopAlightingDraw(stop) {
+  const units = getTransportStopCatchmentUnits(stop);
+  return units.destinationUnits + units.originUnits;
+}
+
+// Hourly arrivals are fractional - a quiet stop gains 0.3 of a rider an hour -
+// so the part not yet a whole person is carried to the next hour instead of
+// being rounded away (rounding left small stops at 0 most of the day).
+const transportStopArrivalRemainders = new Map();
+
 function accrueTransportStopCommutersForHour(displayHour) {
   if (!isTransportExpansionActive() || isTransportSevereWeather()) return;
   const hour = ((Math.floor(Number(displayHour) || 0) % 24) + 24) % 24;
-  const weight = getTransportHourlyPoolWeights()[hour];
+  const reset = hour === TRANSPORT_STOP_POOL_RESET_HOUR;
   const state = getTransportExpansionState();
   for (const stop of state.stops) {
     if (!isTransportStopPresent(stop)) continue;
-    const current = hour === TRANSPORT_STOP_POOL_RESET_HOUR
-      ? 0
-      : Math.max(0, Math.floor(Number(stop.waitingPassengers) || 0));
-    const arrivals = Math.round(
-      getTransportStopCatchmentUnits(stop).originUnits * TRANSPORT_STOP_DAILY_BOARDING_SHARE * weight,
-    );
+    const current = reset ? 0 : Math.max(0, Math.floor(Number(stop.waitingPassengers) || 0));
+    const exact = (reset ? 0 : transportStopArrivalRemainders.get(stop.id) || 0)
+      + getTransportStopRidersForHour(stop, hour);
+    const arrivals = Math.floor(exact);
+    transportStopArrivalRemainders.set(stop.id, exact - arrivals);
     setTransportStopWaitingCount(stop, current + arrivals);
   }
 }
@@ -1425,9 +1476,7 @@ function simulateTransportVehiclesDaily() {
   const state = getTransportExpansionState();
   for (const stop of state.stops) {
     if (!isTransportStopPresent(stop)) continue;
-    const arrivals = Math.round(
-      getTransportStopCatchmentUnits(stop).originUnits * TRANSPORT_STOP_DAILY_BOARDING_SHARE,
-    );
+    const arrivals = Math.round(getTransportStopDailyRiders(stop));
     setTransportStopWaitingCount(stop, arrivals);
   }
 }
@@ -1830,15 +1879,17 @@ function buildTransportCatchmentIndex() {
       const col = anchorCol + (Math.max(1, Number(record.footprintCols) || 1) - 1) / 2;
       // §14.4: UH (ultra-rich) residents don't ride the bus at all, not just
       // "don't count toward happiness" - they generate no boarding demand.
-      const originUnits = record.type === 'residential' && record.wealthTier !== 'UH'
-        ? Math.max(0, Number(record.population) || 0) * 0.18
-        : 0;
+      const residents = record.type === 'residential' ? Math.max(0, Number(record.population) || 0) : 0;
+      const originUnits = record.wealthTier !== 'UH' ? residents * TRANSPORT_RIDER_SHARE : 0;
       const destinationUnits = getTransportDestinationUnits(record);
-      if (!originUnits && !destinationUnits) continue;
+      if (!residents && !destinationUnits) continue;
       const key = `${Math.floor(row / TRANSPORT_CATCHMENT_CELL)}:${Math.floor(col / TRANSPORT_CATCHMENT_CELL)}`;
       let cell = cells.get(key);
       if (!cell) cells.set(key, cell = []);
-      cell.push({ row, col, originUnits, destinationUnits });
+      cell.push({
+        row, col, residents, originUnits, destinationUnits,
+        returnUnits: destinationUnits * TRANSPORT_RIDER_SHARE,
+      });
     }
   }
   transportCatchmentIndex = { at: Date.now(), cells, stops: new Map() };
@@ -1851,15 +1902,20 @@ function getTransportCatchmentIndex(now = Date.now()) {
 }
 
 function getTransportStopCatchmentUnits(stop) {
-  if (!stop || typeof buildingData === 'undefined') return { originUnits: 0, destinationUnits: 0 };
+  if (!stop || typeof buildingData === 'undefined') {
+    return { originUnits: 0, destinationUnits: 0, returnUnits: 0, residents: 0 };
+  }
   const index = getTransportCatchmentIndex();
   // (a stop may reach further than a bus stop's: a ferry pier's riders walk to it - ferry.js)
   const radius = Number(stop.radius) > 0 ? Number(stop.radius) : TRANSPORT_STOP_CATCHMENT_RADIUS;
-  const memoKey = `${stop.id ?? ''}@${stop.row}:${stop.col}/${radius}`;
+  // (and only some of the tiles in reach: a pier counts its own shore, not the far one - ferry.js)
+  const memoKey = `${stop.id ?? ''}@${stop.row}:${stop.col}/${radius}${stop.acceptsKey ? `|${stop.acceptsKey}` : ''}`;
   const memo = index.stops.get(memoKey);
   if (memo) return memo;
   let originUnits = 0;
   let destinationUnits = 0;
+  let returnUnits = 0;
+  let residents = 0;
   const minCellRow = Math.floor((stop.row - radius) / TRANSPORT_CATCHMENT_CELL);
   const maxCellRow = Math.floor((stop.row + radius) / TRANSPORT_CATCHMENT_CELL);
   const minCellCol = Math.floor((stop.col - radius) / TRANSPORT_CATCHMENT_CELL);
@@ -1870,12 +1926,15 @@ function getTransportStopCatchmentUnits(stop) {
       if (!cell) continue;
       for (const entry of cell) {
         if (Math.abs(stop.row - entry.row) + Math.abs(stop.col - entry.col) > radius) continue;
+        if (stop.accepts && !stop.accepts(entry.row, entry.col)) continue;
         originUnits += entry.originUnits;
         destinationUnits += entry.destinationUnits;
+        returnUnits += entry.returnUnits;
+        residents += entry.residents;
       }
     }
   }
-  const result = { originUnits, destinationUnits };
+  const result = { originUnits, destinationUnits, returnUnits, residents };
   index.stops.set(memoKey, result);
   return result;
 }
@@ -2338,7 +2397,7 @@ function updateTransportSimulation() {
         }
         if (!nearestStop || nearestDistance > TRANSPORT_STOP_CATCHMENT_RADIUS) continue;
         const origin = record.type === 'residential'
-          ? Math.max(0, Number(record.population) || 0) * 0.18
+          ? Math.max(0, Number(record.population) || 0) * TRANSPORT_RIDER_SHARE
           : 0;
         const destination = getTransportDestinationUnits(record);
         if (origin <= 0 && destination <= 0) continue;
@@ -2555,11 +2614,13 @@ function settleTransportMonth() {
     vehicle.boardingsThisMonth = 0;
     vehicle.ageMonths++;
   }
-  // the ferries' fares, credited as they berthed (ferry.js), reported with the buses'
-  const ferryMonth = typeof settleFerryMonth === 'function' ? settleFerryMonth() : { revenue: 0, passengers: 0 };
+  // the ferries' fares, credited as they berthed (ferry.js), reported with the buses' - and their
+  // costs, the ferries' upkeep and running and the piers', paid with the depots'
+  const ferryMonth = typeof settleFerryMonth === 'function' ? settleFerryMonth() : { revenue: 0, passengers: 0, cost: 0 };
   revenue += ferryMonth.revenue;
   const depotUpkeep = getConnectedCommissionedTransportDepots().length * TRANSPORT_DEPOT_MONTHLY_UPKEEP;
-  const cost = transportRoundMoney(routeOperations + depotUpkeep);
+  const ferryOperations = Number(ferryMonth.cost) || 0;
+  const cost = transportRoundMoney(routeOperations + depotUpkeep + ferryOperations);
   const roundedRevenue = transportRoundMoney(revenue);
   // Cost only - revenue already flowed into company.cash above. company.cash
   // is allowed to go negative (bankruptcy signal, §4), unlike every other
@@ -2569,6 +2630,7 @@ function settleTransportMonth() {
     revenue: roundedRevenue,
     routeOperations: transportRoundMoney(routeOperations),
     depotUpkeep: transportRoundMoney(depotUpkeep),
+    ferryOperations: transportRoundMoney(ferryOperations),
     cost,
     net: roundedRevenue - cost,
   };
@@ -2600,6 +2662,10 @@ function settleTransportMonth() {
           suspendedAny = true;
         }
       }
+      // and the ferry routes (ferry.js)
+      (state.ferry?.routes || []).forEach((route) => {
+        if (route.status !== 'suspended') { route.status = 'suspended'; suspendedAny = true; }
+      });
       if (suspendedAny && typeof showToast === 'function') {
         showToast(t('transport.toast.bankruptSuspended'), 'warning');
       }
@@ -2674,6 +2740,7 @@ const transportExpansionTestApi = {
   TRANSPORT_MINUTES_PER_ROAD_TILE,
   TRANSPORT_MINUTES_PER_STOP,
   TRANSPORT_STOP_DAILY_BOARDING_SHARE,
+  TRANSPORT_RIDER_SHARE,
   TRANSPORT_STOP_POOL_RESET_HOUR,
   TRANSPORT_STOP_WAITING_CAP,
   TRANSPORT_DEFAULT_VEHICLE_CLASS_ID,
@@ -2739,6 +2806,9 @@ const transportExpansionTestApi = {
   advanceTransportVehicleMaintenance,
   rollTransportVehicleBreakdowns,
   accrueTransportStopCommutersForHour,
+  getTransportStopDailyRiders,
+  getTransportStopRidersForHour,
+  getTransportReturnHourlyPoolWeights,
   dwellTransportVehicleAtStop,
   getTransportStopCatchmentUnits,
   getTransportRouteCycleStops,

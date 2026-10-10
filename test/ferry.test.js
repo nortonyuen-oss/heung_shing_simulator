@@ -118,9 +118,52 @@ test('the ferry state keeps only what is whole: piers with a shore side, routes 
   });
   assert.deepEqual(s.piers.map((p) => p.id), ['pier-1', 'pier-3']);
   assert.deepEqual(s.routes.map((r) => r.id), ['f1']);
-  assert.equal(s.routes[0].vessels, 1);
+  // a save from before the fleet: the route's one ferry becomes a ferry of the company's
+  assert.equal(s.vessels.length, 1);
+  assert.equal(s.vessels[0].routeId, 'f1');
   assert.equal(s.nextId, 7);
-  assert.deepEqual(normalizeFerryState(undefined), { piers: [], routes: [], nextId: 1 });
+  assert.deepEqual(normalizeFerryState(undefined), { piers: [], routes: [], vessels: [], nextId: 1, nextVesselId: 1 });
+});
+
+test('the fleet: two ferries of a legacy route spaced evenly, their passengers kept; ferries of a lost route dropped', () => {
+  const s = normalizeFerryState({
+    piers: [{ id: 'a', row: 1, col: 1, land: 'n' }, { id: 'b', row: 1, col: 9, land: 'n' }],
+    routes: [{ id: 'r', pierIds: ['a', 'b'], vessels: 2, aboard: [12, 30] }],
+  });
+  assert.deepEqual(s.vessels.map((v) => [v.phase, v.aboard]), [[0, 12], [0.5, 30]]);
+  const later = normalizeFerryState({ ...s, routes: [] });
+  assert.equal(later.vessels.length, 0);
+});
+
+test('a ferry joins its timetable in the widest gap: nobody moves', () => {
+  assert.equal(ferry.ferryJoiningPhase([]), 0);
+  assert.equal(ferry.ferryJoiningPhase([0]), 0.5);
+  assert.equal(ferry.ferryJoiningPhase([0, 0.5]), 0.25);
+  assert.ok(Math.abs(ferry.ferryJoiningPhase([0.1, 0.2]) - 0.65) < 1e-9);
+});
+
+test('a pier serves its own shore within five tiles: never across the water', () => {
+  // land rows 0-3, sea row 4-5, the far shore rows 6-9; the pier on the near shore facing south
+  const rows = ['..........', '..........', '..........', '..........', '~~~~~~~~~~', '~~~~~~~~~~', '..........', '..........', '..........', '..........'];
+  const isLand = (r, c) => r >= 0 && c >= 0 && r < rows.length && c < 10 && rows[r][c] === '.';
+  const land = ferry.ferryPierCatchmentLand({ row: 3, col: 4, land: 'n' }, isLand);
+  assert.ok(land.has('3:4') && land.has('0:4'));
+  assert.ok(![...land].some((k) => Number(k.split(':')[0]) >= 4), 'nothing on the water or across it');
+  assert.ok(![...land].some((k) => { const [r, c] = k.split(':').map(Number); return Math.abs(r - 2.5) + Math.abs(c - 4.5) > FERRY.catchmentRadius; }));
+});
+
+test('a ferry broken down carries on from where it stopped', () => {
+  const legs = { out: ferryLeg({ row: 0, col: 0, land: 'n' }, { row: 0, col: 10, land: 'n' }, [[3, 0], [3, 5], [3, 10]]),
+    back: ferryLeg({ row: 0, col: 10, land: 'n' }, { row: 0, col: 0, land: 'n' }, [[3, 10], [3, 5], [3, 0]]) };
+  const cycle = ferry.ferryCycleMinutes(legs);
+  const phase = 0.1;
+  const stopped = 40;
+  const away = 120;
+  const before = ferry.ferryVesselPointAt(legs, stopped, phase);
+  // put back by the time away: at its return it is where it stopped
+  const resumed = (((phase - away / cycle) % 1) + 1) % 1;
+  const after = ferry.ferryVesselPointAt(legs, stopped + away, resumed);
+  assert.ok(Math.abs(after.r - before.r) < 1e-9 && Math.abs(after.c - before.c) < 1e-9);
 });
 
 test('berthings: each ferry at A at the start of its round trip, at B as the outward leg ends; fares on landing', () => {

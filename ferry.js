@@ -26,9 +26,18 @@ const FERRY = Object.freeze({
   // flat fare per passenger (the Star Ferry's), in company dollars: what a bus rider pays for about
   // 20 tiles at the default fare (35 x 20 x TRANSPORT_FARE_ECONOMY_SCALE)
   fare: 0.1,
-  catchmentRadius: 8,         // homes within this many tiles of the pier's shore side ride: people walk further to a pier
+  // homes within this many tiles of the pier's shore side ride - a 10-tile circle - and only on its
+  // own shore: reached over land from the pier, never across the water (Norton, 2026-10-10)
+  catchmentRadius: 5,
   boardingShare: 3,           // times a bus stop's daily share: a crossing saves the long way round by road
   minZoom: 0.4,               // below this the ferries are a few pixels long: not drawn
+  // the company's side (docs/star-ferry-design.md §3): a ferry costs three double-deckers; the
+  // upkeep is a month's, the running cost per tile sailed; a pier has its own upkeep
+  vesselPrice: 900,
+  vesselMonthlyUpkeep: 30,
+  tileRunningCost: 0.002,
+  pierMonthlyUpkeep: 25,
+  maxVesselsPerRoute: 6,
   objectId: 'starFerry',
   pierObjectId: 'ferryPier',
 });
@@ -61,22 +70,72 @@ function normalizeFerryState(raw) {
       waiting: Math.max(0, Math.min(9999, Number(p.waiting) || 0)) };
   }).filter(Boolean);
   const pierIds = new Set(piers.map((p) => p.id));
+  const legacyFleet = new Map();   // a save from before the fleet: route id -> [ferries' passengers aboard]
   const routes = (Array.isArray(src.routes) ? src.routes : []).map((r, i) => {
     const ids = (Array.isArray(r?.pierIds) ? r.pierIds : []).map(String).filter((id) => pierIds.has(id));
     if (!r?.id || ids.length < 2) return null;
+    const id = String(r.id).slice(0, 40);
+    if (!Array.isArray(src.vessels)) {
+      const n = Math.max(0, Math.min(FERRY.maxVesselsPerRoute, Math.floor(Number(r.vessels ?? 1))));
+      legacyFleet.set(id, Array.from({ length: n }, (_, k) => Number(r.aboard?.[k]) || 0));
+    }
     return {
-      id: String(r.id).slice(0, 40),
+      id,
       pierIds: ids.slice(0, 2),
       color: typeof r.color === 'string' && /^#[0-9a-f]{6}$/i.test(r.color) ? r.color : FERRY_ROUTE_COLORS[i % FERRY_ROUTE_COLORS.length],
-      vessels: Math.max(0, Math.min(6, Math.floor(Number(r.vessels ?? 1)))),
       status: r.status === 'suspended' ? 'suspended' : 'active',
-      // passengers aboard each ferry, and the month's takings so far (settleFerryMonth)
-      aboard: (Array.isArray(r.aboard) ? r.aboard : []).slice(0, 6).map((n) => Math.max(0, Math.min(FERRY.capacity, Math.floor(Number(n) || 0)))),
+      // the month's takings so far (settleFerryMonth), and the months before
       monthToDatePassengers: Math.max(0, Math.floor(Number(r.monthToDatePassengers) || 0)),
       monthToDateRevenue: Math.max(0, Number(r.monthToDateRevenue) || 0),
+      history: (Array.isArray(r.history) ? r.history : []).slice(-24).map((h) => ({
+        year: Math.floor(Number(h?.year) || 0), month: Math.floor(Number(h?.month) || 0),
+        passengers: Math.max(0, Math.floor(Number(h?.passengers) || 0)),
+        revenue: Number(h?.revenue) || 0, cost: Number(h?.cost) || 0, net: Number(h?.net) || 0,
+      })),
     };
   }).filter(Boolean);
-  return { piers, routes, nextId: Math.max(1, Math.floor(Number(src.nextId) || 1)) };
+  const routeIds = new Set(routes.map((r) => r.id));
+  let nextVesselId = Math.max(1, Math.floor(Number(src.nextVesselId) || 1));
+  let vessels;
+  if (Array.isArray(src.vessels)) {
+    vessels = src.vessels.map((v) => normalizeFerryVessel(v, routeIds)).filter(Boolean);
+  } else {
+    // spaced evenly round the timetable, as they sailed before
+    vessels = [];
+    legacyFleet.forEach((aboard, routeId) => aboard.forEach((n, k) => vessels.push(normalizeFerryVessel({
+      id: `ferry-${nextVesselId++}`, routeId, phase: k / aboard.length, aboard: n, purchasePrice: FERRY.vesselPrice,
+    }, routeIds))));
+  }
+  const used = vessels.map((v) => Number(String(v.id).replace(/^ferry-/, '')) || 0);
+  nextVesselId = Math.max(nextVesselId, ...used.map((n) => n + 1));
+  return { piers, routes, vessels, nextId: Math.max(1, Math.floor(Number(src.nextId) || 1)), nextVesselId };
+}
+
+// One ferry of the company's (a Star Ferry): its place in its route's timetable (`phase`, the share
+// of a round trip it runs ahead of the clock), its worth and wear, and what it is doing.
+function normalizeFerryVessel(v, routeIds) {
+  if (!v?.id || !routeIds.has(String(v.routeId))) return null;
+  const num = (x, d = 0) => (Number.isFinite(Number(x)) ? Number(x) : d);
+  const status = ['active', 'servicing', 'broken_down'].includes(v.status) ? v.status : 'active';
+  return {
+    id: String(v.id).slice(0, 40),
+    routeId: String(v.routeId),
+    phase: ((num(v.phase) % 1) + 1) % 1,
+    purchasePrice: Math.max(0, num(v.purchasePrice, FERRY.vesselPrice)),
+    condition: Math.max(0, Math.min(1, num(v.condition, 1))),
+    minutesSinceService: Math.max(0, num(v.minutesSinceService)),
+    status,
+    // off the timetable since this sky minute (in the yard, or broken down where it lay), and for how
+    // much longer: on its return it carries on from where it stopped
+    downStartedAt: status === 'active' ? null : num(v.downStartedAt),
+    downMinutesRemaining: status === 'active' ? 0 : Math.max(0, num(v.downMinutesRemaining)),
+    sellAtNextPier: !!v.sellAtNextPier,
+    aboard: Math.max(0, Math.min(FERRY.capacity, Math.floor(num(v.aboard)))),
+    ageMonths: Math.max(0, Math.floor(num(v.ageMonths))),
+    tilesThisMonth: Math.max(0, num(v.tilesThisMonth)),
+    monthToDateRevenue: Math.max(0, num(v.monthToDateRevenue)),
+    lastMonthRevenue: Math.max(0, num(v.lastMonthRevenue)),
+  };
 }
 
 function getFerryState() {
@@ -285,12 +344,18 @@ function ferryPointAlong(leg, d) {
  * ferryLeg()s. The ferries share one timetable, evenly apart: alongside A, across, alongside B,
  * back. Returns { r, c, dir, state: 'alongside'|'sailing', pier: 0|1|null }.
  */
-function ferryVesselPoint(legs, t, index = 0, count = 1) {
+// A round trip in clock minutes: alongside A, across, alongside B, back.
+function ferryCycleMinutes(legs) {
+  return 2 * FERRY.dwellMinutes + (legs.out.total + legs.back.total) / FERRY.speedTilesPerMinute;
+}
+
+// Where a ferry `phase` of a round trip ahead of the clock is at clock minute t.
+function ferryVesselPointAt(legs, t, phase = 0) {
   const speed = FERRY.speedTilesPerMinute;
   const dwell = FERRY.dwellMinutes;
-  const outT = legs.out.total / speed; const backT = legs.back.total / speed;
-  const cycle = 2 * dwell + outT + backT;
-  let p = ((t + (cycle * index) / Math.max(1, count)) % cycle + cycle) % cycle;
+  const outT = legs.out.total / speed;
+  const cycle = ferryCycleMinutes(legs);
+  let p = ((t + cycle * phase) % cycle + cycle) % cycle;
   if (p < dwell) return { ...legs.out.from, state: 'alongside', pier: 0 };
   p -= dwell;
   if (p < outT) return { ...ferryPointAlong(legs.out, p * speed), state: 'sailing', pier: null };
@@ -300,20 +365,24 @@ function ferryVesselPoint(legs, t, index = 0, count = 1) {
   return { ...ferryPointAlong(legs.back, p * speed), state: 'sailing', pier: null };
 }
 
+// The `index`-th of `count` ferries spaced evenly round the timetable.
+function ferryVesselPoint(legs, t, index = 0, count = 1) {
+  return ferryVesselPointAt(legs, t, index / Math.max(1, count));
+}
+
 /**
- * The berthings in clock minutes (t0, t1] on a route, in order. Pure: legs as ferryVesselPoint's.
- * [{ t, vessel, pier: 0|1 }] - a ferry berths at A at the start of each round trip and at B when
- * the outward leg ends.
+ * The berthings in clock minutes (t0, t1] of ferries at the given phases, in order. Pure.
+ * [{ t, vessel (index into phases), pier: 0|1 }] - a ferry berths at A at the start of each round
+ * trip and at B when the outward leg ends.
  */
-function ferryArrivals(legs, t0, t1, count = 1) {
-  const speed = FERRY.speedTilesPerMinute;
+function ferryArrivalsAt(legs, t0, t1, phases) {
   const dwell = FERRY.dwellMinutes;
-  const outT = legs.out.total / speed;
-  const cycle = 2 * dwell + outT + legs.back.total / speed;
+  const outT = legs.out.total / FERRY.speedTilesPerMinute;
+  const cycle = ferryCycleMinutes(legs);
   const out = [];
   if (!(t1 > t0) || !(cycle > 0)) return out;
-  for (let v = 0; v < Math.max(1, count); v++) {
-    const offset = (cycle * v) / Math.max(1, count);
+  phases.forEach((phaseShare, v) => {
+    const offset = cycle * phaseShare;
     for (const [pier, phase] of [[0, 0], [1, dwell + outT]]) {
       // t + offset = k * cycle + phase
       for (let k = Math.floor((t0 + offset - phase) / cycle) + 1; ; k++) {
@@ -322,8 +391,27 @@ function ferryArrivals(legs, t0, t1, count = 1) {
         if (t > t0) out.push({ t, vessel: v, pier });
       }
     }
-  }
+  });
   return out.sort((a, b) => a.t - b.t || a.vessel - b.vessel);
+}
+
+// The same for `count` ferries spaced evenly.
+function ferryArrivals(legs, t0, t1, count = 1) {
+  const n = Math.max(1, count);
+  return ferryArrivalsAt(legs, t0, t1, Array.from({ length: n }, (_, v) => v / n));
+}
+
+// Where a new ferry joins a timetable: in the middle of the widest gap between those already on it,
+// so none of them has to move.
+function ferryJoiningPhase(phases) {
+  if (!phases.length) return 0;
+  const sorted = [...phases].sort((a, b) => a - b);
+  let best = { gap: -1, at: 0 };
+  sorted.forEach((p, i) => {
+    const next = i + 1 < sorted.length ? sorted[i + 1] : sorted[0] + 1;
+    if (next - p > best.gap) best = { gap: next - p, at: (p + (next - p) / 2) % 1 };
+  });
+  return best.at;
 }
 
 /**
@@ -462,8 +550,9 @@ function demolishFerryPierAt(scene, row, col) {
     ? ferryT('ferry.pier.confirmDemolishRoutes', '拆走「{name}」？用佢嘅 {n} 條航線會一齊取消。', { name: pier.name, n: routes.length })
     : ferryT('ferry.pier.confirmDemolish', '拆走「{name}」？', { name: pier.name });
   if (typeof confirm === 'function' && !confirm(question)) return true;
+  // its routes close: their ferries are sold where they lie
+  routes.forEach((r) => removeFerryRoute(r.id));
   state.piers = state.piers.filter((p) => p !== pier);
-  state.routes = state.routes.filter((r) => !routes.includes(r));
   if (ferryRouteDraft === pier.id) ferryRouteDraft = null;
   ferryNetworkRevision += 1;
   syncFerryPiers(scene);
@@ -491,11 +580,16 @@ function handleFerryRouteClick(scene, row, col) {
   }
   if (state.routes.length >= FERRY.maxRoutes) { say('ferry.route.max', '航線數目已經到上限。', {}, 'warning'); return false; }
   const route = { id: `ferry-${state.nextId++}`, pierIds: [from.id, pier.id], color: FERRY_ROUTE_COLORS[state.routes.length % FERRY_ROUTE_COLORS.length],
-    vessels: 1, status: 'active', aboard: [0], monthToDatePassengers: 0, monthToDateRevenue: 0 };
+    status: 'active', monthToDatePassengers: 0, monthToDateRevenue: 0, history: [] };
   if (!getFerryRouteLegs(route)) { say('ferry.route.noWater', '「{a}」同「{b}」之間冇水路連接。', { a: from.name, b: pier.name }, 'warning'); return false; }
   state.routes.push(route);
   ferryNetworkRevision += 1;
-  say('ferry.route.opened', '「{a}」⇄「{b}」航線開咗，一艘天星小輪行走。', { a: from.name, b: pier.name }, 'success');
+  // and its first ferry, bought at the pier
+  if (buyFerry(route.id).ok) {
+    say('ferry.route.opened', '「{a}」⇄「{b}」航線開咗，買咗一艘天星小輪（${price}）行走。', { a: from.name, b: pier.name, price: FERRY.vesselPrice.toLocaleString() }, 'success');
+  } else {
+    say('ferry.route.openedNoFerry', '「{a}」⇄「{b}」航線開咗，但公司資金唔夠買船（${price}），喺運輸公司航線列表加船。', { a: from.name, b: pier.name, price: FERRY.vesselPrice.toLocaleString() }, 'warning');
+  }
   return true;
 }
 
@@ -523,10 +617,43 @@ function getFerryRouteLegs(route) {
   return legs;
 }
 
-// Where a pier's riders come from: the middle of its shore half.
+// The land a pier serves: within FERRY.catchmentRadius of the middle of its shore half (a diamond,
+// as a bus stop's), reached over land from that half - never across the water: the far shore, a
+// headland over a bay, the other end of a bridge are none of its (Norton, 2026-10-10). Pure with
+// `isLand`; a Set of 'row:col'.
+function ferryPierCatchmentLand(pier, isLand, radius = FERRY.catchmentRadius) {
+  const half = ferryPierHalfTiles(pier.row, pier.col, pier.land);
+  const centre = [(half[0][0] + half[1][0]) / 2, (half[0][1] + half[1][1]) / 2];
+  const inReach = (r, c) => Math.abs(r - centre[0]) + Math.abs(c - centre[1]) <= radius;
+  const land = new Set();
+  const queue = half.filter(([r, c]) => isLand(r, c));
+  queue.forEach(([r, c]) => land.add(`${r}:${c}`));
+  for (let i = 0; i < queue.length; i++) {
+    const [r, c] = queue[i];
+    Object.values(FERRY_DIRS).forEach(([dr, dc]) => {
+      const [nr, nc] = [r + dr, c + dc];
+      const key = `${nr}:${nc}`;
+      if (land.has(key) || !inReach(nr, nc) || !isLand(nr, nc)) return;
+      land.add(key);
+      queue.push([nr, nc]);
+    });
+  }
+  return land;
+}
+
+// Where a pier's riders come from: the middle of its shore half, its own shore only (worked out
+// afresh each time - some sixty tiles - so a change to the coast counts at once; its key, for the
+// stops' memo, is the land itself).
 function ferryPierCatchmentPoint(pier) {
   const half = ferryPierHalfTiles(pier.row, pier.col, pier.land);
-  return { id: `ferry-${pier.id}`, row: (half[0][0] + half[1][0]) / 2, col: (half[0][1] + half[1][1]) / 2, radius: FERRY.catchmentRadius };
+  const isLand = (r, c) => isInsideMap(r, c) && mapData[r][c] !== WATER;
+  const tiles = ferryPierCatchmentLand(pier, isLand);
+  return {
+    id: `ferry-${pier.id}`, row: (half[0][0] + half[1][0]) / 2, col: (half[0][1] + half[1][1]) / 2, radius: FERRY.catchmentRadius,
+    // (a building of more than one tile is indexed at its centre - 180.5, 124.5: any tile round it)
+    accepts: (r, c) => [Math.floor(r), Math.ceil(r)].some((rr) => [Math.floor(c), Math.ceil(c)].some((cc) => tiles.has(`${rr}:${cc}`))),
+    acceptsKey: [...tiles].sort().join(','),
+  };
 }
 
 // The last berthing on each ferry, for its "+$" over the map (updateFerries): not saved.
@@ -545,48 +672,107 @@ function advanceFerryClock(fromMinutes, toMinutes) {
     const next = Math.min(toMinutes, (Math.floor(t / 60) + 1) * 60);
     if (next % 60 === 0 && next > t) accrueFerryPiersForHour(state, next / 60);
     berthFerries(state, t, next);
+    advanceFerryVessels(state, t, next);
     t = next;
   }
 }
 
+function ferrySkyMinutes(envMinutes) {
+  return envMinutes + (typeof GAME_DAY_START_MINUTES === 'number' ? GAME_DAY_START_MINUTES : 360);
+}
+
+// The bus fleet's servicing rules (transport-expansion.js), for ferries: wear while they sail, a
+// three-hour service every four sky-days in the yard at their first pier (hidden: taken off the
+// timetable at a berthing there - berthFerries), and a worn ferry now and then breaking down where
+// it lies, for two hours. Back on the timetable, a ferry carries on from where it stopped: its phase
+// is put back by the time it was away. Environment minutes (from, to].
+function advanceFerryVessels(state, fromMinutes, toMinutes) {
+  const minutes = toMinutes - fromMinutes;
+  if (!(minutes > 0) || !state.vessels.length) return;
+  const decay = typeof TRANSPORT_CONDITION_DECAY_PER_MINUTE === 'number' ? TRANSPORT_CONDITION_DECAY_PER_MINUTE : 1 / (4 * 1440 * 3);
+  const threshold = typeof TRANSPORT_BREAKDOWN_CONDITION_THRESHOLD === 'number' ? TRANSPORT_BREAKDOWN_CONDITION_THRESHOLD : 0.35;
+  const chancePerHour = typeof TRANSPORT_BREAKDOWN_CHANCE_PER_HOUR === 'number' ? TRANSPORT_BREAKDOWN_CHANCE_PER_HOUR : 0.00127;
+  const breakdownMinutes = typeof TRANSPORT_BREAKDOWN_DURATION_MINUTES === 'number' ? TRANSPORT_BREAKDOWN_DURATION_MINUTES : 120;
+  const routes = new Map(state.routes.map((r) => [r.id, r]));
+  const hourEnded = Math.floor(toMinutes / 60) > Math.floor(fromMinutes / 60);
+  state.vessels.forEach((v) => {
+    const route = routes.get(v.routeId);
+    const legs = route && getFerryRouteLegs(route);
+    if (!route || !legs) return;
+    if (v.status !== 'active') {
+      v.downMinutesRemaining -= minutes;
+      if (v.downMinutesRemaining > 0) return;
+      const away = ferrySkyMinutes(toMinutes) - v.downStartedAt;
+      if (v.status === 'servicing') { v.condition = 1; v.minutesSinceService = 0; }
+      v.status = 'active';
+      v.phase = (((v.phase - away / ferryCycleMinutes(legs)) % 1) + 1) % 1;
+      v.downStartedAt = null;
+      v.downMinutesRemaining = 0;
+      return;
+    }
+    if (route.status !== 'active') return;
+    v.minutesSinceService += minutes;
+    v.condition = Math.max(0, v.condition - decay * minutes);
+    // the share of a round trip it is under way, at the speed it sails
+    const cycle = ferryCycleMinutes(legs);
+    v.tilesThisMonth += minutes * FERRY.speedTilesPerMinute * (cycle - 2 * FERRY.dwellMinutes) / cycle;
+    if (hourEnded && v.condition < threshold && ferryHash(v.id, Math.floor(toMinutes / 60)) < chancePerHour) {
+      v.status = 'broken_down';
+      v.downStartedAt = ferrySkyMinutes(toMinutes);
+      v.downMinutesRemaining = breakdownMinutes;
+    }
+  });
+}
+
+// A fixed draw in [0, 1) for a ferry and an hour, so a fast-forward or a reload rolls the same.
+function ferryHash(id, n) {
+  let h = 2166136261;
+  const str = `${id}|${n}`;
+  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return ((h >>> 0) % 1000000) / 1000000;
+}
+
 function accrueFerryPiersForHour(state, envHour) {
   if (typeof isTransportSevereWeather === 'function' && isTransportSevereWeather()) return;
-  if (typeof getTransportStopCatchmentUnits !== 'function' || typeof getTransportHourlyPoolWeights !== 'function') return;
+  if (typeof getTransportStopRidersForHour !== 'function') return;
   const dayStart = typeof GAME_DAY_START_MINUTES === 'number' ? GAME_DAY_START_MINUTES : 360;
   const hour = ((envHour + Math.floor(dayStart / 60)) % 24 + 24) % 24;
-  const weight = getTransportHourlyPoolWeights()[hour];
   const served = new Set(state.routes.flatMap((r) => r.pierIds));
   const resetHour = typeof TRANSPORT_STOP_POOL_RESET_HOUR === 'number' ? TRANSPORT_STOP_POOL_RESET_HOUR : 4;
-  const share = (typeof TRANSPORT_STOP_DAILY_BOARDING_SHARE === 'number' ? TRANSPORT_STOP_DAILY_BOARDING_SHARE : 0.15) * FERRY.boardingShare;
+  const share = (typeof TRANSPORT_STOP_DAILY_BOARDING_SHARE === 'number' ? TRANSPORT_STOP_DAILY_BOARDING_SHARE : 0.75) * FERRY.boardingShare;
   state.piers.forEach((pier) => {
     if (!served.has(pier.id)) { pier.waiting = 0; return; }
     const current = hour === resetHour ? 0 : (Number(pier.waiting) || 0);
-    const units = getTransportStopCatchmentUnits(ferryPierCatchmentPoint(pier)).originUnits;
-    pier.waiting = Math.min(9999, current + units * share * weight);
+    pier.waiting = Math.min(9999, current + getTransportStopRidersForHour(ferryPierCatchmentPoint(pier), hour, share));
   });
 }
 
 // Every ferry that berthed in environment minutes (from, to]: lands its passengers, takes the
-// fares, boards the queue.
+// fares, boards the queue. At its route's first pier a ferry due its service goes into the yard
+// instead of boarding, and one being sold is sold at whichever pier it reaches first.
 function berthFerries(state, fromMinutes, toMinutes) {
   const severe = typeof isTransportSevereWeather === 'function' && isTransportSevereWeather();
-  const dayStart = typeof GAME_DAY_START_MINUTES === 'number' ? GAME_DAY_START_MINUTES : 360;
   const transport = typeof getTransportExpansionState === 'function' ? getTransportExpansionState() : null;
+  const serviceDue = typeof TRANSPORT_SERVICE_INTERVAL_MINUTES === 'number' ? TRANSPORT_SERVICE_INTERVAL_MINUTES : 4 * 1440;
+  const serviceMinutes = typeof TRANSPORT_SERVICE_DURATION_MINUTES === 'number' ? TRANSPORT_SERVICE_DURATION_MINUTES : 180;
   state.routes.forEach((route) => {
-    if (route.status !== 'active' || !route.vessels) return;
+    if (route.status !== 'active') return;
+    const fleet = state.vessels.filter((v) => v.routeId === route.id && v.status === 'active');
+    if (!fleet.length) return;
     const legs = getFerryRouteLegs(route);
     if (!legs) return;
     const piers = route.pierIds.map((id) => state.piers.find((p) => p.id === id));
     if (piers.some((p) => !p)) return;
-    if (!Array.isArray(route.aboard)) route.aboard = [];
-    while (route.aboard.length < route.vessels) route.aboard.push(0);
     route.monthToDatePassengers = Number(route.monthToDatePassengers) || 0;
     route.monthToDateRevenue = Number(route.monthToDateRevenue) || 0;
     piers.forEach((p) => { p.waiting = Number(p.waiting) || 0; });
-    ferryArrivals(legs, fromMinutes + dayStart, toMinutes + dayStart, route.vessels).forEach(({ vessel, pier }) => {
+    ferryArrivalsAt(legs, ferrySkyMinutes(fromMinutes), ferrySkyMinutes(toMinutes), fleet.map((v) => v.phase)).forEach(({ t, vessel, pier }) => {
+      const v = fleet[vessel];
+      if (v.status !== 'active' || !state.vessels.includes(v)) return; // gone into the yard or sold earlier in the span
       const at = piers[pier];
-      const b = ferryBerthing(route.aboard[vessel], severe ? 0 : at.waiting);
-      route.aboard[vessel] = b.boarding;
+      const leaving = v.sellAtNextPier || (pier === 0 && v.minutesSinceService >= serviceDue);
+      const b = ferryBerthing(v.aboard, severe || leaving ? 0 : at.waiting);
+      v.aboard = b.boarding;
       at.waiting -= b.boarding;
       if (b.alighting > 0 && transport) {
         transport.company.cashFraction = (Number(transport.company.cashFraction) || 0) + b.revenue;
@@ -594,23 +780,137 @@ function berthFerries(state, fromMinutes, toMinutes) {
         if (whole > 0) { transport.company.cash += whole; transport.company.cashFraction -= whole; }
         route.monthToDatePassengers += b.alighting;
         route.monthToDateRevenue += b.revenue;
+        v.monthToDateRevenue += b.revenue;
       }
-      const key = `${route.id}|${vessel}`;
-      const prev = ferryBerthingLog.get(key);
-      ferryBerthingLog.set(key, { serial: (prev?.serial || 0) + 1, revenue: b.revenue });
+      const prev = ferryBerthingLog.get(v.id);
+      ferryBerthingLog.set(v.id, { serial: (prev?.serial || 0) + 1, revenue: b.revenue });
+      if (v.sellAtNextPier) {
+        sellFerryNow(state, v);
+      } else if (leaving) {
+        v.status = 'servicing';
+        v.downStartedAt = t;
+        v.downMinutesRemaining = serviceMinutes;
+      }
     });
   });
 }
 
-// The month's ferry takings for the company's books (settleTransportMonth): reported and reset.
+// ── The company's ferries ────────────────────────────────────────────────────
+
+function getFerryRouteVessels(route, state = getFerryState()) {
+  return state.vessels.filter((v) => v.routeId === route.id);
+}
+
+function ferryResaleValue(v) {
+  const factor = typeof TRANSPORT_VEHICLE_RESALE_FACTOR === 'number' ? TRANSPORT_VEHICLE_RESALE_FACTOR : 0.5;
+  return Math.round(v.purchasePrice * v.condition * factor);
+}
+
+function ferryCompanyCash() {
+  const transport = typeof getTransportExpansionState === 'function' ? getTransportExpansionState() : null;
+  return transport ? Number(transport.company.cash) || 0 : 0;
+}
+
+function creditFerryCompany(amount) {
+  const transport = typeof getTransportExpansionState === 'function' ? getTransportExpansionState() : null;
+  if (transport) transport.company.cash = Math.round(transport.company.cash + amount);
+}
+
+// Buy a ferry onto a route (bought at its piers - the pier is the yard): it joins the timetable in
+// its widest gap. { ok, vessel } or { ok: false, code: 'route'|'full'|'funds' }.
+function buyFerry(routeId) {
+  const state = getFerryState();
+  const route = state.routes.find((r) => r.id === routeId);
+  if (!route) return { ok: false, code: 'route' };
+  const fleet = getFerryRouteVessels(route, state);
+  if (fleet.length >= FERRY.maxVesselsPerRoute) return { ok: false, code: 'full' };
+  const spend = typeof spendTransportConstruction === 'function' ? spendTransportConstruction : null;
+  if (spend ? !spend(FERRY.vesselPrice) : ferryCompanyCash() < FERRY.vesselPrice) return { ok: false, code: 'funds' };
+  if (!spend) creditFerryCompany(-FERRY.vesselPrice);
+  const vessel = normalizeFerryVessel({
+    id: `ferry-${state.nextVesselId++}`, routeId, phase: ferryJoiningPhase(fleet.map((v) => v.phase)), purchasePrice: FERRY.vesselPrice,
+  }, new Set([routeId]));
+  state.vessels.push(vessel);
+  if (typeof queueCityChangeAutosave === 'function') queueCityChangeAutosave();
+  return { ok: true, vessel };
+}
+
+// Sell a ferry. As a bus goes back to its depot first, a ferry under way is sold when it next
+// berths (its passengers landed); one alongside, in the yard or on a suspended route at once.
+// { ok, sold: true|false (pending), value }.
+function sellFerry(vesselId) {
+  const state = getFerryState();
+  const v = state.vessels.find((x) => x.id === vesselId);
+  if (!v) return { ok: false };
+  const route = state.routes.find((r) => r.id === v.routeId);
+  const legs = route && getFerryRouteLegs(route);
+  const t = typeof getTyphoonShelterFleetClock === 'function' ? getTyphoonShelterFleetClock() : 0;
+  const alongside = v.status !== 'active' || !route || route.status !== 'active' || !legs
+    || ferryVesselPointAt(legs, t, v.phase).state === 'alongside';
+  if (!alongside) {
+    v.sellAtNextPier = true;
+    return { ok: true, sold: false, value: ferryResaleValue(v) };
+  }
+  return { ok: true, sold: true, value: sellFerryNow(state, v) };
+}
+
+function sellFerryNow(state, v) {
+  const value = ferryResaleValue(v);
+  state.vessels = state.vessels.filter((x) => x !== v);
+  creditFerryCompany(value);
+  ferryBerthingLog.delete(v.id);
+  if (typeof queueCityChangeAutosave === 'function') queueCityChangeAutosave();
+  return value;
+}
+
+// Close a route: its ferries are sold where they are (no route left for them to finish).
+function removeFerryRoute(routeId) {
+  const state = getFerryState();
+  const route = state.routes.find((r) => r.id === routeId);
+  if (!route) return 0;
+  const value = getFerryRouteVessels(route, state).reduce((sum, v) => sum + sellFerryNow(state, v), 0);
+  state.routes = state.routes.filter((r) => r !== route);
+  ferryNetworkRevision += 1;
+  return value;
+}
+
+function setFerryRouteSuspended(routeId, suspended) {
+  const route = getFerryState().routes.find((r) => r.id === routeId);
+  if (!route) return false;
+  route.status = suspended ? 'suspended' : 'active';
+  return true;
+}
+
+// The month for the company's books (settleTransportMonth): the fares (credited as they berthed),
+// the passengers, and the costs - each ferry's upkeep and its tiles sailed, each pier's upkeep.
+// Each route's month goes into its history; the counts start again.
 function settleFerryMonth() {
-  const out = { revenue: 0, passengers: 0 };
-  getFerryState().routes.forEach((route) => {
+  const state = getFerryState();
+  const out = { revenue: 0, passengers: 0, cost: 0, vesselCost: 0, pierCost: 0 };
+  state.routes.forEach((route) => {
+    const fleet = getFerryRouteVessels(route, state);
+    const cost = fleet.reduce((sum, v) => sum + FERRY.vesselMonthlyUpkeep + v.tilesThisMonth * FERRY.tileRunningCost, 0);
     out.revenue += route.monthToDateRevenue;
     out.passengers += route.monthToDatePassengers;
+    out.vesselCost += cost;
+    if (!Array.isArray(route.history)) route.history = [];
+    route.history.push({
+      year: typeof city !== 'undefined' ? city.year : 0, month: typeof city !== 'undefined' ? city.month : 0,
+      passengers: route.monthToDatePassengers, revenue: Math.round(route.monthToDateRevenue * 100) / 100,
+      cost: Math.round(cost * 100) / 100, net: Math.round((route.monthToDateRevenue - cost) * 100) / 100,
+    });
+    if (route.history.length > 24) route.history.splice(0, route.history.length - 24);
     route.monthToDateRevenue = 0;
     route.monthToDatePassengers = 0;
   });
+  state.vessels.forEach((v) => {
+    v.lastMonthRevenue = v.monthToDateRevenue;
+    v.monthToDateRevenue = 0;
+    v.tilesThisMonth = 0;
+    v.ageMonths += 1;
+  });
+  out.pierCost = state.piers.length * FERRY.pierMonthlyUpkeep;
+  out.cost = out.vesselCost + out.pierCost;
   return out;
 }
 
@@ -645,21 +945,25 @@ function updateFerries(scene) {
     const t = typeof getTyphoonShelterFleetClock === 'function' ? getTyphoonShelterFleetClock() : 0;
     const rotation = typeof mapRotation === 'number' ? mapRotation : 0;
     const facings = typeof getTyphoonShelterFacingOverrides === 'function' ? getTyphoonShelterFacingOverrides() : {};
+    const state = getFerryState();
     routes.forEach((route) => {
-      if (route.status !== 'active' || !route.vessels) return;
+      if (route.status !== 'active') return;
       const legs = getFerryRouteLegs(route);
       if (!legs) return;
-      for (let i = 0; i < route.vessels; i++) {
-        const id = `ferry|${route.id}|${i}`;
+      getFerryRouteVessels(route, state).forEach((vessel) => {
+        // in the yard for its service: out of sight; broken down: where it stopped
+        if (vessel.status === 'servicing') return;
+        const id = `ferry|${vessel.id}`;
         live.add(id);
-        const point = ferryVesselPoint(legs, t, i, route.vessels);
+        const point = ferryVesselPointAt(legs, vessel.status === 'broken_down' ? vessel.downStartedAt : t, vessel.phase);
         const drawn = { ...point, dir: FERRY_DRAW_HEADING[point.dir] || point.dir };
         drawTyphoonShelterBoat(scene, id, FERRY.objectId, drawn, rotation, facings, scene.ferrySprites);
         const rec = scene.ferrySprites.get(id);
+        if (rec) rec.ferryVesselId = vessel.id;
         // by its pier while near it (no bridge stands within two tiles of a pier), else under any span
         if (!orderFerryByPier(scene, rec?.sprite, point, route, rotation)) tuckFerryUnderBridge(scene, rec?.sprite, point);
         // its takings rising over it as it berths, like a bus's - in Transport Mode only
-        const log = ferryBerthingLog.get(`${route.id}|${i}`);
+        const log = ferryBerthingLog.get(vessel.id);
         if (rec && log && rec.lastBerthing !== log.serial) {
           const first = rec.lastBerthing === undefined;
           rec.lastBerthing = log.serial;
@@ -671,7 +975,7 @@ function updateFerries(scene) {
             spawnTransportFareFloatText(scene, rec.sprite.x, rec.sprite.y - 40, log.revenue, overlay)?.clearMask?.();
           }
         }
-      }
+      });
     });
   }
   // the calibrator's ferry, lying at the berth being set
@@ -689,6 +993,8 @@ function updateFerries(scene) {
   scene.ferrySprites.forEach((rec, id) => {
     if (!live.has(id)) { rec.sprite?.destroy(); scene.ferrySprites.delete(id); }
   });
+  // the routes over the water, in Transport Mode (ferry-ui.js)
+  if (typeof updateFerryRouteOverlay === 'function') updateFerryRouteOverlay(scene);
 }
 
 // Bridges sort in the road band, below every object, so a ferry would be drawn over any span in
@@ -790,7 +1096,20 @@ const ferryApi = {
   ferryLeg,
   ferryPointAlong,
   ferryVesselPoint,
+  ferryVesselPointAt,
+  ferryCycleMinutes,
   ferryArrivals,
+  ferryArrivalsAt,
+  ferryJoiningPhase,
+  ferryPierCatchmentLand,
+  normalizeFerryVessel,
+  getFerryRouteVessels,
+  buyFerry,
+  sellFerry,
+  removeFerryRoute,
+  setFerryRouteSuspended,
+  ferryResaleValue,
+  advanceFerryVessels,
   ferryBerthing,
   getFerryPierAt,
   isNearFerryPier,

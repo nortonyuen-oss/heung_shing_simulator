@@ -85,6 +85,7 @@ function ensureTransportPanelStyle() {
     .transport-panel-window .transport-summary-card span { display:block; color:#6a665c; font-size:10px; }
     .transport-panel-window .transport-summary-card strong { display:block; margin-top:2px; font-size:14px; }
     .transport-panel-window .transport-depots { margin:0 0 10px; color:#4f5960; }
+    .transport-panel-window .transport-section-title { margin:14px 0 6px; font-size:13px; color:#263a48; border-top:1px solid #c8c0ad; padding-top:10px; }
     .transport-panel-window .transport-routes { display:grid; gap:7px; }
     .transport-panel-window .transport-empty { padding:18px; text-align:center; border:1px dashed #a69d89; border-radius:6px; color:#686155; }
     .transport-panel-window .transport-route { border:1px solid #aaa18e; border-left:7px solid var(--route-color); border-radius:6px; padding:8px; background:#f8f4e8; }
@@ -484,6 +485,7 @@ function renderTransportRoutesTab(state) {
     <div class="transport-summary">${summaryCards}</div>
     <p class="transport-depots">${transportEscapeHtml(t('transport.depots', { connected: connectedDepots, total: depots.length }))}</p>
     ${transportUiState.editor ? renderTransportEditor() : `<div class="transport-routes">${routes}</div>`}
+    ${transportUiState.editor || typeof renderFerryRoutesSection !== 'function' ? '' : renderFerryRoutesSection()}
   `;
 }
 
@@ -580,7 +582,7 @@ function renderTransportDemandTab(state) {
     const index = state.stops.indexOf(stop);
     const catchment = getTransportStopCatchmentUnits(stop);
     const waiting = getTransportStopWaitingCount(stop.id);
-    const dailyDemand = Math.max(waiting, Math.round(catchment.originUnits * TRANSPORT_STOP_DAILY_BOARDING_SHARE));
+    const dailyDemand = Math.max(waiting, Math.round(getTransportStopDailyRiders(stop)));
     const servingRoutes = state.routes.filter((route) => route.stopIds.includes(stop.id));
     const activeServingRoutes = servingRoutes.filter((route) => getTransportRouteStatus(route) === 'active');
     let level = 'none';
@@ -611,7 +613,7 @@ function renderTransportDemandTab(state) {
         <td><strong>${transportEscapeHtml(getTransportStopDisplayName(entry.stop, entry.index))}</strong><br><small>(${entry.stop.row}, ${entry.stop.col})</small></td>
         <td><span class="transport-demand-badge" data-level="${entry.level}">${transportEscapeHtml(t(`transport.demand.level.${entry.level}`))}</span></td>
         <td><strong>👤 ${entry.waiting}</strong><br><small>${transportEscapeHtml(t('transport.demand.daily', { value: entry.dailyDemand }))}</small></td>
-        <td>${Math.round(entry.catchment.originUnits).toLocaleString()}</td>
+        <td>${Math.round(entry.catchment.residents || 0).toLocaleString()}</td>
         <td>${Math.round(entry.catchment.destinationUnits).toLocaleString()}</td>
         <td>${transportEscapeHtml(routeNames)}</td>
         <td><button class="transport-btn" type="button" data-transport-action="locate-stop" data-stop-id="${transportEscapeHtml(entry.stop.id)}">${transportEscapeHtml(t('transport.demand.locate'))}</button></td>
@@ -1014,6 +1016,9 @@ function createTransportVehicleInspector() {
   // any transport panel), so it never receives the data-transport-action
   // delegate wired in createTransportPanel - handle its one action directly.
   root.addEventListener('click', (event) => {
+    // a pier's or a ferry's window (ferry-ui.js)
+    const ferryButton = event.target.closest('[data-transport-action^="ferry-"]');
+    if (ferryButton && typeof handleFerryUiAction === 'function') { handleFerryUiAction(ferryButton.dataset.transportAction, ferryButton); return; }
     const button = event.target.closest('[data-transport-action="rename-stop"]');
     if (!button) return;
     renameTransportStopPrompt(button.dataset.stopId).catch((error) => console.warn('[Transport stop rename]', error));
@@ -1068,6 +1073,9 @@ function refreshTransportInspector() {
     refreshTransportStopInspectorBody(root);
     return;
   }
+  // a pier or a ferry (ferry-ui.js)
+  if (String(transportInspectorState.kind).startsWith('ferry') && typeof refreshFerryInspectorBody === 'function'
+    && refreshFerryInspectorBody(root, transportInspectorState.kind, transportInspectorState.ferryId)) return;
   closeTransportInspector();
 }
 
@@ -1088,8 +1096,18 @@ function refreshTransportStopInspectorBody(root) {
       `<span class="transport-inspector-route-chip" style="--route-color:${transportEscapeHtml(route.color)}">${transportEscapeHtml(route.name)}</span>`
     )).join('')}</div>`
     : `<div class="transport-inspector-row"><span>${transportEscapeHtml(t('transport.stopInspector.routes'))}</span><strong>${transportEscapeHtml(t('transport.stopInspector.noRoutes'))}</strong></div>`;
+  // what the stop's walking range holds, so a quiet stop says why it is quiet
+  const catchment = getTransportStopCatchmentUnits(stop);
+  const share = TRANSPORT_STOP_DAILY_BOARDING_SHARE;
+  const outbound = Math.round(catchment.originUnits * share);
+  const homeward = Math.round((catchment.returnUnits || 0) * share);
   const rows = [
     [t('transport.stopInspector.waiting'), `👤 ${waiting}`],
+    [t('transport.stopInspector.dailyRiders'), outbound + homeward > 0
+      ? t('transport.stopInspector.dailyRidersValue', { total: outbound + homeward, outbound, homeward })
+      : t('transport.stopInspector.noCatchment')],
+    [t('transport.stopInspector.residents'), Math.round(catchment.residents || 0).toLocaleString()],
+    [t('transport.stopInspector.destinations'), Math.round(catchment.destinationUnits).toLocaleString()],
     [t('transport.inspector.position'), `(${stop.row}, ${stop.col})`],
   ].map(([label, value]) => (
     `<div class="transport-inspector-row"><span>${transportEscapeHtml(label)}</span><strong>${transportEscapeHtml(value)}</strong></div>`
@@ -1245,6 +1263,8 @@ function handleTransportUiClick(event) {
   const button = event.target.closest('[data-transport-action]');
   if (!button) return;
   const action = button.dataset.transportAction;
+  // the ferry routes and their ferries (ferry-ui.js)
+  if (typeof handleFerryUiAction === 'function' && handleFerryUiAction(action, button)) return;
   if (action === 'enable') {
     setExpansionEnabled('transport', true);
     showToast(t('transport.toast.enabled'), 'info');

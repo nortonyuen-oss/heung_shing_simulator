@@ -292,8 +292,8 @@ test('a pre-queue save receives one day of waiting passengers once, immediately 
     waitingAfterSecondLoad = getTransportStopWaitingCount('legacy-a');
   `, context);
 
-  assert.equal(context.waitingAfterLegacyLoad, 81);
-  assert.equal(context.waitingAfterSecondLoad, 81, 'a migrated queue must not be seeded twice');
+  assert.equal(context.waitingAfterLegacyLoad, 405);
+  assert.equal(context.waitingAfterSecondLoad, 405, 'a migrated queue must not be seeded twice');
   assert.equal(context.markerLeakedIntoSave, false);
 });
 
@@ -536,6 +536,7 @@ test('live expansion unlocks, routes, breaks, settles and restores without affec
     revenue: 0,
     routeOperations: 0,
     depotUpkeep: 0,
+    ferryOperations: 0,
     cost: 0,
     net: 0,
   });
@@ -844,12 +845,12 @@ test('two vehicles dwelling at the same stop share, not double-claim, its persis
     waitingAfterBoth = getTransportStopWaitingCount(stop.id);
   `, context);
   // Fixture: '4:2' is a 3000-population residential building 1 tile from
-  // this stop -> originUnits 3000*0.18=540, waiting pool round(540*0.15)=81.
-  // The double-decker's 70-seat capacity caps the first vehicle's boarding
-  // below the pool, leaving exactly the remainder for the second.
+  // this stop -> originUnits 3000*0.18=540, waiting pool round(540*0.75)=405.
+  // The double-decker's 70-seat capacity caps each vehicle's boarding below
+  // the pool; the second boards from what the first left, not the full pool.
   assert.equal(context.boardedByA, 70);
-  assert.equal(context.boardedByB, 11);
-  assert.equal(context.waitingAfterBoth, 0);
+  assert.equal(context.boardedByB, 70);
+  assert.equal(context.waitingAfterBoth, 405 - 140);
 });
 
 test('bus stop queue only falls when the vehicle actually arrives, on the display-minute movement model', () => {
@@ -890,15 +891,17 @@ test('bus stop queue only falls when the vehicle actually arrives, on the displa
   `, context);
   assert.equal(context.waitingBeforeAnyRoute, 0);
   // Fixture: '4:2' is a 3000-population residential building 1 tile from
-  // this stop -> originUnits 3000*0.18=540, day pool round(540*0.15)=81.
-  assert.equal(context.waitingSeeded, 81);
+  // this stop -> originUnits 3000*0.18=540, day pool round(540*0.75)=405.
+  assert.equal(context.waitingSeeded, 405);
   assert.ok(context.progressMidLeg > 0.5 && context.progressMidLeg < 0.6, `four of seven tiles, got ${context.progressMidLeg}`);
-  assert.equal(context.waitingMidLeg, 81);
-  assert.equal(context.waitingReseeded, 81, 'seeding replaces rather than stacks the pool');
-  assert.equal(context.waitingWhileAtFarStop, 81);
+  assert.equal(context.waitingMidLeg, 405);
+  assert.equal(context.waitingReseeded, 405, 'seeding replaces rather than stacks the pool');
+  assert.equal(context.waitingWhileAtFarStop, 405);
   assert.ok(context.dwellAtFarStop > 0 && context.dwellAtFarStop <= 1.5, 'standing at the far stop');
-  assert.equal(context.waitingAfterActualArrival, 11);
-  assert.equal(context.waitingAfterReseed, 81);
+  // it comes back carrying riders from the shops' stop, so boards up to its free seats
+  assert.ok(context.waitingAfterActualArrival < 405 && context.waitingAfterActualArrival >= 405 - 70,
+    `queue fell on arrival only, got ${context.waitingAfterActualArrival}`);
+  assert.equal(context.waitingAfterReseed, 405);
   assert.equal(context.waitingDuringStorm, 0);
   assert.equal(context.waitingWhenDisabled, 0);
 });
@@ -924,11 +927,47 @@ test('commuters accrue hour by hour along the traffic curve and the pool is clea
   // the reset hour clears yesterday, so the day's total is what accrued since
   const accruedSinceReset = perHour.slice(transport.TRANSPORT_STOP_POOL_RESET_HOUR).reduce((a, b) => a + b, 0)
     + perHour[transport.TRANSPORT_STOP_POOL_RESET_HOUR];
-  assert.ok(Math.abs(context.afterFullDay - 81) <= 4, `a day's accrual is the 81-rider pool, got ${context.afterFullDay}`);
+  // (hours 0-3 belong to the previous day's pool, hence a little short of 405)
+  assert.ok(Math.abs(context.afterFullDay - 405) <= 20, `a day's accrual is the 405-rider pool, got ${context.afterFullDay}`);
   assert.ok(perHour[8] > perHour[12] && perHour[12] > perHour[2], 'morning peak > midday > night');
   assert.ok(perHour[18] > perHour[21], 'evening peak > late evening');
   assert.ok(context.afterReset < context.afterFullDay, 'the reset hour clears the pool');
   assert.ok(accruedSinceReset > 0);
+});
+
+test('workplaces send riders home in the evening, and fractional arrivals are carried, not rounded away', () => {
+  const context = createTransportVm();
+  vm.runInContext(`
+    setExpansionEnabled('transport', true, { notify: false, autosave: false });
+    stopIds = listTransportStopSites().map((stop) => stop.id);
+    ensureTransportStopPairs(stopIds, null);
+    homeStop = getTransportStopById(stopIds.find((id) => getTransportStopById(id).col === 2));
+    workStop = getTransportStopById(stopIds.find((id) => getTransportStopById(id).col === 9));
+    home = []; work = [];
+    // one sky-day starting at the reset hour, so nothing is cleared midway
+    for (let i = 0; i < 24; i++) {
+      const hour = (TRANSPORT_STOP_POOL_RESET_HOUR + i) % 24;
+      const homeBefore = getTransportStopWaitingCount(homeStop.id);
+      const workBefore = getTransportStopWaitingCount(workStop.id);
+      accrueTransportStopCommutersForHour(hour);
+      home[hour] = getTransportStopWaitingCount(homeStop.id) - homeBefore;
+      work[hour] = getTransportStopWaitingCount(workStop.id) - workBefore;
+    }
+    homeTotal = getTransportStopWaitingCount(homeStop.id);
+    workTotal = getTransportStopWaitingCount(workStop.id);
+    workCatchment = getTransportStopCatchmentUnits(workStop);
+  `, context);
+  const home = JSON.parse(JSON.stringify(context.home));
+  const work = JSON.parse(JSON.stringify(context.work));
+  // '4:9' holds 1000 jobs and no homes: 1000*0.18*0.75 = 135 riders heading home a day
+  assert.equal(context.workCatchment.residents, 0);
+  assert.ok(Math.abs(context.workCatchment.returnUnits - 180) < 1e-9);
+  assert.ok(context.workTotal >= 134 && context.workTotal <= 135, `work stop day total ${context.workTotal}`);
+  assert.ok(work[18] > work[8] * 2, `evening rush home (${work[18]}) outweighs the morning (${work[8]})`);
+  assert.ok(home[8] > 0 && home[8] >= work[8]);
+  // floor-and-carry: the whole day's 405 riders arrive, give or take the last fraction
+  assert.ok(context.homeTotal >= 404 && context.homeTotal <= 405, `home stop day total ${context.homeTotal}`);
+  assert.ok(home.every((n) => n >= 0) && work.filter((n) => n === 0).length < 6, 'even quiet hours add riders once the carry fills');
 });
 
 test('pre-v0.6 dev saves with x10,000-scale money load back onto the stylized scale', () => {

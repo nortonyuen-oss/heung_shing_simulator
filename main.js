@@ -2000,6 +2000,8 @@ function applyToolAt(scene, row, col, pointer = null) {
     // own info window (waiting passengers, serving routes) - the mayor's
     // #inspect-panel is CSS-hidden in this mode anyway.
     if (typeof isTransportModeActive !== 'undefined' && isTransportModeActive) {
+      // a ferry or a pier (ferry-ui.js)
+      if (typeof handleFerryMapInspect === 'function' && handleFerryMapInspect(row, col, pointer)) return;
       const transportStop = typeof getTransportStopAt === 'function'
         ? getTransportStopAt(row, col, { presentOnly: true })
         : null;

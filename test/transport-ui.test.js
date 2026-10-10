@@ -90,3 +90,34 @@ test('every transport tool, window and checklist step has its words in all three
   assert.match(ui, /function cancelTransportModeTool\(/);
   assert.match(source('main.js'), /drawTransportCatchmentPreview\(this, cur\.row, cur\.col\)/);
 });
+
+test('transport charts: finance overview, route trend lines, and transport series in the city chart window', () => {
+  const ui = source('transport-ui.js');
+  const chart = source('chart-window.js');
+  const html = source('index.html');
+  assert.match(ui, /function renderTransportFinanceCharts\(/);
+  assert.match(ui, /renderTransportSparkline\(route\.history, route\.color\)/);
+  assert.match(source('ferry-ui.js'), /renderTransportSparkline\(route\.history, route\.color\)/);
+  for (const key of ['transportPassengers', 'transportRevenue', 'transportNet', 'transportCash']) {
+    assert.match(chart, new RegExp(`${key}: \\{`));
+    assert.match(html, new RegExp(`data-chart-series="${key}"`));
+  }
+  // the chart window is no longer hidden in transport mode
+  assert.doesNotMatch(html, /body\.transport-mode #chart-window/);
+});
+
+test('city chart lines up series by month label, so a later-starting series begins part way along', () => {
+  const vm = require('node:vm');
+  const context = vm.createContext({ console });
+  vm.runInContext(source('chart-window.js') + `
+    ;globalThis.getTransportExpansionState = () => ({ financeHistory: [
+      { year: 3027, month: 8, passengers: 10, revenue: 5, net: 1, closingCash: 100 },
+      { year: 3027, month: 9, passengers: 20, revenue: 6, net: -2, closingCash: 90 },
+    ] });
+    globalThis.series = getTransportChartHistory('passengers');
+  `, context);
+  assert.deepEqual(JSON.parse(JSON.stringify(context.series)), [
+    { label: '3027-08', value: 10 },
+    { label: '3027-09', value: 20 },
+  ]);
+});

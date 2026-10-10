@@ -86,6 +86,7 @@ function renderFerryRouteCard(route, state) {
           <div class="transport-route-name">⛴ ${ferryUiEscape(getFerryRouteName(route, state))}</div>
           <button class="transport-route-fleet-toggle${expanded ? ' is-open' : ''}" type="button" data-transport-action="ferry-toggle-fleet" data-route-id="${id}">${s.fleet.length} ⛴ ${expanded ? '▴' : '▾'}</button>
         </div>
+        ${typeof renderTransportSparkline === 'function' ? renderTransportSparkline(route.history, route.color) : ''}
         <span class="transport-status" data-status="${statusKey}">${ferryUiEscape(typeof t === 'function' ? t(`transport.status.${statusKey}`) : statusKey)}</span>
       </div>
       ${rows}

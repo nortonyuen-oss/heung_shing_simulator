@@ -83,7 +83,53 @@ const CHART_SERIES_DEFS = {
     historyKey: 'cityRidiculeHistory',
     formatter: (v) => `${Math.round(Number(v) || 0)}/100`,
   },
+  // the transport company's settled months (transport-expansion.js), beside the city's own
+  transportPassengers: {
+    labelKey: 'chart.transportPassengers',
+    color: '#236c91',
+    history: () => getTransportChartHistory('passengers'),
+    formatter: (v) => Math.round(Number(v) || 0).toLocaleString(),
+  },
+  transportRevenue: {
+    labelKey: 'chart.transportRevenue',
+    color: '#3aa36b',
+    history: () => getTransportChartHistory('revenue'),
+    formatter: (v) => `$${Math.round(Number(v) || 0).toLocaleString()}`,
+  },
+  transportNet: {
+    labelKey: 'chart.transportNet',
+    color: '#7a4fd0',
+    history: () => getTransportChartHistory('net'),
+    formatter: (v) => `${Number(v) < 0 ? '-' : ''}$${Math.abs(Math.round(Number(v) || 0)).toLocaleString()}`,
+  },
+  transportCash: {
+    labelKey: 'chart.transportCash',
+    color: '#b8862b',
+    history: () => getTransportChartHistory('closingCash'),
+    formatter: (v) => `$${Math.round(Number(v) || 0).toLocaleString()}`,
+  },
 };
+
+// A transport finance field month by month, labelled like the city's own history points.
+function getTransportChartHistory(field) {
+  if (typeof getTransportExpansionState !== 'function') return [];
+  const history = getTransportExpansionState().financeHistory || [];
+  return history
+    .filter((entry) => entry && entry[field] != null)
+    .map((entry) => ({ label: `${entry.year}-${String(entry.month).padStart(2, '0')}`, value: Number(entry[field]) || 0 }));
+}
+
+// The finance window's "compare in the city charts": the company's riders and profit beside
+// the two city figures buses move, happiness and land value - the rest unticked so the
+// lines can be read.
+const TRANSPORT_COMPARE_SERIES = new Set(['transportPassengers', 'transportNet', 'happiness', 'landValue']);
+
+function openChartWindowForTransport() {
+  document.querySelectorAll('#chart-controls [data-chart-series]').forEach((input) => {
+    input.checked = TRANSPORT_COMPARE_SERIES.has(input.dataset.chartSeries);
+  });
+  openChartWindow();
+}
 
 let chartWindowLastRenderedLabel = null;
 
@@ -309,6 +355,11 @@ function updateChartWindow(force = false) {
   if (ridiculeToggle) ridiculeToggle.hidden = Number(city.cityRidicule || 0) <= 0
     && !(city.cityRidiculeHistory || []).some((point) => Number(point?.value || 0) > 0);
 
+  const transportGroup = document.getElementById('chart-transport-series');
+  if (transportGroup) {
+    transportGroup.hidden = !(typeof isExpansionEnabled === 'function' && isExpansionEnabled('transport'));
+  }
+
   updateChartWindowMetrics();
   renderCityTrendChart();
 }
@@ -373,11 +424,19 @@ function renderCityTrendChart() {
 
   const seriesData = selectedKeys.map((key) => {
     const def = CHART_SERIES_DEFS[key];
-    const history = Array.isArray(city[def.historyKey]) ? city[def.historyKey].slice(-120) : [];
+    const source = def.history ? def.history() : city[def.historyKey];
+    const history = Array.isArray(source) ? source.slice(-120) : [];
     return { key, def, history };
-  });
+  }).filter((entry) => !entry.def.history || entry.history.length > 0);
 
-  const maxPoints = Math.max(2, ...seriesData.map((entry) => entry.history.length));
+  // Series line up by month: every point carries its YYYY-MM label, and a series that
+  // starts later (the transport company's) begins part way along instead of at the left.
+  const labelled = seriesData.every(({ history }) => history.every((point) => point?.label));
+  const axis = labelled
+    ? [...new Set(seriesData.flatMap(({ history }) => history.map((point) => point.label)))].sort().slice(-120)
+    : null;
+  const axisIndex = axis ? new Map(axis.map((label, index) => [label, index])) : null;
+  const maxPoints = Math.max(2, axis ? axis.length : Math.max(0, ...seriesData.map((entry) => entry.history.length)));
   const leftPad = 32;
   const rightPad = 12;
   const topPad = 12;
@@ -386,8 +445,11 @@ function renderCityTrendChart() {
   const plotH = height - topPad - bottomPad;
 
   seriesData.forEach(({ def, history }) => {
-    if (!history.length) return;
-    const rawValues = history.map((entry) => Number(entry?.value ?? 0));
+    const points = history
+      .map((entry, index) => ({ slot: axisIndex ? axisIndex.get(entry?.label) : index, value: Number(entry?.value ?? 0) }))
+      .filter((point) => point.slot !== undefined);
+    if (!points.length) return;
+    const rawValues = points.map((point) => point.value);
     const minVal = Math.min(...rawValues);
     const maxVal = Math.max(...rawValues);
     const range = Math.max(1e-6, maxVal - minVal);
@@ -396,8 +458,8 @@ function renderCityTrendChart() {
     ctx.lineWidth = 2;
     ctx.beginPath();
 
-    rawValues.forEach((value, index) => {
-      const x = leftPad + (index / Math.max(1, maxPoints - 1)) * plotW;
+    points.forEach(({ slot, value }, index) => {
+      const x = leftPad + (slot / Math.max(1, maxPoints - 1)) * plotW;
       const normalized = (value - minVal) / range;
       const y = topPad + (1 - normalized) * plotH;
       if (index === 0) ctx.moveTo(x, y);

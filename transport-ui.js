@@ -135,6 +135,18 @@ function ensureTransportPanelStyle() {
     #transport-tool-hint.is-visible { display:block; }
     #transport-tool-hint .hint-info { display:block; margin-top:3px; color:#bfe3f5; font-size:12px; }
     #transport-tool-hint .hint-cancel { color:#9fb4c2; font-size:11.5px; margin-left:8px; }
+    .transport-panel-window .transport-route-head { flex-wrap:wrap; }
+    .transport-panel-window .transport-spark { display:inline-flex; align-items:center; gap:6px; margin-left:auto; margin-right:8px; color:#4f5960; font-size:11px; white-space:nowrap; }
+    .transport-panel-window .transport-spark svg { background:#efe9da; border-radius:3px; }
+    .transport-panel-window .transport-spark-trend.is-up { color:#1b7045; font-weight:700; }
+    .transport-panel-window .transport-spark-trend.is-down { color:#9b2929; font-weight:700; }
+    .transport-panel-window .transport-charts { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:8px; margin:0 0 6px; }
+    .transport-panel-window .transport-chart { margin:0; padding:7px 8px; background:#faf7ed; border:1px solid #c8c0ad; border-radius:5px; }
+    .transport-panel-window .transport-chart figcaption { font-weight:700; color:#263a48; margin-bottom:4px; }
+    .transport-panel-window .transport-chart-svg { display:block; width:100%; height:150px; overflow:visible; }
+    .transport-panel-window .transport-chart-svg text { font:9px Arial, sans-serif; fill:#6a665c; }
+    .transport-panel-window .transport-chart-legend { display:flex; flex-wrap:wrap; gap:4px 10px; margin-top:4px; font-size:11px; color:#4f5960; }
+    .transport-panel-window .transport-chart-legend i { display:inline-block; width:9px; height:9px; border-radius:2px; margin-right:4px; vertical-align:-1px; }
     .transport-panel-window .transport-issue { display:flex; align-items:center; gap:8px; margin:6px 0; padding:5px 8px; border-radius:5px; background:#fbe9c8; border:1px solid #d9a64a; color:#6b4a0c; }
     .transport-panel-window .transport-issue[data-tone="error"] { background:#f6dcd8; border-color:#c97a72; color:#8d2924; }
     .transport-panel-window .transport-issue span { flex:1; min-width:0; }
@@ -535,6 +547,7 @@ function renderTransportRouteCard(route, index) {
           <div class="transport-route-name">${transportEscapeHtml(route.name)}</div>
           <button class="transport-route-fleet-toggle${expanded ? ' is-open' : ''}" type="button" data-transport-action="toggle-route-vehicles" data-route-id="${transportEscapeHtml(route.id)}" title="${transportEscapeHtml(t('transport.routeFleet.toggle'))}">${routeVehicles.length} 🚌 · ${transportEscapeHtml(t('transport.farePerTileShort', { fare: Number(route.fare).toFixed(0) }))} ${expanded ? '▴' : '▾'}</button>
         </div>
+        ${renderTransportSparkline(route.history, route.color)}
         <span class="transport-status" data-status="${transportEscapeHtml(status)}">${transportEscapeHtml(t(`transport.status.${status}`))}</span>
       </div>
       ${vehicleRows}
@@ -796,6 +809,119 @@ function getTransportFinanceHistoryRows(state) {
     .slice(0, 12);
 }
 
+// ── Charts: plain SVG, so they re-render with the windows like everything else ──
+
+function transportMonthLabel(entry) {
+  return `${entry.year}/${String(entry.month).padStart(2, '0')}`;
+}
+
+// A small trend line for a route card: its monthly riders, last month's figure and the
+// change from the month before.
+function renderTransportSparkline(history, color) {
+  const points = (Array.isArray(history) ? history : []).slice(-12);
+  if (points.length < 2) return '';
+  const values = points.map((entry) => Math.max(0, Number(entry.passengers) || 0));
+  const width = 84;
+  const height = 22;
+  const max = Math.max(1, ...values);
+  const coords = values.map((value, index) => (
+    `${(index / (values.length - 1) * (width - 2) + 1).toFixed(1)},${(height - 2 - value / max * (height - 4)).toFixed(1)}`
+  )).join(' ');
+  const last = values.at(-1);
+  const before = values.at(-2);
+  const change = before > 0 ? Math.round((last - before) / before * 100) : null;
+  const trend = change === null ? '' : change > 0 ? `▲${change}%` : change < 0 ? `▼${Math.abs(change)}%` : '＝';
+  const trendClass = change > 0 ? 'is-up' : change < 0 ? 'is-down' : '';
+  return `<span class="transport-spark" title="${transportEscapeHtml(t('transport.chart.sparkTitle', { months: values.length }))}">
+    <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" aria-hidden="true"><polyline points="${coords}" fill="none" stroke="${transportEscapeHtml(color)}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg>
+    <span>${transportEscapeHtml(t('transport.chart.lastMonthRiders', { count: last.toLocaleString() }))}</span>
+    ${trend ? `<span class="transport-spark-trend ${trendClass}">${trend}</span>` : ''}
+  </span>`;
+}
+
+// A line chart over months: series share one scale (with zero drawn when it is in range),
+// or `bars` draws a single series as columns.
+function renderTransportChartSvg({ labels, series, format, bars = false }) {
+  const width = 340;
+  const height = 150;
+  const left = 46;
+  const right = 8;
+  const top = 10;
+  const bottom = 20;
+  const plotW = width - left - right;
+  const plotH = height - top - bottom;
+  const all = series.flatMap((entry) => entry.values);
+  let min = Math.min(0, ...all);
+  let max = Math.max(0, ...all);
+  if (max - min < 1e-6) max = min + 1;
+  const n = labels.length;
+  const x = (index) => left + (n === 1 ? plotW / 2 : (bars ? (index + 0.5) / n : index / (n - 1)) * plotW);
+  const y = (value) => top + (1 - (value - min) / (max - min)) * plotH;
+  const grid = [0, 0.5, 1].map((f) => {
+    const value = min + (max - min) * f;
+    return `<line x1="${left}" x2="${width - right}" y1="${y(value).toFixed(1)}" y2="${y(value).toFixed(1)}" stroke="#cfc6b0" stroke-width="1"/>
+      <text x="${left - 4}" y="${(y(value) + 3).toFixed(1)}" text-anchor="end">${transportEscapeHtml(format(value))}</text>`;
+  }).join('');
+  const zero = min < 0 && max > 0
+    ? `<line x1="${left}" x2="${width - right}" y1="${y(0).toFixed(1)}" y2="${y(0).toFixed(1)}" stroke="#6f6b60" stroke-width="1" stroke-dasharray="3 3"/>`
+    : '';
+  const plots = series.map((entry) => {
+    if (bars) {
+      const barW = Math.max(2, plotW / n * 0.6);
+      return entry.values.map((value, index) => {
+        const y0 = y(Math.max(0, value));
+        return `<rect x="${(x(index) - barW / 2).toFixed(1)}" y="${y0.toFixed(1)}" width="${barW.toFixed(1)}" height="${Math.max(0.5, y(0) - y0).toFixed(1)}" fill="${entry.color}" rx="1"/>`;
+      }).join('');
+    }
+    const points = entry.values.map((value, index) => `${x(index).toFixed(1)},${y(value).toFixed(1)}`).join(' ');
+    return `<polyline points="${points}" fill="none" stroke="${entry.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`
+      + entry.values.map((value, index) => `<circle cx="${x(index).toFixed(1)}" cy="${y(value).toFixed(1)}" r="2" fill="${entry.color}"><title>${transportEscapeHtml(`${labels[index]} ${entry.label}: ${format(value)}`)}</title></circle>`).join('');
+  }).join('');
+  const xLabels = n > 0
+    ? `<text x="${x(0).toFixed(1)}" y="${height - 5}" text-anchor="${n === 1 ? 'middle' : 'start'}">${transportEscapeHtml(labels[0])}</text>`
+      + (n > 1 ? `<text x="${x(n - 1).toFixed(1)}" y="${height - 5}" text-anchor="end">${transportEscapeHtml(labels[n - 1])}</text>` : '')
+    : '';
+  const legend = series.map((entry) => (
+    `<span><i style="background:${entry.color}"></i>${transportEscapeHtml(entry.label)}: <strong>${transportEscapeHtml(format(entry.values.at(-1) ?? 0))}</strong></span>`
+  )).join('');
+  return `<svg class="transport-chart-svg" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" role="img">${grid}${zero}${plots}${xLabels}</svg><div class="transport-chart-legend">${legend}</div>`;
+}
+
+// 本月 tab: the last 12 settled months, money and riders.
+function renderTransportFinanceCharts(state) {
+  const months = (state.financeHistory || []).slice(-12);
+  if (months.length < 2) {
+    return `<div class="transport-empty">${transportEscapeHtml(t('transport.chart.notEnough'))}</div>`;
+  }
+  const labels = months.map(transportMonthLabel);
+  const money = (value) => transportFormatMoney(Math.round(value), value < 0);
+  return `
+    <div class="transport-charts">
+      <figure class="transport-chart">
+        <figcaption>${transportEscapeHtml(t('transport.chart.moneyTitle', { months: months.length }))}</figcaption>
+        ${renderTransportChartSvg({
+          labels,
+          format: money,
+          series: [
+            { label: t('transport.finance.revenue'), color: '#2e8b57', values: months.map((m) => Number(m.revenue) || 0) },
+            { label: t('transport.finance.totalCost'), color: '#c24646', values: months.map((m) => Number(m.cost) || 0) },
+            { label: t('transport.metric.net'), color: '#1e5cb3', values: months.map((m) => Number(m.net) || 0) },
+          ],
+        })}
+      </figure>
+      <figure class="transport-chart">
+        <figcaption>${transportEscapeHtml(t('transport.chart.ridersTitle', { months: months.length }))}</figcaption>
+        ${renderTransportChartSvg({
+          labels,
+          bars: true,
+          format: (value) => Math.round(value).toLocaleString(),
+          series: [{ label: t('transport.metric.passengers'), color: '#236c91', values: months.map((m) => Number(m.passengers) || 0) }],
+        })}
+      </figure>
+    </div>
+    <div class="transport-actions"><button class="transport-btn" type="button" data-transport-action="open-city-chart">${transportEscapeHtml(t('transport.chart.compare'))}</button></div>`;
+}
+
 function renderTransportFinancesTab(state, tab = 'overview') {
   const dayFraction = typeof getTransportMonthDayFraction === 'function' ? getTransportMonthDayFraction() : 1;
   const revenue = state.routes.reduce((sum, route) => sum + (Number(route.lastStats?.revenue) || 0), 0);
@@ -844,6 +970,7 @@ function renderTransportFinancesTab(state, tab = 'overview') {
   return `
     <div class="transport-section-head"><div><h3>${transportEscapeHtml(t('transport.finance.title'))}</h3><p>${transportEscapeHtml(t('transport.finance.subtitle'))}</p></div></div>
     <div class="transport-summary">${cards}</div>
+    ${renderTransportFinanceCharts(state)}
     <h4>${transportEscapeHtml(t('transport.finance.byRoute'))}</h4>
     ${state.routes.length === 0
       ? `<div class="transport-empty">${transportEscapeHtml(t('transport.noRoutes'))}</div>`
@@ -1701,6 +1828,14 @@ function handleTransportUiClick(event) {
       const point = isoToScreen(col, row);
       activeScene.cameras.main.centerOn(point.x, point.y);
     }
+    return;
+  }
+  if (action === 'open-city-chart') {
+    if (typeof openChartWindowForTransport === 'function') openChartWindowForTransport();
+    // above the transport windows, which stack from 360 up
+    transportPanelZCounter += 1;
+    const chart = document.getElementById('chart-window');
+    if (chart) chart.style.zIndex = String(360 + transportPanelZCounter);
     return;
   }
   if (action === 'select-tool') {

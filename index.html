@@ -5117,7 +5117,6 @@
     body.transport-mode #budget-panel,
     body.transport-mode #road-tile-set-window,
     body.transport-mode #overlay-window,
-    body.transport-mode #chart-window,
     body.transport-mode #inspect-panel,
     body.transport-mode [data-menu-action="open-road-tile-set"] {
       display: none !important;
@@ -5451,6 +5450,21 @@
       flex-wrap: wrap;
       gap: 6px 10px;
       align-items: center;
+    }
+    .chart-series-group {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px 10px;
+      width: 100%;
+      padding-top: 5px;
+      border-top: 1px solid rgba(120, 112, 92, 0.35);
+    }
+    .chart-series-group[hidden] { display: none; }
+    .chart-series-group-title {
+      font-size: 11px;
+      font-weight: 800;
+      color: #14506e;
     }
     .chart-line-toggle {
       display: flex;
@@ -7374,6 +7388,13 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
         <label class="chart-line-toggle"><input type="checkbox" data-chart-series="hospitalUtilization" checked> <span data-i18n="chart.hospitalUtilization">Hospital Usage</span></label>
         <label class="chart-line-toggle"><input type="checkbox" data-chart-series="attractiveness"> <span data-i18n="chart.attractiveness">City Attractiveness</span></label>
         <label id="chart-ridicule-toggle" class="chart-line-toggle" hidden><input type="checkbox" data-chart-series="ridicule"> <span data-i18n="chart.ridicule">City Ridicule</span></label>
+        <span id="chart-transport-series" class="chart-series-group" hidden>
+          <span class="chart-series-group-title" data-i18n="chart.transportGroup">Transport company</span>
+          <label class="chart-line-toggle"><input type="checkbox" data-chart-series="transportPassengers"> <span data-i18n="chart.transportPassengers">Riders</span></label>
+          <label class="chart-line-toggle"><input type="checkbox" data-chart-series="transportRevenue"> <span data-i18n="chart.transportRevenue">Fare revenue</span></label>
+          <label class="chart-line-toggle"><input type="checkbox" data-chart-series="transportNet"> <span data-i18n="chart.transportNet">Profit</span></label>
+          <label class="chart-line-toggle"><input type="checkbox" data-chart-series="transportCash"> <span data-i18n="chart.transportCash">Company cash</span></label>
+        </span>
       </div>
       <div id="chart-metrics" aria-label="Education and science metrics">
         <div class="chart-metric">

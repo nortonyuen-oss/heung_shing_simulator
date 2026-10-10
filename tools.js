@@ -102,7 +102,11 @@ function handleNewTool(scene, tile) {
   if (selectedTool === 'ferry-pier') return placeFerryPier(scene, row, col);
   // 海濱步道, a tile at a time (a drag lays a run of it): promenade.js
   if (selectedTool === 'promenade') return typeof placePromenade === 'function' && placePromenade(scene, row, col);
-  if (selectedTool === 'ferry-route') return handleFerryRouteClick(scene, row, col);
+  if (selectedTool === 'ferry-route') {
+    const result = handleFerryRouteClick(scene, row, col);
+    if (typeof refreshTransportToolHint === 'function') refreshTransportToolHint();
+    return result;
+  }
 
   return false;
 }

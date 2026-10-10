@@ -89,6 +89,11 @@ function renderFerryRouteCard(route, state) {
         <span class="transport-status" data-status="${statusKey}">${ferryUiEscape(typeof t === 'function' ? t(`transport.status.${statusKey}`) : statusKey)}</span>
       </div>
       ${rows}
+      ${typeof renderTransportIssue !== 'function' ? '' : suspended
+        ? renderTransportIssue(ferryT('ferry.issue.suspended', '航線暫停中，船唔會開出。'), `<button class="transport-btn" type="button" data-transport-action="ferry-toggle" data-route-id="${id}">${ferryUiEscape(t('transport.resume'))}</button>`)
+        : s.fleet.length === 0
+          ? renderTransportIssue(ferryT('ferry.issue.noFerries', '未有船行走：加一隻船先有乘客。'), `<button class="transport-btn primary" type="button" data-transport-action="ferry-buy" data-route-id="${id}">${ferryUiEscape(ferryT('ferry.issue.addFerry', '＋加船'))}</button>`)
+          : ''}
       <div class="transport-metrics">${metrics}</div>
       <div class="transport-actions">
         <button class="transport-btn primary" type="button" data-transport-action="ferry-buy" data-route-id="${id}">${ferryUiEscape(ferryT('ferry.route.buy', '加船（${price}）', { price: FERRY.vesselPrice.toLocaleString() }))}</button>

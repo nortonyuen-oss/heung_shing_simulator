@@ -73,3 +73,20 @@ test('bus company profit stays out of the mayor budget and is reported in the co
   assert.match(cityState, /const transportCost = 0;/);
   assert.match(transport, /state\.financeHistory\.push\(/);
 });
+
+test('every transport tool, window and checklist step has its words in all three languages', () => {
+  const translations = source('i18n.js');
+  const keys = [
+    ...['bus-stop', 'bus-depot', 'ferry-pier', 'ferry-route', 'pickStops', 'stopHere', 'cancel'].map((k) => `transport.hint.${k}`),
+    ...['routes', 'fleet', 'demand', 'finances'].map((k) => `transport.help.${k}`),
+    ...['stops', 'depot', 'route', 'bus', 'ferry'].flatMap((k) => [`transport.checklist.${k}`, `transport.checklist.${k}Go`]),
+    ...['noBuses', 'suspended', 'weather', 'noDepot', 'depotCutOff'].map((k) => `transport.issue.${k}`),
+  ];
+  for (const key of keys) {
+    const count = translations.split(`'${key}':`).length - 1;
+    assert.equal(count, 3, `${key} should appear once per language, found ${count}`);
+  }
+  const ui = source('transport-ui.js');
+  assert.match(ui, /function cancelTransportModeTool\(/);
+  assert.match(source('main.js'), /drawTransportCatchmentPreview\(this, cur\.row, cur\.col\)/);
+});

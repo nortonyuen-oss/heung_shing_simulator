@@ -10,6 +10,8 @@ const transportUiState = {
   fleetSort: 'number',
   // the tab each window shows (2026-10: six windows folded into four)
   panelTabs: { routes: 'bus', fleet: 'list', finances: 'overview' },
+  // windows showing their "?" help box
+  helpOpen: new Set(),
 };
 
 // §5/§10/§11: six independent, freely-movable operation windows (OpenTTD-
@@ -35,6 +37,9 @@ const TRANSPORT_PANEL_ALIASES = {
   ferry: ['routes', 'ferry'],
 };
 
+// where a window's help box goes: under its tabs
+const TRANSPORT_TABS_END = '<!--transport-tabs-end-->';
+
 function resolveTransportPanel(id, tab = '') {
   const alias = TRANSPORT_PANEL_ALIASES[id];
   const panelId = alias ? alias[0] : id;
@@ -58,7 +63,7 @@ function renderTransportPanelTabs(id, labels = {}) {
   const current = getTransportPanelTab(id);
   return `<div class="transport-panel-tabs" role="tablist">${tabs.map((tab) => `
     <button type="button" role="tab" class="transport-panel-tab${tab === current ? ' is-active' : ''}" aria-selected="${tab === current}" data-transport-action="panel-tab" data-panel-id="${id}" data-tab="${tab}">${transportEscapeHtml(labels[tab] ?? t(`transport.panelTab.${id}.${tab}`))}</button>`).join('')}
-  </div>`;
+  </div>${TRANSPORT_TABS_END}`;
 }
 const transportPanels = new Map();
 let transportPanelCascade = 0;
@@ -106,6 +111,34 @@ function ensureTransportPanelStyle() {
     .transport-panel-icon { font-size:16px; line-height:1; }
     .transport-panel-title { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .transport-panel-close { border:0; background:transparent; color:#fff; font-size:18px; line-height:1; padding:0 2px; cursor:pointer; }
+    .transport-panel-help { width:20px; height:20px; border:1px solid rgba(255,255,255,.65); border-radius:50%; background:transparent; color:#fff; font-size:12px; font-weight:800; line-height:1; padding:0; cursor:pointer; }
+    .transport-panel-help:hover, .transport-panel-help.is-open { background:#f1c65d; border-color:#f1c65d; color:#263a48; }
+    .transport-panel-window .transport-help { margin:0 0 10px; padding:8px 10px 8px 4px; background:#fff8dc; border:1px solid #d9c27a; border-radius:6px; color:#4a4230; }
+    .transport-panel-window .transport-help ul { margin:0; padding-left:20px; }
+    .transport-panel-window .transport-help li + li { margin-top:3px; }
+    #transport-checklist { display:none; order:1; margin-top:4px; padding:7px 8px; border:1px solid #8f9daf; border-radius:8px; background:#f8fafd; font:12px/1.3 Arial, sans-serif; color:#1f2327; }
+    body.transport-mode #transport-checklist.has-content { display:block; }
+    .tool-menu.is-collapsed #transport-checklist { display:none !important; }
+    #transport-checklist .checklist-head { display:flex; align-items:center; gap:6px; width:100%; border:0; background:transparent; padding:0; font:inherit; font-weight:800; color:#14506e; cursor:pointer; text-align:left; }
+    #transport-checklist .checklist-head span { flex:1; }
+    #transport-checklist ol { list-style:none; margin:7px 0 0; padding:0; display:grid; gap:5px; }
+    #transport-checklist li { display:grid; grid-template-columns:18px 1fr; gap:4px; align-items:start; }
+    #transport-checklist li .mark { width:16px; height:16px; border-radius:50%; border:2px solid #8f9daf; display:grid; place-items:center; font-size:10px; font-weight:900; color:#fff; }
+    #transport-checklist li.is-done .mark { background:#2e8b57; border-color:#2e8b57; }
+    #transport-checklist li.is-current .mark { border-color:#14506e; color:#14506e; }
+    #transport-checklist li.is-done .step-text { color:#6a7480; text-decoration:line-through; }
+    #transport-checklist li.is-current .step-text { font-weight:700; }
+    #transport-checklist .step-note { display:block; font-size:10.5px; color:#5f6b76; margin-top:1px; }
+    #transport-checklist .step-go { margin-top:3px; border:1px solid #164f6e; border-radius:5px; background:#236c91; color:#fff; font:inherit; font-size:11px; font-weight:700; padding:3px 8px; cursor:pointer; }
+    #transport-checklist .step-go:hover { background:#2d82ad; }
+    #transport-tool-hint { position:fixed; left:50%; bottom:74px; transform:translateX(-50%); z-index:1200; display:none; max-width:min(680px, calc(100vw - 32px)); padding:7px 14px; border-radius:9px; background:rgba(20,40,54,.92); color:#fff; font:13px/1.35 Arial, sans-serif; box-shadow:0 4px 16px rgba(0,0,0,.35); pointer-events:none; text-align:center; }
+    #transport-tool-hint.is-visible { display:block; }
+    #transport-tool-hint .hint-info { display:block; margin-top:3px; color:#bfe3f5; font-size:12px; }
+    #transport-tool-hint .hint-cancel { color:#9fb4c2; font-size:11.5px; margin-left:8px; }
+    .transport-panel-window .transport-issue { display:flex; align-items:center; gap:8px; margin:6px 0; padding:5px 8px; border-radius:5px; background:#fbe9c8; border:1px solid #d9a64a; color:#6b4a0c; }
+    .transport-panel-window .transport-issue[data-tone="error"] { background:#f6dcd8; border-color:#c97a72; color:#8d2924; }
+    .transport-panel-window .transport-issue span { flex:1; min-width:0; }
+    .transport-panel-window .transport-issue .transport-btn { padding:3px 8px; }
     .transport-panel-close:hover { color:#ffb4b4; }
     .transport-panel-body { overflow:auto; padding:12px; }
     .transport-panel-window.is-picking .transport-panel-tabs,
@@ -286,6 +319,7 @@ function createTransportPanel(id) {
     <div class="transport-panel-head" data-transport-panel-head>
       <span class="transport-panel-icon" aria-hidden="true">${meta.icon}</span>
       <span class="transport-panel-title" data-transport-panel-title></span>
+      <button class="transport-panel-help" type="button" data-transport-panel-help aria-label="Help" title="?">?</button>
       <button class="transport-panel-close" type="button" data-transport-panel-close aria-label="Close">×</button>
     </div>
     <div class="transport-panel-body" data-transport-panel-body></div>
@@ -310,6 +344,11 @@ function createTransportPanel(id) {
   root.addEventListener('input', handleTransportUiInput);
   root.addEventListener('change', handleTransportUiChange);
   root.querySelector('[data-transport-panel-close]').addEventListener('click', () => closeTransportPanel(id));
+  root.querySelector('[data-transport-panel-help]').addEventListener('click', () => {
+    if (transportUiState.helpOpen.has(id)) transportUiState.helpOpen.delete(id);
+    else transportUiState.helpOpen.add(id);
+    refreshTransportPanel(id);
+  });
   head.addEventListener('pointerdown', (event) => beginTransportPanelDrag(event, panel));
   head.addEventListener('pointermove', (event) => moveTransportPanelDrag(event, panel));
   head.addEventListener('pointerup', (event) => endTransportPanelDrag(event, panel));
@@ -500,12 +539,7 @@ function renderTransportRouteCard(route, index) {
       </div>
       ${vehicleRows}
       <div class="transport-route-stops" title="${transportEscapeHtml(stopText)}">${transportEscapeHtml(stopText)}</div>
-      ${status === 'broken' && runtime?.brokenReason
-        ? `<div class="transport-route-error">${transportEscapeHtml(transportRouteErrorMessage({ code: runtime.brokenReason }))}</div>`
-        : ''}
-      ${status === 'broken' && runtime?.brokenPoint
-        ? `<div class="transport-route-error">${transportEscapeHtml(t('transport.breakpoint', runtime.brokenPoint))}</div>`
-        : ''}
+      ${renderTransportRouteIssues(route, status, runtime, routeVehicles)}
       <div class="transport-metrics">${metrics}</div>
       <div class="transport-actions">
         <button class="transport-btn primary" type="button" data-transport-action="route-add-bus" data-route-id="${transportEscapeHtml(route.id)}">${transportEscapeHtml(t('transport.route.addBus', { price: transportFormatMoney(getTransportVehicleClass(route.vehicleClassId).purchasePrice) }))}</button>
@@ -515,6 +549,51 @@ function renderTransportRouteCard(route, index) {
         <button class="transport-btn danger" type="button" data-transport-action="delete-route" data-route-id="${transportEscapeHtml(route.id)}">${transportEscapeHtml(t('transport.delete'))}</button>
       </div>
     </article>`;
+}
+
+// A notice with the button that fixes it.
+function renderTransportIssue(text, button = '', tone = 'warning') {
+  return `<div class="transport-issue" data-tone="${tone}"><span>⚠ ${transportEscapeHtml(text)}</span>${button}</div>`;
+}
+
+function transportLocateButton(row, col) {
+  return `<button class="transport-btn" type="button" data-transport-action="locate-point" data-row="${Number(row)}" data-col="${Number(col)}">${transportEscapeHtml(t('transport.issue.locate'))}</button>`;
+}
+
+// What is wrong with a route, each with the button that deals with it.
+function renderTransportRouteIssues(route, status, runtime, routeVehicles) {
+  const id = transportEscapeHtml(route.id);
+  if (status === 'broken') {
+    const reason = runtime?.brokenReason ? transportRouteErrorMessage({ code: runtime.brokenReason }) : t('transport.status.broken');
+    const point = runtime?.brokenPoint;
+    return renderTransportIssue(
+      point ? `${reason} ${t('transport.breakpoint', point)}` : reason,
+      point ? transportLocateButton(point.row, point.col) : '',
+      'error',
+    );
+  }
+  if (route.status === 'suspended') {
+    return renderTransportIssue(t('transport.issue.suspended'),
+      `<button class="transport-btn" type="button" data-transport-action="toggle-route" data-route-id="${id}">${transportEscapeHtml(t('transport.resume'))}</button>`);
+  }
+  if (status === 'weather') return renderTransportIssue(t('transport.issue.weather'));
+  if (routeVehicles.length === 0) {
+    return renderTransportIssue(t('transport.issue.noBuses'),
+      `<button class="transport-btn primary" type="button" data-transport-action="route-add-bus" data-route-id="${id}">${transportEscapeHtml(t('transport.issue.addBus'))}</button>`);
+  }
+  return '';
+}
+
+// Company-wide problems over the route list: no depot, or one cut off from the roads.
+function renderTransportNetworkIssues(depots) {
+  if (depots.length === 0) {
+    return renderTransportIssue(t('transport.issue.noDepot'),
+      `<button class="transport-btn primary" type="button" data-transport-action="select-tool" data-tool="bus-depot">${transportEscapeHtml(t('transport.issue.buildDepot'))}</button>`);
+  }
+  const cutOff = depots.filter((depot) => !depot.connected);
+  if (cutOff.length === 0) return '';
+  const [row, col] = String(cutOff[0].id).split(':').map(Number);
+  return renderTransportIssue(t('transport.issue.depotCutOff', { count: cutOff.length }), transportLocateButton(row, col));
 }
 
 function renderTransportRoutesTab(state) {
@@ -545,6 +624,7 @@ function renderTransportRoutesTab(state) {
     ${transportUiState.editor ? '' : `<div class="transport-actions"><button class="transport-btn primary" type="button" data-transport-action="new-route">${transportEscapeHtml(t('transport.newRoute'))}</button></div>`}
     <div class="transport-summary">${summaryCards}</div>
     <p class="transport-depots">${transportEscapeHtml(t('transport.depots', { connected: connectedDepots, total: depots.length }))}</p>
+    ${transportUiState.editor ? '' : renderTransportNetworkIssues(depots)}
     ${transportUiState.editor ? renderTransportEditor() : `<div class="transport-routes">${routes}</div>`}
   `;
 }
@@ -795,8 +875,181 @@ function refreshTransportPanel(id, options = {}) {
       ? renderTransportCompanyTab(state)
       : renderTransportFinancesTab(state, tab));
   } else html = renderTransportRoutesTab(state);
-  panel.body.innerHTML = html;
+  panel.root.querySelector('[data-transport-panel-help]')?.classList.toggle('is-open', transportUiState.helpOpen.has(id));
+  panel.root.querySelector('[data-transport-panel-help]')?.setAttribute('title', t('transport.help.button'));
+  const help = renderTransportPanelHelp(id);
+  panel.body.innerHTML = html.includes(TRANSPORT_TABS_END) ? html.replace(TRANSPORT_TABS_END, help) : help + html;
   if (id === 'routes') syncTransportRoutePickingLayout(panel);
+}
+
+// ── 開業清單: the first steps of running buses, ticked off from the game itself ──
+
+const TRANSPORT_CHECKLIST_STORAGE_KEY = 'citybuilder.transportChecklist.v1';
+let transportChecklistCollapsed = null;
+let transportChecklistHtml = '';
+
+// Folded or open as the player last left it; until they touch it, open while there
+// is something to do and folded once everything is ticked.
+function isTransportChecklistCollapsed(allDone = false) {
+  if (transportChecklistCollapsed === null) {
+    try {
+      const stored = window.localStorage.getItem(TRANSPORT_CHECKLIST_STORAGE_KEY);
+      if (stored === 'collapsed' || stored === 'open') transportChecklistCollapsed = stored === 'collapsed';
+    } catch {}
+  }
+  return transportChecklistCollapsed ?? allDone;
+}
+
+function setTransportChecklistCollapsed(collapsed) {
+  transportChecklistCollapsed = !!collapsed;
+  try {
+    window.localStorage.setItem(TRANSPORT_CHECKLIST_STORAGE_KEY, collapsed ? 'collapsed' : 'open');
+  } catch {}
+  refreshTransportChecklist();
+}
+
+function getTransportChecklistSteps() {
+  const state = getTransportExpansionState();
+  const stops = listTransportStopSites().length;
+  const depots = listTransportDepots();
+  const connected = depots.filter((depot) => depot.connected).length;
+  const running = state.vehicles.some((vehicle) => vehicle.routeId && vehicle.status !== 'depot');
+  const ferryRoutes = typeof getFerryState === 'function' ? getFerryState().routes.length : 0;
+  return [
+    { id: 'stops', done: stops >= 2, note: t('transport.checklist.stopsNote', { count: stops }), go: 'bus-stop' },
+    {
+      id: 'depot',
+      done: connected > 0,
+      note: depots.length > 0 && connected === 0 ? t('transport.checklist.depotCutOff') : t('transport.checklist.depotNote'),
+      go: 'bus-depot',
+    },
+    { id: 'route', done: state.routes.length > 0, note: t('transport.checklist.routeNote'), go: 'new-route' },
+    { id: 'bus', done: running, note: t('transport.checklist.busNote'), go: 'routes' },
+    { id: 'ferry', done: ferryRoutes > 0, note: t('transport.checklist.ferryNote'), go: 'ferry-pier', optional: true },
+  ];
+}
+
+function refreshTransportChecklist() {
+  if (typeof document === 'undefined') return;
+  const root = document.getElementById('transport-checklist');
+  if (!root) return;
+  const state = getTransportExpansionState();
+  if (!isTransportModeActive || !state.enabled || !state.unlocked) {
+    root.classList.remove('has-content');
+    return;
+  }
+  const steps = getTransportChecklistSteps();
+  const required = steps.filter((step) => !step.optional);
+  const doneCount = required.filter((step) => step.done).length;
+  const allDone = doneCount === required.length;
+  const collapsed = isTransportChecklistCollapsed(allDone);
+  const current = steps.find((step) => !step.done && !step.optional) || steps.find((step) => !step.done);
+  const title = allDone ? t('transport.checklist.doneTitle') : t('transport.checklist.title', { done: doneCount, total: required.length });
+  const items = collapsed ? '' : `<ol>${steps.map((step, index) => {
+    const cls = step.done ? 'is-done' : (step === current ? 'is-current' : '');
+    const label = t(`transport.checklist.${step.id}`);
+    const go = !step.done && step === current
+      ? `<button class="step-go" type="button" data-checklist-go="${step.go}">${transportEscapeHtml(t(`transport.checklist.${step.id}Go`))}</button>`
+      : '';
+    return `<li class="${cls}"><span class="mark">${step.done ? '✓' : (step.optional ? '+' : index + 1)}</span><span><span class="step-text">${transportEscapeHtml(label)}</span>${step.done ? '' : `<span class="step-note">${transportEscapeHtml(step.note)}</span>`}${go}</span></li>`;
+  }).join('')}</ol>`;
+  const html = `<button class="checklist-head" type="button" data-checklist-toggle aria-expanded="${!collapsed}"><span>📋 ${transportEscapeHtml(title)}</span>${collapsed ? '▸' : '▾'}</button>${items}`;
+  root.classList.add('has-content');
+  if (html !== transportChecklistHtml) {
+    transportChecklistHtml = html;
+    root.innerHTML = html;
+  }
+}
+
+function handleTransportChecklistClick(event) {
+  event.stopPropagation();
+  if (event.target.closest('[data-checklist-toggle]')) {
+    const required = getTransportChecklistSteps().filter((step) => !step.optional);
+    setTransportChecklistCollapsed(!isTransportChecklistCollapsed(required.every((step) => step.done)));
+    return;
+  }
+  const go = event.target.closest('[data-checklist-go]')?.dataset.checklistGo;
+  if (!go) return;
+  if (go === 'new-route') startNewTransportRoute();
+  else if (go === 'routes') {
+    openTransportWindowTab('routes', 'bus');
+    showToast(t('transport.checklist.busToast'), 'info');
+  } else selectTransportModeTool(go);
+}
+
+// ── The hint bar: what the tool in hand does, and what is under the pointer ──
+
+const TRANSPORT_HINT_TOOLS = new Set(['bus-stop', 'bus-depot', 'ferry-pier', 'ferry-route']);
+let transportToolHintEl = null;
+let transportHintHover = null;
+
+function getTransportToolHintElement() {
+  if (!transportToolHintEl && typeof document !== 'undefined') {
+    ensureTransportPanelStyle();
+    transportToolHintEl = document.createElement('div');
+    transportToolHintEl.id = 'transport-tool-hint';
+    transportToolHintEl.setAttribute('role', 'status');
+    document.body.appendChild(transportToolHintEl);
+  }
+  return transportToolHintEl;
+}
+
+function getTransportToolHintText() {
+  if (!isTransportModeActive) return null;
+  if (isTransportRoutePicking()) {
+    return { text: t('transport.hint.pickStops', { count: transportUiState.editor.stopIds.length }), cancel: false };
+  }
+  const tool = typeof selectedTool === 'string' ? selectedTool : '';
+  if (!TRANSPORT_HINT_TOOLS.has(tool)) return null;
+  let info = '';
+  if (tool === 'bus-stop' && transportHintHover) {
+    const catchment = getTransportStopCatchmentUnits({ id: 'hint-preview', row: transportHintHover.row, col: transportHintHover.col });
+    info = t('transport.hint.stopHere', {
+      residents: Math.round(catchment.residents || 0).toLocaleString(),
+      jobs: Math.round(catchment.destinationUnits).toLocaleString(),
+      riders: Math.round(getTransportStopDailyRiders({ id: 'hint-preview', row: transportHintHover.row, col: transportHintHover.col })).toLocaleString(),
+    });
+  }
+  if (tool === 'ferry-route' && typeof ferryRouteDraft !== 'undefined' && ferryRouteDraft && typeof getFerryPierById === 'function') {
+    const pier = getFerryPierById(ferryRouteDraft);
+    if (pier) return { text: t('transport.hint.ferryRouteSecond', { name: pier.name || pier.id }), info, cancel: true };
+  }
+  return { text: t(`transport.hint.${tool}`), info, cancel: true };
+}
+
+function refreshTransportToolHint() {
+  const el = getTransportToolHintElement();
+  if (!el) return;
+  const hint = getTransportToolHintText();
+  el.classList.toggle('is-visible', !!hint);
+  if (!hint) return;
+  const html = `${transportEscapeHtml(hint.text)}${hint.cancel ? `<span class="hint-cancel">${transportEscapeHtml(t('transport.hint.cancel'))}</span>` : ''}${hint.info ? `<span class="hint-info">${transportEscapeHtml(hint.info)}</span>` : ''}`;
+  if (el.innerHTML !== html) el.innerHTML = html;
+}
+
+// main.js's pointer move, while a transport tool is in hand
+function updateTransportToolHintHover(row, col) {
+  const next = Number.isFinite(row) && Number.isFinite(col) ? { row, col } : null;
+  if (next?.row === transportHintHover?.row && next?.col === transportHintHover?.col) return;
+  transportHintHover = next;
+  refreshTransportToolHint();
+}
+
+// Esc with a transport tool in hand puts it down (back to inspecting) before
+// it closes any window.
+function cancelTransportModeTool() {
+  if (!isTransportModeActive || typeof selectedTool !== 'string' || !TRANSPORT_HINT_TOOLS.has(selectedTool)) return false;
+  if (typeof ferryRouteDraft !== 'undefined') ferryRouteDraft = null;
+  document.querySelector('#tool-menu [data-tool-category="inspect"]')?.click();
+  refreshTransportToolHint();
+  return true;
+}
+
+// The "?" in a window's title bar: a few lines on what the window is for.
+function renderTransportPanelHelp(id) {
+  if (!transportUiState.helpOpen.has(id)) return '';
+  const lines = String(t(`transport.help.${id}`)).split('\n').filter(Boolean);
+  return `<div class="transport-help"><ul>${lines.map((line) => `<li>${transportEscapeHtml(line)}</li>`).join('')}</ul></div>`;
 }
 
 // While stops are being picked the routes window shrinks to just the editor and
@@ -820,6 +1073,8 @@ function syncTransportRoutePickingLayout(panel) {
 
 function refreshTransportUi(options = {}) {
   for (const id of TRANSPORT_PANEL_IDS) refreshTransportPanel(id, options);
+  refreshTransportChecklist();
+  refreshTransportToolHint();
   updateTransportTopbarPanelButtonStates();
   updateTransportTopbarKpis();
   refreshTransportInspector();
@@ -1056,6 +1311,8 @@ function setTransportModeActive(active) {
   if (typeof closeToolCategoryFlyouts === 'function') closeToolCategoryFlyouts();
   refreshTransportModeHeader();
   refreshPlayModeSwitch();
+  refreshTransportChecklist();
+  refreshTransportToolHint();
   // not switched on yet, or not unlocked: the routes window says why and how
   if (next) {
     const state = getTransportExpansionState();
@@ -1435,6 +1692,21 @@ function handleTransportUiClick(event) {
     }
     return;
   }
+  if (action === 'locate-point') {
+    const row = Number(button.dataset.row);
+    const col = Number(button.dataset.col);
+    if (!Number.isFinite(row) || !Number.isFinite(col)) return;
+    if (typeof centerCameraOnTile === 'function') centerCameraOnTile(activeScene, row, col);
+    else if (activeScene?.cameras?.main && typeof isoToScreen === 'function') {
+      const point = isoToScreen(col, row);
+      activeScene.cameras.main.centerOn(point.x, point.y);
+    }
+    return;
+  }
+  if (action === 'select-tool') {
+    selectTransportModeTool(button.dataset.tool);
+    return;
+  }
   if (action === 'route-add-bus') {
     addTransportBusToRoute(button.dataset.routeId);
     return refreshTransportUi();
@@ -1622,6 +1894,17 @@ function handleTransportUiKeydown(event) {
     closeTransportInspector();
     return;
   }
+  if (event.key === 'Escape' && isTransportRoutePicking()) {
+    event.preventDefault();
+    transportUiState.pickingStops = false;
+    refreshTransportUi();
+    if (typeof invalidateTransportVisuals === 'function') invalidateTransportVisuals(activeScene);
+    return;
+  }
+  if (event.key === 'Escape' && cancelTransportModeTool()) {
+    event.preventDefault();
+    return;
+  }
   const focusedPanel = transportPanels.get(transportFocusedPanelId);
   if (event.key === 'Escape' && focusedPanel && !focusedPanel.root.hidden) {
     event.preventDefault();
@@ -1658,6 +1941,15 @@ function setupTransportUi() {
     if (!button) return;
     toggleTransportPanel(button.dataset.transportTopbarPanel);
   });
+  const menu = document.getElementById('tool-menu');
+  if (menu && !document.getElementById('transport-checklist')) {
+    ensureTransportPanelStyle();
+    const checklist = document.createElement('section');
+    checklist.id = 'transport-checklist';
+    checklist.setAttribute('aria-label', 'Getting started');
+    checklist.addEventListener('click', handleTransportChecklistClick);
+    menu.appendChild(checklist);
+  }
   document.getElementById('play-mode-switch')?.addEventListener('click', (event) => {
     const button = event.target.closest('[data-play-mode]');
     if (!button || !canSwitchPlayMode()) return;

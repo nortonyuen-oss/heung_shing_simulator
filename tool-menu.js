@@ -384,6 +384,8 @@ function updateToolCategoryState(menu = document.getElementById('tool-menu'), to
   // 避風塘: shows its mode bar and planning overlay while selected, hides them otherwise.
   if (typeof syncTyphoonShelterTool === 'function') syncTyphoonShelterTool();
   const activeCategory = getToolCategoryForTool(tool);
+  // the transport hint bar follows the tool in hand (transport-ui.js)
+  if (typeof refreshTransportToolHint === 'function') refreshTransportToolHint();
   menu.querySelectorAll('[data-tool-category]').forEach((button) => {
     button.classList.toggle('is-active', button.dataset.toolCategory === activeCategory);
   });

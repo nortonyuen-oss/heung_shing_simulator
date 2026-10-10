@@ -1141,8 +1141,14 @@ function create() {
     // hovered tile, same pattern as the inspect highlight above.
     if (selectedTool === 'bus-stop') {
       const cur = pointerToTile(this, pointer);
-      if (cur) drawBusStopHighlight(this, cur.row, cur.col);
-      else if (this.busStopHighlightGraphic) this.busStopHighlightGraphic.clear();
+      if (cur) {
+        drawBusStopHighlight(this, cur.row, cur.col);
+        // in transport mode, the walking range a stop here would serve
+        if (typeof isTransportModeActive !== 'undefined' && isTransportModeActive) {
+          drawTransportCatchmentPreview(this, cur.row, cur.col);
+        }
+      } else if (this.busStopHighlightGraphic) this.busStopHighlightGraphic.clear();
+      if (typeof updateTransportToolHintHover === 'function') updateTransportToolHintHover(cur?.row, cur?.col);
     } else if (this.busStopHighlightGraphic) {
       this.busStopHighlightGraphic.clear();
     }

@@ -45,6 +45,34 @@ function drawBusStopHighlight(scene, row, col) {
   g.strokePath();
 }
 
+// ── Bus-stop walking range (transport mode) ──────────────────────────────────
+
+// The tiles within TRANSPORT_STOP_CATCHMENT_RADIUS steps of the hovered tile, washed in
+// blue on the same graphic as the stop highlight: where its riders would come from.
+function drawTransportCatchmentPreview(scene, row, col) {
+  const g = scene.busStopHighlightGraphic;
+  if (!g || typeof TRANSPORT_STOP_CATCHMENT_RADIUS === 'undefined') return;
+  const radius = TRANSPORT_STOP_CATCHMENT_RADIUS;
+  g.fillStyle(0x4fb3ff, 0.24);
+  for (let dr = -radius; dr <= radius; dr++) {
+    const span = radius - Math.abs(dr);
+    for (let dc = -span; dc <= span; dc++) {
+      if (!dr && !dc) continue;
+      const r = row + dr;
+      const c = col + dc;
+      if (typeof isInsideMap === 'function' && !isInsideMap(r, c)) continue;
+      const geom = getTileFaceGeometry(r, c, scene.offsetX, scene.offsetY);
+      g.beginPath();
+      g.moveTo(geom.top.x, geom.top.y);
+      g.lineTo(geom.right.x, geom.right.y);
+      g.lineTo(geom.bottom.x, geom.bottom.y);
+      g.lineTo(geom.left.x, geom.left.y);
+      g.closePath();
+      g.fillPath();
+    }
+  }
+}
+
 // ── Zone selection preview (coloured ISO rect during drag) ────────────────────
 
 // Draw an isometric diamond outline showing the zone rectangle selection.

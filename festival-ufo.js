@@ -1,6 +1,7 @@
 // 發現 UFO (docs/festival-dlc-design.md §4.7): now and then, on a clear night, a saucer with a waving
-// alien drifts in over the city, circles a landmark with its beam down while a knot of residents
-// looks up, then hops and zips away. The city's forum carries the story, the ticker runs it, and
+// alien drifts in over the city and tours it - two to four districts, a different few each time
+// (Norton 2026-10-11: 隨機得閒去下唔同區域) - circling a landmark in each with its beam down while
+// a knot of residents looks up, then hops and zips away. The city's forum carries the story, the ticker runs it, and
 // visitors come to look for a couple of months.
 //
 // Like the other festivals nothing about it is saved but the record: whether a month has a sighting
@@ -13,13 +14,17 @@ const UFO_SIGHTING = Object.freeze({
   chance: 0.06,               // a month, once the cooldown has passed: about one every year and a half
   cooldownMonths: 12,
   earliestMinute: 20 * 60,    // it arrives between 20:00 ...
-  latestMinute: 25 * 60,      // ... and 01:00 (past midnight counts on), and is gone before 04:00
+  latestMinute: 24 * 60 + 30, // ... and 00:30 (past midnight counts on), and is gone before 04:00
+  minStops: 2,                // districts it visits in a night
+  maxStops: 4,
   arriveMinutes: 20,
-  hoverMinutes: 100,
+  hoverMinutes: 30,           // circling each stop
+  travelMinutes: 10,          // from one stop to the next
   leaveMinutes: 14,
   altitudeM: 45,
-  loopMinutes: 16,            // one circle round the landmark
+  loopMinutes: 12,            // one circle round a landmark
   loopRadiusPx: 70,
+  travelLiftPx: 90,           // it rises a little between stops
   frameMs: 150,
   tourism: 2,                 // 「UFO 熱」
   effectMonths: 2,
@@ -45,25 +50,51 @@ function getUfoRoll(text) {
 
 /**
  * The sighting a month has, if any: a fixed roll of the city and month, after the cooldown.
- * @returns {{ startMinute: number }|null} startMinute on the sky-day clock (getUfoSkyMinute)
+ * @returns {{ startMinute: number, stops: number }|null} startMinute on the sky-day clock (getUfoSkyMinute)
  */
 function getScheduledUfoSighting({ cityName, year, month, monthIndex, lastMonthIndex }) {
   if (Number(lastMonthIndex) >= 0 && monthIndex - lastMonthIndex < UFO_SIGHTING.cooldownMonths) return null;
   const seed = `ufo:${cityName || 'heung-shing'}:${year}:${month}`;
   if (getUfoRoll(`${seed}:month`) >= UFO_SIGHTING.chance) return null;
   const span = UFO_SIGHTING.latestMinute - UFO_SIGHTING.earliestMinute;
-  return { startMinute: UFO_SIGHTING.earliestMinute + Math.floor(getUfoRoll(`${seed}:time`) * span) };
+  return {
+    startMinute: UFO_SIGHTING.earliestMinute + Math.floor(getUfoRoll(`${seed}:time`) * span),
+    stops: getUfoStopCount(`${seed}:stops`),
+  };
 }
 
-/** Where a sighting stands at a minute: { phase: 'arrive'|'hover'|'leave', t: 0..1, elapsed } or null. */
+function getUfoStopCount(seed) {
+  const range = UFO_SIGHTING.maxStops - UFO_SIGHTING.minStops + 1;
+  return UFO_SIGHTING.minStops + Math.min(range - 1, Math.floor(getUfoRoll(seed) * range));
+}
+
+/** A sighting's segments in sky-day minutes: arrive, circle each stop with a trip between, leave. */
+function getUfoTimeline(sighting) {
+  const stops = Math.max(1, Math.trunc(Number(sighting.stops) || 1));
+  const segments = [];
+  let at = sighting.startMinute;
+  const push = (phase, minutes, extra) => { segments.push({ phase, start: at, end: at + minutes, ...extra }); at += minutes; };
+  push('arrive', UFO_SIGHTING.arriveMinutes, { stop: 0 });
+  for (let i = 0; i < stops; i++) {
+    if (i) push('travel', UFO_SIGHTING.travelMinutes, { stop: i - 1, to: i });
+    push('hover', UFO_SIGHTING.hoverMinutes, { stop: i });
+  }
+  push('leave', UFO_SIGHTING.leaveMinutes, { stop: stops - 1 });
+  return segments;
+}
+
+/**
+ * Where a sighting stands at a minute, or null before and after it:
+ * { phase: 'arrive'|'hover'|'travel'|'leave', stop, to?, t: 0..1 through the segment, elapsed }
+ * (elapsed: minutes into the segment - a circle's angle runs from its start).
+ */
 function getUfoPhase(sighting, minuteOfDay) {
   if (!sighting) return null;
-  const elapsed = getUfoSkyMinute(minuteOfDay) - sighting.startMinute;
-  const { arriveMinutes: a, hoverMinutes: h, leaveMinutes: l } = UFO_SIGHTING;
-  if (elapsed < 0 || elapsed >= a + h + l) return null;
-  if (elapsed < a) return { phase: 'arrive', t: elapsed / a, elapsed };
-  if (elapsed < a + h) return { phase: 'hover', t: (elapsed - a) / h, elapsed };
-  return { phase: 'leave', t: (elapsed - a - h) / l, elapsed };
+  const now = getUfoSkyMinute(minuteOfDay);
+  const segment = getUfoTimeline(sighting).find((s) => now >= s.start && now < s.end);
+  if (!segment) return null;
+  const elapsed = now - segment.start;
+  return { phase: segment.phase, stop: segment.stop, to: segment.to, t: elapsed / (segment.end - segment.start), elapsed };
 }
 
 function isUfoWeatherClear(weather = typeof city !== 'undefined' ? city?.weather : null) {
@@ -77,40 +108,75 @@ function isUfoWeatherClear(weather = typeof city !== 'undefined' ? city?.weather
 function summonUfo() {
   if (typeof city === 'undefined' || typeof getCityMonthIndex !== 'function') return false;
   const minute = typeof getGameTimeOfDayMinutes === 'function' ? getGameTimeOfDayMinutes() : 20 * 60;
-  ufoForced = { monthIndex: getCityMonthIndex(), startMinute: getUfoSkyMinute(minute) };
+  const startMinute = getUfoSkyMinute(minute);
+  ufoForced = { monthIndex: getCityMonthIndex(), startMinute, stops: getUfoStopCount(`ufo:summon:${Date.now()}`) };
   return true;
 }
 
 // ── Where it goes ─────────────────────────────────────────────────────────────
 
-// The landmark it circles: a Victoria Park's square, else a big mall's forecourt, else the
-// promenade, else the middle of the map - one of them, by the month's roll.
-function pickUfoTarget(seed) {
+// Where it may stop: every landmark - a Victoria Park's square, a big mall's forecourt, a stretch of
+// promenade - and each district's sign, each with its district. rank: the landmark a district is
+// visited at, best first.
+function getUfoStopCandidates() {
   const ctx = typeof getFestivalVenueContext === 'function' ? getFestivalVenueContext() : {};
-  const pick = (list) => list[Math.floor(getUfoRoll(`${seed}:target`) * list.length)];
-  const parks = (ctx.parks || []).filter((p) => FESTIVAL_BUILDING_SPOTS[p.textureKey]?.spots?.centre);
-  if (parks.length) {
-    const park = pick(parks);
-    return { mode: 'building', buildingId: park.id, point: FESTIVAL_BUILDING_SPOTS[park.textureKey].spots.centre };
+  const list = [];
+  const add = (target, rank) => {
+    const tile = getUfoTargetTile(target);
+    if (!tile) return;
+    const district = typeof getDistrictKeyForTile === 'function' ? getDistrictKeyForTile(Math.round(tile[0]), Math.round(tile[1])) : 'all';
+    list.push({ target, tile, rank, district, id: JSON.stringify(target) });
+  };
+  (ctx.parks || []).forEach((p) => {
+    const centre = FESTIVAL_BUILDING_SPOTS[p.textureKey]?.spots?.centre;
+    if (centre) add({ mode: 'building', buildingId: p.id, point: centre }, 0);
+  });
+  (ctx.malls || []).forEach((m) => {
+    const door = FESTIVAL_BUILDING_SPOTS[m.modelKey]?.spots?.door;
+    if (door) add({ mode: 'building', buildingId: m.id, point: door }, 1);
+  });
+  (ctx.promenadeTiles || []).forEach(([row, col], i) => { if (i % 6 === 0) add({ mode: 'tile', row, col }, 2); });
+  (typeof getDistrictSigns === 'function' ? getDistrictSigns() : []).forEach((sign) => add({ mode: 'tile', row: Number(sign.row), col: Number(sign.col) }, 3));
+  if (!list.length && typeof mapData !== 'undefined') add({ mode: 'tile', row: Math.floor(mapData.length / 2), col: Math.floor(mapData[0].length / 2) }, 4);
+  return list;
+}
+
+/**
+ * The night's stops: `count` different districts (fewer if the city has fewer, then other
+ * landmarks), at each its best landmark, picked by `seed`, visited nearest-next from the first.
+ * @param {Array<{ target, tile, rank, district, id }>} candidates
+ */
+function pickUfoRoute(candidates, count, seed) {
+  if (!candidates.length) return [];
+  const roll = (c) => getUfoRoll(`${seed}:${c.id}`);
+  const byDistrict = new Map();
+  candidates.forEach((c) => {
+    const best = byDistrict.get(c.district);
+    if (!best || c.rank < best.rank || (c.rank === best.rank && roll(c) < roll(best))) byDistrict.set(c.district, c);
+  });
+  const districts = [...byDistrict.values()].sort((a, b) => getUfoRoll(`${seed}:d:${a.district}`) - getUfoRoll(`${seed}:d:${b.district}`));
+  const picked = districts.slice(0, count);
+  // a city of fewer districts than stops: other landmarks fill in
+  const rest = candidates.filter((c) => !picked.includes(c)).sort((a, b) => roll(a) - roll(b));
+  while (picked.length < count && rest.length) picked.push(rest.shift());
+  // nearest next, so a tour does not zigzag across the map
+  const route = [picked.shift()];
+  while (picked.length) {
+    const [r, c] = route[route.length - 1].tile;
+    picked.sort((a, b) => Math.hypot(a.tile[0] - r, a.tile[1] - c) - Math.hypot(b.tile[0] - r, b.tile[1] - c));
+    route.push(picked.shift());
   }
-  const malls = (ctx.malls || []).filter((m) => FESTIVAL_BUILDING_SPOTS[m.modelKey]?.spots?.door);
-  if (malls.length) {
-    const mall = pick(malls);
-    return { mode: 'building', buildingId: mall.id, point: FESTIVAL_BUILDING_SPOTS[mall.modelKey].spots.door };
-  }
-  if (ctx.promenadeTiles?.length) {
-    const [row, col] = pick(ctx.promenadeTiles);
-    return { mode: 'tile', row, col };
-  }
-  const row = Math.floor((typeof mapData !== 'undefined' ? mapData.length : 2) / 2);
-  const col = Math.floor((typeof mapData !== 'undefined' ? mapData[0].length : 2) / 2);
-  return { mode: 'tile', row, col };
+  return route.map((c) => c.target);
 }
 
 // The map tile under a target (for the camera and the district name).
 function getUfoTargetTile(target) {
   if (target.mode === 'tile') return [target.row, target.col];
   return typeof getFestivalPlacementTile === 'function' ? getFestivalPlacementTile(target) : null;
+}
+
+function getUfoPlaces(route) {
+  return [...new Set(route.map(getUfoDistrictName))];
 }
 
 function getUfoDistrictName(target) {
@@ -122,13 +188,17 @@ function getUfoDistrictName(target) {
 
 // ── The news ──────────────────────────────────────────────────────────────────
 
-function postUfoForumStory(target, sightings) {
+function postUfoForumStory(route, sightings) {
   if (typeof addForumPost !== 'function') return null;
-  const place = getUfoDistrictName(target);
+  const places = getUfoPlaces(route);
+  const place = places.length > 1 ? `${places.slice(0, -1).join('、')}同${places[places.length - 1]}` : places[0];
   const again = sightings > 1;
+  // the headline names the city, not its districts (Norton 2026-10-11); the story names those
+  const cityName = String(city.name || '').trim();
+  const where = cityName || '香城多處';
   const headline = again
-    ? `【又嚟！】彩燈UFO第${sightings}次現身${place}上空　外星人再度揮手　市民：佢記得我哋`
-    : `【多區目擊】香城上空驚現彩燈UFO！閃燈飛碟盤旋${place}　外星人疑舉手打招呼`;
+    ? `【又嚟！】彩燈UFO第${sightings}次現身${where}上空　外星人再度揮手　市民：佢記得我哋`
+    : `【${cityName ? `${cityName}多處` : '香城多處'}目擊】驚現彩燈UFO！閃燈飛碟低空盤旋　外星人疑舉手打招呼`;
   const year = Math.floor(Number(city.year) || 0);
   const month = Math.floor(Number(city.month) || 1);
   if (typeof addCityNews === 'function') addCityNews(headline);
@@ -136,7 +206,7 @@ function postUfoForumStory(target, sightings) {
     headline,
     image: 'UI/news/ufoSighting.webp',
     body: [
-      `今晚${place}一帶有大批市民目擊一架不明飛行物，機身閃住紅綠黃彩燈，喺上空低飛盤旋，底部射出藍白色光柱，維持咗大約個半鐘先急速飛走。`,
+      `今晚${place}一帶先後有大批市民目擊一架不明飛行物，機身閃住紅綠黃彩燈，喺每區上空低飛盤旋，底部射出藍白色光柱，之後再飛去下一區，前後維持咗兩三個鐘先急速飛走。`,
       '多名目擊者話透過透明機艙見到一個綠色人形生物向地面揮手，有人仲話對方擺咗個「V」字手勢。',
       '香城天文學會發言人表示：「目前未能確定來源，但從市民提供嘅影像所見，並非常見飛行器。建議市民保持冷靜，如再發現請即拍攝記錄。」',
       again ? `呢架飛碟已經係第${sightings}次喺香城出現，有旅遊團即晚加開「UFO 觀星團」。` : '消息傳出後，不少市民即晚帶埋相機上天台等「第二次接觸」。',
@@ -171,7 +241,8 @@ function getUfoTickerNews() {
   if (typeof getCityMonthIndex === 'function' && getCityMonthIndex() !== ufoRuntime.monthIndex) return null;
   const variants = ['ufo.ticker.0', 'ufo.ticker.1', 'ufo.ticker.2', 'ufo.ticker.3'];
   ufoRuntime.tickerTurn = (ufoRuntime.tickerTurn || 0) + 1;
-  return t(variants[ufoRuntime.tickerTurn % variants.length], { place: getUfoDistrictName(ufoRuntime.target) });
+  const places = ufoRuntime.places || [];
+  return t(variants[ufoRuntime.tickerTurn % variants.length], { place: places.join('、') });
 }
 
 // Once a sighting begins (not in the title showcase): the record, the visitors, the story, the
@@ -186,13 +257,56 @@ function announceUfoSighting(scene, runtime) {
   if (typeof addCouncilTemporaryEffect === 'function') {
     addCouncilTemporaryEffect(`festival:ufo:${year}:${city.month}`, UFO_SIGHTING.effectMonths, { tourism: UFO_SIGHTING.tourism });
   }
-  postUfoForumStory(runtime.target, state.ufo.sightings);
-  const tile = getUfoTargetTile(runtime.target);
+  postUfoForumStory(runtime.route, state.ufo.sightings);
   if (typeof showFestivalNotice === 'function') {
-    showFestivalNotice(t('festival.notice.ufo', { place: getUfoDistrictName(runtime.target) }), tile && typeof centerCameraOnTile === 'function'
-      ? () => centerCameraOnTile(scene, Math.round(tile[0]), Math.round(tile[1])) : null);
+    // 去睇 takes the camera to wherever it is by then
+    showFestivalNotice(t('festival.notice.ufo', { place: getUfoDistrictName(runtime.route[0]) }), () => startUfoCameraFollow(scene, runtime));
   }
   runtime.announced = true;
+}
+
+// ── 去睇: the camera ─────────────────────────────────────────────────────────
+// Norton 2026-10-11: while it circles one place the camera holds still (following it round makes
+// players dizzy); only when it sets off for the next place does the camera move there. Moving the
+// camera yourself ends the following.
+const UFO_CAMERA_PAN_MS = 1800;
+
+// The camera point that frames a stop: its landmark, with the saucer above it in view.
+function getUfoCameraPoint(scene, target) {
+  const at = target && getFestivalPlacementPoint(scene, target);
+  return at ? { x: at.x, y: at.y - (UFO_SIGHTING.altitudeM * UFO_PX_PER_METRE) / 2 } : null;
+}
+
+function startUfoCameraFollow(scene, runtime) {
+  const camera = scene?.cameras?.main;
+  const point = camera && getUfoCameraPoint(scene, runtime.route[runtime.stop ?? 0]);
+  if (!point) return;
+  camera.centerOn(point.x, point.y);
+  runtime.follow = { stop: runtime.stop ?? 0, scrollX: camera.scrollX, scrollY: camera.scrollY, zoom: camera.zoom };
+}
+
+// Each frame while following: still while it circles; a pan when it heads for the next stop.
+function updateUfoCameraFollow(scene, runtime) {
+  const follow = runtime.follow;
+  const camera = scene?.cameras?.main;
+  if (!follow || !camera) return;
+  const panning = camera.panEffect?.isRunning;
+  // the player moved or zoomed the camera: they are looking elsewhere now
+  if (!panning && (Math.abs(camera.scrollX - follow.scrollX) > 2 || Math.abs(camera.scrollY - follow.scrollY) > 2 || camera.zoom !== follow.zoom)) {
+    runtime.follow = null;
+    return;
+  }
+  if (!panning && runtime.stop !== follow.stop) {
+    const point = getUfoCameraPoint(scene, runtime.route[runtime.stop]);
+    if (!point) return;
+    follow.stop = runtime.stop;
+    camera.pan(point.x, point.y, UFO_CAMERA_PAN_MS, 'Sine.easeInOut', true);
+    camera.once('camerapancomplete', () => {
+      if (runtime.follow !== follow) return;
+      follow.scrollX = camera.scrollX;
+      follow.scrollY = camera.scrollY;
+    });
+  }
 }
 
 // ── Drawing ───────────────────────────────────────────────────────────────────
@@ -236,26 +350,28 @@ function fitUfoSprite(sprite, partId, { scale = null, middle = false, top = fals
 const easeOutCubic = (x) => 1 - (1 - x) ** 3;
 const easeInQuad = (x) => x * x;
 
-// The saucer's place this frame, relative to the point over the landmark at its height.
+// Its place on the circle round a landmark, `elapsed` minutes into circling it.
+function getUfoLoopOffset(elapsed) {
+  const angle = (elapsed / UFO_SIGHTING.loopMinutes) * Math.PI * 2;
+  return { x: UFO_SIGHTING.loopRadiusPx * Math.cos(angle), y: UFO_SIGHTING.loopRadiusPx * 0.45 * Math.sin(angle) };
+}
+
+// The saucer's place this frame, relative to the point over its stop's landmark at its height
+// (arriving, circling, leaving; the trip between stops is drawn in drawUfo).
 function getUfoOffset(phase, now) {
-  const r = UFO_SIGHTING.loopRadiusPx;
-  const loop = (elapsed) => {
-    const angle = (elapsed / UFO_SIGHTING.loopMinutes) * Math.PI * 2;
-    return { x: r * Math.cos(angle), y: r * 0.45 * Math.sin(angle) };
-  };
   const bob = 7 * Math.sin(now / 420);
   if (phase.phase === 'arrive') {
     const k = easeOutCubic(phase.t);
-    const end = loop(UFO_SIGHTING.arriveMinutes);
+    const end = getUfoLoopOffset(0);
     // in from high on the left, weaving a little
     return { x: -900 * (1 - k) + end.x * k, y: -520 * (1 - k) + end.y * k + bob + 30 * Math.sin(phase.t * 9) * (1 - k), sx: 1, sy: 1, alpha: Math.min(1, phase.t * 4) };
   }
   if (phase.phase === 'hover') {
-    const p = loop(phase.elapsed);
+    const p = getUfoLoopOffset(phase.elapsed);
     return { x: p.x, y: p.y + bob, sx: 1, sy: 1, alpha: 1 };
   }
   // leave: a hop (squash, then up), then off to the upper right, smaller and fading
-  const p = loop(UFO_SIGHTING.arriveMinutes + UFO_SIGHTING.hoverMinutes);
+  const p = getUfoLoopOffset(UFO_SIGHTING.hoverMinutes);
   if (phase.t < 0.3) {
     const h = phase.t / 0.3;
     const squash = Math.sin(h * Math.PI);
@@ -265,12 +381,32 @@ function getUfoOffset(phase, now) {
   return { x: p.x + 1500 * k, y: p.y - 40 - 900 * k, sx: 1 - 0.6 * k, sy: 1 - 0.6 * k, alpha: 1 - Math.max(0, (k - 0.7) / 0.3) };
 }
 
+// Between two stops: from the end of one circle to the start of the next, easing out and in,
+// rising a little on the way. Returns the ground point under it and its height over that.
+function getUfoTravelPoint(from, to, t, now) {
+  const a = getUfoLoopOffset(UFO_SIGHTING.hoverMinutes);
+  const b = getUfoLoopOffset(0);
+  const k = t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2;
+  return {
+    x: from.x + a.x + (to.x + b.x - from.x - a.x) * k,
+    groundY: from.y + a.y + (to.y + b.y - from.y - a.y) * k,
+    lift: UFO_SIGHTING.travelLiftPx * Math.sin(Math.PI * t) - 7 * Math.sin(now / 420),
+  };
+}
+
 function drawUfo(scene, runtime, phase, now) {
-  const at = getFestivalPlacementPoint(scene, runtime.target);
+  const at = getFestivalPlacementPoint(scene, runtime.route[phase.stop]);
   if (!at) return;
+  runtime.stop = phase.phase === 'travel' ? phase.to : phase.stop;
+  updateUfoCameraFollow(scene, runtime);
   const { sprites } = runtime;
   const altitude = UFO_SIGHTING.altitudeM * UFO_PX_PER_METRE;
-  const off = getUfoOffset(phase, now);
+  let off = getUfoOffset(phase, now);
+  if (phase.phase === 'travel') {
+    const next = getFestivalPlacementPoint(scene, runtime.route[phase.to]) || at;
+    const trip = getUfoTravelPoint(at, next, phase.t, now);
+    off = { x: trip.x - at.x, y: trip.groundY - at.y - trip.lift, sx: 1, sy: 1, alpha: 1 };
+  }
   // the saucer: frames played back and forth, so the alien's wave runs smoothly
   const step = Math.floor(now / UFO_SIGHTING.frameMs) % (UFO_FRAME_PARTS.length * 2 - 2);
   const frameIndex = step < UFO_FRAME_PARTS.length ? step : UFO_FRAME_PARTS.length * 2 - 2 - step;
@@ -332,7 +468,7 @@ function updateUfo(scene, time) {
   let sighting = null;
   let key = '';
   if (ufoForced && ufoForced.monthIndex === monthIndex) {
-    sighting = { startMinute: ufoForced.startMinute };
+    sighting = { startMinute: ufoForced.startMinute, stops: ufoForced.stops };
     key = `forced:${monthIndex}:${ufoForced.startMinute}`;
   } else if (isFestivalEnabled('ufo') && live) {
     if (scene.ufoScheduleMonth !== monthIndex) {
@@ -355,7 +491,7 @@ function updateUfo(scene, time) {
       // gone: keep the record of an announced one for the ticker until its month ends
       const done = ufoRuntime;
       clearUfo(scene);
-      if (done.announced) ufoRuntime = { key: done.key, monthIndex: done.monthIndex, target: done.target, announced: true, sprites: {}, finished: true };
+      if (done.announced) ufoRuntime = { key: done.key, monthIndex: done.monthIndex, route: done.route, places: done.places, announced: true, sprites: {}, finished: true };
     }
     if (ufoRuntime?.finished && ufoRuntime.monthIndex !== monthIndex) ufoRuntime = null;
     return;
@@ -364,7 +500,9 @@ function updateUfo(scene, time) {
     clearUfo(scene);
     // the weather is looked at as it begins: a wet or stormy night has no visitor
     if (key.startsWith('month:') && !isUfoWeatherClear()) { scene.ufoSchedule = null; return; }
-    ufoRuntime = { key, monthIndex, sighting, target: pickUfoTarget(`ufo:${city.name}:${monthIndex}`), sprites: {}, loading: true };
+    const route = pickUfoRoute(getUfoStopCandidates(), sighting.stops || 1, `ufo:${city.name}:${key}`);
+    if (!route.length) return;
+    ufoRuntime = { key, monthIndex, sighting, route, places: getUfoPlaces(route), sprites: {}, loading: true };
     const runtime = ufoRuntime;
     const already = getCityFestivalState()?.ufo?.lastMonthIndex === monthIndex && key.startsWith('month:');
     loadFestivalTextureMeta().then(() => loadFestivalTextures(scene, getUfoTextureFiles())).then(() => {
@@ -385,5 +523,8 @@ function updateUfo(scene, time) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { UFO_SIGHTING, getScheduledUfoSighting, getUfoPhase, getUfoSkyMinute, getUfoOffset, isUfoWeatherClear };
+  module.exports = {
+    UFO_SIGHTING, getScheduledUfoSighting, getUfoTimeline, getUfoPhase, getUfoSkyMinute, getUfoOffset,
+    getUfoLoopOffset, getUfoTravelPoint, pickUfoRoute, isUfoWeatherClear,
+  };
 }

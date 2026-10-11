@@ -199,6 +199,150 @@
     "Models/festivals/fx_christmasTree_m__lit.png",
     "Models/festivals/fx_christmasTree_m__litb.png"
    ]
+  },
+  "fx_ufo1": {
+   "file": "Models/festivals/fx_ufo1.png",
+   "part": "ufo1",
+   "festival": "ufo",
+   "width": 1024,
+   "height": 512,
+   "anchor": {
+    "x": 513,
+    "y": 503
+   },
+   "top": 84,
+   "left": 205,
+   "right": 820,
+   "mirrored": false,
+   "lengthM": 36
+  },
+  "fx_ufo2": {
+   "file": "Models/festivals/fx_ufo2.png",
+   "part": "ufo2",
+   "festival": "ufo",
+   "width": 1024,
+   "height": 512,
+   "anchor": {
+    "x": 513,
+    "y": 503
+   },
+   "top": 84,
+   "left": 208,
+   "right": 817,
+   "mirrored": false,
+   "lengthM": 36
+  },
+  "fx_ufo3": {
+   "file": "Models/festivals/fx_ufo3.png",
+   "part": "ufo3",
+   "festival": "ufo",
+   "width": 1024,
+   "height": 512,
+   "anchor": {
+    "x": 512,
+    "y": 502
+   },
+   "top": 75,
+   "left": 209,
+   "right": 815,
+   "mirrored": false,
+   "lengthM": 36
+  },
+  "fx_ufo4": {
+   "file": "Models/festivals/fx_ufo4.png",
+   "part": "ufo4",
+   "festival": "ufo",
+   "width": 1024,
+   "height": 512,
+   "anchor": {
+    "x": 513,
+    "y": 502
+   },
+   "top": 77,
+   "left": 204,
+   "right": 821,
+   "mirrored": false,
+   "lengthM": 36
+  },
+  "fx_ufo5": {
+   "file": "Models/festivals/fx_ufo5.png",
+   "part": "ufo5",
+   "festival": "ufo",
+   "width": 1024,
+   "height": 512,
+   "anchor": {
+    "x": 513,
+    "y": 502
+   },
+   "top": 74,
+   "left": 205,
+   "right": 820,
+   "mirrored": false,
+   "lengthM": 36
+  },
+  "fx_ufo6": {
+   "file": "Models/festivals/fx_ufo6.png",
+   "part": "ufo6",
+   "festival": "ufo",
+   "width": 1024,
+   "height": 512,
+   "anchor": {
+    "x": 512,
+    "y": 503
+   },
+   "top": 85,
+   "left": 204,
+   "right": 820,
+   "mirrored": false,
+   "lengthM": 36
+  },
+  "fx_ufoBeam": {
+   "file": "Models/festivals/fx_ufoBeam.png",
+   "part": "ufoBeam",
+   "festival": "ufo",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 501
+   },
+   "top": 21,
+   "left": 97,
+   "right": 415,
+   "mirrored": false,
+   "heightM": 40
+  },
+  "fx_ufoWitnesses": {
+   "file": "Models/festivals/fx_ufoWitnesses.png",
+   "part": "ufoWitnesses",
+   "festival": "ufo",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 257,
+    "y": 502
+   },
+   "top": 69,
+   "left": 26,
+   "right": 487,
+   "mirrored": false,
+   "heightM": 6
+  },
+  "fx_ufoWitnesses_m": {
+   "file": "Models/festivals/fx_ufoWitnesses_m.png",
+   "part": "ufoWitnesses",
+   "festival": "ufo",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 255,
+    "y": 502
+   },
+   "top": 69,
+   "left": 25,
+   "right": 486,
+   "mirrored": true,
+   "heightM": 6
   }
  },
  "formatVersion": 1,

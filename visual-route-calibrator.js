@@ -1135,6 +1135,8 @@ function createVisualRoutePerformancePanel(scene) {
     + '<button type="button" class="vrp-sealight-btn">海上燈光校正（漁火）</button>'
     + '<button type="button" class="vrp-nightremote-btn">遠離市區夜色校正</button>'
     + '<button type="button" class="vrp-livelights-btn" data-active="false">使用 Phaser 光源：關閉</button>'
+    + '</div><div class="vrp-group-label">節慶</div><div class="vrp-grid">'
+    + '<button type="button" class="vrp-ufo-btn">召喚 UFO</button>'
     + '</div></details>';
   root.querySelector('.vrp-close-btn')?.addEventListener?.('click', () => {
     setVisualRouteCalibrationTestModeEnabled(false);
@@ -1201,6 +1203,10 @@ function createVisualRoutePerformancePanel(scene) {
   });
   root.querySelector('.vrp-ferryberth-btn')?.addEventListener?.('click', () => {
     if (typeof toggleFerryBerthCalibrator === 'function') toggleFerryBerthCalibrator(scene);
+  });
+  // 發現 UFO now, whatever the hour or weather (festival-ufo.js)
+  root.querySelector('.vrp-ufo-btn')?.addEventListener?.('click', () => {
+    if (typeof summonUfo === 'function') summonUfo();
   });
   root.querySelector('.vrp-sealight-btn')?.addEventListener?.('click', () => {
     if (typeof toggleSeaLightCalibrator === 'function') toggleSeaLightCalibrator(scene);

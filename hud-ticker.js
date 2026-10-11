@@ -95,6 +95,9 @@ function getUrgentCityNews() {
   if (weatherWarning) return weatherWarning;
   const powerWarning = getPowerPlantTickerWarning();
   if (powerWarning) return powerWarning;
+  // 發現 UFO: while it is up and for the rest of its month (festival-ufo.js)
+  const ufoNews = typeof getUfoTickerNews === 'function' ? getUfoTickerNews() : null;
+  if (ufoNews) return ufoNews;
   const stockCrashWarning = getStockCrashTickerNews();
   if (stockCrashWarning) return stockCrashWarning;
 

@@ -356,6 +356,8 @@ function updateGameFrame(time, delta) {
   if (typeof updatePromenade === 'function') updatePromenade(this, time);
   // 節慶: the festivals on this month, their decorations and notices (festival-sprites.js)
   if (typeof updateFestivals === 'function') updateFestivals(this, time);
+  // 發現 UFO: it moves, so every frame (festival-ufo.js)
+  if (typeof updateUfo === 'function') updateUfo(this, time);
   if (typeof updateShoreReflections === 'function') updateShoreReflections(this, time);
   if (typeof updateRainRipples === 'function') updateRainRipples(this, time);
   if (typeof finalizeVehicleTrackerCameraCulling === 'function') {

@@ -52,6 +52,8 @@ const festivalPart = (id, festival, sheet, category, label, extra = {}) => Objec
   mirror: extra.mirror !== false,
   axis: extra.axis ?? null,
   lit: !!extra.lit,
+  // drawn as it is by night too (its own light: the UFO), never darkened with the props
+  selfLit: !!extra.selfLit,
   saturation: extra.saturation ?? 1,
 });
 
@@ -65,6 +67,13 @@ const FESTIVAL_PARTS = Object.freeze([
   festivalPart('christmasLightArch', 'christmas', 'Christmas/ChristmasDeco3.png', 'decoration', '燈飾拱門', { heightM: 7, lit: true, axis: '/' }),
   festivalPart('christmasGiftArch', 'christmas', 'Christmas/ChristmasDeco4.png', 'decoration', '禮物拱門', { heightM: 6, lit: true, axis: '/' }),
   festivalPart('christmasSleigh', 'christmas', 'Christmas/ChristmasDeco5.png', 'decoration', '雪橇燈飾', { lengthM: 16, lit: true, axis: '/' }),
+
+  // 發現 UFO (§4.7): six frames of the one saucer - the alien waves, the lamps change - played in
+  // turn, all at one scale (festival-ufo.js); the beam is drawn added, stretched to the ground. Nothing
+  // on the ground to square to, so they bake straight from the renders (original/).
+  ...[1, 2, 3, 4, 5, 6].map((n) => festivalPart(`ufo${n}`, 'ufo', `original/UFO/UFO${n}.png`, 'vessel', `UFO 畫格 ${n}`, { lengthM: 36, mirror: false, selfLit: true })),
+  festivalPart('ufoBeam', 'ufo', 'original/UFO/spotLight.png', 'decoration', 'UFO 光柱', { heightM: 40, mirror: false, selfLit: true }),
+  festivalPart('ufoWitnesses', 'ufo', 'original/UFO/UFOWitness.png', 'crowd', '目擊市民', { heightM: 6, mirror: true }),
 ]);
 const FESTIVAL_PARTS_BY_ID = Object.freeze(Object.fromEntries(FESTIVAL_PARTS.map((p) => [p.id, p])));
 

@@ -37,6 +37,9 @@ const FESTIVAL_PART_CATEGORIES = Object.freeze([
 // festival: a FESTIVAL_DEFINITIONS id (festivals.js). sheet: under FESTIVAL_SOURCE_DIR. rect:
 // [x, y, w, h] on the sheet, or null for the whole sheet. saturation: < 1 tones a loud render down
 // at bake time (Norton prefers muted, realistic colour on surfaces; light sculptures stay as drawn).
+// axis: the screen diagonal the part's long axis (a sleigh's length, an arch's span) runs along in
+// the unmirrored art - '/' (lower left to upper right) or '\\' - so a placement can pick the view
+// that lies along or across its venue (festival-sprites.js); null for round things.
 const festivalPart = (id, festival, sheet, category, label, extra = {}) => Object.freeze({
   id,
   festival,
@@ -47,6 +50,7 @@ const festivalPart = (id, festival, sheet, category, label, extra = {}) => Objec
   heightM: extra.heightM ?? null,
   lengthM: extra.lengthM ?? null,
   mirror: extra.mirror !== false,
+  axis: extra.axis ?? null,
   lit: !!extra.lit,
   saturation: extra.saturation ?? 1,
 });
@@ -55,10 +59,12 @@ const FESTIVAL_PARTS = Object.freeze([
   // 聖誕 (docs/festival-dlc-design.md §4.6). The chapel is not the heritage_church model's
   // December look - a different building altogether - so it stands on its own.
   festivalPart('christmasChapel', 'christmas', 'Christmas/ChristmasDeco1.png', 'structure', '聖誕小教堂', { heightM: 16, lit: true }),
-  festivalPart('christmasTree', 'christmas', 'Christmas/ChristmasDeco2.png', 'decoration', '巨型聖誕樹', { heightM: 15, lit: true }),
-  festivalPart('christmasLightArch', 'christmas', 'Christmas/ChristmasDeco3.png', 'decoration', '燈飾拱門', { heightM: 7, lit: true }),
-  festivalPart('christmasGiftArch', 'christmas', 'Christmas/ChristmasDeco4.png', 'decoration', '禮物拱門', { heightM: 6, lit: true }),
-  festivalPart('christmasSleigh', 'christmas', 'Christmas/ChristmasDeco5.png', 'decoration', '雪橇燈飾', { lengthM: 16, lit: true }),
+  // 9 m, not a real plaza tree's 15-20: beside the game's compressed buildings 15 m dwarfed a mall
+  // (Norton 2026-10-11: 聖誕樹太大)
+  festivalPart('christmasTree', 'christmas', 'Christmas/ChristmasDeco2.png', 'decoration', '聖誕樹', { heightM: 9, lit: true }),
+  festivalPart('christmasLightArch', 'christmas', 'Christmas/ChristmasDeco3.png', 'decoration', '燈飾拱門', { heightM: 7, lit: true, axis: '/' }),
+  festivalPart('christmasGiftArch', 'christmas', 'Christmas/ChristmasDeco4.png', 'decoration', '禮物拱門', { heightM: 6, lit: true, axis: '/' }),
+  festivalPart('christmasSleigh', 'christmas', 'Christmas/ChristmasDeco5.png', 'decoration', '雪橇燈飾', { lengthM: 16, lit: true, axis: '/' }),
 ]);
 const FESTIVAL_PARTS_BY_ID = Object.freeze(Object.fromEntries(FESTIVAL_PARTS.map((p) => [p.id, p])));
 

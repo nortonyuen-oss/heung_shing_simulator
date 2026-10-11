@@ -54,6 +54,119 @@ function isFestivalHeldInYear(id, year) {
   return !definition.firstYear || Math.trunc(Number(year)) >= definition.firstYear;
 }
 
+// ── 節目表 and money ──────────────────────────────────────────────────────────
+// What a held festival looks like through its month's sky-day, by clock minute: the setup
+// before `open`, the event until `close` (past midnight counts on, 24:00 = 1440), and the peak -
+// when the notice goes out and the lights matter - from `peak`. Christmas is up all month and
+// lit every night. Festivals without a programme yet are not drawn.
+const FESTIVAL_PROGRAMMES = Object.freeze({
+  christmas: Object.freeze({ setup: 6 * 60, open: 6 * 60, peak: 18 * 60, close: 30 * 60 }),
+});
+
+// Government festivals: what each tier costs (a base plus a share per resident, paid when the
+// festival month begins) and what it brings for that month (city.temporaryEffects). Trial values;
+// a council event's success is attractiveness +3, tourism +2 for scale.
+const FESTIVAL_TIER_SCALE = Object.freeze({ skip: 0, basic: 0.5, standard: 1, grand: 1.6 });
+const FESTIVAL_ECONOMICS = Object.freeze({
+  christmas: Object.freeze({
+    baseCost: 800,
+    costPerResident: 0.01,
+    effects: Object.freeze({ attractiveness: 3, tourism: 2, commercialDemand: 0.05, happiness: 0.01 }),
+  }),
+});
+
+/** A festival's cost at a tier for a population; 0 when it is not funded or not costed yet. */
+function getFestivalCost(id, tier, population) {
+  const economics = FESTIVAL_ECONOMICS[id];
+  const k = FESTIVAL_TIER_SCALE[tier] || 0;
+  if (!economics || !k) return 0;
+  return Math.round((economics.baseCost + Math.max(0, Number(population) || 0) * economics.costPerResident) * k);
+}
+
+/** The month's modifiers a held festival brings at a tier (none for a quiet one). */
+function getFestivalEffects(id, tier) {
+  const economics = FESTIVAL_ECONOMICS[id];
+  const k = isGovernmentFestival(id) ? (FESTIVAL_TIER_SCALE[tier] || 0) : 1;
+  if (!economics || !k || isQuietFestival(id)) return {};
+  return Object.fromEntries(Object.entries(economics.effects).map(([key, v]) => [key, Math.round(v * k * 1000) / 1000]));
+}
+
+/**
+ * Where a festival's programme stands at a minute of its month's sky-day.
+ * @returns {'setup'|'open'|'peak'|null} null before setup or after close (or no programme)
+ */
+function getFestivalPhase(id, minuteOfDay) {
+  const programme = FESTIVAL_PROGRAMMES[id];
+  if (!programme) return null;
+  let m = Number(minuteOfDay);
+  if (!Number.isFinite(m)) return null;
+  // the sky-day starts at 06:00: the small hours belong to the night before
+  if (m < 6 * 60) m += 24 * 60;
+  if (m < programme.setup || m >= programme.close) return null;
+  if (m < programme.open) return 'setup';
+  return m >= programme.peak ? 'peak' : 'open';
+}
+
+/**
+ * The festivals held in a month - on, held that year, falling in the month - each with its phase.
+ * Quiet ones are included (the renderer draws them); every text-writing caller filters them out.
+ * @param {{ year: number, month: number, minuteOfDay: number, isEnabled?: (id) => boolean }} at
+ * @returns {Array<{ id: string, phase: string|null }>}
+ */
+function getActiveFestivals({ year, month, minuteOfDay, isEnabled = isFestivalEnabled }) {
+  const calendar = typeof getFestivalsInMonth === 'function'
+    ? getFestivalsInMonth
+    : (typeof require === 'function' ? require('./festival-calendar.js').getFestivalsInMonth : null);
+  if (!calendar) return [];
+  return calendar(year, month)
+    .filter((id) => isFestivalHeldInYear(id, year) && isEnabled(id))
+    .map((id) => ({ id, phase: getFestivalPhase(id, minuteOfDay) }));
+}
+
+function getFestivalHistoryEntry(id, year) {
+  const state = getCityFestivalState();
+  return state?.history.find((entry) => entry.id === id && entry.year === Math.trunc(Number(year))) || null;
+}
+
+function recordFestivalHistory(entry) {
+  const state = getCityFestivalState();
+  const clean = state && normalizeFestivalHistoryEntry(entry);
+  if (!clean) return null;
+  state.history = state.history.filter((e) => !(e.id === clean.id && e.year === clean.year));
+  state.history.push(clean);
+  state.history = state.history.slice(-FESTIVAL_HISTORY_LIMIT);
+  return clean;
+}
+
+/**
+ * Settle a government festival once a year, when its month begins: pay for the tier and take its
+ * effects for the month. Unaffordable or 唔辦 is recorded as skipped, no venue as noVenue (settled
+ * again if a venue appears later that month). Returns the history entry, or null when it was
+ * settled already (or is not a government festival).
+ * @param {{ hasVenue?: boolean, spend?: (amount) => boolean, addEffect?: (sourceId, months, modifiers) => void }} [io]
+ */
+function settleFestivalMonth(id, year, io = {}) {
+  const prior = getFestivalHistoryEntry(id, year);
+  // a festival that found no venue is settled again once one is built in its month
+  if (!isGovernmentFestival(id) || (prior && !(prior.outcome === 'noVenue' && io.hasVenue))) return null;
+  const tier = getFestivalTier(id);
+  const population = typeof city !== 'undefined' ? Number(city?.population) || 0 : 0;
+  const cost = getFestivalCost(id, tier, population);
+  const spend = io.spend || ((amount) => (typeof spendBudget === 'function' ? spendBudget(amount) : true));
+  const addEffect = io.addEffect || ((sourceId, months, modifiers) => {
+    if (typeof addCouncilTemporaryEffect === 'function') addCouncilTemporaryEffect(sourceId, months, modifiers);
+  });
+  let outcome = 'held';
+  if (tier === 'skip') outcome = 'skipped';
+  else if (io.hasVenue === false) outcome = 'noVenue';
+  else if (cost && !spend(cost)) outcome = 'skipped';
+  if (outcome === 'held') {
+    const effects = getFestivalEffects(id, tier);
+    if (Object.keys(effects).length) addEffect(`festival:${id}:${year}`, 1, effects);
+  }
+  return recordFestivalHistory({ id, year, outcome, cost: outcome === 'held' ? cost : 0 });
+}
+
 function createFestivalState() {
   return {
     version: 1,
@@ -147,6 +260,11 @@ function setFestivalTier(id, tier) {
   if (entry && isGovernmentFestival(id) && FESTIVAL_TIERS.includes(tier)) entry.tier = tier;
 }
 
+/** Whether the 聖誕幕牆 night art shows: December, with Christmas on (day-night-lighting.js). */
+function isChristmasLightingMonth(month = typeof city !== 'undefined' ? city?.month : 0) {
+  return Number(month) === 12 && isFestivalEnabled('christmas');
+}
+
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     FESTIVAL_DEFINITIONS,
@@ -157,6 +275,16 @@ if (typeof module !== 'undefined' && module.exports) {
     FESTIVAL_DEFAULT_TIER,
     FESTIVAL_HISTORY_LIMIT,
     FESTIVAL_OUTCOMES,
+    FESTIVAL_PROGRAMMES,
+    FESTIVAL_ECONOMICS,
+    FESTIVAL_TIER_SCALE,
+    getFestivalCost,
+    getFestivalEffects,
+    getFestivalPhase,
+    getActiveFestivals,
+    getFestivalHistoryEntry,
+    recordFestivalHistory,
+    settleFestivalMonth,
     isGovernmentFestival,
     isQuietFestival,
     isFestivalHeldInYear,
@@ -168,5 +296,6 @@ if (typeof module !== 'undefined' && module.exports) {
     setFestivalEnabled,
     getFestivalTier,
     setFestivalTier,
+    isChristmasLightingMonth,
   };
 }

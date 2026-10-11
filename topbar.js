@@ -150,6 +150,9 @@ function handleMenuAction(action) {
       if (typeof setFestivalsEnabled === 'function') setFestivalsEnabled(!areFestivalsEnabled());
       updateSettingsMenu();
       break;
+    case 'open-festival-calendar':
+      if (typeof openFestivalCalendar === 'function') openFestivalCalendar();
+      break;
     case 'toggle-attract-mode':
       if (typeof setAttractModeEnabled === 'function') {
         setAttractModeEnabled(!isAttractModeEnabled());

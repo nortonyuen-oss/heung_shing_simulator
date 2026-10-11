@@ -4232,6 +4232,23 @@
     .toast.toast-warning { background: #b07000; }
     .toast.toast-danger  { background: #aa2222; }
     .toast.toast-fade    { opacity: 0; }
+    /* 節慶 notices (festival-ui.js): a toast with a 去睇 button, so it takes clicks */
+    .toast.festival-notice { display: flex; align-items: center; gap: 12px; pointer-events: auto; }
+    .festival-notice-go {
+      padding: 3px 10px;
+      color: #1e2427;
+      background: #fffdf2;
+      border: 1px solid #6f6b60;
+      border-radius: 3px;
+      font: 600 12px Arial, sans-serif;
+      cursor: pointer;
+    }
+    /* 節慶年曆 window */
+    .festival-calendar-master { display: inline-flex; align-items: center; gap: 8px; margin-bottom: 10px; cursor: pointer; font-weight: 600; }
+    .festival-calendar-table { width: 100%; border-collapse: collapse; font: 13px Arial, sans-serif; }
+    .festival-calendar-table th, .festival-calendar-table td { padding: 6px 6px; border-bottom: 1px solid #aaa493; text-align: left; }
+    .festival-calendar-table select { max-width: 210px; padding: 3px 5px; background: #fffdf2; border: 2px solid #6f6b60; border-radius: 3px; font: 12px Arial, sans-serif; }
+    .festival-calendar-muted { color: #5d5a50; font-size: 12px; }
 
     /* ── Tile debug tooltip ───────────────────────────────────────────────── */
 
@@ -6005,6 +6022,7 @@
           <button class="menu-drop-item" data-menu-action="open-ai-news-settings" id="menu-ai-news" data-i18n="menu.aiNews">AI News…</button>
           <button class="menu-drop-item" data-menu-action="toggle-transport-expansion" id="menu-transport-expansion" data-i18n="transport.menu.toggle">Enable Public Transport Expansion</button>
           <button class="menu-drop-item" data-menu-action="toggle-festivals" id="menu-festivals" data-i18n="menu.festivals">Festivals and events</button>
+          <button class="menu-drop-item" data-menu-action="open-festival-calendar" data-i18n="menu.festivalCalendar">Festival calendar…</button>
           <button class="menu-drop-item" data-menu-action="toggle-attract-mode" id="menu-attract-mode" data-i18n="menu.attractMode">Live city behind the title screen</button>
           <div class="menu-hr"></div>
           <div class="menu-drop-empty" data-i18n="menu.language">Language</div>
@@ -7523,6 +7541,10 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
   <script src="ferry-ui.js"></script>
   <script src="water-effects.js"></script>
   <script src="promenade.js"></script>
+  <script src="festival-assets.js"></script>
+  <script src="festival-venues.js"></script>
+  <script src="festival-sprites.js"></script>
+  <script src="festival-ui.js"></script>
   <script src="ferry-berth-calibrator.js"></script>
   <script src="sea-lighting.js"></script>
   <script src="sea-light-calibrator.js"></script>

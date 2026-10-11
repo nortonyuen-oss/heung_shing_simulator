@@ -354,6 +354,8 @@ function updateGameFrame(time, delta) {
   if (typeof updateSeaFlowAnimation === 'function') updateSeaFlowAnimation(this, time);
   // 海濱步道: a tile a road, building or the sea has since taken goes (promenade.js)
   if (typeof updatePromenade === 'function') updatePromenade(this, time);
+  // 節慶: the festivals on this month, their decorations and notices (festival-sprites.js)
+  if (typeof updateFestivals === 'function') updateFestivals(this, time);
   if (typeof updateShoreReflections === 'function') updateShoreReflections(this, time);
   if (typeof updateRainRipples === 'function') updateRainRipples(this, time);
   if (typeof finalizeVehicleTrackerCameraCulling === 'function') {
@@ -1825,6 +1827,7 @@ function positionAllTiles(scene) {
   if (typeof refreshAllPedestrianRailingSprites === 'function') refreshAllPedestrianRailingSprites(scene);
   if (typeof refreshAllStreetFurnitureSprites === 'function') refreshAllStreetFurnitureSprites(scene);
   if (typeof refreshPromenadeProps === 'function') refreshPromenadeProps(scene);
+  if (typeof refreshFestivalSprites === 'function') refreshFestivalSprites(scene);
   // 避風塘 objects re-pick their texture for the new rotation as well as moving.
   if (typeof refreshAllTyphoonShelterSprites === 'function') refreshAllTyphoonShelterSprites(scene);
   if (typeof redrawTyphoonShelterPlanning === 'function') redrawTyphoonShelterPlanning(scene);

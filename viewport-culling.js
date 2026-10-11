@@ -363,5 +363,7 @@ function updateSpriteViewportCulling(scene, bounds) {
   // screen still splits the sprite batch (and on ANGLE/Metal each split stalls) - cull them like
   // the buildings. The boats move every frame and cull themselves (typhoon-shelter-fleet.js).
   collect(cullSpriteMapEntries(scene.typhoonShelterObjects, bounds, seen, mainCamera, mainBounds));
+  // 節慶 decorations (festival-sprites.js), for the same reason
+  collect(cullSpriteMapEntries(scene.festivalSprites, bounds, seen, mainCamera, mainBounds));
   return totals;
 }

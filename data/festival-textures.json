@@ -11,6 +11,8 @@
     "y": 501
    },
    "top": 20,
+   "left": 37,
+   "right": 475,
    "mirrored": false,
    "heightM": 16,
    "night": [
@@ -29,6 +31,8 @@
     "y": 501
    },
    "top": 20,
+   "left": 37,
+   "right": 475,
    "mirrored": true,
    "heightM": 16,
    "night": [
@@ -47,6 +51,8 @@
     "y": 501
    },
    "top": 25,
+   "left": 20,
+   "right": 492,
    "mirrored": false,
    "heightM": 6,
    "night": [
@@ -65,6 +71,8 @@
     "y": 501
    },
    "top": 25,
+   "left": 20,
+   "right": 492,
    "mirrored": true,
    "heightM": 6,
    "night": [
@@ -83,6 +91,8 @@
     "y": 1010
    },
    "top": 372,
+   "left": 20,
+   "right": 492,
    "mirrored": false,
    "heightM": 7,
    "night": [
@@ -101,6 +111,8 @@
     "y": 1010
    },
    "top": 372,
+   "left": 20,
+   "right": 492,
    "mirrored": true,
    "heightM": 7,
    "night": [
@@ -119,6 +131,8 @@
     "y": 503
    },
    "top": 125,
+   "left": 206,
+   "right": 818,
    "mirrored": false,
    "lengthM": 16,
    "night": [
@@ -137,6 +151,8 @@
     "y": 503
    },
    "top": 125,
+   "left": 206,
+   "right": 818,
    "mirrored": true,
    "lengthM": 16,
    "night": [
@@ -155,6 +171,8 @@
     "y": 501
    },
    "top": 20,
+   "left": 100,
+   "right": 412,
    "mirrored": false,
    "heightM": 15,
    "night": [
@@ -173,6 +191,8 @@
     "y": 501
    },
    "top": 20,
+   "left": 100,
+   "right": 412,
    "mirrored": true,
    "heightM": 15,
    "night": [

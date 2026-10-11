@@ -378,7 +378,9 @@ function getBuildingNightSlug(sprite, record) {
 }
 
 function getSeasonalBuildingNightVariant(slug, record, variant, month = typeof city !== 'undefined' ? city.month : 0) {
-  return Number(month) === 12 && record?.type === 'commercial' && buildBuildingNightTextureIndex().has(slug + '__christmas') ? 'christmas' : variant;
+  // 聖誕幕牆: December, unless the city has Christmas (or all festivals) switched off (festivals.js)
+  const christmas = typeof isChristmasLightingMonth === 'function' ? isChristmasLightingMonth(month) : Number(month) === 12;
+  return christmas && record?.type === 'commercial' && buildBuildingNightTextureIndex().has(slug + '__christmas') ? 'christmas' : variant;
 }
 
 function getBuildingNightTextureKey(sprite, variant = 'night') {
@@ -535,7 +537,8 @@ function syncBuildingNightTextures(scene, rawNightAlpha) {
   // The dusk ramp is anchored to today's sunset, not the clock.
   const sunset = typeof getAstronomyVisualDay === 'function'
     ? Number(getAstronomyVisualDay()?.sunsetMinutes) : NaN;
-  const season = typeof city !== 'undefined' && Number(city.month) === 12 ? 12 : 0;
+  const season = typeof city !== 'undefined' && (typeof isChristmasLightingMonth === 'function'
+    ? isChristmasLightingMonth(city.month) : Number(city.month) === 12) ? 12 : 0;
   const state = wantNight ? `night:${minute}:${season}` : 'day';
   if (scene.__blNightTexState === state && !scene.__blNightTexPending) return;
   const pickVariant = typeof getBuildingNightVariantWindow === 'function' && typeof getBuildingNightKind === 'function'
@@ -700,6 +703,8 @@ function applyNightObjectTint(scene, ground) {
   // own tint); the shelter boats take theirs as they are drawn each frame.
   scene.debrisSprites?.forEach(apply);
   scene.typhoonShelterObjects?.forEach((record) => { if (!record.tint) apply(record.sprite); });
+  // festival decorations showing their day art (their lit night frames carry their own night)
+  scene.festivalSprites?.forEach((sprite) => { if (!sprite.festivalLitShown) apply(sprite); });
 
   // Buildings take a lighter share (see NIGHT_BUILDING_DARKNESS_SHARE). Once a
   // model carries a baked night texture its darkening is in the pixels and it

@@ -1,0 +1,175 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const test = require('node:test');
+const vm = require('node:vm');
+const { layoutChristmasDecorations, CHRISTMAS_PROMENADE_CYCLE, orderFestivalPromenadeRuns, FESTIVAL_BUILDING_SPOTS } = require('../festival-venues.js');
+const { getFestivalSpriteScale } = require('../festival-sprites.js');
+const { FESTIVAL_PARTS_BY_ID } = require('../festival-assets.js');
+
+const ROOT = path.resolve(__dirname, '..');
+
+// festivals.js (with the calendar it reads) in a sandbox holding a city
+function festivalsSandbox(city) {
+  const context = vm.createContext({ city, console });
+  ['festival-lunar-data.js', 'festival-calendar.js', 'festivals.js'].forEach((file) => {
+    vm.runInContext(fs.readFileSync(path.join(ROOT, file), 'utf8'), context, { filename: file });
+  });
+  return context;
+}
+
+test('the programme: Christmas is up all month and peaks from 18:00 through the small hours', () => {
+  const ctx = festivalsSandbox({ festivals: null });
+  const phase = (m) => vm.runInContext(`getFestivalPhase('christmas', ${m})`, ctx);
+  assert.equal(phase(6 * 60), 'open');
+  assert.equal(phase(17 * 60 + 59), 'open');
+  assert.equal(phase(18 * 60), 'peak');
+  assert.equal(phase(2 * 60), 'peak', 'past midnight is still the night of the festival');
+  assert.equal(vm.runInContext("getFestivalPhase('dragonBoat', 600)", ctx), null, 'no programme yet');
+});
+
+test('active festivals: the month, the switches and 六四 from 1990', () => {
+  const city = { festivals: null, population: 0 };
+  const ctx = festivalsSandbox(city);
+  const active = (year, month) => vm.runInContext(`getActiveFestivals({ year: ${year}, month: ${month}, minuteOfDay: 1200 }).map((a) => a.id)`, ctx);
+  assert.deepEqual([...active(2026, 12)], ['christmas']);
+  assert.deepEqual([...active(2026, 6)], ['june4', 'dragonBoat']);
+  assert.deepEqual([...active(1985, 6)].includes('june4'), false);
+  vm.runInContext("setFestivalEnabled('christmas', false)", ctx);
+  assert.deepEqual([...active(2026, 12)], []);
+  vm.runInContext("setFestivalEnabled('christmas', true); setFestivalsEnabled(false)", ctx);
+  assert.deepEqual([...active(2026, 6)], [], 'the master switch takes 六四 too');
+  assert.equal(vm.runInContext('isChristmasLightingMonth(12)', ctx), false, 'the Christmas walls go off with it');
+  vm.runInContext('setFestivalsEnabled(true)', ctx);
+  assert.equal(vm.runInContext('isChristmasLightingMonth(12)', ctx), true);
+  assert.equal(vm.runInContext('isChristmasLightingMonth(11)', ctx), false);
+});
+
+test('settling a government festival: pays once, takes the month effect, records the year', () => {
+  const city = { festivals: null, population: 100000 };
+  const ctx = festivalsSandbox(city);
+  const spent = [];
+  const effects = [];
+  ctx.io = {
+    hasVenue: true,
+    spend: (amount) => { spent.push(amount); return true; },
+    addEffect: (sourceId, months, modifiers) => effects.push({ sourceId, months, modifiers }),
+  };
+  const first = vm.runInContext("settleFestivalMonth('christmas', 2026, io)", ctx);
+  assert.equal(first.outcome, 'held');
+  assert.deepEqual(spent, [1800], 'standard: 800 + 100,000 x 0.01');
+  assert.equal(effects.length, 1);
+  assert.equal(effects[0].sourceId, 'festival:christmas:2026');
+  assert.equal(effects[0].modifiers.attractiveness, 3);
+  assert.equal(vm.runInContext("settleFestivalMonth('christmas', 2026, io)", ctx), null, 'once a year');
+  assert.equal(spent.length, 1);
+
+  // 唔辦: nothing paid, nothing gained
+  vm.runInContext("setFestivalTier('christmas', 'skip')", ctx);
+  assert.equal(vm.runInContext("settleFestivalMonth('christmas', 2027, io)", ctx).outcome, 'skipped');
+  assert.equal(spent.length, 1);
+
+  // the treasury cannot pay
+  vm.runInContext("setFestivalTier('christmas', 'grand')", ctx);
+  ctx.poor = { ...ctx.io, spend: () => false };
+  assert.equal(vm.runInContext("settleFestivalMonth('christmas', 2028, poor)", ctx).outcome, 'skipped');
+  assert.equal(effects.length, 1);
+
+  // no venue, then one is built that month: settled again
+  ctx.none = { ...ctx.io, hasVenue: false };
+  assert.equal(vm.runInContext("settleFestivalMonth('christmas', 2029, none)", ctx).outcome, 'noVenue');
+  assert.equal(vm.runInContext("settleFestivalMonth('christmas', 2029, none)", ctx), null);
+  assert.equal(vm.runInContext("settleFestivalMonth('christmas', 2029, io)", ctx).outcome, 'held');
+  assert.equal(vm.runInContext("getCityFestivalState().history.filter((e) => e.year === 2029).length", ctx), 1);
+
+  // a community festival is never settled (no money, no effects)
+  assert.equal(vm.runInContext("settleFestivalMonth('june4', 2026, io)", ctx), null);
+  assert.deepEqual({ ...vm.runInContext("getFestivalEffects('june4', null)", ctx) }, {});
+});
+
+test('Christmas layout: one piece every few odd tiles of a promenade, landward, never on a pier or by a bridge', () => {
+  const promenadeTiles = [];
+  for (let col = 0; col < 20; col++) promenadeTiles.push([0, col]);
+  const ctx = {
+    tier: 'standard',
+    promenadeTiles,
+    seaSideOf: () => 's',
+    isPier: (row, col) => col === 9,
+    isNearBridge: (row, col) => col === 17,
+  };
+  const placements = layoutChristmasDecorations(ctx);
+  const cols = placements.map((p) => p.col);
+  // row + col odd and (row + col - 1) / 2 even: col 1, 5, 9 (pier), 13, 17 (bridge)
+  assert.deepEqual(cols, [1, 5, 13]);
+  placements.forEach((p) => {
+    assert.equal(p.mode, 'tile');
+    assert.deepEqual(p.offsets, [['n', 4]], 'moved toward the land');
+    assert.equal(p.alongDir, 'e');
+    assert.ok(FESTIVAL_PARTS_BY_ID[p.partId], p.partId);
+  });
+  // the pieces cycle
+  assert.equal(new Set(placements.map((p) => p.partId)).size, 3);
+  assert.equal(CHRISTMAS_PROMENADE_CYCLE.length, 4);
+  // the tiers: grand every odd tile, basic every eighth, skip none
+  assert.equal(layoutChristmasDecorations({ ...ctx, isPier: () => false, isNearBridge: () => false, tier: 'grand' }).length, 10);
+  assert.equal(layoutChristmasDecorations({ ...ctx, isPier: () => false, isNearBridge: () => false, tier: 'basic' }).length, 3);
+  assert.equal(layoutChristmasDecorations({ ...ctx, tier: 'skip' }).length, 0);
+});
+
+test('Christmas layout: a staircase coast is walked in order, so it gets decorations too', () => {
+  // the shore of a generated coast: right, up, right, up ... (row + col alternates between two values)
+  const tiles = [];
+  for (let i = 0; i < 12; i++) tiles.push([20 - Math.floor(i / 2), 5 + Math.ceil(i / 2)]);
+  const runs = orderFestivalPromenadeRuns([...tiles].reverse());
+  assert.equal(runs.length, 1);
+  assert.equal(runs[0].length, 12);
+  // walked from an end, each step to an edge neighbour
+  runs[0].slice(1).forEach(([r, c], i) => {
+    const [pr, pc] = runs[0][i];
+    assert.equal(Math.abs(r - pr) + Math.abs(c - pc), 1);
+  });
+  const placements = layoutChristmasDecorations({ tier: 'standard', promenadeTiles: tiles, seaSideOf: () => 's' });
+  assert.equal(placements.length, 3, 'six odd tiles, every second one');
+  // two runs apart stay apart
+  assert.equal(orderFestivalPromenadeRuns([[0, 0], [0, 1], [5, 5], [5, 6]]).length, 2);
+});
+
+test('Christmas layout: the tree on the open square of each Victoria Park', () => {
+  const placements = layoutChristmasDecorations({
+    tier: 'basic',
+    parks: [{ id: '4:6', textureKey: 'park_flagship_victoria' }, { id: '1:1', textureKey: 'someOtherPark' }],
+  });
+  assert.equal(placements.length, 1);
+  assert.equal(placements[0].mode, 'building');
+  assert.equal(placements[0].buildingId, '4:6');
+  assert.equal(placements[0].partId, 'christmasTree');
+  assert.deepEqual([...placements[0].point], [585, 738]);
+});
+
+test('real size: height in metres at 5 px each, or length along a diagonal at 2.5 px each', () => {
+  const meta = { anchor: { x: 100, y: 500 }, top: 100, left: 20, right: 420 };
+  // 15 m tall from 400 px of art: 75 screen px
+  assert.equal(getFestivalSpriteScale(meta, { heightM: 15 }, 1) * 400, 75);
+  // through a staged texture shrunk to half, the same on screen
+  assert.equal(getFestivalSpriteScale(meta, { heightM: 15 }, 0.5) * 200, 75);
+  // 16 m long from 400 px of width: 40 screen px
+  assert.equal(getFestivalSpriteScale(meta, { lengthM: 16 }, 1) * 400, 40);
+});
+
+test('Christmas at the malls: a tree at the big malls\' doors, the gift display at the towers, none at the markets', () => {
+  const malls = [
+    { id: '10:10', modelKey: 'commercialBuilding4-01-H.png' },   // the atrium mall
+    { id: '20:20', modelKey: 'commercialBuilding3-01-H.png' },   // an office tower
+    { id: '30:30', modelKey: 'commercialBuilding4-03-L.png' },   // a street market block
+  ];
+  const standard = layoutChristmasDecorations({ tier: 'standard', malls });
+  assert.deepEqual(standard.map((p) => [p.buildingId, p.partId]), [['10:10', 'christmasTree'], ['20:20', 'christmasGiftArch']]);
+  assert.equal(standard[0].mode, 'building');
+  // a modest year dresses only the big malls
+  assert.deepEqual(layoutChristmasDecorations({ tier: 'basic', malls }).map((p) => p.buildingId), ['10:10']);
+  // every spot names a model file that exists, with a point inside its art
+  Object.values(FESTIVAL_BUILDING_SPOTS).forEach((entry) => {
+    assert.ok(fs.existsSync(path.join(ROOT, entry.path)), entry.path);
+    Object.values(entry.spots).forEach(([x, y]) => assert.ok(x > 0 && x < 1024 && y > 0 && y < 1200, `${entry.path} ${x},${y}`));
+  });
+});

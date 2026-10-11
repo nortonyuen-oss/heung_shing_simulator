@@ -68,6 +68,53 @@ const FESTIVAL_PARTS = Object.freeze([
   festivalPart('christmasGiftArch', 'christmas', 'Christmas/ChristmasDeco4.png', 'decoration', '禮物拱門', { heightM: 6, lit: true, axis: '/' }),
   festivalPart('christmasSleigh', 'christmas', 'Christmas/ChristmasDeco5.png', 'decoration', '雪橇燈飾', { lengthM: 16, lit: true, axis: '/' }),
 
+  // 新春 年宵 (§4.1). The box stalls are one style, squared together (isometric-correction.json);
+  // the rest - the lions, the stage, the arch, round or irregular - bake straight from the renders.
+  // Parts with readable lettering (揮春, 利是, the banners, the site map) are never mirrored.
+  // Sizes (Norton 2026-10-11: 舞台同攤位太大): the squared renders were drawn from a low angle and come
+  // out tall, so the stalls, stage and gate are sized by their footprint - lengthM is the two sides of
+  // it added (a 2 x 2 m stall: 4) - not by their height. People and lions stay a little larger than
+  // life so they read at all.
+  ...[
+    [5, 'lnyStallEmpty', '吉攤（未租出）', true],
+    [6, 'lnyStallNarcissus', '水仙攤', true],
+    [8, 'lnyStallBlossoms', '花攤（桃花年桔蘭花）', true],
+    [9, 'lnyStallLaisee', '利是揮春攤', false],
+    [10, 'lnyStallPinwheels', '風車攤', true],
+    [13, 'lnyStallToys', '玩具精品攤', true],
+    [16, 'lnyStallPeach', '桃花攤', true],
+    [19, 'lnyStallKumquat', '年桔攤', true],
+    [21, 'lnyStallOrchids', '蘭花攤', true],
+    [23, 'lnyInfoBooth', '詢問處', false],
+    [24, 'lnyStallFlowers', '鮮花攤', true],
+    [26, 'lnyStallCouplets', '揮春攤', false],
+    [28, 'lnyStallSnacks', '熟食小食攤', true],
+    [29, 'lnyStallGifts', '賀年精品攤', true],
+  ].map(([n, id, label, mirror]) => festivalPart(id, 'lunarNewYear', `LunarNewYear/lunarNewYearMarket${n}.png`, 'stall', label, { lengthM: 4, mirror, lit: true })),
+  ...[
+    [3, 'lnyDragon', '舞龍', 'crowd', { lengthM: 9 }],
+    [4, 'lnyBarrier', '鐵馬', 'prop', { heightM: 1.1 }],
+    [7, 'lnyLionPair', '醒獅一對', 'crowd', { heightM: 1.8 }],
+    [11, 'lnyLionLeader', '大頭佛', 'crowd', { heightM: 1.8 }],
+    [12, 'lnySiteMap', '場地地圖', 'prop', { heightM: 2.4, mirror: false }],
+    [14, 'lnyTrolleyFlowers', '運花手推車', 'prop', { heightM: 1.4 }],
+    [15, 'lnyFirecrackers', '炮仗裝飾架', 'decoration', { heightM: 2.4, mirror: false, lit: true }],
+    [17, 'lnyLionRed', '紅獅', 'crowd', { heightM: 1.8 }],
+    [18, 'lnyTrolleyBoxes', '運貨手推車', 'prop', { heightM: 1.4 }],
+    [20, 'lnyLionGold', '黃獅', 'crowd', { heightM: 1.8 }],
+    [22, 'lnyLionPoles', '梅花樁舞獅', 'crowd', { heightM: 2.8 }],
+    [25, 'lnyDrum', '獅鼓鑼鈸', 'prop', { heightM: 1.6 }],
+    [27, 'lnyBanners', '龍獅旗', 'decoration', { heightM: 2.6, mirror: false }],
+    [30, 'lnyCaiQing', '採青台', 'prop', { heightM: 1.8, mirror: false, lit: true }],
+  ].map(([n, id, label, category, extra]) => festivalPart(id, 'lunarNewYear', `original/LunarNewYear/lunarNewYearMarket${n}.png`, category, label, extra)),
+  // the stage and the gate, squared like the stalls: a 5 x 3 m stage, a 4 m gate across the way in
+  festivalPart('lnyStage', 'lunarNewYear', 'LunarNewYear/lunarNewYearMarket1.png', 'structure', '戲棚舞台', { lengthM: 8, lit: true }),
+  // the gate stands on the park's edge, its beam along it (Norton 2026-10-11): squared like the
+  // stalls, the mirror for the other diagonal; lengthM: its span, about 6 m
+  festivalPart('lnyGate', 'lunarNewYear', 'LunarNewYear/lunarNewYearMarket2.png', 'structure', '年宵入口牌樓', { lengthM: 6, lit: true, axis: '\\' }),
+  // the temple's 頭炷香: the 盂蘭 render's bronze incense burner, shared
+  festivalPart('templeIncenseBurner', 'lunarNewYear', 'original/July14/July14accessories10.png', 'prop', '香爐', { heightM: 1.3, lit: true }),
+
   // 發現 UFO (§4.7): six frames of the one saucer - the alien waves, the lamps change - played in
   // turn, all at one scale (festival-ufo.js); the beam is drawn added, stretched to the ground. Nothing
   // on the ground to square to, so they bake straight from the renders (original/).

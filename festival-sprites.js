@@ -87,6 +87,7 @@ function getFestivalScreenAxis(row, col, dir) {
 // Which baked view a placement shows: the mirror when the part's long axis must lie the other way.
 function getFestivalPlacementMirrored(placement) {
   const part = FESTIVAL_PARTS_BY_ID[placement.partId];
+  if (placement.mirrored != null) return !!placement.mirrored && !!part?.mirror;
   if (!part?.mirror || !part.axis || placement.mode !== 'tile' || !placement.align) return false;
   const shore = getFestivalScreenAxis(placement.row, placement.col, placement.alongDir);
   const want = placement.align === 'along' ? shore : (shore === '/' ? '\\' : '/');
@@ -137,8 +138,9 @@ function getFestivalPlacementPoint(scene, placement) {
     return {
       x: building.x + (tx - building.displayOriginX) * building.scaleX,
       y: building.y + (ty - building.displayOriginY) * building.scaleY,
-      // just over the park or forecourt it stands in, so under whatever is in front of that
-      depth: building.depth + 0.01,
+      // just over the park or forecourt it stands in, so under whatever is in front of that; among
+      // the things on one building, the lower on the picture the nearer
+      depth: building.depth + 0.01 + ty / 100000,
     };
   }
   const { row, col } = placement;
@@ -152,11 +154,12 @@ function getFestivalPlacementPoint(scene, placement) {
   const geo = getTileFaceGeometry(row, col, scene.offsetX, scene.offsetY);
   const centre = isoToScreen(col, row);
   const shifted = isoToScreen(col + dCol, row + dRow);
+  let depth = getBuildingSortDepth(getBuildingAnchor(row, col, 1, 1).y, 1, 1, 0);
   return {
     x: geo.center.x + (shifted.x - centre.x),
     y: geo.center.y + (shifted.y - centre.y),
     // sorted like a one-tile building on its tile
-    depth: getBuildingSortDepth(getBuildingAnchor(row, col, 1, 1).y, 1, 1, 0),
+    depth,
   };
 }
 
@@ -268,14 +271,32 @@ function isFestivalGameplayLive() {
   return true;
 }
 
+// What a layout needs beyond the venues: the phase, how many stalls were let this year (the
+// economy), a seed for the year, the player's chosen main venue.
+const festivalSoldShares = new Map(); // `${city}:${year}:${id}` -> share, fixed for the year once seen
+function getFestivalLayoutContext(id, ctx, phase) {
+  const key = `${city.name}:${city.year}:${id}`;
+  if (!festivalSoldShares.has(key)) {
+    const economy = typeof getCityEconomyIndex === 'function' ? getCityEconomyIndex() : 50;
+    festivalSoldShares.set(key, Math.max(0.45, Math.min(1, 0.45 + (economy / 100) * 0.6)));
+  }
+  return {
+    ...ctx,
+    phase,
+    soldShare: festivalSoldShares.get(key),
+    seed: `${city.name || 'heung-shing'}:${city.year}`,
+    mainVenue: getCityFestivalState()?.venues?.[id] || '',
+  };
+}
+
 // The placements of every festival on now. A government festival is drawn only once settled as
 // held (paid for); a festival with no programme yet draws nothing.
 function getWantedFestivalPlacements(scene, active, ctx) {
   const out = [];
-  active.forEach(({ id }) => {
-    if (!FESTIVAL_PROGRAMMES[id]) return;
+  active.forEach(({ id, phase }) => {
+    if (!FESTIVAL_PROGRAMMES[id] || !phase) return;
     if (isGovernmentFestival(id) && getFestivalHistoryEntry(id, city.year)?.outcome !== 'held') return;
-    out.push(...layoutFestival(id, { ...ctx, tier: getFestivalTier(id) }));
+    out.push(...layoutFestival(id, { ...getFestivalLayoutContext(id, ctx, phase), tier: getFestivalTier(id) }));
   });
   return out;
 }
@@ -294,7 +315,7 @@ function updateFestivals(scene, time) {
   const live = isFestivalGameplayLive();
   // The layout reads every building, so it is redone only every FESTIVAL_LAYOUT_MS, or at once
   // when the festivals on, their tiers or the year change; the twinkle below runs every update.
-  const activeKey = `${city.year}|${active.map(({ id }) => `${id}:${getFestivalTier(id)}`).join(',')}`;
+  const activeKey = `${city.year}|${active.map(({ id, phase }) => `${id}:${getFestivalTier(id)}:${phase}`).join(',')}`;
   let placements = scene.festivalPlacements || [];
   if (activeKey !== scene.festivalActiveKey || time >= (scene.festivalLayoutAt || 0)) {
     scene.festivalActiveKey = activeKey;
@@ -304,9 +325,12 @@ function updateFestivals(scene, time) {
       active.forEach(({ id }) => {
         const prior = getFestivalHistoryEntry(id, city.year);
         if (!isGovernmentFestival(id) || (prior && prior.outcome !== 'noVenue')) return;
-        const hasVenue = layoutFestival(id, { ...ctx, tier: 'standard' }).length > 0;
+        const trial = layoutFestival(id, { ...getFestivalLayoutContext(id, ctx, 'open'), tier: getFestivalTier(id) === 'skip' ? 'standard' : getFestivalTier(id) });
+        const hasVenue = trial.length > 0;
         if (prior && !hasVenue) return;
-        const entry = settleFestivalMonth(id, city.year, { hasVenue });
+        const economy = typeof getCityEconomyIndex === 'function' ? getCityEconomyIndex() : 50;
+        const income = getFestivalIncome(id, trial.filter((p) => p.stall && p.sold).length, economy);
+        const entry = settleFestivalMonth(id, city.year, { hasVenue, income });
         if (entry && typeof onFestivalSettled === 'function') onFestivalSettled(id, entry);
       });
     }

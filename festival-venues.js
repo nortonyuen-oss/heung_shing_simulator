@@ -18,8 +18,33 @@ const FESTIVAL_BUILDING_SPOTS = Object.freeze({
   // victoriaPark4-01.png: the paved square in the middle, on its mosaic
   park_flagship_victoria: Object.freeze({
     path: 'Models/parks/park4x4/victoriaPark4-01.png',
+    // art pixels to a metre along a map axis: its 4 x 4 diamond, 1013 px across, is 80 m a side
+    pxPerM: 7.08,
     spots: Object.freeze({ centre: Object.freeze([585, 738]) }),
+    // the open ground: each area's left, top and right corners (the fourth is left + right - top).
+    // The 年宵 market spreads over all of them (Norton 2026-10-11: 遍佈整個公園既唔同 section).
+    areas: Object.freeze({
+      pitch: Object.freeze({ left: [146, 674], top: [272, 606], right: [360, 658] }),      // the football pitch
+      plaza: Object.freeze({ left: [503, 722], top: [578, 685], right: [680, 735] }),      // the paved square
+      lawn: Object.freeze({ left: [400, 600], top: [465, 566], right: [540, 603] }),       // the great lawn, north
+      tennis: Object.freeze({ left: [225, 768], top: [305, 725], right: [425, 750] }),     // the tennis courts
+      basketball: Object.freeze({ left: [610, 605], top: [660, 575], right: [800, 622] }), // the basketball courts
+    }),
+    // the 年宵's way in on the lower-right edge's middle (along it, 6.33 x -3.16 px a metre; inward,
+    // -6.33 x -3.16): the arch a metre in, the map and the booth 6 m either side and 3 m in
+    way: Object.freeze({ gate: Object.freeze([759, 842]), map: Object.freeze([708, 855]), booth: Object.freeze([784, 817]) }),
   }),
+  // the 2x2 sports ground is a basketball court: a neighbourhood flower market on the court
+  sports_ground_2x2: Object.freeze({
+    path: 'Models/parks/park2x2/sportField3-02.png',
+    pxPerM: 18.1,
+    spots: Object.freeze({}),
+    areas: Object.freeze({ court: Object.freeze({ left: [278, 922], top: [778, 668], right: [1334, 874] }) }),
+  }),
+  // the temples' forecourts: a lion dance and the 頭炷香 incense burner at New Year
+  heritage_temple_2x2: Object.freeze({ path: 'Models/specialSites/2x2/tample2-01.png', spots: Object.freeze({ forecourt: Object.freeze([560, 880]) }) }),
+  heritage_temple_2x2_alt: Object.freeze({ path: 'Models/specialSites/2x2/tample2-02.png', spots: Object.freeze({ forecourt: Object.freeze([500, 885]) }) }),
+  grand_temple_3x3: Object.freeze({ path: 'Models/specialSites/3x3/tample3-01.png', spots: Object.freeze({ forecourt: Object.freeze([333, 819]) }) }),
   // 商場 (Norton 2026-10-11: the malls all dress up for Christmas, a tree at a 時代廣場's door):
   // the forecourt in front of each large commercial model's entrance. `christmas`: what stands there
   // - the big tree at the shopping malls and hotels, the gift display at the office towers.
@@ -174,16 +199,23 @@ function getFestivalVenueContext(scene = typeof activeScene !== 'undefined' ? ac
   const piers = typeof getPromenadePiers === 'function' ? getPromenadePiers().piers : new Set();
   const parks = [];
   const malls = [];
+  const courts = [];
+  const temples = [];
   if (typeof buildingData !== 'undefined' && buildingData) {
     Object.entries(buildingData).forEach(([id, record]) => {
       if (record?.type === 'commercial') {
         if (FESTIVAL_BUILDING_SPOTS[record.sourceFileName]) malls.push({ id, modelKey: record.sourceFileName });
         return;
       }
+      if (record?.type === 'sports_ground_small' || record?.type === 'heritage_temple' || record?.type === 'grand_temple') {
+        const key = record.spriteKey || scene?.buildingSprites?.get(id)?.texture?.key;
+        if (key && FESTIVAL_BUILDING_SPOTS[key]) (record.type === 'sports_ground_small' ? courts : temples).push({ id, textureKey: key, cols: record.footprintCols, rows: record.footprintRows });
+        return;
+      }
       if (record?.type !== 'park_flagship') return;
       // the record's key: after dark the sprite wears its night texture under another key
       const textureKey = record.spriteKey || scene?.buildingSprites?.get(id)?.texture?.key;
-      if (textureKey) parks.push({ id, textureKey });
+      if (textureKey) parks.push({ id, textureKey, cols: record.footprintCols || 4, rows: record.footprintRows || 4 });
     });
   }
   return {
@@ -193,12 +225,176 @@ function getFestivalVenueContext(scene = typeof activeScene !== 'undefined' ? ac
     isNearBridge: (row, col) => typeof isPromenadeNearBridge === 'function' && isPromenadeNearBridge(row, col),
     parks,
     malls,
+    courts,
+    temples,
   };
+}
+
+// ── 新春 年宵 (docs/festival-dlc-design.md §4.1) ─────────────────────────────
+
+// A point of a parallelogram on building art: u from the left corner toward the top one, v from
+// the left corner toward the bottom one (left + right - top), both 0..1.
+function getFestivalAreaPoint(area, u, v) {
+  const [L, T, R] = [area.left, area.top, area.right];
+  const B = [L[0] + R[0] - T[0], L[1] + R[1] - T[1]];
+  return [Math.round(L[0] + u * (T[0] - L[0]) + v * (B[0] - L[0])), Math.round(L[1] + u * (T[1] - L[1]) + v * (B[1] - L[1]))];
+}
+
+// What the stalls sell. As at the real 維園年宵 the fair is zoned: 濕貨 (flowers, kumquats) on the
+// pitches and courts, 乾貨 (揮春, 利是, toys, pinwheels, gifts) on the paved square, the 熟食 stalls in
+// a row of their own at its end.
+const LNY_WET_GOODS = Object.freeze(['lnyStallBlossoms', 'lnyStallPeach', 'lnyStallKumquat', 'lnyStallOrchids', 'lnyStallNarcissus', 'lnyStallFlowers']);
+const LNY_DRY_GOODS = Object.freeze(['lnyStallLaisee', 'lnyStallCouplets', 'lnyStallPinwheels', 'lnyStallToys', 'lnyStallGifts']);
+const LNY_FOOD = Object.freeze(['lnyStallSnacks']);
+
+// The stalls stand shoulder to shoulder in long rows, every row facing an aisle (the art shows a
+// stall from its front, so no back-to-back rows): a 2 m stall, an aisle by tier, a metre clear of
+// the area's edges; rows run along the area's v side (the art's front edge), across its u side.
+const LNY_STALL_M = 2;
+const LNY_AISLE_M = Object.freeze({ basic: 5, standard: 2.5, grand: 2 });
+const LNY_EDGE_M = 1;
+// Which goods each area sells, and caps on its rows and stalls a row. The great lawn is the show
+// ground, no stalls; another park keeps to its pitch; a basketball court has a few short rows.
+const LNY_AREAS = Object.freeze({
+  main: Object.freeze({
+    pitch: Object.freeze({ goods: LNY_WET_GOODS }),
+    tennis: Object.freeze({ goods: LNY_WET_GOODS }),
+    basketball: Object.freeze({ goods: LNY_WET_GOODS }),
+    plaza: Object.freeze({ goods: LNY_DRY_GOODS, lastRow: LNY_FOOD }),
+  }),
+  park: Object.freeze({ pitch: Object.freeze({ goods: LNY_WET_GOODS, maxRows: 2 }) }),
+  court: Object.freeze({ court: Object.freeze({ goods: [...LNY_WET_GOODS, ...LNY_DRY_GOODS], lastRow: LNY_FOOD, maxRows: 4, maxPerRow: 8 }) }),
+});
+
+function lnyHash(text) {
+  let h = 2166136261;
+  for (const ch of String(text)) { h ^= ch.codePointAt(0); h = Math.imul(h, 16777619) >>> 0; }
+  return h / 4294967296;
+}
+
+/** An area's rows: [{ u, v: [..] }] as fractions of its sides, for a tier. */
+function getLnyRows(area, pxPerM, tier, zone = {}) {
+  const len = (a, b) => Math.hypot(b[0] - a[0], b[1] - a[1]) / pxPerM;
+  const uM = len(area.left, area.top);
+  const vM = len(area.top, area.right);
+  const aisle = LNY_AISLE_M[tier] ?? LNY_AISLE_M.standard;
+  const perRow = Math.min(zone.maxPerRow ?? Infinity, Math.floor((vM - 2 * LNY_EDGE_M) / LNY_STALL_M));
+  const rowCount = Math.min(zone.maxRows ?? Infinity, Math.floor((uM - 2 * LNY_EDGE_M + aisle) / (LNY_STALL_M + aisle)));
+  if (perRow < 1 || rowCount < 1) return [];
+  const runM = perRow * LNY_STALL_M;
+  const v0 = (vM - runM) / 2 + LNY_STALL_M / 2;
+  const blockM = rowCount * LNY_STALL_M + (rowCount - 1) * aisle;
+  // the rows from the far (top) side down, so the aisle each faces lies on its near side
+  const u0 = (uM + blockM) / 2 - LNY_STALL_M / 2;
+  return Array.from({ length: rowCount }, (_, r) => ({
+    u: (u0 - r * (LNY_STALL_M + aisle)) / uM,
+    v: Array.from({ length: perRow }, (_, k) => (v0 + k * LNY_STALL_M) / vM),
+  }));
+}
+
+// The stalls of one area, each with what it sells and whether it was let (`soldShare`, from the
+// economy: a weak year leaves some as bare tents). During setup they are all bare tents.
+function layoutLnyStalls(out, building, area, pxPerM, zone, ctx, prefix) {
+  const setup = ctx.phase === 'setup';
+  const rows = getLnyRows(area, pxPerM, ctx.tier, zone);
+  rows.forEach((row, r) => {
+    const goods = r === rows.length - 1 && zone.lastRow && rows.length > 1 ? zone.lastRow : zone.goods;
+    row.v.forEach((v, k) => {
+      const key = `${prefix}:${r}:${k}`;
+      const sold = lnyHash(`${ctx.seed}:${key}:let`) < (ctx.soldShare ?? 1);
+      // neighbours tend to sell the same (a run of peach blossom, then of kumquats)
+      const kind = goods[Math.floor(lnyHash(`${ctx.seed}:${prefix}:${r}:${Math.floor(k / 3)}:kind`) * goods.length)];
+      out.push({
+        id: `lunarNewYear:${key}`,
+        festival: 'lunarNewYear',
+        partId: setup || !sold ? 'lnyStallEmpty' : kind,
+        mode: 'building',
+        buildingId: building.id,
+        point: getFestivalAreaPoint(area, row.u, v),
+        stall: true,
+        sold,
+      });
+    });
+  });
+}
+
+/**
+ * 新春 for a city: the main 年宵 market on one Victoria Park's pitch (the player's pick, else the
+ * first), a small one in every other Victoria Park and on every basketball court, a lion dance and
+ * the incense burner at each temple; the morning after (phase 'after'), lion dances at the malls'
+ * doors (開年舞獅).
+ * @param {object} ctx  as layoutChristmasDecorations, plus courts, temples ({ id, textureKey }),
+ *   phase ('setup'|'open'|'peak'|'after'), soldShare (0..1), seed, mainVenue (a park id or '')
+ */
+function layoutLunarNewYear(ctx) {
+  if (!ctx.tier || ctx.tier === 'skip') return [];
+  const out = [];
+  const add = (id, partId, building, point, extra = {}) => out.push({ id: `lunarNewYear:${id}`, festival: 'lunarNewYear', partId, mode: 'building', buildingId: building.id, point, ...extra });
+  if (ctx.phase === 'after') {
+    (ctx.malls || []).forEach((mall, i) => {
+      const door = FESTIVAL_BUILDING_SPOTS[mall.modelKey]?.spots?.door;
+      if (!door || FESTIVAL_BUILDING_SPOTS[mall.modelKey].christmas !== 'christmasTree') return; // the big malls
+      add(`lion:${mall.id}`, i % 2 ? 'lnyLionGold' : 'lnyLionRed', mall, door);
+      add(`drum:${mall.id}`, 'lnyDrum', mall, [door[0] + 70, door[1] + 30]);
+    });
+    return out;
+  }
+  const parks = (ctx.parks || []).filter((p) => FESTIVAL_BUILDING_SPOTS[p.textureKey]?.areas?.pitch);
+  const main = parks.find((p) => p.id === ctx.mainVenue) || parks[0];
+  parks.forEach((park) => {
+    const areas = FESTIVAL_BUILDING_SPOTS[park.textureKey].areas;
+    const isMain = park === main;
+    const pxPerM = FESTIVAL_BUILDING_SPOTS[park.textureKey].pxPerM;
+    Object.entries(LNY_AREAS[isMain ? 'main' : 'park']).forEach(([name, zone]) => {
+      if (areas[name]) layoutLnyStalls(out, park, areas[name], pxPerM, zone, ctx, `park:${park.id}:${name}`);
+    });
+    if (!isMain) return;
+    // the way in at the south gate: the 年宵 arch, the site map, the information booth
+    // the way in: the arch on the park's lower-right edge, its beam along that edge (squared, the
+    // mirror for that diagonal), the site map and the information booth either side, just inside. Fixed
+    // on the park's art, which is the same picture at every map rotation (Norton 2026-10-11).
+    const way = FESTIVAL_BUILDING_SPOTS[park.textureKey].way;
+    if (way) {
+      add(`gate:${park.id}`, 'lnyGate', park, way.gate, { mirrored: true });
+      add(`map:${park.id}`, 'lnySiteMap', park, way.map);
+      add(`booth:${park.id}`, 'lnyInfoBooth', park, way.booth);
+    }
+    const lawn = areas.lawn;
+    if (ctx.phase === 'setup') {
+      add(`trolley1:${park.id}`, 'lnyTrolleyFlowers', park, getFestivalAreaPoint(areas.pitch, 0.5, 0.5));
+      add(`trolley2:${park.id}`, 'lnyTrolleyBoxes', park, getFestivalAreaPoint(areas.plaza, 0.5, 0.5));
+      return;
+    }
+    // the show ground on the great lawn: the stage at its back facing the open lawn (mirrored, Norton
+    // 2026-10-11), flags and firecrackers either side
+    add(`stage:${park.id}`, 'lnyStage', park, getFestivalAreaPoint(lawn, 0.8, 0.45), { mirrored: true });
+    add(`crackers:${park.id}`, 'lnyFirecrackers', park, getFestivalAreaPoint(lawn, 0.15, 0.85));
+    add(`banners:${park.id}`, 'lnyBanners', park, getFestivalAreaPoint(lawn, 0.85, 0.2));
+    if (ctx.phase === 'peak') {
+      add(`poles:${park.id}`, 'lnyLionPoles', park, getFestivalAreaPoint(lawn, 0.75, 0.75));
+      add(`dragon:${park.id}`, 'lnyDragon', park, getFestivalAreaPoint(areas.plaza, 0.5, 0.95));
+    }
+  });
+  (ctx.courts || []).forEach((court) => {
+    const spot = FESTIVAL_BUILDING_SPOTS[court.textureKey];
+    if (spot?.areas?.court) layoutLnyStalls(out, court, spot.areas.court, spot.pxPerM, LNY_AREAS.court.court, ctx, `court:${court.id}`);
+  });
+  if (ctx.phase === 'peak') {
+    (ctx.temples || []).forEach((temple) => {
+      const fc = FESTIVAL_BUILDING_SPOTS[temple.textureKey]?.spots?.forecourt;
+      if (!fc) return;
+      add(`incense:${temple.id}`, 'templeIncenseBurner', temple, [fc[0] - 60, fc[1] - 10]);
+      add(`lion:${temple.id}`, 'lnyLionPair', temple, fc);
+      add(`drum:${temple.id}`, 'lnyDrum', temple, [fc[0] + 70, fc[1] + 25]);
+    });
+  }
+  return out;
 }
 
 /** Every placement of a festival for the city as it stands. */
 function layoutFestival(id, ctx) {
   if (id === 'christmas') return layoutChristmasDecorations(ctx);
+  if (id === 'lunarNewYear') return layoutLunarNewYear(ctx);
   return [];
 }
 
@@ -208,6 +404,10 @@ if (typeof module !== 'undefined' && module.exports) {
     CHRISTMAS_PROMENADE_CYCLE,
     CHRISTMAS_PROMENADE_SPACING,
     layoutChristmasDecorations,
+    layoutLunarNewYear,
+    getFestivalAreaPoint,
+    LNY_AREAS,
+    getLnyRows,
     layoutFestival,
     orderFestivalPromenadeRuns,
   };

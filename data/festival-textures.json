@@ -174,7 +174,7 @@
    "left": 100,
    "right": 412,
    "mirrored": false,
-   "heightM": 15,
+   "heightM": 9,
    "night": [
     "Models/festivals/fx_christmasTree__lit.png",
     "Models/festivals/fx_christmasTree__litb.png"
@@ -194,10 +194,1022 @@
    "left": 100,
    "right": 412,
    "mirrored": true,
-   "heightM": 15,
+   "heightM": 9,
    "night": [
     "Models/festivals/fx_christmasTree_m__lit.png",
     "Models/festivals/fx_christmasTree_m__litb.png"
+   ]
+  },
+  "fx_lnyBanners": {
+   "file": "Models/festivals/fx_lnyBanners.png",
+   "part": "lnyBanners",
+   "festival": "lunarNewYear",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 501
+   },
+   "top": 24,
+   "left": 20,
+   "right": 492,
+   "mirrored": false,
+   "heightM": 2.6
+  },
+  "fx_lnyBarrier": {
+   "file": "Models/festivals/fx_lnyBarrier.png",
+   "part": "lnyBarrier",
+   "festival": "lunarNewYear",
+   "width": 1024,
+   "height": 512,
+   "anchor": {
+    "x": 513,
+    "y": 503
+   },
+   "top": 85,
+   "left": 205,
+   "right": 820,
+   "mirrored": false,
+   "heightM": 1.1
+  },
+  "fx_lnyBarrier_m": {
+   "file": "Models/festivals/fx_lnyBarrier_m.png",
+   "part": "lnyBarrier",
+   "festival": "lunarNewYear",
+   "width": 1024,
+   "height": 512,
+   "anchor": {
+    "x": 511,
+    "y": 503
+   },
+   "top": 85,
+   "left": 204,
+   "right": 819,
+   "mirrored": true,
+   "heightM": 1.1
+  },
+  "fx_lnyCaiQing": {
+   "file": "Models/festivals/fx_lnyCaiQing.png",
+   "part": "lnyCaiQing",
+   "festival": "lunarNewYear",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 502
+   },
+   "top": 20,
+   "left": 74,
+   "right": 438,
+   "mirrored": false,
+   "heightM": 1.8,
+   "night": [
+    "Models/festivals/fx_lnyCaiQing__lit.png",
+    "Models/festivals/fx_lnyCaiQing__litb.png"
+   ]
+  },
+  "fx_lnyDragon": {
+   "file": "Models/festivals/fx_lnyDragon.png",
+   "part": "lnyDragon",
+   "festival": "lunarNewYear",
+   "width": 1024,
+   "height": 512,
+   "anchor": {
+    "x": 513,
+    "y": 502
+   },
+   "top": 67,
+   "left": 163,
+   "right": 862,
+   "mirrored": false,
+   "lengthM": 9
+  },
+  "fx_lnyDragon_m": {
+   "file": "Models/festivals/fx_lnyDragon_m.png",
+   "part": "lnyDragon",
+   "festival": "lunarNewYear",
+   "width": 1024,
+   "height": 512,
+   "anchor": {
+    "x": 511,
+    "y": 502
+   },
+   "top": 67,
+   "left": 162,
+   "right": 861,
+   "mirrored": true,
+   "lengthM": 9
+  },
+  "fx_lnyDrum": {
+   "file": "Models/festivals/fx_lnyDrum.png",
+   "part": "lnyDrum",
+   "festival": "lunarNewYear",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 257,
+    "y": 501
+   },
+   "top": 20,
+   "left": 23,
+   "right": 490,
+   "mirrored": false,
+   "heightM": 1.6
+  },
+  "fx_lnyDrum_m": {
+   "file": "Models/festivals/fx_lnyDrum_m.png",
+   "part": "lnyDrum",
+   "festival": "lunarNewYear",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 255,
+    "y": 501
+   },
+   "top": 20,
+   "left": 22,
+   "right": 489,
+   "mirrored": true,
+   "heightM": 1.6
+  },
+  "fx_lnyFirecrackers": {
+   "file": "Models/festivals/fx_lnyFirecrackers.png",
+   "part": "lnyFirecrackers",
+   "festival": "lunarNewYear",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 257,
+    "y": 501
+   },
+   "top": 19,
+   "left": 62,
+   "right": 451,
+   "mirrored": false,
+   "heightM": 2.4,
+   "night": [
+    "Models/festivals/fx_lnyFirecrackers__lit.png",
+    "Models/festivals/fx_lnyFirecrackers__litb.png"
+   ]
+  },
+  "fx_lnyGate": {
+   "file": "Models/festivals/fx_lnyGate.png",
+   "part": "lnyGate",
+   "festival": "lunarNewYear",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 257,
+    "y": 501
+   },
+   "top": 20,
+   "left": 39,
+   "right": 474,
+   "mirrored": false,
+   "lengthM": 6,
+   "night": [
+    "Models/festivals/fx_lnyGate__lit.png",
+    "Models/festivals/fx_lnyGate__litb.png"
+   ]
+  },
+  "fx_lnyGate_m": {
+   "file": "Models/festivals/fx_lnyGate_m.png",
+   "part": "lnyGate",
+   "festival": "lunarNewYear",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 255,
+    "y": 501
+   },
+   "top": 20,
+   "left": 38,
+   "right": 473,
+   "mirrored": true,
+   "lengthM": 6,
+   "night": [
+    "Models/festivals/fx_lnyGate_m__lit.png",
+    "Models/festivals/fx_lnyGate_m__litb.png"
+   ]
+  },
+  "fx_lnyInfoBooth": {
+   "file": "Models/festivals/fx_lnyInfoBooth.png",
+   "part": "lnyInfoBooth",
+   "festival": "lunarNewYear",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 257,
+    "y": 501
+   },
+   "top": 19,
+   "left": 49,
+   "right": 464,
+   "mirrored": false,
+   "lengthM": 4,
+   "night": [
+    "Models/festivals/fx_lnyInfoBooth__lit.png",
+    "Models/festivals/fx_lnyInfoBooth__litb.png"
+   ]
+  },
+  "fx_lnyLionGold": {
+   "file": "Models/festivals/fx_lnyLionGold.png",
+   "part": "lnyLionGold",
+   "festival": "lunarNewYear",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 501
+   },
+   "top": 21,
+   "left": 21,
+   "right": 491,
+   "mirrored": false,
+   "heightM": 1.8
+  },
+  "fx_lnyLionGold_m": {
+   "file": "Models/festivals/fx_lnyLionGold_m.png",
+   "part": "lnyLionGold",
+   "festival": "lunarNewYear",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 501
+   },
+   "top": 21,
+   "left": 21,
+   "right": 491,
+   "mirrored": true,
+   "heightM": 1.8
+  },
+  "fx_lnyLionLeader": {
+   "file": "Models/festivals/fx_lnyLionLeader.png",
+   "part": "lnyLionLeader",
+   "festival": "lunarNewYear",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 501
+   },
+   "top": 20,
+   "left": 102,
+   "right": 410,
+   "mirrored": false,
+   "heightM": 1.8
+  },
+  "fx_lnyLionLeader_m": {
+   "file": "Models/festivals/fx_lnyLionLeader_m.png",
+   "part": "lnyLionLeader",
+   "festival": "lunarNewYear",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 501
+   },
+   "top": 20,
+   "left": 102,
+   "right": 410,
+   "mirrored": true,
+   "heightM": 1.8
+  },
+  "fx_lnyLionPair": {
+   "file": "Models/festivals/fx_lnyLionPair.png",
+   "part": "lnyLionPair",
+   "festival": "lunarNewYear",
+   "width": 1024,
+   "height": 512,
+   "anchor": {
+    "x": 512,
+    "y": 501
+   },
+   "top": 20,
+   "left": 188,
+   "right": 836,
+   "mirrored": false,
+   "heightM": 1.8
+  },
+  "fx_lnyLionPair_m": {
+   "file": "Models/festivals/fx_lnyLionPair_m.png",
+   "part": "lnyLionPair",
+   "festival": "lunarNewYear",
+   "width": 1024,
+   "height": 512,
+   "anchor": {
+    "x": 512,
+    "y": 501
+   },
+   "top": 20,
+   "left": 188,
+   "right": 836,
+   "mirrored": true,
+   "heightM": 1.8
+  },
+  "fx_lnyLionPoles": {
+   "file": "Models/festivals/fx_lnyLionPoles.png",
+   "part": "lnyLionPoles",
+   "festival": "lunarNewYear",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 257,
+    "y": 501
+   },
+   "top": 21,
+   "left": 26,
+   "right": 487,
+   "mirrored": false,
+   "heightM": 2.8
+  },
+  "fx_lnyLionPoles_m": {
+   "file": "Models/festivals/fx_lnyLionPoles_m.png",
+   "part": "lnyLionPoles",
+   "festival": "lunarNewYear",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 255,
+    "y": 501
+   },
+   "top": 21,
+   "left": 25,
+   "right": 486,
+   "mirrored": true,
+   "heightM": 2.8
+  },
+  "fx_lnyLionRed": {
+   "file": "Models/festivals/fx_lnyLionRed.png",
+   "part": "lnyLionRed",
+   "festival": "lunarNewYear",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 501
+   },
+   "top": 21,
+   "left": 23,
+   "right": 489,
+   "mirrored": false,
+   "heightM": 1.8
+  },
+  "fx_lnyLionRed_m": {
+   "file": "Models/festivals/fx_lnyLionRed_m.png",
+   "part": "lnyLionRed",
+   "festival": "lunarNewYear",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 501
+   },
+   "top": 21,
+   "left": 23,
+   "right": 489,
+   "mirrored": true,
+   "heightM": 1.8
+  },
+  "fx_lnySiteMap": {
+   "file": "Models/festivals/fx_lnySiteMap.png",
+   "part": "lnySiteMap",
+   "festival": "lunarNewYear",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 503
+   },
+   "top": 35,
+   "left": 20,
+   "right": 492,
+   "mirrored": false,
+   "heightM": 2.4
+  },
+  "fx_lnyStage": {
+   "file": "Models/festivals/fx_lnyStage.png",
+   "part": "lnyStage",
+   "festival": "lunarNewYear",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 256,
+    "y": 1010
+   },
+   "top": 360,
+   "left": 20,
+   "right": 492,
+   "mirrored": false,
+   "lengthM": 8,
+   "night": [
+    "Models/festivals/fx_lnyStage__lit.png",
+    "Models/festivals/fx_lnyStage__litb.png"
+   ]
+  },
+  "fx_lnyStage_m": {
+   "file": "Models/festivals/fx_lnyStage_m.png",
+   "part": "lnyStage",
+   "festival": "lunarNewYear",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 256,
+    "y": 1010
+   },
+   "top": 360,
+   "left": 20,
+   "right": 492,
+   "mirrored": true,
+   "lengthM": 8,
+   "night": [
+    "Models/festivals/fx_lnyStage_m__lit.png",
+    "Models/festivals/fx_lnyStage_m__litb.png"
+   ]
+  },
+  "fx_lnyStallBlossoms": {
+   "file": "Models/festivals/fx_lnyStallBlossoms.png",
+   "part": "lnyStallBlossoms",
+   "festival": "lunarNewYear",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 256,
+    "y": 1006
+   },
+   "top": 177,
+   "left": 20,
+   "right": 492,
+   "mirrored": false,
+   "lengthM": 4,
+   "night": [
+    "Models/festivals/fx_lnyStallBlossoms__lit.png",
+    "Models/festivals/fx_lnyStallBlossoms__litb.png"
+   ]
+  },
+  "fx_lnyStallBlossoms_m": {
+   "file": "Models/festivals/fx_lnyStallBlossoms_m.png",
+   "part": "lnyStallBlossoms",
+   "festival": "lunarNewYear",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 256,
+    "y": 1006
+   },
+   "top": 177,
+   "left": 20,
+   "right": 492,
+   "mirrored": true,
+   "lengthM": 4,
+   "night": [
+    "Models/festivals/fx_lnyStallBlossoms_m__lit.png",
+    "Models/festivals/fx_lnyStallBlossoms_m__litb.png"
+   ]
+  },
+  "fx_lnyStallCouplets": {
+   "file": "Models/festivals/fx_lnyStallCouplets.png",
+   "part": "lnyStallCouplets",
+   "festival": "lunarNewYear",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 257,
+    "y": 501
+   },
+   "top": 20,
+   "left": 65,
+   "right": 449,
+   "mirrored": false,
+   "lengthM": 4,
+   "night": [
+    "Models/festivals/fx_lnyStallCouplets__lit.png",
+    "Models/festivals/fx_lnyStallCouplets__litb.png"
+   ]
+  },
+  "fx_lnyStallEmpty": {
+   "file": "Models/festivals/fx_lnyStallEmpty.png",
+   "part": "lnyStallEmpty",
+   "festival": "lunarNewYear",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 501
+   },
+   "top": 20,
+   "left": 45,
+   "right": 467,
+   "mirrored": false,
+   "lengthM": 4,
+   "night": [
+    "Models/festivals/fx_lnyStallEmpty__lit.png",
+    "Models/festivals/fx_lnyStallEmpty__litb.png"
+   ]
+  },
+  "fx_lnyStallEmpty_m": {
+   "file": "Models/festivals/fx_lnyStallEmpty_m.png",
+   "part": "lnyStallEmpty",
+   "festival": "lunarNewYear",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 501
+   },
+   "top": 20,
+   "left": 45,
+   "right": 467,
+   "mirrored": true,
+   "lengthM": 4,
+   "night": [
+    "Models/festivals/fx_lnyStallEmpty_m__lit.png",
+    "Models/festivals/fx_lnyStallEmpty_m__litb.png"
+   ]
+  },
+  "fx_lnyStallFlowers": {
+   "file": "Models/festivals/fx_lnyStallFlowers.png",
+   "part": "lnyStallFlowers",
+   "festival": "lunarNewYear",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 256,
+    "y": 1010
+   },
+   "top": 356,
+   "left": 20,
+   "right": 492,
+   "mirrored": false,
+   "lengthM": 4,
+   "night": [
+    "Models/festivals/fx_lnyStallFlowers__lit.png",
+    "Models/festivals/fx_lnyStallFlowers__litb.png"
+   ]
+  },
+  "fx_lnyStallFlowers_m": {
+   "file": "Models/festivals/fx_lnyStallFlowers_m.png",
+   "part": "lnyStallFlowers",
+   "festival": "lunarNewYear",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 256,
+    "y": 1010
+   },
+   "top": 356,
+   "left": 20,
+   "right": 492,
+   "mirrored": true,
+   "lengthM": 4,
+   "night": [
+    "Models/festivals/fx_lnyStallFlowers_m__lit.png",
+    "Models/festivals/fx_lnyStallFlowers_m__litb.png"
+   ]
+  },
+  "fx_lnyStallGifts": {
+   "file": "Models/festivals/fx_lnyStallGifts.png",
+   "part": "lnyStallGifts",
+   "festival": "lunarNewYear",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 501
+   },
+   "top": 20,
+   "left": 48,
+   "right": 464,
+   "mirrored": false,
+   "lengthM": 4,
+   "night": [
+    "Models/festivals/fx_lnyStallGifts__lit.png",
+    "Models/festivals/fx_lnyStallGifts__litb.png"
+   ]
+  },
+  "fx_lnyStallGifts_m": {
+   "file": "Models/festivals/fx_lnyStallGifts_m.png",
+   "part": "lnyStallGifts",
+   "festival": "lunarNewYear",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 501
+   },
+   "top": 20,
+   "left": 48,
+   "right": 464,
+   "mirrored": true,
+   "lengthM": 4,
+   "night": [
+    "Models/festivals/fx_lnyStallGifts_m__lit.png",
+    "Models/festivals/fx_lnyStallGifts_m__litb.png"
+   ]
+  },
+  "fx_lnyStallKumquat": {
+   "file": "Models/festivals/fx_lnyStallKumquat.png",
+   "part": "lnyStallKumquat",
+   "festival": "lunarNewYear",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 256,
+    "y": 1010
+   },
+   "top": 374,
+   "left": 20,
+   "right": 492,
+   "mirrored": false,
+   "lengthM": 4,
+   "night": [
+    "Models/festivals/fx_lnyStallKumquat__lit.png",
+    "Models/festivals/fx_lnyStallKumquat__litb.png"
+   ]
+  },
+  "fx_lnyStallKumquat_m": {
+   "file": "Models/festivals/fx_lnyStallKumquat_m.png",
+   "part": "lnyStallKumquat",
+   "festival": "lunarNewYear",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 256,
+    "y": 1010
+   },
+   "top": 374,
+   "left": 20,
+   "right": 492,
+   "mirrored": true,
+   "lengthM": 4,
+   "night": [
+    "Models/festivals/fx_lnyStallKumquat_m__lit.png",
+    "Models/festivals/fx_lnyStallKumquat_m__litb.png"
+   ]
+  },
+  "fx_lnyStallLaisee": {
+   "file": "Models/festivals/fx_lnyStallLaisee.png",
+   "part": "lnyStallLaisee",
+   "festival": "lunarNewYear",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 256,
+    "y": 1009
+   },
+   "top": 329,
+   "left": 20,
+   "right": 492,
+   "mirrored": false,
+   "lengthM": 4,
+   "night": [
+    "Models/festivals/fx_lnyStallLaisee__lit.png",
+    "Models/festivals/fx_lnyStallLaisee__litb.png"
+   ]
+  },
+  "fx_lnyStallNarcissus": {
+   "file": "Models/festivals/fx_lnyStallNarcissus.png",
+   "part": "lnyStallNarcissus",
+   "festival": "lunarNewYear",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 256,
+    "y": 1010
+   },
+   "top": 356,
+   "left": 20,
+   "right": 492,
+   "mirrored": false,
+   "lengthM": 4,
+   "night": [
+    "Models/festivals/fx_lnyStallNarcissus__lit.png",
+    "Models/festivals/fx_lnyStallNarcissus__litb.png"
+   ]
+  },
+  "fx_lnyStallNarcissus_m": {
+   "file": "Models/festivals/fx_lnyStallNarcissus_m.png",
+   "part": "lnyStallNarcissus",
+   "festival": "lunarNewYear",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 256,
+    "y": 1010
+   },
+   "top": 356,
+   "left": 20,
+   "right": 492,
+   "mirrored": true,
+   "lengthM": 4,
+   "night": [
+    "Models/festivals/fx_lnyStallNarcissus_m__lit.png",
+    "Models/festivals/fx_lnyStallNarcissus_m__litb.png"
+   ]
+  },
+  "fx_lnyStallOrchids": {
+   "file": "Models/festivals/fx_lnyStallOrchids.png",
+   "part": "lnyStallOrchids",
+   "festival": "lunarNewYear",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 256,
+    "y": 1008
+   },
+   "top": 283,
+   "left": 20,
+   "right": 492,
+   "mirrored": false,
+   "lengthM": 4,
+   "night": [
+    "Models/festivals/fx_lnyStallOrchids__lit.png",
+    "Models/festivals/fx_lnyStallOrchids__litb.png"
+   ]
+  },
+  "fx_lnyStallOrchids_m": {
+   "file": "Models/festivals/fx_lnyStallOrchids_m.png",
+   "part": "lnyStallOrchids",
+   "festival": "lunarNewYear",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 256,
+    "y": 1008
+   },
+   "top": 283,
+   "left": 20,
+   "right": 492,
+   "mirrored": true,
+   "lengthM": 4,
+   "night": [
+    "Models/festivals/fx_lnyStallOrchids_m__lit.png",
+    "Models/festivals/fx_lnyStallOrchids_m__litb.png"
+   ]
+  },
+  "fx_lnyStallPeach": {
+   "file": "Models/festivals/fx_lnyStallPeach.png",
+   "part": "lnyStallPeach",
+   "festival": "lunarNewYear",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 501
+   },
+   "top": 20,
+   "left": 36,
+   "right": 476,
+   "mirrored": false,
+   "lengthM": 4,
+   "night": [
+    "Models/festivals/fx_lnyStallPeach__lit.png",
+    "Models/festivals/fx_lnyStallPeach__litb.png"
+   ]
+  },
+  "fx_lnyStallPeach_m": {
+   "file": "Models/festivals/fx_lnyStallPeach_m.png",
+   "part": "lnyStallPeach",
+   "festival": "lunarNewYear",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 501
+   },
+   "top": 20,
+   "left": 36,
+   "right": 476,
+   "mirrored": true,
+   "lengthM": 4,
+   "night": [
+    "Models/festivals/fx_lnyStallPeach_m__lit.png",
+    "Models/festivals/fx_lnyStallPeach_m__litb.png"
+   ]
+  },
+  "fx_lnyStallPinwheels": {
+   "file": "Models/festivals/fx_lnyStallPinwheels.png",
+   "part": "lnyStallPinwheels",
+   "festival": "lunarNewYear",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 256,
+    "y": 1008
+   },
+   "top": 281,
+   "left": 20,
+   "right": 492,
+   "mirrored": false,
+   "lengthM": 4,
+   "night": [
+    "Models/festivals/fx_lnyStallPinwheels__lit.png",
+    "Models/festivals/fx_lnyStallPinwheels__litb.png"
+   ]
+  },
+  "fx_lnyStallPinwheels_m": {
+   "file": "Models/festivals/fx_lnyStallPinwheels_m.png",
+   "part": "lnyStallPinwheels",
+   "festival": "lunarNewYear",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 256,
+    "y": 1008
+   },
+   "top": 281,
+   "left": 20,
+   "right": 492,
+   "mirrored": true,
+   "lengthM": 4,
+   "night": [
+    "Models/festivals/fx_lnyStallPinwheels_m__lit.png",
+    "Models/festivals/fx_lnyStallPinwheels_m__litb.png"
+   ]
+  },
+  "fx_lnyStallSnacks": {
+   "file": "Models/festivals/fx_lnyStallSnacks.png",
+   "part": "lnyStallSnacks",
+   "festival": "lunarNewYear",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 257,
+    "y": 501
+   },
+   "top": 20,
+   "left": 59,
+   "right": 455,
+   "mirrored": false,
+   "lengthM": 4,
+   "night": [
+    "Models/festivals/fx_lnyStallSnacks__lit.png",
+    "Models/festivals/fx_lnyStallSnacks__litb.png"
+   ]
+  },
+  "fx_lnyStallSnacks_m": {
+   "file": "Models/festivals/fx_lnyStallSnacks_m.png",
+   "part": "lnyStallSnacks",
+   "festival": "lunarNewYear",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 255,
+    "y": 501
+   },
+   "top": 20,
+   "left": 57,
+   "right": 453,
+   "mirrored": true,
+   "lengthM": 4,
+   "night": [
+    "Models/festivals/fx_lnyStallSnacks_m__lit.png",
+    "Models/festivals/fx_lnyStallSnacks_m__litb.png"
+   ]
+  },
+  "fx_lnyStallToys": {
+   "file": "Models/festivals/fx_lnyStallToys.png",
+   "part": "lnyStallToys",
+   "festival": "lunarNewYear",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 501
+   },
+   "top": 20,
+   "left": 62,
+   "right": 450,
+   "mirrored": false,
+   "lengthM": 4,
+   "night": [
+    "Models/festivals/fx_lnyStallToys__lit.png",
+    "Models/festivals/fx_lnyStallToys__litb.png"
+   ]
+  },
+  "fx_lnyStallToys_m": {
+   "file": "Models/festivals/fx_lnyStallToys_m.png",
+   "part": "lnyStallToys",
+   "festival": "lunarNewYear",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 501
+   },
+   "top": 20,
+   "left": 62,
+   "right": 450,
+   "mirrored": true,
+   "lengthM": 4,
+   "night": [
+    "Models/festivals/fx_lnyStallToys_m__lit.png",
+    "Models/festivals/fx_lnyStallToys_m__litb.png"
+   ]
+  },
+  "fx_lnyTrolleyBoxes": {
+   "file": "Models/festivals/fx_lnyTrolleyBoxes.png",
+   "part": "lnyTrolleyBoxes",
+   "festival": "lunarNewYear",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 257,
+    "y": 501
+   },
+   "top": 20,
+   "left": 31,
+   "right": 482,
+   "mirrored": false,
+   "heightM": 1.4
+  },
+  "fx_lnyTrolleyBoxes_m": {
+   "file": "Models/festivals/fx_lnyTrolleyBoxes_m.png",
+   "part": "lnyTrolleyBoxes",
+   "festival": "lunarNewYear",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 255,
+    "y": 501
+   },
+   "top": 20,
+   "left": 30,
+   "right": 481,
+   "mirrored": true,
+   "heightM": 1.4
+  },
+  "fx_lnyTrolleyFlowers": {
+   "file": "Models/festivals/fx_lnyTrolleyFlowers.png",
+   "part": "lnyTrolleyFlowers",
+   "festival": "lunarNewYear",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 501
+   },
+   "top": 21,
+   "left": 24,
+   "right": 488,
+   "mirrored": false,
+   "heightM": 1.4
+  },
+  "fx_lnyTrolleyFlowers_m": {
+   "file": "Models/festivals/fx_lnyTrolleyFlowers_m.png",
+   "part": "lnyTrolleyFlowers",
+   "festival": "lunarNewYear",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 501
+   },
+   "top": 21,
+   "left": 24,
+   "right": 488,
+   "mirrored": true,
+   "heightM": 1.4
+  },
+  "fx_templeIncenseBurner": {
+   "file": "Models/festivals/fx_templeIncenseBurner.png",
+   "part": "templeIncenseBurner",
+   "festival": "lunarNewYear",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 501
+   },
+   "top": 20,
+   "left": 82,
+   "right": 430,
+   "mirrored": false,
+   "heightM": 1.3,
+   "night": [
+    "Models/festivals/fx_templeIncenseBurner__lit.png",
+    "Models/festivals/fx_templeIncenseBurner__litb.png"
+   ]
+  },
+  "fx_templeIncenseBurner_m": {
+   "file": "Models/festivals/fx_templeIncenseBurner_m.png",
+   "part": "templeIncenseBurner",
+   "festival": "lunarNewYear",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 501
+   },
+   "top": 20,
+   "left": 82,
+   "right": 430,
+   "mirrored": true,
+   "heightM": 1.3,
+   "night": [
+    "Models/festivals/fx_templeIncenseBurner_m__lit.png",
+    "Models/festivals/fx_templeIncenseBurner_m__litb.png"
    ]
   },
   "fx_ufo1": {

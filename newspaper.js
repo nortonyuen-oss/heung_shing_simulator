@@ -1198,7 +1198,9 @@ function getAnnualFortuneOfficialName(officialId, fallback) {
 
 function maybeAnnounceAnnualCityFortune(monthIndex = getCityMonthIndex()) {
   normalizeCityFinanceState();
-  if (Number(city.month) !== 1) return null;
+  // drawn at New Year (年初二/三): the month 正月初一 falls in (festival-calendar.js), else January
+  const fortuneMonth = typeof getLunarFestivalDate === 'function' ? (getLunarFestivalDate('newYear', city.year)?.month ?? 1) : 1;
+  if (Number(city.month) !== fortuneMonth) return null;
   if (!hasBuildingType('heritage_temple') && !hasBuildingType('grand_temple')) return null;
   if (!city.council.annualFortuneState || typeof city.council.annualFortuneState !== 'object') {
     city.council.annualFortuneState = { lastDrawYear: -1, recentFortuneIds: [], history: [] };

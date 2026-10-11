@@ -59,8 +59,12 @@ function isFestivalHeldInYear(id, year) {
 // before `open`, the event until `close` (past midnight counts on, 24:00 = 1440), and the peak -
 // when the notice goes out and the lights matter - from `peak`. Christmas is up all month and
 // lit every night. Festivals without a programme yet are not drawn.
+// `after`: a morning in the month that follows (新春's 開年舞獅 at the shops' doors).
 const FESTIVAL_PROGRAMMES = Object.freeze({
   christmas: Object.freeze({ setup: 6 * 60, open: 6 * 60, peak: 18 * 60, close: 30 * 60 }),
+  // 年宵: the stalls go up in the morning, open at ten, the crowds and the lights after six, the
+  // last of it at three in the morning
+  lunarNewYear: Object.freeze({ setup: 6 * 60, open: 10 * 60, peak: 18 * 60, close: 27 * 60, after: Object.freeze({ open: 6 * 60, close: 12 * 60 }) }),
 });
 
 // Government festivals: what each tier costs (a base plus a share per resident, paid when the
@@ -68,6 +72,13 @@ const FESTIVAL_PROGRAMMES = Object.freeze({
 // a council event's success is attractiveness +3, tourism +2 for scale.
 const FESTIVAL_TIER_SCALE = Object.freeze({ skip: 0, basic: 0.5, standard: 1, grand: 1.6 });
 const FESTIVAL_ECONOMICS = Object.freeze({
+  // 年宵: the stall auction brings money back (incomePerStall x let stalls, more in a good economy)
+  lunarNewYear: Object.freeze({
+    baseCost: 1500,
+    costPerResident: 0.02,
+    incomePerStall: Object.freeze({ base: 80, perEconomyPoint: 2.4 }),
+    effects: Object.freeze({ attractiveness: 3, tourism: 2, happiness: 0.02 }),
+  }),
   christmas: Object.freeze({
     baseCost: 800,
     costPerResident: 0.01,
@@ -118,9 +129,28 @@ function getActiveFestivals({ year, month, minuteOfDay, isEnabled = isFestivalEn
     ? getFestivalsInMonth
     : (typeof require === 'function' ? require('./festival-calendar.js').getFestivalsInMonth : null);
   if (!calendar) return [];
-  return calendar(year, month)
+  const active = calendar(year, month)
     .filter((id) => isFestivalHeldInYear(id, year) && isEnabled(id))
     .map((id) => ({ id, phase: getFestivalPhase(id, minuteOfDay) }));
+  // the morning after: last month's festival with an `after` window (never across New Year: the
+  // festivals with one fall in January or February)
+  if (Number(month) > 1) {
+    calendar(year, Number(month) - 1).forEach((id) => {
+      const after = FESTIVAL_PROGRAMMES[id]?.after;
+      const m = Number(minuteOfDay);
+      if (!after || !isFestivalHeldInYear(id, year) || !isEnabled(id) || active.some((a) => a.id === id)) return;
+      if (m >= after.open && m < after.close) active.push({ id, phase: 'after' });
+    });
+  }
+  return active;
+}
+
+/** What a government festival's stall auction brings for `stalls` let stalls (economy 0-100). */
+function getFestivalIncome(id, stalls, economyIndex = 50) {
+  const income = FESTIVAL_ECONOMICS[id]?.incomePerStall;
+  if (!income) return 0;
+  const econ = Math.max(0, Math.min(100, Number(economyIndex) || 0));
+  return Math.round(Math.max(0, Number(stalls) || 0) * (income.base + income.perEconomyPoint * econ));
 }
 
 function getFestivalHistoryEntry(id, year) {
@@ -143,7 +173,8 @@ function recordFestivalHistory(entry) {
  * effects for the month. Unaffordable or 唔辦 is recorded as skipped, no venue as noVenue (settled
  * again if a venue appears later that month). Returns the history entry, or null when it was
  * settled already (or is not a government festival).
- * @param {{ hasVenue?: boolean, spend?: (amount) => boolean, addEffect?: (sourceId, months, modifiers) => void }} [io]
+ * @param {{ hasVenue?: boolean, income?: number, spend?: (amount) => boolean, earn?: (amount) => void,
+ *   addEffect?: (sourceId, months, modifiers) => void }} [io]  income: what the stalls brought, paid in when held
  */
 function settleFestivalMonth(id, year, io = {}) {
   const prior = getFestivalHistoryEntry(id, year);
@@ -160,11 +191,14 @@ function settleFestivalMonth(id, year, io = {}) {
   if (tier === 'skip') outcome = 'skipped';
   else if (io.hasVenue === false) outcome = 'noVenue';
   else if (cost && !spend(cost)) outcome = 'skipped';
+  const income = outcome === 'held' ? Math.max(0, Math.round(Number(io.income) || 0)) : 0;
   if (outcome === 'held') {
     const effects = getFestivalEffects(id, tier);
     if (Object.keys(effects).length) addEffect(`festival:${id}:${year}`, 1, effects);
+    const earn = io.earn || ((amount) => { if (typeof city !== 'undefined' && city) city.budget = (Number(city.budget) || 0) + amount; });
+    if (income) earn(income);
   }
-  return recordFestivalHistory({ id, year, outcome, cost: outcome === 'held' ? cost : 0 });
+  return recordFestivalHistory({ id, year, outcome, cost: outcome === 'held' ? cost : 0, income });
 }
 
 function createFestivalState() {
@@ -282,6 +316,7 @@ if (typeof module !== 'undefined' && module.exports) {
     getFestivalEffects,
     getFestivalPhase,
     getActiveFestivals,
+    getFestivalIncome,
     getFestivalHistoryEntry,
     recordFestivalHistory,
     settleFestivalMonth,

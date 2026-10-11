@@ -173,3 +173,72 @@ test('Christmas at the malls: a tree at the big malls\' doors, the gift display 
     Object.values(entry.spots).forEach(([x, y]) => assert.ok(x > 0 && x < 1024 && y > 0 && y < 1200, `${entry.path} ${x},${y}`));
   });
 });
+
+test('新春: setup, open, the evening peak, closed at three; lion dances the morning after', () => {
+  const ctx = festivalsSandbox({ festivals: null, population: 0 });
+  const phase = (m) => vm.runInContext(`getFestivalPhase('lunarNewYear', ${m})`, ctx);
+  assert.equal(phase(7 * 60), 'setup');
+  assert.equal(phase(12 * 60), 'open');
+  assert.equal(phase(21 * 60), 'peak');
+  assert.equal(phase(2 * 60), 'peak');
+  assert.equal(phase(4 * 60), null, 'packed up by three');
+  // 2026: 除夕 16 February, so the market is February's and the lions March's morning
+  const active = (month, minute) => JSON.stringify(vm.runInContext(`getActiveFestivals({ year: 2026, month: ${month}, minuteOfDay: ${minute} })`, ctx));
+  assert.match(active(2, 12 * 60), /lunarNewYear","phase":"open/);
+  assert.match(active(3, 8 * 60), /lunarNewYear","phase":"after/);
+  assert.doesNotMatch(active(3, 14 * 60), /lunarNewYear/, 'the lions are done by noon');
+  // the stall auction: more for more stalls, more in a good economy
+  assert.equal(vm.runInContext("getFestivalIncome('lunarNewYear', 10, 50)", ctx), 10 * (80 + 2.4 * 50));
+  assert.ok(vm.runInContext("getFestivalIncome('lunarNewYear', 10, 90)", ctx) > vm.runInContext("getFestivalIncome('lunarNewYear', 10, 20)", ctx));
+  assert.equal(vm.runInContext("getFestivalIncome('christmas', 10, 50)", ctx), 0);
+});
+
+test('新春 layout: the main fair on one Victoria Park pitch, small ones elsewhere, temples at the peak', () => {
+  const { layoutLunarNewYear, getLnyRows, FESTIVAL_BUILDING_SPOTS } = require('../festival-venues.js');
+  const base = {
+    tier: 'standard', seed: 's', soldShare: 1,
+    parks: [{ id: '1:1', textureKey: 'park_flagship_victoria' }, { id: '9:9', textureKey: 'park_flagship_victoria' }],
+    courts: [{ id: '5:5', textureKey: 'sports_ground_2x2' }],
+    temples: [{ id: '7:7', textureKey: 'heritage_temple_2x2' }],
+    malls: [{ id: '3:3', modelKey: 'commercialBuilding4-01-H.png' }, { id: '4:4', modelKey: 'commercialBuilding3-01-H.png' }],
+  };
+  const count = (ps, f) => ps.filter(f).length;
+  const peak = layoutLunarNewYear({ ...base, phase: 'peak' });
+  const mainCount = count(peak, (p) => p.stall && p.buildingId === '1:1');
+  assert.ok(mainCount >= 40, `the main fair is big (${mainCount})`);
+  assert.ok(count(peak, (p) => p.stall && p.buildingId === '9:9') < mainCount / 2, 'a smaller one in the other park');
+  assert.ok(count(peak, (p) => p.stall && p.buildingId === '5:5') >= 16, 'a court has a proper market');
+  // the main fair spreads over the park's areas, not one pitch, zoned: flowers on the pitch, dry goods on the square
+  const main = peak.filter((p) => p.stall && p.buildingId === '1:1');
+  assert.ok(new Set(main.map((p) => p.id.split(':')[4])).size >= 4);
+  assert.ok(main.filter((p) => p.id.includes(':pitch:')).every((p) => /Blossoms|Peach|Kumquat|Orchids|Narcissus|Flowers/.test(p.partId)));
+  assert.ok(main.some((p) => p.id.includes(':plaza:') && /Laisee|Couplets|Pinwheels|Toys|Gifts/.test(p.partId)));
+  assert.ok(main.some((p) => p.partId === 'lnyStallSnacks'), 'a row of food stalls');
+  // stalls in a row stand shoulder to shoulder: 2 m apart in the art
+  const spot = FESTIVAL_BUILDING_SPOTS.park_flagship_victoria;
+  const row = main.filter((p) => /:pitch:0:/.test(p.id)).map((p) => p.point);
+  const step = Math.hypot(row[1][0] - row[0][0], row[1][1] - row[0][1]) / spot.pxPerM;
+  assert.ok(Math.abs(step - 2) < 0.15, `${step} m apart`);
+  // fewer in a modest year, more in a grand one
+  const rows = (tier) => getLnyRows(spot.areas.pitch, spot.pxPerM, tier).reduce((n, r) => n + r.v.length, 0);
+  assert.ok(rows('basic') < rows('standard') && rows('standard') <= rows('grand'));
+  assert.equal(count(peak, (p) => p.partId === 'lnyGate'), 1, 'one gate, at the main fair');
+  assert.equal(count(peak, (p) => p.partId === 'lnyStage' && p.mirrored), 1, 'the stage, mirrored');
+  assert.equal(count(peak, (p) => p.buildingId === '7:7'), 3, 'the temple: lions, drum, incense');
+  // the player's pick of main venue
+  assert.equal(count(layoutLunarNewYear({ ...base, phase: 'peak', mainVenue: '9:9' }), (p) => p.stall && p.buildingId === '9:9'), mainCount);
+  // setup: bare tents and trolleys, no temple yet
+  const setup = layoutLunarNewYear({ ...base, phase: 'setup' });
+  assert.ok(setup.filter((p) => p.stall).every((p) => p.partId === 'lnyStallEmpty'));
+  assert.ok(count(setup, (p) => /Trolley/.test(p.partId)) === 2 && count(setup, (p) => p.buildingId === '7:7') === 0);
+  // a weak economy: some stalls stay bare
+  const weak = layoutLunarNewYear({ ...base, phase: 'open', soldShare: 0.5 });
+  assert.ok(count(weak, (p) => p.stall && !p.sold) > 0 && count(weak, (p) => p.stall && p.sold) > 0);
+  assert.ok(weak.filter((p) => p.stall && !p.sold).every((p) => p.partId === 'lnyStallEmpty'));
+  // the morning after: lions at the big malls' doors only
+  const after = layoutLunarNewYear({ ...base, phase: 'after' });
+  assert.deepEqual([...new Set(after.map((p) => p.buildingId))], ['3:3']);
+  assert.equal(layoutLunarNewYear({ ...base, tier: 'skip', phase: 'peak' }).length, 0);
+  // every part named is a baked part
+  [...peak, ...setup, ...after].forEach((p) => assert.ok(FESTIVAL_PARTS_BY_ID[p.partId], p.partId));
+});

@@ -172,6 +172,24 @@ test('annual draw requires a temple, runs once in January and never opens an ext
   assert.equal(popupCount, 0);
 });
 
+test('the annual draw follows 正月初一: a February New Year is drawn in February', () => {
+  const source = fs.readFileSync(path.join(__dirname, '..', 'newspaper.js'), 'utf8');
+  const body = source.slice(source.indexOf('function maybeAnnounceAnnualCityFortune'), source.indexOf('\n}\n', source.indexOf('function maybeAnnounceAnnualCityFortune')) + 3);
+  const reached = [];
+  const context = vm.createContext({
+    city: { year: 2026, month: 1, council: { annualFortuneState: { lastDrawYear: 2026 } } },
+    normalizeCityFinanceState: () => {},
+    getCityMonthIndex: () => 0,
+    getLunarFestivalDate: (key, year) => (key === 'newYear' && year === 2026 ? { month: 2, day: 17 } : null),
+    hasBuildingType: () => { reached.push(context.city.month); return false; },
+  });
+  vm.runInContext(body, context);
+  vm.runInContext('maybeAnnounceAnnualCityFortune()', context);
+  context.city.month = 2;
+  vm.runInContext('maybeAnnounceAnnualCityFortune()', context);
+  assert.ok(reached.length > 0 && reached.every((m) => m === 2), 'January passes by; February goes on to look for a temple');
+});
+
 test('old saves receive additive annual fortune state without a format bump', () => {
   const context = vm.createContext({
     COUNCIL_SCHEMA_VERSION: 2,

@@ -1,7 +1,7 @@
 {
   "name": "city-builder",
-  "version": "4.20.0",
-  "releaseTheme": "【有落】",
+  "version": "4.21.0",
+  "releaseTheme": "【你睇唔睇到呀？】",
   "description": "SimCity 2000-style city builder with local SQLite save system",
   "author": "The City of Heung Shing",
   "repository": {
@@ -111,9 +111,9 @@
   },
   "license": "SEE LICENSE IN LICENSE",
   "releaseThemes": {
-    "zh-HK": "【有落】",
-    "zh-TW": "【下一站】",
-    "en": "【Next Stop】",
-    "ja": "【次、停まります】"
+    "zh-HK": "【你睇唔睇到呀？】",
+    "zh-TW": "【瀛寰搜奇】",
+    "en": "【Ciao UFO】",
+    "ja": "【世界不思議探訪】"
   }
 }

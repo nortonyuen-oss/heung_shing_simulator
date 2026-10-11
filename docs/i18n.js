@@ -242,6 +242,7 @@ const SITE_FEATURE_LIST = {
 // ── Changelog ─────────────────────────────────────────────────────────────────
 const SITE_CHANGELOG = {
   "zh-HK": [
+    { version: "v4.21.0", date: "2026-10-11", dateLabel: "2026年10月11日", title: "你睇唔睇到呀？", items: ["節日系統：節日日曆視窗、節日狀態同農曆日期，新開城市可以揀起始年份；六四由 1990 年起安靜處理。","聖誕街頭裝飾同農曆新年市集：新增一批節日街道道具同市集美術。","發現 UFO：一隻飛碟會巡遊兩至四個地區，論壇有故事、跑馬燈有快訊；撳「去睇」鏡頭會跟住飛碟、停定觀察。"] },
     { version: "v4.20.0", date: "2026-10-10", dateLabel: "2026年10月10日", title: "有落", items: ["運輸模式重新設計：一鍵切換城市建設／運輸公司，工具分巴士同渡輪兩組，四個有字視窗取代一排冇字圖示。", "新手指引：開業清單、工具提示列、放巴士站即睇服務範圍同預計乘客、每個視窗都有「?」說明，路線出問題有按鈕即刻處理。", "財務圖表同路線乘客趨勢線；城市趨勢圖表加入運輸公司數據。渡輪可以按航線加減船。", "站頭乘客大增：職位同目的地會產生返屋企乘客；八號風球過後人潮湧返站頭，唔再蝕成個月生意。"] },
     { version: "v4.19.0", date: "2026-10-10", dateLabel: "2026年10月10日", title: "成碟青瓜過大海", items: ["渡海小輪：興建渡輪碼頭、規劃航線，天星小輪來回泊岸接載乘客；船費收入計入運輸公司帳目。", "海濱長廊：沿海陸地逐格鋪設，右鍵切換公共碼頭；更新遊艇會模型同避風塘規劃。", "海面更生動：船尾浪花、夜間岸邊燈光倒影，以及華南海域天氣報告。", "改善大城市縮放及畫面物件排序效能；修正放置失敗時改變地形、內陸沙地出現海水邊緣，以及 Electron 啟動漏檔問題。"] },
     { version: "v4.18.0", date: "2026-10-09", dateLabel: "2026年10月9日", title: "黃金海岸", items: [
@@ -592,6 +593,7 @@ const SITE_CHANGELOG = {
 // title/items text.
 const SITE_CHANGELOG_TRANSLATIONS = {
   "zh-TW": {
+    "v4.21.0": { title: "瀛寰搜奇", items: ["節慶系統：節慶日曆視窗、節慶狀態與農曆日期，新城市可選擇起始年份；六四自 1990 年起低調處理。", "聖誕街頭裝飾與農曆新年市集：新增一批節慶街道道具與市集美術。", "發現 UFO：飛碟會巡遊兩至四個地區，論壇有故事、跑馬燈有快訊；按「去看」時鏡頭會跟隨飛碟並靜止觀察。"] },
     "v4.20.0": { title: "下一站", items: ["運輸模式重新設計：一鍵切換城市建設／運輸公司，工具分為公車與渡輪兩組，四個附文字的視窗取代一排無標示圖示。", "新手引導：開業清單、工具提示列、放置公車站時即可看到服務範圍與預估乘客、每個視窗都有「?」說明，路線出問題可直接按鈕處理。", "財務圖表與路線乘客趨勢線；城市趨勢圖表加入運輸公司數據。渡輪可依航線增減船隻。", "站牌乘客大增：工作地點與目的地會產生返家乘客；八號風球解除後人潮湧回站牌，不再損失整個月的營收。"] },
     "v4.19.0": { title: "皇后碼頭", items: ["渡輪運輸：興建渡輪碼頭、規劃航線，天星小輪往返靠岸載客；船費收入納入運輸公司帳目。", "海濱步道：沿海陸地逐格鋪設，右鍵切換公共碼頭；更新遊艇會模型與避風塘規劃。", "更生動的海面：船尾浪花、夜間岸邊燈光倒影，以及華南海域天氣報告。", "改善大城市縮放與畫面物件排序效能；修正放置失敗時改變地形、內陸沙地出現海水邊緣，以及 Electron 啟動漏檔問題。"] },
     "v4.18.0": { title: "黃金海岸", items: [
@@ -935,6 +937,7 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   en: {
+    "v4.21.0": { title: "Ciao UFO", items: ["Festival system: a festival calendar window, festival state and lunar dates, plus a start-year option for new cities. June 4 is observed quietly from 1990.", "Christmas street decorations and a Lunar New Year market: a new set of festive street props and market art.", "UFO sighting: a saucer tours two to four districts, with a forum story and a ticker bulletin. Press \\\"Go see\\\" and the camera holds still and follows it."] },
     "v4.20.0": { title: "Next Stop", items: ["Transport mode redesigned: one switch between city building and the transport company, bus and ferry tools in their own groups, and four named windows instead of a row of unlabelled icons.", "Getting started: a starter checklist, a hint bar for the tool in hand, a stop's walking range and expected riders before you place it, a \"?\" in every window, and route problems shown with the button that fixes them.", "Finance charts and rider trend lines on every route; transport figures in the city charts. Ferry routes can add or remove ferries.", "Much busier stops: jobs and destinations send riders home, and after a No. 8 signal the waiting crowds return instead of a whole month's fares being lost."] },
     "v4.19.0": { title: "Star Ferry", items: ["Ferry transport: build piers and routes, carry passengers between berths and earn fares through your transport company.", "Waterfront promenades: lay tiles along the coast and right-click to switch public piers; updated yacht club models and typhoon shelter planning.", "A livelier sea: boat wakes, waterfront light reflections at night and South China coastal weather reports.", "Smoother zooming and object sorting in large cities. Fixes unintended terrain painting after refused placements, water edges on inland sand and missing Electron startup files."] },
     "v4.18.0": { title: "Gold Coast", items: [
@@ -1278,6 +1281,7 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   ja: {
+    "v4.21.0": { title: "世界不思議探訪", items: ["祭りシステム：祭りカレンダー、祭りの状態と旧暦の日付、新しい都市の開始年オプション。6 月 4 日は 1990 年から静かに扱われます。", "クリスマスの街角装飾と旧正月の市場：祭り用の街角プロップと市場アートを新規追加。", "UFO 目撃：円盤が 2～4 地区を巡り、掲示板の記事とティッカー速報が登場。「見に行く」を押すとカメラが円盤を追って静止します。"] },
     "v4.20.0": { title: "次、停まります", items: ["運輸モードを刷新：都市建設と運輸会社をワンタッチで切り替え、バスとフェリーのツールを分け、ラベルのないアイコン列を名前付きの 4 つのウィンドウに。", "はじめての方へ：開業チェックリスト、使用中ツールのヒント表示、停留所を置く前に徒歩圏と予想乗客を表示、各ウィンドウに「?」、路線の問題は解決ボタン付きで表示。", "財務グラフと路線ごとの乗客推移を追加し、都市グラフにも運輸会社のデータを表示。フェリー航路は船の増減が可能に。", "停留所の乗客が大幅増：職場や目的地から帰宅する乗客が生まれ、8 号シグナル解除後は待ち客が戻るため、1 か月分の運賃を失わなくなりました。"] },
     "v4.19.0": { title: "スターフェリー", items: ["フェリー輸送：埠頭と航路を整備し、両岸で乗客を乗降させます。運賃収入は運輸会社の会計に反映されます。", "海辺の遊歩道：海沿いの陸地に敷設し、右クリックで公共埠頭に切り替え。ヨットクラブのモデルと避風塘の計画も更新。", "生き生きとした海：船の航跡、夜の岸辺の照明の水面反射、華南沿岸海域の気象情報を追加。", "大都市のズームと描画順の処理を改善。設置に失敗した際の地形変更、内陸の砂地に出る水際表示、Electron の起動ファイル不足を修正。"] },
     "v4.18.0": { title: "ゴールドコースト", items: [
@@ -1646,8 +1650,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.20.0 — 【有落】",
-      versionDesc: "4.20.0 更新：運輸模式全面重新設計——一鍵切換、工具分巴士同渡輪、四個有字視窗、開業清單同圖表；站頭乘客大增，八號風球過後人潮湧返。",
+      versionBadge: "v4.21.0 — 【你睇唔睇到呀？】",
+      versionDesc: "4.21.0 更新：節日系統登場——節日日曆、聖誕街頭裝飾、農曆新年市集，仲有一隻會巡遊全城嘅 UFO，睇唔睇到就睇你啦。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感嘅城市建設遊戲。起街道、規劃社區、經營自己嘅香城巴士公司、處理議會同天氣，再睇住一座有性格嘅香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1746,8 +1750,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.20.0 — 【下一站】",
-      versionDesc: "4.20.0 更新：運輸模式全面重新設計——一鍵切換、工具分為公車與渡輪、四個附文字視窗、開業清單與圖表；站牌乘客大增，八號風球解除後人潮湧回。",
+      versionBadge: "v4.21.0 — 【瀛寰搜奇】",
+      versionDesc: "4.21.0 更新：節慶系統登場——節慶日曆、聖誕街頭裝飾、農曆新年市集，還有一艘巡遊全城的 UFO，看不看得到就看你了。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感的城市建設遊戲。興建街道、規劃社區、經營自己的香城公車公司、處理議會與天氣，看著一座有個性的香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1846,8 +1850,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "The City of Heung Shing",
       title: "The City of Heung Shing",
-      versionBadge: "v4.20.0 — 【Next Stop】",
-      versionDesc: "4.20.0 update: a redesigned transport mode with a one-click switch, bus and ferry tool groups, four named windows, a starter checklist and charts. Stops get far busier, and crowds return after a No. 8 signal.",
+      versionBadge: "v4.21.0 — 【Ciao UFO】",
+      versionDesc: "4.21.0 update: the festival system arrives with a festival calendar, Christmas street decorations, a Lunar New Year market and a UFO touring the city. Will you spot it?",
       lede: "A city-building game inspired by Hong Kong life and made in tribute to SimCity 2000. Build streets, shape neighbourhoods, run your own Heung Shing Bus Company, navigate council politics and weather, then watch a city with real personality grow.",
       freeLabel: "Completely free · macOS + Windows · Local saves",
       downloadBtn: "【Free Download】",
@@ -1947,8 +1951,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.20.0 — 【次、停まります】",
-      versionDesc: "4.20.0 更新：運輸モードを全面刷新。ワンタッチ切替、バスとフェリーのツール、名前付きの 4 ウィンドウ、開業チェックリストとグラフを追加。停留所の乗客が大幅に増え、8 号シグナル解除後は待ち客が戻ります。",
+      versionBadge: "v4.21.0 — 【世界不思議探訪】",
+      versionDesc: "4.21.0 更新：祭りシステムが登場。祭りカレンダー、クリスマスの街角装飾、旧正月の市場、そして街を巡る UFO。あなたは見つけられるかな？",
       lede: "香港の都市生活から着想を得た、SimCity 2000へのオマージュとなる都市建設ゲーム。道路を築き、地区を計画し、自分だけの香城バス会社を経営し、議会や天候に向き合いながら、個性ある香城の成長を見守ります。",
       freeLabel: "完全無料 · macOS + Windows · ローカルセーブ",
       downloadBtn: "【無料ダウンロード】",

@@ -25,7 +25,7 @@ test('the programme: Christmas is up all month and peaks from 18:00 through the 
   assert.equal(phase(17 * 60 + 59), 'open');
   assert.equal(phase(18 * 60), 'peak');
   assert.equal(phase(2 * 60), 'peak', 'past midnight is still the night of the festival');
-  assert.equal(vm.runInContext("getFestivalPhase('dragonBoat', 600)", ctx), null, 'no programme yet');
+  assert.equal(vm.runInContext("getFestivalPhase('dragonBoat', 600)", ctx), 'open', 'daytime dragon boat programme');
 });
 
 test('active festivals: the month, the switches and 六四 from 1990', () => {
@@ -33,7 +33,7 @@ test('active festivals: the month, the switches and 六四 from 1990', () => {
   const ctx = festivalsSandbox(city);
   const active = (year, month) => vm.runInContext(`getActiveFestivals({ year: ${year}, month: ${month}, minuteOfDay: 1200 }).map((a) => a.id)`, ctx);
   assert.deepEqual([...active(2026, 12)], ['christmas']);
-  assert.deepEqual([...active(2026, 6)], ['june4', 'dragonBoat']);
+  assert.deepEqual([...active(2026, 6)], ['june4', 'dragonBoat', 'bunHill']);
   assert.deepEqual([...active(1985, 6)].includes('june4'), false);
   vm.runInContext("setFestivalEnabled('christmas', false)", ctx);
   assert.deepEqual([...active(2026, 12)], []);

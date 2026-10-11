@@ -183,6 +183,7 @@ function showInspectPanel(scene, row, col, pointer = null) {
     hospital: `🏥 ${t('building.hospital')}`,
     legislative_council: `🏛️ ${t('building.legislativeCouncil')}`,
     stock_exchange: `🏦 ${t('building.stockExchange')}`,
+    event_ground: `▧ ${t('park.eventGround')}`,
     park_small: `🌳 ${t('building.smallPark')}`,
     park_large: `🌲 ${t('building.largePark')}`,
   };
@@ -199,6 +200,7 @@ function showInspectPanel(scene, row, col, pointer = null) {
     hospital: t('inspect.healthRadius', { radius: HOSPITAL_RADIUS, upkeep: UPKEEP_HOSPITAL }),
     legislative_council: t('inspect.legislativeCouncil'),
     stock_exchange: t('inspect.stockExchange'),
+    event_ground: t('inspect.eventGround', { upkeep: UPKEEP_EVENT_GROUND }),
     park_small: t('inspect.parkRadius', { radius: SMALL_PARK_RADIUS, upkeep: UPKEEP_PARK_SMALL }),
     park_large: t('inspect.parkRadius', { radius: LARGE_PARK_RADIUS, upkeep: UPKEEP_PARK_LARGE }),
   };
@@ -215,6 +217,7 @@ function showInspectPanel(scene, row, col, pointer = null) {
     hospital:'#35b98f',
     legislative_council:'#4d6bbf',
     stock_exchange:'#c39a2d',
+    event_ground:'#d0bc94',
     park_small:'#58d66a',
     park_large:'#32b457',
   };
@@ -282,7 +285,7 @@ function showInspectPanel(scene, row, col, pointer = null) {
       <div class="insp-section">
         <div class="insp-bldg-name" style="color:${INFRA_COLORS[bData.type]}">${INFRA_LABELS[bData.type]}</div>
         <div class="insp-row">${INFRA_DESCS[bData.type]}</div>
-        ${isPark
+        ${bData.type === 'event_ground' ? '' : isPark
           ? `<div class="insp-row insp-ok">${t('inspect.nearbyResidentialBoost')}</div>`
           : `<div class="insp-row ${powered ? 'insp-ok' : 'insp-warn'}">${t('inspect.power', { status: powered ? t('inspect.powerActive') : t('inspect.powerUnpowered') })}</div>`}
         <div class="insp-row insp-muted">${POWER_PLANT_STATS[bData.type] ? t('inspect.powerAge', { age: formatPowerPlantAge(bData) }) : t('inspect.age', { age: bData.age ?? 0 })}</div>

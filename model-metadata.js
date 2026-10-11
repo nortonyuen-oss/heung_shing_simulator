@@ -180,6 +180,7 @@ function prepareIndustrialBuildingModelMetadata(scene) {
 
 function prepareParkModelMetadata(scene) {
   parkModelMetadata = {
+    event_ground:         getParkModelMetadata(scene, 'event_ground',          1, 1),
     park_small_open:       getParkModelMetadata(scene, 'park_small_open',       1, 1),
     park_small_playground: getParkModelMetadata(scene, 'park_small_playground', 1, 1),
     park_small_garden:     getParkModelMetadata(scene, 'park_small_garden',     1, 1),

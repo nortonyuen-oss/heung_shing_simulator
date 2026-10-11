@@ -525,6 +525,7 @@ async function saveTerrainPresetFromCurrentMap() {
 
 async function startNewGame(cityName) {
   if (!gameReady) return;
+  if (typeof closeBunHillMapEvent === 'function') closeBunHillMapEvent();
   const performanceStartedAt = globalThis.performance?.now?.() ?? Date.now();
 
   const terrainSourceSelect = document.getElementById('newgame-terrain-source');

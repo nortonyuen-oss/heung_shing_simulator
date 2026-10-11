@@ -247,6 +247,7 @@ function setGameWorldVisible(visible) {
   const shouldShow = !!visible;
   scene.scene.setVisible(shouldShow);
   if (!shouldShow) {
+    stopDragonBoatAudio(scene);
     if (typeof clearTrafficVisuals === 'function') clearTrafficVisuals(scene);
     if (typeof clearTransportVisuals === 'function') clearTransportVisuals(scene);
     if (typeof clearVesselVisuals === 'function') clearVesselVisuals(scene);
@@ -355,9 +356,15 @@ function updateGameFrame(time, delta) {
   // 海濱步道: a tile a road, building or the sea has since taken goes (promenade.js)
   if (typeof updatePromenade === 'function') updatePromenade(this, time);
   // 節慶: the festivals on this month, their decorations and notices (festival-sprites.js)
-  if (typeof updateFestivals === 'function') updateFestivals(this, time);
+  if (typeof updateBunHillMapEvent === 'function') updateBunHillMapEvent(this, time);
+  if (!this.bunHillEventSession) {
+    if (typeof updateBunHillLiveEvent === 'function') updateBunHillLiveEvent(this, time);
+    if (typeof updateDragonBoat === 'function') updateDragonBoat(this, time);
+    updateDragonBoatAudio(this);
+    if (typeof updateFestivals === 'function') updateFestivals(this, time);
+  }
   // 發現 UFO: it moves, so every frame (festival-ufo.js)
-  if (typeof updateUfo === 'function') updateUfo(this, time);
+  if (!this.bunHillEventSession && typeof updateUfo === 'function') updateUfo(this, time);
   if (typeof updateShoreReflections === 'function') updateShoreReflections(this, time);
   if (typeof updateRainRipples === 'function') updateRainRipples(this, time);
   if (typeof finalizeVehicleTrackerCameraCulling === 'function') {
@@ -472,6 +479,17 @@ const PARK_OPTIONS = [
     badge: '1x1',
     icon: '🎪',
     cost: COST_PARK_SMALL,
+    footprintCols: 1,
+    footprintRows: 1,
+  },
+  {
+    id: 'event_ground',
+    type: 'event_ground',
+    spriteKey: 'event_ground',
+    titleKey: 'park.eventGround',
+    badge: '1x1',
+    icon: '▧',
+    cost: COST_EVENT_GROUND,
     footprintCols: 1,
     footprintRows: 1,
   },

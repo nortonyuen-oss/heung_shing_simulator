@@ -22,6 +22,7 @@ const INFRA_COSTS = {
   hospital:          COST_HOSPITAL,
   legislative_council: COST_LEGISLATIVE_COUNCIL,
   stock_exchange:    COST_STOCK_EXCHANGE,
+  event_ground:         COST_EVENT_GROUND,
   park_small:           COST_PARK_SMALL,
   park_large:           COST_PARK_LARGE,
   park_flagship:        COST_PARK_FLAGSHIP,
@@ -641,6 +642,7 @@ function placeSportsGround(scene, row, col, option) {
 }
 
 function refreshInfrastructureEffects(scene) {
+  if (typeof refreshEventGroundPaving === 'function') refreshEventGroundPaving(scene);
   invalidateBuildingCountCache();
   if (typeof invalidateOverlayCache === 'function') invalidateOverlayCache();
   if (typeof markTransportDemandDirty === 'function') markTransportDemandDirty();

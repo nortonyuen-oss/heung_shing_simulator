@@ -68,8 +68,8 @@ function setupMenuBar() {
       const value = Number(menuVol.value);
       if (jukeboxVol) jukeboxVol.value = value;
       if (typeof setStoredMusicVolume === 'function') setStoredMusicVolume(value);
-      if (activeMusic) activeMusic.setVolume(value);
-      if (titleLoadingAudio) titleLoadingAudio.volume = value;
+      if (activeMusic) activeMusic.setVolume(getMusicOutputVolume(value));
+      if (titleLoadingAudio) titleLoadingAudio.volume = getMusicOutputVolume(value);
     });
     menuVol.addEventListener('click', (e) => e.stopPropagation());
   }

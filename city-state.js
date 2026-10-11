@@ -1016,6 +1016,7 @@ function computeBudgetSnapshot(options = {}) {
   const communityCollegeCount = getBuildingCount('community_college');
   const universityCount = getBuildingCount('university');
   const hospitalCount = getBuildingCount('hospital');
+  const eventGrounds = getBuildingCount('event_ground');
   const smallParks = getBuildingCount('park_small');
   const largeParks = getBuildingCount('park_large');
   const flagshipParks = getBuildingCount('park_flagship');
@@ -1045,7 +1046,8 @@ function computeBudgetSnapshot(options = {}) {
   );
   const healthUpkeep = hospitalCount * UPKEEP_HOSPITAL;
   const parksUpkeep = (
-    smallParks * UPKEEP_PARK_SMALL
+    eventGrounds * UPKEEP_EVENT_GROUND
+    + smallParks * UPKEEP_PARK_SMALL
     + largeParks * UPKEEP_PARK_LARGE
     + flagshipParks * UPKEEP_PARK_FLAGSHIP
     + sportsGroundSmall * UPKEEP_SPORTS_GROUND_SMALL

@@ -365,5 +365,7 @@ function updateSpriteViewportCulling(scene, bounds) {
   collect(cullSpriteMapEntries(scene.typhoonShelterObjects, bounds, seen, mainCamera, mainBounds));
   // 節慶 decorations (festival-sprites.js), for the same reason
   collect(cullSpriteMapEntries(scene.festivalSprites, bounds, seen, mainCamera, mainBounds));
+  collect(cullSpriteMapEntries(scene.dragonBoatSprites, bounds, seen, mainCamera, mainBounds));
+  collect(cullSpriteMapEntries(scene.bunHillSprites, bounds, seen, mainCamera, mainBounds));
   return totals;
 }

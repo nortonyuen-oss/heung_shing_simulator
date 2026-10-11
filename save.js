@@ -1163,6 +1163,7 @@ function isLoadRequestCurrent(generation) {
 
 async function loadSaveById(id, scene) {
   if (typeof leaveAttractMode === 'function') leaveAttractMode('load');
+  if (typeof closeBunHillMapEvent === 'function') closeBunHillMapEvent(scene);
   const performanceStartedAt = globalThis.performance?.now?.() ?? Date.now();
   let performanceScene = scene;
   let performanceSucceeded = false;
@@ -1380,6 +1381,7 @@ function restoreBusStopMap(save) {
 // ── Apply save data to the running scene ──────────────────────────────────────
 
 function applySaveData(scene, save) {
+  if (typeof closeBunHillMapEvent === 'function') closeBunHillMapEvent(scene);
   stopSimTimer();
   if (typeof clearTrafficVisuals === 'function') clearTrafficVisuals(scene);
   if (typeof clearTransportVisuals === 'function') clearTransportVisuals(scene);
@@ -1608,6 +1610,7 @@ function rebuildSceneFromSave(scene, save) {
   if (typeof syncFerryPiers === 'function') syncFerryPiers(scene);
   // and the 海濱步道 (promenade.js; its ground came with the shelters' quay terrain above)
   if (typeof syncPromenadeSprites === 'function') syncPromenadeSprites(scene);
+  if (typeof refreshEventGroundPaving === 'function') refreshEventGroundPaving(scene);
   if (typeof sortWorldRenderLayers === 'function') sortWorldRenderLayers(scene);
   // Weather advances on the environmental clock and only repaints its overlay
   // when something changes, so a freshly loaded city has to be painted once.
@@ -1638,6 +1641,7 @@ function deriveFallbackSpriteKey(record) {
     ? INFRA_SPRITE_INDEX[record.type]
     : undefined;
   if (infraIdx !== undefined) return getFallbackHouseSpriteKey();
+  if (record.type === 'event_ground') return 'event_ground';
   if (record.type === 'park_small') return 'park_small_open';
   if (record.type === 'park_large') return 'park_large';
   if (record.type === 'park_flagship') return 'park_flagship_victoria';

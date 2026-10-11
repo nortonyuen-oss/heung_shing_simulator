@@ -90,6 +90,10 @@ test('the test-mode panel keeps every calibration tool in one collapsible, group
   }
   const outside = panel.slice(panel.indexOf('root.innerHTML ='), start);
   assert.ok(!/vrp-(?!close|reset|copy)[a-z]+-btn/.test(outside), 'no tool buttons outside it');
+  assert.ok(!section.includes('vrp-ufo-btn'),'summoning lives outside calibration tools');
+  const events=panel.slice(panel.indexOf('<details class="vrp-tools vrp-events">'),panel.indexOf("root.querySelector('.vrp-close-btn')"));
+  for(const cls of ['ufo','dragon-start','dragon'])assert.ok(events.includes(`vrp-${cls}-btn`));
+  assert.ok(events.includes('<summary>啟動 event</summary>'));
   assert.match(panel, /toggleTrafficLaneCalibrator\(scene\)/);
   assert.match(panel, /teardownTrafficLaneCalibrator\(\)/, 'leaving test mode closes the lane calibrator');
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');

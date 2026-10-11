@@ -16,6 +16,7 @@ const FESTIVAL_METONIC_YEARS = 19;
 const FESTIVAL_CALENDAR_RULES = Object.freeze({
   lunarNewYear: Object.freeze({ lunar: 'newYear', offsetDays: -1 }),
   dragonBoat: Object.freeze({ lunar: 'dragonBoat' }),
+  bunHill: Object.freeze({ lunar: 'dragonBoat' }),
   june4: Object.freeze({ fixed: Object.freeze([6, 4]) }),
   yulan: Object.freeze({ lunar: 'ghost' }),
   midAutumn: Object.freeze({ lunar: 'midAutumn' }),

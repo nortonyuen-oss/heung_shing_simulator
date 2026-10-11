@@ -19,6 +19,10 @@ const AMBIENT_TRACKS = [
 const SFX_TRACKS = [
   { key: 'sfx_thunder', file: 'Sounds/thunder.mp3' },
   { key: 'event_ice_cream_truck', file: 'Sounds/iceCreamTruck.m4a' },
+  { key: 'db_opening', file: 'Sounds/hk_chinesedrums.mp3' },
+  { key: 'db_music', file: 'Sounds/racingdragonboat.mp3' },
+  { key: 'db_cheers', file: 'Sounds/dragon-boat-team-physch-up-75297.mp3' },
+  { key: 'db_paddles', file: 'Sounds/18834__wim__rowing-boat.wav' },
   { key: 'vessel_horn', file: 'Sounds/vesselFlute.m4a' },
   { key: 'aircraft_landing', file: 'Sounds/aircraftLanding.m4a' },
   { key: 'aircraft_takeoff', file: 'Sounds/aircraftTakeoff.m4a' },
@@ -27,6 +31,10 @@ const SFX_TRACKS = [
 // Music volume — persisted so the level a player left it at carries into their next
 // session instead of resetting to the slider's hardcoded HTML default every launch.
 const MUSIC_VOLUME_SETTING_KEY = 'citybuilder.musicVolume.v1';
+const MUSIC_OUTPUT_GAIN = 0.3;
+function getMusicOutputVolume(value) {
+  return Math.max(0, Math.min(1, Number(value) || 0)) * MUSIC_OUTPUT_GAIN;
+}
 let musicVolumeCache = null;
 
 function getStoredMusicVolume() {
@@ -58,8 +66,8 @@ function applyStoredMusicVolume() {
   const menuVol = document.getElementById('menu-volume-slider');
   if (jukeboxVol) jukeboxVol.value = volume;
   if (menuVol) menuVol.value = volume;
-  if (activeMusic) activeMusic.setVolume(volume);
-  if (titleLoadingAudio) titleLoadingAudio.volume = volume;
+  if (activeMusic) activeMusic.setVolume(getMusicOutputVolume(volume));
+  if (titleLoadingAudio) titleLoadingAudio.volume = getMusicOutputVolume(volume);
 }
 
 // City ambience (background soundscape) volume — a separate mix knob from music, so
@@ -125,7 +133,7 @@ function ensureTitleLoadingAudio() {
     titleLoadingAudio.loop = true;
   }
 
-  titleLoadingAudio.volume = getCurrentMusicVolume();
+  titleLoadingAudio.volume = getMusicOutputVolume(getCurrentMusicVolume());
   return titleLoadingAudio;
 }
 
@@ -214,8 +222,8 @@ function setupJukebox() {
     setStoredMusicVolume(value);
     const menuVol = document.getElementById('menu-volume-slider');
     if (menuVol) menuVol.value = value;
-    if (activeMusic) activeMusic.setVolume(value);
-    if (titleLoadingAudio) titleLoadingAudio.volume = value;
+    if (activeMusic) activeMusic.setVolume(getMusicOutputVolume(value));
+    if (titleLoadingAudio) titleLoadingAudio.volume = getMusicOutputVolume(value);
   });
 
   updateJukeboxUi();
@@ -336,7 +344,7 @@ function playTrack(trackIndex) {
     activeMusic.destroy();
   }
 
-  const volume = Number(document.getElementById('jukebox-volume')?.value ?? 0.55);
+  const volume = getMusicOutputVolume(getCurrentMusicVolume());
 
   // 'Loop One': Phaser loops the track natively.
   // 'Loop All': play once, then advance on 'complete'.
@@ -481,5 +489,84 @@ function updateAmbientSoundscape(scene) {
     const next = current + (targets[channel] - current) * AMBIENT_FADE_RATE;
     scene.ambientVolumes[channel] = next;
     sound.setVolume(Math.max(0, next));
+  });
+}
+
+// Festival audio uses the same local, ambient-volume mix as the ice cream van.
+// One shared paddle bed represents six crews; it must not multiply the volume by six.
+function dragonBoatAudioPlan(run, minute) {
+  if (!run?.course || !['running','held'].includes(run.status) || minute < 480 || minute >= 1080) return [];
+  const phase = dragonBoatPhase(minute, run.delayed);
+  if (minute < 540) return ['opening'];
+  const plan = minute >= (run.delayed ? 675 : 555) ? ['music'] : [];
+  if (phase.kind === 'race') {
+    if (phase.minute < 15) plan.push('cheers');
+    else if (phase.minute < 45) plan.push('paddles');
+  }
+  return plan;
+}
+
+function stopDragonBoatAudio(scene) {
+  const sounds=new Set(Object.values(scene?.dragonBoatAudio?.sounds || {}));
+  scene?.sound?.getAll?.('db_music').forEach(sound=>sounds.add(sound));
+  sounds.forEach(sound => {
+    sound.stop();sound.destroy();
+  });
+  if (scene) scene.dragonBoatAudio = null;
+}
+
+function getDragonBoatAudioVolume(scene, run, minute, channel) {
+  const camera = scene.cameras.main, rect = getTrafficCameraRect(scene);
+  if (!rect) return 0;
+  const centre = {x:rect.x + rect.width / 2, y:rect.y + rect.height / 2};
+  const places = channel === 'paddles'
+    ? run.teams.map(team => dragonBoatPose(run, team, minute))
+    : [dbPoint(run.course, run.course.distanceM / 40, -0.075)];
+  const distance = Math.min(...places.map(p => {
+    const at = getFestivalPlacementPoint(scene, {mode:'tile', row:p.row, col:p.col});
+    return Math.hypot(at.x - centre.x, at.y - centre.y);
+  }));
+  const proximity = Math.max(0, 1 - distance / Math.max(1, Math.max(rect.width, rect.height) * .8));
+  const zoomFade = Math.max(0, Math.min(1, (camera.zoom - .5) / (TRAFFIC_VISUAL_CONFIG.zoomMin - .5)));
+  const base = {opening:.55, cheers:.5, music:.42, paddles:.45}[channel];
+  return base * proximity * zoomFade * getStoredAmbientVolume();
+}
+
+function updateDragonBoatAudio(scene) {
+  const run = typeof city !== 'undefined' ? city.festivals?.dragonBoat : null;
+  const live = scene?.cameras?.main && isFestivalGameplayLive() && isFestivalEnabled('dragonBoat')
+    && getFestivalTier('dragonBoat') !== 'skip' && run?.year === city.year && run?.month === city.month
+    && !dragonBoatWeatherBad(city.weather) && (!scene.scene?.isVisible || scene.scene.isVisible());
+  const minute = live ? getGameTimeOfDayMinutes() : 0;
+  const plan = live ? dragonBoatAudioPlan(run, minute) : [];
+  if (!plan.length) {stopDragonBoatAudio(scene);return;}
+  const id = `${run.year}:${run.month}:${run.seed}:${run.course.id}`;
+  if (scene.dragonBoatAudio?.id !== id) {
+    stopDragonBoatAudio(scene);
+    scene.dragonBoatAudio = {id, sounds:{}};
+  }
+  const sounds = scene.dragonBoatAudio.sounds;
+  Object.keys(sounds).forEach(channel => {
+    if (!plan.includes(channel)) {sounds[channel].stop();sounds[channel].destroy();delete sounds[channel];}
+  });
+  if (!scene.sound || scene.sound.locked) return;
+  plan.forEach(channel => {
+    const key = 'db_' + channel;
+    if(channel==='music') {
+      const matches=(scene.sound.getAll?.(key)||[]).filter(s=>!s.pendingRemove);
+      const existing=matches.find(s=>s.isPlaying||s.isPaused)||sounds[channel];
+      if(existing)sounds[channel]=existing;
+      matches.forEach(s=>{if(s!==existing){s.stop();s.destroy();}});
+    }
+    if (!sounds[channel] && !simPaused && scene.cache.audio.exists(key)) {
+      sounds[channel] = scene.sound.add(key, {loop:true, volume:0});
+      sounds[channel].play();
+    }
+    const sound = sounds[channel];
+    if (!sound) return;
+    if(channel==='music'&&!simPaused&&!sound.isPlaying&&!sound.isPaused)sound.play();
+    sound.setVolume(getDragonBoatAudioVolume(scene, run, minute, channel));
+    if (simPaused && sound.isPlaying) sound.pause();
+    else if (!simPaused && sound.isPaused) sound.resume();
   });
 }

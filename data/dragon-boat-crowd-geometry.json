@@ -1,0 +1,254 @@
+{
+  "spectatorsBack1": {
+    "anchor": [
+      501.7142857142857,
+      905.3052741879147
+    ],
+    "personPoints": [
+      [
+        148.63157894736844,
+        349.7493887530562
+      ],
+      [
+        141.05263157894737,
+        836.5977995110024
+      ]
+    ],
+    "heightM": 1.7,
+    "people": 7,
+    "sourcePersonPoints": [
+      [
+        210,
+        258
+      ],
+      [
+        201,
+        836
+      ]
+    ],
+    "sourceFeet": [
+      [
+        193,
+        843
+      ],
+      [
+        370,
+        970
+      ],
+      [
+        523,
+        801
+      ],
+      [
+        757,
+        876
+      ],
+      [
+        588,
+        963
+      ],
+      [
+        893,
+        984
+      ],
+      [
+        1081,
+        986
+      ]
+    ],
+    "projection": "source preserved; no reliable rectangular ground reference",
+    "footprintM": [
+      5,
+      4
+    ]
+  },
+  "spectatorsFront1": {
+    "anchor": [
+      518.4595438175271,
+      869.4581329561528
+    ],
+    "personPoints": [
+      [
+        155.02521008403363,
+        236.13564356435643
+      ],
+      [
+        134.4,
+        783.3534653465347
+      ]
+    ],
+    "heightM": 1.7,
+    "people": 7,
+    "sourcePersonPoints": [
+      [
+        183,
+        194
+      ],
+      [
+        157,
+        884
+      ]
+    ],
+    "sourceFeet": [
+      [
+        156,
+        880
+      ],
+      [
+        343,
+        1064
+      ],
+      [
+        483,
+        928
+      ],
+      [
+        794,
+        966
+      ],
+      [
+        602,
+        1085
+      ],
+      [
+        945,
+        1101
+      ],
+      [
+        1165,
+        924
+      ]
+    ],
+    "projection": "source preserved; no reliable rectangular ground reference",
+    "footprintM": [
+      5,
+      4
+    ]
+  },
+  "spectatorsBack2": {
+    "anchor": [
+      520.8245445829338,
+      885.2882653061224
+    ],
+    "personPoints": [
+      [
+        165.1275167785235,
+        326.29910714285717
+      ],
+      [
+        157.20805369127515,
+        813.6316964285714
+      ]
+    ],
+    "heightM": 1.7,
+    "people": 7,
+    "sourcePersonPoints": [
+      [
+        195,
+        269
+      ],
+      [
+        185,
+        884
+      ]
+    ],
+    "sourceFeet": [
+      [
+        175,
+        885
+      ],
+      [
+        363,
+        1040
+      ],
+      [
+        534,
+        825
+      ],
+      [
+        784,
+        919
+      ],
+      [
+        616,
+        1040
+      ],
+      [
+        918,
+        1069
+      ],
+      [
+        1119,
+        1043
+      ]
+    ],
+    "projection": "source preserved; no reliable rectangular ground reference",
+    "footprintM": [
+      5,
+      4
+    ]
+  },
+  "spectatorsFront2": {
+    "anchor": [
+      532.9028571428571,
+      862.4655982315556
+    ],
+    "personPoints": [
+      [
+        190.25333333333333,
+        229.18375241779498
+      ],
+      [
+        136.76,
+        759.1276595744681
+      ]
+    ],
+    "heightM": 1.7,
+    "people": 7,
+    "sourcePersonPoints": [
+      [
+        222,
+        196
+      ],
+      [
+        154,
+        870
+      ]
+    ],
+    "sourceFeet": [
+      [
+        158,
+        881
+      ],
+      [
+        344,
+        1060
+      ],
+      [
+        501,
+        937
+      ],
+      [
+        798,
+        958
+      ],
+      [
+        659,
+        1112
+      ],
+      [
+        976,
+        1112
+      ],
+      [
+        1167,
+        950
+      ]
+    ],
+    "projection": "source preserved; no reliable rectangular ground reference",
+    "footprintM": [
+      5,
+      4
+    ]
+  }
+}

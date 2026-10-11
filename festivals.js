@@ -21,7 +21,8 @@
 // about festivals must skip a quiet one. Held from 1990 (the first vigil) and every year after.
 const FESTIVAL_DEFINITIONS = Object.freeze([
   Object.freeze({ id: 'lunarNewYear', kind: 'calendar', organiser: 'government', venue: 'flagshipPark', label: '新春年宵' }),
-  Object.freeze({ id: 'dragonBoat', kind: 'calendar', organiser: 'government', venue: 'promenade', label: '端午龍舟＋搶包山' }),
+  Object.freeze({ id: 'bunHill', kind: 'calendar', organiser: 'government', venue: 'eventGround', label: '海旁搶包山之夜' }),
+  Object.freeze({ id: 'dragonBoat', kind: 'calendar', organiser: 'government', venue: 'promenade', label: '香城龍舟邀請賽' }),
   Object.freeze({ id: 'june4', kind: 'calendar', organiser: 'community', venue: 'flagshipPark', label: '六四', quiet: true, firstYear: 1990 }),
   Object.freeze({ id: 'yulan', kind: 'calendar', organiser: 'community', venue: 'residentialKerbs', label: '盂蘭燒街衣' }),
   Object.freeze({ id: 'midAutumn', kind: 'calendar', organiser: 'government', venue: 'residentialRoute', label: '中秋舞火龍' }),
@@ -61,6 +62,8 @@ function isFestivalHeldInYear(id, year) {
 // lit every night. Festivals without a programme yet are not drawn.
 // `after`: a morning in the month that follows (新春's 開年舞獅 at the shops' doors).
 const FESTIVAL_PROGRAMMES = Object.freeze({
+  bunHill: Object.freeze({ setup: 1080, open: 1140, peak: 1410, close: 1560 }),
+  dragonBoat: Object.freeze({ setup: 360, open: 480, peak: 900, close: 1080 }),
   christmas: Object.freeze({ setup: 6 * 60, open: 6 * 60, peak: 18 * 60, close: 30 * 60 }),
   // 年宵: the stalls go up in the morning, open at ten, the crowds and the lights after six, the
   // last of it at three in the morning
@@ -72,6 +75,8 @@ const FESTIVAL_PROGRAMMES = Object.freeze({
 // a council event's success is attractiveness +3, tourism +2 for scale.
 const FESTIVAL_TIER_SCALE = Object.freeze({ skip: 0, basic: 0.5, standard: 1, grand: 1.6 });
 const FESTIVAL_ECONOMICS = Object.freeze({
+  bunHill: Object.freeze({ baseCost: 1200, costPerResident: 0.008, effects: Object.freeze({ attractiveness: 1, tourism: 1, happiness: 0.005 }) }),
+  dragonBoat: Object.freeze({ baseCost: 1800, costPerResident: 0.015, effects: Object.freeze({ attractiveness: 3, tourism: 3, happiness: 0.015 }) }),
   // 年宵: the stall auction brings money back (incomePerStall x let stalls, more in a good economy)
   lunarNewYear: Object.freeze({
     baseCost: 1500,
@@ -212,6 +217,8 @@ function createFestivalState() {
     venues: Object.fromEntries(FESTIVAL_IDS.map((id) => [id, ''])),
     history: [],
     ufo: { lastMonthIndex: -1, sightings: 0 },
+    dragonBoat: null,
+    bunHill: null,
   };
 }
 
@@ -228,6 +235,7 @@ function normalizeFestivalHistoryEntry(entry) {
     attendance: Math.max(0, festivalInt(entry.attendance, 0)),
     cost: Math.max(0, festivalInt(entry.cost, 0)),
     income: Math.max(0, festivalInt(entry.income, 0)),
+    ...(entry.id === 'dragonBoat' && (entry.champion || entry.distanceM) ? { champion: String(entry.champion || '').slice(0,100), distanceM: [200,270,500].includes(entry.distanceM) ? entry.distanceM : 0 } : {}),
   };
 }
 
@@ -247,6 +255,10 @@ function normalizeFestivalState(raw) {
   });
   state.history = (Array.isArray(raw.history) ? raw.history : [])
     .map(normalizeFestivalHistoryEntry).filter(Boolean).slice(-FESTIVAL_HISTORY_LIMIT);
+  const normalizeDragon = typeof normalizeDragonBoatRun === 'function' ? normalizeDragonBoatRun : (typeof require === 'function' ? require('./festival-dragon-boat.js').normalizeDragonBoatRun : null);
+  state.dragonBoat = normalizeDragon ? normalizeDragon(raw.dragonBoat) : null;
+  const normalizeBunHill = typeof normalizeBunHillRun === 'function' ? normalizeBunHillRun : (typeof require === 'function' ? require('./bun-hill-event.js').normalizeBunHillRun : null);
+  state.bunHill = normalizeBunHill ? normalizeBunHill(raw.bunHill) : null;
   state.ufo = {
     lastMonthIndex: festivalInt(raw.ufo?.lastMonthIndex, -1),
     sightings: Math.max(0, festivalInt(raw.ufo?.sightings, 0)),

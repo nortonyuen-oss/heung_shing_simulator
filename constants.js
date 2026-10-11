@@ -432,6 +432,7 @@ const COST_UNIVERSITY = 8000;
 const COST_HOSPITAL = 7200;
 const COST_LEGISLATIVE_COUNCIL = 5200;
 const COST_STOCK_EXCHANGE = 9800;
+const COST_EVENT_GROUND        = 150;
 const COST_PARK_SMALL          = 250;
 const COST_PARK_LARGE          = 900;
 const COST_SPORTS_GROUND_SMALL = 600;
@@ -1218,6 +1219,20 @@ const HARBOR_MODELS = {
 // side; this is the one place the art path lives, so preload, the night bake
 // (which scans for spriteKey/path pairs) and the light calibrator all agree.
 const PARK_MODELS = {
+  ...Object.fromEntries(Array.from({ length: 15 }, (_, mask) => [
+    `event_ground_edges${mask}`, {
+      spriteKey: `event_ground_edges${mask}`,
+      path: `Models/parks/park1x1/eventGround_edges${mask}.png`,
+      footprintCols: 1,
+      footprintRows: 1,
+    },
+  ])),
+  event_ground: {
+    spriteKey: 'event_ground',
+    path: 'Models/parks/park1x1/eventGround.png',
+    footprintCols: 1,
+    footprintRows: 1,
+  },
   park_small_open: {
     spriteKey: 'park_small_open',
     path: 'Models/parks/park1x1/park1-01.png',
@@ -1505,6 +1520,7 @@ const HEALTH_SMOKING_BAN_BONUS = 0.04;
 const HEALTH_SCHOOL_PROGRAM_BONUS = 0.035;
 const EPIDEMIC_MONTHLY_TRIGGER_BASE = 0.018;
 const EPIDEMIC_RECOVERY_RATE = 0.18;
+const UPKEEP_EVENT_GROUND        = 5;
 const UPKEEP_PARK_SMALL          = 25;
 const UPKEEP_PARK_LARGE          = 80;
 const UPKEEP_SPORTS_GROUND_SMALL = 60;

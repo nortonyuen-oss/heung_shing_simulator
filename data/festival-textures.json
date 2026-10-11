@@ -200,6 +200,924 @@
     "Models/festivals/fx_christmasTree_m__litb.png"
    ]
   },
+  "fx_dbblackNW": {
+   "file": "Models/festivals/fx_dbblackNW.png",
+   "part": "dbblackNW",
+   "festival": "dragonBoat",
+   "width": 1024,
+   "height": 512,
+   "anchor": {
+    "x": 516.2526614620299,
+    "y": 315.3945
+   },
+   "top": 82,
+   "left": 161,
+   "right": 864,
+   "mirrored": false,
+   "groundSpanX": 545.3867991483322,
+   "lengthM": 18
+  },
+  "fx_dbblackNW_m": {
+   "file": "Models/festivals/fx_dbblackNW_m.png",
+   "part": "dbblackNW",
+   "festival": "dragonBoat",
+   "width": 1024,
+   "height": 512,
+   "anchor": {
+    "x": 507.7473385379701,
+    "y": 315.3945
+   },
+   "top": 82,
+   "left": 160,
+   "right": 863,
+   "mirrored": true,
+   "groundSpanX": 545.3867991483322,
+   "lengthM": 18
+  },
+  "fx_dbblackSW": {
+   "file": "Models/festivals/fx_dbblackSW.png",
+   "part": "dbblackSW",
+   "festival": "dragonBoat",
+   "width": 1024,
+   "height": 512,
+   "anchor": {
+    "x": 527.7609147609147,
+    "y": 333.50895781071836
+   },
+   "top": 65,
+   "left": 152,
+   "right": 872,
+   "mirrored": false,
+   "groundSpanX": 560.3880803880804,
+   "lengthM": 18
+  },
+  "fx_dbblackSW_m": {
+   "file": "Models/festivals/fx_dbblackSW_m.png",
+   "part": "dbblackSW",
+   "festival": "dragonBoat",
+   "width": 1024,
+   "height": 512,
+   "anchor": {
+    "x": 496.2390852390853,
+    "y": 333.50895781071836
+   },
+   "top": 65,
+   "left": 152,
+   "right": 872,
+   "mirrored": true,
+   "groundSpanX": 560.3880803880804,
+   "lengthM": 18
+  },
+  "fx_dbblueNW": {
+   "file": "Models/festivals/fx_dbblueNW.png",
+   "part": "dbblueNW",
+   "festival": "dragonBoat",
+   "width": 1024,
+   "height": 512,
+   "anchor": {
+    "x": 514,
+    "y": 307.6327183650616
+   },
+   "top": 57,
+   "left": 158,
+   "right": 866,
+   "mirrored": false,
+   "groundSpanX": 566,
+   "lengthM": 18
+  },
+  "fx_dbblueNW_m": {
+   "file": "Models/festivals/fx_dbblueNW_m.png",
+   "part": "dbblueNW",
+   "festival": "dragonBoat",
+   "width": 1024,
+   "height": 512,
+   "anchor": {
+    "x": 510,
+    "y": 307.6327183650616
+   },
+   "top": 57,
+   "left": 158,
+   "right": 866,
+   "mirrored": true,
+   "groundSpanX": 566,
+   "lengthM": 18
+  },
+  "fx_dbblueSW": {
+   "file": "Models/festivals/fx_dbblueSW.png",
+   "part": "dbblueSW",
+   "festival": "dragonBoat",
+   "width": 1024,
+   "height": 512,
+   "anchor": {
+    "x": 548.775397373877,
+    "y": 312.1756278074866
+   },
+   "top": 36,
+   "left": 151,
+   "right": 873,
+   "mirrored": false,
+   "groundSpanX": 530.3662750518314,
+   "lengthM": 18
+  },
+  "fx_dbblueSW_m": {
+   "file": "Models/festivals/fx_dbblueSW_m.png",
+   "part": "dbblueSW",
+   "festival": "dragonBoat",
+   "width": 1024,
+   "height": 512,
+   "anchor": {
+    "x": 475.224602626123,
+    "y": 312.1756278074866
+   },
+   "top": 36,
+   "left": 151,
+   "right": 873,
+   "mirrored": true,
+   "groundSpanX": 530.3662750518314,
+   "lengthM": 18
+  },
+  "fx_dbceremonyStage": {
+   "file": "Models/festivals/fx_dbceremonyStage.png",
+   "part": "dbceremonyStage",
+   "festival": "dragonBoat",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 301.39023785926656,
+    "y": 391.9666182994455
+   },
+   "top": 20,
+   "left": 32,
+   "right": 480,
+   "mirrored": false,
+   "groundSpanX": 313.660703666997,
+   "lengthM": 10
+  },
+  "fx_dbceremonyStage_m": {
+   "file": "Models/festivals/fx_dbceremonyStage_m.png",
+   "part": "dbceremonyStage",
+   "festival": "dragonBoat",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 210.60976214073344,
+    "y": 391.9666182994455
+   },
+   "top": 20,
+   "left": 32,
+   "right": 480,
+   "mirrored": true,
+   "groundSpanX": 313.660703666997,
+   "lengthM": 10
+  },
+  "fx_dbchampionStand1": {
+   "file": "Models/festivals/fx_dbchampionStand1.png",
+   "part": "dbchampionStand1",
+   "festival": "dragonBoat",
+   "width": 1024,
+   "height": 1024,
+   "anchor": {
+    "x": 463.404,
+    "y": 890.559
+   },
+   "top": 374,
+   "left": 205,
+   "right": 820,
+   "mirrored": false,
+   "groundSpanX": 561.096,
+   "lengthM": 10
+  },
+  "fx_dbchampionStand1_m": {
+   "file": "Models/festivals/fx_dbchampionStand1_m.png",
+   "part": "dbchampionStand1",
+   "festival": "dragonBoat",
+   "width": 1024,
+   "height": 1024,
+   "anchor": {
+    "x": 560.596,
+    "y": 890.559
+   },
+   "top": 374,
+   "left": 204,
+   "right": 819,
+   "mirrored": true,
+   "groundSpanX": 561.096,
+   "lengthM": 10
+  },
+  "fx_dbchampionStand2": {
+   "file": "Models/festivals/fx_dbchampionStand2.png",
+   "part": "dbchampionStand2",
+   "festival": "dragonBoat",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 248.98738553022793,
+    "y": 425.28435638297873
+   },
+   "top": 20,
+   "left": 41,
+   "right": 471,
+   "mirrored": false,
+   "groundSpanX": 342.06564915758173,
+   "lengthM": 10
+  },
+  "fx_dbchampionStand2_m": {
+   "file": "Models/festivals/fx_dbchampionStand2_m.png",
+   "part": "dbchampionStand2",
+   "festival": "dragonBoat",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 263.0126144697721,
+    "y": 425.28435638297873
+   },
+   "top": 20,
+   "left": 41,
+   "right": 471,
+   "mirrored": true,
+   "groundSpanX": 342.06564915758173,
+   "lengthM": 10
+  },
+  "fx_dbgoalMarker": {
+   "file": "Models/festivals/fx_dbgoalMarker.png",
+   "part": "dbgoalMarker",
+   "festival": "dragonBoat",
+   "width": 256,
+   "height": 512,
+   "anchor": {
+    "x": 128,
+    "y": 474.36379052369074
+   },
+   "top": 144,
+   "left": 10,
+   "right": 246,
+   "mirrored": false,
+   "heightM": 4
+  },
+  "fx_dbgoalMarker_m": {
+   "file": "Models/festivals/fx_dbgoalMarker_m.png",
+   "part": "dbgoalMarker",
+   "festival": "dragonBoat",
+   "width": 256,
+   "height": 512,
+   "anchor": {
+    "x": 128,
+    "y": 474.36379052369074
+   },
+   "top": 144,
+   "left": 10,
+   "right": 246,
+   "mirrored": true,
+   "heightM": 4
+  },
+  "fx_dbgreenNW": {
+   "file": "Models/festivals/fx_dbgreenNW.png",
+   "part": "dbgreenNW",
+   "festival": "dragonBoat",
+   "width": 1024,
+   "height": 512,
+   "anchor": {
+    "x": 506.2459248759745,
+    "y": 314.9015017064846
+   },
+   "top": 64,
+   "left": 160,
+   "right": 864,
+   "mirrored": false,
+   "groundSpanX": 567.4018426647767,
+   "lengthM": 18
+  },
+  "fx_dbgreenNW_m": {
+   "file": "Models/festivals/fx_dbgreenNW_m.png",
+   "part": "dbgreenNW",
+   "festival": "dragonBoat",
+   "width": 1024,
+   "height": 512,
+   "anchor": {
+    "x": 517.7540751240256,
+    "y": 314.9015017064846
+   },
+   "top": 64,
+   "left": 160,
+   "right": 864,
+   "mirrored": true,
+   "groundSpanX": 567.4018426647767,
+   "lengthM": 18
+  },
+  "fx_dbgreenSW": {
+   "file": "Models/festivals/fx_dbgreenSW.png",
+   "part": "dbgreenSW",
+   "festival": "dragonBoat",
+   "width": 1024,
+   "height": 512,
+   "anchor": {
+    "x": 548.775397373877,
+    "y": 304.22468835257087
+   },
+   "top": 26,
+   "left": 151,
+   "right": 873,
+   "mirrored": false,
+   "groundSpanX": 530.3662750518314,
+   "lengthM": 18
+  },
+  "fx_dbgreenSW_m": {
+   "file": "Models/festivals/fx_dbgreenSW_m.png",
+   "part": "dbgreenSW",
+   "festival": "dragonBoat",
+   "width": 1024,
+   "height": 512,
+   "anchor": {
+    "x": 475.224602626123,
+    "y": 304.22468835257087
+   },
+   "top": 26,
+   "left": 151,
+   "right": 873,
+   "mirrored": true,
+   "groundSpanX": 530.3662750518314,
+   "lengthM": 18
+  },
+  "fx_dbguardLine": {
+   "file": "Models/festivals/fx_dbguardLine.png",
+   "part": "dbguardLine",
+   "festival": "dragonBoat",
+   "width": 512,
+   "height": 256,
+   "anchor": {
+    "x": 256.5,
+    "y": 228.66102479338844
+   },
+   "top": 11,
+   "left": 59,
+   "right": 455,
+   "mirrored": false,
+   "groundSpanX": 332.1579781962339,
+   "lengthM": 10
+  },
+  "fx_dbguardLine_m": {
+   "file": "Models/festivals/fx_dbguardLine_m.png",
+   "part": "dbguardLine",
+   "festival": "dragonBoat",
+   "width": 512,
+   "height": 256,
+   "anchor": {
+    "x": 255.5,
+    "y": 228.66102479338844
+   },
+   "top": 11,
+   "left": 57,
+   "right": 453,
+   "mirrored": true,
+   "groundSpanX": 332.1579781962339,
+   "lengthM": 10
+  },
+  "fx_dbpier": {
+   "file": "Models/festivals/fx_dbpier.png",
+   "part": "dbpier",
+   "festival": "dragonBoat",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 234.1272741652021,
+    "y": 327.08125
+   },
+   "top": 85,
+   "left": 20,
+   "right": 492,
+   "mirrored": false,
+   "groundSpanX": 367.4607943760984,
+   "lengthM": 8
+  },
+  "fx_dbpier_m": {
+   "file": "Models/festivals/fx_dbpier_m.png",
+   "part": "dbpier",
+   "festival": "dragonBoat",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 277.8727258347979,
+    "y": 327.08125
+   },
+   "top": 85,
+   "left": 20,
+   "right": 492,
+   "mirrored": true,
+   "groundSpanX": 367.4607943760984,
+   "lengthM": 8
+  },
+  "fx_dbpurpleNW": {
+   "file": "Models/festivals/fx_dbpurpleNW.png",
+   "part": "dbpurpleNW",
+   "festival": "dragonBoat",
+   "width": 1024,
+   "height": 512,
+   "anchor": {
+    "x": 517.2537313432836,
+    "y": 326.0716947976879
+   },
+   "top": 71,
+   "left": 161,
+   "right": 863,
+   "mirrored": false,
+   "groundSpanX": 550.3909026297085,
+   "lengthM": 18
+  },
+  "fx_dbpurpleNW_m": {
+   "file": "Models/festivals/fx_dbpurpleNW_m.png",
+   "part": "dbpurpleNW",
+   "festival": "dragonBoat",
+   "width": 1024,
+   "height": 512,
+   "anchor": {
+    "x": 506.74626865671644,
+    "y": 326.0716947976879
+   },
+   "top": 71,
+   "left": 161,
+   "right": 863,
+   "mirrored": true,
+   "groundSpanX": 550.3909026297085,
+   "lengthM": 18
+  },
+  "fx_dbpurpleSW": {
+   "file": "Models/festivals/fx_dbpurpleSW.png",
+   "part": "dbpurpleSW",
+   "festival": "dragonBoat",
+   "width": 1024,
+   "height": 512,
+   "anchor": {
+    "x": 549,
+    "y": 330.0865
+   },
+   "top": 73,
+   "left": 152,
+   "right": 873,
+   "mirrored": false,
+   "groundSpanX": 530,
+   "lengthM": 18
+  },
+  "fx_dbpurpleSW_m": {
+   "file": "Models/festivals/fx_dbpurpleSW_m.png",
+   "part": "dbpurpleSW",
+   "festival": "dragonBoat",
+   "width": 1024,
+   "height": 512,
+   "anchor": {
+    "x": 475,
+    "y": 330.0865
+   },
+   "top": 73,
+   "left": 151,
+   "right": 872,
+   "mirrored": true,
+   "groundSpanX": 530,
+   "lengthM": 18
+  },
+  "fx_dbraceBuoy": {
+   "file": "Models/festivals/fx_dbraceBuoy.png",
+   "part": "dbraceBuoy",
+   "festival": "dragonBoat",
+   "width": 128,
+   "height": 128,
+   "anchor": {
+    "x": 64,
+    "y": 110.35616438356165
+   },
+   "top": 11,
+   "left": 14,
+   "right": 114,
+   "mirrored": false,
+   "heightM": 1.2
+  },
+  "fx_dbraceBuoy_m": {
+   "file": "Models/festivals/fx_dbraceBuoy_m.png",
+   "part": "dbraceBuoy",
+   "festival": "dragonBoat",
+   "width": 128,
+   "height": 128,
+   "anchor": {
+    "x": 64,
+    "y": 110.35616438356165
+   },
+   "top": 11,
+   "left": 14,
+   "right": 114,
+   "mirrored": true,
+   "heightM": 1.2
+  },
+  "fx_dbredNW": {
+   "file": "Models/festivals/fx_dbredNW.png",
+   "part": "dbredNW",
+   "festival": "dragonBoat",
+   "width": 1024,
+   "height": 512,
+   "anchor": {
+    "x": 508,
+    "y": 301.927
+   },
+   "top": 58,
+   "left": 160,
+   "right": 864,
+   "mirrored": false,
+   "groundSpanX": 577,
+   "lengthM": 18
+  },
+  "fx_dbredNW_m": {
+   "file": "Models/festivals/fx_dbredNW_m.png",
+   "part": "dbredNW",
+   "festival": "dragonBoat",
+   "width": 1024,
+   "height": 512,
+   "anchor": {
+    "x": 516,
+    "y": 301.927
+   },
+   "top": 58,
+   "left": 160,
+   "right": 864,
+   "mirrored": true,
+   "groundSpanX": 577,
+   "lengthM": 18
+  },
+  "fx_dbredSW": {
+   "file": "Models/festivals/fx_dbredSW.png",
+   "part": "dbredSW",
+   "festival": "dragonBoat",
+   "width": 1024,
+   "height": 512,
+   "anchor": {
+    "x": 549.2758142758142,
+    "y": 318.9847886540601
+   },
+   "top": 54,
+   "left": 152,
+   "right": 872,
+   "mirrored": false,
+   "groundSpanX": 530.3672903672903,
+   "lengthM": 18
+  },
+  "fx_dbredSW_m": {
+   "file": "Models/festivals/fx_dbredSW_m.png",
+   "part": "dbredSW",
+   "festival": "dragonBoat",
+   "width": 1024,
+   "height": 512,
+   "anchor": {
+    "x": 474.72418572418576,
+    "y": 318.9847886540601
+   },
+   "top": 54,
+   "left": 152,
+   "right": 872,
+   "mirrored": true,
+   "groundSpanX": 530.3672903672903,
+   "lengthM": 18
+  },
+  "fx_dbrescueBoat": {
+   "file": "Models/festivals/fx_dbrescueBoat.png",
+   "part": "dbrescueBoat",
+   "festival": "dragonBoat",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 246.35041228939542,
+    "y": 384.13160714285715
+   },
+   "top": 110,
+   "left": 20,
+   "right": 492,
+   "mirrored": false,
+   "groundSpanX": 396.69853914767094,
+   "lengthM": 7
+  },
+  "fx_dbrescueBoat_m": {
+   "file": "Models/festivals/fx_dbrescueBoat_m.png",
+   "part": "dbrescueBoat",
+   "festival": "dragonBoat",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 265.6495877106046,
+    "y": 384.13160714285715
+   },
+   "top": 110,
+   "left": 20,
+   "right": 492,
+   "mirrored": true,
+   "groundSpanX": 396.69853914767094,
+   "lengthM": 7
+  },
+  "fx_dbspectatorsBack1": {
+   "file": "Models/festivals/fx_dbspectatorsBack1.png",
+   "part": "dbspectatorsBack1",
+   "festival": "dragonBoat",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 250.60090702947844,
+    "y": 464.15263709395737
+   },
+   "top": 159,
+   "left": 21,
+   "right": 492,
+   "mirrored": false,
+   "personHeightPx": 243.4242053789731,
+   "footprintM": [
+    5,
+    4
+   ],
+   "people": 7,
+   "heightM": 1.7
+  },
+  "fx_dbspectatorsBack1_m": {
+   "file": "Models/festivals/fx_dbspectatorsBack1_m.png",
+   "part": "dbspectatorsBack1",
+   "festival": "dragonBoat",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 261.39909297052156,
+    "y": 464.15263709395737
+   },
+   "top": 159,
+   "left": 20,
+   "right": 491,
+   "mirrored": true,
+   "personHeightPx": 243.4242053789731,
+   "footprintM": [
+    5,
+    4
+   ],
+   "people": 7,
+   "heightM": 1.7
+  },
+  "fx_dbspectatorsBack2": {
+   "file": "Models/festivals/fx_dbspectatorsBack2.png",
+   "part": "dbspectatorsBack2",
+   "festival": "dragonBoat",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 260.9122722914669,
+    "y": 454.07420857543576
+   },
+   "top": 148,
+   "left": 21,
+   "right": 492,
+   "mirrored": false,
+   "personHeightPx": 244.00804260168303,
+   "footprintM": [
+    5,
+    4
+   ],
+   "people": 7,
+   "heightM": 1.7
+  },
+  "fx_dbspectatorsBack2_m": {
+   "file": "Models/festivals/fx_dbspectatorsBack2_m.png",
+   "part": "dbspectatorsBack2",
+   "festival": "dragonBoat",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 251.08772770853312,
+    "y": 454.07420857543576
+   },
+   "top": 148,
+   "left": 20,
+   "right": 491,
+   "mirrored": true,
+   "personHeightPx": 244.00804260168303,
+   "footprintM": [
+    5,
+    4
+   ],
+   "people": 7,
+   "heightM": 1.7
+  },
+  "fx_dbspectatorsFront1": {
+   "file": "Models/festivals/fx_dbspectatorsFront1.png",
+   "part": "dbspectatorsFront1",
+   "festival": "dragonBoat",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 258.98291844720995,
+    "y": 446.2290664780764
+   },
+   "top": 103,
+   "left": 20,
+   "right": 492,
+   "mirrored": false,
+   "personHeightPx": 273.6089108910891,
+   "footprintM": [
+    5,
+    4
+   ],
+   "people": 7,
+   "heightM": 1.7
+  },
+  "fx_dbspectatorsFront1_m": {
+   "file": "Models/festivals/fx_dbspectatorsFront1_m.png",
+   "part": "dbspectatorsFront1",
+   "festival": "dragonBoat",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 253.01708155279005,
+    "y": 446.2290664780764
+   },
+   "top": 103,
+   "left": 20,
+   "right": 492,
+   "mirrored": true,
+   "personHeightPx": 273.6089108910891,
+   "footprintM": [
+    5,
+    4
+   ],
+   "people": 7,
+   "heightM": 1.7
+  },
+  "fx_dbspectatorsFront2": {
+   "file": "Models/festivals/fx_dbspectatorsFront2.png",
+   "part": "dbspectatorsFront2",
+   "festival": "dragonBoat",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 266.2122009352843,
+    "y": 442.15719666671515
+   },
+   "top": 96,
+   "left": 20,
+   "right": 492,
+   "mirrored": false,
+   "personHeightPx": 265.29627665493183,
+   "footprintM": [
+    5,
+    4
+   ],
+   "people": 7,
+   "heightM": 1.7
+  },
+  "fx_dbspectatorsFront2_m": {
+   "file": "Models/festivals/fx_dbspectatorsFront2_m.png",
+   "part": "dbspectatorsFront2",
+   "festival": "dragonBoat",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 245.78779906471573,
+    "y": 442.15719666671515
+   },
+   "top": 96,
+   "left": 20,
+   "right": 492,
+   "mirrored": true,
+   "personHeightPx": 265.29627665493183,
+   "footprintM": [
+    5,
+    4
+   ],
+   "people": 7,
+   "heightM": 1.7
+  },
+  "fx_dbstartMarker": {
+   "file": "Models/festivals/fx_dbstartMarker.png",
+   "part": "dbstartMarker",
+   "festival": "dragonBoat",
+   "width": 256,
+   "height": 512,
+   "anchor": {
+    "x": 128,
+    "y": 478.28
+   },
+   "top": 194,
+   "left": 26,
+   "right": 230,
+   "mirrored": false,
+   "heightM": 3
+  },
+  "fx_dbstartMarker_m": {
+   "file": "Models/festivals/fx_dbstartMarker_m.png",
+   "part": "dbstartMarker",
+   "festival": "dragonBoat",
+   "width": 256,
+   "height": 512,
+   "anchor": {
+    "x": 128,
+    "y": 478.28
+   },
+   "top": 194,
+   "left": 26,
+   "right": 230,
+   "mirrored": true,
+   "heightM": 3
+  },
+  "fx_dbviewersStage": {
+   "file": "Models/festivals/fx_dbviewersStage.png",
+   "part": "dbviewersStage",
+   "festival": "dragonBoat",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 265.0743211100099,
+    "y": 351.7156342857143
+   },
+   "top": 20,
+   "left": 58,
+   "right": 454,
+   "mirrored": false,
+   "groundSpanX": 328.45965708622396,
+   "lengthM": 16
+  },
+  "fx_dbviewersStage_m": {
+   "file": "Models/festivals/fx_dbviewersStage_m.png",
+   "part": "dbviewersStage",
+   "festival": "dragonBoat",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 246.92567888999008,
+    "y": 351.7156342857143
+   },
+   "top": 20,
+   "left": 58,
+   "right": 454,
+   "mirrored": true,
+   "groundSpanX": 328.45965708622396,
+   "lengthM": 16
+  },
+  "fx_dbyellowNW": {
+   "file": "Models/festivals/fx_dbyellowNW.png",
+   "part": "dbyellowNW",
+   "festival": "dragonBoat",
+   "width": 1024,
+   "height": 512,
+   "anchor": {
+    "x": 512,
+    "y": 310.51175
+   },
+   "top": 56,
+   "left": 158,
+   "right": 866,
+   "mirrored": false,
+   "groundSpanX": 583,
+   "lengthM": 18
+  },
+  "fx_dbyellowNW_m": {
+   "file": "Models/festivals/fx_dbyellowNW_m.png",
+   "part": "dbyellowNW",
+   "festival": "dragonBoat",
+   "width": 1024,
+   "height": 512,
+   "anchor": {
+    "x": 512,
+    "y": 310.51175
+   },
+   "top": 56,
+   "left": 158,
+   "right": 866,
+   "mirrored": true,
+   "groundSpanX": 583,
+   "lengthM": 18
+  },
+  "fx_dbyellowSW": {
+   "file": "Models/festivals/fx_dbyellowSW.png",
+   "part": "dbyellowSW",
+   "festival": "dragonBoat",
+   "width": 1024,
+   "height": 512,
+   "anchor": {
+    "x": 547.7744621790423,
+    "y": 316.44472252448315
+   },
+   "top": 44,
+   "left": 153,
+   "right": 872,
+   "mirrored": false,
+   "groundSpanX": 530.3678001387925,
+   "lengthM": 18
+  },
+  "fx_dbyellowSW_m": {
+   "file": "Models/festivals/fx_dbyellowSW_m.png",
+   "part": "dbyellowSW",
+   "festival": "dragonBoat",
+   "width": 1024,
+   "height": 512,
+   "anchor": {
+    "x": 476.2255378209577,
+    "y": 316.44472252448315
+   },
+   "top": 44,
+   "left": 152,
+   "right": 871,
+   "mirrored": true,
+   "groundSpanX": 530.3678001387925,
+   "lengthM": 18
+  },
   "fx_lnyBanners": {
    "file": "Models/festivals/fx_lnyBanners.png",
    "part": "lnyBanners",

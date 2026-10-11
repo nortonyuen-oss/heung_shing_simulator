@@ -31,16 +31,22 @@ const electronPath = require('electron');
 // DRIVE_USER_DATA=<dir> runs against a separate profile (its own saves database and single-
 // instance lock), so a check can run while the real game is open.
 const userDataArgs = process.env.DRIVE_USER_DATA ? [`--user-data-dir=${path.resolve(process.env.DRIVE_USER_DATA)}`] : [];
+// A kept window must survive the driver/tool process and its stdout pipe closing.
+const keepLogPath=path.join(process.env.DRIVE_USER_DATA?path.resolve(process.env.DRIVE_USER_DATA):path.join(ROOT,'.data'),'electron-driver.log');
+if(keep)fs.mkdirSync(path.dirname(keepLogPath),{recursive:true});
+const keepLogFd=keep?fs.openSync(keepLogPath,'a'):null;
 const child = spawn(electronPath, ['.', `--remote-debugging-port=${PORT}`, ...userDataArgs], {
   cwd: ROOT,
-  stdio: ['ignore', 'pipe', 'pipe'],
+  detached: keep,
+  stdio: keep?['ignore',keepLogFd,keepLogFd]:['ignore', 'pipe', 'pipe'],
   // No background throttling, so the renderer keeps stepping (and answering the protocol) while
   // another window covers it during a long check.
   env: { ...process.env, ELECTRON_RUN_AS_NODE: undefined, ELECTRON_DISABLE_UPDATES: '1', ELECTRON_NO_BACKGROUND_THROTTLING: '1' },
 });
+if(keep){fs.closeSync(keepLogFd);child.unref();}
 const logs = [];
-child.stdout.on('data', (d) => logs.push(String(d)));
-child.stderr.on('data', (d) => logs.push(String(d)));
+child.stdout?.on('data', (d) => logs.push(String(d)));
+child.stderr?.on('data', (d) => logs.push(String(d)));
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 (async () => {

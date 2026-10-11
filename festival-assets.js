@@ -55,7 +55,12 @@ const festivalPart = (id, festival, sheet, category, label, extra = {}) => Objec
   // drawn as it is by night too (its own light: the UFO), never darkened with the props
   selfLit: !!extra.selfLit,
   saturation: extra.saturation ?? 1,
+  geometry: extra.geometry ?? null,
 });
+
+const DRAGON_BOAT_GEOMETRY = typeof require === 'function' ? require('./data/dragon-boat-geometry.json') : null;
+
+const DRAGON_BOAT_CROWD_GEOMETRY = typeof require === 'function' ? require('./data/dragon-boat-crowd-geometry.json') : null;
 
 const FESTIVAL_PARTS = Object.freeze([
   // 聖誕 (docs/festival-dlc-design.md §4.6). The chapel is not the heritage_church model's
@@ -114,6 +119,24 @@ const FESTIVAL_PARTS = Object.freeze([
   festivalPart('lnyGate', 'lunarNewYear', 'LunarNewYear/lunarNewYearMarket2.png', 'structure', '年宵入口牌樓', { lengthM: 6, lit: true, axis: '\\' }),
   // the temple's 頭炷香: the 盂蘭 render's bronze incense burner, shared
   festivalPart('templeIncenseBurner', 'lunarNewYear', 'original/July14/July14accessories10.png', 'prop', '香爐', { heightM: 1.3, lit: true }),
+
+  // 端午: corrected art, measured waterlines, four views via baked mirrors.
+  ...['black', 'blue', 'green', 'purple', 'red', 'yellow'].flatMap((color) => ['NW', 'SW'].map((view) => {
+    const name = `${color}Dragon${view}`;
+    return festivalPart(`db${color}${view}`, 'dragonBoat', `DragonBoat/${name}.png`, 'vessel', name,
+      { lengthM: 18, geometry: DRAGON_BOAT_GEOMETRY?.[name], axis: view === 'NW' ? '\\' : '/' });
+  })),
+  ...[
+    ['viewersStage', '龍舟看台', 16], ['ceremonyStage', '龍舟大會台', 10],
+    ['championStand1', '龍舟頒獎台', 10], ['championStand2', '龍舟頒獎台', 10],
+    ['pier', '龍舟浮台', 8], ['rescueBoat', '救援艇', 7], ['guardLine', '線道浮波', 10],
+  ].map(([name, label, lengthM]) => festivalPart(`db${name}`, 'dragonBoat', `DragonBoat/${name}.png`,
+    name === 'rescueBoat' ? 'vessel' : 'structure', label, { lengthM, geometry: DRAGON_BOAT_GEOMETRY?.[name], axis: ['championStand1','championStand2','rescueBoat'].includes(name) ? '\\' : '/' })),
+  ...[['startMarker', '起點浮標', 3], ['goalMarker', '終點浮標', 4], ['raceBuoy', '比賽浮標', 1.2]]
+    .map(([name, label, heightM]) => festivalPart(`db${name}`, 'dragonBoat', `DragonBoat/${name}.png`, 'prop', label,
+      { heightM, geometry: DRAGON_BOAT_GEOMETRY?.[name] })),
+
+  ...['Back1','Front1','Back2','Front2'].map(view => festivalPart(`dbspectators${view}`, 'dragonBoat', `DragonBoat/spectators${view}.png`, 'crowd', `龍舟觀眾 ${view}`, {heightM:1.7, geometry:DRAGON_BOAT_CROWD_GEOMETRY?.[`spectators${view}`]})),
 
   // 發現 UFO (§4.7): six frames of the one saucer - the alien waves, the lamps change - played in
   // turn, all at one scale (festival-ufo.js); the beam is drawn added, stretched to the ground. Nothing

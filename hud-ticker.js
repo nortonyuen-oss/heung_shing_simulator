@@ -98,6 +98,8 @@ function getUrgentCityNews() {
   // 發現 UFO: while it is up and for the rest of its month (festival-ufo.js)
   const ufoNews = typeof getUfoTickerNews === 'function' ? getUfoTickerNews() : null;
   if (ufoNews) return ufoNews;
+  const dragonBoatNews = typeof getDragonBoatTickerNews === 'function' ? getDragonBoatTickerNews() : null;
+  if (dragonBoatNews) return dragonBoatNews;
   const stockCrashWarning = getStockCrashTickerNews();
   if (stockCrashWarning) return stockCrashWarning;
 

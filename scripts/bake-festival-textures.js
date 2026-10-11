@@ -89,7 +89,7 @@ async function layoutPart(cut, saturation) {
   const day = Buffer.alloc(W * H * 4);
   for (let y = 0; y < sh; y++) scaled.copy(day, ((y + oy) * W + ox) * 4, y * sw * 4, (y + 1) * sw * 4);
   const sb = solidBounds(day, W, H);
-  return { day, W, H, anchor: { x: Math.round((sb.minX + sb.maxX + 1) / 2), y: sb.maxY + 1 }, top: sb.minY, left: sb.minX, right: sb.maxX + 1 };
+  return { day, W, H, anchor: { x: Math.round((sb.minX + sb.maxX + 1) / 2), y: sb.maxY + 1 }, top: sb.minY, left: sb.minX, right: sb.maxX + 1, sourceMapping: { left, top, sx: sw / cw, sy: sh / ch, ox, oy } };
 }
 
 async function writePng(data, W, H, rel) {
@@ -125,7 +125,14 @@ async function main() {
     const sheet = sheets.get(p.sheet);
     if (p.rect && !sheet.comps) sheet.comps = labelComponents(sheet.img);
     const cut = p.rect ? cutPart(sheet.img, sheet.comps, p.rect) : cutWhole(sheet.img);
-    const { day, W, H, anchor, top, left, right } = await layoutPart(cut, p.saturation);
+    const baked = await layoutPart(cut, p.saturation);
+    const { day, W, H, top, left, right, sourceMapping: m } = baked;
+    const point = ([x,y]) => ({ x: (x-m.left)*m.sx+m.ox, y: (y-m.top)*m.sy+m.oy });
+    const anchor = p.geometry?.anchor ? point(p.geometry.anchor) : baked.anchor;
+    const axis = p.geometry?.axisPoints?.map(point);
+    const person = p.geometry?.personPoints?.map(point);
+    const personHeightPx = person ? Math.abs(person[1].y-person[0].y) : null;
+    const groundSpanX = axis ? Math.abs(axis[1].x-axis[0].x) : null;
     for (const tex of assets.getFestivalPartTextures(p)) {
       const dayData = tex.mirrored ? mirrorRGBA(day, W, H) : day;
       const texAnchor = tex.mirrored ? { x: W - anchor.x, y: anchor.y } : anchor;
@@ -152,6 +159,8 @@ async function main() {
         left: tex.mirrored ? W - right : left,
         right: tex.mirrored ? W - left : right,
         mirrored: tex.mirrored,
+        ...(groundSpanX ? { groundSpanX } : {}),
+        ...(personHeightPx ? { personHeightPx, footprintM:p.geometry.footprintM, people:p.geometry.people } : {}),
         ...(p.heightM ? { heightM: p.heightM } : {}),
         ...(p.lengthM ? { lengthM: p.lengthM } : {}),
         ...(nightFiles.length ? { night: nightFiles } : {}),

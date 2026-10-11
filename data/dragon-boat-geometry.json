@@ -1,0 +1,449 @@
+{
+  "blackDragonNW": {
+    "anchor": [
+      1029.0,
+      639.789
+    ],
+    "axisPoints": [
+      [
+        484.0,
+        437.306
+      ],
+      [
+        1574.0,
+        842.272
+      ]
+    ],
+    "lengthM": 18,
+    "sourceWaterlinePoints": [
+      [
+        200,
+        330
+      ],
+      [
+        1290,
+        872
+      ]
+    ]
+  },
+  "blackDragonSW": {
+    "anchor": [
+      1055.0,
+      679.404
+    ],
+    "axisPoints": [
+      [
+        495.0,
+        890.329
+      ],
+      [
+        1615.0,
+        468.479
+      ]
+    ],
+    "lengthM": 18,
+    "sourceWaterlinePoints": [
+      [
+        200,
+        800
+      ],
+      [
+        1320,
+        430
+      ]
+    ]
+  },
+  "blueDragonNW": {
+    "anchor": [
+      1028.0,
+      626.7025
+    ],
+    "axisPoints": [
+      [
+        462.0,
+        446.015
+      ],
+      [
+        1594.0,
+        807.39
+      ]
+    ],
+    "lengthM": 18,
+    "sourceWaterlinePoints": [
+      [
+        168,
+        380
+      ],
+      [
+        1300,
+        854
+      ]
+    ]
+  },
+  "blueDragonSW": {
+    "anchor": [
+      1097.0,
+      635.759
+    ],
+    "axisPoints": [
+      [
+        567.0,
+        844.814
+      ],
+      [
+        1627.0,
+        426.704
+      ]
+    ],
+    "lengthM": 18,
+    "sourceWaterlinePoints": [
+      [
+        270,
+        800
+      ],
+      [
+        1330,
+        414
+      ]
+    ]
+  },
+  "greenDragonNW": {
+    "anchor": [
+      1012.0,
+      641.2305
+    ],
+    "axisPoints": [
+      [
+        445.0,
+        434.952
+      ],
+      [
+        1579.0,
+        847.509
+      ]
+    ],
+    "lengthM": 18,
+    "sourceWaterlinePoints": [
+      [
+        166,
+        372
+      ],
+      [
+        1300,
+        862
+      ]
+    ]
+  },
+  "greenDragonSW": {
+    "anchor": [
+      1097.0,
+      622.864
+    ],
+    "axisPoints": [
+      [
+        567.0,
+        814.244
+      ],
+      [
+        1627.0,
+        431.484
+      ]
+    ],
+    "lengthM": 18,
+    "sourceWaterlinePoints": [
+      [
+        270,
+        780
+      ],
+      [
+        1330,
+        430
+      ]
+    ]
+  },
+  "purpleDragonNW": {
+    "anchor": [
+      1034.0,
+      660.552
+    ],
+    "axisPoints": [
+      [
+        484.0,
+        492.202
+      ],
+      [
+        1584.0,
+        828.902
+      ]
+    ],
+    "lengthM": 18,
+    "sourceWaterlinePoints": [
+      [
+        196,
+        420
+      ],
+      [
+        1296,
+        858
+      ]
+    ]
+  },
+  "purpleDragonSW": {
+    "anchor": [
+      1097.0,
+      671.173
+    ],
+    "axisPoints": [
+      [
+        567.0,
+        873.106
+      ],
+      [
+        1627.0,
+        469.24
+      ]
+    ],
+    "lengthM": 18,
+    "sourceWaterlinePoints": [
+      [
+        270,
+        810
+      ],
+      [
+        1330,
+        424
+      ]
+    ]
+  },
+  "redDragonNW": {
+    "anchor": [
+      1016.0,
+      613.854
+    ],
+    "axisPoints": [
+      [
+        439.0,
+        391.59
+      ],
+      [
+        1593.0,
+        836.118
+      ]
+    ],
+    "lengthM": 18,
+    "sourceWaterlinePoints": [
+      [
+        158,
+        354
+      ],
+      [
+        1312,
+        860
+      ]
+    ]
+  },
+  "redDragonSW": {
+    "anchor": [
+      1098.0,
+      649.3785
+    ],
+    "axisPoints": [
+      [
+        568.0,
+        843.816
+      ],
+      [
+        1628.0,
+        454.941
+      ]
+    ],
+    "lengthM": 18,
+    "sourceWaterlinePoints": [
+      [
+        270,
+        760
+      ],
+      [
+        1330,
+        410
+      ]
+    ]
+  },
+  "yellowDragonNW": {
+    "anchor": [
+      1024.0,
+      632.0235
+    ],
+    "axisPoints": [
+      [
+        441.0,
+        409.68
+      ],
+      [
+        1607.0,
+        854.367
+      ]
+    ],
+    "lengthM": 18,
+    "sourceWaterlinePoints": [
+      [
+        148,
+        350
+      ],
+      [
+        1314,
+        890
+      ]
+    ]
+  },
+  "yellowDragonSW": {
+    "anchor": [
+      1094.0,
+      644.2950000000001
+    ],
+    "axisPoints": [
+      [
+        564.0,
+        853.118
+      ],
+      [
+        1624.0,
+        435.472
+      ]
+    ],
+    "lengthM": 18,
+    "sourceWaterlinePoints": [
+      [
+        270,
+        810
+      ],
+      [
+        1330,
+        430
+      ]
+    ]
+  },
+  "startMarker": {
+    "anchor": [
+      255.5,
+      966.56
+    ],
+    "heightM": 3
+  },
+  "goalMarker": {
+    "anchor": [
+      512.0,
+      952.16
+    ],
+    "heightM": 4
+  },
+  "raceBuoy": {
+    "anchor": [
+      127.5,
+      230.8
+    ],
+    "heightM": 1.2
+  },
+  "viewersStage": {
+    "anchor": [
+      534.505,
+      1660.844
+    ],
+    "axisPoints": [
+      [
+        118.154,
+        1812.34
+      ],
+      [
+        950.857,
+        1385.907
+      ]
+    ],
+    "lengthM": 16
+  },
+  "ceremonyStage": {
+    "anchor": [
+      613.275,
+      1795.507
+    ],
+    "axisPoints": [
+      [
+        247.56,
+        1941.392
+      ],
+      [
+        950.857,
+        1593.512
+      ]
+    ],
+    "lengthM": 10
+  },
+  "championStand1": {
+    "anchor": [
+      925.808,
+      1801.118
+    ],
+    "axisPoints": [
+      [
+        364.712,
+        1447.627
+      ],
+      [
+        1486.904,
+        1986.279
+      ]
+    ],
+    "lengthM": 10
+  },
+  "championStand2": {
+    "anchor": [
+      495.121,
+      1862.838
+    ],
+    "axisPoints": [
+      [
+        95.648,
+        1627.178
+      ],
+      [
+        894.593,
+        2003.112
+      ]
+    ],
+    "lengthM": 10
+  },
+  "pier": {
+    "anchor": [
+      971.487,
+      593.395
+    ],
+    "axisPoints": [
+      [
+        530.379,
+        693.169
+      ],
+      [
+        1412.595,
+        225.805
+      ]
+    ],
+    "lengthM": 8
+  },
+  "rescueBoat": {
+    "anchor": [
+      490.959,
+      763.09
+    ],
+    "axisPoints": [
+      [
+        75.748,
+        603.178
+      ],
+      [
+        920.197,
+        948.252
+      ]
+    ],
+    "lengthM": 7
+  }
+}

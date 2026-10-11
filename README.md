@@ -1,6 +1,6 @@
-# 香城模擬器 (The City of Heung Shing) v4.21.0 — 【你睇唔睇到呀？】
+# 香城模擬器 (The City of Heung Shing) v4.22.0 — 【龍舟競渡，包你平安】
 
-香城模擬器 (The City of Heung Shing) v4.21.0 — 【你睇唔睇到呀？】 is a SimCity 2000-style city builder inspired by Hong Kong: isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run bus company, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
+香城模擬器 (The City of Heung Shing) v4.22.0 — 【龍舟競渡，包你平安】 is a SimCity 2000-style city builder inspired by Hong Kong: isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run bus company, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
 
 Website and downloads: https://nortonyuen-oss.github.io/heung_shing_simulator/
 
@@ -9,6 +9,10 @@ Read public posts and replies on the website; sign in to GitHub to confirm a new
 post or reply. Website messages are tracked with the `website-feedback` issue label.
 
 ![The Heung Shing skyline at night, zoomed out: dense lights, the airport and the harbour](docs/assets/gameplay/nightSkyline.webp)
+
+## New in v4.22.0
+
+Waterfront dragon boat races with six crews, drifting, collisions, spectators and race audio; midnight bun scrambling on three towers with illustrated forum results. Build connected 1×1 event grounds for festivals and Lunar New Year markets. Existing saves remain compatible.
 
 ## What the game is
 

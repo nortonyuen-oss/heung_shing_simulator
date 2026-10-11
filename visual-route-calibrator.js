@@ -174,6 +174,8 @@ function setVisualRouteCalibrationTestModeEnabled(enabled) {
   visualRouteCalibrationUnlockCount = 0;
   visualRouteCalibrationLastUnlockClickAt = -Infinity;
   if (!visualRouteCalibrationTestModeEnabled) {
+    if (typeof closeBunHillMapEvent === 'function') closeBunHillMapEvent();
+    if (typeof closeBunHillClimberAnimationTest === 'function') closeBunHillClimberAnimationTest();
     visualRouteCalibrationLiveStates.forEach((state) => {
       clearVisualRouteCalibrationTarget(state.scene);
     });
@@ -1135,8 +1137,14 @@ function createVisualRoutePerformancePanel(scene) {
     + '<button type="button" class="vrp-sealight-btn">海上燈光校正（漁火）</button>'
     + '<button type="button" class="vrp-nightremote-btn">遠離市區夜色校正</button>'
     + '<button type="button" class="vrp-livelights-btn" data-active="false">使用 Phaser 光源：關閉</button>'
-    + '</div><div class="vrp-group-label">節慶</div><div class="vrp-grid">'
+    + '</div></details>'
+    + '<details class="vrp-tools vrp-events"><summary>啟動 event</summary><div class="vrp-grid">'
     + '<button type="button" class="vrp-ufo-btn">召喚 UFO</button>'
+    + '<button type="button" class="vrp-dragon-start-btn">啟動龍舟賽事</button>'
+    + '<button type="button" class="vrp-dragon-btn">預覽龍舟決賽</button>'
+    + '<button type="button" class="vrp-bun-climber-btn">預覽搶包山選手動畫</button>'
+    + '<button type="button" class="vrp-bun-start-btn">啟動海旁搶包山測試</button>'
+    + '<button type="button" class="vrp-bun-race-btn">預覽搶包山個人決賽</button>'
     + '</div></details>';
   root.querySelector('.vrp-close-btn')?.addEventListener?.('click', () => {
     setVisualRouteCalibrationTestModeEnabled(false);
@@ -1157,7 +1165,7 @@ function createVisualRoutePerformancePanel(scene) {
     if (typeof toggleTrafficLaneCalibrator === 'function') toggleTrafficLaneCalibrator(scene);
   });
   // Remember whether each section was left open (a per-viewer convenience only).
-  [['.vrp-tools', 'vrp-tools-open'], ['.vrp-metrics', 'vrp-metrics-open']].forEach(([selector, key]) => {
+  [['.vrp-tools:not(.vrp-events)', 'vrp-tools-open'], ['.vrp-events', 'vrp-events-open'], ['.vrp-metrics', 'vrp-metrics-open']].forEach(([selector, key]) => {
     const section = root.querySelector(selector);
     try {
       if (section && globalThis.localStorage?.getItem(key) === '1') section.open = true;
@@ -1205,6 +1213,19 @@ function createVisualRoutePerformancePanel(scene) {
     if (typeof toggleFerryBerthCalibrator === 'function') toggleFerryBerthCalibrator(scene);
   });
   // 發現 UFO now, whatever the hour or weather (festival-ufo.js)
+  root.querySelector('.vrp-dragon-btn')?.addEventListener?.('click', () => { if (typeof previewDragonBoatFestival === 'function') previewDragonBoatFestival(); });
+  root.querySelector('.vrp-dragon-start-btn')?.addEventListener?.('click', () => {
+    if (typeof startDragonBoatEventTest === 'function') startDragonBoatEventTest(scene);
+  });
+  root.querySelector('.vrp-bun-climber-btn')?.addEventListener?.('click', () => {
+    if (typeof openBunHillClimberAnimationTest === 'function') openBunHillClimberAnimationTest();
+  });
+  root.querySelector('.vrp-bun-start-btn')?.addEventListener?.('click', () => {
+    if (typeof startBunHillEventTest === 'function') startBunHillEventTest(scene);
+  });
+  root.querySelector('.vrp-bun-race-btn')?.addEventListener?.('click', () => {
+    if (typeof startBunHillEventTest === 'function') startBunHillEventTest(scene, true);
+  });
   root.querySelector('.vrp-ufo-btn')?.addEventListener?.('click', () => {
     if (typeof summonUfo === 'function') summonUfo();
   });

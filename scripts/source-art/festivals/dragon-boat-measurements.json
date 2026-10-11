@@ -1,0 +1,439 @@
+{
+  "targetSlope": 0.5,
+  "coordinates": "original image pixels, x right and y down",
+  "notes": "Manual reference samples on straight structural edges. Hull curvature, cloth sag, paddles and raised dragon heads/tails are not projection axes. The affine correction aligns the selected basis; hand-drawn local deviations remain. Originals are preserved.",
+  "assets": {
+    "DragonBoat/blackDragonNW.png": {
+      "downPoints": [
+        [
+          405,
+          478
+        ],
+        [
+          930,
+          814
+        ]
+      ],
+      "upPoints": [
+        [
+          986,
+          800
+        ],
+        [
+          1090,
+          751
+        ]
+      ],
+      "reference": "middle hull rail and transverse seat board",
+      "down": 0.64,
+      "up": 0.47115384615384615,
+      "yScale": 0.8999653859466944,
+      "ySkew": -0.0759778470058844
+    },
+    "DragonBoat/blueDragonNW.png": {
+      "downPoints": [
+        [
+          392,
+          550
+        ],
+        [
+          860,
+          830
+        ]
+      ],
+      "upPoints": [
+        [
+          974,
+          864
+        ],
+        [
+          1136,
+          800
+        ]
+      ],
+      "reference": "middle hull rail and transverse seat board",
+      "down": 0.5982905982905983,
+      "up": 0.3950617283950617,
+      "yScale": 1.0066921606118546,
+      "ySkew": -0.10229445506692161
+    },
+    "DragonBoat/greenDragonNW.png": {
+      "downPoints": [
+        [
+          378,
+          478
+        ],
+        [
+          874,
+          760
+        ]
+      ],
+      "upPoints": [
+        [
+          1012,
+          828
+        ],
+        [
+          1132,
+          776
+        ]
+      ],
+      "reference": "middle hull rail and transverse seat board",
+      "down": 0.5685483870967742,
+      "up": 0.43333333333333335,
+      "yScale": 0.998121813791253,
+      "ySkew": -0.06748054735712371
+    },
+    "DragonBoat/purpleDragonNW.png": {
+      "downPoints": [
+        [
+          462,
+          550
+        ],
+        [
+          854,
+          786
+        ]
+      ],
+      "upPoints": [
+        [
+          962,
+          854
+        ],
+        [
+          1100,
+          792
+        ]
+      ],
+      "reference": "middle hull rail and transverse seat board",
+      "down": 0.6020408163265306,
+      "up": 0.4492753623188406,
+      "yScale": 0.9511886341257559,
+      "ySkew": -0.07265438176958784
+    },
+    "DragonBoat/redDragonNW.png": {
+      "downPoints": [
+        [
+          410,
+          510
+        ],
+        [
+          898,
+          780
+        ]
+      ],
+      "upPoints": [
+        [
+          958,
+          792
+        ],
+        [
+          1146,
+          708
+        ]
+      ],
+      "reference": "middle hull rail and transverse seat board",
+      "down": 0.5532786885245902,
+      "up": 0.44680851063829785,
+      "yScale": 0.9999128084401429,
+      "ySkew": -0.05323044729270207
+    },
+    "DragonBoat/yellowDragonNW.png": {
+      "downPoints": [
+        [
+          392,
+          478
+        ],
+        [
+          898,
+          774
+        ]
+      ],
+      "upPoints": [
+        [
+          1004,
+          846
+        ],
+        [
+          1108,
+          800
+        ]
+      ],
+      "reference": "middle hull rail and transverse seat board",
+      "down": 0.5849802371541502,
+      "up": 0.4423076923076923,
+      "yScale": 0.9734369219385868,
+      "ySkew": -0.06944136145024046
+    },
+    "DragonBoat/blackDragonSW.png": {
+      "downPoints": [
+        [
+          500,
+          693
+        ],
+        [
+          623,
+          765
+        ]
+      ],
+      "upPoints": [
+        [
+          658,
+          744
+        ],
+        [
+          1185,
+          502
+        ]
+      ],
+      "reference": "middle hull rail and transverse seat board",
+      "down": 0.5853658536585366,
+      "up": 0.45920303605313095,
+      "yScale": 0.9573327425786443,
+      "ySkew": -0.060389898094816104
+    },
+    "DragonBoat/blueDragonSW.png": {
+      "downPoints": [
+        [
+          516,
+          716
+        ],
+        [
+          616,
+          772
+        ]
+      ],
+      "upPoints": [
+        [
+          678,
+          758
+        ],
+        [
+          1126,
+          546
+        ]
+      ],
+      "reference": "middle hull rail and transverse seat board",
+      "down": 0.56,
+      "up": 0.4732142857142857,
+      "yScale": 0.9678534393363292,
+      "ySkew": -0.04199792602834432
+    },
+    "DragonBoat/greenDragonSW.png": {
+      "downPoints": [
+        [
+          526,
+          704
+        ],
+        [
+          624,
+          746
+        ]
+      ],
+      "upPoints": [
+        [
+          670,
+          732
+        ],
+        [
+          1134,
+          522
+        ]
+      ],
+      "reference": "middle hull rail and transverse seat board",
+      "down": 0.42857142857142855,
+      "up": 0.4525862068965517,
+      "yScale": 1.1348707197763803,
+      "ySkew": 0.013626834381551371
+    },
+    "DragonBoat/purpleDragonSW.png": {
+      "downPoints": [
+        [
+          534,
+          718
+        ],
+        [
+          632,
+          776
+        ]
+      ],
+      "upPoints": [
+        [
+          690,
+          762
+        ],
+        [
+          1136,
+          542
+        ]
+      ],
+      "reference": "middle hull rail and transverse seat board",
+      "down": 0.5918367346938775,
+      "up": 0.49327354260089684,
+      "yScale": 0.9215653200640971,
+      "ySkew": -0.04541620983385342
+    },
+    "DragonBoat/redDragonSW.png": {
+      "downPoints": [
+        [
+          522,
+          690
+        ],
+        [
+          620,
+          736
+        ]
+      ],
+      "upPoints": [
+        [
+          662,
+          726
+        ],
+        [
+          1130,
+          514
+        ]
+      ],
+      "reference": "middle hull rail and transverse seat board",
+      "down": 0.46938775510204084,
+      "up": 0.452991452991453,
+      "yScale": 1.0841527987897126,
+      "ySkew": -0.008888048411497741
+    },
+    "DragonBoat/yellowDragonSW.png": {
+      "downPoints": [
+        [
+          526,
+          718
+        ],
+        [
+          630,
+          772
+        ]
+      ],
+      "upPoints": [
+        [
+          686,
+          758
+        ],
+        [
+          1140,
+          548
+        ]
+      ],
+      "reference": "middle hull rail and transverse seat board",
+      "down": 0.5192307692307693,
+      "up": 0.46255506607929514,
+      "yScale": 1.0185520752437656,
+      "ySkew": -0.028863577530416806
+    },
+    "DragonBoat/viewersStage.png": {
+      "downPoints": [
+        [
+          110,
+          743
+        ],
+        [
+          209,
+          787
+        ]
+      ],
+      "upPoints": [
+        [
+          450,
+          887
+        ],
+        [
+          1180,
+          615
+        ]
+      ],
+      "reference": "platform / podium horizontal edges",
+      "down": 0.4444444444444444,
+      "up": 0.3726027397260274,
+      "yScale": 1.223919523099851,
+      "ySkew": -0.04396423248882262
+    },
+    "DragonBoat/championStand1.png": {
+      "downPoints": [
+        [
+          400,
+          544
+        ],
+        [
+          682,
+          624
+        ]
+      ],
+      "upPoints": [
+        [
+          682,
+          624
+        ],
+        [
+          849,
+          507
+        ]
+      ],
+      "reference": "platform / podium horizontal edges",
+      "down": 0.28368794326241137,
+      "up": 0.7005988023952096,
+      "yScale": 1.0159641023428398,
+      "ySkew": 0.21178323337791774
+    },
+    "DragonBoat/championStand2.png": {
+      "downPoints": [
+        [
+          397,
+          670
+        ],
+        [
+          567,
+          733
+        ]
+      ],
+      "upPoints": [
+        [
+          567,
+          733
+        ],
+        [
+          668,
+          674
+        ]
+      ],
+      "reference": "platform / podium horizontal edges",
+      "down": 0.37058823529411766,
+      "up": 0.5841584158415841,
+      "yScale": 1.0473982797535533,
+      "ySkew": 0.1118465198560361
+    },
+    "DragonBoat/ceremonyStage.png": {
+      "downPoints": [
+        [
+          427,
+          765
+        ],
+        [
+          521,
+          824
+        ]
+      ],
+      "upPoints": [
+        [
+          521,
+          827
+        ],
+        [
+          1143,
+          630
+        ]
+      ],
+      "reference": "platform / podium horizontal edges",
+      "down": 0.6276595744680851,
+      "up": 0.3167202572347267,
+      "yScale": 1.0588959721819762,
+      "ySkew": -0.16462619530570846
+    }
+  }
+}

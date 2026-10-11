@@ -1,0 +1,13 @@
+{
+  "source":"scripts/source-art/festivals/original/bunHill/bunHillClimbersSheet-v1.png",
+  "heightM":1.7,
+  "cellSize":256,
+  "poses":["waiting","climbA","climbB","collect","descend","grounded"],
+  "rows":[
+    {"gender":"male","view":"NE","head":[176,17],"feet":[170,255],"hips":[[174,147],[414,164],[670,166],[891,169],[1170,172],[1367,145]],"groundedFeet":[1362,255]},
+    {"gender":"male","view":"NW","head":[168,280],"feet":[161,507],"hips":[[165,397],[420,419],[671,418],[890,423],[1108,429],[1361,393]],"groundedFeet":[1357,510]},
+    {"gender":"female","view":"NE","head":[180,524],"feet":[175,752],"hips":[[179,652],[422,665],[671,666],[888,677],[1163,677],[1370,652]],"groundedFeet":[1371,754]},
+    {"gender":"female","view":"NW","head":[168,781],"feet":[161,1004],"hips":[[162,910],[419,928],[672,929],[886,939],[1109,934],[1359,904]],"groundedFeet":[1350,1004]}
+  ],
+  "note":"Head-to-ground controls come from standing poses, not raised hands. Shared hip anchors preserve root position across animation. Preserve the orthographic source view; no rectangular footprint exists to justify skewing the human body. Two rear diagonal views plus horizontal mirrors; not four independently generated front/back views."
+}

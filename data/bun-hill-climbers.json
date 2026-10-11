@@ -1,0 +1,2125 @@
+{
+  "version": 1,
+  "source": "scripts/source-art/festivals/original/bunHill/bunHillClimbersSheet-v1.png",
+  "atlas": {
+    "file": "Models/festivals/bunHillClimbers/atlas.png",
+    "width": 2048,
+    "height": 2048,
+    "frameWidth": 256,
+    "frameHeight": 256
+  },
+  "frames": {
+    "male_NE_waiting": {
+      "file": "Models/festivals/bunHillClimbers/male_NE_waiting.png",
+      "gender": "male",
+      "view": "NE",
+      "pose": "waiting",
+      "mirrored": false,
+      "rect": [
+        0,
+        0,
+        256,
+        256
+      ],
+      "anchor": [
+        128,
+        128
+      ],
+      "groundAnchor": [
+        126,
+        186.45736434108525
+      ],
+      "heightM": 1.7,
+      "personHeightPx": 128.22480620155036,
+      "hipHeightM": 0.7714285714285714,
+      "sourceBounds": [
+        131,
+        17,
+        223,
+        262
+      ],
+      "sourceHip": [
+        174,
+        147
+      ],
+      "sourcePersonPoints": [
+        [
+          176,
+          17
+        ],
+        [
+          170,
+          255
+        ]
+      ]
+    },
+    "male_NE_waiting_m": {
+      "file": "Models/festivals/bunHillClimbers/male_NE_waiting_m.png",
+      "gender": "male",
+      "view": "NE",
+      "pose": "waiting",
+      "mirrored": true,
+      "rect": [
+        256,
+        0,
+        256,
+        256
+      ],
+      "anchor": [
+        128,
+        128
+      ],
+      "groundAnchor": [
+        130,
+        186.45736434108525
+      ],
+      "heightM": 1.7,
+      "personHeightPx": 128.22480620155036,
+      "hipHeightM": 0.7714285714285714,
+      "sourceBounds": [
+        131,
+        17,
+        223,
+        262
+      ],
+      "sourceHip": [
+        174,
+        147
+      ],
+      "sourcePersonPoints": [
+        [
+          176,
+          17
+        ],
+        [
+          170,
+          255
+        ]
+      ]
+    },
+    "male_NE_climbA": {
+      "file": "Models/festivals/bunHillClimbers/male_NE_climbA.png",
+      "gender": "male",
+      "view": "NE",
+      "pose": "climbA",
+      "mirrored": false,
+      "rect": [
+        512,
+        0,
+        256,
+        256
+      ],
+      "anchor": [
+        128,
+        128
+      ],
+      "groundAnchor": [
+        -3.6590909090909065,
+        176.875
+      ],
+      "heightM": 1.7,
+      "personHeightPx": 127.75,
+      "hipHeightM": 0.7714285714285714,
+      "sourceBounds": [
+        365,
+        4,
+        484,
+        265
+      ],
+      "sourceHip": [
+        414,
+        164
+      ],
+      "sourcePersonPoints": [
+        [
+          176,
+          17
+        ],
+        [
+          170,
+          255
+        ]
+      ]
+    },
+    "male_NE_climbA_m": {
+      "file": "Models/festivals/bunHillClimbers/male_NE_climbA_m.png",
+      "gender": "male",
+      "view": "NE",
+      "pose": "climbA",
+      "mirrored": true,
+      "rect": [
+        768,
+        0,
+        256,
+        256
+      ],
+      "anchor": [
+        128,
+        128
+      ],
+      "groundAnchor": [
+        259.6590909090909,
+        176.875
+      ],
+      "heightM": 1.7,
+      "personHeightPx": 127.75,
+      "hipHeightM": 0.7714285714285714,
+      "sourceBounds": [
+        365,
+        4,
+        484,
+        265
+      ],
+      "sourceHip": [
+        414,
+        164
+      ],
+      "sourcePersonPoints": [
+        [
+          176,
+          17
+        ],
+        [
+          170,
+          255
+        ]
+      ]
+    },
+    "male_NE_climbB": {
+      "file": "Models/festivals/bunHillClimbers/male_NE_climbB.png",
+      "gender": "male",
+      "view": "NE",
+      "pose": "climbB",
+      "mirrored": false,
+      "rect": [
+        1024,
+        0,
+        256,
+        256
+      ],
+      "anchor": [
+        128,
+        128
+      ],
+      "groundAnchor": [
+        -140.12598425196853,
+        176.3076923076923
+      ],
+      "heightM": 1.7,
+      "personHeightPx": 128.15384615384616,
+      "hipHeightM": 0.7714285714285714,
+      "sourceBounds": [
+        617,
+        5,
+        731,
+        266
+      ],
+      "sourceHip": [
+        670,
+        166
+      ],
+      "sourcePersonPoints": [
+        [
+          176,
+          17
+        ],
+        [
+          170,
+          255
+        ]
+      ]
+    },
+    "male_NE_climbB_m": {
+      "file": "Models/festivals/bunHillClimbers/male_NE_climbB_m.png",
+      "gender": "male",
+      "view": "NE",
+      "pose": "climbB",
+      "mirrored": true,
+      "rect": [
+        1280,
+        0,
+        256,
+        256
+      ],
+      "anchor": [
+        128,
+        128
+      ],
+      "groundAnchor": [
+        396.12598425196853,
+        176.3076923076923
+      ],
+      "heightM": 1.7,
+      "personHeightPx": 128.15384615384616,
+      "hipHeightM": 0.7714285714285714,
+      "sourceBounds": [
+        617,
+        5,
+        731,
+        266
+      ],
+      "sourceHip": [
+        670,
+        166
+      ],
+      "sourcePersonPoints": [
+        [
+          176,
+          17
+        ],
+        [
+          170,
+          255
+        ]
+      ]
+    },
+    "male_NE_collect": {
+      "file": "Models/festivals/bunHillClimbers/male_NE_collect.png",
+      "gender": "male",
+      "view": "NE",
+      "pose": "collect",
+      "mirrored": false,
+      "rect": [
+        1536,
+        0,
+        256,
+        256
+      ],
+      "anchor": [
+        128,
+        128
+      ],
+      "groundAnchor": [
+        -258.2543859649123,
+        174.352
+      ],
+      "heightM": 1.7,
+      "personHeightPx": 127.56800000000001,
+      "hipHeightM": 0.7714285714285714,
+      "sourceBounds": [
+        853,
+        29,
+        954,
+        266
+      ],
+      "sourceHip": [
+        891,
+        169
+      ],
+      "sourcePersonPoints": [
+        [
+          176,
+          17
+        ],
+        [
+          170,
+          255
+        ]
+      ]
+    },
+    "male_NE_collect_m": {
+      "file": "Models/festivals/bunHillClimbers/male_NE_collect_m.png",
+      "gender": "male",
+      "view": "NE",
+      "pose": "collect",
+      "mirrored": true,
+      "rect": [
+        1792,
+        0,
+        256,
+        256
+      ],
+      "anchor": [
+        128,
+        128
+      ],
+      "groundAnchor": [
+        514.2543859649122,
+        174.352
+      ],
+      "heightM": 1.7,
+      "personHeightPx": 127.56800000000001,
+      "hipHeightM": 0.7714285714285714,
+      "sourceBounds": [
+        853,
+        29,
+        954,
+        266
+      ],
+      "sourceHip": [
+        891,
+        169
+      ],
+      "sourcePersonPoints": [
+        [
+          176,
+          17
+        ],
+        [
+          170,
+          255
+        ]
+      ]
+    },
+    "male_NE_descend": {
+      "file": "Models/festivals/bunHillClimbers/male_NE_descend.png",
+      "gender": "male",
+      "view": "NE",
+      "pose": "descend",
+      "mirrored": false,
+      "rect": [
+        0,
+        256,
+        256,
+        256
+      ],
+      "anchor": [
+        128,
+        128
+      ],
+      "groundAnchor": [
+        -407.8994413407821,
+        172.55555555555554
+      ],
+      "heightM": 1.7,
+      "personHeightPx": 128.44444444444443,
+      "hipHeightM": 0.7714285714285714,
+      "sourceBounds": [
+        1082,
+        58,
+        1248,
+        234
+      ],
+      "sourceHip": [
+        1170,
+        172
+      ],
+      "sourcePersonPoints": [
+        [
+          176,
+          17
+        ],
+        [
+          170,
+          255
+        ]
+      ]
+    },
+    "male_NE_descend_m": {
+      "file": "Models/festivals/bunHillClimbers/male_NE_descend_m.png",
+      "gender": "male",
+      "view": "NE",
+      "pose": "descend",
+      "mirrored": true,
+      "rect": [
+        256,
+        256,
+        256,
+        256
+      ],
+      "anchor": [
+        128,
+        128
+      ],
+      "groundAnchor": [
+        663.8994413407821,
+        172.55555555555554
+      ],
+      "heightM": 1.7,
+      "personHeightPx": 128.44444444444443,
+      "hipHeightM": 0.7714285714285714,
+      "sourceBounds": [
+        1082,
+        58,
+        1248,
+        234
+      ],
+      "sourceHip": [
+        1170,
+        172
+      ],
+      "sourcePersonPoints": [
+        [
+          176,
+          17
+        ],
+        [
+          170,
+          255
+        ]
+      ]
+    },
+    "male_NE_grounded": {
+      "file": "Models/festivals/bunHillClimbers/male_NE_grounded.png",
+      "gender": "male",
+      "view": "NE",
+      "pose": "grounded",
+      "mirrored": false,
+      "rect": [
+        512,
+        256,
+        256,
+        256
+      ],
+      "anchor": [
+        128,
+        128
+      ],
+      "groundAnchor": [
+        125.73584905660377,
+        186.94980694980697
+      ],
+      "heightM": 1.7,
+      "personHeightPx": 127.72972972972974,
+      "hipHeightM": 0.7714285714285714,
+      "sourceBounds": [
+        1322,
+        17,
+        1415,
+        263
+      ],
+      "sourceHip": [
+        1367,
+        145
+      ],
+      "sourcePersonPoints": [
+        [
+          176,
+          17
+        ],
+        [
+          170,
+          255
+        ]
+      ]
+    },
+    "male_NE_grounded_m": {
+      "file": "Models/festivals/bunHillClimbers/male_NE_grounded_m.png",
+      "gender": "male",
+      "view": "NE",
+      "pose": "grounded",
+      "mirrored": true,
+      "rect": [
+        768,
+        256,
+        256,
+        256
+      ],
+      "anchor": [
+        128,
+        128
+      ],
+      "groundAnchor": [
+        130.26415094339623,
+        186.94980694980697
+      ],
+      "heightM": 1.7,
+      "personHeightPx": 127.72972972972974,
+      "hipHeightM": 0.7714285714285714,
+      "sourceBounds": [
+        1322,
+        17,
+        1415,
+        263
+      ],
+      "sourceHip": [
+        1367,
+        145
+      ],
+      "sourcePersonPoints": [
+        [
+          176,
+          17
+        ],
+        [
+          170,
+          255
+        ]
+      ]
+    },
+    "male_NW_waiting": {
+      "file": "Models/festivals/bunHillClimbers/male_NW_waiting.png",
+      "gender": "male",
+      "view": "NW",
+      "pose": "waiting",
+      "mirrored": false,
+      "rect": [
+        1024,
+        256,
+        256,
+        256
+      ],
+      "anchor": [
+        128,
+        128
+      ],
+      "groundAnchor": [
+        125.58823529411765,
+        190.12145748987854
+      ],
+      "heightM": 1.7,
+      "personHeightPx": 127.74493927125506,
+      "hipHeightM": 0.8237885462555066,
+      "sourceBounds": [
+        122,
+        280,
+        211,
+        514
+      ],
+      "sourceHip": [
+        165,
+        397
+      ],
+      "sourcePersonPoints": [
+        [
+          168,
+          280
+        ],
+        [
+          161,
+          507
+        ]
+      ]
+    },
+    "male_NW_waiting_m": {
+      "file": "Models/festivals/bunHillClimbers/male_NW_waiting_m.png",
+      "gender": "male",
+      "view": "NW",
+      "pose": "waiting",
+      "mirrored": true,
+      "rect": [
+        1280,
+        256,
+        256,
+        256
+      ],
+      "anchor": [
+        128,
+        128
+      ],
+      "groundAnchor": [
+        130.41176470588235,
+        190.12145748987854
+      ],
+      "heightM": 1.7,
+      "personHeightPx": 127.74493927125506,
+      "hipHeightM": 0.8237885462555066,
+      "sourceBounds": [
+        122,
+        280,
+        211,
+        514
+      ],
+      "sourceHip": [
+        165,
+        397
+      ],
+      "sourcePersonPoints": [
+        [
+          168,
+          280
+        ],
+        [
+          161,
+          507
+        ]
+      ]
+    },
+    "male_NW_climbA": {
+      "file": "Models/festivals/bunHillClimbers/male_NW_climbA.png",
+      "gender": "male",
+      "view": "NW",
+      "pose": "climbA",
+      "mirrored": false,
+      "rect": [
+        1536,
+        256,
+        256,
+        256
+      ],
+      "anchor": [
+        128,
+        128
+      ],
+      "groundAnchor": [
+        -18.41221374045803,
+        177.97744360902257
+      ],
+      "heightM": 1.7,
+      "personHeightPx": 128.00751879699249,
+      "hipHeightM": 0.8237885462555066,
+      "sourceBounds": [
+        366,
+        263,
+        484,
+        516
+      ],
+      "sourceHip": [
+        420,
+        419
+      ],
+      "sourcePersonPoints": [
+        [
+          168,
+          280
+        ],
+        [
+          161,
+          507
+        ]
+      ]
+    },
+    "male_NW_climbA_m": {
+      "file": "Models/festivals/bunHillClimbers/male_NW_climbA_m.png",
+      "gender": "male",
+      "view": "NW",
+      "pose": "climbA",
+      "mirrored": true,
+      "rect": [
+        1792,
+        256,
+        256,
+        256
+      ],
+      "anchor": [
+        128,
+        128
+      ],
+      "groundAnchor": [
+        274.412213740458,
+        177.97744360902257
+      ],
+      "heightM": 1.7,
+      "personHeightPx": 128.00751879699249,
+      "hipHeightM": 0.8237885462555066,
+      "sourceBounds": [
+        366,
+        263,
+        484,
+        516
+      ],
+      "sourceHip": [
+        420,
+        419
+      ],
+      "sourcePersonPoints": [
+        [
+          168,
+          280
+        ],
+        [
+          161,
+          507
+        ]
+      ]
+    },
+    "male_NW_climbB": {
+      "file": "Models/festivals/bunHillClimbers/male_NW_climbB.png",
+      "gender": "male",
+      "view": "NW",
+      "pose": "climbB",
+      "mirrored": false,
+      "rect": [
+        0,
+        512,
+        256,
+        256
+      ],
+      "anchor": [
+        128,
+        128
+      ],
+      "groundAnchor": [
+        -157.96000000000004,
+        177.969696969697
+      ],
+      "heightM": 1.7,
+      "personHeightPx": 128.11742424242425,
+      "hipHeightM": 0.8237885462555066,
+      "sourceBounds": [
+        608,
+        265,
+        720,
+        516
+      ],
+      "sourceHip": [
+        671,
+        418
+      ],
+      "sourcePersonPoints": [
+        [
+          168,
+          280
+        ],
+        [
+          161,
+          507
+        ]
+      ]
+    },
+    "male_NW_climbB_m": {
+      "file": "Models/festivals/bunHillClimbers/male_NW_climbB_m.png",
+      "gender": "male",
+      "view": "NW",
+      "pose": "climbB",
+      "mirrored": true,
+      "rect": [
+        256,
+        512,
+        256,
+        256
+      ],
+      "anchor": [
+        128,
+        128
+      ],
+      "groundAnchor": [
+        413.96000000000004,
+        177.969696969697
+      ],
+      "heightM": 1.7,
+      "personHeightPx": 128.11742424242425,
+      "hipHeightM": 0.8237885462555066,
+      "sourceBounds": [
+        608,
+        265,
+        720,
+        516
+      ],
+      "sourceHip": [
+        671,
+        418
+      ],
+      "sourcePersonPoints": [
+        [
+          168,
+          280
+        ],
+        [
+          161,
+          507
+        ]
+      ]
+    },
+    "male_NW_collect": {
+      "file": "Models/festivals/bunHillClimbers/male_NW_collect.png",
+      "gender": "male",
+      "view": "NW",
+      "pose": "collect",
+      "mirrored": false,
+      "rect": [
+        512,
+        512,
+        256,
+        256
+      ],
+      "anchor": [
+        128,
+        128
+      ],
+      "groundAnchor": [
+        -279.88000000000005,
+        175.11764705882354
+      ],
+      "heightM": 1.7,
+      "personHeightPx": 127.80672268907563,
+      "hipHeightM": 0.8237885462555066,
+      "sourceBounds": [
+        840,
+        289,
+        952,
+        514
+      ],
+      "sourceHip": [
+        890,
+        423
+      ],
+      "sourcePersonPoints": [
+        [
+          168,
+          280
+        ],
+        [
+          161,
+          507
+        ]
+      ]
+    },
+    "male_NW_collect_m": {
+      "file": "Models/festivals/bunHillClimbers/male_NW_collect_m.png",
+      "gender": "male",
+      "view": "NW",
+      "pose": "collect",
+      "mirrored": true,
+      "rect": [
+        768,
+        512,
+        256,
+        256
+      ],
+      "anchor": [
+        128,
+        128
+      ],
+      "groundAnchor": [
+        535.8800000000001,
+        175.11764705882354
+      ],
+      "heightM": 1.7,
+      "personHeightPx": 127.80672268907563,
+      "hipHeightM": 0.8237885462555066,
+      "sourceBounds": [
+        840,
+        289,
+        952,
+        514
+      ],
+      "sourceHip": [
+        890,
+        423
+      ],
+      "sourcePersonPoints": [
+        [
+          168,
+          280
+        ],
+        [
+          161,
+          507
+        ]
+      ]
+    },
+    "male_NW_descend": {
+      "file": "Models/festivals/bunHillClimbers/male_NW_descend.png",
+      "gender": "male",
+      "view": "NW",
+      "pose": "descend",
+      "mirrored": false,
+      "rect": [
+        1024,
+        512,
+        256,
+        256
+      ],
+      "anchor": [
+        128,
+        128
+      ],
+      "groundAnchor": [
+        -406.1005586592179,
+        172.03225806451616
+      ],
+      "heightM": 1.7,
+      "personHeightPx": 128.1451612903226,
+      "hipHeightM": 0.8237885462555066,
+      "sourceBounds": [
+        1048,
+        311,
+        1214,
+        484
+      ],
+      "sourceHip": [
+        1108,
+        429
+      ],
+      "sourcePersonPoints": [
+        [
+          168,
+          280
+        ],
+        [
+          161,
+          507
+        ]
+      ]
+    },
+    "male_NW_descend_m": {
+      "file": "Models/festivals/bunHillClimbers/male_NW_descend_m.png",
+      "gender": "male",
+      "view": "NW",
+      "pose": "descend",
+      "mirrored": true,
+      "rect": [
+        1280,
+        512,
+        256,
+        256
+      ],
+      "anchor": [
+        128,
+        128
+      ],
+      "groundAnchor": [
+        662.1005586592179,
+        172.03225806451616
+      ],
+      "heightM": 1.7,
+      "personHeightPx": 128.1451612903226,
+      "hipHeightM": 0.8237885462555066,
+      "sourceBounds": [
+        1048,
+        311,
+        1214,
+        484
+      ],
+      "sourceHip": [
+        1108,
+        429
+      ],
+      "sourcePersonPoints": [
+        [
+          168,
+          280
+        ],
+        [
+          161,
+          507
+        ]
+      ]
+    },
+    "male_NW_grounded": {
+      "file": "Models/festivals/bunHillClimbers/male_NW_grounded.png",
+      "gender": "male",
+      "view": "NW",
+      "pose": "grounded",
+      "mirrored": false,
+      "rect": [
+        1536,
+        512,
+        256,
+        256
+      ],
+      "anchor": [
+        128,
+        128
+      ],
+      "groundAnchor": [
+        125.73584905660377,
+        193.65882352941176
+      ],
+      "heightM": 1.7,
+      "personHeightPx": 128.18823529411765,
+      "hipHeightM": 0.8237885462555066,
+      "sourceBounds": [
+        1314,
+        274,
+        1407,
+        516
+      ],
+      "sourceHip": [
+        1361,
+        393
+      ],
+      "sourcePersonPoints": [
+        [
+          168,
+          280
+        ],
+        [
+          161,
+          507
+        ]
+      ]
+    },
+    "male_NW_grounded_m": {
+      "file": "Models/festivals/bunHillClimbers/male_NW_grounded_m.png",
+      "gender": "male",
+      "view": "NW",
+      "pose": "grounded",
+      "mirrored": true,
+      "rect": [
+        1792,
+        512,
+        256,
+        256
+      ],
+      "anchor": [
+        128,
+        128
+      ],
+      "groundAnchor": [
+        130.26415094339623,
+        193.65882352941176
+      ],
+      "heightM": 1.7,
+      "personHeightPx": 128.18823529411765,
+      "hipHeightM": 0.8237885462555066,
+      "sourceBounds": [
+        1314,
+        274,
+        1407,
+        516
+      ],
+      "sourceHip": [
+        1361,
+        393
+      ],
+      "sourcePersonPoints": [
+        [
+          168,
+          280
+        ],
+        [
+          161,
+          507
+        ]
+      ]
+    },
+    "female_NE_waiting": {
+      "file": "Models/festivals/bunHillClimbers/female_NE_waiting.png",
+      "gender": "female",
+      "view": "NE",
+      "pose": "waiting",
+      "mirrored": false,
+      "rect": [
+        0,
+        768,
+        256,
+        256
+      ],
+      "anchor": [
+        128,
+        128
+      ],
+      "groundAnchor": [
+        125.96039603960395,
+        184.1532258064516
+      ],
+      "heightM": 1.7,
+      "personHeightPx": 127.79032258064515,
+      "hipHeightM": 0.7456140350877193,
+      "sourceBounds": [
+        135,
+        524,
+        223,
+        759
+      ],
+      "sourceHip": [
+        179,
+        652
+      ],
+      "sourcePersonPoints": [
+        [
+          180,
+          524
+        ],
+        [
+          175,
+          752
+        ]
+      ]
+    },
+    "female_NE_waiting_m": {
+      "file": "Models/festivals/bunHillClimbers/female_NE_waiting_m.png",
+      "gender": "female",
+      "view": "NE",
+      "pose": "waiting",
+      "mirrored": true,
+      "rect": [
+        256,
+        768,
+        256,
+        256
+      ],
+      "anchor": [
+        128,
+        128
+      ],
+      "groundAnchor": [
+        130.03960396039605,
+        184.1532258064516
+      ],
+      "heightM": 1.7,
+      "personHeightPx": 127.79032258064515,
+      "hipHeightM": 0.7456140350877193,
+      "sourceBounds": [
+        135,
+        524,
+        223,
+        759
+      ],
+      "sourceHip": [
+        179,
+        652
+      ],
+      "sourcePersonPoints": [
+        [
+          180,
+          524
+        ],
+        [
+          175,
+          752
+        ]
+      ]
+    },
+    "female_NE_climbA": {
+      "file": "Models/festivals/bunHillClimbers/female_NE_climbA.png",
+      "gender": "female",
+      "view": "NE",
+      "pose": "climbA",
+      "mirrored": false,
+      "rect": [
+        512,
+        768,
+        256,
+        256
+      ],
+      "anchor": [
+        128,
+        128
+      ],
+      "groundAnchor": [
+        -10.915966386554615,
+        176.44573643410854
+      ],
+      "heightM": 1.7,
+      "personHeightPx": 128.13953488372093,
+      "hipHeightM": 0.7456140350877193,
+      "sourceBounds": [
+        378,
+        517,
+        484,
+        762
+      ],
+      "sourceHip": [
+        422,
+        665
+      ],
+      "sourcePersonPoints": [
+        [
+          180,
+          524
+        ],
+        [
+          175,
+          752
+        ]
+      ]
+    },
+    "female_NE_climbA_m": {
+      "file": "Models/festivals/bunHillClimbers/female_NE_climbA_m.png",
+      "gender": "female",
+      "view": "NE",
+      "pose": "climbA",
+      "mirrored": true,
+      "rect": [
+        768,
+        768,
+        256,
+        256
+      ],
+      "anchor": [
+        128,
+        128
+      ],
+      "groundAnchor": [
+        266.9159663865546,
+        176.44573643410854
+      ],
+      "heightM": 1.7,
+      "personHeightPx": 128.13953488372093,
+      "hipHeightM": 0.7456140350877193,
+      "sourceBounds": [
+        378,
+        517,
+        484,
+        762
+      ],
+      "sourceHip": [
+        422,
+        665
+      ],
+      "sourcePersonPoints": [
+        [
+          180,
+          524
+        ],
+        [
+          175,
+          752
+        ]
+      ]
+    },
+    "female_NE_climbB": {
+      "file": "Models/festivals/bunHillClimbers/female_NE_climbB.png",
+      "gender": "female",
+      "view": "NE",
+      "pose": "climbB",
+      "mirrored": false,
+      "rect": [
+        1024,
+        768,
+        256,
+        256
+      ],
+      "anchor": [
+        128,
+        128
+      ],
+      "groundAnchor": [
+        -151.11904761904762,
+        175.8923076923077
+      ],
+      "heightM": 1.7,
+      "personHeightPx": 128.03076923076924,
+      "hipHeightM": 0.7456140350877193,
+      "sourceBounds": [
+        616,
+        516,
+        729,
+        763
+      ],
+      "sourceHip": [
+        671,
+        666
+      ],
+      "sourcePersonPoints": [
+        [
+          180,
+          524
+        ],
+        [
+          175,
+          752
+        ]
+      ]
+    },
+    "female_NE_climbB_m": {
+      "file": "Models/festivals/bunHillClimbers/female_NE_climbB_m.png",
+      "gender": "female",
+      "view": "NE",
+      "pose": "climbB",
+      "mirrored": true,
+      "rect": [
+        1280,
+        768,
+        256,
+        256
+      ],
+      "anchor": [
+        128,
+        128
+      ],
+      "groundAnchor": [
+        407.1190476190476,
+        175.8923076923077
+      ],
+      "heightM": 1.7,
+      "personHeightPx": 128.03076923076924,
+      "hipHeightM": 0.7456140350877193,
+      "sourceBounds": [
+        616,
+        516,
+        729,
+        763
+      ],
+      "sourceHip": [
+        671,
+        666
+      ],
+      "sourcePersonPoints": [
+        [
+          180,
+          524
+        ],
+        [
+          175,
+          752
+        ]
+      ]
+    },
+    "female_NE_collect": {
+      "file": "Models/festivals/bunHillClimbers/female_NE_collect.png",
+      "gender": "female",
+      "view": "NE",
+      "pose": "collect",
+      "mirrored": false,
+      "rect": [
+        1536,
+        768,
+        256,
+        256
+      ],
+      "anchor": [
+        128,
+        128
+      ],
+      "groundAnchor": [
+        -270.40833333333336,
+        170.3276595744681
+      ],
+      "heightM": 1.7,
+      "personHeightPx": 128.068085106383,
+      "hipHeightM": 0.7456140350877193,
+      "sourceBounds": [
+        848,
+        542,
+        955,
+        764
+      ],
+      "sourceHip": [
+        888,
+        677
+      ],
+      "sourcePersonPoints": [
+        [
+          180,
+          524
+        ],
+        [
+          175,
+          752
+        ]
+      ]
+    },
+    "female_NE_collect_m": {
+      "file": "Models/festivals/bunHillClimbers/female_NE_collect_m.png",
+      "gender": "female",
+      "view": "NE",
+      "pose": "collect",
+      "mirrored": true,
+      "rect": [
+        1792,
+        768,
+        256,
+        256
+      ],
+      "anchor": [
+        128,
+        128
+      ],
+      "groundAnchor": [
+        526.4083333333333,
+        170.3276595744681
+      ],
+      "heightM": 1.7,
+      "personHeightPx": 128.068085106383,
+      "hipHeightM": 0.7456140350877193,
+      "sourceBounds": [
+        848,
+        542,
+        955,
+        764
+      ],
+      "sourceHip": [
+        888,
+        677
+      ],
+      "sourcePersonPoints": [
+        [
+          180,
+          524
+        ],
+        [
+          175,
+          752
+        ]
+      ]
+    },
+    "female_NE_descend": {
+      "file": "Models/festivals/bunHillClimbers/female_NE_descend.png",
+      "gender": "female",
+      "view": "NE",
+      "pose": "descend",
+      "mirrored": false,
+      "rect": [
+        0,
+        1024,
+        256,
+        256
+      ],
+      "anchor": [
+        128,
+        128
+      ],
+      "groundAnchor": [
+        -428.5862068965517,
+        170.50526315789472
+      ],
+      "heightM": 1.7,
+      "personHeightPx": 128.4,
+      "hipHeightM": 0.7456140350877193,
+      "sourceBounds": [
+        1084,
+        560,
+        1245,
+        737
+      ],
+      "sourceHip": [
+        1163,
+        677
+      ],
+      "sourcePersonPoints": [
+        [
+          180,
+          524
+        ],
+        [
+          175,
+          752
+        ]
+      ]
+    },
+    "female_NE_descend_m": {
+      "file": "Models/festivals/bunHillClimbers/female_NE_descend_m.png",
+      "gender": "female",
+      "view": "NE",
+      "pose": "descend",
+      "mirrored": true,
+      "rect": [
+        256,
+        1024,
+        256,
+        256
+      ],
+      "anchor": [
+        128,
+        128
+      ],
+      "groundAnchor": [
+        684.5862068965516,
+        170.50526315789472
+      ],
+      "heightM": 1.7,
+      "personHeightPx": 128.4,
+      "hipHeightM": 0.7456140350877193,
+      "sourceBounds": [
+        1084,
+        560,
+        1245,
+        737
+      ],
+      "sourceHip": [
+        1163,
+        677
+      ],
+      "sourcePersonPoints": [
+        [
+          180,
+          524
+        ],
+        [
+          175,
+          752
+        ]
+      ]
+    },
+    "female_NE_grounded": {
+      "file": "Models/festivals/bunHillClimbers/female_NE_grounded.png",
+      "gender": "female",
+      "view": "NE",
+      "pose": "grounded",
+      "mirrored": false,
+      "rect": [
+        512,
+        1024,
+        256,
+        256
+      ],
+      "anchor": [
+        128,
+        128
+      ],
+      "groundAnchor": [
+        128.5,
+        185.5587044534413
+      ],
+      "heightM": 1.7,
+      "personHeightPx": 128.3076923076923,
+      "hipHeightM": 0.7456140350877193,
+      "sourceBounds": [
+        1328,
+        528,
+        1413,
+        762
+      ],
+      "sourceHip": [
+        1370,
+        652
+      ],
+      "sourcePersonPoints": [
+        [
+          180,
+          524
+        ],
+        [
+          175,
+          752
+        ]
+      ]
+    },
+    "female_NE_grounded_m": {
+      "file": "Models/festivals/bunHillClimbers/female_NE_grounded_m.png",
+      "gender": "female",
+      "view": "NE",
+      "pose": "grounded",
+      "mirrored": true,
+      "rect": [
+        768,
+        1024,
+        256,
+        256
+      ],
+      "anchor": [
+        128,
+        128
+      ],
+      "groundAnchor": [
+        127.5,
+        185.5587044534413
+      ],
+      "heightM": 1.7,
+      "personHeightPx": 128.3076923076923,
+      "hipHeightM": 0.7456140350877193,
+      "sourceBounds": [
+        1328,
+        528,
+        1413,
+        762
+      ],
+      "sourceHip": [
+        1370,
+        652
+      ],
+      "sourcePersonPoints": [
+        [
+          180,
+          524
+        ],
+        [
+          175,
+          752
+        ]
+      ]
+    },
+    "female_NW_waiting": {
+      "file": "Models/festivals/bunHillClimbers/female_NW_waiting.png",
+      "gender": "female",
+      "view": "NW",
+      "pose": "waiting",
+      "mirrored": false,
+      "rect": [
+        1024,
+        1024,
+        256,
+        256
+      ],
+      "anchor": [
+        128,
+        128
+      ],
+      "groundAnchor": [
+        127.49514563106796,
+        182.3934426229508
+      ],
+      "heightM": 1.7,
+      "personHeightPx": 127.95081967213115,
+      "hipHeightM": 0.7165919282511211,
+      "sourceBounds": [
+        119,
+        781,
+        209,
+        1012
+      ],
+      "sourceHip": [
+        162,
+        910
+      ],
+      "sourcePersonPoints": [
+        [
+          168,
+          781
+        ],
+        [
+          161,
+          1004
+        ]
+      ]
+    },
+    "female_NW_waiting_m": {
+      "file": "Models/festivals/bunHillClimbers/female_NW_waiting_m.png",
+      "gender": "female",
+      "view": "NW",
+      "pose": "waiting",
+      "mirrored": true,
+      "rect": [
+        1280,
+        1024,
+        256,
+        256
+      ],
+      "anchor": [
+        128,
+        128
+      ],
+      "groundAnchor": [
+        128.50485436893206,
+        182.3934426229508
+      ],
+      "heightM": 1.7,
+      "personHeightPx": 127.95081967213115,
+      "hipHeightM": 0.7165919282511211,
+      "sourceBounds": [
+        119,
+        781,
+        209,
+        1012
+      ],
+      "sourceHip": [
+        162,
+        910
+      ],
+      "sourcePersonPoints": [
+        [
+          168,
+          781
+        ],
+        [
+          161,
+          1004
+        ]
+      ]
+    },
+    "female_NW_climbA": {
+      "file": "Models/festivals/bunHillClimbers/female_NW_climbA.png",
+      "gender": "female",
+      "view": "NW",
+      "pose": "climbA",
+      "mirrored": false,
+      "rect": [
+        1536,
+        1024,
+        256,
+        256
+      ],
+      "anchor": [
+        128,
+        128
+      ],
+      "groundAnchor": [
+        -19.14285714285714,
+        171.38783269961976
+      ],
+      "heightM": 1.7,
+      "personHeightPx": 128.0342205323194,
+      "hipHeightM": 0.7165919282511211,
+      "sourceBounds": [
+        365,
+        762,
+        478,
+        1012
+      ],
+      "sourceHip": [
+        419,
+        928
+      ],
+      "sourcePersonPoints": [
+        [
+          168,
+          781
+        ],
+        [
+          161,
+          1004
+        ]
+      ]
+    },
+    "female_NW_climbA_m": {
+      "file": "Models/festivals/bunHillClimbers/female_NW_climbA_m.png",
+      "gender": "female",
+      "view": "NW",
+      "pose": "climbA",
+      "mirrored": true,
+      "rect": [
+        1792,
+        1024,
+        256,
+        256
+      ],
+      "anchor": [
+        128,
+        128
+      ],
+      "groundAnchor": [
+        275.1428571428571,
+        171.38783269961976
+      ],
+      "heightM": 1.7,
+      "personHeightPx": 128.0342205323194,
+      "hipHeightM": 0.7165919282511211,
+      "sourceBounds": [
+        365,
+        762,
+        478,
+        1012
+      ],
+      "sourceHip": [
+        419,
+        928
+      ],
+      "sourcePersonPoints": [
+        [
+          168,
+          781
+        ],
+        [
+          161,
+          1004
+        ]
+      ]
+    },
+    "female_NW_climbB": {
+      "file": "Models/festivals/bunHillClimbers/female_NW_climbB.png",
+      "gender": "female",
+      "view": "NW",
+      "pose": "climbB",
+      "mirrored": false,
+      "rect": [
+        0,
+        1280,
+        256,
+        256
+      ],
+      "anchor": [
+        128,
+        128
+      ],
+      "groundAnchor": [
+        -166.08661417322833,
+        170.98473282442748
+      ],
+      "heightM": 1.7,
+      "personHeightPx": 127.67175572519083,
+      "hipHeightM": 0.7165919282511211,
+      "sourceBounds": [
+        616,
+        762,
+        730,
+        1011
+      ],
+      "sourceHip": [
+        672,
+        929
+      ],
+      "sourcePersonPoints": [
+        [
+          168,
+          781
+        ],
+        [
+          161,
+          1004
+        ]
+      ]
+    },
+    "female_NW_climbB_m": {
+      "file": "Models/festivals/bunHillClimbers/female_NW_climbB_m.png",
+      "gender": "female",
+      "view": "NW",
+      "pose": "climbB",
+      "mirrored": true,
+      "rect": [
+        256,
+        1280,
+        256,
+        256
+      ],
+      "anchor": [
+        128,
+        128
+      ],
+      "groundAnchor": [
+        422.0866141732283,
+        170.98473282442748
+      ],
+      "heightM": 1.7,
+      "personHeightPx": 127.67175572519083,
+      "hipHeightM": 0.7165919282511211,
+      "sourceBounds": [
+        616,
+        762,
+        730,
+        1011
+      ],
+      "sourceHip": [
+        672,
+        929
+      ],
+      "sourcePersonPoints": [
+        [
+          168,
+          781
+        ],
+        [
+          161,
+          1004
+        ]
+      ]
+    },
+    "female_NW_collect": {
+      "file": "Models/festivals/bunHillClimbers/female_NW_collect.png",
+      "gender": "female",
+      "view": "NW",
+      "pose": "collect",
+      "mirrored": false,
+      "rect": [
+        512,
+        1280,
+        256,
+        256
+      ],
+      "anchor": [
+        128,
+        128
+      ],
+      "groundAnchor": [
+        -288.1937984496124,
+        165.66806722689074
+      ],
+      "heightM": 1.7,
+      "personHeightPx": 128.3655462184874,
+      "hipHeightM": 0.7165919282511211,
+      "sourceBounds": [
+        835,
+        783,
+        951,
+        1008
+      ],
+      "sourceHip": [
+        886,
+        939
+      ],
+      "sourcePersonPoints": [
+        [
+          168,
+          781
+        ],
+        [
+          161,
+          1004
+        ]
+      ]
+    },
+    "female_NW_collect_m": {
+      "file": "Models/festivals/bunHillClimbers/female_NW_collect_m.png",
+      "gender": "female",
+      "view": "NW",
+      "pose": "collect",
+      "mirrored": true,
+      "rect": [
+        768,
+        1280,
+        256,
+        256
+      ],
+      "anchor": [
+        128,
+        128
+      ],
+      "groundAnchor": [
+        544.1937984496124,
+        165.66806722689074
+      ],
+      "heightM": 1.7,
+      "personHeightPx": 128.3655462184874,
+      "hipHeightM": 0.7165919282511211,
+      "sourceBounds": [
+        835,
+        783,
+        951,
+        1008
+      ],
+      "sourceHip": [
+        886,
+        939
+      ],
+      "sourcePersonPoints": [
+        [
+          168,
+          781
+        ],
+        [
+          161,
+          1004
+        ]
+      ]
+    },
+    "female_NW_descend": {
+      "file": "Models/festivals/bunHillClimbers/female_NW_descend.png",
+      "gender": "female",
+      "view": "NW",
+      "pose": "descend",
+      "mirrored": false,
+      "rect": [
+        1024,
+        1280,
+        256,
+        256
+      ],
+      "anchor": [
+        128,
+        128
+      ],
+      "groundAnchor": [
+        -416.30769230769226,
+        168.47540983606558
+      ],
+      "heightM": 1.7,
+      "personHeightPx": 127.95081967213115,
+      "hipHeightM": 0.7165919282511211,
+      "sourceBounds": [
+        1052,
+        807,
+        1234,
+        977
+      ],
+      "sourceHip": [
+        1109,
+        934
+      ],
+      "sourcePersonPoints": [
+        [
+          168,
+          781
+        ],
+        [
+          161,
+          1004
+        ]
+      ]
+    },
+    "female_NW_descend_m": {
+      "file": "Models/festivals/bunHillClimbers/female_NW_descend_m.png",
+      "gender": "female",
+      "view": "NW",
+      "pose": "descend",
+      "mirrored": true,
+      "rect": [
+        1280,
+        1280,
+        256,
+        256
+      ],
+      "anchor": [
+        128,
+        128
+      ],
+      "groundAnchor": [
+        672.3076923076923,
+        168.47540983606558
+      ],
+      "heightM": 1.7,
+      "personHeightPx": 127.95081967213115,
+      "hipHeightM": 0.7165919282511211,
+      "sourceBounds": [
+        1052,
+        807,
+        1234,
+        977
+      ],
+      "sourceHip": [
+        1109,
+        934
+      ],
+      "sourcePersonPoints": [
+        [
+          168,
+          781
+        ],
+        [
+          161,
+          1004
+        ]
+      ]
+    },
+    "female_NW_grounded": {
+      "file": "Models/festivals/bunHillClimbers/female_NW_grounded.png",
+      "gender": "female",
+      "view": "NW",
+      "pose": "grounded",
+      "mirrored": false,
+      "rect": [
+        1536,
+        1280,
+        256,
+        256
+      ],
+      "anchor": [
+        128,
+        128
+      ],
+      "groundAnchor": [
+        122.54455445544554,
+        184.95983935742973
+      ],
+      "heightM": 1.7,
+      "personHeightPx": 128.06827309236948,
+      "hipHeightM": 0.7165919282511211,
+      "sourceBounds": [
+        1315,
+        775,
+        1403,
+        1011
+      ],
+      "sourceHip": [
+        1359,
+        904
+      ],
+      "sourcePersonPoints": [
+        [
+          168,
+          781
+        ],
+        [
+          161,
+          1004
+        ]
+      ]
+    },
+    "female_NW_grounded_m": {
+      "file": "Models/festivals/bunHillClimbers/female_NW_grounded_m.png",
+      "gender": "female",
+      "view": "NW",
+      "pose": "grounded",
+      "mirrored": true,
+      "rect": [
+        1792,
+        1280,
+        256,
+        256
+      ],
+      "anchor": [
+        128,
+        128
+      ],
+      "groundAnchor": [
+        133.45544554455446,
+        184.95983935742973
+      ],
+      "heightM": 1.7,
+      "personHeightPx": 128.06827309236948,
+      "hipHeightM": 0.7165919282511211,
+      "sourceBounds": [
+        1315,
+        775,
+        1403,
+        1011
+      ],
+      "sourceHip": [
+        1359,
+        904
+      ],
+      "sourcePersonPoints": [
+        [
+          168,
+          781
+        ],
+        [
+          161,
+          1004
+        ]
+      ]
+    }
+  }
+}

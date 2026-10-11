@@ -1,0 +1,826 @@
+{
+  "version": 1,
+  "tileM": 20,
+  "pixelsPerMetreUp": 5,
+  "pixelsPerMetreAlong": 2.5,
+  "parts": {
+    "bunHill1": {
+      "source": "scripts/source-art/festivals/original/bunHill/bunHill1.png",
+      "width": 1024,
+      "height": 1024,
+      "sourceGround": [
+        [
+          47,
+          1180
+        ],
+        [
+          546,
+          1370
+        ],
+        [
+          1040,
+          1128
+        ]
+      ],
+      "ground": [
+        [
+          263.5,
+          874.635
+        ],
+        [
+          513.0,
+          999.385
+        ],
+        [
+          760.0,
+          875.885
+        ]
+      ],
+      "anchor": [
+        511.75,
+        875.26
+      ],
+      "affine": {
+        "d": 1.1485802681974484,
+        "c": 0.06266482774045048
+      },
+      "scale": 0.058396578597547724,
+      "footprintM": [
+        5.827978544035263,
+        5.769581965437715
+      ],
+      "reserveM": [
+        8,
+        8
+      ],
+      "heightM": 5.466462844911424,
+      "lengthM": null,
+      "body": [
+        [
+          527.5,
+          868.2069
+        ],
+        [
+          527.5,
+          400.1604
+        ]
+      ],
+      "rail": [
+        [
+          514.0,
+          984.5161
+        ],
+        [
+          514.0,
+          890.3325
+        ]
+      ],
+      "sourceRail": [
+        [
+          548,
+          1344
+        ],
+        [
+          548,
+          1180
+        ]
+      ],
+      "railHeightM": 1.1,
+      "radii": [
+        90.0,
+        32.5
+      ],
+      "file": "Models/festivals/bunHill/bunHill1.png",
+      "mirrored": false
+    },
+    "bunHill1_m": {
+      "source": "scripts/source-art/festivals/original/bunHill/bunHill1.png",
+      "width": 1024,
+      "height": 1024,
+      "sourceGround": [
+        [
+          47,
+          1180
+        ],
+        [
+          546,
+          1370
+        ],
+        [
+          1040,
+          1128
+        ]
+      ],
+      "ground": [
+        [
+          760.5,
+          874.635
+        ],
+        [
+          511.0,
+          999.385
+        ],
+        [
+          264.0,
+          875.885
+        ]
+      ],
+      "anchor": [
+        512.25,
+        875.26
+      ],
+      "affine": {
+        "d": 1.1485802681974484,
+        "c": 0.06266482774045048
+      },
+      "scale": 0.058396578597547724,
+      "footprintM": [
+        5.827978544035263,
+        5.769581965437715
+      ],
+      "reserveM": [
+        8,
+        8
+      ],
+      "heightM": 5.466462844911424,
+      "lengthM": null,
+      "body": [
+        [
+          496.5,
+          868.2069
+        ],
+        [
+          496.5,
+          400.1604
+        ]
+      ],
+      "rail": [
+        [
+          510.0,
+          984.5161
+        ],
+        [
+          510.0,
+          890.3325
+        ]
+      ],
+      "sourceRail": [
+        [
+          548,
+          1344
+        ],
+        [
+          548,
+          1180
+        ]
+      ],
+      "railHeightM": 1.1,
+      "radii": [
+        90.0,
+        32.5
+      ],
+      "file": "Models/festivals/bunHill/bunHill1_m.png",
+      "mirrored": true
+    },
+    "bunHill2": {
+      "source": "scripts/source-art/festivals/original/bunHill/bunHill2.png",
+      "width": 1024,
+      "height": 1024,
+      "sourceGround": [
+        [
+          42,
+          1126
+        ],
+        [
+          572,
+          1360
+        ],
+        [
+          1042,
+          1113
+        ]
+      ],
+      "ground": [
+        [
+          261.0,
+          869.1004
+        ],
+        [
+          526.0,
+          1001.6004
+        ],
+        [
+          761.0,
+          884.1004
+        ]
+      ],
+      "anchor": [
+        511.0,
+        876.6004
+      ],
+      "affine": {
+        "d": 1.0340819461164847,
+        "c": 0.04344306529951431
+      },
+      "scale": 0.07091640760688069,
+      "footprintM": [
+        7.517139206329352,
+        6.666142315046784
+      ],
+      "reserveM": [
+        10,
+        10
+      ],
+      "heightM": 5.720002552990672,
+      "lengthM": null,
+      "body": [
+        [
+          496.5,
+          871.0586
+        ],
+        [
+          496.5,
+          467.7667
+        ]
+      ],
+      "rail": [
+        [
+          526.0,
+          980.9188
+        ],
+        [
+          526.0,
+          903.3627
+        ]
+      ],
+      "sourceRail": [
+        [
+          572,
+          1320
+        ],
+        [
+          572,
+          1170
+        ]
+      ],
+      "railHeightM": 1.1,
+      "radii": [
+        87.5,
+        32.5
+      ],
+      "file": "Models/festivals/bunHill/bunHill2.png",
+      "mirrored": false
+    },
+    "bunHill2_m": {
+      "source": "scripts/source-art/festivals/original/bunHill/bunHill2.png",
+      "width": 1024,
+      "height": 1024,
+      "sourceGround": [
+        [
+          42,
+          1126
+        ],
+        [
+          572,
+          1360
+        ],
+        [
+          1042,
+          1113
+        ]
+      ],
+      "ground": [
+        [
+          763.0,
+          869.1004
+        ],
+        [
+          498.0,
+          1001.6004
+        ],
+        [
+          263.0,
+          884.1004
+        ]
+      ],
+      "anchor": [
+        513.0,
+        876.6004
+      ],
+      "affine": {
+        "d": 1.0340819461164847,
+        "c": 0.04344306529951431
+      },
+      "scale": 0.07091640760688069,
+      "footprintM": [
+        7.517139206329352,
+        6.666142315046784
+      ],
+      "reserveM": [
+        10,
+        10
+      ],
+      "heightM": 5.720002552990672,
+      "lengthM": null,
+      "body": [
+        [
+          527.5,
+          871.0586
+        ],
+        [
+          527.5,
+          467.7667
+        ]
+      ],
+      "rail": [
+        [
+          498.0,
+          980.9188
+        ],
+        [
+          498.0,
+          903.3627
+        ]
+      ],
+      "sourceRail": [
+        [
+          572,
+          1320
+        ],
+        [
+          572,
+          1170
+        ]
+      ],
+      "railHeightM": 1.1,
+      "radii": [
+        87.5,
+        32.5
+      ],
+      "file": "Models/festivals/bunHill/bunHill2_m.png",
+      "mirrored": true
+    },
+    "bunHill3": {
+      "source": "scripts/source-art/festivals/original/bunHill/bunHill3.png",
+      "width": 1024,
+      "height": 1024,
+      "sourceGround": [
+        [
+          46,
+          1139
+        ],
+        [
+          583,
+          1364
+        ],
+        [
+          1044,
+          1115
+        ]
+      ],
+      "ground": [
+        [
+          262.5,
+          862.7231
+        ],
+        [
+          531.0,
+          996.9731
+        ],
+        [
+          761.5,
+          881.7231
+        ]
+      ],
+      "anchor": [
+        512.0,
+        872.2231
+      ],
+      "affine": {
+        "d": 1.0426174411846463,
+        "c": 0.06314911682207563
+      },
+      "scale": 0.061339361691449594,
+      "footprintM": [
+        6.587847445661685,
+        5.655489147951653
+      ],
+      "reserveM": [
+        10,
+        8
+      ],
+      "heightM": 4.770930161233298,
+      "lengthM": null,
+      "body": [
+        [
+          511.5,
+          864.3719
+        ],
+        [
+          511.5,
+          475.4756
+        ]
+      ],
+      "rail": [
+        [
+          531.5,
+          980.3228
+        ],
+        [
+          531.5,
+          890.6577
+        ]
+      ],
+      "sourceRail": [
+        [
+          584,
+          1332
+        ],
+        [
+          584,
+          1160
+        ]
+      ],
+      "railHeightM": 1.1,
+      "radii": [
+        92.5,
+        32.5
+      ],
+      "file": "Models/festivals/bunHill/bunHill3.png",
+      "mirrored": false
+    },
+    "bunHill3_m": {
+      "source": "scripts/source-art/festivals/original/bunHill/bunHill3.png",
+      "width": 1024,
+      "height": 1024,
+      "sourceGround": [
+        [
+          46,
+          1139
+        ],
+        [
+          583,
+          1364
+        ],
+        [
+          1044,
+          1115
+        ]
+      ],
+      "ground": [
+        [
+          761.5,
+          862.7231
+        ],
+        [
+          493.0,
+          996.9731
+        ],
+        [
+          262.5,
+          881.7231
+        ]
+      ],
+      "anchor": [
+        512.0,
+        872.2231
+      ],
+      "affine": {
+        "d": 1.0426174411846463,
+        "c": 0.06314911682207563
+      },
+      "scale": 0.061339361691449594,
+      "footprintM": [
+        6.587847445661685,
+        5.655489147951653
+      ],
+      "reserveM": [
+        10,
+        8
+      ],
+      "heightM": 4.770930161233298,
+      "lengthM": null,
+      "body": [
+        [
+          512.5,
+          864.3719
+        ],
+        [
+          512.5,
+          475.4756
+        ]
+      ],
+      "rail": [
+        [
+          492.5,
+          980.3228
+        ],
+        [
+          492.5,
+          890.6577
+        ]
+      ],
+      "sourceRail": [
+        [
+          584,
+          1332
+        ],
+        [
+          584,
+          1160
+        ]
+      ],
+      "railHeightM": 1.1,
+      "radii": [
+        92.5,
+        32.5
+      ],
+      "file": "Models/festivals/bunHill/bunHill3_m.png",
+      "mirrored": true
+    },
+    "bunHillStage": {
+      "source": "scripts/source-art/festivals/original/bunHill/bunHillStage.png",
+      "width": 1024,
+      "height": 1024,
+      "sourceGround": [
+        [
+          166,
+          753
+        ],
+        [
+          1135,
+          972
+        ],
+        [
+          1450,
+          778
+        ]
+      ],
+      "ground": [
+        [
+          213.0,
+          768.9321
+        ],
+        [
+          697.5,
+          1011.1821
+        ],
+        [
+          855.0,
+          932.4321
+        ]
+      ],
+      "anchor": [
+        534.0,
+        850.6821
+      ],
+      "affine": {
+        "d": 1.18781885893739,
+        "c": 0.23154558296461472
+      },
+      "scale": 0.04643962848297214,
+      "footprintM": [
+        9.0,
+        2.9256965944272446
+      ],
+      "reserveM": [
+        12,
+        6
+      ],
+      "sourceBeam": [
+        [
+          166,
+          373
+        ],
+        [
+          1135,
+          592
+        ],
+        [
+          1450,
+          398
+        ]
+      ],
+      "beam": [
+        [
+          213.0,
+          543.2465
+        ],
+        [
+          697.5,
+          785.4965
+        ],
+        [
+          855.0,
+          706.7465
+        ]
+      ],
+      "frontLocal": [
+        0,
+        1
+      ],
+      "heightM": null,
+      "lengthM": 9,
+      "body": null,
+      "rail": null,
+      "sourceRail": null,
+      "railHeightM": null,
+      "radii": null,
+      "file": "Models/festivals/bunHill/bunHillStage.png",
+      "mirrored": false
+    },
+    "bunHillStage_m": {
+      "source": "scripts/source-art/festivals/original/bunHill/bunHillStage.png",
+      "width": 1024,
+      "height": 1024,
+      "sourceGround": [
+        [
+          166,
+          753
+        ],
+        [
+          1135,
+          972
+        ],
+        [
+          1450,
+          778
+        ]
+      ],
+      "ground": [
+        [
+          811.0,
+          768.9321
+        ],
+        [
+          326.5,
+          1011.1821
+        ],
+        [
+          169.0,
+          932.4321
+        ]
+      ],
+      "anchor": [
+        490.0,
+        850.6821
+      ],
+      "affine": {
+        "d": 1.18781885893739,
+        "c": 0.23154558296461472
+      },
+      "scale": 0.04643962848297214,
+      "footprintM": [
+        9.0,
+        2.9256965944272446
+      ],
+      "reserveM": [
+        12,
+        6
+      ],
+      "sourceBeam": [
+        [
+          166,
+          373
+        ],
+        [
+          1135,
+          592
+        ],
+        [
+          1450,
+          398
+        ]
+      ],
+      "beam": [
+        [
+          811.0,
+          543.2465
+        ],
+        [
+          326.5,
+          785.4965
+        ],
+        [
+          169.0,
+          706.7465
+        ]
+      ],
+      "frontLocal": [
+        0,
+        1
+      ],
+      "heightM": null,
+      "lengthM": 9,
+      "body": null,
+      "rail": null,
+      "sourceRail": null,
+      "railHeightM": null,
+      "radii": null,
+      "file": "Models/festivals/bunHill/bunHillStage_m.png",
+      "mirrored": true
+    },
+    "bunHillSignboard": {
+      "source": "scripts/source-art/festivals/original/bunHill/bunHillSignboard.png",
+      "width": 1024,
+      "height": 1024,
+      "sourceGround": [
+        [
+          185,
+          907
+        ],
+        [
+          1094,
+          1216
+        ]
+      ],
+      "ground": [
+        [
+          287.5,
+          786.3061
+        ],
+        [
+          742.0,
+          1013.5561
+        ]
+      ],
+      "anchor": [
+        514.75,
+        899.9311
+      ],
+      "affine": {
+        "d": 1,
+        "c": 0.16006600660066006
+      },
+      "scale": 0.033003300330033,
+      "footprintM": [
+        5.999999999999999,
+        1
+      ],
+      "reserveM": [
+        8,
+        4
+      ],
+      "heightM": null,
+      "lengthM": 6,
+      "body": null,
+      "rail": null,
+      "sourceRail": null,
+      "railHeightM": null,
+      "radii": null,
+      "file": "Models/festivals/bunHill/bunHillSignboard.png",
+      "mirrored": false
+    },
+    "bunHillSignboard_m": {
+      "source": "scripts/source-art/festivals/original/bunHill/bunHillSignboard.png",
+      "width": 1024,
+      "height": 1024,
+      "sourceGround": [
+        [
+          185,
+          907
+        ],
+        [
+          1094,
+          1216
+        ]
+      ],
+      "ground": [
+        [
+          736.5,
+          786.3061
+        ],
+        [
+          282.0,
+          1013.5561
+        ]
+      ],
+      "anchor": [
+        509.25,
+        899.9311
+      ],
+      "affine": {
+        "d": 1,
+        "c": 0.16006600660066006
+      },
+      "scale": 0.033003300330033,
+      "footprintM": [
+        5.999999999999999,
+        1
+      ],
+      "reserveM": [
+        8,
+        4
+      ],
+      "heightM": null,
+      "lengthM": 6,
+      "body": null,
+      "rail": null,
+      "sourceRail": null,
+      "railHeightM": null,
+      "radii": null,
+      "file": "Models/festivals/bunHill/bunHillSignboard_m.png",
+      "mirrored": true
+    }
+  }
+}

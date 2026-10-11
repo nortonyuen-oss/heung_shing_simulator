@@ -114,6 +114,8 @@ function getFestivalSpriteScale(meta, part, resize, heightM = null) {
     const px = (meta.anchor.y - meta.top) * resize;
     return px > 0 ? (heightM * FESTIVAL_PX_PER_METRE_UP) / px : 1;
   }
+  if (meta.personHeightPx > 0 && part.heightM) return (part.heightM * FESTIVAL_PX_PER_METRE_UP) / (meta.personHeightPx * resize);
+  if (part.lengthM && meta.groundSpanX > 0) return (part.lengthM * FESTIVAL_PX_PER_METRE_ALONG) / (meta.groundSpanX * resize);
   if (part.lengthM && Number.isFinite(meta.left) && meta.right > meta.left) {
     return (part.lengthM * FESTIVAL_PX_PER_METRE_ALONG) / ((meta.right - meta.left) * resize);
   }
@@ -143,9 +145,9 @@ function getFestivalPlacementPoint(scene, placement) {
       depth: building.depth + 0.01 + ty / 100000,
     };
   }
-  const { row, col } = placement;
-  let dRow = 0;
-  let dCol = 0;
+  const row = Math.round(placement.row), col = Math.round(placement.col);
+  let dRow = placement.row - row;
+  let dCol = placement.col - col;
   (placement.offsets || []).forEach(([dir, metres]) => {
     const [dr, dc] = FESTIVAL_STEP[dir] || [0, 0];
     dRow += (dr * metres) / FESTIVAL_TILE_M;
@@ -155,6 +157,11 @@ function getFestivalPlacementPoint(scene, placement) {
   const centre = isoToScreen(col, row);
   const shifted = isoToScreen(col + dCol, row + dRow);
   let depth = getBuildingSortDepth(getBuildingAnchor(row, col, 1, 1).y, 1, 1, 0);
+  if (placement.groundBuildingId) {
+    const ground = scene.buildingSprites?.get(placement.groundBuildingId);
+    if (!ground) return null;
+    depth = Math.max(depth, ground.depth + 0.01) + (shifted.y - centre.y) / 100000;
+  }
   return {
     x: geo.center.x + (shifted.x - centre.x),
     y: geo.center.y + (shifted.y - centre.y),
@@ -257,6 +264,7 @@ function refreshFestivalSprites(scene) {
 }
 
 function clearFestivalSprites(scene) {
+  if (typeof closeBunHillMapEvent === 'function') closeBunHillMapEvent(scene);
   if (!scene?.festivalSprites) return;
   [...scene.festivalSprites.keys()].forEach((id) => removeFestivalSprite(scene, id));
   unloadFestivalTextures(scene, []);
@@ -294,7 +302,7 @@ function getFestivalLayoutContext(id, ctx, phase) {
 function getWantedFestivalPlacements(scene, active, ctx) {
   const out = [];
   active.forEach(({ id, phase }) => {
-    if (!FESTIVAL_PROGRAMMES[id] || !phase) return;
+    if ((id === 'dragonBoat' || id === 'bunHill') || !FESTIVAL_PROGRAMMES[id] || !phase) return;
     if (isGovernmentFestival(id) && getFestivalHistoryEntry(id, city.year)?.outcome !== 'held') return;
     out.push(...layoutFestival(id, { ...getFestivalLayoutContext(id, ctx, phase), tier: getFestivalTier(id) }));
   });
@@ -323,6 +331,7 @@ function updateFestivals(scene, time) {
     const ctx = active.length ? getFestivalVenueContext(scene) : null;
     if (live) {
       active.forEach(({ id }) => {
+        if ((id === 'dragonBoat' || id === 'bunHill')) return;
         const prior = getFestivalHistoryEntry(id, city.year);
         if (!isGovernmentFestival(id) || (prior && prior.outcome !== 'noVenue')) return;
         const trial = layoutFestival(id, { ...getFestivalLayoutContext(id, ctx, 'open'), tier: getFestivalTier(id) === 'skip' ? 'standard' : getFestivalTier(id) });

@@ -143,6 +143,11 @@ function normalizeGameTimeMinutes(value, fallback = GAME_DAY_START_MINUTES) {
 }
 
 function getGameTimeOfDayMinutes() {
+  // The map rehearsal changes the sky without changing the clock saved in the city.
+  const rehearsal = typeof activeScene !== 'undefined' ? activeScene?.bunHillEventSession : null;
+  if (rehearsal && !rehearsal.closed && typeof city !== 'undefined' && rehearsal.city === city) {
+    return normalizeGameTimeMinutes(rehearsal.offset + GAME_DAY_START_MINUTES);
+  }
   return normalizeGameTimeMinutes(
     typeof city === 'undefined' ? GAME_DAY_START_MINUTES : city.timeOfDayMinutes,
   );
@@ -329,6 +334,7 @@ function advanceCalendarForEnvironmentMinutes(scene, fromMinutes, toMinutes) {
 // ── Frame driver ────────────────────────────────────────────────────────────
 // Call once per Phaser update-loop frame with the real frame delta (ms).
 function updateGameClock(scene, realDeltaMs) {
+  if (scene?.bunHillEventSession) return;
   if (!gameClockRunning || isGamePaused()) return;
 
   const speed = getGameSpeed();

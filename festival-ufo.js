@@ -104,7 +104,7 @@ function isUfoWeatherClear(weather = typeof city !== 'undefined' ? city?.weather
   return !['showers', 'heavyRain'].includes(weather.condition);
 }
 
-/** Test mode (校正工具 → 節慶 → 召喚 UFO): a sighting starting now, whatever the hour and weather. */
+/** Test mode (啟動 event → 召喚 UFO): a sighting starting now, whatever the hour and weather. */
 function summonUfo() {
   if (typeof city === 'undefined' || typeof getCityMonthIndex !== 'function') return false;
   const minute = typeof getGameTimeOfDayMinutes === 'function' ? getGameTimeOfDayMinutes() : 20 * 60;

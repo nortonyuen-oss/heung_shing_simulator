@@ -192,6 +192,42 @@ function orderFestivalPromenadeRuns(tiles) {
   return runs;
 }
 
+// Edge-connected, level event-ground tiles form reusable venues. Holes are preserved:
+// a component's bounding box must never be treated as fully available land.
+function getEventGroundVenueComponents(tiles, heightOf = () => 0) {
+  const key = (r,c) => `${r}:${c}`;
+  const byKey = new Map((tiles || []).filter(p => Array.isArray(p) && p.length === 2 && p.every(Number.isInteger))
+    .map(([r,c]) => [key(r,c),[r,c]]));
+  const sorted = [...byKey.values()].sort((a,b) => a[0]-b[0] || a[1]-b[1]);
+  const seen = new Set(), out = [];
+  for (const first of sorted) {
+    if (seen.has(key(...first))) continue;
+    const members = [first], height = heightOf(...first);seen.add(key(...first));
+    for (let i=0;i<members.length;i++) {
+      const [r,c]=members[i];
+      for (const p of [[r-1,c],[r,c+1],[r+1,c],[r,c-1]]) {
+        const id=key(...p);
+        if (!seen.has(id) && byKey.has(id) && heightOf(...p) === height) {seen.add(id);members.push(p);}
+      }
+    }
+    members.sort((a,b)=>a[0]-b[0] || a[1]-b[1]);
+    out.push({id:`eventGround:${key(...members[0])}`,tiles:members,height,areaM2:members.length*400});
+  }
+  return out;
+}
+
+// Large events request a real rectangle within the component, not just enough tiles.
+function findEventGroundRectangle(venue, cols, rows) {
+  if (!Number.isInteger(cols) || !Number.isInteger(rows) || cols<1 || rows<1) return null;
+  const cells=new Set((venue.tiles||[]).map(p=>p.join(':')));
+  for (const [row,col] of venue.tiles||[]) {
+    const footprint=[];
+    for(let dr=0;dr<rows;dr++)for(let dc=0;dc<cols;dc++)footprint.push([row+dr,col+dc]);
+    if(footprint.every(p=>cells.has(p.join(':')))) return {row,col,cols,rows,widthM:cols*20,depthM:rows*20,tiles:footprint};
+  }
+  return null;
+}
+
 /** The game's view of the venues a layout needs (in the browser; tests pass their own). */
 function getFestivalVenueContext(scene = typeof activeScene !== 'undefined' ? activeScene : null) {
   const promenadeTiles = typeof getPromenadeTileKeys === 'function'
@@ -201,8 +237,14 @@ function getFestivalVenueContext(scene = typeof activeScene !== 'undefined' ? ac
   const malls = [];
   const courts = [];
   const temples = [];
+  const eventGroundTiles = [];
   if (typeof buildingData !== 'undefined' && buildingData) {
     Object.entries(buildingData).forEach(([id, record]) => {
+      if (record?.type === 'event_ground') {
+        const at = id.split(':').map(Number);
+        if (at.length === 2 && at.every(Number.isInteger) && (record.footprintCols || 1) === 1 && (record.footprintRows || 1) === 1) eventGroundTiles.push(at);
+        return;
+      }
       if (record?.type === 'commercial') {
         if (FESTIVAL_BUILDING_SPOTS[record.sourceFileName]) malls.push({ id, modelKey: record.sourceFileName });
         return;
@@ -220,6 +262,8 @@ function getFestivalVenueContext(scene = typeof activeScene !== 'undefined' ? ac
   }
   return {
     promenadeTiles,
+    eventGroundTiles,
+    eventGrounds: getEventGroundVenueComponents(eventGroundTiles, (r,c) => typeof heightMap !== 'undefined' ? heightMap[r]?.[c] : 0),
     seaSideOf: (row, col) => (typeof getPromenadeSeaSides === 'function' ? getPromenadeSeaSides(row, col)[0] || null : null),
     isPier: (row, col) => piers.has(`${row}:${col}`),
     isNearBridge: (row, col) => typeof isPromenadeNearBridge === 'function' && isPromenadeNearBridge(row, col),
@@ -288,7 +332,9 @@ function getLnyRows(area, pxPerM, tier, zone = {}) {
   const u0 = (uM + blockM) / 2 - LNY_STALL_M / 2;
   return Array.from({ length: rowCount }, (_, r) => ({
     u: (u0 - r * (LNY_STALL_M + aisle)) / uM,
-    v: Array.from({ length: perRow }, (_, k) => (v0 + k * LNY_STALL_M) / vM),
+    v: Array.from({ length: perRow }, (_, k) => (v0 + k * LNY_STALL_M) / vM)
+      // The park/court markets use the same six-booth blocks and cross passages.
+      .filter((v,k) => k % 7 !== 6 && (vM < 24 || Math.abs(v * vM - vM / 2) >= 3)),
   }));
 }
 
@@ -326,6 +372,61 @@ function layoutLnyStalls(out, building, area, pxPerM, zone, ctx, prefix) {
  * @param {object} ctx  as layoutChristmasDecorations, plus courts, temples ({ id, textureKey }),
  *   phase ('setup'|'open'|'peak'|'after'), soldShare (0..1), seed, mainVenue (a park id or '')
  */
+// Victoria Park-inspired continuous stall blocks, rather than four kiosks per
+// tile. The existing artwork is a calibrated 2x2m booth (compact game version).
+// Rows share their backs; a 4m main aisle, 4m row aisles and 2m cross passages
+// divide the wet/dry blocks. Food and visitor services occupy the entrance apron.
+function layoutEventGroundFair(out, venue, ctx) {
+  const cells = new Set(venue.tiles.map(([r,c]) => `${r}:${c}`));
+  const r0 = Math.min(...venue.tiles.map(p=>p[0]))-.5;
+  const c0 = Math.min(...venue.tiles.map(p=>p[1]))-.5;
+  const width = (Math.max(...venue.tiles.map(p=>p[1]))+.5-c0)*20;
+  const depth = (Math.max(...venue.tiles.map(p=>p[0]))+.5-r0)*20;
+  const centre = width/2;
+  const fits = (y,x,h=2,w=2) => {
+    for (let r=Math.floor(r0+(y-h/2)/20+.5+1e-7);r<=Math.floor(r0+(y+h/2)/20+.5-1e-7);r++)
+      for (let c=Math.floor(c0+(x-w/2)/20+.5+1e-7);c<=Math.floor(c0+(x+w/2)/20+.5-1e-7);c++)
+        if (!cells.has(`${r}:${c}`)) return false;
+    return true;
+  };
+  const add = (key,partId,y,x,extra={},h=2,w=2) => {
+    if (!fits(y,x,h,w)) return;
+    const row=r0+y/20,col=c0+x/20;
+    out.push({id:`lunarNewYear:${venue.id}:${key}`,festival:'lunarNewYear',partId,
+      mode:'tile',row,col,groundBuildingId:`${Math.round(row)}:${Math.round(col)}`,
+      alongDir:'e',align:'along',...extra});
+  };
+  const blocks=[];
+  for(let y=2;y+4<=depth-6;y+=8) blocks.push(y);
+  blocks.forEach((y,b) => {
+    const zone=b<Math.ceil(blocks.length/2)?'wet':'dry';
+    const goods=zone==='wet'?LNY_WET_GOODS:LNY_DRY_GOODS;
+    for(let face=0;face<(ctx.tier==='basic'?1:2);face++) {
+      [[2,centre-2],[centre+2,width-2]].forEach(([start,end],side)=>{
+        let slot=0;
+        for(let x=start+1;x+1<=end;x+=2,slot++){
+          // Break long rows every six booths, preserving a clear cross passage.
+          if(slot%7===6) continue;
+          const key=`${b}:${face}:${side}:${slot}`;
+          const sold=lnyHash(`${ctx.seed}:${venue.id}:${key}:let`)<(ctx.soldShare??1);
+          const kind=goods[Math.floor(lnyHash(`${ctx.seed}:${venue.id}:${b}:${side}:${Math.floor(slot/3)}:kind`)*goods.length)];
+          add(`stall:${key}`,ctx.phase==='setup'||!sold?'lnyStallEmpty':kind,y+1+face*2,x,
+            {stall:true,sold,marketZone:zone,marketRow:b*2+face,mirrored:face===0});
+        }
+      });
+    }
+  });
+  // Keep the middle open all the way to the entrance; food stays to one side.
+  for(let i=0;i<Math.min(4,Math.floor((width/2-5)/2));i++) {
+    const key=`food:${i}`,sold=lnyHash(`${ctx.seed}:${venue.id}:${key}:let`)<(ctx.soldShare??1);
+    add(key,ctx.phase==='setup'||!sold?'lnyStallEmpty':'lnyStallSnacks',depth-3,width-3-i*2,
+      {stall:true,sold,marketZone:'food',marketRow:'food'});
+  }
+  add('gate','lnyGate',depth-2,centre,{},2,6);
+  add('map','lnySiteMap',depth-3,centre-5);
+  add('information','lnyInfoBooth',depth-3,centre-7);
+}
+
 function layoutLunarNewYear(ctx) {
   if (!ctx.tier || ctx.tier === 'skip') return [];
   const out = [];
@@ -339,6 +440,8 @@ function layoutLunarNewYear(ctx) {
     });
     return out;
   }
+  const grounds = ctx.eventGrounds || getEventGroundVenueComponents(ctx.eventGroundTiles || []);
+  grounds.forEach(venue => layoutEventGroundFair(out,venue,ctx));
   const parks = (ctx.parks || []).filter((p) => FESTIVAL_BUILDING_SPOTS[p.textureKey]?.areas?.pitch);
   const main = parks.find((p) => p.id === ctx.mainVenue) || parks[0];
   parks.forEach((park) => {
@@ -401,6 +504,9 @@ function layoutFestival(id, ctx) {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     FESTIVAL_BUILDING_SPOTS,
+    getFestivalVenueContext,
+    getEventGroundVenueComponents,
+    findEventGroundRectangle,
     CHRISTMAS_PROMENADE_CYCLE,
     CHRISTMAS_PROMENADE_SPACING,
     layoutChristmasDecorations,

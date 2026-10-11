@@ -1,23 +1,379 @@
 {
- "Christmas/ChristmasDeco1.png": {"whole": true, "views": [{"down": 0.47, "up": 0.5}]},
- "Christmas/ChristmasDeco2.png": {"whole": true, "views": [{"d": 1, "c": 0}]},
- "Christmas/ChristmasDeco3.png": {"whole": true, "views": [{"down": 0.6, "up": 0.28}]},
- "Christmas/ChristmasDeco4.png": {"whole": true, "views": [{"d": 1, "c": 0}]},
- "Christmas/ChristmasDeco5.png": {"whole": true, "views": [{"d": 1, "c": 0}]},
- "LunarNewYear/lunarNewYearMarket5.png": {"whole": true, "views": [{"down": 0.38, "up": 0.46}]},
- "LunarNewYear/lunarNewYearMarket6.png": {"whole": true, "views": [{"down": 0.407, "up": 0.308}]},
- "LunarNewYear/lunarNewYearMarket8.png": {"whole": true, "views": [{"down": 0.307, "up": 0.221}]},
- "LunarNewYear/lunarNewYearMarket9.png": {"whole": true, "views": [{"down": 0.259, "up": 0.383}]},
- "LunarNewYear/lunarNewYearMarket10.png": {"whole": true, "views": [{"down": 0.368, "up": 0.271}]},
- "LunarNewYear/lunarNewYearMarket13.png": {"whole": true, "views": [{"down": 0.373, "up": 0.411}]},
- "LunarNewYear/lunarNewYearMarket16.png": {"whole": true, "views": [{"down": 0.465, "up": 0.403}]},
- "LunarNewYear/lunarNewYearMarket19.png": {"whole": true, "views": [{"down": 0.411, "up": 0.308}]},
- "LunarNewYear/lunarNewYearMarket21.png": {"whole": true, "views": [{"down": 0.349, "up": 0.287}]},
- "LunarNewYear/lunarNewYearMarket23.png": {"whole": true, "views": [{"down": 0.424, "up": 0.39}]},
- "LunarNewYear/lunarNewYearMarket24.png": {"whole": true, "views": [{"down": 0.365, "up": 0.322}]},
- "LunarNewYear/lunarNewYearMarket26.png": {"whole": true, "views": [{"down": 0.447, "up": 0.327}]},
- "LunarNewYear/lunarNewYearMarket28.png": {"whole": true, "views": [{"down": 0.386, "up": 0.389}]},
- "LunarNewYear/lunarNewYearMarket29.png": {"whole": true, "views": [{"down": 0.416, "up": 0.391}]},
- "LunarNewYear/lunarNewYearMarket1.png": {"whole": true, "views": [{"down": 0.317, "up": 0.47}]},
- "LunarNewYear/lunarNewYearMarket2.png": {"whole": true, "views": [{"line": 0.25}]}
+  "Christmas/ChristmasDeco1.png": {
+    "whole": true,
+    "views": [
+      {
+        "down": 0.47,
+        "up": 0.5
+      }
+    ]
+  },
+  "Christmas/ChristmasDeco2.png": {
+    "whole": true,
+    "views": [
+      {
+        "d": 1,
+        "c": 0
+      }
+    ]
+  },
+  "Christmas/ChristmasDeco3.png": {
+    "whole": true,
+    "views": [
+      {
+        "down": 0.6,
+        "up": 0.28
+      }
+    ]
+  },
+  "Christmas/ChristmasDeco4.png": {
+    "whole": true,
+    "views": [
+      {
+        "d": 1,
+        "c": 0
+      }
+    ]
+  },
+  "Christmas/ChristmasDeco5.png": {
+    "whole": true,
+    "views": [
+      {
+        "d": 1,
+        "c": 0
+      }
+    ]
+  },
+  "LunarNewYear/lunarNewYearMarket5.png": {
+    "whole": true,
+    "views": [
+      {
+        "down": 0.38,
+        "up": 0.46
+      }
+    ]
+  },
+  "LunarNewYear/lunarNewYearMarket6.png": {
+    "whole": true,
+    "views": [
+      {
+        "down": 0.407,
+        "up": 0.308
+      }
+    ]
+  },
+  "LunarNewYear/lunarNewYearMarket8.png": {
+    "whole": true,
+    "views": [
+      {
+        "down": 0.307,
+        "up": 0.221
+      }
+    ]
+  },
+  "LunarNewYear/lunarNewYearMarket9.png": {
+    "whole": true,
+    "views": [
+      {
+        "down": 0.259,
+        "up": 0.383
+      }
+    ]
+  },
+  "LunarNewYear/lunarNewYearMarket10.png": {
+    "whole": true,
+    "views": [
+      {
+        "down": 0.368,
+        "up": 0.271
+      }
+    ]
+  },
+  "LunarNewYear/lunarNewYearMarket13.png": {
+    "whole": true,
+    "views": [
+      {
+        "down": 0.373,
+        "up": 0.411
+      }
+    ]
+  },
+  "LunarNewYear/lunarNewYearMarket16.png": {
+    "whole": true,
+    "views": [
+      {
+        "down": 0.465,
+        "up": 0.403
+      }
+    ]
+  },
+  "LunarNewYear/lunarNewYearMarket19.png": {
+    "whole": true,
+    "views": [
+      {
+        "down": 0.411,
+        "up": 0.308
+      }
+    ]
+  },
+  "LunarNewYear/lunarNewYearMarket21.png": {
+    "whole": true,
+    "views": [
+      {
+        "down": 0.349,
+        "up": 0.287
+      }
+    ]
+  },
+  "LunarNewYear/lunarNewYearMarket23.png": {
+    "whole": true,
+    "views": [
+      {
+        "down": 0.424,
+        "up": 0.39
+      }
+    ]
+  },
+  "LunarNewYear/lunarNewYearMarket24.png": {
+    "whole": true,
+    "views": [
+      {
+        "down": 0.365,
+        "up": 0.322
+      }
+    ]
+  },
+  "LunarNewYear/lunarNewYearMarket26.png": {
+    "whole": true,
+    "views": [
+      {
+        "down": 0.447,
+        "up": 0.327
+      }
+    ]
+  },
+  "LunarNewYear/lunarNewYearMarket28.png": {
+    "whole": true,
+    "views": [
+      {
+        "down": 0.386,
+        "up": 0.389
+      }
+    ]
+  },
+  "LunarNewYear/lunarNewYearMarket29.png": {
+    "whole": true,
+    "views": [
+      {
+        "down": 0.416,
+        "up": 0.391
+      }
+    ]
+  },
+  "LunarNewYear/lunarNewYearMarket1.png": {
+    "whole": true,
+    "views": [
+      {
+        "down": 0.317,
+        "up": 0.47
+      }
+    ]
+  },
+  "LunarNewYear/lunarNewYearMarket2.png": {
+    "whole": true,
+    "views": [
+      {
+        "line": 0.25
+      }
+    ]
+  },
+  "DragonBoat/blackDragonNW.png": {
+    "whole": true,
+    "views": [
+      {
+        "down": 0.64,
+        "up": 0.47115384615384615
+      }
+    ]
+  },
+  "DragonBoat/blueDragonNW.png": {
+    "whole": true,
+    "views": [
+      {
+        "down": 0.5982905982905983,
+        "up": 0.3950617283950617
+      }
+    ]
+  },
+  "DragonBoat/greenDragonNW.png": {
+    "whole": true,
+    "views": [
+      {
+        "down": 0.5685483870967742,
+        "up": 0.43333333333333335
+      }
+    ]
+  },
+  "DragonBoat/purpleDragonNW.png": {
+    "whole": true,
+    "views": [
+      {
+        "down": 0.6020408163265306,
+        "up": 0.4492753623188406
+      }
+    ]
+  },
+  "DragonBoat/redDragonNW.png": {
+    "whole": true,
+    "views": [
+      {
+        "down": 0.5532786885245902,
+        "up": 0.44680851063829785
+      }
+    ]
+  },
+  "DragonBoat/yellowDragonNW.png": {
+    "whole": true,
+    "views": [
+      {
+        "down": 0.5849802371541502,
+        "up": 0.4423076923076923
+      }
+    ]
+  },
+  "DragonBoat/blackDragonSW.png": {
+    "whole": true,
+    "views": [
+      {
+        "down": 0.5853658536585366,
+        "up": 0.45920303605313095
+      }
+    ]
+  },
+  "DragonBoat/blueDragonSW.png": {
+    "whole": true,
+    "views": [
+      {
+        "down": 0.56,
+        "up": 0.4732142857142857
+      }
+    ]
+  },
+  "DragonBoat/greenDragonSW.png": {
+    "whole": true,
+    "views": [
+      {
+        "down": 0.42857142857142855,
+        "up": 0.4525862068965517
+      }
+    ]
+  },
+  "DragonBoat/purpleDragonSW.png": {
+    "whole": true,
+    "views": [
+      {
+        "down": 0.5918367346938775,
+        "up": 0.49327354260089684
+      }
+    ]
+  },
+  "DragonBoat/redDragonSW.png": {
+    "whole": true,
+    "views": [
+      {
+        "down": 0.46938775510204084,
+        "up": 0.452991452991453
+      }
+    ]
+  },
+  "DragonBoat/yellowDragonSW.png": {
+    "whole": true,
+    "views": [
+      {
+        "down": 0.5192307692307693,
+        "up": 0.46255506607929514
+      }
+    ]
+  },
+  "DragonBoat/viewersStage.png": {
+    "whole": true,
+    "views": [
+      {
+        "down": 0.4444444444444444,
+        "up": 0.3726027397260274
+      }
+    ]
+  },
+  "DragonBoat/championStand1.png": {
+    "whole": true,
+    "views": [
+      {
+        "down": 0.28368794326241137,
+        "up": 0.7005988023952096
+      }
+    ]
+  },
+  "DragonBoat/championStand2.png": {
+    "whole": true,
+    "views": [
+      {
+        "down": 0.37058823529411766,
+        "up": 0.5841584158415841
+      }
+    ]
+  },
+  "DragonBoat/ceremonyStage.png": {
+    "whole": true,
+    "views": [
+      {
+        "down": 0.6276595744680851,
+        "up": 0.3167202572347267
+      }
+    ]
+  },
+  "DragonBoat/guardLine.png": {
+    "whole": true,
+    "views": [
+      {
+        "d": 1,
+        "c": 0.20499999999999996
+      }
+    ]
+  },
+  "DragonBoat/startLine.png": {
+    "whole": true,
+    "views": [
+      {
+        "d": 1,
+        "c": 0.02300000000000002
+      }
+    ]
+  },
+  "DragonBoat/goalLine.png": {
+    "whole": true,
+    "views": [
+      {
+        "d": 1,
+        "c": 0.06000000000000005
+      }
+    ]
+  },
+  "DragonBoat/pier.png": {
+    "whole": true,
+    "views": [
+      {
+        "d": 1,
+        "c": 0
+      }
+    ]
+  },
+  "DragonBoat/rescueBoat.png": {
+    "whole": true,
+    "views": [
+      {
+        "d": 1,
+        "c": 0
+      }
+    ]
+  }
 }

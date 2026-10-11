@@ -1,7 +1,7 @@
 const I18N_STORAGE_KEY = 'citybuilder.language';
-let appVersion = '4.21.0';
-let appReleaseTheme = '【你睇唔睇到呀？】';
-const APP_RELEASE_THEMES = { en: '【Ciao UFO】', zhHant: '【瀛寰搜奇】', ja: '【世界不思議探訪】' };
+let appVersion = '4.22.0';
+let appReleaseTheme = '【龍舟競渡，包你平安】';
+const APP_RELEASE_THEMES = { en: '【Dragon Boats & Bun Towers】', zhHant: '【龍舟競渡，包你平安】', ja: '【ドラゴンボートと饅頭登り】' };
 function localizedReleaseTheme() {
   if (currentLanguage === 'zhHant' && /^zh-(hk|mo)\b/i.test(navigator.language || '')) return appReleaseTheme;
   return APP_RELEASE_THEMES[currentLanguage] || appReleaseTheme;
@@ -167,7 +167,8 @@ const I18N = {
     'menu.festivals': 'Festivals and events (this city)',
     'menu.festivalCalendar': 'Festival calendar…',
     'festival.name.lunarNewYear': 'Lunar New Year fair',
-    'festival.name.dragonBoat': 'Dragon boats and bun scramble',
+    'festival.name.bunHill': 'Waterfront Bun Scrambling Night',
+    'festival.name.dragonBoat': 'Heung Shing Dragon Boat Invitational',
     'festival.name.yulan': 'Hungry Ghost offerings',
     'festival.name.midAutumn': 'Mid-Autumn fire dragon',
     'festival.name.christmas': 'Christmas lights',
@@ -175,7 +176,7 @@ const I18N = {
     'festival.notice.go': 'Take a look',
     'festival.notice.christmas': '🎄 The Christmas lights are on along the harbourfront and in the park.',
     'festival.notice.lunarNewYear': '🧧 The Lunar New Year fair is open: flower stalls, lion dances and crowds in Victoria Park.',
-    'festival.toast.noVenue.lunarNewYear': 'Lunar New Year: build Victoria Park or a basketball court and the city will hold a New Year fair.',
+    'festival.toast.noVenue.lunarNewYear': 'Lunar New Year: build Victoria Park, a basketball court or an Event Ground for a New Year fair.',
     'festival.notice.ufo': '👽 Unidentified flying object over {place}! Residents are out with their phones.',
     'ufo.ticker.0': 'A saucer with flashing coloured lights circles {place}; witnesses say the alien waved.',
     'ufo.ticker.1': 'Astronomical society: the object over {place} is "not a known aircraft"; residents urged to stay calm and keep filming.',
@@ -1616,6 +1617,8 @@ const I18N = {
     'density.low': 'Low Density',
     'density.medium': 'Med Density',
     'density.high': 'High Density',
+    'park.eventGround': 'Event Ground',
+    'inspect.eventGround': '20 × 20 m · Connect tiles for festivals · Upkeep ${upkeep}/mo',
     'park.openGround': 'Open Ground',
     'park.playground': 'Playground',
     'park.gardenPlaza': 'Garden Plaza',
@@ -1976,7 +1979,8 @@ const I18N = {
     'menu.festivals': '節慶活動（此城市）',
     'menu.festivalCalendar': '節慶年曆…',
     'festival.name.lunarNewYear': '新春年宵',
-    'festival.name.dragonBoat': '端午龍舟＋搶包山',
+    'festival.name.bunHill': '海旁搶包山之夜',
+    'festival.name.dragonBoat': '香城龍舟邀請賽',
     'festival.name.yulan': '盂蘭燒街衣',
     'festival.name.midAutumn': '中秋舞火龍',
     'festival.name.christmas': '聖誕燈飾',
@@ -1984,7 +1988,7 @@ const I18N = {
     'festival.notice.go': '去睇',
     'festival.notice.christmas': '🎄 聖誕燈飾亮起：海濱同公園都有節日佈置。',
     'festival.notice.lunarNewYear': '🧧 年宵開鑼！維園花市人山人海，仲有舞獅表演。',
-    'festival.toast.noVenue.lunarNewYear': '新春：起維多利亞公園或者籃球場，就會有年宵花市。',
+    'festival.toast.noVenue.lunarNewYear': '新春：起維多利亞公園、籃球場或者活動空地，就會有年宵花市。',
     'festival.notice.ufo': '👽 {place}上空出現不明飛行物體！市民紛紛舉機拍攝。',
     'ufo.ticker.0': '彩燈飛碟盤旋{place}上空，目擊者稱外星人向地面揮手',
     'ufo.ticker.1': '香城天文學會：{place}不明飛行物「並非常見飛行器」，籲市民保持冷靜拍攝記錄',
@@ -3425,6 +3429,8 @@ const I18N = {
     'density.low': '低密度',
     'density.medium': '中密度',
     'density.high': '高密度',
+    'park.eventGround': '活動空地',
+    'inspect.eventGround': '20 × 20 米 · 可拼接成節慶場地 · 每月維護 ${upkeep}',
     'park.openGround': '開放空地',
     'park.playground': '遊樂場',
     'park.gardenPlaza': '花園廣場',
@@ -3717,7 +3723,8 @@ const I18N = {
     'menu.festivals': '祭りとイベント（この街）',
     'menu.festivalCalendar': '祭りカレンダー…',
     'festival.name.lunarNewYear': '旧正月の年宵市',
-    'festival.name.dragonBoat': '端午のドラゴンボートと搶包山',
+    'festival.name.bunHill': '海辺の饅頭タワー祭り',
+    'festival.name.dragonBoat': '香城ドラゴンボート招待レース',
     'festival.name.yulan': '盂蘭盆の街頭供養',
     'festival.name.midAutumn': '中秋の火龍舞',
     'festival.name.christmas': 'クリスマスイルミネーション',
@@ -3725,7 +3732,7 @@ const I18N = {
     'festival.notice.go': '見に行く',
     'festival.notice.christmas': '🎄 クリスマスの明かりが灯りました：海辺と公園に飾り付けがあります。',
     'festival.notice.lunarNewYear': '🧧 旧正月の年宵市が開幕：ビクトリア・パークに花の屋台と獅子舞。',
-    'festival.toast.noVenue.lunarNewYear': '旧正月：ビクトリア・パークかバスケットコートを造ると年宵市が開かれます。',
+    'festival.toast.noVenue.lunarNewYear': '旧正月：ビクトリア・パーク、バスケットコート、イベント広場で年宵市が開かれます。',
     'festival.notice.ufo': '👽 {place}の上空に未確認飛行物体！住民がスマホを向けています。',
     'ufo.ticker.0': '七色に光る円盤が{place}上空を旋回、目撃者「宇宙人が手を振った」',
     'ufo.ticker.1': '天文学会：{place}の物体は「既知の航空機ではない」、冷静に撮影を',
@@ -4847,6 +4854,8 @@ const I18N = {
     'density.low': '低密度',
     'density.medium': '中密度',
     'density.high': '高密度',
+    'park.eventGround': 'イベント広場',
+    'inspect.eventGround': '20 × 20 m · 隣接させてイベント会場に · 月維持費 ${upkeep}',
     'park.openGround': '空き地',
     'park.playground': '遊び場',
     'park.gardenPlaza': '庭園広場',

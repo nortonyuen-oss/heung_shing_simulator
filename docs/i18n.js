@@ -62,6 +62,8 @@ const SITE_GALLERY = {
     { title: "香城討論區", alt: "香城討論區帖文：新春求籤結果報章", caption: "城中大小事都有花生友討論：新春求籤、交通、股市、旅遊熱話，仲有配圖報章同市民留言。" },
     { title: "幻彩fing香城", alt: "討論區新聞帖：無人機表演中途墜毀", caption: "議會通過嘅活動會真正發生：每三個月一場無人機表演；出咗事都會上新聞、上討論區畀人鬧。" },
     { title: "分區、overlay 同小地圖", alt: "住宅區域 overlay 小地圖，標住各個自訂分區名", caption: "住宅、商業、工業、電力、污染、地價等 overlay，加上你自己命名嘅雙語分區，一張小地圖睇晒全城。" },
+    {"title": "海旁龍舟競渡", "alt": "太子海濱步道旁的六隊龍舟決賽與岸邊觀眾", "caption": "城市會自動規劃合適海旁賽道，六隊有不同速度、偏航同碰撞；浮標、龍舟隨浪起伏，觀眾靠岸睇比賽。"},
+    {"title": "午夜三塔搶包山", "alt": "活動空地上的戲棚、三座包山、花牌、攀爬選手與觀眾", "caption": "海旁平坦活動空地舉行夜間搶包山，12 位選手分攀三塔；攀爬、採包、落地計分，到頒獎同收檔都有完整流程。"},
   ],
   "zh-TW": [
     { title: "一座有香港氣息的城市", alt: "白天的香城市中心：都會大學、生產力促進局、海濱馬路與住宅商廈", caption: "從公共住宅到玻璃帷幕商廈，大學、生產力局、海濱馬路都是原創像素模型；街上小巴、計程車靠左行駛，城市會隨土地價值自行重建。" },
@@ -83,6 +85,8 @@ const SITE_GALLERY = {
     { title: "香城討論區", alt: "香城討論區貼文：新春求籤結果報紙", caption: "城裡大小事都有網友討論：新春求籤、交通、股市、觀光話題，還有配圖報紙與市民留言。" },
     { title: "幻彩fing香城", alt: "討論區新聞貼：無人機表演中途墜毀", caption: "議會通過的活動會真正發生：每三個月一場無人機表演；出了事也會上新聞、上討論區被罵。" },
     { title: "分區、overlay 與小地圖", alt: "住宅區域 overlay 小地圖，標示各個自訂分區名", caption: "住宅、商業、工業、電力、污染、地價等 overlay，加上你自己命名的雙語分區，一張小地圖看遍全城。" },
+    {"title": "海旁龍舟競渡", "alt": "太子海濱步道旁的六隊龍舟決賽與岸邊觀眾", "caption": "城市自動規劃合適的海旁賽道，六隊有速度差異、偏航與碰撞；浮標和龍舟隨波起伏，觀眾在岸邊觀看。"},
+    {"title": "午夜三塔搶包山", "alt": "活動空地上的戲棚、三座包山、花牌、攀爬選手與觀眾", "caption": "在海旁平坦活動空地舉行夜間搶包山，12 位選手分攀三塔；從攀爬、採包、返回地面計分，到頒獎與收場都有完整流程。"},
   ],
   en: [
     { title: "A city that feels like Hong Kong", alt: "Downtown Heung Shing by day: the Metropolitan University, the Productivity Council, a waterfront road, housing and office towers", caption: "From public housing estates to glass office towers, the university, the Productivity Council and the waterfront road are all original pixel models; minibuses and taxis drive on the left, and the city redevelops itself as land values move." },
@@ -104,6 +108,8 @@ const SITE_GALLERY = {
     { title: "The Heung Shing Forum", alt: "A forum post with the newspaper report of the New Year fortune-drawing", caption: "Everything in town gets discussed: the New Year fortune draw, traffic, the stock market, tourism, with illustrated newspaper pages and citizens' comments." },
     { title: "The drone show that went wrong", alt: "A forum news post: a drone crashed mid-show", caption: "What the council passes really happens: a drone light show every three months, and when it goes wrong it makes the news and the forum." },
     { title: "Districts, overlays and the minimap", alt: "The residential overlay minimap with custom district names", caption: "Residential, commercial, industrial, power, pollution and land-value overlays, plus the bilingual districts you named yourself, on one minimap of the whole city." },
+    {"title": "Waterfront dragon boat racing", "alt": "Six dragon boat teams racing beside the Prince Edward promenade and spectators", "caption": "The city plans a suitable waterfront course, with varied crew speeds, drifting and collisions. Boats and buoys rise with the waves as spectators watch from shore."},
+    {"title": "Three bun towers at midnight", "alt": "A theatre, three bun towers, flower boards, climbing athletes and spectators on event grounds", "caption": "Twelve athletes compete on three towers on flat waterfront event grounds, with climbing, bun collection, descent, scoring, awards and closing."},
   ],
   ja: [
     { title: "香港の空気をまとった街", alt: "昼間の香城中心部：都会大学、生産力促進局、海沿いの道路、住宅とオフィスビル", caption: "公営住宅からガラス張りのオフィスビルまで、大学も生産力促進局も海沿いの道路もオリジナルのピクセルモデル。ミニバスやタクシーは左側通行で、街は地価に合わせて自ら建て替わります。" },
@@ -125,6 +131,8 @@ const SITE_GALLERY = {
     { title: "香城フォーラム", alt: "フォーラムの投稿：新春おみくじの結果を伝える新聞", caption: "街のあらゆることが話題になります。新春のおみくじ、交通、株式市場、観光。図版付きの新聞紙面と市民のコメントも。" },
     { title: "失敗したドローンショー", alt: "フォーラムのニュース投稿：ショーの途中でドローンが墜落", caption: "議会で可決されたことは本当に起こります。3か月ごとのドローンショー、そして失敗すればニュースとフォーラムで叩かれます。" },
     { title: "地区、オーバーレイ、ミニマップ", alt: "自分で名付けた地区名が入った住宅オーバーレイのミニマップ", caption: "住宅・商業・工業・電力・汚染・地価などのオーバーレイと、自分で名付けたバイリンガルの地区。ミニマップ一枚で街全体を見渡せます。" },
+    {"title": "海沿いのドラゴンボート競走", "alt": "太子の遊歩道と観客のそばで決勝を競う6チーム", "caption": "都市が適切な海沿いのコースを自動配置。速度差、コースの逸脱や衝突があり、船とブイが波に揺れる競走を沿岸の観客が見守ります。"},
+    {"title": "真夜中の3基の饅頭塔", "alt": "イベント広場の劇場、3基の饅頭塔、花看板、登る選手と観客", "caption": "海沿いの平らなイベント広場で男女12人が3基の塔に挑戦。登り、饅頭集め、下降、採点、表彰、閉場まで進行します。"},
   ],
 };
 
@@ -242,6 +250,7 @@ const SITE_FEATURE_LIST = {
 // ── Changelog ─────────────────────────────────────────────────────────────────
 const SITE_CHANGELOG = {
   "zh-HK": [
+    {"version": "v4.22.0", "date": "2026-10-12", "dateLabel": "2026年10月12日", "title": "龍舟競渡，包你平安", "items": ["端午龍舟競渡：自動規劃海旁六線賽道，六隊有快慢、偏航同碰撞；龍舟、浮標會跟浪起伏，岸邊觀眾一齊打氣。", "海旁搶包山之夜：活動空地搭戲棚、三座包山同花牌，12 位男女選手攀爬、採包同落地計分；完賽後發布附圖賽果新聞。", "公園新增 1×1 活動空地，暗紅磚地可以拼接；年宵市集改用連續攤檔區塊同通道。", "龍舟鼓聲、打氣、船槳聲同新比賽音樂；音樂持續至收檔、防止疊播，原有背景音樂調低至 30%。", "測試模式集中「啟動 event」，可啟動 UFO、龍舟同搶包山；正式賽事支援存讀檔，避免重複扣款或發布賽果。"]},
     { version: "v4.21.0", date: "2026-10-11", dateLabel: "2026年10月11日", title: "你睇唔睇到呀？", items: ["節日系統：節日日曆視窗、節日狀態同農曆日期，新開城市可以揀起始年份；六四由 1990 年起安靜處理。","聖誕街頭裝飾同農曆新年市集：新增一批節日街道道具同市集美術。","發現 UFO：一隻飛碟會巡遊兩至四個地區，論壇有故事、跑馬燈有快訊；撳「去睇」鏡頭會跟住飛碟、停定觀察。"] },
     { version: "v4.20.0", date: "2026-10-10", dateLabel: "2026年10月10日", title: "有落", items: ["運輸模式重新設計：一鍵切換城市建設／運輸公司，工具分巴士同渡輪兩組，四個有字視窗取代一排冇字圖示。", "新手指引：開業清單、工具提示列、放巴士站即睇服務範圍同預計乘客、每個視窗都有「?」說明，路線出問題有按鈕即刻處理。", "財務圖表同路線乘客趨勢線；城市趨勢圖表加入運輸公司數據。渡輪可以按航線加減船。", "站頭乘客大增：職位同目的地會產生返屋企乘客；八號風球過後人潮湧返站頭，唔再蝕成個月生意。"] },
     { version: "v4.19.0", date: "2026-10-10", dateLabel: "2026年10月10日", title: "成碟青瓜過大海", items: ["渡海小輪：興建渡輪碼頭、規劃航線，天星小輪來回泊岸接載乘客；船費收入計入運輸公司帳目。", "海濱長廊：沿海陸地逐格鋪設，右鍵切換公共碼頭；更新遊艇會模型同避風塘規劃。", "海面更生動：船尾浪花、夜間岸邊燈光倒影，以及華南海域天氣報告。", "改善大城市縮放及畫面物件排序效能；修正放置失敗時改變地形、內陸沙地出現海水邊緣，以及 Electron 啟動漏檔問題。"] },
@@ -593,6 +602,7 @@ const SITE_CHANGELOG = {
 // title/items text.
 const SITE_CHANGELOG_TRANSLATIONS = {
   "zh-TW": {
+    "v4.22.0": {"title": "龍舟競渡，包你平安", "items": ["端午龍舟競渡：自動規劃海旁六線賽道，六隊有速度差異、偏航與碰撞；龍舟和浮標隨波起伏，岸邊觀眾一起加油。", "海旁搶包山之夜：活動空地設置戲棚、三座包山和花牌，12 位男女選手攀爬、採包並返回地面計分；完賽後發布附圖賽果新聞。", "公園新增 1×1 活動空地，暗紅磚地可拼接；年宵市集採連續攤位區塊與通道。", "龍舟鼓聲、加油聲、船槳聲與新比賽音樂；音樂持續至收場、不重疊播放，原有背景音樂降低至 30%。", "測試模式集中「啟動 event」，可啟動 UFO、龍舟和搶包山；正式賽事支援存讀檔，避免重複扣款或發布賽果。"]},
     "v4.21.0": { title: "瀛寰搜奇", items: ["節慶系統：節慶日曆視窗、節慶狀態與農曆日期，新城市可選擇起始年份；六四自 1990 年起低調處理。", "聖誕街頭裝飾與農曆新年市集：新增一批節慶街道道具與市集美術。", "發現 UFO：飛碟會巡遊兩至四個地區，論壇有故事、跑馬燈有快訊；按「去看」時鏡頭會跟隨飛碟並靜止觀察。"] },
     "v4.20.0": { title: "下一站", items: ["運輸模式重新設計：一鍵切換城市建設／運輸公司，工具分為公車與渡輪兩組，四個附文字的視窗取代一排無標示圖示。", "新手引導：開業清單、工具提示列、放置公車站時即可看到服務範圍與預估乘客、每個視窗都有「?」說明，路線出問題可直接按鈕處理。", "財務圖表與路線乘客趨勢線；城市趨勢圖表加入運輸公司數據。渡輪可依航線增減船隻。", "站牌乘客大增：工作地點與目的地會產生返家乘客；八號風球解除後人潮湧回站牌，不再損失整個月的營收。"] },
     "v4.19.0": { title: "皇后碼頭", items: ["渡輪運輸：興建渡輪碼頭、規劃航線，天星小輪往返靠岸載客；船費收入納入運輸公司帳目。", "海濱步道：沿海陸地逐格鋪設，右鍵切換公共碼頭；更新遊艇會模型與避風塘規劃。", "更生動的海面：船尾浪花、夜間岸邊燈光倒影，以及華南海域天氣報告。", "改善大城市縮放與畫面物件排序效能；修正放置失敗時改變地形、內陸沙地出現海水邊緣，以及 Electron 啟動漏檔問題。"] },
@@ -937,6 +947,7 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   en: {
+    "v4.22.0": {"title": "Dragon Boats & Bun Towers", "items": ["Dragon boat racing: automatically planned six-lane waterfront courses, varied crew speeds, drifting and collisions, wave motion and cheering spectators.", "Nighttime bun scrambling: a theatre, three bun towers and flower boards on waterfront event grounds; 12 male and female athletes climb, collect buns and descend, followed by illustrated result news.", "New 1×1 event grounds in the park menu with connected red-brick paving; Lunar New Year markets use continuous stall blocks and aisles.", "Dragon boat drums, cheers, paddle sounds and a new race soundtrack that continues until closing without overlapping playback; original background music reduced to 30%.", "An event section in test mode for UFOs, dragon boats and bun scrambling; live events persist across saves without duplicate charges or result posts."]},
     "v4.21.0": { title: "Ciao UFO", items: ["Festival system: a festival calendar window, festival state and lunar dates, plus a start-year option for new cities. June 4 is observed quietly from 1990.", "Christmas street decorations and a Lunar New Year market: a new set of festive street props and market art.", "UFO sighting: a saucer tours two to four districts, with a forum story and a ticker bulletin. Press \\\"Go see\\\" and the camera holds still and follows it."] },
     "v4.20.0": { title: "Next Stop", items: ["Transport mode redesigned: one switch between city building and the transport company, bus and ferry tools in their own groups, and four named windows instead of a row of unlabelled icons.", "Getting started: a starter checklist, a hint bar for the tool in hand, a stop's walking range and expected riders before you place it, a \"?\" in every window, and route problems shown with the button that fixes them.", "Finance charts and rider trend lines on every route; transport figures in the city charts. Ferry routes can add or remove ferries.", "Much busier stops: jobs and destinations send riders home, and after a No. 8 signal the waiting crowds return instead of a whole month's fares being lost."] },
     "v4.19.0": { title: "Star Ferry", items: ["Ferry transport: build piers and routes, carry passengers between berths and earn fares through your transport company.", "Waterfront promenades: lay tiles along the coast and right-click to switch public piers; updated yacht club models and typhoon shelter planning.", "A livelier sea: boat wakes, waterfront light reflections at night and South China coastal weather reports.", "Smoother zooming and object sorting in large cities. Fixes unintended terrain painting after refused placements, water edges on inland sand and missing Electron startup files."] },
@@ -1281,6 +1292,7 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   ja: {
+    "v4.22.0": {"title": "ドラゴンボートと饅頭登り", "items": ["端午のドラゴンボート競走：海沿いの6レーンを自動配置。チームごとの速度差、コースの逸脱や衝突、波に揺れる船とブイ、沿岸の観客が登場。", "夜の饅頭登り：イベント広場に劇場、3基の饅頭塔と花看板を配置。男女12人が登り、饅頭を集めて降り、終了後は画像付きの結果記事を掲載。", "公園メニューに1×1のイベント広場を追加。赤いレンガ舗装が連結し、旧正月の市場も連続した屋台区画と通路に。", "太鼓、声援、オールの音と新しい競走音楽。閉場まで重複せず再生し、通常のBGMは従来の30％に。", "テストモードのイベント欄からUFO、ドラゴンボート、饅頭登りを起動。正式イベントはセーブ後も継続し、費用や結果記事の重複を防止。"]},
     "v4.21.0": { title: "世界不思議探訪", items: ["祭りシステム：祭りカレンダー、祭りの状態と旧暦の日付、新しい都市の開始年オプション。6 月 4 日は 1990 年から静かに扱われます。", "クリスマスの街角装飾と旧正月の市場：祭り用の街角プロップと市場アートを新規追加。", "UFO 目撃：円盤が 2～4 地区を巡り、掲示板の記事とティッカー速報が登場。「見に行く」を押すとカメラが円盤を追って静止します。"] },
     "v4.20.0": { title: "次、停まります", items: ["運輸モードを刷新：都市建設と運輸会社をワンタッチで切り替え、バスとフェリーのツールを分け、ラベルのないアイコン列を名前付きの 4 つのウィンドウに。", "はじめての方へ：開業チェックリスト、使用中ツールのヒント表示、停留所を置く前に徒歩圏と予想乗客を表示、各ウィンドウに「?」、路線の問題は解決ボタン付きで表示。", "財務グラフと路線ごとの乗客推移を追加し、都市グラフにも運輸会社のデータを表示。フェリー航路は船の増減が可能に。", "停留所の乗客が大幅増：職場や目的地から帰宅する乗客が生まれ、8 号シグナル解除後は待ち客が戻るため、1 か月分の運賃を失わなくなりました。"] },
     "v4.19.0": { title: "スターフェリー", items: ["フェリー輸送：埠頭と航路を整備し、両岸で乗客を乗降させます。運賃収入は運輸会社の会計に反映されます。", "海辺の遊歩道：海沿いの陸地に敷設し、右クリックで公共埠頭に切り替え。ヨットクラブのモデルと避風塘の計画も更新。", "生き生きとした海：船の航跡、夜の岸辺の照明の水面反射、華南沿岸海域の気象情報を追加。", "大都市のズームと描画順の処理を改善。設置に失敗した際の地形変更、内陸の砂地に出る水際表示、Electron の起動ファイル不足を修正。"] },
@@ -1650,8 +1662,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.21.0 — 【你睇唔睇到呀？】",
-      versionDesc: "4.21.0 更新：節日系統登場——節日日曆、聖誕街頭裝飾、農曆新年市集，仲有一隻會巡遊全城嘅 UFO，睇唔睇到就睇你啦。",
+      versionBadge: "v4.22.0 — 【龍舟競渡，包你平安】",
+      versionDesc: "4.22.0 更新：海旁六隊龍舟競渡，夜晚三塔搶包山；活動空地、岸邊觀眾、比賽聲景同附圖賽果新聞一齊登場。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感嘅城市建設遊戲。起街道、規劃社區、經營自己嘅香城巴士公司、處理議會同天氣，再睇住一座有性格嘅香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1750,8 +1762,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.21.0 — 【瀛寰搜奇】",
-      versionDesc: "4.21.0 更新：節慶系統登場——節慶日曆、聖誕街頭裝飾、農曆新年市集，還有一艘巡遊全城的 UFO，看不看得到就看你了。",
+      versionBadge: "v4.22.0 — 【龍舟競渡，包你平安】",
+      versionDesc: "4.22.0 更新：海旁六隊龍舟競渡，夜晚三塔搶包山；活動空地、岸邊觀眾、比賽音效與附圖賽果新聞一起登場。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感的城市建設遊戲。興建街道、規劃社區、經營自己的香城公車公司、處理議會與天氣，看著一座有個性的香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1850,8 +1862,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "The City of Heung Shing",
       title: "The City of Heung Shing",
-      versionBadge: "v4.21.0 — 【Ciao UFO】",
-      versionDesc: "4.21.0 update: the festival system arrives with a festival calendar, Christmas street decorations, a Lunar New Year market and a UFO touring the city. Will you spot it?",
+      versionBadge: "v4.22.0 — 【Dragon Boats & Bun Towers】",
+      versionDesc: "4.22.0 update: six-team waterfront dragon boat races and nighttime bun scrambling on three towers, with event grounds, spectators, race audio and illustrated result news.",
       lede: "A city-building game inspired by Hong Kong life and made in tribute to SimCity 2000. Build streets, shape neighbourhoods, run your own Heung Shing Bus Company, navigate council politics and weather, then watch a city with real personality grow.",
       freeLabel: "Completely free · macOS + Windows · Local saves",
       downloadBtn: "【Free Download】",
@@ -1951,8 +1963,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v4.21.0 — 【世界不思議探訪】",
-      versionDesc: "4.21.0 更新：祭りシステムが登場。祭りカレンダー、クリスマスの街角装飾、旧正月の市場、そして街を巡る UFO。あなたは見つけられるかな？",
+      versionBadge: "v4.22.0 — 【ドラゴンボートと饅頭登り】",
+      versionDesc: "4.22.0 更新：海沿いの6チームのドラゴンボート競走と、夜の3基の饅頭登り。イベント広場、観客、競走の音、画像付き結果記事が登場。",
       lede: "香港の都市生活から着想を得た、SimCity 2000へのオマージュとなる都市建設ゲーム。道路を築き、地区を計画し、自分だけの香城バス会社を経営し、議会や天候に向き合いながら、個性ある香城の成長を見守ります。",
       freeLabel: "完全無料 · macOS + Windows · ローカルセーブ",
       downloadBtn: "【無料ダウンロード】",
@@ -3889,6 +3901,8 @@ const SITE_GALLERY_SOURCES = [
   "assets/gameplay/heungShingForum.webp",
   "assets/gameplay/news.webp",
   "assets/gameplay/minimap.webp",
+  "assets/gameplay/dragonBoatRace.webp",
+  "assets/gameplay/bunHillRace.webp",
 ];
 
 function getLocalizedGalleryItems() {

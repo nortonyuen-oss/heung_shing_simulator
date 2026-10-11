@@ -478,7 +478,38 @@ function removeBuilding(scene, row, col, options = {}) {
   return true;
 }
 
+// N/E/S/W exposed edges, rotated into the camera's directions. Shared level
+// edges carry continuous brick paving; only the perimeter gets stone coping.
+function getEventGroundEdgeMask(records, row, col, heightOf, rotation = 0) {
+  const height = heightOf(row, col);
+  return [[-1,0],[0,1],[1,0],[0,-1]].reduce((mask,[dr,dc],dir) => {
+    const neighbor = records[`${row+dr}:${col+dc}`];
+    return neighbor?.type === 'event_ground' && heightOf(row+dr,col+dc) === height
+      ? mask : mask | (1 << ((dir + rotation + 4) % 4));
+  }, 0);
+}
+
+function syncEventGroundPavingSprite(scene, sprite) {
+  const mask = getEventGroundEdgeMask(buildingData, sprite.mapRow, sprite.mapCol,
+    (r,c) => heightMap[r]?.[c] ?? 0, typeof mapRotation === 'undefined' ? 0 : mapRotation);
+  const key = mask === 15 ? 'event_ground' : `event_ground_edges${mask}`;
+  const texture = resolveCanonicalTextureKey(key);
+  if (scene.textures.exists(texture) && sprite.renderTextureKey !== texture) {
+    sprite.setTexture(texture);
+    sprite.renderTextureKey = texture;
+    sprite.__dayTextureKey = null;
+  }
+}
+
+function refreshEventGroundPaving(scene) {
+  if (!scene?.buildingSprites) return;
+  for (const sprite of new Set(scene.buildingSprites.values())) {
+    if (sprite.logicalSpriteKey === 'event_ground') positionBuilding(scene, sprite);
+  }
+}
+
 function positionBuilding(scene, building) {
+  if (building.logicalSpriteKey === 'event_ground') syncEventGroundPavingSprite(scene, building);
   const footprintCols = building.footprintCols ?? 1;
   const footprintRows = building.footprintRows ?? 1;
   const anchor = getBuildingAnchor(
@@ -550,7 +581,7 @@ function getBuildingAnchor(row, col, footprintCols = 1, footprintRows = 1, ancho
 
 // A building that is only ground - the loading bay's open lot - sorts with the roads, under every
 // vehicle and prop standing on it, instead of over those on its back half.
-const FLAT_GROUND_BUILDING_TEXTURE = /^fish_loading_bay_2x2(_m)?$/;
+const FLAT_GROUND_BUILDING_TEXTURE = /^(fish_loading_bay_2x2(_m)?|event_ground(?:_edges\d+)?)(__night.*)?$/;
 function getBuildingSpriteDepth(textureKey, anchorY, footprintCols = 1, footprintRows = 1, elevOffset = 0) {
   if (FLAT_GROUND_BUILDING_TEXTURE.test(String(textureKey || ''))) return getWorldDepth('road', anchorY + TILE_HEIGHT + elevOffset);
   return getBuildingSortDepth(anchorY, footprintCols, footprintRows, elevOffset);

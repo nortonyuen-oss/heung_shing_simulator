@@ -82,13 +82,14 @@ for (const [packagePath, entry] of Object.entries(lock.packages).sort(([a], [b])
 const files = execFileSync('git', ['ls-files', '-z'], { cwd: root, maxBuffer: 16 * 1024 * 1024 })
   .toString('utf8').split('\0').filter(Boolean).sort(compare);
 const mediaPattern = /\.(png|webp|jpe?g|svg|gif|ico|icns|mp3|m4a|wav|ogg|woff2?|ttf|otf)$/i;
-const dataFiles = new Set(['real-city-coastline-masks.js', 'data/hko-astronomy-2026.json',
+const dataFiles = new Set(['real-city-coastline-masks.js', 'data/hko-astronomy-2026.json', 'festival-lunar-data.js',
   'Models/landscape/natural/manifest.json', 'docs/content/annual-fortunes.json']);
 function category(file) {
   if (file.startsWith('Models/landscape/natural/')) return 'NATURAL';
   if (file.startsWith('UI/weatherSignals/')) return 'WEATHER';
   if (file === 'real-city-coastline-masks.js') return 'COAST';
   if (file.startsWith('data/hko-astronomy-')) return 'HKO-API+HKO-PDF';
+  if (file === 'festival-lunar-data.js') return 'HKO-CAL';
   return ({ Music: 'MUSIC', Sounds: 'SOUND', Models: 'MODEL', UI: 'UI', build: 'UI',
     docs: file.startsWith('docs/content/') ? 'TEXT' : 'SITE',
     'kenney_isometric-roads': 'KENNEY', newRoadTiles: 'ROAD' })[file.split('/')[0]] || 'UNCLASSIFIED';

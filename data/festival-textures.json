@@ -1,0 +1,186 @@
+{
+ "textures": {
+  "fx_christmasChapel": {
+   "file": "Models/festivals/fx_christmasChapel.png",
+   "part": "christmasChapel",
+   "festival": "christmas",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 501
+   },
+   "top": 20,
+   "mirrored": false,
+   "heightM": 16,
+   "night": [
+    "Models/festivals/fx_christmasChapel__lit.png",
+    "Models/festivals/fx_christmasChapel__litb.png"
+   ]
+  },
+  "fx_christmasChapel_m": {
+   "file": "Models/festivals/fx_christmasChapel_m.png",
+   "part": "christmasChapel",
+   "festival": "christmas",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 501
+   },
+   "top": 20,
+   "mirrored": true,
+   "heightM": 16,
+   "night": [
+    "Models/festivals/fx_christmasChapel_m__lit.png",
+    "Models/festivals/fx_christmasChapel_m__litb.png"
+   ]
+  },
+  "fx_christmasGiftArch": {
+   "file": "Models/festivals/fx_christmasGiftArch.png",
+   "part": "christmasGiftArch",
+   "festival": "christmas",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 501
+   },
+   "top": 25,
+   "mirrored": false,
+   "heightM": 6,
+   "night": [
+    "Models/festivals/fx_christmasGiftArch__lit.png",
+    "Models/festivals/fx_christmasGiftArch__litb.png"
+   ]
+  },
+  "fx_christmasGiftArch_m": {
+   "file": "Models/festivals/fx_christmasGiftArch_m.png",
+   "part": "christmasGiftArch",
+   "festival": "christmas",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 501
+   },
+   "top": 25,
+   "mirrored": true,
+   "heightM": 6,
+   "night": [
+    "Models/festivals/fx_christmasGiftArch_m__lit.png",
+    "Models/festivals/fx_christmasGiftArch_m__litb.png"
+   ]
+  },
+  "fx_christmasLightArch": {
+   "file": "Models/festivals/fx_christmasLightArch.png",
+   "part": "christmasLightArch",
+   "festival": "christmas",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 256,
+    "y": 1010
+   },
+   "top": 372,
+   "mirrored": false,
+   "heightM": 7,
+   "night": [
+    "Models/festivals/fx_christmasLightArch__lit.png",
+    "Models/festivals/fx_christmasLightArch__litb.png"
+   ]
+  },
+  "fx_christmasLightArch_m": {
+   "file": "Models/festivals/fx_christmasLightArch_m.png",
+   "part": "christmasLightArch",
+   "festival": "christmas",
+   "width": 512,
+   "height": 1024,
+   "anchor": {
+    "x": 256,
+    "y": 1010
+   },
+   "top": 372,
+   "mirrored": true,
+   "heightM": 7,
+   "night": [
+    "Models/festivals/fx_christmasLightArch_m__lit.png",
+    "Models/festivals/fx_christmasLightArch_m__litb.png"
+   ]
+  },
+  "fx_christmasSleigh": {
+   "file": "Models/festivals/fx_christmasSleigh.png",
+   "part": "christmasSleigh",
+   "festival": "christmas",
+   "width": 1024,
+   "height": 512,
+   "anchor": {
+    "x": 512,
+    "y": 503
+   },
+   "top": 125,
+   "mirrored": false,
+   "lengthM": 16,
+   "night": [
+    "Models/festivals/fx_christmasSleigh__lit.png",
+    "Models/festivals/fx_christmasSleigh__litb.png"
+   ]
+  },
+  "fx_christmasSleigh_m": {
+   "file": "Models/festivals/fx_christmasSleigh_m.png",
+   "part": "christmasSleigh",
+   "festival": "christmas",
+   "width": 1024,
+   "height": 512,
+   "anchor": {
+    "x": 512,
+    "y": 503
+   },
+   "top": 125,
+   "mirrored": true,
+   "lengthM": 16,
+   "night": [
+    "Models/festivals/fx_christmasSleigh_m__lit.png",
+    "Models/festivals/fx_christmasSleigh_m__litb.png"
+   ]
+  },
+  "fx_christmasTree": {
+   "file": "Models/festivals/fx_christmasTree.png",
+   "part": "christmasTree",
+   "festival": "christmas",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 501
+   },
+   "top": 20,
+   "mirrored": false,
+   "heightM": 15,
+   "night": [
+    "Models/festivals/fx_christmasTree__lit.png",
+    "Models/festivals/fx_christmasTree__litb.png"
+   ]
+  },
+  "fx_christmasTree_m": {
+   "file": "Models/festivals/fx_christmasTree_m.png",
+   "part": "christmasTree",
+   "festival": "christmas",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 501
+   },
+   "top": 20,
+   "mirrored": true,
+   "heightM": 15,
+   "night": [
+    "Models/festivals/fx_christmasTree_m__lit.png",
+    "Models/festivals/fx_christmasTree_m__litb.png"
+   ]
+  }
+ },
+ "formatVersion": 1,
+ "scale": 0.5
+}

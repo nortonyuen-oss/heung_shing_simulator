@@ -33,6 +33,8 @@
     "bake:night-textures": "node scripts/bake-night-textures.js",
     "bake:road-line-textures": "node scripts/bake-road-line-textures.js",
     "bake:typhoon-shelter": "node scripts/bake-typhoon-shelter-textures.js",
+    "bake:festivals": "node scripts/bake-festival-textures.js",
+    "sync:lunar-calendar": "node scripts/sync-lunar-calendar.js",
     "audit:licenses": "node scripts/audit-licenses.js",
     "sync:legal": "node scripts/sync-legal-docs.js",
     "check:legal": "node scripts/sync-legal-docs.js --check"

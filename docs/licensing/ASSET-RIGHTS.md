@@ -16,6 +16,7 @@
 | COAST／`real-city-coastline-masks.js` | 開發者補充：Google Earth，由 Codex 引入；檔案包含座標及壓縮遮罩，沒有來源網址 | **原始資料未識別**。Git 歷史亦未找到原始網址。Google Earth 並非一般開放資料授權；Codex 引入不改變來源權利。補具體圖層、資料版本與供應者，或改用有明確許可的資料重建 |
 | HKO-API／`data/hko-astronomy-2026.json` 的日月出沒資料 | JSON 與同步腳本列官方 CSV；DATA.GOV.HK 可查對應資料集 | 補政府、天文台、DATA.GOV.HK 來源標示與條款。記錄轉換成分鐘、月相估算等加工 |
 | HKO-PDF／同一 JSON 的曙暮光衍生資料 | 同步腳本明載取自 HKO Almanac 2026，並做插值 | 與 CSV 分開處理；確認出版物許可／商業書面授權或改用獨立計算，不因混入 JSON 就變成同一開放資料授權 |
+| HKO-CAL／`festival-lunar-data.js` 的農曆節日日期 | `scripts/sync-lunar-calendar.js` 列出天文台「公曆與農曆日期對照表」(1901–2100) 網址；只取每年四個公曆日期 | 確認天文台網站內容的使用條款是否涵蓋遊戲內散布；日期屬事實資料，亦可改用獨立農曆演算法重建 |
 | TEXT／`i18n.js`、新聞、籤文、文件 | 內含擬新聞及文化參考，`news.ad.3` 含電視宣傳語句 | 檢查引用／改寫來源及許可；「致敬」或喜劇用途不能直接當成概括授權 |
 
 ## 單筆素材補件格式

@@ -146,6 +146,10 @@ function handleMenuAction(action) {
         toggleTransportExpansionForCity();
       }
       break;
+    case 'toggle-festivals':
+      if (typeof setFestivalsEnabled === 'function') setFestivalsEnabled(!areFestivalsEnabled());
+      updateSettingsMenu();
+      break;
     case 'toggle-attract-mode':
       if (typeof setAttractModeEnabled === 'function') {
         setAttractModeEnabled(!isAttractModeEnabled());
@@ -372,6 +376,8 @@ function updateSettingsMenu() {
     ?.classList.toggle('menu-checked', typeof isAiNewsEnabled === 'function' && isAiNewsEnabled());
   document.getElementById('menu-transport-expansion')
     ?.classList.toggle('menu-checked', typeof isExpansionEnabled === 'function' && isExpansionEnabled('transport'));
+  document.getElementById('menu-festivals')
+    ?.classList.toggle('menu-checked', typeof areFestivalsEnabled === 'function' && areFestivalsEnabled());
   document.getElementById('menu-attract-mode')
     ?.classList.toggle('menu-checked', typeof isAttractModeEnabled !== 'function' || isAttractModeEnabled());
   ['en', 'zhHant', 'ja'].forEach((language) => {

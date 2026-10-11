@@ -231,6 +231,8 @@ const city = {
   promenade: { version: 1, tiles: {} },
   // 漁業 (typhoon-shelter-fishery.js): the last night settled and the months' catch and money
   fishery: { lastSettledDay: null, lastMonth: null, history: [] },
+  // 香城節令 (festivals.js): switches, funding tiers, chosen venues, past years, the UFO
+  festivals: null,
   acknowledgedLandmarkUnlocks: [],
   landmarkRevenue: 0,
   landmarkUpkeep: 0,
@@ -418,6 +420,7 @@ function resetGameState() {
   city.promenade = { version: 1, tiles: {} };
   city.fishery = { lastSettledDay: null, lastMonth: null, history: [] };
   city.fisheryLabour = null;
+  city.festivals = typeof createFestivalState === 'function' ? createFestivalState() : null;
   if (typeof resetTyphoonShelterPlanning === 'function') resetTyphoonShelterPlanning();
   if (typeof resetAiNewsRuntime === 'function') resetAiNewsRuntime();
   city.tick       = 0;
@@ -814,6 +817,9 @@ function normalizeCityFinanceState() {
     city.fishery = rememberNormalizedCityStateObject(typeof normalizeCityFishery === 'function'
       ? normalizeCityFishery(city.fishery)
       : (city.fishery && typeof city.fishery === 'object' ? city.fishery : { lastSettledDay: null, lastMonth: null, history: [] }));
+  }
+  if (!isNormalizedCityStateObject(city.festivals) && typeof normalizeFestivalState === 'function') {
+    city.festivals = rememberNormalizedCityStateObject(normalizeFestivalState(city.festivals));
   }
   if (!isNormalizedCityStateObject(city.forumPosts)) {
     city.forumPosts = rememberNormalizedCityStateObject((Array.isArray(city.forumPosts) ? city.forumPosts : []).slice(-60).map((post, index) => ({

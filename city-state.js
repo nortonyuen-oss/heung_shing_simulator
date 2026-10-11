@@ -89,6 +89,18 @@ function createDefaultStockMarketState() {
 }
 
 // City-wide simulation state
+// 開局年份 (Norton 2026-10-11): the year a new city starts in, picked on the new-city form.
+// 'now' is the current real year. 1900 stays the default, as every city before this option.
+const CITY_START_YEAR_OPTIONS = Object.freeze([1850, 1900, 1950, 1980, 2000, 'now']);
+const CITY_DEFAULT_START_YEAR = 1900;
+
+/** The game year a start-year option means; anything unknown is the default. */
+function resolveCityStartYear(option, now = new Date()) {
+  if (option === 'now') return now.getFullYear();
+  const year = Math.trunc(Number(option));
+  return CITY_START_YEAR_OPTIONS.includes(year) ? year : CITY_DEFAULT_START_YEAR;
+}
+
 const city = {
   name: getDefaultCityName(),
   nameEn: '',
@@ -242,7 +254,7 @@ const city = {
   environmentMinutes: 0,
   day:   1,
   month: 1,
-  year: 1900,
+  year: CITY_DEFAULT_START_YEAR,
   isBankrupt: false,
 };
 
@@ -428,7 +440,7 @@ function resetGameState() {
   city.environmentMinutes = 0;
   city.day        = 1;
   city.month      = 1;
-  city.year       = 1900;
+  city.year       = CITY_DEFAULT_START_YEAR;
   city.isBankrupt = false;
   if (typeof clearZoneGrowthQualityContextCache === 'function') {
     clearZoneGrowthQualityContextCache();

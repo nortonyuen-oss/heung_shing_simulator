@@ -15,6 +15,7 @@ function setupLandingScreen() {
   const terrainSourceSelect = document.getElementById('newgame-terrain-source');
   const terrainPresetSelect = document.getElementById('newgame-terrain-preset');
   const roadTileSetSelect = document.getElementById('newgame-road-tile-set');
+  const startYearSelect = document.getElementById('newgame-start-year');
   const terrainPresetTitle = document.getElementById('newgame-terrain-presets-title');
   const terrainPreviewList = document.getElementById('newgame-terrain-preview-list');
   const terrainEmptyHint = document.getElementById('newgame-terrain-empty-hint');
@@ -26,6 +27,22 @@ function setupLandingScreen() {
     if (menu) menu.style.display = state === 'menu' ? 'grid' : 'none';
     if (nameForm) nameForm.style.display = state === 'name' ? 'block' : 'none';
     if (terrainForm) terrainForm.style.display = state === 'terrain' ? 'block' : 'none';
+  }
+
+  // 開局年份: keeps the player's pick across a language change
+  function populateStartYearSelect() {
+    if (!startYearSelect || typeof CITY_START_YEAR_OPTIONS === 'undefined') return;
+    const picked = startYearSelect.value || String(CITY_DEFAULT_START_YEAR);
+    startYearSelect.innerHTML = '';
+    CITY_START_YEAR_OPTIONS.forEach((option) => {
+      const element = document.createElement('option');
+      element.value = String(option);
+      element.textContent = option === 'now'
+        ? t('landing.startYearNow', { year: resolveCityStartYear('now') })
+        : t('landing.startYearOption', { year: option });
+      startYearSelect.appendChild(element);
+    });
+    startYearSelect.value = picked;
   }
 
   function populateTerrainProfileSelect() {
@@ -263,6 +280,7 @@ function setupLandingScreen() {
   // a blank button while the server wakes up.
   prefetchSaveStatus();
   populateTerrainProfileSelect();
+  populateStartYearSelect();
   if (typeof populateRoadTileSetSelect === 'function') populateRoadTileSetSelect(roadTileSetSelect);
   updateTerrainSourceVisibility();
   document.addEventListener('languagechange', () => {
@@ -271,6 +289,7 @@ function setupLandingScreen() {
     // race with (and overwrite) the active city's elevation state.
     if (screen.style.display === 'none') return;
     populateTerrainProfileSelect();
+    populateStartYearSelect();
     if (typeof populateRoadTileSetSelect === 'function') populateRoadTileSetSelect(roadTileSetSelect);
     refreshTerrainPresetOptions();
   });
@@ -512,6 +531,7 @@ async function startNewGame(cityName) {
   const terrainPresetSelect = document.getElementById('newgame-terrain-preset');
   const roadTileSetSelect = document.getElementById('newgame-road-tile-set');
   const transportExpansionCheckbox = document.getElementById('newgame-transport-expansion');
+  const startYearSelect = document.getElementById('newgame-start-year');
   const source = terrainSourceSelect?.value || 'random';
 
   stopSimTimer();
@@ -565,6 +585,10 @@ async function startNewGame(cityName) {
   else if (typeof currentSaveId !== 'undefined') currentSaveId = null;
 
   rebuildFreshMapSession(cityName || getDefaultCityName());
+  if (typeof resolveCityStartYear === 'function') {
+    city.year = resolveCityStartYear(startYearSelect?.value ?? CITY_DEFAULT_START_YEAR);
+    updateHUD();
+  }
   if (typeof setExpansionEnabled === 'function') {
     setExpansionEnabled('transport', transportExpansionCheckbox?.checked === true, {
       notify: false,

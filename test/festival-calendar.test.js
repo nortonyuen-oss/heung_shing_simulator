@@ -6,7 +6,8 @@ const {
   getLunarFestivalDate, getFestivalDate, getFestivalMonth, getFestivalsInMonth, getFestivalYearCalendar,
 } = require('../festival-calendar.js');
 const {
-  FESTIVAL_IDS, createFestivalState, normalizeFestivalState, isGovernmentFestival,
+  FESTIVAL_SWITCHABLE_IDS, createFestivalState, normalizeFestivalState, isGovernmentFestival,
+  isQuietFestival, isFestivalHeldInYear,
 } = require('../festivals.js');
 
 test('the lunar table covers 1901-2100 with four dates a year', () => {
@@ -105,9 +106,10 @@ test('the HKO table parser reads month names, days and skips leap months', () =>
 test('festival state: defaults, tiers only for government festivals, bad saves cleaned', () => {
   const fresh = createFestivalState();
   assert.equal(fresh.enabled, true);
-  assert.deepEqual(Object.keys(fresh.festivals), FESTIVAL_IDS);
+  assert.deepEqual(Object.keys(fresh.festivals), FESTIVAL_SWITCHABLE_IDS);
   assert.equal(fresh.festivals.lunarNewYear.tier, 'standard');
-  assert.equal(fresh.festivals.june4.tier, null, 'community festivals have no tier');
+  assert.equal(fresh.festivals.yulan.tier, null, 'community festivals have no tier');
+  assert.equal(fresh.festivals.june4, undefined, '六四 has no switch of its own');
   assert.equal(fresh.festivals.ufo.tier, null);
   assert.equal(isGovernmentFestival('christmas'), true);
   assert.equal(isGovernmentFestival('yulan'), false);
@@ -127,7 +129,7 @@ test('festival state: defaults, tiers only for government festivals, bad saves c
   });
   assert.equal(state.enabled, false);
   assert.deepEqual(state.festivals.christmas, { enabled: false, tier: 'grand' });
-  assert.equal(state.festivals.june4.tier, null);
+  assert.equal(state.festivals.june4, undefined);
   assert.equal(state.festivals.midAutumn.tier, 'standard');
   assert.equal(state.festivals.bogus, undefined);
   assert.equal(state.venues.lunarNewYear, 'park-12');
@@ -137,4 +139,47 @@ test('festival state: defaults, tiers only for government festivals, bad saves c
     { id: 'dragonBoat', year: 1951, outcome: 'held', attendance: 0, cost: 0, income: 0 },
   ]);
   assert.deepEqual(state.ufo, { lastMonthIndex: 640, sightings: 3 });
+});
+
+test('六四 is quiet, held from 1990 and every year after, and follows only the master switch', () => {
+  assert.equal(isQuietFestival('june4'), true);
+  assert.equal(isQuietFestival('christmas'), false);
+  assert.equal(isFestivalHeldInYear('june4', 1989), false);
+  assert.equal(isFestivalHeldInYear('june4', 1990), true);
+  assert.equal(isFestivalHeldInYear('june4', 2027), true);
+  assert.equal(isFestivalHeldInYear('christmas', 1850), true);
+
+  const vm = require('node:vm');
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const context = vm.createContext({ city: { festivals: null } });
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'festivals.js'), 'utf8'), context);
+  const run = (code) => vm.runInContext(code, context);
+  assert.equal(run("isFestivalEnabled('june4')"), true);
+  run("setFestivalEnabled('june4', false)");
+  assert.equal(run("isFestivalEnabled('june4')"), true, 'no switch of its own to turn off');
+  run('setFestivalsEnabled(false)');
+  assert.equal(run("isFestivalEnabled('june4')"), false);
+  assert.equal(run("isFestivalEnabled('christmas')"), false);
+});
+
+test('開局年份: the new-city form offers 1850-now, and anything unknown starts in 1900', () => {
+  const vm = require('node:vm');
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const source = fs.readFileSync(path.join(__dirname, '..', 'city-state.js'), 'utf8');
+  const start = source.indexOf('const CITY_START_YEAR_OPTIONS');
+  const end = source.indexOf('\n}\n', source.indexOf('function resolveCityStartYear')) + 3;
+  const context = vm.createContext({});
+  vm.runInContext(`${source.slice(start, end)}\nthis.api = { CITY_START_YEAR_OPTIONS, CITY_DEFAULT_START_YEAR, resolveCityStartYear };`, context);
+  const { CITY_START_YEAR_OPTIONS, CITY_DEFAULT_START_YEAR, resolveCityStartYear } = context.api;
+  assert.deepEqual([...CITY_START_YEAR_OPTIONS], [1850, 1900, 1950, 1980, 2000, 'now']);
+  assert.equal(CITY_DEFAULT_START_YEAR, 1900);
+  assert.equal(resolveCityStartYear('1850'), 1850, 'a <select> value is a string');
+  assert.equal(resolveCityStartYear(1980), 1980);
+  assert.equal(resolveCityStartYear('now', new Date(2026, 9, 11)), 2026);
+  assert.equal(resolveCityStartYear('1066'), 1900);
+  assert.equal(resolveCityStartYear(undefined), 1900);
+  // 六四 shows in a city started in 1980 or later within its first decade
+  assert.ok(resolveCityStartYear('1980') + 10 >= 1990);
 });

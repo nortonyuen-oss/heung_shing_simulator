@@ -143,7 +143,7 @@ function normalizeCouncilState(rawCouncil, activePolicies = {}) {
     .map((schedule, index) => ({
       id: cleanShortText(schedule.id || `strong-country-loaded-${index}`, 100),
       policyId: 'strongCountryManufacturing',
-      enactedYear: Math.floor(clampCouncilNumber(schedule.enactedYear, 1900, 9999, 1900)),
+      enactedYear: Math.floor(clampCouncilNumber(schedule.enactedYear, 1800, 9999, 1900)),
       enactedMonthIndex: Math.floor(clampCouncilNumber(schedule.enactedMonthIndex, 0, Number.MAX_SAFE_INTEGER, 0)),
       abuseDueMonthIndex: Math.floor(clampCouncilNumber(schedule.abuseDueMonthIndex, 0, Number.MAX_SAFE_INTEGER, 0)),
       researchDueMonthIndex: Math.floor(clampCouncilNumber(schedule.researchDueMonthIndex, 0, Number.MAX_SAFE_INTEGER, 0)),

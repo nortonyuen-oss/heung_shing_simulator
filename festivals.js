@@ -12,11 +12,17 @@
 
 // organiser: 'government' festivals take a funding tier; 'community' ones (六四, 盂蘭 燒街衣) are
 // put on by the people, cost the treasury nothing and have no tier. venue: the kind of place it
-// is held (festival-venues.js, Phase 1). kind 'random' has no calendar date.
+// is held (festival-venues.js, Phase 1). kind 'random' has no calendar date. firstYear: not held
+// before that game year.
+//
+// quiet (六四, Norton 2026-10-11): a quiet remembrance in the park and nothing else - no switch of
+// its own (only the master switch), not listed in the festival calendar, no notice, news, forum
+// post, council comment, inspect text, attendance figure or effect. Everything that writes text
+// about festivals must skip a quiet one. Held from 1990 (the first vigil) and every year after.
 const FESTIVAL_DEFINITIONS = Object.freeze([
   Object.freeze({ id: 'lunarNewYear', kind: 'calendar', organiser: 'government', venue: 'flagshipPark', label: '新春年宵' }),
   Object.freeze({ id: 'dragonBoat', kind: 'calendar', organiser: 'government', venue: 'promenade', label: '端午龍舟＋搶包山' }),
-  Object.freeze({ id: 'june4', kind: 'calendar', organiser: 'community', venue: 'flagshipPark', label: '六四燭光晚會' }),
+  Object.freeze({ id: 'june4', kind: 'calendar', organiser: 'community', venue: 'flagshipPark', label: '六四', quiet: true, firstYear: 1990 }),
   Object.freeze({ id: 'yulan', kind: 'calendar', organiser: 'community', venue: 'residentialKerbs', label: '盂蘭燒街衣' }),
   Object.freeze({ id: 'midAutumn', kind: 'calendar', organiser: 'government', venue: 'residentialRoute', label: '中秋舞火龍' }),
   Object.freeze({ id: 'christmas', kind: 'calendar', organiser: 'government', venue: 'commercialStreets', label: '聖誕燈飾' }),
@@ -24,6 +30,8 @@ const FESTIVAL_DEFINITIONS = Object.freeze([
 ]);
 const FESTIVAL_DEFINITIONS_BY_ID = Object.freeze(Object.fromEntries(FESTIVAL_DEFINITIONS.map((d) => [d.id, d])));
 const FESTIVAL_IDS = Object.freeze(FESTIVAL_DEFINITIONS.map((d) => d.id));
+// the festivals with a switch (and, if government-run, a tier) of their own
+const FESTIVAL_SWITCHABLE_IDS = Object.freeze(FESTIVAL_DEFINITIONS.filter((d) => !d.quiet).map((d) => d.id));
 
 // 唔辦／簡辦／標準／盛大
 const FESTIVAL_TIERS = Object.freeze(['skip', 'basic', 'standard', 'grand']);
@@ -35,11 +43,22 @@ function isGovernmentFestival(id) {
   return FESTIVAL_DEFINITIONS_BY_ID[id]?.organiser === 'government';
 }
 
+function isQuietFestival(id) {
+  return !!FESTIVAL_DEFINITIONS_BY_ID[id]?.quiet;
+}
+
+/** Whether a festival is held at all in a game year (六四 from 1990). */
+function isFestivalHeldInYear(id, year) {
+  const definition = FESTIVAL_DEFINITIONS_BY_ID[id];
+  if (!definition) return false;
+  return !definition.firstYear || Math.trunc(Number(year)) >= definition.firstYear;
+}
+
 function createFestivalState() {
   return {
     version: 1,
     enabled: true,
-    festivals: Object.fromEntries(FESTIVAL_IDS.map((id) => [id, {
+    festivals: Object.fromEntries(FESTIVAL_SWITCHABLE_IDS.map((id) => [id, {
       enabled: true,
       tier: isGovernmentFestival(id) ? FESTIVAL_DEFAULT_TIER : null,
     }])),
@@ -70,7 +89,7 @@ function normalizeFestivalState(raw) {
   const state = createFestivalState();
   if (!raw || typeof raw !== 'object') return state;
   state.enabled = raw.enabled !== false;
-  FESTIVAL_IDS.forEach((id) => {
+  FESTIVAL_SWITCHABLE_IDS.forEach((id) => {
     const saved = raw.festivals?.[id];
     if (!saved || typeof saved !== 'object') return;
     state.festivals[id].enabled = saved.enabled !== false;
@@ -104,10 +123,11 @@ function setFestivalsEnabled(enabled) {
   if (state) state.enabled = !!enabled;
 }
 
-/** Whether one festival is on: the master switch and its own. */
+/** Whether one festival is on: the master switch and its own (a quiet one has only the master). */
 function isFestivalEnabled(id) {
   const state = getCityFestivalState();
-  return !!state && state.enabled !== false && state.festivals?.[id]?.enabled !== false && !!FESTIVAL_DEFINITIONS_BY_ID[id];
+  if (!state || state.enabled === false || !FESTIVAL_DEFINITIONS_BY_ID[id]) return false;
+  return isQuietFestival(id) || state.festivals?.[id]?.enabled !== false;
 }
 
 function setFestivalEnabled(id, enabled) {
@@ -132,11 +152,14 @@ if (typeof module !== 'undefined' && module.exports) {
     FESTIVAL_DEFINITIONS,
     FESTIVAL_DEFINITIONS_BY_ID,
     FESTIVAL_IDS,
+    FESTIVAL_SWITCHABLE_IDS,
     FESTIVAL_TIERS,
     FESTIVAL_DEFAULT_TIER,
     FESTIVAL_HISTORY_LIMIT,
     FESTIVAL_OUTCOMES,
     isGovernmentFestival,
+    isQuietFestival,
+    isFestivalHeldInYear,
     createFestivalState,
     normalizeFestivalState,
     areFestivalsEnabled,

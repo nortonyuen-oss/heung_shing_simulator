@@ -294,6 +294,8 @@ function getFestivalLayoutContext(id, ctx, phase) {
     soldShare: festivalSoldShares.get(key),
     seed: `${city.name || 'heung-shing'}:${city.year}`,
     mainVenue: getCityFestivalState()?.venues?.[id] || '',
+    minute: typeof getGameTimeOfDayMinutes === 'function' ? getGameTimeOfDayMinutes() : Number(city.timeOfDayMinutes) || 0,
+    population: Number(city.population) || 0,
   };
 }
 

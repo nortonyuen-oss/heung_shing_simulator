@@ -494,8 +494,83 @@ function layoutLunarNewYear(ctx) {
   return out;
 }
 
+// ── 六四 (docs/festival-dlc-design.md §4.3): a quiet remembrance ──────────────
+// No stage, screen, banners, booths or police; no text anywhere. People sit quietly with candles on
+// the pitches of one Victoria Park, as at the real vigil, among patches of candles, drawn at the
+// park's own scale; the 國殤之柱 and flowers in the paved square (Norton 2026-10-13). They arrive from one corner from
+// 19:00, the ground is full by 20:00, and they leave again from 22:00 until 22:30. How full it
+// gets follows the population, and is only ever drawn - no figure is shown anywhere.
+const JUNE4_AREAS = Object.freeze(['pitch', 'tennis', 'basketball']);
+// a cell is one group of seated people or one patch of candles, at the park art's scale
+const JUNE4_CELL_M = 1.2;
+const JUNE4_ARRIVE = Object.freeze({ from: 19 * 60, to: 20 * 60 });
+const JUNE4_LEAVE = Object.freeze({ from: 22 * 60, to: 22 * 60 + 30 });
+// what stands in a cell, by share
+const JUNE4_CELL_KINDS = Object.freeze([
+  [0.26, 'june4Sitting'], [0.16, 'june4SitA'], [0.16, 'june4SitB'], [0.14, 'june4SitC'],
+  [0.12, 'june4Candles1'], [0.16, 'june4Candles2'],
+]);
+
+/** How much of the ground is taken at a minute, 0..1: arriving, full, leaving. */
+function getJune4Presence(minuteOfDay) {
+  const m = Number(minuteOfDay) < 6 * 60 ? Number(minuteOfDay) + 24 * 60 : Number(minuteOfDay);
+  if (!Number.isFinite(m) || m < JUNE4_ARRIVE.from || m >= JUNE4_LEAVE.to) return 0;
+  if (m < JUNE4_ARRIVE.to) return (m - JUNE4_ARRIVE.from) / (JUNE4_ARRIVE.to - JUNE4_ARRIVE.from);
+  if (m < JUNE4_LEAVE.from) return 1;
+  return 1 - (m - JUNE4_LEAVE.from) / (JUNE4_LEAVE.to - JUNE4_LEAVE.from);
+}
+
+/**
+ * 六四 for a city: the remembrance on the first Victoria Park, or nothing without one.
+ * @param {object} ctx  parks ({ id, textureKey }), minute (minute of the day), population, seed
+ */
+function layoutJune4(ctx) {
+  const park = (ctx.parks || []).find((p) => FESTIVAL_BUILDING_SPOTS[p.textureKey]?.areas?.pitch);
+  const presence = getJune4Presence(ctx.minute);
+  if (!park || presence <= 0) return [];
+  const spot = FESTIVAL_BUILDING_SPOTS[park.textureKey];
+  const out = [];
+  const add = (id, partId, point) => out.push({ id: `june4:${id}`, festival: 'june4', partId, mode: 'building', buildingId: park.id, point });
+  // the pillar in the square, flowers and candles at its foot - there from the start
+  const plaza = spot.areas.plaza;
+  add('pillar', 'june4Pillar', getFestivalAreaPoint(plaza, 0.55, 0.5));
+  add('flowers1', 'june4Flowers', getFestivalAreaPoint(plaza, 0.4, 0.38));
+  add('flowers2', 'june4Flowers', getFestivalAreaPoint(plaza, 0.4, 0.66));
+  add('candles1', 'june4Candles2', getFestivalAreaPoint(plaza, 0.3, 0.5));
+  // a small city fills a corner of the pitch; a big one all three grounds
+  const share = Math.max(0.2, Math.min(1, 0.2 + (Number(ctx.population) || 0) / 300000));
+  const cells = [];
+  JUNE4_AREAS.forEach((name, areaIndex) => {
+    const area = spot.areas[name];
+    if (!area) return;
+    const len = (a, b) => Math.hypot(b[0] - a[0], b[1] - a[1]) / spot.pxPerM;
+    const uN = Math.max(1, Math.floor(len(area.left, area.top) / JUNE4_CELL_M));
+    const vN = Math.max(1, Math.floor(len(area.top, area.right) / JUNE4_CELL_M));
+    for (let i = 0; i < uN; i++) {
+      for (let k = 0; k < vN; k++) {
+        // the order people come in: from the area's near corner outward, the pitch first
+        const order = areaIndex + (i / uN + (vN - 1 - k) / vN) / 2 + 0.08 * lnyHash(`${ctx.seed}:june4:${name}:${i}:${k}:o`);
+        cells.push({ name, area, i, k, uN, vN, order });
+      }
+    }
+  });
+  cells.sort((a, b) => a.order - b.order);
+  const shown = Math.round(cells.length * share * presence);
+  cells.slice(0, shown).forEach((c) => {
+    const roll = lnyHash(`${ctx.seed}:june4:${c.name}:${c.i}:${c.k}:kind`);
+    let acc = 0;
+    const kind = (JUNE4_CELL_KINDS.find(([w]) => (acc += w) > roll) || JUNE4_CELL_KINDS[0])[1];
+    // up to a third of a cell's give either way, so the rows do not read as a grid
+    const ju = (lnyHash(`${ctx.seed}:${c.name}:${c.i}:${c.k}:u`) - 0.5) * 0.66;
+    const jv = (lnyHash(`${ctx.seed}:${c.name}:${c.i}:${c.k}:v`) - 0.5) * 0.66;
+    add(`${c.name}:${c.i}:${c.k}`, kind, getFestivalAreaPoint(c.area, (c.i + 0.5 + ju) / c.uN, (c.k + 0.5 + jv) / c.vN));
+  });
+  return out;
+}
+
 /** Every placement of a festival for the city as it stands. */
 function layoutFestival(id, ctx) {
+  if (id === 'june4') return layoutJune4(ctx);
   if (id === 'christmas') return layoutChristmasDecorations(ctx);
   if (id === 'lunarNewYear') return layoutLunarNewYear(ctx);
   return [];
@@ -516,5 +591,7 @@ if (typeof module !== 'undefined' && module.exports) {
     getLnyRows,
     layoutFestival,
     orderFestivalPromenadeRuns,
+    layoutJune4,
+    getJune4Presence,
   };
 }

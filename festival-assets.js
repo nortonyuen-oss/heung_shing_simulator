@@ -138,6 +138,22 @@ const FESTIVAL_PARTS = Object.freeze([
 
   ...['Back1','Front1','Back2','Front2'].map(view => festivalPart(`dbspectators${view}`, 'dragonBoat', `DragonBoat/spectators${view}.png`, 'crowd', `龍舟觀眾 ${view}`, {heightM:1.7, geometry:DRAGON_BOAT_CROWD_GEOMETRY?.[`spectators${view}`]})),
 
+  // 六四 (§4.3, quiet; Norton 2026-10-13): candles, the 國殤之柱, flowers and people sitting with
+  // candles - nothing of a rally. The candle patches are squared by their four ground corners
+  // (tools/quad.py), the pillar by skew + x:y scale (isometric-correction.json). The people are drawn
+  // at the park art's own scale - its figures are about 0.3 m tall by the game's metres, the park
+  // being drawn about a fifth of life size - so they sit among it quietly instead of towering.
+  festivalPart('june4Candles1', 'june4', 'June/JuneMemorial1.png', 'decoration', '燭光（大）', { lengthM: 3, lit: true }),
+  festivalPart('june4Candles2', 'june4', 'June/JuneMemorial2.png', 'decoration', '燭光（細）', { lengthM: 3, lit: true }),
+  festivalPart('june4Pillar', 'june4', 'June/pillarOfShame.png', 'structure', '國殤之柱', { heightM: 3, lit: true }),
+  festivalPart('june4Sitting', 'june4', 'original/June/JuneMemorial4.png', 'crowd', '持燭席地市民', { heightM: 0.3, lit: true }),
+  festivalPart('june4Flowers', 'june4', 'original/June/JuneMemorial5.png', 'decoration', '白菊花束', { heightM: 0.5, lit: true }),
+  ...[
+    ['june4SitA', [23, 735, 121, 94], '席地市民 A'],
+    ['june4SitB', [165, 744, 116, 89], '席地市民 B'],
+    ['june4SitC', [290, 733, 158, 90], '席地市民 C'],
+  ].map(([id, rect, label]) => festivalPart(id, 'june4', 'original/June/維多利亞公園六四燭光追思像素素材集.png', 'crowd', label, { heightM: 0.28, rect, lit: true })),
+
   // 發現 UFO (§4.7): six frames of the one saucer - the alien waves, the lamps change - played in
   // turn, all at one scale (festival-ufo.js); the beam is drawn added, stretched to the ground. Nothing
   // on the ground to square to, so they bake straight from the renders (original/).

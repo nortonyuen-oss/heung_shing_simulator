@@ -242,3 +242,44 @@ test('新春 layout: the main fair on one Victoria Park pitch, small ones elsewh
   // every part named is a baked part
   [...peak, ...setup, ...after].forEach((p) => assert.ok(FESTIVAL_PARTS_BY_ID[p.partId], p.partId));
 });
+
+test('六四: a quiet remembrance on one Victoria Park, people arriving from 19:00 and gone by 22:30', () => {
+  const { layoutJune4, getJune4Presence } = require('../festival-venues.js');
+  assert.equal(getJune4Presence(18 * 60 + 59), 0);
+  assert.ok(getJune4Presence(19 * 60 + 30) > 0.4 && getJune4Presence(19 * 60 + 30) < 0.6, 'half arrived by 19:30');
+  assert.equal(getJune4Presence(21 * 60), 1);
+  assert.ok(getJune4Presence(22 * 60 + 15) < 0.6);
+  assert.equal(getJune4Presence(22 * 60 + 30), 0);
+  const parks = [{ id: '1:1', textureKey: 'park_flagship_victoria' }, { id: '9:9', textureKey: 'park_flagship_victoria' }];
+  const at = (minute, population) => layoutJune4({ parks, minute, population, seed: 's' });
+  const full = at(21 * 60, 400000);
+  assert.ok(full.every((p) => p.buildingId === '1:1'), 'one park only');
+  assert.ok(full.length > at(21 * 60, 20000).length, 'a bigger city, a bigger gathering');
+  assert.ok(at(19 * 60 + 20, 400000).length < full.length, 'still arriving');
+  assert.equal(at(21 * 60, 400000).length, full.length, 'the same every time');
+  // the pillar, candles and seated people; nothing of a rally, nobody standing
+  assert.ok(full.some((p) => p.partId === 'june4Pillar') && full.some((p) => /Candles/.test(p.partId)));
+  assert.ok(full.every((p) => !/Standing|Stools|Stone|Wreath/.test(p.partId)));
+  full.forEach((p) => {
+    assert.ok(FESTIVAL_PARTS_BY_ID[p.partId]?.festival === 'june4', p.partId);
+  });
+  assert.deepEqual(layoutJune4({ parks: [], minute: 21 * 60, population: 1e6, seed: 's' }), [], 'no Victoria Park, nothing');
+});
+
+test('六四 says nothing: no switch, no tier, no money, no notice, no news', () => {
+  const ctx = festivalsSandbox({ festivals: null, population: 500000 });
+  assert.equal(vm.runInContext("isQuietFestival('june4')", ctx), true);
+  assert.equal(vm.runInContext("FESTIVAL_SWITCHABLE_IDS.includes('june4')", ctx), false, 'not in the calendar window');
+  assert.equal(vm.runInContext("getFestivalTier('june4')", ctx), null);
+  assert.equal(vm.runInContext("getFestivalCost('june4', 'grand', 500000)", ctx), 0);
+  assert.deepEqual({ ...vm.runInContext("getFestivalEffects('june4', null)", ctx) }, {});
+  assert.equal(vm.runInContext("settleFestivalMonth('june4', 2026, { hasVenue: true })", ctx), null);
+  // the notices skip it (festival-ui.js) and nothing writes news, forum posts or i18n text for it
+  const ui = fs.readFileSync(path.join(ROOT, 'festival-ui.js'), 'utf8');
+  assert.match(ui, /phase !== 'peak' \|\| isQuietFestival\(id\)/);
+  const i18n = fs.readFileSync(path.join(ROOT, 'i18n.js'), 'utf8');
+  assert.doesNotMatch(i18n, /festival\.(notice|toast[^']*|name)\.june4/);
+  ['newspaper.js', 'council-news.js', 'hud-ticker.js', 'sim-news-events.js'].forEach((file) => {
+    assert.doesNotMatch(fs.readFileSync(path.join(ROOT, file), 'utf8'), /june4|六四/, `${file} must not mention it`);
+  });
+});

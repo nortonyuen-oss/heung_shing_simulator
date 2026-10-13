@@ -545,14 +545,13 @@
    "width": 512,
    "height": 256,
    "anchor": {
-    "x": 256.5,
-    "y": 228.66102479338844
+    "x": 257,
+    "y": 247
    },
    "top": 11,
    "left": 59,
    "right": 455,
    "mirrored": false,
-   "groundSpanX": 332.1579781962339,
    "lengthM": 10
   },
   "fx_dbguardLine_m": {
@@ -562,14 +561,13 @@
    "width": 512,
    "height": 256,
    "anchor": {
-    "x": 255.5,
-    "y": 228.66102479338844
+    "x": 255,
+    "y": 247
    },
    "top": 11,
    "left": 57,
    "right": 453,
    "mirrored": true,
-   "groundSpanX": 332.1579781962339,
    "lengthM": 10
   },
   "fx_dbpier": {
@@ -1117,6 +1115,326 @@
    "mirrored": true,
    "groundSpanX": 530.3678001387925,
    "lengthM": 18
+  },
+  "fx_june4Candles1": {
+   "file": "Models/festivals/fx_june4Candles1.png",
+   "part": "june4Candles1",
+   "festival": "june4",
+   "width": 512,
+   "height": 256,
+   "anchor": {
+    "x": 257,
+    "y": 248
+   },
+   "top": 11,
+   "left": 44,
+   "right": 469,
+   "mirrored": false,
+   "lengthM": 3,
+   "night": [
+    "Models/festivals/fx_june4Candles1__lit.png",
+    "Models/festivals/fx_june4Candles1__litb.png"
+   ]
+  },
+  "fx_june4Candles1_m": {
+   "file": "Models/festivals/fx_june4Candles1_m.png",
+   "part": "june4Candles1",
+   "festival": "june4",
+   "width": 512,
+   "height": 256,
+   "anchor": {
+    "x": 255,
+    "y": 248
+   },
+   "top": 11,
+   "left": 43,
+   "right": 468,
+   "mirrored": true,
+   "lengthM": 3,
+   "night": [
+    "Models/festivals/fx_june4Candles1_m__lit.png",
+    "Models/festivals/fx_june4Candles1_m__litb.png"
+   ]
+  },
+  "fx_june4Candles2": {
+   "file": "Models/festivals/fx_june4Candles2.png",
+   "part": "june4Candles2",
+   "festival": "june4",
+   "width": 512,
+   "height": 256,
+   "anchor": {
+    "x": 257,
+    "y": 247
+   },
+   "top": 11,
+   "left": 21,
+   "right": 492,
+   "mirrored": false,
+   "lengthM": 3,
+   "night": [
+    "Models/festivals/fx_june4Candles2__lit.png",
+    "Models/festivals/fx_june4Candles2__litb.png"
+   ]
+  },
+  "fx_june4Candles2_m": {
+   "file": "Models/festivals/fx_june4Candles2_m.png",
+   "part": "june4Candles2",
+   "festival": "june4",
+   "width": 512,
+   "height": 256,
+   "anchor": {
+    "x": 255,
+    "y": 247
+   },
+   "top": 11,
+   "left": 20,
+   "right": 491,
+   "mirrored": true,
+   "lengthM": 3,
+   "night": [
+    "Models/festivals/fx_june4Candles2_m__lit.png",
+    "Models/festivals/fx_june4Candles2_m__litb.png"
+   ]
+  },
+  "fx_june4Flowers": {
+   "file": "Models/festivals/fx_june4Flowers.png",
+   "part": "june4Flowers",
+   "festival": "june4",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 503
+   },
+   "top": 101,
+   "left": 20,
+   "right": 492,
+   "mirrored": false,
+   "heightM": 0.5,
+   "night": [
+    "Models/festivals/fx_june4Flowers__lit.png",
+    "Models/festivals/fx_june4Flowers__litb.png"
+   ]
+  },
+  "fx_june4Flowers_m": {
+   "file": "Models/festivals/fx_june4Flowers_m.png",
+   "part": "june4Flowers",
+   "festival": "june4",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 503
+   },
+   "top": 101,
+   "left": 20,
+   "right": 492,
+   "mirrored": true,
+   "heightM": 0.5,
+   "night": [
+    "Models/festivals/fx_june4Flowers_m__lit.png",
+    "Models/festivals/fx_june4Flowers_m__litb.png"
+   ]
+  },
+  "fx_june4Pillar": {
+   "file": "Models/festivals/fx_june4Pillar.png",
+   "part": "june4Pillar",
+   "festival": "june4",
+   "width": 128,
+   "height": 128,
+   "anchor": {
+    "x": 64,
+    "y": 119
+   },
+   "top": 8,
+   "left": 23,
+   "right": 105,
+   "mirrored": false,
+   "heightM": 3,
+   "night": [
+    "Models/festivals/fx_june4Pillar__lit.png",
+    "Models/festivals/fx_june4Pillar__litb.png"
+   ]
+  },
+  "fx_june4Pillar_m": {
+   "file": "Models/festivals/fx_june4Pillar_m.png",
+   "part": "june4Pillar",
+   "festival": "june4",
+   "width": 128,
+   "height": 128,
+   "anchor": {
+    "x": 64,
+    "y": 119
+   },
+   "top": 8,
+   "left": 23,
+   "right": 105,
+   "mirrored": true,
+   "heightM": 3,
+   "night": [
+    "Models/festivals/fx_june4Pillar_m__lit.png",
+    "Models/festivals/fx_june4Pillar_m__litb.png"
+   ]
+  },
+  "fx_june4SitA": {
+   "file": "Models/festivals/fx_june4SitA.png",
+   "part": "june4SitA",
+   "festival": "june4",
+   "width": 64,
+   "height": 64,
+   "anchor": {
+    "x": 32,
+    "y": 55
+   },
+   "top": 19,
+   "left": 8,
+   "right": 56,
+   "mirrored": false,
+   "heightM": 0.28,
+   "night": [
+    "Models/festivals/fx_june4SitA__lit.png",
+    "Models/festivals/fx_june4SitA__litb.png"
+   ]
+  },
+  "fx_june4SitA_m": {
+   "file": "Models/festivals/fx_june4SitA_m.png",
+   "part": "june4SitA",
+   "festival": "june4",
+   "width": 64,
+   "height": 64,
+   "anchor": {
+    "x": 32,
+    "y": 55
+   },
+   "top": 19,
+   "left": 8,
+   "right": 56,
+   "mirrored": true,
+   "heightM": 0.28,
+   "night": [
+    "Models/festivals/fx_june4SitA_m__lit.png",
+    "Models/festivals/fx_june4SitA_m__litb.png"
+   ]
+  },
+  "fx_june4SitB": {
+   "file": "Models/festivals/fx_june4SitB.png",
+   "part": "june4SitB",
+   "festival": "june4",
+   "width": 64,
+   "height": 64,
+   "anchor": {
+    "x": 33,
+    "y": 56
+   },
+   "top": 20,
+   "left": 9,
+   "right": 56,
+   "mirrored": false,
+   "heightM": 0.28,
+   "night": [
+    "Models/festivals/fx_june4SitB__lit.png",
+    "Models/festivals/fx_june4SitB__litb.png"
+   ]
+  },
+  "fx_june4SitB_m": {
+   "file": "Models/festivals/fx_june4SitB_m.png",
+   "part": "june4SitB",
+   "festival": "june4",
+   "width": 64,
+   "height": 64,
+   "anchor": {
+    "x": 31,
+    "y": 56
+   },
+   "top": 20,
+   "left": 8,
+   "right": 55,
+   "mirrored": true,
+   "heightM": 0.28,
+   "night": [
+    "Models/festivals/fx_june4SitB_m__lit.png",
+    "Models/festivals/fx_june4SitB_m__litb.png"
+   ]
+  },
+  "fx_june4SitC": {
+   "file": "Models/festivals/fx_june4SitC.png",
+   "part": "june4SitC",
+   "festival": "june4",
+   "width": 128,
+   "height": 64,
+   "anchor": {
+    "x": 64,
+    "y": 55
+   },
+   "top": 10,
+   "left": 25,
+   "right": 103,
+   "mirrored": false,
+   "heightM": 0.28,
+   "night": [
+    "Models/festivals/fx_june4SitC__lit.png",
+    "Models/festivals/fx_june4SitC__litb.png"
+   ]
+  },
+  "fx_june4SitC_m": {
+   "file": "Models/festivals/fx_june4SitC_m.png",
+   "part": "june4SitC",
+   "festival": "june4",
+   "width": 128,
+   "height": 64,
+   "anchor": {
+    "x": 64,
+    "y": 55
+   },
+   "top": 10,
+   "left": 25,
+   "right": 103,
+   "mirrored": true,
+   "heightM": 0.28,
+   "night": [
+    "Models/festivals/fx_june4SitC_m__lit.png",
+    "Models/festivals/fx_june4SitC_m__litb.png"
+   ]
+  },
+  "fx_june4Sitting": {
+   "file": "Models/festivals/fx_june4Sitting.png",
+   "part": "june4Sitting",
+   "festival": "june4",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 257,
+    "y": 503
+   },
+   "top": 176,
+   "left": 21,
+   "right": 492,
+   "mirrored": false,
+   "heightM": 0.3,
+   "night": [
+    "Models/festivals/fx_june4Sitting__lit.png",
+    "Models/festivals/fx_june4Sitting__litb.png"
+   ]
+  },
+  "fx_june4Sitting_m": {
+   "file": "Models/festivals/fx_june4Sitting_m.png",
+   "part": "june4Sitting",
+   "festival": "june4",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 255,
+    "y": 503
+   },
+   "top": 176,
+   "left": 20,
+   "right": 491,
+   "mirrored": true,
+   "heightM": 0.3,
+   "night": [
+    "Models/festivals/fx_june4Sitting_m__lit.png",
+    "Models/festivals/fx_june4Sitting_m__litb.png"
+   ]
   },
   "fx_lnyBanners": {
    "file": "Models/festivals/fx_lnyBanners.png",

@@ -92,6 +92,13 @@ async function layoutPart(cut, saturation) {
   return { day, W, H, anchor: { x: Math.round((sb.minX + sb.maxX + 1) / 2), y: sb.maxY + 1 }, top: sb.minY, left: sb.minX, right: sb.maxX + 1, sourceMapping: { left, top, sx: sw / cw, sy: sh / ch, ox, oy } };
 }
 
+function cropRect(img, [x, y, w, h]) {
+  const out = Buffer.alloc(w * h * 4);
+  for (let r = 0; r < h; r++) img.data.copy(out, r * w * 4, ((y + r) * img.width + x) * 4, ((y + r) * img.width + x + w) * 4);
+  for (let i = 3; i < out.length; i += 4) if (out[i] <= 20) out[i - 3] = out[i - 2] = out[i - 1] = out[i] = 0;
+  return { data: out, width: w, height: h };
+}
+
 async function writePng(data, W, H, rel) {
   await sharp(Buffer.from(data.buffer, data.byteOffset, data.byteLength), { raw: { width: W, height: H, channels: 4, premultiplied: false } })
     .png({ compressionLevel: 9 })
@@ -124,7 +131,10 @@ async function main() {
     }
     const sheet = sheets.get(p.sheet);
     if (p.rect && !sheet.comps) sheet.comps = labelComponents(sheet.img);
-    const cut = p.rect ? cutPart(sheet.img, sheet.comps, p.rect) : cutWhole(sheet.img);
+    // `crop`: the rect as it is (one person out of a crowd drawn as one piece), else the solid
+    // pieces inside it
+    const cut = p.rect ? (p.crop ? cropRect(sheet.img, p.rect) : cutPart(sheet.img, sheet.comps, p.rect)) : cutWhole(sheet.img);
+    if (p.ghostly) assets.applyFestivalGhostly(cut.data);
     const baked = await layoutPart(cut, p.saturation);
     const { day, W, H, top, left, right, sourceMapping: m } = baked;
     const point = ([x,y]) => ({ x: (x-m.left)*m.sx+m.ox, y: (y-m.top)*m.sy+m.oy });

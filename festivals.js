@@ -68,6 +68,9 @@ const FESTIVAL_PROGRAMMES = Object.freeze({
   // 六四: people gather from 19:00, the candles all lit by 20:00, gone by 22:30 (festival-venues.js
   // getJune4Presence); quiet - no peak notice (festival-ui.js skips quiet festivals)
   june4: Object.freeze({ setup: 19 * 60, open: 19 * 60, peak: 20 * 60, close: 22 * 60 + 30 }),
+  // 盂蘭: the 勝會 up all day (rice in the morning), the streets burning from seven, the effigies
+  // burned at half past eleven (festival-venues.js YULAN_TIMES)
+  yulan: Object.freeze({ setup: 6 * 60, open: 6 * 60, peak: 19 * 60, close: 30 * 60 }),
   // 年宵: the stalls go up in the morning, open at ten, the crowds and the lights after six, the
   // last of it at three in the morning
   lunarNewYear: Object.freeze({ setup: 6 * 60, open: 10 * 60, peak: 18 * 60, close: 27 * 60, after: Object.freeze({ open: 6 * 60, close: 12 * 60 }) }),

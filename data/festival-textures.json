@@ -2591,6 +2591,750 @@
    "right": 486,
    "mirrored": true,
    "heightM": 6
+  },
+  "fx_yulanAltar": {
+   "file": "Models/festivals/fx_yulanAltar.png",
+   "part": "yulanAltar",
+   "festival": "yulan",
+   "width": 128,
+   "height": 128,
+   "anchor": {
+    "x": 65,
+    "y": 120
+   },
+   "top": 9,
+   "left": 19,
+   "right": 110,
+   "mirrored": false,
+   "heightM": 1.6,
+   "night": [
+    "Models/festivals/fx_yulanAltar__lit.png",
+    "Models/festivals/fx_yulanAltar__litb.png"
+   ]
+  },
+  "fx_yulanBanner": {
+   "file": "Models/festivals/fx_yulanBanner.png",
+   "part": "yulanBanner",
+   "festival": "yulan",
+   "width": 128,
+   "height": 256,
+   "anchor": {
+    "x": 64,
+    "y": 247
+   },
+   "top": 65,
+   "left": 31,
+   "right": 97,
+   "mirrored": false,
+   "heightM": 4
+  },
+  "fx_yulanBarrel": {
+   "file": "Models/festivals/fx_yulanBarrel.png",
+   "part": "yulanBarrel",
+   "festival": "yulan",
+   "width": 256,
+   "height": 512,
+   "anchor": {
+    "x": 129,
+    "y": 502
+   },
+   "top": 48,
+   "left": 11,
+   "right": 246,
+   "mirrored": false,
+   "heightM": 1.1,
+   "night": [
+    "Models/festivals/fx_yulanBarrel__lit.png",
+    "Models/festivals/fx_yulanBarrel__litb.png"
+   ]
+  },
+  "fx_yulanBarrel_m": {
+   "file": "Models/festivals/fx_yulanBarrel_m.png",
+   "part": "yulanBarrel",
+   "festival": "yulan",
+   "width": 256,
+   "height": 512,
+   "anchor": {
+    "x": 127,
+    "y": 502
+   },
+   "top": 48,
+   "left": 10,
+   "right": 245,
+   "mirrored": true,
+   "heightM": 1.1,
+   "night": [
+    "Models/festivals/fx_yulanBarrel_m__lit.png",
+    "Models/festivals/fx_yulanBarrel_m__litb.png"
+   ]
+  },
+  "fx_yulanBarrier": {
+   "file": "Models/festivals/fx_yulanBarrier.png",
+   "part": "yulanBarrier",
+   "festival": "yulan",
+   "width": 128,
+   "height": 128,
+   "anchor": {
+    "x": 64,
+    "y": 119
+   },
+   "top": 24,
+   "left": 21,
+   "right": 107,
+   "mirrored": false,
+   "heightM": 1.1
+  },
+  "fx_yulanBasket": {
+   "file": "Models/festivals/fx_yulanBasket.png",
+   "part": "yulanBasket",
+   "festival": "yulan",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 257,
+    "y": 501
+   },
+   "top": 20,
+   "left": 37,
+   "right": 476,
+   "mirrored": false,
+   "heightM": 0.6
+  },
+  "fx_yulanBasket_m": {
+   "file": "Models/festivals/fx_yulanBasket_m.png",
+   "part": "yulanBasket",
+   "festival": "yulan",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 255,
+    "y": 501
+   },
+   "top": 20,
+   "left": 36,
+   "right": 475,
+   "mirrored": true,
+   "heightM": 0.6
+  },
+  "fx_yulanBinStool": {
+   "file": "Models/festivals/fx_yulanBinStool.png",
+   "part": "yulanBinStool",
+   "festival": "yulan",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 257,
+    "y": 501
+   },
+   "top": 22,
+   "left": 31,
+   "right": 482,
+   "mirrored": false,
+   "heightM": 1,
+   "night": [
+    "Models/festivals/fx_yulanBinStool__lit.png",
+    "Models/festivals/fx_yulanBinStool__litb.png"
+   ]
+  },
+  "fx_yulanBinStool_m": {
+   "file": "Models/festivals/fx_yulanBinStool_m.png",
+   "part": "yulanBinStool",
+   "festival": "yulan",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 255,
+    "y": 501
+   },
+   "top": 22,
+   "left": 30,
+   "right": 481,
+   "mirrored": true,
+   "heightM": 1,
+   "night": [
+    "Models/festivals/fx_yulanBinStool_m__lit.png",
+    "Models/festivals/fx_yulanBinStool_m__litb.png"
+   ]
+  },
+  "fx_yulanBoat": {
+   "file": "Models/festivals/fx_yulanBoat.png",
+   "part": "yulanBoat",
+   "festival": "yulan",
+   "width": 128,
+   "height": 128,
+   "anchor": {
+    "x": 64,
+    "y": 119
+   },
+   "top": 9,
+   "left": 28,
+   "right": 100,
+   "mirrored": false,
+   "heightM": 2.2
+  },
+  "fx_yulanBoat_m": {
+   "file": "Models/festivals/fx_yulanBoat_m.png",
+   "part": "yulanBoat",
+   "festival": "yulan",
+   "width": 128,
+   "height": 128,
+   "anchor": {
+    "x": 64,
+    "y": 119
+   },
+   "top": 9,
+   "left": 28,
+   "right": 100,
+   "mirrored": true,
+   "heightM": 2.2
+  },
+  "fx_yulanBurnerMan": {
+   "file": "Models/festivals/fx_yulanBurnerMan.png",
+   "part": "yulanBurnerMan",
+   "festival": "yulan",
+   "width": 128,
+   "height": 256,
+   "anchor": {
+    "x": 64,
+    "y": 247
+   },
+   "top": 11,
+   "left": 31,
+   "right": 96,
+   "mirrored": false,
+   "heightM": 1.7
+  },
+  "fx_yulanBurnerMan_m": {
+   "file": "Models/festivals/fx_yulanBurnerMan_m.png",
+   "part": "yulanBurnerMan",
+   "festival": "yulan",
+   "width": 128,
+   "height": 256,
+   "anchor": {
+    "x": 64,
+    "y": 247
+   },
+   "top": 11,
+   "left": 32,
+   "right": 97,
+   "mirrored": true,
+   "heightM": 1.7
+  },
+  "fx_yulanBurnerWoman": {
+   "file": "Models/festivals/fx_yulanBurnerWoman.png",
+   "part": "yulanBurnerWoman",
+   "festival": "yulan",
+   "width": 128,
+   "height": 256,
+   "anchor": {
+    "x": 65,
+    "y": 248
+   },
+   "top": 10,
+   "left": 30,
+   "right": 99,
+   "mirrored": false,
+   "heightM": 1.7
+  },
+  "fx_yulanBurnerWoman_m": {
+   "file": "Models/festivals/fx_yulanBurnerWoman_m.png",
+   "part": "yulanBurnerWoman",
+   "festival": "yulan",
+   "width": 128,
+   "height": 256,
+   "anchor": {
+    "x": 63,
+    "y": 248
+   },
+   "top": 10,
+   "left": 29,
+   "right": 98,
+   "mirrored": true,
+   "heightM": 1.7
+  },
+  "fx_yulanCage": {
+   "file": "Models/festivals/fx_yulanCage.png",
+   "part": "yulanCage",
+   "festival": "yulan",
+   "width": 128,
+   "height": 128,
+   "anchor": {
+    "x": 64,
+    "y": 119
+   },
+   "top": 9,
+   "left": 22,
+   "right": 106,
+   "mirrored": false,
+   "heightM": 1.2,
+   "night": [
+    "Models/festivals/fx_yulanCage__lit.png",
+    "Models/festivals/fx_yulanCage__litb.png"
+   ]
+  },
+  "fx_yulanCage_m": {
+   "file": "Models/festivals/fx_yulanCage_m.png",
+   "part": "yulanCage",
+   "festival": "yulan",
+   "width": 128,
+   "height": 128,
+   "anchor": {
+    "x": 64,
+    "y": 119
+   },
+   "top": 9,
+   "left": 22,
+   "right": 106,
+   "mirrored": true,
+   "heightM": 1.2,
+   "night": [
+    "Models/festivals/fx_yulanCage_m__lit.png",
+    "Models/festivals/fx_yulanCage_m__litb.png"
+   ]
+  },
+  "fx_yulanCauldron": {
+   "file": "Models/festivals/fx_yulanCauldron.png",
+   "part": "yulanCauldron",
+   "festival": "yulan",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 257,
+    "y": 501
+   },
+   "top": 21,
+   "left": 25,
+   "right": 488,
+   "mirrored": false,
+   "heightM": 0.9,
+   "night": [
+    "Models/festivals/fx_yulanCauldron__lit.png",
+    "Models/festivals/fx_yulanCauldron__litb.png"
+   ]
+  },
+  "fx_yulanCauldron_m": {
+   "file": "Models/festivals/fx_yulanCauldron_m.png",
+   "part": "yulanCauldron",
+   "festival": "yulan",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 255,
+    "y": 501
+   },
+   "top": 21,
+   "left": 24,
+   "right": 487,
+   "mirrored": true,
+   "heightM": 0.9,
+   "night": [
+    "Models/festivals/fx_yulanCauldron_m__lit.png",
+    "Models/festivals/fx_yulanCauldron_m__litb.png"
+   ]
+  },
+  "fx_yulanCone": {
+   "file": "Models/festivals/fx_yulanCone.png",
+   "part": "yulanCone",
+   "festival": "yulan",
+   "width": 64,
+   "height": 128,
+   "anchor": {
+    "x": 32,
+    "y": 120
+   },
+   "top": 52,
+   "left": 9,
+   "right": 55,
+   "mirrored": false,
+   "heightM": 0.7
+  },
+  "fx_yulanCone_m": {
+   "file": "Models/festivals/fx_yulanCone_m.png",
+   "part": "yulanCone",
+   "festival": "yulan",
+   "width": 64,
+   "height": 128,
+   "anchor": {
+    "x": 32,
+    "y": 120
+   },
+   "top": 52,
+   "left": 9,
+   "right": 55,
+   "mirrored": true,
+   "heightM": 0.7
+  },
+  "fx_yulanFurnace": {
+   "file": "Models/festivals/fx_yulanFurnace.png",
+   "part": "yulanFurnace",
+   "festival": "yulan",
+   "width": 128,
+   "height": 128,
+   "anchor": {
+    "x": 64,
+    "y": 119
+   },
+   "top": 9,
+   "left": 29,
+   "right": 98,
+   "mirrored": false,
+   "heightM": 2.4,
+   "night": [
+    "Models/festivals/fx_yulanFurnace__lit.png",
+    "Models/festivals/fx_yulanFurnace__litb.png"
+   ]
+  },
+  "fx_yulanFurnace_m": {
+   "file": "Models/festivals/fx_yulanFurnace_m.png",
+   "part": "yulanFurnace",
+   "festival": "yulan",
+   "width": 128,
+   "height": 128,
+   "anchor": {
+    "x": 64,
+    "y": 119
+   },
+   "top": 9,
+   "left": 30,
+   "right": 99,
+   "mirrored": true,
+   "heightM": 2.4,
+   "night": [
+    "Models/festivals/fx_yulanFurnace_m__lit.png",
+    "Models/festivals/fx_yulanFurnace_m__litb.png"
+   ]
+  },
+  "fx_yulanGhostA": {
+   "file": "Models/festivals/fx_yulanGhostA.png",
+   "part": "yulanGhostA",
+   "festival": "yulan",
+   "width": 128,
+   "height": 256,
+   "anchor": {
+    "x": 64,
+    "y": 247
+   },
+   "top": 11,
+   "left": 31,
+   "right": 96,
+   "mirrored": false,
+   "heightM": 1.7
+  },
+  "fx_yulanGhostA_m": {
+   "file": "Models/festivals/fx_yulanGhostA_m.png",
+   "part": "yulanGhostA",
+   "festival": "yulan",
+   "width": 128,
+   "height": 256,
+   "anchor": {
+    "x": 64,
+    "y": 247
+   },
+   "top": 11,
+   "left": 32,
+   "right": 97,
+   "mirrored": true,
+   "heightM": 1.7
+  },
+  "fx_yulanGhostB": {
+   "file": "Models/festivals/fx_yulanGhostB.png",
+   "part": "yulanGhostB",
+   "festival": "yulan",
+   "width": 128,
+   "height": 256,
+   "anchor": {
+    "x": 65,
+    "y": 248
+   },
+   "top": 10,
+   "left": 30,
+   "right": 99,
+   "mirrored": false,
+   "heightM": 1.7
+  },
+  "fx_yulanGhostB_m": {
+   "file": "Models/festivals/fx_yulanGhostB_m.png",
+   "part": "yulanGhostB",
+   "festival": "yulan",
+   "width": 128,
+   "height": 256,
+   "anchor": {
+    "x": 63,
+    "y": 248
+   },
+   "top": 10,
+   "left": 29,
+   "right": 98,
+   "mirrored": true,
+   "heightM": 1.7
+  },
+  "fx_yulanHorse": {
+   "file": "Models/festivals/fx_yulanHorse.png",
+   "part": "yulanHorse",
+   "festival": "yulan",
+   "width": 128,
+   "height": 128,
+   "anchor": {
+    "x": 65,
+    "y": 119
+   },
+   "top": 9,
+   "left": 22,
+   "right": 107,
+   "mirrored": false,
+   "heightM": 2.2
+  },
+  "fx_yulanHorse_m": {
+   "file": "Models/festivals/fx_yulanHorse_m.png",
+   "part": "yulanHorse",
+   "festival": "yulan",
+   "width": 128,
+   "height": 128,
+   "anchor": {
+    "x": 63,
+    "y": 119
+   },
+   "top": 9,
+   "left": 21,
+   "right": 106,
+   "mirrored": true,
+   "heightM": 2.2
+  },
+  "fx_yulanHouse": {
+   "file": "Models/festivals/fx_yulanHouse.png",
+   "part": "yulanHouse",
+   "festival": "yulan",
+   "width": 128,
+   "height": 128,
+   "anchor": {
+    "x": 65,
+    "y": 119
+   },
+   "top": 10,
+   "left": 25,
+   "right": 104,
+   "mirrored": false,
+   "heightM": 2.4
+  },
+  "fx_yulanHouse_m": {
+   "file": "Models/festivals/fx_yulanHouse_m.png",
+   "part": "yulanHouse",
+   "festival": "yulan",
+   "width": 128,
+   "height": 128,
+   "anchor": {
+    "x": 63,
+    "y": 119
+   },
+   "top": 10,
+   "left": 24,
+   "right": 103,
+   "mirrored": true,
+   "heightM": 2.4
+  },
+  "fx_yulanMat": {
+   "file": "Models/festivals/fx_yulanMat.png",
+   "part": "yulanMat",
+   "festival": "yulan",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 257,
+    "y": 504
+   },
+   "top": 155,
+   "left": 21,
+   "right": 493,
+   "mirrored": false,
+   "lengthM": 3.4,
+   "night": [
+    "Models/festivals/fx_yulanMat__lit.png",
+    "Models/festivals/fx_yulanMat__litb.png"
+   ]
+  },
+  "fx_yulanMat_m": {
+   "file": "Models/festivals/fx_yulanMat_m.png",
+   "part": "yulanMat",
+   "festival": "yulan",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 255,
+    "y": 504
+   },
+   "top": 155,
+   "left": 19,
+   "right": 491,
+   "mirrored": true,
+   "lengthM": 3.4,
+   "night": [
+    "Models/festivals/fx_yulanMat_m__lit.png",
+    "Models/festivals/fx_yulanMat_m__litb.png"
+   ]
+  },
+  "fx_yulanPaperStack": {
+   "file": "Models/festivals/fx_yulanPaperStack.png",
+   "part": "yulanPaperStack",
+   "festival": "yulan",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 502
+   },
+   "top": 46,
+   "left": 20,
+   "right": 492,
+   "mirrored": false,
+   "heightM": 0.6
+  },
+  "fx_yulanPaperStack_m": {
+   "file": "Models/festivals/fx_yulanPaperStack_m.png",
+   "part": "yulanPaperStack",
+   "festival": "yulan",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 502
+   },
+   "top": 46,
+   "left": 20,
+   "right": 492,
+   "mirrored": true,
+   "heightM": 0.6
+  },
+  "fx_yulanRedCandles": {
+   "file": "Models/festivals/fx_yulanRedCandles.png",
+   "part": "yulanRedCandles",
+   "festival": "yulan",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 501
+   },
+   "top": 20,
+   "left": 37,
+   "right": 475,
+   "mirrored": false,
+   "heightM": 0.5,
+   "night": [
+    "Models/festivals/fx_yulanRedCandles__lit.png",
+    "Models/festivals/fx_yulanRedCandles__litb.png"
+   ]
+  },
+  "fx_yulanRedCandles_m": {
+   "file": "Models/festivals/fx_yulanRedCandles_m.png",
+   "part": "yulanRedCandles",
+   "festival": "yulan",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 501
+   },
+   "top": 20,
+   "left": 37,
+   "right": 475,
+   "mirrored": true,
+   "heightM": 0.5,
+   "night": [
+    "Models/festivals/fx_yulanRedCandles_m__lit.png",
+    "Models/festivals/fx_yulanRedCandles_m__litb.png"
+   ]
+  },
+  "fx_yulanShrine": {
+   "file": "Models/festivals/fx_yulanShrine.png",
+   "part": "yulanShrine",
+   "festival": "yulan",
+   "width": 128,
+   "height": 256,
+   "anchor": {
+    "x": 64,
+    "y": 247
+   },
+   "top": 92,
+   "left": 9,
+   "right": 119,
+   "mirrored": false,
+   "heightM": 3,
+   "night": [
+    "Models/festivals/fx_yulanShrine__lit.png",
+    "Models/festivals/fx_yulanShrine__litb.png"
+   ]
+  },
+  "fx_yulanStage": {
+   "file": "Models/festivals/fx_yulanStage.png",
+   "part": "yulanStage",
+   "festival": "yulan",
+   "width": 1024,
+   "height": 1024,
+   "anchor": {
+    "x": 513,
+    "y": 1010
+   },
+   "top": 351,
+   "left": 201,
+   "right": 824,
+   "mirrored": false,
+   "lengthM": 24,
+   "night": [
+    "Models/festivals/fx_yulanStage__lit.png",
+    "Models/festivals/fx_yulanStage__litb.png"
+   ]
+  },
+  "fx_yulanStage_m": {
+   "file": "Models/festivals/fx_yulanStage_m.png",
+   "part": "yulanStage",
+   "festival": "yulan",
+   "width": 1024,
+   "height": 1024,
+   "anchor": {
+    "x": 511,
+    "y": 1010
+   },
+   "top": 351,
+   "left": 200,
+   "right": 823,
+   "mirrored": true,
+   "lengthM": 24,
+   "night": [
+    "Models/festivals/fx_yulanStage_m__lit.png",
+    "Models/festivals/fx_yulanStage_m__litb.png"
+   ]
+  },
+  "fx_yulanStools": {
+   "file": "Models/festivals/fx_yulanStools.png",
+   "part": "yulanStools",
+   "festival": "yulan",
+   "width": 128,
+   "height": 128,
+   "anchor": {
+    "x": 64,
+    "y": 119
+   },
+   "top": 48,
+   "left": 9,
+   "right": 119,
+   "mirrored": false,
+   "heightM": 0.5
+  },
+  "fx_yulanStools_m": {
+   "file": "Models/festivals/fx_yulanStools_m.png",
+   "part": "yulanStools",
+   "festival": "yulan",
+   "width": 128,
+   "height": 128,
+   "anchor": {
+    "x": 64,
+    "y": 119
+   },
+   "top": 48,
+   "left": 9,
+   "right": 119,
+   "mirrored": true,
+   "heightM": 0.5
   }
  },
  "formatVersion": 1,

@@ -283,3 +283,54 @@ test('六四 says nothing: no switch, no tier, no money, no notice, no news', ()
     assert.doesNotMatch(fs.readFileSync(path.join(ROOT, file), 'utf8'), /june4|六四/, `${file} must not mention it`);
   });
 });
+
+test('盂蘭: 燒街衣 in the oldest districts, the 勝會 with its empty front row, effigies burned at the end', () => {
+  const { layoutYulan, pickYulanStreets } = require('../festival-venues.js');
+  const slots = [];
+  for (let r = 0; r < 60; r++) for (let c = 0; c < 30; c++) {
+    const district = r < 15 ? 'old' : r < 30 ? 'mid' : r < 45 ? 'new' : 'newest';
+    slots.push({ row: r, col: c, side: 'n', half: 'e', district, age: { old: 400, mid: 200, new: 50, newest: 0 }[district] });
+  }
+  const streets = pickYulanStreets(slots, 's');
+  assert.ok(streets.length > 10 && streets.length <= 60, `${streets.length} groups`);
+  assert.deepEqual([...new Set(streets.map((s) => s.district))].sort(), ['mid', 'new', 'old'], 'the three oldest districts');
+  streets.forEach((a, i) => streets.slice(i + 1).forEach((b) => assert.ok(Math.abs(a.row - b.row) > 2 || Math.abs(a.col - b.col) > 2, 'groups spaced apart')));
+  assert.deepEqual(pickYulanStreets(slots, 's'), streets, 'the same each year');
+
+  const courts = [1, 2, 3, 4].map((i) => ({ id: `${i}:${i}`, textureKey: 'sports_ground_2x2', district: ['old', 'old', 'mid', 'far'][i - 1] }));
+  const at = (minute) => layoutYulan({ minute, seed: 's', kerbSlots: slots, courts });
+  const ids = (ps, part) => ps.filter((p) => p.partId === part);
+  const night = at(20 * 60);
+  const fairs = new Set(night.filter((p) => p.id.startsWith('yulan:fair:')).map((p) => p.buildingId));
+  assert.deepEqual([...fairs].sort(), ['1:1', '3:3', '4:4'], 'three 勝會, one a district, the old ones first');
+  // the front row of stools has nobody in it
+  const front = night.filter((p) => /stools:0:/.test(p.id) && p.buildingId === '1:1');
+  assert.equal(front.length, 4);
+  assert.ok(!night.some((p) => /audience:0:/.test(p.id)), 'the front row is left for the 好兄弟');
+  assert.ok(night.some((p) => /audience:1:/.test(p.id)), 'the rows behind are full during the opera');
+  assert.ok(ids(night, 'yulanMat').length === streets.length, 'every street group has its offerings');
+  assert.ok(night.some((p) => p.fire && p.id.includes(':street:')), 'and its fire');
+  // someone burning at every street fire; the 阿飄 come after nine, none before
+  const fires = night.filter((p) => p.fire && p.id.includes(':street:'));
+  assert.equal(night.filter((p) => /:burner$/.test(p.id)).length, fires.length, 'a neighbour at every fire');
+  assert.equal(night.filter((p) => p.floating).length, 0, 'no 阿飄 at eight');
+  const late = at(23 * 60);
+  assert.ok(late.some((p) => p.floating && /yulanGhost/.test(p.partId)), 'the 阿飄 at the offerings late');
+  assert.ok(night.some((p) => p.ghost), 'the 孤魂之位 carries the ghost light');
+  // the morning: rice queue, no street offerings
+  const morning = at(8 * 60);
+  assert.ok(morning.some((p) => /queue/.test(p.id)) && !morning.some((p) => p.id.includes(':street:')));
+  // half past eleven: the effigies burning; after half past midnight, gone, and the streets cleared
+  assert.ok(at(23 * 60 + 45).filter((p) => p.effigy).every((p) => p.burning));
+  assert.equal(at(60).filter((p) => p.effigy || p.id.includes(':street:')).length, 0);
+  [...night, ...morning].forEach((p) => assert.ok(FESTIVAL_PARTS_BY_ID[p.partId], p.partId));
+});
+
+test('盂蘭 lights: an uneven flicker, green toward the colour asked', () => {
+  const { yulanFlicker, lerpYulanColour, YULAN_GHOST_TIME } = require('../festival-yulan.js');
+  const ks = [0, 100, 250, 400, 900].map((t) => yulanFlicker(t, 1));
+  assert.ok(Math.max(...ks) - Math.min(...ks) > 0.05 && ks.every((k) => k > 0.4 && k < 1.1));
+  assert.equal(lerpYulanColour(0x020713, 0x03160f, 0), 0x020713);
+  assert.equal(lerpYulanColour(0x020713, 0x03160f, 1), 0x03160f);
+  assert.deepEqual([...YULAN_GHOST_TIME], [22 * 60, 28 * 60]);
+});

@@ -41,5 +41,6 @@
  "DragonBoat/goalLine.png": {"whole": true, "views": [{"d": 1, "c": 0.06000000000000005}]},
  "DragonBoat/pier.png": {"whole": true, "views": [{"d": 1, "c": 0}]},
  "DragonBoat/rescueBoat.png": {"whole": true, "views": [{"d": 1, "c": 0}]},
- "June/pillarOfShame.png": {"whole": true, "views": [{"d": 0.953, "c": 0.066}]}
+ "June/pillarOfShame.png": {"whole": true, "views": [{"d": 0.953, "c": 0.066}]},
+ "July14/July14MainStage1.png": {"whole": true, "views": [{"down": 0.27, "up": 0.5}]}
 }

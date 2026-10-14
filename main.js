@@ -365,6 +365,8 @@ function updateGameFrame(time, delta) {
   }
   // 發現 UFO: it moves, so every frame (festival-ufo.js)
   if (!this.bunHillEventSession && typeof updateUfo === 'function') updateUfo(this, time);
+  // 盂蘭: fire light, smoke, the green ghost lights (festival-yulan.js)
+  if (typeof updateYulan === 'function') updateYulan(this, time);
   if (typeof updateShoreReflections === 'function') updateShoreReflections(this, time);
   if (typeof updateRainRipples === 'function') updateRainRipples(this, time);
   if (typeof finalizeVehicleTrackerCameraCulling === 'function') {

@@ -54,6 +54,15 @@ const festivalPart = (id, festival, sheet, category, label, extra = {}) => Objec
   lit: !!extra.lit,
   // drawn as it is by night too (its own light: the UFO), never darkened with the props
   selfLit: !!extra.selfLit,
+  // 盂蘭 (festival-yulan.js): a fire burns in it at night, a green ghost light hangs over it, or it is
+  // a paper effigy burned at the end of the night
+  fire: !!extra.fire,
+  ghostLight: !!extra.ghostLight,
+  effigy: !!extra.effigy,
+  // the rect cut as it is (a person out of a crowd drawn as one connected piece)
+  crop: !!extra.crop,
+  // baked as a 阿飄 (applyFestivalGhostly)
+  ghostly: !!extra.ghostly,
   saturation: extra.saturation ?? 1,
   geometry: extra.geometry ?? null,
 });
@@ -154,6 +163,40 @@ const FESTIVAL_PARTS = Object.freeze([
     ['june4SitC', [290, 733, 158, 90], '席地市民 C'],
   ].map(([id, rect, label]) => festivalPart(id, 'june4', 'original/June/維多利亞公園六四燭光追思像素素材集.png', 'crowd', label, { heightM: 0.28, rect, lit: true })),
 
+  // 盂蘭 (§4.4, Phase 6): the opera stage squared by its deck and side wall, the offering mat by its
+  // four corners; the burning bins, round, as drawn. The sheet pieces (pixel art) are already near
+  // 2:1. Lettered pieces (孤魂之位, 奠, 燒街衣) are never mirrored. Fire glow, smoke and the green
+  // ghost lights are drawn at runtime (festival-yulan.js).
+  festivalPart('yulanStage', 'yulan', 'July14/July14MainStage1.png', 'structure', '神功戲棚', { lengthM: 24, lit: true }),
+  festivalPart('yulanMat', 'yulan', 'July14/July14accessories4.png', 'prop', '供品蓆', { lengthM: 3.4, lit: true }),
+  festivalPart('yulanRedCandles', 'yulan', 'original/July14/July14accessories1.png', 'prop', '紅燭', { heightM: 0.5, lit: true }),
+  festivalPart('yulanBasket', 'yulan', 'original/July14/July14accessories3.png', 'prop', '衣紙籃', { heightM: 0.6 }),
+  festivalPart('yulanBinStool', 'yulan', 'original/July14/July14accessories5.png', 'prop', '化寶桶連膠櫈', { heightM: 1, lit: true, fire: true }),
+  festivalPart('yulanCauldron', 'yulan', 'original/July14/July14accessories6.png', 'prop', '化寶鑊', { heightM: 0.9, lit: true, fire: true }),
+  festivalPart('yulanBarrel', 'yulan', 'original/July14/July14accessories7.png', 'prop', '化寶桶', { heightM: 1.1, lit: true, fire: true }),
+  festivalPart('yulanPaperStack', 'yulan', 'original/July14/July14accessories8.png', 'prop', '衣紙金銀', { heightM: 0.6 }),
+  ...[
+    ['yulanShrine', 'original/July14/中式祭祀焚燒道具像素素材表.png', [636, 346, 243, 342], '孤魂之位', 'structure', { heightM: 3, mirror: false, lit: true, ghostLight: true }],
+    ['yulanBanner', 'original/July14/中式祭祀焚燒道具像素素材表.png', [1197, 325, 130, 362], '「奠」幡', 'decoration', { heightM: 4, mirror: false }],
+    ['yulanFurnace', 'original/July14/中式祭祀焚燒道具像素素材表.png', [1153, 44, 165, 266], '化寶爐', 'structure', { heightM: 2.4, lit: true, fire: true }],
+    ['yulanHorse', 'original/July14/中式祭祀焚燒道具像素素材表.png', [715, 740, 172, 223], '紙紮馬', 'decoration', { heightM: 2.2, effigy: true }],
+    ['yulanBoat', 'original/July14/中式祭祀焚燒道具像素素材表.png', [894, 713, 148, 226], '紙紮船', 'decoration', { heightM: 2.2, effigy: true }],
+    ['yulanHouse', 'original/July14/香港燒街衣祭典像素素材表.png', [841, 317, 157, 217], '紙紮大屋', 'decoration', { heightM: 2.4, effigy: true }],
+    ['yulanAltar', 'original/July14/香港燒街衣祭典像素素材表.png', [18, 282, 219, 269], '供桌', 'structure', { heightM: 1.6, mirror: false, lit: true }],
+    ['yulanCage', 'original/July14/香港燒街衣祭典像素素材表.png', [1152, 33, 181, 237], '化寶鐵籠', 'prop', { heightM: 1.2, lit: true, fire: true }],
+    ['yulanStools', 'original/July14/香港燒街衣祭典像素素材表.png', [23, 815, 249, 161], '紅藍膠櫈', 'prop', { heightM: 0.5 }],
+    ['yulanBarrier', 'original/July14/香港燒街衣祭典像素素材表.png', [963, 755, 171, 188], '「燒街衣」鐵馬', 'prop', { heightM: 1.1, mirror: false }],
+    ['yulanCone', 'original/July14/香港燒街衣祭典像素素材表.png', [1324, 782, 99, 143], '雪糕筒', 'prop', { heightM: 0.7 }],
+  ].map(([id, sheet, rect, label, category, extra]) => festivalPart(id, 'yulan', sheet, category, label, { ...extra, rect })),
+  // people at the street fires (Norton: 燒街衣係有人係路邊燒) and the 阿飄 that come to collect: two
+  // people cut from the 端午 crowds, as they are and as ghosts
+  ...[
+    ['yulanBurnerMan', 'DragonBoat/spectatorsFront1.png', [822, 292, 168, 600], '燒衣街坊（男）', {}],
+    ['yulanBurnerWoman', 'DragonBoat/spectatorsFront2.png', [820, 345, 162, 560], '燒衣街坊（女）', {}],
+    ['yulanGhostA', 'DragonBoat/spectatorsFront1.png', [822, 292, 168, 600], '阿飄 A', { ghostly: true, selfLit: true }],
+    ['yulanGhostB', 'DragonBoat/spectatorsFront2.png', [820, 345, 162, 560], '阿飄 B', { ghostly: true, selfLit: true }],
+  ].map(([id, sheet, rect, label, extra]) => festivalPart(id, 'yulan', sheet, 'crowd', label, { heightM: 1.7, rect, crop: true, ...extra })),
+
   // 發現 UFO (§4.7): six frames of the one saucer - the alien waves, the lamps change - played in
   // turn, all at one scale (festival-ufo.js); the beam is drawn added, stretched to the ground. Nothing
   // on the ground to square to, so they bake straight from the renders (original/).
@@ -243,6 +286,22 @@ function renderFestivalNightPixels(day, W, H, opts = {}) {
   return out;
 }
 
+/**
+ * A person turned into a 阿飄 (盂蘭): pale, washed green-white and see-through. In place, straight alpha.
+ */
+function applyFestivalGhostly(data) {
+  for (let i = 0; i < data.length; i += 4) {
+    if (!data[i + 3]) continue;
+    const l = (0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]) / 255;
+    const k = 0.55 + 0.45 * l;
+    data[i] = Math.round(150 * k);
+    data[i + 1] = Math.round(255 * k);
+    data[i + 2] = Math.round(205 * k);
+    data[i + 3] = Math.round(data[i + 3] * 0.6);
+  }
+  return data;
+}
+
 /** Tone an RGBA buffer's saturation in place (1 = as drawn). */
 function applyFestivalSaturation(data, saturation) {
   if (!(saturation < 1)) return data;
@@ -271,5 +330,6 @@ if (typeof module !== 'undefined' && module.exports) {
     festivalLightStrength,
     renderFestivalNightPixels,
     applyFestivalSaturation,
+    applyFestivalGhostly,
   };
 }

@@ -184,6 +184,10 @@ function handleMenuAction(action) {
       }
       updateViewMenu();
       break;
+    case 'toggle-yulan-night-tint':
+      if (typeof setYulanNightTintEnabled === 'function') setYulanNightTintEnabled(!isYulanNightTintEnabled());
+      updateViewMenu();
+      break;
     case 'toggle-night-remote-darkness':
       if (typeof setNightRemoteDarknessEnabled === 'function') {
         setNightRemoteDarknessEnabled(!isNightRemoteDarknessEnabled());
@@ -313,6 +317,8 @@ function updateViewMenu() {
     ?.classList.toggle('menu-checked', typeof isBuildingLightsEnabled !== 'function' || isBuildingLightsEnabled());
   document.getElementById('menu-night-remote-darkness')
     ?.classList.toggle('menu-checked', typeof isNightRemoteDarknessEnabled !== 'function' || isNightRemoteDarknessEnabled());
+  document.getElementById('menu-yulan-night-tint')
+    ?.classList.toggle('menu-checked', typeof isYulanNightTintEnabled !== 'function' || isYulanNightTintEnabled());
   document.getElementById('menu-sea-flow')
     ?.classList.toggle('menu-checked', typeof isSeaFlowEnabled !== 'function' || isSeaFlowEnabled());
   document.getElementById('menu-vessel-wakes')

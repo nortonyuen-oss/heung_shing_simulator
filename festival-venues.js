@@ -35,6 +35,13 @@ const FESTIVAL_BUILDING_SPOTS = Object.freeze({
     way: Object.freeze({ gate: Object.freeze([759, 842]), map: Object.freeze([708, 855]), booth: Object.freeze([784, 817]) }),
   }),
   // the 2x2 sports ground is a basketball court: a neighbourhood flower market on the court
+  // the 3x3 sports ground: the field inside the running track (60 m a side: 9.45 art px a metre)
+  sports_ground_3x3: Object.freeze({
+    path: 'Models/parks/park3x3/sportField3-01.png',
+    pxPerM: 9.45,
+    spots: Object.freeze({}),
+    areas: Object.freeze({ field: Object.freeze({ left: [250, 690], top: [533, 528], right: [835, 680] }) }),
+  }),
   sports_ground_2x2: Object.freeze({
     path: 'Models/parks/park2x2/sportField3-02.png',
     pxPerM: 18.1,
@@ -236,6 +243,7 @@ function getFestivalVenueContext(scene = typeof activeScene !== 'undefined' ? ac
   const parks = [];
   const malls = [];
   const courts = [];
+  const sportsGrounds = [];
   const temples = [];
   const eventGroundTiles = [];
   if (typeof buildingData !== 'undefined' && buildingData) {
@@ -249,9 +257,13 @@ function getFestivalVenueContext(scene = typeof activeScene !== 'undefined' ? ac
         if (FESTIVAL_BUILDING_SPOTS[record.sourceFileName]) malls.push({ id, modelKey: record.sourceFileName });
         return;
       }
-      if (record?.type === 'sports_ground_small' || record?.type === 'heritage_temple' || record?.type === 'grand_temple') {
+      if (record?.type === 'sports_ground_small' || record?.type === 'sports_ground_large' || record?.type === 'heritage_temple' || record?.type === 'grand_temple') {
         const key = record.spriteKey || scene?.buildingSprites?.get(id)?.texture?.key;
-        if (key && FESTIVAL_BUILDING_SPOTS[key]) (record.type === 'sports_ground_small' ? courts : temples).push({ id, textureKey: key, cols: record.footprintCols, rows: record.footprintRows });
+        if (!key || !FESTIVAL_BUILDING_SPOTS[key]) return;
+        const entry = { id, textureKey: key, cols: record.footprintCols, rows: record.footprintRows };
+        if (record.type === 'sports_ground_small') courts.push(entry);
+        else if (record.type === 'sports_ground_large') sportsGrounds.push(entry);
+        else temples.push(entry);
         return;
       }
       if (record?.type !== 'park_flagship') return;
@@ -270,6 +282,7 @@ function getFestivalVenueContext(scene = typeof activeScene !== 'undefined' ? ac
     parks,
     malls,
     courts,
+    sportsGrounds,
     temples,
   };
 }
@@ -568,8 +581,196 @@ function layoutJune4(ctx) {
   return out;
 }
 
+// ── 盂蘭 (docs/festival-dlc-design.md §4.4): 燒街衣 on the old streets, the 勝會 on a court ─────
+// Roadside: groups of burning bins, offerings, candles and paper on the pavements of the one to three
+// districts with the most, and oldest, homes - the same kerb slots the street furniture uses, the
+// same each year. The 勝會: the opera stage facing rows of stools (the front row left empty, for
+// the 好兄弟), the 孤魂之位 shrine and 奠 banners, the altar, the furnace with the paper horse, boat
+// and house, the rice booth with its queue. Fire light, smoke and the green ghost lights are drawn
+// over these at runtime (festival-yulan.js).
+const YULAN_TIMES = Object.freeze({
+  rice: Object.freeze([6 * 60, 12 * 60]),       // 派平安米: the queue at the booth
+  street: Object.freeze([18 * 60, 24 * 60 + 30]), // the offerings out on the pavements
+  fire: Object.freeze([19 * 60, 24 * 60 + 30]),   // and burning
+  opera: Object.freeze([19 * 60, 23 * 60]),       // 神功戲: the audience
+  burn: Object.freeze([23 * 60 + 30, 24 * 60 + 30]), // the paper effigies burned
+});
+const YULAN_MAX_DISTRICTS = 3;
+const YULAN_MAX_GROUPS = 60;
+const YULAN_MAX_VENUES = 3;
+const YULAN_KERB_IN_M = 7.6;   // a tile's centre to the pavement (the street furniture's 0.38 tile)
+const YULAN_KERB_ALONG_M = 5;  // to the middle of the half tile
+const YULAN_SIDE_ALONG = Object.freeze({ n: ['e', 'w'], s: ['e', 'w'], e: ['n', 's'], w: ['n', 's'] });
+const YULAN_BINS = Object.freeze(['yulanBarrel', 'yulanBinStool', 'yulanCauldron', 'yulanCage']);
+// the 端午 crowds: a heightM for the whole picture (raised arms and all), so each person stands about
+// 1.7 m, as tall as the figures the court art paints (Norton 2026-10-14: 人群既高度)
+const YULAN_CROWD = 2.4;
+
+const yulanSkyMinute = (m) => (Number(m) < 6 * 60 ? Number(m) + 24 * 60 : Number(m));
+const yulanDuring = (minute, [from, to]) => { const m = yulanSkyMinute(minute); return m >= from && m < to; };
+
+/**
+ * The roadside groups: the districts with the most homes on their pavements, weighted by how old
+ * they are, and in them every slot that wins its roll and has none of its neighbours taken.
+ * @param {Array<{ row, col, side, half, district, age }>} slots  free kerb slots facing homes
+ * @returns {Array<object>} the chosen slots, each with `district`
+ */
+function pickYulanStreets(slots, seed = '') {
+  const byDistrict = new Map();
+  slots.forEach((s) => {
+    const d = byDistrict.get(s.district) || { district: s.district, slots: [], age: 0 };
+    d.slots.push(s);
+    d.age += Number(s.age) || 0;
+    byDistrict.set(s.district, d);
+  });
+  const ranked = [...byDistrict.values()]
+    .map((d) => ({ ...d, score: d.slots.length * (1 + d.age / d.slots.length / 120) }))
+    .sort((a, b) => b.score - a.score || String(a.district).localeCompare(String(b.district)))
+    .slice(0, YULAN_MAX_DISTRICTS);
+  const picked = [];
+  const taken = new Set();
+  // a fair share each, so the first district does not take them all
+  const perDistrict = Math.ceil(YULAN_MAX_GROUPS / Math.max(1, ranked.length));
+  ranked.forEach((d) => {
+    let mine = 0;
+    d.slots
+      .map((s) => ({ s, roll: lnyHash(`${seed}:yulan:${s.row}:${s.col}:${s.side}`) }))
+      .filter(({ roll }) => roll < 0.35)
+      .sort((a, b) => a.roll - b.roll)
+      .forEach(({ s }) => {
+        if (picked.length >= YULAN_MAX_GROUPS || mine >= perDistrict) return;
+        for (let dr = -2; dr <= 2; dr++) for (let dc = -2; dc <= 2; dc++) if (taken.has(`${s.row + dr}:${s.col + dc}`)) return;
+        taken.add(`${s.row}:${s.col}`);
+        picked.push(s);
+        mine += 1;
+      });
+  });
+  return picked;
+}
+
+// One roadside group (Norton 2026-10-14: 燒街衣係有人係路邊燒，阿飄係附近收嘢): a neighbour crouched at a
+// burning bin with the offerings beside it, sometimes a second, candles, a stool, paper, a 燒街衣
+// barrier or a cone; after nine a 阿飄 comes to the offerings, and stays past the last of the fire.
+// Drawn a little larger than life (YULAN_STREET_SCALE), as the game draws its streets.
+const YULAN_STREET_SCALE = 1.5;
+function layoutYulanStreetGroup(out, s, ctx) {
+  const roll = (salt) => lnyHash(`${ctx.seed}:yulan:${s.row}:${s.col}:${s.side}:${salt}`);
+  // alongM: metres from the tile's centre toward its `half` end; inM: further toward the kerb (+)
+  // or the building line (-)
+  const add = (key, partId, alongM, inM = 0, extra = {}) => {
+    const part = typeof FESTIVAL_PARTS_BY_ID !== 'undefined' ? FESTIVAL_PARTS_BY_ID[partId] : null;
+    out.push({
+      id: `yulan:street:${s.row}:${s.col}:${s.side}:${key}`, festival: 'yulan', partId, mode: 'tile', row: s.row, col: s.col,
+      offsets: [[s.side, YULAN_KERB_IN_M + inM], [s.half, alongM]],
+      district: s.district, ...(part?.heightM && !extra.heightM ? { heightM: part.heightM * YULAN_STREET_SCALE } : {}), ...extra,
+    });
+  };
+  const burning = yulanDuring(ctx.minute, YULAN_TIMES.fire);
+  const man = roll('who') < 0.5;
+  if (burning) {
+    add('bin', YULAN_BINS[Math.floor(roll('bin') * YULAN_BINS.length)], 5, 0, { fire: true });
+    add('burner', man ? 'yulanBurnerMan' : 'yulanBurnerWoman', 6.8, -1.2, { heightM: 1.7 * YULAN_STREET_SCALE });
+    if (roll('second') < 0.35 && yulanDuring(ctx.minute, [19 * 60, 22 * 60])) {
+      add('burner2', man ? 'yulanBurnerWoman' : 'yulanBurnerMan', 3.2, -1.6, { heightM: 1.7 * YULAN_STREET_SCALE });
+    }
+  }
+  add('mat', 'yulanMat', 2.4, 0.4, { heightM: undefined });
+  if (roll('candles') < 0.5) add('candles', 'yulanRedCandles', 1, -0.6);
+  if (roll('paper') < 0.6) add('paper', roll('paperKind') < 0.5 ? 'yulanPaperStack' : 'yulanBasket', 7.5, 0.6);
+  if (roll('barrier') < 0.25) add('barrier', 'yulanBarrier', 9, -0.8);
+  else if (roll('cone') < 0.3) add('cone', 'yulanCone', 9, -0.8);
+  // the 阿飄 at the offerings, from nine (a few come early), until the street is swept
+  const comes = 21 * 60 + Math.floor(roll('ghostAt') * 120);
+  if (roll('ghost') < 0.55 && yulanSkyMinute(ctx.minute) >= comes) {
+    add('ghost', roll('ghostKind') < 0.5 ? 'yulanGhostA' : 'yulanGhostB', 1.4, 1.4, { heightM: 1.7 * YULAN_STREET_SCALE, floating: true });
+  }
+}
+
+// The 勝會 on one area (u from its left corner toward the top one, v toward the bottom one): the
+// stage at the far side facing down to the rows of stools, the shrine on the left, the furnace and
+// effigies on the right, the rice booth by the near corner. `at(u, v, key, partId, extra)` places.
+function layoutYulanFair(at, ctx) {
+  // the stage over the far hoop, as a real 戲棚 stands over the court (Norton 2026-10-14), its front to
+  // the stools
+  at(0.66, 0.56, 'stage', 'yulanStage');
+  // stools in rows before it; the front row is left empty for the 好兄弟
+  const audience = yulanDuring(ctx.minute, YULAN_TIMES.opera);
+  [0.5, 0.41, 0.32].forEach((u, row) => {
+    [0.3, 0.44, 0.58, 0.72].forEach((v, k) => {
+      at(u, v, `stools:${row}:${k}`, 'yulanStools');
+      if (audience && row > 0) at(u - 0.04, v, `audience:${row}:${k}`, k % 2 ? 'dbspectatorsBack2' : 'dbspectatorsBack1', { heightM: YULAN_CROWD });
+    });
+  });
+  // the 孤魂之位 with its banners and altar on the left
+  at(0.35, 0.08, 'shrine', 'yulanShrine', { ghost: true });
+  at(0.55, 0.06, 'banner1', 'yulanBanner');
+  at(0.15, 0.1, 'banner2', 'yulanBanner');
+  at(0.32, 0.2, 'altar', 'yulanAltar');
+  at(0.24, 0.24, 'incense', 'templeIncenseBurner');
+  // the furnace and the paper effigies on the right, burned at the end of the night
+  at(0.5, 0.94, 'furnace', 'yulanFurnace', { fire: yulanDuring(ctx.minute, YULAN_TIMES.fire) });
+  const burnt = yulanSkyMinute(ctx.minute) >= YULAN_TIMES.burn[1];
+  const burning = yulanDuring(ctx.minute, YULAN_TIMES.burn);
+  if (!burnt) {
+    [['horse', 'yulanHorse', 0.32], ['boat', 'yulanBoat', 0.22], ['house', 'yulanHouse', 0.12]].forEach(([key, partId, u]) => {
+      at(u, 0.9, key, partId, { effigy: true, burning });
+    });
+  }
+  at(0.38, 0.84, 'paper', 'yulanPaperStack');
+  // 派平安米: the booth by the near corner and, in the morning, its queue
+  at(0.08, 0.62, 'rice', 'lnyInfoBooth');
+  if (yulanDuring(ctx.minute, YULAN_TIMES.rice)) {
+    [0.5, 0.4].forEach((v, i) => at(0.1, v, `queue:${i}`, i ? 'dbspectatorsFront2' : 'dbspectatorsFront1', { heightM: YULAN_CROWD }));
+  }
+}
+
+/**
+ * 盂蘭 for a city.
+ * @param {object} ctx  minute, seed, kerbSlots ([{ row, col, side, half, district, age }]),
+ *   courts / sportsGrounds ({ id, textureKey, district }), eventGrounds (components, with district)
+ */
+function layoutYulan(ctx) {
+  const out = [];
+  const streets = pickYulanStreets(ctx.kerbSlots || [], ctx.seed);
+  if (yulanDuring(ctx.minute, YULAN_TIMES.street)) streets.forEach((s) => layoutYulanStreetGroup(out, s, ctx));
+  // the 勝會: up to three, the old districts first, then any
+  const oldDistricts = [...new Set(streets.map((s) => s.district))];
+  const venues = [];
+  (ctx.eventGrounds || []).forEach((g) => {
+    const rect = findEventGroundRectangle(g, 2, 2);
+    if (rect) venues.push({ kind: 'ground', id: g.id, rect, district: g.district });
+  });
+  [...(ctx.sportsGrounds || []), ...(ctx.courts || [])].forEach((b) => {
+    const spot = FESTIVAL_BUILDING_SPOTS[b.textureKey];
+    const area = spot?.areas?.field || spot?.areas?.court;
+    if (area) venues.push({ kind: 'building', id: b.id, area, district: b.district });
+  });
+  const rank = (v) => { const i = oldDistricts.indexOf(v.district); return i < 0 ? 99 : i; };
+  const chosen = [];
+  venues.sort((a, b) => rank(a) - rank(b) || String(a.id).localeCompare(String(b.id))).forEach((v) => {
+    if (chosen.length >= YULAN_MAX_VENUES || chosen.some((c) => c.district != null && c.district === v.district)) return;
+    chosen.push(v);
+  });
+  chosen.forEach((v) => {
+    const at = v.kind === 'building'
+      ? (u, vv, key, partId, extra = {}) => out.push({ id: `yulan:fair:${v.id}:${key}`, festival: 'yulan', partId, mode: 'building', buildingId: v.id, point: getFestivalAreaPoint(v.area, u, vv), ...extra })
+      : (u, vv, key, partId, extra = {}) => {
+        // on the ground's 2 x 2 tiles: u from its left corner (last row, first column) toward the top
+        // (first row), v toward the bottom (last column) - as the building areas at rotation 0
+        const { row, col, rows, cols } = v.rect;
+        const r = row - 0.5 + rows * (1 - u);
+        const c = col - 0.5 + cols * vv;
+        out.push({ id: `yulan:fair:${v.id}:${key}`, festival: 'yulan', partId, mode: 'tile', row: r, col: c,
+          groundBuildingId: `${Math.min(row + rows - 1, Math.max(row, Math.round(r)))}:${Math.min(col + cols - 1, Math.max(col, Math.round(c)))}`, ...extra });
+      };
+    layoutYulanFair(at, ctx);
+  });
+  return out;
+}
+
 /** Every placement of a festival for the city as it stands. */
 function layoutFestival(id, ctx) {
+  if (id === 'yulan') return layoutYulan(ctx);
   if (id === 'june4') return layoutJune4(ctx);
   if (id === 'christmas') return layoutChristmasDecorations(ctx);
   if (id === 'lunarNewYear') return layoutLunarNewYear(ctx);
@@ -591,6 +792,9 @@ if (typeof module !== 'undefined' && module.exports) {
     getLnyRows,
     layoutFestival,
     orderFestivalPromenadeRuns,
+    layoutYulan,
+    pickYulanStreets,
+    YULAN_TIMES,
     layoutJune4,
     getJune4Presence,
   };

@@ -197,9 +197,11 @@ function positionFestivalSprite(scene, sprite) {
   sprite.setOrigin(ax / frame.width, ay / frame.height);
   sprite.setScale(getFestivalSpriteScale(meta, part, own.resize, placement.heightM));
   sprite.setPosition(at.x, at.y);
+  sprite.festivalBaseY = at.y;  // a 阿飄 floats about it (festival-yulan.js)
   sprite.setDepth(at.depth);
   sprite.festivalLitShown = file !== meta.file;
-  if (sprite.festivalLitShown) sprite.clearTint();   // the night art carries its own night
+  // the night art, and what gives its own light (a UFO, a 阿飄), are never darkened
+  if (sprite.festivalLitShown || part.selfLit) sprite.clearTint();
   else if (typeof applyNightPropTint === 'function') applyNightPropTint(scene, sprite);
   sprite.festivalDrawable = true;
   return true;
@@ -296,6 +298,9 @@ function getFestivalLayoutContext(id, ctx, phase) {
     mainVenue: getCityFestivalState()?.venues?.[id] || '',
     minute: typeof getGameTimeOfDayMinutes === 'function' ? getGameTimeOfDayMinutes() : Number(city.timeOfDayMinutes) || 0,
     population: Number(city.population) || 0,
+    // 盂蘭: the kerb slots facing homes and the venues' districts (festival-yulan.js)
+    ...(id === 'yulan' && typeof getYulanLayoutExtras === 'function'
+      ? getYulanLayoutExtras(typeof activeScene !== 'undefined' ? activeScene : null, ctx || {}) : {}),
   };
 }
 
@@ -363,6 +368,7 @@ function updateFestivals(scene, time) {
     });
   }
   if (live && typeof maybeShowFestivalNotices === 'function') maybeShowFestivalNotices(scene, active, placements);
+  if (live && typeof maybePostYulanStory === 'function') maybePostYulanStory(scene, placements);
 }
 
 if (typeof module !== 'undefined' && module.exports) {

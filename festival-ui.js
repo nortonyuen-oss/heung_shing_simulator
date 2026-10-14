@@ -188,6 +188,7 @@ const FESTIVAL_EVENT_TESTS = Object.freeze([
   ['yulan', 8 * 60, '盂蘭（派米）', 'yulanStage'],
   ['yulan', 20 * 60 + 30, '盂蘭（燒街衣）', /yulanBurner/],
   ['yulan', 22 * 60 + 40, '盂蘭（阿飄）', /yulanGhost/],
+  ['yulan', 22 * 60 + 40, '盂蘭（郊外阿飄）', 'outskirts'],
   ['yulan', 23 * 60 + 45, '盂蘭（燒紙紮）', 'yulanHorse'],
 ]);
 
@@ -227,6 +228,20 @@ function startFestivalEventTest(id, minute, scene = typeof activeScene !== 'unde
   const buildings = [...new Set(scene.buildingSprites?.values() || [])];
   const open = (sprite) => !buildings.some((b) => b.depth > sprite.depth && b.visible !== false
     && typeof b.getBounds === 'function' && b.getBounds().contains(sprite.x, sprite.y - 4));
+  // 郊外阿飄: they walk on open land, not as festival placements - go to some (festival-yulan.js)
+  if (focus === 'outskirts') {
+    setTimeout(() => {
+      if (typeof getYulanLayoutExtras === 'function') getYulanLayoutExtras(scene, {});
+      const rural = (typeof yulanMapCache !== 'undefined' && yulanMapCache?.rural || []).filter((t) => t.open !== false);
+      const t = rural[Math.floor(rural.length / 2)];
+      city.budget = budget;
+      if (!t) { if (typeof showToast === 'function') showToast('【測試】搵唔到郊外空地', 'warning'); return; }
+      const camera = scene.cameras.main;
+      camera.setZoom(2.2);
+      centerCameraOnTile(scene, t.row, t.col);
+    }, 300);
+    return true;
+  }
   const look = () => {
     // the sprite itself, once drawn (a point on a building's art is not its tile)
     const candidates = [...(scene.festivalSprites?.values() || [])].filter((x) => x.festivalDrawable && wanted(x.festivalPlacement));

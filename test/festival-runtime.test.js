@@ -356,3 +356,27 @@ test('盂蘭 street fires follow the view: none at 1x, about ten visible ones zo
   assert.equal(second.length, YULAN_VIEW_GROUPS);
   ['lnyHash', 'getTileFaceGeometry', 'isoToScreen'].forEach((k) => delete global[k]);
 });
+
+test('盂蘭 wanderers: on open land away from the city, straying a little from home', () => {
+  Object.assign(global, { GROUND: 1, ROAD: 2, DIRT: 3, WATER: 5, HILL: 6, ZONE_NONE: 0, getTileId: (r, c) => `${r}:${c}`, buildingData: {} });
+  const H = 20;
+  const W = 20;
+  global.mapData = Array.from({ length: H }, (_, r) => Array.from({ length: W }, (_, c) => (c >= 15 ? 5 : r === 4 ? 2 : 1)));
+  global.zoneMap = Array.from({ length: H }, () => Array(W).fill(0));
+  zoneMap[12][3] = 1;
+  const { computeYulanRuralTiles, getYulanWanderPoint, YULAN_WANDER_RANGE } = require('../festival-yulan.js');
+  const tiles = computeYulanRuralTiles({ buildingSprites: new Map() });
+  assert.ok(tiles.length > 0);
+  tiles.forEach(({ row, col }) => {
+    assert.ok(Math.abs(row - 4) > 3, 'clear of the road');
+    assert.ok(Math.max(Math.abs(row - 12), Math.abs(col - 3)) > 3, 'clear of the zoned tile');
+    assert.ok(mapData[row][col] !== 5, 'not the sea');
+  });
+  const home = { row: 10, col: 10 };
+  for (let t = 0; t < 600; t += 7) {
+    const p = getYulanWanderPoint(home, t, 3.1);
+    assert.ok(Math.abs(p.row - 10) <= YULAN_WANDER_RANGE + 1e-9 && Math.abs(p.col - 10) <= YULAN_WANDER_RANGE + 1e-9);
+  }
+  assert.notDeepEqual(getYulanWanderPoint(home, 0, 1), getYulanWanderPoint(home, 5, 1), 'it moves');
+  ['GROUND', 'ROAD', 'DIRT', 'WATER', 'HILL', 'ZONE_NONE', 'getTileId', 'buildingData', 'mapData', 'zoneMap'].forEach((k) => delete global[k]);
+});

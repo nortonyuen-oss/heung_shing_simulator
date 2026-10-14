@@ -181,6 +181,7 @@ function getYulanLayoutExtras(scene, ctx) {
     return Number.isFinite(r) && typeof getDistrictKeyForTile === 'function' ? getDistrictKeyForTile(r, c) : null;
   };
   const withDistrict = (list) => (list || []).map((v) => ({ ...v, district: districtOf(v.id) }));
+  if (!yulanMapCache.rural) yulanMapCache.rural = computeYulanRuralTiles(scene);
   return {
     kerbSlots: yulanMapCache.kerbSlots,
     viewStreets: pickYulanViewStreets(scene, yulanMapCache.kerbSlots, `${city.name}:${city.year}`),
@@ -188,6 +189,184 @@ function getYulanLayoutExtras(scene, ctx) {
     sportsGrounds: withDistrict(ctx.sportsGrounds),
     eventGrounds: withDistrict(ctx.eventGrounds),
   };
+}
+
+// ── 阿飄 on the outskirts (Norton 2026-10-14) ──────────────────────────────────
+// On open land away from the city - no zone, building or road within a few tiles - green-glowing
+// 阿飄 walk to and fro after nine at night, as the street fires show: zoomed in past 1x, a few at a
+// time in the view, on ground a viewer can see, the ones still in view kept as the camera moves.
+// They move, so they are their own sprites (not festival placements).
+const YULAN_WANDER_TIME = Object.freeze([21 * 60, 28 * 60]);
+const YULAN_WANDER_COUNT = 6;
+const YULAN_WANDER_CLEAR = 3;          // tiles of nothing built round a wanderer's home tile
+const YULAN_WANDER_RANGE = 1.4;        // tiles it strays from home
+const YULAN_WANDER_PARTS = Object.freeze(['yulanGhostA', 'yulanGhostB']);
+const YULAN_WANDER_HEIGHT_M = 3.2;     // a little over the street 阿飄: alone in the dark, they must read
+const YULAN_ABOVE_NIGHT_DEPTH = 999998; // over day-night-lighting.js's night overlay (999997)
+
+/** Open land on the outskirts: buildable ground with nothing built, zoned or paved for some way round. */
+function computeYulanRuralTiles(scene) {
+  if (typeof mapData === 'undefined' || !mapData.length) return [];
+  const H = mapData.length;
+  const W = mapData[0].length;
+  // prefix sums of "something of the city here", for the clear-radius test
+  const sum = Array.from({ length: H + 1 }, () => new Int32Array(W + 1));
+  for (let r = 0; r < H; r++) {
+    for (let c = 0; c < W; c++) {
+      const id = getTileId(r, c);
+      const built = mapData[r][c] === ROAD || (zoneMap[r]?.[c] ?? ZONE_NONE) !== ZONE_NONE
+        || !!scene?.buildingSprites?.has(id) || !!(typeof buildingData !== 'undefined' && buildingData[id]);
+      sum[r + 1][c + 1] = sum[r][c + 1] + sum[r + 1][c] - sum[r][c] + (built ? 1 : 0);
+    }
+  }
+  const builtIn = (r0, c0, r1, c1) => {
+    const a = Math.max(0, r0); const b = Math.max(0, c0); const y = Math.min(H - 1, r1); const x = Math.min(W - 1, c1);
+    return sum[y + 1][x + 1] - sum[a][x + 1] - sum[y + 1][b] + sum[a][b];
+  };
+  const k = YULAN_WANDER_CLEAR;
+  const tiles = [];
+  for (let r = k; r < H - k; r++) {
+    for (let c = k; c < W - k; c++) {
+      if (![GROUND, DIRT, HILL].includes(mapData[r][c])) continue;
+      if (builtIn(r - k, c - k, r + k, c + k) > 0) continue;
+      tiles.push({ row: r, col: c, open: isYulanTileOpen(scene, r, c) });
+    }
+  }
+  return tiles;
+}
+
+function isYulanTileOpen(scene, row, col) {
+  const sprites = scene?.buildingSprites;
+  if (!sprites || typeof getTileFaceGeometry !== 'function') return true;
+  const at = getTileFaceGeometry(row, col, scene.offsetX, scene.offsetY).center;
+  const here = isoToScreen(col, row).y;
+  const seen = new Set();
+  for (let dr = -4; dr <= 4; dr++) {
+    for (let dc = -4; dc <= 4; dc++) {
+      const b = sprites.get(getTileId(row + dr, col + dc));
+      if (!b || seen.has(b)) continue;
+      seen.add(b);
+      if (isoToScreen(col + dc, row + dr).y <= here) continue;
+      if (isYulanPointUnderSprite(scene, b, at.x, at.y - 8)) return false;
+    }
+  }
+  return true;
+}
+
+// Which rural tiles have a 阿飄 now: as pickYulanViewStreets, a few apart in the view.
+function pickYulanWanderTiles(scene, tiles, seed) {
+  const camera = scene?.cameras?.main;
+  if (!camera || !(camera.zoom > YULAN_VIEW_MIN_ZOOM) || !camera.worldView) {
+    scene.yulanWanderPick = [];
+    return [];
+  }
+  const v = camera.worldView;
+  const key = (t) => `${t.row}:${t.col}`;
+  const inView = (t) => {
+    const p = getTileFaceGeometry(t.row, t.col, scene.offsetX, scene.offsetY).center;
+    return p.x >= v.x + 30 && p.x <= v.right - 30 && p.y >= v.y + 60 && p.y <= v.bottom - 10;
+  };
+  const open = tiles.filter((t) => t.open !== false && inView(t));
+  const byKey = new Map(open.map((t) => [key(t), t]));
+  const picked = (scene.yulanWanderPick || []).map((k) => byKey.get(k)).filter(Boolean);
+  const apart = (t) => picked.every((p) => Math.abs(p.row - t.row) + Math.abs(p.col - t.col) >= 4);
+  const hash = typeof lnyHash === 'function' ? lnyHash : () => 0.5;
+  open.map((t) => ({ t, roll: hash(`${seed}:wander:${key(t)}`) })).sort((a, b) => a.roll - b.roll).forEach(({ t }) => {
+    if (picked.length < YULAN_WANDER_COUNT && !picked.includes(t) && apart(t)) picked.push(t);
+  });
+  scene.yulanWanderPick = picked.map(key);
+  return picked;
+}
+
+function clearYulanWanderers(scene) {
+  (scene?.yulanWanderers || new Map()).forEach((w) => { w.sprite.destroy(); w.glow.destroy(); });
+  if (scene) scene.yulanWanderers = new Map();
+  scene?.festivalPinnedKeys?.clear?.();
+}
+
+// Where a wanderer is: a slow loop round its home tile, never quite repeating (tile units).
+function getYulanWanderPoint(home, t, seed) {
+  const r = YULAN_WANDER_RANGE;
+  return {
+    row: home.row + r * (0.6 * Math.sin(t * 0.13 + seed) + 0.4 * Math.sin(t * 0.31 + seed * 1.7)),
+    col: home.col + r * (0.6 * Math.cos(t * 0.11 + seed * 0.7) + 0.4 * Math.sin(t * 0.27 + seed * 2.3)),
+  };
+}
+
+function updateYulanWanderers(scene, time, sky) {
+  const month = typeof getFestivalsInMonth === 'function' ? getFestivalsInMonth(city.year, city.month) : [];
+  const on = month.includes('yulan') && isFestivalEnabled('yulan') && isFestivalGameplayLive()
+    && sky >= YULAN_WANDER_TIME[0] && sky < YULAN_WANDER_TIME[1] && !!scene.festivalLit;
+  if (!scene.yulanWanderers) scene.yulanWanderers = new Map();
+  if (!on || !festivalTextureMeta) {
+    if (scene.yulanWanderers.size) clearYulanWanderers(scene);
+    return;
+  }
+  // which tiles, at most twice a second (the camera moves)
+  if (time >= (scene.yulanWanderNextPick || 0)) {
+    scene.yulanWanderNextPick = time + 500;
+    if (!yulanMapCache?.rural) getYulanLayoutExtras(scene, {});
+    const homes = pickYulanWanderTiles(scene, yulanMapCache?.rural || [], `${city.name}:${city.year}`);
+    const wanted = new Set(homes.map((h) => `${h.row}:${h.col}`));
+    scene.yulanWanderers.forEach((w, k) => { if (!wanted.has(k)) { w.sprite.destroy(); w.glow.destroy(); scene.yulanWanderers.delete(k); } });
+    const files = [];
+    YULAN_WANDER_PARTS.forEach((id) => [false, true].forEach((m) => files.push(getFestivalTexturePath(id, m))));
+    if (!scene.festivalPinnedKeys) scene.festivalPinnedKeys = new Set();
+    files.forEach((f) => scene.festivalPinnedKeys.add(getFestivalSceneTextureKey(f)));
+    if (!files.every((f) => scene.textures.exists(getFestivalSceneTextureKey(f)))) {
+      if (!scene.yulanWanderLoading) {
+        scene.yulanWanderLoading = true;
+        loadFestivalTextures(scene, files).then(() => { scene.yulanWanderLoading = false; });
+      }
+      return;
+    }
+    ensureYulanTextures(scene);
+    const add = typeof Phaser !== 'undefined' ? Phaser.BlendModes.ADD : 1;
+    homes.forEach((home) => {
+      const k = `${home.row}:${home.col}`;
+      if (scene.yulanWanderers.has(k)) return;
+      const seed = (typeof lnyHash === 'function' ? lnyHash(`wander:${k}`) : 0.5) * 100;
+      const part = YULAN_WANDER_PARTS[Math.floor(seed) % YULAN_WANDER_PARTS.length];
+      const sprite = scene.add.image(0, 0, getFestivalSceneTextureKey(getFestivalTexturePath(part)));
+      const glow = makeYulanLight(scene, YULAN_GHOST_GLOW_KEY, add);
+      if (scene.worldMask) sprite.setMask(scene.worldMask);
+      scene.yulanWanderers.set(k, { home, seed, part, sprite, glow, lastX: null, mirrored: false });
+    });
+  }
+  scene.yulanWanderers.forEach((w) => {
+    const t = time / 1000;
+    const p = getYulanWanderPoint(w.home, t, w.seed);
+    const geo = getTileFaceGeometry(w.home.row, w.home.col, scene.offsetX, scene.offsetY);
+    const a = isoToScreen(w.home.col, w.home.row);
+    const b = isoToScreen(p.col, p.row);
+    const x = geo.center.x + b.x - a.x;
+    const y = geo.center.y + b.y - a.y;
+    // turned the way it drifts (the baked mirror, never a runtime flip)
+    if (w.lastX != null && Math.abs(x - w.lastX) > 0.05) {
+      const mirrored = x < w.lastX;
+      if (mirrored !== w.mirrored) {
+        w.mirrored = mirrored;
+        w.sprite.setTexture(getFestivalSceneTextureKey(getFestivalTexturePath(w.part, mirrored)));
+      }
+    }
+    w.lastX = x;
+    const fit = fitUfoSprite(w.sprite, w.part);
+    const meta = festivalTextureMeta?.[getFestivalTextureKey(w.part)];
+    const k = meta ? fit.k * (YULAN_WANDER_HEIGHT_M / (FESTIVAL_PARTS_BY_ID[w.part].heightM || 1.7)) : 0.02;
+    const bob = 4 + 2.5 * Math.sin(t * 1.4 + w.seed);
+    w.sprite.setScale(k);
+    w.sprite.setPosition(x, y - bob);
+    w.sprite.setAlpha(0.8 + 0.15 * Math.sin(t * 0.8 + w.seed));
+    // over the night's darkening too: it glows (and on open land nothing built is near to hide it)
+    w.sprite.setDepth(YULAN_ABOVE_NIGHT_DEPTH + 0.5);
+    w.sprite.setVisible(true);
+    // the glow shines through the night's darkening (drawn over it, as a light is)
+    w.glow.setPosition(x, y - bob - w.sprite.displayHeight * 0.45);
+    w.glow.setScale(0.75 + 0.08 * Math.sin(t * 1.1 + w.seed));
+    w.glow.setAlpha(0.45 + 0.2 * Math.sin(t * 0.9 + w.seed));
+    w.glow.setDepth(YULAN_ABOVE_NIGHT_DEPTH);
+    w.glow.setVisible(true);
+  });
 }
 
 // ── Light textures (drawn first, then handed to Phaser so they get mipmaps) ───
@@ -275,6 +454,7 @@ function updateYulan(scene, time) {
   const sprites = scene.festivalSprites;
   const minute = typeof getGameTimeOfDayMinutes === 'function' ? getGameTimeOfDayMinutes() : 0;
   const sky = minute < 6 * 60 ? minute + 24 * 60 : minute;
+  updateYulanWanderers(scene, time, sky);
   const mine = [];
   sprites?.forEach((sprite, id) => { if (sprite.festivalPlacement?.festival === 'yulan') mine.push([id, sprite]); });
   if (!mine.length) {
@@ -431,5 +611,5 @@ function maybePostYulanStory(scene, placements) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { yulanFlicker, lerpYulanColour, pickYulanViewStreets, YULAN_GHOST_TIME, YULAN_MAX_WISPS, YULAN_VIEW_GROUPS };
+  module.exports = { getYulanWanderPoint, computeYulanRuralTiles, YULAN_WANDER_RANGE, yulanFlicker, lerpYulanColour, pickYulanViewStreets, YULAN_GHOST_TIME, YULAN_MAX_WISPS, YULAN_VIEW_GROUPS };
 }

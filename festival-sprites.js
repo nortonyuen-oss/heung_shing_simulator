@@ -218,7 +218,8 @@ function removeFestivalSprite(scene, id) {
 function unloadFestivalTextures(scene, keepFiles) {
   const keep = new Set([...keepFiles].map(getFestivalSceneTextureKey));
   (scene.festivalTextureKeys || new Set()).forEach((key) => {
-    if (keep.has(key)) return;
+    // textures something else draws with right now (the 盂蘭 wanderers, festival-yulan.js)
+    if (keep.has(key) || scene.festivalPinnedKeys?.has(key)) return;
     if (scene.textures.exists(key)) scene.textures.remove(key);
     scene.festivalTextureKeys.delete(key);
   });

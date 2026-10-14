@@ -330,7 +330,13 @@ function updateFestivals(scene, time) {
   const live = isFestivalGameplayLive();
   // The layout reads every building, so it is redone only every FESTIVAL_LAYOUT_MS, or at once
   // when the festivals on, their tiers or the year change; the twinkle below runs every update.
-  const activeKey = `${city.year}|${active.map(({ id, phase }) => `${id}:${getFestivalTier(id)}:${phase}`).join(',')}`;
+  let activeKey = `${city.year}|${active.map(({ id, phase }) => `${id}:${getFestivalTier(id)}:${phase}`).join(',')}`;
+  // 盂蘭's street fires follow the view (festival-yulan.js): lay out again as soon as the camera
+  // has moved a little or crossed 1x, not only every FESTIVAL_LAYOUT_MS
+  if (active.some(({ id }) => id === 'yulan')) {
+    const camera = scene.cameras?.main;
+    if (camera) activeKey += `|cam:${Math.round(camera.scrollX / 250)}:${Math.round(camera.scrollY / 250)}:${camera.zoom > 1}`;
+  }
   let placements = scene.festivalPlacements || [];
   if (activeKey !== scene.festivalActiveKey || time >= (scene.festivalLayoutAt || 0)) {
     scene.festivalActiveKey = activeKey;

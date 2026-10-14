@@ -732,8 +732,11 @@ function layoutYulanFair(at, ctx) {
  */
 function layoutYulan(ctx) {
   const out = [];
+  // the old districts (for the 勝會); the street groups drawn are those in the player's view when
+  // the game gives them (festival-yulan.js pickYulanViewStreets), else these
   const streets = pickYulanStreets(ctx.kerbSlots || [], ctx.seed);
-  if (yulanDuring(ctx.minute, YULAN_TIMES.street)) streets.forEach((s) => layoutYulanStreetGroup(out, s, ctx));
+  const drawn = ctx.viewStreets || streets;
+  if (yulanDuring(ctx.minute, YULAN_TIMES.street)) drawn.forEach((s) => layoutYulanStreetGroup(out, s, ctx));
   // the 勝會: up to three, the old districts first, then any
   const oldDistricts = [...new Set(streets.map((s) => s.district))];
   const venues = [];

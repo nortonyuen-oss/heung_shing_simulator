@@ -66,20 +66,26 @@ function computeYulanKerbSlots(scene) {
     for (let c = 0; c < mapData[r].length; c++) {
       if (!isRoad(r, c)) continue;
       Object.entries(step).forEach(([side, [dr, dc]]) => {
-        // only the pavement on the far side of the road at this rotation: the homes stand behind it, and
-        // a building on the near side would hide everything on its pavement
+        // only the pavement on the far side of the road at this rotation: a building on the near side
+        // would hide everything on its pavement
         if (isoToScreen(c + dc, r + dr).y >= isoToScreen(c, r).y) return;
-        const home = isInsideMap(r + dr, c + dc) && getYulanHomeAt(scene, r + dr, c + dc);
-        if (!home) return;
+        const nr = r + dr;
+        const nc = c + dc;
+        // a pavement beside land (homes most of all; shops and the rest too), not the sea or more road
+        if (!isInsideMap(nr, nc) || isRoad(nr, nc) || (typeof WATER !== 'undefined' && mapData[nr][nc] === WATER)) return;
         const along = side === 'n' || side === 's' ? ['e', 'w'] : ['n', 's'];
         if (!along.every((d) => isRoad(r + step[d][0], c + step[d][1]))) return; // a corner or a dead end
-        const half = along[(r + c) % 2];
-        if (taken.has(`${r}:${c}:${side}:${half}`)) return;
-        slots.push({
-          row: r, col: c, side, half,
-          district: typeof getDistrictKeyForTile === 'function' ? getDistrictKeyForTile(r, c) : 'all',
-          age: Number(home.age) || 0,
-          open: isYulanSlotOpen(scene, r, c),
+        const home = getYulanHomeAt(scene, nr, nc);
+        const open = isYulanSlotOpen(scene, r, c, side);
+        along.forEach((half) => {
+          if (taken.has(`${r}:${c}:${side}:${half}`)) return;
+          slots.push({
+            row: r, col: c, side, half,
+            district: typeof getDistrictKeyForTile === 'function' ? getDistrictKeyForTile(r, c) : 'all',
+            age: home ? Number(home.age) || 0 : 0,
+            home: !!home,
+            open,
+          });
         });
       });
     }
@@ -90,10 +96,30 @@ function computeYulanKerbSlots(scene) {
 // Whether a road tile's middle can be seen: no building standing in front of it (nearer the viewer,
 // within four tiles) has a picture over that point. Most of a dense city's pavements are behind a
 // tall block; the fires go where people can see them first.
-function isYulanSlotOpen(scene, row, col) {
+function getYulanSlotPoint(scene, row, col, side) {
+  const centre = getTileFaceGeometry(row, col, scene.offsetX, scene.offsetY).center;
+  const [dr, dc] = { n: [-1, 0], e: [0, 1], s: [1, 0], w: [0, -1] }[side] || [0, 0];
+  const a = isoToScreen(col, row);
+  const b = isoToScreen(col + dc * 0.38, row + dr * 0.38); // the pavement, where the fire stands
+  return { x: centre.x + b.x - a.x, y: centre.y + b.y - a.y };
+}
+
+// Whether a sprite's own pixels (not just its rectangle: a tower's corners are sky) cover a point.
+function isYulanPointUnderSprite(scene, sprite, x, y) {
+  if (typeof sprite.getBounds !== 'function' || !sprite.getBounds().contains(x, y)) return false;
+  const frame = sprite.frame;
+  if (!frame || typeof scene.textures?.getPixelAlpha !== 'function') return true;
+  const lx = (x - sprite.x) / sprite.scaleX + sprite.displayOriginX;
+  const ly = (y - sprite.y) / sprite.scaleY + sprite.displayOriginY;
+  if (lx < 0 || ly < 0 || lx >= frame.width || ly >= frame.height) return false;
+  const alpha = scene.textures.getPixelAlpha(Math.floor(lx), Math.floor(ly), sprite.texture.key, frame.name);
+  return alpha == null ? true : alpha > 96;
+}
+
+function isYulanSlotOpen(scene, row, col, side) {
   const sprites = scene?.buildingSprites;
   if (!sprites || typeof getTileFaceGeometry !== 'function') return true;
-  const at = getTileFaceGeometry(row, col, scene.offsetX, scene.offsetY).center;
+  const at = getYulanSlotPoint(scene, row, col, side);
   const here = isoToScreen(col, row).y;
   const seen = new Set();
   for (let dr = -4; dr <= 4; dr++) {
@@ -102,10 +128,45 @@ function isYulanSlotOpen(scene, row, col) {
       if (!b || seen.has(b)) continue;
       seen.add(b);
       if (isoToScreen(col + dc, row + dr).y <= here) continue; // behind the road, not in front of it
-      if (typeof b.getBounds === 'function' && b.getBounds().contains(at.x, at.y - 6)) return false;
+      if (isYulanPointUnderSprite(scene, b, at.x, at.y - 6)) return false;
     }
   }
   return true;
+}
+
+// 燒街衣 where the player is looking (Norton 2026-10-14): zoomed in past 1x, about ten groups on the
+// visible pavements in the view, none anywhere else. Groups still in view stay as the camera moves
+// and new ones fill in; older homes come a little sooner.
+const YULAN_VIEW_GROUPS = 10;
+const YULAN_VIEW_MIN_ZOOM = 1;
+
+function pickYulanViewStreets(scene, slots, seed) {
+  const camera = scene?.cameras?.main;
+  if (!camera || !(camera.zoom > YULAN_VIEW_MIN_ZOOM) || !camera.worldView) {
+    if (scene) scene.yulanViewPick = [];
+    return [];
+  }
+  const v = camera.worldView;
+  const key = (s) => `${s.row}:${s.col}:${s.side}:${s.half}`;
+  const inView = (s) => {
+    const p = getYulanSlotPoint(scene, s.row, s.col, s.side);
+    return p.x >= v.x + 20 && p.x <= v.right - 20 && p.y >= v.y + 40 && p.y <= v.bottom - 10;
+  };
+  const open = slots.filter((s) => s.open !== false && inView(s));
+  const byKey = new Map(open.map((s) => [key(s), s]));
+  const picked = (scene.yulanViewPick || []).map((k) => byKey.get(k)).filter(Boolean);
+  // a tile apart at least, never two groups at one pavement
+  const apart = (s) => picked.every((p) => Math.abs(p.row - s.row) + Math.abs(p.col - s.col) >= 2);
+  const hash = typeof lnyHash === 'function' ? lnyHash : () => 0.5;
+  open
+    // homes first (older ones sooner), then the other pavements
+    .map((s) => ({ s, roll: hash(`${seed}:yulan:${key(s)}`) * (s.home === false ? 1.5 : 1) * (1 - Math.min(0.5, (Number(s.age) || 0) / 800)) }))
+    .sort((a, b) => a.roll - b.roll)
+    .forEach(({ s }) => {
+      if (picked.length < YULAN_VIEW_GROUPS && !picked.includes(s) && apart(s)) picked.push(s);
+    });
+  scene.yulanViewPick = picked.map(key);
+  return picked;
 }
 
 /** The map side of the 盂蘭 layout context, worked out once a month (or when the city grows). */
@@ -122,6 +183,7 @@ function getYulanLayoutExtras(scene, ctx) {
   const withDistrict = (list) => (list || []).map((v) => ({ ...v, district: districtOf(v.id) }));
   return {
     kerbSlots: yulanMapCache.kerbSlots,
+    viewStreets: pickYulanViewStreets(scene, yulanMapCache.kerbSlots, `${city.name}:${city.year}`),
     courts: withDistrict(ctx.courts),
     sportsGrounds: withDistrict(ctx.sportsGrounds),
     eventGrounds: withDistrict(ctx.eventGrounds),
@@ -369,5 +431,5 @@ function maybePostYulanStory(scene, placements) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { yulanFlicker, lerpYulanColour, YULAN_GHOST_TIME, YULAN_MAX_WISPS };
+  module.exports = { yulanFlicker, lerpYulanColour, pickYulanViewStreets, YULAN_GHOST_TIME, YULAN_MAX_WISPS, YULAN_VIEW_GROUPS };
 }

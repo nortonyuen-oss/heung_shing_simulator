@@ -334,3 +334,25 @@ test('盂蘭 lights: an uneven flicker, green toward the colour asked', () => {
   assert.equal(lerpYulanColour(0x020713, 0x03160f, 1), 0x03160f);
   assert.deepEqual([...YULAN_GHOST_TIME], [22 * 60, 28 * 60]);
 });
+
+test('盂蘭 street fires follow the view: none at 1x, about ten visible ones zoomed in, kept as it moves', () => {
+  global.lnyHash = require('../festival-venues.js').__lnyHash || ((t) => { let h = 7; for (const ch of String(t)) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h / 4294967296; });
+  global.getTileFaceGeometry = (row, col) => ({ center: { x: (col - row) * 50, y: (col + row) * 25 } });
+  global.isoToScreen = (col, row) => ({ x: (col - row) * 50, y: (col + row) * 25 });
+  const { pickYulanViewStreets, YULAN_VIEW_GROUPS } = require('../festival-yulan.js');
+  const slots = [];
+  for (let r = 0; r < 80; r++) for (let c = 0; c < 80; c++) slots.push({ row: r, col: c, side: 'n', half: 'e', age: 100, open: (r + c) % 3 !== 0 });
+  const scene = { offsetX: 0, offsetY: 0, cameras: { main: { zoom: 1, worldView: { x: 0, y: 1000, right: 1400, bottom: 1800 } } } };
+  assert.deepEqual(pickYulanViewStreets(scene, slots, 's'), [], 'nothing at 1x');
+  scene.cameras.main.zoom = 1.6;
+  const first = pickYulanViewStreets(scene, slots, 's');
+  assert.equal(first.length, YULAN_VIEW_GROUPS);
+  assert.ok(first.every((s) => s.open), 'only pavements a viewer can see');
+  // a small pan: those still in view stay
+  scene.cameras.main.worldView = { x: 100, y: 1050, right: 1500, bottom: 1850 };
+  const second = pickYulanViewStreets(scene, slots, 's');
+  const still = first.filter((s) => { const x = (s.col - s.row) * 50; const y = (s.col + s.row) * 25 - 0.38 * 25; return x >= 120 && x <= 1480 && y >= 1090 && y <= 1840; });
+  still.forEach((s) => assert.ok(second.includes(s), 'a group in view stays'));
+  assert.equal(second.length, YULAN_VIEW_GROUPS);
+  ['lnyHash', 'getTileFaceGeometry', 'isoToScreen'].forEach((k) => delete global[k]);
+});

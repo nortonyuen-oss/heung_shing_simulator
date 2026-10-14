@@ -634,8 +634,9 @@ function centerCameraOnTile(scene, row, col) {
   const pos = isoToScreen(col, row);
   const worldX = pos.x + scene.offsetX;
   const worldY = pos.y + scene.offsetY + getTerrainTileVisualOffset(row, col, getTileKey(row, col));
-  camera.scrollX = worldX - camera.width / (2 * camera.zoom);
-  camera.scrollY = worldY - camera.height / (2 * camera.zoom);
+  // Phaser zooms about the camera's middle, so the point is centred whatever the zoom (the old
+  // `world - width / (2 * zoom)` was right only at 1x: 去睇 at 2x landed a quarter-screen off)
+  camera.centerOn(worldX, worldY);
 }
 
 function overlayPixelColor(type, val) {

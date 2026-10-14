@@ -175,6 +175,75 @@ function openFestivalCalendar() {
   ensureFestivalCalendarDialog().style.display = 'flex';
 }
 
+// ── Test mode: 啟動 event ────────────────────────────────────────────────────
+// Jump straight to a festival: its month this year at a given hour, a dry night, the festival on.
+// Settled as held beforehand (cost 0, no effects), so a test never charges the treasury; the clock
+// is left paused, and the camera goes to the festival once its things are laid out.
+// [festival, minute (or 'after'), label, what the camera looks at (a part id, or a regexp of one)]
+const FESTIVAL_EVENT_TESTS = Object.freeze([
+  ['christmas', 20 * 60, '聖誕夜', 'christmasTree'],
+  ['lunarNewYear', 20 * 60, '年宵（晚）', 'lnyStage'],
+  ['lunarNewYear', 'after', '開年舞獅', /lnyLion/],
+  ['june4', 21 * 60, '六四燭光', 'june4Pillar'],
+  ['yulan', 8 * 60, '盂蘭（派米）', 'yulanStage'],
+  ['yulan', 20 * 60 + 30, '盂蘭（燒街衣）', /yulanBurner/],
+  ['yulan', 22 * 60 + 40, '盂蘭（阿飄）', /yulanGhost/],
+  ['yulan', 23 * 60 + 45, '盂蘭（燒紙紮）', 'yulanHorse'],
+]);
+
+function startFestivalEventTest(id, minute, scene = typeof activeScene !== 'undefined' ? activeScene : null, focus = null) {
+  if (!scene || typeof city === 'undefined') return false;
+  if (typeof isVisualRouteCalibrationTestModeEnabled === 'function' && !isVisualRouteCalibrationTestModeEnabled()) return false;
+  const after = minute === 'after';
+  // a jump may land in another festival's month too (June: 六四 and 端午): whatever settles in it is
+  // given back once the camera has arrived, so a test never spends the city's money
+  const budget = Number(city.budget) || 0;
+  const month = getFestivalMonth(id, city.year);
+  if (!month) return false;
+  // 開年舞獅 is the morning of the month after
+  city.month = after ? Math.min(12, month + 1) : month;
+  const m = after ? 8 * 60 : minute;
+  city.timeOfDayMinutes = m;
+  if (typeof getEnvironmentMinutes === 'function') city.environmentMinutes = Math.floor(getEnvironmentMinutes() / 1440) * 1440 + ((m - 6 * 60 + 1440) % 1440);
+  if (typeof resetGameClockAccumulator === 'function') resetGameClockAccumulator();
+  city.weather = { ...city.weather, condition: 'clear', typhoonStage: 'none', rainWarning: 'none', rainfall: 0 };
+  const state = getCityFestivalState();
+  state.enabled = true;
+  if (!isQuietFestival(id)) setFestivalEnabled(id, true);
+  if (isGovernmentFestival(id)) {
+    if (getFestivalTier(id) === 'skip') setFestivalTier(id, 'standard');
+    if (getFestivalHistoryEntry(id, city.year)?.outcome !== 'held') recordFestivalHistory({ id, year: city.year, outcome: 'held', cost: 0 });
+  }
+  if (typeof setGameSpeed === 'function' && typeof GAME_SPEEDS !== 'undefined') setGameSpeed(GAME_SPEEDS.PAUSED);
+  // lay it out now rather than at the next two-second pass
+  scene.festivalActiveKey = '';
+  scene.festivalNextUpdateAt = 0;
+  if (typeof updateHUD === 'function') updateHUD();
+  if (typeof updateTopbarGameTime === 'function') updateTopbarGameTime();
+  let tries = 0;
+  const wanted = (p) => p.festival === id && (!focus || (focus instanceof RegExp ? focus.test(p.partId) : p.partId === focus));
+  // a street thing may be hidden behind a tall building nearer the viewer: the ones no nearer
+  // building's picture covers first (test only: a walk over the buildings per candidate)
+  const buildings = [...new Set(scene.buildingSprites?.values() || [])];
+  const open = (sprite) => !buildings.some((b) => b.depth > sprite.depth && b.visible !== false
+    && typeof b.getBounds === 'function' && b.getBounds().contains(sprite.x, sprite.y - 4));
+  const look = () => {
+    // the sprite itself, once drawn (a point on a building's art is not its tile)
+    const candidates = [...(scene.festivalSprites?.values() || [])].filter((x) => x.festivalDrawable && wanted(x.festivalPlacement));
+    const sprite = candidates.slice(0, 80).find(open) || candidates[0];
+    if (sprite) {
+      city.budget = budget;
+      const camera = scene.cameras.main;
+      camera.setZoom(2.4);
+      camera.centerOn(sprite.x, sprite.y - sprite.displayHeight / 2);
+      scene.terrainViewportCacheKey = null;
+    } else if (++tries < 24) setTimeout(look, 250);
+    else if ((city.budget = budget) && typeof showToast === 'function') showToast(`【測試】${festivalName(id) || id}：搵唔到場地（維園、球場、海濱步道或住宅街）`, 'warning');
+  };
+  setTimeout(look, 300);
+  return true;
+}
+
 if (typeof document !== 'undefined') {
   document.addEventListener('languagechange', () => {
     if (document.getElementById(FESTIVAL_DIALOG_ID)?.style.display === 'flex') renderFestivalCalendar();

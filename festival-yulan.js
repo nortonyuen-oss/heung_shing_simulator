@@ -79,11 +79,33 @@ function computeYulanKerbSlots(scene) {
           row: r, col: c, side, half,
           district: typeof getDistrictKeyForTile === 'function' ? getDistrictKeyForTile(r, c) : 'all',
           age: Number(home.age) || 0,
+          open: isYulanSlotOpen(scene, r, c),
         });
       });
     }
   }
   return slots;
+}
+
+// Whether a road tile's middle can be seen: no building standing in front of it (nearer the viewer,
+// within four tiles) has a picture over that point. Most of a dense city's pavements are behind a
+// tall block; the fires go where people can see them first.
+function isYulanSlotOpen(scene, row, col) {
+  const sprites = scene?.buildingSprites;
+  if (!sprites || typeof getTileFaceGeometry !== 'function') return true;
+  const at = getTileFaceGeometry(row, col, scene.offsetX, scene.offsetY).center;
+  const here = isoToScreen(col, row).y;
+  const seen = new Set();
+  for (let dr = -4; dr <= 4; dr++) {
+    for (let dc = -4; dc <= 4; dc++) {
+      const b = sprites.get(getTileId(row + dr, col + dc));
+      if (!b || seen.has(b)) continue;
+      seen.add(b);
+      if (isoToScreen(col + dc, row + dr).y <= here) continue; // behind the road, not in front of it
+      if (typeof b.getBounds === 'function' && b.getBounds().contains(at.x, at.y - 6)) return false;
+    }
+  }
+  return true;
 }
 
 /** The map side of the 盂蘭 layout context, worked out once a month (or when the city grows). */

@@ -635,8 +635,9 @@ function pickYulanStreets(slots, seed = '') {
     let mine = 0;
     d.slots
       .map((s) => ({ s, roll: lnyHash(`${seed}:yulan:${s.row}:${s.col}:${s.side}`) }))
-      .filter(({ roll }) => roll < 0.35)
-      .sort((a, b) => a.roll - b.roll)
+      // the slots a viewer can see first (no building in front: s.open, festival-yulan.js); the
+      // spacing below keeps the groups apart
+      .sort((a, b) => (a.s.open === false) - (b.s.open === false) || a.roll - b.roll)
       .forEach(({ s }) => {
         if (picked.length >= YULAN_MAX_GROUPS || mine >= perDistrict) return;
         for (let dr = -2; dr <= 2; dr++) for (let dc = -2; dc <= 2; dc++) if (taken.has(`${s.row + dr}:${s.col + dc}`)) return;

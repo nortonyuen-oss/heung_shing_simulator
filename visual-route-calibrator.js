@@ -1145,6 +1145,9 @@ function createVisualRoutePerformancePanel(scene) {
     + '<button type="button" class="vrp-bun-climber-btn">預覽搶包山選手動畫</button>'
     + '<button type="button" class="vrp-bun-start-btn">啟動海旁搶包山測試</button>'
     + '<button type="button" class="vrp-bun-race-btn">預覽搶包山個人決賽</button>'
+    // the other festivals (festival-ui.js FESTIVAL_EVENT_TESTS)
+    + (typeof FESTIVAL_EVENT_TESTS !== 'undefined' ? FESTIVAL_EVENT_TESTS.map(([id, minute, label], i) =>
+      `<button type="button" class="vrp-festival-test-btn" data-festival-test="${i}">${label}</button>`).join('') : '')
     + '</div></details>';
   root.querySelector('.vrp-close-btn')?.addEventListener?.('click', () => {
     setVisualRouteCalibrationTestModeEnabled(false);
@@ -1226,6 +1229,10 @@ function createVisualRoutePerformancePanel(scene) {
   root.querySelector('.vrp-bun-race-btn')?.addEventListener?.('click', () => {
     if (typeof startBunHillEventTest === 'function') startBunHillEventTest(scene, true);
   });
+  root.querySelectorAll?.('.vrp-festival-test-btn')?.forEach?.((button) => button.addEventListener('click', () => {
+    const test = typeof FESTIVAL_EVENT_TESTS !== 'undefined' ? FESTIVAL_EVENT_TESTS[Number(button.dataset.festivalTest)] : null;
+    if (test && typeof startFestivalEventTest === 'function') startFestivalEventTest(test[0], test[1], scene, test[3]);
+  }));
   root.querySelector('.vrp-ufo-btn')?.addEventListener?.('click', () => {
     if (typeof summonUfo === 'function') summonUfo();
   });

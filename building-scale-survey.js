@@ -10,9 +10,11 @@
 // metre along a map axis is wide, so tile metres = (TILE_WIDTH / 2) * 1.22 / (px a metre of height).
 // Next to the span the tool draws a 1.7 m person and a 3 m storey at the people's scale.
 //
-// Dragging a span end moves it; 1/2 pick an end, arrow keys move it a source pixel (Shift: five).
-// Results stay in this browser until 「複製 JSON」 copies the whole table (shipped file plus local
-// measurements) for data/building-scale-survey.json; scripts/building-scale-report.js summarises it.
+// Click the foot and then the top of the span (or drag upwards): the span shows in yellow until
+// 「✔ 確認記錄」 or Enter records it. Dragging a span end moves it; 1/2 pick an end, arrow keys move
+// it a source pixel (Shift: five); Esc drops an unconfirmed span. Records stay in this browser until
+// 「複製 JSON」 copies the whole table (shipped file plus local records) for
+// data/building-scale-survey.json; scripts/building-scale-report.js summarises it.
 // A measurement keeps the sprite scale it was taken at: re-measure a model after its ground corners
 // (building-ground-calibrator.js) or footprint change.
 
@@ -29,6 +31,7 @@ const BUILDING_SCALE_HANDLE_RADIUS_PX = 6;   // screen pixels
 const BUILDING_SCALE_PICK_ALPHA = 24;
 const BUILDING_SCALE_COLORS = Object.freeze({
   span: 0x5ad7ff,
+  pending: 0xffd24a,
   person: 0xff9f43,
   storey: 0xffffff,
   hover: 0xffffff,
@@ -167,7 +170,8 @@ const buildingScaleSurvey = (() => {
   let selected = null;       // building sprite
   let hover = null;
   let activeEnd = 'b';
-  let drag = null;           // { end, transform, a, b, moved }
+  let drag = null;           // { end, moved, startY }: a span end following the mouse
+  let pending = null;        // { a, b, transform }: a span drawn but not yet recorded (b null: foot only)
   let storeys = 1;
   let storeyM = BUILDING_SCALE_DEFAULT_STOREY_M;
 
@@ -227,11 +231,13 @@ const buildingScaleSurvey = (() => {
     return best;
   }
 
-  // The span on show: the one being dragged, else the model's recorded one.
+  const savedEntry = () => (selected?.modelLogicalPath ? getBuildingScaleSurveyEntry(selected.modelLogicalPath) : null);
+
+  // The span on show: the unconfirmed one, else the model's recorded one.
   function shownSpan() {
-    if (drag) return { a: drag.a, b: drag.b, transform: drag.transform };
-    const entry = selected?.modelLogicalPath ? getBuildingScaleSurveyEntry(selected.modelLogicalPath) : null;
-    return entry ? { a: entry.a, b: entry.b, transform: transformOf(selected) } : null;
+    if (pending) return { ...pending, pending: true };
+    const entry = savedEntry();
+    return entry ? { a: entry.a, b: entry.b, transform: transformOf(selected), pending: false } : null;
   }
 
   function endAt(worldX, worldY) {
@@ -241,6 +247,7 @@ const buildingScaleSurvey = (() => {
     let best = null;
     let bestDistance = reach;
     ['a', 'b'].forEach((end) => {
+      if (!span[end]) return;
       const point = sourceToWorld(span.transform, span[end]);
       const distance = Math.hypot(point.x - worldX, point.y - worldY);
       if (distance <= bestDistance) { best = end; bestDistance = distance; }
@@ -248,20 +255,54 @@ const buildingScaleSurvey = (() => {
     return best;
   }
 
-  function commit(a, b, transform) {
-    const path = selected?.modelLogicalPath;
-    if (!path) return null;
-    const entry = buildBuildingScaleEntry({
-      a, b, storeys, storeyM,
+  // What the unconfirmed span would record.
+  function previewEntry() {
+    if (!pending?.b || !selected?.modelLogicalPath) return null;
+    return buildBuildingScaleEntry({
+      a: pending.a, b: pending.b, storeys, storeyM,
       footprint: [selected.footprintCols ?? 1, selected.footprintRows ?? 1],
-      screenPxPerSourcePx: screenPxPerSourcePx(transform),
+      screenPxPerSourcePx: screenPxPerSourcePx(pending.transform),
     });
+  }
+
+  // A recorded span is edited as an unconfirmed copy.
+  function editable() {
+    if (pending) return pending;
+    const entry = savedEntry();
     if (!entry) return null;
-    buildingScaleSurveyOverrides[path] = entry;
-    persistBuildingScaleSurveyOverrides();
+    pending = { a: [...entry.a], b: [...entry.b], transform: transformOf(selected) };
+    return pending;
+  }
+
+  function refresh() {
     renderPanel();
     drawOverlay();
+  }
+
+  function confirm() {
+    const entry = previewEntry();
+    if (!entry) {
+      setMessage(pending ? '仲差頂點：再點一下建築或者向上拖' : '未有量度線：先喺建築上畫一段高度', 'info');
+      return null;
+    }
+    const path = selected.modelLogicalPath;
+    buildingScaleSurveyOverrides[path] = entry;
+    persistBuildingScaleSurveyOverrides();
+    pending = null;
+    drag = null;
+    refresh();
+    const count = Object.keys(buildBuildingScaleSurveyTable()).length;
+    setMessage(`✔ 已記錄 ${String(path).split('/').pop()}：一格約 ${entry.tileM} m（人物 ${entry.vsPeople}×）。共 ${count} 個模型`, 'success');
     return entry;
+  }
+
+  function cancel() {
+    if (!pending) return false;
+    pending = null;
+    drag = null;
+    refresh();
+    setMessage('已取消未確認嘅量度', 'info');
+    return true;
   }
 
   // ── Overlay ────────────────────────────────────────────────────────────────
@@ -281,19 +322,23 @@ const buildingScaleSurvey = (() => {
     });
     const span = shownSpan();
     if (!selected || !span) return;
+    const color = span.pending ? BUILDING_SCALE_COLORS.pending : BUILDING_SCALE_COLORS.span;
     const a = sourceToWorld(span.transform, span.a);
-    const b = sourceToWorld(span.transform, span.b);
+    const b = span.b ? sourceToWorld(span.transform, span.b) : a;
     const bottom = Math.max(a.y, b.y);
     const top = Math.min(a.y, b.y);
     // the measured span: vertical, at the first point's x
-    overlay.lineStyle(2.5 / z, BUILDING_SCALE_COLORS.span, 1);
-    overlay.lineBetween(a.x, bottom, a.x, top);
-    [-1, 1].forEach((side) => overlay.lineBetween(a.x - 4 / z, side < 0 ? top : bottom, a.x + 4 / z, side < 0 ? top : bottom));
-    [['a', a], ['b', b]].forEach(([end, point]) => {
+    if (span.b) {
+      overlay.lineStyle(2.5 / z, color, 1);
+      overlay.lineBetween(a.x, bottom, a.x, top);
+      [top, bottom].forEach((y) => overlay.lineBetween(a.x - 4 / z, y, a.x + 4 / z, y));
+    }
+    [['a', a], ['b', span.b ? b : null]].forEach(([end, point]) => {
+      if (!point) return;
       const radius = BUILDING_SCALE_HANDLE_RADIUS_PX / z;
-      overlay.fillStyle(end === activeEnd ? BUILDING_SCALE_COLORS.span : 0x0b2430, 1);
+      overlay.fillStyle(end === activeEnd ? color : 0x0b2430, 1);
       overlay.fillCircle(point.x, point.y, radius);
-      overlay.lineStyle(2 / z, end === activeEnd ? 0xffffff : BUILDING_SCALE_COLORS.span, 1);
+      overlay.lineStyle(2 / z, end === activeEnd ? 0xffffff : color, 1);
       overlay.strokeCircle(point.x, point.y, radius);
     });
     // what the people's scale would draw from the same foot: a person and one storey
@@ -310,9 +355,12 @@ const buildingScaleSurvey = (() => {
 
   function select(sprite) {
     selected = sprite;
+    pending = null;
     drag = null;
-    renderPanel();
-    drawOverlay();
+    const entry = savedEntry();
+    if (entry?.storeys) storeys = entry.storeys;
+    if (entry?.storeyM) storeyM = entry.storeyM;
+    refresh();
   }
 
   function installInput(targetScene) {
@@ -323,38 +371,49 @@ const buildingScaleSurvey = (() => {
       pointerdown: (pointer) => {
         if (pointer.button !== 0) return;
         const end = endAt(pointer.worldX, pointer.worldY);
-        const span = shownSpan();
-        if (end && span) {
+        if (end) {
+          editable();
           activeEnd = end;
-          drag = { end, transform: span.transform, a: [...span.a], b: [...span.b], moved: false };
-          renderPanel();
-          drawOverlay();
+          drag = { end, moved: false, startY: pointer.worldY };
+          refresh();
           return;
         }
         const hit = pickBuildingAt(pointer.worldX, pointer.worldY);
         if (hit && hit === selected && hit.modelLogicalPath) {
-          // a new span from here
-          const transform = transformOf(selected);
+          const transform = pending?.transform ?? transformOf(selected);
           const point = worldToSource(transform, pointer.worldX, pointer.worldY);
+          if (pending && !pending.b) {
+            // second click: the top of the span
+            pending.b = [pending.a[0], point[1]];
+          } else {
+            // first click (or the start of a drag): the foot of a new span
+            pending = { a: point, b: null, transform };
+          }
           activeEnd = 'b';
-          drag = { end: 'b', transform, a: point, b: [...point], moved: false };
+          drag = { end: 'b', moved: false, startY: pointer.worldY };
+          refresh();
           return;
         }
+        const discarded = !!pending;
         select(hit);
         if (!hit) setMessage('冇揀中建築：點建築本身', 'info');
         else if (!hit.modelLogicalPath) setMessage('呢座建築冇模型路徑，量度唔到', 'error');
-        else setMessage('喺建築上由下向上拖一段已知高度（例如幾層樓）', 'info');
+        else setMessage(`${discarded ? '（上一個未確認嘅量度已放棄）' : ''}喺建築上點底點再點頂點，或者由下向上拖`, 'info');
       },
       pointermove: (pointer) => {
         if (drag && !pointer.isDown) finishDrag();
-        if (drag) {
-          const point = worldToSource(drag.transform, pointer.worldX, pointer.worldY);
-          // the span stays vertical, under its first end
-          if (drag.end === 'a') drag.a = point;
-          drag.b = [drag.a[0], drag.end === 'b' ? point[1] : drag.b[1]];
+        if (drag && pending) {
+          if (!drag.moved && Math.abs(pointer.worldY - drag.startY) * zoom() < 3) return;
           drag.moved = true;
-          renderPanel();
-          drawOverlay();
+          const point = worldToSource(pending.transform, pointer.worldX, pointer.worldY);
+          // the span stays vertical, under its foot
+          if (drag.end === 'a') {
+            pending.a = point;
+            if (pending.b) pending.b = [point[0], pending.b[1]];
+          } else {
+            pending.b = [pending.a[0], point[1]];
+          }
+          refresh();
           return;
         }
         const next = pickBuildingAt(pointer.worldX, pointer.worldY);
@@ -372,14 +431,11 @@ const buildingScaleSurvey = (() => {
 
   function finishDrag() {
     if (!drag) return;
-    const { moved, a, b, transform } = drag;
     drag = null;
-    if (moved && Math.abs(b[1] - a[1]) >= 2) {
-      const entry = commit(a, b, transform);
-      if (entry) setMessage(`已記錄：一格約 ${entry.tileM} m，係人物比例嘅 ${entry.vsPeople}×`, 'success');
-    } else {
-      drawOverlay();
-    }
+    if (pending?.b && Math.abs(pending.b[1] - pending.a[1]) < 2) pending.b = null;
+    refresh();
+    if (!pending) return;
+    setMessage(pending.b ? '預覽中（黃線）：撳「✔ 確認記錄」或 Enter 儲存，Esc 取消' : '已定底點：再點頂點，或者由底點向上拖', 'info');
   }
 
   function uninstallInput(targetScene) {
@@ -389,6 +445,7 @@ const buildingScaleSurvey = (() => {
     }
     inputHandlers = null;
     drag = null;
+    pending = null;
     selected = null;
     hover = null;
     overlay?.destroy?.();
@@ -396,47 +453,54 @@ const buildingScaleSurvey = (() => {
   }
 
   function nudge(dx, dy) {
-    const entry = selected?.modelLogicalPath ? getBuildingScaleSurveyEntry(selected.modelLogicalPath) : null;
-    if (!entry) {
-      setMessage('先揀建築同拖一段高度', 'info');
+    const span = editable();
+    if (!span?.b) {
+      setMessage('先揀建築同畫一段高度', 'info');
       return;
     }
-    const a = [...entry.a];
-    const b = [...entry.b];
-    if (activeEnd === 'a') { a[0] += dx; a[1] += dy; b[0] = a[0]; } else { b[1] += dy; }
-    commit(a, b, transformOf(selected));
+    if (activeEnd === 'a') {
+      span.a = [span.a[0] + dx, span.a[1] + dy];
+      span.b = [span.a[0], span.b[1]];
+    } else {
+      span.b = [span.b[0], span.b[1] + dy];
+    }
+    refresh();
+    setMessage('預覽中（黃線）：撳「✔ 確認記錄」或 Enter 儲存', 'info');
   }
 
+  // A new reference re-measures the span on show; a recorded one becomes unconfirmed until saved again.
   function setStoreys(value) {
     storeys = Math.max(1, Math.round(Number(value) || 1));
-    remeasure();
+    referenceChanged();
   }
 
   function setStoreyM(value) {
     storeyM = Number(value) > 0 ? Number(value) : BUILDING_SCALE_DEFAULT_STOREY_M;
-    remeasure();
+    referenceChanged();
   }
 
-  // The reference changed: the recorded span keeps its points, its metres follow.
-  function remeasure() {
-    const entry = selected?.modelLogicalPath ? getBuildingScaleSurveyEntry(selected.modelLogicalPath) : null;
-    if (entry) commit(entry.a, entry.b, transformOf(selected));
-    else { renderPanel(); drawOverlay(); }
+  function referenceChanged() {
+    if (editable()?.b) setMessage('高度參考已改：撳「✔ 確認記錄」先會儲存', 'info');
+    refresh();
   }
 
   function handleKey(event) {
     if (!active) return;
     const target = event.target;
     if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return;
-    if (event.key === 'Escape' && selected) {
-      select(null);
+    if (event.key === 'Escape') {
+      if (!cancel() && selected) select(null);
+      return;
+    }
+    if (event.key === 'Enter' && pending) {
+      event.preventDefault();
+      confirm();
       return;
     }
     if (!selected) return; // leave the arrow keys to the camera
     if (event.key === '1' || event.key === '2') {
       activeEnd = event.key === '1' ? 'a' : 'b';
-      renderPanel();
-      drawOverlay();
+      refresh();
       return;
     }
     const step = event.shiftKey ? 5 : 1;
@@ -520,6 +584,11 @@ const buildingScaleSurvey = (() => {
       }
       .building-scale-survey-panel button:hover { background: #164a60; }
       .building-scale-survey-panel button:disabled { opacity: .45; cursor: default; }
+      .building-scale-survey-panel .bss-status { margin: 4px 0; font-weight: 700; }
+      .building-scale-survey-panel .bss-status[data-state="pending"] { color: #ffd24a; }
+      .building-scale-survey-panel .bss-status[data-state="saved"] { color: #7ce8a8; }
+      .building-scale-survey-panel .bss-status[data-state="none"] { color: #9cc6d4; }
+      .building-scale-survey-panel button.bss-confirm:not(:disabled) { background: #6b5410; border-color: #ffd24a; color: #fff6d6; font-weight: 700; }
       .building-scale-survey-panel .bss-message { min-height: 16px; margin-top: 7px; color: #bfe6f2; }
       .building-scale-survey-panel .bss-message[data-tone="success"] { color: #5ad7ff; }
       .building-scale-survey-panel .bss-message[data-tone="error"] { color: #ff9a9a; }
@@ -538,16 +607,19 @@ const buildingScaleSurvey = (() => {
     root.setAttribute('aria-label', 'Building scale survey');
     root.innerHTML = `
       <div class="bss-title">建築比例量度</div>
-      <div class="bss-hint">點選建築，再喺佢身上由下向上拖一段已知高度（例如一層或幾層樓）。拖端點調整；1/2 揀端點、方向鍵 1px（Shift 5px）、Esc 取消；右鍵拖曳移動鏡頭。只作記錄，唔改畫面。</div>
+      <div class="bss-hint">① 點選建築 ② 喺佢身上點底點、再點頂點（或由下向上拖）一段已知高度，填層數 ③ 黃線＝預覽，撳「✔ 確認記錄」或 Enter 先儲存。拖端點／方向鍵微調（1/2 揀端點），Esc 取消；右鍵拖曳移動鏡頭。只作記錄，唔改畫面。</div>
       <div class="bss-model"></div>
       <div class="bss-ref">
         <label>層數 <input type="number" min="1" step="1" data-field="storeys"></label>
         <label>每層高度 <input type="number" min="0.5" step="0.1" data-field="storeyM"> m</label>
       </div>
+      <div class="bss-status"></div>
       <div class="bss-result"></div>
       <div class="bss-legend"><b class="person">橙線</b>＝1.7m 人物、白線＝一層樓，均按人物比例（${BUILDING_SCALE_PEOPLE_PX_PER_M}px/m）</div>
       <details><summary class="bss-summary"></summary><div class="bss-list"></div></details>
       <div class="bss-actions">
+        <button type="button" data-action="confirm" class="bss-confirm">✔ 確認記錄</button>
+        <button type="button" data-action="cancel">取消</button>
         <button type="button" data-action="remove">刪除此模型量度</button>
         <button type="button" data-action="copy">複製 JSON</button>
         <button type="button" data-action="clear">清除全部本機量度</button>
@@ -561,6 +633,7 @@ const buildingScaleSurvey = (() => {
     panel = {
       root,
       model: root.querySelector('.bss-model'),
+      status: root.querySelector('.bss-status'),
       result: root.querySelector('.bss-result'),
       summary: root.querySelector('.bss-summary'),
       list: root.querySelector('.bss-list'),
@@ -571,6 +644,8 @@ const buildingScaleSurvey = (() => {
     };
     panel.storeys.addEventListener('change', () => setStoreys(panel.storeys.value));
     panel.storeyM.addEventListener('change', () => setStoreyM(panel.storeyM.value));
+    panel.buttons.confirm.addEventListener('click', () => confirm());
+    panel.buttons.cancel.addEventListener('click', () => cancel());
     panel.buttons.remove.addEventListener('click', () => removeModel());
     panel.buttons.clear.addEventListener('click', () => clearAll());
     panel.buttons.copy.addEventListener('click', () => {
@@ -603,32 +678,33 @@ const buildingScaleSurvey = (() => {
     panel.root.hidden = !active;
     if (!active) return;
     const path = selected?.modelLogicalPath ?? null;
-    panel.buttons.remove.disabled = !path || !getBuildingScaleSurveyEntry(path);
-    panel.buttons.clear.textContent = `清除全部本機量度（${Object.keys(buildingScaleSurveyOverrides).length}）`;
     const entry = path ? getBuildingScaleSurveyEntry(path) : null;
-    // a model's own reference wins while it is picked
-    if (entry && !drag) {
-      if (entry.storeys) storeys = entry.storeys;
-      if (entry.storeyM) storeyM = entry.storeyM;
-    }
+    const preview = previewEntry();
+    panel.buttons.confirm.disabled = !preview;
+    panel.buttons.cancel.disabled = !pending;
+    panel.buttons.remove.disabled = !entry;
+    panel.buttons.clear.textContent = `清除全部本機量度（${Object.keys(buildingScaleSurveyOverrides).length}）`;
     if (document.activeElement !== panel.storeys) panel.storeys.value = String(storeys);
     if (document.activeElement !== panel.storeyM) panel.storeyM.value = String(storeyM);
 
+    const state = pending ? 'pending' : entry ? 'saved' : 'none';
+    panel.status.dataset.state = selected ? state : 'none';
+    panel.status.textContent = !selected ? ''
+      : pending ? (pending.b ? '● 未確認：撳「✔ 確認記錄」或 Enter 儲存' : '● 已定底點：再點頂點')
+        : entry ? '✔ 已記錄' : '未量度';
     if (!selected) {
       panel.model.textContent = `城中有 ${buildings().length} 座建築：點選一座`;
       panel.result.replaceChildren();
     } else {
       const sameModel = buildings().filter((sprite) => sprite.modelLogicalPath === path).length;
       panel.model.textContent = `${String(path ?? selected.logicalSpriteKey).split('/').pop()}（${selected.footprintCols ?? 1}×${selected.footprintRows ?? 1}，城中 ${sameModel} 座）`;
-      const live = drag?.moved
-        ? buildBuildingScaleEntry({ a: drag.a, b: drag.b, storeys, storeyM, footprint: [1, 1], screenPxPerSourcePx: screenPxPerSourcePx(drag.transform) })
-        : entry;
+      const live = pending ? preview : entry;
       panel.result.replaceChildren(...(live ? [
         row('畫面高度（zoom 1）', `${roundBuildingScaleNumber(Math.abs(live.b[1] - live.a[1]) * live.screenPxPerSourcePx, 1)} px`),
         row('每米高度', `${live.upPxPerM} px（人物 ${BUILDING_SCALE_PEOPLE_PX_PER_M}）`),
         row('相對人物', `${live.vsPeople}×`),
         row('即一格約', `${live.tileM} m`),
-      ] : [row('未量度', '拖一段高度')]));
+      ] : []));
     }
     const summary = summarizeBuildingScaleSurvey(buildBuildingScaleSurveyTable());
     panel.summary.textContent = summary.count
@@ -688,6 +764,8 @@ const buildingScaleSurvey = (() => {
     setStoreys,
     setStoreyM,
     removeModel,
+    confirm,
+    cancel,
     buildRecord,
     setActiveEnd: (end) => { activeEnd = end; },
   };

@@ -86,21 +86,42 @@ test('the tool picks a building, records a dragged span and re-measures with the
   handlers.pointermove({ isDown: true, worldX: 523, worldY: 432 });
   handlers.pointermove({ isDown: true, worldX: 524, worldY: 425 });
   handlers.pointerup({ button: 0 });
-  const entry = entryOf();
+  assert.equal(entryOf(), null, 'a drawn span waits for confirmation');
+  assert.equal(store.get('building-scale-survey:v1'), undefined);
+  const entry = survey.confirm();
   assert.deepEqual(Array.from(entry.a), [400, 800]);
-  assert.deepEqual(Array.from(entry.b), [400, 500], 'the span stays vertical under its first end');
+  assert.deepEqual(Array.from(entry.b), [400, 500], 'the span stays vertical under its foot');
   assert.equal(entry.storeys, 1);
   near(entry.upPxPerM, 5, 1e-9, 'px a metre');
   near(entry.tileM, 12.2, 1e-9, 'tile metres');
+  assert.equal(entryOf().tileM, entry.tileM, 'recorded on confirmation');
   assert.ok(store.get('building-scale-survey:v1').includes(modelPath), 'kept across reloads');
 
+  // a new reference re-measures the span but records nothing until confirmed
   survey.setStoreys(2);
-  near(entryOf().vsPeople, 0.5, 1e-9, 'the same span as two storeys: half the people\'s scale');
+  near(entryOf().tileM, 12.2, 1e-9, 'the record is unchanged before confirmation');
+  near(survey.confirm().vsPeople, 0.5, 1e-9, 'the same span as two storeys: half the people\'s scale');
   near(entryOf().tileM, 24.5, 1e-9, 'tile metres follow');
 
   survey.setActiveEnd('b');
   survey.nudge(0, -60);
-  assert.deepEqual(Array.from(entryOf().b), [400, 440], 'arrow keys move the chosen end');
+  assert.deepEqual(Array.from(entryOf().b), [400, 500], 'a nudge is a preview');
+  assert.equal(survey.cancel(), true, 'Esc drops it');
+  assert.deepEqual(Array.from(entryOf().b), [400, 500]);
+  survey.nudge(0, -60);
+  survey.confirm();
+  assert.deepEqual(Array.from(entryOf().b), [400, 440], 'arrow keys move the chosen end once confirmed');
+
+  // two clicks (foot, then top) draw a span as well
+  survey.removeModel();
+  handlers.pointerdown({ button: 0, worldX: 520, worldY: 440 });
+  handlers.pointerup({ button: 0 });
+  assert.equal(survey.confirm(), null, 'the foot alone cannot be recorded');
+  handlers.pointerdown({ button: 0, worldX: 530, worldY: 410 });
+  handlers.pointerup({ button: 0 });
+  const clicked = survey.confirm();
+  assert.deepEqual(Array.from(clicked.b), [400, 200], 'the top sits over the foot');
+  near(clicked.tileM, 12.2, 1e-9, 'two storeys over 30 world px');
 
   const record = survey.buildRecord();
   assert.equal(record.kind, 'building-scale-survey');

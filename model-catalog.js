@@ -74,6 +74,12 @@ function getCommercialTierFromFileName(fileName) {
   return match ? match[1].toUpperCase() : null;
 }
 
+// legacyFiles / borrowedFiles (docs/world-scale.md, 一格 20m): a model drawn for another lot size
+// moves to the set whose footprint suits its art. It is BORROWED by the new set (its file stays in
+// its folder, so its texture, night bake, ground corners and light profile are untouched) and turns
+// LEGACY in the old one: still resolved for buildings already standing in saved cities - at their
+// old footprint and slot key - but never chosen for a new building. Borrowed models are appended
+// after the folder's own, so the existing slot keys do not move.
 const HOUSE_MODEL_SETS = {
   house: {
     label: '1x1',
@@ -137,6 +143,8 @@ const HOUSE_MODEL_SETS = {
       'residential2-17-H-HD.png': { spawnWeight: 0.35 },
       'residential2-18-H-HD.png': { spawnWeight: 0.35 },
     },
+    // drawn at about 26-28 m a tile: 3x3 art (2026-10-17 survey)
+    legacyFiles: ['residential2-02-M-HD.png', 'residential2-10-H-MD.png'],
     footprintCols: 2,
     footprintRows: 2,
   },
@@ -172,6 +180,13 @@ const HOUSE_MODEL_SETS = {
       'residential3-14-M-MD.png': { spawnWeight: 0.25 },
       'residential3-12-H-MD.png': { spawnWeight: 0.25 },
     },
+    // drawn at about 25 and 32 m a tile: 4x4 art (2026-10-17 survey)
+    legacyFiles: ['residential3-07-M-MD.png', 'residential3-08-M-MD.png'],
+    borrowedFiles: [
+      { set: 'house2x2', file: 'residential2-02-M-HD.png' },
+      { set: 'house2x2', file: 'residential2-10-H-MD.png' },
+      { set: 'house4x4', file: 'residential4-01-M-MD.png' },
+    ],
     footprintCols: 3,
     footprintRows: 3,
   },
@@ -186,6 +201,12 @@ const HOUSE_MODEL_SETS = {
     preferredFiles: [
       'residential4-01-M-MD.png',
       'residential4-02-M-MD.png',
+    ],
+    // drawn at about 12 m a tile: 3x3 art (2026-10-17 survey)
+    legacyFiles: ['residential4-01-M-MD.png'],
+    borrowedFiles: [
+      { set: 'house3x3', file: 'residential3-07-M-MD.png' },
+      { set: 'house3x3', file: 'residential3-08-M-MD.png' },
     ],
     footprintCols: 4,
     footprintRows: 4,

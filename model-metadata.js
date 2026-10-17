@@ -217,7 +217,7 @@ function getFixedBuildingModelLoadPath(model) {
 
 function prepareServiceBuildingModelMetadata(scene) {
   serviceBuildingModelMetadata = Object.fromEntries(
-    Object.keys(SERVICE_BUILDING_MODELS).flatMap((type) => getServiceBuildingModels(type)).map((model) => (
+    Object.keys(SERVICE_BUILDING_MODELS).flatMap((type) => getServiceBuildingModelsWithLegacy(type)).map((model) => (
       [model.spriteKey, getServiceBuildingModelMetadata(scene, model)]
     )),
   );

@@ -314,6 +314,55 @@ function sortModelFiles(fileNames, config) {
   });
 }
 
+// config: the set whose folder holds the art (path, anchoring, scale and art overrides);
+// placeConfig: the set the model is placed by (footprint, slot key, asset id, spawn weight) - the
+// same set unless the model is borrowed (model-catalog.js borrowedFiles).
+function createModelEntry(keyPrefix, index, entry, config, placeConfig = config) {
+  const { fileName, sourceFileName } = entry;
+  const baseName = fileName.replace(/\.[^.]+$/, '');
+  const overrides = config.fileOverrides?.[fileName]
+    ?? config.fileOverrides?.[baseName]
+    ?? config.fileOverrides?.[`${baseName}.png`]
+    ?? config.fileOverrides?.[`${baseName}.webp`]
+    ?? {};
+  const placement = placeConfig === config ? overrides
+    : (placeConfig.fileOverrides?.[fileName] ?? placeConfig.fileOverrides?.[baseName] ?? {});
+  const model = {
+    key: `${keyPrefix}_${index}`,
+    assetId: `zone:${placeConfig.apiFolder ?? keyPrefix}/${sourceFileName}`,
+    title: fileName.replace(/\.[^.]+$/, ''),
+    fileName,
+    sourceFileName,
+    wealthTier: config.modelKind === 'residential'
+      ? getResidentialWealthTierFromFileName(sourceFileName || fileName)
+      : null,
+    massingTier: config.modelKind === 'residential'
+      ? getResidentialMassingTierFromFileName(sourceFileName || fileName)
+      : null,
+    commercialTier: config.modelKind === 'commercial'
+      ? getCommercialTierFromFileName(sourceFileName || fileName)
+      : null,
+    logicalPath: `${config.folder}${sourceFileName}`,
+    path: resolveModelAssetPath(`${config.folder}${sourceFileName}`),
+    footprintCols: placeConfig.footprintCols,
+    footprintRows: placeConfig.footprintRows,
+    scaleMultiplier: (config.scaleMultiplier ?? 1) * (overrides.scaleMultiplier ?? 1),
+    scaleXMultiplier: (config.scaleXMultiplier ?? 1) * (overrides.scaleXMultiplier ?? 1),
+    scaleYMultiplier: (config.scaleYMultiplier ?? 1) * (overrides.scaleYMultiplier ?? 1),
+    offsetX: overrides.offsetX ?? config.offsetX ?? 0,
+    offsetY: overrides.offsetY ?? config.offsetY ?? 0,
+    anchorMode: overrides.anchorMode ?? config.anchorMode ?? DEFAULT_BUILDING_ANCHOR_MODE,
+    alphaThreshold: overrides.alphaThreshold ?? config.alphaThreshold,
+    spawnWeight: Number.isFinite(placement.spawnWeight)
+      ? placement.spawnWeight
+      : (Number.isFinite(placeConfig.spawnWeight) ? placeConfig.spawnWeight : 1),
+    ...(placeConfig === config ? {} : { borrowedFrom: config.apiFolder ?? null }),
+    metadata: null,
+  };
+  model.metadata = getManifestZoneModelMetadata(model);
+  return model;
+}
+
 function createModelEntries(keyPrefix, fileNames, config) {
   const safeFileEntries = (Array.isArray(fileNames) ? fileNames : [])
     .map((entry) => {
@@ -333,48 +382,21 @@ function createModelEntries(keyPrefix, fileNames, config) {
     })
     .filter((entry) => entry && !isDisabledModelFile(entry.sourceFileName, config.disabledFiles));
 
-  return safeFileEntries.map((entry, index) => {
-    const { fileName, sourceFileName } = entry;
-    const baseName = fileName.replace(/\.[^.]+$/, '');
-    const overrides = config.fileOverrides?.[fileName]
-      ?? config.fileOverrides?.[baseName]
-      ?? config.fileOverrides?.[`${baseName}.png`]
-      ?? config.fileOverrides?.[`${baseName}.webp`]
-      ?? {};
-    const model = {
-      key: `${keyPrefix}_${index}`,
-      assetId: `zone:${config.apiFolder ?? keyPrefix}/${sourceFileName}`,
-      title: fileName.replace(/\.[^.]+$/, ''),
-      fileName,
-      sourceFileName,
-      wealthTier: config.modelKind === 'residential'
-        ? getResidentialWealthTierFromFileName(sourceFileName || fileName)
-        : null,
-      massingTier: config.modelKind === 'residential'
-        ? getResidentialMassingTierFromFileName(sourceFileName || fileName)
-        : null,
-      commercialTier: config.modelKind === 'commercial'
-        ? getCommercialTierFromFileName(sourceFileName || fileName)
-        : null,
-      logicalPath: `${config.folder}${sourceFileName}`,
-      path: resolveModelAssetPath(`${config.folder}${sourceFileName}`),
-      footprintCols: config.footprintCols,
-      footprintRows: config.footprintRows,
-      scaleMultiplier: (config.scaleMultiplier ?? 1) * (overrides.scaleMultiplier ?? 1),
-      scaleXMultiplier: (config.scaleXMultiplier ?? 1) * (overrides.scaleXMultiplier ?? 1),
-      scaleYMultiplier: (config.scaleYMultiplier ?? 1) * (overrides.scaleYMultiplier ?? 1),
-      offsetX: overrides.offsetX ?? config.offsetX ?? 0,
-      offsetY: overrides.offsetY ?? config.offsetY ?? 0,
-      anchorMode: overrides.anchorMode ?? config.anchorMode ?? DEFAULT_BUILDING_ANCHOR_MODE,
-      alphaThreshold: overrides.alphaThreshold ?? config.alphaThreshold,
-      spawnWeight: Number.isFinite(overrides.spawnWeight)
-        ? overrides.spawnWeight
-        : (Number.isFinite(config.spawnWeight) ? config.spawnWeight : 1),
-      metadata: null,
-    };
-    model.metadata = getManifestZoneModelMetadata(model);
-    return model;
+  const models = safeFileEntries.map((entry, index) => createModelEntry(keyPrefix, index, entry, config));
+  // a model moved to another set's footprint stays here only for buildings already standing
+  models.forEach((model) => {
+    if (isDisabledModelFile(model.sourceFileName, config.legacyFiles ?? [])) {
+      model.legacy = true;
+      model.spawnWeight = 0;
+    }
   });
+  // borrowed from another set: drawn from that folder, sized to this one's lot (model-catalog.js)
+  (config.borrowedFiles ?? []).forEach(({ set, file }) => {
+    const artConfig = typeof HOUSE_MODEL_SETS !== 'undefined' ? HOUSE_MODEL_SETS[set] : null;
+    if (!artConfig || !file) return;
+    models.push(createModelEntry(keyPrefix, models.length, { fileName: file, sourceFileName: file }, artConfig, config));
+  });
+  return models;
 }
 
 function selectInitialZoneModelsForPreload(models, perFootprint = INITIAL_ZONE_MODELS_PER_FOOTPRINT) {
@@ -529,7 +551,8 @@ function rotateZoneTexturePool(scene) {
   // The landing screen deliberately hides the Phaser world. Do not decode
   // background building textures while no city session is being rendered.
   if (scene?.scene?.isVisible && !scene.scene.isVisible()) return;
-  const candidates = getAllZoneModels().filter((model) => !scene.textures.exists(model.key));
+  // (legacy models are loaded only for the saved buildings that use them)
+  const candidates = getAllZoneModels().filter((model) => !model.legacy && !scene.textures.exists(model.key));
   if (candidates.length === 0) return;
   const model = candidates[Math.floor(Math.random() * candidates.length)];
   requestZoneModelTexture(scene, model);

@@ -409,18 +409,18 @@ function getSpriteBuildingTextureKey(key) {
 
 function isServiceBuildingSpriteKey(key) {
   return Object.keys(SERVICE_BUILDING_MODELS)
-    .flatMap(getServiceBuildingModels)
+    .flatMap(getServiceBuildingModelsWithLegacy)
     .some((model) => model.spriteKey === key);
 }
 
 function getServiceBuildingTypeBySpriteKey(key) {
   return Object.keys(SERVICE_BUILDING_MODELS)
-    .find((type) => getServiceBuildingModels(type).some((model) => model.spriteKey === key));
+    .find((type) => getServiceBuildingModelsWithLegacy(type).some((model) => model.spriteKey === key));
 }
 
 function getServiceBuildingModelBySpriteKey(key) {
   return Object.keys(SERVICE_BUILDING_MODELS)
-    .flatMap(getServiceBuildingModels)
+    .flatMap(getServiceBuildingModelsWithLegacy)
     .find((model) => model.spriteKey === key) ?? null;
 }
 

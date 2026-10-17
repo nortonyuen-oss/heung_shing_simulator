@@ -1041,11 +1041,25 @@ function getMigratedCommercialFileName(record) {
   return LEGACY_COMMERCIAL_FILE_MIGRATIONS[sourceFileName] ?? sourceFileName ?? null;
 }
 
+// One file can stand on two lot sizes: a model moved to another set stays LEGACY in its old one
+// for the buildings already built (model-catalog.js legacyFiles / borrowedFiles). The record's
+// own asset id names the slot it was built from; failing that, its footprint picks the copy.
+function findSaveModelByFileName(models, fileName, record) {
+  const candidates = models.filter((model) => model.sourceFileName === fileName);
+  if (candidates.length < 2) return candidates[0] ?? null;
+  const cols = record?.footprintCols;
+  const rows = record?.footprintRows;
+  return candidates.find((model) => model.assetId === record?.assetId)
+    ?? candidates.find((model) => model.footprintCols === cols && model.footprintRows === rows)
+    ?? candidates.find((model) => !model.legacy)
+    ?? candidates[0];
+}
+
 function getSaveModelForRecord(record) {
   const models = [...getSaveModelCatalogByKey().values()];
   const migratedResidentialFileName = getMigratedResidentialFileName(record);
   if (migratedResidentialFileName) {
-    const migratedModel = models.find((model) => model.sourceFileName === migratedResidentialFileName);
+    const migratedModel = findSaveModelByFileName(models, migratedResidentialFileName, record);
     if (migratedModel) {
       record.assetId = migratedModel.assetId;
       record.sourceFileName = migratedModel.sourceFileName;
@@ -1056,7 +1070,7 @@ function getSaveModelForRecord(record) {
   }
   const migratedCommercialFileName = getMigratedCommercialFileName(record);
   if (migratedCommercialFileName) {
-    const migratedModel = models.find((model) => model.sourceFileName === migratedCommercialFileName);
+    const migratedModel = findSaveModelByFileName(models, migratedCommercialFileName, record);
     if (migratedModel) {
       record.assetId = migratedModel.assetId;
       record.sourceFileName = migratedModel.sourceFileName;
@@ -1069,7 +1083,7 @@ function getSaveModelForRecord(record) {
     if (byAssetId) return byAssetId;
   }
   if (record?.sourceFileName) {
-    const bySource = models.find((model) => model.sourceFileName === record.sourceFileName);
+    const bySource = findSaveModelByFileName(models, record.sourceFileName, record);
     if (bySource) return bySource;
   }
   return models.find((model) => model.key === record?.spriteKey) ?? null;
@@ -1770,7 +1784,7 @@ function grandfatherLegacyOceanParkProjectApproval() {
 }
 
 function migrateServiceSpriteKey(record, key) {
-  if (record.type === 'primary_school' && key === 'primary_school_3x3') return 'primary_school_2x2';
+  // primary_school_3x3 is the current key again (2026-10-17): no longer folded into the 2x2
   if (record.type === 'secondary_school' && key === 'secondary_school_3x3') return 'secondary_school_2x2';
   if (record.type === 'stock_exchange' && key === 'stock_exchange_3x3') return 'stock_exchange_4x4';
   return key;

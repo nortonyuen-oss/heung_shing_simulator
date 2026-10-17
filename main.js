@@ -714,7 +714,7 @@ async function initializeGame() {
 
 function preload() {
   const roadPath = 'kenney_isometric-roads/png/';
-  const allHouseModels = Object.values(houseModelSets).flat();
+  const allHouseModels = Object.values(houseModelSets).flat().filter((model) => !model.legacy);
   const initialHouseModels = dedupeZoneModelsByKey([
     ...selectInitialZoneModelsForPreload(allHouseModels),
     ...selectForcedWealthTierModels(allHouseModels, ['H', 'UH']),
@@ -757,7 +757,7 @@ function preload() {
   this.load.image('sports_ground_3x3',     resolveModelAssetPath('Models/parks/park3x3/sportField3-01.png'));
   const fixedBuildingModels = [
     ...Object.values(POWER_PLANT_MODELS),
-    ...Object.keys(SERVICE_BUILDING_MODELS).flatMap(getServiceBuildingModels),
+    ...Object.keys(SERVICE_BUILDING_MODELS).flatMap(getServiceBuildingModelsWithLegacy),
     ...Object.keys(SPECIAL_BUILDING_MODELS).flatMap(getAllSpecialBuildingModels),
     ...Object.values(HARBOR_MODELS),
     ...Object.values(BUS_DEPOT_MODELS),
@@ -1465,7 +1465,7 @@ function openHouseSizeMenu(triggerButton = document.querySelector('[data-tool="h
     sizeMenu.append(button);
   });
 
-  const selectedModels = houseModelSets[selectedHouseSet] ?? [];
+  const selectedModels = getPlaceableHouseModels(selectedHouseSet);
   if (selectedModels.length > 1) {
     const modelRow = document.createElement('div');
     modelRow.className = 'house-model-row';
@@ -1522,8 +1522,14 @@ function closeToolPopups() {
   closeToolCategoryFlyouts();
 }
 
+// The models the house tool offers: a set's legacy models (model-catalog.js legacyFiles) only
+// stand in saved cities.
+function getPlaceableHouseModels(tool) {
+  return (houseModelSets[tool] ?? []).filter((model) => !model.legacy);
+}
+
 function cycleHouseModel() {
-  const models = houseModelSets[selectedHouseSet] ?? [];
+  const models = getPlaceableHouseModels(selectedHouseSet);
   if (models.length < 2) return;
   selectedHouseIndices[selectedHouseSet] = (getSelectedHouseIndex(selectedHouseSet) + 1) % models.length;
 }
@@ -1533,7 +1539,7 @@ function getSelectedHouseIndex(tool) {
 }
 
 function setSelectedHouseIndex(tool, index) {
-  const models = houseModelSets[tool] ?? [];
+  const models = getPlaceableHouseModels(tool);
   if (models.length === 0) {
     selectedHouseIndices[tool] = 0;
     return;
@@ -1543,7 +1549,7 @@ function setSelectedHouseIndex(tool, index) {
 }
 
 function getSelectedHouseModel(tool) {
-  const models = houseModelSets[tool] ?? [];
+  const models = getPlaceableHouseModels(tool);
   return models[getSelectedHouseIndex(tool)];
 }
 

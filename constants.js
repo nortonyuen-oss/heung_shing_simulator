@@ -795,17 +795,20 @@ const SERVICE_BUILDING_MODELS = {
     footprintCols: 2,
     footprintRows: 2,
   },
+  // 2026-10-17 一格 20m (docs/world-scale.md): the school art is drawn for a 3x3 and a 4x4 lot,
+  // the hospital's for 5x5. Schools and hospitals already built keep their old lot through
+  // LEGACY_SERVICE_BUILDING_MODELS below.
   primary_school: {
-    spriteKey: 'primary_school_2x2',
+    spriteKey: 'primary_school_3x3',
     path: 'Models/government/2x2/primarySchool2-01.png',
-    footprintCols: 2,
-    footprintRows: 2,
+    footprintCols: 3,
+    footprintRows: 3,
   },
   secondary_school: {
-    spriteKey: 'secondary_school_2x2',
+    spriteKey: 'secondary_school_4x4',
     path: 'Models/government/2x2/secondarySchool2-01.png',
-    footprintCols: 2,
-    footprintRows: 2,
+    footprintCols: 4,
+    footprintRows: 4,
   },
   library: {
     spriteKey: 'library_2x2',
@@ -826,10 +829,10 @@ const SERVICE_BUILDING_MODELS = {
     footprintRows: 4,
   },
   hospital: {
-    spriteKey: 'hospital_4x4',
+    spriteKey: 'hospital_5x5',
     path: 'Models/government/4x4/hospital4.png',
-    footprintCols: 4,
-    footprintRows: 4,
+    footprintCols: 5,
+    footprintRows: 5,
   },
   legislative_council: {
     spriteKey: 'legislative_council_2x2',
@@ -883,10 +886,10 @@ const SERVICE_BUILDING_MODEL_VARIANTS = {
   secondary_school: [
     SERVICE_BUILDING_MODELS.secondary_school,
     {
-      spriteKey: 'secondary_school_2x2_alt',
+      spriteKey: 'secondary_school_4x4_alt',
       path: 'Models/government/2x2/secondarySchool2-02.png',
-      footprintCols: 2,
-      footprintRows: 2,
+      footprintCols: 4,
+      footprintRows: 4,
     },
   ],
   community_college: [
@@ -933,6 +936,29 @@ const SERVICE_BUILDING_MODEL_VARIANTS = {
 function getServiceBuildingModels(buildingType) {
   return SERVICE_BUILDING_MODEL_VARIANTS[buildingType]
     ?? (SERVICE_BUILDING_MODELS[buildingType] ? [SERVICE_BUILDING_MODELS[buildingType]] : []);
+}
+
+// Service models at the lot size they had before a resize, under their old sprite keys: only the
+// buildings standing in saved cities use them (never chosen for a new building, so not in
+// getServiceBuildingModels). Same art as the current model, sharing its texture (textureKey); its
+// night bake and light profile are shared too (day-night-lighting.js names night art after the file).
+const LEGACY_SERVICE_BUILDING_MODELS = {
+  primary_school: [
+    { spriteKey: 'primary_school_2x2', textureKey: 'primary_school_3x3', path: 'Models/government/2x2/primarySchool2-01.png', footprintCols: 2, footprintRows: 2, legacy: true },
+  ],
+  secondary_school: [
+    { spriteKey: 'secondary_school_2x2', textureKey: 'secondary_school_4x4', path: 'Models/government/2x2/secondarySchool2-01.png', footprintCols: 2, footprintRows: 2, legacy: true },
+    { spriteKey: 'secondary_school_2x2_alt', textureKey: 'secondary_school_4x4_alt', path: 'Models/government/2x2/secondarySchool2-02.png', footprintCols: 2, footprintRows: 2, legacy: true },
+  ],
+  hospital: [
+    { spriteKey: 'hospital_4x4', textureKey: 'hospital_5x5', path: 'Models/government/4x4/hospital4.png', footprintCols: 4, footprintRows: 4, legacy: true },
+  ],
+};
+
+// Every model a service building of this type may be drawn with, legacy lots included: for
+// resolving saved sprite keys and loading their art.
+function getServiceBuildingModelsWithLegacy(buildingType) {
+  return [...getServiceBuildingModels(buildingType), ...(LEGACY_SERVICE_BUILDING_MODELS[buildingType] ?? [])];
 }
 
 // These frequently repeated civic buildings use every visual variant in a

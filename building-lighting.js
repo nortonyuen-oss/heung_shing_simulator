@@ -1731,7 +1731,17 @@ function getBuildingLightModelSlug(record, sprite) {
   return String(file).replace(/\.[^.]+$/, '');
 }
 
+// Service buildings resized to the 20 m tile (constants.js LEGACY_SERVICE_BUILDING_MODELS) took new
+// sprite keys; the same art keeps the lights calibrated under the old key.
+const BUILDING_LIGHT_KEY_ALIASES = Object.freeze({
+  primary_school_3x3: 'primary_school_2x2',
+  secondary_school_4x4: 'secondary_school_2x2',
+  secondary_school_4x4_alt: 'secondary_school_2x2_alt',
+  hospital_5x5: 'hospital_4x4',
+});
+
 function resolveBuildingLightProfile(record, spriteKey, slug) {
+  spriteKey = BUILDING_LIGHT_KEY_ALIASES[spriteKey] ?? spriteKey;
   const family = getBuildingLightFamily(record);
   // in-editor live preview override (calibrator, optional) beats everything
   const override = typeof getBuildingLightCalibrationOverride === 'function'

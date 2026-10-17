@@ -1150,7 +1150,8 @@ function hasCommercialBuildingModelForFootprint(
 ) {
   const all = Array.isArray(commercialBuildingModels) ? commercialBuildingModels : [];
   const valid = all.filter((m) => (
-    m.metadata
+    !m.legacy  // kept only for buildings already standing (model-catalog.js legacyFiles)
+    && m.metadata
     && m.metadata.scale > 0.05
     && isSelectableZoneModelTexture(m)
     && m.footprintCols === footprintSize
@@ -1911,7 +1912,8 @@ function getRandomHouseModel(
   const all = (houseModelSets && houseModelSets[setKey]) ? houseModelSets[setKey] : [];
   // Only use models whose scale was computed successfully (> 0.05 avoids near-invisible sprites)
   const valid = all.filter((m) => (
-    m.metadata
+    !m.legacy  // kept only for buildings already standing (model-catalog.js legacyFiles)
+    && m.metadata
     && m.metadata.scale > 0.05
     && m.wealthTier
     && isSelectableZoneModelTexture(m)
@@ -1990,7 +1992,8 @@ function getRandomCommercialBuildingModel(
 function getRandomIndustrialBuildingModel(footprintCols = null, footprintRows = null) {
   const all = Array.isArray(industrialBuildingModels) ? industrialBuildingModels : [];
   const valid = all.filter((m) => (
-    m.metadata
+    !m.legacy  // kept only for buildings already standing (model-catalog.js legacyFiles)
+    && m.metadata
     && m.metadata.scale > 0.05
     && isSelectableZoneModelTexture(m)
     && (footprintCols === null || m.footprintCols === footprintCols)

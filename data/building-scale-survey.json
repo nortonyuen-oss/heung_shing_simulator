@@ -4,10 +4,13 @@
   "note": "Written by the test-mode 建築比例量度 tool (building-scale-survey.js, 複製 JSON). Summarise with node scripts/building-scale-report.js.",
   "peoplePxPerM": 5,
   "measurements": {
+    "Models/commercial/3x3/commercialBuilding3-03-M.png": { "a": [599.4, 446.5], "b": [599.4, 698.2], "storeys": 6, "storeyM": 3, "footprint": [3, 3], "screenPxPerSourcePx": 0.304878, "upPxPerM": 4.264, "vsPeople": 0.853, "tileM": 14.4 },
     "Models/commercial/3x3/commercialBuilding3-09-M.png": { "a": [710.1, 441.3], "b": [710.1, 626.8], "storeys": 8, "storeyM": 3, "footprint": [3, 3], "screenPxPerSourcePx": 0.302419, "upPxPerM": 2.337, "vsPeople": 0.467, "tileM": 26.2 },
     "Models/government/2x2/primarySchool2-01.png": { "a": [529.4, 252.7], "b": [529.4, 539.5], "storeys": 7, "storeyM": 3, "footprint": [2, 2], "screenPxPerSourcePx": 0.197628, "upPxPerM": 2.7, "vsPeople": 0.54, "tileM": 22.7 },
     "Models/government/2x2/secondarySchool2-01.png": { "a": [589.1, 291.4], "b": [589.1, 521.2], "storeys": 7, "storeyM": 3, "footprint": [2, 2], "screenPxPerSourcePx": 0.195313, "upPxPerM": 2.137, "vsPeople": 0.427, "tileM": 28.7 },
     "Models/residential/house2x2/residential2-10-H-MD.png": { "a": [517.8, 368.4], "b": [517.8, 834], "storeys": 18, "storeyM": 3, "footprint": [2, 2], "screenPxPerSourcePx": 0.254726, "upPxPerM": 2.196, "vsPeople": 0.439, "tileM": 27.9 },
+    "Models/residential/house3x3/residential3-02-L-MD.png": { "a": [458.9, 333], "b": [458.9, 787.6], "storeys": 18, "storeyM": 3, "footprint": [3, 3], "screenPxPerSourcePx": 0.297619, "upPxPerM": 2.506, "vsPeople": 0.501, "tileM": 24.4 },
+    "Models/residential/house3x3/residential3-08-M-MD.png": { "a": [490.8, 537], "b": [490.8, 938.8], "storeys": 17, "storeyM": 3, "footprint": [3, 3], "screenPxPerSourcePx": 0.304762, "upPxPerM": 2.401, "vsPeople": 0.48, "tileM": 25.5 },
     "Models/residential/house4x4/residential4-01-M-MD.png": { "a": [462.9, 279], "b": [462.9, 542.6], "storeys": 7, "storeyM": 3, "footprint": [4, 4], "screenPxPerSourcePx": 0.398406, "upPxPerM": 5.002, "vsPeople": 1, "tileM": 12.2 }
   }
 }

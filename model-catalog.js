@@ -186,6 +186,7 @@ const HOUSE_MODEL_SETS = {
       { set: 'house2x2', file: 'residential2-02-M-HD.png' },
       { set: 'house2x2', file: 'residential2-10-H-MD.png' },
       { set: 'house4x4', file: 'residential4-01-M-MD.png' },
+      { set: 'house4x4', file: 'residential4-02-M-MD.png' },
     ],
     footprintCols: 3,
     footprintRows: 3,
@@ -202,8 +203,8 @@ const HOUSE_MODEL_SETS = {
       'residential4-01-M-MD.png',
       'residential4-02-M-MD.png',
     ],
-    // drawn at about 12 m a tile: 3x3 art (2026-10-17 survey)
-    legacyFiles: ['residential4-01-M-MD.png'],
+    // drawn at about 12 and 16 m a tile: 3x3 art (2026-10-17 survey)
+    legacyFiles: ['residential4-01-M-MD.png', 'residential4-02-M-MD.png'],
     borrowedFiles: [
       { set: 'house3x3', file: 'residential3-07-M-MD.png' },
       { set: 'house3x3', file: 'residential3-08-M-MD.png' },

@@ -38,6 +38,7 @@ test('moved residential models keep their old slot as legacy and join the new se
     ['residential2-02-M-HD.png', 'house2x2', 'house3x3', 3],
     ['residential2-10-H-MD.png', 'house2x2', 'house3x3', 3],
     ['residential4-01-M-MD.png', 'house4x4', 'house3x3', 3],
+    ['residential4-02-M-MD.png', 'house4x4', 'house3x3', 3],
     ['residential3-07-M-MD.png', 'house3x3', 'house4x4', 4],
     ['residential3-08-M-MD.png', 'house3x3', 'house4x4', 4],
   ];

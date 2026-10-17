@@ -365,6 +365,16 @@ function createModelEntry(keyPrefix, index, entry, config, placeConfig = config)
   return model;
 }
 
+// A model set by its key: a HOUSE_MODEL_SETS key, or a commercial / industrial set's keyPrefix.
+function findModelSetConfig(set) {
+  if (typeof HOUSE_MODEL_SETS !== 'undefined' && HOUSE_MODEL_SETS[set]) return HOUSE_MODEL_SETS[set];
+  const lists = [
+    typeof COMMERCIAL_BUILDING_MODEL_SETS !== 'undefined' ? COMMERCIAL_BUILDING_MODEL_SETS : [],
+    typeof INDUSTRIAL_BUILDING_MODEL_SETS !== 'undefined' ? INDUSTRIAL_BUILDING_MODEL_SETS : [],
+  ];
+  return lists.flat().find((config) => config.keyPrefix === set) ?? null;
+}
+
 function createModelEntries(keyPrefix, fileNames, config) {
   const safeFileEntries = (Array.isArray(fileNames) ? fileNames : [])
     .map((entry) => {
@@ -394,7 +404,7 @@ function createModelEntries(keyPrefix, fileNames, config) {
   });
   // borrowed from another set: drawn from that folder, sized to this one's lot (model-catalog.js)
   (config.borrowedFiles ?? []).forEach(({ set, file }) => {
-    const artConfig = typeof HOUSE_MODEL_SETS !== 'undefined' ? HOUSE_MODEL_SETS[set] : null;
+    const artConfig = findModelSetConfig(set);
     if (!artConfig || !file) return;
     models.push(createModelEntry(keyPrefix, models.length, { fileName: file, sourceFileName: file }, artConfig, config));
   });

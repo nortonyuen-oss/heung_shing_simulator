@@ -140,6 +140,9 @@ test('the resized service buildings keep the lights calibrated under their old k
     secondary_school_4x4_alt: 'secondary_school_2x2_alt',
     hospital_5x5: 'hospital_4x4',
     power_plant_nuclear_12x12: 'power_plant_nuclear_4x4',
+    space_museum_3x3: 'space_museum_2x2',
+    cultural_center_6x6: 'cultural_center_4x4',
+    indoor_coliseum_5x5: 'indoor_coliseum_3x3',
   });
   // the primary school's new art has its own profile, moved from the 2x2 one
   assert.match(lighting, /\bprimary_school_3x3: makeBuildingLightProfile/);
@@ -317,4 +320,60 @@ test('container port 6x6; ports built at 4x4 keep their lot and fit', () => {
   assert.deepEqual([c.HARBOR_FOOTPRINT_COLS, c.HARBOR_FOOTPRINT_ROWS, c.LEGACY_HARBOR_FOOTPRINT], [6, 6, 4]);
   assert.match(source('building-placement.js'), /options\.footprintCols === LEGACY_HARBOR_FOOTPRINT[\s\S]{0,300}harborLegacyModelMetadata\[key\]/);
   assert.match(source('model-metadata.js'), /harborLegacyModelMetadata = Object\.fromEntries/);
+});
+
+test('science park: 5W and 金蛋 to 3x3, 19W to a 5x5 park merged from a block industry fills', () => {
+  const context = vm.createContext({});
+  vm.runInContext(source('model-catalog.js'), context, { filename: 'model-catalog.js' });
+  vm.runInContext(sliceFunctions('model-assets.js', 'sortModelFiles', 'createModelEntries'), context);
+  Object.assign(context, { DEFAULT_BUILDING_ANCHOR_MODE: 'bottom', resolveModelAssetPath: (v) => v, getManifestZoneModelMetadata: () => null });
+  const sets = vm.runInContext(`Object.fromEntries(INDUSTRIAL_BUILDING_MODEL_SETS.map((config) => [config.footprintCols,
+    createModelEntries(config.keyPrefix, sortModelFiles(config.fallbackSourceFiles, config), config)]))`, context);
+  const files = (size, legacy) => Array.from(sets[size].filter((m) => !!m.legacy === legacy), (m) => m.sourceFileName).filter((f) => /ience|icence/.test(f)).sort();
+  assert.deepEqual(files(2, true), ['sciencePark2-04.png', 'sicencePark2-03.png']);
+  assert.deepEqual(files(3, false), ['sciencePark2-04.png', 'sciencePark3-01.png', 'sicencePark2-03.png']);
+  assert.deepEqual(files(3, true), ['sciencePark3-02.png']);
+  assert.deepEqual(files(5, false), ['sciencePark3-02.png']);
+  assert.equal(sets[5][0].footprintCols, 5);
+  assert.equal(sets[5][0].logicalPath, 'Models/industrial/3x3/sciencePark3-02.png', 'drawn from its folder');
+
+  // the merge: a 5x5 block of level-3 industry inside the block
+  const infra = source('sim-infrastructure.js');
+  const ctx = vm.createContext({
+    ZONE_IND: 3, DENSITY_LOW: 1, buildingData: {}, zoneMap: [], zoneDensityMap: [],
+    isInsideMap: (r, c) => r >= 0 && c >= 0 && r < 20 && c < 20, canPlaceBuilding: () => true, getTileHeight: () => 0,
+    getTileId: (r, c) => `${r}:${c}`,
+    isBuildingInsideFootprint: (row, col, rec, tr, tc, fc, fr) => row >= tr && col >= tc && row + (rec.footprintRows ?? 1) <= tr + fr && col + (rec.footprintCols ?? 1) <= tc + fc,
+  });
+  vm.runInContext(infra.slice(infra.indexOf('const SCIENCE_PARK_LARGE_SIZE'), infra.indexOf('function tryMergeLargeSciencePark(')), ctx);
+  const sprites = new Map();
+  const scene = { buildingSprites: sprites };
+  ctx.zoneMap = Array.from({ length: 20 }, () => new Array(20).fill(3));
+  const build = (r, c, size, level = 3) => {
+    ctx.buildingData[`${r}:${c}`] = { type: 'industrial', level, footprintCols: size, footprintRows: size };
+    for (let dr = 0; dr < size; dr++) for (let dc = 0; dc < size; dc++) sprites.set(`${r + dr}:${c + dc}`, { mapRow: r, mapCol: c });
+  };
+  // a 5x5 block at (5,5): a 3x3, two 2x2 and the rest 1x1
+  build(5, 5, 3); build(5, 8, 2); build(8, 5, 2);
+  for (let r = 5; r < 10; r++) for (let c = 5; c < 10; c++) if (!sprites.has(`${r}:${c}`)) build(r, c, 1);
+  const members = vm.runInContext('getScienceParkMergeBlockAt', ctx)(scene, 5, 5);
+  assert.ok(members && members.length >= 3, 'the full block merges');
+  assert.equal(vm.runInContext('getScienceParkMergeBlockAt', ctx)(scene, 4, 4), null, 'a block reaching off the industry does not');
+  ctx.buildingData['9:9'].level = 2;
+  assert.equal(vm.runInContext('getScienceParkMergeBlockAt', ctx)(scene, 5, 5), null, 'every building at level 3');
+  assert.match(infra, /conversionChance \* SCIENCE_PARK_LARGE_MERGE_FACTOR && tryMergeLargeSciencePark\(scene\)/, 'once a month, with the conversion odds');
+  assert.match(infra, /pickScienceParkIndustrialModel[\s\S]{0,200}!m\.legacy/, 'conversions skip legacy art');
+});
+
+test('太空館 3x3, 文化中心 6x6, 紅館 5x5; saved ones keep their lot', () => {
+  const c = vm.runInContext(`${source('constants.js')}\n;({ SPECIAL_BUILDING_MODELS, all: (t) => getAllSpecialBuildingModels(t), plain: (t) => getSpecialBuildingModels(t), textureKey: getFixedBuildingTextureKey })`, vm.createContext({}));
+  [['space_museum', 3, 'space_museum_2x2', 2], ['cultural_center', 6, 'cultural_center_4x4', 4], ['indoor_coliseum', 5, 'indoor_coliseum_3x3', 3]].forEach(([type, size, oldKey, oldSize]) => {
+    const current = c.SPECIAL_BUILDING_MODELS[type];
+    assert.equal(current.footprintCols, size);
+    const legacy = Array.from(c.all(type)).find((m) => m.spriteKey === oldKey);
+    assert.ok(legacy?.legacy, `${oldKey} kept for saved cities`);
+    assert.equal(legacy.footprintCols, oldSize);
+    assert.equal(c.textureKey(legacy), current.spriteKey, 'one texture');
+    assert.ok(Array.from(c.plain(type)).every((m) => !m.legacy), 'never offered for a new one');
+  });
 });

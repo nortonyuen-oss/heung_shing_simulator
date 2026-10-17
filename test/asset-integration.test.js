@@ -186,13 +186,18 @@ test('industrial catalog keeps both 3x3 science parks and classifies every scien
     'industrial_building_3x3_1',
     'industrial_building_3x3_2',
     'industrial_building_3x3_3',
+    // 金蛋 and 5W, borrowed from the 2x2 set (2026-10-17): after the folder's own slots
+    'industrial_building_3x3_4',
+    'industrial_building_3x3_5',
   ]);
+  // the folder's own files follow the served extension (borrowed ones are named by the catalog)
   assert.deepEqual(
-    [...result.png].map((model) => model.fileName.replace(/\.png$/, '')),
-    [...result.webp].map((model) => model.fileName.replace(/\.webp$/, '')),
+    [...result.png].filter((model) => !model.borrowedFrom).map((model) => model.fileName.replace(/\.png$/, '')),
+    [...result.webp].filter((model) => !model.borrowedFrom).map((model) => model.fileName.replace(/\.webp$/, '')),
   );
   assert.equal([...result.webp].some((model) => /sciencePark3-02/i.test(model.sourceFileName)), true);
-  assert.equal([...result.webp].filter(catalog.isScienceParkModel).length, 2);
+  assert.equal([...result.webp].filter(catalog.isScienceParkModel).length, 4);
+  assert.equal([...result.webp].filter((model) => model.legacy).map((model) => model.sourceFileName).join(), 'sciencePark3-02.webp', '19W stays only for saved cities');
 
   context.config = config2x2;
   context.pngFiles = config2x2.fallbackSourceFiles;

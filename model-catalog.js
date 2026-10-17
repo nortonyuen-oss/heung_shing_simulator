@@ -475,6 +475,8 @@ const INDUSTRIAL_BUILDING_MODEL_SETS = [
       'sciencePark04.png',
     ]),
     disabledFiles: ['industrialBuilding2-.png'],
+    // 金蛋 and 5W are drawn for 3x3 (5W about 30 m a tile here, 2026-10-17)
+    legacyFiles: ['sicencePark2-03.png', 'sciencePark2-04.png'],
     footprintCols: 2,
     footprintRows: 2,
   },
@@ -505,8 +507,27 @@ const INDUSTRIAL_BUILDING_MODEL_SETS = [
       'sciencePark01.png',
       'sciencePark02.png',
     ]),
+    // 19W is drawn at about 37 m a tile here: a 5x5 park (2026-10-17)
+    legacyFiles: ['sciencePark3-02.png'],
+    borrowedFiles: [
+      { set: 'industrial_building_2x2', file: 'sicencePark2-03.png' },
+      { set: 'industrial_building_2x2', file: 'sciencePark2-04.png' },
+    ],
     footprintCols: 3,
     footprintRows: 3,
+  },
+  {
+    // 5x5 science parks only: merged from a block industry fills (sim-infrastructure.js
+    // tryMergeLargeSciencePark); no folder of its own
+    keyPrefix: 'industrial_building_5x5',
+    folder: 'Models/industrial/5x5/',
+    apiFolder: 'industrial/5x5',
+    borrowedOnly: true,
+    fallbackSourceFiles: [],
+    preferredFiles: [],
+    borrowedFiles: [{ set: 'industrial_building_3x3', file: 'sciencePark3-02.png' }],
+    footprintCols: 5,
+    footprintRows: 5,
   },
 ];
 

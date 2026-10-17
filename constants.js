@@ -1040,16 +1040,18 @@ const SPECIAL_BUILDING_MODELS = {
     footprintRows: 4,
   },
   cultural_center: {
-    spriteKey: 'cultural_center_4x4',
+    // 6x6 since 2026-10-17: its clock tower (44 m to the roof) measured about 30 m a tile at 4x4
+    spriteKey: 'cultural_center_6x6',
     path: 'Models/specialSites/4x4/culturalCentre4-01.png',
-    footprintCols: 4,
-    footprintRows: 4,
+    footprintCols: 6,
+    footprintRows: 6,
   },
   space_museum: {
-    spriteKey: 'space_museum_2x2',
+    // 3x3 since 2026-10-17: its dome (at least the 23 m projection dome) measured 24-31 m a tile at 2x2
+    spriteKey: 'space_museum_3x3',
     path: 'Models/specialSites/2x2/spaceMuseum2-01.png',
-    footprintCols: 2,
-    footprintRows: 2,
+    footprintCols: 3,
+    footprintRows: 3,
   },
   buddha_statue: {
     spriteKey: 'buddha_statue_3x3',
@@ -1079,10 +1081,12 @@ const SPECIAL_BUILDING_MODELS = {
     footprintRows: 3,
   },
   indoor_coliseum: {
-    spriteKey: 'indoor_coliseum_3x3',
+    // 5x5 since 2026-10-17: its roof (an estimated 80-90 m square round a 40 m arena) measured
+    // about 34-38 m a tile at 3x3
+    spriteKey: 'indoor_coliseum_5x5',
     path: 'Models/specialSites/3x3/hungHomColiseum3-01_fixed.png',
-    footprintCols: 3,
-    footprintRows: 3,
+    footprintCols: 5,
+    footprintRows: 5,
   },
   murray_house: {
     spriteKey: 'murray_house_2x2',
@@ -1244,10 +1248,22 @@ const SPECIAL_BUILDING_DAY_MODELS = Object.freeze(Object.fromEntries(
   })]),
 ));
 
+// Landmarks at a lot size since replaced (一格 20m, 2026-10-17): only those already standing in saved
+// cities use them. Same art, sharing the current model's texture; never offered for a new one.
+const LEGACY_SPECIAL_BUILDING_MODELS = {
+  space_museum: [{ spriteKey: 'space_museum_2x2', textureKey: 'space_museum_3x3', path: 'Models/specialSites/2x2/spaceMuseum2-01.png', footprintCols: 2, footprintRows: 2, legacy: true }],
+  cultural_center: [{ spriteKey: 'cultural_center_4x4', textureKey: 'cultural_center_6x6', path: 'Models/specialSites/4x4/culturalCentre4-01.png', footprintCols: 4, footprintRows: 4, legacy: true }],
+  indoor_coliseum: [{ spriteKey: 'indoor_coliseum_3x3', textureKey: 'indoor_coliseum_5x5', path: 'Models/specialSites/3x3/hungHomColiseum3-01_fixed.png', footprintCols: 3, footprintRows: 3, legacy: true }],
+};
+
 function getAllSpecialBuildingModels(buildingType) {
   const plain = getSpecialBuildingModels(buildingType);
   const facing = [...plain, ...plain.map((model) => SPECIAL_BUILDING_MIRROR_MODELS[model.spriteKey]).filter(Boolean)];
-  const models = [...facing, ...facing.map((model) => SPECIAL_BUILDING_DAY_MODELS[model.spriteKey]).filter(Boolean)];
+  const models = [
+    ...facing,
+    ...facing.map((model) => SPECIAL_BUILDING_DAY_MODELS[model.spriteKey]).filter(Boolean),
+    ...(LEGACY_SPECIAL_BUILDING_MODELS[buildingType] ?? []),
+  ];
   if (buildingType === 'airport') return [...models, LEGACY_AIRPORT_MODEL, LEGACY_AIRPORT_8X8_MODEL];
   if (buildingType === 'ocean_park') return [...models, LEGACY_OCEAN_PARK_MODEL];
   return models;

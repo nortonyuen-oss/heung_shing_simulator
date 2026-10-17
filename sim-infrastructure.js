@@ -17,7 +17,8 @@ function updateScienceParkUnlockState() {
 function pickScienceParkIndustrialModel(footprintCols, footprintRows) {
   const all = Array.isArray(industrialBuildingModels) ? industrialBuildingModels : [];
   const scienceModels = all.filter((m) => (
-    m.metadata
+    !m.legacy  // kept only for buildings already standing (model-catalog.js legacyFiles)
+    && m.metadata
     && m.metadata.scale > 0.05
     && isScienceParkModel(m)
     && (footprintCols === null || m.footprintCols === footprintCols)
@@ -85,6 +86,59 @@ function tryConvertSingleIndustrialToSciencePark(scene, row, col, record, reques
   return true;
 }
 
+// 5x5 science parks (19W, 2026-10-17): no industrial lot grows that big, so a park of that size is
+// made by merging a 5x5 block that industry already fills - every tile zoned industrial, level, and
+// covered by level-3 industrial buildings lying wholly inside it. At most one a month.
+const SCIENCE_PARK_LARGE_SIZE = 5;
+const SCIENCE_PARK_LARGE_MERGE_FACTOR = 0.5;
+
+function getScienceParkMergeBlockAt(scene, r, c, size = SCIENCE_PARK_LARGE_SIZE) {
+  const baseHeight = getTileHeight(r, c);
+  const anchors = new Map();
+  for (let dr = 0; dr < size; dr++) {
+    for (let dc = 0; dc < size; dc++) {
+      const rr = r + dr, cc = c + dc;
+      if (!isInsideMap(rr, cc) || zoneMap[rr][cc] !== ZONE_IND) return null;
+      if (!canPlaceBuilding(rr, cc) || getTileHeight(rr, cc) !== baseHeight) return null;
+      const sprite = scene.buildingSprites.get(getTileId(rr, cc));
+      const rec = sprite ? buildingData[getTileId(sprite.mapRow, sprite.mapCol)] : null;
+      if (!rec || rec.type !== 'industrial' || (rec.level ?? 1) < 3) return null;
+      if (!isBuildingInsideFootprint(sprite.mapRow, sprite.mapCol, rec, r, c, size, size)) return null;
+      anchors.set(getTileId(sprite.mapRow, sprite.mapCol), { row: sprite.mapRow, col: sprite.mapCol });
+    }
+  }
+  return anchors.size >= 2 ? [...anchors.values()] : null;
+}
+
+function tryMergeLargeSciencePark(scene) {
+  const size = SCIENCE_PARK_LARGE_SIZE;
+  const model = pickScienceParkIndustrialModel(size, size);
+  if (!model) return false;
+  if (!scene.textures.exists(model.key)) {
+    if (typeof requestZoneModelTexture === 'function') requestZoneModelTexture(scene, model);
+    return false;
+  }
+  const seen = new Set();
+  for (const [id, record] of Object.entries(buildingData)) {
+    if (!record || record.type !== 'industrial' || (record.level ?? 1) < 3) continue;
+    const [row, col] = id.split(':').map(Number);
+    for (let ar = row - size + 1; ar <= row; ar++) {
+      for (let ac = col - size + 1; ac <= col; ac++) {
+        const key = `${ar}:${ac}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        const members = getScienceParkMergeBlockAt(scene, ar, ac, size);
+        if (!members) continue;
+        const density = zoneDensityMap[ar]?.[ac] ?? DENSITY_LOW;
+        members.forEach((m) => removeBuilding(scene, m.row, m.col, { refreshInfrastructure: false }));
+        spawnZoneBuilding(scene, ar, ac, ZONE_IND, 3, density, { forceFootprint: size });
+        return !!buildingData[getTileId(ar, ac)];
+      }
+    }
+  }
+  return false;
+}
+
 function convertEligibleIndustrialToScienceParks(scene) {
   if (!scene || !city.scienceParkUnlocked) return 0;
 
@@ -114,6 +168,7 @@ function convertEligibleIndustrialToScienceParks(scene) {
     if (tryConvertSingleIndustrialToSciencePark(scene, row, col, record, model)) converted++;
   });
 
+  if (Math.random() < conversionChance * SCIENCE_PARK_LARGE_MERGE_FACTOR && tryMergeLargeSciencePark(scene)) converted++;
   return converted;
 }
 

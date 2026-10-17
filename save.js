@@ -1785,7 +1785,7 @@ function grandfatherLegacyOceanParkProjectApproval() {
 
 function migrateServiceSpriteKey(record, key) {
   // primary_school_3x3 is the current key again (2026-10-17): no longer folded into the 2x2
-  if (record.type === 'secondary_school' && key === 'secondary_school_3x3') return 'secondary_school_2x2';
+  // secondary_school_3x3 is the current key again (2026-10-17)
   if (record.type === 'stock_exchange' && key === 'stock_exchange_3x3') return 'stock_exchange_4x4';
   return key;
 }

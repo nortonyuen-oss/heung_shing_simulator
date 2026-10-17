@@ -813,18 +813,20 @@ const SERVICE_BUILDING_MODELS = {
   },
   // 2026-10-17 一格 20m (docs/world-scale.md): the school art is drawn for a 3x3 and a 4x4 lot,
   // the hospital's for 5x5. Schools and hospitals already built keep their old lot through
-  // LEGACY_SERVICE_BUILDING_MODELS below.
+  // LEGACY_SERVICE_BUILDING_MODELS below. The primary school's 3x3 art is its own file (the old art on a plinth).
   primary_school: {
+    // the 2x2 art shrunk to 80% on a paved plinth: about 22.6 m a tile on 3x3
     spriteKey: 'primary_school_3x3',
-    path: 'Models/government/2x2/primarySchool2-01.png',
+    path: 'Models/government/3x3/primarySchool3-01.png',
     footprintCols: 3,
     footprintRows: 3,
   },
   secondary_school: {
-    spriteKey: 'secondary_school_4x4',
+    // the 2x2 art as it is: about 22.9 m a tile on 3x3 (4x4 drew it too big, 17 m a tile)
+    spriteKey: 'secondary_school_3x3',
     path: 'Models/government/2x2/secondarySchool2-01.png',
-    footprintCols: 4,
-    footprintRows: 4,
+    footprintCols: 3,
+    footprintRows: 3,
   },
   library: {
     spriteKey: 'library_2x2',
@@ -902,10 +904,10 @@ const SERVICE_BUILDING_MODEL_VARIANTS = {
   secondary_school: [
     SERVICE_BUILDING_MODELS.secondary_school,
     {
-      spriteKey: 'secondary_school_4x4_alt',
+      spriteKey: 'secondary_school_3x3_alt',
       path: 'Models/government/2x2/secondarySchool2-02.png',
-      footprintCols: 4,
-      footprintRows: 4,
+      footprintCols: 3,
+      footprintRows: 3,
     },
   ],
   community_college: [
@@ -960,11 +962,14 @@ function getServiceBuildingModels(buildingType) {
 // night bake and light profile are shared too (day-night-lighting.js names night art after the file).
 const LEGACY_SERVICE_BUILDING_MODELS = {
   primary_school: [
-    { spriteKey: 'primary_school_2x2', textureKey: 'primary_school_3x3', path: 'Models/government/2x2/primarySchool2-01.png', footprintCols: 2, footprintRows: 2, legacy: true },
+    { spriteKey: 'primary_school_2x2', path: 'Models/government/2x2/primarySchool2-01.png', footprintCols: 2, footprintRows: 2, legacy: true },
   ],
   secondary_school: [
-    { spriteKey: 'secondary_school_2x2', textureKey: 'secondary_school_4x4', path: 'Models/government/2x2/secondarySchool2-01.png', footprintCols: 2, footprintRows: 2, legacy: true },
-    { spriteKey: 'secondary_school_2x2_alt', textureKey: 'secondary_school_4x4_alt', path: 'Models/government/2x2/secondarySchool2-02.png', footprintCols: 2, footprintRows: 2, legacy: true },
+    { spriteKey: 'secondary_school_2x2', textureKey: 'secondary_school_3x3', path: 'Models/government/2x2/secondarySchool2-01.png', footprintCols: 2, footprintRows: 2, legacy: true },
+    { spriteKey: 'secondary_school_2x2_alt', textureKey: 'secondary_school_3x3_alt', path: 'Models/government/2x2/secondarySchool2-02.png', footprintCols: 2, footprintRows: 2, legacy: true },
+    // 4x4 for one day (2026-10-17) before it proved too big
+    { spriteKey: 'secondary_school_4x4', textureKey: 'secondary_school_3x3', path: 'Models/government/2x2/secondarySchool2-01.png', footprintCols: 4, footprintRows: 4, legacy: true },
+    { spriteKey: 'secondary_school_4x4_alt', textureKey: 'secondary_school_3x3_alt', path: 'Models/government/2x2/secondarySchool2-02.png', footprintCols: 4, footprintRows: 4, legacy: true },
   ],
   hospital: [
     { spriteKey: 'hospital_4x4', textureKey: 'hospital_5x5', path: 'Models/government/4x4/hospital4.png', footprintCols: 4, footprintRows: 4, legacy: true },

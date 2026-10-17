@@ -103,7 +103,9 @@ test('schools and the hospital take their survey footprints; saved ones keep the
     })`, vm.createContext({}), { filename: 'constants.js' });
   const sizes = (models) => Array.from(models, (model) => `${model.spriteKey}:${model.footprintCols}x${model.footprintRows}`);
   assert.deepEqual(sizes(values.models.primary_school), ['primary_school_3x3:3x3']);
-  assert.deepEqual(sizes(values.models.secondary_school), ['secondary_school_4x4:4x4', 'secondary_school_4x4_alt:4x4'],
+  assert.equal(values.models.primary_school[0].path, 'Models/government/3x3/primarySchool3-01.png', 'the old art shrunk onto a plinth');
+  assert.ok(fs.existsSync(path.join(ROOT, values.models.primary_school[0].path)));
+  assert.deepEqual(sizes(values.models.secondary_school), ['secondary_school_3x3:3x3', 'secondary_school_3x3_alt:3x3'],
     'both designs are the same school: the preview footprint matches whichever is built');
   assert.deepEqual(sizes(values.models.hospital), ['hospital_5x5:5x5']);
   Object.entries(values.all).forEach(([type, models]) => {
@@ -112,9 +114,12 @@ test('schools and the hospital take their survey footprints; saved ones keep the
     assert.ok(legacy.length > 0, `${type} keeps its old lot for saved cities`);
     legacy.forEach((model) => {
       const twin = current.find((candidate) => candidate.path === model.path);
-      assert.ok(twin, `${model.spriteKey} draws current art`);
-      assert.equal(values.textureKey(model), twin.spriteKey, `${model.spriteKey} shares the texture`);
+      // the same art shares its texture; the primary school's old lot keeps its own (unshrunk) art
+      if (twin) assert.equal(values.textureKey(model), twin.spriteKey, `${model.spriteKey} shares the texture`);
+      else assert.equal(values.textureKey(model), model.spriteKey, `${model.spriteKey} has its own texture`);
     });
+    assert.deepEqual(sizes(legacy.filter((model) => model.spriteKey.startsWith('secondary'))).sort(),
+      type === 'secondary_school' ? ['secondary_school_2x2:2x2', 'secondary_school_2x2_alt:2x2', 'secondary_school_4x4:4x4', 'secondary_school_4x4_alt:4x4'] : []);
     assert.ok(current.every((model) => !model.legacy), 'legacy lots are never chosen for a new building');
   });
   const placement = source('building-placement.js');
@@ -122,17 +127,21 @@ test('schools and the hospital take their survey footprints; saved ones keep the
   assert.match(source('model-metadata.js'), /getServiceBuildingModelsWithLegacy\(type\)/);
   assert.match(source('main.js'), /flatMap\(getServiceBuildingModelsWithLegacy\)/);
   assert.doesNotMatch(source('save.js'), /'primary_school_3x3'\) return 'primary_school_2x2'/);
+  assert.doesNotMatch(source('save.js'), /'secondary_school_3x3'\) return 'secondary_school_2x2'/);
 });
 
 test('the resized service buildings keep the lights calibrated under their old keys', () => {
   const lighting = source('building-lighting.js');
   const aliases = vm.runInContext(`(${lighting.match(/const BUILDING_LIGHT_KEY_ALIASES = Object\.freeze\((\{[\s\S]*?\})\);/)[1]})`, vm.createContext({}));
   assert.deepEqual({ ...aliases }, {
-    primary_school_3x3: 'primary_school_2x2',
+    secondary_school_3x3: 'secondary_school_2x2',
+    secondary_school_3x3_alt: 'secondary_school_2x2_alt',
     secondary_school_4x4: 'secondary_school_2x2',
     secondary_school_4x4_alt: 'secondary_school_2x2_alt',
     hospital_5x5: 'hospital_4x4',
   });
+  // the primary school's new art has its own profile, moved from the 2x2 one
+  assert.match(lighting, /\bprimary_school_3x3: makeBuildingLightProfile/);
   Object.values(aliases).forEach((key) => assert.match(lighting, new RegExp(`\\b${key}: makeBuildingLightProfile`)));
   assert.match(lighting, /spriteKey = BUILDING_LIGHT_KEY_ALIASES\[spriteKey\] \?\? spriteKey;/);
 });

@@ -1361,6 +1361,15 @@ const BUILDING_LIGHT_HERO_PROFILES = {
     ],
     lamps: [{ x: 0.559, y: 0.773, r: 0.05 }, { x: 0.356, y: 0.782, r: 0.05 }, { x: 0.287, y: 0.645, r: 0.05 }, { x: 0.406, y: 0.589, r: 0.05 }, { x: 0.584, y: 0.583, r: 0.05 }, { x: 0.718, y: 0.643, r: 0.05 }, { x: 0.738, y: 0.759, r: 0.03 }, { x: 0.243, y: 0.758, r: 0.03 }, { x: 0.822, y: 0.723, r: 0.03 }],
   }),
+  // the 2x2 school shrunk to 80% on its 3x3 plinth (Models/government/3x3/primarySchool3-01.png, 2026-10-17)
+  primary_school_3x3: makeBuildingLightProfile({
+    class: 'svc', service: true,
+    panels: [
+      { c: [[0.22, 0.234], [0.5, 0.37], [0.5, 0.722], [0.22, 0.594]], rows: 5, cols: 5, on: false },
+      { c: [[0.5, 0.37], [0.78, 0.234], [0.78, 0.594], [0.5, 0.722]], rows: 5, cols: 5, on: false },
+    ],
+    lamps: [{ x: 0.547, y: 0.765, r: 0.04 }, { x: 0.384, y: 0.772, r: 0.04 }, { x: 0.329, y: 0.662, r: 0.04 }, { x: 0.424, y: 0.617, r: 0.04 }, { x: 0.567, y: 0.613, r: 0.04 }, { x: 0.674, y: 0.661, r: 0.04 }, { x: 0.69, y: 0.753, r: 0.024 }, { x: 0.294, y: 0.753, r: 0.024 }, { x: 0.757, y: 0.725, r: 0.024 }],
+  }),
   secondary_school_2x2: makeBuildingLightProfile({
     class: 'svc', service: true,
     panels: [
@@ -1772,7 +1781,8 @@ function getBuildingLightModelSlug(record, sprite) {
 // Service buildings resized to the 20 m tile (constants.js LEGACY_SERVICE_BUILDING_MODELS) took new
 // sprite keys; the same art keeps the lights calibrated under the old key.
 const BUILDING_LIGHT_KEY_ALIASES = Object.freeze({
-  primary_school_3x3: 'primary_school_2x2',
+  secondary_school_3x3: 'secondary_school_2x2',
+  secondary_school_3x3_alt: 'secondary_school_2x2_alt',
   secondary_school_4x4: 'secondary_school_2x2',
   secondary_school_4x4_alt: 'secondary_school_2x2_alt',
   hospital_5x5: 'hospital_4x4',

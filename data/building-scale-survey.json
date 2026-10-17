@@ -1,0 +1,7 @@
+{
+  "kind": "building-scale-survey",
+  "version": 1,
+  "note": "Written by the test-mode 建築比例量度 tool (building-scale-survey.js, 複製 JSON). Summarise with node scripts/building-scale-report.js.",
+  "peoplePxPerM": 5,
+  "measurements": {}
+}

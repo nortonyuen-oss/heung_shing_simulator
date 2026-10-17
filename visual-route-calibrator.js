@@ -187,6 +187,7 @@ function setVisualRouteCalibrationTestModeEnabled(enabled) {
     if (typeof teardownPedestrianRailingCalibrator === 'function') teardownPedestrianRailingCalibrator();
     if (typeof teardownStreetFurnitureCalibrator === 'function') teardownStreetFurnitureCalibrator();
     if (typeof teardownBuildingGroundCalibrator === 'function') teardownBuildingGroundCalibrator();
+    if (typeof teardownBuildingScaleSurvey === 'function') teardownBuildingScaleSurvey();
     if (typeof setLiveBuildingLightsEnabled === 'function') {
       setLiveBuildingLightsEnabled(false, typeof activeScene !== 'undefined' ? activeScene : null);
       const button = document.querySelector?.('.vrp-livelights-btn');
@@ -1129,6 +1130,7 @@ function createVisualRoutePerformancePanel(scene) {
     + '<button type="button" class="vrp-streetfurniture-btn">路邊設施位置微調</button>'
     + '</div><div class="vrp-group-label">建築</div><div class="vrp-grid">'
     + '<button type="button" class="vrp-buildingground-btn">建築地盤校正</button>'
+    + '<button type="button" class="vrp-buildingscale-btn">建築比例量度</button>'
     + '</div><div class="vrp-group-label">避風塘</div><div class="vrp-grid">'
     + '<button type="button" class="vrp-typhoonshelter-btn">避風塘素材校準</button>'
     + '<button type="button" class="vrp-ferryberth-btn">渡輪泊位校正</button>'
@@ -1244,6 +1246,9 @@ function createVisualRoutePerformancePanel(scene) {
   });
   root.querySelector('.vrp-buildingground-btn')?.addEventListener?.('click', () => {
     if (typeof toggleBuildingGroundCalibrator === 'function') toggleBuildingGroundCalibrator(scene);
+  });
+  root.querySelector('.vrp-buildingscale-btn')?.addEventListener?.('click', () => {
+    if (typeof toggleBuildingScaleSurvey === 'function') toggleBuildingScaleSurvey(scene);
   });
   root.querySelector('.vrp-roadline-btn')?.addEventListener?.('click', () => {
     if (typeof toggleRoadLineCalibrator === 'function') toggleRoadLineCalibrator(scene);

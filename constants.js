@@ -248,11 +248,16 @@ const RES_2X2_SPAWN_CHANCE = { 1: 0.20, 2: 0.45, 3: 0.70 };
 // (if smaller) shot at 3x3 as well, but 4x4/5x5 stay off-limits there - those
 // footprints are reserved for medium/high-density towers, keeping low density
 // capped at "6 storeys and under" low-rise massing.
+// 8x8 and 10x10 (2026-10-17): the large estates drawn at that scale under 一格 20m
+// (docs/world-scale.md), grown by scanForLargeResidentialLots on a clear block.
 const RES_LARGE_SPAWN_CHANCE = {
-  3: { 3: 0.30, 4: 0.26, 5: 0.22 },
-  2: { 3: 0.20, 4: 0.10, 5: 0.05 },
-  1: { 3: 0.10, 4: 0.00, 5: 0.00 },
+  3: { 3: 0.30, 4: 0.26, 5: 0.22, 8: 0.16, 10: 0.12 },
+  2: { 3: 0.20, 4: 0.10, 5: 0.05, 8: 0.04, 10: 0.02 },
+  1: { 3: 0.10, 4: 0.00, 5: 0.00, 8: 0.00, 10: 0.00 },
 };
+// Zoned land develops when a road lies within this many tiles (100 m at 20 m a tile; Chebyshev
+// distance). For a multi-tile lot, any of its tiles may be the one near the road.
+const ZONE_ROAD_ACCESS_TILES = 5;
 // ── Residential wealth-district system ───────────────────────────────────────
 // Residential wealth tier (L/M/H/UH) is no longer chosen from a continuous
 // per-tile "quality band" gated by a checklist of independent minimums (the

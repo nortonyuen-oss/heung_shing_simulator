@@ -419,6 +419,11 @@ function shouldRunMonthlyZoneVisualCheck(row, col, tick = city.tick) {
   return tileShard === tickShard;
 }
 
+// Residential lot sizes a growth roll may try, largest first, and the ones big enough to need the
+// dedicated block scan below.
+const RESIDENTIAL_LOT_SIZES_LARGEST_FIRST = Object.freeze([10, 8, 5, 4, 3, 2]);
+const LARGE_RESIDENTIAL_LOT_SIZES = Object.freeze([10, 8, 5]);
+
 // A 5x5 lot needs 25 contiguous empty tiles, but the per-tile loop below rolls
 // every empty high-density tile independently every tick - by the time a
 // would-be 5x5 anchor gets its own roll, neighbouring tiles inside that block
@@ -430,7 +435,9 @@ function shouldRunMonthlyZoneVisualCheck(row, col, tick = city.tick) {
 function scanForLargeResidentialLots(scene, qualityContexts) {
   if (city.tick % LARGE_RESIDENTIAL_LOT_SCAN_INTERVAL_TICKS !== 0) return;
   if ((city.demandR ?? 0) <= 0) return;
-  if (!hasResidentialModelForFootprint(5)) return;
+  // the estate lots (10x10, 8x8) first, then 5x5: a block big enough for an estate is offered to it
+  const sizes = LARGE_RESIDENTIAL_LOT_SIZES.filter((size) => hasResidentialModelForFootprint(size));
+  if (!sizes.length) return;
 
   // Shard on the month index, not the raw tick: this scan only ever runs on
   // ticks that are multiples of TICKS_PER_MONTH, so keying the shard on
@@ -443,20 +450,23 @@ function scanForLargeResidentialLots(scene, qualityContexts) {
     if (((r * 37 + c * 17 + monthIndex) % LARGE_RESIDENTIAL_LOT_SCAN_SHARD_COUNT) !== 0) continue;
     if (zoneMap[r]?.[c] !== ZONE_RES || zoneDensityMap[r]?.[c] !== DENSITY_HIGH) continue;
     if (scene.buildingSprites.has(id)) continue;
-    if (!hasAdjacentRoad(r, c)) continue;
-    if (!canPlaceResidentialFootprint(scene, r, c, 5)) continue;
 
     const landScore = getZoneGrowthLandScore(r, c, ZONE_RES, qualityContexts.landValueMap);
-    const chance = Math.min(
-      0.95,
-      getResidentialLargeSpawnChance(5, DENSITY_HIGH) * getLargeLotSpawnBoost(landScore, 5),
-    );
-    if (Math.random() < chance) {
-      spawnZoneBuilding(scene, r, c, ZONE_RES, 1, DENSITY_HIGH, {
-        forceFootprint: 5,
-        landScore,
-        residentialQualityContext: qualityContexts.residential,
-      });
+    for (const size of sizes) {
+      if (!hasRoadNearFootprint(r, c, size, size)) continue;
+      if (!canPlaceResidentialFootprint(scene, r, c, size)) continue;
+      const chance = Math.min(
+        0.95,
+        getResidentialLargeSpawnChance(size, DENSITY_HIGH) * getLargeLotSpawnBoost(landScore, size),
+      );
+      if (Math.random() < chance) {
+        spawnZoneBuilding(scene, r, c, ZONE_RES, 1, DENSITY_HIGH, {
+          forceFootprint: size,
+          landScore,
+          residentialQualityContext: qualityContexts.residential,
+        });
+      }
+      break;  // the largest lot that fits had its roll
     }
   }
 }
@@ -829,6 +839,8 @@ function getResidentialLargeSpawnChance(footprintSize, density) {
 }
 
 function getResidentialHouseSetForFootprint(footprintSize) {
+  if (footprintSize === 10) return 'house10x10';
+  if (footprintSize === 8) return 'house8x8';
   if (footprintSize === 5) return 'house5x5';
   if (footprintSize === 4) return 'house4x4';
   if (footprintSize === 3) return 'house3x3';
@@ -854,7 +866,7 @@ function chooseResidentialFootprint(scene, r, c, density, optionsOverride = {}, 
     };
   }
 
-  const candidates = [5, 4, 3, 2];
+  const candidates = RESIDENTIAL_LOT_SIZES_LARGEST_FIRST;
   for (const footprintSize of candidates) {
     const chance = footprintSize === 2
       ? getResidential2x2Chance(density)
@@ -1166,7 +1178,8 @@ function hasCommercialBuildingModelForFootprint(
 function hasResidentialModelForFootprint(footprintSize) {
   const setKey = getResidentialHouseSetForFootprint(footprintSize);
   return (houseModelSets?.[setKey] ?? []).some((model) => (
-    model.metadata
+    !model.legacy
+    && model.metadata
     && model.metadata.scale > 0.05
     && isSelectableZoneModelTexture(model)
     && model.footprintCols === footprintSize

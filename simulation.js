@@ -915,16 +915,32 @@ function getCardinalNeighbors(r, c) {
   return [[r - 1, c], [r, c + 1], [r + 1, c], [r, c - 1]];
 }
 
-function hasAdjacentRoad(row, col) {
-  // Road-accessible = any road tile within Chebyshev distance 3.
-  // This allows development to sit up to three tiles away from a road.
-  for (let dr = -3; dr <= 3; dr++) {
-    for (let dc = -3; dc <= 3; dc++) {
-      const r = row + dr, c = col + dc;
-      if (isInsideMap(r, c) && (
-        mapData[r][c] === ROAD
-        || (typeof isBridgeDeckTile === 'function' && isBridgeDeckTile(r, c))
-      )) return true;
+function isRoadAccessTile(r, c) {
+  return isInsideMap(r, c) && (
+    mapData[r][c] === ROAD
+    || (typeof isBridgeDeckTile === 'function' && isBridgeDeckTile(r, c))
+  );
+}
+
+// Road-accessible = any road tile within ZONE_ROAD_ACCESS_TILES (Chebyshev distance), so
+// development can sit up to 100 m from a road. Searched ring by ring outwards: the usual
+// case, a road a tile or two away, stops early.
+function hasAdjacentRoad(row, col, reach = ZONE_ROAD_ACCESS_TILES) {
+  if (isRoadAccessTile(row, col)) return true;
+  for (let d = 1; d <= reach; d++) {
+    for (let k = -d; k <= d; k++) {
+      if (isRoadAccessTile(row - d, col + k) || isRoadAccessTile(row + d, col + k)) return true;
+      if (k > -d && k < d && (isRoadAccessTile(row + k, col - d) || isRoadAccessTile(row + k, col + d))) return true;
+    }
+  }
+  return false;
+}
+
+// The same for a whole lot: a road within reach of any of its tiles.
+function hasRoadNearFootprint(row, col, cols, rows, reach = ZONE_ROAD_ACCESS_TILES) {
+  for (let r = row - reach; r < row + rows + reach; r++) {
+    for (let c = col - reach; c < col + cols + reach; c++) {
+      if (isRoadAccessTile(r, c)) return true;
     }
   }
   return false;

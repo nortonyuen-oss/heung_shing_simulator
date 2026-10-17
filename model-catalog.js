@@ -224,8 +224,40 @@ const HOUSE_MODEL_SETS = {
       'residential5-02-H-MD.png',
       'residential5-03-L-HD.png',
     ],
+    // estates drawn at about 32-42 m a tile: 8x8 and 10x10 art (2026-10-17 survey)
+    legacyFiles: ['residential5-01-H-MD.png', 'residential5-02-H-MD.png', 'residential5-03-L-HD.png'],
     footprintCols: 5,
     footprintRows: 5,
+  },
+  // Estate lots (屋苑, later 公共屋邨): no folder of their own yet - every model is borrowed.
+  house8x8: {
+    label: '8x8',
+    folder: 'Models/residential/house8x8/',
+    apiFolder: 'residential/house8x8',
+    modelKind: 'residential',
+    borrowedOnly: true,
+    anchorMode: 'effective-bottom-to-map-bottom',
+    alphaThreshold: EFFECTIVE_PIXEL_ALPHA_THRESHOLD,
+    preferredFiles: [],
+    borrowedFiles: [{ set: 'house5x5', file: 'residential5-03-L-HD.png' }],
+    footprintCols: 8,
+    footprintRows: 8,
+  },
+  house10x10: {
+    label: '10x10',
+    folder: 'Models/residential/house10x10/',
+    apiFolder: 'residential/house10x10',
+    modelKind: 'residential',
+    borrowedOnly: true,
+    anchorMode: 'effective-bottom-to-map-bottom',
+    alphaThreshold: EFFECTIVE_PIXEL_ALPHA_THRESHOLD,
+    preferredFiles: [],
+    borrowedFiles: [
+      { set: 'house5x5', file: 'residential5-01-H-MD.png' },
+      { set: 'house5x5', file: 'residential5-02-H-MD.png' },
+    ],
+    footprintCols: 10,
+    footprintRows: 10,
   },
 };
 

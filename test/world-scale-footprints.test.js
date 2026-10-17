@@ -135,3 +135,47 @@ test('the resized service buildings keep the lights calibrated under their old k
   Object.values(aliases).forEach((key) => assert.match(lighting, new RegExp(`\\b${key}: makeBuildingLightProfile`)));
   assert.match(lighting, /spriteKey = BUILDING_LIGHT_KEY_ALIASES\[spriteKey\] \?\? spriteKey;/);
 });
+
+test('the 5x5 estates move to the 8x8 and 10x10 estate lots, which only borrow models', () => {
+  const sets = houseSets();
+  ['residential5-01-H-MD.png', 'residential5-02-H-MD.png', 'residential5-03-L-HD.png'].forEach((file) => {
+    assert.ok(sets.house5x5.find((model) => model.sourceFileName === file)?.legacy, `${file} stays 5x5 for saved cities`);
+  });
+  assert.deepEqual(Array.from(sets.house10x10, (model) => `${model.sourceFileName}:${model.footprintCols}`),
+    ['residential5-01-H-MD.png:10', 'residential5-02-H-MD.png:10']);
+  assert.deepEqual(Array.from(sets.house8x8, (model) => `${model.sourceFileName}:${model.footprintCols}`),
+    ['residential5-03-L-HD.png:8']);
+  const catalog = vm.runInContext(`${source('model-catalog.js')}\n;HOUSE_MODEL_SETS`, vm.createContext({}));
+  assert.equal(catalog.house8x8.borrowedOnly, true);
+  assert.equal(catalog.house10x10.borrowedOnly, true);
+  assert.match(source('model-assets.js'), /if \(config\.borrowedOnly\) return createModelEntries\(keyPrefix, \[\], config\);/,
+    'no folder listing is requested for a set with no folder');
+  const growth = source('sim-growth.js');
+  assert.match(growth, /if \(footprintSize === 10\) return 'house10x10';\n\s+if \(footprintSize === 8\) return 'house8x8';/);
+  assert.match(growth, /RESIDENTIAL_LOT_SIZES_LARGEST_FIRST = Object\.freeze\(\[10, 8, 5, 4, 3, 2\]\)/);
+  assert.match(growth, /LARGE_RESIDENTIAL_LOT_SIZES = Object\.freeze\(\[10, 8, 5\]\)/);
+  assert.match(growth, /hasResidentialModelForFootprint\(footprintSize\) \{[\s\S]*?!model\.legacy/);
+  const chances = vm.runInContext(`${source('constants.js')}\n;RES_LARGE_SPAWN_CHANCE`, vm.createContext({}));
+  assert.ok(chances[3][10] > 0 && chances[3][8] > 0, 'high density grows estates');
+  assert.equal(chances[1][8], 0, 'low density never does');
+});
+
+test('zoned land builds up to 100 m (five tiles) from a road, a large lot from any of its tiles', () => {
+  const ROAD = 1;
+  const context = vm.createContext({ ROAD, ZONE_ROAD_ACCESS_TILES: 5 });
+  vm.runInContext(sliceFunctions('simulation.js', 'isRoadAccessTile', 'hasRoadNearFootprint'), context);
+  vm.runInContext(`
+    var mapData = Array.from({ length: 40 }, () => new Array(40).fill(0));
+    function isInsideMap(r, c) { return r >= 0 && c >= 0 && r < 40 && c < 40; }
+    mapData[20][20] = ROAD;
+  `, context);
+  const near = (r, c) => vm.runInContext(`hasAdjacentRoad(${r}, ${c})`, context);
+  assert.equal(near(25, 20), true, '5 tiles');
+  assert.equal(near(15, 25), true, '5 tiles diagonally');
+  assert.equal(near(26, 20), false, '6 tiles');
+  assert.equal(near(20, 20), true);
+  // a 10x10 lot whose far corner is the anchor: the road is 3 tiles off its other side
+  assert.equal(vm.runInContext('hasRoadNearFootprint(8, 8, 10, 10)', context), true);
+  assert.equal(vm.runInContext('hasRoadNearFootprint(0, 0, 10, 10)', context), false);
+  assert.equal(vm.runInContext(`${source('constants.js')}\n;ZONE_ROAD_ACCESS_TILES`, vm.createContext({})), 5);
+});

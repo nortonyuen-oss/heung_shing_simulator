@@ -236,6 +236,8 @@ async function reloadHouse4x4Models() {
 window.reloadHouse4x4Models = reloadHouse4x4Models;
 
 async function discoverModelFiles(keyPrefix, apiFolder, config) {
+  // a set with no folder of its own (model-catalog.js borrowedOnly): only its borrowed models
+  if (config.borrowedOnly) return createModelEntries(keyPrefix, [], config);
   const fallbackFiles = (config.fallbackSourceFiles?.length
     ? config.fallbackSourceFiles
     : (config.preferredFiles?.length ? config.preferredFiles : [config.defaultFile]))

@@ -700,6 +700,7 @@ const buildingScaleSurvey = (() => {
       panel.model.textContent = `${String(path ?? selected.logicalSpriteKey).split('/').pop()}（${selected.footprintCols ?? 1}×${selected.footprintRows ?? 1}，城中 ${sameModel} 座）`;
       const live = pending ? preview : entry;
       panel.result.replaceChildren(...(live ? [
+        row('參考高度', live.metres ? `${live.metres} m` : `${live.storeys} 層 × ${live.storeyM} m = ${roundBuildingScaleNumber(live.storeys * live.storeyM, 1)} m`),
         row('畫面高度（zoom 1）', `${roundBuildingScaleNumber(Math.abs(live.b[1] - live.a[1]) * live.screenPxPerSourcePx, 1)} px`),
         row('每米高度', `${live.upPxPerM} px（人物 ${BUILDING_SCALE_PEOPLE_PX_PER_M}）`),
         row('相對人物', `${live.vsPeople}×`),

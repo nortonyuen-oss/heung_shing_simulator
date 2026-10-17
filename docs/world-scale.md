@@ -41,7 +41,15 @@
 
 邊緣（15–16.5m 或 23.5–25m，暫不處理）：residential4-02-M-MD（15.6m，3×3 會變 20.8m）、yachtClub1-01（15.9m，1×1 無法再縮）、commercialBuilding1-01-L（16.2m，同上）、commercialBuilding4-02-H（16.2m，3×3 會變 21.6m）、residential3-02-L-MD（24.4m）。另 residential2-09-UH-MD、residential2-15-H-HD 待覆量。
 
-### 修正方法
+### 已執行（2026-10-17）
+
+Norton 決定：#1 residential4-01-M-MD → 3×3（另剪走地面巴士站車位及劃線）、#2 residential2-05-L-MD 縮圖補地台（待做，加路邊小物）、#3 residential3-08-M-MD → 4×4、#4 residential2-02-M-HD → 3×3、#5 小學 → 3×3、#6 residential2-10-H-MD → 3×3、#7 醫院 → 5×5、#8 residential3-07-M-MD → 4×4、#9 中學（兩款設計）→ 4×4、#10 不改（覆量後一格 18.2m）。
+
+舊存檔已建的同款建築保留舊佔地：住宅模型由新佔地的組別「借用」（`borrowedFiles`），舊組別保留為 legacy（`legacyFiles`，只供存檔解析、不再生成）；學校及醫院用新 sprite key，舊 key 留作 `LEGACY_SERVICE_BUILDING_MODELS`（共用貼圖及燈光）。
+
+量度用存檔「樓宇模型目錄」：平坦地圖上按類別及佔地沿路排列全部 155 個現行模型（住宅 37、商業 26、工業 17、政府 23、特殊 37、公園 15），載入後先暫停再量度。
+
+
 
 - **改佔地**：遊戲按地盤貼合縮放，改 N×N → n×n 即按 n/N 放大／縮細，毋須改圖。影響玩法（區劃地塊大小）及舊存檔中已建的同款建築；可沿用 `airport_6x6_legacy` 的做法，舊存檔保留舊佔地的 legacy 版本。
 - **放大裁切**：建築居中、外圍是花園空地的圖（如 #3、#8），放大後沿新地盤裁走外圍，佔地不變。

@@ -256,9 +256,8 @@ function normalizeSpriteBuildingOptions(key, options = {}) {
   }
 
   if (isPowerPlantSpriteKey(key)) {
-    const buildingType = getPowerPlantTypeBySpriteKey(key);
-    const model = POWER_PLANT_MODELS[buildingType];
-    const metadata = powerPlantModelMetadata[buildingType];
+    const { type: buildingType, model } = getPowerPlantModelBySpriteKey(key);
+    const metadata = model.legacy ? powerPlantLegacyModelMetadata[key] : powerPlantModelMetadata[buildingType];
     return {
       ...options,
       footprintCols: model?.footprintCols ?? metadata?.footprintCols ?? 2,
@@ -292,11 +291,13 @@ function normalizeSpriteBuildingOptions(key, options = {}) {
   }
 
   if (HARBOR_MODELS[key]) {
+    // a port built before the 6x6 lot keeps its 4x4 (the record says which)
+    const legacy = options.footprintCols === LEGACY_HARBOR_FOOTPRINT && HARBOR_FOOTPRINT_COLS !== LEGACY_HARBOR_FOOTPRINT;
     return {
       ...options,
-      footprintCols: HARBOR_FOOTPRINT_COLS,
-      footprintRows: HARBOR_FOOTPRINT_ROWS,
-      ...(harborModelMetadata[key] ?? {}),
+      footprintCols: legacy ? LEGACY_HARBOR_FOOTPRINT : HARBOR_FOOTPRINT_COLS,
+      footprintRows: legacy ? LEGACY_HARBOR_FOOTPRINT : HARBOR_FOOTPRINT_ROWS,
+      ...((legacy ? harborLegacyModelMetadata[key] : harborModelMetadata[key]) ?? {}),
     };
   }
 
@@ -354,11 +355,11 @@ function isPowerPlantType(type) {
 }
 
 function isPowerPlantSpriteKey(key) {
-  return Object.values(POWER_PLANT_MODELS).some((model) => model.spriteKey === key);
+  return !!getPowerPlantModelBySpriteKey(key);
 }
 
 function getPowerPlantTypeBySpriteKey(key) {
-  return Object.entries(POWER_PLANT_MODELS).find(([, model]) => model.spriteKey === key)?.[0];
+  return getPowerPlantModelBySpriteKey(key)?.type;
 }
 
 function isSpecialBuildingSpriteKey(key) {
@@ -382,7 +383,7 @@ function getSpecialBuildingModelBySpriteKey(key) {
 // art path the night bake names its textures after.
 function getFixedBuildingModelBySpriteKey(key) {
   if (!key) return null;
-  return Object.values(POWER_PLANT_MODELS).find((model) => model.spriteKey === key)
+  return getPowerPlantModelBySpriteKey(key)?.model
     ?? getServiceBuildingModelBySpriteKey(key)
     ?? getSpecialBuildingModelBySpriteKey(key)
     ?? HARBOR_MODELS[key]
@@ -392,7 +393,7 @@ function getFixedBuildingModelBySpriteKey(key) {
 }
 
 function getSpriteBuildingTextureKey(key) {
-  const powerModel = Object.values(POWER_PLANT_MODELS).find((model) => model.spriteKey === key);
+  const powerModel = getPowerPlantModelBySpriteKey(key)?.model;
   if (powerModel) return getFixedBuildingTextureKey(powerModel);
 
   const serviceModel = getServiceBuildingModelBySpriteKey(key);

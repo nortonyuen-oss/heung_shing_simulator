@@ -1786,6 +1786,7 @@ const BUILDING_LIGHT_KEY_ALIASES = Object.freeze({
   secondary_school_4x4: 'secondary_school_2x2',
   secondary_school_4x4_alt: 'secondary_school_2x2_alt',
   hospital_5x5: 'hospital_4x4',
+  power_plant_nuclear_12x12: 'power_plant_nuclear_4x4',
 });
 
 function resolveBuildingLightProfile(record, spriteKey, slug) {

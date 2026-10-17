@@ -6,6 +6,10 @@ let modelMetadataCacheStore = loadModelMetadataCacheStore();
 
 let parkModelMetadata = {};
 let powerPlantModelMetadata = {};
+// legacy-lot power plants (constants.js LEGACY_POWER_PLANT_MODELS), by sprite key
+let powerPlantLegacyModelMetadata = {};
+// ports built at the old 4x4 lot, by sprite key
+let harborLegacyModelMetadata = {};
 let serviceBuildingModelMetadata = {};
 let specialBuildingModelMetadata = {};
 let harborModelMetadata = {};
@@ -206,6 +210,11 @@ function preparePowerPlantModelMetadata(scene) {
       [type, getPowerPlantModelMetadata(scene, type)]
     )),
   );
+  powerPlantLegacyModelMetadata = Object.fromEntries(
+    Object.entries(LEGACY_POWER_PLANT_MODELS).flatMap(([type, models]) => models.map((model) => (
+      [model.spriteKey, getPowerPlantModelMetadata(scene, type, model)]
+    ))),
+  );
 }
 
 function getFixedBuildingModelLoadPath(model) {
@@ -237,6 +246,11 @@ function prepareHarborModelMetadata(scene) {
       [spriteKey, getParkModelMetadata(scene, spriteKey, HARBOR_FOOTPRINT_COLS, HARBOR_FOOTPRINT_ROWS)]
     )),
   );
+  harborLegacyModelMetadata = Object.fromEntries(
+    Object.keys(HARBOR_MODELS).map((spriteKey) => (
+      [spriteKey, getParkModelMetadata(scene, spriteKey, LEGACY_HARBOR_FOOTPRINT, LEGACY_HARBOR_FOOTPRINT)]
+    )),
+  );
 }
 
 function prepareBusDepotModelMetadata(scene) {
@@ -247,8 +261,7 @@ function prepareBusDepotModelMetadata(scene) {
   );
 }
 
-function getPowerPlantModelMetadata(scene, buildingType) {
-  const model = POWER_PLANT_MODELS[buildingType];
+function getPowerPlantModelMetadata(scene, buildingType, model = POWER_PLANT_MODELS[buildingType]) {
   const base = {
     footprintCols: model?.footprintCols ?? 1,
     footprintRows: model?.footprintRows ?? 1,

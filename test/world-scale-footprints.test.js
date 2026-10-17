@@ -139,6 +139,7 @@ test('the resized service buildings keep the lights calibrated under their old k
     secondary_school_4x4: 'secondary_school_2x2',
     secondary_school_4x4_alt: 'secondary_school_2x2_alt',
     hospital_5x5: 'hospital_4x4',
+    power_plant_nuclear_12x12: 'power_plant_nuclear_4x4',
   });
   // the primary school's new art has its own profile, moved from the 2x2 one
   assert.match(lighting, /\bprimary_school_3x3: makeBuildingLightProfile/);
@@ -281,4 +282,39 @@ test('中銀 is the 9x9 cut of the 5x5 art; the 5x5 original stays for saved cit
   assert.match(source('scripts/prepare-release-assets.js'), /LANDMARK_PREFIXES = \['commercial\/9x9\/'\]/, 'staged at 1024');
   const chances = vm.runInContext(`${source('constants.js')}\n;COM_LARGE_SPAWN_CHANCE`, vm.createContext({}));
   assert.ok(chances[3][9] > 0 && chances[2][9] === 0 && chances[1][9] === 0, 'high density only');
+});
+
+test('nuclear plant 12x12 with five times the output; plants built at 4x4 keep size, output and upkeep', () => {
+  const c = vm.runInContext(`${source('constants.js')}\n;({ POWER_PLANT_MODELS, POWER_PLANT_STATS, LEGACY_POWER_PLANT_STATS, COST_NUCLEAR_PLANT,
+    legacy: getPowerPlantModelBySpriteKey('power_plant_nuclear_4x4'), current: getPowerPlantModelBySpriteKey('power_plant_nuclear_12x12'),
+    entries: getPowerPlantModelEntries().length, textureKey: getFixedBuildingTextureKey })`, vm.createContext({}));
+  assert.equal(c.POWER_PLANT_MODELS.power_plant_nuclear.footprintCols, 12);
+  assert.equal(c.current.type, 'power_plant_nuclear');
+  assert.equal(c.legacy.type, 'power_plant_nuclear');
+  assert.equal(c.legacy.model.footprintCols, 4);
+  assert.equal(c.textureKey(c.legacy.model), 'power_plant_nuclear_12x12', 'one texture for both');
+  assert.equal(c.POWER_PLANT_STATS.power_plant_nuclear.generationMW, 12000);
+  assert.equal(c.POWER_PLANT_STATS.power_plant_nuclear.baseUpkeep, 4500);
+  assert.deepEqual({ ...c.LEGACY_POWER_PLANT_STATS.power_plant_nuclear_4x4 }, { generationMW: 2400, baseUpkeep: 900 });
+  assert.equal(c.COST_NUCLEAR_PLANT, 84000);
+
+  const ctx = vm.createContext({ POWER_PLANT_STATS: c.POWER_PLANT_STATS, LEGACY_POWER_PLANT_STATS: c.LEGACY_POWER_PLANT_STATS });
+  vm.runInContext(sliceFunctions('city-state.js', 'getPowerPlantStats', 'getPowerPlantStats'), ctx);
+  const stats = (rec) => vm.runInContext(`getPowerPlantStats(${JSON.stringify(rec)})`, ctx);
+  assert.equal(stats({ type: 'power_plant_nuclear', spriteKey: 'power_plant_nuclear_12x12' }).generationMW, 12000);
+  assert.equal(stats({ type: 'power_plant_nuclear', spriteKey: 'power_plant_nuclear_4x4' }).generationMW, 2400);
+  assert.equal(stats({ type: 'power_plant_nuclear', spriteKey: 'power_plant_nuclear_4x4' }).fireRadius, 22, 'the rest of the stats unchanged');
+  assert.equal(vm.runInContext(`getPowerPlantStats('power_plant_coal').generationMW`, ctx), 600, 'a type still works');
+  const cityState = source('city-state.js');
+  assert.doesNotMatch(cityState, /getPowerPlantStats\(record\?\.type\)/, 'every caller passes the record');
+  assert.match(cityState, /nuclearUpkeep = Object\.values\(buildingData/);
+  assert.match(source('save.js'), /if \(saved\?\.type === record\.type\) return record\.spriteKey;/, 'a saved 4x4 plant keeps its key on load');
+  assert.match(source('building-placement.js'), /model\.legacy \? powerPlantLegacyModelMetadata\[key\]/);
+});
+
+test('container port 6x6; ports built at 4x4 keep their lot and fit', () => {
+  const c = vm.runInContext(`${source('constants.js')}\n;({ HARBOR_FOOTPRINT_COLS, HARBOR_FOOTPRINT_ROWS, LEGACY_HARBOR_FOOTPRINT })`, vm.createContext({}));
+  assert.deepEqual([c.HARBOR_FOOTPRINT_COLS, c.HARBOR_FOOTPRINT_ROWS, c.LEGACY_HARBOR_FOOTPRINT], [6, 6, 4]);
+  assert.match(source('building-placement.js'), /options\.footprintCols === LEGACY_HARBOR_FOOTPRINT[\s\S]{0,300}harborLegacyModelMetadata\[key\]/);
+  assert.match(source('model-metadata.js'), /harborLegacyModelMetadata = Object\.fromEntries/);
 });

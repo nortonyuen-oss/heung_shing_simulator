@@ -1010,7 +1010,6 @@ function computeBudgetSnapshot(options = {}) {
   const policeCount = getBuildingCount('police_station');
   const coalCount    = getBuildingCount('power_plant_coal');
   const solarCount   = getBuildingCount('power_plant_solar');
-  const nuclearCount = getBuildingCount('power_plant_nuclear');
   const primarySchoolCount = getBuildingCount('primary_school');
   const secondarySchoolCount = getBuildingCount('secondary_school');
   const libraryCount = getBuildingCount('library');
@@ -1037,7 +1036,11 @@ function computeBudgetSnapshot(options = {}) {
   const roadsUpkeep = roadTileCount * UPKEEP_ROAD_PER_TILE * getDepartmentFunding('roads');
   const fireUpkeep = fireCount * UPKEEP_FIRE_STATION * getDepartmentFunding('fire');
   const policeUpkeep = policeCount * UPKEEP_POLICE_STATION * getDepartmentFunding('police');
-  const powerUpkeep = coalCount * UPKEEP_COAL_PLANT + solarCount * UPKEEP_SOLAR_PLANT + nuclearCount * UPKEEP_NUCLEAR_PLANT;
+  // nuclear by plant: one built at 4x4 keeps its old upkeep
+  const nuclearUpkeep = Object.values(buildingData ?? {})
+    .filter((record) => record?.type === 'power_plant_nuclear')
+    .reduce((sum, record) => sum + (getPowerPlantStats(record)?.baseUpkeep ?? UPKEEP_NUCLEAR_PLANT), 0);
+  const powerUpkeep = coalCount * UPKEEP_COAL_PLANT + solarCount * UPKEEP_SOLAR_PLANT + nuclearUpkeep;
   const educationUpkeep = (
     primarySchoolCount * UPKEEP_PRIMARY_SCHOOL
     + secondarySchoolCount * UPKEEP_SECONDARY_SCHOOL
@@ -1276,8 +1279,13 @@ function getMonthlyLoanDue() {
   return Math.round(city.loans.reduce((sum, loan) => sum + Number(loan.monthlyPayment || 0), 0));
 }
 
-function getPowerPlantStats(type) {
-  return POWER_PLANT_STATS[type] ?? null;
+// A plant's stats; given its record, a plant standing at a replaced lot size keeps its old output
+// and upkeep (constants.js LEGACY_POWER_PLANT_STATS).
+function getPowerPlantStats(typeOrRecord) {
+  const record = typeOrRecord && typeof typeOrRecord === 'object' ? typeOrRecord : null;
+  const base = POWER_PLANT_STATS[record ? record.type : typeOrRecord] ?? null;
+  const legacy = record && typeof LEGACY_POWER_PLANT_STATS !== 'undefined' ? LEGACY_POWER_PLANT_STATS[record.spriteKey] : null;
+  return base && legacy ? { ...base, ...legacy } : base;
 }
 
 function getBuildingPowerDemand(record) {
@@ -1316,7 +1324,7 @@ function getPowerPlantAgeMonths(record) {
 }
 
 function getPowerPlantOutput(record) {
-  const stats = getPowerPlantStats(record?.type);
+  const stats = getPowerPlantStats(record);
   if (!stats) return 0;
 
   const age = getPowerPlantAgeMonths(record);
@@ -1331,7 +1339,7 @@ function getPowerPlantOutput(record) {
 }
 
 function getPowerPlantMaintenance(record) {
-  const stats = getPowerPlantStats(record?.type);
+  const stats = getPowerPlantStats(record);
   if (!stats) return 0;
 
   const age = getPowerPlantAgeMonths(record);
@@ -1341,14 +1349,14 @@ function getPowerPlantMaintenance(record) {
 }
 
 function isPowerPlantNearRetirement(record) {
-  const stats = getPowerPlantStats(record?.type);
+  const stats = getPowerPlantStats(record);
   if (!stats) return false;
   const age = getPowerPlantAgeMonths(record);
   return age >= Math.max(0, stats.maxAgeMonths - stats.warningMonths) && age < stats.maxAgeMonths;
 }
 
 function getPowerPlantRemainingMonths(record) {
-  const stats = getPowerPlantStats(record?.type);
+  const stats = getPowerPlantStats(record);
   if (!stats) return 0;
   return Math.max(0, stats.maxAgeMonths - getPowerPlantAgeMonths(record));
 }
@@ -1361,7 +1369,7 @@ function formatPowerPlantAge(record) {
 }
 
 function getPowerPlantState(record) {
-  const stats = getPowerPlantStats(record?.type);
+  const stats = getPowerPlantStats(record);
   if (!stats) return 'normal';
   const age = getPowerPlantAgeMonths(record);
   if ((record.powerState ?? 'active') === 'abandoned' || age >= stats.maxAgeMonths) return 'abandoned';
@@ -1370,7 +1378,7 @@ function getPowerPlantState(record) {
 }
 
 function getPowerPlantGenerationSummary(record) {
-  const stats = getPowerPlantStats(record?.type);
+  const stats = getPowerPlantStats(record);
   if (!stats) return { output: 0, maxOutput: 0, ratio: 0 };
   const output = getPowerPlantOutput(record);
   const ratio = stats.generationMW > 0 ? output / stats.generationMW : 0;
@@ -1378,7 +1386,7 @@ function getPowerPlantGenerationSummary(record) {
 }
 
 function getPowerPlantLoadSummary(record) {
-  const stats = getPowerPlantStats(record?.type);
+  const stats = getPowerPlantStats(record);
   if (!stats) return { load: 0, maxLoad: 0, loadRatio: 0, status: 'unknown' };
 
   const maxLoad = stats.generationMW;

@@ -88,8 +88,9 @@ test('fixed building registries point at the current asset set', () => {
     ['harbor_ll', 'harbor_lr', 'harbor_ul', 'harbor_ur'],
   );
   Object.values(registries.HARBOR_MODELS).forEach((model) => {
-    assert.equal(model.footprintCols, 4);
-    assert.equal(model.footprintRows, 4);
+    // 6x6 since 2026-10-17 (一格 20m); ports already built keep 4x4 (LEGACY_HARBOR_FOOTPRINT)
+    assert.equal(model.footprintCols, 6);
+    assert.equal(model.footprintRows, 6);
     assert.match(model.path, /Models\/containerPort\/4x4\//);
   });
   assert.equal(registries.SERVICE_BUILDING_MODEL_VARIANTS.community_college.length, 4);

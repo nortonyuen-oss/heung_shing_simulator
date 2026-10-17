@@ -437,7 +437,8 @@ const COST_ZONE_IND      = 50;
 const COST_POWER_LINE    = 5;
 const COST_COAL_PLANT    = 3000;
 const COST_SOLAR_PLANT   = 6000;
-const COST_NUCLEAR_PLANT = 28000;
+// 12x12 since 2026-10-17 (was 4x4 at 28,000): five times the output, three times the price
+const COST_NUCLEAR_PLANT = 84000;
 const COST_FIRE_STATION  = 1000;
 const COST_POLICE_STATION = 800;
 const COST_PRIMARY_SCHOOL = 1200;
@@ -790,13 +791,35 @@ const POWER_PLANT_MODELS = {
     footprintCols: 2,
     footprintRows: 2,
   },
+  // 一格 20m: the reactor dome (about 40 m across) puts this art at 12x12 (2026-10-17)
   power_plant_nuclear: {
-    spriteKey: 'power_plant_nuclear_4x4',
+    spriteKey: 'power_plant_nuclear_12x12',
     path: 'Models/powerStation/nuclearPower4x4.png',
-    footprintCols: 4,
-    footprintRows: 4,
+    footprintCols: 12,
+    footprintRows: 12,
   },
 };
+
+// Power plant models at a lot size since replaced: only plants already standing in saved cities use
+// them. Same art, sharing the current model's texture.
+const LEGACY_POWER_PLANT_MODELS = {
+  power_plant_nuclear: [
+    { spriteKey: 'power_plant_nuclear_4x4', textureKey: 'power_plant_nuclear_12x12', path: 'Models/powerStation/nuclearPower4x4.png', footprintCols: 4, footprintRows: 4, legacy: true },
+  ],
+};
+
+// [type, model] for every power plant model, legacy lots included.
+function getPowerPlantModelEntries() {
+  return [
+    ...Object.entries(POWER_PLANT_MODELS),
+    ...Object.entries(LEGACY_POWER_PLANT_MODELS).flatMap(([type, models]) => models.map((model) => [type, model])),
+  ];
+}
+
+function getPowerPlantModelBySpriteKey(key) {
+  const entry = getPowerPlantModelEntries().find(([, model]) => model.spriteKey === key);
+  return entry ? { type: entry[0], model: entry[1] } : null;
+}
 
 const SERVICE_BUILDING_MODELS = {
   fire_station: {
@@ -1238,8 +1261,11 @@ function getFixedBuildingTextureKey(model) {
 // coastline shape (see getHarborVisualKey in main.js), so it isn't a simple
 // type→spriteKey map like the other registries.
 const HARBOR_BUILDING_TYPE = 'container_port';
-const HARBOR_FOOTPRINT_COLS = 4;
-const HARBOR_FOOTPRINT_ROWS = 4;
+// 6x6 since 2026-10-17 (一格 20m: its 40 ft containers measure about 32 m a tile at 4x4). Ports
+// built at 4x4 keep that lot (LEGACY_HARBOR_FOOTPRINT).
+const HARBOR_FOOTPRINT_COLS = 6;
+const HARBOR_FOOTPRINT_ROWS = 6;
+const LEGACY_HARBOR_FOOTPRINT = 4;
 const HARBOR_MODELS = {
   harbor_ll: {
     spriteKey: 'harbor_ll',
@@ -1559,9 +1585,11 @@ const POWER_PLANT_STATS = {
     nuisanceRadius: 10,
     nuisanceStrength: 0.18,
   },
+  // 12x12 (2026-10-17): five times the 4x4 plant's output and upkeep, so a 400,000 city needs
+  // three, not eleven. Plants built at 4x4 keep the old figures (LEGACY_POWER_PLANT_STATS).
   power_plant_nuclear: {
-    generationMW: 2400,
-    baseUpkeep: 900,
+    generationMW: 12000,
+    baseUpkeep: 4500,
     maxAgeMonths: 720,          // 60 years
     degradeStartMonths: 600,    // starts degrading at 50 years
     warningMonths: 60,          // 5-year decommission warning
@@ -1573,6 +1601,12 @@ const POWER_PLANT_STATS = {
     nuisanceRadius: 22,         // NIMBY radiation fear
     nuisanceStrength: 0.70,
   },
+};
+
+// Power plants standing in saved cities at a size since replaced, by sprite key: their old output
+// and upkeep (the rest of the type's stats apply).
+const LEGACY_POWER_PLANT_STATS = {
+  power_plant_nuclear_4x4: { generationMW: 2400, baseUpkeep: 900 },
 };
 
 const BUILDING_POWER_DEMAND = {

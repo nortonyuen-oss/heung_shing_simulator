@@ -286,7 +286,7 @@ test('a fixed building resolves its baked night art from the model table', () =>
   const fn = main.slice(main.indexOf('function getBuildingNightSlug('));
   assert.match(fn.slice(0, 900), /getFixedBuildingModelBySpriteKey\(record\?\.spriteKey \?\? sprite\.logicalSpriteKey\)\?\.path\?\.split\('\/'\)\.pop\(\)/);
   const lookup = main.slice(main.indexOf('function getFixedBuildingModelBySpriteKey('));
-  ['POWER_PLANT_MODELS', 'getServiceBuildingModelBySpriteKey', 'getSpecialBuildingModelBySpriteKey', 'HARBOR_MODELS', 'BUS_DEPOT_MODELS', 'PARK_MODELS']
+  ['getPowerPlantModelBySpriteKey', 'getServiceBuildingModelBySpriteKey', 'getSpecialBuildingModelBySpriteKey', 'HARBOR_MODELS', 'BUS_DEPOT_MODELS', 'PARK_MODELS']
     .forEach((table) => assert.ok(lookup.slice(0, 700).includes(table), `lookup covers ${table}`));
   // Orientation swaps replace the texture directly and must drop the night
   // bookkeeping, like the growth swap does.

@@ -756,7 +756,7 @@ function preload() {
   this.load.image('sports_ground_2x2',     resolveModelAssetPath('Models/parks/park2x2/sportField3-02.png'));
   this.load.image('sports_ground_3x3',     resolveModelAssetPath('Models/parks/park3x3/sportField3-01.png'));
   const fixedBuildingModels = [
-    ...Object.values(POWER_PLANT_MODELS),
+    ...getPowerPlantModelEntries().map(([, model]) => model),
     ...Object.keys(SERVICE_BUILDING_MODELS).flatMap(getServiceBuildingModelsWithLegacy),
     ...Object.keys(SPECIAL_BUILDING_MODELS).flatMap(getAllSpecialBuildingModels),
     ...Object.values(HARBOR_MODELS),

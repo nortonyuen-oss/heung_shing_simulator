@@ -1670,6 +1670,9 @@ function deriveFallbackSpriteKey(record) {
 
 function deriveLoadedSpriteKey(record) {
   if (typeof isPowerPlantType === 'function' && isPowerPlantType(record.type)) {
+    // a plant built at a lot size since replaced keeps its key (constants.js LEGACY_POWER_PLANT_MODELS)
+    const saved = typeof getPowerPlantModelBySpriteKey === 'function' ? getPowerPlantModelBySpriteKey(record.spriteKey) : null;
+    if (saved?.type === record.type) return record.spriteKey;
     return POWER_PLANT_MODELS[record.type].spriteKey;
   }
   if (typeof SPECIAL_BUILDING_MODELS !== 'undefined' && SPECIAL_BUILDING_MODELS[record.type]) {

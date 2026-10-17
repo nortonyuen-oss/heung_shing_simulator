@@ -569,7 +569,13 @@ function placePark(scene, row, col, parkOption) {
   if (!isInsideMap(row, col)) return false;
 
   const parkType = parkOption.type;
-  const spriteKey = parkOption.spriteKey ?? parkType;
+  const requestedKey = parkOption.spriteKey ?? parkType;
+  const models = getParkModels(requestedKey);
+  const existingCount = models.length > 1
+    ? Object.values(buildingData).filter((record) => record?.type === parkType
+      && models.some((model) => model.spriteKey === record.spriteKey)).length
+    : 0;
+  const spriteKey = selectParkModel(requestedKey, existingCount)?.spriteKey ?? requestedKey;
   const footprintCols = parkOption.footprintCols ?? (parkType === 'park_large' ? 3 : 1);
   const footprintRows = parkOption.footprintRows ?? (parkType === 'park_large' ? 3 : 1);
   if (!canPlaceBuildingFootprint(row, col, footprintCols, footprintRows)) return false;
@@ -670,8 +676,8 @@ function getParkSpriteOptions(spriteKey, parkOption = {}) {
   }
 
   return {
-    footprintCols: 1,
-    footprintRows: 1,
+    footprintCols: parkOption.footprintCols ?? 1,
+    footprintRows: parkOption.footprintRows ?? 1,
     originX: 0.5,
     originY: 50 / 65,
   };

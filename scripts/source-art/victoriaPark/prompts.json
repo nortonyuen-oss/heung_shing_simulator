@@ -1,0 +1,49 @@
+{
+  "mode": "built-in image_gen",
+  "useCase": "stylized-concept",
+  "common": "Use case: stylized-concept.\nAsset type: one production transparent PNG isometric city-builder park module, NOT a whole park and NOT a sheet.\nInput image 1 is the existing game's Victoria Park asset: STYLE REFERENCE ONLY. Match its detailed realistic miniature 3D rendering, crisp small architectural detail, mature Hong Kong subtropical trees, restrained olive/lime greens and beige stone paths, soft daylight from upper left. Do not repeat the entire old park at miniature scale.\nInput image 2 is the GEOMETRY TEMPLATE: match the 1024x1024 canvas and exact ground diamond placement, back(512,464), left(8,716), front(512,968), right(1016,716). Orthographic 2:1 isometric ground (ground height:width=1:2), verticals upright, no perspective or tilt-shift blur.\nInput image 3 is official Hong Kong Victoria Park map: TOPOLOGY AND FACILITY REFERENCE ONLY. This is a condensed six-part interpretation of that park.\nScale: this entire module covers ONLY 80m x80m (4x4 tiles of20m). Mature trees are about8-12m high, people1.7m. Features need large readable proportions relative to this footprint; no miniature complete park inside.\nShared seam contract: exactly level ground, NO raised plinth, NO slab sides, NO perimeter walls/railings/hedges enclosing the lot, NO roads. A continuous flat pale warm beige walkway runs immediately INSIDE ALL FOUR diamond edges,2m wide on each side so touching adjacent modules makes a4m wide shared promenade. Keep this walkway unobstructed. Interior materials and grass meet that walkway cleanly. Trees can rise above rear edges but keep bases and crowns inset enough to avoid side overhang. Put no objects outside lot, no detached shadows, no compass, no text, no diagram marks, no labels, no grid.\nBackground must be genuinely transparent outside the asset, not a rendered checkerboard. Entire module and canopy must fit in canvas, no cut-off structures.\n",
+  "modules": [
+    {
+      "id": "01",
+      "name": "北面花園、模型船池與音樂亭",
+      "row": 0,
+      "col": 0,
+      "subject": "NORTHWEST module (upper-left cell in the map, r0c0). A sheltered informal wooded garden with a single approximately30m x24m irregular rounded rectangular shallow model-boat pool, beige low coping and small toy sailboats. Beside it one modest open-sided modern bandstand with a white tensile canopy (about14m across), echoing the existing asset's white bandstand, not a monumental tent. A small wooded hill behind with one small green-roof pavilion, curved walking paths, subtropical mature broadleaf trees, a few pink flowering trees and restrained benches. Pool occupies a clear substantial central/front portion; garden has breathing room. No sports courts or large lawns in this module."
+    },
+    {
+      "id": "02",
+      "name": "草地滾球場與遊樂場",
+      "row": 0,
+      "col": 1,
+      "subject": "NORTHEAST module (upper-right cell, r0c1). Two rectangular grass bowling greens, each roughly25m x30m, set side by side with six subtle straight narrow bowling-rink guide lines each, dark green low edging, slim cream perimeter paving. At the front one compact Hong Kong public children's play area (about20m x12m) with muted blue/orange soft surface and modest slides/climbing frame. One low single-storey beige service pavilion near rear edge, a few mature trees and shrubs, informal curved paths. Greens dominate the middle; do not confuse them with tennis or football fields. No white sports line rectangles. No pool or bandstand."
+    },
+    {
+      "id": "03",
+      "name": "中央草坪、緩跑徑與噴水池",
+      "row": 1,
+      "col": 0,
+      "subject": "CENTRAL WEST module (middle-left cell, r1c0). One large open uninterrupted rectangular central lawn, approximately52m x50m, occupying most of the lot, surrounded by a narrow muted terracotta jogging loop and mature trees at the sides. The grass is open with just a few very small visitors and picnic groups, no trees planted in its middle. At the WEST/LEFT corner a circular beige water fountain plaza roughly18m diameter, central turquoise round water bowl and short fountain jets as in the current style reference. Connect fountain plaza and lawn paths to all shared perimeter walkways. Readable broad simple green space, NOT a whole little park. No courts, gate or large building."
+    },
+    {
+      "id": "04",
+      "name": "網球中心與室內泳館",
+      "row": 1,
+      "col": 1,
+      "subject": "CENTRAL EAST module (middle-right cell,r1c1). A compact blue/green tennis centre court (court enclosure roughly36m x24m) with low cream spectator stands on two sides, sitting toward left/front half of lot. Two standard blue-green practice tennis courts arranged in the rear-left area, accurate white tennis markings and fine dark mesh fences restricted to courts. Along the far EAST/RIGHT edge a long modern indoor swimming-pool pavilion, roughly55m long x22m wide and9m high, pale softly curved metal roof and glazed long facade with turquoise water glimpsed through windows, like Victoria Park's modern indoor pool; do not make an outdoor resort pool. Small pale circulation plazas, a few trees, sports light poles all modest at correct scale. Keep the tennis courts and pool building distinct and unclipped, match existing miniature realism."
+    },
+    {
+      "id": "05",
+      "name": "南面西側足球場群",
+      "row": 2,
+      "col": 0,
+      "subject": "SOUTHWEST module (lower-left cell,r2c0). THREE small public HARD-SURFACE seven-a-side soccer pitches arranged side-by-side as in Victoria Park's southern pitches, long pitch axes parallel to the map north/south axis (screen slopes down-left). Each is about20m wide x46m long as a condensed interpretation, muted sage-green tarmac, clearly correct thin white rectangular soccer field markings, centre circle and small goals, not grass stadiums. Low slim wire mesh around the outside of the group with open entrances to shared perimeter paving, four modest tall floodlight poles. Narrow tree-lined promenades behind and in front, low beige single-storey facilities hut at WEST/LEFT corner. At EAST/RIGHT edge keep a broad open paved avenue so module06's statue entrance can connect. No generic Chinese gate, no spectator stadium, no basketball."
+    },
+    {
+      "id": "06",
+      "name": "南面東側足球場、籃球場與女皇像",
+      "row": 2,
+      "col": 1,
+      "subject": "SOUTHEAST module (lower-right cell,r2c1). THREE compact public hard-surface soccer pitches in a group toward rear/left, each about16m wide x35m long with sage-green tarmac and accurate thin white soccer markings, small goals, narrow dark mesh enclosures. At far EAST/RIGHT corner TWO small blue-and-muted-terracotta basketball courts side by side with accurate court lines and hoops. Along the SOUTH/front approach near WEST/LEFT edge put a small seated bronze QUEEN VICTORIA statue on a plain grey stone pedestal, total about5m tall, in a pale round open entrance plaza connecting to the neighbouring module05's east-side promenade. Restrained mature trees along the front pedestrian approach and outside the court group, one discreet low green-roof pavilion near entrance, modest floodlight poles. Realistic public recreation park, no ceremonial Chinese gate, no fountain, no swimming pool."
+    }
+  ]
+}

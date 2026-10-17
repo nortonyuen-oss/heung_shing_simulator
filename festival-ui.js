@@ -179,10 +179,11 @@ function openFestivalCalendar() {
 // Jump straight to a festival: its month this year at a given hour, a dry night, the festival on.
 // Settled as held beforehand (cost 0, no effects), so a test never charges the treasury; the clock
 // is left paused, and the camera goes to the festival once its things are laid out.
+// The street-lion rehearsal runs at the slow clock speed so its march and drums can be watched.
 // [festival, minute (or 'after'), label, what the camera looks at (a part id, or a regexp of one)]
 const FESTIVAL_EVENT_TESTS = Object.freeze([
   ['christmas', 20 * 60, '聖誕夜', 'christmasTree'],
-  ['lunarNewYear', 20 * 60, '年宵（晚）', 'lnyStage'],
+  ['lunarNewYear', 20 * 60, '年宵（晚）', 'lnyGate'],
   ['lunarNewYear', 'after', '開年舞獅', /lnyLion/],
   ['june4', 21 * 60, '六四燭光', 'june4Pillar'],
   ['yulan', 8 * 60, '盂蘭（派米）', 'yulanStage'],
@@ -196,6 +197,7 @@ function startFestivalEventTest(id, minute, scene = typeof activeScene !== 'unde
   if (!scene || typeof city === 'undefined') return false;
   if (typeof isVisualRouteCalibrationTestModeEnabled === 'function' && !isVisualRouteCalibrationTestModeEnabled()) return false;
   const after = minute === 'after';
+  const streetLions = id === 'lunarNewYear' && (after || focus instanceof RegExp && focus.test('lnyLionRed'));
   // a jump may land in another festival's month too (June: 六四 and 端午): whatever settles in it is
   // given back once the camera has arrived, so a test never spends the city's money
   const budget = Number(city.budget) || 0;
@@ -216,6 +218,17 @@ function startFestivalEventTest(id, minute, scene = typeof activeScene !== 'unde
     if (getFestivalHistoryEntry(id, city.year)?.outcome !== 'held') recordFestivalHistory({ id, year: city.year, outcome: 'held', cost: 0 });
   }
   if (typeof setGameSpeed === 'function' && typeof GAME_SPEEDS !== 'undefined') setGameSpeed(GAME_SPEEDS.PAUSED);
+  if (streetLions && typeof getLionDanceLayoutExtras === 'function') {
+    const camera = scene.cameras.main;
+    camera.setZoom(Math.max(2.4, camera.zoom));
+    const extras = getLionDanceLayoutExtras(scene);
+    if (!extras.lionRoutes.length) {
+      const route = scene.lionDanceRouteMap?.routes?.[0];
+      const point = route && getLionDanceWorldPoint(scene, getLionDanceRoutePoint(route, route.lengthM / 2));
+      if (point) camera.centerOn(point.x, point.y - 10);
+    }
+    if (typeof setGameSpeed === 'function' && typeof GAME_SPEEDS !== 'undefined') setGameSpeed(GAME_SPEEDS.SLOW);
+  }
   // lay it out now rather than at the next two-second pass
   scene.festivalActiveKey = '';
   scene.festivalNextUpdateAt = 0;

@@ -598,6 +598,7 @@ async function startNewGame(cityName) {
   }
   // New games always start at the default speed (speed is not persisted/carried
   // over) - GAME_SPEEDS.SLOW (0.15) is the tier the topbar now labels "1x".
+  if (typeof clearFestivalSprites === 'function' && typeof activeScene !== 'undefined') clearFestivalSprites(activeScene);
   if (typeof resetGameClockAccumulator === 'function') resetGameClockAccumulator();
   if (typeof setGameSpeed === 'function') setGameSpeed(GAME_SPEEDS.SLOW);
   else {

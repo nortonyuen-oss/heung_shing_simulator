@@ -1,0 +1,630 @@
+{
+  "version": 1,
+  "coordinateSpace": "Baked source PNG pixels, original unmirrored daytime asset, x right/y down.",
+  "method": "Manual visual estimates from main canopy support/base centres and visible canopy lower eaves corners. Not exact measurements or uniquely recovered 3D geometry.",
+  "notes": [
+    "Main canopy support/base centres and lower eave corners, manually selected. These landmarks define a renderer calibration, not a recovered 3D survey.",
+    "Occluded supports are explicitly estimated. Mirrored geometry reflects source landmarks then remaps to the same logical width/depth.",
+    "PNG artwork stays unchanged; the renderer maps shared mesh vertices onto metre-sized floor and upright supports."
+  ],
+  "assets": {
+    "lnyInfoBooth": {
+      "width": 512,
+      "height": 512,
+      "feet": {
+        "left": [
+          68,
+          378
+        ],
+        "front": [
+          257,
+          475
+        ],
+        "right": [
+          447,
+          387
+        ]
+      },
+      "eaves": {
+        "left": [
+          68,
+          182
+        ],
+        "front": [
+          257,
+          275
+        ],
+        "right": [
+          447,
+          189
+        ]
+      },
+      "roof": {
+        "kind": "pyramid",
+        "point": [
+          256,
+          24
+        ]
+      },
+      "confidence": {
+        "left": "medium",
+        "front": "medium",
+        "right": "medium"
+      }
+    },
+    "lnyStallBlossoms": {
+      "width": 512,
+      "height": 1024,
+      "feet": {
+        "left": [
+          49,
+          899
+        ],
+        "front": [
+          231,
+          991
+        ],
+        "right": [
+          455,
+          859
+        ]
+      },
+      "eaves": {
+        "left": [
+          49,
+          396
+        ],
+        "front": [
+          231,
+          489
+        ],
+        "right": [
+          455,
+          354
+        ]
+      },
+      "roof": {
+        "kind": "pyramid",
+        "point": [
+          264,
+          179
+        ]
+      },
+      "confidence": {
+        "left": "low",
+        "front": "medium",
+        "right": "medium"
+      },
+      "note": "Main left canopy post x≈49 is visible only down to the table. Foot is extrapolated behind plants/table using the median front/right eave-to-foot drop of about 503px. This is NOT the visible table leg at (36,840)."
+    },
+    "lnyStallCouplets": {
+      "width": 512,
+      "height": 512,
+      "feet": {
+        "left": [
+          99,
+          365
+        ],
+        "front": [
+          286,
+          475
+        ],
+        "right": [
+          422,
+          385
+        ]
+      },
+      "eaves": {
+        "left": [
+          89,
+          140
+        ],
+        "front": [
+          286,
+          236
+        ],
+        "right": [
+          422,
+          162
+        ]
+      },
+      "roof": {
+        "kind": "leanTo",
+        "point": [
+          198,
+          25
+        ]
+      },
+      "confidence": {
+        "left": "low",
+        "front": "medium",
+        "right": "medium"
+      },
+      "note": "Pole/base partially obscured by table edge and cloth. Approximate main support-base centre; generated canopy has an overhang."
+    },
+    "lnyStallEmpty": {
+      "width": 512,
+      "height": 512,
+      "feet": {
+        "left": [
+          60,
+          374
+        ],
+        "front": [
+          274,
+          489
+        ],
+        "right": [
+          453,
+          391
+        ]
+      },
+      "eaves": {
+        "left": [
+          59,
+          155
+        ],
+        "front": [
+          275,
+          260
+        ],
+        "right": [
+          454,
+          173
+        ]
+      },
+      "roof": {
+        "kind": "pyramid",
+        "point": [
+          263,
+          23
+        ]
+      },
+      "confidence": {
+        "left": "medium",
+        "front": "medium",
+        "right": "medium"
+      }
+    },
+    "lnyStallFlowers": {
+      "width": 512,
+      "height": 1024,
+      "feet": {
+        "left": [
+          48,
+          855
+        ],
+        "front": [
+          254,
+          978
+        ],
+        "right": [
+          462,
+          874
+        ]
+      },
+      "eaves": {
+        "left": [
+          47,
+          539
+        ],
+        "front": [
+          254,
+          645
+        ],
+        "right": [
+          463,
+          535
+        ]
+      },
+      "roof": {
+        "kind": "pyramid",
+        "point": [
+          254,
+          362
+        ]
+      },
+      "confidence": {
+        "left": "medium",
+        "front": "medium",
+        "right": "medium"
+      }
+    },
+    "lnyStallGifts": {
+      "width": 512,
+      "height": 512,
+      "feet": {
+        "left": [
+          76,
+          355
+        ],
+        "front": [
+          314,
+          485
+        ],
+        "right": [
+          443,
+          401
+        ]
+      },
+      "eaves": {
+        "left": [
+          75,
+          133
+        ],
+        "front": [
+          314,
+          243
+        ],
+        "right": [
+          443,
+          177
+        ]
+      },
+      "roof": {
+        "kind": "leanTo",
+        "point": [
+          185,
+          25
+        ]
+      },
+      "confidence": {
+        "left": "medium",
+        "front": "medium",
+        "right": "medium"
+      }
+    },
+    "lnyStallKumquat": {
+      "width": 512,
+      "height": 1024,
+      "feet": {
+        "left": [
+          39,
+          828
+        ],
+        "front": [
+          290,
+          974
+        ],
+        "right": [
+          471,
+          870
+        ]
+      },
+      "eaves": {
+        "left": [
+          39,
+          543
+        ],
+        "front": [
+          290,
+          655
+        ],
+        "right": [
+          471,
+          551
+        ]
+      },
+      "roof": {
+        "kind": "pyramid",
+        "point": [
+          256,
+          383
+        ]
+      },
+      "confidence": {
+        "left": "medium",
+        "front": "medium",
+        "right": "medium"
+      }
+    },
+    "lnyStallLaisee": {
+      "width": 512,
+      "height": 1024,
+      "feet": {
+        "left": [
+          41,
+          820
+        ],
+        "front": [
+          301,
+          1000
+        ],
+        "right": [
+          455,
+          892
+        ]
+      },
+      "eaves": {
+        "left": [
+          41,
+          452
+        ],
+        "front": [
+          301,
+          578
+        ],
+        "right": [
+          455,
+          516
+        ]
+      },
+      "roof": {
+        "kind": "pyramid",
+        "point": [
+          239,
+          330
+        ]
+      },
+      "confidence": {
+        "left": "medium",
+        "front": "medium",
+        "right": "low"
+      }
+    },
+    "lnyStallNarcissus": {
+      "width": 512,
+      "height": 1024,
+      "feet": {
+        "left": [
+          35,
+          845
+        ],
+        "front": [
+          251,
+          978
+        ],
+        "right": [
+          476,
+          846
+        ]
+      },
+      "eaves": {
+        "left": [
+          35,
+          546
+        ],
+        "front": [
+          251,
+          660
+        ],
+        "right": [
+          476,
+          540
+        ]
+      },
+      "roof": {
+        "kind": "pyramid",
+        "point": [
+          251,
+          364
+        ]
+      },
+      "confidence": {
+        "left": "medium",
+        "front": "medium",
+        "right": "medium"
+      }
+    },
+    "lnyStallOrchids": {
+      "width": 512,
+      "height": 1024,
+      "feet": {
+        "left": [
+          43,
+          808
+        ],
+        "front": [
+          276,
+          975
+        ],
+        "right": [
+          470,
+          855
+        ]
+      },
+      "eaves": {
+        "left": [
+          43,
+          471
+        ],
+        "front": [
+          276,
+          583
+        ],
+        "right": [
+          471,
+          491
+        ]
+      },
+      "roof": {
+        "kind": "pyramid",
+        "point": [
+          254,
+          286
+        ]
+      },
+      "confidence": {
+        "left": "medium",
+        "front": "medium",
+        "right": "medium"
+      }
+    },
+    "lnyStallPeach": {
+      "width": 512,
+      "height": 512,
+      "feet": {
+        "left": [
+          65,
+          345
+        ],
+        "front": [
+          300,
+          470
+        ],
+        "right": [
+          450,
+          376
+        ]
+      },
+      "eaves": {
+        "left": [
+          60,
+          135
+        ],
+        "front": [
+          300,
+          243
+        ],
+        "right": [
+          454,
+          164
+        ]
+      },
+      "roof": {
+        "kind": "leanTo",
+        "point": [
+          198,
+          25
+        ]
+      },
+      "confidence": {
+        "left": "medium",
+        "front": "medium",
+        "right": "medium"
+      }
+    },
+    "lnyStallPinwheels": {
+      "width": 512,
+      "height": 1024,
+      "feet": {
+        "left": [
+          57,
+          851
+        ],
+        "front": [
+          255,
+          976
+        ],
+        "right": [
+          463,
+          862
+        ]
+      },
+      "eaves": {
+        "left": [
+          45,
+          494
+        ],
+        "front": [
+          255,
+          594
+        ],
+        "right": [
+          465,
+          478
+        ]
+      },
+      "roof": {
+        "kind": "pyramid",
+        "point": [
+          256,
+          294
+        ]
+      },
+      "confidence": {
+        "left": "medium",
+        "front": "medium",
+        "right": "medium"
+      }
+    },
+    "lnyStallSnacks": {
+      "width": 512,
+      "height": 512,
+      "feet": {
+        "left": [
+          94,
+          387
+        ],
+        "front": [
+          290,
+          491
+        ],
+        "right": [
+          441,
+          406
+        ]
+      },
+      "eaves": {
+        "left": [
+          86,
+          119
+        ],
+        "front": [
+          291,
+          218
+        ],
+        "right": [
+          441,
+          136
+        ]
+      },
+      "roof": {
+        "kind": "pyramid",
+        "point": [
+          262,
+          22
+        ]
+      },
+      "confidence": {
+        "left": "medium",
+        "front": "medium",
+        "right": "medium"
+      }
+    },
+    "lnyStallToys": {
+      "width": 512,
+      "height": 512,
+      "feet": {
+        "left": [
+          100,
+          366
+        ],
+        "front": [
+          308,
+          486
+        ],
+        "right": [
+          438,
+          408
+        ]
+      },
+      "eaves": {
+        "left": [
+          78,
+          112
+        ],
+        "front": [
+          315,
+          218
+        ],
+        "right": [
+          438,
+          155
+        ]
+      },
+      "roof": {
+        "kind": "leanTo",
+        "point": [
+          185,
+          24
+        ]
+      },
+      "confidence": {
+        "left": "medium",
+        "front": "medium",
+        "right": "medium"
+      }
+    }
+  }
+}

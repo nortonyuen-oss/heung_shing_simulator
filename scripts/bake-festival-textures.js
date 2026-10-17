@@ -20,6 +20,8 @@ const { nextPow2, loadRaw, labelComponents, cutPart, solidBounds, mirrorRGBA } =
 
 const ROOT = path.resolve(__dirname, '..');
 const assets = require(path.join(ROOT, 'festival-assets.js'));
+const STALL_CALIBRATIONS = require(path.join(ROOT, 'data', 'festival-stall-geometry.json')).assets;
+const PERFORMER_CALIBRATIONS = require(path.join(ROOT, 'data', 'festival-performer-geometry.json')).assets;
 
 const SOURCE_DIR = path.join(ROOT, assets.FESTIVAL_SOURCE_DIR);
 const OUT_DIR = path.join(ROOT, assets.FESTIVAL_TEXTURE_DIR);
@@ -137,11 +139,19 @@ async function main() {
     if (p.ghostly) assets.applyFestivalGhostly(cut.data);
     const baked = await layoutPart(cut, p.saturation);
     const { day, W, H, top, left, right, sourceMapping: m } = baked;
+    const stallCalibration = STALL_CALIBRATIONS[p.id];
+    const performerCalibration = PERFORMER_CALIBRATIONS[p.id];
+    if (stallCalibration && (stallCalibration.width !== W || stallCalibration.height !== H)) {
+      throw new Error(`${p.id}: source canvas changed; remeasure its stall calibration before baking`);
+    }
+    if (performerCalibration && (performerCalibration.width !== W || performerCalibration.height !== H)) {
+      throw new Error(`${p.id}: source canvas changed; remeasure its performer calibration before baking`);
+    }
     const point = ([x,y]) => ({ x: (x-m.left)*m.sx+m.ox, y: (y-m.top)*m.sy+m.oy });
-    const anchor = p.geometry?.anchor ? point(p.geometry.anchor) : baked.anchor;
+    const anchor = performerCalibration?.anchor || (p.geometry?.anchor ? point(p.geometry.anchor) : baked.anchor);
     const axis = p.geometry?.axisPoints?.map(point);
     const person = p.geometry?.personPoints?.map(point);
-    const personHeightPx = person ? Math.abs(person[1].y-person[0].y) : null;
+    const personHeightPx = performerCalibration?.personHeightPx || (person ? Math.abs(person[1].y-person[0].y) : null);
     const groundSpanX = axis ? Math.abs(axis[1].x-axis[0].x) : null;
     for (const tex of assets.getFestivalPartTextures(p)) {
       const dayData = tex.mirrored ? mirrorRGBA(day, W, H) : day;
@@ -169,8 +179,11 @@ async function main() {
         left: tex.mirrored ? W - right : left,
         right: tex.mirrored ? W - left : right,
         mirrored: tex.mirrored,
+        // Coordinates stay in the original day canvas; the renderer remaps them through
+        // the release/night pixel mapping, reflecting the landmarks for mirrored textures.
+        ...(stallCalibration ? { stallCalibration } : {}),
         ...(groundSpanX ? { groundSpanX } : {}),
-        ...(personHeightPx ? { personHeightPx, footprintM:p.geometry.footprintM, people:p.geometry.people } : {}),
+        ...(personHeightPx ? { personHeightPx, footprintM:p.geometry?.footprintM, people:p.geometry?.people } : {}),
         ...(p.heightM ? { heightM: p.heightM } : {}),
         ...(p.lengthM ? { lengthM: p.lengthM } : {}),
         ...(nightFiles.length ? { night: nightFiles } : {}),

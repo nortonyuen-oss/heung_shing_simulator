@@ -23,6 +23,9 @@ const SFX_TRACKS = [
   { key: 'db_music', file: 'Sounds/racingdragonboat.mp3' },
   { key: 'db_cheers', file: 'Sounds/dragon-boat-team-physch-up-75297.mp3' },
   { key: 'db_paddles', file: 'Sounds/18834__wim__rowing-boat.wav' },
+  // Share the percussion recording, with a separate playback channel so the
+  // New Year parade and Dragon Boat opening retain their own lifecycles.
+  { key: 'lny_lion_drums', file: 'Sounds/hk_chinesedrums.mp3' },
   { key: 'vessel_horn', file: 'Sounds/vesselFlute.m4a' },
   { key: 'aircraft_landing', file: 'Sounds/aircraftLanding.m4a' },
   { key: 'aircraft_takeoff', file: 'Sounds/aircraftTakeoff.m4a' },
@@ -569,4 +572,52 @@ function updateDragonBoatAudio(scene) {
     if (simPaused && sound.isPlaying) sound.pause();
     else if (!simPaused && sound.isPaused) sound.resume();
   });
+}
+
+const LION_DANCE_AUDIO_KEY = 'lny_lion_drums';
+const LION_DANCE_AUDIO_BASE_VOLUME = .55;
+
+function stopLionDanceAudio(scene) {
+  const sounds = new Set(scene?.lionDanceAudio?.sound ? [scene.lionDanceAudio.sound] : []);
+  scene?.sound?.getAll?.(LION_DANCE_AUDIO_KEY).forEach(sound => sounds.add(sound));
+  sounds.forEach(sound => { sound.stop(); sound.destroy(); });
+  if (scene) scene.lionDanceAudio = null;
+}
+
+// Sources are the moving troupes' rendered world centres, including the road's
+// height and current map rotation. The closest troupe controls one shared bed;
+// additional troupes do not stack identical recordings or increase the volume.
+function getLionDanceAudioVolume(scene, sources) {
+  const camera = scene?.cameras?.main;
+  const rect = camera && getTrafficCameraRect(scene);
+  if (!rect || !sources.length) return 0;
+  const centre = { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
+  const distance = Math.min(...sources.map(source => Math.hypot(source.x - centre.x, source.y - centre.y)));
+  const proximity = Math.max(0, 1 - distance / Math.max(1, Math.max(rect.width, rect.height) * .8));
+  const zoomFade = Math.max(0, Math.min(1, (camera.zoom - .5) / (TRAFFIC_VISUAL_CONFIG.zoomMin - .5)));
+  return LION_DANCE_AUDIO_BASE_VOLUME * proximity * zoomFade * getStoredAmbientVolume();
+}
+
+function updateLionDanceAudio(scene, sources = []) {
+  const live = scene?.cameras?.main && isFestivalGameplayLive() && isFestivalEnabled('lunarNewYear')
+    && getFestivalTier('lunarNewYear') !== 'skip'
+    && (!scene.scene?.isVisible || scene.scene.isVisible());
+  const audibleSources = live ? sources.filter(source => Number.isFinite(source?.x) && Number.isFinite(source?.y)) : [];
+  if (!audibleSources.length) { stopLionDanceAudio(scene); return; }
+  if (!scene.sound || scene.sound.locked) return;
+
+  const matches = (scene.sound.getAll?.(LION_DANCE_AUDIO_KEY) || []).filter(sound => !sound.pendingRemove);
+  const existing = matches.find(sound => sound.isPlaying || sound.isPaused) || scene.lionDanceAudio?.sound;
+  matches.forEach(sound => { if (sound !== existing) { sound.stop(); sound.destroy(); } });
+  let sound = existing;
+  if (!sound && !simPaused && scene.cache?.audio?.exists(LION_DANCE_AUDIO_KEY)) {
+    sound = scene.sound.add(LION_DANCE_AUDIO_KEY, { loop: true, volume: 0 });
+    sound.play();
+  }
+  if (!sound) return;
+  scene.lionDanceAudio = { sound };
+  sound.setVolume(getLionDanceAudioVolume(scene, audibleSources));
+  if (simPaused && sound.isPlaying) sound.pause();
+  else if (!simPaused && sound.isPaused) sound.resume();
+  else if (!simPaused && !sound.isPlaying) sound.play();
 }

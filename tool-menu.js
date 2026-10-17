@@ -937,6 +937,8 @@ function getSelectedParkOption() {
 }
 
 function getParkOptionBySpriteKey(spriteKey) {
+  const option = PARK_OPTIONS.find((opt) => getParkModels(opt.spriteKey).some((model) => model.spriteKey === spriteKey));
+  if (option) return { ...option, spriteKey, titleKey: PARK_MODELS[spriteKey]?.titleKey ?? option.titleKey };
   return PARK_OPTIONS.find((opt) => opt.spriteKey === spriteKey)
     ?? PARK_OPTIONS.find((opt) => opt.spriteKey === 'park_small_open');
 }

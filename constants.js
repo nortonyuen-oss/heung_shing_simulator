@@ -714,6 +714,12 @@ const DEFAULT_BUILDING_ANCHOR_MODE = 'effective-bottom-to-map-bottom';
 // scripts/detect-building-ground-corners.js and hand-calibrated with the 建築地盤校正 test-mode tool
 // (2026-09-28). A corner may lie outside the canvas: that shrinks art drawn larger than its lot.
 const BUILDING_GROUND_CORNERS = {
+  // All six Victoria Park modules share the same 80m lot and must keep identical anchors.
+  'Models/parks/park4x4/victoriaPark4-01.png': { left: [8, 716], front: [512, 968], right: [1016, 716] },
+  ...Object.fromEntries(Array.from({ length: 6 }, (_, index) => [
+    `Models/parks/park4x4/victoriaPark4-module0${index + 1}.png`,
+    { left: [8, 716], front: [512, 968], right: [1016, 716] },
+  ])),
   'Models/commercial/1x1/commercialBuilding1-03-L.png': { left: [172, 864.3], front: [545.4, 1066.9], right: [871.3, 871.8] },
   'Models/commercial/3x3/commercialBuilding3-07-M.png': { left: [-47.2, 612.5], front: [558.7, 930.4], right: [1062.1, 656.9] },
   'Models/commercial/3x3/commercialBuilding3-10-M.png': { left: [11, 771.3], front: [539.3, 1019.7], right: [1013, 785.2] },
@@ -1282,12 +1288,71 @@ const PARK_MODELS = {
     footprintRows: 3,
   },
   park_flagship_victoria: {
+    // Keep the old key/path and 4x4 footprint for saves; its art is now module 01.
     spriteKey: 'park_flagship_victoria',
+    titleKey: 'park.victoriaPark.module01',
     path: 'Models/parks/park4x4/victoriaPark4-01.png',
     footprintCols: 4,
     footprintRows: 4,
   },
+  park_flagship_victoria_module02: {
+    spriteKey: 'park_flagship_victoria_module02',
+    titleKey: 'park.victoriaPark.module02',
+    path: 'Models/parks/park4x4/victoriaPark4-module02.png',
+    footprintCols: 4,
+    footprintRows: 4,
+  },
+  park_flagship_victoria_module03: {
+    spriteKey: 'park_flagship_victoria_module03',
+    titleKey: 'park.victoriaPark.module03',
+    path: 'Models/parks/park4x4/victoriaPark4-module03.png',
+    footprintCols: 4,
+    footprintRows: 4,
+  },
+  park_flagship_victoria_module04: {
+    spriteKey: 'park_flagship_victoria_module04',
+    titleKey: 'park.victoriaPark.module04',
+    path: 'Models/parks/park4x4/victoriaPark4-module04.png',
+    footprintCols: 4,
+    footprintRows: 4,
+  },
+  park_flagship_victoria_module05: {
+    spriteKey: 'park_flagship_victoria_module05',
+    titleKey: 'park.victoriaPark.module05',
+    path: 'Models/parks/park4x4/victoriaPark4-module05.png',
+    footprintCols: 4,
+    footprintRows: 4,
+  },
+  park_flagship_victoria_module06: {
+    spriteKey: 'park_flagship_victoria_module06',
+    titleKey: 'park.victoriaPark.module06',
+    path: 'Models/parks/park4x4/victoriaPark4-module06.png',
+    footprintCols: 4,
+    footprintRows: 4,
+  },
 };
+
+// One picker entry, like universities: count standing variants, choose the next,
+// and save its actual sprite key so reloads never reroll already placed modules.
+const PARK_MODEL_VARIANTS = {
+  park_flagship_victoria: [
+    PARK_MODELS.park_flagship_victoria,
+    PARK_MODELS.park_flagship_victoria_module02,
+    PARK_MODELS.park_flagship_victoria_module03,
+    PARK_MODELS.park_flagship_victoria_module04,
+    PARK_MODELS.park_flagship_victoria_module05,
+    PARK_MODELS.park_flagship_victoria_module06,
+  ],
+};
+
+function getParkModels(spriteKey) {
+  return PARK_MODEL_VARIANTS[spriteKey] ?? (PARK_MODELS[spriteKey] ? [PARK_MODELS[spriteKey]] : []);
+}
+
+function selectParkModel(spriteKey, existingCount = 0) {
+  const models = getParkModels(spriteKey);
+  return models[Math.max(0, Math.floor(Number(existingCount) || 0)) % models.length] ?? null;
+}
 
 // Bus depot: 3x3 directional garage, placed under the roads/highways tool
 // category. Unlike the harbor its orientation isn't derived from geography -

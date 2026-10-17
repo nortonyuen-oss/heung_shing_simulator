@@ -191,6 +191,10 @@ function prepareParkModelMetadata(scene) {
     park_large:            getParkModelMetadata(scene, 'park_large',            3, 3),
     park_large_pool:       getParkModelMetadata(scene, 'park_large_pool',       3, 3),
     park_flagship_victoria: getParkModelMetadata(scene, 'park_flagship_victoria', 4, 4),
+    ...Object.fromEntries(Array.from({ length: 5 }, (_, index) => {
+      const key = `park_flagship_victoria_module0${index + 2}`;
+      return [key, getParkModelMetadata(scene, key, 4, 4)];
+    })),
     sports_ground_2x2:     getParkModelMetadata(scene, 'sports_ground_2x2',    2, 2),
     sports_ground_3x3:     getParkModelMetadata(scene, 'sports_ground_3x3',    3, 3),
   };

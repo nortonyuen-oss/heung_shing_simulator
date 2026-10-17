@@ -337,6 +337,7 @@ function getIndustrialBuildingModelBySpriteKey(key) {
 function isParkSpriteKey(key) {
   return key === 'park_small'
     || key === 'park_large'
+    || (typeof PARK_MODELS !== 'undefined' && !!PARK_MODELS[key])
     || PARK_OPTIONS.some((opt) => opt.spriteKey === key);
 }
 

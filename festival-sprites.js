@@ -23,6 +23,9 @@ const FESTIVAL_PX_PER_METRE_UP = 5;
 const FESTIVAL_PX_PER_METRE_ALONG = 2.5;
 const FESTIVAL_TILE_M = 20;
 const FESTIVAL_STEP = Object.freeze({ n: [-1, 0], e: [0, 1], s: [1, 0], w: [0, -1] });
+const FESTIVAL_STALL_CANVAS_RESOLUTION = 4;
+const festivalStallShapes = new Map();
+let festivalStallCanvasSequence = 0;
 
 let festivalTextureMeta = null;     // data/festival-textures.json .textures
 let festivalTextureMetaLoad = null;
@@ -106,13 +109,23 @@ function getFestivalSpriteFile(scene, sprite) {
   return meta.file;
 }
 
-// Real size: the art's height (or, sized by length, its width along a diagonal) in texture pixels
-// against the metres it stands for; a placement's own heightM (a smaller tree at a mall's door)
-// over the part's.
-function getFestivalSpriteScale(meta, part, resize, heightM = null) {
+function getFestivalFootprintSpanM(footprintM) {
+  return Number.isFinite(footprintM?.width) && footprintM.width > 0
+    && Number.isFinite(footprintM?.depth) && footprintM.depth > 0
+    ? footprintM.width + footprintM.depth : 0;
+}
+
+// Legacy Image sizing: a placement's height or footprint overrides its part's default size.
+// Calibrated booths bypass this envelope approximation and render their metre-sized mesh.
+function getFestivalSpriteScale(meta, part, resize, heightM = null, footprintM = null) {
   if (heightM) {
-    const px = (meta.anchor.y - meta.top) * resize;
+    const px = (meta.personHeightPx > 0 ? meta.personHeightPx : meta.anchor.y - meta.top) * resize;
     return px > 0 ? (heightM * FESTIVAL_PX_PER_METRE_UP) / px : 1;
+  }
+  const footprintSpanM = getFestivalFootprintSpanM(footprintM);
+  const groundSpanX = meta.groundSpanX > 0 ? meta.groundSpanX : meta.right - meta.left;
+  if (footprintSpanM && groundSpanX > 0) {
+    return (footprintSpanM * FESTIVAL_PX_PER_METRE_ALONG) / (groundSpanX * resize);
   }
   if (meta.personHeightPx > 0 && part.heightM) return (part.heightM * FESTIVAL_PX_PER_METRE_UP) / (meta.personHeightPx * resize);
   if (part.lengthM && meta.groundSpanX > 0) return (part.lengthM * FESTIVAL_PX_PER_METRE_ALONG) / (meta.groundSpanX * resize);
@@ -121,6 +134,163 @@ function getFestivalSpriteScale(meta, part, resize, heightM = null) {
   }
   const heightPx = (meta.anchor.y - meta.top) * resize;
   return heightPx > 0 ? ((part.heightM || 5) * FESTIVAL_PX_PER_METRE_UP) / heightPx : 1;
+}
+
+// Approximate an opt-in booth's ground centre from its existing bottom anchor. A 2:1 ground
+// diamond's centre is one quarter of its projected width above its front. Keep X unchanged:
+// these legacy anchors are opaque-bounds centres, without calibrated horizontal ground corners.
+// This returns a loaded-texture offset, so release resizing and night padding remain consistent.
+function getFestivalGroundCenterOffsetY(footprintM, scale) {
+  const spanM = getFestivalFootprintSpanM(footprintM);
+  return spanM && scale > 0 ? (spanM * FESTIVAL_PX_PER_METRE_ALONG) / (4 * scale) : 0;
+}
+
+// Calibrated booths already have world-pixel geometry and retain unit scale on both axes.
+// Uncalibrated decorations keep their existing envelope/height sizing and anchor convention.
+function getFestivalPlacementScales(meta, part, resize, placement = {}) {
+  if (meta.stallCalibration && getFestivalFootprintSpanM(placement.footprintM)) return { scaleX: 1, scaleY: 1 };
+  const scaleX = getFestivalSpriteScale(meta, part, resize, placement.heightM, placement.footprintM);
+  let scaleY = scaleX;
+  const spanM = getFestivalFootprintSpanM(placement.footprintM);
+  const heightPx = (meta.anchor.y - meta.top) * resize;
+  if (spanM && Number.isFinite(placement.maxHeightM) && placement.maxHeightM > 0 && heightPx > 0) {
+    const centreOffset = placement.anchorMode === 'ground-center' ? spanM * FESTIVAL_PX_PER_METRE_ALONG / 4 : 0;
+    scaleY = Math.min(scaleX, (placement.maxHeightM * FESTIVAL_PX_PER_METRE_UP + centreOffset) / heightPx);
+  }
+  return { scaleX, scaleY };
+}
+
+function getFestivalStallShape(meta, placement, mirrored) {
+  if (!meta.stallCalibration || !getFestivalFootprintSpanM(placement.footprintM)) return null;
+  const build = typeof buildFestivalStallGeometry === 'function' ? buildFestivalStallGeometry
+    : typeof require === 'function' ? require('./festival-stall-geometry.js').buildFestivalStallGeometry : null;
+  if (!build) return null;
+  const heightM = Number.isFinite(placement.maxHeightM) && placement.maxHeightM > 0 ? placement.maxHeightM : 3;
+  const key = JSON.stringify([meta.stallCalibration, placement.footprintM, heightM, mirrored]);
+  if (!festivalStallShapes.has(key)) festivalStallShapes.set(key, build(meta.stallCalibration, placement.footprintM, {
+    heightM, eaveM: heightM * 0.8, mirrored,
+    pxPerMetreAlong: FESTIVAL_PX_PER_METRE_ALONG, pxPerMetreUp: FESTIVAL_PX_PER_METRE_UP,
+  }));
+  return { key, geometry: festivalStallShapes.get(key) };
+}
+
+// Trimmed release/night textures have different pixel windows. Clip each geometry triangle to
+// its loaded UV window, interpolating world positions; clamping UVs alone would smear edge pixels.
+function getFestivalStallMeshBuffers(geometry, mapping, width, height) {
+  const points = [], indices = [];
+  const interpolate = (a, b, t) => Object.fromEntries(['x', 'y', 'u', 'v'].map((k) => [k, a[k] + (b[k] - a[k]) * t]));
+  const planes = [(p) => p.u, (p) => 1 - p.u, (p) => p.v, (p) => 1 - p.v];
+  for (let n = 0; n < geometry.indices.length; n += 3) {
+    let polygon = geometry.indices.slice(n, n + 3).map((i) => {
+      const p = geometry.vertices[i];
+      return { x: p.x, y: p.y, u: (p.sourceX * mapping.resize + mapping.offsetX) / width,
+        v: (p.sourceY * mapping.resize + mapping.offsetY) / height };
+    });
+    for (const distance of planes) {
+      const clipped = [];
+      if (!polygon.length) break;
+      let previous = polygon.at(-1), previousDistance = distance(previous);
+      for (const current of polygon) {
+        const currentDistance = distance(current);
+        if ((previousDistance >= 0) !== (currentDistance >= 0)) {
+          clipped.push(interpolate(previous, current, previousDistance / (previousDistance - currentDistance)));
+        }
+        if (currentDistance >= 0) clipped.push(current);
+        previous = current;
+        previousDistance = currentDistance;
+      }
+      polygon = clipped;
+    }
+    for (let i = 1; i + 1 < polygon.length; i++) {
+      const triangle = [polygon[0], polygon[i], polygon[i + 1]];
+      const [a, b, c] = triangle;
+      if (Math.abs((b.x - a.x) * (c.y - a.y) - (c.x - a.x) * (b.y - a.y)) < 1e-10) continue;
+      for (const p of triangle) {
+        indices.push(points.length);
+        points.push({ ...p, u: Math.max(0, Math.min(1, p.u)), v: Math.max(0, Math.min(1, p.v)) });
+      }
+    }
+  }
+  return { points, indices, vertices: points.flatMap((p) => [p.x, -p.y]), uvs: points.flatMap((p) => [p.u, p.v]) };
+}
+
+function canRenderFestivalStallMesh(scene) {
+  return typeof scene.add?.mesh === 'function' && !!(scene.game?.renderer?.gl || scene.sys?.game?.renderer?.gl);
+}
+
+// Canvas has no Phaser Mesh renderer. Rasterize the same triangles into a transient, supersampled
+// cache texture, preserving the PNGs and the exact ground geometry rather than stretching an Image.
+function getFestivalStallCanvasTexture(scene, file, sourceKey, shape, mapping, frame, buffers) {
+  if (!scene.festivalStallCanvasTextures) scene.festivalStallCanvasTextures = new Map();
+  const signature = JSON.stringify([shape.key, file, mapping, frame.width, frame.height]);
+  const cached = scene.festivalStallCanvasTextures.get(signature);
+  if (cached) return cached;
+  const resolution = FESTIVAL_STALL_CANVAS_RESOLUTION, pad = 2;
+  const minX = Math.min(...buffers.points.map((p) => p.x)), minY = Math.min(...buffers.points.map((p) => p.y));
+  const maxX = Math.max(...buffers.points.map((p) => p.x)), maxY = Math.max(...buffers.points.map((p) => p.y));
+  const width = 2 ** Math.ceil(Math.log2(Math.max(1, Math.ceil((maxX - minX) * resolution) + pad * 2)));
+  const height = 2 ** Math.ceil(Math.log2(Math.max(1, Math.ceil((maxY - minY) * resolution) + pad * 2)));
+  const key = `festival:stall-canvas:${++festivalStallCanvasSequence}`;
+  const texture = scene.textures.createCanvas(key, width, height);
+  const context = texture.getContext(), source = scene.textures.get(sourceKey).getSourceImage();
+  for (let n = 0; n < buffers.points.length; n += 3) {
+    const p = buffers.points.slice(n, n + 3).map((v) => ({
+      sx: v.u * frame.width, sy: v.v * frame.height,
+      dx: (v.x - minX) * resolution + pad, dy: (v.y - minY) * resolution + pad,
+    }));
+    const ux = p[1].sx - p[0].sx, uy = p[1].sy - p[0].sy;
+    const vx = p[2].sx - p[0].sx, vy = p[2].sy - p[0].sy, det = ux * vy - vx * uy;
+    if (Math.abs(det) < 1e-10) continue;
+    const ax = p[1].dx - p[0].dx, ay = p[1].dy - p[0].dy;
+    const bx = p[2].dx - p[0].dx, by = p[2].dy - p[0].dy;
+    const a = (ax * vy - bx * uy) / det, b = (ay * vy - by * uy) / det;
+    const c = (bx * ux - ax * vx) / det, d = (by * ux - ay * vx) / det;
+    context.save();
+    context.beginPath();
+    context.moveTo(p[0].dx, p[0].dy);
+    context.lineTo(p[1].dx, p[1].dy);
+    context.lineTo(p[2].dx, p[2].dy);
+    context.closePath();
+    context.clip();
+    context.transform(a, b, c, d, p[0].dx - a * p[0].sx - c * p[0].sy, p[0].dy - b * p[0].sx - d * p[0].sy);
+    context.drawImage(source, 0, 0);
+    context.restore();
+  }
+  texture.refresh();
+  // These canvases are populated after creation. Their initial GPU mip levels are blank;
+  // sample the refreshed base level when the uniformly scaled Image is minified.
+  texture.setFilter(0); // Phaser.Textures.FilterMode.LINEAR
+  const entry = { key, file, originX: (-minX * resolution + pad) / width,
+    originY: (-minY * resolution + pad) / height, scale: 1 / resolution };
+  scene.festivalStallCanvasTextures.set(signature, entry);
+  return entry;
+}
+
+function positionFestivalStallGeometry(scene, sprite, shape, file, key, mapping, frame) {
+  const signature = JSON.stringify([shape.key, file, mapping, frame.width, frame.height]);
+  if (sprite.festivalStallGeometrySignature !== signature) {
+    const buffers = getFestivalStallMeshBuffers(shape.geometry, mapping, frame.width, frame.height);
+    if (!buffers.indices.length) return false;
+    if (sprite.festivalStallRenderMode === 'mesh') {
+      sprite.clear();
+      sprite.setSize(frame.width, frame.height);
+      sprite.setOrtho(frame.width, frame.height);
+      sprite.hideCCW = false;
+      sprite.addVertices(buffers.vertices, buffers.uvs, buffers.indices);
+      sprite.setScale(1, 1);
+    } else {
+      sprite.festivalStallCanvasEntry = getFestivalStallCanvasTexture(scene, file, key, shape, mapping, frame, buffers);
+    }
+    sprite.festivalStallGeometrySignature = signature;
+  }
+  if (sprite.festivalStallRenderMode === 'canvas') {
+    const cached = sprite.festivalStallCanvasEntry;
+    sprite.setTexture(cached.key);
+    sprite.setOrigin(cached.originX, cached.originY);
+    sprite.setScale(cached.scale, cached.scale);
+  }
+  sprite.festivalStallGeometry = shape.geometry;
+  return true;
 }
 
 // Where a placement stands on screen (world px) and its depth, or null if its venue is gone.
@@ -157,6 +327,7 @@ function getFestivalPlacementPoint(scene, placement) {
   const centre = isoToScreen(col, row);
   const shifted = isoToScreen(col + dCol, row + dRow);
   let depth = getBuildingSortDepth(getBuildingAnchor(row, col, 1, 1).y, 1, 1, 0);
+  if (placement.lionDance) depth += shifted.y - centre.y;
   if (placement.groundBuildingId) {
     const ground = scene.buildingSprites?.get(placement.groundBuildingId);
     if (!ground) return null;
@@ -193,13 +364,21 @@ function positionFestivalSprite(scene, sprite) {
   const own = file !== meta.file && typeof getModelTexturePixelMapping === 'function'
     ? getModelTexturePixelMapping(file, { width: frame.width, height: frame.height }) : mapping;
   const ax = meta.anchor.x * own.resize + own.offsetX;
-  const ay = meta.anchor.y * own.resize + own.offsetY;
-  sprite.setOrigin(ax / frame.width, ay / frame.height);
-  sprite.setScale(getFestivalSpriteScale(meta, part, own.resize, placement.heightM));
+  let ay = meta.anchor.y * own.resize + own.offsetY;
+  const shape = getFestivalStallShape(meta, placement, getFestivalPlacementMirrored(placement));
+  if (shape) {
+    if (!positionFestivalStallGeometry(scene, sprite, shape, file, key, own, frame)) return false;
+  } else {
+    const { scaleX, scaleY } = getFestivalPlacementScales(meta, part, own.resize, placement);
+    if (placement.anchorMode === 'ground-center') ay -= getFestivalGroundCenterOffsetY(placement.footprintM, scaleY);
+    sprite.setOrigin(ax / frame.width, ay / frame.height);
+    sprite.setScale(scaleX, scaleY);
+  }
   sprite.setPosition(at.x, at.y);
   sprite.festivalBaseY = at.y;  // a 阿飄 floats about it (festival-yulan.js)
   sprite.setDepth(at.depth);
   sprite.festivalLitShown = file !== meta.file;
+  sprite.festivalSourceTextureKey = key;
   // the night art, and what gives its own light (a UFO, a 阿飄), are never darkened
   if (sprite.festivalLitShown || part.selfLit) sprite.clearTint();
   else if (typeof applyNightPropTint === 'function') applyNightPropTint(scene, sprite);
@@ -217,6 +396,11 @@ function removeFestivalSprite(scene, id) {
 // Textures of festivals no longer on: dropped, so a month of decorations costs nothing after it.
 function unloadFestivalTextures(scene, keepFiles) {
   const keep = new Set([...keepFiles].map(getFestivalSceneTextureKey));
+  scene.festivalStallCanvasTextures?.forEach((entry, signature) => {
+    if (keep.has(getFestivalSceneTextureKey(entry.file))) return;
+    if (scene.textures.exists(entry.key)) scene.textures.remove(entry.key);
+    scene.festivalStallCanvasTextures.delete(signature);
+  });
   (scene.festivalTextureKeys || new Set()).forEach((key) => {
     // textures something else draws with right now (the 盂蘭 wanderers, festival-yulan.js)
     if (keep.has(key) || scene.festivalPinnedKeys?.has(key)) return;
@@ -227,6 +411,8 @@ function unloadFestivalTextures(scene, keepFiles) {
 
 // Brings scene.festivalSprites in line with the placements wanted now.
 async function syncFestivalSprites(scene, placements) {
+  const token = (scene.festivalSyncToken || 0) + 1;
+  scene.festivalSyncToken = token;
   if (!scene.festivalSprites) scene.festivalSprites = new Map();
   if (!scene.festivalTextureKeys) scene.festivalTextureKeys = new Set();
   const wanted = new Map(placements.map((p) => [p.id, p]));
@@ -239,17 +425,24 @@ async function syncFestivalSprites(scene, placements) {
   const files = getFestivalPlacementFiles(placements);
   unloadFestivalTextures(scene, files);
   if (!placements.length) return;
-  const token = (scene.festivalSyncToken || 0) + 1;
-  scene.festivalSyncToken = token;
   await loadFestivalTextures(scene, files);
   if (scene.festivalSyncToken !== token) return; // a newer sync took over while these loaded
   files.forEach((f) => scene.festivalTextureKeys.add(getFestivalSceneTextureKey(f)));
   wanted.forEach((placement, id) => {
     let sprite = scene.festivalSprites.get(id);
+    const part = FESTIVAL_PARTS_BY_ID[placement.partId];
+    const meta = part && festivalTextureMeta?.[getFestivalTextureKey(part.id, getFestivalPlacementMirrored(placement))];
+    const shape = meta && getFestivalStallShape(meta, placement, getFestivalPlacementMirrored(placement));
+    const mode = shape ? (canRenderFestivalStallMesh(scene) ? 'mesh' : 'canvas') : null;
+    if (sprite && (sprite.festivalStallRenderMode || null) !== mode) {
+      removeFestivalSprite(scene, id);
+      sprite = null;
+    }
     if (!sprite) {
       const firstKey = getFestivalSceneTextureKey(FESTIVAL_PARTS_BY_ID[placement.partId] ? getFestivalTexturePath(placement.partId) : '');
       if (!scene.textures.exists(firstKey)) return;
-      sprite = scene.add.image(0, 0, firstKey);
+      sprite = mode === 'mesh' ? scene.add.mesh(0, 0, firstKey) : scene.add.image(0, 0, firstKey);
+      if (mode) sprite.festivalStallRenderMode = mode;
       sprite.setVisible(false); // until the viewport culling shows it
       if (scene.worldMask) sprite.setMask(scene.worldMask);
       sprite.festivalPlacement = placement;
@@ -268,6 +461,8 @@ function refreshFestivalSprites(scene) {
 
 function clearFestivalSprites(scene) {
   if (typeof closeBunHillMapEvent === 'function') closeBunHillMapEvent(scene);
+  if (typeof clearLionDance === 'function') clearLionDance(scene);
+  if (scene) scene.festivalSyncToken = (scene.festivalSyncToken || 0) + 1;
   if (!scene?.festivalSprites) return;
   [...scene.festivalSprites.keys()].forEach((id) => removeFestivalSprite(scene, id));
   unloadFestivalTextures(scene, []);
@@ -302,6 +497,8 @@ function getFestivalLayoutContext(id, ctx, phase) {
     // 盂蘭: the kerb slots facing homes and the venues' districts (festival-yulan.js)
     ...(id === 'yulan' && typeof getYulanLayoutExtras === 'function'
       ? getYulanLayoutExtras(typeof activeScene !== 'undefined' ? activeScene : null, ctx || {}) : {}),
+    ...(id === 'lunarNewYear' && typeof getLionDanceLayoutExtras === 'function'
+      ? getLionDanceLayoutExtras(typeof activeScene !== 'undefined' ? activeScene : null) : {}),
   };
 }
 
@@ -334,7 +531,7 @@ function updateFestivals(scene, time) {
   let activeKey = `${city.year}|${active.map(({ id, phase }) => `${id}:${getFestivalTier(id)}:${phase}`).join(',')}`;
   // 盂蘭's street fires follow the view (festival-yulan.js): lay out again as soon as the camera
   // has moved a little or crossed 1x, not only every FESTIVAL_LAYOUT_MS
-  if (active.some(({ id }) => id === 'yulan')) {
+  if (active.some(({ id }) => id === 'yulan' || id === 'lunarNewYear')) {
     const camera = scene.cameras?.main;
     if (camera) activeKey += `|cam:${Math.round(camera.scrollX / 250)}:${Math.round(camera.scrollY / 250)}:${camera.zoom > 1}`;
   }
@@ -348,8 +545,9 @@ function updateFestivals(scene, time) {
         if ((id === 'dragonBoat' || id === 'bunHill')) return;
         const prior = getFestivalHistoryEntry(id, city.year);
         if (!isGovernmentFestival(id) || (prior && prior.outcome !== 'noVenue')) return;
-        const trial = layoutFestival(id, { ...getFestivalLayoutContext(id, ctx, 'open'), tier: getFestivalTier(id) === 'skip' ? 'standard' : getFestivalTier(id) });
-        const hasVenue = trial.length > 0;
+        const trialContext = { ...getFestivalLayoutContext(id, ctx, 'open'), tier: getFestivalTier(id) === 'skip' ? 'standard' : getFestivalTier(id) };
+        const trial = layoutFestival(id, trialContext);
+        const hasVenue = trial.length > 0 || (id === 'lunarNewYear' && trialContext.lionVenueAvailable === true);
         if (prior && !hasVenue) return;
         const economy = typeof getCityEconomyIndex === 'function' ? getCityEconomyIndex() : 50;
         const income = getFestivalIncome(id, trial.filter((p) => p.stall && p.sold).length, economy);
@@ -359,6 +557,12 @@ function updateFestivals(scene, time) {
     }
     placements = active.length ? getWantedFestivalPlacements(scene, active, ctx) : [];
     scene.festivalPlacements = placements;
+    // Route coordinates/elevations can change without changing actor IDs or art.
+    // Keep live movers on the newly validated route even when no texture sync is needed.
+    placements.forEach((placement) => {
+      const sprite = scene.festivalSprites?.get(placement.id);
+      if (sprite?.festivalPlacement?.partId === placement.partId) sprite.festivalPlacement = placement;
+    });
   }
   const sig = placements.map((p) => `${p.id}|${p.partId}`).join(';');
   const lit = typeof streetLampsShouldBeLit === 'function' && streetLampsShouldBeLit(scene);
@@ -371,7 +575,7 @@ function updateFestivals(scene, time) {
     // the twinkle, and the swap between day and night art at dusk and dawn
     scene.festivalSprites?.forEach((sprite) => {
       const file = getFestivalSpriteFile(scene, sprite);
-      if (file && sprite.texture?.key !== getFestivalSceneTextureKey(file)) positionFestivalSprite(scene, sprite);
+      if (file && (sprite.festivalSourceTextureKey || sprite.texture?.key) !== getFestivalSceneTextureKey(file)) positionFestivalSprite(scene, sprite);
     });
   }
   if (live && typeof maybeShowFestivalNotices === 'function') maybeShowFestivalNotices(scene, active, placements);
@@ -379,5 +583,7 @@ function updateFestivals(scene, time) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { getFestivalSpriteScale, FESTIVAL_PX_PER_METRE_UP, FESTIVAL_PX_PER_METRE_ALONG };
+  module.exports = { getFestivalSpriteScale, getFestivalGroundCenterOffsetY, getFestivalPlacementScales,
+    getFestivalStallShape, getFestivalStallMeshBuffers,
+    FESTIVAL_PX_PER_METRE_UP, FESTIVAL_PX_PER_METRE_ALONG };
 }

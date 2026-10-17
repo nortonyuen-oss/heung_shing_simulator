@@ -13,3 +13,5 @@ test-results/
 /footballStarVisit.webp
 .wrangler/
 .dev.vars
+__pycache__/
+scripts/source-art/**/*.zip

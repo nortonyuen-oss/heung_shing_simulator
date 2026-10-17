@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "coordinateSpace": "Original unmirrored baked PNG pixels; manual art calibration.",
+  "note": "Anchors use the lowest visible supporting foot/base. The stylized leader uses the complete figure including its staff as its height reference, keeping the whole asset at the configured 1.7 m visual size.",
+  "assets": {
+    "lnyLionRed": { "width": 512, "height": 512, "anchor": { "x": 273, "y": 497 } },
+    "lnyLionGold": { "width": 512, "height": 512, "anchor": { "x": 190, "y": 497 } },
+    "lnyLionLeader": { "width": 512, "height": 512, "anchor": { "x": 194, "y": 498 }, "heightReference": "full-silhouette" },
+    "lnyDrum": { "width": 512, "height": 512, "anchor": { "x": 301, "y": 497 } }
+  }
+}

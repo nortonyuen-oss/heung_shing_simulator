@@ -10,6 +10,8 @@ const { FESTIVAL_DEFINITIONS_BY_ID } = require('../festivals.js');
 
 const ROOT = path.resolve(__dirname, '..');
 const META = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'festival-textures.json'), 'utf8'));
+const STALL_CALIBRATIONS = require('../data/festival-stall-geometry.json').assets;
+const PERFORMER_CALIBRATIONS = require('../data/festival-performer-geometry.json').assets;
 
 // PNG width/height from the IHDR chunk, without decoding
 function pngSize(file) {
@@ -71,6 +73,47 @@ test('lights: bright warm or brilliant white pixels; cream walls, reds and green
   assert.equal(festivalLightStrength(230, 30, 40), 0, 'red ribbon');
   assert.equal(festivalLightStrength(40, 140, 60), 0, 'green garland');
   assert.equal(festivalLightStrength(120, 110, 90), 0, 'in shade');
+});
+
+test('lion performers stand on calibrated feet and the leader retains its full-figure size', () => {
+  for (const [id, calibration] of Object.entries(PERFORMER_CALIBRATIONS)) {
+    const original = META.textures[`fx_${id}`], mirror = META.textures[`fx_${id}_m`];
+    assert.deepEqual(original.anchor, calibration.anchor);
+    assert.equal(mirror.anchor.x, original.width - original.anchor.x);
+    assert.equal(mirror.anchor.y, original.anchor.y);
+    assert.deepEqual([original.width, original.height], [calibration.width, calibration.height]);
+    if (calibration.personHeightPx) {
+      assert.equal(original.personHeightPx, calibration.personHeightPx);
+      assert.equal(mirror.personHeightPx, calibration.personHeightPx);
+      assert.ok(calibration.personHeightPx < original.anchor.y - original.top,
+        'the decorative pole must not count toward the leader person height');
+    }
+    if (calibration.heightReference === 'full-silhouette') {
+      assert.equal(original.personHeightPx, undefined, 'the staff must count toward the complete leader size');
+      assert.equal(mirror.personHeightPx, undefined);
+    }
+  }
+});
+
+test('every Lunar New Year booth has measured source landmarks in both texture orientations', () => {
+  const stalls = FESTIVAL_PARTS.filter((p) => p.festival === 'lunarNewYear' && p.category === 'stall');
+  assert.equal(stalls.length, 14);
+  for (const part of stalls) {
+    const calibration = STALL_CALIBRATIONS[part.id];
+    assert.ok(calibration, `${part.id}: missing stall calibration`);
+    for (const { file } of getFestivalPartTextures(part)) {
+      const meta = META.textures[path.basename(file, '.png')];
+      assert.deepEqual(meta.stallCalibration, calibration, `${file}: source landmarks must survive rebaking`);
+      assert.deepEqual([calibration.width, calibration.height], [meta.width, meta.height]);
+    }
+    for (const side of ['left', 'front', 'right']) {
+      const foot = calibration.feet[side], eave = calibration.eaves[side];
+      for (const [x, y] of [foot, eave, calibration.roof.point]) {
+        assert.ok(x > 0 && x < calibration.width && y > 0 && y < calibration.height);
+      }
+      assert.ok(eave[1] < foot[1], `${part.id}/${side}: eaves stand above their support`);
+    }
+  }
 });
 
 test('night art dims what is not lit, keeps the lights and the alpha; frame b twinkles some lights', () => {

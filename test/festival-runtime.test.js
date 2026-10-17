@@ -134,16 +134,16 @@ test('Christmas layout: a staircase coast is walked in order, so it gets decorat
   assert.equal(orderFestivalPromenadeRuns([[0, 0], [0, 1], [5, 5], [5, 6]]).length, 2);
 });
 
-test('Christmas layout: the tree on the open square of each Victoria Park', () => {
+test('Christmas layout: the tree stands on the lawn module, never the replacement boat pond', () => {
   const placements = layoutChristmasDecorations({
     tier: 'basic',
-    parks: [{ id: '4:6', textureKey: 'park_flagship_victoria' }, { id: '1:1', textureKey: 'someOtherPark' }],
+    parks: [{ id: '4:6', textureKey: 'park_flagship_victoria_module03' }, { id: '1:1', textureKey: 'park_flagship_victoria' }],
   });
   assert.equal(placements.length, 1);
   assert.equal(placements[0].mode, 'building');
   assert.equal(placements[0].buildingId, '4:6');
   assert.equal(placements[0].partId, 'christmasTree');
-  assert.deepEqual([...placements[0].point], [585, 738]);
+  assert.deepEqual([...placements[0].point], [550, 710]);
 });
 
 test('real size: height in metres at 5 px each, or length along a diagonal at 2.5 px each', () => {
@@ -193,11 +193,13 @@ test('新春: setup, open, the evening peak, closed at three; lion dances the mo
   assert.equal(vm.runInContext("getFestivalIncome('christmas', 10, 50)", ctx), 0);
 });
 
-test('新春 layout: the main fair on one Victoria Park pitch, small ones elsewhere, temples at the peak', () => {
-  const { layoutLunarNewYear, getLnyRows, FESTIVAL_BUILDING_SPOTS } = require('../festival-venues.js');
+test('新春 layout: a main fair across the football modules, smaller fairs elsewhere, temples at the peak', () => {
+  const { layoutLunarNewYear } = require('../festival-venues.js');
   const base = {
     tier: 'standard', seed: 's', soldShare: 1,
-    parks: [{ id: '1:1', textureKey: 'park_flagship_victoria' }, { id: '9:9', textureKey: 'park_flagship_victoria' }],
+    parks: [{ id: '1:1', textureKey: 'park_flagship_victoria_module05' },
+      { id: '1:5', textureKey: 'park_flagship_victoria_module06' },
+      { id: '9:9', textureKey: 'park_flagship_victoria_module05' }],
     courts: [{ id: '5:5', textureKey: 'sports_ground_2x2' }],
     temples: [{ id: '7:7', textureKey: 'heritage_temple_2x2' }],
     malls: [{ id: '3:3', modelKey: 'commercialBuilding4-01-H.png' }, { id: '4:4', modelKey: 'commercialBuilding3-01-H.png' }],
@@ -208,23 +210,20 @@ test('新春 layout: the main fair on one Victoria Park pitch, small ones elsewh
   assert.ok(mainCount >= 40, `the main fair is big (${mainCount})`);
   assert.ok(count(peak, (p) => p.stall && p.buildingId === '9:9') < mainCount / 2, 'a smaller one in the other park');
   assert.ok(count(peak, (p) => p.stall && p.buildingId === '5:5') >= 16, 'a court has a proper market');
-  // the main fair spreads over the park's areas, not one pitch, zoned: flowers on the pitch, dry goods on the square
+  // All three west pitches host the market; the east half continues it, without a stage.
   const main = peak.filter((p) => p.stall && p.buildingId === '1:1');
-  assert.ok(new Set(main.map((p) => p.id.split(':')[4])).size >= 4);
-  assert.ok(main.filter((p) => p.id.includes(':pitch:')).every((p) => /Blossoms|Peach|Kumquat|Orchids|Narcissus|Flowers/.test(p.partId)));
-  assert.ok(main.some((p) => p.id.includes(':plaza:') && /Laisee|Couplets|Pinwheels|Toys|Gifts/.test(p.partId)));
-  assert.ok(main.some((p) => p.partId === 'lnyStallSnacks'), 'a row of food stalls');
-  // stalls in a row stand shoulder to shoulder: 2 m apart in the art
-  const spot = FESTIVAL_BUILDING_SPOTS.park_flagship_victoria;
-  const row = main.filter((p) => /:pitch:0:/.test(p.id)).map((p) => p.point);
-  const step = Math.hypot(row[1][0] - row[0][0], row[1][1] - row[0][1]) / spot.pxPerM;
-  assert.ok(Math.abs(step - 2) < 0.15, `${step} m apart`);
-  // fewer in a modest year, more in a grand one
-  const rows = (tier) => getLnyRows(spot.areas.pitch, spot.pxPerM, tier).reduce((n, r) => n + r.v.length, 0);
-  assert.ok(rows('basic') < rows('standard') && rows('standard') <= rows('grand'));
-  assert.equal(count(peak, (p) => p.partId === 'lnyGate'), 1, 'one gate, at the main fair');
-  assert.equal(count(peak, (p) => p.partId === 'lnyStage' && p.mirrored), 1, 'the stage, mirrored');
-  assert.equal(count(peak, (p) => p.buildingId === '7:7'), 3, 'the temple: lions, drum, incense');
+  assert.equal(new Set(main.map((p) => p.marketSlot.field)).size, 3);
+  assert.ok(main.filter((p) => p.marketZone === 'wet').every((p) => /Blossoms|Peach|Kumquat|Orchids|Narcissus|Flowers/.test(p.partId)));
+  assert.ok(main.some((p) => p.marketZone === 'dry' && /Laisee|Couplets|Pinwheels|Toys|Gifts/.test(p.partId)));
+  assert.ok(peak.some((p) => p.stall && p.buildingId === '1:5'), 'the eastern football module participates');
+  const row = main.filter(p => p.marketRow === '1:wet0');
+  assert.equal(row[1].marketSlot.v - row[0].marketSlot.v, 4, 'flower booths are 4m wide');
+  assert.deepEqual(row[0].footprintM, { width: 4, depth: 5 });
+  const stalls = tier => layoutLunarNewYear({ ...base, tier, phase: 'peak' }).filter(p => p.stall).length;
+  assert.ok(stalls('basic') < stalls('standard') && stalls('standard') <= stalls('grand'));
+  assert.equal(count(peak, (p) => p.partId === 'lnyGate'), 2, 'one entrance at each end of the main fair');
+  assert.equal(count(peak, (p) => p.partId === 'lnyStage'), 0, 'the pitches remain market ground');
+  assert.equal(count(peak, (p) => p.buildingId === '7:7'), 1, 'the temple retains incense; lions perform on streets');
   // the player's pick of main venue
   assert.equal(count(layoutLunarNewYear({ ...base, phase: 'peak', mainVenue: '9:9' }), (p) => p.stall && p.buildingId === '9:9'), mainCount);
   // setup: bare tents and trolleys, no temple yet
@@ -235,9 +234,9 @@ test('新春 layout: the main fair on one Victoria Park pitch, small ones elsewh
   const weak = layoutLunarNewYear({ ...base, phase: 'open', soldShare: 0.5 });
   assert.ok(count(weak, (p) => p.stall && !p.sold) > 0 && count(weak, (p) => p.stall && p.sold) > 0);
   assert.ok(weak.filter((p) => p.stall && !p.sold).every((p) => p.partId === 'lnyStallEmpty'));
-  // the morning after: lions at the big malls' doors only
+  // no floating lions on a mall asset when the city has no road route
   const after = layoutLunarNewYear({ ...base, phase: 'after' });
-  assert.deepEqual([...new Set(after.map((p) => p.buildingId))], ['3:3']);
+  assert.deepEqual(after, []);
   assert.equal(layoutLunarNewYear({ ...base, tier: 'skip', phase: 'peak' }).length, 0);
   // every part named is a baked part
   [...peak, ...setup, ...after].forEach((p) => assert.ok(FESTIVAL_PARTS_BY_ID[p.partId], p.partId));
@@ -250,7 +249,7 @@ test('六四: a quiet remembrance on one Victoria Park, people arriving from 19:
   assert.equal(getJune4Presence(21 * 60), 1);
   assert.ok(getJune4Presence(22 * 60 + 15) < 0.6);
   assert.equal(getJune4Presence(22 * 60 + 30), 0);
-  const parks = [{ id: '1:1', textureKey: 'park_flagship_victoria' }, { id: '9:9', textureKey: 'park_flagship_victoria' }];
+  const parks = [{ id: '1:1', textureKey: 'park_flagship_victoria_module05' }, { id: '9:9', textureKey: 'park_flagship_victoria_module05' }];
   const at = (minute, population) => layoutJune4({ parks, minute, population, seed: 's' });
   const full = at(21 * 60, 400000);
   assert.ok(full.every((p) => p.buildingId === '1:1'), 'one park only');

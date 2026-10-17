@@ -1,0 +1,709 @@
+{
+  "version": 1,
+  "projection": "2:1 isometric",
+  "metresPerTile": 20,
+  "grid": {
+    "cols": 2,
+    "rows": 3
+  },
+  "footprint": {
+    "cols": 8,
+    "rows": 12
+  },
+  "metres": {
+    "width": 160,
+    "height": 240
+  },
+  "canonicalGroundCorners": {
+    "left": [
+      8,
+      716
+    ],
+    "front": [
+      512,
+      968
+    ],
+    "right": [
+      1016,
+      716
+    ],
+    "back": [
+      512,
+      464
+    ]
+  },
+  "engineModuleSpanPx": {
+    "width": 400,
+    "height": 200
+  },
+  "assembly": {
+    "width": 2536,
+    "height": 1780,
+    "groundBoundsPx": {
+      "left": 8,
+      "top": 464,
+      "right": 2528,
+      "bottom": 1724
+    },
+    "engineGroundSpanPx": {
+      "width": 1000,
+      "height": 500
+    }
+  },
+  "normalization": {
+    "method": "Affine projection through three measured ground corners; derived back completes the parallelogram; premultiplied-alpha bilinear resampling.",
+    "maxCornerResidualPx": 3,
+    "tilt": "The measured vertical tilt for each module is reported in projection.tiltDegrees.",
+    "foliage": "Preserved above rear boundaries; no diamond clipping."
+  },
+  "modules": [
+    {
+      "id": "module01",
+      "label": "Boat pond and wooded garden",
+      "path": "Models/parks/park4x4/victoriaPark4-module01.png",
+      "width": 1024,
+      "height": 1024,
+      "footprintCols": 4,
+      "footprintRows": 4,
+      "metres": {
+        "width": 80,
+        "height": 80
+      },
+      "groundCorners": {
+        "left": [
+          8,
+          716
+        ],
+        "front": [
+          512,
+          968
+        ],
+        "right": [
+          1016,
+          716
+        ],
+        "back": [
+          512,
+          464
+        ]
+      },
+      "grid": {
+        "row": 0,
+        "col": 0
+      },
+      "assemblyOffsetPx": {
+        "x": 1008,
+        "y": 0
+      },
+      "engineOffsetPx": {
+        "x": 0,
+        "y": 0
+      },
+      "source": "scripts/source-art/victoriaPark/original/module01.png",
+      "sourceSize": {
+        "width": 1254,
+        "height": 1254
+      },
+      "sourceCorners": {
+        "left": [
+          2,
+          841.3
+        ],
+        "front": [
+          627.2,
+          1175.8
+        ],
+        "right": [
+          1251,
+          842
+        ],
+        "back": [
+          625.8,
+          507.5
+        ]
+      },
+      "projection": {
+        "a": 0.8070465840344306,
+        "b": -0.0016906557199586297,
+        "c": -0.0004226639299896291,
+        "d": 0.7541532122243034,
+        "tx": 7.808255489132334,
+        "ty": 81.53174788355363,
+        "tiltDegrees": -0.12844508717866204
+      },
+      "validation": {
+        "mappedCorners": {
+          "left": [
+            8,
+            716
+          ],
+          "front": [
+            511.9999999999999,
+            968.0000000000001
+          ],
+          "right": [
+            1015.9999999999999,
+            716.0000000000001
+          ],
+          "back": [
+            512,
+            464.00000000000017
+          ]
+        },
+        "cornerResidualsPx": {
+          "left": 0,
+          "front": 1.6077746776921858e-13,
+          "right": 1.6077746776921858e-13,
+          "back": 1.7053025658242404e-13
+        },
+        "maxCornerResidualPx": 1.7053025658242404e-13,
+        "frontSlopes": [
+          0.5000000000000003,
+          0.5
+        ],
+        "tiltDegrees": -0.12844508717866204
+      },
+      "geometrySource": "geometry.json"
+    },
+    {
+      "id": "module02",
+      "label": "Bowling greens and playground",
+      "path": "Models/parks/park4x4/victoriaPark4-module02.png",
+      "width": 1024,
+      "height": 1024,
+      "footprintCols": 4,
+      "footprintRows": 4,
+      "metres": {
+        "width": 80,
+        "height": 80
+      },
+      "groundCorners": {
+        "left": [
+          8,
+          716
+        ],
+        "front": [
+          512,
+          968
+        ],
+        "right": [
+          1016,
+          716
+        ],
+        "back": [
+          512,
+          464
+        ]
+      },
+      "grid": {
+        "row": 0,
+        "col": 1
+      },
+      "assemblyOffsetPx": {
+        "x": 1512,
+        "y": 252
+      },
+      "engineOffsetPx": {
+        "x": 200,
+        "y": 100
+      },
+      "source": "scripts/source-art/victoriaPark/original/module02.png",
+      "sourceSize": {
+        "width": 1254,
+        "height": 1254
+      },
+      "sourceCorners": {
+        "left": [
+          6,
+          871.4
+        ],
+        "front": [
+          633,
+          1200.6
+        ],
+        "right": [
+          1249,
+          871
+        ],
+        "back": [
+          622,
+          541.8000000000002
+        ]
+      },
+      "projection": {
+        "a": 0.810936913842691,
+        "b": -0.013540233837689137,
+        "c": 0.0002461860697761521,
+        "d": 0.7650232118294362,
+        "tx": 14.933338283106169,
+        "ty": 49.357296095410675,
+        "tiltDegrees": -1.0139787227853019
+      },
+      "validation": {
+        "mappedCorners": {
+          "left": [
+            8,
+            716
+          ],
+          "front": [
+            512,
+            968
+          ],
+          "right": [
+            1015.9999999999999,
+            716
+          ],
+          "back": [
+            511.99999999999994,
+            464.0000000000001
+          ]
+        },
+        "cornerResidualsPx": {
+          "left": 0,
+          "front": 0,
+          "right": 1.1368683772161603e-13,
+          "back": 1.2710574864626038e-13
+        },
+        "maxCornerResidualPx": 1.2710574864626038e-13,
+        "frontSlopes": [
+          0.5,
+          0.5000000000000001
+        ],
+        "tiltDegrees": -1.0139787227853019
+      },
+      "geometrySource": "geometry.json"
+    },
+    {
+      "id": "module03",
+      "label": "Central lawn and fountain",
+      "path": "Models/parks/park4x4/victoriaPark4-module03.png",
+      "width": 1024,
+      "height": 1024,
+      "footprintCols": 4,
+      "footprintRows": 4,
+      "metres": {
+        "width": 80,
+        "height": 80
+      },
+      "groundCorners": {
+        "left": [
+          8,
+          716
+        ],
+        "front": [
+          512,
+          968
+        ],
+        "right": [
+          1016,
+          716
+        ],
+        "back": [
+          512,
+          464
+        ]
+      },
+      "grid": {
+        "row": 1,
+        "col": 0
+      },
+      "assemblyOffsetPx": {
+        "x": 504,
+        "y": 252
+      },
+      "engineOffsetPx": {
+        "x": -200,
+        "y": 100
+      },
+      "source": "scripts/source-art/victoriaPark/original/module03.png",
+      "sourceSize": {
+        "width": 1254,
+        "height": 1254
+      },
+      "sourceCorners": {
+        "left": [
+          10,
+          831.8
+        ],
+        "front": [
+          624.4,
+          1185.1
+        ],
+        "right": [
+          1243,
+          832.4
+        ],
+        "back": [
+          628.6,
+          479.0999999999999
+        ]
+      },
+      "projection": {
+        "a": 0.8175158815528335,
+        "b": 0.004863408927084953,
+        "c": -0.00034738635193464504,
+        "d": 0.7138789532256684,
+        "tx": -4.220542361077598,
+        "ty": 122.19896057040842,
+        "tiltDegrees": 0.39033017217179183
+      },
+      "validation": {
+        "mappedCorners": {
+          "left": [
+            8,
+            716
+          ],
+          "front": [
+            512,
+            968
+          ],
+          "right": [
+            1016,
+            716.0000000000001
+          ],
+          "back": [
+            512,
+            464
+          ]
+        },
+        "cornerResidualsPx": {
+          "left": 0,
+          "front": 0,
+          "right": 1.1368683772161603e-13,
+          "back": 0
+        },
+        "maxCornerResidualPx": 1.1368683772161603e-13,
+        "frontSlopes": [
+          0.5,
+          0.4999999999999998
+        ],
+        "tiltDegrees": 0.39033017217179183
+      },
+      "geometrySource": "geometry.json"
+    },
+    {
+      "id": "module04",
+      "label": "Tennis courts and swimming pool",
+      "path": "Models/parks/park4x4/victoriaPark4-module04.png",
+      "width": 1024,
+      "height": 1024,
+      "footprintCols": 4,
+      "footprintRows": 4,
+      "metres": {
+        "width": 80,
+        "height": 80
+      },
+      "groundCorners": {
+        "left": [
+          8,
+          716
+        ],
+        "front": [
+          512,
+          968
+        ],
+        "right": [
+          1016,
+          716
+        ],
+        "back": [
+          512,
+          464
+        ]
+      },
+      "grid": {
+        "row": 1,
+        "col": 1
+      },
+      "assemblyOffsetPx": {
+        "x": 1008,
+        "y": 504
+      },
+      "engineOffsetPx": {
+        "x": 0,
+        "y": 200
+      },
+      "source": "scripts/source-art/victoriaPark/original/module04.png",
+      "sourceSize": {
+        "width": 1254,
+        "height": 1254
+      },
+      "sourceCorners": {
+        "left": [
+          18,
+          876.7
+        ],
+        "front": [
+          633.3,
+          1205.9
+        ],
+        "right": [
+          1249,
+          873.4
+        ],
+        "back": [
+          633.7,
+          544.1999999999998
+        ]
+      },
+      "projection": {
+        "a": 0.818847793247861,
+        "b": 0.0004949963991224054,
+        "c": 0.0020418601463790213,
+        "d": 0.7616757091492495,
+        "tx": -7.173223621572112,
+        "ty": 48.20215230621807,
+        "tiltDegrees": 0.037235269827444545
+      },
+      "validation": {
+        "mappedCorners": {
+          "left": [
+            7.999999999999999,
+            716
+          ],
+          "front": [
+            512,
+            968
+          ],
+          "right": [
+            1015.9999999999999,
+            716
+          ],
+          "back": [
+            511.9999999999999,
+            463.99999999999994
+          ]
+        },
+        "cornerResidualsPx": {
+          "left": 8.881784197001252e-16,
+          "front": 0,
+          "right": 1.1368683772161603e-13,
+          "back": 1.2710574864626038e-13
+        },
+        "maxCornerResidualPx": 1.2710574864626038e-13,
+        "frontSlopes": [
+          0.5,
+          0.5000000000000001
+        ],
+        "tiltDegrees": 0.037235269827444545
+      },
+      "geometrySource": "geometry.json"
+    },
+    {
+      "id": "module05",
+      "label": "Football pitches, west",
+      "path": "Models/parks/park4x4/victoriaPark4-module05.png",
+      "width": 1024,
+      "height": 1024,
+      "footprintCols": 4,
+      "footprintRows": 4,
+      "metres": {
+        "width": 80,
+        "height": 80
+      },
+      "groundCorners": {
+        "left": [
+          8,
+          716
+        ],
+        "front": [
+          512,
+          968
+        ],
+        "right": [
+          1016,
+          716
+        ],
+        "back": [
+          512,
+          464
+        ]
+      },
+      "grid": {
+        "row": 2,
+        "col": 0
+      },
+      "assemblyOffsetPx": {
+        "x": 0,
+        "y": 504
+      },
+      "engineOffsetPx": {
+        "x": -400,
+        "y": 200
+      },
+      "source": "scripts/source-art/victoriaPark/original/module05.png",
+      "sourceSize": {
+        "width": 1254,
+        "height": 1254
+      },
+      "sourceCorners": {
+        "left": [
+          14,
+          880.2
+        ],
+        "front": [
+          643.3,
+          1207.4
+        ],
+        "right": [
+          1240,
+          879.2
+        ],
+        "back": [
+          610.7,
+          552
+        ]
+      },
+      "projection": {
+        "a": 0.8221526146999637,
+        "b": -0.040894377844398325,
+        "c": 0.0006272143841165424,
+        "d": 0.7689648349268808,
+        "tx": 32.485094772839915,
+        "ty": 39.14837129598175,
+        "tiltDegrees": -3.044183523925617
+      },
+      "validation": {
+        "mappedCorners": {
+          "left": [
+            7.9999999999999964,
+            716
+          ],
+          "front": [
+            512,
+            967.9999999999999
+          ],
+          "right": [
+            1015.9999999999999,
+            715.9999999999999
+          ],
+          "back": [
+            511.9999999999999,
+            463.99999999999994
+          ]
+        },
+        "cornerResidualsPx": {
+          "left": 3.552713678800501e-15,
+          "front": 1.1368683772161603e-13,
+          "right": 1.6077746776921858e-13,
+          "back": 1.2710574864626038e-13
+        },
+        "maxCornerResidualPx": 1.6077746776921858e-13,
+        "frontSlopes": [
+          0.4999999999999998,
+          0.5000000000000001
+        ],
+        "tiltDegrees": -3.044183523925617
+      },
+      "geometrySource": "geometry.json"
+    },
+    {
+      "id": "module06",
+      "label": "Football, statue and basketball",
+      "path": "Models/parks/park4x4/victoriaPark4-module06.png",
+      "width": 1024,
+      "height": 1024,
+      "footprintCols": 4,
+      "footprintRows": 4,
+      "metres": {
+        "width": 80,
+        "height": 80
+      },
+      "groundCorners": {
+        "left": [
+          8,
+          716
+        ],
+        "front": [
+          512,
+          968
+        ],
+        "right": [
+          1016,
+          716
+        ],
+        "back": [
+          512,
+          464
+        ]
+      },
+      "grid": {
+        "row": 2,
+        "col": 1
+      },
+      "assemblyOffsetPx": {
+        "x": 504,
+        "y": 756
+      },
+      "engineOffsetPx": {
+        "x": -200,
+        "y": 300
+      },
+      "source": "scripts/source-art/victoriaPark/original/module06.png",
+      "sourceSize": {
+        "width": 1254,
+        "height": 1254
+      },
+      "sourceCorners": {
+        "left": [
+          6,
+          821.8
+        ],
+        "front": [
+          617.1,
+          1182.3
+        ],
+        "right": [
+          1246,
+          823.9
+        ],
+        "back": [
+          634.9,
+          463.39999999999986
+        ]
+      },
+      "projection": {
+        "a": 0.8128691402989509,
+        "b": 0.02012668061944812,
+        "c": -0.0011872480140685878,
+        "d": 0.7010416844976347,
+        "tx": -13.417320974856167,
+        "ty": 139.8910671679282,
+        "tiltDegrees": 1.644491624928369
+      },
+      "validation": {
+        "mappedCorners": {
+          "left": [
+            8,
+            716
+          ],
+          "front": [
+            511.99999999999994,
+            967.9999999999999
+          ],
+          "right": [
+            1015.9999999999999,
+            716
+          ],
+          "back": [
+            511.99999999999994,
+            463.9999999999999
+          ]
+        },
+        "cornerResidualsPx": {
+          "left": 0,
+          "front": 1.2710574864626038e-13,
+          "right": 1.1368683772161603e-13,
+          "back": 1.2710574864626038e-13
+        },
+        "maxCornerResidualPx": 1.2710574864626038e-13,
+        "frontSlopes": [
+          0.49999999999999983,
+          0.49999999999999983
+        ],
+        "tiltDegrees": 1.644491624928369
+      },
+      "geometrySource": "geometry.json"
+    }
+  ]
+}

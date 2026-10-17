@@ -1,0 +1,154 @@
+{
+  "modules": {
+    "module01": {
+      "sourceSize": {
+        "width": 1254,
+        "height": 1254
+      },
+      "corners": {
+        "left": [
+          2,
+          841.3
+        ],
+        "front": [
+          627.2,
+          1175.8
+        ],
+        "right": [
+          1251,
+          842
+        ],
+        "back": [
+          625.8,
+          507.5
+        ]
+      },
+      "confident": true
+    },
+    "module02": {
+      "sourceSize": {
+        "width": 1254,
+        "height": 1254
+      },
+      "corners": {
+        "left": [
+          6,
+          871.4
+        ],
+        "front": [
+          633,
+          1200.6
+        ],
+        "right": [
+          1249,
+          871
+        ],
+        "back": [
+          622,
+          541.8000000000002
+        ]
+      },
+      "confident": true
+    },
+    "module03": {
+      "sourceSize": {
+        "width": 1254,
+        "height": 1254
+      },
+      "corners": {
+        "left": [
+          10,
+          831.8
+        ],
+        "front": [
+          624.4,
+          1185.1
+        ],
+        "right": [
+          1243,
+          832.4
+        ],
+        "back": [
+          628.6,
+          479.0999999999999
+        ]
+      },
+      "confident": true
+    },
+    "module04": {
+      "sourceSize": {
+        "width": 1254,
+        "height": 1254
+      },
+      "corners": {
+        "left": [
+          18,
+          876.7
+        ],
+        "front": [
+          633.3,
+          1205.9
+        ],
+        "right": [
+          1249,
+          873.4
+        ],
+        "back": [
+          633.7,
+          544.1999999999998
+        ]
+      },
+      "confident": true
+    },
+    "module05": {
+      "sourceSize": {
+        "width": 1254,
+        "height": 1254
+      },
+      "corners": {
+        "left": [
+          14,
+          880.2
+        ],
+        "front": [
+          643.3,
+          1207.4
+        ],
+        "right": [
+          1240,
+          879.2
+        ],
+        "back": [
+          610.7,
+          552
+        ]
+      },
+      "confident": true
+    },
+    "module06": {
+      "sourceSize": {
+        "width": 1254,
+        "height": 1254
+      },
+      "corners": {
+        "left": [
+          6,
+          821.8
+        ],
+        "front": [
+          617.1,
+          1182.3
+        ],
+        "right": [
+          1246,
+          823.9
+        ],
+        "back": [
+          634.9,
+          463.39999999999986
+        ]
+      },
+      "confident": true
+    }
+  }
+}

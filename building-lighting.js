@@ -1694,13 +1694,12 @@ const BUILDING_LIGHT_HERO_PROFILES = {
     ],
     lamps: [{ x: 0.622, y: 0.835, r: 0.04 }, { x: 0.362, y: 0.832, r: 0.04 }, { x: 0.777, y: 0.704, r: 0.04 }, { x: 0.206, y: 0.707, r: 0.04 }, { x: 0.5, y: 0.771, r: 0.03 }, { x: 0.394, y: 0.696, r: 0.03 }, { x: 0.597, y: 0.693, r: 0.04 }],
   }),
-  park_flagship_victoria: makeBuildingLightProfile({
-    class: 'off',
-    panels: [
-      { c: [[0.15, 0.11], [0.5, 0.28], [0.5, 0.72], [0.15, 0.56]], rows: 12, cols: 5, on: false },
-    ],
-    lamps: [{ x: 0.553, y: 0.931, r: 0.03 }, { x: 0.447, y: 0.925, r: 0.03 }, { x: 0.465, y: 0.806, r: 0.02 }, { x: 0.595, y: 0.831, r: 0.03 }, { x: 0.339, y: 0.866, r: 0.03 }, { x: 0.417, y: 0.831, r: 0.03 }, { x: 0.5, y: 0.85, r: 0.03 }, { x: 0.286, y: 0.758, r: 0.03 }, { x: 0.341, y: 0.73, r: 0.03 }, { x: 0.244, y: 0.785, r: 0.03 }, { x: 0.205, y: 0.725, r: 0.03 }, { x: 0.352, y: 0.657, r: 0.03 }, { x: 0.259, y: 0.625, r: 0.03 }, { x: 0.129, y: 0.697, r: 0.03 }, { x: 0.596, y: 0.641, r: 0.03 }, { x: 0.711, y: 0.696, r: 0.03 }, { x: 0.671, y: 0.592, r: 0.03 }, { x: 0.794, y: 0.658, r: 0.03 }, { x: 0.527, y: 0.568, r: 0.03 }, { x: 0.689, y: 0.831, r: 0.03 }],
-  }),
+  // Replacement modules have different lamps/buildings. Discard the old park's
+  // glow coordinates until each new module has its own calibration.
+  ...Object.fromEntries([
+    'park_flagship_victoria',
+    ...Array.from({ length: 5 }, (_, index) => `park_flagship_victoria_module0${index + 2}`),
+  ].map((key) => [key, makeBuildingLightProfile({ class: 'off', panels: [], lamps: [] })])),
 };
 
 function getBuildingLightClass(record) {

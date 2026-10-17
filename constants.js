@@ -769,7 +769,7 @@ const BUILDING_GROUND_CORNERS = {
   'Models/residential/house2x2/residential2-16-H-HD.png': { left: [212, 991], front: [520.5, 1146.8], right: [807, 999.3] },
   'Models/residential/house2x2/residential2-17-H-HD.png': { left: [232, 1000.6], front: [515.5, 1142.3], right: [791, 1004.6] },
   'Models/residential/house3x3/residential3-05-UH-LD.png': { left: [-82.9, 698.2], front: [516.2, 1001.6], right: [1103.8, 711.6] },
-  'Models/residential/house4x4/residential4-02-M-MD.png': { left: [-43.7, 720.6], front: [529.6, 1003.8], right: [1084, 696.3] },
+  'Models/residential/house4x4/residential4-02-M-MD.png': { left: [22.7, 684.9], front: [497.8, 926], right: [1001, 675] },
   'Models/residential/house5x5/residential5-01-H-MD.png': { left: [21, 717.9], front: [523.7, 966.7], right: [1008, 722.2] },
   'Models/specialSites/2x2/murrayHouse2-01.png': { left: [3, 708.9], front: [521.4, 968.1], right: [1021, 718.3] },
   'Models/specialSites/2x2/tample2-01.png': { left: [21, 718.3], front: [518.2, 966.9], right: [1002, 724.9] },

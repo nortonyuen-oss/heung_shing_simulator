@@ -421,8 +421,8 @@ function shouldRunMonthlyZoneVisualCheck(row, col, tick = city.tick) {
 
 // Residential lot sizes a growth roll may try, largest first, and the ones big enough to need the
 // dedicated block scan below.
-const RESIDENTIAL_LOT_SIZES_LARGEST_FIRST = Object.freeze([10, 8, 5, 4, 3, 2]);
-const LARGE_RESIDENTIAL_LOT_SIZES = Object.freeze([10, 8, 5]);
+const RESIDENTIAL_LOT_SIZES_LARGEST_FIRST = Object.freeze([9, 8, 5, 4, 3, 2]);
+const LARGE_RESIDENTIAL_LOT_SIZES = Object.freeze([9, 8, 5]);
 
 // A 5x5 lot needs 25 contiguous empty tiles, but the per-tile loop below rolls
 // every empty high-density tile independently every tick - by the time a
@@ -435,7 +435,7 @@ const LARGE_RESIDENTIAL_LOT_SIZES = Object.freeze([10, 8, 5]);
 function scanForLargeResidentialLots(scene, qualityContexts) {
   if (city.tick % LARGE_RESIDENTIAL_LOT_SCAN_INTERVAL_TICKS !== 0) return;
   if ((city.demandR ?? 0) <= 0) return;
-  // the estate lots (10x10, 8x8) first, then 5x5: a block big enough for an estate is offered to it
+  // the estate lots (9x9, 8x8) first, then 5x5: a block big enough for an estate is offered to it
   const sizes = LARGE_RESIDENTIAL_LOT_SIZES.filter((size) => hasResidentialModelForFootprint(size));
   if (!sizes.length) return;
 
@@ -839,7 +839,7 @@ function getResidentialLargeSpawnChance(footprintSize, density) {
 }
 
 function getResidentialHouseSetForFootprint(footprintSize) {
-  if (footprintSize === 10) return 'house10x10';
+  if (footprintSize === 9) return 'house9x9';
   if (footprintSize === 8) return 'house8x8';
   if (footprintSize === 5) return 'house5x5';
   if (footprintSize === 4) return 'house4x4';

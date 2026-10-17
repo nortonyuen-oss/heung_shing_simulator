@@ -258,6 +258,7 @@ function createGameApp(options = {}) {
     'residential/house3x3',
     'residential/house4x4',
     'residential/house5x5',
+    'residential/house9x9',
     'commercial/1x1',
     'commercial/2x2',
     'commercial/3x3',

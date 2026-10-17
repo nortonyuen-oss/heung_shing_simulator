@@ -855,6 +855,28 @@ const BUILDING_LIGHT_HERO_PROFILES = {
     ],
     lamps: [{ x: 0.399, y: 0.855, r: 0.05 }, { x: 0.592, y: 0.859, r: 0.05 }, { x: 0.566, y: 0.693, r: 0.04 }, { x: 0.625, y: 0.64, r: 0.04 }, { x: 0.377, y: 0.668, r: 0.04 }, { x: 0.843, y: 0.767, r: 0.05 }, { x: 0.202, y: 0.774, r: 0.05 }, { x: 0.092, y: 0.72, r: 0.05 }, { x: 0.898, y: 0.716, r: 0.05 }],
   }),
+  // residential5-01-H-MD with its front street cut off (9x9, 2026-10-17): the same windows, the lamps still on the lot
+  "residential9-01-H-MD": makeBuildingLightProfile({
+    class: 'res',
+    panels: [
+      { c: [[0.252, 0.4], [0.306, 0.428], [0.307, 0.581], [0.25, 0.556]], rows: 15, cols: 5 },
+      { c: [[0.323, 0.422], [0.397, 0.384], [0.398, 0.547], [0.325, 0.577]], rows: 15, cols: 6 },
+      { c: [[0.467, 0.35], [0.566, 0.304], [0.568, 0.471], [0.465, 0.52]], rows: 15, cols: 6 },
+      { c: [[0.597, 0.363], [0.718, 0.419], [0.716, 0.584], [0.595, 0.537]], rows: 15, cols: 6 },
+    ],
+    lamps: [{ x: 0.636, y: 0.827, r: 0.06 }, { x: 0.799, y: 0.74, r: 0.06 }, { x: 0.097, y: 0.682, r: 0.05 }],
+  }),
+  // residential5-02-H-MD with its front street cut off (9x9, 2026-10-17): the same windows, the lamps still on the lot
+  "residential9-02-H-MD": makeBuildingLightProfile({
+    class: 'res',
+    panels: [
+      { c: [[0.308, 0.445], [0.381, 0.413], [0.384, 0.586], [0.309, 0.626]], rows: 15, cols: 4 },
+      { c: [[0.453, 0.39], [0.539, 0.35], [0.542, 0.52], [0.453, 0.571]], rows: 15, cols: 5 },
+      { c: [[0.59, 0.395], [0.695, 0.438], [0.695, 0.616], [0.588, 0.577]], rows: 15, cols: 4 },
+      { c: [[0.708, 0.447], [0.758, 0.421], [0.76, 0.59], [0.712, 0.615]], rows: 15, cols: 3 },
+    ],
+    lamps: [{ x: 0.399, y: 0.855, r: 0.05 }, { x: 0.592, y: 0.859, r: 0.05 }, { x: 0.566, y: 0.693, r: 0.04 }, { x: 0.625, y: 0.64, r: 0.04 }, { x: 0.377, y: 0.668, r: 0.04 }],
+  }),
   "residential5-03-L-HD": makeBuildingLightProfile({
     class: 'res',
     panels: [

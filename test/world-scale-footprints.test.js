@@ -136,27 +136,28 @@ test('the resized service buildings keep the lights calibrated under their old k
   assert.match(lighting, /spriteKey = BUILDING_LIGHT_KEY_ALIASES\[spriteKey\] \?\? spriteKey;/);
 });
 
-test('the 5x5 estates move to the 8x8 and 10x10 estate lots, which only borrow models', () => {
+test('the 5x5 estates move to the 8x8 (borrowed) and 9x9 (cut) estate lots', () => {
   const sets = houseSets();
   ['residential5-01-H-MD.png', 'residential5-02-H-MD.png', 'residential5-03-L-HD.png'].forEach((file) => {
     assert.ok(sets.house5x5.find((model) => model.sourceFileName === file)?.legacy, `${file} stays 5x5 for saved cities`);
   });
-  assert.deepEqual(Array.from(sets.house10x10, (model) => `${model.sourceFileName}:${model.footprintCols}`),
-    ['residential5-01-H-MD.png:10', 'residential5-02-H-MD.png:10']);
+  assert.deepEqual(Array.from(sets.house9x9, (model) => `${model.sourceFileName}:${model.footprintCols}`),
+    ['residential9-01-H-MD.png:9', 'residential9-02-H-MD.png:9'], 'the YOHO estates, front street cut off');
   assert.deepEqual(Array.from(sets.house8x8, (model) => `${model.sourceFileName}:${model.footprintCols}`),
     ['residential5-03-L-HD.png:8']);
   const catalog = vm.runInContext(`${source('model-catalog.js')}\n;HOUSE_MODEL_SETS`, vm.createContext({}));
   assert.equal(catalog.house8x8.borrowedOnly, true);
-  assert.equal(catalog.house10x10.borrowedOnly, true);
+  assert.equal(catalog.house9x9.borrowedOnly, undefined, '9x9 has its own folder');
   assert.match(source('model-assets.js'), /if \(config\.borrowedOnly\) return createModelEntries\(keyPrefix, \[\], config\);/,
     'no folder listing is requested for a set with no folder');
   const growth = source('sim-growth.js');
-  assert.match(growth, /if \(footprintSize === 10\) return 'house10x10';\n\s+if \(footprintSize === 8\) return 'house8x8';/);
-  assert.match(growth, /RESIDENTIAL_LOT_SIZES_LARGEST_FIRST = Object\.freeze\(\[10, 8, 5, 4, 3, 2\]\)/);
-  assert.match(growth, /LARGE_RESIDENTIAL_LOT_SIZES = Object\.freeze\(\[10, 8, 5\]\)/);
+  assert.match(growth, /if \(footprintSize === 9\) return 'house9x9';\n\s+if \(footprintSize === 8\) return 'house8x8';/);
+  assert.match(growth, /RESIDENTIAL_LOT_SIZES_LARGEST_FIRST = Object\.freeze\(\[9, 8, 5, 4, 3, 2\]\)/);
+  assert.match(growth, /LARGE_RESIDENTIAL_LOT_SIZES = Object\.freeze\(\[9, 8, 5\]\)/);
+  assert.match(source('server.js'), /'residential\/house9x9'/);
   assert.match(growth, /hasResidentialModelForFootprint\(footprintSize\) \{[\s\S]*?!model\.legacy/);
   const chances = vm.runInContext(`${source('constants.js')}\n;RES_LARGE_SPAWN_CHANCE`, vm.createContext({}));
-  assert.ok(chances[3][10] > 0 && chances[3][8] > 0, 'high density grows estates');
+  assert.ok(chances[3][9] > 0 && chances[3][8] > 0, 'high density grows estates');
   assert.equal(chances[1][8], 0, 'low density never does');
 });
 

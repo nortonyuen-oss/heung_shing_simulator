@@ -54,8 +54,9 @@ test('every renamed residential model is catalogued with its wealth tier', () =>
     };
   })()`, context);
 
-  assert.equal(result.files.length, 37);
-  assert.deepEqual({ ...result.tiers }, { L: 9, H: 13, M: 9, UH: 6 });
+  // 39: the two 9x9 YOHO estates (2026-10-17) are the 5x5 art with its front street cut off
+  assert.equal(result.files.length, 39);
+  assert.deepEqual({ ...result.tiers }, { L: 9, H: 15, M: 9, UH: 6 });
   result.files.forEach((fileName) => {
     const set = Object.values(vm.runInContext('HOUSE_MODEL_SETS', context))
       .find((config) => config.preferredFiles.includes(fileName));

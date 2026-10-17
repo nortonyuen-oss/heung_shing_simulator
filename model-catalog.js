@@ -224,7 +224,8 @@ const HOUSE_MODEL_SETS = {
       'residential5-02-H-MD.png',
       'residential5-03-L-HD.png',
     ],
-    // estates drawn at about 32-42 m a tile: 8x8 and 10x10 art (2026-10-17 survey)
+    // estates drawn at about 32-42 m a tile: 8x8 art, and 9x9 once their front street is cut off
+    // (2026-10-17 survey; the 9x9 copies live in house9x9)
     legacyFiles: ['residential5-01-H-MD.png', 'residential5-02-H-MD.png', 'residential5-03-L-HD.png'],
     footprintCols: 5,
     footprintRows: 5,
@@ -243,21 +244,22 @@ const HOUSE_MODEL_SETS = {
     footprintCols: 8,
     footprintRows: 8,
   },
-  house10x10: {
-    label: '10x10',
-    folder: 'Models/residential/house10x10/',
-    apiFolder: 'residential/house10x10',
+  // the two YOHO estates with their painted front street (buses, bus stops, junction) cut off:
+  // 10x10 art less one tile row along each front edge (2026-10-17)
+  house9x9: {
+    label: '9x9',
+    folder: 'Models/residential/house9x9/',
+    apiFolder: 'residential/house9x9',
     modelKind: 'residential',
-    borrowedOnly: true,
     anchorMode: 'effective-bottom-to-map-bottom',
     alphaThreshold: EFFECTIVE_PIXEL_ALPHA_THRESHOLD,
-    preferredFiles: [],
-    borrowedFiles: [
-      { set: 'house5x5', file: 'residential5-01-H-MD.png' },
-      { set: 'house5x5', file: 'residential5-02-H-MD.png' },
+    defaultFile: 'residential9-01-H-MD.png',
+    preferredFiles: [
+      'residential9-01-H-MD.png',
+      'residential9-02-H-MD.png',
     ],
-    footprintCols: 10,
-    footprintRows: 10,
+    footprintCols: 9,
+    footprintRows: 9,
   },
 };
 

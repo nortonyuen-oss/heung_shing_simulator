@@ -48,7 +48,7 @@ test('every renamed commercial model is catalogued with its grade', () => {
     };
   })()`, context);
 
-  // 27: the 9x9 中銀 (2026-10-17) is the 5x5 art with its garden ring cut off
+  // 27: the 中銀 garden cut (commercial/9x9, grown at 5x5) is the 5x5 art with its garden ring cut off
   assert.equal(result.files.length, 27);
   assert.deepEqual({ ...result.tiers }, { L: 7, M: 9, H: 8, UH: 3 });
   result.files.forEach((fileName) => {

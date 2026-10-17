@@ -26,7 +26,7 @@ const LANDMARK_FOLDERS = new Set(
 const SMALL_PROP_MAX_DIMENSION = 256;
 const SMALL_PROP_PREFIXES = ['trafficLight/', 'traffic/lightPost/', 'roadAssessories/'];
 
-// Zone folders whose one model is shown landmark-sized (中銀 at 9x9 draws some 900 px wide at zoom 1).
+// Zone folders whose one model is shown landmark-sized (中銀, the tallest tower: some 500 px wide at zoom 1 on 5x5).
 const LANDMARK_PREFIXES = ['commercial/9x9/'];
 
 function maxDimensionFor(relativeFromModels) {

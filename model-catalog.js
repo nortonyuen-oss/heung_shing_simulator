@@ -373,20 +373,25 @@ const COMMERCIAL_BUILDING_MODEL_SETS = [
     modelKind: 'commercial',
     fallbackSourceFiles: ['commercialBuilding5-01-UH.png'],
     preferredFiles: ['commercialBuilding5-01-UH.png'],
-    // the tower is drawn at about 52 m a tile: its 9x9 cut (below) replaces it (2026-10-17)
+    // the tower is drawn at about 52 m a tile: its garden-cut copy (commercial/9x9) replaces it
     legacyFiles: ['commercialBuilding5-01-UH.png'],
+    // 中銀 the landmark, compressed to about 40 m a tile (2026-10-17): at 9x9 its tower was 2.6
+    // tiles across and dwarfed every commercial neighbour; at 5x5 it is 1.4, as wide as theirs
+    borrowedFiles: [{ set: 'commercial_building_9x9', file: 'commercialBuilding9-01-UH.png' }],
     footprintCols: 5,
     footprintRows: 5,
   },
   {
-    // 中銀: the 5x5 art with its outer garden ring cut off (77% of the lot), shown at 9x9 -
-    // about 22 m a tile, the tower some 52 m across and 315 m to the roof
+    // 中銀: the 5x5 art with its outer garden ring cut off (77% of the lot). Shown at 9x9 it was
+    // true to 22 m a tile, but no other shop tower comes near it; it grows at 5x5 now (above) and
+    // this lot size stays only for the 9x9 中銀s already standing
     keyPrefix: 'commercial_building_9x9',
     folder: 'Models/commercial/9x9/',
     apiFolder: 'commercial/9x9',
     modelKind: 'commercial',
     fallbackSourceFiles: ['commercialBuilding9-01-UH.png'],
     preferredFiles: ['commercialBuilding9-01-UH.png'],
+    legacyFiles: ['commercialBuilding9-01-UH.png'],
     footprintCols: 9,
     footprintRows: 9,
   },

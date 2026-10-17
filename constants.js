@@ -391,9 +391,9 @@ const COMMERCIAL_CATALYST_RADIUS = Object.freeze({ stockExchange: 28, airport: 4
 // matter next to how rarely a clear 4x4/5x5 block exists in a built-up city.
 // Raised across the board, most for the top two sizes.
 const COM_LARGE_SPAWN_CHANCE = {
-  3: { 2: 0.82, 3: 0.64, 4: 0.42, 5: 0.22, 9: 0.12 },
-  2: { 2: 0.70, 3: 0.42, 4: 0.24, 5: 0.10, 9: 0.00 },
-  1: { 2: 0.46, 3: 0.22, 4: 0.10, 5: 0.02, 9: 0.00 },
+  3: { 2: 0.82, 3: 0.64, 4: 0.42, 5: 0.22 },
+  2: { 2: 0.70, 3: 0.42, 4: 0.24, 5: 0.10 },
+  1: { 2: 0.46, 3: 0.22, 4: 0.10, 5: 0.02 },
 };
 const IND_LARGE_SPAWN_CHANCE = {
   3: { 2: 0.65, 3: 0.30 },

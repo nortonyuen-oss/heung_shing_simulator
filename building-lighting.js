@@ -1143,7 +1143,7 @@ const BUILDING_LIGHT_HERO_PROFILES = {
     lamps: [{ x: 0.5, y: 0.9, r: 0.08 }, { x: 0.338, y: 0.819, r: 0.08 }, { x: 0.264, y: 0.764, r: 0.08 }, { x: 0.678, y: 0.793, r: 0.08 }, { x: 0.631, y: 0.688, r: 0.04 }],
     christmasWalls: [{"asset":"Models/festivals/Christmas/buildingDeco/BuildingDeco1.png","c":[[0.4135,0.7014],[0.496,0.7414],[0.4998,0.8428],[0.4141,0.8013]]}],
   }),
-  // 中銀 9x9: commercialBuilding5-01-UH's windows, lamps on the kept lot and Christmas wall, moved to the cut art's packaged layout (2026-10-17)
+  // 中銀 (garden cut, 5x5; 9x9 legacy): commercialBuilding5-01-UH's windows, lamps on the kept lot and Christmas wall, moved to the cut art's packaged layout (2026-10-17)
   "commercialBuilding9-01-UH": makeBuildingLightProfile({
     class: 'off',
     panels: [

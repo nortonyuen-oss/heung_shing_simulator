@@ -79,6 +79,7 @@ const FESTIVAL_BUILDING_SPOTS = Object.freeze({
     ['4x4', 'commercialBuilding4-01-H.png', [422, 832], 'christmasTree'],      // the atrium mall's plaza
     ['4x4', 'commercialBuilding4-02-H.png', [320, 768], 'christmasTree'],
     ['5x5', 'commercialBuilding5-01-UH.png', [420, 1080], 'christmasTree'],
+    ['9x9', 'commercialBuilding9-01-UH.png', [310, 852], 'christmasTree'],     // 中銀 garden cut: before the entrance canopy
   ].map(([size, file, door, christmas]) => [file, Object.freeze({
     path: `Models/commercial/${size}/${file}`,
     spots: Object.freeze({ door: Object.freeze(door) }),

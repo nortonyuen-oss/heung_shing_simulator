@@ -493,7 +493,8 @@ function shouldRunMonthlyZoneVisualCheck(row, col, tick = city.tick) {
 // dedicated block scan below.
 const RESIDENTIAL_LOT_SIZES_LARGEST_FIRST = Object.freeze([9, 8, 5, 4, 3, 2]);
 const LARGE_RESIDENTIAL_LOT_SIZES = Object.freeze([9, 8, 5]);
-const LARGE_COMMERCIAL_LOT_SIZES = Object.freeze([9]);
+// none since 中銀 went back to 5x5 (2026-10-17); ready for a tall-tower tier
+const LARGE_COMMERCIAL_LOT_SIZES = Object.freeze([]);
 
 // A 5x5 lot needs 25 contiguous empty tiles, but the per-tile loop below rolls
 // every empty high-density tile independently every tick - by the time a
@@ -548,7 +549,7 @@ function clearEstateLotHolds() {
 // Large lots need a block of contiguous empty tiles, but the per-tile loop rolls every empty tile
 // independently every tick - by the time a would-be large anchor gets its own roll, the block has
 // usually grown smaller buildings first. This pass runs once a month over EVERY empty
-// high-density tile (residential: 9x9 / 8x8 estates, then 5x5; commercial: 9x9) and gives the
+// high-density tile (residential: 9x9 / 8x8 estates, then 5x5; commercial: LARGE_COMMERCIAL_LOT_SIZES) and gives the
 // largest lot that fits its roll. An open estate-sized block that misses is held from piecemeal
 // growth for ESTATE_LOT_HOLD_MONTHS so the estate gets more rolls.
 function scanForLargeResidentialLots(scene, qualityContexts) {
@@ -1046,7 +1047,7 @@ function chooseNonResidentialFootprint(
       : 1;
   }
 
-  const candidates = zone === ZONE_COM ? [9, 5, 4, 3, 2] : [3, 2];
+  const candidates = zone === ZONE_COM ? [5, 4, 3, 2] : [3, 2];
   const commercialDemandBoost = zone === ZONE_COM
     ? getCommercialProsperityBoost() * clamp(0.95 + Math.max(0, city.demandC) * 0.35 + landScore * 0.15, 0.95, 1.45)
     : 1;

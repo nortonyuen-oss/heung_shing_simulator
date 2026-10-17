@@ -440,8 +440,8 @@ test('the 5x5 commercial model is exposed to the catalog and growth system', () 
   const server = fs.readFileSync(path.join(ROOT, 'server.js'), 'utf8');
   const growth = fs.readFileSync(path.join(ROOT, 'sim-growth.js'), 'utf8');
   assert.match(server, /'commercial\/5x5'/);
-  // 9x9 first since 2026-10-17: the 中銀 cut of this art (commercial/9x9)
-  assert.match(growth, /\[9,\s*5,\s*4,\s*3,\s*2\]/);
+  // the 中銀 garden cut (commercial/9x9, a 9x9 lot 2026-10-17, back on 5x5 the same day)
+  assert.match(growth, /\[5,\s*4,\s*3,\s*2\]/);
   assert.match(server, /'commercial\/9x9'/);
 });
 

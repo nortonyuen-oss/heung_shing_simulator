@@ -245,7 +245,7 @@ test('estate lots: every anchor scanned monthly, open blocks held, each estate i
   assert.doesNotMatch(scan, /SHARD_COUNT/, 'no longer one tile in eight a month');
   assert.match(scan, /holdEstateLot\(r, c, size\)/);
   assert.match(scan, /isEstateLotDistrictAllowed\(size, tier\)/);
-  assert.match(scan, /zone === ZONE_COM \? commercialSizes/, 'the 9x9 中銀 grows from the same scan');
+  assert.match(scan, /zone === ZONE_COM \? commercialSizes/, 'commercial large lots (none for now) share the scan');
   assert.match(growth, /if \(isEstateLotHeld\(id\)\) return;/, 'piecemeal growth waits on a held block');
   assert.match(growth, /isEstateLotDistrictAllowed\(footprintSize, siteFactors\?\.wealthDistrictTier\)/);
   assert.match(source('city-state.js'), /clearEstateLotHolds\(\)/, 'holds end with the city');
@@ -274,17 +274,33 @@ test('estate lots: every anchor scanned monthly, open blocks held, each estate i
   assert.equal(held('12:12', 49), true, 'a year on it may be held again');
 });
 
-test('中銀 is the 9x9 cut of the 5x5 art; the 5x5 original stays for saved cities', () => {
-  const catalog = vm.runInContext(`${source('model-catalog.js')}\n;COMMERCIAL_BUILDING_MODEL_SETS`, vm.createContext({}));
-  const five = catalog.find((set) => set.footprintCols === 5);
-  const nine = catalog.find((set) => set.footprintCols === 9);
-  assert.deepEqual(Array.from(five.legacyFiles), ['commercialBuilding5-01-UH.png']);
-  assert.deepEqual(Array.from(nine.preferredFiles), ['commercialBuilding9-01-UH.png']);
-  assert.ok(fs.existsSync(path.join(ROOT, nine.folder, 'commercialBuilding9-01-UH.png')));
+test('中銀 is the garden cut of its art at 5x5, as wide as its neighbours; 9x9 and the original stay for saved cities', () => {
+  const context = vm.createContext({});
+  vm.runInContext(source('model-catalog.js'), context, { filename: 'model-catalog.js' });
+  vm.runInContext(sliceFunctions('model-assets.js', 'sortModelFiles', 'createModelEntries'), context);
+  Object.assign(context, {
+    DEFAULT_BUILDING_ANCHOR_MODE: 'bottom',
+    resolveModelAssetPath: (value) => value,
+    getManifestZoneModelMetadata: () => null,
+    getCommercialTierFromFileName: () => 'UH',
+  });
+  const sets = vm.runInContext(`Object.fromEntries(COMMERCIAL_BUILDING_MODEL_SETS.map((config) => [
+    config.footprintCols, createModelEntries(config.keyPrefix, sortModelFiles(config.preferredFiles, config), config),
+  ]))`, context);
+  const describe = (models) => Array.from(models, (m) => `${m.logicalPath}:${m.footprintCols}:${m.legacy ? 'legacy' : 'grows'}`);
+  assert.deepEqual(describe(sets[5]), [
+    'Models/commercial/5x5/commercialBuilding5-01-UH.png:5:legacy',
+    'Models/commercial/9x9/commercialBuilding9-01-UH.png:5:grows',
+  ]);
+  assert.deepEqual(describe(sets[9]), ['Models/commercial/9x9/commercialBuilding9-01-UH.png:9:legacy']);
+  assert.equal(sets[5][1].assetId, 'zone:commercial/5x5/commercialBuilding9-01-UH.png', 'saved by the lot it stands on');
   assert.match(source('sim-growth.js'), /if \(m\.legacy\) return false;/, 'the commercial picker skips legacy art');
+  assert.match(source('sim-growth.js'), /LARGE_COMMERCIAL_LOT_SIZES = Object\.freeze\(\[\]\)/, 'no 9x9 commercial lots');
   assert.match(source('scripts/prepare-release-assets.js'), /LANDMARK_PREFIXES = \['commercial\/9x9\/'\]/, 'staged at 1024');
   const chances = vm.runInContext(`${source('constants.js')}\n;COM_LARGE_SPAWN_CHANCE`, vm.createContext({}));
-  assert.ok(chances[3][9] > 0 && chances[2][9] === 0 && chances[1][9] === 0, 'high density only');
+  assert.ok([1, 2, 3].every((level) => chances[level][9] === undefined && chances[level][5] > 0));
+  const venues = vm.runInContext(`${source('festival-venues.js')}\n;FESTIVAL_BUILDING_SPOTS`, vm.createContext({}));
+  assert.ok(venues['commercialBuilding9-01-UH.png']?.spots.door, 'a Christmas tree before its entrance');
 });
 
 test('nuclear plant 12x12 with five times the output; plants built at 4x4 keep size, output and upkeep', () => {

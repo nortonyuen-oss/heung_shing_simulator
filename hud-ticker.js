@@ -242,6 +242,14 @@ function buildTickerNewsCandidates() {
     items.push(...buildAiTickerCandidates());
   }
 
+  // 都市更新: buildings still on a lot size from before 一格 20m (sim-growth.js)
+  if (typeof countLegacyFootprintBuildings === 'function') {
+    const legacy = countLegacyFootprintBuildings();
+    if (legacy.homes > 0) items.push({ id: 'urban-renewal-homes', weight: 6, text: t('news.headline.urbanRenewalHomes', { city: cityName, count: String(legacy.homes) }) });
+    if (legacy.schools > 0) items.push({ id: 'urban-renewal-schools', weight: 5, text: t('news.headline.urbanRenewalSchools', { city: cityName, count: String(legacy.schools) }) });
+    if (legacy.hospitals > 0) items.push({ id: 'urban-renewal-hospitals', weight: 5, text: t('news.headline.urbanRenewalHospitals', { city: cityName, count: String(legacy.hospitals) }) });
+  }
+
   if (higherEdu >= 80) {
     items.push({
       id: 'higher-edu-global100',

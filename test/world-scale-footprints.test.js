@@ -181,3 +181,47 @@ test('zoned land builds up to 100 m (five tiles) from a road, a large lot from a
   assert.equal(vm.runInContext('hasRoadNearFootprint(0, 0, 10, 10)', context), false);
   assert.equal(vm.runInContext(`${source('constants.js')}\n;ZONE_ROAD_ACCESS_TILES`, vm.createContext({})), 5);
 });
+
+test('都市更新: a legacy-model building is now and then rebuilt as a current model of the same lot', () => {
+  const growth = source('sim-growth.js');
+  const start = growth.indexOf('const LEGACY_MODEL_RENEWAL_CHANCE_PER_MONTH');
+  const end = growth.indexOf('\n}\n', growth.indexOf('function renewLegacyModelBuildings(')) + 3;
+  const legacy2x2 = { key: 'house2x2_9', legacy: true, footprintCols: 2, footprintRows: 2 };
+  const current2x2 = { key: 'house2x2_1', footprintCols: 2, footprintRows: 2, wealthTier: 'H' };
+  const current3x3 = { key: 'house3x3_9', footprintCols: 3, footprintRows: 3 };
+  const swaps = [];
+  const context = vm.createContext({
+    TICKS_PER_MONTH: 4, DENSITY_LOW: 1, city: { tick: 8 }, zoneDensityMap: [],
+    buildingData: {
+      '1:1': { type: 'residential', spriteKey: 'house2x2_9', footprintCols: 2, footprintRows: 2, wealthTier: 'H' },
+      '5:5': { type: 'residential', spriteKey: 'house2x2_1', footprintCols: 2, footprintRows: 2 },
+      '9:9': { type: 'primary_school', spriteKey: 'primary_school_2x2' },
+    },
+    getHouseModelBySpriteKey: (key) => ({ house2x2_9: legacy2x2, house2x2_1: current2x2 })[key] ?? null,
+    getServiceBuildingModelBySpriteKey: (key) => (key === 'primary_school_2x2' ? { legacy: true } : null),
+    getResidentialHouseSetForFootprint: (size) => `house${size}x${size}`,
+    getRandomHouseModel: (setKey) => (setKey === 'house2x2' ? current2x2 : current3x3),
+    swapZoneBuildingModel: (scene, id, record, model) => { swaps.push([id, model.key]); return true; },
+  });
+  vm.runInContext(growth.slice(start, end) + sliceFunctions('sim-growth.js', 'countLegacyFootprintBuildings', 'countLegacyFootprintBuildings'), context);
+  assert.equal(vm.runInContext('LEGACY_MODEL_RENEWAL_CHANCE_PER_MONTH', context), 0.03);
+  assert.deepEqual({ ...vm.runInContext('countLegacyFootprintBuildings()', context) }, { homes: 1, schools: 1, hospitals: 0 });
+  assert.equal(vm.runInContext('renewLegacyModelBuildings({}, null, () => 0.5)', context), 0, 'the roll decides');
+  assert.equal(vm.runInContext('renewLegacyModelBuildings({}, null, () => 0)', context), 1);
+  assert.deepEqual(swaps.map((s) => Array.from(s)), [['1:1', 'house2x2_1']], 'only the legacy home, onto a model of its own lot size');
+  context.city.tick = 9;
+  assert.equal(vm.runInContext('renewLegacyModelBuildings({}, null, () => 0)', context), 0, 'once a month');
+  assert.match(growth, /step\('legacyRenewal', \(\) => renewLegacyModelBuildings\(scene, ctx\.qualityContexts\)\);/);
+  assert.match(growth, /function tryRedecoratePremiumBuilding[\s\S]*?swapZoneBuildingModel\(scene, id, record, newModel\);/, 'one swap routine');
+});
+
+test('the ticker suggests 都市更新 while old-plan buildings stand, in every language', () => {
+  const ticker = source('hud-ticker.js');
+  ['urbanRenewalHomes', 'urbanRenewalSchools', 'urbanRenewalHospitals'].forEach((key) => assert.match(ticker, new RegExp(`news\\.headline\\.${key}`)));
+  assert.match(ticker, /countLegacyFootprintBuildings\(\)/);
+  const i18n = source('i18n.js');
+  ['urbanRenewalHomes', 'urbanRenewalSchools', 'urbanRenewalHospitals'].forEach((key) => {
+    assert.equal((i18n.match(new RegExp(`'news\\.headline\\.${key}': '[^']*\\{count\\}[^']*'`, 'g')) || []).length, 3, `${key} in en, zhHant and ja`);
+  });
+  assert.match(i18n, /【市區重建】市建局/);
+});

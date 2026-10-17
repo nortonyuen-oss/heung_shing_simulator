@@ -337,10 +337,16 @@ function tryRedecoratePremiumBuilding(
     newModel = getRandomCommercialBuildingModel(fp, fpr, factors.quality, true, density, factors);
   }
   if (!newModel || newModel.key === record.spriteKey) return;
-  if (!scene.textures.exists(newModel.key)) return;
+  swapZoneBuildingModel(scene, id, record, newModel);
+}
+
+// Shows another model of the same lot size on a standing zone building, keeping its lot, level
+// and population. False when the new model's art is not loaded yet.
+function swapZoneBuildingModel(scene, id, record, newModel) {
+  if (!scene.textures.exists(newModel.key)) return false;
 
   const sprite = scene.buildingSprites.get(id);
-  if (!sprite) return;
+  if (!sprite) return false;
 
   const meta = newModel.metadata ?? {};
 
@@ -388,6 +394,71 @@ function tryRedecoratePremiumBuilding(
   record.anchorMode = meta.anchorMode ?? record.anchorMode;
   if (newModel.wealthTier) record.wealthTier = newModel.wealthTier;
   if (newModel.commercialTier) record.commercialTier = newModel.commercialTier;
+  return true;
+}
+
+// 都市更新: a building standing on a legacy model (drawn for another lot size, model-catalog.js
+// legacyFiles - only saved cities have them) is now and then rebuilt as a current model of the
+// SAME lot size, so an old city drifts onto the 20 m standard (docs/world-scale.md) without its
+// lots, levels or population changing. About half are renewed in two game years at 3% a month.
+const LEGACY_MODEL_RENEWAL_CHANCE_PER_MONTH = 0.03;
+
+function getZoneModelForRecord(record) {
+  if (!record?.spriteKey) return null;
+  if (record.type === 'residential' && typeof getHouseModelBySpriteKey === 'function') return getHouseModelBySpriteKey(record.spriteKey);
+  if (record.type === 'commercial' && typeof getCommercialBuildingModelBySpriteKey === 'function') return getCommercialBuildingModelBySpriteKey(record.spriteKey);
+  if (record.type === 'industrial' && typeof getIndustrialBuildingModelBySpriteKey === 'function') return getIndustrialBuildingModelBySpriteKey(record.spriteKey);
+  return null;
+}
+
+function pickRenewalModel(record, row, col, qualityContexts) {
+  const size = Math.max(record.footprintCols ?? 1, record.footprintRows ?? 1);
+  const density = record.density ?? (zoneDensityMap[row]?.[col] ?? DENSITY_LOW);
+  if (record.type === 'residential') {
+    const setKey = getResidentialHouseSetForFootprint(size);
+    const factors = qualityContexts?.residential ? getResidentialSiteFactors(row, col, size, qualityContexts.residential) : null;
+    const quality = factors?.quality ?? 0.5;
+    // the same wealth tier where the lot size has one, so a street keeps its character
+    return getRandomHouseModel(setKey, quality, false, density, factors, record.wealthTier ?? null)
+      ?? getRandomHouseModel(setKey, quality, false, density, factors);
+  }
+  if (record.type === 'commercial') {
+    const factors = qualityContexts?.commercial ? getCommercialSiteFactors(row, col, size, qualityContexts.commercial) : null;
+    return getRandomCommercialBuildingModel(record.footprintCols ?? size, record.footprintRows ?? size, factors?.quality ?? 0.5, false, density, factors);
+  }
+  if (record.type === 'industrial') return getRandomIndustrialBuildingModel(record.footprintCols ?? size, record.footprintRows ?? size);
+  return null;
+}
+
+// Buildings still on a lot size from before 一格 20m, for the 都市更新 ticker headlines:
+// homes/shops/factories (renewed by themselves, slowly) and the schools and hospitals that only
+// the player can rebuild (constants.js LEGACY_SERVICE_BUILDING_MODELS).
+function countLegacyFootprintBuildings(records = buildingData) {
+  const counts = { homes: 0, schools: 0, hospitals: 0 };
+  Object.values(records || {}).forEach((record) => {
+    if (!record) return;
+    if (getZoneModelForRecord(record)?.legacy) counts.homes += 1;
+    else if (typeof getServiceBuildingModelBySpriteKey === 'function' && getServiceBuildingModelBySpriteKey(record.spriteKey)?.legacy) {
+      if (record.type === 'hospital') counts.hospitals += 1;
+      else if (record.type === 'primary_school' || record.type === 'secondary_school') counts.schools += 1;
+    }
+  });
+  return counts;
+}
+
+function renewLegacyModelBuildings(scene, qualityContexts, random = Math.random) {
+  if (city.tick % TICKS_PER_MONTH !== 0) return 0;
+  let renewed = 0;
+  Object.entries(buildingData).forEach(([id, record]) => {
+    if (!getZoneModelForRecord(record)?.legacy || random() >= LEGACY_MODEL_RENEWAL_CHANCE_PER_MONTH) return;
+    const [row, col] = id.split(':').map(Number);
+    const model = pickRenewalModel(record, row, col, qualityContexts);
+    if (!model || model.legacy || model.key === record.spriteKey) return;
+    if (model.footprintCols !== (record.footprintCols ?? 1) || model.footprintRows !== (record.footprintRows ?? 1)) return;
+    if (swapZoneBuildingModel(scene, id, record, model)) renewed += 1;
+    else if (typeof requestZoneModelTexture === 'function') requestZoneModelTexture(scene, model);
+  });
+  return renewed;
 }
 
 const LARGE_RESIDENTIAL_LOT_SCAN_INTERVAL_TICKS = TICKS_PER_MONTH;
@@ -570,6 +641,7 @@ function buildZoneGrowthSteps(scene) {
   });
   step('largeLots', () => scanForLargeResidentialLots(scene, ctx.qualityContexts));
   step('estateUpgrades', () => scanForLowDensityEstateUpgrades(scene, ctx.qualityContexts));
+  step('legacyRenewal', () => renewLegacyModelBuildings(scene, ctx.qualityContexts));
   // The tile list is read when the chunk runs (it is cached and may be invalidated by the
   // steps before it); each chunk walks its own slice.
   const tileCount = getZoneGrowthTiles().length;

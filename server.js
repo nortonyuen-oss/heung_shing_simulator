@@ -264,6 +264,7 @@ function createGameApp(options = {}) {
     'commercial/3x3',
     'commercial/4x4',
     'commercial/5x5',
+    'commercial/9x9',
     'industrial/1x1',
     'industrial/2x2',
     'industrial/3x3',

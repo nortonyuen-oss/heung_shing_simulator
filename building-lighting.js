@@ -1143,6 +1143,18 @@ const BUILDING_LIGHT_HERO_PROFILES = {
     lamps: [{ x: 0.5, y: 0.9, r: 0.08 }, { x: 0.338, y: 0.819, r: 0.08 }, { x: 0.264, y: 0.764, r: 0.08 }, { x: 0.678, y: 0.793, r: 0.08 }, { x: 0.631, y: 0.688, r: 0.04 }],
     christmasWalls: [{"asset":"Models/festivals/Christmas/buildingDeco/BuildingDeco1.png","c":[[0.4135,0.7014],[0.496,0.7414],[0.4998,0.8428],[0.4141,0.8013]]}],
   }),
+  // 中銀 9x9: commercialBuilding5-01-UH's windows, lamps on the kept lot and Christmas wall, moved to the cut art's packaged layout (2026-10-17)
+  "commercialBuilding9-01-UH": makeBuildingLightProfile({
+    class: 'off',
+    panels: [
+      { c: [[0.396, 0.601], [0.494, 0.509], [0.491, 0.877], [0.401, 0.824]], rows: 12, cols: 12 },
+      { c: [[0.411, 0.274], [0.498, 0.309], [0.496, 0.5], [0.415, 0.471]], rows: 8, cols: 9 },
+      { c: [[0.5, 0.314], [0.585, 0.285], [0.588, 0.481], [0.503, 0.524]], rows: 11, cols: 7 },
+      { c: [[0.504, 0.53], [0.586, 0.489], [0.581, 0.833], [0.496, 0.881]], rows: 11, cols: 8 },
+    ],
+    lamps: [{ x: 0.5, y: 0.946, r: 0.094 }, { x: 0.31, y: 0.851, r: 0.094 }, { x: 0.224, y: 0.786, r: 0.094 }, { x: 0.709, y: 0.82, r: 0.094 }, { x: 0.654, y: 0.697, r: 0.047 }],
+    christmasWalls: [{"asset":"Models/festivals/Christmas/buildingDeco/BuildingDeco1.png","c":[[0.399, 0.713],[0.496, 0.76],[0.5, 0.879],[0.4, 0.83]]}],
+  }),
   "industrialBuilding1-01": makeBuildingLightProfile({
     class: 'ind',
     panels: [

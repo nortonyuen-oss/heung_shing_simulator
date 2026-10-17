@@ -225,3 +225,51 @@ test('the ticker suggests 都市更新 while old-plan buildings stand, in every 
   });
   assert.match(i18n, /【市區重建】市建局/);
 });
+
+test('estate lots: every anchor scanned monthly, open blocks held, each estate in its own districts', () => {
+  const growth = source('sim-growth.js');
+  const scan = growth.slice(growth.indexOf('function scanForLargeResidentialLots('), growth.indexOf('\n}\n', growth.indexOf('function scanForLargeResidentialLots(')));
+  assert.doesNotMatch(scan, /SHARD_COUNT/, 'no longer one tile in eight a month');
+  assert.match(scan, /holdEstateLot\(r, c, size\)/);
+  assert.match(scan, /isEstateLotDistrictAllowed\(size, tier\)/);
+  assert.match(scan, /zone === ZONE_COM \? commercialSizes/, 'the 9x9 中銀 grows from the same scan');
+  assert.match(growth, /if \(isEstateLotHeld\(id\)\) return;/, 'piecemeal growth waits on a held block');
+  assert.match(growth, /isEstateLotDistrictAllowed\(footprintSize, siteFactors\?\.wealthDistrictTier\)/);
+  assert.match(source('city-state.js'), /clearEstateLotHolds\(\)/, 'holds end with the city');
+
+  const constants = vm.runInContext(`${source('constants.js')}\n;({ ESTATE_LOT_DISTRICTS, ESTATE_LOT_HOLD_MONTHS, ESTATE_LOT_HOLD_COOLDOWN_MONTHS, TICKS_PER_MONTH })`, vm.createContext({}));
+  assert.deepEqual(Array.from(constants.ESTATE_LOT_DISTRICTS[8]), ['commoner', 'middleClass'], '公屋');
+  assert.deepEqual(Array.from(constants.ESTATE_LOT_DISTRICTS[9]), ['middleClass', 'wealthy'], 'YOHO');
+
+  const context = vm.createContext({ ...constants, city: { tick: 0 }, getTileId: (r, c) => `${r}:${c}` });
+  // the helpers and the two Maps between them, as one slice
+  vm.runInContext(sliceFunctions('sim-growth.js', 'isEstateLotDistrictAllowed', 'clearEstateLotHolds'), context);
+  const allowed = (size, tier) => vm.runInContext(`isEstateLotDistrictAllowed(${size}, ${JSON.stringify(tier)})`, context);
+  assert.equal(allowed(8, 'commoner'), true);
+  assert.equal(allowed(8, 'wealthy'), false);
+  assert.equal(allowed(9, 'commoner'), false);
+  assert.equal(allowed(9, 'wealthy'), true);
+  assert.equal(allowed(5, 'ultraRich'), true, 'other sizes untouched');
+  const held = (id, tick) => vm.runInContext(`isEstateLotHeld('${id}', ${tick})`, context);
+  vm.runInContext('holdEstateLot(10, 10, 8, 0)', context);
+  assert.equal(held('17:17', 1), true, 'the whole block');
+  assert.equal(held('18:18', 1), false);
+  assert.equal(held('12:12', 8), false, 'two months, then piecemeal growth may go on');
+  vm.runInContext('holdEstateLot(10, 10, 8, 12)', context);
+  assert.equal(held('12:12', 13), false, 'not held again within the cooldown');
+  vm.runInContext('holdEstateLot(10, 10, 8, 48)', context);
+  assert.equal(held('12:12', 49), true, 'a year on it may be held again');
+});
+
+test('中銀 is the 9x9 cut of the 5x5 art; the 5x5 original stays for saved cities', () => {
+  const catalog = vm.runInContext(`${source('model-catalog.js')}\n;COMMERCIAL_BUILDING_MODEL_SETS`, vm.createContext({}));
+  const five = catalog.find((set) => set.footprintCols === 5);
+  const nine = catalog.find((set) => set.footprintCols === 9);
+  assert.deepEqual(Array.from(five.legacyFiles), ['commercialBuilding5-01-UH.png']);
+  assert.deepEqual(Array.from(nine.preferredFiles), ['commercialBuilding9-01-UH.png']);
+  assert.ok(fs.existsSync(path.join(ROOT, nine.folder, 'commercialBuilding9-01-UH.png')));
+  assert.match(source('sim-growth.js'), /if \(m\.legacy\) return false;/, 'the commercial picker skips legacy art');
+  assert.match(source('scripts/prepare-release-assets.js'), /LANDMARK_PREFIXES = \['commercial\/9x9\/'\]/, 'staged at 1024');
+  const chances = vm.runInContext(`${source('constants.js')}\n;COM_LARGE_SPAWN_CHANCE`, vm.createContext({}));
+  assert.ok(chances[3][9] > 0 && chances[2][9] === 0 && chances[1][9] === 0, 'high density only');
+});

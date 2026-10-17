@@ -255,6 +255,17 @@ const RES_LARGE_SPAWN_CHANCE = {
   2: { 3: 0.20, 4: 0.10, 5: 0.05, 8: 0.04, 9: 0.02 },
   1: { 3: 0.10, 4: 0.00, 5: 0.00, 8: 0.00, 9: 0.00 },
 };
+// The wealth districts (sim-wealth-districts.js) an estate lot may grow in: the 8x8 public estate
+// where ordinary people live, the 9x9 private estates (YOHO) where they can afford it.
+const ESTATE_LOT_DISTRICTS = Object.freeze({
+  8: Object.freeze(['commoner', 'middleClass']),
+  9: Object.freeze(['middleClass', 'wealthy']),
+});
+// An open block big enough for an estate is held from small piecemeal growth this long after the
+// estate scan first finds it, so the estate gets its rolls; the same block is not held again for
+// ESTATE_LOT_HOLD_COOLDOWN_MONTHS.
+const ESTATE_LOT_HOLD_MONTHS = 2;
+const ESTATE_LOT_HOLD_COOLDOWN_MONTHS = 12;
 // Zoned land develops when a road lies within this many tiles (100 m at 20 m a tile; Chebyshev
 // distance). For a multi-tile lot, any of its tiles may be the one near the road.
 const ZONE_ROAD_ACCESS_TILES = 5;
@@ -380,9 +391,9 @@ const COMMERCIAL_CATALYST_RADIUS = Object.freeze({ stockExchange: 28, airport: 4
 // matter next to how rarely a clear 4x4/5x5 block exists in a built-up city.
 // Raised across the board, most for the top two sizes.
 const COM_LARGE_SPAWN_CHANCE = {
-  3: { 2: 0.82, 3: 0.64, 4: 0.42, 5: 0.22 },
-  2: { 2: 0.70, 3: 0.42, 4: 0.24, 5: 0.10 },
-  1: { 2: 0.46, 3: 0.22, 4: 0.10, 5: 0.02 },
+  3: { 2: 0.82, 3: 0.64, 4: 0.42, 5: 0.22, 9: 0.12 },
+  2: { 2: 0.70, 3: 0.42, 4: 0.24, 5: 0.10, 9: 0.00 },
+  1: { 2: 0.46, 3: 0.22, 4: 0.10, 5: 0.02, 9: 0.00 },
 };
 const IND_LARGE_SPAWN_CHANCE = {
   3: { 2: 0.65, 3: 0.30 },

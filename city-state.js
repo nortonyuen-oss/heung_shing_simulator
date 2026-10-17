@@ -259,6 +259,7 @@ const city = {
 };
 
 function resetGameState() {
+  if (typeof clearEstateLotHolds === 'function') clearEstateLotHolds();
   if (typeof stopCoastalWeatherSession === 'function') stopCoastalWeatherSession();
   city.coastalWeather = null;
   if (typeof resetExpansionState === 'function') resetExpansionState();

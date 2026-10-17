@@ -373,8 +373,22 @@ const COMMERCIAL_BUILDING_MODEL_SETS = [
     modelKind: 'commercial',
     fallbackSourceFiles: ['commercialBuilding5-01-UH.png'],
     preferredFiles: ['commercialBuilding5-01-UH.png'],
+    // the tower is drawn at about 52 m a tile: its 9x9 cut (below) replaces it (2026-10-17)
+    legacyFiles: ['commercialBuilding5-01-UH.png'],
     footprintCols: 5,
     footprintRows: 5,
+  },
+  {
+    // 中銀: the 5x5 art with its outer garden ring cut off (77% of the lot), shown at 9x9 -
+    // about 22 m a tile, the tower some 52 m across and 315 m to the roof
+    keyPrefix: 'commercial_building_9x9',
+    folder: 'Models/commercial/9x9/',
+    apiFolder: 'commercial/9x9',
+    modelKind: 'commercial',
+    fallbackSourceFiles: ['commercialBuilding9-01-UH.png'],
+    preferredFiles: ['commercialBuilding9-01-UH.png'],
+    footprintCols: 9,
+    footprintRows: 9,
   },
 ];
 

@@ -462,7 +462,6 @@ function renewLegacyModelBuildings(scene, qualityContexts, random = Math.random)
 }
 
 const LARGE_RESIDENTIAL_LOT_SCAN_INTERVAL_TICKS = TICKS_PER_MONTH;
-const LARGE_RESIDENTIAL_LOT_SCAN_SHARD_COUNT = 8;
 
 function runZoneGrowthProfiledStep(scene, section, action) {
   const shouldProfile = (
@@ -494,6 +493,7 @@ function shouldRunMonthlyZoneVisualCheck(row, col, tick = city.tick) {
 // dedicated block scan below.
 const RESIDENTIAL_LOT_SIZES_LARGEST_FIRST = Object.freeze([9, 8, 5, 4, 3, 2]);
 const LARGE_RESIDENTIAL_LOT_SIZES = Object.freeze([9, 8, 5]);
+const LARGE_COMMERCIAL_LOT_SIZES = Object.freeze([9]);
 
 // A 5x5 lot needs 25 contiguous empty tiles, but the per-tile loop below rolls
 // every empty high-density tile independently every tick - by the time a
@@ -503,39 +503,92 @@ const LARGE_RESIDENTIAL_LOT_SIZES = Object.freeze([9, 8, 5]);
 // blocks before that per-tile scan runs each cycle, so 5x5 isn't starved out
 // by its own neighbours. Throttled and sharded like the commercial merge scan
 // (shouldScanCommercialMergeTile) to keep the extra per-tick cost low.
+// 屋苑 lots (ESTATE_LOT_DISTRICTS): an 8x8 or 9x9 estate only in the districts that fit it. A tier
+// not listed (or no district known) leaves other sizes alone.
+function isEstateLotDistrictAllowed(size, districtTier) {
+  const allowed = typeof ESTATE_LOT_DISTRICTS !== 'undefined' ? ESTATE_LOT_DISTRICTS[size] : null;
+  return !allowed || !districtTier || allowed.includes(districtTier);
+}
+
+// Open blocks held for an estate: tile id -> tick the hold ends; anchor id -> tick it was first held.
+const estateLotHolds = new Map();
+const estateLotHeldAnchors = new Map();
+
+function isEstateLotHeld(id, tick = city.tick) {
+  const until = estateLotHolds.get(id);
+  if (until === undefined) return false;
+  if (tick < until) return true;
+  estateLotHolds.delete(id);
+  return false;
+}
+
+function holdEstateLot(r, c, size, tick = city.tick) {
+  const anchor = getTileId(r, c);
+  const first = estateLotHeldAnchors.get(anchor);
+  const cooldown = (typeof ESTATE_LOT_HOLD_COOLDOWN_MONTHS === 'number' ? ESTATE_LOT_HOLD_COOLDOWN_MONTHS : 12) * TICKS_PER_MONTH;
+  if (first !== undefined && tick - first < cooldown) {
+    // still inside the first hold of this block: nothing to add; after it, no new hold until cooldown
+    return;
+  }
+  estateLotHeldAnchors.set(anchor, tick);
+  const until = tick + (typeof ESTATE_LOT_HOLD_MONTHS === 'number' ? ESTATE_LOT_HOLD_MONTHS : 2) * TICKS_PER_MONTH;
+  for (let dr = 0; dr < size; dr++) {
+    for (let dc = 0; dc < size; dc++) {
+      const id = getTileId(r + dr, c + dc);
+      estateLotHolds.set(id, Math.max(until, estateLotHolds.get(id) ?? 0));
+    }
+  }
+}
+
+function clearEstateLotHolds() {
+  estateLotHolds.clear();
+  estateLotHeldAnchors.clear();
+}
+
+// Large lots need a block of contiguous empty tiles, but the per-tile loop rolls every empty tile
+// independently every tick - by the time a would-be large anchor gets its own roll, the block has
+// usually grown smaller buildings first. This pass runs once a month over EVERY empty
+// high-density tile (residential: 9x9 / 8x8 estates, then 5x5; commercial: 9x9) and gives the
+// largest lot that fits its roll. An open estate-sized block that misses is held from piecemeal
+// growth for ESTATE_LOT_HOLD_MONTHS so the estate gets more rolls.
 function scanForLargeResidentialLots(scene, qualityContexts) {
   if (city.tick % LARGE_RESIDENTIAL_LOT_SCAN_INTERVAL_TICKS !== 0) return;
-  if ((city.demandR ?? 0) <= 0) return;
-  // the estate lots (9x9, 8x8) first, then 5x5: a block big enough for an estate is offered to it
-  const sizes = LARGE_RESIDENTIAL_LOT_SIZES.filter((size) => hasResidentialModelForFootprint(size));
-  if (!sizes.length) return;
+  const residentialSizes = (city.demandR ?? 0) > 0
+    ? LARGE_RESIDENTIAL_LOT_SIZES.filter((size) => hasResidentialModelForFootprint(size)) : [];
+  const commercialSizes = (city.demandC ?? 0) > 0
+    ? LARGE_COMMERCIAL_LOT_SIZES.filter((size) => hasNonResidentialBuildingModelForFootprint(ZONE_COM, size, 0.5, DENSITY_HIGH, null))
+    : [];
+  if (!residentialSizes.length && !commercialSizes.length) return;
 
-  // Shard on the month index, not the raw tick: this scan only ever runs on
-  // ticks that are multiples of TICKS_PER_MONTH, so keying the shard on
-  // city.tick directly only ever reaches 2 of the 8 buckets (city.tick % 8
-  // can only land on 0 or TICKS_PER_MONTH). The month index advances by 1
-  // every time the scan runs, so it cycles through all 8 shards over 8
-  // consecutive months as intended.
-  const monthIndex = Math.floor(city.tick / LARGE_RESIDENTIAL_LOT_SCAN_INTERVAL_TICKS);
   for (const { row: r, col: c, id } of getZoneGrowthTiles()) {
-    if (((r * 37 + c * 17 + monthIndex) % LARGE_RESIDENTIAL_LOT_SCAN_SHARD_COUNT) !== 0) continue;
-    if (zoneMap[r]?.[c] !== ZONE_RES || zoneDensityMap[r]?.[c] !== DENSITY_HIGH) continue;
+    if (zoneDensityMap[r]?.[c] !== DENSITY_HIGH) continue;
+    const zone = zoneMap[r]?.[c];
+    const sizes = zone === ZONE_RES ? residentialSizes : zone === ZONE_COM ? commercialSizes : null;
+    if (!sizes?.length) continue;
     if (scene.buildingSprites.has(id)) continue;
 
-    const landScore = getZoneGrowthLandScore(r, c, ZONE_RES, qualityContexts.landValueMap);
+    const landScore = getZoneGrowthLandScore(r, c, zone, qualityContexts.landValueMap);
     for (const size of sizes) {
       if (!hasRoadNearFootprint(r, c, size, size)) continue;
-      if (!canPlaceResidentialFootprint(scene, r, c, size)) continue;
-      const chance = Math.min(
-        0.95,
-        getResidentialLargeSpawnChance(size, DENSITY_HIGH) * getLargeLotSpawnBoost(landScore, size),
-      );
+      if (!canPlaceZoneBuildingFootprint(scene, r, c, zone, size, size)) continue;
+      if (zone === ZONE_RES && size >= 8) {
+        const tier = qualityContexts.residential
+          ? getResidentialSiteFactors(r, c, size, qualityContexts.residential).wealthDistrictTier : null;
+        if (!isEstateLotDistrictAllowed(size, tier)) continue;
+      }
+      const base = zone === ZONE_RES
+        ? getResidentialLargeSpawnChance(size, DENSITY_HIGH)
+        : getNonResidentialLargeSpawnChance(ZONE_COM, size, DENSITY_HIGH);
+      const chance = Math.min(0.95, base * getLargeLotSpawnBoost(landScore, size));
       if (Math.random() < chance) {
-        spawnZoneBuilding(scene, r, c, ZONE_RES, 1, DENSITY_HIGH, {
+        spawnZoneBuilding(scene, r, c, zone, 1, DENSITY_HIGH, {
           forceFootprint: size,
           landScore,
           residentialQualityContext: qualityContexts.residential,
+          commercialQualityContext: qualityContexts.commercial,
         });
+      } else if (size >= 8) {
+        holdEstateLot(r, c, size);
       }
       break;  // the largest lot that fits had its roll
     }
@@ -688,7 +741,8 @@ function growZoneTile(scene, { row: r, col: c, id }, ctx) {
   const runMonthlyVisualCheck = shouldRunMonthlyZoneVisualCheck(r, c);
 
   if (!hasBldg) {
-    // Grow a new building
+    // Grow a new building - unless the block is held for an estate (scanForLargeResidentialLots)
+    if (isEstateLotHeld(id)) return;
     if (hasRoad && demand > 0 && Math.random() < demand * GROW_CHANCE_BASE * powerMul * densityMul * growthLandMul) {
       spawnZoneBuilding(scene, r, c, zone, 1, density, {
         landScore,
@@ -946,6 +1000,7 @@ function chooseResidentialFootprint(scene, r, c, density, optionsOverride = {}, 
     const largeLotBoost = getLargeLotSpawnBoost(siteFactors?.quality ?? 0.5, footprintSize);
     const adjustedChance = Math.min(0.95, chance * largeLotBoost);
     if (adjustedChance <= 0 || Math.random() >= adjustedChance) continue;
+    if (!isEstateLotDistrictAllowed(footprintSize, siteFactors?.wealthDistrictTier)) continue;
     if (!hasResidentialModelForFootprint(footprintSize)) continue;
     if (canPlaceResidentialFootprint(scene, r, c, footprintSize)) {
       return { size: footprintSize, forceWealthTier: null };
@@ -991,7 +1046,7 @@ function chooseNonResidentialFootprint(
       : 1;
   }
 
-  const candidates = zone === ZONE_COM ? [5, 4, 3, 2] : [3, 2];
+  const candidates = zone === ZONE_COM ? [9, 5, 4, 3, 2] : [3, 2];
   const commercialDemandBoost = zone === ZONE_COM
     ? getCommercialProsperityBoost() * clamp(0.95 + Math.max(0, city.demandC) * 0.35 + landScore * 0.15, 0.95, 1.45)
     : 1;
@@ -2054,6 +2109,7 @@ function getRandomCommercialBuildingModel(
 ) {
   const all = Array.isArray(commercialBuildingModels) ? commercialBuildingModels : [];
   const valid = all.filter((m) => {
+    if (m.legacy) return false;  // kept only for buildings already standing (model-catalog.js legacyFiles)
     if (!m.metadata || m.metadata.scale <= 0.05) return false;
     if (!isSelectableZoneModelTexture(m)) return false;
     if (footprintCols !== null && m.footprintCols !== footprintCols) return false;

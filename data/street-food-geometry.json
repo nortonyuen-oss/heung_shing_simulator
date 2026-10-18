@@ -31,9 +31,9 @@
         459
       ],
       "display": {
-        "scale": 0.013956310679611651,
+        "scale": 0.020318021201413426,
         "anchorM": 2.3,
-        "anchorAxis": "along (counter length)"
+        "anchorAxis": "along (counter long side)"
       },
       "projection": {
         "kind": "body-cage",
@@ -290,9 +290,9 @@
         449
       ],
       "display": {
-        "scale": 0.014631043256997456,
+        "scale": 0.02327935222672064,
         "anchorM": 2.3,
-        "anchorAxis": "along (counter length)"
+        "anchorAxis": "along (counter long side)"
       },
       "projection": {
         "kind": "body-cage",
@@ -549,9 +549,9 @@
         431
       ],
       "display": {
-        "scale": 0.014339152119700748,
+        "scale": 0.021798686714067032,
         "anchorM": 2.3,
-        "anchorAxis": "along (frame length)"
+        "anchorAxis": "along (batch mates' counter long side)"
       },
       "projection": {
         "c": -0.07414448669201523,
@@ -2958,9 +2958,9 @@
         1059
       ],
       "display": {
-        "scale": 0.005083996463306808,
+        "scale": 0.0066244239631336405,
         "anchorM": 2.3,
-        "anchorAxis": "along (counter length)"
+        "anchorAxis": "along (counter long side)"
       },
       "projection": {
         "kind": "body-cage",
@@ -3217,9 +3217,9 @@
         1055
       ],
       "display": {
-        "scale": 0.005088495575221239,
+        "scale": 0.007116336633663366,
         "anchorM": 2.3,
-        "anchorAxis": "along (counter length)"
+        "anchorAxis": "along (counter long side)"
       },
       "projection": {
         "kind": "body-cage",
@@ -3476,9 +3476,9 @@
         1082
       ],
       "display": {
-        "scale": 0.005143112701252236,
+        "scale": 0.007241813602015114,
         "anchorM": 2.3,
-        "anchorAxis": "along (counter length)"
+        "anchorAxis": "along (counter long side)"
       },
       "projection": {
         "kind": "body-cage",
@@ -3735,9 +3735,9 @@
         1133
       ],
       "display": {
-        "scale": 0.005434782608695652,
+        "scale": 0.007409793814432989,
         "anchorM": 2.3,
-        "anchorAxis": "along (counter length)"
+        "anchorAxis": "along (counter long side)"
       },
       "projection": {
         "kind": "body-cage",
@@ -3994,9 +3994,9 @@
         1140
       ],
       "display": {
-        "scale": 0.004995655951346655,
+        "scale": 0.006804733727810651,
         "anchorM": 2.3,
-        "anchorAxis": "along (counter length)"
+        "anchorAxis": "along (counter long side)"
       },
       "projection": {
         "kind": "body-cage",
@@ -4253,9 +4253,9 @@
         1066
       ],
       "display": {
-        "scale": 0.005732801595214357,
+        "scale": 0.007823129251700681,
         "anchorM": 2.3,
-        "anchorAxis": "along (counter length)"
+        "anchorAxis": "along (counter long side)"
       },
       "projection": {
         "kind": "body-cage",
@@ -4512,9 +4512,9 @@
         1088
       ],
       "display": {
-        "scale": 0.004944110060189166,
+        "scale": 0.006662804171494786,
         "anchorM": 2.3,
-        "anchorAxis": "along (counter length)"
+        "anchorAxis": "along (counter long side)"
       },
       "projection": {
         "kind": "body-cage",
@@ -4771,9 +4771,9 @@
         1111
       ],
       "display": {
-        "scale": 0.004965457685664939,
+        "scale": 0.0069277108433734936,
         "anchorM": 2.3,
-        "anchorAxis": "along (counter length)"
+        "anchorAxis": "along (counter long side)"
       },
       "projection": {
         "kind": "body-cage",
@@ -5030,9 +5030,9 @@
         1210
       ],
       "display": {
-        "scale": 0.005465779467680608,
+        "scale": 0.007605820105820105,
         "anchorM": 2.3,
-        "anchorAxis": "along (counter length)"
+        "anchorAxis": "along (counter long side)"
       },
       "projection": {
         "kind": "body-cage",

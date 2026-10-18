@@ -10,7 +10,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
 const {
-  groundAnchorFromAlpha, displayScaleFor, pointsSpanX,
+  groundAnchorFromAlpha, displayScaleFor, pointsSpanX, cornerEdgesPx, ROAST_CHESTNUT_BATCH_MATES,
   STREET_FOOD_PX_PER_METRE_ALONG, STREET_FOOD_TRUE_PX_PER_METRE_UP, CART_LENGTH_M, FURNITURE_IDS,
 } = require('../scripts/prepare-street-food-assets.js');
 
@@ -41,16 +41,32 @@ test('groundAnchorFromAlpha averages the lowest visible row, ignoring faint and 
   assert.equal(groundAnchorFromAlpha(new Uint8Array(w * h * 4), w, h), null, 'fully transparent has no anchor');
 });
 
-test('displayScaleFor anchors a cart to its counter length, a table to its diameter, by id for the rest - one scale each', () => {
-  // the counter's two painted rail lines span the cart's length; X is never rescaled by the
-  // rectification, so that span is a ground-plane length at the tile's own ALONG rate
-  const bodyCage = displayScaleFor({ kind: 'body-cage', id: 'curryFishball', top: { down: [[10, 50], [110, 100]], up: [[110, 100], [410, -50]] } }, {});
-  assert.equal(bodyCage.scale, (CART_LENGTH_M * 2.5) / 400);
-  assert.match(bodyCage.anchorAxis, /counter length/);
+test('cornerEdgesPx splits a corner into its long and short sides, not the span across both', () => {
+  // 你邏輯都有些少問題: the X span over both lines is long + short side, not the length
+  const edges = cornerEdgesPx([[10, 50], [110, 100]], [[110, 100], [410, -50]]);
+  near(edges.frontX, 110);
+  near(edges.longPx, 300);
+  near(edges.shortPx, 100);
+  // segments that stop short of the corner still meet at it
+  const partial = cornerEdgesPx([[20, 55], [60, 75]], [[200, 55], [410, -50]]);
+  near(partial.frontX, 110);
+  near(partial.longPx, 300);
+  near(partial.shortPx, 90);
+});
+
+test('displayScaleFor anchors a cart to its counter long side, a table to its diameter, by id for the rest - one scale each', () => {
+  const fishball = { kind: 'body-cage', id: 'curryFishball', top: { down: [[10, 50], [110, 100]], up: [[110, 100], [410, -50]] } };
+  const bodyCage = displayScaleFor(fishball, {});
+  assert.equal(bodyCage.scale, (CART_LENGTH_M * 2.5) / 300);
+  assert.match(bodyCage.anchorAxis, /long side/);
   assert.equal(bodyCage.scaleX, undefined, 'one uniform scale: a raster scaled unevenly is no longer isometric');
 
-  const roastChestnut = displayScaleFor({ kind: 'axes', id: 'roastChestnut', axes: { down: [[0, 0], [200, 100]], up: [[200, 100], [380, 10]] } }, {});
-  near(roastChestnut.scale, (CART_LENGTH_M * 2.5) / 380);
+  // roastChestnut's own lines sit on its stove frame: it takes its batch mates' mean scale
+  assert.deepEqual(ROAST_CHESTNUT_BATCH_MATES, ['curryFishball', 'friedSnacks']);
+  const friedSnacks = { kind: 'body-cage', id: 'friedSnacks', top: { down: [[0, 0], [100, 50]], up: [[100, 50], [300, -50]] } };
+  const roastChestnut = displayScaleFor({ kind: 'axes', id: 'roastChestnut', axes: {} }, {}, [fishball, friedSnacks]);
+  near(roastChestnut.scale, ((CART_LENGTH_M * 2.5) / 300 + (CART_LENGTH_M * 2.5) / 200) / 2);
+  assert.throws(() => displayScaleFor({ kind: 'axes', id: 'roastChestnut', axes: {} }, {}, [fishball]), /batch mates/);
 
   const table = displayScaleFor({ kind: 'ellipse', id: 'roundTableCream', ellipse: { width: 280 } }, {});
   assert.equal(table.scale, (1.0 * 2.5) / 280);
@@ -78,12 +94,11 @@ test('the rebuilt geometry gives every cart a mirror and a ground anchor, furnit
       assert.deepEqual(asset.mirror.groundAnchor, [w - 1 - asset.groundAnchor[0], asset.groundAnchor[1]]);
     }
   }
-  // every cart's measured counter span draws exactly 2.3 m long at the tile's ALONG rate
+  // every body-cage cart's counter long side draws exactly 2.3 m at the tile's ALONG rate
   const spec = JSON.parse(fs.readFileSync(path.join(ROOT, 'scripts/source-art/streetFood/isometric-calibration.json'), 'utf8'));
-  for (const asset of manifest.assets.filter((a) => !FURNITURE_IDS.includes(a.id))) {
+  for (const asset of manifest.assets.filter((a) => a.kind === 'body-cage')) {
     const source = spec.assets.find((a) => a.id === asset.id);
-    const points = source.kind === 'body-cage' ? [...source.top.down, ...source.top.up] : Object.values(source.axes).flat();
-    near(pointsSpanX(points) * asset.display.scale, CART_LENGTH_M * STREET_FOOD_PX_PER_METRE_ALONG, 1e-9);
+    near(cornerEdgesPx(source.top.down, source.top.up).longPx * asset.display.scale, CART_LENGTH_M * STREET_FOOD_PX_PER_METRE_ALONG, 1e-9);
   }
 });
 

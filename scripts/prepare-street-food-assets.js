@@ -36,13 +36,20 @@ const escapeXml = (s) => String(s).replace(/[<>&"']/g, (c) => ({ '<': '&lt;', '>
 const STREET_FOOD_PX_PER_METRE_ALONG = 2.5; // FESTIVAL_PX_PER_METRE_ALONG - true tile-grid rate
 const STREET_FOOD_TRUE_PX_PER_METRE_UP = STREET_FOOD_PX_PER_METRE_ALONG * (Math.cos(Math.PI / 6) / Math.cos(Math.PI / 4)); // ~3.0619
 // 然後大小應該縮成圖片既30%試試，你睇吓1:20既比例應該要架手推車（紅色線）多長 (Norton): a real dai
-// pai dong cart's own body (the counter's painted span - roughly its chassis length, not counting
-// the handlebar reaching back beyond it) reads about 2.3 m - the same figure the fishball cart's
-// very first calibration settled on. Measured on the counter's own two rail lines (the X span
-// between fitBodyCage's top.down/top.up, car never rescaled by this pipeline's own rectification -
-// mapPoint returns x unchanged - so it is already a ground-plane quantity in both source and output
-// px); roastChestnut (no body-cage top/lower pair) uses its own axes' span the same way.
+// pai dong cart's counter is about 2.3 m long on its LONG side - the fishball cart's very first
+// calibration measured that same long edge. The counter's two rail lines run along the two
+// different ground axes (top.down one side, top.up the other); a side's length is the X run from
+// their meeting front corner to that line's far end, at 2.5 px a metre (a tile edge is 20 m over
+// 50 px of X). X is never rescaled by this pipeline's rectification (mapPoint returns x unchanged),
+// so source and output agree. 你邏輯都有些少問題 (Norton, 2026-10-18): the first cut took the X
+// span across BOTH lines - long side plus short side - as the length, drawing every cart at ~70%.
+// With the long side at 2.3 m the counters land 0.64-1.02 m off the ground (mean ~0.8 m), which is
+// Norton's 0.8-0.9 m front-wheel-to-counter figure.
 const CART_LENGTH_M = 2.3;
+// roastChestnut (kind: axes): its two measured lines are short segments on the stove frame, not
+// the counter's sides (they read a 0.38 m "short side"), so its corner cannot be trusted for a
+// length. It was painted on the same sheet as these two at the same zoom, so it takes their mean.
+const ROAST_CHESTNUT_BATCH_MATES = ['curryFishball', 'friedSnacks'];
 // 檯凳 (street-food-market-design.md "街邊圓檯與摺凳"): a small hawker folding table and the
 // stools/packed stacks that go with it - already anchored to a ground-plane span at the true ALONG
 // rate, unaffected by the cart height mistake above.
@@ -54,6 +61,17 @@ const FURNITURE_IDS = ['roundTableCream', 'roundTableMint', 'foldingStoolRed', '
 function pointsSpanX(points) {
   const xs = points.map(([x]) => x);
   return Math.max(...xs) - Math.min(...xs);
+}
+
+// The two ground-axis sides of a corner drawn by two measured lines (each [[x,y],[x,y]], one with a
+// positive slope, one negative): where they meet, and how far each runs in X from there.
+function cornerEdgesPx(lineA, lineB) {
+  const fit = ([[x1, y1], [x2, y2]]) => { const m = (y2 - y1) / (x2 - x1); return { m, c: y1 - m * x1 }; };
+  const a = fit(lineA), b = fit(lineB);
+  const frontX = (b.c - a.c) / (a.m - b.m);
+  const run = (line) => Math.max(...line.map(([x]) => Math.abs(x - frontX)));
+  const edges = [run(lineA), run(lineB)].sort((p, q) => q - p);
+  return { frontX, longPx: edges[0], shortPx: edges[1] };
 }
 
 // A cart/furniture piece's own ground-contact point in OUTPUT pixels: the mean X of alpha>=128
@@ -73,14 +91,16 @@ function groundAnchorFromAlpha(data, width, height) {
 
 // scale: output px -> screen px at zoom 1, one scalar for both axes (model-metadata.js's building
 // scale and festival-sprites.js's part scale are both a single number this same way).
-function displayScaleFor(asset, projection) {
+function displayScaleFor(asset, projection, allAssets = []) {
   if (asset.kind === 'body-cage') {
-    const lengthPx = pointsSpanX([...asset.top.down, ...asset.top.up]);
-    return { scale: (CART_LENGTH_M * STREET_FOOD_PX_PER_METRE_ALONG) / lengthPx, anchorM: CART_LENGTH_M, anchorAxis: 'along (counter length)' };
+    const { longPx } = cornerEdgesPx(asset.top.down, asset.top.up);
+    return { scale: (CART_LENGTH_M * STREET_FOOD_PX_PER_METRE_ALONG) / longPx, anchorM: CART_LENGTH_M, anchorAxis: 'along (counter long side)' };
   }
   if (asset.id === 'roastChestnut') {
-    const lengthPx = pointsSpanX(Object.values(asset.axes).flat());
-    return { scale: (CART_LENGTH_M * STREET_FOOD_PX_PER_METRE_ALONG) / lengthPx, anchorM: CART_LENGTH_M, anchorAxis: 'along (frame length)' };
+    const mates = ROAST_CHESTNUT_BATCH_MATES.map((id) => allAssets.find((a) => a.id === id)).filter(Boolean);
+    if (mates.length !== ROAST_CHESTNUT_BATCH_MATES.length) throw new Error('roastChestnut: batch mates missing');
+    const scale = mates.reduce((sum, mate) => sum + displayScaleFor(mate, null).scale, 0) / mates.length;
+    return { scale, anchorM: CART_LENGTH_M, anchorAxis: 'along (batch mates\' counter long side)' };
   }
   if (asset.kind === 'ellipse') {
     return { scale: (TABLE_DIAMETER_M * STREET_FOOD_PX_PER_METRE_ALONG) / asset.ellipse.width, anchorM: TABLE_DIAMETER_M, anchorAxis: 'along (tabletop diameter)' };
@@ -221,7 +241,7 @@ async function main() {
     const png = await sharp(output, { raw: { width: projection.width, height: projection.height, channels: 4 } }).png({ compressionLevel: 9 }).toBuffer();
     const groundAnchor = groundAnchorFromAlpha(output, projection.width, projection.height);
     assert(groundAnchor, `${asset.id}: no visible ground contact found`);
-    const display = displayScaleFor(asset, projection);
+    const display = displayScaleFor(asset, projection, spec.assets);
     const record = { id: asset.id, label: asset.label, kind: asset.kind, reference: asset.reference, confidence: asset.confidence, note: asset.note || '', sourcePath: asset.source, sourceSha256: source.hash, sourceCrop: crop, outputPath: `Models/streetFood/sf_${asset.id}.png`, outputSize: [projection.width, projection.height], outputSha256: hash(png), groundAnchor, display, projection: JSON.parse(JSON.stringify(projection)), guideLines: guides, validation };
     // 車仔檔模型要做2方向既mirror (Norton 2026-10-18): the 12 carts get a horizontally flopped
     // twin for the stall facing the other way along a venue edge; furniture does not need one
@@ -270,6 +290,7 @@ async function main() {
 if (require.main === module) main().catch((error) => { console.error(error.stack || error.message); process.exitCode = 1; });
 
 module.exports = {
-  cropPixels, fitAsset, guidesFor, validate, groundAnchorFromAlpha, displayScaleFor, pointsSpanX,
+  cropPixels, fitAsset, guidesFor, validate, groundAnchorFromAlpha, displayScaleFor, pointsSpanX, cornerEdgesPx,
+  ROAST_CHESTNUT_BATCH_MATES,
   STREET_FOOD_PX_PER_METRE_ALONG, STREET_FOOD_TRUE_PX_PER_METRE_UP, CART_LENGTH_M, FURNITURE_IDS,
 };

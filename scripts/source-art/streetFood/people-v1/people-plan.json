@@ -1,0 +1,221 @@
+{
+  "version": 1,
+  "tool": "built-in imagegen",
+  "projectionTarget": "ground height:width 1:2 isometric, matched to street-food props",
+  "poseSet": "static",
+  "seatedSourceAnchors": {
+    "seatedMan": [414, 376],
+    "seatedWoman": [742, 388],
+    "seatedElderMan": [1204, 421],
+    "seatedElderWoman": [295, 889],
+    "seatedBoy": [827, 850],
+    "seatedGirl": [1240, 856]
+  },
+  "seatedAnchorMethod": "Manual approximate pelvis underside; uncertainty about 15-25 source pixels. Placement proposals only, not calibrated seat contacts.",
+  "packs": [
+    {
+      "id": "hawkers",
+      "label": "四位檔主",
+      "grid": [
+        2,
+        2
+      ],
+      "sourcePath": "scripts/source-art/streetFood/people-v1/hawkers.png",
+      "promptPath": "scripts/source-art/streetFood/people-v1/hawkers-prompt.md",
+      "people": [
+        {
+          "id": "hawkerAunt",
+          "label": "豐滿阿姐",
+          "heightM": 1.6,
+          "role": "hawker"
+        },
+        {
+          "id": "hawkerUncle",
+          "label": "背心大肚腩阿叔",
+          "heightM": 1.72,
+          "role": "hawker"
+        },
+        {
+          "id": "hawkerGranny",
+          "label": "阿婆檔主",
+          "heightM": 1.5,
+          "role": "hawker"
+        },
+        {
+          "id": "hawkerYoungMan",
+          "label": "瘦削後生仔",
+          "heightM": 1.76,
+          "role": "hawker"
+        }
+      ]
+    },
+    {
+      "id": "standing-diners",
+      "label": "站立食客",
+      "grid": [
+        4,
+        2
+      ],
+      "sourcePath": "scripts/source-art/streetFood/people-v1/standing-diners.png",
+      "promptPath": "scripts/source-art/streetFood/people-v1/standing-diners-prompt.md",
+      "people": [
+        {
+          "id": "dinerFather",
+          "label": "家庭・爸爸",
+          "heightM": 1.74,
+          "role": "diner-family"
+        },
+        {
+          "id": "dinerMother",
+          "label": "家庭・媽媽",
+          "heightM": 1.62,
+          "role": "diner-family"
+        },
+        {
+          "id": "dinerBoy",
+          "label": "家庭・男孩",
+          "heightM": 1.22,
+          "role": "diner-family"
+        },
+        {
+          "id": "dinerGirl",
+          "label": "家庭・女孩",
+          "heightM": 1.08,
+          "role": "diner-family"
+        },
+        {
+          "id": "dinerCoupleMan",
+          "label": "情侶・男",
+          "heightM": 1.73,
+          "role": "diner-couple"
+        },
+        {
+          "id": "dinerCoupleWoman",
+          "label": "情侶・女",
+          "heightM": 1.62,
+          "role": "diner-couple"
+        },
+        {
+          "id": "dinerElderMan",
+          "label": "老夫妻・伯伯",
+          "heightM": 1.66,
+          "role": "diner-elderly"
+        },
+        {
+          "id": "dinerElderWoman",
+          "label": "老夫妻・婆婆",
+          "heightM": 1.52,
+          "role": "diner-elderly"
+        }
+      ]
+    },
+    {
+      "id": "seated-diners",
+      "label": "坐低食嘢人物",
+      "grid": [
+        3,
+        2
+      ],
+      "sourcePath": "scripts/source-art/streetFood/people-v1/seated-diners.png",
+      "promptPath": "scripts/source-art/streetFood/people-v1/seated-diners-prompt.md",
+      "people": [
+        {
+          "id": "seatedMan",
+          "label": "坐食・阿叔",
+          "heightM": 1.72,
+          "seatedHipHeightM": 0.45,
+          "role": "seated",
+          "facing": "sw"
+        },
+        {
+          "id": "seatedWoman",
+          "label": "坐食・女士",
+          "heightM": 1.62,
+          "seatedHipHeightM": 0.45,
+          "role": "seated",
+          "facing": "se"
+        },
+        {
+          "id": "seatedElderMan",
+          "label": "坐食・伯伯",
+          "heightM": 1.65,
+          "seatedHipHeightM": 0.45,
+          "role": "seated",
+          "facing": "ne"
+        },
+        {
+          "id": "seatedElderWoman",
+          "label": "坐食・婆婆",
+          "heightM": 1.5,
+          "seatedHipHeightM": 0.45,
+          "role": "seated",
+          "facing": "nw"
+        },
+        {
+          "id": "seatedBoy",
+          "label": "坐食・男孩",
+          "heightM": 1.24,
+          "seatedHipHeightM": 0.45,
+          "role": "seated",
+          "facing": "sw"
+        },
+        {
+          "id": "seatedGirl",
+          "label": "坐食・女孩",
+          "heightM": 1.12,
+          "seatedHipHeightM": 0.45,
+          "role": "seated",
+          "facing": "se"
+        }
+      ]
+    },
+    {
+      "id": "passersby",
+      "label": "行過路過人物",
+      "grid": [
+        3,
+        2
+      ],
+      "sourcePath": "scripts/source-art/streetFood/people-v1/passersby.png",
+      "promptPath": "scripts/source-art/streetFood/people-v1/passersby-prompt.md",
+      "people": [
+        {
+          "id": "walkerOfficeMan",
+          "label": "路人・上班男士",
+          "heightM": 1.75,
+          "role": "passerby"
+        },
+        {
+          "id": "walkerOfficeWoman",
+          "label": "路人・上班女士",
+          "heightM": 1.64,
+          "role": "passerby"
+        },
+        {
+          "id": "walkerShoppingAunt",
+          "label": "路人・買餸阿姐",
+          "heightM": 1.6,
+          "role": "passerby"
+        },
+        {
+          "id": "walkerSchoolBoy",
+          "label": "路人・男學生",
+          "heightM": 1.47,
+          "role": "passerby"
+        },
+        {
+          "id": "walkerSchoolGirl",
+          "label": "路人・女學生",
+          "heightM": 1.43,
+          "role": "passerby"
+        },
+        {
+          "id": "walkerElder",
+          "label": "路人・長者",
+          "heightM": 1.64,
+          "role": "passerby"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "version": 2,
+  "status": "art-draft",
+  "tool": "built-in imagegen",
+  "projectionTarget": "ground height:width 1:2",
+  "calibration": "pending",
+  "runtimeIntegrated": false,
+  "assets": [
+    {
+      "id": "fish-soup-faux-fin",
+      "label": "生菜魚肉與碗仔翅",
+      "file": "fish-soup-faux-fin.png",
+      "prompt": "fish-soup-faux-fin-prompt.md",
+      "size": [
+        1536,
+        1024
+      ],
+      "contentBoundsAlpha200": [
+        164,
+        18,
+        1466,
+        1012
+      ],
+      "transparentPercent": 51.3
+    },
+    {
+      "id": "fried-intestines",
+      "label": "炸大腸",
+      "file": "fried-intestines.png",
+      "prompt": "fried-intestines-prompt.md",
+      "size": [
+        1536,
+        1024
+      ],
+      "contentBoundsAlpha200": [
+        147,
+        39,
+        1448,
+        1006
+      ],
+      "transparentPercent": 50.7
+    },
+    {
+      "id": "sugarcane-juice",
+      "label": "現壓蔗汁",
+      "file": "sugarcane-juice.png",
+      "prompt": "sugarcane-juice-prompt.md",
+      "size": [
+        1536,
+        1024
+      ],
+      "contentBoundsAlpha200": [
+        199,
+        51,
+        1407,
+        1001
+      ],
+      "transparentPercent": 52.6
+    }
+  ]
+}

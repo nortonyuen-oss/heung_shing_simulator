@@ -1,0 +1,112 @@
+{
+  "version": 1,
+  "status": "art-draft",
+  "tool": "built-in imagegen",
+  "projectionTarget": "ground height:width 1:2",
+  "calibration": "pending",
+  "runtimeIntegrated": false,
+  "assets": [
+    {
+      "id": "cart-noodles",
+      "label": "車仔麵",
+      "file": "cart-noodles.png",
+      "prompt": "cart-noodles-prompt.md",
+      "size": [
+        1536,
+        1024
+      ],
+      "opaqueContentBounds": [
+        93,
+        20,
+        1517,
+        1018
+      ],
+      "transparentPercent": 46.6
+    },
+    {
+      "id": "cheung-fun",
+      "label": "腸粉",
+      "file": "cheung-fun.png",
+      "prompt": "cheung-fun-prompt.md",
+      "size": [
+        1536,
+        1024
+      ],
+      "opaqueContentBounds": [
+        196,
+        14,
+        1442,
+        1018
+      ],
+      "transparentPercent": 53.5
+    },
+    {
+      "id": "beef-offal",
+      "label": "牛雜",
+      "file": "beef-offal.png",
+      "prompt": "beef-offal-prompt.md",
+      "size": [
+        1536,
+        1024
+      ],
+      "opaqueContentBounds": [
+        178,
+        29,
+        1431,
+        995
+      ],
+      "transparentPercent": 52.7
+    },
+    {
+      "id": "stinky-tofu",
+      "label": "臭豆腐",
+      "file": "stinky-tofu.png",
+      "prompt": "stinky-tofu-prompt.md",
+      "size": [
+        1536,
+        1024
+      ],
+      "opaqueContentBounds": [
+        224,
+        22,
+        1427,
+        998
+      ],
+      "transparentPercent": 55.0
+    },
+    {
+      "id": "egg-waffle",
+      "label": "雞蛋仔與夾餅",
+      "file": "egg-waffle.png",
+      "prompt": "egg-waffle-prompt.md",
+      "size": [
+        1536,
+        1024
+      ],
+      "opaqueContentBounds": [
+        127,
+        22,
+        1465,
+        997
+      ],
+      "transparentPercent": 49.3
+    },
+    {
+      "id": "pickled-snacks",
+      "label": "蕎頭酸蘿蔔",
+      "file": "pickled-snacks.png",
+      "prompt": "pickled-snacks-prompt.md",
+      "size": [
+        1536,
+        1024
+      ],
+      "opaqueContentBounds": [
+        249,
+        18,
+        1383,
+        997
+      ],
+      "transparentPercent": 55.9
+    }
+  ]
+}

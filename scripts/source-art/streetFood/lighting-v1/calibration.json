@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "targetAxisSlope": 0.5,
+  "targetPoleHeightPx": 520,
+  "day": {
+    "source": "scripts/source-art/streetFood/lighting-v1/string-lights-day-source.png",
+    "poleTops": [[321, 40], [1424, 335]],
+    "groundAnchors": [[321, 623], [1424, 798]]
+  },
+  "night": {
+    "source": "scripts/source-art/streetFood/lighting-v1/string-lights-night-source.png",
+    "kind": "registered-resize",
+    "observedGroundAnchors": [[273, 515], [1104, 931]],
+    "observedPoleTops": [[273, 123], [1104, 539]],
+    "maxLandmarkResidualPx": 3
+  },
+  "note": "Manual visual landmarks. Calibrate the two ground anchors and equal projected pole heights; small concrete-block edges retain painted approximation. Ground anchor is the estimated centre of the block footprint, not its frontmost corner. The imagegen night edit is uniformly resized to the calibrated day canvas and checked against manually observed night landmarks; image editing does not guarantee pixel-identical painted geometry."
+}

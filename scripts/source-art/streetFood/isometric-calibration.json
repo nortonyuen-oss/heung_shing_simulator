@@ -1,0 +1,853 @@
+{
+  "version": 1,
+  "target": {
+    "groundHeight": 1,
+    "groundWidth": 2,
+    "axisSlopes": [
+      0.5,
+      -0.5
+    ]
+  },
+  "coordinateSpace": "Original source PNG pixels, x right/y down; crop [left,top,width,height] does not change measurement coordinates.",
+  "notes": [
+    "Measured art calibration, not reconstructed 3D dimensions.",
+    "Cart top and lower body rails are calibrated separately when generated source planes disagree.",
+    "Round horizontal tabletops use an upper-silhouette ellipse fit; upright folded tabletops do not.",
+    "Original PNGs are preserved. Output files and source hashes are written by prepare-street-food-assets.js."
+  ],
+  "assets": [
+    {
+      "id": "curryFishball",
+      "label": "咖喱魚蛋・燒賣",
+      "source": "scripts/source-art/streetFood/v1/street-food-kit-v2.png",
+      "crop": [
+        72,
+        4,
+        496,
+        412
+      ],
+      "kind": "body-cage",
+      "reference": "不鏽鋼檯面外邊＋木箱下沿",
+      "top": {
+        "down": [
+          [
+            82,
+            188
+          ],
+          [
+            211,
+            261
+          ]
+        ],
+        "up": [
+          [
+            211,
+            261
+          ],
+          [
+            494,
+            143
+          ]
+        ]
+      },
+      "lower": {
+        "down": [
+          [
+            107,
+            305
+          ],
+          [
+            193,
+            355
+          ]
+        ],
+        "up": [
+          [
+            221,
+            368
+          ],
+          [
+            375,
+            304
+          ]
+        ]
+      },
+      "confidence": "medium"
+    },
+    {
+      "id": "friedSnacks",
+      "label": "煎釀三寶",
+      "source": "scripts/source-art/streetFood/v1/street-food-kit-v2.png",
+      "crop": [
+        642,
+        4,
+        506,
+        413
+      ],
+      "kind": "body-cage",
+      "reference": "不鏽鋼檯面前邊＋木箱下沿",
+      "top": {
+        "down": [
+          [
+            654,
+            190
+          ],
+          [
+            800,
+            269
+          ]
+        ],
+        "up": [
+          [
+            800,
+            269
+          ],
+          [
+            1047,
+            164
+          ]
+        ]
+      },
+      "lower": {
+        "down": [
+          [
+            667,
+            311
+          ],
+          [
+            780,
+            377
+          ]
+        ],
+        "up": [
+          [
+            797,
+            375
+          ],
+          [
+            1055,
+            268
+          ]
+        ]
+      },
+      "confidence": "medium"
+    },
+    {
+      "id": "roastChestnut",
+      "label": "糖炒栗子・煨番薯",
+      "source": "scripts/source-art/streetFood/v1/street-food-kit-v2.png",
+      "crop": [
+        1218,
+        22,
+        510,
+        394
+      ],
+      "kind": "axes",
+      "reference": "木箱側板下沿及長向木框；爐具遮住檯面",
+      "axes": {
+        "down": [
+          [
+            1270,
+            314
+          ],
+          [
+            1347,
+            358
+          ]
+        ],
+        "up": [
+          [
+            1520,
+            220
+          ],
+          [
+            1671,
+            156
+          ]
+        ]
+      },
+      "confidence": "medium"
+    },
+    {
+      "id": "roundTableCream",
+      "label": "米白圓形摺檯",
+      "source": "scripts/source-art/streetFood/v1/street-food-kit-v2.png",
+      "crop": [
+        210,
+        417,
+        296,
+        232
+      ],
+      "kind": "ellipse",
+      "reference": "水平檯面上半外輪廓擬合，alpha≥200",
+      "ellipse": {
+        "width": 279,
+        "height": 118.504419836,
+        "tiltSlope": -0.00797694147845,
+        "center": [
+          357,
+          481.10211707
+        ],
+        "fitRmsePx": 0.34414
+      },
+      "confidence": "high"
+    },
+    {
+      "id": "roundTableMint",
+      "label": "淡綠圓形摺檯",
+      "source": "scripts/source-art/streetFood/v1/street-food-kit-v2.png",
+      "crop": [
+        738,
+        417,
+        298,
+        226
+      ],
+      "kind": "ellipse",
+      "reference": "水平檯面上半外輪廓擬合，alpha≥200",
+      "ellipse": {
+        "width": 280,
+        "height": 119.951756366,
+        "tiltSlope": -0.00306117240424,
+        "center": [
+          886.5,
+          481.98922967
+        ],
+        "fitRmsePx": 0.33674
+      },
+      "confidence": "high"
+    },
+    {
+      "id": "foldingStoolRed",
+      "label": "紅色摺凳",
+      "source": "scripts/source-art/streetFood/v1/street-food-kit-v2.png",
+      "crop": [
+        1357,
+        432,
+        178,
+        199
+      ],
+      "kind": "axes",
+      "reference": "座面兩組直邊；按紅色面上輪廓線性擬合",
+      "axes": {
+        "up": [
+          [
+            1381,
+            468.144654088
+          ],
+          [
+            1433,
+            442.874213836
+          ]
+        ],
+        "down": [
+          [
+            1459,
+            443.256470588
+          ],
+          [
+            1508,
+            468.343529412
+          ]
+        ]
+      },
+      "confidence": "high"
+    },
+    {
+      "id": "foldingStoolGreen",
+      "label": "綠色摺凳",
+      "source": "scripts/source-art/streetFood/v1/street-food-kit-v2.png",
+      "crop": [
+        266,
+        674,
+        181,
+        204
+      ],
+      "kind": "axes",
+      "reference": "座面兩組直邊；按綠色面上輪廓線性擬合",
+      "axes": {
+        "up": [
+          [
+            291,
+            712.432880845
+          ],
+          [
+            341,
+            687.998491704
+          ]
+        ],
+        "down": [
+          [
+            367,
+            685.828796128
+          ],
+          [
+            423,
+            711.785238959
+          ]
+        ]
+      },
+      "confidence": "high"
+    },
+    {
+      "id": "roundTableFolded",
+      "label": "摺合圓檯",
+      "source": "scripts/source-art/streetFood/v1/street-food-kit-v2.png",
+      "crop": [
+        802,
+        640,
+        178,
+        240
+      ],
+      "kind": "single-axis",
+      "reference": "摺腳上橫桿；圓檯已直立，不按水平橢圓處理",
+      "axis": [
+        [
+          850,
+          709
+        ],
+        [
+          917,
+          744
+        ]
+      ],
+      "checks": [
+        {
+          "label": "獨立中橫桿",
+          "line": [
+            [
+              849,
+              776
+            ],
+            [
+              916,
+              811
+            ]
+          ],
+          "target": 0.5
+        },
+        {
+          "label": "獨立下橫桿",
+          "line": [
+            [
+              849,
+              815
+            ],
+            [
+              917,
+              851
+            ]
+          ],
+          "target": 0.5
+        }
+      ],
+      "confidence": "low",
+      "note": "另一組地面軸被遮擋；以可見框架校正，保留原圖垂直尺度。"
+    },
+    {
+      "id": "foldingStoolsPacked",
+      "label": "摺凳收納組",
+      "source": "scripts/source-art/streetFood/v1/street-food-kit-v2.png",
+      "crop": [
+        1355,
+        634,
+        166,
+        247
+      ],
+      "kind": "axes",
+      "reference": "底框及腳端排列；座面直立，不用座面橢圓",
+      "axes": {
+        "down": [
+          [
+            1380,
+            820
+          ],
+          [
+            1448,
+            852
+          ]
+        ],
+        "up": [
+          [
+            1455,
+            864
+          ],
+          [
+            1506,
+            838
+          ]
+        ]
+      },
+      "confidence": "low",
+      "note": "底框端點較短且部分重疊，取點不確定度約數個像素。"
+    },
+    {
+      "id": "cartNoodles",
+      "label": "車仔麵",
+      "source": "scripts/source-art/streetFood/expansion-v1/cart-noodles.png",
+      "kind": "body-cage",
+      "reference": "格仔煮食槽前方兩邊獨立校準，車身另以木箱下基線校準",
+      "top": {
+        "down": [
+          [
+            282,
+            354
+          ],
+          [
+            545,
+            679
+          ]
+        ],
+        "up": [
+          [
+            545,
+            679
+          ],
+          [
+            1413,
+            365
+          ]
+        ]
+      },
+      "lower": {
+        "down": [
+          [
+            230,
+            777
+          ],
+          [
+            484,
+            944
+          ]
+        ],
+        "up": [
+          [
+            535,
+            923
+          ],
+          [
+            1028,
+            751
+          ]
+        ]
+      },
+      "confidence": "medium",
+      "note": "主煮食槽有明顯局部透視及非平行內格線。分段校正外框與箱底，不把陡峭桌面角度套到整個車身。"
+    },
+    {
+      "id": "cheungFun",
+      "label": "腸粉",
+      "source": "scripts/source-art/streetFood/expansion-v1/cheung-fun.png",
+      "kind": "body-cage",
+      "reference": "檯面外框＋木箱／金屬下沿",
+      "top": {
+        "down": [
+          [
+            199,
+            438
+          ],
+          [
+            521,
+            681
+          ]
+        ],
+        "up": [
+          [
+            521,
+            681
+          ],
+          [
+            1329,
+            365
+          ]
+        ]
+      },
+      "lower": {
+        "down": [
+          [
+            280,
+            731.25
+          ],
+          [
+            440,
+            859.41
+          ]
+        ],
+        "up": [
+          [
+            600,
+            889.75
+          ],
+          [
+            900,
+            772.625
+          ]
+        ]
+      },
+      "confidence": "medium"
+    },
+    {
+      "id": "beefOffal",
+      "label": "牛雜",
+      "source": "scripts/source-art/streetFood/expansion-v1/beef-offal.png",
+      "kind": "body-cage",
+      "reference": "檯面外框＋木箱／金屬下沿",
+      "top": {
+        "down": [
+          [
+            180,
+            417
+          ],
+          [
+            504,
+            646
+          ]
+        ],
+        "up": [
+          [
+            504,
+            646
+          ],
+          [
+            1298,
+            347
+          ]
+        ]
+      },
+      "lower": {
+        "down": [
+          [
+            270,
+            701.5
+          ],
+          [
+            430,
+            818.34
+          ]
+        ],
+        "up": [
+          [
+            600,
+            853
+          ],
+          [
+            900,
+            738.15
+          ]
+        ]
+      },
+      "confidence": "medium"
+    },
+    {
+      "id": "stinkyTofu",
+      "label": "臭豆腐",
+      "source": "scripts/source-art/streetFood/expansion-v1/stinky-tofu.png",
+      "kind": "body-cage",
+      "reference": "檯面外框＋木箱／金屬下沿",
+      "top": {
+        "down": [
+          [
+            228,
+            432
+          ],
+          [
+            510,
+            621
+          ]
+        ],
+        "up": [
+          [
+            510,
+            621
+          ],
+          [
+            1286,
+            347
+          ]
+        ]
+      },
+      "lower": {
+        "down": [
+          [
+            300,
+            699
+          ],
+          [
+            450,
+            802.85
+          ]
+        ],
+        "up": [
+          [
+            600,
+            867.5
+          ],
+          [
+            880,
+            763.22
+          ]
+        ]
+      },
+      "confidence": "medium"
+    },
+    {
+      "id": "eggWaffle",
+      "label": "雞蛋仔・夾餅",
+      "source": "scripts/source-art/streetFood/expansion-v1/egg-waffle.png",
+      "kind": "body-cage",
+      "reference": "檯面外框＋木箱／金屬下沿",
+      "top": {
+        "down": [
+          [
+            158,
+            451
+          ],
+          [
+            464,
+            643
+          ]
+        ],
+        "up": [
+          [
+            464,
+            643
+          ],
+          [
+            1309,
+            335
+          ]
+        ]
+      },
+      "lower": {
+        "down": [
+          [
+            230,
+            732.5
+          ],
+          [
+            400,
+            851.095
+          ]
+        ],
+        "up": [
+          [
+            550,
+            856.75
+          ],
+          [
+            950,
+            715.05
+          ]
+        ]
+      },
+      "confidence": "medium"
+    },
+    {
+      "id": "pickledSnacks",
+      "label": "蕎頭・酸蘿蔔",
+      "source": "scripts/source-art/streetFood/expansion-v1/pickled-snacks.png",
+      "kind": "body-cage",
+      "reference": "檯面外框＋木箱／金屬下沿",
+      "top": {
+        "down": [
+          [
+            251,
+            470
+          ],
+          [
+            519,
+            660
+          ]
+        ],
+        "up": [
+          [
+            519,
+            660
+          ],
+          [
+            1254,
+            386
+          ]
+        ]
+      },
+      "lower": {
+        "down": [
+          [
+            340,
+            753.5
+          ],
+          [
+            460,
+            851.1
+          ]
+        ],
+        "up": [
+          [
+            600,
+            865.25
+          ],
+          [
+            900,
+            752.65
+          ]
+        ]
+      },
+      "confidence": "medium"
+    },
+    {
+      "id": "fishSoupFauxFin",
+      "label": "生菜魚肉・碗仔翅",
+      "source": "scripts/source-art/streetFood/expansion-v2/fish-soup-faux-fin.png",
+      "kind": "body-cage",
+      "reference": "檯面外框＋木箱／金屬下沿",
+      "top": {
+        "down": [
+          [
+            166,
+            463
+          ],
+          [
+            466,
+            663
+          ]
+        ],
+        "up": [
+          [
+            466,
+            663
+          ],
+          [
+            1329,
+            319
+          ]
+        ]
+      },
+      "lower": {
+        "down": [
+          [
+            250,
+            718
+          ],
+          [
+            400,
+            826.7
+          ]
+        ],
+        "up": [
+          [
+            550,
+            886.75
+          ],
+          [
+            900,
+            754.925
+          ]
+        ]
+      },
+      "confidence": "medium"
+    },
+    {
+      "id": "friedIntestines",
+      "label": "炸大腸",
+      "source": "scripts/source-art/streetFood/expansion-v2/fried-intestines.png",
+      "kind": "body-cage",
+      "reference": "檯面外框＋木箱／金屬下沿",
+      "top": {
+        "down": [
+          [
+            149,
+            459
+          ],
+          [
+            477,
+            686
+          ]
+        ],
+        "up": [
+          [
+            477,
+            686
+          ],
+          [
+            1307,
+            382
+          ]
+        ]
+      },
+      "lower": {
+        "down": [
+          [
+            230,
+            697.25
+          ],
+          [
+            430,
+            847.85
+          ]
+        ],
+        "up": [
+          [
+            550,
+            886.25
+          ],
+          [
+            930,
+            749.06
+          ]
+        ]
+      },
+      "confidence": "medium"
+    },
+    {
+      "id": "sugarcaneJuice",
+      "label": "現壓蔗汁",
+      "source": "scripts/source-art/streetFood/expansion-v2/sugarcane-juice.png",
+      "kind": "body-cage",
+      "reference": "檯面外框＋木箱／金屬下沿；不以壓蔗機壓轆作地面基準",
+      "top": {
+        "down": [
+          [
+            202,
+            477
+          ],
+          [
+            498,
+            649
+          ]
+        ],
+        "up": [
+          [
+            498,
+            649
+          ],
+          [
+            1254,
+            401
+          ]
+        ]
+      },
+      "lower": {
+        "down": [
+          [
+            280,
+            721.75
+          ],
+          [
+            420,
+            821.89
+          ]
+        ],
+        "up": [
+          [
+            550,
+            892.75
+          ],
+          [
+            880,
+            785.585
+          ]
+        ]
+      },
+      "confidence": "medium"
+    }
+  ]
+}

@@ -15,6 +15,8 @@ const CARTS = ['curryFishball', 'cartNoodles', 'friedSnacks', 'roastChestnut'];
 const HAWKERS = ['hawkerAunt', 'hawkerUncle', 'hawkerGranny', 'hawkerYoungMan'];
 const DINERS = ['seatedMan', 'seatedWoman'];
 const PASSERSBY = ['walkerOfficeMan', 'walkerElder'];
+const TABLES = ['roundTableCream', 'roundTableMint'];
+const ROSTER = { carts: CARTS, hawkers: HAWKERS, diners: DINERS, passersby: PASSERSBY, tableFurniture: TABLES };
 
 test('開日頭放學時候到夜晚宵夜: empty before 放學, open through the evening, thinner at 宵夜, gone by 02:00', () => {
   assert.equal(getStreetFoodPhase(10 * 60).phase, 'empty', 'midday: no lunch stalls, this is the 放學 crowd');
@@ -87,10 +89,10 @@ test('getStreetFoodVenuePerimeter: an L-shaped lot keeps its interior corner out
 
 test('getStreetFoodVenueLayout: closed (weather or outside hours) draws nothing, needs no asset roster', () => {
   const venue = { id: 'eventGround:10:10', tiles: [[10, 10], [10, 11], [11, 10], [11, 11]] };
-  const closedByHour = getStreetFoodVenueLayout(venue, { minuteOfDay: 10 * 60, weather: { condition: 'clear' }, carts: CARTS, hawkers: HAWKERS, diners: DINERS, passersby: PASSERSBY });
+  const closedByHour = getStreetFoodVenueLayout(venue, { minuteOfDay: 10 * 60, weather: { condition: 'clear' }, ...ROSTER });
   assert.equal(closedByHour.presence, 0);
   assert.deepEqual(closedByHour.stalls, []);
-  const closedByStorm = getStreetFoodVenueLayout(venue, { minuteOfDay: 19 * 60, weather: { typhoonStage: 'signal8' }, carts: CARTS, hawkers: HAWKERS, diners: DINERS, passersby: PASSERSBY });
+  const closedByStorm = getStreetFoodVenueLayout(venue, { minuteOfDay: 19 * 60, weather: { typhoonStage: 'signal8' }, ...ROSTER });
   assert.equal(closedByStorm.presence, 0);
   const noRoster = getStreetFoodVenueLayout(venue, { minuteOfDay: 19 * 60, weather: { condition: 'clear' }, carts: [], hawkers: [], diners: [], passersby: [] });
   assert.equal(noRoster.presence, 0);
@@ -98,7 +100,7 @@ test('getStreetFoodVenueLayout: closed (weather or outside hours) draws nothing,
 
 test('getStreetFoodVenueLayout: stalls fill the perimeter, face into the venue, never overlap a tile', () => {
   const venue = { id: 'eventGround:10:10', tiles: [[10, 10], [10, 11], [11, 10], [11, 11]] };
-  const layout = getStreetFoodVenueLayout(venue, { minuteOfDay: 19 * 60, weather: { condition: 'clear' }, carts: CARTS, hawkers: HAWKERS, diners: DINERS, passersby: PASSERSBY });
+  const layout = getStreetFoodVenueLayout(venue, { minuteOfDay: 19 * 60, weather: { condition: 'clear' }, ...ROSTER });
   assert.equal(layout.phase, 'open');
   assert.ok(layout.stalls.length >= 3 && layout.stalls.length <= 4);
   const tiles = new Set();
@@ -111,12 +113,18 @@ test('getStreetFoodVenueLayout: stalls fill the perimeter, face into the venue, 
     assert.equal(typeof stall.mirrored, 'boolean');
     assert.ok(venue.tiles.some(([r, c]) => r === stall.row && c === stall.col), 'stall sits on a venue tile');
   }
-  for (const table of layout.tables) assert.ok(!tiles.has(`${table.row}:${table.col}`), 'a table must not share a stall\'s tile');
+  for (const table of layout.tables) {
+    assert.ok(!tiles.has(`${table.row}:${table.col}`), 'a table must not share a stall\'s tile');
+    assert.ok(TABLES.includes(table.tableId));
+    assert.ok(table.seatedIds.length >= 0 && table.seatedIds.length <= 3, 'never every seat filled');
+    assert.equal(table.occupied, table.seatedIds.length > 0);
+    table.seatedIds.forEach((id) => assert.ok(DINERS.includes(id)));
+  }
 });
 
 test('getStreetFoodVenueLayout: same venue and minute reseed to the identical layout (reload/rotate-safe)', () => {
   const venue = { id: 'eventGround:3:3', tiles: [[3, 3], [3, 4], [3, 5], [4, 3], [4, 4], [4, 5]] };
-  const options = { minuteOfDay: 19 * 60, weather: { condition: 'clear' }, carts: CARTS, hawkers: HAWKERS, diners: DINERS, passersby: PASSERSBY };
+  const options = { minuteOfDay: 19 * 60, weather: { condition: 'clear' }, ...ROSTER };
   const a = getStreetFoodVenueLayout(venue, options);
   const b = getStreetFoodVenueLayout(venue, options);
   assert.deepEqual(a, b);
@@ -127,8 +135,8 @@ test('getStreetFoodVenueLayout: same venue and minute reseed to the identical la
 
 test('rain thins the diners at a table without removing the stalls', () => {
   const venue = { id: 'eventGround:7:7', tiles: [[7, 7], [7, 8], [8, 7], [8, 8], [7, 9], [9, 7]] };
-  const clear = getStreetFoodVenueLayout(venue, { minuteOfDay: 19 * 60, weather: { condition: 'clear' }, carts: CARTS, hawkers: HAWKERS, diners: DINERS, passersby: PASSERSBY });
-  const rain = getStreetFoodVenueLayout(venue, { minuteOfDay: 19 * 60, weather: { condition: 'heavyRain' }, carts: CARTS, hawkers: HAWKERS, diners: DINERS, passersby: PASSERSBY });
+  const clear = getStreetFoodVenueLayout(venue, { minuteOfDay: 19 * 60, weather: { condition: 'clear' }, ...ROSTER });
+  const rain = getStreetFoodVenueLayout(venue, { minuteOfDay: 19 * 60, weather: { condition: 'heavyRain' }, ...ROSTER });
   assert.equal(clear.stalls.length, rain.stalls.length, 'ordinary rain does not clear the stalls');
   assert.ok(rain.walkers.length <= clear.walkers.length);
 });

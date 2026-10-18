@@ -364,6 +364,8 @@ function updateGameFrame(time, delta) {
     updateDragonBoatAudio(this);
     if (typeof updateFestivals === 'function') updateFestivals(this, time);
   }
+  // 平日小食墟: event_ground venues a festival has not claimed right now (street-food-sprites.js)
+  if (typeof updateStreetFoodMarkets === 'function') updateStreetFoodMarkets(this, time);
   // 發現 UFO: it moves, so every frame (festival-ufo.js)
   if (!this.bunHillEventSession && typeof updateUfo === 'function') updateUfo(this, time);
   if (typeof updateLionDance === 'function') updateLionDance(this, time);

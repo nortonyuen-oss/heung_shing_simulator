@@ -111,7 +111,7 @@ function getStreetFoodVenuePerimeter(venue) {
  *   hawkers:string[], diners:string[], passersby:string[]}} options
  */
 function getStreetFoodVenueLayout(venue, options) {
-  const { minuteOfDay, weather, seed = venue.id, carts, hawkers, diners, passersby } = options;
+  const { minuteOfDay, weather, seed = venue.id, carts, hawkers, diners, passersby, tableFurniture = [] } = options;
   const schedule = getStreetFoodPhase(minuteOfDay);
   const weatherState = getStreetFoodWeatherState(weather);
   const presence = weatherState === 'closed' ? 0 : schedule.presence;
@@ -160,13 +160,18 @@ function getStreetFoodVenueLayout(venue, options) {
     const key = `${tile.r}:${tile.c}`;
     if (usedTiles.has(key)) continue;
     usedTiles.add(key);
-    const seatedShare = sfHash(seed, 'seated', i, Math.floor((minuteOfDay || 0) / 20));
+    const effectiveDinerShare = schedule.dinerShare * (STREET_FOOD_WEATHER_DINER_SHARE[weatherState] ?? 1);
+    const occupied = sfHash(seed, 'seated', i, Math.floor((minuteOfDay || 0) / 20)) < effectiveDinerShare;
+    // 1-3 of the table's 4 seats filled when it's in use - never every seat, a round table with a
+    // full ring of diners reads static; a gap leaves a stool free the way a real one would
+    const seatedCount = occupied ? 1 + Math.floor(sfHash(seed, 'seatedCount', i, Math.floor((minuteOfDay || 0) / 20)) * 3) : 0;
     tables.push({
       id: `${venue.id}|table${i}`,
       row: tile.r,
       col: tile.c,
-      occupied: seatedShare < schedule.dinerShare * (STREET_FOOD_WEATHER_DINER_SHARE[weatherState] ?? 1),
-      seatedIds: Array.from({ length: 4 }, (_, seat) => sfPick(diners, seed, 'seated', i, seat)),
+      tableId: sfPick(tableFurniture, seed, 'table', i),
+      occupied,
+      seatedIds: Array.from({ length: seatedCount }, (_, seat) => sfPick(diners, seed, 'seated', i, seat)),
     });
   }
 

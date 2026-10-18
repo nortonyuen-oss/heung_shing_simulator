@@ -3,10 +3,17 @@
 // Phaser, scene state and the festival-claim check; street-food-market.js stays pure.
 
 const STREET_FOOD_UPDATE_MS = 400; // a market's layout does not need redoing every frame
-// matches FESTIVAL_PX_PER_METRE_UP (festival-sprites.js) - street-food-geometry.json's own
-// display.scale already bakes this in for carts/furniture; people need it applied here, the same
-// way festival parts with a bare heightM do.
-const STREET_FOOD_PEOPLE_PX_PER_METRE_UP = 5;
+// People are sized on the same tile-true basis as the carts (人既比例也一樣 - Norton 2026-10-18):
+// their real height at the TRUE vertical rate of a 20 m tile, ALONG 2.5 px/m x cos30/cos45 =
+// 3.06 px/m (BUILDING_SCALE_TRUE_UP_RATIO), not festival-sprites.js's exaggerated 5 px/m.
+const STREET_FOOD_PEOPLE_PX_PER_METRE_UP = 2.5 * (Math.cos(Math.PI / 6) / Math.cos(Math.PI / 4));
+// A seated diner's head sits at about 0.75 of standing stature (a ~0.45 m stool, then a hunched
+// sitting height). heightM in street-food-people.json is the standing figure's.
+const STREET_FOOD_SEATED_HEIGHT_RATIO = 0.75;
+// people around a cart/table, in tiles (20 m): a hawker ~1 m behind the counter, a diner ~0.8 m out
+// from the table's centre (a 1 m table, a stool's depth beyond its rim)
+const STREET_FOOD_HAWKER_BACK_TILES = 1 / 20 / Math.SQRT2;
+const STREET_FOOD_SEAT_OFFSET_TILES = 0.8 / 20;
 
 function getStreetFoodSpriteTextureKey(path) { return `street-food:${path}`; }
 
@@ -21,8 +28,11 @@ function requestStreetFoodTextures(scene, paths) {
 function streetFoodPersonRecord(id) {
   const person = typeof getStreetFoodPerson === 'function' ? getStreetFoodPerson(id) : null;
   if (!person) return null;
-  const anchor = person.seatAnchor ?? person.footAnchor;
-  return { path: person.path, size: person.size, groundAnchor: anchor, scale: (person.heightM * STREET_FOOD_PEOPLE_PX_PER_METRE_UP) / person.size[1] };
+  // feet on the ground for every pose: no stool is drawn under a seated diner yet, so its seat
+  // point has nothing to rest on
+  const shownM = person.role === 'seated' ? person.heightM * STREET_FOOD_SEATED_HEIGHT_RATIO : person.heightM;
+  const figurePx = person.figureHeightPx || person.size[1];
+  return { path: person.path, size: person.size, groundAnchor: person.footAnchor, scale: (shownM * STREET_FOOD_PEOPLE_PX_PER_METRE_UP) / figurePx };
 }
 
 // 節慶實際預留 > 平日小食墟 (docs/street-food-market-design.md): which event-ground venues a
@@ -104,16 +114,19 @@ function syncStreetFoodVenue(scene, layout) {
     const point = getStreetFoodTilePoint(scene, stall.row, stall.col);
     wanted.add(stall.id);
     drawStreetFoodSprite(scene, store, stall.id, record, point);
-    // the hawker works from behind the counter, the opposite side from the venue it faces into
+    // the hawker works from behind the counter, the opposite side from the venue it faces into:
+    // about a metre back (offsets are in tiles - 20 m each)
     const hawkerSide = stall.mirrored ? 1 : -1;
-    const hawkerPoint = getStreetFoodTilePoint(scene, stall.row, stall.col, -0.18 * hawkerSide, 0.3 * hawkerSide);
+    const hawkerPoint = getStreetFoodTilePoint(scene, stall.row, stall.col,
+      -STREET_FOOD_HAWKER_BACK_TILES * hawkerSide, STREET_FOOD_HAWKER_BACK_TILES * hawkerSide);
     const hawkerId = `${stall.id}|hawker`;
     wanted.add(hawkerId);
     drawStreetFoodSprite(scene, store, hawkerId, streetFoodPersonRecord(stall.hawkerId), hawkerPoint, 0.001);
   });
 
-  // a seat around the table at each of 4 compass points, closer in with fewer diners
-  const STREET_FOOD_SEAT_OFFSETS = [[0.3, 0], [0, 0.3], [-0.3, 0], [0, -0.3]];
+  // a seat around the table at each of 4 compass points, ~0.8 m from the 1 m table's centre
+  const d = STREET_FOOD_SEAT_OFFSET_TILES;
+  const STREET_FOOD_SEAT_OFFSETS = [[d, 0], [0, d], [-d, 0], [0, -d]];
   (layout.tables || []).forEach((table) => {
     const furniture = typeof getStreetFoodFurniture === 'function' ? getStreetFoodFurniture(table.tableId) : null;
     const point = getStreetFoodTilePoint(scene, table.row, table.col);

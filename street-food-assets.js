@@ -48,6 +48,7 @@ function loadStreetFoodAssets() {
       path: p.outputPath,
       size: p.size,
       heightM: p.heightM,
+      figureHeightPx: p.figureHeightPx,
       footAnchor: p.footAnchor,
       seatAnchor: p.seatAnchor ?? null,
     }]));

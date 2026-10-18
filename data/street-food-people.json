@@ -75,6 +75,8 @@
         364.1417322834646,
         707
       ],
+      "figureTop": 28,
+      "figureHeightPx": 679,
       "anchorMethod": "Approximate lowest visible foot contour: mean x of alpha>=128 pixels in the final five silhouette rows. Seated poses use proposed seatAnchor instead of a floor contact.",
       "pngSha256": "803f17ebbc1d705727315a7680fdf15298fbeae1b23644746c0b6c9c73b4f1e1"
     },
@@ -100,6 +102,8 @@
         361.2596685082873,
         739
       ],
+      "figureTop": 28,
+      "figureHeightPx": 711,
       "anchorMethod": "Approximate lowest visible foot contour: mean x of alpha>=128 pixels in the final five silhouette rows. Seated poses use proposed seatAnchor instead of a floor contact.",
       "pngSha256": "6ed543f09799f931cf0200fb564f9d3b4b2c7b238e36941dab711b4282a09791"
     },
@@ -125,6 +129,8 @@
         359.5,
         669
       ],
+      "figureTop": 28,
+      "figureHeightPx": 641,
       "anchorMethod": "Approximate lowest visible foot contour: mean x of alpha>=128 pixels in the final five silhouette rows. Seated poses use proposed seatAnchor instead of a floor contact.",
       "pngSha256": "da754680488ac1c2a4d091f16bc8266e96bc88ac5e4f8301f9ce058c4566d5b7"
     },
@@ -150,6 +156,8 @@
         348.3970588235294,
         741
       ],
+      "figureTop": 19,
+      "figureHeightPx": 722,
       "anchorMethod": "Approximate lowest visible foot contour: mean x of alpha>=128 pixels in the final five silhouette rows. Seated poses use proposed seatAnchor instead of a floor contact.",
       "pngSha256": "f45b0977eb8b0ba72fd807861c0ae6d18f97de0030086587e03e1901bfe4ddbe"
     },
@@ -175,6 +183,8 @@
         98.42608695652171,
         512
       ],
+      "figureTop": 23,
+      "figureHeightPx": 489,
       "anchorMethod": "Approximate lowest visible foot contour: mean x of alpha>=128 pixels in the final five silhouette rows. Seated poses use proposed seatAnchor instead of a floor contact.",
       "pngSha256": "981b946787746bcd8decac85ffdfb473b250d7c5f72710e275800a12444d7a41"
     },
@@ -200,6 +210,8 @@
         120.60377358490564,
         507
       ],
+      "figureTop": 26,
+      "figureHeightPx": 481,
       "anchorMethod": "Approximate lowest visible foot contour: mean x of alpha>=128 pixels in the final five silhouette rows. Seated poses use proposed seatAnchor instead of a floor contact.",
       "pngSha256": "ff61efb00ef2818bd47a0e4b53e7f7b894408ca79ff274a56223917bc86edfb6"
     },
@@ -225,6 +237,8 @@
         73.73109243697479,
         420
       ],
+      "figureTop": 28,
+      "figureHeightPx": 392,
       "anchorMethod": "Approximate lowest visible foot contour: mean x of alpha>=128 pixels in the final five silhouette rows. Seated poses use proposed seatAnchor instead of a floor contact.",
       "pngSha256": "cf2fc9ce47d5cd720e5c1e419cd0d2e77f8c5628265c4ad964ff767e88d84773"
     },
@@ -250,6 +264,8 @@
         101.58415841584156,
         400
       ],
+      "figureTop": 28,
+      "figureHeightPx": 372,
       "anchorMethod": "Approximate lowest visible foot contour: mean x of alpha>=128 pixels in the final five silhouette rows. Seated poses use proposed seatAnchor instead of a floor contact.",
       "pngSha256": "4f23580474b15238b680d065d14f139c8ee2ac5eb6f96bc8e90b3245c0faa06e"
     },
@@ -275,6 +291,8 @@
         83.44360902255639,
         511
       ],
+      "figureTop": 12,
+      "figureHeightPx": 499,
       "anchorMethod": "Approximate lowest visible foot contour: mean x of alpha>=128 pixels in the final five silhouette rows. Seated poses use proposed seatAnchor instead of a floor contact.",
       "pngSha256": "0403ade68525d68fea4d6282e61a80e36a27670ea2a3686b43f3819bc9c0a329"
     },
@@ -300,6 +318,8 @@
         159.33333333333337,
         499
       ],
+      "figureTop": 26,
+      "figureHeightPx": 473,
       "anchorMethod": "Approximate lowest visible foot contour: mean x of alpha>=128 pixels in the final five silhouette rows. Seated poses use proposed seatAnchor instead of a floor contact.",
       "pngSha256": "7c1ab1d29feae1fe4547e2258db5af83902000d8153b005ecc3f3f46d562ac9f"
     },
@@ -325,6 +345,8 @@
         96.79452054794524,
         502
       ],
+      "figureTop": 22,
+      "figureHeightPx": 480,
       "anchorMethod": "Approximate lowest visible foot contour: mean x of alpha>=128 pixels in the final five silhouette rows. Seated poses use proposed seatAnchor instead of a floor contact.",
       "pngSha256": "6247ceaceb03c142474b12d2e828ab92bfaa713a2c2191bc0d39cf766d0b1e1f"
     },
@@ -350,6 +372,8 @@
         182.6050420168067,
         481
       ],
+      "figureTop": 28,
+      "figureHeightPx": 453,
       "anchorMethod": "Approximate lowest visible foot contour: mean x of alpha>=128 pixels in the final five silhouette rows. Seated poses use proposed seatAnchor instead of a floor contact.",
       "pngSha256": "389cc79df30c87b788f5bdd581ff6712d9b0ad1c90ca812d94757c9b58433187"
     },
@@ -377,6 +401,8 @@
         192.45061728395063,
         532
       ],
+      "figureTop": 28,
+      "figureHeightPx": 504,
       "anchorMethod": "Approximate lowest visible foot contour: mean x of alpha>=128 pixels in the final five silhouette rows. Seated poses use proposed seatAnchor instead of a floor contact.",
       "pngSha256": "9203312dad116b0b56a4141b10b125e91aad1336686523db6c363f888965e4e0",
       "seatAnchor": [
@@ -409,6 +435,8 @@
         213.21088435374145,
         517
       ],
+      "figureTop": 28,
+      "figureHeightPx": 489,
       "anchorMethod": "Approximate lowest visible foot contour: mean x of alpha>=128 pixels in the final five silhouette rows. Seated poses use proposed seatAnchor instead of a floor contact.",
       "pngSha256": "908de06fe0b0548f874556c6c972c901b0bfce4593926acf4d885c31dc3d7cc0",
       "seatAnchor": [
@@ -441,6 +469,8 @@
         229.41726618705047,
         505
       ],
+      "figureTop": 28,
+      "figureHeightPx": 477,
       "anchorMethod": "Approximate lowest visible foot contour: mean x of alpha>=128 pixels in the final five silhouette rows. Seated poses use proposed seatAnchor instead of a floor contact.",
       "pngSha256": "74e1435f48681ba9928d3bf94aa971cb00344f7b781cd622d57805a40c0ec3c5",
       "seatAnchor": [
@@ -473,6 +503,8 @@
         243.46575342465752,
         442
       ],
+      "figureTop": 11,
+      "figureHeightPx": 431,
       "anchorMethod": "Approximate lowest visible foot contour: mean x of alpha>=128 pixels in the final five silhouette rows. Seated poses use proposed seatAnchor instead of a floor contact.",
       "pngSha256": "ff48145239a4f09f8a02c9faaeb29fce6fbc017bce503bb6721e4f12ff0b616d",
       "seatAnchor": [
@@ -505,6 +537,8 @@
         126.74789915966392,
         451
       ],
+      "figureTop": 22,
+      "figureHeightPx": 429,
       "anchorMethod": "Approximate lowest visible foot contour: mean x of alpha>=128 pixels in the final five silhouette rows. Seated poses use proposed seatAnchor instead of a floor contact.",
       "pngSha256": "2e6b89f6a71894e862660b117d9f012109ef2d924222cbdce132bc01b51aa6ae",
       "seatAnchor": [
@@ -537,6 +571,8 @@
         208.5,
         450
       ],
+      "figureTop": 28,
+      "figureHeightPx": 422,
       "anchorMethod": "Approximate lowest visible foot contour: mean x of alpha>=128 pixels in the final five silhouette rows. Seated poses use proposed seatAnchor instead of a floor contact.",
       "pngSha256": "8a29e282e5500a120bdfd41bae9e4a4ac1489242c80c991603e429635aff6222",
       "seatAnchor": [
@@ -567,6 +603,8 @@
         260.6794871794872,
         515
       ],
+      "figureTop": 28,
+      "figureHeightPx": 487,
       "anchorMethod": "Approximate lowest visible foot contour: mean x of alpha>=128 pixels in the final five silhouette rows. Seated poses use proposed seatAnchor instead of a floor contact.",
       "pngSha256": "e8e4129b1644e67d52d59d6d6c2fb99a15d22e82214cb5bd6c76c3f2a6b950ec"
     },
@@ -592,6 +630,8 @@
         55.54263565891472,
         504
       ],
+      "figureTop": 28,
+      "figureHeightPx": 476,
       "anchorMethod": "Approximate lowest visible foot contour: mean x of alpha>=128 pixels in the final five silhouette rows. Seated poses use proposed seatAnchor instead of a floor contact.",
       "pngSha256": "ae3d9290cae1a0d8d0c59e15786a393d57497e87e22d7effd8ded70908b089ca"
     },
@@ -617,6 +657,8 @@
         152.33962264150932,
         498
       ],
+      "figureTop": 28,
+      "figureHeightPx": 470,
       "anchorMethod": "Approximate lowest visible foot contour: mean x of alpha>=128 pixels in the final five silhouette rows. Seated poses use proposed seatAnchor instead of a floor contact.",
       "pngSha256": "e95fda9da66f7b70fbf01707f882b764957244ecc8f62eda8cbb658e15942bb2"
     },
@@ -642,6 +684,8 @@
         58.72800000000001,
         469
       ],
+      "figureTop": 13,
+      "figureHeightPx": 456,
       "anchorMethod": "Approximate lowest visible foot contour: mean x of alpha>=128 pixels in the final five silhouette rows. Seated poses use proposed seatAnchor instead of a floor contact.",
       "pngSha256": "097f7130cb623434cad4983cd8cc3f53a6b1853517f739d2b5d107ba781a08b3"
     },
@@ -667,6 +711,8 @@
         168.02499999999998,
         472
       ],
+      "figureTop": 18,
+      "figureHeightPx": 454,
       "anchorMethod": "Approximate lowest visible foot contour: mean x of alpha>=128 pixels in the final five silhouette rows. Seated poses use proposed seatAnchor instead of a floor contact.",
       "pngSha256": "cbff9997095d2dc7a3ec7af60dd7c182dd3cb5f5fb9446d78685df9edb4eafb5"
     },
@@ -692,6 +738,8 @@
         239.1092896174864,
         482
       ],
+      "figureTop": 15,
+      "figureHeightPx": 467,
       "anchorMethod": "Approximate lowest visible foot contour: mean x of alpha>=128 pixels in the final five silhouette rows. Seated poses use proposed seatAnchor instead of a floor contact.",
       "pngSha256": "19590a94972ed07afb4f68141df93c78e809dc079dddcb11b314e166fb108b88"
     }

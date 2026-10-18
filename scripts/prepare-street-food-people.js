@@ -83,7 +83,11 @@ async function main() {
         if (data[(y * info.width + x) * 4 + 3] < 128) continue;
         footX += x; footSamples++;
       }
-      const record = { ...person, pack: pack.id, sourcePath: pack.sourcePath, sourceRect: crop, outputPath: `Models/streetFoodPeople/sp_${person.id}.png`, size: [width + 16, height + 16], footAnchor: [((footSamples ? footX / footSamples : component.centerX) - left) + 8, component.bottom - 1 - top + 8], anchorMethod: 'Approximate lowest visible foot contour: mean x of alpha>=128 pixels in the final five silhouette rows. Seated poses use proposed seatAnchor instead of a floor contact.', pngSha256: sha(png) };
+      const footY = component.bottom - 1 - top + 8;
+      // the figure's own head-to-foot span in output px (its alpha>=128 silhouette, not the padded
+      // canvas): what a real height is measured against
+      const figureTop = component.top - top + 8;
+      const record = { ...person, pack: pack.id, sourcePath: pack.sourcePath, sourceRect: crop, outputPath: `Models/streetFoodPeople/sp_${person.id}.png`, size: [width + 16, height + 16], footAnchor: [((footSamples ? footX / footSamples : component.centerX) - left) + 8, footY], figureTop, figureHeightPx: footY - figureTop, anchorMethod: 'Approximate lowest visible foot contour: mean x of alpha>=128 pixels in the final five silhouette rows. Seated poses use proposed seatAnchor instead of a floor contact.', pngSha256: sha(png) };
       if (plan.seatedSourceAnchors[person.id]) {
         const anchor = plan.seatedSourceAnchors[person.id];
         assert(anchor[0] >= left && anchor[0] < left + width && anchor[1] >= top && anchor[1] < top + height, `${person.id}: seat anchor outside person crop`);

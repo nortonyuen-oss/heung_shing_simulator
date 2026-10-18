@@ -20,29 +20,32 @@ const slope = ([a, b]) => (b[1] - a[1]) / (b[0] - a[0]);
 const escapeXml = (s) => String(s).replace(/[<>&"']/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&apos;' })[c]);
 
 // Display scale (Norton 2026-10-18: the paintings' own proportions are not distorted, so each
-// asset is sized from ONE real-world reference dimension - not forced to a uniform footprint -
-// matching the convention festival people/props already draw at (festival-sprites.js), so a cart
-// reads true next to a citizen already in the game.
-const STREET_FOOD_PX_PER_METRE_ALONG = 2.5; // FESTIVAL_PX_PER_METRE_ALONG
-const STREET_FOOD_PX_PER_METRE_UP = 5; // FESTIVAL_PX_PER_METRE_UP
-// 所謂車仔既高度，應該拎前輪到前檯面既高度 (Norton 2026-10-18): "the cart's height" means front
-// wheel (ground) to the front counter top - fitBodyCage's targetDropAtFront - not the whole
-// silhouette. An earlier pass anchored the full canvas (counter, stacked goods and handlebar all
-// together) instead and, judged by eye against sp_hawkerUncle (whose own height calibration is
-// itself unvalidated - street-food-people.json: actualScaleCalibration "pending"), that chased an
-// unreliable ruler through 1.3 m and 1.95 m. 0.85 m (the midpoint of Norton's "0.8m-0.9m" for a
-// real dai pai dong cart's counter) is the real anchor; goods and the handlebar are free to read
-// taller than that, same as a real counter height spec never limits what sits on top of it.
-const CART_COUNTER_HEIGHT_M = 0.85;
-// roastChestnut (kind: axes) has no body-cage top/lower pair to measure a counter drop from. It
-// is from the same generation batch as curryFishball/friedSnacks (same source painting, same
-// apparent zoom - their fitted targetDropAtFront agree to within 0.1 px: 104.8 / 104.9), so it
-// reuses their batch's own counter-height pixel span instead of a fresh measurement.
-const ROAST_CHESTNUT_BATCH1_DROP_PX = 104.85;
+// asset is sized from ONE real-world reference dimension - not forced to a uniform footprint).
+//
+// ALONG is the TILE GRID'S OWN rate: a 20 m tile's ground diamond is TILE_WIDTH=100px wide (main.js),
+// two ground edges each contributing half, so 1 edge-metre = 100/(20*2) = 2.5 px - exactly
+// FESTIVAL_PX_PER_METRE_ALONG. UP=5 is NOT that same true rate carried onto the vertical axis; it is
+// festival-sprites.js's deliberate ~1.63x exaggeration (true vertical is ALONG * cos30/cos45 =
+// 2.5*1.2247 = 3.06 px/m - game-height-exaggeration memory, BUILDING_SCALE_TRUE_UP_RATIO in
+// building-scale-survey.js), kept only so a thin, mostly-vertical prop like a person or a lamppost
+// still reads at this tiny a scale. A cart is not that kind of object - it is a ground footprint,
+// like a building or a festival stall, so it is anchored to LENGTH at the tile-true ALONG rate, one
+// uniform scale (matching model-metadata.js's own footprint-width building scale), not to a height.
+// 架手推車起碼大左1倍 (Norton): the earlier UP-anchored counter height was never a true-to-tile
+// measurement to begin with, however uniformly it was applied.
+const STREET_FOOD_PX_PER_METRE_ALONG = 2.5; // FESTIVAL_PX_PER_METRE_ALONG - true tile-grid rate
+const STREET_FOOD_TRUE_PX_PER_METRE_UP = STREET_FOOD_PX_PER_METRE_ALONG * (Math.cos(Math.PI / 6) / Math.cos(Math.PI / 4)); // ~3.0619
+// 然後大小應該縮成圖片既30%試試，你睇吓1:20既比例應該要架手推車（紅色線）多長 (Norton): a real dai
+// pai dong cart's own body (the counter's painted span - roughly its chassis length, not counting
+// the handlebar reaching back beyond it) reads about 2.3 m - the same figure the fishball cart's
+// very first calibration settled on. Measured on the counter's own two rail lines (the X span
+// between fitBodyCage's top.down/top.up, car never rescaled by this pipeline's own rectification -
+// mapPoint returns x unchanged - so it is already a ground-plane quantity in both source and output
+// px); roastChestnut (no body-cage top/lower pair) uses its own axes' span the same way.
+const CART_LENGTH_M = 2.3;
 // 檯凳 (street-food-market-design.md "街邊圓檯與摺凳"): a small hawker folding table and the
-// stools/packed stacks that go with it. Diameter/width are ground-plane quantities (the ALONG
-// convention); X is never rescaled by this pipeline, so a spec's source px span is already the
-// output span.
+// stools/packed stacks that go with it - already anchored to a ground-plane span at the true ALONG
+// rate, unaffected by the cart height mistake above.
 const TABLE_DIAMETER_M = 1.0;
 const STOOL_WIDTH_M = 0.32;
 const FOLDED_TABLE_WIDTH_M = 0.25;
@@ -72,10 +75,12 @@ function groundAnchorFromAlpha(data, width, height) {
 // scale and festival-sprites.js's part scale are both a single number this same way).
 function displayScaleFor(asset, projection) {
   if (asset.kind === 'body-cage') {
-    return { scale: (CART_COUNTER_HEIGHT_M * STREET_FOOD_PX_PER_METRE_UP) / projection.targetDropAtFront, anchorM: CART_COUNTER_HEIGHT_M, anchorAxis: 'up (front wheel to counter)' };
+    const lengthPx = pointsSpanX([...asset.top.down, ...asset.top.up]);
+    return { scale: (CART_LENGTH_M * STREET_FOOD_PX_PER_METRE_ALONG) / lengthPx, anchorM: CART_LENGTH_M, anchorAxis: 'along (counter length)' };
   }
   if (asset.id === 'roastChestnut') {
-    return { scale: (CART_COUNTER_HEIGHT_M * STREET_FOOD_PX_PER_METRE_UP) / ROAST_CHESTNUT_BATCH1_DROP_PX, anchorM: CART_COUNTER_HEIGHT_M, anchorAxis: 'up (batch-1 front wheel to counter)' };
+    const lengthPx = pointsSpanX(Object.values(asset.axes).flat());
+    return { scale: (CART_LENGTH_M * STREET_FOOD_PX_PER_METRE_ALONG) / lengthPx, anchorM: CART_LENGTH_M, anchorAxis: 'along (frame length)' };
   }
   if (asset.kind === 'ellipse') {
     return { scale: (TABLE_DIAMETER_M * STREET_FOOD_PX_PER_METRE_ALONG) / asset.ellipse.width, anchorM: TABLE_DIAMETER_M, anchorAxis: 'along (tabletop diameter)' };
@@ -266,5 +271,5 @@ if (require.main === module) main().catch((error) => { console.error(error.stack
 
 module.exports = {
   cropPixels, fitAsset, guidesFor, validate, groundAnchorFromAlpha, displayScaleFor, pointsSpanX,
-  STREET_FOOD_PX_PER_METRE_ALONG, STREET_FOOD_PX_PER_METRE_UP, CART_COUNTER_HEIGHT_M, FURNITURE_IDS,
+  STREET_FOOD_PX_PER_METRE_ALONG, STREET_FOOD_TRUE_PX_PER_METRE_UP, CART_LENGTH_M, FURNITURE_IDS,
 };

@@ -11,16 +11,18 @@ const path = require('node:path');
 const test = require('node:test');
 const {
   groundAnchorFromAlpha, displayScaleFor, pointsSpanX,
-  STREET_FOOD_PX_PER_METRE_ALONG, STREET_FOOD_PX_PER_METRE_UP, CART_COUNTER_HEIGHT_M, FURNITURE_IDS,
+  STREET_FOOD_PX_PER_METRE_ALONG, STREET_FOOD_TRUE_PX_PER_METRE_UP, CART_LENGTH_M, FURNITURE_IDS,
 } = require('../scripts/prepare-street-food-assets.js');
 
 const ROOT = path.resolve(__dirname, '..');
 const near = (actual, expected, tolerance = 1e-9) => assert.ok(Math.abs(actual - expected) < tolerance, `${actual} vs ${expected}`);
 
-test('the convention matches the festival people/prop scale, so a cart reads true beside a citizen', () => {
-  assert.equal(STREET_FOOD_PX_PER_METRE_ALONG, 2.5);
-  assert.equal(STREET_FOOD_PX_PER_METRE_UP, 5);
-  near(CART_COUNTER_HEIGHT_M, 0.85); // 所謂車仔既高度，應該拎前輪到前檯面既高度 - not the whole canvas
+test('carts are sized at the 20 m tile\'s own rate: a ground length at ALONG, the true vertical 1.2247x it', () => {
+  // TILE_WIDTH 100 px over a 20 m tile's two ground edges: 100 / 40 = 2.5 px a metre
+  assert.equal(STREET_FOOD_PX_PER_METRE_ALONG, 100 / (20 * 2));
+  near(STREET_FOOD_TRUE_PX_PER_METRE_UP, 2.5 * Math.cos(Math.PI / 6) / Math.cos(Math.PI / 4));
+  near(STREET_FOOD_TRUE_PX_PER_METRE_UP, 3.0619, 1e-4);
+  near(CART_LENGTH_M, 2.3); // 你睇吓1:20既比例應該要架手推車（紅色線）多長
   assert.deepEqual(FURNITURE_IDS, ['roundTableCream', 'roundTableMint', 'foldingStoolRed', 'foldingStoolGreen', 'roundTableFolded', 'foldingStoolsPacked']);
 });
 
@@ -39,16 +41,16 @@ test('groundAnchorFromAlpha averages the lowest visible row, ignoring faint and 
   assert.equal(groundAnchorFromAlpha(new Uint8Array(w * h * 4), w, h), null, 'fully transparent has no anchor');
 });
 
-test('displayScaleFor anchors a cart to front-wheel-to-counter height, a table to its diameter, by id for the rest', () => {
-  // 所謂車仔既高度，應該拎前輪到前檯面既高度 (Norton): targetDropAtFront, not the whole canvas -
-  // a cart's stacked goods and handlebar reach well above its counter and are not part of "the
-  // cart's height" any more than a vase on a table is part of "the table's height"
-  const bodyCage = displayScaleFor({ kind: 'body-cage', id: 'curryFishball' }, { targetDropAtFront: 100 });
-  assert.equal(bodyCage.scale, (CART_COUNTER_HEIGHT_M * 5) / 100);
-  assert.match(bodyCage.anchorAxis, /front wheel to counter/);
+test('displayScaleFor anchors a cart to its counter length, a table to its diameter, by id for the rest - one scale each', () => {
+  // the counter's two painted rail lines span the cart's length; X is never rescaled by the
+  // rectification, so that span is a ground-plane length at the tile's own ALONG rate
+  const bodyCage = displayScaleFor({ kind: 'body-cage', id: 'curryFishball', top: { down: [[10, 50], [110, 100]], up: [[110, 100], [410, -50]] } }, {});
+  assert.equal(bodyCage.scale, (CART_LENGTH_M * 2.5) / 400);
+  assert.match(bodyCage.anchorAxis, /counter length/);
+  assert.equal(bodyCage.scaleX, undefined, 'one uniform scale: a raster scaled unevenly is no longer isometric');
 
-  const roastChestnut = displayScaleFor({ kind: 'axes', id: 'roastChestnut' }, {});
-  near(roastChestnut.scale, (CART_COUNTER_HEIGHT_M * 5) / 104.85);
+  const roastChestnut = displayScaleFor({ kind: 'axes', id: 'roastChestnut', axes: { down: [[0, 0], [200, 100]], up: [[200, 100], [380, 10]] } }, {});
+  near(roastChestnut.scale, (CART_LENGTH_M * 2.5) / 380);
 
   const table = displayScaleFor({ kind: 'ellipse', id: 'roundTableCream', ellipse: { width: 280 } }, {});
   assert.equal(table.scale, (1.0 * 2.5) / 280);
@@ -76,11 +78,13 @@ test('the rebuilt geometry gives every cart a mirror and a ground anchor, furnit
       assert.deepEqual(asset.mirror.groundAnchor, [w - 1 - asset.groundAnchor[0], asset.groundAnchor[1]]);
     }
   }
-  // every cart lands near the same waist-height counter, not a mix of toy and giant carts
-  const cartScales = manifest.assets.filter((a) => !FURNITURE_IDS.includes(a.id)).map((a) => a.display.scale * a.outputSize[1]);
-  const displayHeights = cartScales; // screen px at zoom 1
-  const min = Math.min(...displayHeights), max = Math.max(...displayHeights);
-  assert.ok(max / min < 2, `cart display heights should stay within 2x of each other, got ${min}..${max}`);
+  // every cart's measured counter span draws exactly 2.3 m long at the tile's ALONG rate
+  const spec = JSON.parse(fs.readFileSync(path.join(ROOT, 'scripts/source-art/streetFood/isometric-calibration.json'), 'utf8'));
+  for (const asset of manifest.assets.filter((a) => !FURNITURE_IDS.includes(a.id))) {
+    const source = spec.assets.find((a) => a.id === asset.id);
+    const points = source.kind === 'body-cage' ? [...source.top.down, ...source.top.up] : Object.values(source.axes).flat();
+    near(pointsSpanX(points) * asset.display.scale, CART_LENGTH_M * STREET_FOOD_PX_PER_METRE_ALONG, 1e-9);
+  }
 });
 
 test('a mirrored PNG is the true horizontal flip of its cart, same size, non-trivial content', async () => {

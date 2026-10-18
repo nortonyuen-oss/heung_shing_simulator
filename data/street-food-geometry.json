@@ -31,9 +31,9 @@
         459
       ],
       "display": {
-        "scale": 0.01989795918367347,
-        "anchorM": 1.9500000000000002,
-        "anchorAxis": "up (full cart height)"
+        "scale": 0.04056056365717983,
+        "anchorM": 0.85,
+        "anchorAxis": "up (front wheel to counter)"
       },
       "projection": {
         "kind": "body-cage",
@@ -290,9 +290,9 @@
         449
       ],
       "display": {
-        "scale": 0.01985743380855397,
-        "anchorM": 1.9500000000000002,
-        "anchorAxis": "up (full cart height)"
+        "scale": 0.040521834769622386,
+        "anchorM": 0.85,
+        "anchorAxis": "up (front wheel to counter)"
       },
       "projection": {
         "kind": "body-cage",
@@ -549,9 +549,9 @@
         431
       ],
       "display": {
-        "scale": 0.020833333333333332,
-        "anchorM": 1.9500000000000002,
-        "anchorAxis": "up (full cart height)"
+        "scale": 0.04053409632808775,
+        "anchorM": 0.85,
+        "anchorAxis": "up (batch-1 front wheel to counter)"
       },
       "projection": {
         "c": -0.07414448669201523,
@@ -2958,9 +2958,9 @@
         1059
       ],
       "display": {
-        "scale": 0.008426966292134831,
-        "anchorM": 1.9500000000000002,
-        "anchorAxis": "up (full cart height)"
+        "scale": 0.017783166598533056,
+        "anchorM": 0.85,
+        "anchorAxis": "up (front wheel to counter)"
       },
       "projection": {
         "kind": "body-cage",
@@ -3217,9 +3217,9 @@
         1055
       ],
       "display": {
-        "scale": 0.008347602739726028,
-        "anchorM": 1.9500000000000002,
-        "anchorAxis": "up (full cart height)"
+        "scale": 0.02113385029816198,
+        "anchorM": 0.85,
+        "anchorAxis": "up (front wheel to counter)"
       },
       "projection": {
         "kind": "body-cage",
@@ -3476,9 +3476,9 @@
         1082
       ],
       "display": {
-        "scale": 0.00808457711442786,
-        "anchorM": 1.9500000000000002,
-        "anchorAxis": "up (full cart height)"
+        "scale": 0.020896879194210877,
+        "anchorM": 0.85,
+        "anchorAxis": "up (front wheel to counter)"
       },
       "projection": {
         "kind": "body-cage",
@@ -3735,9 +3735,9 @@
         1133
       ],
       "display": {
-        "scale": 0.007762738853503185,
-        "anchorM": 1.9500000000000002,
-        "anchorAxis": "up (full cart height)"
+        "scale": 0.02025712026159674,
+        "anchorM": 0.85,
+        "anchorAxis": "up (front wheel to counter)"
       },
       "projection": {
         "kind": "body-cage",
@@ -3994,9 +3994,9 @@
         1140
       ],
       "display": {
-        "scale": 0.007719714964370546,
-        "anchorM": 1.9500000000000002,
-        "anchorAxis": "up (full cart height)"
+        "scale": 0.018305297984771648,
+        "anchorM": 0.85,
+        "anchorAxis": "up (front wheel to counter)"
       },
       "projection": {
         "kind": "body-cage",
@@ -4253,9 +4253,9 @@
         1066
       ],
       "display": {
-        "scale": 0.008091286307053943,
-        "anchorM": 1.9500000000000002,
-        "anchorAxis": "up (full cart height)"
+        "scale": 0.021437684947860972,
+        "anchorM": 0.85,
+        "anchorAxis": "up (front wheel to counter)"
       },
       "projection": {
         "kind": "body-cage",
@@ -4512,9 +4512,9 @@
         1088
       ],
       "display": {
-        "scale": 0.008172673931265717,
-        "anchorM": 1.9500000000000002,
-        "anchorAxis": "up (full cart height)"
+        "scale": 0.02212740382450776,
+        "anchorM": 0.85,
+        "anchorAxis": "up (front wheel to counter)"
       },
       "projection": {
         "kind": "body-cage",
@@ -4771,9 +4771,9 @@
         1111
       ],
       "display": {
-        "scale": 0.007907542579075427,
-        "anchorM": 1.9500000000000002,
-        "anchorAxis": "up (full cart height)"
+        "scale": 0.024004197109654,
+        "anchorM": 0.85,
+        "anchorAxis": "up (front wheel to counter)"
       },
       "projection": {
         "kind": "body-cage",
@@ -5030,9 +5030,9 @@
         1210
       ],
       "display": {
-        "scale": 0.007238307349665924,
-        "anchorM": 1.9500000000000002,
-        "anchorAxis": "up (full cart height)"
+        "scale": 0.019328648806086618,
+        "anchorM": 0.85,
+        "anchorAxis": "up (front wheel to counter)"
       },
       "projection": {
         "kind": "body-cage",

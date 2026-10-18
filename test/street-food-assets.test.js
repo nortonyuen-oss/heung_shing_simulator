@@ -11,7 +11,7 @@ const path = require('node:path');
 const test = require('node:test');
 const {
   groundAnchorFromAlpha, displayScaleFor, pointsSpanX,
-  STREET_FOOD_PX_PER_METRE_ALONG, STREET_FOOD_PX_PER_METRE_UP, CART_TOTAL_HEIGHT_M, FURNITURE_IDS,
+  STREET_FOOD_PX_PER_METRE_ALONG, STREET_FOOD_PX_PER_METRE_UP, CART_COUNTER_HEIGHT_M, FURNITURE_IDS,
 } = require('../scripts/prepare-street-food-assets.js');
 
 const ROOT = path.resolve(__dirname, '..');
@@ -20,7 +20,7 @@ const near = (actual, expected, tolerance = 1e-9) => assert.ok(Math.abs(actual -
 test('the convention matches the festival people/prop scale, so a cart reads true beside a citizen', () => {
   assert.equal(STREET_FOOD_PX_PER_METRE_ALONG, 2.5);
   assert.equal(STREET_FOOD_PX_PER_METRE_UP, 5);
-  near(CART_TOTAL_HEIGHT_M, 1.95); // 1.3m first read right, then Norton asked for 50% bigger
+  near(CART_COUNTER_HEIGHT_M, 0.85); // 所謂車仔既高度，應該拎前輪到前檯面既高度 - not the whole canvas
   assert.deepEqual(FURNITURE_IDS, ['roundTableCream', 'roundTableMint', 'foldingStoolRed', 'foldingStoolGreen', 'roundTableFolded', 'foldingStoolsPacked']);
 });
 
@@ -39,16 +39,16 @@ test('groundAnchorFromAlpha averages the lowest visible row, ignoring faint and 
   assert.equal(groundAnchorFromAlpha(new Uint8Array(w * h * 4), w, h), null, 'fully transparent has no anchor');
 });
 
-test('displayScaleFor anchors every cart to its own full height, a table to its diameter, by id for the rest', () => {
-  // any non-furniture id (body-cage or axes-kind like roastChestnut) scales off the whole
-  // rectified canvas height - a cart's stacked goods and handlebar reach well above its counter,
-  // so anchoring the counter alone left the sprite far too tall (Norton: "車仔太大")
-  const bodyCage = displayScaleFor({ kind: 'body-cage', id: 'curryFishball' }, { height: 100 });
-  assert.equal(bodyCage.scale, (CART_TOTAL_HEIGHT_M * 5) / 100);
-  assert.match(bodyCage.anchorAxis, /full cart height/);
+test('displayScaleFor anchors a cart to front-wheel-to-counter height, a table to its diameter, by id for the rest', () => {
+  // 所謂車仔既高度，應該拎前輪到前檯面既高度 (Norton): targetDropAtFront, not the whole canvas -
+  // a cart's stacked goods and handlebar reach well above its counter and are not part of "the
+  // cart's height" any more than a vase on a table is part of "the table's height"
+  const bodyCage = displayScaleFor({ kind: 'body-cage', id: 'curryFishball' }, { targetDropAtFront: 100 });
+  assert.equal(bodyCage.scale, (CART_COUNTER_HEIGHT_M * 5) / 100);
+  assert.match(bodyCage.anchorAxis, /front wheel to counter/);
 
-  const roastChestnut = displayScaleFor({ kind: 'axes', id: 'roastChestnut' }, { height: 104.85 });
-  near(roastChestnut.scale, (CART_TOTAL_HEIGHT_M * 5) / 104.85);
+  const roastChestnut = displayScaleFor({ kind: 'axes', id: 'roastChestnut' }, {});
+  near(roastChestnut.scale, (CART_COUNTER_HEIGHT_M * 5) / 104.85);
 
   const table = displayScaleFor({ kind: 'ellipse', id: 'roundTableCream', ellipse: { width: 280 } }, {});
   assert.equal(table.scale, (1.0 * 2.5) / 280);

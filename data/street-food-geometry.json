@@ -26,6 +26,15 @@
         490
       ],
       "outputSha256": "60cef6380f7fd208ced6e76cc148f8d9d71cc9ca493820723ba011b5e1d37e51",
+      "groundAnchor": [
+        161.54666666666665,
+        459
+      ],
+      "display": {
+        "scale": 0.031016901620196345,
+        "anchorM": 0.65,
+        "anchorAxis": "up (counter height)"
+      },
       "projection": {
         "kind": "body-cage",
         "c": -0.07576433209776767,
@@ -245,6 +254,14 @@
           ]
         },
         "independentChecks": []
+      },
+      "mirror": {
+        "outputPath": "Models/streetFood/sf_curryFishball_m.png",
+        "outputSha256": "cfe75bdabb1a3c1b14b61d794a036130f63945c32e6e1517c06b2faf85641d2c",
+        "groundAnchor": [
+          367.4533333333334,
+          459
+        ]
       }
     },
     {
@@ -268,6 +285,15 @@
         491
       ],
       "outputSha256": "2f08bd2b19fc0b999a5b2a0b449dd52a22d924c98283f1f7be2e55928e4df67c",
+      "groundAnchor": [
+        231.03875968992247,
+        449
+      ],
+      "display": {
+        "scale": 0.030987285412064178,
+        "anchorM": 0.65,
+        "anchorAxis": "up (counter height)"
+      },
       "projection": {
         "kind": "body-cage",
         "c": -0.06002640415578453,
@@ -487,6 +513,14 @@
           ]
         },
         "independentChecks": []
+      },
+      "mirror": {
+        "outputPath": "Models/streetFood/sf_friedSnacks_m.png",
+        "outputSha256": "090f0206d42ef6912d4939fa356fc54b5565f11135073869b6091d34a9829c59",
+        "groundAnchor": [
+          307.9612403100775,
+          449
+        ]
       }
     },
     {
@@ -510,6 +544,15 @@
         468
       ],
       "outputSha256": "6b4c107b0b469547918a8329c021897686213f0097f2a04b50179243c397bde6",
+      "groundAnchor": [
+        188.78666666666666,
+        431
+      ],
+      "display": {
+        "scale": 0.030996661897949453,
+        "anchorM": 0.65,
+        "anchorAxis": "up (batch-1 counter height)"
+      },
       "projection": {
         "c": -0.07414448669201523,
         "d": 1.0047528517110267,
@@ -612,6 +655,14 @@
           ]
         },
         "independentChecks": []
+      },
+      "mirror": {
+        "outputPath": "Models/streetFood/sf_roastChestnut_m.png",
+        "outputSha256": "c37b505e6d1ded2113ef1529d57d001180d61373a53e8725a3eaa67600d2f73e",
+        "groundAnchor": [
+          354.21333333333337,
+          431
+        ]
       }
     },
     {
@@ -635,6 +686,15 @@
         311
       ],
       "outputSha256": "c1102decbac95760445a1128a3d7e8625f21177c0f74a54f8611474599b62ee3",
+      "groundAnchor": [
+        114.47619047619048,
+        286
+      ],
+      "display": {
+        "scale": 0.008960573476702509,
+        "anchorM": 1,
+        "anchorAxis": "along (tabletop diameter)"
+      },
       "projection": {
         "c": 0.009390226438674373,
         "d": 1.177171283510405,
@@ -1476,6 +1536,15 @@
         300
       ],
       "outputSha256": "0f88287ab75d102849290e0469e9eed16a100ee1b0e3af71b5e4e9fa68815fa2",
+      "groundAnchor": [
+        118.8,
+        277
+      ],
+      "display": {
+        "scale": 0.008928571428571428,
+        "anchorM": 1,
+        "anchorAxis": "along (tabletop diameter)"
+      },
       "projection": {
         "c": 0.0035728041804236168,
         "d": 1.1671358906394689,
@@ -2317,6 +2386,15 @@
         236
       ],
       "outputSha256": "12ff2bd9d3b3a226e44d541a89bb82fad3a012774342b76428148665fc8c5e2a",
+      "groundAnchor": [
+        93.52542372881356,
+        208
+      ],
+      "display": {
+        "scale": 0.006299212598425198,
+        "anchorM": 0.32,
+        "anchorAxis": "along (stool width)"
+      },
       "projection": {
         "c": -0.013032099154622223,
         "d": 1.0020534106822923,
@@ -2442,6 +2520,15 @@
         251
       ],
       "outputSha256": "46f5f82b9ba77f4053dbba805306125d38c94adaca32a3eb8552b5ddfa9348d4",
+      "groundAnchor": [
+        99.58181818181818,
+        223
+      ],
+      "display": {
+        "scale": 0.006060606060606061,
+        "anchorM": 0.32,
+        "anchorAxis": "along (stool width)"
+      },
       "projection": {
         "c": 0.013222006450121004,
         "d": 1.050204290945325,
@@ -2567,6 +2654,15 @@
         279
       ],
       "outputSha256": "044df862f8769c69191c544f830c503069e66c5dc3389ace276a6c0fc4d89a30",
+      "groundAnchor": [
+        132.41284403669724,
+        251
+      ],
+      "display": {
+        "scale": 0.009328358208955223,
+        "anchorM": 0.25,
+        "anchorAxis": "along (folded width)"
+      },
       "projection": {
         "c": -0.02238805970149249,
         "d": 1,
@@ -2723,6 +2819,15 @@
         290
       ],
       "outputSha256": "37e811940d07f38ab03255af7d4b738c6bb7bd9dba02541c6955335d15837be1",
+      "groundAnchor": [
+        109.55223880597015,
+        262
+      ],
+      "display": {
+        "scale": 0.006349206349206349,
+        "anchorM": 0.32,
+        "anchorAxis": "along (stool width)"
+      },
       "projection": {
         "c": 0.020000000000000018,
         "d": 1.02,
@@ -2848,6 +2953,15 @@
         1157
       ],
       "outputSha256": "1cd01abbeef57644e01cc8d0be1a52757e0cd5c5d869d89019984cbfb016e89e",
+      "groundAnchor": [
+        498.5966386554622,
+        1059
+      ],
+      "display": {
+        "scale": 0.013598892104760573,
+        "anchorM": 0.65,
+        "anchorAxis": "up (counter height)"
+      },
       "projection": {
         "kind": "body-cage",
         "c": -0.27355065509128507,
@@ -3067,6 +3181,14 @@
           ]
         },
         "independentChecks": []
+      },
+      "mirror": {
+        "outputPath": "Models/streetFood/sf_cartNoodles_m.png",
+        "outputSha256": "504e23ad720bde80130073081858d022f0ac6e35d2bfc4a8a602637dbed7cadf",
+        "groundAnchor": [
+          1070.4033613445379,
+          1059
+        ]
       }
     },
     {
@@ -3090,6 +3212,15 @@
         1168
       ],
       "outputSha256": "24e98eb7a723fdb5444f4807f865b9c0a2b7406827e6b0fe6c3de8d96d83b66f",
+      "groundAnchor": [
+        533.3587786259542,
+        1055
+      ],
+      "display": {
+        "scale": 0.01616117963977093,
+        "anchorM": 0.65,
+        "anchorAxis": "up (counter height)"
+      },
       "projection": {
         "kind": "body-cage",
         "c": -0.15866029735387266,
@@ -3309,6 +3440,14 @@
           ]
         },
         "independentChecks": []
+      },
+      "mirror": {
+        "outputPath": "Models/streetFood/sf_cheungFun_m.png",
+        "outputSha256": "baee68d14b5111683b84a55bbfef20b9d9902b69ae9dc6ac7d21685c4cdfc918",
+        "groundAnchor": [
+          1035.641221374046,
+          1055
+        ]
       }
     },
     {
@@ -3332,6 +3471,15 @@
         1206
       ],
       "outputSha256": "86b06a359eb9dff6c7f1919ce3f2e5577e7c948c2c5eb084de8782480967c170",
+      "groundAnchor": [
+        529.4615384615385,
+        1082
+      ],
+      "display": {
+        "scale": 0.015979966442631846,
+        "anchorM": 0.65,
+        "anchorAxis": "up (counter height)"
+      },
       "projection": {
         "kind": "body-cage",
         "c": -0.15240292498797992,
@@ -3551,6 +3699,14 @@
           ]
         },
         "independentChecks": []
+      },
+      "mirror": {
+        "outputPath": "Models/streetFood/sf_beefOffal_m.png",
+        "outputSha256": "3c37854f8a3d2c646c8a6cfe783033d4a2e90e851524719090125ce2389ce5c5",
+        "groundAnchor": [
+          1039.5384615384614,
+          1082
+        ]
       }
     },
     {
@@ -3574,6 +3730,15 @@
         1256
       ],
       "outputSha256": "5a5f80f3e3fd8f3095bfad279cec31fafc11d874021ec62e1f8a2bbf8d9c5198",
+      "groundAnchor": [
+        548.3255813953489,
+        1133
+      ],
+      "display": {
+        "scale": 0.01549073902357398,
+        "anchorM": 0.65,
+        "anchorAxis": "up (counter height)"
+      },
       "projection": {
         "kind": "body-cage",
         "c": -0.1549488237500669,
@@ -3793,6 +3958,14 @@
           ]
         },
         "independentChecks": []
+      },
+      "mirror": {
+        "outputPath": "Models/streetFood/sf_stinkyTofu_m.png",
+        "outputSha256": "f4fccd0b401dbdc5f2bdbca514dc6167f52872b0235fa2042469286d881adaa4",
+        "groundAnchor": [
+          1020.6744186046511,
+          1133
+        ]
       }
     },
     {
@@ -3816,6 +3989,15 @@
         1263
       ],
       "outputSha256": "770946467d8e38daa65049b1f76f59eae881e49d86448e1dce1464c01a23733a",
+      "groundAnchor": [
+        493.55172413793105,
+        1140
+      ],
+      "display": {
+        "scale": 0.01399816904717832,
+        "anchorM": 0.65,
+        "anchorAxis": "up (counter height)"
+      },
       "projection": {
         "kind": "body-cage",
         "c": -0.13254421259474136,
@@ -4035,6 +4217,14 @@
           ]
         },
         "independentChecks": []
+      },
+      "mirror": {
+        "outputPath": "Models/streetFood/sf_eggWaffle_m.png",
+        "outputSha256": "54a15d7a572b73488e528fa806dbce357d4f0117a758a5b6201a27e05316a4c5",
+        "groundAnchor": [
+          1075.4482758620688,
+          1140
+        ]
       }
     },
     {
@@ -4058,6 +4248,15 @@
         1205
       ],
       "outputSha256": "e8730d690e61ee6ff342c32e6a8b121f6d89f160622662503df59ac037d9258a",
+      "groundAnchor": [
+        542.2333333333333,
+        1066
+      ],
+      "display": {
+        "scale": 0.016393523783658392,
+        "anchorM": 0.65,
+        "anchorAxis": "up (counter height)"
+      },
       "projection": {
         "kind": "body-cage",
         "c": -0.15538149632535836,
@@ -4277,6 +4476,14 @@
           ]
         },
         "independentChecks": []
+      },
+      "mirror": {
+        "outputPath": "Models/streetFood/sf_pickledSnacks_m.png",
+        "outputSha256": "2db609ce9975dacc3242067fd6f59556becac5ff1ce054f212d4c98e534933e5",
+        "groundAnchor": [
+          1026.7666666666667,
+          1066
+        ]
       }
     },
     {
@@ -4300,6 +4507,15 @@
         1193
       ],
       "outputSha256": "e9e6606b075fb9185320d0e683b6748586444213e59432b369e73337708f2392",
+      "groundAnchor": [
+        489.89473684210526,
+        1088
+      ],
+      "display": {
+        "scale": 0.01692095586580005,
+        "anchorM": 0.65,
+        "anchorAxis": "up (counter height)"
+      },
       "projection": {
         "kind": "body-cage",
         "c": -0.1258158085569252,
@@ -4519,6 +4735,14 @@
           ]
         },
         "independentChecks": []
+      },
+      "mirror": {
+        "outputPath": "Models/streetFood/sf_fishSoupFauxFin_m.png",
+        "outputSha256": "4bc0992997deaf50e374349da34928271c827f5ce3e9955e6655c847bf3179e8",
+        "groundAnchor": [
+          1079.1052631578948,
+          1088
+        ]
       }
     },
     {
@@ -4542,6 +4766,15 @@
         1233
       ],
       "outputSha256": "27381d79b10a816a3349356bc0670a835bc650417c8d7a39e6fcb8757af2342a",
+      "groundAnchor": [
+        514.8091603053435,
+        1111
+      ],
+      "display": {
+        "scale": 0.01835615073091188,
+        "anchorM": 0.65,
+        "anchorAxis": "up (counter height)"
+      },
       "projection": {
         "kind": "body-cage",
         "c": -0.15392437925600955,
@@ -4761,6 +4994,14 @@
           ]
         },
         "independentChecks": []
+      },
+      "mirror": {
+        "outputPath": "Models/streetFood/sf_friedIntestines_m.png",
+        "outputSha256": "0d411a3e3646fe54f0ef6929784508fbd53c3b9fa501b653b4f5d46155d64e79",
+        "groundAnchor": [
+          1054.1908396946565,
+          1111
+        ]
       }
     },
     {
@@ -4784,6 +5025,15 @@
         1347
       ],
       "outputSha256": "b8a79e8d4373bb5cbf038e9fe4e940aaa0a9af13456dbb7bdd8e446584d92aa1",
+      "groundAnchor": [
+        531.8760330578513,
+        1210
+      ],
+      "display": {
+        "scale": 0.01478073143994859,
+        "anchorM": 0.65,
+        "anchorAxis": "up (counter height)"
+      },
       "projection": {
         "kind": "body-cage",
         "c": -0.13916633896972086,
@@ -5003,6 +5253,14 @@
           ]
         },
         "independentChecks": []
+      },
+      "mirror": {
+        "outputPath": "Models/streetFood/sf_sugarcaneJuice_m.png",
+        "outputSha256": "deeba2d6492fba7a61538620c498e4c28d6ba1a4bec8476cd2770ada626d11b5",
+        "groundAnchor": [
+          1037.1239669421489,
+          1210
+        ]
       }
     }
   ]

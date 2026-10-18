@@ -19,6 +19,70 @@ const assert = (condition, message) => { if (!condition) throw new Error(message
 const slope = ([a, b]) => (b[1] - a[1]) / (b[0] - a[0]);
 const escapeXml = (s) => String(s).replace(/[<>&"']/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&apos;' })[c]);
 
+// Display scale (Norton 2026-10-18: the paintings' own proportions are not distorted, so each
+// asset is sized from ONE real-world reference dimension - not forced to a uniform footprint -
+// matching the convention festival people/props already draw at (festival-sprites.js), so a cart
+// reads true next to a citizen already in the game.
+const STREET_FOOD_PX_PER_METRE_ALONG = 2.5; // FESTIVAL_PX_PER_METRE_ALONG
+const STREET_FOOD_PX_PER_METRE_UP = 5; // FESTIVAL_PX_PER_METRE_UP
+// A cart's counter/box height off the ground (fitBodyCage's targetDropAtFront): a hawker-cart
+// worktop is built around waist height. Confirmed by eye (scratchpad/cart-scale-check2.jpg)
+// against sp_hawkerUncle (1.72 m) - 0.55 m read as a low trolley, 0.75 m as chest-height; 0.65 m
+// matched a real pushcart's counter.
+const CART_COUNTER_HEIGHT_M = 0.65;
+// roastChestnut (kind: axes) has no body-cage top/lower pair to measure a counter drop from. It
+// is from the same generation batch as curryFishball/friedSnacks (same source painting, same
+// apparent zoom - their fitted targetDropAtFront agree to within 0.1 px: 104.8 / 104.9), so it
+// reuses their batch's own counter-height pixel span instead of a fresh measurement.
+const ROAST_CHESTNUT_BATCH1_DROP_PX = 104.85;
+// 檯凳 (street-food-market-design.md "街邊圓檯與摺凳"): a small hawker folding table and the
+// stools/packed stacks that go with it. Diameter/width are ground-plane quantities (the ALONG
+// convention); X is never rescaled by this pipeline, so a spec's source px span is already the
+// output span.
+const TABLE_DIAMETER_M = 1.0;
+const STOOL_WIDTH_M = 0.32;
+const FOLDED_TABLE_WIDTH_M = 0.25;
+const FURNITURE_IDS = ['roundTableCream', 'roundTableMint', 'foldingStoolRed', 'foldingStoolGreen', 'roundTableFolded', 'foldingStoolsPacked'];
+
+function pointsSpanX(points) {
+  const xs = points.map(([x]) => x);
+  return Math.max(...xs) - Math.min(...xs);
+}
+
+// A cart/furniture piece's own ground-contact point in OUTPUT pixels: the mean X of alpha>=128
+// pixels in the lowest 5 rows that have any, same method as street-food-people.json's footAnchor.
+function groundAnchorFromAlpha(data, width, height) {
+  let bottom = -1;
+  for (let y = height - 1; y >= 0 && bottom < 0; y--) {
+    for (let x = 0; x < width; x++) if (data[(y * width + x) * 4 + 3] >= 128) { bottom = y; break; }
+  }
+  if (bottom < 0) return null;
+  let sumX = 0, count = 0;
+  for (let y = Math.max(0, bottom - 4); y <= bottom; y++) {
+    for (let x = 0; x < width; x++) if (data[(y * width + x) * 4 + 3] >= 128) { sumX += x; count++; }
+  }
+  return [count ? sumX / count : width / 2, bottom];
+}
+
+// scale: output px -> screen px at zoom 1, one scalar for both axes (model-metadata.js's building
+// scale and festival-sprites.js's part scale are both a single number this same way).
+function displayScaleFor(asset, projection) {
+  if (asset.kind === 'body-cage') {
+    return { scale: (CART_COUNTER_HEIGHT_M * STREET_FOOD_PX_PER_METRE_UP) / projection.targetDropAtFront, anchorM: CART_COUNTER_HEIGHT_M, anchorAxis: 'up (counter height)' };
+  }
+  if (asset.id === 'roastChestnut') {
+    return { scale: (CART_COUNTER_HEIGHT_M * STREET_FOOD_PX_PER_METRE_UP) / ROAST_CHESTNUT_BATCH1_DROP_PX, anchorM: CART_COUNTER_HEIGHT_M, anchorAxis: 'up (batch-1 counter height)' };
+  }
+  if (asset.kind === 'ellipse') {
+    return { scale: (TABLE_DIAMETER_M * STREET_FOOD_PX_PER_METRE_ALONG) / asset.ellipse.width, anchorM: TABLE_DIAMETER_M, anchorAxis: 'along (tabletop diameter)' };
+  }
+  if (asset.id === 'roundTableFolded') {
+    return { scale: (FOLDED_TABLE_WIDTH_M * STREET_FOOD_PX_PER_METRE_ALONG) / pointsSpanX(asset.axis), anchorM: FOLDED_TABLE_WIDTH_M, anchorAxis: 'along (folded width)' };
+  }
+  // the remaining axes-kind assets are the stools / packed stack
+  return { scale: (STOOL_WIDTH_M * STREET_FOOD_PX_PER_METRE_ALONG) / pointsSpanX(Object.values(asset.axes).flat()), anchorM: STOOL_WIDTH_M, anchorAxis: 'along (stool width)' };
+}
+
 function cropPixels(data, width, crop) {
   const [left, top, w, h] = crop;
   const output = Buffer.alloc(w * h * 4);
@@ -146,23 +210,45 @@ async function main() {
     const guides = guidesFor(asset, crop, projection);
     const validation = validate(asset, crop, projection, guides, output);
     const png = await sharp(output, { raw: { width: projection.width, height: projection.height, channels: 4 } }).png({ compressionLevel: 9 }).toBuffer();
-    const record = { id: asset.id, label: asset.label, kind: asset.kind, reference: asset.reference, confidence: asset.confidence, note: asset.note || '', sourcePath: asset.source, sourceSha256: source.hash, sourceCrop: crop, outputPath: `Models/streetFood/sf_${asset.id}.png`, outputSize: [projection.width, projection.height], outputSha256: hash(png), projection: JSON.parse(JSON.stringify(projection)), guideLines: guides, validation };
-    items.push({ record, png });
-    console.log(`${asset.id}: ${crop[2]}×${crop[3]} → ${projection.width}×${projection.height}, ${asset.kind}, references ${validation.axes.map((a) => a.slope.toFixed(5)).join(' / ') || 'ellipse 2:1'}`);
+    const groundAnchor = groundAnchorFromAlpha(output, projection.width, projection.height);
+    assert(groundAnchor, `${asset.id}: no visible ground contact found`);
+    const display = displayScaleFor(asset, projection);
+    const record = { id: asset.id, label: asset.label, kind: asset.kind, reference: asset.reference, confidence: asset.confidence, note: asset.note || '', sourcePath: asset.source, sourceSha256: source.hash, sourceCrop: crop, outputPath: `Models/streetFood/sf_${asset.id}.png`, outputSize: [projection.width, projection.height], outputSha256: hash(png), groundAnchor, display, projection: JSON.parse(JSON.stringify(projection)), guideLines: guides, validation };
+    // 車仔檔模型要做2方向既mirror (Norton 2026-10-18): the 12 carts get a horizontally flopped
+    // twin for the stall facing the other way along a venue edge; furniture does not need one
+    // (a round table and a folded stool read the same either way).
+    if (!FURNITURE_IDS.includes(asset.id)) {
+      const mirroredPng = await sharp(png).flop().png({ compressionLevel: 9 }).toBuffer();
+      record.mirror = {
+        outputPath: `Models/streetFood/sf_${asset.id}_m.png`,
+        outputSha256: hash(mirroredPng),
+        groundAnchor: [projection.width - 1 - groundAnchor[0], groundAnchor[1]],
+      };
+      items.push({ record, png, mirroredPng });
+    } else {
+      items.push({ record, png });
+    }
+    console.log(`${asset.id}: ${crop[2]}×${crop[3]} → ${projection.width}×${projection.height}, ${asset.kind}, references ${validation.axes.map((a) => a.slope.toFixed(5)).join(' / ') || 'ellipse 2:1'}, scale ${display.scale.toFixed(5)} (${display.anchorM}m ${display.anchorAxis})`);
   }
   for (const [name, source] of sources) assert(hash(fs.readFileSync(path.join(ROOT, name))) === source.hash, `Source changed during calibration: ${name}`);
   const manifest = { version: 1, projection: 'Ground height:width 1:2, visible ground axes +/-0.5', sourceMeasurements: 'scripts/source-art/streetFood/isometric-calibration.json', method: 'Measured structure axes; continuous vertical piecewise calibration for disagreeing top/body planes; premultiplied alpha bilinear resampling', runtimeIntegrated: false, assets: items.map((i) => i.record) };
   if (check) {
     const saved = JSON.parse(fs.readFileSync(MANIFEST, 'utf8'));
     assert(JSON.stringify(saved) === JSON.stringify(manifest), 'Saved geometry manifest differs from rebuilt geometry');
-    for (const { record } of items) assert(hash(fs.readFileSync(path.join(ROOT, record.outputPath))) === record.outputSha256, `Output differs from rebuild: ${record.outputPath}`);
-    console.log(`Verified ${items.length} deterministic outputs; ${sources.size} original PNGs unchanged.`);
+    for (const { record, mirroredPng } of items) {
+      assert(hash(fs.readFileSync(path.join(ROOT, record.outputPath))) === record.outputSha256, `Output differs from rebuild: ${record.outputPath}`);
+      if (record.mirror) assert(hash(fs.readFileSync(path.join(ROOT, record.mirror.outputPath))) === record.mirror.outputSha256, `Mirrored output differs from rebuild: ${record.mirror.outputPath}`);
+    }
+    console.log(`Verified ${items.length} deterministic outputs (${items.filter((i) => i.record.mirror).length} mirrored); ${sources.size} original PNGs unchanged.`);
     return;
   }
   fs.mkdirSync(OUTPUT, { recursive: true }); fs.mkdirSync(PREVIEWS, { recursive: true });
-  for (const { record, png } of items) fs.writeFileSync(path.join(ROOT, record.outputPath), png);
+  for (const { record, png, mirroredPng } of items) {
+    fs.writeFileSync(path.join(ROOT, record.outputPath), png);
+    if (record.mirror) fs.writeFileSync(path.join(ROOT, record.mirror.outputPath), mirroredPng);
+  }
   fs.writeFileSync(MANIFEST, `${JSON.stringify(manifest, null, 2)}\n`);
-  const carts = items.filter(({ record }) => !['roundTableCream', 'roundTableMint', 'foldingStoolRed', 'foldingStoolGreen', 'roundTableFolded', 'foldingStoolsPacked'].includes(record.id));
+  const carts = items.filter(({ record }) => !FURNITURE_IDS.includes(record.id));
   const furniture = items.filter((item) => !carts.includes(item));
   await contactSheet(carts, path.join(PREVIEWS, 'street-food-carts-isometric.png'), false);
   await contactSheet(carts, path.join(PREVIEWS, 'street-food-carts-calibration.png'), true);
@@ -174,4 +260,7 @@ async function main() {
 
 if (require.main === module) main().catch((error) => { console.error(error.stack || error.message); process.exitCode = 1; });
 
-module.exports = { cropPixels, fitAsset, guidesFor, validate };
+module.exports = {
+  cropPixels, fitAsset, guidesFor, validate, groundAnchorFromAlpha, displayScaleFor, pointsSpanX,
+  STREET_FOOD_PX_PER_METRE_ALONG, STREET_FOOD_PX_PER_METRE_UP, CART_COUNTER_HEIGHT_M, FURNITURE_IDS,
+};

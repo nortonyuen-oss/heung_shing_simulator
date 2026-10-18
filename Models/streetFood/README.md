@@ -11,13 +11,19 @@
 
 摺合圓檯已直立，只能從可見摺腳橫桿量度一組軸線；另一組深度軸被遮擋。摺凳收納組亦有重疊，兩件的取點信心較低，已在 metadata 與檢視頁標記。
 
-仍為單一方向；四向、夜間、收檔變體及遊戲登記屬後續工作。本次沒有按圖片畫布寬度強行統一實際米制大小。
+### 方向、顯示比例與接地點（2026-10-18）
+
+12 款車仔各多一張 `sf_<id>_m.png`：原圖水平鏡像（`sharp().flop()`，同 `Models/streetFoodLighting` 雙柱燈串用法一致），接地點隨之鏡到 `outputSize[0]-1-x`，供車仔在場地兩側對著場內開口擺放，不必靠逐款重畫四向。檯凳本身左右對稱，不出鏡像版。
+
+Norton 確認呢批圖本身比例無變形，所以顯示比例唔係全部夾一個長度，而係逐款按自身結構量：車仔（`body-cage`）用檯面／木箱底線量得的櫃身高度對應 **0.65m**（同 `sp_hawkerUncle` 1.72m 擺埋一齊核過，見 [12 款車仔連鏡像對人物比例](../../scripts/source-art/streetFood/previews/street-food-carts-scale-check.jpg)）；糖炒栗子車無檯面／底線兩組軸線，用返同批（魚蛋、煎釀三寶）量得嘅櫃身高度像素；圓檯用檯面闊對應 **1.0m** 直徑；摺凳及摺凳收納組對應 **0.32m** 闊；摺合圓檯對應 **0.25m** 闊。全部换算用遊戲既有 `FESTIVAL_PX_PER_METRE_ALONG`（2.5）／`FESTIVAL_PX_PER_METRE_UP`（5）慣例，令車仔同遊戲入面其他人物／道具大細夾得上。每件都記低 `groundAnchor`（最低 alpha≥128 嗰 5 行嘅 x 平均，同 `street-food-people.json` 嘅 `footAnchor` 做法一致）同 `display.scale`，喺 `data/street-food-geometry.json`。
+
+仍待：夜間、收檔變體及遊戲登記（`street-food-assets.js`／`street-food-market.js`／`street-food-sprites.js`，見 [docs/street-food-market-design.md](../../docs/street-food-market-design.md)）。
 
 - [車仔總覽](../../scripts/source-art/streetFood/previews/street-food-carts-isometric.png)
 - [車仔基準線](../../scripts/source-art/streetFood/previews/street-food-carts-calibration.png)
 - [檯凳基準線](../../scripts/source-art/streetFood/previews/street-food-furniture-isometric.png)
 - [原圖／校正版互動比較](../../scripts/source-art/streetFood/previews/isometric-review.html)
 - [原圖取點](../../scripts/source-art/streetFood/isometric-calibration.json)
-- [校正 metadata、驗證值、原圖 hash](../../data/street-food-geometry.json)
+- [校正 metadata、驗證值、顯示比例、接地點、原圖 hash](../../data/street-food-geometry.json)
 
-重建：`node scripts/prepare-street-food-assets.js`。只驗證重建結果及原圖完整性：`node scripts/prepare-street-food-assets.js --check`。數值與透明通道測試：`node --test test/street-food-projection.test.js`。
+重建：`node scripts/prepare-street-food-assets.js`。只驗證重建結果及原圖完整性：`node scripts/prepare-street-food-assets.js --check`。數值與透明通道測試：`node --test test/street-food-projection.test.js test/street-food-assets.test.js`。

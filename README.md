@@ -1,6 +1,6 @@
-# 香城模擬器 (The City of Heung Shing) v4.22.0 — 【龍舟競渡，包你平安】
+# 香城模擬器 (The City of Heung Shing) v4.23.0 — 【日夜都繽週】
 
-香城模擬器 (The City of Heung Shing) v4.22.0 — 【龍舟競渡，包你平安】 is a SimCity 2000-style city builder inspired by Hong Kong: isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run bus company, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
+香城模擬器 (The City of Heung Shing) v4.23.0 — 【日夜都繽週】 is a SimCity 2000-style city builder inspired by Hong Kong: isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run bus company, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
 
 Website and downloads: https://nortonyuen-oss.github.io/heung_shing_simulator/
 
@@ -9,6 +9,10 @@ Read public posts and replies on the website; sign in to GitHub to confirm a new
 post or reply. Website messages are tracked with the `website-feedback` issue label.
 
 ![The Heung Shing skyline at night, zoomed out: dense lights, the airport and the harbour](docs/assets/gameplay/nightSkyline.webp)
+
+## New in v4.23.0
+
+The 香城夜繽週 act opens event grounds to a nightly dai pai dong: hawker carts, queues, tables and stools, string lights, park lamp posts and electric boxes, giving way to festivals, with a per-ground on/off switch. A new 2×2 public market. Buildings move to a true 20 m tile, and old cities renew onto it. June 4 remembrance, the Hungry Ghost festival and a larger Lunar New Year fair. The Star Ferry rests overnight and under signal 8; a public transport subsidy act; council news fixes. Existing saves remain compatible.
 
 ## New in v4.22.0
 

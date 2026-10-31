@@ -833,6 +833,29 @@ function getVesselTextureKey(cargoState, direction) {
     ?? VESSEL_ASSET_REGISTRY.empty.ne.key;
 }
 
+// Where the hull's centre is actually drawn, relative to the sprite's position, in world pixels.
+// The ships stay exactly where they were calibrated (origin 0.5, 0.5 on the loaded texture); but the
+// packaged art is trimmed and padded to a power of two (scripts/prepare-release-assets.js), which
+// moves the hull within the canvas - the full-load NW ship 40 px down - so the hull is drawn off the
+// vessel's logical point by this much. The wake follows the hull as drawn (Norton 2026-10-31:
+// 浪花要根據校正好的船身位置調整). The source art has its hull centred on the 256 x 256 canvas.
+const VESSEL_SOURCE_HULL_CENTRE = Object.freeze({ x: 128, y: 128 });
+const VESSEL_TEXTURE_PATHS = new Map(Object.values(VESSEL_ASSET_REGISTRY)
+  .flatMap((byDirection) => Object.values(byDirection).map((asset) => [asset.key, asset.path])));
+
+function getVesselDrawnHullOffset(sprite) {
+  const frame = sprite?.frame;
+  const path = VESSEL_TEXTURE_PATHS.get(sprite?.texture?.key);
+  if (!frame || !path || typeof getModelTexturePixelMapping !== 'function') return { x: 0, y: 0 };
+  const mapping = getModelTexturePixelMapping(path, frame);
+  const hullX = VESSEL_SOURCE_HULL_CENTRE.x * mapping.resize + mapping.offsetX;
+  const hullY = VESSEL_SOURCE_HULL_CENTRE.y * mapping.resize + mapping.offsetY;
+  return {
+    x: (hullX - (sprite.originX ?? 0.5) * frame.width) * (sprite.scaleX ?? 1),
+    y: (hullY - (sprite.originY ?? 0.5) * frame.height) * (sprite.scaleY ?? 1),
+  };
+}
+
 function setVesselSpriteTexture(sprite, key) {
   if (!sprite || sprite.texture?.key === key) return;
   sprite.setTexture(key);
@@ -883,7 +906,8 @@ function setVesselVisual(scene, event, logicalPoint, forcedDirection = null, sid
   // 船尾浪花 (water-effects.js): its length off the drawn hull, which lies along a diagonal
   if (typeof trackVesselWake === 'function') {
     const lengthTiles = (Number(event.sprite.displayWidth) || TILE_WIDTH) / (TILE_WIDTH / 2) / 1.2;
-    trackVesselWake(scene, event, logicalPoint.col, logicalPoint.row, lengthTiles, event.sprite.visible !== false);
+    trackVesselWake(scene, event, logicalPoint.col, logicalPoint.row, lengthTiles, event.sprite.visible !== false, null,
+      getVesselDrawnHullOffset(event.sprite));
   }
 }
 
@@ -1234,6 +1258,7 @@ function updateVesselVisuals(time, delta) {
 
 const vesselVisualTestApi = {
   VESSEL_VISUAL_CONFIG,
+  getVesselDrawnHullOffset,
   VESSEL_AUDIO_CONFIG,
   VESSEL_DIRECTIONS,
   VESSEL_CARGO_STATES,

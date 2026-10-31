@@ -854,3 +854,20 @@ test('desktop release pipeline discovers vessel PNG sources without an allowlist
   assert.ok(fs.existsSync(path.join(ROOT, 'Models/vessels')));
   assert.ok(fs.readdirSync(path.join(ROOT, 'Models/vessels')).some((name) => name.endsWith('.png')));
 });
+
+test('浪花 follows the hull as drawn: the packaged art moves it off the vessel point, the ship stays put', () => {
+  const { getVesselDrawnHullOffset } = require('../vessel-visuals.js');
+  // the full-load NW ship: trimmed 50 px off the top, padded 90 px back on top (model-assets.json)
+  globalThis.getModelTexturePixelMapping = () => ({ resize: 1, offsetX: 0, offsetY: 40 });
+  try {
+    const sprite = { texture: { key: 'vessel_full_nw' }, frame: { width: 256, height: 256 }, originX: 0.5, originY: 0.5, scaleX: 0.78, scaleY: 0.78 };
+    const offset = getVesselDrawnHullOffset(sprite);
+    assert.equal(offset.x, 0);
+    assert.ok(Math.abs(offset.y - 40 * 0.78) < 1e-9, 'the hull is drawn 31 px below the point: the wake moves with it');
+    globalThis.getModelTexturePixelMapping = () => ({ resize: 1, offsetX: 0, offsetY: 0 });
+    assert.deepEqual(getVesselDrawnHullOffset(sprite), { x: 0, y: 0 }, 'source art: hull on the point');
+    assert.deepEqual(getVesselDrawnHullOffset({ ...sprite, texture: { key: 'not_a_ship' } }), { x: 0, y: 0 });
+  } finally {
+    delete globalThis.getModelTexturePixelMapping;
+  }
+});

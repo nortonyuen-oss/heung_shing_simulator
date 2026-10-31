@@ -214,8 +214,9 @@ function getVesselWakeStore(scene) {
 // picked by; without it, the larger of the two steps, as typhoonShelterPointAlong picks it) - so a
 // boat on a slanting leg still trails straight off its stern, and the way it actually moves along
 // that axis: a Star Ferry backing out trails the other way. Moving sideways (a ferry pulling off
-// its berth) raises no wake.
-function trackVesselWake(scene, owner, col, row, lengthTiles, visible = true, axis = null) {
+// its berth) raises no wake. `screenOffset` ({x, y} world px) moves the wake with a hull drawn off
+// the vessel's point (a container ship's packaged art: vessel-visuals.js getVesselDrawnHullOffset).
+function trackVesselWake(scene, owner, col, row, lengthTiles, visible = true, axis = null, screenOffset = null) {
   if (!scene || !owner || !isVesselWakesEnabled() || !Number.isFinite(col) || !Number.isFinite(row)) return;
   const store = getVesselWakeStore(scene);
   const now = scene.time?.now || 0;
@@ -260,6 +261,8 @@ function trackVesselWake(scene, owner, col, row, lengthTiles, visible = true, ax
   wake.seenAt = now;
   wake.length = Math.max(0.1, Number(lengthTiles) || 1);
   wake.visible = visible;
+  wake.offsetX = Number(screenOffset?.x) || 0;
+  wake.offsetY = Number(screenOffset?.y) || 0;
 }
 
 function placeVesselWake(scene, wake) {
@@ -289,7 +292,7 @@ function placeVesselWake(scene, wake) {
   const sx = mx < 0 ? -1 : 1;
   const sy = my < 0 ? -1 : 1;
   const scale = Math.max(VESSEL_WAKE.minScale, Math.min(VESSEL_WAKE.maxScale, wake.length)) / VESSEL_WAKE.pxPerUnit;
-  sprite.setPosition(at.x, at.y);
+  sprite.setPosition(at.x + (wake.offsetX || 0), at.y + (wake.offsetY || 0));
   // the other headings are this art mirrored about the stern: by a negative scale, which turns
   // about the origin - Phaser's flipX/flipY mirror the frame within its own box instead, which put
   // every wake but the bottom-right one's off its boat

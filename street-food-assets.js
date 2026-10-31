@@ -53,8 +53,9 @@ function loadStreetFoodAssets() {
       footAnchor: p.footAnchor,
       seatAnchor: p.seatAnchor ?? null,
     }]));
-    // keyed "state:dir" - state is 'day'/'night', dir is 'down'/'up' (the two ground-slope
-    // diagonals scripts/prepare-street-food-lighting.js mirrors, matching Models/streetFoodLighting).
+    // keyed "state:dir" - state is 'day', 'night' (bulbs lit) or 'glow' (lit, over its baked ground
+    // pool - what the game draws by night), dir is 'down'/'up' (the two ground-slope diagonals
+    // scripts/prepare-street-food-lighting.js mirrors, matching Models/streetFoodLighting).
     const lighting_ = {};
     for (const asset of lighting.assets) {
       lighting_[`${asset.state}:${asset.mirrored ? 'up' : 'down'}`] = {
@@ -62,6 +63,8 @@ function loadStreetFoodAssets() {
         size: asset.outputSize,
         groundAnchors: asset.groundAnchors,
         poleTops: asset.poleTops,
+        scale: asset.display?.scale ?? null,
+        spanM: asset.display?.spanM ?? null,
       };
     }
     streetFoodAssets = { carts, furniture, people: peopleById, lighting: lighting_ };
@@ -82,7 +85,8 @@ function getStreetFoodPeopleByRole(role) {
   if (!streetFoodAssets) return [];
   return [...streetFoodAssets.people.values()].filter((p) => p.role === role).map((p) => p.id);
 }
-function getStreetFoodLighting(state, mirrored) { return streetFoodAssets?.lighting[`${state}:${mirrored ? 'up' : 'down'}`] ?? null; }
+/** @param {'day'|'night'|'glow'} state @param {'down'|'up'} dir the screen diagonal its pole line runs on */
+function getStreetFoodLighting(state, dir) { return streetFoodAssets?.lighting[`${state}:${dir}`] ?? null; }
 
 /** Every file path this module currently knows about, for a bulk preload. */
 function getAllStreetFoodTexturePaths() {

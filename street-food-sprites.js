@@ -14,6 +14,15 @@ const STREET_FOOD_SEATED_HEIGHT_RATIO = 0.75;
 // ~1 m across it (street-food-market.js's STREET_FOOD_STALL_LAYOUT places its centre)
 const STREET_FOOD_CART_LONG_TILES = 2.3 / 20;
 const STREET_FOOD_CART_DEPTH_TILES = 1.0 / 20;
+// 公園燈柱: the 海濱步道's black heritage lamp (typhoon-shelter-assets.js promenadeLamp, 4.2 m), at
+// the same true vertical rate as everything else here. Its art: 128 x 256, foot (64, 214), lamp top
+// at row 52; the glow canvas typhoon-shelter-sprites.js draws for it is laid on that same grid.
+const STREET_FOOD_PARK_LAMP = Object.freeze({
+  path: 'Models/typhoonShelter/ts_promenadeLamp_a.png',
+  size: [128, 256],
+  groundAnchor: [64, 214],
+  scale: (4.2 * STREET_FOOD_PEOPLE_PX_PER_METRE_UP) / (214 - 52),
+});
 
 function getStreetFoodSpriteTextureKey(path) { return `street-food:${path}`; }
 
@@ -95,10 +104,16 @@ function getStreetFoodCartPlacement(cart, stall) {
 
 // Places one sprite from a street-food art record {path, size:[w,h], groundAnchor:[x,y], scale}.
 // `record` null/undefined (asset not yet resolved, or this slot has nothing to show) removes it.
-function drawStreetFoodSprite(scene, store, id, record, point, depthBump = 0) {
-  if (!record) { store.get(id)?.destroy(); store.delete(id); return; }
-  const key = getStreetFoodSpriteTextureKey(record.path);
-  if (!scene.textures.exists(key)) { requestStreetFoodTextures(scene, [record.path]); return; }
+// `record.textureKey` draws a texture the game already loaded (a roadside prop) by its own key,
+// `record.path` still naming its logical file for the staged-copy pixel mapping. `options.lit`
+// marks a light source: drawn untinted by night instead of taking the night prop tint.
+function drawStreetFoodSprite(scene, store, id, record, point, depthBump = 0, options = {}) {
+  if (!record) { store.get(id)?.destroy(); store.delete(id); return null; }
+  const key = record.textureKey || getStreetFoodSpriteTextureKey(record.path);
+  if (!scene.textures.exists(key)) {
+    if (!record.textureKey) requestStreetFoodTextures(scene, [record.path]);
+    return store.get(id) ?? null;
+  }
   let sprite = store.get(id);
   if (!sprite) {
     sprite = scene.add.image(0, 0, key);
@@ -117,7 +132,71 @@ function drawStreetFoodSprite(scene, store, id, record, point, depthBump = 0) {
   sprite.setPosition(point.x, point.y);
   sprite.setDepth(point.depth + depthBump);
   sprite.setVisible(true);
-  if (typeof applyNightPropTint === 'function') applyNightPropTint(scene, sprite);
+  if (options.lit) sprite.clearTint();
+  else if (typeof applyNightPropTint === 'function') applyNightPropTint(scene, sprite);
+  return sprite;
+}
+
+// Whether the lot's lamps and string lights are on: with the street lamps (street-lamps.js) - the
+// same night/weather threshold, hysteresis and View-menu lights toggle.
+function areStreetFoodLightsLit(scene) {
+  return typeof streetLampsShouldBeLit === 'function' && streetLampsShouldBeLit(scene);
+}
+
+// A park lamp post, with its warm glow over it by night: the glow canvas the 海濱步道 lamps use
+// (typhoon-shelter-sprites.js), placed on the lamp art's own grid the same way.
+function drawStreetFoodLamp(scene, store, lamp, lit, wanted) {
+  const point = getStreetFoodTilePoint(scene, lamp.row, lamp.col);
+  wanted.add(lamp.id);
+  const sprite = drawStreetFoodSprite(scene, store, lamp.id, STREET_FOOD_PARK_LAMP, point);
+  const glowId = `${lamp.id}|glow`;
+  const glowKey = lit && sprite && typeof ensureTyphoonShelterLampGlowTexture === 'function' ? ensureTyphoonShelterLampGlowTexture(scene) : null;
+  if (!glowKey) { store.get(glowId)?.destroy(); store.delete(glowId); return; }
+  wanted.add(glowId);
+  let glow = store.get(glowId);
+  if (!glow) {
+    glow = scene.add.image(0, 0, glowKey);
+    if (scene.worldMask && typeof glow.setMask === 'function') glow.setMask(scene.worldMask);
+    store.set(glowId, glow);
+  }
+  const glass = TYPHOON_SHELTER_LAMP_GLASS, pad = TYPHOON_SHELTER_LAMP_GLOW_PAD, k = STREET_FOOD_PARK_LAMP.scale;
+  const [footX, footY] = STREET_FOOD_PARK_LAMP.groundAnchor;
+  glow.setOrigin((glass.x + pad) / glow.frame.width, glass.y / glow.frame.height);
+  glow.setScale(k);
+  glow.setPosition(point.x + (glass.x - footX) * k, point.y + (glass.y - footY) * k);
+  glow.setDepth(point.depth + 0.01);
+  glow.setVisible(true);
+}
+
+// 電箱: the roadside utility cabinet (street-furniture.js) at its own roadside size and view, so a
+// box in the lot matches one at the kerb outside it; the lot's edge stands in for the kerb.
+function drawStreetFoodCabinet(scene, store, cabinet, wanted) {
+  if (typeof streetFurnitureView !== 'function' || typeof STREET_FURNITURE_TEXTURE_FILES === 'undefined') return;
+  const textureKey = streetFurnitureTextureKey('cabinet', streetFurnitureView({ side: cabinet.side }));
+  wanted.add(cabinet.id);
+  drawStreetFoodSprite(scene, store, cabinet.id, {
+    textureKey,
+    path: STREET_FURNITURE_TEXTURE_FILES[textureKey],
+    groundAnchor: [STREET_FURNITURE_SOURCE_ANCHOR.x, STREET_FURNITURE_SOURCE_ANCHOR.y],
+    scale: streetFurnitureScaleFor('cabinet'),
+  }, getStreetFoodTilePoint(scene, cabinet.row, cabinet.col));
+}
+
+// 排檔燈串: one two-pole span, the art (or its mirror) whose pole line runs on the same screen
+// diagonal as the span, its left-hand pole's foot on the span's left-hand end. By night it wears
+// the lit bulbs over their baked pool of light, as a street lamp wears its __lit bake.
+function drawStreetFoodString(scene, store, span, lit, wanted) {
+  const dir = getStreetFoodScreenDiagonal(span.axis);
+  const art = typeof getStreetFoodLighting === 'function'
+    ? (lit && getStreetFoodLighting('glow', dir)) || getStreetFoodLighting('day', dir) : null;
+  if (!art?.scale) return;
+  const ends = [span.a, span.b].map((end) => ({ end, x: isoToScreen(end.col, end.row).x }));
+  const left = ends[0].x <= ends[1].x ? ends[0].end : ends[1].end;
+  const anchor = art.groundAnchors[0][0] <= art.groundAnchors[1][0] ? art.groundAnchors[0] : art.groundAnchors[1];
+  const mid = { row: (span.a.row + span.b.row) / 2, col: (span.a.col + span.b.col) / 2 };
+  const point = { ...getStreetFoodTilePoint(scene, left.row, left.col), depth: getStreetFoodTilePoint(scene, mid.row, mid.col).depth };
+  wanted.add(span.id);
+  drawStreetFoodSprite(scene, store, span.id, { path: art.path, groundAnchor: anchor, scale: art.scale }, point, 0, { lit: lit && art.path.includes('__glow') });
 }
 
 /**
@@ -130,6 +209,11 @@ function syncStreetFoodVenue(scene, layout) {
   if (!scene.streetFoodSprites) scene.streetFoodSprites = new Map();
   const store = scene.streetFoodSprites;
   const wanted = new Set();
+  const lit = areStreetFoodLightsLit(scene);
+
+  (layout.lamps || []).forEach((lamp) => drawStreetFoodLamp(scene, store, lamp, lit, wanted));
+  (layout.cabinets || []).forEach((cabinet) => drawStreetFoodCabinet(scene, store, cabinet, wanted));
+  (layout.strings || []).forEach((span) => drawStreetFoodString(scene, store, span, lit, wanted));
 
   (layout.stalls || []).forEach((stall) => {
     const cart = typeof getStreetFoodCart === 'function' ? getStreetFoodCart(stall.cartId) : null;
@@ -220,6 +304,7 @@ function updateStreetFoodMarkets(scene, time) {
     passersby: typeof getStreetFoodPeopleByRole === 'function' ? getStreetFoodPeopleByRole('passerby') : [],
     tableFurniture: getStreetFoodTableFurnitureIds(),
     stools: ['foldingStoolRed', 'foldingStoolGreen'].filter((id) => typeof getStreetFoodFurniture === 'function' && getStreetFoodFurniture(id)),
+    stringSpanM: (typeof getStreetFoodLighting === 'function' && getStreetFoodLighting('day', 'down')?.spanM) || undefined,
   };
 
   const wantedIds = new Set();

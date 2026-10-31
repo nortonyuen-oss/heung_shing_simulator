@@ -53,7 +53,9 @@ const ROAST_CHESTNUT_BATCH_MATES = ['curryFishball', 'friedSnacks'];
 // 檯凳 (street-food-market-design.md "街邊圓檯與摺凳"): a small hawker folding table and the
 // stools/packed stacks that go with it - already anchored to a ground-plane span at the true ALONG
 // rate, unaffected by the cart height mistake above.
-const TABLE_DIAMETER_M = 1.0;
+// 啲檯試試放大50% (Norton 2026-10-31): 1.0 m read too small among the carts and diners at the
+// tile's true scale, so the round tabletop is 1.5 m - a big 大排檔 table, still one uniform scale.
+const TABLE_DIAMETER_M = 1.5;
 const STOOL_WIDTH_M = 0.32;
 const FOLDED_TABLE_WIDTH_M = 0.25;
 const FURNITURE_IDS = ['roundTableCream', 'roundTableMint', 'foldingStoolRed', 'foldingStoolGreen', 'roundTableFolded', 'foldingStoolsPacked'];
@@ -301,5 +303,5 @@ if (require.main === module) main().catch((error) => { console.error(error.stack
 module.exports = {
   cropPixels, fitAsset, guidesFor, validate, groundAnchorFromAlpha, displayScaleFor, pointsSpanX, cornerEdgesPx, cartLongLine,
   ROAST_CHESTNUT_BATCH_MATES,
-  STREET_FOOD_PX_PER_METRE_ALONG, STREET_FOOD_TRUE_PX_PER_METRE_UP, CART_LENGTH_M, FURNITURE_IDS,
+  STREET_FOOD_PX_PER_METRE_ALONG, STREET_FOOD_TRUE_PX_PER_METRE_UP, CART_LENGTH_M, TABLE_DIAMETER_M, FURNITURE_IDS,
 };

@@ -8,7 +8,7 @@ const test = require('node:test');
 const {
   getStreetFoodPhase, getStreetFoodWeatherState, STREET_FOOD_WEATHER_DINER_SHARE,
   getStreetFoodVenues, getStreetFoodVenueEdgeRuns, streetFoodEdgeDistanceM, getStreetFoodVenueLayout,
-  STREET_FOOD_STALL_LAYOUT, STREET_FOOD_TABLE_LAYOUT,
+  getStreetFoodVenueFixtures, STREET_FOOD_STALL_LAYOUT, STREET_FOOD_TABLE_LAYOUT, STREET_FOOD_FIXTURE_LAYOUT,
   streetFoodWrapMinute, STREET_FOOD_SCHEDULE,
 } = require('../street-food-market.js');
 
@@ -144,9 +144,48 @@ test('tables sit on the interior grid clear of the queues, each with four stools
     assert.equal(table.occupied, seated > 0);
   });
   layout.walkers.forEach((walker) => assert.ok(PASSERSBY.includes(walker.personId)));
-  // a single tile still gets a few tables, in from all four rows of carts
+  // 中間空就放多幾張檯: a single 20 m tile fills its middle, inside all four rows of carts - at any
+  // row/col, not just near 0 (5.5 m in from row 29.5 is 29.775, a hair short in floating point)
+  for (const tile of [[0, 0], [9, 9], [30, 30], [117, 83]]) {
+    const one = getStreetFoodVenueLayout({ id: 'eventGround:9:9', tiles: [tile] }, { minuteOfDay: 19 * 60, weather: {}, ...ROSTER });
+    assert.equal(one.tables.length, 13, `${tile}: ${one.tables.length} tables`);
+  }
   const one = getStreetFoodVenueLayout({ id: 'eventGround:9:9', tiles: [[9, 9]] }, { minuteOfDay: 19 * 60, weather: {}, ...ROSTER });
-  assert.ok(one.tables.length >= 2 && one.tables.length <= 4);
+  one.tables.forEach((table, i) => one.tables.slice(i + 1).forEach((other) => assert.ok(metres(table, other) >= 2 * STREET_FOOD_TABLE_LAYOUT.stoolOffsetM + 0.32 + 0.3, 'stools clear of the next table\'s')));
+});
+
+test('the lot\'s own fixtures: a lamp post or an electric box on every outside corner, 1-2 boxes, string spans along each edge', () => {
+  const F = STREET_FOOD_FIXTURE_LAYOUT;
+  const one = getStreetFoodVenueFixtures({ id: 'v1', tiles: [[0, 0]] });
+  assert.equal(one.lamps.length + one.cabinets.length, 4, 'four corners, each a lamp or a box');
+  assert.equal(one.cabinets.length, 1, 'a small lot: one 電箱');
+  assert.ok(['n', 's', 'e', 'w'].includes(one.cabinets[0].side));
+  assert.equal(one.strings.length, 8, 'two spans to each 20 m edge');
+  one.strings.forEach((span) => {
+    near(metres(span.a, span.b), F.stringSpanM, 'pole to pole');
+    assert.ok(span.a[span.axis] < span.b[span.axis], 'a span runs along its edge');
+  });
+  const big = getStreetFoodVenueFixtures({ id: 'v9', tiles: Array.from({ length: 9 }, (_, i) => [Math.floor(i / 3), i % 3]) });
+  assert.equal(big.cabinets.length, 2, 'a bigger lot: two 電箱');
+  assert.equal(big.lamps.length, 4 - 2 + 8, 'the corners left over plus a lamp at each of the 8 tile joints along the edges');
+  // an L: its inside corner is not an outside corner, so it gets no lamp of its own
+  const ell = getStreetFoodVenueFixtures({ id: 'vL', tiles: [[0, 0], [1, 0], [1, 1]] });
+  assert.equal(ell.lamps.length + ell.cabinets.length, 5 + 2, '5 outside corners, plus a joint lamp on each of its two 40 m edges');
+});
+
+test('carts keep clear of the lamp posts, boxes and string poles; the fixtures stay when the market is shut', () => {
+  const venue = { id: 'eventGround:4:4', tiles: [[4, 4], [4, 5], [5, 4], [5, 5]] };
+  const open = getStreetFoodVenueLayout(venue, { minuteOfDay: 19 * 60, weather: {}, ...ROSTER });
+  const fixtures = [...open.lamps, ...open.cabinets, ...open.strings.flatMap((span) => [span.a, span.b])];
+  open.stalls.forEach((stall) => fixtures.forEach((f) => {
+    assert.ok(metres(stall, f) >= STREET_FOOD_STALL_LAYOUT.fixtureClearM - 1e-9);
+    assert.ok(metres(stall.hawker, f) >= STREET_FOOD_STALL_LAYOUT.fixtureClearM - 1e-9);
+  }));
+  const shut = getStreetFoodVenueLayout(venue, { minuteOfDay: 11 * 60, weather: {}, ...ROSTER });
+  assert.equal(shut.stalls.length, 0);
+  assert.equal(shut.strings.length, 0, 'the string lights come down with the stalls');
+  assert.deepEqual(shut.lamps, open.lamps, 'the lamp posts are the lot\'s, not the market\'s');
+  assert.deepEqual(shut.cabinets, open.cabinets);
 });
 
 test('getStreetFoodVenueLayout: same venue and minute reseed to the identical layout (reload/rotate-safe)', () => {

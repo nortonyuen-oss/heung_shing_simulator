@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "runtimeIntegrated": false,
+  "runtimeIntegrated": true,
   "projection": "Ground anchor line +/-0.5; two equal projected pole heights. Small block faces remain approximate.",
   "sourceMeasurements": "scripts/source-art/streetFood/lighting-v1/calibration.json",
   "assets": [
@@ -41,6 +41,11 @@
       "transparentPercent": 95.75,
       "state": "day",
       "mirrored": false,
+      "display": {
+        "scale": 0.017664589491224843,
+        "poleHeightM": 3,
+        "spanM": 7.7936
+      },
       "outputPath": "Models/streetFoodLighting/sf_stringLights_down.png",
       "outputSha256": "58cbfbb79b348d17132969e86c51086a1958063c81ee3a47c1fa5c71984dcd9c"
     },
@@ -81,6 +86,11 @@
       "transparentPercent": 95.75,
       "state": "day",
       "mirrored": true,
+      "display": {
+        "scale": 0.017664589491224843,
+        "poleHeightM": 3,
+        "spanM": 7.7936
+      },
       "outputPath": "Models/streetFoodLighting/sf_stringLights_up.png",
       "outputSha256": "d62926a9c64b1f6f445737a1777f488841c65d567be3b918e382bf6c0327f1f6"
     },
@@ -137,6 +147,11 @@
       },
       "state": "night",
       "mirrored": false,
+      "display": {
+        "scale": 0.017664589491224843,
+        "poleHeightM": 3,
+        "spanM": 7.7936
+      },
       "outputPath": "Models/streetFoodLighting/sf_stringLights_down__lit.png",
       "outputSha256": "aacc7de74f07478517a27b7dd59b3b3e7d3d39b58136c7aaa9b80a4eb4e169ba"
     },
@@ -193,8 +208,155 @@
       },
       "state": "night",
       "mirrored": true,
+      "display": {
+        "scale": 0.017664589491224843,
+        "poleHeightM": 3,
+        "spanM": 7.7936
+      },
       "outputPath": "Models/streetFoodLighting/sf_stringLights_up__lit.png",
       "outputSha256": "3c45011ef94dd001dbc5062a7d630aa0883160bedfb91a857f06c413c8cb0c47"
+    },
+    {
+      "source": "scripts/source-art/streetFood/lighting-v1/string-lights-night-source.png",
+      "sourceSha256": "93c157239ac4bcf58e1c4507b6ff91d367b0ea387908396cc3718335f007ba73",
+      "sourceSize": [
+        1398,
+        1125
+      ],
+      "outputSize": [
+        2524,
+        1591
+      ],
+      "groundAnchors": [
+        [
+          696,
+          683
+        ],
+        [
+          1799,
+          1234.5
+        ]
+      ],
+      "poleTops": [
+        [
+          696,
+          163
+        ],
+        [
+          1799,
+          714.5
+        ]
+      ],
+      "groundAxisSlope": 0.5,
+      "poleHeightPx": 520,
+      "borderMaxAlpha": 0,
+      "transparentPercent": 88.88,
+      "registration": {
+        "method": "Resize imagegen night edit to day canvas",
+        "observedGroundAnchors": [
+          [
+            362.21030042918454,
+            683.1675555555555
+          ],
+          [
+            1464.266094420601,
+            1234.876
+          ]
+        ],
+        "observedGroundAxisSlope": 0.5006175254033841,
+        "maxManualLandmarkResidualPx": 1.2441974627908365,
+        "pixelIdenticalGeometry": false
+      },
+      "pool": {
+        "alongM": 5.5,
+        "acrossM": 3.2,
+        "alpha": 0.5,
+        "rgb": [
+          255,
+          196,
+          118
+        ]
+      },
+      "state": "glow",
+      "mirrored": false,
+      "display": {
+        "scale": 0.017664589491224843,
+        "poleHeightM": 3,
+        "spanM": 7.7936
+      },
+      "outputPath": "Models/streetFoodLighting/sf_stringLights_down__glow.png",
+      "outputSha256": "6b3fb0287a88cad283538dbeb104dd57b1bd66970e6f606639d4799a2860a169"
+    },
+    {
+      "source": "scripts/source-art/streetFood/lighting-v1/string-lights-night-source.png",
+      "sourceSha256": "93c157239ac4bcf58e1c4507b6ff91d367b0ea387908396cc3718335f007ba73",
+      "sourceSize": [
+        1398,
+        1125
+      ],
+      "outputSize": [
+        2524,
+        1591
+      ],
+      "groundAnchors": [
+        [
+          1827,
+          683
+        ],
+        [
+          724,
+          1234.5
+        ]
+      ],
+      "poleTops": [
+        [
+          1827,
+          163
+        ],
+        [
+          724,
+          714.5
+        ]
+      ],
+      "groundAxisSlope": -0.5,
+      "poleHeightPx": 520,
+      "borderMaxAlpha": 0,
+      "transparentPercent": 88.88,
+      "registration": {
+        "method": "Resize imagegen night edit to day canvas",
+        "observedGroundAnchors": [
+          [
+            2160.7896995708156,
+            683.1675555555555
+          ],
+          [
+            1058.733905579399,
+            1234.876
+          ]
+        ],
+        "observedGroundAxisSlope": -0.5006175254033841,
+        "maxManualLandmarkResidualPx": 1.2441974627908365,
+        "pixelIdenticalGeometry": false
+      },
+      "pool": {
+        "alongM": 5.5,
+        "acrossM": 3.2,
+        "alpha": 0.5,
+        "rgb": [
+          255,
+          196,
+          118
+        ]
+      },
+      "state": "glow",
+      "mirrored": true,
+      "display": {
+        "scale": 0.017664589491224843,
+        "poleHeightM": 3,
+        "spanM": 7.7936
+      },
+      "outputPath": "Models/streetFoodLighting/sf_stringLights_up__glow.png",
+      "outputSha256": "8d5205701e3e24380678f4f2e90a4f1ee56e9dd7b2ac86899e9f33686212550a"
     }
   ]
 }

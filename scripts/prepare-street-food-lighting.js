@@ -12,6 +12,54 @@ const ART = 'scripts/source-art/streetFood/lighting-v1';
 const OUT = 'Models/streetFoodLighting';
 const hash = (b) => crypto.createHash('sha256').update(b).digest('hex');
 const slope = ([a, b]) => (b[1] - a[1]) / (b[0] - a[0]);
+
+// Real size (Norton 2026-10-31, the 20 m tile): the two galvanised poles stand 3 m, drawn at the
+// tile's true vertical rate (2.5 px/m x cos30/cos45, as the carts and people are); the span
+// between them then follows from the art itself (~7.8 m), since one uniform scale keeps it isometric.
+const STRING_LIGHT_POLE_HEIGHT_M = 3.0;
+const STREET_FOOD_PX_PER_METRE_ALONG = 2.5;
+const STREET_FOOD_TRUE_PX_PER_METRE_UP = 2.5 * Math.cos(Math.PI / 6) / Math.cos(Math.PI / 4);
+// By night the bulbs throw a warm pool on the ground under the wire, baked into its own texture the
+// way scripts/bake-street-lamp-textures.js bakes the lamps' sodium pool (按照夜晚路燈發光方式):
+// one setTexture when the city's lamps switch on, no extra sprites. Tungsten warm white, not
+// sodium orange. Semi-axes in metres along the wire and across it.
+const STRING_LIGHT_POOL = Object.freeze({ alongM: 5.5, acrossM: 3.2, alpha: 0.5, rgb: [255, 196, 118] });
+
+function stringLightDisplay(record) {
+  const scale = (STRING_LIGHT_POLE_HEIGHT_M * STREET_FOOD_TRUE_PX_PER_METRE_UP) / record.poleHeightPx;
+  const spanM = (Math.abs(record.groundAnchors[1][0] - record.groundAnchors[0][0]) * scale) / STREET_FOOD_PX_PER_METRE_ALONG;
+  return { scale, poleHeightM: STRING_LIGHT_POLE_HEIGHT_M, spanM: Number(spanM.toFixed(4)) };
+}
+
+// The lit art over a ground pool, on a canvas widened to hold the pool. Unmirrored (pole line +0.5).
+async function bakeStringLightGlow(litPng, record) {
+  const display = stringLightDisplay(record);
+  const pxPerM = STREET_FOOD_PX_PER_METRE_ALONG / display.scale; // art px of screen x per ground metre
+  const [[ax, ay], [bx, by]] = record.groundAnchors;
+  const pool = STRING_LIGHT_POOL;
+  const reachX = pxPerM * (pool.alongM + pool.acrossM), reachY = (pxPerM / 2) * (pool.alongM + pool.acrossM);
+  const cx0 = (ax + bx) / 2, cy0 = (ay + by) / 2;
+  const [w, h] = record.outputSize;
+  const padX = Math.ceil(Math.max(0, reachX - cx0, cx0 + reachX - w)) + 16;
+  const padBottom = Math.ceil(Math.max(0, cy0 + reachY - h)) + 16;
+  const outW = w + padX * 2, outH = h + padBottom;
+  const cx = cx0 + padX, cy = cy0;
+  const raw = Buffer.alloc(outW * outH * 4);
+  for (let y = 0; y < outH; y++) for (let x = 0; x < outW; x++) {
+    // screen offset -> ground metres along the wire (u, the +0.5 diagonal) and across it (v)
+    const dx = (x - cx) / pxPerM, dy = (y - cy) / (pxPerM / 2);
+    const u = (dx + dy) / 2, v = (dx - dy) / 2;
+    const d = Math.hypot(u / pool.alongM, v / pool.acrossM);
+    if (d >= 1) continue;
+    const p = (y * outW + x) * 4;
+    raw[p] = pool.rgb[0]; raw[p + 1] = pool.rgb[1]; raw[p + 2] = pool.rgb[2];
+    raw[p + 3] = Math.round(255 * pool.alpha * Math.pow(1 - d, 1.6));
+  }
+  const png = await sharp(raw, { raw: { width: outW, height: outH, channels: 4 } })
+    .composite([{ input: litPng, left: padX, top: 0 }]).png().toBuffer();
+  const shift = ([x, y]) => [x + padX, y];
+  return { png, record: { ...record, outputSize: [outW, outH], groundAnchors: record.groundAnchors.map(shift), poleTops: record.poleTops.map(shift), pool: { ...pool, rgb: [...pool.rgb] } } };
+}
 const line = ([a, b], x) => a[1] + (x - a[0]) * slope([a, b]);
 
 async function calibrate(spec, config) {
@@ -105,9 +153,11 @@ async function main() {
       assert.equal(hash(fs.readFileSync(path.join(ROOT, config[state].source))), hash(bytes));
     } else prepared = await calibrate(config[state], config);
     if (state === 'day') day = prepared;
-    const { png, record } = prepared;
-    for (const mirrored of [false, true]) {
-      const name = `sf_stringLights_${mirrored ? 'up' : 'down'}${state === 'night' ? '__lit' : ''}.png`;
+    const variants = [[state, prepared]];
+    if (state === 'night') variants.push(['glow', await bakeStringLightGlow(prepared.png, prepared.record)]);
+    for (const [variant, { png, record }] of variants) for (const mirrored of [false, true]) {
+      const suffix = variant === 'night' ? '__lit' : variant === 'glow' ? '__glow' : '';
+      const name = `sf_stringLights_${mirrored ? 'up' : 'down'}${suffix}.png`;
       const data = mirrored ? await sharp(png).flop().png().toBuffer() : png;
       const anchors = mirrored ? record.groundAnchors.map(([x, y]) => [record.outputSize[0] - 1 - x, y]) : record.groundAnchors;
       const tops = mirrored ? record.poleTops.map(([x, y]) => [record.outputSize[0] - 1 - x, y]) : record.poleTops;
@@ -116,11 +166,11 @@ async function main() {
         assert(Math.abs(anchors[i][1] - tops[i][1] - config.targetPoleHeightPx) < 1e-9);
       }
       const registration = record.registration && { ...record.registration, observedGroundAnchors: mirrored ? record.registration.observedGroundAnchors.map(([x, y]) => [record.outputSize[0] - 1 - x, y]) : record.registration.observedGroundAnchors, observedGroundAxisSlope: record.registration.observedGroundAxisSlope * (mirrored ? -1 : 1) };
-      const asset = { ...record, state, mirrored, outputPath: `${OUT}/${name}`, outputSha256: hash(data), groundAnchors: anchors, poleTops: tops, groundAxisSlope: slope(anchors), ...(registration ? { registration } : {}) };
+      const asset = { ...record, state: variant, mirrored, display: stringLightDisplay(record), outputPath: `${OUT}/${name}`, outputSha256: hash(data), groundAnchors: anchors, poleTops: tops, groundAxisSlope: slope(anchors), ...(registration ? { registration } : {}) };
       records.push(asset); files.set(asset.outputPath, data);
     }
   }
-  const manifest = { version: 1, runtimeIntegrated: false, projection: 'Ground anchor line +/-0.5; two equal projected pole heights. Small block faces remain approximate.', sourceMeasurements: `${ART}/calibration.json`, assets: records };
+  const manifest = { version: 1, runtimeIntegrated: true, projection: 'Ground anchor line +/-0.5; two equal projected pole heights. Small block faces remain approximate.', sourceMeasurements: `${ART}/calibration.json`, assets: records };
   const target = path.join(ROOT, 'data/street-food-lighting.json');
   if (process.argv.includes('--check')) {
     assert.deepEqual(JSON.parse(fs.readFileSync(target)), manifest);

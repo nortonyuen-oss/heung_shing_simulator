@@ -694,8 +694,8 @@
         286
       ],
       "display": {
-        "scale": 0.008960573476702509,
-        "anchorM": 1,
+        "scale": 0.013440860215053764,
+        "anchorM": 1.5,
         "anchorAxis": "along (tabletop diameter)"
       },
       "projection": {
@@ -1544,8 +1544,8 @@
         277
       ],
       "display": {
-        "scale": 0.008928571428571428,
-        "anchorM": 1,
+        "scale": 0.013392857142857142,
+        "anchorM": 1.5,
         "anchorAxis": "along (tabletop diameter)"
       },
       "projection": {

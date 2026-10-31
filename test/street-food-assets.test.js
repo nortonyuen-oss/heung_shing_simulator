@@ -11,7 +11,7 @@ const path = require('node:path');
 const test = require('node:test');
 const {
   groundAnchorFromAlpha, displayScaleFor, pointsSpanX, cornerEdgesPx, cartLongLine, ROAST_CHESTNUT_BATCH_MATES,
-  STREET_FOOD_PX_PER_METRE_ALONG, STREET_FOOD_TRUE_PX_PER_METRE_UP, CART_LENGTH_M, FURNITURE_IDS,
+  STREET_FOOD_PX_PER_METRE_ALONG, STREET_FOOD_TRUE_PX_PER_METRE_UP, CART_LENGTH_M, TABLE_DIAMETER_M, FURNITURE_IDS,
 } = require('../scripts/prepare-street-food-assets.js');
 
 const ROOT = path.resolve(__dirname, '..');
@@ -78,7 +78,8 @@ test('displayScaleFor anchors a cart to its counter long side, a table to its di
   assert.throws(() => displayScaleFor({ kind: 'axes', id: 'roastChestnut', axes: {} }, {}, [fishball]), /batch mates/);
 
   const table = displayScaleFor({ kind: 'ellipse', id: 'roundTableCream', ellipse: { width: 280 } }, {});
-  assert.equal(table.scale, (1.0 * 2.5) / 280);
+  near(TABLE_DIAMETER_M, 1.5); // 啲檯試試放大50%: from 1.0 m
+  assert.equal(table.scale, (TABLE_DIAMETER_M * 2.5) / 280);
 
   const folded = displayScaleFor({ kind: 'single-axis', id: 'roundTableFolded', axis: [[10, 0], [60, 20]] }, {});
   assert.equal(folded.scale, (0.25 * 2.5) / 50);

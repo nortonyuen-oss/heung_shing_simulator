@@ -297,17 +297,21 @@ function ensureDroneShowOverlay() {
 const DRONE_SHOW_VOLLEY_LIFETIME_MS = 5500;
 const DRONE_SHOW_BURST_COLORS = ['#ffcf4a', '#ff5fa2', '#67e8ff', '#92ff77', '#c27aff', '#ff765e', '#fff08a'];
 
-function buildFireworkShow(overlay) {
+// options (年初二煙花, festival-fireworks.js): colors - one burst each; spacing - seconds between
+// them; size - a scale on every burst.
+function buildFireworkShow(overlay, options = {}) {
   const volley = document.createElement('div');
   volley.className = 'firework-volley';
-  const sparkCount = 16;
-  DRONE_SHOW_BURST_COLORS.forEach((color, index) => {
+  const sparkCount = options.sparkCount || 16;
+  const spacing = options.spacing ?? 0.55;
+  const scale = options.size ?? 1;
+  (options.colors || DRONE_SHOW_BURST_COLORS).forEach((color, index) => {
     const burst = {
       x: 12 + Math.random() * 76,
       y: 18 + Math.random() * 50,
-      delay: index * 0.55 + Math.random() * 0.3,
+      delay: index * spacing + Math.random() * 0.3,
       color,
-      size: 0.75 + Math.random() * 0.55,
+      size: (0.75 + Math.random() * 0.55) * scale,
     };
     const firework = document.createElement('div');
     firework.className = 'firework-burst';

@@ -194,6 +194,7 @@ const FESTIVAL_EVENT_TESTS = Object.freeze([
   ['midAutumn', 20 * 60 + 30, '中秋（維園花燈）', 'maJadeRabbitMoon'],
   ['midAutumn', 21 * 60, '中秋（舞火龍）', /maFireDragon/],
   ['midAutumn', 40, '中秋（煲蠟、警員）', 'maCandleKids'],
+  ['lnyFireworks', 20 * 60 + 2, '年初二煙花', 'sky'],
 ]);
 
 function startFestivalEventTest(id, minute, scene = typeof activeScene !== 'undefined' ? activeScene : null, focus = null) {
@@ -244,6 +245,12 @@ function startFestivalEventTest(id, minute, scene = typeof activeScene !== 'unde
   const buildings = [...new Set(scene.buildingSprites?.values() || [])];
   const open = (sprite) => !buildings.some((b) => b.depth > sprite.depth && b.visible !== false
     && typeof b.getBounds === 'function' && b.getBounds().contains(sprite.x, sprite.y - 4));
+  // 年初二煙花: in the sky, nothing to go to - let the clock run so the volleys go up
+  if (focus === 'sky') {
+    city.budget = budget;
+    if (typeof setGameSpeed === 'function' && typeof GAME_SPEEDS !== 'undefined') setGameSpeed(GAME_SPEEDS.NORMAL);
+    return true;
+  }
   // 郊外阿飄: they walk on open land, not as festival placements - go to some (festival-yulan.js)
   if (focus === 'outskirts') {
     setTimeout(() => {

@@ -21,6 +21,8 @@
 // about festivals must skip a quiet one. Held from 1990 (the first vigil) and every year after.
 const FESTIVAL_DEFINITIONS = Object.freeze([
   Object.freeze({ id: 'lunarNewYear', kind: 'calendar', organiser: 'government', venue: 'flagshipPark', label: '新春年宵' }),
+  // over the whole city's sky, so no venue to build (festival-fireworks.js)
+  Object.freeze({ id: 'lnyFireworks', kind: 'calendar', organiser: 'government', venue: 'sky', label: '年初二煙花匯演' }),
   Object.freeze({ id: 'bunHill', kind: 'calendar', organiser: 'government', venue: 'eventGround', label: '海旁搶包山之夜' }),
   Object.freeze({ id: 'dragonBoat', kind: 'calendar', organiser: 'government', venue: 'promenade', label: '香城龍舟邀請賽' }),
   Object.freeze({ id: 'june4', kind: 'calendar', organiser: 'community', venue: 'flagshipPark', label: '六四', quiet: true, firstYear: 1990 }),
@@ -78,6 +80,8 @@ const FESTIVAL_PROGRAMMES = Object.freeze({
   // round at eight, 煲蠟 and the police go on till three in the morning (festival-venues.js
   // MID_AUTUMN_TIMES)
   midAutumn: Object.freeze({ setup: 6 * 60, open: 18 * 60, peak: 20 * 60, close: 27 * 60 }),
+  // 年初二煙花匯演: eight o'clock, half an hour (festival-fireworks.js)
+  lnyFireworks: Object.freeze({ setup: 20 * 60, open: 20 * 60, peak: 20 * 60, close: 20 * 60 + 30 }),
 });
 
 // Government festivals: what each tier costs (a base plus a share per resident, paid when the
@@ -94,6 +98,7 @@ const FESTIVAL_ECONOMICS = Object.freeze({
     incomePerStall: Object.freeze({ base: 80, perEconomyPoint: 2.4 }),
     effects: Object.freeze({ attractiveness: 3, tourism: 2, happiness: 0.02 }),
   }),
+  lnyFireworks: Object.freeze({ baseCost: 1500, costPerResident: 0.01, effects: Object.freeze({ attractiveness: 2, tourism: 2, happiness: 0.015 }) }),
   midAutumn: Object.freeze({ baseCost: 1000, costPerResident: 0.012, effects: Object.freeze({ attractiveness: 2, happiness: 0.02 }) }),
   christmas: Object.freeze({
     baseCost: 800,

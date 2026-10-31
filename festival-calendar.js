@@ -15,6 +15,8 @@ const FESTIVAL_METONIC_YEARS = 19;
 // (新春 is held in the month of 除夕, the day before 正月初一). `fixed`: [month, day].
 const FESTIVAL_CALENDAR_RULES = Object.freeze({
   lunarNewYear: Object.freeze({ lunar: 'newYear', offsetDays: -1 }),
+  // 年初二煙花匯演: the evening of 正月初二
+  lnyFireworks: Object.freeze({ lunar: 'newYear', offsetDays: 1 }),
   dragonBoat: Object.freeze({ lunar: 'dragonBoat' }),
   bunHill: Object.freeze({ lunar: 'dragonBoat' }),
   june4: Object.freeze({ fixed: Object.freeze([6, 4]) }),

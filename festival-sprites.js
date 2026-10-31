@@ -557,7 +557,8 @@ function updateFestivals(scene, time) {
         if (!isGovernmentFestival(id) || (prior && prior.outcome !== 'noVenue')) return;
         const trialContext = { ...getFestivalLayoutContext(id, ctx, 'open'), tier: getFestivalTier(id) === 'skip' ? 'standard' : getFestivalTier(id) };
         const trial = layoutFestival(id, trialContext);
-        const hasVenue = trial.length > 0 || (id === 'lunarNewYear' && trialContext.lionVenueAvailable === true);
+        // the fireworks fill the sky over any city (festival-fireworks.js)
+        const hasVenue = trial.length > 0 || id === 'lnyFireworks' || (id === 'lunarNewYear' && trialContext.lionVenueAvailable === true);
         if (prior && !hasVenue) return;
         const economy = typeof getCityEconomyIndex === 'function' ? getCityEconomyIndex() : 50;
         const income = getFestivalIncome(id, trial.filter((p) => p.stall && p.sold).length, economy);

@@ -64,9 +64,10 @@ test('fixed-date festivals and the month lists', () => {
   assert.equal(getFestivalMonth('nope', 1904), null);
   // 2026: 端午 19 June, so June holds both
   assert.deepEqual(getFestivalsInMonth(2026, 6), ['june4', 'dragonBoat', 'bunHill']);
-  assert.deepEqual(getFestivalsInMonth(2026, 2), ['lunarNewYear']);
+  // 年初二煙花 two days after 除夕, the same month this year
+  assert.deepEqual(getFestivalsInMonth(2026, 2), ['lunarNewYear', 'lnyFireworks']);
   assert.deepEqual(getFestivalsInMonth(2026, 3), []);
-  assert.deepEqual(getFestivalYearCalendar(2026).map((e) => e.id), ['lunarNewYear', 'june4', 'dragonBoat', 'bunHill', 'yulan', 'midAutumn', 'christmas']);
+  assert.deepEqual(getFestivalYearCalendar(2026).map((e) => e.id), ['lunarNewYear', 'lnyFireworks', 'june4', 'dragonBoat', 'bunHill', 'yulan', 'midAutumn', 'christmas']);
 });
 
 test('the HKO table parser reads month names, days and skips leap months', () => {

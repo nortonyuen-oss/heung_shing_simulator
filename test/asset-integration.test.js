@@ -422,7 +422,7 @@ test('updated model metadata anchors the true lowest corner to the map', () => {
   const main = require('./main-source').mainSource;
 
   assert.match(constants, /DEFAULT_BUILDING_ANCHOR_MODE\s*=\s*'effective-bottom-to-map-bottom'/);
-  assert.match(catalog, /modelMetadata:v10/);
+  assert.match(catalog, /modelMetadata:v12/);
   assert.match(main, /anchorMode:\s*overrides\.anchorMode\s*\?\?\s*config\.anchorMode\s*\?\?\s*DEFAULT_BUILDING_ANCHOR_MODE/);
   assert.match(main, /anchored\.originX\s*=\s*anchored\.lowestCornerOriginX/);
   assert.match(main, /anchored\.originY\s*=\s*anchored\.lowestCornerOriginY/);

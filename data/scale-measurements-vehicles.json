@@ -1,0 +1,4660 @@
+{
+  "category": "vehicles-and-road-props",
+  "measurementDate": "2026-10-17",
+  "unit": "original-source-pixel",
+  "inventory": {
+    "roadVehicleModels": 19,
+    "roadVehicleDirectionImages": 76,
+    "aircraftModels": 2,
+    "aircraftDirectionImages": 8,
+    "lightPostBaseImages": 4,
+    "lightPostLitDerivatives": 4,
+    "totalImages": 92
+  },
+  "referencePolicy": "每款道路車的 SE 方向人工量同側輪心；其他方向逐圖目視核對款式與方向、精確 alpha bbox，實尺寸只明示繼承同車款外部尺寸假設。飛機 8 圖均人工量鼻尾 feature；Cathay 不知道型號所以不硬設實米。所有 realM 均為假設範圍，不是已知車型實尺。",
+  "assets": [
+    {
+      "path": "Models/traffic/bus/cityBusNE.png",
+      "category": "traffic",
+      "model": "cityBus",
+      "vehicleType": "three-axle-double-deck-bus",
+      "direction": "NE",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 11,
+        "minY": 30,
+        "maxX": 243,
+        "maxY": 255,
+        "width": 233,
+        "height": 226,
+        "visiblePixelCount": 37273
+      },
+      "solidAlphaBBox": {
+        "minX": 11,
+        "minY": 32,
+        "maxX": 243,
+        "maxY": 255,
+        "width": 233,
+        "height": 224,
+        "visiblePixelCount": 35716
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "三軸雙層巴士：主線為最前方轉向軸到兩個後軸中較靠前的主軸；沒有把兩個相鄰後軸誤當整個軸距。",
+        "6 m 是類型假設，非已知車款資料；後雙軸間距檢查與主軸距比例可能不一致。",
+        "此方向沒有人工輪心座標；不得把 SE 端點直接複製到此圖，也不得以 bbox 寬度單獨當車長。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/bus/cityBusSE.png",
+      "inheritedPhysicalReference": {
+        "feature": "same-side-wheelbase",
+        "realM": [
+          5.5,
+          6,
+          6.5
+        ]
+      },
+      "matchingMethod": "本次接觸圖逐方向目視確認同款車外觀及車軸配置，逐圖精確掃描 alpha bbox；實尺寸沿用同車款 SE 的軸距假設，沒有宣稱此方向的輪心已人工定點。",
+      "sourceSha256": "946ee59fb0ecf1e805adceba8218a14552b87920ac176f8f3be77fa85c679158"
+    },
+    {
+      "path": "Models/traffic/bus/cityBusNW.png",
+      "category": "traffic",
+      "model": "cityBus",
+      "vehicleType": "three-axle-double-deck-bus",
+      "direction": "NW",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 8,
+        "minY": 22,
+        "maxX": 246,
+        "maxY": 255,
+        "width": 239,
+        "height": 234,
+        "visiblePixelCount": 39819
+      },
+      "solidAlphaBBox": {
+        "minX": 8,
+        "minY": 24,
+        "maxX": 246,
+        "maxY": 255,
+        "width": 239,
+        "height": 232,
+        "visiblePixelCount": 38177
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "三軸雙層巴士：主線為最前方轉向軸到兩個後軸中較靠前的主軸；沒有把兩個相鄰後軸誤當整個軸距。",
+        "6 m 是類型假設，非已知車款資料；後雙軸間距檢查與主軸距比例可能不一致。",
+        "此方向沒有人工輪心座標；不得把 SE 端點直接複製到此圖，也不得以 bbox 寬度單獨當車長。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/bus/cityBusSE.png",
+      "inheritedPhysicalReference": {
+        "feature": "same-side-wheelbase",
+        "realM": [
+          5.5,
+          6,
+          6.5
+        ]
+      },
+      "matchingMethod": "本次接觸圖逐方向目視確認同款車外觀及車軸配置，逐圖精確掃描 alpha bbox；實尺寸沿用同車款 SE 的軸距假設，沒有宣稱此方向的輪心已人工定點。",
+      "sourceSha256": "83ffb10be2c05faa5065ef31ff53f28172cb4bd9cf2a1457e764d96491ae2b7a"
+    },
+    {
+      "path": "Models/traffic/bus/cityBusSE.png",
+      "category": "traffic",
+      "model": "cityBus",
+      "vehicleType": "three-axle-double-deck-bus",
+      "direction": "SE",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 3,
+        "minY": 13,
+        "maxX": 252,
+        "maxY": 255,
+        "width": 250,
+        "height": 243,
+        "visiblePixelCount": 42115
+      },
+      "solidAlphaBBox": {
+        "minX": 3,
+        "minY": 15,
+        "maxX": 252,
+        "maxY": 254,
+        "width": 250,
+        "height": 240,
+        "visiblePixelCount": 40266
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [
+        {
+          "id": "same-side-wheelbase",
+          "axis": "se",
+          "a": [
+            82,
+            190
+          ],
+          "b": [
+            153,
+            226
+          ],
+          "realM": [
+            5.5,
+            6,
+            6.5
+          ],
+          "pixelError": 3,
+          "meaning": "同側前轉向軸輪心至後雙軸中較靠前的主軸輪心。",
+          "method": "本次目視核對原始 256×256 PNG、16 px 座標格網及 2× 放大接觸圖；實軸距為明示車種假設，並非特定車型數據。",
+          "referenceRole": "primary"
+        },
+        {
+          "id": "rear-tandem-spacing-check",
+          "axis": "se",
+          "a": [
+            56,
+            178
+          ],
+          "b": [
+            82,
+            190
+          ],
+          "realM": [
+            1.2,
+            1.4,
+            1.6
+          ],
+          "pixelError": 3,
+          "meaning": "同側相鄰兩個後軸的輪心距，僅作內部比例檢查，不能當前後主軸距。",
+          "method": "本次目視核對兩後軸輪心；採雙後軸常見間距的假設範圍。",
+          "referenceRole": "check"
+        }
+      ],
+      "notes": [
+        "三軸雙層巴士：主線為最前方轉向軸到兩個後軸中較靠前的主軸；沒有把兩個相鄰後軸誤當整個軸距。",
+        "6 m 是類型假設，非已知車款資料；後雙軸間距檢查與主軸距比例可能不一致。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "21a311ca588c9236cac7f903e2604d7e997d57ac8f3defe4158a6ae953f0b0bf"
+    },
+    {
+      "path": "Models/traffic/bus/cityBusSW.png",
+      "category": "traffic",
+      "model": "cityBus",
+      "vehicleType": "three-axle-double-deck-bus",
+      "direction": "SW",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 4,
+        "minY": 14,
+        "maxX": 250,
+        "maxY": 255,
+        "width": 247,
+        "height": 242,
+        "visiblePixelCount": 41299
+      },
+      "solidAlphaBBox": {
+        "minX": 4,
+        "minY": 16,
+        "maxX": 250,
+        "maxY": 255,
+        "width": 247,
+        "height": 240,
+        "visiblePixelCount": 39652
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "三軸雙層巴士：主線為最前方轉向軸到兩個後軸中較靠前的主軸；沒有把兩個相鄰後軸誤當整個軸距。",
+        "6 m 是類型假設，非已知車款資料；後雙軸間距檢查與主軸距比例可能不一致。",
+        "此方向沒有人工輪心座標；不得把 SE 端點直接複製到此圖，也不得以 bbox 寬度單獨當車長。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/bus/cityBusSE.png",
+      "inheritedPhysicalReference": {
+        "feature": "same-side-wheelbase",
+        "realM": [
+          5.5,
+          6,
+          6.5
+        ]
+      },
+      "matchingMethod": "本次接觸圖逐方向目視確認同款車外觀及車軸配置，逐圖精確掃描 alpha bbox；實尺寸沿用同車款 SE 的軸距假設，沒有宣稱此方向的輪心已人工定點。",
+      "sourceSha256": "c084975b6a65d33278476e7a04f9eb5f4e0577bab68d4e9e07fbb29551c4517d"
+    },
+    {
+      "path": "Models/traffic/bus/kmbNE.png",
+      "category": "traffic",
+      "model": "kmb",
+      "vehicleType": "three-axle-double-deck-bus",
+      "direction": "NE",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 6,
+        "minY": 35,
+        "maxX": 243,
+        "maxY": 251,
+        "width": 238,
+        "height": 217,
+        "visiblePixelCount": 33103
+      },
+      "solidAlphaBBox": {
+        "minX": 7,
+        "minY": 36,
+        "maxX": 242,
+        "maxY": 248,
+        "width": 236,
+        "height": 213,
+        "visiblePixelCount": 32182
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "三軸雙層巴士：主線為最前方轉向軸到後雙軸中較靠前的主軸。",
+        "未以車身車牌、車名判斷特定車型或宣稱有已知軸距；6 m 只為假設。",
+        "此方向沒有人工輪心座標；不得把 SE 端點直接複製到此圖，也不得以 bbox 寬度單獨當車長。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/bus/kmbSE.png",
+      "inheritedPhysicalReference": {
+        "feature": "same-side-wheelbase",
+        "realM": [
+          5.5,
+          6,
+          6.5
+        ]
+      },
+      "matchingMethod": "本次接觸圖逐方向目視確認同款車外觀及車軸配置，逐圖精確掃描 alpha bbox；實尺寸沿用同車款 SE 的軸距假設，沒有宣稱此方向的輪心已人工定點。",
+      "sourceSha256": "30458824b79e6b60ca4045983dc45ab3b380ad29639331096a217963b646a3d6"
+    },
+    {
+      "path": "Models/traffic/bus/kmbNW.png",
+      "category": "traffic",
+      "model": "kmb",
+      "vehicleType": "three-axle-double-deck-bus",
+      "direction": "NW",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 2,
+        "minY": 36,
+        "maxX": 248,
+        "maxY": 253,
+        "width": 247,
+        "height": 218,
+        "visiblePixelCount": 33825
+      },
+      "solidAlphaBBox": {
+        "minX": 4,
+        "minY": 37,
+        "maxX": 246,
+        "maxY": 251,
+        "width": 243,
+        "height": 215,
+        "visiblePixelCount": 33006
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "三軸雙層巴士：主線為最前方轉向軸到後雙軸中較靠前的主軸。",
+        "未以車身車牌、車名判斷特定車型或宣稱有已知軸距；6 m 只為假設。",
+        "此方向沒有人工輪心座標；不得把 SE 端點直接複製到此圖，也不得以 bbox 寬度單獨當車長。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/bus/kmbSE.png",
+      "inheritedPhysicalReference": {
+        "feature": "same-side-wheelbase",
+        "realM": [
+          5.5,
+          6,
+          6.5
+        ]
+      },
+      "matchingMethod": "本次接觸圖逐方向目視確認同款車外觀及車軸配置，逐圖精確掃描 alpha bbox；實尺寸沿用同車款 SE 的軸距假設，沒有宣稱此方向的輪心已人工定點。",
+      "sourceSha256": "00d55f68cc962272a872d08f0d7a4e88edbbf587b7a11387a864a0c27dfd7b2d"
+    },
+    {
+      "path": "Models/traffic/bus/kmbSE.png",
+      "category": "traffic",
+      "model": "kmb",
+      "vehicleType": "three-axle-double-deck-bus",
+      "direction": "SE",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 10,
+        "minY": 20,
+        "maxX": 247,
+        "maxY": 249,
+        "width": 238,
+        "height": 230,
+        "visiblePixelCount": 35637
+      },
+      "solidAlphaBBox": {
+        "minX": 12,
+        "minY": 22,
+        "maxX": 245,
+        "maxY": 247,
+        "width": 234,
+        "height": 226,
+        "visiblePixelCount": 34654
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [
+        {
+          "id": "same-side-wheelbase",
+          "axis": "se",
+          "a": [
+            69,
+            170
+          ],
+          "b": [
+            150,
+            213
+          ],
+          "realM": [
+            5.5,
+            6,
+            6.5
+          ],
+          "pixelError": 3,
+          "meaning": "同側前轉向軸輪心至後雙軸中較靠前的主軸輪心。",
+          "method": "本次目視核對原始 256×256 PNG、16 px 座標格網及 2× 放大接觸圖；實軸距為明示車種假設，並非特定車型數據。",
+          "referenceRole": "primary"
+        },
+        {
+          "id": "rear-tandem-spacing-check",
+          "axis": "se",
+          "a": [
+            43,
+            158
+          ],
+          "b": [
+            69,
+            170
+          ],
+          "realM": [
+            1.2,
+            1.4,
+            1.6
+          ],
+          "pixelError": 3,
+          "meaning": "同側相鄰兩個後軸的輪心距，僅作內部比例檢查，不能當前後主軸距。",
+          "method": "本次目視核對兩後軸輪心；採雙後軸常見間距的假設範圍。",
+          "referenceRole": "check"
+        }
+      ],
+      "notes": [
+        "三軸雙層巴士：主線為最前方轉向軸到後雙軸中較靠前的主軸。",
+        "未以車身車牌、車名判斷特定車型或宣稱有已知軸距；6 m 只為假設。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "7f4333ee72bb012795a2fc14d0c343dd181cbb3bd71d2e3f308a0465e35d1728"
+    },
+    {
+      "path": "Models/traffic/bus/kmbSW.png",
+      "category": "traffic",
+      "model": "kmb",
+      "vehicleType": "three-axle-double-deck-bus",
+      "direction": "SW",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 10,
+        "minY": 25,
+        "maxX": 245,
+        "maxY": 250,
+        "width": 236,
+        "height": 226,
+        "visiblePixelCount": 35026
+      },
+      "solidAlphaBBox": {
+        "minX": 12,
+        "minY": 27,
+        "maxX": 243,
+        "maxY": 248,
+        "width": 232,
+        "height": 222,
+        "visiblePixelCount": 33988
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "三軸雙層巴士：主線為最前方轉向軸到後雙軸中較靠前的主軸。",
+        "未以車身車牌、車名判斷特定車型或宣稱有已知軸距；6 m 只為假設。",
+        "此方向沒有人工輪心座標；不得把 SE 端點直接複製到此圖，也不得以 bbox 寬度單獨當車長。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/bus/kmbSE.png",
+      "inheritedPhysicalReference": {
+        "feature": "same-side-wheelbase",
+        "realM": [
+          5.5,
+          6,
+          6.5
+        ]
+      },
+      "matchingMethod": "本次接觸圖逐方向目視確認同款車外觀及車軸配置，逐圖精確掃描 alpha bbox；實尺寸沿用同車款 SE 的軸距假設，沒有宣稱此方向的輪心已人工定點。",
+      "sourceSha256": "6c164a46b32f5540d6f1575d7f02e50909c8dfdfa756d446a365e50cab7d5638"
+    },
+    {
+      "path": "Models/traffic/car/hrvNE.png",
+      "category": "traffic",
+      "model": "hrv",
+      "vehicleType": "compact-car-suv",
+      "direction": "NE",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 94,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 162,
+        "visiblePixelCount": 29642
+      },
+      "solidAlphaBBox": {
+        "minX": 0,
+        "minY": 94,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 162,
+        "visiblePixelCount": 28111
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "此方向沒有人工輪心座標；不得把 SE 端點直接複製到此圖，也不得以 bbox 寬度單獨當車長。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/car/hrvSE.png",
+      "inheritedPhysicalReference": {
+        "feature": "same-side-wheelbase",
+        "realM": [
+          2.5,
+          2.7,
+          3
+        ]
+      },
+      "matchingMethod": "本次接觸圖逐方向目視確認同款車外觀及車軸配置，逐圖精確掃描 alpha bbox；實尺寸沿用同車款 SE 的軸距假設，沒有宣稱此方向的輪心已人工定點。",
+      "sourceSha256": "ff16ebca1b61b565d2695b22c0989a23557e9402aeae92ee14b156e526397f9e"
+    },
+    {
+      "path": "Models/traffic/car/hrvNW.png",
+      "category": "traffic",
+      "model": "hrv",
+      "vehicleType": "compact-car-suv",
+      "direction": "NW",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 88,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 168,
+        "visiblePixelCount": 30477
+      },
+      "solidAlphaBBox": {
+        "minX": 1,
+        "minY": 88,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 255,
+        "height": 168,
+        "visiblePixelCount": 28738
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "此方向沒有人工輪心座標；不得把 SE 端點直接複製到此圖，也不得以 bbox 寬度單獨當車長。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/car/hrvSE.png",
+      "inheritedPhysicalReference": {
+        "feature": "same-side-wheelbase",
+        "realM": [
+          2.5,
+          2.7,
+          3
+        ]
+      },
+      "matchingMethod": "本次接觸圖逐方向目視確認同款車外觀及車軸配置，逐圖精確掃描 alpha bbox；實尺寸沿用同車款 SE 的軸距假設，沒有宣稱此方向的輪心已人工定點。",
+      "sourceSha256": "07feb8f1108130755b51953e8fd1ebdb097dd35a601203527dce004295777dbb"
+    },
+    {
+      "path": "Models/traffic/car/hrvSE.png",
+      "category": "traffic",
+      "model": "hrv",
+      "vehicleType": "compact-car-suv",
+      "direction": "SE",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 72,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 184,
+        "visiblePixelCount": 32858
+      },
+      "solidAlphaBBox": {
+        "minX": 0,
+        "minY": 74,
+        "maxX": 254,
+        "maxY": 255,
+        "width": 255,
+        "height": 182,
+        "visiblePixelCount": 31116
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [
+        {
+          "id": "same-side-wheelbase",
+          "axis": "se",
+          "a": [
+            19,
+            178
+          ],
+          "b": [
+            127,
+            229
+          ],
+          "realM": [
+            2.5,
+            2.7,
+            3
+          ],
+          "pixelError": 3,
+          "meaning": "同側可辨前後輪中心距；兩輪位於相同高度，排除車身寬度、保險桿彎角及車頂。",
+          "method": "本次目視核對原始 256×256 PNG、16 px 座標格網及 2× 放大接觸圖；實軸距為明示車種假設，並非特定車型數據。",
+          "referenceRole": "primary"
+        }
+      ],
+      "notes": [],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "984561676f12756a47649f5326f36385b84298c1eb8f7ef9d4eb56322f240bd2"
+    },
+    {
+      "path": "Models/traffic/car/hrvSW.png",
+      "category": "traffic",
+      "model": "hrv",
+      "vehicleType": "compact-car-suv",
+      "direction": "SW",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 67,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 189,
+        "visiblePixelCount": 33626
+      },
+      "solidAlphaBBox": {
+        "minX": 0,
+        "minY": 69,
+        "maxX": 254,
+        "maxY": 254,
+        "width": 255,
+        "height": 186,
+        "visiblePixelCount": 31905
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "此方向沒有人工輪心座標；不得把 SE 端點直接複製到此圖，也不得以 bbox 寬度單獨當車長。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/car/hrvSE.png",
+      "inheritedPhysicalReference": {
+        "feature": "same-side-wheelbase",
+        "realM": [
+          2.5,
+          2.7,
+          3
+        ]
+      },
+      "matchingMethod": "本次接觸圖逐方向目視確認同款車外觀及車軸配置，逐圖精確掃描 alpha bbox；實尺寸沿用同車款 SE 的軸距假設，沒有宣稱此方向的輪心已人工定點。",
+      "sourceSha256": "da28f914d74b676a654dca49bd9455c52cc50c9a556650fe8fbe969bc58861ad"
+    },
+    {
+      "path": "Models/traffic/car/odyssey2NE.png",
+      "category": "traffic",
+      "model": "odyssey2",
+      "vehicleType": "mpv",
+      "direction": "NE",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 94,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 162,
+        "visiblePixelCount": 29586
+      },
+      "solidAlphaBBox": {
+        "minX": 0,
+        "minY": 96,
+        "maxX": 255,
+        "maxY": 254,
+        "width": 256,
+        "height": 159,
+        "visiblePixelCount": 28046
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "此方向沒有人工輪心座標；不得把 SE 端點直接複製到此圖，也不得以 bbox 寬度單獨當車長。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/car/odyssey2SE.png",
+      "inheritedPhysicalReference": {
+        "feature": "same-side-wheelbase",
+        "realM": [
+          2.7,
+          2.9,
+          3.1
+        ]
+      },
+      "matchingMethod": "本次接觸圖逐方向目視確認同款車外觀及車軸配置，逐圖精確掃描 alpha bbox；實尺寸沿用同車款 SE 的軸距假設，沒有宣稱此方向的輪心已人工定點。",
+      "sourceSha256": "3e6858b73de27f0b18edfd69a50dcc61e262be3bdf286fd6d2f5e415224648e2"
+    },
+    {
+      "path": "Models/traffic/car/odyssey2NW.png",
+      "category": "traffic",
+      "model": "odyssey2",
+      "vehicleType": "mpv",
+      "direction": "NW",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 94,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 162,
+        "visiblePixelCount": 29612
+      },
+      "solidAlphaBBox": {
+        "minX": 0,
+        "minY": 95,
+        "maxX": 255,
+        "maxY": 254,
+        "width": 256,
+        "height": 160,
+        "visiblePixelCount": 28088
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "此方向沒有人工輪心座標；不得把 SE 端點直接複製到此圖，也不得以 bbox 寬度單獨當車長。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/car/odyssey2SE.png",
+      "inheritedPhysicalReference": {
+        "feature": "same-side-wheelbase",
+        "realM": [
+          2.7,
+          2.9,
+          3.1
+        ]
+      },
+      "matchingMethod": "本次接觸圖逐方向目視確認同款車外觀及車軸配置，逐圖精確掃描 alpha bbox；實尺寸沿用同車款 SE 的軸距假設，沒有宣稱此方向的輪心已人工定點。",
+      "sourceSha256": "db20fef085a14197173a864abaa5a4089af857a86f585b3b3718f70cdb614134"
+    },
+    {
+      "path": "Models/traffic/car/odyssey2SE.png",
+      "category": "traffic",
+      "model": "odyssey2",
+      "vehicleType": "mpv",
+      "direction": "SE",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 68,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 188,
+        "visiblePixelCount": 33044
+      },
+      "solidAlphaBBox": {
+        "minX": 0,
+        "minY": 70,
+        "maxX": 254,
+        "maxY": 255,
+        "width": 255,
+        "height": 186,
+        "visiblePixelCount": 31394
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [
+        {
+          "id": "same-side-wheelbase",
+          "axis": "se",
+          "a": [
+            25,
+            183
+          ],
+          "b": [
+            130,
+            236
+          ],
+          "realM": [
+            2.7,
+            2.9,
+            3.1
+          ],
+          "pixelError": 3,
+          "meaning": "同側可辨前後輪中心距；兩輪位於相同高度，排除車身寬度、保險桿彎角及車頂。",
+          "method": "本次目視核對原始 256×256 PNG、16 px 座標格網及 2× 放大接觸圖；實軸距為明示車種假設，並非特定車型數據。",
+          "referenceRole": "primary"
+        }
+      ],
+      "notes": [],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "39fe654e9b3a213f60c1c51d1e147007feba79dfbb724683c92931bcc8f5e7cf"
+    },
+    {
+      "path": "Models/traffic/car/odyssey2SW.png",
+      "category": "traffic",
+      "model": "odyssey2",
+      "vehicleType": "mpv",
+      "direction": "SW",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 81,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 175,
+        "visiblePixelCount": 30626
+      },
+      "solidAlphaBBox": {
+        "minX": 0,
+        "minY": 83,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 173,
+        "visiblePixelCount": 29125
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "此方向沒有人工輪心座標；不得把 SE 端點直接複製到此圖，也不得以 bbox 寬度單獨當車長。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/car/odyssey2SE.png",
+      "inheritedPhysicalReference": {
+        "feature": "same-side-wheelbase",
+        "realM": [
+          2.7,
+          2.9,
+          3.1
+        ]
+      },
+      "matchingMethod": "本次接觸圖逐方向目視確認同款車外觀及車軸配置，逐圖精確掃描 alpha bbox；實尺寸沿用同車款 SE 的軸距假設，沒有宣稱此方向的輪心已人工定點。",
+      "sourceSha256": "e8d3086af04d2e9522d6abfd5b8a34429faebd92b7edf8016761f85707ebc1bb"
+    },
+    {
+      "path": "Models/traffic/car/odysseyNE.png",
+      "category": "traffic",
+      "model": "odyssey",
+      "vehicleType": "mpv",
+      "direction": "NE",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 115,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 141,
+        "visiblePixelCount": 26329
+      },
+      "solidAlphaBBox": {
+        "minX": 0,
+        "minY": 115,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 141,
+        "visiblePixelCount": 24933
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "此方向沒有人工輪心座標；不得把 SE 端點直接複製到此圖，也不得以 bbox 寬度單獨當車長。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/car/odysseySE.png",
+      "inheritedPhysicalReference": {
+        "feature": "same-side-wheelbase",
+        "realM": [
+          2.7,
+          2.9,
+          3.1
+        ]
+      },
+      "matchingMethod": "本次接觸圖逐方向目視確認同款車外觀及車軸配置，逐圖精確掃描 alpha bbox；實尺寸沿用同車款 SE 的軸距假設，沒有宣稱此方向的輪心已人工定點。",
+      "sourceSha256": "76118c6e315b97da8b2bbdb10142a3ab43e3bd5a68913ed827def1afb39538ba"
+    },
+    {
+      "path": "Models/traffic/car/odysseyNW.png",
+      "category": "traffic",
+      "model": "odyssey",
+      "vehicleType": "mpv",
+      "direction": "NW",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 115,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 141,
+        "visiblePixelCount": 26429
+      },
+      "solidAlphaBBox": {
+        "minX": 0,
+        "minY": 115,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 141,
+        "visiblePixelCount": 25085
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "此方向沒有人工輪心座標；不得把 SE 端點直接複製到此圖，也不得以 bbox 寬度單獨當車長。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/car/odysseySE.png",
+      "inheritedPhysicalReference": {
+        "feature": "same-side-wheelbase",
+        "realM": [
+          2.7,
+          2.9,
+          3.1
+        ]
+      },
+      "matchingMethod": "本次接觸圖逐方向目視確認同款車外觀及車軸配置，逐圖精確掃描 alpha bbox；實尺寸沿用同車款 SE 的軸距假設，沒有宣稱此方向的輪心已人工定點。",
+      "sourceSha256": "df7f6b0d04247100a2f9831b94d732c04e0bd1a3da9623c7e52023c106a6253d"
+    },
+    {
+      "path": "Models/traffic/car/odysseySE.png",
+      "category": "traffic",
+      "model": "odyssey",
+      "vehicleType": "mpv",
+      "direction": "SE",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 82,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 174,
+        "visiblePixelCount": 31188
+      },
+      "solidAlphaBBox": {
+        "minX": 0,
+        "minY": 83,
+        "maxX": 254,
+        "maxY": 255,
+        "width": 255,
+        "height": 173,
+        "visiblePixelCount": 29555
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [
+        {
+          "id": "same-side-wheelbase",
+          "axis": "se",
+          "a": [
+            24,
+            183
+          ],
+          "b": [
+            128,
+            237
+          ],
+          "realM": [
+            2.7,
+            2.9,
+            3.1
+          ],
+          "pixelError": 3,
+          "meaning": "同側可辨前後輪中心距；兩輪位於相同高度，排除車身寬度、保險桿彎角及車頂。",
+          "method": "本次目視核對原始 256×256 PNG、16 px 座標格網及 2× 放大接觸圖；實軸距為明示車種假設，並非特定車型數據。",
+          "referenceRole": "primary"
+        }
+      ],
+      "notes": [],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "62225cbc69118cdc65553153e8a5041a6c77ecac833f399c9c3e1c0c83f73111"
+    },
+    {
+      "path": "Models/traffic/car/odysseySW.png",
+      "category": "traffic",
+      "model": "odyssey",
+      "vehicleType": "mpv",
+      "direction": "SW",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 82,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 174,
+        "visiblePixelCount": 31194
+      },
+      "solidAlphaBBox": {
+        "minX": 1,
+        "minY": 84,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 255,
+        "height": 172,
+        "visiblePixelCount": 29554
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "此方向沒有人工輪心座標；不得把 SE 端點直接複製到此圖，也不得以 bbox 寬度單獨當車長。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/car/odysseySE.png",
+      "inheritedPhysicalReference": {
+        "feature": "same-side-wheelbase",
+        "realM": [
+          2.7,
+          2.9,
+          3.1
+        ]
+      },
+      "matchingMethod": "本次接觸圖逐方向目視確認同款車外觀及車軸配置，逐圖精確掃描 alpha bbox；實尺寸沿用同車款 SE 的軸距假設，沒有宣稱此方向的輪心已人工定點。",
+      "sourceSha256": "1e03148ed9ca03991ec306d41ff6f46bcb7e3fbf662e3e6650b71a4f5ff2b65f"
+    },
+    {
+      "path": "Models/traffic/icecream/iceCreamNE.png",
+      "category": "traffic",
+      "model": "iceCream",
+      "vehicleType": "service-van",
+      "direction": "NE",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 38,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 218,
+        "visiblePixelCount": 41320
+      },
+      "solidAlphaBBox": {
+        "minX": 0,
+        "minY": 38,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 218,
+        "visiblePixelCount": 39464
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "有加建高身售賣箱體，實尺假設採服務貨車的較寬軸距範圍，沒有由招牌或車頂高度縮放。",
+        "此方向沒有人工輪心座標；不得把 SE 端點直接複製到此圖，也不得以 bbox 寬度單獨當車長。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/icecream/iceCreamSE.png",
+      "inheritedPhysicalReference": {
+        "feature": "same-side-wheelbase",
+        "realM": [
+          3.2,
+          3.6,
+          4
+        ]
+      },
+      "matchingMethod": "本次接觸圖逐方向目視確認同款車外觀及車軸配置，逐圖精確掃描 alpha bbox；實尺寸沿用同車款 SE 的軸距假設，沒有宣稱此方向的輪心已人工定點。",
+      "sourceSha256": "40aba779f64a9a687744b38e3491cd2564e3f3893fdd226f3695f5874e3c7cf4"
+    },
+    {
+      "path": "Models/traffic/icecream/iceCreamNW.png",
+      "category": "traffic",
+      "model": "iceCream",
+      "vehicleType": "service-van",
+      "direction": "NW",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 40,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 216,
+        "visiblePixelCount": 41354
+      },
+      "solidAlphaBBox": {
+        "minX": 1,
+        "minY": 41,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 255,
+        "height": 215,
+        "visiblePixelCount": 39592
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "有加建高身售賣箱體，實尺假設採服務貨車的較寬軸距範圍，沒有由招牌或車頂高度縮放。",
+        "此方向沒有人工輪心座標；不得把 SE 端點直接複製到此圖，也不得以 bbox 寬度單獨當車長。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/icecream/iceCreamSE.png",
+      "inheritedPhysicalReference": {
+        "feature": "same-side-wheelbase",
+        "realM": [
+          3.2,
+          3.6,
+          4
+        ]
+      },
+      "matchingMethod": "本次接觸圖逐方向目視確認同款車外觀及車軸配置，逐圖精確掃描 alpha bbox；實尺寸沿用同車款 SE 的軸距假設，沒有宣稱此方向的輪心已人工定點。",
+      "sourceSha256": "a7cc27758fc464eb5cfa037ea4dea7e1182c0fa08cc0038aa430c1a133ee2f56"
+    },
+    {
+      "path": "Models/traffic/icecream/iceCreamSE.png",
+      "category": "traffic",
+      "model": "iceCream",
+      "vehicleType": "service-van",
+      "direction": "SE",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 40,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 216,
+        "visiblePixelCount": 37498
+      },
+      "solidAlphaBBox": {
+        "minX": 0,
+        "minY": 40,
+        "maxX": 255,
+        "maxY": 254,
+        "width": 256,
+        "height": 215,
+        "visiblePixelCount": 35977
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [
+        {
+          "id": "same-side-wheelbase",
+          "axis": "se",
+          "a": [
+            10,
+            159
+          ],
+          "b": [
+            160,
+            235
+          ],
+          "realM": [
+            3.2,
+            3.6,
+            4
+          ],
+          "pixelError": 3,
+          "meaning": "同側可辨前後輪中心距；兩輪位於相同高度，排除車身寬度、保險桿彎角及車頂。",
+          "method": "本次目視核對原始 256×256 PNG、16 px 座標格網及 2× 放大接觸圖；實軸距為明示車種假設，並非特定車型數據。",
+          "referenceRole": "primary"
+        }
+      ],
+      "notes": [
+        "有加建高身售賣箱體，實尺假設採服務貨車的較寬軸距範圍，沒有由招牌或車頂高度縮放。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "fb2d010dba2d6dff0794ff3280e67d3b55762cbd68c26a08413256685716e0cc"
+    },
+    {
+      "path": "Models/traffic/icecream/iceCreamSW.png",
+      "category": "traffic",
+      "model": "iceCream",
+      "vehicleType": "service-van",
+      "direction": "SW",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 44,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 212,
+        "visiblePixelCount": 37084
+      },
+      "solidAlphaBBox": {
+        "minX": 0,
+        "minY": 44,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 212,
+        "visiblePixelCount": 35615
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "有加建高身售賣箱體，實尺假設採服務貨車的較寬軸距範圍，沒有由招牌或車頂高度縮放。",
+        "此方向沒有人工輪心座標；不得把 SE 端點直接複製到此圖，也不得以 bbox 寬度單獨當車長。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/icecream/iceCreamSE.png",
+      "inheritedPhysicalReference": {
+        "feature": "same-side-wheelbase",
+        "realM": [
+          3.2,
+          3.6,
+          4
+        ]
+      },
+      "matchingMethod": "本次接觸圖逐方向目視確認同款車外觀及車軸配置，逐圖精確掃描 alpha bbox；實尺寸沿用同車款 SE 的軸距假設，沒有宣稱此方向的輪心已人工定點。",
+      "sourceSha256": "ceecb91c16e93af7dad02bdbb6a6767b029bd24a52a52915e5229671a6cd8688"
+    },
+    {
+      "path": "Models/traffic/minibus/greenMinibusNE.png",
+      "category": "traffic",
+      "model": "greenMinibus",
+      "vehicleType": "minibus",
+      "direction": "NE",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 43,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 213,
+        "visiblePixelCount": 38080
+      },
+      "solidAlphaBBox": {
+        "minX": 0,
+        "minY": 43,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 213,
+        "visiblePixelCount": 36179
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "此方向沒有人工輪心座標；不得把 SE 端點直接複製到此圖，也不得以 bbox 寬度單獨當車長。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/minibus/greenMinibusSE.png",
+      "inheritedPhysicalReference": {
+        "feature": "same-side-wheelbase",
+        "realM": [
+          3.6,
+          4,
+          4.5
+        ]
+      },
+      "matchingMethod": "本次接觸圖逐方向目視確認同款車外觀及車軸配置，逐圖精確掃描 alpha bbox；實尺寸沿用同車款 SE 的軸距假設，沒有宣稱此方向的輪心已人工定點。",
+      "sourceSha256": "32c0e2f76ae1a2dbdb8e7ca3bf8c023f7f090471b144acf07fc586c84e9123f7"
+    },
+    {
+      "path": "Models/traffic/minibus/greenMinibusNW.png",
+      "category": "traffic",
+      "model": "greenMinibus",
+      "vehicleType": "minibus",
+      "direction": "NW",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 38,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 218,
+        "visiblePixelCount": 38676
+      },
+      "solidAlphaBBox": {
+        "minX": 0,
+        "minY": 38,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 218,
+        "visiblePixelCount": 36758
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "此方向沒有人工輪心座標；不得把 SE 端點直接複製到此圖，也不得以 bbox 寬度單獨當車長。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/minibus/greenMinibusSE.png",
+      "inheritedPhysicalReference": {
+        "feature": "same-side-wheelbase",
+        "realM": [
+          3.6,
+          4,
+          4.5
+        ]
+      },
+      "matchingMethod": "本次接觸圖逐方向目視確認同款車外觀及車軸配置，逐圖精確掃描 alpha bbox；實尺寸沿用同車款 SE 的軸距假設，沒有宣稱此方向的輪心已人工定點。",
+      "sourceSha256": "de78e20cfac8e519e8a159ab870b9a350d68874748cec99abc39ae5aa8acf62e"
+    },
+    {
+      "path": "Models/traffic/minibus/greenMinibusSE.png",
+      "category": "traffic",
+      "model": "greenMinibus",
+      "vehicleType": "minibus",
+      "direction": "SE",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 31,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 225,
+        "visiblePixelCount": 39926
+      },
+      "solidAlphaBBox": {
+        "minX": 0,
+        "minY": 31,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 225,
+        "visiblePixelCount": 38034
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [
+        {
+          "id": "same-side-wheelbase",
+          "axis": "se",
+          "a": [
+            48,
+            187
+          ],
+          "b": [
+            149,
+            234
+          ],
+          "realM": [
+            3.6,
+            4,
+            4.5
+          ],
+          "pixelError": 3,
+          "meaning": "同側可辨前後輪中心距；兩輪位於相同高度，排除車身寬度、保險桿彎角及車頂。",
+          "method": "本次目視核對原始 256×256 PNG、16 px 座標格網及 2× 放大接觸圖；實軸距為明示車種假設，並非特定車型數據。",
+          "referenceRole": "primary"
+        }
+      ],
+      "notes": [],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "58fc229173bd7f09a0dcdef178f6ef542a8bd5c584d14d41485ecf46db3a6ccf"
+    },
+    {
+      "path": "Models/traffic/minibus/greenMinibusSW.png",
+      "category": "traffic",
+      "model": "greenMinibus",
+      "vehicleType": "minibus",
+      "direction": "SW",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 32,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 224,
+        "visiblePixelCount": 38999
+      },
+      "solidAlphaBBox": {
+        "minX": 0,
+        "minY": 32,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 224,
+        "visiblePixelCount": 37129
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "此方向沒有人工輪心座標；不得把 SE 端點直接複製到此圖，也不得以 bbox 寬度單獨當車長。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/minibus/greenMinibusSE.png",
+      "inheritedPhysicalReference": {
+        "feature": "same-side-wheelbase",
+        "realM": [
+          3.6,
+          4,
+          4.5
+        ]
+      },
+      "matchingMethod": "本次接觸圖逐方向目視確認同款車外觀及車軸配置，逐圖精確掃描 alpha bbox；實尺寸沿用同車款 SE 的軸距假設，沒有宣稱此方向的輪心已人工定點。",
+      "sourceSha256": "55bdf8afec63ee82f02f15acd7ece3b93fc70e33425c30640ad03e2e61c96da0"
+    },
+    {
+      "path": "Models/traffic/minibus/redMinibus1NE.png",
+      "category": "traffic",
+      "model": "redMinibus1",
+      "vehicleType": "minibus",
+      "direction": "NE",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 33,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 223,
+        "visiblePixelCount": 39710
+      },
+      "solidAlphaBBox": {
+        "minX": 0,
+        "minY": 35,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 221,
+        "visiblePixelCount": 37801
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "此方向沒有人工輪心座標；不得把 SE 端點直接複製到此圖，也不得以 bbox 寬度單獨當車長。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/minibus/redMinibus1SE.png",
+      "inheritedPhysicalReference": {
+        "feature": "same-side-wheelbase",
+        "realM": [
+          3.6,
+          4,
+          4.5
+        ]
+      },
+      "matchingMethod": "本次接觸圖逐方向目視確認同款車外觀及車軸配置，逐圖精確掃描 alpha bbox；實尺寸沿用同車款 SE 的軸距假設，沒有宣稱此方向的輪心已人工定點。",
+      "sourceSha256": "256b9d0ede2a5e2899b1553c6954ce7b78923d08904a69c6d1b39dfdeb4ab144"
+    },
+    {
+      "path": "Models/traffic/minibus/redMinibus1NW.png",
+      "category": "traffic",
+      "model": "redMinibus1",
+      "vehicleType": "minibus",
+      "direction": "NW",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 38,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 218,
+        "visiblePixelCount": 38683
+      },
+      "solidAlphaBBox": {
+        "minX": 0,
+        "minY": 38,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 218,
+        "visiblePixelCount": 36762
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "此方向沒有人工輪心座標；不得把 SE 端點直接複製到此圖，也不得以 bbox 寬度單獨當車長。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/minibus/redMinibus1SE.png",
+      "inheritedPhysicalReference": {
+        "feature": "same-side-wheelbase",
+        "realM": [
+          3.6,
+          4,
+          4.5
+        ]
+      },
+      "matchingMethod": "本次接觸圖逐方向目視確認同款車外觀及車軸配置，逐圖精確掃描 alpha bbox；實尺寸沿用同車款 SE 的軸距假設，沒有宣稱此方向的輪心已人工定點。",
+      "sourceSha256": "6961eebf625609d56531ffb11844749f0bfaddfd795d22b1c03d41ee1a593962"
+    },
+    {
+      "path": "Models/traffic/minibus/redMinibus1SE.png",
+      "category": "traffic",
+      "model": "redMinibus1",
+      "vehicleType": "minibus",
+      "direction": "SE",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 31,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 225,
+        "visiblePixelCount": 39905
+      },
+      "solidAlphaBBox": {
+        "minX": 0,
+        "minY": 31,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 225,
+        "visiblePixelCount": 37970
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [
+        {
+          "id": "same-side-wheelbase",
+          "axis": "se",
+          "a": [
+            48,
+            187
+          ],
+          "b": [
+            149,
+            234
+          ],
+          "realM": [
+            3.6,
+            4,
+            4.5
+          ],
+          "pixelError": 3,
+          "meaning": "同側可辨前後輪中心距；兩輪位於相同高度，排除車身寬度、保險桿彎角及車頂。",
+          "method": "本次目視核對原始 256×256 PNG、16 px 座標格網及 2× 放大接觸圖；實軸距為明示車種假設，並非特定車型數據。",
+          "referenceRole": "primary"
+        }
+      ],
+      "notes": [],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "6373595300e967175a71d5ce8cf82dc327264ce420a33795540b27926d93b62b"
+    },
+    {
+      "path": "Models/traffic/minibus/redMinibus1SW.png",
+      "category": "traffic",
+      "model": "redMinibus1",
+      "vehicleType": "minibus",
+      "direction": "SW",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 31,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 225,
+        "visiblePixelCount": 38937
+      },
+      "solidAlphaBBox": {
+        "minX": 0,
+        "minY": 32,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 224,
+        "visiblePixelCount": 37052
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "此方向沒有人工輪心座標；不得把 SE 端點直接複製到此圖，也不得以 bbox 寬度單獨當車長。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/minibus/redMinibus1SE.png",
+      "inheritedPhysicalReference": {
+        "feature": "same-side-wheelbase",
+        "realM": [
+          3.6,
+          4,
+          4.5
+        ]
+      },
+      "matchingMethod": "本次接觸圖逐方向目視確認同款車外觀及車軸配置，逐圖精確掃描 alpha bbox；實尺寸沿用同車款 SE 的軸距假設，沒有宣稱此方向的輪心已人工定點。",
+      "sourceSha256": "3bd8d53fe294bb3920a96e7ed4ab09712906c08c880d6f91904984f72aff918a"
+    },
+    {
+      "path": "Models/traffic/minibus/redMinibus2NE.png",
+      "category": "traffic",
+      "model": "redMinibus2",
+      "vehicleType": "minibus",
+      "direction": "NE",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 43,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 213,
+        "visiblePixelCount": 36821
+      },
+      "solidAlphaBBox": {
+        "minX": 0,
+        "minY": 44,
+        "maxX": 255,
+        "maxY": 254,
+        "width": 256,
+        "height": 211,
+        "visiblePixelCount": 35097
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "此方向沒有人工輪心座標；不得把 SE 端點直接複製到此圖，也不得以 bbox 寬度單獨當車長。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/minibus/redMinibus2SE.png",
+      "inheritedPhysicalReference": {
+        "feature": "same-side-wheelbase",
+        "realM": [
+          3.6,
+          4,
+          4.5
+        ]
+      },
+      "matchingMethod": "本次接觸圖逐方向目視確認同款車外觀及車軸配置，逐圖精確掃描 alpha bbox；實尺寸沿用同車款 SE 的軸距假設，沒有宣稱此方向的輪心已人工定點。",
+      "sourceSha256": "ec6500b166ce9e7de5dd09d826d2a15b0a7b49e85c364cdfb15d651b0220e762"
+    },
+    {
+      "path": "Models/traffic/minibus/redMinibus2NW.png",
+      "category": "traffic",
+      "model": "redMinibus2",
+      "vehicleType": "minibus",
+      "direction": "NW",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 46,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 210,
+        "visiblePixelCount": 36773
+      },
+      "solidAlphaBBox": {
+        "minX": 0,
+        "minY": 46,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 210,
+        "visiblePixelCount": 35075
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "此方向沒有人工輪心座標；不得把 SE 端點直接複製到此圖，也不得以 bbox 寬度單獨當車長。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/minibus/redMinibus2SE.png",
+      "inheritedPhysicalReference": {
+        "feature": "same-side-wheelbase",
+        "realM": [
+          3.6,
+          4,
+          4.5
+        ]
+      },
+      "matchingMethod": "本次接觸圖逐方向目視確認同款車外觀及車軸配置，逐圖精確掃描 alpha bbox；實尺寸沿用同車款 SE 的軸距假設，沒有宣稱此方向的輪心已人工定點。",
+      "sourceSha256": "66c2c09689e7959430529805598c5593329c7f42b04ca460755274859c748d24"
+    },
+    {
+      "path": "Models/traffic/minibus/redMinibus2SE.png",
+      "category": "traffic",
+      "model": "redMinibus2",
+      "vehicleType": "minibus",
+      "direction": "SE",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 35,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 221,
+        "visiblePixelCount": 39126
+      },
+      "solidAlphaBBox": {
+        "minX": 0,
+        "minY": 37,
+        "maxX": 255,
+        "maxY": 254,
+        "width": 256,
+        "height": 218,
+        "visiblePixelCount": 37280
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [
+        {
+          "id": "same-side-wheelbase",
+          "axis": "se",
+          "a": [
+            44,
+            182
+          ],
+          "b": [
+            150,
+            231
+          ],
+          "realM": [
+            3.6,
+            4,
+            4.5
+          ],
+          "pixelError": 3,
+          "meaning": "同側可辨前後輪中心距；兩輪位於相同高度，排除車身寬度、保險桿彎角及車頂。",
+          "method": "本次目視核對原始 256×256 PNG、16 px 座標格網及 2× 放大接觸圖；實軸距為明示車種假設，並非特定車型數據。",
+          "referenceRole": "primary"
+        }
+      ],
+      "notes": [],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "d2d062598cc1860b55e4b7a183011e876580cb6a28c25be75e035c273a78545b"
+    },
+    {
+      "path": "Models/traffic/minibus/redMinibus2SW.png",
+      "category": "traffic",
+      "model": "redMinibus2",
+      "vehicleType": "minibus",
+      "direction": "SW",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 38,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 218,
+        "visiblePixelCount": 37644
+      },
+      "solidAlphaBBox": {
+        "minX": 0,
+        "minY": 39,
+        "maxX": 255,
+        "maxY": 254,
+        "width": 256,
+        "height": 216,
+        "visiblePixelCount": 35890
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "此方向沒有人工輪心座標；不得把 SE 端點直接複製到此圖，也不得以 bbox 寬度單獨當車長。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/minibus/redMinibus2SE.png",
+      "inheritedPhysicalReference": {
+        "feature": "same-side-wheelbase",
+        "realM": [
+          3.6,
+          4,
+          4.5
+        ]
+      },
+      "matchingMethod": "本次接觸圖逐方向目視確認同款車外觀及車軸配置，逐圖精確掃描 alpha bbox；實尺寸沿用同車款 SE 的軸距假設，沒有宣稱此方向的輪心已人工定點。",
+      "sourceSha256": "0ec96b9ea061b36fb8cadb64b25258d9715ca0fdd409acd72d63af366ee4722b"
+    },
+    {
+      "path": "Models/traffic/taxi/blueTaxiNE.png",
+      "category": "traffic",
+      "model": "blueTaxi",
+      "vehicleType": "sedan-taxi",
+      "direction": "NE",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 95,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 161,
+        "visiblePixelCount": 28220
+      },
+      "solidAlphaBBox": {
+        "minX": 1,
+        "minY": 96,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 255,
+        "height": 160,
+        "visiblePixelCount": 26774
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "此方向沒有人工輪心座標；不得把 SE 端點直接複製到此圖，也不得以 bbox 寬度單獨當車長。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/taxi/blueTaxiSE.png",
+      "inheritedPhysicalReference": {
+        "feature": "same-side-wheelbase",
+        "realM": [
+          2.5,
+          2.7,
+          3
+        ]
+      },
+      "matchingMethod": "本次接觸圖逐方向目視確認同款車外觀及車軸配置，逐圖精確掃描 alpha bbox；實尺寸沿用同車款 SE 的軸距假設，沒有宣稱此方向的輪心已人工定點。",
+      "sourceSha256": "61380322bc51582040459de6ff09b9dfc4112127c581ccd14160628da89ade5f"
+    },
+    {
+      "path": "Models/traffic/taxi/blueTaxiNW.png",
+      "category": "traffic",
+      "model": "blueTaxi",
+      "vehicleType": "sedan-taxi",
+      "direction": "NW",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 97,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 159,
+        "visiblePixelCount": 27533
+      },
+      "solidAlphaBBox": {
+        "minX": 0,
+        "minY": 99,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 157,
+        "visiblePixelCount": 26083
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "此方向沒有人工輪心座標；不得把 SE 端點直接複製到此圖，也不得以 bbox 寬度單獨當車長。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/taxi/blueTaxiSE.png",
+      "inheritedPhysicalReference": {
+        "feature": "same-side-wheelbase",
+        "realM": [
+          2.5,
+          2.7,
+          3
+        ]
+      },
+      "matchingMethod": "本次接觸圖逐方向目視確認同款車外觀及車軸配置，逐圖精確掃描 alpha bbox；實尺寸沿用同車款 SE 的軸距假設，沒有宣稱此方向的輪心已人工定點。",
+      "sourceSha256": "f94b5147380d80f298af406269fa0c0873681dd543829036a7d4ff8f45698b5c"
+    },
+    {
+      "path": "Models/traffic/taxi/blueTaxiSE.png",
+      "category": "traffic",
+      "model": "blueTaxi",
+      "vehicleType": "sedan-taxi",
+      "direction": "SE",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 85,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 171,
+        "visiblePixelCount": 27910
+      },
+      "solidAlphaBBox": {
+        "minX": 0,
+        "minY": 86,
+        "maxX": 255,
+        "maxY": 254,
+        "width": 256,
+        "height": 169,
+        "visiblePixelCount": 26372
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [
+        {
+          "id": "same-side-wheelbase",
+          "axis": "se",
+          "a": [
+            31,
+            181
+          ],
+          "b": [
+            136,
+            233
+          ],
+          "realM": [
+            2.5,
+            2.7,
+            3
+          ],
+          "pixelError": 3,
+          "meaning": "同側可辨前後輪中心距；兩輪位於相同高度，排除車身寬度、保險桿彎角及車頂。",
+          "method": "本次目視核對原始 256×256 PNG、16 px 座標格網及 2× 放大接觸圖；實軸距為明示車種假設，並非特定車型數據。",
+          "referenceRole": "primary"
+        }
+      ],
+      "notes": [],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "990e2f40f51fc8a2231842fc2de8bcdd30329db2110cc78593d6299b55c47613"
+    },
+    {
+      "path": "Models/traffic/taxi/blueTaxiSW.png",
+      "category": "traffic",
+      "model": "blueTaxi",
+      "vehicleType": "sedan-taxi",
+      "direction": "SW",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 86,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 170,
+        "visiblePixelCount": 27258
+      },
+      "solidAlphaBBox": {
+        "minX": 0,
+        "minY": 86,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 170,
+        "visiblePixelCount": 25540
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "此方向沒有人工輪心座標；不得把 SE 端點直接複製到此圖，也不得以 bbox 寬度單獨當車長。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/taxi/blueTaxiSE.png",
+      "inheritedPhysicalReference": {
+        "feature": "same-side-wheelbase",
+        "realM": [
+          2.5,
+          2.7,
+          3
+        ]
+      },
+      "matchingMethod": "本次接觸圖逐方向目視確認同款車外觀及車軸配置，逐圖精確掃描 alpha bbox；實尺寸沿用同車款 SE 的軸距假設，沒有宣稱此方向的輪心已人工定點。",
+      "sourceSha256": "322dc1ad9f17f9c99f97351551a1ebc07fffbfadfadfbdc4eb88d60da85a0307"
+    },
+    {
+      "path": "Models/traffic/taxi/greenTaxiNE.png",
+      "category": "traffic",
+      "model": "greenTaxi",
+      "vehicleType": "sedan-taxi",
+      "direction": "NE",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 96,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 160,
+        "visiblePixelCount": 28255
+      },
+      "solidAlphaBBox": {
+        "minX": 0,
+        "minY": 98,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 158,
+        "visiblePixelCount": 26798
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "此方向沒有人工輪心座標；不得把 SE 端點直接複製到此圖，也不得以 bbox 寬度單獨當車長。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/taxi/greenTaxiSE.png",
+      "inheritedPhysicalReference": {
+        "feature": "same-side-wheelbase",
+        "realM": [
+          2.5,
+          2.7,
+          3
+        ]
+      },
+      "matchingMethod": "本次接觸圖逐方向目視確認同款車外觀及車軸配置，逐圖精確掃描 alpha bbox；實尺寸沿用同車款 SE 的軸距假設，沒有宣稱此方向的輪心已人工定點。",
+      "sourceSha256": "5938c1f10c4415bc3f1bbaba0f77340f0a4b04f79c6f0dbbbaf2afce973d5a9b"
+    },
+    {
+      "path": "Models/traffic/taxi/greenTaxiNW.png",
+      "category": "traffic",
+      "model": "greenTaxi",
+      "vehicleType": "sedan-taxi",
+      "direction": "NW",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 97,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 159,
+        "visiblePixelCount": 27658
+      },
+      "solidAlphaBBox": {
+        "minX": 0,
+        "minY": 98,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 158,
+        "visiblePixelCount": 26218
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "此方向沒有人工輪心座標；不得把 SE 端點直接複製到此圖，也不得以 bbox 寬度單獨當車長。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/taxi/greenTaxiSE.png",
+      "inheritedPhysicalReference": {
+        "feature": "same-side-wheelbase",
+        "realM": [
+          2.5,
+          2.7,
+          3
+        ]
+      },
+      "matchingMethod": "本次接觸圖逐方向目視確認同款車外觀及車軸配置，逐圖精確掃描 alpha bbox；實尺寸沿用同車款 SE 的軸距假設，沒有宣稱此方向的輪心已人工定點。",
+      "sourceSha256": "0888f122618aba744f6a9e70202dd5a64c6b57f7fa644c104430f8f29d985755"
+    },
+    {
+      "path": "Models/traffic/taxi/greenTaxiSE.png",
+      "category": "traffic",
+      "model": "greenTaxi",
+      "vehicleType": "sedan-taxi",
+      "direction": "SE",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 85,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 171,
+        "visiblePixelCount": 28189
+      },
+      "solidAlphaBBox": {
+        "minX": 0,
+        "minY": 86,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 170,
+        "visiblePixelCount": 26664
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [
+        {
+          "id": "same-side-wheelbase",
+          "axis": "se",
+          "a": [
+            31,
+            181
+          ],
+          "b": [
+            136,
+            233
+          ],
+          "realM": [
+            2.5,
+            2.7,
+            3
+          ],
+          "pixelError": 3,
+          "meaning": "同側可辨前後輪中心距；兩輪位於相同高度，排除車身寬度、保險桿彎角及車頂。",
+          "method": "本次目視核對原始 256×256 PNG、16 px 座標格網及 2× 放大接觸圖；實軸距為明示車種假設，並非特定車型數據。",
+          "referenceRole": "primary"
+        }
+      ],
+      "notes": [],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "61829d6bfde2f16764eb4bea6014a8c386faecca37407eebaa6ec67b67e94c1b"
+    },
+    {
+      "path": "Models/traffic/taxi/greenTaxiSW.png",
+      "category": "traffic",
+      "model": "greenTaxi",
+      "vehicleType": "sedan-taxi",
+      "direction": "SW",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 86,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 170,
+        "visiblePixelCount": 27394
+      },
+      "solidAlphaBBox": {
+        "minX": 0,
+        "minY": 86,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 170,
+        "visiblePixelCount": 25721
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "此方向沒有人工輪心座標；不得把 SE 端點直接複製到此圖，也不得以 bbox 寬度單獨當車長。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/taxi/greenTaxiSE.png",
+      "inheritedPhysicalReference": {
+        "feature": "same-side-wheelbase",
+        "realM": [
+          2.5,
+          2.7,
+          3
+        ]
+      },
+      "matchingMethod": "本次接觸圖逐方向目視確認同款車外觀及車軸配置，逐圖精確掃描 alpha bbox；實尺寸沿用同車款 SE 的軸距假設，沒有宣稱此方向的輪心已人工定點。",
+      "sourceSha256": "6052d22b948b663b0d19b12112c4860003bf52729df2e3b20adbb69af3fb0a3a"
+    },
+    {
+      "path": "Models/traffic/taxi/redTaxiNE.png",
+      "category": "traffic",
+      "model": "redTaxi",
+      "vehicleType": "sedan-taxi",
+      "direction": "NE",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 98,
+        "maxX": 254,
+        "maxY": 255,
+        "width": 255,
+        "height": 158,
+        "visiblePixelCount": 27925
+      },
+      "solidAlphaBBox": {
+        "minX": 0,
+        "minY": 99,
+        "maxX": 253,
+        "maxY": 255,
+        "width": 254,
+        "height": 157,
+        "visiblePixelCount": 26514
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "此方向沒有人工輪心座標；不得把 SE 端點直接複製到此圖，也不得以 bbox 寬度單獨當車長。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/taxi/redTaxiSE.png",
+      "inheritedPhysicalReference": {
+        "feature": "same-side-wheelbase",
+        "realM": [
+          2.5,
+          2.7,
+          3
+        ]
+      },
+      "matchingMethod": "本次接觸圖逐方向目視確認同款車外觀及車軸配置，逐圖精確掃描 alpha bbox；實尺寸沿用同車款 SE 的軸距假設，沒有宣稱此方向的輪心已人工定點。",
+      "sourceSha256": "15a014eeb3d4d38e99c4ef322eabba0027c6991f3cf868828df5e0c0a66a61c4"
+    },
+    {
+      "path": "Models/traffic/taxi/redTaxiNW.png",
+      "category": "traffic",
+      "model": "redTaxi",
+      "vehicleType": "sedan-taxi",
+      "direction": "NW",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 94,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 162,
+        "visiblePixelCount": 28204
+      },
+      "solidAlphaBBox": {
+        "minX": 0,
+        "minY": 96,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 160,
+        "visiblePixelCount": 26744
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "此方向沒有人工輪心座標；不得把 SE 端點直接複製到此圖，也不得以 bbox 寬度單獨當車長。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/taxi/redTaxiSE.png",
+      "inheritedPhysicalReference": {
+        "feature": "same-side-wheelbase",
+        "realM": [
+          2.5,
+          2.7,
+          3
+        ]
+      },
+      "matchingMethod": "本次接觸圖逐方向目視確認同款車外觀及車軸配置，逐圖精確掃描 alpha bbox；實尺寸沿用同車款 SE 的軸距假設，沒有宣稱此方向的輪心已人工定點。",
+      "sourceSha256": "544934763b6946b612dc2877c6c19cb5526c5d0b2117619b1d1c24b81bbfa7a8"
+    },
+    {
+      "path": "Models/traffic/taxi/redTaxiSE.png",
+      "category": "traffic",
+      "model": "redTaxi",
+      "vehicleType": "sedan-taxi",
+      "direction": "SE",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 84,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 172,
+        "visiblePixelCount": 28063
+      },
+      "solidAlphaBBox": {
+        "minX": 0,
+        "minY": 85,
+        "maxX": 255,
+        "maxY": 254,
+        "width": 256,
+        "height": 170,
+        "visiblePixelCount": 26594
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [
+        {
+          "id": "same-side-wheelbase",
+          "axis": "se",
+          "a": [
+            31,
+            181
+          ],
+          "b": [
+            136,
+            233
+          ],
+          "realM": [
+            2.5,
+            2.7,
+            3
+          ],
+          "pixelError": 3,
+          "meaning": "同側可辨前後輪中心距；兩輪位於相同高度，排除車身寬度、保險桿彎角及車頂。",
+          "method": "本次目視核對原始 256×256 PNG、16 px 座標格網及 2× 放大接觸圖；實軸距為明示車種假設，並非特定車型數據。",
+          "referenceRole": "primary"
+        }
+      ],
+      "notes": [],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "c72227b3e4242722995649b7417bac3993f7318f545728a4697e9d5e0f23f5e6"
+    },
+    {
+      "path": "Models/traffic/taxi/redTaxiSW.png",
+      "category": "traffic",
+      "model": "redTaxi",
+      "vehicleType": "sedan-taxi",
+      "direction": "SW",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 88,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 168,
+        "visiblePixelCount": 26889
+      },
+      "solidAlphaBBox": {
+        "minX": 0,
+        "minY": 88,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 168,
+        "visiblePixelCount": 25293
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "此方向沒有人工輪心座標；不得把 SE 端點直接複製到此圖，也不得以 bbox 寬度單獨當車長。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/taxi/redTaxiSE.png",
+      "inheritedPhysicalReference": {
+        "feature": "same-side-wheelbase",
+        "realM": [
+          2.5,
+          2.7,
+          3
+        ]
+      },
+      "matchingMethod": "本次接觸圖逐方向目視確認同款車外觀及車軸配置，逐圖精確掃描 alpha bbox；實尺寸沿用同車款 SE 的軸距假設，沒有宣稱此方向的輪心已人工定點。",
+      "sourceSha256": "12f3d7640a8d24976b5d89f76e32c3d2b7cd6df8a571c7b6135dbe52f00f4cfe"
+    },
+    {
+      "path": "Models/traffic/truck/basicTruckNE.png",
+      "category": "traffic",
+      "model": "basicTruck",
+      "vehicleType": "two-axle-truck",
+      "direction": "NE",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 34,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 222,
+        "visiblePixelCount": 41085
+      },
+      "solidAlphaBBox": {
+        "minX": 1,
+        "minY": 37,
+        "maxX": 254,
+        "maxY": 253,
+        "width": 254,
+        "height": 217,
+        "visiblePixelCount": 38747
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "此方向沒有人工輪心座標；不得把 SE 端點直接複製到此圖，也不得以 bbox 寬度單獨當車長。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/truck/basicTruckSE.png",
+      "inheritedPhysicalReference": {
+        "feature": "same-side-wheelbase",
+        "realM": [
+          3.3,
+          3.8,
+          4.5
+        ]
+      },
+      "matchingMethod": "本次接觸圖逐方向目視確認同款車外觀及車軸配置，逐圖精確掃描 alpha bbox；實尺寸沿用同車款 SE 的軸距假設，沒有宣稱此方向的輪心已人工定點。",
+      "sourceSha256": "029a7987ae38462a627db827c91101cf5b2970e7393ffa7fc3578d0a92a5a313"
+    },
+    {
+      "path": "Models/traffic/truck/basicTruckNW.png",
+      "category": "traffic",
+      "model": "basicTruck",
+      "vehicleType": "two-axle-truck",
+      "direction": "NW",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 24,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 232,
+        "visiblePixelCount": 43106
+      },
+      "solidAlphaBBox": {
+        "minX": 0,
+        "minY": 27,
+        "maxX": 254,
+        "maxY": 255,
+        "width": 255,
+        "height": 229,
+        "visiblePixelCount": 40717
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "此方向沒有人工輪心座標；不得把 SE 端點直接複製到此圖，也不得以 bbox 寬度單獨當車長。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/truck/basicTruckSE.png",
+      "inheritedPhysicalReference": {
+        "feature": "same-side-wheelbase",
+        "realM": [
+          3.3,
+          3.8,
+          4.5
+        ]
+      },
+      "matchingMethod": "本次接觸圖逐方向目視確認同款車外觀及車軸配置，逐圖精確掃描 alpha bbox；實尺寸沿用同車款 SE 的軸距假設，沒有宣稱此方向的輪心已人工定點。",
+      "sourceSha256": "d76e8bcd60cee982e48bfa037c9ad5cd94f1e4646cd31e36d70b012d19eac3bb"
+    },
+    {
+      "path": "Models/traffic/truck/basicTruckSE.png",
+      "category": "traffic",
+      "model": "basicTruck",
+      "vehicleType": "two-axle-truck",
+      "direction": "SE",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 1,
+        "minY": 3,
+        "maxX": 253,
+        "maxY": 255,
+        "width": 253,
+        "height": 253,
+        "visiblePixelCount": 44676
+      },
+      "solidAlphaBBox": {
+        "minX": 1,
+        "minY": 5,
+        "maxX": 253,
+        "maxY": 254,
+        "width": 253,
+        "height": 250,
+        "visiblePixelCount": 42305
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [
+        {
+          "id": "same-side-wheelbase",
+          "axis": "se",
+          "a": [
+            41,
+            181
+          ],
+          "b": [
+            149,
+            233
+          ],
+          "realM": [
+            3.3,
+            3.8,
+            4.5
+          ],
+          "pixelError": 3,
+          "meaning": "同側可辨前後輪中心距；兩輪位於相同高度，排除車身寬度、保險桿彎角及車頂。",
+          "method": "本次目視核對原始 256×256 PNG、16 px 座標格網及 2× 放大接觸圖；實軸距為明示車種假設，並非特定車型數據。",
+          "referenceRole": "primary"
+        }
+      ],
+      "notes": [],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "e753150681cda2143cb36274d81cbd915918490ccc6453eb5f78c87fd3c6d311"
+    },
+    {
+      "path": "Models/traffic/truck/basicTruckSW.png",
+      "category": "traffic",
+      "model": "basicTruck",
+      "vehicleType": "two-axle-truck",
+      "direction": "SW",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 1,
+        "minY": 3,
+        "maxX": 253,
+        "maxY": 255,
+        "width": 253,
+        "height": 253,
+        "visiblePixelCount": 44754
+      },
+      "solidAlphaBBox": {
+        "minX": 1,
+        "minY": 5,
+        "maxX": 253,
+        "maxY": 254,
+        "width": 253,
+        "height": 250,
+        "visiblePixelCount": 42297
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "此方向沒有人工輪心座標；不得把 SE 端點直接複製到此圖，也不得以 bbox 寬度單獨當車長。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/truck/basicTruckSE.png",
+      "inheritedPhysicalReference": {
+        "feature": "same-side-wheelbase",
+        "realM": [
+          3.3,
+          3.8,
+          4.5
+        ]
+      },
+      "matchingMethod": "本次接觸圖逐方向目視確認同款車外觀及車軸配置，逐圖精確掃描 alpha bbox；實尺寸沿用同車款 SE 的軸距假設，沒有宣稱此方向的輪心已人工定點。",
+      "sourceSha256": "d377b537327c003dd3c22513c7570b30cc8e33d59b8ccc6e3ffa539dfe9c4b19"
+    },
+    {
+      "path": "Models/traffic/truck/fishTruckNE.png",
+      "category": "traffic",
+      "model": "fishTruck",
+      "vehicleType": "two-axle-truck",
+      "direction": "NE",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 37,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 219,
+        "visiblePixelCount": 41648
+      },
+      "solidAlphaBBox": {
+        "minX": 0,
+        "minY": 37,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 219,
+        "visiblePixelCount": 39803
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "此方向沒有人工輪心座標；不得把 SE 端點直接複製到此圖，也不得以 bbox 寬度單獨當車長。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/truck/fishTruckSE.png",
+      "inheritedPhysicalReference": {
+        "feature": "same-side-wheelbase",
+        "realM": [
+          3.3,
+          3.8,
+          4.5
+        ]
+      },
+      "matchingMethod": "本次接觸圖逐方向目視確認同款車外觀及車軸配置，逐圖精確掃描 alpha bbox；實尺寸沿用同車款 SE 的軸距假設，沒有宣稱此方向的輪心已人工定點。",
+      "sourceSha256": "4aff4f70a3cf716c4f3b15f51e085d4bfe9f2da97376fedaa19ab5e343a380a5"
+    },
+    {
+      "path": "Models/traffic/truck/fishTruckNW.png",
+      "category": "traffic",
+      "model": "fishTruck",
+      "vehicleType": "two-axle-truck",
+      "direction": "NW",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 37,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 219,
+        "visiblePixelCount": 41693
+      },
+      "solidAlphaBBox": {
+        "minX": 0,
+        "minY": 37,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 219,
+        "visiblePixelCount": 39896
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "此方向沒有人工輪心座標；不得把 SE 端點直接複製到此圖，也不得以 bbox 寬度單獨當車長。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/truck/fishTruckSE.png",
+      "inheritedPhysicalReference": {
+        "feature": "same-side-wheelbase",
+        "realM": [
+          3.3,
+          3.8,
+          4.5
+        ]
+      },
+      "matchingMethod": "本次接觸圖逐方向目視確認同款車外觀及車軸配置，逐圖精確掃描 alpha bbox；實尺寸沿用同車款 SE 的軸距假設，沒有宣稱此方向的輪心已人工定點。",
+      "sourceSha256": "208055bf5e7e7d424767ffaa6bd476ea0b0e41b87eef7a14fc9f5b6cb62e5aa0"
+    },
+    {
+      "path": "Models/traffic/truck/fishTruckSE.png",
+      "category": "traffic",
+      "model": "fishTruck",
+      "vehicleType": "two-axle-truck",
+      "direction": "SE",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 42,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 214,
+        "visiblePixelCount": 36678
+      },
+      "solidAlphaBBox": {
+        "minX": 0,
+        "minY": 42,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 214,
+        "visiblePixelCount": 35214
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [
+        {
+          "id": "same-side-wheelbase",
+          "axis": "se",
+          "a": [
+            45,
+            186
+          ],
+          "b": [
+            155,
+            235
+          ],
+          "realM": [
+            3.3,
+            3.8,
+            4.5
+          ],
+          "pixelError": 3,
+          "meaning": "同側可辨前後輪中心距；兩輪位於相同高度，排除車身寬度、保險桿彎角及車頂。",
+          "method": "本次目視核對原始 256×256 PNG、16 px 座標格網及 2× 放大接觸圖；實軸距為明示車種假設，並非特定車型數據。",
+          "referenceRole": "primary"
+        }
+      ],
+      "notes": [],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "42be84ed5aae2b76703ad7c50c19d96ebd4779b468eb0bb929465b0d3d0d6cd0"
+    },
+    {
+      "path": "Models/traffic/truck/fishTruckSW.png",
+      "category": "traffic",
+      "model": "fishTruck",
+      "vehicleType": "two-axle-truck",
+      "direction": "SW",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 38,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 218,
+        "visiblePixelCount": 37632
+      },
+      "solidAlphaBBox": {
+        "minX": 0,
+        "minY": 38,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 218,
+        "visiblePixelCount": 36078
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "此方向沒有人工輪心座標；不得把 SE 端點直接複製到此圖，也不得以 bbox 寬度單獨當車長。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/truck/fishTruckSE.png",
+      "inheritedPhysicalReference": {
+        "feature": "same-side-wheelbase",
+        "realM": [
+          3.3,
+          3.8,
+          4.5
+        ]
+      },
+      "matchingMethod": "本次接觸圖逐方向目視確認同款車外觀及車軸配置，逐圖精確掃描 alpha bbox；實尺寸沿用同車款 SE 的軸距假設，沒有宣稱此方向的輪心已人工定點。",
+      "sourceSha256": "2ad0045941f3cfd25f8429fe6c73771811288d1035257b890f8cf9cd5483ccc7"
+    },
+    {
+      "path": "Models/traffic/truck/logisticTruckNE.png",
+      "category": "traffic",
+      "model": "logisticTruck",
+      "vehicleType": "two-axle-truck",
+      "direction": "NE",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 35,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 221,
+        "visiblePixelCount": 41085
+      },
+      "solidAlphaBBox": {
+        "minX": 1,
+        "minY": 37,
+        "maxX": 254,
+        "maxY": 252,
+        "width": 254,
+        "height": 216,
+        "visiblePixelCount": 38770
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "此方向沒有人工輪心座標；不得把 SE 端點直接複製到此圖，也不得以 bbox 寬度單獨當車長。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/truck/logisticTruckSE.png",
+      "inheritedPhysicalReference": {
+        "feature": "same-side-wheelbase",
+        "realM": [
+          3.3,
+          3.8,
+          4.5
+        ]
+      },
+      "matchingMethod": "本次接觸圖逐方向目視確認同款車外觀及車軸配置，逐圖精確掃描 alpha bbox；實尺寸沿用同車款 SE 的軸距假設，沒有宣稱此方向的輪心已人工定點。",
+      "sourceSha256": "ea97a028364aa7bdda4c62162afd45ca29489cd0803e5346ed85b6fb72e2ad1c"
+    },
+    {
+      "path": "Models/traffic/truck/logisticTruckNW.png",
+      "category": "traffic",
+      "model": "logisticTruck",
+      "vehicleType": "two-axle-truck",
+      "direction": "NW",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 25,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 231,
+        "visiblePixelCount": 43390
+      },
+      "solidAlphaBBox": {
+        "minX": 0,
+        "minY": 27,
+        "maxX": 254,
+        "maxY": 254,
+        "width": 255,
+        "height": 228,
+        "visiblePixelCount": 41074
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "此方向沒有人工輪心座標；不得把 SE 端點直接複製到此圖，也不得以 bbox 寬度單獨當車長。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/truck/logisticTruckSE.png",
+      "inheritedPhysicalReference": {
+        "feature": "same-side-wheelbase",
+        "realM": [
+          3.3,
+          3.8,
+          4.5
+        ]
+      },
+      "matchingMethod": "本次接觸圖逐方向目視確認同款車外觀及車軸配置，逐圖精確掃描 alpha bbox；實尺寸沿用同車款 SE 的軸距假設，沒有宣稱此方向的輪心已人工定點。",
+      "sourceSha256": "a53a54415e4fbaa193d96a5d2f4a24025a9726d4beccec9bc4ae9028c5ef4660"
+    },
+    {
+      "path": "Models/traffic/truck/logisticTruckSE.png",
+      "category": "traffic",
+      "model": "logisticTruck",
+      "vehicleType": "two-axle-truck",
+      "direction": "SE",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 1,
+        "minY": 3,
+        "maxX": 253,
+        "maxY": 255,
+        "width": 253,
+        "height": 253,
+        "visiblePixelCount": 44711
+      },
+      "solidAlphaBBox": {
+        "minX": 1,
+        "minY": 4,
+        "maxX": 253,
+        "maxY": 254,
+        "width": 253,
+        "height": 251,
+        "visiblePixelCount": 42344
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [
+        {
+          "id": "same-side-wheelbase",
+          "axis": "se",
+          "a": [
+            41,
+            181
+          ],
+          "b": [
+            149,
+            233
+          ],
+          "realM": [
+            3.3,
+            3.8,
+            4.5
+          ],
+          "pixelError": 3,
+          "meaning": "同側可辨前後輪中心距；兩輪位於相同高度，排除車身寬度、保險桿彎角及車頂。",
+          "method": "本次目視核對原始 256×256 PNG、16 px 座標格網及 2× 放大接觸圖；實軸距為明示車種假設，並非特定車型數據。",
+          "referenceRole": "primary"
+        }
+      ],
+      "notes": [],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "f97c44c5111a04afa05ee3980d5d285f42e851d9c5d15d57fa34e564f1b485b9"
+    },
+    {
+      "path": "Models/traffic/truck/logisticTruckSW.png",
+      "category": "traffic",
+      "model": "logisticTruck",
+      "vehicleType": "two-axle-truck",
+      "direction": "SW",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 1,
+        "minY": 3,
+        "maxX": 253,
+        "maxY": 255,
+        "width": 253,
+        "height": 253,
+        "visiblePixelCount": 44773
+      },
+      "solidAlphaBBox": {
+        "minX": 1,
+        "minY": 5,
+        "maxX": 253,
+        "maxY": 254,
+        "width": 253,
+        "height": 250,
+        "visiblePixelCount": 42379
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "此方向沒有人工輪心座標；不得把 SE 端點直接複製到此圖，也不得以 bbox 寬度單獨當車長。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/truck/logisticTruckSE.png",
+      "inheritedPhysicalReference": {
+        "feature": "same-side-wheelbase",
+        "realM": [
+          3.3,
+          3.8,
+          4.5
+        ]
+      },
+      "matchingMethod": "本次接觸圖逐方向目視確認同款車外觀及車軸配置，逐圖精確掃描 alpha bbox；實尺寸沿用同車款 SE 的軸距假設，沒有宣稱此方向的輪心已人工定點。",
+      "sourceSha256": "0595d929ce8d0aa4291a2436bdfd160b64a04be49f5e8ddb113bb3d8247eb203"
+    },
+    {
+      "path": "Models/traffic/van/gardenVanNE.png",
+      "category": "traffic",
+      "model": "gardenVan",
+      "vehicleType": "panel-van",
+      "direction": "NE",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 52,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 204,
+        "visiblePixelCount": 39157
+      },
+      "solidAlphaBBox": {
+        "minX": 1,
+        "minY": 52,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 255,
+        "height": 204,
+        "visiblePixelCount": 37281
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "此方向沒有人工輪心座標；不得把 SE 端點直接複製到此圖，也不得以 bbox 寬度單獨當車長。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/van/gardenVanSE.png",
+      "inheritedPhysicalReference": {
+        "feature": "same-side-wheelbase",
+        "realM": [
+          2.8,
+          3.1,
+          3.5
+        ]
+      },
+      "matchingMethod": "本次接觸圖逐方向目視確認同款車外觀及車軸配置，逐圖精確掃描 alpha bbox；實尺寸沿用同車款 SE 的軸距假設，沒有宣稱此方向的輪心已人工定點。",
+      "sourceSha256": "3a655e94d17eeda0b3279a924700665ee553b0a6fe37c0fae0e78435542835db"
+    },
+    {
+      "path": "Models/traffic/van/gardenVanNW.png",
+      "category": "traffic",
+      "model": "gardenVan",
+      "vehicleType": "panel-van",
+      "direction": "NW",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 43,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 213,
+        "visiblePixelCount": 40107
+      },
+      "solidAlphaBBox": {
+        "minX": 1,
+        "minY": 44,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 255,
+        "height": 212,
+        "visiblePixelCount": 38297
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "此方向沒有人工輪心座標；不得把 SE 端點直接複製到此圖，也不得以 bbox 寬度單獨當車長。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/van/gardenVanSE.png",
+      "inheritedPhysicalReference": {
+        "feature": "same-side-wheelbase",
+        "realM": [
+          2.8,
+          3.1,
+          3.5
+        ]
+      },
+      "matchingMethod": "本次接觸圖逐方向目視確認同款車外觀及車軸配置，逐圖精確掃描 alpha bbox；實尺寸沿用同車款 SE 的軸距假設，沒有宣稱此方向的輪心已人工定點。",
+      "sourceSha256": "60b46616fdf836e6725b5710fcc42086501e77df78c84cfd3b96f5583a8bb9f9"
+    },
+    {
+      "path": "Models/traffic/van/gardenVanSE.png",
+      "category": "traffic",
+      "model": "gardenVan",
+      "vehicleType": "panel-van",
+      "direction": "SE",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 41,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 215,
+        "visiblePixelCount": 40514
+      },
+      "solidAlphaBBox": {
+        "minX": 0,
+        "minY": 42,
+        "maxX": 255,
+        "maxY": 254,
+        "width": 256,
+        "height": 213,
+        "visiblePixelCount": 38846
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [
+        {
+          "id": "same-side-wheelbase",
+          "axis": "se",
+          "a": [
+            32,
+            187
+          ],
+          "b": [
+            122,
+            236
+          ],
+          "realM": [
+            2.8,
+            3.1,
+            3.5
+          ],
+          "pixelError": 3,
+          "meaning": "同側可辨前後輪中心距；兩輪位於相同高度，排除車身寬度、保險桿彎角及車頂。",
+          "method": "本次目視核對原始 256×256 PNG、16 px 座標格網及 2× 放大接觸圖；實軸距為明示車種假設，並非特定車型數據。",
+          "referenceRole": "primary"
+        }
+      ],
+      "notes": [],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "a6334867b1c80606a26976071a3285b063e0859b11759dc823709a7c6f545e86"
+    },
+    {
+      "path": "Models/traffic/van/gardenVanSW.png",
+      "category": "traffic",
+      "model": "gardenVan",
+      "vehicleType": "panel-van",
+      "direction": "SW",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 50,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 206,
+        "visiblePixelCount": 39844
+      },
+      "solidAlphaBBox": {
+        "minX": 1,
+        "minY": 50,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 255,
+        "height": 206,
+        "visiblePixelCount": 38093
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "此方向沒有人工輪心座標；不得把 SE 端點直接複製到此圖，也不得以 bbox 寬度單獨當車長。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/van/gardenVanSE.png",
+      "inheritedPhysicalReference": {
+        "feature": "same-side-wheelbase",
+        "realM": [
+          2.8,
+          3.1,
+          3.5
+        ]
+      },
+      "matchingMethod": "本次接觸圖逐方向目視確認同款車外觀及車軸配置，逐圖精確掃描 alpha bbox；實尺寸沿用同車款 SE 的軸距假設，沒有宣稱此方向的輪心已人工定點。",
+      "sourceSha256": "a655bdd8465536e14b2757bb4af788768a0d906e70155bb82b26843d24995ea4"
+    },
+    {
+      "path": "Models/traffic/van/namkeeVanNE.png",
+      "category": "traffic",
+      "model": "namkeeVan",
+      "vehicleType": "panel-van",
+      "direction": "NE",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 51,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 205,
+        "visiblePixelCount": 39300
+      },
+      "solidAlphaBBox": {
+        "minX": 0,
+        "minY": 51,
+        "maxX": 255,
+        "maxY": 254,
+        "width": 256,
+        "height": 204,
+        "visiblePixelCount": 37468
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "此方向沒有人工輪心座標；不得把 SE 端點直接複製到此圖，也不得以 bbox 寬度單獨當車長。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/van/namkeeVanSE.png",
+      "inheritedPhysicalReference": {
+        "feature": "same-side-wheelbase",
+        "realM": [
+          2.8,
+          3.1,
+          3.5
+        ]
+      },
+      "matchingMethod": "本次接觸圖逐方向目視確認同款車外觀及車軸配置，逐圖精確掃描 alpha bbox；實尺寸沿用同車款 SE 的軸距假設，沒有宣稱此方向的輪心已人工定點。",
+      "sourceSha256": "d98565507b7e9868610103c66b95058137323aa6256cc9a0704803ed35793a2e"
+    },
+    {
+      "path": "Models/traffic/van/namkeeVanNW.png",
+      "category": "traffic",
+      "model": "namkeeVan",
+      "vehicleType": "panel-van",
+      "direction": "NW",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 43,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 213,
+        "visiblePixelCount": 40000
+      },
+      "solidAlphaBBox": {
+        "minX": 0,
+        "minY": 45,
+        "maxX": 254,
+        "maxY": 254,
+        "width": 255,
+        "height": 210,
+        "visiblePixelCount": 38201
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "此方向沒有人工輪心座標；不得把 SE 端點直接複製到此圖，也不得以 bbox 寬度單獨當車長。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/van/namkeeVanSE.png",
+      "inheritedPhysicalReference": {
+        "feature": "same-side-wheelbase",
+        "realM": [
+          2.8,
+          3.1,
+          3.5
+        ]
+      },
+      "matchingMethod": "本次接觸圖逐方向目視確認同款車外觀及車軸配置，逐圖精確掃描 alpha bbox；實尺寸沿用同車款 SE 的軸距假設，沒有宣稱此方向的輪心已人工定點。",
+      "sourceSha256": "34ead8e4573189bfc8f6357686e689ce458a46ec75df3977f6696561c57169d1"
+    },
+    {
+      "path": "Models/traffic/van/namkeeVanSE.png",
+      "category": "traffic",
+      "model": "namkeeVan",
+      "vehicleType": "panel-van",
+      "direction": "SE",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 43,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 213,
+        "visiblePixelCount": 40057
+      },
+      "solidAlphaBBox": {
+        "minX": 0,
+        "minY": 44,
+        "maxX": 255,
+        "maxY": 254,
+        "width": 256,
+        "height": 211,
+        "visiblePixelCount": 38416
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [
+        {
+          "id": "same-side-wheelbase",
+          "axis": "se",
+          "a": [
+            32,
+            187
+          ],
+          "b": [
+            122,
+            236
+          ],
+          "realM": [
+            2.8,
+            3.1,
+            3.5
+          ],
+          "pixelError": 3,
+          "meaning": "同側可辨前後輪中心距；兩輪位於相同高度，排除車身寬度、保險桿彎角及車頂。",
+          "method": "本次目視核對原始 256×256 PNG、16 px 座標格網及 2× 放大接觸圖；實軸距為明示車種假設，並非特定車型數據。",
+          "referenceRole": "primary"
+        }
+      ],
+      "notes": [],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "857fa3e7a7556b2ece70d46b1c51a768337842f00672e1bf20e51ac64c069a43"
+    },
+    {
+      "path": "Models/traffic/van/namkeeVanSW.png",
+      "category": "traffic",
+      "model": "namkeeVan",
+      "vehicleType": "panel-van",
+      "direction": "SW",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 51,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 205,
+        "visiblePixelCount": 39816
+      },
+      "solidAlphaBBox": {
+        "minX": 0,
+        "minY": 51,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 205,
+        "visiblePixelCount": 38088
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "此方向沒有人工輪心座標；不得把 SE 端點直接複製到此圖，也不得以 bbox 寬度單獨當車長。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/van/namkeeVanSE.png",
+      "inheritedPhysicalReference": {
+        "feature": "same-side-wheelbase",
+        "realM": [
+          2.8,
+          3.1,
+          3.5
+        ]
+      },
+      "matchingMethod": "本次接觸圖逐方向目視確認同款車外觀及車軸配置，逐圖精確掃描 alpha bbox；實尺寸沿用同車款 SE 的軸距假設，沒有宣稱此方向的輪心已人工定點。",
+      "sourceSha256": "2e0dcf1d3697c3fae223fb1dbc92541d8f787c5863d3426f83881fdad0644ff1"
+    },
+    {
+      "path": "Models/traffic/van/plainVanNE.png",
+      "category": "traffic",
+      "model": "plainVan",
+      "vehicleType": "panel-van",
+      "direction": "NE",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 51,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 205,
+        "visiblePixelCount": 39446
+      },
+      "solidAlphaBBox": {
+        "minX": 0,
+        "minY": 51,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 205,
+        "visiblePixelCount": 37638
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "此方向沒有人工輪心座標；不得把 SE 端點直接複製到此圖，也不得以 bbox 寬度單獨當車長。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/van/plainVanSE.png",
+      "inheritedPhysicalReference": {
+        "feature": "same-side-wheelbase",
+        "realM": [
+          2.8,
+          3.1,
+          3.5
+        ]
+      },
+      "matchingMethod": "本次接觸圖逐方向目視確認同款車外觀及車軸配置，逐圖精確掃描 alpha bbox；實尺寸沿用同車款 SE 的軸距假設，沒有宣稱此方向的輪心已人工定點。",
+      "sourceSha256": "4c169cf57225bb248bb66f77e57e2bd31603fa4368d82ed308cdb49d9cb673ec"
+    },
+    {
+      "path": "Models/traffic/van/plainVanNW.png",
+      "category": "traffic",
+      "model": "plainVan",
+      "vehicleType": "panel-van",
+      "direction": "NW",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 42,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 214,
+        "visiblePixelCount": 40133
+      },
+      "solidAlphaBBox": {
+        "minX": 0,
+        "minY": 44,
+        "maxX": 255,
+        "maxY": 254,
+        "width": 256,
+        "height": 211,
+        "visiblePixelCount": 38384
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "此方向沒有人工輪心座標；不得把 SE 端點直接複製到此圖，也不得以 bbox 寬度單獨當車長。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/van/plainVanSE.png",
+      "inheritedPhysicalReference": {
+        "feature": "same-side-wheelbase",
+        "realM": [
+          2.8,
+          3.1,
+          3.5
+        ]
+      },
+      "matchingMethod": "本次接觸圖逐方向目視確認同款車外觀及車軸配置，逐圖精確掃描 alpha bbox；實尺寸沿用同車款 SE 的軸距假設，沒有宣稱此方向的輪心已人工定點。",
+      "sourceSha256": "a12ecbb20aefc345c51e5d17e213fbc37f5914ebb26a13021c46cdf4c1845a1c"
+    },
+    {
+      "path": "Models/traffic/van/plainVanSE.png",
+      "category": "traffic",
+      "model": "plainVan",
+      "vehicleType": "panel-van",
+      "direction": "SE",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 43,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 213,
+        "visiblePixelCount": 40311
+      },
+      "solidAlphaBBox": {
+        "minX": 0,
+        "minY": 44,
+        "maxX": 255,
+        "maxY": 254,
+        "width": 256,
+        "height": 211,
+        "visiblePixelCount": 38614
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [
+        {
+          "id": "same-side-wheelbase",
+          "axis": "se",
+          "a": [
+            32,
+            187
+          ],
+          "b": [
+            122,
+            236
+          ],
+          "realM": [
+            2.8,
+            3.1,
+            3.5
+          ],
+          "pixelError": 3,
+          "meaning": "同側可辨前後輪中心距；兩輪位於相同高度，排除車身寬度、保險桿彎角及車頂。",
+          "method": "本次目視核對原始 256×256 PNG、16 px 座標格網及 2× 放大接觸圖；實軸距為明示車種假設，並非特定車型數據。",
+          "referenceRole": "primary"
+        }
+      ],
+      "notes": [],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "654b91ce525e885c8ca131bc894f43ba8f8bae59cafeb3fa6721cb41b9648cae"
+    },
+    {
+      "path": "Models/traffic/van/plainVanSW.png",
+      "category": "traffic",
+      "model": "plainVan",
+      "vehicleType": "panel-van",
+      "direction": "SW",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 50,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 206,
+        "visiblePixelCount": 39845
+      },
+      "solidAlphaBBox": {
+        "minX": 0,
+        "minY": 50,
+        "maxX": 254,
+        "maxY": 254,
+        "width": 255,
+        "height": 205,
+        "visiblePixelCount": 38044
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "此方向沒有人工輪心座標；不得把 SE 端點直接複製到此圖，也不得以 bbox 寬度單獨當車長。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/van/plainVanSE.png",
+      "inheritedPhysicalReference": {
+        "feature": "same-side-wheelbase",
+        "realM": [
+          2.8,
+          3.1,
+          3.5
+        ]
+      },
+      "matchingMethod": "本次接觸圖逐方向目視確認同款車外觀及車軸配置，逐圖精確掃描 alpha bbox；實尺寸沿用同車款 SE 的軸距假設，沒有宣稱此方向的輪心已人工定點。",
+      "sourceSha256": "f07e952c15cd15858c20b385754199e4d0baa37cfe9e3a8e65c26bf42138eacc"
+    },
+    {
+      "path": "Models/traffic/van/silverVanNE.png",
+      "category": "traffic",
+      "model": "silverVan",
+      "vehicleType": "panel-van",
+      "direction": "NE",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 51,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 205,
+        "visiblePixelCount": 39269
+      },
+      "solidAlphaBBox": {
+        "minX": 0,
+        "minY": 51,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 205,
+        "visiblePixelCount": 37428
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "此方向沒有人工輪心座標；不得把 SE 端點直接複製到此圖，也不得以 bbox 寬度單獨當車長。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/van/silverVanSE.png",
+      "inheritedPhysicalReference": {
+        "feature": "same-side-wheelbase",
+        "realM": [
+          2.8,
+          3.1,
+          3.5
+        ]
+      },
+      "matchingMethod": "本次接觸圖逐方向目視確認同款車外觀及車軸配置，逐圖精確掃描 alpha bbox；實尺寸沿用同車款 SE 的軸距假設，沒有宣稱此方向的輪心已人工定點。",
+      "sourceSha256": "e14bb24dd57e541388527101845ca9d061f853e0edb83fab4de893d5e73a44bd"
+    },
+    {
+      "path": "Models/traffic/van/silverVanNW.png",
+      "category": "traffic",
+      "model": "silverVan",
+      "vehicleType": "panel-van",
+      "direction": "NW",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 44,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 212,
+        "visiblePixelCount": 39887
+      },
+      "solidAlphaBBox": {
+        "minX": 0,
+        "minY": 46,
+        "maxX": 255,
+        "maxY": 254,
+        "width": 256,
+        "height": 209,
+        "visiblePixelCount": 38119
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "此方向沒有人工輪心座標；不得把 SE 端點直接複製到此圖，也不得以 bbox 寬度單獨當車長。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/van/silverVanSE.png",
+      "inheritedPhysicalReference": {
+        "feature": "same-side-wheelbase",
+        "realM": [
+          2.8,
+          3.1,
+          3.5
+        ]
+      },
+      "matchingMethod": "本次接觸圖逐方向目視確認同款車外觀及車軸配置，逐圖精確掃描 alpha bbox；實尺寸沿用同車款 SE 的軸距假設，沒有宣稱此方向的輪心已人工定點。",
+      "sourceSha256": "f9903a123d9d97959fe1643c4eb875fbb8da029be170f2a16985e65e973695b3"
+    },
+    {
+      "path": "Models/traffic/van/silverVanSE.png",
+      "category": "traffic",
+      "model": "silverVan",
+      "vehicleType": "panel-van",
+      "direction": "SE",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 44,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 212,
+        "visiblePixelCount": 40217
+      },
+      "solidAlphaBBox": {
+        "minX": 0,
+        "minY": 46,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 210,
+        "visiblePixelCount": 38591
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [
+        {
+          "id": "same-side-wheelbase",
+          "axis": "se",
+          "a": [
+            32,
+            187
+          ],
+          "b": [
+            122,
+            236
+          ],
+          "realM": [
+            2.8,
+            3.1,
+            3.5
+          ],
+          "pixelError": 3,
+          "meaning": "同側可辨前後輪中心距；兩輪位於相同高度，排除車身寬度、保險桿彎角及車頂。",
+          "method": "本次目視核對原始 256×256 PNG、16 px 座標格網及 2× 放大接觸圖；實軸距為明示車種假設，並非特定車型數據。",
+          "referenceRole": "primary"
+        }
+      ],
+      "notes": [],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "c2956f7d330ec84952d9e5bf079be7d8152fb184f301aa7c17494d694a6dfd60"
+    },
+    {
+      "path": "Models/traffic/van/silverVanSW.png",
+      "category": "traffic",
+      "model": "silverVan",
+      "vehicleType": "panel-van",
+      "direction": "SW",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 51,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 205,
+        "visiblePixelCount": 39798
+      },
+      "solidAlphaBBox": {
+        "minX": 0,
+        "minY": 51,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 205,
+        "visiblePixelCount": 38064
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "此方向沒有人工輪心座標；不得把 SE 端點直接複製到此圖，也不得以 bbox 寬度單獨當車長。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/van/silverVanSE.png",
+      "inheritedPhysicalReference": {
+        "feature": "same-side-wheelbase",
+        "realM": [
+          2.8,
+          3.1,
+          3.5
+        ]
+      },
+      "matchingMethod": "本次接觸圖逐方向目視確認同款車外觀及車軸配置，逐圖精確掃描 alpha bbox；實尺寸沿用同車款 SE 的軸距假設，沒有宣稱此方向的輪心已人工定點。",
+      "sourceSha256": "b7b8d6d28d7442d21e4413cb2bd598b130ef1cc60e8ccc0de5f4b2299a3e0b87"
+    },
+    {
+      "path": "Models/aircraft/UO-NE_fixed.png",
+      "category": "aircraft",
+      "model": "UO",
+      "direction": "NE",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 121,
+        "maxX": 255,
+        "maxY": 252,
+        "width": 256,
+        "height": 132,
+        "visiblePixelCount": 15211
+      },
+      "solidAlphaBBox": {
+        "minX": 1,
+        "minY": 122,
+        "maxX": 255,
+        "maxY": 251,
+        "width": 255,
+        "height": 130,
+        "visiblePixelCount": 13132
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [
+        {
+          "id": "fuselage-nose-tail",
+          "axis": "sw",
+          "a": [
+            254,
+            131
+          ],
+          "b": [
+            28,
+            239
+          ],
+          "pixelError": 4,
+          "meaning": "機身鼻端中心至尾錐中心線的原圖端點；不包含機翼尖、尾翼尖或起落架。",
+          "method": "本次逐方向目視核對原始 256×256 PNG 與 16 px 格網 2× 放大；前向／後向圖片各自量度，沒有鏡像複用端點。",
+          "realM": [
+            34,
+            38,
+            40
+          ],
+          "referenceRole": "primary"
+        }
+      ],
+      "features": [
+        {
+          "id": "fuselage-nose-tail",
+          "axis": "sw",
+          "a": [
+            254,
+            131
+          ],
+          "b": [
+            28,
+            239
+          ],
+          "pixelError": 4,
+          "meaning": "機身鼻端中心至尾錐中心線的原圖端點；不包含機翼尖、尾翼尖或起落架。",
+          "method": "本次逐方向目視核對原始 256×256 PNG 與 16 px 格網 2× 放大；前向／後向圖片各自量度，沒有鏡像複用端點。"
+        }
+      ],
+      "notes": [
+        "僅以窄體客機長 34–40 m 建立尺寸情境，未以航空公司塗裝認定機型。",
+        "機翼／尾翼與機身端點不共用高度；飛行畫面的機身離地高度不由本線推算。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "124b59f2e94b489b6f3ef343e63c39d848c84b676b5fc63a683452560a98227d"
+    },
+    {
+      "path": "Models/aircraft/UO-NW_fixed.png",
+      "category": "aircraft",
+      "model": "UO",
+      "direction": "NW",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 120,
+        "maxX": 255,
+        "maxY": 252,
+        "width": 256,
+        "height": 133,
+        "visiblePixelCount": 15245
+      },
+      "solidAlphaBBox": {
+        "minX": 1,
+        "minY": 121,
+        "maxX": 254,
+        "maxY": 251,
+        "width": 254,
+        "height": 131,
+        "visiblePixelCount": 13175
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [
+        {
+          "id": "fuselage-nose-tail",
+          "axis": "se",
+          "a": [
+            3,
+            131
+          ],
+          "b": [
+            226,
+            239
+          ],
+          "pixelError": 4,
+          "meaning": "機身鼻端中心至尾錐中心線的原圖端點；不包含機翼尖、尾翼尖或起落架。",
+          "method": "本次逐方向目視核對原始 256×256 PNG 與 16 px 格網 2× 放大；前向／後向圖片各自量度，沒有鏡像複用端點。",
+          "realM": [
+            34,
+            38,
+            40
+          ],
+          "referenceRole": "primary"
+        }
+      ],
+      "features": [
+        {
+          "id": "fuselage-nose-tail",
+          "axis": "se",
+          "a": [
+            3,
+            131
+          ],
+          "b": [
+            226,
+            239
+          ],
+          "pixelError": 4,
+          "meaning": "機身鼻端中心至尾錐中心線的原圖端點；不包含機翼尖、尾翼尖或起落架。",
+          "method": "本次逐方向目視核對原始 256×256 PNG 與 16 px 格網 2× 放大；前向／後向圖片各自量度，沒有鏡像複用端點。"
+        }
+      ],
+      "notes": [
+        "僅以窄體客機長 34–40 m 建立尺寸情境，未以航空公司塗裝認定機型。",
+        "機翼／尾翼與機身端點不共用高度；飛行畫面的機身離地高度不由本線推算。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "6424f76d0db812ef56a64222a6c29ad80374e7f6443b97d25f5ace339febed4d"
+    },
+    {
+      "path": "Models/aircraft/UO-SE_fixed.png",
+      "category": "aircraft",
+      "model": "UO",
+      "direction": "SE",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 85,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 171,
+        "visiblePixelCount": 15602
+      },
+      "solidAlphaBBox": {
+        "minX": 1,
+        "minY": 86,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 255,
+        "height": 170,
+        "visiblePixelCount": 13169
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [
+        {
+          "id": "fuselage-nose-tail",
+          "axis": "se",
+          "a": [
+            45,
+            137
+          ],
+          "b": [
+            251,
+            241
+          ],
+          "pixelError": 4,
+          "meaning": "機身鼻端中心至尾錐中心線的原圖端點；不包含機翼尖、尾翼尖或起落架。",
+          "method": "本次逐方向目視核對原始 256×256 PNG 與 16 px 格網 2× 放大；前向／後向圖片各自量度，沒有鏡像複用端點。",
+          "realM": [
+            34,
+            38,
+            40
+          ],
+          "referenceRole": "primary"
+        }
+      ],
+      "features": [
+        {
+          "id": "fuselage-nose-tail",
+          "axis": "se",
+          "a": [
+            45,
+            137
+          ],
+          "b": [
+            251,
+            241
+          ],
+          "pixelError": 4,
+          "meaning": "機身鼻端中心至尾錐中心線的原圖端點；不包含機翼尖、尾翼尖或起落架。",
+          "method": "本次逐方向目視核對原始 256×256 PNG 與 16 px 格網 2× 放大；前向／後向圖片各自量度，沒有鏡像複用端點。"
+        }
+      ],
+      "notes": [
+        "僅以窄體客機長 34–40 m 建立尺寸情境，未以航空公司塗裝認定機型。",
+        "機翼／尾翼與機身端點不共用高度；飛行畫面的機身離地高度不由本線推算。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "289ea9ae06686a939fbaff06c70ea380834b05771702f1d271421eab8b5e6c9c"
+    },
+    {
+      "path": "Models/aircraft/UO-SW_fixed.png",
+      "category": "aircraft",
+      "model": "UO",
+      "direction": "SW",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 84,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 172,
+        "visiblePixelCount": 15634
+      },
+      "solidAlphaBBox": {
+        "minX": 0,
+        "minY": 85,
+        "maxX": 254,
+        "maxY": 255,
+        "width": 255,
+        "height": 171,
+        "visiblePixelCount": 13228
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [
+        {
+          "id": "fuselage-nose-tail",
+          "axis": "sw",
+          "a": [
+            211,
+            137
+          ],
+          "b": [
+            5,
+            241
+          ],
+          "pixelError": 4,
+          "meaning": "機身鼻端中心至尾錐中心線的原圖端點；不包含機翼尖、尾翼尖或起落架。",
+          "method": "本次逐方向目視核對原始 256×256 PNG 與 16 px 格網 2× 放大；前向／後向圖片各自量度，沒有鏡像複用端點。",
+          "realM": [
+            34,
+            38,
+            40
+          ],
+          "referenceRole": "primary"
+        }
+      ],
+      "features": [
+        {
+          "id": "fuselage-nose-tail",
+          "axis": "sw",
+          "a": [
+            211,
+            137
+          ],
+          "b": [
+            5,
+            241
+          ],
+          "pixelError": 4,
+          "meaning": "機身鼻端中心至尾錐中心線的原圖端點；不包含機翼尖、尾翼尖或起落架。",
+          "method": "本次逐方向目視核對原始 256×256 PNG 與 16 px 格網 2× 放大；前向／後向圖片各自量度，沒有鏡像複用端點。"
+        }
+      ],
+      "notes": [
+        "僅以窄體客機長 34–40 m 建立尺寸情境，未以航空公司塗裝認定機型。",
+        "機翼／尾翼與機身端點不共用高度；飛行畫面的機身離地高度不由本線推算。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "d0fe5fe60b0cca7e91eb0eef871d336d5532966275e8368c5a94ddb5b9b0978c"
+    },
+    {
+      "path": "Models/aircraft/cathy-NE_fixed.png",
+      "category": "aircraft",
+      "model": "cathy",
+      "direction": "NE",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 122,
+        "maxX": 255,
+        "maxY": 252,
+        "width": 256,
+        "height": 131,
+        "visiblePixelCount": 14686
+      },
+      "solidAlphaBBox": {
+        "minX": 1,
+        "minY": 123,
+        "maxX": 255,
+        "maxY": 251,
+        "width": 255,
+        "height": 129,
+        "visiblePixelCount": 12608
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "features": [
+        {
+          "id": "fuselage-nose-tail",
+          "axis": "sw",
+          "a": [
+            254,
+            131
+          ],
+          "b": [
+            27,
+            239
+          ],
+          "pixelError": 4,
+          "meaning": "機身鼻端中心至尾錐中心線的原圖端點；不包含機翼尖、尾翼尖或起落架。",
+          "method": "本次逐方向目視核對原始 256×256 PNG 與 16 px 格網 2× 放大；前向／後向圖片各自量度，沒有鏡像複用端點。"
+        }
+      ],
+      "notes": [
+        "塗裝不足以確認窄體／寬體或實際型號長度；只保存已核對的鼻尾像素 feature，未硬套 38 m。",
+        "取得模型設定或確定目標機身長度後才能換算實米；航空公司名稱不構成實尺證據。"
+      ],
+      "status": "ambiguous-reference",
+      "sourceSha256": "4c27496f2489d1baee1db95b79a94f5dd84ea09b5faa59ea12112c5d169a1d04"
+    },
+    {
+      "path": "Models/aircraft/cathy-NW_fixed.png",
+      "category": "aircraft",
+      "model": "cathy",
+      "direction": "NW",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 122,
+        "maxX": 255,
+        "maxY": 253,
+        "width": 256,
+        "height": 132,
+        "visiblePixelCount": 14665
+      },
+      "solidAlphaBBox": {
+        "minX": 0,
+        "minY": 123,
+        "maxX": 254,
+        "maxY": 252,
+        "width": 255,
+        "height": 130,
+        "visiblePixelCount": 12611
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "features": [
+        {
+          "id": "fuselage-nose-tail",
+          "axis": "se",
+          "a": [
+            2,
+            131
+          ],
+          "b": [
+            226,
+            239
+          ],
+          "pixelError": 4,
+          "meaning": "機身鼻端中心至尾錐中心線的原圖端點；不包含機翼尖、尾翼尖或起落架。",
+          "method": "本次逐方向目視核對原始 256×256 PNG 與 16 px 格網 2× 放大；前向／後向圖片各自量度，沒有鏡像複用端點。"
+        }
+      ],
+      "notes": [
+        "塗裝不足以確認窄體／寬體或實際型號長度；只保存已核對的鼻尾像素 feature，未硬套 38 m。",
+        "取得模型設定或確定目標機身長度後才能換算實米；航空公司名稱不構成實尺證據。"
+      ],
+      "status": "ambiguous-reference",
+      "sourceSha256": "2fbdbc4c125710c892fc24e067191682afc81553a98adc7b4dec54b2f27d2be0"
+    },
+    {
+      "path": "Models/aircraft/cathy-SE_fixed.png",
+      "category": "aircraft",
+      "model": "cathy",
+      "direction": "SE",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 83,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 173,
+        "visiblePixelCount": 15473
+      },
+      "solidAlphaBBox": {
+        "minX": 1,
+        "minY": 83,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 255,
+        "height": 173,
+        "visiblePixelCount": 12974
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "features": [
+        {
+          "id": "fuselage-nose-tail",
+          "axis": "se",
+          "a": [
+            45,
+            140
+          ],
+          "b": [
+            251,
+            241
+          ],
+          "pixelError": 4,
+          "meaning": "機身鼻端中心至尾錐中心線的原圖端點；不包含機翼尖、尾翼尖或起落架。",
+          "method": "本次逐方向目視核對原始 256×256 PNG 與 16 px 格網 2× 放大；前向／後向圖片各自量度，沒有鏡像複用端點。"
+        }
+      ],
+      "notes": [
+        "塗裝不足以確認窄體／寬體或實際型號長度；只保存已核對的鼻尾像素 feature，未硬套 38 m。",
+        "取得模型設定或確定目標機身長度後才能換算實米；航空公司名稱不構成實尺證據。"
+      ],
+      "status": "ambiguous-reference",
+      "sourceSha256": "6957b04a60afcb8beed822cb76cbe7827213c8cf6b5644c7f069beeb1fdcb2e7"
+    },
+    {
+      "path": "Models/aircraft/cathy-SW_fixed.png",
+      "category": "aircraft",
+      "model": "cathy",
+      "direction": "SW",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 0,
+        "minY": 84,
+        "maxX": 255,
+        "maxY": 255,
+        "width": 256,
+        "height": 172,
+        "visiblePixelCount": 15320
+      },
+      "solidAlphaBBox": {
+        "minX": 0,
+        "minY": 84,
+        "maxX": 254,
+        "maxY": 255,
+        "width": 255,
+        "height": 172,
+        "visiblePixelCount": 12851
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "features": [
+        {
+          "id": "fuselage-nose-tail",
+          "axis": "sw",
+          "a": [
+            211,
+            140
+          ],
+          "b": [
+            5,
+            241
+          ],
+          "pixelError": 4,
+          "meaning": "機身鼻端中心至尾錐中心線的原圖端點；不包含機翼尖、尾翼尖或起落架。",
+          "method": "本次逐方向目視核對原始 256×256 PNG 與 16 px 格網 2× 放大；前向／後向圖片各自量度，沒有鏡像複用端點。"
+        }
+      ],
+      "notes": [
+        "塗裝不足以確認窄體／寬體或實際型號長度；只保存已核對的鼻尾像素 feature，未硬套 38 m。",
+        "取得模型設定或確定目標機身長度後才能換算實米；航空公司名稱不構成實尺證據。"
+      ],
+      "status": "ambiguous-reference",
+      "sourceSha256": "65f2a3a3af16c994635cfdf8d3a89bbbf001e379d99de10a5aeb4c7c4ad748c9"
+    },
+    {
+      "path": "Models/traffic/lightPost/lightPost_NE.png",
+      "category": "prop",
+      "model": "lightPost",
+      "direction": "NE",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 117,
+        "minY": 8,
+        "maxX": 185,
+        "maxY": 162,
+        "width": 69,
+        "height": 155,
+        "visiblePixelCount": 1819
+      },
+      "solidAlphaBBox": {
+        "minX": 119,
+        "minY": 11,
+        "maxX": 182,
+        "maxY": 159,
+        "width": 64,
+        "height": 149,
+        "visiblePixelCount": 1174
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "路燈是固定道路道具，不是第 20 款車輛。",
+        "__lit 是亮燈衍生圖，發光 alpha 外圍不應決定燈桿的實體大小。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/lightPost/lightPost_SE.png",
+      "inheritedPhysicalReference": {
+        "feature": "lamp-pole-height",
+        "realM": [
+          8,
+          10,
+          12
+        ]
+      },
+      "matchingMethod": "逐檔精確 alpha bbox；同一道具方向與亮燈版本沿用 SE 日間燈桿高度假設，沒有把光暈寬度當實體尺寸。",
+      "sourceSha256": "d87a2d262b26cccfd8c7fe04a3b3b49f13f74436c7ff31976452d686a09c6c1b"
+    },
+    {
+      "path": "Models/traffic/lightPost/lightPost_NE__lit.png",
+      "category": "prop",
+      "model": "lightPost",
+      "direction": "NE",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 109,
+        "minY": 0,
+        "maxX": 232,
+        "maxY": 169,
+        "width": 124,
+        "height": 170,
+        "visiblePixelCount": 12732
+      },
+      "solidAlphaBBox": {
+        "minX": 119,
+        "minY": 11,
+        "maxX": 182,
+        "maxY": 159,
+        "width": 64,
+        "height": 149,
+        "visiblePixelCount": 1493
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "路燈是固定道路道具，不是第 20 款車輛。",
+        "__lit 是亮燈衍生圖，發光 alpha 外圍不應決定燈桿的實體大小。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/lightPost/lightPost_SE.png",
+      "inheritedPhysicalReference": {
+        "feature": "lamp-pole-height",
+        "realM": [
+          8,
+          10,
+          12
+        ]
+      },
+      "matchingMethod": "逐檔精確 alpha bbox；同一道具方向與亮燈版本沿用 SE 日間燈桿高度假設，沒有把光暈寬度當實體尺寸。",
+      "sourceSha256": "13ddf7c62bd303ea702db0bc7e298aceae9056d9fd71c250809bb1a5f29f92c1"
+    },
+    {
+      "path": "Models/traffic/lightPost/lightPost_NW.png",
+      "category": "prop",
+      "model": "lightPost",
+      "direction": "NW",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 70,
+        "minY": 8,
+        "maxX": 139,
+        "maxY": 162,
+        "width": 70,
+        "height": 155,
+        "visiblePixelCount": 1769
+      },
+      "solidAlphaBBox": {
+        "minX": 73,
+        "minY": 11,
+        "maxX": 136,
+        "maxY": 159,
+        "width": 64,
+        "height": 149,
+        "visiblePixelCount": 1148
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "路燈是固定道路道具，不是第 20 款車輛。",
+        "__lit 是亮燈衍生圖，發光 alpha 外圍不應決定燈桿的實體大小。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/lightPost/lightPost_SE.png",
+      "inheritedPhysicalReference": {
+        "feature": "lamp-pole-height",
+        "realM": [
+          8,
+          10,
+          12
+        ]
+      },
+      "matchingMethod": "逐檔精確 alpha bbox；同一道具方向與亮燈版本沿用 SE 日間燈桿高度假設，沒有把光暈寬度當實體尺寸。",
+      "sourceSha256": "00010f24c6a483490d51466c75668eb57f2071aceb75b84d26bd4ee6143f7cdd"
+    },
+    {
+      "path": "Models/traffic/lightPost/lightPost_NW__lit.png",
+      "category": "prop",
+      "model": "lightPost",
+      "direction": "NW",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 23,
+        "minY": 1,
+        "maxX": 146,
+        "maxY": 169,
+        "width": 124,
+        "height": 169,
+        "visiblePixelCount": 12552
+      },
+      "solidAlphaBBox": {
+        "minX": 73,
+        "minY": 11,
+        "maxX": 136,
+        "maxY": 159,
+        "width": 64,
+        "height": 149,
+        "visiblePixelCount": 1491
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "路燈是固定道路道具，不是第 20 款車輛。",
+        "__lit 是亮燈衍生圖，發光 alpha 外圍不應決定燈桿的實體大小。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/lightPost/lightPost_SE.png",
+      "inheritedPhysicalReference": {
+        "feature": "lamp-pole-height",
+        "realM": [
+          8,
+          10,
+          12
+        ]
+      },
+      "matchingMethod": "逐檔精確 alpha bbox；同一道具方向與亮燈版本沿用 SE 日間燈桿高度假設，沒有把光暈寬度當實體尺寸。",
+      "sourceSha256": "f1e635a3d3b617246347de26f70795cfb4d88b111d79cf7a2377bd1c99f35e54"
+    },
+    {
+      "path": "Models/traffic/lightPost/lightPost_SE.png",
+      "category": "prop",
+      "model": "lightPost",
+      "direction": "SE",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 74,
+        "minY": 7,
+        "maxX": 211,
+        "maxY": 162,
+        "width": 138,
+        "height": 156,
+        "visiblePixelCount": 2063
+      },
+      "solidAlphaBBox": {
+        "minX": 119,
+        "minY": 10,
+        "maxX": 182,
+        "maxY": 159,
+        "width": 64,
+        "height": 150,
+        "visiblePixelCount": 1242
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [
+        {
+          "id": "lamp-pole-height",
+          "axis": "vertical",
+          "a": [
+            128,
+            13
+          ],
+          "b": [
+            128,
+            154
+          ],
+          "realM": [
+            8,
+            10,
+            12
+          ],
+          "pixelError": 3,
+          "meaning": "燈桿頂接點至底座同一 x 的垂直高度，不包括斜向伸出的燈臂長度。",
+          "method": "本次目視核對原始 PNG 的 2× 放大圖；8–12 m 僅為一般道路燈桿尺寸情境，原素材沒有已知實尺。",
+          "referenceRole": "primary"
+        }
+      ],
+      "notes": [
+        "路燈是固定道路道具，不是第 20 款車輛。",
+        "__lit 是亮燈衍生圖，發光 alpha 外圍不應決定燈桿的實體大小。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "0ca675c11af19ef4e73ea4bbcd63725a5b2823570bb5dcbedff4bc1647ad6613"
+    },
+    {
+      "path": "Models/traffic/lightPost/lightPost_SE__lit.png",
+      "category": "prop",
+      "model": "lightPost",
+      "direction": "SE",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 74,
+        "minY": 7,
+        "maxX": 232,
+        "maxY": 212,
+        "width": 159,
+        "height": 206,
+        "visiblePixelCount": 15492
+      },
+      "solidAlphaBBox": {
+        "minX": 119,
+        "minY": 10,
+        "maxX": 182,
+        "maxY": 184,
+        "width": 64,
+        "height": 175,
+        "visiblePixelCount": 1498
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "路燈是固定道路道具，不是第 20 款車輛。",
+        "__lit 是亮燈衍生圖，發光 alpha 外圍不應決定燈桿的實體大小。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/lightPost/lightPost_SE.png",
+      "inheritedPhysicalReference": {
+        "feature": "lamp-pole-height",
+        "realM": [
+          8,
+          10,
+          12
+        ]
+      },
+      "matchingMethod": "逐檔精確 alpha bbox；同一道具方向與亮燈版本沿用 SE 日間燈桿高度假設，沒有把光暈寬度當實體尺寸。",
+      "sourceSha256": "7cf85eb2454cf225f1f30b82217b751be06796da82008270aa968b7d20b67c06"
+    },
+    {
+      "path": "Models/traffic/lightPost/lightPost_SW.png",
+      "category": "prop",
+      "model": "lightPost",
+      "direction": "SW",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 56,
+        "minY": 7,
+        "maxX": 139,
+        "maxY": 162,
+        "width": 84,
+        "height": 156,
+        "visiblePixelCount": 2047
+      },
+      "solidAlphaBBox": {
+        "minX": 74,
+        "minY": 10,
+        "maxX": 136,
+        "maxY": 159,
+        "width": 63,
+        "height": 150,
+        "visiblePixelCount": 1218
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "路燈是固定道路道具，不是第 20 款車輛。",
+        "__lit 是亮燈衍生圖，發光 alpha 外圍不應決定燈桿的實體大小。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/lightPost/lightPost_SE.png",
+      "inheritedPhysicalReference": {
+        "feature": "lamp-pole-height",
+        "realM": [
+          8,
+          10,
+          12
+        ]
+      },
+      "matchingMethod": "逐檔精確 alpha bbox；同一道具方向與亮燈版本沿用 SE 日間燈桿高度假設，沒有把光暈寬度當實體尺寸。",
+      "sourceSha256": "5f897d1fb06820b20c318544cfaa9fe70f57dff01f84fb4f737318ddec29bcd1"
+    },
+    {
+      "path": "Models/traffic/lightPost/lightPost_SW__lit.png",
+      "category": "prop",
+      "model": "lightPost",
+      "direction": "SW",
+      "sourceSize": [
+        256,
+        256
+      ],
+      "alphaBBox": {
+        "minX": 26,
+        "minY": 4,
+        "maxX": 145,
+        "maxY": 210,
+        "width": 120,
+        "height": 207,
+        "visiblePixelCount": 15098
+      },
+      "solidAlphaBBox": {
+        "minX": 74,
+        "minY": 10,
+        "maxX": 136,
+        "maxY": 184,
+        "width": 63,
+        "height": 175,
+        "visiblePixelCount": 1469
+      },
+      "bboxMethod": "精確掃描原始 PNG 每個 alpha 像素；alphaBBox 為 alpha≥1，solidAlphaBBox 為 alpha≥128；座標上下界均包含端點。",
+      "references": [],
+      "notes": [
+        "路燈是固定道路道具，不是第 20 款車輛。",
+        "__lit 是亮燈衍生圖，發光 alpha 外圍不應決定燈桿的實體大小。"
+      ],
+      "status": "inherited-model-assumption",
+      "inheritedFrom": "Models/traffic/lightPost/lightPost_SE.png",
+      "inheritedPhysicalReference": {
+        "feature": "lamp-pole-height",
+        "realM": [
+          8,
+          10,
+          12
+        ]
+      },
+      "matchingMethod": "逐檔精確 alpha bbox；同一道具方向與亮燈版本沿用 SE 日間燈桿高度假設，沒有把光暈寬度當實體尺寸。",
+      "sourceSha256": "77e98d14f9525fbfc09e3d9ddb89bee4a5a020e45f80381243861176c070cf73"
+    }
+  ]
+}

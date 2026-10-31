@@ -1,0 +1,149 @@
+{
+  "version": 1,
+  "source": "scripts/source-art/swimmingPool/v1/render-roof-corrected.png",
+  "sourceSha256": "1ebf2246ac870983be42636f18063c5355881cb52fced5375b9a069d7c43a55e",
+  "firstGenerationSha256": "a23fe72c5694937544738a91e0ce1529b776eb3d37f56556a86c704ce8312ecb",
+  "output": "Models/swimmingPool/sp_simple3x3_v1.png",
+  "outputSha256": "5a38ab41850188ffb031f82740da4eb9ea2c481dad668cab95e617387f8ba22a",
+  "canvas": [
+    1600,
+    1400
+  ],
+  "layout": {
+    "version": 1,
+    "tiles": [
+      3,
+      3
+    ],
+    "tileMetres": 20,
+    "siteMetres": [
+      60,
+      60
+    ],
+    "canvas": [
+      1600,
+      1400
+    ],
+    "projection": "screenX=200+10*(x+y); screenY=800+5*(x-y)-20*z",
+    "siteCorners": [
+      [
+        200,
+        800
+      ],
+      [
+        800,
+        1100
+      ],
+      [
+        1400,
+        800
+      ],
+      [
+        800,
+        500
+      ]
+    ],
+    "pool": {
+      "origin": [
+        5,
+        25
+      ],
+      "length": 50,
+      "width": 25,
+      "lanes": 8,
+      "boundaryCorners": [
+        [
+          500,
+          700
+        ],
+        [
+          1000,
+          950
+        ],
+        [
+          1250,
+          825
+        ],
+        [
+          750,
+          575
+        ]
+      ]
+    },
+    "deck": {
+      "origin": [
+        2,
+        22
+      ],
+      "length": 56,
+      "width": 31
+    },
+    "amenityBuilding": {
+      "origin": [
+        8,
+        5
+      ],
+      "length": 37,
+      "width": 9,
+      "height": 3.8
+    },
+    "plantBuilding": {
+      "origin": [
+        48,
+        6
+      ],
+      "length": 7,
+      "width": 7
+    },
+    "design": "Simple Hong Kong outdoor municipal pool: one main pool, low amenity building, plant room and sparse poolside furnishings",
+    "runtimeIntegrated": false,
+    "calibrationPolicy": "Only global affine correction is allowed for generated artwork. No local nonlinear warps."
+  },
+  "runtimeIntegrated": false,
+  "generationMode": "built-in image_gen, then targeted roof-prop correction",
+  "method": "Single global affine scale, shear and translation; no local or nonlinear warp",
+  "affine": [
+    [
+      0.9287925696594427,
+      0,
+      174.92260061919504
+    ],
+    [
+      -0.008659868042893093,
+      0.7370865984925788,
+      341.67152225556583
+    ]
+  ],
+  "sourceFrontEdgeFits": {
+    "left": {
+      "slope": 0.6417918245156878,
+      "intercept": 605.4713439053259
+    },
+    "right": {
+      "slope": -0.6182942651770607,
+      "intercept": 1452.1660606962428
+    }
+  },
+  "rasterFootprintEdges": {
+    "frontLeft": {
+      "slope": 0.500384217316717,
+      "intercept": 700.040692145952
+    },
+    "frontRight": {
+      "slope": -0.5001493669927588,
+      "intercept": 1499.4245932846854
+    }
+  },
+  "maxIntroducedLineDeviationPixels": 2.5421149729252077e-13,
+  "verticalsRetainScreenX": true,
+  "alphaBorderMax": 0,
+  "referenceFiles": [
+    "Models/publicMarket/pm_market3x3_style_v3.png",
+    "Models/basketballCourt/bc_estateFullCourt_v2.png"
+  ],
+  "nominalGroundAnchor": [
+    800,
+    1100
+  ],
+  "limitations": "The exact guide defines the 60x60 m site and 50x25 m pool. Generated internal proportions and individual edge angles may differ slightly. Only the two front footprint axes are calibrated to +/-0.5; all source straight lines remain straight, without claiming pixel-exact agreement of every pool, roof or fence edge with the guide."
+}

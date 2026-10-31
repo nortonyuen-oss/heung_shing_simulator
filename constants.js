@@ -737,6 +737,9 @@ const DEFAULT_BUILDING_ANCHOR_MODE = 'effective-bottom-to-map-bottom';
 // scripts/detect-building-ground-corners.js and hand-calibrated with the 建築地盤校正 test-mode tool
 // (2026-09-28). A corner may lie outside the canvas: that shrinks art drawn larger than its lot.
 const BUILDING_GROUND_CORNERS = {
+  // Accepted civic replacements: fit their parcel, not the transparent canvas.
+  'Models/parks/park2x2/sportField3-02.png': { left: [240, 792.7], front: [814.1, 1079.7], right: [1360, 806.8] },
+  'Models/parks/park3x3/swimmingPool3-01.png': { left: [200, 809.55], front: [780.02, 1100], right: [1400, 789.92] },
   'Models/publicMarket/pm_market3x3_style_v3.png': { left: [200, 800], front: [800, 1100], right: [1400, 800] },
   // All six Victoria Park modules share the same 80m lot and must keep identical anchors.
   'Models/parks/park4x4/victoriaPark4-01.png': { left: [8, 716], front: [512, 968], right: [1016, 716] },
@@ -898,6 +901,7 @@ const SERVICE_BUILDING_MODELS = {
   sports_ground_small: {
     spriteKey: 'sports_ground_2x2',
     path: 'Models/parks/park2x2/sportField3-02.png',
+    cacheVersion: '20261018-estate-court-v2',
     footprintCols: 2,
     footprintRows: 2,
   },
@@ -1386,6 +1390,7 @@ const PARK_MODELS = {
   park_large_pool: {
     spriteKey: 'park_large_pool',
     path: 'Models/parks/park3x3/swimmingPool3-01.png',
+    cacheVersion: '20261018-simple-pool-v2',
     footprintCols: 3,
     footprintRows: 3,
   },

@@ -1,0 +1,2212 @@
+{
+  "category": "civic-industry",
+  "coordinateSystem": "原始 1024×1024 PNG 像素，左上原點，x 向右、y 向下；所有實尺參考均為假設範圍",
+  "methodology": "每張原圖經 50 px 網格檢視；必要區域放大覆核。primary 用於建築建議，check 僅作比例衝突檢驗，不平均。pixelError 為端點差值的保守像素不確定度。雙參考不代表兩項經現場測量的獨立實尺。",
+  "assets": [
+    {
+      "path": "Models/government/2x2/fireStation2-01.png",
+      "references": [
+        {
+          "id": "east-wing-floor",
+          "referenceRole": "primary",
+          "axis": "vertical",
+          "a": [
+            810,
+            576
+          ],
+          "b": [
+            810,
+            650
+          ],
+          "realM": [
+            3.6,
+            4,
+            4.4
+          ],
+          "pixelError": 5,
+          "meaning": "東翼上下兩層同列窗的上緣跨 1 層",
+          "method": "原圖同 x，跨 1 個相同樓層節距；按真實樓板／同列窗帶量度，排除幕牆半格；層高為用途假設",
+          "floorIntervals": 1,
+          "assumedFloorHeightM": [
+            3.6,
+            4,
+            4.4
+          ]
+        },
+        {
+          "id": "garage-clearance",
+          "referenceRole": "check",
+          "axis": "vertical",
+          "a": [
+            379,
+            598
+          ],
+          "b": [
+            379,
+            669
+          ],
+          "realM": [
+            4,
+            4.5,
+            5
+          ],
+          "pixelError": 8,
+          "meaning": "左車庫右側邊框拱下開口至地面；下端部分被消防車遮擋",
+          "method": "原圖同 x 車庫邊框量度，下端按相鄰清楚門柱底緣補判，保守像素誤差 8 px；只作副尺"
+        }
+      ],
+      "notes": [
+        "主車庫拱形，端點取可通車開口，不把拱尖當門高；一般政府樓層只作副尺。",
+        "車庫被車輛遮擋，已採東翼實體樓層為主尺，車庫只作較低可信副尺。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "evidenceImage": ".data/scale-measurements/civic-industry/fireStation2-01-marked.jpg",
+      "sourceSha256": "6df2bb5a3d3ce547ed75758a11c809a3a426d52e17b49252a1018043d24db365"
+    },
+    {
+      "path": "Models/government/2x2/firestation2-02.png",
+      "references": [
+        {
+          "id": "garage-clearance",
+          "referenceRole": "primary",
+          "axis": "vertical",
+          "a": [
+            343,
+            574
+          ],
+          "b": [
+            343,
+            656
+          ],
+          "realM": [
+            4,
+            4.5,
+            5
+          ],
+          "pixelError": 4,
+          "meaning": "左車庫開口淨高",
+          "method": "原圖同 x 垂直像素線；目視辨識端點，實尺為用途假設，並非實測建築尺寸"
+        },
+        {
+          "id": "front-office-floor",
+          "referenceRole": "check",
+          "axis": "vertical",
+          "a": [
+            457,
+            439
+          ],
+          "b": [
+            457,
+            511
+          ],
+          "realM": [
+            3.6,
+            4,
+            4.4
+          ],
+          "pixelError": 4,
+          "meaning": "上層辦公窗同列上緣跨 1 層",
+          "method": "原圖同 x，跨 1 個相同樓層節距；按真實樓板／同列窗帶量度，排除幕牆半格；層高為用途假設",
+          "floorIntervals": 1,
+          "assumedFloorHeightM": [
+            3.6,
+            4,
+            4.4
+          ]
+        },
+        {
+          "id": "roof-door",
+          "referenceRole": "check",
+          "axis": "vertical",
+          "a": [
+            563,
+            313
+          ],
+          "b": [
+            563,
+            350
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 4,
+          "meaning": "屋頂小屋門扇上緣至踏面",
+          "method": "原圖同 x 垂直像素線；目視辨識端點，實尺為用途假設，並非實測建築尺寸"
+        }
+      ],
+      "notes": [],
+      "status": "measured-with-assumed-reference",
+      "evidenceImage": ".data/scale-measurements/civic-industry/firestation2-02-marked.jpg",
+      "sourceSha256": "66fd9b927497d799bbf184b06aab539b269c47c82c8fd6be69f9d8a3ec0b9d05"
+    },
+    {
+      "path": "Models/government/2x2/legislativeCouncil2-01.png",
+      "references": [
+        {
+          "id": "west-wing-floor",
+          "referenceRole": "primary",
+          "axis": "vertical",
+          "a": [
+            264,
+            505
+          ],
+          "b": [
+            264,
+            568
+          ],
+          "realM": [
+            3.6,
+            4,
+            4.4
+          ],
+          "pixelError": 4,
+          "meaning": "西翼兩層窗同側上緣跨 1 層",
+          "method": "原圖同 x，跨 1 個相同樓層節距；按真實樓板／同列窗帶量度，排除幕牆半格；層高為用途假設",
+          "floorIntervals": 1,
+          "assumedFloorHeightM": [
+            3.6,
+            4,
+            4.4
+          ]
+        },
+        {
+          "id": "east-wing-floor",
+          "referenceRole": "check",
+          "axis": "vertical",
+          "a": [
+            822,
+            532
+          ],
+          "b": [
+            822,
+            589
+          ],
+          "realM": [
+            3.6,
+            4,
+            4.4
+          ],
+          "pixelError": 5,
+          "meaning": "東翼兩層窗同側上緣跨 1 層",
+          "method": "原圖同 x，跨 1 個相同樓層節距；按真實樓板／同列窗帶量度，排除幕牆半格；層高為用途假設",
+          "floorIntervals": 1,
+          "assumedFloorHeightM": [
+            3.6,
+            4,
+            4.4
+          ]
+        }
+      ],
+      "notes": [
+        "古典正門與柱廊屬高大禮制入口，不能按普通 2.1 m 門高；兩條窗層尺有同一層高假設，並非兩項實物實測。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "evidenceImage": ".data/scale-measurements/civic-industry/legislativeCouncil2-01-marked.jpg",
+      "sourceSha256": "f28027e091b461da898380ec7f0cdd4c7438f0c19e0531c3403e1afc8a78bec2"
+    },
+    {
+      "path": "Models/government/2x2/legislativeCouncil2-02.png",
+      "references": [
+        {
+          "id": "west-wing-floor",
+          "referenceRole": "primary",
+          "axis": "vertical",
+          "a": [
+            245,
+            667
+          ],
+          "b": [
+            245,
+            708
+          ],
+          "realM": [
+            3.6,
+            4,
+            4.4
+          ],
+          "pixelError": 4,
+          "meaning": "西翼同列窗跨 1 層",
+          "method": "原圖同 x，跨 1 個相同樓層節距；按真實樓板／同列窗帶量度，排除幕牆半格；層高為用途假設",
+          "floorIntervals": 1,
+          "assumedFloorHeightM": [
+            3.6,
+            4,
+            4.4
+          ]
+        },
+        {
+          "id": "east-wing-floor",
+          "referenceRole": "check",
+          "axis": "vertical",
+          "a": [
+            770,
+            659
+          ],
+          "b": [
+            770,
+            705
+          ],
+          "realM": [
+            3.6,
+            4,
+            4.4
+          ],
+          "pixelError": 5,
+          "meaning": "東翼同列窗跨 1 層",
+          "method": "原圖同 x，跨 1 個相同樓層節距；按真實樓板／同列窗帶量度，排除幕牆半格；層高為用途假設",
+          "floorIntervals": 1,
+          "assumedFloorHeightM": [
+            3.6,
+            4,
+            4.4
+          ]
+        }
+      ],
+      "notes": [
+        "正門連拱及前廳挑高，不採普通門高；樓層實高未有藍圖確認。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "evidenceImage": ".data/scale-measurements/civic-industry/legislativeCouncil2-02-marked.jpg",
+      "sourceSha256": "cc825945de8df74847a36544dfd475686e63b86a54d610b93f8c0c8def22987e"
+    },
+    {
+      "path": "Models/government/2x2/library2-01.png",
+      "references": [
+        {
+          "id": "west-wing-two-floors",
+          "referenceRole": "primary",
+          "axis": "vertical",
+          "a": [
+            267,
+            476
+          ],
+          "b": [
+            267,
+            558
+          ],
+          "realM": [
+            7.2,
+            8,
+            8.8
+          ],
+          "pixelError": 4,
+          "meaning": "左翼三列窗上緣跨 2 層",
+          "method": "原圖同 x，跨 2 個相同樓層節距；按真實樓板／同列窗帶量度，排除幕牆半格；層高為用途假設",
+          "floorIntervals": 2,
+          "assumedFloorHeightM": [
+            3.6,
+            4,
+            4.4
+          ]
+        },
+        {
+          "id": "entrance-door-leaf",
+          "referenceRole": "check",
+          "axis": "vertical",
+          "a": [
+            450,
+            625
+          ],
+          "b": [
+            450,
+            658
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 4,
+          "meaning": "主入口中間木色門扇上緣至門檻；排除上方玻璃及雨篷",
+          "method": "原圖同 x 垂直像素線；目視辨識端點，實尺為用途假設，並非實測建築尺寸"
+        },
+        {
+          "id": "east-wing-two-floors",
+          "referenceRole": "check",
+          "axis": "vertical",
+          "a": [
+            723,
+            569
+          ],
+          "b": [
+            723,
+            647
+          ],
+          "realM": [
+            7.2,
+            8,
+            8.8
+          ],
+          "pixelError": 5,
+          "meaning": "右翼三列窄窗跨 2 層",
+          "method": "原圖同 x，跨 2 個相同樓層節距；按真實樓板／同列窗帶量度，排除幕牆半格；層高為用途假設",
+          "floorIntervals": 2,
+          "assumedFloorHeightM": [
+            3.6,
+            4,
+            4.4
+          ]
+        }
+      ],
+      "notes": [
+        "左右翼樓層尺約 9.75–10.25 px/m，普通門扇尺約 15.71 px/m，約高 53–61%；若門扇實際較高差異會改變。",
+        "不可把主中庭書架／細幕牆格直接全部當樓層；需要指定樓層或門尺度後重畫入口／翼樓。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "evidenceImage": ".data/scale-measurements/civic-industry/library2-01-marked.jpg",
+      "sourceSha256": "7f3e3050eae48616f2bd5eba565fb4764c8c5bd841a2552e808b060dc74c7d62"
+    },
+    {
+      "path": "Models/government/2x2/policeStation2-01.png",
+      "references": [
+        {
+          "id": "centre-floor",
+          "referenceRole": "primary",
+          "axis": "vertical",
+          "a": [
+            440,
+            425
+          ],
+          "b": [
+            440,
+            503
+          ],
+          "realM": [
+            3.6,
+            4,
+            4.4
+          ],
+          "pixelError": 4,
+          "meaning": "中央西翼上下兩層同列窗上緣",
+          "method": "原圖同 x，跨 1 個相同樓層節距；按真實樓板／同列窗帶量度，排除幕牆半格；層高為用途假設",
+          "floorIntervals": 1,
+          "assumedFloorHeightM": [
+            3.6,
+            4,
+            4.4
+          ]
+        },
+        {
+          "id": "entrance-door-leaf",
+          "referenceRole": "check",
+          "axis": "vertical",
+          "a": [
+            553,
+            632
+          ],
+          "b": [
+            553,
+            678
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 4,
+          "meaning": "主門門扇上緣至門檻",
+          "method": "原圖同 x 垂直像素線；目視辨識端點，實尺為用途假設，並非實測建築尺寸"
+        }
+      ],
+      "notes": [
+        "地面拱廊與上層辦公室不同高度；只取重複辦公層。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "evidenceImage": ".data/scale-measurements/civic-industry/policeStation2-01-marked.jpg",
+      "sourceSha256": "e8e6729298e43589d1f97197c6bf920796219c5e1dd799a65f7c6a85c216a412"
+    },
+    {
+      "path": "Models/government/2x2/policeStation2-02.png",
+      "references": [
+        {
+          "id": "east-wing-floor",
+          "referenceRole": "primary",
+          "axis": "vertical",
+          "a": [
+            770,
+            543
+          ],
+          "b": [
+            770,
+            598
+          ],
+          "realM": [
+            3.6,
+            4,
+            4.4
+          ],
+          "pixelError": 4,
+          "meaning": "東翼上下兩列窗的同側上緣",
+          "method": "原圖同 x，跨 1 個相同樓層節距；按真實樓板／同列窗帶量度，排除幕牆半格；層高為用途假設",
+          "floorIntervals": 1,
+          "assumedFloorHeightM": [
+            3.6,
+            4,
+            4.4
+          ]
+        },
+        {
+          "id": "entrance-door-leaf",
+          "referenceRole": "check",
+          "axis": "vertical",
+          "a": [
+            489,
+            639
+          ],
+          "b": [
+            489,
+            671
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 4,
+          "meaning": "中央主門直身木色門扇，不含上方拱窗",
+          "method": "原圖同 x 垂直像素線；目視辨識端點，實尺為用途假設，並非實測建築尺寸"
+        }
+      ],
+      "notes": [],
+      "status": "measured-with-assumed-reference",
+      "evidenceImage": ".data/scale-measurements/civic-industry/policeStation2-02-marked.jpg",
+      "sourceSha256": "d828dd1a0d4b88518a0bc914177328fa37138b0f0264f7f6b0e903373fb3bde5"
+    },
+    {
+      "path": "Models/government/2x2/primarySchool2-01.png",
+      "references": [
+        {
+          "id": "classroom-four-floors",
+          "referenceRole": "primary",
+          "axis": "vertical",
+          "a": [
+            400,
+            369
+          ],
+          "b": [
+            400,
+            574
+          ],
+          "realM": [
+            13.2,
+            14.4,
+            15.6
+          ],
+          "pixelError": 5,
+          "meaning": "西翼教室走廊相同樓板跨 4 個層距",
+          "method": "原圖同 x，跨 4 個相同樓層節距；按真實樓板／同列窗帶量度，排除幕牆半格；層高為用途假設",
+          "floorIntervals": 4,
+          "assumedFloorHeightM": [
+            3.3,
+            3.6,
+            3.9
+          ]
+        },
+        {
+          "id": "roof-door",
+          "referenceRole": "check",
+          "axis": "vertical",
+          "a": [
+            342,
+            272
+          ],
+          "b": [
+            342,
+            303
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 4,
+          "meaning": "屋頂樓梯間門扇",
+          "method": "原圖同 x 垂直像素線；目視辨識端點，實尺為用途假設，並非實測建築尺寸"
+        }
+      ],
+      "notes": [
+        "操場人物是小學生，不能假定成人 1.7 m；不採用縮小籃球場反推標準全場。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "evidenceImage": ".data/scale-measurements/civic-industry/primarySchool2-01-marked.jpg",
+      "sourceSha256": "2ad8cb9c4bcb1b5f735a2bb480b6795e7c5b8e9d421724913cc3942078fe9fa6"
+    },
+    {
+      "path": "Models/government/2x2/secondarySchool2-01.png",
+      "references": [
+        {
+          "id": "classroom-four-floors",
+          "referenceRole": "primary",
+          "axis": "vertical",
+          "a": [
+            420,
+            370
+          ],
+          "b": [
+            420,
+            504
+          ],
+          "realM": [
+            13.2,
+            14.4,
+            15.6
+          ],
+          "pixelError": 5,
+          "meaning": "A 座左翼同列教室窗帶跨 4 層",
+          "method": "原圖同 x，跨 4 個相同樓層節距；按真實樓板／同列窗帶量度，排除幕牆半格；層高為用途假設",
+          "floorIntervals": 4,
+          "assumedFloorHeightM": [
+            3.3,
+            3.6,
+            3.9
+          ]
+        },
+        {
+          "id": "roof-door",
+          "referenceRole": "check",
+          "axis": "vertical",
+          "a": [
+            385,
+            323
+          ],
+          "b": [
+            385,
+            346
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 4,
+          "meaning": "A 座屋頂樓梯間小門扇",
+          "method": "原圖同 x 垂直像素線；目視辨識端點，實尺為用途假設，並非實測建築尺寸"
+        }
+      ],
+      "notes": [
+        "前庭人物為學生，不採成人高；與 2-02 主樓幾何相同，旗幟不同。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "evidenceImage": ".data/scale-measurements/civic-industry/secondarySchool2-01-marked.jpg",
+      "sourceSha256": "61d945b51bec243e67047007604a653d5b28057c0827f0e33ce2044ff44d5ba7"
+    },
+    {
+      "path": "Models/government/2x2/secondarySchool2-02.png",
+      "references": [
+        {
+          "id": "classroom-four-floors",
+          "referenceRole": "primary",
+          "axis": "vertical",
+          "a": [
+            420,
+            370
+          ],
+          "b": [
+            420,
+            504
+          ],
+          "realM": [
+            13.2,
+            14.4,
+            15.6
+          ],
+          "pixelError": 5,
+          "meaning": "A 座左翼同列教室窗帶跨 4 層",
+          "method": "原圖同 x，跨 4 個相同樓層節距；按真實樓板／同列窗帶量度，排除幕牆半格；層高為用途假設",
+          "floorIntervals": 4,
+          "assumedFloorHeightM": [
+            3.3,
+            3.6,
+            3.9
+          ]
+        },
+        {
+          "id": "roof-door",
+          "referenceRole": "check",
+          "axis": "vertical",
+          "a": [
+            385,
+            323
+          ],
+          "b": [
+            385,
+            346
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 4,
+          "meaning": "A 座屋頂樓梯間小門扇",
+          "method": "原圖同 x 垂直像素線；目視辨識端點，實尺為用途假設，並非實測建築尺寸"
+        }
+      ],
+      "notes": [
+        "逐圖核對：與 2-01 主樓幾何相同，旗幟不同；保留同座標，不因文件名分開發明格數。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "evidenceImage": ".data/scale-measurements/civic-industry/secondarySchool2-02-marked.jpg",
+      "sourceSha256": "3cfcfb4208e94694f1a804693a8ece3a86946bc3cd06083a2223dffb8611cf6e"
+    },
+    {
+      "path": "Models/government/3x3/college3-01.png",
+      "references": [
+        {
+          "id": "front-door-leaf",
+          "referenceRole": "primary",
+          "axis": "vertical",
+          "a": [
+            562,
+            862
+          ],
+          "b": [
+            562,
+            882
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 5,
+          "meaning": "前方弧形玻璃牆內主入口直身門扇",
+          "method": "原圖同 x 垂直像素線；目視辨識端點，實尺為用途假設，並非實測建築尺寸"
+        },
+        {
+          "id": "east-door-leaf",
+          "referenceRole": "check",
+          "axis": "vertical",
+          "a": [
+            674,
+            831
+          ],
+          "b": [
+            674,
+            849
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 5,
+          "meaning": "東側入口門扇",
+          "method": "原圖同 x 垂直像素線；目視辨識端點，實尺為用途假設，並非實測建築尺寸"
+        }
+      ],
+      "notes": [
+        "主體在 1024 圖下方，不能用整圖寬代替地台寬。",
+        "弧形幕牆細橫格無法證明為樓層；量度只按門扇，兩條同類門尺並非獨立真實尺寸驗證。",
+        "泳池未標示長度，不能假定 25 m 或 50 m。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "evidenceImage": ".data/scale-measurements/civic-industry/college3-01-marked.jpg",
+      "sourceSha256": "f05f72ae781a9b289907e9d45b1497fb2b6dd1a14db5c0618f0ffbb114df73ee"
+    },
+    {
+      "path": "Models/government/3x3/college3-02.png",
+      "references": [
+        {
+          "id": "west-wing-two-floors",
+          "referenceRole": "primary",
+          "axis": "vertical",
+          "a": [
+            338,
+            723
+          ],
+          "b": [
+            338,
+            779
+          ],
+          "realM": [
+            7.2,
+            8,
+            8.8
+          ],
+          "pixelError": 4,
+          "meaning": "西翼三列窗上緣跨 2 層",
+          "method": "原圖同 x，跨 2 個相同樓層節距；按真實樓板／同列窗帶量度，排除幕牆半格；層高為用途假設",
+          "floorIntervals": 2,
+          "assumedFloorHeightM": [
+            3.6,
+            4,
+            4.4
+          ]
+        },
+        {
+          "id": "front-door-leaf",
+          "referenceRole": "check",
+          "axis": "vertical",
+          "a": [
+            434,
+            842
+          ],
+          "b": [
+            434,
+            860
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 4,
+          "meaning": "主入口雨篷下玻璃門扇；不計雨篷厚度及橫樑",
+          "method": "原圖同 x 垂直像素線；目視辨識端點，實尺為用途假設，並非實測建築尺寸"
+        }
+      ],
+      "notes": [
+        "側翼樓層尺約 7 px/m、普通門尺約 8.57 px/m，差約 22%；門扇只有 18 px，端點誤差比例較大。",
+        "幕牆細格不是樓層；白色上方雨篷不能算入門扇。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "evidenceImage": ".data/scale-measurements/civic-industry/college3-02-marked.jpg",
+      "sourceSha256": "c9b5a109ea86683f51258f49f81c20025232f3d763f0937a993d4920a2e7af43"
+    },
+    {
+      "path": "Models/government/3x3/college3-03.png",
+      "references": [
+        {
+          "id": "west-wing-two-floors",
+          "referenceRole": "primary",
+          "axis": "vertical",
+          "a": [
+            307,
+            741
+          ],
+          "b": [
+            307,
+            794
+          ],
+          "realM": [
+            7.2,
+            8,
+            8.8
+          ],
+          "pixelError": 4,
+          "meaning": "西翼三列窗帶上緣跨 2 層",
+          "method": "原圖同 x，跨 2 個相同樓層節距；按真實樓板／同列窗帶量度，排除幕牆半格；層高為用途假設",
+          "floorIntervals": 2,
+          "assumedFloorHeightM": [
+            3.6,
+            4,
+            4.4
+          ]
+        },
+        {
+          "id": "front-door-leaf",
+          "referenceRole": "check",
+          "axis": "vertical",
+          "a": [
+            430,
+            823
+          ],
+          "b": [
+            430,
+            844
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 4,
+          "meaning": "入口雨篷下右側玻璃門扇；避開左側白柱及前庭",
+          "method": "原圖同 x 垂直像素線；目視辨識端點，實尺為用途假設，並非實測建築尺寸"
+        }
+      ],
+      "notes": [
+        "樓層尺約 6.63 px/m、普通門尺約 10 px/m，相差約 51%；台階亦被誇張。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "evidenceImage": ".data/scale-measurements/civic-industry/college3-03-marked.jpg",
+      "sourceSha256": "869e566f67b3dc381403378d6b1a0f50cc9d28e33f3ab605d7dd1a8c2cd5cd2c"
+    },
+    {
+      "path": "Models/government/3x3/college3-04.png",
+      "references": [
+        {
+          "id": "west-wing-four-floors",
+          "referenceRole": "primary",
+          "axis": "vertical",
+          "a": [
+            308,
+            456
+          ],
+          "b": [
+            308,
+            624
+          ],
+          "realM": [
+            14.4,
+            16,
+            17.6
+          ],
+          "pixelError": 5,
+          "meaning": "西翼窄窗同列上緣跨 4 個層距",
+          "method": "原圖同 x，跨 4 個相同樓層節距；按真實樓板／同列窗帶量度，排除幕牆半格；層高為用途假設",
+          "floorIntervals": 4,
+          "assumedFloorHeightM": [
+            3.6,
+            4,
+            4.4
+          ]
+        },
+        {
+          "id": "front-door-leaf",
+          "referenceRole": "check",
+          "axis": "vertical",
+          "a": [
+            419,
+            633
+          ],
+          "b": [
+            419,
+            663
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 4,
+          "meaning": "入口木色門扇，排除雨篷與上方玻璃",
+          "method": "原圖同 x 垂直像素線；目視辨識端點，實尺為用途假設，並非實測建築尺寸"
+        }
+      ],
+      "notes": [
+        "入口尺約 14.29 px/m，樓層尺 10.5 px/m，比例約高 36%；單一整圖縮放不能同時令兩者吻合。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "evidenceImage": ".data/scale-measurements/civic-industry/college3-04-marked.jpg",
+      "sourceSha256": "cafbc4b9420cddc03c9c10ada4b7a09f11460fdfcdb1bc5492e9bcb0103d27c3"
+    },
+    {
+      "path": "Models/government/4x4/hospital4.png",
+      "references": [
+        {
+          "id": "west-ward-four-floors",
+          "referenceRole": "primary",
+          "axis": "vertical",
+          "a": [
+            155,
+            451
+          ],
+          "b": [
+            155,
+            553
+          ],
+          "realM": [
+            14.4,
+            16,
+            17.6
+          ],
+          "pixelError": 5,
+          "meaning": "西側病房同列窗上緣跨 4 層",
+          "method": "原圖同 x，跨 4 個相同樓層節距；按真實樓板／同列窗帶量度，排除幕牆半格；層高為用途假設",
+          "floorIntervals": 4,
+          "assumedFloorHeightM": [
+            3.6,
+            4,
+            4.4
+          ]
+        },
+        {
+          "id": "adult-front",
+          "referenceRole": "check",
+          "axis": "vertical",
+          "a": [
+            380,
+            776
+          ],
+          "b": [
+            380,
+            795
+          ],
+          "realM": [
+            1.6,
+            1.7,
+            1.8
+          ],
+          "pixelError": 4,
+          "meaning": "前庭靠近正面長凳的直立成人（頭頂至雙腳地面）",
+          "method": "原圖同 x 垂直像素線；目視辨識端點，實尺為用途假設，並非實測建築尺寸"
+        },
+        {
+          "id": "adult-east",
+          "referenceRole": "check",
+          "axis": "vertical",
+          "a": [
+            743,
+            833
+          ],
+          "b": [
+            743,
+            852
+          ],
+          "realM": [
+            1.6,
+            1.7,
+            1.8
+          ],
+          "pixelError": 4,
+          "meaning": "東側前庭直立成人（頭頂至雙腳地面）",
+          "method": "原圖同 x 垂直像素線；目視辨識端點，實尺為用途假設，並非實測建築尺寸"
+        }
+      ],
+      "notes": [
+        "病房層距約 25.5 px，成人約 19 px；4 m 層高得 6.38 px/m，1.7 m 人高得 11.18 px/m，差約 75%。",
+        "醫院若採 4 m 樓層，人要縮小到約 11 px；若保留人高，病房層距須增至約 45 px。",
+        "醫院實際層高可能更高，以上為一致校正假設，不是瑪麗醫院實測。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "evidenceImage": ".data/scale-measurements/civic-industry/hospital4-marked.jpg",
+      "sourceSha256": "0867f5a123d2a6e4333014a92ac8c10c3dcd4e6107d7cea8ea4f7a700956bc0c"
+    },
+    {
+      "path": "Models/government/4x4/stockExchange4-01.png",
+      "references": [
+        {
+          "id": "adult-front",
+          "referenceRole": "primary",
+          "axis": "vertical",
+          "a": [
+            512,
+            967
+          ],
+          "b": [
+            512,
+            984
+          ],
+          "realM": [
+            1.6,
+            1.7,
+            1.8
+          ],
+          "pixelError": 4,
+          "meaning": "前端廣場直立成人頭頂至腳",
+          "method": "原圖同 x 垂直像素線；目視辨識端點，實尺為用途假設，並非實測建築尺寸"
+        },
+        {
+          "id": "front-door-leaf",
+          "referenceRole": "check",
+          "axis": "vertical",
+          "a": [
+            510,
+            799
+          ],
+          "b": [
+            510,
+            825
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 4,
+          "meaning": "主入口直身門扇",
+          "method": "原圖同 x 垂直像素線；目視辨識端點，實尺為用途假設，並非實測建築尺寸"
+        }
+      ],
+      "notes": [
+        "幕牆細格及多層交易桌排不是可靠樓層證據；不以細格總數推高度。",
+        "帶人物尺度與門扇尺度約差 19%，在造型及端點誤差範圍仍需人工取捨。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "evidenceImage": ".data/scale-measurements/civic-industry/stockExchange4-01-marked.jpg",
+      "sourceSha256": "877bf9ab4f037ef2b603b23e81ba2bac3f1fd67d14b4ae3629e207a5064214c3"
+    },
+    {
+      "path": "Models/government/4x4/university4-01.png",
+      "references": [
+        {
+          "id": "historic-wing-floor",
+          "referenceRole": "primary",
+          "axis": "vertical",
+          "a": [
+            476,
+            460
+          ],
+          "b": [
+            476,
+            504
+          ],
+          "realM": [
+            3.6,
+            4,
+            4.4
+          ],
+          "pixelError": 4,
+          "meaning": "古典主樓同列兩層窗的上緣",
+          "method": "原圖同 x，跨 1 個相同樓層節距；按真實樓板／同列窗帶量度，排除幕牆半格；層高為用途假設",
+          "floorIntervals": 1,
+          "assumedFloorHeightM": [
+            3.6,
+            4,
+            4.4
+          ]
+        },
+        {
+          "id": "adult-east-stairs",
+          "referenceRole": "check",
+          "axis": "vertical",
+          "a": [
+            673,
+            623
+          ],
+          "b": [
+            673,
+            642
+          ],
+          "realM": [
+            1.6,
+            1.7,
+            1.8
+          ],
+          "pixelError": 4,
+          "meaning": "東側台階平台直立成人",
+          "method": "原圖同 x 垂直像素線；目視辨識端點，實尺為用途假設，並非實測建築尺寸"
+        },
+        {
+          "id": "modern-wing-floor",
+          "referenceRole": "check",
+          "axis": "vertical",
+          "a": [
+            785,
+            544
+          ],
+          "b": [
+            785,
+            583
+          ],
+          "realM": [
+            3.6,
+            4,
+            4.4
+          ],
+          "pixelError": 5,
+          "meaning": "現代東翼同列上下窗跨 1 層",
+          "method": "原圖同 x，跨 1 個相同樓層節距；按真實樓板／同列窗帶量度，排除幕牆半格；層高為用途假設",
+          "floorIntervals": 1,
+          "assumedFloorHeightM": [
+            3.6,
+            4,
+            4.4
+          ]
+        }
+      ],
+      "notes": [
+        "古典與現代翼層高可能不同；主樓約 11 px/m 與成人約 11.18 px/m接近。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "evidenceImage": ".data/scale-measurements/civic-industry/university4-01-marked.jpg",
+      "sourceSha256": "fd909cbbcca04db9a9ef593473caf71c39a117eaaf2845827b08f7355b6e99cd"
+    },
+    {
+      "path": "Models/government/4x4/university4-02.png",
+      "references": [
+        {
+          "id": "west-wing-two-floors",
+          "referenceRole": "primary",
+          "axis": "vertical",
+          "a": [
+            112,
+            507
+          ],
+          "b": [
+            112,
+            557
+          ],
+          "realM": [
+            7.2,
+            8,
+            8.8
+          ],
+          "pixelError": 4,
+          "meaning": "西側翼樓三列同位置窗帶跨 2 層",
+          "method": "原圖同 x，跨 2 個相同樓層節距；按真實樓板／同列窗帶量度，排除幕牆半格；層高為用途假設",
+          "floorIntervals": 2,
+          "assumedFloorHeightM": [
+            3.6,
+            4,
+            4.4
+          ]
+        },
+        {
+          "id": "adult-front",
+          "referenceRole": "check",
+          "axis": "vertical",
+          "a": [
+            458,
+            743
+          ],
+          "b": [
+            458,
+            765
+          ],
+          "realM": [
+            1.6,
+            1.7,
+            1.8
+          ],
+          "pixelError": 4,
+          "meaning": "正門前庭直立成人頭頂至腳",
+          "method": "原圖同 x 垂直像素線；目視辨識端點，實尺為用途假設，並非實測建築尺寸"
+        }
+      ],
+      "notes": [
+        "翼樓層距約 25 px，成人約 22 px；4 m 層高得 6.25 px/m，1.7 m 人高得 12.94 px/m，約 2.07 倍。",
+        "廣場人物偏大，不能用同一縮放同時修復樓層和成人。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "evidenceImage": ".data/scale-measurements/civic-industry/university4-02-marked.jpg",
+      "sourceSha256": "bd8b0e766ea8c645dd791ce645bce2d05bbcef65340d10e7ab414eeccbf9af3b"
+    },
+    {
+      "path": "Models/industrial/1x1/industrialBuilding1-01.png",
+      "references": [
+        {
+          "id": "factory-two-floors",
+          "referenceRole": "primary",
+          "axis": "vertical",
+          "a": [
+            400,
+            338
+          ],
+          "b": [
+            400,
+            527
+          ],
+          "realM": [
+            7.6,
+            8.4,
+            9.6
+          ],
+          "pixelError": 4,
+          "meaning": "正面同列工廈窗帶上緣跨 2 層",
+          "method": "原圖同 x，跨 2 個相同樓層節距；按真實樓板／同列窗帶量度，排除幕牆半格；層高為用途假設",
+          "floorIntervals": 2,
+          "assumedFloorHeightM": [
+            3.8,
+            4.2,
+            4.8
+          ]
+        },
+        {
+          "id": "roof-door",
+          "referenceRole": "check",
+          "axis": "vertical",
+          "a": [
+            405,
+            155
+          ],
+          "b": [
+            405,
+            222
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 4,
+          "meaning": "屋頂樓梯間門扇上緣至踏面",
+          "method": "原圖同 x 垂直像素線；目視辨識端點，實尺為用途假設，並非實測建築尺寸"
+        }
+      ],
+      "notes": [
+        "工廈層距約 94.5 px，普通門高約 67 px；4.2 m vs 2.1 m 兩尺相差約 42%。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "evidenceImage": ".data/scale-measurements/civic-industry/industrialBuilding1-01-marked.jpg",
+      "sourceSha256": "65e445a87e37283cf41b5d057c4adf36af612beb9a4735b59ff8432319d77f21"
+    },
+    {
+      "path": "Models/industrial/1x1/industrialBuilding1-02.png",
+      "references": [
+        {
+          "id": "factory-four-floors",
+          "referenceRole": "primary",
+          "axis": "vertical",
+          "a": [
+            450,
+            331
+          ],
+          "b": [
+            450,
+            601
+          ],
+          "realM": [
+            15.2,
+            16.8,
+            19.2
+          ],
+          "pixelError": 4,
+          "meaning": "正面工廈同列五列窗跨 4 層",
+          "method": "原圖同 x，跨 4 個相同樓層節距；按真實樓板／同列窗帶量度，排除幕牆半格；層高為用途假設",
+          "floorIntervals": 4,
+          "assumedFloorHeightM": [
+            3.8,
+            4.2,
+            4.8
+          ]
+        },
+        {
+          "id": "east-two-floors",
+          "referenceRole": "check",
+          "axis": "vertical",
+          "a": [
+            699,
+            300
+          ],
+          "b": [
+            699,
+            433
+          ],
+          "realM": [
+            7.6,
+            8.4,
+            9.6
+          ],
+          "pixelError": 5,
+          "meaning": "東側同列三列窗跨 2 層",
+          "method": "原圖同 x，跨 2 個相同樓層節距；按真實樓板／同列窗帶量度，排除幕牆半格；層高為用途假設",
+          "floorIntervals": 2,
+          "assumedFloorHeightM": [
+            3.8,
+            4.2,
+            4.8
+          ]
+        }
+      ],
+      "notes": [
+        "地面茶餐廳門被雨篷及家具遮擋；兩條只以工廈層高假設校驗，無可靠第二種絕對尺。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "evidenceImage": ".data/scale-measurements/civic-industry/industrialBuilding1-02-marked.jpg",
+      "sourceSha256": "4b8bddfad4eb8d99fe21eac7ae1d9a146ab05b4da252f29eb0a25a9cce5421e2"
+    },
+    {
+      "path": "Models/industrial/2x2/industrialBuilding2-01.png",
+      "references": [
+        {
+          "id": "factory-four-floors",
+          "referenceRole": "primary",
+          "axis": "vertical",
+          "a": [
+            438,
+            400
+          ],
+          "b": [
+            438,
+            626
+          ],
+          "realM": [
+            15.2,
+            16.8,
+            19.2
+          ],
+          "pixelError": 4,
+          "meaning": "正面同列工廈窗帶跨 4 層",
+          "method": "原圖同 x，跨 4 個相同樓層節距；按真實樓板／同列窗帶量度，排除幕牆半格；層高為用途假設",
+          "floorIntervals": 4,
+          "assumedFloorHeightM": [
+            3.8,
+            4.2,
+            4.8
+          ]
+        },
+        {
+          "id": "roof-door",
+          "referenceRole": "check",
+          "axis": "vertical",
+          "a": [
+            563,
+            278
+          ],
+          "b": [
+            563,
+            302
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 4,
+          "meaning": "屋頂小屋門扇",
+          "method": "原圖同 x 垂直像素線；目視辨識端點，實尺為用途假設，並非實測建築尺寸"
+        },
+        {
+          "id": "ground-door-leaf",
+          "referenceRole": "check",
+          "axis": "vertical",
+          "a": [
+            551,
+            789
+          ],
+          "b": [
+            551,
+            835
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 5,
+          "meaning": "前角茶餐廳木色門扇",
+          "method": "原圖同 x 垂直像素線；目視辨識端點，實尺為用途假設，並非實測建築尺寸"
+        }
+      ],
+      "notes": [
+        "地面店舖門扇相對樓層明顯偏高；屋頂小門與工廈樓層較接近，入口不可與兩者平均。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "evidenceImage": ".data/scale-measurements/civic-industry/industrialBuilding2-01-marked.jpg",
+      "sourceSha256": "bd4c258773c74d975ea7a4ae8870bc9b2edefac03b9545c4969921450b1fd2a8"
+    },
+    {
+      "path": "Models/industrial/2x2/industrialBuilding2-02.png",
+      "references": [
+        {
+          "id": "factory-two-floors",
+          "referenceRole": "primary",
+          "axis": "vertical",
+          "a": [
+            321,
+            403
+          ],
+          "b": [
+            321,
+            491
+          ],
+          "realM": [
+            7.6,
+            8.4,
+            9.6
+          ],
+          "pixelError": 5,
+          "meaning": "西翼同列工廈窗帶跨 2 層",
+          "method": "原圖同 x，跨 2 個相同樓層節距；按真實樓板／同列窗帶量度，排除幕牆半格；層高為用途假設",
+          "floorIntervals": 2,
+          "assumedFloorHeightM": [
+            3.8,
+            4.2,
+            4.8
+          ]
+        },
+        {
+          "id": "entrance-door-leaf",
+          "referenceRole": "check",
+          "axis": "vertical",
+          "a": [
+            559,
+            793
+          ],
+          "b": [
+            559,
+            830
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 4,
+          "meaning": "中央轉角入口玻璃門扇",
+          "method": "原圖同 x 垂直像素線；目視辨識端點，實尺為用途假設，並非實測建築尺寸"
+        }
+      ],
+      "notes": [
+        "主樓層距約 44 px，轉角幕牆細橫格不是樓層；普通門尺比工廈層尺高約 68%。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "evidenceImage": ".data/scale-measurements/civic-industry/industrialBuilding2-02-marked.jpg",
+      "sourceSha256": "3a7cb249bf576c5f2fa0bcc40e4820ddedd5f6178b5755d5a6d84bc53ec5f4c2"
+    },
+    {
+      "path": "Models/industrial/2x2/industrialBuilding2-03.png",
+      "references": [
+        {
+          "id": "factory-three-floors",
+          "referenceRole": "primary",
+          "axis": "vertical",
+          "a": [
+            382,
+            494
+          ],
+          "b": [
+            382,
+            666
+          ],
+          "realM": [
+            11.4,
+            12.6,
+            14.4
+          ],
+          "pixelError": 4,
+          "meaning": "西翼同列工廈窗帶上緣跨 3 層",
+          "method": "原圖同 x，跨 3 個相同樓層節距；按真實樓板／同列窗帶量度，排除幕牆半格；層高為用途假設",
+          "floorIntervals": 3,
+          "assumedFloorHeightM": [
+            3.8,
+            4.2,
+            4.8
+          ]
+        },
+        {
+          "id": "entrance-door-leaf",
+          "referenceRole": "check",
+          "axis": "vertical",
+          "a": [
+            549,
+            786
+          ],
+          "b": [
+            549,
+            820
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 4,
+          "meaning": "前角入口玻璃門扇",
+          "method": "原圖同 x 垂直像素線；目視辨識端點，實尺為用途假設，並非實測建築尺寸"
+        }
+      ],
+      "notes": [
+        "幕牆細橫格不計為樓層；兩尺名義 px/m 約差 19%。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "evidenceImage": ".data/scale-measurements/civic-industry/industrialBuilding2-03-marked.jpg",
+      "sourceSha256": "3e9ef34550434e4e139b880a8d1117dd1ba8cc404016db5d564c16fdf6cb410d"
+    },
+    {
+      "path": "Models/industrial/2x2/industrialBuilding2-04.png",
+      "references": [
+        {
+          "id": "factory-five-floors",
+          "referenceRole": "primary",
+          "axis": "vertical",
+          "a": [
+            366,
+            455
+          ],
+          "b": [
+            366,
+            670
+          ],
+          "realM": [
+            19,
+            21,
+            24
+          ],
+          "pixelError": 5,
+          "meaning": "西翼同列工廈窗帶跨 5 層",
+          "method": "原圖同 x，跨 5 個相同樓層節距；按真實樓板／同列窗帶量度，排除幕牆半格；層高為用途假設",
+          "floorIntervals": 5,
+          "assumedFloorHeightM": [
+            3.8,
+            4.2,
+            4.8
+          ]
+        },
+        {
+          "id": "entrance-door-leaf",
+          "referenceRole": "check",
+          "axis": "vertical",
+          "a": [
+            517,
+            814
+          ],
+          "b": [
+            517,
+            845
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 4,
+          "meaning": "正面轉角玻璃門扇",
+          "method": "原圖同 x 垂直像素線；目視辨識端點，實尺為用途假設，並非實測建築尺寸"
+        }
+      ],
+      "notes": [
+        "中央弧形幕牆每層約有兩排玻璃，不能將每排當一層；入口尺約大 44%。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "evidenceImage": ".data/scale-measurements/civic-industry/industrialBuilding2-04-marked.jpg",
+      "sourceSha256": "fb668a0c35b59a990c40444206ba39fd38f5b3edd3a235dfdc6c129be7f10f2d"
+    },
+    {
+      "path": "Models/industrial/2x2/industrialBuilding2-05.png",
+      "references": [
+        {
+          "id": "factory-five-floors",
+          "referenceRole": "primary",
+          "axis": "vertical",
+          "a": [
+            409,
+            510
+          ],
+          "b": [
+            409,
+            736
+          ],
+          "realM": [
+            19,
+            21,
+            24
+          ],
+          "pixelError": 5,
+          "meaning": "西翼同列工廈窗帶跨 5 層",
+          "method": "原圖同 x，跨 5 個相同樓層節距；按真實樓板／同列窗帶量度，排除幕牆半格；層高為用途假設",
+          "floorIntervals": 5,
+          "assumedFloorHeightM": [
+            3.8,
+            4.2,
+            4.8
+          ]
+        },
+        {
+          "id": "roof-door",
+          "referenceRole": "check",
+          "axis": "vertical",
+          "a": [
+            345,
+            355
+          ],
+          "b": [
+            345,
+            389
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 4,
+          "meaning": "左側屋頂樓梯間門扇",
+          "method": "原圖同 x 垂直像素線；目視辨識端點，實尺為用途假設，並非實測建築尺寸"
+        }
+      ],
+      "notes": [
+        "工廈層距約 45.2 px，屋頂門約 34 px；名義尺相差約 50%。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "evidenceImage": ".data/scale-measurements/civic-industry/industrialBuilding2-05-marked.jpg",
+      "sourceSha256": "7dced9e59eda5ddf77685373e25352c2a1aa561d825930d141c50c94f64e9437"
+    },
+    {
+      "path": "Models/industrial/2x2/industrialBuilding2-06.png",
+      "references": [
+        {
+          "id": "loading-shutter",
+          "referenceRole": "primary",
+          "axis": "vertical",
+          "a": [
+            239,
+            552
+          ],
+          "b": [
+            239,
+            608
+          ],
+          "realM": [
+            3.5,
+            4.5,
+            5.5
+          ],
+          "pixelError": 4,
+          "meaning": "左側裝卸捲閘可通車開口高度；採較寬倉庫淨高假設",
+          "method": "原圖同 x 垂直像素線；目視辨識端點，實尺為用途假設，並非實測建築尺寸"
+        },
+        {
+          "id": "roof-service-door",
+          "referenceRole": "check",
+          "axis": "vertical",
+          "a": [
+            711,
+            419
+          ],
+          "b": [
+            711,
+            452
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 5,
+          "meaning": "右側屋頂小屋維修門扇",
+          "method": "原圖同 x 垂直像素線；目視辨識端點，實尺為用途假設，並非實測建築尺寸"
+        }
+      ],
+      "notes": [
+        "倉庫沒有可確定重複樓層；裝卸捲閘淨高設計未定，屬有假設量度。",
+        "不把外觀不明的貨櫃硬判為 20 呎／40 呎，也不以整輛車的斜向包圍盒當車高。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "evidenceImage": ".data/scale-measurements/civic-industry/industrialBuilding2-06-marked.jpg",
+      "sourceSha256": "66fa33e717ce6143f9a031d33514c834fa3985b82ae27674f3f2f244bda88e52"
+    },
+    {
+      "path": "Models/industrial/2x2/industrialBuilding2-07.png",
+      "references": [
+        {
+          "id": "factory-two-floors",
+          "referenceRole": "primary",
+          "axis": "vertical",
+          "a": [
+            383,
+            562
+          ],
+          "b": [
+            383,
+            660
+          ],
+          "realM": [
+            7.6,
+            8.4,
+            9.6
+          ],
+          "pixelError": 4,
+          "meaning": "前方工廠樓同列三列窗跨 2 層",
+          "method": "原圖同 x，跨 2 個相同樓層節距；按真實樓板／同列窗帶量度，排除幕牆半格；層高為用途假設",
+          "floorIntervals": 2,
+          "assumedFloorHeightM": [
+            3.8,
+            4.2,
+            4.8
+          ]
+        },
+        {
+          "id": "front-service-door",
+          "referenceRole": "check",
+          "axis": "vertical",
+          "a": [
+            396,
+            701
+          ],
+          "b": [
+            396,
+            731
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 4,
+          "meaning": "前方廠樓轉角灰色雙扇維修門上緣至門檻",
+          "method": "原圖同 x 垂直像素線；目視辨識端點，實尺為用途假設，並非實測建築尺寸"
+        }
+      ],
+      "notes": [
+        "筒倉和管道設備沒有獨立規格，採樓層及門尺推定；不是整座真實廠區尺寸。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "evidenceImage": ".data/scale-measurements/civic-industry/industrialBuilding2-07-marked.jpg",
+      "sourceSha256": "deac8bca6b3639d69cadb1f4d85807bd26a9d8bba1c35f26e582c96e5f21b7dc"
+    },
+    {
+      "path": "Models/industrial/3x3/industrialBuilding3-01.png",
+      "references": [
+        {
+          "id": "loading-shutter",
+          "referenceRole": "primary",
+          "axis": "vertical",
+          "a": [
+            297,
+            692
+          ],
+          "b": [
+            297,
+            742
+          ],
+          "realM": [
+            3.5,
+            4.5,
+            5.5
+          ],
+          "pixelError": 5,
+          "meaning": "前方貨台中間裝卸捲閘淨高；不包含貨台地腳",
+          "method": "原圖同 x 垂直像素線；目視辨識端點，實尺為用途假設，並非實測建築尺寸"
+        }
+      ],
+      "notes": [
+        "與 3-02 建築幾何相似，但圖內主體約大 25%；相同 3×3 設定會令物件尺度不同。",
+        "前方茶餐廳門被家具、雨篷及窗格遮擋，不能可靠地當第二條門高尺；因此只有裝卸捲閘作有假設的絕對參考。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "evidenceImage": ".data/scale-measurements/civic-industry/industrialBuilding3-01-marked.jpg",
+      "sourceSha256": "1e675125fd3165f56089b818a35b8e6aa257b4c50926baf001ee4fd0491e721e"
+    },
+    {
+      "path": "Models/industrial/3x3/industrialBuilding3-02.png",
+      "references": [
+        {
+          "id": "loading-shutter",
+          "referenceRole": "primary",
+          "axis": "vertical",
+          "a": [
+            355,
+            727
+          ],
+          "b": [
+            355,
+            766
+          ],
+          "realM": [
+            3.5,
+            4.5,
+            5.5
+          ],
+          "pixelError": 5,
+          "meaning": "前方貨台裝卸捲閘淨高；不包含貨台地腳",
+          "method": "原圖同 x 垂直像素線；目視辨識端點，實尺為用途假設，並非實測建築尺寸"
+        }
+      ],
+      "notes": [
+        "與 3-01 建築相似但圖內主體縮小、前地台較大，不能直接共享校正數字。",
+        "前方茶餐廳門被家具、雨篷及窗格遮擋，不能可靠地當第二條門高尺；因此只有裝卸捲閘作有假設的絕對參考。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "evidenceImage": ".data/scale-measurements/civic-industry/industrialBuilding3-02-marked.jpg",
+      "sourceSha256": "341035aed6a0f011d196cfe24c0eba6a76973e8e209d93ccc711d843f813180f"
+    },
+    {
+      "path": "Models/industrial/2x2/sciencePark2-01.png",
+      "references": [
+        {
+          "id": "lab-two-floors",
+          "referenceRole": "primary",
+          "axis": "vertical",
+          "a": [
+            197,
+            569
+          ],
+          "b": [
+            197,
+            669
+          ],
+          "realM": [
+            7.6,
+            8.4,
+            9.6
+          ],
+          "pixelError": 4,
+          "meaning": "左翼三列實驗室窗帶跨 2 層",
+          "method": "原圖同 x，跨 2 個相同樓層節距；按真實樓板／同列窗帶量度，排除幕牆半格；層高為用途假設",
+          "floorIntervals": 2,
+          "assumedFloorHeightM": [
+            3.8,
+            4.2,
+            4.8
+          ]
+        },
+        {
+          "id": "loading-garage",
+          "referenceRole": "check",
+          "axis": "vertical",
+          "a": [
+            806,
+            663
+          ],
+          "b": [
+            806,
+            722
+          ],
+          "realM": [
+            4,
+            4.5,
+            5
+          ],
+          "pixelError": 5,
+          "meaning": "東側大型裝卸門開口淨高",
+          "method": "原圖同 x 垂直像素線；目視辨識端點，實尺為用途假設，並非實測建築尺寸"
+        },
+        {
+          "id": "entrance-door-leaf",
+          "referenceRole": "check",
+          "axis": "vertical",
+          "a": [
+            445,
+            719
+          ],
+          "b": [
+            445,
+            754
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 4,
+          "meaning": "主入口玻璃門扇",
+          "method": "原圖同 x 垂直像素線；目視辨識端點，實尺為用途假設，並非實測建築尺寸"
+        }
+      ],
+      "notes": [
+        "主樓玻璃有半層細格，採左翼實體樓板分層；主入口門尺比樓層尺大約 40%。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "evidenceImage": ".data/scale-measurements/civic-industry/sciencePark2-01-marked.jpg",
+      "sourceSha256": "71aff7d8527d7f9df3923b76cb1b4331ca97076661aac7d37cae0eaa0dc5c32d"
+    },
+    {
+      "path": "Models/industrial/2x2/sciencePark2-02.png",
+      "references": [
+        {
+          "id": "residential-three-floors",
+          "referenceRole": "primary",
+          "axis": "vertical",
+          "a": [
+            532,
+            414
+          ],
+          "b": [
+            532,
+            593
+          ],
+          "realM": [
+            8.4,
+            9,
+            9.9
+          ],
+          "pixelError": 5,
+          "meaning": "INNOVATION RESIDENCE 住宅同列樓板跨 3 層",
+          "method": "原圖同 x，跨 3 個相同樓層節距；按真實樓板／同列窗帶量度，排除幕牆半格；層高為用途假設",
+          "floorIntervals": 3,
+          "assumedFloorHeightM": [
+            2.8,
+            3,
+            3.3
+          ]
+        },
+        {
+          "id": "adult-front",
+          "referenceRole": "check",
+          "axis": "vertical",
+          "a": [
+            551,
+            725
+          ],
+          "b": [
+            551,
+            757
+          ],
+          "realM": [
+            1.6,
+            1.7,
+            1.8
+          ],
+          "pixelError": 4,
+          "meaning": "前庭直立成人頭頂至腳",
+          "method": "原圖同 x 垂直像素線；目視辨識端點，實尺為用途假設，並非實測建築尺寸"
+        }
+      ],
+      "notes": [
+        "圖中文字及住宅陽台證明用途為住宅，不能因資料夾屬 industrial 而套 4.2 m 工廈層高。",
+        "3 m 住宅層高尺約 19.89 px/m，成人尺約 18.82 px/m，約差 6%。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "evidenceImage": ".data/scale-measurements/civic-industry/sciencePark2-02-marked.jpg",
+      "sourceSha256": "f0735999b503840fc46b9794fc3623d6c80c82becdd53c888ba4bd426dc833ec"
+    },
+    {
+      "path": "Models/industrial/2x2/sciencePark2-04.png",
+      "references": [
+        {
+          "id": "office-four-floors",
+          "referenceRole": "primary",
+          "axis": "vertical",
+          "a": [
+            250,
+            503
+          ],
+          "b": [
+            250,
+            699
+          ],
+          "realM": [
+            15.2,
+            16.8,
+            19.2
+          ],
+          "pixelError": 5,
+          "meaning": "5W 西翼同列辦公窗帶跨 4 層",
+          "method": "原圖同 x，跨 4 個相同樓層節距；按真實樓板／同列窗帶量度，排除幕牆半格；層高為用途假設",
+          "floorIntervals": 4,
+          "assumedFloorHeightM": [
+            3.8,
+            4.2,
+            4.8
+          ]
+        },
+        {
+          "id": "adult-front",
+          "referenceRole": "check",
+          "axis": "vertical",
+          "a": [
+            606,
+            821
+          ],
+          "b": [
+            606,
+            861
+          ],
+          "realM": [
+            1.6,
+            1.7,
+            1.8
+          ],
+          "pixelError": 4,
+          "meaning": "前庭右側直立成人頭頂至腳",
+          "method": "原圖同 x 垂直像素線；目視辨識端點，實尺為用途假設，並非實測建築尺寸"
+        }
+      ],
+      "notes": [
+        "4.2 m 辦公／研發層高尺約 11.67 px/m，成人尺約 23.53 px/m，約 2.02 倍；人物比例須與建築分開重校。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "evidenceImage": ".data/scale-measurements/civic-industry/sciencePark2-04-marked.jpg",
+      "sourceSha256": "10035ab4c801636e6753c1fe84f3b47d633086d1bb6c01ce58affcfe840e9633"
+    },
+    {
+      "path": "Models/industrial/2x2/sicencePark2-03.png",
+      "references": [
+        {
+          "id": "adult-front",
+          "referenceRole": "primary",
+          "axis": "vertical",
+          "a": [
+            627,
+            781
+          ],
+          "b": [
+            627,
+            810
+          ],
+          "realM": [
+            1.6,
+            1.7,
+            1.8
+          ],
+          "pixelError": 4,
+          "meaning": "金蛋前庭綠衣直立成人頭頂至腳",
+          "method": "原圖同 x 垂直像素線；目視辨識端點，實尺為用途假設，並非實測建築尺寸"
+        },
+        {
+          "id": "adult-east",
+          "referenceRole": "check",
+          "axis": "vertical",
+          "a": [
+            756,
+            730
+          ],
+          "b": [
+            756,
+            759
+          ],
+          "realM": [
+            1.6,
+            1.7,
+            1.8
+          ],
+          "pixelError": 4,
+          "meaning": "金蛋東側藍衣直立成人頭頂至腳",
+          "method": "原圖同 x 垂直像素線；目視辨識端點，實尺為用途假設，並非實測建築尺寸"
+        },
+        {
+          "id": "adult-front-east",
+          "referenceRole": "check",
+          "axis": "vertical",
+          "a": [
+            695,
+            808
+          ],
+          "b": [
+            695,
+            838
+          ],
+          "realM": [
+            1.6,
+            1.7,
+            1.8
+          ],
+          "pixelError": 4,
+          "meaning": "金蛋前庭右下藍衣直立成人頭頂至腳",
+          "method": "原圖同 x 垂直像素線；目視辨識端點，實尺為用途假設，並非實測建築尺寸"
+        }
+      ],
+      "notes": [
+        "金蛋沒有可證明的樓層；不能用金色殼面分格當樓層。",
+        "以圖中成人 1.7 m 作假設尺，三個人物分別約 17.06、17.06、17.65 px/m；屬畫面內一致尺，不是金蛋真實尺寸。",
+        "殼外形像素包圍盒 x=287…748、y=489…730；曲面頂／底與基底不是相同地面投影點，不能把包圍盒高直接當殼的物理高度。",
+        "主體支柱、玻璃底盤與地面廣場應分開定義；官方座位數不能推出外殼長闊高。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "pixelGeometry": [
+        {
+          "id": "shell-silhouette-box",
+          "box": [
+            287,
+            489,
+            748,
+            730
+          ],
+          "widthPx": 461,
+          "heightPx": 241,
+          "meaning": "金蛋殼可見外輪廓，不包含斜柱、玻璃底盤或平台"
+        },
+        {
+          "id": "shell-central-chord",
+          "a": [
+            520,
+            490
+          ],
+          "b": [
+            520,
+            724
+          ],
+          "lengthPx": 234,
+          "meaning": "同 x 殼外輪廓像素弦；不是有真實實尺參考的垂直高度"
+        }
+      ],
+      "evidenceImage": ".data/scale-measurements/civic-industry/sicencePark2-03-marked.jpg",
+      "sourceSha256": "91695061eba017b11c82404b6ca0f4b5e5d00624c78e86f33e5bda25f382a989"
+    },
+    {
+      "path": "Models/industrial/3x3/sciencePark3-01.png",
+      "references": [
+        {
+          "id": "office-wing-four-floors",
+          "referenceRole": "primary",
+          "axis": "vertical",
+          "a": [
+            875,
+            462
+          ],
+          "b": [
+            875,
+            597
+          ],
+          "realM": [
+            15.2,
+            16.8,
+            19.2
+          ],
+          "pixelError": 5,
+          "meaning": "東側辦公翼樓同列窄窗跨 4 層",
+          "method": "原圖同 x，跨 4 個相同樓層節距；按真實樓板／同列窗帶量度，排除幕牆半格；層高為用途假設",
+          "floorIntervals": 4,
+          "assumedFloorHeightM": [
+            3.8,
+            4.2,
+            4.8
+          ]
+        },
+        {
+          "id": "front-door-leaf",
+          "referenceRole": "check",
+          "axis": "vertical",
+          "a": [
+            470,
+            625
+          ],
+          "b": [
+            470,
+            661
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 5,
+          "meaning": "玻璃入口門扇，排除上方雨篷及橫樑",
+          "method": "原圖同 x 垂直像素線；目視辨識端點，實尺為用途假設，並非實測建築尺寸"
+        }
+      ],
+      "notes": [
+        "中央中庭有較高展覽樓層，東翼窄窗層距約 33.75 px；不把中庭幕牆細格算成樓層。",
+        "普通門尺約 17.14 px/m，東翼層尺約 8.04 px/m，約 2.13 倍；若入口是特製高門，需先指定門高後才可定案。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "evidenceImage": ".data/scale-measurements/civic-industry/sciencePark3-01-marked.jpg",
+      "sourceSha256": "0352dc9ef23ce0e8ceeedbbf85981387954a3b0fb86abd4d8fe0d197b79e1308"
+    },
+    {
+      "path": "Models/industrial/3x3/sciencePark3-02.png",
+      "references": [
+        {
+          "id": "office-wing-four-floors",
+          "referenceRole": "primary",
+          "axis": "vertical",
+          "a": [
+            400,
+            510
+          ],
+          "b": [
+            400,
+            638
+          ],
+          "realM": [
+            15.2,
+            16.8,
+            19.2
+          ],
+          "pixelError": 5,
+          "meaning": "19W 西翼同列辦公窗帶跨 4 層",
+          "method": "原圖同 x，跨 4 個相同樓層節距；按真實樓板／同列窗帶量度，排除幕牆半格；層高為用途假設",
+          "floorIntervals": 4,
+          "assumedFloorHeightM": [
+            3.8,
+            4.2,
+            4.8
+          ]
+        },
+        {
+          "id": "front-door-leaf",
+          "referenceRole": "check",
+          "axis": "vertical",
+          "a": [
+            578,
+            738
+          ],
+          "b": [
+            578,
+            763
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 5,
+          "meaning": "19W 主入口玻璃門扇",
+          "method": "原圖同 x 垂直像素線；目視辨識端點，實尺為用途假設，並非實測建築尺寸"
+        }
+      ],
+      "notes": [
+        "辦公窗帶層距約 32 px；中央幕牆半格不可算樓層。",
+        "4.2 m 層高尺約 7.62 px/m，普通門尺約 11.90 px/m，差約 56%。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "evidenceImage": ".data/scale-measurements/civic-industry/sciencePark3-02-marked.jpg",
+      "sourceSha256": "2c33a07da7da7eb80646841818314b56b6f83c3188365f544b4f9dd40989499c"
+    }
+  ]
+}

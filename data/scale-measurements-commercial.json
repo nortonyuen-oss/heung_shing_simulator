@@ -1,0 +1,1402 @@
+{
+  "category": "commercial",
+  "measurementDate": "2026-10-17",
+  "unit": "original-source-pixel",
+  "referencePolicy": "像素端點可覆核；realM 是明列的建築類型尺寸假設或地標目標，不是從插畫單獨量出的已知實米。referenceRole=check 的入口、人物或車輛不可與主參考盲目平均。",
+  "assets": [
+    {
+      "path": "Models/commercial/1x1/commercialBuilding1-01-L.png",
+      "references": [
+        {
+          "id": "tonglau-two-pitches",
+          "axis": "vertical",
+          "a": [
+            200,
+            350
+          ],
+          "b": [
+            200,
+            567
+          ],
+          "realM": [
+            6.4,
+            7,
+            7.6
+          ],
+          "pixelError": 5,
+          "meaning": "左面三排窗的相同垂直位置，跨 2 個層高；每層假設 3.2/3.5/3.8 m。",
+          "method": "本次逐張檢視原始 PNG、50 px 座標格網及局部 2× 放大圖；端點是原始圖像座標，實米為明列的類型假設。",
+          "referenceRole": "primary",
+          "storeyIntervals": 2
+        },
+        {
+          "id": "roof-door-check",
+          "axis": "vertical",
+          "a": [
+            479,
+            174
+          ],
+          "b": [
+            479,
+            235
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 4,
+          "meaning": "天台小屋可辨單扇門的門框內淨高。",
+          "method": "本次逐張檢視原始 PNG、50 px 座標格網及局部 2× 放大圖；端點是原始圖像座標，實米為明列的類型假設。",
+          "referenceRole": "check"
+        }
+      ],
+      "notes": [
+        "量上層唐樓窗距，不將地下招牌、簷篷或天台加建計成標準樓層。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "5cd7c0a16132e288f47dff6ca4877a098d4de249bc60ade55c65d3cfc92513cd"
+    },
+    {
+      "path": "Models/commercial/1x1/commercialBuilding1-02-M.png",
+      "references": [
+        {
+          "id": "labelled-2f-to-5f",
+          "axis": "vertical",
+          "a": [
+            665,
+            269
+          ],
+          "b": [
+            665,
+            530
+          ],
+          "realM": [
+            10.8,
+            12,
+            13.2
+          ],
+          "pixelError": 5,
+          "meaning": "右面招牌有 5F、4F、3F、2F 標示，量 5F 與 2F 中心的三個層距，跨 3 個層高；每層假設 3.6/4/4.4 m。",
+          "method": "本次逐張檢視原始 PNG、50 px 座標格網及局部 2× 放大圖；端點是原始圖像座標，實米為明列的類型假設。",
+          "referenceRole": "primary",
+          "storeyIntervals": 3
+        },
+        {
+          "id": "shop-door-check",
+          "axis": "vertical",
+          "a": [
+            456,
+            768
+          ],
+          "b": [
+            456,
+            821
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 5,
+          "meaning": "地下麥當勞玻璃門可辨門扇淨高，不包括上方橫樑及招牌。",
+          "method": "本次逐張檢視原始 PNG、50 px 座標格網及局部 2× 放大圖；端點是原始圖像座標，實米為明列的類型假設。",
+          "referenceRole": "check"
+        }
+      ],
+      "notes": [
+        "樓層文字可確認層數；廣告上下邊框不是額外樓層。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "dadbbbab80b59af86e1c9f977a341dc951ecea5532a05075bc635d3a726db496"
+    },
+    {
+      "path": "Models/commercial/1x1/commercialBuilding1-03-L.png",
+      "references": [
+        {
+          "id": "tonglau-four-pitches",
+          "axis": "vertical",
+          "a": [
+            350,
+            359
+          ],
+          "b": [
+            350,
+            688
+          ],
+          "realM": [
+            12.8,
+            14,
+            15.2
+          ],
+          "pixelError": 5,
+          "meaning": "左立面五排窗相同上框位置，跨 4 個層高；每層假設 3.2/3.5/3.8 m。",
+          "method": "本次逐張檢視原始 PNG、50 px 座標格網及局部 2× 放大圖；端點是原始圖像座標，實米為明列的類型假設。",
+          "referenceRole": "primary",
+          "storeyIntervals": 4
+        },
+        {
+          "id": "commercial-door-check",
+          "axis": "vertical",
+          "a": [
+            532,
+            881
+          ],
+          "b": [
+            532,
+            956
+          ],
+          "realM": [
+            2.4,
+            2.8,
+            3.2
+          ],
+          "pixelError": 5,
+          "meaning": "地下中央雙扇入口門高；商業入口可能高於住宅門。",
+          "method": "本次逐張檢視原始 PNG、50 px 座標格網及局部 2× 放大圖；端點是原始圖像座標，實米為明列的類型假設。",
+          "referenceRole": "check"
+        }
+      ],
+      "notes": [
+        "入口含大型商業門，採較寬的 2.4–3.2 m 假設。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "c7526679d7e74829e0858edaa153cf24fa31e1e7db6818d26512c84c452ab229"
+    },
+    {
+      "path": "Models/commercial/1x1/commercialBuilding1-04-M.png",
+      "references": [
+        {
+          "id": "taxi-body-length",
+          "axis": "se",
+          "a": [
+            249,
+            699
+          ],
+          "b": [
+            345,
+            747
+          ],
+          "realM": [
+            4.5,
+            4.7,
+            4.9
+          ],
+          "pixelError": 6,
+          "meaning": "紅色的士同側車身由後保險桿至前保險桿的地圖東南軸長度，排除車頂高度。",
+          "method": "本次逐張檢視原始 PNG、50 px 座標格網及局部 2× 放大圖；端點是原始圖像座標，實米為明列的類型假設。",
+          "referenceRole": "primary"
+        },
+        {
+          "id": "station-shop-door-check",
+          "axis": "vertical",
+          "a": [
+            614,
+            605
+          ],
+          "b": [
+            614,
+            653
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 5,
+          "meaning": "加油站商店中央可辨入口門的淨高。",
+          "method": "本次逐張檢視原始 PNG、50 px 座標格網及局部 2× 放大圖；端點是原始圖像座標，實米為明列的類型假設。",
+          "referenceRole": "check"
+        }
+      ],
+      "notes": [
+        "車身沿 SE 地圖軸，並非以整車外接矩形的對角線量度。",
+        "車輛長度為香港常見轎車的假設範圍，並非此張插畫的已知廠牌實尺。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "1e9e6c4b02285aa84628a0f870bdfdbbe6e382689d39bb0dc20d09d71ee17f39"
+    },
+    {
+      "path": "Models/commercial/1x1/commercialBuilding1-05-L.png",
+      "references": [
+        {
+          "id": "sedan-wheelbase",
+          "axis": "se",
+          "a": [
+            457,
+            907
+          ],
+          "b": [
+            546,
+            951
+          ],
+          "realM": [
+            2.6,
+            2.8,
+            3
+          ],
+          "pixelError": 4,
+          "meaning": "灰色私家車可辨同側前後輪中心距，兩輪位於同一地圖東南軸及相同高度；採一般中型轎車軸距假設。",
+          "method": "本次逐張檢視原始 PNG、50 px 座標格網及局部 2× 放大圖；端點是原始圖像座標，實米為明列的類型假設。",
+          "referenceRole": "primary"
+        },
+        {
+          "id": "parking-depth-check",
+          "axis": "se",
+          "a": [
+            537,
+            833
+          ],
+          "b": [
+            793,
+            961
+          ],
+          "realM": [
+            4.8,
+            5,
+            5.2
+          ],
+          "pixelError": 8,
+          "meaning": "第 2 個泊位靠背車擋附近至前方界線，沿同一東南軸的車位深度。",
+          "method": "本次逐張檢視原始 PNG、50 px 座標格網及局部 2× 放大圖；端點是原始圖像座標，實米為明列的類型假設。",
+          "referenceRole": "check"
+        }
+      ],
+      "notes": [
+        "本圖為 1536×1536，端點沒有縮到 1024 座標。",
+        "停車格界線受車身遮擋，車位端點約 ±8 px；車身是主參考。",
+        "車身前後彎曲保險桿的端點容易混入車寬，因此主參考改用同側清楚的輪心；車位深度為第二檢查，與車輪距有明顯差異。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "88b974946b67672dec06a01160c5ddee4202185ca430322148237ebc4555c0be"
+    },
+    {
+      "path": "Models/commercial/2x2/commercialBuilding2-02-H.png",
+      "references": [
+        {
+          "id": "bridge-guardrail",
+          "axis": "vertical",
+          "a": [
+            651,
+            611
+          ],
+          "b": [
+            651,
+            625
+          ],
+          "realM": [
+            1,
+            1.1,
+            1.2
+          ],
+          "pixelError": 3,
+          "meaning": "上層行人橋前方綠色欄杆頂至橋面同一 x 的垂直高度。",
+          "method": "本次逐張檢視原始 PNG、50 px 座標格網及局部 2× 放大圖；端點是原始圖像座標，實米為明列的類型假設。",
+          "referenceRole": "primary"
+        },
+        {
+          "id": "bridge-clearance-check",
+          "axis": "vertical",
+          "a": [
+            671,
+            651
+          ],
+          "b": [
+            671,
+            728
+          ],
+          "realM": [
+            4.5,
+            5,
+            5.5
+          ],
+          "pixelError": 6,
+          "meaning": "右前方橋墩：橋底至地下鋪地；以可能跨道路的一般行人橋淨空 4.5–5.5 m 作較寬檢查。",
+          "method": "本次逐張檢視原始 PNG、50 px 座標格網及局部 2× 放大圖；端點是原始圖像座標，實米為明列的類型假設。",
+          "referenceRole": "check"
+        }
+      ],
+      "notes": [
+        "無標準樓層，採欄杆高度假設；橋底淨空屬設計值，不是可由圖片證實的實尺。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "f2f2e1503f921e76be3fb9b1c66f5b655285884f823de155abcd011bf18f5c71"
+    },
+    {
+      "path": "Models/commercial/2x2/commercialBuilding2-03-M.png",
+      "references": [
+        {
+          "id": "office-five-pitches",
+          "axis": "vertical",
+          "a": [
+            320,
+            355
+          ],
+          "b": [
+            320,
+            621
+          ],
+          "realM": [
+            18,
+            20,
+            22
+          ],
+          "pixelError": 5,
+          "meaning": "同一立面可辨樓層的相同位置，跨 5 個層高；每層假設 3.6/4/4.4 m。",
+          "method": "本次逐張檢視原始 PNG、50 px 座標格網及局部 2× 放大圖；端點是原始圖像座標，實米為明列的類型假設。",
+          "referenceRole": "primary",
+          "storeyIntervals": 5
+        },
+        {
+          "id": "lobby-door-check",
+          "axis": "vertical",
+          "a": [
+            512,
+            739
+          ],
+          "b": [
+            512,
+            788
+          ],
+          "realM": [
+            2.4,
+            2.8,
+            3.2
+          ],
+          "pixelError": 5,
+          "meaning": "中央玻璃入口門扇高，排除門上方玻璃及雨篷。",
+          "method": "本次逐張檢視原始 PNG、50 px 座標格網及局部 2× 放大圖；端點是原始圖像座標，實米為明列的類型假設。",
+          "referenceRole": "check"
+        }
+      ],
+      "notes": [
+        "六排上層辦公窗只跨五個層高；不可把六排窗中心之差當六層。",
+        "大堂入口可能誇大，與辦公樓層參考分開顯示。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "58bc1499d1b9869d7a0f99d19117cf44f8609cd4e3d0b331a7ae6c08a874c2bb"
+    },
+    {
+      "path": "Models/commercial/2x2/commercialBuilding2-04-M.png",
+      "references": [
+        {
+          "id": "deck-guardrail",
+          "axis": "vertical",
+          "a": [
+            790,
+            591
+          ],
+          "b": [
+            790,
+            610
+          ],
+          "realM": [
+            1,
+            1.1,
+            1.2
+          ],
+          "pixelError": 3,
+          "meaning": "上層平台右前方透明欄杆的清楚立柱頂至同一立柱腳；不是後方雨棚柱。",
+          "method": "本次逐張檢視原始 PNG、50 px 座標格網及局部 2× 放大圖；端點是原始圖像座標，實米為明列的類型假設。",
+          "referenceRole": "primary"
+        }
+      ],
+      "notes": [
+        "樓梯的斜長混合水平距離與高度，不作垂直層高；主參考是平台欄杆。",
+        "商店門上半部被簷篷遮擋，沒有把可見半截玻璃誤當完整門高；本款只有一條可用絕對尺寸假設線。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "0d0b811c5c7e4b6e8f68ef32739479cc2f32e6ffc51776615dbd67e8379fe9cb"
+    },
+    {
+      "path": "Models/commercial/2x2/commercialBuilding2-05-L.png",
+      "references": [
+        {
+          "id": "office-three-pitches",
+          "axis": "vertical",
+          "a": [
+            360,
+            382
+          ],
+          "b": [
+            360,
+            546
+          ],
+          "realM": [
+            10.8,
+            12,
+            13.2
+          ],
+          "pixelError": 5,
+          "meaning": "同一立面可辨樓層的相同位置，跨 3 個層高；每層假設 3.6/4/4.4 m。",
+          "method": "本次逐張檢視原始 PNG、50 px 座標格網及局部 2× 放大圖；端點是原始圖像座標，實米為明列的類型假設。",
+          "referenceRole": "primary",
+          "storeyIntervals": 3
+        },
+        {
+          "id": "commercial-door-check",
+          "axis": "vertical",
+          "a": [
+            510,
+            730
+          ],
+          "b": [
+            510,
+            779
+          ],
+          "realM": [
+            2.4,
+            2.8,
+            3.2
+          ],
+          "pixelError": 5,
+          "meaning": "地下中央商場入口雙扇門淨高。",
+          "method": "本次逐張檢視原始 PNG、50 px 座標格網及局部 2× 放大圖；端點是原始圖像座標，實米為明列的類型假設。",
+          "referenceRole": "check"
+        }
+      ],
+      "notes": [
+        "四排辦公窗只跨三個層距；地下商場及招牌平台另計。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "600bfdecf7ed83ac3fb0da0b978d01302d82fe4fc80fdc4dc6e63fe220ca2d22"
+    },
+    {
+      "path": "Models/commercial/2x2/commercialBuilding2-06-L.png",
+      "references": [
+        {
+          "id": "commercial-seven-pitches",
+          "axis": "vertical",
+          "a": [
+            700,
+            242
+          ],
+          "b": [
+            700,
+            619
+          ],
+          "realM": [
+            25.2,
+            28,
+            30.8
+          ],
+          "pixelError": 5,
+          "meaning": "同一立面可辨樓層的相同位置，跨 7 個層高；每層假設 3.6/4/4.4 m。",
+          "method": "本次逐張檢視原始 PNG、50 px 座標格網及局部 2× 放大圖；端點是原始圖像座標，實米為明列的類型假設。",
+          "referenceRole": "primary",
+          "storeyIntervals": 7
+        },
+        {
+          "id": "pedestrian-check",
+          "axis": "vertical",
+          "a": [
+            648,
+            790
+          ],
+          "b": [
+            648,
+            826
+          ],
+          "realM": [
+            1.6,
+            1.7,
+            1.8
+          ],
+          "pixelError": 4,
+          "meaning": "畫內站立人物頭頂至腳底；人物可能為刻意放大的裝飾圖示，僅作獨立比例檢查。",
+          "method": "本次逐張檢視原始 PNG、50 px 座標格網及局部 2× 放大圖；端點是原始圖像座標，實米為明列的類型假設。",
+          "referenceRole": "check"
+        }
+      ],
+      "notes": [
+        "上層可辨室內桌椅與整排廣告分隔，用七個重複層距；有招牌遮擋的部分不另加層。",
+        "人物比上層樓層推算的比例大，應保留檢查偏差。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "fd9d27fd08479529197f3b1c92894659fefef53ebd8054e90aebcedd3eed777d"
+    },
+    {
+      "path": "Models/commercial/3x3/commercialBuilding3-01-H.png",
+      "references": [
+        {
+          "id": "occupied-seven-pitches",
+          "axis": "vertical",
+          "a": [
+            300,
+            244
+          ],
+          "b": [
+            300,
+            558
+          ],
+          "realM": [
+            25.2,
+            28,
+            30.8
+          ],
+          "pixelError": 5,
+          "meaning": "左塔可辨辦公桌椅的八排室內帶相同位置，跨 7 個層高；每層假設 3.6/4/4.4 m。",
+          "method": "本次逐張檢視原始 PNG、50 px 座標格網及局部 2× 放大圖；端點是原始圖像座標，實米為明列的類型假設。",
+          "referenceRole": "primary",
+          "storeyIntervals": 7
+        },
+        {
+          "id": "pedestrian-check",
+          "axis": "vertical",
+          "a": [
+            329,
+            741
+          ],
+          "b": [
+            329,
+            780
+          ],
+          "realM": [
+            1.6,
+            1.7,
+            1.8
+          ],
+          "pixelError": 4,
+          "meaning": "畫內站立人物頭頂至腳底；人物可能為刻意放大的裝飾圖示，僅作獨立比例檢查。",
+          "method": "本次逐張檢視原始 PNG、50 px 座標格網及局部 2× 放大圖；端點是原始圖像座標，實米為明列的類型假設。",
+          "referenceRole": "check"
+        }
+      ],
+      "notes": [
+        "每個可辨辦公層含窗面及較窄的橫帶；不把窄橫帶計為第二層。",
+        "廣場人物明顯偏大，重新製作時應與建築本體分別處理。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "2efcdad94b36cb8b10c3b93a7ef07757b813994ebe62ef7b75fd23ec391c71c4"
+    },
+    {
+      "path": "Models/commercial/3x3/commercialBuilding3-03-M.png",
+      "references": [
+        {
+          "id": "assumed-six-pitches",
+          "axis": "vertical",
+          "a": [
+            450,
+            399
+          ],
+          "b": [
+            450,
+            652
+          ],
+          "realM": [
+            21.6,
+            24,
+            26.4
+          ],
+          "pixelError": 5,
+          "meaning": "主樓立面十二個細幕牆格，暫以兩格一層對應六個層距，跨 6 個層高；每層假設 3.6/4/4.4 m。",
+          "method": "本次逐張檢視原始 PNG、50 px 座標格網及局部 2× 放大圖；端點是原始圖像座標，實米為明列的類型假設。",
+          "referenceRole": "primary",
+          "storeyIntervals": 6
+        },
+        {
+          "id": "pedestrian-check",
+          "axis": "vertical",
+          "a": [
+            328,
+            758
+          ],
+          "b": [
+            328,
+            792
+          ],
+          "realM": [
+            1.6,
+            1.7,
+            1.8
+          ],
+          "pixelError": 4,
+          "meaning": "畫內站立人物頭頂至腳底；人物可能為刻意放大的裝飾圖示，僅作獨立比例檢查。",
+          "method": "本次逐張檢視原始 PNG、50 px 座標格網及局部 2× 放大圖；端點是原始圖像座標，實米為明列的類型假設。",
+          "referenceRole": "check"
+        }
+      ],
+      "notes": [
+        "幕牆細格沒有可辨樓板或室內人物；「兩格一層」只是一個明示情境，不能稱為已證實樓層。",
+        "廣場人物檢查比幕牆情境約大一倍；需原建模層數或重新設計樓板。"
+      ],
+      "status": "ambiguous-reference",
+      "sourceSha256": "ae68a4751abf601ee57826d7215e096d8e2dc813dc2e732a0600b5dcb3ccc663"
+    },
+    {
+      "path": "Models/commercial/3x3/commercialBuilding3-04-H.png",
+      "references": [
+        {
+          "id": "hotel-four-pitches",
+          "axis": "vertical",
+          "a": [
+            430,
+            321
+          ],
+          "b": [
+            430,
+            495
+          ],
+          "realM": [
+            12.8,
+            14,
+            15.2
+          ],
+          "pixelError": 5,
+          "meaning": "中間酒店塔樓完整客房窗的同一上框位置，跨 4 個層高；每層假設 3.2/3.5/3.8 m。",
+          "method": "本次逐張檢視原始 PNG、50 px 座標格網及局部 2× 放大圖；端點是原始圖像座標，實米為明列的類型假設。",
+          "referenceRole": "primary",
+          "storeyIntervals": 4
+        },
+        {
+          "id": "hotel-entry-check",
+          "axis": "vertical",
+          "a": [
+            355,
+            639
+          ],
+          "b": [
+            355,
+            676
+          ],
+          "realM": [
+            2.4,
+            2.8,
+            3.2
+          ],
+          "pixelError": 5,
+          "meaning": "酒店入口中央門扇，排除上方雨篷及玻璃橫楣。",
+          "method": "本次逐張檢視原始 PNG、50 px 座標格網及局部 2× 放大圖；端點是原始圖像座標，實米為明列的類型假設。",
+          "referenceRole": "check"
+        }
+      ],
+      "notes": [
+        "酒店客房採 3.2–3.8 m 層高；平台大堂與上層客房不共用層高。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "ba63929eb6d8a8ca75158733a23d6ebd9b315fbf8e5c9bef707951c9c15b417e"
+    },
+    {
+      "path": "Models/commercial/3x3/commercialBuilding3-05-UH.png",
+      "references": [
+        {
+          "id": "lower-office-five-pitches",
+          "axis": "vertical",
+          "a": [
+            400,
+            394
+          ],
+          "b": [
+            400,
+            533
+          ],
+          "realM": [
+            18,
+            20,
+            22
+          ],
+          "pixelError": 5,
+          "meaning": "下段懸掛辦公室六排完整玻璃窗的相同高度位置，跨 5 個層高；每層假設 3.6/4/4.4 m。",
+          "method": "本次逐張檢視原始 PNG、50 px 座標格網及局部 2× 放大圖；端點是原始圖像座標，實米為明列的類型假設。",
+          "referenceRole": "primary",
+          "storeyIntervals": 5
+        },
+        {
+          "id": "upper-office-check",
+          "axis": "vertical",
+          "a": [
+            400,
+            215
+          ],
+          "b": [
+            400,
+            299
+          ],
+          "realM": [
+            10.8,
+            12,
+            13.2
+          ],
+          "pixelError": 5,
+          "meaning": "上段可辨辦公窗相同位置跨三個層距，與下段分開檢查。",
+          "method": "本次逐張檢視原始 PNG、50 px 座標格網及局部 2× 放大圖；端點是原始圖像座標，實米為明列的類型假設。",
+          "referenceRole": "check",
+          "storeyIntervals": 3
+        }
+      ],
+      "notes": [
+        "鋼斜撐及中間設備／轉換層不應硬當成標準辦公層。",
+        "本次量重複窗距約 28 px／層；舊量度把包含大空隙的整段除以十層，會高估每層像素。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "2c84b038594fe3e49733886cfab3b192929f12ecb46c233ced8527b1253fa8ac"
+    },
+    {
+      "path": "Models/commercial/3x3/commercialBuilding3-07-M.png",
+      "references": [
+        {
+          "id": "assumed-four-pitches",
+          "axis": "vertical",
+          "a": [
+            320,
+            184
+          ],
+          "b": [
+            320,
+            370
+          ],
+          "realM": [
+            14.4,
+            16,
+            17.6
+          ],
+          "pixelError": 5,
+          "meaning": "左塔八個重複幕牆大橫帶，暫以兩帶為一層，跨四個層距，跨 4 個層高；每層假設 3.6/4/4.4 m。",
+          "method": "本次逐張檢視原始 PNG、50 px 座標格網及局部 2× 放大圖；端點是原始圖像座標，實米為明列的類型假設。",
+          "referenceRole": "primary",
+          "storeyIntervals": 4
+        },
+        {
+          "id": "pedestrian-check",
+          "axis": "vertical",
+          "a": [
+            519,
+            556
+          ],
+          "b": [
+            519,
+            579
+          ],
+          "realM": [
+            1.6,
+            1.7,
+            1.8
+          ],
+          "pixelError": 4,
+          "meaning": "畫內站立人物頭頂至腳底；人物可能為刻意放大的裝飾圖示，僅作獨立比例檢查。",
+          "method": "本次逐張檢視原始 PNG、50 px 座標格網及局部 2× 放大圖；端點是原始圖像座標，實米為明列的類型假設。",
+          "referenceRole": "check"
+        }
+      ],
+      "notes": [
+        "玻璃塔沒有可辨室內樓板或人；兩橫帶一層是待原模型確認的假設。",
+        "若每橫帶就是一層，反推米數會加倍；這個分支必須列在報告。"
+      ],
+      "status": "ambiguous-reference",
+      "sourceSha256": "9fd70533dca2024ce179ea5404066f635d2c4f0914ca569c7d7d93c7a6e7fbc4"
+    },
+    {
+      "path": "Models/commercial/3x3/commercialBuilding3-08-H.png",
+      "references": [
+        {
+          "id": "round-window-twelve-pitches",
+          "axis": "vertical",
+          "a": [
+            274,
+            170
+          ],
+          "b": [
+            274,
+            571
+          ],
+          "realM": [
+            43.2,
+            48,
+            52.8
+          ],
+          "pixelError": 5,
+          "meaning": "同一立面可辨樓層的相同位置，跨 12 個層高；每層假設 3.6/4/4.4 m。",
+          "method": "本次逐張檢視原始 PNG、50 px 座標格網及局部 2× 放大圖；端點是原始圖像座標，實米為明列的類型假設。",
+          "referenceRole": "primary",
+          "storeyIntervals": 12
+        },
+        {
+          "id": "pedestrian-check",
+          "axis": "vertical",
+          "a": [
+            338,
+            688
+          ],
+          "b": [
+            338,
+            725
+          ],
+          "realM": [
+            1.6,
+            1.7,
+            1.8
+          ],
+          "pixelError": 4,
+          "meaning": "畫內站立人物頭頂至腳底；人物可能為刻意放大的裝飾圖示，僅作獨立比例檢查。",
+          "method": "本次逐張檢視原始 PNG、50 px 座標格網及局部 2× 放大圖；端點是原始圖像座標，實米為明列的類型假設。",
+          "referenceRole": "check"
+        }
+      ],
+      "notes": [
+        "同一欄的十三排圓窗中心跨十二個層距；按一排圓窗對應一層作假設，並非幕牆小格計數。",
+        "廣場人物與圓窗層高的尺度不一致，需分開校正。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "8a4f3718328635d621dbff452f8997f6098e817313c1a645b037d14dfe3e54a3"
+    },
+    {
+      "path": "Models/commercial/3x3/commercialBuilding3-09-M.png",
+      "references": [
+        {
+          "id": "office-ten-pitches",
+          "axis": "vertical",
+          "a": [
+            590,
+            366
+          ],
+          "b": [
+            590,
+            641
+          ],
+          "realM": [
+            36,
+            40,
+            44
+          ],
+          "pixelError": 5,
+          "meaning": "同一立面可辨樓層的相同位置，跨 10 個層高；每層假設 3.6/4/4.4 m。",
+          "method": "本次逐張檢視原始 PNG、50 px 座標格網及局部 2× 放大圖；端點是原始圖像座標，實米為明列的類型假設。",
+          "referenceRole": "primary",
+          "storeyIntervals": 10
+        },
+        {
+          "id": "pedestrian-check",
+          "axis": "vertical",
+          "a": [
+            542,
+            873
+          ],
+          "b": [
+            542,
+            902
+          ],
+          "realM": [
+            1.6,
+            1.7,
+            1.8
+          ],
+          "pixelError": 4,
+          "meaning": "畫內站立人物頭頂至腳底；人物可能為刻意放大的裝飾圖示，僅作獨立比例檢查。",
+          "method": "本次逐張檢視原始 PNG、50 px 座標格網及局部 2× 放大圖；端點是原始圖像座標，實米為明列的類型假設。",
+          "referenceRole": "check"
+        }
+      ],
+      "notes": [
+        "取塔樓右立面十一條可辨辦公室帶，跨十個層距；屋頂金字塔、尖頂及平台不計入。",
+        "街上人物顯著比辦公樓層比例大，整圖統一放大無法同時對齊兩者。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "8d22ef516bda4c996c83745a23540c9ebf95723833f579adcf69cd7961115085"
+    },
+    {
+      "path": "Models/commercial/3x3/commercialBuilding3-10-M.png",
+      "references": [
+        {
+          "id": "office-six-pitches",
+          "axis": "vertical",
+          "a": [
+            450,
+            451
+          ],
+          "b": [
+            450,
+            702
+          ],
+          "realM": [
+            21.6,
+            24,
+            26.4
+          ],
+          "pixelError": 5,
+          "meaning": "同一立面可辨樓層的相同位置，跨 6 個層高；每層假設 3.6/4/4.4 m。",
+          "method": "本次逐張檢視原始 PNG、50 px 座標格網及局部 2× 放大圖；端點是原始圖像座標，實米為明列的類型假設。",
+          "referenceRole": "primary",
+          "storeyIntervals": 6
+        },
+        {
+          "id": "taxi-wheelbase-check",
+          "axis": "se",
+          "a": [
+            277,
+            853
+          ],
+          "b": [
+            324,
+            874
+          ],
+          "realM": [
+            2.5,
+            2.7,
+            2.9
+          ],
+          "pixelError": 4,
+          "meaning": "黃色的士同側後輪及前輪中心距；兩輪同高，沿東南地圖軸。採一般轎車 2.5–2.9 m 軸距假設。",
+          "method": "本次逐張檢視原始 PNG、50 px 座標格網及局部 2× 放大圖；端點是原始圖像座標，實米為明列的類型假設。",
+          "referenceRole": "check"
+        }
+      ],
+      "notes": [
+        "取連續七條完整窗帶相同三線橫樑位置，跨六層；大堂雨篷不當成一層。",
+        "車身長度參考可能與幕牆比例不符，兩者不取平均。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "43018ee539209cd3430ae443ae40fa221664319e011d3720f6d6fb328636d84b"
+    },
+    {
+      "path": "Models/commercial/3x3/commercialBuilding3-11-H.png",
+      "references": [
+        {
+          "id": "round-window-six-pitches",
+          "axis": "vertical",
+          "a": [
+            242,
+            232
+          ],
+          "b": [
+            242,
+            523
+          ],
+          "realM": [
+            21.6,
+            24,
+            26.4
+          ],
+          "pixelError": 5,
+          "meaning": "同一立面可辨樓層的相同位置，跨 6 個層高；每層假設 3.6/4/4.4 m。",
+          "method": "本次逐張檢視原始 PNG、50 px 座標格網及局部 2× 放大圖；端點是原始圖像座標，實米為明列的類型假設。",
+          "referenceRole": "primary",
+          "storeyIntervals": 6
+        },
+        {
+          "id": "pedestrian-check",
+          "axis": "vertical",
+          "a": [
+            324,
+            764
+          ],
+          "b": [
+            324,
+            808
+          ],
+          "realM": [
+            1.6,
+            1.7,
+            1.8
+          ],
+          "pixelError": 4,
+          "meaning": "畫內站立人物頭頂至腳底；人物可能為刻意放大的裝飾圖示，僅作獨立比例檢查。",
+          "method": "本次逐張檢視原始 PNG、50 px 座標格網及局部 2× 放大圖；端點是原始圖像座標，實米為明列的類型假設。",
+          "referenceRole": "check"
+        }
+      ],
+      "notes": [
+        "七排圓窗中心跨六層，右側可辨辦公帶協助確認對應；大堂另計。",
+        "畫內人物明顯偏大，宜在素材內獨立重校。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "fc0f7192104bdfcf70cb6f4aa1f7262260cb7523839a4a20c61d86ef940a365d"
+    },
+    {
+      "path": "Models/commercial/3x3/commercialBuilding3-12-M.png",
+      "references": [
+        {
+          "id": "retail-two-pitches",
+          "axis": "vertical",
+          "a": [
+            510,
+            677
+          ],
+          "b": [
+            510,
+            759
+          ],
+          "realM": [
+            8,
+            9,
+            10
+          ],
+          "pixelError": 5,
+          "meaning": "中央弧形玻璃三排有顧客的零售樓層相同位置，跨 2 個層高；每層假設 4/4.5/5 m。",
+          "method": "本次逐張檢視原始 PNG、50 px 座標格網及局部 2× 放大圖；端點是原始圖像座標，實米為明列的類型假設。",
+          "referenceRole": "primary",
+          "storeyIntervals": 2
+        },
+        {
+          "id": "pedestrian-check",
+          "axis": "vertical",
+          "a": [
+            513,
+            910
+          ],
+          "b": [
+            513,
+            934
+          ],
+          "realM": [
+            1.6,
+            1.7,
+            1.8
+          ],
+          "pixelError": 4,
+          "meaning": "畫內站立人物頭頂至腳底；人物可能為刻意放大的裝飾圖示，僅作獨立比例檢查。",
+          "method": "本次逐張檢視原始 PNG、50 px 座標格網及局部 2× 放大圖；端點是原始圖像座標，實米為明列的類型假設。",
+          "referenceRole": "check"
+        }
+      ],
+      "notes": [
+        "只量可辨零售樓層；上面的大招牌遮蓋樓層，不能由廣告板高度補算。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "df4ce80489cf9683fee09285afc7b5a22ea7596ebd806771b3fec04eca5495d7"
+    },
+    {
+      "path": "Models/commercial/3x3/commercialBuilding3-13-H.png",
+      "references": [
+        {
+          "id": "hotel-three-pitches",
+          "axis": "vertical",
+          "a": [
+            438,
+            591
+          ],
+          "b": [
+            438,
+            690
+          ],
+          "realM": [
+            9.6,
+            10.5,
+            11.4
+          ],
+          "pixelError": 5,
+          "meaning": "前方客房立面四排窗中心，跨 3 個層高；每層假設 3.2/3.5/3.8 m。",
+          "method": "本次逐張檢視原始 PNG、50 px 座標格網及局部 2× 放大圖；端點是原始圖像座標，實米為明列的類型假設。",
+          "referenceRole": "primary",
+          "storeyIntervals": 3
+        },
+        {
+          "id": "hotel-door-check",
+          "axis": "vertical",
+          "a": [
+            466,
+            806
+          ],
+          "b": [
+            466,
+            836
+          ],
+          "realM": [
+            2.4,
+            2.8,
+            3.2
+          ],
+          "pixelError": 4,
+          "meaning": "正面酒店入口門扇淨高，排除入口招牌。",
+          "method": "本次逐張檢視原始 PNG、50 px 座標格網及局部 2× 放大圖；端點是原始圖像座標，實米為明列的類型假設。",
+          "referenceRole": "check"
+        }
+      ],
+      "notes": [
+        "本圖為半島酒店的簡化造型；採畫內窗距推算，沒有直接套入真實酒店總長度。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "70bf830df3f5e6633a9a9105b61a2edfe1d63b2c5f2049593dc49d4d94d43844"
+    },
+    {
+      "path": "Models/commercial/4x4/commercialBuilding4-01-H.png",
+      "references": [
+        {
+          "id": "retail-one-pitch",
+          "axis": "vertical",
+          "a": [
+            420,
+            706
+          ],
+          "b": [
+            420,
+            736
+          ],
+          "realM": [
+            3.6,
+            4,
+            4.4
+          ],
+          "pixelError": 5,
+          "meaning": "中央商場左側上下兩層零售店舖可辨室內活動的相同位置，跨一個層距；每層假設 3.6/4/4.4 m。",
+          "method": "本次逐張檢視原始 PNG、50 px 座標格網及局部 2× 放大圖；端點是原始圖像座標，實米為明列的類型假設。",
+          "referenceRole": "primary",
+          "storeyIntervals": 1
+        },
+        {
+          "id": "pedestrian-check",
+          "axis": "vertical",
+          "a": [
+            520,
+            733
+          ],
+          "b": [
+            520,
+            750
+          ],
+          "realM": [
+            1.6,
+            1.7,
+            1.8
+          ],
+          "pixelError": 4,
+          "meaning": "畫內站立人物頭頂至腳底；人物可能為刻意放大的裝飾圖示，僅作獨立比例檢查。",
+          "method": "本次逐張檢視原始 PNG、50 px 座標格網及局部 2× 放大圖；端點是原始圖像座標，實米為明列的類型假設。",
+          "referenceRole": "check"
+        }
+      ],
+      "notes": [
+        "塔樓幕牆小格無法可靠分辨樓層，因此主參考用較清楚的零售層。",
+        "商場零售層間距為類型假設；沒有把塔樓每一條細線當樓板。",
+        "中央大鐘遮蓋樓層，主線改量鐘左側窗帶的樓層位置，不以鐘的高度代替層高。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "34a5ba433d8a61d3b8ffe6325e74a707c97b60e7dbeea50d88040fa2e7865d62"
+    },
+    {
+      "path": "Models/commercial/4x4/commercialBuilding4-02-H.png",
+      "references": [
+        {
+          "id": "assumed-four-pitches",
+          "axis": "vertical",
+          "a": [
+            700,
+            354
+          ],
+          "b": [
+            700,
+            538
+          ],
+          "realM": [
+            14.4,
+            16,
+            17.6
+          ],
+          "pixelError": 5,
+          "meaning": "右塔八個大幕牆橫帶，暫以兩帶一層，跨四層，跨 4 個層高；每層假設 3.6/4/4.4 m。",
+          "method": "本次逐張檢視原始 PNG、50 px 座標格網及局部 2× 放大圖；端點是原始圖像座標，實米為明列的類型假設。",
+          "referenceRole": "primary",
+          "storeyIntervals": 4
+        },
+        {
+          "id": "pedestrian-check",
+          "axis": "vertical",
+          "a": [
+            527,
+            750
+          ],
+          "b": [
+            527,
+            773
+          ],
+          "realM": [
+            1.6,
+            1.7,
+            1.8
+          ],
+          "pixelError": 4,
+          "meaning": "畫內站立人物頭頂至腳底；人物可能為刻意放大的裝飾圖示，僅作獨立比例檢查。",
+          "method": "本次逐張檢視原始 PNG、50 px 座標格網及局部 2× 放大圖；端點是原始圖像座標，實米為明列的類型假設。",
+          "referenceRole": "check"
+        }
+      ],
+      "notes": [
+        "塔樓每個橫帶是否單層無法從圖像證實；兩帶一層與平台人物較接近，仍需保留假設。",
+        "若每橫帶一層，塔樓推算實尺寸將加倍。"
+      ],
+      "status": "ambiguous-reference",
+      "sourceSha256": "8579bf154cefad964d5ad24ca6486734c77c2d25ba2ed8e943aea25a1fae0c86"
+    },
+    {
+      "path": "Models/commercial/4x4/commercialBuilding4-03-L.png",
+      "references": [
+        {
+          "id": "tonglau-two-pitches",
+          "axis": "vertical",
+          "a": [
+            190,
+            588
+          ],
+          "b": [
+            190,
+            677
+          ],
+          "realM": [
+            6.4,
+            7,
+            7.6
+          ],
+          "pixelError": 5,
+          "meaning": "左前方粉紅唐樓三排露台欄杆的相同位置，跨 2 個層高；每層假設 3.2/3.5/3.8 m。",
+          "method": "本次逐張檢視原始 PNG、50 px 座標格網及局部 2× 放大圖；端點是原始圖像座標，實米為明列的類型假設。",
+          "referenceRole": "primary",
+          "storeyIntervals": 2
+        },
+        {
+          "id": "pedestrian-check",
+          "axis": "vertical",
+          "a": [
+            540,
+            900
+          ],
+          "b": [
+            540,
+            924
+          ],
+          "realM": [
+            1.6,
+            1.7,
+            1.8
+          ],
+          "pixelError": 4,
+          "meaning": "畫內站立人物頭頂至腳底；人物可能為刻意放大的裝飾圖示，僅作獨立比例檢查。",
+          "method": "本次逐張檢視原始 PNG、50 px 座標格網及局部 2× 放大圖；端點是原始圖像座標，實米為明列的類型假設。",
+          "referenceRole": "check"
+        }
+      ],
+      "notes": [
+        "只量同一棟唐樓，避免把後排樓房因地面位置不同的高度誤當層高。",
+        "人群、攤檔遮蓋地下層，不由整體輪廓反推層數。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "d4c7deb8f284d88766381338a3c316c7b507e814946c88ffff64f1db324b1dd6"
+    },
+    {
+      "path": "Models/commercial/4x4/commercialBuilding4-04-L.png",
+      "references": [
+        {
+          "id": "tonglau-two-pitches",
+          "axis": "vertical",
+          "a": [
+            100,
+            558
+          ],
+          "b": [
+            100,
+            647
+          ],
+          "realM": [
+            6.4,
+            7,
+            7.6
+          ],
+          "pixelError": 5,
+          "meaning": "左前方綠色唐樓三排窗的相同位置，跨 2 個層高；每層假設 3.2/3.5/3.8 m。",
+          "method": "本次逐張檢視原始 PNG、50 px 座標格網及局部 2× 放大圖；端點是原始圖像座標，實米為明列的類型假設。",
+          "referenceRole": "primary",
+          "storeyIntervals": 2
+        },
+        {
+          "id": "pedestrian-check",
+          "axis": "vertical",
+          "a": [
+            516,
+            908
+          ],
+          "b": [
+            516,
+            932
+          ],
+          "realM": [
+            1.6,
+            1.7,
+            1.8
+          ],
+          "pixelError": 4,
+          "meaning": "畫內站立人物頭頂至腳底；人物可能為刻意放大的裝飾圖示，僅作獨立比例檢查。",
+          "method": "本次逐張檢視原始 PNG、50 px 座標格網及局部 2× 放大圖；端點是原始圖像座標，實米為明列的類型假設。",
+          "referenceRole": "check"
+        }
+      ],
+      "notes": [
+        "同一棟唐樓上層窗距作主參考；夜市攤檔與人群不納入建築樓層。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "ff1b9bb84b7b46503501a72af54c561a382f75b9f4ea72fe87659050afe9a486"
+    },
+    {
+      "path": "Models/commercial/5x5/commercialBuilding5-01-UH.png",
+      "references": [
+        {
+          "id": "tower-landmark-target",
+          "axis": "vertical",
+          "a": [
+            509,
+            326
+          ],
+          "b": [
+            509,
+            1014
+          ],
+          "realM": [
+            315,
+            315,
+            315
+          ],
+          "pixelError": 8,
+          "meaning": "塔樓正面最高角至正面同一垂直角的地面基座；315 m 只作中銀真實地標目標高度。",
+          "method": "本次目視核對原始 1024×1200 PNG；同一前方垂直角從屋頂投影點至地面基座。實米為真實地標目標，並非可由插畫證實的高度。",
+          "referenceRole": "primary"
+        },
+        {
+          "id": "spire-landmark-target-check",
+          "axis": "vertical",
+          "a": [
+            475,
+            160
+          ],
+          "b": [
+            475,
+            997
+          ],
+          "realM": [
+            367.4,
+            367.4,
+            367.4
+          ],
+          "pixelError": 12,
+          "meaning": "左桅杆尖端至由前方基座平面轉移的地面基準；367.4 m 只作中銀含桅杆目標高度。",
+          "method": "桅杆尖端為可辨像素；地面基準按同層基座斜邊轉移到 x=475，地面基準約 ±12 px。實米為地標目標。",
+          "referenceRole": "check"
+        },
+        {
+          "id": "entry-door-check",
+          "axis": "vertical",
+          "a": [
+            547,
+            965
+          ],
+          "b": [
+            547,
+            997
+          ],
+          "realM": [
+            2.4,
+            2.8,
+            3.2
+          ],
+          "pixelError": 5,
+          "meaning": "右前方大堂可辨入口門，僅用來顯示入口和整體地標目標的內部比例差。",
+          "method": "本次逐張檢視原始 PNG、50 px 座標格網及局部 2× 放大圖；端點是原始圖像座標，實米為明列的類型假設。",
+          "referenceRole": "check"
+        }
+      ],
+      "notes": [
+        "沒有在檔案內找到與模型對應的已知實尺；315／367.4 m 只是以真實中銀大廈為目標的情境。",
+        "細密幕牆網格不等於真實樓層，未由格線估算 70 層。",
+        "塔身與桅頂像素比例不完全等於 315／367.4，入口亦可能是獨立放大圖示；需要重製高度，不能只改佔地。"
+      ],
+      "status": "ambiguous-reference",
+      "sourceSha256": "de63eb54ef5483d179672f2682e3b1bb9d08be872f3c6b3a645a6b88e1b7bc04"
+    }
+  ]
+}

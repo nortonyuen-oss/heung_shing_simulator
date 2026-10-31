@@ -1,0 +1,1942 @@
+{
+  "category": "residential",
+  "assets": [
+    {
+      "path": "Models/residential/house1x1/house1-01-L-LD.png",
+      "references": [
+        {
+          "id": "door-height",
+          "axis": "vertical",
+          "a": [
+            399,
+            586
+          ],
+          "b": [
+            399,
+            642
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 4,
+          "meaning": "祠堂左側雙門門扇；是否普通 2.1m 門無法確證",
+          "method": "本次目視門扇頂及門檻，不包括上方裝飾／雨篷；並非已知真實尺寸，假設普通門高 2.0–2.3m。",
+          "referenceRole": "primary"
+        }
+      ],
+      "notes": [
+        "檔名屬住宅但畫面是傳統祠堂；主殿門顯著較高，不可把主殿門當普通住宅門。",
+        "只有門高假設，欠缺另一個可靠米制錨點；格數不應視為精確結論。"
+      ],
+      "status": "ambiguous-reference",
+      "sourceSha256": "20e6a2152a68abf216b4bff1b3156b4f4d038b4e4c627688b08bdd4706684128"
+    },
+    {
+      "path": "Models/residential/house1x1/house1-02-L-LD.png",
+      "references": [
+        {
+          "id": "door-height",
+          "axis": "vertical",
+          "a": [
+            397,
+            509
+          ],
+          "b": [
+            397,
+            575
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 4,
+          "meaning": "祠堂左側雙門門扇；是否普通 2.1m 門無法確證",
+          "method": "本次目視門扇頂及門檻，不包括上方裝飾／雨篷；並非已知真實尺寸，假設普通門高 2.0–2.3m。",
+          "referenceRole": "primary"
+        }
+      ],
+      "notes": [
+        "檔名屬住宅但畫面是傳統祠堂與前庭攤檔。",
+        "主殿大門、前庭牌坊及攤檔使用不同建築尺度；只以左側可辨門扇作暫估。"
+      ],
+      "status": "ambiguous-reference",
+      "sourceSha256": "d0be4c561f3ca634372b88217bd9b963b06b74978d16bd17d898bbc8a0d5a185"
+    },
+    {
+      "path": "Models/residential/house1x1/house1-03-L-LD.png",
+      "references": [
+        {
+          "id": "floor-span",
+          "axis": "vertical",
+          "a": [
+            250,
+            629
+          ],
+          "b": [
+            250,
+            777
+          ],
+          "realM": [
+            5.6,
+            6,
+            6.4
+          ],
+          "pixelError": 4,
+          "meaning": "左前村屋窗戶頂重複層距，跨 2 個完整層距",
+          "method": "本次原圖及座標放大圖目視確認完整窗戶／陽台單元；以同一 x 對齊相同構件，跨 2 層；米數只是假設每層 2.8–3.2m，名義 3m。",
+          "referenceRole": "primary"
+        },
+        {
+          "id": "door-height",
+          "axis": "vertical",
+          "a": [
+            320,
+            775
+          ],
+          "b": [
+            320,
+            823
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 4,
+          "meaning": "左前村屋地下門扇",
+          "method": "本次目視門扇頂及門檻，不包括上方裝飾／雨篷；並非已知真實尺寸，假設普通門高 2.0–2.3m。",
+          "referenceRole": "check"
+        }
+      ],
+      "notes": [
+        "四棟三層村屋，天台樓梯屋不當成普通完整住宅層。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "722b84e1b7fd628a3367d0043622d7565d61db7bb92bee85791895fec04c0512"
+    },
+    {
+      "path": "Models/residential/house1x1/house1-05-H-LD.png",
+      "references": [
+        {
+          "id": "floor-span",
+          "axis": "vertical",
+          "a": [
+            265,
+            425
+          ],
+          "b": [
+            265,
+            637
+          ],
+          "realM": [
+            5.6,
+            6,
+            6.4
+          ],
+          "pixelError": 4,
+          "meaning": "左側別墅窗上簷同類構件，跨 2 個完整層距",
+          "method": "本次原圖及座標放大圖目視確認完整窗戶／陽台單元；以同一 x 對齊相同構件，跨 2 層；米數只是假設每層 2.8–3.2m，名義 3m。",
+          "referenceRole": "primary"
+        },
+        {
+          "id": "door-height",
+          "axis": "vertical",
+          "a": [
+            391,
+            278
+          ],
+          "b": [
+            391,
+            332
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 4,
+          "meaning": "天台樓梯屋木門",
+          "method": "本次目視門扇頂及門檻，不包括上方裝飾／雨篷；並非已知真實尺寸，假設普通門高 2.0–2.3m。",
+          "referenceRole": "check"
+        }
+      ],
+      "notes": [
+        "豪宅樓層可能高於普通住宅 3m；主樓與天台門的名義換算可能不吻合，不把兩者平均。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "fba7aaaa33bdc10f1878f986909b2ac411136f340844631bd4163a5471f8ce57"
+    },
+    {
+      "path": "Models/residential/house1x1/house1-06-H-LD.png",
+      "references": [
+        {
+          "id": "floor-span",
+          "axis": "vertical",
+          "a": [
+            508,
+            605
+          ],
+          "b": [
+            508,
+            757
+          ],
+          "realM": [
+            5.6,
+            6,
+            6.4
+          ],
+          "pixelError": 4,
+          "meaning": "正面中央窗戶頂，跨 2 個完整層距",
+          "method": "本次原圖及座標放大圖目視確認完整窗戶／陽台單元；以同一 x 對齊相同構件，跨 2 層；米數只是假設每層 2.8–3.2m，名義 3m。",
+          "referenceRole": "primary"
+        },
+        {
+          "id": "door-height",
+          "axis": "vertical",
+          "a": [
+            515,
+            758
+          ],
+          "b": [
+            515,
+            798
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 4,
+          "meaning": "正面地下雙門",
+          "method": "本次目視門扇頂及門檻，不包括上方裝飾／雨篷；並非已知真實尺寸，假設普通門高 2.0–2.3m。",
+          "referenceRole": "check"
+        }
+      ],
+      "notes": [
+        "三層中庭住宅；頂層樓梯屋另計。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "493521e48950df0f7b6d77bfc2fca497aaf51f9467c72c254e50de464732795e"
+    },
+    {
+      "path": "Models/residential/house2x2/residential2-01-M-HD.png",
+      "references": [
+        {
+          "id": "floor-span",
+          "axis": "vertical",
+          "a": [
+            320,
+            326
+          ],
+          "b": [
+            320,
+            810
+          ],
+          "realM": [
+            47.6,
+            51,
+            54.4
+          ],
+          "pixelError": 4,
+          "meaning": "左側塔樓規律窗戶頂，跨 17 個完整層距",
+          "method": "本次原圖及座標放大圖目視確認完整窗戶／陽台單元；以同一 x 對齊相同構件，跨 17 層；米數只是假設每層 2.8–3.2m，名義 3m。",
+          "referenceRole": "primary"
+        },
+        {
+          "id": "door-height",
+          "axis": "vertical",
+          "a": [
+            511,
+            1055
+          ],
+          "b": [
+            511,
+            1092
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 4,
+          "meaning": "商場正面中央可辨入口門扇",
+          "method": "本次目視門扇頂及門檻，不包括上方裝飾／雨篷；並非已知真實尺寸，假設普通門高 2.0–2.3m。",
+          "referenceRole": "check"
+        }
+      ],
+      "notes": [
+        "商場入口與住宅樓層換算會有差異；入口可能是加高商業門。",
+        "住宅窗列每一完整窗戶加下方牆帶為一層，未把窗的上下玻璃格分開計層。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "8507fc079b763c8d4a098d79aad6f6832e83cb494cafcc03ea8f594696f8f667"
+    },
+    {
+      "path": "Models/residential/house2x2/residential2-02-M-HD.png",
+      "references": [
+        {
+          "id": "floor-span",
+          "axis": "vertical",
+          "a": [
+            350,
+            322
+          ],
+          "b": [
+            350,
+            534
+          ],
+          "realM": [
+            28,
+            30,
+            32
+          ],
+          "pixelError": 4,
+          "meaning": "左前塔樓完整陽台樓層，跨 10 個完整層距",
+          "method": "本次原圖及座標放大圖目視確認完整窗戶／陽台單元；以同一 x 對齊相同構件，跨 10 層；米數只是假設每層 2.8–3.2m，名義 3m。",
+          "referenceRole": "primary"
+        },
+        {
+          "id": "adult-height",
+          "axis": "vertical",
+          "a": [
+            428,
+            1078
+          ],
+          "b": [
+            428,
+            1094
+          ],
+          "realM": [
+            1.55,
+            1.7,
+            1.85
+          ],
+          "pixelError": 4,
+          "meaning": "站立成年人頭頂至腳底",
+          "method": "原圖座標放大圖目視辨認站立人物，身高僅採假設範圍。",
+          "referenceRole": "check"
+        }
+      ],
+      "notes": [
+        "地面人物約十多像素，人物檢查受像素誤差影響較大。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "0831e6be7d54dc82aa854a4610e6fd9da28f9486f0f17f5de8368fe678dc7bf1"
+    },
+    {
+      "path": "Models/residential/house2x2/residential2-03-UH-LD.png",
+      "references": [
+        {
+          "id": "floor-span",
+          "axis": "vertical",
+          "a": [
+            310,
+            573
+          ],
+          "b": [
+            310,
+            762
+          ],
+          "realM": [
+            14,
+            15,
+            16
+          ],
+          "pixelError": 4,
+          "meaning": "左前棟完整陽台單元，跨 5 個完整層距",
+          "method": "本次原圖及座標放大圖目視確認完整窗戶／陽台單元；以同一 x 對齊相同構件，跨 5 層；米數只是假設每層 2.8–3.2m，名義 3m。",
+          "referenceRole": "primary"
+        },
+        {
+          "id": "door-height",
+          "axis": "vertical",
+          "a": [
+            312,
+            733
+          ],
+          "b": [
+            312,
+            764
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 4,
+          "meaning": "左前棟地下玻璃門",
+          "method": "本次目視門扇頂及門檻，不包括上方裝飾／雨篷；並非已知真實尺寸，假設普通門高 2.0–2.3m。",
+          "referenceRole": "check"
+        }
+      ],
+      "notes": [
+        "多棟圍合住宅，屋頂小亭／樓梯屋不是另一個標準住宅層。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "2789242b64302820f6b2b02123c68679f6630069a90852f22ea2097bd85636f2"
+    },
+    {
+      "path": "Models/residential/house2x2/residential2-04-L-MD.png",
+      "references": [
+        {
+          "id": "floor-span",
+          "axis": "vertical",
+          "a": [
+            490,
+            339
+          ],
+          "b": [
+            490,
+            684
+          ],
+          "realM": [
+            16.8,
+            18,
+            19.2
+          ],
+          "pixelError": 4,
+          "meaning": "正面窗戶頂，跨 6 個完整層距",
+          "method": "本次原圖及座標放大圖目視確認完整窗戶／陽台單元；以同一 x 對齊相同構件，跨 6 層；米數只是假設每層 2.8–3.2m，名義 3m。",
+          "referenceRole": "primary"
+        },
+        {
+          "id": "door-height",
+          "axis": "vertical",
+          "a": [
+            581,
+            126
+          ],
+          "b": [
+            581,
+            169
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 4,
+          "meaning": "天台樓梯屋門",
+          "method": "本次目視門扇頂及門檻，不包括上方裝飾／雨篷；並非已知真實尺寸，假設普通門高 2.0–2.3m。",
+          "referenceRole": "check"
+        }
+      ],
+      "notes": [],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "cc243a63f80397b168c9cf72fd26b9fb99612a929e8ba58a447c5ba88d882bdd"
+    },
+    {
+      "path": "Models/residential/house2x2/residential2-05-L-MD.png",
+      "references": [
+        {
+          "id": "floor-span",
+          "axis": "vertical",
+          "a": [
+            450,
+            315
+          ],
+          "b": [
+            450,
+            702
+          ],
+          "realM": [
+            16.8,
+            18,
+            19.2
+          ],
+          "pixelError": 4,
+          "meaning": "正面同列窗戶頂，跨 6 個完整層距",
+          "method": "本次原圖及座標放大圖目視確認完整窗戶／陽台單元；以同一 x 對齊相同構件，跨 6 層；米數只是假設每層 2.8–3.2m，名義 3m。",
+          "referenceRole": "primary"
+        },
+        {
+          "id": "door-height",
+          "axis": "vertical",
+          "a": [
+            532,
+            193
+          ],
+          "b": [
+            532,
+            243
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 4,
+          "meaning": "天台樓梯屋門",
+          "method": "本次目視門扇頂及門檻，不包括上方裝飾／雨篷；並非已知真實尺寸，假設普通門高 2.0–2.3m。",
+          "referenceRole": "check"
+        }
+      ],
+      "notes": [],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "e4b0aaf7703045bbbaa7674bf45cab3a7dcf9d5cd85c483194063103ff451685"
+    },
+    {
+      "path": "Models/residential/house2x2/residential2-06-M-MD.png",
+      "references": [
+        {
+          "id": "floor-span",
+          "axis": "vertical",
+          "a": [
+            385,
+            378
+          ],
+          "b": [
+            385,
+            777
+          ],
+          "realM": [
+            28,
+            30,
+            32
+          ],
+          "pixelError": 4,
+          "meaning": "正面完整陽台單元，跨 10 個完整層距",
+          "method": "本次原圖及座標放大圖目視確認完整窗戶／陽台單元；以同一 x 對齊相同構件，跨 10 層；米數只是假設每層 2.8–3.2m，名義 3m。",
+          "referenceRole": "primary"
+        },
+        {
+          "id": "door-height",
+          "axis": "vertical",
+          "a": [
+            478,
+            808
+          ],
+          "b": [
+            478,
+            848
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 4,
+          "meaning": "正面地下入口門扇",
+          "method": "本次目視門扇頂及門檻，不包括上方裝飾／雨篷；並非已知真實尺寸，假設普通門高 2.0–2.3m。",
+          "referenceRole": "check"
+        }
+      ],
+      "notes": [
+        "入口門比按住宅樓層換算的普通門較大；保留這項內部尺度差異。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "76dabde0ed67e150c1e0fea6e67a7df5c9d2c96adef32078da1576641b3f8977"
+    },
+    {
+      "path": "Models/residential/house2x2/residential2-07-M-MD.png",
+      "references": [
+        {
+          "id": "floor-span",
+          "axis": "vertical",
+          "a": [
+            403,
+            320
+          ],
+          "b": [
+            403,
+            590
+          ],
+          "realM": [
+            14,
+            15,
+            16
+          ],
+          "pixelError": 4,
+          "meaning": "正面窗戶頂，跨 5 個完整層距",
+          "method": "本次原圖及座標放大圖目視確認完整窗戶／陽台單元；以同一 x 對齊相同構件，跨 5 層；米數只是假設每層 2.8–3.2m，名義 3m。",
+          "referenceRole": "primary"
+        },
+        {
+          "id": "door-height",
+          "axis": "vertical",
+          "a": [
+            544,
+            182
+          ],
+          "b": [
+            544,
+            220
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 4,
+          "meaning": "天台樓梯屋窄門",
+          "method": "本次目視門扇頂及門檻，不包括上方裝飾／雨篷；並非已知真實尺寸，假設普通門高 2.0–2.3m。",
+          "referenceRole": "check"
+        }
+      ],
+      "notes": [
+        "與 residential2-11-H-MD 是相近建築的不同構圖，仍逐張量原圖。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "9c7c2c520ec4bbb2500d1cc6e03d5c0231ea007201977e2155fb74e22757f7e5"
+    },
+    {
+      "path": "Models/residential/house2x2/residential2-09-UH-MD.png",
+      "references": [
+        {
+          "id": "floor-span",
+          "axis": "vertical",
+          "a": [
+            230,
+            440
+          ],
+          "b": [
+            230,
+            692
+          ],
+          "realM": [
+            14,
+            15,
+            16
+          ],
+          "pixelError": 4,
+          "meaning": "左前棟窗戶頂，跨 5 個完整層距",
+          "method": "本次原圖及座標放大圖目視確認完整窗戶／陽台單元；以同一 x 對齊相同構件，跨 5 層；米數只是假設每層 2.8–3.2m，名義 3m。",
+          "referenceRole": "primary"
+        },
+        {
+          "id": "door-height",
+          "axis": "vertical",
+          "a": [
+            420,
+            283
+          ],
+          "b": [
+            420,
+            316
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 4,
+          "meaning": "左後天台樓梯屋門",
+          "method": "本次目視門扇頂及門檻，不包括上方裝飾／雨篷；並非已知真實尺寸，假設普通門高 2.0–2.3m。",
+          "referenceRole": "check"
+        },
+        {
+          "id": "adult-height",
+          "axis": "vertical",
+          "a": [
+            626,
+            707
+          ],
+          "b": [
+            626,
+            730
+          ],
+          "realM": [
+            1.55,
+            1.7,
+            1.85
+          ],
+          "pixelError": 4,
+          "meaning": "站立成年人頭頂至腳底",
+          "method": "原圖座標放大圖目視辨認站立人物，身高僅採假設範圍。",
+          "referenceRole": "check"
+        }
+      ],
+      "notes": [
+        "人物及普通門提供不同檢查；庭院人物有大小不一情況。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "15fd7bf6d850e4fd3d7a88b5f6427017b242b5e02d85d5831bf75f596c7fe2cd"
+    },
+    {
+      "path": "Models/residential/house2x2/residential2-10-H-MD.png",
+      "references": [
+        {
+          "id": "floor-span",
+          "axis": "vertical",
+          "a": [
+            475,
+            383
+          ],
+          "b": [
+            475,
+            659
+          ],
+          "realM": [
+            16.8,
+            18,
+            19.2
+          ],
+          "pixelError": 5,
+          "meaning": "正面完整陽台樓板，跨 6 個完整層距",
+          "method": "本次原圖及座標放大圖目視確認完整窗戶／陽台單元；以同一 x 對齊相同構件，跨 6 層；米數只是假設每層 2.8–3.2m，名義 3m。",
+          "referenceRole": "primary"
+        },
+        {
+          "id": "adult-height",
+          "axis": "vertical",
+          "a": [
+            541,
+            1047
+          ],
+          "b": [
+            541,
+            1064
+          ],
+          "realM": [
+            1.55,
+            1.7,
+            1.85
+          ],
+          "pixelError": 4,
+          "meaning": "站立成年人頭頂至腳底",
+          "method": "原圖座標放大圖目視辨認站立人物，身高僅採假設範圍。",
+          "referenceRole": "check"
+        }
+      ],
+      "notes": [
+        "陽台每個完整層距約 46px；中間玻璃橫線約每 23px，不能把它當一層。",
+        "地面人物與主樓層可能未共用同一比例；入口為加高商業門，不用普通門高定標。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "e5a4c24a47b68f6d48a78dd5e8d6de477f7c1d6e1f6a69f9ec9953b32eabfbc7"
+    },
+    {
+      "path": "Models/residential/house2x2/residential2-11-H-MD.png",
+      "references": [
+        {
+          "id": "floor-span",
+          "axis": "vertical",
+          "a": [
+            402,
+            311
+          ],
+          "b": [
+            402,
+            585
+          ],
+          "realM": [
+            14,
+            15,
+            16
+          ],
+          "pixelError": 4,
+          "meaning": "正面窗戶頂，跨 5 個完整層距",
+          "method": "本次原圖及座標放大圖目視確認完整窗戶／陽台單元；以同一 x 對齊相同構件，跨 5 層；米數只是假設每層 2.8–3.2m，名義 3m。",
+          "referenceRole": "primary"
+        },
+        {
+          "id": "door-height",
+          "axis": "vertical",
+          "a": [
+            545,
+            168
+          ],
+          "b": [
+            545,
+            209
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 4,
+          "meaning": "天台樓梯屋窄門",
+          "method": "本次目視門扇頂及門檻，不包括上方裝飾／雨篷；並非已知真實尺寸，假設普通門高 2.0–2.3m。",
+          "referenceRole": "check"
+        }
+      ],
+      "notes": [
+        "與 residential2-07-M-MD 相近但不是同一圖檔；已獨立量點。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "8b123a68fdbf86c5fdb28ed4f6f2a180d4ade34b3d99434d328656598847e358"
+    },
+    {
+      "path": "Models/residential/house2x2/residential2-12-UH-LD.png",
+      "references": [
+        {
+          "id": "sedan-length",
+          "axis": "sw",
+          "a": [
+            674,
+            761
+          ],
+          "b": [
+            622,
+            786
+          ],
+          "realM": [
+            4.2,
+            4.6,
+            5
+          ],
+          "pixelError": 5,
+          "meaning": "現代房車車頭至車尾長度",
+          "method": "原圖放大圖沿車身長軸量前後保險桿；車型不明，實長保留 4.2–5.0m；圖內車身可能未精確平行地盤軸。",
+          "referenceRole": "primary"
+        },
+        {
+          "id": "door-height",
+          "axis": "vertical",
+          "a": [
+            449,
+            498
+          ],
+          "b": [
+            449,
+            522
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 4,
+          "meaning": "最上層屋頂房玻璃門扇",
+          "method": "本次目視門扇頂及門檻，不包括上方裝飾／雨篷；並非已知真實尺寸，假設普通門高 2.0–2.3m。",
+          "referenceRole": "check"
+        }
+      ],
+      "notes": [
+        "豪宅樓層有高大窗洞、挑高前廳，無法可靠套普通 3m 層高；以房車長作主參考。",
+        "與下一張屬同類構圖，圖內主建築及庭園留白比例不同。"
+      ],
+      "status": "ambiguous-reference",
+      "sourceSha256": "7de190c577dbf0af90b699729f0e3e44640d75201806a83499fc49d8feaefa60"
+    },
+    {
+      "path": "Models/residential/house2x2/residential2-13-UH-LD.png",
+      "references": [
+        {
+          "id": "sedan-length",
+          "axis": "sw",
+          "a": [
+            704,
+            711
+          ],
+          "b": [
+            638,
+            739
+          ],
+          "realM": [
+            4.2,
+            4.6,
+            5
+          ],
+          "pixelError": 5,
+          "meaning": "現代房車車頭至車尾長度",
+          "method": "原圖放大圖沿車身長軸量前後保險桿；車型不明，實長保留 4.2–5.0m；圖內車身可能未精確平行地盤軸。",
+          "referenceRole": "primary"
+        },
+        {
+          "id": "door-height",
+          "axis": "vertical",
+          "a": [
+            400,
+            329
+          ],
+          "b": [
+            400,
+            365
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 4,
+          "meaning": "最上層屋頂房玻璃門扇",
+          "method": "本次目視門扇頂及門檻，不包括上方裝飾／雨篷；並非已知真實尺寸，假設普通門高 2.0–2.3m。",
+          "referenceRole": "check"
+        }
+      ],
+      "notes": [
+        "豪宅挑高層、玻璃門高及房車尺寸並非已知，不提供假精確樓層推算。",
+        "可辨的兩種尺度錨點仍互有差異；建議重製時先固定門、車、層高。"
+      ],
+      "status": "ambiguous-reference",
+      "sourceSha256": "6d5ec5d9beeba657930b8aac6a5348f92b9cc7ef22cd215fcee187327af67ecd"
+    },
+    {
+      "path": "Models/residential/house2x2/residential2-14-UH-LD.png",
+      "references": [
+        {
+          "id": "floor-span",
+          "axis": "vertical",
+          "a": [
+            580,
+            807
+          ],
+          "b": [
+            580,
+            857
+          ],
+          "realM": [
+            2.8,
+            3,
+            3.2
+          ],
+          "pixelError": 4,
+          "meaning": "最前別墅右側上下窗戶頂，跨 1 個完整層距",
+          "method": "本次原圖及座標放大圖目視確認完整窗戶／陽台單元；以同一 x 對齊相同構件，跨 1 層；米數只是假設每層 2.8–3.2m，名義 3m。",
+          "referenceRole": "primary"
+        },
+        {
+          "id": "door-height",
+          "axis": "vertical",
+          "a": [
+            512,
+            860
+          ],
+          "b": [
+            512,
+            881
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 4,
+          "meaning": "最前別墅主門",
+          "method": "本次目視門扇頂及門檻，不包括上方裝飾／雨篷；並非已知真實尺寸，假設普通門高 2.0–2.3m。",
+          "referenceRole": "check"
+        }
+      ],
+      "notes": [
+        "多棟兩層別墅；窗頂跨距與入口門高比例有明顯差異。",
+        "只有一層跨距，較跨多層量度容易受裝飾簷線影響。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "5dc8829854062562327954e155d08172d0c5ec94b654565f2d8b6d6f8e30e105"
+    },
+    {
+      "path": "Models/residential/house2x2/residential2-15-H-HD.png",
+      "references": [
+        {
+          "id": "floor-span",
+          "axis": "vertical",
+          "a": [
+            345,
+            344
+          ],
+          "b": [
+            345,
+            524
+          ],
+          "realM": [
+            16.8,
+            18,
+            19.2
+          ],
+          "pixelError": 5,
+          "meaning": "左前塔樓完整陽台樓板，跨 6 個完整層距",
+          "method": "本次原圖及座標放大圖目視確認完整窗戶／陽台單元；以同一 x 對齊相同構件，跨 6 層；米數只是假設每層 2.8–3.2m，名義 3m。",
+          "referenceRole": "primary"
+        }
+      ],
+      "notes": [
+        "已看三倍放大圖：同一陽台完整樓板週期約 30px；中間玻璃／扶手線不是樓層。",
+        "主入口是加高玻璃大堂，未用普通門高作第二米制錨點。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "ed8202e53f6075e45bac1aa45031bb8193c05de19444be052126ed47e8e74136"
+    },
+    {
+      "path": "Models/residential/house2x2/residential2-16-H-HD.png",
+      "references": [
+        {
+          "id": "floor-span",
+          "axis": "vertical",
+          "a": [
+            450,
+            394
+          ],
+          "b": [
+            450,
+            662
+          ],
+          "realM": [
+            16.8,
+            18,
+            19.2
+          ],
+          "pixelError": 5,
+          "meaning": "正面塔樓完整陽台樓板，跨 6 個完整層距",
+          "method": "本次原圖及座標放大圖目視確認完整窗戶／陽台單元；以同一 x 對齊相同構件，跨 6 層；米數只是假設每層 2.8–3.2m，名義 3m。",
+          "referenceRole": "primary"
+        }
+      ],
+      "notes": [
+        "已看三倍放大圖：完整陽台約 44–45px，22px 玻璃分格不是一層。",
+        "主入口及天台頂層玻璃均可能加高；未找到可靠普通門／站立人物。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "422a483e2a164d332154caa44fe60828e51735397a6680d13890aa4b6dbb8ac5"
+    },
+    {
+      "path": "Models/residential/house2x2/residential2-17-H-HD.png",
+      "references": [
+        {
+          "id": "floor-span",
+          "axis": "vertical",
+          "a": [
+            475,
+            425
+          ],
+          "b": [
+            475,
+            691
+          ],
+          "realM": [
+            14,
+            15,
+            16
+          ],
+          "pixelError": 5,
+          "meaning": "正面塔樓完整陽台樓板，跨 5 個完整層距",
+          "method": "本次原圖及座標放大圖目視確認完整窗戶／陽台單元；以同一 x 對齊相同構件，跨 5 層；米數只是假設每層 2.8–3.2m，名義 3m。",
+          "referenceRole": "primary"
+        }
+      ],
+      "notes": [
+        "已看三倍放大圖：完整陽台約 53px；26px 玻璃分格不是一層。",
+        "兩層式豪華頂層及商業大堂不可直接用普通門高定標。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "f5234c506a095bb5ae2fdc46d35c59f163a5f311c532db1ae4abfa6f65015704"
+    },
+    {
+      "path": "Models/residential/house2x2/residential2-18-H-HD.png",
+      "references": [
+        {
+          "id": "floor-span",
+          "axis": "vertical",
+          "a": [
+            453,
+            338
+          ],
+          "b": [
+            453,
+            630
+          ],
+          "realM": [
+            28,
+            30,
+            32
+          ],
+          "pixelError": 5,
+          "meaning": "左前塔樓完整陽台樓板，跨 10 個完整層距",
+          "method": "本次原圖及座標放大圖目視確認完整窗戶／陽台單元；以同一 x 對齊相同構件，跨 10 層；米數只是假設每層 2.8–3.2m，名義 3m。",
+          "referenceRole": "primary"
+        },
+        {
+          "id": "door-height",
+          "axis": "vertical",
+          "a": [
+            635,
+            1019
+          ],
+          "b": [
+            635,
+            1047
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 4,
+          "meaning": "右側地下玻璃入口可辨門扇",
+          "method": "本次目視門扇頂及門檻，不包括上方裝飾／雨篷；並非已知真實尺寸，假設普通門高 2.0–2.3m。",
+          "referenceRole": "check"
+        }
+      ],
+      "notes": [
+        "完整陽台單元約 29px；旁邊整片玻璃橫線可能每半層出現。",
+        "入口可能是加高商業門，與主樓層有偏差時以主參考為準。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "831802d6f14289a3fdefcad4662e07beccdb2b2206c1ea135f3988c8a2d256fa"
+    },
+    {
+      "path": "Models/residential/house3x3/residential3-01-L-MD.png",
+      "references": [
+        {
+          "id": "floor-span",
+          "axis": "vertical",
+          "a": [
+            500,
+            463
+          ],
+          "b": [
+            500,
+            742
+          ],
+          "realM": [
+            28,
+            30,
+            32
+          ],
+          "pixelError": 4,
+          "meaning": "正面中央樓梯窗完整重複層距，跨 10 個完整層距",
+          "method": "本次原圖及座標放大圖目視確認完整窗戶／陽台單元；以同一 x 對齊相同構件，跨 10 層；米數只是假設每層 2.8–3.2m，名義 3m。",
+          "referenceRole": "primary"
+        },
+        {
+          "id": "door-height",
+          "axis": "vertical",
+          "a": [
+            505,
+            800
+          ],
+          "b": [
+            505,
+            821
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 4,
+          "meaning": "正面大門門扇",
+          "method": "本次目視門扇頂及門檻，不包括上方裝飾／雨篷；並非已知真實尺寸，假設普通門高 2.0–2.3m。",
+          "referenceRole": "check"
+        }
+      ],
+      "notes": [
+        "每層中央樓梯窗包含多片玻璃，未按單一玻璃格計層。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "e5dc120aaf0a978387090cf0177a31067f5a77661a72193698f574e266642f11"
+    },
+    {
+      "path": "Models/residential/house3x3/residential3-02-L-MD.png",
+      "references": [
+        {
+          "id": "floor-span",
+          "axis": "vertical",
+          "a": [
+            443,
+            330
+          ],
+          "b": [
+            443,
+            759
+          ],
+          "realM": [
+            44.8,
+            48,
+            51.2
+          ],
+          "pixelError": 5,
+          "meaning": "正面完整窗戶頂，跨 16 個完整層距",
+          "method": "本次原圖及座標放大圖目視確認完整窗戶／陽台單元；以同一 x 對齊相同構件，跨 16 層；米數只是假設每層 2.8–3.2m，名義 3m。",
+          "referenceRole": "primary"
+        },
+        {
+          "id": "door-height",
+          "axis": "vertical",
+          "a": [
+            414,
+            805
+          ],
+          "b": [
+            414,
+            837
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 4,
+          "meaning": "正面地下入口門扇",
+          "method": "本次目視門扇頂及門檻，不包括上方裝飾／雨篷；並非已知真實尺寸，假設普通門高 2.0–2.3m。",
+          "referenceRole": "check"
+        }
+      ],
+      "notes": [
+        "地下入口門可能特別加高；樓上住宅及入口比例不一定一致。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "86a7a8aa5c79c790c91cbab73434bfc589d0e71f7180ad71270d96936a92d1a3"
+    },
+    {
+      "path": "Models/residential/house3x3/residential3-03-H-MD.png",
+      "references": [
+        {
+          "id": "floor-span",
+          "axis": "vertical",
+          "a": [
+            519,
+            402
+          ],
+          "b": [
+            519,
+            636
+          ],
+          "realM": [
+            16.8,
+            18,
+            19.2
+          ],
+          "pixelError": 4,
+          "meaning": "中央正面完整陽台頂，跨 6 個完整層距",
+          "method": "本次原圖及座標放大圖目視確認完整窗戶／陽台單元；以同一 x 對齊相同構件，跨 6 層；米數只是假設每層 2.8–3.2m，名義 3m。",
+          "referenceRole": "primary"
+        },
+        {
+          "id": "door-height",
+          "axis": "vertical",
+          "a": [
+            516,
+            768
+          ],
+          "b": [
+            516,
+            791
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 4,
+          "meaning": "正面地下主入口矩形門扇部分",
+          "method": "本次目視門扇頂及門檻，不包括上方裝飾／雨篷；並非已知真實尺寸，假設普通門高 2.0–2.3m。",
+          "referenceRole": "check"
+        }
+      ],
+      "notes": [
+        "主門上方有大型門楣／簷篷，未把裝飾門框當門扇高度。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "d40c857c0645eb9e66163af1ea59e1890125aa2e610b25708b1ea52155155d77"
+    },
+    {
+      "path": "Models/residential/house3x3/residential3-04-H-MD.png",
+      "references": [
+        {
+          "id": "floor-span",
+          "axis": "vertical",
+          "a": [
+            450,
+            343
+          ],
+          "b": [
+            450,
+            663
+          ],
+          "realM": [
+            28,
+            30,
+            32
+          ],
+          "pixelError": 4,
+          "meaning": "正面完整陽台樓板，跨 10 個完整層距",
+          "method": "本次原圖及座標放大圖目視確認完整窗戶／陽台單元；以同一 x 對齊相同構件，跨 10 層；米數只是假設每層 2.8–3.2m，名義 3m。",
+          "referenceRole": "primary"
+        },
+        {
+          "id": "sedan-length",
+          "axis": "se",
+          "a": [
+            290,
+            767
+          ],
+          "b": [
+            346,
+            794
+          ],
+          "realM": [
+            4.2,
+            4.6,
+            5
+          ],
+          "pixelError": 5,
+          "meaning": "現代房車車頭至車尾長度",
+          "method": "原圖放大圖沿車身長軸量前後保險桿；車型不明，實長保留 4.2–5.0m；圖內車身可能未精確平行地盤軸。",
+          "referenceRole": "check"
+        }
+      ],
+      "notes": [
+        "主入口為挑高豪華大堂；用房車代替把大堂當普通 2.1m 門。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "0032ee24e690cee726784d355ce06b9f6359b61a5dc1edb7a33641775ad06487"
+    },
+    {
+      "path": "Models/residential/house3x3/residential3-05-UH-LD.png",
+      "references": [
+        {
+          "id": "tennis-length",
+          "axis": "se",
+          "a": [
+            160,
+            632
+          ],
+          "b": [
+            307,
+            693
+          ],
+          "realM": [
+            23.77,
+            23.77,
+            23.77
+          ],
+          "pixelError": 5,
+          "meaning": "雙打網球場兩底線之間 23.77m",
+          "method": "原圖放大確認外側白線；以標準雙打場長 23.77m 作假設，圖內場地未必按標準繪製。",
+          "referenceRole": "primary"
+        },
+        {
+          "id": "tennis-width",
+          "axis": "sw",
+          "a": [
+            160,
+            632
+          ],
+          "b": [
+            84,
+            665
+          ],
+          "realM": [
+            10.97,
+            10.97,
+            10.97
+          ],
+          "pixelError": 5,
+          "meaning": "雙打網球場外側邊線之間 10.97m",
+          "method": "與長邊共用上側角點，量雙打外側白線；用以檢查畫面長寬是否變形。",
+          "referenceRole": "check"
+        },
+        {
+          "id": "sedan-length",
+          "axis": "sw",
+          "a": [
+            592,
+            751
+          ],
+          "b": [
+            558,
+            765
+          ],
+          "realM": [
+            4.2,
+            4.6,
+            5
+          ],
+          "pixelError": 5,
+          "meaning": "現代房車車頭至車尾長度",
+          "method": "原圖放大圖沿車身長軸量前後保險桿；車型不明，實長保留 4.2–5.0m；圖內車身可能未精確平行地盤軸。",
+          "referenceRole": "check"
+        }
+      ],
+      "notes": [
+        "網球場外側白線長、闊換算並不完全一致，說明同一張圖亦有幾何失真。",
+        "宮殿式樓層、屋頂閣樓、挑高大門均不直接用普通住宅層高。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "a29c4e1e603b56989ca224fdce84162e423153c9420049c556a84ad3819d04fc"
+    },
+    {
+      "path": "Models/residential/house3x3/residential3-06-L-MD.png",
+      "references": [
+        {
+          "id": "floor-span",
+          "axis": "vertical",
+          "a": [
+            518,
+            448
+          ],
+          "b": [
+            518,
+            728
+          ],
+          "realM": [
+            28,
+            30,
+            32
+          ],
+          "pixelError": 4,
+          "meaning": "正面中央完整樓梯窗頂，跨 10 個完整層距",
+          "method": "本次原圖及座標放大圖目視確認完整窗戶／陽台單元；以同一 x 對齊相同構件，跨 10 層；米數只是假設每層 2.8–3.2m，名義 3m。",
+          "referenceRole": "primary"
+        },
+        {
+          "id": "door-height",
+          "axis": "vertical",
+          "a": [
+            334,
+            305
+          ],
+          "b": [
+            334,
+            329
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 4,
+          "meaning": "左後天台樓梯屋門",
+          "method": "本次目視門扇頂及門檻，不包括上方裝飾／雨篷；並非已知真實尺寸，假設普通門高 2.0–2.3m。",
+          "referenceRole": "check"
+        }
+      ],
+      "notes": [
+        "老式公屋；地面簷篷高度不當一層。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "e21a38ea0cf7d59b5a908c1be8e8e612317755426ce6fc019f5adae01c5e4844"
+    },
+    {
+      "path": "Models/residential/house3x3/residential3-07-M-MD.png",
+      "references": [
+        {
+          "id": "floor-span",
+          "axis": "vertical",
+          "a": [
+            457,
+            484
+          ],
+          "b": [
+            457,
+            668
+          ],
+          "realM": [
+            28,
+            30,
+            32
+          ],
+          "pixelError": 4,
+          "meaning": "左前立面完整窗戶頂，跨 10 個完整層距",
+          "method": "本次原圖及座標放大圖目視確認完整窗戶／陽台單元；以同一 x 對齊相同構件，跨 10 層；米數只是假設每層 2.8–3.2m，名義 3m。",
+          "referenceRole": "primary"
+        },
+        {
+          "id": "door-height",
+          "axis": "vertical",
+          "a": [
+            449,
+            418
+          ],
+          "b": [
+            449,
+            435
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 3,
+          "meaning": "屋頂樓梯屋可辨窄門",
+          "method": "本次目視門扇頂及門檻，不包括上方裝飾／雨篷；並非已知真實尺寸，假設普通門高 2.0–2.3m。",
+          "referenceRole": "check"
+        }
+      ],
+      "notes": [
+        "單幢高層加山坡地盤；天台門很小，檢查誤差相對大。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "92ee59e3a05effaf0203f65d58ad8ebc4ec95326a90475573ad6adc28a5c8e15"
+    },
+    {
+      "path": "Models/residential/house3x3/residential3-08-M-MD.png",
+      "references": [
+        {
+          "id": "floor-span",
+          "axis": "vertical",
+          "a": [
+            455,
+            536
+          ],
+          "b": [
+            455,
+            900
+          ],
+          "realM": [
+            39.2,
+            42,
+            44.8
+          ],
+          "pixelError": 5,
+          "meaning": "正面完整窗戶頂，跨 14 個完整層距",
+          "method": "本次原圖及座標放大圖目視確認完整窗戶／陽台單元；以同一 x 對齊相同構件，跨 14 層；米數只是假設每層 2.8–3.2m，名義 3m。",
+          "referenceRole": "primary"
+        },
+        {
+          "id": "door-height",
+          "axis": "vertical",
+          "a": [
+            518,
+            443
+          ],
+          "b": [
+            518,
+            467
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 4,
+          "meaning": "天台樓梯屋門",
+          "method": "本次目視門扇頂及門檻，不包括上方裝飾／雨篷；並非已知真實尺寸，假設普通門高 2.0–2.3m。",
+          "referenceRole": "check"
+        }
+      ],
+      "notes": [
+        "多層窗每一整列重複單元為一層，未把上下窗框當兩層。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "d41b4f9029441b22e30e0ee3664924a59213ae2a1600977bcfa7ad4407b059f8"
+    },
+    {
+      "path": "Models/residential/house3x3/residential3-12-H-MD.png",
+      "references": [
+        {
+          "id": "floor-span",
+          "axis": "vertical",
+          "a": [
+            565,
+            270
+          ],
+          "b": [
+            565,
+            525
+          ],
+          "realM": [
+            14,
+            15,
+            16
+          ],
+          "pixelError": 5,
+          "meaning": "右前完整陽台樓板，跨 5 個完整層距",
+          "method": "本次原圖及座標放大圖目視確認完整窗戶／陽台單元；以同一 x 對齊相同構件，跨 5 層；米數只是假設每層 2.8–3.2m，名義 3m。",
+          "referenceRole": "primary"
+        }
+      ],
+      "notes": [
+        "已看三倍放大圖：完整陽台週期約 51px，玻璃／扶手中間線不是一層。",
+        "加高大堂及頂層窗不足以確證普通門尺寸，因此沒有硬加第二種米制錨點。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "bdd5c4a9223e1b62e6eff14bc0fe3b391300abdcfffb36a37469581d38fcdfbb"
+    },
+    {
+      "path": "Models/residential/house3x3/residential3-14-M-MD.png",
+      "references": [
+        {
+          "id": "floor-span",
+          "axis": "vertical",
+          "a": [
+            442,
+            482
+          ],
+          "b": [
+            442,
+            902
+          ],
+          "realM": [
+            39.2,
+            42,
+            44.8
+          ],
+          "pixelError": 5,
+          "meaning": "正面完整窗戶頂，跨 14 個完整層距",
+          "method": "本次原圖及座標放大圖目視確認完整窗戶／陽台單元；以同一 x 對齊相同構件，跨 14 層；米數只是假設每層 2.8–3.2m，名義 3m。",
+          "referenceRole": "primary"
+        },
+        {
+          "id": "door-height",
+          "axis": "vertical",
+          "a": [
+            479,
+            388
+          ],
+          "b": [
+            479,
+            412
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 4,
+          "meaning": "天台樓梯屋門",
+          "method": "本次目視門扇頂及門檻，不包括上方裝飾／雨篷；並非已知真實尺寸，假設普通門高 2.0–2.3m。",
+          "referenceRole": "check"
+        }
+      ],
+      "notes": [],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "30960605cf85757f89104429625b0197f704678e8f9d4b8e4c79eebda10aa3cc"
+    },
+    {
+      "path": "Models/residential/house4x4/residential4-01-M-MD.png",
+      "references": [
+        {
+          "id": "floor-span",
+          "axis": "vertical",
+          "a": [
+            385,
+            285
+          ],
+          "b": [
+            385,
+            517
+          ],
+          "realM": [
+            22.4,
+            24,
+            25.6
+          ],
+          "pixelError": 5,
+          "meaning": "左中塔樓完整窗戶及陽台單元，跨 8 個完整層距",
+          "method": "本次原圖及座標放大圖目視確認完整窗戶／陽台單元；以同一 x 對齊相同構件，跨 8 層；米數只是假設每層 2.8–3.2m，名義 3m。",
+          "referenceRole": "primary"
+        },
+        {
+          "id": "door-height",
+          "axis": "vertical",
+          "a": [
+            383,
+            795
+          ],
+          "b": [
+            383,
+            823
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 4,
+          "meaning": "街道商舖可辨玻璃門扇",
+          "method": "本次目視門扇頂及門檻，不包括上方裝飾／雨篷；並非已知真實尺寸，假設普通門高 2.0–2.3m。",
+          "referenceRole": "check"
+        }
+      ],
+      "notes": [
+        "商場／停車場裙樓與塔樓層高比例明顯不同；地面道具亦可能被放大。",
+        "每個塔樓單元約 29px，不能把窗下冷氣／陽台欄杆當額外一層。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "e4e69058d521d1e025df6a25bbae4d14b69591c2ca8ca366c0d1f056f6f8eadc"
+    },
+    {
+      "path": "Models/residential/house4x4/residential4-02-M-MD.png",
+      "references": [
+        {
+          "id": "floor-span",
+          "axis": "vertical",
+          "a": [
+            335,
+            197
+          ],
+          "b": [
+            335,
+            445
+          ],
+          "realM": [
+            22.4,
+            24,
+            25.6
+          ],
+          "pixelError": 5,
+          "meaning": "左前塔樓完整窗戶頂，跨 8 個完整層距",
+          "method": "本次原圖及座標放大圖目視確認完整窗戶／陽台單元；以同一 x 對齊相同構件，跨 8 層；米數只是假設每層 2.8–3.2m，名義 3m。",
+          "referenceRole": "primary"
+        },
+        {
+          "id": "adult-height",
+          "axis": "vertical",
+          "a": [
+            402,
+            778
+          ],
+          "b": [
+            402,
+            808
+          ],
+          "realM": [
+            1.55,
+            1.7,
+            1.85
+          ],
+          "pixelError": 4,
+          "meaning": "站立成年人頭頂至腳底",
+          "method": "原圖座標放大圖目視辨認站立人物，身高僅採假設範圍。",
+          "referenceRole": "check"
+        }
+      ],
+      "notes": [
+        "地面人物相對住宅樓層偏大；不能靠放大整張地盤同時修復兩者。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "56dd1659820ba69c9d7bac0b2f8f9ec5f55c068d421b6462574fe87b431efebf"
+    },
+    {
+      "path": "Models/residential/house5x5/residential5-01-H-MD.png",
+      "references": [
+        {
+          "id": "floor-span",
+          "axis": "vertical",
+          "a": [
+            286,
+            429
+          ],
+          "b": [
+            286,
+            569
+          ],
+          "realM": [
+            19.6,
+            21,
+            22.4
+          ],
+          "pixelError": 5,
+          "meaning": "左前塔樓完整陽台樓板，跨 7 個完整層距",
+          "method": "本次原圖及座標放大圖目視確認完整窗戶／陽台單元；以同一 x 對齊相同構件，跨 7 層；米數只是假設每層 2.8–3.2m，名義 3m。",
+          "referenceRole": "primary"
+        },
+        {
+          "id": "adult-height",
+          "axis": "vertical",
+          "a": [
+            603,
+            851
+          ],
+          "b": [
+            603,
+            873
+          ],
+          "realM": [
+            1.55,
+            1.7,
+            1.85
+          ],
+          "pixelError": 4,
+          "meaning": "站立成年人頭頂至腳底",
+          "method": "原圖座標放大圖目視辨認站立人物，身高僅採假設範圍。",
+          "referenceRole": "check"
+        }
+      ],
+      "notes": [
+        "陽台完整單元約 20px，中間約 10px 的扶手／玻璃分格不是一層。",
+        "地面人物大小不一，這裏選前庭可辨站立成人；街景與塔樓可能不同尺度。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "dcef192638543eb517c94d546b594f6a56d57ecb1bba79f214d92a5feea4addc"
+    },
+    {
+      "path": "Models/residential/house5x5/residential5-02-H-MD.png",
+      "references": [
+        {
+          "id": "floor-span",
+          "axis": "vertical",
+          "a": [
+            284,
+            436
+          ],
+          "b": [
+            284,
+            598
+          ],
+          "realM": [
+            19.6,
+            21,
+            22.4
+          ],
+          "pixelError": 5,
+          "meaning": "左前塔樓完整陽台樓板，跨 7 個完整層距",
+          "method": "本次原圖及座標放大圖目視確認完整窗戶／陽台單元；以同一 x 對齊相同構件，跨 7 層；米數只是假設每層 2.8–3.2m，名義 3m。",
+          "referenceRole": "primary"
+        },
+        {
+          "id": "adult-height",
+          "axis": "vertical",
+          "a": [
+            538,
+            875
+          ],
+          "b": [
+            538,
+            896
+          ],
+          "realM": [
+            1.55,
+            1.7,
+            1.85
+          ],
+          "pixelError": 4,
+          "meaning": "站立成年人頭頂至腳底",
+          "method": "原圖座標放大圖目視辨認站立人物，身高僅採假設範圍。",
+          "referenceRole": "check"
+        }
+      ],
+      "notes": [
+        "完整陽台週期約 23px，不能把中間窗／扶手線當額外樓層。",
+        "住宅塔樓與商場／街道人物換算存在比例差異。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "648ca32ed1e875a5fb0fd643187381e200a504347f1286d4548a0d490391d4c0"
+    },
+    {
+      "path": "Models/residential/house5x5/residential5-03-L-HD.png",
+      "references": [
+        {
+          "id": "floor-span",
+          "axis": "vertical",
+          "a": [
+            511,
+            649
+          ],
+          "b": [
+            511,
+            851
+          ],
+          "realM": [
+            25.2,
+            27,
+            28.8
+          ],
+          "pixelError": 5,
+          "meaning": "中央 B 座完整窗戶與窗下牆帶，跨 9 個完整層距",
+          "method": "本次原圖及座標放大圖目視確認完整窗戶／陽台單元；以同一 x 對齊相同構件，跨 9 層；米數只是假設每層 2.8–3.2m，名義 3m。",
+          "referenceRole": "primary"
+        }
+      ],
+      "notes": [
+        "完整窗戶單元約 22–23px；窗下冷氣及牆帶不是另一層。",
+        "圖檔留白很大；縮圖容易誤判，已原圖裁切放大覆核中央塔樓。",
+        "地面小樓、樹及人物很細，沒有可可靠辨認且獨立定米制的第二參考。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "b33d672b6f4081d613118d749b67f22571c96e0d2a473c017a15793ef1cf7b1f"
+    },
+    {
+      "path": "Models/residential/house9x9/residential9-01-H-MD.png",
+      "references": [
+        {
+          "id": "floor-span",
+          "axis": "vertical",
+          "a": [
+            286,
+            429
+          ],
+          "b": [
+            286,
+            569
+          ],
+          "realM": [
+            19.6,
+            21,
+            22.4
+          ],
+          "pixelError": 5,
+          "meaning": "左前塔樓完整陽台樓板，跨 7 個完整層距",
+          "method": "本次原圖及座標放大圖目視確認完整窗戶／陽台單元；以同一 x 對齊相同構件，跨 7 層；米數只是假設每層 2.8–3.2m，名義 3m。",
+          "referenceRole": "primary"
+        },
+        {
+          "id": "adult-height",
+          "axis": "vertical",
+          "a": [
+            603,
+            851
+          ],
+          "b": [
+            603,
+            873
+          ],
+          "realM": [
+            1.55,
+            1.7,
+            1.85
+          ],
+          "pixelError": 4,
+          "meaning": "站立成年人頭頂至腳底",
+          "method": "原圖座標放大圖目視辨認站立人物，身高僅採假設範圍。",
+          "referenceRole": "check"
+        }
+      ],
+      "notes": [
+        "屬住宅 5-01 相關剪街 9×9 版本；主建築像素幾何未按 9/5 自動變大。",
+        "已獨立查看本圖；保留地面人物與塔樓比例差異。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "d1b8f27585244476b5d642e1dda8ba0aac02d081890fc09d4c20444a3d55db90"
+    },
+    {
+      "path": "Models/residential/house9x9/residential9-02-H-MD.png",
+      "references": [
+        {
+          "id": "floor-span",
+          "axis": "vertical",
+          "a": [
+            284,
+            436
+          ],
+          "b": [
+            284,
+            598
+          ],
+          "realM": [
+            19.6,
+            21,
+            22.4
+          ],
+          "pixelError": 5,
+          "meaning": "左前塔樓完整陽台樓板，跨 7 個完整層距",
+          "method": "本次原圖及座標放大圖目視確認完整窗戶／陽台單元；以同一 x 對齊相同構件，跨 7 層；米數只是假設每層 2.8–3.2m，名義 3m。",
+          "referenceRole": "primary"
+        },
+        {
+          "id": "adult-height",
+          "axis": "vertical",
+          "a": [
+            538,
+            875
+          ],
+          "b": [
+            538,
+            896
+          ],
+          "realM": [
+            1.55,
+            1.7,
+            1.85
+          ],
+          "pixelError": 4,
+          "meaning": "站立成年人頭頂至腳底",
+          "method": "原圖座標放大圖目視辨認站立人物，身高僅採假設範圍。",
+          "referenceRole": "check"
+        }
+      ],
+      "notes": [
+        "屬住宅 5-02 相關剪街 9×9 版本；主建築像素幾何未按 9/5 自動變大。",
+        "已獨立查看本圖；保留地面人物與塔樓比例差異。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "b6b189d96f3307ce69febac7516a02fbcb73d9e514ac3c076c0229ecaab5c28d"
+    }
+  ]
+}

@@ -1,0 +1,90 @@
+{
+  "version": 1,
+  "tiles": [
+    3,
+    3
+  ],
+  "tileMetres": 20,
+  "siteMetres": [
+    60,
+    60
+  ],
+  "canvas": [
+    1600,
+    1400
+  ],
+  "projection": "screenX=200+10*(x+y); screenY=800+5*(x-y)-20*z",
+  "siteCorners": [
+    [
+      200,
+      800
+    ],
+    [
+      800,
+      1100
+    ],
+    [
+      1400,
+      800
+    ],
+    [
+      800,
+      500
+    ]
+  ],
+  "pool": {
+    "origin": [
+      5,
+      25
+    ],
+    "length": 50,
+    "width": 25,
+    "lanes": 8,
+    "boundaryCorners": [
+      [
+        500,
+        700
+      ],
+      [
+        1000,
+        950
+      ],
+      [
+        1250,
+        825
+      ],
+      [
+        750,
+        575
+      ]
+    ]
+  },
+  "deck": {
+    "origin": [
+      2,
+      22
+    ],
+    "length": 56,
+    "width": 31
+  },
+  "amenityBuilding": {
+    "origin": [
+      8,
+      5
+    ],
+    "length": 37,
+    "width": 9,
+    "height": 3.8
+  },
+  "plantBuilding": {
+    "origin": [
+      48,
+      6
+    ],
+    "length": 7,
+    "width": 7
+  },
+  "design": "Simple Hong Kong outdoor municipal pool: one main pool, low amenity building, plant room and sparse poolside furnishings",
+  "runtimeIntegrated": false,
+  "calibrationPolicy": "Only global affine correction is allowed for generated artwork. No local nonlinear warps."
+}

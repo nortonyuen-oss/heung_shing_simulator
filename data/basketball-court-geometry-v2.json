@@ -1,0 +1,220 @@
+{
+  "version": 2,
+  "source": "scripts/source-art/basketballCourt/v1/render-source.png",
+  "sourceSha256": "95afc9b5781436189673d1827910f97f53955502cc8274d709ad9fdd056ff565",
+  "output": "Models/basketballCourt/bc_estateFullCourt_v2.png",
+  "outputSha256": "6f8af156a3249e3c37fdcd51e6e2ebce8ab8013d52baf00e6c7fb6eeb095b4b7",
+  "canvas": [
+    1600,
+    1400
+  ],
+  "runtimeIntegrated": false,
+  "method": "Single global affine transformation; straight lines and screen verticals preserved. No local warp.",
+  "affine": [
+    [
+      0.8743169398907104,
+      0,
+      210.27322404371586
+    ],
+    [
+      0.009909399644525196,
+      0.7826149865723855,
+      262.7133605611225
+    ]
+  ],
+  "sourceFrontEdgeFits": {
+    "left": {
+      "slope": 0.5459249792443285,
+      "intercept": 658.4229622973877
+    },
+    "right": {
+      "slope": -0.5712487969951879,
+      "intercept": 1430.1816605666422
+    }
+  },
+  "rasterFootprintEdges": {
+    "frontLeft": {
+      "slope": 0.5000192593543672,
+      "intercept": 672.6667577288447
+    },
+    "frontRight": {
+      "slope": -0.5001969394094353,
+      "intercept": 1487.0944142743035
+    }
+  },
+  "maxIntroducedLineDeviationPixels": 2.5421149729252077e-13,
+  "verticalsRetainScreenX": true,
+  "alphaBorderMax": 0,
+  "landmarks": [
+    {
+      "name": "siteLeft",
+      "source": [
+        34,
+        676.9738157144645
+      ],
+      "output": [
+        240,
+        792.8601338442686
+      ]
+    },
+    {
+      "name": "siteFront",
+      "source": [
+        690.6381284783575,
+        1035.575593473651
+      ],
+      "output": [
+        814.1098391067608,
+        1080.014148967033
+      ]
+    },
+    {
+      "name": "siteRight",
+      "source": [
+        1315,
+        679.0753242865494
+      ],
+      "output": [
+        1360,
+        807.1987468918293
+      ]
+    },
+    {
+      "name": "siteBack",
+      "source": [
+        690.6381284783575,
+        353
+      ],
+      "output": [
+        814.1098391067608,
+        545.8202600460136
+      ]
+    },
+    {
+      "name": "courtLeft",
+      "source": [
+        332,
+        628
+      ],
+      "output": [
+        500.5464480874317,
+        757.485492810563
+      ]
+    },
+    {
+      "name": "courtFront",
+      "source": [
+        775,
+        864
+      ],
+      "output": [
+        887.8688524590164,
+        946.5724936841706
+      ]
+    },
+    {
+      "name": "courtRight",
+      "source": [
+        1028,
+        733
+      ],
+      "output": [
+        1109.0710382513662,
+        846.557008553253
+      ]
+    },
+    {
+      "name": "courtBack",
+      "source": [
+        583,
+        495
+      ],
+      "output": [
+        720,
+        655.8849589072115
+      ]
+    },
+    {
+      "name": "fenceLeftFoot",
+      "source": [
+        207,
+        618
+      ],
+      "output": [
+        391.25683060109293,
+        748.4206679892734
+      ]
+    },
+    {
+      "name": "fenceFrontFoot",
+      "source": [
+        790,
+        935
+      ],
+      "output": [
+        900.983606557377,
+        1002.2867987254779
+      ]
+    },
+    {
+      "name": "fenceRightFoot",
+      "source": [
+        1153,
+        747
+      ],
+      "output": [
+        1218.360655737705,
+        858.752293320832
+      ]
+    },
+    {
+      "name": "fenceBackFoot",
+      "source": [
+        572,
+        435
+      ],
+      "output": [
+        710.3825136612022,
+        608.8190563167786
+      ]
+    },
+    {
+      "name": "halfwayFar",
+      "source": [
+        805.5,
+        614
+      ],
+      "output": [
+        914.5355191256831,
+        751.2209837302323
+      ]
+    },
+    {
+      "name": "halfwayNear",
+      "source": [
+        553.5,
+        746
+      ],
+      "output": [
+        694.2076502732241,
+        852.0289932473668
+      ]
+    }
+  ],
+  "nominalDesign": {
+    "tiles": [
+      2,
+      2
+    ],
+    "tileMetres": 20,
+    "siteMetres": [
+      40,
+      40
+    ],
+    "courtMetres": [
+      28,
+      15
+    ]
+  },
+  "limitations": "Generated source has small internal placement/proportion differences from the exact guide. This correction aligns the two front ground axes to +/-0.5 without forcing all source corners or props onto ideal control points. A pixel-exact 40x40 m square and exact 28x15 m playing rectangle are not claimed."
+}

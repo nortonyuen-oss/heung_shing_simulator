@@ -1,0 +1,130 @@
+{
+  "version": 1,
+  "siteMetres": [
+    40,
+    40
+  ],
+  "tiles": [
+    2,
+    2
+  ],
+  "tileMetres": 20,
+  "canvas": [
+    1600,
+    1400
+  ],
+  "projection": "screenX=240+14*(x+y); screenY=800+7*(x-y)-28*z",
+  "siteCorners": [
+    [
+      240,
+      800
+    ],
+    [
+      800,
+      1080
+    ],
+    [
+      1360,
+      800
+    ],
+    [
+      800,
+      520
+    ]
+  ],
+  "court": {
+    "origin": [
+      6,
+      12.5
+    ],
+    "length": 28,
+    "width": 15,
+    "boundaryCorners": [
+      [
+        499,
+        754.5
+      ],
+      [
+        891,
+        950.5
+      ],
+      [
+        1101,
+        845.5
+      ],
+      [
+        709,
+        649.5
+      ]
+    ]
+  },
+  "clearFloor": {
+    "origin": [
+      4,
+      10.5
+    ],
+    "length": 32,
+    "width": 19
+  },
+  "fence": {
+    "origin": [
+      2,
+      9
+    ],
+    "length": 36,
+    "width": 22,
+    "height": 3.5,
+    "frontGateX": [
+      18,
+      22
+    ]
+  },
+  "hoopCentres": [
+    [
+      7.575,
+      20,
+      3.05
+    ],
+    [
+      32.425,
+      20,
+      3.05
+    ]
+  ],
+  "hoopPostBases": [
+    [
+      3.2,
+      20,
+      0
+    ],
+    [
+      36.8,
+      20,
+      0
+    ]
+  ],
+  "lightBases": [
+    [
+      3,
+      6
+    ],
+    [
+      37,
+      6
+    ],
+    [
+      3,
+      34
+    ],
+    [
+      37,
+      34
+    ]
+  ],
+  "runtimeIntegrated": false,
+  "design": "Traditional Hong Kong housing-estate court, dark green fence, green playing surface and red runoff; props outside clear floor",
+  "sources": [
+    "https://assets.fiba.basketball/image/upload/documents-corporate-fiba-official-rules-2024-v10a.pdf",
+    "https://www.venueguide.fiba.basketball/vanue-design"
+  ]
+}

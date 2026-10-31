@@ -52,9 +52,10 @@ const FESTIVAL_BUILDING_SPOTS = Object.freeze({
   }),
   sports_ground_2x2: Object.freeze({
     path: 'Models/parks/park2x2/sportField3-02.png',
-    pxPerM: 18.1,
+    pxPerM: Math.hypot(14, 7),
     spots: Object.freeze({}),
-    areas: Object.freeze({ court: Object.freeze({ left: [278, 922], top: [778, 668], right: [1334, 874] }) }),
+    // Festivals use the playing surface AND its runoff, inset from the new fence.
+    areas: Object.freeze({ court: Object.freeze({ left: [448, 750], top: [710, 635], right: [1161, 858] }) }),
   }),
   // the temples' forecourts: a lion dance and the 頭炷香 incense burner at New Year
   heritage_temple_2x2: Object.freeze({ path: 'Models/specialSites/2x2/tample2-01.png', spots: Object.freeze({ forecourt: Object.freeze([560, 880]) }) }),

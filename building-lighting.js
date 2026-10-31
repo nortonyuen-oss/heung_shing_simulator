@@ -1447,11 +1447,9 @@ const BUILDING_LIGHT_HERO_PROFILES = {
   }),
   sports_ground_2x2: makeBuildingLightProfile({
     class: 'svc', service: true,
-    panels: [
-      { c: [[0.15, 0.11], [0.5, 0.28], [0.5, 0.72], [0.15, 0.56]], rows: 5, cols: 5, on: false },
-      { c: [[0.5, 0.28], [0.85, 0.11], [0.85, 0.56], [0.5, 0.72]], rows: 5, cols: 5, on: false },
-    ],
-    lamps: [{ x: 0.53, y: 0.688, r: 0.05 }, { x: 0.396, y: 0.695, r: 0.05 }, { x: 0.711, y: 0.599, r: 0.05 }, { x: 0.212, y: 0.557, r: 0.05 }, { x: 0.379, y: 0.221, r: 0.04 }, { x: 0.657, y: 0.25, r: 0.04 }],
+    // Replacement estate court: heads mapped from the source into staged art.
+    panels: [],
+    lamps: [{ x: 0.23361, y: 0.38319, r: 0.035 }, { x: 0.48169, y: 0.16283, r: 0.035 }, { x: 0.75984, y: 0.42545, r: 0.035 }, { x: 0.53361, y: 0.66684, r: 0.035 }],
   }),
   sports_ground_3x3: makeBuildingLightProfile({
     class: 'svc', service: true,
@@ -1737,11 +1735,8 @@ const BUILDING_LIGHT_HERO_PROFILES = {
   }),
   park_large_pool: makeBuildingLightProfile({
     class: 'off',
-    panels: [
-      { c: [[0.15, 0.11], [0.5, 0.28], [0.5, 0.72], [0.15, 0.56]], rows: 12, cols: 5, on: false },
-      { c: [[0.5, 0.28], [0.85, 0.11], [0.85, 0.56], [0.5, 0.72]], rows: 12, cols: 5, on: false },
-    ],
-    lamps: [{ x: 0.583, y: 0.707, r: 0.04 }, { x: 0.72, y: 0.56, r: 0.04 }, { x: 0.313, y: 0.677, r: 0.03 }, { x: 0.233, y: 0.6, r: 0.03 }, { x: 0.17, y: 0.528, r: 0.04 }, { x: 0.791, y: 0.458, r: 0.02 }],
+    panels: [],
+    lamps: [{"x":0.26884,"y":0.38613,"r":0.035},{"x":0.51082,"y":0.14194,"r":0.035},{"x":0.83699,"y":0.44873,"r":0.035},{"x":0.58395,"y":0.70171,"r":0.035}],
   }),
   park_large_highscore: makeBuildingLightProfile({
     class: 'off',

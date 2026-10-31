@@ -1,0 +1,2453 @@
+{
+  "category": "parks-landmarks-transport-power",
+  "assets": [
+    {
+      "path": "Models/parks/park1x1/eventGround.png",
+      "references": [],
+      "notes": [
+        "純地磚20m格網模組，無獨立已知實物參考。"
+      ],
+      "status": "defined-grid-module",
+      "definedLot": [
+        1,
+        1
+      ],
+      "sourceSha256": "959a1a448546baf9d3e0fe7a6b610867c3ecd2378045fc3b5ccbd23406d6b427"
+    },
+    {
+      "path": "Models/parks/park1x1/park1-01.png",
+      "references": [
+        {
+          "id": "bench",
+          "axis": "se",
+          "a": [
+            351,
+            742
+          ],
+          "b": [
+            411,
+            768
+          ],
+          "realM": [
+            1.5,
+            1.8,
+            2.1
+          ],
+          "pixelError": 4,
+          "meaning": "石凳靠背長；不取凳的alpha輪廓",
+          "referenceRole": "primary",
+          "method": "manual-pixel-landmarks"
+        },
+        {
+          "id": "bin",
+          "axis": "vertical",
+          "a": [
+            298,
+            715
+          ],
+          "b": [
+            298,
+            767
+          ],
+          "realM": [
+            0.85,
+            1,
+            1.15
+          ],
+          "pixelError": 4,
+          "meaning": "垃圾桶地面到頂",
+          "referenceRole": "check",
+          "method": "manual-pixel-landmarks"
+        }
+      ],
+      "notes": [
+        "公園裡的長凳／桶比20m地盤應有比例大；保持1格需要縮小本體補地景。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "bcaab628b74303ffa7b7b90de63f1cd6935d4f77d0458186e0e2cdf1f68c3e1a"
+    },
+    {
+      "path": "Models/parks/park1x1/park1-02.png",
+      "references": [
+        {
+          "id": "bench",
+          "axis": "sw",
+          "a": [
+            231,
+            589
+          ],
+          "b": [
+            293,
+            561
+          ],
+          "realM": [
+            1.5,
+            1.8,
+            2.1
+          ],
+          "pixelError": 4,
+          "meaning": "後方長凳靠背長",
+          "referenceRole": "primary",
+          "method": "manual-pixel-landmarks"
+        },
+        {
+          "id": "child",
+          "axis": "vertical",
+          "a": [
+            688,
+            725
+          ],
+          "b": [
+            688,
+            780
+          ],
+          "realM": [
+            1.15,
+            1.3,
+            1.45
+          ],
+          "pixelError": 4,
+          "meaning": "右邊站立兒童頭到腳",
+          "referenceRole": "check",
+          "method": "manual-pixel-landmarks"
+        }
+      ],
+      "notes": [],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "8da1873c73eea2a65e943b0b0bc7a2945eaf1d7f8b4283959cf2a15cb86e9b95"
+    },
+    {
+      "path": "Models/parks/park1x1/park1-03.png",
+      "references": [
+        {
+          "id": "bench",
+          "axis": "se",
+          "a": [
+            558,
+            510
+          ],
+          "b": [
+            687,
+            567
+          ],
+          "realM": [
+            1.5,
+            1.8,
+            2.1
+          ],
+          "pixelError": 4,
+          "meaning": "長凳靠背長",
+          "referenceRole": "primary",
+          "method": "manual-pixel-landmarks"
+        },
+        {
+          "id": "bin",
+          "axis": "vertical",
+          "a": [
+            770,
+            597
+          ],
+          "b": [
+            770,
+            675
+          ],
+          "realM": [
+            0.85,
+            1,
+            1.15
+          ],
+          "pixelError": 4,
+          "meaning": "垃圾桶地面到桶頂",
+          "referenceRole": "check",
+          "method": "manual-pixel-landmarks"
+        }
+      ],
+      "notes": [],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "80ae8d1973471dcdf604c1a5c37830b3b56bf5bdc6a5826dbd3d12ddcb7c9fc1"
+    },
+    {
+      "path": "Models/parks/park1x1/park1-04.png",
+      "references": [
+        {
+          "id": "bench",
+          "axis": "sw",
+          "a": [
+            728,
+            724
+          ],
+          "b": [
+            872,
+            659
+          ],
+          "realM": [
+            1.5,
+            1.8,
+            2.1
+          ],
+          "pixelError": 4,
+          "meaning": "長凳靠背長",
+          "referenceRole": "primary",
+          "method": "manual-pixel-landmarks"
+        },
+        {
+          "id": "bin",
+          "axis": "vertical",
+          "a": [
+            772,
+            539
+          ],
+          "b": [
+            772,
+            647
+          ],
+          "realM": [
+            0.85,
+            1,
+            1.15
+          ],
+          "pixelError": 4,
+          "meaning": "垃圾桶地面到桶頂",
+          "referenceRole": "check",
+          "method": "manual-pixel-landmarks"
+        }
+      ],
+      "notes": [],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "a8119f9c473f0be1f165f5fb30178f1eaaecf78082e7c8370fe8bee0a389a39d"
+    },
+    {
+      "path": "Models/parks/park2x2/park2-02.png",
+      "references": [
+        {
+          "id": "bench",
+          "axis": "se",
+          "a": [
+            209,
+            746
+          ],
+          "b": [
+            289,
+            781
+          ],
+          "realM": [
+            1.5,
+            1.8,
+            2.1
+          ],
+          "pixelError": 4,
+          "meaning": "左前長凳靠背長",
+          "referenceRole": "primary",
+          "method": "manual-pixel-landmarks"
+        },
+        {
+          "id": "bench-back",
+          "axis": "vertical",
+          "a": [
+            246,
+            758
+          ],
+          "b": [
+            246,
+            822
+          ],
+          "realM": [
+            0.7,
+            0.85,
+            1
+          ],
+          "pixelError": 8,
+          "meaning": "同一長凳背頂至腳下，地面點有遮擋",
+          "referenceRole": "check",
+          "method": "manual-pixel-landmarks"
+        }
+      ],
+      "notes": [
+        "凳長與垃圾桶高度不是同一比例，需分件。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "4d6208eea6ea86f4f6b98219dbad4638d98d73bc5e20ce52acc9c2e782785eae"
+    },
+    {
+      "path": "Models/parks/park2x2/park2-03-highScore.png",
+      "references": [
+        {
+          "id": "bench",
+          "axis": "se",
+          "a": [
+            742,
+            540
+          ],
+          "b": [
+            795,
+            565
+          ],
+          "realM": [
+            1.5,
+            1.8,
+            2.1
+          ],
+          "pixelError": 4,
+          "meaning": "右後長凳靠背長",
+          "referenceRole": "primary",
+          "method": "manual-pixel-landmarks"
+        },
+        {
+          "id": "bin",
+          "axis": "vertical",
+          "a": [
+            148,
+            655
+          ],
+          "b": [
+            148,
+            707
+          ],
+          "realM": [
+            0.85,
+            1,
+            1.15
+          ],
+          "pixelError": 4,
+          "meaning": "左前圓形垃圾桶高",
+          "referenceRole": "check",
+          "method": "manual-pixel-landmarks"
+        }
+      ],
+      "notes": [],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "a1b63abbcaabeaaac61ea08fb6dd6b689d2431f42cf9bd59d410ad94fd90cd1e"
+    },
+    {
+      "path": "Models/parks/park3x3/park3-01.png",
+      "references": [
+        {
+          "id": "bench",
+          "axis": "se",
+          "a": [
+            519,
+            558
+          ],
+          "b": [
+            552,
+            574
+          ],
+          "realM": [
+            1.5,
+            1.8,
+            2.1
+          ],
+          "pixelError": 4,
+          "meaning": "後方長凳靠背長",
+          "referenceRole": "primary",
+          "method": "manual-pixel-landmarks"
+        },
+        {
+          "id": "child",
+          "axis": "vertical",
+          "a": [
+            486,
+            799
+          ],
+          "b": [
+            486,
+            828
+          ],
+          "realM": [
+            1.15,
+            1.3,
+            1.45
+          ],
+          "pixelError": 3,
+          "meaning": "中央前方站立小孩頭到腳",
+          "referenceRole": "check",
+          "method": "manual-pixel-landmarks"
+        }
+      ],
+      "notes": [],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "7022ceb49177a98701437fc4bacaf6b4038187d86bd7364699c1c44ec6084683"
+    },
+    {
+      "path": "Models/parks/park2x2/sportField3-02.png",
+      "references": [
+        {
+          "id": "court-length",
+          "axis": "sw",
+          "a": [
+            786,
+            723
+          ],
+          "b": [
+            322,
+            946
+          ],
+          "realM": [
+            28,
+            28,
+            28
+          ],
+          "pixelError": 8,
+          "meaning": "籃球場白線長軸；左角沿白線外推，FIBA28m",
+          "referenceRole": "primary",
+          "method": "manual-pixel-landmarks"
+        },
+        {
+          "id": "court-width",
+          "axis": "se",
+          "a": [
+            786,
+            723
+          ],
+          "b": [
+            1191,
+            908
+          ],
+          "realM": [
+            15,
+            15,
+            15
+          ],
+          "pixelError": 4,
+          "meaning": "籃球場白線短軸；FIBA15m",
+          "referenceRole": "check",
+          "method": "manual-pixel-landmarks"
+        },
+        {
+          "id": "child",
+          "axis": "vertical",
+          "a": [
+            1002,
+            871
+          ],
+          "b": [
+            1002,
+            907
+          ],
+          "realM": [
+            1.15,
+            1.3,
+            1.45
+          ],
+          "pixelError": 3,
+          "meaning": "右半場兒童頭到腳",
+          "referenceRole": "check",
+          "method": "manual-pixel-landmarks"
+        }
+      ],
+      "notes": [
+        "籃球場白線兩軸比例與28:15不符，完整長邊部分被入口遮擋；以可見角點對照，需重畫場線。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "4bb2a2b3643668073ce1275731003bcd689be58961dba2f1c835bdf1293b06c8"
+    },
+    {
+      "path": "Models/parks/park3x3/sportField3-01.png",
+      "references": [
+        {
+          "id": "basket-hoop",
+          "axis": "vertical",
+          "a": [
+            605,
+            531
+          ],
+          "b": [
+            605,
+            561
+          ],
+          "realM": [
+            3.05,
+            3.05,
+            3.05
+          ],
+          "pixelError": 4,
+          "meaning": "後方籃框圈面至同柱地面，圈高3.05m",
+          "referenceRole": "primary",
+          "method": "manual-pixel-landmarks"
+        },
+        {
+          "id": "futsal-goal",
+          "axis": "se",
+          "a": [
+            685,
+            556
+          ],
+          "b": [
+            736,
+            581
+          ],
+          "realM": [
+            3,
+            3,
+            3
+          ],
+          "pixelError": 4,
+          "meaning": "遠端五人足球門兩立柱頂部橫樑，寬3m",
+          "referenceRole": "check",
+          "method": "manual-pixel-landmarks"
+        }
+      ],
+      "notes": [
+        "圖中同時有籃球／小足球場；不能將跑道判為400m跑道。籃框圈面/地腳在圖中很小，誤差較大。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "648d3259e12191278aa22cab1391d98a66a46dddcdc86273d916a3e627eeb1ca"
+    },
+    {
+      "path": "Models/parks/park3x3/swimmingPool3-01.png",
+      "references": [
+        {
+          "id": "pool-length",
+          "axis": "sw",
+          "a": [
+            449,
+            766
+          ],
+          "b": [
+            221,
+            867
+          ],
+          "realM": [
+            50,
+            50,
+            50
+          ],
+          "pixelError": 4,
+          "meaning": "主池泳線長向；以50m長池為明確設計假設",
+          "referenceRole": "primary",
+          "method": "manual-pixel-landmarks"
+        },
+        {
+          "id": "pool-width",
+          "axis": "se",
+          "a": [
+            449,
+            766
+          ],
+          "b": [
+            675,
+            871
+          ],
+          "realM": [
+            20,
+            25,
+            25
+          ],
+          "pixelError": 4,
+          "meaning": "主池橫向；8–10泳線辨識不明",
+          "referenceRole": "check",
+          "method": "manual-pixel-landmarks"
+        }
+      ],
+      "notes": [
+        "50m為設計假設而非圖中可驗證實尺；若採25m短池則長向推算全部減半。長／闊比例不符標準長池，需要重畫池體。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "8f78b9532949e3e04d0e62b28e162f130f912e0857618fedb1539efa67f89c5e"
+    },
+    {
+      "path": "Models/parks/park4x4/victoriaPark4-01.png",
+      "references": [
+        {
+          "id": "bench",
+          "axis": "sw",
+          "a": [
+            326,
+            699
+          ],
+          "b": [
+            353,
+            688
+          ],
+          "realM": [
+            1.5,
+            1.8,
+            2.1
+          ],
+          "pixelError": 4,
+          "meaning": "湖左方長凳靠背長",
+          "referenceRole": "primary",
+          "method": "manual-pixel-landmarks"
+        },
+        {
+          "id": "lamp",
+          "axis": "vertical",
+          "a": [
+            252,
+            739
+          ],
+          "b": [
+            252,
+            786
+          ],
+          "realM": [
+            3,
+            3.5,
+            4.5
+          ],
+          "pixelError": 3,
+          "meaning": "湖左前步道燈由腳至燈頭",
+          "referenceRole": "check",
+          "method": "manual-pixel-landmarks"
+        }
+      ],
+      "notes": [
+        "此模組無標準球場，尺度由假設凳／燈決定；與網球模組不能先假定同尺。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "96ecb2f67408588b382ba00f65ff221df61e0e1b9c8095ca976c8db60ca38cd5"
+    },
+    {
+      "path": "Models/parks/park4x4/victoriaPark4-module01.png",
+      "references": [
+        {
+          "id": "bench",
+          "axis": "sw",
+          "a": [
+            326,
+            699
+          ],
+          "b": [
+            353,
+            688
+          ],
+          "realM": [
+            1.5,
+            1.8,
+            2.1
+          ],
+          "pixelError": 4,
+          "meaning": "湖左方長凳靠背長",
+          "referenceRole": "primary",
+          "method": "manual-pixel-landmarks"
+        },
+        {
+          "id": "lamp",
+          "axis": "vertical",
+          "a": [
+            252,
+            739
+          ],
+          "b": [
+            252,
+            786
+          ],
+          "realM": [
+            3,
+            3.5,
+            4.5
+          ],
+          "pixelError": 3,
+          "meaning": "湖左前步道燈高",
+          "referenceRole": "check",
+          "method": "manual-pixel-landmarks"
+        }
+      ],
+      "notes": [
+        "原圖與victoriaPark4-01相同構圖，保留獨立檔案紀錄。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "runtimeEquivalentOf": "Models/parks/park4x4/victoriaPark4-01.png",
+      "sourceSha256": "96ecb2f67408588b382ba00f65ff221df61e0e1b9c8095ca976c8db60ca38cd5"
+    },
+    {
+      "path": "Models/parks/park4x4/victoriaPark4-module02.png",
+      "references": [
+        {
+          "id": "bench",
+          "axis": "sw",
+          "a": [
+            507,
+            682
+          ],
+          "b": [
+            535,
+            668
+          ],
+          "realM": [
+            1.5,
+            1.8,
+            2.1
+          ],
+          "pixelError": 4,
+          "meaning": "草地間長凳靠背長",
+          "referenceRole": "primary",
+          "method": "manual-pixel-landmarks"
+        },
+        {
+          "id": "door",
+          "axis": "vertical",
+          "a": [
+            580,
+            526
+          ],
+          "b": [
+            580,
+            547
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 3,
+          "meaning": "後方小屋入口高",
+          "referenceRole": "check",
+          "method": "manual-pixel-landmarks"
+        }
+      ],
+      "notes": [
+        "草地可能為滾球／活動草坪，不能硬指定為標準足球場。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "4f3032d34594e23c1b32f9a01b6d41c90272bee0db9ef93c2dff72451a549487"
+    },
+    {
+      "path": "Models/parks/park4x4/victoriaPark4-module03.png",
+      "references": [
+        {
+          "id": "person",
+          "axis": "vertical",
+          "a": [
+            622,
+            653
+          ],
+          "b": [
+            622,
+            670
+          ],
+          "realM": [
+            1.6,
+            1.7,
+            1.8
+          ],
+          "pixelError": 2,
+          "meaning": "草地中央偏右站立成人",
+          "referenceRole": "primary",
+          "method": "manual-pixel-landmarks"
+        },
+        {
+          "id": "person2",
+          "axis": "vertical",
+          "a": [
+            373,
+            734
+          ],
+          "b": [
+            373,
+            749
+          ],
+          "realM": [
+            1.6,
+            1.7,
+            1.8
+          ],
+          "pixelError": 2,
+          "meaning": "左下步道站立成人",
+          "referenceRole": "check",
+          "method": "manual-pixel-landmarks"
+        }
+      ],
+      "notes": [
+        "小人僅15–17px，點位誤差影響大；無法取得高精度真實米數。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "1c1f737e58dcd3efe362a6374eee9a101c3c2a87a6dd164ce2e0d2acb39c5e15"
+    },
+    {
+      "path": "Models/parks/park4x4/victoriaPark4-module04.png",
+      "references": [
+        {
+          "id": "tennis-length",
+          "axis": "se",
+          "a": [
+            384,
+            695
+          ],
+          "b": [
+            508,
+            772
+          ],
+          "realM": [
+            23.77,
+            23.77,
+            23.77
+          ],
+          "pixelError": 4,
+          "meaning": "前方完整網球場雙打底線長向；ITF23.77m",
+          "referenceRole": "primary",
+          "method": "manual-pixel-landmarks"
+        },
+        {
+          "id": "tennis-width",
+          "axis": "sw",
+          "a": [
+            384,
+            695
+          ],
+          "b": [
+            292,
+            739
+          ],
+          "realM": [
+            10.97,
+            10.97,
+            10.97
+          ],
+          "pixelError": 4,
+          "meaning": "前方同一網球場雙打短向；ITF10.97m",
+          "referenceRole": "check",
+          "method": "manual-pixel-landmarks"
+        }
+      ],
+      "notes": [
+        "以白線非圍網作基準；覆核角點後兩軸推算不一致，撤回原先最接近4格的判斷。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "32eb84e8bb8f15e63045280927851c4d88bb969f8997b10f91ba32a9c7d3fa08"
+    },
+    {
+      "path": "Models/parks/park4x4/victoriaPark4-module05.png",
+      "references": [
+        {
+          "id": "futsal-goal",
+          "axis": "se",
+          "a": [
+            497,
+            550
+          ],
+          "b": [
+            524,
+            563
+          ],
+          "realM": [
+            3,
+            3,
+            3
+          ],
+          "pixelError": 4,
+          "meaning": "左後場遠端小足球門橫樑寬3m",
+          "referenceRole": "primary",
+          "method": "manual-pixel-landmarks"
+        },
+        {
+          "id": "court-length",
+          "axis": "sw",
+          "a": [
+            458,
+            550
+          ],
+          "b": [
+            248,
+            661
+          ],
+          "realM": [
+            25,
+            35,
+            42
+          ],
+          "pixelError": 4,
+          "meaning": "左後五人足球場長向；允許多種場長，非精確標準",
+          "referenceRole": "check",
+          "method": "manual-pixel-landmarks"
+        }
+      ],
+      "notes": [
+        "球門僅27px寬；球場可能非標準尺寸，因此不能強行用40m當真值。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "bfdae5285d73700906c8198957130b62c7e3f7453820a46b31c7165e339086a8"
+    },
+    {
+      "path": "Models/parks/park4x4/victoriaPark4-module06.png",
+      "references": [
+        {
+          "id": "bench",
+          "axis": "sw",
+          "a": [
+            460,
+            856
+          ],
+          "b": [
+            490,
+            842
+          ],
+          "realM": [
+            1.5,
+            1.8,
+            2.1
+          ],
+          "pixelError": 4,
+          "meaning": "雕像右前方長凳靠背長",
+          "referenceRole": "primary",
+          "method": "manual-pixel-landmarks"
+        }
+      ],
+      "notes": [
+        "右方藍場是兩個並排同向半場，中間有橙色通道；不能當完整28×15m球場。沒有標準球場實尺，凳長只屬假設。"
+      ],
+      "status": "ambiguous-reference",
+      "sourceSha256": "97d1bf8b6174363eb6709e41a75a39992b0e0b3f1d573d5e4e4ca933f89eba53"
+    },
+    {
+      "path": "Models/specialSites/1x1/fishMarket1-01.png",
+      "references": [
+        {
+          "id": "work-table",
+          "axis": "vertical",
+          "a": [
+            414,
+            701
+          ],
+          "b": [
+            414,
+            749
+          ],
+          "realM": [
+            0.75,
+            0.85,
+            0.95
+          ],
+          "pixelError": 4,
+          "meaning": "魚檔工作檯面至地面",
+          "referenceRole": "primary",
+          "method": "manual-pixel-landmarks"
+        },
+        {
+          "id": "canopy-clearance",
+          "axis": "vertical",
+          "a": [
+            566,
+            605
+          ],
+          "b": [
+            566,
+            792
+          ],
+          "realM": [
+            2.5,
+            3,
+            3.5
+          ],
+          "pixelError": 4,
+          "meaning": "前方支柱簷下至地面",
+          "referenceRole": "check",
+          "method": "manual-pixel-landmarks"
+        }
+      ],
+      "notes": [],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "f4309936716a8d6c47482a243bc4e0c1e95f13971c306d2cb74ddea241ef7135"
+    },
+    {
+      "path": "Models/specialSites/1x1/fishMarket1-02.png",
+      "references": [
+        {
+          "id": "work-table",
+          "axis": "vertical",
+          "a": [
+            370,
+            674
+          ],
+          "b": [
+            370,
+            717
+          ],
+          "realM": [
+            0.75,
+            0.85,
+            0.95
+          ],
+          "pixelError": 4,
+          "meaning": "魚檔工作檯面至地面",
+          "referenceRole": "primary",
+          "method": "manual-pixel-landmarks"
+        },
+        {
+          "id": "canopy-clearance",
+          "axis": "vertical",
+          "a": [
+            551,
+            577
+          ],
+          "b": [
+            551,
+            809
+          ],
+          "realM": [
+            2.5,
+            3,
+            3.5
+          ],
+          "pixelError": 4,
+          "meaning": "前方支柱簷下至地面",
+          "referenceRole": "check",
+          "method": "manual-pixel-landmarks"
+        }
+      ],
+      "notes": [],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "2bc31d6c459ab0d693536c14677fe659ab0f88387cd60d6b2488367ac397669c"
+    },
+    {
+      "path": "Models/specialSites/1x1/seafoodRestaurant1-01.png",
+      "references": [
+        {
+          "id": "dining-table",
+          "axis": "vertical",
+          "a": [
+            300,
+            637
+          ],
+          "b": [
+            300,
+            684
+          ],
+          "realM": [
+            0.7,
+            0.75,
+            0.8
+          ],
+          "pixelError": 8,
+          "meaning": "左方餐桌面至估計腳下；下端被家具遮擋",
+          "referenceRole": "primary",
+          "method": "manual-pixel-landmarks",
+          "occludedEndpoint": true
+        },
+        {
+          "id": "stool",
+          "axis": "vertical",
+          "a": [
+            354,
+            659
+          ],
+          "b": [
+            354,
+            686
+          ],
+          "realM": [
+            0.4,
+            0.45,
+            0.5
+          ],
+          "pixelError": 8,
+          "meaning": "左方紅凳凳面至估計地面，部分遮擋",
+          "referenceRole": "check",
+          "method": "manual-pixel-landmarks",
+          "occludedEndpoint": true
+        }
+      ],
+      "notes": [
+        "桌／凳腳被家具遮擋；下點屬推估，不能當精確可見地面。"
+      ],
+      "status": "ambiguous-reference",
+      "sourceSha256": "6d21281b273cdbae3d8a85ba6df36ef213f26f0f9fe616a00bd1da623f7bd97a"
+    },
+    {
+      "path": "Models/specialSites/1x1/seafoodRestaurant1-02.png",
+      "references": [
+        {
+          "id": "dining-table",
+          "axis": "vertical",
+          "a": [
+            317,
+            664
+          ],
+          "b": [
+            317,
+            702
+          ],
+          "realM": [
+            0.7,
+            0.75,
+            0.8
+          ],
+          "pixelError": 8,
+          "meaning": "左方餐桌面至估計腳下；下端被家具遮擋",
+          "referenceRole": "primary",
+          "method": "manual-pixel-landmarks",
+          "occludedEndpoint": true
+        },
+        {
+          "id": "stool",
+          "axis": "vertical",
+          "a": [
+            350,
+            695
+          ],
+          "b": [
+            350,
+            720
+          ],
+          "realM": [
+            0.4,
+            0.45,
+            0.5
+          ],
+          "pixelError": 8,
+          "meaning": "左方紅凳凳面至估計地面，部分遮擋",
+          "referenceRole": "check",
+          "method": "manual-pixel-landmarks",
+          "occludedEndpoint": true
+        }
+      ],
+      "notes": [
+        "桌／凳腳被家具遮擋；下點屬推估，不能當精確可見地面。"
+      ],
+      "status": "ambiguous-reference",
+      "sourceSha256": "98317d5f95a0d6f7c682f682fb55d7de32ead1765154d0bdf2e90b88f8099104"
+    },
+    {
+      "path": "Models/specialSites/1x1/yachtClub1-01.png",
+      "references": [
+        {
+          "id": "storey",
+          "axis": "vertical",
+          "a": [
+            620,
+            697
+          ],
+          "b": [
+            620,
+            819
+          ],
+          "realM": [
+            3.2,
+            3.5,
+            3.8
+          ],
+          "pixelError": 4,
+          "meaning": "右前立面由二樓地台至地面一層",
+          "referenceRole": "primary",
+          "method": "manual-pixel-landmarks"
+        },
+        {
+          "id": "door",
+          "axis": "vertical",
+          "a": [
+            437,
+            649
+          ],
+          "b": [
+            437,
+            703
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 4,
+          "meaning": "主入口門扇",
+          "referenceRole": "check",
+          "method": "manual-pixel-landmarks"
+        }
+      ],
+      "notes": [
+        "會所層高及門高為設計參考；旗桿不作建築高度尺。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "aada4129c18a59997539232d8d082ae6736401ef87702fb07bacc10fa2b4e57d"
+    },
+    {
+      "path": "Models/specialSites/2x2/fishLoadingBay2-01.png",
+      "references": [
+        {
+          "id": "truck-bay-length",
+          "axis": "se",
+          "a": [
+            330,
+            570
+          ],
+          "b": [
+            455,
+            634
+          ],
+          "realM": [
+            6,
+            7,
+            9
+          ],
+          "pixelError": 4,
+          "meaning": "左排裝卸位長向，貨車泊位用途假設",
+          "referenceRole": "primary",
+          "method": "manual-pixel-landmarks"
+        },
+        {
+          "id": "truck-bay-width",
+          "axis": "sw",
+          "a": [
+            330,
+            570
+          ],
+          "b": [
+            411,
+            530
+          ],
+          "realM": [
+            2.8,
+            3,
+            3.5
+          ],
+          "pixelError": 4,
+          "meaning": "同一裝卸位短向",
+          "referenceRole": "check",
+          "method": "manual-pixel-landmarks"
+        }
+      ],
+      "notes": [
+        "泊位無實尺標示；長寬比例及車種有歧義，不能當精確標準車位。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "2c8aa36e080967662dcb56829088f96e657aecc7e5e28837c5062f39b51119cd"
+    },
+    {
+      "path": "Models/specialSites/2x2/murrayHouse2-01.png",
+      "references": [
+        {
+          "id": "storey",
+          "axis": "vertical",
+          "a": [
+            600,
+            699
+          ],
+          "b": [
+            600,
+            766
+          ],
+          "realM": [
+            3.5,
+            4,
+            4.5
+          ],
+          "pixelError": 5,
+          "meaning": "前柱上層樓板至地下柱腳一層",
+          "referenceRole": "primary",
+          "method": "manual-pixel-landmarks"
+        }
+      ],
+      "notes": [
+        "此圖只有兩層式構圖，不直接套真實美利樓總樓高；樓層與門洞推算比較。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "7d669ce45d541f6069fd693e6888cc163d96d78ba855aa98b74415dfd00cc60a"
+    },
+    {
+      "path": "Models/specialSites/2x2/spaceMuseum2-01.png",
+      "references": [
+        {
+          "id": "door",
+          "axis": "vertical",
+          "a": [
+            740,
+            1040
+          ],
+          "b": [
+            740,
+            1063
+          ],
+          "realM": [
+            2.1,
+            2.4,
+            2.7
+          ],
+          "pixelError": 4,
+          "meaning": "入口簷下玻璃門高度",
+          "referenceRole": "primary",
+          "method": "manual-pixel-landmarks"
+        }
+      ],
+      "notes": [
+        "官方23m係內部投影天幕直徑，不能誤當外殼直徑；外殼只有像素尺寸，未有可信實際外尺寸。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "features": [
+        {
+          "id": "exterior-dome-span",
+          "a": [
+            669,
+            826
+          ],
+          "b": [
+            1123,
+            826
+          ],
+          "meaning": "外殼可見水平跨度454px；是可見截面，不是地面軸直徑"
+        }
+      ],
+      "sourceSha256": "e2c13bcfaa4c253c0fe3177016624c75f225d42bec58fc177f0e090830e25f5b"
+    },
+    {
+      "path": "Models/specialSites/2x2/tample2-01.png",
+      "references": [
+        {
+          "id": "side-door",
+          "axis": "vertical",
+          "a": [
+            719,
+            709
+          ],
+          "b": [
+            719,
+            792
+          ],
+          "realM": [
+            2.4,
+            3,
+            3.6
+          ],
+          "pixelError": 4,
+          "meaning": "右側廟門洞高；大型廟門設計範圍",
+          "referenceRole": "primary",
+          "method": "manual-pixel-landmarks"
+        },
+        {
+          "id": "front-column",
+          "axis": "vertical",
+          "a": [
+            547,
+            705
+          ],
+          "b": [
+            547,
+            800
+          ],
+          "realM": [
+            3.5,
+            4.5,
+            5.5
+          ],
+          "pixelError": 4,
+          "meaning": "前簷柱簷下淨高",
+          "referenceRole": "check",
+          "method": "manual-pixel-landmarks"
+        }
+      ],
+      "notes": [
+        "廟門及簷柱都不是固定標準，米數不唯一；保留較寬假設範圍。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "875f55c50b134335ee6cfd5c036ec0352a2055d6df12bcbb0ea3a5e2e613f6ec"
+    },
+    {
+      "path": "Models/specialSites/2x2/tample2-02.png",
+      "references": [
+        {
+          "id": "side-door",
+          "axis": "vertical",
+          "a": [
+            861,
+            691
+          ],
+          "b": [
+            861,
+            737
+          ],
+          "realM": [
+            2.2,
+            2.5,
+            3
+          ],
+          "pixelError": 4,
+          "meaning": "右側廟門洞高",
+          "referenceRole": "primary",
+          "method": "manual-pixel-landmarks"
+        },
+        {
+          "id": "front-column",
+          "axis": "vertical",
+          "a": [
+            356,
+            691
+          ],
+          "b": [
+            356,
+            762
+          ],
+          "realM": [
+            3,
+            3.5,
+            4.5
+          ],
+          "pixelError": 4,
+          "meaning": "前簷柱淨高",
+          "referenceRole": "check",
+          "method": "manual-pixel-landmarks"
+        }
+      ],
+      "notes": [],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "81d7b946bb04c72581b603e99fcb3a2aae056818a260fdfa14b74ccd66900960"
+    },
+    {
+      "path": "Models/specialSites/3x3/buddha3-01.png",
+      "references": [
+        {
+          "id": "buddha-body",
+          "axis": "vertical",
+          "a": [
+            772,
+            433
+          ],
+          "b": [
+            772,
+            803
+          ],
+          "realM": [
+            26.4,
+            26.4,
+            26.4
+          ],
+          "pixelError": 4,
+          "meaning": "天壇大佛本體26.4m（不含底座）作地標還原目標",
+          "referenceRole": "primary",
+          "method": "manual-pixel-landmarks"
+        },
+        {
+          "id": "base-door",
+          "axis": "vertical",
+          "a": [
+            772,
+            857
+          ],
+          "b": [
+            772,
+            877
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 3,
+          "meaning": "第一層底座中央門洞",
+          "referenceRole": "check",
+          "method": "manual-pixel-landmarks"
+        }
+      ],
+      "notes": [
+        "26.4m來源為離島民政事務處官方資料，屬地標還原目標；本圖並非照片實測。主像與門洞約可交叉對照。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "1bc0896682a0379772f58081045ad46d6dcc0d0e52597cee0ca675fc83e40c17"
+    },
+    {
+      "path": "Models/specialSites/3x3/church3-01.png",
+      "references": [
+        {
+          "id": "portal",
+          "axis": "vertical",
+          "a": [
+            610,
+            1047
+          ],
+          "b": [
+            610,
+            1104
+          ],
+          "realM": [
+            2.8,
+            3,
+            3.6
+          ],
+          "pixelError": 4,
+          "meaning": "主入口門扇高（不含尖拱窗）",
+          "referenceRole": "primary",
+          "method": "manual-pixel-landmarks"
+        },
+        {
+          "id": "bench",
+          "axis": "se",
+          "a": [
+            488,
+            1114
+          ],
+          "b": [
+            525,
+            1132
+          ],
+          "realM": [
+            1.5,
+            1.8,
+            2.1
+          ],
+          "pixelError": 4,
+          "meaning": "左前長凳靠背長",
+          "referenceRole": "check",
+          "method": "manual-pixel-landmarks"
+        }
+      ],
+      "notes": [
+        "教堂門大於普通住宅門，採公共門範圍；原圖具模糊邊緣，誤差較大。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "d3f671f9af5d20f2b8b533940381d71cd3b8a598f3dbd3449e8161539262bf3d"
+    },
+    {
+      "path": "Models/specialSites/3x3/hungHomColiseum3-01_fixed.png",
+      "references": [
+        {
+          "id": "door",
+          "axis": "vertical",
+          "a": [
+            645,
+            760
+          ],
+          "b": [
+            645,
+            787
+          ],
+          "realM": [
+            2.1,
+            2.4,
+            2.7
+          ],
+          "pixelError": 4,
+          "meaning": "前方玻璃入口門扇",
+          "referenceRole": "primary",
+          "method": "manual-pixel-landmarks"
+        },
+        {
+          "id": "railing",
+          "axis": "vertical",
+          "a": [
+            547,
+            808
+          ],
+          "b": [
+            547,
+            822
+          ],
+          "realM": [
+            1,
+            1.1,
+            1.2
+          ],
+          "pixelError": 2,
+          "meaning": "入口前扶手地面到頂",
+          "referenceRole": "check",
+          "method": "manual-pixel-landmarks"
+        }
+      ],
+      "notes": [
+        "屋頂總闊不是樓高；入口門與扶手作交叉參照。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "f5036a5e35c094e3f0d753fabd226db617b9f7d502185304d789fbe3aeccb4d5"
+    },
+    {
+      "path": "Models/specialSites/3x3/tample3-01.png",
+      "references": [
+        {
+          "id": "main-door",
+          "axis": "vertical",
+          "a": [
+            529,
+            613
+          ],
+          "b": [
+            529,
+            645
+          ],
+          "realM": [
+            2.5,
+            3,
+            3.5
+          ],
+          "pixelError": 4,
+          "meaning": "主殿門洞高",
+          "referenceRole": "primary",
+          "method": "manual-pixel-landmarks"
+        }
+      ],
+      "notes": [
+        "主殿門高沒有唯一實尺；右側配殿金色圖案是窗花而非門，已撤回該檢查參照。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "cac19bad2b94cceb7f6e3cffab083736754f249dc97c9764569181339bd7d93c"
+    },
+    {
+      "path": "Models/specialSites/4x4/culturalCentre4-01.png",
+      "references": [
+        {
+          "id": "person",
+          "axis": "vertical",
+          "a": [
+            315,
+            936
+          ],
+          "b": [
+            315,
+            949
+          ],
+          "realM": [
+            1.6,
+            1.7,
+            1.8
+          ],
+          "pixelError": 2,
+          "meaning": "前庭站立成人",
+          "referenceRole": "primary",
+          "method": "manual-pixel-landmarks"
+        },
+        {
+          "id": "door",
+          "axis": "vertical",
+          "a": [
+            648,
+            926
+          ],
+          "b": [
+            648,
+            952
+          ],
+          "realM": [
+            2.1,
+            2.4,
+            2.7
+          ],
+          "pixelError": 3,
+          "meaning": "右側大堂玻璃門扇",
+          "referenceRole": "check",
+          "method": "manual-pixel-landmarks"
+        }
+      ],
+      "notes": [
+        "館舍與鐘樓是縮合構圖，不能套真實整個文化中心的平面面積。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "8c4e04462d9b9cd63798b6d35214e002345190fccc33289db3526d0e56cba202"
+    },
+    {
+      "path": "Models/specialSites/4x4/exhibitionCentre4-01.png",
+      "references": [
+        {
+          "id": "atrium-storeys",
+          "axis": "vertical",
+          "a": [
+            460,
+            585
+          ],
+          "b": [
+            460,
+            657
+          ],
+          "realM": [
+            10.8,
+            12,
+            13.2
+          ],
+          "pixelError": 4,
+          "meaning": "中央玻璃中庭3個完整樓層，不取細幕牆橫格",
+          "referenceRole": "primary",
+          "method": "manual-pixel-landmarks"
+        },
+        {
+          "id": "door",
+          "axis": "vertical",
+          "a": [
+            530,
+            742
+          ],
+          "b": [
+            530,
+            771
+          ],
+          "realM": [
+            2.1,
+            2.4,
+            2.7
+          ],
+          "pixelError": 3,
+          "meaning": "前方大堂入口門扇",
+          "referenceRole": "check",
+          "method": "manual-pixel-landmarks"
+        }
+      ],
+      "notes": [
+        "中庭樓層與入口推算可能明顯不一致。外翼細橫線無法證實每條一層，不拿來數樓。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "b0756f650a23fbcb241998e12a180cf0bcd193ee6ca33f06ae32f9f3fb289e13"
+    },
+    {
+      "path": "Models/specialSites/4x4/footballStadium4-02.png",
+      "references": [
+        {
+          "id": "pitch-length",
+          "axis": "sw",
+          "a": [
+            551,
+            543
+          ],
+          "b": [
+            307,
+            663
+          ],
+          "realM": [
+            105,
+            105,
+            105
+          ],
+          "pixelError": 4,
+          "meaning": "完整11人足球場長邊白線；FIFA推薦105m",
+          "referenceRole": "primary",
+          "method": "manual-pixel-landmarks"
+        },
+        {
+          "id": "pitch-width",
+          "axis": "se",
+          "a": [
+            551,
+            543
+          ],
+          "b": [
+            714,
+            614
+          ],
+          "realM": [
+            68,
+            68,
+            68
+          ],
+          "pixelError": 4,
+          "meaning": "足球場短邊白線；FIFA推薦68m",
+          "referenceRole": "check",
+          "method": "manual-pixel-landmarks"
+        },
+        {
+          "id": "door",
+          "axis": "vertical",
+          "a": [
+            426,
+            851
+          ],
+          "b": [
+            426,
+            884
+          ],
+          "realM": [
+            2.1,
+            2.4,
+            2.7
+          ],
+          "pixelError": 3,
+          "meaning": "前方看台外牆門扇高",
+          "referenceRole": "check",
+          "method": "manual-pixel-landmarks"
+        }
+      ],
+      "notes": [
+        "105×68m是頂級球場推薦尺寸，非任何足球場必須同尺。若採此設計，圖內外牆門洞會顯著變大，需重製看台及入口。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "6e1753ac9477227195d4aa4c5e6b90182afee358eb4daf46f62b0b651c894171"
+    },
+    {
+      "path": "Models/specialSites/4x4/goldCoastHotel4-01.png",
+      "references": [
+        {
+          "id": "hotel-storeys",
+          "axis": "vertical",
+          "a": [
+            560,
+            351
+          ],
+          "b": [
+            560,
+            555
+          ],
+          "realM": [
+            21,
+            22.4,
+            23.8
+          ],
+          "pixelError": 4,
+          "meaning": "同一直立窗列7層客房，每層3.0/3.2/3.4m",
+          "referenceRole": "primary",
+          "method": "manual-pixel-landmarks"
+        },
+        {
+          "id": "entrance",
+          "axis": "vertical",
+          "a": [
+            610,
+            784
+          ],
+          "b": [
+            610,
+            826
+          ],
+          "realM": [
+            3,
+            4,
+            5
+          ],
+          "pixelError": 4,
+          "meaning": "酒店挑高門廊／入口玻璃高度",
+          "referenceRole": "check",
+          "method": "manual-pixel-landmarks"
+        }
+      ],
+      "notes": [
+        "酒店入口挑高，不能硬套住宅2.1m門高。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "252108d76ad9ec785f681c9bc09352634f96287cccaa15a54c0588996806906d"
+    },
+    {
+      "path": "Models/specialSites/4x4/oceanPark4-01.png",
+      "references": [
+        {
+          "id": "person",
+          "axis": "vertical",
+          "a": [
+            530,
+            906
+          ],
+          "b": [
+            530,
+            917
+          ],
+          "realM": [
+            1.6,
+            1.7,
+            1.8
+          ],
+          "pixelError": 2,
+          "meaning": "前廣場站立成人",
+          "referenceRole": "primary",
+          "method": "manual-pixel-landmarks"
+        },
+        {
+          "id": "person2",
+          "axis": "vertical",
+          "a": [
+            478,
+            879
+          ],
+          "b": [
+            478,
+            889
+          ],
+          "realM": [
+            1.6,
+            1.7,
+            1.8
+          ],
+          "pixelError": 2,
+          "meaning": "前入口另一成人",
+          "referenceRole": "check",
+          "method": "manual-pixel-landmarks"
+        }
+      ],
+      "notes": [
+        "人很小而遊樂設施縮合，像素誤差大；本次沒有足夠證據精確定義摩天輪、塔樓實高。先撤回20×20作為量度結果。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "features": [
+        {
+          "id": "tower-height",
+          "a": [
+            464,
+            420
+          ],
+          "b": [
+            464,
+            614
+          ],
+          "meaning": "中央觀景塔可見像素高194px，沒有確證對應實際哪款塔及高度"
+        }
+      ],
+      "sourceSha256": "c4f566e0e14262317db4b790b21501c8a8ab3918bac1661ad1b8ecab8fc3d2bb"
+    },
+    {
+      "path": "Models/powerStation/coalPowerPlant.png",
+      "references": [
+        {
+          "id": "worker",
+          "axis": "vertical",
+          "a": [
+            458,
+            741
+          ],
+          "b": [
+            458,
+            780
+          ],
+          "realM": [
+            1.6,
+            1.7,
+            1.8
+          ],
+          "pixelError": 3,
+          "meaning": "前方工人頭盔頂至腳底",
+          "referenceRole": "primary",
+          "method": "manual-pixel-landmarks"
+        },
+        {
+          "id": "door",
+          "axis": "vertical",
+          "a": [
+            446,
+            727
+          ],
+          "b": [
+            446,
+            777
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 4,
+          "meaning": "工人身後主樓門扇",
+          "referenceRole": "check",
+          "method": "manual-pixel-landmarks"
+        }
+      ],
+      "notes": [
+        "兩參照支持小型站的圖像比例，不代表有煤場及大型機組的完整燃煤電廠；先前16×16只是規劃預留，撤回作為現圖量度結果。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "4e3f6fbbe08aa9d6f25336bcdca8fd5488aab1fe57c2887f82d9351ccb0a6043"
+    },
+    {
+      "path": "Models/powerStation/solarPowerPlant.png",
+      "references": [
+        {
+          "id": "storeys",
+          "axis": "vertical",
+          "a": [
+            352,
+            556
+          ],
+          "b": [
+            352,
+            710
+          ],
+          "realM": [
+            9,
+            10.8,
+            12.6
+          ],
+          "pixelError": 4,
+          "meaning": "左立面三層樓板／窗列，工業樓層3–4.2m",
+          "referenceRole": "primary",
+          "method": "manual-pixel-landmarks"
+        },
+        {
+          "id": "worker",
+          "axis": "vertical",
+          "a": [
+            605,
+            711
+          ],
+          "b": [
+            605,
+            752
+          ],
+          "realM": [
+            1.6,
+            1.7,
+            1.8
+          ],
+          "pixelError": 3,
+          "meaning": "右側工人頭至腳",
+          "referenceRole": "check",
+          "method": "manual-pixel-landmarks"
+        },
+        {
+          "id": "door",
+          "axis": "vertical",
+          "a": [
+            464,
+            660
+          ],
+          "b": [
+            464,
+            710
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 4,
+          "meaning": "前入口門扇",
+          "referenceRole": "check",
+          "method": "manual-pixel-landmarks"
+        }
+      ],
+      "notes": [
+        "樓層與人／門推算可能不同；太陽能板本身無確定型號不能硬套2m。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "908d038c9fa2a0f11752558a4ddddb5d22d1be0fc5fbcbdbc1d6b6dbe8d10815"
+    },
+    {
+      "path": "Models/powerStation/nuclearPower4x4.png",
+      "references": [
+        {
+          "id": "cooling-tower-scenario",
+          "axis": "vertical",
+          "a": [
+            570,
+            304
+          ],
+          "b": [
+            570,
+            484
+          ],
+          "realM": [
+            80,
+            100,
+            140
+          ],
+          "pixelError": 5,
+          "meaning": "冷卻塔淨塔高；80–140m僅工程設計情境，不是本圖已知實尺",
+          "referenceRole": "primary",
+          "method": "manual-pixel-landmarks",
+          "scenarioOnly": true
+        }
+      ],
+      "notes": [
+        "原門扇取點其實白柱，覆核後已撤回。沒有可確證門尺，只有冷卻塔像素與80–140m設計情境；先前40×40概念預留不能稱量度結果。"
+      ],
+      "status": "ambiguous-reference",
+      "sourceSha256": "8de6b7ca199e4db9607fbcdcbe33e91e469e57dbb8593b2173326d453c7ce58d"
+    },
+    {
+      "path": "Models/airPort/12x12/airport12-01.png",
+      "references": [
+        {
+          "id": "runway-length-scenario",
+          "axis": "se",
+          "a": [
+            523,
+            422
+          ],
+          "b": [
+            1267,
+            801
+          ],
+          "realM": [
+            3800,
+            3800,
+            3800
+          ],
+          "pixelError": 4,
+          "meaning": "跑道外白框兩端線中點；3800m是香港客運跑道設計情境",
+          "referenceRole": "primary",
+          "method": "manual-pixel-landmarks",
+          "scenarioOnly": true
+        },
+        {
+          "id": "runway-width-scenario",
+          "axis": "sw",
+          "a": [
+            481,
+            443
+          ],
+          "b": [
+            565,
+            400
+          ],
+          "realM": [
+            60,
+            60,
+            60
+          ],
+          "pixelError": 5,
+          "meaning": "同一端線兩外白框角；60m是跑道闊度情境",
+          "referenceRole": "check",
+          "method": "manual-pixel-landmarks",
+          "scenarioOnly": true
+        },
+        {
+          "id": "car-bay",
+          "axis": "se",
+          "a": [
+            1546,
+            445
+          ],
+          "b": [
+            1565,
+            454
+          ],
+          "realM": [
+            4.8,
+            5,
+            5.5
+          ],
+          "pixelError": 3,
+          "meaning": "後方停車位長向白線，轎車位設計假設",
+          "referenceRole": "check",
+          "method": "manual-pixel-landmarks"
+        }
+      ],
+      "notes": [
+        "跑道長寬比嚴重壓縮，跑道情境與車位尺度無法同時滿足；不存在一個整圖格數讓全部同尺。不能把現圖比例當成真實機場工程測繪。"
+      ],
+      "status": "ambiguous-reference",
+      "sourceSha256": "04dafb42c4ad5fb2a3c7b773b031044e6c8bfd589392f69af5ed94b17887b664"
+    },
+    {
+      "path": "Models/containerPort/4x4/containerPort4-LL.png",
+      "references": [
+        {
+          "id": "container-length",
+          "axis": "se",
+          "a": [
+            816,
+            1116
+          ],
+          "b": [
+            850,
+            1132
+          ],
+          "realM": [
+            6.058,
+            6.058,
+            6.058
+          ],
+          "pixelError": 4,
+          "meaning": "前排紅箱頂長邊；由長高比判為20呎設計情境",
+          "referenceRole": "primary",
+          "method": "manual-pixel-landmarks"
+        },
+        {
+          "id": "container-height",
+          "axis": "vertical",
+          "a": [
+            850,
+            1132
+          ],
+          "b": [
+            850,
+            1150
+          ],
+          "realM": [
+            2.591,
+            2.591,
+            2.896
+          ],
+          "pixelError": 3,
+          "meaning": "同一紅箱一層高度，標準／高箱範圍",
+          "referenceRole": "check",
+          "method": "manual-pixel-landmarks"
+        }
+      ],
+      "notes": [
+        "20呎分類為圖像長高比假設，若其實40呎則長向推算加倍；以高度作交叉核對。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "a07d107432cdbd6115930c0c3aa5cfd84700ce0add19bcebe5bceebaf62599fe"
+    },
+    {
+      "path": "Models/containerPort/4x4/containerPort4-LR.png",
+      "references": [
+        {
+          "id": "container-length",
+          "axis": "sw",
+          "a": [
+            719,
+            1116
+          ],
+          "b": [
+            685,
+            1132
+          ],
+          "realM": [
+            6.058,
+            6.058,
+            6.058
+          ],
+          "pixelError": 4,
+          "meaning": "前排紅箱頂長邊；20呎設計情境",
+          "referenceRole": "primary",
+          "method": "manual-pixel-landmarks"
+        },
+        {
+          "id": "container-height",
+          "axis": "vertical",
+          "a": [
+            685,
+            1132
+          ],
+          "b": [
+            685,
+            1150
+          ],
+          "realM": [
+            2.591,
+            2.591,
+            2.896
+          ],
+          "pixelError": 3,
+          "meaning": "同一紅箱一層高",
+          "referenceRole": "check",
+          "method": "manual-pixel-landmarks"
+        }
+      ],
+      "notes": [
+        "與LL為相反海岸視圖；每方向獨立記點，須按單箱規格統一。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "8e0d4e83549cdef3dfd90e720f059d13b899303b8c6c86dc38f2a72d2a9cac5d"
+    },
+    {
+      "path": "Models/containerPort/4x4/containerPort4-UL.png",
+      "references": [
+        {
+          "id": "trailer-container-length",
+          "axis": "sw",
+          "a": [
+            731,
+            1112
+          ],
+          "b": [
+            798,
+            1076
+          ],
+          "realM": [
+            12.192,
+            12.192,
+            12.192
+          ],
+          "pixelError": 4,
+          "meaning": "中央前方貨車紅箱總長；40呎或兩個20呎端接情境",
+          "referenceRole": "primary",
+          "method": "manual-pixel-landmarks"
+        },
+        {
+          "id": "trailer-container-height",
+          "axis": "vertical",
+          "a": [
+            742,
+            1115
+          ],
+          "b": [
+            742,
+            1132
+          ],
+          "realM": [
+            2.591,
+            2.591,
+            2.896
+          ],
+          "pixelError": 2,
+          "meaning": "同一箱體側面淨高，不含拖架",
+          "referenceRole": "check",
+          "method": "manual-pixel-landmarks"
+        }
+      ],
+      "notes": [
+        "拖架上的長箱以40呎情境校正；與LL/LR箱堆比例不同，四方向不能靠相同PNG寬度當成已一致。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "1176527e60889aa655412012827f65bf98913dde423920701154ceaf752a4be5"
+    },
+    {
+      "path": "Models/containerPort/4x4/containerPort4-UR.png",
+      "references": [
+        {
+          "id": "trailer-container-length",
+          "axis": "se",
+          "a": [
+            804,
+            1112
+          ],
+          "b": [
+            737,
+            1076
+          ],
+          "realM": [
+            12.192,
+            12.192,
+            12.192
+          ],
+          "pixelError": 4,
+          "meaning": "中央前方貨車紅箱總長；40呎或兩個20呎端接情境",
+          "referenceRole": "primary",
+          "method": "manual-pixel-landmarks"
+        },
+        {
+          "id": "trailer-container-height",
+          "axis": "vertical",
+          "a": [
+            793,
+            1115
+          ],
+          "b": [
+            793,
+            1132
+          ],
+          "realM": [
+            2.591,
+            2.591,
+            2.896
+          ],
+          "pixelError": 2,
+          "meaning": "同一箱體側面淨高",
+          "referenceRole": "check",
+          "method": "manual-pixel-landmarks"
+        }
+      ],
+      "notes": [
+        "與UL為相反海岸視圖，依同一40呎箱體規格校正。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "88baa618e4f63d4474ae5ad7bb93f4d6af6c9a9f20d718a174fd927d8c48a138"
+    },
+    {
+      "path": "Models/busDepot/busDepot3_LL_fixed.png",
+      "references": [
+        {
+          "id": "bus-wheelbase",
+          "axis": "se",
+          "a": [
+            675,
+            799
+          ],
+          "b": [
+            727,
+            823
+          ],
+          "realM": [
+            5.5,
+            6,
+            6.5
+          ],
+          "pixelError": 4,
+          "meaning": "外停綠色巴士同側前後主輪心距",
+          "referenceRole": "primary",
+          "method": "manual-pixel-landmarks"
+        },
+        {
+          "id": "office-door",
+          "axis": "vertical",
+          "a": [
+            537,
+            512
+          ],
+          "b": [
+            537,
+            539
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 3,
+          "meaning": "屋頂辦公房門扇",
+          "referenceRole": "check",
+          "method": "manual-pixel-landmarks"
+        }
+      ],
+      "notes": [
+        "巴士可能三軸，這條為前軸到後主軸的設計參考；不將整個影像alpha寬當車長。"
+      ],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "4b61553d6dc235ad9fbed15f6281542e64f9b23253b7ee350cc5e92168d488ea"
+    },
+    {
+      "path": "Models/busDepot/busDepot3_LR_fixed.png",
+      "references": [
+        {
+          "id": "bus-wheelbase",
+          "axis": "sw",
+          "a": [
+            348,
+            799
+          ],
+          "b": [
+            296,
+            823
+          ],
+          "realM": [
+            5.5,
+            6,
+            6.5
+          ],
+          "pixelError": 4,
+          "meaning": "外停綠色巴士同側前後主輪心距",
+          "referenceRole": "primary",
+          "method": "manual-pixel-landmarks"
+        },
+        {
+          "id": "office-door",
+          "axis": "vertical",
+          "a": [
+            486,
+            512
+          ],
+          "b": [
+            486,
+            539
+          ],
+          "realM": [
+            2,
+            2.1,
+            2.3
+          ],
+          "pixelError": 3,
+          "meaning": "屋頂辦公房門扇",
+          "referenceRole": "check",
+          "method": "manual-pixel-landmarks"
+        }
+      ],
+      "notes": [],
+      "status": "measured-with-assumed-reference",
+      "sourceSha256": "82cfa44259764c106bab835cdd626cd5df6247cf675454fff38a70d7b2da0634"
+    },
+    {
+      "path": "Models/busDepot/busDepot3_UL_fixed.png",
+      "references": [],
+      "notes": [
+        "外停巴士部分被遮擋，原先屋頂房門落點其實空白磚牆，已撤回；本方向沒有足夠實尺，只有像素幾何。"
+      ],
+      "status": "ambiguous-reference",
+      "features": [
+        {
+          "id": "visible-bus-roof",
+          "a": [
+            674,
+            604
+          ],
+          "b": [
+            750,
+            568
+          ],
+          "meaning": "巴士可見車頂長段，不確認包含完整車尾，僅像素記錄"
+        }
+      ],
+      "sourceSha256": "848f9acc9dd56dfbb389016572d3032641ffbba1d23486ad2a6f70b4c62a82de"
+    },
+    {
+      "path": "Models/busDepot/busDepot3_UR_fixed.png",
+      "references": [],
+      "notes": [
+        "外停巴士被遮擋，屋頂房背面非門，已撤回假門高參照。"
+      ],
+      "status": "ambiguous-reference",
+      "features": [
+        {
+          "id": "visible-bus-roof",
+          "a": [
+            349,
+            604
+          ],
+          "b": [
+            273,
+            568
+          ],
+          "meaning": "巴士可見車頂長段，僅像素記錄"
+        }
+      ],
+      "sourceSha256": "ee526e3f86147a8ba2fa5da1b074d988e14b1c947532c309b74416fb4ad01983"
+    }
+  ]
+}

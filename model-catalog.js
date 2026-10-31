@@ -1,7 +1,7 @@
 const EFFECTIVE_PIXEL_ALPHA_THRESHOLD = 20;
 // Bump whenever same-name model artwork is replaced. Alpha bounds and anchor
 // metadata depend on the pixels, not only on the filename or canvas dimensions.
-const MODEL_METADATA_CACHE_KEY = 'citybuilder:modelMetadata:v10';
+const MODEL_METADATA_CACHE_KEY = 'citybuilder:modelMetadata:v12';
 const INITIAL_ZONE_MODELS_PER_FOOTPRINT = 1;
 
 function buildSequentialFileAliases(sourceFileNames, canonicalFileNames) {

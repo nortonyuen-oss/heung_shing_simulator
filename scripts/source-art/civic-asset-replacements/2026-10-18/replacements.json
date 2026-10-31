@@ -1,0 +1,18 @@
+[
+  {
+    "source": "Models/basketballCourt/bc_estateFullCourt_v2.png",
+    "destination": "Models/parks/park2x2/sportField3-02.png",
+    "backup": "scripts/source-art/civic-asset-replacements/2026-10-18/originals/sportField3-02.png",
+    "originalSha256": "4bb2a2b3643668073ce1275731003bcd689be58961dba2f1c835bdf1293b06c8",
+    "replacementSha256": "6f8af156a3249e3c37fdcd51e6e2ebce8ab8013d52baf00e6c7fb6eeb095b4b7"
+  },
+  {
+    "source": "Models/swimmingPool/sp_simple3x3_v2.png",
+    "destination": "Models/parks/park3x3/swimmingPool3-01.png",
+    "backup": "scripts/source-art/civic-asset-replacements/2026-10-18/originals/swimmingPool3-01.png",
+    "originalSha256": "8f78b9532949e3e04d0e62b28e162f130f912e0857618fedb1539efa67f89c5e",
+    "replacementSha256": "91e45fa2656cc6ee54b0e380cb2c70e4cf1f326e052834d5ea5c712476c21998",
+    "previousSource": "Models/swimmingPool/sp_simple3x3_v1.png",
+    "previousSha256": "5a38ab41850188ffb031f82740da4eb9ea2c481dad668cab95e617387f8ba22a"
+  }
+]

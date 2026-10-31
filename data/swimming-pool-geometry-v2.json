@@ -1,0 +1,166 @@
+{
+  "version": 2,
+  "source": "scripts/source-art/swimmingPool/v2/render-source.png",
+  "sourceSha256": "0e0c7753a966e3cd2b7722ab74e9e224194757b01da655633017200a724f8810",
+  "output": "Models/swimmingPool/sp_simple3x3_v2.png",
+  "outputSha256": "91e45fa2656cc6ee54b0e380cb2c70e4cf1f326e052834d5ea5c712476c21998",
+  "canvas": [
+    1600,
+    1400
+  ],
+  "layout": {
+    "version": 1,
+    "tiles": [
+      3,
+      3
+    ],
+    "tileMetres": 20,
+    "siteMetres": [
+      60,
+      60
+    ],
+    "canvas": [
+      1600,
+      1400
+    ],
+    "projection": "screenX=200+10*(x+y); screenY=800+5*(x-y)-20*z",
+    "siteCorners": [
+      [
+        200,
+        800
+      ],
+      [
+        800,
+        1100
+      ],
+      [
+        1400,
+        800
+      ],
+      [
+        800,
+        500
+      ]
+    ],
+    "pool": {
+      "origin": [
+        5,
+        25
+      ],
+      "length": 50,
+      "width": 25,
+      "lanes": 8,
+      "boundaryCorners": [
+        [
+          500,
+          700
+        ],
+        [
+          1000,
+          950
+        ],
+        [
+          1250,
+          825
+        ],
+        [
+          750,
+          575
+        ]
+      ]
+    },
+    "deck": {
+      "origin": [
+        2,
+        22
+      ],
+      "length": 56,
+      "width": 31
+    },
+    "amenityBuilding": {
+      "origin": [
+        8,
+        5
+      ],
+      "length": 37,
+      "width": 9,
+      "height": 3.8
+    },
+    "plantBuilding": {
+      "origin": [
+        48,
+        6
+      ],
+      "length": 7,
+      "width": 7
+    },
+    "design": "Simple Hong Kong outdoor municipal pool: one main pool, low amenity building, plant room and sparse poolside furnishings",
+    "runtimeIntegrated": false,
+    "calibrationPolicy": "Only global affine correction is allowed for generated artwork. No local nonlinear warps."
+  },
+  "runtimeIntegrated": true,
+  "generationMode": "built-in image_gen, geometry-only reference repaint",
+  "method": "Single global affine scale, shear and translation; no local or nonlinear warp",
+  "affine": [
+    [
+      0.7697241821680565,
+      0,
+      155.3559974342527
+    ],
+    [
+      -0.016448371517342797,
+      0.7394359243672158,
+      420.8060209434883
+    ]
+  ],
+  "sourceFrontEdgeFits": {
+    "left": {
+      "slope": 0.5427251359809153,
+      "intercept": 495.9259070488288
+    },
+    "right": {
+      "slope": -0.49823616546891664,
+      "intercept": 1341.1338209803248
+    }
+  },
+  "waterEdges": {
+    "rearLong": {
+      "sourceSlope": 0.5405996203521048,
+      "outputSlope": 0.49795812233764103
+    },
+    "frontLong": {
+      "sourceSlope": 0.5732075242472716,
+      "outputSlope": 0.5292829216839291
+    },
+    "leftShort": {
+      "sourceSlope": -0.5040602174136689,
+      "outputSlope": -0.505594878442302
+    },
+    "rightShort": {
+      "sourceSlope": -0.4910471177257297,
+      "outputSlope": -0.49309383765450826
+    }
+  },
+  "verticalToHorizontalScaleRatio": 0.9606505050737412,
+  "rasterFootprintEdges": {
+    "frontLeft": {
+      "slope": 0.5005231593722087,
+      "intercept": 709.4452036327122
+    },
+    "frontRight": {
+      "slope": -0.4999187814919251,
+      "intercept": 1489.8077730095788
+    }
+  },
+  "maxIntroducedLineDeviationPixels": 4.687428401686771e-13,
+  "verticalsRetainScreenX": true,
+  "alphaBorderMax": 0,
+  "referenceFiles": [
+    "scripts/source-art/swimmingPool/v1/geometry-crop.png"
+  ],
+  "nominalGroundAnchor": [
+    800,
+    1100
+  ],
+  "limitations": "Generated detail retains small raster differences from the guide. Four independent water edges are measured as well as the outer parcel. Maximum internal-axis slope error is under 0.04; no pixel-exact 50x25m pool is claimed."
+}

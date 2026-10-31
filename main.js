@@ -753,11 +753,9 @@ function preload() {
   // Parks: art paths live in PARK_MODELS (constants.js) so the night bake and
   // the light calibrator see the same table.
   Object.values(PARK_MODELS).forEach((model) => {
-    this.load.image(model.spriteKey, resolveModelAssetPath(model.path));
+    this.load.image(model.spriteKey, getFixedBuildingModelLoadPath(model));
   });
-  // Sports grounds
-  this.load.image('sports_ground_2x2',     resolveModelAssetPath('Models/parks/park2x2/sportField3-02.png'));
-  this.load.image('sports_ground_3x3',     resolveModelAssetPath('Models/parks/park3x3/sportField3-01.png'));
+  // Sports grounds are service models and are queued with the fixed models below.
   const fixedBuildingModels = [
     ...getPowerPlantModelEntries().map(([, model]) => model),
     ...Object.keys(SERVICE_BUILDING_MODELS).flatMap(getServiceBuildingModelsWithLegacy),

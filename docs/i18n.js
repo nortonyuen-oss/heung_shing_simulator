@@ -1696,6 +1696,15 @@ const SITE_TEXT = {
       frameTitle: "香城模擬器預告片",
       watch: "在 YouTube 觀看 ↗",
     },
+    film: {
+      nav: "夜繽紛特輯",
+      eyebrow: "90 秒遊戲旅遊特輯",
+      title: "香城夜繽紛",
+      intro: "聖誕大廈燈飾、端午龍舟競渡、七月十四阿飄、UFO 到訪，仲有維港煙花壓軸。香城生活，多姿多彩。",
+      details: "遊戲配樂 · 廣東話字幕 · 90 秒 · 1080p",
+      playerLabel: "香城夜繽紛：香城生活，多姿多彩",
+      download: "下載影片（1080p MP4）",
+    },
     gallery: {
       eyebrow: "Gameplay & Screenshots",
       title: "一張圖，一段香城故事",
@@ -1795,6 +1804,15 @@ const SITE_TEXT = {
       intro: "香城模擬器的 YouTube 預告片，由 Diablock Channel 製作：先看畫面，再免費下載。",
       frameTitle: "香城模擬器預告片",
       watch: "在 YouTube 觀看 ↗",
+    },
+    film: {
+      nav: "節慶特輯",
+      eyebrow: "90 秒遊戲旅遊特輯",
+      title: "香城夜繽紛",
+      intro: "聖誕大樓燈飾、端午龍舟競渡、農曆七月十四的幽靈、UFO 來訪，最後以維港煙火壓軸。香城生活，多姿多彩。",
+      details: "遊戲配樂 · 廣東話字幕 · 90 秒 · 1080p",
+      playerLabel: "香城夜繽紛：香城生活，多姿多彩",
+      download: "下載影片（1080p MP4）",
     },
     gallery: {
       eyebrow: "Gameplay & Screenshots",
@@ -1896,6 +1914,15 @@ const SITE_TEXT = {
       frameTitle: "The City of Heung Shing trailer",
       watch: "Watch on YouTube ↗",
     },
+    film: {
+      nav: "Festival Film",
+      eyebrow: "A 90-second gameplay travel film",
+      title: "Heung Shing: Nights & Festivals",
+      intro: "Christmas lights, dragon boat racing, wandering ghosts on the fourteenth night of the seventh lunar month, a UFO visit and a Victoria Harbour fireworks finale. Heung Shing: full of colour.",
+      details: "Game soundtrack · Cantonese captions · 90 seconds · 1080p",
+      playerLabel: "Heung Shing: Nights & Festivals — a city full of colour",
+      download: "Download the film (1080p MP4)",
+    },
     gallery: {
       eyebrow: "Gameplay & Screenshots",
       title: "Every screenshot tells a city story",
@@ -1996,6 +2023,15 @@ const SITE_TEXT = {
       intro: "Diablock Channel 制作の香城模擬器 YouTube 予告編：動く街を見てから、無料でダウンロード。",
       frameTitle: "香城模擬器 予告編",
       watch: "YouTube で見る ↗",
+    },
+    film: {
+      nav: "祭りの特集",
+      eyebrow: "90秒のゲーム観光特集",
+      title: "香城の夜と祭り",
+      intro: "クリスマスのビル装飾、端午節のドラゴンボート競漕、旧暦7月14日の幽霊たち、UFOの訪問。フィナーレはビクトリア・ハーバーの花火。香城の暮らしは、色とりどり。",
+      details: "ゲーム音楽 · 広東語字幕 · 90秒 · 1080p",
+      playerLabel: "香城の夜と祭り：色とりどりの暮らし",
+      download: "動画をダウンロード（1080p MP4）",
     },
     gallery: {
       eyebrow: "Gameplay & Screenshots",

@@ -32,35 +32,6 @@ const STREET_FOOD_SCHEDULE = Object.freeze({
   closeDone: 26 * 60, // 02:00 (wrapped) lot is bare again
 });
 
-// 香城夜繽週 weekends (Norton 2026-10-31, 繽紛既週末市集): Saturday and Sunday open at noon, and
-// Friday and Saturday nights run on to 03:00. Only the fields that differ from the weekday table.
-const STREET_FOOD_WEEKEND_SCHEDULE = Object.freeze({
-  openFrom: 12 * 60,
-  openFull: 12 * 60 + 30,
-  closeFrom: 26 * 60 + 30, // 02:30 (wrapped)
-  closeDone: 27 * 60, // 03:00 (wrapped)
-});
-// How much fuller a weekend market is: the share of pitches and table spots taken, passers-by x.
-const STREET_FOOD_WEEKEND_BUSY = Object.freeze({ stallKeepShare: 0.95, tableKeepShare: 0.95, walkerFactor: 1.5 });
-
-/** The weekday (0 Sun .. 6 Sat) whose market evening a minute belongs to: small hours count to the night before. */
-function getStreetFoodMarketWeekday(minuteOfDay, weekday) {
-  if (!Number.isInteger(weekday)) return null;
-  return (Number(minuteOfDay) || 0) < 6 * 60 ? (weekday + 6) % 7 : weekday;
-}
-
-function getStreetFoodSchedule(marketWeekday) {
-  if (marketWeekday === null || marketWeekday === undefined) return STREET_FOOD_SCHEDULE;
-  const W = STREET_FOOD_WEEKEND_SCHEDULE;
-  const early = marketWeekday === 6 || marketWeekday === 0; // Saturday, Sunday
-  const late = marketWeekday === 5 || marketWeekday === 6; // Friday, Saturday nights
-  return {
-    ...STREET_FOOD_SCHEDULE,
-    ...(early ? { openFrom: W.openFrom, openFull: W.openFull } : {}),
-    ...(late ? { closeFrom: W.closeFrom, closeDone: W.closeDone } : {}),
-  };
-}
-
 function streetFoodWrapMinute(minuteOfDay) {
   const m = Number(minuteOfDay) || 0;
   return m < 6 * 60 ? m + 24 * 60 : m; // the same cutoff festival-venues.js's June4/Yulan use
@@ -68,19 +39,16 @@ function streetFoodWrapMinute(minuteOfDay) {
 
 /**
  * The market's phase and how built-up it is (0..1, for fading stalls in/out) at a minute of day.
- * `weekday` (0 Sun .. 6 Sat, the calendar day of that minute) switches in the weekend hours;
- * left out, every day keeps the weekday table.
- * @returns {{ phase: 'empty'|'opening'|'open'|'lateNight'|'closing', presence: number, dinerShare: number, weekend: boolean }}
+ * The same every day of the week (Norton 2026-10-31: 開了法案之後就每日夜像之前一樣).
+ * @returns {{ phase: 'empty'|'opening'|'open'|'lateNight'|'closing', presence: number, dinerShare: number }}
  */
-function getStreetFoodPhase(minuteOfDay, weekday) {
-  const marketWeekday = getStreetFoodMarketWeekday(minuteOfDay, weekday);
-  const weekend = marketWeekday === 5 || marketWeekday === 6 || marketWeekday === 0;
-  const m = streetFoodWrapMinute(minuteOfDay), s = getStreetFoodSchedule(marketWeekday);
-  if (m < s.openFrom || m >= s.closeDone) return { phase: 'empty', presence: 0, dinerShare: 0, weekend };
-  if (m < s.openFull) return { phase: 'opening', presence: (m - s.openFrom) / (s.openFull - s.openFrom), dinerShare: 0, weekend };
-  if (m < s.lateNightFrom) return { phase: 'open', presence: 1, dinerShare: 1, weekend };
-  if (m < s.closeFrom) return { phase: 'lateNight', presence: 1, dinerShare: 0.4, weekend };
-  return { phase: 'closing', presence: 1 - (m - s.closeFrom) / (s.closeDone - s.closeFrom), dinerShare: 0.15, weekend };
+function getStreetFoodPhase(minuteOfDay) {
+  const m = streetFoodWrapMinute(minuteOfDay), s = STREET_FOOD_SCHEDULE;
+  if (m < s.openFrom || m >= s.closeDone) return { phase: 'empty', presence: 0, dinerShare: 0 };
+  if (m < s.openFull) return { phase: 'opening', presence: (m - s.openFrom) / (s.openFull - s.openFrom), dinerShare: 0 };
+  if (m < s.lateNightFrom) return { phase: 'open', presence: 1, dinerShare: 1 };
+  if (m < s.closeFrom) return { phase: 'lateNight', presence: 1, dinerShare: 0.4 };
+  return { phase: 'closing', presence: 1 - (m - s.closeFrom) / (s.closeDone - s.closeFrom), dinerShare: 0.15 };
 }
 
 // ── weather (street-food-market-design.md "節慶與天氣") ───────────────────────────────────────
@@ -305,16 +273,15 @@ function streetFoodKeep(items, share, cap, seed, label) {
 function getStreetFoodVenueLayout(venue, options) {
   const {
     minuteOfDay, weather, seed = venue.id, carts, hawkers, queuers = [], diners, passersby,
-    tableFurniture = [], stools = [], stringSpanM, weekday, enabled = true,
+    tableFurniture = [], stools = [], stringSpanM, enabled = true,
   } = options;
-  const schedule = getStreetFoodPhase(minuteOfDay, weekday);
+  const schedule = getStreetFoodPhase(minuteOfDay);
   const weatherState = getStreetFoodWeatherState(weather);
   // no 香城夜繽週 act, no market - the lot keeps only its own lamp posts and boxes
   const presence = weatherState === 'closed' || !enabled ? 0 : schedule.presence;
-  const busy = schedule.weekend ? STREET_FOOD_WEEKEND_BUSY : { stallKeepShare: STREET_FOOD_STALL_LAYOUT.keepShare, tableKeepShare: STREET_FOOD_TABLE_LAYOUT.keepShare, walkerFactor: 1 };
   const fixtures = venue.tiles.length ? getStreetFoodVenueFixtures(venue, { seed, stringSpanM }) : { lamps: [], cabinets: [], strings: [] };
   const { lamps, cabinets } = fixtures;
-  const empty = { phase: enabled ? schedule.phase : 'disabled', weekend: schedule.weekend, presence: 0, weatherState, stalls: [], tables: [], walkers: [], strings: [], lamps, cabinets, dinerShare: 0 };
+  const empty = { phase: enabled ? schedule.phase : 'disabled', presence: 0, weatherState, stalls: [], tables: [], walkers: [], strings: [], lamps, cabinets, dinerShare: 0 };
   if (presence <= 0 || !carts?.length || !venue.tiles.length) return empty;
   const fixturePoints = [...lamps, ...cabinets, ...fixtures.strings.flatMap((span) => [span.a, span.b])];
 
@@ -340,7 +307,7 @@ function getStreetFoodVenueLayout(venue, options) {
       pitches.push({ key: `${run.side}${run.fixed}:${Math.round(alongM * 10)}`, run, alongM, point });
     }
   });
-  const stalls = streetFoodKeep(pitches, busy.stallKeepShare, S.maxStalls, seed, 'pitch').map((pitch, i) => {
+  const stalls = streetFoodKeep(pitches, S.keepShare, S.maxStalls, seed, 'pitch').map((pitch, i) => {
     const { run, alongM, point } = pitch;
     const id = `${venue.id}|stall:${pitch.key}`;
     const queue = [];
@@ -374,7 +341,7 @@ function getStreetFoodVenueLayout(venue, options) {
     const spot = { row: r - 0.5 + ly / STREET_FOOD_TILE_M, col: c - 0.5 + lx / STREET_FOOD_TILE_M, key: `${r}:${c}:${ly}:${lx}` };
     if (streetFoodEdgeDistanceM(runs, spot.row, spot.col) >= T.minInsetM - STREET_FOOD_EPSILON_M) spots.push(spot);
   })));
-  const tables = (tableFurniture.length ? streetFoodKeep(spots, busy.tableKeepShare, T.maxTables, seed, 'table') : []).map((spot) => {
+  const tables = (tableFurniture.length ? streetFoodKeep(spots, T.keepShare, T.maxTables, seed, 'table') : []).map((spot) => {
     const id = `${venue.id}|table:${spot.key}`;
     const occupied = diners.length > 0 && sfHash(seed, 'seated', spot.key, crowdWindow) < dinerShare;
     // 1-3 of the 4 stools taken when it is in use - a full ring reads static, a gap reads real
@@ -417,17 +384,16 @@ function getStreetFoodVenueLayout(venue, options) {
     }
   });
   const walkWindow = Math.floor((Number(minuteOfDay) || 0) / 10);
-  const walkerCount = Math.min(aisleSpots.length, Math.round(Math.min(10, venue.tiles.length * 3) * busy.walkerFactor * dinerShare));
+  const walkerCount = Math.min(aisleSpots.length, Math.round(Math.min(10, venue.tiles.length * 3) * dinerShare));
   const walkers = passersby?.length && walkerCount ? streetFoodKeep(aisleSpots, 1, walkerCount, seed, `walk${walkWindow}`)
     .map((spot, i) => ({ id: `${venue.id}|walker${i}`, row: spot.row, col: spot.col, personId: sfPick(passersby, seed, 'walker', i, walkWindow) })) : [];
 
-  return { phase: schedule.phase, weekend: schedule.weekend, presence, weatherState, stalls, tables, walkers, strings: fixtures.strings, lamps, cabinets, dinerShare };
+  return { phase: schedule.phase, presence, weatherState, stalls, tables, walkers, strings: fixtures.strings, lamps, cabinets, dinerShare };
 }
 
 if (typeof module !== 'undefined' && module.exports) module.exports = {
   sfHash, sfPick,
-  STREET_FOOD_SCHEDULE, STREET_FOOD_WEEKEND_SCHEDULE, STREET_FOOD_WEEKEND_BUSY,
-  getStreetFoodMarketWeekday, getStreetFoodSchedule, streetFoodWrapMinute, getStreetFoodPhase,
+  STREET_FOOD_SCHEDULE, streetFoodWrapMinute, getStreetFoodPhase,
   getStreetFoodWeatherState, STREET_FOOD_WEATHER_DINER_SHARE,
   getStreetFoodVenues, STREET_FOOD_STALL_LAYOUT, STREET_FOOD_TABLE_LAYOUT, STREET_FOOD_FIXTURE_LAYOUT,
   getStreetFoodVenueFixtures,

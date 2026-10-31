@@ -543,10 +543,11 @@ function getForumNamedOfficials() {
 }
 
 function localizeForumTopicJapanese(topic, context) {
-  const { chief, treasury, police, observatory, business, tourism, religion, official, cityName, pollution, crime, unemployment, net, higherEdu } = context;
+  const { chief, treasury, police, observatory, business, tourism, religion, culture, official, cityName, pollution, crime, unemployment, net, higherEdu } = context;
   const stories = {
     'UI/news/sideNewsNewYearEvent.webp': [`${business}、新春写真でセンター争い　獅子舞に議員が倒される`, `記念撮影は大混乱。掲示板では「政策より立ち位置が重要なのか」との声が相次いだ。`, '結局、一番きれいに写ったのは獅子だった。'],
     'UI/news/northPolePenguin.webp': [`${tourism}、北極ペンギン保護区を実現`, '観光の新名所として期待される一方、交通費と運営費を心配する声も出ている。', '北極まで2ドル優待は使えますか。'],
+    'UI/news/nightBazaarWeekend.webp': [`【香城夜繽週】開幕　${chief}が視察し「昼も夜も繽紛週！」と豪語`, `イベント広場は毎晩、屋台と折りたたみテーブルと電球の列で満席に。商店主は売上3割増と話し、${culture}は清掃と人流管理の強化を約束した。`, '昼も夜も繽紛週なら、いつ寝ればいいの。'],
     'UI/news/busSeatBeltAct.webp': ['バスのシートベルトが外れず消防隊出動', `着席客だけ固定され、立っている客はそのままなのかと市民が疑問視。${police}は運用を検討するとした。`, '安全すぎて消防士がいないと降りられない。'],
     'UI/news/elderyCitizenBusFareSubsidary.webp': ['高齢者、2ドル運賃でゲームジム巡り　財政当局は渋い顔', `高齢者は行動範囲が広がったと歓迎。${treasury}は利用増による公費負担を注視している。`, '2ドルで終点まで行けるなら、ゲーム課金より安い。'],
     'UI/news/chiefPoliceActingInFlim.webp': [`${police}、政策PRに警察映画の前日譚を提案`, '掲示板では、改名されたどの政府高官が潜入捜査官役に向くかで盛り上がっている。', '公費で三部作だけはやめてほしい。'],
@@ -617,6 +618,11 @@ function generateMonthlyForumPost(monthIndex = getCityMonthIndex()) {
     zh ? `${tourism}成功爭取北極企鵝保育區　網民先問企鵝點樣返工` : `${tourism} secures an Arctic penguin reserve`,
     zh ? `保育區被形容為旅遊新亮點，預計提升城市吸引力，但交通與營運成本亦受到關注。` : `The reserve may boost tourism, though users are debating transport and operating costs.`,
     zh ? '北極有冇地鐵站？企鵝有冇兩蚊優惠？' : 'Does the Arctic have a metro station?', 'UI/news/northPolePenguin.webp'));
+  // 香城夜繽週: the event grounds' nightly 大排檔 - only once there is a ground for it to fill
+  if (policyActive('nightBazaarWeekend') && (typeof countNightBazaarGroundTiles !== 'function' || countNightBazaarGroundTiles() > 0)) topics.push(forumStory('城中熱話',
+    zh ? `【香城夜繽週】正式開鑼　${chief}親自巡視放豪言：「日夜都繽週！」` : `Night Bloom Weekends opens as ${chief} tours the stalls: "Bloom by day and by night!"`,
+    zh ? `活動空地晚晚開大排檔，車仔檔、摺枱同燈串坐滿街坊；商戶話生意升逾三成，${culture}就表示會加強清潔同人流管理。` : `Event grounds fill every night with hawker carts, folding tables and string lights; stallholders report business up more than 30%, and ${culture} promises more cleaning and crowd control.`,
+    zh ? '日夜都繽週，咁我幾點瞓？' : 'Blooming day and night - so when do I sleep?', 'UI/news/nightBazaarWeekend.webp'));
   if (policyActive('busSeatbeltMandate')) topics.push(forumStory('交通台',
     zh ? '巴士乘客被安全帶卡住　消防員到場解困' : 'Bus passenger trapped by mandatory seat belt; firefighters called',
     zh ? `市民質疑座位乘客被綁實，但企位乘客反而沒有保障；${police}表示會研究執行情況。` : `Users question why seated passengers are restrained while standing passengers remain unprotected; ${police} promised a review.`,

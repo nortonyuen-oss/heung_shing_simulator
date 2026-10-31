@@ -9,7 +9,7 @@ const {
   getStreetFoodPhase, getStreetFoodWeatherState, STREET_FOOD_WEATHER_DINER_SHARE,
   getStreetFoodVenues, getStreetFoodVenueEdgeRuns, streetFoodEdgeDistanceM, getStreetFoodVenueLayout,
   getStreetFoodVenueFixtures, STREET_FOOD_STALL_LAYOUT, STREET_FOOD_TABLE_LAYOUT, STREET_FOOD_FIXTURE_LAYOUT,
-  streetFoodWrapMinute, STREET_FOOD_SCHEDULE, STREET_FOOD_WEEKEND_SCHEDULE, getStreetFoodMarketWeekday,
+  streetFoodWrapMinute, STREET_FOOD_SCHEDULE,
 } = require('../street-food-market.js');
 
 const CARTS = ['curryFishball', 'cartNoodles', 'friedSnacks', 'roastChestnut'];
@@ -212,31 +212,3 @@ test('rain thins the diners at a table without removing the stalls', () => {
   assert.ok(rain.walkers.length <= clear.walkers.length);
 });
 
-test('繽紛既週末市集: Saturday and Sunday open at noon, Friday and Saturday nights run to 03:00', () => {
-  const [SUN, MON, FRI, SAT] = [0, 1, 5, 6];
-  assert.equal(getStreetFoodPhase(13 * 60, MON).phase, 'empty', 'a weekday lunchtime: still the 放學 crowd only');
-  assert.equal(getStreetFoodPhase(13 * 60, SAT).phase, 'open', 'Saturday from noon');
-  assert.equal(getStreetFoodPhase(13 * 60, SUN).phase, 'open', 'Sunday from noon');
-  assert.equal(getStreetFoodPhase(STREET_FOOD_WEEKEND_SCHEDULE.openFrom + 10, SUN).phase, 'opening');
-  assert.equal(getStreetFoodPhase(13 * 60, FRI).phase, 'empty', 'Friday is a school day');
-  // small hours belong to the night before: 02:15 on Saturday is still Friday night's market
-  assert.equal(getStreetFoodMarketWeekday(2 * 60 + 15, SAT), FRI);
-  assert.equal(getStreetFoodPhase(2 * 60 + 15, SAT).phase, 'lateNight', 'Friday night runs late');
-  assert.equal(getStreetFoodPhase(2 * 60 + 15, SUN).phase, 'lateNight', 'so does Saturday night');
-  assert.equal(getStreetFoodPhase(2 * 60 + 15, MON).phase, 'empty', 'Sunday night closes on the weekday hour');
-  assert.equal(getStreetFoodPhase(2 * 60 + 45, SAT).phase, 'closing');
-  assert.equal(getStreetFoodPhase(3 * 60 + 5, SAT).phase, 'empty');
-  assert.equal(getStreetFoodPhase(19 * 60, FRI).weekend, true);
-  assert.equal(getStreetFoodPhase(19 * 60, MON).weekend, false);
-  assert.deepEqual(getStreetFoodPhase(19 * 60), getStreetFoodPhase(19 * 60, undefined), 'no calendar: weekday hours');
-});
-
-test('a weekend market takes more pitches and tables than a weekday one, never fewer or different', () => {
-  const venue = { id: 'eventGround:20:20', tiles: [[20, 20], [20, 21], [21, 20], [21, 21]] };
-  const weekday = getStreetFoodVenueLayout(venue, { minuteOfDay: 19 * 60, weekday: 2, weather: {}, ...ROSTER });
-  const weekend = getStreetFoodVenueLayout(venue, { minuteOfDay: 19 * 60, weekday: 6, weather: {}, ...ROSTER });
-  assert.ok(weekend.stalls.length > weekday.stalls.length);
-  const weekendIds = new Set(weekend.stalls.map((s) => s.id));
-  weekday.stalls.forEach((s) => assert.ok(weekendIds.has(s.id), 'a weekday cart keeps its pitch at the weekend'));
-  assert.ok(weekend.walkers.length >= weekday.walkers.length);
-});

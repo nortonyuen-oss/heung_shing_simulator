@@ -67,3 +67,12 @@ test('without the act the lot keeps its lamp posts and boxes, but no carts, tabl
   assert.ok(on.stalls.length > 0 && on.strings.length > 0);
   assert.deepEqual(on.lamps, off.lamps);
 });
+
+test('香城討論區 carries a 香城夜繽週 story with its news picture while the act is in force', () => {
+  const news = source('newspaper.js');
+  assert.match(news, /policyActive\('nightBazaarWeekend'\)[^\n]*topics\.push\(forumStory\('城中熱話'/);
+  assert.match(news, /【香城夜繽週】正式開鑼/);
+  assert.match(news, /'UI\/news\/nightBazaarWeekend\.webp'\)\);/);
+  assert.match(news, /'UI\/news\/nightBazaarWeekend\.webp': \[`【香城夜繽週】開幕/, 'Japanese copy');
+  for (const file of ['UI/news/nightBazaarWeekend.webp', 'UI/news/thumbs/nightBazaarWeekend.webp']) assert.ok(fs.existsSync(path.join(ROOT, file)), file);
+});

@@ -327,10 +327,12 @@ const LNY_FOOD = Object.freeze(['lnyStallSnacks']);
 // food5x4 metres. Keep the dimensions, reduce counts to fit the condensed park.
 // https://www.fehd.gov.hk/english/events/cnyf2027/layout/Victoria_Park.pdf
 const VICTORIA_LNY_STALL_SPECS = Object.freeze({
-  wet: Object.freeze({ width: 4, depth: 5, maxHeightM: 4, goods: LNY_WET_GOODS }),
-  dry: Object.freeze({ width: 3, depth: 1.5, maxHeightM: 3, goods: LNY_DRY_GOODS }),
-  dryLarge: Object.freeze({ width: 4.5, depth: 2, maxHeightM: 3, goods: LNY_DRY_GOODS }),
-  food: Object.freeze({ width: 5, depth: 4, maxHeightM: 4, goods: LNY_FOOD }),
+  // canopy heights of the real stalls, drawn at the tile's true vertical rate (festival-sprites.js
+  // FESTIVAL_STALL_PX_PER_METRE_UP) since the 20 m tile (Norton 2026-10-31: 檔口大小需要再調整)
+  wet: Object.freeze({ width: 4, depth: 5, maxHeightM: 3, goods: LNY_WET_GOODS }),
+  dry: Object.freeze({ width: 3, depth: 1.5, maxHeightM: 2.6, goods: LNY_DRY_GOODS }),
+  dryLarge: Object.freeze({ width: 4.5, depth: 2, maxHeightM: 2.6, goods: LNY_DRY_GOODS }),
+  food: Object.freeze({ width: 5, depth: 4, maxHeightM: 3, goods: LNY_FOOD }),
 });
 const VICTORIA_LNY_PX_PER_M = Math.hypot(504, 252) / 80;
 const VICTORIA_LNY_MODULE_OFFSETS = Object.freeze(Object.fromEntries(Array.from({ length: 6 }, (_, i) => [
@@ -349,15 +351,8 @@ const VICTORIA_LNY_MODULES = Object.freeze({
     ]),
     gate: Object.freeze([46, 716]),
   }),
-  park_flagship_victoria_module06: Object.freeze({
-    side: 'east',
-    fields: Object.freeze([
-      { left: [423, 552], top: [495, 516], right: [637, 587] },
-      { left: [300, 609], top: [374, 572], right: [518, 644] },
-      { left: [205, 660], top: [267, 629], right: [393, 692] },
-    ]),
-    gate: Object.freeze([965, 716]),
-  }),
+  // Only the module with the three big pitches holds the fair (Norton 2026-10-31: 維園既花市，只放最大
+  // 的3個球場既款式就好) - module06's smaller pitches beside the basketball courts no longer do.
 });
 
 // The six variants share an inferred park origin. Only the matching, level
@@ -488,6 +483,10 @@ function layoutVictoriaParkLny(out, ctx) {
 // Compact neighbourhood courts retain 2m booths; Victoria Park uses the official
 // dimensions and dedicated field layout above. Rows run across an area's v side.
 const LNY_STALL_M = 2;
+// The compact booths' size since the 20 m tile: their 2 x 2 m footprint and a 2.6 m canopy, drawn as the
+// calibrated stall mesh (as Victoria Park's) - sized by the footprint alone, the squared renders' low
+// angle made them some 5.5 m tall at the tile's true scale.
+const LNY_COMPACT_STALL = Object.freeze({ footprintM: Object.freeze({ width: 2, depth: 2 }), maxHeightM: 2.6, anchorMode: 'ground-center' });
 const LNY_AISLE_M = Object.freeze({ basic: 5, standard: 2.5, grand: 2 });
 const LNY_EDGE_M = 1;
 // Which goods each area sells, and caps on its rows and stalls a row. The great lawn is the show
@@ -552,6 +551,7 @@ function layoutLnyStalls(out, building, area, pxPerM, zone, ctx, prefix) {
         point: getFestivalAreaPoint(area, row.u, v),
         stall: true,
         sold,
+        ...LNY_COMPACT_STALL,
       });
     });
   });
@@ -603,7 +603,7 @@ function layoutEventGroundFair(out, venue, ctx) {
           const sold=lnyHash(`${ctx.seed}:${venue.id}:${key}:let`)<(ctx.soldShare??1);
           const kind=goods[Math.floor(lnyHash(`${ctx.seed}:${venue.id}:${b}:${side}:${Math.floor(slot/3)}:kind`)*goods.length)];
           add(`stall:${key}`,ctx.phase==='setup'||!sold?'lnyStallEmpty':kind,y+1+face*2,x,
-            {stall:true,sold,marketZone:zone,marketRow:b*2+face,mirrored:face===0});
+            {stall:true,sold,marketZone:zone,marketRow:b*2+face,mirrored:face===0,...LNY_COMPACT_STALL});
         }
       });
     }
@@ -612,7 +612,7 @@ function layoutEventGroundFair(out, venue, ctx) {
   for(let i=0;i<Math.min(4,Math.floor((width/2-5)/2));i++) {
     const key=`food:${i}`,sold=lnyHash(`${ctx.seed}:${venue.id}:${key}:let`)<(ctx.soldShare??1);
     add(key,ctx.phase==='setup'||!sold?'lnyStallEmpty':'lnyStallSnacks',depth-3,width-3-i*2,
-      {stall:true,sold,marketZone:'food',marketRow:'food'});
+      {stall:true,sold,marketZone:'food',marketRow:'food',...LNY_COMPACT_STALL});
   }
   add('gate','lnyGate',depth-2,centre,{},2,6);
   add('map','lnySiteMap',depth-3,centre-5);

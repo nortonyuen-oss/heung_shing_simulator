@@ -210,18 +210,19 @@ test('新春 layout: a main fair across the football modules, smaller fairs else
   assert.ok(mainCount >= 40, `the main fair is big (${mainCount})`);
   assert.ok(count(peak, (p) => p.stall && p.buildingId === '9:9') < mainCount / 2, 'a smaller one in the other park');
   assert.ok(count(peak, (p) => p.stall && p.buildingId === '5:5') >= 16, 'a court has a proper market');
-  // All three west pitches host the market; the east half continues it, without a stage.
+  // All three pitches host the market, without a stage.
   const main = peak.filter((p) => p.stall && p.buildingId === '1:1');
   assert.equal(new Set(main.map((p) => p.marketSlot.field)).size, 3);
   assert.ok(main.filter((p) => p.marketZone === 'wet').every((p) => /Blossoms|Peach|Kumquat|Orchids|Narcissus|Flowers/.test(p.partId)));
   assert.ok(main.some((p) => p.marketZone === 'dry' && /Laisee|Couplets|Pinwheels|Toys|Gifts/.test(p.partId)));
-  assert.ok(peak.some((p) => p.stall && p.buildingId === '1:5'), 'the eastern football module participates');
+  // only the module with the three big pitches holds the fair (Norton 2026-10-31)
+  assert.ok(!peak.some((p) => p.stall && p.buildingId === '1:5'), 'module06 holds no fair');
   const row = main.filter(p => p.marketRow === '1:wet0');
   assert.equal(row[1].marketSlot.v - row[0].marketSlot.v, 4, 'flower booths are 4m wide');
   assert.deepEqual(row[0].footprintM, { width: 4, depth: 5 });
   const stalls = tier => layoutLunarNewYear({ ...base, tier, phase: 'peak' }).filter(p => p.stall).length;
   assert.ok(stalls('basic') < stalls('standard') && stalls('standard') <= stalls('grand'));
-  assert.equal(count(peak, (p) => p.partId === 'lnyGate'), 2, 'one entrance at each end of the main fair');
+  assert.equal(count(peak, (p) => p.partId === 'lnyGate'), 1, 'the main fair\'s entrance');
   assert.equal(count(peak, (p) => p.partId === 'lnyStage'), 0, 'the pitches remain market ground');
   assert.equal(count(peak, (p) => p.buildingId === '7:7'), 1, 'the temple retains incense; lions perform on streets');
   // the player's pick of main venue
@@ -229,7 +230,7 @@ test('新春 layout: a main fair across the football modules, smaller fairs else
   // setup: bare tents and trolleys, no temple yet
   const setup = layoutLunarNewYear({ ...base, phase: 'setup' });
   assert.ok(setup.filter((p) => p.stall).every((p) => p.partId === 'lnyStallEmpty'));
-  assert.ok(count(setup, (p) => /Trolley/.test(p.partId)) === 2 && count(setup, (p) => p.buildingId === '7:7') === 0);
+  assert.ok(count(setup, (p) => /Trolley/.test(p.partId)) === 1 && count(setup, (p) => p.buildingId === '7:7') === 0);
   // a weak economy: some stalls stay bare
   const weak = layoutLunarNewYear({ ...base, phase: 'open', soldShare: 0.5 });
   assert.ok(count(weak, (p) => p.stall && !p.sold) > 0 && count(weak, (p) => p.stall && p.sold) > 0);

@@ -9,11 +9,12 @@ const {
 } = require('../festival-venues.js');
 
 const EPSILON = 1e-7;
+// canopy heights at the 20 m tile's true vertical rate (Norton 2026-10-31: 檔口大小需要再調整)
 const EXPECTED_SPECS = {
-  wet: { width: 4, depth: 5, maxHeightM: 4 },
-  dry: { width: 3, depth: 1.5, maxHeightM: 3 },
-  dryLarge: { width: 4.5, depth: 2, maxHeightM: 3 },
-  food: { width: 5, depth: 4, maxHeightM: 4 },
+  wet: { width: 4, depth: 5, maxHeightM: 3 },
+  dry: { width: 3, depth: 1.5, maxHeightM: 2.6 },
+  dryLarge: { width: 4.5, depth: 2, maxHeightM: 2.6 },
+  food: { width: 5, depth: 4, maxHeightM: 3 },
 };
 
 function fullPark(row = 20, col = 30, height = 2) {
@@ -92,17 +93,19 @@ function verifyGeometry(parks, placements) {
   }
 }
 
-test('six correctly spaced modules form one fair using all six football pitches only', () => {
+// Only the module with the three big pitches holds the fair (Norton 2026-10-31: 維園既花市，只放最大的3個
+// 球場既款式就好) - module06, with its smaller pitches beside the basketball courts, no longer does.
+test('six correctly spaced modules form one fair, on the three big pitches of module05 only', () => {
   const parks = fullPark(), venues = getVictoriaParkLnyVenues(parks);
   assert.equal(venues.length, 1);
   assert.equal(venues[0].members.length, 6);
-  assert.equal(venues[0].markets.length, 2);
-  assert.deepEqual(venues[0].markets.map((p) => p.id), [parks[4].id, parks[5].id]);
+  assert.equal(venues[0].markets.length, 1);
+  assert.deepEqual(venues[0].markets.map((p) => p.id), [parks[4].id]);
   const placements = fair(parks), market = stalls(placements);
   assert.ok(market.length > 0);
   const fields = new Set(market.map((p) => `${p.buildingId}:${p.marketSlot.field}`));
-  assert.equal(fields.size, 6, 'all three pitches on both football modules host stalls');
-  assert.ok(placements.every((p) => p.buildingId === parks[4].id || p.buildingId === parks[5].id));
+  assert.equal(fields.size, 3, 'all three big pitches host stalls');
+  assert.ok(placements.every((p) => p.buildingId === parks[4].id));
   assert.ok(placements.every((p) => !/Stage|Dragon|LionPoles/.test(p.partId)), 'performance pieces do not occupy market pitches');
   assert.deepEqual(fair(parks.slice(0, 4)), [], 'garden, bowling, lawn and tennis modules alone are not a fair');
   verifyGeometry(parks, placements);
@@ -120,11 +123,11 @@ test('official booth footprints and caps fit without overlap through every tier 
   }
 });
 
-test('four food stalls use separate queue bays kept clear of ordinary market booths', () => {
+test('the food stalls use a separate queue bay kept clear of ordinary market booths', () => {
   const parks = fullPark(), placements = fair(parks), market = stalls(placements);
   const food = market.filter((p) => p.stallType === 'food');
-  assert.equal(food.length, 4);
-  for (const park of parks.slice(4)) {
+  assert.equal(food.length, 2);
+  for (const park of parks.slice(4, 5)) {
     assert.equal(food.filter((p) => p.buildingId === park.id).length, 2);
     const config = VICTORIA_LNY_MODULES[park.textureKey], size = getVictoriaLnyFieldSize(config.fields[0]);
     const bay = { u0: 0, u1: 11, v0: config.side === 'west' ? 0 : size.v - 8, v1: config.side === 'west' ? 8 : size.v };
@@ -134,23 +137,20 @@ test('four food stalls use separate queue bays kept clear of ordinary market boo
   }
 });
 
-test('wrong module offsets and differing ground heights split fairs; partial football modules remain safe', () => {
-  const parks = fullPark();
-  const shifted = { ...parks[5], col: parks[5].col + 1, id: `${parks[5].row}:${parks[5].col + 1}` };
-  for (const pair of [[parks[4], shifted], [parks[4], { ...parks[5], height: parks[5].height + 1 }]]) {
-    const venues = getVictoriaParkLnyVenues(pair);
-    assert.equal(venues.length, 2);
-    assert.ok(venues.every((v) => v.markets.length === 1));
-    verifyGeometry(pair, fair(pair));
-  }
-  for (const park of parks.slice(4)) {
-    const venues = getVictoriaParkLnyVenues([park]);
-    assert.equal(venues.length, 1);
-    assert.equal(venues[0].markets.length, 1);
-    const placements = fair([park]);
-    assert.equal(new Set(stalls(placements).map((p) => p.marketSlot.field)).size, 3);
-    verifyGeometry([park], placements);
-  }
+test('separate parks make separate fairs; module05 alone is a fair, module06 alone is not', () => {
+  const parks = fullPark(), other = fullPark(60, 70);
+  const pair = [parks[4], other[4]];
+  const venues = getVictoriaParkLnyVenues(pair);
+  assert.equal(venues.length, 2);
+  assert.ok(venues.every((v) => v.markets.length === 1));
+  verifyGeometry(pair, fair(pair));
+  const alone = getVictoriaParkLnyVenues([parks[4]]);
+  assert.equal(alone.length, 1);
+  const placements = fair([parks[4]]);
+  assert.equal(new Set(stalls(placements).map((p) => p.marketSlot.field)).size, 3);
+  verifyGeometry([parks[4]], placements);
+  assert.deepEqual(getVictoriaParkLnyVenues([parks[5]]), []);
+  assert.deepEqual(stalls(fair([parks[5]])), []);
 });
 
 test('selecting any group member selects the whole main fair and leaves other parks smaller', () => {
@@ -165,7 +165,7 @@ test('selecting any group member selects the whole main fair and leaves other pa
     const chosen = fair(parks, { mainVenue: member.id });
     assert.equal(count(chosen, venues[1]), fullCount, `${member.textureKey}: choose complete group`);
     assert.ok(count(chosen, venues[0]) < fullCount);
-    assert.equal(stalls(chosen).filter((p) => p.marketVenueId === venues[1].id && p.stallType === 'food').length, 4);
+    assert.equal(stalls(chosen).filter((p) => p.marketVenueId === venues[1].id && p.stallType === 'food').length, 2);
     verifyGeometry(parks, chosen);
   }
 });

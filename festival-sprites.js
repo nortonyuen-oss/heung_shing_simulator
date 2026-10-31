@@ -21,6 +21,10 @@ const FESTIVAL_TWINKLE_MS = 700;
 // edge spans TILE_WIDTH / 2)
 const FESTIVAL_PX_PER_METRE_UP = 5;
 const FESTIVAL_PX_PER_METRE_ALONG = 2.5;
+// The 年宵 stalls (calibrated meshes) are drawn at the 20 m tile's true vertical rate - 2.5 x cos30/cos45,
+// as the buildings, street-food carts and people are - not the 5 px a metre the rest of the festival
+// art is drawn larger than life at (Norton 2026-10-31: 1格20米做的比例比之前好，檔口大小需要再調整).
+const FESTIVAL_STALL_PX_PER_METRE_UP = 2.5 * Math.cos(Math.PI / 6) / Math.cos(Math.PI / 4);
 const FESTIVAL_TILE_M = 20;
 const FESTIVAL_STEP = Object.freeze({ n: [-1, 0], e: [0, 1], s: [1, 0], w: [0, -1] });
 const FESTIVAL_STALL_CANVAS_RESOLUTION = 4;
@@ -172,7 +176,7 @@ function getFestivalStallShape(meta, placement, mirrored) {
   const key = JSON.stringify([meta.stallCalibration, placement.footprintM, heightM, mirrored]);
   if (!festivalStallShapes.has(key)) festivalStallShapes.set(key, build(meta.stallCalibration, placement.footprintM, {
     heightM, eaveM: heightM * 0.8, mirrored,
-    pxPerMetreAlong: FESTIVAL_PX_PER_METRE_ALONG, pxPerMetreUp: FESTIVAL_PX_PER_METRE_UP,
+    pxPerMetreAlong: FESTIVAL_PX_PER_METRE_ALONG, pxPerMetreUp: FESTIVAL_STALL_PX_PER_METRE_UP,
   }));
   return { key, geometry: festivalStallShapes.get(key) };
 }

@@ -72,116 +72,220 @@ function getStreetFoodVenues(ctx, claimed = () => false) {
   return grounds.filter((venue) => venue.tiles.length > 0 && !claimed(venue));
 }
 
-// Stall/seating targets by venue size (street-food-market-design.md "空地配置"): [minTiles, maxStalls].
-const STREET_FOOD_VENUE_CAPACITY = Object.freeze([
-  { minTiles: 1, maxTiles: 1, stalls: [3, 4], tables: [0, 1] },
-  { minTiles: 2, maxTiles: 2, stalls: [5, 6], tables: [2, 3] },
-  { minTiles: 3, maxTiles: 4, stalls: [8, 10], tables: [4, 6] },
-  { minTiles: 5, maxTiles: Infinity, stalls: [10, 12], tables: [6, 8] },
-]);
-
-function getStreetFoodVenueCapacity(tileCount) {
-  return STREET_FOOD_VENUE_CAPACITY.find((tier) => tileCount >= tier.minTiles && tileCount <= tier.maxTiles)
-    || STREET_FOOD_VENUE_CAPACITY[STREET_FOOD_VENUE_CAPACITY.length - 1];
-}
+// ── layout at true size (1 tile = 20 m) ──────────────────────────────────────────────────────
+// Norton 2026-10-31 (按真實尺寸重新排位): a 2.3 m cart is a ninth of a tile's edge, so the lot is
+// laid out in metres - a line of carts along every open edge, each with a hawker's working strip
+// behind it and a queue in front, then round tables with folding stools on a grid in the middle,
+// split by aisles where the passers-by walk. Positions come out in fractional tile units
+// (row/col, a tile's centre at its integer row/col, its edges at +-0.5).
+const STREET_FOOD_TILE_M = 20;
+const STREET_FOOD_STALL_LAYOUT = Object.freeze({
+  spacingM: 4, // centre to centre along an edge: a 2.3 m cart and ~1.7 m between neighbours
+  endMarginM: 3.5, // keep clear of a run's ends, so two edges meeting at a corner do not collide
+  cartInsetM: 2.0, // cart footprint's centre, in from the lot's edge
+  cartDepthM: 1.0, // the counter's short side, across the edge
+  hawkerInsetM: 0.8, // the working strip between the cart and the lot's edge
+  queueInsetM: [3.3, 3.9], // first and second customer, out in front of the counter
+  queueAlongM: [0.3, -0.4],
+  keepShare: 0.8, // not every pitch is taken on a given night
+  minGapM: 3, // two carts' centres (at corners, where runs meet)
+  maxStalls: 40,
+});
+const STREET_FOOD_TABLE_LAYOUT = Object.freeze({
+  gridLocalM: [2, 6, 14, 18], // a 4 m grid within each tile, its 10 m centre lines left as aisles
+  aisleLocalM: 10,
+  minInsetM: 6, // clear of the carts' queues
+  keepShare: 0.75,
+  stoolOffsetM: 0.8, // a stool's centre from the 1 m table's centre
+  maxTables: 24,
+  walkerMinInsetM: 4.5,
+  walkerTableClearM: 1.5,
+});
 
 /**
- * The perimeter tiles of a venue's tile set, in a stable walking order (so stall slots stay put
- * as the venue is reseeded): tiles with a non-venue or off-map neighbour, ordered by angle around
- * the venue's centre so an L-shaped or odd-shaped lot still walks its own edge in one pass.
+ * The open edges of a venue (where a tile has no venue neighbour), merged into straight runs.
+ * Each run is a line at a fixed row (N/S, running along col) or col (W/E, running along row),
+ * from..to in that axis, with `inward` the unit step back into the lot.
+ * @returns {{side:'N'|'S'|'W'|'E', axis:'row'|'col', fixed:number, from:number, to:number, inward:number[]}[]}
  */
-function getStreetFoodVenuePerimeter(venue) {
+function getStreetFoodVenueEdgeRuns(venue) {
   const cells = new Set(venue.tiles.map(([r, c]) => `${r}:${c}`));
-  const cx = venue.tiles.reduce((sum, [, c]) => sum + c, 0) / venue.tiles.length;
-  const cy = venue.tiles.reduce((sum, [r]) => sum + r, 0) / venue.tiles.length;
-  const perimeter = venue.tiles.filter(([r, c]) => [[r - 1, c], [r, c + 1], [r + 1, c], [r, c - 1]]
-    .some(([nr, nc]) => !cells.has(`${nr}:${nc}`)));
-  return perimeter
-    .map(([r, c]) => ({ r, c, angle: Math.atan2(r - cy, c - cx) }))
-    .sort((a, b) => a.angle - b.angle);
+  const groups = new Map();
+  const add = (side, fixed, start) => {
+    const key = `${side}:${fixed}`;
+    if (!groups.has(key)) groups.set(key, { side, fixed, starts: [] });
+    groups.get(key).starts.push(start);
+  };
+  venue.tiles.forEach(([r, c]) => {
+    if (!cells.has(`${r - 1}:${c}`)) add('N', r - 0.5, c - 0.5);
+    if (!cells.has(`${r + 1}:${c}`)) add('S', r + 0.5, c - 0.5);
+    if (!cells.has(`${r}:${c - 1}`)) add('W', c - 0.5, r - 0.5);
+    if (!cells.has(`${r}:${c + 1}`)) add('E', c + 0.5, r - 0.5);
+  });
+  const INWARD = { N: [1, 0], S: [-1, 0], W: [0, 1], E: [0, -1] };
+  const runs = [];
+  [...groups.values()]
+    .sort((a, b) => a.side.localeCompare(b.side) || a.fixed - b.fixed)
+    .forEach(({ side, fixed, starts }) => {
+      starts.sort((a, b) => a - b);
+      let from = starts[0], to = starts[0] + 1;
+      const flush = () => runs.push({ side, axis: side === 'N' || side === 'S' ? 'col' : 'row', fixed, from, to, inward: INWARD[side] });
+      starts.slice(1).forEach((start) => {
+        if (start === to) { to += 1; return; }
+        flush(); from = start; to = start + 1;
+      });
+      flush();
+    });
+  return runs;
+}
+
+// A point on a run: `alongM` metres from the run's start, `insetM` metres into the lot.
+function streetFoodRunPoint(run, alongM, insetM) {
+  const along = run.from + alongM / STREET_FOOD_TILE_M;
+  const across = run.fixed + (insetM / STREET_FOOD_TILE_M) * (run.axis === 'col' ? run.inward[0] : run.inward[1]);
+  return run.axis === 'col' ? { row: across, col: along } : { row: along, col: across };
+}
+
+// Metres from a point to the nearest open edge of the venue.
+function streetFoodEdgeDistanceM(runs, row, col) {
+  let best = Infinity;
+  runs.forEach((run) => {
+    const [u, v] = run.axis === 'col' ? [col, row] : [row, col];
+    const du = Math.max(run.from - u, 0, u - run.to);
+    best = Math.min(best, Math.hypot(du, v - run.fixed));
+  });
+  return best * STREET_FOOD_TILE_M;
+}
+
+const streetFoodDistanceM = (a, b) => Math.hypot(a.row - b.row, a.col - b.col) * STREET_FOOD_TILE_M;
+
+// Keeps a seeded `share` of `items` (at least one when any), at most `cap`, in their original order.
+function streetFoodKeep(items, share, cap, seed, label) {
+  if (!items.length) return [];
+  const ranked = items.map((item, i) => ({ item, i, rank: sfHash(seed, label, i) }));
+  const keepCount = Math.min(cap, Math.max(1, Math.round(items.length * share)));
+  return ranked.sort((a, b) => a.rank - b.rank).slice(0, keepCount).sort((a, b) => a.i - b.i).map((x) => x.item);
 }
 
 /**
- * One venue's full layout at a moment: which stalls stand where (each with its cart id, whether
- * it is mirrored, and a facing into the venue), a hawker per stall, table/stool clusters where the
- * perimeter has room left, and a scatter of diners and passersby. Pure given its inputs; the
- * caller supplies the asset rosters (cart/furniture/people ids) so this module carries no art data.
+ * One venue's full layout at a moment: carts in a line along each open edge (their long side
+ * along it, `alongAxis`), a hawker behind each and a short queue in front, round tables with four
+ * folding stools on the interior grid with some diners seated, and passers-by on the aisles.
+ * Pure given its inputs; the caller supplies the asset rosters so this module carries no art data.
  * @param {{id:string, tiles:number[][]}} venue
- * @param {{minuteOfDay:number, weather:object, seed?:string|number, carts:string[],
- *   hawkers:string[], diners:string[], passersby:string[]}} options
+ * @param {{minuteOfDay:number, weather:object, seed?:string|number, carts:string[], hawkers:string[],
+ *   queuers?:string[], diners:string[], passersby:string[], tableFurniture?:string[], stools?:string[]}} options
  */
 function getStreetFoodVenueLayout(venue, options) {
-  const { minuteOfDay, weather, seed = venue.id, carts, hawkers, diners, passersby, tableFurniture = [] } = options;
+  const {
+    minuteOfDay, weather, seed = venue.id, carts, hawkers, queuers = [], diners, passersby,
+    tableFurniture = [], stools = [],
+  } = options;
   const schedule = getStreetFoodPhase(minuteOfDay);
   const weatherState = getStreetFoodWeatherState(weather);
   const presence = weatherState === 'closed' ? 0 : schedule.presence;
-  if (presence <= 0 || !carts?.length) return { phase: schedule.phase, presence: 0, stalls: [], diners: [] };
+  const empty = { phase: schedule.phase, presence: 0, weatherState, stalls: [], tables: [], walkers: [], dinerShare: 0 };
+  if (presence <= 0 || !carts?.length || !venue.tiles.length) return empty;
 
-  const capacity = getStreetFoodVenueCapacity(venue.tiles.length);
-  const stallCount = capacity.stalls[0] + Math.floor(sfHash(seed, 'stallCount') * (capacity.stalls[1] - capacity.stalls[0] + 1));
-  const perimeter = getStreetFoodVenuePerimeter(venue);
-  if (!perimeter.length) return { phase: schedule.phase, presence: 0, stalls: [], diners: [] };
-
-  // stall slots: evenly spaced around the perimeter, so an L-shaped lot gets stalls along both
-  // arms instead of bunched on whichever edge happens to sort first
-  const slotCount = Math.min(stallCount, perimeter.length);
-  const stalls = [];
-  const usedTiles = new Set();
-  for (let i = 0; i < slotCount; i++) {
-    const tile = perimeter[Math.floor((i / slotCount) * perimeter.length)];
-    const key = `${tile.r}:${tile.c}`;
-    if (usedTiles.has(key)) continue;
-    usedTiles.add(key);
-    const cartId = sfPick(carts, seed, 'cart', i);
-    // face into the venue: toward its centre from this perimeter tile, mirrored when that is
-    // the "other" diagonal (車仔向場內開口)
-    const inward = Math.atan2(venue.tiles.reduce((sum, [r]) => sum + r, 0) / venue.tiles.length - tile.r,
-      venue.tiles.reduce((sum, [, c]) => sum + c, 0) / venue.tiles.length - tile.c);
-    const mirrored = Math.sin(inward) < 0;
-    stalls.push({
-      id: `${venue.id}|stall${i}`,
-      row: tile.r,
-      col: tile.c,
-      cartId,
-      mirrored,
-      hawkerId: sfPick(hawkers, seed, 'hawker', i),
-      open: schedule.phase !== 'closing' || presence > 0.4,
-    });
-  }
-
-  // furniture: a table+stool cluster at a share of the remaining perimeter slots, same count target
-  const [tablesMin, tablesMax] = capacity.tables;
-  const tableCount = Math.min(tablesMin + Math.floor(sfHash(seed, 'tableCount') * (tablesMax - tablesMin + 1)),
-    Math.max(0, perimeter.length - slotCount));
-  const furnitureTiles = perimeter.filter((tile) => !usedTiles.has(`${tile.r}:${tile.c}`));
-  const tables = [];
-  for (let i = 0; i < tableCount && i < furnitureTiles.length; i++) {
-    const tile = furnitureTiles[Math.floor((i / Math.max(1, tableCount)) * furnitureTiles.length)];
-    const key = `${tile.r}:${tile.c}`;
-    if (usedTiles.has(key)) continue;
-    usedTiles.add(key);
-    const effectiveDinerShare = schedule.dinerShare * (STREET_FOOD_WEATHER_DINER_SHARE[weatherState] ?? 1);
-    const occupied = sfHash(seed, 'seated', i, Math.floor((minuteOfDay || 0) / 20)) < effectiveDinerShare;
-    // 1-3 of the table's 4 seats filled when it's in use - never every seat, a round table with a
-    // full ring of diners reads static; a gap leaves a stool free the way a real one would
-    const seatedCount = occupied ? 1 + Math.floor(sfHash(seed, 'seatedCount', i, Math.floor((minuteOfDay || 0) / 20)) * 3) : 0;
-    tables.push({
-      id: `${venue.id}|table${i}`,
-      row: tile.r,
-      col: tile.c,
-      tableId: sfPick(tableFurniture, seed, 'table', i),
-      occupied,
-      seatedIds: Array.from({ length: seatedCount }, (_, seat) => sfPick(diners, seed, 'seated', i, seat)),
-    });
-  }
-
-  // a light scatter of passersby near the venue, density following the diner share
   const dinerShare = schedule.dinerShare * (STREET_FOOD_WEATHER_DINER_SHARE[weatherState] ?? 1);
-  const passersbyCount = Math.round(Math.min(4, venue.tiles.length) * dinerShare);
-  const walkers = Array.from({ length: passersbyCount }, (_, i) => {
-    const tile = perimeter[Math.floor(sfHash(seed, 'walker', i, Math.floor((minuteOfDay || 0) / 10)) * perimeter.length)];
-    return { id: `${venue.id}|walker${i}`, row: tile.r, col: tile.c, personId: sfPick(passersby, seed, 'walker', i) };
+  const crowdWindow = Math.floor((Number(minuteOfDay) || 0) / 20); // who is queuing/sitting reshuffles every 20 min
+  const S = STREET_FOOD_STALL_LAYOUT, T = STREET_FOOD_TABLE_LAYOUT;
+  const runs = getStreetFoodVenueEdgeRuns(venue);
+
+  // stall pitches: evenly spaced and centred on each run, then a seeded share of them taken
+  const pitches = [];
+  runs.forEach((run) => {
+    const lengthM = (run.to - run.from) * STREET_FOOD_TILE_M;
+    const usable = lengthM - 2 * S.endMarginM;
+    if (usable < 0) return;
+    const count = Math.floor(usable / S.spacingM) + 1;
+    const startM = (lengthM - (count - 1) * S.spacingM) / 2;
+    for (let i = 0; i < count; i++) {
+      const alongM = startM + i * S.spacingM;
+      const point = streetFoodRunPoint(run, alongM, S.cartInsetM);
+      if (pitches.some((p) => streetFoodDistanceM(p.point, point) < S.minGapM)) continue;
+      pitches.push({ key: `${run.side}${run.fixed}:${Math.round(alongM * 10)}`, run, alongM, point });
+    }
   });
+  const stalls = streetFoodKeep(pitches, S.keepShare, S.maxStalls, seed, 'pitch').map((pitch, i) => {
+    const { run, alongM, point } = pitch;
+    const id = `${venue.id}|stall:${pitch.key}`;
+    const queue = [];
+    if (queuers.length && sfHash(seed, 'queue', pitch.key, crowdWindow) < dinerShare) {
+      const queueCount = sfHash(seed, 'queue2', pitch.key, crowdWindow) < dinerShare * 0.5 ? 2 : 1;
+      for (let q = 0; q < queueCount; q++) {
+        queue.push({
+          id: `${id}|queue${q}`,
+          ...streetFoodRunPoint(run, alongM + S.queueAlongM[q], S.queueInsetM[q]),
+          personId: sfPick(queuers, seed, 'queuer', pitch.key, q, crowdWindow),
+        });
+      }
+    }
+    return {
+      id,
+      row: point.row,
+      col: point.col,
+      alongAxis: run.axis,
+      inward: run.inward,
+      cartId: sfPick(carts, seed, 'cart', pitch.key),
+      hawkerId: sfPick(hawkers, seed, 'hawker', pitch.key),
+      hawker: streetFoodRunPoint(run, alongM, S.hawkerInsetM),
+      queue,
+      open: schedule.phase !== 'closing' || presence > 0.4,
+    };
+  });
+
+  // tables: the interior 4 m grid, deep enough in to clear the queues, the tile centre lines left as aisles
+  const spots = [];
+  venue.tiles.forEach(([r, c]) => T.gridLocalM.forEach((ly) => T.gridLocalM.forEach((lx) => {
+    const spot = { row: r - 0.5 + ly / STREET_FOOD_TILE_M, col: c - 0.5 + lx / STREET_FOOD_TILE_M, key: `${r}:${c}:${ly}:${lx}` };
+    if (streetFoodEdgeDistanceM(runs, spot.row, spot.col) >= T.minInsetM) spots.push(spot);
+  })));
+  const tables = (tableFurniture.length ? streetFoodKeep(spots, T.keepShare, T.maxTables, seed, 'table') : []).map((spot) => {
+    const id = `${venue.id}|table:${spot.key}`;
+    const occupied = diners.length > 0 && sfHash(seed, 'seated', spot.key, crowdWindow) < dinerShare;
+    // 1-3 of the 4 stools taken when it is in use - a full ring reads static, a gap reads real
+    const seatedCount = occupied ? 1 + Math.floor(sfHash(seed, 'seatedCount', spot.key, crowdWindow) * 3) : 0;
+    const firstSeat = Math.floor(sfHash(seed, 'firstSeat', spot.key, crowdWindow) * 4);
+    const d = T.stoolOffsetM / STREET_FOOD_TILE_M;
+    const stoolPoints = [[d, 0], [0, d], [-d, 0], [0, -d]];
+    return {
+      id,
+      row: spot.row,
+      col: spot.col,
+      tableId: sfPick(tableFurniture, seed, 'table', spot.key),
+      occupied,
+      stools: stoolPoints.map(([dr, dc], s) => {
+        const taken = ((s - firstSeat + 4) % 4) < seatedCount;
+        return {
+          id: `${id}|stool${s}`,
+          row: spot.row + dr,
+          col: spot.col + dc,
+          // dr/dc point away from the table: a seated diner faces back toward it
+          away: [Math.sign(dr), Math.sign(dc)],
+          stoolId: stools.length ? sfPick(stools, seed, 'stool', spot.key, s) : null,
+          seatedId: taken ? sfPick(diners, seed, 'seated', spot.key, s, crowdWindow) : null,
+        };
+      }),
+    };
+  });
+
+  // passers-by drift along the aisles, re-placed every 10 min
+  const aisleSpots = [];
+  venue.tiles.forEach(([r, c]) => {
+    for (let m = 0; m < STREET_FOOD_TILE_M; m += 2) {
+      [{ row: r - 0.5 + T.aisleLocalM / STREET_FOOD_TILE_M, col: c - 0.5 + m / STREET_FOOD_TILE_M },
+        { row: r - 0.5 + m / STREET_FOOD_TILE_M, col: c - 0.5 + T.aisleLocalM / STREET_FOOD_TILE_M }].forEach((spot) => {
+        if (streetFoodEdgeDistanceM(runs, spot.row, spot.col) < T.walkerMinInsetM) return;
+        if (tables.some((table) => streetFoodDistanceM(table, spot) < T.walkerTableClearM)) return;
+        if (!aisleSpots.some((other) => streetFoodDistanceM(other, spot) < 0.5)) aisleSpots.push(spot);
+      });
+    }
+  });
+  const walkWindow = Math.floor((Number(minuteOfDay) || 0) / 10);
+  const walkerCount = Math.min(aisleSpots.length, Math.round(Math.min(10, venue.tiles.length * 3) * dinerShare));
+  const walkers = passersby?.length && walkerCount ? streetFoodKeep(aisleSpots, 1, walkerCount, seed, `walk${walkWindow}`)
+    .map((spot, i) => ({ id: `${venue.id}|walker${i}`, row: spot.row, col: spot.col, personId: sfPick(passersby, seed, 'walker', i, walkWindow) })) : [];
 
   return { phase: schedule.phase, presence, weatherState, stalls, tables, walkers, dinerShare };
 }
@@ -190,6 +294,6 @@ if (typeof module !== 'undefined' && module.exports) module.exports = {
   sfHash, sfPick,
   STREET_FOOD_SCHEDULE, streetFoodWrapMinute, getStreetFoodPhase,
   getStreetFoodWeatherState, STREET_FOOD_WEATHER_DINER_SHARE,
-  getStreetFoodVenues, STREET_FOOD_VENUE_CAPACITY, getStreetFoodVenueCapacity,
-  getStreetFoodVenuePerimeter, getStreetFoodVenueLayout,
+  getStreetFoodVenues, STREET_FOOD_STALL_LAYOUT, STREET_FOOD_TABLE_LAYOUT,
+  getStreetFoodVenueEdgeRuns, streetFoodEdgeDistanceM, getStreetFoodVenueLayout,
 };

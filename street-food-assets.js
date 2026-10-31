@@ -37,6 +37,7 @@ function loadStreetFoodAssets() {
         size: asset.outputSize,
         groundAnchor: asset.groundAnchor,
         scale: asset.display.scale,
+        longLine: asset.display.longLine ?? null,
         mirrorPath: asset.mirror?.outputPath ?? null,
         mirrorGroundAnchor: asset.mirror?.groundAnchor ?? null,
       };

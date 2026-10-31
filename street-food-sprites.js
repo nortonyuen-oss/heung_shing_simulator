@@ -10,10 +10,10 @@ const STREET_FOOD_PEOPLE_PX_PER_METRE_UP = 2.5 * (Math.cos(Math.PI / 6) / Math.c
 // A seated diner's head sits at about 0.75 of standing stature (a ~0.45 m stool, then a hunched
 // sitting height). heightM in street-food-people.json is the standing figure's.
 const STREET_FOOD_SEATED_HEIGHT_RATIO = 0.75;
-// people around a cart/table, in tiles (20 m): a hawker ~1 m behind the counter, a diner ~0.8 m out
-// from the table's centre (a 1 m table, a stool's depth beyond its rim)
-const STREET_FOOD_HAWKER_BACK_TILES = 1 / 20 / Math.SQRT2;
-const STREET_FOOD_SEAT_OFFSET_TILES = 0.8 / 20;
+// a cart's ground footprint, in tiles (20 m): its 2.3 m counter long side along the lot's edge,
+// ~1 m across it (street-food-market.js's STREET_FOOD_STALL_LAYOUT places its centre)
+const STREET_FOOD_CART_LONG_TILES = 2.3 / 20;
+const STREET_FOOD_CART_DEPTH_TILES = 1.0 / 20;
 
 function getStreetFoodSpriteTextureKey(path) { return `street-food:${path}`; }
 
@@ -28,8 +28,7 @@ function requestStreetFoodTextures(scene, paths) {
 function streetFoodPersonRecord(id) {
   const person = typeof getStreetFoodPerson === 'function' ? getStreetFoodPerson(id) : null;
   if (!person) return null;
-  // feet on the ground for every pose: no stool is drawn under a seated diner yet, so its seat
-  // point has nothing to rest on
+  // feet on the ground for every pose; a seated diner stands on their stool's point, drawn over it
   const shownM = person.role === 'seated' ? person.heightM * STREET_FOOD_SEATED_HEIGHT_RATIO : person.heightM;
   const figurePx = person.figureHeightPx || person.size[1];
   return { path: person.path, size: person.size, groundAnchor: person.footAnchor, scale: (shownM * STREET_FOOD_PEOPLE_PX_PER_METRE_UP) / figurePx };
@@ -55,17 +54,43 @@ function getStreetFoodClaimedPredicate(scene) {
   return (venue) => venue.id === bunHillVenueId;
 }
 
-// A tile's screen point and sort depth, the same convention festival ground placements use
-// (festival-sprites.js's getFestivalPlacementPoint, mode:'tile'). dRow/dCol nudge the point a
-// fraction of a tile within it, the same way a festival placement's fractional row/col does.
-function getStreetFoodTilePoint(scene, row, col, dRow = 0, dCol = 0) {
-  const geo = getTileFaceGeometry(row, col, scene.offsetX, scene.offsetY);
-  let x = geo.center.x, y = geo.center.y;
-  if (dRow || dCol) {
-    const centre = isoToScreen(col, row), shifted = isoToScreen(col + dCol, row + dRow);
-    x += shifted.x - centre.x; y += shifted.y - centre.y;
-  }
-  return { x, y, depth: getBuildingSortDepth(getBuildingAnchor(row, col, 1, 1).y, 1, 1, 0) };
+// A fractional (row, col)'s screen point and sort depth: the tile it falls in gives the ground face
+// (and its elevation), the fraction slides along it, the same way festival-sprites.js's fractional
+// placements do. Depth sorts on the point itself, so a hawker behind a counter or a diner across
+// a table lands behind or in front of it by where it actually stands.
+function getStreetFoodTilePoint(scene, row, col) {
+  const baseRow = Math.round(row), baseCol = Math.round(col);
+  const geo = getTileFaceGeometry(baseRow, baseCol, scene.offsetX, scene.offsetY);
+  const centre = isoToScreen(baseCol, baseRow), shifted = isoToScreen(col, row);
+  return {
+    x: geo.center.x + shifted.x - centre.x,
+    y: geo.center.y + shifted.y - centre.y,
+    depth: getBuildingSortDepth(shifted.y, 1, 1, 0),
+  };
+}
+
+// Which screen diagonal a step along the map axis runs on under the current rotation: 'down'
+// (toward the lower right, +0.5) or 'up' (toward the upper right, -0.5).
+function getStreetFoodScreenDiagonal(axis) {
+  const a = isoToScreen(0, 0), b = axis === 'col' ? isoToScreen(1, 0) : isoToScreen(0, 1);
+  return (b.x - a.x) * (b.y - a.y) > 0 ? 'down' : 'up';
+}
+
+// A cart's sprite anchor is its lowest pixel - the counter's front corner, not its middle - so the
+// footprint's screen-lowest corner is where it goes; and the art (or its mirror) is chosen so the
+// counter's long side runs along the lot's edge.
+function getStreetFoodCartPlacement(cart, stall) {
+  const half = { row: 0, col: 0 };
+  half[stall.alongAxis] = STREET_FOOD_CART_LONG_TILES / 2;
+  half[stall.alongAxis === 'col' ? 'row' : 'col'] = STREET_FOOD_CART_DEPTH_TILES / 2;
+  let front = null;
+  [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(([sr, sc]) => {
+    const corner = { row: stall.row + sr * half.row, col: stall.col + sc * half.col };
+    const y = isoToScreen(corner.col, corner.row).y;
+    if (!front || y > front.y) front = { ...corner, y };
+  });
+  const mirrored = Boolean(cart.mirrorPath) && getStreetFoodScreenDiagonal(stall.alongAxis) !== (cart.longLine || 'up');
+  return { row: front.row, col: front.col, mirrored };
 }
 
 // Places one sprite from a street-food art record {path, size:[w,h], groundAnchor:[x,y], scale}.
@@ -108,36 +133,42 @@ function syncStreetFoodVenue(scene, layout) {
 
   (layout.stalls || []).forEach((stall) => {
     const cart = typeof getStreetFoodCart === 'function' ? getStreetFoodCart(stall.cartId) : null;
-    const record = cart && stall.mirrored && cart.mirrorPath
-      ? { ...cart, path: cart.mirrorPath, groundAnchor: cart.mirrorGroundAnchor }
-      : cart;
-    const point = getStreetFoodTilePoint(scene, stall.row, stall.col);
     wanted.add(stall.id);
-    drawStreetFoodSprite(scene, store, stall.id, record, point);
-    // the hawker works from behind the counter, the opposite side from the venue it faces into:
-    // about a metre back (offsets are in tiles - 20 m each)
-    const hawkerSide = stall.mirrored ? 1 : -1;
-    const hawkerPoint = getStreetFoodTilePoint(scene, stall.row, stall.col,
-      -STREET_FOOD_HAWKER_BACK_TILES * hawkerSide, STREET_FOOD_HAWKER_BACK_TILES * hawkerSide);
+    if (cart) {
+      const placement = getStreetFoodCartPlacement(cart, stall);
+      const record = placement.mirrored ? { ...cart, path: cart.mirrorPath, groundAnchor: cart.mirrorGroundAnchor } : cart;
+      // drawn from its front corner but sorted on its footprint's centre: a hawker just outside a
+      // near-side edge's cart stands in front of it, though not past its long side's front corner
+      const point = { ...getStreetFoodTilePoint(scene, placement.row, placement.col), depth: getStreetFoodTilePoint(scene, stall.row, stall.col).depth };
+      drawStreetFoodSprite(scene, store, stall.id, record, point);
+    }
     const hawkerId = `${stall.id}|hawker`;
     wanted.add(hawkerId);
-    drawStreetFoodSprite(scene, store, hawkerId, streetFoodPersonRecord(stall.hawkerId), hawkerPoint, 0.001);
+    drawStreetFoodSprite(scene, store, hawkerId, streetFoodPersonRecord(stall.hawkerId),
+      getStreetFoodTilePoint(scene, stall.hawker.row, stall.hawker.col));
+    (stall.queue || []).forEach((person) => {
+      wanted.add(person.id);
+      drawStreetFoodSprite(scene, store, person.id, streetFoodPersonRecord(person.personId), getStreetFoodTilePoint(scene, person.row, person.col));
+    });
   });
 
-  // a seat around the table at each of 4 compass points, ~0.8 m from the 1 m table's centre
-  const d = STREET_FOOD_SEAT_OFFSET_TILES;
-  const STREET_FOOD_SEAT_OFFSETS = [[d, 0], [0, d], [-d, 0], [0, -d]];
   (layout.tables || []).forEach((table) => {
     const furniture = typeof getStreetFoodFurniture === 'function' ? getStreetFoodFurniture(table.tableId) : null;
-    const point = getStreetFoodTilePoint(scene, table.row, table.col);
     wanted.add(table.id);
-    drawStreetFoodSprite(scene, store, table.id, furniture, point);
-    table.seatedIds.forEach((personId, seat) => {
-      const [dRow, dCol] = STREET_FOOD_SEAT_OFFSETS[seat % STREET_FOOD_SEAT_OFFSETS.length];
-      const seatPoint = getStreetFoodTilePoint(scene, table.row, table.col, dRow, dCol);
-      const seatId = `${table.id}|seat${seat}`;
-      wanted.add(seatId);
-      drawStreetFoodSprite(scene, store, seatId, streetFoodPersonRecord(personId), seatPoint, 0.0005);
+    drawStreetFoodSprite(scene, store, table.id, furniture, getStreetFoodTilePoint(scene, table.row, table.col));
+    (table.stools || []).forEach((stool) => {
+      const stoolPoint = getStreetFoodTilePoint(scene, stool.row, stool.col);
+      const stoolArt = stool.stoolId && typeof getStreetFoodFurniture === 'function' ? getStreetFoodFurniture(stool.stoolId) : null;
+      if (stoolArt) {
+        wanted.add(stool.id);
+        drawStreetFoodSprite(scene, store, stool.id, stoolArt, stoolPoint);
+      }
+      if (stool.seatedId) {
+        // the sitter sorts just over their own stool, wherever it is around the table
+        const seatId = `${stool.id}|seated`;
+        wanted.add(seatId);
+        drawStreetFoodSprite(scene, store, seatId, streetFoodPersonRecord(stool.seatedId), stoolPoint, 0.001);
+      }
     });
   });
 
@@ -183,9 +214,12 @@ function updateStreetFoodMarkets(scene, time) {
   const roster = {
     carts: typeof getStreetFoodCartIds === 'function' ? getStreetFoodCartIds() : [],
     hawkers: typeof getStreetFoodPeopleByRole === 'function' ? getStreetFoodPeopleByRole('hawker') : [],
+    queuers: typeof getStreetFoodPeopleByRole === 'function'
+      ? ['diner-family', 'diner-couple', 'diner-elderly'].flatMap((role) => getStreetFoodPeopleByRole(role)) : [],
     diners: typeof getStreetFoodPeopleByRole === 'function' ? getStreetFoodPeopleByRole('seated') : [],
     passersby: typeof getStreetFoodPeopleByRole === 'function' ? getStreetFoodPeopleByRole('passerby') : [],
     tableFurniture: getStreetFoodTableFurnitureIds(),
+    stools: ['foldingStoolRed', 'foldingStoolGreen'].filter((id) => typeof getStreetFoodFurniture === 'function' && getStreetFoodFurniture(id)),
   };
 
   const wantedIds = new Set();

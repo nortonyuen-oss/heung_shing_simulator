@@ -10,7 +10,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
 const {
-  groundAnchorFromAlpha, displayScaleFor, pointsSpanX, cornerEdgesPx, ROAST_CHESTNUT_BATCH_MATES,
+  groundAnchorFromAlpha, displayScaleFor, pointsSpanX, cornerEdgesPx, cartLongLine, ROAST_CHESTNUT_BATCH_MATES,
   STREET_FOOD_PX_PER_METRE_ALONG, STREET_FOOD_TRUE_PX_PER_METRE_UP, CART_LENGTH_M, FURNITURE_IDS,
 } = require('../scripts/prepare-street-food-assets.js');
 
@@ -52,6 +52,15 @@ test('cornerEdgesPx splits a corner into its long and short sides, not the span 
   near(partial.frontX, 110);
   near(partial.longPx, 300);
   near(partial.shortPx, 90);
+});
+
+test('cartLongLine names the screen diagonal the counter long side runs on, so the renderer can pick art or mirror', () => {
+  // long side on the 'up' line (toward the upper right), like every cart in this batch
+  assert.equal(cartLongLine({ kind: 'body-cage', top: { down: [[10, 50], [110, 100]], up: [[110, 100], [410, -50]] } }), 'up');
+  assert.equal(cartLongLine({ kind: 'body-cage', top: { down: [[-190, -50], [110, 100]], up: [[110, 100], [210, 50]] } }), 'down');
+  assert.equal(cartLongLine({ kind: 'axes', axes: {} }), null, 'no lines, no answer');
+  const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/street-food-geometry.json'), 'utf8'));
+  manifest.assets.filter((a) => a.mirror).forEach((a) => assert.ok(['up', 'down'].includes(a.display.longLine), a.id));
 });
 
 test('displayScaleFor anchors a cart to its counter long side, a table to its diameter, by id for the rest - one scale each', () => {

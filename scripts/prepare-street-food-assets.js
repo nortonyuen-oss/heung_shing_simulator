@@ -70,8 +70,17 @@ function cornerEdgesPx(lineA, lineB) {
   const a = fit(lineA), b = fit(lineB);
   const frontX = (b.c - a.c) / (a.m - b.m);
   const run = (line) => Math.max(...line.map(([x]) => Math.abs(x - frontX)));
-  const edges = [run(lineA), run(lineB)].sort((p, q) => q - p);
-  return { frontX, longPx: edges[0], shortPx: edges[1] };
+  const runA = run(lineA), runB = run(lineB);
+  return { frontX, longPx: Math.max(runA, runB), shortPx: Math.min(runA, runB), longIsA: runA >= runB };
+}
+
+// Which screen diagonal the long side runs on in the unmirrored art: 'down' (+0.5, toward the
+// lower right) or 'up' (-0.5, toward the upper right). The mirror twin runs on the other one;
+// street-food-sprites.js picks whichever lays the long side along a venue's edge.
+function cartLongLine(asset) {
+  const [down, up] = asset.kind === 'body-cage' ? [asset.top?.down, asset.top?.up] : [asset.axes?.down, asset.axes?.up];
+  if (!down?.length || !up?.length) return null;
+  return cornerEdgesPx(down, up).longIsA ? 'down' : 'up';
 }
 
 // A cart/furniture piece's own ground-contact point in OUTPUT pixels: the mean X of alpha>=128
@@ -94,13 +103,13 @@ function groundAnchorFromAlpha(data, width, height) {
 function displayScaleFor(asset, projection, allAssets = []) {
   if (asset.kind === 'body-cage') {
     const { longPx } = cornerEdgesPx(asset.top.down, asset.top.up);
-    return { scale: (CART_LENGTH_M * STREET_FOOD_PX_PER_METRE_ALONG) / longPx, anchorM: CART_LENGTH_M, anchorAxis: 'along (counter long side)' };
+    return { scale: (CART_LENGTH_M * STREET_FOOD_PX_PER_METRE_ALONG) / longPx, anchorM: CART_LENGTH_M, anchorAxis: 'along (counter long side)', longLine: cartLongLine(asset) };
   }
   if (asset.id === 'roastChestnut') {
     const mates = ROAST_CHESTNUT_BATCH_MATES.map((id) => allAssets.find((a) => a.id === id)).filter(Boolean);
     if (mates.length !== ROAST_CHESTNUT_BATCH_MATES.length) throw new Error('roastChestnut: batch mates missing');
     const scale = mates.reduce((sum, mate) => sum + displayScaleFor(mate, null).scale, 0) / mates.length;
-    return { scale, anchorM: CART_LENGTH_M, anchorAxis: 'along (batch mates\' counter long side)' };
+    return { scale, anchorM: CART_LENGTH_M, anchorAxis: 'along (batch mates\' counter long side)', longLine: cartLongLine(asset) };
   }
   if (asset.kind === 'ellipse') {
     return { scale: (TABLE_DIAMETER_M * STREET_FOOD_PX_PER_METRE_ALONG) / asset.ellipse.width, anchorM: TABLE_DIAMETER_M, anchorAxis: 'along (tabletop diameter)' };
@@ -290,7 +299,7 @@ async function main() {
 if (require.main === module) main().catch((error) => { console.error(error.stack || error.message); process.exitCode = 1; });
 
 module.exports = {
-  cropPixels, fitAsset, guidesFor, validate, groundAnchorFromAlpha, displayScaleFor, pointsSpanX, cornerEdgesPx,
+  cropPixels, fitAsset, guidesFor, validate, groundAnchorFromAlpha, displayScaleFor, pointsSpanX, cornerEdgesPx, cartLongLine,
   ROAST_CHESTNUT_BATCH_MATES,
   STREET_FOOD_PX_PER_METRE_ALONG, STREET_FOOD_TRUE_PX_PER_METRE_UP, CART_LENGTH_M, FURNITURE_IDS,
 };

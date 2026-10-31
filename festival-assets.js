@@ -197,6 +197,32 @@ const FESTIVAL_PARTS = Object.freeze([
     ['yulanGhostB', 'DragonBoat/spectatorsFront2.png', [820, 345, 162, 560], '阿飄 B', { ghostly: true, selfLit: true }],
   ].map(([id, sheet, rect, label, extra]) => festivalPart(id, 'yulan', sheet, 'crowd', label, { heightM: 1.7, rect, crop: true, ...extra })),
 
+  // 中秋 (§4.5): Victoria Park's lantern fair, the moon-gazers and picnics on the pitches, 煲蠟 late at
+  // night with the police after midnight, the fire dragon round a block of old homes. The lanterns
+  // were only drawn lit; Norton 2026-10-31: 日頭照亮 - they show lit by day too. The picnic mat and
+  // the dragons are squared (isometric-correction.json); the rest bake straight from the renders.
+  festivalPart('maJadeRabbitMoon', 'midAutumn', 'original/MidAutumn/v2/jadeRabbitMoon_night.png', 'decoration', '玉兔明月大燈飾', { lengthM: 12, lit: true }),
+  festivalPart('maLotus', 'midAutumn', 'original/MidAutumn/midAutumn1.png', 'decoration', '蓮花大燈', { heightM: 5, lit: true }),
+  festivalPart('maRabbitSet', 'midAutumn', 'original/MidAutumn/midAutumn3.png', 'decoration', '玉兔燈組', { heightM: 3.5, lit: true }),
+  festivalPart('maRabbitCart', 'midAutumn', 'original/MidAutumn/midAutumn8.png', 'decoration', '兔仔燈（有轆）', { heightM: 2, lit: true }),
+  festivalPart('maLanternPole', 'midAutumn', 'original/MidAutumn/midAutumn4.png', 'decoration', '燈籠柱', { heightM: 4, lit: true }),
+  festivalPart('maMoonTable', 'midAutumn', 'original/MidAutumn/midAutumn2.png', 'prop', '賞月枱', { heightM: 1.2 }),
+  festivalPart('maPicnic', 'midAutumn', 'MidAutumn/v2/picnicFamily.png', 'crowd', '野餐賞月一家', { lengthM: 4.5, lit: true }),
+  festivalPart('maCandleKids', 'midAutumn', 'original/MidAutumn/v2/candleMeltingKids.png', 'crowd', '煲蠟細路', { heightM: 1.1, lit: true, fire: true }),
+  ...[
+    ['maViewerFather', [255, 31, 251, 480], '指月爸爸', 1.9, false],
+    ['maViewerMother', [691, 75, 165, 440], '賞月媽媽', 1.6, false],
+    ['maViewerGrandma', [1112, 89, 136, 411], '賞月婆婆', 1.55, false],
+    ['maViewerBoy', [264, 608, 234, 353], '拎楊桃燈仔仔', 1.2, true],
+    ['maViewerGirl', [652, 625, 262, 338], '拎兔仔燈囡囡', 1.1, true],
+    ['maViewerPhone', [1087, 516, 188, 464], '影月亮女仔', 1.75, false],
+  ].map(([id, rect, label, heightM, lit]) => festivalPart(id, 'midAutumn', 'original/MidAutumn/v2/moonViewers.png', 'crowd', label, { heightM, rect, lit })),
+  festivalPart('maPoliceMan', 'midAutumn', 'original/MidAutumn/v2/policePatrol.png', 'crowd', '巡查警員（男）', { heightM: 1.75, rect: [261, 95, 337, 812] }),
+  festivalPart('maPoliceWoman', 'midAutumn', 'original/MidAutumn/v2/policePatrol.png', 'crowd', '巡查警員（女）', { heightM: 1.7, rect: [883, 144, 455, 799], lit: true }),
+  // the dragon heading down-right ('\\') and up-right ('/'); their mirrors go down-left and up-left
+  festivalPart('maFireDragonSE', 'midAutumn', 'MidAutumn/v2/fireDragonSE.png', 'crowd', '舞火龍（向前）', { lengthM: 26, lit: true, axis: '\\' }),
+  festivalPart('maFireDragonNE', 'midAutumn', 'MidAutumn/v2/fireDragonNE.png', 'crowd', '舞火龍（向後）', { lengthM: 26, lit: true, axis: '/' }),
+
   // 發現 UFO (§4.7): six frames of the one saucer - the alien waves, the lamps change - played in
   // turn, all at one scale (festival-ufo.js); the beam is drawn added, stretched to the ground. Nothing
   // on the ground to square to, so they bake straight from the renders (original/).

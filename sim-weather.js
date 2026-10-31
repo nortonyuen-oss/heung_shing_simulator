@@ -585,7 +585,9 @@ const DEFAULT_ASTRONOMY_VISUAL_DAY = Object.freeze({
 
 function getAstronomyVisualDay() {
   const data = typeof getCurrentAstronomyData === 'function' ? getCurrentAstronomyData() : null;
-  return { ...DEFAULT_ASTRONOMY_VISUAL_DAY, ...(data || {}) };
+  const day = { ...DEFAULT_ASTRONOMY_VISUAL_DAY, ...(data || {}) };
+  // 中秋: a full moon on the night, whatever the sample day says (festival-mid-autumn.js)
+  return typeof applyMidAutumnFullMoon === 'function' ? applyMidAutumnFullMoon(day) : day;
 }
 
 function clampVisualMinute(value, fallback) {

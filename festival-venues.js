@@ -1014,8 +1014,188 @@ function layoutYulan(ctx) {
   return out;
 }
 
+// ── 中秋 (docs/festival-dlc-design.md §4.5): 維園花燈、煲蠟、舞火龍 ─────────────────────────
+// Victoria Park's lantern fair on its best ground (the vigil's, JUNE4_VENUES): the jade rabbit and
+// the moon in the middle of the first pitch, lotus lanterns and rabbits round it, lantern poles along
+// the edges. From dusk the moon-gazers fill the pitches - standing on the fair's, picnicking on the
+// others - and leave by midnight; from ten 煲蠟 groups crouch at their tins, more as the night goes on,
+// and after midnight the police walk among them. The fire dragon goes round a block of old homes
+// (festival-mid-autumn.js), lantern poles on the kerbs of its loop.
+// People and lanterns in the park are drawn at the 20 m tile's true size, as the 年宵 visitors are;
+// the route's poles and the dragon at the festival art's larger street size, as the lion dance.
+const MID_AUTUMN_TIMES = Object.freeze({
+  viewers: Object.freeze([18 * 60 + 30, 24 * 60]),
+  picnic: Object.freeze([19 * 60, 23 * 60 + 30]),
+  candles: Object.freeze([22 * 60, 26 * 60 + 30]),
+  police: Object.freeze([24 * 60, 26 * 60 + 30]),
+  dragon: Object.freeze([20 * 60, 23 * 60]),
+  route: Object.freeze([18 * 60, 27 * 60]),
+});
+// the true vertical rate (2.5 x cos30/cos45 px a metre) over the festival art's 5
+const MID_AUTUMN_TRUE_UP = Math.cos(Math.PI / 6) / Math.cos(Math.PI / 4) / 2;
+const MID_AUTUMN_CELL_M = 3.2;
+const MID_AUTUMN_POLE_SPACING_M = 12;
+const MID_AUTUMN_KERB_M = 7.6; // a road tile's centre to its pavement, as 盂蘭's
+// the fair on the first pitch: [u, v, key, partId, metres kept clear round it]
+const MID_AUTUMN_DISPLAYS = Object.freeze([
+  [0.55, 0.5, 'jadeRabbit', 'maJadeRabbitMoon', 6],
+  [0.84, 0.2, 'lotus1', 'maLotus', 2.5],
+  [0.84, 0.8, 'lotus2', 'maLotus', 2.5],
+  [0.24, 0.2, 'rabbitSet', 'maRabbitSet', 3],
+  [0.24, 0.8, 'rabbitCart1', 'maRabbitCart', 1.5],
+  [0.1, 0.5, 'rabbitCart2', 'maRabbitCart', 1.5],
+]);
+// who stands, by share: families, a grandmother, children with their lanterns, a phone at the moon
+const MID_AUTUMN_VIEWERS = Object.freeze([
+  [0.2, 'maViewerFather'], [0.2, 'maViewerMother'], [0.12, 'maViewerGrandma'],
+  [0.17, 'maViewerBoy'], [0.17, 'maViewerGirl'], [0.14, 'maViewerPhone'],
+]);
+const MID_AUTUMN_CROWD_SHARE = Object.freeze({ basic: 0.35, standard: 0.55, grand: 0.75 });
+const MID_AUTUMN_PICNIC_SHARE = 0.3;
+const MID_AUTUMN_CANDLE_GROUPS = Object.freeze({ basic: 2, standard: 4, grand: 6 });
+
+const midAutumnSkyMinute = (m) => (Number(m) < 6 * 60 ? Number(m) + 24 * 60 : Number(m));
+
+/** How much of a window's crowd is there at a minute, 0..1: coming over rampIn, going over rampOut. */
+function getMidAutumnPresence(minute, [from, to], rampIn = 40, rampOut = 30) {
+  const m = midAutumnSkyMinute(minute);
+  if (!Number.isFinite(m) || m < from || m >= to) return 0;
+  return Math.min(1, (m - from) / rampIn, (to - m) / rampOut);
+}
+
+function layoutMidAutumnPark(out, park, ctx) {
+  const venue = JUNE4_VENUES[park.textureKey];
+  const tier = MID_AUTUMN_CROWD_SHARE[ctx.tier] ? ctx.tier : 'standard';
+  const minute = ctx.minute;
+  const add = (key, partId, area, u, v, extra = {}) => out.push({
+    id: `midAutumn:park:${key}`, festival: 'midAutumn', partId, mode: 'building', buildingId: park.id,
+    point: getFestivalAreaPoint(area, u, v), ...extra,
+  });
+  const trueHeight = (partId) => (FESTIVAL_PARTS_BY_ID_SAFE(partId)?.heightM || 1.7) * MID_AUTUMN_TRUE_UP;
+  const len = (a, b) => Math.hypot(b[0] - a[0], b[1] - a[1]) / JUNE4_VICTORIA_PX_PER_M;
+  const fields = venue.fields.map((area, index) => ({ area, index, uM: len(area.left, area.top), vM: len(area.top, area.right) }));
+  // the displays, up from the morning; the poles round the fair's pitch and, a grand year, the next
+  const first = fields[0];
+  const clear = [];
+  MID_AUTUMN_DISPLAYS.forEach(([u, v, key, partId, clearM], i) => {
+    if (tier === 'basic' && i >= 4) return;
+    const part = FESTIVAL_PARTS_BY_ID_SAFE(partId);
+    add(`display:${key}`, partId, first.area, u, v, part?.lengthM ? {} : { heightM: trueHeight(partId) });
+    clear.push({ field: 0, u: u * first.uM, v: v * first.vM, r: clearM });
+  });
+  fields.slice(0, tier === 'grand' ? 2 : 1).forEach((f) => {
+    const nu = Math.max(1, Math.round(f.uM / MID_AUTUMN_POLE_SPACING_M));
+    const nv = Math.max(1, Math.round(f.vM / MID_AUTUMN_POLE_SPACING_M));
+    const inset = 0.03;
+    const edge = [];
+    for (let i = 0; i <= nu; i++) edge.push([i / nu, inset], [i / nu, 1 - inset]);
+    for (let k = 1; k < nv; k++) edge.push([inset, k / nv], [1 - inset, k / nv]);
+    edge.forEach(([u, v], n) => {
+      add(`pole:${f.index}:${n}`, 'maLanternPole', f.area, Math.max(inset, Math.min(1 - inset, u)), v, { heightM: trueHeight('maLanternPole') });
+      clear.push({ field: f.index, u: u * f.uM, v: v * f.vM, r: 1 });
+    });
+  });
+  // the crowds, cell by cell: whether a cell is taken is its own roll against how full the park is now
+  const viewers = getMidAutumnPresence(minute, MID_AUTUMN_TIMES.viewers);
+  const picnic = getMidAutumnPresence(minute, MID_AUTUMN_TIMES.picnic);
+  const candles = getMidAutumnPresence(minute, MID_AUTUMN_TIMES.candles, 180, 30);
+  const police = getMidAutumnPresence(minute, MID_AUTUMN_TIMES.police, 10, 20) > 0;
+  const share = Math.min(1, MID_AUTUMN_CROWD_SHARE[tier] * Math.max(0.6, Math.min(1.3, 0.6 + (Number(ctx.population) || 0) / 200000)));
+  const roll = (salt) => lnyHash(`${ctx.seed}:midAutumn:${salt}`);
+  const free = [];
+  fields.forEach((f) => {
+    const uN = Math.max(1, Math.floor(f.uM / MID_AUTUMN_CELL_M));
+    const vN = Math.max(1, Math.floor(f.vM / MID_AUTUMN_CELL_M));
+    for (let i = 0; i < uN; i++) {
+      for (let k = 0; k < vN; k++) {
+        const name = `${f.index}:${i}:${k}`;
+        const u = (i + 0.5 + (roll(`${name}:u`) - 0.5) * 0.5) / uN;
+        const v = (k + 0.5 + (roll(`${name}:v`) - 0.5) * 0.5) / vN;
+        if (clear.some((c) => c.field === f.index && Math.hypot(c.u - u * f.uM, c.v - v * f.vM) < c.r + 1)) continue;
+        free.push({ f, name, u, v });
+      }
+    }
+  });
+  // 煲蠟: on the pitches past the fair's (on it, with only one), the first few cells of a seeded order
+  const candleCells = free
+    .filter((c) => c.f.index > 0 || fields.length === 1)
+    .map((c) => ({ c, order: roll(`${c.name}:candle`) }))
+    .sort((a, b) => a.order - b.order)
+    .slice(0, Math.round(MID_AUTUMN_CANDLE_GROUPS[tier] * candles))
+    .map(({ c }) => c);
+  const taken = new Set(candleCells.map((c) => c.name));
+  candleCells.forEach((c, n) => {
+    add(`candles:${c.name}`, 'maCandleKids', c.f.area, c.u, c.v, { heightM: trueHeight('maCandleKids'), fire: true, mirrored: roll(`${c.name}:cm`) < 0.5 });
+    // the police after midnight, a pair to every other group, standing by
+    if (police && n % 2 === 0) {
+      const du = 2.2 / c.f.uM;
+      const dv = 1.4 / c.f.vM;
+      add(`police:${c.name}:m`, 'maPoliceMan', c.f.area, Math.min(0.97, c.u + du), Math.max(0.03, c.v - dv), { heightM: trueHeight('maPoliceMan'), mirrored: true });
+      add(`police:${c.name}:w`, 'maPoliceWoman', c.f.area, Math.min(0.97, c.u + du), Math.min(0.97, c.v + dv), { heightM: trueHeight('maPoliceWoman') });
+    }
+  });
+  free.forEach((c) => {
+    if (taken.has(c.name)) return;
+    const here = roll(`${c.name}:here`);
+    // picnics on the open pitches, never on the fair's
+    if (c.f.index > 0 && roll(`${c.name}:kind`) < MID_AUTUMN_PICNIC_SHARE) {
+      if (here < share * picnic) add(`picnic:${c.name}`, 'maPicnic', c.f.area, c.u, c.v, { mirrored: roll(`${c.name}:pm`) < 0.5 });
+      return;
+    }
+    if (here >= share * viewers) return;
+    const who = roll(`${c.name}:who`);
+    let acc = 0;
+    const partId = (MID_AUTUMN_VIEWERS.find(([w]) => (acc += w) > who) || MID_AUTUMN_VIEWERS[0])[1];
+    add(`viewer:${c.name}`, partId, c.f.area, c.u, c.v, { heightM: trueHeight(partId), mirrored: roll(`${c.name}:vm`) < 0.5 });
+  });
+}
+
+// The fire dragon's loop: lantern poles on both kerbs of its straight tiles from dusk, and the
+// dragon itself while it goes round - two placements, one for each of its pictures, the one facing
+// the way it goes shown (festival-mid-autumn.js moves them every frame).
+function layoutMidAutumnRoute(out, loop, ctx) {
+  if (getMidAutumnPresence(ctx.minute, MID_AUTUMN_TIMES.route, 1, 1) <= 0) return;
+  const step = { n: [-1, 0], e: [0, 1], s: [1, 0], w: [0, -1] };
+  loop.tiles.forEach((t, i) => {
+    const before = loop.tiles[(i - 1 + loop.tiles.length) % loop.tiles.length];
+    const after = loop.tiles[(i + 1) % loop.tiles.length];
+    if (before.row !== after.row && before.col !== after.col) return; // a corner
+    const sides = before.row === after.row ? ['n', 's'] : ['e', 'w'];
+    sides.forEach((side) => {
+      const [dr, dc] = step[side];
+      // not on a pavement that is more road (a junction's mouth)
+      if (ctx.isRoad?.(t.row + dr, t.col + dc)) return;
+      out.push({ id: `midAutumn:route:${t.row}:${t.col}:${side}`, festival: 'midAutumn', partId: 'maLanternPole',
+        mode: 'tile', row: t.row, col: t.col, offsets: [[side, MID_AUTUMN_KERB_M]] });
+    });
+  });
+  if (getMidAutumnPresence(ctx.minute, MID_AUTUMN_TIMES.dragon, 1, 1) <= 0 || ctx.dragonWeatherBad) return;
+  ['maFireDragonSE', 'maFireDragonNE'].forEach((partId) => {
+    out.push({ id: `midAutumn:dragon:${partId}`, festival: 'midAutumn', partId, mode: 'tile',
+      row: loop.tiles[0].row, col: loop.tiles[0].col, fireDragon: { loop, seed: ctx.seed || '' } });
+  });
+}
+
+const FESTIVAL_PARTS_BY_ID_SAFE = (id) => (typeof FESTIVAL_PARTS_BY_ID !== 'undefined' ? FESTIVAL_PARTS_BY_ID[id]
+  : typeof require === 'function' ? require('./festival-assets.js').FESTIVAL_PARTS_BY_ID[id] : null);
+
+/**
+ * 中秋 for a city: the lantern fair on its best Victoria Park ground and the fire dragon round its
+ * loop of old homes; nothing (no venue) with neither.
+ * @param {object} ctx  parks, minute, population, seed, tier, dragonLoop ({ tiles: [{ row, col }] } or
+ *   null), isRoad(row, col), dragonWeatherBad
+ */
+function layoutMidAutumn(ctx) {
+  const out = [];
+  const park = pickJune4Park(ctx.parks);
+  if (park) layoutMidAutumnPark(out, park, ctx);
+  if (ctx.dragonLoop?.tiles?.length) layoutMidAutumnRoute(out, ctx.dragonLoop, ctx);
+  return out;
+}
+
 /** Every placement of a festival for the city as it stands. */
 function layoutFestival(id, ctx) {
+  if (id === 'midAutumn') return layoutMidAutumn(ctx);
   if (id === 'yulan') return layoutYulan(ctx);
   if (id === 'june4') return layoutJune4(ctx);
   if (id === 'christmas') return layoutChristmasDecorations(ctx);
@@ -1049,5 +1229,9 @@ if (typeof module !== 'undefined' && module.exports) {
     getJune4Presence,
     pickJune4Park,
     JUNE4_VENUES,
+    layoutMidAutumn,
+    getMidAutumnPresence,
+    MID_AUTUMN_TIMES,
+    MID_AUTUMN_TRUE_UP,
   };
 }

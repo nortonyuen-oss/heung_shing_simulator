@@ -334,7 +334,7 @@ function getFestivalPlacementPoint(scene, placement) {
   const centre = isoToScreen(col, row);
   const shifted = isoToScreen(col + dCol, row + dRow);
   let depth = getBuildingSortDepth(getBuildingAnchor(row, col, 1, 1).y, 1, 1, 0);
-  if (placement.lionDance) depth += shifted.y - centre.y;
+  if (placement.lionDance || placement.fireDragon) depth += shifted.y - centre.y;
   if (placement.groundBuildingId) {
     const ground = scene.buildingSprites?.get(placement.groundBuildingId);
     if (!ground) return null;
@@ -506,6 +506,9 @@ function getFestivalLayoutContext(id, ctx, phase) {
       ? getYulanLayoutExtras(typeof activeScene !== 'undefined' ? activeScene : null, ctx || {}) : {}),
     ...(id === 'lunarNewYear' && typeof getLionDanceLayoutExtras === 'function'
       ? getLionDanceLayoutExtras(typeof activeScene !== 'undefined' ? activeScene : null) : {}),
+    // 中秋: the fire dragon's loop (festival-mid-autumn.js)
+    ...(id === 'midAutumn' && typeof getMidAutumnLayoutExtras === 'function'
+      ? getMidAutumnLayoutExtras(typeof activeScene !== 'undefined' ? activeScene : null) : {}),
   };
 }
 

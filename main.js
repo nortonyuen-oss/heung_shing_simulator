@@ -371,6 +371,8 @@ function updateGameFrame(time, delta) {
   // 發現 UFO: it moves, so every frame (festival-ufo.js)
   if (!this.bunHillEventSession && typeof updateUfo === 'function') updateUfo(this, time);
   if (typeof updateLionDance === 'function') updateLionDance(this, time);
+  // 中秋: the fire dragon's march, the fire at the 煲蠟 tins (festival-mid-autumn.js)
+  if (typeof updateMidAutumn === 'function') updateMidAutumn(this, time);
   // 盂蘭: fire light, smoke, the green ghost lights (festival-yulan.js)
   if (typeof updateYulan === 'function') updateYulan(this, time);
   if (typeof updateShoreReflections === 'function') updateShoreReflections(this, time);

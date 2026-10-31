@@ -191,6 +191,9 @@ const FESTIVAL_EVENT_TESTS = Object.freeze([
   ['yulan', 22 * 60 + 40, '盂蘭（阿飄）', /yulanGhost/],
   ['yulan', 22 * 60 + 40, '盂蘭（郊外阿飄）', 'outskirts'],
   ['yulan', 23 * 60 + 45, '盂蘭（燒紙紮）', 'yulanHorse'],
+  ['midAutumn', 20 * 60 + 30, '中秋（維園花燈）', 'maJadeRabbitMoon'],
+  ['midAutumn', 21 * 60, '中秋（舞火龍）', /maFireDragon/],
+  ['midAutumn', 40, '中秋（煲蠟、警員）', 'maCandleKids'],
 ]);
 
 function startFestivalEventTest(id, minute, scene = typeof activeScene !== 'undefined' ? activeScene : null, focus = null) {

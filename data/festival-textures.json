@@ -3511,6 +3511,678 @@
    "mirrored": true,
    "heightM": 1.4
   },
+  "fx_maCandleKids": {
+   "file": "Models/festivals/fx_maCandleKids.png",
+   "part": "maCandleKids",
+   "festival": "midAutumn",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 257,
+    "y": 503
+   },
+   "top": 105,
+   "left": 21,
+   "right": 492,
+   "mirrored": false,
+   "heightM": 1.1,
+   "night": [
+    "Models/festivals/fx_maCandleKids__lit.png",
+    "Models/festivals/fx_maCandleKids__litb.png"
+   ]
+  },
+  "fx_maCandleKids_m": {
+   "file": "Models/festivals/fx_maCandleKids_m.png",
+   "part": "maCandleKids",
+   "festival": "midAutumn",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 255,
+    "y": 503
+   },
+   "top": 105,
+   "left": 20,
+   "right": 491,
+   "mirrored": true,
+   "heightM": 1.1,
+   "night": [
+    "Models/festivals/fx_maCandleKids_m__lit.png",
+    "Models/festivals/fx_maCandleKids_m__litb.png"
+   ]
+  },
+  "fx_maFireDragonNE": {
+   "file": "Models/festivals/fx_maFireDragonNE.png",
+   "part": "maFireDragonNE",
+   "festival": "midAutumn",
+   "width": 1024,
+   "height": 512,
+   "anchor": {
+    "x": 513,
+    "y": 502
+   },
+   "top": 41,
+   "left": 141,
+   "right": 884,
+   "mirrored": false,
+   "lengthM": 26,
+   "night": [
+    "Models/festivals/fx_maFireDragonNE__lit.png",
+    "Models/festivals/fx_maFireDragonNE__litb.png"
+   ]
+  },
+  "fx_maFireDragonNE_m": {
+   "file": "Models/festivals/fx_maFireDragonNE_m.png",
+   "part": "maFireDragonNE",
+   "festival": "midAutumn",
+   "width": 1024,
+   "height": 512,
+   "anchor": {
+    "x": 511,
+    "y": 502
+   },
+   "top": 41,
+   "left": 140,
+   "right": 883,
+   "mirrored": true,
+   "lengthM": 26,
+   "night": [
+    "Models/festivals/fx_maFireDragonNE_m__lit.png",
+    "Models/festivals/fx_maFireDragonNE_m__litb.png"
+   ]
+  },
+  "fx_maFireDragonSE": {
+   "file": "Models/festivals/fx_maFireDragonSE.png",
+   "part": "maFireDragonSE",
+   "festival": "midAutumn",
+   "width": 1024,
+   "height": 512,
+   "anchor": {
+    "x": 513,
+    "y": 501
+   },
+   "top": 20,
+   "left": 153,
+   "right": 872,
+   "mirrored": false,
+   "lengthM": 26,
+   "night": [
+    "Models/festivals/fx_maFireDragonSE__lit.png",
+    "Models/festivals/fx_maFireDragonSE__litb.png"
+   ]
+  },
+  "fx_maFireDragonSE_m": {
+   "file": "Models/festivals/fx_maFireDragonSE_m.png",
+   "part": "maFireDragonSE",
+   "festival": "midAutumn",
+   "width": 1024,
+   "height": 512,
+   "anchor": {
+    "x": 511,
+    "y": 501
+   },
+   "top": 20,
+   "left": 152,
+   "right": 871,
+   "mirrored": true,
+   "lengthM": 26,
+   "night": [
+    "Models/festivals/fx_maFireDragonSE_m__lit.png",
+    "Models/festivals/fx_maFireDragonSE_m__litb.png"
+   ]
+  },
+  "fx_maJadeRabbitMoon": {
+   "file": "Models/festivals/fx_maJadeRabbitMoon.png",
+   "part": "maJadeRabbitMoon",
+   "festival": "midAutumn",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 502
+   },
+   "top": 61,
+   "left": 21,
+   "right": 491,
+   "mirrored": false,
+   "lengthM": 12,
+   "night": [
+    "Models/festivals/fx_maJadeRabbitMoon__lit.png",
+    "Models/festivals/fx_maJadeRabbitMoon__litb.png"
+   ]
+  },
+  "fx_maJadeRabbitMoon_m": {
+   "file": "Models/festivals/fx_maJadeRabbitMoon_m.png",
+   "part": "maJadeRabbitMoon",
+   "festival": "midAutumn",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 502
+   },
+   "top": 61,
+   "left": 21,
+   "right": 491,
+   "mirrored": true,
+   "lengthM": 12,
+   "night": [
+    "Models/festivals/fx_maJadeRabbitMoon_m__lit.png",
+    "Models/festivals/fx_maJadeRabbitMoon_m__litb.png"
+   ]
+  },
+  "fx_maLanternPole": {
+   "file": "Models/festivals/fx_maLanternPole.png",
+   "part": "maLanternPole",
+   "festival": "midAutumn",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 501
+   },
+   "top": 20,
+   "left": 83,
+   "right": 429,
+   "mirrored": false,
+   "heightM": 4,
+   "night": [
+    "Models/festivals/fx_maLanternPole__lit.png",
+    "Models/festivals/fx_maLanternPole__litb.png"
+   ]
+  },
+  "fx_maLanternPole_m": {
+   "file": "Models/festivals/fx_maLanternPole_m.png",
+   "part": "maLanternPole",
+   "festival": "midAutumn",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 501
+   },
+   "top": 20,
+   "left": 83,
+   "right": 429,
+   "mirrored": true,
+   "heightM": 4,
+   "night": [
+    "Models/festivals/fx_maLanternPole_m__lit.png",
+    "Models/festivals/fx_maLanternPole_m__litb.png"
+   ]
+  },
+  "fx_maLotus": {
+   "file": "Models/festivals/fx_maLotus.png",
+   "part": "maLotus",
+   "festival": "midAutumn",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 501
+   },
+   "top": 20,
+   "left": 54,
+   "right": 458,
+   "mirrored": false,
+   "heightM": 5,
+   "night": [
+    "Models/festivals/fx_maLotus__lit.png",
+    "Models/festivals/fx_maLotus__litb.png"
+   ]
+  },
+  "fx_maLotus_m": {
+   "file": "Models/festivals/fx_maLotus_m.png",
+   "part": "maLotus",
+   "festival": "midAutumn",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 501
+   },
+   "top": 20,
+   "left": 54,
+   "right": 458,
+   "mirrored": true,
+   "heightM": 5,
+   "night": [
+    "Models/festivals/fx_maLotus_m__lit.png",
+    "Models/festivals/fx_maLotus_m__litb.png"
+   ]
+  },
+  "fx_maMoonTable": {
+   "file": "Models/festivals/fx_maMoonTable.png",
+   "part": "maMoonTable",
+   "festival": "midAutumn",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 502
+   },
+   "top": 49,
+   "left": 20,
+   "right": 492,
+   "mirrored": false,
+   "heightM": 1.2
+  },
+  "fx_maMoonTable_m": {
+   "file": "Models/festivals/fx_maMoonTable_m.png",
+   "part": "maMoonTable",
+   "festival": "midAutumn",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 502
+   },
+   "top": 49,
+   "left": 20,
+   "right": 492,
+   "mirrored": true,
+   "heightM": 1.2
+  },
+  "fx_maPicnic": {
+   "file": "Models/festivals/fx_maPicnic.png",
+   "part": "maPicnic",
+   "festival": "midAutumn",
+   "width": 512,
+   "height": 256,
+   "anchor": {
+    "x": 257,
+    "y": 247
+   },
+   "top": 11,
+   "left": 61,
+   "right": 452,
+   "mirrored": false,
+   "lengthM": 4.5,
+   "night": [
+    "Models/festivals/fx_maPicnic__lit.png",
+    "Models/festivals/fx_maPicnic__litb.png"
+   ]
+  },
+  "fx_maPicnic_m": {
+   "file": "Models/festivals/fx_maPicnic_m.png",
+   "part": "maPicnic",
+   "festival": "midAutumn",
+   "width": 512,
+   "height": 256,
+   "anchor": {
+    "x": 255,
+    "y": 247
+   },
+   "top": 11,
+   "left": 60,
+   "right": 451,
+   "mirrored": true,
+   "lengthM": 4.5,
+   "night": [
+    "Models/festivals/fx_maPicnic_m__lit.png",
+    "Models/festivals/fx_maPicnic_m__litb.png"
+   ]
+  },
+  "fx_maPoliceMan": {
+   "file": "Models/festivals/fx_maPoliceMan.png",
+   "part": "maPoliceMan",
+   "festival": "midAutumn",
+   "width": 256,
+   "height": 512,
+   "anchor": {
+    "x": 129,
+    "y": 503
+   },
+   "top": 97,
+   "left": 44,
+   "right": 213,
+   "mirrored": false,
+   "heightM": 1.75
+  },
+  "fx_maPoliceMan_m": {
+   "file": "Models/festivals/fx_maPoliceMan_m.png",
+   "part": "maPoliceMan",
+   "festival": "midAutumn",
+   "width": 256,
+   "height": 512,
+   "anchor": {
+    "x": 127,
+    "y": 503
+   },
+   "top": 97,
+   "left": 43,
+   "right": 212,
+   "mirrored": true,
+   "heightM": 1.75
+  },
+  "fx_maPoliceWoman": {
+   "file": "Models/festivals/fx_maPoliceWoman.png",
+   "part": "maPoliceWoman",
+   "festival": "midAutumn",
+   "width": 256,
+   "height": 512,
+   "anchor": {
+    "x": 128,
+    "y": 503
+   },
+   "top": 103,
+   "left": 14,
+   "right": 242,
+   "mirrored": false,
+   "heightM": 1.7,
+   "night": [
+    "Models/festivals/fx_maPoliceWoman__lit.png",
+    "Models/festivals/fx_maPoliceWoman__litb.png"
+   ]
+  },
+  "fx_maPoliceWoman_m": {
+   "file": "Models/festivals/fx_maPoliceWoman_m.png",
+   "part": "maPoliceWoman",
+   "festival": "midAutumn",
+   "width": 256,
+   "height": 512,
+   "anchor": {
+    "x": 128,
+    "y": 503
+   },
+   "top": 103,
+   "left": 14,
+   "right": 242,
+   "mirrored": true,
+   "heightM": 1.7,
+   "night": [
+    "Models/festivals/fx_maPoliceWoman_m__lit.png",
+    "Models/festivals/fx_maPoliceWoman_m__litb.png"
+   ]
+  },
+  "fx_maRabbitCart": {
+   "file": "Models/festivals/fx_maRabbitCart.png",
+   "part": "maRabbitCart",
+   "festival": "midAutumn",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 257,
+    "y": 501
+   },
+   "top": 20,
+   "left": 63,
+   "right": 450,
+   "mirrored": false,
+   "heightM": 2,
+   "night": [
+    "Models/festivals/fx_maRabbitCart__lit.png",
+    "Models/festivals/fx_maRabbitCart__litb.png"
+   ]
+  },
+  "fx_maRabbitCart_m": {
+   "file": "Models/festivals/fx_maRabbitCart_m.png",
+   "part": "maRabbitCart",
+   "festival": "midAutumn",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 255,
+    "y": 501
+   },
+   "top": 20,
+   "left": 62,
+   "right": 449,
+   "mirrored": true,
+   "heightM": 2,
+   "night": [
+    "Models/festivals/fx_maRabbitCart_m__lit.png",
+    "Models/festivals/fx_maRabbitCart_m__litb.png"
+   ]
+  },
+  "fx_maRabbitSet": {
+   "file": "Models/festivals/fx_maRabbitSet.png",
+   "part": "maRabbitSet",
+   "festival": "midAutumn",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 501
+   },
+   "top": 21,
+   "left": 36,
+   "right": 476,
+   "mirrored": false,
+   "heightM": 3.5,
+   "night": [
+    "Models/festivals/fx_maRabbitSet__lit.png",
+    "Models/festivals/fx_maRabbitSet__litb.png"
+   ]
+  },
+  "fx_maRabbitSet_m": {
+   "file": "Models/festivals/fx_maRabbitSet_m.png",
+   "part": "maRabbitSet",
+   "festival": "midAutumn",
+   "width": 512,
+   "height": 512,
+   "anchor": {
+    "x": 256,
+    "y": 501
+   },
+   "top": 21,
+   "left": 36,
+   "right": 476,
+   "mirrored": true,
+   "heightM": 3.5,
+   "night": [
+    "Models/festivals/fx_maRabbitSet_m__lit.png",
+    "Models/festivals/fx_maRabbitSet_m__litb.png"
+   ]
+  },
+  "fx_maViewerBoy": {
+   "file": "Models/festivals/fx_maViewerBoy.png",
+   "part": "maViewerBoy",
+   "festival": "midAutumn",
+   "width": 128,
+   "height": 256,
+   "anchor": {
+    "x": 64,
+    "y": 247
+   },
+   "top": 81,
+   "left": 9,
+   "right": 119,
+   "mirrored": false,
+   "heightM": 1.2,
+   "night": [
+    "Models/festivals/fx_maViewerBoy__lit.png",
+    "Models/festivals/fx_maViewerBoy__litb.png"
+   ]
+  },
+  "fx_maViewerBoy_m": {
+   "file": "Models/festivals/fx_maViewerBoy_m.png",
+   "part": "maViewerBoy",
+   "festival": "midAutumn",
+   "width": 128,
+   "height": 256,
+   "anchor": {
+    "x": 64,
+    "y": 247
+   },
+   "top": 81,
+   "left": 9,
+   "right": 119,
+   "mirrored": true,
+   "heightM": 1.2,
+   "night": [
+    "Models/festivals/fx_maViewerBoy_m__lit.png",
+    "Models/festivals/fx_maViewerBoy_m__litb.png"
+   ]
+  },
+  "fx_maViewerFather": {
+   "file": "Models/festivals/fx_maViewerFather.png",
+   "part": "maViewerFather",
+   "festival": "midAutumn",
+   "width": 128,
+   "height": 256,
+   "anchor": {
+    "x": 64,
+    "y": 247
+   },
+   "top": 36,
+   "left": 9,
+   "right": 119,
+   "mirrored": false,
+   "heightM": 1.9
+  },
+  "fx_maViewerFather_m": {
+   "file": "Models/festivals/fx_maViewerFather_m.png",
+   "part": "maViewerFather",
+   "festival": "midAutumn",
+   "width": 128,
+   "height": 256,
+   "anchor": {
+    "x": 64,
+    "y": 247
+   },
+   "top": 36,
+   "left": 9,
+   "right": 119,
+   "mirrored": true,
+   "heightM": 1.9
+  },
+  "fx_maViewerGirl": {
+   "file": "Models/festivals/fx_maViewerGirl.png",
+   "part": "maViewerGirl",
+   "festival": "midAutumn",
+   "width": 128,
+   "height": 128,
+   "anchor": {
+    "x": 64,
+    "y": 119
+   },
+   "top": 9,
+   "left": 21,
+   "right": 107,
+   "mirrored": false,
+   "heightM": 1.1,
+   "night": [
+    "Models/festivals/fx_maViewerGirl__lit.png",
+    "Models/festivals/fx_maViewerGirl__litb.png"
+   ]
+  },
+  "fx_maViewerGirl_m": {
+   "file": "Models/festivals/fx_maViewerGirl_m.png",
+   "part": "maViewerGirl",
+   "festival": "midAutumn",
+   "width": 128,
+   "height": 128,
+   "anchor": {
+    "x": 64,
+    "y": 119
+   },
+   "top": 9,
+   "left": 21,
+   "right": 107,
+   "mirrored": true,
+   "heightM": 1.1,
+   "night": [
+    "Models/festivals/fx_maViewerGirl_m__lit.png",
+    "Models/festivals/fx_maViewerGirl_m__litb.png"
+   ]
+  },
+  "fx_maViewerGrandma": {
+   "file": "Models/festivals/fx_maViewerGrandma.png",
+   "part": "maViewerGrandma",
+   "festival": "midAutumn",
+   "width": 128,
+   "height": 256,
+   "anchor": {
+    "x": 64,
+    "y": 247
+   },
+   "top": 41,
+   "left": 30,
+   "right": 98,
+   "mirrored": false,
+   "heightM": 1.55
+  },
+  "fx_maViewerGrandma_m": {
+   "file": "Models/festivals/fx_maViewerGrandma_m.png",
+   "part": "maViewerGrandma",
+   "festival": "midAutumn",
+   "width": 128,
+   "height": 256,
+   "anchor": {
+    "x": 64,
+    "y": 247
+   },
+   "top": 41,
+   "left": 30,
+   "right": 98,
+   "mirrored": true,
+   "heightM": 1.55
+  },
+  "fx_maViewerMother": {
+   "file": "Models/festivals/fx_maViewerMother.png",
+   "part": "maViewerMother",
+   "festival": "midAutumn",
+   "width": 128,
+   "height": 256,
+   "anchor": {
+    "x": 65,
+    "y": 247
+   },
+   "top": 27,
+   "left": 23,
+   "right": 106,
+   "mirrored": false,
+   "heightM": 1.6
+  },
+  "fx_maViewerMother_m": {
+   "file": "Models/festivals/fx_maViewerMother_m.png",
+   "part": "maViewerMother",
+   "festival": "midAutumn",
+   "width": 128,
+   "height": 256,
+   "anchor": {
+    "x": 63,
+    "y": 247
+   },
+   "top": 27,
+   "left": 22,
+   "right": 105,
+   "mirrored": true,
+   "heightM": 1.6
+  },
+  "fx_maViewerPhone": {
+   "file": "Models/festivals/fx_maViewerPhone.png",
+   "part": "maViewerPhone",
+   "festival": "midAutumn",
+   "width": 128,
+   "height": 256,
+   "anchor": {
+    "x": 64,
+    "y": 247
+   },
+   "top": 15,
+   "left": 17,
+   "right": 111,
+   "mirrored": false,
+   "heightM": 1.75
+  },
+  "fx_maViewerPhone_m": {
+   "file": "Models/festivals/fx_maViewerPhone_m.png",
+   "part": "maViewerPhone",
+   "festival": "midAutumn",
+   "width": 128,
+   "height": 256,
+   "anchor": {
+    "x": 64,
+    "y": 247
+   },
+   "top": 15,
+   "left": 17,
+   "right": 111,
+   "mirrored": true,
+   "heightM": 1.75
+  },
   "fx_templeIncenseBurner": {
    "file": "Models/festivals/fx_templeIncenseBurner.png",
    "part": "templeIncenseBurner",

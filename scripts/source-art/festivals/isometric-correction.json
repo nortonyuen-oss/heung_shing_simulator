@@ -42,5 +42,8 @@
  "DragonBoat/pier.png": {"whole": true, "views": [{"d": 1, "c": 0}]},
  "DragonBoat/rescueBoat.png": {"whole": true, "views": [{"d": 1, "c": 0}]},
  "June/pillarOfShame.png": {"whole": true, "views": [{"d": 0.953, "c": 0.066}]},
- "July14/July14MainStage1.png": {"whole": true, "views": [{"down": 0.27, "up": 0.5}]}
+ "July14/July14MainStage1.png": {"whole": true, "views": [{"down": 0.27, "up": 0.5}]},
+ "MidAutumn/v2/fireDragonSE.png": {"whole": true, "views": [{"d": 1, "c": 0.09}]},
+ "MidAutumn/v2/fireDragonNE.png": {"whole": true, "views": [{"d": 1, "c": -0.04}]},
+ "MidAutumn/v2/picnicFamily.png": {"whole": true, "views": [{"down": 0.591, "up": 0.585}]}
 }

@@ -74,6 +74,10 @@ const FESTIVAL_PROGRAMMES = Object.freeze({
   // 年宵: the stalls go up in the morning, open at ten, the crowds and the lights after six, the
   // last of it at three in the morning
   lunarNewYear: Object.freeze({ setup: 6 * 60, open: 10 * 60, peak: 18 * 60, close: 27 * 60, after: Object.freeze({ open: 6 * 60, close: 12 * 60 }) }),
+  // 中秋: Victoria Park's lanterns stand all day, the moon-gazers come at dusk, the fire dragon goes
+  // round at eight, 煲蠟 and the police go on till three in the morning (festival-venues.js
+  // MID_AUTUMN_TIMES)
+  midAutumn: Object.freeze({ setup: 6 * 60, open: 18 * 60, peak: 20 * 60, close: 27 * 60 }),
 });
 
 // Government festivals: what each tier costs (a base plus a share per resident, paid when the
@@ -90,6 +94,7 @@ const FESTIVAL_ECONOMICS = Object.freeze({
     incomePerStall: Object.freeze({ base: 80, perEconomyPoint: 2.4 }),
     effects: Object.freeze({ attractiveness: 3, tourism: 2, happiness: 0.02 }),
   }),
+  midAutumn: Object.freeze({ baseCost: 1000, costPerResident: 0.012, effects: Object.freeze({ attractiveness: 2, happiness: 0.02 }) }),
   christmas: Object.freeze({
     baseCost: 800,
     costPerResident: 0.01,

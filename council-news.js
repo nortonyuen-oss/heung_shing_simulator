@@ -159,11 +159,20 @@ function getResolutionNewsLanguage() {
 function getResolutionCanonicalFacts(resolutionId, outcome, extra = {}) {
   const zh = getResolutionNewsLanguage() === 'zhHant';
   const title = t(getCouncilResolutionDefinition(resolutionId)?.titleKey || '');
-  if (resolutionId === 'roseGardenAirportProject' && outcome === 'success') {
-    headline = zh ? '【我愛玫瑰園】計劃獲立法會通過　新機場正式解鎖' : 'I Love the Rose Garden project approved; new airport unlocked';
-    subhead = zh ? `${lead}宣布完成審議　政府將展開新機場選址及工程準備` : `${lead} confirms the vote as airport planning moves ahead`;
-    quote = zh ? '議會批准代表城市已具備人口、財政及經濟條件，機場工程可以正式啟動。' : 'Approval confirms the city is ready to begin the airport project.';
-  } else if (resolutionId === 'muiKinKwokMatch' && outcome === 'bench_warmer_refund') {
+  // The two building projects (approval unlocks the building; they cannot fail). This airport copy
+  // once sat here with the article's headline/subhead/quote and its undeclared `lead`, so the
+  // airport's approval news threw instead of printing (fixed 2026-10-31).
+  if (resolutionId === 'roseGardenAirportProject') {
+    return zh
+      ? [`${title}獲立法會通過，新機場正式解鎖，可以 $150,000 興建 12×12 機場。`, '政府將展開選址及工程準備，預計帶動旅遊、物流及高端商業。']
+      : [`${title} has been approved and the new airport is unlocked: a 12x12 airport can now be built for $150,000.`, 'Site selection and engineering preparation begin, with tourism, logistics and high-end business expected to follow.'];
+  }
+  if (resolutionId === 'oceanParkDevelopmentProject') {
+    return zh
+      ? [`${title}獲立法會通過，海洋公園正式解鎖，可以 $22,000 興建 8×8 項目。`, '康文部門將籌備選址，預計帶動家庭消閒及旅遊。']
+      : [`${title} has been approved and Ocean Park is unlocked: the 8x8 park can now be built for $22,000.`, 'Planning for a site begins, with family leisure and tourism expected to benefit.'];
+  }
+  if (resolutionId === 'muiKinKwokMatch' && outcome === 'bench_warmer_refund') {
     return zh
       ? [`${title}失敗。梅建國全程九十分鐘坐在後備席，最後四十秒才出場揮手離場。`, `購票市民要求回水，事件令城市被世界恥笑。退款成本為 $${Number(extra.refundCost || 0).toLocaleString()}。`]
       : [`${title} failed: Mui Kin-kwok sat on the bench for all 90 minutes and appeared only for the final 40 seconds to wave before leaving.`, `Ticket holders demanded refunds and the city became an international joke. Refund cost: $${Number(extra.refundCost || 0).toLocaleString()}.`];
@@ -211,10 +220,27 @@ function buildLocalResolutionArticle(event) {
   const title = t(getCouncilResolutionDefinition(resolutionId)?.titleKey || '');
   const success = outcome === 'success';
   let headline = zh ? `${lead}公布${title}${success ? '成功' : '失敗'}` : `${lead}: ${title} ${success ? 'succeeds' : 'fails'}`;
+  const cancelled = outcome === 'typhoon_cancelled';
   let subhead = zh ? `${partner}交代活動結果　${critic}回應市民關注` : `${partner} explains the result as ${critic} responds to residents`;
   let quote = zh ? (success ? '結果證明城市有能力辦好大型活動。' : '我們會檢討事件，向市民清楚交代。') : (success ? 'The result shows our city can deliver a major event.' : 'We will review what happened and give residents a clear account.');
 
-  if (resolutionId === 'muiKinKwokMatch' && outcome === 'bench_warmer_refund') {
+  if (resolutionId === 'roseGardenAirportProject') {
+    headline = zh ? '【我愛玫瑰園】計劃獲立法會通過　新機場正式解鎖' : 'I Love the Rose Garden project approved; new airport unlocked';
+    subhead = zh ? `${lead}宣布完成審議　政府將展開新機場選址及工程準備` : `${lead} confirms the vote as airport planning moves ahead`;
+    quote = zh ? '議會批准代表城市已具備人口、財政及經濟條件，機場工程可以正式啟動。' : 'Approval confirms the city is ready to begin the airport project.';
+  } else if (resolutionId === 'oceanParkDevelopmentProject') {
+    headline = zh ? '【海洋公園發展計劃】獲通過　香城將有自己嘅海洋公園' : 'Ocean Park Development Project approved; the city will have its own Ocean Park';
+    subhead = zh ? `${lead}宣布展開選址　${partner}期望帶動家庭旅遊` : `${lead} begins site planning as ${partner} looks to family tourism`;
+    quote = zh ? '海洋公園會成為市民同旅客共同嘅回憶。' : 'Ocean Park will become a shared memory for residents and visitors alike.';
+  } else if (resolutionId === 'leagueMatchday' && outcome === 'pitch_invasion_chaos') {
+    headline = zh ? '城超聯主場日變混戰　球迷衝落場與保安爆衝突' : 'League matchday descends into a pitch invasion';
+    subhead = zh ? `${lead}宣布部分退款　${critic}要求檢討保安安排` : `${lead} announces partial refunds as ${critic} demands a security review`;
+    quote = zh ? '我們會檢討人流及保安安排，確保下次比賽安全進行。' : 'We will review crowd and security arrangements so the next match is safe.';
+  } else if (resolutionId === 'fantasyFingHeungShing' && cancelled) {
+    headline = zh ? '幻彩 fing 香城全年遇風球　一場煙花都冇放過' : 'Every Fantasy fing Heung Shing show cancelled by typhoon signals';
+    subhead = zh ? `${lead}稱安全第一　${critic}質疑錢使咗去邊` : `${lead} puts safety first as ${critic} asks where the money went`;
+    quote = zh ? '八號風球下取消表演係正確決定，市民安全最重要。' : 'Cancelling under a No. 8 signal was right; public safety comes first.';
+  } else if (resolutionId === 'muiKinKwokMatch' && outcome === 'bench_warmer_refund') {
     headline = zh ? `梅建國坐足九十分鐘　落場揮手四十秒即離場` : 'Mui Kin-kwok benched for 90 minutes, waves for 40 seconds and leaves';
     subhead = zh ? `市民要求回水　${lead}被追問誰批准合約` : `Fans demand refunds as ${lead} is pressed over the contract`;
     quote = zh ? '表演時間與市民期望有落差，我們會處理回水安排。' : 'The appearance fell short of expectations; we will handle refund arrangements.';
@@ -271,7 +297,25 @@ function localizeResolutionArticleJapanese(article, event, names) {
     body: [`${title}の実施結果が発表された。`, `${lead}と${partner}が対応を説明し、${critic}は都市への影響を公開するよう求めた。`],
     quote: outcome === 'success' ? '大型イベントを実行できる都市の力を示しました。' : '結果を検証し、市民に説明します。',
   };
-  if (resolutionId === 'muiKinKwokMatch' && outcome === 'bench_warmer_refund') Object.assign(result, {
+  if (resolutionId === 'roseGardenAirportProject') Object.assign(result, {
+    headline: `${title}が議会を通過　新空港が解禁`,
+    subhead: `${lead}が審議終了を発表、用地選定と工事準備へ`,
+    body: ['新空港の建設が解禁され、12×12の空港を$150,000で建設できるようになった。', '観光・物流・高級商業への波及が期待されている。'],
+    quote: '議会の承認は、人口・財政・経済の条件が整った証です。',
+  });
+  else if (resolutionId === 'oceanParkDevelopmentProject') Object.assign(result, {
+    headline: `${title}が議会を通過　香城にオーシャンパーク誕生へ`,
+    subhead: `${lead}が用地選定を開始、${partner}は家族観光に期待`,
+    body: ['オーシャンパークが解禁され、8×8の施設を$22,000で建設できるようになった。', '家族のレジャーと観光への効果が期待されている。'],
+    quote: 'オーシャンパークは市民と旅行者の共通の思い出になります。',
+  });
+  else if (resolutionId === 'leagueMatchday' && outcome === 'pitch_invasion_chaos') Object.assign(result, {
+    headline: '城超聯ホームゲームが大混乱　ファンが乱入し警備と衝突',
+    subhead: `${lead}が一部返金を発表、${critic}は警備体制の見直しを要求`,
+    body: ['試合当日、ファンがピッチに乱入し、警備員と一時衝突した。', `一部返金の費用は$${Number(refundCost).toLocaleString()}。都市の嘲笑度も上昇した。`],
+    quote: '人の流れと警備体制を見直し、次の試合の安全を確保します。',
+  });
+  else if (resolutionId === 'muiKinKwokMatch' && outcome === 'bench_warmer_refund') Object.assign(result, {
     headline: '梅建国、90分ベンチ　最後の40秒だけ手を振って退場',
     subhead: `観客が返金要求　${lead}に契約責任を問う声`,
     body: [`梅建国は90分間ベンチに座り、最後の40秒だけ登場して手を振り、すぐに退場した。`, `観客は返金を要求し、市は世界の笑いものに。返金費用は$${Number(refundCost).toLocaleString()}。`],
@@ -296,6 +340,7 @@ function localizeResolutionArticleJapanese(article, event, names) {
       drones_wrong_city: ['ドローン全機が隣の街へ　香城市民は空を見るだけ', '飛行経路の誤りを認め、公開調査を求める声'],
       drone_crash: ['ドローンショー中に墜落　部品の大半は回収', '安全対策と住民への迷惑を巡り批判'],
       noise_complaints: ['「幻彩 fing 香城」が騒音問題に　住民から苦情', '当局は見直しを約束、市民感情を軽視したとの声'],
+      typhoon_cancelled: ['「幻彩 fing 香城」、台風で全公演中止　花火は一発も上がらず', '安全優先と当局、費用の行方を問う声も'],
       success: ['4回の光のショーが成功　観光人気を押し上げ', '年間プログラムが無事終了'],
     }[outcome] || ['光のショー年間結果を発表', '市民が費用対効果を議論'];
     Object.assign(result, { headline: drone[0], subhead: drone[1], body: [`年間${showCount}回のうち成功${successCount}回、失敗${failureCount}回。`, `${lead}と${critic}が結果を巡って意見を交わした。`] });

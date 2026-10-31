@@ -254,7 +254,7 @@ const SITE_FEATURE_LIST = {
 // ── Changelog ─────────────────────────────────────────────────────────────────
 const SITE_CHANGELOG = {
   "zh-HK": [
-    {"version": "v4.23.0", "date": "2026-10-31", "dateLabel": "2026年10月31日", "title": "日夜都繽週", "items": ["香城夜繽週：議會通過法案後，活動空地每日 15:00 至凌晨 2:00 開大排檔，有車仔檔、小販、排隊人龍、圓枱摺凳同排檔燈串；遇節慶讓路，空地面板可逐塊停用。", "街市：新 2×2 公共建築，收檔租、帶旺附近商業同住宅質素，但富豪住宅唔鍾意住喺隔籬。", "一格 20 米真實比例：核電廠、貨櫃碼頭、屋苑、學校、中銀、科學園同多個地標重訂佔地；舊城市逐步「都市更新」。", "節日：維園六四悼念；盂蘭節燒街衣、盂蘭勝會同綠光阿飄；年宵擴大為六區維園花市，加街頭舞獅。", "天星小輪夜間同八號風球停航；新增公共交通營運補貼法案，兩蚊長者優惠補貼撥歸運輸公司；修正機場議案新聞、議案翻譯同貨櫃船浪花位置。"]},
+    {"version": "v4.23.0", "date": "2026-10-31", "dateLabel": "2026年10月31日", "title": "日夜都繽週", "items": ["香城夜繽週：議會通過法案後，活動空地每日 15:00 至凌晨 2:00 開大排檔，有車仔檔、小販、排隊人龍、圓枱摺凳同排檔燈串；遇節慶讓路，空地面板可逐塊停用。", "街市：新 2×2 公共建築，收檔租、帶旺附近商業同住宅質素，但富豪住宅唔鍾意住喺隔籬。", "一格 20 米真實比例：核電廠、貨櫃碼頭、屋苑、學校、中銀、科學園同多個地標重訂佔地；舊城市逐步「都市更新」。", "節日：盂蘭節燒街衣、盂蘭勝會同綠光阿飄；年宵擴大為六區維園花市，加街頭舞獅。", "天星小輪夜間同八號風球停航；新增公共交通營運補貼法案，兩蚊長者優惠補貼撥歸運輸公司；修正機場議案新聞、議案翻譯同貨櫃船浪花位置。"]},
     {"version": "v4.22.0", "date": "2026-10-12", "dateLabel": "2026年10月12日", "title": "龍舟競渡，包你平安", "items": ["端午龍舟競渡：自動規劃海旁六線賽道，六隊有快慢、偏航同碰撞；龍舟、浮標會跟浪起伏，岸邊觀眾一齊打氣。", "海旁搶包山之夜：活動空地搭戲棚、三座包山同花牌，12 位男女選手攀爬、採包同落地計分；完賽後發布附圖賽果新聞。", "公園新增 1×1 活動空地，暗紅磚地可以拼接；年宵市集改用連續攤檔區塊同通道。", "龍舟鼓聲、打氣、船槳聲同新比賽音樂；音樂持續至收檔、防止疊播，原有背景音樂調低至 30%。", "測試模式集中「啟動 event」，可啟動 UFO、龍舟同搶包山；正式賽事支援存讀檔，避免重複扣款或發布賽果。"]},
     { version: "v4.21.0", date: "2026-10-11", dateLabel: "2026年10月11日", title: "你睇唔睇到呀？", items: ["節日系統：節日日曆視窗、節日狀態同農曆日期，新開城市可以揀起始年份；六四由 1990 年起安靜處理。","聖誕街頭裝飾同農曆新年市集：新增一批節日街道道具同市集美術。","發現 UFO：一隻飛碟會巡遊兩至四個地區，論壇有故事、跑馬燈有快訊；撳「去睇」鏡頭會跟住飛碟、停定觀察。"] },
     { version: "v4.20.0", date: "2026-10-10", dateLabel: "2026年10月10日", title: "有落", items: ["運輸模式重新設計：一鍵切換城市建設／運輸公司，工具分巴士同渡輪兩組，四個有字視窗取代一排冇字圖示。", "新手指引：開業清單、工具提示列、放巴士站即睇服務範圍同預計乘客、每個視窗都有「?」說明，路線出問題有按鈕即刻處理。", "財務圖表同路線乘客趨勢線；城市趨勢圖表加入運輸公司數據。渡輪可以按航線加減船。", "站頭乘客大增：職位同目的地會產生返屋企乘客；八號風球過後人潮湧返站頭，唔再蝕成個月生意。"] },
@@ -607,7 +607,7 @@ const SITE_CHANGELOG = {
 // title/items text.
 const SITE_CHANGELOG_TRANSLATIONS = {
   "zh-TW": {
-    "v4.23.0": {"title": "日夜都繽紛", "items": ["香城夜繽週：議會通過法案後，活動空地每日 15:00 至凌晨 2:00 開設大排檔，有攤車、小販、排隊人潮、圓桌摺凳與燈串；遇節慶讓出場地，空地面板可逐塊停用。", "街市：新增 2×2 公共建築，收取攤位租金、帶動周邊商業與住宅品質，但豪宅不喜歡緊鄰。", "一格 20 公尺真實比例：核電廠、貨櫃碼頭、社區、學校、中銀、科學園與多個地標重新訂定佔地；舊城市逐步「都市更新」。", "節慶：維園六四悼念；中元節燒街衣、盂蘭勝會與綠光阿飄；年宵擴大為六區維園花市，加入街頭舞獅。", "天星小輪夜間與八號風球停航；新增大眾運輸營運補貼法案，長者兩元優惠補貼撥給運輸公司；修正機場議案新聞、議案翻譯與貨櫃船浪花位置。"]},
+    "v4.23.0": {"title": "日夜都繽紛", "items": ["香城夜繽週：議會通過法案後，活動空地每日 15:00 至凌晨 2:00 開設大排檔，有攤車、小販、排隊人潮、圓桌摺凳與燈串；遇節慶讓出場地，空地面板可逐塊停用。", "街市：新增 2×2 公共建築，收取攤位租金、帶動周邊商業與住宅品質，但豪宅不喜歡緊鄰。", "一格 20 公尺真實比例：核電廠、貨櫃碼頭、社區、學校、中銀、科學園與多個地標重新訂定佔地；舊城市逐步「都市更新」。", "節慶：中元節燒街衣、盂蘭勝會與綠光阿飄；年宵擴大為六區維園花市，加入街頭舞獅。", "天星小輪夜間與八號風球停航；新增大眾運輸營運補貼法案，長者兩元優惠補貼撥給運輸公司；修正機場議案新聞、議案翻譯與貨櫃船浪花位置。"]},
     "v4.22.0": {"title": "龍舟競渡，包你平安", "items": ["端午龍舟競渡：自動規劃海旁六線賽道，六隊有速度差異、偏航與碰撞；龍舟和浮標隨波起伏，岸邊觀眾一起加油。", "海旁搶包山之夜：活動空地設置戲棚、三座包山和花牌，12 位男女選手攀爬、採包並返回地面計分；完賽後發布附圖賽果新聞。", "公園新增 1×1 活動空地，暗紅磚地可拼接；年宵市集採連續攤位區塊與通道。", "龍舟鼓聲、加油聲、船槳聲與新比賽音樂；音樂持續至收場、不重疊播放，原有背景音樂降低至 30%。", "測試模式集中「啟動 event」，可啟動 UFO、龍舟和搶包山；正式賽事支援存讀檔，避免重複扣款或發布賽果。"]},
     "v4.21.0": { title: "瀛寰搜奇", items: ["節慶系統：節慶日曆視窗、節慶狀態與農曆日期，新城市可選擇起始年份；六四自 1990 年起低調處理。", "聖誕街頭裝飾與農曆新年市集：新增一批節慶街道道具與市集美術。", "發現 UFO：飛碟會巡遊兩至四個地區，論壇有故事、跑馬燈有快訊；按「去看」時鏡頭會跟隨飛碟並靜止觀察。"] },
     "v4.20.0": { title: "下一站", items: ["運輸模式重新設計：一鍵切換城市建設／運輸公司，工具分為公車與渡輪兩組，四個附文字的視窗取代一排無標示圖示。", "新手引導：開業清單、工具提示列、放置公車站時即可看到服務範圍與預估乘客、每個視窗都有「?」說明，路線出問題可直接按鈕處理。", "財務圖表與路線乘客趨勢線；城市趨勢圖表加入運輸公司數據。渡輪可依航線增減船隻。", "站牌乘客大增：工作地點與目的地會產生返家乘客；八號風球解除後人潮湧回站牌，不再損失整個月的營收。"] },
@@ -953,7 +953,7 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   en: {
-    "v4.23.0": {"title": "Bloom Day and Night", "items": ["Night Bloom Weekends: once the council passes the act, event grounds host a dai pai dong every day from 15:00 to 02:00, with hawker carts, queues, round tables and stools, and string lights. It gives way to festivals, and each ground can be switched off from its panel.", "Public market: a new 2×2 civic building that collects stall rents and lifts nearby business and housing quality, though mansions dislike being next door.", "A true 20 m tile: the nuclear plant, container port, estates, schools, the Bank of China tower, the science park and many landmarks take their real footprints; older cities renew onto the standard.", "Festivals: a June 4 remembrance in Victoria Park; the Hungry Ghost festival with street offerings, the Yu Lan festival and green-glowing ghosts; a six-section Lunar New Year fair with a street lion dance.", "The Star Ferry rests overnight and under signal 8; a public transport operating subsidy act, and the $2 elderly fare subsidy now goes to the transport company; fixes to airport project news, council translations and container ship wakes."]},
+    "v4.23.0": {"title": "Bloom Day and Night", "items": ["Night Bloom Weekends: once the council passes the act, event grounds host a dai pai dong every day from 15:00 to 02:00, with hawker carts, queues, round tables and stools, and string lights. It gives way to festivals, and each ground can be switched off from its panel.", "Public market: a new 2×2 civic building that collects stall rents and lifts nearby business and housing quality, though mansions dislike being next door.", "A true 20 m tile: the nuclear plant, container port, estates, schools, the Bank of China tower, the science park and many landmarks take their real footprints; older cities renew onto the standard.", "Festivals: the Hungry Ghost festival with street offerings, the Yu Lan festival and green-glowing ghosts; a six-section Lunar New Year fair with a street lion dance.", "The Star Ferry rests overnight and under signal 8; a public transport operating subsidy act, and the $2 elderly fare subsidy now goes to the transport company; fixes to airport project news, council translations and container ship wakes."]},
     "v4.22.0": {"title": "Dragon Boats & Bun Towers", "items": ["Dragon boat racing: automatically planned six-lane waterfront courses, varied crew speeds, drifting and collisions, wave motion and cheering spectators.", "Nighttime bun scrambling: a theatre, three bun towers and flower boards on waterfront event grounds; 12 male and female athletes climb, collect buns and descend, followed by illustrated result news.", "New 1×1 event grounds in the park menu with connected red-brick paving; Lunar New Year markets use continuous stall blocks and aisles.", "Dragon boat drums, cheers, paddle sounds and a new race soundtrack that continues until closing without overlapping playback; original background music reduced to 30%.", "An event section in test mode for UFOs, dragon boats and bun scrambling; live events persist across saves without duplicate charges or result posts."]},
     "v4.21.0": { title: "Ciao UFO", items: ["Festival system: a festival calendar window, festival state and lunar dates, plus a start-year option for new cities. June 4 is observed quietly from 1990.", "Christmas street decorations and a Lunar New Year market: a new set of festive street props and market art.", "UFO sighting: a saucer tours two to four districts, with a forum story and a ticker bulletin. Press \\\"Go see\\\" and the camera holds still and follows it."] },
     "v4.20.0": { title: "Next Stop", items: ["Transport mode redesigned: one switch between city building and the transport company, bus and ferry tools in their own groups, and four named windows instead of a row of unlabelled icons.", "Getting started: a starter checklist, a hint bar for the tool in hand, a stop's walking range and expected riders before you place it, a \"?\" in every window, and route problems shown with the button that fixes them.", "Finance charts and rider trend lines on every route; transport figures in the city charts. Ferry routes can add or remove ferries.", "Much busier stops: jobs and destinations send riders home, and after a No. 8 signal the waiting crowds return instead of a whole month's fares being lost."] },
@@ -1299,7 +1299,7 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   ja: {
-    "v4.23.0": {"title": "昼も夜も繽紛週", "items": ["香城夜繽週：議会で条例が成立すると、イベント広場で毎日15:00〜翌2:00に大排檔が開かれます。屋台、売り子、行列、丸テーブルと折りたたみ椅子、電球の列。祭りの際は会場を譲り、広場ごとにパネルから停止できます。", "公設市場：新しい2×2の公共施設。出店料を集め、周辺の商業と住宅の質を高めますが、豪邸は隣接を嫌います。", "1マス20メートルの実寸：原子力発電所、コンテナ港、団地、学校、中銀、サイエンスパーク、多くのランドマークが実寸の敷地に。古い都市は段階的に再開発されます。", "祭り：ビクトリア公園での六四追悼、盂蘭節の焼街衣・盂蘭勝会・緑に光る幽霊、6区画に広がった旧正月の花市と街頭獅子舞。", "スターフェリーは夜間と8号シグナル以上で運休。公共交通運営補助条例を追加し、高齢者2ドル運賃の補助は交通会社へ。空港計画の記事、議案の翻訳、コンテナ船の航跡位置を修正。"]},
+    "v4.23.0": {"title": "昼も夜も繽紛週", "items": ["香城夜繽週：議会で条例が成立すると、イベント広場で毎日15:00〜翌2:00に大排檔が開かれます。屋台、売り子、行列、丸テーブルと折りたたみ椅子、電球の列。祭りの際は会場を譲り、広場ごとにパネルから停止できます。", "公設市場：新しい2×2の公共施設。出店料を集め、周辺の商業と住宅の質を高めますが、豪邸は隣接を嫌います。", "1マス20メートルの実寸：原子力発電所、コンテナ港、団地、学校、中銀、サイエンスパーク、多くのランドマークが実寸の敷地に。古い都市は段階的に再開発されます。", "祭り：盂蘭節の焼街衣・盂蘭勝会・緑に光る幽霊、6区画に広がった旧正月の花市と街頭獅子舞。", "スターフェリーは夜間と8号シグナル以上で運休。公共交通運営補助条例を追加し、高齢者2ドル運賃の補助は交通会社へ。空港計画の記事、議案の翻訳、コンテナ船の航跡位置を修正。"]},
     "v4.22.0": {"title": "ドラゴンボートと饅頭登り", "items": ["端午のドラゴンボート競走：海沿いの6レーンを自動配置。チームごとの速度差、コースの逸脱や衝突、波に揺れる船とブイ、沿岸の観客が登場。", "夜の饅頭登り：イベント広場に劇場、3基の饅頭塔と花看板を配置。男女12人が登り、饅頭を集めて降り、終了後は画像付きの結果記事を掲載。", "公園メニューに1×1のイベント広場を追加。赤いレンガ舗装が連結し、旧正月の市場も連続した屋台区画と通路に。", "太鼓、声援、オールの音と新しい競走音楽。閉場まで重複せず再生し、通常のBGMは従来の30％に。", "テストモードのイベント欄からUFO、ドラゴンボート、饅頭登りを起動。正式イベントはセーブ後も継続し、費用や結果記事の重複を防止。"]},
     "v4.21.0": { title: "世界不思議探訪", items: ["祭りシステム：祭りカレンダー、祭りの状態と旧暦の日付、新しい都市の開始年オプション。6 月 4 日は 1990 年から静かに扱われます。", "クリスマスの街角装飾と旧正月の市場：祭り用の街角プロップと市場アートを新規追加。", "UFO 目撃：円盤が 2～4 地区を巡り、掲示板の記事とティッカー速報が登場。「見に行く」を押すとカメラが円盤を追って静止します。"] },
     "v4.20.0": { title: "次、停まります", items: ["運輸モードを刷新：都市建設と運輸会社をワンタッチで切り替え、バスとフェリーのツールを分け、ラベルのないアイコン列を名前付きの 4 つのウィンドウに。", "はじめての方へ：開業チェックリスト、使用中ツールのヒント表示、停留所を置く前に徒歩圏と予想乗客を表示、各ウィンドウに「?」、路線の問題は解決ボタン付きで表示。", "財務グラフと路線ごとの乗客推移を追加し、都市グラフにも運輸会社のデータを表示。フェリー航路は船の増減が可能に。", "停留所の乗客が大幅増：職場や目的地から帰宅する乗客が生まれ、8 号シグナル解除後は待ち客が戻るため、1 か月分の運賃を失わなくなりました。"] },
@@ -1671,7 +1671,7 @@ const SITE_TEXT = {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
       versionBadge: "v4.23.0 — 【日夜都繽週】",
-      versionDesc: "4.23.0 更新：香城夜繽週大排檔登場，活動空地晚晚車仔檔、摺枱同燈串；新街市、一格 20 米真實比例、六四同盂蘭節。",
+      versionDesc: "4.23.0 更新：香城夜繽週大排檔登場，活動空地晚晚車仔檔、摺枱同燈串；新街市、一格 20 米真實比例同盂蘭節。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感嘅城市建設遊戲。起街道、規劃社區、經營自己嘅香城巴士公司、處理議會同天氣，再睇住一座有性格嘅香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1780,7 +1780,7 @@ const SITE_TEXT = {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
       versionBadge: "v4.23.0 — 【日夜都繽紛】",
-      versionDesc: "4.23.0 更新：香城夜繽週大排檔登場，活動空地每晚有攤車、摺疊桌椅與燈串；新增街市、一格 20 公尺真實比例、六四與中元節。",
+      versionDesc: "4.23.0 更新：香城夜繽週大排檔登場，活動空地每晚有攤車、摺疊桌椅與燈串；新增街市、一格 20 公尺真實比例與中元節。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感的城市建設遊戲。興建街道、規劃社區、經營自己的香城公車公司、處理議會與天氣，看著一座有個性的香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1889,7 +1889,7 @@ const SITE_TEXT = {
       eyebrowPrefix: "The City of Heung Shing",
       title: "The City of Heung Shing",
       versionBadge: "v4.23.0 — 【Bloom Day and Night】",
-      versionDesc: "4.23.0 update: the Night Bloom dai pai dong fills event grounds every night with hawker carts, folding tables and string lights; plus a public market, a true 20 m tile, June 4 and the Hungry Ghost festival.",
+      versionDesc: "4.23.0 update: the Night Bloom dai pai dong fills event grounds every night with hawker carts, folding tables and string lights; plus a public market, a true 20 m tile and the Hungry Ghost festival.",
       lede: "A city-building game inspired by Hong Kong life and made in tribute to SimCity 2000. Build streets, shape neighbourhoods, run your own Heung Shing Bus Company, navigate council politics and weather, then watch a city with real personality grow.",
       freeLabel: "Completely free · macOS + Windows · Local saves",
       downloadBtn: "【Free Download】",
@@ -1999,7 +1999,7 @@ const SITE_TEXT = {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
       versionBadge: "v4.23.0 — 【昼も夜も繽紛週】",
-      versionDesc: "4.23.0 更新：香城夜繽週の大排檔が登場。イベント広場に毎晩屋台、折りたたみテーブル、電球の列。公設市場、1マス20メートルの実寸、六四と盂蘭節も。",
+      versionDesc: "4.23.0 更新：香城夜繽週の大排檔が登場。イベント広場に毎晩屋台、折りたたみテーブル、電球の列。公設市場、1マス20メートルの実寸、盂蘭節も。",
       lede: "香港の都市生活から着想を得た、SimCity 2000へのオマージュとなる都市建設ゲーム。道路を築き、地区を計画し、自分だけの香城バス会社を経営し、議会や天候に向き合いながら、個性ある香城の成長を見守ります。",
       freeLabel: "完全無料 · macOS + Windows · ローカルセーブ",
       downloadBtn: "【無料ダウンロード】",

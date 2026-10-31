@@ -12,7 +12,7 @@ post or reply. Website messages are tracked with the `website-feedback` issue la
 
 ## New in v4.23.0
 
-The 香城夜繽週 act opens event grounds to a nightly dai pai dong: hawker carts, queues, tables and stools, string lights, park lamp posts and electric boxes, giving way to festivals, with a per-ground on/off switch. A new 2×2 public market. Buildings move to a true 20 m tile, and old cities renew onto it. June 4 remembrance, the Hungry Ghost festival and a larger Lunar New Year fair. The Star Ferry rests overnight and under signal 8; a public transport subsidy act; council news fixes. Existing saves remain compatible.
+The 香城夜繽週 act opens event grounds to a nightly dai pai dong: hawker carts, queues, tables and stools, string lights, park lamp posts and electric boxes, giving way to festivals, with a per-ground on/off switch. A new 2×2 public market. Buildings move to a true 20 m tile, and old cities renew onto it. The Hungry Ghost festival and a larger Lunar New Year fair. The Star Ferry rests overnight and under signal 8; a public transport subsidy act; council news fixes. Existing saves remain compatible.
 
 ## New in v4.22.0
 

@@ -285,7 +285,7 @@ function showInspectPanel(scene, row, col, pointer = null) {
       <div class="insp-section">
         <div class="insp-bldg-name" style="color:${INFRA_COLORS[bData.type]}">${INFRA_LABELS[bData.type]}</div>
         <div class="insp-row">${INFRA_DESCS[bData.type]}</div>
-        ${bData.type === 'event_ground' ? '' : isPark
+        ${bData.type === 'event_ground' ? (typeof buildStreetFoodInspectHtml === 'function' ? buildStreetFoodInspectHtml(activeScene, row, col) : '') : isPark
           ? `<div class="insp-row insp-ok">${t('inspect.nearbyResidentialBoost')}</div>`
           : `<div class="insp-row ${powered ? 'insp-ok' : 'insp-warn'}">${t('inspect.power', { status: powered ? t('inspect.powerActive') : t('inspect.powerUnpowered') })}</div>`}
         <div class="insp-row insp-muted">${POWER_PLANT_STATS[bData.type] ? t('inspect.powerAge', { age: formatPowerPlantAge(bData) }) : t('inspect.age', { age: bData.age ?? 0 })}</div>

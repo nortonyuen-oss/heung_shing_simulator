@@ -280,6 +280,93 @@ function getStreetFoodTableFurnitureIds() {
   return [...assets.furniture.keys()].filter((id) => id.startsWith('roundTable') && id !== 'roundTableFolded');
 }
 
+// ── 空地資料面板: per-lot 自動／停用 ───────────────────────────────────────────────────────
+// A player can keep the market off one lot (it keeps its lamp posts and boxes). The choice is a
+// field on each of the lot's event_ground building records (saved with them, like a customName);
+// a lot is off if any of its tiles is, so a tile added to an off lot stays off with it.
+function isStreetFoodVenueDisabled(venue) {
+  if (typeof buildingData === 'undefined') return false;
+  return venue.tiles.some(([r, c]) => buildingData[`${r}:${c}`]?.streetFood === 'off');
+}
+
+function findStreetFoodVenueAt(scene, row, col) {
+  const ctx = typeof getFestivalVenueContext === 'function' ? getFestivalVenueContext(scene) : { eventGrounds: [] };
+  return (ctx.eventGrounds || []).find((venue) => venue.tiles.some(([r, c]) => r === row && c === col)) || null;
+}
+
+/**
+ * What the inspect panel says about the market on the lot holding (row, col): whether it is on
+ * at all and why not, plus a typical evening's size. null when the tile is not an event ground.
+ */
+function getStreetFoodVenueStatus(scene, row, col) {
+  const venue = findStreetFoodVenueAt(scene, row, col);
+  if (!venue) return null;
+  const disabled = isStreetFoodVenueDisabled(venue);
+  const act = typeof isPolicyActive === 'function' && isPolicyActive('nightBazaarWeekend');
+  const minuteOfDay = typeof getGameTimeOfDayMinutes === 'function' ? getGameTimeOfDayMinutes() : Number(city?.timeOfDayMinutes) || 0;
+  let status;
+  if (!act) status = 'noAct';
+  else if (disabled) status = 'off';
+  else if (getStreetFoodClaimedPredicate(scene)(venue)) status = 'festival';
+  else if (getStreetFoodWeatherState(city?.weather) === 'closed') status = 'weather';
+  else {
+    const phase = getStreetFoodPhase(minuteOfDay).phase;
+    status = phase === 'empty' ? 'waiting' : phase;
+  }
+  // a typical 19:00 on this lot, whatever the hour now
+  const typical = getStreetFoodVenueLayout(venue, {
+    minuteOfDay: 19 * 60, weather: { condition: 'clear' }, seed: venue.id, ...getStreetFoodRoster(),
+  });
+  return { venue, disabled, status, tiles: venue.tiles.length, stalls: typical.stalls.length, tables: typical.tables.length };
+}
+
+function setStreetFoodVenueDisabled(scene, venue, disabled) {
+  venue.tiles.forEach(([r, c]) => {
+    const record = buildingData[`${r}:${c}`];
+    if (!record) return;
+    if (disabled) record.streetFood = 'off';
+    else delete record.streetFood;
+  });
+  if (scene) scene.streetFoodNextUpdateAt = 0; // redraw on the next frame, not in 400 ms
+  if (typeof queueCityChangeAutosave === 'function') queueCityChangeAutosave();
+}
+
+// The inspect panel's button: flip the lot under the inspected tile, then redraw the panel.
+function toggleInspectedStreetFoodVenue() {
+  if (typeof activeScene === 'undefined' || !activeScene || typeof lastInspectTile === 'undefined' || !lastInspectTile) return;
+  const { row, col } = lastInspectTile;
+  const venue = findStreetFoodVenueAt(activeScene, row, col);
+  if (!venue) return;
+  setStreetFoodVenueDisabled(activeScene, venue, !isStreetFoodVenueDisabled(venue));
+  if (typeof showInspectPanel === 'function') showInspectPanel(activeScene, row, col);
+}
+
+function buildStreetFoodInspectHtml(scene, row, col) {
+  const info = getStreetFoodVenueStatus(scene, row, col);
+  if (!info) return '';
+  const warn = ['noAct', 'off', 'weather'].includes(info.status);
+  return `
+    <div class="insp-row insp-bldg-name">🏮 ${t('streetFood.inspectTitle')}</div>
+    <div class="insp-row ${warn ? 'insp-warn' : 'insp-ok'}">${t(`streetFood.status.${info.status}`)}</div>
+    <div class="insp-row insp-muted">${t('streetFood.size', { tiles: info.tiles, stalls: info.stalls, tables: info.tables })}</div>
+    <div class="insp-row">${t('streetFood.mode', { mode: t(info.disabled ? 'streetFood.modeOff' : 'streetFood.modeAuto') })}</div>
+    <button class="insp-action-btn" type="button" onclick="toggleInspectedStreetFoodVenue()">${t(info.disabled ? 'streetFood.enable' : 'streetFood.disable')}</button>`;
+}
+
+function getStreetFoodRoster() {
+  return {
+    carts: typeof getStreetFoodCartIds === 'function' ? getStreetFoodCartIds() : [],
+    hawkers: typeof getStreetFoodPeopleByRole === 'function' ? getStreetFoodPeopleByRole('hawker') : [],
+    queuers: typeof getStreetFoodPeopleByRole === 'function'
+      ? ['diner-family', 'diner-couple', 'diner-elderly'].flatMap((role) => getStreetFoodPeopleByRole(role)) : [],
+    diners: typeof getStreetFoodPeopleByRole === 'function' ? getStreetFoodPeopleByRole('seated') : [],
+    passersby: typeof getStreetFoodPeopleByRole === 'function' ? getStreetFoodPeopleByRole('passerby') : [],
+    tableFurniture: getStreetFoodTableFurnitureIds(),
+    stools: ['foldingStoolRed', 'foldingStoolGreen'].filter((id) => typeof getStreetFoodFurniture === 'function' && getStreetFoodFurniture(id)),
+    stringSpanM: (typeof getStreetFoodLighting === 'function' && getStreetFoodLighting('day', 'down')?.spanM) || undefined,
+  };
+}
+
 function updateStreetFoodMarkets(scene, time) {
   if (!scene || typeof city === 'undefined') return;
   if (typeof isTerrainCreatorMode !== 'undefined' && isTerrainCreatorMode) return;
@@ -297,22 +384,12 @@ function updateStreetFoodMarkets(scene, time) {
   const minuteOfDay = typeof getGameTimeOfDayMinutes === 'function' ? getGameTimeOfDayMinutes() : Number(city.timeOfDayMinutes) || 0;
   // 香城夜繽週: no act, no market (the lots keep their lamp posts and boxes)
   const enabled = typeof isPolicyActive === 'function' && isPolicyActive('nightBazaarWeekend');
-  const roster = {
-    carts: typeof getStreetFoodCartIds === 'function' ? getStreetFoodCartIds() : [],
-    hawkers: typeof getStreetFoodPeopleByRole === 'function' ? getStreetFoodPeopleByRole('hawker') : [],
-    queuers: typeof getStreetFoodPeopleByRole === 'function'
-      ? ['diner-family', 'diner-couple', 'diner-elderly'].flatMap((role) => getStreetFoodPeopleByRole(role)) : [],
-    diners: typeof getStreetFoodPeopleByRole === 'function' ? getStreetFoodPeopleByRole('seated') : [],
-    passersby: typeof getStreetFoodPeopleByRole === 'function' ? getStreetFoodPeopleByRole('passerby') : [],
-    tableFurniture: getStreetFoodTableFurnitureIds(),
-    stools: ['foldingStoolRed', 'foldingStoolGreen'].filter((id) => typeof getStreetFoodFurniture === 'function' && getStreetFoodFurniture(id)),
-    stringSpanM: (typeof getStreetFoodLighting === 'function' && getStreetFoodLighting('day', 'down')?.spanM) || undefined,
-  };
+  const roster = getStreetFoodRoster();
 
   const wantedIds = new Set();
   const activeVenueIds = new Set(venues.map((v) => v.id));
   venues.forEach((venue) => {
-    const layout = getStreetFoodVenueLayout(venue, { minuteOfDay, enabled, weather: city.weather, seed: venue.id, ...roster });
+    const layout = getStreetFoodVenueLayout(venue, { minuteOfDay, enabled: enabled && !isStreetFoodVenueDisabled(venue), weather: city.weather, seed: venue.id, ...roster });
     syncStreetFoodVenue(scene, layout).forEach((id) => wantedIds.add(id));
   });
   // every event_ground venue not currently wanted (claimed by a festival, or emptied by the
@@ -332,4 +409,5 @@ function clearAllStreetFoodSprites(scene) {
 if (typeof module !== 'undefined' && module.exports) module.exports = {
   getStreetFoodSpriteTextureKey, getStreetFoodClaimedPredicate, getStreetFoodTilePoint,
   updateStreetFoodMarkets, clearAllStreetFoodSprites, getStreetFoodTableFurnitureIds,
+  isStreetFoodVenueDisabled, setStreetFoodVenueDisabled, getStreetFoodVenueStatus, buildStreetFoodInspectHtml,
 };

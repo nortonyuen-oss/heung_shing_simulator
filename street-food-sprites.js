@@ -46,8 +46,32 @@ function streetFoodPersonRecord(id) {
 // 節慶實際預留 > 平日小食墟 (docs/street-food-market-design.md): which event-ground venues a
 // festival has actually claimed right now. LNY turns every event ground into a flower market at
 // once (layoutLunarNewYear's own gate: a tier, and not its street-only 'after' phase); Bun Hill
-// claims only the one venue its live run picked (festivals.js's city.festivals state, not the
-// 建議地圖排練 test-mode session, which suspends the real festival update entirely - main.js).
+// claims the venue of this year's edition for its whole day - before its 18:00 setup (the lot it is
+// about to pick; the market opens at 15:00), while it runs, and through the awards, leaving and
+// teardown after its 00:15 result, when its run is 'held' but its set still stands until 02:00
+// (Norton 2026-10-31: 搶包山活動係咪被大排檔override). The 建議地圖排練 test-mode session
+// suspends the real festival update entirely (main.js) and owns every event ground.
+const STREET_FOOD_BUN_HILL_PREDICT_MS = 2000;
+
+function getStreetFoodBunHillVenueId(scene) {
+  const bunHill = typeof getCityFestivalState === 'function' ? getCityFestivalState()?.bunHill : null;
+  const thisEdition = bunHill && bunHill.year === city.year && bunHill.month === city.month;
+  if (thisEdition) return ['running', 'held'].includes(bunHill.status) ? bunHill.venue?.id ?? null : null;
+  // its day, before it has started: keep clear the lot it will choose
+  if (typeof getFestivalMonth !== 'function' || city.month !== getFestivalMonth('bunHill', city.year)) return null;
+  if (typeof isFestivalEnabled === 'function' && !isFestivalEnabled('bunHill')) return null;
+  if (typeof getFestivalTier === 'function' && getFestivalTier('bunHill') === 'skip') return null;
+  if (typeof getFestivalHistoryEntry === 'function' && getFestivalHistoryEntry('bunHill', city.year)?.outcome === 'held') return null;
+  if (typeof selectBunHillVenue !== 'function' || typeof getBunHillMapVenueContext !== 'function') return null;
+  const now = scene?.time?.now ?? 0;
+  const cache = scene?.streetFoodBunHillPrediction;
+  if (cache && cache.month === city.month && cache.year === city.year && now < cache.until) return cache.id;
+  const state = getCityFestivalState?.();
+  const id = selectBunHillVenue(getBunHillMapVenueContext(scene), state?.venues?.bunHill || '')?.id ?? null;
+  if (scene) scene.streetFoodBunHillPrediction = { year: city.year, month: city.month, until: now + STREET_FOOD_BUN_HILL_PREDICT_MS, id };
+  return id;
+}
+
 function getStreetFoodClaimedPredicate(scene) {
   if (typeof city === 'undefined') return () => false;
   if (scene?.bunHillEventSession) return () => true; // the map rehearsal owns every event ground
@@ -58,8 +82,7 @@ function getStreetFoodClaimedPredicate(scene) {
   if (lny && lny.phase !== 'after' && typeof getFestivalTier === 'function' && getFestivalTier('lunarNewYear') !== 'skip') {
     return () => true;
   }
-  const bunHill = typeof getCityFestivalState === 'function' ? getCityFestivalState()?.bunHill : null;
-  const bunHillVenueId = bunHill?.status === 'running' ? bunHill.venue?.id ?? null : null;
+  const bunHillVenueId = getStreetFoodBunHillVenueId(scene);
   return (venue) => venue.id === bunHillVenueId;
 }
 
@@ -407,7 +430,7 @@ function clearAllStreetFoodSprites(scene) {
 }
 
 if (typeof module !== 'undefined' && module.exports) module.exports = {
-  getStreetFoodSpriteTextureKey, getStreetFoodClaimedPredicate, getStreetFoodTilePoint,
+  getStreetFoodSpriteTextureKey, getStreetFoodClaimedPredicate, getStreetFoodBunHillVenueId, getStreetFoodTilePoint,
   updateStreetFoodMarkets, clearAllStreetFoodSprites, getStreetFoodTableFurnitureIds,
   isStreetFoodVenueDisabled, setStreetFoodVenueDisabled, getStreetFoodVenueStatus, buildStreetFoodInspectHtml,
 };

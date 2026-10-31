@@ -149,7 +149,10 @@ function getFestivalGroundCenterOffsetY(footprintM, scale) {
 // Uncalibrated decorations keep their existing envelope/height sizing and anchor convention.
 function getFestivalPlacementScales(meta, part, resize, placement = {}) {
   if (meta.stallCalibration && getFestivalFootprintSpanM(placement.footprintM)) return { scaleX: 1, scaleY: 1 };
-  const scaleX = getFestivalSpriteScale(meta, part, resize, placement.heightM, placement.footprintM);
+  // a placement may ask for a lengthwise part at another length (the 盂蘭 戲棚 across an estate court)
+  const lengthRatio = placement.lengthM > 0 && part?.lengthM > 0 && !placement.heightM && !placement.footprintM
+    ? placement.lengthM / part.lengthM : 1;
+  const scaleX = getFestivalSpriteScale(meta, part, resize, placement.heightM, placement.footprintM) * lengthRatio;
   let scaleY = scaleX;
   const spanM = getFestivalFootprintSpanM(placement.footprintM);
   const heightPx = (meta.anchor.y - meta.top) * resize;

@@ -54,8 +54,14 @@ const FESTIVAL_BUILDING_SPOTS = Object.freeze({
     path: 'Models/parks/park2x2/sportField3-02.png',
     pxPerM: Math.hypot(14, 7),
     spots: Object.freeze({}),
-    // Festivals use the playing surface AND its runoff, inset from the new fence.
-    areas: Object.freeze({ court: Object.freeze({ left: [448, 750], top: [710, 635], right: [1161, 858] }) }),
+    // Festivals use the playing surface AND its runoff, inset from the new fence (u: the 18 m short
+    // side, v: the 31 m long one). apron: the paved strip between the fence and the lot's front edge
+    // (lot metres x 3-37 along it, y 1.8-9.3 in from it, from the lot's ground corners) - the 盂蘭 勝會
+    // puts its furnace, effigies and rice booth there, outside the fence (layoutYulanCourtFair).
+    areas: Object.freeze({
+      court: Object.freeze({ left: [448, 750], top: [710, 635], right: [1161, 858] }),
+      apron: Object.freeze({ left: [308, 802], top: [410, 751], right: [898, 995] }),
+    }),
   }),
   // the temples' forecourts: a lion dance and the 頭炷香 incense burner at New Year
   heritage_temple_2x2: Object.freeze({ path: 'Models/specialSites/2x2/tample2-01.png', spots: Object.freeze({ forecourt: Object.freeze([560, 880]) }) }),
@@ -643,10 +649,59 @@ function layoutLunarNewYear(ctx) {
 // ── 六四 (docs/festival-dlc-design.md §4.3): a quiet remembrance ──────────────
 // No stage, screen, banners, booths or police; no text anywhere. People sit quietly with candles on
 // the pitches of one Victoria Park, as at the real vigil, among patches of candles, drawn at the
-// park's own scale; the 國殤之柱 and flowers in the paved square (Norton 2026-10-13). They arrive from one corner from
-// 19:00, the ground is full by 20:00, and they leave again from 22:00 until 22:30. How full it
+// park's own scale; the 國殤之柱 with flowers and candles at its foot (Norton 2026-10-13). They arrive
+// from 19:00, the ground is full by 20:00, and they leave again from 22:00 until 22:30. How full it
 // gets follows the population, and is only ever drawn - no figure is shown anywhere.
-const JUNE4_AREAS = Object.freeze(['pitch', 'tennis', 'basketball']);
+//
+// Rebuilt for the six-module park (Norton 2026-10-31: 64的舞台因為asset更新了需要重建; 參考歷史上維園
+// 64晚上既航空圖): the aerial photographs show the football pitches packed edge to edge, a sea of
+// candles in blocks the pitch lines and walkways split, filling outward from the front. So the
+// vigil takes the pitches of module05 (the real site: three pitches) or, in a city without it, the
+// open ground of whichever module it has, best first - module06's pitches, module03's lawn, module02's
+// greens, the boat garden's stage plaza (module01, the one every park starts with), module04's main
+// court. The pillar stands at the front of the first ground, the crowd fills out from it.
+const JUNE4_VICTORIA_PX_PER_M = Math.hypot(504, 252) / 80;
+const JUNE4_VENUES = Object.freeze({
+  park_flagship_victoria_module05: Object.freeze({
+    // the three pitches, as the New Year fair's (VICTORIA_LNY_MODULES), the middle one first
+    fields: Object.freeze([
+      Object.freeze({ left: [366, 729], top: [594, 615], right: [698, 667] }),
+      Object.freeze({ left: [235, 660], top: [461, 547], right: [571, 602] }),
+      Object.freeze({ left: [494, 796], top: [712, 687], right: [820, 741] }),
+    ]),
+  }),
+  park_flagship_victoria_module06: Object.freeze({
+    fields: Object.freeze([
+      Object.freeze({ left: [300, 609], top: [374, 572], right: [518, 644] }),
+      Object.freeze({ left: [205, 660], top: [267, 629], right: [393, 692] }),
+      Object.freeze({ left: [423, 552], top: [495, 516], right: [637, 587] }),
+    ]),
+  }),
+  park_flagship_victoria_module03: Object.freeze({
+    fields: Object.freeze([Object.freeze({ left: [400, 615], top: [510, 560], right: [850, 730] })]),
+  }),
+  park_flagship_victoria_module02: Object.freeze({
+    fields: Object.freeze([
+      Object.freeze({ left: [505, 725], top: [665, 652], right: [818, 723] }),
+      Object.freeze({ left: [295, 640], top: [460, 563], right: [600, 632] }),
+    ]),
+  }),
+  park_flagship_victoria: Object.freeze({
+    // the boat garden: the paved plaza before the tented stage, and its steps
+    fields: Object.freeze([Object.freeze({ left: [300, 640], top: [345, 615], right: [430, 650] })]),
+  }),
+  park_flagship_victoria_module04: Object.freeze({
+    fields: Object.freeze([Object.freeze({ left: [255, 710], top: [405, 632], right: [560, 752] })]),
+  }),
+});
+const JUNE4_VENUE_ORDER = Object.freeze([
+  'park_flagship_victoria_module05', 'park_flagship_victoria_module06', 'park_flagship_victoria_module03',
+  'park_flagship_victoria_module02', 'park_flagship_victoria', 'park_flagship_victoria_module04',
+]);
+// the pillar's place on the first ground: the middle of its front edge (u from the left corner toward
+// the top, v toward the bottom: u near 0 is the side facing the viewer), the people kept back from it
+const JUNE4_PILLAR_AT = Object.freeze({ u: 0.14, v: 0.5 });
+const JUNE4_PILLAR_CLEAR_M = 3;
 // a cell is one group of seated people or one patch of candles, at the park art's scale
 const JUNE4_CELL_M = 1.2;
 const JUNE4_ARRIVE = Object.freeze({ from: 19 * 60, to: 20 * 60 });
@@ -666,37 +721,50 @@ function getJune4Presence(minuteOfDay) {
   return 1 - (m - JUNE4_LEAVE.from) / (JUNE4_LEAVE.to - JUNE4_LEAVE.from);
 }
 
+/** The Victoria Park module the vigil is held on: the best ground among the city's parks. */
+function pickJune4Park(parks = []) {
+  return [...parks]
+    .filter((p) => JUNE4_VENUES[p.textureKey])
+    .sort((a, b) => JUNE4_VENUE_ORDER.indexOf(a.textureKey) - JUNE4_VENUE_ORDER.indexOf(b.textureKey)
+      || String(a.id).localeCompare(String(b.id)))[0] || null;
+}
+
 /**
- * 六四 for a city: the remembrance on the first Victoria Park, or nothing without one.
+ * 六四 for a city: the remembrance on its best Victoria Park ground, or nothing without one.
  * @param {object} ctx  parks ({ id, textureKey }), minute (minute of the day), population, seed
  */
 function layoutJune4(ctx) {
-  const park = (ctx.parks || []).find((p) => FESTIVAL_BUILDING_SPOTS[p.textureKey]?.areas?.pitch);
+  const park = pickJune4Park(ctx.parks);
   const presence = getJune4Presence(ctx.minute);
   if (!park || presence <= 0) return [];
-  const spot = FESTIVAL_BUILDING_SPOTS[park.textureKey];
+  const venue = JUNE4_VENUES[park.textureKey];
   const out = [];
   const add = (id, partId, point) => out.push({ id: `june4:${id}`, festival: 'june4', partId, mode: 'building', buildingId: park.id, point });
-  // the pillar in the square, flowers and candles at its foot - there from the start
-  const plaza = spot.areas.plaza;
-  add('pillar', 'june4Pillar', getFestivalAreaPoint(plaza, 0.55, 0.5));
-  add('flowers1', 'june4Flowers', getFestivalAreaPoint(plaza, 0.4, 0.38));
-  add('flowers2', 'june4Flowers', getFestivalAreaPoint(plaza, 0.4, 0.66));
-  add('candles1', 'june4Candles2', getFestivalAreaPoint(plaza, 0.3, 0.5));
-  // a small city fills a corner of the pitch; a big one all three grounds
-  const share = Math.max(0.2, Math.min(1, 0.2 + (Number(ctx.population) || 0) / 300000));
+  const len = (a, b) => Math.hypot(b[0] - a[0], b[1] - a[1]) / JUNE4_VICTORIA_PX_PER_M;
+  // the pillar at the front of the first ground, flowers and candles at its foot - there from the start
+  const first = venue.fields[0];
+  const P = JUNE4_PILLAR_AT;
+  add('pillar', 'june4Pillar', getFestivalAreaPoint(first, P.u, P.v));
+  const firstU = len(first.left, first.top), firstV = len(first.top, first.right);
+  const nudge = (du, dv) => getFestivalAreaPoint(first, Math.max(0.02, P.u + du / firstU), P.v + dv / firstV);
+  add('flowers1', 'june4Flowers', nudge(-1.2, -1.6));
+  add('flowers2', 'june4Flowers', nudge(-1.2, 1.6));
+  add('candles1', 'june4Candles2', nudge(-2, 0));
+  // a small city fills out from the pillar; a big one packs every ground edge to edge
+  const share = Math.max(0.35, Math.min(1, 0.35 + (Number(ctx.population) || 0) / 150000));
+  const pillarPx = getFestivalAreaPoint(first, P.u, P.v);
   const cells = [];
-  JUNE4_AREAS.forEach((name, areaIndex) => {
-    const area = spot.areas[name];
-    if (!area) return;
-    const len = (a, b) => Math.hypot(b[0] - a[0], b[1] - a[1]) / spot.pxPerM;
+  venue.fields.forEach((area, areaIndex) => {
     const uN = Math.max(1, Math.floor(len(area.left, area.top) / JUNE4_CELL_M));
     const vN = Math.max(1, Math.floor(len(area.top, area.right) / JUNE4_CELL_M));
     for (let i = 0; i < uN; i++) {
       for (let k = 0; k < vN; k++) {
-        // the order people come in: from the area's near corner outward, the pitch first
-        const order = areaIndex + (i / uN + (vN - 1 - k) / vN) / 2 + 0.08 * lnyHash(`${ctx.seed}:june4:${name}:${i}:${k}:o`);
-        cells.push({ name, area, i, k, uN, vN, order });
+        const at = getFestivalAreaPoint(area, (i + 0.5) / uN, (k + 0.5) / vN);
+        const fromPillarM = Math.hypot(at[0] - pillarPx[0], (at[1] - pillarPx[1]) * 2) / JUNE4_VICTORIA_PX_PER_M;
+        if (fromPillarM < JUNE4_PILLAR_CLEAR_M) continue;
+        // the order people come in: outward from the pillar, one ground after another
+        const order = areaIndex * 1000 + fromPillarM + 2 * lnyHash(`${ctx.seed}:june4:${areaIndex}:${i}:${k}:o`);
+        cells.push({ name: String(areaIndex), area, i, k, uN, vN, order });
       }
     }
   });
@@ -858,6 +926,42 @@ function layoutYulanFair(at, ctx) {
   }
 }
 
+// The 勝會 on an estate court (the 2x2 sports ground's art since 2026-10-31: a fenced 18 x 31 m court
+// in the middle of a paved 40 m lot). Norton: 籃球場改了asset，盂蘭節的舞台等要重建 - as on a real estate
+// court, the 戲棚 stands across one end of it (its mirror view, 16 m wide, facing down the court),
+// rows of stools before it with the front row left empty for the 好兄弟, the 孤魂之位 and the altar at
+// the far end; the furnace, the paper effigies and the rice booth stand outside the fence on the paved
+// apron, where they can burn and queue. `court`/`apron` place on those areas, as `at` does.
+function layoutYulanCourtFair(court, apron, ctx) {
+  court(0.5, 0.2, 'stage', 'yulanStage', { mirrored: true, lengthM: 16 });
+  const audience = yulanDuring(ctx.minute, YULAN_TIMES.opera);
+  [0.42, 0.52, 0.62, 0.72].forEach((v, row) => {
+    [0.2, 0.4, 0.6, 0.8].forEach((u, k) => {
+      court(u, v, `stools:${row}:${k}`, 'yulanStools');
+      // a group of a dozen to a crowd sprite: the middle two of each row, so the stools still show
+      if (audience && row > 0 && (k === 1 || k === 2)) court(u, v + 0.03, `audience:${row}:${k}`, k % 2 ? 'dbspectatorsBack2' : 'dbspectatorsBack1', { heightM: YULAN_CROWD, mirrored: true });
+    });
+  });
+  court(0.5, 0.94, 'shrine', 'yulanShrine', { ghost: true });
+  court(0.18, 0.96, 'banner1', 'yulanBanner');
+  court(0.82, 0.96, 'banner2', 'yulanBanner');
+  court(0.5, 0.85, 'altar', 'yulanAltar');
+  court(0.3, 0.84, 'incense', 'templeIncenseBurner');
+  apron(0.5, 0.9, 'furnace', 'yulanFurnace', { fire: yulanDuring(ctx.minute, YULAN_TIMES.fire) });
+  const burnt = yulanSkyMinute(ctx.minute) >= YULAN_TIMES.burn[1];
+  const burning = yulanDuring(ctx.minute, YULAN_TIMES.burn);
+  if (!burnt) {
+    [['horse', 'yulanHorse', 0.76], ['boat', 'yulanBoat', 0.66], ['house', 'yulanHouse', 0.56]].forEach(([key, partId, v]) => {
+      apron(0.5, v, key, partId, { effigy: true, burning });
+    });
+  }
+  apron(0.35, 0.82, 'paper', 'yulanPaperStack');
+  apron(0.5, 0.14, 'rice', 'lnyInfoBooth');
+  if (yulanDuring(ctx.minute, YULAN_TIMES.rice)) {
+    [0.24, 0.32].forEach((v, i) => apron(0.5, v, `queue:${i}`, i ? 'dbspectatorsFront2' : 'dbspectatorsFront1', { heightM: YULAN_CROWD }));
+  }
+}
+
 /**
  * 盂蘭 for a city.
  * @param {object} ctx  minute, seed, kerbSlots ([{ row, col, side, half, district, age }]),
@@ -880,7 +984,7 @@ function layoutYulan(ctx) {
   [...(ctx.sportsGrounds || []), ...(ctx.courts || [])].forEach((b) => {
     const spot = FESTIVAL_BUILDING_SPOTS[b.textureKey];
     const area = spot?.areas?.field || spot?.areas?.court;
-    if (area) venues.push({ kind: 'building', id: b.id, area, district: b.district });
+    if (area) venues.push({ kind: 'building', id: b.id, area, apron: spot.areas.apron || null, district: b.district });
   });
   const rank = (v) => { const i = oldDistricts.indexOf(v.district); return i < 0 ? 99 : i; };
   const chosen = [];
@@ -889,6 +993,11 @@ function layoutYulan(ctx) {
     chosen.push(v);
   });
   chosen.forEach((v) => {
+    if (v.kind === 'building' && v.apron) {
+      const on = (area) => (u, vv, key, partId, extra = {}) => out.push({ id: `yulan:fair:${v.id}:${key}`, festival: 'yulan', partId, mode: 'building', buildingId: v.id, point: getFestivalAreaPoint(area, u, vv), ...extra });
+      layoutYulanCourtFair(on(v.area), on(v.apron), ctx);
+      return;
+    }
     const at = v.kind === 'building'
       ? (u, vv, key, partId, extra = {}) => out.push({ id: `yulan:fair:${v.id}:${key}`, festival: 'yulan', partId, mode: 'building', buildingId: v.id, point: getFestivalAreaPoint(v.area, u, vv), ...extra })
       : (u, vv, key, partId, extra = {}) => {
@@ -938,5 +1047,7 @@ if (typeof module !== 'undefined' && module.exports) {
     YULAN_TIMES,
     layoutJune4,
     getJune4Presence,
+    pickJune4Park,
+    JUNE4_VENUES,
   };
 }

@@ -78,17 +78,19 @@ function zonePassesMinimums(factors, minimums) {
 }
 
 // Residential: which wealth district this tile is in, and that district's
-// fixed L/M/H/UH odds (see RESIDENTIAL_WEALTH_DISTRICT_PROBABILITIES).
-function buildResidentialWealthDistrictHtml(row, col) {
+// base L/M/H/UH odds, adjusted for local market nuisance.
+function buildResidentialWealthDistrictHtml(row, col, record = null) {
   const context = typeof createResidentialQualityContext === 'function' ? createResidentialQualityContext() : null;
-  const factors = getResidentialSiteFactors(row, col, 1, context);
+  const factors = getResidentialSiteFactors(row, col, Math.max(record?.footprintCols ?? 1, record?.footprintRows ?? 1), context);
   const tierKey = factors.wealthDistrictTier ?? 'commoner';
   const districtName = t(WEALTH_DISTRICT_NAME_KEYS[tierKey] ?? WEALTH_DISTRICT_NAME_KEYS.commoner);
-  const probabilities = RESIDENTIAL_WEALTH_DISTRICT_PROBABILITIES[tierKey]
-    ?? RESIDENTIAL_WEALTH_DISTRICT_PROBABILITIES.commoner;
+  const probabilities = { ...(RESIDENTIAL_WEALTH_DISTRICT_PROBABILITIES[tierKey]
+    ?? RESIDENTIAL_WEALTH_DISTRICT_PROBABILITIES.commoner) };
+  probabilities.UH *= factors.marketUltraRichWeight ?? 1;
+  const totalWeight = Object.values(probabilities).reduce((sum, weight) => sum + weight, 0) || 1;
   const oddsText = ['UH', 'H', 'M', 'L']
     .filter((tier) => probabilities[tier] > 0)
-    .map((tier) => `${tier} ${Math.round(probabilities[tier] * 100)}%`)
+    .map((tier) => `${tier} ${Math.round(probabilities[tier] / totalWeight * 100)}%`)
     .join(' · ');
 
   return `
@@ -97,7 +99,39 @@ function buildResidentialWealthDistrictHtml(row, col) {
       <div class="insp-row insp-ok">📍 ${districtName}</div>
       <div class="insp-row insp-muted">${oddsText}</div>
       <div class="insp-row insp-muted" style="font-size:10px">${t('inspect.wealthDistrictHint')}</div>
+      ${buildPublicMarketResidentialInspectHtml(row, col, record, tierKey)}
     </div>`;
+}
+
+function buildPublicMarketInspectHtml(row, col) {
+  if (typeof getPublicMarketState !== 'function') return '';
+  const market = getPublicMarketState().markets.get(`${row}:${col}`);
+  if (!market) return '';
+  const statusKey = !market.roadConnected ? 'market.noRoad'
+    : !market.powered || market.availability <= 0 ? 'market.noPower'
+      : market.availability < 1 ? 'market.limitedPower' : 'market.operating';
+  return `<div class="insp-section">
+    <div class="insp-row ${market.availability > 0 ? 'insp-ok' : 'insp-warn'}">${t(statusKey)}</div>
+    <div class="insp-row">${t('market.customers', { value: Math.round(market.servedResidents).toLocaleString() })}</div>
+    <div class="insp-row">${t('market.occupancy', { value: Math.round(market.occupancy * 100) })}</div>
+    <div class="insp-row">${t('market.rent', { value: Math.round(market.rent) })}</div>
+    <div class="insp-row">${t('market.upkeep', { value: market.upkeep })}</div>
+    <div class="insp-row ${market.net >= 0 ? 'insp-ok' : 'insp-warn'}">${t('market.net', { value: `${market.net >= 0 ? '+' : '−'}$${Math.abs(Math.round(market.net))}` })}</div>
+    <div class="insp-row insp-muted">${t('market.effects')}</div>
+    <div class="insp-row insp-muted">${t('market.traffic')}</div>
+  </div>`;
+}
+
+function buildPublicMarketResidentialInspectHtml(row, col, record, districtTier = 'commoner') {
+  if (typeof getPublicMarketResidentialEffect !== 'function') return '';
+  const effect = getPublicMarketResidentialEffect(row, col,
+    record?.footprintCols ?? 1, record?.footprintRows ?? 1,
+    getPublicMarketResidentialTier(row, col, districtTier));
+  if (!effect.nearby) return '';
+  const points = effect.qualityBonus * 100;
+  const value = `${points >= 0 ? '+' : '−'}${Math.abs(points).toFixed(1)}`;
+  return `<div class="insp-row ${points < 0 ? 'insp-warn' : points > 0 ? 'insp-ok' : 'insp-muted'}">${t('market.residentialEffect', { value })}</div>
+    ${points < 0 ? `<div class="insp-row insp-muted">${t('market.ultraRichNuisance')}</div>` : ''}`;
 }
 
 // Commercial: the existing per-tile H/UH minimums checklist, unchanged.
@@ -144,7 +178,7 @@ function buildCommercialEligibilityHtml(row, col, bData, anchorRow, anchorCol, d
 // Builds the "what drives this tile's wealth tier" panel section for a zoned
 // residential/commercial tile. Returns '' for every other zone type.
 function buildZoneEligibilityHtml(zone, row, col, bData, anchorRow, anchorCol, density) {
-  if (zone === ZONE_RES) return buildResidentialWealthDistrictHtml(row, col);
+  if (zone === ZONE_RES) return buildResidentialWealthDistrictHtml(bData ? anchorRow : row, bData ? anchorCol : col, bData);
   if (zone === ZONE_COM) return buildCommercialEligibilityHtml(row, col, bData, anchorRow, anchorCol, density);
   return '';
 }
@@ -168,6 +202,8 @@ function showInspectPanel(scene, row, col, pointer = null) {
   const inspectRecord = resolveBuildingRecordForInspect(scene, row, col);
   const hasBldg = inspectRecord.hasBldg;
   const bData = inspectRecord.bData;
+  const buildingPowered = bData?.type === 'public_market'
+    ? !!powerMap[inspectRecord.anchorRow]?.[inspectRecord.anchorCol] : powered;
 
   const ZONE_COLORS   = { [ZONE_RES]:'#66ff88', [ZONE_COM]:'#6699ff', [ZONE_IND]:'#ffcc33' };
   const INFRA_LABELS  = {
@@ -183,6 +219,7 @@ function showInspectPanel(scene, row, col, pointer = null) {
     hospital: `🏥 ${t('building.hospital')}`,
     legislative_council: `🏛️ ${t('building.legislativeCouncil')}`,
     stock_exchange: `🏦 ${t('building.stockExchange')}`,
+    public_market: `🛒 ${t('building.publicMarket')}`,
     event_ground: `▧ ${t('park.eventGround')}`,
     park_small: `🌳 ${t('building.smallPark')}`,
     park_large: `🌲 ${t('building.largePark')}`,
@@ -200,6 +237,7 @@ function showInspectPanel(scene, row, col, pointer = null) {
     hospital: t('inspect.healthRadius', { radius: HOSPITAL_RADIUS, upkeep: UPKEEP_HOSPITAL }),
     legislative_council: t('inspect.legislativeCouncil'),
     stock_exchange: t('inspect.stockExchange'),
+    public_market: t('inspect.publicMarket', { upkeep: SPECIAL_BUILDING_EFFECTS.public_market.upkeep }),
     event_ground: t('inspect.eventGround', { upkeep: UPKEEP_EVENT_GROUND }),
     park_small: t('inspect.parkRadius', { radius: SMALL_PARK_RADIUS, upkeep: UPKEEP_PARK_SMALL }),
     park_large: t('inspect.parkRadius', { radius: LARGE_PARK_RADIUS, upkeep: UPKEEP_PARK_LARGE }),
@@ -217,6 +255,7 @@ function showInspectPanel(scene, row, col, pointer = null) {
     hospital:'#35b98f',
     legislative_council:'#4d6bbf',
     stock_exchange:'#c39a2d',
+    public_market:'#699e70',
     event_ground:'#d0bc94',
     park_small:'#58d66a',
     park_large:'#32b457',
@@ -287,7 +326,7 @@ function showInspectPanel(scene, row, col, pointer = null) {
         <div class="insp-row">${INFRA_DESCS[bData.type]}</div>
         ${bData.type === 'event_ground' ? (typeof buildStreetFoodInspectHtml === 'function' ? buildStreetFoodInspectHtml(activeScene, row, col) : '') : isPark
           ? `<div class="insp-row insp-ok">${t('inspect.nearbyResidentialBoost')}</div>`
-          : `<div class="insp-row ${powered ? 'insp-ok' : 'insp-warn'}">${t('inspect.power', { status: powered ? t('inspect.powerActive') : t('inspect.powerUnpowered') })}</div>`}
+          : `<div class="insp-row ${buildingPowered ? 'insp-ok' : 'insp-warn'}">${t('inspect.power', { status: buildingPowered ? t('inspect.powerActive') : t('inspect.powerUnpowered') })}</div>`}
         <div class="insp-row insp-muted">${POWER_PLANT_STATS[bData.type] ? t('inspect.powerAge', { age: formatPowerPlantAge(bData) }) : t('inspect.age', { age: bData.age ?? 0 })}</div>
       </div>`;
     if (bData.type === 'power_plant_coal' || bData.type === 'power_plant_solar') {
@@ -303,6 +342,9 @@ function showInspectPanel(scene, row, col, pointer = null) {
           ${bData.powerWarning ? `<div class="insp-row insp-warn">${t('inspect.powerWarning')}</div>` : ''}
           <div class="insp-row insp-muted">$${getPowerPlantMaintenance(bData)}/mo upkeep</div>
         </div>`;
+    }
+    if (bData.type === 'public_market') {
+      html += buildPublicMarketInspectHtml(inspectRecord.anchorRow, inspectRecord.anchorCol);
     }
   }
 
@@ -363,6 +405,7 @@ function showInspectPanel(scene, row, col, pointer = null) {
       </div>`;
 
     html += buildZoneEligibilityHtml(zone, row, col, bData, inspectRecord.anchorRow, inspectRecord.anchorCol, density);
+
   }
 
   // Service coverage

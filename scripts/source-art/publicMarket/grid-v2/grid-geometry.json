@@ -1,0 +1,49 @@
+{
+  "version": 2,
+  "canvas": [
+    1600,
+    1400
+  ],
+  "siteMetres": [
+    60,
+    60
+  ],
+  "tileMetres": 20,
+  "tiles": [
+    3,
+    3
+  ],
+  "projection": "screenX=200+10*(x+y); screenY=800+5*(x-y)-20*z",
+  "groundCorners": [
+    [
+      800,
+      500
+    ],
+    [
+      1400,
+      800
+    ],
+    [
+      800,
+      1100
+    ],
+    [
+      200,
+      800
+    ]
+  ],
+  "groundAxisSlopes": [
+    0.5,
+    -0.5
+  ],
+  "groundWidthHeight": 2,
+  "files": [
+    "01-grid.svg",
+    "01-grid.png",
+    "02-layout.svg",
+    "02-layout.png",
+    "03-construction-guide.svg",
+    "03-construction-guide.png"
+  ],
+  "generatedArtMatchesGuide": "must be checked separately; source geometry is exact, generated paint is not automatically certified"
+}

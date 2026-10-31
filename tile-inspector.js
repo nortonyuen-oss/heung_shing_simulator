@@ -158,7 +158,7 @@ function showTileDebug(scene, pointer) {
     <div class="dbg-divider"></div>`;
 
   // ── Infrastructure building tooltip ──────────────────────────────────────────
-  const INFRA_TYPES = ['power_plant_coal', 'power_plant_solar', 'power_plant_nuclear', 'fire_station', 'police_station', 'primary_school', 'secondary_school', 'library', 'community_college', 'university', 'hospital', 'legislative_council', 'stock_exchange', 'park_small', 'park_large', 'sports_ground_small', 'sports_ground_large'];
+  const INFRA_TYPES = ['power_plant_coal', 'power_plant_solar', 'power_plant_nuclear', 'fire_station', 'police_station', 'primary_school', 'secondary_school', 'library', 'community_college', 'university', 'hospital', 'legislative_council', 'stock_exchange', 'public_market', 'park_small', 'park_large', 'sports_ground_small', 'sports_ground_large'];
   if (bData && INFRA_TYPES.includes(bData.type)) {
     const INFRA_LABELS = {
       power_plant_coal:    '⚡ Coal Power Plant',
@@ -172,6 +172,7 @@ function showTileDebug(scene, pointer) {
       community_college:   '🎓 Community College',
       university:          '🎓 University',
       hospital:            '🏥 Hospital',
+      public_market:       `🛒 ${t('building.publicMarket')}`,
       park_small:          '🌳 Small Park',
       park_large:          '🌲 Large Park',
       sports_ground_small: '⚽ Sports Ground',
@@ -189,6 +190,7 @@ function showTileDebug(scene, pointer) {
       community_college:   `Higher education radius ${COMMUNITY_COLLEGE_RADIUS} tiles · Upkeep $${UPKEEP_COMMUNITY_COLLEGE}/mo`,
       university:          `Higher education radius ${UNIVERSITY_RADIUS} tiles · Upkeep $${UPKEEP_UNIVERSITY}/mo`,
       hospital:            `Health coverage radius ${HOSPITAL_RADIUS} tiles · Upkeep $${UPKEEP_HOSPITAL}/mo`,
+      public_market:       t('inspect.publicMarket', { upkeep: SPECIAL_BUILDING_EFFECTS.public_market.upkeep }),
       park_small:          `Residential happiness radius ${SMALL_PARK_RADIUS} tiles · Upkeep $${UPKEEP_PARK_SMALL}/mo`,
       park_large:          `Residential happiness radius ${LARGE_PARK_RADIUS} tiles · Upkeep $${UPKEEP_PARK_LARGE}/mo`,
       sports_ground_small: `Recreation radius ${SPORTS_GROUND_RADIUS} tiles · Upkeep $${UPKEEP_SPORTS_GROUND_SMALL}/mo`,
@@ -200,6 +202,7 @@ function showTileDebug(scene, pointer) {
       primary_school:      '#59a9ff', secondary_school:    '#2f78cc',
       library:             '#6f9cd6', community_college:   '#7a77cc',
       university:          '#5f52b4', hospital:            '#35b98f',
+      public_market:       '#699e70',
       park_small:          '#58d66a', park_large:          '#32b457',
       sports_ground_small: '#f0a830', sports_ground_large: '#e07b20',
     };

@@ -2,8 +2,9 @@
 // Divides the map into a fixed grid of cells (see WEALTH_DISTRICT_GRID_CELL_SIZE
 // in constants.js) and classifies each cell into one of four named wealth
 // districts (commoner/middleClass/wealthy/ultraRich) from the average land
-// value of that cell's own built residential tiles. This is the sole driver
-// of residential wealth-tier (L/M/H/UH) odds - see
+// value of that cell's own built residential tiles. This supplies the base
+// residential wealth-tier (L/M/H/UH) odds; nearby public markets reduce UH
+// selection locally without changing the whole district. See
 // RESIDENTIAL_WEALTH_DISTRICT_PROBABILITIES in constants.js and
 // getResidentialWealthDistrictWeights() below - replacing the old per-tile
 // quality-band + minimums-checklist system entirely.

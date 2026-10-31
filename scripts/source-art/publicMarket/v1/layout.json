@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "units": "metres",
+  "site": { "width": 60, "depth": 60, "area": 3600, "tiles": [3, 3], "tileSize": 20 },
+  "coordinateSystem": "Plan X runs left-to-right across the front; Y runs front-to-back. Origin is the front-left site corner.",
+  "building": { "x": 4, "y": 18, "width": 42, "depth": 36, "footprintArea": 1512, "storeys": 2, "heightApprox": 12 },
+  "frontParkAndForecourt": { "x": 0, "y": 0, "width": 60, "depth": 16, "area": 960 },
+  "sideServiceYard": { "x": 48, "y": 18, "width": 12, "depth": 40, "area": 480 },
+  "remainingPathsSetbacksAndRearAccessArea": 648,
+  "floors": [
+    { "level": "ground", "uses": ["魚檔", "肉檔", "蔬果檔", "主要入口", "側邊貨物入口"] },
+    { "level": "upper", "uses": ["乾貨", "熟食中心", "圓檯座位"] }
+  ],
+  "frontPark": ["三棵遮蔭樹", "矮花槽", "長凳", "公園燈", "直達街市入口的步行通道"],
+  "serviceYard": ["一個黃線落貨位", "貨物捲閘", "落貨平台", "手唧車", "蔬果箱"],
+  "citizensAndVehiclesBakedIntoAsset": false,
+  "runtimeIntegrated": false,
+  "notes": [
+    "All park, forecourt, service yard and building areas fit within the same nine tiles.",
+    "These are design targets, not surveyed dimensions or a verified construction plan. Image generation may approximate the allocation.",
+    "The front public park and goods service yard remain spatially separate.",
+    "Ground footprint projection target is height:width 1:2, axes +/-0.5."
+  ]
+}

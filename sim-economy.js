@@ -45,7 +45,11 @@ function runEconomy(scene) {
   const snapshot = runEconomyProfiledStep(
     scene,
     'budget',
-    () => computeBudgetSnapshot({ loanPayment }),
+    () => {
+      // Settle rents against this month's population after the growth pass.
+      if (typeof invalidatePublicMarketState === 'function') invalidatePublicMarketState();
+      return computeBudgetSnapshot({ loanPayment });
+    },
   );
   runEconomyProfiledStep(scene, 'commit', () => {
     city.monthlyIncome = snapshot.totalIncome;

@@ -634,6 +634,7 @@ function getBuildingTypeLabel(type) {
     hospital: 'building.hospital',
     legislative_council: 'building.legislativeCouncil',
     stock_exchange: 'building.stockExchange',
+    public_market: 'building.publicMarket',
     park_small: 'building.smallPark',
     park_large: 'building.largePark',
     airport: 'building.airport',

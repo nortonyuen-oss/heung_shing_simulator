@@ -902,6 +902,8 @@ function computeLandValueInfluenceMaps() {
   const nuisance = createFilledMap(0);
   const landmarkBonus = createFilledMap(0);
   Object.entries(buildingData).forEach(([id, rec]) => {
+    // Market premiums are operational, capped and wealth-sensitive below.
+    if (rec.type === 'public_market') return;
     const stats = POWER_PLANT_STATS[rec.type];
     const landmarkEffects = SPECIAL_BUILDING_EFFECTS[rec.type];
     if (!stats && !landmarkEffects) return;
@@ -953,6 +955,7 @@ function composeLandValueMap(canopy, pollution, influenceMaps) {
   const nuisance = influenceMaps?.nuisance ?? createFilledMap(0);
   const landmarkBonus = influenceMaps?.landmarkBonus ?? createFilledMap(0);
   const map = createFilledMap(0);
+  const marketState = typeof getPublicMarketState === 'function' ? getPublicMarketState() : null;
   const applyTile = (r, c) => {
     if (zoneMap[r]?.[c] === ZONE_NONE) return;
     let val = 0.35;
@@ -965,6 +968,7 @@ function composeLandValueMap(canopy, pollution, influenceMaps) {
       val += getScenicValue(r, c) * SCENIC_LAND_VALUE_BONUS_MAX;
     }
     val += landmarkBonus[r]?.[c] ?? 0;
+    if (marketState) val += getPublicMarketLandValueBonus(r, c, zoneMap[r][c], marketState);
     // §14.2: transit access is a land-value effect for commercial tiles only
     // - residential gets a happiness effect instead (§14.4), industrial gets
     // a demand effect instead (§14.3).

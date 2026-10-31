@@ -1,0 +1,15 @@
+{
+  "method": "Independent bottom alpha silhouette fit on final PNG, alpha>=200",
+  "frontLeft": {
+    "slope": 0.50000408001632,
+    "intercept": 699.3279620318482
+  },
+  "frontRight": {
+    "slope": -0.4999939999759999,
+    "intercept": 1499.2434029736119
+  },
+  "targetSlopes": [
+    0.5,
+    -0.5
+  ]
+}

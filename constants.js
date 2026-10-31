@@ -737,6 +737,7 @@ const DEFAULT_BUILDING_ANCHOR_MODE = 'effective-bottom-to-map-bottom';
 // scripts/detect-building-ground-corners.js and hand-calibrated with the 建築地盤校正 test-mode tool
 // (2026-09-28). A corner may lie outside the canvas: that shrinks art drawn larger than its lot.
 const BUILDING_GROUND_CORNERS = {
+  'Models/publicMarket/pm_market3x3_style_v3.png': { left: [200, 800], front: [800, 1100], right: [1400, 800] },
   // All six Victoria Park modules share the same 80m lot and must keep identical anchors.
   'Models/parks/park4x4/victoriaPark4-01.png': { left: [8, 716], front: [512, 968], right: [1016, 716] },
   ...Object.fromEntries(Array.from({ length: 6 }, (_, index) => [
@@ -1039,6 +1040,12 @@ function selectServiceBuildingModel(buildingType, existingCount = 0, randomValue
 // placeInfraBuilding() pipeline as SERVICE_BUILDING_MODELS, but gated by
 // SPECIAL_BUILDING_UNLOCKS instead of budget alone.
 const SPECIAL_BUILDING_MODELS = {
+  public_market: {
+    spriteKey: 'public_market_2x2',
+    path: 'Models/publicMarket/pm_market3x3_style_v3.png',
+    footprintCols: 2,
+    footprintRows: 2,
+  },
   exhibition_center: {
     spriteKey: 'exhibition_center_4x4',
     path: 'Models/specialSites/4x4/exhibitionCentre4-01.png',
@@ -1519,6 +1526,7 @@ const SPECIAL_BUILDING_UNLOCKS = {
 // nearby land value like POWER_PLANT_STATS; revenue/upkeep feed the monthly
 // budget in city-state.js.
 const SPECIAL_BUILDING_EFFECTS = {
+  public_market:      { landValueBonus: 0.02, landValueRadius: 6, upkeep: 80 },
   exhibition_center: { attractivenessBonus: 6,  landValueBonus: 0.10, landValueRadius: 10, revenue: 260, upkeep: 900 },
   cultural_center:    { attractivenessBonus: 5,  landValueBonus: 0.08, landValueRadius: 8,  happinessBonus: 0.015, upkeep: 520 },
   space_museum:       { attractivenessBonus: 4,  landValueBonus: 0.06, landValueRadius: 7,  happinessBonus: 0.010, upkeep: 380 },
@@ -1552,6 +1560,7 @@ const SPECIAL_BUILDING_EFFECTS = {
 };
 
 const SPECIAL_BUILDING_COSTS = {
+  public_market:      3200,
   exhibition_center: 15000,
   cultural_center:    9000,
   space_museum:       6500,
@@ -1654,6 +1663,7 @@ const BUILDING_POWER_DEMAND = {
   buddha_statue: 4,
   heritage_temple: 3,
   fish_market: 6,
+  public_market: 8,
   seafood_restaurant: 4,
   fish_loading_bay: 1,
   yacht_club: 5,

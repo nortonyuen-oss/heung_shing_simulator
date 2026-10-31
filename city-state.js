@@ -895,6 +895,7 @@ let _powerGridDirty = true;
 let _serviceCoverageDirty = true;
 
 function invalidateBuildingCountCache(options = {}) {
+  if (typeof invalidatePublicMarketState === 'function') invalidatePublicMarketState({ deferDuringPulse: true });
   _buildingCountCache = null;
   if (options.facilities !== false) _buildingFacilityCache = null;
 }
@@ -944,6 +945,7 @@ function getBuildingFacilityCacheStats() {
 }
 
 function markPowerGridDirty() {
+  if (typeof invalidatePublicMarketState === 'function') invalidatePublicMarketState({ deferDuringPulse: true });
   _powerGridDirty = true;
 }
 
@@ -989,6 +991,7 @@ function computeLandmarkFinancials() {
     revenue += count * (effects.revenue || 0);
     upkeep += count * (effects.upkeep || 0);
   });
+  if (typeof getPublicMarketMonthlyRevenue === 'function') revenue += getPublicMarketMonthlyRevenue();
   return { revenue, upkeep };
 }
 

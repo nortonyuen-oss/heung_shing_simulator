@@ -37,6 +37,7 @@ const INFRA_COSTS = {
 // under the "Landmarks" menu category — harbor/airport live under "Services"
 // (tool-menu.js:getToolCategoryForTool) but share this same unlock/effect wiring.
 const LANDMARK_TOOL_BUILDING_TYPES = {
+  'public-market':     'public_market',
   'exhibition-center': 'exhibition_center',
   'cultural-center':   'cultural_center',
   'space-museum':      'space_museum',
@@ -650,6 +651,9 @@ function placeSportsGround(scene, row, col, option) {
 function refreshInfrastructureEffects(scene) {
   if (typeof refreshEventGroundPaving === 'function') refreshEventGroundPaving(scene);
   invalidateBuildingCountCache();
+  if (typeof invalidatePublicMarketState === 'function') invalidatePublicMarketState();
+  // A market or its access road can change local wealth preferences immediately.
+  if (typeof clearZoneGrowthQualityContextCache === 'function') clearZoneGrowthQualityContextCache();
   if (typeof invalidateOverlayCache === 'function') invalidateOverlayCache();
   if (typeof markTransportDemandDirty === 'function') markTransportDemandDirty();
   markPowerGridDirty();

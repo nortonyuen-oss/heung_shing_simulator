@@ -427,6 +427,14 @@ Object.assign(BUILDING_LIGHT_PROFILES, {
 // wrong building. Service/park/special entries below (university_4x4 etc.) are
 // hand-authored sprite keys and already stable.
 const BUILDING_LIGHT_HERO_PROFILES = {
+  public_market_2x2: makeBuildingLightProfile({
+    class: 'off',
+    panels: [
+      { c: [[0.285, 0.316], [0.516, 0.552], [0.516, 0.606], [0.285, 0.370]], rows: 1, cols: 6 },
+      { c: [[0.285, 0.422], [0.516, 0.660], [0.516, 0.720], [0.285, 0.482]], rows: 1, cols: 6 },
+    ],
+    lamps: [{ x: 0.29492, y: 0.57227, r: 0.025 }, { x: 0.46582, y: 0.74609, r: 0.025 }],
+  }),
   university_4x4: makeBuildingLightProfile({
     class: 'off', service: true,
     panels: [

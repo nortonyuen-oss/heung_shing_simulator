@@ -1,0 +1,163 @@
+{
+  "version": 2,
+  "runtimeIntegrated": false,
+  "method": "Generated flat UV textures on exact world-coordinate planes; NOT a reprojected whole painting",
+  "canvas": [
+    1600,
+    1400
+  ],
+  "siteMetres": [
+    60,
+    60
+  ],
+  "tiles": [
+    3,
+    3
+  ],
+  "tileMetres": 20,
+  "projection": "screenX=200+10*(x+y); screenY=800+5*(x-y)-20*z",
+  "groundCorners": [
+    [
+      800,
+      500
+    ],
+    [
+      1400,
+      800
+    ],
+    [
+      800,
+      1100
+    ],
+    [
+      200,
+      800
+    ]
+  ],
+  "groundWidthHeight": 2,
+  "roofCorners": [
+    [
+      420,
+      500
+    ],
+    [
+      840,
+      710
+    ],
+    [
+      1200,
+      530
+    ],
+    [
+      780,
+      320
+    ]
+  ],
+  "groundAndRoofAxisSlopes": [
+    0.5,
+    -0.5
+  ],
+  "verticalsRetainScreenX": true,
+  "building": {
+    "origin": [
+      4,
+      18
+    ],
+    "footprint": [
+      42,
+      36
+    ],
+    "roofHeight": 11.5,
+    "storeys": 2
+  },
+  "park": {
+    "origin": [
+      0,
+      0
+    ],
+    "footprint": [
+      60,
+      16
+    ]
+  },
+  "loading": {
+    "origin": [
+      48,
+      18
+    ],
+    "footprint": [
+      12,
+      40
+    ]
+  },
+  "sourceAtlas": {
+    "path": "scripts/source-art/publicMarket/grid-v2/texture-atlas.png",
+    "sha256": "66938a73f093f34794e5684830e1f959cc56d3c7fcc948b4ca61b89fd7c593d3",
+    "crops": {
+      "front": [
+        0,
+        0,
+        618,
+        618
+      ],
+      "side": [
+        636,
+        0,
+        618,
+        618
+      ],
+      "roof": [
+        0,
+        636,
+        618,
+        618
+      ],
+      "paving": [
+        636,
+        636,
+        618,
+        618
+      ]
+    }
+  },
+  "reusedTrees": [
+    {
+      "path": "Models/trees/tree02.png",
+      "sha256": "94a8c1096e1b74de7e8a913009925b9ca90b15eb85a8b15ac459ff72431ce63a"
+    },
+    {
+      "path": "Models/trees/tree08.png",
+      "sha256": "bb7ef8c97824dbb860dba64fb965357a0426ebe7d1b34e9dd720c1765d6938fc"
+    },
+    {
+      "path": "Models/trees/tree02.png",
+      "sha256": "94a8c1096e1b74de7e8a913009925b9ca90b15eb85a8b15ac459ff72431ce63a"
+    }
+  ],
+  "alpha": {
+    "borderMax": 0,
+    "transparentPercent": 76.8
+  },
+  "files": [
+    {
+      "path": "Models/publicMarket/pm_market3x3_grid_v2.svg",
+      "sha256": "579bedba8d2b9ff0a6766f7a401e20f4d69841594aed96e6468185d29f673ae9"
+    },
+    {
+      "path": "Models/publicMarket/pm_market3x3_grid_v2.png",
+      "sha256": "f58cc16f2a8cf8495a638bd6932bc926abf59078faa8fdd472ca64402a0313e5"
+    },
+    {
+      "path": "Models/publicMarket/pm_market3x3_clean_v2.png",
+      "sha256": "c1c982ca3f58767637d0055c3509aaa05f0addbff7509cacffae55edf0a193fb"
+    },
+    {
+      "path": "scripts/source-art/publicMarket/grid-v2/04-market.png",
+      "sha256": "f58cc16f2a8cf8495a638bd6932bc926abf59078faa8fdd472ca64402a0313e5"
+    },
+    {
+      "path": "scripts/source-art/publicMarket/grid-v2/05-geometry-audit.png",
+      "sha256": "7e9c5db73b8fd6bcd9ea743058648089b4ba1574a8a8f16bba14165c28767c7f"
+    }
+  ]
+}

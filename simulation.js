@@ -138,6 +138,7 @@ function runCitySimulationPulseStep(scene, step, profiling) {
 }
 
 function beginCitySimulationPulse() {
+  if (typeof invalidatePublicMarketState === 'function') invalidatePublicMarketState();
   // A pulse refreshes aggregate counts, but facility anchors only change
   // through placement/demolition/load paths which invalidate their cache
   // explicitly.

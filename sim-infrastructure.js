@@ -177,6 +177,7 @@ function convertEligibleIndustrialToScienceParks(scene) {
 function updatePowerGrid(scene) {
   if (!_powerGridDirty) return;
   _powerGridDirty = false;
+  if (typeof invalidatePublicMarketState === 'function') invalidatePublicMarketState();
 
   for (let r = 0; r < MAP_HEIGHT; r++)
     for (let c = 0; c < MAP_WIDTH; c++)

@@ -352,6 +352,7 @@ function getToolCategoryForTool(tool) {
     || tool === 'university'
     || tool === 'legislative-council'
     || tool === 'stock-exchange'
+    || tool === 'public-market'
     || tool === 'harbor'
     || tool === 'airport'
   ) return 'services';

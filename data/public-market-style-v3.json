@@ -1,0 +1,176 @@
+{
+  "version": 3,
+  "runtimeIntegrated": false,
+  "source": "scripts/source-art/publicMarket/style-v3/style-source.png",
+  "sourceSha256": "95aa7154214935df5b5cf2cac7c2c20bfe0ccb49da7f7c0a25ed9c1c66d54312",
+  "output": "Models/publicMarket/pm_market3x3_style_v3.png",
+  "outputSha256": "f5eaa9ca2f7ddfa0c80baf58654c7333ced531f19f57947a979e4e4a4f8b87c4",
+  "canvas": [
+    1600,
+    1400
+  ],
+  "siteMetres": [
+    60,
+    60
+  ],
+  "tiles": [
+    3,
+    3
+  ],
+  "method": "imagegen style edit using existing game references; piecewise affine landmark registration to approved ground, wall and roof axes",
+  "registration": {
+    "source": "scripts/source-art/publicMarket/style-v3/style-source.png",
+    "canvas": [
+      1600,
+      1400
+    ],
+    "anchors": [
+      {
+        "name": "roofFrontLeft",
+        "source": [
+          257,
+          390.4173762817889
+        ],
+        "target": [
+          420,
+          490
+        ]
+      },
+      {
+        "name": "roofFrontRight",
+        "source": [
+          731,
+          642
+        ],
+        "target": [
+          840,
+          700
+        ]
+      },
+      {
+        "name": "roofBackRight",
+        "source": [
+          1141,
+          425.2726276964346
+        ],
+        "target": [
+          1200,
+          520
+        ]
+      },
+      {
+        "name": "roofBackLeft",
+        "source": [
+          665.8666180909484,
+          176.4872316603874
+        ],
+        "target": [
+          780,
+          310
+        ]
+      },
+      {
+        "name": "wallFrontLeftFoot",
+        "source": [
+          257,
+          684
+        ],
+        "target": [
+          420,
+          730
+        ]
+      },
+      {
+        "name": "wallFrontRightFoot",
+        "source": [
+          731,
+          923
+        ],
+        "target": [
+          840,
+          940
+        ],
+        "note": "Foot partly obscured by tree; estimated from wall line."
+      },
+      {
+        "name": "wallBackRightFoot",
+        "source": [
+          1141,
+          708
+        ],
+        "target": [
+          1200,
+          760
+        ]
+      },
+      {
+        "name": "siteLeft",
+        "source": [
+          12,
+          762.5598719093306
+        ],
+        "target": [
+          200,
+          800
+        ]
+      },
+      {
+        "name": "siteFront",
+        "source": [
+          668.6595563035172,
+          1142.97686337322
+        ],
+        "target": [
+          800,
+          1100
+        ]
+      },
+      {
+        "name": "siteRight",
+        "source": [
+          1330,
+          762.8958425926327
+        ],
+        "target": [
+          1400,
+          800
+        ]
+      }
+    ],
+    "notes": [
+      "Surface style is supplied by imagegen using existing library, school and fish-market references.",
+      "Restore ground and main roof axes to the approved exact projection through an interpolated mesh; preserve the whole painted volumetric appearance.",
+      "Site and rear-roof anchors come from opaque silhouette line fits. Other corners are manually observed; small painted details are not a reconstructed 3D mesh."
+    ]
+  },
+  "mesh": {
+    "points": 135,
+    "triangles": 264,
+    "allArchitecturalEdgesLocked": true,
+    "noFoldedTriangles": true
+  },
+  "rasterEdgeFit": {
+    "groundLeft": {
+      "slope": 0.500190464761859,
+      "intercept": 699.75476749907
+    },
+    "groundRight": {
+      "slope": -0.5008273147886927,
+      "intercept": 1500.7949890913878
+    },
+    "roofBackLeft": {
+      "slope": -0.49997404536771317,
+      "intercept": 700.1966389366227
+    },
+    "roofBackRight": {
+      "slope": 0.5000479741013096,
+      "intercept": -79.92247037324587
+    }
+  },
+  "borderMaxAlpha": 0,
+  "styleReferences": [
+    "Models/government/2x2/library2-01.png",
+    "Models/government/2x2/primarySchool2-01.png",
+    "Models/specialSites/1x1/fishMarket1-02_day.png"
+  ]
+}

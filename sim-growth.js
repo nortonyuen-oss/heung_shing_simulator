@@ -580,7 +580,11 @@ function scanForLargeResidentialLots(scene, qualityContexts) {
       const base = zone === ZONE_RES
         ? getResidentialLargeSpawnChance(size, DENSITY_HIGH)
         : getNonResidentialLargeSpawnChance(ZONE_COM, size, DENSITY_HIGH);
-      const chance = Math.min(0.95, base * getLargeLotSpawnBoost(landScore, size));
+      const marketGrowthMul = zone === ZONE_COM && typeof getPublicMarketCommercialGrowthMultiplier === 'function'
+        ? getPublicMarketCommercialGrowthMultiplier(r, c)
+        : zone === ZONE_RES && typeof getPublicMarketResidentialGrowthMultiplier === 'function'
+          ? getPublicMarketResidentialGrowthMultiplier(r, c, getResidentialSiteFactors(r, c, size, qualityContexts.residential).wealthDistrictTier) : 1;
+      const chance = Math.min(0.95, base * getLargeLotSpawnBoost(landScore, size) * marketGrowthMul);
       if (Math.random() < chance) {
         spawnZoneBuilding(scene, r, c, zone, 1, DENSITY_HIGH, {
           forceFootprint: size,
@@ -654,7 +658,8 @@ function scanForLowDensityEstateUpgrades(scene, qualityContexts) {
         members.push({ row: rr, col: cc });
       }
     }
-    if (!allEligible || Math.random() >= LOW_DENSITY_ESTATE_UPGRADE_CHANCE) continue;
+    if (!allEligible || Math.random() >= LOW_DENSITY_ESTATE_UPGRADE_CHANCE
+      * (anchorFactors.marketUltraRichWeight ?? 1)) continue;
 
     members.forEach(({ row, col }) => removeBuilding(scene, row, col, { refreshInfrastructure: false }));
     spawnZoneBuilding(scene, r, c, ZONE_RES, 3, DENSITY_LOW, {
@@ -740,11 +745,17 @@ function growZoneTile(scene, { row: r, col: c, id }, ctx) {
   const landScore = getZoneGrowthLandScore(r, c, zone, ctx.landValueMap);
   const growthLandMul = 0.72 + landScore * 0.85;
   const runMonthlyVisualCheck = shouldRunMonthlyZoneVisualCheck(r, c);
+  const districtTier = zone === ZONE_RES && typeof getResidentialWealthDistrictTier === 'function'
+    ? getResidentialWealthDistrictTier(r, c, ctx.residentialQualityContext?.wealthDistrictGrid) : 'commoner';
+  const marketGrowthMul = zone === ZONE_COM && typeof getPublicMarketCommercialGrowthMultiplier === 'function'
+    ? getPublicMarketCommercialGrowthMultiplier(r, c)
+    : zone === ZONE_RES && typeof getPublicMarketResidentialGrowthMultiplier === 'function'
+      ? getPublicMarketResidentialGrowthMultiplier(r, c, districtTier) : 1;
 
   if (!hasBldg) {
     // Grow a new building - unless the block is held for an estate (scanForLargeResidentialLots)
     if (isEstateLotHeld(id)) return;
-    if (hasRoad && demand > 0 && Math.random() < demand * GROW_CHANCE_BASE * powerMul * densityMul * growthLandMul) {
+    if (hasRoad && demand > 0 && Math.random() < demand * GROW_CHANCE_BASE * powerMul * densityMul * growthLandMul * marketGrowthMul) {
       spawnZoneBuilding(scene, r, c, zone, 1, density, {
         landScore,
         residentialQualityContext: ctx.residentialQualityContext,
@@ -776,7 +787,7 @@ function growZoneTile(scene, { row: r, col: c, id }, ctx) {
       return;
     }
 
-    if (record.level < 3 && hasRoad && demand > upgradeDemandGate && Math.random() < UPGRADE_CHANCE * powerMul * densityMul * upgradePremiumMul) {
+    if (record.level < 3 && hasRoad && demand > upgradeDemandGate && Math.random() < UPGRADE_CHANCE * powerMul * densityMul * upgradePremiumMul * marketGrowthMul) {
       if (zone === ZONE_RES && tryMergeResidentialCluster(scene, r, c, record, ctx.residentialQualityContext)) return;
       upgradeZoneBuilding(scene, r, c, zone, landScore, ctx.residentialQualityContext, ctx.commercialQualityContext);
     } else if (
@@ -1744,20 +1755,28 @@ function getResidentialSiteFactors(row, col, footprintSize = 1, context = create
     SKYLINE_NEIGHBORHOOD_RADIUS,
     context.skylineRecords,
   );
+  const wealthDistrictTier = typeof getResidentialWealthDistrictTier === 'function'
+    ? getResidentialWealthDistrictTier(row, col, context.wealthDistrictGrid)
+    : 'commoner';
+  const marketEffect = typeof getPublicMarketResidentialEffect === 'function'
+    ? getPublicMarketResidentialEffect(row, col, footprintSize, footprintSize,
+      getPublicMarketResidentialTier(row, col, wealthDistrictTier))
+    : { qualityBonus: 0, landValueCorrection: 0, ultraRichWeight: 1 };
+  totals.landValue = clamp(totals.landValue + marketEffect.landValueCorrection, 0, 1);
   const quality = clamp(
     totals.landValue * 0.30
     + totals.scenic * 0.15
     + totals.environment * 0.20
     + economy * 0.20
-    + totals.health * 0.15,
+    + totals.health * 0.15
+    + marketEffect.qualityBonus,
     0,
     1,
   );
-  const wealthDistrictTier = typeof getResidentialWealthDistrictTier === 'function'
-    ? getResidentialWealthDistrictTier(row, col, context.wealthDistrictGrid)
-    : 'commoner';
   return {
-    ...totals, economy, quality, urbanCore, skylineStats, wealthDistrictTier, row: centerRow, col: centerCol,
+    ...totals, economy, quality, urbanCore, skylineStats, wealthDistrictTier,
+    marketQualityBonus: marketEffect.qualityBonus, marketUltraRichWeight: marketEffect.ultraRichWeight,
+    row: centerRow, col: centerCol,
   };
 }
 
@@ -2004,11 +2023,11 @@ function meetsResidentialMinimums(factors, minimums) {
   ));
 }
 
-// Residential wealth-tier selection (L/M/H/UH) is driven entirely by which
+// Residential base wealth-tier selection (L/M/H/UH) follows which
 // wealth district (see sim-wealth-districts.js) the tile sits in - no
 // per-tile minimums checklist, no "UH only at low density" rule, and no
 // skyline-saturation throttling. A 富豪區域's whole point is that it stays
-// consistently full of H/UH; see getResidentialWealthDistrictWeights in
+// predominantly H/UH, with a local UH penalty beside public markets. See getResidentialWealthDistrictWeights in
 // sim-wealth-districts.js for the actual lookup + model-availability fallback.
 function pickResidentialWealthTier(weights, randomValue = Math.random()) {
   const entries = Object.entries(weights).filter(([, weight]) => weight > 0);
@@ -2071,9 +2090,11 @@ function getRandomHouseModel(
     wealthDistrictTier: 'commoner',
   };
   const canForceTier = forcedWealthTier && valid.some((model) => model.wealthTier === forcedWealthTier);
+  const wealthWeights = getResidentialWealthDistrictWeights(factors.wealthDistrictTier, valid);
+  wealthWeights.UH *= clamp(factors.marketUltraRichWeight ?? 1, 0, 1);
   const selectedTier = canForceTier
     ? forcedWealthTier
-    : pickResidentialWealthTier(getResidentialWealthDistrictWeights(factors.wealthDistrictTier, valid));
+    : pickResidentialWealthTier(wealthWeights);
   const tierModels = valid.filter((model) => model.wealthTier === selectedTier);
 
   // Massing (LD/MD/HD) is superimposed on top of wealth tier: rolled

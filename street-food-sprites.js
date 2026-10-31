@@ -295,6 +295,9 @@ function updateStreetFoodMarkets(scene, time) {
   const claimed = getStreetFoodClaimedPredicate(scene);
   const venues = typeof getStreetFoodVenues === 'function' ? getStreetFoodVenues(ctx, claimed) : [];
   const minuteOfDay = typeof getGameTimeOfDayMinutes === 'function' ? getGameTimeOfDayMinutes() : Number(city.timeOfDayMinutes) || 0;
+  // 香城夜繽週: the market needs the act; its weekend hours need the calendar day
+  const enabled = typeof isPolicyActive === 'function' && isPolicyActive('nightBazaarWeekend');
+  const weekday = typeof getWeekdayIndex === 'function' && city.day ? getWeekdayIndex(city.year, city.month, city.day) : undefined;
   const roster = {
     carts: typeof getStreetFoodCartIds === 'function' ? getStreetFoodCartIds() : [],
     hawkers: typeof getStreetFoodPeopleByRole === 'function' ? getStreetFoodPeopleByRole('hawker') : [],
@@ -310,7 +313,7 @@ function updateStreetFoodMarkets(scene, time) {
   const wantedIds = new Set();
   const activeVenueIds = new Set(venues.map((v) => v.id));
   venues.forEach((venue) => {
-    const layout = getStreetFoodVenueLayout(venue, { minuteOfDay, weather: city.weather, seed: venue.id, ...roster });
+    const layout = getStreetFoodVenueLayout(venue, { minuteOfDay, weekday, enabled, weather: city.weather, seed: venue.id, ...roster });
     syncStreetFoodVenue(scene, layout).forEach((id) => wantedIds.add(id));
   });
   // every event_ground venue not currently wanted (claimed by a festival, or emptied by the

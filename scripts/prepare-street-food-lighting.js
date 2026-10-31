@@ -23,7 +23,8 @@ const STREET_FOOD_TRUE_PX_PER_METRE_UP = 2.5 * Math.cos(Math.PI / 6) / Math.cos(
 // way scripts/bake-street-lamp-textures.js bakes the lamps' sodium pool (按照夜晚路燈發光方式):
 // one setTexture when the city's lamps switch on, no extra sprites. Tungsten warm white, not
 // sodium orange. Semi-axes in metres along the wire and across it.
-const STRING_LIGHT_POOL = Object.freeze({ alongM: 5.5, acrossM: 3.2, alpha: 0.5, rgb: [255, 196, 118] });
+// Brightened 0.5 -> 0.75 (Norton 2026-10-31): under the night overlay the first pool barely read.
+const STRING_LIGHT_POOL = Object.freeze({ alongM: 5.5, acrossM: 3.6, alpha: 0.75, rgb: [255, 196, 118] });
 
 function stringLightDisplay(record) {
   const scale = (STRING_LIGHT_POLE_HEIGHT_M * STREET_FOOD_TRUE_PX_PER_METRE_UP) / record.poleHeightPx;

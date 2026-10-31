@@ -19,6 +19,7 @@ const COUNCIL_POLICY_METADATA = Object.freeze({
   elderlyTwoDollarFare: { issues: { health: 0.5, business: 0.75, governance: 0.5, finance: -0.5 }, tags: ['elderly', 'welfare', 'subsidy', 'public_transport'], leadOfficialIds: ['councillor_religion', 'treasury_head'] },
   arcticPenguinReserve: { issues: { tourism: 1.5, environment: 0.5, science: -1, finance: -0.5 }, tags: ['photo_spot', 'penguin', 'energy_waste', 'scientific_nonsense'], leadOfficialIds: ['councillor_tourism', 'observatory_head'] },
   busSeatbeltMandate: { issues: { public_safety: 1.25, governance: -0.5, roads: -0.25 }, tags: ['regulation', 'public_transport', 'safety_belt', 'bureaucracy'], leadOfficialIds: ['police_head', 'treasury_head'] },
+  nightBazaarWeekend: { issues: { tourism: 1.5, business: 1, parks_culture: 0.75, public_safety: -0.25, environment: -0.25 }, tags: ['food', 'night_view', 'festival', 'community', 'crowding'], leadOfficialIds: ['culture_head', 'treasury_head'] },
 });
 
 const COUNCIL_VOTING_OFFICIAL_IDS = Object.freeze(
@@ -61,6 +62,7 @@ function getCouncilPolicyEstimatedMonthlyCost(policyId) {
   if (policyId === 'elderlyTwoDollarFare') cost += Math.ceil(city.population / 1000) * 9;
   if (policyId === 'arcticPenguinReserve') cost += Math.ceil(city.population / 5000) * 6;
   if (policyId === 'busSeatbeltMandate') cost += Math.ceil(roadTileCount / 100) * 4;
+  if (policyId === 'nightBazaarWeekend') cost += countNightBazaarGroundTiles() * 6;
   return Math.round(cost);
 }
 

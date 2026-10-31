@@ -134,6 +134,7 @@ const city = {
     elderlyTwoDollarFare: false,
     arcticPenguinReserve: false,
     busSeatbeltMandate: false,
+    nightBazaarWeekend: false,
   },
   council: createDefaultCouncilState(),
   loans: [],
@@ -323,6 +324,7 @@ function resetGameState() {
     elderlyTwoDollarFare: false,
     arcticPenguinReserve: false,
     busSeatbeltMandate: false,
+    nightBazaarWeekend: false,
   };
   city.council = createDefaultCouncilState(city.activePolicies);
   city.loans = [];
@@ -463,7 +465,7 @@ const CITY_STATE_POLICY_IDS = Object.freeze([
   'industrialBuildingRevitalization', 'strongCountryManufacturing',
   'tourismPromotion', 'foreignInvestmentIncentive', 'districtCouncilElection',
   'icac', 'legislativeCouncilElection', 'stockExchangeAct', 'elderlyTwoDollarFare',
-  'arcticPenguinReserve', 'busSeatbeltMandate',
+  'arcticPenguinReserve', 'busSeatbeltMandate', 'nightBazaarWeekend',
 ]);
 
 function isNormalizedCityStateObject(value) {
@@ -1444,6 +1446,7 @@ function getPolicyMonthlyCost() {
     if (policy.id === 'elderlyTwoDollarFare') cost += Math.ceil(city.population / 1000) * 9;
     if (policy.id === 'arcticPenguinReserve') cost += Math.ceil(city.population / 5000) * 6;
     if (policy.id === 'busSeatbeltMandate') cost += Math.ceil(roadTileCount / 100) * 4;
+    if (policy.id === 'nightBazaarWeekend') cost += countNightBazaarGroundTiles() * 6;
   });
   return Math.round(cost);
 }
@@ -1463,6 +1466,18 @@ function countEducationBuildings() {
     || rec.type === 'community_college'
     || rec.type === 'university'
   )).length;
+}
+
+// 香城夜繽週: cleansing, hawker management and power for each 活動空地 tile the market can use.
+function countNightBazaarGroundTiles() {
+  return Object.values(buildingData).filter((rec) => rec.type === 'event_ground').length;
+}
+
+// How much of 香城夜繽週's lift the city gets (0..1): nothing without the act, and nothing without
+// grounds to hold it - a market on 4+ event-ground tiles gives the full commercial/happiness bonus.
+function getNightBazaarEffectShare() {
+  if (typeof isPolicyActive !== 'function' || !isPolicyActive('nightBazaarWeekend')) return 0;
+  return Math.min(1, countNightBazaarGroundTiles() / 4);
 }
 
 function countPolicyParks() {

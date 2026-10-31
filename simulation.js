@@ -683,6 +683,7 @@ function updateDemand() {
     + foreignInvBoost
     + (isPolicyActive('elderlyTwoDollarFare') ? 0.035 : 0)
     + (isPolicyActive('arcticPenguinReserve') ? 0.018 : 0)
+    + (typeof getNightBazaarEffectShare === 'function' ? getNightBazaarEffectShare() * 0.03 : 0)
     + (typeof getCouncilTemporaryModifier === 'function' ? getCouncilTemporaryModifier('commercialDemand') : 0)
     + transportCommercialBonus
     + (hasBuildingType('stock_exchange') ? 0.10 * hsiRatio : 0)
@@ -868,6 +869,7 @@ function computeHappiness(scene) {
     + (isPolicyActive('publicSafety') ? 0.02 : 0)
     + (isPolicyActive('elderlyTwoDollarFare') ? 0.025 : 0)
     + (isPolicyActive('arcticPenguinReserve') ? 0.008 : 0)
+    + (typeof getNightBazaarEffectShare === 'function' ? getNightBazaarEffectShare() * 0.015 : 0)
     - (isPolicyActive('busSeatbeltMandate') ? 0.012 : 0);
   const lawBonus = Math.min(0.10, (city.ruleOfLawIndex ?? 0) * 0.10 + (hasBuildingType('stock_exchange') ? 0.02 : 0));
   const healthBonus = (clamp(city.healthIndex ?? 0.5, 0, 1) - 0.5) * 0.08;

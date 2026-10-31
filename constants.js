@@ -86,6 +86,9 @@ const CITY_POLICY_DEFS = [
   { id: 'elderlyTwoDollarFare', titleKey: 'policy.elderlyTwoDollarFare.title', descKey: 'policy.elderlyTwoDollarFare.desc', monthlyBase: 260, unlockPopulation: 10000, category: 'socialWelfare', moverId: 'councillor_religion' },
   { id: 'arcticPenguinReserve', titleKey: 'policy.arcticPenguinReserve.title', descKey: 'policy.arcticPenguinReserve.desc', monthlyBase: 320, unlockPopulation: 25000, requiresBuildingTypes: ['ocean_park'], hideUntilBuildingRequirements: true, category: 'environmentPlanning', moverId: 'observatory_head' },
   { id: 'busSeatbeltMandate', titleKey: 'policy.busSeatbeltMandate.title', descKey: 'policy.busSeatbeltMandate.desc', monthlyBase: 190, unlockPopulation: 10000, category: 'safetyTransport', moverId: 'police_head' },
+  // 香城夜繽週 (Norton 2026-10-31): the event grounds' 大排檔 night market (street-food-market.js)
+  // runs only under this act - after school to 宵夜 on weekdays, a bigger, longer one at weekends.
+  { id: 'nightBazaarWeekend', titleKey: 'policy.nightBazaarWeekend.title', descKey: 'policy.nightBazaarWeekend.desc', monthlyBase: 140, unlockPopulation: 10000, category: 'financeEconomy', moverId: 'councillor_tourism' },
 ];
 
 const HSI_BASE_LEVEL = 20000;

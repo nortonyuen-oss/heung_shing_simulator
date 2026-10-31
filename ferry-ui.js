@@ -35,6 +35,7 @@ function getFerryRouteSummary(route, state = getFerryState()) {
     working: working.length,
     servicing: fleet.filter((v) => v.status === 'servicing').length,
     broken: fleet.filter((v) => v.status === 'broken_down').length,
+    laidUp: fleet.filter((v) => v.status === 'laid_up').length,
     cycleMinutes: cycle,
     headwayMinutes: working.length ? cycle / working.length : 0,
     passengers: route.monthToDatePassengers || 0,
@@ -49,6 +50,9 @@ function ferryVesselStatusText(v) {
     active: ferryT('ferry.vessel.status.active', '航行中'),
     servicing: ferryT('ferry.vessel.status.servicing', '保養中'),
     broken_down: ferryT('ferry.vessel.status.broken', '故障'),
+    laid_up: getFerrySuspension(typeof getTyphoonShelterFleetClock === 'function' ? getTyphoonShelterFleetClock() : 0) === 'storm'
+      ? ferryT('ferry.vessel.status.laidUpStorm', '風球停航')
+      : ferryT('ferry.vessel.status.laidUpNight', '夜間停航（08:00 復航）'),
   }[v.status] || v.status;
 }
 
@@ -289,7 +293,9 @@ function refreshFerryInspectorBody(root, kind, id) {
   const nextService = Math.max(0, serviceEvery - v.minutesSinceService) / 1440;
   const legs = route && getFerryRouteLegs(route);
   const now = typeof getTyphoonShelterFleetClock === 'function' ? getTyphoonShelterFleetClock() : 0;
-  const point = legs && v.status === 'active' ? ferryVesselPointAt(legs, now, v.phase) : null;
+  const point = !legs ? null
+    : v.status === 'active' ? ferryVesselPointAt(legs, now, v.phase)
+      : v.status === 'laid_up' ? ferryVesselPointAt(legs, v.downStartedAt, v.phase) : null;
   const where = !point ? '—' : point.state === 'alongside'
     ? ferryT('ferry.vessel.alongside', '泊喺「{pier}」', { pier: getFerryPierById(route.pierIds[point.pier], state)?.name || '' })
     : ferryT('ferry.vessel.sailing', '航行中');

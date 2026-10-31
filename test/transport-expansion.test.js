@@ -537,6 +537,9 @@ test('live expansion unlocks, routes, breaks, settles and restores without affec
     routeOperations: 0,
     depotUpkeep: 0,
     ferryOperations: 0,
+    operatingSubsidy: 0,
+    elderlyFareSubsidy: 0,
+    subsidy: 0,
     cost: 0,
     net: 0,
   });
@@ -1306,4 +1309,43 @@ test('the pier template only appears for stops the game considers near water', (
   context.isNearWaterfront = () => false;
   vm.runInContext('landName = getTransportStopAutoName(waterStop);', context);
   assert.notEqual(context.landName.zh, '油尖旺碼頭');
+});
+
+test('政府補貼: under the act the company is paid 30% of last month\'s costs, and the 兩蚊長者優惠 cost too', () => {
+  const context = createTransportVm();
+  context.activeActs = new Set();
+  vm.runInContext(`
+    function isPolicyActive(id) { return activeActs.has(id); }
+    function getCouncilPolicyEstimatedMonthlyCost(id) { return id === 'elderlyTwoDollarFare' ? 287 : 0; }
+    setExpansionEnabled('transport', true, { notify: false, autosave: false });
+    stopIds = listTransportStopSites().map((stop) => stop.id);
+    ensureTransportStopPairs(stopIds, null);
+    route = createTransportRoute({ stopIds, fare: 35 });
+    depotId = getConnectedCommissionedTransportDepots()[0].id;
+    vehicle = buyTransportVehicle(depotId, 'standard_double_decker');
+    assignTransportVehicleToRoute(vehicle.id, route.id);
+    driveTransportMinutes(24 * 60);
+    first = settleTransportMonth();
+    dueAfterFirst = getTransportOperatingSubsidyDue();
+  `, context);
+  assert.equal(context.first.subsidy, 0, 'no act, no subsidy');
+  assert.ok(context.first.cost > 0);
+  assert.equal(context.dueAfterFirst, Math.round(0.3 * context.first.cost), 'what the act will cost the city next month');
+
+  context.activeActs.add('transportOperatingSubsidy');
+  context.activeActs.add('elderlyTwoDollarFare');
+  vm.runInContext(`
+    city.month = 2;
+    driveTransportMinutes(24 * 60);
+    cashBefore = getTransportExpansionState().company.cash;
+    second = settleTransportMonth();
+    cashAfter = getTransportExpansionState().company.cash;
+  `, context);
+  const s = context.second;
+  assert.equal(s.operatingSubsidy, Math.round(0.3 * context.first.cost), 'a month in arrears: last month\'s costs');
+  assert.equal(s.elderlyFareSubsidy, 287, 'the elderly-fare act\'s monthly cost goes to the company');
+  assert.equal(s.subsidy, s.operatingSubsidy + s.elderlyFareSubsidy);
+  assert.equal(s.net, s.revenue + s.subsidy - s.cost);
+  assert.equal(context.cashAfter - context.cashBefore, s.subsidy - s.cost, 'cash: costs out, subsidy in (fares were credited as riders alighted)');
+  assert.equal(vm.runInContext('getTransportExpansionState().financeHistory.at(-1).subsidy', context), s.subsidy, 'kept in the books');
 });

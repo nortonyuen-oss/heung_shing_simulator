@@ -88,6 +88,9 @@ const CITY_POLICY_DEFS = [
   { id: 'busSeatbeltMandate', titleKey: 'policy.busSeatbeltMandate.title', descKey: 'policy.busSeatbeltMandate.desc', monthlyBase: 190, unlockPopulation: 10000, category: 'safetyTransport', moverId: 'police_head' },
   // 香城夜繽週 (Norton 2026-10-31): the event grounds' 大排檔 night market (street-food-market.js)
   // runs only under this act - every day from after school to 宵夜, whenever no festival has the lot.
+  // 政府補貼 (Norton 2026-10-31): the government pays the transport company a share of its running
+  // costs each month (transport-expansion.js settleTransportMonth); monthlyBase is the admin on top.
+  { id: 'transportOperatingSubsidy', titleKey: 'policy.transportOperatingSubsidy.title', descKey: 'policy.transportOperatingSubsidy.desc', monthlyBase: 40, unlockPopulation: 10000, category: 'safetyTransport', moverId: 'treasury_head' },
   { id: 'nightBazaarWeekend', titleKey: 'policy.nightBazaarWeekend.title', descKey: 'policy.nightBazaarWeekend.desc', monthlyBase: 140, unlockPopulation: 10000, category: 'financeEconomy', moverId: 'councillor_tourism' },
 ];
 

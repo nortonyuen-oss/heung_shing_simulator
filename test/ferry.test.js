@@ -186,3 +186,76 @@ test('berthings: each ferry at A at the start of its round trip, at B as the out
   assert.equal(ferry.ferryBerthing(0, 9999).boarding, FERRY.capacity);
 });
 
+
+// 停航 (Norton 2026-10-31): no sailings midnight-08:00 or under signal 8+; a ferry ties up at the
+// pier it last reached and sails again when its own timetable next brings it there.
+function loadFerryWorld() {
+  const vm = require('node:vm');
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const context = vm.createContext({ console, severe: false });
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'ferry.js'), 'utf8'), context, { filename: 'ferry.js' });
+  vm.runInContext(`
+    function isTransportSevereWeather() { return severe; }
+    var testLegs = (() => {
+      const a = { row: 0, col: 0, land: 'n' }, b = { row: 0, col: 10, land: 'n' }, p = [[3, 0], [3, 5], [3, 10]];
+      return { out: ferryLeg(a, b, p), back: ferryLeg(b, a, [...p].reverse()) };
+    })();
+    getFerryRouteLegs = () => testLegs;
+    var world = {
+      routes: [{ id: 'r1', status: 'active', pierIds: ['p0', 'p1'] }],
+      piers: [{ id: 'p0', waiting: 0 }, { id: 'p1', waiting: 0 }],
+      vessels: [{ id: 'f1', routeId: 'r1', phase: 0, status: 'active', aboard: 0, condition: 1, minutesSinceService: 0, tilesThisMonth: 0, monthToDateRevenue: 0 }],
+    };
+    function run(from, to) { for (let t = from; t < to; t += 5) berthFerries(world, t, t + 5); }
+  `, context);
+  return context;
+}
+
+test('停航: no sailings from midnight to 08:00 - it ties up at the pier it last reached and resumes there', () => {
+  const c = loadFerryWorld();
+  const ev = (code) => vm_(c, code);
+  function vm_(ctx, code) { return require('node:vm').runInContext(code, ctx); }
+  assert.equal(ev('isFerryNightRest(0)'), true, '00:00');
+  assert.equal(ev('isFerryNightRest(7 * 60 + 59)'), true);
+  assert.equal(ev('isFerryNightRest(8 * 60)'), false, 'sails from 08:00');
+  assert.equal(ev('isFerryNightRest(23 * 60 + 59)'), false);
+  assert.equal(ev('isFerryNightRest(1440 + 60)'), true, 'any day');
+  // environment minutes: sky = env + 360, so sky 00:00 is env 1080 and sky 08:00 env 1560
+  ev('run(900, 1080)');
+  assert.equal(ev('world.vessels[0].status'), 'active', 'sailing through the evening');
+  ev('run(1080, 1300)');
+  const v = ev('world.vessels[0]');
+  assert.equal(v.status, 'laid_up', 'tied up after midnight');
+  assert.ok(v.downStartedAt >= 1440 && v.downStartedAt < 1440 + 8 * 60, 'tied up at its first berthing after midnight');
+  const tiedAt = ev(`ferryVesselPointAt(testLegs, world.vessels[0].downStartedAt, world.vessels[0].phase)`);
+  assert.equal(tiedAt.state, 'alongside');
+  assert.equal(tiedAt.pier, v.laidUpPier, 'alongside the pier it is laid up at');
+  ev('run(1300, 1560)');
+  assert.equal(ev('world.vessels[0].status'), 'laid_up', 'still tied up at 07:59');
+  // after 08:00 it is back on the timetable at its next call at that same pier: no jump
+  ev('world.vessels[0].lastResume = null');
+  ev(`(() => { const v = world.vessels[0]; for (let t = 1560; t < 1800 && v.status === 'laid_up'; t += 1) { berthFerries(world, t, t + 1); if (v.status === 'active') v.lastResume = t + 1; } })()`);
+  const resumed = ev('world.vessels[0]');
+  assert.equal(resumed.status, 'active', 'sails again in the morning');
+  const back = ev(`ferryVesselPointAt(testLegs, ${resumed.lastResume} + 360, world.vessels[0].phase)`);
+  assert.equal(back.state, 'alongside');
+  assert.equal(back.pier, tiedAt.pier, 'it leaves from the pier it spent the night at');
+});
+
+test('停航: signal 8 or above ties the ferries up by day too; laid up, a ferry neither wears nor sails', () => {
+  const c = loadFerryWorld();
+  const ev = (code) => require('node:vm').runInContext(code, c);
+  ev('run(200, 300)'); // env 200-300 is sky 09:20-11:00
+  assert.equal(ev('world.vessels[0].status'), 'active');
+  c.severe = true;
+  assert.equal(ev('getFerrySuspension(600)'), 'storm');
+  ev('run(300, 400)');
+  assert.equal(ev('world.vessels[0].status'), 'laid_up', 'ties up for the signal');
+  const before = ev('JSON.stringify(world.vessels[0])');
+  ev('advanceFerryVessels(world, 400, 500)');
+  assert.equal(ev('JSON.stringify(world.vessels[0])'), before, 'no wear, no miles, no countdown while laid up');
+  c.severe = false;
+  ev('run(400, 600)');
+  assert.equal(ev('world.vessels[0].status'), 'active', 'sails again once the signal is down');
+});

@@ -123,7 +123,7 @@ function normalizeFerryState(raw) {
 function normalizeFerryVessel(v, routeIds) {
   if (!v?.id || !routeIds.has(String(v.routeId))) return null;
   const num = (x, d = 0) => (Number.isFinite(Number(x)) ? Number(x) : d);
-  const status = ['active', 'servicing', 'broken_down'].includes(v.status) ? v.status : 'active';
+  const status = ['active', 'servicing', 'broken_down', 'laid_up'].includes(v.status) ? v.status : 'active';
   return {
     id: String(v.id).slice(0, 40),
     routeId: String(v.routeId),
@@ -136,6 +136,8 @@ function normalizeFerryVessel(v, routeIds) {
     // much longer: on its return it carries on from where it stopped
     downStartedAt: status === 'active' ? null : num(v.downStartedAt),
     downMinutesRemaining: status === 'active' ? 0 : Math.max(0, num(v.downMinutesRemaining)),
+    // laid up (停航) alongside this pier of its route (0 or 1) - where it last berthed
+    laidUpPier: status === 'laid_up' ? (num(v.laidUpPier) === 1 ? 1 : 0) : null,
     sellAtNextPier: !!v.sellAtNextPier,
     aboard: Math.max(0, Math.min(FERRY.capacity, Math.floor(num(v.aboard)))),
     ageMonths: Math.max(0, Math.floor(num(v.ageMonths))),
@@ -663,6 +665,23 @@ function ferryPierCatchmentPoint(pier) {
   };
 }
 
+// 停航 (Norton 2026-10-31): the Star Ferry does not sail through the night - midnight to 08:00 -
+// nor under signal 8 or above. A ferry under way when the service stops finishes its crossing and
+// ties up at the pier it reaches, the last it called at; it sails again when its timetable next
+// brings it to that pier, so the ferries keep their spacing and none jumps across the water.
+const FERRY_NIGHT_REST = Object.freeze({ fromMinute: 0, toMinute: 8 * 60 });
+
+function isFerryNightRest(skyMinutes) {
+  const m = ((Math.floor(skyMinutes) % 1440) + 1440) % 1440;
+  return m >= FERRY_NIGHT_REST.fromMinute && m < FERRY_NIGHT_REST.toMinute;
+}
+
+/** Why the ferries are not sailing at this sky minute: 'storm', 'night' or null. */
+function getFerrySuspension(skyMinutes) {
+  if (typeof isTransportSevereWeather === 'function' && isTransportSevereWeather()) return 'storm';
+  return isFerryNightRest(skyMinutes) ? 'night' : null;
+}
+
 // The last berthing on each ferry, for its "+$" over the map (updateFerries): not saved.
 const ferryBerthingLog = new Map();
 
@@ -706,15 +725,23 @@ function advanceFerryVessels(state, fromMinutes, toMinutes) {
     const route = routes.get(v.routeId);
     const legs = route && getFerryRouteLegs(route);
     if (!route || !legs) return;
+    if (v.status === 'laid_up') return; // berthFerries puts it back on the timetable
     if (v.status !== 'active') {
       v.downMinutesRemaining -= minutes;
       if (v.downMinutesRemaining > 0) return;
       const away = ferrySkyMinutes(toMinutes) - v.downStartedAt;
-      if (v.status === 'servicing') { v.condition = 1; v.minutesSinceService = 0; }
+      const wasServicing = v.status === 'servicing';
+      if (wasServicing) { v.condition = 1; v.minutesSinceService = 0; }
       v.status = 'active';
       v.phase = (((v.phase - away / ferryCycleMinutes(legs)) % 1) + 1) % 1;
       v.downStartedAt = null;
       v.downMinutesRemaining = 0;
+      // out of the yard (at its first pier) while the service is stopped: it ties up there
+      if (wasServicing && getFerrySuspension(ferrySkyMinutes(toMinutes))) {
+        v.status = 'laid_up';
+        v.downStartedAt = ferrySkyMinutes(toMinutes);
+        v.laidUpPier = 0;
+      }
       return;
     }
     if (route.status !== 'active') return;
@@ -773,13 +800,12 @@ function accrueFerryPiersForHour(state, envHour) {
 // fares, boards the queue. At its route's first pier a ferry due its service goes into the yard
 // instead of boarding, and one being sold is sold at whichever pier it reaches first.
 function berthFerries(state, fromMinutes, toMinutes) {
-  const severe = typeof isTransportSevereWeather === 'function' && isTransportSevereWeather();
   const transport = typeof getTransportExpansionState === 'function' ? getTransportExpansionState() : null;
   const serviceDue = typeof TRANSPORT_SERVICE_INTERVAL_MINUTES === 'number' ? TRANSPORT_SERVICE_INTERVAL_MINUTES : 4 * 1440;
   const serviceMinutes = typeof TRANSPORT_SERVICE_DURATION_MINUTES === 'number' ? TRANSPORT_SERVICE_DURATION_MINUTES : 180;
   state.routes.forEach((route) => {
     if (route.status !== 'active') return;
-    const fleet = state.vessels.filter((v) => v.routeId === route.id && v.status === 'active');
+    const fleet = state.vessels.filter((v) => v.routeId === route.id && (v.status === 'active' || v.status === 'laid_up'));
     if (!fleet.length) return;
     const legs = getFerryRouteLegs(route);
     if (!legs) return;
@@ -790,10 +816,18 @@ function berthFerries(state, fromMinutes, toMinutes) {
     piers.forEach((p) => { p.waiting = Number(p.waiting) || 0; });
     ferryArrivalsAt(legs, ferrySkyMinutes(fromMinutes), ferrySkyMinutes(toMinutes), fleet.map((v) => v.phase)).forEach(({ t, vessel, pier }) => {
       const v = fleet[vessel];
+      const suspended = getFerrySuspension(t);
+      if (v.status === 'laid_up') {
+        // back on the timetable the next time it is due alongside the pier it is tied up at
+        if (suspended || pier !== v.laidUpPier || !state.vessels.includes(v)) return;
+        v.status = 'active';
+        v.downStartedAt = null;
+        v.laidUpPier = null;
+      }
       if (v.status !== 'active' || !state.vessels.includes(v)) return; // gone into the yard or sold earlier in the span
       const at = piers[pier];
       const leaving = v.sellAtNextPier || (pier === 0 && v.minutesSinceService >= serviceDue);
-      const b = ferryBerthing(v.aboard, severe || leaving ? 0 : at.waiting);
+      const b = ferryBerthing(v.aboard, suspended || leaving ? 0 : at.waiting);
       v.aboard = b.boarding;
       at.waiting -= b.boarding;
       if (b.alighting > 0 && transport) {
@@ -812,6 +846,11 @@ function berthFerries(state, fromMinutes, toMinutes) {
         v.status = 'servicing';
         v.downStartedAt = t;
         v.downMinutesRemaining = serviceMinutes;
+      } else if (suspended) {
+        // its passengers ashore, it ties up here until the service runs again
+        v.status = 'laid_up';
+        v.downStartedAt = t;
+        v.laidUpPier = pier;
       }
     });
   });
@@ -978,7 +1017,7 @@ function updateFerries(scene) {
         if (vessel.status === 'servicing') return;
         const id = `ferry|${vessel.id}`;
         live.add(id);
-        const point = ferryVesselPointAt(legs, vessel.status === 'broken_down' ? vessel.downStartedAt : t, vessel.phase);
+        const point = ferryVesselPointAt(legs, vessel.status === 'broken_down' || vessel.status === 'laid_up' ? vessel.downStartedAt : t, vessel.phase);
         const drawn = { ...point, dir: FERRY_DRAW_HEADING[point.dir] || point.dir };
         drawTyphoonShelterBoat(scene, id, FERRY.objectId, drawn, rotation, facings, scene.ferrySprites);
         const rec = scene.ferrySprites.get(id);
@@ -1133,6 +1172,10 @@ const ferryApi = {
   setFerryRouteSuspended,
   ferryResaleValue,
   advanceFerryVessels,
+  berthFerries,
+  isFerryNightRest,
+  getFerrySuspension,
+  FERRY_NIGHT_REST,
   ferryBerthing,
   getFerryPierAt,
   isNearFerryPier,

@@ -278,9 +278,36 @@ function createEmptyTransportFinancials() {
     depotUpkeep: 0,
     // the ferries' and piers' upkeep and running (ferry.js)
     ferryOperations: 0,
+    // paid in by the government (getTransportGovernmentSubsidy): 政府補貼 and the 兩蚊長者優惠
+    operatingSubsidy: 0,
+    elderlyFareSubsidy: 0,
+    subsidy: 0,
     cost: 0,
     net: 0,
   };
+}
+
+// ── 政府補貼 (Norton 2026-10-31) ─────────────────────────────────────────────────────────────
+// Under the 公共交通營運補貼 act the government pays the company this share of its running costs,
+// a month in arrears: what it pays at a month-end is the share of the month before's costs, the
+// same figure the council and the city's own books charge for the act that month - so the city's
+// spending and the company's takings agree. The 兩蚊長者優惠 act's monthly cost goes to the company
+// too: the government makes up the fares the elderly no longer pay.
+const TRANSPORT_OPERATING_SUBSIDY_SHARE = 0.3;
+
+function getTransportOperatingSubsidyDue() {
+  if (typeof isTransportExpansionActive === 'function' && !isTransportExpansionActive()) return 0;
+  const state = typeof getTransportExpansionState === 'function' ? getTransportExpansionState() : null;
+  return Math.round(TRANSPORT_OPERATING_SUBSIDY_SHARE * Math.max(0, Number(state?.lastFinancials?.cost) || 0));
+}
+
+/** What the government pays the company at this month-end, by act. */
+function getTransportGovernmentSubsidy() {
+  const active = (id) => typeof isPolicyActive === 'function' && isPolicyActive(id);
+  const operatingSubsidy = active('transportOperatingSubsidy') ? getTransportOperatingSubsidyDue() : 0;
+  const elderlyFareSubsidy = active('elderlyTwoDollarFare') && typeof getCouncilPolicyEstimatedMonthlyCost === 'function'
+    ? Math.round(getCouncilPolicyEstimatedMonthlyCost('elderlyTwoDollarFare')) : 0;
+  return { operatingSubsidy, elderlyFareSubsidy, subsidy: operatingSubsidy + elderlyFareSubsidy };
 }
 
 function normalizeTransportFinanceHistory(raw) {
@@ -300,6 +327,9 @@ function normalizeTransportFinanceHistory(raw) {
         routeOperations: transportRoundMoney(financials.routeOperations),
         depotUpkeep: transportRoundMoney(financials.depotUpkeep),
         ferryOperations: transportRoundMoney(financials.ferryOperations),
+        operatingSubsidy: transportRoundMoney(financials.operatingSubsidy),
+        elderlyFareSubsidy: transportRoundMoney(financials.elderlyFareSubsidy),
+        subsidy: transportRoundMoney(financials.subsidy),
         cost: transportRoundMoney(financials.cost),
         net: Math.round(Number(financials.net) || 0),
         closingCash: Math.round(Number(entry.closingCash) || 0),
@@ -2706,17 +2736,22 @@ function settleTransportMonth() {
   const ferryOperations = Number(ferryMonth.cost) || 0;
   const cost = transportRoundMoney(routeOperations + depotUpkeep + ferryOperations);
   const roundedRevenue = transportRoundMoney(revenue);
-  // Cost only - revenue already flowed into company.cash above. company.cash
-  // is allowed to go negative (bankruptcy signal, §4), unlike every other
-  // money field in this module.
-  state.company.cash = Math.round(state.company.cash - cost);
+  // worked out before lastFinancials moves on: the operating subsidy is last month's costs' share
+  const grant = getTransportGovernmentSubsidy();
+  // Cost only - revenue already flowed into company.cash above - plus the government's subsidy.
+  // company.cash is allowed to go negative (bankruptcy signal, §4), unlike every other money field
+  // in this module.
+  state.company.cash = Math.round(state.company.cash - cost + grant.subsidy);
   state.lastFinancials = {
     revenue: roundedRevenue,
     routeOperations: transportRoundMoney(routeOperations),
     depotUpkeep: transportRoundMoney(depotUpkeep),
     ferryOperations: transportRoundMoney(ferryOperations),
+    operatingSubsidy: grant.operatingSubsidy,
+    elderlyFareSubsidy: grant.elderlyFareSubsidy,
+    subsidy: grant.subsidy,
     cost,
-    net: roundedRevenue - cost,
+    net: roundedRevenue + grant.subsidy - cost,
   };
   state.financeHistory.push({
     year: ended.year,

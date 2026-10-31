@@ -135,6 +135,7 @@ const city = {
     arcticPenguinReserve: false,
     busSeatbeltMandate: false,
     nightBazaarWeekend: false,
+    transportOperatingSubsidy: false,
   },
   council: createDefaultCouncilState(),
   loans: [],
@@ -325,6 +326,7 @@ function resetGameState() {
     arcticPenguinReserve: false,
     busSeatbeltMandate: false,
     nightBazaarWeekend: false,
+    transportOperatingSubsidy: false,
   };
   city.council = createDefaultCouncilState(city.activePolicies);
   city.loans = [];
@@ -465,7 +467,7 @@ const CITY_STATE_POLICY_IDS = Object.freeze([
   'industrialBuildingRevitalization', 'strongCountryManufacturing',
   'tourismPromotion', 'foreignInvestmentIncentive', 'districtCouncilElection',
   'icac', 'legislativeCouncilElection', 'stockExchangeAct', 'elderlyTwoDollarFare',
-  'arcticPenguinReserve', 'busSeatbeltMandate', 'nightBazaarWeekend',
+  'arcticPenguinReserve', 'busSeatbeltMandate', 'nightBazaarWeekend', 'transportOperatingSubsidy',
 ]);
 
 function isNormalizedCityStateObject(value) {
@@ -1447,6 +1449,7 @@ function getPolicyMonthlyCost() {
     if (policy.id === 'arcticPenguinReserve') cost += Math.ceil(city.population / 5000) * 6;
     if (policy.id === 'busSeatbeltMandate') cost += Math.ceil(roadTileCount / 100) * 4;
     if (policy.id === 'nightBazaarWeekend') cost += countNightBazaarGroundTiles() * 6;
+    if (policy.id === 'transportOperatingSubsidy' && typeof getTransportOperatingSubsidyDue === 'function') cost += getTransportOperatingSubsidyDue();
   });
   return Math.round(cost);
 }

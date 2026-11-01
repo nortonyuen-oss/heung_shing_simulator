@@ -1,7 +1,7 @@
 const I18N_STORAGE_KEY = 'citybuilder.language';
-let appVersion = '4.24.0';
-let appReleaseTheme = '【月光光，照香城】';
-const APP_RELEASE_THEMES = { en: '【Moonlight Over Heung Shing】', zhHant: '【月光光，照香城】', ja: '【月明かりの香城】' };
+let appVersion = '5.0.0';
+let appReleaseTheme = '【我哋既香城】';
+const APP_RELEASE_THEMES = { en: '【Our Heung Shing】', zhHant: '【我哋既香城】', ja: '【私たちの香城】' };
 function localizedReleaseTheme() {
   if (currentLanguage === 'zhHant' && /^zh-(hk|mo)\b/i.test(navigator.language || '')) return appReleaseTheme;
   return APP_RELEASE_THEMES[currentLanguage] || appReleaseTheme;

@@ -1,6 +1,6 @@
-# 香城模擬器 (The City of Heung Shing) v4.24.0 — 【月光光，照香城】
+# 香城模擬器 (The City of Heung Shing) v5.0.0 — 【我哋既香城】
 
-香城模擬器 (The City of Heung Shing) v4.24.0 — 【月光光，照香城】 is a SimCity 2000-style city builder inspired by Hong Kong: isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run bus company, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
+香城模擬器 (The City of Heung Shing) v5.0.0 — 【我哋既香城】 is a SimCity 2000-style city builder inspired by Hong Kong: isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run bus company, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
 
 Website and downloads: https://nortonyuen-oss.github.io/heung_shing_simulator/
 
@@ -9,6 +9,10 @@ Read public posts and replies on the website; sign in to GitHub to confirm a new
 post or reply. Website messages are tracked with the `website-feedback` issue label.
 
 ![The Heung Shing skyline at night, zoomed out: dense lights, the airport and the harbour](docs/assets/gameplay/nightSkyline.webp)
+
+## New in v5.0.0
+
+Found your city on Hong Kong itself. A new start screen lays out the map, name, start year and road set on one page with a large preview. 23 maps of real Hong Kong districts, built at 20 m a tile from the Lands Department's terrain model, are picked from a map of the whole territory, each with an introduction. Every district plays differently: its own demand, tax base, traffic, tourism, wealth, density, jobs, land price and environment, some with a height limit, rated one to five stars for difficulty. Random maps now sample real Hong Kong terrain by landform (harbour, peninsula, islands, valley new town, hillside, plain) instead of the old generator. Hills may run right to the map edge, drawn as a rock face. A city minimap in the corner shows the whole city and where you are looking; new cities start on marked roads.
 
 ## New in v4.24.0
 

@@ -1,7 +1,7 @@
 {
   "name": "city-builder",
-  "version": "4.24.0",
-  "releaseTheme": "【月光光，照香城】",
+  "version": "5.0.0",
+  "releaseTheme": "【我哋既香城】",
   "description": "SimCity 2000-style city builder with local SQLite save system",
   "author": "The City of Heung Shing",
   "repository": {
@@ -111,9 +111,9 @@
   },
   "license": "SEE LICENSE IN LICENSE",
   "releaseThemes": {
-    "zh-HK": "【月光光，照香城】",
-    "zh-TW": "【月光光，照香城】",
-    "en": "【Moonlight Over Heung Shing】",
-    "ja": "【月明かりの香城】"
+    "zh-HK": "【我哋既香城】",
+    "zh-TW": "【我們的香城】",
+    "en": "【Our Heung Shing】",
+    "ja": "【私たちの香城】"
   }
 }

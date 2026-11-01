@@ -21,6 +21,8 @@ function setupLandingScreen() {
   const savedList = document.getElementById('setup-saved-list');
   const savedEmpty = document.getElementById('setup-saved-empty');
   const landformChips = document.getElementById('setup-landform-chips');
+  const modeChips = document.getElementById('setup-generated-mode');
+  const modeHint = document.getElementById('setup-generated-mode-hint');
   const seedInput = document.getElementById('setup-seed-input');
   const btnReroll = document.getElementById('setup-reroll');
   const overviewMap = document.getElementById('setup-overview-map');
@@ -39,6 +41,7 @@ function setupLandingScreen() {
   let setupMode = 'newCity';
   let activeTab = 'district';
   let generatedLandform = GENERATED_MAP_DEFAULT_LANDFORM;
+  let generatedMode = GENERATED_MAP_DEFAULT_MODE;
   let generatedSeed = createSeed();
   let selectedStartYear = String(CITY_DEFAULT_START_YEAR);
   let selectedSource = null;
@@ -103,13 +106,26 @@ function setupLandingScreen() {
     });
   }
 
+  // 香港實景 or 原創地形: the same landforms, sampled from real terrain or grown anew
+  function renderModeChips() {
+    renderChoiceChips(modeChips, GENERATED_MAP_MODES.map((mode) => ({
+      value: mode,
+      label: t(`landing.generatedMode.${mode}`),
+    })), generatedMode, (value) => {
+      generatedMode = value;
+      if (modeHint) modeHint.textContent = t(`landing.generatedModeHint.${generatedMode}`);
+      selectSource(createGeneratedMapSource(generatedLandform, generatedSeed, generatedMode));
+    });
+    if (modeHint) modeHint.textContent = t(`landing.generatedModeHint.${generatedMode}`);
+  }
+
   function renderLandformChips() {
     renderChoiceChips(landformChips, GENERATED_MAP_LANDFORMS.map((landform) => ({
       value: landform,
       label: getMapSourceProfileLabel(landform),
     })), generatedLandform, (value) => {
       generatedLandform = value;
-      selectSource(createGeneratedMapSource(generatedLandform, generatedSeed));
+      selectSource(createGeneratedMapSource(generatedLandform, generatedSeed, generatedMode));
     });
   }
 
@@ -356,14 +372,15 @@ function setupLandingScreen() {
       refreshSavedCards();
     } else {
       // Same landform and seed: keep the terrain already generated rather than build it again.
-      const id = `generated:${generatedLandform}:${generatedSeed}`;
-      selectSource(selectedSource?.id === id ? selectedSource : createGeneratedMapSource(generatedLandform, generatedSeed));
+      const id = `generated:${generatedMode}:${generatedLandform}:${generatedSeed}`;
+      selectSource(selectedSource?.id === id ? selectedSource : createGeneratedMapSource(generatedLandform, generatedSeed, generatedMode));
     }
   }
 
   // Draws everything that holds translated text; the current picks stay as they are.
   function renderSetupScreen() {
     renderStartYearChips();
+    renderModeChips();
     renderLandformChips();
     if (seedInput) seedInput.value = generatedSeed;
     setActiveTab(activeTab);
@@ -390,7 +407,7 @@ function setupLandingScreen() {
     const typed = seedInput?.value.trim() ?? '';
     generatedSeed = typed || createSeed();
     if (seedInput) seedInput.value = generatedSeed;
-    selectSource(createGeneratedMapSource(generatedLandform, generatedSeed));
+    selectSource(createGeneratedMapSource(generatedLandform, generatedSeed, generatedMode));
   }
 
   async function confirmSetup() {
@@ -460,7 +477,7 @@ function setupLandingScreen() {
   btnReroll?.addEventListener('click', () => {
     generatedSeed = createSeed();
     if (seedInput) seedInput.value = generatedSeed;
-    selectSource(createGeneratedMapSource(generatedLandform, generatedSeed));
+    selectSource(createGeneratedMapSource(generatedLandform, generatedSeed, generatedMode));
   });
   seedInput?.addEventListener('change', applySeedInput);
   seedInput?.addEventListener('keydown', (e) => {

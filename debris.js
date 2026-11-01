@@ -4,11 +4,10 @@
 // ── Bare land: dirt clusters + derelict debris ────────────────────────────────
 // Two layers, both purely decorative (no simulation effect, mirroring trees):
 // 1. Dirt clusters - large flat grass (GROUND) regions get a few irregular
-//    dirt (DIRT) patches instead of being uniform grass, via scatterDirtClusters
-//    (fresh world generation, operates on the plain terrain/heights arrays
-//    before a scene exists) and scatterBareLandDirtClusters (a one-time
-//    retrofit for saves from before this feature existed, operating on the
-//    live map/zone/building state).
+//    dirt (DIRT) patches instead of being uniform grass, via
+//    scatterBareLandDirtClusters (a one-time retrofit for saves from before
+//    this feature existed, operating on the live map/zone/building state).
+//    New maps no longer get them: they read as fake (docs/terrain-generator-v2-design.md).
 // 2. Debris - dirt tiles only (dirt never grows trees, see
 //    isTreeTerrainEligible) get a flat 30% chance of one derelict prop
 //    (dumped vehicle or shipping-container pile), randomly offset within the
@@ -228,41 +227,6 @@ function restoreOrGenerateDebris(scene, save) {
   if (typeof invalidateDebrisSimulationTiles === 'function') invalidateDebrisSimulationTiles();
 }
 
-// Fresh world generation: operates on the plain terrain/heights arrays built
-// by generateRealisticTerrainMap, before any scene/zone/building state exists,
-// so eligibility here is just "still flat grass" - the live retrofit below
-// additionally has to respect zoning/buildings/roads on an existing city.
-function scatterDirtClusters(terrain, heights, random) {
-  const visited = createNumericMap(false);
-  for (let row = 0; row < MAP_HEIGHT; row++) {
-    for (let col = 0; col < MAP_WIDTH; col++) {
-      if (visited[row][col] || terrain[row][col] !== GROUND) continue;
-      const stack = [[row, col]];
-      const cells = [];
-      visited[row][col] = true;
-      while (stack.length > 0) {
-        const [r, c] = stack.pop();
-        cells.push([r, c]);
-        [[r - 1, c], [r + 1, c], [r, c - 1], [r, c + 1]].forEach(([nr, nc]) => {
-          if (!isInsideMap(nr, nc) || visited[nr][nc] || terrain[nr][nc] !== GROUND) return;
-          visited[nr][nc] = true;
-          stack.push([nr, nc]);
-        });
-      }
-      if (cells.length < BARE_LAND_DIRT_CLUSTER_MIN_REGION_TILES) continue;
-
-      const clusterCount = Math.max(1, Math.floor(cells.length / BARE_LAND_DIRT_CLUSTER_TILES_PER_CLUSTER));
-      for (let i = 0; i < clusterCount; i++) {
-        const [cr, cc] = cells[Math.floor(random() * cells.length)];
-        paintDirtClusterBlob(terrain, cr, cc, random, (r, c) => terrain[r]?.[c] === GROUND);
-      }
-    }
-  }
-}
-
-// Shared blob painter for both the world-gen and live-retrofit dirt-cluster
-// passes: an irregular (not perfectly circular) patch, feathered at the edge
-// so it reads as a natural bare patch rather than a stamped disc.
 function paintDirtClusterBlob(terrain, centerRow, centerCol, random, isEligible) {
   const radius = BARE_LAND_DIRT_CLUSTER_RADIUS_MIN
     + random() * (BARE_LAND_DIRT_CLUSTER_RADIUS_MAX - BARE_LAND_DIRT_CLUSTER_RADIUS_MIN);

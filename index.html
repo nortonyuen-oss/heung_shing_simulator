@@ -5557,6 +5557,12 @@
       color: #fff;
     }
 
+    .setup-mode-hint {
+      margin: -2px 0 2px;
+      font-size: 11.5px;
+      color: var(--setup-muted);
+    }
+
     .setup-seed-row {
       display: grid;
       grid-template-columns: auto minmax(0, 1fr) auto;
@@ -7014,6 +7020,9 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
                 <div id="setup-district-list" class="setup-chips" role="radiogroup" aria-label="Hong Kong Districts" data-i18n-aria="landing.mapTab.district"></div>
               </div>
               <div class="setup-tab-panel" data-map-panel="generated" role="tabpanel">
+                <p class="setup-label" id="setup-mode-label" data-i18n="landing.generatedMode">Terrain</p>
+                <div id="setup-generated-mode" class="setup-chips" role="radiogroup" aria-labelledby="setup-mode-label"></div>
+                <p id="setup-generated-mode-hint" class="setup-mode-hint"></p>
                 <p class="setup-label" id="setup-landform-label" data-i18n="landing.landform">Landform</p>
                 <div id="setup-landform-chips" class="setup-chips" role="radiogroup" aria-labelledby="setup-landform-label"></div>
                 <div class="setup-seed-row">
@@ -8165,7 +8174,7 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
   <!-- Script load order:
        i18n → constants → council definitions/state → road-tile-sets → city-state → weather/citizens/AI news → model-catalog → map-utils
        → simulation → sim-infrastructure → sim-growth → sim-economy
-       → tools → hud-helpers → hud → hud-ticker → save → topbar → real-city masks
+       → tools → hud-helpers → hud → hud-ticker → save → topbar
        → traffic visuals → transport expansion/visuals → vessel/aircraft visuals → main
        → tool-menu → transport UI → chart-window → overlay-controls → inspect-panel
        → hk-district-maps → hk-district-info → district-profiles → hk-terrain-tiles → terrain-presets → map-sources → landing-screen -->
@@ -8212,7 +8221,6 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
   <script src="hud-ticker.js"></script>
   <script src="save.js"></script>
   <script src="topbar.js"></script>
-  <script src="real-city-coastline-masks.js"></script>
   <script src="traffic-visuals.js"></script>
   <script src="transport-expansion.js"></script>
   <script src="transport-visuals.js"></script>
@@ -8291,7 +8299,7 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
   <script src="harbor.js"></script>
   <script src="bridges.js"></script>
   <script src="terrain-generation.js"></script>
-  <script src="terrain-scenarios.js"></script>
+  <script src="terrain-original.js"></script>
   <script src="tile-keys.js"></script>
   <script src="weather-effects.js"></script>
   <script src="day-night-lighting.js"></script>

@@ -3,11 +3,13 @@
 // (getTerrain), so the screen never needs to know where a map came from - and the preview
 // drawing and land figures it shows for whichever one is picked.
 
-// 香港實景 landforms (real windows of the territory, terrain-presets.js), then a completely flat
-// map for the editor. The procedural profiles are kept in terrain-generation.js but not offered
-// until that generator is rebuilt.
+// 隨機生成 offers the same landforms two ways: 香港實景 samples a real window of the territory
+// (terrain-presets.js), 原創地形 grows a new one shaped like it (terrain-original.js). A
+// completely flat map stays for the editor.
 const GENERATED_MAP_LANDFORMS = [...Object.keys(HK_TERRAIN_LANDFORMS), 'flat'];
 const GENERATED_MAP_DEFAULT_LANDFORM = 'hk-any';
+const GENERATED_MAP_MODES = Object.freeze(['real', 'original']);
+const GENERATED_MAP_DEFAULT_MODE = 'real';
 
 const MAP_SOURCE_TILE_METRES = 20;
 const MAP_SOURCE_PREVIEW_GRID_TILES = 50; // 1 km
@@ -55,31 +57,30 @@ function getDistrictOverviewBox(source) {
   return { x, y, left: x - w / 2, top: y - h / 2, width: w, height: h };
 }
 
-// Generated terrain is pure (sampleHkTerrain and generateRealisticTerrainMap never touch the live
+// Generated terrain is pure (sampleHkTerrain and generateOriginalTerrain never touch the live
 // city), so the preview can be built before anything is committed and the same data founds it.
-function createGeneratedMapSource(profileType, seed) {
+function createGeneratedMapSource(profileType, seed, mode = GENERATED_MAP_DEFAULT_MODE) {
   const landform = GENERATED_MAP_LANDFORMS.includes(profileType) ? profileType : GENERATED_MAP_DEFAULT_LANDFORM;
+  const sourceMode = GENERATED_MAP_MODES.includes(mode) ? mode : GENERATED_MAP_DEFAULT_MODE;
   let terrain = null;
   return {
     kind: 'generated',
-    id: `generated:${landform}:${seed}`,
+    id: `generated:${sourceMode}:${landform}:${seed}`,
     name: getMapSourceProfileLabel(landform),
     profileType: landform,
+    mode: sourceMode,
     seed,
     getTerrain: async () => {
-      if (!terrain && isHkTerrainLandform(landform)) {
-        terrain = sampleHkTerrain(landform, seed);
-      } else if (!terrain) {
-        const generated = generateRealisticTerrainMap(landform, seed);
+      if (terrain) return terrain;
+      if (landform === 'flat') {
         terrain = {
-          version: 1,
-          generatorVersion: generated.metadata?.generatorVersion ?? 2,
-          profileType: landform,
-          seed,
-          features: generated.metadata?.features ?? [],
-          mapData: generated.mapData,
-          heightMap: generated.heightMap,
+          version: 1, generatorVersion: 4, profileType: 'flat', seed, features: ['flat'],
+          mapData: createFilledMap(GROUND), heightMap: createFilledMap(0),
         };
+      } else if (sourceMode === 'original') {
+        terrain = generateOriginalTerrain(landform, seed);
+      } else {
+        terrain = sampleHkTerrain(landform, seed);
       }
       return terrain;
     },

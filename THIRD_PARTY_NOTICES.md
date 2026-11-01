@@ -64,10 +64,6 @@ Suno 於 2026-09-03 生效的條款將商用許可與符合方案及官方管道
 
 遊戲將地形重新取樣為每格 20 米，並把高度簡化為 9 級、加入沙灘及遊戲地形規則，所以不是測量用資料，亦不表示政府或地政總署認可本遊戲。產生方法見 `scripts/build-hk-district-maps.py`。
 
-## 海岸線
-
-舊有城市場景的海岸線遮罩（`real-city-coastline-masks.js` 等），開發者記錄的來源為 Google Earth，由開發工具引入；現有檔案與 Git 歷史未保留可核實的原始圖層／資料集網址。因此目前不主張這些遮罩屬開放授權資料，也不授予其商業再利用權。開新城市畫面已不再提供這些場景。Google Earth 條款：<https://www.google.com/help/terms_maps-earth/>。
-
 ## 權利查詢
 
 本作品由獨立開發者製作；引用現實機構、地點或作品不代表合作或背書。若希望提出來源補充、權利問題或商業授權查詢，請聯絡 GitHub 帳號 `nortonyuen-oss`，入口：<https://github.com/nortonyuen-oss/heung_shing_simulator/issues>。

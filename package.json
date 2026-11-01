@@ -1,7 +1,7 @@
 {
   "name": "city-builder",
-  "version": "5.0.0",
-  "releaseTheme": "【我哋既香城】",
+  "version": "5.1.0",
+  "releaseTheme": "【香城開天闢地】",
   "description": "SimCity 2000-style city builder with local SQLite save system",
   "author": "The City of Heung Shing",
   "repository": {
@@ -111,9 +111,9 @@
   },
   "license": "SEE LICENSE IN LICENSE",
   "releaseThemes": {
-    "zh-HK": "【我哋既香城】",
-    "zh-TW": "【我們的香城】",
-    "en": "【Our Heung Shing】",
-    "ja": "【私たちの香城】"
+    "zh-HK": "【香城開天闢地】",
+    "zh-TW": "【香城開天闢地】",
+    "en": "【Heung Shing, A World Made Anew】",
+    "ja": "【香城、天地開闢】"
   }
 }

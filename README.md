@@ -1,6 +1,6 @@
-# 香城模擬器 (The City of Heung Shing) v5.0.0 — 【我哋既香城】
+# 香城模擬器 (The City of Heung Shing) v5.1.0 — 【香城開天闢地】
 
-香城模擬器 (The City of Heung Shing) v5.0.0 — 【我哋既香城】 is a SimCity 2000-style city builder inspired by Hong Kong: isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run bus company, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
+香城模擬器 (The City of Heung Shing) v5.1.0 — 【香城開天闢地】 is a SimCity 2000-style city builder inspired by Hong Kong: isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run bus company, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
 
 Website and downloads: https://nortonyuen-oss.github.io/heung_shing_simulator/
 
@@ -9,6 +9,10 @@ Read public posts and replies on the website; sign in to GitHub to confirm a new
 post or reply. Website messages are tracked with the `website-feedback` issue label.
 
 ![The Heung Shing skyline at night, zoomed out: dense lights, the airport and the harbour](docs/assets/gameplay/nightSkyline.webp)
+
+## New in v5.1.0
+
+Random maps can now be grown from scratch: alongside Real Hong Kong, the new Original mode builds a brand-new map for any landform (harbour, peninsula, islands, valley new town, hillside, plain) with real ridges, eroded valleys and ragged coasts, calibrated against Hong Kong's own terrain. The old generator with its straight rivers, flat-topped mountains and dirt dots is gone. Pickers beside the tool menu now stay on screen, so Victoria Park can be built on short windows.
 
 ## New in v5.0.0
 

@@ -105,6 +105,8 @@ const city = {
   name: getDefaultCityName(),
   nameEn: '',
   plateColor: 0,
+  // 地區特色: the Hong Kong district map the city was founded on ('' = none; district-profiles.js)
+  districtProfileId: '',
   budget: STARTING_BUDGET,
   taxRate: 0.09,
   departmentBudgets: {
@@ -433,6 +435,7 @@ function resetGameState() {
   };
   city.forumPosts = [];
   city.lastForumMonthIndex = -1;
+  city.districtProfileId = '';
   city.typhoonShelters = { version: 1, nextId: 1, shelters: [] };
   city.promenade = { version: 1, tiles: {} };
   city.fishery = { lastSettledDay: null, lastMonth: null, history: [] };
@@ -1032,11 +1035,14 @@ function computeBudgetSnapshot(options = {}) {
   const landmarkFinancials = computeLandmarkFinancials();
 
   const taxScale = city.taxRate / 0.09;
-  const residentialTax = city.population * TAX_PER_RESIDENT * taxScale;
+  // 地區特色 (district-profiles.js): each district's tax base for the three kinds
+  const districtTax = (key) => 1 + (typeof getDistrictProfileEffect === 'function' ? getDistrictProfileEffect(key) : 0);
+  const residentialTax = city.population * TAX_PER_RESIDENT * taxScale * districtTax('taxR');
   // a seafood restaurant (typhoon-shelter-market.js) pays as a shop does
-  const commercialTax = (city.commercialCount + getBuildingCount('seafood_restaurant')) * TAX_PER_COMMERCIAL * taxScale;
+  const commercialTax = (city.commercialCount + getBuildingCount('seafood_restaurant')) * TAX_PER_COMMERCIAL * taxScale
+    * districtTax('taxC');
   const industrialTax = city.industrialCount * TAX_PER_INDUSTRIAL * taxScale
-    * (isPolicyActive('industrialBuildingRevitalization') ? 1.10 : 1);
+    * (isPolicyActive('industrialBuildingRevitalization') ? 1.10 : 1) * districtTax('taxI');
   const grossIncome = residentialTax + commercialTax + industrialTax;
   const policyTaxAdjustment = isPolicyActive('smallBusiness') ? -grossIncome * 0.02 : 0;
 
@@ -1313,7 +1319,8 @@ function getBuildingJobCapacity(record) {
 
   const baseJobs = record.type === 'commercial' ? JOBS_PER_COM : JOBS_PER_IND;
   const footprintArea = Math.max(1, (record.footprintCols ?? 1) * (record.footprintRows ?? 1));
-  return Math.round(baseJobs * ANCHOR_RATIO * footprintArea);
+  const districtJobs = 1 + (typeof getDistrictProfileEffect === 'function' ? getDistrictProfileEffect('jobs') : 0);
+  return Math.round(baseJobs * ANCHOR_RATIO * footprintArea * districtJobs);
 }
 
 function getZonePowerDemand(zone, density = DENSITY_LOW) {

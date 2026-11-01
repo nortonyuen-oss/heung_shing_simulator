@@ -33,6 +33,8 @@ function getWealthDistrictCellIndex(row, col) {
 }
 
 function classifyWealthDistrictTier(avgLandValue) {
+  // 地區特色 (district-profiles.js): rich districts read their land as worth more
+  avgLandValue += (typeof getDistrictProfileEffect === 'function' ? getDistrictProfileEffect('wealth') : 0);
   const band = WEALTH_DISTRICT_LAND_VALUE_BANDS.find((entry) => avgLandValue <= entry.maxAvgLandValue);
   return band ? band.tier : WEALTH_DISTRICT_LAND_VALUE_BANDS[WEALTH_DISTRICT_LAND_VALUE_BANDS.length - 1].tier;
 }

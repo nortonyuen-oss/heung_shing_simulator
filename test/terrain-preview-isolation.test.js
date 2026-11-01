@@ -19,15 +19,17 @@ test('terrain previews cannot overwrite the active city elevation state', () => 
   const defaultWorldGenerator = getFunctionSource(main, 'generateTerrainMap');
   const profileWorldGenerator = getFunctionSource(main, 'generateTerrainMapByProfile');
 
-  // Built-in preview generation calls generateRealisticTerrainMap directly.
+  // Map previews (map-sources.js) call generateRealisticTerrainMap directly.
   // It must remain pure; only explicit world-generation wrappers may commit
   // the returned height and metadata to the live city globals.
   assert.doesNotMatch(generator, /\bheightMap\s*=/);
   assert.doesNotMatch(generator, /\bcurrentTerrainMetadata\s*=/);
   assert.match(defaultWorldGenerator, /commitGeneratedTerrainState\(generated\)/);
   assert.match(profileWorldGenerator, /commitGeneratedTerrainState\(generated\)/);
+  const mapSources = fs.readFileSync(path.join(ROOT, 'map-sources.js'), 'utf8');
+  assert.doesNotMatch(mapSources, /\bgenerateTerrainMap(ByProfile)?\(/, 'map previews must not commit terrain to the live city');
 
   // Language changes during gameplay must not rebuild the hidden landing-page
   // terrain previews at all.
-  assert.match(landing, /languagechange[\s\S]*?if \(screen\.style\.display === 'none'\) return;[\s\S]*?refreshTerrainPresetOptions\(\)/);
+  assert.match(landing, /languagechange[\s\S]*?if \(screen\.style\.display === 'none'\) return;[\s\S]*?renderSetupScreen\(\)/);
 });

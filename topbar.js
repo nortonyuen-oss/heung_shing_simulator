@@ -418,12 +418,11 @@ async function returnToMainMenu() {
   // Show landing screen in main-menu state
   const screen   = document.getElementById('landing-screen');
   const menuDiv  = document.getElementById('landing-menu');
-  const nameForm = document.getElementById('landing-name-form');
-  const terrainForm = document.getElementById('landing-terrain-form');
+  const setup    = document.getElementById('landing-setup');
   if (screen)   screen.style.display   = 'flex';
   if (menuDiv)  menuDiv.style.display  = 'grid';
-  if (nameForm) nameForm.style.display = 'none';
-  if (terrainForm) terrainForm.style.display = 'none';
+  if (setup)    setup.style.display    = 'none';
+  screen?.classList.remove('is-setup');
   if (typeof setGameWorldVisible === 'function') setGameWorldVisible(false);
   if (typeof closeRoadTileSetWindow === 'function') closeRoadTileSetWindow();
 

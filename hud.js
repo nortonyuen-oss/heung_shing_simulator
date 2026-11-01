@@ -356,6 +356,7 @@ function initBudgetPanel() {
   const toggleBudgetDetail = () => {
     const detail = document.getElementById('budget-detail');
     if (detail) detail.classList.toggle('is-open');
+    if (typeof updateDistrictProfilePanel === 'function') updateDistrictProfilePanel();
   };
 
   statusMoreBtn?.addEventListener('click', toggleBudgetDetail);

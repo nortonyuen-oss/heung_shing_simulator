@@ -1,275 +1,426 @@
 function setupLandingScreen() {
   const screen    = document.getElementById('landing-screen');
   const menu      = document.getElementById('landing-menu');
-  const nameForm  = document.getElementById('landing-name-form');
-  const terrainForm = document.getElementById('landing-terrain-form');
+  const setup     = document.getElementById('landing-setup');
   const btnNew    = document.getElementById('btn-new-game');
   const btnTerrainCreator = document.getElementById('btn-terrain-creator');
   const btnCont   = document.getElementById('btn-continue');
   const btnStart  = document.getElementById('btn-start-city');
   const btnBack   = document.getElementById('btn-back');
-  const btnGenerateTerrain = document.getElementById('btn-generate-terrain');
-  const btnTerrainBack = document.getElementById('btn-terrain-back');
   const nameInput = document.getElementById('city-name-input');
-  const terrainProfileSelect = document.getElementById('terrain-profile-select');
-  const terrainSourceSelect = document.getElementById('newgame-terrain-source');
-  const terrainPresetSelect = document.getElementById('newgame-terrain-preset');
   const roadTileSetSelect = document.getElementById('newgame-road-tile-set');
-  const startYearSelect = document.getElementById('newgame-start-year');
-  const terrainPresetTitle = document.getElementById('newgame-terrain-presets-title');
-  const terrainPreviewList = document.getElementById('newgame-terrain-preview-list');
-  const terrainEmptyHint = document.getElementById('newgame-terrain-empty-hint');
-  if (!screen) return;
-  let selectedTerrainPresetId = '';
-  const terrainPresetDataCache = new Map();
+  const startYearGroup = document.getElementById('newgame-start-year');
+  const transportExpansionCheckbox = document.getElementById('newgame-transport-expansion');
+  const setupTitle = document.getElementById('landing-setup-title');
+  const setupSubtitle = document.getElementById('landing-setup-subtitle');
+  const previewCanvas = document.getElementById('setup-preview-canvas');
+  const previewName = document.getElementById('setup-preview-name');
+  const previewStatus = document.getElementById('setup-preview-status');
+  const previewStats = document.getElementById('setup-preview-stats');
+  const districtList = document.getElementById('setup-district-list');
+  const savedList = document.getElementById('setup-saved-list');
+  const savedEmpty = document.getElementById('setup-saved-empty');
+  const landformChips = document.getElementById('setup-landform-chips');
+  const seedInput = document.getElementById('setup-seed-input');
+  const btnReroll = document.getElementById('setup-reroll');
+  const overviewMap = document.getElementById('setup-overview-map');
+  const overviewFrame = document.getElementById('setup-overview-frame');
+  const overviewHover = document.getElementById('setup-overview-hover');
+  const introThumb = document.getElementById('setup-intro-thumb');
+  const introName = document.getElementById('setup-intro-name');
+  const introMeta = document.getElementById('setup-intro-meta');
+  const introBody = document.getElementById('setup-intro-body');
+  const introDifficulty = document.getElementById('setup-intro-difficulty');
+  const introTraits = document.getElementById('setup-intro-traits');
+  if (!screen || !setup) return;
+  const tabButtons = setup.querySelectorAll('[data-map-tab]');
+  const tabPanels = setup.querySelectorAll('[data-map-panel]');
+
+  let setupMode = 'newCity';
+  let activeTab = 'district';
+  let generatedLandform = GENERATED_MAP_DEFAULT_LANDFORM;
+  let generatedSeed = createSeed();
+  let selectedStartYear = String(CITY_DEFAULT_START_YEAR);
+  let selectedSource = null;
+  const rememberedSourceIds = { district: '', saved: '' };
+  // Each pick bumps this, so a slow terrain load never paints over a newer pick.
+  let previewToken = 0;
 
   function setLandingState(state) {
     if (menu) menu.style.display = state === 'menu' ? 'grid' : 'none';
-    if (nameForm) nameForm.style.display = state === 'name' ? 'block' : 'none';
-    if (terrainForm) terrainForm.style.display = state === 'terrain' ? 'block' : 'none';
+    setup.style.display = state === 'setup' ? 'flex' : 'none';
+    screen.classList.toggle('is-setup', state === 'setup');
+  }
+
+  // Keeps data-i18n in step so applyTranslations() on a language change shows the same text.
+  function setI18nText(element, key) {
+    if (!element) return;
+    element.dataset.i18n = key;
+    element.textContent = t(key);
+  }
+
+  function setSetupMode(mode) {
+    setupMode = mode;
+    setup.dataset.mode = mode;
+    const editor = mode === 'editor';
+    setI18nText(setupTitle, editor ? 'landing.setupEditorTitle' : 'landing.setupNewTitle');
+    setI18nText(setupSubtitle, editor ? 'landing.setupEditorSub' : 'landing.setupNewSub');
+    setI18nText(btnStart, editor ? 'landing.startEditing' : 'landing.foundCity');
+  }
+
+  function renderChoiceChips(container, options, selectedValue, onPick) {
+    if (!container) return;
+    container.innerHTML = '';
+    options.forEach((option) => {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'setup-chip';
+      chip.setAttribute('role', 'radio');
+      chip.setAttribute('aria-checked', option.value === selectedValue ? 'true' : 'false');
+      chip.textContent = option.label;
+      if (option.title) chip.title = option.title;
+      chip.addEventListener('click', () => {
+        container.querySelectorAll('.setup-chip').forEach((other) => {
+          other.setAttribute('aria-checked', other === chip ? 'true' : 'false');
+        });
+        onPick(option.value);
+      });
+      container.appendChild(chip);
+    });
   }
 
   // 開局年份: keeps the player's pick across a language change
-  function populateStartYearSelect() {
-    if (!startYearSelect || typeof CITY_START_YEAR_OPTIONS === 'undefined') return;
-    const picked = startYearSelect.value || String(CITY_DEFAULT_START_YEAR);
-    startYearSelect.innerHTML = '';
-    CITY_START_YEAR_OPTIONS.forEach((option) => {
-      const element = document.createElement('option');
-      element.value = String(option);
-      element.textContent = option === 'now'
+  function renderStartYearChips() {
+    if (typeof CITY_START_YEAR_OPTIONS === 'undefined') return;
+    renderChoiceChips(startYearGroup, CITY_START_YEAR_OPTIONS.map((option) => ({
+      value: String(option),
+      label: option === 'now' ? t('landing.startYearNowChip') : String(option),
+      title: option === 'now'
         ? t('landing.startYearNow', { year: resolveCityStartYear('now') })
-        : t('landing.startYearOption', { year: option });
-      startYearSelect.appendChild(element);
-    });
-    startYearSelect.value = picked;
-  }
-
-  function populateTerrainProfileSelect() {
-    if (!terrainProfileSelect) return;
-    terrainProfileSelect.innerHTML = '';
-    TERRAIN_PROFILE_OPTIONS.forEach((profile) => {
-      const option = document.createElement('option');
-      option.value = profile.key;
-      option.textContent = t(profile.titleKey);
-      terrainProfileSelect.appendChild(option);
+        : t('landing.startYearOption', { year: option }),
+    })), selectedStartYear, (value) => {
+      selectedStartYear = value;
     });
   }
 
-  function drawTerrainPreview(canvas, terrainData) {
-    const ctx = canvas.getContext('2d');
-    if (!ctx || !terrainData?.mapData) return;
-
-    const size = 64;
-    canvas.width = size;
-    canvas.height = size;
-    const image = ctx.createImageData(size, size);
-    const mapRows = terrainData.mapData;
-    const heightRows = terrainData.heightMap ?? [];
-
-    function getColor(tile, height) {
-      if (tile === WATER) return [68, 136, 198];
-      if (tile === BEACH) return [224, 206, 142];
-      if (tile === DIRT) return [155, 120, 82];
-      if (tile === HILL) {
-        const shade = 105 + Math.min(80, Math.max(0, height) * 13);
-        return [78, shade, 72];
-      }
-      return [95, 160, 92];
-    }
-
-    for (let y = 0; y < size; y++) {
-      for (let x = 0; x < size; x++) {
-        const row = Math.floor((y / size) * MAP_HEIGHT);
-        const col = Math.floor((x / size) * MAP_WIDTH);
-        const tile = Number((mapRows[row] ?? [])[col]) || GROUND;
-        const h = Number((heightRows[row] ?? [])[col]) || 0;
-        const [r, g, b] = getColor(tile, h);
-        const idx = (y * size + x) * 4;
-        image.data[idx] = r;
-        image.data[idx + 1] = g;
-        image.data[idx + 2] = b;
-        image.data[idx + 3] = 255;
-      }
-    }
-    ctx.putImageData(image, 0, 0);
-  }
-
-  function setSelectedTerrainPreset(id) {
-    selectedTerrainPresetId = id ? String(id) : '';
-    if (terrainPresetSelect) {
-      terrainPresetSelect.value = selectedTerrainPresetId;
-    }
-    if (!terrainPreviewList) return;
-    terrainPreviewList.querySelectorAll('.terrain-preset-card').forEach((card) => {
-      card.classList.toggle('is-active', card.dataset.presetId === selectedTerrainPresetId);
+  function renderLandformChips() {
+    renderChoiceChips(landformChips, GENERATED_MAP_LANDFORMS.map((landform) => ({
+      value: landform,
+      label: getMapSourceProfileLabel(landform),
+    })), generatedLandform, (value) => {
+      generatedLandform = value;
+      selectSource(createGeneratedMapSource(generatedLandform, generatedSeed));
     });
   }
 
-  async function refreshTerrainPresetOptions() {
-    if (!terrainPresetSelect || !terrainEmptyHint || !terrainPreviewList) return;
-    const usePreset = terrainSourceSelect?.value === 'preset';
+  function nextPaint() {
+    return new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 0)));
+  }
 
-    setPresetSelectLoading(terrainPresetSelect);
-    terrainPreviewList.innerHTML = `<div class="terrain-preset-loading">${t('landing.terrainPresetLoading')}</div>`;
-    terrainEmptyHint.style.display = 'none';
-    if (terrainPresetTitle) terrainPresetTitle.style.display = 'none';
+  function showPreviewStatus(text) {
+    if (!previewStatus) return;
+    previewStatus.textContent = text;
+    previewStatus.hidden = !text;
+  }
 
+  function markSelectedCards() {
+    // Cards, district chips and overview markers all carry the id of the map they pick.
+    setup.querySelectorAll('[data-source-id]').forEach((element) => {
+      const selected = element.dataset.sourceId === selectedSource?.id;
+      element.setAttribute('aria-checked', selected ? 'true' : 'false');
+      if (element.classList.contains('setup-map-card')) element.tabIndex = selected || !selectedSource ? 0 : -1;
+    });
+  }
+
+  function placeOverviewFrame(frame, source) {
+    const box = getDistrictOverviewBox(source);
+    if (!frame) return;
+    frame.hidden = !box;
+    if (!box) return;
+    frame.style.left = `${box.left}%`;
+    frame.style.top = `${box.top}%`;
+    frame.style.width = `${box.width}%`;
+    frame.style.height = `${box.height}%`;
+  }
+
+  function showDistrictIntro(source) {
+    placeOverviewFrame(overviewFrame, source);
+    if (introName) introName.textContent = source?.name ?? '';
+    if (introBody) introBody.textContent = source?.intro ?? '';
+    if (introMeta) introMeta.textContent = source ? t('landing.districtPeak', { metres: source.peakMetres }) : '';
+    if (introDifficulty) introDifficulty.textContent = '';
+    if (typeof renderDistrictTraits === 'function') renderDistrictTraits(introTraits, getDistrictProfile(source?.districtId));
+    introThumb?.getContext('2d')?.clearRect(0, 0, introThumb.width, introThumb.height);
+  }
+
+  async function selectSource(source) {
+    selectedSource = source;
+    if (source && rememberedSourceIds[source.kind] !== undefined) rememberedSourceIds[source.kind] = source.id;
+    markSelectedCards();
+    if (btnStart) btnStart.disabled = !source;
+    const token = ++previewToken;
+
+    previewCanvas?.closest('.setup-preview')?.classList.toggle('is-empty', !source);
+    if (!source) {
+      previewCanvas?.getContext('2d')?.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+      if (previewName) previewName.textContent = '';
+      if (previewStats) previewStats.textContent = '';
+      showPreviewStatus('');
+      return;
+    }
+
+    if (source.kind === 'district') showDistrictIntro(source);
+    if (previewName) {
+      previewName.textContent = source.kind === 'generated'
+        ? getMapSourceProfileLabel(source.profileType)
+        : source.name;
+    }
+    showPreviewStatus(t('landing.mapGenerating'));
+    // Generating takes a moment: let the status paint first.
+    await nextPaint();
+    if (token !== previewToken) return;
+
+    let terrain = null;
     try {
-      let savedPresets = [];
-      try {
-        savedPresets = await listTerrainPresets();
-      } catch (error) {
-        console.warn('[TerrainPreset List]', error);
+      terrain = await source.getTerrain();
+    } catch (error) {
+      console.error('[MapSource Preview]', source.id, error);
+    }
+    if (token !== previewToken) return;
+    if (!terrain?.mapData) {
+      showPreviewStatus(t('landing.terrainPreviewFailed'));
+      if (previewStats) previewStats.textContent = '';
+      return;
+    }
+
+    drawMapSourcePreview(previewCanvas, terrain);
+    // 香港實景: say which part of Hong Kong the window came from
+    const nearInfo = terrain.nearDistrictId && typeof HK_DISTRICT_INFO !== 'undefined' ? HK_DISTRICT_INFO[terrain.nearDistrictId] : null;
+    if (previewName && nearInfo) {
+      const nearName = nearInfo.names?.[currentLanguage] ?? nearInfo.names?.en;
+      previewName.textContent = `${getMapSourceProfileLabel(source.profileType)} · ${t('landing.nearDistrict', { name: nearName })}`;
+    }
+    if (previewStats) {
+      const km = getMapSourceSizeKm();
+      previewStats.textContent = `${t('landing.mapStats', measureTerrainStats(terrain))} · ${t('landing.mapSize', { km })}`;
+    }
+    if (source.kind === 'district') {
+      drawMapSourcePreview(introThumb, terrain, 128);
+      const stats = measureTerrainStats(terrain);
+      if (introMeta) {
+        introMeta.textContent = `${t('landing.districtPeak', { metres: source.peakMetres })} · ${t('landing.mapStats', stats)}`;
       }
-
-      const builtInPresets = listBuiltInCityTerrainPresets();
-      const presets = [...builtInPresets, ...savedPresets];
-
-      terrainPresetSelect.innerHTML = '';
-      terrainPreviewList.innerHTML = '';
-
-      if (presets.length === 0) {
-        terrainPresetSelect.style.display = 'none';
-        terrainPreviewList.style.display = 'none';
-        terrainEmptyHint.style.display = usePreset ? 'block' : 'none';
-        if (terrainPresetTitle) terrainPresetTitle.style.display = 'none';
-        return;
+      if (introDifficulty) {
+        introDifficulty.textContent = formatDistrictDifficulty(getDistrictDifficulty(getDistrictProfile(source.districtId), stats.flat));
       }
+    }
+    showPreviewStatus('');
+  }
 
-      terrainPreviewList.style.display = 'grid';
-      if (terrainPresetTitle) terrainPresetTitle.style.display = 'block';
+  function createMapCard(source, onDelete = null) {
+    const card = document.createElement('div');
+    card.className = 'setup-map-card';
+    card.setAttribute('role', 'radio');
+    card.tabIndex = 0;
+    card.dataset.sourceId = source.id;
 
-      const placeholder = document.createElement('option');
-      placeholder.value = '';
-      placeholder.textContent = t('landing.terrainPresetSelect');
-      terrainPresetSelect.appendChild(placeholder);
+    const thumb = document.createElement('canvas');
+    thumb.width = 64;
+    thumb.height = 64;
+    const text = document.createElement('span');
+    const name = document.createElement('span');
+    name.className = 'setup-map-card-name';
+    name.textContent = source.name;
+    const meta = document.createElement('span');
+    meta.className = 'setup-map-card-meta';
+    meta.textContent = source.meta ?? getMapSourceProfileLabel(source.profileType);
+    text.append(name, meta);
+    card.append(thumb, text);
 
-      const scenarioGroup = document.createElement('optgroup');
-      scenarioGroup.label = t('landing.cityScenarioGroup');
-      terrainPresetSelect.appendChild(scenarioGroup);
+    card.addEventListener('click', () => selectSource(source));
+    card.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      selectSource(source);
+    });
 
-      const savedGroup = document.createElement('optgroup');
-      savedGroup.label = t('landing.savedTerrainGroup');
-      terrainPresetSelect.appendChild(savedGroup);
-
-      presets.forEach((preset) => {
-        const option = document.createElement('option');
-        option.value = String(preset.id);
-        option.textContent = createTerrainPresetOptionLabel(preset);
-        if (preset.isBuiltInScenario) scenarioGroup.appendChild(option);
-        else savedGroup.appendChild(option);
-
-        const card = document.createElement('div');
-        card.className = 'terrain-preset-card';
-        card.dataset.presetId = String(preset.id);
-
-        const thumb = document.createElement('canvas');
-        thumb.className = 'terrain-preset-thumb';
-        card.appendChild(thumb);
-
-        const name = document.createElement('div');
-        name.className = 'terrain-preset-name';
-        name.textContent = preset.name;
-        card.appendChild(name);
-
-        const meta = document.createElement('div');
-        meta.className = 'terrain-preset-meta';
-        meta.textContent = preset.isBuiltInScenario
-          ? `${t(`terrain.profile.${preset.profile_type}`)} · ${t('landing.cityScenarioLabel')}`
-          : t(`terrain.profile.${preset.profile_type}`);
-        card.appendChild(meta);
-
-        const actions = document.createElement('div');
-        actions.className = 'terrain-preset-actions';
-
-        const selectBtn = document.createElement('button');
-        selectBtn.type = 'button';
-        selectBtn.className = 'terrain-preset-btn';
-        selectBtn.textContent = t('landing.terrainSelect');
-        actions.appendChild(selectBtn);
-
-        let deleteBtn = null;
-        if (!preset.isBuiltInScenario) {
-          deleteBtn = document.createElement('button');
-          deleteBtn.type = 'button';
-          deleteBtn.className = 'terrain-preset-btn delete';
-          deleteBtn.textContent = t('landing.terrainDelete');
-          actions.appendChild(deleteBtn);
-        }
-
-        card.appendChild(actions);
-
-        const selectCard = () => setSelectedTerrainPreset(preset.id);
-        card.addEventListener('click', selectCard);
-        selectBtn.addEventListener('click', (event) => {
-          event.stopPropagation();
-          selectCard();
-        });
-
-        if (deleteBtn) {
-          deleteBtn.addEventListener('click', async (event) => {
-            event.stopPropagation();
-            if (!window.confirm(t('landing.terrainDeleteConfirm'))) return;
-            try {
-              await deleteTerrainPresetById(preset.id);
-              terrainPresetDataCache.delete(String(preset.id));
-              if (selectedTerrainPresetId === String(preset.id)) {
-                selectedTerrainPresetId = '';
-              }
-              showToast(t('toast.terrainPresetDeleted'), 'info');
-              refreshTerrainPresetOptions();
-            } catch (error) {
-              console.error('[TerrainPreset Delete]', error);
-              showToast(t('toast.terrainPresetDeleteFailed'), 'danger');
-            }
-          });
-        }
-
-        terrainPreviewList.appendChild(card);
-
-        const cached = terrainPresetDataCache.get(String(preset.id));
-        if (cached) {
-          drawTerrainPreview(thumb, cached);
-        } else if (preset.terrain_data?.mapData) {
-          terrainPresetDataCache.set(String(preset.id), preset.terrain_data);
-          drawTerrainPreview(thumb, preset.terrain_data);
-        } else {
-          getTerrainPresetById(preset.id)
-            .then((full) => {
-              if (!full?.terrain_data) return;
-              terrainPresetDataCache.set(String(preset.id), full.terrain_data);
-              drawTerrainPreview(thumb, full.terrain_data);
-            })
-            .catch(() => {
-              thumb.replaceWith(document.createTextNode(t('landing.terrainPreviewFailed')));
-            });
-        }
+    if (onDelete) {
+      const deleteBtn = document.createElement('button');
+      deleteBtn.type = 'button';
+      deleteBtn.className = 'setup-map-card-delete';
+      deleteBtn.textContent = '✕';
+      deleteBtn.title = t('landing.terrainDelete');
+      deleteBtn.setAttribute('aria-label', `${t('landing.terrainDelete')} ${source.name}`);
+      deleteBtn.addEventListener('click', (event) => {
+        event.stopPropagation();
+        onDelete();
       });
+      card.appendChild(deleteBtn);
+    }
 
-      if (!presets.some((preset) => String(preset.id) === selectedTerrainPresetId)) {
-        selectedTerrainPresetId = String(presets[0].id);
-      }
-      setSelectedTerrainPreset(selectedTerrainPresetId);
-      updateTerrainSourceVisibility();
-    } catch {
-      terrainPresetSelect.innerHTML = '';
-      terrainPresetSelect.style.display = 'none';
-      terrainPreviewList.innerHTML = '';
-      terrainPreviewList.style.display = 'none';
-      if (terrainPresetTitle) terrainPresetTitle.style.display = 'none';
-      terrainEmptyHint.style.display = 'block';
+    source.getTerrain()
+      .then((terrain) => { if (terrain?.mapData) drawMapSourcePreview(thumb, terrain, 64); })
+      .catch((error) => console.warn('[MapSource Thumb]', source.id, error));
+    return card;
+  }
+
+  function pickRemembered(sources, kind) {
+    return sources.find((source) => source.id === rememberedSourceIds[kind]) ?? sources[0] ?? null;
+  }
+
+  // 香港地區: a name chip per district on the right, and a marker at each district's centre on
+  // the overview; hovering either outlines that district's square.
+  function renderDistrictPicker() {
+    const sources = listDistrictMapSources();
+    const showHover = (source) => placeOverviewFrame(overviewHover, source);
+    const hideHover = () => { if (overviewHover) overviewHover.hidden = true; };
+
+    if (districtList) {
+      districtList.innerHTML = '';
+      sources.forEach((source) => {
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'setup-chip';
+        chip.setAttribute('role', 'radio');
+        chip.dataset.sourceId = source.id;
+        chip.textContent = source.name;
+        chip.addEventListener('click', () => selectSource(source));
+        chip.addEventListener('mouseenter', () => showHover(source));
+        chip.addEventListener('mouseleave', hideHover);
+        districtList.appendChild(chip);
+      });
+    }
+
+    if (overviewMap) {
+      overviewMap.querySelectorAll('.setup-overview-marker').forEach((marker) => marker.remove());
+      sources.forEach((source) => {
+        const box = getDistrictOverviewBox(source);
+        if (!box) return;
+        const marker = document.createElement('button');
+        marker.type = 'button';
+        marker.className = 'setup-overview-marker';
+        marker.setAttribute('role', 'radio');
+        marker.dataset.sourceId = source.id;
+        marker.title = source.name;
+        marker.setAttribute('aria-label', source.name);
+        marker.style.left = `${box.x}%`;
+        marker.style.top = `${box.y}%`;
+        marker.addEventListener('click', () => selectSource(source));
+        marker.addEventListener('mouseenter', () => showHover(source));
+        marker.addEventListener('mouseleave', hideHover);
+        overviewMap.appendChild(marker);
+      });
+    }
+
+    hideHover();
+    selectSource(pickRemembered(sources, 'district'));
+  }
+
+  async function refreshSavedCards() {
+    if (!savedList) return;
+    savedList.innerHTML = '';
+    if (savedEmpty) savedEmpty.hidden = true;
+    selectSource(null);
+    const sources = await listSavedMapSources();
+    if (activeTab !== 'saved') return;
+    savedList.innerHTML = '';
+    if (savedEmpty) savedEmpty.hidden = sources.length > 0;
+    sources.forEach((source) => {
+      savedList.appendChild(createMapCard(source, async () => {
+        if (!window.confirm(t('landing.terrainDeleteConfirm'))) return;
+        try {
+          await source.remove();
+          showToast(t('toast.terrainPresetDeleted'), 'info');
+        } catch (error) {
+          console.error('[TerrainPreset Delete]', error);
+          showToast(t('toast.terrainPresetDeleteFailed'), 'danger');
+        }
+        refreshSavedCards();
+      }));
+    });
+    selectSource(pickRemembered(sources, 'saved'));
+  }
+
+  function setActiveTab(tab) {
+    activeTab = tab;
+    tabButtons.forEach((button) => {
+      button.setAttribute('aria-selected', button.dataset.mapTab === tab ? 'true' : 'false');
+    });
+    tabPanels.forEach((panel) => {
+      panel.hidden = panel.dataset.mapPanel !== tab;
+    });
+    setup.dataset.tab = tab;
+    if (tab === 'district') {
+      renderDistrictPicker();
+    } else if (tab === 'saved') {
+      refreshSavedCards();
+    } else {
+      // Same landform and seed: keep the terrain already generated rather than build it again.
+      const id = `generated:${generatedLandform}:${generatedSeed}`;
+      selectSource(selectedSource?.id === id ? selectedSource : createGeneratedMapSource(generatedLandform, generatedSeed));
     }
   }
 
-  function updateTerrainSourceVisibility() {
-    if (!terrainSourceSelect || !terrainPresetSelect || !terrainEmptyHint || !terrainPreviewList) return;
-    const usePreset = terrainSourceSelect.value === 'preset';
-    terrainPresetSelect.style.display = 'none';
-    terrainPreviewList.style.display = usePreset ? 'grid' : 'none';
-    if (terrainPresetTitle) terrainPresetTitle.style.display = usePreset ? 'block' : 'none';
-    if (!usePreset) {
-      terrainEmptyHint.style.display = 'none';
+  // Draws everything that holds translated text; the current picks stay as they are.
+  function renderSetupScreen() {
+    renderStartYearChips();
+    renderLandformChips();
+    if (seedInput) seedInput.value = generatedSeed;
+    setActiveTab(activeTab);
+  }
+
+  function openSetup(mode) {
+    setSetupMode(mode);
+    setLandingState('setup');
+    if (mode === 'newCity') {
+      nameInput.value = getDefaultCityName();
+      // Every new city starts on the default set, not whichever one the showcase or the last
+      // city left current.
+      if (typeof populateRoadTileSetSelect === 'function') populateRoadTileSetSelect(roadTileSetSelect);
+      if (roadTileSetSelect) roadTileSetSelect.value = ROAD_TILE_SET_DEFAULT_ID;
+    }
+    renderSetupScreen();
+    if (mode === 'newCity') {
+      nameInput.focus();
+      nameInput.select();
+    }
+  }
+
+  function applySeedInput() {
+    const typed = seedInput?.value.trim() ?? '';
+    generatedSeed = typed || createSeed();
+    if (seedInput) seedInput.value = generatedSeed;
+    selectSource(createGeneratedMapSource(generatedLandform, generatedSeed));
+  }
+
+  async function confirmSetup() {
+    const source = selectedSource;
+    if (!source) {
+      showToast(t('landing.mapRequired'), 'warning');
+      return;
+    }
+    if (btnStart) btnStart.disabled = true;
+    try {
+      const terrain = await source.getTerrain();
+      if (!terrain?.mapData || !terrain?.heightMap) {
+        throw new Error(`Missing terrain data for map ${source.id}`);
+      }
+      if (setupMode === 'editor') {
+        startTerrainCreatorMode(source.profileType, terrain.seed || createSeed(), terrain);
+      } else {
+        await startNewGame(nameInput.value.trim() || getDefaultCityName(), {
+          terrain,
+          districtProfileId: source.kind === 'district' ? source.districtId : '',
+          startYear: selectedStartYear,
+          roadTileSetId: roadTileSetSelect?.value,
+          transportExpansion: transportExpansionCheckbox?.checked === true,
+        });
+      }
+    } catch (error) {
+      console.error('[MapSource Load]', error);
+      showToast(t('toast.terrainPresetLoadFailed'), 'danger');
+    } finally {
+      if (btnStart) btnStart.disabled = !selectedSource;
     }
   }
 
@@ -279,72 +430,52 @@ function setupLandingScreen() {
   // Pre-fetch saves immediately so the player sees live feedback instead of
   // a blank button while the server wakes up.
   prefetchSaveStatus();
-  populateTerrainProfileSelect();
-  populateStartYearSelect();
   if (typeof populateRoadTileSetSelect === 'function') populateRoadTileSetSelect(roadTileSetSelect);
-  updateTerrainSourceVisibility();
   document.addEventListener('languagechange', () => {
     // The landing screen stays mounted after gameplay begins. Rebuilding its
     // hidden terrain previews is unnecessary and used to let preview generation
     // race with (and overwrite) the active city's elevation state.
     if (screen.style.display === 'none') return;
-    populateTerrainProfileSelect();
-    populateStartYearSelect();
+    if (setup.style.display === 'none') return;
     if (typeof populateRoadTileSetSelect === 'function') populateRoadTileSetSelect(roadTileSetSelect);
-    refreshTerrainPresetOptions();
+    renderSetupScreen();
   });
 
-  btnNew.addEventListener('click', () => {
-    setLandingState('name');
-    nameInput.value = getDefaultCityName();
-    if (typeof populateRoadTileSetSelect === 'function') populateRoadTileSetSelect(roadTileSetSelect);
-    nameInput.focus();
-    nameInput.select();
-    refreshTerrainPresetOptions();
-  });
-
-  btnTerrainCreator?.addEventListener('click', () => {
-    setLandingState('terrain');
-  });
+  btnNew.addEventListener('click', () => openSetup('newCity'));
+  btnTerrainCreator?.addEventListener('click', () => openSetup('editor'));
 
   btnCont.addEventListener('click', () => {
     openSaveListModal();
   });
 
-  btnStart.addEventListener('click', () => {
-    const name = nameInput.value.trim() || getDefaultCityName();
-    startNewGame(name);
-  });
-
-  btnGenerateTerrain?.addEventListener('click', () => {
-    const profile = terrainProfileSelect?.value || 'island';
-    startTerrainCreatorMode(profile, createSeed());
-  });
-
+  btnStart.addEventListener('click', confirmSetup);
   btnBack.addEventListener('click', () => {
     setLandingState('menu');
   });
 
-  btnTerrainBack?.addEventListener('click', () => {
-    setLandingState('menu');
+  tabButtons.forEach((button) => {
+    button.addEventListener('click', () => setActiveTab(button.dataset.mapTab));
+  });
+
+  btnReroll?.addEventListener('click', () => {
+    generatedSeed = createSeed();
+    if (seedInput) seedInput.value = generatedSeed;
+    selectSource(createGeneratedMapSource(generatedLandform, generatedSeed));
+  });
+  seedInput?.addEventListener('change', applySeedInput);
+  seedInput?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      seedInput.blur();
+    }
   });
 
   nameInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      const name = nameInput.value.trim() || getDefaultCityName();
-      startNewGame(name);
-    }
+    if (e.key === 'Enter') confirmSetup();
   });
 
-  terrainSourceSelect?.addEventListener('change', () => {
-    updateTerrainSourceVisibility();
-    if (terrainSourceSelect.value === 'preset') {
-      refreshTerrainPresetOptions();
-    }
-  });
-
-  terrainPresetSelect?.addEventListener('change', () => {
-    setSelectedTerrainPreset(terrainPresetSelect.value);
+  setup.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') setLandingState('menu');
   });
 
   // Keyboard shortcuts: Ctrl+S = save, Ctrl+O = load
@@ -420,8 +551,6 @@ function copyTerrainToWorld(mapRows, heightRows) {
       }
     }
   }
-
-  flattenMapBorder(mapData, heightMap, 3);
 }
 
 function rebuildFreshMapSession(cityName) {
@@ -452,7 +581,8 @@ function rebuildFreshMapSession(cityName) {
   updateHUD();
 }
 
-function startTerrainCreatorMode(profileType, seedText) {
+// terrain: the map picked on the setup screen; without one a fresh map is generated.
+function startTerrainCreatorMode(profileType, seedText, terrain = null) {
   if (typeof leaveAttractMode === 'function') leaveAttractMode('terrainCreator');
   if (!gameReady || !activeScene) return;
 
@@ -461,7 +591,12 @@ function startTerrainCreatorMode(profileType, seedText) {
   isTerrainCreatorMode = true;
   activeTerrainProfileType = profileType;
   currentSeed = seedText || createSeed();
-  mapData = generateTerrainMapByProfile(profileType, currentSeed);
+  if (terrain?.mapData && terrain?.heightMap) {
+    copyTerrainToWorld(terrain.mapData, terrain.heightMap);
+    currentTerrainMetadata = createTerrainMetadata(terrain, currentSeed);
+  } else {
+    mapData = generateTerrainMapByProfile(profileType, currentSeed);
+  }
   rebuildFreshMapSession(getDefaultCityName());
   selectedTool = 'terrain';
   selectedTerrainType = 'raise';
@@ -523,75 +658,55 @@ async function saveTerrainPresetFromCurrentMap() {
   }
 }
 
-async function startNewGame(cityName) {
+function createTerrainMetadata(terrain, seed) {
+  return {
+    generatorVersion: terrain?.generatorVersion ?? 2,
+    profileType: terrain?.profileType ?? 'custom',
+    seed,
+    features: terrain?.features ?? [],
+  };
+}
+
+// options.terrain is the map picked on the setup screen (any map source); without one the
+// city starts on freshly generated terrain, as the preview scripts rely on.
+async function startNewGame(cityName, options = {}) {
   if (!gameReady) return;
   if (typeof closeBunHillMapEvent === 'function') closeBunHillMapEvent();
   const performanceStartedAt = globalThis.performance?.now?.() ?? Date.now();
-
-  const terrainSourceSelect = document.getElementById('newgame-terrain-source');
-  const terrainPresetSelect = document.getElementById('newgame-terrain-preset');
-  const roadTileSetSelect = document.getElementById('newgame-road-tile-set');
-  const transportExpansionCheckbox = document.getElementById('newgame-transport-expansion');
-  const startYearSelect = document.getElementById('newgame-start-year');
-  const source = terrainSourceSelect?.value || 'random';
+  const terrain = options.terrain ?? null;
+  const source = terrain ? 'map-source' : 'random';
 
   stopSimTimer();
   isTerrainCreatorMode = false;
   activeTerrainProfileType = 'custom';
   setTerrainEditorUiActive(false);
 
-  if (source === 'preset') {
-    const selectedId = (terrainPresetSelect?.value || '').trim();
-    if (!selectedId) {
-      showToast(t('landing.terrainPresetRequired'), 'warning');
-      return;
-    }
-
-    try {
-      let terrain = null;
-      if (selectedId.startsWith('builtin:')) {
-        terrain = getBuiltInCityTerrainData(selectedId);
-      } else {
-        const row = await getTerrainPresetById(selectedId);
-        terrain = row?.terrain_data;
-      }
-
-      if (!terrain?.mapData || !terrain?.heightMap) {
-        throw new Error(`Missing terrain data for preset ${selectedId}`);
-      }
-
-      copyTerrainToWorld(terrain.mapData, terrain.heightMap);
-      currentSeed = terrain?.seed || createSeed();
-      currentTerrainMetadata = {
-        generatorVersion: terrain?.generatorVersion ?? 2,
-        profileType: terrain?.profileType ?? 'custom',
-        seed: currentSeed,
-        features: terrain?.features ?? [],
-      };
-    } catch (error) {
-      console.error('[TerrainPreset Load]', error);
-      showToast(t('toast.terrainPresetLoadFailed'), 'danger');
-      return;
-    }
+  if (terrain?.mapData && terrain?.heightMap) {
+    copyTerrainToWorld(terrain.mapData, terrain.heightMap);
+    currentSeed = terrain.seed || createSeed();
+    currentTerrainMetadata = createTerrainMetadata(terrain, currentSeed);
   } else {
     currentSeed = createSeed();
     mapData = generateTerrainMap(currentSeed);
   }
 
   if (typeof setRoadTileSet === 'function') {
-    setRoadTileSet(roadTileSetSelect?.value || ROAD_TILE_SET_DEFAULT_ID, { refresh: false });
+    setRoadTileSet(options.roadTileSetId || ROAD_TILE_SET_DEFAULT_ID, { refresh: false });
   }
 
   if (typeof beginNewCitySaveSession === 'function') beginNewCitySaveSession();
   else if (typeof currentSaveId !== 'undefined') currentSaveId = null;
 
   rebuildFreshMapSession(cityName || getDefaultCityName());
+  city.districtProfileId = options.districtProfileId || '';
+  if (typeof applyDistrictZoneDensityCap === 'function') applyDistrictZoneDensityCap();
+  if (typeof updateDistrictProfilePanel === 'function') updateDistrictProfilePanel();
   if (typeof resolveCityStartYear === 'function') {
-    city.year = resolveCityStartYear(startYearSelect?.value ?? CITY_DEFAULT_START_YEAR);
+    city.year = resolveCityStartYear(options.startYear ?? CITY_DEFAULT_START_YEAR);
     updateHUD();
   }
   if (typeof setExpansionEnabled === 'function') {
-    setExpansionEnabled('transport', transportExpansionCheckbox?.checked === true, {
+    setExpansionEnabled('transport', options.transportExpansion === true, {
       notify: false,
       autosave: false,
     });

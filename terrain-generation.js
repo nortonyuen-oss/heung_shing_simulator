@@ -1148,11 +1148,12 @@ function normalizeUnsupportedHillTopologiesGlobal(terrain, heights, passes = 1) 
         const current = heights[row][col];
         if (current <= 0) continue;
 
+        // Outside the map is level with the edge tile, as the renderer treats it (tile-keys.js).
         const neighbors = [
-          row > 0 ? heights[row - 1][col] : 0,
-          col < MAP_WIDTH - 1 ? heights[row][col + 1] : 0,
-          row < MAP_HEIGHT - 1 ? heights[row + 1][col] : 0,
-          col > 0 ? heights[row][col - 1] : 0,
+          row > 0 ? heights[row - 1][col] : current,
+          col < MAP_WIDTH - 1 ? heights[row][col + 1] : current,
+          row < MAP_HEIGHT - 1 ? heights[row + 1][col] : current,
+          col > 0 ? heights[row][col - 1] : current,
         ];
 
         const lowerDirs = ['n', 'e', 's', 'w'].filter((dir, index) => neighbors[index] < current);

@@ -120,7 +120,8 @@ function updateCityAttractivenessMetrics() {
   const economy = councilEffectClamp((Number(city.demandC) + 1) / 2, 0, 1);
   const culture = councilEffectClamp((getDepartmentFunding('parks') - 0.6) / 0.8, 0, 1);
   const lawBonus = isPolicyActive('arcticPenguinReserve') ? 4 : 0;
-  const eventBonus = getCouncilTemporaryModifier('attractiveness');
+  const eventBonus = getCouncilTemporaryModifier('attractiveness')
+    + (typeof getDistrictProfileEffect === 'function' ? getDistrictProfileEffect('environment') : 0); // 地區特色: green districts draw people
   const ridicule = councilEffectClamp(city.cityRidicule, 0, 100);
   const memeBonus = ridicule <= 45 ? ridicule * 0.12 : Math.max(0, 5.4 - (ridicule - 45) * 0.05);
   const reputationPenalty = Math.max(0, ridicule - 65) * 0.25;
@@ -137,6 +138,7 @@ function updateCityAttractivenessMetrics() {
   city.tourismAppeal = councilEffectClamp(
     city.cityAttractiveness
       + getCouncilTemporaryModifier('tourism')
+      + (typeof getDistrictProfileEffect === 'function' ? getDistrictProfileEffect('tourism') : 0)
       + (isPolicyActive('tourismPromotion') ? 8 : 0)
       + (isPolicyActive('arcticPenguinReserve') ? 7 : 0),
     0,
@@ -146,7 +148,8 @@ function updateCityAttractivenessMetrics() {
   // 「無處不旅遊」 brings more of every kind for as long as it runs
   const shelterVisitors = typeof getTyphoonShelterTouristCapacity === 'function' ? getTyphoonShelterTouristCapacity() : 0;
   const capacity = Math.max(200, city.commercialCount * 42 + city.population * 0.035 + shelterVisitors)
-    * (1 + Math.max(0, getCouncilTemporaryModifier('tourismCapacity')));
+    * (1 + Math.max(0, getCouncilTemporaryModifier('tourismCapacity')))
+    * (1 + (typeof getDistrictProfileEffect === 'function' ? getDistrictProfileEffect('tourismCapacity') : 0));
   city.monthlyVisitors = Math.max(0, Math.round(capacity * (0.2 + city.tourismAppeal / 100)));
   city.tourismRevenue = Math.max(0, Math.round(city.monthlyVisitors * (0.45 + city.tourismAppeal / 220)));
 }

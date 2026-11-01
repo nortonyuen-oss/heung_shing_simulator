@@ -327,6 +327,7 @@ function setupToolMenu() {
   setupJukebox();
   setupRotateCluster();
   setupTerrainMiniMapControls();
+  if (typeof setupCityMinimap === 'function') setupCityMinimap();
   initChartControls();
   updateLandmarkToolUi();
 }
@@ -740,6 +741,8 @@ function openZoneDensityMenu(toolKey, triggerButton) {
   const colorKey = zoneType;
   const baseCost = zoneType === 'res' ? 50 : zoneType === 'com' ? 60 : 50;
   const currentDensity = selectedZoneDensity[zoneType] ?? 1;
+  const maxDensity = typeof getDistrictMaxZoneDensity === 'function' ? getDistrictMaxZoneDensity() : DENSITY_HIGH;
+  const zoningCost = (amount) => (typeof getDistrictZoningCost === 'function' ? getDistrictZoningCost(amount) : Math.round(amount));
 
   densityMenu.dataset.currentZone = zoneType;
   densityMenu.innerHTML = '';
@@ -750,6 +753,11 @@ function openZoneDensityMenu(toolKey, triggerButton) {
     btn.type = 'button';
     btn.dataset.density = opt.density;
     btn.classList.toggle('is-active', opt.density === currentDensity);
+    // 地區特色: densities above the district's height cap cannot be picked
+    if (opt.density > maxDensity) {
+      btn.disabled = true;
+      btn.title = t('district.heightCapTip');
+    }
 
     const block = document.createElement('span');
     block.className = `zone-block ${colorKey}`;
@@ -761,7 +769,7 @@ function openZoneDensityMenu(toolKey, triggerButton) {
 
     const cost = document.createElement('span');
     cost.className = 'popup-cost';
-    cost.textContent = `$${Math.round(baseCost * [1, 1.5, 2.5][opt.density - 1])}`;
+    cost.textContent = `$${zoningCost(baseCost * [1, 1.5, 2.5][opt.density - 1])}`;
 
     btn.append(block, label, cost);
     densityMenu.append(btn);
@@ -813,7 +821,8 @@ function updateZoneDensityBadges() {
     // Update button tooltip to reflect current density + cost
     const btn = document.querySelector(`[data-tool="zone-${type}"]`);
     if (btn) {
-      const cost = Math.round((ZONE_COSTS[type] ?? 50) * (DENSITY_COST_MUL[density] ?? 1));
+      const baseCost = (ZONE_COSTS[type] ?? 50) * (DENSITY_COST_MUL[density] ?? 1);
+      const cost = typeof getDistrictZoningCost === 'function' ? getDistrictZoningCost(baseCost) : Math.round(baseCost);
       const zone = getZoneLabel(type);
       const densityName = getDensityLabel(density);
       const title = t('tool.zone', { zone, density: densityName, cost });

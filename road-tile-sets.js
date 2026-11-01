@@ -1,4 +1,7 @@
-const ROAD_TILE_SET_DEFAULT_ID = 'classic';
+// New cities start on the marked roads. Saves written before the set was stored were all on
+// the classic Kenney tiles, so a save with no roadTileSetId still loads as 'classic' (save.js).
+const ROAD_TILE_SET_DEFAULT_ID = 'newRoadTiles';
+const ROAD_TILE_SET_LEGACY_ID = 'classic';
 
 const ROAD_TILE_LOGICAL_FILES = {
   road_straight_h: 'roadNS.png',

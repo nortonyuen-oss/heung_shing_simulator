@@ -55,9 +55,18 @@ Suno 於 2026-09-03 生效的條款將商用許可與符合方案及官方管道
 
 曙暮光部分另參考《香港天文台年曆 2026》，並非上述 CSV 許可的自動延伸；出版物使用範圍仍待確認。警告圖示參考天文台，其具體圖源／改作範圍亦仍在核對。這些內容不獲本專案概括商用或素材再利用許可。出版物條件：<https://www.hko.gov.hk/en/publica/commercialuse.htm>。
 
+## 地政總署數碼地形模型
+
+開新城市的「香港地區」地圖（`hk-district-maps.js`）、「隨機生成」的香港實景地形（`hk-terrain-tiles.js`）及全港總覽圖（`UI/hk-district-overview.webp`）由香港特別行政區政府地政總署的數碼地形模型（DTM，5 米網格）產生，經 DATA.GOV.HK 開放資料提供。資料的知識產權由政府及地政總署保留：
+
+- [數碼地形模型資料集](https://data.gov.hk/en-data/dataset/hk-landsd-openmap-5m-grid-dtm)
+- [DATA.GOV.HK 使用條款及條件](https://data.gov.hk/tc/terms-and-conditions)
+
+遊戲將地形重新取樣為每格 20 米，並把高度簡化為 9 級、加入沙灘及遊戲地形規則，所以不是測量用資料，亦不表示政府或地政總署認可本遊戲。產生方法見 `scripts/build-hk-district-maps.py`。
+
 ## 海岸線
 
-開發者記錄的來源為 Google Earth，由開發工具引入；現有檔案與 Git 歷史未保留可核實的原始圖層／資料集網址。因此目前不主張這些遮罩屬開放授權資料，也不授予其商業再利用權。Google Earth 條款：<https://www.google.com/help/terms_maps-earth/>。
+舊有城市場景的海岸線遮罩（`real-city-coastline-masks.js` 等），開發者記錄的來源為 Google Earth，由開發工具引入；現有檔案與 Git 歷史未保留可核實的原始圖層／資料集網址。因此目前不主張這些遮罩屬開放授權資料，也不授予其商業再利用權。開新城市畫面已不再提供這些場景。Google Earth 條款：<https://www.google.com/help/terms_maps-earth/>。
 
 ## 權利查詢
 

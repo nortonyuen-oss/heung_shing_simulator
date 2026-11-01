@@ -289,9 +289,10 @@ test('depth-sorted trees share the standard WebGL pipeline with buildings', () =
 });
 
 test('map controls expose music and independently wired top-right zoom buttons', () => {
-  assert.match(htmlSource, /id="btn-map-music"/);
+  assert.match(htmlSource, /data-speed="2"[\s\S]*?<\/div>\s*<button id="btn-map-music"/, 'music sits right after the 8x speed button');
   assert.match(htmlSource, /id="btn-map-zoom-out"[\s\S]*?id="map-zoom-label"[\s\S]*?id="btn-map-zoom-in"/);
   assert.match(mainSource, /btn\.id === 'btn-map-music'\) toggleMusic\(\)/);
+  assert.match(htmlSource, /id="city-minimap"[\s\S]*?id="btn-rotate-ccw"[\s\S]*?id="btn-rotate-cw"[\s\S]*?<\/aside>/, 'rotate arrows sit on the city minimap');
   assert.match(mainSource, /const zoomControl = document\.querySelector\('\.map-zoom-control'\)/);
   assert.match(mainSource, /zoomControl\.addEventListener\('click',[\s\S]*?btn\.id === 'btn-map-zoom-in'\) changeMapZoom\(activeScene, 1\)/);
   assert.match(mainSource, /zoomOutButton\.disabled = !!camera && currentZoom <= MAP_ZOOM_MIN/);

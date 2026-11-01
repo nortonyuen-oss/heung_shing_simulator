@@ -71,7 +71,8 @@ function getTrafficIndexPolicyOffset() {
     : 0;
   const seatbelt = typeof isPolicyActive === 'function' && isPolicyActive('busSeatbeltMandate') ? 0.025 : 0;
   const elderlyFare = typeof isPolicyActive === 'function' && isPolicyActive('elderlyTwoDollarFare') ? 0.012 : 0;
-  return councilTraffic + seatbelt - elderlyFare;
+  const districtTraffic = (typeof getDistrictProfileEffect === 'function' ? getDistrictProfileEffect('traffic') : 0);
+  return councilTraffic + seatbelt - elderlyFare + districtTraffic;
 }
 
 function updateTrafficIndexForTimeOfDay(timeMinutes) {

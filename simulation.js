@@ -649,7 +649,8 @@ function updateDemand() {
     - healthCapacityPenalty
     - congestionPenR
     - powerShortageDemandPenalty
-    - 0.2 * (city.taxRate / TAX_RATE_MAX),
+    - 0.2 * (city.taxRate / TAX_RATE_MAX)
+    + (typeof getDistrictProfileEffect === 'function' ? getDistrictProfileEffect('demandR') : 0), // 地區特色 (district-profiles.js)
     -1, 1
   );
 
@@ -687,6 +688,7 @@ function updateDemand() {
     + (typeof getNightBazaarEffectShare === 'function' ? getNightBazaarEffectShare() * 0.03 : 0)
     + (typeof getCouncilTemporaryModifier === 'function' ? getCouncilTemporaryModifier('commercialDemand') : 0)
     + transportCommercialBonus
+    + (typeof getDistrictProfileEffect === 'function' ? getDistrictProfileEffect('demandC') : 0)
     + (hasBuildingType('stock_exchange') ? 0.10 * hsiRatio : 0)
     + stockExchangeBoost
     - epidemicDemandPenalty * 0.08
@@ -726,6 +728,7 @@ function updateDemand() {
     + (isPolicyActive('industrialBuildingRevitalization') ? 0.12 : 0)
     + (isPolicyActive('strongCountryManufacturing') ? 0.10 : 0)
     + transportIndustrialBonus
+    + (typeof getDistrictProfileEffect === 'function' ? getDistrictProfileEffect('demandI') : 0)
     - powerShortageDemandPenalty,
     -1, 1
   );
@@ -741,12 +744,16 @@ function updatePopulationAndPollution() {
   city.industrialCount = 0;
   city.pollution       = 0;
   let industrialScienceCount = 0;
+  let residents = 0;
+  // 地區特色: denser districts house more people per building; greener ones pollute less
+  const districtDensity = 1 + (typeof getDistrictProfileEffect === 'function' ? getDistrictProfileEffect('density') : 0);
+  const districtPollution = 1 + (typeof getDistrictProfileEffect === 'function' ? getDistrictProfileEffect('pollution') : 0);
 
   Object.values(buildingData).forEach((rec) => {
     if (rec.type === 'residential') {
       city.residentialCount++;
       // Use stored population (accounts for multi-tile footprints) or fall back to level lookup
-      city.population += rec.population ?? POP_PER_LEVEL[rec.level] ?? 0;
+      residents += rec.population ?? POP_PER_LEVEL[rec.level] ?? 0;
     } else if (rec.type === 'commercial') {
       city.commercialCount++;
     } else if (rec.type === 'industrial') {
@@ -756,7 +763,7 @@ function updatePopulationAndPollution() {
       const baseIndustrialPollution = isSciencePark ? POLLUTION_SCIENCE_PARK_BUILDING : POLLUTION_IND_BUILDING;
       const cleanAirMultiplier = isPolicyActive('cleanAir') ? 0.70 : 1;
       const revitalizationMultiplier = isPolicyActive('industrialBuildingRevitalization') ? 0.70 : 1;
-      city.pollution += baseIndustrialPollution * cleanAirMultiplier * revitalizationMultiplier;
+      city.pollution += baseIndustrialPollution * cleanAirMultiplier * revitalizationMultiplier * districtPollution;
     } else if (rec.type === 'power_plant_coal') {
       city.pollution += POLLUTION_COAL_PLANT * (isPolicyActive('cleanAir') ? 0.70 : 1);
     } else if (rec.type === 'power_plant_solar') {
@@ -766,6 +773,7 @@ function updatePopulationAndPollution() {
     }
   });
   // 住家艇: the families living aboard in the typhoon shelters (typhoon-shelter-fishery.js)
+  city.population += Math.round(residents * districtDensity);
   if (typeof getTyphoonShelterResidents === 'function') city.population += getTyphoonShelterResidents();
   if (typeof getMatureTreeCount === 'function' && city.pollution > 0) {
     const treeReduction = Math.min(

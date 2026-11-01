@@ -1409,15 +1409,16 @@ function applySaveData(scene, save) {
   // Restore terrain
   currentSeed = save.seed ?? currentSeed;
   if (typeof setRoadTileSet === 'function') {
-    setRoadTileSet(save.roadTileSetId ?? ROAD_TILE_SET_DEFAULT_ID, { refresh: false });
+    // No stored set: the save predates the field, when every city used the classic tiles.
+    setRoadTileSet(save.roadTileSetId ?? 'classic', { refresh: false });
   } else if (typeof setCurrentRoadTileSetId === 'function') {
-    setCurrentRoadTileSetId(save.roadTileSetId ?? ROAD_TILE_SET_DEFAULT_ID);
+    setCurrentRoadTileSetId(save.roadTileSetId ?? 'classic');
   }
   for (let r = 0; r < MAP_HEIGHT; r++)
     for (let c = 0; c < MAP_WIDTH; c++)
       mapData[r][c] = terrainElevation.mapData[r][c];
+  // The border keeps whatever height was saved: Hong Kong district maps run high to the edge.
   heightMap = terrainElevation.heightMap.map((row) => Array.from(row));
-  flattenMapBorder(mapData, heightMap, 3);
 
   // Clear Phaser sprites
   clearAllOverlays(scene);
@@ -1429,6 +1430,10 @@ function applySaveData(scene, save) {
   // Restore city state
   const savedCityState = save.city ?? {};
   Object.assign(city, savedCityState);
+  // 地區特色: older saves have no district profile
+  city.districtProfileId = typeof savedCityState.districtProfileId === 'string' ? savedCityState.districtProfileId : '';
+  if (typeof applyDistrictZoneDensityCap === 'function') applyDistrictZoneDensityCap();
+  if (typeof updateDistrictProfilePanel === 'function') updateDistrictProfilePanel();
   // Time-of-day traffic keeps a neutral baseline in new saves. Preserve the
   // last known congestion as that baseline when loading an older save which
   // only stored trafficIndex; updateTrafficMap will refine it on the next sim.

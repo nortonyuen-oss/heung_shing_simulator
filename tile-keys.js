@@ -303,11 +303,12 @@ function normalizeHillOpenEdges(row, col, openEdges) {
   }
 
   const currentHeight = getTileHeight(row, col);
+  // Outside the map counts as level with the edge tile (no drop off the edge).
   const dropByDir = {
-    n: currentHeight - (row > 0 ? getTileHeight(row - 1, col) : 0),
-    e: currentHeight - (col < MAP_WIDTH - 1 ? getTileHeight(row, col + 1) : 0),
-    s: currentHeight - (row < MAP_HEIGHT - 1 ? getTileHeight(row + 1, col) : 0),
-    w: currentHeight - (col > 0 ? getTileHeight(row, col - 1) : 0),
+    n: row > 0 ? currentHeight - getTileHeight(row - 1, col) : 0,
+    e: col < MAP_WIDTH - 1 ? currentHeight - getTileHeight(row, col + 1) : 0,
+    s: row < MAP_HEIGHT - 1 ? currentHeight - getTileHeight(row + 1, col) : 0,
+    w: col > 0 ? currentHeight - getTileHeight(row, col - 1) : 0,
   };
 
   const sorted = openEdges.slice().sort((a, b) => dropByDir[b] - dropByDir[a]);
@@ -335,11 +336,13 @@ function getHillOpenEdges(row, col) {
   const currentHeight = getTileHeight(row, col);
   if (currentHeight <= 0) return ['n', 'e', 's', 'w'];
 
+  // Ground outside the map is level with the edge tile, so a hill cut by the map edge stays
+  // flat there; map-edge-skirt.js draws the cross-section below it.
   const neighborHeight = {
-    n: row > 0 ? getTileHeight(row - 1, col) : 0,
-    e: col < MAP_WIDTH - 1 ? getTileHeight(row, col + 1) : 0,
-    s: row < MAP_HEIGHT - 1 ? getTileHeight(row + 1, col) : 0,
-    w: col > 0 ? getTileHeight(row, col - 1) : 0,
+    n: row > 0 ? getTileHeight(row - 1, col) : currentHeight,
+    e: col < MAP_WIDTH - 1 ? getTileHeight(row, col + 1) : currentHeight,
+    s: row < MAP_HEIGHT - 1 ? getTileHeight(row + 1, col) : currentHeight,
+    w: col > 0 ? getTileHeight(row, col - 1) : currentHeight,
   };
 
   return ['n', 'e', 's', 'w'].filter((dir) => neighborHeight[dir] < currentHeight);

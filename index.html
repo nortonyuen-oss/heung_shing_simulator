@@ -2049,56 +2049,180 @@
 
     /* ── Rotate cluster (bottom-right) ──────────────────────────────────── */
 
-    #rotate-cluster {
+    /* City minimap: sits left of the view controls, same baseline */
+    #city-minimap {
       position: fixed;
       right: 16px;
       bottom: 94px;
       z-index: 11;
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-      gap: 6px;
+      padding: 0 3px 3px;
+      border: 1px solid rgba(255, 255, 255, 0.7);
+      border-radius: 8px;
+      background: rgba(250, 250, 247, 0.92);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.22);
+      font-family: 'Noto Sans TC', 'IBM Plex Sans', sans-serif;
+      user-select: none;
     }
 
-    .rotate-btn {
+    /* Map editor: it has its own terrain map, so only the rotate arrows stay, as a small pill
+       pinned above that map (wherever the player dragged the city minimap). */
+    body.terrain-editor-mode #city-minimap {
+      left: auto !important;
+      top: auto !important;
+      right: 14px !important;
+      bottom: 308px !important;
+      width: 56px;
+      height: 24px;
+      padding: 0;
+    }
+
+    body.terrain-editor-mode #city-minimap .city-minimap-header,
+    body.terrain-editor-mode #city-minimap .city-minimap-surface {
+      display: none;
+    }
+
+    body.terrain-editor-mode #city-minimap .city-minimap-rotate {
+      top: 3px;
+      bottom: auto;
+      width: 18px;
+      height: 18px;
+      background: transparent;
+      box-shadow: none;
+    }
+
+    body.terrain-editor-mode #city-minimap .city-minimap-rotate.is-ccw { left: 6px; right: auto; }
+    body.terrain-editor-mode #city-minimap .city-minimap-rotate.is-cw { right: 6px; }
+
+    /* The header is the drag handle (city-minimap.js). */
+    .city-minimap-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      height: 18px;
+      padding: 0 1px 0 4px;
+      color: #4a5860;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      cursor: grab;
+      touch-action: none;
+    }
+
+    #city-minimap.is-dragging .city-minimap-header {
+      cursor: grabbing;
+    }
+
+    .city-minimap-toggle {
+      width: 16px;
+      height: 16px;
+      padding: 0;
+      border: none;
+      border-radius: 4px;
+      background: transparent;
+      color: #4a5860;
+      font: 700 12px/1 Arial, Helvetica, sans-serif;
+      cursor: pointer;
+    }
+
+    .city-minimap-toggle:hover {
+      background: rgba(0, 0, 0, 0.08);
+    }
+
+    .city-minimap-surface {
+      position: relative;
+      width: 256px;
+      height: 128px;
+      overflow: hidden;
+      border-radius: 5px;
+      background: #1f2c33;
+      cursor: crosshair;
+      touch-action: none;
+    }
+
+    #city-minimap.is-collapsed .city-minimap-surface {
+      display: none;
+    }
+
+    .city-minimap-surface canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .city-minimap-rotate {
+      position: absolute;
+      bottom: 7px;
       display: grid;
       place-items: center;
-      width: 42px;
-      height: 42px;
+      width: 24px;
+      height: 24px;
       padding: 0;
-      color: #1e2427;
-      background: #d4d0c3;
-      border: 2px solid #6f6b60;
-      border-radius: 8px;
+      border: none;
+      border-radius: 50%;
+      background: rgba(250, 250, 247, 0.85);
+      color: #33414a;
       cursor: pointer;
-      box-shadow: inset 1px 1px 0 #fff8e7, inset -1px -1px 0 #a7a08d, 2px 2px 4px rgba(0,0,0,0.25);
-      font-size: 11px;
-      font-weight: 700;
-      font-family: Arial, sans-serif;
-      flex-direction: column;
-      gap: 1px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+    }
+    .city-minimap-rotate.is-ccw { left: 7px; }
+    .city-minimap-rotate.is-cw { right: 7px; }
+    .city-minimap-rotate:hover { background: #fff; }
+    .city-minimap-rotate svg {
+      width: 16px;
+      height: 16px;
+      stroke: currentColor;
+      stroke-width: 2.6;
+      fill: none;
+      stroke-linecap: round;
+      pointer-events: none;
     }
 
-    .rotate-btn:hover { background: #f8f0d2; }
-    .rotate-btn:active { background: #e0d8bc; box-shadow: inset 1px 1px 2px rgba(0,0,0,0.2); }
+    /* Folded: the arrows move up beside the fold button. */
+    #city-minimap.is-collapsed .city-minimap-rotate {
+      top: 1px;
+      bottom: auto;
+      width: 16px;
+      height: 16px;
+      background: transparent;
+      box-shadow: none;
+    }
+    #city-minimap.is-collapsed .city-minimap-rotate.is-ccw { left: auto; right: 42px; }
+    #city-minimap.is-collapsed .city-minimap-rotate.is-cw { right: 22px; }
+    #city-minimap.is-collapsed .city-minimap-rotate svg { width: 13px; height: 13px; }
+    #city-minimap.is-collapsed .city-minimap-header { padding-right: 58px; }
 
-    .rotate-btn svg {
-      width: 22px;
-      height: 22px;
+    .city-minimap-view {
+      position: absolute;
+      border: 1px solid #fff;
+      box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.5);
+      pointer-events: none;
+    }
+
+    .topbar-music-btn {
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+      width: 32px;
+      height: 30px;
+      margin-left: 6px;
+      padding: 0;
+      border: 1px solid var(--ui-border-strong);
+      border-radius: 9px;
+      background: #e4e9ef;
+      color: #23252a;
+      cursor: pointer;
+    }
+    .topbar-music-btn:hover { background: #edf2f7; }
+    .topbar-music-btn svg {
+      width: 18px;
+      height: 18px;
       stroke: currentColor;
-      stroke-width: 2.2;
+      stroke-width: 2.4;
       fill: none;
       stroke-linecap: round;
       stroke-linejoin: round;
       pointer-events: none;
-    }
-
-    .rotate-btn-label {
-      font-size: 9px;
-      font-weight: 700;
-      color: #5a5648;
-      pointer-events: none;
-      line-height: 1;
     }
 
     #btn-map-music.is-muted .map-music-waves { display: none; }
@@ -2924,7 +3048,6 @@
     .jukebox-loop-btn,
     #chart-win-body,
     #overlay-win-footer,
-    .rotate-btn,
     .map-zoom-control,
     .map-zoom-btn {
       background-color: #e4eaf1;
@@ -3139,7 +3262,7 @@
         min-width: 0;
       }
 
-      #rotate-cluster {
+      #city-minimap {
         bottom: 138px;
       }
     }
@@ -4370,7 +4493,6 @@
     .landing-icon   { font-size: 56px; line-height: 1; margin-bottom: 10px; }
     .landing-title  { font-size: 30px; font-weight: 900; color: #1b2838; margin: 0 0 4px; }
     .landing-tagline { font-size: 13px; color: #5d6a79; margin: 0 0 28px; letter-spacing: 0.8px; }
-    .landing-form-title { font-size: 15px; font-weight: 700; color: #1e2f44; margin: 0 0 14px; }
 
     .landing-actions { display: flex; flex-direction: column; gap: 10px; }
 
@@ -4509,52 +4631,6 @@
       display: inline-block;
       width: 1.4em;
       text-align: left;
-    }
-
-    #city-name-input {
-      width: 100%;
-      padding: 11px 14px;
-      font-size: 17px;
-      font-weight: 600;
-      color: #1e2b3b;
-      background: #f7fafe;
-      border: 2px solid #8c9ab0;
-      border-radius: 6px;
-      margin-bottom: 16px;
-      box-sizing: border-box;
-      text-align: center;
-      font-family: Arial, Helvetica, sans-serif;
-    }
-    #city-name-input:focus { outline: none; border-color: #f1c65d; background: #fff; }
-
-    .landing-form-select,
-    .landing-form-input {
-      width: 100%;
-      padding: 10px 12px;
-      font-size: 14px;
-      font-weight: 600;
-      color: #1e2427;
-      background: #fffdf2;
-      border: 2px solid #6f6b60;
-      border-radius: 6px;
-      margin-bottom: 10px;
-      box-sizing: border-box;
-      text-align: center;
-      font-family: Arial, Helvetica, sans-serif;
-    }
-
-    .landing-form-select:focus,
-    .landing-form-input:focus {
-      outline: none;
-      border-color: #f1c65d;
-      background: #fff;
-    }
-
-    .landing-form-hint {
-      margin: -2px 0 12px;
-      font-size: 11px;
-      color: #6d6658;
-      text-align: center;
     }
 
     /* ── Hong Kong title-screen redesign ───────────────────────────────── */
@@ -4789,55 +4865,6 @@
       opacity: 1;
     }
 
-    #landing-name-form .landing-actions,
-    #landing-terrain-form .landing-actions {
-      width: 100%;
-      display: flex;
-      gap: 8px;
-      border: none;
-      border-radius: 0;
-      background: transparent;
-      box-shadow: none;
-      overflow: visible;
-      margin-top: 8px;
-    }
-
-    #landing-name-form .landing-actions::before,
-    #landing-terrain-form .landing-actions::before {
-      display: none;
-    }
-
-    #landing-name-form .landing-btn,
-    #landing-terrain-form .landing-btn {
-      border: 1px solid #5f7477;
-      border-radius: 9px;
-      background: #f3f5f1;
-      color: #173137;
-      font-size: 17px;
-      font-weight: 800;
-      line-height: 1.2;
-      text-align: center;
-      padding: 12px 14px;
-      box-shadow: 0 2px 0 rgba(16, 46, 42, 0.2);
-    }
-
-    #landing-name-form .landing-btn:hover,
-    #landing-terrain-form .landing-btn:hover {
-      background: #e8eeea;
-    }
-
-    #landing-name-form .landing-btn.primary,
-    #landing-terrain-form .landing-btn.primary {
-      background: linear-gradient(180deg, #1f7f66 0%, #1a6f5a 100%);
-      border-color: #105746;
-      color: #edf7f3;
-    }
-
-    #landing-name-form .landing-btn.primary:hover,
-    #landing-terrain-form .landing-btn.primary:hover {
-      background: linear-gradient(180deg, #24886d 0%, #1c765f 100%);
-    }
-
     #landing-load-status {
       margin-top: 8px;
       border: none;
@@ -4922,49 +4949,6 @@
       z-index: 1;
     }
 
-    #landing-name-form,
-    #landing-terrain-form {
-      width: min(560px, 92vw);
-      border-radius: 18px;
-      border: 3px solid #2a6f61;
-      padding: 22px;
-      background: linear-gradient(180deg, rgba(245, 244, 237, 0.97) 0%, rgba(236, 233, 225, 0.95) 100%);
-      box-shadow: 0 18px 34px rgba(0, 0, 0, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.8);
-      position: relative;
-      overflow: hidden;
-    }
-
-    #landing-name-form::before,
-    #landing-terrain-form::before {
-      content: '';
-      position: absolute;
-      left: 14px;
-      top: 16px;
-      bottom: 16px;
-      width: 3px;
-      border-radius: 999px;
-      background: linear-gradient(180deg, #1b7d67 0%, #4da18f 52%, #2f6b9f 100%);
-      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.55);
-      opacity: 0.75;
-      pointer-events: none;
-    }
-
-    #city-name-input,
-    .landing-form-select,
-    .landing-form-input {
-      border-radius: 10px;
-      border-color: #5e6f73;
-      background: #f9faf7;
-      color: #16282d;
-    }
-
-    .landing-form-title {
-      color: #1f2d31;
-      font-size: 19px;
-      margin-bottom: 14px;
-      letter-spacing: 0.02em;
-    }
-
     @media (max-width: 860px) {
       .landing-title {
         border-width: 3px;
@@ -4996,11 +4980,6 @@
         font-size: clamp(13px, 3.4vw, 18px);
       }
 
-      #landing-name-form .landing-actions,
-      #landing-terrain-form .landing-actions {
-        flex-direction: column;
-      }
-
       .landing-card::after {
         font-size: 11px;
       }
@@ -5011,93 +4990,750 @@
       }
     }
 
-    .terrain-preset-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 8px;
-      margin: 0 0 12px;
-      max-height: 230px;
-      overflow-y: auto;
-      padding-right: 2px;
-    }
 
-    .terrain-preset-card {
-      border: 2px solid #8d887a;
-      border-radius: 8px;
-      background: #f7f3e5;
-      padding: 6px;
-      cursor: pointer;
-      text-align: left;
+    /* ── New City / Map Editor setup ────────────────────────────────────
+       Cream paper panel in the title screen's street-sign green, preview on the left. */
+    #landing-setup {
+      --setup-paper: #f4f2ea;
+      --setup-paper-deep: #e9e5d8;
+      --setup-ink: #1b2a2e;
+      --setup-muted: #5c6a6c;
+      --setup-line: #c9c4b4;
+      --setup-green: #1a6f5a;
+      --setup-green-deep: #105746;
+      --setup-green-soft: #dcebe4;
+      --setup-danger: #8a3a30;
+      width: 100%;
+      max-height: calc(100vh - 150px);
       display: flex;
       flex-direction: column;
+      text-align: left;
+      color: var(--setup-ink);
+      background: var(--setup-paper);
+      border: 3px solid var(--setup-green);
+      border-radius: 16px;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+      font-family: 'Noto Sans TC', 'IBM Plex Sans', sans-serif;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    #landing-screen.is-setup .landing-card {
+      width: min(1080px, 96vw);
+      max-width: none;
+    }
+
+    #landing-screen.is-setup #landing-load-status {
+      display: none;
+    }
+
+    .setup-header {
+      padding: 14px 22px 12px;
+      background: linear-gradient(180deg, var(--setup-green) 0%, var(--setup-green-deep) 100%);
+      color: #eef6f1;
+      display: flex;
+      align-items: baseline;
+      flex-wrap: wrap;
+      gap: 4px 16px;
+    }
+
+    .setup-title {
+      margin: 0;
+      font-family: 'PMingLiU', 'MingLiU', 'Songti TC', 'Noto Serif TC', serif;
+      font-size: 26px;
+      font-weight: 900;
+      letter-spacing: 0.06em;
+    }
+
+    .setup-subtitle {
+      margin: 0;
+      font-size: 13px;
+      color: rgba(238, 246, 241, 0.82);
+      letter-spacing: 0.04em;
+    }
+
+    .setup-body {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      display: grid;
+      grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+      gap: 22px;
+      padding: 20px 22px;
+    }
+
+    .setup-map {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .setup-preview {
+      position: relative;
+      margin: 0;
+      width: 100%;
+      max-width: min(100%, calc(100vh - 360px));
+      min-width: 220px;
+      aspect-ratio: 1 / 1;
+      align-self: center;
+      border-radius: 10px;
+      overflow: hidden;
+      background: #527a96;
+      box-shadow: 0 0 0 1px rgba(16, 87, 70, 0.5), 0 6px 16px rgba(20, 30, 28, 0.22);
+    }
+
+    .setup-preview-canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Nothing picked (e.g. My Maps is empty): a blank sheet, not a sea. */
+    .setup-preview.is-empty {
+      background: var(--setup-paper-deep);
+      box-shadow: inset 0 0 0 1.5px var(--setup-line);
+    }
+
+    .setup-preview.is-empty .setup-preview-scale {
+      display: none;
+    }
+
+    .setup-preview-name {
+      position: absolute;
+      left: 10px;
+      top: 10px;
+      max-width: calc(100% - 20px);
+      padding: 4px 10px;
+      border-radius: 6px;
+      background: rgba(16, 32, 30, 0.72);
+      color: #f2f7f4;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .setup-preview-name:empty {
+      display: none;
+    }
+
+    /* The bar is 50 of the map's 256 tiles: 1 km at 20 m a tile. */
+    .setup-preview-scale {
+      position: absolute;
+      left: 10px;
+      bottom: 10px;
+      width: calc(100% * 50 / 256);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+    }
+
+    .setup-preview-scale-bar {
+      display: block;
+      height: 5px;
+      margin-bottom: 3px;
+      border: 1.5px solid #fff;
+      border-top: none;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    }
+
+    .setup-preview-status {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background: rgba(20, 34, 32, 0.45);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+    }
+
+    .setup-preview-status[hidden] {
+      display: none;
+    }
+
+    .setup-preview-stats {
+      margin: 0;
+      text-align: center;
+      font-size: 12px;
+      color: var(--setup-muted);
+      letter-spacing: 0.03em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* 香港地區 tab: the territory overview replaces the single-map preview. */
+    .setup-overview {
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    #landing-setup[data-tab="district"] .setup-overview {
+      display: flex;
+    }
+
+    #landing-setup[data-tab="district"] .setup-preview,
+    #landing-setup[data-tab="district"] .setup-preview-stats {
+      display: none;
+    }
+
+    .setup-overview-map {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1062 / 800;
+      border-radius: 10px;
+      overflow: hidden;
+      background: #527a96;
+      box-shadow: 0 0 0 1px rgba(16, 87, 70, 0.5), 0 6px 16px rgba(20, 30, 28, 0.22);
+    }
+
+    .setup-overview-map img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    .setup-overview-frame {
+      position: absolute;
+      border: 2px solid #fff;
+      border-radius: 2px;
+      background: rgba(255, 255, 255, 0.14);
+      box-shadow: 0 0 0 1px rgba(16, 32, 30, 0.55), 0 2px 8px rgba(0, 0, 0, 0.35);
+      pointer-events: none;
+    }
+
+    .setup-overview-frame.is-hover {
+      border-style: dashed;
+      border-color: rgba(255, 255, 255, 0.8);
+      background: transparent;
+      box-shadow: none;
+    }
+
+    .setup-overview-frame[hidden] {
+      display: none;
+    }
+
+    .setup-overview-marker {
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      margin: -9px 0 0 -9px;
+      padding: 0;
+      border: none;
+      border-radius: 50%;
+      background: transparent;
+      cursor: pointer;
+    }
+
+    .setup-overview-marker::after {
+      content: '';
+      position: absolute;
+      inset: 4px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 0 0 2px var(--setup-green-deep), 0 1px 3px rgba(0, 0, 0, 0.45);
+      transition: transform 120ms ease;
+    }
+
+    .setup-overview-marker:hover::after,
+    .setup-overview-marker:focus-visible::after {
+      transform: scale(1.35);
+    }
+
+    .setup-overview-marker[aria-checked="true"]::after {
+      background: #f1c65d;
+      transform: scale(1.35);
+    }
+
+    .setup-overview-credit {
+      position: absolute;
+      right: 8px;
+      bottom: 6px;
+      color: rgba(255, 255, 255, 0.78);
+      font-size: 10px;
+      letter-spacing: 0.02em;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+      pointer-events: none;
+    }
+
+    .setup-district-intro {
+      display: grid;
+      grid-template-columns: 96px minmax(0, 1fr);
+      gap: 12px;
+      align-items: start;
+      padding: 10px;
+      border: 1.5px solid var(--setup-line);
+      border-radius: 10px;
+      background: #fff;
+    }
+
+    .setup-intro-thumb {
+      width: 96px;
+      height: 96px;
+      border-radius: 6px;
+      background: #527a96;
+    }
+
+    .setup-intro-title {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .setup-intro-name {
+      margin: 0;
+      font-size: 17px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+    }
+
+    .setup-intro-meta {
+      margin: 2px 0 6px;
+      font-size: 11px;
+      color: var(--setup-muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .setup-intro-body {
+      margin: 0;
+      font-size: 12.5px;
+      line-height: 1.65;
+    }
+
+    /* 地區特色 chips and difficulty (district-profiles.js), on the setup card and the budget panel */
+    .district-difficulty {
+      flex-shrink: 0;
+      color: #a8741a;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+    }
+
+    .district-traits {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 8px;
+    }
+
+    .district-traits:empty {
+      display: none;
+    }
+
+    .district-trait {
+      padding: 2px 7px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1.5;
+      white-space: nowrap;
+    }
+
+    .district-trait.is-pro {
+      background: #e2f0e7;
+      color: #1d6b45;
+    }
+
+    .district-trait.is-con {
+      background: #f8ead2;
+      color: #8a5a12;
+    }
+
+    #budget-district[hidden] {
+      display: none;
+    }
+
+    .setup-controls {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      min-width: 0;
+    }
+
+    .setup-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .setup-group + .setup-group {
+      padding-top: 16px;
+      border-top: 1px solid var(--setup-line);
+    }
+
+    .setup-label {
+      margin: 4px 0 0;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--setup-muted);
+      letter-spacing: 0.06em;
+    }
+
+    .setup-label:first-child {
+      margin-top: 0;
+    }
+
+    .setup-tabs {
+      display: flex;
+      padding: 3px;
+      gap: 3px;
+      border-radius: 10px;
+      background: var(--setup-paper-deep);
+      box-shadow: inset 0 0 0 1px var(--setup-line);
+    }
+
+    .setup-tab {
+      flex: 1 1 0;
+      min-width: 0;
+      padding: 8px 6px;
+      border: none;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--setup-muted);
+      font: 700 13px/1.2 'Noto Sans TC', 'IBM Plex Sans', sans-serif;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+    }
+
+    .setup-tab:hover {
+      color: var(--setup-ink);
+    }
+
+    .setup-tab[aria-selected="true"] {
+      background: #fff;
+      color: var(--setup-green-deep);
+      box-shadow: 0 1px 3px rgba(20, 40, 36, 0.2);
+    }
+
+    .setup-tab-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-height: 104px;
+    }
+
+    .setup-tab-panel[hidden] {
+      display: none;
+    }
+
+    .setup-map-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(176px, 1fr));
+      gap: 8px;
+      max-height: 248px;
+      overflow-y: auto;
+      padding: 2px;
+    }
+
+    .setup-map-card {
+      position: relative;
+      display: grid;
+      grid-template-columns: 56px minmax(0, 1fr);
+      align-items: center;
+      gap: 10px;
+      padding: 6px 8px 6px 6px;
+      border: 1.5px solid var(--setup-line);
+      border-radius: 9px;
+      background: #fff;
+      color: var(--setup-ink);
+      text-align: left;
+      font-family: inherit;
+      cursor: pointer;
+    }
+
+    .setup-map-card:hover {
+      border-color: #8fb3a6;
+    }
+
+    .setup-map-card[aria-checked="true"] {
+      border-color: var(--setup-green);
+      background: var(--setup-green-soft);
+      box-shadow: 0 0 0 1px var(--setup-green);
+    }
+
+    .setup-map-card canvas {
+      width: 56px;
+      height: 56px;
+      border-radius: 6px;
+      background: #527a96;
+    }
+
+    .setup-map-card-name {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .setup-map-card-meta {
+      display: block;
+      margin-top: 2px;
+      font-size: 11px;
+      color: var(--setup-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .setup-map-card-delete {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      width: 22px;
+      height: 22px;
+      border: none;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--setup-muted);
+      font-size: 14px;
+      line-height: 22px;
+      cursor: pointer;
+      opacity: 0;
+    }
+
+    .setup-map-card:hover .setup-map-card-delete,
+    .setup-map-card-delete:focus-visible {
+      opacity: 1;
+    }
+
+    .setup-map-card-delete:hover {
+      background: #f3dcd8;
+      color: var(--setup-danger);
+    }
+
+    .setup-empty {
+      margin: 0;
+      padding: 18px 12px;
+      border: 1.5px dashed var(--setup-line);
+      border-radius: 9px;
+      color: var(--setup-muted);
+      font-size: 12px;
+      text-align: center;
+      line-height: 1.6;
+    }
+
+    .setup-empty[hidden] {
+      display: none;
+    }
+
+    .setup-chips {
+      display: flex;
+      flex-wrap: wrap;
       gap: 6px;
     }
 
-    .terrain-preset-card.is-active {
-      border-color: #e1a92a;
-      box-shadow: 0 0 0 2px rgba(225, 169, 42, 0.25);
-      background: #fff8df;
+    .setup-chip {
+      padding: 6px 12px;
+      border: 1.5px solid var(--setup-line);
+      border-radius: 999px;
+      background: #fff;
+      color: var(--setup-ink);
+      font: 600 12px/1.2 'Noto Sans TC', 'IBM Plex Sans', sans-serif;
+      letter-spacing: 0.03em;
+      font-variant-numeric: tabular-nums;
+      cursor: pointer;
     }
 
-    .terrain-preset-thumb {
+    .setup-chip:hover {
+      border-color: #8fb3a6;
+    }
+
+    .setup-chip[aria-checked="true"] {
+      border-color: var(--setup-green);
+      background: var(--setup-green);
+      color: #fff;
+    }
+
+    .setup-seed-row {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .setup-seed-row .setup-label {
+      margin: 0;
+    }
+
+    .setup-row {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      align-items: center;
+      gap: 12px;
+      margin-top: 4px;
+    }
+
+    .setup-row .setup-label {
+      margin: 0;
+    }
+
+    .setup-input {
       width: 100%;
-      aspect-ratio: 1 / 1;
-      border-radius: 5px;
-      border: 1px solid #9f998a;
-      background: #d7ecff;
-      image-rendering: pixelated;
+      box-sizing: border-box;
+      padding: 8px 10px;
+      border: 1.5px solid var(--setup-line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--setup-ink);
+      font: 600 13px/1.3 'Noto Sans TC', 'IBM Plex Sans', sans-serif;
+      user-select: text;
     }
 
-    .terrain-preset-name {
-      font-size: 11px;
-      font-weight: 700;
-      color: #252b2f;
-      line-height: 1.2;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+    .setup-input:focus {
+      outline: none;
+      border-color: var(--setup-green);
+      box-shadow: 0 0 0 3px rgba(26, 111, 90, 0.18);
     }
 
-    .terrain-preset-meta {
-      font-size: 10px;
-      color: #625b4e;
-      line-height: 1.2;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+    .setup-name-input {
+      padding: 10px 12px;
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
     }
 
-    .terrain-preset-actions {
+    .setup-seed-input {
+      font-family: 'IBM Plex Mono', Menlo, monospace;
+      font-size: 12px;
+    }
+
+    .setup-switch {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .setup-switch input {
+      position: absolute;
+      opacity: 0;
+      width: 1px;
+      height: 1px;
+    }
+
+    .setup-switch-track {
+      position: relative;
+      flex: 0 0 auto;
+      width: 38px;
+      height: 22px;
+      border-radius: 999px;
+      background: #c3c8c2;
+      transition: background 140ms ease;
+    }
+
+    .setup-switch-track::after {
+      content: '';
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+      transition: transform 140ms ease;
+    }
+
+    .setup-switch input:checked + .setup-switch-track {
+      background: var(--setup-green);
+    }
+
+    .setup-switch input:checked + .setup-switch-track::after {
+      transform: translateX(16px);
+    }
+
+    .setup-switch input:focus-visible + .setup-switch-track {
+      box-shadow: 0 0 0 3px rgba(26, 111, 90, 0.3);
+    }
+
+    .setup-editor-note p {
+      margin: 0;
+      font-size: 13px;
+      line-height: 1.7;
+      color: var(--setup-muted);
+    }
+
+    #landing-setup[data-mode="newCity"] [data-setup-only="editor"],
+    #landing-setup[data-mode="editor"] [data-setup-only="newCity"] {
+      display: none;
+    }
+
+    .setup-footer {
       display: flex;
       justify-content: space-between;
-      gap: 6px;
+      gap: 12px;
+      padding: 12px 22px;
+      border-top: 1px solid var(--setup-line);
+      background: var(--setup-paper-deep);
     }
 
-    .terrain-preset-btn {
-      border: 1px solid #8d887a;
-      background: #ece7d4;
-      color: #1e2427;
-      border-radius: 4px;
-      font-size: 10px;
-      font-weight: 700;
-      padding: 3px 6px;
+    .setup-button {
+      padding: 8px 16px;
+      border: 1.5px solid #9aa39d;
+      border-radius: 8px;
+      background: #fff;
+      color: var(--setup-ink);
+      font: 700 13px/1.2 'Noto Sans TC', 'IBM Plex Sans', sans-serif;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
       cursor: pointer;
-      flex: 1;
     }
 
-    .terrain-preset-btn.delete {
-      background: #f5dddb;
-      border-color: #a76f69;
-      color: #7a2f28;
-      flex: 0 0 auto;
+    .setup-button:hover {
+      background: #f6f8f5;
     }
 
-    .terrain-preset-loading {
-      grid-column: 1 / -1;
-      font-size: 11px;
-      color: #7a7264;
-      text-align: center;
-      padding: 8px 0;
+    .setup-button.setup-primary {
+      min-width: 168px;
+      padding: 10px 24px;
+      border-color: var(--setup-green-deep);
+      background: linear-gradient(180deg, #1f7f66 0%, var(--setup-green) 100%);
+      color: #f1f8f4;
+      font-size: 15px;
+    }
+
+    .setup-button.setup-primary:hover {
+      background: linear-gradient(180deg, #24886d 0%, #1c765f 100%);
+    }
+
+    .setup-button:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+
+    #landing-setup :is(button, select):focus-visible {
+      outline: 2px solid var(--setup-green);
+      outline-offset: 2px;
+    }
+
+    @media (max-width: 860px) {
+      #landing-setup {
+        max-height: calc(100vh - 120px);
+      }
+
+      .setup-body {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 16px;
+        padding: 16px;
+      }
+
+      .setup-preview {
+        max-width: min(100%, 360px);
+      }
     }
 
     body.terrain-editor-mode #hud,
@@ -5935,6 +6571,13 @@
           <button class="topbar-speed-btn" data-speed="1" title="4× speed" data-i18n-title="topbar.speed1">4x</button>
           <button class="topbar-speed-btn" data-speed="2" title="8× speed" data-i18n-title="topbar.speed2">8x</button>
         </div>
+        <button id="btn-map-music" class="topbar-music-btn" type="button" title="Mute music" aria-label="Mute music" aria-pressed="false">
+          <svg viewBox="0 0 32 32" aria-hidden="true">
+            <path d="M5 13h5l6-5v16l-6-5H5z"/>
+            <g class="map-music-waves"><path d="M21 12c2 2 2 6 0 8"/><path d="M25 9c4 4 4 10 0 14"/></g>
+            <path class="map-music-slash" d="M21 13l6 6m0-6l-6 6"/>
+          </svg>
+        </button>
 
         <div id="transport-topbar-tools" aria-label="Transport company windows" data-i18n-aria="transport.topbarToolsAria">
           <button type="button" data-transport-topbar-panel="routes" title="Bus and ferry routes (1)" data-i18n-title="transport.nav.routesTitle"><span aria-hidden="true">🗺</span><span data-i18n="transport.nav.routes">Routes</span></button>
@@ -6317,41 +6960,101 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
         </div>
       </div>
 
-      <!-- City-name entry state -->
-      <div id="landing-name-form" style="display:none">
-        <p class="landing-form-title" data-i18n="landing.nameCity">Name your city</p>
-        <input id="city-name-input" type="text" placeholder="My City" data-i18n-placeholder="city.defaultName" maxlength="30" autocomplete="off" spellcheck="false" />
-        <select id="newgame-terrain-source" class="landing-form-select" aria-label="Terrain source" data-i18n-aria="landing.terrainSource">
-          <option value="random" data-i18n="landing.terrainSourceRandom">Random terrain</option>
-          <option value="preset" data-i18n="landing.terrainSourcePreset">Saved terrain preset</option>
-        </select>
-        <select id="newgame-road-tile-set" class="landing-form-select" aria-label="Road tile set" data-i18n-aria="landing.roadTileSet"></select>
-        <select id="newgame-start-year" class="landing-form-select" aria-label="Start year" data-i18n-aria="landing.startYear"></select>
-        <label class="landing-form-hint" style="display:flex; align-items:center; gap:8px; cursor:pointer">
-          <input id="newgame-transport-expansion" type="checkbox" />
-          <span data-i18n="transport.newCity.enable">Enable Public Transport Expansion</span>
-        </label>
-        <select id="newgame-terrain-preset" class="landing-form-select" aria-label="Saved terrain preset" data-i18n-aria="landing.terrainPresetSelect" style="display:none">
-          <option value="" data-i18n="landing.terrainPresetLoading">Loading terrain presets…</option>
-        </select>
-        <p class="landing-form-hint" id="newgame-terrain-presets-title" style="display:none" data-i18n="landing.terrainPresetsTitle">Saved terrain presets</p>
-        <div id="newgame-terrain-preview-list" class="terrain-preset-grid" style="display:none"></div>
-        <div id="newgame-terrain-empty-hint" class="landing-form-hint" style="display:none" data-i18n="landing.noTerrainPresets">No saved terrain presets yet.</div>
-        <div class="landing-actions">
-          <button id="btn-start-city" class="landing-btn primary" data-i18n-html="landing.foundCity">Found City</button>
-          <button id="btn-back"       class="landing-btn secondary" data-i18n="landing.back">← Back</button>
-        </div>
-      </div>
+      <!-- New City / Map Editor setup: one screen for both, picking the map the same way -->
+      <section id="landing-setup" style="display:none" aria-labelledby="landing-setup-title">
+        <header class="setup-header">
+          <h2 id="landing-setup-title" class="setup-title" data-i18n="landing.setupNewTitle">New City</h2>
+          <p id="landing-setup-subtitle" class="setup-subtitle" data-i18n="landing.setupNewSub">Pick a map, name your city, then found it.</p>
+        </header>
 
-      <!-- Terrain creator setup state -->
-      <div id="landing-terrain-form" style="display:none">
-        <p class="landing-form-title" data-i18n="landing.terrainPickTitle">Choose terrain type</p>
-        <select id="terrain-profile-select" class="landing-form-select" aria-label="Terrain profile" data-i18n-aria="landing.terrainPickTitle"></select>
-        <div class="landing-actions">
-          <button id="btn-generate-terrain" class="landing-btn primary" data-i18n-html="landing.generateTerrain">Generate Terrain</button>
-          <button id="btn-terrain-back" class="landing-btn secondary" data-i18n="landing.back">← Back</button>
+        <div class="setup-body">
+          <div class="setup-map">
+            <figure class="setup-preview">
+              <canvas id="setup-preview-canvas" class="setup-preview-canvas" width="256" height="256"></canvas>
+              <figcaption id="setup-preview-name" class="setup-preview-name"></figcaption>
+              <div class="setup-preview-scale" aria-hidden="true"><span class="setup-preview-scale-bar"></span><span data-i18n="landing.mapScaleBar">1 km</span></div>
+              <div id="setup-preview-status" class="setup-preview-status" hidden></div>
+            </figure>
+            <p id="setup-preview-stats" class="setup-preview-stats"></p>
+
+            <!-- 香港地區: the whole territory with every district marked; the picked one framed -->
+            <div class="setup-overview">
+              <div id="setup-overview-map" class="setup-overview-map">
+                <img src="UI/hk-district-overview.webp" alt="" draggable="false" />
+                <div id="setup-overview-hover" class="setup-overview-frame is-hover" hidden></div>
+                <div id="setup-overview-frame" class="setup-overview-frame" hidden></div>
+                <div class="setup-overview-credit" data-i18n="landing.districtSource">Terrain: Lands Department, HKSAR</div>
+              </div>
+              <div class="setup-district-intro">
+                <canvas id="setup-intro-thumb" class="setup-intro-thumb" width="128" height="128"></canvas>
+                <div class="setup-intro-text">
+                  <div class="setup-intro-title">
+                    <h3 id="setup-intro-name" class="setup-intro-name"></h3>
+                    <span id="setup-intro-difficulty" class="district-difficulty"></span>
+                  </div>
+                  <p id="setup-intro-meta" class="setup-intro-meta"></p>
+                  <p id="setup-intro-body" class="setup-intro-body"></p>
+                  <div id="setup-intro-traits" class="district-traits"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="setup-controls">
+            <div class="setup-group">
+              <div class="setup-tabs" role="tablist" aria-label="Map source" data-i18n-aria="landing.mapTabsAria">
+                <button type="button" class="setup-tab" role="tab" data-map-tab="district" data-i18n="landing.mapTab.district">Hong Kong Districts</button>
+                <button type="button" class="setup-tab" role="tab" data-map-tab="generated" data-i18n="landing.mapTab.generated">Generated</button>
+                <button type="button" class="setup-tab" role="tab" data-map-tab="saved" data-i18n="landing.mapTab.saved">My Maps</button>
+              </div>
+              <div class="setup-tab-panel" data-map-panel="district" role="tabpanel">
+                <div id="setup-district-list" class="setup-chips" role="radiogroup" aria-label="Hong Kong Districts" data-i18n-aria="landing.mapTab.district"></div>
+              </div>
+              <div class="setup-tab-panel" data-map-panel="generated" role="tabpanel">
+                <p class="setup-label" id="setup-landform-label" data-i18n="landing.landform">Landform</p>
+                <div id="setup-landform-chips" class="setup-chips" role="radiogroup" aria-labelledby="setup-landform-label"></div>
+                <div class="setup-seed-row">
+                  <label class="setup-label" for="setup-seed-input" data-i18n="landing.seed">Seed</label>
+                  <input id="setup-seed-input" class="setup-input setup-seed-input" type="text" maxlength="40" autocomplete="off" spellcheck="false" />
+                  <button id="setup-reroll" type="button" class="setup-button" data-i18n="landing.reroll">🎲 Reroll</button>
+                </div>
+              </div>
+              <div class="setup-tab-panel" data-map-panel="saved" role="tabpanel">
+                <div id="setup-saved-list" class="setup-map-cards"></div>
+                <p id="setup-saved-empty" class="setup-empty" hidden data-i18n="landing.savedEmpty">No saved maps yet. Make one in the Map Editor and press Ctrl+S.</p>
+              </div>
+            </div>
+
+            <div class="setup-group setup-settings" data-setup-only="newCity">
+              <label class="setup-label" for="city-name-input" data-i18n="landing.cityNameLabel">City name</label>
+              <input id="city-name-input" class="setup-input setup-name-input" type="text" placeholder="My City" data-i18n-placeholder="city.defaultName" maxlength="30" autocomplete="off" spellcheck="false" />
+
+              <p class="setup-label" id="setup-year-label" data-i18n="landing.startYear">Start year</p>
+              <div id="newgame-start-year" class="setup-chips" role="radiogroup" aria-labelledby="setup-year-label"></div>
+
+              <div class="setup-row">
+                <label class="setup-label" for="newgame-road-tile-set" data-i18n="landing.roadTileSet">Road tile set</label>
+                <select id="newgame-road-tile-set" class="setup-input setup-select"></select>
+              </div>
+
+              <label class="setup-switch">
+                <input id="newgame-transport-expansion" type="checkbox" role="switch" />
+                <span class="setup-switch-track" aria-hidden="true"></span>
+                <span data-i18n="transport.newCity.enable">Enable Public Transport Expansion</span>
+              </label>
+            </div>
+
+            <div class="setup-group setup-editor-note" data-setup-only="editor">
+              <p data-i18n="landing.editorHint">The editor only shapes the land. Saved maps appear under My Maps, ready for a new city.</p>
+            </div>
+          </div>
         </div>
-      </div>
+
+        <footer class="setup-footer">
+          <button id="btn-back" type="button" class="setup-button" data-i18n="landing.back">← Back</button>
+          <button id="btn-start-city" type="button" class="setup-button setup-primary" data-i18n="landing.foundCity">Found City</button>
+        </footer>
+      </section>
 
       <!-- Save-load status (shown while the server is queried on startup) -->
       <div id="landing-load-status" class="loading-dots" data-i18n="landing.loading">Loading saved cities</div>
@@ -6904,31 +7607,26 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
     <button class="map-zoom-btn" id="btn-map-zoom-in" type="button" title="Zoom in" aria-label="Zoom in" data-i18n-title="overlay.zoomIn" data-i18n-aria="overlay.zoomIn">+</button>
   </div>
 
-  <!-- Map view controls (bottom-right) -->
-  <div id="rotate-cluster" aria-label="Map view controls" data-i18n-aria="tool.mapControls" aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight">
-    <button class="rotate-btn" id="btn-map-music" type="button" title="Mute music" aria-label="Mute music" aria-pressed="false">
-      <svg viewBox="0 0 32 32" aria-hidden="true">
-        <path d="M5 13h5l6-5v16l-6-5H5z"/>
-        <g class="map-music-waves"><path d="M21 12c2 2 2 6 0 8"/><path d="M25 9c4 4 4 10 0 14"/></g>
-        <path class="map-music-slash" d="M21 13l6 6m0-6l-6 6"/>
-      </svg>
-      <span class="rotate-btn-label" id="map-music-label">Mute</span>
+  <!-- City minimap (bottom-right, beside the view controls): the camera's view outlined -->
+  <aside id="city-minimap" aria-label="City map" data-i18n-aria="minimap.label">
+    <div class="city-minimap-header">
+      <span data-i18n="minimap.label">City map</span>
+      <button id="city-minimap-toggle" class="city-minimap-toggle" type="button" aria-controls="city-minimap-surface" aria-expanded="true">−</button>
+    </div>
+    <div id="city-minimap-surface" class="city-minimap-surface">
+      <canvas id="city-minimap-canvas" width="512" height="256"></canvas>
+      <div id="city-minimap-view" class="city-minimap-view"></div>
+    </div>
+    <!-- Rotate arrows sit in the empty bottom corners beside the diamond (in the header when
+         the map is folded away). -->
+    <button class="city-minimap-rotate is-ccw" id="btn-rotate-ccw" type="button" title="Rotate 90° anti-clockwise" aria-label="Rotate anti-clockwise" data-i18n-title="tool.rotateCCW" data-i18n-aria="tool.rotateCCW">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M10 10a9 9 0 1 1-2 6"/><path d="M8 6 l2 5 l-4 1z" fill="currentColor" stroke="none"/></svg>
     </button>
-    <button class="rotate-btn" id="btn-rotate-ccw" type="button" title="Rotate 90° anti-clockwise" aria-label="Rotate anti-clockwise" data-i18n-title="tool.rotateCCW" data-i18n-aria="tool.rotateCCW">
-      <svg viewBox="0 0 32 32" aria-hidden="true">
-        <path d="M10 10a9 9 0 1 1-2 6" stroke-linecap="round"/>
-        <path d="M8 6 l2 5 l-4 1z" fill="currentColor" stroke="none"/>
-      </svg>
-      <span class="rotate-btn-label" data-i18n="tool.rotateCCWShort">CCW</span>
+    <button class="city-minimap-rotate is-cw" id="btn-rotate-cw" type="button" title="Rotate 90° clockwise" aria-label="Rotate clockwise" data-i18n-title="tool.rotateCW" data-i18n-aria="tool.rotateCW">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M22 10a9 9 0 1 0 2 6"/><path d="M24 6 l-2 5 l4 1z" fill="currentColor" stroke="none"/></svg>
     </button>
-    <button class="rotate-btn" id="btn-rotate-cw" type="button" title="Rotate 90° clockwise" aria-label="Rotate clockwise" data-i18n-title="tool.rotateCW" data-i18n-aria="tool.rotateCW">
-      <svg viewBox="0 0 32 32" aria-hidden="true">
-        <path d="M22 10a9 9 0 1 0 2 6" stroke-linecap="round"/>
-        <path d="M24 6 l-2 5 l4 1z" fill="currentColor" stroke="none"/>
-      </svg>
-      <span class="rotate-btn-label" data-i18n="tool.rotateCWShort">CW</span>
-    </button>
-  </div>
+  </aside>
+
 
   <!-- Road tile set floating window -->
   <div id="road-tile-set-window" role="dialog" aria-label="Road tile set" data-i18n-aria="roadTileSet.windowTitle">
@@ -7039,6 +7737,11 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
       </button>
     </div>
     <div id="budget-detail">
+      <!-- 地區特色 (district-profiles.js): only for cities on a Hong Kong district map -->
+      <div id="budget-district" class="budget-section" hidden>
+        <span class="budget-section-title"><span id="budget-district-name"></span> <span id="budget-district-difficulty" class="district-difficulty"></span></span>
+        <div id="budget-district-traits" class="district-traits"></div>
+      </div>
       <div class="budget-stat">
         <span class="budget-stat-label" data-i18n="budget.income">Income/mo</span>
         <span id="hud-income-detail" class="budget-stat-value" style="color:#2a6a2a">+$0</span>
@@ -7462,7 +8165,7 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
        → tools → hud-helpers → hud → hud-ticker → save → topbar → real-city masks
        → traffic visuals → transport expansion/visuals → vessel/aircraft visuals → main
        → tool-menu → transport UI → chart-window → overlay-controls → inspect-panel
-       → terrain-presets → landing-screen -->
+       → hk-district-maps → hk-district-info → district-profiles → hk-terrain-tiles → terrain-presets → map-sources → landing-screen -->
   <script src="i18n.js"></script>
   <script src="constants.js"></script>
   <script src="game-clock.js"></script>
@@ -7603,8 +8306,15 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
   <script src="transport-ui.js"></script>
   <script src="chart-window.js"></script>
   <script src="overlay-controls.js"></script>
+  <script src="city-minimap.js"></script>
+  <script src="map-edge-skirt.js"></script>
   <script src="inspect-panel.js"></script>
+  <script src="hk-district-maps.js"></script>
+  <script src="hk-district-info.js"></script>
+  <script src="district-profiles.js"></script>
+  <script src="hk-terrain-tiles.js"></script>
   <script src="terrain-presets.js"></script>
+  <script src="map-sources.js"></script>
   <script src="landing-screen.js"></script>
   <script src="attract-mode.js"></script>
 </body>

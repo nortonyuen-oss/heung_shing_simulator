@@ -415,7 +415,7 @@ function resolveTileTextureKey(logicalKey) {
     const textureKey = getRoadTileTextureKey(logicalKey);
     if (activeScene?.textures?.exists && !activeScene.textures.exists(textureKey)) {
       return resolveCanonicalTextureKey(
-        getRoadTileTextureKey(logicalKey, ROAD_TILE_SET_DEFAULT_ID),
+        getRoadTileTextureKey(logicalKey, ROAD_TILE_SET_LEGACY_ID),
       );
     }
     return resolveCanonicalTextureKey(textureKey);
@@ -1339,10 +1339,6 @@ function updateRoadTileSetControls() {
     button.setAttribute('aria-pressed', active ? 'true' : 'false');
   });
 
-  const select = document.getElementById('newgame-road-tile-set');
-  if (select && select.options.length > 0) {
-    select.value = activeId;
-  }
 }
 
 function setupRoadTileSetWindow() {
@@ -1683,23 +1679,24 @@ function updateKeyboardMapPan(scene, deltaMs) {
 }
 
 function setupRotateCluster() {
-  const cluster = document.getElementById('rotate-cluster');
   const zoomControl = document.querySelector('.map-zoom-control');
 
-  if (cluster) {
-    cluster.addEventListener('pointerdown', (e) => e.stopPropagation());
-    cluster.addEventListener('click', (e) => {
-      const btn = e.target.closest('button');
-      if (!btn || !activeScene) return;
+  // The rotate arrows live on the city minimap's corners and the music button beside the
+  // speed buttons; each is wired on its own.
+  const viewButtons = ['btn-rotate-cw', 'btn-rotate-ccw', 'btn-map-music']
+    .map((id) => document.getElementById(id))
+    .filter(Boolean);
+  viewButtons.forEach((btn) => {
+    btn.addEventListener('pointerdown', (e) => e.stopPropagation());
+    btn.addEventListener('click', () => {
+      if (btn.id === 'btn-map-music') toggleMusic();
+      if (!activeScene) return;
       if (btn.id === 'btn-rotate-cw')  rotateMap(activeScene, 1);
       if (btn.id === 'btn-rotate-ccw') rotateMap(activeScene, -1);
-      if (btn.id === 'btn-map-music') toggleMusic();
     });
-  }
+  });
 
-  // This control used to live inside #rotate-cluster. It now sits at the top
-  // right, so it needs its own listener instead of relying on event bubbling to
-  // the old parent.
+  // The zoom control sits at the top right with its own listener.
   if (zoomControl) {
     zoomControl.addEventListener('pointerdown', (e) => e.stopPropagation());
     zoomControl.addEventListener('click', (e) => {
@@ -2030,7 +2027,7 @@ function getSelectedPlacementFootprint() {
 
 function shouldShowBuildingPlacementGuide(pointer) {
   if (isPainting || selectedTool === 'inspect') return false;
-  if (pointer.event?.target?.closest('#tool-menu, #hud, #budget-panel, #budget-window, #road-tile-set-window, #transport-window, .vehicle-tracker-window, #toast-container, #speed-controls, #top-bar, .sim-dialog, #jukebox-window, #rotate-cluster, #overlay-window, #inspect-panel, #terrain-minimap-panel')) {
+  if (pointer.event?.target?.closest('#tool-menu, #hud, #budget-panel, #budget-window, #road-tile-set-window, #transport-window, .vehicle-tracker-window, #toast-container, #speed-controls, #top-bar, .sim-dialog, #jukebox-window, #city-minimap, #overlay-window, #inspect-panel, #terrain-minimap-panel')) {
     return false;
   }
   return Boolean(getSelectedPlacementFootprint());
@@ -2159,7 +2156,7 @@ function applyToolAt(scene, row, col, pointer = null) {
 }
 
 function applySelectedTool(scene, pointer) {
-  if (pointer.event?.target?.closest('#tool-menu, #hud, #budget-panel, #budget-window, #road-tile-set-window, #transport-window, .vehicle-tracker-window, #toast-container, #speed-controls, #top-bar, .sim-dialog, #jukebox-window, #rotate-cluster, #overlay-window, #inspect-panel, #terrain-minimap-panel')) return;
+  if (pointer.event?.target?.closest('#tool-menu, #hud, #budget-panel, #budget-window, #road-tile-set-window, #transport-window, .vehicle-tracker-window, #toast-container, #speed-controls, #top-bar, .sim-dialog, #jukebox-window, #city-minimap, #overlay-window, #inspect-panel, #terrain-minimap-panel')) return;
 
   let tile = selectedTool === 'inspect'
     ? (resolveInspectTile(scene, pointer) ?? lastInspectTile)
@@ -2701,6 +2698,7 @@ function refreshTileArea(scene, row, col) {
   if (typeof schedulePedestrianRailingRefresh === 'function') schedulePedestrianRailingRefresh(scene);
   if (typeof scheduleStreetFurnitureRefresh === 'function') scheduleStreetFurnitureRefresh(scene);
   scheduleTerrainMiniMapUpdate();
+  scheduleMapEdgeSkirtRedraw(scene);
 }
 
 // Zebra crossings are laid out per straight run (road-line-variants.js), so a change anywhere
@@ -2764,6 +2762,7 @@ function refreshCarriagewayBandRegion(scene, rowMin, rowMax, colMin, colMax) {
   if (typeof schedulePedestrianRailingRefresh === 'function') schedulePedestrianRailingRefresh(scene);
   if (typeof scheduleStreetFurnitureRefresh === 'function') scheduleStreetFurnitureRefresh(scene);
   scheduleTerrainMiniMapUpdate();
+  scheduleMapEdgeSkirtRedraw(scene);
 }
 
 function refreshAllTiles(scene) {
@@ -2788,6 +2787,7 @@ function refreshAllTiles(scene) {
   if (typeof rebuildPedestrianRailingSprites === 'function') rebuildPedestrianRailingSprites(scene);
   if (typeof rebuildStreetFurnitureSprites === 'function') rebuildStreetFurnitureSprites(scene);
   scheduleTerrainMiniMapUpdate();
+  scheduleMapEdgeSkirtRedraw(scene);
 }
 
 async function generateNewTerrain() {
@@ -2905,13 +2905,14 @@ function getElevationVisualOffset(row, col) {
 function getHillSlopeBaseHeight(row, col) {
   // A slope tile visually connects to the lower side — its base sits at the
   // maximum height of the cardinal neighbours that are LOWER than this tile.
+  // Neighbours outside the map do not count: the ground there is level with the edge tile.
   const thisH = getTileHeight(row, col);
   const neighbourHeights = [
-    getTileHeight(row - 1, col),
-    getTileHeight(row + 1, col),
-    getTileHeight(row,     col - 1),
-    getTileHeight(row,     col + 1),
-  ].filter((h) => h < thisH);
+    [row - 1, col],
+    [row + 1, col],
+    [row,     col - 1],
+    [row,     col + 1],
+  ].filter(([r, c]) => isInsideMap(r, c)).map(([r, c]) => getTileHeight(r, c)).filter((h) => h < thisH);
   return neighbourHeights.length > 0 ? Math.max(...neighbourHeights) : 0;
 }
 
@@ -3215,6 +3216,7 @@ function rotateMap(scene, steps = 1) {
 
   if (activeOverlay) updateMiniMap();
   scheduleTerrainMiniMapUpdate();
+  scheduleMapEdgeSkirtRedraw(scene);
 }
 
 // ── Full reset (new terrain generation) ──────────────────────────────────────

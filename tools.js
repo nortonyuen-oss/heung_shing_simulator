@@ -190,8 +190,21 @@ function spendBudget(amount) {
 
 // ── Zone placement ─────────────────────────────────────────────────────────────
 
+let districtHeightCapNoticeAt = 0;
+
 function placeZone(scene, row, col, zoneType, density = DENSITY_LOW) {
   if (!isInsideMap(row, col)) return false;
+
+  // 地區特色: a height-capped district (西貢, 南丫島…) zones at its cap instead; one notice per
+  // few seconds, not one per painted tile
+  const maxDensity = typeof getDistrictMaxZoneDensity === 'function' ? getDistrictMaxZoneDensity() : DENSITY_HIGH;
+  if (density > maxDensity) {
+    density = maxDensity;
+    if (Date.now() - districtHeightCapNoticeAt > 4000) {
+      districtHeightCapNoticeAt = Date.now();
+      showToast(t('toast.districtHeightCap'), 'info');
+    }
+  }
 
   const terrain = mapData[row][col];
   if (terrain === WATER || terrain === BEACH) return false;
@@ -217,7 +230,9 @@ function placeZone(scene, row, col, zoneType, density = DENSITY_LOW) {
   const baseCost = zoneType === ZONE_RES ? COST_ZONE_RES
                  : zoneType === ZONE_COM ? COST_ZONE_COM
                  : COST_ZONE_IND;
-  const cost = Math.round(baseCost * (DENSITY_COST_MUL[density] ?? 1));
+  // 地區特色: the zoning fee is the district's land price
+  const densityCost = baseCost * (DENSITY_COST_MUL[density] ?? 1);
+  const cost = typeof getDistrictZoningCost === 'function' ? getDistrictZoningCost(densityCost) : Math.round(densityCost);
 
   if (!spendBudget(cost)) {
     showToast(t('toast.notEnoughFunds'), 'warning');

@@ -13,7 +13,7 @@ const TRANSPORT_EXPANSION_UNLOCK_POPULATION = 3000;
 // v1's "credit that falls through to city.budget" is gone as of schema v2 -
 // the company now has its own real treasury (company.cash), seeded once at
 // unlock and never topped up from or drained into city.budget again. See
-// TRANSPORT_TTD_SPEC.md §4. All company money uses the SAME stylized dollar
+// docs/transport-ttd-spec.md §4. All company money uses the SAME stylized dollar
 // scale as the rest of the game (COST_HOSPITAL: 7200 etc.), where each $1
 // reads as 萬. The old $600 grant could buy buses but not the required
 // $4,000 depot, making a newly unlocked company impossible to start. $6,000
@@ -71,7 +71,7 @@ const TRANSPORT_DEFAULT_VEHICLE_CLASS_ID = 'standard_double_decker';
 // are calibrated against the REAL per-vehicle simulation's mileage (a bus
 // genuinely drives ~20k tiles/month), keeping running costs a small fraction
 // of peak revenue so the strategic risk is ridership falling short, not
-// fixed costs - see TRANSPORT_TTD_SPEC.md §9.
+// fixed costs - see docs/transport-ttd-spec.md §9.
 const TRANSPORT_VEHICLE_CLASSES = Object.freeze({
   standard_double_decker: Object.freeze({
     id: 'standard_double_decker',
@@ -254,7 +254,7 @@ function normalizeTransportCompany(raw) {
     name: String(source.name || '').slice(0, 60),
     presidentName: String(source.presidentName || '').slice(0, 40),
     // Unlike building/route money, company cash is allowed to go negative -
-    // that's the bankruptcy signal in TRANSPORT_TTD_SPEC.md §4, not a bug.
+    // that's the bankruptcy signal in docs/transport-ttd-spec.md §4, not a bug.
     cash: normalizeTransportLegacyScaleMoney(Number(source.cash) || 0, 100000),
     cashFraction: transportClamp(Number(source.cashFraction) || 0, 0, 0.999999),
     foundedYear: Math.max(0, Math.floor(Number(source.foundedYear) || 0)),
@@ -494,7 +494,7 @@ function normalizeTransportRoute(raw, fallbackIndex) {
     color: normalizeTransportColor(raw.color, fallbackIndex),
     stopIds,
     // No `buses` field as of schema v2 - which (and how many) vehicles serve
-    // a route is derived at runtime from vehicle.routeId (TRANSPORT_TTD_SPEC.md
+    // a route is derived at runtime from vehicle.routeId (docs/transport-ttd-spec.md
     // §8.3), never stored on the route itself. A v1 blob's `raw.buses` is
     // read separately during migration (migrateTransportRoutesToVehicles),
     // not here.
@@ -589,7 +589,7 @@ function normalizeTransportVehicle(raw) {
 
 // v1 -> v2: a route's old `buses` count becomes that many real, free
 // ("grandfathered") vehicles assigned to it - the player already "paid" for
-// them conceptually under the old model (TRANSPORT_TTD_SPEC.md §8.4).
+// them conceptually under the old model (docs/transport-ttd-spec.md §8.4).
 // `rawRoutes` must be the *unnormalized* source routes (normalizeTransportRoute
 // no longer keeps `buses`), matched by array position to `normalizedRoutes`.
 function migrateTransportRoutesToVehicles(rawRoutes, normalizedRoutes, startVehicleId) {
@@ -654,7 +654,7 @@ function normalizeTransportExpansionState(raw) {
 
   // v1 -> v2: synthesize vehicles from each route's old `buses` count, and
   // carry forward whatever startup credit was left as the new company's
-  // opening cash - see TRANSPORT_TTD_SPEC.md §8.4. One-way; a v2 save is
+  // opening cash - see docs/transport-ttd-spec.md §8.4. One-way; a v2 save is
   // never read by pre-migration code.
   if (sourceVersion < 2) {
     const migrated = migrateTransportRoutesToVehicles(
@@ -824,7 +824,7 @@ function updateTransportUnlockState(options = {}) {
   if (state.unlocked || population < TRANSPORT_EXPANSION_UNLOCK_POPULATION) return state.unlocked;
   state.unlocked = true;
   // Founding grant: the company's one and only transfer from the city -
-  // see TRANSPORT_TTD_SPEC.md §4. `foundedYear === 0` means "not founded
+  // see docs/transport-ttd-spec.md §4. `foundedYear === 0` means "not founded
   // yet" (createDefaultTransportCompany's sentinel), so this only fires
   // once, even if population dips and re-crosses the threshold somehow.
   if (state.company.foundedYear === 0) {
@@ -859,7 +859,7 @@ function setExpansionEnabled(id, enabled, options = {}) {
 // depot buildings, vehicle purchases). While the expansion isn't active yet,
 // it's ordinary city spending (a city can have bus stops long before anyone
 // unlocks the company). Once active, it draws *exclusively* from
-// company.cash - no fallback to city.budget, ever. See TRANSPORT_TTD_SPEC.md
+// company.cash - no fallback to city.budget, ever. See docs/transport-ttd-spec.md
 // §4: "Company cannot spend city.budget, and the city cannot spend
 // company.cash."
 function spendTransportConstruction(amount) {

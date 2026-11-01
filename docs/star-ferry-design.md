@@ -4,7 +4,7 @@ Status: decisions taken with Norton (2026-10-09, section 9); phase 1 next.
 
 Ships the way Transport Tycoon has them: the player builds ferry piers on the shore, draws a route
 between two or more piers, buys ferries for it, and the ferries carry passengers across the water for
-fares. It is a second mode of the existing **Transport Mode** company (TRANSPORT_TTD_SPEC.md), not a
+fares. It is a second mode of the existing **Transport Mode** company (transport-ttd-spec.md), not a
 separate game: same company cash, same route list, same vehicle inspector, same month-end settlement.
 
 ## 1. Art we have

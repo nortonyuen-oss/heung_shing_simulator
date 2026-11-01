@@ -71,7 +71,7 @@ let transportPanelZCounter = 0;
 let transportFocusedPanelId = '';
 
 // "Is the UI layer currently open" - orthogonal to isTransportExpansionActive()
-// (the gameplay-effects gate, transport-expansion.js), per TRANSPORT_TTD_SPEC.md
+// (the gameplay-effects gate, transport-expansion.js), per docs/transport-ttd-spec.md
 // §13: a player can have routes running with the expansion active while never
 // opening Transport Mode this session.
 let isTransportModeActive = false;

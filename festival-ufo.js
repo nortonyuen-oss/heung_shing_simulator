@@ -204,7 +204,8 @@ function postUfoForumStory(route, sightings) {
   if (typeof addCityNews === 'function') addCityNews(headline);
   return addForumPost({
     headline,
-    image: 'UI/news/ufoSighting.webp',
+    // a return visit gets the forum's own picture, the first the paper's
+    image: again ? 'UI/news/ufoSightingAgain.webp' : 'UI/news/ufoSighting.webp',
     body: [
       `今晚${place}一帶先後有大批市民目擊一架不明飛行物，機身閃住紅綠黃彩燈，喺每區上空低飛盤旋，底部射出藍白色光柱，之後再飛去下一區，前後維持咗兩三個鐘先急速飛走。`,
       '多名目擊者話透過透明機艙見到一個綠色人形生物向地面揮手，有人仲話對方擺咗個「V」字手勢。',

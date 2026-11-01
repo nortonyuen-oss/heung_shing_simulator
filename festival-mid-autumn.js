@@ -260,8 +260,45 @@ function updateMidAutumn(scene, time) {
   });
 }
 
+// ── The news ──────────────────────────────────────────────────────────────────
+
+const MID_AUTUMN_NEWS_IMAGE = 'UI/news/midAutumnLiveBlooper.webp';
+
+// Once a year, the first evening the lantern fair is lit: the TV's live report from the fair, and
+// its presenter's slip of the tongue.
+function maybePostMidAutumnStory(scene, placements) {
+  if (typeof addForumPost !== 'function' || typeof city === 'undefined') return;
+  const year = Math.floor(Number(city.year) || 0);
+  const id = `midAutumn-${year}`;
+  if ((city.forumPosts || []).some((p) => p.id === id)) return;
+  if (!scene?.festivalLit || !placements.some((p) => p.festival === 'midAutumn' && String(p.id).startsWith('midAutumn:park:'))) return;
+  const dragon = placements.some((p) => p.festival === 'midAutumn' && p.fireDragon);
+  const cityName = String(city.name || '').trim() || '香城';
+  const headline = `【中秋直播】${cityName}電視台綵燈會現場口誤　女主持一本正經：「食燈籠、玩月餅！」`;
+  if (typeof addCityNews === 'function') addCityNews(headline);
+  addForumPost({
+    headline,
+    image: MID_AUTUMN_NEWS_IMAGE,
+    body: [
+      `中秋夜${cityName}電視台喺公園綵燈會做直播，女主持手揸燈籠、企喺月餅攤前面，對住鏡頭講出：「今晚大家記得食燈籠、玩月餅！」全場靜咗兩秒先爆笑。`,
+      '主持即場改口：「係玩燈籠、食月餅！」攝影師笑到部機都震埋。片段十分鐘內喺網上轉發過萬次，有網民即刻將佢剪成洗腦歌。',
+      dragon ? '綵燈會以外，舊區街坊今晚照舊舞火龍，香火繞住街口一圈又一圈，沿路居民開窗睇熱鬧。' : '公園入面賞月人潮到夜深未散，有街坊帶埋柚子同楊桃燈席地而坐。',
+      '電視台事後回應：「主持人應節表演，祝大家中秋快樂。」',
+    ],
+    source: 'local',
+    social: {
+      likes: 3500, laughs: 2600, angry: 15, commentCount: 1264, shares: 1900,
+      comments: [
+        { author: '月餅控', text: '食燈籠我未試過，玩月餅就細個成日玩，咬晒個蛋黃出嚟先食皮。' },
+        { author: '電視迷', text: '今年最佳直播，冇得頂。明年請返佢！' },
+        { author: '大坑街坊', text: '火龍經過我樓下，香到成晚都聞到。' },
+      ],
+    },
+  }, { id, category: '城中熱話', author: '香城日報', outcome: 'midAutumn', year, month: Math.floor(Number(city.month) || 9) });
+}
+
 if (typeof module !== 'undefined' && module.exports) module.exports = {
   FIRE_DRAGON_TILE_M, FIRE_DRAGON_SPEED_MPS, FIRE_DRAGON_LOOP_TILES, FIRE_DRAGON_FEET_LIFT,
   findFireDragonLoop, getFireDragonPose, getFireDragonView, applyMidAutumnFullMoon,
-  getMidAutumnLayoutExtras, updateMidAutumn,
+  getMidAutumnLayoutExtras, updateMidAutumn, maybePostMidAutumnStory, MID_AUTUMN_NEWS_IMAGE,
 };

@@ -61,13 +61,12 @@ const VIEWS = [
   { out: 'streetFurniture_newsstand_se.png', file: 'newsstand_realistic_noUmbrella.png', part: 1, flip: true },
   { out: 'streetFurniture_bollard_sw.png', file: 'bollard_yellowBlack_dualView.png', part: 0, flip: false, pair: 'sw' },
   { out: 'streetFurniture_bollard_se.png', file: 'bollard_yellowBlack_dualView.png', part: 0, flip: false, pair: 'se' },
-  // Street name plates: the plate runs along the road, so each view is its own render - the
-  // two-post sign has one per direction. The single-post sign has only the NW-SE render; its
-  // SE view is the mirror (the lettering reads backwards, but is a few pixels tall in game).
-  { out: 'streetFurniture_streetSign_sw.png', file: '香城道雙柱路牌(2).png', part: null, flip: false },
-  { out: 'streetFurniture_streetSign_se.png', file: '香城道雙柱路牌(1).png', part: null, flip: false },
-  { out: 'streetFurniture_streetSignSingle_sw.png', file: '香城道雙語加長路牌.png', part: null, flip: false },
-  { out: 'streetFurniture_streetSignSingle_se.png', file: '香城道雙語加長路牌.png', part: null, flip: true },
+  // Street name plates: the plate runs along the road, so each view is its own render (a mirror
+  // would read backwards) - both signs have one per direction.
+  { out: 'streetFurniture_streetSign_sw.png', file: 'streetSign_twoPost_swView.png', part: null, flip: false },
+  { out: 'streetFurniture_streetSign_se.png', file: 'streetSign_twoPost_seView.png', part: null, flip: false },
+  { out: 'streetFurniture_streetSignSingle_sw.png', file: 'streetSign_singlePost_swView.png', part: null, flip: false },
+  { out: 'streetFurniture_streetSignSingle_se.png', file: 'streetSign_singlePost_seView.png', part: null, flip: false },
 ];
 
 async function loadRaw(file) {

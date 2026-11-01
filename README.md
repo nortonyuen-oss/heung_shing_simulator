@@ -1,6 +1,6 @@
-# 香城模擬器 (The City of Heung Shing) v5.1.0 — 【香城開天闢地】
+# 香城模擬器 (The City of Heung Shing) v5.2.0 — 【四通八達】
 
-香城模擬器 (The City of Heung Shing) v5.1.0 — 【香城開天闢地】 is a SimCity 2000-style city builder inspired by Hong Kong: isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run bus company, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
+香城模擬器 (The City of Heung Shing) v5.2.0 — 【四通八達】 is a SimCity 2000-style city builder inspired by Hong Kong: isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run bus company, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
 
 Website and downloads: https://nortonyuen-oss.github.io/heung_shing_simulator/
 
@@ -9,6 +9,10 @@ Read public posts and replies on the website; sign in to GitHub to confirm a new
 post or reply. Website messages are tracked with the `website-feedback` issue label.
 
 ![The Heung Shing skyline at night, zoomed out: dense lights, the airport and the harbour](docs/assets/gameplay/nightSkyline.webp)
+
+## New in v5.2.0
+
+Roads that meet the map edge head-on now lead on to the neighbouring districts, signposted 「往X」: real Hong Kong neighbours on the district maps. They bring commuters, demand and visitors; industry with no road out and no container port loses a little demand. A new undersea tunnel is dragged from one shore across the sea to the other, with a twin-bore portal on each shore: traffic and transport-company bus routes cross under the water, the portals join the road without a seam and cover passing vehicles correctly from every side, and the tunnel takes tolls by its traffic. Transport-company buses now show from zoom 1.0.
 
 ## New in v5.1.0
 

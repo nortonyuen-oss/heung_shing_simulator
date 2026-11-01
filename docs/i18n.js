@@ -262,6 +262,7 @@ const SITE_FEATURE_LIST = {
 // ── Changelog ─────────────────────────────────────────────────────────────────
 const SITE_CHANGELOG = {
   "zh-HK": [
+    {"version": "v5.2.0", "date": "2026-11-01", "dateLabel": "2026年11月1日", "title": "四通八達", "items": ["區外連線：地圖邊正面駛出嘅道路會連去鄰區（香港地區地圖按真實相鄰地區），出口有「往X」路牌；帶嚟跨區通勤、需求同旅客，冇對外道路又冇貨櫃碼頭嘅工業會輕微減需求。", "海底隧道：由一邊岸拖過海去對岸，兩岸各起一個雙管隧道口；車同運輸公司巴士線都可以過海，每管單程靠左，車喺海底收埋，按車流收隧道費。", "隧道口同道路無縫接駁，車輛同牆、洞口箱、拱門嘅遮擋四個方向都正確；隧道前唔准掉頭。", "運輸公司巴士放大到 1.0 倍就顯示；修正地圖邊道路變掘頭路或者繞返轉頭，同山邊地圖邊緣嘅巨型方塊。"]},
     {"version": "v5.1.0", "date": "2026-11-01", "dateLabel": "2026年11月1日", "title": "香城開天闢地", "items": ["原創地形：「隨機生成」新增「原創地形」模式，按海港、半島、離島、谷地新市鎮、山邊或平原生成全新地圖，有山脊、水沖出嚟嘅山谷同曲折海岸，高度同水域按香港真實地形校準。", "舊隨機生成器（直線河道、平頂山、泥地圓點）同沙漠、高原等地貌已移除；預設隨機地圖同地圖編輯器重新生成都改用新生成器。", "修正：細螢幕上公園選單嘅維多利亞公園唔會再跌出畫面；運動場、地形同分區密度選單同樣會自動移入畫面。"]},
     {"version": "v5.0.0", "date": "2026-11-01", "dateLabel": "2026年11月1日", "title": "我哋既香城", "items": ["全新開局畫面：揀地圖、城市名、開局年份、道路套件同交通擴充放喺同一版，大預覽有 1 公里比例尺；地圖編輯器用同一個畫面揀底圖。", "香港地區地圖：用地政總署 5 米數碼地形模型製作 23 張真實地圖（維港兩岸 CBD 同 22 個地區），一格 20 米；喺全港總覽圖撳一區，睇地形、最高點同簡介。", "地區特色：每區有唔同嘅需求、稅基、交通、旅遊、富裕住戶、人口密度、就業、地價同環境，部分地區限高；開局見到 1 至 5 星難度同優勢／代價。", "香港實景隨機地圖：由全港真實地形抽取海港、半島、離島、谷地新市鎮、山邊或平原，取代舊生成器。", "地圖邊緣可以有高山，畫出岩壁切面；右下角新增城市小地圖，旋轉掣搬入小地圖，靜音掣搬到 8x 隔籬；新城市預設用標線道路。"]},
     {"version": "v4.24.0", "date": "2026-11-01", "dateLabel": "2026年11月1日", "title": "月光光，照香城", "items": ["中秋：維園擺花燈，有玉兔明月大燈飾、蓮花燈、兔仔燈同燈籠柱；黃昏起有賞月市民同野餐，夜深有細路煲蠟，凌晨警員巡查。", "舞火龍：喺住宅最多、最舊嘅街段揀一圈路，晚上 8 點至 11 點火龍沿路行圈，路邊掛燈籠；中秋月一定係滿月。", "年初二煙花匯演：正月初二晚上 8 點至 8 點半，全城放新春紅金色煙花，最後 5 分鐘壓軸；惡劣天氣取消。", "年宵攤檔按一格 20 米重新定大小，花市有市民行；盂蘭勝會跟新籃球場美術重建；搶包山晚場地唔再被大排檔佔用。", "效能：大型城市夜晚、黃昏同拉遠拉近順暢好多，太子夜晚約由 30 升至 52 fps。"]},
@@ -618,6 +619,7 @@ const SITE_CHANGELOG = {
 // title/items text.
 const SITE_CHANGELOG_TRANSLATIONS = {
   "zh-TW": {
+    "v5.2.0": {"title": "四通八達", "items": ["區外連線：從地圖邊緣正面駛出的道路會連往鄰區（香港地區地圖依真實相鄰地區），出口設有「往X」路牌；帶來跨區通勤、需求與遊客，沒有對外道路也沒有貨櫃碼頭的工業會略減需求。", "海底隧道：從一側海岸拖曳過海到對岸，兩岸各建一座雙管隧道口；車輛與運輸公司公車路線都能過海，每管單向靠左行駛，車輛在海底隱藏，依車流收取隧道費。", "隧道口與道路無縫銜接，車輛與牆、洞口結構、拱門的遮擋在四個方向都正確；隧道前不得迴轉。", "運輸公司公車在 1.0 倍縮放即顯示；修正地圖邊緣道路變成死路或自行繞回，以及山邊地圖邊緣的巨型方塊。"]},
     "v5.1.0": {"title": "香城開天闢地", "items": ["原創地形：「隨機生成」新增「原創地形」模式，依海港、半島、離島、谷地新市鎮、山邊或平原產生全新地圖，有山脊、水流沖刷出的山谷與曲折海岸，高度與水域依香港真實地形校準。", "舊的隨機產生器（直線河道、平頂山、泥地圓點）與沙漠、高原等地貌已移除；預設隨機地圖與地圖編輯器重新產生都改用新產生器。", "修正：小螢幕上公園選單的維多利亞公園不再超出畫面；運動場、地形與分區密度選單同樣會自動移入畫面。"]},
     "v5.0.0": {"title": "我們的香城", "items": ["全新開局畫面：選擇地圖、城市名稱、開局年份、道路套件與交通擴充都在同一頁，大預覽附 1 公里比例尺；地圖編輯器用同一個畫面選底圖。", "香港地區地圖：以地政總署 5 公尺數值地形模型製作 23 張真實地圖（維港兩岸 CBD 與 22 個地區），一格 20 公尺；在全港總覽圖點選一區，即可查看地形、最高點與簡介。", "地區特色：每區有不同的需求、稅基、交通、觀光、富裕住戶、人口密度、就業、地價與環境，部分地區限高；開局可見 1 至 5 星難度與優勢／代價。", "香港實景隨機地圖：從全港真實地形擷取海港、半島、離島、谷地新市鎮、山邊或平原，取代舊的產生器。", "地圖邊緣可以有高山，並畫出岩壁剖面；右下角新增城市小地圖，旋轉鈕移入小地圖，靜音鈕移到 8x 旁邊；新城市預設使用標線道路。"]},
     "v4.24.0": {"title": "月光光，照香城", "items": ["中秋：維園擺設花燈，有玉兔明月大燈飾、蓮花燈、兔子燈與燈籠柱；黃昏起有賞月人潮與野餐，夜深有孩子煲蠟，凌晨警員巡查。", "舞火龍：在住宅最多、最老的街區選一圈道路，晚上 8 點至 11 點火龍沿路繞行，路邊掛燈籠；中秋月一定是滿月。", "年初二煙火大會：正月初二晚上 8 點至 8 點半，全城施放新春紅金色煙火，最後 5 分鐘壓軸；天候惡劣則取消。", "年宵攤位依一格 20 公尺重新調整大小，花市有人潮；中元勝會依新籃球場美術重建；搶包山之夜的場地不再被大排檔佔用。", "效能：大型城市在夜晚、黃昏與縮放時順暢許多，太子夜晚約由 30 提升至 52 fps。"]},
@@ -967,6 +969,7 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   en: {
+    "v5.2.0": {"title": "Heung Shing, Connected Every Way", "items": ["Region connections: a road meeting the map edge head-on leads on to the neighbouring district (real neighbours on the Hong Kong district maps), signposted 「往X」; it brings commuters, demand and visitors, and industry with no road out and no container port loses a little demand.", "Undersea tunnel: drag from one shore across the sea to the other for a twin-bore portal on each shore; traffic and transport-company bus routes cross under the water, one way each bore, keep-left, hidden while under the sea, and the tunnel takes tolls by its traffic.", "The portals join the road without a seam, and walls, the mouth box and the arches cover passing vehicles correctly in all four views; no U-turns in front of a portal.", "Transport-company buses show from zoom 1.0; fixes for edge roads drawn as dead ends or turning back on themselves, and a giant block on hilly map edges."]},
     "v5.1.0": {"title": "Heung Shing, A World Made Anew", "items": ["Original terrain: 隨機生成 gains an Original mode that grows a brand-new map for any landform (harbour, peninsula, islands, valley new town, hillside, plain), with ridges, eroded valleys and ragged coasts, its heights and water calibrated against Hong Kong's real terrain.", "The old random generator (straight rivers, flat-topped mountains, dirt dots) and its desert and plateau landforms are gone; default random maps and the map editor's regenerate use the new generator.", "Fix: on short screens Victoria Park no longer drops off the bottom of the park picker; the sports ground, terrain and zone density pickers also move to stay on screen."]},
     "v5.0.0": {"title": "Our Heung Shing", "items": ["A new start screen: map, city name, start year, road set and transport on one page with a large preview and a 1 km scale bar; the map editor picks its base map the same way.", "Hong Kong district maps: 23 real maps (Victoria Harbour CBD and 22 districts) built at 20 m a tile from the Lands Department's 5 m terrain model; pick one on a map of the whole territory to see its terrain, highest point and an introduction.", "District traits: each district has its own demand, tax base, traffic, tourism, wealthy residents, density, jobs, land price and environment, some with a height limit; the start screen shows a 1-5 star difficulty with advantages and costs.", "Real-terrain random maps: harbour, peninsula, islands, valley new town, hillside or plain, sampled from real Hong Kong terrain in place of the old generator.", "Hills may run to the map edge, cut away as a rock face; a city minimap in the corner, with the rotate buttons on it and mute beside 8x; new cities start on marked roads."]},
     "v4.24.0": {"title": "Moonlight Over Heung Shing", "items": ["Mid-Autumn: Victoria Park hosts a lantern fair with a jade rabbit and moon, lotus lanterns, rabbit lanterns and lantern poles; moon-gazers and picnics from dusk, children melting candle wax late at night, and police on patrol after midnight.", "Fire dragon: the city picks a loop round its oldest block of homes, and from 20:00 to 23:00 the dragon winds round it with lanterns along the kerbs. The Mid-Autumn moon is always full.", "New Year fireworks: on the second day of the Lunar New Year, from 20:00 to 20:30, red and gold fireworks light the whole city, with a finale in the last five minutes; called off in bad weather.", "Lunar New Year stalls resized to the 20 m tile, with visitors in the flower fairs; the Hungry Ghost festival grounds rebuilt for the new court art; the bun scrambling night no longer loses its ground to the dai pai dong.", "Performance: large cities run much more smoothly at night, at dusk and while zooming; Prince Edward at night goes from about 30 to 52 fps."]},
@@ -1316,6 +1319,7 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   ja: {
+    "v5.2.0": {"title": "香城、四通八達", "items": ["区外連絡：マップの端に正面から出る道路は隣の地区へつながります（香港の地区マップでは実際の隣接地区）。出口には「往X」の標識。通勤、需要、観光客をもたらし、外へ出る道路もコンテナ港もない工業は需要が少し下がります。", "海底トンネル：一方の岸から海を越えて対岸までドラッグすると、両岸に複線の坑口を建設。車両と交通会社のバス路線が海の下を通ります。各トンネルは左側通行の一方通行、海底では車両を隠し、交通量に応じて通行料を徴収します。", "坑口は道路と継ぎ目なくつながり、壁・坑口の構造・アーチによる車両の隠れ方が4方向すべてで正しくなりました。坑口の前ではUターン不可。", "交通会社のバスはズーム1.0から表示。マップ端の道路が行き止まりや折り返しになる不具合と、山地のマップ端に巨大なブロックが出る不具合を修正。"]},
     "v5.1.0": {"title": "香城、天地開闢", "items": ["オリジナル地形：「ランダム生成」に「オリジナル地形」モードを追加。港湾、半島、離島、谷あいのニュータウン、山すそ、平野から、尾根、浸食された谷、入り組んだ海岸を持つ新しいマップを生成し、高さと水域は香港の実際の地形に合わせています。", "旧ランダムジェネレーター（まっすぐな川、平らな山頂、土の斑点）と砂漠・高原などの地形を削除。既定のランダムマップとマップエディターの再生成も新ジェネレーターに。", "修正：小さな画面でも公園メニューのビクトリア・パークが画面外に出なくなりました。運動場、地形、区画密度のメニューも画面内に収まります。"]},
     "v5.0.0": {"title": "私たちの香城", "items": ["新しい開始画面：マップ、都市名、開始年、道路セット、交通拡張を一画面に。大きなプレビューと1 kmのスケールバー付き。マップエディターも同じ画面でベースマップを選びます。", "香港の地区マップ：地政総署の5 m地形モデルから作った実在の23マップ（ヴィクトリア・ハーバーCBDと22地区）、1マス20 m。香港全図で地区を選ぶと、地形・最高地点・紹介を表示。", "地区の特色：地区ごとに需要、税収、渋滞、観光、富裕層、人口密度、雇用、地価、環境が異なり、高さ制限のある地区も。開始画面に1〜5つ星の難易度と長所・短所を表示。", "実在地形のランダムマップ：港湾、半島、離島、谷あいのニュータウン、山すそ、平野を香港の実際の地形から選び、旧ジェネレーターに代わります。", "マップの端まで山が続き、岩肌の断面で描かれます。右下に都市ミニマップ、回転ボタンはミニマップへ、ミュートは8xの隣へ。新しい都市は標示付き道路で始まります。"]},
     "v4.24.0": {"title": "月明かりの香城", "items": ["中秋：ビクトリア・パークに玉兎と満月の大灯籠、蓮の灯籠、うさぎ灯籠、灯籠柱。夕方から月見客とピクニック、夜更けには子どもたちのろうそく遊び、深夜には警官の巡回。", "火龍舞：住宅が多く古い街区の道路を一周選び、20時から23時まで火龍が巡ります。道端には灯籠。中秋の月は必ず満月です。", "旧正月二日目の花火大会：20時から20時半まで街中に紅と金の花火、最後の5分はフィナーレ。悪天候時は中止。", "旧正月の屋台を1マス20メートルの実寸に合わせて調整し、花市に人出を追加。盂蘭勝会を新しいコートのアートに合わせて再構築。饅頭登りの夜に大排檔が会場を使わないように。", "パフォーマンス：大都市の夜、夕暮れ、ズーム時が大幅に滑らかに。太子の夜は約30から52 fpsへ。"]},
@@ -1690,8 +1694,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v5.1.0 — 【香城開天闢地】",
-      versionDesc: "5.1.0 更新：原創地形——按香港地形特徵生成全新地圖，有山脊、山谷同曲折海岸；細螢幕選單唔會再跌出畫面。",
+      versionBadge: "v5.2.0 — 【四通八達】",
+      versionDesc: "5.2.0 更新：道路由地圖邊連去鄰區，新海底隧道由一邊岸拖去對岸，車同巴士線都可以過海。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感嘅城市建設遊戲。起街道、規劃社區、經營自己嘅香城巴士公司、處理議會同天氣，再睇住一座有性格嘅香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1799,8 +1803,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v5.1.0 — 【香城開天闢地】",
-      versionDesc: "5.1.0 更新：原創地形——依香港地形特徵產生全新地圖，有山脊、山谷與曲折海岸；小螢幕上的選單不再超出畫面。",
+      versionBadge: "v5.2.0 — 【四通八達】",
+      versionDesc: "5.2.0 更新：道路從地圖邊緣連往鄰區，新海底隧道從一側海岸拖曳到對岸，車輛與公車路線都能過海。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感的城市建設遊戲。興建街道、規劃社區、經營自己的香城公車公司、處理議會與天氣，看著一座有個性的香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1908,8 +1912,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "The City of Heung Shing",
       title: "The City of Heung Shing",
-      versionBadge: "v5.1.0 — 【Heung Shing, A World Made Anew】",
-      versionDesc: "5.1.0 update: Original terrain grows brand-new maps shaped like Hong Kong, with ridges, eroded valleys and ragged coasts; tool pickers stay on screen on short windows.",
+      versionBadge: "v5.2.0 — 【Heung Shing, Connected Every Way】",
+      versionDesc: "5.2.0 update: roads lead off the map edge to the neighbouring districts, and a new undersea tunnel, dragged from shore to shore, takes traffic and bus routes across the sea.",
       lede: "A city-building game inspired by Hong Kong life and made in tribute to SimCity 2000. Build streets, shape neighbourhoods, run your own Heung Shing Bus Company, navigate council politics and weather, then watch a city with real personality grow.",
       freeLabel: "Completely free · macOS + Windows · Local saves",
       downloadBtn: "【Free Download】",
@@ -2018,8 +2022,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v5.1.0 — 【香城、天地開闢】",
-      versionDesc: "5.1.0 更新：オリジナル地形。香港らしい尾根、浸食された谷、入り組んだ海岸を持つ新しいマップを生成。小さな画面でもツールの選択メニューが画面内に収まります。",
+      versionBadge: "v5.2.0 — 【香城、四通八達】",
+      versionDesc: "5.2.0 更新：マップ端の道路が隣の地区へ。岸から岸へドラッグする新しい海底トンネルで、車両もバス路線も海を越えます。",
       lede: "香港の都市生活から着想を得た、SimCity 2000へのオマージュとなる都市建設ゲーム。道路を築き、地区を計画し、自分だけの香城バス会社を経営し、議会や天候に向き合いながら、個性ある香城の成長を見守ります。",
       freeLabel: "完全無料 · macOS + Windows · ローカルセーブ",
       downloadBtn: "【無料ダウンロード】",

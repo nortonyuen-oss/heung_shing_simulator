@@ -427,6 +427,22 @@ function openToolCategory(categoryButton, panel) {
   panel.classList.add('is-open');
 }
 
+// Pickers open beside their button but stay inside the window: on a short screen a long list
+// (the park picker ends with Victoria Park) moves up, and scrolls if it is taller than the
+// window. Call once the popup is open, so it can be measured.
+function placePopupBesideTrigger(popup, bounds) {
+  popup.style.maxHeight = '';
+  popup.style.overflowY = '';
+  popup.style.left = `${Math.round(bounds.right + 8)}px`;
+  const height = popup.getBoundingClientRect().height;
+  const top = Math.max(8, Math.min(bounds.top, window.innerHeight - height - 8));
+  popup.style.top = `${top}px`;
+  if (height > window.innerHeight - 16) {
+    popup.style.maxHeight = `${window.innerHeight - 16}px`;
+    popup.style.overflowY = 'auto';
+  }
+}
+
 function positionToolFlyout(categoryButton, panel) {
   const bounds = categoryButton.getBoundingClientRect();
   const menu = document.getElementById('tool-menu');
@@ -612,13 +628,9 @@ function openTerrainPicker(triggerButton = document.querySelector('[data-tool="t
     picker.append(btn);
   });
 
-  const triggerBounds = triggerButton?.getBoundingClientRect();
-  if (triggerBounds) {
-    picker.style.left = `${Math.round(triggerBounds.right + 8)}px`;
-    picker.style.top = `${triggerBounds.top}px`;
-  }
-
   picker.classList.add('is-open');
+  const triggerBounds = triggerButton?.getBoundingClientRect();
+  if (triggerBounds) placePopupBesideTrigger(picker, triggerBounds);
 }
 
 function closeTerrainPicker() {
@@ -775,10 +787,8 @@ function openZoneDensityMenu(toolKey, triggerButton) {
     densityMenu.append(btn);
   });
 
-  const bounds = triggerButton.getBoundingClientRect();
-  densityMenu.style.left = `${Math.round(bounds.right + 8)}px`;
-  densityMenu.style.top = `${bounds.top}px`;
   densityMenu.classList.add('is-open');
+  placePopupBesideTrigger(densityMenu, triggerButton.getBoundingClientRect());
 }
 
 function closeZoneDensityMenu() {
@@ -915,12 +925,9 @@ function openParkPicker(triggerButton = document.querySelector('[data-tool="park
     picker.append(btn);
   });
 
-  const bounds = triggerButton?.getBoundingClientRect();
-  if (bounds) {
-    picker.style.left = `${Math.round(bounds.right + 8)}px`;
-    picker.style.top = `${bounds.top}px`;
-  }
   picker.classList.add('is-open');
+  const bounds = triggerButton?.getBoundingClientRect();
+  if (bounds) placePopupBesideTrigger(picker, bounds);
 }
 
 function closeParkPicker() {
@@ -991,12 +998,9 @@ function openSportsGroundPicker(triggerButton = document.querySelector('[data-to
     picker.append(btn);
   });
 
-  const bounds = triggerButton?.getBoundingClientRect();
-  if (bounds) {
-    picker.style.left = `${Math.round(bounds.right + 8)}px`;
-    picker.style.top = `${bounds.top}px`;
-  }
   picker.classList.add('is-open');
+  const bounds = triggerButton?.getBoundingClientRect();
+  if (bounds) placePopupBesideTrigger(picker, bounds);
 }
 
 function closeSportsGroundPicker() {

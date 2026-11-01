@@ -130,8 +130,32 @@ function getStreetFoodCartPlacement(cart, stall) {
 // `record.textureKey` draws a texture the game already loaded (a roadside prop) by its own key,
 // `record.path` still naming its logical file for the staged-copy pixel mapping. `options.lit`
 // marks a light source: drawn untinted by night instead of taking the night prop tint.
+// The people come and go with every crowd window - about a second apart at 1x - so a sprite that
+// leaves is hidden and kept for the next to arrive rather than destroyed (each destroy and add
+// splices the scene's 15,000-object display list).
+const STREET_FOOD_SPARE_LIMIT = 400;
+
+function takeStreetFoodSpareSprite(scene, key) {
+  const sprite = scene.streetFoodSpares?.pop();
+  if (!sprite) return null;
+  sprite.setTexture(key);
+  sprite.setAlpha(1);
+  sprite.clearTint();
+  sprite.__streetFoodPlace = null;
+  return sprite;
+}
+
+/** Gives a sprite back: hidden and kept for reuse, or destroyed once enough are kept. */
+function releaseStreetFoodSprite(scene, sprite) {
+  if (!sprite || sprite.active === false) return;
+  if (!scene.streetFoodSpares) scene.streetFoodSpares = [];
+  if (scene.streetFoodSpares.length >= STREET_FOOD_SPARE_LIMIT || typeof sprite.setVisible !== 'function') { sprite.destroy(); return; }
+  sprite.setVisible(false);
+  scene.streetFoodSpares.push(sprite);
+}
+
 function drawStreetFoodSprite(scene, store, id, record, point, depthBump = 0, options = {}) {
-  if (!record) { store.get(id)?.destroy(); store.delete(id); return null; }
+  if (!record) { releaseStreetFoodSprite(scene, store.get(id)); store.delete(id); return null; }
   const key = record.textureKey || getStreetFoodSpriteTextureKey(record.path);
   if (!scene.textures.exists(key)) {
     if (!record.textureKey) requestStreetFoodTextures(scene, [record.path]);
@@ -139,22 +163,31 @@ function drawStreetFoodSprite(scene, store, id, record, point, depthBump = 0, op
   }
   let sprite = store.get(id);
   if (!sprite) {
-    sprite = scene.add.image(0, 0, key);
+    sprite = takeStreetFoodSpareSprite(scene, key) || scene.add.image(0, 0, key);
     if (scene.worldMask && typeof sprite.setMask === 'function') sprite.setMask(scene.worldMask);
     store.set(id, sprite);
+    // shown now; the viewport culling (viewport-culling.js) hides it off screen from its next pass
+    sprite.setVisible(true);
+    scene.terrainViewportCacheKey = null;
   }
-  if (sprite.texture.key !== key) sprite.setTexture(key);
-  const frame = sprite.frame;
-  const mapping = typeof getModelTexturePixelMapping === 'function'
-    ? getModelTexturePixelMapping(record.path, { width: frame.width, height: frame.height })
-    : { resize: 1, offsetX: 0, offsetY: 0 };
-  const ax = record.groundAnchor[0] * mapping.resize + mapping.offsetX;
-  const ay = record.groundAnchor[1] * mapping.resize + mapping.offsetY;
-  sprite.setOrigin(ax / frame.width, ay / frame.height);
-  sprite.setScale(record.scale / mapping.resize);
-  sprite.setPosition(point.x, point.y);
+  // the same art at the same point as last time (most of a market from one redraw to the next):
+  // only its depth, visibility and tint below
+  const place = `${key}|${record.path}|${record.groundAnchor[0]}|${record.groundAnchor[1]}|${record.scale}|${point.x}|${point.y}`;
+  if (sprite.__streetFoodPlace !== place || sprite.texture.key !== key) {
+    if (sprite.texture.key !== key) sprite.setTexture(key);
+    const frame = sprite.frame;
+    const mapping = typeof getModelTexturePixelMapping === 'function'
+      ? getModelTexturePixelMapping(record.path, { width: frame.width, height: frame.height })
+      : { resize: 1, offsetX: 0, offsetY: 0 };
+    const ax = record.groundAnchor[0] * mapping.resize + mapping.offsetX;
+    const ay = record.groundAnchor[1] * mapping.resize + mapping.offsetY;
+    sprite.setOrigin(ax / frame.width, ay / frame.height);
+    sprite.setScale(record.scale / mapping.resize);
+    sprite.setPosition(point.x, point.y);
+    sprite.__streetFoodPlace = place;
+  }
   sprite.setDepth(point.depth + depthBump);
-  sprite.setVisible(true);
+  sprite.__streetFoodTinted = !options.lit;
   if (options.lit) sprite.clearTint();
   else if (typeof applyNightPropTint === 'function') applyNightPropTint(scene, sprite);
   return sprite;
@@ -174,13 +207,15 @@ function drawStreetFoodLamp(scene, store, lamp, lit, wanted) {
   const sprite = drawStreetFoodSprite(scene, store, lamp.id, STREET_FOOD_PARK_LAMP, point);
   const glowId = `${lamp.id}|glow`;
   const glowKey = lit && sprite && typeof ensureTyphoonShelterLampGlowTexture === 'function' ? ensureTyphoonShelterLampGlowTexture(scene) : null;
-  if (!glowKey) { store.get(glowId)?.destroy(); store.delete(glowId); return; }
+  if (!glowKey) { releaseStreetFoodSprite(scene, store.get(glowId)); store.delete(glowId); return; }
   wanted.add(glowId);
   let glow = store.get(glowId);
   if (!glow) {
-    glow = scene.add.image(0, 0, glowKey);
+    glow = takeStreetFoodSpareSprite(scene, glowKey) || scene.add.image(0, 0, glowKey);
     if (scene.worldMask && typeof glow.setMask === 'function') glow.setMask(scene.worldMask);
     store.set(glowId, glow);
+    glow.setVisible(true);
+    scene.terrainViewportCacheKey = null;
   }
   const glass = TYPHOON_SHELTER_LAMP_GLASS, pad = TYPHOON_SHELTER_LAMP_GLOW_PAD, k = STREET_FOOD_PARK_LAMP.scale;
   const [footX, footY] = STREET_FOOD_PARK_LAMP.groundAnchor;
@@ -188,7 +223,6 @@ function drawStreetFoodLamp(scene, store, lamp, lit, wanted) {
   glow.setScale(k);
   glow.setPosition(point.x + (glass.x - footX) * k, point.y + (glass.y - footY) * k);
   glow.setDepth(point.depth + 0.01);
-  glow.setVisible(true);
 }
 
 // 電箱: the roadside utility cabinet (street-furniture.js) at its own roadside size and view, so a
@@ -289,9 +323,10 @@ function syncStreetFoodVenue(scene, layout) {
 }
 
 function clearStreetFoodVenue(scene, venuePrefix) {
+  scene.streetFoodVenueDraws?.delete(venuePrefix.replace(/\|$/, ''));
   if (!scene.streetFoodSprites) return;
   scene.streetFoodSprites.forEach((sprite, id) => {
-    if (id.startsWith(venuePrefix)) { sprite.destroy(); scene.streetFoodSprites.delete(id); }
+    if (id.startsWith(venuePrefix)) { releaseStreetFoodSprite(scene, sprite); scene.streetFoodSprites.delete(id); }
   });
 }
 
@@ -390,6 +425,32 @@ function getStreetFoodRoster() {
   };
 }
 
+// The layout is a pure function of the venue and a few slow-moving inputs (street-food-market.js):
+// its phase and how built-up it is, the weather's state, and the 20- and 10-minute windows the
+// diners and passers-by reshuffle on. Between those it is the same layout, so it is kept rather
+// than redone (each one walks the lot's edges, pitches and aisles: 30-60 ms a pass in 太子).
+const STREET_FOOD_VENUE_CONTEXT_MS = 2000;
+const streetFoodLayoutCache = new Map(); // venue id -> { key, layout }
+
+function getStreetFoodLayoutKey(venue, options) {
+  const m = Number(options.minuteOfDay) || 0;
+  const schedule = typeof getStreetFoodPhase === 'function' ? getStreetFoodPhase(m) : { phase: '', presence: m };
+  const weather = typeof getStreetFoodWeatherState === 'function' ? getStreetFoodWeatherState(options.weather) : JSON.stringify(options.weather || {});
+  // a fading lot (opening, packing up) steps in twentieths, finer than a cart at a time
+  return [venue.tiles.length, venue.tiles[0]?.join?.(':'), options.enabled, weather, schedule.phase, Math.round(schedule.presence * 20),
+    Math.floor(m / 20), Math.floor(m / 10), options.carts?.length, options.hawkers?.length, options.queuers?.length,
+    options.diners?.length, options.passersby?.length, options.tableFurniture?.length, options.stools?.length, options.stringSpanM].join('|');
+}
+
+function getCachedStreetFoodVenueLayout(venue, options) {
+  const key = getStreetFoodLayoutKey(venue, options);
+  const hit = streetFoodLayoutCache.get(venue.id);
+  if (hit?.key === key) return hit.layout;
+  const layout = getStreetFoodVenueLayout(venue, options);
+  streetFoodLayoutCache.set(venue.id, { key, layout });
+  return layout;
+}
+
 function updateStreetFoodMarkets(scene, time) {
   if (!scene || typeof city === 'undefined') return;
   if (typeof isTerrainCreatorMode !== 'undefined' && isTerrainCreatorMode) return;
@@ -401,7 +462,12 @@ function updateStreetFoodMarkets(scene, time) {
     return;
   }
 
-  const ctx = typeof getFestivalVenueContext === 'function' ? getFestivalVenueContext(scene) : { eventGrounds: [] };
+  // the venues (a walk over every building) are looked up again only every couple of seconds
+  if (!scene.streetFoodVenueContext || time >= scene.streetFoodVenueContext.until) {
+    scene.streetFoodVenueContext = { until: time + STREET_FOOD_VENUE_CONTEXT_MS,
+      ctx: typeof getFestivalVenueContext === 'function' ? getFestivalVenueContext(scene) : { eventGrounds: [] } };
+  }
+  const { ctx } = scene.streetFoodVenueContext;
   const claimed = getStreetFoodClaimedPredicate(scene);
   const venues = typeof getStreetFoodVenues === 'function' ? getStreetFoodVenues(ctx, claimed) : [];
   const minuteOfDay = typeof getGameTimeOfDayMinutes === 'function' ? getGameTimeOfDayMinutes() : Number(city.timeOfDayMinutes) || 0;
@@ -411,26 +477,46 @@ function updateStreetFoodMarkets(scene, time) {
 
   const wantedIds = new Set();
   const activeVenueIds = new Set(venues.map((v) => v.id));
+  // a venue is drawn again only when its layout, the lights, the night tint or the view (a map turn
+  // moves every point) has changed; otherwise its sprites stand as they are
+  if (!scene.streetFoodVenueDraws) scene.streetFoodVenueDraws = new Map();
+  const drawKey = [areStreetFoodLightsLit(scene), typeof mapRotation === 'number' ? mapRotation : 0, scene.offsetX, scene.offsetY].join('|');
+  const tint = scene.__nightPropTint;
   venues.forEach((venue) => {
-    const layout = getStreetFoodVenueLayout(venue, { minuteOfDay, enabled: enabled && !isStreetFoodVenueDisabled(venue), weather: city.weather, seed: venue.id, ...roster });
-    syncStreetFoodVenue(scene, layout).forEach((id) => wantedIds.add(id));
+    const layout = getCachedStreetFoodVenueLayout(venue, { minuteOfDay, enabled: enabled && !isStreetFoodVenueDisabled(venue), weather: city.weather, seed: venue.id, ...roster });
+    const drawn = scene.streetFoodVenueDraws.get(venue.id);
+    const fresh = drawn && drawn.layout === layout && drawn.drawKey === drawKey
+      && [...drawn.ids].every((id) => scene.streetFoodSprites?.get(id)?.active !== false && scene.streetFoodSprites?.has(id));
+    const ids = fresh ? drawn.ids : syncStreetFoodVenue(scene, layout);
+    // dusk and dawn move the night tint on every pass: retint, nothing more
+    if (fresh && drawn.tint !== tint && typeof applyNightPropTint === 'function') {
+      ids.forEach((id) => { const sprite = scene.streetFoodSprites.get(id); if (sprite?.__streetFoodTinted) applyNightPropTint(scene, sprite); });
+      drawn.tint = tint;
+    }
+    if (!fresh) scene.streetFoodVenueDraws.set(venue.id, { layout, drawKey, ids, tint });
+    ids.forEach((id) => wantedIds.add(id));
   });
+  scene.streetFoodVenueDraws.forEach((_, id) => { if (!activeVenueIds.has(id)) scene.streetFoodVenueDraws.delete(id); });
   // every event_ground venue not currently wanted (claimed by a festival, or emptied by the
   // schedule/weather) loses its sprites at once, so a festival taking the lot - or the player
   // demolishing it - clears the stalls without waiting for them to individually age out
   (ctx.eventGrounds || []).forEach((venue) => { if (!activeVenueIds.has(venue.id)) clearStreetFoodVenue(scene, `${venue.id}|`); });
   scene.streetFoodSprites?.forEach((sprite, id) => {
-    if (!wantedIds.has(id)) { sprite.destroy(); scene.streetFoodSprites.delete(id); }
+    if (!wantedIds.has(id)) { releaseStreetFoodSprite(scene, sprite); scene.streetFoodSprites.delete(id); }
   });
 }
 
 function clearAllStreetFoodSprites(scene) {
   scene?.streetFoodSprites?.forEach((sprite) => sprite.destroy());
   scene?.streetFoodSprites?.clear();
+  scene?.streetFoodSpares?.forEach((sprite) => sprite.destroy());
+  if (scene) scene.streetFoodSpares = [];
+  scene?.streetFoodVenueDraws?.clear();
+  if (scene) scene.streetFoodVenueContext = null;
 }
 
 if (typeof module !== 'undefined' && module.exports) module.exports = {
   getStreetFoodSpriteTextureKey, getStreetFoodClaimedPredicate, getStreetFoodBunHillVenueId, getStreetFoodTilePoint,
-  updateStreetFoodMarkets, clearAllStreetFoodSprites, getStreetFoodTableFurnitureIds,
+  updateStreetFoodMarkets, clearAllStreetFoodSprites, getStreetFoodTableFurnitureIds, releaseStreetFoodSprite,
   isStreetFoodVenueDisabled, setStreetFoodVenueDisabled, getStreetFoodVenueStatus, buildStreetFoodInspectHtml,
 };

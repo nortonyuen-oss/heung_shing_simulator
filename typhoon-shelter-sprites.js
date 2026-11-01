@@ -88,9 +88,21 @@ function getTyphoonShelterLitChoice(scene, choice, seed = 0) {
 
 // Per part: its calibrated facing, or 'off' for art switched off in calibration (part.disabled -
 // drawn at the wrong proportions, say), which the game then never uses.
+// Asked for by every boat every frame, so kept until the placement data is replaced, refreshed
+// (getTyphoonShelterPlacementRevision: a calibrator edit) or a part is added
+// (invalidateTyphoonShelterFacingOverrides). Read-only for callers.
+let typhoonShelterFacingCache = null; // { placement, revision, overrides }
 function getTyphoonShelterFacingOverrides() {
-  return Object.fromEntries(Object.entries(typhoonShelterPlacement.parts)
+  if (typhoonShelterFacingCache?.placement === typhoonShelterPlacement
+    && typhoonShelterFacingCache.revision === typhoonShelterPlacementRevision) return typhoonShelterFacingCache.overrides;
+  const overrides = Object.fromEntries(Object.entries(typhoonShelterPlacement.parts)
     .filter(([, p]) => p?.facing || p?.disabled).map(([id, p]) => [id, p.disabled ? 'off' : p.facing]));
+  typhoonShelterFacingCache = { placement: typhoonShelterPlacement, revision: typhoonShelterPlacementRevision, overrides };
+  return overrides;
+}
+
+function invalidateTyphoonShelterFacingOverrides() {
+  typhoonShelterFacingCache = null;
 }
 
 function getTyphoonShelterTextureKey(texturePath) {
@@ -884,6 +896,8 @@ const typhoonShelterSpritesApi = {
   refreshAllTyphoonShelterSprites,
   isTyphoonShelterSpriteInView,
   getTyphoonShelterPlacementRevision,
+  getTyphoonShelterFacingOverrides,
+  invalidateTyphoonShelterFacingOverrides,
   getTyphoonShelterTextureSize,
   maskTyphoonShelterSprite,
   resolveTyphoonShelterTextureKey,

@@ -136,7 +136,10 @@ function drawTyphoonShelterCalibrationOverlay() {
 function typhoonShelterCalibrationPart() {
   const { partId } = typhoonShelterCalibrationEdit;
   const data = getTyphoonShelterPlacement();
-  if (!data.parts[partId]) data.parts[partId] = { ground: null, facing: 'se', auto: true };
+  if (!data.parts[partId]) {
+    data.parts[partId] = { ground: null, facing: 'se', auto: true };
+    if (typeof invalidateTyphoonShelterFacingOverrides === 'function') invalidateTyphoonShelterFacingOverrides();
+  }
   return data.parts[partId];
 }
 
@@ -452,6 +455,7 @@ function onTyphoonShelterCalibrationCanvasUp() { typhoonShelterCalibrationDrag =
 
 function typhoonShelterCalibrationChanged() {
   typhoonShelterCalibrationDirty = true;
+  if (typeof invalidateTyphoonShelterFacingOverrides === 'function') invalidateTyphoonShelterFacingOverrides();
   refreshAllTyphoonShelterSprites(typhoonShelterCalibrationScene);
   drawTyphoonShelterCalibrationOverlay();
   renderTyphoonShelterCalibrationEditor();

@@ -284,7 +284,7 @@ test('a fixed building resolves its baked night art from the model table', () =>
   // and no filename; the bake names their night textures after the art file
   // in the model table, so that is where the runtime has to look too.
   const fn = main.slice(main.indexOf('function getBuildingNightSlug('));
-  assert.match(fn.slice(0, 900), /getFixedBuildingModelBySpriteKey\(record\?\.spriteKey \?\? sprite\.logicalSpriteKey\)\?\.path\?\.split\('\/'\)\.pop\(\)/);
+  assert.match(fn.slice(0, 1600), /getFixedBuildingModelBySpriteKey\(record\?\.spriteKey \?\? sprite\.logicalSpriteKey\)\?\.path\?\.split\('\/'\)\.pop\(\)/);
   const lookup = main.slice(main.indexOf('function getFixedBuildingModelBySpriteKey('));
   ['getPowerPlantModelBySpriteKey', 'getServiceBuildingModelBySpriteKey', 'getSpecialBuildingModelBySpriteKey', 'HARBOR_MODELS', 'BUS_DEPOT_MODELS', 'PARK_MODELS']
     .forEach((table) => assert.ok(lookup.slice(0, 700).includes(table), `lookup covers ${table}`));

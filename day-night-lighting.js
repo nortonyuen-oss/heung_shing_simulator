@@ -363,6 +363,12 @@ function getBuildingNightRecord(sprite) {
 // The model slug the bake named this building's night art after, or null when
 // the model has no baked night art.
 function getBuildingNightSlug(sprite, record) {
+  // Remembered on the sprite for as long as what it is looked up from stays the same: the
+  // buildings with no night art are never memoised by syncBuildingNightTextures, so without this
+  // they went through the fixed-model tables again on every displayed minute (太子: ~6% of a frame).
+  const index = buildBuildingNightTextureIndex();
+  const sig = `${record?.sourceFileName ?? ''}|${sprite.modelSourceFileName ?? ''}|${record?.spriteKey ?? sprite.logicalSpriteKey ?? ''}|${index.size}`;
+  if (sprite.__nightSlugSig === sig) return sprite.__nightSlug;
   // The record wins: it is rewritten by every path that changes a building's
   // model (placement, save load, and redevelopment in sim-growth), so it can
   // never name art the sprite is no longer showing. Fixed buildings (services,
@@ -372,9 +378,10 @@ function getBuildingNightSlug(sprite, record) {
   const file = record?.sourceFileName
     ?? sprite.modelSourceFileName
     ?? getFixedBuildingModelBySpriteKey(record?.spriteKey ?? sprite.logicalSpriteKey)?.path?.split('/').pop();
-  if (!file) return null;
-  const slug = String(file).replace(/\.[^.]+$/, '');
-  return buildBuildingNightTextureIndex().has(slug) ? slug : null;
+  const slug = file ? String(file).replace(/\.[^.]+$/, '') : null;
+  sprite.__nightSlugSig = sig;
+  sprite.__nightSlug = slug && index.has(slug) ? slug : null;
+  return sprite.__nightSlug;
 }
 
 function getSeasonalBuildingNightVariant(slug, record, variant, month = typeof city !== 'undefined' ? city.month : 0) {

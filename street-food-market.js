@@ -270,24 +270,21 @@ function streetFoodKeep(items, share, cap, seed, label) {
  * @param {{minuteOfDay:number, weather:object, seed?:string|number, carts:string[], hawkers:string[],
  *   queuers?:string[], diners:string[], passersby:string[], tableFurniture?:string[], stools?:string[]}} options
  */
-function getStreetFoodVenueLayout(venue, options) {
-  const {
-    minuteOfDay, weather, seed = venue.id, carts, hawkers, queuers = [], diners, passersby,
-    tableFurniture = [], stools = [], stringSpanM, enabled = true,
-  } = options;
-  const schedule = getStreetFoodPhase(minuteOfDay);
-  const weatherState = getStreetFoodWeatherState(weather);
-  // no 香城夜繽週 act, no market - the lot keeps only its own lamp posts and boxes
-  const presence = weatherState === 'closed' || !enabled ? 0 : schedule.presence;
-  const fixtures = venue.tiles.length ? getStreetFoodVenueFixtures(venue, { seed, stringSpanM }) : { lamps: [], cabinets: [], strings: [] };
-  const { lamps, cabinets } = fixtures;
-  const empty = { phase: enabled ? schedule.phase : 'disabled', presence: 0, weatherState, stalls: [], tables: [], walkers: [], strings: [], lamps, cabinets, dinerShare: 0 };
-  if (presence <= 0 || !carts?.length || !venue.tiles.length) return empty;
-  const fixturePoints = [...lamps, ...cabinets, ...fixtures.strings.flatMap((span) => [span.a, span.b])];
+// A lot's ground plan - its fixtures, open edges, the stall pitches and table spots it uses, the
+// aisle spots between - depends only on its tiles and seed, never on the clock; working it out
+// (every pitch, spot and aisle point against every other) is most of a layout's cost. A game
+// minute passes every ~80 ms at 1x, so the crowd windows below turn over every second or so: the
+// plan is kept per lot and only the people are picked again.
+const STREET_FOOD_PLAN_CACHE_LIMIT = 128;
+const streetFoodPlanCache = new Map();
 
-  const dinerShare = schedule.dinerShare * (STREET_FOOD_WEATHER_DINER_SHARE[weatherState] ?? 1);
-  const crowdWindow = Math.floor((Number(minuteOfDay) || 0) / 20); // who is queuing/sitting reshuffles every 20 min
+function getStreetFoodVenuePlan(venue, { seed, stringSpanM, tables: withTables }) {
+  const key = `${venue.id}|${seed}|${stringSpanM}|${withTables}|${venue.tiles.map((t) => t.join(':')).join(',')}`;
+  const hit = streetFoodPlanCache.get(key);
+  if (hit) return hit;
   const S = STREET_FOOD_STALL_LAYOUT, T = STREET_FOOD_TABLE_LAYOUT;
+  const fixtures = getStreetFoodVenueFixtures(venue, { seed, stringSpanM });
+  const fixturePoints = [...fixtures.lamps, ...fixtures.cabinets, ...fixtures.strings.flatMap((span) => [span.a, span.b])];
   const runs = getStreetFoodVenueEdgeRuns(venue);
 
   // stall pitches: evenly spaced and centred on each run, then a seeded share of them taken
@@ -307,7 +304,52 @@ function getStreetFoodVenueLayout(venue, options) {
       pitches.push({ key: `${run.side}${run.fixed}:${Math.round(alongM * 10)}`, run, alongM, point });
     }
   });
-  const stalls = streetFoodKeep(pitches, S.keepShare, S.maxStalls, seed, 'pitch').map((pitch, i) => {
+  const keptPitches = streetFoodKeep(pitches, S.keepShare, S.maxStalls, seed, 'pitch');
+  // tables: the interior 4 m grid, deep enough in to clear the queues, the tile centre lines left as aisles
+  const spots = [];
+  venue.tiles.forEach(([r, c]) => T.gridLocalM.forEach((ly) => T.gridLocalM.forEach((lx) => {
+    const spot = { row: r - 0.5 + ly / STREET_FOOD_TILE_M, col: c - 0.5 + lx / STREET_FOOD_TILE_M, key: `${r}:${c}:${ly}:${lx}` };
+    if (streetFoodEdgeDistanceM(runs, spot.row, spot.col) >= T.minInsetM - STREET_FOOD_EPSILON_M) spots.push(spot);
+  })));
+  const tableSpots = withTables ? streetFoodKeep(spots, T.keepShare, T.maxTables, seed, 'table') : [];
+  // passers-by drift along the aisles
+  const aisleSpots = [];
+  venue.tiles.forEach(([r, c]) => {
+    for (let m = 0; m < STREET_FOOD_TILE_M; m += 2) {
+      [{ row: r - 0.5 + T.aisleLocalM / STREET_FOOD_TILE_M, col: c - 0.5 + m / STREET_FOOD_TILE_M },
+        { row: r - 0.5 + m / STREET_FOOD_TILE_M, col: c - 0.5 + T.aisleLocalM / STREET_FOOD_TILE_M }].forEach((spot) => {
+        if (streetFoodEdgeDistanceM(runs, spot.row, spot.col) < T.walkerMinInsetM - STREET_FOOD_EPSILON_M) return;
+        if (tableSpots.some((table) => streetFoodDistanceM(table, spot) < T.walkerTableClearM)) return;
+        if (fixturePoints.some((pole) => streetFoodDistanceM(pole, spot) < 0.8)) return;
+        if (!aisleSpots.some((other) => streetFoodDistanceM(other, spot) < 0.5)) aisleSpots.push(spot);
+      });
+    }
+  });
+  const plan = { fixtures, keptPitches, tableSpots, aisleSpots };
+  if (streetFoodPlanCache.size >= STREET_FOOD_PLAN_CACHE_LIMIT) streetFoodPlanCache.clear();
+  streetFoodPlanCache.set(key, plan);
+  return plan;
+}
+
+function getStreetFoodVenueLayout(venue, options) {
+  const {
+    minuteOfDay, weather, seed = venue.id, carts, hawkers, queuers = [], diners, passersby,
+    tableFurniture = [], stools = [], stringSpanM, enabled = true,
+  } = options;
+  const schedule = getStreetFoodPhase(minuteOfDay);
+  const weatherState = getStreetFoodWeatherState(weather);
+  // no 香城夜繽週 act, no market - the lot keeps only its own lamp posts and boxes
+  const presence = weatherState === 'closed' || !enabled ? 0 : schedule.presence;
+  const plan = venue.tiles.length ? getStreetFoodVenuePlan(venue, { seed, stringSpanM, tables: tableFurniture.length > 0 }) : null;
+  const fixtures = plan ? plan.fixtures : { lamps: [], cabinets: [], strings: [] };
+  const { lamps, cabinets } = fixtures;
+  const empty = { phase: enabled ? schedule.phase : 'disabled', presence: 0, weatherState, stalls: [], tables: [], walkers: [], strings: [], lamps, cabinets, dinerShare: 0 };
+  if (presence <= 0 || !carts?.length || !venue.tiles.length) return empty;
+
+  const dinerShare = schedule.dinerShare * (STREET_FOOD_WEATHER_DINER_SHARE[weatherState] ?? 1);
+  const crowdWindow = Math.floor((Number(minuteOfDay) || 0) / 20); // who is queuing/sitting reshuffles every 20 min
+  const S = STREET_FOOD_STALL_LAYOUT, T = STREET_FOOD_TABLE_LAYOUT;
+  const stalls = plan.keptPitches.map((pitch, i) => {
     const { run, alongM, point } = pitch;
     const id = `${venue.id}|stall:${pitch.key}`;
     const queue = [];
@@ -335,13 +377,8 @@ function getStreetFoodVenueLayout(venue, options) {
     };
   });
 
-  // tables: the interior 4 m grid, deep enough in to clear the queues, the tile centre lines left as aisles
-  const spots = [];
-  venue.tiles.forEach(([r, c]) => T.gridLocalM.forEach((ly) => T.gridLocalM.forEach((lx) => {
-    const spot = { row: r - 0.5 + ly / STREET_FOOD_TILE_M, col: c - 0.5 + lx / STREET_FOOD_TILE_M, key: `${r}:${c}:${ly}:${lx}` };
-    if (streetFoodEdgeDistanceM(runs, spot.row, spot.col) >= T.minInsetM - STREET_FOOD_EPSILON_M) spots.push(spot);
-  })));
-  const tables = (tableFurniture.length ? streetFoodKeep(spots, T.keepShare, T.maxTables, seed, 'table') : []).map((spot) => {
+  // tables on the plan's interior spots (getStreetFoodVenuePlan)
+  const tables = plan.tableSpots.map((spot) => {
     const id = `${venue.id}|table:${spot.key}`;
     const occupied = diners.length > 0 && sfHash(seed, 'seated', spot.key, crowdWindow) < dinerShare;
     // 1-3 of the 4 stools taken when it is in use - a full ring reads static, a gap reads real
@@ -370,19 +407,8 @@ function getStreetFoodVenueLayout(venue, options) {
     };
   });
 
-  // passers-by drift along the aisles, re-placed every 10 min
-  const aisleSpots = [];
-  venue.tiles.forEach(([r, c]) => {
-    for (let m = 0; m < STREET_FOOD_TILE_M; m += 2) {
-      [{ row: r - 0.5 + T.aisleLocalM / STREET_FOOD_TILE_M, col: c - 0.5 + m / STREET_FOOD_TILE_M },
-        { row: r - 0.5 + m / STREET_FOOD_TILE_M, col: c - 0.5 + T.aisleLocalM / STREET_FOOD_TILE_M }].forEach((spot) => {
-        if (streetFoodEdgeDistanceM(runs, spot.row, spot.col) < T.walkerMinInsetM - STREET_FOOD_EPSILON_M) return;
-        if (tables.some((table) => streetFoodDistanceM(table, spot) < T.walkerTableClearM)) return;
-        if (fixturePoints.some((pole) => streetFoodDistanceM(pole, spot) < 0.8)) return;
-        if (!aisleSpots.some((other) => streetFoodDistanceM(other, spot) < 0.5)) aisleSpots.push(spot);
-      });
-    }
-  });
+  // passers-by on the plan's aisle spots, re-placed every 10 min
+  const { aisleSpots } = plan;
   const walkWindow = Math.floor((Number(minuteOfDay) || 0) / 10);
   const walkerCount = Math.min(aisleSpots.length, Math.round(Math.min(10, venue.tiles.length * 3) * dinerShare));
   const walkers = passersby?.length && walkerCount ? streetFoodKeep(aisleSpots, 1, walkerCount, seed, `walk${walkWindow}`)

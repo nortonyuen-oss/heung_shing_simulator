@@ -212,3 +212,17 @@ test('rain thins the diners at a table without removing the stalls', () => {
   assert.ok(rain.walkers.length <= clear.walkers.length);
 });
 
+
+test('a lot keeps its ground plan between crowd windows: only the people change', () => {
+  const venue = { id: 'eventGround:plan', tiles: [[0, 0], [0, 1], [1, 0], [1, 1]] };
+  const at = (minuteOfDay) => getStreetFoodVenueLayout(venue, { minuteOfDay, weather: { condition: 'clear' }, ...ROSTER });
+  const a = at(19 * 60);
+  const b = at(19 * 60 + 25);
+  // the same fixtures, pitches and table spots - the plan was not worked out again
+  assert.equal(a.lamps, b.lamps);
+  assert.deepEqual(a.stalls.map((s) => s.id), b.stalls.map((s) => s.id));
+  assert.deepEqual(a.tables.map((t) => [t.id, t.row, t.col]), b.tables.map((t) => [t.id, t.row, t.col]));
+  // and a lot of other tiles has a plan of its own
+  const other = getStreetFoodVenueLayout({ id: 'eventGround:plan', tiles: [[0, 0], [0, 1]] }, { minuteOfDay: 19 * 60, weather: { condition: 'clear' }, ...ROSTER });
+  assert.notEqual(other.lamps, a.lamps);
+});

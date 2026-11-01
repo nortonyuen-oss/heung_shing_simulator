@@ -885,6 +885,23 @@ const typhoonShelterBoatTexturesRequested = new Set();
 // `store`: the sprite map it lives in - the shelter's boats by default; the ferries keep their own
 // (ferry.js), so the fleet's per-frame sweep of boats it no longer has leaves them alone.
 function drawTyphoonShelterBoat(scene, id, objectId, point, rotation, facings, store = scene.typhoonShelterBoats) {
+  // well off screen (past the buildings' padded view): kept hidden where it is, with no texture
+  // pick, swell, tint or sort - every boat in the city went through all that every frame (太子:
+  // ~4% of a frame); its wake hears it is out of sight, as for any hidden boat. The shelter's own
+  // boats only: the ferries are few, and their calibration preview is shown wherever it is.
+  const held = store === scene.typhoonShelterBoats ? store.get(id) : null;
+  if (held?.sprite && typeof isTyphoonShelterSpriteInView === 'function') {
+    const p = isoToScreen(point.c, point.r);
+    const probe = { x: p.x + scene.offsetX, y: p.y + scene.offsetY };
+    if (!isTyphoonShelterSpriteInView(scene, probe)) {
+      if (held.sprite.visible) held.sprite.setVisible(false);
+      if (typeof trackVesselWake === 'function') {
+        const axis = point.dir === 'n' || point.dir === 's' ? 'r' : point.dir === 'e' || point.dir === 'w' ? 'c' : null;
+        trackVesselWake(scene, held, point.c, point.r, (held.bobLengthM || 8) / METRES_PER_TILE, false, axis);
+      }
+      return;
+    }
+  }
   const screenFacing = getTyphoonShelterScreenFacing(point.dir, rotation);
   const choice = pickTyphoonShelterTexture(objectId, screenFacing, { facings });
   if (!choice) {

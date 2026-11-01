@@ -128,7 +128,11 @@ function updateFestivalVisitors(scene, time) {
       drawStreetFoodSprite(scene, store, id, streetFoodPersonRecord(personId), { x: at.x, y: at.y, depth: near.depth + (at.y - near.y) * near.perY });
     });
   });
-  store.forEach((sprite, id) => { if (!wanted.has(id)) { sprite.destroy(); store.delete(id); } });
+  store.forEach((sprite, id) => {
+    if (wanted.has(id)) return;
+    if (typeof releaseStreetFoodSprite === 'function') releaseStreetFoodSprite(scene, sprite); else sprite.destroy();
+    store.delete(id);
+  });
 }
 
 if (typeof module !== 'undefined' && module.exports) module.exports = {

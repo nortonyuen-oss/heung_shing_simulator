@@ -367,5 +367,9 @@ function updateSpriteViewportCulling(scene, bounds) {
   collect(cullSpriteMapEntries(scene.festivalSprites, bounds, seen, mainCamera, mainBounds));
   collect(cullSpriteMapEntries(scene.dragonBoatSprites, bounds, seen, mainCamera, mainBounds));
   collect(cullSpriteMapEntries(scene.bunHillSprites, bounds, seen, mainCamera, mainBounds));
+  // 平日小食墟 and the 年宵 visitors (street-food-sprites.js, festival-visitors.js): a few hundred
+  // carts, people and tables a lot, drawn every frame wherever they were until now
+  collect(cullSpriteMapEntries(scene.streetFoodSprites, bounds, seen, mainCamera, mainBounds));
+  collect(cullSpriteMapEntries(scene.festivalVisitorSprites, bounds, seen, mainCamera, mainBounds));
   return totals;
 }

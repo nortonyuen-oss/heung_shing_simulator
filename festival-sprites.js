@@ -401,6 +401,13 @@ function removeFestivalSprite(scene, id) {
 }
 
 // Textures of festivals no longer on: dropped, so a month of decorations costs nothing after it.
+// The festival a loaded scene key's part belongs to: 'festival:fx_<part>[_m][__lit|__litb]'.
+function getFestivalTextureKeyFestival(sceneKey) {
+  const id = String(sceneKey).slice(FESTIVAL_TEXTURE_KEY_PREFIX.length + FESTIVAL_TEXTURE_PREFIX.length)
+    .replace(/__litb?$/, '');
+  return (FESTIVAL_PARTS_BY_ID[id] || FESTIVAL_PARTS_BY_ID[id.replace(/_m$/, '')])?.festival || null;
+}
+
 function unloadFestivalTextures(scene, keepFiles) {
   const keep = new Set([...keepFiles].map(getFestivalSceneTextureKey));
   scene.festivalStallCanvasTextures?.forEach((entry, signature) => {
@@ -430,7 +437,13 @@ async function syncFestivalSprites(scene, placements) {
     else sprite.festivalPlacement = want;
   });
   const files = getFestivalPlacementFiles(placements);
-  unloadFestivalTextures(scene, files);
+  // a festival still on keeps every texture it has loaded: its placements come and go with the
+  // camera and the clock (盂蘭's street groups, the audience), and unloading on each change only
+  // uploaded the same art to the GPU again moments later (太子: ~6% of a frame in texImage2D)
+  const on = new Set(placements.map((p) => p.festival));
+  const keep = [...files, ...[...scene.festivalTextureKeys].filter((key) => on.has(getFestivalTextureKeyFestival(key)))
+    .map((key) => key.slice(FESTIVAL_TEXTURE_KEY_PREFIX.length))];
+  unloadFestivalTextures(scene, keep);
   if (!placements.length) return;
   await loadFestivalTextures(scene, files);
   if (scene.festivalSyncToken !== token) return; // a newer sync took over while these loaded

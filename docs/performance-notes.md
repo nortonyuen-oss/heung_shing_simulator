@@ -60,6 +60,31 @@
   2. `setTerrainSpritesViewportActive`（`viewport-culling.js`）：成批地形 tile 一次 push／一次過濾出清單，照做 Phaser 嘅記帳（`displayList`、兩個 `addedtoscene`／`removedfromscene` 事件、`queueDepthSort`、adaptive sort 嘅 moved set）。
 - **結果**：拉遠時 `adaptiveDepthSort` 4,853 → 95 ms，最慢一幀 500–1,100 ms（第一次 5 秒）→ 115–175 ms（負載 40–50 之下）。剩低主要係 Phaser 自己 render ~15,000 個物件。
 
+## 2026-11-01：小食墟、夜景圖查找、避風塘船、節慶貼圖
+
+量度：太子（46 萬人口、display list 14,860），8 月（盂蘭當月），夜晚 22:00、黃昏 17:20 快速、拉遠拉近同平移各十幾秒，CPU profile 用 `Profiler`（取樣 1 ms）。電腦啱重開、iCloud 同步緊（load average 7–10），所以同一時段先跑舊 code（`git stash`）再跑新 code 對比。
+
+| 場景 | 舊 → 新 fps | >100 ms 幀 | 可見物件 |
+|---|---|---|---|
+| 夜晚 zoom 1 | 29.6 → 52.5 | 10 → 1 | 5,078 → 2,852 |
+| 黃昏（快速） | 33.3 → 55.5 | 9 → 0 | 4,762 → 2,692 |
+| 拉遠拉近、平移 | 33.7 → 52.6 | 13 → 4 | 4,827 → 2,232 |
+
+1. **平日小食墟（`street-food-sprites.js`、`street-food-market.js`）佔一幀 14–16%。**
+   - 每 400 ms 每個場地由頭排一次（量邊、攤位、枱、通道點，逐點對逐點），再逐個 sprite 重新定位。1× 時遊戲一分鐘約 80 ms，所以 10／20 分鐘嘅人流窗口每一秒左右就換一次，結果幾乎每次都要重做。
+   - 修正：
+     - 場地嘅地面規劃（設施、邊、攤位位、枱位、通道點）同時間無關，按場地 tile 快取（`getStreetFoodVenuePlan`），每個窗口只重新揀人。
+     - layout 按（階段、天氣、窗口）快取。layout、燈、旋轉都冇變嘅場地就唔再畫；黃昏只係夜色變就淨係重新上色。
+     - 同一張圖同一位置嘅 sprite 唔再計 texture mapping。
+     - 場地清單每 2 秒先掃一次 `buildingData`。
+   - **小食墟同年宵行花市嘅 sprite 之前冇做 viewport culling**：太子九個場地約 3,000 個 sprite 每幀都畫。而家同節慶 sprite 一樣交畀 `viewport-culling.js` cull。
+   - 離開嘅人唔再 destroy（每次 destroy／add 都要喺 15,000 個物件嘅 display list 度 splice），改為收埋重用（`releaseStreetFoodSprite`，最多 400 個）。
+2. **`getBuildingNightSlug`：冇夜景圖嘅建築永遠唔會被 `syncBuildingNightTextures` 記住**，每個顯示分鐘都經 fixed-model 表（`getAllSpecialBuildingModels` 每次砌新 array）再查一次。修正：結果記喺 sprite 上，查找來源變咗先重新查。
+3. **避風塘船**：全城每隻船每幀都揀貼圖、計漁火、起伏、上色、排 depth，連畫面外嗰啲都計。修正：畫面（加建築 culling 同樣嘅邊距）外而且已經有 sprite 嘅船，只收埋同通知船尾浪花，其他唔計。另外 `getTyphoonShelterFacingOverrides` 每幀每隻船都砌一次，改為按 placement revision 快取，校正工具改方向或者加 part 會清快取。
+4. **節慶貼圖反覆上傳**：節慶擺設（例如盂蘭跟鏡頭嘅街頭燒衣組）一變，用唔著嘅貼圖即刻 unload，過一陣又要重新上傳 GPU（`texImage2D` 佔一幀約 6%）。修正：節慶仲喺度嘅時候保留佢載入過嘅貼圖，節慶完咗先清。
+
+仍然見到：夜景建築圖逐張首次上傳（`texImage2D`）、拉遠拉近時 `adaptiveDepthSort`（約 5%）、模擬 pulse 步驟（約 3.5%）。
+
 ## 仍然會見到嘅卡頓（下一步）
 
 - 夜晚 draw call 仍然 100–210：每款建築嘅夜景圖係獨立貼圖（四個 variant），拉遠時斷 batch 最多。可以考慮按區域或者按 variant 打包。

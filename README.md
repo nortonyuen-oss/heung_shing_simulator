@@ -1,6 +1,6 @@
-# 香城模擬器 (The City of Heung Shing) v4.23.0 — 【日夜都繽週】
+# 香城模擬器 (The City of Heung Shing) v4.24.0 — 【月光光，照香城】
 
-香城模擬器 (The City of Heung Shing) v4.23.0 — 【日夜都繽週】 is a SimCity 2000-style city builder inspired by Hong Kong: isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run bus company, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
+香城模擬器 (The City of Heung Shing) v4.24.0 — 【月光光，照香城】 is a SimCity 2000-style city builder inspired by Hong Kong: isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run bus company, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
 
 Website and downloads: https://nortonyuen-oss.github.io/heung_shing_simulator/
 
@@ -9,6 +9,10 @@ Read public posts and replies on the website; sign in to GitHub to confirm a new
 post or reply. Website messages are tracked with the `website-feedback` issue label.
 
 ![The Heung Shing skyline at night, zoomed out: dense lights, the airport and the harbour](docs/assets/gameplay/nightSkyline.webp)
+
+## New in v4.24.0
+
+Mid-Autumn arrives: a lantern fair in Victoria Park with moon-gazers and picnics, candle-wax melting late at night with police on patrol, a fire dragon winding round a block of old homes, and a full moon in the sky. New Year fireworks light the city on the second day of the Lunar New Year. Lunar New Year stalls are resized to the true 20 m tile and the flower fairs fill with visitors. Large cities run much more smoothly at night, at dusk and while zooming. Existing saves remain compatible.
 
 ## New in v4.23.0
 

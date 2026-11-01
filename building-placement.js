@@ -532,7 +532,9 @@ function positionBuilding(scene, building) {
 function canPlaceBuilding(row, col) {
   return [GROUND, DIRT, HILL].includes(mapData[row][col]) && !isSlopeTile(row, col)
     // nor on a 海濱步道 (promenade.js): the bulldozer takes it up first
-    && !(typeof isPromenadeTile === 'function' && isPromenadeTile(row, col));
+    && !(typeof isPromenadeTile === 'function' && isPromenadeTile(row, col))
+    // nor on a 海底隧道 portal (undersea-tunnel.js)
+    && !(typeof isUnderseaTunnelTile === 'function' && isUnderseaTunnelTile(row, col));
 }
 
 function canPlaceBuildingFootprint(row, col, footprintCols = 1, footprintRows = 1) {

@@ -1,0 +1,8 @@
+Use case: precise-object-edit.
+Asset type: transparent isometric city-builder tunnel sprite.
+Edit target image 1: retain this entire twin-bore tunnel entrance and its road geometry, two mouths, road widths, central divider, two straight parallel roads, two white dashed lane marking lines, yellow road edges, concrete frame, retaining walls and exact lower-right facing orientation.
+Reference image 2: clean background and architectural consistency reference from the other orientation of this same tunnel kit. Make image 1 use this same modest matte grey civil-engineering architecture, matching the two flat concrete tunnel roofs and simple edge treatment.
+Reference image 3: original existing straight roads and exact plus/minus 0.5 isometric ground slopes. Preserve the two independent road tracks.
+Required edit: REMOVE ALL diffuse grey, brown or black glow, vignette, soft haze and shadows outside the hard infrastructure silhouette. The whole area outside the ground slab and concrete walls must have alpha ZERO, truly transparent, including immediately above the roof and beside the ground base. No cast shadow at all. Preserve the structure's internal shading and warm lights inside the two dark tunnel bores. Crisp clean anti-aliased silhouette with no bright fringe, no white outlines and no coloured pixels outside the object.
+Use the orthographic 2:1 projection of the road references, ground edges at plus/minus 26.565 degrees. Keep the whole complete model centered with at least 60 pixels of empty transparent padding on all four sides.
+Do not add anything. No lettering, signs, arrows, people, cars, water, scenery or extra views. Exactly one complete twin-bore entrance.

@@ -1,0 +1,111 @@
+{
+  "version": 1,
+  "view": "rear",
+  "runtimeIntegrated": false,
+  "generation": "built-in imagegen",
+  "canvas": [
+    1200,
+    800
+  ],
+  "displayScaleFor100x50Tiles": 0.3125,
+  "bores": 2,
+  "roads": 2,
+  "lanesPerBore": 2,
+  "registration": "Affine alignment of the three lower slab corners to the front-view footprints; interior road heights are not calibrated",
+  "assets": [
+    {
+      "axis": "NS",
+      "mouthsFace": "NW",
+      "footprintTiles": {
+        "rows": 2,
+        "cols": 3
+      },
+      "output": "Models/underseaTunnel/tunnel_NS_rear_v1.png",
+      "outputSha256": "b83ed982e282326efd89babbe5d7aacef12c818360a09f6d0684caf94c8a2815",
+      "source": "scripts/source-art/underseaTunnel/rear-v1/generated-NS-rear.png",
+      "sourceSha256": "a4c25fc541b3afe81c8c56c110a41b7e98291e5f95e5aab6c9c9d6e7b8b3e800",
+      "frontReference": "Models/underseaTunnel/tunnel_NS_v1.png",
+      "frontReferenceSha256": "834b86e3c181790109e9db2fc0cc7ce1cdac7eeefe255a1592d65c2a77e4582a",
+      "sourceBaseAnchors": [
+        [
+          148,
+          409.74187225945053
+        ],
+        [
+          897.6640821990427,
+          936.9044693630158
+        ],
+        [
+          1387,
+          674.1654271595032
+        ]
+      ],
+      "targetBaseAnchors": [
+        [
+          160,
+          328
+        ],
+        [
+          640,
+          568
+        ],
+        [
+          960,
+          408
+        ]
+      ],
+      "rasterBaseSlopes": [
+        0.49922393264957904,
+        -0.5000716158266637
+      ],
+      "borderMaxAlpha": 0
+    },
+    {
+      "axis": "EW",
+      "mouthsFace": "NE",
+      "footprintTiles": {
+        "rows": 3,
+        "cols": 2
+      },
+      "output": "Models/underseaTunnel/tunnel_EW_rear_v1.png",
+      "outputSha256": "cdfbc6d47e013b88775a9975dafd34dc2c652b165b8bae661125eb05c1d36742",
+      "source": "scripts/source-art/underseaTunnel/rear-v1/generated-EW-rear.png",
+      "sourceSha256": "4291a261864261c3f9e9b9037c785cfe044c7bb71a48b8ca00eb6c4f872f14d4",
+      "frontReference": "Models/underseaTunnel/tunnel_EW_v1.png",
+      "frontReferenceSha256": "bdd7edb78031ea84e7afaebfae79b089ca46ae546041554cc68bcfeb888ed72a",
+      "sourceBaseAnchors": [
+        [
+          248,
+          603.9891197003668
+        ],
+        [
+          630.552994868721,
+          833.0570188349852
+        ],
+        [
+          1320,
+          409.52136454516756
+        ]
+      ],
+      "targetBaseAnchors": [
+        [
+          180,
+          408
+        ],
+        [
+          500,
+          568
+        ],
+        [
+          980,
+          328
+        ]
+      ],
+      "rasterBaseSlopes": [
+        0.5002404555634646,
+        -0.4999535934599591
+      ],
+      "borderMaxAlpha": 0
+    }
+  ]
+}

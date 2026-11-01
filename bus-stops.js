@@ -22,6 +22,8 @@ const BUS_STOP_ROAD_ORIENTATIONS = {
 // inconsistent after rotating the view — same mistake getHarborWaterSides
 // avoids by reading raw mapData neighbours before any rotateDirection call.
 function getBusStopEligibleSides(row, col) {
+  // a 海底隧道 portal is drawn as straight road but has no kerb for a stop (undersea-tunnel.js)
+  if (typeof isUnderseaTunnelTile === 'function' && isUnderseaTunnelTile(row, col)) return null;
   return BUS_STOP_ROAD_ORIENTATIONS[getBaseTileKey(row, col)] ?? null;
 }
 

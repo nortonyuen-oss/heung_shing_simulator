@@ -1067,8 +1067,9 @@ function create() {
       dragStartTile = startTile ? { row: startTile.row, col: startTile.col } : null;
       lastPaintTile = startTile ? { row: startTile.row, col: startTile.col } : null;
       lastKnownTile = startTile ? { row: startTile.row, col: startTile.col } : null;
-      // Roads are committed on pointerup so a drag can become a SimCity-style bridge span.
-      if (selectedTool !== 'road') applySelectedTool(this, pointer);
+      // Roads are committed on pointerup so a drag can become a SimCity-style bridge span;
+      // so is a 海底隧道, dragged from shore to shore.
+      if (selectedTool !== 'road' && selectedTool !== 'undersea-tunnel') applySelectedTool(this, pointer);
     } else if (pointer.button === 2) {
       this.isPanning = true;
       this.panPrevX = pointer.x;
@@ -1118,6 +1119,12 @@ function create() {
         if (cur) {
           lastKnownTile = { row: cur.row, col: cur.col };
           drawRoadDragPreview(this, dragStartTile, cur);
+        }
+      } else if (selectedTool === 'undersea-tunnel' && dragStartTile) {
+        const cur = pointerToTile(this, pointer);
+        if (cur) {
+          lastKnownTile = { row: cur.row, col: cur.col };
+          drawUnderseaTunnelDragPreview(this, dragStartTile, cur);
         }
       } else if (selectedTool === 'typhoon-shelter') {
         // 避風塘 水域: preview the rectangle and the plan it would make; committed on pointerup.
@@ -1867,6 +1874,8 @@ function positionAllTiles(scene) {
   if (typeof redrawTyphoonShelterPlanning === 'function') redrawTyphoonShelterPlanning(scene);
 
   if (typeof repositionDistrictSignSprites === 'function') repositionDistrictSignSprites(scene);
+  if (typeof repositionRegionConnectionSigns === 'function') repositionRegionConnectionSigns(scene);
+  if (typeof repositionUnderseaTunnelSprites === 'function') repositionUnderseaTunnelSprites(scene);
 
   repositionBridgeSprites(scene);
   repositionOverlays(scene);
@@ -1879,6 +1888,7 @@ function canPlaceRoad(scene, row, col) {
   if (!isInsideMap(row, col)) return false;
   if (scene?.buildingSprites?.has(getTileId(row, col))) return false;
   if (buildingData[getTileId(row, col)]) return false;
+  if (typeof isUnderseaTunnelTile === 'function' && isUnderseaTunnelTile(row, col)) return false;
   if (!isSupportedRoadSlopeTile(row, col)) return false;
   return true;
 }
@@ -1940,13 +1950,15 @@ function isNewToolHandledByToolsModule(tool) {
     || tool === 'bus-stop'
     || tool === 'ferry-pier'
     || tool === 'ferry-route'
-    || tool === 'promenade';
+    || tool === 'promenade'
+    || tool === 'undersea-tunnel';
 }
 
 function getSelectedPlacementFootprint() {
   if (selectedTool === 'district-sign') return { footprintCols: 1, footprintRows: 1 };
   if (selectedTool === 'tree') return { footprintCols: 1, footprintRows: 1 };
   if (selectedTool === 'promenade') return { footprintCols: 1, footprintRows: 1 };
+  if (selectedTool === 'undersea-tunnel') return { footprintCols: 1, footprintRows: 1 };
   if (selectedTool === 'house') {
     const config = HOUSE_MODEL_SETS[selectedHouseSet] ?? HOUSE_MODEL_SETS.house;
     return {
@@ -2090,6 +2102,8 @@ function applyToolAt(scene, row, col, pointer = null) {
     if (typeof demolishFerryPierAt === 'function' && demolishFerryPierAt(scene, row, col)) return;
     // and a tile of 海濱步道 taken up (promenade.js)
     if (typeof demolishPromenadeAt === 'function' && demolishPromenadeAt(scene, row, col)) return;
+    // and a 海底隧道 filled in whole (undersea-tunnel.js)
+    if (typeof demolishUnderseaTunnelAt === 'function' && demolishUnderseaTunnelAt(scene, row, col)) return;
     spendBudget(COST_BULLDOZE);
     if (typeof removeDistrictSignAt === 'function') removeDistrictSignAt(scene, row, col);
     removeBuilding(scene, row, col);
@@ -2699,6 +2713,7 @@ function refreshTileArea(scene, row, col) {
   if (typeof scheduleStreetFurnitureRefresh === 'function') scheduleStreetFurnitureRefresh(scene);
   scheduleTerrainMiniMapUpdate();
   scheduleMapEdgeSkirtRedraw(scene);
+  if (typeof syncRegionConnectionSigns === 'function') syncRegionConnectionSigns(scene);
 }
 
 // Zebra crossings are laid out per straight run (road-line-variants.js), so a change anywhere
@@ -2763,6 +2778,7 @@ function refreshCarriagewayBandRegion(scene, rowMin, rowMax, colMin, colMax) {
   if (typeof scheduleStreetFurnitureRefresh === 'function') scheduleStreetFurnitureRefresh(scene);
   scheduleTerrainMiniMapUpdate();
   scheduleMapEdgeSkirtRedraw(scene);
+  if (typeof syncRegionConnectionSigns === 'function') syncRegionConnectionSigns(scene);
 }
 
 function refreshAllTiles(scene) {
@@ -2788,6 +2804,7 @@ function refreshAllTiles(scene) {
   if (typeof rebuildStreetFurnitureSprites === 'function') rebuildStreetFurnitureSprites(scene);
   scheduleTerrainMiniMapUpdate();
   scheduleMapEdgeSkirtRedraw(scene);
+  if (typeof syncRegionConnectionSigns === 'function') syncRegionConnectionSigns(scene);
 }
 
 async function generateNewTerrain() {
@@ -3217,6 +3234,7 @@ function rotateMap(scene, steps = 1) {
   if (activeOverlay) updateMiniMap();
   scheduleTerrainMiniMapUpdate();
   scheduleMapEdgeSkirtRedraw(scene);
+  if (typeof syncRegionConnectionSigns === 'function') syncRegionConnectionSigns(scene);
 }
 
 // ── Full reset (new terrain generation) ──────────────────────────────────────

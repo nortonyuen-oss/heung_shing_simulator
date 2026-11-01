@@ -454,7 +454,7 @@ function forEachTrafficVehicleTube(vehicle, visit) {
 
 function setTrafficVehicleLightDepth(vehicle, position) {
   if (!position) return;
-  const depth = getWorldDepth('object', position.depthY + TILE_HEIGHT / 2);
+  const depth = getTrafficVehicleDepth(vehicle, position);
   forEachTrafficVehicleLamp(vehicle, (lamp, key) => {
     lamp.setDepth?.(depth + (key[0] === 'h' ? 0.12 : 0.14));
   });
@@ -1108,6 +1108,21 @@ function getTrafficRoadSurface(row, col, layers) {
   const bridgeDeckLift = Math.max(0, Number(layers?.bridgeDeckLiftPixels) || 15);
   const bridge = normalizeTrafficBridgeValue(layers?.bridgeMap?.[row]?.[col]);
 
+  // 海底隧道 (undersea-tunnel.js): its portals and the sea it runs under, at sea level, along
+  // the tunnel only; under the sea the vehicles are hidden
+  const tunnel = layers?.tunnelAt?.(row, col);
+  if (tunnel) {
+    const directions = tunnel.axis === 'row' ? ['e', 'w'] : ['n', 's'];
+    return createTrafficRoadSurface({
+      row,
+      col,
+      kind: tunnel.hidden ? 'tunnel' : 'tunnel-portal',
+      directions,
+      centerLift: 0,
+      endpointLifts: Object.fromEntries(directions.map((direction) => [direction, 0])),
+    });
+  }
+
   if (bridge === 'deck:row' || bridge === 'deck:col') {
     const directions = bridge === 'deck:row' ? ['e', 'w'] : ['n', 's'];
     return createTrafficRoadSurface({
@@ -1233,6 +1248,7 @@ function getTrafficRuntimeLayers() {
     getRoadSlopeKey: (row, col) => (
       typeof getRoadSlopeKey === 'function' ? getRoadSlopeKey(row, col) : null
     ),
+    tunnelAt: typeof getUnderseaTunnelSurface === 'function' ? getUnderseaTunnelSurface : null,
   };
 }
 
@@ -1260,7 +1276,14 @@ function trafficCarriagewayBandAllows(band, direction) {
   return TRAFFIC_BAND_DIRECTION_CODE[band.direction] === direction;
 }
 
+// A 海底隧道's bores are one-way (undersea-tunnel.js): a move leaving or entering one must go its way.
+function trafficTunnelAllowsMove(row, col, direction) {
+  const tunnel = typeof getUnderseaTunnelSurface === 'function' ? getUnderseaTunnelSurface(row, col) : null;
+  return !tunnel || tunnel.oneWay === direction;
+}
+
 function trafficCarriagewayAllowsMove(fromRow, fromCol, toRow, toCol, direction) {
+  if (!trafficTunnelAllowsMove(fromRow, fromCol, direction) || !trafficTunnelAllowsMove(toRow, toCol, direction)) return false;
   if (typeof getRoadCarriagewayBand !== 'function') return true;
   return trafficCarriagewayBandAllows(getRoadCarriagewayBand(fromRow, fromCol), direction)
     && trafficCarriagewayBandAllows(getRoadCarriagewayBand(toRow, toCol), direction);
@@ -1758,6 +1781,10 @@ function collectVisibleTrafficRoads(scene, rect) {
   for (let row = bounds.minRow; row <= bounds.maxRow; row++) {
     for (let col = bounds.minCol; col <= bounds.maxCol; col++) {
       if (!isRuntimeTrafficRoad(row, col)) continue;
+      // nothing starts out inside a 海底隧道, but cars do come out of one: from the last tile
+      // under the sea before a mouth (undersea-tunnel.js)
+      if (typeof getUnderseaTunnelSurface === 'function' && getUnderseaTunnelSurface(row, col)
+        && !isUnderseaTunnelExitTile(row, col)) continue;
       const baseLoad = Number(trafficMap?.[row]?.[col] ?? 0);
       const load = typeof applyTrafficTimeOfDayMultiplier === 'function'
         ? applyTrafficTimeOfDayMultiplier(baseLoad, timeMultiplier)
@@ -2432,7 +2459,27 @@ function updateIceCreamEvent(scene, state, delta, paused, speedMultiplier) {
   }
 }
 
+// Under the sea in a 海底隧道 (undersea-tunnel.js): a leg that starts or ends on a tile under the
+// water, from the mouth in to the mouth out.
+function isTrafficVehicleUnderSea(vehicle) {
+  if (typeof getUnderseaTunnelSurface !== 'function') return false;
+  return [vehicle?.current, vehicle?.next].some((tile) => tile && getUnderseaTunnelSurface(tile.row, tile.col)?.hidden);
+}
+
+// A vehicle's depth in the object band; on a 海底隧道 portal, between the portal's layers.
+function getTrafficVehicleDepth(vehicle, position) {
+  const portalDepth = typeof getUnderseaTunnelVehicleDepth === 'function' ? getUnderseaTunnelVehicleDepth(vehicle) : null;
+  return portalDepth ?? getWorldDepth('object', position.depthY + TILE_HEIGHT / 2);
+}
+
 function setTrafficVehicleVisual(vehicle, position, time = 0, forceDepth = false) {
+  const underSea = isTrafficVehicleUnderSea(vehicle);
+  if (vehicle.sprite.visible === underSea) vehicle.sprite.setVisible(!underSea);
+  if (underSea && vehicle.lightsVisible !== false) {
+    forEachTrafficVehicleLamp(vehicle, (lamp) => { lamp.setVisible(false).setAlpha(0); });
+    forEachTrafficVehicleTube(vehicle, (bar) => { bar.setVisible(false).setAlpha(0); });
+    vehicle.lightsVisible = false;
+  }
   const direction = getTrafficTextureDirection(
     position.dx,
     position.dy,
@@ -2447,10 +2494,12 @@ function setTrafficVehicleVisual(vehicle, position, time = 0, forceDepth = false
   // sprites include a half-tile front-edge bias in getBuildingSortDepth(); apply
   // the same bias to the wheel contact point so a bus beside the first footprint
   // tile does not disappear for a full tile before its depth catches up.
-  if (forceDepth) {
-    vehicle.sprite.setDepth(getWorldDepth('object', position.depthY + TILE_HEIGHT / 2));
+  // on a 海底隧道 portal the depth is kept between its layers every frame, lamps and all
+  const onPortal = typeof getUnderseaTunnelVehicleDepth === 'function' && getUnderseaTunnelVehicleDepth(vehicle) != null;
+  if (forceDepth || onPortal) {
+    vehicle.sprite.setDepth(getTrafficVehicleDepth(vehicle, position));
   }
-  updateTrafficVehicleLights(vehicle, position, forceDepth);
+  if (!underSea) updateTrafficVehicleLights(vehicle, position, forceDepth || onPortal);
 }
 
 function refreshTrafficVehicleDepths(state, time) {
@@ -2458,7 +2507,7 @@ function refreshTrafficVehicleDepths(state, time) {
   state.vehicles.forEach((vehicle) => {
     const position = vehicle.lastPosition;
     if (!position) return;
-    vehicle.sprite.setDepth(getWorldDepth('object', position.depthY + TILE_HEIGHT / 2));
+    vehicle.sprite.setDepth(getTrafficVehicleDepth(vehicle, position));
     setTrafficVehicleLightDepth(vehicle, position);
   });
   state.nextDepthRefreshTime = time + TRAFFIC_VISUAL_CONFIG.depthRefreshMs;
@@ -2714,7 +2763,10 @@ function advanceTrafficVehicle(scene, vehicle, amount, viewRect, time) {
     vehicle.progress -= 1;
     const previous = vehicle.current;
     const current = vehicle.next;
-    const neighbours = getTrafficRoadNeighbours(current.row, current.col);
+    // no turning back in front of a 海底隧道 (undersea-tunnel.js)
+    const neighbours = getTrafficRoadNeighbours(current.row, current.col).filter((tile) => (
+      typeof isUnderseaTunnelUTurn !== 'function' || !isUnderseaTunnelUTurn(previous, current, tile)
+    ));
     const next = chooseNextTrafficTile(previous, current, neighbours);
     if (!next) return false;
 

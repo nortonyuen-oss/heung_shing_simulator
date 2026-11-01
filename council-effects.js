@@ -149,6 +149,7 @@ function updateCityAttractivenessMetrics() {
   const shelterVisitors = typeof getTyphoonShelterTouristCapacity === 'function' ? getTyphoonShelterTouristCapacity() : 0;
   const capacity = Math.max(200, city.commercialCount * 42 + city.population * 0.035 + shelterVisitors)
     * (1 + Math.max(0, getCouncilTemporaryModifier('tourismCapacity')))
+    * (1 + (typeof getRegionTourismCapacityBonus === 'function' ? getRegionTourismCapacityBonus() : 0))
     * (1 + (typeof getDistrictProfileEffect === 'function' ? getDistrictProfileEffect('tourismCapacity') : 0));
   city.monthlyVisitors = Math.max(0, Math.round(capacity * (0.2 + city.tourismAppeal / 100)));
   city.tourismRevenue = Math.max(0, Math.round(city.monthlyVisitors * (0.45 + city.tourismAppeal / 220)));

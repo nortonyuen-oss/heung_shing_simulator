@@ -590,6 +590,7 @@ function rebuildFreshMapSession(cityName) {
     rebuildDebrisSprites(activeScene);
   }
   if (typeof rebuildBusStopSprites === 'function') rebuildBusStopSprites(activeScene);
+  if (typeof rebuildUnderseaTunnelSprites === 'function') rebuildUnderseaTunnelSprites(activeScene);
   city.name = cityName || getDefaultCityName();
   city.nameEn = '';
   city.plateColor = 0;
@@ -716,6 +717,10 @@ async function startNewGame(cityName, options = {}) {
 
   rebuildFreshMapSession(cityName || getDefaultCityName());
   city.districtProfileId = options.districtProfileId || '';
+  city.regionNeighbours = typeof computeRegionNeighbours === 'function'
+    ? computeRegionNeighbours({ districtId: city.districtProfileId, features: terrain?.features })
+    : null;
+  if (typeof syncRegionConnectionSigns === 'function') syncRegionConnectionSigns();
   if (typeof applyDistrictZoneDensityCap === 'function') applyDistrictZoneDensityCap();
   if (typeof updateDistrictProfilePanel === 'function') updateDistrictProfilePanel();
   if (typeof resolveCityStartYear === 'function') {

@@ -107,6 +107,11 @@ const city = {
   plateColor: 0,
   // 地區特色: the Hong Kong district map the city was founded on ('' = none; district-profiles.js)
   districtProfileId: '',
+  // 區外連線: each side's neighbouring district id (null = a neutral 鄰區) and last month's flows
+  regionNeighbours: null,
+  regionFlows: null,
+  // 海底隧道 (undersea-tunnel.js): its two portals (tiles, direction, approach roads) and the sea tiles it runs under
+  underseaTunnels: [],
   budget: STARTING_BUDGET,
   taxRate: 0.09,
   departmentBudgets: {
@@ -436,6 +441,9 @@ function resetGameState() {
   city.forumPosts = [];
   city.lastForumMonthIndex = -1;
   city.districtProfileId = '';
+  city.regionNeighbours = null;
+  city.regionFlows = null;
+  city.underseaTunnels = [];
   city.typhoonShelters = { version: 1, nextId: 1, shelters: [] };
   city.promenade = { version: 1, tiles: {} };
   city.fishery = { lastSettledDay: null, lastMonth: null, history: [] };
@@ -1096,9 +1104,11 @@ function computeBudgetSnapshot(options = {}) {
   const transportCost = 0;
   // 避風塘: upkeep of built breakwaters, piers and buoys (typhoon-shelter-planning.js).
   const marineUpkeep = typeof getTyphoonShelterMonthlyUpkeep === 'function' ? getTyphoonShelterMonthlyUpkeep() : 0;
+  // 海底隧道 tolls, by the traffic through the tunnels (undersea-tunnel.js)
+  const tunnelToll = typeof getUnderseaTunnelToll === 'function' ? getUnderseaTunnelToll() : 0;
   const totalIncome = Math.round(
     grossIncome + policyTaxAdjustment + tourismIncome + landmarkIncome + transportIncome
-    + fisheryIncome + fishMarketIncome + marinaIncome
+    + fisheryIncome + fishMarketIncome + marinaIncome + tunnelToll
   );
   const totalExpenses = Math.round(
     roadsUpkeep + fireUpkeep + policeUpkeep + powerUpkeep + educationUpkeep + healthUpkeep
@@ -1120,6 +1130,7 @@ function computeBudgetSnapshot(options = {}) {
       fishery: Math.round(fisheryIncome),
       fishMarket: Math.round(fishMarketIncome),
       marina: Math.round(marinaIncome),
+      tunnelToll: Math.round(tunnelToll),
     },
     expenses: {
       roads: Math.round(roadsUpkeep),

@@ -71,6 +71,10 @@ function setupToolMenu() {
       const endTile = lastKnownTile ?? dragStartTile;
       commitRoadDrag(activeScene, dragStartTile, endTile);
     }
+    // 海底隧道: dragged from one shore across the sea to the other (undersea-tunnel.js)
+    if (isPainting && dragStartTile && selectedTool === 'undersea-tunnel' && activeScene) {
+      placeUnderseaTunnel(activeScene, dragStartTile, lastKnownTile ?? dragStartTile);
+    }
     // 避風塘 水域: a drag adds (or with Shift cuts) a rectangle; a click without a drag does nothing.
     if (isPainting && dragStartTile && activeScene && typeof isTyphoonShelterBasinDrag === 'function' && isTyphoonShelterBasinDrag()) {
       const endTile = lastKnownTile ?? dragStartTile;
@@ -82,6 +86,7 @@ function setupToolMenu() {
     }
     if (activeScene?.zonePreviewGraphic)        activeScene.zonePreviewGraphic.clear();
     if (activeScene?.bridgePreviewGraphic)      activeScene.bridgePreviewGraphic.clear();
+    if (activeScene?.tunnelPreviewLabel)        activeScene.tunnelPreviewLabel.setVisible(false);
     if (activeScene?.buildingGuideGraphic)      activeScene.buildingGuideGraphic.clear();
     if (activeScene?.inspectHighlightGraphic)   activeScene.inspectHighlightGraphic.clear();
 

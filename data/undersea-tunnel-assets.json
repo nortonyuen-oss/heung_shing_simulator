@@ -1,0 +1,124 @@
+{
+  "version": 1,
+  "runtimeIntegrated": false,
+  "generation": "built-in imagegen",
+  "projection": "screenX = originX + 160*(col-row); screenY = originY + 80*(col+row)-z",
+  "canvas": [
+    1200,
+    800
+  ],
+  "footprintPerTile": [
+    320,
+    160
+  ],
+  "earthBasePixels": 48,
+  "displayScaleFor100x50Tiles": 0.3125,
+  "bores": 2,
+  "roads": 2,
+  "lanesPerBore": 2,
+  "sourceRoadTileSet": "newRoadTiles",
+  "assets": [
+    {
+      "axis": "NS",
+      "mouthsFace": "SE",
+      "footprintTiles": {
+        "rows": 2,
+        "cols": 3
+      },
+      "output": "Models/underseaTunnel/tunnel_NS_v1.png",
+      "outputSha256": "834b86e3c181790109e9db2fc0cc7ce1cdac7eeefe255a1592d65c2a77e4582a",
+      "source": "scripts/source-art/underseaTunnel/v1/generated-NS.png",
+      "sourceSha256": "79996e285696059e28fd4c368643c2c6dc74033087474e1bf6ed3f2f5ba75324",
+      "referenceRoad": "newRoadTiles/roadNS_fixed.png",
+      "referenceRoadSha256": "06709c14f51c59f02f287c62163fa73e7d2b4ad92366f24dcc6e16ebe414cf3a",
+      "groundCentreOfTile00": [
+        480,
+        200
+      ],
+      "sourceBaseAnchors": [
+        [
+          106,
+          496.52000178070506
+        ],
+        [
+          909.0715884855701,
+          982.4006308969792
+        ],
+        [
+          1407,
+          749.9164728170355
+        ]
+      ],
+      "targetBaseAnchors": [
+        [
+          160,
+          328
+        ],
+        [
+          640,
+          568
+        ],
+        [
+          960,
+          408
+        ]
+      ],
+      "rasterBaseSlopes": [
+        0.5003230645191532,
+        -0.5002586850466154
+      ],
+      "borderMaxAlpha": 0
+    },
+    {
+      "axis": "EW",
+      "mouthsFace": "SW",
+      "footprintTiles": {
+        "rows": 3,
+        "cols": 2
+      },
+      "output": "Models/underseaTunnel/tunnel_EW_v1.png",
+      "outputSha256": "bdd7edb78031ea84e7afaebfae79b089ca46ae546041554cc68bcfeb888ed72a",
+      "source": "scripts/source-art/underseaTunnel/v1/generated-EW.png",
+      "sourceSha256": "cb388c9a0c363d81155ee010fc395c090590815cf120fb04a7bb17e0ef6a68d3",
+      "referenceRoad": "newRoadTiles/roadEW_fixed.png",
+      "referenceRoadSha256": "fb6f12d2809633fe45a760e688bd3c8ca51edaaf76340c2311c2268cef0189bd",
+      "groundCentreOfTile00": [
+        660,
+        200
+      ],
+      "sourceBaseAnchors": [
+        [
+          89,
+          738.0488749055849
+        ],
+        [
+          573.4480559220394,
+          998.2858996182106
+        ],
+        [
+          1341,
+          597.2208142386221
+        ]
+      ],
+      "targetBaseAnchors": [
+        [
+          180,
+          408
+        ],
+        [
+          500,
+          568
+        ],
+        [
+          980,
+          328
+        ]
+      ],
+      "rasterBaseSlopes": [
+        0.5003632875570756,
+        -0.5002262201638761
+      ],
+      "borderMaxAlpha": 0
+    }
+  ]
+}

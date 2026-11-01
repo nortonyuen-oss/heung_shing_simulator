@@ -8,7 +8,7 @@
 
 const TRANSPORT_VISUAL_CONFIG = Object.freeze({
   maxManagedVehicles: 48,
-  zoomMin: 1.4,
+  zoomMin: 1.0,   // the same as the ambient traffic (TRAFFIC_VISUAL_CONFIG)
   overlayRefreshMs: 200,
   // §1 restore: fraction of a stop-adjacent leg spent easing rather than at
   // cruise speed - OpenTTD-style slow-in/slow-out around a dwell, purely a
@@ -243,9 +243,23 @@ function setManagedTransportVehicleVisual(vehicle, position, forceDepth = false)
   vehicle.sprite.setPosition(position.x, position.y);
   vehicle.badge.setPosition(position.x, position.y - 13);
   vehicle.lastPosition = position;
-  const depth = getWorldDepth('object', position.depthY + TILE_HEIGHT / 2);
+  const depth = typeof getTrafficVehicleDepth === 'function'
+    ? getTrafficVehicleDepth(vehicle, position)
+    : getWorldDepth('object', position.depthY + TILE_HEIGHT / 2);
   vehicle.sprite.setDepth(depth);
   vehicle.badge.setDepth(getWorldDepth('effect', position.depthY + TILE_HEIGHT / 2));
+  // under the sea in a 海底隧道, out of sight with its badge and lamps (traffic-visuals.js)
+  const underSea = typeof isTrafficVehicleUnderSea === 'function' && isTrafficVehicleUnderSea(vehicle);
+  if (vehicle.sprite.visible === underSea) vehicle.sprite.setVisible(!underSea);
+  if (underSea) vehicle.badge.setVisible(false);
+  if (underSea) {
+    if (vehicle.lightsVisible !== false && typeof forEachTrafficVehicleLamp === 'function') {
+      forEachTrafficVehicleLamp(vehicle, (lamp) => { lamp.setVisible(false).setAlpha(0); });
+      forEachTrafficVehicleTube(vehicle, (bar) => { bar.setVisible(false).setAlpha(0); });
+      vehicle.lightsVisible = false;
+    }
+    return;
+  }
   if (typeof updateTrafficVehicleLights === 'function') {
     updateTrafficVehicleLights(vehicle, position, true);
   }
@@ -572,7 +586,8 @@ function updateTransportVisuals(time, delta) {
   syncManagedTransportVehicles(scene, state, routeEntries, vehicleById);
   const showRouteMarkers = typeof isTransportRouteOverlayRequested === 'function'
     && isTransportRouteOverlayRequested();
-  state.vehicles.forEach((vehicle) => vehicle.badge?.setVisible?.(showRouteMarkers));
+  // not under the sea in a 海底隧道, where the bus itself is out of sight (setManagedTransportVehicleVisual)
+  state.vehicles.forEach((vehicle) => vehicle.badge?.setVisible?.(showRouteMarkers && vehicle.sprite?.visible !== false));
   if (state.vehicles.length === 0) return;
   const leaderBuckets = buildTrafficLegBuckets([
     ...state.vehicles,

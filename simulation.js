@@ -626,6 +626,15 @@ function updateDemand() {
     ? clamp(highEduJobGap / highEduWorkers, 0, 1)
     : 0;
 
+  // 區外連線 (region-connections.js): the unemployed commute out, spare jobs draw workers in
+  const regionFlows = typeof computeRegionFlows === 'function'
+    ? computeRegionFlows({ labourForce, jobs: totalJobCap, industrialCount: indCnt })
+    : null;
+  city.regionFlows = regionFlows;
+  if (regionFlows?.out > 0 && labourForce > 0) {
+    city.unemploymentRate = clamp(1 - (totalJobCap + regionFlows.out) / labourForce, 0, 1);
+  }
+
   // Legacy jobRatio kept for demandR (unchanged behaviour)
   const legacyJobCap = (comJobCap + sciParkJobCap + regularIndJobCap) / ANCHOR_RATIO;
   const jobRatio     = clamp(legacyJobCap / (resCnt * 4), 0, 1);
@@ -650,7 +659,8 @@ function updateDemand() {
     - congestionPenR
     - powerShortageDemandPenalty
     - 0.2 * (city.taxRate / TAX_RATE_MAX)
-    + (typeof getDistrictProfileEffect === 'function' ? getDistrictProfileEffect('demandR') : 0), // 地區特色 (district-profiles.js)
+    + (typeof getDistrictProfileEffect === 'function' ? getDistrictProfileEffect('demandR') : 0) // 地區特色 (district-profiles.js)
+    + (regionFlows?.demandR ?? 0),
     -1, 1
   );
 
@@ -689,6 +699,7 @@ function updateDemand() {
     + (typeof getCouncilTemporaryModifier === 'function' ? getCouncilTemporaryModifier('commercialDemand') : 0)
     + transportCommercialBonus
     + (typeof getDistrictProfileEffect === 'function' ? getDistrictProfileEffect('demandC') : 0)
+    + (regionFlows?.demandC ?? 0)
     + (hasBuildingType('stock_exchange') ? 0.10 * hsiRatio : 0)
     + stockExchangeBoost
     - epidemicDemandPenalty * 0.08
@@ -729,6 +740,7 @@ function updateDemand() {
     + (isPolicyActive('strongCountryManufacturing') ? 0.10 : 0)
     + transportIndustrialBonus
     + (typeof getDistrictProfileEffect === 'function' ? getDistrictProfileEffect('demandI') : 0)
+    + (regionFlows?.demandI ?? 0)
     - powerShortageDemandPenalty,
     -1, 1
   );

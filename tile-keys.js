@@ -65,6 +65,11 @@ function getTileKey(row, col) {
 }
 
 function getBaseTileKey(row, col) {
+  // Off the map (a straight edge road looks along itself past the edge): nothing there
+  if (!isInsideMap(row, col)) return null;
+  // the road in front of an undersea tunnel's mouths, under the portal picture
+  const tunnelRoad = typeof getUnderseaTunnelRoadSide === 'function' ? getUnderseaTunnelRoadSide(row, col) : null;
+  if (tunnelRoad) return tunnelRoad === 'n' || tunnelRoad === 's' ? 'road_straight_v' : 'road_straight_h';
   const tileType = getBaseTileType(row, col);
   const hasHeight = getTileHeight(row, col) > 0;
   let key;
@@ -233,6 +238,12 @@ function getRoadKey(row, col) {
   const band = getRoadCarriagewayBand(row, col);
   if (band) return band.orientation === 'v' ? 'road_straight_v' : 'road_straight_h';
 
+  // A road that meets the map edge head-on runs on into the neighbouring district (區外連線): it
+  // is drawn straight on, every lane of a carriageway too - not as a dead end or a U-turn.
+  const exit = getRoadEdgeExitSide(row, col)
+    ?? (typeof getUnderseaTunnelApproachSide === 'function' ? getUnderseaTunnelApproachSide(row, col) : null);
+  if (exit) return exit === 'n' || exit === 's' ? 'road_straight_v' : 'road_straight_h';
+
   // Determine adjacency on diagonal edges (NE, SE, SW, NW).  The 'north' tile in mapData corresponds
   // to the NE edge of the isometric tile, 'east' corresponds to SE, 'south' to SW and 'west' to NW.
   const ne = row > 0 && isRoadLikeTile(row - 1, col);
@@ -259,6 +270,38 @@ function getRoadKey(row, col) {
   if (sw) return 'road_end_n';
   if (nw) return 'road_end_e';
   return 'road_isolated';
+}
+
+// 區外連線 (region-connections.js): the side ('n', 'e', 's', 'w') by which an edge road leaves the
+// map, or null. Only a road meeting the edge head-on leaves: the tile inside is road, and any
+// road beside it along the edge is a parallel lane also coming in head-on (lanes of one
+// carriageway leave together).
+// A road running along the edge, or a junction on it, stays in the map.
+function getRoadEdgeExitSide(row, col) {
+  if (!isRoadLikeTile(row, col)) return null;
+  const sides = [];
+  if (row === 0) sides.push('n');
+  if (row === MAP_HEIGHT - 1) sides.push('s');
+  if (col === 0) sides.push('w');
+  if (col === MAP_WIDTH - 1) sides.push('e');
+  if (!sides.length) return null;
+  const band = getRoadCarriagewayBand(row, col);
+  const isRoad = (r, c) => isInsideMap(r, c) && isRoadLikeTile(r, c);
+  for (const side of sides) {
+    const inward = { n: [row + 1, col], s: [row - 1, col], w: [row, col + 1], e: [row, col - 1] }[side];
+    if (!isRoad(...inward)) continue;
+    const heading = side === 'n' || side === 's' ? 'v' : 'h';
+    if (band) {
+      if (band.orientation === heading) return side;
+      continue;
+    }
+    // A road beside it on the edge must be another lane coming in head-on too (the end tile of
+    // a carriageway is not always recognised as one); otherwise this is a road along the edge.
+    const inwardOf = (r, c) => ({ n: [r + 1, c], s: [r - 1, c], w: [r, c + 1], e: [r, c - 1] }[side]);
+    const beside = heading === 'v' ? [[row, col - 1], [row, col + 1]] : [[row - 1, col], [row + 1, col]];
+    if (beside.every(([r, c]) => !isRoad(r, c) || isRoad(...inwardOf(r, c)))) return side;
+  }
+  return null;
 }
 
 function getBridgeRampRoadKey(direction) {

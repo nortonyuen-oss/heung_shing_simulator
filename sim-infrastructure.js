@@ -402,8 +402,10 @@ const TRAFFIC_ROUTE_CACHE_LIMIT = 8192;
 const trafficRouteCache = new Map();
 let trafficRoadTilesCache = null;
 
+// A 海底隧道's portals and the sea it runs under carry traffic like a road (undersea-tunnel.js).
 function isRoadTile(r, c) {
-  return mapData[r]?.[c] === ROAD || roadUnderlayMap[r]?.[c] != null || bridgeMap[r]?.[c] != null;
+  return mapData[r]?.[c] === ROAD || roadUnderlayMap[r]?.[c] != null || bridgeMap[r]?.[c] != null
+    || (typeof getUnderseaTunnelTile === 'function' && getUnderseaTunnelTile(r, c) != null);
 }
 
 function clearTrafficLoadForRoadTiles(roadTiles) {
@@ -532,6 +534,15 @@ function updateTrafficMap() {
       trafficMap[r][c] += demand * decay;
     }
   });
+
+  // 區外連線: cross-district commuters load the edge roads they come and go by
+  if (typeof addRegionTrafficLoad === 'function') {
+    addRegionTrafficLoad((row, col, load) => {
+      for (const [r, c, dist] of getTrafficRoadRoutes(row, col)) {
+        trafficMap[r][c] += load * (1 - dist / TRAFFIC_DIFFUSE_RADIUS);
+      }
+    });
+  }
 
   // Normalise only the cells known to be roads and compute the city-wide index.
   let totalLoad = 0;

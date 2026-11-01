@@ -357,6 +357,7 @@ function initBudgetPanel() {
     const detail = document.getElementById('budget-detail');
     if (detail) detail.classList.toggle('is-open');
     if (typeof updateDistrictProfilePanel === 'function') updateDistrictProfilePanel();
+    if (typeof updateRegionConnectionPanel === 'function') updateRegionConnectionPanel();
   };
 
   statusMoreBtn?.addEventListener('click', toggleBudgetDetail);
@@ -443,6 +444,7 @@ function updateBudgetWindow() {
   setTextContent('budget-income-fishery', formatMoney(current.income.fishery ?? 0));
   setTextContent('budget-income-fish-market', formatMoney(current.income.fishMarket ?? 0));
   setTextContent('budget-income-marina', formatMoney(current.income.marina ?? 0));
+  setTextContent('budget-income-tunnel-toll', formatMoney(current.income.tunnelToll ?? 0));
   setTextContent('budget-income-transport', formatMoney(current.income.transport ?? 0));
   setTextContent('budget-income-total', formatMoney(current.totalIncome));
 

@@ -224,7 +224,9 @@ function analyzeBridgePath(scene, pathInfo) {
 
   for (const tile of path) {
     const id = getTileId(tile.row, tile.col);
-    if (scene?.buildingSprites?.has(id) || buildingData[id]) {
+    // nor over a 海底隧道's portals or the sea above it (undersea-tunnel.js)
+    if (scene?.buildingSprites?.has(id) || buildingData[id]
+      || (typeof isUnderseaTunnelTile === 'function' && isUnderseaTunnelTile(tile.row, tile.col))) {
       result.reason = 'bridge-blocked';
       return result;
     }

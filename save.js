@@ -1432,6 +1432,10 @@ function applySaveData(scene, save) {
   Object.assign(city, savedCityState);
   // 地區特色: older saves have no district profile
   city.districtProfileId = typeof savedCityState.districtProfileId === 'string' ? savedCityState.districtProfileId : '';
+  // 區外連線: older saves have neutral neighbours on every side
+  city.regionNeighbours = savedCityState.regionNeighbours && typeof savedCityState.regionNeighbours === 'object'
+    ? savedCityState.regionNeighbours : null;
+  city.underseaTunnels = Array.isArray(savedCityState.underseaTunnels) ? savedCityState.underseaTunnels : [];
   if (typeof applyDistrictZoneDensityCap === 'function') applyDistrictZoneDensityCap();
   if (typeof updateDistrictProfilePanel === 'function') updateDistrictProfilePanel();
   // Time-of-day traffic keeps a neutral baseline in new saves. Preserve the
@@ -1624,6 +1628,7 @@ function rebuildSceneFromSave(scene, save) {
   if (typeof rebuildDebrisSprites === 'function') rebuildDebrisSprites(scene);
   if (typeof rebuildBusStopSprites === 'function') rebuildBusStopSprites(scene);
   if (typeof rebuildDistrictSignSprites === 'function') rebuildDistrictSignSprites(scene);
+  if (typeof rebuildUnderseaTunnelSprites === 'function') rebuildUnderseaTunnelSprites(scene);
   // 避風塘 works stand where the save left them (typhoon-shelter-planning.js).
   if (typeof syncTyphoonShelterFacilitySprites === 'function') syncTyphoonShelterFacilitySprites(scene);
   // and the ferry piers (ferry.js)

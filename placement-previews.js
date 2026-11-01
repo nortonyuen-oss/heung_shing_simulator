@@ -141,6 +141,13 @@ function updateBuildingPlacementGuide(scene, pointer) {
   }
 
   const { footprintCols, footprintRows } = footprint;
+  // 海底隧道: dragged from shore to shore (drawUnderseaTunnelDragPreview); before the drag, the
+  // tile it would start from, green on land at sea level
+  if (selectedTool === 'undersea-tunnel') {
+    const land = isInsideMap(tile.row, tile.col) && mapData[tile.row][tile.col] !== WATER && getTileHeight(tile.row, tile.col) === 0;
+    drawFootprintGuide(scene, tile.row, tile.col, 1, 1, land);
+    return;
+  }
   // 海鮮舫: green on the 4 x 3 it would moor on (it fits itself round the pointer), red where it may not
   if (selectedTool === 'floating-restaurant' && typeof getTyphoonShelterFloatingRestaurantPlacement === 'function') {
     const { site } = getTyphoonShelterFloatingRestaurantPlacement(tile.row, tile.col);
@@ -218,6 +225,60 @@ function drawFootprintGuide(scene, row, col, footprintCols = 1, footprintRows = 
   g.lineTo(west.x,  west.y);
   g.closePath();
   g.strokePath();
+}
+
+// The label at the end of a 海底隧道 drag: its cost, or why it cannot go there. Kept the same size
+// on screen at any zoom; hidden on pointerup (tool-menu.js).
+function showUnderseaTunnelPreviewLabel(scene, row, col, text, ok) {
+  if (!scene.tunnelPreviewLabel) {
+    scene.tunnelPreviewLabel = scene.add.text(0, 0, '', {
+      fontFamily: 'sans-serif', fontSize: '13px', color: '#ffffff', padding: { x: 7, y: 4 },
+    }).setOrigin(0.5, 1).setResolution(2);
+    addToRenderLayer(scene, scene.tunnelPreviewLabel, 'effectLayer');
+    scene.tunnelPreviewLabel.setDepth(getPreviewOverlayDepth(2));
+  }
+  const geom = getTileFaceGeometry(row, col, scene.offsetX, scene.offsetY);
+  scene.tunnelPreviewLabel
+    .setText(text)
+    .setBackgroundColor(ok ? 'rgba(18, 70, 60, 0.9)' : 'rgba(110, 24, 24, 0.9)')
+    .setPosition(geom.center.x, geom.top.y - 6)
+    .setScale(1 / (scene.cameras.main.zoom || 1))
+    .setVisible(true);
+}
+
+// 海底隧道 drag (undersea-tunnel.js): both portals it would build, green, and its two bores under the
+// sea; red along the drag line where it cannot go, with the reason by the pointer.
+function drawUnderseaTunnelDragPreview(scene, start, end) {
+  const g = scene.bridgePreviewGraphic;
+  if (!g) return;
+  g.clear();
+  const { site, reason } = getUnderseaTunnelCrossing(start, end);
+  const diamond = (row, col, color, alpha) => {
+    const geom = getTileFaceGeometry(row, col, scene.offsetX, scene.offsetY);
+    g.fillStyle(color, alpha);
+    g.lineStyle(2, color, 0.92);
+    g.beginPath();
+    g.moveTo(geom.top.x, geom.top.y);
+    g.lineTo(geom.right.x, geom.right.y);
+    g.lineTo(geom.bottom.x, geom.bottom.y);
+    g.lineTo(geom.left.x, geom.left.y);
+    g.closePath();
+    g.fillPath();
+    g.strokePath();
+  };
+  if (!site) {
+    (getStraightDragPath(start, end).path ?? []).forEach(({ row, col }) => diamond(row, col, 0xff4444, 0.18));
+    showUnderseaTunnelPreviewLabel(scene, end.row, end.col, t(reason), false);
+    return;
+  }
+  site.portals.forEach((portal) => portal.tiles.forEach(([row, col]) => diamond(row, col, 0x45e6c3, 0.3)));
+  g.fillStyle(0x45e6c3, 0.6);
+  site.under.forEach(([row, col], index) => {
+    if (Math.floor(index / 2) % 2) return;
+    const geom = getTileFaceGeometry(row, col, scene.offsetX, scene.offsetY);
+    g.fillCircle(geom.center.x, geom.center.y, 3);
+  });
+  showUnderseaTunnelPreviewLabel(scene, end.row, end.col, t('tunnel.cost', { cost: site.cost.toLocaleString(), tiles: site.crossing }), true);
 }
 
 function drawRoadDragPreview(scene, start, end) {

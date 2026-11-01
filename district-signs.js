@@ -21,6 +21,8 @@ function applyDistrictSignVisibility(scene = null) {
     sprite.setVisible(visible);
     if (sprite.input) sprite.input.enabled = visible;
   });
+  // 區外連線 signs (region-connections.js) share the switch
+  targetScene?.regionConnectionSigns?.forEach((sign) => sign.setVisible(visible));
 }
 
 function setDistrictSignsVisible(visible) {

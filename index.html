@@ -5350,8 +5350,24 @@
       color: #8a5a12;
     }
 
-    #budget-district[hidden] {
+    #budget-district[hidden],
+    #budget-region[hidden] {
       display: none;
+    }
+
+    .budget-region-body {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .budget-region-body .region-hint {
+      opacity: 0.75;
+    }
+
+    .budget-region-body .region-warning {
+      color: #9a5a10;
+      font-weight: 700;
     }
 
     .setup-controls {
@@ -7227,6 +7243,9 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
       <button class="tool-row is-active" type="button" data-tool="road" title="Build road ($10)">
         <span class="tool-row-icon">🛣</span><span class="tool-row-text" data-i18n="toolRow.road">Road</span><span class="tool-row-cost">$10</span>
       </button>
+      <button class="tool-row" type="button" data-tool="undersea-tunnel" title="Undersea tunnel: drag from one shore across the sea to the other" data-i18n-title="tool.underseaTunnel">
+        <span class="tool-row-icon">🚇</span><span class="tool-row-text" data-i18n="toolRow.underseaTunnel">Undersea Tunnel</span><span class="tool-row-cost">$30000+</span>
+      </button>
     </section>
 
     <button class="tool-category-button" type="button" data-tool-category="transport" title="Bus stops, depots and bus routes" data-i18n-title="toolCategory.busTitleHint">
@@ -7754,6 +7773,11 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
         <span class="budget-section-title"><span id="budget-district-name"></span> <span id="budget-district-difficulty" class="district-difficulty"></span></span>
         <div id="budget-district-traits" class="district-traits"></div>
       </div>
+      <!-- 區外連線 (region-connections.js): edge roads, neighbours and last month's flows -->
+      <div id="budget-region" class="budget-section" hidden>
+        <span class="budget-section-title" data-i18n="region.title">Region connections</span>
+        <div id="budget-region-body" class="budget-region-body"></div>
+      </div>
       <div class="budget-stat">
         <span class="budget-stat-label" data-i18n="budget.income">Income/mo</span>
         <span id="hud-income-detail" class="budget-stat-value" style="color:#2a6a2a">+$0</span>
@@ -7830,6 +7854,7 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
             <tr><th data-i18n="budget.fisheryTax">Fishery tax</th><td id="budget-income-fishery">$0</td></tr>
             <tr><th data-i18n="budget.fishMarketIncome">Fish market commission</th><td id="budget-income-fish-market">$0</td></tr>
             <tr><th data-i18n="budget.marinaIncome">Yacht mooring fees</th><td id="budget-income-marina">$0</td></tr>
+            <tr><th data-i18n="budget.tunnelToll">Tunnel tolls</th><td id="budget-income-tunnel-toll">$0</td></tr>
             <tr><th data-i18n="transport.finance.revenue">Bus fare revenue</th><td id="budget-income-transport">$0</td></tr>
             <tr class="budget-total-row"><th data-i18n="budget.totalIncome">Total income</th><td id="budget-income-total">$0</td></tr>
           </tbody>
@@ -8319,6 +8344,8 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
   <script src="overlay-controls.js"></script>
   <script src="city-minimap.js"></script>
   <script src="map-edge-skirt.js"></script>
+  <script src="region-connections.js"></script>
+  <script src="undersea-tunnel.js"></script>
   <script src="inspect-panel.js"></script>
   <script src="hk-district-maps.js"></script>
   <script src="hk-district-info.js"></script>

@@ -745,4 +745,6 @@ function repositionOverlays(scene) {
 
   if (typeof repositionBridgeSprites === 'function') repositionBridgeSprites(scene);
   if (typeof repositionDistrictSignSprites === 'function') repositionDistrictSignSprites(scene);
+  if (typeof repositionRegionConnectionSigns === 'function') repositionRegionConnectionSigns(scene);
+  if (typeof repositionUnderseaTunnelSprites === 'function') repositionUnderseaTunnelSprites(scene);
 }

@@ -604,6 +604,7 @@ function updateFestivals(scene, time) {
   }
   if (live && typeof maybeShowFestivalNotices === 'function') maybeShowFestivalNotices(scene, active, placements);
   if (live && typeof maybePostYulanStory === 'function') maybePostYulanStory(scene, placements);
+  if (live && typeof maybePostMidAutumnStory === 'function') maybePostMidAutumnStory(scene, placements);
 }
 
 if (typeof module !== 'undefined' && module.exports) {

@@ -307,7 +307,7 @@ test('all three industrial-policy stories open the forum-style newspaper extra',
 test('new forum source images, release WebPs and thumbnails have the required dimensions', async () => {
   const names = ['labExplosion', 'researchAndDevelopment', 'revokeIndustrialBuildings', 'strongCountry20XX'];
   for (const name of names) {
-    const pngPath = path.join(ROOT, 'UI', 'news', `${name}.png`);
+    const pngPath = path.join(ROOT, 'scripts', 'source-art', 'news', `${name}.png`);
     const webpPath = path.join(ROOT, 'UI', 'news', `${name}.webp`);
     const thumbPath = path.join(ROOT, 'UI', 'news', 'thumbs', `${name}.webp`);
     assert.ok(fs.existsSync(pngPath), `${name} PNG source`);

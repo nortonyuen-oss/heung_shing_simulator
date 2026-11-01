@@ -111,3 +111,30 @@ test('every 中秋 part has its art and its baked textures', () => {
     if (p.lit) assert.equal(tex.night?.length, 2, p.id);
   });
 });
+
+test('中秋 news: once a year, the first lit evening of the lantern fair, with its own picture', () => {
+  const { maybePostMidAutumnStory, MID_AUTUMN_NEWS_IMAGE } = require('../festival-mid-autumn.js');
+  const posts = [];
+  global.city = { name: '香城', year: 2030, month: 9, forumPosts: [] };
+  global.addForumPost = (article, meta) => { posts.push([article, meta]); global.city.forumPosts.push({ id: meta.id }); };
+  try {
+    const fair = [{ id: 'midAutumn:park:vp', festival: 'midAutumn' }, { id: 'midAutumn:dragon:x', festival: 'midAutumn', fireDragon: {} }];
+    maybePostMidAutumnStory({ festivalLit: false }, fair);
+    maybePostMidAutumnStory({ festivalLit: true }, [{ id: 'midAutumn:route:1:2:n', festival: 'midAutumn' }]);
+    assert.equal(posts.length, 0, 'not by day, not without the fair');
+    maybePostMidAutumnStory({ festivalLit: true }, fair);
+    maybePostMidAutumnStory({ festivalLit: true }, fair);
+    assert.equal(posts.length, 1);
+    const [article, meta] = posts[0];
+    assert.equal(meta.id, 'midAutumn-2030');
+    assert.match(article.headline, /食燈籠、玩月餅/);
+    assert.ok(article.body.some((line) => line.includes('火龍')));
+    assert.equal(article.image, MID_AUTUMN_NEWS_IMAGE);
+    for (const file of [MID_AUTUMN_NEWS_IMAGE, MID_AUTUMN_NEWS_IMAGE.replace('UI/news/', 'UI/news/thumbs/')]) {
+      assert.ok(fs.existsSync(path.join(ROOT, file)), file);
+    }
+  } finally {
+    delete global.city;
+    delete global.addForumPost;
+  }
+});

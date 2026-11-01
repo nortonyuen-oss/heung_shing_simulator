@@ -161,7 +161,7 @@ const FESTIVAL_PARTS = Object.freeze([
     ['june4SitA', [23, 735, 121, 94], '席地市民 A'],
     ['june4SitB', [165, 744, 116, 89], '席地市民 B'],
     ['june4SitC', [290, 733, 158, 90], '席地市民 C'],
-  ].map(([id, rect, label]) => festivalPart(id, 'june4', 'original/June/維多利亞公園六四燭光追思像素素材集.png', 'crowd', label, { heightM: 0.28, rect, lit: true })),
+  ].map(([id, rect, label]) => festivalPart(id, 'june4', 'original/June/june4VictoriaParkVigilSheet.png', 'crowd', label, { heightM: 0.28, rect, lit: true })),
 
   // 盂蘭 (§4.4, Phase 6): the opera stage squared by its deck and side wall, the offering mat by its
   // four corners; the burning bins, round, as drawn. The sheet pieces (pixel art) are already near
@@ -176,17 +176,17 @@ const FESTIVAL_PARTS = Object.freeze([
   festivalPart('yulanBarrel', 'yulan', 'original/July14/July14accessories7.png', 'prop', '化寶桶', { heightM: 1.1, lit: true, fire: true }),
   festivalPart('yulanPaperStack', 'yulan', 'original/July14/July14accessories8.png', 'prop', '衣紙金銀', { heightM: 0.6 }),
   ...[
-    ['yulanShrine', 'original/July14/中式祭祀焚燒道具像素素材表.png', [636, 346, 243, 342], '孤魂之位', 'structure', { heightM: 3, mirror: false, lit: true, ghostLight: true }],
-    ['yulanBanner', 'original/July14/中式祭祀焚燒道具像素素材表.png', [1197, 325, 130, 362], '「奠」幡', 'decoration', { heightM: 4, mirror: false }],
-    ['yulanFurnace', 'original/July14/中式祭祀焚燒道具像素素材表.png', [1153, 44, 165, 266], '化寶爐', 'structure', { heightM: 2.4, lit: true, fire: true }],
-    ['yulanHorse', 'original/July14/中式祭祀焚燒道具像素素材表.png', [715, 740, 172, 223], '紙紮馬', 'decoration', { heightM: 2.2, effigy: true }],
-    ['yulanBoat', 'original/July14/中式祭祀焚燒道具像素素材表.png', [894, 713, 148, 226], '紙紮船', 'decoration', { heightM: 2.2, effigy: true }],
-    ['yulanHouse', 'original/July14/香港燒街衣祭典像素素材表.png', [841, 317, 157, 217], '紙紮大屋', 'decoration', { heightM: 2.4, effigy: true }],
-    ['yulanAltar', 'original/July14/香港燒街衣祭典像素素材表.png', [18, 282, 219, 269], '供桌', 'structure', { heightM: 1.6, mirror: false, lit: true }],
-    ['yulanCage', 'original/July14/香港燒街衣祭典像素素材表.png', [1152, 33, 181, 237], '化寶鐵籠', 'prop', { heightM: 1.2, lit: true, fire: true }],
-    ['yulanStools', 'original/July14/香港燒街衣祭典像素素材表.png', [23, 815, 249, 161], '紅藍膠櫈', 'prop', { heightM: 0.5 }],
-    ['yulanBarrier', 'original/July14/香港燒街衣祭典像素素材表.png', [963, 755, 171, 188], '「燒街衣」鐵馬', 'prop', { heightM: 1.1, mirror: false }],
-    ['yulanCone', 'original/July14/香港燒街衣祭典像素素材表.png', [1324, 782, 99, 143], '雪糕筒', 'prop', { heightM: 0.7 }],
+    ['yulanShrine', 'original/July14/yulanRitualPropsSheet.png', [636, 346, 243, 342], '孤魂之位', 'structure', { heightM: 3, mirror: false, lit: true, ghostLight: true }],
+    ['yulanBanner', 'original/July14/yulanRitualPropsSheet.png', [1197, 325, 130, 362], '「奠」幡', 'decoration', { heightM: 4, mirror: false }],
+    ['yulanFurnace', 'original/July14/yulanRitualPropsSheet.png', [1153, 44, 165, 266], '化寶爐', 'structure', { heightM: 2.4, lit: true, fire: true }],
+    ['yulanHorse', 'original/July14/yulanRitualPropsSheet.png', [715, 740, 172, 223], '紙紮馬', 'decoration', { heightM: 2.2, effigy: true }],
+    ['yulanBoat', 'original/July14/yulanRitualPropsSheet.png', [894, 713, 148, 226], '紙紮船', 'decoration', { heightM: 2.2, effigy: true }],
+    ['yulanHouse', 'original/July14/yulanStreetOfferingSheet.png', [841, 317, 157, 217], '紙紮大屋', 'decoration', { heightM: 2.4, effigy: true }],
+    ['yulanAltar', 'original/July14/yulanStreetOfferingSheet.png', [18, 282, 219, 269], '供桌', 'structure', { heightM: 1.6, mirror: false, lit: true }],
+    ['yulanCage', 'original/July14/yulanStreetOfferingSheet.png', [1152, 33, 181, 237], '化寶鐵籠', 'prop', { heightM: 1.2, lit: true, fire: true }],
+    ['yulanStools', 'original/July14/yulanStreetOfferingSheet.png', [23, 815, 249, 161], '紅藍膠櫈', 'prop', { heightM: 0.5 }],
+    ['yulanBarrier', 'original/July14/yulanStreetOfferingSheet.png', [963, 755, 171, 188], '「燒街衣」鐵馬', 'prop', { heightM: 1.1, mirror: false }],
+    ['yulanCone', 'original/July14/yulanStreetOfferingSheet.png', [1324, 782, 99, 143], '雪糕筒', 'prop', { heightM: 0.7 }],
   ].map(([id, sheet, rect, label, category, extra]) => festivalPart(id, 'yulan', sheet, category, label, { ...extra, rect })),
   // people at the street fires (Norton: 燒街衣係有人係路邊燒) and the 阿飄 that come to collect: two
   // people cut from the 端午 crowds, as they are and as ghosts

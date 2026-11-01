@@ -394,7 +394,7 @@ city.festivals = {
 ### 5.2 整理事項
 
 - `DragonBoat/image-gen-6(20260925-111103).png` 係救援艇，已改名做 `rescueBoat.png`（2026-10-11）。
-- 重複素材：`透明背景節慶與工具道具圖集.png` 同 `香港節慶市集等距道具素材表.png` 幾乎一樣，留一張就夠。戲棚出現咗 5 次（lunarNewYearMarket1、bunHillStage、July14MainStage1/2、新春圖集 4），建議每個節慶指定一張，其餘唔用。
+- 重複素材：`透明背景節慶與工具道具圖集.png` 同 `香港節慶市集等距道具素材表.png` 幾乎一樣，已刪後者；前者改名做 `LunarNewYear/festivalToolsPropsSheet.png`（2026-11-01，所有中文檔名原圖改做 ASCII）。戲棚出現咗 5 次（lunarNewYearMarket1、bunHillStage、July14MainStage1/2、新春圖集 4），建議每個節慶指定一張，其餘唔用。
 - 新春圖集 4 都有兩座包山，可以用嚟補 bunHill 嘅款式。
 - bunHill1–3 睇落係同一座塔嘅三個版本，唔係「包被搶走」嘅遞減狀態。
 

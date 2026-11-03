@@ -25,7 +25,7 @@ const transportUiState = {
 // card into Finances, and ferry routes got their own tab beside the buses.
 const TRANSPORT_PANEL_IDS = ['routes', 'fleet', 'demand', 'finances'];
 const TRANSPORT_PANEL_META = {
-  routes: { icon: '🗺', labelKey: 'transport.nav.routes', width: '760px', tabs: ['bus', 'ferry'] },
+  routes: { icon: '🗺', labelKey: 'transport.nav.routes', width: '760px', tabs: ['bus', 'ferry', 'metro'] },
   fleet: { icon: '🚌', labelKey: 'transport.nav.fleet', width: '760px', tabs: ['list', 'buy'] },
   demand: { icon: '👥', labelKey: 'transport.nav.demand', width: '760px' },
   finances: { icon: '📊', labelKey: 'transport.nav.finances', width: '760px', tabs: ['overview', 'history', 'company'] },
@@ -35,6 +35,7 @@ const TRANSPORT_PANEL_ALIASES = {
   depot: ['fleet', 'buy'],
   company: ['finances', 'company'],
   ferry: ['routes', 'ferry'],
+  metro: ['routes', 'metro'],
 };
 
 // where a window's help box goes: under its tabs
@@ -628,9 +629,14 @@ function renderTransportRoutesTab(state) {
   const tabs = renderTransportPanelTabs('routes', {
     bus: t('transport.panelTab.routes.busCount', { count: state.routes.length }),
     ferry: t('transport.panelTab.routes.ferryCount', { count: ferryRoutes }),
+    metro: t('transport.panelTab.routes.metroCount', { count: typeof getMetroState === 'function' ? getMetroState().lines.length : 0 }),
   });
   if (getTransportPanelTab('routes') === 'ferry') {
     return tabs + (typeof renderFerryRoutesSection === 'function' ? renderFerryRoutesSection() : '');
+  }
+  // 地鐵 (metro-ui.js)
+  if (getTransportPanelTab('routes') === 'metro') {
+    return tabs + (typeof renderMetroLinesSection === 'function' ? renderMetroLinesSection() : '');
   }
   return `
     ${tabs}
@@ -1110,7 +1116,7 @@ function handleTransportChecklistClick(event) {
 
 // ── The hint bar: what the tool in hand does, and what is under the pointer ──
 
-const TRANSPORT_HINT_TOOLS = new Set(['bus-stop', 'bus-depot', 'ferry-pier', 'ferry-route']);
+const TRANSPORT_HINT_TOOLS = new Set(['bus-stop', 'bus-depot', 'ferry-pier', 'ferry-route', 'metro-station', 'metro-line']);
 let transportToolHintEl = null;
 let transportHintHover = null;
 
@@ -1140,6 +1146,20 @@ function getTransportToolHintText() {
       jobs: Math.round(catchment.destinationUnits).toLocaleString(),
       riders: Math.round(getTransportStopDailyRiders({ id: 'hint-preview', row: transportHintHover.row, col: transportHintHover.col })).toLocaleString(),
     });
+  }
+  // 地鐵: a station's reach where the pointer is; the line being drawn (metro.js)
+  if (tool === 'metro-station' && transportHintHover && typeof METRO !== 'undefined') {
+    const catchment = getTransportStopCatchmentUnits({ id: 'metro-hint-preview', row: transportHintHover.row, col: transportHintHover.col, radius: METRO.catchmentRadius });
+    info = t('transport.hint.metroStationHere', {
+      residents: Math.round(catchment.residents || 0).toLocaleString(),
+      jobs: Math.round(catchment.destinationUnits).toLocaleString(),
+    });
+  }
+  if (tool === 'metro-line' && typeof metroLineDraft !== 'undefined' && metroLineDraft && typeof getMetroState === 'function') {
+    const state = getMetroState();
+    const line = metroLineDraft.lineId ? state.lines.find((l) => l.id === metroLineDraft.lineId) : null;
+    const last = line ? getMetroStationById(line.stationIds.at(-1), state) : getMetroStationById(metroLineDraft.firstStationId, state);
+    if (last) return { text: t('transport.hint.metroLineNext', { name: last.name }), info, cancel: true };
   }
   if (tool === 'ferry-route' && typeof ferryRouteDraft !== 'undefined' && ferryRouteDraft && typeof getFerryPierById === 'function') {
     const pier = getFerryPierById(ferryRouteDraft);
@@ -1171,6 +1191,7 @@ function updateTransportToolHintHover(row, col) {
 function cancelTransportModeTool() {
   if (!isTransportModeActive || typeof selectedTool !== 'string' || !TRANSPORT_HINT_TOOLS.has(selectedTool)) return false;
   if (typeof ferryRouteDraft !== 'undefined') ferryRouteDraft = null;
+  if (typeof cancelMetroLineDraft === 'function') cancelMetroLineDraft();
   document.querySelector('#tool-menu [data-tool-category="inspect"]')?.click();
   refreshTransportToolHint();
   return true;
@@ -1815,6 +1836,8 @@ function handleTransportUiClick(event) {
   const action = button.dataset.transportAction;
   // the ferry routes and their ferries (ferry-ui.js)
   if (typeof handleFerryUiAction === 'function' && handleFerryUiAction(action, button)) return;
+  // and the metro lines (metro-ui.js)
+  if (typeof handleMetroUiAction === 'function' && handleMetroUiAction(action, button)) return;
   if (action === 'panel-tab') {
     const panelId = button.dataset.panelId;
     if (TRANSPORT_PANEL_META[panelId]?.tabs?.includes(button.dataset.tab)) {

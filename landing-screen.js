@@ -591,6 +591,7 @@ function rebuildFreshMapSession(cityName) {
   }
   if (typeof rebuildBusStopSprites === 'function') rebuildBusStopSprites(activeScene);
   if (typeof rebuildUnderseaTunnelSprites === 'function') rebuildUnderseaTunnelSprites(activeScene);
+  if (typeof syncMetroStations === 'function') syncMetroStations(activeScene);
   city.name = cityName || getDefaultCityName();
   city.nameEn = '';
   city.plateColor = 0;

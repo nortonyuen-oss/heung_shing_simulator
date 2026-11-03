@@ -109,6 +109,13 @@ function handleNewTool(scene, tile) {
     if (typeof refreshTransportToolHint === 'function') refreshTransportToolHint();
     return result;
   }
+  // 地鐵 (metro.js)
+  if (selectedTool === 'metro-station') return placeMetroStation(scene, row, col);
+  if (selectedTool === 'metro-line') {
+    const result = handleMetroLineClick(scene, row, col);
+    if (typeof refreshTransportToolHint === 'function') refreshTransportToolHint();
+    return result;
+  }
 
   return false;
 }
@@ -747,4 +754,5 @@ function repositionOverlays(scene) {
   if (typeof repositionDistrictSignSprites === 'function') repositionDistrictSignSprites(scene);
   if (typeof repositionRegionConnectionSigns === 'function') repositionRegionConnectionSigns(scene);
   if (typeof repositionUnderseaTunnelSprites === 'function') repositionUnderseaTunnelSprites(scene);
+  if (typeof syncMetroStations === 'function') syncMetroStations(scene);
 }

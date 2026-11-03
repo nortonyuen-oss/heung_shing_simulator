@@ -534,7 +534,9 @@ function canPlaceBuilding(row, col) {
     // nor on a 海濱步道 (promenade.js): the bulldozer takes it up first
     && !(typeof isPromenadeTile === 'function' && isPromenadeTile(row, col))
     // nor on a 海底隧道 portal (undersea-tunnel.js)
-    && !(typeof isUnderseaTunnelTile === 'function' && isUnderseaTunnelTile(row, col));
+    && !(typeof isUnderseaTunnelTile === 'function' && isUnderseaTunnelTile(row, col))
+    // nor on a 地鐵站 entrance (metro.js)
+    && !(typeof isMetroStationTile === 'function' && isMetroStationTile(row, col));
 }
 
 function canPlaceBuildingFootprint(row, col, footprintCols = 1, footprintRows = 1) {

@@ -279,6 +279,8 @@ function createEmptyTransportFinancials() {
     depotUpkeep: 0,
     // the ferries' and piers' upkeep and running (ferry.js)
     ferryOperations: 0,
+    // the trains' and stations' upkeep and running (metro.js)
+    metroOperations: 0,
     // paid in by the government (getTransportGovernmentSubsidy): 政府補貼 and the 兩蚊長者優惠
     operatingSubsidy: 0,
     elderlyFareSubsidy: 0,
@@ -328,6 +330,7 @@ function normalizeTransportFinanceHistory(raw) {
         routeOperations: transportRoundMoney(financials.routeOperations),
         depotUpkeep: transportRoundMoney(financials.depotUpkeep),
         ferryOperations: transportRoundMoney(financials.ferryOperations),
+        metroOperations: transportRoundMoney(financials.metroOperations),
         operatingSubsidy: transportRoundMoney(financials.operatingSubsidy),
         elderlyFareSubsidy: transportRoundMoney(financials.elderlyFareSubsidy),
         subsidy: transportRoundMoney(financials.subsidy),
@@ -683,6 +686,7 @@ function normalizeTransportExpansionState(raw) {
 
   let financeHistory = normalizeTransportFinanceHistory(source.financeHistory);
   const ferry = typeof normalizeFerryState === 'function' ? normalizeFerryState(source.ferry) : source.ferry;
+  const metro = typeof normalizeMetroState === 'function' ? normalizeMetroState(source.metro) : source.metro;
   if (sourceVersion < 4) {
     financeHistory = shiftTransportHistoryMonthBack(financeHistory);
     routes.forEach((route) => { route.history = shiftTransportHistoryMonthBack(route.history); });
@@ -704,6 +708,8 @@ function normalizeTransportExpansionState(raw) {
     vehicles,
     // 渡海小輪 (ferry.js): its piers, routes and ferries, in the same company
     ferry,
+    // 地鐵 (metro.js): its stations, lines and trains
+    metro,
     commissionedDepotIds: Array.from(new Set(
       (Array.isArray(source.commissionedDepotIds) ? source.commissionedDepotIds : [])
         .map((id) => String(id || '').slice(0, 80))
@@ -2243,6 +2249,8 @@ function advanceTransportClock(fromMinutes, toMinutes) {
   }
   // 渡海小輪 (ferry.js): its piers' queues and every berthing in the span, on the same clock
   if (typeof advanceFerryClock === 'function') advanceFerryClock(from, to);
+  // 地鐵 (metro.js): its stations' queues and every call in the span
+  if (typeof advanceMetroClock === 'function') advanceMetroClock(from, to);
 }
 
 function getTransportQueueRevision() {
@@ -2610,6 +2618,18 @@ function updateTransportSimulation() {
     }
   }
 
+  // 地鐵 (metro.js): its stations' land value, traffic relief and the homes, shops and works they serve
+  if (typeof applyMetroCityEffects === 'function') {
+    const metro = applyMetroCityEffects({
+      landValueBonus: transportRuntime.landValueBonus,
+      buildingModeShare: transportRuntime.buildingModeShare,
+      residentialBenefits, residentialReached, commercialBenefits, industrialBenefits,
+      keyOf: getTransportStopKey,
+    });
+    activeRoutes += metro.lines;
+    qualityTotal += metro.quality;
+  }
+
   let coveredResidentialPopulation = 0;
   for (const [id, quality] of residentialBenefits) {
     coveredResidentialPopulation += Math.max(0, Number(buildingData[id]?.population) || 0) * quality;
@@ -2733,9 +2753,13 @@ function settleTransportMonth() {
   // costs, the ferries' upkeep and running and the piers', paid with the depots'
   const ferryMonth = typeof settleFerryMonth === 'function' ? settleFerryMonth(ended) : { revenue: 0, passengers: 0, cost: 0 };
   revenue += ferryMonth.revenue;
+  // and the metro's (metro.js) the same way
+  const metroMonth = typeof settleMetroMonth === 'function' ? settleMetroMonth(ended) : { revenue: 0, passengers: 0, cost: 0 };
+  revenue += metroMonth.revenue;
   const depotUpkeep = getConnectedCommissionedTransportDepots().length * TRANSPORT_DEPOT_MONTHLY_UPKEEP;
   const ferryOperations = Number(ferryMonth.cost) || 0;
-  const cost = transportRoundMoney(routeOperations + depotUpkeep + ferryOperations);
+  const metroOperations = Number(metroMonth.cost) || 0;
+  const cost = transportRoundMoney(routeOperations + depotUpkeep + ferryOperations + metroOperations);
   const roundedRevenue = transportRoundMoney(revenue);
   // worked out before lastFinancials moves on: the operating subsidy is last month's costs' share
   const grant = getTransportGovernmentSubsidy();
@@ -2748,6 +2772,7 @@ function settleTransportMonth() {
     routeOperations: transportRoundMoney(routeOperations),
     depotUpkeep: transportRoundMoney(depotUpkeep),
     ferryOperations: transportRoundMoney(ferryOperations),
+    metroOperations: transportRoundMoney(metroOperations),
     operatingSubsidy: grant.operatingSubsidy,
     elderlyFareSubsidy: grant.elderlyFareSubsidy,
     subsidy: grant.subsidy,
@@ -2759,7 +2784,7 @@ function settleTransportMonth() {
     month: ended.month,
     passengers: state.routes.reduce((sum, route) => (
       sum + (route.history.at(-1)?.passengers || 0)
-    ), 0) + ferryMonth.passengers,
+    ), 0) + ferryMonth.passengers + metroMonth.passengers,
     ...state.lastFinancials,
     closingCash: state.company.cash,
   });
@@ -2786,6 +2811,10 @@ function settleTransportMonth() {
       (state.ferry?.routes || []).forEach((route) => {
         if (route.status !== 'suspended') { route.status = 'suspended'; suspendedAny = true; }
       });
+      // and the metro lines (metro.js)
+      (state.metro?.lines || []).forEach((line) => {
+        if (line.status !== 'suspended') { line.status = 'suspended'; suspendedAny = true; }
+      });
       if (suspendedAny && typeof showToast === 'function') {
         showToast(t('transport.toast.bankruptSuspended'), 'warning');
       }
@@ -2804,7 +2833,9 @@ function getTransportFinancials() {
 
 function getBuildingTransportModeShare(id) {
   if (!isTransportExpansionActive() || isTransportSevereWeather()) return 0;
-  return transportClamp(transportRuntime.buildingModeShare.get(String(id)) || 0, 0, TRANSPORT_TRAFFIC_RELIEF_MAX);
+  // (a metro station relieves more than a bus route: metro.js)
+  const max = typeof METRO !== 'undefined' ? Math.max(TRANSPORT_TRAFFIC_RELIEF_MAX, METRO.trafficReliefMax) : TRANSPORT_TRAFFIC_RELIEF_MAX;
+  return transportClamp(transportRuntime.buildingModeShare.get(String(id)) || 0, 0, max);
 }
 
 function getTransportLandValueBonus(row, col) {
@@ -2812,7 +2843,8 @@ function getTransportLandValueBonus(row, col) {
   return transportClamp(
     transportRuntime.landValueBonus.get(getTransportStopKey(row, col)) || 0,
     0,
-    TRANSPORT_LAND_VALUE_BONUS_MAX,
+    // (a metro station's reaches higher than a bus stop's: metro.js)
+    typeof METRO !== 'undefined' ? Math.max(TRANSPORT_LAND_VALUE_BONUS_MAX, METRO.landValueBonusMax) : TRANSPORT_LAND_VALUE_BONUS_MAX,
   );
 }
 

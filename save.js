@@ -1633,6 +1633,8 @@ function rebuildSceneFromSave(scene, save) {
   if (typeof syncTyphoonShelterFacilitySprites === 'function') syncTyphoonShelterFacilitySprites(scene);
   // and the ferry piers (ferry.js)
   if (typeof syncFerryPiers === 'function') syncFerryPiers(scene);
+  // and the 地鐵站 entrances (metro.js)
+  if (typeof syncMetroStations === 'function') syncMetroStations(scene);
   // and the 海濱步道 (promenade.js; its ground came with the shelters' quay terrain above)
   if (typeof syncPromenadeSprites === 'function') syncPromenadeSprites(scene);
   if (typeof refreshEventGroundPaving === 'function') refreshEventGroundPaving(scene);

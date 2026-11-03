@@ -5801,25 +5801,28 @@
     }
 
     #tool-menu [data-tool-category="transport"],
-    #tool-menu [data-tool-category="transport-ferry"] {
+    #tool-menu [data-tool-category="transport-ferry"],
+    #tool-menu [data-tool-category="transport-metro"] {
       display: none;
     }
 
     body.transport-mode #tool-menu [data-tool-category="transport"],
-    body.transport-mode #tool-menu [data-tool-category="transport-ferry"] {
+    body.transport-mode #tool-menu [data-tool-category="transport-ferry"],
+    body.transport-mode #tool-menu [data-tool-category="transport-metro"] {
       display: grid;
     }
 
     body.transport-mode #tool-menu .tool-menu-divider,
-    body.transport-mode #tool-menu .tool-flyout:not([data-tool-panel="transport"]):not([data-tool-panel="transport-ferry"]),
-    body.transport-mode #tool-menu [data-tool-category]:not([data-tool-category="transport"]):not([data-tool-category="transport-ferry"]):not([data-tool-category="inspect"]) {
+    body.transport-mode #tool-menu .tool-flyout:not([data-tool-panel="transport"]):not([data-tool-panel="transport-ferry"]):not([data-tool-panel="transport-metro"]),
+    body.transport-mode #tool-menu [data-tool-category]:not([data-tool-category="transport"]):not([data-tool-category="transport-ferry"]):not([data-tool-category="transport-metro"]):not([data-tool-category="inspect"]) {
       display: none !important;
     }
 
     /* in transport mode its own tools come first, above inspect and demolish */
-    body.transport-mode #tool-menu .tool-menu-guide { order: -3; }
-    body.transport-mode #tool-menu [data-tool-category="transport"] { order: -2; }
-    body.transport-mode #tool-menu [data-tool-category="transport-ferry"] { order: -1; }
+    body.transport-mode #tool-menu .tool-menu-guide { order: -4; }
+    body.transport-mode #tool-menu [data-tool-category="transport"] { order: -3; }
+    body.transport-mode #tool-menu [data-tool-category="transport-ferry"] { order: -2; }
+    body.transport-mode #tool-menu [data-tool-category="transport-metro"] { order: -1; }
 
     /* the transport tools say what they do under their names */
     .transport-tool-flyout { min-width: 300px; }
@@ -7300,6 +7303,30 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
       </button>
     </section>
 
+    <button class="tool-category-button" type="button" data-tool-category="transport-metro" title="Metro stations and lines (population 30,000)" data-i18n-title="toolCategory.metroTitleHint">
+      <span class="tool-category-icon" aria-hidden="true">🚇</span>
+      <span class="tool-category-labels">
+        <span class="tool-category-title" data-i18n="toolCategory.metroTitle">地鐵</span>
+        <span class="tool-category-subtitle" data-i18n="toolCategory.metroSubtitle">Metro</span>
+      </span>
+      <span class="tool-category-accent" aria-hidden="true"></span>
+      <span class="tool-category-hotkey" aria-hidden="true"></span>
+    </button>
+
+    <section class="tool-flyout transport-tool-flyout" data-tool-panel="transport-metro">
+      <div class="tool-flyout-title" data-i18n="toolCategory.metroTitle">Metro</div>
+      <button class="tool-row" type="button" data-tool="metro-station">
+        <span class="tool-row-icon">Ⓜ️</span>
+        <span class="tool-row-main"><span class="tool-row-text" data-i18n="toolRow.metroStation">Metro Station</span><span class="tool-row-desc" data-i18n="toolRow.metroStationDesc">1 × 1 entrance beside a road; serves 10 tiles round it</span></span>
+        <span class="tool-row-cost">$15,000</span>
+      </button>
+      <button class="tool-row" type="button" data-tool="metro-line">
+        <span class="tool-row-icon">➕</span>
+        <span class="tool-row-main"><span class="tool-row-text" data-i18n="toolRow.metroLine">Metro Line</span><span class="tool-row-desc" data-i18n="toolRow.metroLineDesc">Click station after station; tunnels $300 a tile, $700 under the sea</span></span>
+        <span class="tool-row-cost">$5,000</span>
+      </button>
+    </section>
+
     <section class="tool-flyout" data-tool-panel="zones">
       <div class="tool-flyout-title" data-i18n="toolCategory.zones">Zones</div>
       <button class="tool-row" type="button" data-tool="zone-res" data-zone-type="res">
@@ -8281,6 +8308,8 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
   <script src="typhoon-shelter-calibrator.js"></script>
   <script src="ferry.js"></script>
   <script src="ferry-ui.js"></script>
+  <script src="metro.js"></script>
+  <script src="metro-ui.js"></script>
   <script src="water-effects.js"></script>
   <script src="promenade.js"></script>
   <script src="festival-assets.js"></script>

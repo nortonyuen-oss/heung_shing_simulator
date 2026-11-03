@@ -537,6 +537,7 @@ test('live expansion unlocks, routes, breaks, settles and restores without affec
     routeOperations: 0,
     depotUpkeep: 0,
     ferryOperations: 0,
+    metroOperations: 0,
     operatingSubsidy: 0,
     elderlyFareSubsidy: 0,
     subsidy: 0,

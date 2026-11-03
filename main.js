@@ -330,6 +330,8 @@ function updateGameFrame(time, delta) {
   // 避風塘 boats: their positions follow the environment clock (typhoon-shelter-fleet.js)
   if (typeof updateTyphoonShelterBoats === 'function') updateTyphoonShelterBoats(this);
   if (typeof updateFerries === 'function') updateFerries(this);
+  // 地鐵 lines, stations and trains drawn over the map in Transport Mode (metro.js)
+  if (typeof updateMetroOverlay === 'function') updateMetroOverlay(this);
   if (typeof updateTyphoonShelterBobbing === 'function') updateTyphoonShelterBobbing(this, time);
   if (typeof updateTyphoonShelterMarkets === 'function') updateTyphoonShelterMarkets(this, time);
   if (typeof updateTyphoonShelterBuildingLighting === 'function') updateTyphoonShelterBuildingLighting(this);
@@ -1876,6 +1878,7 @@ function positionAllTiles(scene) {
   if (typeof repositionDistrictSignSprites === 'function') repositionDistrictSignSprites(scene);
   if (typeof repositionRegionConnectionSigns === 'function') repositionRegionConnectionSigns(scene);
   if (typeof repositionUnderseaTunnelSprites === 'function') repositionUnderseaTunnelSprites(scene);
+  if (typeof syncMetroStations === 'function') syncMetroStations(scene);
 
   repositionBridgeSprites(scene);
   repositionOverlays(scene);
@@ -1889,6 +1892,8 @@ function canPlaceRoad(scene, row, col) {
   if (scene?.buildingSprites?.has(getTileId(row, col))) return false;
   if (buildingData[getTileId(row, col)]) return false;
   if (typeof isUnderseaTunnelTile === 'function' && isUnderseaTunnelTile(row, col)) return false;
+  // nor on a 地鐵站 entrance (metro.js)
+  if (typeof isMetroStationTile === 'function' && isMetroStationTile(row, col)) return false;
   if (!isSupportedRoadSlopeTile(row, col)) return false;
   return true;
 }
@@ -1951,7 +1956,9 @@ function isNewToolHandledByToolsModule(tool) {
     || tool === 'ferry-pier'
     || tool === 'ferry-route'
     || tool === 'promenade'
-    || tool === 'undersea-tunnel';
+    || tool === 'undersea-tunnel'
+    || tool === 'metro-station'
+    || tool === 'metro-line';
 }
 
 function getSelectedPlacementFootprint() {
@@ -1989,6 +1996,7 @@ function getSelectedPlacementFootprint() {
   if (selectedTool === 'park-large') return { footprintCols: 3, footprintRows: 3 };
   if (selectedTool === 'bus-depot') return { footprintCols: BUS_DEPOT_FOOTPRINT_COLS, footprintRows: BUS_DEPOT_FOOTPRINT_ROWS };
   if (selectedTool === 'ferry-pier' && typeof FERRY !== 'undefined') return { footprintCols: FERRY.pierCols, footprintRows: FERRY.pierRows };
+  if (selectedTool === 'metro-station') return { footprintCols: 1, footprintRows: 1 };
   if (selectedTool === 'floating-restaurant' && typeof TYPHOON_SHELTER_FLOATING_RESTAURANT !== 'undefined') {
     // (turned by a right-click: typhoonShelterFloatingRestaurantTurn)
     const F = TYPHOON_SHELTER_FLOATING_RESTAURANT;
@@ -2104,6 +2112,8 @@ function applyToolAt(scene, row, col, pointer = null) {
     if (typeof demolishPromenadeAt === 'function' && demolishPromenadeAt(scene, row, col)) return;
     // and a 海底隧道 filled in whole (undersea-tunnel.js)
     if (typeof demolishUnderseaTunnelAt === 'function' && demolishUnderseaTunnelAt(scene, row, col)) return;
+    // and a 地鐵站 (metro.js), refused while a line calls at it
+    if (typeof demolishMetroStationAt === 'function' && demolishMetroStationAt(scene, row, col)) return;
     spendBudget(COST_BULLDOZE);
     if (typeof removeDistrictSignAt === 'function') removeDistrictSignAt(scene, row, col);
     removeBuilding(scene, row, col);

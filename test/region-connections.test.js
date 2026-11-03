@@ -160,3 +160,30 @@ test('looking past the map edge finds nothing instead of throwing (a straight ed
   assert.equal(getBaseTileKey(256, 60), null);
   assert.equal(getBaseTileKey(-1, 60), null);
 });
+
+test('full roads out of the city make the forum (no picture), then not again for six months', () => {
+  const posts = [];
+  const source = `
+    const MAP_WIDTH = 256, MAP_HEIGHT = 256;
+    const city = { name: '測試城', forumPosts: posts, regionFlows: null };
+    const t = (key) => key;
+    const addCityNews = () => {};
+    const addForumPost = (article, meta) => { const post = { id: meta.id, ...article }; posts.push(post); return post; };
+    ${read('hk-district-info.js')}
+    ${read('region-connections.js')}
+    return { city, maybeAnnounceRegionCongestion };
+  `;
+  const { city, maybeAnnounceRegionCongestion } = new Function('posts', 'document', source)(posts, undefined);
+  const flows = (utilisation) => ({ utilisation, out: 2000, into: 300, connections: [{ side: 'n', lanes: 2, neighbour: 'sha-tin' }] });
+
+  city.regionFlows = flows(0.7);
+  assert.equal(maybeAnnounceRegionCongestion(100), null, 'not full yet');
+  city.regionFlows = flows(0.95);
+  const post = maybeAnnounceRegionCongestion(101);
+  assert.ok(post?.headline.includes('沙田'), 'names the district the road leads to');
+  assert.ok(!post.image, 'no news picture yet');
+  assert.ok(post.body.length <= 3, 'within what a saved post keeps');
+  assert.equal(maybeAnnounceRegionCongestion(104), null, 'not again within six months');
+  assert.ok(maybeAnnounceRegionCongestion(107), 'again after six months');
+  assert.equal(posts.length, 2);
+});

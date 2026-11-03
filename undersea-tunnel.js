@@ -406,8 +406,9 @@ function getUnderseaTunnelLayerTextures(scene, viewKey) {
   const isSlab = (p, r, c) => {
     if (r > -0.5 && c > -0.5 && r < view.rows - 0.8 && c < view.cols - 0.8) return false;
     const red = data[p * 4], green = data[p * 4 + 1], blue = data[p * 4 + 2];
-    const earth = red > 100 && green > 50 && green < 170 && red - blue > 45;
-    const grass = green > 95 && blue < 60 && Math.abs(red - green) < 35;
+    // earth from dark brown to sand, and the olive grass strip; the concrete is grey
+    const earth = red > 100 && green > 30 && green < 205 && red - blue > 35;
+    const grass = green > 95 && blue < 75 && green - blue > 30 && Math.abs(red - green) < 35;
     return earth || grass;
   };
   const openEnd = new Uint8Array(width * height);

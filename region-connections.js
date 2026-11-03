@@ -300,6 +300,47 @@ function syncRegionConnectionSigns(scene = typeof activeScene !== 'undefined' ? 
 
 // ── 「更多訊息」: the connections and last month's flows ──────────────────────
 
+// ── 跨區塞車 on the forum ─────────────────────────────────────────────────────
+
+// A month the roads out are this full (city.regionFlows.utilisation) makes the forum; then not
+// again for a while. The post has no picture yet.
+const REGION_JAM_UTILISATION = 0.9;
+const REGION_JAM_COOLDOWN_MONTHS = 6;
+
+// Called once a month (updateCouncilTimedSystems, council-effects.js).
+function maybeAnnounceRegionCongestion(monthIndex) {
+  const flows = city?.regionFlows;
+  if (!flows || !(flows.utilisation >= REGION_JAM_UTILISATION) || !flows.connections?.length) return null;
+  if (typeof addForumPost !== 'function') return null;
+  const posts = Array.isArray(city.forumPosts) ? city.forumPosts : [];
+  const recent = posts.some((post) => {
+    const match = /^regionJam-(\d+)$/.exec(post?.id || '');
+    return match && monthIndex - Number(match[1]) < REGION_JAM_COOLDOWN_MONTHS;
+  });
+  if (recent) return null;
+
+  const cityName = String(city.name || '').trim() || '香城';
+  const names = [...new Set(flows.connections.map((connection) => getRegionNeighbourName(connection.neighbour, 'zhHant')))];
+  const towards = names.join('、');
+  const lanes = flows.connections.reduce((sum, connection) => sum + connection.lanes, 0);
+  const commuters = (flows.out + flows.into).toLocaleString();
+  const outbound = flows.out >= flows.into;
+  const headline = `【跨區塞車】${cityName}往${towards}對外道路大擠塞　上班族：「出入城要成個鐘」`;
+  if (typeof addCityNews === 'function') addCityNews(headline);
+  return addForumPost({
+    headline,
+    body: [
+      `今朝繁忙時間，${cityName}通往${towards}嘅對外道路全線擠塞。得 ${lanes} 條行車線，每日要應付約 ${commuters} 人次跨區通勤，車龍由區界一直排返入市區。`,
+      outbound
+        ? `「區內搵唔到工，大家都要出去返工，條路點會唔塞？」一位喺巴士站等咗半個鐘嘅街坊話。有司機話由屋企揸到區界已經用咗成個鐘。`
+        : `「外區嘅人一窩蜂入嚟返工，返工放工兩條龍。」一位區內商戶老闆話。有市民話寧願提早一個鐘出門避開車龍。`,
+      `運輸署發言人表示，正研究加闊或者加開對外道路，又呼籲市民盡量轉乘公共交通。有網民留言：「起多條路啦，唔好淨係講研究。」`,
+    ],
+    source: 'local',
+    social: { likes: 820, laughs: 140, angry: 1350, commentCount: 476, shares: 390 },
+  }, { id: `regionJam-${monthIndex}`, category: '城中熱話', author: '香城交通台' });
+}
+
 function updateRegionConnectionPanel() {
   const section = document.getElementById('budget-region');
   const body = document.getElementById('budget-region-body');

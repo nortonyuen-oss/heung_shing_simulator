@@ -491,6 +491,8 @@ function updateCouncilTimedSystems() {
   if (typeof maybeAnnounceAnnualCityFortune === 'function') {
     maybeAnnounceAnnualCityFortune(monthIndex);
   }
+  // 跨區塞車 when the roads out of the city are full (region-connections.js)
+  if (typeof maybeAnnounceRegionCongestion === 'function') maybeAnnounceRegionCongestion(monthIndex);
   if (typeof generateMonthlyForumPost === 'function') generateMonthlyForumPost(monthIndex);
 
   // Shows themselves fire at 20:00 on the sky clock (updateDroneShowClock);

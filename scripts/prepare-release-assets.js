@@ -25,6 +25,7 @@ const LANDMARK_FOLDERS = new Set(
 // more than 256px. Matched by folder prefix under Models/.
 const SMALL_PROP_MAX_DIMENSION = 256;
 const SMALL_PROP_PREFIXES = ['trafficLight/', 'traffic/lightPost/', 'roadAssessories/'];
+const FIXED_GROUND_TILE_PREFIXES = ['metroTrack/'];
 
 // Zone folders whose one model is shown landmark-sized (中銀, the tallest tower: some 500 px wide at zoom 1 on 5x5).
 const LANDMARK_PREFIXES = ['commercial/9x9/'];
@@ -180,7 +181,8 @@ async function prepareFile(sourcePath) {
   const logicalPath = `Models/${relativeFromModels}`;
   const packagedRelative = relativeFromModels.replace(/\.[^.]+$/, '.webp');
   const packagedPath = `Models/${packagedRelative}`;
-  const shouldTrim = !relativeFromModels.startsWith('trees/');
+  const shouldTrim = !relativeFromModels.startsWith('trees/')
+    && !FIXED_GROUND_TILE_PREFIXES.some((prefix) => relativeFromModels.startsWith(prefix));
   const fileMaxDimension = maxDimensionFor(relativeFromModels);
   const fitsPowerOfTwo = shouldTrim && !SMALL_PROP_PREFIXES.some((prefix) => relativeFromModels.startsWith(prefix));
   const cacheKey = sha256(Buffer.concat([

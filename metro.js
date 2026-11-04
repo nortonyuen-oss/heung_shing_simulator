@@ -103,6 +103,8 @@ function normalizeMetroState(raw) {
     nextTrainId: Math.max(1, Math.floor(num(src.nextTrainId, 1)), ...used.map((n) => n + 1)),
     // once open, it stays open (a city that shrinks below the mark keeps its railway)
     unlocked: src.unlocked === true,
+    // 地下鐵路撥款 (council-definitions.js): what is left of the government's grants, for the metro only
+    grantBalance: Math.max(0, Math.round(num(src.grantBalance))),
   };
 }
 
@@ -111,6 +113,40 @@ function getMetroState() {
   if (!transport) return normalizeMetroState(null);
   if (!transport.metro) transport.metro = normalizeMetroState(null);
   return transport.metro;
+}
+
+// 地下鐵路撥款: the treasury's grant, passed by the council (council-effects.js), kept apart from the
+// company's cash for the metro only.
+function grantMetroFunding(amount) {
+  const value = Math.max(0, Math.round(Number(amount) || 0));
+  if (!value) return 0;
+  getMetroState().grantBalance += value;
+  if (typeof queueCityChangeAutosave === 'function') queueCityChangeAutosave();
+  if (typeof refreshTransportUi === 'function') refreshTransportUi();
+  return value;
+}
+
+// What the metro builds and buys is paid from the grant first, the company's cash for the rest.
+// False, and nothing spent, when the two together are not enough.
+function spendMetroFunds(amount) {
+  const cost = Math.max(0, Math.round(Number(amount) || 0));
+  const state = getMetroState();
+  const fromGrant = Math.min(state.grantBalance, cost);
+  const rest = cost - fromGrant;
+  if (rest > 0) {
+    const spend = typeof spendTransportConstruction === 'function' ? spendTransportConstruction : null;
+    if (!spend || !spend(rest)) return false;
+  }
+  state.grantBalance -= fromGrant;
+  // the company's cash does not move while the grant pays, so say where the money came from
+  if (fromGrant > 0 && typeof showToast === 'function') {
+    showToast(metroT('metro.toast.paidFromGrant', '地鐵撥款支付 ${paid}{rest}，撥款餘額 ${left}。', {
+      paid: fromGrant.toLocaleString(),
+      rest: rest > 0 ? metroT('metro.toast.paidRest', '，公司現金支付 ${rest}', { rest: rest.toLocaleString() }) : '',
+      left: state.grantBalance.toLocaleString(),
+    }), 'info');
+  }
+  return true;
 }
 
 // Open to the transport company once the city has 30,000 people; the forum hears of it.
@@ -214,8 +250,7 @@ function placeMetroStation(scene, row, col) {
   if (!isMetroUnlocked()) return warn(metroT(...METRO_REFUSALS.locked));
   const res = whyNotMetroStationAt(row, col, getMetroStationContext());
   if (res.code) return warn(metroT(...METRO_REFUSALS[res.code]));
-  const spend = typeof spendTransportConstruction === 'function' ? spendTransportConstruction : spendBudget;
-  if (!spend(METRO.stationCost)) {
+  if (!spendMetroFunds(METRO.stationCost)) {
     return warn(metroT('metro.station.funds', '公司資金唔夠起地鐵站（要 ${cost}）。', { cost: METRO.stationCost.toLocaleString() }));
   }
   if (typeof removeTree === 'function') removeTree(scene, row, col);
@@ -307,8 +342,7 @@ function handleMetroLineClick(scene, row, col) {
     return say('metro.line.full', '一條綫最多 {n} 個站。', { n: METRO.maxStationsPerLine }, 'warning');
   }
   const tunnel = metroTunnelBetween(last, station, metroIsSea);
-  const spend = typeof spendTransportConstruction === 'function' ? spendTransportConstruction : spendBudget;
-  if (!spend(tunnel.cost)) {
+  if (!spendMetroFunds(tunnel.cost)) {
     return say('metro.line.funds', '公司資金唔夠掘隧道（要 ${cost}）。', { cost: tunnel.cost.toLocaleString() }, 'warning');
   }
   if (draftLine) {
@@ -469,8 +503,7 @@ function buyMetroTrain(lineId) {
   if (!line) return { ok: false, code: 'line' };
   const fleet = getMetroLineTrains(line, state);
   if (fleet.length >= METRO.maxTrainsPerLine) return { ok: false, code: 'full' };
-  const spend = typeof spendTransportConstruction === 'function' ? spendTransportConstruction : null;
-  if (!spend || !spend(METRO.trainPrice)) return { ok: false, code: 'funds' };
+  if (!spendMetroFunds(METRO.trainPrice)) return { ok: false, code: 'funds' };
   const train = {
     id: `train-${state.nextTrainId++}`, lineId, phase: metroJoiningPhase(fleet.map((v) => v.phase)),
     aboard: 0, purchasePrice: METRO.trainPrice, ageMonths: 0, tilesThisMonth: 0, monthToDateRevenue: 0, lastMonthRevenue: 0,
@@ -685,12 +718,13 @@ function applyMetroCityEffects({ landValueBonus, buildingModeShare, residentialB
 // ── On the map ────────────────────────────────────────────────────────────────
 
 // The entrance (Models/subwayStation, each view squared to 2:1 on its paving - scripts/source-art/
-// subwayStation), its paving filling the tile. The front view's stairs face down-left on screen,
-// the back view's up-right; mirrored, down-right and up-left: the four ways to a road. `anchor` is
-// the middle of the paving diamond and `pavingWidth` its width, in the picture's pixels.
+// subwayStation), shrunk to 68% on a paved plinth that fills the tile (scripts/prepare-subway-
+// station-assets.py). The front view's stairs face down-left on screen, the back view's up-right;
+// mirrored, down-right and up-left: the four ways to a road. `anchor` is the middle of the
+// plinth's diamond and `pavingWidth` its width, in the picture's pixels.
 const METRO_STATION_ART = Object.freeze({
-  front: { path: 'Models/subwayStation/subwayStation.png', key: 'metro_station_front', anchor: [686.5, 765.6], pavingWidth: 1367 },
-  back: { path: 'Models/subwayStation/subwayStationBack.png', key: 'metro_station_back', anchor: [723.0, 814.1], pavingWidth: 1402 },
+  front: { path: 'Models/subwayStation/subwayStation.png', key: 'metro_station_front', anchor: [512, 761], pavingWidth: 1000 },
+  back: { path: 'Models/subwayStation/subwayStationBack.png', key: 'metro_station_back', anchor: [512, 761], pavingWidth: 1000 },
 });
 
 function loadMetroStationTextures(scene) {
@@ -729,8 +763,11 @@ function placeMetroStationSprite(scene, station, sprite) {
   sprite.setScale((TILE_WIDTH / view.pavingWidth) * anchor.scaleMultiplier);
   const face = getTileFaceGeometry(station.row, station.col, scene.offsetX, scene.offsetY);
   sprite.setPosition(face.center.x, face.center.y);
+  // sorted as a 1 x 1 building is (building-placement.js), so the towers behind it stay behind it
   const pos = isoToScreen(station.col, station.row);
-  sprite.setDepth(getObjectTileDepth(station.row, station.col, pos.y + 1));
+  sprite.setDepth(getBuildingSortDepth(pos.y, 1, 1, getBuildingElevationOffset(station.row, station.col, 1, 1)));
+  // dark at night with the ground, from the moment it is built (day-night-lighting.js)
+  if (typeof applyNightPropTint === 'function') applyNightPropTint(scene, sprite);
 }
 
 // The entrances as sprites, made or moved to match the stations (after a station is built or

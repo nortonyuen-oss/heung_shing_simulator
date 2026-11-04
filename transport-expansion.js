@@ -248,14 +248,17 @@ function createDefaultTransportCompany() {
   };
 }
 
-function normalizeTransportCompany(raw) {
+// `legacyScale`: a save from before the v0.6 unit correction (schema < 3), whose money may still be
+// x10,000 (normalizeTransportLegacyScaleMoney). Never for a save written since: a company can now
+// hold $100,000 and more (the metro), and that cash is real.
+function normalizeTransportCompany(raw, legacyScale = false) {
   const source = raw && typeof raw === 'object' ? raw : {};
   return {
     name: String(source.name || '').slice(0, 60),
     presidentName: String(source.presidentName || '').slice(0, 40),
     // Unlike building/route money, company cash is allowed to go negative -
     // that's the bankruptcy signal in docs/transport-ttd-spec.md §4, not a bug.
-    cash: normalizeTransportLegacyScaleMoney(Number(source.cash) || 0, 100000),
+    cash: legacyScale ? normalizeTransportLegacyScaleMoney(Number(source.cash) || 0, 100000) : Math.round(Number(source.cash) || 0),
     cashFraction: transportClamp(Number(source.cashFraction) || 0, 0, 0.999999),
     foundedYear: Math.max(0, Math.floor(Number(source.foundedYear) || 0)),
     foundedMonth: transportClamp(Math.floor(Number(source.foundedMonth) || 0), 0, 12),
@@ -540,7 +543,7 @@ function normalizeTransportLegacyDayMinutes(minutes, legacyDays) {
     : 0;
 }
 
-function normalizeTransportVehicle(raw) {
+function normalizeTransportVehicle(raw, legacyScale = false) {
   if (!raw || typeof raw !== 'object') return null;
   const id = String(raw.id || '').slice(0, 80);
   if (!id) return null;
@@ -567,7 +570,7 @@ function normalizeTransportVehicle(raw) {
     // Riders boarded this calendar month, capped by the class's
     // monthlyRidershipCap in dwellTransportVehicleAtStop; reset at settlement.
     boardingsThisMonth: Math.max(0, Math.floor(Number(raw.boardingsThisMonth) || 0)),
-    purchasePrice: Math.max(0, normalizeTransportLegacyScaleMoney(raw.purchasePrice, 10000)),
+    purchasePrice: Math.max(0, legacyScale ? normalizeTransportLegacyScaleMoney(raw.purchasePrice, 10000) : Math.round(Number(raw.purchasePrice) || 0)),
     passengersAboard: Math.max(0, Math.floor(Number(raw.passengersAboard) || 0)),
     // Aggregate distance already travelled by everyone currently aboard.
     // Adding passengers does not alter the balance; movement adds
@@ -650,10 +653,10 @@ function normalizeTransportExpansionState(raw) {
     }));
 
   let vehicles = (Array.isArray(source.vehicles) ? source.vehicles : [])
-    .map(normalizeTransportVehicle)
+    .map((vehicle) => normalizeTransportVehicle(vehicle, sourceVersion < 3))
     .filter(Boolean);
   let nextVehicleId = Math.max(1, Math.floor(Number(source.nextVehicleId) || vehicles.length + 1));
-  let company = normalizeTransportCompany(source.company);
+  let company = normalizeTransportCompany(source.company, sourceVersion < 3);
 
   // v1 -> v2: synthesize vehicles from each route's old `buses` count, and
   // carry forward whatever startup credit was left as the new company's

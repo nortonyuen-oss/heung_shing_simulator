@@ -350,6 +350,30 @@ const COUNCIL_RESOLUTION_DEFS = Object.freeze([
     successModifiers: {},
     riskModifiers: {},
   },
+  {
+    // 地下鐵路撥款 (Norton 2026-11-03): the treasury funds the metro, as the government's equity built
+    // the MTR in 1975. Its price - a floor plus months of income - goes to the transport company as
+    // a grant for the metro only (metro.js grantMetroFunding); a new grant for each stage of the
+    // network, three years apart.
+    id: 'metroRailwayFunding',
+    titleKey: 'resolution.metroRailwayFunding.title',
+    descKey: 'resolution.metroRailwayFunding.desc',
+    upfrontBase: 40000,
+    monthsOfIncome: 5,
+    durationMonths: 1,
+    cooldownMonths: 36,
+    absurdity: 0,
+    unlockPopulation: 30000,
+    requiresTransportCompany: true,
+    transportGrant: true,
+    // business backs it as the MTR's stations lift the trade and property round them; a jammed city
+    // (the roads' need) is what carries the vote
+    issues: { roads: 2, finance: -1, business: 1.5, tourism: 0.5, environment: 0.5 },
+    tags: ['railway', 'infrastructure', 'public_transport', 'landmark'],
+    leadOfficialIds: ['treasury_head', 'chief_executive'],
+    successModifiers: {},
+    riskModifiers: {},
+  },
 ]);
 
 const COUNCIL_RESOLUTION_IDS = Object.freeze(COUNCIL_RESOLUTION_DEFS.map((resolution) => resolution.id));

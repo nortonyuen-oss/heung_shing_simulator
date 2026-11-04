@@ -98,6 +98,9 @@ function renderMetroLinesSection() {
       <button class="transport-btn" type="button" data-transport-action="metro-new-station">${metroUiEscape(metroT('metro.ui.newStation', '起地鐵站（${cost}）', { cost: METRO.stationCost.toLocaleString() }))}</button>
     </div>
     <p class="transport-depots">${metroUiEscape(metroT('metro.ui.stations', '地鐵站 {n} 個 · 列車 {trains} 列', { n: state.stations.length, trains: state.trains.length }))}</p>
+    <p class="transport-depots">${metroUiEscape(state.grantBalance > 0
+      ? metroT('metro.ui.grant', '政府地鐵撥款餘額 ${amount}：起站、掘隧道同買列車會先用撥款。', { amount: Math.round(state.grantBalance).toLocaleString() })
+      : metroT('metro.ui.grantHint', '公司資金唔夠？可以喺立法會提出「地下鐵路撥款」，由市庫注資起地鐵。'))}</p>
     <div class="transport-routes">${cards}</div>`;
 }
 

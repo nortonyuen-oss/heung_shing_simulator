@@ -1350,3 +1350,18 @@ test('政府補貼: under the act the company is paid 30% of last month\'s costs
   assert.equal(context.cashAfter - context.cashBefore, s.subsidy - s.cost, 'cash: costs out, subsidy in (fares were credited as riders alighted)');
   assert.equal(vm.runInContext('getTransportExpansionState().financeHistory.at(-1).subsidy', context), s.subsidy, 'kept in the books');
 });
+
+test('a company with $100,000 and more keeps it through a save; only a pre-v0.6 save is scaled back', () => {
+  const saved = transport.normalizeTransportExpansionState({
+    schemaVersion: 4,
+    company: { cash: 150000 },
+    vehicles: [{ id: 'bus-1', purchasePrice: 28000 }],
+  });
+  assert.equal(saved.company.cash, 150000, 'not read back as $15');
+  assert.equal(saved.vehicles[0].purchasePrice, 28000);
+  const legacy = transport.normalizeTransportExpansionState({
+    schemaVersion: 2,
+    company: { cash: -400013 },
+  });
+  assert.equal(legacy.company.cash, -40, 'the old x10,000 scale is still repaired');
+});

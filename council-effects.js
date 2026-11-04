@@ -199,6 +199,11 @@ function resolveCouncilResolutionOutcome(resolutionId) {
   if (definition.unlockBuildingType) {
     return { outcome: 'success', readiness: 1, refundCost: 0, modifiers: {} };
   }
+  // 地下鐵路撥款: the money the city paid goes to the transport company, for the metro (metro.js)
+  if (definition.transportGrant) {
+    const grant = typeof grantMetroFunding === 'function' ? grantMetroFunding(getCouncilResolutionUpfrontCost(resolutionId)) : 0;
+    return { outcome: 'success', readiness: 1, refundCost: 0, modifiers: {}, grant };
+  }
   const readiness = getCouncilResolutionReadiness(resolutionId, 'approval');
   const outcome = readiness >= 0.56 ? 'success' : (definition.failureOutcome || 'failure');
   const modifiers = outcome === 'success' ? definition.successModifiers : definition.riskModifiers;

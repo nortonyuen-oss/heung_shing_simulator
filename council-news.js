@@ -167,6 +167,12 @@ function getResolutionCanonicalFacts(resolutionId, outcome, extra = {}) {
       ? [`${title}獲立法會通過，新機場正式解鎖，可以 $150,000 興建 12×12 機場。`, '政府將展開選址及工程準備，預計帶動旅遊、物流及高端商業。']
       : [`${title} has been approved and the new airport is unlocked: a 12x12 airport can now be built for $150,000.`, 'Site selection and engineering preparation begin, with tourism, logistics and high-end business expected to follow.'];
   }
+  if (resolutionId === 'metroRailwayFunding') {
+    const grant = `$${Number(extra.grant || extra.cost || 0).toLocaleString()}`;
+    return zh
+      ? [`${title}獲立法會通過，市庫撥出 ${grant} 注資運輸公司，專款專用於興建地下鐵路。`, '運輸公司將用撥款起地鐵站、掘隧道同購買列車，預計紓緩路面交通，帶動車站一帶發展。']
+      : [`${title} has been approved: the treasury puts ${grant} into the transport company, to be spent on the metro only.`, 'The company will use it for stations, tunnels and trains, easing the roads and lifting the districts round the stations.'];
+  }
   if (resolutionId === 'oceanParkDevelopmentProject') {
     return zh
       ? [`${title}獲立法會通過，海洋公園正式解鎖，可以 $22,000 興建 8×8 項目。`, '康文部門將籌備選址，預計帶動家庭消閒及旅遊。']
@@ -228,6 +234,10 @@ function buildLocalResolutionArticle(event) {
     headline = zh ? '【我愛玫瑰園】計劃獲立法會通過　新機場正式解鎖' : 'I Love the Rose Garden project approved; new airport unlocked';
     subhead = zh ? `${lead}宣布完成審議　政府將展開新機場選址及工程準備` : `${lead} confirms the vote as airport planning moves ahead`;
     quote = zh ? '議會批准代表城市已具備人口、財政及經濟條件，機場工程可以正式啟動。' : 'Approval confirms the city is ready to begin the airport project.';
+  } else if (resolutionId === 'metroRailwayFunding') {
+    headline = zh ? `${title}獲通過　市庫注資地下鐵路` : `${title} approved: the treasury funds the metro`;
+    subhead = zh ? `${lead}宣布撥款　${partner}期望地鐵紓緩路面交通` : `${lead} announces the grant as ${partner} looks to the metro to ease the roads`;
+    quote = zh ? '地下鐵路係城市未來幾十年嘅骨幹，政府有責任帶頭投資。' : 'A metro is the backbone of the city for decades to come; the government should lead the investment.';
   } else if (resolutionId === 'oceanParkDevelopmentProject') {
     headline = zh ? '【海洋公園發展計劃】獲通過　香城將有自己嘅海洋公園' : 'Ocean Park Development Project approved; the city will have its own Ocean Park';
     subhead = zh ? `${lead}宣布展開選址　${partner}期望帶動家庭旅遊` : `${lead} begins site planning as ${partner} looks to family tourism`;
@@ -302,6 +312,12 @@ function localizeResolutionArticleJapanese(article, event, names) {
     subhead: `${lead}が審議終了を発表、用地選定と工事準備へ`,
     body: ['新空港の建設が解禁され、12×12の空港を$150,000で建設できるようになった。', '観光・物流・高級商業への波及が期待されている。'],
     quote: '議会の承認は、人口・財政・経済の条件が整った証です。',
+  });
+  else if (resolutionId === 'metroRailwayFunding') Object.assign(result, {
+    headline: `${title}が議会を通過　市庫が地下鉄に出資`,
+    subhead: `${lead}が拠出を発表、${partner}は渋滞緩和に期待`,
+    body: [`市庫から$${Number(event.gameplayOutcome.grant || event.gameplayOutcome.cost || 0).toLocaleString()}を交通会社に拠出し、地下鉄の建設に限って使われる。`, '駅、トンネル、列車の整備に充て、道路の混雑を和らげ、駅周辺の発展を促す見込み。'],
+    quote: '地下鉄は今後数十年の都市の骨格です。政府が率先して投資すべきです。',
   });
   else if (resolutionId === 'oceanParkDevelopmentProject') Object.assign(result, {
     headline: `${title}が議会を通過　香城にオーシャンパーク誕生へ`,

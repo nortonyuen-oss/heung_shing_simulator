@@ -53,6 +53,10 @@ function getCouncilMotionAvailability(itemType, itemId, motion) {
     }
     const missingBuilding = getCouncilMotionMissingBuilding(definition);
     if (missingBuilding) return { available: false, reason: 'needsBuilding', requires: missingBuilding };
+    // 地下鐵路撥款: a grant needs a transport company to take it (metro.js)
+    if (definition.requiresTransportCompany && !(typeof isTransportExpansionActive === 'function' && isTransportExpansionActive())) {
+      return { available: false, reason: 'needsTransportCompany' };
+    }
     if (definition.unlockPopulation && city.population < definition.unlockPopulation) {
       return { available: false, reason: 'population', threshold: definition.unlockPopulation, current: city.population };
     }

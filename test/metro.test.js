@@ -102,3 +102,24 @@ test('trains run from six in the morning to one at night', () => {
   assert.ok(isMetroRunning(30));
   assert.ok(!isMetroRunning(3 * 60));
 });
+
+test('the metro spends the government grant first, the company cash for the rest, nothing when short', () => {
+  const company = { cash: 1000 };
+  const metro = new Function('company', `
+    const getTransportExpansionState = () => ({ company, metro: state });
+    const spendTransportConstruction = (n) => { if (company.cash < n) return false; company.cash -= n; return true; };
+    ${read('metro.js')}
+    const state = normalizeMetroState({ grantBalance: 5000 });
+    return { state, spendMetroFunds, grantMetroFunding };
+  `)(company);
+  assert.ok(metro.spendMetroFunds(3000));
+  assert.equal(metro.state.grantBalance, 2000, 'from the grant');
+  assert.equal(company.cash, 1000);
+  assert.ok(metro.spendMetroFunds(2500));
+  assert.equal(metro.state.grantBalance, 0);
+  assert.equal(company.cash, 500, 'the rest from the company');
+  assert.ok(!metro.spendMetroFunds(600), 'not enough between them');
+  assert.equal(company.cash, 500, 'and nothing spent');
+  metro.grantMetroFunding(40000);
+  assert.equal(metro.state.grantBalance, 40000);
+});

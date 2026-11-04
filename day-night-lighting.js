@@ -712,6 +712,11 @@ function applyNightObjectTint(scene, ground) {
   scene.typhoonShelterObjects?.forEach((record) => { if (!record.tint) apply(record.sprite); });
   // festival decorations showing their day art (their lit night frames carry their own night)
   scene.festivalSprites?.forEach((sprite) => { if (!sprite.festivalLitShown) apply(sprite); });
+  // 海底隧道 portals, all three layers of each (undersea-tunnel.js): concrete, unlit
+  scene.underseaTunnelSprites?.forEach((layers) => Object.values(layers || {}).forEach(apply));
+  // and the 地鐵站 entrances (metro.js): no baked night art, so they darken with the ground as the
+  // props do rather than by the buildings' light share
+  scene.metroStationSprites?.forEach(apply);
 
   // Buildings take a lighter share (see NIGHT_BUILDING_DARKNESS_SHARE). Once a
   // model carries a baked night texture its darkening is in the pixels and it

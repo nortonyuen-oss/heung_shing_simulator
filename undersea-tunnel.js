@@ -554,13 +554,14 @@ function maxXOrEmpty([minX, minY, maxX, maxY]) {
 }
 
 // Where a portal's picture is drawn: the ground centre of its top tile on screen, and its depth,
-// that of its front tile on screen; its three layers sit just under that.
+// that of a 2 x 3 building on its front tile (building-placement.js), so the towers behind it stay
+// behind it; its three layers sit just under that.
 function getUnderseaTunnelPortalPlacement(scene, portal) {
   const screen = portal.tiles.map(([r, c]) => ({ r, c, pos: isoToScreen(c, r) }));
   const top = screen.reduce((a, b) => (b.pos.y < a.pos.y ? b : a));
   const front = screen.reduce((a, b) => (b.pos.y > a.pos.y ? b : a));
   const face = getTileFaceGeometry(top.r, top.c, scene.offsetX, scene.offsetY);
-  return { x: face.center.x, y: face.center.y, depth: getObjectTileDepth(front.r, front.c, front.pos.y + 1) };
+  return { x: face.center.x, y: face.center.y, depth: getBuildingSortDepth(front.pos.y, 2, UNDERSEA_TUNNEL_LENGTH) };
 }
 
 function placeUnderseaTunnelSprites(scene, portal, sprites) {
@@ -575,6 +576,8 @@ function placeUnderseaTunnelSprites(scene, portal, sprites) {
     sprite.setScale(texture.scale);
     sprite.setPosition(place.x, place.y);
     sprite.setDepth(place.depth - UNDERSEA_TUNNEL_LAYERS.length + index);
+    // dark at night with the rest of the city, from the moment it is built (day-night-lighting.js)
+    if (typeof applyNightPropTint === 'function') applyNightPropTint(scene, sprite);
   });
 }
 

@@ -41,6 +41,13 @@ const METRO = Object.freeze({
   propertyStationCap: 2000,
   // 轉車站 (§3): a station's riders grow with what the network reaches past its own lines, to half again
   networkBoostMax: 0.5,
+  // (Norton 2026-11-04, §4.2) in a big city a station's riders grow slowly past what a station in
+  // the phase-1 test city drew in a day - a line there paid back in about a year, in 太子 in a month -
+  // and the property income grows with the city, to three times at 360,000 people
+  ridershipKneePerDay: 750,
+  ridershipExponent: 0.1,
+  propertyCityScaleFrom: 40000,
+  propertyCityScaleMax: 3,
 });
 
 // The MTR's line colours: 荃灣綫, 港島綫, 觀塘綫, 東涌綫, 將軍澳綫, 南港島綫, 屯馬綫, 東鐵綫
@@ -647,6 +654,29 @@ function metroStationCatchmentPoint(station) {
   return { id: `metro-${station.id}`, row: station.row, col: station.col, radius: METRO.catchmentRadius };
 }
 
+// A station's riders a day past the knee grow slowly (by the power `ridershipExponent`): what a day
+// of its catchment would draw, scaled by this. Pure.
+function metroRidershipFactor(dailyRaw) {
+  const knee = METRO.ridershipKneePerDay;
+  if (!(dailyRaw > knee)) return 1;
+  return (knee * (dailyRaw / knee) ** METRO.ridershipExponent) / dailyRaw;
+}
+
+// Each station's factor for the day (not saved: worked out again from the catchment).
+const metroRidershipFactorCache = new Map();
+
+function getMetroStationRidershipFactor(station, day, share) {
+  const cached = metroRidershipFactorCache.get(station.id);
+  if (cached && cached.day === day && cached.row === station.row && cached.col === station.col) return cached.factor;
+  const point = metroStationCatchmentPoint(station);
+  let daily = 0;
+  for (let h = 0; h < 24; h++) daily += getTransportStopRidersForHour(point, h, share);
+  const factor = metroRidershipFactor(daily);
+  if (metroRidershipFactorCache.size > 256) metroRidershipFactorCache.clear();
+  metroRidershipFactorCache.set(station.id, { day, row: station.row, col: station.col, factor });
+  return factor;
+}
+
 // Hour by hour each station's riders join its queues, split over the lines calling there by how
 // many stations each reaches - more of them where the network reaches past the station's own lines.
 function accrueMetroStationsForHour(state, envHour) {
@@ -660,7 +690,8 @@ function accrueMetroStationsForHour(state, envHour) {
     if (hour === resetHour || !station.waitingByLine) { station.waitingByLine = {}; station.transferByLine = {}; }
     const reach = metroStationReach(station.id, active);
     if (!reach.byLine.size) { station.waitingByLine = {}; station.transferByLine = {}; return; }
-    const riders = getTransportStopRidersForHour(metroStationCatchmentPoint(station), hour, share) * metroNetworkBoost(reach);
+    const damping = getMetroStationRidershipFactor(station, Math.floor(envHour / 24), share);
+    const riders = getTransportStopRidersForHour(metroStationCatchmentPoint(station), hour, share) * damping * metroNetworkBoost(reach);
     const total = [...reach.byLine.values()].reduce((sum, n) => sum + n, 0);
     reach.byLine.forEach((n, lineId) => {
       station.waitingByLine[lineId] = Math.min(99999, (station.waitingByLine[lineId] || 0) + riders * (n / total));
@@ -788,11 +819,12 @@ function settleMetroMonth(ended = null) {
  * The month's property income of each station: for every home and shop within reach of a station
  * with trains, its rise in land value - the station's service x the metro's land-value rise,
  * falling away to the catchment's edge, x how far into its first year of trains the station is -
- * times its level and tiles; each building counted once, by the station that raises it most.
+ * times its level and tiles; each building counted once, by the station that raises it most; and
+ * the whole (and the cap) by `cityScale`, the land being worth more in a bigger city.
  * Pure: `stations` are { id, row, col, quality, ramp }, `buildings` { row, col, level, tiles } (row
  * and col its middle). Returns Map station id -> income (whole dollars, at most the cap).
  */
-function metroPropertyIncome(stations, buildings) {
+function metroPropertyIncome(stations, buildings, cityScale = 1) {
   const radius = METRO.catchmentRadius;
   const raw = new Map();
   const live = stations.filter((s) => s.quality > 0 && s.ramp > 0);
@@ -807,7 +839,15 @@ function metroPropertyIncome(stations, buildings) {
     });
     if (by) raw.set(by, (raw.get(by) || 0) + best * Math.max(1, b.level || 1) * Math.max(1, b.tiles || 1) * METRO.propertyRatePerTile);
   });
-  return new Map([...raw].map(([id, value]) => [id, Math.min(METRO.propertyStationCap, Math.round(value))]));
+  const scale = Math.max(1, cityScale);
+  return new Map([...raw].map(([id, value]) => [id, Math.min(METRO.propertyStationCap * scale, Math.round(value * scale))]));
+}
+
+// How much more the land round a station is worth in a bigger city: from 1 at 40,000 people, as the
+// square root of the population, to three times. Pure.
+function metroPropertyCityScale(population) {
+  const p = Math.max(0, Number(population) || 0);
+  return Math.min(METRO.propertyCityScaleMax, Math.max(1, Math.sqrt(p / METRO.propertyCityScaleFrom)));
 }
 
 // The homes and shops of the city, for metroPropertyIncome.
@@ -844,7 +884,8 @@ function settleMetroProperty(state) {
       ramp: Math.min(1, station.servedMonths / METRO.propertyRampMonths),
     };
   });
-  const income = metroPropertyIncome(stations, getMetroPropertyBuildings());
+  const income = metroPropertyIncome(stations, getMetroPropertyBuildings(),
+    metroPropertyCityScale(typeof city !== 'undefined' ? city.population : 0));
   let total = 0;
   state.stations.forEach((station) => {
     station.lastPropertyIncome = income.get(station.id) || 0;

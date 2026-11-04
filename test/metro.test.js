@@ -238,3 +238,23 @@ test('drawing lines: through another line\'s station makes a 轉車站; a line n
   metro.click(34);
   assert.deepEqual(metro.state.lines.map((l) => l.stationIds.length), [3, 3, 2], 'a third line, not A carried on');
 });
+
+test('a big city\'s stations: riders past the knee grow slowly; the land round them is worth more', () => {
+  const { METRO, metroRidershipFactor, metroPropertyCityScale, metroPropertyIncome } = new Function(`
+    ${read('metro.js')}
+    return { METRO, metroRidershipFactor, metroPropertyCityScale, metroPropertyIncome };
+  `)();
+  const knee = METRO.ridershipKneePerDay;
+  assert.equal(metroRidershipFactor(knee * 0.8), 1, 'a small city\'s station as it was');
+  const big = knee * 14;
+  assert.ok(big * metroRidershipFactor(big) > knee, 'more still ride from the busier station');
+  assert.ok(big * metroRidershipFactor(big) < knee * 1.5, 'but not fourteen times as many');
+  assert.equal(metroPropertyCityScale(20000), 1);
+  assert.equal(metroPropertyCityScale(METRO.propertyCityScaleFrom * 4), 2);
+  assert.equal(metroPropertyCityScale(5e6), METRO.propertyCityScaleMax);
+  const station = { id: 's', row: 0, col: 0, quality: 1, ramp: 1 };
+  const home = { row: 0, col: 0, level: 2, tiles: 4 };
+  assert.equal(metroPropertyIncome([station], [home], 2).get('s'), 2 * metroPropertyIncome([station], [home]).get('s'));
+  const crowd = Array.from({ length: 500 }, () => ({ ...home, level: 3, tiles: 9 }));
+  assert.equal(metroPropertyIncome([station], crowd, 2).get('s'), METRO.propertyStationCap * 2, 'the cap grows with it');
+});

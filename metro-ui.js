@@ -43,14 +43,27 @@ function renderMetroLineCard(line, state) {
     metric(metroT('metro.ui.revenue', '本月收入'), metroUiMoney(s.revenue)),
     metric(metroT('metro.ui.lastCost', '上月成本'), s.last ? metroUiMoney(s.last.cost) : '—'),
     metric(metroT('metro.ui.lastNet', '上月盈虧'), s.last ? metroUiMoney(s.last.net, true) : '—'),
+    // a line through a 轉車站: how many came on from other lines last month
+    ...(s.stations.some((st) => getMetroStationLines(st, state).length > 1)
+      ? [metric(metroT('metro.ui.lastTransfers', '上月轉綫乘客'), s.last ? Math.round(s.last.transfers || 0).toLocaleString() : '—')] : []),
   ].join('');
+  // each station: where it is, its queue for this line, the other lines calling (a 轉車站) in their
+  // colours, last month's property income, and its name to change
   const stations = !expanded ? '' : `
     <div class="transport-route-fleet">
-      ${s.stations.map((station, i) => `
-        <button class="transport-route-vehicle" type="button" data-transport-action="metro-locate-station" data-station-id="${metroUiEscape(station.id)}">
-          <span>${i + 1}. Ⓜ ${metroUiEscape(station.name)}</span>
-          <span>👥 ${Math.round(station.waiting || 0).toLocaleString()}</span>
-        </button>`).join('')}
+      ${s.stations.map((station, i) => {
+        const others = getMetroStationLines(station, state).filter((l) => l.id !== line.id);
+        const dots = others.map((l) => `<i class="transport-line-swatch" style="--route-color:${metroUiEscape(l.color)}" title="${metroUiEscape(l.name)}"></i>`).join('');
+        const property = station.lastPropertyIncome > 0 ? ` · 🏠 ${metroUiEscape(metroUiMoney(station.lastPropertyIncome))}` : '';
+        return `
+        <div class="metro-station-row">
+          <button class="transport-route-vehicle" type="button" data-transport-action="metro-locate-station" data-station-id="${metroUiEscape(station.id)}">
+            <span>${i + 1}. Ⓜ ${metroUiEscape(station.name)} ${dots}</span>
+            <span>👥 ${Math.round(station.waitingByLine?.[line.id] || 0).toLocaleString()}${property}</span>
+          </button>
+          <button class="transport-btn metro-station-rename" type="button" data-transport-action="metro-rename-station" data-station-id="${metroUiEscape(station.id)}" title="${metroUiEscape(metroT('metro.ui.renameStation', '車站改名'))}">✎</button>
+        </div>`;
+      }).join('')}
     </div>`;
   const statusKey = suspended ? 'suspended' : 'active';
   return `
@@ -98,6 +111,9 @@ function renderMetroLinesSection() {
       <button class="transport-btn" type="button" data-transport-action="metro-new-station">${metroUiEscape(metroT('metro.ui.newStation', '起地鐵站（${cost}）', { cost: METRO.stationCost.toLocaleString() }))}</button>
     </div>
     <p class="transport-depots">${metroUiEscape(metroT('metro.ui.stations', '地鐵站 {n} 個 · 列車 {trains} 列', { n: state.stations.length, trains: state.trains.length }))}</p>
+    <p class="transport-depots">${metroUiEscape(state.lastPropertyIncome > 0
+      ? metroT('metro.ui.property', '鐵路加物業：上月車站附近地價升值收入 ${amount}。', { amount: Math.round(state.lastPropertyIncome).toLocaleString() })
+      : metroT('metro.ui.propertyHint', '鐵路加物業：有列車行走嘅站，附近住宅同商業地價升值，公司每月分一份（通車一年後到足）。'))}</p>
     <p class="transport-depots">${metroUiEscape(state.grantBalance > 0
       ? metroT('metro.ui.grant', '政府地鐵撥款餘額 ${amount}：起站、掘隧道同買列車會先用撥款。', { amount: Math.round(state.grantBalance).toLocaleString() })
       : metroT('metro.ui.grantHint', '公司資金唔夠？可以喺立法會提出「地下鐵路撥款」，由市庫注資起地鐵。'))}</p>
@@ -126,8 +142,9 @@ function handleMetroUiAction(action, button) {
   const lineId = button.dataset.lineId;
   const line = lineId && state.lines.find((l) => l.id === lineId);
   if (action === 'metro-new-line') {
-    cancelMetroLineDraft();
     pickMetroTool('metro-line');
+    // the first click starts a new line, even on the end of another (a 轉車站 to start from)
+    metroLineDraft = { forceNew: true };
     metroUiToast(metroT('metro.toast.newLineHow', '撳一個地鐵站，再一個個撳落去，就起到地鐵綫；再撳最後一個站完成。'), 'info');
     return true;
   }
@@ -170,6 +187,17 @@ function handleMetroUiAction(action, button) {
     if (typeof window !== 'undefined' && !window.confirm(metroT('metro.confirmDelete', '取消「{name}」？佢嘅列車會即刻賣出，車站留低。', { name: line.name }))) return true;
     const value = removeMetroLine(line.id);
     metroUiToast(metroT('metro.toast.lineClosed', '地鐵綫取消咗，賣列車收返 ${value}。', { value: Math.round(value).toLocaleString() }), 'info');
+  } else if (action === 'metro-rename-station') {
+    const station = getMetroStationById(button.dataset.stationId, state);
+    if (station && typeof showTextPromptDialog === 'function') {
+      showTextPromptDialog(metroT('metro.ui.renameStationPrompt', '地鐵站名稱'), station.name || '').then((input) => {
+        if (input === null) return;
+        station.name = String(input).trim().slice(0, 40) || station.name;
+        if (typeof queueCityChangeAutosave === 'function') queueCityChangeAutosave();
+        refreshMetroUi();
+      }).catch((error) => console.warn('[metro station rename]', error));
+    }
+    return true;
   } else if (action === 'metro-locate-station') {
     locateMetroStation(getMetroStationById(button.dataset.stationId, state));
     return true;

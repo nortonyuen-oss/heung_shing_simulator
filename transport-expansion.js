@@ -284,6 +284,8 @@ function createEmptyTransportFinancials() {
     ferryOperations: 0,
     // the trains' and stations' upkeep and running (metro.js)
     metroOperations: 0,
+    // 鐵路加物業: the company's share of the rise in land value round its stations (metro.js)
+    metroProperty: 0,
     // paid in by the government (getTransportGovernmentSubsidy): 政府補貼 and the 兩蚊長者優惠
     operatingSubsidy: 0,
     elderlyFareSubsidy: 0,
@@ -334,6 +336,7 @@ function normalizeTransportFinanceHistory(raw) {
         depotUpkeep: transportRoundMoney(financials.depotUpkeep),
         ferryOperations: transportRoundMoney(financials.ferryOperations),
         metroOperations: transportRoundMoney(financials.metroOperations),
+        metroProperty: transportRoundMoney(financials.metroProperty),
         operatingSubsidy: transportRoundMoney(financials.operatingSubsidy),
         elderlyFareSubsidy: transportRoundMoney(financials.elderlyFareSubsidy),
         subsidy: transportRoundMoney(financials.subsidy),
@@ -2757,7 +2760,9 @@ function settleTransportMonth() {
   const ferryMonth = typeof settleFerryMonth === 'function' ? settleFerryMonth(ended) : { revenue: 0, passengers: 0, cost: 0 };
   revenue += ferryMonth.revenue;
   // and the metro's (metro.js) the same way
-  const metroMonth = typeof settleMetroMonth === 'function' ? settleMetroMonth(ended) : { revenue: 0, passengers: 0, cost: 0 };
+  const metroMonth = typeof settleMetroMonth === 'function' ? settleMetroMonth(ended) : { revenue: 0, passengers: 0, cost: 0, property: 0 };
+  // 鐵路加物業 (metro.js): paid in at the month's turn, kept apart from the fares
+  const metroProperty = Math.max(0, Math.round(Number(metroMonth.property) || 0));
   revenue += metroMonth.revenue;
   const depotUpkeep = getConnectedCommissionedTransportDepots().length * TRANSPORT_DEPOT_MONTHLY_UPKEEP;
   const ferryOperations = Number(ferryMonth.cost) || 0;
@@ -2769,18 +2774,19 @@ function settleTransportMonth() {
   // Cost only - revenue already flowed into company.cash above - plus the government's subsidy.
   // company.cash is allowed to go negative (bankruptcy signal, §4), unlike every other money field
   // in this module.
-  state.company.cash = Math.round(state.company.cash - cost + grant.subsidy);
+  state.company.cash = Math.round(state.company.cash - cost + grant.subsidy + metroProperty);
   state.lastFinancials = {
     revenue: roundedRevenue,
     routeOperations: transportRoundMoney(routeOperations),
     depotUpkeep: transportRoundMoney(depotUpkeep),
     ferryOperations: transportRoundMoney(ferryOperations),
     metroOperations: transportRoundMoney(metroOperations),
+    metroProperty,
     operatingSubsidy: grant.operatingSubsidy,
     elderlyFareSubsidy: grant.elderlyFareSubsidy,
     subsidy: grant.subsidy,
     cost,
-    net: roundedRevenue + grant.subsidy - cost,
+    net: roundedRevenue + grant.subsidy + metroProperty - cost,
   };
   state.financeHistory.push({
     year: ended.year,

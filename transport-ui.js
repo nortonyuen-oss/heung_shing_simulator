@@ -192,6 +192,9 @@ function ensureTransportPanelStyle() {
     .transport-panel-window .transport-route-fleet-toggle:hover, .transport-panel-window .transport-route-fleet-toggle.is-open { color:#164f6e; font-weight:700; }
     .transport-panel-window .transport-route-fleet { display:grid; gap:4px; margin:6px 0; }
     .transport-panel-window .transport-route-vehicle { display:grid; grid-template-columns:1fr auto auto auto; gap:8px; align-items:center; text-align:left; padding:5px 7px; border:1px solid #b3ab98; border-radius:5px; background:#fffaf0; font:inherit; cursor:pointer; }
+    .transport-panel-window .metro-station-row { display:grid; grid-template-columns:1fr auto; gap:4px; align-items:stretch; }
+    .transport-panel-window .metro-station-row .transport-line-swatch { display:inline-block; width:9px; height:9px; border-radius:50%; vertical-align:middle; margin-left:2px; }
+    .transport-panel-window .metro-station-rename { padding:2px 8px; }
     .transport-panel-window .transport-route-vehicle:hover { background:#fff; border-color:#164f6e; }
     .transport-panel-window .transport-route-vehicle span:first-child { font-weight:700; }
     .transport-panel-window .transport-route-error { margin:4px 0; color:#992f2a; font-weight:700; }
@@ -944,6 +947,9 @@ function renderTransportFinancesTab(state, tab = 'overview') {
     // 政府補貼: paid in at this month-end (transport-expansion.js getTransportGovernmentSubsidy)
     ...(typeof getTransportGovernmentSubsidy === 'function' && getTransportGovernmentSubsidy().subsidy > 0
       ? [[t('transport.finance.subsidyDue'), transportFormatMoney(getTransportGovernmentSubsidy().subsidy)]] : []),
+    // 鐵路加物業: last month's, paid in at its turn (metro.js)
+    ...(Number(state.lastFinancials?.metroProperty) > 0
+      ? [[t('transport.finance.metroPropertyLast'), transportFormatMoney(state.lastFinancials.metroProperty)]] : []),
   ].map(([label, value]) => `<div class="transport-summary-card"><span>${transportEscapeHtml(label)}</span><strong class="${label === t('transport.finance.currentNet') ? transportProfitClass(net) : ''}">${transportEscapeHtml(value)}</strong></div>`).join('');
   const historyRows = getTransportFinanceHistoryRows(state);
   const history = historyRows.map((entry) => `
@@ -954,6 +960,7 @@ function renderTransportFinancesTab(state, tab = 'overview') {
       <td>${transportEscapeHtml(transportFormatMoney(entry.routeOperations))}</td>
       <td>${transportEscapeHtml(transportFormatMoney(entry.depotUpkeep))}</td>
       <td>${transportEscapeHtml(transportFormatMoney(entry.subsidy || 0))}</td>
+      <td>${transportEscapeHtml(transportFormatMoney(entry.metroProperty || 0))}</td>
       <td>${transportEscapeHtml(transportFormatMoney(entry.cost))}</td>
       <td class="${transportProfitClass(entry.net)}">${transportEscapeHtml(transportFormatMoney(entry.net, true))}</td>
       <td>${entry.closingCash == null ? '—' : transportEscapeHtml(transportFormatMoney(entry.closingCash))}</td>
@@ -975,7 +982,7 @@ function renderTransportFinancesTab(state, tab = 'overview') {
   if (tab === 'history') {
     return historyRows.length === 0
       ? `<div class="transport-empty">${transportEscapeHtml(t('transport.finance.noHistory'))}</div>`
-      : `<div class="transport-table-wrap"><table class="transport-table"><thead><tr><th>${transportEscapeHtml(t('transport.finance.month'))}</th><th>${transportEscapeHtml(t('transport.metric.passengers'))}</th><th>${transportEscapeHtml(t('transport.finance.revenue'))}</th><th>${transportEscapeHtml(t('transport.finance.routeOperations'))}</th><th>${transportEscapeHtml(t('transport.finance.depotUpkeep'))}</th><th>${transportEscapeHtml(t('transport.finance.subsidy'))}</th><th>${transportEscapeHtml(t('transport.finance.totalCost'))}</th><th>${transportEscapeHtml(t('transport.metric.net'))}</th><th>${transportEscapeHtml(t('transport.finance.closingCash'))}</th></tr></thead><tbody>${history}</tbody></table></div>`;
+      : `<div class="transport-table-wrap"><table class="transport-table"><thead><tr><th>${transportEscapeHtml(t('transport.finance.month'))}</th><th>${transportEscapeHtml(t('transport.metric.passengers'))}</th><th>${transportEscapeHtml(t('transport.finance.revenue'))}</th><th>${transportEscapeHtml(t('transport.finance.routeOperations'))}</th><th>${transportEscapeHtml(t('transport.finance.depotUpkeep'))}</th><th>${transportEscapeHtml(t('transport.finance.subsidy'))}</th><th>${transportEscapeHtml(t('transport.finance.metroProperty'))}</th><th>${transportEscapeHtml(t('transport.finance.totalCost'))}</th><th>${transportEscapeHtml(t('transport.metric.net'))}</th><th>${transportEscapeHtml(t('transport.finance.closingCash'))}</th></tr></thead><tbody>${history}</tbody></table></div>`;
   }
   return `
     <div class="transport-section-head"><div><h3>${transportEscapeHtml(t('transport.finance.title'))}</h3><p>${transportEscapeHtml(t('transport.finance.subtitle'))}</p></div></div>

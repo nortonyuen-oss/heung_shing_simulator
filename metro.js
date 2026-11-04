@@ -33,6 +33,14 @@ const METRO = Object.freeze({
   fullServiceHeadwayMinutes: 10,
   landValueBonusMax: 0.15,     // a bus stop's is 0.08
   trafficReliefMax: 0.4,       // a bus route's is 0.25
+  // 鐵路加物業 (docs/metro-phase2-design.md §2): the company's share of the rise in land value round
+  // its stations, each month - a building's rise x its level x its tiles x this - rising to the full
+  // over a station's first year of trains, and at most so much a station
+  propertyRatePerTile: 40,
+  propertyRampMonths: 12,
+  propertyStationCap: 2000,
+  // 轉車站 (§3): a station's riders grow with what the network reaches past its own lines, to half again
+  networkBoostMax: 0.5,
 });
 
 // The MTR's line colours: 荃灣綫, 港島綫, 觀塘綫, 東涌綫, 將軍澳綫, 南港島綫, 屯馬綫, 東鐵綫
@@ -51,6 +59,9 @@ function metroT(key, fallback, vars = {}) {
 function normalizeMetroState(raw) {
   const src = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
   const num = (x, d = 0) => (Number.isFinite(Number(x)) ? Number(x) : d);
+  const queue = (x) => Math.max(0, Math.min(99999, num(x)));
+  const queues = (raw) => Object.fromEntries(Object.entries(raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {})
+    .map(([k, v]) => [String(k).slice(0, 40), queue(v)]).filter(([, v]) => v > 0));
   const stations = (Array.isArray(src.stations) ? src.stations : []).map((s) => {
     const row = Math.floor(num(s?.row, NaN)); const col = Math.floor(num(s?.col, NaN));
     if (!s?.id || !Number.isFinite(row) || !Number.isFinite(col)) return null;
@@ -58,8 +69,15 @@ function normalizeMetroState(raw) {
       id: String(s.id).slice(0, 40), row, col,
       facing: METRO_DIRS[s.facing] ? s.facing : 's',
       name: String(s.name || '').slice(0, 40),
-      // its queue: fractional, so a quiet station's few riders an hour still add up
-      waiting: Math.max(0, Math.min(99999, num(s.waiting))),
+      // its queue for each line that calls (fractional, so a quiet station's few riders an hour
+      // still add up), and of those the riders come from another line, who have paid to board
+      waitingByLine: queues(s.waitingByLine),
+      transferByLine: queues(s.transferByLine),
+      // (phase 1 kept one queue: it goes to the station's line below)
+      legacyWaiting: queue(s.waiting),
+      // months with trains calling (for the rise in land value) and last month's property income
+      servedMonths: Math.max(0, Math.floor(num(s.servedMonths))),
+      lastPropertyIncome: Math.max(0, Math.round(num(s.lastPropertyIncome))),
     };
   }).filter(Boolean);
   const stationIds = new Set(stations.map((s) => s.id));
@@ -74,15 +92,30 @@ function normalizeMetroState(raw) {
       status: l.status === 'suspended' ? 'suspended' : 'active',
       monthToDatePassengers: Math.max(0, Math.floor(num(l.monthToDatePassengers))),
       monthToDateRevenue: Math.max(0, num(l.monthToDateRevenue)),
+      // of the riders boarding, those changing from another line at a 轉車站
+      monthToDateTransfers: Math.max(0, num(l.monthToDateTransfers)),
       history: (Array.isArray(l.history) ? l.history : []).slice(-24).map((h) => ({
         year: Math.floor(num(h?.year)), month: Math.floor(num(h?.month)),
         passengers: Math.max(0, Math.floor(num(h?.passengers))),
+        transfers: Math.max(0, Math.floor(num(h?.transfers))),
         revenue: num(h?.revenue), cost: num(h?.cost), net: num(h?.net),
       })),
     };
   }).filter(Boolean);
   const lineIds = new Set(lines.map((l) => l.id));
-  const trains = (Array.isArray(src.trains) ? src.trains : []).map((v) => {
+  stations.forEach((station) => {
+    const legacy = station.legacyWaiting;
+    delete station.legacyWaiting;
+    [station.waitingByLine, station.transferByLine].forEach((map) => Object.keys(map).forEach((k) => { if (!lineIds.has(k)) delete map[k]; }));
+    if (legacy > 0 && !Object.keys(station.waitingByLine).length) {
+      const line = lines.find((l) => l.stationIds.includes(station.id));
+      if (line) station.waitingByLine[line.id] = legacy;
+    }
+    Object.keys(station.transferByLine).forEach((k) => {
+      station.transferByLine[k] = Math.min(station.transferByLine[k], station.waitingByLine[k] || 0);
+    });
+  });
+  const trains =(Array.isArray(src.trains) ? src.trains : []).map((v) => {
     if (!v?.id || !lineIds.has(String(v.lineId))) return null;
     return {
       id: String(v.id).slice(0, 40),
@@ -105,6 +138,8 @@ function normalizeMetroState(raw) {
     unlocked: src.unlocked === true,
     // 地下鐵路撥款 (council-definitions.js): what is left of the government's grants, for the metro only
     grantBalance: Math.max(0, Math.round(num(src.grantBalance))),
+    // 鐵路加物業: last month's property income, all stations
+    lastPropertyIncome: Math.max(0, Math.round(num(src.lastPropertyIncome))),
   };
 }
 
@@ -204,6 +239,64 @@ function getMetroLineTrains(line, state = getMetroState()) {
   return state.trains.filter((v) => v.lineId === line.id);
 }
 
+// Every line calling at a station: more than one makes it a 轉車站.
+function getMetroStationLines(station, state = getMetroState()) {
+  return state.lines.filter((l) => l.stationIds.includes(station.id));
+}
+
+// Everyone waiting at a station, for every line.
+function getMetroStationWaiting(station) {
+  return Object.values(station?.waitingByLine || {}).reduce((sum, n) => sum + (Number(n) || 0), 0);
+}
+
+/**
+ * What a station reaches on the running lines: `byLine` the other stations of each line calling
+ * here, `own` the most of those on one line, `network` every station it can get to changing at
+ * 轉車站. Pure: `lines` are { id, stationIds, status }.
+ */
+function metroStationReach(stationId, lines) {
+  const running = lines.filter((l) => l.status !== 'suspended' && l.stationIds.length > 1);
+  const byLine = new Map();
+  running.forEach((l) => { if (l.stationIds.includes(stationId)) byLine.set(l.id, new Set(l.stationIds).size - 1); });
+  const seen = new Set([stationId]);
+  const queue = [stationId];
+  while (queue.length) {
+    const here = queue.shift();
+    running.forEach((l) => {
+      if (!l.stationIds.includes(here)) return;
+      l.stationIds.forEach((id) => { if (!seen.has(id)) { seen.add(id); queue.push(id); } });
+    });
+  }
+  return { byLine, own: Math.max(0, ...byLine.values()), network: seen.size - 1 };
+}
+
+// How many more ride from a station for what the network reaches past its own line: half as many
+// again once it reaches twice as far (docs/metro-phase2-design.md §3.2). Pure.
+function metroNetworkBoost(reach) {
+  if (!(reach.own > 0)) return 1;
+  return 1 + METRO.networkBoostMax * Math.min(1, Math.max(0, reach.network - reach.own) / reach.own);
+}
+
+/**
+ * Of those getting off line `lineId` at a station, the share changing to its other lines - as the
+ * other lines reach stations this one does not - and how they split over those lines. Pure.
+ * Returns { share, to: [[lineId, part]] } (the parts add to 1).
+ */
+function metroTransferSplit(stationId, lineId, lines) {
+  const running = lines.filter((l) => l.status !== 'suspended' && l.stationIds.length > 1);
+  const self = running.find((l) => l.id === lineId);
+  if (!self) return { share: 0, to: [] };
+  const mine = new Set(self.stationIds);
+  const others = running.filter((l) => l.id !== lineId && l.stationIds.includes(stationId))
+    .map((l) => [l.id, l.stationIds.filter((id) => !mine.has(id)).length])
+    .filter(([, n]) => n > 0);
+  const elsewhere = new Set(running.filter((l) => l.id !== lineId && l.stationIds.includes(stationId))
+    .flatMap((l) => l.stationIds).filter((id) => !mine.has(id))).size;
+  if (!elsewhere) return { share: 0, to: [] };
+  const total = others.reduce((sum, [, n]) => sum + n, 0);
+  return { share: elsewhere / (elsewhere + mine.size - 1), to: others.map(([id, n]) => [id, n / total]) };
+}
+
 // ── Stations ──────────────────────────────────────────────────────────────────
 
 const METRO_REFUSALS = Object.freeze({
@@ -259,7 +352,10 @@ function placeMetroStation(scene, row, col) {
   if (typeof zoneMap !== 'undefined' && zoneMap[row]) zoneMap[row][col] = typeof ZONE_NONE !== 'undefined' ? ZONE_NONE : 0;
   const state = getMetroState();
   const n = state.nextId++;
-  state.stations.push({ id: `station-${n}`, row, col, facing: res.facing, name: metroT('metro.station.name', '地鐵站 {n}', { n }), waiting: 0 });
+  state.stations.push({
+    id: `station-${n}`, row, col, facing: res.facing, name: metroT('metro.station.name', '地鐵站 {n}', { n }),
+    waitingByLine: {}, transferByLine: {}, servedMonths: 0, lastPropertyIncome: 0,
+  });
   metroNetworkRevision += 1;
   syncMetroStations(scene);
   if (typeof queueCityChangeAutosave === 'function') queueCityChangeAutosave();
@@ -306,9 +402,11 @@ function metroIsSea(r, c) {
 }
 
 // 地鐵綫: click station by station. The first two make a line (and buy its first train); each one
-// after extends it; clicking the last station again ends the drawing. A click on the end of a line
-// carries that line on.
-let metroLineDraft = null;   // { lineId } of the line being drawn
+// after extends it; clicking the last station again ends the drawing. With nothing being drawn, a
+// click on the end of a line carries that line on, anywhere else starts a new one; after 新增地鐵綫
+// (`forceNew`) the first click always starts a new one. A line may call at another line's station -
+// a 轉車站 (docs/metro-phase2-design.md §3.1) - but at none of its own twice.
+let metroLineDraft = null;   // { lineId } of the line being drawn, { firstStationId }, or { forceNew }
 
 function handleMetroLineClick(scene, row, col) {
   const say = (key, fallback, vars = {}, kind = 'info') => { if (typeof showToast === 'function') showToast(metroT(key, fallback, vars), kind); return kind !== 'warning'; };
@@ -316,27 +414,29 @@ function handleMetroLineClick(scene, row, col) {
   if (!station) return say('metro.line.pickStation', '撳一個地鐵站。', {}, 'warning');
   const state = getMetroState();
   const draftLine = metroLineDraft?.lineId ? state.lines.find((l) => l.id === metroLineDraft.lineId) : null;
-  const pending = metroLineDraft && !draftLine ? getMetroStationById(metroLineDraft.firstStationId, state) : null;
-  const onLine = getMetroStationLine(station, state);
+  const pending = metroLineDraft?.firstStationId && !draftLine ? getMetroStationById(metroLineDraft.firstStationId, state) : null;
 
-  // nothing being drawn: start a new line here, or carry on one that ends here
+  // nothing being drawn: carry on a line that ends here, or start a new line here
   if (!draftLine && !pending) {
-    if (onLine) {
-      const ends = [onLine.stationIds[0], onLine.stationIds.at(-1)];
-      if (!ends.includes(station.id)) return say('metro.line.middle', '「{name}」喺「{line}」中間：轉車站第二期先有。', { name: station.name, line: onLine.name }, 'warning');
+    const ending = metroLineDraft?.forceNew ? null
+      : getMetroStationLines(station, state).find((l) => l.stationIds[0] === station.id || l.stationIds.at(-1) === station.id);
+    if (ending) {
       // carry on from this end: make it the last station
-      if (onLine.stationIds[0] === station.id && onLine.stationIds.length > 1) onLine.stationIds.reverse();
-      metroLineDraft = { lineId: onLine.id };
-      return say('metro.line.extend', '延長「{line}」：撳下一個站；再撳「{name}」完成。', { line: onLine.name, name: station.name });
+      if (ending.stationIds[0] === station.id && ending.stationIds.length > 1) ending.stationIds.reverse();
+      metroLineDraft = { lineId: ending.id };
+      metroNetworkRevision += 1;
+      return say('metro.line.extend', '延長「{line}」：撳下一個站；再撳「{name}」完成。', { line: ending.name, name: station.name });
     }
-    if (state.lines.length >= METRO.maxLines) return say('metro.line.max', '地鐵綫數目已經到上限。', {}, 'warning');
+    if (state.lines.length >= METRO.maxLines) { metroLineDraft = null; return say('metro.line.max', '地鐵綫數目已經到上限。', {}, 'warning'); }
     metroLineDraft = { firstStationId: station.id };
     return say('metro.line.pickSecond', '由「{name}」開出：撳下一個站。', { name: station.name });
   }
 
   const last = draftLine ? getMetroStationById(draftLine.stationIds.at(-1), state) : pending;
   if (last.id === station.id) { metroLineDraft = null; return say('metro.line.done', '完成。'); }
-  if (onLine) return say('metro.line.taken', '「{name}」已經有地鐵綫經過：轉車站第二期先有。', { name: station.name }, 'warning');
+  if (draftLine?.stationIds.includes(station.id)) {
+    return say('metro.line.again', '「{line}」已經經過「{name}」：一條綫唔可以經同一個站兩次。', { line: draftLine.name, name: station.name }, 'warning');
+  }
   if (draftLine && draftLine.stationIds.length >= METRO.maxStationsPerLine) {
     metroLineDraft = null;
     return say('metro.line.full', '一條綫最多 {n} 個站。', { n: METRO.maxStationsPerLine }, 'warning');
@@ -345,6 +445,9 @@ function handleMetroLineClick(scene, row, col) {
   if (!spendMetroFunds(tunnel.cost)) {
     return say('metro.line.funds', '公司資金唔夠掘隧道（要 ${cost}）。', { cost: tunnel.cost.toLocaleString() }, 'warning');
   }
+  // another line already calls here: the riders can change (轉車站)
+  const interchange = getMetroStationLines(station, state).length > 0;
+  if (interchange) say('metro.line.interchange', '「{name}」變成轉車站：乘客可以喺度轉綫。', { name: station.name }, 'success');
   if (draftLine) {
     draftLine.stationIds.push(station.id);
     metroNetworkRevision += 1;
@@ -357,7 +460,7 @@ function handleMetroLineClick(scene, row, col) {
     name: metroT(`metro.line.defaultName${index % 8}`, ['荃灣綫', '港島綫', '觀塘綫', '東涌綫', '將軍澳綫', '南港島綫', '屯馬綫', '東鐵綫'][index % 8]),
     color: METRO_LINE_COLORS[state.lines.length % METRO_LINE_COLORS.length],
     stationIds: [pending.id, station.id],
-    status: 'active', monthToDatePassengers: 0, monthToDateRevenue: 0, history: [],
+    status: 'active', monthToDatePassengers: 0, monthToDateRevenue: 0, monthToDateTransfers: 0, history: [],
   };
   state.lines.push(line);
   metroLineDraft = { lineId: line.id };
@@ -452,17 +555,19 @@ function metroArrivalsAt(schedule, t0, t1, phases) {
  * A train calls at a station: those aboard pay for the tiles just ridden and the share bound here
  * gets off - riders are spread evenly over the stations ahead of them, so at the end of the line
  * everyone does; then the station's queue for the way the train leaves boards, up to its room, and
- * pays the boarding fare. Pure. `arrivingAhead` counts this station and those after it the way the
- * train came; `share` is the part of the queue going the way it leaves.
+ * pays the boarding fare - but not those changing from another line (`transferShare` of the queue),
+ * whose journey goes on by the tile, as the MTR's does. Pure. `arrivingAhead` counts this station
+ * and those after it the way the train came; `share` is the part of the queue going the way it leaves.
  * Returns { alighting, boarding, revenue }.
  */
-function metroCall({ aboard, waiting, rodeTiles, arrivingAhead, share }) {
+function metroCall({ aboard, waiting, rodeTiles, arrivingAhead, share, transferShare = 0 }) {
   const riding = Math.max(0, Math.floor(aboard || 0));
   const revenueRide = riding * Math.max(0, rodeTiles || 0) * METRO.farePerTile;
   const alighting = arrivingAhead <= 1 ? riding : Math.round(riding / arrivingAhead);
   const room = METRO.trainCapacity - (riding - alighting);
   const boarding = Math.max(0, Math.min(room, Math.floor(Math.max(0, waiting || 0) * Math.max(0, Math.min(1, share)))));
-  return { alighting, boarding, revenue: revenueRide + boarding * METRO.fareBase };
+  const paying = boarding * (1 - Math.max(0, Math.min(1, transferShare || 0)));
+  return { alighting, boarding, revenue: revenueRide + paying * METRO.fareBase };
 }
 
 // A line's timetable, worked out once per network change.
@@ -542,23 +647,32 @@ function metroStationCatchmentPoint(station) {
   return { id: `metro-${station.id}`, row: station.row, col: station.col, radius: METRO.catchmentRadius };
 }
 
+// Hour by hour each station's riders join its queues, split over the lines calling there by how
+// many stations each reaches - more of them where the network reaches past the station's own lines.
 function accrueMetroStationsForHour(state, envHour) {
   if (typeof getTransportStopRidersForHour !== 'function') return;
   const dayStart = typeof GAME_DAY_START_MINUTES === 'number' ? GAME_DAY_START_MINUTES : 360;
   const hour = ((envHour + Math.floor(dayStart / 60)) % 24 + 24) % 24;
   const resetHour = typeof TRANSPORT_STOP_POOL_RESET_HOUR === 'number' ? TRANSPORT_STOP_POOL_RESET_HOUR : 4;
   const share = (typeof TRANSPORT_STOP_DAILY_BOARDING_SHARE === 'number' ? TRANSPORT_STOP_DAILY_BOARDING_SHARE : 0.75) * METRO.boardingShare;
-  const served = new Set(state.lines.filter((l) => l.status === 'active').flatMap((l) => l.stationIds));
+  const active = state.lines.filter((l) => l.status === 'active');
   state.stations.forEach((station) => {
-    if (!served.has(station.id)) { station.waiting = 0; return; }
-    const current = hour === resetHour ? 0 : (Number(station.waiting) || 0);
-    station.waiting = Math.min(99999, current + getTransportStopRidersForHour(metroStationCatchmentPoint(station), hour, share));
+    if (hour === resetHour || !station.waitingByLine) { station.waitingByLine = {}; station.transferByLine = {}; }
+    const reach = metroStationReach(station.id, active);
+    if (!reach.byLine.size) { station.waitingByLine = {}; station.transferByLine = {}; return; }
+    const riders = getTransportStopRidersForHour(metroStationCatchmentPoint(station), hour, share) * metroNetworkBoost(reach);
+    const total = [...reach.byLine.values()].reduce((sum, n) => sum + n, 0);
+    reach.byLine.forEach((n, lineId) => {
+      station.waitingByLine[lineId] = Math.min(99999, (station.waitingByLine[lineId] || 0) + riders * (n / total));
+    });
   });
 }
 
-// Every call at a station in environment minutes (from, to]: riders off and paying, the queue on.
+// Every call at a station in environment minutes (from, to]: riders off and paying, some of them
+// changing to the station's other lines; then the queue for this line on.
 function callMetroTrains(state, fromMinutes, toMinutes) {
   const transport = typeof getTransportExpansionState === 'function' ? getTransportExpansionState() : null;
+  const active = state.lines.filter((l) => l.status === 'active');
   state.lines.forEach((line) => {
     if (line.status !== 'active') return;
     const fleet = getMetroLineTrains(line, state);
@@ -578,9 +692,25 @@ function callMetroTrains(state, fromMinutes, toMinutes) {
       // over which the queue splits
       const arrivingAhead = previous.toIndex > previous.fromIndex ? n - i : i + 1;
       const leavingAhead = here.toIndex > here.fromIndex ? n - 1 - i : i;
-      const call = metroCall({ aboard: v.aboard, waiting: station.waiting, rodeTiles: previous.length, arrivingAhead, share: leavingAhead / Math.max(1, n - 1) });
+      const waiting = station.waitingByLine[line.id] || 0;
+      const transfers = Math.min(waiting, station.transferByLine[line.id] || 0);
+      const call = metroCall({
+        aboard: v.aboard, waiting, rodeTiles: previous.length, arrivingAhead,
+        share: leavingAhead / Math.max(1, n - 1), transferShare: waiting > 0 ? transfers / waiting : 0,
+      });
       v.aboard = v.aboard - call.alighting + call.boarding;
-      station.waiting = Math.max(0, station.waiting - call.boarding);
+      const left = Math.max(0, waiting - call.boarding);
+      station.waitingByLine[line.id] = left;
+      station.transferByLine[line.id] = waiting > 0 ? transfers * (left / waiting) : 0;
+      // at a 轉車站 some of those getting off go on by another line, already paid up
+      const change = metroTransferSplit(station.id, line.id, active);
+      if (change.share > 0 && call.alighting > 0) {
+        const changing = call.alighting * change.share;
+        change.to.forEach(([otherId, part]) => {
+          station.waitingByLine[otherId] = Math.min(99999, (station.waitingByLine[otherId] || 0) + changing * part);
+          station.transferByLine[otherId] = Math.min(station.waitingByLine[otherId], (station.transferByLine[otherId] || 0) + changing * part);
+        });
+      }
       if (call.revenue > 0 && transport) {
         transport.company.cashFraction = (Number(transport.company.cashFraction) || 0) + call.revenue;
         const whole = Math.floor(transport.company.cashFraction);
@@ -589,6 +719,7 @@ function callMetroTrains(state, fromMinutes, toMinutes) {
         v.monthToDateRevenue += call.revenue;
       }
       line.monthToDatePassengers += call.boarding;
+      if (waiting > 0) line.monthToDateTransfers += call.boarding * (transfers / waiting);
     });
   });
 }
@@ -621,7 +752,7 @@ function settleMetroMonth(ended = null) {
   // (the month's turn is where a growing city first hears of its railway)
   isMetroUnlocked();
   const state = getMetroState();
-  const out = { revenue: 0, passengers: 0, cost: 0 };
+  const out = { revenue: 0, passengers: 0, cost: 0, property: 0 };
   state.lines.forEach((line) => {
     const fleet = getMetroLineTrains(line, state);
     const cost = fleet.reduce((sum, v) => sum + METRO.trainMonthlyUpkeep + v.tilesThisMonth * METRO.tileRunningCost, 0);
@@ -631,12 +762,14 @@ function settleMetroMonth(ended = null) {
     line.history.push({
       year: ended ? ended.year : (typeof city !== 'undefined' ? city.year : 0),
       month: ended ? ended.month : (typeof city !== 'undefined' ? city.month : 0),
-      passengers: line.monthToDatePassengers, revenue: Math.round(line.monthToDateRevenue * 100) / 100,
+      passengers: line.monthToDatePassengers, transfers: Math.round(line.monthToDateTransfers || 0),
+      revenue: Math.round(line.monthToDateRevenue * 100) / 100,
       cost: Math.round(cost * 100) / 100, net: Math.round((line.monthToDateRevenue - cost) * 100) / 100,
     });
     if (line.history.length > 24) line.history.splice(0, line.history.length - 24);
     line.monthToDateRevenue = 0;
     line.monthToDatePassengers = 0;
+    line.monthToDateTransfers = 0;
   });
   state.trains.forEach((v) => {
     v.lastMonthRevenue = v.monthToDateRevenue;
@@ -645,7 +778,80 @@ function settleMetroMonth(ended = null) {
     v.ageMonths += 1;
   });
   out.cost += state.stations.length * METRO.stationMonthlyUpkeep;
+  out.property = settleMetroProperty(state);
   return out;
+}
+
+// ── 鐵路加物業 (docs/metro-phase2-design.md §2) ────────────────────────────────
+
+/**
+ * The month's property income of each station: for every home and shop within reach of a station
+ * with trains, its rise in land value - the station's service x the metro's land-value rise,
+ * falling away to the catchment's edge, x how far into its first year of trains the station is -
+ * times its level and tiles; each building counted once, by the station that raises it most.
+ * Pure: `stations` are { id, row, col, quality, ramp }, `buildings` { row, col, level, tiles } (row
+ * and col its middle). Returns Map station id -> income (whole dollars, at most the cap).
+ */
+function metroPropertyIncome(stations, buildings) {
+  const radius = METRO.catchmentRadius;
+  const raw = new Map();
+  const live = stations.filter((s) => s.quality > 0 && s.ramp > 0);
+  if (!live.length) return new Map();
+  buildings.forEach((b) => {
+    let best = 0; let by = null;
+    live.forEach((s) => {
+      const distance = Math.abs(s.row - b.row) + Math.abs(s.col - b.col);
+      if (distance > radius) return;
+      const rise = s.quality * s.ramp * METRO.landValueBonusMax * (1 - distance / (radius + 1));
+      if (rise > best) { best = rise; by = s.id; }
+    });
+    if (by) raw.set(by, (raw.get(by) || 0) + best * Math.max(1, b.level || 1) * Math.max(1, b.tiles || 1) * METRO.propertyRatePerTile);
+  });
+  return new Map([...raw].map(([id, value]) => [id, Math.min(METRO.propertyStationCap, Math.round(value))]));
+}
+
+// The homes and shops of the city, for metroPropertyIncome.
+function getMetroPropertyBuildings() {
+  if (typeof buildingData === 'undefined' || !buildingData) return [];
+  const out = [];
+  for (const [id, record] of Object.entries(buildingData)) {
+    if (!record || (record.type !== 'residential' && record.type !== 'commercial')) continue;
+    const separator = id.indexOf(':');
+    const rows = Math.max(1, Number(record.footprintRows) || 1);
+    const cols = Math.max(1, Number(record.footprintCols) || 1);
+    out.push({
+      row: Number(id.slice(0, separator)) + (rows - 1) / 2,
+      col: Number(id.slice(separator + 1)) + (cols - 1) / 2,
+      level: Math.max(1, Math.min(3, Number(record.level) || 1)),
+      tiles: rows * cols,
+    });
+  }
+  return out;
+}
+
+// At the month's turn: each station with trains is a month further on, and the company takes its
+// share of the rise in land value round it. Returns the month's property income.
+function settleMetroProperty(state) {
+  const quality = new Map();
+  state.lines.forEach((line) => {
+    const q = getMetroLineQuality(line, state);
+    if (q > 0) line.stationIds.forEach((id) => quality.set(id, Math.max(quality.get(id) || 0, q)));
+  });
+  const stations = state.stations.map((station) => {
+    if (quality.has(station.id)) station.servedMonths += 1;
+    return {
+      id: station.id, row: station.row, col: station.col, quality: quality.get(station.id) || 0,
+      ramp: Math.min(1, station.servedMonths / METRO.propertyRampMonths),
+    };
+  });
+  const income = metroPropertyIncome(stations, getMetroPropertyBuildings());
+  let total = 0;
+  state.stations.forEach((station) => {
+    station.lastPropertyIncome = income.get(station.id) || 0;
+    total += station.lastPropertyIncome;
+  });
+  state.lastPropertyIncome = total;
+  return total;
 }
 
 // ── The city round the stations ───────────────────────────────────────────────
@@ -852,10 +1058,27 @@ function updateMetroOverlay(scene) {
     }
   });
   state.stations.forEach((station) => {
-    const line = getMetroStationLine(station, state);
+    const lines = getMetroStationLines(station, state);
     const s = at(station.row, station.col);
     g.fillStyle(0xffffff, 1); g.fillCircle(s.x, s.y, 7 / zoom);
-    g.lineStyle(3 / zoom, line ? Number.parseInt(line.color.slice(1), 16) : 0x777777, 1);
-    g.strokeCircle(s.x, s.y, 7 / zoom);
+    if (lines.length > 1) {
+      // a 轉車站, as on the MTR's map: white with a black ring
+      g.lineStyle(3.5 / zoom, 0x111111, 1);
+      g.strokeCircle(s.x, s.y, 8 / zoom);
+    } else {
+      g.lineStyle(3 / zoom, lines[0] ? Number.parseInt(lines[0].color.slice(1), 16) : 0x777777, 1);
+      g.strokeCircle(s.x, s.y, 7 / zoom);
+    }
+    // 鐵路加物業: a little house by a station that earned from the land round it last month
+    if (station.lastPropertyIncome > 0) {
+      const u = 1 / zoom;
+      const hx = s.x + 11 * u; const hy = s.y - 10 * u;
+      g.fillStyle(0x3a2a10, 1);
+      g.fillRect(hx - 5 * u, hy - 1 * u, 10 * u, 8 * u);
+      g.fillTriangle(hx - 7 * u, hy, hx, hy - 7 * u, hx + 7 * u, hy);
+      g.fillStyle(0xf2b134, 1);
+      g.fillRect(hx - 4 * u, hy, 8 * u, 6 * u);
+      g.fillTriangle(hx - 5.5 * u, hy - 0.5 * u, hx, hy - 5.5 * u, hx + 5.5 * u, hy - 0.5 * u);
+    }
   });
 }

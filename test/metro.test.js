@@ -123,3 +123,118 @@ test('the metro spends the government grant first, the company cash for the rest
   metro.grantMetroFunding(40000);
   assert.equal(metro.state.grantBalance, 40000);
 });
+
+// ── 第二期 (docs/metro-phase2-design.md) ───────────────────────────────────────
+
+function loadMetroPhase2() {
+  return new Function(`
+    ${read('metro.js')}
+    return { METRO, normalizeMetroState, metroStationReach, metroNetworkBoost, metroTransferSplit, metroCall, metroPropertyIncome };
+  `)();
+}
+
+test('a phase-1 save: the station queue goes to its line, nothing kept for lines that are gone', () => {
+  const { normalizeMetroState } = loadMetroPhase2();
+  const state = normalizeMetroState({
+    stations: [
+      { id: 'a', row: 0, col: 0, waiting: 120 },
+      { id: 'b', row: 0, col: 9, waitingByLine: { 'line-1': 40, gone: 9 }, transferByLine: { 'line-1': 90 } },
+    ],
+    lines: [{ id: 'line-1', stationIds: ['a', 'b'] }],
+  });
+  assert.deepEqual(state.stations[0].waitingByLine, { 'line-1': 120 });
+  assert.equal('waiting' in state.stations[0], false);
+  assert.deepEqual(state.stations[1].waitingByLine, { 'line-1': 40 });
+  assert.equal(state.stations[1].transferByLine['line-1'], 40, 'no more changing than waiting');
+  assert.equal(state.stations[0].servedMonths, 0);
+  assert.equal(state.lastPropertyIncome, 0);
+});
+
+test('the network: what a station reaches, and half as many riders again where it reaches twice as far', () => {
+  const { metroStationReach, metroNetworkBoost } = loadMetroPhase2();
+  const lines = [
+    { id: 'A', stationIds: ['a', 'b', 'c'], status: 'active' },
+    { id: 'B', stationIds: ['c', 'd', 'e', 'f'], status: 'active' },
+    { id: 'C', stationIds: ['x', 'y'], status: 'suspended' },
+  ];
+  const a = metroStationReach('a', lines);
+  assert.deepEqual([a.own, a.network], [2, 5]);
+  assert.equal(metroNetworkBoost(a), 1.5, 'reaches more than twice its own line: the most');
+  const c = metroStationReach('c', lines);
+  assert.deepEqual([...c.byLine], [['A', 2], ['B', 3]]);
+  assert.equal(metroNetworkBoost(c), 1 + 0.5 * (2 / 3));
+  assert.equal(metroNetworkBoost(metroStationReach('x', lines)), 1, 'a suspended line reaches nowhere');
+  assert.equal(metroNetworkBoost(metroStationReach('a', [lines[0]])), 1, 'one line alone: no more');
+});
+
+test('at a 轉車站 a share of those off change line, by what the other lines reach', () => {
+  const { metroTransferSplit } = loadMetroPhase2();
+  const lines = [
+    { id: 'A', stationIds: ['a', 'b', 'c'], status: 'active' },
+    { id: 'B', stationIds: ['c', 'd', 'e', 'f'], status: 'active' },
+    { id: 'C', stationIds: ['c', 'g'], status: 'active' },
+  ];
+  const fromA = metroTransferSplit('c', 'A', lines);
+  assert.equal(fromA.share, 4 / (4 + 2), 'd, e, f and g past A\'s own a and b');
+  assert.deepEqual(fromA.to, [['B', 3 / 4], ['C', 1 / 4]]);
+  assert.equal(metroTransferSplit('b', 'A', lines).share, 0, 'no other line at b');
+});
+
+test('those changing line pay by the tile but not to board again', () => {
+  const { METRO, metroCall } = loadMetroPhase2();
+  const call = metroCall({ aboard: 0, waiting: 200, rodeTiles: 0, arrivingAhead: 2, share: 1, transferShare: 0.25 });
+  assert.equal(call.boarding, 200);
+  assert.equal(call.revenue, 150 * METRO.fareBase);
+});
+
+test('鐵路加物業: a share of the rise in land value round a station, counted once, rising over a year, capped', () => {
+  const { METRO, metroPropertyIncome } = loadMetroPhase2();
+  const station = { id: 's', row: 0, col: 0, quality: 1, ramp: 1 };
+  const home = { row: 0, col: 0, level: 2, tiles: 4 };
+  const full = 1 * 1 * METRO.landValueBonusMax * 2 * 4 * METRO.propertyRatePerTile;
+  assert.equal(metroPropertyIncome([station], [home]).get('s'), Math.round(full));
+  assert.equal(metroPropertyIncome([{ ...station, ramp: 0.5 }], [home]).get('s'), Math.round(full / 2), 'half way into its first year');
+  const near = { id: 'near', row: 0, col: 1, quality: 1, ramp: 1 };
+  const both = metroPropertyIncome([{ ...station, quality: 0.5 }, near], [home]);
+  assert.equal(both.get('s'), undefined, 'the building counts once, for the station that raises it most');
+  assert.ok(both.get('near') > 0);
+  assert.equal(metroPropertyIncome([station], [{ row: 0, col: METRO.catchmentRadius + 1, level: 3, tiles: 9 }]).size, 0, 'out of reach');
+  assert.equal(metroPropertyIncome([{ ...station, quality: 0 }], [home]).size, 0, 'no trains, no rise');
+  const crowd = Array.from({ length: 500 }, () => ({ ...home, level: 3, tiles: 9 }));
+  assert.equal(metroPropertyIncome([station], crowd).get('s'), METRO.propertyStationCap);
+});
+
+test('drawing lines: through another line\'s station makes a 轉車站; a line never calls twice', () => {
+  const toasts = [];
+  const metro = new Function('toasts', `
+    const company = { cash: 1e6 };
+    let state;
+    const getTransportExpansionState = () => ({ company, metro: state });
+    const spendTransportConstruction = (n) => { company.cash -= n; return true; };
+    const showToast = (text, kind) => toasts.push([kind, text]);
+    const isInsideMap = () => true;
+    const WATER = 2;
+    const mapData = Array.from({ length: 64 }, () => new Array(64).fill(0));
+    ${read('metro.js')}
+    state = normalizeMetroState({ stations: ['s1', 's2', 's3', 's4'].map((id, i) => ({ id, name: id, row: 10, col: 10 + i * 8 })), unlocked: true });
+    return { state, click: (col) => handleMetroLineClick(null, 10, col), draft: (d) => { metroLineDraft = d; }, getMetroStationLines };
+  `)(toasts);
+  [10, 18, 26, 26].forEach((col) => metro.click(col));   // A: s1 s2 s3, done
+  assert.deepEqual(metro.state.lines.map((l) => l.stationIds), [['s1', 's2', 's3']]);
+  metro.click(18);                                         // the middle of A: a new line from s2
+  metro.click(34);                                         // B: s2 s4
+  assert.deepEqual(metro.state.lines[1].stationIds, ['s2', 's4']);
+  assert.equal(metro.getMetroStationLines(metro.state.stations[1], metro.state).length, 2, 's2 is a 轉車站');
+  metro.click(26);                                         // B on to s3, A's end: another 轉車站
+  assert.deepEqual(metro.state.lines[1].stationIds, ['s2', 's4', 's3']);
+  assert.ok(toasts.some(([, text]) => text.includes('轉車站')));
+  const before = metro.state.lines[1].stationIds.length;
+  metro.click(18);                                         // back to s2: B calls there already
+  assert.equal(metro.state.lines[1].stationIds.length, before);
+  assert.equal(toasts.at(-1)[0], 'warning');
+  metro.click(26);                                         // done
+  metro.draft({ forceNew: true });                         // 新增地鐵綫, then A's end
+  metro.click(10);
+  metro.click(34);
+  assert.deepEqual(metro.state.lines.map((l) => l.stationIds.length), [3, 3, 2], 'a third line, not A carried on');
+});

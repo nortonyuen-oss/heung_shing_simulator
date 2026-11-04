@@ -804,9 +804,10 @@ function preload() {
     });
   }
   if (typeof getRailwayTrackAssets === 'function') {
-    getRailwayTrackAssets().forEach(({ textureKey, path }) => {
-      this.load.image(textureKey, resolveModelAssetPath(path));
-    });
+    [...getRailwayTrackAssets(), ...(typeof getRailwayTrackCurveAssets === 'function' ? getRailwayTrackCurveAssets() : [])]
+      .forEach(({ textureKey, path }) => {
+        this.load.image(textureKey, resolveModelAssetPath(path));
+      });
   }
 
   this.load.image('water_full', `${roadPath}water.png`);

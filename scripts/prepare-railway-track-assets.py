@@ -58,10 +58,21 @@ ANCHOR_M = {  # (col, row) in metres on the tile, edge middles - railway-track.j
 CORNERS = {  # the corner two adjacent edges share, for each curved bit
     'UPPER': (0.0, 0.0), 'LOWER': (20.0, 20.0), 'LEFT': (0.0, 20.0), 'RIGHT': (20.0, 0.0),
 }
+# 大彎 (Norton, 2026-11-04: the one-tile curve is too tight for a 22.5 m car): a quarter circle of
+# 30 m (1.5 tiles) about a corner of a 2 x 2 block, from the middle of one block edge's far tile
+# to the middle of the other's - railway-track.js RAILWAY_TRACK_LARGE_CURVES
+BIG_BLOCK_M = 2 * TILE_M
+BIG_RADIUS = 1.5 * TILE_M
+BIG_CORNERS = {'N': (0.0, 0.0), 'E': (BIG_BLOCK_M, 0.0), 'S': (BIG_BLOCK_M, BIG_BLOCK_M), 'W': (0.0, BIG_BLOCK_M)}
 
 
 def layouts():
     script = "const t = require('./railway-track'); console.log(JSON.stringify(t.RAILWAY_TRACK_LAYOUTS))"
+    return json.loads(subprocess.check_output(['node', '-e', script], cwd=ROOT))
+
+
+def large_curves():
+    script = "const t = require('./railway-track'); console.log(JSON.stringify(t.RAILWAY_TRACK_LARGE_CURVES))"
     return json.loads(subprocess.check_output(['node', '-e', script], cwd=ROOT))
 
 
@@ -73,8 +84,12 @@ def path_coords(bit, offset, col, row):
         else:            # row 10, col 0 -> 20
             s, t = col, row - (10.0 + offset)
         return s, t, TILE_M
-    cx, cy = CORNERS[bit]
-    r = CURVE_RADIUS + offset
+    if isinstance(bit, tuple):   # ('BIG', corner): on the 2 x 2 block
+        cx, cy = BIG_CORNERS[bit[1]]
+        r = BIG_RADIUS + offset
+    else:
+        cx, cy = CORNERS[bit]
+        r = CURVE_RADIUS + offset
     dx, dy = col - cx, row - cy
     dist = np.hypot(dx, dy)
     ang = np.arctan2(np.abs(dy), np.abs(dx))          # 0 along one edge, pi/2 along the other
@@ -82,26 +97,22 @@ def path_coords(bit, offset, col, row):
     return s, dist - r, (np.pi / 2) * r
 
 
-def draw_tile(layout, rng):
-    n = TD
-    grid = (np.arange(n) + 0.5) / n * TILE_M
+def draw_tile(tracks, rng, size_m=TILE_M, n=TD):
+    grid = (np.arange(n) + 0.5) / n * size_m
     col, row = np.meshgrid(grid, grid)
-    px_m = TILE_M / n
+    px_m = size_m / n
     aa = lambda d: np.clip(0.5 - d / px_m, 0, 1)        # coverage of an edge at signed distance d
 
     bed = np.zeros((n, n), np.float32)
     sleeper_a = np.zeros((n, n), np.float32); sleeper_rgb = np.zeros((n, n, 3), np.float32)
     rail_a = np.zeros((n, n), np.float32); rail_rgb = np.zeros((n, n, 3), np.float32)
-    for bit in layout['tracks']:
+    for bit in tracks:
         # the bed under the line, as far as the line runs on this tile
         s0, t0, length0 = path_coords(bit, 0.0, col, row)
         on = (s0 >= -0.01) & (s0 <= length0 + 0.01)
         bed = np.maximum(bed, aa(np.abs(t0) - BED_HALF) * on)
         for offset in (-TRACK_OFFSET, TRACK_OFFSET):
             s, t, length = path_coords(bit, offset, col, row)
-            if bit not in ('X', 'Y'):
-                # (a curve's s runs the other way on the inner and outer track only by angle; fine)
-                pass
             on = (s >= 0) & (s <= length)
             count = max(1, round(length / SLEEPER_SPACING))
             spacing = length / count
@@ -200,16 +211,51 @@ def preview(tiles):
     sheet.save(PREVIEW)
 
 
+def preview_curves(curve_tiles):
+    """The four large curves, each as its 2 x 2 block on grass, beside the tile sheet."""
+    path = PREVIEW.with_name('metro-track-curves-preview.png')
+    half_w, half_h = ISO_W // 4, ISO_H // 4          # a tile at half size
+    block_w, block_h = 4 * half_w + 20, 4 * half_h + 40
+    sheet = Image.new('RGBA', (4 * block_w, block_h), (238, 236, 230, 255))
+    draw = ImageDraw.Draw(sheet)
+    for i, corner in enumerate(['N', 'E', 'S', 'W']):
+        ox, oy = i * block_w + block_w // 2, 30
+        draw.text((i * block_w + 8, 8), f'curve {corner}', fill=(40, 40, 40, 255))
+        for (curve, piece, img) in curve_tiles:
+            if curve['corner'] != corner:
+                continue
+            dr, dc = piece['tile']
+            x = ox + (dc - dr) * half_w - half_w; y = oy + (dc + dr) * half_h
+            ground = Image.new('RGBA', (2 * half_w, 2 * half_h), (0, 0, 0, 0))
+            ImageDraw.Draw(ground).polygon([(half_w, 0), (2 * half_w, half_h), (half_w, 2 * half_h), (0, half_h)], fill=(96, 108, 82, 255), outline=(84, 95, 72, 255))
+            ground.alpha_composite(img.resize((2 * half_w, 2 * half_h), Image.LANCZOS))
+            sheet.alpha_composite(ground, (x, y))
+    sheet.save(path)
+    print('preview', path.relative_to(ROOT))
+
+
 def main():
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     rng = np.random.default_rng(20261104)
     tiles = []
     for layout in layouts():
-        img = composite(draw_tile(layout, rng))
+        img = composite(draw_tile(layout['tracks'], rng))
         img.save(OUT_DIR / f"{layout['asset']}.png")
         tiles.append((layout, img))
         print(layout['asset'], img.size)
     preview(tiles)
+    # 大彎: the 2 x 2 block drawn whole, then cut into its four tiles
+    curve_tiles = []
+    for curve in large_curves():
+        block = draw_tile([('BIG', curve['corner'])], rng, size_m=BIG_BLOCK_M, n=2 * TD)
+        for piece in curve['tiles']:
+            dr, dc = piece['tile']
+            part = {k: v[dr * TD:(dr + 1) * TD, dc * TD:(dc + 1) * TD] for k, v in block.items()}
+            img = composite(part)
+            img.save(OUT_DIR / f"{piece['asset']}.png")
+            curve_tiles.append((curve, piece, img))
+            print(piece['asset'], img.size)
+    preview_curves(curve_tiles)
     print('preview', PREVIEW.relative_to(ROOT))
 
 

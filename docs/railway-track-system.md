@@ -24,7 +24,7 @@ masks are not inferred: resolve a mask with `getRailwayTrackLayout` and handle `
   apart all the way round. (OpenTTD draws these bits as straight 45° chords; with two tracks to a
   tile the chords cannot meet the straights cleanly, so they are curves here. The bits and masks
   are OpenTTD's all the same.)
-- **The look** follows Norton's track sheet (`Models/subwayStation/tracks.png`): brown rails with
+- **The look** follows Norton's track sheet (`scripts/source-art/subwayStation/original/tracks.png`): brown rails with
   bright heads on chunky grey concrete sleepers, spaced about a gauge apart; the colours are
   sampled from it. Tiles are drawn top-down in metres and warped to 2:1, so straights, curves and
   crossings match; rails cast a small shadow down-screen.

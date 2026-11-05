@@ -1,6 +1,6 @@
 """地鐵第三期: the surface track tiles (Models/metroTrack/), one per railway-track.js layout.
 
-Norton, 2026-11-04: his track sheet (Models/subwayStation/tracks.png) gives the look - brown rails
+Norton, 2026-11-04: his track sheet (scripts/source-art/subwayStation/original/tracks.png) gives the look - brown rails
 with bright heads on chunky grey concrete sleepers, spaced about a gauge apart - and the tiles are
 double track, a line to a tile, on a grey-brown ballast bed. They are drawn top-down in metres
 (a tile is 20 m) and warped to the game's 2:1, so the straight pieces, the curves and the crossings

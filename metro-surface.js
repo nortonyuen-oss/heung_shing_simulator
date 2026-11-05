@@ -12,8 +12,8 @@ const METRO_RAIL = Object.freeze({
   // 高架 (step 4, Norton 2026-11-05: its own tool, the deck 8 m up): a viaduct tile and a ramp tile
   deckCostPerTile: 2000,
   rampCostPerTile: 1200,
-  deckMetres: 8,
-  rampTiles: 3,
+  deckMetres: 17,               // (Norton: up from 8 m, to meet his elevated station's track)
+  rampTiles: 5,
 });
 
 const RAIL_DIRS = Object.freeze({ n: [-1, 0], e: [0, 1], s: [1, 0], w: [0, -1] });
@@ -124,7 +124,7 @@ function addRailPathBits(bits, path) {
 }
 
 // ── 高架 (step 4) ───────────────────────────────────────────────────────────────
-// An elevated tile is 'd' (the deck, 8 m up) or a ramp step: `${step}${up}`, step 1..3 from the
+// An elevated tile is 'd' (the deck, 17 m up) or a ramp step: `${step}${up}`, step 1..5 from the
 // ground, `up` the side it rises towards.
 
 // The track's height (metres) where it crosses a side of an elevated tile (0 on the ground). Pure.
@@ -140,7 +140,7 @@ function railSideHeight(code, side) {
 }
 
 /**
- * An elevated drag: its first and last three tiles ramps (unless that end starts on the viaduct
+ * An elevated drag: its first and last five tiles ramps (unless that end starts on the viaduct
  * already there - its deck or a ramp - carrying it on: a ramp it crosses becomes deck), the rest deck. Pure with `elev` (the elevated tiles) and `canDeck` / `canRamp`.
  * Returns { ok, reason, assign: { key: code }, decks, ramps }; reason 'tooShort', 'rampStraight',
  * 'rampGround' or 'deckGround'.
@@ -390,6 +390,10 @@ function demolishMetroTrackAt(scene, row, col) {
   }
   const elev = getMetroTrackElev();
   const run = elev[key] ? railElevatedRun(bits, elev, key) : [key];
+  // (a viaduct with a 高架站 on it stays until the station goes)
+  if (typeof isMetroSurfaceStationTile === 'function' && run.some((k) => { const [r, c] = k.split(':').map(Number); return isMetroSurfaceStationTile(r, c); })) {
+    return say('metro.track.underStation', '路軌上面有地面站：先拆咗個站。');
+  }
   const used = typeof getMetroSurfaceLineTiles === 'function' ? getMetroSurfaceLineTiles() : new Set();
   if (run.some((k) => used.has(k))) {
     return say('metro.track.inUse', '有地面綫行緊呢段路軌：先喺運輸公司路線表移走條綫。');
@@ -436,10 +440,19 @@ function syncMetroTracks(scene) {
   scene.metroTrackSprites.forEach((sprite, key) => {
     if (!bits[key] || Boolean(elev[key]) !== Boolean(sprite.__elevated)) { sprite.destroy(); scene.metroTrackSprites.delete(key); }
   });
+  // an island station's tiles: its end tiles' decks spread the tracks; its own five are drawn with
+  // the station (metro-surface-lines.js syncMetroPlatforms), none here
+  const island = typeof getMetroIslandTileTextures === 'function' ? getMetroIslandTileTextures() : new Map();
+  island.forEach((texture, key) => {
+    if (texture || !scene.metroTrackSprites.has(key)) return;
+    scene.metroTrackSprites.get(key).destroy();
+    scene.metroTrackSprites.delete(key);
+  });
   Object.entries(bits).forEach(([key, mask]) => {
     const [row, col] = key.split(':').map(Number);
     const code = elev[key];
-    const texture = code ? metroViaductTextureKey(mask, code) : metroTrackTextureKey(mask);
+    if (island.has(key) && !island.get(key)) return;
+    const texture = island.get(key) || (code ? metroViaductTextureKey(mask, code) : metroTrackTextureKey(mask));
     if (!texture || !scene.textures.exists(texture)) return;
     let sprite = scene.metroTrackSprites.get(key);
     if (!sprite) {
@@ -470,14 +483,19 @@ function syncMetroTracks(scene) {
 
 // The viaduct's pictures (scripts/prepare-metro-viaduct-assets.py): a deck for each layout a tile may
 // hold, and the ramps, X and Y, rising either way, three steps.
-const METRO_VIADUCT_ART = Object.freeze({ width: 512, height: 352, centre: [256, 224] });
+const METRO_VIADUCT_ART = Object.freeze({ width: 512, height: 544, centre: [256, 416] });
 const METRO_VIADUCT_TEXTURES = (() => {
   const out = [];
   ['x', 'y', 'upper', 'lower', 'left', 'right', 'cross_xy', 'parallel_horizontal', 'parallel_vertical']
     .forEach((n) => out.push({ key: `metro_viaduct_${n}`, path: `Models/metroViaduct/metro_viaduct_${n}.png` }));
-  [['x', ['n', 's']], ['y', ['w', 'e']]].forEach(([axis, ups]) => ups.forEach((up) => [1, 2, 3].forEach((step) => {
+  [['x', ['n', 's']], ['y', ['w', 'e']]].forEach(([axis, ups]) => ups.forEach((up) => [1, 2, 3, 4, 5].forEach((step) => {
     out.push({ key: `metro_ramp_${axis}_${up}${step}`, path: `Models/metroViaduct/metro_ramp_${axis}_${up}${step}.png` });
   })));
+  // the island stations' end tiles, where the tracks spread (metro-surface-lines.js
+  // getMetroIslandTileTextures; the station's own five tiles are its pictures there)
+  [['x', ['n', 's']], ['y', ['w', 'e']]].forEach(([axis, ends]) => ends.forEach((e) => {
+    out.push({ key: `metro_island_${axis}_spread_${e}`, path: `Models/metroViaduct/metro_island_${axis}_spread_${e}.png` });
+  }));
   return out;
 })();
 

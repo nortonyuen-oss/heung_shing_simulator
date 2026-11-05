@@ -76,7 +76,7 @@ function normalizeMetroState(raw) {
       id: String(s.id).slice(0, 40), row, col,
       facing: METRO_DIRS[s.facing] ? s.facing : 's',
       // 第三期: a platform on the surface track (metro-surface-lines.js), along `axis`, not an entrance
-      ...(s.surface === true ? { surface: true, axis: s.axis === 'we' ? 'we' : 'ns' } : {}),
+      ...(s.surface === true ? { surface: true, axis: s.axis === 'we' ? 'we' : 'ns', ...(s.elevated === true ? { elevated: true } : {}) } : {}),
       name: String(s.name || '').slice(0, 40),
       // its queue for each line that calls (fractional, so a quiet station's few riders an hour
       // still add up), and of those the riders come from another line, who have paid to board
@@ -154,9 +154,9 @@ function normalizeMetroState(raw) {
     // 第三期 surface track (metro-surface.js): "row:col" -> the tile's TrackBits (railway-track.js)
     tracks: Object.fromEntries(Object.entries(src.tracks && typeof src.tracks === 'object' && !Array.isArray(src.tracks) ? src.tracks : {})
       .filter(([k, v]) => /^\d+:\d+$/.test(k) && Number.isInteger(v) && v > 0 && v < 64)),
-    // and which of it is elevated (step 4): "row:col" -> 'd' (the deck) or a ramp step `${1..3}${up side}`
+    // and which of it is elevated (step 4): "row:col" -> 'd' (the deck) or a ramp step `${1..5}${up side}`
     trackElev: Object.fromEntries(Object.entries(src.trackElev && typeof src.trackElev === 'object' && !Array.isArray(src.trackElev) ? src.trackElev : {})
-      .filter(([k, v]) => /^\d+:\d+$/.test(k) && typeof v === 'string' && /^(d|[123][nesw])$/.test(v))),
+      .filter(([k, v]) => /^\d+:\d+$/.test(k) && typeof v === 'string' && /^(d|[1-5][nesw])$/.test(v))),
   };
 }
 

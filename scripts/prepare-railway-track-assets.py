@@ -77,6 +77,15 @@ def layouts():
 
 def path_coords(bit, offset, col, row):
     """(s, t, length) of each pixel for one track: s along it from one edge, t across it."""
+    if isinstance(bit, tuple) and bit[0] == 'PAIR':
+        # ('PAIR', (p1, p2), (q1, q2)): two tracks each on its own straight, in metres (col, row) -
+        # an island platform's tracks spreading apart (the viaduct's island stations)
+        a, b = bit[1] if offset < 0 else bit[2]
+        p1, p2 = np.array(a, float), np.array(b, float)
+        u = (p2 - p1) / np.linalg.norm(p2 - p1)
+        s = (col - p1[0]) * u[0] + (row - p1[1]) * u[1]
+        t = (col - p1[0]) * -u[1] + (row - p1[1]) * u[0]
+        return s, t, float(np.linalg.norm(p2 - p1))
     if isinstance(bit, tuple):
         # ('XO', axis): a scissors crossover over two tiles along X (rows 0-40 at col 10) or Y
         # (cols 0-40 at row 10): each track from one side of the line to the other
@@ -120,6 +129,7 @@ def draw_tile(tracks, rng, size_m=TILE_M, n=TD):
     for bit in tracks:
         # the bed under the line, as far as the line runs on this tile
         crossover = isinstance(bit, tuple)
+        pair = crossover and bit[0] == 'PAIR'
         diagonal = bit not in ('X', 'Y') and not crossover
         # (a diagonal meets the edges at 45 degrees: it runs on past its ends, the tile's diamond
         # cutting it along the edge)
@@ -135,6 +145,8 @@ def draw_tile(tracks, rng, size_m=TILE_M, n=TD):
             s, t, length = path_coords(bit, offset, col, row)
             t = t * squeeze
             on = (s >= -over) & (s <= length + over)
+            if pair:   # a bed under each track of a pair
+                bed = np.maximum(bed, aa(np.abs(t) - (SLEEPER_HALF_LENGTH + 0.7)) * on)
             count = max(1, round(length / SLEEPER_SPACING))
             spacing = length / count
             # sleepers centred on (i + 0.5) spacing: a gap at each edge, the same both ways

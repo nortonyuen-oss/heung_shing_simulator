@@ -65,3 +65,30 @@ test('at a terminus a train stands on the platform it is given and crosses back 
   const cars = surfaceTrainCars(g, end, -1, picks);
   assert.ok(cars.every((c) => Math.abs(c.pos[1] - (5.5 + METRO_SURFACE.trackOffsetTiles)) < 1e-9));
 });
+
+test('避車: trains on one track keep a tile and a half apart; the other way, on the other track, pass', () => {
+  const { surfaceSegmentKeys, resolveSurfaceBlocking } = require('../metro-surface-lines');
+  const straight = lay({}, { row: 5, col: 0 }, { row: 5, col: 40 });
+  const S1 = { row: 5, col: 4, axis: 'we' }, S2 = { row: 5, col: 34, axis: 'we' };
+  const g = surfaceLineGeometry([S1, S2], straight);
+  const half = 2.35;
+  const keys = (x, dir, from, to) => surfaceSegmentKeys(g, x + dir * from, x + dir * to, dir, straight);
+  const train = (id, x, dir) => ({ id, occupied: keys(x, dir, -half, half), ahead: keys(x, dir, half, half + 1.5) });
+  // A at 15 going east; B behind it at 10.5, its nose a tile from A's tail: B waits, A goes
+  assert.deepEqual([...resolveSurfaceBlocking([train('A', 15, 1), train('B', 10.5, 1)])], ['B']);
+  // far apart: neither waits
+  assert.equal(resolveSurfaceBlocking([train('A', 20, 1), train('B', 10, 1)]).size, 0);
+  // the other way, side by side: on the other track
+  assert.equal(resolveSurfaceBlocking([train('A', 15, 1), train('B', 15.5, -1)]).size, 0);
+  // two trains making for the same free tile: the first in order goes, the second waits
+  const a = { id: 'A', occupied: new Set(['1:1|1']), ahead: new Set(['1:2|*']) };
+  const b = { id: 'B', occupied: new Set(['3:3|1']), ahead: new Set(['1:2|1']) };
+  assert.deepEqual([...resolveSurfaceBlocking([a, b])], ['B']);
+});
+
+test('避車: two trains started on top of each other do not wait on each other for ever', () => {
+  const { resolveSurfaceBlocking } = require('../metro-surface-lines');
+  const a = { id: 'A', occupied: new Set(['5:5|1', '5:6|1']), ahead: new Set(['5:6|1', '5:7|1']) };
+  const b = { id: 'B', occupied: new Set(['5:5|1', '5:6|1']), ahead: new Set(['5:6|1', '5:7|1']) };
+  assert.deepEqual([...resolveSurfaceBlocking([a, b])], ['B'], 'the first goes');
+});

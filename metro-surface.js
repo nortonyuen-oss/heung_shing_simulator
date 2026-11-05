@@ -27,9 +27,11 @@ const RAIL_BIT_SIDES = Object.freeze({
   16: ['w', 's'],   // LEFT: A - D
   32: ['n', 'e'],   // RIGHT: B - C
 });
-// what a tile may hold this phase: one bit, the X/Y crossing, or two diagonals side by side
-// (no points: lines do not branch yet)
-const RAIL_ALLOWED_MASKS = new Set([1, 2, 4, 8, 16, 32, 0x03, 0x0c, 0x30]);
+// what a tile may hold: one bit, the X/Y crossing, two diagonals side by side, and (phase 4) OpenTTD's
+// points - a straight and a diagonal sharing a side - and three-way junctions (railway-track.js)
+const RAIL_PLAIN_MASKS = new Set([1, 2, 4, 8, 16, 32, 0x03, 0x0c, 0x30]);
+const RAIL_ALLOWED_MASKS = new Set([...RAIL_PLAIN_MASKS,
+  0x06, 0x12, 0x05, 0x21, 0x0a, 0x22, 0x09, 0x11, 0x16, 0x25, 0x2a, 0x19]);
 
 function railKey(row, col) {
   return `${row}:${col}`;
@@ -201,7 +203,7 @@ function railElevatedRun(bits, elev, startKey) {
   return [...seen];
 }
 
-/** The tiles whose bits this phase cannot have (points, three-way junctions): [key]. Pure. */
+/** The tiles whose bits the track cannot have (combinations with no layout): [key]. Pure. */
 function railBadTiles(bits) {
   return Object.entries(bits).filter(([, mask]) => mask && !RAIL_ALLOWED_MASKS.has(mask)).map(([key]) => key);
 }
@@ -248,6 +250,13 @@ function planMetroTrack(start, end) {
   // ground track does not run into a viaduct (its ramps meet the ground track at their foot)
   const elev = getMetroTrackElev();
   if (path.some(({ row, col }) => elev[railKey(row, col)])) { out.reason = 'elevated'; return out; }
+  // (and a platform's tiles stay one straight)
+  if (typeof isMetroSurfaceStationTile === 'function' && path.some(({ row, col }) => isMetroSurfaceStationTile(row, col))) {
+    const next0 = addRailPathBits(bits, path);
+    if (path.some(({ row, col }) => isMetroSurfaceStationTile(row, col) && next0[railKey(row, col)] !== bits[railKey(row, col)])) {
+      out.reason = 'platform'; return out;
+    }
+  }
   const bad = path.find(({ row, col }) => !bits[railKey(row, col)] && !canLayMetroTrackAt(row, col));
   if (bad) { out.reason = 'ground'; out.bad = bad; return out; }
   const next = addRailPathBits(bits, path);
@@ -264,10 +273,12 @@ const METRO_TRACK_REFUSALS = Object.freeze({
   locked: ['metro.track.locked', '城市人口要有 30,000 先可以起地鐵。'],
   tooShort: ['metro.track.tooShort', '拖長啲：路軌最少兩格。'],
   ground: ['metro.track.ground', '路軌要起喺平地空地上（唔可以喺水、路、斜坡或者建築上面）；過馬路要高架，遲啲先有。'],
-  junction: ['metro.track.junction', '路軌唔可以喺度分叉（第三期未有道岔）。'],
+  junction: ['metro.track.junction', '呢個路軌組合起唔到（例如兩條斜綫交叉、四向分叉）。'],
+  deckPoints: ['metro.track.deckPoints', '高架上面唔可以有道岔：道岔要起喺地面。'],
   funds: ['metro.track.funds', '公司資金唔夠起路軌（要 ${cost}）。'],
   elevated: ['metro.track.elevated', '地面路軌唔可以駁入高架中間：喺斜坡腳接駁。'],
   rampStraight: ['metro.track.rampStraight', '高架兩頭各要三格直路做斜坡。'],
+  platform: ['metro.track.platform', '月台嗰五格要保持直路：喺月台外面分叉。'],
   rampGround: ['metro.track.rampGround', '斜坡要起喺平地空地上（唔可以喺路、建築或者其他路軌上面）。'],
   deckGround: ['metro.track.deckGround', '高架橋墩要落喺平地或者馬路上（唔可以喺水、建築或者地面路軌上面）。'],
 });
@@ -330,6 +341,9 @@ function planMetroElevatedTrack(start, end) {
   const next = addRailPathBits(bits, path);
   const junctions = railBadTiles(next);
   if (junctions.length) { out.reason = 'junction'; out.bad = junctions[0]; return out; }
+  // the viaduct's pictures have no points
+  const pointsUp = Object.keys({ ...elev, ...plan.assign }).find((k) => next[k] && !RAIL_PLAIN_MASKS.has(next[k]));
+  if (pointsUp) { out.reason = 'deckPoints'; out.bad = pointsUp; return out; }
   out.newTiles = Object.keys(plan.assign);
   out.cost = plan.decks * METRO_RAIL.deckCostPerTile + plan.ramps * METRO_RAIL.rampCostPerTile;
   out.bits = next;

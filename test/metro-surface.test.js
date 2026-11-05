@@ -41,9 +41,12 @@ test('crossing another line makes a diamond; joining its end needs no new bit; p
   // carry a line on from its end: the end tile keeps its straight
   const on = lay(lay({}, { row: 0, col: 0 }, { row: 0, col: 3 }), { row: 0, col: 3 }, { row: 0, col: 6 });
   assert.equal(on['0:3'], Y);
-  // a diagonal across a straight: the straight and a diagonal on one tile would be points
+  // a diagonal across a straight: points where it meets it (phase 4), a straight and a diagonal on a tile
   const branch = lay(lay({}, { row: 3, col: 0 }, { row: 3, col: 6 }), { row: 2, col: 2 }, { row: 4, col: 4 });
-  assert.deepEqual(railBadTiles(branch), ['3:3', '3:4'], 'it crosses the straight over two tiles');
+  assert.deepEqual(railBadTiles(branch), []);
+  assert.deepEqual([branch['3:3'], branch['3:4']], [Y | RIGHT, Y | LEFT], 'two points, OpenTTD switch_c2 and switch_a2');
+  // two diagonals crossing on one tile have no layout
+  assert.deepEqual(railBadTiles({ '0:0': UPPER | LEFT | RIGHT | LOWER }), ['0:0']);
 });
 
 test('the map turned: each bit drawn as the bit joining its sides turned', () => {

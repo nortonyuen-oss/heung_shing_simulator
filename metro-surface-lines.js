@@ -112,11 +112,15 @@ function findSurfacePath(bits, from, to) {
 function surfaceLineGeometry(stations, bits, elevAt = null) {
   // (elevAt(row, col, side): the track's height in metres where it crosses that side of the tile -
   // on a viaduct or a ramp; 0 on the ground)
+  // each vertex after the first keeps the tile the line crossed to reach it (`seg`: its key and the
+  // sides it came in and went out by) - which track a train is on, for keeping trains apart
+  const OPP = { n: 's', s: 'n', e: 'w', w: 'e' };
   const verts = [];
-  const push = (pt, across, z = 0) => {
+  const push = (pt, across, z = 0, seg = null) => {
     const last = verts.at(-1);
     if (last && Math.abs(last.x - pt[0]) < 1e-9 && Math.abs(last.y - pt[1]) < 1e-9) return;
-    verts.push({ x: pt[0], y: pt[1], across, z });
+    if (seg) seg = { key: seg.key, entry: seg.entry || OPP[seg.exit], exit: seg.exit || OPP[seg.entry] };
+    verts.push({ x: pt[0], y: pt[1], across, z, seg });
   };
   const centreAcross = (st) => (st.axis === 'ns' ? [1, 0] : [0, 1]);
   const edgeAcross = (side) => (side === 'n' || side === 's' ? [1, 0] : [0, 1]);
@@ -127,8 +131,9 @@ function surfaceLineGeometry(stations, bits, elevAt = null) {
     stationIdx.push(verts.length === 0 ? 0 : verts.length - 1);
     if (!verts.length) push([stations[i].col + 0.5, stations[i].row + 0.5], centreAcross(stations[i]));
     path.forEach((step, k) => {
-      if (step.exit) push(railEdgeMiddle(step.row, step.col, step.exit), edgeAcross(step.exit), elevAt ? elevAt(step.row, step.col, step.exit) : 0);
-      if (k === path.length - 1) push([step.col + 0.5, step.row + 0.5], centreAcross(stations[i + 1]));
+      const seg = { key: `${step.row}:${step.col}`, entry: step.entry, exit: step.exit };
+      if (step.exit) push(railEdgeMiddle(step.row, step.col, step.exit), edgeAcross(step.exit), elevAt ? elevAt(step.row, step.col, step.exit) : 0, seg);
+      if (k === path.length - 1) push([step.col + 0.5, step.row + 0.5], centreAcross(stations[i + 1]), 0, seg);
     });
   }
   stationIdx.push(verts.length - 1);
@@ -138,7 +143,11 @@ function surfaceLineGeometry(stations, bits, elevAt = null) {
     const b = atStart ? verts[1] : verts.at(-2);
     const dx = a.x - b.x, dy = a.y - b.y, len = Math.hypot(dx, dy) || 1;
     const v = { x: a.x + (dx / len) * METRO_SURFACE.endRunTiles, y: a.y + (dy / len) * METRO_SURFACE.endRunTiles, across: a.across, z: a.z };
-    if (atStart) { verts.unshift(v); for (let i = 0; i < stationIdx.length; i++) stationIdx[i] += 1; } else verts.push(v);
+    // the run on along the end station's platform: a straight, out the way it points
+    const st = atStart ? stations[0] : stations.at(-1);
+    const out = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'e' : 'w') : (dy > 0 ? 's' : 'n');
+    const seg = { key: `${st.row}:${st.col}`, entry: atStart ? out : OPP[out], exit: atStart ? OPP[out] : out };
+    if (atStart) { verts[0].seg = seg; verts.unshift(v); for (let i = 0; i < stationIdx.length; i++) stationIdx[i] += 1; } else { v.seg = seg; verts.push(v); }
   };
   if (verts.length < 2) return null;
   extend(true); extend(false);
@@ -219,6 +228,64 @@ function surfaceTrainCars(geom, x, dir, picks = null) {
   return out;
 }
 
+// ── Keeping trains apart (Norton: 要避開; docs/metro-phase4-design.md §6) ────────────────────────
+
+/**
+ * The tracks a train takes up between distances d0 and d1 along the line, going dir: a key for
+ * each tile and which of its two tracks (by the bit it runs on and whether it runs that bit's way -
+ * left-hand running puts each way on its own track); a tile of points or a crossing, or where it
+ * crosses over between the tracks, the whole tile. Pure: `bits` the TrackBits, `side(d)` the track
+ * side there (surfaceTrackSide). Set of keys.
+ */
+function surfaceSegmentKeys(geom, d0, d1, dir, bits, side = () => dir) {
+  const lo = Math.min(d0, d1), hi = Math.max(d0, d1);
+  const SIDES = { 1: ['s', 'n'], 2: ['w', 'e'], 4: ['w', 'n'], 8: ['s', 'e'], 16: ['w', 's'], 32: ['n', 'e'] };
+  const out = new Set();
+  for (let i = 1; i < geom.verts.length; i++) {
+    const seg = geom.verts[i].seg;
+    if (!seg || geom.cum[i] < lo || geom.cum[i - 1] > hi) continue;
+    const mask = bits[seg.key] || 0;
+    const single = [1, 2, 4, 8, 16, 32].includes(mask);
+    const mid = (Math.max(lo, geom.cum[i - 1]) + Math.min(hi, geom.cum[i])) / 2;
+    const s = side(mid);
+    if (!single || Math.abs(s) < 0.999) { out.add(`${seg.key}|*`); continue; }
+    // the way it runs over this tile and the track that way puts it on
+    const [a, b] = dir > 0 ? [seg.entry, seg.exit] : [seg.exit, seg.entry];
+    const canonical = SIDES[mask][0] === a && SIDES[mask][1] === b;
+    out.add(`${seg.key}|${(canonical ? 1 : -1) * Math.sign(s * dir)}`);
+  }
+  return out;
+}
+
+function surfaceKeysClash(a, b) {
+  for (const k of a) {
+    if (b.has(k)) return true;
+    const tile = k.slice(0, k.indexOf('|'));
+    if (k.endsWith('|*') ? [...b].some((x) => x.startsWith(`${tile}|`)) : b.has(`${tile}|*`)) return true;
+  }
+  return false;
+}
+
+/**
+ * Which trains wait: in order of priority, a train whose track ahead clashes with any other train's
+ * track taken up, or the track ahead of one before it that goes on, waits; one that goes on keeps
+ * its track ahead. Two trains already on the same track (two lines' first trains starting together)
+ * would wait on each other for ever: of those the first goes and the other waits for it to draw
+ * away. Pure: trains [{ id, occupied: Set, ahead: Set }] in priority order. Set of ids.
+ */
+function resolveSurfaceBlocking(trains) {
+  const waiting = new Set();
+  const reserved = [];
+  trains.forEach((t, i) => {
+    const blocked = trains.some((o, j) => o !== t && surfaceKeysClash(t.ahead, o.occupied)
+      && !(j > i && surfaceKeysClash(t.occupied, o.occupied)))
+      || reserved.some((r) => surfaceKeysClash(t.ahead, r));
+    if (blocked) waiting.add(t.id);
+    else reserved.push(t.ahead);
+  });
+  return waiting;
+}
+
 /**
  * A car's picture (metro-train-art.js) by its way on the map, the map turned `turn` quarter
  * turns, and its place in the train: the cab cars show their cab at the train's ends. Pure.
@@ -242,6 +309,7 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     METRO_SURFACE, surfaceStationTiles, whyNotSurfaceStationAt, findSurfacePath, surfaceLineGeometry,
     surfaceTrackLine, surfacePointAt, surfaceTrackSide, surfaceTrainCars, surfaceCarView, surfaceCrossoverTiles,
+    surfaceSegmentKeys, surfaceKeysClash, resolveSurfaceBlocking,
   };
 }
 
@@ -483,50 +551,78 @@ function updateMetroSurfaceTrains(scene) {
     const sky = typeof getTyphoonShelterFleetClock === 'function' ? getTyphoonShelterFleetClock() : 0;
     const running = isMetroRunning(sky);
     const turn = typeof mapRotation === 'number' ? mapRotation : 0;
-    surfaceLines.forEach((line) => {
-      const schedule = getMetroLineSchedule(line, state);
-      const geom = getSurfaceLineGeometry(line, state);
-      if (!schedule || !geom || !running) return;
-      getMetroLineTrains(line, state).forEach((v, index) => {
-        const p = metroTrainPointAt(schedule, sky, v.phase);
-        // trains take the two platforms at each terminus in turn
-        const picks = { first: index % 2 ? 1 : -1, last: index % 2 ? -1 : 1 };
-        if (!p?.leg) return;
-        const from = geom.stationAt[p.leg.fromIndex], to = geom.stationAt[p.leg.toIndex];
-        const dir = Math.sign(to - from) || 1;
-        const x = from + (to - from) * (p.k || 0);
-        let sprites = scene.metroTrainSprites.get(v.id);
-        if (!sprites) {
-          sprites = Array.from({ length: METRO_SURFACE.cars }, () => {
-            const s = scene.add.image(0, 0, METRO_TRAIN_ART.fall_mid.key);
-            addToRenderLayer(scene, s, 'objectLayer');
-            if (scene.worldMask) s.setMask(scene.worldMask);
-            if (typeof applyNightPropTint === 'function') applyNightPropTint(scene, s);
-            return s;
-          });
-          scene.metroTrainSprites.set(v.id, sprites);
-        }
-        seen.add(v.id);
-        surfaceTrainCars(geom, x, dir, picks).forEach((car, i) => {
-          const art = METRO_TRAIN_ART[surfaceCarView(car.heading[0], car.heading[1], car.role, turn)];
-          const sprite = sprites[i];
-          if (sprite.texture.key !== art.key) sprite.setTexture(art.key);
-          const src = scene.textures.get(art.key).getSourceImage();
-          const anchor = typeof getPropTextureAnchor === 'function'
-            ? getPropTextureAnchor(art.path, art.anchor[0], art.anchor[1], src)
-            : { originX: art.anchor[0] / src.width, originY: art.anchor[1] / src.height, scaleMultiplier: 1 };
-          sprite.setOrigin(anchor.originX, anchor.originY);
-          sprite.setScale((TILE_WIDTH / 512) * anchor.scaleMultiplier);
-          const at = metroSurfaceScreenAt(scene, car.pos[0], car.pos[1]);
-          // up on a viaduct or a ramp: drawn that much higher, and after the deck it runs on (and the
-          // next tile's, which its front reaches)
-          const lift = (car.z || 0) * METRO_SURFACE.zPxPerMetre * (TILE_WIDTH / 512);
-          sprite.setPosition(at.x, at.y - lift);
-          // sorted among the buildings and the viaduct in their frame (isoToScreen, no scene offset)
-          const isoY = isoToScreen(car.pos[0], car.pos[1]).y;
-          sprite.setDepth(getWorldDepth('object', isoY + (car.z > 0.05 ? TILE_HEIGHT * 1.1 : 0)));
-          sprite.setVisible(true);
+    // the sky minutes since the last frame: how long a waiting train has waited
+    const last = scene.__metroSurfaceLastSky;
+    scene.__metroSurfaceLastSky = sky;
+    const dt = last == null ? 0 : Math.max(0, Math.min(5, sky - last));
+    const half = (METRO_SURFACE.cars * (METRO_SURFACE.carTiles + METRO_SURFACE.carGapTiles)) / 2;
+    const placeOf = (line, schedule, geom, v, index) => {
+      const p = metroTrainPointAt(schedule, sky, v.phase);
+      if (!p?.leg) return null;
+      const from = geom.stationAt[p.leg.fromIndex], to = geom.stationAt[p.leg.toIndex];
+      const dir = Math.sign(to - from) || 1;
+      // trains take the two platforms at each terminus in turn
+      const picks = { first: index % 2 ? 1 : -1, last: index % 2 ? -1 : 1 };
+      return { x: from + (to - from) * (p.k || 0), dir, picks };
+    };
+    const trains = [];
+    if (running) {
+      surfaceLines.forEach((line) => {
+        const schedule = getMetroLineSchedule(line, state);
+        const geom = getSurfaceLineGeometry(line, state);
+        if (!schedule || !geom) return;
+        getMetroLineTrains(line, state).forEach((v, index) => {
+          const at = placeOf(line, schedule, geom, v, index);
+          if (at) trains.push({ id: v.id, v, line, schedule, geom, index, ...at });
         });
+      });
+    }
+    // keeping trains apart: each train's track taken up and the 1.5 tiles ahead of it
+    trains.forEach((t) => {
+      const side = (d) => surfaceTrackSide(t.geom, d, t.dir, t.picks);
+      t.occupied = surfaceSegmentKeys(t.geom, t.x - half, t.x + half, t.dir, state.tracks, side);
+      t.ahead = surfaceSegmentKeys(t.geom, t.x + t.dir * half, t.x + t.dir * (half + 1.5), t.dir, state.tracks, side);
+    });
+    trains.sort((a, b) => String(a.id).localeCompare(String(b.id), undefined, { numeric: true }));
+    const waiting = resolveSurfaceBlocking(trains);
+    trains.forEach((t) => {
+      if (!waiting.has(t.id) || !(dt > 0)) return;
+      // held where it is: set back in its timetable by the time it waited (its calls and fares follow)
+      t.v.phase = (((t.v.phase - dt / t.schedule.cycle) % 1) + 1) % 1;
+      Object.assign(t, placeOf(t.line, t.schedule, t.geom, t.v, t.index) || {});
+    });
+    trains.forEach(({ v, geom, x, dir, picks }) => {
+      let sprites = scene.metroTrainSprites.get(v.id);
+      if (!sprites) {
+        sprites = Array.from({ length: METRO_SURFACE.cars }, () => {
+          const s = scene.add.image(0, 0, METRO_TRAIN_ART.fall_mid.key);
+          addToRenderLayer(scene, s, 'objectLayer');
+          if (scene.worldMask) s.setMask(scene.worldMask);
+          if (typeof applyNightPropTint === 'function') applyNightPropTint(scene, s);
+          return s;
+        });
+        scene.metroTrainSprites.set(v.id, sprites);
+      }
+      seen.add(v.id);
+      surfaceTrainCars(geom, x, dir, picks).forEach((car, i) => {
+        const art = METRO_TRAIN_ART[surfaceCarView(car.heading[0], car.heading[1], car.role, turn)];
+        const sprite = sprites[i];
+        if (sprite.texture.key !== art.key) sprite.setTexture(art.key);
+        const src = scene.textures.get(art.key).getSourceImage();
+        const anchor = typeof getPropTextureAnchor === 'function'
+          ? getPropTextureAnchor(art.path, art.anchor[0], art.anchor[1], src)
+          : { originX: art.anchor[0] / src.width, originY: art.anchor[1] / src.height, scaleMultiplier: 1 };
+        sprite.setOrigin(anchor.originX, anchor.originY);
+        sprite.setScale((TILE_WIDTH / 512) * anchor.scaleMultiplier);
+        const at = metroSurfaceScreenAt(scene, car.pos[0], car.pos[1]);
+        // up on a viaduct or a ramp: drawn that much higher, and after the deck it runs on (and the
+        // next tile's, which its front reaches)
+        const lift = (car.z || 0) * METRO_SURFACE.zPxPerMetre * (TILE_WIDTH / 512);
+        sprite.setPosition(at.x, at.y - lift);
+        // sorted among the buildings and the viaduct in their frame (isoToScreen, no scene offset)
+        const isoY = isoToScreen(car.pos[0], car.pos[1]).y;
+        sprite.setDepth(getWorldDepth('object', isoY + (car.z > 0.05 ? TILE_HEIGHT * 1.1 : 0)));
+        sprite.setVisible(true);
       });
     });
   }

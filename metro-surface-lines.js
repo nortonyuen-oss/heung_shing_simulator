@@ -20,6 +20,7 @@ const METRO_SURFACE = Object.freeze({
   // 剪式渡綫: a terminus has a scissors crossover just outside its platforms, as the MTR's do - a
   // train coming in crosses to the platform it is given, and back to the left-hand track leaving
   crossoverTiles: 2,
+  zPxPerMetre: 10,              // as the platforms' and viaduct's art, on a 512-px tile
 });
 
 // ── Pure: stations and the way along the track ──────────────────────────────────
@@ -108,12 +109,14 @@ function findSurfacePath(bits, from, to) {
  * distance. It runs on past the end stations to their platforms' ends. Pure; null where two
  * stations have no track between them.
  */
-function surfaceLineGeometry(stations, bits) {
+function surfaceLineGeometry(stations, bits, elevAt = null) {
+  // (elevAt(row, col, side): the track's height in metres where it crosses that side of the tile -
+  // on a viaduct or a ramp; 0 on the ground)
   const verts = [];
-  const push = (pt, across) => {
+  const push = (pt, across, z = 0) => {
     const last = verts.at(-1);
     if (last && Math.abs(last.x - pt[0]) < 1e-9 && Math.abs(last.y - pt[1]) < 1e-9) return;
-    verts.push({ x: pt[0], y: pt[1], across });
+    verts.push({ x: pt[0], y: pt[1], across, z });
   };
   const centreAcross = (st) => (st.axis === 'ns' ? [1, 0] : [0, 1]);
   const edgeAcross = (side) => (side === 'n' || side === 's' ? [1, 0] : [0, 1]);
@@ -124,7 +127,7 @@ function surfaceLineGeometry(stations, bits) {
     stationIdx.push(verts.length === 0 ? 0 : verts.length - 1);
     if (!verts.length) push([stations[i].col + 0.5, stations[i].row + 0.5], centreAcross(stations[i]));
     path.forEach((step, k) => {
-      if (step.exit) push(railEdgeMiddle(step.row, step.col, step.exit), edgeAcross(step.exit));
+      if (step.exit) push(railEdgeMiddle(step.row, step.col, step.exit), edgeAcross(step.exit), elevAt ? elevAt(step.row, step.col, step.exit) : 0);
       if (k === path.length - 1) push([step.col + 0.5, step.row + 0.5], centreAcross(stations[i + 1]));
     });
   }
@@ -134,7 +137,7 @@ function surfaceLineGeometry(stations, bits) {
     const a = atStart ? verts[0] : verts.at(-1);
     const b = atStart ? verts[1] : verts.at(-2);
     const dx = a.x - b.x, dy = a.y - b.y, len = Math.hypot(dx, dy) || 1;
-    const v = { x: a.x + (dx / len) * METRO_SURFACE.endRunTiles, y: a.y + (dy / len) * METRO_SURFACE.endRunTiles, across: a.across };
+    const v = { x: a.x + (dx / len) * METRO_SURFACE.endRunTiles, y: a.y + (dy / len) * METRO_SURFACE.endRunTiles, across: a.across, z: a.z };
     if (atStart) { verts.unshift(v); for (let i = 0; i < stationIdx.length; i++) stationIdx[i] += 1; } else verts.push(v);
   };
   if (verts.length < 2) return null;
@@ -201,6 +204,9 @@ function surfaceTrainCars(geom, x, dir, picks = null) {
     const k = (1 - side) / 2;
     return [p[0] + (q[0] - p[0]) * k, p[1] + (q[1] - p[1]) * k];
   };
+  // the height there: along the line between its vertices (a viaduct's deck, a ramp's slope)
+  const zs = geom.verts.map((v) => v.z || 0);
+  const zAt = (d) => surfacePointAt(zs.map((z) => [z, 0]), geom.cum, d)[0];
   const spacing = METRO_SURFACE.carTiles + METRO_SURFACE.carGapTiles;
   const n = METRO_SURFACE.cars;
   const out = [];
@@ -208,7 +214,7 @@ function surfaceTrainCars(geom, x, dir, picks = null) {
     const xi = x + dir * ((n - 1) / 2 - i) * spacing;
     const a = at(xi + dir * METRO_SURFACE.carTiles / 2);
     const b = at(xi - dir * METRO_SURFACE.carTiles / 2);
-    out.push({ pos: at(xi), heading: [a[0] - b[0], a[1] - b[1]], role: i === 0 ? 'lead' : i === n - 1 ? 'trail' : 'mid' });
+    out.push({ pos: at(xi), z: zAt(xi), heading: [a[0] - b[0], a[1] - b[1]], role: i === 0 ? 'lead' : i === n - 1 ? 'trail' : 'mid' });
   }
   return out;
 }
@@ -263,7 +269,9 @@ function isMetroSurfaceStationTile(row, col) {
 
 function whyNotMetroSurfaceStation(row, col) {
   if (typeof isMetroUnlocked === 'function' && !isMetroUnlocked()) return metroT('metro.station.locked', '城市人口要有 30,000 先可以起地鐵。');
-  const res = whyNotSurfaceStationAt(row, col, getMetroState().tracks, (r, c) => isMetroSurfaceStationTile(r, c));
+  // (on the ground: an elevated tile is no platform's)
+  const elev = getMetroState().trackElev || {};
+  const res = whyNotSurfaceStationAt(row, col, getMetroState().tracks, (r, c) => isMetroSurfaceStationTile(r, c) || Boolean(elev[`${r}:${c}`]));
   return res.code ? metroT('metro.surfaceStation.notStraight', '地面站要起喺五格直路軌上（撳中間嗰格）。') : null;
 }
 
@@ -296,7 +304,9 @@ function getSurfaceLineGeometry(line, state = getMetroState()) {
   const stations = getMetroLineStations(line, state);
   const key = `${line.id}|${stations.map((s) => `${s.row},${s.col},${s.axis}`).join(';')}|${metroTrackRevisionKey()}`;
   if (surfaceLineGeometryCache.has(key)) return surfaceLineGeometryCache.get(key);
-  const geom = stations.length >= 2 && stations.every((s) => s.surface) ? surfaceLineGeometry(stations, state.tracks) : null;
+  const elev = state.trackElev || {};
+  const elevAt = (r, c, side) => (typeof railSideHeight === 'function' ? railSideHeight(elev[`${r}:${c}`], side) : 0);
+  const geom = stations.length >= 2 && stations.every((s) => s.surface) ? surfaceLineGeometry(stations, state.tracks, elevAt) : null;
   if (surfaceLineGeometryCache.size > 64) surfaceLineGeometryCache.clear();
   surfaceLineGeometryCache.set(key, geom);
   return geom;
@@ -374,9 +384,11 @@ function syncMetroPlatforms(scene) {
     surfaceStationTiles(station).forEach(([row, col], i) => {
       const { axis, kind } = metroPlatformPieceKey(station, i - half);
       const face = getTileFaceGeometry(row, col, scene.offsetX, scene.offsetY);
+      // sorted among the buildings in their frame (isoToScreen, without the scene's offset)
+      const isoY = isoToScreen(col + 0.5, row + 0.5).y;
       [['platform', getWorldDepth('road', face.center.y + 2)],
-        ['canopy_far', getWorldDepth('object', face.center.y - TILE_HEIGHT * 0.4)],
-        ['canopy_near', getWorldDepth('object', face.center.y + TILE_HEIGHT * 0.4)]].forEach(([layer, depth]) => {
+        ['canopy_far', getWorldDepth('object', isoY - TILE_HEIGHT * 0.4)],
+        ['canopy_near', getWorldDepth('object', isoY + TILE_HEIGHT * 0.4)]].forEach(([layer, depth]) => {
         const id = `${station.id}|${i}|${layer}`;
         wanted.add(id);
         const texture = `metro_${layer}_${axis}_${kind}`;
@@ -506,8 +518,13 @@ function updateMetroSurfaceTrains(scene) {
           sprite.setOrigin(anchor.originX, anchor.originY);
           sprite.setScale((TILE_WIDTH / 512) * anchor.scaleMultiplier);
           const at = metroSurfaceScreenAt(scene, car.pos[0], car.pos[1]);
-          sprite.setPosition(at.x, at.y);
-          sprite.setDepth(getWorldDepth('object', at.y));
+          // up on a viaduct or a ramp: drawn that much higher, and after the deck it runs on (and the
+          // next tile's, which its front reaches)
+          const lift = (car.z || 0) * METRO_SURFACE.zPxPerMetre * (TILE_WIDTH / 512);
+          sprite.setPosition(at.x, at.y - lift);
+          // sorted among the buildings and the viaduct in their frame (isoToScreen, no scene offset)
+          const isoY = isoToScreen(car.pos[0], car.pos[1]).y;
+          sprite.setDepth(getWorldDepth('object', isoY + (car.z > 0.05 ? TILE_HEIGHT * 1.1 : 0)));
           sprite.setVisible(true);
         });
       });

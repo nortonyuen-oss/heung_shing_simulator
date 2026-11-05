@@ -156,6 +156,12 @@ function updateBuildingPlacementGuide(scene, pointer) {
     else drawFootprintGuide(scene, tile.row, tile.col, 1, 1, false);
     return;
   }
+  // 高架路軌: before the drag, the tile it would start from - a ramp's foot or a deck's end
+  if (selectedTool === 'metro-elevated' && typeof canLayMetroTrackAt === 'function') {
+    const k = `${tile.row}:${tile.col}`;
+    drawFootprintGuide(scene, tile.row, tile.col, 1, 1, canLayMetroTrackAt(tile.row, tile.col) || getMetroTrackElev()[k] === 'd');
+    return;
+  }
   // 地鐵路軌: before the drag, the tile it would start from (metro-surface.js)
   if (selectedTool === 'metro-track' && typeof canLayMetroTrackAt === 'function') {
     drawFootprintGuide(scene, tile.row, tile.col, 1, 1, canLayMetroTrackAt(tile.row, tile.col) || isMetroTrackTile(tile.row, tile.col));

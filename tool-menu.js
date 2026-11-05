@@ -75,6 +75,10 @@ function setupToolMenu() {
     if (isPainting && dragStartTile && selectedTool === 'metro-track' && activeScene && typeof commitMetroTrackDrag === 'function') {
       commitMetroTrackDrag(activeScene, dragStartTile, lastKnownTile ?? dragStartTile);
     }
+    // 高架路軌: the same, on a viaduct with a ramp at each end (metro-surface.js)
+    if (isPainting && dragStartTile && selectedTool === 'metro-elevated' && activeScene && typeof commitMetroElevatedDrag === 'function') {
+      commitMetroElevatedDrag(activeScene, dragStartTile, lastKnownTile ?? dragStartTile);
+    }
     // 海底隧道: dragged from one shore across the sea to the other (undersea-tunnel.js)
     if (isPainting && dragStartTile && selectedTool === 'undersea-tunnel' && activeScene) {
       placeUnderseaTunnel(activeScene, dragStartTile, lastKnownTile ?? dragStartTile);

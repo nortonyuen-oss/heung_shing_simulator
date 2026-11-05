@@ -1079,7 +1079,7 @@ function create() {
       // Roads are committed on pointerup so a drag can become a SimCity-style bridge span;
       // so is a 海底隧道, dragged from shore to shore.
       // (and 地鐵路軌, metro-surface.js)
-      if (selectedTool !== 'road' && selectedTool !== 'undersea-tunnel' && selectedTool !== 'metro-track') applySelectedTool(this, pointer);
+      if (selectedTool !== 'road' && selectedTool !== 'undersea-tunnel' && selectedTool !== 'metro-track' && selectedTool !== 'metro-elevated') applySelectedTool(this, pointer);
     } else if (pointer.button === 2) {
       this.isPanning = true;
       this.panPrevX = pointer.x;
@@ -1136,11 +1136,11 @@ function create() {
           lastKnownTile = { row: cur.row, col: cur.col };
           drawUnderseaTunnelDragPreview(this, dragStartTile, cur);
         }
-      } else if (selectedTool === 'metro-track' && dragStartTile && typeof drawMetroTrackDragPreview === 'function') {
+      } else if ((selectedTool === 'metro-track' || selectedTool === 'metro-elevated') && dragStartTile && typeof drawMetroTrackDragPreview === 'function') {
         const cur = pointerToTile(this, pointer);
         if (cur) {
           lastKnownTile = { row: cur.row, col: cur.col };
-          drawMetroTrackDragPreview(this, dragStartTile, cur);
+          drawMetroTrackDragPreview(this, dragStartTile, cur, selectedTool === 'metro-elevated');
         }
       } else if (selectedTool === 'typhoon-shelter') {
         // 避風塘 水域: preview the rectangle and the plan it would make; committed on pointerup.
@@ -1976,6 +1976,7 @@ function isNewToolHandledByToolsModule(tool) {
     || tool === 'metro-station'
     || tool === 'metro-line'
     || tool === 'metro-track'
+    || tool === 'metro-elevated'
     || tool === 'metro-surface-station';
 }
 
@@ -2015,7 +2016,7 @@ function getSelectedPlacementFootprint() {
   if (selectedTool === 'bus-depot') return { footprintCols: BUS_DEPOT_FOOTPRINT_COLS, footprintRows: BUS_DEPOT_FOOTPRINT_ROWS };
   if (selectedTool === 'ferry-pier' && typeof FERRY !== 'undefined') return { footprintCols: FERRY.pierCols, footprintRows: FERRY.pierRows };
   if (selectedTool === 'metro-station') return { footprintCols: 1, footprintRows: 1 };
-  if (selectedTool === 'metro-track') return { footprintCols: 1, footprintRows: 1 };
+  if (selectedTool === 'metro-track' || selectedTool === 'metro-elevated') return { footprintCols: 1, footprintRows: 1 };
   if (selectedTool === 'metro-surface-station') return { footprintCols: 1, footprintRows: 1 };
   if (selectedTool === 'floating-restaurant' && typeof TYPHOON_SHELTER_FLOATING_RESTAURANT !== 'undefined') {
     // (turned by a right-click: typhoonShelterFloatingRestaurantTurn)

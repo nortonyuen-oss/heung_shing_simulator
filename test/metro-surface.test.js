@@ -54,3 +54,37 @@ test('the map turned: each bit drawn as the bit joining its sides turned', () =>
   assert.equal(railVisualMask(X | Y, 3), X | Y);
   assert.equal(railVisualMask(UPPER | LOWER, 1), LEFT | RIGHT);
 });
+
+test('高架: a ramp of three tiles at each end, the deck between; carried on from a deck end without one', () => {
+  const { planRailElevated, railSideHeight, railElevatedRun, METRO_RAIL } = require('../metro-surface');
+  const yes = () => true;
+  const path = railDragPath({ row: 0, col: 0 }, { row: 0, col: 9 });
+  const plan = planRailElevated(path, {}, {}, yes, yes);
+  assert.ok(plan.ok);
+  assert.deepEqual([0, 1, 2, 3, 6, 7, 8, 9].map((c) => plan.assign[`0:${c}`]), ['1e', '2e', '3e', 'd', 'd', '3w', '2w', '1w']);
+  assert.equal(plan.decks, 4);
+  assert.equal(plan.ramps, 6);
+  // the track's height across each side: the ground at a ramp's foot, the deck at its head
+  assert.equal(railSideHeight('1e', 'w'), 0);
+  assert.equal(railSideHeight('3e', 'e'), METRO_RAIL.deckMetres);
+  assert.equal(railSideHeight('d', 'n'), METRO_RAIL.deckMetres);
+  assert.equal(railSideHeight(undefined, 'n'), 0);
+  // carried on from the deck's end: no ramp that end
+  const bits = addRailPathBits({}, path);
+  const on = planRailElevated(railDragPath({ row: 0, col: 5 }, { row: 0, col: 12 }), bits, plan.assign, yes, yes);
+  assert.ok(on.ok, on.reason);
+  assert.equal(on.assign['0:6'], undefined, 'the deck it runs on stays');
+  assert.deepEqual(['0:7', '0:8', '0:9'].map((k) => on.assign[k]), ['d', 'd', 'd'], 'the old ramp built up into deck');
+  assert.deepEqual(['0:10', '0:11', '0:12'].map((k) => on.assign[k]), ['3w', '2w', '1w'], 'a new ramp at the new end');
+  // a whole viaduct goes with any tile of it
+  assert.equal(railElevatedRun(bits, plan.assign, '0:4').length, 10);
+});
+
+test('高架 refusals: too short, ramps round a corner, ramps on a road, a pier on a building', () => {
+  const { planRailElevated } = require('../metro-surface');
+  const yes = () => true;
+  assert.equal(planRailElevated(railDragPath({ row: 0, col: 0 }, { row: 0, col: 5 }), {}, {}, yes, yes).reason, 'tooShort');
+  assert.equal(planRailElevated(railDragPath({ row: 0, col: 0 }, { row: 7, col: 2 }), {}, {}, yes, yes).reason, 'rampStraight');
+  assert.equal(planRailElevated(railDragPath({ row: 0, col: 0 }, { row: 0, col: 9 }), {}, {}, yes, (r, c) => c !== 1).reason, 'rampGround');
+  assert.equal(planRailElevated(railDragPath({ row: 0, col: 0 }, { row: 0, col: 9 }), {}, {}, (r, c) => c !== 5, yes).reason, 'deckGround');
+});

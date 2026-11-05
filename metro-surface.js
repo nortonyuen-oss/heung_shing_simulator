@@ -9,6 +9,11 @@
 const METRO_RAIL = Object.freeze({
   costPerTile: 500,           // the tunnel's is 300 a tile: land, bed and track
   monthlyUpkeepPerTile: 2,
+  // 高架 (step 4, Norton 2026-11-05: its own tool, the deck 8 m up): a viaduct tile and a ramp tile
+  deckCostPerTile: 2000,
+  rampCostPerTile: 1200,
+  deckMetres: 8,
+  rampTiles: 3,
 });
 
 const RAIL_DIRS = Object.freeze({ n: [-1, 0], e: [0, 1], s: [1, 0], w: [0, -1] });
@@ -116,6 +121,86 @@ function addRailPathBits(bits, path) {
   return out;
 }
 
+// ── 高架 (step 4) ───────────────────────────────────────────────────────────────
+// An elevated tile is 'd' (the deck, 8 m up) or a ramp step: `${step}${up}`, step 1..3 from the
+// ground, `up` the side it rises towards.
+
+// The track's height (metres) where it crosses a side of an elevated tile (0 on the ground). Pure.
+function railSideHeight(code, side) {
+  if (!code) return 0;
+  if (code === 'd') return METRO_RAIL.deckMetres;
+  const step = Number(code[0]), up = code[1];
+  const lo = ((step - 1) / METRO_RAIL.rampTiles) * METRO_RAIL.deckMetres;
+  const hi = (step / METRO_RAIL.rampTiles) * METRO_RAIL.deckMetres;
+  if (side === up) return hi;
+  if (side === RAIL_OPPOSITE[up]) return lo;
+  return (lo + hi) / 2;
+}
+
+/**
+ * An elevated drag: its first and last three tiles ramps (unless that end starts on the viaduct
+ * already there - its deck or a ramp - carrying it on: a ramp it crosses becomes deck), the rest deck. Pure with `elev` (the elevated tiles) and `canDeck` / `canRamp`.
+ * Returns { ok, reason, assign: { key: code }, decks, ramps }; reason 'tooShort', 'rampStraight',
+ * 'rampGround' or 'deckGround'.
+ */
+function planRailElevated(path, bits, elev, canDeck, canRamp) {
+  const n = path.length;
+  const R = METRO_RAIL.rampTiles;
+  const key = (i) => railKey(path[i].row, path[i].col);
+  const startDeck = Boolean(elev[key(0)]);
+  const endDeck = Boolean(elev[key(n - 1)]);
+  const out = { ok: false, reason: null, assign: {}, decks: 0, ramps: 0 };
+  if (n < (startDeck ? 0 : R) + (endDeck ? 0 : R) + 1) { out.reason = 'tooShort'; return out; }
+  const side = (i, j) => railSideTowards(path[i], path[j]);
+  // the ramps run straight: the tiles from the end through the first deck tile in one line
+  const straight = (from, to) => {
+    const step = Math.sign(to - from);
+    const d = side(from, from + step);
+    for (let i = from; i !== to; i += step) if (side(i, i + step) !== d) return false;
+    return true;
+  };
+  if ((!startDeck && !straight(0, R)) || (!endDeck && !straight(n - 1, n - 1 - R))) { out.reason = 'rampStraight'; return out; }
+  for (let i = 0; i < n; i++) {
+    const k = key(i);
+    let code = 'd';
+    if (!startDeck && i < R) code = `${i + 1}${side(i, i + 1)}`;
+    else if (!endDeck && i >= n - R) code = `${n - i}${side(i, i - 1)}`;
+    if (code === 'd') {
+      if (elev[k] === 'd') continue;                 // carrying on (or across) a deck
+      if (elev[k]) { out.assign[k] = 'd'; out.decks += 1; continue; }   // an old ramp, built up into deck
+      if (bits[k] || !canDeck(path[i].row, path[i].col)) { out.reason = 'deckGround'; out.bad = k; return out; }
+      out.decks += 1;
+    } else {
+      if (bits[k] || !canRamp(path[i].row, path[i].col)) { out.reason = 'rampGround'; out.bad = k; return out; }
+      out.ramps += 1;
+    }
+    out.assign[k] = code;
+  }
+  out.ok = true;
+  return out;
+}
+
+/**
+ * The elevated run a tile belongs to: it and every elevated tile joined to it through the track.
+ * Pure. [key].
+ */
+function railElevatedRun(bits, elev, startKey) {
+  const seen = new Set([startKey]);
+  const queue = [startKey];
+  while (queue.length) {
+    const k = queue.shift();
+    const [r, c] = k.split(':').map(Number);
+    railBitsOf(bits[k] || 0).forEach((b) => RAIL_BIT_SIDES[b].forEach((s) => {
+      const [dr, dc] = RAIL_DIRS[s];
+      const nk = railKey(r + dr, c + dc);
+      if (seen.has(nk) || !elev[nk]) return;
+      if (!railBitsOf(bits[nk] || 0).some((nb) => RAIL_BIT_SIDES[nb].includes(RAIL_OPPOSITE[s]))) return;
+      seen.add(nk); queue.push(nk);
+    }));
+  }
+  return [...seen];
+}
+
 /** The tiles whose bits this phase cannot have (points, three-way junctions): [key]. Pure. */
 function railBadTiles(bits) {
   return Object.entries(bits).filter(([, mask]) => mask && !RAIL_ALLOWED_MASKS.has(mask)).map(([key]) => key);
@@ -160,6 +245,9 @@ function planMetroTrack(start, end) {
   if (typeof isMetroUnlocked === 'function' && !isMetroUnlocked()) { out.reason = 'locked'; return out; }
   if (path.length < 2) { out.reason = 'tooShort'; return out; }
   const bits = getMetroTrackBits();
+  // ground track does not run into a viaduct (its ramps meet the ground track at their foot)
+  const elev = getMetroTrackElev();
+  if (path.some(({ row, col }) => elev[railKey(row, col)])) { out.reason = 'elevated'; return out; }
   const bad = path.find(({ row, col }) => !bits[railKey(row, col)] && !canLayMetroTrackAt(row, col));
   if (bad) { out.reason = 'ground'; out.bad = bad; return out; }
   const next = addRailPathBits(bits, path);
@@ -178,6 +266,10 @@ const METRO_TRACK_REFUSALS = Object.freeze({
   ground: ['metro.track.ground', '路軌要起喺平地空地上（唔可以喺水、路、斜坡或者建築上面）；過馬路要高架，遲啲先有。'],
   junction: ['metro.track.junction', '路軌唔可以喺度分叉（第三期未有道岔）。'],
   funds: ['metro.track.funds', '公司資金唔夠起路軌（要 ${cost}）。'],
+  elevated: ['metro.track.elevated', '地面路軌唔可以駁入高架中間：喺斜坡腳接駁。'],
+  rampStraight: ['metro.track.rampStraight', '高架兩頭各要三格直路做斜坡。'],
+  rampGround: ['metro.track.rampGround', '斜坡要起喺平地空地上（唔可以喺路、建築或者其他路軌上面）。'],
+  deckGround: ['metro.track.deckGround', '高架橋墩要落喺平地或者馬路上（唔可以喺水、建築或者地面路軌上面）。'],
 });
 
 function metroTrackRefusal(reason, vars = {}) {
@@ -208,7 +300,71 @@ function commitMetroTrackDrag(scene, start, end) {
   return true;
 }
 
-// The bulldozer on track: that tile's track taken up. True when there was track there.
+function getMetroTrackElev() {
+  return typeof getMetroState === 'function' ? (getMetroState().trackElev || {}) : {};
+}
+
+// Where a viaduct's pier may stand: flat ground or a road, nothing built there.
+function canDeckMetroTrackAt(row, col) {
+  if (!isInsideMap(row, col)) return false;
+  if (mapData[row][col] === WATER) return false;
+  if (typeof isBridgeTile === 'function' && isBridgeTile(row, col)) return false;
+  if (getTileHeight(row, col) !== 0) return false;
+  const id = getTileId(row, col);
+  if (buildingData[id] || activeScene?.buildingSprites?.has(id)) return false;
+  if (typeof isMetroStationTile === 'function' && isMetroStationTile(row, col)) return false;
+  if (typeof isUnderseaTunnelTile === 'function' && isUnderseaTunnelTile(row, col)) return false;
+  if (typeof isPromenadeTile === 'function' && isPromenadeTile(row, col)) return false;
+  return true;
+}
+
+/** What laying an elevated drag would do (the 高架路軌 tool): as planMetroTrack, with `elev`. */
+function planMetroElevatedTrack(start, end) {
+  const path = railDragPath(start, end);
+  const out = { ok: false, reason: null, path, cost: 0, newTiles: [], elevated: true };
+  if (typeof isMetroUnlocked === 'function' && !isMetroUnlocked()) { out.reason = 'locked'; return out; }
+  const bits = getMetroTrackBits();
+  const elev = getMetroTrackElev();
+  const plan = planRailElevated(path, bits, elev, canDeckMetroTrackAt, canLayMetroTrackAt);
+  if (!plan.ok) { out.reason = plan.reason; out.bad = plan.bad; return out; }
+  const next = addRailPathBits(bits, path);
+  const junctions = railBadTiles(next);
+  if (junctions.length) { out.reason = 'junction'; out.bad = junctions[0]; return out; }
+  out.newTiles = Object.keys(plan.assign);
+  out.cost = plan.decks * METRO_RAIL.deckCostPerTile + plan.ramps * METRO_RAIL.rampCostPerTile;
+  out.bits = next;
+  out.elev = { ...elev, ...plan.assign };
+  out.ok = true;
+  return out;
+}
+
+function commitMetroElevatedDrag(scene, start, end) {
+  const plan = planMetroElevatedTrack(start, end);
+  const warn = (msg) => { if (typeof showToast === 'function') showToast(msg, 'warning'); return false; };
+  if (!plan.ok) return warn(metroTrackRefusal(plan.reason));
+  if (plan.cost > 0 && !spendMetroFunds(plan.cost)) return warn(metroTrackRefusal('funds', { cost: plan.cost.toLocaleString() }));
+  plan.newTiles.forEach((k) => {
+    const [row, col] = k.split(':').map(Number);
+    if (typeof removeTree === 'function') removeTree(scene, row, col);
+    if (typeof removeDebris === 'function') removeDebris(scene, row, col);
+    if (mapData[row][col] === ROAD) return;            // a road runs on under the viaduct
+    if (typeof removeZoneOverlay === 'function') removeZoneOverlay(scene, row, col);
+    if (typeof zoneMap !== 'undefined' && zoneMap[row]) zoneMap[row][col] = typeof ZONE_NONE !== 'undefined' ? ZONE_NONE : 0;
+  });
+  const state = getMetroState();
+  state.tracks = plan.bits;
+  state.trackElev = plan.elev;
+  metroTrackRevision += 1;
+  syncMetroTracks(scene);
+  if (typeof queueCityChangeAutosave === 'function') queueCityChangeAutosave();
+  if (typeof showToast === 'function' && plan.cost > 0) {
+    showToast(metroT('metro.track.builtElevated', '起好 {n} 格高架（${cost}）。', { n: plan.newTiles.length, cost: plan.cost.toLocaleString() }), 'success');
+  }
+  return true;
+}
+
+// The bulldozer on track: that tile's track taken up (an elevated tile takes its whole viaduct,
+// ramps and all, with it). True when there was track there.
 function demolishMetroTrackAt(scene, row, col) {
   const bits = getMetroTrackBits();
   const key = railKey(row, col);
@@ -218,12 +374,17 @@ function demolishMetroTrackAt(scene, row, col) {
   if (typeof isMetroSurfaceStationTile === 'function' && isMetroSurfaceStationTile(row, col)) {
     return say('metro.track.underStation', '路軌上面有地面站：先拆咗個站。');
   }
-  if (typeof getMetroSurfaceLineTiles === 'function' && getMetroSurfaceLineTiles().has(key)) {
+  const elev = getMetroTrackElev();
+  const run = elev[key] ? railElevatedRun(bits, elev, key) : [key];
+  const used = typeof getMetroSurfaceLineTiles === 'function' ? getMetroSurfaceLineTiles() : new Set();
+  if (run.some((k) => used.has(k))) {
     return say('metro.track.inUse', '有地面綫行緊呢段路軌：先喺運輸公司路線表移走條綫。');
   }
   const next = { ...bits };
-  delete next[key];
+  const nextElev = { ...elev };
+  run.forEach((k) => { delete next[k]; delete nextElev[k]; });
   getMetroState().tracks = next;
+  getMetroState().trackElev = nextElev;
   metroTrackRevision += 1;
   syncMetroTracks(scene);
   if (typeof queueCityChangeAutosave === 'function') queueCityChangeAutosave();
@@ -251,28 +412,86 @@ function metroTrackTextureKey(mask) {
 function syncMetroTracks(scene) {
   if (!scene?.add || typeof getTransportExpansionState !== 'function') return;
   if (!scene.metroTrackSprites) scene.metroTrackSprites = new Map();
-  const bits = getTransportExpansionState()?.metro?.tracks || {};
-  scene.metroTrackSprites.forEach((sprite, key) => { if (!bits[key]) { sprite.destroy(); scene.metroTrackSprites.delete(key); } });
+  const metro = getTransportExpansionState()?.metro;
+  const bits = metro?.tracks || {};
+  const elev = metro?.trackElev || {};
+  // the viaduct's pictures are loaded the first time there is one
+  if (Object.keys(elev).length && METRO_VIADUCT_TEXTURES.some((t) => !scene.textures.exists(t.key))) {
+    loadMetroViaductTextures(scene).then(() => syncMetroTracks(scene));
+  }
+  scene.metroTrackSprites.forEach((sprite, key) => {
+    if (!bits[key] || Boolean(elev[key]) !== Boolean(sprite.__elevated)) { sprite.destroy(); scene.metroTrackSprites.delete(key); }
+  });
   Object.entries(bits).forEach(([key, mask]) => {
     const [row, col] = key.split(':').map(Number);
-    const texture = metroTrackTextureKey(mask);
+    const code = elev[key];
+    const texture = code ? metroViaductTextureKey(mask, code) : metroTrackTextureKey(mask);
     if (!texture || !scene.textures.exists(texture)) return;
     let sprite = scene.metroTrackSprites.get(key);
     if (!sprite) {
       sprite = scene.add.image(0, 0, texture);
-      addToRenderLayer(scene, sprite, 'roadLayer');
+      // a viaduct stands up among the buildings; ground track lies with the roads
+      addToRenderLayer(scene, sprite, code ? 'objectLayer' : 'roadLayer');
       if (scene.worldMask) sprite.setMask(scene.worldMask);
+      sprite.__elevated = Boolean(code);
       scene.metroTrackSprites.set(key, sprite);
     } else if (sprite.texture.key !== texture) {
       sprite.setTexture(texture);
     }
     const face = getTileFaceGeometry(row, col, scene.offsetX, scene.offsetY);
-    sprite.setOrigin(0.5, 0.5);
     sprite.setScale(TILE_WIDTH / (typeof RAILWAY_TRACK_TILE !== 'undefined' ? RAILWAY_TRACK_TILE.width : 512));
     sprite.setPosition(face.center.x, face.center.y);
-    sprite.setDepth(getWorldDepth('road', face.center.y + 1));
+    if (code) {
+      sprite.setOrigin(METRO_VIADUCT_ART.centre[0] / METRO_VIADUCT_ART.width, METRO_VIADUCT_ART.centre[1] / METRO_VIADUCT_ART.height);
+      // sorted as a 1 x 1 building (building-placement.js)
+      const pos = isoToScreen(col, row);
+      sprite.setDepth(typeof getBuildingSortDepth === 'function' ? getBuildingSortDepth(pos.y, 1, 1, 0) : getWorldDepth('object', face.center.y));
+    } else {
+      sprite.setOrigin(0.5, 0.5);
+      sprite.setDepth(getWorldDepth('road', face.center.y + 1));
+    }
     if (typeof applyNightPropTint === 'function') applyNightPropTint(scene, sprite);
   });
+}
+
+// The viaduct's pictures (scripts/prepare-metro-viaduct-assets.py): a deck for each layout a tile may
+// hold, and the ramps, X and Y, rising either way, three steps.
+const METRO_VIADUCT_ART = Object.freeze({ width: 512, height: 352, centre: [256, 224] });
+const METRO_VIADUCT_TEXTURES = (() => {
+  const out = [];
+  ['x', 'y', 'upper', 'lower', 'left', 'right', 'cross_xy', 'parallel_horizontal', 'parallel_vertical']
+    .forEach((n) => out.push({ key: `metro_viaduct_${n}`, path: `Models/metroViaduct/metro_viaduct_${n}.png` }));
+  [['x', ['n', 's']], ['y', ['w', 'e']]].forEach(([axis, ups]) => ups.forEach((up) => [1, 2, 3].forEach((step) => {
+    out.push({ key: `metro_ramp_${axis}_${up}${step}`, path: `Models/metroViaduct/metro_ramp_${axis}_${up}${step}.png` });
+  })));
+  return out;
+})();
+
+function loadMetroViaductTextures(scene) {
+  const wanted = METRO_VIADUCT_TEXTURES.filter((t) => !scene.textures.exists(t.key));
+  if (!wanted.length) return Promise.resolve(true);
+  if (scene.__metroViaductLoading) return scene.__metroViaductLoading;
+  scene.__metroViaductLoading = new Promise((resolve) => {
+    const start = () => {
+      wanted.forEach((t) => scene.load.image(t.key, typeof resolveModelAssetPath === 'function' ? resolveModelAssetPath(t.path) : t.path));
+      scene.load.once('complete', () => { scene.__metroViaductLoading = null; resolve(true); });
+      scene.load.start();
+    };
+    if (scene.load.isLoading()) scene.load.once('complete', start); else start();
+  });
+  return scene.__metroViaductLoading;
+}
+
+// An elevated tile's picture as the map is turned: the deck for its bits as drawn, or the ramp
+// for its axis and rising side as drawn.
+function metroViaductTextureKey(mask, code) {
+  const turn = typeof mapRotation === 'number' ? mapRotation : 0;
+  if (code === 'd') {
+    const layout = typeof getRailwayTrackLayout === 'function' ? getRailwayTrackLayout(railVisualMask(mask, turn)) : null;
+    return layout ? layout.asset.replace('metro_track_', 'metro_viaduct_') : null;
+  }
+  const up = rotateDirection(code[1], turn);
+  return `metro_ramp_${up === 'n' || up === 's' ? 'x' : 'y'}_${up}${code[0]}`;
 }
 
 function clearMetroTrackSprites(scene) {
@@ -281,11 +500,11 @@ function clearMetroTrackSprites(scene) {
 }
 
 // While dragging: the tiles it would take, green or red, and the cost or the reason by the pointer.
-function drawMetroTrackDragPreview(scene, start, end) {
+function drawMetroTrackDragPreview(scene, start, end, elevated = false) {
   const g = scene.bridgePreviewGraphic;
   if (!g) return;
   g.clear();
-  const plan = planMetroTrack(start, end);
+  const plan = elevated ? planMetroElevatedTrack(start, end) : planMetroTrack(start, end);
   const color = plan.ok ? 0x45e6c3 : 0xff4444;
   plan.path.forEach(({ row, col }) => {
     if (!isInsideMap(row, col)) return;
@@ -299,7 +518,8 @@ function drawMetroTrackDragPreview(scene, start, end) {
   });
   if (typeof showUnderseaTunnelPreviewLabel === 'function') {
     showUnderseaTunnelPreviewLabel(scene, end.row, end.col, plan.ok
-      ? metroT('metro.track.cost', '路軌 {n} 格 ${cost}', { n: plan.newTiles.length, cost: plan.cost.toLocaleString() })
+      ? (elevated ? metroT('metro.track.costElevated', '高架 {n} 格 ${cost}', { n: plan.newTiles.length, cost: plan.cost.toLocaleString() })
+        : metroT('metro.track.cost', '路軌 {n} 格 ${cost}', { n: plan.newTiles.length, cost: plan.cost.toLocaleString() }))
       : metroTrackRefusal(plan.reason), plan.ok);
   }
 }
@@ -311,5 +531,5 @@ function getMetroTrackMonthlyUpkeep() {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { METRO_RAIL, RAIL_BIT_SIDES, railDragPath, addRailPathBits, railBadTiles, railBitFor, railVisualMask };
+  module.exports = { METRO_RAIL, RAIL_BIT_SIDES, railDragPath, addRailPathBits, railBadTiles, railBitFor, railVisualMask, railSideHeight, planRailElevated, railElevatedRun };
 }

@@ -75,6 +75,8 @@ function normalizeMetroState(raw) {
     return {
       id: String(s.id).slice(0, 40), row, col,
       facing: METRO_DIRS[s.facing] ? s.facing : 's',
+      // 第三期: a platform on the surface track (metro-surface-lines.js), along `axis`, not an entrance
+      ...(s.surface === true ? { surface: true, axis: s.axis === 'we' ? 'we' : 'ns' } : {}),
       name: String(s.name || '').slice(0, 40),
       // its queue for each line that calls (fractional, so a quiet station's few riders an hour
       // still add up), and of those the riders come from another line, who have paid to board
@@ -97,6 +99,8 @@ function normalizeMetroState(raw) {
       color: typeof l.color === 'string' && /^#[0-9a-f]{6}$/i.test(l.color) ? l.color : METRO_LINE_COLORS[i % METRO_LINE_COLORS.length],
       stationIds: ids.slice(0, METRO.maxStationsPerLine),
       status: l.status === 'suspended' ? 'suspended' : 'active',
+      // 第三期: runs on the surface track between surface stations (metro-surface-lines.js)
+      ...(l.surface === true ? { surface: true } : {}),
       monthToDatePassengers: Math.max(0, Math.floor(num(l.monthToDatePassengers))),
       monthToDateRevenue: Math.max(0, num(l.monthToDateRevenue)),
       // of the riders boarding, those changing from another line at a 轉車站
@@ -229,7 +233,9 @@ function getMetroStationById(id, state = getMetroState()) {
 function getMetroStationAt(row, col) {
   if (typeof getTransportExpansionState !== 'function') return null;
   const transport = getTransportExpansionState();
-  return transport?.metro?.stations?.find((s) => s.row === row && s.col === col) || null;
+  return transport?.metro?.stations?.find((s) => (s.row === row && s.col === col)
+    // a surface station's platform runs five tiles
+    || (s.surface && typeof surfaceStationTiles === 'function' && surfaceStationTiles(s).some(([r, c]) => r === row && c === col))) || null;
 }
 
 // A station's entrance stands here: no road, building or zone goes on it.
@@ -451,7 +457,14 @@ function handleMetroLineClick(scene, row, col) {
     metroLineDraft = null;
     return say('metro.line.full', '一條綫最多 {n} 個站。', { n: METRO.maxStationsPerLine }, 'warning');
   }
-  const tunnel = metroTunnelBetween(last, station, metroIsSea);
+  // 第三期: a line is all underground or all on the surface; a surface one runs along the track
+  if (Boolean(last.surface) !== Boolean(station.surface)) {
+    return say('metro.line.mixed', '地面站同地底站唔可以喺同一條綫（第三期）。', {}, 'warning');
+  }
+  if (station.surface && typeof findSurfacePath === 'function' && !findSurfacePath(state.tracks, last, station)) {
+    return say('metro.line.noTrack', '「{from}」同「{to}」之間冇路軌連住：先起路軌。', { from: last.name, to: station.name }, 'warning');
+  }
+  const tunnel = station.surface ? { cost: 0 } : metroTunnelBetween(last, station, metroIsSea);
   if (!spendMetroFunds(tunnel.cost)) {
     return say('metro.line.funds', '公司資金唔夠掘隧道（要 ${cost}）。', { cost: tunnel.cost.toLocaleString() }, 'warning');
   }
@@ -462,6 +475,7 @@ function handleMetroLineClick(scene, row, col) {
     draftLine.stationIds.push(station.id);
     metroNetworkRevision += 1;
     if (typeof queueCityChangeAutosave === 'function') queueCityChangeAutosave();
+    if (station.surface) return say('metro.line.extendedSurface', '「{line}」延長到「{name}」（沿路軌）。撳下一個站，或者再撳「{name}」完成。', { line: draftLine.name, name: station.name }, 'success');
     return say('metro.line.extended', '「{line}」延長到「{name}」（隧道 ${cost}）。撳下一個站，或者再撳「{name}」完成。', { line: draftLine.name, name: station.name, cost: tunnel.cost.toLocaleString() }, 'success');
   }
   const index = state.lines.length;
@@ -471,12 +485,14 @@ function handleMetroLineClick(scene, row, col) {
     color: METRO_LINE_COLORS[state.lines.length % METRO_LINE_COLORS.length],
     stationIds: [pending.id, station.id],
     status: 'active', monthToDatePassengers: 0, monthToDateRevenue: 0, monthToDateTransfers: 0, history: [],
+    ...(station.surface ? { surface: true } : {}),
   };
   state.lines.push(line);
   metroLineDraft = { lineId: line.id };
   metroNetworkRevision += 1;
   const bought = buyMetroTrain(line.id).ok;
   if (typeof queueCityChangeAutosave === 'function') queueCityChangeAutosave();
+  if (bought && station.surface) return say('metro.line.openedSurface', '「{line}」開咗（沿路軌），買咗一列列車。撳下一個站延長，或者再撳「{name}」完成。', { line: line.name, name: station.name }, 'success');
   return bought
     ? say('metro.line.opened', '「{line}」開咗（隧道 ${cost}），買咗一列列車。撳下一個站延長，或者再撳「{name}」完成。', { line: line.name, cost: tunnel.cost.toLocaleString(), name: station.name }, 'success')
     : say('metro.line.openedNoTrain', '「{line}」開咗，但公司資金唔夠買列車（${price}）：喺運輸公司路線表加車。', { line: line.name, price: METRO.trainPrice.toLocaleString() }, 'warning');
@@ -513,19 +529,23 @@ function setMetroLineSuspended(lineId, suspended) {
  * train at its `from` station for the dwell. Pure: `points` are the stations' { row, col } in order.
  * Returns { legs: [{ from, to, fromIndex, toIndex, length, start }], cycle } in clock minutes.
  */
-function metroLineSchedule(points) {
+function metroLineSchedule(points, opts = {}) {
   const n = points.length;
+  const dwell = opts.dwell ?? METRO.dwellMinutes;
+  const speed = opts.speed ?? METRO.speedTilesPerMinute;
+  // a surface line's hops are along its track (opts.at: each station's distance along it)
+  const hop = (a, b) => (opts.at ? Math.abs(opts.at[b] - opts.at[a]) : Math.hypot(points[b].row - points[a].row, points[b].col - points[a].col));
   const order = [];
   for (let i = 0; i < n - 1; i++) order.push([i, i + 1]);
   for (let i = n - 1; i > 0; i--) order.push([i, i - 1]);
   let t = 0;
   const legs = order.map(([a, b]) => {
-    const length = Math.hypot(points[b].row - points[a].row, points[b].col - points[a].col);
+    const length = hop(a, b);
     const leg = { from: points[a], to: points[b], fromIndex: a, toIndex: b, length, start: t };
-    t += METRO.dwellMinutes + length / METRO.speedTilesPerMinute;
+    t += dwell + length / speed;
     return leg;
   });
-  return { legs, cycle: t };
+  return { legs, cycle: t, dwell, speed };
 }
 
 // Where a train `phase` of a round trip ahead of the clock is at clock minute t: { r, c, state:
@@ -537,9 +557,11 @@ function metroTrainPointAt(schedule, t, phase = 0) {
   let leg = legs[legs.length - 1];
   for (const candidate of legs) { if (candidate.start <= p) leg = candidate; else break; }
   const into = p - leg.start;
-  if (into < METRO.dwellMinutes) return { r: leg.from.row, c: leg.from.col, state: 'atStation', station: leg.fromIndex };
-  const k = Math.min(1, ((into - METRO.dwellMinutes) * METRO.speedTilesPerMinute) / Math.max(1e-6, leg.length));
-  return { r: leg.from.row + (leg.to.row - leg.from.row) * k, c: leg.from.col + (leg.to.col - leg.from.col) * k, state: 'running', station: null };
+  const dwell = schedule.dwell ?? METRO.dwellMinutes;
+  const speed = schedule.speed ?? METRO.speedTilesPerMinute;
+  if (into < dwell) return { r: leg.from.row, c: leg.from.col, state: 'atStation', station: leg.fromIndex, leg, k: 0 };
+  const k = Math.min(1, ((into - dwell) * speed) / Math.max(1e-6, leg.length));
+  return { r: leg.from.row + (leg.to.row - leg.from.row) * k, c: leg.from.col + (leg.to.col - leg.from.col) * k, state: 'running', station: null, leg, k };
 }
 
 // Every call at a station in clock minutes (t0, t1] by trains at the given phases, in order: a
@@ -587,9 +609,16 @@ const metroScheduleCache = new Map();
 function getMetroLineSchedule(line, state = getMetroState()) {
   const stations = getMetroLineStations(line, state);
   if (stations.length < 2) return null;
-  const key = `${metroNetworkRevision}|${line.id}|${stations.map((s) => `${s.row},${s.col}`).join(';')}`;
+  const key = `${metroNetworkRevision}|${line.id}|${stations.map((s) => `${s.row},${s.col}`).join(';')}|${line.surface ? (typeof metroTrackRevisionKey === 'function' ? metroTrackRevisionKey() : '') : ''}`;
   if (metroScheduleCache.has(key)) return metroScheduleCache.get(key);
-  const schedule = metroLineSchedule(stations.map((s) => ({ row: s.row, col: s.col })));
+  let opts = {};
+  if (line.surface) {
+    // along its track, at the surface speed (metro-surface-lines.js); no track, no trains
+    const geom = typeof getSurfaceLineGeometry === 'function' ? getSurfaceLineGeometry(line, state) : null;
+    if (!geom) return null;
+    opts = { at: geom.stationAt, speed: METRO_SURFACE.speedTilesPerMinute, dwell: METRO_SURFACE.dwellMinutes };
+  }
+  const schedule = metroLineSchedule(stations.map((s) => ({ row: s.row, col: s.col })), opts);
   if (metroScheduleCache.size > 64) metroScheduleCache.clear();
   metroScheduleCache.set(key, schedule);
   return schedule;
@@ -773,7 +802,7 @@ function advanceMetroClock(fromMinutes, toMinutes) {
     state.lines.forEach((line) => {
       const schedule = line.status === 'active' ? getMetroLineSchedule(line, state) : null;
       if (!schedule) return;
-      const runningShare = (schedule.cycle - schedule.legs.length * METRO.dwellMinutes) / schedule.cycle;
+      const runningShare = (schedule.cycle - schedule.legs.length * (schedule.dwell ?? METRO.dwellMinutes)) / schedule.cycle;
       getMetroLineTrains(line, state).forEach((v) => { v.tilesThisMonth += minutes * METRO.speedTilesPerMinute * runningShare; });
     });
     t = next;
@@ -1029,7 +1058,9 @@ function syncMetroStations(scene) {
   // the surface track with them (metro-surface.js)
   if (typeof syncMetroTracks === 'function') syncMetroTracks(scene);
   if (!scene.metroStationSprites) scene.metroStationSprites = new Map();
-  const stations = getTransportExpansionState()?.metro?.stations || [];
+  // (a surface station is a platform, drawn by syncMetroPlatforms: metro-surface-lines.js)
+  if (typeof syncMetroPlatforms === 'function') syncMetroPlatforms(scene);
+  const stations = (getTransportExpansionState()?.metro?.stations || []).filter((s) => !s.surface);
   const ids = new Set(stations.map((s) => s.id));
   scene.metroStationSprites.forEach((sprite, id) => { if (!ids.has(id)) { sprite.destroy(); scene.metroStationSprites.delete(id); } });
   stations.forEach((station) => {
@@ -1050,6 +1081,7 @@ function syncMetroStations(scene) {
 
 function clearMetroSprites(scene) {
   if (typeof clearMetroTrackSprites === 'function') clearMetroTrackSprites(scene);
+  if (typeof clearMetroSurfaceSprites === 'function') clearMetroSurfaceSprites(scene);
   scene?.metroStationSprites?.forEach((sprite) => sprite.destroy());
   if (scene) scene.metroStationSprites = new Map();
   scene?.metroOverlayGraphic?.clear();
@@ -1084,6 +1116,16 @@ function updateMetroOverlay(scene) {
   state.lines.forEach((line) => {
     const stations = getMetroLineStations(line, state);
     const color = Number.parseInt(line.color.slice(1), 16);
+    // a surface line along its track, solid; its trains are drawn on the map (metro-surface-lines.js)
+    if (line.surface) {
+      const geom = typeof getSurfaceLineGeometry === 'function' ? getSurfaceLineGeometry(line, state) : null;
+      if (!geom) return;
+      g.lineStyle(width, color, line.status === 'active' ? 0.85 : 0.4);
+      g.beginPath();
+      geom.verts.forEach((v, i) => { const p = at(v.y - 0.5, v.x - 0.5); if (i) g.lineTo(p.x, p.y); else g.moveTo(p.x, p.y); });
+      g.strokePath();
+      return;
+    }
     for (let i = 1; i < stations.length; i++) {
       const a = at(stations[i - 1].row, stations[i - 1].col);
       const b = at(stations[i].row, stations[i].col);

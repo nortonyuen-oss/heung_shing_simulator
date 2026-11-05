@@ -717,6 +717,10 @@ function applyNightObjectTint(scene, ground) {
   // and the 地鐵站 entrances (metro.js): no baked night art, so they darken with the ground as the
   // props do rather than by the buildings' light share
   scene.metroStationSprites?.forEach(apply);
+  // and the surface railway: its track, platforms and trains (metro-surface.js, metro-surface-lines.js)
+  scene.metroTrackSprites?.forEach(apply);
+  scene.metroPlatformSprites?.forEach(apply);
+  scene.metroTrainSprites?.forEach((cars) => cars.forEach(apply));
 
   // Buildings take a lighter share (see NIGHT_BUILDING_DARKNESS_SHARE). Once a
   // model carries a baked night texture its darkening is in the pixels and it

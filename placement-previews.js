@@ -148,6 +148,14 @@ function updateBuildingPlacementGuide(scene, pointer) {
     drawFootprintGuide(scene, tile.row, tile.col, 1, 1, land);
     return;
   }
+  // 地面站: the five track tiles it would take, green, or the tile red (metro-surface-lines.js)
+  if (selectedTool === 'metro-surface-station' && typeof whyNotSurfaceStationAt === 'function') {
+    const res = whyNotSurfaceStationAt(tile.row, tile.col, getMetroState().tracks, (r, c) => isMetroSurfaceStationTile(r, c));
+    if (res.axis === 'ns') drawFootprintGuide(scene, tile.row - 2, tile.col, 1, 5, true);
+    else if (res.axis === 'we') drawFootprintGuide(scene, tile.row, tile.col - 2, 5, 1, true);
+    else drawFootprintGuide(scene, tile.row, tile.col, 1, 1, false);
+    return;
+  }
   // 地鐵路軌: before the drag, the tile it would start from (metro-surface.js)
   if (selectedTool === 'metro-track' && typeof canLayMetroTrackAt === 'function') {
     drawFootprintGuide(scene, tile.row, tile.col, 1, 1, canLayMetroTrackAt(tile.row, tile.col) || isMetroTrackTile(tile.row, tile.col));

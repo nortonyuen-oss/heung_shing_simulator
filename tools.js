@@ -111,6 +111,8 @@ function handleNewTool(scene, tile) {
   }
   // 地鐵 (metro.js)
   if (selectedTool === 'metro-station') return placeMetroStation(scene, row, col);
+  // 第三期 地面站 (metro-surface-lines.js)
+  if (selectedTool === 'metro-surface-station') return placeMetroSurfaceStation(scene, row, col);
   if (selectedTool === 'metro-line') {
     const result = handleMetroLineClick(scene, row, col);
     if (typeof refreshTransportToolHint === 'function') refreshTransportToolHint();

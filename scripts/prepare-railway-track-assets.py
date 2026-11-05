@@ -77,6 +77,17 @@ def layouts():
 
 def path_coords(bit, offset, col, row):
     """(s, t, length) of each pixel for one track: s along it from one edge, t across it."""
+    if isinstance(bit, tuple):
+        # ('XO', axis): a scissors crossover over two tiles along X (rows 0-40 at col 10) or Y
+        # (cols 0-40 at row 10): each track from one side of the line to the other
+        if bit[1] == 'X':
+            p1, p2 = np.array([10.0 + offset, 0.0]), np.array([10.0 - offset, 2 * TILE_M])
+        else:
+            p1, p2 = np.array([0.0, 10.0 + offset]), np.array([2 * TILE_M, 10.0 - offset])
+        u = (p2 - p1) / np.linalg.norm(p2 - p1)
+        s = (col - p1[0]) * u[0] + (row - p1[1]) * u[1]
+        t = (col - p1[0]) * -u[1] + (row - p1[1]) * u[0]
+        return s, t, float(np.linalg.norm(p2 - p1))
     if bit in ('X', 'Y'):
         if bit == 'X':   # col 10, row 20 -> 0
             s, t = 20.0 - row, col - (10.0 + offset)
@@ -108,7 +119,8 @@ def draw_tile(tracks, rng, size_m=TILE_M, n=TD):
     rail_a = np.zeros((n, n), np.float32); rail_rgb = np.zeros((n, n, 3), np.float32)
     for bit in tracks:
         # the bed under the line, as far as the line runs on this tile
-        diagonal = bit not in ('X', 'Y')
+        crossover = isinstance(bit, tuple)
+        diagonal = bit not in ('X', 'Y') and not crossover
         # (a diagonal meets the edges at 45 degrees: it runs on past its ends, the tile's diamond
         # cutting it along the edge)
         over = 3.0 if diagonal else 0.0
@@ -117,7 +129,8 @@ def draw_tile(tracks, rng, size_m=TILE_M, n=TD):
         on = (s0 >= -0.01 - over) & (s0 <= length0 + 0.01 + over)
         # (distances across a diagonal stretched back to the edge's measure: a pixel's coverage
         # is then aa(d / squeeze))
-        bed = np.maximum(bed, aa((np.abs(t0) * squeeze - BED_HALF) / squeeze) * on)
+        if not crossover:   # (a crossover lies on the straights' bed)
+            bed = np.maximum(bed, aa((np.abs(t0) * squeeze - BED_HALF) / squeeze) * on)
         for offset in (-TRACK_OFFSET, TRACK_OFFSET):
             s, t, length = path_coords(bit, offset, col, row)
             t = t * squeeze
@@ -230,6 +243,17 @@ def main():
         print(layout['asset'], img.size)
     preview(tiles)
     print('preview', PREVIEW.relative_to(ROOT))
+    # 剪式渡綫: the scissors crossover a terminus has outside its platforms (MTR): two tiles of X or Y,
+    # drawn over the straights - a train coming in crosses to either platform, and back to its own
+    # (the left-hand) track as it leaves (metro-surface-lines.js)
+    for axis in ('X', 'Y'):
+        block = draw_tile([('XO', axis)], rng, size_m=2 * TILE_M, n=2 * TD)
+        for k in (0, 1):
+            r0, c0 = (k, 0) if axis == 'X' else (0, k)
+            part = {key: v[r0 * TD:(r0 + 1) * TD, c0 * TD:(c0 + 1) * TD] for key, v in block.items()}
+            name = f'metro_track_crossover_{axis.lower()}_{k}'
+            composite(part).save(OUT_DIR / f'{name}.png')
+            print(name)
 
 
 if __name__ == '__main__':

@@ -95,6 +95,20 @@ function addRailPathBits(bits, path) {
       const side = sides[0];
       if (!side) continue;
       if (railBitsOf(out[key] || 0).some((b) => RAIL_BIT_SIDES[b].includes(side))) continue;
+      // the end of a line, its loose side square to the way this one comes: turn it (a diagonal
+      // from its joined side to this one), as OpenTTD does when a line is carried on round a corner
+      const bitsHere = railBitsOf(out[key] || 0);
+      if (bitsHere.length === 1) {
+        const joined = RAIL_BIT_SIDES[bitsHere[0]].filter((s) => {
+          const [dr, dc] = RAIL_DIRS[s];
+          const neighbour = out[railKey(here.row + dr, here.col + dc)] || 0;
+          return railBitsOf(neighbour).some((b) => RAIL_BIT_SIDES[b].includes(RAIL_OPPOSITE[s]));
+        });
+        if (joined.length === 1 && joined[0] !== RAIL_OPPOSITE[side]) {
+          out[key] = railBitFor(joined[0], side);
+          continue;
+        }
+      }
       bit = railBitFor(side, RAIL_OPPOSITE[side]);
     }
     out[key] = (out[key] || 0) | bit;
@@ -111,6 +125,12 @@ function railBadTiles(bits) {
 
 function getMetroTrackBits() {
   return typeof getMetroState === 'function' ? getMetroState().tracks : {};
+}
+
+// Bumped whenever track is laid or taken up (surface lines' geometry is worked out again).
+let metroTrackRevision = 0;
+function metroTrackRevisionKey() {
+  return metroTrackRevision;
 }
 
 // Where track may be laid: flat open ground, nothing built on it.
@@ -179,6 +199,7 @@ function commitMetroTrackDrag(scene, start, end) {
     if (typeof zoneMap !== 'undefined' && zoneMap[row]) zoneMap[row][col] = typeof ZONE_NONE !== 'undefined' ? ZONE_NONE : 0;
   });
   getMetroState().tracks = plan.bits;
+  metroTrackRevision += 1;
   syncMetroTracks(scene);
   if (typeof queueCityChangeAutosave === 'function') queueCityChangeAutosave();
   if (typeof showToast === 'function' && plan.cost > 0) {
@@ -192,9 +213,18 @@ function demolishMetroTrackAt(scene, row, col) {
   const bits = getMetroTrackBits();
   const key = railKey(row, col);
   if (!bits[key]) return false;
+  // not under a platform, nor where a surface line runs (metro-surface-lines.js)
+  const say = (k, fallback) => { if (typeof showToast === 'function') showToast(metroT(k, fallback), 'warning'); return true; };
+  if (typeof isMetroSurfaceStationTile === 'function' && isMetroSurfaceStationTile(row, col)) {
+    return say('metro.track.underStation', '路軌上面有地面站：先拆咗個站。');
+  }
+  if (typeof getMetroSurfaceLineTiles === 'function' && getMetroSurfaceLineTiles().has(key)) {
+    return say('metro.track.inUse', '有地面綫行緊呢段路軌：先喺運輸公司路線表移走條綫。');
+  }
   const next = { ...bits };
   delete next[key];
   getMetroState().tracks = next;
+  metroTrackRevision += 1;
   syncMetroTracks(scene);
   if (typeof queueCityChangeAutosave === 'function') queueCityChangeAutosave();
   return true;

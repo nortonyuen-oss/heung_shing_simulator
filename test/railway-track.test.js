@@ -85,7 +85,7 @@ test('generated production sprites preserve their shared transparent tile canvas
   }
 });
 
-test('the curves turn about the tile corner their two edges share', () => {
+test('the diagonals cut across the tile corner their two edges share', () => {
   const expected = { UPPER: 'N', LOWER: 'S', LEFT: 'W', RIGHT: 'E' };
   Object.entries(expected).forEach(([name, corner]) => {
     const segment = RAILWAY_TRACK_SEGMENTS[name];
@@ -98,25 +98,3 @@ test('the curves turn about the tile corner their two edges share', () => {
   assert.equal(RAILWAY_TRACK_SEGMENTS.X.corner, undefined);
 });
 
-test('a large curve turns on a 2 x 2 block, joining the straights at edge middles', async () => {
-  const { RAILWAY_TRACK_LARGE_CURVES, getRailwayTrackCurveAssets } = require('../railway-track');
-  assert.deepEqual(RAILWAY_TRACK_LARGE_CURVES.map((c) => c.corner), ['N', 'E', 'S', 'W']);
-  const corners = { N: [0, 0], E: [0, 2], S: [2, 2], W: [2, 0] };   // [row, col] in the block
-  const edgeMiddle = { A: [0.5, 0], B: [0, 0.5], C: [0.5, 1], D: [1, 0.5] };
-  RAILWAY_TRACK_LARGE_CURVES.forEach((curve) => {
-    assert.equal(curve.ends.length, 2);
-    curve.ends.forEach(({ tile, edge }) => {
-      // each end is 1.5 tiles from the block corner the curve turns about
-      const point = [tile[0] + edgeMiddle[edge][0], tile[1] + edgeMiddle[edge][1]];
-      const [cr, cc] = corners[curve.corner];
-      assert.equal(Math.hypot(point[0] - cr, point[1] - cc), curve.radiusTiles, `${curve.corner} ${edge}`);
-    });
-  });
-  const assets = getRailwayTrackCurveAssets();
-  assert.equal(assets.length, 16);
-  for (const asset of assets) {
-    const metadata = await sharp(path.join(ROOT, asset.path)).metadata();
-    assert.equal(metadata.width, RAILWAY_TRACK_TILE.width, asset.asset);
-    assert.equal(metadata.height, RAILWAY_TRACK_TILE.height, asset.asset);
-  }
-});

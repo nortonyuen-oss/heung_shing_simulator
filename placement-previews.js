@@ -148,6 +148,11 @@ function updateBuildingPlacementGuide(scene, pointer) {
     drawFootprintGuide(scene, tile.row, tile.col, 1, 1, land);
     return;
   }
+  // 地鐵路軌: before the drag, the tile it would start from (metro-surface.js)
+  if (selectedTool === 'metro-track' && typeof canLayMetroTrackAt === 'function') {
+    drawFootprintGuide(scene, tile.row, tile.col, 1, 1, canLayMetroTrackAt(tile.row, tile.col) || isMetroTrackTile(tile.row, tile.col));
+    return;
+  }
   // 海鮮舫: green on the 4 x 3 it would moor on (it fits itself round the pointer), red where it may not
   if (selectedTool === 'floating-restaurant' && typeof getTyphoonShelterFloatingRestaurantPlacement === 'function') {
     const { site } = getTyphoonShelterFloatingRestaurantPlacement(tile.row, tile.col);

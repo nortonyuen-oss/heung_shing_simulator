@@ -1,8 +1,9 @@
 // Six TrackBits on one fixed 512x256 isometric ground tile (the diamond fills the canvas; one game
 // tile, 20 m). Track geometry is shared by the standalone pieces and every supported composite
 // asset. Each bit is a double track, a line to a tile (docs/railway-track-system.md): X and Y run
-// straight between opposite edge middles; UPPER, LOWER, LEFT and RIGHT are drawn as quarter circles
-// about the tile corner their two edges share (`corner`), meeting the straights square at the edges.
+// straight between opposite edge middles; UPPER, LOWER, LEFT and RIGHT are OpenTTD's diagonals,
+// straight across the tile corner their two edges share (`corner`), so a line turns 45 degrees at
+// a tile edge.
 const RAILWAY_TRACK_TILE = Object.freeze({
   width: 512,
   height: 256,
@@ -77,42 +78,6 @@ const RAILWAY_TRACK_LAYOUTS = Object.freeze([
 
 const RAILWAY_TRACK_LAYOUT_BY_MASK = new Map(RAILWAY_TRACK_LAYOUTS.map((layout) => [layout.mask, layout]));
 
-// 大彎 (Norton, 2026-11-04): the one-tile curves are too tight for a 22.5 m car, so a line turns on
-// a 2 x 2 block: a quarter circle of 1.5 tiles (30 m) about one corner of the block (N, E, S or W,
-// as the tile corners), from the middle of an edge of one block tile to the middle of an edge of
-// the opposite one. `ends` are where the straights join ([row, col] in the block, and the edge as
-// the anchors name it); the tile by the centre corner (`inner`) only has the bed's edge across its
-// far corner. Each block tile has its own picture.
-const RAILWAY_TRACK_LARGE_CURVE_ENDS = Object.freeze({
-  N: [[[0, 1], 'B'], [[1, 0], 'A']],
-  E: [[[0, 0], 'B'], [[1, 1], 'C']],
-  S: [[[1, 0], 'D'], [[0, 1], 'C']],
-  W: [[[0, 0], 'A'], [[1, 1], 'D']],
-});
-const RAILWAY_TRACK_LARGE_CURVE_INNER = Object.freeze({ N: [0, 0], E: [0, 1], S: [1, 1], W: [1, 0] });
-
-const RAILWAY_TRACK_LARGE_CURVES = Object.freeze(['N', 'E', 'S', 'W'].map((corner) => Object.freeze({
-  corner,
-  block: 2,
-  radiusTiles: 1.5,
-  ends: Object.freeze(RAILWAY_TRACK_LARGE_CURVE_ENDS[corner].map(([tile, edge]) => Object.freeze({ tile: Object.freeze(tile), edge }))),
-  inner: RAILWAY_TRACK_LARGE_CURVE_INNER[corner],
-  tiles: Object.freeze([[0, 0], [0, 1], [1, 0], [1, 1]].map(([dr, dc]) => Object.freeze({
-    tile: Object.freeze([dr, dc]),
-    asset: `metro_track_curve_${corner.toLowerCase()}_${dr}${dc}`,
-  }))),
-})));
-
-function getRailwayTrackCurveAssets() {
-  return RAILWAY_TRACK_LARGE_CURVES.flatMap((curve) => curve.tiles.map(({ tile, asset }) => ({
-    asset,
-    corner: curve.corner,
-    tile,
-    textureKey: asset,
-    path: `Models/metroTrack/${asset}.png`,
-  })));
-}
-
 function normalizeRailwayTrackMask(mask) {
   const value = Number(mask);
   if (!Number.isInteger(value) || value < 0 || value > 0x3f) {
@@ -177,7 +142,5 @@ if (typeof module !== 'undefined' && module.exports) {
     getRailwayTrackAssets,
     getRailwayTrackCenterlines,
     combineRailwayTrackBits,
-    RAILWAY_TRACK_LARGE_CURVES,
-    getRailwayTrackCurveAssets,
   };
 }

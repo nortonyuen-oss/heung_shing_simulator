@@ -804,10 +804,9 @@ function preload() {
     });
   }
   if (typeof getRailwayTrackAssets === 'function') {
-    [...getRailwayTrackAssets(), ...(typeof getRailwayTrackCurveAssets === 'function' ? getRailwayTrackCurveAssets() : [])]
-      .forEach(({ textureKey, path }) => {
-        this.load.image(textureKey, resolveModelAssetPath(path));
-      });
+    getRailwayTrackAssets().forEach(({ textureKey, path }) => {
+      this.load.image(textureKey, resolveModelAssetPath(path));
+    });
   }
 
   this.load.image('water_full', `${roadPath}water.png`);
@@ -1077,7 +1076,8 @@ function create() {
       lastKnownTile = startTile ? { row: startTile.row, col: startTile.col } : null;
       // Roads are committed on pointerup so a drag can become a SimCity-style bridge span;
       // so is a 海底隧道, dragged from shore to shore.
-      if (selectedTool !== 'road' && selectedTool !== 'undersea-tunnel') applySelectedTool(this, pointer);
+      // (and 地鐵路軌, metro-surface.js)
+      if (selectedTool !== 'road' && selectedTool !== 'undersea-tunnel' && selectedTool !== 'metro-track') applySelectedTool(this, pointer);
     } else if (pointer.button === 2) {
       this.isPanning = true;
       this.panPrevX = pointer.x;
@@ -1133,6 +1133,12 @@ function create() {
         if (cur) {
           lastKnownTile = { row: cur.row, col: cur.col };
           drawUnderseaTunnelDragPreview(this, dragStartTile, cur);
+        }
+      } else if (selectedTool === 'metro-track' && dragStartTile && typeof drawMetroTrackDragPreview === 'function') {
+        const cur = pointerToTile(this, pointer);
+        if (cur) {
+          lastKnownTile = { row: cur.row, col: cur.col };
+          drawMetroTrackDragPreview(this, dragStartTile, cur);
         }
       } else if (selectedTool === 'typhoon-shelter') {
         // 避風塘 水域: preview the rectangle and the plan it would make; committed on pointerup.
@@ -1900,6 +1906,8 @@ function canPlaceRoad(scene, row, col) {
   if (typeof isUnderseaTunnelTile === 'function' && isUnderseaTunnelTile(row, col)) return false;
   // nor on a 地鐵站 entrance (metro.js)
   if (typeof isMetroStationTile === 'function' && isMetroStationTile(row, col)) return false;
+  // nor across 地鐵路軌 (metro-surface.js): the MTR has no level crossings
+  if (typeof isMetroTrackTile === 'function' && isMetroTrackTile(row, col)) return false;
   if (!isSupportedRoadSlopeTile(row, col)) return false;
   return true;
 }
@@ -1964,7 +1972,8 @@ function isNewToolHandledByToolsModule(tool) {
     || tool === 'promenade'
     || tool === 'undersea-tunnel'
     || tool === 'metro-station'
-    || tool === 'metro-line';
+    || tool === 'metro-line'
+    || tool === 'metro-track';
 }
 
 function getSelectedPlacementFootprint() {
@@ -2003,6 +2012,7 @@ function getSelectedPlacementFootprint() {
   if (selectedTool === 'bus-depot') return { footprintCols: BUS_DEPOT_FOOTPRINT_COLS, footprintRows: BUS_DEPOT_FOOTPRINT_ROWS };
   if (selectedTool === 'ferry-pier' && typeof FERRY !== 'undefined') return { footprintCols: FERRY.pierCols, footprintRows: FERRY.pierRows };
   if (selectedTool === 'metro-station') return { footprintCols: 1, footprintRows: 1 };
+  if (selectedTool === 'metro-track') return { footprintCols: 1, footprintRows: 1 };
   if (selectedTool === 'floating-restaurant' && typeof TYPHOON_SHELTER_FLOATING_RESTAURANT !== 'undefined') {
     // (turned by a right-click: typhoonShelterFloatingRestaurantTurn)
     const F = TYPHOON_SHELTER_FLOATING_RESTAURANT;
@@ -2120,6 +2130,8 @@ function applyToolAt(scene, row, col, pointer = null) {
     if (typeof demolishUnderseaTunnelAt === 'function' && demolishUnderseaTunnelAt(scene, row, col)) return;
     // and a 地鐵站 (metro.js), refused while a line calls at it
     if (typeof demolishMetroStationAt === 'function' && demolishMetroStationAt(scene, row, col)) return;
+    // and 地鐵路軌 taken up (metro-surface.js)
+    if (typeof demolishMetroTrackAt === 'function' && demolishMetroTrackAt(scene, row, col)) return;
     spendBudget(COST_BULLDOZE);
     if (typeof removeDistrictSignAt === 'function') removeDistrictSignAt(scene, row, col);
     removeBuilding(scene, row, col);

@@ -147,6 +147,9 @@ function normalizeMetroState(raw) {
     grantBalance: Math.max(0, Math.round(num(src.grantBalance))),
     // 鐵路加物業: last month's property income, all stations
     lastPropertyIncome: Math.max(0, Math.round(num(src.lastPropertyIncome))),
+    // 第三期 surface track (metro-surface.js): "row:col" -> the tile's TrackBits (railway-track.js)
+    tracks: Object.fromEntries(Object.entries(src.tracks && typeof src.tracks === 'object' && !Array.isArray(src.tracks) ? src.tracks : {})
+      .filter(([k, v]) => /^\d+:\d+$/.test(k) && Number.isInteger(v) && v > 0 && v < 64)),
   };
 }
 
@@ -809,6 +812,8 @@ function settleMetroMonth(ended = null) {
     v.ageMonths += 1;
   });
   out.cost += state.stations.length * METRO.stationMonthlyUpkeep;
+  // and the surface track's (metro-surface.js)
+  if (typeof getMetroTrackMonthlyUpkeep === 'function') out.cost += getMetroTrackMonthlyUpkeep();
   out.property = settleMetroProperty(state);
   return out;
 }
@@ -1021,6 +1026,8 @@ function placeMetroStationSprite(scene, station, sprite) {
 // pulled down, a load, or a turn of the map).
 function syncMetroStations(scene) {
   if (!scene?.add || typeof getTransportExpansionState !== 'function') return;
+  // the surface track with them (metro-surface.js)
+  if (typeof syncMetroTracks === 'function') syncMetroTracks(scene);
   if (!scene.metroStationSprites) scene.metroStationSprites = new Map();
   const stations = getTransportExpansionState()?.metro?.stations || [];
   const ids = new Set(stations.map((s) => s.id));
@@ -1042,6 +1049,7 @@ function syncMetroStations(scene) {
 }
 
 function clearMetroSprites(scene) {
+  if (typeof clearMetroTrackSprites === 'function') clearMetroTrackSprites(scene);
   scene?.metroStationSprites?.forEach((sprite) => sprite.destroy());
   if (scene) scene.metroStationSprites = new Map();
   scene?.metroOverlayGraphic?.clear();

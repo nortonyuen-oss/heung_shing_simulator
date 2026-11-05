@@ -15,29 +15,21 @@ masks are not inferred: resolve a mask with `getRailwayTrackLayout` and handle `
 
 ## How a tile is drawn (Norton, 2026-11-04)
 
-- **Double track, a line to a tile.** Each bit is two tracks, 2 m either side of its line (4 m
-  apart, as the MTR's), on a grey-brown ballast bed about 8 m wide.
+- **Double track, a line to a tile.** Each bit is two tracks on a grey-brown ballast bed. The two
+  tracks cross every tile edge 2.25 m either side of its middle, whichever piece they are on, so
+  pieces meet track to track: 4.5 m apart on a straight, 3.2 m on a diagonal.
 - **X and Y** run straight between opposite edge middles (X: D to B, Y: A to C).
-- **UPPER, LOWER, LEFT and RIGHT** are quarter circles about the tile corner their two edges share
-  (`RAILWAY_TRACK_SEGMENTS[...].corner`: N, S, W, E; radius 10 m, the tracks at 8 and 12 m). They meet
-  the straights square at the edge, so a line turns a corner with the two tracks the same distance
-  apart all the way round. (OpenTTD draws these bits as straight 45° chords; with two tracks to a
-  tile the chords cannot meet the straights cleanly, so they are curves here. The bits and masks
-  are OpenTTD's all the same.)
+- **UPPER, LOWER, LEFT and RIGHT** are OpenTTD's diagonals: straight across the tile corner their two
+  edges share (`RAILWAY_TRACK_SEGMENTS[...].corner`: N, S, W, E). A line turns 45 degrees at a tile
+  edge, so a right angle is two 45s with one diagonal tile between, and a staircase of diagonals
+  runs level or upright on screen (Norton, 2026-11-05: that turns far better than a curve; the
+  quarter-circle curves and the 2 x 2 large curves tried on 2026-11-04 are gone).
 - **The look** follows Norton's track sheet (`scripts/source-art/subwayStation/original/tracks.png`): brown rails with
   bright heads on chunky grey concrete sleepers, spaced about a gauge apart; the colours are
   sampled from it. Tiles are drawn top-down in metres and warped to 2:1, so straights, curves and
   crossings match; rails cast a small shadow down-screen.
 - **Seamless joins.** Every track has a whole number of sleepers on its piece, with a gap at
   each tile edge, so tiles meet without a seam whichever way a line runs.
-- **Large curves (大彎).** The one-tile curves (10 m) are too tight for a 22.5 m car, so a line
-  turns on a 2 x 2 block: a quarter circle of 1.5 tiles (30 m; the tracks at 28 and 32 m) about one
-  corner of the block (`RAILWAY_TRACK_LARGE_CURVES`, corner N/E/S/W), joining the straights at the
-  middles of the far edges (`ends`). The block is drawn whole and cut into its four tiles
-  (`metro_track_curve_<corner>_<row><col>`); the tile by the centre corner (`inner`) carries only the
-  bed's edge. Sheet: `docs/assets/metro-track-curves-preview.png`. The one-tile curves stay for
-  turnouts and tight spots.
-
 Turnouts and junctions are the two pieces laid over each other for now. Norton's sheet also has
 curved turnouts and a crossover, each about two tiles long, for branch lines or a depot later.
 
@@ -46,10 +38,11 @@ curved turnouts and a crossover, each about two tiles long, for branch lines or 
 `.venv/bin/python -B scripts/prepare-railway-track-assets.py` reads the layouts from
 `railway-track.js` (through node) and writes:
 
-- `Models/metroTrack/<asset>.png` (the 21 layouts and the 16 large-curve tiles), 512 x 256 RGBA, nothing trimmed
+- `Models/metroTrack/<asset>.png` (the 21 layouts), 512 x 256 RGBA, nothing trimmed
   (`prepare-release-assets.js` keeps `metroTrack/` at its canvas: `FIXED_GROUND_TILE_PREFIXES`).
 - A labelled sheet at `docs/assets/metro-track-preview.png`.
 
-Game code gets each texture key and source path from `getRailwayTrackAssets()` and
-`getRailwayTrackCurveAssets()` (main.js preloads both). A tile's sprite goes at the tile face's centre, origin 0.5, scaled by TILE_WIDTH / 512.
-There is no surface-track building or train running yet: that is the rest of phase 3.
+Game code gets each texture key and source path from `getRailwayTrackAssets()` (main.js preloads
+them). A tile's sprite goes at the tile face's centre, origin 0.5, scaled by TILE_WIDTH / 512.
+Laying track is metro-surface.js: a tile's state is its TrackBits; a drag lays a straight, an L
+(the corner a diagonal) or, dragged about as far across as down, a diagonal staircase.

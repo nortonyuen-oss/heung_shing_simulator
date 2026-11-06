@@ -41,6 +41,14 @@ function surfaceStationTiles(station) {
   return out;
 }
 
+// A 地面站's tiles beside its track, a row each side (Norton, 2026-11-06: its concourse, footbridge
+// and far platform stand there - metro-ground-station-art.js): its own, none to build on.
+function metroGroundStationSideTiles(station) {
+  if (!station?.surface || station.elevated || station.underground || station.island) return [];
+  const side = station.axis === 'ns' ? [[0, -1], [0, 1]] : [[-1, 0], [1, 0]];
+  return surfaceStationTiles(station).flatMap(([r, c]) => side.map(([dr, dc]) => [r + dr, c + dc]));
+}
+
 /**
  * Whether a platform may go here: five straight track tiles along one axis, centred on (row, col),
  * none of them another station's. Pure with `bits` (TrackBits by "row:col") and `isStationTile`.
@@ -383,6 +391,15 @@ function whyNotMetroSurfaceStation(row, col) {
     && surfaceStationTiles({ row, col, axis: res.axis }).some(([r, c]) => metroOpenEdges(r, c).length)) {
     return metroT('metro.surfaceStation.slope', '月台要起喺平地或者山頂（唔可以喺山坡上）。');
   }
+  // a 地面站 takes a row of tiles each side of its track (its concourse, its far platform): open, level
+  // ground there, as high as the track
+  if (levels.has('g') && typeof METRO_GROUND_STATION_ART !== 'undefined') {
+    const h = getTileHeight(row, col);
+    const bad = metroGroundStationSideTiles({ surface: true, row, col, axis: res.axis }).some(([r, c]) => !isInsideMap(r, c)
+      || !canLayMetroTrackAt(r, c) || isMetroTrackTile(r, c) || getTileHeight(r, c) !== h
+      || (typeof metroOpenEdges === 'function' && metroOpenEdges(r, c).length));
+    if (bad) return metroT('metro.surfaceStation.sides', '地面站兩邊各要一行空地（同路軌一樣高、冇路、建築、路軌或者水），起車站大堂同月台。');
+  }
   // a 地底站's entrance stands on the ground over its middle tile: open ground there
   if (levels.has('u') && typeof canLayMetroTrackAt === 'function' && !canLayMetroTrackAt(row, col)) {
     return metroT('metro.surfaceStation.entrance', '地底站嘅出入口喺中間嗰格地面：嗰格要係平地空地（冇路、建築或者水）。');
@@ -483,6 +500,12 @@ const METRO_PLATFORM_TEXTURES = (() => {
   }));
   // and the termini's scissors crossovers, drawn over the track
   ['x', 'y'].forEach((axis) => [0, 1].forEach((k) => out.push({ key: `metro_track_crossover_${axis}_${k}`, path: `Models/metroTrack/metro_track_crossover_${axis}_${k}.png` })));
+  // and the 地面站, Norton's render in strips (scripts/prepare-metro-ground-station-assets.py)
+  if (typeof METRO_GROUND_STATION_ART !== 'undefined') {
+    Object.values(METRO_GROUND_STATION_ART).forEach((pieces) => pieces.forEach((p) => {
+      ['base', 'front', 'base_lit', 'front_lit'].forEach((k) => { if (p[k]) out.push({ key: p[k].key, path: p[k].path }); });
+    }));
+  }
   // and the 高架站, Norton's render in strips (scripts/prepare-metro-elevated-station-assets.py)
   if (typeof METRO_ELEVATED_STATION_ART !== 'undefined') {
     Object.values(METRO_ELEVATED_STATION_ART).forEach((pieces) => pieces.forEach((p) => {
@@ -566,6 +589,41 @@ function syncMetroPlatforms(scene) {
             : { originX: piece.anchor[0] / piece.size[0], originY: piece.anchor[1] / piece.size[1], scaleMultiplier: 1 };
           sprite.setOrigin(anchor.originX, anchor.originY);
           sprite.setScale((TILE_WIDTH / 512) / (piece.scale || 1) * anchor.scaleMultiplier);
+          sprite.setPosition(face.center.x, face.center.y);
+          sprite.setDepth(depth);
+          if (typeof applyNightPropTint === 'function') applyNightPropTint(scene, sprite);
+          if (piece[`${layer}_lit`]) {
+            wanted.add(`${id}|lit`);
+            syncMetroStationLight(scene, `${id}|lit`, sprite, piece[`${layer}_lit`].key);
+          }
+        });
+      });
+      return;
+    }
+    // a 地面站: Norton's render in five strips - the base (the far side, the track bed) before the
+    // trains, the front (the near platform, the footbridge's span, the concourse) after them
+    if (!station.underground && typeof METRO_GROUND_STATION_ART !== 'undefined') {
+      metroStationArtStrips(station, METRO_GROUND_STATION_ART).forEach(({ row, col, isoY, piece }, k) => {
+        [['base', getWorldDepth('object', isoY - TILE_HEIGHT * 0.6)], ['front', getWorldDepth('object', isoY + TILE_HEIGHT * 1.1)]].forEach(([layer, depth]) => {
+          const id = `${station.id}|g${k}|${layer}`;
+          const texture = piece[layer].key;
+          if (!scene.textures.exists(texture)) return;
+          wanted.add(id);
+          let sprite = scene.metroPlatformSprites.get(id);
+          if (!sprite) {
+            sprite = scene.add.image(0, 0, texture);
+            addToRenderLayer(scene, sprite, 'objectLayer');
+            markMetroNight(sprite, 'objectLayer');
+            if (scene.worldMask) sprite.setMask(scene.worldMask);
+            scene.metroPlatformSprites.set(id, sprite);
+          } else if (sprite.texture.key !== texture) sprite.setTexture(texture);
+          const src = scene.textures.get(texture).getSourceImage();
+          const anchor = typeof getPropTextureAnchor === 'function'
+            ? getPropTextureAnchor(piece[layer].path, piece.anchor[0], piece.anchor[1], src)
+            : { originX: piece.anchor[0] / piece.size[0], originY: piece.anchor[1] / piece.size[1], scaleMultiplier: 1 };
+          sprite.setOrigin(anchor.originX, anchor.originY);
+          sprite.setScale((TILE_WIDTH / 512) / (piece.scale || 1) * anchor.scaleMultiplier);
+          const face = getTileFaceGeometry(row, col, scene.offsetX, scene.offsetY);
           sprite.setPosition(face.center.x, face.center.y);
           sprite.setDepth(depth);
           if (typeof applyNightPropTint === 'function') applyNightPropTint(scene, sprite);
@@ -724,6 +782,16 @@ function updateMetroStationLights(scene) {
   scene.metroPlatformSprites?.forEach((s) => { if (s.__stationLight) updateMetroStationLight(scene, s); });
   // and the 地底站 entrances' (metro.js)
   scene.metroStationSprites?.forEach((s) => { if (s.__lit && typeof updateMetroEntranceLight === 'function') updateMetroEntranceLight(scene, s.__lit); });
+}
+
+// A station drawn from a render in strips (metro-station-art.js, metro-ground-station-art.js): its five
+// tiles left to right as drawn, each with its strip of the picture - the line up-right is the picture
+// as drawn ('x'), down-right its mirror ('y').
+function metroStationArtStrips(station, artSet) {
+  const tiles = surfaceStationTiles(station).map(([row, col]) => ({ row, col, at: isoToScreen(col + 0.5, row + 0.5) }));
+  tiles.sort((a, b) => a.at.x - b.at.x);
+  const art = artSet[tiles[0].at.y > tiles.at(-1).at.y ? 'x' : 'y'];
+  return tiles.map((t, k) => ({ row: t.row, col: t.col, isoX: t.at.x, isoY: t.at.y, piece: art[k] }));
 }
 
 // A 高架站's five tiles and the strip of its picture each takes (metro-station-art.js): left to right

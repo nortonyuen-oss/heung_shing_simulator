@@ -247,7 +247,10 @@ function getMetroStationAt(row, col) {
   const transport = getTransportExpansionState();
   return transport?.metro?.stations?.find((s) => (s.row === row && s.col === col)
     // a surface station's platform runs five tiles (a 地底站's under the ground: only its entrance here)
-    || (s.surface && !s.underground && typeof surfaceStationTiles === 'function' && surfaceStationTiles(s).some(([r, c]) => r === row && c === col))) || null;
+    || (s.surface && !s.underground && typeof surfaceStationTiles === 'function' && surfaceStationTiles(s).some(([r, c]) => r === row && c === col))
+    // (and a 地面站's tiles beside its track: its concourse, its far platform)
+    || (typeof METRO_GROUND_STATION_ART !== 'undefined' && typeof metroGroundStationSideTiles === 'function'
+      && metroGroundStationSideTiles(s).some(([r, c]) => r === row && c === col))) || null;
 }
 
 // A station's entrance stands here: no road, building or zone goes on it.

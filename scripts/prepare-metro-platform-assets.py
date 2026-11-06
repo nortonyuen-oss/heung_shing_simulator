@@ -12,8 +12,8 @@ drawn between them, each tile's art is three pictures:
 
 For X (the track running up-right on screen) and Y (down-right), a middle piece and an end piece
 each way (the platform stops 5 m short of the tile's end edge). 512 px a tile across, like the track
-tiles, on a canvas 512 x 352: the tile's diamond from y 96 (room above for the canopies), its centre
-at (256, 224).
+tiles, on a canvas 512 x 512: the tile's diamond from y 256 (room above for the canopies), its centre
+at (256, 384).
 
 Run with .venv/bin/python -B scripts/prepare-metro-platform-assets.py
 """
@@ -23,8 +23,8 @@ from PIL import Image, ImageDraw
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / 'Models/metroPlatform'
-W, H = 512, 352
-TOP = 96                    # the tile diamond's top corner, y
+W, H = 512, 512           # a power of two each way (Norton, 2026-11-06)
+TOP = 256                   # the tile diamond's top corner, y
 SS = 2                      # drawn at twice the size, then down
 PX_M = 12.8                 # screen px a metre along an axis, half across (512 / 2 / 20)
 Z_PX = 10.0                 # px a metre up

@@ -1,8 +1,9 @@
 """地鐵第三期: the surface track tiles (Models/metroTrack/), one per railway-track.js layout.
 
-Norton, 2026-11-04: his track sheet (scripts/source-art/subwayStation/original/tracks.png) gives the look - brown rails
-with bright heads on chunky grey concrete sleepers, spaced about a gauge apart - and the tiles are
-double track, a line to a tile, on a grey-brown ballast bed. They are drawn top-down in metres
+Norton, 2026-11-04: his track sheet (scripts/source-art/subwayStation/original/tracks.png) gave the first
+look; 2026-11-06 the track was made over as the 高架站 render's (brown rails with light heads, dark
+brown sleepers close set with light clips, light grey ballast). The tiles are double track, a line
+to a tile, on a ballast bed. They are drawn top-down in metres
 (a tile is 20 m) and warped to the game's 2:1, so the straight pieces, the diagonals and the
 crossings all come out alike:
 
@@ -44,25 +45,31 @@ SS = 2                 # the iso warp at twice the size, then down
 EDGE_OFFSET = 2.25
 TRACK_OFFSET = EDGE_OFFSET
 RAIL_HALF_GAUGE = 0.75
-RAIL_WIDTH = 0.24
-RAIL_HEAD = 0.09
-SLEEPER_HALF_LENGTH = 1.5
-SLEEPER_SHARE = 0.42   # of the spacing, across the track's run
-SLEEPER_SPACING = 1.43 # about Norton's: a gauge apart; adjusted per piece to a whole number
-BED_HALF = TRACK_OFFSET + SLEEPER_HALF_LENGTH + 0.7
+RAIL_WIDTH = 0.30
+RAIL_HEAD = 0.11
+SLEEPER_HALF_LENGTH = 1.3
+SLEEPER_SHARE = 0.48   # of the spacing, across the track's run
+SLEEPER_SPACING = 0.82 # as the 高架站 render's; adjusted per piece to a whole number
+BED_HALF = TRACK_OFFSET + 1.5 + 0.7   # (4.45 m, as before the sleepers were shortened: the decks keep their width)
 # Everything across a track is measured along the tile edges, so a diagonal, which meets the edges
 # at 45 degrees, is drawn narrower across by 1 / sqrt(2) - rails, sleepers, bed - and every rail
 # and the bed's edges cross each tile edge at the same points on a straight and on a diagonal:
 # the rails meet square at a turn (Norton, 2026-11-05: 鐵軌在轉角要規矩對齊), as in OpenTTD.
 DIAG_ACROSS = np.sqrt(2)
 
-# colours from Norton's sheet (rails: R - B > 18; sleepers: grey), toned to the game's muted ground
-RAIL_DARK = np.array([59, 44, 33], np.float32)
-RAIL_BODY = np.array([106, 91, 78], np.float32)
-RAIL_HEAD_RGB = np.array([196, 186, 172], np.float32)
-SLEEPER = np.array([112, 109, 105], np.float32)
-SLEEPER_EDGE = np.array([70, 67, 63], np.float32)
-BALLAST = np.array([104, 98, 90], np.float32)
+# the look of the track in Norton's 高架站 render (Norton, 2026-11-06: 統一路軌 - all the track as the
+# station's): brown rails with light heads on dark brown sleepers, close set, with light clips, on
+# light grey ballast (a little darker than the render's, to the game's muted ground)
+RAIL_DARK = np.array([48, 26, 14], np.float32)
+RAIL_BODY = np.array([118, 80, 58], np.float32)
+RAIL_HEAD_RGB = np.array([206, 190, 176], np.float32)
+SLEEPER = np.array([92, 56, 34], np.float32)
+SLEEPER_EDGE = np.array([46, 26, 14], np.float32)
+BALLAST = np.array([154, 147, 143], np.float32)
+BOLT_RGB = np.array([196, 192, 188], np.float32)   # the rail clips' colour (None: none drawn)
+BOLT_OFFSET = 0.22     # each clip from its rail's middle, across
+BOLT_HALF = 0.07
+BALLAST_SPECKLE = 0.13
 
 ANCHOR_M = {  # (col, row) in metres on the tile, edge middles - railway-track.js's A, B, C, D
     'A': (0.0, 10.0), 'B': (10.0, 0.0), 'C': (20.0, 10.0), 'D': (10.0, 20.0),
@@ -160,6 +167,12 @@ def draw_tile(tracks, rng, size_m=TILE_M, n=TD):
             shade = 1.0 + (rng.random(64)[index % 64] - 0.5) * 0.12
             edge = np.clip((np.abs(phase) / half_w - 0.65) / 0.35, 0, 1)
             colour = (SLEEPER * (1 - edge[..., None] * 0.7) + SLEEPER_EDGE * edge[..., None] * 0.7) * shade[..., None]
+            if BOLT_RGB is not None:
+                # the rail clips on each sleeper, a light dot either side of each rail
+                for rail_side in (-1, 1):
+                    for off in (-BOLT_OFFSET, BOLT_OFFSET):
+                        dot = aa(np.abs(t - rail_side * RAIL_HALF_GAUGE - off) - BOLT_HALF) * aa((np.abs(phase) * spacing) - BOLT_HALF)
+                        colour = np.where((dot * cover > 0.5)[..., None], BOLT_RGB, colour)
             sleeper_rgb = np.where((cover > sleeper_a)[..., None], colour, sleeper_rgb)
             sleeper_a = np.maximum(sleeper_a, cover)
             for side in (-1, 1):
@@ -175,7 +188,7 @@ def draw_tile(tracks, rng, size_m=TILE_M, n=TD):
     # ballast: grey-brown gravel, speckled
     noise = rng.normal(0, 1, (n, n)).astype(np.float32)
     coarse = np.asarray(Image.fromarray(rng.normal(0, 1, (n // 16, n // 16)).astype(np.float32)).resize((n, n), Image.BICUBIC))
-    gravel = BALLAST[None, None, :] * (1 + noise[..., None] * 0.07 + coarse[..., None] * 0.04)
+    gravel = BALLAST[None, None, :] * (1 + noise[..., None] * BALLAST_SPECKLE + coarse[..., None] * 0.04)
     return {'bed': bed, 'gravel': gravel, 'sleeper_a': sleeper_a, 'sleeper_rgb': sleeper_rgb, 'rail_a': rail_a, 'rail_rgb': rail_rgb}
 
 

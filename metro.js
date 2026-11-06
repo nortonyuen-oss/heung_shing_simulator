@@ -106,6 +106,8 @@ function normalizeMetroState(raw) {
       status: l.status === 'suspended' ? 'suspended' : 'active',
       // 第三期: runs on the surface track between surface stations (metro-surface-lines.js)
       ...(l.surface === true ? { surface: true } : {}),
+      // its trains' livery (Norton, 2026-11-06): 'm' the urban lines' M-Train, 'k' the 東鐵 黃頭
+      livery: l.livery === 'k' ? 'k' : 'm',
       monthToDatePassengers: Math.max(0, Math.floor(num(l.monthToDatePassengers))),
       monthToDateRevenue: Math.max(0, num(l.monthToDateRevenue)),
       // of the riders boarding, those changing from another line at a 轉車站

@@ -25,7 +25,10 @@ const LANDMARK_FOLDERS = new Set(
 // more than 256px. Matched by folder prefix under Models/.
 const SMALL_PROP_MAX_DIMENSION = 256;
 const SMALL_PROP_PREFIXES = ['trafficLight/', 'traffic/lightPost/', 'roadAssessories/'];
-const FIXED_GROUND_TILE_PREFIXES = ['metroTrack/'];
+// Drawn in code at their exact canvas (power-of-two already, Norton 2026-11-06), placed by fixed
+// anchors: kept as they are - not trimmed, not shrunk to fit - and up to 1024 px (the 高架站's strips,
+// the tallest piers), so the staged copy is the source.
+const FIXED_GROUND_TILE_PREFIXES = ['metroTrack/', 'metroViaduct/', 'metroPlatform/'];
 
 // Zone folders whose one model is shown landmark-sized (中銀, the tallest tower: some 500 px wide at zoom 1 on 5x5).
 const LANDMARK_PREFIXES = ['commercial/9x9/'];
@@ -34,6 +37,7 @@ function maxDimensionFor(relativeFromModels) {
   const top = relativeFromModels.split('/')[0];
   if (SMALL_PROP_PREFIXES.some((prefix) => relativeFromModels.startsWith(prefix))) return SMALL_PROP_MAX_DIMENSION;
   if (LANDMARK_PREFIXES.some((prefix) => relativeFromModels.startsWith(prefix))) return LANDMARK_MAX_DIMENSION;
+  if (FIXED_GROUND_TILE_PREFIXES.some((prefix) => relativeFromModels.startsWith(prefix))) return LANDMARK_MAX_DIMENSION;
   return LANDMARK_FOLDERS.has(top) ? LANDMARK_MAX_DIMENSION : MAX_DIMENSION;
 }
 // Bump whenever pixel processing changes so cached WebP files cannot retain an

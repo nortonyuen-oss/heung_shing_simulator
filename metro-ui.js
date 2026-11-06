@@ -88,6 +88,7 @@ function renderMetroLineCard(line, state) {
         <button class="transport-btn" type="button" data-transport-action="metro-sell-one" data-line-id="${id}"${s.trains.length ? '' : ' disabled'}>${metroUiEscape(metroT('metro.ui.sellOne', '減列車'))}</button>
         <button class="transport-btn" type="button" data-transport-action="metro-extend" data-line-id="${id}">${metroUiEscape(metroT('metro.ui.extend', '延長'))}</button>
         <button class="transport-btn" type="button" data-transport-action="metro-rename" data-line-id="${id}">${metroUiEscape(metroT('metro.ui.rename', '改名'))}</button>
+        ${line.surface ? `<button class="transport-btn" type="button" data-transport-action="metro-livery" data-line-id="${id}" title="${metroUiEscape(metroT('metro.ui.liveryHint', '撳一下轉車款'))}">${metroUiEscape(metroT(`metro.livery.${line.livery === 'k' ? 'k' : 'm'}`, line.livery === 'k' ? 'K-Train（黃頭）' : 'M-Train'))}</button>` : ''}
         <button class="transport-btn" type="button" data-transport-action="metro-toggle" data-line-id="${id}">${metroUiEscape(typeof t === 'function' ? t(suspended ? 'transport.resume' : 'transport.suspend') : (suspended ? 'Resume' : 'Suspend'))}</button>
         <button class="transport-btn danger" type="button" data-transport-action="metro-delete" data-line-id="${id}">${metroUiEscape(typeof t === 'function' ? t('transport.delete') : 'Delete')}</button>
       </div>
@@ -181,6 +182,9 @@ function handleMetroUiAction(action, button) {
       }).catch((error) => console.warn('[metro line rename]', error));
     }
     return true;
+  } else if (action === 'metro-livery' && line) {
+    line.livery = line.livery === 'k' ? 'm' : 'k';
+    if (typeof queueCityChangeAutosave === 'function') queueCityChangeAutosave();
   } else if (action === 'metro-toggle' && line) {
     setMetroLineSuspended(line.id, line.status !== 'suspended');
   } else if (action === 'metro-delete' && line) {

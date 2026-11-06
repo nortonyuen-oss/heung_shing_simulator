@@ -252,7 +252,9 @@ function surfaceTrainCars(geom, x, dir, picks = null) {
     const xi = x + dir * ((n - 1) / 2 - i) * spacing;
     const a = at(xi + dir * METRO_SURFACE.carTiles / 2);
     const b = at(xi - dir * METRO_SURFACE.carTiles / 2);
-    out.push({ pos: at(xi), z: zAt(xi), heading: [a[0] - b[0], a[1] - b[1]], role: i === 0 ? 'lead' : i === n - 1 ? 'trail' : 'mid' });
+    // (climb: metres from its back end up to its front, on a ramp or a hillside)
+    const climb = zAt(xi + dir * METRO_SURFACE.carTiles / 2) - zAt(xi - dir * METRO_SURFACE.carTiles / 2);
+    out.push({ pos: at(xi), z: zAt(xi), climb, heading: [a[0] - b[0], a[1] - b[1]], role: i === 0 ? 'lead' : i === n - 1 ? 'trail' : 'mid' });
   }
   return out;
 }
@@ -489,7 +491,7 @@ const METRO_PLATFORM_TEXTURES = (() => {
   }
   return out;
 })();
-const METRO_PLATFORM_ART = Object.freeze({ width: 512, height: 352, centre: [256, 224] });
+const METRO_PLATFORM_ART = Object.freeze({ width: 512, height: 512, centre: [256, 384] });
 
 function loadMetroSurfaceTextures(scene) {
   const wanted = [
@@ -540,7 +542,7 @@ function syncMetroPlatforms(scene) {
       metroElevatedStationStrips(station).forEach(({ row, col, piece }, k) => {
         const face = getTileFaceGeometry(row, col, scene.offsetX, scene.offsetY);
         const isoY = isoToScreen(col + 0.5, row + 0.5).y;
-        [['base', getBuildingSortDepth(isoToScreen(col, row).y, 1, 1, 0)], ['island', metroIslandStripDepth(isoY)]].forEach(([layer, depth]) => {
+        [['base', getBuildingSortDepth(metroTileTopY(row, col), 1, 1, 0)], ['island', metroIslandStripDepth(isoY)]].forEach(([layer, depth]) => {
           const id = `${station.id}|${k}|${layer}`;
           const texture = piece[layer].key;
           if (!scene.textures.exists(texture)) return;
@@ -552,8 +554,14 @@ function syncMetroPlatforms(scene) {
             if (scene.worldMask) sprite.setMask(scene.worldMask);
             scene.metroPlatformSprites.set(id, sprite);
           } else if (sprite.texture.key !== texture) sprite.setTexture(texture);
-          sprite.setOrigin(piece.anchor[0] / piece.size[0], piece.anchor[1] / piece.size[1]);
-          sprite.setScale(TILE_WIDTH / 512);
+          // (its anchor in the texture as loaded: the source's, or the staged copy's - trimmed, resized,
+          // padded - through the manifest, as the trains' and the buildings')
+          const src = scene.textures.get(texture).getSourceImage();
+          const anchor = typeof getPropTextureAnchor === 'function'
+            ? getPropTextureAnchor(piece[layer].path, piece.anchor[0], piece.anchor[1], src)
+            : { originX: piece.anchor[0] / piece.size[0], originY: piece.anchor[1] / piece.size[1], scaleMultiplier: 1 };
+          sprite.setOrigin(anchor.originX, anchor.originY);
+          sprite.setScale((TILE_WIDTH / 512) / (piece.scale || 1) * anchor.scaleMultiplier);
           sprite.setPosition(face.center.x, face.center.y);
           sprite.setDepth(depth);
           if (typeof applyNightPropTint === 'function') applyNightPropTint(scene, sprite);
@@ -692,9 +700,11 @@ function metroIslandStripZones(scene, state) {
       st,
       ns: st.axis === 'ns',
       half,
-      strips: strips.map((t, k) => {
+      // (the five tiles' strips only: past them - the spread tiles, the viaduct on - a car is sorted
+      // as on any viaduct, not against the island, or the decks in front of the station hide it)
+      strips: strips.map((t) => {
         const cx = getTileFaceGeometry(t.row, t.col, scene.offsetX, scene.offsetY).center.x;
-        return { x0: k === 0 ? -Infinity : cx - quarter, x1: k === strips.length - 1 ? Infinity : cx + quarter, isoY: t.isoY };
+        return { x0: cx - quarter, x1: cx + quarter, isoY: t.isoY };
       }),
     };
   }).filter(Boolean);
@@ -716,16 +726,57 @@ function metroIslandCarPieces(islands, car, sprite) {
   const width = sprite.frame.realWidth;
   const carY = isoToScreen(col, row).y;
   const out = [];
-  zone.strips.forEach((strip) => {
+  const first = zone.strips[0], last = zone.strips[zone.strips.length - 1];
+  [{ x0: -Infinity, x1: first.x0, outside: true }, ...zone.strips, { x0: last.x1, x1: Infinity, outside: true }].forEach((strip) => {
     const x0 = Math.max(0, (strip.x0 - left) / sprite.scaleX);
     const x1 = Math.min(width, (strip.x1 - left) / sprite.scaleX);
     if (x1 - x0 < 0.5) return;
+    if (strip.outside) {
+      out.push({ x0, x1, depth: sprite.depth });
+      return;
+    }
     // (cars sharing a strip: the nearer after, as anywhere - kept within the band that side of the
     // island, 0.3 to 0.7 off it)
     const order = Math.max(-1, Math.min(1, (carY - strip.isoY) / TILE_HEIGHT)) * 0.2;
     out.push({ x0, x1, depth: getWorldDepth('object', strip.isoY + TILE_HEIGHT * 1.1 + (far ? -0.5 : 0.5) + order) });
   });
   return out.length ? out : null;
+}
+
+// A car in upright slices, each sorted by where the car's middle line is at that slice (painter's
+// order for a long thing: one middle for the whole car puts a car on the far track in front of the
+// near track's when its middle is further along the line). Null where the car runs up the screen.
+const METRO_CAR_SLICE_PX = 12;     // world px a slice
+function metroSlicedCarPieces(car, sprite, bias) {
+  const [col, row] = car.pos;
+  const p0 = isoToScreen(col, row);
+  const p1 = isoToScreen(col + car.heading[0], row + car.heading[1]);
+  const dx = p1.x - p0.x, dy = p1.y - p0.y;
+  if (Math.abs(dx) < 0.2 * Math.abs(dy) || Math.abs(dx) < 1e-6) return null;
+  const slope = dy / dx;
+  const left = sprite.x - sprite.displayOriginX * sprite.scaleX;
+  const width = sprite.frame.realWidth;
+  const step = METRO_CAR_SLICE_PX / sprite.scaleX;
+  const out = [];
+  for (let x0 = 0; x0 < width - 0.5; x0 += step) {
+    const x1 = Math.min(width, x0 + step);
+    const cx = left + ((x0 + x1) / 2) * sprite.scaleX;
+    out.push({ x0, x1, depth: getWorldDepth('object', p0.y + slope * (cx - sprite.x) + bias) });
+  }
+  return out;
+}
+
+// A car on a slope: its diagonal view sheared to the grade (metro-train-art.js: _up / _dn, its right
+// end up or down as drawn; 1 a ramp's grade, 2 a hillside's), else the view as it is.
+function metroSlopedCarView(car, view) {
+  const axis = view.split('_')[0];
+  if ((axis !== 'fall' && axis !== 'rise') || !car.climb) return view;
+  const grade = Math.abs(car.climb) / (METRO_SURFACE.carTiles * 20);
+  if (grade < 0.04) return view;
+  const [col, row] = car.pos;
+  const frontRight = isoToScreen(col + car.heading[0], row + car.heading[1]).x > isoToScreen(col, row).x;
+  const rightUp = (car.climb > 0) === frontRight;
+  return `${view}_${rightUp ? 'up' : 'dn'}${grade < 0.27 ? 1 : 2}`;
 }
 
 // The portals, once a frame: each its four tiles (the portal first, then the trough up to the
@@ -742,7 +793,8 @@ function metroPortalPlanes(state) {
     const inward = down === 'n' || down === 'w' ? -1 : 1;
     // (the trough runs back the other way)
     const tiles = Array.from({ length: P }, (_, k) => (ns ? [row - inward * k, col] : [row, col - inward * k]));
-    out.push({ ns, inward, row, col, tiles, at: ns ? (inward < 0 ? row + 1 : row) : (inward < 0 ? col + 1 : col) });
+    // (the headwall at the portal tile's far edge, the way the trough goes down)
+    out.push({ ns, inward, row, col, tiles, at: ns ? (inward < 0 ? row : row + 1) : (inward < 0 ? col : col + 1) });
   });
   return out;
 }
@@ -768,7 +820,7 @@ function metroPortalCarPieces(scene, portals, state, car, sprite) {
   const inside = portal.ns ? metroSurfaceScreenAt(scene, col, portal.at + portal.inward) : metroSurfaceScreenAt(scene, portal.at + portal.inward, row);
   const [o0, o1] = inside.x < cut.x ? [tex(cut.x), width] : [0, tex(cut.x)];
   // the trough's tiles, left to right as drawn (the portal's own is all tunnel)
-  const strips = portal.tiles.slice(1).map(([r, c]) => ({
+  const strips = portal.tiles.map(([r, c]) => ({
     cx: getTileFaceGeometry(r, c, scene.offsetX, scene.offsetY).center.x, isoY: isoToScreen(c + 0.5, r + 0.5).y,
   })).sort((a, b) => a.cx - b.cx);
   const quarter = TILE_WIDTH / 4;
@@ -982,7 +1034,7 @@ function updateMetroSurfaceTrains(scene) {
     const portals = metroPortalPlanes(state);
     const hillPlanes = metroHillPlanes(state);
     const underView = typeof isMetroUndergroundView === 'function' && isMetroUndergroundView();
-    trains.forEach(({ v, geom, x, dir, picks }) => {
+    trains.forEach(({ v, line, geom, x, dir, picks }) => {
       let sprites = scene.metroTrainSprites.get(v.id);
       if (!sprites) {
         sprites = Array.from({ length: METRO_SURFACE.cars }, () => {
@@ -996,7 +1048,10 @@ function updateMetroSurfaceTrains(scene) {
       }
       seen.add(v.id);
       surfaceTrainCars(geom, x, dir, picks).forEach((car, i) => {
-        const art = METRO_TRAIN_ART[surfaceCarView(car.heading[0], car.heading[1], car.role, turn)];
+        // (the line's livery: K-Train pictures k_<view>, the M-Train's as they are)
+        const view = surfaceCarView(car.heading[0], car.heading[1], car.role, turn);
+        const pre = line.livery === 'k' ? 'k_' : '';
+        const art = METRO_TRAIN_ART[pre + metroSlopedCarView(car, view)] || METRO_TRAIN_ART[pre + view] || METRO_TRAIN_ART[view];
         const sprite = sprites[i];
         if (sprite.texture.key !== art.key) sprite.setTexture(art.key);
         const src = scene.textures.get(art.key).getSourceImage();
@@ -1045,6 +1100,9 @@ function updateMetroSurfaceTrains(scene) {
             return;
           } else {
             pieces = hill ? [].concat(hill).map((piece) => ({ ...piece, depth: sprite.depth })) : metroIslandCarPieces(islands, car, sprite);
+            // (anywhere else, in upright slices each sorted where it is - a car on the near track in
+            // front of one beside it on the far, wherever along the line their middles are)
+            if (!pieces) pieces = metroSlicedCarPieces(car, sprite, car.z > 0.05 ? TILE_HEIGHT * 1.1 : 0);
           }
         }
         const extra = sprite.__pieces || (sprite.__pieces = []);

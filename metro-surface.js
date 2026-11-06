@@ -20,12 +20,14 @@ const METRO_RAIL = Object.freeze({
   rampTiles: 5,
   // a tunnel through a hill at the deck's height, from a viaduct (or a hilltop's track)
   hillTunnelCostPerTile: 1200,
-  // 地底路軌 (phase 4 step 3): a tunnel tile, under the sea, and a tunnel portal's tile - three of
-  // trough going down, then the portal itself
+  // 地底路軌 (phase 4 step 3): a tunnel tile, under the sea, and a tunnel portal's tile - four of
+  // trough going down, the portal at the last one's far end
   tunnelCostPerTile: 800,
   seaTunnelCostPerTile: 1600,
   portalCostPerTile: 1500,
-  tunnelMetres: 10,
+  // (14 m, not a real 10: the trains are drawn some 2.4 times their height, as the buses are, so the
+  // portal opens 10 m to take them - Norton, 2026-11-06: portal 應該要深好多)
+  tunnelMetres: 14,
   portalTiles: 4,
 });
 
@@ -887,14 +889,12 @@ function syncMetroTracks(scene) {
       const flat = metroFlatTileCentre(scene, row, col);
       sprite.setPosition(flat.x, flat.y - (deck - 3) * metroLevelPx());
       viaductOrigin();
-      const pos = isoToScreen(col, row);
-      sprite.setDepth(getBuildingSortDepth(pos.y, 1, 1, 0));
+      sprite.setDepth(getBuildingSortDepth(metroTileTopY(row, col), 1, 1, 0));
       if (!island.get(key)) syncMetroPiers(scene, key, row, col, mask, deck, sprite.depth - 0.001, piers);
     } else if (code) {
       // a ramp, from its tile's ground (a hilltop's)
       viaductOrigin();
-      const pos = isoToScreen(col, row);
-      sprite.setDepth(getBuildingSortDepth(pos.y, 1, 1, 0));
+      sprite.setDepth(getBuildingSortDepth(metroTileTopY(row, col), 1, 1, 0));
     } else {
       sprite.setOrigin(0.5, 0.5);
       sprite.setDepth(getWorldDepth('road', face.center.y + 1));
@@ -943,6 +943,13 @@ function syncMetroHillMouthFront(scene, key, row, col, texture) {
   sprite.setPosition(face.center.x, face.center.y);
   sprite.setDepth(getWorldDepth('object', isoToScreen(col + 0.5, row + 0.5).y + TILE_HEIGHT * 0.6));
   if (typeof applyNightPropTint === 'function') applyNightPropTint(scene, sprite);
+}
+
+// A tile's top corner as drawn, y (in the buildings' frame): its middle up half a tile. (Not
+// isoToScreen(col, row): that is its north corner, the top only when the map is not turned - turned
+// round, the bottom, and a viaduct or ramp sorted a tile too far forward, over the trains behind it.)
+function metroTileTopY(row, col) {
+  return isoToScreen(col + 0.5, row + 0.5).y - TILE_HEIGHT / 2;
 }
 
 // A terrain level on screen, px (HEIGHT_STEP_PIXELS at TILE_WIDTH 100).
@@ -1075,8 +1082,8 @@ function syncMetroUnderground(scene) {
 
 // The viaduct's pictures (scripts/prepare-metro-viaduct-assets.py): a deck for each layout a tile may
 // hold, and the ramps, X and Y, rising either way, three steps.
-const METRO_VIADUCT_ART = Object.freeze({ width: 512, height: 544, centre: [256, 416] });
-const METRO_PORTAL_ART = Object.freeze({ width: 512, height: 640, centre: [256, 416] });
+const METRO_VIADUCT_ART = Object.freeze({ width: 512, height: 512, centre: [256, 384] });
+const METRO_PORTAL_ART = Object.freeze({ width: 512, height: 512, centre: [256, 352] });
 const METRO_VIADUCT_TEXTURES = (() => {
   const out = [];
   ['x', 'y', 'upper', 'lower', 'left', 'right', 'cross_xy', 'parallel_horizontal', 'parallel_vertical'].forEach((n) => {
@@ -1103,7 +1110,7 @@ const METRO_VIADUCT_TEXTURES = (() => {
   // portal) and a front drawn after the trains
   [['x', ['n', 's']], ['y', ['w', 'e']]].forEach(([axis, downs]) => downs.forEach((down) => [1, 2, 3, 4].forEach((step) => {
     const name = `metro_portal_${axis}_${down}${step}`;
-    if (step < 4) out.push({ key: name, path: `Models/metroViaduct/${name}.png` });
+    out.push({ key: name, path: `Models/metroViaduct/${name}.png` });
     out.push({ key: `${name}_front`, path: `Models/metroViaduct/${name}_front.png` });
   })));
   return out;
@@ -1131,7 +1138,7 @@ function metroViaductTextureKey(mask, code) {
   if (code[0] === 'p') {
     const down = rotateDirection(code[2], turn);
     const name = `metro_portal_${down === 'n' || down === 's' ? 'x' : 'y'}_${down}${code[1]}`;
-    return code[1] === String(METRO_RAIL.portalTiles) ? `${name}_front` : name;
+    return name;
   }
   if (code === 'd') {
     const layout = typeof getRailwayTrackLayout === 'function' ? getRailwayTrackLayout(railVisualMask(mask, turn)) : null;

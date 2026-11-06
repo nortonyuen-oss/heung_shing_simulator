@@ -139,6 +139,10 @@ def coords(shape):
     return xx, yy, yy + 0.5 * xx, yy - 0.5 * xx
 
 
+FAR_RAIL_C = (-14.0, -8.6)        # the far railing, across (its foot at -9.6, its top drawn up to -13.4)
+FAR_RAIL_BEFORE_L = -27.5         # ... from the station's end to where the roof's end meets it
+
+
 def island_mask(a):
     """The island - the platform, all on it, the roof - as against the far track behind it."""
     xx, yy, v, u = coords(a.shape)
@@ -158,7 +162,12 @@ def island_mask(a):
     # (specks off: a thing is more than a few px)
     t = Image.fromarray((thing * 255).astype(np.uint8)).filter(ImageFilter.MinFilter(3)).filter(ImageFilter.MaxFilter(3))
     thing = np.asarray(t) > 0
-    return cand & (A > 0) & (~gap | thing)
+    # the far parapet's railing past the roof's end (it is behind the far track: under the roof the
+    # roof hides it) - not the island's, or it is drawn over the far track's trains (Norton,
+    # 2026-11-06: 欄杆和列車穿模); the platform's blue columns standing in front of it kept
+    Ct = (v - V0) / PX_M
+    far_rail = (Ct > FAR_RAIL_C[0]) & (Ct < FAR_RAIL_C[1]) & (Lt < FAR_RAIL_BEFORE_L) & ~blue
+    return cand & (A > 0) & (~gap | thing) & ~far_rail
 
 
 END_SHIFT_M = 5.0                 # the render's deck ends at L -55: its end (face and pier) moved in to -50
@@ -221,13 +230,21 @@ def ends(a, keep):
     noise = Image.fromarray((rng.random((a.shape[0] // 4 + 1, a.shape[1] // 4 + 1)) * 255).astype(np.uint8))
     noise = np.asarray(noise.resize((a.shape[1], a.shape[0]), Image.BICUBIC).filter(ImageFilter.GaussianBlur(1.5)), np.float32) / 255 - 0.5
     concrete = np.zeros_like(a)
-    concrete[..., :3] = np.clip(viaduct.CONCRETE_TOP[None, None, :] * (1 + 0.12 * noise[..., None]), 0, 255).astype(np.uint8)
+    concrete[..., :3] = np.clip(viaduct.STATION_TOP[None, None, :] * (1 + 0.10 * noise[..., None]), 0, 255).astype(np.uint8)
     concrete[..., 3] = 255
+    # between the tracks, ballast as on the spread tiles (Norton, 2026-11-06: no plain grey slab):
+    # the track's gravel colour, speckled pixel by pixel
+    grain = rng.random(a.shape[:2]).astype(np.float32) - 0.5
+    ballast = np.zeros_like(a)
+    ballast[..., :3] = np.clip(track.BALLAST[None, None, :] * (1 + 0.16 * grain[..., None] + 0.08 * noise[..., None]), 0, 255).astype(np.uint8)
+    ballast[..., 3] = 255
     for side in (-1, 1):
         zone = (side * Lt > PLATFORM_HALF_L + 0.2) & (side * Lt <= STATION_HALF_L)
         # (the plain deck: between the tracks and outside the far one, the far parapet standing above)
-        plain = zone & (((Ct > -FAR_LANE[1] - 0.01) & (Ct < LANE[0])) | ((Ct > -DECK_HALF_M + 0.4) & (Ct <= -FAR_LANE[0])))
-        out[plain] = concrete[plain]
+        between = zone & (Ct > -FAR_LANE[1] - 0.01) & (Ct < LANE[0])
+        outside = zone & (Ct > -DECK_HALF_M + 0.4) & (Ct <= -FAR_LANE[0])
+        out[between] = (GAME_GRAVEL if GAME_GRAVEL is not None else ballast)[between]
+        out[outside] = concrete[outside]
         dl = side * LANE_FROM_L      # the source is further in: dest + (-dl along L)
         for dc, lo, hi in ((0.0, LANE[0], LANE[1]), (2 * TRACK_M, -FAR_LANE[0], -FAR_LANE[1])):
             # source at (L - dl, C + dc): screen offset from dest
@@ -239,7 +256,136 @@ def ends(a, keep):
     return out
 
 
+# The render's own tracks replaced by the game's (Norton, 2026-11-06: 置換原貼圖內的路軌 - the
+# station's track as the line's, prepare-railway-track-assets.py): a track tile each 20 m of the
+# five, the two tracks 7.03 m either side of the middle, warped onto the deck as the render lies (L
+# up-right, C down-right, 12.8 px a metre); over the render's track lanes only, not the island.
+REPLACE_NEAR = (5.45, 8.95)       # the near track's lane, across (the parapet's railing from 9.1)
+REPLACE_FAR = (-9.0, -5.55)
+
+
+def game_tracks(shape, rng):
+    k = 2                                         # drawn at twice the size, then down
+    H2, W2 = shape[0] * k, shape[1] * k
+    n = track.TD
+    s = track.TILE_M / n
+    out = {name: Image.new('RGBA', (W2, H2), (0, 0, 0, 0)) for name in ('bed', 'sl', 'rl', 'gravel')}
+    pair = ('PAIR', ((10.0 - TRACK_M, 0.0), (10.0 - TRACK_M, 20.0)), ((10.0 + TRACK_M, 0.0), (10.0 + TRACK_M, 20.0)))
+    for j in range(-2, 3):
+        layers = track.draw_tile([pair], rng)
+        Lc = 20.0 * j
+        for name, rgb, alpha, z in (('gravel', layers['gravel'], np.ones_like(layers['bed']), 0.0),
+                                    ('bed', layers['gravel'], layers['bed'], 0.0),
+                                    ('sl', layers['sleeper_rgb'], layers['sleeper_a'], 0.0),
+                                    ('rl', layers['rail_rgb'], layers['rail_a'], 0.15)):
+            # top-down px (i col, j row) -> S: C = col - 10, L = Lc - (row - 10)
+            M = np.array([[PX_M * s, -PX_M * s, X0 + PX_M * Lc],
+                          [PX_M / 2 * s, PX_M / 2 * s, Y0 - viaduct.Z_PX * z - PX_M / 2 * (20.0 + Lc)],
+                          [0, 0, 1]]) * np.array([[k], [k], [1]])
+            inv = np.linalg.inv(M)
+            img = Image.fromarray(np.clip(np.concatenate([rgb, alpha[..., None] * 255], axis=2), 0, 255).astype(np.uint8), 'RGBA')
+            out[name].alpha_composite(img.transform((W2, H2), Image.AFFINE, tuple(inv[0]) + tuple(inv[1]), resample=Image.BICUBIC))
+
+    def shadow(img, dy, strength):
+        a = np.asarray(img)[..., 3].astype(np.float32) / 255 * strength
+        sh = np.zeros(a.shape + (4,), np.float32)
+        sh[..., :3] = 25
+        sh[..., 3] = np.roll(a, dy, axis=0) * 255
+        return Image.fromarray(sh.astype(np.uint8), 'RGBA')
+    canvas = out['bed'].copy()
+    canvas.alpha_composite(shadow(out['sl'], k, 0.35))
+    canvas.alpha_composite(out['sl'])
+    canvas.alpha_composite(shadow(out['rl'], 2 * k, 0.5))
+    canvas.alpha_composite(out['rl'], (0, -k))
+    global GAME_GRAVEL
+    # (the bed's gravel all across the deck, for the plain deck past the platforms' ends: ends())
+    GAME_GRAVEL = np.asarray(out['gravel'].resize((shape[1], shape[0]), Image.LANCZOS))
+    return np.asarray(canvas.resize((shape[1], shape[0]), Image.LANCZOS))
+
+
+GAME_GRAVEL = None
+
+
+# The piers' feet (Norton, 2026-11-06: 橋腳被平切了, 不像真): the render's left end pier runs off its
+# bottom edge, and the two at the right end stand cut flat on a scrap of the render's paving (the one
+# rebuilt where the footbridge was, its shaft one row drawn on down). The canvas is made taller, and
+# each of those three gets the middle pier's plinth (its V of a foot), scaled to its shaft; the
+# rebuilt shaft gets the real one's texture from above it.
+PIER_PAD = 64                     # px more canvas under the render
+GOOD_PIER = (330, 1210)           # (x, y) on the middle pier's shaft, a little above its plinth
+CUT_PIERS = [(140, 1240), (1322, 780), (1440, 725)]
+STREAKED_SHAFT = (1299, 1347, 722, 808)    # x0, x1, from y, to its plinth
+
+
+def fix_piers(a):
+    a = np.concatenate([a, np.zeros((PIER_PAD,) + a.shape[1:], a.dtype)], 0)
+    x0, x1, y0, y1 = STREAKED_SHAFT
+    a[y0:y1, x0:x1 + 1] = a[2 * y0 - y1:y0, x0:x1 + 1]
+    al = a[..., 3] > 40
+
+    def run_at(y, x):
+        if not al[y, x]:
+            return None
+        lo = hi = x
+        while lo > 0 and al[y, lo - 1]:
+            lo -= 1
+        while hi + 1 < a.shape[1] and al[y, hi + 1]:
+            hi += 1
+        return lo, hi
+
+    def shaft(x, y):
+        """the shaft's edges at (x, y), and its plinth's top (where it widens)"""
+        s0, s1 = run_at(y, x)
+        while True:
+            r = run_at(y, (s0 + s1) // 2)
+            if r is None or r[1] - r[0] > s1 - s0 + 6:
+                return s0, s1, y
+            y += 1
+
+    m0, m1, mtop = shaft(*GOOD_PIER)
+    g0, g1 = run_at(mtop + 2, (m0 + m1) // 2)
+    gy = mtop
+    while gy + 1 < a.shape[0] and al[gy + 1, g0:g1 + 1].any():
+        gy += 1
+    good = Image.fromarray(a[mtop:gy + 1, g0:g1 + 1].copy())
+    out = a.copy()
+    for x, y in CUT_PIERS:
+        s0, s1, top = shaft(x, y)
+        k = (s1 - s0) / (m1 - m0)
+        w, h = round(good.width * k), round(good.height * k)
+        xl = int(round((s0 + s1) / 2 - ((m0 + m1) / 2 - g0) * k))
+        out[top:top + h + 40, xl - 12:xl + w + 12] = 0          # the old foot and the paving under it
+        g = np.asarray(good.resize((w, h), Image.LANCZOS)).astype(np.float32)
+        on = g[..., 3:4] / 255.0
+        region = out[top:top + h, xl:xl + w].astype(np.float32)
+        mixed = g * on + region * (1 - on)
+        mixed[..., 3] = np.maximum(region[..., 3], g[..., 3])
+        out[top:top + h, xl:xl + w] = mixed.astype(np.uint8)
+    return out
+
+
+def replace_tracks(a, isl, rng):
+    g = game_tracks(a.shape, rng)
+    xx, yy, v, u = coords(a.shape)
+    Lt = (U0 - u) / PX_M
+    Ct = (v - V0) / PX_M
+    lane = (((Ct >= REPLACE_NEAR[0]) & (Ct <= REPLACE_NEAR[1])) | ((Ct >= REPLACE_FAR[0]) & (Ct <= REPLACE_FAR[1])))
+    lane &= (np.abs(Lt) <= STATION_HALF_L) & ~isl & (a[..., 3] > 0) & (g[..., 3] > 0)
+    out = a.copy()
+    out[lane] = over(a, g)[lane]
+    return out
+
+
 S_SIZE = None
+
+
+POW2_H = 1024
+GUTTER = 8      # transparent px kept off every edge of a strip's canvas
+BLEED = 2       # px a strip reaches into its neighbour
+
+
+def pow2(v):
+    return 1 << max(0, int(v - 1).bit_length())
 
 
 def strips(base, island, flip):
@@ -266,30 +412,52 @@ def strips(base, island, flip):
 def main():
     global S_SIZE
     s = render_s()
-    S_SIZE = s.size
-    a = np.asarray(s).copy()
+    a = fix_piers(np.asarray(s).copy())
+    S_SIZE = (a.shape[1], a.shape[0])
     isl = island_mask(a)
+    a = replace_tracks(a, isl, np.random.default_rng(20261106))
     island = a.copy()
     island[~isl] = 0
     base = ends(a, isl)
     art = {}
+    cut = {axis: strips(base[:, ::-1] if flip else base, island[:, ::-1] if flip else island, flip)
+           for axis, flip in (('x', False), ('y', True))}
+    # power-of-two canvases (Norton, 2026-11-06), for mipmaps and the release pipeline: every strip
+    # scaled alike so the tallest fits, then padded up to a power of two each way. Phaser wraps a
+    # power-of-two texture (REPEAT), so the content keeps GUTTER transparent px off every edge (else
+    # an edge's pixels show at the opposite one: thin lines down the strips' sides); and each strip
+    # reaches BLEED px into its neighbours, so no strip's edge fades out against its padding (a seam
+    # at the joins). `scale`: the strips' px per 512-px tile px.
+    tallest = max(y1 - y0 for boxes in cut.values() for (_, y0, _, y1), _ in boxes)
+    scale = min(1.0, (POW2_H - 2 * GUTTER) / tallest)
     for axis, flip in (('x', False), ('y', True)):
         b = base[:, ::-1] if flip else base
         i = island[:, ::-1] if flip else island
         pieces = []
-        for k, (box, anchor) in enumerate(strips(b, i, flip)):
+        for k, (box, anchor) in enumerate(cut[axis]):
             x0, y0, x1, y1 = box
-            entry = {'anchor': list(anchor), 'size': [int(x1 - x0), int(y1 - y0)]}
+            left = BLEED if k > 0 else 0
+            x0, x1 = x0 - left, min(b.shape[1], x1 + (BLEED if k < 4 else 0))
+            w, h = max(1, round((x1 - x0) * scale)), max(1, round((y1 - y0) * scale))
+            cw, ch = pow2(w + 2 * GUTTER), pow2(h + 2 * GUTTER)
+            px, py = (cw - w) // 2, ch - h - GUTTER
+            # (the exact resample factor each way, so the anchor lands where the content went)
+            sx, sy = w / (x1 - x0), h / (y1 - y0)
+            entry = {'anchor': [round((anchor[0] + left) * sx + px, 1), round(anchor[1] * sy + py, 1)], 'size': [cw, ch], 'scale': round(scale, 6)}
             for layer, img in (('base', b), ('island', i)):
                 name = f'metro_elevated_station_{axis}_{k}_{layer}'
-                Image.fromarray(np.ascontiguousarray(img[y0:y1, x0:x1])).save(OUT / f'{name}.png')
+                piece = Image.fromarray(np.ascontiguousarray(img[y0:y1, x0:x1])).resize((w, h), Image.LANCZOS)
+                canvas = Image.new('RGBA', (cw, ch), (0, 0, 0, 0))
+                canvas.paste(piece, (px, py))
+                canvas.save(OUT / f'{name}.png')
                 entry[layer] = {'key': name, 'path': f'Models/metroViaduct/{name}.png'}
             pieces.append(entry)
         art[axis] = pieces
     js = ('// Generated by scripts/prepare-metro-elevated-station-assets.py - the 高架站 from Norton\'s render, in\n'
           '// five upright strips left to right as drawn (x: the long way up-right; y: its mirror), each a\n'
           '// deck layer (the tracks, all under the deck) and an island layer (the platform, the roof) the\n'
-          '// far track\'s trains go between; anchor: the tile\'s middle on the ground (a 512-px tile\'s scale).\n'
+          '// far track\'s trains go between; anchor: the tile\'s middle on the ground; each a power of two\n'
+          '// each way, drawn at `scale` of a 512-px tile.\n'
           f'const METRO_ELEVATED_STATION_ART = Object.freeze({json.dumps(art, indent=2, ensure_ascii=False)});\n'
           "if (typeof module !== 'undefined') module.exports = { METRO_ELEVATED_STATION_ART };\n")
     (ROOT / 'metro-station-art.js').write_text(js)

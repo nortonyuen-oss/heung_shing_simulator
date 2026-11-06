@@ -14,6 +14,14 @@ and end-on views stand a little taller than the diagonal ones; squashing them to
 (Norton, 2026-11-05), so they keep their height. The narrower of the two end-on renders is widened
 to the other's width so their halves splice; nothing is made smaller.
 
+Five doors a side (Norton, 2026-11-06): the renders' cars have three, a car 22.5 m long but some 9 m
+tall. Each side and falling view is relaid along the car - the ends and doors kept, two more door
+bays put in, the window bays narrowed - to STRETCH times its length, then the whole picture scaled
+by 1 / STRETCH: a car still covers 22.5 m, a 1.3 times lower and narrower one with an MTR car's
+five doors. (The falling views laid level first, the car's side columns upright, and sheared back.)
+The end-on views have no doors to show: scaled by 1 / STRETCH, their roofs drawn out again to the
+car's length.
+
 Writes Models/metroTrain/car_<name>.png and metro-train-art.js (each picture's path and the anchor:
 where the car's middle sits on the rails, in the picture's pixels). A car's sprite is scaled by
 TILE_WIDTH / 512 like the track tiles.
@@ -23,7 +31,7 @@ Run with .venv/bin/python -B scripts/prepare-metro-train-assets.py
 import json
 from pathlib import Path
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFilter
 
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / 'scripts/source-art/subwayStation/original/MTrains'
@@ -70,15 +78,15 @@ def shear_to(im, target):
     return crop_alpha(canvas.transform(canvas.size, Image.AFFINE, (1, 0, 0, -sh, 1, sh * w / 2), resample=Image.BICUBIC))
 
 
-def anchor_y(im, kind):
+def anchor_y(im, kind, width=WIDTH_M):
     """Where the car's middle sits on the rails: up from the bottom of its middle column."""
     a = np.asarray(im)
     col = a[:, im.size[0] // 2, 3] > 128
     bottom = np.nonzero(col)[0].max()
     if kind == 'fall':
-        return bottom - WIDTH_M / 2 * PX_M_AXIS / np.sqrt(5)
+        return bottom - width / 2 * PX_M_AXIS / np.sqrt(5)
     if kind == 'horiz':
-        return bottom - WIDTH_M / 2 * PX_M_DIAG_V
+        return bottom - width / 2 * PX_M_DIAG_V
     return bottom - CAR_M * PX_M_DIAG_V / 2
 
 
@@ -152,15 +160,326 @@ def fall_near(X, Y, origin, pa):
     return lower | upper
 
 
+STRETCH = 1.3
+# the door bands on the side views (car_horiz_*, 407 px), by the matching car: the cab at the right
+# (cabR / a falling cabNear), the middle car, the cab at the left (cabL / cabFar)
+SIDE_DOORS = {
+    'cabR': [(56, 93), (175, 215), (296, 333)],
+    'mid': [(56, 93), (175, 223), (306, 344)],
+    'cabL': [(64, 100), (185, 223), (306, 344)],
+}
+# the underframe kept as it is before and after these (the two bogies), of the side's length
+BOGIE_KEEP = (0.30, 0.65)
+SIDE_OF = {'horiz_cabR': 'cabR', 'horiz_mid': 'mid', 'horiz_cabL': 'cabL',
+           'fall_cabNear': 'cabR', 'fall_mid': 'mid', 'fall_cabFar': 'cabL'}
+
+
+def red_extent(a, axis=0):
+    red = (a[..., 3] > 200) & (a[..., 0] > 150) & (a[..., 1] < 90) & (a[..., 2] < 90)
+    idx = np.nonzero(red.any(axis))[0]
+    return idx.min(), idx.max()
+
+
+def door_fractions(side_img, side):
+    x0, x1 = red_extent(np.asarray(side_img))
+    return [((d0 - x0) / (x1 - x0), (d1 - x0) / (x1 - x0)) for d0, d1 in SIDE_DOORS[side]]
+
+
+def relayout(a, fracs):
+    """The car's columns rebuilt: all before the first door and after the last kept, five doors (the
+    two put in copies of the first, which has no splice in it), four window bays narrowed so the
+    whole is STRETCH times as long."""
+    x0, x1 = red_extent(a)
+    L = x1 - x0
+    d = [(int(round(x0 + f0 * L)), int(round(x0 + f1 * L))) for f0, f1 in fracs]
+    head, tail = a[:, :d[0][0]], a[:, d[2][1]:]
+    door, last = a[:, d[0][0]:d[0][1]], a[:, d[2][0]:d[2][1]]
+    win = a[:, d[0][1]:d[1][0]]
+    target = int(round(a.shape[1] * STRETCH))
+    wn = max(8, (target - head.shape[1] - tail.shape[1] - 4 * door.shape[1] - last.shape[1]) // 4)
+    winn = np.asarray(Image.fromarray(win).resize((wn, a.shape[0]), Image.LANCZOS))
+    parts = [head, door, winn, door, winn, door, winn, door, winn, last, tail]
+    body = np.concatenate(parts, 1)
+    # the underframe (below the silver side) not with them: two bogies, one at each end, kept, the
+    # equipment between them drawn out (Norton, 2026-11-06: 底面全部都有問題 - a bogie came with
+    # every bay)
+    lum = a[..., :3].astype(np.float32).mean(axis=2)
+    silver = (a[..., 3] > 200) & (lum > 150)
+    lows = [np.nonzero(silver[:, x])[0].max() for x in range(x0 + L // 10, x1 - L // 10) if silver[:, x].any()]
+    cut = int(np.median(lows)) + 1
+    ua, ub = int(round(x0 + BOGIE_KEEP[0] * L)), int(round(x0 + BOGIE_KEEP[1] * L))
+    mid_w = body.shape[1] - ua - (a.shape[1] - ub)
+    under_mid = np.asarray(Image.fromarray(np.ascontiguousarray(a[cut:, ua:ub])).resize((max(1, mid_w), a.shape[0] - cut), Image.LANCZOS))
+    under = np.concatenate([a[cut:, :ua], under_mid, a[cut:, ub:]], 1)
+    body = body.copy()
+    body[cut:] = 0
+    body[cut:, :under.shape[1]] = under[:, :body.shape[1]]
+    return body
+
+
+def lengthen(img, kind, fracs):
+    if kind == 'fall':
+        # laid level (the side's columns upright), relaid, sheared back
+        k = 0.5
+        w, h = img.size
+        pad = int(k * w) + 2
+        level = img.transform((w, h + pad), Image.AFFINE, (1, 0, 0, k, 1, -pad), resample=Image.BICUBIC)
+        b = Image.fromarray(relayout(np.asarray(level), fracs))
+        extra = int(k * b.size[0]) + 2
+        tall = Image.new('RGBA', (b.size[0], b.size[1] + extra), (0, 0, 0, 0))
+        tall.paste(b, (0, 0))
+        out = tall.transform(tall.size, Image.AFFINE, (1, 0, 0, -k, 1, 0), resample=Image.BICUBIC)
+    else:
+        out = Image.fromarray(relayout(np.asarray(img), fracs))
+    out = crop_alpha(out)
+    return out.resize((max(1, round(out.size[0] / STRETCH)), max(1, round(out.size[1] / STRETCH))), Image.LANCZOS)
+
+
+def shrink_end_on(img, length_down):
+    """An end-on car 1 / STRETCH the size, its roof's middle band drawn out so it is as long again."""
+    small = img.resize((max(1, round(img.size[0] / STRETCH)), max(1, round(img.size[1] / STRETCH))), Image.LANCZOS)
+    add = int(round(length_down * (1 - 1 / STRETCH)))
+    a = np.asarray(small)
+    h = a.shape[0]
+    b0, b1 = int(h * 0.35), int(h * 0.6)        # (the roof, between the two end faces)
+    band = np.asarray(Image.fromarray(a[b0:b1]).resize((a.shape[1], b1 - b0 + add), Image.LANCZOS))
+    return Image.fromarray(np.concatenate([a[:b0], band, a[b1:]], 0))
+
+
+# On a slope (Norton, 2026-11-06: a level car on a ramp steps, one end in the track): the diagonal
+# views sheared upright about the car's middle - its right end up (`_up`) or down (`_dn`) by the grade
+# - for a ramp's (three levels over five tiles) and a hillside's (a level a tile).
+GRADES = {'1': 3 * 13 * 0.512 / 100.0, '2': 13 * 0.512 / 20.0}
+Z_PX = 10.0                       # px a metre up, on a 512-px tile
+
+
+def sheared(car, grade, sign):
+    """The car with its right end raised (sign 1) or lowered (-1) by `grade` metres a metre."""
+    k = sign * grade * Z_PX / (PX_M_AXIS * 2 / np.sqrt(5))     # px up a px across the screen
+    im = car['img']
+    w, h = im.size
+    pad = int(np.ceil(abs(k) * w)) + 2
+    # output (x, y) takes input (x, y - pad + k (x - ax)): the right end up for k > 0
+    out = im.transform((w, h + 2 * pad), Image.AFFINE, (1, 0, 0, k, 1, -pad - k * car['ax']), resample=Image.BICUBIC)
+    a = np.asarray(out)
+    ys, xs = np.nonzero(a[..., 3] > 0)
+    box = (xs.min(), ys.min(), xs.max() + 1, ys.max() + 1)
+    return {'img': out.crop(box), 'kind': car['kind'], 'ax': car['ax'] - box[0], 'ay': car['ay'] + pad - box[1]}
+
+
+# Two liveries (Norton, 2026-11-06, from photos): M (the urban lines' M-Train: bare stainless sides,
+# a broad red band across a white cab front) and K (the 東鐵 黃頭: a yellow cab front, the red stripe
+# along the sides). The renders have both a stripe along the side and a thin one across the cab; each
+# livery is made from them. The cab's nose, as a share of each picture (x0, x1, y0, y1).
+NOSE = {
+    'horiz_cabR': (0.94, 1.0, 0.0, 1.0), 'horiz_cabL': (0.0, 0.06, 0.0, 1.0),
+    'fall_cabNear': (0.853, 1.0, 0.0, 1.0), 'fall_cabFar': (0.0, 0.04, 0.0, 1.0),
+    'vert_cabNear': (0.0, 1.0, 0.77, 1.0), 'vert_cabFar': (0.0, 1.0, 0.0, 0.04),
+}
+YELLOW = np.array([238, 196, 40], np.float32)
+
+
+def nose_mask(shape, name):
+    m = np.zeros(shape[:2], bool)
+    if name in NOSE:
+        x0, x1, y0, y1 = NOSE[name]
+        h, w = shape[:2]
+        m[int(y0 * h):int(np.ceil(y1 * h)), int(x0 * w):int(np.ceil(x1 * w))] = True
+    return m
+
+
+def red_of(a):
+    return (a[..., 3] > 100) & (a[..., 0] > 150) & (a[..., 1] < 110) & (a[..., 2] < 110) & (a[..., 0] - a[..., 1] > 70)
+
+
+# The windscreen's middle pane (Norton, 2026-11-06, from photos: the M-Train's cab is white between
+# its two windows - the emergency door - the 黃頭's black, a yellow pillar each side of it): found on
+# the cab fronts that face the viewer (windscreen()), between its two mullions - as shares of its width.
+PANE_SHARE = (0.315, 0.72)
+PANE_VIEWS = ('fall_cabNear', 'vert_cabNear')
+
+
+def windscreen(a, name):
+    """The cab's windscreen on a front facing the viewer: the largest run of dark glass in its nose,
+    above the red line across it (4-connected). A bool mask, empty if none."""
+    out = np.zeros(a.shape[:2], bool)
+    if name not in NOSE:
+        return out
+    nose = nose_mask(a.shape, name)
+    lum = a[..., :3].astype(np.float32).mean(2)
+    red = red_of(a) & nose
+    dark = nose & (a[..., 3] > 200) & (lum < 75)
+    for x in range(a.shape[1]):
+        ry = np.nonzero(red[:, x])[0]
+        if len(ry):
+            dark[ry.min():, x] = False
+        else:
+            dark[:, x] = False
+    seen = np.zeros_like(dark)
+    best = []
+    for y0, x0 in zip(*np.nonzero(dark)):
+        if seen[y0, x0]:
+            continue
+        stack, comp = [(y0, x0)], []
+        seen[y0, x0] = True
+        while stack:
+            y, x = stack.pop()
+            comp.append((y, x))
+            for yy, xx in ((y + 1, x), (y - 1, x), (y, x + 1), (y, x - 1)):
+                if 0 <= yy < dark.shape[0] and 0 <= xx < dark.shape[1] and dark[yy, xx] and not seen[yy, xx]:
+                    seen[yy, xx] = True
+                    stack.append((yy, xx))
+        if len(comp) > len(best):
+            best = comp
+    for y, x in best:
+        out[y, x] = True
+    return out
+
+
+PANE_GROW = 2      # px the M-Train's white is carried up and down over the windscreen's frame
+
+
+def pane_geometry(a, name):
+    """The middle pane's columns (pa, pb) and the windscreen's top and bottom edge at any column, lines
+    fitted along the two side windows (no destination sign over them), so the pane follows the glass's
+    slant. None where there is no windscreen."""
+    if name not in PANE_VIEWS:
+        return None
+    ws = windscreen(a, name)
+    if not ws.any():
+        return None
+    ys, xs = np.nonzero(ws)
+    x0, x1 = xs.min(), xs.max()
+    pa, pb = int(round(x0 + PANE_SHARE[0] * (x1 - x0))), int(round(x0 + PANE_SHARE[1] * (x1 - x0)))
+    cols, tops, bots = [], [], []
+    for x in list(range(x0 + 1, pa - 1)) + list(range(pb + 2, x1)):
+        col = np.nonzero(ws[:, x])[0]
+        if len(col):
+            cols.append(x); tops.append(col.min()); bots.append(col.max())
+    if len(cols) < 4:
+        return None
+    kt, ct = np.polyfit(cols, tops, 1)
+    kb, cb = np.polyfit(cols, bots, 1)
+    return pa, pb, (lambda x: kt * x + ct), (lambda x: kb * x + cb)
+
+
+def centre_pane(a, name, grow=0):
+    """The middle pane, between its top and bottom edges (carried `grow` px up and down)."""
+    m = np.zeros(a.shape[:2], bool)
+    g = pane_geometry(a, name)
+    if not g:
+        return m
+    pa, pb, top, bot = g
+    for x in range(pa, pb + 1):
+        m[max(0, int(round(top(x))) - grow):int(round(bot(x))) + 1 + grow, x] = True
+    return m
+
+
+def livery_m(img, name):
+    """No stripe along the sides (each red pixel the silver above and below it); across the cab's
+    nose the thin red line made a broad band, up over the white."""
+    a = np.asarray(img).copy()
+    nose = nose_mask(a.shape, name)
+    red = red_of(a)
+    side = np.asarray(Image.fromarray((red & ~nose).astype(np.uint8) * 255).filter(ImageFilter.MaxFilter(3))) > 0
+    side &= (a[..., 3] > 100) & ~nose
+    h = a.shape[0]
+    for x in np.nonzero(side.any(0))[0]:
+        col = side[:, x]
+        y = 0
+        while y < h:
+            if not col[y]:
+                y += 1
+                continue
+            y0 = y
+            while y < h and col[y]:
+                y += 1
+            up, dn = max(0, y0 - 1), min(h - 1, y)
+            for yy in range(y0, y):
+                t = (yy - up) / max(1, dn - up)
+                a[yy, x, :3] = (a[up, x, :3] * (1 - t) + a[dn, x, :3] * t).astype(np.uint8)
+    lum = a[..., :3].astype(np.float32).mean(2)
+    light = (a[..., 3] > 100) & (lum > 125)
+    # the middle pane white, as the cab's front (a shade under it, the door's edge drawn round)
+    # the front white rather than silver
+    lum0 = a[..., :3].astype(np.float32).mean(2)
+    sat0 = a[..., :3].max(2).astype(np.int32) - a[..., :3].min(2)
+    whiten = nose & (a[..., 3] > 100) & (lum0 > 140) & (sat0 < 30)
+    a[whiten, :3] = np.clip(a[whiten, :3].astype(np.float32) * 1.07 + 6, 0, 255).astype(np.uint8)
+    # the middle pane the front's own white (its colour beside the windscreen), over the frame above
+    # and below it so it is one with the cab, the glass's light and shade kept faintly, a door seam
+    # down each side (Norton: a flat white block looked stuck on)
+    pane = centre_pane(a, name, grow=PANE_GROW)
+    if pane.any():
+        ys, xs = np.nonzero(pane)
+        front = a[whiten][:, :3].astype(np.float32)
+        base = np.median(front, axis=0) * 0.96 if len(front) else np.array([205, 205, 200], np.float32)
+        glass = lum0[pane]
+        shade = 1 + 0.10 * (glass - glass.mean()) / max(1.0, glass.std()) * 0.35
+        shade *= 1 - 0.07 * (ys - ys.min()) / max(1, ys.max() - ys.min())
+        a[pane, :3] = np.clip(base[None, :] * shade[:, None], 0, 255).astype(np.uint8)
+        for y in np.unique(ys):
+            row = xs[ys == y]
+            for x in (row.min(), row.max()):
+                a[y, x, :3] = (a[y, x, :3].astype(np.float32) * 0.72).astype(np.uint8)
+    nred = red_of(a) & nose
+    for x in np.nonzero(nred.any(0))[0]:
+        ys = np.nonzero(nred[:, x])[0]
+        top = max(0, ys.min() - 2 * (ys.max() - ys.min() + 1))
+        band = np.arange(top, ys.min())
+        band = band[light[band, x]]
+        a[band, x, :3] = (np.array([206, 32, 38], np.float32) * (lum[band, x] / 215.0)[:, None]).clip(0, 255).astype(np.uint8)
+    return Image.fromarray(a)
+
+
+def livery_k(img, name):
+    """The cab's nose yellow (its light panels; glass, lamps and the red line kept), the stripe along
+    the sides as it is."""
+    a = np.asarray(img).astype(np.float32).copy()
+    lum = a[..., :3].mean(2)
+    sat = a[..., :3].max(2) - a[..., :3].min(2)
+    m = nose_mask(a.shape, name) & (a[..., 3] > 100) & (lum > 120) & (sat < 40)
+    a[m, :3] = YELLOW * (lum[m] / 210.0)[:, None]
+    # the middle pane black: the two windows and it one black band across the cab
+    pane = centre_pane(np.asarray(img), name)
+    a[pane, :3] = np.clip(a[pane, :3] * 0.45, 0, 255)
+    # a yellow pillar each side of it, between it and the two windows, the glass's height there
+    g = pane_geometry(np.asarray(img), name)
+    if g:
+        pa, pb, top, bot = g
+        for x in (pa - 1, pa, pb, pb + 1):
+            a[int(round(top(x))):int(round(bot(x))) + 1, x, :3] = YELLOW * 0.82
+    return Image.fromarray(a.clip(0, 255).astype(np.uint8))
+
+
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     cars, side_body, length_down = load_cars()
     cars['fall_mid'] = splice(cars, 'fall_cabNear', 'fall_cabFar', fall_near)
     cars['horiz_mid'] = splice(cars, 'horiz_cabR', 'horiz_cabL', lambda X, Y, o, pa: X >= o[0])
     cars['vert_mid'] = splice(cars, 'vert_cabNear', 'vert_cabFar', lambda X, Y, o, pa: Y >= o[1] - side_body * 0.6)
-    for k in ['cabNear', 'cabFar', 'mid']:
-        c = cars['fall_' + k]
-        cars['rise_' + k] = {'img': c['img'].transpose(Image.FLIP_LEFT_RIGHT), 'kind': 'rise', 'ax': c['img'].size[0] - c['ax'], 'ay': c['ay']}
+    # five doors a side, 1 / STRETCH the size (the side views measured before they change)
+    fracs = {name: door_fractions(cars['horiz_' + side]['img'], side) for name, side in SIDE_OF.items()}
+    for name, car in cars.items():
+        if car['kind'] in ('fall', 'horiz'):
+            car['img'] = lengthen(car['img'], car['kind'], fracs[name])
+        elif car['kind'] == 'vert':
+            car['img'] = shrink_end_on(car['img'], length_down)
+        car['ax'] = car['img'].size[0] / 2
+        car['ay'] = anchor_y(car['img'], car['kind'], WIDTH_M / STRETCH)
+    # the liveries: M as the pictures' own names, K as k_<name>
+    for name in list(cars):
+        car = cars[name]
+        cars['k_' + name] = {**car, 'img': livery_k(car['img'], name)}
+        car['img'] = livery_m(car['img'], name)
+    for pre in ('', 'k_'):
+        for k in ['cabNear', 'cabFar', 'mid']:
+            c = cars[pre + 'fall_' + k]
+            cars[pre + 'rise_' + k] = {'img': c['img'].transpose(Image.FLIP_LEFT_RIGHT), 'kind': 'rise', 'ax': c['img'].size[0] - c['ax'], 'ay': c['ay']}
+    for name in [n for n in cars if n.replace('k_', '', 1).split('_')[0] in ('fall', 'rise')]:
+        for g, grade in GRADES.items():
+            cars[f'{name}_up{g}'] = sheared(cars[name], grade, 1)
+            cars[f'{name}_dn{g}'] = sheared(cars[name], grade, -1)
     art = {}
     for name in sorted(cars):
         c = cars[name]

@@ -381,7 +381,6 @@ S_SIZE = None
 
 POW2_H = 1024
 GUTTER = 8      # transparent px kept off every edge of a strip's canvas
-BLEED = 2       # px a strip reaches into its neighbour
 
 
 def pow2(v):
@@ -409,6 +408,51 @@ def strips(base, island, flip):
     return out
 
 
+# Night (Norton, 2026-11-06: 地鐵站燈光 - only the station's indirect light is seen): the platform
+# under the roof (its things, the tracks either side as far as the far railing) and the concourse
+# inside as by day; the roof, the walls outside, the stairs and the escalators' lamps not lit - laid
+# over the darkened station at night by the buildings' light strength. The concourse's insides, on
+# the render (S px): the gate hall and the windows by it as they are; behind the outside stairs
+# only its warm-lit rooms (so not the stairs in front of them).
+CONCOURSE_INSIDE = [
+    [(722, 1030), (860, 980), (860, 1080), (722, 1132)],     # the gate hall: its open front, the gates
+    [(620, 968), (860, 858), (860, 905), (620, 1010)],       # the band of windows over the sign (from its frame's top)
+    [(620, 1065), (697, 1040), (697, 1125), (620, 1155)],    # the window left of the gates
+]
+CONCOURSE_BEHIND_STAIRS = [
+    [(888, 940), (1000, 900), (1000, 1010), (888, 1052)],
+]
+
+
+def station_lit(layer):
+    a = layer.astype(np.float32)
+    rgb, al = a[..., :3], a[..., 3]
+    xx, yy, v, u = coords(layer.shape)
+    Lt = (U0 - u) / PX_M
+    Ct = (v - V0) / PX_M
+    under_roof = (v >= ROOF_RIM_V - 4) & (Ct <= PLATFORM_NEAR_M + 0.3) & (Ct >= -10.0) & (np.abs(Lt) <= PLATFORM_HALF_L + 1)
+
+    def polys(ps):
+        m = Image.new('L', (layer.shape[1], layer.shape[0]), 0)
+        for poly in ps:
+            ImageDraw.Draw(m).polygon(poly, fill=255)
+        return np.asarray(m) > 0
+    lum = rgb.mean(2)
+    r, g, b = rgb[..., 0], rgb[..., 1], rgb[..., 2]
+    warm_room = (b > 70) & (lum > 90) & (r - b > 45) & (g - b > 20)
+    # (in the concourse's boxes only what is inside - the glass and what shows through it, the lit
+    # rooms - not the wall round the windows: Norton, 2026-11-06, the boxes caught the wall above)
+    wall = (lum > 150) & (np.abs(r - b) < 45) & (r - b < 40)
+    inside = (polys(CONCOURSE_INSIDE) & ~wall) | (polys(CONCOURSE_BEHIND_STAIRS) & warm_room)
+    inside = np.asarray(Image.fromarray((inside * 255).astype(np.uint8)).filter(ImageFilter.MinFilter(3)).filter(ImageFilter.MaxFilter(3))) > 0
+    m = (under_roof | inside) & (al > 0)
+    m = np.asarray(Image.fromarray((m * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(0.7)), np.float32) / 255
+    out = np.zeros_like(a)
+    out[..., :3] = rgb
+    out[..., 3] = m * al
+    return out.clip(0, 255).astype(np.uint8)
+
+
 def main():
     global S_SIZE
     s = render_s()
@@ -419,36 +463,39 @@ def main():
     island = a.copy()
     island[~isl] = 0
     base = ends(a, isl)
+    base_lit, island_lit = station_lit(base), station_lit(island)
     art = {}
     cut = {axis: strips(base[:, ::-1] if flip else base, island[:, ::-1] if flip else island, flip)
            for axis, flip in (('x', False), ('y', True))}
-    # power-of-two canvases (Norton, 2026-11-06), for mipmaps and the release pipeline: every strip
-    # scaled alike so the tallest fits, then padded up to a power of two each way. Phaser wraps a
-    # power-of-two texture (REPEAT), so the content keeps GUTTER transparent px off every edge (else
-    # an edge's pixels show at the opposite one: thin lines down the strips' sides); and each strip
-    # reaches BLEED px into its neighbours, so no strip's edge fades out against its padding (a seam
-    # at the joins). `scale`: the strips' px per 512-px tile px.
+    # power-of-two canvases (Norton, 2026-11-06), for mipmaps and the release pipeline: the whole
+    # station scaled alike so the tallest strip fits, then cut into its strips (each layer scaled
+    # once, whole: the strips' edges meet exactly - none fades against its padding, none reaches
+    # into its neighbour, where its island was drawn over the trains: Norton's spikes at the joins),
+    # each padded up to a power of two each way. Phaser wraps a power-of-two texture (REPEAT), so
+    # the content keeps GUTTER transparent px off every edge (else an edge's pixels show at the
+    # opposite one). `scale`: the strips' px per 512-px tile px.
     tallest = max(y1 - y0 for boxes in cut.values() for (_, y0, _, y1), _ in boxes)
-    scale = min(1.0, (POW2_H - 2 * GUTTER) / tallest)
+    scale = min(1.0, (POW2_H - 2 * GUTTER - 2) / tallest)
     for axis, flip in (('x', False), ('y', True)):
-        b = base[:, ::-1] if flip else base
-        i = island[:, ::-1] if flip else island
+        layers = {}
+        for layer, img in (('base', base), ('island', island), ('base_lit', base_lit), ('island_lit', island_lit)):
+            img = img[:, ::-1] if flip else img
+            H0, W0 = img.shape[:2]
+            layers[layer] = np.asarray(Image.fromarray(np.ascontiguousarray(img)).resize((round(W0 * scale), round(H0 * scale)), Image.LANCZOS))
         pieces = []
         for k, (box, anchor) in enumerate(cut[axis]):
             x0, y0, x1, y1 = box
-            left = BLEED if k > 0 else 0
-            x0, x1 = x0 - left, min(b.shape[1], x1 + (BLEED if k < 4 else 0))
-            w, h = max(1, round((x1 - x0) * scale)), max(1, round((y1 - y0) * scale))
+            X0, X1 = round(x0 * scale), round(x1 * scale)
+            Y0, Y1 = int(np.floor(y0 * scale)), int(np.ceil(y1 * scale))
+            w, h = X1 - X0, Y1 - Y0
             cw, ch = pow2(w + 2 * GUTTER), pow2(h + 2 * GUTTER)
             px, py = (cw - w) // 2, ch - h - GUTTER
-            # (the exact resample factor each way, so the anchor lands where the content went)
-            sx, sy = w / (x1 - x0), h / (y1 - y0)
-            entry = {'anchor': [round((anchor[0] + left) * sx + px, 1), round(anchor[1] * sy + py, 1)], 'size': [cw, ch], 'scale': round(scale, 6)}
-            for layer, img in (('base', b), ('island', i)):
+            entry = {'anchor': [round((x0 + anchor[0]) * scale - X0 + px, 1), round((y0 + anchor[1]) * scale - Y0 + py, 1)],
+                     'size': [cw, ch], 'scale': round(scale, 6)}
+            for layer, img in layers.items():
                 name = f'metro_elevated_station_{axis}_{k}_{layer}'
-                piece = Image.fromarray(np.ascontiguousarray(img[y0:y1, x0:x1])).resize((w, h), Image.LANCZOS)
                 canvas = Image.new('RGBA', (cw, ch), (0, 0, 0, 0))
-                canvas.paste(piece, (px, py))
+                canvas.paste(Image.fromarray(np.ascontiguousarray(img[Y0:Y1, X0:X1])), (px, py))
                 canvas.save(OUT / f'{name}.png')
                 entry[layer] = {'key': name, 'path': f'Models/metroViaduct/{name}.png'}
             pieces.append(entry)

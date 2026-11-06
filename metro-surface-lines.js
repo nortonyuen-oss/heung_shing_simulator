@@ -487,6 +487,8 @@ const METRO_PLATFORM_TEXTURES = (() => {
   if (typeof METRO_ELEVATED_STATION_ART !== 'undefined') {
     Object.values(METRO_ELEVATED_STATION_ART).forEach((pieces) => pieces.forEach((p) => {
       out.push({ key: p.base.key, path: p.base.path }, { key: p.island.key, path: p.island.path });
+      // (and their lights, for the night)
+      ['base_lit', 'island_lit'].forEach((k) => { if (p[k]) out.push({ key: p[k].key, path: p[k].path }); });
     }));
   }
   return out;
@@ -496,7 +498,7 @@ const METRO_PLATFORM_ART = Object.freeze({ width: 512, height: 512, centre: [256
 function loadMetroSurfaceTextures(scene) {
   const wanted = [
     ...METRO_PLATFORM_TEXTURES,
-    ...(typeof METRO_TRAIN_ART !== 'undefined' ? Object.values(METRO_TRAIN_ART).map((a) => ({ key: a.key, path: a.path })) : []),
+    ...(typeof METRO_TRAIN_ART !== 'undefined' ? Object.values(METRO_TRAIN_ART).flatMap((a) => [{ key: a.key, path: a.path }, ...(a.lit ? [a.lit] : [])]) : []),
   ].filter((t) => !scene.textures.exists(t.key));
   if (!wanted.length) return Promise.resolve(true);
   if (scene.__metroSurfaceLoading) return scene.__metroSurfaceLoading;
@@ -550,7 +552,9 @@ function syncMetroPlatforms(scene) {
           let sprite = scene.metroPlatformSprites.get(id);
           if (!sprite) {
             sprite = scene.add.image(0, 0, texture);
-            addToRenderLayer(scene, sprite, 'objectLayer');
+            const layerName = 'objectLayer';
+            addToRenderLayer(scene, sprite, layerName);
+            markMetroNight(sprite, layerName);
             if (scene.worldMask) sprite.setMask(scene.worldMask);
             scene.metroPlatformSprites.set(id, sprite);
           } else if (sprite.texture.key !== texture) sprite.setTexture(texture);
@@ -565,6 +569,10 @@ function syncMetroPlatforms(scene) {
           sprite.setPosition(face.center.x, face.center.y);
           sprite.setDepth(depth);
           if (typeof applyNightPropTint === 'function') applyNightPropTint(scene, sprite);
+          if (piece[`${layer}_lit`]) {
+            wanted.add(`${id}|lit`);
+            syncMetroStationLight(scene, `${id}|lit`, sprite, piece[`${layer}_lit`].key);
+          }
         });
       });
       return;
@@ -593,7 +601,9 @@ function syncMetroPlatforms(scene) {
         let sprite = scene.metroPlatformSprites.get(id);
         if (!sprite) {
           sprite = scene.add.image(0, 0, texture);
-          addToRenderLayer(scene, sprite, layer === 'platform' && !up ? 'roadLayer' : 'objectLayer');
+          const layerName = layer === 'platform' && !up ? 'roadLayer' : 'objectLayer';
+          addToRenderLayer(scene, sprite, layerName);
+          markMetroNight(sprite, layerName);
           if (scene.worldMask) sprite.setMask(scene.worldMask);
           scene.metroPlatformSprites.set(id, sprite);
         } else if (sprite.texture.key !== texture) {
@@ -634,7 +644,9 @@ function syncMetroPlatforms(scene) {
         if (sprite && Boolean(sprite.__up) !== up) { sprite.destroy(); scene.metroPlatformSprites.delete(id); sprite = null; }
         if (!sprite) {
           sprite = scene.add.image(0, 0, texture);
-          addToRenderLayer(scene, sprite, up ? 'objectLayer' : 'roadLayer');
+          const layerName = up ? 'objectLayer' : 'roadLayer';
+          addToRenderLayer(scene, sprite, layerName);
+          markMetroNight(sprite, layerName);
           if (scene.worldMask) sprite.setMask(scene.worldMask);
           sprite.__up = up;
           scene.metroPlatformSprites.set(id, sprite);
@@ -676,6 +688,40 @@ function getMetroIslandTileTextures(turn = typeof mapRotation === 'number' ? map
     }
   });
   return out;
+}
+
+// A 高架站 strip's lights (metro-station-art.js `*_lit`): the station as lit, over the layer, by the
+// buildings' light strength (updateMetroStationLights keeps it with the night as it changes).
+function syncMetroStationLight(scene, id, host, key) {
+  if (!scene.textures.exists(key)) return;
+  let lit = scene.metroPlatformSprites.get(id);
+  if (!lit) {
+    lit = scene.add.image(0, 0, key);
+    addToRenderLayer(scene, lit, 'objectLayer');
+    if (scene.worldMask) lit.setMask(scene.worldMask);
+    // (the station as lit, over it as it darkens: not added, its own day colour)
+    lit.__stationLight = true;
+    lit.__nightNone = true;
+    scene.metroPlatformSprites.set(id, lit);
+  } else if (lit.texture.key !== key) lit.setTexture(key);
+  lit.setOrigin(host.originX, host.originY).setScale(host.scaleX, host.scaleY).setPosition(host.x, host.y);
+  lit.setDepth(host.depth + 0.001);
+  updateMetroStationLight(scene, lit);
+}
+
+const METRO_STATION_LIT_ALPHA = 1;
+function updateMetroStationLight(scene, lit) {
+  const strength = Math.max(0, Math.min(1, Number(scene.buildingLightStrength) || 0));
+  lit.setAlpha(strength * METRO_STATION_LIT_ALPHA);
+  lit.setVisible(strength > 0.01);
+}
+
+// Each frame (updateMetroSurfaceTrains): the stations' lights with the night.
+function updateMetroStationLights(scene) {
+  const strength = Number(scene.buildingLightStrength) || 0;
+  if (scene.__metroStationLightStrength === strength) return;
+  scene.__metroStationLightStrength = strength;
+  scene.metroPlatformSprites?.forEach((s) => { if (s.__stationLight) updateMetroStationLight(scene, s); });
 }
 
 // A 高架站's five tiles and the strip of its picture each takes (metro-station-art.js): left to right
@@ -974,6 +1020,7 @@ function updateMetroSurfaceTrains(scene) {
   if (!scene?.add || typeof getTransportExpansionState !== 'function' || !getTransportExpansionState()?.metro) return;
   if (typeof refreshMetroUndergroundView === 'function') refreshMetroUndergroundView(scene);
   if (!scene.metroTrainSprites) scene.metroTrainSprites = new Map();
+  if (scene.metroPlatformSprites) updateMetroStationLights(scene);
   const state = getMetroState();
   const surfaceLines = state.lines.filter((l) => l.surface && l.status === 'active');
   // the termini's crossovers follow the lines: drawn again when a line or the track changes
@@ -1053,6 +1100,8 @@ function updateMetroSurfaceTrains(scene) {
         const pre = line.livery === 'k' ? 'k_' : '';
         const art = METRO_TRAIN_ART[pre + metroSlopedCarView(car, view)] || METRO_TRAIN_ART[pre + view] || METRO_TRAIN_ART[view];
         const sprite = sprites[i];
+        sprite.__art = art;
+        sprite.__role = car.role;
         if (sprite.texture.key !== art.key) sprite.setTexture(art.key);
         const src = scene.textures.get(art.key).getSourceImage();
         const anchor = typeof getPropTextureAnchor === 'function'
@@ -1134,13 +1183,81 @@ function updateMetroSurfaceTrains(scene) {
   }
   scene.metroTrainSprites.forEach((sprites, id) => {
     if (seen.has(id)) return;
-    sprites.forEach((s) => { (s.__pieces || []).forEach((p) => p.destroy()); s.destroy(); });
+    sprites.forEach((s) => { (s.__pieces || []).forEach((p) => { p.__lit?.destroy(); p.destroy(); }); s.__lit?.destroy(); (s.__lamps || []).forEach((l) => l.destroy()); s.destroy(); });
     scene.metroTrainSprites.delete(id);
   });
+  // the saloons lit at night: each car, and each slice it is drawn in, its light over it
+  const strength = typeof getRuntimeTrafficLightStrength === 'function' ? getRuntimeTrafficLightStrength(scene) : 0;
+  scene.metroTrainSprites.forEach((sprites) => sprites.forEach((s) => {
+    syncMetroCarLight(scene, s, strength);
+    (s.__pieces || []).forEach((p) => syncMetroCarLight(scene, p, strength));
+    syncMetroCarLamps(scene, s, strength);
+  }));
+}
+
+// The cab's lamps at night, as the buses' (traffic-visuals.js): the leading car's headlamps, the
+// trailing car's tail lamps, each a glow over the lamp the picture shows (metro-train-art.js `lamps`) -
+// where that part of the car is drawn (not in a tunnel or behind a hillside), after it.
+const METRO_LAMP_SCALE = 0.55;
+function syncMetroCarLamps(scene, car, strength) {
+  const art = car.__art;
+  const lit = strength > 0.01 && car.__role !== 'mid' && art?.lamps?.length
+    && typeof ensureTrafficLightTextures === 'function' && ensureTrafficLightTextures(scene);
+  const lamps = car.__lamps || [];
+  if (!lit) { lamps.forEach((l) => l.setVisible(false)); return; }
+  const head = car.__role === 'lead';
+  const key = head ? TRAFFIC_LIGHT_CONFIG.headlightTextureKey : TRAFFIC_LIGHT_CONFIG.taillightTextureKey;
+  const parts = [car, ...(car.__pieces || [])].filter((p) => p.visible);
+  art.lamps.forEach(([lx, ly], i) => {
+    let lamp = lamps[i];
+    if (!lamp) {
+      lamp = scene.add.image(0, 0, key);
+      addToRenderLayer(scene, lamp, 'objectLayer');
+      if (scene.worldMask) lamp.setMask(scene.worldMask);
+      lamp.setBlendMode?.(typeof Phaser !== 'undefined' ? Phaser.BlendModes.ADD : 'ADD');
+      lamps[i] = lamp;
+    } else if (lamp.texture.key !== key) lamp.setTexture(key);
+    // (the part of the car drawn over the lamp's pixel: its order; none, and the lamp is hidden)
+    const over = parts.find((p) => !p.isCropped || !p._crop
+      || (lx >= p._crop.x && lx < p._crop.x + p._crop.width && ly >= p._crop.y && ly < p._crop.y + p._crop.height));
+    if (!over) { lamp.setVisible(false); return; }
+    lamp.setPosition(car.x + (lx - car.displayOriginX) * car.scaleX, car.y + (ly - car.displayOriginY) * car.scaleY);
+    lamp.setScale(METRO_LAMP_SCALE * (TILE_WIDTH / 100));
+    lamp.setDepth(over.depth + 0.02);
+    lamp.setAlpha(head ? strength * 0.92 : strength);
+    lamp.setVisible(true);
+  });
+  lamps.slice(art.lamps.length).forEach((l) => l.setVisible(false));
+  car.__lamps = lamps;
+}
+
+// A car's (or a slice of one's) light (metro-train-art.js `lit`: its windows): the same picture,
+// place, crop and order, a hair after it, added (as the buses' deck tubes), by the lamps' strength.
+function syncMetroCarLight(scene, host, strength) {
+  const key = `${host.texture?.key}_lit`;
+  const on = host.visible && strength > 0.01 && scene.textures.exists(key);
+  let lit = host.__lit;
+  if (!on) {
+    if (lit) lit.setVisible(false);
+    return;
+  }
+  if (!lit) {
+    lit = scene.add.image(0, 0, key);
+    addToRenderLayer(scene, lit, 'objectLayer');
+    if (scene.worldMask) lit.setMask(scene.worldMask);
+    lit.setBlendMode?.(typeof Phaser !== 'undefined' ? Phaser.BlendModes.ADD : 'ADD');
+    host.__lit = lit;
+  } else if (lit.texture.key !== key) lit.setTexture(key);
+  lit.setOrigin(host.originX, host.originY).setScale(host.scaleX, host.scaleY).setPosition(host.x, host.y);
+  if (host.isCropped && host._crop) lit.setCrop(host._crop.x, host._crop.y, host._crop.width, host._crop.height);
+  else if (lit.isCropped) lit.setCrop();
+  lit.setDepth(host.depth + 0.001);
+  lit.setAlpha(Math.min(1, strength) * 0.9);
+  lit.setVisible(true);
 }
 
 function clearMetroSurfaceSprites(scene) {
   scene?.metroPlatformSprites?.forEach((s) => s.destroy());
-  scene?.metroTrainSprites?.forEach((sprites) => sprites.forEach((s) => { (s.__pieces || []).forEach((p) => p.destroy()); s.destroy(); }));
+  scene?.metroTrainSprites?.forEach((sprites) => sprites.forEach((s) => { (s.__pieces || []).forEach((p) => { p.__lit?.destroy(); p.destroy(); }); s.__lit?.destroy(); (s.__lamps || []).forEach((l) => l.destroy()); s.destroy(); }));
   if (scene) { scene.metroPlatformSprites = new Map(); scene.metroTrainSprites = new Map(); }
 }

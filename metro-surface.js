@@ -862,7 +862,9 @@ function syncMetroTracks(scene) {
     if (!sprite) {
       sprite = scene.add.image(0, 0, texture);
       // a viaduct stands up among the buildings; ground track lies with the roads
-      addToRenderLayer(scene, sprite, code ? 'objectLayer' : 'roadLayer');
+      const layerName = code ? 'objectLayer' : 'roadLayer';
+      addToRenderLayer(scene, sprite, layerName);
+      markMetroNight(sprite, layerName);
       if (scene.worldMask) sprite.setMask(scene.worldMask);
       sprite.__elevated = Boolean(code);
       scene.metroTrackSprites.set(key, sprite);
@@ -914,7 +916,9 @@ function syncMetroPortalFront(scene, key, row, col, code) {
   let sprite = scene.metroPortalFronts.get(key);
   if (!sprite) {
     sprite = scene.add.image(0, 0, texture);
-    addToRenderLayer(scene, sprite, 'objectLayer');
+    const layerName = 'objectLayer';
+    addToRenderLayer(scene, sprite, layerName);
+    markMetroNight(sprite, layerName);
     if (scene.worldMask) sprite.setMask(scene.worldMask);
     scene.metroPortalFronts.set(key, sprite);
   } else if (sprite.texture.key !== texture) sprite.setTexture(texture);
@@ -933,7 +937,9 @@ function syncMetroHillMouthFront(scene, key, row, col, texture) {
   let sprite = scene.metroPortalFronts.get(key);
   if (!sprite) {
     sprite = scene.add.image(0, 0, texture);
-    addToRenderLayer(scene, sprite, 'objectLayer');
+    const layerName = 'objectLayer';
+    addToRenderLayer(scene, sprite, layerName);
+    markMetroNight(sprite, layerName);
     if (scene.worldMask) sprite.setMask(scene.worldMask);
     scene.metroPortalFronts.set(key, sprite);
   } else if (sprite.texture.key !== texture) sprite.setTexture(texture);
@@ -943,6 +949,14 @@ function syncMetroHillMouthFront(scene, key, row, col, texture) {
   sprite.setPosition(face.center.x, face.center.y);
   sprite.setDepth(getWorldDepth('object', isoToScreen(col + 0.5, row + 0.5).y + TILE_HEIGHT * 0.6));
   if (typeof applyNightPropTint === 'function') applyNightPropTint(scene, sprite);
+}
+
+// How a 地鐵 structure darkens at night (day-night-lighting.js applyNightPropTint): in the road layer
+// it is under the ground pass already; in the object band - a deck, a ramp, a portal, a platform, a
+// pier - it takes the ground's darkening, as the track and the roads beside it.
+function markMetroNight(sprite, layerName) {
+  sprite.__nightNone = layerName === 'roadLayer';
+  sprite.__nightGround = layerName !== 'roadLayer';
 }
 
 // A tile's top corner as drawn, y (in the buildings' frame): its middle up half a tile. (Not
@@ -980,7 +994,9 @@ function syncMetroPiers(scene, key, row, col, mask, deck, depth, wanted) {
     let sprite = scene.metroPierSprites.get(id);
     if (!sprite) {
       sprite = scene.add.image(0, 0, texture);
-      addToRenderLayer(scene, sprite, 'objectLayer');
+      const layerName = 'objectLayer';
+      addToRenderLayer(scene, sprite, layerName);
+      markMetroNight(sprite, layerName);
       if (scene.worldMask) sprite.setMask(scene.worldMask);
       scene.metroPierSprites.set(id, sprite);
     } else if (sprite.texture.key !== texture) sprite.setTexture(texture);

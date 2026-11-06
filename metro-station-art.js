@@ -7,14 +7,14 @@ const METRO_ELEVATED_STATION_ART = Object.freeze({
   "x": [
     {
       "anchor": [
-        313.1,
-        863.0
+        313.6,
+        862.5
       ],
       "size": [
         512,
         1024
       ],
-      "scale": 0.875,
+      "scale": 0.873264,
       "base": {
         "key": "metro_elevated_station_x_0_base",
         "path": "Models/metroViaduct/metro_elevated_station_x_0_base.png"
@@ -22,18 +22,26 @@ const METRO_ELEVATED_STATION_ART = Object.freeze({
       "island": {
         "key": "metro_elevated_station_x_0_island",
         "path": "Models/metroViaduct/metro_elevated_station_x_0_island.png"
+      },
+      "base_lit": {
+        "key": "metro_elevated_station_x_0_base_lit",
+        "path": "Models/metroViaduct/metro_elevated_station_x_0_base_lit.png"
+      },
+      "island_lit": {
+        "key": "metro_elevated_station_x_0_island_lit",
+        "path": "Models/metroViaduct/metro_elevated_station_x_0_island_lit.png"
       }
     },
     {
       "anchor": [
-        127.8,
-        754.3
+        127.2,
+        754.7
       ],
       "size": [
         256,
         1024
       ],
-      "scale": 0.875,
+      "scale": 0.873264,
       "base": {
         "key": "metro_elevated_station_x_1_base",
         "path": "Models/metroViaduct/metro_elevated_station_x_1_base.png"
@@ -41,18 +49,26 @@ const METRO_ELEVATED_STATION_ART = Object.freeze({
       "island": {
         "key": "metro_elevated_station_x_1_island",
         "path": "Models/metroViaduct/metro_elevated_station_x_1_island.png"
+      },
+      "base_lit": {
+        "key": "metro_elevated_station_x_1_base_lit",
+        "path": "Models/metroViaduct/metro_elevated_station_x_1_base_lit.png"
+      },
+      "island_lit": {
+        "key": "metro_elevated_station_x_1_island_lit",
+        "path": "Models/metroViaduct/metro_elevated_station_x_1_island_lit.png"
       }
     },
     {
       "anchor": [
-        127.8,
-        642.5
+        127.7,
+        643.0
       ],
       "size": [
         256,
         1024
       ],
-      "scale": 0.875,
+      "scale": 0.873264,
       "base": {
         "key": "metro_elevated_station_x_2_base",
         "path": "Models/metroViaduct/metro_elevated_station_x_2_base.png"
@@ -60,18 +76,26 @@ const METRO_ELEVATED_STATION_ART = Object.freeze({
       "island": {
         "key": "metro_elevated_station_x_2_island",
         "path": "Models/metroViaduct/metro_elevated_station_x_2_island.png"
+      },
+      "base_lit": {
+        "key": "metro_elevated_station_x_2_base_lit",
+        "path": "Models/metroViaduct/metro_elevated_station_x_2_base_lit.png"
+      },
+      "island_lit": {
+        "key": "metro_elevated_station_x_2_island_lit",
+        "path": "Models/metroViaduct/metro_elevated_station_x_2_island_lit.png"
       }
     },
     {
       "anchor": [
-        127.8,
-        558.6
+        127.3,
+        559.2
       ],
       "size": [
         256,
         1024
       ],
-      "scale": 0.875,
+      "scale": 0.873264,
       "base": {
         "key": "metro_elevated_station_x_3_base",
         "path": "Models/metroViaduct/metro_elevated_station_x_3_base.png"
@@ -79,18 +103,26 @@ const METRO_ELEVATED_STATION_ART = Object.freeze({
       "island": {
         "key": "metro_elevated_station_x_3_island",
         "path": "Models/metroViaduct/metro_elevated_station_x_3_island.png"
+      },
+      "base_lit": {
+        "key": "metro_elevated_station_x_3_base_lit",
+        "path": "Models/metroViaduct/metro_elevated_station_x_3_base_lit.png"
+      },
+      "island_lit": {
+        "key": "metro_elevated_station_x_3_island_lit",
+        "path": "Models/metroViaduct/metro_elevated_station_x_3_island_lit.png"
       }
     },
     {
       "anchor": [
-        200.7,
-        564.5
+        199.8,
+        565.4
       ],
       "size": [
         512,
         1024
       ],
-      "scale": 0.875,
+      "scale": 0.873264,
       "base": {
         "key": "metro_elevated_station_x_4_base",
         "path": "Models/metroViaduct/metro_elevated_station_x_4_base.png"
@@ -98,20 +130,28 @@ const METRO_ELEVATED_STATION_ART = Object.freeze({
       "island": {
         "key": "metro_elevated_station_x_4_island",
         "path": "Models/metroViaduct/metro_elevated_station_x_4_island.png"
+      },
+      "base_lit": {
+        "key": "metro_elevated_station_x_4_base_lit",
+        "path": "Models/metroViaduct/metro_elevated_station_x_4_base_lit.png"
+      },
+      "island_lit": {
+        "key": "metro_elevated_station_x_4_island_lit",
+        "path": "Models/metroViaduct/metro_elevated_station_x_4_island_lit.png"
       }
     }
   ],
   "y": [
     {
       "anchor": [
-        311.3,
-        564.5
+        312.2,
+        565.4
       ],
       "size": [
         512,
         1024
       ],
-      "scale": 0.875,
+      "scale": 0.873264,
       "base": {
         "key": "metro_elevated_station_y_0_base",
         "path": "Models/metroViaduct/metro_elevated_station_y_0_base.png"
@@ -119,18 +159,26 @@ const METRO_ELEVATED_STATION_ART = Object.freeze({
       "island": {
         "key": "metro_elevated_station_y_0_island",
         "path": "Models/metroViaduct/metro_elevated_station_y_0_island.png"
+      },
+      "base_lit": {
+        "key": "metro_elevated_station_y_0_base_lit",
+        "path": "Models/metroViaduct/metro_elevated_station_y_0_base_lit.png"
+      },
+      "island_lit": {
+        "key": "metro_elevated_station_y_0_island_lit",
+        "path": "Models/metroViaduct/metro_elevated_station_y_0_island_lit.png"
       }
     },
     {
       "anchor": [
-        128.2,
-        558.6
+        127.8,
+        559.2
       ],
       "size": [
         256,
         1024
       ],
-      "scale": 0.875,
+      "scale": 0.873264,
       "base": {
         "key": "metro_elevated_station_y_1_base",
         "path": "Models/metroViaduct/metro_elevated_station_y_1_base.png"
@@ -138,18 +186,26 @@ const METRO_ELEVATED_STATION_ART = Object.freeze({
       "island": {
         "key": "metro_elevated_station_y_1_island",
         "path": "Models/metroViaduct/metro_elevated_station_y_1_island.png"
+      },
+      "base_lit": {
+        "key": "metro_elevated_station_y_1_base_lit",
+        "path": "Models/metroViaduct/metro_elevated_station_y_1_base_lit.png"
+      },
+      "island_lit": {
+        "key": "metro_elevated_station_y_1_island_lit",
+        "path": "Models/metroViaduct/metro_elevated_station_y_1_island_lit.png"
       }
     },
     {
       "anchor": [
-        128.2,
-        642.5
+        128.3,
+        643.0
       ],
       "size": [
         256,
         1024
       ],
-      "scale": 0.875,
+      "scale": 0.873264,
       "base": {
         "key": "metro_elevated_station_y_2_base",
         "path": "Models/metroViaduct/metro_elevated_station_y_2_base.png"
@@ -157,18 +213,26 @@ const METRO_ELEVATED_STATION_ART = Object.freeze({
       "island": {
         "key": "metro_elevated_station_y_2_island",
         "path": "Models/metroViaduct/metro_elevated_station_y_2_island.png"
+      },
+      "base_lit": {
+        "key": "metro_elevated_station_y_2_base_lit",
+        "path": "Models/metroViaduct/metro_elevated_station_y_2_base_lit.png"
+      },
+      "island_lit": {
+        "key": "metro_elevated_station_y_2_island_lit",
+        "path": "Models/metroViaduct/metro_elevated_station_y_2_island_lit.png"
       }
     },
     {
       "anchor": [
-        128.2,
-        754.3
+        127.9,
+        754.7
       ],
       "size": [
         256,
         1024
       ],
-      "scale": 0.875,
+      "scale": 0.873264,
       "base": {
         "key": "metro_elevated_station_y_3_base",
         "path": "Models/metroViaduct/metro_elevated_station_y_3_base.png"
@@ -176,18 +240,26 @@ const METRO_ELEVATED_STATION_ART = Object.freeze({
       "island": {
         "key": "metro_elevated_station_y_3_island",
         "path": "Models/metroViaduct/metro_elevated_station_y_3_island.png"
+      },
+      "base_lit": {
+        "key": "metro_elevated_station_y_3_base_lit",
+        "path": "Models/metroViaduct/metro_elevated_station_y_3_base_lit.png"
+      },
+      "island_lit": {
+        "key": "metro_elevated_station_y_3_island_lit",
+        "path": "Models/metroViaduct/metro_elevated_station_y_3_island_lit.png"
       }
     },
     {
       "anchor": [
-        197.9,
-        863.0
+        197.4,
+        862.5
       ],
       "size": [
         512,
         1024
       ],
-      "scale": 0.875,
+      "scale": 0.873264,
       "base": {
         "key": "metro_elevated_station_y_4_base",
         "path": "Models/metroViaduct/metro_elevated_station_y_4_base.png"
@@ -195,6 +267,14 @@ const METRO_ELEVATED_STATION_ART = Object.freeze({
       "island": {
         "key": "metro_elevated_station_y_4_island",
         "path": "Models/metroViaduct/metro_elevated_station_y_4_island.png"
+      },
+      "base_lit": {
+        "key": "metro_elevated_station_y_4_base_lit",
+        "path": "Models/metroViaduct/metro_elevated_station_y_4_base_lit.png"
+      },
+      "island_lit": {
+        "key": "metro_elevated_station_y_4_island_lit",
+        "path": "Models/metroViaduct/metro_elevated_station_y_4_island_lit.png"
       }
     }
   ]

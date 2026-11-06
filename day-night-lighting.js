@@ -685,6 +685,14 @@ function applyNightObjectTint(scene, ground) {
     | lerp(0xff, NIGHT_OBJECT_TINT & 0xff, k)
   );
   scene.__nightPropTint = k <= 0 ? null : tint;
+  // the ground pass as a tint: its near-black (createDayNightLighting's groundNightOverlay) over
+  // the colour by `ground`
+  const groundColor = 0x020713;
+  scene.__nightGroundTint = k <= 0 ? null : (
+    (lerp(0xff, (groundColor >> 16) & 0xff, k) << 16)
+    | (lerp(0xff, (groundColor >> 8) & 0xff, k) << 8)
+    | lerp(0xff, groundColor & 0xff, k)
+  );
   // Only what is on screen is re-tinted now; the rest (~80% of the city at zoom 1) is marked and
   // picks up the current tint when the viewport culling shows it (applyDeferredNightTint). Each
   // step of dusk, dawn and the deep-night ramp used to re-tint all ~10,000 sprites: up to 128 ms.
@@ -720,7 +728,10 @@ function applyNightObjectTint(scene, ground) {
   // and the surface railway: its track, platforms and trains (metro-surface.js, metro-surface-lines.js)
   scene.metroTrackSprites?.forEach(apply);
   scene.metroPlatformSprites?.forEach(apply);
-  scene.metroTrainSprites?.forEach((cars) => cars.forEach(apply));
+  scene.metroPierSprites?.forEach(apply);
+  scene.metroPortalFronts?.forEach(apply);
+  // (each car with the slices it is drawn in - else one car's slices differ as the night deepens)
+  scene.metroTrainSprites?.forEach((cars) => cars.forEach((car) => { apply(car); (car.__pieces || []).forEach(apply); }));
 
   // Buildings take a lighter share (see NIGHT_BUILDING_DARKNESS_SHARE). Once a
   // model carries a baked night texture its darkening is in the pixels and it
@@ -776,7 +787,11 @@ function applyNightObjectTint(scene, ground) {
 }
 
 function applyNightPropTint(scene, sprite) {
-  const tint = scene.__nightPropTint;
+  // (a sprite under the ground pass already - in the road layer - takes none; one standing on the
+  // ground but drawn in the object band, as the 地鐵's decks, ramps and portals, takes the ground
+  // pass's own darkening, so it sits with the roads and the track beside it rather than lighter)
+  if (sprite.__nightNone) { sprite.clearTint?.(); return; }
+  const tint = sprite.__nightGround ? scene.__nightGroundTint : scene.__nightPropTint;
   // Away from the city the ground takes an extra pass (night-remote-darkness.js); these props
   // sit above it, so they take the same amount on their tint.
   const remote = typeof getNightRemoteDimAt === 'function' ? getNightRemoteDimAt(scene, sprite.x, sprite.y) : 0;

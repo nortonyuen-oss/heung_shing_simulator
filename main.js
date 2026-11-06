@@ -1910,8 +1910,9 @@ function canPlaceRoad(scene, row, col) {
   if (typeof isUnderseaTunnelTile === 'function' && isUnderseaTunnelTile(row, col)) return false;
   // nor on a 地鐵站 entrance (metro.js)
   if (typeof isMetroStationTile === 'function' && isMetroStationTile(row, col)) return false;
-  // nor across 地鐵路軌 (metro-surface.js): the MTR has no level crossings
-  if (typeof isMetroTrackTile === 'function' && isMetroTrackTile(row, col)) return false;
+  // nor across 地鐵路軌 (metro-surface.js): the MTR has no level crossings (over a tunnel and
+  // under a viaduct are fine)
+  if (typeof metroTrackGroundUse === 'function' && metroTrackGroundUse(row, col) === 'ground') return false;
   if (!isSupportedRoadSlopeTile(row, col)) return false;
   return true;
 }

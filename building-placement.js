@@ -537,8 +537,8 @@ function canPlaceBuilding(row, col) {
     && !(typeof isUnderseaTunnelTile === 'function' && isUnderseaTunnelTile(row, col))
     // nor on a 地鐵站 entrance (metro.js)
     && !(typeof isMetroStationTile === 'function' && isMetroStationTile(row, col))
-    // nor on 地鐵路軌 (metro-surface.js)
-    && !(typeof isMetroTrackTile === 'function' && isMetroTrackTile(row, col));
+    // nor on 地鐵路軌 or under a viaduct (metro-surface.js) - over a tunnel is fine
+    && !(typeof metroTrackGroundUse === 'function' && (metroTrackGroundUse(row, col) || 'none') !== 'none');
 }
 
 function canPlaceBuildingFootprint(row, col, footprintCols = 1, footprintRows = 1) {

@@ -201,3 +201,13 @@ test('a hill\'s ground: a hillside a level lower at its open edge; deck levels',
   assert.equal(railDeckLevel('d5'), 5);
   assert.equal(railSideHeight('d5', 'n'), 5 * L);
 });
+
+test('a tunnel leaves the ground over it free; a viaduct lets roads under it; the rest takes the ground', () => {
+  const { railGroundUse } = require('../metro-surface');
+  assert.equal(railGroundUse('u'), 'none');
+  assert.equal(railGroundUse('t0'), 'none');
+  assert.equal(railGroundUse('t2'), 'none');
+  assert.equal(railGroundUse('d'), 'deck');
+  assert.equal(railGroundUse('d4'), 'deck');
+  for (const code of [undefined, '', '3n', 'p2s', 'T0n']) assert.equal(railGroundUse(code), 'ground', String(code));
+});

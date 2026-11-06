@@ -1174,7 +1174,7 @@ function getTransportToolHintText() {
   }
   // (the track tool's hint is the height's: 地底, 地面 or 高架)
   if (tool === 'metro-track' && typeof getMetroRailHeight === 'function') {
-    return { text: t(`transport.hint.metro-track-${getMetroRailHeight()}`), info, cancel: true };
+    return { text: t(`transport.hint.metro-track-${getMetroRailHeight()}`), info: t('transport.hint.metroHeightKeys'), cancel: true };
   }
   return { text: t(`transport.hint.${tool}`), info, cancel: true };
 }
@@ -2046,6 +2046,14 @@ function handleTransportHotkey(event) {
     return true;
   }
   if (!isTransportModeActive) return false;
+  // 地鐵路軌's height, with the track tool in hand: PageUp / ] up, PageDown / [ down (metro-surface.js)
+  if (selectedTool === 'metro-track' && typeof stepMetroRailHeight === 'function') {
+    const step = event.key === 'PageUp' || event.key === ']' ? 1 : event.key === 'PageDown' || event.key === '[' ? -1 : 0;
+    if (step) {
+      stepMetroRailHeight(step);
+      return true;
+    }
+  }
   const index = ['1', '2', '3', '4'].indexOf(event.key);
   if (index < 0) return false;
   toggleTransportPanel(TRANSPORT_PANEL_IDS[index]);

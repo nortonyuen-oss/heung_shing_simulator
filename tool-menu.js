@@ -224,11 +224,23 @@ function setupToolMenu() {
       return;
     }
 
-    // 地鐵路軌's height (metro-surface.js): picked, and the track tool taken up
+    // 地鐵路軌's height (metro-surface.js): picked, and the track tool taken up - the flyout left
+    // open (taking a tool up closes it), to try another height
     const heightButton = event.target.closest('[data-metro-height]');
     if (heightButton) {
       if (typeof setMetroRailHeight === 'function') setMetroRailHeight(heightButton.dataset.metroHeight);
-      if (selectedTool !== 'metro-track') menu.querySelector('[data-tool="metro-track"]')?.click();
+      if (selectedTool !== 'metro-track') {
+        const panel = heightButton.closest('.tool-flyout');
+        const category = panel && menu.querySelector(`[data-tool-category="${panel.dataset.toolPanel}"]`);
+        const group = panel?.querySelector('[data-tool-group="metro-rail"]');
+        menu.querySelector('[data-tool="metro-track"]')?.click();
+        if (panel && category) {
+          category.classList.add('is-open');
+          panel.classList.add('is-open');
+          positionToolFlyout(category, panel);
+        }
+        if (group && !group.classList.contains('is-open')) toggleToolGroup(group);
+      }
       return;
     }
 

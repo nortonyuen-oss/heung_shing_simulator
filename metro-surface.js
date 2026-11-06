@@ -518,6 +518,20 @@ function isMetroTrackTile(row, col) {
   return Boolean(tracks && tracks[railKey(row, col)]);
 }
 
+// What a tile's track takes of the ground, from its level code: 'none' (a tunnel, under the flat or
+// through a hill - the ground over it free to build on), 'deck' (a viaduct: roads may run under it,
+// not buildings - its piers) or 'ground' (track on it, a ramp, a portal, a hill tunnel's mouth). Pure.
+function railGroundUse(code) {
+  if (code === 'u' || (code && code[0] === 't')) return 'none';
+  return railDeckLevel(code) != null ? 'deck' : 'ground';
+}
+
+// ... on the map: null where there is no track.
+function metroTrackGroundUse(row, col) {
+  if (!isMetroTrackTile(row, col)) return null;
+  return railGroundUse(getMetroTrackElev()[railKey(row, col)]);
+}
+
 // The height the track tool lays at (A列車式, Norton 2026-11-06): 'under' 地底, 'ground' 地面 or
 // 'deck' 高架, picked in the metro flyout.
 let metroRailHeight = 'ground';
@@ -538,6 +552,39 @@ function setMetroRailHeight(height) {
     });
   }
   if (typeof activeScene !== 'undefined' && activeScene) refreshMetroUndergroundView(activeScene, true);
+  if (typeof refreshTransportToolHint === 'function') refreshTransportToolHint();
+}
+
+// The height just stepped to, in one toast (renewed, not stacked, and kept out of the city news)
+let metroRailHeightToastTimers = [];
+function showMetroRailHeightToast() {
+  const container = typeof document !== 'undefined' && document.getElementById('toast-container');
+  if (!container) return;
+  let toast = container.querySelector('[data-metro-height-toast]');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.className = 'toast toast-info';
+    toast.dataset.metroHeightToast = '';
+    container.appendChild(toast);
+  }
+  toast.classList.remove('toast-fade');
+  toast.textContent = metroT('metro.track.heightNow', '路軌高度：{height}', { height: metroT(`metroHeight.${metroRailHeight}`, metroRailHeight) });
+  metroRailHeightToastTimers.forEach(clearTimeout);
+  metroRailHeightToastTimers = [setTimeout(() => toast.classList.add('toast-fade'), 1500), setTimeout(() => toast.remove(), 2000)];
+}
+
+// PageUp / PageDown or ] / [ with the track tool in hand (transport-ui.js): a height up or down
+// (地底, 地面, 高架), the drag being made redrawn at the new one. True if it changed.
+function stepMetroRailHeight(step) {
+  const i = METRO_RAIL_HEIGHTS.indexOf(metroRailHeight) + step;
+  if (i < 0 || i >= METRO_RAIL_HEIGHTS.length) return false;
+  setMetroRailHeight(METRO_RAIL_HEIGHTS[i]);
+  showMetroRailHeightToast();
+  if (typeof activeScene !== 'undefined' && activeScene && typeof dragStartTile !== 'undefined' && dragStartTile
+    && typeof lastKnownTile !== 'undefined' && lastKnownTile && typeof selectedTool !== 'undefined' && selectedTool === 'metro-track') {
+    drawMetroTrackDragPreview(activeScene, dragStartTile, lastKnownTile);
+  }
+  return true;
 }
 
 function getMetroTrackElev() {
@@ -832,6 +879,9 @@ function syncMetroTracks(scene) {
       // a hill tunnel's mouth, the track up a hillside: on the hill's tile (its face at the foot)
       viaductOrigin();
       sprite.setDepth(getWorldDepth('road', face.center.y + 1));
+      // a mouth seen from behind: its portal's beam and the near wall's top over the trains
+      const back = code && code[0] === 'T' ? rotateDirection(code[2], turn) : null;
+      if (back === 'n' || back === 'w') { fronts.add(key); syncMetroHillMouthFront(scene, key, row, col, `metro_hilltunnel_${back}_front`); }
     } else if (deck != null) {
       // a deck at its level, from the flat under it; its piers down to the ground (syncMetroPiers)
       const flat = metroFlatTileCentre(scene, row, col);
@@ -871,6 +921,25 @@ function syncMetroPortalFront(scene, key, row, col, code) {
   const face = getTileFaceGeometry(row, col, scene.offsetX, scene.offsetY);
   sprite.setOrigin(METRO_PORTAL_ART.centre[0] / METRO_PORTAL_ART.width, METRO_PORTAL_ART.centre[1] / METRO_PORTAL_ART.height);
   sprite.setScale(TILE_WIDTH / METRO_PORTAL_ART.width);
+  sprite.setPosition(face.center.x, face.center.y);
+  sprite.setDepth(getWorldDepth('object', isoToScreen(col + 0.5, row + 0.5).y + TILE_HEIGHT * 0.6));
+  if (typeof applyNightPropTint === 'function') applyNightPropTint(scene, sprite);
+}
+
+// A hill tunnel's mouth seen from behind: its front (the beam across the portal, the near wall's
+// coping), after the trains on the tile so they go in under it.
+function syncMetroHillMouthFront(scene, key, row, col, texture) {
+  if (!scene.textures.exists(texture)) return;
+  let sprite = scene.metroPortalFronts.get(key);
+  if (!sprite) {
+    sprite = scene.add.image(0, 0, texture);
+    addToRenderLayer(scene, sprite, 'objectLayer');
+    if (scene.worldMask) sprite.setMask(scene.worldMask);
+    scene.metroPortalFronts.set(key, sprite);
+  } else if (sprite.texture.key !== texture) sprite.setTexture(texture);
+  const face = getTileFaceGeometry(row, col, scene.offsetX, scene.offsetY);
+  sprite.setOrigin(METRO_VIADUCT_ART.centre[0] / METRO_VIADUCT_ART.width, METRO_VIADUCT_ART.centre[1] / METRO_VIADUCT_ART.height);
+  sprite.setScale(TILE_WIDTH / METRO_VIADUCT_ART.width);
   sprite.setPosition(face.center.x, face.center.y);
   sprite.setDepth(getWorldDepth('object', isoToScreen(col + 0.5, row + 0.5).y + TILE_HEIGHT * 0.6));
   if (typeof applyNightPropTint === 'function') applyNightPropTint(scene, sprite);
@@ -1020,6 +1089,7 @@ const METRO_VIADUCT_TEXTURES = (() => {
   ['n', 'e', 's', 'w'].forEach((d) => {
     out.push({ key: `metro_track_slope_${d}`, path: `Models/metroViaduct/metro_track_slope_${d}.png` });
     out.push({ key: `metro_hilltunnel_${d}`, path: `Models/metroViaduct/metro_hilltunnel_${d}.png` });
+    if (d === 'n' || d === 'w') out.push({ key: `metro_hilltunnel_${d}_front`, path: `Models/metroViaduct/metro_hilltunnel_${d}_front.png` });
   });
   [['x', ['n', 's']], ['y', ['w', 'e']]].forEach(([axis, ups]) => ups.forEach((up) => [1, 2, 3, 4, 5].forEach((step) => {
     out.push({ key: `metro_ramp_${axis}_${up}${step}`, path: `Models/metroViaduct/metro_ramp_${axis}_${up}${step}.png` });
@@ -1101,9 +1171,10 @@ function drawMetroTrackDragPreview(scene, start, end, height = metroRailHeight) 
     g.closePath(); g.fillPath(); g.strokePath();
   });
   if (typeof showUnderseaTunnelPreviewLabel === 'function') {
-    const text = plan.ok
+    // (led by the height it is laid at: PageUp / PageDown change it mid-drag)
+    const text = `${metroT(`metroHeight.${height}`, height)} · ${plan.ok
       ? metroT('metro.track.costMixed', '{parts} ${cost}', { parts: metroTrackSummary(plan.kinds) || metroT('metro.kind.none', '冇新路軌'), cost: plan.cost.toLocaleString() })
-      : metroTrackRefusal(plan.reason);
+      : metroTrackRefusal(plan.reason)}`;
     const at = plan.path[plan.path.length - 1] || end;
     showUnderseaTunnelPreviewLabel(scene, at.row, at.col, text, plan.ok);
   }
@@ -1116,5 +1187,5 @@ function getMetroTrackMonthlyUpkeep() {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { METRO_RAIL, RAIL_BIT_SIDES, railDragPath, addRailPathBits, railBadTiles, railBitFor, railVisualMask, railSideHeight, planRailAtHeight, railCodeKind, railLevelMismatch, railDeckLevel, railGroundAt, railIsHill, railElevatedRun, railIsUp, railIsDown };
+  module.exports = { METRO_RAIL, RAIL_BIT_SIDES, railDragPath, addRailPathBits, railBadTiles, railBitFor, railVisualMask, railSideHeight, planRailAtHeight, railCodeKind, railGroundUse, railLevelMismatch, railDeckLevel, railGroundAt, railIsHill, railElevatedRun, railIsUp, railIsDown };
 }

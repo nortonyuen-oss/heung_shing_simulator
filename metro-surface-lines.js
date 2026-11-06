@@ -786,27 +786,78 @@ function metroPortalCarPieces(scene, portals, state, car, sprite) {
 
 // The hill tunnels' mouths, once a frame (OpenTTD's tunnels): each its portal at the mouth tile's edge
 // into the hill - along rows (ns) at row `at` or along columns at column `at`, the hill on the
-// `inward` side.
+// `inward` side; `back` if seen from behind (out n or w as drawn: the hill in front of its cutting).
 function metroHillPlanes(state) {
   const out = [];
+  const turn = typeof mapRotation === 'number' ? mapRotation : 0;
   Object.entries(state.trackElev || {}).forEach(([key, code]) => {
     if (code[0] !== 'T') return;
     const [row, col] = key.split(':').map(Number);
     const into = { n: 's', s: 'n', e: 'w', w: 'e' }[code[2]];
     const ns = into === 'n' || into === 's';
-    out.push({ ns, row, col, at: into === 'n' ? row : into === 's' ? row + 1 : into === 'w' ? col : col + 1, inward: into === 'n' || into === 'w' ? -1 : 1 });
+    const drawn = typeof rotateDirection === 'function' ? rotateDirection(code[2], turn) : code[2];
+    out.push({
+      ns, row, col, into, level: Number(code[1]),
+      at: into === 'n' ? row : into === 's' ? row + 1 : into === 'w' ? col : col + 1,
+      inward: into === 'n' || into === 'w' ? -1 : 1,
+      back: drawn === 'n' || drawn === 'w',
+    });
   });
   return out;
 }
 
+// A mouth seen from behind: on screen, the ground in front of its cutting - the near bank down the
+// mouth tile (its hillside, up to the slot's edge) and the hilltop past the portal - as a polygon
+// (prepare-metro-viaduct-assets.py hill_back_mouth: the slot 5.3 m either side of the line).
+const METRO_HILL_SLOT_HALF_TILES = 5.3 / 20;
+function metroHillBackOccluder(scene, plane) {
+  const lvl = METRO_RAIL.hillLevelMetres;
+  const zPx = METRO_SURFACE.zPxPerMetre * (TILE_WIDTH / 512);
+  // (u along from the mouth's outer edge, a tile to the portal; v across from the line, tiles)
+  const map = (u, v) => {
+    const { row, col, into } = plane;
+    if (into === 's') return [col + 0.5 + v, row + u];
+    if (into === 'n') return [col + 0.5 + v, row + 1 - u];
+    if (into === 'e') return [col + u, row + 0.5 + v];
+    return [col + 1 - u, row + 0.5 + v];
+  };
+  const P = (u, v) => {
+    const [c, r] = map(u, v);
+    const at = metroSurfaceScreenAt(scene, c, r);
+    return { x: at.x, y: at.y - (plane.level * lvl + lvl * Math.min(1, u)) * zPx };
+  };
+  // the near side, as drawn
+  const near = isoToScreen(...map(0.5, 0.4)).y > isoToScreen(...map(0.5, -0.4)).y ? 1 : -1;
+  const o = METRO_HILL_SLOT_HALF_TILES * near;
+  return [P(0, o), P(1, o), P(1, -0.5 * near), P(2.5, -0.5 * near), P(2.5, 0.5 * near), P(1, 0.5 * near), P(0, 0.5 * near)];
+}
+
+// The top of a polygon at screen x (the least y of its edges there), or null.
+function metroPolygonTopAt(poly, x) {
+  let top = null;
+  for (let i = 0; i < poly.length; i++) {
+    const a = poly[i], b = poly[(i + 1) % poly.length];
+    if ((x < a.x && x < b.x) || (x > a.x && x > b.x) || a.x === b.x) continue;
+    const y = a.y + (b.y - a.y) * ((x - a.x) / (b.x - a.x));
+    if (top == null || y < top) top = y;
+  }
+  return top;
+}
+
+const METRO_HILL_STRIP_PX = 24;   // texture px a strip of a car going in under a hill in front
+
 // A car at a hill: 'hidden' inside it, the part of its picture (texture x0 to x1) still out as it
-// crosses a hillside's portal, or null (nowhere near one). (In the 地底 view: truthy when in or at.)
+// crosses a hillside's portal - from behind, in strips, each cut (y1) where the hill in front of the
+// cutting hides the rest - or null (nowhere near one). (In the 地底 view: truthy when in or at.)
 function metroHillCarCut(scene, planes, state, car, sprite) {
   const [col, row] = car.pos;
   const half = METRO_SURFACE.carTiles / 2 + 0.05;
-  const plane = planes.find((p) => (p.ns
-    ? Math.abs(col - (p.col + 0.5)) < 0.6 && Math.abs(row - p.at) < half
-    : Math.abs(row - (p.row + 0.5)) < 0.6 && Math.abs(col - p.at) < half));
+  // (from behind, the near bank hides a car all down the mouth tile)
+  const plane = planes.find((p) => {
+    const d = p.ns ? row - p.at : col - p.at;
+    const reach = p.back && d * p.inward < 0 ? half + 1 : half;
+    return p.ns ? Math.abs(col - (p.col + 0.5)) < 0.6 && Math.abs(d) < reach : Math.abs(row - (p.row + 0.5)) < 0.6 && Math.abs(d) < reach;
+  });
   if (!plane) return ((state.trackElev || {})[`${Math.floor(row)}:${Math.floor(col)}`] || '')[0] === 't' ? 'hidden' : null;
   const cut = plane.ns ? metroSurfaceScreenAt(scene, col, plane.at) : metroSurfaceScreenAt(scene, plane.at, row);
   const inside = plane.ns ? metroSurfaceScreenAt(scene, col, plane.at + plane.inward) : metroSurfaceScreenAt(scene, plane.at + plane.inward, row);
@@ -814,7 +865,23 @@ function metroHillCarCut(scene, planes, state, car, sprite) {
   const width = sprite.frame.realWidth;
   const tx = Math.max(0, Math.min(width, (cut.x - left) / sprite.scaleX));
   const r = inside.x < cut.x ? { x0: tx, x1: width } : { x0: 0, x1: tx };
-  return r.x1 - r.x0 < 0.5 ? 'hidden' : r;
+  if (r.x1 - r.x0 < 0.5) return 'hidden';
+  if (!plane.back) return r;
+  const poly = metroHillBackOccluder(scene, plane);
+  const topY = sprite.y - sprite.displayOriginY * sprite.scaleY;
+  const height = sprite.frame.realHeight;
+  const out = [];
+  for (let x0 = r.x0; x0 < r.x1 - 0.5; x0 += METRO_HILL_STRIP_PX) {
+    const x1 = Math.min(r.x1, x0 + METRO_HILL_STRIP_PX);
+    // (the strip's higher end of the ground in front: none of it shows below)
+    const ys = [x0, x1].map((tx) => metroPolygonTopAt(poly, left + tx * sprite.scaleX)).filter((y) => y != null);
+    const y1 = ys.length ? Math.max(0, Math.min(height, (Math.min(...ys) - topY) / sprite.scaleY)) : height;
+    const last = out[out.length - 1];
+    if (last && last.y1 === y1 && last.x1 === x0) last.x1 = x1;
+    else out.push({ x0, x1, y1 });
+  }
+  const shown = out.filter((p) => p.y1 > 0.5);
+  return shown.length ? shown : 'hidden';
 }
 
 // A 高架站 strip's island layer, sorted in the buildings' frame (isoToScreen y, no scene offset).
@@ -977,7 +1044,7 @@ function updateMetroSurfaceTrains(scene) {
             (sprite.__pieces || []).forEach((p) => p.setVisible(false));
             return;
           } else {
-            pieces = hill ? [{ ...hill, depth: sprite.depth }] : metroIslandCarPieces(islands, car, sprite);
+            pieces = hill ? [].concat(hill).map((piece) => ({ ...piece, depth: sprite.depth })) : metroIslandCarPieces(islands, car, sprite);
           }
         }
         const extra = sprite.__pieces || (sprite.__pieces = []);
@@ -1000,7 +1067,7 @@ function updateMetroSurfaceTrains(scene) {
             p.setOrigin(sprite.originX, sprite.originY).setScale(sprite.scaleX).setPosition(sprite.x, sprite.y);
             p.setVisible(true);
           }
-          p.setCrop(piece.x0, 0, piece.x1 - piece.x0, p.frame.realHeight);
+          p.setCrop(piece.x0, 0, piece.x1 - piece.x0, piece.y1 ?? p.frame.realHeight);
           p.setDepth(piece.depth);
         });
         extra.slice(pieces.length - 1).forEach((p) => p.setVisible(false));

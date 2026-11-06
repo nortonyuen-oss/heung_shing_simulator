@@ -446,19 +446,77 @@ def hill_tunnels(rng):
                 arch = [pt(a, 4.6 + 1.4 * np.sqrt(max(0.0, 1 - (a / 4.4) ** 2))) for a in np.linspace(-4.4, 4.4, 19)]
                 d.polygon([pt(-4.4, 0.0)] + arch + [pt(4.4, 0.0)], fill=(18, 18, 20, 255))
             else:
-                # (the hill rises towards the viewer: the strip the higher tile in front covers, off)
-                canvas = diamond_clip(canvas)
-                a = np.asarray(canvas).copy()
-                lift = HILL_LEVEL_M * Z_PX
-                mk = Image.new('L', canvas.size, 255)
-                dd = ImageDraw.Draw(mk)
-                # the neighbour inside the hill, one level up: s for an X tile going out n, e for Y going out w
-                off = (-W / 2, W / 4 - lift) if axis == 'X' else (W / 2, W / 4 - lift)
-                dd.polygon([(W / 2 + off[0], TOP + off[1]), (W + off[0], TOP + W / 4 + off[1]), (W / 2 + off[0], TOP + W / 2 + off[1]), (off[0], TOP + W / 4 + off[1])], fill=0)
-                a[..., 3] = (a[..., 3].astype(np.float32) * (np.asarray(mk) / 255.0)).astype(np.uint8)
-                canvas = Image.fromarray(a, 'RGBA')
+                canvas, front = hill_back_mouth(axis, layers)
+                front.save(OUT / f'metro_hilltunnel_{out}_front.png')
             canvas.save(OUT / f'metro_hilltunnel_{out}.png')
             print('hill tunnel', out)
+
+
+# The mouth seen from behind (out n or w as drawn: the hill rising towards the viewer, its portal
+# facing away; Norton, 2026-11-06: a cutting, the portal's beam and railing across its inner end).
+# The tile's hillside (its terrain, drawn under it) is cut by a slot the trough's width: the base
+# is what shows through the slot - the floor and track, the far retaining wall's face, darkening
+# into the portal's shade - and nothing outside it, so the terrain's own slope shows round it; the
+# far wall's coping stands just over the slope. The front, drawn after the trains so they go in
+# under it: the near wall's coping and, along the inner edge, the headwall's top - a concrete beam
+# a little over the hilltop with a railing on it.
+BACK_COPING_M = 0.35
+BACK_BEAM_M = 0.9          # the beam over the hilltop
+BACK_BEAM_DEPTH_M = 1.0    # along the line
+BACK_RAIL_M = 1.1
+RAILING = (74, 78, 76, 255)
+
+
+def hill_back_mouth(axis, layers):
+    n = SOLID_N
+    m = (np.arange(n) + 0.5) / n * track.TILE_M
+    C, R = np.meshgrid(m, m)
+    across, along = (C - 10.0, R) if axis == 'X' else (R - 10.0, C)
+    rise = HILL_LEVEL_M / track.TILE_M
+    ground = (0.0, 0.0, 0.0)
+    slope = (0.0, 0.0, rise) if axis == 'X' else (0.0, rise, 0.0)
+    lift = lambda plane, dz: (plane[0] + dz, plane[1], plane[2])
+    half, outer = TROUGH_HALF_M, TROUGH_HALF_M + TROUGH_WALL_M
+    # the portal's shade, deepening over the last 8 m to the headwall
+    shade = np.clip((along - 12.0) / 8.0, 0.0, 1.0) ** 1.4 * 0.72
+
+    base = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+    rgba = np.zeros((n, n, 4), np.float32)
+    rgba[..., :3] = FLOOR
+    rgba[..., 3] = (np.abs(across) <= half) * 255
+    base.alpha_composite(warp(rgba, ground))
+    base.alpha_composite(track_layers_image(layers, ground))
+    dark = np.zeros((n, n, 4), np.float32)
+    dark[..., 3] = (np.abs(across) <= half) * shade * 255
+    base.alpha_composite(warp(dark, lift(ground, 0.2)))
+    # the far wall (across < 0: its face towards the viewer), from the floor up to the slope
+    far = ((across < -half) & (across >= -outer)).astype(np.float32)
+    extrude(base, far, ground, slope, CONCRETE_SIDE * (1.0 - shade)[..., None], CONCRETE_TOP)
+    # only what shows through the slot in the hillside
+    slot = Image.new('L', (W, H), 0)
+    pt = (lambda a, b, z: to_canvas(10.0 + a, b, z)) if axis == 'X' else (lambda a, b, z: to_canvas(b, 10.0 + a, z))
+    ImageDraw.Draw(slot).polygon([pt(-outer, 0.0, 0.0), pt(-outer, 20.0, HILL_LEVEL_M), pt(outer, 20.0, HILL_LEVEL_M), pt(outer, 0.0, 0.0)], fill=255)
+    a = np.asarray(base).copy()
+    a[..., 3] = (a[..., 3].astype(np.float32) * (np.asarray(slot) / 255.0)).astype(np.uint8)
+    base = Image.fromarray(a, 'RGBA')
+    below_beam = along < 20.0 - BACK_BEAM_DEPTH_M
+    extrude(base, far * below_beam, slope, lift(slope, BACK_COPING_M), CONCRETE_SIDE, CONCRETE_TOP)
+
+    front = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+    near = ((across > half) & (across <= outer) & below_beam).astype(np.float32)
+    extrude(front, near, slope, lift(slope, BACK_COPING_M), CONCRETE_SIDE, CONCRETE_TOP)
+    beam = ((np.abs(across) <= outer + 0.3) & (along >= 20.0 - BACK_BEAM_DEPTH_M)).astype(np.float32)
+    top = HILL_LEVEL_M + BACK_BEAM_M
+    extrude(front, beam, (HILL_LEVEL_M - 0.3, 0.0, 0.0), (top, 0.0, 0.0), CONCRETE_SIDE, CONCRETE_TOP)
+    # the railing along the beam's cutting side: posts and two rails
+    d = ImageDraw.Draw(front)
+    b = 20.0 - BACK_BEAM_DEPTH_M + 0.25
+    span = outer + 0.1
+    for z in (top + BACK_RAIL_M, top + BACK_RAIL_M * 0.5):
+        d.line([pt(-span, b, z), pt(span, b, z)], fill=RAILING, width=3)
+    for x in np.linspace(-span, span, 9):
+        d.line([pt(x, b, top), pt(x, b, top + BACK_RAIL_M)], fill=RAILING, width=3)
+    return base, front
 
 
 def main():

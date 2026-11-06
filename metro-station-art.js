@@ -7,11 +7,11 @@ const METRO_ELEVATED_STATION_ART = Object.freeze({
     {
       "anchor": [
         261.8,
-        918.1
+        608.1
       ],
       "size": [
         390,
-        1089
+        773
       ],
       "base": {
         "key": "metro_elevated_station_x_0_base",
@@ -25,11 +25,11 @@ const METRO_ELEVATED_STATION_ART = Object.freeze({
     {
       "anchor": [
         127.8,
-        694.1
+        665.1
       ],
       "size": [
         256,
-        993
+        964
       ],
       "base": {
         "key": "metro_elevated_station_x_1_base",
@@ -43,11 +43,11 @@ const METRO_ELEVATED_STATION_ART = Object.freeze({
     {
       "anchor": [
         127.8,
-        695.1
+        725.1
       ],
       "size": [
         256,
-        1122
+        1152
       ],
       "base": {
         "key": "metro_elevated_station_x_2_base",
@@ -61,11 +61,11 @@ const METRO_ELEVATED_STATION_ART = Object.freeze({
     {
       "anchor": [
         127.8,
-        600.1
+        626.1
       ],
       "size": [
         256,
-        1123
+        1149
       ],
       "base": {
         "key": "metro_elevated_station_x_3_base",
@@ -79,11 +79,11 @@ const METRO_ELEVATED_STATION_ART = Object.freeze({
     {
       "anchor": [
         127.8,
-        520.1
+        549.1
       ],
       "size": [
         384,
-        1036
+        1065
       ],
       "base": {
         "key": "metro_elevated_station_x_4_base",
@@ -99,11 +99,11 @@ const METRO_ELEVATED_STATION_ART = Object.freeze({
     {
       "anchor": [
         256.2,
-        520.1
+        549.1
       ],
       "size": [
         384,
-        1036
+        1065
       ],
       "base": {
         "key": "metro_elevated_station_y_0_base",
@@ -117,11 +117,11 @@ const METRO_ELEVATED_STATION_ART = Object.freeze({
     {
       "anchor": [
         128.2,
-        600.1
+        626.1
       ],
       "size": [
         256,
-        1123
+        1149
       ],
       "base": {
         "key": "metro_elevated_station_y_1_base",
@@ -135,11 +135,11 @@ const METRO_ELEVATED_STATION_ART = Object.freeze({
     {
       "anchor": [
         128.2,
-        695.1
+        725.1
       ],
       "size": [
         256,
-        1122
+        1152
       ],
       "base": {
         "key": "metro_elevated_station_y_2_base",
@@ -153,11 +153,11 @@ const METRO_ELEVATED_STATION_ART = Object.freeze({
     {
       "anchor": [
         128.2,
-        694.1
+        665.1
       ],
       "size": [
         256,
-        993
+        964
       ],
       "base": {
         "key": "metro_elevated_station_y_3_base",
@@ -171,11 +171,11 @@ const METRO_ELEVATED_STATION_ART = Object.freeze({
     {
       "anchor": [
         128.2,
-        918.1
+        608.1
       ],
       "size": [
         390,
-        1089
+        773
       ],
       "base": {
         "key": "metro_elevated_station_y_4_base",

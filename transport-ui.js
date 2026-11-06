@@ -1123,7 +1123,7 @@ function handleTransportChecklistClick(event) {
 
 // ── The hint bar: what the tool in hand does, and what is under the pointer ──
 
-const TRANSPORT_HINT_TOOLS = new Set(['bus-stop', 'bus-depot', 'ferry-pier', 'ferry-route', 'metro-station', 'metro-line', 'metro-track', 'metro-elevated', 'metro-surface-station']);
+const TRANSPORT_HINT_TOOLS = new Set(['bus-stop', 'bus-depot', 'ferry-pier', 'ferry-route', 'metro-station', 'metro-line', 'metro-track', 'metro-surface-station']);
 let transportToolHintEl = null;
 let transportHintHover = null;
 
@@ -1171,6 +1171,10 @@ function getTransportToolHintText() {
   if (tool === 'ferry-route' && typeof ferryRouteDraft !== 'undefined' && ferryRouteDraft && typeof getFerryPierById === 'function') {
     const pier = getFerryPierById(ferryRouteDraft);
     if (pier) return { text: t('transport.hint.ferryRouteSecond', { name: pier.name || pier.id }), info, cancel: true };
+  }
+  // (the track tool's hint is the height's: 地底, 地面 or 高架)
+  if (tool === 'metro-track' && typeof getMetroRailHeight === 'function') {
+    return { text: t(`transport.hint.metro-track-${getMetroRailHeight()}`), info, cancel: true };
   }
   return { text: t(`transport.hint.${tool}`), info, cancel: true };
 }
@@ -2106,6 +2110,11 @@ function setupTransportUi() {
   document.addEventListener('languagechange', refreshTransportUi);
   document.addEventListener('keydown', handleTransportUiKeydown);
   document.getElementById('transport-topbar-tools')?.addEventListener('click', (event) => {
+    // 地底: the tunnels seen through the ground (metro-surface.js)
+    if (event.target.closest('#metro-underground-toggle')) {
+      if (typeof toggleMetroUndergroundView === 'function') toggleMetroUndergroundView();
+      return;
+    }
     const button = event.target.closest('[data-transport-topbar-panel]');
     if (!button) return;
     toggleTransportPanel(button.dataset.transportTopbarPanel);

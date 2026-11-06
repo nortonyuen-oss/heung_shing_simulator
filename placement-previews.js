@@ -156,15 +156,14 @@ function updateBuildingPlacementGuide(scene, pointer) {
     else drawFootprintGuide(scene, tile.row, tile.col, 1, 1, false);
     return;
   }
-  // 高架路軌: before the drag, the tile it would start from - a ramp's foot or a deck's end
-  if (selectedTool === 'metro-elevated' && typeof canLayMetroTrackAt === 'function') {
-    const k = `${tile.row}:${tile.col}`;
-    drawFootprintGuide(scene, tile.row, tile.col, 1, 1, canLayMetroTrackAt(tile.row, tile.col) || getMetroTrackElev()[k] === 'd');
-    return;
-  }
-  // 地鐵路軌: before the drag, the tile it would start from (metro-surface.js)
+  // 地鐵路軌: before the drag, the tile it would start from at the height picked - track to carry on
+  // from, or ground the height may be laid on (anywhere, 地底) (metro-surface.js)
   if (selectedTool === 'metro-track' && typeof canLayMetroTrackAt === 'function') {
-    drawFootprintGuide(scene, tile.row, tile.col, 1, 1, canLayMetroTrackAt(tile.row, tile.col) || isMetroTrackTile(tile.row, tile.col));
+    const height = typeof getMetroRailHeight === 'function' ? getMetroRailHeight() : 'ground';
+    const ok = isMetroTrackTile(tile.row, tile.col)
+      || (height === 'under' ? isInsideMap(tile.row, tile.col)
+        : height === 'deck' ? canDeckMetroTrackAt(tile.row, tile.col) : canLayMetroTrackAt(tile.row, tile.col));
+    drawFootprintGuide(scene, tile.row, tile.col, 1, 1, ok);
     return;
   }
   // 海鮮舫: green on the 4 x 3 it would moor on (it fits itself round the pointer), red where it may not

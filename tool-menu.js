@@ -71,13 +71,9 @@ function setupToolMenu() {
       const endTile = lastKnownTile ?? dragStartTile;
       commitRoadDrag(activeScene, dragStartTile, endTile);
     }
-    // 地鐵路軌: dragged straight or round one corner (metro-surface.js)
+    // 地鐵路軌: dragged straight or round one corner, at the height picked in the flyout (metro-surface.js)
     if (isPainting && dragStartTile && selectedTool === 'metro-track' && activeScene && typeof commitMetroTrackDrag === 'function') {
       commitMetroTrackDrag(activeScene, dragStartTile, lastKnownTile ?? dragStartTile);
-    }
-    // 高架路軌: the same, on a viaduct with a ramp at each end (metro-surface.js)
-    if (isPainting && dragStartTile && selectedTool === 'metro-elevated' && activeScene && typeof commitMetroElevatedDrag === 'function') {
-      commitMetroElevatedDrag(activeScene, dragStartTile, lastKnownTile ?? dragStartTile);
     }
     // 海底隧道: dragged from one shore across the sea to the other (undersea-tunnel.js)
     if (isPainting && dragStartTile && selectedTool === 'undersea-tunnel' && activeScene) {
@@ -225,6 +221,14 @@ function setupToolMenu() {
       updateParkToolUi();
       updateToolCategoryState(menu, selectedTool);
       closeToolPopups();
+      return;
+    }
+
+    // 地鐵路軌's height (metro-surface.js): picked, and the track tool taken up
+    const heightButton = event.target.closest('[data-metro-height]');
+    if (heightButton) {
+      if (typeof setMetroRailHeight === 'function') setMetroRailHeight(heightButton.dataset.metroHeight);
+      if (selectedTool !== 'metro-track') menu.querySelector('[data-tool="metro-track"]')?.click();
       return;
     }
 

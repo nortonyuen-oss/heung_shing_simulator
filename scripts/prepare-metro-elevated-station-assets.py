@@ -3,7 +3,7 @@
 
 - The footbridge off (it reaches out over the next tiles), the pier behind it finished down to the
   ground; under the deck squashed evenly (not cut: the concourse keeps its sign and windows) so the
-  track stands 17 m up, as the viaducts'; squared to 2:1 (its long lines are 0.30 steep) and scaled to
+  track stands as high as the viaducts' deck (20 m, three hill levels); squared to 2:1 (its long lines are 0.30 steep) and scaled to
   the 512-px tile, the platform about 90 m (four cars).
 - Two layers, so the trains run between them: the deck (the tracks, the parapets and all under the
   deck), then the island (the platform, all on it and the roof); the far track's trains go between
@@ -48,9 +48,15 @@ def ground_line(x):               # below all under the deck
     return 1120 - 0.30 * x
 
 
-SQUASH = 51                       # render px out from under the deck (see measure())
 SQUARE = 1 / (2 * 0.30)           # the render's long lines, 0.30 steep, to 2:1
 SCALE = 90 * 12.8 / (1620 - 298)  # the platform's front edge (x 298 to 1620) to 90 m
+# Squashed so the track stands as high as the viaducts' deck: unsquashed it is 244.07 S px up (170
+# with 51 render px out, the 17 m deck this was first measured at); each render px out takes
+# SQUARE * SCALE S px off.
+SQUASH_MEASURED = 51              # (the squash the S-space measurements below were taken at)
+TRACK_UNSQUASHED_S = 170 + SQUASH_MEASURED * SQUARE * SCALE
+SQUASH = (TRACK_UNSQUASHED_S - viaduct.DECK_M * viaduct.Z_PX) / (SQUARE * SCALE)
+SHIFT_S = (SQUASH - SQUASH_MEASURED) * SQUARE * SCALE   # all on the deck, down by this more
 
 
 def clean(a):
@@ -109,20 +115,23 @@ def render_s(amount=SQUASH):
 PX_M = 12.8
 # The middle is halfway between the tracks (the render's far track is 1.15 m further out than its
 # near one: the platform's middle, v 1085.4 on the track, is 0.58 m toward the near track).
-V0, U0 = 1085.4 - 0.575 * 12.8, 304.2  # (the platform's corners: floor front (268.3, 995) and
-X0, Y0 = V0 - U0, (U0 + V0) / 2        # (1415, 421.7), back (150, 933.3))
+# (measured at SQUASH_MEASURED: the platform's corners, floor front (268.3, 995) and (1415, 421.7),
+# back (150, 933.3); with another squash, all on the deck moved down SHIFT_S more)
+V0, U0 = 1085.4 - 0.575 * 12.8 + SHIFT_S, 304.2 + SHIFT_S
+X0, Y0 = V0 - U0, (U0 + V0) / 2
 FLOOR_PX = 16.7                   # the platform's floor above the track
 PLATFORM_NEAR_M = 4.72 + 0.575    # its near edge from the middle
 PLATFORM_HALF_L = 44.8
 TRACK_M = 7.03                    # each track from the middle (measured 6.45 + 0.575, 7.6 - 0.575)
 DECK_HALF_M = 10.0
 STATION_HALF_L = 50.0             # five tiles
-DECK_PX = viaduct.DECK_M * viaduct.Z_PX    # the track above the ground (170)
-ROOF_RIM_V = 958                  # below the roof's front rim: the gap where the far track shows
-FAR_TRAIN_V = 1012                # ... down to the platform's far edge
+DECK_PX = viaduct.DECK_M * viaduct.Z_PX    # the track above the ground
+ROOF_RIM_V = 958 + SHIFT_S        # below the roof's front rim: the gap where the far track shows
+FAR_TRAIN_V = 1012 + SHIFT_S      # ... down to the platform's far edge
 # things standing in the gap, in front of the far track (boxes in S: the escalators, the signs)
-GAP_THINGS = [(340, 700, 505, 895), (1040, 390, 1200, 555), (855, 530, 925, 595),
-              (1245, 330, 1320, 385), (605, 655, 685, 740)]
+GAP_THINGS = [(x0, round(y0 + SHIFT_S), x1, round(y1 + SHIFT_S)) for x0, y0, x1, y1 in
+              [(340, 700, 505, 895), (1040, 390, 1200, 555), (855, 530, 925, 595),
+               (1245, 330, 1320, 385), (605, 655, 685, 740)]]
 
 
 def coords(shape):

@@ -258,3 +258,18 @@ test('a big city\'s stations: riders past the knee grow slowly; the land round t
   const crowd = Array.from({ length: 500 }, () => ({ ...home, level: 3, tiles: 9 }));
   assert.equal(metroPropertyIncome([station], crowd, 2).get('s'), METRO.propertyStationCap * 2, 'the cap grows with it');
 });
+
+test('a save keeps the phase 4 levels: a 高架站 is an island, a 地底站 underground, the track up and down', () => {
+  const { normalizeMetroState } = loadMetro();
+  const state = normalizeMetroState({
+    stations: [
+      { id: 'a', row: 5, col: 5, surface: true, axis: 'we', elevated: true },
+      { id: 'b', row: 9, col: 5, surface: true, axis: 'ns', underground: true },
+      { id: 'c', row: 9, col: 9, underground: true },          // (not a track station: dropped)
+    ],
+    trackElev: { '1:1': 'd', '1:2': '3e', '2:2': 'u', '3:3': 'p4w', '4:4': 'p5w', '5:5': 'x' },
+  });
+  assert.deepEqual(state.stations.map((s) => [s.id, !!s.elevated, !!s.island, !!s.underground]),
+    [['a', true, true, false], ['b', false, false, true], ['c', false, false, false]]);
+  assert.deepEqual(state.trackElev, { '1:1': 'd', '1:2': '3e', '2:2': 'u', '3:3': 'p4w' });
+});

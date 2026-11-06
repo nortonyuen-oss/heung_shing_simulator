@@ -1,11 +1,12 @@
 """地鐵第三期 step 4: elevated track (Models/metroViaduct/), drawn in code like the track (Norton,
-2026-11-05: a separate 高架路軌 tool; the deck 8 m up, then 17 m to meet his elevated station).
+2026-11-05: a separate 高架路軌 tool; the deck 8 m up, then 17 m to meet his elevated station, then
+20 m - three hill levels - to meet a hilltop).
 
 - Deck pieces, one for each track layout a tile may hold (railway-track.js: the six bits, the X/Y
-  crossing, the two pairs of diagonals): the track tile's ballast, sleepers and rails 8 m up on a
+  crossing, the two pairs of diagonals): the track tile's ballast, sleepers and rails 20 m up on a
   concrete deck a little wider than the ballast, a 1.2 m parapet along each side, a square pier
   down to the ground under the middle of each track.
-- Ramp pieces, for X and Y, rising either way, in five steps (0 to 17 m over five tiles): the track
+- Ramp pieces, for X and Y, rising either way, in five steps (0 to 20 m over five tiles): the track
   on a slope over a solid embankment with retaining walls.
 - An elevated station's end tiles (the station itself: prepare-metro-elevated-station-assets.py):
   the deck narrowing from the station's and its tracks coming in from 7.03 m to the line's.
@@ -35,7 +36,8 @@ W, H = 512, 544
 TOP = 288                # the tile diamond's top corner, y (room above for the deck, 17 m up)
 N = track.TD             # top-down px a tile side (as the track's)
 Z_PX = 10.0              # px a metre up (as the platforms')
-DECK_M = 17.0            # Norton 2026-11-05: up from 8 m to meet his elevated station's track
+HILL_LEVEL_M = 13 * (512 / 100) / 10.0   # a terrain level (HEIGHT_STEP_PIXELS 13 at TILE_WIDTH 100), 6.656 m
+DECK_M = 3 * HILL_LEVEL_M  # Norton 2026-11-06: three hill levels (20 m), meeting a level-3 hilltop flush
 SLAB_M = 1.5
 PARAPET_M = 1.2
 PIER_M = 2.4             # a pier's side
@@ -148,11 +150,12 @@ def pier_mask(bits_tracks):
     return m
 
 
-def deck_piece(bits_tracks, rng):
+def deck_piece(bits_tracks, rng, foot=0.0):
+    """`foot`: the pier's foot, metres up (a low hill's ground under the deck)."""
     layers = track.draw_tile(bits_tracks, rng)
     deck, ring = deck_masks(bits_tracks)
     canvas = Image.new('RGBA', (W, H), (0, 0, 0, 0))
-    extrude(canvas, pier_mask(bits_tracks), (0.0, 0.0, 0.0), (DECK_M - SLAB_M, 0.0, 0.0), PIER * 0.85, PIER)
+    extrude(canvas, pier_mask(bits_tracks), (foot, 0.0, 0.0), (DECK_M - SLAB_M, 0.0, 0.0), PIER * 0.85, PIER)
     extrude(canvas, deck, (DECK_M - SLAB_M, 0.0, 0.0), (DECK_M, 0.0, 0.0), CONCRETE_SIDE, CONCRETE_TOP)
     canvas.alpha_composite(track_layers_image(layers, (DECK_M, 0.0, 0.0)))
     extrude(canvas, ring, (DECK_M, 0.0, 0.0), (DECK_M + PARAPET_M, 0.0, 0.0), CONCRETE_DARK, CONCRETE_TOP)
@@ -235,6 +238,229 @@ def spread_pieces(rng):
     return out
 
 
+# 隧道口 (phase 4 step 3): three tiles of trough going down 10 m over four, then the portal, its tunnel
+# roofed over. Each tile in two layers: the base (the paving round the trough, its far wall, the
+# floor and track; on the last trough tile, the headwall's face where it faces the viewer) and the
+# front (the near paving and wall top, drawn after the trains so they sink into the trough; on the
+# portal, the paving over the tunnel and the headwall's parapet).
+TUNNEL_M = 10.0
+PORTAL_TILES = 4
+PORTAL_H = 640                    # (taller than the viaduct's: the trough's floor is 7.5 m down)
+TROUGH_HALF_M = 4.8
+TROUGH_WALL_M = 0.5
+PAVING = np.array([158, 156, 150], np.float32)
+FLOOR = np.array([112, 110, 106], np.float32)
+
+
+def to_canvas(col_m, row_m, z):
+    """A point (top-down metres on the tile, z up) to the canvas, as warp() maps them."""
+    x = W / 2 + (W / 2) * (col_m - row_m) / track.TILE_M
+    y = TOP + (W / 4) * (col_m + row_m) / track.TILE_M - Z_PX * z
+    return x, y
+
+
+def diamond_clip(img, axis=None):
+    """What lies outside the tile's diamond off (below the ground, the next tile hides it) - but
+    for the trough's opening along `axis` (X along row, Y along col), through which its floor shows."""
+    m = Image.new('L', img.size, 0)
+    d = ImageDraw.Draw(m)
+    d.polygon([(W / 2, TOP), (W, TOP + W / 4), (W / 2, TOP + W / 2), (0, TOP + W / 4)], fill=255)
+    if axis:
+        h = TROUGH_HALF_M + TROUGH_WALL_M
+        pt = (lambda a, b: to_canvas(10.0 + a, b, 0.0)) if axis == 'X' else (lambda a, b: to_canvas(b, 10.0 + a, 0.0))
+        d.polygon([pt(-h, -40.0), pt(-h, 60.0), pt(h, 60.0), pt(h, -40.0)], fill=255)
+    a = np.asarray(img).copy()
+    a[..., 3] = (a[..., 3].astype(np.float32) * (np.asarray(m) / 255.0)).astype(np.uint8)
+    return Image.fromarray(a, 'RGBA')
+
+
+def portal_plane(axis, down, step):
+    """The floor of a portal tile: (h0, per metre along col, per metre along row), 0 at the ground."""
+    hi, lo = -(step - 1) / PORTAL_TILES * TUNNEL_M, -step / PORTAL_TILES * TUNNEL_M
+    fall = (hi - lo) / track.TILE_M
+    return {'n': (lo, 0.0, fall), 's': (hi, 0.0, -fall), 'w': (lo, fall, 0.0), 'e': (hi, -fall, 0.0)}[down]
+
+
+def portal_pieces(axis, down, step, rng):
+    """(base, front) for the tile `step` (1..3 trough, 4 the portal) going down towards `down`, on a
+    512 x 640 canvas, the tile's centre on the ground at (256, 416)."""
+    global H
+    saved, H = H, PORTAL_H
+    try:
+        return _portal_pieces(axis, down, step, rng)
+    finally:
+        H = saved
+
+
+def _portal_pieces(axis, down, step, rng):
+    base = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+    front = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+    inner = band_mask(axis, lambda bb: np.full_like(bb, TROUGH_HALF_M))
+    outer = band_mask(axis, lambda bb: np.full_like(bb, TROUGH_HALF_M + TROUGH_WALL_M))
+    whole = np.ones((SOLID_N, SOLID_N), np.float32)
+    n = SOLID_N
+    m = (np.arange(n) + 0.5) / n * track.TILE_M
+    C, R = np.meshgrid(m, m)
+    across = (C - 10.0) if axis == 'X' else (R - 10.0)
+    near_wall = ((across > TROUGH_HALF_M) & (across <= TROUGH_HALF_M + TROUGH_WALL_M)).astype(np.float32)
+    far_wall = ((across < -TROUGH_HALF_M) & (across >= -TROUGH_HALF_M - TROUGH_WALL_M)).astype(np.float32)
+    paving = 1.0 - outer
+    near_paving = (across > TROUGH_HALF_M + TROUGH_WALL_M).astype(np.float32)
+    ground = (0.0, 0.0, 0.0)
+
+    def flat(canvas, mask, colour, plane):
+        rgba = np.zeros((SOLID_N, SOLID_N, 4), np.float32)
+        rgba[..., :3] = colour
+        rgba[..., 3] = mask * 255
+        canvas.alpha_composite(warp(rgba, plane))
+
+    if step < PORTAL_TILES:
+        plane = portal_plane(axis, down, step)
+        flat(base, inner, FLOOR, plane)
+        base.alpha_composite(track_layers_image(track.draw_tile([axis], rng), plane))
+        extrude(base, far_wall, plane, ground, CONCRETE_SIDE, CONCRETE_TOP)
+        extrude(base, near_wall, plane, ground, CONCRETE_SIDE, CONCRETE_TOP)
+        # the headwall's face at the trough's end, facing the viewer (the portal up-right or up-left)
+        if step == PORTAL_TILES - 1 and down in ('n', 'w'):
+            floor_z = -step / PORTAL_TILES * TUNNEL_M
+            edge = 0.0
+            wall = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+            d = ImageDraw.Draw(wall)
+            pt = (lambda a, z: to_canvas(10.0 + a, edge, z)) if axis == 'X' else (lambda a, z: to_canvas(edge, 10.0 + a, z))
+            half = TROUGH_HALF_M + TROUGH_WALL_M
+            d.polygon([pt(-half, 0.0), pt(half, 0.0), pt(half, floor_z), pt(-half, floor_z)], fill=tuple(int(v) for v in CONCRETE_SIDE) + (255,))
+            # the opening: an arch over the track, dark inside
+            arch = [pt(a, floor_z + 4.2 + 1.3 * np.sqrt(max(0.0, 1 - (a / 4.0) ** 2))) for a in np.linspace(-4.0, 4.0, 17)]
+            d.polygon([pt(-4.0, floor_z)] + arch + [pt(4.0, floor_z)], fill=(18, 18, 20, 255))
+            base.alpha_composite(wall)
+        flat(base, paving, PAVING, ground)
+        base = diamond_clip(base, axis)
+        flat(front, near_paving, PAVING, ground)
+        rgba = np.zeros((SOLID_N, SOLID_N, 4), np.float32)
+        rgba[..., :3] = CONCRETE_TOP
+        rgba[..., 3] = near_wall * 255
+        front.alpha_composite(warp(rgba, ground))
+        front = diamond_clip(front)
+    else:
+        # the portal: paved over the tunnel, the headwall's parapet along the trough's end
+        flat(front, whole, PAVING, ground)
+        up_edge = {'n': 20.0, 's': 0.0, 'w': 20.0, 'e': 0.0}[down]
+        t = 0.5
+        if axis == 'X':
+            par = ((np.abs(C - 10.0) <= TROUGH_HALF_M + TROUGH_WALL_M) & (np.abs(R - up_edge) <= t)).astype(np.float32)
+        else:
+            par = ((np.abs(R - 10.0) <= TROUGH_HALF_M + TROUGH_WALL_M) & (np.abs(C - up_edge) <= t)).astype(np.float32)
+        front = diamond_clip(front)
+        extrude(front, par, ground, (1.0, 0.0, 0.0), CONCRETE_SIDE, CONCRETE_TOP)
+    return base, front
+
+
+def portal_set(rng):
+    """metro_portal_{x|y}_{down}{step} (and _front): X goes down n or s, Y w or e."""
+    out = []
+    for axis, downs in (('X', ('n', 's')), ('Y', ('w', 'e'))):
+        for down in downs:
+            for step in range(1, PORTAL_TILES + 1):
+                b, f = portal_pieces(axis, down, step, rng)
+                name = f'metro_portal_{axis.lower()}_{down}{step}'
+                if step < PORTAL_TILES:
+                    b.save(OUT / f'{name}.png')
+                f.save(OUT / f'{name}_front.png')
+                both = b.copy(); both.alpha_composite(f)
+                out.append((name, both))
+                print(name)
+    return out
+
+
+# A deck at any height (Norton, 2026-11-06: as high as its end - three levels over the ground it
+# starts from): its pictures without piers (_np), the piers drawn apart (metro_pier_{k}, k half
+# levels long) under it, down to whatever ground is there.
+def deck_no_piers(layouts, rng):
+    for mask in (1, 2, 4, 8, 16, 32, 0x03, 0x0c, 0x30):
+        name = layouts[mask]['asset'].replace('metro_track_', 'metro_viaduct_')
+        deck_piece(layouts[mask]['tracks'], rng, foot=DECK_M - SLAB_M).save(OUT / f'{name}_np.png')
+        print(name, 'no piers')
+
+
+PIER_IMG_W = 72
+
+
+def piers():
+    """metro_pier_{k}: a pier k half levels long (1..24), its foot's middle at (36, length + 18)."""
+    half = PIER_M / 2
+    dx, dy = 2 * half * (W / 2) / track.TILE_M, 2 * half * (W / 4) / track.TILE_M
+    for k in range(1, 25):
+        length = k * HILL_LEVEL_M / 2 * Z_PX
+        img = Image.new('RGBA', (PIER_IMG_W, int(length + 40)), (0, 0, 0, 0))
+        d = ImageDraw.Draw(img)
+        fx, fy = PIER_IMG_W / 2, length + 18          # the foot's middle
+        left, bottom, right = (fx - dx, fy), (fx, fy + dy), (fx + dx, fy)
+        up = lambda p: (p[0], p[1] - length)
+        d.polygon([left, bottom, up(bottom), up(left)], fill=tuple(int(v) for v in PIER * 0.85) + (255,))
+        d.polygon([bottom, right, up(right), up(bottom)], fill=tuple(int(v) for v in PIER * 0.7) + (255,))
+        img.save(OUT / f'metro_pier_{k}.png')
+    print('piers')
+
+
+# Ground track up a hillside (OpenTTD: a tile of slope, a level up): the track on the slope's plane,
+# rising towards `up` - from the ground at the tile's low edge to a level up at its high one.
+def slope_tracks(rng):
+    rise = HILL_LEVEL_M / track.TILE_M
+    for axis, ups in (('X', ('n', 's')), ('Y', ('w', 'e'))):
+        layers = track.draw_tile([axis], rng)
+        for up in ups:
+            plane = {'n': (HILL_LEVEL_M, 0.0, -rise), 's': (0.0, 0.0, rise), 'w': (HILL_LEVEL_M, -rise, 0.0), 'e': (0.0, rise, 0.0)}[up]
+            track_layers_image(layers, plane).save(OUT / f'metro_track_slope_{up}.png')
+            print('slope', up)
+
+
+# 穿山隧道 (OpenTTD's tunnel): its mouth on a hillside tile - the hillside cut back to the level of
+# its foot, the track running in, and the portal at the tile's edge into the hill; seen from the
+# front (the hill rising away, the portal facing the viewer: out towards s or e as drawn) its
+# headwall and arch; from behind (out towards n or w) only the cutting.
+def hill_tunnels(rng):
+    n = SOLID_N
+    m = (np.arange(n) + 0.5) / n * track.TILE_M
+    C, R = np.meshgrid(m, m)
+    ground = (0.0, 0.0, 0.0)
+    for axis, outs in (('X', ('n', 's')), ('Y', ('w', 'e'))):
+        layers = track.draw_tile([axis], rng)
+        for out in outs:
+            canvas = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+            rgba = np.zeros((n, n, 4), np.float32)
+            rgba[..., :3] = PAVING
+            rgba[..., 3] = 255
+            canvas.alpha_composite(warp(rgba, ground))
+            canvas.alpha_composite(track_layers_image(layers, ground))
+            if out in ('s', 'e'):
+                # the portal at the inner edge (n, w), facing out: from the floor up past the hill's top
+                top = HILL_LEVEL_M + 2.2
+                if axis == 'X':
+                    wall = ((R <= 0.9)).astype(np.float32)
+                    pt = lambda a, z: to_canvas(10.0 + a, 0.9, z)
+                else:
+                    wall = ((C <= 0.9)).astype(np.float32)
+                    pt = lambda a, z: to_canvas(0.9, 10.0 + a, z)
+                extrude(canvas, wall, ground, (top, 0.0, 0.0), CONCRETE_SIDE, CONCRETE_TOP)
+                d = ImageDraw.Draw(canvas)
+                arch = [pt(a, 4.6 + 1.4 * np.sqrt(max(0.0, 1 - (a / 4.4) ** 2))) for a in np.linspace(-4.4, 4.4, 19)]
+                d.polygon([pt(-4.4, 0.0)] + arch + [pt(4.4, 0.0)], fill=(18, 18, 20, 255))
+            else:
+                # (the hill rises towards the viewer: the strip the higher tile in front covers, off)
+                canvas = diamond_clip(canvas)
+                a = np.asarray(canvas).copy()
+                lift = HILL_LEVEL_M * Z_PX
+                mk = Image.new('L', canvas.size, 255)
+                dd = ImageDraw.Draw(mk)
+                # the neighbour inside the hill, one level up: s for an X tile going out n, e for Y going out w
+                off = (-W / 2, W / 4 - lift) if axis == 'X' else (W / 2, W / 4 - lift)
+                dd.polygon([(W / 2 + off[0], TOP + off[1]), (W + off[0], TOP + W / 4 + off[1]), (W / 2 + off[0], TOP + W / 2 + off[1]), (off[0], TOP + W / 4 + off[1])], fill=0)
+                a[..., 3] = (a[..., 3].astype(np.float32) * (np.asarray(mk) / 255.0)).astype(np.uint8)
+                canvas = Image.fromarray(a, 'RGBA')
+            canvas.save(OUT / f'metro_hilltunnel_{out}.png')
+            print('hill tunnel', out)
+
+
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     rng = np.random.default_rng(20261105)
@@ -248,6 +474,7 @@ def main():
         img.save(OUT / f'{name}.png')
         pieces.append((name, img))
         print(name)
+    deck_no_piers(layouts, rng)
     for axis, ups in (('X', ('n', 's')), ('Y', ('w', 'e'))):
         for up in ups:
             for step in range(1, RAMP_STEPS + 1):
@@ -257,6 +484,7 @@ def main():
                 pieces.append((name, img))
                 print(name)
     pieces += spread_pieces(rng)
+    pieces += portal_set(rng)
     sheet = Image.new('RGBA', (7 * 260, 5 * 190), (96, 108, 82, 255))
     for i, (name, img) in enumerate(pieces):
         sheet.alpha_composite(img.resize((256, 176), Image.LANCZOS), ((i % 7) * 260, (i // 7) * 190))
@@ -267,5 +495,22 @@ if __name__ == '__main__':
     if '--spread' in sys.argv:     # the station's end tiles only
         OUT.mkdir(parents=True, exist_ok=True)
         spread_pieces(np.random.default_rng(20261105))
+    elif '--hills' in sys.argv:     # the decks without piers, the piers, the slope track, the hill tunnels
+        OUT.mkdir(parents=True, exist_ok=True)
+        script = "const t = require('./railway-track'); console.log(JSON.stringify(t.RAILWAY_TRACK_LAYOUTS))"
+        layouts = {l['mask']: l for l in json.loads(subprocess.check_output(['node', '-e', script], cwd=ROOT))}
+        rng = np.random.default_rng(20261106)
+        deck_no_piers(layouts, rng)
+        piers()
+        slope_tracks(rng)
+        hill_tunnels(rng)
+    elif '--portal' in sys.argv:   # the tunnel portals only
+        OUT.mkdir(parents=True, exist_ok=True)
+        rng = np.random.default_rng(20261106)
+        made = portal_set(rng)
+        sheet = Image.new('RGBA', (4 * 260, 4 * 330), (96, 108, 82, 255))
+        for i, (name, img) in enumerate(made):
+            sheet.alpha_composite(img.resize((256, 320), Image.LANCZOS), ((i % 4) * 260, (i // 4) * 330))
+        sheet.save(ROOT / 'docs/assets/metro-portal-preview.png')
     else:
         main()

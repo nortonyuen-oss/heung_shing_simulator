@@ -76,7 +76,12 @@ function normalizeMetroState(raw) {
       id: String(s.id).slice(0, 40), row, col,
       facing: METRO_DIRS[s.facing] ? s.facing : 's',
       // 第三期: a platform on the surface track (metro-surface-lines.js), along `axis`, not an entrance
-      ...(s.surface === true ? { surface: true, axis: s.axis === 'we' ? 'we' : 'ns', ...(s.elevated === true ? { elevated: true } : {}) } : {}),
+      ...(s.surface === true ? {
+        surface: true, axis: s.axis === 'we' ? 'we' : 'ns',
+        ...(s.elevated === true ? { elevated: true, island: true } : {}),
+        // phase 4: in a tunnel, its entrance on the ground over the middle tile
+        ...(s.underground === true && s.elevated !== true ? { underground: true } : {}),
+      } : {}),
       name: String(s.name || '').slice(0, 40),
       // its queue for each line that calls (fractional, so a quiet station's few riders an hour
       // still add up), and of those the riders come from another line, who have paid to board
@@ -154,9 +159,11 @@ function normalizeMetroState(raw) {
     // 第三期 surface track (metro-surface.js): "row:col" -> the tile's TrackBits (railway-track.js)
     tracks: Object.fromEntries(Object.entries(src.tracks && typeof src.tracks === 'object' && !Array.isArray(src.tracks) ? src.tracks : {})
       .filter(([k, v]) => /^\d+:\d+$/.test(k) && Number.isInteger(v) && v > 0 && v < 64)),
-    // and which of it is elevated (step 4): "row:col" -> 'd' (the deck) or a ramp step `${1..5}${up side}`
+    // and which of it is elevated (step 4) or underground (phase 4): "row:col" -> 'd' (the deck), a
+    // deck `d${level}`, a ramp step `${1..5}${up side}`, 'u' (a tunnel), a portal's tile
+    // `p${1..4}${down side}`, or a hill tunnel (OpenTTD's): `t${level}` inside, `T${level}${out}` its mouth
     trackElev: Object.fromEntries(Object.entries(src.trackElev && typeof src.trackElev === 'object' && !Array.isArray(src.trackElev) ? src.trackElev : {})
-      .filter(([k, v]) => /^\d+:\d+$/.test(k) && typeof v === 'string' && /^(d|[1-5][nesw])$/.test(v))),
+      .filter(([k, v]) => /^\d+:\d+$/.test(k) && typeof v === 'string' && /^(d\d?|[1-5][nesw]|u|p[1-4][nesw]|t\d|T\d[nesw])$/.test(v))),
   };
 }
 
@@ -237,8 +244,8 @@ function getMetroStationAt(row, col) {
   if (typeof getTransportExpansionState !== 'function') return null;
   const transport = getTransportExpansionState();
   return transport?.metro?.stations?.find((s) => (s.row === row && s.col === col)
-    // a surface station's platform runs five tiles
-    || (s.surface && typeof surfaceStationTiles === 'function' && surfaceStationTiles(s).some(([r, c]) => r === row && c === col))) || null;
+    // a surface station's platform runs five tiles (a 地底站's under the ground: only its entrance here)
+    || (s.surface && !s.underground && typeof surfaceStationTiles === 'function' && surfaceStationTiles(s).some(([r, c]) => r === row && c === col))) || null;
 }
 
 // A station's entrance stands here: no road, building or zone goes on it.
@@ -1063,7 +1070,8 @@ function syncMetroStations(scene) {
   if (!scene.metroStationSprites) scene.metroStationSprites = new Map();
   // (a surface station is a platform, drawn by syncMetroPlatforms: metro-surface-lines.js)
   if (typeof syncMetroPlatforms === 'function') syncMetroPlatforms(scene);
-  const stations = (getTransportExpansionState()?.metro?.stations || []).filter((s) => !s.surface);
+  // (and a 地底站's entrance, as these)
+  const stations = (getTransportExpansionState()?.metro?.stations || []).filter((s) => !s.surface || s.underground);
   const ids = new Set(stations.map((s) => s.id));
   scene.metroStationSprites.forEach((sprite, id) => { if (!ids.has(id)) { sprite.destroy(); scene.metroStationSprites.delete(id); } });
   stations.forEach((station) => {

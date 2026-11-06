@@ -1917,6 +1917,39 @@
       display: none !important;
     }
 
+    /* 地鐵路軌's height (A列車式): 地底 / 地面 / 高架, a segmented control over the track tool */
+    .metro-height-picker {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 3px;
+    }
+
+    .metro-height-picker button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      min-height: 30px;
+      padding: 3px 4px;
+      border: 1px solid #7f8d9d;
+      background: #dde5ee;
+      color: #26313d;
+      font: inherit;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .metro-height-picker button:hover {
+      background: #f7f9fc;
+    }
+
+    .metro-height-picker button.is-active {
+      background: #3d6cb1;
+      border-color: #2b4f86;
+      color: #fff;
+    }
+
     .tool-button:hover {
       background: #f8f0d2;
     }
@@ -6612,6 +6645,7 @@
           <button type="button" data-transport-topbar-panel="fleet" title="Every bus and ferry; buy buses (2)" data-i18n-title="transport.nav.fleetTitle"><span aria-hidden="true">🚌</span><span data-i18n="transport.nav.fleet">Fleet</span></button>
           <button type="button" data-transport-topbar-panel="demand" title="Riders waiting at each stop (3)" data-i18n-title="transport.nav.demandTitle"><span aria-hidden="true">👥</span><span data-i18n="transport.nav.demand">Riders</span></button>
           <button type="button" data-transport-topbar-panel="finances" title="Profit and loss, monthly records, company (4)" data-i18n-title="transport.nav.financesTitle"><span aria-hidden="true">📊</span><span data-i18n="transport.nav.finances">Finances</span></button>
+          <button type="button" id="metro-underground-toggle" aria-pressed="false" title="See the tunnels, underground stations and their trains" data-i18n-title="transport.nav.undergroundTitle"><span aria-hidden="true">⛏</span><span data-i18n="transport.nav.underground">Underground</span></button>
         </div>
 
         <button id="topbar-more-btn" type="button" aria-label="Open menu" title="More" data-i18n-aria="topbar.openMenu" data-i18n-title="topbar.more">☰</button>
@@ -7315,31 +7349,37 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
 
     <section class="tool-flyout transport-tool-flyout" data-tool-panel="transport-metro">
       <div class="tool-flyout-title" data-i18n="toolCategory.metroTitle">Metro</div>
-      <button class="tool-row" type="button" data-tool="metro-station">
-        <span class="tool-row-icon">Ⓜ️</span>
-        <span class="tool-row-main"><span class="tool-row-text" data-i18n="toolRow.metroStation">Metro Station</span><span class="tool-row-desc" data-i18n="toolRow.metroStationDesc">1 × 1 entrance beside a road; serves 10 tiles round it</span></span>
-        <span class="tool-row-cost">$15,000</span>
-      </button>
-      <button class="tool-row" type="button" data-tool="metro-line">
-        <span class="tool-row-icon">➕</span>
-        <span class="tool-row-main"><span class="tool-row-text" data-i18n="toolRow.metroLine">Metro Line</span><span class="tool-row-desc" data-i18n="toolRow.metroLineDesc">Click station after station; tunnels $300 a tile, $700 under the sea</span></span>
-        <span class="tool-row-cost">$5,000</span>
-      </button>
-      <button class="tool-row" type="button" data-tool="metro-track">
-        <span class="tool-row-icon">🛤️</span>
-        <span class="tool-row-main"><span class="tool-row-text" data-i18n="toolRow.metroTrack">Surface Track</span><span class="tool-row-desc" data-i18n="toolRow.metroTrackDesc">Drag on open ground, straight or round one corner (a 2 × 2 curve)</span></span>
-        <span class="tool-row-cost">$500</span>
-      </button>
-      <button class="tool-row" type="button" data-tool="metro-elevated">
-        <span class="tool-row-icon">🌉</span>
-        <span class="tool-row-main"><span class="tool-row-text" data-i18n="toolRow.metroElevated">Elevated Track</span><span class="tool-row-desc" data-i18n="toolRow.metroElevatedDesc">A viaduct 8 m up over roads and open ground; three-tile ramps at each end</span></span>
-        <span class="tool-row-cost">$2,000</span>
-      </button>
-      <button class="tool-row" type="button" data-tool="metro-surface-station">
-        <span class="tool-row-icon">🚉</span>
-        <span class="tool-row-main"><span class="tool-row-text" data-i18n="toolRow.metroSurfaceStation">Surface Station</span><span class="tool-row-desc" data-i18n="toolRow.metroSurfaceStationDesc">Platforms on five straight track tiles; click the middle one</span></span>
-        <span class="tool-row-cost">$8,000</span>
-      </button>
+      <button class="tool-row tool-group-row" type="button" data-tool-group="metro-stations"><span class="tool-row-icon">➕</span><span class="tool-row-text" data-i18n="metroGroup.stations">Lines</span><span class="tool-group-chevron">▶</span></button>
+      <div class="tool-group-items" data-tool-group-items="metro-stations" hidden>
+        <button class="tool-row" type="button" data-tool="metro-line">
+          <span class="tool-row-icon">➕</span>
+          <span class="tool-row-main"><span class="tool-row-text" data-i18n="toolRow.metroLine">Metro Line</span><span class="tool-row-desc" data-i18n="toolRow.metroLineDesc">Click station after station; tunnels $300 a tile, $700 under the sea</span></span>
+          <span class="tool-row-cost">$5,000</span>
+        </button>
+        <button class="tool-row" type="button" data-tool="metro-station">
+          <span class="tool-row-icon">Ⓜ️</span>
+          <span class="tool-row-main"><span class="tool-row-text" data-i18n="toolRow.metroStation">Metro Station</span><span class="tool-row-desc" data-i18n="toolRow.metroStationDesc">1 × 1 entrance beside a road; serves 10 tiles round it</span></span>
+          <span class="tool-row-cost">$15,000</span>
+        </button>
+      </div>
+      <button class="tool-row tool-group-row" type="button" data-tool-group="metro-rail"><span class="tool-row-icon">🛤️</span><span class="tool-row-text" data-i18n="metroGroup.track">Track</span><span class="tool-group-chevron">▶</span></button>
+      <div class="tool-group-items" data-tool-group-items="metro-rail" hidden>
+        <div class="metro-height-picker" role="radiogroup" title="Height" data-i18n-title="metroHeight.label">
+          <button type="button" role="radio" aria-checked="false" data-metro-height="under"><span aria-hidden="true">⛏</span><span data-i18n="metroHeight.under">Underground</span></button>
+          <button type="button" role="radio" aria-checked="true" class="is-active" data-metro-height="ground"><span aria-hidden="true">🛤️</span><span data-i18n="metroHeight.ground">Ground</span></button>
+          <button type="button" role="radio" aria-checked="false" data-metro-height="deck"><span aria-hidden="true">🌉</span><span data-i18n="metroHeight.deck">Elevated</span></button>
+        </div>
+        <button class="tool-row" type="button" data-tool="metro-track">
+          <span class="tool-row-icon">🛤️</span>
+          <span class="tool-row-main"><span class="tool-row-text" data-i18n="toolRow.metroTrack">Track</span><span class="tool-row-desc" data-i18n="toolRow.metroTrackDesc">Drag at the height picked above; viaducts, tunnels, ramps and portals come by themselves</span></span>
+          <span class="tool-row-cost">$500+</span>
+        </button>
+        <button class="tool-row" type="button" data-tool="metro-surface-station">
+          <span class="tool-row-icon">🚉</span>
+          <span class="tool-row-main"><span class="tool-row-text" data-i18n="toolRow.metroSurfaceStation">Station</span><span class="tool-row-desc" data-i18n="toolRow.metroSurfaceStationDesc">Click the middle of five straight track tiles: a ground, elevated or underground station</span></span>
+          <span class="tool-row-cost">$8,000+</span>
+        </button>
+      </div>
     </section>
 
     <section class="tool-flyout" data-tool-panel="zones">

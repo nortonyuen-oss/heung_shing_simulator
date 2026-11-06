@@ -1016,12 +1016,16 @@ function applyMetroCityEffects({ landValueBonus, buildingModeShare, residentialB
 // mirrored, down-right and up-left: the four ways to a road. `anchor` is the middle of the
 // plinth's diamond and `pavingWidth` its width, in the picture's pixels.
 const METRO_STATION_ART = Object.freeze({
-  front: { path: 'Models/subwayStation/subwayStation.png', key: 'metro_station_front', anchor: [512, 761], pavingWidth: 1000 },
-  back: { path: 'Models/subwayStation/subwayStationBack.png', key: 'metro_station_back', anchor: [512, 761], pavingWidth: 1000 },
+  // (`lit`: its inside and lightbox, over it at night - scripts/prepare-subway-station-night.py)
+  front: { path: 'Models/subwayStation/subwayStation.png', key: 'metro_station_front', anchor: [512, 761], pavingWidth: 1000,
+    lit: { path: 'Models/subwayStation/subwayStation_lit.png', key: 'metro_station_front_lit' } },
+  back: { path: 'Models/subwayStation/subwayStationBack.png', key: 'metro_station_back', anchor: [512, 761], pavingWidth: 1000,
+    lit: { path: 'Models/subwayStation/subwayStationBack_lit.png', key: 'metro_station_back_lit' } },
 });
 
 function loadMetroStationTextures(scene) {
-  const missing = Object.values(METRO_STATION_ART).filter((view) => !scene.textures.exists(view.key));
+  const missing = Object.values(METRO_STATION_ART).flatMap((view) => [view, ...(view.lit ? [view.lit] : [])])
+    .filter((view) => !scene.textures.exists(view.key));
   if (!scene?.textures || !missing.length) return Promise.resolve(true);
   return new Promise((resolve) => {
     const start = () => {
@@ -1061,6 +1065,32 @@ function placeMetroStationSprite(scene, station, sprite) {
   sprite.setDepth(getBuildingSortDepth(pos.y, 1, 1, getBuildingElevationOffset(station.row, station.col, 1, 1)));
   // dark at night with the ground, from the moment it is built (day-night-lighting.js)
   if (typeof applyNightPropTint === 'function') applyNightPropTint(scene, sprite);
+  // its inside lit at night, over it (Norton, 2026-11-06: as the 高架站 - the stairwell as by day)
+  if (view.lit && scene.textures.exists(view.lit.key)) {
+    let lit = sprite.__lit;
+    if (!lit) {
+      lit = scene.add.image(0, 0, view.lit.key);
+      addToRenderLayer(scene, lit, 'objectLayer');
+      if (scene.worldMask) lit.setMask(scene.worldMask);
+      lit.__nightNone = true;
+      sprite.__lit = lit;
+    } else if (lit.texture.key !== view.lit.key) lit.setTexture(view.lit.key);
+    // (its own anchor: it may be staged - trimmed, padded - differently from the entrance's picture)
+    const litSource = scene.textures.get(view.lit.key).getSourceImage();
+    const la = typeof getPropTextureAnchor === 'function'
+      ? getPropTextureAnchor(view.lit.path, view.anchor[0], view.anchor[1], litSource)
+      : { originX: view.anchor[0] / litSource.width, originY: view.anchor[1] / litSource.height, scaleMultiplier: 1 };
+    lit.setFlipX(mirrored).setOrigin(mirrored ? 1 - la.originX : la.originX, la.originY)
+      .setScale((TILE_WIDTH / view.pavingWidth) * la.scaleMultiplier).setPosition(sprite.x, sprite.y);
+    lit.setDepth(sprite.depth + 0.001);
+    updateMetroEntranceLight(scene, lit);
+  }
+}
+
+function updateMetroEntranceLight(scene, lit) {
+  const strength = Math.max(0, Math.min(1, Number(scene.buildingLightStrength) || 0));
+  lit.setAlpha(strength);
+  lit.setVisible(strength > 0.01);
 }
 
 // The entrances as sprites, made or moved to match the stations (after a station is built or
@@ -1075,7 +1105,7 @@ function syncMetroStations(scene) {
   // (and a 地底站's entrance, as these)
   const stations = (getTransportExpansionState()?.metro?.stations || []).filter((s) => !s.surface || s.underground);
   const ids = new Set(stations.map((s) => s.id));
-  scene.metroStationSprites.forEach((sprite, id) => { if (!ids.has(id)) { sprite.destroy(); scene.metroStationSprites.delete(id); } });
+  scene.metroStationSprites.forEach((sprite, id) => { if (!ids.has(id)) { sprite.__lit?.destroy(); sprite.destroy(); scene.metroStationSprites.delete(id); } });
   stations.forEach((station) => {
     let sprite = scene.metroStationSprites.get(station.id);
     if (!sprite) {
@@ -1095,7 +1125,7 @@ function syncMetroStations(scene) {
 function clearMetroSprites(scene) {
   if (typeof clearMetroTrackSprites === 'function') clearMetroTrackSprites(scene);
   if (typeof clearMetroSurfaceSprites === 'function') clearMetroSurfaceSprites(scene);
-  scene?.metroStationSprites?.forEach((sprite) => sprite.destroy());
+  scene?.metroStationSprites?.forEach((sprite) => { sprite.__lit?.destroy(); sprite.destroy(); });
   if (scene) scene.metroStationSprites = new Map();
   scene?.metroOverlayGraphic?.clear();
 }

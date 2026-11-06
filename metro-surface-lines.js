@@ -722,6 +722,8 @@ function updateMetroStationLights(scene) {
   if (scene.__metroStationLightStrength === strength) return;
   scene.__metroStationLightStrength = strength;
   scene.metroPlatformSprites?.forEach((s) => { if (s.__stationLight) updateMetroStationLight(scene, s); });
+  // and the 地底站 entrances' (metro.js)
+  scene.metroStationSprites?.forEach((s) => { if (s.__lit && typeof updateMetroEntranceLight === 'function') updateMetroEntranceLight(scene, s.__lit); });
 }
 
 // A 高架站's five tiles and the strip of its picture each takes (metro-station-art.js): left to right
@@ -1020,7 +1022,7 @@ function updateMetroSurfaceTrains(scene) {
   if (!scene?.add || typeof getTransportExpansionState !== 'function' || !getTransportExpansionState()?.metro) return;
   if (typeof refreshMetroUndergroundView === 'function') refreshMetroUndergroundView(scene);
   if (!scene.metroTrainSprites) scene.metroTrainSprites = new Map();
-  if (scene.metroPlatformSprites) updateMetroStationLights(scene);
+  if (scene.metroPlatformSprites || scene.metroStationSprites) updateMetroStationLights(scene);
   const state = getMetroState();
   const surfaceLines = state.lines.filter((l) => l.surface && l.status === 'active');
   // the termini's crossovers follow the lines: drawn again when a line or the track changes

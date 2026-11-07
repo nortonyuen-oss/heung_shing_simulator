@@ -1181,6 +1181,7 @@ function updateMetroSurfaceTrains(scene) {
           ? getPropTextureAnchor(art.path, art.anchor[0], art.anchor[1], src)
           : { originX: art.anchor[0] / src.width, originY: art.anchor[1] / src.height, scaleMultiplier: 1 };
         sprite.setOrigin(anchor.originX, anchor.originY);
+        sprite.__artScale = anchor.scaleMultiplier || 1;
         sprite.setScale((TILE_WIDTH / 512) * anchor.scaleMultiplier * METRO_SURFACE.carDrawScale);
         const at = metroSurfaceScreenAt(scene, car.pos[0], car.pos[1]);
         // up on a viaduct or a ramp: drawn that much higher, and after the deck it runs on (and the
@@ -1281,7 +1282,12 @@ function syncMetroCarLamps(scene, car, strength) {
   const head = car.__role === 'lead';
   const key = head ? TRAFFIC_LIGHT_CONFIG.headlightTextureKey : TRAFFIC_LIGHT_CONFIG.taillightTextureKey;
   const parts = [car, ...(car.__pieces || [])].filter((p) => p.visible);
-  art.lamps.forEach(([lx, ly], i) => {
+  // (the lamps are pixels of the source picture; the texture drawn may be the release's resized,
+  // trimmed copy - taken into its pixels about the anchor, as getPropTextureAnchor places it)
+  const k = car.__artScale || 1;
+  art.lamps.forEach(([ax, ay], i) => {
+    const lx = car.displayOriginX + (ax - art.anchor[0]) / k;
+    const ly = car.displayOriginY + (ay - art.anchor[1]) / k;
     let lamp = lamps[i];
     if (!lamp) {
       lamp = scene.add.image(0, 0, key);

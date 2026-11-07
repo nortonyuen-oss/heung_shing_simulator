@@ -736,7 +736,9 @@ function syncMetroPlatforms(scene) {
         sprite.setOrigin(0.5, 0.5);
         sprite.setScale(TILE_WIDTH / 512);
         sprite.setPosition(face.center.x, face.center.y - (up ? metroDeckLiftPx() : down ? -metroTunnelDropPx() : 0));
-        sprite.setDepth(up ? getWorldDepth('object', isoToScreen(col + 0.5, row + 0.5).y + TILE_HEIGHT * 1.04)
+        // (up: rails lying on the deck - a hair after their own deck tile, as its track, and so under
+        // any car reaching onto it; sorted a tile on, it drew over the nose of a car still behind)
+        sprite.setDepth(up ? getBuildingSortDepth(metroTileTopY(row, col), 1, 1, 0) + 0.002
           : down ? getWorldDepth('effect', METRO_UNDER_DEPTH + 1.2 + isoToScreen(col + 0.5, row + 0.5).y * 0.001)
             : getWorldDepth('road', face.center.y + 1.5));
         if (typeof applyNightPropTint === 'function') applyNightPropTint(scene, sprite);

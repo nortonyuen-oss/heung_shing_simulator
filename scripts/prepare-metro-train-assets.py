@@ -460,6 +460,39 @@ def livery_k(img, name):
 LIT_RGB = np.array([255, 236, 196], np.float32)
 
 
+def drop_roof_shade(win, rgb, al):
+    """Not the roof (Norton, 2026-11-07: 車頭多左一塊夜光): at the far cab end the roof's shaded
+    slope is as dark as glass. A window sits in the side's middle (0.38-0.60 of the car's height in
+    its column) and shows the seats' warm tone; that slope sits high (~0.22) and is cool grey - a
+    patch both high and no warmer than blue is dropped."""
+    solid = al > 200
+    h, w = win.shape
+    has = solid.any(0)
+    top = np.where(has, solid.argmax(0), 0)
+    bot = np.where(has, h - 1 - solid[::-1].argmax(0), 0)
+    span = np.maximum(1, bot - top)
+    seen = np.zeros_like(win)
+    out = win.copy()
+    for y0, x0 in zip(*np.nonzero(win)):
+        if seen[y0, x0]:
+            continue
+        stack, comp = [(y0, x0)], []
+        seen[y0, x0] = True
+        while stack:
+            y, x = stack.pop()
+            comp.append((y, x))
+            for yy, xx in ((y + 1, x), (y - 1, x), (y, x + 1), (y, x - 1)):
+                if 0 <= yy < h and 0 <= xx < w and win[yy, xx] and not seen[yy, xx]:
+                    seen[yy, xx] = True
+                    stack.append((yy, xx))
+        ys, xs = np.array(comp).T
+        rel = float(np.mean((ys - top[xs]) / span[xs]))
+        c = rgb[ys, xs].mean(0)
+        if rel < 0.30 and c[2] >= c[0]:
+            out[ys, xs] = False
+    return out
+
+
 def lit_of(img):
     a = np.asarray(img).astype(np.float32)
     rgb, al = a[..., :3], a[..., 3]
@@ -475,6 +508,7 @@ def lit_of(img):
         r, g, b = rgb[col, x, 0], rgb[col, x, 1], rgb[col, x, 2]
         seats = (r - b > 25) & (g > 90) & (r - g < 60) & (lum[col, x] < 175)   # (beige, not the red stripe)
         win[col, x] = (al[col, x] > 200) & (lum[col, x] > 30) & ((lum[col, x] < 120) & (r - g < 40) | seats)
+    win = drop_roof_shade(win, rgb, al)
     m = Image.fromarray(win.astype(np.uint8) * 255).filter(ImageFilter.MinFilter(3)).filter(ImageFilter.MaxFilter(3))
     m = np.asarray(m.filter(ImageFilter.GaussianBlur(0.6)), np.float32) / 255.0
     out = np.zeros(a.shape, np.float32)

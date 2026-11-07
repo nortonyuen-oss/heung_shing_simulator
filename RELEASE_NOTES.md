@@ -1,6 +1,6 @@
-# The City of Heung Shing v5.3.0 — 【地鐵通車】
+# The City of Heung Shing v5.3.0 — 【屯馬開通真的很興奮】
 
-- 廣東話：【地鐵通車】
+- 廣東話：【屯馬開通真的很興奮】
 - 台灣中文：【地鐵通車】
 - English: 【Heung Shing, The Railway Opens】
 - 日本語：【香城、地下鉄開業】

@@ -1,7 +1,7 @@
 {
   "name": "city-builder",
   "version": "5.3.0",
-  "releaseTheme": "【地鐵通車】",
+  "releaseTheme": "【屯馬開通真的很興奮】",
   "description": "SimCity 2000-style city builder with local SQLite save system",
   "author": "The City of Heung Shing",
   "repository": {
@@ -111,7 +111,7 @@
   },
   "license": "SEE LICENSE IN LICENSE",
   "releaseThemes": {
-    "zh-HK": "【地鐵通車】",
+    "zh-HK": "【屯馬開通真的很興奮】",
     "zh-TW": "【地鐵通車】",
     "en": "【Heung Shing, The Railway Opens】",
     "ja": "【香城、地下鉄開業】"

@@ -1181,6 +1181,12 @@ function updateMetroSurfaceTrains(scene) {
   const nowMs = Date.now();
   if (typeof liftMetroDecksOverFarBuildings === 'function' && !(nowMs - (scene.__metroDeckLiftAt || 0) < 1000)) {
     scene.__metroDeckLiftAt = nowMs;
+    // (a road laid or taken up under a deck: its piers again - none where a road crosses)
+    if (typeof roadTileCount !== 'undefined' && scene.__metroRoadCount !== roadTileCount) {
+      const first = scene.__metroRoadCount === undefined;
+      scene.__metroRoadCount = roadTileCount;
+      if (!first && typeof syncMetroTracks === 'function') syncMetroTracks(scene);
+    }
     liftMetroDecksOverFarBuildings(scene, false);
   }
   const seen = new Set();

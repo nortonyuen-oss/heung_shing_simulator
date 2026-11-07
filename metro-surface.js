@@ -907,7 +907,7 @@ function syncMetroTracks(scene) {
       sprite.__deckLiftPx = deck * metroLevelPx();
       viaductOrigin();
       sprite.setDepth(getBuildingSortDepth(metroTileTopY(row, col), 1, 1, 0));
-      if (!island.get(key)) syncMetroPiers(scene, key, row, col, mask, deck, sprite.depth - 0.001, piers);
+      if (!island.get(key) && !metroDeckSpansRoad(row, col, mask)) syncMetroPiers(scene, key, row, col, mask, deck, sprite.depth - 0.001, piers);
     } else if (code) {
       // a ramp, from its tile's ground (a hilltop's)
       viaductOrigin();
@@ -1081,6 +1081,18 @@ function metroLevelPx() {
 
 // A deck's piers, drawn apart (its pictures have none): under the middle of each track's line on the
 // tile, as drawn, from the ground there up under the deck - any length (metro_pier_{k}, k half levels).
+// A road crossing under a deck (Norton, 2026-11-07: cut the support in the middle of the road): the
+// deck spans it, no pier on its tile - where the tile under the deck is road and the track's way on
+// leaves it onto ground that is not (the road runs across). A road running along under the line keeps
+// its piers, in its middle, as a viaduct over a road's reservation does.
+function metroDeckSpansRoad(row, col, mask) {
+  if (typeof mapData === 'undefined' || typeof ROAD === 'undefined' || mapData[row]?.[col] !== ROAD) return false;
+  return railBitsOf(mask).some((bit) => RAIL_BIT_SIDES[bit].some((side) => {
+    const [dr, dc] = RAIL_DIRS[side];
+    return mapData[row + dr]?.[col + dc] !== ROAD;
+  }));
+}
+
 function syncMetroPiers(scene, key, row, col, mask, deck, depth, wanted) {
   const visual = railVisualMask(mask);
   // (in the tile's frame as drawn, metres from its north corner: a straight's at its middle, a

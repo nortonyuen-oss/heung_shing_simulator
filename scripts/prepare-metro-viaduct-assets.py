@@ -175,7 +175,9 @@ def deck_masks(bits_tracks):
     for bit in bits_tracks:
         diagonal = bit not in ('X', 'Y')
         squeeze = track.DIAG_ACROSS if diagonal else 1.0
-        over = 3.0 if diagonal else 0.0
+        # (a diagonal's deck runs on past its line's ends to the tile's edges: its parapets lie 4-5 m to
+        # the side, where they cross the edge further on than its ends - 3 m left a notch at each joint)
+        over = 12.0 if diagonal else 0.0
         s0, t0, length = track.path_coords(bit, 0.0, col, row)
         on = (s0 >= -over) & (s0 <= length + over)
         across = np.abs(t0) * squeeze

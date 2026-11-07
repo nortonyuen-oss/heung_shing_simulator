@@ -1310,6 +1310,24 @@ function syncMetroCarLamps(scene, car, strength) {
   car.__lamps = lamps;
 }
 
+// How a car picture's source pixels land in its loaded texture (the release's staged copy, or the
+// picture itself): by texture key, through metro-train-art.js's paths.
+let metroCarTexturePaths = null;
+function metroCarTextureMapping(scene, key) {
+  if (!metroCarTexturePaths) {
+    metroCarTexturePaths = {};
+    Object.values(typeof METRO_TRAIN_ART !== 'undefined' ? METRO_TRAIN_ART : {}).forEach((art) => {
+      if (art?.key && art.path) metroCarTexturePaths[art.key] = art.path;
+      if (art?.lit?.key && art.lit.path) metroCarTexturePaths[art.lit.key] = art.lit.path;
+    });
+  }
+  const path = metroCarTexturePaths[key];
+  const src = scene.textures.get(key)?.getSourceImage?.();
+  return path && src && typeof getModelTexturePixelMapping === 'function'
+    ? getModelTexturePixelMapping(path, src)
+    : { resize: 1, offsetX: 0, offsetY: 0 };
+}
+
 // A car's (or a slice of one's) light (metro-train-art.js `lit`: its windows): the same picture,
 // place, crop and order, a hair after it, added (as the buses' deck tubes), by the lamps' strength.
 function syncMetroCarLight(scene, host, strength) {
@@ -1327,9 +1345,19 @@ function syncMetroCarLight(scene, host, strength) {
     lit.setBlendMode?.(typeof Phaser !== 'undefined' ? Phaser.BlendModes.ADD : 'ADD');
     host.__lit = lit;
   } else if (lit.texture.key !== key) lit.setTexture(key);
-  lit.setOrigin(host.originX, host.originY).setScale(host.scaleX, host.scaleY).setPosition(host.x, host.y);
-  if (host.isCropped && host._crop) lit.setCrop(host._crop.x, host._crop.y, host._crop.width, host._crop.height);
-  else if (lit.isCropped) lit.setCrop();
+  // (the release stages each picture on its own - the light trimmed tighter than its car - so a
+  // pixel of the car's texture is taken into the light's: l = h * a + b, both through the source)
+  const hm = metroCarTextureMapping(scene, host.texture.key);
+  const lm = metroCarTextureMapping(scene, key);
+  const a = lm.resize / hm.resize;
+  const bx = lm.offsetX - hm.offsetX * a;
+  const by = lm.offsetY - hm.offsetY * a;
+  lit.setOrigin((host.displayOriginX * a + bx) / lit.width, (host.displayOriginY * a + by) / lit.height)
+    .setScale(host.scaleX / a, host.scaleY / a).setPosition(host.x, host.y);
+  if (host.isCropped && host._crop) {
+    const c = host._crop;
+    lit.setCrop(c.x * a + bx, c.y * a + by, c.width * a, c.height * a);
+  } else if (lit.isCropped) lit.setCrop();
   lit.setDepth(host.depth + 0.001);
   lit.setAlpha(Math.min(1, strength) * 0.9);
   lit.setVisible(true);

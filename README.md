@@ -1,6 +1,6 @@
-# 香城模擬器 (The City of Heung Shing) v5.2.0 — 【四通八達】
+# 香城模擬器 (The City of Heung Shing) v5.3.0 — 【地鐵通車】
 
-香城模擬器 (The City of Heung Shing) v5.2.0 — 【四通八達】 is a SimCity 2000-style city builder inspired by Hong Kong: isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run bus company, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
+香城模擬器 (The City of Heung Shing) v5.3.0 — 【地鐵通車】 is a SimCity 2000-style city builder inspired by Hong Kong: isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run bus company, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
 
 Website and downloads: https://nortonyuen-oss.github.io/heung_shing_simulator/
 
@@ -9,6 +9,10 @@ Read public posts and replies on the website; sign in to GitHub to confirm a new
 post or reply. Website messages are tracked with the `website-feedback` issue label.
 
 ![The Heung Shing skyline at night, zoomed out: dense lights, the airport and the harbour](docs/assets/gameplay/nightSkyline.webp)
+
+## New in v5.3.0
+
+The transport company can build a railway once the city passes 30,000 people, with $80,000 of government capital for its first line. One track tool lays track underground, on the ground or on viaducts and works out the tunnels, portals, ramps and hill tunnels itself; lines may branch and share track, keeping their trains apart. Stations come underground (only the entrance shows), on the ground (two platforms and a footbridge) or elevated (an island platform). Five-door cars in M-Train or K-Train livery tilt on ramps, light up at night and change at interchanges; fares by distance and the rise in land value round its stations pay a good line back in about three years.
 
 ## New in v5.2.0
 

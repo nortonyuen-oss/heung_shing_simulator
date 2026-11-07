@@ -903,6 +903,8 @@ function syncMetroTracks(scene) {
       // a deck at its level, from the flat under it; its piers down to the ground (syncMetroPiers)
       const flat = metroFlatTileCentre(scene, row, col);
       sprite.setPosition(flat.x, flat.y - (deck - 3) * metroLevelPx());
+      // (its deck this high over the ground, px: what passes under it is under it - metroDeckDepthOver)
+      sprite.__deckLiftPx = deck * metroLevelPx();
       viaductOrigin();
       sprite.setDepth(getBuildingSortDepth(metroTileTopY(row, col), 1, 1, 0));
       if (!island.get(key)) syncMetroPiers(scene, key, row, col, mask, deck, sprite.depth - 0.001, piers);
@@ -921,6 +923,33 @@ function syncMetroTracks(scene) {
   scene.__metroDeckLiftKey = null;
   liftMetroDecksOverFarBuildings(scene);
   syncMetroUnderground(scene);
+}
+
+// A road vehicle under a viaduct (Norton, 2026-11-07: 車過橋底既時候會顯示在橋面): the traffic sorts in
+// its own frame, which by the map's turn runs up to a tile later than a deck's - so at a world point
+// (a vehicle's wheels on the road) the depth of the deck over it, or null: a deck tile whose ground
+// diamond, raised anywhere up to its deck, covers the point. The traffic keeps under it
+// (traffic-visuals.js getTrafficVehicleDepth).
+function metroDeckDepthOver(scene, x, y) {
+  const decks = scene?.metroTrackSprites;
+  if (!decks?.size || typeof screenToIso !== 'function') return null;
+  const iso = screenToIso(x - scene.offsetX, y - scene.offsetY + (typeof TILE_PICK_Y_OFFSET === 'number' ? TILE_PICK_Y_OFFSET : 0));
+  const r0 = Math.floor(iso.y), c0 = Math.floor(iso.x);
+  const hw = TILE_WIDTH / 2, hh = TILE_HEIGHT / 2;
+  let best = null;
+  for (let dr = -1; dr <= 1; dr++) {
+    for (let dc = -1; dc <= 1; dc++) {
+      const sp = decks.get(`${r0 + dr}:${c0 + dc}`);
+      if (!sp?.__deckLiftPx || !sp.visible) continue;
+      const f = metroFlatTileCentre(scene, r0 + dr, c0 + dc);
+      const dx = x - f.x, dy = y - f.y;
+      if (Math.abs(dx) >= hw) continue;
+      const w = hh * (1 - Math.abs(dx) / hw);
+      if (dy > w || dy < -w - sp.__deckLiftPx) continue;
+      best = best == null ? sp.depth : Math.min(best, sp.depth);
+    }
+  }
+  return best;
 }
 
 // A deck is drawn 20 m up, over the ground behind it on screen: a building wholly behind a deck tile

@@ -911,6 +911,36 @@ function metroSlicedCarPieces(car, sprite, bias) {
   return out;
 }
 
+// Where two cars of a train overlap on screen, the nearer one in front (Norton, 2026-11-07: 鐵路還是有些
+//位置會穿): a car's slices sort each by its own frame - the line anywhere, a 高架站's strips round the
+// island - and where those frames meet at a joint (a station's end) the farther car could come out
+// on top. Each of the farther car's slices over a nearer car's is set just under it - the nearer
+// car's are already right against the station and the world. Cars are sorted in place.
+function metroOrderCarJoints(sprites) {
+  const pieces = (s) => (s.visible ? [s, ...(s.__pieces || []).filter((p) => p.visible)] : []);
+  const span = (p) => {
+    const left = p.x - p.displayOriginX * p.scaleX;
+    const c = p.isCropped && p._crop ? p._crop : { x: 0, width: p.frame.realWidth };
+    return [left + c.x * p.scaleX, left + (c.x + c.width) * p.scaleX];
+  };
+  for (let k = 0; k + 1 < sprites.length; k++) {
+    const a = sprites[k], b = sprites[k + 1];
+    if (!a.visible || !b.visible) continue;
+    // (nearer: its wheels lower on the screen)
+    const [near, far] = a.y >= b.y ? [a, b] : [b, a];
+    const nearSpans = pieces(near).map((p) => [...span(p), p.depth]);
+    pieces(far).forEach((p) => {
+      const [x0, x1] = span(p);
+      let cap = Infinity;
+      nearSpans.forEach(([n0, n1, d]) => { if (Math.min(x1, n1) - Math.max(x0, n0) > 0.5) cap = Math.min(cap, d); });
+      if (cap !== Infinity && p.depth >= cap) {
+        p.setDepth(cap - 0.002);
+        // (its light keeps over it - syncMetroCarLight sets it from the depth after this)
+      }
+    });
+  }
+}
+
 // A car on a slope: its diagonal view sheared to the grade (metro-train-art.js: _up / _dn, its right
 // end up or down as drawn; 1 a ramp's grade, 2 a hillside's), else the view as it is.
 function metroSlopedCarView(car, view) {
@@ -1306,6 +1336,7 @@ function updateMetroSurfaceTrains(scene) {
         });
         extra.slice(pieces.length - 1).forEach((p) => p.setVisible(false));
       });
+      metroOrderCarJoints(sprites);
     });
   }
   scene.metroTrainSprites.forEach((sprites, id) => {

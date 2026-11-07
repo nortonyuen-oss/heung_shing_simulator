@@ -2469,7 +2469,11 @@ function isTrafficVehicleUnderSea(vehicle) {
 // A vehicle's depth in the object band; on a 海底隧道 portal, between the portal's layers.
 function getTrafficVehicleDepth(vehicle, position) {
   const portalDepth = typeof getUnderseaTunnelVehicleDepth === 'function' ? getUnderseaTunnelVehicleDepth(vehicle) : null;
-  return portalDepth ?? getWorldDepth('object', position.depthY + TILE_HEIGHT / 2);
+  const depth = portalDepth ?? getWorldDepth('object', position.depthY + TILE_HEIGHT / 2);
+  // under a 地鐵 viaduct: below its deck, and its lamps too (they sort up to 0.14 after it)
+  const deck = typeof metroDeckDepthOver === 'function' && typeof activeScene !== 'undefined'
+    ? metroDeckDepthOver(activeScene, position.x, position.y) : null;
+  return deck != null && depth > deck - 0.2 ? deck - 0.2 : depth;
 }
 
 function setTrafficVehicleVisual(vehicle, position, time = 0, forceDepth = false) {
@@ -2496,10 +2500,15 @@ function setTrafficVehicleVisual(vehicle, position, time = 0, forceDepth = false
   // tile does not disappear for a full tile before its depth catches up.
   // on a 海底隧道 portal the depth is kept between its layers every frame, lamps and all
   const onPortal = typeof getUnderseaTunnelVehicleDepth === 'function' && getUnderseaTunnelVehicleDepth(vehicle) != null;
-  if (forceDepth || onPortal) {
+  // under a 地鐵 viaduct, and the frame it comes out: every frame too, kept under the deck
+  const underDeck = typeof metroDeckDepthOver === 'function' && typeof activeScene !== 'undefined'
+    && metroDeckDepthOver(activeScene, position.x, position.y) != null;
+  const deckEdge = underDeck || vehicle.__underDeck;
+  vehicle.__underDeck = underDeck;
+  if (forceDepth || onPortal || deckEdge) {
     vehicle.sprite.setDepth(getTrafficVehicleDepth(vehicle, position));
   }
-  if (!underSea) updateTrafficVehicleLights(vehicle, position, forceDepth || onPortal);
+  if (!underSea) updateTrafficVehicleLights(vehicle, position, forceDepth || onPortal || deckEdge);
 }
 
 function refreshTrafficVehicleDepths(state, time) {

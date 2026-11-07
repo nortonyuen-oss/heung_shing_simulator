@@ -918,7 +918,58 @@ function syncMetroTracks(scene) {
   });
   scene.metroPierSprites.forEach((sprite, id) => { if (!piers.has(id)) { sprite.destroy(); scene.metroPierSprites.delete(id); } });
   scene.metroPortalFronts.forEach((sprite, key) => { if (!fronts.has(key)) { sprite.destroy(); scene.metroPortalFronts.delete(key); } });
+  scene.__metroDeckLiftKey = null;
+  liftMetroDecksOverFarBuildings(scene);
   syncMetroUnderground(scene);
+}
+
+// A deck is drawn 20 m up, over the ground behind it on screen: a building wholly behind a deck tile
+// (no tile of it nearer the viewer) but sorted after it - a big one sorts at its front corner, and
+// one beside the line reaches further along it than the tile - had its low parts (a podium, a
+// planter) drawn over the deck (Norton, 2026-11-07: 銀行地基蓋過橋面). Each deck tile is sorted
+// after those, while before any building with a tile nearer the viewer and under the trains on it
+// (sorted at their middle line + 1.1 tiles). Again whenever the buildings change (once a second).
+const METRO_DECK_LIFT_REACH = 4;   // tiles about a deck tile looked at for buildings
+function liftMetroDecksOverFarBuildings(scene, force = true) {
+  if (!scene?.metroTrackSprites || !scene.buildingSprites) return;
+  const elev = getMetroTrackElev();
+  const decks = [...scene.metroTrackSprites.entries()].filter(([key, sp]) => sp.__elevated && railDeckLevel(elev[key]) != null);
+  if (!decks.length) return;
+  const stamp = `${scene.buildingSprites.size}|${typeof mapRotation === 'number' ? mapRotation : 0}|${decks.length}`;
+  if (!force && scene.__metroDeckLiftKey === stamp) return;
+  scene.__metroDeckLiftKey = stamp;
+  const centreY = (r, c) => isoToScreen(c + 0.5, r + 0.5).y;
+  decks.forEach(([key, sprite]) => {
+    const [row, col] = key.split(':').map(Number);
+    const base = getBuildingSortDepth(metroTileTopY(row, col), 1, 1, 0);
+    const cy = centreY(row, col);
+    const b = sprite.getBounds();
+    let lo = -Infinity, hi = getWorldDepth('object', cy + TILE_HEIGHT * 1.05);
+    const seen = new Set();
+    for (let r = row - METRO_DECK_LIFT_REACH; r <= row + METRO_DECK_LIFT_REACH; r++) {
+      for (let c = col - METRO_DECK_LIFT_REACH; c <= col + METRO_DECK_LIFT_REACH; c++) {
+        const bs = scene.buildingSprites.get(getTileId(r, c));
+        if (!bs || !bs.visible || seen.has(bs)) continue;
+        seen.add(bs);
+        const bb = bs.getBounds();
+        if (bb.right < b.left || bb.left > b.right || bb.bottom < b.top || bb.top > b.bottom) continue;
+        const tiles = getFootprintTiles(bs.mapRow, bs.mapCol, bs.footprintCols || 1, bs.footprintRows || 1);
+        const behind = tiles.every(([tr, tc]) => centreY(tr, tc) <= cy + 0.5);
+        if (behind) lo = Math.max(lo, bs.depth);
+        else hi = Math.min(hi, bs.depth);
+      }
+    }
+    const depth = lo >= base ? Math.max(base, Math.min(lo + 0.01, hi - 0.01)) : base;
+    if (Math.abs(depth - sprite.depth) < 1e-6) return;
+    sprite.setDepth(depth);
+    for (let i = 0; i < 8; i++) scene.metroPierSprites?.get(`${key}|${i}`)?.setDepth(depth - 0.001);
+  });
+  // (the termini's crossovers lie on their decks)
+  scene.metroPlatformSprites?.forEach((sp, id) => {
+    if (!id.startsWith('xo|') || !sp.__up || !sp.__tile) return;
+    const deck = scene.metroTrackSprites.get(sp.__tile);
+    if (deck) sp.setDepth(deck.depth + 0.002);
+  });
 }
 
 // A portal tile's front: the paving on the trough's near side (or over the portal's tunnel), after

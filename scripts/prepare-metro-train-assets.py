@@ -267,6 +267,37 @@ def sheared(car, grade, sign):
     return {'img': out.crop(box), 'kind': car['kind'], 'ax': car['ax'] - box[0], 'ay': car['ay'] + pad - box[1]}
 
 
+# Through a crossover (Norton, 2026-11-07: 割過鉸剪位既時候列車稍微傾斜): a car turns a few degrees off
+# the line (4.5 m across over the crossover's 40 m; an island's tracks spread 4.8 m in a tile) - each
+# straight diagonal view turned YAW_DEG either way: its side's slope and length on screen as a car
+# turned that much (a ground line's (cos -/+ sin, cos +/- sin) across the 2:1 grid), upright lines
+# kept upright (sheared, about the car's middle). `_ys` steeper and shorter, `_yf` flatter and longer.
+YAW_DEG = 8.0
+
+
+def yawed(car, steep):
+    t = np.radians(YAW_DEG)
+    c, s = np.cos(t), np.sin(t)
+    s0 = 0.5 if car['kind'] == 'fall' else -0.5           # the side's slope as drawn (rise: mirrored)
+    if steep:
+        sx, s1 = c - s, np.sign(s0) * 0.5 * (c + s) / (c - s)
+    else:
+        sx, s1 = c + s, np.sign(s0) * 0.5 * (c - s) / (c + s)
+    k = s1 - s0 / sx                                      # y px more a px across, after the stretch
+    im = car['img']
+    w, h = im.size
+    W = int(np.ceil(w * sx)) + 4
+    pad = int(np.ceil(abs(k) * W)) + 2
+    axo, ayo = car['ax'] * sx + 2, car['ay'] + pad
+    # output (x, y) takes input (ax + (x - axo) / sx, y - pad - k (x - axo))
+    out = im.transform((W, h + 2 * pad), Image.AFFINE,
+                       (1 / sx, 0, car['ax'] - axo / sx, -k, 1, -pad + k * axo), resample=Image.BICUBIC)
+    a = np.asarray(out)
+    ys, xs = np.nonzero(a[..., 3] > 0)
+    box = (xs.min(), ys.min(), xs.max() + 1, ys.max() + 1)
+    return {'img': out.crop(box), 'kind': car['kind'], 'ax': axo - box[0], 'ay': ayo - box[1]}
+
+
 # Two liveries (Norton, 2026-11-06, from photos): M (the urban lines' M-Train: bare stainless sides,
 # a broad red band across a white cab front) and K (the 東鐵 黃頭: a yellow cab front, the red stripe
 # along the sides). The renders have both a stripe along the side and a thin one across the cab; each
@@ -575,6 +606,8 @@ def main():
         for g, grade in GRADES.items():
             cars[f'{name}_up{g}'] = sheared(cars[name], grade, 1)
             cars[f'{name}_dn{g}'] = sheared(cars[name], grade, -1)
+        cars[f'{name}_ys'] = yawed(cars[name], True)
+        cars[f'{name}_yf'] = yawed(cars[name], False)
     art = {}
     for name in sorted(cars):
         c = cars[name]

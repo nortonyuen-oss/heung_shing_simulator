@@ -61,6 +61,30 @@ const METRO_TRAIN_ART = Object.freeze({
       "key": "metro_car_fall_cabFar_up2_lit"
     }
   },
+  "fall_cabFar_yf": {
+    "path": "Models/metroTrain/car_fall_cabFar_yf.png",
+    "key": "metro_car_fall_cabFar_yf",
+    "anchor": [
+      184.7,
+      134.4
+    ],
+    "lit": {
+      "path": "Models/metroTrain/car_fall_cabFar_yf_lit.png",
+      "key": "metro_car_fall_cabFar_yf_lit"
+    }
+  },
+  "fall_cabFar_ys": {
+    "path": "Models/metroTrain/car_fall_cabFar_ys.png",
+    "key": "metro_car_fall_cabFar_ys",
+    "anchor": [
+      139.2,
+      152.4
+    ],
+    "lit": {
+      "path": "Models/metroTrain/car_fall_cabFar_ys_lit.png",
+      "key": "metro_car_fall_cabFar_ys_lit"
+    }
+  },
   "fall_cabNear": {
     "path": "Models/metroTrain/car_fall_cabNear.png",
     "key": "metro_car_fall_cabNear",
@@ -171,6 +195,50 @@ const METRO_TRAIN_ART = Object.freeze({
       ]
     ]
   },
+  "fall_cabNear_yf": {
+    "path": "Models/metroTrain/car_fall_cabNear_yf.png",
+    "key": "metro_car_fall_cabNear_yf",
+    "anchor": [
+      185.2,
+      146.4
+    ],
+    "lit": {
+      "path": "Models/metroTrain/car_fall_cabNear_yf_lit.png",
+      "key": "metro_car_fall_cabNear_yf_lit"
+    },
+    "lamps": [
+      [
+        361.8,
+        175.3
+      ],
+      [
+        329.5,
+        186.5
+      ]
+    ]
+  },
+  "fall_cabNear_ys": {
+    "path": "Models/metroTrain/car_fall_cabNear_ys.png",
+    "key": "metro_car_fall_cabNear_ys",
+    "anchor": [
+      139.6,
+      164.4
+    ],
+    "lit": {
+      "path": "Models/metroTrain/car_fall_cabNear_ys_lit.png",
+      "key": "metro_car_fall_cabNear_ys_lit"
+    },
+    "lamps": [
+      [
+        272.0,
+        215.2
+      ],
+      [
+        247.7,
+        222.3
+      ]
+    ]
+  },
   "fall_mid": {
     "path": "Models/metroTrain/car_fall_mid.png",
     "key": "metro_car_fall_mid",
@@ -229,6 +297,30 @@ const METRO_TRAIN_ART = Object.freeze({
     "lit": {
       "path": "Models/metroTrain/car_fall_mid_up2_lit.png",
       "key": "metro_car_fall_mid_up2_lit"
+    }
+  },
+  "fall_mid_yf": {
+    "path": "Models/metroTrain/car_fall_mid_yf.png",
+    "key": "metro_car_fall_mid_yf",
+    "anchor": [
+      184.7,
+      144.4
+    ],
+    "lit": {
+      "path": "Models/metroTrain/car_fall_mid_yf_lit.png",
+      "key": "metro_car_fall_mid_yf_lit"
+    }
+  },
+  "fall_mid_ys": {
+    "path": "Models/metroTrain/car_fall_mid_ys.png",
+    "key": "metro_car_fall_mid_ys",
+    "anchor": [
+      139.2,
+      162.4
+    ],
+    "lit": {
+      "path": "Models/metroTrain/car_fall_mid_ys_lit.png",
+      "key": "metro_car_fall_mid_ys_lit"
     }
   },
   "horiz_cabL": {
@@ -337,6 +429,30 @@ const METRO_TRAIN_ART = Object.freeze({
     "lit": {
       "path": "Models/metroTrain/car_k_fall_cabFar_up2_lit.png",
       "key": "metro_car_k_fall_cabFar_up2_lit"
+    }
+  },
+  "k_fall_cabFar_yf": {
+    "path": "Models/metroTrain/car_k_fall_cabFar_yf.png",
+    "key": "metro_car_k_fall_cabFar_yf",
+    "anchor": [
+      184.7,
+      134.4
+    ],
+    "lit": {
+      "path": "Models/metroTrain/car_k_fall_cabFar_yf_lit.png",
+      "key": "metro_car_k_fall_cabFar_yf_lit"
+    }
+  },
+  "k_fall_cabFar_ys": {
+    "path": "Models/metroTrain/car_k_fall_cabFar_ys.png",
+    "key": "metro_car_k_fall_cabFar_ys",
+    "anchor": [
+      139.2,
+      152.4
+    ],
+    "lit": {
+      "path": "Models/metroTrain/car_k_fall_cabFar_ys_lit.png",
+      "key": "metro_car_k_fall_cabFar_ys_lit"
     }
   },
   "k_fall_cabNear": {
@@ -449,6 +565,46 @@ const METRO_TRAIN_ART = Object.freeze({
       ]
     ]
   },
+  "k_fall_cabNear_yf": {
+    "path": "Models/metroTrain/car_k_fall_cabNear_yf.png",
+    "key": "metro_car_k_fall_cabNear_yf",
+    "anchor": [
+      185.2,
+      146.4
+    ],
+    "lit": {
+      "path": "Models/metroTrain/car_k_fall_cabNear_yf_lit.png",
+      "key": "metro_car_k_fall_cabNear_yf_lit"
+    },
+    "lamps": [
+      [
+        360.7,
+        175.7
+      ],
+      [
+        329.7,
+        186.7
+      ]
+    ]
+  },
+  "k_fall_cabNear_ys": {
+    "path": "Models/metroTrain/car_k_fall_cabNear_ys.png",
+    "key": "metro_car_k_fall_cabNear_ys",
+    "anchor": [
+      139.6,
+      164.4
+    ],
+    "lit": {
+      "path": "Models/metroTrain/car_k_fall_cabNear_ys_lit.png",
+      "key": "metro_car_k_fall_cabNear_ys_lit"
+    },
+    "lamps": [
+      [
+        272.0,
+        215.2
+      ]
+    ]
+  },
   "k_fall_mid": {
     "path": "Models/metroTrain/car_k_fall_mid.png",
     "key": "metro_car_k_fall_mid",
@@ -507,6 +663,30 @@ const METRO_TRAIN_ART = Object.freeze({
     "lit": {
       "path": "Models/metroTrain/car_k_fall_mid_up2_lit.png",
       "key": "metro_car_k_fall_mid_up2_lit"
+    }
+  },
+  "k_fall_mid_yf": {
+    "path": "Models/metroTrain/car_k_fall_mid_yf.png",
+    "key": "metro_car_k_fall_mid_yf",
+    "anchor": [
+      184.7,
+      144.4
+    ],
+    "lit": {
+      "path": "Models/metroTrain/car_k_fall_mid_yf_lit.png",
+      "key": "metro_car_k_fall_mid_yf_lit"
+    }
+  },
+  "k_fall_mid_ys": {
+    "path": "Models/metroTrain/car_k_fall_mid_ys.png",
+    "key": "metro_car_k_fall_mid_ys",
+    "anchor": [
+      139.2,
+      162.4
+    ],
+    "lit": {
+      "path": "Models/metroTrain/car_k_fall_mid_ys_lit.png",
+      "key": "metro_car_k_fall_mid_ys_lit"
     }
   },
   "k_horiz_cabL": {
@@ -615,6 +795,30 @@ const METRO_TRAIN_ART = Object.freeze({
     "lit": {
       "path": "Models/metroTrain/car_k_rise_cabFar_up2_lit.png",
       "key": "metro_car_k_rise_cabFar_up2_lit"
+    }
+  },
+  "k_rise_cabFar_yf": {
+    "path": "Models/metroTrain/car_k_rise_cabFar_yf.png",
+    "key": "metro_car_k_rise_cabFar_yf",
+    "anchor": [
+      184.7,
+      135.4
+    ],
+    "lit": {
+      "path": "Models/metroTrain/car_k_rise_cabFar_yf_lit.png",
+      "key": "metro_car_k_rise_cabFar_yf_lit"
+    }
+  },
+  "k_rise_cabFar_ys": {
+    "path": "Models/metroTrain/car_k_rise_cabFar_ys.png",
+    "key": "metro_car_k_rise_cabFar_ys",
+    "anchor": [
+      139.2,
+      152.4
+    ],
+    "lit": {
+      "path": "Models/metroTrain/car_k_rise_cabFar_ys_lit.png",
+      "key": "metro_car_k_rise_cabFar_ys_lit"
     }
   },
   "k_rise_cabNear": {
@@ -727,6 +931,42 @@ const METRO_TRAIN_ART = Object.freeze({
       ]
     ]
   },
+  "k_rise_cabNear_yf": {
+    "path": "Models/metroTrain/car_k_rise_cabNear_yf.png",
+    "key": "metro_car_k_rise_cabNear_yf",
+    "anchor": [
+      185.2,
+      146.4
+    ],
+    "lit": {
+      "path": "Models/metroTrain/car_k_rise_cabNear_yf_lit.png",
+      "key": "metro_car_k_rise_cabNear_yf_lit"
+    },
+    "lamps": [
+      [
+        8.0,
+        175.2
+      ]
+    ]
+  },
+  "k_rise_cabNear_ys": {
+    "path": "Models/metroTrain/car_k_rise_cabNear_ys.png",
+    "key": "metro_car_k_rise_cabNear_ys",
+    "anchor": [
+      139.6,
+      164.4
+    ],
+    "lit": {
+      "path": "Models/metroTrain/car_k_rise_cabNear_ys_lit.png",
+      "key": "metro_car_k_rise_cabNear_ys_lit"
+    },
+    "lamps": [
+      [
+        6.0,
+        215.2
+      ]
+    ]
+  },
   "k_rise_mid": {
     "path": "Models/metroTrain/car_k_rise_mid.png",
     "key": "metro_car_k_rise_mid",
@@ -785,6 +1025,30 @@ const METRO_TRAIN_ART = Object.freeze({
     "lit": {
       "path": "Models/metroTrain/car_k_rise_mid_up2_lit.png",
       "key": "metro_car_k_rise_mid_up2_lit"
+    }
+  },
+  "k_rise_mid_yf": {
+    "path": "Models/metroTrain/car_k_rise_mid_yf.png",
+    "key": "metro_car_k_rise_mid_yf",
+    "anchor": [
+      184.7,
+      144.4
+    ],
+    "lit": {
+      "path": "Models/metroTrain/car_k_rise_mid_yf_lit.png",
+      "key": "metro_car_k_rise_mid_yf_lit"
+    }
+  },
+  "k_rise_mid_ys": {
+    "path": "Models/metroTrain/car_k_rise_mid_ys.png",
+    "key": "metro_car_k_rise_mid_ys",
+    "anchor": [
+      139.2,
+      162.4
+    ],
+    "lit": {
+      "path": "Models/metroTrain/car_k_rise_mid_ys_lit.png",
+      "key": "metro_car_k_rise_mid_ys_lit"
     }
   },
   "k_vert_cabFar": {
@@ -891,6 +1155,30 @@ const METRO_TRAIN_ART = Object.freeze({
     "lit": {
       "path": "Models/metroTrain/car_rise_cabFar_up2_lit.png",
       "key": "metro_car_rise_cabFar_up2_lit"
+    }
+  },
+  "rise_cabFar_yf": {
+    "path": "Models/metroTrain/car_rise_cabFar_yf.png",
+    "key": "metro_car_rise_cabFar_yf",
+    "anchor": [
+      184.7,
+      135.4
+    ],
+    "lit": {
+      "path": "Models/metroTrain/car_rise_cabFar_yf_lit.png",
+      "key": "metro_car_rise_cabFar_yf_lit"
+    }
+  },
+  "rise_cabFar_ys": {
+    "path": "Models/metroTrain/car_rise_cabFar_ys.png",
+    "key": "metro_car_rise_cabFar_ys",
+    "anchor": [
+      139.2,
+      152.4
+    ],
+    "lit": {
+      "path": "Models/metroTrain/car_rise_cabFar_ys_lit.png",
+      "key": "metro_car_rise_cabFar_ys_lit"
     }
   },
   "rise_cabNear": {
@@ -1003,6 +1291,50 @@ const METRO_TRAIN_ART = Object.freeze({
       ]
     ]
   },
+  "rise_cabNear_yf": {
+    "path": "Models/metroTrain/car_rise_cabNear_yf.png",
+    "key": "metro_car_rise_cabNear_yf",
+    "anchor": [
+      185.2,
+      146.4
+    ],
+    "lit": {
+      "path": "Models/metroTrain/car_rise_cabNear_yf_lit.png",
+      "key": "metro_car_rise_cabNear_yf_lit"
+    },
+    "lamps": [
+      [
+        8.0,
+        175.2
+      ],
+      [
+        40.0,
+        186.5
+      ]
+    ]
+  },
+  "rise_cabNear_ys": {
+    "path": "Models/metroTrain/car_rise_cabNear_ys.png",
+    "key": "metro_car_rise_cabNear_ys",
+    "anchor": [
+      139.6,
+      164.4
+    ],
+    "lit": {
+      "path": "Models/metroTrain/car_rise_cabNear_ys_lit.png",
+      "key": "metro_car_rise_cabNear_ys_lit"
+    },
+    "lamps": [
+      [
+        6.0,
+        215.2
+      ],
+      [
+        31.0,
+        222.4
+      ]
+    ]
+  },
   "rise_mid": {
     "path": "Models/metroTrain/car_rise_mid.png",
     "key": "metro_car_rise_mid",
@@ -1061,6 +1393,30 @@ const METRO_TRAIN_ART = Object.freeze({
     "lit": {
       "path": "Models/metroTrain/car_rise_mid_up2_lit.png",
       "key": "metro_car_rise_mid_up2_lit"
+    }
+  },
+  "rise_mid_yf": {
+    "path": "Models/metroTrain/car_rise_mid_yf.png",
+    "key": "metro_car_rise_mid_yf",
+    "anchor": [
+      184.7,
+      144.4
+    ],
+    "lit": {
+      "path": "Models/metroTrain/car_rise_mid_yf_lit.png",
+      "key": "metro_car_rise_mid_yf_lit"
+    }
+  },
+  "rise_mid_ys": {
+    "path": "Models/metroTrain/car_rise_mid_ys.png",
+    "key": "metro_car_rise_mid_ys",
+    "anchor": [
+      139.2,
+      162.4
+    ],
+    "lit": {
+      "path": "Models/metroTrain/car_rise_mid_ys_lit.png",
+      "key": "metro_car_rise_mid_ys_lit"
     }
   },
   "vert_cabFar": {

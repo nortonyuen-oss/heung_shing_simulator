@@ -738,7 +738,9 @@ function syncMetroPlatforms(scene) {
         sprite.setPosition(face.center.x, face.center.y - (up ? metroDeckLiftPx() : down ? -metroTunnelDropPx() : 0));
         // (up: rails lying on the deck - a hair after their own deck tile, as its track, and so under
         // any car reaching onto it; sorted a tile on, it drew over the nose of a car still behind)
-        sprite.setDepth(up ? getBuildingSortDepth(metroTileTopY(row, col), 1, 1, 0) + 0.002
+        sprite.__tile = `${row}:${col}`;
+        const deckSprite = up ? scene.metroTrackSprites?.get(sprite.__tile) : null;
+        sprite.setDepth(up ? (deckSprite ? deckSprite.depth : getBuildingSortDepth(metroTileTopY(row, col), 1, 1, 0)) + 0.002
           : down ? getWorldDepth('effect', METRO_UNDER_DEPTH + 1.2 + isoToScreen(col + 0.5, row + 0.5).y * 0.001)
             : getWorldDepth('road', face.center.y + 1.5));
         if (typeof applyNightPropTint === 'function') applyNightPropTint(scene, sprite);
@@ -902,7 +904,9 @@ function metroSlicedCarPieces(car, sprite, bias) {
   for (let x0 = 0; x0 < width - 0.5; x0 += step) {
     const x1 = Math.min(width, x0 + step);
     const cx = left + ((x0 + x1) / 2) * sprite.scaleX;
-    out.push({ x0, x1, depth: getWorldDepth('object', p0.y + slope * (cx - sprite.x) + bias) });
+    // (two cars of a train lie on one line: where their ends overlap their slices sort level - the
+    // nearer car's middle, a hair after, wins, as its end is the one in front (Norton: 底面相反))
+    out.push({ x0, x1, depth: getWorldDepth('object', p0.y + slope * (cx - sprite.x) + bias) + p0.y * 1e-4 });
   }
   return out;
 }
@@ -918,6 +922,23 @@ function metroSlopedCarView(car, view) {
   const frontRight = isoToScreen(col + car.heading[0], row + car.heading[1]).x > isoToScreen(col, row).x;
   const rightUp = (car.climb > 0) === frontRight;
   return `${view}_${rightUp ? 'up' : 'dn'}${grade < 0.27 ? 1 : 2}`;
+}
+
+// A car turned a little off its diagonal (through a crossover, where an island's tracks spread): its
+// view turned 8° (metro-train-art.js: _ys steeper and shorter on screen, _yf flatter and longer),
+// from 4° off. Pure but for the art's names.
+const METRO_CAR_YAW_FROM_DEG = 4;
+function metroYawedCarView(car, view, turn = 0) {
+  const axis = view.split('_')[0];
+  if (axis !== 'fall' && axis !== 'rise') return view;
+  let c = car.heading[0], r = car.heading[1];
+  for (let k = 0; k < ((turn % 4) + 4) % 4; k++) { const nc = -r, nr = c; c = nc; r = nr; }
+  const ang = Math.atan2(r, c) * 180 / Math.PI;
+  const rel = ang - Math.round(ang / 45) * 45;
+  if (Math.abs(rel) < METRO_CAR_YAW_FROM_DEG) return view;
+  // (on the 2:1 grid a fall line turned toward +row goes steeper; a rise line, flatter)
+  const steep = axis === 'fall' ? rel > 0 : rel < 0;
+  return `${view}_${steep ? 'ys' : 'yf'}`;
 }
 
 // The portals, once a frame: each its four tiles (the portal first, then the trough up to the
@@ -1123,6 +1144,13 @@ function updateMetroSurfaceTrains(scene) {
   if (scene.__metroSurfaceSignature !== signature) {
     scene.__metroSurfaceSignature = signature;
     syncMetroPlatforms(scene);
+    if (typeof liftMetroDecksOverFarBuildings === 'function') liftMetroDecksOverFarBuildings(scene);
+  }
+  // (the decks over the buildings behind them, again as the buildings change: once a second)
+  const nowMs = Date.now();
+  if (typeof liftMetroDecksOverFarBuildings === 'function' && !(nowMs - (scene.__metroDeckLiftAt || 0) < 1000)) {
+    scene.__metroDeckLiftAt = nowMs;
+    liftMetroDecksOverFarBuildings(scene, false);
   }
   const seen = new Set();
   if (surfaceLines.length && typeof METRO_TRAIN_ART !== 'undefined'
@@ -1193,7 +1221,10 @@ function updateMetroSurfaceTrains(scene) {
         // (the line's livery: K-Train pictures k_<view>, the M-Train's as they are)
         const view = surfaceCarView(car.heading[0], car.heading[1], car.role, turn);
         const pre = line.livery === 'k' ? 'k_' : '';
-        const art = METRO_TRAIN_ART[pre + metroSlopedCarView(car, view)] || METRO_TRAIN_ART[pre + view] || METRO_TRAIN_ART[view];
+        // (on a slope its sheared view; else, turned a little off the line, its turned one)
+        const sloped = metroSlopedCarView(car, view);
+        const shown = sloped !== view ? sloped : metroYawedCarView(car, view, turn);
+        const art = METRO_TRAIN_ART[pre + shown] || METRO_TRAIN_ART[pre + view] || METRO_TRAIN_ART[view];
         const sprite = sprites[i];
         sprite.__art = art;
         sprite.__role = car.role;

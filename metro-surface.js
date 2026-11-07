@@ -967,7 +967,7 @@ function liftMetroDecksOverFarBuildings(scene, force = true) {
   const stamp = `${scene.buildingSprites.size}|${typeof mapRotation === 'number' ? mapRotation : 0}|${decks.length}`;
   if (!force && scene.__metroDeckLiftKey === stamp) return;
   scene.__metroDeckLiftKey = stamp;
-  const centreY = (r, c) => isoToScreen(c + 0.5, r + 0.5).y;
+  const centreY = (r, c) => metroSortY(c + 0.5, r + 0.5);
   decks.forEach(([key, sprite]) => {
     const [row, col] = key.split(':').map(Number);
     const base = getBuildingSortDepth(metroTileTopY(row, col), 1, 1, 0);
@@ -1019,7 +1019,7 @@ function syncMetroPortalFront(scene, key, row, col, code) {
   sprite.setOrigin(METRO_PORTAL_ART.centre[0] / METRO_PORTAL_ART.width, METRO_PORTAL_ART.centre[1] / METRO_PORTAL_ART.height);
   sprite.setScale(TILE_WIDTH / METRO_PORTAL_ART.width);
   sprite.setPosition(face.center.x, face.center.y);
-  sprite.setDepth(getWorldDepth('object', isoToScreen(col + 0.5, row + 0.5).y + TILE_HEIGHT * 0.6));
+  sprite.setDepth(getWorldDepth('object', metroSortY(col + 0.5, row + 0.5) + TILE_HEIGHT * 0.6));
   if (typeof applyNightPropTint === 'function') applyNightPropTint(scene, sprite);
 }
 
@@ -1040,7 +1040,7 @@ function syncMetroHillMouthFront(scene, key, row, col, texture) {
   sprite.setOrigin(METRO_VIADUCT_ART.centre[0] / METRO_VIADUCT_ART.width, METRO_VIADUCT_ART.centre[1] / METRO_VIADUCT_ART.height);
   sprite.setScale(TILE_WIDTH / METRO_VIADUCT_ART.width);
   sprite.setPosition(face.center.x, face.center.y);
-  sprite.setDepth(getWorldDepth('object', isoToScreen(col + 0.5, row + 0.5).y + TILE_HEIGHT * 0.6));
+  sprite.setDepth(getWorldDepth('object', metroSortY(col + 0.5, row + 0.5) + TILE_HEIGHT * 0.6));
   if (typeof applyNightPropTint === 'function') applyNightPropTint(scene, sprite);
 }
 
@@ -1052,11 +1052,26 @@ function markMetroNight(sprite, layerName) {
   sprite.__nightGround = layerName !== 'roadLayer';
 }
 
-// A tile's top corner as drawn, y (in the buildings' frame): its middle up half a tile. (Not
-// isoToScreen(col, row): that is its north corner, the top only when the map is not turned - turned
-// round, the bottom, and a viaduct or ramp sorted a tile too far forward, over the trains behind it.)
+// The metro sorts by the map's tile middles, isoToScreen(col + 0.5, row + 0.5) - its trains' places
+// are on the map - but the buildings and the road traffic by isoToScreen(col, row), the tile as it is
+// drawn: the same in every turn of the map. A map's half tile is a different corner as the map turns,
+// so the metro's frame sits 0, 1/2, 1, 1/2 tile before theirs (turns 0..3) - everything the metro
+// did right with the map unturned (where it was all set) sorted too early against the city turned
+// round (Norton, 2026-11-07: 圖層設計沒有很完整的邏輯). Every metro depth adds this: in their frame,
+// in every turn, as unturned.
+function metroFrameShift() {
+  const turn = typeof mapRotation === 'number' ? ((mapRotation % 4) + 4) % 4 : 0;
+  return [0, 0.5, 1, 0.5][turn] * TILE_HEIGHT;
+}
+
+// A map point's y as the metro sorts it (the buildings' frame, as unturned: metroFrameShift).
+function metroSortY(col, row) {
+  return isoToScreen(col, row).y + metroFrameShift();
+}
+
+// A tile's top corner as drawn, y (in the buildings' frame): its middle up half a tile.
 function metroTileTopY(row, col) {
-  return isoToScreen(col + 0.5, row + 0.5).y - TILE_HEIGHT / 2;
+  return metroSortY(col + 0.5, row + 0.5) - TILE_HEIGHT / 2;
 }
 
 // A terrain level on screen, px (HEIGHT_STEP_PIXELS at TILE_WIDTH 100).

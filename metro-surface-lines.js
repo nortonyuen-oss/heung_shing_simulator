@@ -589,7 +589,7 @@ function syncMetroPlatforms(scene) {
     if (station.island) {
       metroElevatedStationStrips(station).forEach(({ row, col, piece }, k) => {
         const face = getTileFaceGeometry(row, col, scene.offsetX, scene.offsetY);
-        const isoY = isoToScreen(col + 0.5, row + 0.5).y;
+        const isoY = metroSortY(col + 0.5, row + 0.5);
         [['base', getBuildingSortDepth(metroTileTopY(row, col), 1, 1, 0)], ['island', metroIslandStripDepth(isoY)]].forEach(([layer, depth]) => {
           const id = `${station.id}|${k}|${layer}`;
           const texture = piece[layer].key;
@@ -666,7 +666,7 @@ function syncMetroPlatforms(scene) {
       const face = getTileFaceGeometry(row, col, scene.offsetX, scene.offsetY);
       // sorted among the buildings in their frame (isoToScreen, without the scene's offset); a 高架站's
       // up on the deck, after it (and before the trains on it, but the near canopy after them)
-      const isoY = isoToScreen(col + 0.5, row + 0.5).y;
+      const isoY = metroSortY(col + 0.5, row + 0.5);
       const up = station.elevated;
       // (a 地底站's down in the tunnel, over the dimmed world, no canopies)
       const lift = up ? metroDeckLiftPx() : under ? -metroTunnelDropPx() : 0;
@@ -818,7 +818,7 @@ function metroStationArtStrips(station, artSet) {
   const tiles = surfaceStationTiles(station).map(([row, col]) => ({ row, col, at: isoToScreen(col + 0.5, row + 0.5) }));
   tiles.sort((a, b) => a.at.x - b.at.x);
   const art = artSet[tiles[0].at.y > tiles.at(-1).at.y ? 'x' : 'y'];
-  return tiles.map((t, k) => ({ row: t.row, col: t.col, isoX: t.at.x, isoY: t.at.y, piece: art[k] }));
+  return tiles.map((t, k) => ({ row: t.row, col: t.col, isoX: t.at.x, isoY: t.at.y + metroFrameShift(), piece: art[k] }));
 }
 
 // A 高架站's five tiles and the strip of its picture each takes (metro-station-art.js): left to right
@@ -828,7 +828,7 @@ function metroElevatedStationStrips(station) {
   const tiles = surfaceStationTiles(station).map(([row, col]) => ({ row, col, at: isoToScreen(col + 0.5, row + 0.5) }));
   tiles.sort((a, b) => a.at.x - b.at.x);
   const art = METRO_ELEVATED_STATION_ART[tiles[0].at.y > tiles.at(-1).at.y ? 'x' : 'y'];
-  return tiles.map((t, k) => ({ row: t.row, col: t.col, isoX: t.at.x, isoY: t.at.y, piece: art[k] }));
+  return tiles.map((t, k) => ({ row: t.row, col: t.col, isoX: t.at.x, isoY: t.at.y + metroFrameShift(), piece: art[k] }));
 }
 
 // The 高架站 as the trains need them each frame: the tiles where a car is among a station's strips
@@ -867,7 +867,7 @@ function metroIslandCarPieces(islands, car, sprite) {
   const far = isoToScreen(col, row).y < axisPoint.y;
   const left = sprite.x - sprite.displayOriginX * sprite.scaleX;
   const width = sprite.frame.realWidth;
-  const carY = isoToScreen(col, row).y;
+  const carY = metroSortY(col, row);
   const out = [];
   const first = zone.strips[0], last = zone.strips[zone.strips.length - 1];
   [{ x0: -Infinity, x1: first.x0, outside: true }, ...zone.strips, { x0: last.x1, x1: Infinity, outside: true }].forEach((strip) => {
@@ -906,7 +906,8 @@ function metroSlicedCarPieces(car, sprite, bias) {
     const cx = left + ((x0 + x1) / 2) * sprite.scaleX;
     // (two cars of a train lie on one line: where their ends overlap their slices sort level - the
     // nearer car's middle, a hair after, wins, as its end is the one in front (Norton: 底面相反))
-    out.push({ x0, x1, depth: getWorldDepth('object', p0.y + slope * (cx - sprite.x) + bias) + p0.y * 1e-4 });
+    const y0 = p0.y + metroFrameShift();
+    out.push({ x0, x1, depth: getWorldDepth('object', y0 + slope * (cx - sprite.x) + bias) + y0 * 1e-4 });
   }
   return out;
 }
@@ -1013,10 +1014,10 @@ function metroPortalCarPieces(scene, portals, state, car, sprite) {
   const [o0, o1] = inside.x < cut.x ? [tex(cut.x), width] : [0, tex(cut.x)];
   // the trough's tiles, left to right as drawn (the portal's own is all tunnel)
   const strips = portal.tiles.map(([r, c]) => ({
-    cx: getTileFaceGeometry(r, c, scene.offsetX, scene.offsetY).center.x, isoY: isoToScreen(c + 0.5, r + 0.5).y,
+    cx: getTileFaceGeometry(r, c, scene.offsetX, scene.offsetY).center.x, isoY: metroSortY(c + 0.5, r + 0.5),
   })).sort((a, b) => a.cx - b.cx);
   const quarter = TILE_WIDTH / 4;
-  const carY = isoToScreen(col, row).y;
+  const carY = metroSortY(col, row);
   const out = [];
   strips.forEach((strip, k) => {
     const x0 = Math.max(o0, k === 0 ? 0 : tex(strip.cx - quarter));
@@ -1272,7 +1273,7 @@ function updateMetroSurfaceTrains(scene) {
         const lift = (car.z || 0) * METRO_SURFACE.zPxPerMetre * (TILE_WIDTH / 512);
         sprite.setPosition(at.x, at.y - lift);
         // sorted among the buildings and the viaduct in their frame (isoToScreen, no scene offset)
-        const isoY = isoToScreen(car.pos[0], car.pos[1]).y;
+        const isoY = metroSortY(car.pos[0], car.pos[1]);
         sprite.setDepth(getWorldDepth('object', isoY + (car.z > 0.05 ? TILE_HEIGHT * 1.1 : 0)));
         sprite.setVisible(true);
         // below the ground: in the 地底 view over the dimmed world; else out of sight in the tunnel,

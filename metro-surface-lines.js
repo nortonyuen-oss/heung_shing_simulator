@@ -46,8 +46,10 @@ function surfaceStationTiles(station) {
 
 // A 地面站's tiles beside its track, a row each side (Norton, 2026-11-06: its concourse, footbridge
 // and far platform stand there - metro-ground-station-art.js): its own, none to build on.
+// (a 高架站 too, Norton 2026-11-07: its concourse, stairs and lift stand on the ground beside the
+// deck, on the side toward the viewer - so either side as the map turns)
 function metroGroundStationSideTiles(station) {
-  if (!station?.surface || station.elevated || station.underground || station.island) return [];
+  if (!station?.surface || station.underground) return [];
   const side = station.axis === 'ns' ? [[0, -1], [0, 1]] : [[-1, 0], [1, 0]];
   return surfaceStationTiles(station).flatMap(([r, c]) => side.map(([dr, dc]) => [r + dr, c + dc]));
 }
@@ -422,6 +424,15 @@ function whyNotMetroSurfaceStation(row, col) {
     if (typeof getTileHeight === 'function' && all.some(([r, c]) => getTileHeight(r, c) !== 0)) {
       return metroT('metro.surfaceStation.islandFlat', '高架站下面有大堂：七格都要喺平地上面（唔可以喺山上）。');
     }
+    // (and the ground is the station's: no road under its platform - the concourse stands there -
+    // and a row of open flat ground each side, for the concourse, stairs and lift)
+    const sides = metroGroundStationSideTiles({ surface: true, island: true, row, col, axis: res.axis });
+    const under = surfaceStationTiles({ row, col, axis: res.axis });
+    if (under.some(([r, c]) => mapData[r][c] === ROAD || (typeof isBridgeTile === 'function' && isBridgeTile(r, c)))
+      || sides.some(([r, c]) => !isInsideMap(r, c) || !canLayMetroTrackAt(r, c) || isMetroTrackTile(r, c)
+        || getTileHeight(r, c) !== 0)) {
+      return metroT('metro.surfaceStation.islandSides', '高架站嘅大堂、樓梯同升降機喺地面：月台下面唔可以有路，兩邊各要一行平地空地（冇路、建築、路軌或者水）。');
+    }
   }
   return null;
 }
@@ -446,6 +457,15 @@ function placeMetroSurfaceStation(scene, row, col) {
     if (typeof removeDebris === 'function') removeDebris(scene, row, col);
     if (typeof removeZoneOverlay === 'function') removeZoneOverlay(scene, row, col);
     if (typeof zoneMap !== 'undefined' && zoneMap[row]) zoneMap[row][col] = typeof ZONE_NONE !== 'undefined' ? ZONE_NONE : 0;
+  } else {
+    // a 地面站's or 高架站's ground (its tiles and a row each side): cleared of trees and zones
+    [...surfaceStationTiles({ row, col, axis }), ...metroGroundStationSideTiles({ surface: true, row, col, axis })].forEach(([r, c]) => {
+      if (!isInsideMap(r, c)) return;
+      if (typeof removeTree === 'function') removeTree(scene, r, c);
+      if (typeof removeDebris === 'function') removeDebris(scene, r, c);
+      if (typeof removeZoneOverlay === 'function') removeZoneOverlay(scene, r, c);
+      if (typeof zoneMap !== 'undefined' && zoneMap[r]) zoneMap[r][c] = typeof ZONE_NONE !== 'undefined' ? ZONE_NONE : 0;
+    });
   }
   state.stations.push({
     id: `station-${n}`, row, col, facing: 's', surface: true, axis,

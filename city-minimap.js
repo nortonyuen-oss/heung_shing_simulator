@@ -68,9 +68,58 @@ function drawCityMinimap() {
     }
   });
 
+  // 地鐵路軌 laid (metro-surface.js) in a dull rail tone - not the tunnels, under the ground
+  const metro = typeof getTransportExpansionState === 'function' ? getTransportExpansionState()?.metro : null;
+  if (metro?.tracks) {
+    const elev = metro.trackElev || {};
+    Object.keys(metro.tracks).forEach((key) => {
+      const code = elev[key];
+      if (code === 'u' || (code && code[0] === 't')) return;
+      const [row, col] = key.split(':').map(Number);
+      if (isInsideMap(row, col)) paint(row, col, [132, 118, 110]);
+    });
+  }
+
   ctx.putImageData(image, 0, 0);
+  drawCityMinimapMetroLines(ctx, metro);
   cityMinimapLastDrawAt = performance.now();
   cityMinimapLastRotation = mapRotation;
+}
+
+// The 地鐵 lines over the map, quietly (Norton, 2026-11-07: 簡單就好，不需要強調): each a thin line in
+// its colour, part see-through - a surface line along its track, an underground one station to
+// station - and its stations a pale dot. A point (col, row) with a tile's middle at +0.5.
+function cityMinimapPointAt(col, row) {
+  const { c, r } = getCityMinimapViewCoords(row - 0.5, col - 0.5);
+  return { x: c - r + MAP_WIDTH + 0.5, y: (c + r) / 2 + 0.5 };
+}
+
+function drawCityMinimapMetroLines(ctx, metro) {
+  if (!metro?.lines?.length || typeof getMetroLineStations !== 'function') return;
+  ctx.save();
+  // (the canvas is shown at about half size: 1.5 px reads as a fine line, not a bold one)
+  ctx.lineWidth = 1.5;
+  ctx.lineJoin = 'round';
+  metro.lines.forEach((line) => {
+    const stations = getMetroLineStations(line);
+    if (stations.length < 2) return;
+    const geom = line.surface && typeof getSurfaceLineGeometry === 'function' ? getSurfaceLineGeometry(line) : null;
+    const pts = geom?.verts?.length
+      ? geom.verts.map((v) => cityMinimapPointAt(v.x, v.y))
+      : stations.map((s) => cityMinimapPointAt(s.col + 0.5, s.row + 0.5));
+    ctx.globalAlpha = line.status === 'suspended' ? 0.3 : 0.65;
+    ctx.strokeStyle = line.color || '#c0392b';
+    ctx.beginPath();
+    pts.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
+    ctx.stroke();
+  });
+  ctx.globalAlpha = 0.85;
+  ctx.fillStyle = '#f2efe6';
+  (metro.stations || []).forEach((s) => {
+    const p = cityMinimapPointAt(s.col + 0.5, s.row + 0.5);
+    ctx.fillRect(Math.round(p.x) - 1, Math.round(p.y) - 1, 2, 2);
+  });
+  ctx.restore();
 }
 
 // World position <-> minimap fraction. Tile centres sit at isoToScreen + the scene offset, and

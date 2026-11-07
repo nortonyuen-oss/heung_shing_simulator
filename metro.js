@@ -113,6 +113,9 @@ function normalizeMetroState(raw) {
       ...(l.surface === true ? { surface: true } : {}),
       // its trains' livery (Norton, 2026-11-06): 'm' the urban lines' M-Train, 'k' the 東鐵 黃頭
       livery: l.livery === 'k' ? 'k' : 'm',
+      // its opening news (香城討論區) still to come - only a line drawn since that began; older ones
+      // count as told, so a load does not fill the forum
+      ...(l.newsPending === true ? { newsPending: true } : {}),
       monthToDatePassengers: Math.max(0, Math.floor(num(l.monthToDatePassengers))),
       monthToDateRevenue: Math.max(0, num(l.monthToDateRevenue)),
       // of the riders boarding, those changing from another line at a 轉車站
@@ -488,7 +491,7 @@ function handleMetroLineClick(scene, row, col) {
   }
 
   const last = draftLine ? getMetroStationById(draftLine.stationIds.at(-1), state) : pending;
-  if (last.id === station.id) { metroLineDraft = null; return say('metro.line.done', '完成。'); }
+  if (last.id === station.id) { metroLineDraft = null; if (draftLine) announceMetroLineOpened(draftLine); return say('metro.line.done', '完成。'); }
   if (draftLine?.stationIds.includes(station.id)) {
     return say('metro.line.again', '「{line}」已經經過「{name}」：一條綫唔可以經同一個站兩次。', { line: draftLine.name, name: station.name }, 'warning');
   }
@@ -525,6 +528,7 @@ function handleMetroLineClick(scene, row, col) {
     stationIds: [pending.id, station.id],
     status: 'active', monthToDatePassengers: 0, monthToDateRevenue: 0, monthToDateTransfers: 0, history: [],
     ...(station.surface ? { surface: true } : {}),
+    newsPending: true,
   };
   state.lines.push(line);
   metroLineDraft = { lineId: line.id };
@@ -538,7 +542,40 @@ function handleMetroLineClick(scene, row, col) {
 }
 
 function cancelMetroLineDraft() {
+  const draftLine = metroLineDraft?.lineId ? getMetroState().lines.find((l) => l.id === metroLineDraft.lineId) : null;
   metroLineDraft = null;
+  if (draftLine) announceMetroLineOpened(draftLine);
+}
+
+// A new line's opening in 香城討論區 (Norton, 2026-11-07: 每開一條地鐵線路 - his news picture of the
+// 屯馬綫's young fan, UI/news/metroOpens.webp): once a line, when it is drawn to its end (finished, or
+// the drawing left), else at the month's end. Pure but for the forum and the paper.
+function announceMetroLineOpened(line, state = getMetroState()) {
+  if (!line?.newsPending || typeof city === 'undefined') return false;
+  if (metroLineDraft?.lineId === line.id) return false;
+  delete line.newsPending;
+  if (typeof addForumPost !== 'function') return false;
+  const stations = getMetroLineStations(line, state);
+  if (stations.length < 2) return false;
+  const cityName = String(city.name || '').trim() || '香城';
+  const lineName = String(line.name || '').trim() || '新地鐵綫';
+  const from = stations[0].name, to = stations.at(-1).name;
+  const kinds = new Set(stations.map((s) => (s.elevated ? '高架' : s.surface && !s.underground ? '地面' : '地底')));
+  const kindText = kinds.size > 1 ? `${[...kinds].join('、')}站都有` : `全部係${[...kinds][0]}站`;
+  const headline = `【${lineName}通車】「${lineName.replace(/綫$|線$/, '')}開通真的很興奮」　鐵路迷小朋友受訪即場獻唱爆紅`;
+  if (typeof addCityNews === 'function') addCityNews(headline);
+  addForumPost({
+    headline,
+    image: 'UI/news/metroOpens.webp',
+    body: [
+      `${cityName}${lineName}今日正式通車，由「${from}」開往「${to}」，全綫 ${stations.length} 個站，${kindText}。頭班車未開，月台已經企滿專登嚟搭頭班車嘅市民同鐵路迷。`,
+      `電視台記者喺月台訪問一位揹住相機嘅鐵路迷小朋友，佢一開口就興奮到唱起上嚟：「${lineName.replace(/綫$|線$/, '')}開通真的很興奮！」片段喺網上瘋傳，一日內轉載過萬次，成為全城熱話。`,
+      '運輸公司表示，新綫車費按距離計，車站附近嘅樓價預計都會升；有街坊話以後返工終於唔使再喺巴士站企成個鐘。',
+    ],
+    source: 'local',
+    social: { likes: 12800, laughs: 3600, angry: 40, commentCount: 2300, shares: 6900 },
+  }, { id: `metroLineOpen-${line.id}`, category: '城中熱話', author: '運輸公司' });
+  return true;
 }
 
 // Close a line: its trains are sold, its stations stay.
@@ -854,6 +891,8 @@ function settleMetroMonth(ended = null) {
   // (the month's turn is where a growing city first hears of its railway)
   isMetroUnlocked();
   const state = getMetroState();
+  // (a line drawn and left without its opening told: told now)
+  state.lines.forEach((line) => announceMetroLineOpened(line, state));
   const out = { revenue: 0, passengers: 0, cost: 0, property: 0 };
   state.lines.forEach((line) => {
     const fleet = getMetroLineTrains(line, state);

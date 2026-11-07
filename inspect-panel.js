@@ -27,6 +27,49 @@ async function renameInspectedBuilding() {
   showInspectPanel(activeScene, lastInspectTile.row, lastInspectTile.col);
 }
 
+// ── 地鐵站 (metro.js) ─────────────────────────────────────────────────────────
+// A station's tiles (an entrance, a platform's five, a 地面站's or 高架站's row each side) show the
+// station: its name, its kind, the lines calling there, who waits, its share of the property round
+// it last month - and it can be renamed here (Norton, 2026-11-07).
+function inspectMetroStationAt(row, col) {
+  return typeof getMetroStationAt === 'function' ? getMetroStationAt(row, col) : null;
+}
+
+function buildMetroStationInspectHtml(row, col) {
+  const station = inspectMetroStationAt(row, col);
+  if (!station || typeof metroT !== 'function') return '';
+  const kind = station.elevated ? metroT('inspect.metro.elevated', '高架站')
+    : station.surface && !station.underground ? metroT('inspect.metro.ground', '地面站')
+      : metroT('inspect.metro.underground', '地底站');
+  const lines = typeof getMetroStationLines === 'function' ? getMetroStationLines(station) : [];
+  const lineHtml = lines.length
+    ? lines.map((l) => `<span style="color:${/^#[0-9a-f]{6}$/i.test(l.color || '') ? l.color : '#ccc'}">●</span> ${escapeHtml(l.name || '')}`).join('<br>')
+    : `<span class="insp-muted">${metroT('inspect.metro.noLine', '未有地鐵綫停呢個站')}</span>`;
+  const waiting = typeof getMetroStationWaiting === 'function' ? Math.round(getMetroStationWaiting(station)) : 0;
+  return `
+    <div class="insp-section">
+      <div class="insp-bldg-name" style="color:#e2231a">🚇 ${escapeHtml(station.name || '')}</div>
+      <div class="insp-row insp-muted">${kind}${lines.length > 1 ? ` · ${metroT('inspect.metro.interchange', '轉車站')}` : ''}</div>
+      <div class="insp-row">${lineHtml}</div>
+      <div class="insp-row insp-muted">${metroT('inspect.metro.waiting', '候車：{n} 人', { n: waiting.toLocaleString() })}</div>
+      <div class="insp-row insp-muted">${metroT('inspect.metro.property', '上月鐵路物業收入：${value}', { value: (Number(station.lastPropertyIncome) || 0).toLocaleString() })}</div>
+      <button class="insp-action-btn" type="button" onclick="renameInspectedMetroStation()">${metroT('inspect.metro.rename', '改站名')}</button>
+    </div>`;
+}
+
+async function renameInspectedMetroStation() {
+  if (!activeScene || !lastInspectTile) return;
+  const station = inspectMetroStationAt(lastInspectTile.row, lastInspectTile.col);
+  if (!station || typeof showTextPromptDialog !== 'function') return;
+  const next = await showTextPromptDialog(metroT('metro.ui.renameStationPrompt', '地鐵站名稱'), station.name || '');
+  if (next === null) return;
+  const trimmed = String(next).trim().slice(0, 40);
+  if (trimmed) station.name = trimmed;
+  if (typeof queueCityChangeAutosave === 'function') queueCityChangeAutosave();
+  if (typeof refreshMetroUi === 'function') refreshMetroUi();
+  showInspectPanel(activeScene, lastInspectTile.row, lastInspectTile.col);
+}
+
 // ── Zone growth eligibility breakdown ────────────────────────────────────────
 // Commercial wealth tier (L/M/H/UH) is still gated by a per-tile minimums
 // checklist (quality/land value/scenic/environment/economy, plus stock-
@@ -276,6 +319,8 @@ function showInspectPanel(scene, row, col, pointer = null) {
       const sl = getBuildingSubLabel(bData.type, subLabelKey);
       coordTitle = sl ? `${tl} · ${sl}` : tl;
     }
+  } else if (inspectMetroStationAt(row, col)) {
+    coordTitle = escapeHtml(inspectMetroStationAt(row, col).name || '');
   } else if (hasBldg) {
     coordTitle = t('building.generic');
   } else if (tree) {
@@ -307,6 +352,8 @@ function showInspectPanel(scene, row, col, pointer = null) {
   if (tree && !bData) {
     html += `<div class="insp-row insp-ok">Tree age: ${tree.age ?? 0}/${TREE_MATURE_AGE} · ${tree.species}</div>`;
   }
+
+  html += buildMetroStationInspectHtml(row, col);
 
   if (bData) {
     html += `

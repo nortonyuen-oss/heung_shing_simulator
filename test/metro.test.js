@@ -294,3 +294,42 @@ test('the government puts its founding capital into the company once, as the rai
   isMetroUnlocked();
   assert.equal(company.cash, 1000 + 2 * METRO.foundingGrant);
 });
+
+test('a new line opens in 香城討論區 once, with its news picture; lines from before do not', () => {
+  const posts = [];
+  const state = {
+    stations: [
+      { id: 's1', name: '屯門', row: 0, col: 0, surface: true, elevated: true },
+      { id: 's2', name: '兆康', row: 0, col: 20, surface: true, elevated: true },
+      { id: 's3', name: '天水圍', row: 0, col: 40, surface: true },
+    ],
+    lines: [
+      { id: 'line-1', name: '屯馬綫', stationIds: ['s1', 's2', 's3'], newsPending: true },
+      { id: 'line-2', name: '舊綫', stationIds: ['s1', 's2'] },
+    ],
+  };
+  const { announceMetroLineOpened, cancelMetroLineDraft, setDraft, normalizeMetroState } = new Function('posts', 'state', `
+    var city = { name: '香城', year: 2021, month: 6 };
+    function addForumPost(article, meta) { posts.push({ ...article, ...meta }); return article; }
+    ${read('metro.js')}
+    getMetroState = () => state;
+    return { announceMetroLineOpened, cancelMetroLineDraft, normalizeMetroState, setDraft: (d) => { metroLineDraft = d; } };
+  `)(posts, state);
+  // still being drawn: not yet
+  setDraft({ lineId: 'line-1' });
+  assert.equal(announceMetroLineOpened(state.lines[0]), false);
+  // the drawing left: told, once
+  cancelMetroLineDraft();
+  assert.equal(posts.length, 1);
+  assert.equal(posts[0].image, 'UI/news/metroOpens.webp');
+  assert.match(posts[0].headline, /屯馬綫通車.*屯馬開通真的很興奮/);
+  assert.match(posts[0].body[0], /由「屯門」開往「天水圍」，全綫 3 個站/);
+  assert.equal(announceMetroLineOpened(state.lines[0]), false, 'once');
+  assert.equal(announceMetroLineOpened(state.lines[1]), false, 'an older line is not told');
+  assert.equal(posts.length, 1);
+  // kept pending through a save and load; older lines load as told
+  const loaded = normalizeMetroState({ stations: state.stations, lines: [{ id: 'l9', stationIds: ['s1', 's2'], newsPending: true }, { id: 'l8', stationIds: ['s1', 's2'] }] });
+  assert.equal(loaded.lines[0].newsPending, true);
+  assert.equal(loaded.lines[1].newsPending, undefined);
+  for (const file of ['UI/news/metroOpens.webp', 'UI/news/thumbs/metroOpens.webp']) assert.ok(fs.existsSync(path.join(ROOT, file)), file);
+});

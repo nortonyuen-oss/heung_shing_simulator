@@ -1,3 +1,24 @@
+# The City of Heung Shing v5.3.1 — 【屯馬開通真的很興奮】
+
+- 廣東話：【屯馬開通真的很興奮】
+- 台灣中文：【地鐵通車】
+- English: 【Heung Shing, The Railway Opens】
+- 日本語：【香城、地下鉄開業】
+
+## 修正
+
+- 地鐵列車夜晚嘅車頭燈同尾燈畫錯位置（喺車頭前面半卡車咁遠），而家返返去車頭燈同尾燈上面。只影響安裝版。
+
+## 驗證
+
+完整專案 1186 項測試通過。
+
+## 下載
+
+macOS Apple Silicon / Intel DMG；Windows 安裝版 / 免安裝版 EXE。
+
+---
+
 # The City of Heung Shing v5.3.0 — 【屯馬開通真的很興奮】
 
 - 廣東話：【屯馬開通真的很興奮】

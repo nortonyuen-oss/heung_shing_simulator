@@ -1,5 +1,5 @@
 const I18N_STORAGE_KEY = 'citybuilder.language';
-let appVersion = '5.3.0';
+let appVersion = '5.3.1';
 let appReleaseTheme = '【屯馬開通真的很興奮】';
 const APP_RELEASE_THEMES = { en: '【Heung Shing, The Railway Opens】', zhHant: '【地鐵通車】', ja: '【香城、地下鉄開業】' };
 function localizedReleaseTheme() {

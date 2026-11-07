@@ -524,7 +524,31 @@ def drop_roof_shade(win, rgb, al):
     return out
 
 
-def lit_of(img):
+def side_only(win, al, name):
+    """The roof is never lit (Norton, 2026-11-07: 車頂是不用配燈的). Seen end-on (vert) the car is
+    mostly roof: its sides' windows show only as a strip down each edge, each 16% of the car's width
+    in its row - only there, and the cab's windscreen on a front that faces the viewer (cabNear's
+    last 14%)."""
+    if name.replace('k_', '', 1).split('_')[0] != 'vert':
+        return win
+    solid = al > 200
+    h, w = win.shape
+    out = np.zeros_like(win)
+    for y in range(h):
+        xs = np.nonzero(solid[y])[0]
+        if not len(xs):
+            continue
+        l, r = xs.min(), xs.max()
+        band = max(2, int(round(0.16 * (r - l + 1))))
+        out[y, l:l + band] = win[y, l:l + band]
+        out[y, r - band + 1:r + 1] = win[y, r - band + 1:r + 1]
+    if 'cabNear' in name:
+        y0 = int(h * 0.86)
+        out[y0:] = win[y0:]
+    return out
+
+
+def lit_of(img, name=''):
     a = np.asarray(img).astype(np.float32)
     rgb, al = a[..., :3], a[..., 3]
     lum = rgb.mean(2)
@@ -540,6 +564,7 @@ def lit_of(img):
         seats = (r - b > 25) & (g > 90) & (r - g < 60) & (lum[col, x] < 175)   # (beige, not the red stripe)
         win[col, x] = (al[col, x] > 200) & (lum[col, x] > 30) & ((lum[col, x] < 120) & (r - g < 40) | seats)
     win = drop_roof_shade(win, rgb, al)
+    win = side_only(win, al, name)
     m = Image.fromarray(win.astype(np.uint8) * 255).filter(ImageFilter.MinFilter(3)).filter(ImageFilter.MaxFilter(3))
     m = np.asarray(m.filter(ImageFilter.GaussianBlur(0.6)), np.float32) / 255.0
     out = np.zeros(a.shape, np.float32)
@@ -614,7 +639,7 @@ def main():
         path = f'Models/metroTrain/car_{name}.png'
         c['img'].save(ROOT / path)
         lit_path = f'Models/metroTrain/car_{name}_lit.png'
-        lit_of(c['img']).save(ROOT / lit_path)
+        lit_of(c['img'], name).save(ROOT / lit_path)
         art[name] = {'path': path, 'key': f'metro_car_{name}', 'anchor': [round(float(c['ax']), 1), round(float(c['ay']), 1)],
                      'lit': {'path': lit_path, 'key': f'metro_car_{name}_lit'}}
         if 'cab' in name and 'cabFar' not in name:   # (a cab facing away shows no lamps)

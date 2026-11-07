@@ -52,6 +52,8 @@ const SITE_GALLERY = {
     { title: "玫瑰園國際機場", alt: "客機喺跑道上，旁邊係東涌雙語分區路牌", caption: "機場正式運作：客機沿彎曲航線降落、滑行入閘再起飛；「東涌」路牌係你自己改嘅雙語分區名。" },
     { title: "貨櫃碼頭夜間照常運作", alt: "夜晚嘅貨櫃碼頭：橋吊亮燈，貨船泊岸同離港", caption: "貨船由公海駛入、平行泊岸、交換貨櫃再鳴笛離開；碼頭同橋吊夜晚有燈，工業區嘅作息同住宅唔同。" },
     { title: "經營自己嘅巴士公司", alt: "運輸營運模式：車隊清單同兩個即時追蹤鏡頭", caption: "巴士 DLC：起車廠、開路線、買車，睇每架車嘅載客率同收入，仲有即時追蹤鏡頭跟住架車行。" },
+    { title: "高架站喺市中心", alt: "日間嘅高架地鐵站：島式月台、兩架列車，旁邊係廟宇、遊樂場同密集樓宇", caption: "地鐵 DLC：路軌可以起喺地底、地面或者高架；高架站嘅大堂、樓梯同升降機喺地面，佔埋兩邊各一行地。五門車廂可以揀 M-Train 或者 K-Train 塗裝，一條好嘅市區綫大約三年回本。" },
+    { title: "黃昏放工嘅列車", alt: "黃昏嘅高架站：車廂著燈、車頭燈同尾燈，四周樓宇開始亮燈", caption: "日落後車廂亮燈、車頭燈同尾燈跟巴士一樣；車站唔見燈泡，只見月台同大堂被照亮，同成個城市一齊入夜。" },
     { title: "香城夜色，由街燈開始", alt: "傍晚七點幾嘅住宅區，街燈已亮，窗燈逐棟填滿，天上有星", caption: "日落後街燈一齊亮起，然後窗燈逐棟填滿；住宅、商業、工業各有自己嘅開燈比例，醫院警局通宵全開。" },
     { title: "夜晚嘅香城天際線", alt: "夜晚縮細睇嘅城市：密集燈火、機場同海港", caption: "133 個模型全部有預先烘焙嘅夜景貼圖，成個城市入夜都唔會拖慢；深夜逐棟熄燈，凌晨最暗。" },
     { title: "夜訪天壇大佛", alt: "深夜嘅天壇大佛亮燈，旁邊係霓虹商業街", caption: "地標入夜全開燈到凌晨一點：天壇大佛、霓虹商業街同旁邊嘅住宅區各有各嘅夜晚。" },
@@ -78,6 +80,8 @@ const SITE_GALLERY = {
     { title: "玫瑰園國際機場", alt: "客機在跑道上，旁邊是東涌雙語分區路牌", caption: "機場正式運作：客機沿曲線航路降落、滑行入閘再起飛；「東涌」路牌是你自己取的雙語分區名。" },
     { title: "貨櫃碼頭夜間照常運作", alt: "夜晚的貨櫃碼頭：橋式起重機亮燈，貨船泊岸與離港", caption: "貨船由外海駛入、平行靠泊、交換貨櫃再鳴笛離開；碼頭與起重機夜晚有燈，工業區的作息與住宅不同。" },
     { title: "經營自己的公車公司", alt: "運輸營運模式：車隊清單與兩個即時追蹤鏡頭", caption: "公車 DLC：蓋車廠、開路線、買車，看每輛車的載客率與收入，還有即時追蹤鏡頭跟著車跑。" },
+    { title: "市中心的高架車站", alt: "白天的高架捷運站：島式月台、兩列列車，旁邊是廟宇、遊樂場與密集樓宇", caption: "地鐵 DLC：軌道可以建在地下、地面或高架；高架站的大廳、樓梯與電梯在地面，兩側各佔一列土地。五門車廂可選 M-Train 或 K-Train 塗裝，一條好的市區線約三年回本。" },
+    { title: "黃昏下班的列車", alt: "黃昏的高架站：車廂亮燈、頭燈與尾燈，周圍樓宇開始亮燈", caption: "日落後車廂亮燈，頭燈與尾燈和公車一樣；車站看不到燈泡，只見月台與大廳被照亮，與整座城市一起入夜。" },
     { title: "香城夜色，從路燈開始", alt: "傍晚七點多的住宅區，路燈已亮，窗燈逐棟填滿，天上有星", caption: "日落後路燈一起亮起，然後窗燈逐棟填滿；住宅、商業、工業各有自己的開燈比例，醫院警局整夜全開。" },
     { title: "夜晚的香城天際線", alt: "夜晚縮小看的城市：密集燈火、機場與海港", caption: "133 個模型全部有預先烘焙的夜景貼圖，整座城市入夜也不會變慢；深夜逐棟熄燈，凌晨最暗。" },
     { title: "夜訪天壇大佛", alt: "深夜的天壇大佛亮燈，旁邊是霓虹商業街", caption: "地標入夜全開燈到凌晨一點：天壇大佛、霓虹商業街與旁邊的住宅區各有各的夜晚。" },
@@ -104,6 +108,8 @@ const SITE_GALLERY = {
     { title: "Rose Garden International Airport", alt: "An airliner on the runway beside the bilingual Tung Chung district sign", caption: "The airport in operation: aircraft land along curved approaches, taxi to a gate and take off again. The Tung Chung sign is a bilingual district name you chose yourself." },
     { title: "The container port works through the night", alt: "The container port at night: cranes lit, ships berthing and departing", caption: "Cargo vessels sail in from open water, berth parallel to the quay, exchange containers and sound their horn as they leave; the port and its cranes are lit at night, and industry keeps different hours from housing." },
     { title: "Run your own bus company", alt: "Transport mode: the fleet list and two live tracking cameras", caption: "The bus expansion: build a depot, open routes, buy buses, watch each vehicle's load factor and takings, and follow any bus with a live tracking camera." },
+    { title: "An elevated station downtown", alt: "An elevated metro station by day: an island platform and two trains, a temple, a playground and dense blocks around it", caption: "Metro DLC: lay track underground, on the ground or on viaducts. An elevated station's concourse, stairs and lift stand on the ground, taking a row of land each side. Five-door cars come in M-Train or K-Train livery, and a good line downtown pays back in about three years." },
+    { title: "Trains at dusk", alt: "The elevated station at dusk: lit carriages with head and tail lamps, the blocks around lighting up", caption: "After sunset the carriages light up, with head and tail lamps like the buses. You never see the station's lamps, only the platform and concourse they light, going into the night with the rest of the city." },
     { title: "Night begins with the street lamps", alt: "A residential district just after seven in the evening: street lamps on, windows filling in one building at a time, stars overhead", caption: "After sunset the street lamps come on together, then the windows fill in building by building; homes, offices and industry each keep their own share lit, and hospitals and police stations stay lit all night." },
     { title: "The Heung Shing skyline at night", alt: "The city zoomed out at night: dense lights, the airport and the harbour", caption: "All 133 models ship pre-baked night textures, so the whole city lights up without slowing down; in the small hours buildings go dark one by one and the night is at its deepest." },
     { title: "The Big Buddha after dark", alt: "The Big Buddha lit up late at night beside a neon commercial street", caption: "Landmarks stay fully lit until one in the morning: the Buddha, the neon shopping street and the housing next door each have their own kind of night." },
@@ -130,6 +136,8 @@ const SITE_GALLERY = {
     { title: "ローズガーデン国際空港", alt: "滑走路上の旅客機と、その脇のバイリンガル地区標識「東涌」", caption: "空港が稼働中：旅客機は曲線の進入路で着陸し、ゲートへ滑走してまた離陸。「東涌」の標識は自分で付けたバイリンガルの地区名です。" },
     { title: "コンテナ港は夜も動く", alt: "夜のコンテナ港：クレーンが灯り、貨物船が接岸・出港", caption: "貨物船は外洋から入り、岸壁に平行に接岸してコンテナを積み替え、汽笛を鳴らして去ります。港とクレーンは夜も灯り、工業地区は住宅とは違う時間で動きます。" },
     { title: "自分のバス会社を経営", alt: "交通モード：車両一覧と2つのライブ追跡カメラ", caption: "バス拡張：車庫を建て、路線を開き、車両を買い、各車の乗車率と収入を確認。ライブ追跡カメラでどのバスでも追いかけられます。" },
+    { title: "都心の高架駅", alt: "昼の高架駅：島式ホームと2本の列車、周りに寺院、遊び場、密集したビル", caption: "地下鉄 DLC：線路は地下・地上・高架に敷設できます。高架駅のコンコース・階段・エレベーターは地上にあり、両側に一列ずつ土地を使います。5扉車両は M-Train か K-Train の塗装、良い都心の路線は約3年で回収できます。" },
+    { title: "夕暮れの帰宅列車", alt: "夕暮れの高架駅：車内灯、前照灯と尾灯、周りのビルにも明かりが灯る", caption: "日没後は車内が点灯し、前照灯と尾灯はバスと同じ表現。駅の照明器具は見えず、照らされたホームとコンコースだけが街と一緒に夜を迎えます。" },
     { title: "夜は街灯から始まる", alt: "夜7時過ぎの住宅地。街灯はすでに点き、窓の灯りが一棟ずつ増え、空には星", caption: "日没後、街灯はいっせいに点き、窓の灯りは一棟ずつ増えていきます。住宅・商業・工業はそれぞれ点灯する割合が違い、病院と警察は一晩中点いたまま。" },
     { title: "夜の香城スカイライン", alt: "夜に引いて見た街：密集する灯り、空港、港", caption: "133種すべてのモデルが焼き込み済みの夜景テクスチャを持ち、街全体が灯っても重くなりません。深夜には一棟ずつ消灯し、未明がいちばん暗くなります。" },
     { title: "夜の天壇大仏", alt: "深夜にライトアップされた天壇大仏と、隣のネオン街", caption: "ランドマークは午前1時まで全点灯。大仏、ネオンの商店街、隣の住宅地にはそれぞれの夜があります。" },
@@ -262,6 +270,7 @@ const SITE_FEATURE_LIST = {
 // ── Changelog ─────────────────────────────────────────────────────────────────
 const SITE_CHANGELOG = {
   "zh-HK": [
+    {"version": "v5.3.2", "date": "2026-11-07", "dateLabel": "2026年11月7日", "title": "屯馬開通真的很興奮", "items": ["修正：地鐵車廂夜晚嘅窗燈畫錯位置，而家返返去車窗上面。", "高架站有返佔地：月台下面唔可以有路，兩邊各要一行空地（大堂、樓梯同升降機），巴士唔會再穿過車站。", "官網截圖新增高架站喺市中心。"]},
     {"version": "v5.3.1", "date": "2026-11-07", "dateLabel": "2026年11月7日", "title": "屯馬開通真的很興奮", "items": ["修正：地鐵列車夜晚嘅車頭燈同尾燈畫錯位置，而家返返去車頭上面。"]},
     {"version": "v5.3.0", "date": "2026-11-07", "dateLabel": "2026年11月7日", "title": "屯馬開通真的很興奮", "items": ["地鐵：人口過 3 萬，運輸公司可以起地鐵；政府一次過注資 $80,000 起第一條綫，立法會「地下鐵路撥款」可以再撥款。", "一個路軌工具揀高度（地底／地面／高架），自動起隧道、隧道口、上落橋同穿山隧道；45 度轉彎、道岔同支綫，同軌列車自動保持距離。", "三款車站：地底站、地面站（兩邊月台加天橋大堂）、高架島式月台站；地底透視睇住列車喺城市底下行。", "五門車廂，每條綫揀 M-Train 或 K-Train（黃頭）；上落斜坡車身傾斜，夜晚車廂著燈、有車頭燈同尾燈；轉車站可以換乘。", "車費按距離計，加埋鐵路加物業，一條好嘅市區綫大約三年回本；高架同上落橋可以一格一格拆。"]},
     {"version": "v5.2.0", "date": "2026-11-01", "dateLabel": "2026年11月1日", "title": "四通八達", "items": ["區外連線：地圖邊正面駛出嘅道路會連去鄰區（香港地區地圖按真實相鄰地區），出口有「往X」路牌；帶嚟跨區通勤、需求同旅客，冇對外道路又冇貨櫃碼頭嘅工業會輕微減需求。", "海底隧道：由一邊岸拖過海去對岸，兩岸各起一個雙管隧道口；車同運輸公司巴士線都可以過海，每管單程靠左，車喺海底收埋，按車流收隧道費。", "隧道口同道路無縫接駁，車輛同牆、洞口箱、拱門嘅遮擋四個方向都正確；隧道前唔准掉頭。", "運輸公司巴士放大到 1.0 倍就顯示；修正地圖邊道路變掘頭路或者繞返轉頭，同山邊地圖邊緣嘅巨型方塊。"]},
@@ -621,6 +630,7 @@ const SITE_CHANGELOG = {
 // title/items text.
 const SITE_CHANGELOG_TRANSLATIONS = {
   "zh-TW": {
+    "v5.3.2": {"title": "地鐵通車", "items": ["修正：地鐵車廂夜間的窗燈位置錯誤，現在回到車窗上。", "高架站有了佔地：月台下方不能有道路，兩側各需一列空地（大廳、樓梯與電梯），公車不再穿過車站。", "官網截圖新增市中心的高架車站。"]},
     "v5.3.1": {"title": "地鐵通車", "items": ["修正：地鐵列車夜間的頭燈與尾燈位置錯誤，現在回到車頭上。"]},
     "v5.3.0": {"title": "地鐵通車", "items": ["地鐵：人口超過 3 萬，運輸公司可以興建地鐵；政府一次注資 $80,000 興建第一條線，立法會「地下鐵路撥款」可再撥款。", "一個軌道工具選擇高度（地下／地面／高架），自動建造隧道、隧道口、上下坡道與穿山隧道；45 度轉彎、道岔與支線，同軌列車自動保持距離。", "三種車站：地下站、地面站（兩側月台加天橋大廳）、高架島式月台站；地下透視可看到列車在城市底下行駛。", "五門車廂，每條線可選 M-Train 或 K-Train（黃頭）；上下坡時車身傾斜，夜晚車廂亮燈，有頭燈與尾燈；轉乘站可以換乘。", "車資依距離計，加上鐵路加物業，一條好的市區線約三年回本；高架與坡道可以逐格拆除。"]},
     "v5.2.0": {"title": "四通八達", "items": ["區外連線：從地圖邊緣正面駛出的道路會連往鄰區（香港地區地圖依真實相鄰地區），出口設有「往X」路牌；帶來跨區通勤、需求與遊客，沒有對外道路也沒有貨櫃碼頭的工業會略減需求。", "海底隧道：從一側海岸拖曳過海到對岸，兩岸各建一座雙管隧道口；車輛與運輸公司公車路線都能過海，每管單向靠左行駛，車輛在海底隱藏，依車流收取隧道費。", "隧道口與道路無縫銜接，車輛與牆、洞口結構、拱門的遮擋在四個方向都正確；隧道前不得迴轉。", "運輸公司公車在 1.0 倍縮放即顯示；修正地圖邊緣道路變成死路或自行繞回，以及山邊地圖邊緣的巨型方塊。"]},
@@ -973,6 +983,7 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   en: {
+    "v5.3.2": {"title": "Heung Shing, The Railway Opens", "items": ["Fix: the carriages' window lights at night were drawn off the windows; they now sit on them.", "Elevated stations take their ground: no road under the platform and a row of open land each side for the concourse, stairs and lift, so buses no longer drive through the station.", "New screenshots of an elevated station downtown."]},
     "v5.3.1": {"title": "Heung Shing, The Railway Opens", "items": ["Fix: the trains' head and tail lamps at night were drawn ahead of the train; they now sit on the cab."]},
     "v5.3.0": {"title": "Heung Shing, The Railway Opens", "items": ["Metro: past 30,000 people the transport company can build a railway, with $80,000 of government capital for its first line; the council's 地下鐵路撥款 can fund more.", "One track tool at a height (underground, ground, elevated) works out tunnels, portals, ramps and hill tunnels itself; 45-degree turns, points and branch lines, and trains keep apart on shared track.", "Three kinds of station: underground, on the ground (two platforms and a footbridge concourse) and elevated (an island platform); the underground view shows the trains under the city.", "Five-door cars in M-Train or K-Train (yellow head) livery, per line; they tilt on ramps, light up at night with head and tail lamps, and riders change at interchanges.", "Fares by distance and the rise in land value round its stations pay a good line downtown back in about three years; viaducts and ramps come down a tile at a time."]},
     "v5.2.0": {"title": "Heung Shing, Connected Every Way", "items": ["Region connections: a road meeting the map edge head-on leads on to the neighbouring district (real neighbours on the Hong Kong district maps), signposted 「往X」; it brings commuters, demand and visitors, and industry with no road out and no container port loses a little demand.", "Undersea tunnel: drag from one shore across the sea to the other for a twin-bore portal on each shore; traffic and transport-company bus routes cross under the water, one way each bore, keep-left, hidden while under the sea, and the tunnel takes tolls by its traffic.", "The portals join the road without a seam, and walls, the mouth box and the arches cover passing vehicles correctly in all four views; no U-turns in front of a portal.", "Transport-company buses show from zoom 1.0; fixes for edge roads drawn as dead ends or turning back on themselves, and a giant block on hilly map edges."]},
@@ -1325,6 +1336,7 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   ja: {
+    "v5.3.2": {"title": "香城、地下鉄開業", "items": ["修正：夜間の車両の窓明かりが窓からずれて描かれていた問題を修正しました。", "高架駅が土地を占有するように：ホームの下に道路は不可、両側に一列ずつ空き地（コンコース・階段・エレベーター）。バスが駅を通り抜けなくなりました。", "都心の高架駅のスクリーンショットを追加。"]},
     "v5.3.1": {"title": "香城、地下鉄開業", "items": ["修正：夜間の列車の前照灯と尾灯が列車の前方に描かれていた問題を修正し、先頭車に表示されるようにしました。"]},
     "v5.3.0": {"title": "香城、地下鉄開業", "items": ["地下鉄：人口3万人を超えると交通会社が鉄道を建設可能に。最初の路線のために政府が $80,000 を出資し、議会の「地下鉄道予算」でさらに資金を出せます。", "1つの線路ツールで高さ（地下・地上・高架）を選ぶと、トンネル、坑口、勾配、山岳トンネルを自動で建設。45度の曲線、分岐器と支線、同じ線路の列車は自動で間隔を保ちます。", "3種類の駅：地下駅、地上駅（2面のホームと跨線橋のコンコース）、高架の島式ホーム駅。地下ビューで街の下を走る列車が見えます。", "5扉の車両は路線ごとに M-Train か K-Train（黄色い先頭）。勾配では車体が傾き、夜は車内が点灯し前照灯と尾灯。乗換駅で乗り換えできます。", "距離制運賃と駅周辺の地価上昇の分け前で、良い都心の路線は約3年で回収。高架と勾配は1マスずつ撤去できます。"]},
     "v5.2.0": {"title": "香城、四通八達", "items": ["区外連絡：マップの端に正面から出る道路は隣の地区へつながります（香港の地区マップでは実際の隣接地区）。出口には「往X」の標識。通勤、需要、観光客をもたらし、外へ出る道路もコンテナ港もない工業は需要が少し下がります。", "海底トンネル：一方の岸から海を越えて対岸までドラッグすると、両岸に複線の坑口を建設。車両と交通会社のバス路線が海の下を通ります。各トンネルは左側通行の一方通行、海底では車両を隠し、交通量に応じて通行料を徴収します。", "坑口は道路と継ぎ目なくつながり、壁・坑口の構造・アーチによる車両の隠れ方が4方向すべてで正しくなりました。坑口の前ではUターン不可。", "交通会社のバスはズーム1.0から表示。マップ端の道路が行き止まりや折り返しになる不具合と、山地のマップ端に巨大なブロックが出る不具合を修正。"]},
@@ -1702,8 +1714,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v5.3.1 — 【屯馬開通真的很興奮】",
-      versionDesc: "5.3.1 更新：起地底、地面同高架地鐵，一條好嘅市區綫大約三年回本。",
+      versionBadge: "v5.3.2 — 【屯馬開通真的很興奮】",
+      versionDesc: "5.3.2 更新：起地底、地面同高架地鐵，一條好嘅市區綫大約三年回本。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感嘅城市建設遊戲。起街道、規劃社區、經營自己嘅香城巴士公司、處理議會同天氣，再睇住一座有性格嘅香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1811,8 +1823,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v5.3.1 — 【地鐵通車】",
-      versionDesc: "5.3.1 更新：興建地下、地面與高架地鐵，一條好的市區線約三年回本。",
+      versionBadge: "v5.3.2 — 【地鐵通車】",
+      versionDesc: "5.3.2 更新：興建地下、地面與高架地鐵，一條好的市區線約三年回本。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感的城市建設遊戲。興建街道、規劃社區、經營自己的香城公車公司、處理議會與天氣，看著一座有個性的香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1920,8 +1932,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "The City of Heung Shing",
       title: "The City of Heung Shing",
-      versionBadge: "v5.3.1 — 【Heung Shing, The Railway Opens】",
-      versionDesc: "5.3.1 update: build underground, ground-level and elevated metro lines; a good line downtown pays back in about three years.",
+      versionBadge: "v5.3.2 — 【Heung Shing, The Railway Opens】",
+      versionDesc: "5.3.2 update: build underground, ground-level and elevated metro lines; a good line downtown pays back in about three years.",
       lede: "A city-building game inspired by Hong Kong life and made in tribute to SimCity 2000. Build streets, shape neighbourhoods, run your own Heung Shing Bus Company, navigate council politics and weather, then watch a city with real personality grow.",
       freeLabel: "Completely free · macOS + Windows · Local saves",
       downloadBtn: "【Free Download】",
@@ -2030,8 +2042,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v5.3.1 — 【香城、地下鉄開業】",
-      versionDesc: "5.3.1 更新：地下・地上・高架の地下鉄を建設。良い都心の路線は約3年で投資を回収します。",
+      versionBadge: "v5.3.2 — 【香城、地下鉄開業】",
+      versionDesc: "5.3.2 更新：地下・地上・高架の地下鉄を建設。良い都心の路線は約3年で投資を回収します。",
       lede: "香港の都市生活から着想を得た、SimCity 2000へのオマージュとなる都市建設ゲーム。道路を築き、地区を計画し、自分だけの香城バス会社を経営し、議会や天候に向き合いながら、個性ある香城の成長を見守ります。",
       freeLabel: "完全無料 · macOS + Windows · ローカルセーブ",
       downloadBtn: "【無料ダウンロード】",
@@ -3967,6 +3979,8 @@ const SITE_GALLERY_SOURCES = [
   "assets/gameplay/airport.webp",
   "assets/gameplay/containerPort.webp",
   "assets/gameplay/busTycoon.webp",
+  "assets/gameplay/elevatedStation.webp",
+  "assets/gameplay/elevatedStationDusk.webp",
   "assets/gameplay/nightSence2.webp",
   "assets/gameplay/nightSkyline.webp",
   "assets/gameplay/buddhaAtNight.webp",

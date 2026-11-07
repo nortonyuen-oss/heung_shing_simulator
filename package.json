@@ -1,6 +1,6 @@
 {
   "name": "city-builder",
-  "version": "5.3.1",
+  "version": "5.3.2",
   "releaseTheme": "【屯馬開通真的很興奮】",
   "description": "SimCity 2000-style city builder with local SQLite save system",
   "author": "The City of Heung Shing",

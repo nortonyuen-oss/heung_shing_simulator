@@ -1,5 +1,5 @@
 const I18N_STORAGE_KEY = 'citybuilder.language';
-let appVersion = '5.3.1';
+let appVersion = '5.3.2';
 let appReleaseTheme = '【屯馬開通真的很興奮】';
 const APP_RELEASE_THEMES = { en: '【Heung Shing, The Railway Opens】', zhHant: '【地鐵通車】', ja: '【香城、地下鉄開業】' };
 function localizedReleaseTheme() {
@@ -449,6 +449,7 @@ const I18N = {
     'metro.track.hillTrack': "There is track where the tunnel would run.",
     'metro.surfaceStation.slope': "A platform lies level: on the flat or a hilltop, not on a hillside.",
     'metro.surfaceStation.islandFlat': "An elevated station has its concourse on the ground under it: all seven tiles must be on the flat (not on a hill).",
+    'metro.surfaceStation.islandSides': "An elevated station's concourse, stairs and lift stand on the ground: no road under its platform, and a row of open flat ground each side (no road, building, track or water).",
     'metro.track.deckHill': "Too high: a viaduct goes up to nine levels.",
     'metroGroup.stations': "Lines",
     'metro.track.levelJoin': "Track at different heights can't cross or join here: move it, or join at a track's end.",
@@ -2548,6 +2549,7 @@ const I18N = {
     'metro.track.hillTrack': "隧道經過嘅地方已經有路軌。",
     'metro.surfaceStation.slope': "月台要起喺平地或者山頂（唔可以喺山坡上）。",
     'metro.surfaceStation.islandFlat': "高架站下面有大堂：七格都要喺平地上面（唔可以喺山上）。",
+    'metro.surfaceStation.islandSides': "高架站嘅大堂、樓梯同升降機喺地面：月台下面唔可以有路，兩邊各要一行平地空地（冇路、建築、路軌或者水）。",
     'metro.track.deckHill': "高架太高：最多九層。",
     'metroGroup.stations': "路線",
     'metro.track.levelJoin': "唔同高度嘅路軌唔可以喺度相交或者駁埋：換個位，或者喺路軌盡頭接駁。",
@@ -4557,6 +4559,7 @@ const I18N = {
     'metro.track.hillTrack': "トンネルの通り道に線路があります。",
     'metro.surfaceStation.slope': "ホームは平地か山頂に（斜面は不可）。",
     'metro.surfaceStation.islandFlat': "高架駅の下にはコンコースがあります。7 マスすべて平地に（山の上は不可）。",
+    'metro.surfaceStation.islandSides': "高架駅のコンコース・階段・エレベーターは地上にあります。ホームの下に道路は不可、両側に平らな空き地が一列ずつ必要です（道路・建物・線路・水なし）。",
     'metro.track.deckHill': "高すぎます：高架は 9 段までです。",
     'metroGroup.stations': "駅と路線",
     'metro.track.levelJoin': "高さの違う線路はここで交差・接続できません。場所を変えるか、線路の端でつないでください。",

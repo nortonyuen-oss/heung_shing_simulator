@@ -761,8 +761,8 @@ function commitMetroTrackDrag(scene, start, end, height = metroRailHeight) {
   return true;
 }
 
-// The bulldozer on track: that tile's track taken up (an elevated tile takes its whole viaduct,
-// ramps and all, with it). True when there was track there.
+// The bulldozer on track: that tile's track taken up (a viaduct or ramp tile alone; a tunnel portal
+// or a hill tunnel whole). True when there was track there.
 function demolishMetroTrackAt(scene, row, col) {
   const bits = getMetroTrackBits();
   const key = railKey(row, col);
@@ -775,9 +775,22 @@ function demolishMetroTrackAt(scene, row, col) {
     return say('metro.track.underStation', '路軌上面有地面站：先拆咗個站。');
   }
   const elev = getMetroTrackElev();
-  const run = elev[key] ? railElevatedRun(bits, elev, key) : [key];
-  // (a viaduct with a 高架站 on it stays until the station goes)
-  if (typeof isMetroSurfaceStationTile === 'function' && run.some((k) => { const [r, c] = k.split(':').map(Number); return isMetroSurfaceStationTile(r, c); })) {
+  // a viaduct or a ramp tile by tile (Norton, 2026-11-07: 高架拆橋要一格一格拆); a tunnel portal or a hill
+  // tunnel whole, as it is built
+  const code = elev[key];
+  const whole = code && (code[0] === 'p' || railIsHill(code));
+  const run = whole ? railElevatedRun(bits, elev, key) : [key];
+  // (a viaduct with a 高架站 on it stays until the station goes - its deck, and the tile each end
+  // where its tracks spread)
+  const underStation = (k) => {
+    const [r, c] = k.split(':').map(Number);
+    if (typeof isMetroSurfaceStationTile === 'function' && isMetroSurfaceStationTile(r, c)) return true;
+    const half = typeof METRO_SURFACE !== 'undefined' ? Math.floor(METRO_SURFACE.platformTiles / 2) + METRO_SURFACE.islandSpreadTiles : 3;
+    return (getMetroState().stations || []).some((st) => st.island && (st.axis === 'ns'
+      ? c === st.col && Math.abs(r - st.row) <= half
+      : r === st.row && Math.abs(c - st.col) <= half));
+  };
+  if (run.some(underStation)) {
     return say('metro.track.underStation', '路軌上面有地面站：先拆咗個站。');
   }
   const used = typeof getMetroSurfaceLineTiles === 'function' ? getMetroSurfaceLineTiles() : new Set();

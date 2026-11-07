@@ -236,9 +236,12 @@ def lit_of(layer, m):
 # are the game's 4.5 m apart, the render's bed now a track wide: the bed is the far track (its middle
 # 2.25 m from the line's), the near track under the near platform - its trains hidden there
 # (metro-surface-lines.js).
-K = 0.5
+# (Norton, 2026-11-07: as the 高架站's scale after all - not halved; its platforms some 100 m already)
+K = 1.0
 SLICE_L = (26.0, 36.0)            # the far side's plain stretch (S m, as on screen), repeated...
-REPEATS = 10                      # ...this many times
+REPEATS = 0                       # ...this many times (none at K 1)
+# the line's middle from the render bed's: at K 1 the bed takes both tracks (0); halved, only the far one (2.25)
+TRACK_SHIFT_M = 0.0
 MID_L_S = (-51.0 + 51.0 + REPEATS * (SLICE_L[1] - SLICE_L[0])) / 2   # the platforms' middle, lengthened (S m)
 
 
@@ -331,7 +334,7 @@ def final_layers():
     for name in out:
         out[name], pad = lengthen(out[name], 'front' if name.startswith('front') else 'base', name == 'front')
         out[name] = shrink(out[name])
-    v0 = K * (V0 + pad) + PX_M * 2.25
+    v0 = K * (V0 + pad) + PX_M * TRACK_SHIFT_M
     u0 = K * (U0 + pad - PX_M * MID_L_S)
     # the bed: the game's track (its far track along the render's bed), on the base where it has the bed
     b = out['base'].copy()

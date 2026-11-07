@@ -35,8 +35,8 @@ test('a line runs on past its end stations; trains keep left and the cab leads',
   // at the middle station going east: on the north track (left of east, the row a little less)
   const cars = surfaceTrainCars(g, g.stationAt[1], 1);
   assert.ok(cars.every((c) => Math.abs(c.pos[1] - (5.5 - METRO_SURFACE.trackOffsetTiles)) < 1e-9));
-  assert.ok(cars[0].pos[0] > cars[3].pos[0], 'the lead car is ahead, east');
-  assert.deepEqual(cars.map((c) => c.role), ['lead', 'mid', 'mid', 'trail']);
+  assert.ok(cars[0].pos[0] > cars.at(-1).pos[0], 'the lead car is ahead, east');
+  assert.deepEqual(cars.map((c) => c.role), ['lead', ...Array(METRO_SURFACE.cars - 2).fill('mid'), 'trail']);
   assert.equal(surfaceCarView(cars[0].heading[0], cars[0].heading[1], 'lead'), 'fall_cabNear', 'east is down-right: its cab near');
   // going back west: on the south track
   const back = surfaceTrainCars(g, g.stationAt[1], -1);

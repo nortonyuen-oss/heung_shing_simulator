@@ -20,12 +20,17 @@ const METRO = Object.freeze({
   trainMonthlyUpkeep: 150,
   tileRunningCost: 0.004,
   // by distance, as the MTR's: on boarding, and for every tile ridden (company dollars)
-  fareBase: 0.05,
-  farePerTile: 0.002,
+  // (Norton, 2026-11-07: x8 - at 0.05 / 0.002 a good line downtown never paid its trains; now about
+  // three years to pay back, fares and property together)
+  fareBase: 0.40,
+  farePerTile: 0.016,
   maxStationsPerLine: 12,
   maxLines: 8,
   maxTrainsPerLine: 10,
   unlockPopulation: 30000,
+  // the government's capital for the railway when it opens to the company (as it founded the MTR):
+  // enough for a first short line
+  foundingGrant: 80000,
   // trains run from 06:00 to 01:00 (sky minutes of the day)
   serviceFromMinute: 6 * 60,
   serviceToMinute: 60,
@@ -154,6 +159,8 @@ function normalizeMetroState(raw) {
     nextTrainId: Math.max(1, Math.floor(num(src.nextTrainId, 1)), ...used.map((n) => n + 1)),
     // once open, it stays open (a city that shrinks below the mark keeps its railway)
     unlocked: src.unlocked === true,
+    // the government's founding capital, paid once
+    foundingGrantPaid: src.foundingGrantPaid === true,
     // 地下鐵路撥款 (council-definitions.js): what is left of the government's grants, for the metro only
     grantBalance: Math.max(0, Math.round(num(src.grantBalance))),
     // 鐵路加物業: last month's property income, all stations
@@ -214,10 +221,27 @@ function spendMetroFunds(amount) {
 function isMetroUnlocked() {
   if (typeof isTransportExpansionActive === 'function' && !isTransportExpansionActive()) return false;
   const state = getMetroState();
-  if (state.unlocked) return true;
-  if ((Number(typeof city !== 'undefined' ? city.population : 0) || 0) < METRO.unlockPopulation) return false;
-  state.unlocked = true;
-  announceMetroUnlocked();
+  if (!state.unlocked) {
+    if ((Number(typeof city !== 'undefined' ? city.population : 0) || 0) < METRO.unlockPopulation) return false;
+    state.unlocked = true;
+    announceMetroUnlocked();
+  }
+  payMetroFoundingGrant(state);
+  return true;
+}
+
+// The government's founding capital (Norton, 2026-11-07: 政府注資), once, into the company's cash as
+// the railway opens to it - and to a city whose railway opened before there was one.
+function payMetroFoundingGrant(state = getMetroState()) {
+  if (state.foundingGrantPaid) return false;
+  const transport = typeof getTransportExpansionState === 'function' ? getTransportExpansionState() : null;
+  if (!transport?.company) return false;
+  state.foundingGrantPaid = true;
+  transport.company.cash = Math.round((Number(transport.company.cash) || 0) + METRO.foundingGrant);
+  const text = metroT('metro.toast.foundingGrant', '政府注資 ${amount} 入運輸公司，用嚟興建第一條地鐵綫。', { amount: METRO.foundingGrant.toLocaleString() });
+  if (typeof addCityNews === 'function') addCityNews(text);
+  if (typeof showToast === 'function') showToast(text, 'success');
+  if (typeof queueCityChangeAutosave === 'function') queueCityChangeAutosave();
   return true;
 }
 
@@ -247,7 +271,10 @@ function getMetroStationAt(row, col) {
   const transport = getTransportExpansionState();
   return transport?.metro?.stations?.find((s) => (s.row === row && s.col === col)
     // a surface station's platform runs five tiles (a 地底站's under the ground: only its entrance here)
-    || (s.surface && !s.underground && typeof surfaceStationTiles === 'function' && surfaceStationTiles(s).some(([r, c]) => r === row && c === col))) || null;
+    || (s.surface && !s.underground && typeof surfaceStationTiles === 'function' && surfaceStationTiles(s).some(([r, c]) => r === row && c === col))
+    // (and a 地面站's tiles beside its track: its concourse, its far platform)
+    || (typeof METRO_GROUND_STATION_ART !== 'undefined' && typeof metroGroundStationSideTiles === 'function'
+      && metroGroundStationSideTiles(s).some(([r, c]) => r === row && c === col))) || null;
 }
 
 // A station's entrance stands here: no road, building or zone goes on it.

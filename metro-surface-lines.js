@@ -12,9 +12,12 @@ const METRO_SURFACE = Object.freeze({
   // 2026-11-05: 30% slower than the first 2)
   speedTilesPerMinute: 1.4,
   dwellMinutes: 2,
-  carTiles: 22.5 / 20,          // an MTR car, 22.5 m
+  // (Norton, 2026-11-07: the cars drawn 1.3 times their size, to sit with the buildings; their
+  // length on the track with them)
+  carDrawScale: 1.3,
+  carTiles: 1.3 * 22.5 / 20,    // an MTR car, 22.5 m, drawn 1.3 times
   carGapTiles: 0.06,
-  cars: 4,
+  cars: 3,                      // (Norton, 2026-11-07: three of the larger-drawn cars, some 88 m, to fit the platforms)
   trackOffsetTiles: 2.25 / 20,  // each track crosses a tile edge this far from its middle
   endRunTiles: 2.5,             // the line's geometry runs on past the end stations to their platforms' ends
   // 剪式渡綫: a terminus has a scissors crossover just outside its platforms, as the MTR's do - a
@@ -39,6 +42,14 @@ function surfaceStationTiles(station) {
     out.push(station.axis === 'ns' ? [station.row + k, station.col] : [station.row, station.col + k]);
   }
   return out;
+}
+
+// A 地面站's tiles beside its track, a row each side (Norton, 2026-11-06: its concourse, footbridge
+// and far platform stand there - metro-ground-station-art.js): its own, none to build on.
+function metroGroundStationSideTiles(station) {
+  if (!station?.surface || station.elevated || station.underground || station.island) return [];
+  const side = station.axis === 'ns' ? [[0, -1], [0, 1]] : [[-1, 0], [1, 0]];
+  return surfaceStationTiles(station).flatMap(([r, c]) => side.map(([dr, dc]) => [r + dr, c + dc]));
 }
 
 /**
@@ -382,6 +393,15 @@ function whyNotMetroSurfaceStation(row, col) {
   if (levels.has('g') && typeof metroOpenEdges === 'function'
     && surfaceStationTiles({ row, col, axis: res.axis }).some(([r, c]) => metroOpenEdges(r, c).length)) {
     return metroT('metro.surfaceStation.slope', '月台要起喺平地或者山頂（唔可以喺山坡上）。');
+  }
+  // a 地面站 takes a row of tiles each side of its track (its concourse, its far platform): open, level
+  // ground there, as high as the track
+  if (levels.has('g') && typeof METRO_GROUND_STATION_ART !== 'undefined') {
+    const h = getTileHeight(row, col);
+    const bad = metroGroundStationSideTiles({ surface: true, row, col, axis: res.axis }).some(([r, c]) => !isInsideMap(r, c)
+      || !canLayMetroTrackAt(r, c) || isMetroTrackTile(r, c) || getTileHeight(r, c) !== h
+      || (typeof metroOpenEdges === 'function' && metroOpenEdges(r, c).length));
+    if (bad) return metroT('metro.surfaceStation.sides', '地面站兩邊各要一行空地（同路軌一樣高、冇路、建築、路軌或者水），起車站大堂同月台。');
   }
   // a 地底站's entrance stands on the ground over its middle tile: open ground there
   if (levels.has('u') && typeof canLayMetroTrackAt === 'function' && !canLayMetroTrackAt(row, col)) {
@@ -878,38 +898,6 @@ function metroSlopedCarView(car, view) {
   return `${view}_${rightUp ? 'up' : 'dn'}${grade < 0.27 ? 1 : 2}`;
 }
 
-// The 地面站 as the trains need them each frame (Norton, 2026-11-07: as seen, one of a station's two
-// tracks is under its near platform - its trains hidden there): each station's line and the screen x
-// its five tiles' strips span.
-function metroGroundStationZones(scene, state) {
-  if (typeof METRO_GROUND_STATION_ART === 'undefined') return [];
-  const half = Math.floor(METRO_SURFACE.platformTiles / 2);
-  return state.stations.filter((st) => st.surface && !st.elevated && !st.underground && !st.island).map((st) => {
-    const strips = metroStationArtStrips(st, METRO_GROUND_STATION_ART);
-    const quarter = TILE_WIDTH / 4;
-    const cx = (t) => getTileFaceGeometry(t.row, t.col, scene.offsetX, scene.offsetY).center.x;
-    return { st, ns: st.axis === 'ns', half, x0: cx(strips[0]) - quarter, x1: cx(strips.at(-1)) + quarter };
-  });
-}
-
-// A car's slices at a 地面站: on the near track, those within the station's strips gone ('hidden' if
-// none is left); else as they are.
-function metroGroundStationCarCut(zones, car, sprite, pieces) {
-  const [col, row] = car.pos;
-  const zone = zones.find(({ st, ns, half }) => (ns
-    ? Math.abs(col - (st.col + 0.5)) <= 0.6 && row >= st.row - half - 1 && row <= st.row + half + 2
-    : Math.abs(row - (st.row + 0.5)) <= 0.6 && col >= st.col - half - 1 && col <= st.col + half + 2));
-  if (!zone) return pieces;
-  const axisPoint = zone.ns ? isoToScreen(zone.st.col + 0.5, row) : isoToScreen(col, zone.st.row + 0.5);
-  if (isoToScreen(col, row).y < axisPoint.y) return pieces;      // (the far track: seen)
-  const left = sprite.x - sprite.displayOriginX * sprite.scaleX;
-  const out = pieces.filter((p) => {
-    const mid = left + ((p.x0 + p.x1) / 2) * sprite.scaleX;
-    return mid < zone.x0 || mid > zone.x1;
-  });
-  return out.length ? out : 'hidden';
-}
-
 // The portals, once a frame: each its four tiles (the portal first, then the trough up to the
 // ground) and its headwall - the portal tile's edge towards the trough, in the map's frame: along
 // rows (ns) at row `at`, or along columns at column `at` - the tunnel on the `inward` side.
@@ -1163,7 +1151,6 @@ function updateMetroSurfaceTrains(scene) {
       Object.assign(t, placeOf(t.line, t.schedule, t.geom, t.v, t.index) || {});
     });
     const islands = metroIslandStripZones(scene, state);
-    const groundZones = metroGroundStationZones(scene, state);
     const portals = metroPortalPlanes(state);
     const hillPlanes = metroHillPlanes(state);
     const underView = typeof isMetroUndergroundView === 'function' && isMetroUndergroundView();
@@ -1194,7 +1181,7 @@ function updateMetroSurfaceTrains(scene) {
           ? getPropTextureAnchor(art.path, art.anchor[0], art.anchor[1], src)
           : { originX: art.anchor[0] / src.width, originY: art.anchor[1] / src.height, scaleMultiplier: 1 };
         sprite.setOrigin(anchor.originX, anchor.originY);
-        sprite.setScale((TILE_WIDTH / 512) * anchor.scaleMultiplier);
+        sprite.setScale((TILE_WIDTH / 512) * anchor.scaleMultiplier * METRO_SURFACE.carDrawScale);
         const at = metroSurfaceScreenAt(scene, car.pos[0], car.pos[1]);
         // up on a viaduct or a ramp: drawn that much higher, and after the deck it runs on (and the
         // next tile's, which its front reaches)
@@ -1238,15 +1225,6 @@ function updateMetroSurfaceTrains(scene) {
             // (anywhere else, in upright slices each sorted where it is - a car on the near track in
             // front of one beside it on the far, wherever along the line their middles are)
             if (!pieces) pieces = metroSlicedCarPieces(car, sprite, car.z > 0.05 ? TILE_HEIGHT * 1.1 : 0);
-            // (at a 地面站, the near track is under its near platform: its cars' slices there hidden)
-            if (pieces && groundZones.length) {
-              pieces = metroGroundStationCarCut(groundZones, car, sprite, pieces);
-              if (pieces === 'hidden') {
-                sprite.setVisible(false);
-                (sprite.__pieces || []).forEach((p) => p.setVisible(false));
-                return;
-              }
-            }
           }
         }
         const extra = sprite.__pieces || (sprite.__pieces = []);
@@ -1317,7 +1295,7 @@ function syncMetroCarLamps(scene, car, strength) {
       || (lx >= p._crop.x && lx < p._crop.x + p._crop.width && ly >= p._crop.y && ly < p._crop.y + p._crop.height));
     if (!over) { lamp.setVisible(false); return; }
     lamp.setPosition(car.x + (lx - car.displayOriginX) * car.scaleX, car.y + (ly - car.displayOriginY) * car.scaleY);
-    lamp.setScale(METRO_LAMP_SCALE * (TILE_WIDTH / 100));
+    lamp.setScale(METRO_LAMP_SCALE * (TILE_WIDTH / 100) * METRO_SURFACE.carDrawScale);
     lamp.setDepth(over.depth + 0.02);
     lamp.setAlpha(head ? strength * 0.92 : strength);
     lamp.setVisible(true);

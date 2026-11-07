@@ -7,14 +7,14 @@ const METRO_GROUND_STATION_ART = Object.freeze({
   "x": [
     {
       "anchor": [
-        322.1,
-        321.2
+        352.7,
+        771.6
       ],
       "size": [
         512,
-        512
+        1024
       ],
-      "scale": 0.929688,
+      "scale": 0.8511,
       "base": {
         "key": "metro_ground_station_x_0_base",
         "path": "Models/metroPlatform/metro_ground_station_x_0_base.png"
@@ -34,14 +34,14 @@ const METRO_GROUND_STATION_ART = Object.freeze({
     },
     {
       "anchor": [
-        128.1,
-        715.2
+        128.6,
+        602.6
       ],
       "size": [
         256,
         1024
       ],
-      "scale": 0.929688,
+      "scale": 0.8511,
       "base": {
         "key": "metro_ground_station_x_1_base",
         "path": "Models/metroPlatform/metro_ground_station_x_1_base.png"
@@ -61,14 +61,14 @@ const METRO_GROUND_STATION_ART = Object.freeze({
     },
     {
       "anchor": [
-        128.1,
-        622.2
+        128.5,
+        495.7
       ],
       "size": [
         256,
         1024
       ],
-      "scale": 0.929688,
+      "scale": 0.8511,
       "base": {
         "key": "metro_ground_station_x_2_base",
         "path": "Models/metroPlatform/metro_ground_station_x_2_base.png"
@@ -88,14 +88,14 @@ const METRO_GROUND_STATION_ART = Object.freeze({
     },
     {
       "anchor": [
-        128.1,
-        328.2
+        128.4,
+        416.8
       ],
       "size": [
         256,
-        512
+        1024
       ],
-      "scale": 0.929688,
+      "scale": 0.8511,
       "base": {
         "key": "metro_ground_station_x_3_base",
         "path": "Models/metroPlatform/metro_ground_station_x_3_base.png"
@@ -115,14 +115,14 @@ const METRO_GROUND_STATION_ART = Object.freeze({
     },
     {
       "anchor": [
-        250.1,
-        328.2
+        221.2,
+        320.8
       ],
       "size": [
         512,
-        512
+        1024
       ],
-      "scale": 0.929688,
+      "scale": 0.8511,
       "base": {
         "key": "metro_ground_station_x_4_base",
         "path": "Models/metroPlatform/metro_ground_station_x_4_base.png"
@@ -144,14 +144,14 @@ const METRO_GROUND_STATION_ART = Object.freeze({
   "y": [
     {
       "anchor": [
-        261.1,
-        328.2
+        290.3,
+        320.8
       ],
       "size": [
         512,
-        512
+        1024
       ],
-      "scale": 0.929688,
+      "scale": 0.8511,
       "base": {
         "key": "metro_ground_station_y_0_base",
         "path": "Models/metroPlatform/metro_ground_station_y_0_base.png"
@@ -171,14 +171,14 @@ const METRO_GROUND_STATION_ART = Object.freeze({
     },
     {
       "anchor": [
-        128.1,
-        328.2
+        127.2,
+        416.8
       ],
       "size": [
         256,
-        512
+        1024
       ],
-      "scale": 0.929688,
+      "scale": 0.8511,
       "base": {
         "key": "metro_ground_station_y_1_base",
         "path": "Models/metroPlatform/metro_ground_station_y_1_base.png"
@@ -198,14 +198,14 @@ const METRO_GROUND_STATION_ART = Object.freeze({
     },
     {
       "anchor": [
-        128.1,
-        622.2
+        127.1,
+        495.7
       ],
       "size": [
         256,
         1024
       ],
-      "scale": 0.929688,
+      "scale": 0.8511,
       "base": {
         "key": "metro_ground_station_y_2_base",
         "path": "Models/metroPlatform/metro_ground_station_y_2_base.png"
@@ -225,14 +225,14 @@ const METRO_GROUND_STATION_ART = Object.freeze({
     },
     {
       "anchor": [
-        128.1,
-        715.2
+        128.0,
+        602.6
       ],
       "size": [
         256,
         1024
       ],
-      "scale": 0.929688,
+      "scale": 0.8511,
       "base": {
         "key": "metro_ground_station_y_3_base",
         "path": "Models/metroPlatform/metro_ground_station_y_3_base.png"
@@ -252,14 +252,14 @@ const METRO_GROUND_STATION_ART = Object.freeze({
     },
     {
       "anchor": [
-        190.1,
-        321.2
+        158.8,
+        771.6
       ],
       "size": [
         512,
-        512
+        1024
       ],
-      "scale": 0.929688,
+      "scale": 0.8511,
       "base": {
         "key": "metro_ground_station_y_4_base",
         "path": "Models/metroPlatform/metro_ground_station_y_4_base.png"

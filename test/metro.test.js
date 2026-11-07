@@ -273,3 +273,24 @@ test('a save keeps the phase 4 levels: a 高架站 is an island, a 地底站 und
     [['a', true, true, false], ['b', false, false, true], ['c', false, false, false]]);
   assert.deepEqual(state.trackElev, { '1:1': 'd', '1:2': '3e', '2:2': 'u', '3:3': 'p4w' });
 });
+
+test('the government puts its founding capital into the company once, as the railway opens', () => {
+  const company = { cash: 1000 };
+  let state = { unlocked: false, foundingGrantPaid: false };
+  const { METRO, isMetroUnlocked } = new Function('company', 'getState', `
+    var city = { population: 31000, name: '測試' };
+    function getTransportExpansionState() { return { company }; }
+    function isTransportExpansionActive() { return true; }
+    ${read('metro.js')}
+    getMetroState = getState;
+    return { METRO, isMetroUnlocked };
+  `)(company, () => state);
+  assert.equal(isMetroUnlocked(), true);
+  assert.equal(company.cash, 1000 + METRO.foundingGrant);
+  isMetroUnlocked();
+  assert.equal(company.cash, 1000 + METRO.foundingGrant, 'paid once');
+  // a save whose railway opened before the grant: paid on its next look, once
+  state = { unlocked: true, foundingGrantPaid: false };
+  isMetroUnlocked();
+  assert.equal(company.cash, 1000 + 2 * METRO.foundingGrant);
+});

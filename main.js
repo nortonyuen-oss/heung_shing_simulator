@@ -39,7 +39,8 @@ const TOOL_TERRAIN = {
 
 let selectedTool = 'road';
 // 地鐵's track tools, dragged and laid on pointerup (metro-surface.js): tool -> what it lays
-const METRO_DRAG_TOOLS = new Map([['metro-track', 'track']]);
+// (and 電車路軌, tram.js)
+const METRO_DRAG_TOOLS = new Map([['metro-track', 'track'], ['tram-track', 'tram']]);
 let isPainting = false;
 let gameReady = false;
 let lastEditedTile = null;
@@ -336,6 +337,7 @@ function updateGameFrame(time, delta) {
   if (typeof updateMetroOverlay === 'function') updateMetroOverlay(this);
   // and the trains on the surface track (metro-surface-lines.js)
   if (typeof updateMetroSurfaceTrains === 'function') updateMetroSurfaceTrains(this);
+  if (typeof updateTram === 'function') updateTram(this);
   if (typeof updateTyphoonShelterBobbing === 'function') updateTyphoonShelterBobbing(this, time);
   if (typeof updateTyphoonShelterMarkets === 'function') updateTyphoonShelterMarkets(this, time);
   if (typeof updateTyphoonShelterBuildingLighting === 'function') updateTyphoonShelterBuildingLighting(this);
@@ -1137,6 +1139,12 @@ function create() {
         if (cur) {
           lastKnownTile = { row: cur.row, col: cur.col };
           drawUnderseaTunnelDragPreview(this, dragStartTile, cur);
+        }
+      } else if (selectedTool === 'tram-track' && dragStartTile && typeof drawTramTrackDragPreview === 'function') {
+        const cur = pointerToTile(this, pointer);
+        if (cur) {
+          lastKnownTile = { row: cur.row, col: cur.col };
+          drawTramTrackDragPreview(this, dragStartTile, cur);
         }
       } else if (METRO_DRAG_TOOLS.has(selectedTool) && dragStartTile && typeof drawMetroTrackDragPreview === 'function') {
         const cur = pointerToTile(this, pointer);
@@ -2140,6 +2148,8 @@ function applyToolAt(scene, row, col, pointer = null) {
     if (typeof demolishMetroStationAt === 'function' && demolishMetroStationAt(scene, row, col)) return;
     // and 地鐵路軌 taken up (metro-surface.js)
     if (typeof demolishMetroTrackAt === 'function' && demolishMetroTrackAt(scene, row, col)) return;
+    // and 電車路軌 taken up, the road left (tram.js)
+    if (typeof demolishTramTrackAt === 'function' && demolishTramTrackAt(scene, row, col)) return;
     spendBudget(COST_BULLDOZE);
     if (typeof removeDistrictSignAt === 'function') removeDistrictSignAt(scene, row, col);
     removeBuilding(scene, row, col);

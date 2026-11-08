@@ -15,3 +15,6 @@ test-results/
 .dev.vars
 __pycache__/
 scripts/source-art/**/*.zip
+
+# 電車: the squared renders, made again by scripts/prepare-tram-assets.py
+scripts/source-art/tramways/squared/

@@ -693,6 +693,7 @@ function normalizeTransportExpansionState(raw) {
   let financeHistory = normalizeTransportFinanceHistory(source.financeHistory);
   const ferry = typeof normalizeFerryState === 'function' ? normalizeFerryState(source.ferry) : source.ferry;
   const metro = typeof normalizeMetroState === 'function' ? normalizeMetroState(source.metro) : source.metro;
+  const tram = typeof normalizeTramState === 'function' ? normalizeTramState(source.tram) : source.tram;
   if (sourceVersion < 4) {
     financeHistory = shiftTransportHistoryMonthBack(financeHistory);
     routes.forEach((route) => { route.history = shiftTransportHistoryMonthBack(route.history); });
@@ -716,6 +717,8 @@ function normalizeTransportExpansionState(raw) {
     ferry,
     // 地鐵 (metro.js): its stations, lines and trains
     metro,
+    // 電車 (tram.js): its track
+    tram,
     commissionedDepotIds: Array.from(new Set(
       (Array.isArray(source.commissionedDepotIds) ? source.commissionedDepotIds : [])
         .map((id) => String(id || '').slice(0, 80))

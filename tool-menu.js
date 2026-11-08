@@ -75,6 +75,10 @@ function setupToolMenu() {
     if (isPainting && dragStartTile && selectedTool === 'metro-track' && activeScene && typeof commitMetroTrackDrag === 'function') {
       commitMetroTrackDrag(activeScene, dragStartTile, lastKnownTile ?? dragStartTile);
     }
+    // 電車路軌: dragged along the roads, straight or round one corner (tram.js)
+    if (isPainting && dragStartTile && selectedTool === 'tram-track' && activeScene && typeof commitTramTrackDrag === 'function') {
+      commitTramTrackDrag(activeScene, dragStartTile, lastKnownTile ?? dragStartTile);
+    }
     // 海底隧道: dragged from one shore across the sea to the other (undersea-tunnel.js)
     if (isPainting && dragStartTile && selectedTool === 'undersea-tunnel' && activeScene) {
       placeUnderseaTunnel(activeScene, dragStartTile, lastKnownTile ?? dragStartTile);
@@ -370,6 +374,7 @@ function getToolCategoryForTool(tool) {
   if (tool === 'bus-stop' || tool === 'bus-depot') return 'transport';
   if (tool === 'ferry-pier' || tool === 'ferry-route') return 'transport-ferry';
   if (tool === 'metro-station' || tool === 'metro-line') return 'transport-metro';
+  if (tool === 'tram-track') return 'transport-tram';
   if (tool === 'district-sign') return 'maps';
   if (tool === 'zone-res' || tool === 'zone-com' || tool === 'zone-ind' || tool === 'dezone') return 'zones';
   if (tool === 'power-line' || tool === 'power-coal' || tool === 'power-solar') return 'power';

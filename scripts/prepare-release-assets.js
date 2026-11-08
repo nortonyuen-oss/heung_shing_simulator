@@ -28,7 +28,9 @@ const SMALL_PROP_PREFIXES = ['trafficLight/', 'traffic/lightPost/', 'roadAssesso
 // Drawn in code at their exact canvas (power-of-two already, Norton 2026-11-06), placed by fixed
 // anchors: kept as they are - not trimmed, not shrunk to fit - and up to 1024 px (the 高架站's strips,
 // the tallest piers), so the staged copy is the source.
-const FIXED_GROUND_TILE_PREFIXES = ['metroTrack/', 'metroViaduct/', 'metroPlatform/'];
+// (and the 電車 and their stops: power-of-two canvases with clear margins, anchors set on them -
+// scripts/prepare-tram-assets.py)
+const FIXED_GROUND_TILE_PREFIXES = ['metroTrack/', 'metroViaduct/', 'metroPlatform/', 'tramways/'];
 
 // Zone folders whose one model is shown landmark-sized (中銀, the tallest tower: some 500 px wide at zoom 1 on 5x5).
 const LANDMARK_PREFIXES = ['commercial/9x9/'];

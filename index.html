@@ -7382,6 +7382,25 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
       </div>
     </section>
 
+    <button class="tool-category-button" type="button" data-tool-category="transport-tram" title="Tram track on the roads" data-i18n-title="toolCategory.tramTitleHint">
+      <span class="tool-category-icon" aria-hidden="true">🚋</span>
+      <span class="tool-category-labels">
+        <span class="tool-category-title" data-i18n="toolCategory.tramTitle">電車</span>
+        <span class="tool-category-subtitle" data-i18n="toolCategory.tramSubtitle">Tram</span>
+      </span>
+      <span class="tool-category-accent" aria-hidden="true"></span>
+      <span class="tool-category-hotkey" aria-hidden="true"></span>
+    </button>
+
+    <section class="tool-flyout transport-tool-flyout" data-tool-panel="transport-tram">
+      <div class="tool-flyout-title" data-i18n="toolCategory.tramTitle">Tram</div>
+      <button class="tool-row" type="button" data-tool="tram-track">
+        <span class="tool-row-icon">🛤️</span>
+        <span class="tool-row-main"><span class="tool-row-text" data-i18n="toolRow.tramTrack">Tram Track</span><span class="tool-row-desc" data-i18n="toolRow.tramTrackDesc">Drag along a road: a track in each lane; on a dual carriageway, down its middle</span></span>
+        <span class="tool-row-cost">$120</span>
+      </button>
+    </section>
+
     <section class="tool-flyout" data-tool-panel="zones">
       <div class="tool-flyout-title" data-i18n="toolCategory.zones">Zones</div>
       <button class="tool-row" type="button" data-tool="zone-res" data-zone-type="res">
@@ -8371,6 +8390,8 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
   <script src="metro-ground-station-art.js"></script>
   <script src="metro-surface-lines.js"></script>
   <script src="metro-ui.js"></script>
+  <script src="tram.js"></script>
+  <script src="tram-art.js"></script>
   <script src="water-effects.js"></script>
   <script src="promenade.js"></script>
   <script src="festival-assets.js"></script>

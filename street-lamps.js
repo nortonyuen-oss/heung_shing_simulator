@@ -70,7 +70,8 @@ function streetLampLeftOf(travel) {
 // Pure: every lamp the road map calls for. `roadKeyAt(row, col)` returns the road key or a
 // non-road value; `signalPlacements` (computeTrafficSignalPlacements) lets a lamp on a signal's
 // approach tile move to the far half of the tile when it would share the pole's kerb end.
-function computeStreetLampPlacements({ mapWidth, mapHeight, roadKeyAt, signalPlacements = [], period = STREET_LAMP_SPACING_PERIOD, inset = STREET_LAMP_LOGICAL_INSET }) {
+// `skipSideAt(row, col, side)`: a kerb with no lamp (a tram reservation, tram.js).
+function computeStreetLampPlacements({ mapWidth, mapHeight, roadKeyAt, signalPlacements = [], period = STREET_LAMP_SPACING_PERIOD, inset = STREET_LAMP_LOGICAL_INSET, skipSideAt = () => false }) {
   const signalKerbs = new Map();
   for (const signal of signalPlacements) {
     const key = `${signal.row}:${signal.col}`;
@@ -87,6 +88,7 @@ function computeStreetLampPlacements({ mapWidth, mapHeight, roadKeyAt, signalPla
         const slot = ((k % period) + period) % period;
         if (slot > 1) continue;
         const side = straight.sides[slot];
+        if (skipSideAt(row, col, side)) continue;
         let along = slot === 0 ? -inset.along : inset.along;
         // Keep clear of a signal pole at the junction end of this kerb.
         const kerbs = signalKerbs.get(`${row}:${col}`);
@@ -275,7 +277,10 @@ function rebuildStreetLampSprites(scene) {
       carriagewayBandAt: typeof getRoadCarriagewayBand === 'function' ? getRoadCarriagewayBand : undefined,
     })
     : [];
-  const placements = computeStreetLampPlacements({ mapWidth: MAP_WIDTH, mapHeight: MAP_HEIGHT, roadKeyAt, signalPlacements });
+  const placements = computeStreetLampPlacements({
+    mapWidth: MAP_WIDTH, mapHeight: MAP_HEIGHT, roadKeyAt, signalPlacements,
+    skipSideAt: typeof isTramReservationSide === 'function' ? isTramReservationSide : undefined,
+  });
   const wanted = new Map(placements.map((placement) => [streetLampId(placement), placement]));
   sprites.forEach((sprite, id) => {
     if (wanted.has(id)) return;

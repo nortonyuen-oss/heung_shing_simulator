@@ -374,7 +374,7 @@ function getToolCategoryForTool(tool) {
   if (tool === 'bus-stop' || tool === 'bus-depot') return 'transport';
   if (tool === 'ferry-pier' || tool === 'ferry-route') return 'transport-ferry';
   if (tool === 'metro-station' || tool === 'metro-line') return 'transport-metro';
-  if (tool === 'tram-track') return 'transport-tram';
+  if (tool === 'tram-track' || tool === 'tram-stop' || tool === 'tram-line') return 'transport-tram';
   if (tool === 'district-sign') return 'maps';
   if (tool === 'zone-res' || tool === 'zone-com' || tool === 'zone-ind' || tool === 'dezone') return 'zones';
   if (tool === 'power-line' || tool === 'power-coal' || tool === 'power-solar') return 'power';

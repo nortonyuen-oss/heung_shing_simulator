@@ -286,6 +286,8 @@ function createEmptyTransportFinancials() {
     metroOperations: 0,
     // 鐵路加物業: the company's share of the rise in land value round its stations (metro.js)
     metroProperty: 0,
+    // the trams' upkeep and running, and their stops' and track's (tram-lines.js)
+    tramOperations: 0,
     // paid in by the government (getTransportGovernmentSubsidy): 政府補貼 and the 兩蚊長者優惠
     operatingSubsidy: 0,
     elderlyFareSubsidy: 0,
@@ -337,6 +339,7 @@ function normalizeTransportFinanceHistory(raw) {
         ferryOperations: transportRoundMoney(financials.ferryOperations),
         metroOperations: transportRoundMoney(financials.metroOperations),
         metroProperty: transportRoundMoney(financials.metroProperty),
+        tramOperations: transportRoundMoney(financials.tramOperations),
         operatingSubsidy: transportRoundMoney(financials.operatingSubsidy),
         elderlyFareSubsidy: transportRoundMoney(financials.elderlyFareSubsidy),
         subsidy: transportRoundMoney(financials.subsidy),
@@ -2260,6 +2263,8 @@ function advanceTransportClock(fromMinutes, toMinutes) {
   if (typeof advanceFerryClock === 'function') advanceFerryClock(from, to);
   // 地鐵 (metro.js): its stations' queues and every call in the span
   if (typeof advanceMetroClock === 'function') advanceMetroClock(from, to);
+  // 電車 (tram-lines.js): its stops' queues and every call
+  if (typeof advanceTramClock === 'function') advanceTramClock(from, to);
 }
 
 function getTransportQueueRevision() {
@@ -2767,10 +2772,14 @@ function settleTransportMonth() {
   // 鐵路加物業 (metro.js): paid in at the month's turn, kept apart from the fares
   const metroProperty = Math.max(0, Math.round(Number(metroMonth.property) || 0));
   revenue += metroMonth.revenue;
+  // and the trams' (tram-lines.js)
+  const tramMonth = typeof settleTramMonth === 'function' ? settleTramMonth(ended) : { revenue: 0, passengers: 0, cost: 0 };
+  revenue += tramMonth.revenue;
   const depotUpkeep = getConnectedCommissionedTransportDepots().length * TRANSPORT_DEPOT_MONTHLY_UPKEEP;
   const ferryOperations = Number(ferryMonth.cost) || 0;
   const metroOperations = Number(metroMonth.cost) || 0;
-  const cost = transportRoundMoney(routeOperations + depotUpkeep + ferryOperations + metroOperations);
+  const tramOperations = Number(tramMonth.cost) || 0;
+  const cost = transportRoundMoney(routeOperations + depotUpkeep + ferryOperations + metroOperations + tramOperations);
   const roundedRevenue = transportRoundMoney(revenue);
   // worked out before lastFinancials moves on: the operating subsidy is last month's costs' share
   const grant = getTransportGovernmentSubsidy();
@@ -2785,6 +2794,7 @@ function settleTransportMonth() {
     ferryOperations: transportRoundMoney(ferryOperations),
     metroOperations: transportRoundMoney(metroOperations),
     metroProperty,
+    tramOperations: transportRoundMoney(tramOperations),
     operatingSubsidy: grant.operatingSubsidy,
     elderlyFareSubsidy: grant.elderlyFareSubsidy,
     subsidy: grant.subsidy,
@@ -2796,7 +2806,7 @@ function settleTransportMonth() {
     month: ended.month,
     passengers: state.routes.reduce((sum, route) => (
       sum + (route.history.at(-1)?.passengers || 0)
-    ), 0) + ferryMonth.passengers + metroMonth.passengers,
+    ), 0) + ferryMonth.passengers + metroMonth.passengers + tramMonth.passengers,
     ...state.lastFinancials,
     closingCash: state.company.cash,
   });
@@ -2825,6 +2835,10 @@ function settleTransportMonth() {
       });
       // and the metro lines (metro.js)
       (state.metro?.lines || []).forEach((line) => {
+        if (line.status !== 'suspended') { line.status = 'suspended'; suspendedAny = true; }
+      });
+      // and the tram lines (tram-lines.js)
+      (state.tram?.lines || []).forEach((line) => {
         if (line.status !== 'suspended') { line.status = 'suspended'; suspendedAny = true; }
       });
       if (suspendedAny && typeof showToast === 'function') {

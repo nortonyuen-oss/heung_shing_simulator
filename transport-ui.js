@@ -25,7 +25,7 @@ const transportUiState = {
 // card into Finances, and ferry routes got their own tab beside the buses.
 const TRANSPORT_PANEL_IDS = ['routes', 'fleet', 'demand', 'finances'];
 const TRANSPORT_PANEL_META = {
-  routes: { icon: '🗺', labelKey: 'transport.nav.routes', width: '760px', tabs: ['bus', 'ferry', 'metro'] },
+  routes: { icon: '🗺', labelKey: 'transport.nav.routes', width: '760px', tabs: ['bus', 'ferry', 'metro', 'tram'] },
   fleet: { icon: '🚌', labelKey: 'transport.nav.fleet', width: '760px', tabs: ['list', 'buy'] },
   demand: { icon: '👥', labelKey: 'transport.nav.demand', width: '760px' },
   finances: { icon: '📊', labelKey: 'transport.nav.finances', width: '760px', tabs: ['overview', 'history', 'company'] },
@@ -36,6 +36,7 @@ const TRANSPORT_PANEL_ALIASES = {
   company: ['finances', 'company'],
   ferry: ['routes', 'ferry'],
   metro: ['routes', 'metro'],
+  tram: ['routes', 'tram'],
 };
 
 // where a window's help box goes: under its tabs
@@ -633,6 +634,7 @@ function renderTransportRoutesTab(state) {
     bus: t('transport.panelTab.routes.busCount', { count: state.routes.length }),
     ferry: t('transport.panelTab.routes.ferryCount', { count: ferryRoutes }),
     metro: t('transport.panelTab.routes.metroCount', { count: typeof getMetroState === 'function' ? getMetroState().lines.length : 0 }),
+    tram: t('transport.panelTab.routes.tramCount', { count: typeof getTramState === 'function' ? (getTramState().lines || []).length : 0 }),
   });
   if (getTransportPanelTab('routes') === 'ferry') {
     return tabs + (typeof renderFerryRoutesSection === 'function' ? renderFerryRoutesSection() : '');
@@ -640,6 +642,10 @@ function renderTransportRoutesTab(state) {
   // 地鐵 (metro-ui.js)
   if (getTransportPanelTab('routes') === 'metro') {
     return tabs + (typeof renderMetroLinesSection === 'function' ? renderMetroLinesSection() : '');
+  }
+  // 電車 (tram-ui.js)
+  if (getTransportPanelTab('routes') === 'tram') {
+    return tabs + (typeof renderTramLinesSection === 'function' ? renderTramLinesSection() : '');
   }
   return `
     ${tabs}
@@ -1123,7 +1129,7 @@ function handleTransportChecklistClick(event) {
 
 // ── The hint bar: what the tool in hand does, and what is under the pointer ──
 
-const TRANSPORT_HINT_TOOLS = new Set(['bus-stop', 'bus-depot', 'ferry-pier', 'ferry-route', 'metro-station', 'metro-line', 'metro-track', 'metro-surface-station', 'tram-track']);
+const TRANSPORT_HINT_TOOLS = new Set(['bus-stop', 'bus-depot', 'ferry-pier', 'ferry-route', 'metro-station', 'metro-line', 'metro-track', 'metro-surface-station', 'tram-track', 'tram-stop', 'tram-line']);
 let transportToolHintEl = null;
 let transportHintHover = null;
 
@@ -1203,6 +1209,7 @@ function cancelTransportModeTool() {
   if (!isTransportModeActive || typeof selectedTool !== 'string' || !TRANSPORT_HINT_TOOLS.has(selectedTool)) return false;
   if (typeof ferryRouteDraft !== 'undefined') ferryRouteDraft = null;
   if (typeof cancelMetroLineDraft === 'function') cancelMetroLineDraft();
+  if (typeof cancelTramLineDraft === 'function') cancelTramLineDraft();
   document.querySelector('#tool-menu [data-tool-category="inspect"]')?.click();
   refreshTransportToolHint();
   return true;
@@ -1849,6 +1856,7 @@ function handleTransportUiClick(event) {
   if (typeof handleFerryUiAction === 'function' && handleFerryUiAction(action, button)) return;
   // and the metro lines (metro-ui.js)
   if (typeof handleMetroUiAction === 'function' && handleMetroUiAction(action, button)) return;
+  if (typeof handleTramUiAction === 'function' && handleTramUiAction(action, button)) return;
   if (action === 'panel-tab') {
     const panelId = button.dataset.panelId;
     if (TRANSPORT_PANEL_META[panelId]?.tabs?.includes(button.dataset.tab)) {

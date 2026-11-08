@@ -145,6 +145,7 @@ function getRoadLineVariantAt(row, col, {
   rotation = 0,
   busStopVisualCornersAt = () => null,
   carriagewayBandAt = () => null,
+  tramStopZebraAt = () => false,
 }) {
   const logicalKey = roadKeyAt(row, col);
   if (logicalKey !== 'road_straight_v' && logicalKey !== 'road_straight_h') return null;
@@ -182,6 +183,11 @@ function getRoadLineVariantAt(row, col, {
     const corners = busStopVisualCornersAt(r, c);
     return !(Array.isArray(corners) && corners.length > 0);
   };
+  // the crossing beside a tram stop on a narrow road (tram-lines.js isTramStopZebraTile)
+  if (tramStopZebraAt(row, col)) {
+    const zebraVariant = logicalKey === 'road_straight_v' ? 'zebraCrossingNS' : 'zebraCrossing';
+    if (hasMarkings(logicalKey, zebraVariant)) return zebraVariant;
+  }
   if (!isPlainAt(row, col)) return null;
   const [dr, dc] = baseKey === 'road_straight_v' ? [1, 0] : [0, 1];
   const before = countRoadLinePlainRun(isPlainAt, row, col, -dr, -dc);

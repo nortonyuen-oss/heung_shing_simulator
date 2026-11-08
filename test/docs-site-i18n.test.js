@@ -110,6 +110,22 @@ test('every changelog release has a translation for zh-TW, en and ja', () => {
   });
 });
 
+test('current changelog and hero match the package release in every language', () => {
+  const context = loadSiteI18n();
+  const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
+  const current = vm.runInContext("SITE_CHANGELOG['zh-HK'][0]", context);
+  assert.equal(current.version, `v${pkg.version}`);
+  assert.equal(`【${current.title}】`, pkg.releaseThemes['zh-HK']);
+  for (const lang of ['zh-HK', 'zh-TW', 'en', 'ja']) {
+    const hero = vm.runInContext(`SITE_TEXT['${lang}'].hero.versionBadge`, context);
+    assert.equal(hero, `v${pkg.version} — ${pkg.releaseThemes[lang]}`);
+    if (lang !== 'zh-HK') {
+      const entry = vm.runInContext(`SITE_CHANGELOG_TRANSLATIONS['${lang}']['v${pkg.version}']`, context);
+      assert.equal(`【${entry.title}】`, pkg.releaseThemes[lang]);
+    }
+  }
+});
+
 test('the game guide has the same section ids and block counts in every language', () => {
   const context = loadSiteI18n();
   const SITE_LANGUAGES = Array.from(vm.runInContext('SITE_LANGUAGES', context));

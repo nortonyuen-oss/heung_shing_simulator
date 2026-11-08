@@ -2854,9 +2854,11 @@ function updateTrafficVisuals(time, delta) {
   // ambient vehicles - otherwise ordinary traffic drives straight through them.
   const busLeaders = scene?.transportVisualState?.vehicles || [];
   const fishTruckLeaders = state.fishTrucks ? [...state.fishTrucks.values()] : [];
+  // and the trams on a narrow road, in the lanes with the cars (tram-lines.js updateTramVehicles)
+  const tramLeaders = scene.tramTrafficLeaders || [];
   const leaders = state.iceCreamEvent
-    ? [...state.vehicles, state.iceCreamEvent, ...busLeaders, ...fishTruckLeaders]
-    : [...state.vehicles, ...busLeaders, ...fishTruckLeaders];
+    ? [...state.vehicles, state.iceCreamEvent, ...busLeaders, ...fishTruckLeaders, ...tramLeaders]
+    : [...state.vehicles, ...busLeaders, ...fishTruckLeaders, ...tramLeaders];
   const leaderBuckets = buildTrafficLegBuckets(leaders);
   state.vehicles = state.vehicles.filter((vehicle) => {
     if (trafficVehicleHasBlockingLeader(vehicle, leaderBuckets)) return true;

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>香城模擬器 | The City of Heung Shing v5.3.4 — 【屯馬開通真的很興奮】</title>
+  <title>香城模擬器 | The City of Heung Shing v5.4.0 — 【摘去鮮花 然後種出叮叮】</title>
   <link rel="icon" type="image/png" href="build/icon.png" />
   <style>
     * { box-sizing: border-box; }
@@ -6842,11 +6842,11 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
         <button id="about-app-icon" class="about-app-icon" type="button" aria-label="City icon" aria-pressed="false">🏙️</button>
         <div style="font-size:18px; font-weight:900; margin-bottom:6px" data-i18n="app.name">The City of Heung Shing</div>
         <div style="color:#5a5648; font-size:12px" data-i18n="dialog.aboutEnglishName">The City of Heung Shing</div>
-        <div style="color:#5a5648; font-size:12px" data-i18n="dialog.version">Version 5.3.4 — 【屯馬開通真的很興奮】</div>
+        <div style="color:#5a5648; font-size:12px" data-i18n="dialog.version">Version 5.4.0 — 【摘去鮮花 然後種出叮叮】</div>
         <div id="visual-route-calibration-test-mode-label" hidden>【test mode】</div>
         <div style="color:#5a5648; font-size:12px" data-i18n="dialog.aboutInspired">A Hong Kong-themed city simulation brand title</div>
         <div style="margin-top:14px; font-size:12px; line-height:1.8; color:#3a3530">
-          <span data-i18n-html="dialog.aboutBuilt">The City of Heung Shing v5.3.4 — 【屯馬開通真的很興奮】<br>Plan · Build · Govern · Thrive</span>
+          <span data-i18n-html="dialog.aboutBuilt">The City of Heung Shing v5.4.0 — 【摘去鮮花 然後種出叮叮】<br>Plan · Build · Govern · Thrive</span>
         </div>
         <div class="about-links">
           <a class="about-link" href="https://nortonyuen-oss.github.io/heung_shing_simulator/" target="_blank" rel="noopener noreferrer" data-i18n="dialog.websiteLink">Official Website</a>
@@ -7398,6 +7398,16 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
         <span class="tool-row-icon">🛤️</span>
         <span class="tool-row-main"><span class="tool-row-text" data-i18n="toolRow.tramTrack">Tram Track</span><span class="tool-row-desc" data-i18n="toolRow.tramTrackDesc">Drag along a road: a track in each lane; on a dual carriageway, down its middle</span></span>
         <span class="tool-row-cost">$120</span>
+      </button>
+      <button class="tool-row" type="button" data-tool="tram-stop">
+        <span class="tool-row-icon">🚏</span>
+        <span class="tool-row-main"><span class="tool-row-text" data-i18n="toolRow.tramStop">Tram Stop</span><span class="tool-row-desc" data-i18n="toolRow.tramStopDesc">Click straight track: on the pavements of a narrow road, or islands in a dual carriageway's reservation</span></span>
+        <span class="tool-row-cost">$150</span>
+      </button>
+      <button class="tool-row" type="button" data-tool="tram-line">
+        <span class="tool-row-icon">➕</span>
+        <span class="tool-row-main"><span class="tool-row-text" data-i18n="toolRow.tramLine">Tram Line</span><span class="tool-row-desc" data-i18n="toolRow.tramLineDesc">Click stop after stop along the track; click the last again to finish</span></span>
+        <span class="tool-row-cost">$250</span>
       </button>
     </section>
 
@@ -8392,6 +8402,8 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
   <script src="metro-ui.js"></script>
   <script src="tram.js"></script>
   <script src="tram-art.js"></script>
+  <script src="tram-lines.js"></script>
+  <script src="tram-ui.js"></script>
   <script src="water-effects.js"></script>
   <script src="promenade.js"></script>
   <script src="festival-assets.js"></script>

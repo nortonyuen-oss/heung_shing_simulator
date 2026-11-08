@@ -118,6 +118,13 @@ function handleNewTool(scene, tile) {
     if (typeof refreshTransportToolHint === 'function') refreshTransportToolHint();
     return result;
   }
+  // 電車 (tram-lines.js)
+  if (selectedTool === 'tram-stop') return placeTramStop(scene, row, col);
+  if (selectedTool === 'tram-line') {
+    const result = handleTramLineClick(scene, row, col);
+    if (typeof refreshTransportToolHint === 'function') refreshTransportToolHint();
+    return result;
+  }
 
   return false;
 }

@@ -270,6 +270,7 @@ const SITE_FEATURE_LIST = {
 // ── Changelog ─────────────────────────────────────────────────────────────────
 const SITE_CHANGELOG = {
   "zh-HK": [
+    {"version": "v5.3.4", "date": "2026-11-08", "dateLabel": "2026年11月8日", "title": "屯馬開通真的很興奮", "items": ["龍舟邀請賽場地放寬：海濱步道長過 5 格，對開 5 格海面內任何位置有足夠空間拉出賽道就可以舉辦。", "搵賽道位置快咗，龍舟節開始唔會頓。"]},
     {"version": "v5.3.3", "date": "2026-11-07", "dateLabel": "2026年11月7日", "title": "屯馬開通真的很興奮", "items": ["地格檢查器撳地鐵站會顯示站名、車站種類、停站嘅綫、候車人數同鐵路物業收入，仲可以「改站名」。", "城市地圖用幼線淡淡顯示每條地鐵綫同車站。", "每開一條新地鐵綫，香城討論區都會出一則通車新聞。", "修正：地圖轉方向後高架橋、列車同建築物、車輛嘅圖層錯誤；列車車卡穿模；斜向高架橋斷開；馬路中間嘅橋墩；車頂夜光。"]},
     {"version": "v5.3.2", "date": "2026-11-07", "dateLabel": "2026年11月7日", "title": "屯馬開通真的很興奮", "items": ["修正：地鐵車廂夜晚嘅窗燈畫錯位置，而家返返去車窗上面。", "高架站有返佔地：月台下面唔可以有路，兩邊各要一行空地（大堂、樓梯同升降機），巴士唔會再穿過車站。", "官網截圖新增高架站喺市中心。"]},
     {"version": "v5.3.1", "date": "2026-11-07", "dateLabel": "2026年11月7日", "title": "屯馬開通真的很興奮", "items": ["修正：地鐵列車夜晚嘅車頭燈同尾燈畫錯位置，而家返返去車頭上面。"]},
@@ -631,6 +632,7 @@ const SITE_CHANGELOG = {
 // title/items text.
 const SITE_CHANGELOG_TRANSLATIONS = {
   "zh-TW": {
+    "v5.3.4": {"title": "地鐵通車", "items": ["龍舟邀請賽場地放寬：海濱步道長於 5 格，外側 5 格海面內任何位置有足夠空間設置賽道即可舉辦。", "尋找賽道位置更快，龍舟節開始時不會卡頓。"]},
     "v5.3.3": {"title": "地鐵通車", "items": ["地格檢查器點選地鐵站會顯示站名、車站種類、停靠路線、候車人數與鐵路物業收入，並可「改站名」。", "城市地圖以細線淡淡顯示每條地鐵線與車站。", "每開通一條新地鐵線，香城討論區都會發布一則通車新聞。", "修正：地圖轉向後高架橋、列車與建築物、車輛的圖層錯誤；車廂穿模；斜向高架橋斷開；馬路中間的橋墩；車頂夜光。"]},
     "v5.3.2": {"title": "地鐵通車", "items": ["修正：地鐵車廂夜間的窗燈位置錯誤，現在回到車窗上。", "高架站有了佔地：月台下方不能有道路，兩側各需一列空地（大廳、樓梯與電梯），公車不再穿過車站。", "官網截圖新增市中心的高架車站。"]},
     "v5.3.1": {"title": "地鐵通車", "items": ["修正：地鐵列車夜間的頭燈與尾燈位置錯誤，現在回到車頭上。"]},
@@ -985,6 +987,7 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   en: {
+    "v5.3.4": {"title": "Heung Shing, The Railway Opens", "items": ["The dragon boat invitational is easier to host: a promenade longer than five tiles, and room for the course anywhere in the sea within five tiles of it.", "Finding the course is quicker, so the festival no longer stutters as it starts."]},
     "v5.3.3": {"title": "Heung Shing, The Railway Opens", "items": ["The tile inspector on a metro station shows its name, kind, the lines calling there, who waits and its rail-and-property income - and renames it.", "The city minimap shows each metro line as a fine, quiet line in its colour, with its stations.", "Each new metro line's opening is posted to the Heung Shing Forum.", "Fixes: viaducts, trains, buildings and road traffic layered wrongly once the map was turned; cars clipping into each other; diagonal viaducts breaking up; a pier in the middle of a road; lit roofs at night."]},
     "v5.3.2": {"title": "Heung Shing, The Railway Opens", "items": ["Fix: the carriages' window lights at night were drawn off the windows; they now sit on them.", "Elevated stations take their ground: no road under the platform and a row of open land each side for the concourse, stairs and lift, so buses no longer drive through the station.", "New screenshots of an elevated station downtown."]},
     "v5.3.1": {"title": "Heung Shing, The Railway Opens", "items": ["Fix: the trains' head and tail lamps at night were drawn ahead of the train; they now sit on the cab."]},
@@ -1339,6 +1342,7 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   ja: {
+    "v5.3.4": {"title": "香城、地下鉄開業", "items": ["ドラゴンボート招待レースの会場条件を緩和：5 マスより長い海辺の遊歩道と、その沖 5 マス以内のどこかにコースを取れる広さがあれば開催できます。", "コース探索が速くなり、祭りの開始時に引っかからなくなりました。"]},
     "v5.3.3": {"title": "香城、地下鉄開業", "items": ["タイル調査で地下鉄駅を選ぶと、駅名、駅の種類、停車路線、待ち客、鉄道・不動産収入を表示し、駅名を変更できます。", "シティミニマップに各地下鉄路線と駅を細く控えめに表示します。", "新しい地下鉄路線が開業するたびに、香城掲示板に開業ニュースが載ります。", "修正：マップ回転後の高架橋・列車・建物・車両の重なり順、車両同士のめり込み、斜めの高架橋の途切れ、道路の真ん中の橋脚、夜の屋根の灯り。"]},
     "v5.3.2": {"title": "香城、地下鉄開業", "items": ["修正：夜間の車両の窓明かりが窓からずれて描かれていた問題を修正しました。", "高架駅が土地を占有するように：ホームの下に道路は不可、両側に一列ずつ空き地（コンコース・階段・エレベーター）。バスが駅を通り抜けなくなりました。", "都心の高架駅のスクリーンショットを追加。"]},
     "v5.3.1": {"title": "香城、地下鉄開業", "items": ["修正：夜間の列車の前照灯と尾灯が列車の前方に描かれていた問題を修正し、先頭車に表示されるようにしました。"]},
@@ -1718,8 +1722,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v5.3.3 — 【屯馬開通真的很興奮】",
-      versionDesc: "5.3.3 更新：起地底、地面同高架地鐵，一條好嘅市區綫大約三年回本。",
+      versionBadge: "v5.3.4 — 【屯馬開通真的很興奮】",
+      versionDesc: "5.3.4 更新：起地底、地面同高架地鐵，一條好嘅市區綫大約三年回本。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感嘅城市建設遊戲。起街道、規劃社區、經營自己嘅香城巴士公司、處理議會同天氣，再睇住一座有性格嘅香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1827,8 +1831,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v5.3.3 — 【地鐵通車】",
-      versionDesc: "5.3.3 更新：興建地下、地面與高架地鐵，一條好的市區線約三年回本。",
+      versionBadge: "v5.3.4 — 【地鐵通車】",
+      versionDesc: "5.3.4 更新：興建地下、地面與高架地鐵，一條好的市區線約三年回本。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感的城市建設遊戲。興建街道、規劃社區、經營自己的香城公車公司、處理議會與天氣，看著一座有個性的香城慢慢成長。",
       freeLabel: "完全免費 · macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1936,8 +1940,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "The City of Heung Shing",
       title: "The City of Heung Shing",
-      versionBadge: "v5.3.3 — 【Heung Shing, The Railway Opens】",
-      versionDesc: "5.3.3 update: build underground, ground-level and elevated metro lines; a good line downtown pays back in about three years.",
+      versionBadge: "v5.3.4 — 【Heung Shing, The Railway Opens】",
+      versionDesc: "5.3.4 update: build underground, ground-level and elevated metro lines; a good line downtown pays back in about three years.",
       lede: "A city-building game inspired by Hong Kong life and made in tribute to SimCity 2000. Build streets, shape neighbourhoods, run your own Heung Shing Bus Company, navigate council politics and weather, then watch a city with real personality grow.",
       freeLabel: "Completely free · macOS + Windows · Local saves",
       downloadBtn: "【Free Download】",
@@ -2046,8 +2050,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v5.3.3 — 【香城、地下鉄開業】",
-      versionDesc: "5.3.3 更新：地下・地上・高架の地下鉄を建設。良い都心の路線は約3年で投資を回収します。",
+      versionBadge: "v5.3.4 — 【香城、地下鉄開業】",
+      versionDesc: "5.3.4 更新：地下・地上・高架の地下鉄を建設。良い都心の路線は約3年で投資を回収します。",
       lede: "香港の都市生活から着想を得た、SimCity 2000へのオマージュとなる都市建設ゲーム。道路を築き、地区を計画し、自分だけの香城バス会社を経営し、議会や天候に向き合いながら、個性ある香城の成長を見守ります。",
       freeLabel: "完全無料 · macOS + Windows · ローカルセーブ",
       downloadBtn: "【無料ダウンロード】",

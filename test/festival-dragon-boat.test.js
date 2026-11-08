@@ -238,3 +238,25 @@ test('water props use the fishing swell without changing their base, size or rac
   c.sprite=sprite;vm.runInContext('applyDragonBoatBobbing(sprite,1200)',c);
  }
 });
+
+test('a course anywhere within five tiles off a promenade longer than five tiles (Norton 2026-11-08)', () => {
+  const base = shoreContext();
+  // a jetty off the shore: the course moves further out, its near lane still within 5 tiles
+  const jetty = { ...base, isSea: (r, c) => base.isSea(r, c) && !(r <= 32 && c >= 12 && c <= 30) };
+  const c = db.selectDragonBoatCourse(jetty);
+  assert.ok(c && db.dbCourseValid(c, jetty));
+  const near = c.row - 0.5 - 30;
+  assert.ok(near >= 2.5 && near <= 5, `near lane ${near} tiles out`);
+  // room only 7 tiles out: too far
+  assert.equal(db.selectDragonBoatCourse({ ...base, isSea: (r, c) => base.isSea(r, c) && r >= 37 }), null);
+  // the sea open only well along the shore: the course slides along to it
+  const along = { ...base, isSea: (r, c) => base.isSea(r, c) && c >= 20 };
+  const s = db.selectDragonBoatCourse(along);
+  assert.ok(s && db.dbCourseValid(s, along));
+  // five tiles of promenade are not enough, six are
+  const five = Array.from({ length: 5 }, (_, i) => [30, 10 + i]), six = Array.from({ length: 6 }, (_, i) => [30, 10 + i]);
+  assert.equal(db.selectDragonBoatCourse({ ...base, runs: [five], hasPromenade: (r, c) => r === 30 && c >= 10 && c <= 14 }), null);
+  assert.ok(db.selectDragonBoatCourse({ ...base, runs: [six], hasPromenade: (r, c) => r === 30 && c >= 10 && c <= 15 }));
+  // the nearest the shore wins: on open sea, the old place (1.5 tiles out)
+  assert.equal(db.selectDragonBoatCourse(base).row, 31.5);
+});

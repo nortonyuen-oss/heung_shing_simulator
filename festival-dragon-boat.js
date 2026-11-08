@@ -63,30 +63,58 @@ function dragonBoatCourseSpace(course) {
     minRow,maxRow,minCol,maxCol,rowTiles,colTiles,alongTiles:DB_STEPS[course.dir][0]?rowTiles:colTiles,
     acrossTiles:DB_STEPS[course.dir][0]?colTiles:rowTiles,tileCount:tiles.size,tiles:[...tiles]};
 }
+// The course (Norton, 2026-11-08: 要求太苛刻): a promenade run longer than five tiles, and room for the
+// course anywhere in the sea off it within five tiles - parallel to that stretch of shore, its near
+// lane 1 to 5 tiles out, slid along to wherever it fits (a stepped or jagged shore no longer rules a
+// city out). The nearest to the shore wins (last year's course kept among those), then a stable order.
+const DB_MAX_OFFSHORE_TILES = 5;
 function selectDragonBoatCourse(ctx, preferred = '', distanceM = 270) {
-  const runs = ctx.runs || [];
+  const runs = (ctx.runs || []).filter((run) => run.length >= 6);
+  // (each sea cell asked once a search: the courses tried overlap, and the bridge check is slow)
+  const cells = new Map();
+  const open = (r, c) => {
+    const k = r * 65536 + c;
+    let v = cells.get(k);
+    if (v === undefined) { v = !!ctx.isSea(r, c) && !ctx.isBlocked?.(r, c); cells.set(k, v); }
+    return v;
+  };
+  const fast = { ...ctx, isSea: open, isBlocked: null };
   const distances = distanceM === 500 ? [500] : [270,200];
+  // (the near lane, k -0.5, this far out: 1, 1.5 ... 5 tiles)
+  const offsets = [];
+  for (let off = 1.5; off <= DB_MAX_OFFSHORE_TILES + 0.5 + 1e-9; off += 0.5) offsets.push(off);
+  // Bounded scan of each shoreline, including both ends; each shore tile its sea side and the ways along it.
+  const anchors = [];
+  for (const run of runs) {
+    run.filter((_,i) => i % Math.max(1,Math.ceil(run.length/40)) === 0 || i === run.length-1).forEach(([r,c]) => {
+      const sea = ctx.seaSideOf(r,c); if (!sea || ctx.isNearBridge?.(r,c)) return;
+      (DB_STEPS[sea][0] ? ['e','w'] : ['n','s']).forEach((dir) => anchors.push({ r, c, sea, dir, run }));
+    });
+  }
   for (const distance of distances) {
-    const candidates = [];
-    for (const run of runs) {
-      if (run.length < 6) continue;
-      // Bounded scan of the shoreline, including both ends, with a stable tie break.
-      const anchors = run.filter((_,i) => i % Math.max(1,Math.ceil(run.length/40)) === 0 || i === run.length-1);
-      for (const [r,c] of anchors) {
-        const sea = ctx.seaSideOf(r,c); if (!sea || ctx.isNearBridge?.(r,c)) continue;
-        const n=DB_STEPS[sea];
-        const dirs = n[0] ? ['e','w'] : ['n','s'];
-        for (const dir of dirs) {
-          const a=DB_STEPS[dir], start=distance/20-2;
-          const id=`${r}:${c}:${sea}:${dir}:${distance}`;
-          const course={ id,row:r+n[0]*1.5-a[0]*start,col:c+n[1]*1.5-a[1]*start,dir,sea,distanceM:distance,
-            venueTiles:run.slice(0,200), shoreRow:r,shoreCol:c };
-          if (dbCourseValid(course,ctx)) candidates.push(course);
-        }
+    const len = distance / 20;
+    // (where along the course its shore tile lies: the old place, two tiles before its end, first)
+    const slides = [len - 2];
+    for (let p = 0; p <= len + 1e-9; p += 2) if (Math.abs(p - (len - 2)) > 1e-9) slides.push(p);
+    const make = ({ r, c, sea, dir, run }, off, start, plain) => {
+      const n = DB_STEPS[sea], a = DB_STEPS[dir];
+      return { id: plain ? `${r}:${c}:${sea}:${dir}:${distance}` : `${r}:${c}:${sea}:${dir}:${distance}:${off}:${start}`,
+        row:r+n[0]*off-a[0]*start,col:c+n[1]*off-a[1]*start,dir,sea,distanceM:distance,
+        venueTiles:run.slice(0,200), shoreRow:r,shoreCol:c };
+    };
+    // nearest the shore first: the first distance out that has a course anywhere along the shore
+    for (const [oi, off] of offsets.entries()) {
+      const candidates = [];
+      for (const anchor of anchors) {
+        slides.forEach((start, si) => {
+          const course = make(anchor, off, start, oi === 0 && si === 0);
+          if (dbCourseValid(course, fast)) candidates.push(course);
+        });
       }
+      if (!candidates.length) continue;
+      candidates.sort((a,b) => (a.id === preferred ? -1 : b.id === preferred ? 1 : a.id.localeCompare(b.id)));
+      return candidates[0];
     }
-    candidates.sort((a,b) => (a.id === preferred ? -1 : b.id === preferred ? 1 : a.id.localeCompare(b.id)));
-    if (candidates.length) return candidates[0];
   }
   return null;
 }

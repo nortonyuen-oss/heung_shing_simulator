@@ -67,11 +67,16 @@ const browserErrors = [];
   assert.equal(await page.evaluate(id => loadSaveById(id, activeScene), rows[0].id), true);
   await page.evaluate('hideLandingScreen(); setGameSpeed(GAME_SPEEDS.PAUSED)');
   page.on('dialog', dialog => dialog.accept());
+  const importedMessage = await page.evaluate(() => platformText('imported'));
+  const importedDialog = page.waitForEvent('dialog', {
+    predicate: dialog => dialog.message().includes(importedMessage), timeout: 30000,
+  });
   const chooserPromise = page.waitForEvent('filechooser');
   await page.evaluate('chooseCityImport()');
   const chooser = await chooserPromise;
   await chooser.setFiles(filename);
-  await page.waitForFunction(async () => (await listSaves()).filter(row => row.save_type === 'manual').length === 2, null, { timeout: 30000 });
+  await importedDialog;
+  assert.equal((await page.evaluate('listSaves()')).filter(row => row.save_type === 'manual').length, 2);
   await page.evaluate(() => navigator.serviceWorker.ready);
   await context.setOffline(true);
   await page.reload({ waitUntil: 'domcontentloaded' });

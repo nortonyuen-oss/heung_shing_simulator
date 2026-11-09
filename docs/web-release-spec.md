@@ -1,10 +1,10 @@
 # 香城模擬器：網頁版、可攜存檔及雙平台發布規格
 
-文件版本：1.2（加入版本建議及命名欄位；含官網網頁遊玩人次統計）
+文件版本：1.3（確定四語版本主題；含官網網頁遊玩人次統計）
 
 日期：2026-11-09（Asia/Taipei）
 
-狀態：規格文件，尚未實作。建議目標版本為 **v5.5.0**，正式版本號及主題名由 Norton 決定；不是已發布版本。
+狀態：規格文件，尚未實作。建議目標版本為 **v5.5.0 —【香城最大模擬器 正式上線！】**，四語主題見第 13.0 節；正式版本號及發布時點仍由 Norton 決定，不是已發布版本。
 
 發布前提：等待目前另一邊處理中的 bug 修正完成、合併及驗收，再由 Norton 決定正式 release 時點。
 
@@ -400,13 +400,17 @@ GitHub Actions 作唯一正式發布入口；Cloudflare Git integration 如有�
 | 目前本機遊戲版本 | `v5.4.0` |
 | 本次功能完成後的建議版本 | **`v5.5.0`** |
 | 版本類型 | minor：新增網頁平台、可攜存檔及官網遊玩統計，維持既有存檔相容 |
-| 廣東話主題名／`releaseTheme` | 待 Norton 命名 |
-| 台灣中文／English／日本語主題名 | 待廣東話名稱確定後提供對應版本，或由 Norton 分別指定 |
+| 廣東話／`zh-HK`／預設 `releaseTheme` | **【香城最大模擬器 正式上線！】** |
+| 台灣中文／`zh-TW` | **【線上遊玩開通】** |
+| English／`en` | **【Heung Shing's Biggest Simulator — Now Online!】** |
+| 日本語／`ja` | **【香城最大のシミュレーター、オンラインで正式公開！】** |
 | 目前提交範圍 | 本規格及發行規劃；不代表網頁功能已實作 |
+
+廣東話及台灣中文名稱由 Norton 指定，原文保留；英文及日文依其要求翻譯。正式套用時，`package.json` 的 `releaseTheme` 使用廣東話名稱，`releaseThemes` 的四個語言鍵、遊戲顯示、官網及 release notes 使用本表相同文字與標點。此處「正式上線」屬未來版本主題，不代表目前已部署。
 
 版本判斷沿用 `README.md` 的規則：修 bug 為 patch、新玩法／內容功能為 minor、不相容的存檔變更為 major。本次以保留舊檔相容為必要條件，所以建議由 `5.4.0` 升至 `5.5.0`；若先獨立發布目前的電車修正而未包含網頁功能，可另以 `5.4.x` patch 處理，實際號碼以當時最新版本為準。
 
-本次先提交規格 checkpoint，不修改 `package.json`、lockfile、正式 release notes 或官網的現行版本，不建立 `v5.5.0` tag。功能實作與驗收完成、Norton 確定版本主題後，再依 [release checklist](release-update-checklist.md) 統一更新遊戲、四語文案、官網及安裝包版本，最後由 Norton 決定發布時點。
+本次先提交規格 checkpoint，不修改 `package.json`、lockfile、正式 release notes 或官網的現行版本，不建立 `v5.5.0` tag。功能實作與驗收完成後，再依 [release checklist](release-update-checklist.md) 統一套用本節已定的四語主題、遊戲及安裝包版本與官網文案，最後由 Norton 決定發布時點。
 
 ### 13.1 觸發規則
 
@@ -561,7 +565,7 @@ flowchart TD
 以下是外部設定及發行資料，不阻止先完成本地實作，但正式發布前必須有實值：
 
 - 另一邊 bug 修正的 commit／PR 及驗收記錄。
-- 最終遊戲版本號、release theme、release notes 及 tag commit。
+- 最終遊戲版本號、依第 13.0 節四語主題整理的 release notes，以及 tag commit。
 - Cloudflare 正式項目名稱、穩定 Play URL、預覽項目與 GitHub Actions 的部署授權。
 - GitHub Pages 發布權限及新版 workflow 的正式環境設定。
 - 是否使用自訂域名；若使用，必須在首次正式玩家存檔前設定。

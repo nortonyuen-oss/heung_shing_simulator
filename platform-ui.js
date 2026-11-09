@@ -114,12 +114,7 @@
       button.addEventListener('click', () => root.exportSavedCity(id)); actions.appendChild(button);
     });
   }).observe(saveList, { childList: true, subtree: true });
-  const titleActions = document.querySelector('.landing-actions') || document.getElementById('btn-continue')?.parentElement;
-  if (titleActions) {
-    const button = document.createElement('button'); button.type = 'button'; button.className = 'landing-btn secondary';
-    button.dataset.platformLabel = 'import'; button.textContent = text('import');
-    button.addEventListener('click', root.chooseCityImport); titleActions.appendChild(button);
-  }
+  document.getElementById('btn-import-city')?.addEventListener('click', root.chooseCityImport);
   if (!web) return;
   const config = root.HEUNG_SHING_CONFIG;
   const note = document.createElement('p'); note.className = 'platform-storage-note';
@@ -129,7 +124,7 @@
     const refresh = () => { note.textContent = text(HeungShingStorage.memoryOnly ? 'memory' : !HeungShingStorage.writable ? 'locked' : 'backup'); };
     refresh(); root.setInterval(refresh, 1000);
     if (!HeungShingStorage.writable) {
-      document.querySelectorAll('#btn-new-game, #btn-map-editor').forEach(button => { button.disabled = true; });
+      document.querySelectorAll('#btn-new-game, #btn-terrain-creator').forEach(button => { button.disabled = true; });
       if (typeof setGameWorldVisible === 'function') setGameWorldVisible(false);
     }
   });

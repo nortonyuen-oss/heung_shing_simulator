@@ -153,7 +153,8 @@ function getRoadTilePreviewAssets(tileSetId = currentRoadTileSetId) {
     getRoadTileAssetPath('road_straight_h', tileSetId),
     getRoadTileAssetPath('road_cross', tileSetId),
     getRoadTileAssetPath('road_bridge_h', tileSetId),
-  ].filter(Boolean);
+  ].filter(Boolean).map(asset => typeof resolveBundledAssetPath === 'function'
+    ? resolveBundledAssetPath(asset) : asset);
 }
 
 // Node-side consumers (scripts/bake-road-line-textures.js, tests) need these as a plain

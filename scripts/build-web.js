@@ -123,7 +123,9 @@ async function main() {
   html = html.replace(/(['"])((?:UI|Music|Sounds|data|build|newRoadTiles|kenney_isometric-roads)\/[^'"\r\n]+)\1/g,
     (match, quote, logical) => resources[logical] ? `${quote}${resources[logical]}${quote}` : match);
   output('index.html', html);
-  const shell = ['index.html', resourceScript, ...immutableScripts];
+  const catalog = Object.entries(resources).filter(([logical]) => logical === 'data/web-model-assets.json'
+    || logical.startsWith('data/model-lists/')).map(([, immutable]) => immutable);
+  const shell = ['index.html', resourceScript, ...immutableScripts, ...catalog];
   const worker = fs.readFileSync(path.join(ROOT, 'web-service-worker.js'), 'utf8')
     .replace('__BUILD_ID__', `${pkg.version}-${config.commitSha.slice(0, 12)}`)
     .replace('/*__SHELL__*/[]', JSON.stringify(shell));

@@ -30,6 +30,21 @@ const browserErrors = [];
   });
   await page.goto(process.env.WEB_TEST_URL || 'http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
   await page.waitForFunction('typeof gameReady !== "undefined" && gameReady', null, { timeout: 120000 });
+  for (const [language, main, sub] of [['en', 'Import City', 'Restore Backup'], ['zhHant', 'Import City', '匯入城市存檔'], ['ja', '都市を読み込む', 'Import City']]) {
+    await page.evaluate(language => setLanguage(language), language);
+    const labels = await page.locator('#btn-import-city').evaluate(button => ({
+      main: button.querySelector('.landing-btn-main')?.textContent,
+      sub: button.querySelector('.landing-btn-sub')?.textContent,
+      textLayer: Number(getComputedStyle(button.querySelector('.landing-btn-main')).zIndex),
+      backgroundLayer: Number(getComputedStyle(button, '::before').zIndex),
+    }));
+    assert.equal(labels.main, main); assert.equal(labels.sub, sub);
+    assert(labels.textLayer > labels.backgroundLayer, 'the import label must appear above its white background');
+  }
+  await page.evaluate(() => setLanguage('zhHant'));
+  const titleChooser = page.waitForEvent('filechooser');
+  await page.locator('#btn-import-city').click();
+  await (await titleChooser).setFiles([]);
   console.log(JSON.stringify({ stage: 'title', MiB: +(bytes / 1048576).toFixed(2), failures: failures.slice(0, 15) }));
   assert.equal(await page.evaluate('HeungShingStorage.writable'), true);
   await page.evaluate(async () => { await startNewGame('網頁驗收城市'); setGameSpeed(GAME_SPEEDS.PAUSED); });
@@ -57,9 +72,16 @@ const browserErrors = [];
   const chooser = await chooserPromise;
   await chooser.setFiles(filename);
   await page.waitForFunction(async () => (await listSaves()).filter(row => row.save_type === 'manual').length === 2, null, { timeout: 30000 });
+  await page.evaluate(() => navigator.serviceWorker.ready);
+  await context.setOffline(true);
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.waitForFunction('typeof gameReady !== "undefined" && gameReady', null, { timeout: 120000 });
+  assert.equal((await page.evaluate('listSaves()')).filter(row => row.save_type === 'manual').length, 2);
+  assert.equal(await page.evaluate(id => loadSaveById(id, activeScene), rows[0].id), true);
+  await page.evaluate('hideLandingScreen(); setGameSpeed(GAME_SPEEDS.PAUSED)');
   assert.equal(requests.some(url => /\/api\/(saves|terrains)/.test(url)), false, 'city data must stay local');
   await page.screenshot({ path: process.env.WEB_SCREENSHOT_PATH || '/private/tmp/heung-shing-web-smoke.png' });
-  console.log(JSON.stringify({ stage: 'saved-reopened-exported-imported', downloadBytes, MiB: +(bytes / 1048576).toFixed(2), failures: failures.slice(0, 30) }));
+  console.log(JSON.stringify({ stage: 'saved-reopened-exported-imported-offline', downloadBytes, MiB: +(bytes / 1048576).toFixed(2), failures: failures.slice(0, 30) }));
   await browser.close();
   assert.deepEqual(failures, [], 'browser must not have missing assets or uncaught errors');
 })().catch(async error => {

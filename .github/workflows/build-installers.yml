@@ -235,7 +235,8 @@ jobs:
       - name: Deploy statistics without resetting counts
         run: |
           npx wrangler d1 migrations apply heung-shing-statistics --remote --config services/statistics/wrangler.jsonc
-          npx wrangler deploy --config services/statistics/wrangler.jsonc
+          version=$(node -p "require('./package.json').version")
+          npx wrangler deploy --config services/statistics/wrangler.jsonc --var "GAME_VERSIONS:$version"
       - name: Deploy verified static game
         run: |
           node scripts/deploy-web-release.js

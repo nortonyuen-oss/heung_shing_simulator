@@ -15,6 +15,13 @@ const browserErrors = [];
   const page = await context.newPage();
   diagnosticPage = page;
   await page.addInitScript(() => { globalThis.HEUNG_SHING_SMOKE_TEST = true; });
+  if (Number(process.env.WEB_IMPORT_DELAY_MS) > 0) await page.addInitScript(delay => {
+    const read = File.prototype.text;
+    File.prototype.text = async function () {
+      await new Promise(resolve => setTimeout(resolve, delay));
+      return read.call(this);
+    };
+  }, Number(process.env.WEB_IMPORT_DELAY_MS));
   const failures = [], requests = [];
   let bytes = 0;
   if (!isFirefox) {
@@ -71,7 +78,14 @@ const browserErrors = [];
   await page.evaluate('chooseCityImport()');
   const chooser = await chooserPromise;
   await chooser.setFiles(filename);
-  await page.waitForFunction(async () => (await listSaves()).filter(row => row.save_type === 'manual').length === 2, null, { timeout: 30000 });
+  const importDeadline = Date.now() + 30000;
+  let importedRows;
+  do {
+    importedRows = await page.evaluate('listSaves()');
+    if (importedRows.filter(row => row.save_type === 'manual').length === 2) break;
+    await page.waitForTimeout(100);
+  } while (Date.now() < importDeadline);
+  assert.equal(importedRows.filter(row => row.save_type === 'manual').length, 2, 'wait for the import transaction before leaving the page');
   await page.evaluate(() => navigator.serviceWorker.ready);
   await context.setOffline(true);
   await page.reload({ waitUntil: 'domcontentloaded' });

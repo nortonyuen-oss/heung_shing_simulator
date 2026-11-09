@@ -27,6 +27,10 @@
 
 [候選建置 42641410871](https://github.com/nortonyuen-oss/heung_shing_simulator/actions/runs/42641410871)（`1e7d98d`）全部通過：完整測試、共用模型、macOS arm64／x64、Windows 及網頁瀏覽器 smoke。此 run 沒有發布。其後驗收修正由正式 tag workflow 再完整測試及建置；新流程另加入真實 Windows Edge 存檔及下載門檻。
 
+首次正式候選的四款桌面包均已產出；網頁 smoke 發現測試的 async predicate 提早結束，匯入尚未完成就離線重開。已改為在 Node 端等待實際的兩個已提交存檔槽，並以刻意延遲 `File.text()` 2 秒的完整流程驗證通過。此修正會納入尚未建立公開 Release 的 v5.5.0 候選。
+
+Cloudflare 隔離項目已實測 A → B → A 及 IndexedDB 原城市保留。首次 assets-only 項目曾回 404；加入僅處理未命中路徑的入口後正常，切回純靜態亦正常。正式設定採靜態優先（`run_worker_first: false`），已有素材仍由 Cloudflare 直接提供，未命中才回 404；線上驗證會等待正確 commit 傳播，不接受舊版即報成功。未在正式網址部署佔位頁。
+
 ## 發布設定
 
 - 穩定遊戲 origin：`https://heung-shing-play.nortonyuen.workers.dev`。瀏覽器存檔屬於此 origin；本次不更換域名。

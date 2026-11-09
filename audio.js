@@ -5,7 +5,9 @@
 let activeMusic = null;
 let activeTrackIndex = 0;
 let isMusicPlaying = false;
-let musicLoopMode = 'all';   // 'all' = auto-advance, 'one' = loop current track
+// Browser sessions repeat the selected track until the player chooses another,
+// so an idle city cannot gradually download the entire music library.
+let musicLoopMode = globalThis.HEUNG_SHING_CONFIG?.platform === 'web' ? 'one' : 'all';
 const TITLE_MUSIC_TRACK_KEY = 'music_title';
 let titleLoadingAudio = null;
 

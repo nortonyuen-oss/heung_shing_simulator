@@ -171,8 +171,10 @@
   }
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('web-service-worker.js').then(registration => {
     let applyingUpdate = false;
+    let offeredWorker = null;
     const offer = () => {
-      if (!registration.waiting) return;
+      if (!registration.waiting || offeredWorker === registration.waiting) return;
+      offeredWorker = registration.waiting;
       const button = document.createElement('button'); button.textContent = text('update');
       button.style.cssText = 'position:fixed;bottom:12px;right:12px;z-index:9999;max-width:360px;padding:12px';
       button.addEventListener('click', async () => {
@@ -182,9 +184,12 @@
         registration.waiting.postMessage({ type: 'ACTIVATE' });
       }); document.body.appendChild(button);
     };
-    offer(); registration.addEventListener('updatefound', () => registration.installing?.addEventListener('statechange', () => {
-      if (registration.installing?.state === 'installed' && navigator.serviceWorker.controller) offer();
-    }));
+    offer(); registration.addEventListener('updatefound', () => {
+      const installing = registration.installing;
+      installing?.addEventListener('statechange', () => {
+        if (installing.state === 'installed' && navigator.serviceWorker.controller) offer();
+      });
+    });
     root.setInterval(() => {
       if (document.visibilityState === 'visible' && navigator.onLine) registration.update().catch(() => {});
     }, 15 * 60 * 1000);

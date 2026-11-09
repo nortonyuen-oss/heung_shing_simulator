@@ -45,3 +45,29 @@ test('a legacy v14 uncompressed city can be imported without changing its origin
   assert.equal(parsed.payload.save_data.version, 14);
   assert.deepEqual(parsed.payload.save_data.mapData, payload.save_data.mapData);
 });
+
+test('desktop SQLite accepts browser exports and preserves the original city before migration', () => {
+  const os = require('node:os');
+  const { openGameDatabase } = require('../db');
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'heung-shing-portable-'));
+  const database = openGameDatabase(path.join(directory, 'city.sqlite'));
+  try {
+    const browserExport = portable.make(fixture(), '5.5.0');
+    const imported = portable.parse(JSON.stringify(browserExport), decode, 256, 256);
+    const row = database.createSave(imported.payload);
+    const desktopCity = database.getSave(row.id);
+    const desktopExport = portable.make(desktopCity, '5.5.0');
+    const browserImport = portable.parse(JSON.stringify(desktopExport), decode, 256, 256);
+    assert.deepEqual(browserImport.payload.save_data, imported.payload.save_data);
+
+    const legacy = fixture(); legacy.save_data.version = 14;
+    const old = database.createSave(legacy);
+    database.updateSave(old.id, fixture());
+    assert.equal(database.getSave(old.id).save_data.version, 15);
+    assert.equal(database.getSaveBackup(old.id).save_data.version, 14);
+    assert(database.listSaves().find(item => item.id === old.id).has_backup);
+    assert.equal(legacy.save_data.version, 14);
+  } finally {
+    database.close(); fs.rmSync(directory, { recursive: true, force: true });
+  }
+});

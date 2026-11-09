@@ -6,7 +6,8 @@ const crypto = require('node:crypto');
 const { execFileSync } = require('node:child_process');
 const sharp = require('sharp');
 const ROOT = path.resolve(__dirname, '..');
-const OUT = path.join(ROOT, 'release/web');
+const OUT = path.resolve(ROOT, 'release', process.env.WEB_BUILD_DIRECTORY || 'web');
+if (!OUT.startsWith(path.join(ROOT, 'release') + path.sep)) throw new Error('Web output must be inside release/');
 const STAGED = path.join(ROOT, '.data/package-assets/Models');
 const hash = data => crypto.createHash('sha256').update(data).digest('hex');
 const walk = directory => fs.readdirSync(directory, { withFileTypes: true }).flatMap(entry => {

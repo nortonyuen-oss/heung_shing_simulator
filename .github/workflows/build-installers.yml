@@ -129,6 +129,8 @@ jobs:
         run: |
           node scripts/build-official-site.js
           node scripts/smoke-official-site.js
+      - name: Update and storage failure protection
+        run: node scripts/smoke-web-safety.js
       - run: tar -czf release/web-candidate.tar.gz -C release web
       - uses: actions/upload-artifact@v4
         with:
@@ -136,9 +138,36 @@ jobs:
           path: release/web-candidate.tar.gz
           retention-days: 1
 
+  edge:
+    name: Verify Microsoft Edge on Windows
+    needs: web
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-candidate
+          path: artifacts
+      - name: Browser save and backup verification in Edge
+        shell: bash
+        run: |
+          mkdir -p release
+          tar -xzf artifacts/web-candidate.tar.gz -C release
+          npm run preview:web > edge-preview.log 2>&1 &
+          npm run test:web
+        env:
+          WEB_TEST_BROWSER: msedge
+          WEB_SAVE_PATH: ${{ runner.temp }}/edge-smoke.heungshing
+          WEB_SCREENSHOT_PATH: ${{ runner.temp }}/edge-smoke.png
+
   release:
     name: Publish synchronized release
-    needs: [build, web]
+    needs: [build, web, edge]
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     environment: github-pages

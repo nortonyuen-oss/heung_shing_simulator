@@ -31,7 +31,8 @@
     }
     return new Promise((resolve, reject) => {
       const tx = db.transaction(names, mode);
-      let value, failure;
+      let value, failure, operationDone = false, transactionDone = false;
+      const finish = () => { if (operationDone && transactionDone) resolve(value); };
       const access = name => ({
         get: key => req(tx.objectStore(name).get(key)),
         getAll: () => req(tx.objectStore(name).getAll()),
@@ -39,10 +40,10 @@
           ? tx.objectStore(name).put(data) : tx.objectStore(name).put(data, key)),
         delete: key => req(tx.objectStore(name).delete(key)),
       });
-      tx.oncomplete = () => resolve(value);
+      tx.oncomplete = () => { transactionDone = true; finish(); };
       tx.onerror = () => reject(failure || tx.error);
       tx.onabort = () => reject(failure || tx.error || new Error('Storage transaction aborted'));
-      Promise.resolve(operation(access)).then(result => { value = result; }, error => {
+      Promise.resolve(operation(access)).then(result => { value = result; operationDone = true; finish(); }, error => {
         failure = error;
         try { tx.abort(); } catch { reject(error); }
       });

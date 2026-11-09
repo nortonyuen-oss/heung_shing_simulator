@@ -53,6 +53,12 @@ function renderTramLineCard(line, state) {
           </button>
           <button class="transport-btn metro-station-rename" type="button" data-transport-action="tram-rename-stop" data-stop-id="${tramUiEscape(stop.id)}" title="${tramUiEscape(tramT('tram.ui.renameStop', '車站改名'))}">✎</button>
         </div>`).join('')}
+      ${s.trams.map((v) => `
+        <button class="transport-route-vehicle" type="button" data-transport-action="tram-watch" data-vehicle-id="${tramUiEscape(v.id)}" title="${tramUiEscape(tramT('tram.ui.watchHint', '實時監控'))}">
+          <span>📹 🚋 ${tramUiEscape(v.id)}</span>
+          <span>👤 ${Math.round(v.aboard || 0)} / ${TRAM_SERVICE.tramCapacity}</span>
+          <span>${tramUiEscape(tramUiMoney(v.monthToDateRevenue || 0))}</span>
+        </button>`).join('')}
     </div>`;
   const statusKey = suspended ? 'suspended' : 'active';
   const issue = typeof renderTransportIssue !== 'function' ? '' : suspended
@@ -174,6 +180,9 @@ function handleTramUiAction(action, button) {
         refreshTramUi();
       }).catch((error) => console.warn('[tram stop rename]', error));
     }
+    return true;
+  } else if (action === 'tram-watch') {
+    if (typeof openVehicleTrackingWindow === 'function') openVehicleTrackingWindow('tram', button.dataset.vehicleId);
     return true;
   } else if (action === 'tram-locate-stop') {
     locateTramStop(getTramStopById(button.dataset.stopId, state));

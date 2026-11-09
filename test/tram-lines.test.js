@@ -145,3 +145,30 @@ test('a stop: on straight track; on a dual carriageway the band pair, whichever 
   assert.equal(lines.whyNotTramStopAt(4, 6, ctx({})).code, 'noTrack');
   assert.equal(lines.whyNotTramStopAt(4, 6, ctx({ '4:6': 1 }, (r) => r === 5)).code, 'tooClose');
 });
+
+test('a tram keeps left of its road\'s middle, and crossing over it is in the oncoming lane', () => {
+  // eastbound on row 201: its left is north (row - 0.12); westbound, south
+  assert.ok(Math.abs(lines.tramLaneOffset([143.5, 201.38], [1, 0]) - 0.12) < 1e-9);
+  assert.ok(Math.abs(lines.tramLaneOffset([143.5, 201.62], [-1, 0]) - 0.12) < 1e-9);
+  // southbound on a column: its left is east
+  assert.ok(Math.abs(lines.tramLaneOffset([40.62, 10.5], [0, 1]) - 0.12) < 1e-9);
+  // halfway across at a terminus
+  assert.ok(Math.abs(lines.tramLaneOffset([143.5, 201.5], [1, 0])) < 1e-9);
+  assert.ok(lines.tramLaneOffset([143.5, 201.62], [1, 0]) < 0);
+});
+
+test('on straight track a tram is drawn and queued along it, however it is heading as it crosses over', () => {
+  assert.deepEqual(lines.tramAxisHeading([143.5, 201.6], [0.7, -0.71], { '201:143': 2 }), [1, 0]);
+  assert.deepEqual(lines.tramAxisHeading([143.5, 201.6], [-0.7, 0.71], { '201:143': 2 }), [-1, 0]);
+  assert.deepEqual(lines.tramAxisHeading([40.5, 10.5], [0.6, 0.8], { '10:40': 1 }), [0, 1]);
+  // a junction or a curve: its own heading
+  assert.deepEqual(lines.tramAxisHeading([40.5, 10.5], [0.6, 0.8], { '10:40': 1 | 2 }), [0.6, 0.8]);
+});
+
+test('a tram crossing over waits for a car going its way beside it or just behind, not one ahead', () => {
+  assert.equal(lines.tramCrossingCutsIn([143.5, 201.6], [1, 0], [143.3, 201.5], [1, 0]), true);
+  assert.equal(lines.tramCrossingCutsIn([143.5, 201.6], [1, 0], [143.5, 201.5], [1, 0]), true);
+  assert.equal(lines.tramCrossingCutsIn([143.5, 201.6], [1, 0], [144.2, 201.5], [1, 0]), false);
+  assert.equal(lines.tramCrossingCutsIn([143.5, 201.6], [1, 0], [142.4, 201.5], [1, 0]), false);
+  assert.equal(lines.tramCrossingCutsIn([143.5, 201.6], [1, 0], [143.3, 201.5], [-1, 0]), false);
+});

@@ -2555,10 +2555,13 @@ function chooseTrafficModelForSpawn(scene, random = Math.random) {
   return selected;
 }
 
-function hasTrafficSpawnConflict(state, current, next) {
+function hasTrafficSpawnConflict(state, current, next, scene = null) {
   const vehicles = state.iceCreamEvent
     ? [...state.vehicles, state.iceCreamEvent]
     : state.vehicles;
+  // not on a tile a tram is on, or about to be (tram-lines.js updateTramVehicles)
+  const onTram = (tile) => tile && tile.row === current.row && tile.col === current.col;
+  if (scene?.tramTrafficLeaders?.some((tram) => onTram(tram.current) || onTram(tram.next))) return true;
   return vehicles.some((vehicle) => (
     vehicle.current
     && vehicle.next
@@ -2575,7 +2578,7 @@ function spawnTrafficVehicle(scene, roads, random = Math.random, time = 0) {
     const road = weightedTrafficRoadPick(roads, random);
     if (!road) return false;
     const next = road.neighbours[Math.floor(random() * road.neighbours.length)];
-    if (!next || hasTrafficSpawnConflict(state, road, next)) continue;
+    if (!next || hasTrafficSpawnConflict(state, road, next, scene)) continue;
     const model = chooseTrafficModelForSpawn(scene, random);
     if (!model) return false;
 

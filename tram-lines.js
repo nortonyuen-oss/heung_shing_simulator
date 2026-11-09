@@ -132,7 +132,8 @@ function placeTramStop(scene, row, col) {
   // (and its track straight on through it: not part of a shift between a narrow road and a reservation)
   if (!res.code && !tramStopLinkIsPlain(getTramTrackGeometry(), res.site)) res.code = 'notStraight';
   if (res.code) return say(...TRAM_STOP_REFUSALS[res.code], {}, 'warning');
-  if (typeof spendTransportConstruction === 'function' && !spendTransportConstruction(TRAM_SERVICE.stopCost)) {
+  if (tramCompanyClosed()) return false;
+  if (!spendTramFunds(TRAM_SERVICE.stopCost)) {
     return say('tram.stop.funds', '公司資金唔夠起電車站（要 ${cost}）。', { cost: TRAM_SERVICE.stopCost.toLocaleString() }, 'warning');
   }
   const state = tramState();
@@ -506,7 +507,7 @@ function buyTram(lineId) {
   if (!line) return { ok: false, code: 'line' };
   const fleet = getTramLineTrams(line, state);
   if (fleet.length >= TRAM_SERVICE.maxTramsPerLine) return { ok: false, code: 'full' };
-  if (typeof spendTransportConstruction === 'function' && !spendTransportConstruction(TRAM_SERVICE.tramPrice)) return { ok: false, code: 'funds' };
+  if (!spendTramFunds(TRAM_SERVICE.tramPrice)) return { ok: false, code: 'funds' };
   const plan = getTramLineRoute(line, state);
   const phases = plan ? fleet.map((v) => (Number(v.dist) || 0) / plan.route.length) : fleet.map((v) => v.phase);
   const phase = tramJoiningPhase(phases.sort((a, b) => a - b));
@@ -561,6 +562,7 @@ const TRAM_LINE_NAMES = Object.freeze(['堅尼地城－筲箕灣', '屈地街－
 // the last again to finish. A stop at the end of a line carries that line on.
 function handleTramLineClick(scene, row, col) {
   const say = (key, fallback, vars = {}, kind = 'info') => { if (typeof showToast === 'function') showToast(tramT(key, fallback, vars), kind); return kind !== 'warning'; };
+  if (tramCompanyClosed()) return false;
   const stop = getTramStopAt(row, col);
   if (!stop) return say('tram.line.pickStop', '撳一個電車站。', {}, 'warning');
   const state = tramState();
@@ -737,7 +739,8 @@ function advanceTramFleet(scene, delta, amount = null) {
         v.callIndex = tramNextCallIndex(plan.route, v.dist);
         tramRouteKeys.set(v, plan.key);
       }
-      placed.push({ v, line, ...tramRoutePointAt(plan.route, v.dist) });
+      const at = tramRoutePointAt(plan.route, v.dist);
+      placed.push({ v, line, ...at, heading: tramAxisHeading(at.pos, at.heading, state.tracks) });
     });
   });
   const traffic = scene ? [...(scene.trafficVisualState?.vehicles || []), ...(scene.transportVisualState?.vehicles || [])]
@@ -748,6 +751,9 @@ function advanceTramFleet(scene, delta, amount = null) {
       blocked: () => {
         if (placed.some((o) => o !== t && tramBlockedBy(t.pos, t.heading, o.pos, o.heading, TRAM_SERVICE.tramSpacingTiles, 0.15))) { tramQueueStats.tram++; return true; }
         if (t.traffic && traffic.some((o) => tramBlockedBy(t.pos, t.heading, o.pos, o.heading, TRAM_SERVICE.trafficSpacingTiles))) { tramQueueStats.car++; return true; }
+        // crossing over into the other lane at a terminus: not across the bows of a car in it
+        if (t.traffic && tramLaneOffset(t.pos, t.heading) < TRAM_OWN_LANE_MIN
+          && traffic.some((o) => tramCrossingCutsIn(t.pos, t.heading, o.pos, o.heading))) { tramQueueStats.car++; return true; }
         return false;
       },
       limit: () => {
@@ -807,8 +813,80 @@ function tramScreenAt(scene, x, y) {
   return { x: f.x + p1.x - p0.x, y: f.y + p1.y - p0.y };
 }
 
+// A map point's y as the buildings and the traffic sort it: isoToScreen(col, row) is the tile as
+// drawn, and a map point's half tile is a different corner as the map turns - metroFrameShift
+// (metro-surface.js) puts it in their frame in every turn (unshifted, a tram sorted up to a tile too
+// early with the map turned, and the buildings behind it came through).
+function tramSortY(x, y) {
+  return isoToScreen(x, y).y + (typeof metroFrameShift === 'function' ? metroFrameShift() : 0);
+}
+
 function tramDepthAt(x, y) {
-  return getWorldDepth('object', isoToScreen(x, y).y + TILE_HEIGHT / 2);
+  return getWorldDepth('object', tramSortY(x, y) + TILE_HEIGHT / 2);
+}
+
+// A tram is longer than the tile it is sorted by: drawn in upright slices, each sorted where it is
+// along its own line (as the metro's cars are, metro-surface-lines.js metroSlicedCarPieces) - so a
+// building beside the road behind its front or its back stays behind it, a car in the other lane or a
+// stop's platform is in front or behind wherever the two overlap. [{ x0, x1, depth }] in texture px,
+// or null to draw it whole. Its depth no further than under a 地鐵 viaduct's deck over it.
+const TRAM_SLICE_PX = 8;     // world px a slice
+// (sliced along its picture - drawn down the road, falling or rising, whichever way it is heading
+// as it crosses over at a terminus - not along its heading, steep on the screen across the road)
+function tramSlicedPieces(scene, pos, view, sprite) {
+  const slope = (view === 'fall' ? 1 : -1) * TILE_HEIGHT / TILE_WIDTH;
+  const y0 = tramSortY(pos[0], pos[1]) + TILE_HEIGHT / 2;
+  const deck = typeof metroDeckDepthOver === 'function' ? metroDeckDepthOver(scene, sprite.x, sprite.y) : null;
+  const left = sprite.x - sprite.displayOriginX * sprite.scaleX;
+  const width = sprite.frame.realWidth;
+  const step = TRAM_SLICE_PX / sprite.scaleX;
+  const out = [];
+  for (let x0 = 0; x0 < width - 0.5; x0 += step) {
+    const x1 = Math.min(width, x0 + step);
+    const cx = left + ((x0 + x1) / 2) * sprite.scaleX;
+    let depth = getWorldDepth('object', y0 + slope * (cx - sprite.x));
+    if (deck != null && depth > deck - 0.2) depth = deck - 0.2;
+    out.push({ x0, x1, depth });
+  }
+  return out;
+}
+
+// The depth of a tram's slices at a screen x (its lamps sort with the slice they are on).
+function tramPieceDepthAt(sprite, x) {
+  const pieces = sprite.__tramPieceList;
+  if (!pieces?.length) return sprite.depth;
+  const local = (x - (sprite.x - sprite.displayOriginX * sprite.scaleX)) / sprite.scaleX;
+  const hit = pieces.find((p) => local >= p.x0 && local < p.x1) || (local < pieces[0].x0 ? pieces[0] : pieces.at(-1));
+  return hit.depth;
+}
+
+function applyTramPieces(scene, sprite, pieces) {
+  const extra = sprite.__tramPieces || (sprite.__tramPieces = []);
+  sprite.__tramPieceList = pieces;
+  if (!pieces) {
+    if (sprite.isCropped) sprite.setCrop();
+    extra.forEach((p) => p.setVisible(false));
+    return;
+  }
+  while (extra.length < pieces.length - 1) extra.push(newTramSprite(scene, sprite.texture.key));
+  pieces.forEach((piece, k) => {
+    const p = k === 0 ? sprite : extra[k - 1];
+    if (k > 0) {
+      if (p.texture.key !== sprite.texture.key) p.setTexture(sprite.texture.key);
+      p.setOrigin(sprite.originX, sprite.originY).setScale(sprite.scaleX).setPosition(sprite.x, sprite.y).setVisible(sprite.visible);
+      p.__nightGround = false;
+      if (typeof applyNightPropTint === 'function') applyNightPropTint(scene, p);
+    }
+    p.setCrop(piece.x0, 0, piece.x1 - piece.x0, p.frame.realHeight);
+    p.setDepth(piece.depth);
+  });
+  extra.slice(pieces.length - 1).forEach((p) => p.setVisible(false));
+}
+
+function destroyTramSprite(sprite) {
+  (sprite.__tramLamps || []).forEach((l) => l.destroy());
+  (sprite.__tramPieces || []).forEach((p) => p.destroy());
+  sprite.destroy();
 }
 
 function tramArtLoaded(scene) {
@@ -863,7 +941,11 @@ function syncTramStops(scene) {
       if (sprite.texture.key !== art.key) sprite.setTexture(art.key);
       const p = tramScreenAt(scene, x, y);
       sprite.setFlipX(!fall).setOrigin(fall ? art.anchor[0] / art.size[0] : 1 - art.anchor[0] / art.size[0], art.anchor[1] / art.size[1]);
-      sprite.setScale(art.scale * TILE_WIDTH / 100).setPosition(p.x, p.y).setDepth(tramDepthAt(x, y));
+      // (a platform is a tile long, beside the track: the trams pass it all along. The far one -
+      // boarding toward the viewer - sorts at its end farthest back, the near one at its end nearest
+      // the viewer, so a tram anywhere along the stop is in front of the one and behind the other)
+      const ends = [-0.5, 0.5].map((k) => tramDepthAt(x + along[0] * k, y + along[1] * k));
+      sprite.setScale(art.scale * TILE_WIDTH / 100).setPosition(p.x, p.y).setDepth(front ? Math.min(...ends) : Math.max(...ends));
       sprite.__nightGround = true;
       sprite.__tramStopArt = art;
     });
@@ -887,6 +969,36 @@ function tramAsTrafficLeg(pos, heading) {
   const progress = step > 0 ? a - 0.5 - k : k - (a - 0.5);
   const tile = (i) => (alongX ? { row: other, col: i } : { row: i, col: other });
   return { current: tile(k), next: tile(k + step), progress };
+}
+
+// A tram's way along the track it is on: on straight track (one bit, either axis) down that track,
+// the way it is heading - so where it reverses at a terminus, crossing over at an angle, it is still
+// drawn and queued along the road, not across it. Elsewhere (a junction, a curve) its heading.
+function tramAxisHeading(pos, heading, tracks = tramState().tracks) {
+  const mask = tracks[`${Math.floor(pos[1])}:${Math.floor(pos[0])}`] || 0;
+  if (mask === 2) return [Math.sign(heading[0]) || 1, 0];
+  if (mask === 1) return [0, Math.sign(heading[1]) || 1];
+  return heading;
+}
+
+// How far a tram is to the left of its road's middle the way it heads, in tiles (+0.12 on its own
+// keep-left track; less as it crosses over to the other track at a terminus). Pure.
+function tramLaneOffset(pos, heading) {
+  if (Math.abs(heading[0]) >= Math.abs(heading[1])) {
+    return (pos[1] - (Math.floor(pos[1]) + 0.5)) * -Math.sign(heading[0] || 1);
+  }
+  return (pos[0] - (Math.floor(pos[0]) + 0.5)) * Math.sign(heading[1] || 1);
+}
+const TRAM_OWN_LANE_MIN = 0.07;   // nearer the middle than this: in the oncoming lane too
+
+// Whether a car going the same way as a tram that is crossing over into its lane is beside the tram
+// or just behind it (middles; a car's on its road's middle line) - the tram would cut in on it. Pure.
+function tramCrossingCutsIn(pos, heading, other, otherHeading) {
+  if (heading[0] * otherHeading[0] + heading[1] * otherHeading[1] < 0.7) return false;
+  const dx = other[0] - pos[0], dy = other[1] - pos[1];
+  const ahead = dx * heading[0] + dy * heading[1];
+  const side = Math.abs(dx * heading[1] - dy * heading[0]);
+  return ahead > -0.85 && ahead <= 0.01 && side < 0.35;
 }
 
 // The traffic's place on the map (a car's, a bus's): from its tile to the next.
@@ -928,6 +1040,7 @@ function updateTramVehicles(scene) {
   const seen = new Set();
   trams.forEach((t) => {
     const [x, y] = t.pos;
+    t.heading = tramAxisHeading(t.pos, t.heading, state.tracks);
     const p0 = isoToScreen(x, y), p1 = isoToScreen(x + t.heading[0], y + t.heading[1]);
     const sdx = p1.x - p0.x, sdy = p1.y - p0.y;
     const view = sdx * sdy > 0 ? 'fall' : 'rise';
@@ -941,17 +1054,29 @@ function updateTramVehicles(scene) {
     sprite.setPosition(at.x, at.y).setDepth(tramDepthAt(x, y)).setVisible(true);
     sprite.__nightGround = false;
     if (typeof applyNightPropTint === 'function') applyNightPropTint(scene, sprite);
+    applyTramPieces(scene, sprite, tramSlicedPieces(scene, t.pos, view, sprite));
     // its front seen when it runs the way its picture's cab faces on the screen
     syncTramVehicleLamps(scene, sprite, art, (sdx > 0) === (view === 'fall'), strength);
     if (t.traffic) {
-      const leg = tramAsTrafficLeg(t.pos, t.heading);
-      scene.tramTrafficLeaders.push({ ...leg, renderedProgress: leg.progress, model: { headwayFactor: TRAM_SERVICE.headwayFactor, category: 'tram' }, tram: true });
+      // in the lane(s) it is in: its own, the way it goes; crossing over to the other track at a
+      // terminus, the oncoming one too (the traffic coming the other way stops short of it instead of
+      // driving through it); and before it crosses, only the one it stands in - a car going by beside
+      // it does not wait for it (it waits for the car: advanceTramFleet)
+      const model = { headwayFactor: TRAM_SERVICE.headwayFactor, category: 'tram' };
+      const lat = tramLaneOffset(t.pos, t.heading);
+      if (lat > -TRAM_OWN_LANE_MIN) {
+        const leg = tramAsTrafficLeg(t.pos, t.heading);
+        scene.tramTrafficLeaders.push({ ...leg, renderedProgress: leg.progress, model, tram: true });
+      }
+      if (lat < TRAM_OWN_LANE_MIN) {
+        const back = tramAsTrafficLeg(t.pos, [-t.heading[0], -t.heading[1]]);
+        scene.tramTrafficLeaders.push({ ...back, renderedProgress: back.progress, model, tram: true });
+      }
     }
   });
   scene.tramSprites.forEach((sprite, id) => {
     if (seen.has(id)) return;
-    (sprite.__tramLamps || []).forEach((l) => l.destroy());
-    sprite.destroy();
+    destroyTramSprite(sprite);
     scene.tramSprites.delete(id);
   });
 }
@@ -981,6 +1106,6 @@ function updateTramService(scene, delta = 16) {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     TRAM_SERVICE, whyNotTramStopAt, buildTramLineRoute, tramRoutePointAt, stepTram, tramNextCallIndex,
-    tramCall, tramStopLink, tramStopLinkIsPlain, tramAsTrafficLeg, tramBlockedBy, tramLeftRail,
+    tramCall, tramStopLink, tramStopLinkIsPlain, tramAsTrafficLeg, tramBlockedBy, tramLeftRail, tramLaneOffset, tramAxisHeading, tramCrossingCutsIn,
   };
 }

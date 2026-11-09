@@ -220,7 +220,9 @@ function handleFerryUiAction(action, button) {
     const value = removeFerryRoute(route.id);
     ferryUiToast(ferryT('ferry.toast.routeClosed', '航線取消咗，賣船收返 ${value}。', { value: Math.round(value).toLocaleString() }), 'info');
   } else if (action === 'ferry-inspect') {
-    openFerryInspector(button.dataset.ferryId);
+    // its live tracking window, as a bus's (transit-trackers.js); the main view to it too
+    if (typeof openVehicleTrackingWindow === 'function') openVehicleTrackingWindow('ferry', button.dataset.ferryId);
+    else openFerryInspector(button.dataset.ferryId);
     locateFerrySprite(button.dataset.ferryId);
   } else if (action === 'ferry-sell') {
     if (typeof window !== 'undefined' && !window.confirm(ferryT('ferry.confirmSell', '賣出一艘小輪（{id}）？', { id: button.dataset.ferryId }))) return true;
@@ -325,7 +327,11 @@ function handleFerryMapInspect(row, col, pointer) {
   if (scene?.ferrySprites && Number.isFinite(x) && Number.isFinite(y)) {
     for (const rec of scene.ferrySprites.values()) {
       if (!rec.ferryVesselId || !rec.sprite?.visible) continue;
-      if (rec.sprite.getBounds().contains(x, y)) { openFerryInspector(rec.ferryVesselId, pointer); return true; }
+      if (rec.sprite.getBounds().contains(x, y)) {
+        if (typeof openVehicleTrackingWindow === 'function') openVehicleTrackingWindow('ferry', rec.ferryVesselId, pointer);
+        else openFerryInspector(rec.ferryVesselId, pointer);
+        return true;
+      }
     }
   }
   const pier = getFerryPierAt(row, col);

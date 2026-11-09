@@ -115,7 +115,8 @@ function syncTramVehicleLamps(scene, sprite, art, frontSeen, strength) {
       lamps[i] = lamp;
     } else if (lamp.texture.key !== key) lamp.setTexture(key);
     lamp.setPosition(sprite.x + (lx - sprite.displayOriginX) * sprite.scaleX, sprite.y + (ly - sprite.displayOriginY) * sprite.scaleY);
-    lamp.setScale(scale).setDepth(sprite.depth + 0.02).setAlpha(Math.min(1, strength) * (frontSeen ? 0.95 : 1)).setVisible(true);
+    const depth = typeof tramPieceDepthAt === 'function' ? tramPieceDepthAt(sprite, lamp.x) : sprite.depth;
+    lamp.setScale(scale).setDepth(depth + 0.02).setAlpha(Math.min(1, strength) * (frontSeen ? 0.95 : 1)).setVisible(true);
   });
   lamps.slice(spots.length).forEach((l) => l.setVisible(false));
 }
@@ -143,6 +144,21 @@ function syncTramStopLight(scene, sprite, art, strength = Number(scene?.building
 // ── Laying (the 電車路軌 tool, dragged on pointerup: tool-menu.js) ───────────────────────────────────
 
 const TRAM_TRACK_COST = 120;          // a tile laid, from the company's cash
+
+// What the trams build and buy comes from the transport company's cash, never the city's budget
+// (Norton, 2026-11-09: 起電車線扣錢都係扣運輸公司既錢) - spendTransportConstruction falls back to
+// the city's budget while the company is not running, so that case is refused here instead.
+function spendTramFunds(amount) {
+  if (typeof isTransportExpansionActive === 'function' && !isTransportExpansionActive()) return false;
+  return typeof spendTransportConstruction === 'function' ? spendTransportConstruction(amount) : false;
+}
+
+// The tram tools before the company runs: nothing built, and a word why.
+function tramCompanyClosed() {
+  if (typeof isTransportExpansionActive !== 'function' || isTransportExpansionActive()) return false;
+  if (typeof showToast === 'function') showToast(tramT('tram.companyClosed', '要先開辦運輸公司，電車由公司出錢起。'), 'warning');
+  return true;
+}
 const TRAM_SIDE_STEP = Object.freeze({ n: [-1, 0], e: [0, 1], s: [1, 0], w: [0, -1] });
 const TRAM_OPPOSITE = Object.freeze({ n: 's', e: 'w', s: 'n', w: 'e' });
 // the bit joining two sides (as metro-surface.js RAIL_BIT_SIDES)
@@ -290,11 +306,12 @@ function commitTramTrackDrag(scene, start, end) {
   if (scene?.tunnelPreviewLabel) scene.tunnelPreviewLabel.setVisible(false);
   const say = (text, kind) => { if (typeof showToast === 'function') showToast(text, kind); };
   const plan = planTramTrack(start, end);
+  if (plan.ok && tramCompanyClosed()) return false;
   if (!plan.ok) {
     if (plan.reason === 'notRoad') say(tramT('tram.track.notRoad', '電車路軌要鋪喺馬路上（唔可以喺橋、斜路或者隧道口）。'), 'warning');
     return false;
   }
-  if (typeof spendTransportConstruction === 'function' && !spendTransportConstruction(plan.cost)) {
+  if (!spendTramFunds(plan.cost)) {
     say(tramT('tram.track.funds', '公司資金唔夠鋪電車路軌（要 ${cost}）。', { cost: plan.cost.toLocaleString() }), 'warning');
     return false;
   }

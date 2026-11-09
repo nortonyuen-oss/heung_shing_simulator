@@ -64,6 +64,12 @@ function renderMetroLineCard(line, state) {
           <button class="transport-btn metro-station-rename" type="button" data-transport-action="metro-rename-station" data-station-id="${metroUiEscape(station.id)}" title="${metroUiEscape(metroT('metro.ui.renameStation', '車站改名'))}">✎</button>
         </div>`;
       }).join('')}
+      ${s.trains.map((v) => `
+        <button class="transport-route-vehicle" type="button" data-transport-action="metro-watch" data-vehicle-id="${metroUiEscape(v.id)}" title="${metroUiEscape(metroT('metro.ui.watchHint', '實時監控'))}">
+          <span>📹 🚇 ${metroUiEscape(v.id)}</span>
+          <span>👤 ${Math.round(v.aboard || 0).toLocaleString()} / ${METRO.trainCapacity.toLocaleString()}</span>
+          <span>${metroUiEscape(metroUiMoney(v.monthToDateRevenue || 0))}</span>
+        </button>`).join('')}
     </div>`;
   const statusKey = suspended ? 'suspended' : 'active';
   return `
@@ -151,6 +157,10 @@ function handleMetroUiAction(action, button) {
   }
   if (action === 'metro-new-station') {
     pickMetroTool('metro-station');
+    return true;
+  }
+  if (action === 'metro-watch') {
+    if (typeof openVehicleTrackingWindow === 'function') openVehicleTrackingWindow('metro', button.dataset.vehicleId);
     return true;
   }
   if (action === 'metro-toggle-stations') {

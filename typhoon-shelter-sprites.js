@@ -354,8 +354,12 @@ function isTyphoonShelterSpriteInView(scene, sprite) {
   // the building sprites' padding in updateTerrainViewportCulling
   const padX = TILE_WIDTH * 6;
   const padY = TILE_IMAGE_HEIGHT * 6 + MAX_TERRAIN_HEIGHT * HEIGHT_STEP_PIXELS + TILE_HEIGHT * 4;
-  const b = getPaddedWorldViewportBounds(camera, padX, padY);
-  return sprite.x >= b.minX && sprite.x <= b.maxX && sprite.y >= b.minY && sprite.y <= b.maxY;
+  // (in the main view or a tracking window's: a ferry followed off screen is drawn for its window)
+  const cameras = typeof getActiveWorldViewportCameras === 'function' ? getActiveWorldViewportCameras(scene) : [camera];
+  return cameras.some((cam) => {
+    const b = getPaddedWorldViewportBounds(cam, padX, padY);
+    return sprite.x >= b.minX && sprite.x <= b.maxX && sprite.y >= b.minY && sprite.y <= b.maxY;
+  });
 }
 
 function positionTyphoonShelterObject(scene, record) {

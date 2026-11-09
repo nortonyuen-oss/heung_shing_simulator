@@ -103,6 +103,8 @@ function ensureVehicleTrackerStyle() {
     .vehicle-tracker-surface { position:absolute; inset:0; z-index:0; display:block; width:320px; height:180px; background:#161d21; }
     .vehicle-tracker-unavailable { position:absolute; inset:0; z-index:1; display:grid; place-items:center; padding:20px; text-align:center; color:#fff; background:rgba(31,42,49,.86); font-weight:800; }
     .vehicle-tracker-unavailable[hidden] { display:none !important; }
+    .vehicle-tracker-banner { position:absolute; left:6px; top:6px; z-index:1; max-width:calc(100% - 12px); padding:2px 7px; border-radius:3px; background:rgba(20,30,38,.78); color:#fff; font-weight:700; font-size:11px; }
+    .vehicle-tracker-banner[hidden] { display:none !important; }
     .vehicle-tracker-panel { display:grid; gap:4px; padding:7px 8px; background:#ece7d8; border-top:1px solid #777064; }
     .vehicle-tracker-panel[hidden] { display:none !important; }
     .vehicle-tracker-status-row { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:9px; align-items:center; }
@@ -245,7 +247,18 @@ function resolveVisualTrackerTarget(scene, type, id) {
 function resolveVehicleTrackerTarget(scene, type, id) {
   if (type === 'transport') return resolveTransportTrackerTarget(scene, id);
   if (['traffic', 'vessel', 'aircraft'].includes(type)) return resolveVisualTrackerTarget(scene, type, id);
+  // the company's ferries, trams and metro trains (transit-trackers.js)
+  if (vehicleTrackerIsTransit(type)) return resolveTransitTrackerTarget(scene, type, id);
   return null;
+}
+
+function vehicleTrackerIsTransit(type) {
+  return typeof isTransitTrackerType === 'function' && isTransitTrackerType(type);
+}
+
+// The trackers with the left-rail tabs and buttons: the buses, and the ferries, trams and trains.
+function vehicleTrackerHasTabs(type) {
+  return type === 'transport' || vehicleTrackerIsTransit(type);
 }
 
 function getVehicleTrackerCanvasRect(scene, viewportElement) {
@@ -524,6 +537,8 @@ function markVehicleTrackerDynamicObject(object) {
   if (!object) return;
   object.vehicleTrackerDynamic = true;
   unregisterVehicleTrackerSpatialObject(object);
+  // (flagged after a tracker took it in as static: it is the dynamic pass's from now on)
+  vehicleTrackerManager.trackers.forEach((tracker) => tracker.includedStaticObjects?.delete(object));
 }
 
 function forEachVehicleTrackerDynamicObject(scene, visit) {
@@ -557,6 +572,14 @@ function forEachVehicleTrackerDynamicObject(scene, visit) {
   scene?.aircraftVisualState?.airportStates?.forEach?.((airportState) => {
     airportState?.events?.forEach((event) => { if (event?.sprite) visit(event.sprite); });
   });
+  // the ferries, trams and metro trains (transit-trackers.js): moving, so out of the static index
+  if (typeof forEachTransitTrackerObject === 'function') {
+    forEachTransitTrackerObject(scene, (object) => {
+      if (!object) return;
+      if (!object.vehicleTrackerDynamic) markVehicleTrackerDynamicObject(object);
+      visit(object);
+    });
+  }
 }
 
 function getVehicleTrackerObjectCullKey(camera) {
@@ -801,6 +824,17 @@ function handleVehicleTrackerAction(event, tracker) {
     return;
   }
   const action = event.currentTarget.dataset.vehicleTrackerAction;
+  if (action && vehicleTrackerIsTransit(tracker.type)) {
+    const info = resolveVehicleTrackerTarget(tracker.scene || vehicleTrackerManager.scene, tracker.type, tracker.targetId);
+    if (action === 'main') {
+      const camera = tracker.scene?.cameras?.main;
+      if (camera && Number.isFinite(info?.x) && Number.isFinite(info?.y)) camera.centerOn(info.x, info.y);
+    } else if (typeof handleTransitTrackerAction === 'function') {
+      handleTransitTrackerAction(tracker, action, info);
+    }
+    tracker.renderDirty = true;
+    return;
+  }
   if (!action || tracker.type !== 'transport') return;
   const info = resolveTransportTrackerTarget(tracker.scene || vehicleTrackerManager.scene, tracker.targetId);
   if (!info?.vehicle) return;
@@ -848,7 +882,7 @@ function createVehicleTrackingWindow(type, id, pointer = null) {
   root.dataset.vehicleTrackerKey = key;
   root.setAttribute('role', 'dialog');
   root.setAttribute('aria-modal', 'false');
-  const tabDefs = type === 'transport' ? VEHICLE_TRACKER_TABS : [];
+  const tabDefs = vehicleTrackerHasTabs(type) ? VEHICLE_TRACKER_TABS : [];
   root.innerHTML = `
     <div class="vehicle-tracker-head" data-vehicle-tracker-drag>
       <span class="vehicle-tracker-title" data-vehicle-tracker-title></span>
@@ -862,6 +896,7 @@ function createVehicleTrackingWindow(type, id, pointer = null) {
       <div class="vehicle-tracker-viewport" data-vehicle-tracker-viewport>
         <canvas class="vehicle-tracker-surface" data-vehicle-tracker-surface width="320" height="180" aria-hidden="true"></canvas>
         <div class="vehicle-tracker-unavailable" data-vehicle-tracker-unavailable hidden></div>
+        <div class="vehicle-tracker-banner" data-vehicle-tracker-banner hidden></div>
       </div>
     </div>
     <div class="vehicle-tracker-panel" data-vehicle-tracker-panel hidden></div>
@@ -946,6 +981,12 @@ function openVehicleTrackingWindow(type, id, pointer = null, options = {}) {
 }
 
 function renderVehicleTrackerActions(tracker, info) {
+  if (vehicleTrackerIsTransit(tracker.type)) {
+    const esc = (text) => (typeof transportEscapeHtml === 'function' ? transportEscapeHtml(text) : String(text));
+    return (info?.actions || []).map((a) => (
+      `<button${a.danger ? ' class="danger"' : ''} type="button" data-vehicle-tracker-action="${esc(a.id)}">${esc(a.label)}</button>`
+    )).join('');
+  }
   if (tracker.type !== 'transport' || !info?.vehicle) return '';
   const route = info.routeEntity
     ? `<button type="button" data-vehicle-tracker-action="route">${vehicleTrackerText('transport.inspector.route', {}, 'Route')}</button>`
@@ -1016,6 +1057,12 @@ function renderVehicleTrackerPanel(tracker, info, position, status) {
   // Only the transport tracker has left-rail tabs and collapses by default;
   // traffic/vessel/aircraft trackers have no tabs to reopen it with, so their
   // one status card stays shown, same as before this restore.
+  // the ferries', trams' and trains' tabs: their rows, as each resolves them (transit-trackers.js)
+  if (info?.tabRows) {
+    panel.hidden = !tracker.activeTab;
+    if (tracker.activeTab) panel.innerHTML = renderVehicleTrackerRows(info.tabRows[tracker.activeTab] || []);
+    return;
+  }
   if (tracker.type !== 'transport') {
     panel.hidden = false;
     panel.innerHTML = renderVehicleTrackerRows([
@@ -1061,12 +1108,19 @@ function refreshVehicleTrackingWindow(tracker, now, force = false, resolvedInfo 
   const position = info?.position && Number.isFinite(info.position.row) && Number.isFinite(info.position.col)
     ? `(${Math.round(info.position.row)}, ${Math.round(info.position.col)})`
     : '—';
-  const signature = [title, status, info?.route, info?.leg, info?.passengers, position, unavailable, info?.vehicle?.status, info?.vehicle?.condition, tracker.activeTab].join('|');
+  const tabSignature = info?.tabRows && tracker.activeTab ? JSON.stringify(info.tabRows[tracker.activeTab]) : '';
+  const signature = [title, status, info?.route, info?.leg, info?.passengers, position, unavailable, info?.vehicle?.status, info?.vehicle?.condition, tracker.activeTab, tabSignature].join('|');
   tracker.root.querySelector('[data-vehicle-tracker-title]').textContent = title;
   const unavailableElement = tracker.root.querySelector('[data-vehicle-tracker-unavailable]');
   unavailableElement.hidden = !unavailable;
   unavailableElement.textContent = info?.unavailableText
     || vehicleTrackerText('transport.tracker.unavailable', {}, 'Vehicle unavailable');
+  // (a metro train underground: followed over the street above it, and the window says so)
+  const bannerElement = tracker.root.querySelector('[data-vehicle-tracker-banner]');
+  if (bannerElement) {
+    bannerElement.hidden = unavailable || !info?.banner;
+    if (bannerElement.textContent !== (info?.banner || '')) bannerElement.textContent = info?.banner || '';
+  }
   tracker.root.querySelectorAll('[data-vehicle-tracker-tab]').forEach((button) => {
     button.classList.toggle('is-active', button.dataset.vehicleTrackerTab === tracker.activeTab);
   });
@@ -1075,7 +1129,7 @@ function refreshVehicleTrackingWindow(tracker, now, force = false, resolvedInfo 
     tracker.lastStatusSignature = signature;
     tracker.layoutDirty = true;
   }
-  const actionsSignature = [info?.available, info?.routeEntity?.id, info?.vehicle?.status].join('|');
+  const actionsSignature = [info?.available, info?.routeEntity?.id, info?.vehicle?.status, (info?.actions || []).map((a) => a.id).join(',')].join('|');
   if (force || actionsSignature !== tracker.lastActionsSignature) {
     const actionsElement = tracker.root.querySelector('[data-vehicle-tracker-actions]');
     if (actionsElement) actionsElement.innerHTML = renderVehicleTrackerActions(tracker, info);

@@ -2097,6 +2097,8 @@ function applyToolAt(scene, row, col, pointer = null) {
     // Transport Mode: an inspect click on a bus-stop tile opens the stop's
     // own info window (waiting passengers, serving routes) - the mayor's
     // #inspect-panel is CSS-hidden in this mode anyway.
+    // a ferry, a tram or a metro train under the pointer: its live tracking window (transit-trackers.js)
+    if (typeof handleTransitVehicleMapInspect === 'function' && handleTransitVehicleMapInspect(pointer)) return;
     if (typeof isTransportModeActive !== 'undefined' && isTransportModeActive) {
       // a ferry or a pier (ferry-ui.js)
       if (typeof handleFerryMapInspect === 'function' && handleFerryMapInspect(row, col, pointer)) return;

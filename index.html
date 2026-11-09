@@ -5835,27 +5835,30 @@
 
     #tool-menu [data-tool-category="transport"],
     #tool-menu [data-tool-category="transport-ferry"],
-    #tool-menu [data-tool-category="transport-metro"] {
+    #tool-menu [data-tool-category="transport-metro"],
+    #tool-menu [data-tool-category="transport-tram"] {
       display: none;
     }
 
     body.transport-mode #tool-menu [data-tool-category="transport"],
     body.transport-mode #tool-menu [data-tool-category="transport-ferry"],
-    body.transport-mode #tool-menu [data-tool-category="transport-metro"] {
+    body.transport-mode #tool-menu [data-tool-category="transport-metro"],
+    body.transport-mode #tool-menu [data-tool-category="transport-tram"] {
       display: grid;
     }
 
     body.transport-mode #tool-menu .tool-menu-divider,
-    body.transport-mode #tool-menu .tool-flyout:not([data-tool-panel="transport"]):not([data-tool-panel="transport-ferry"]):not([data-tool-panel="transport-metro"]),
-    body.transport-mode #tool-menu [data-tool-category]:not([data-tool-category="transport"]):not([data-tool-category="transport-ferry"]):not([data-tool-category="transport-metro"]):not([data-tool-category="inspect"]) {
+    body.transport-mode #tool-menu .tool-flyout:not([data-tool-panel="transport"]):not([data-tool-panel="transport-ferry"]):not([data-tool-panel="transport-metro"]):not([data-tool-panel="transport-tram"]),
+    body.transport-mode #tool-menu [data-tool-category]:not([data-tool-category="transport"]):not([data-tool-category="transport-ferry"]):not([data-tool-category="transport-metro"]):not([data-tool-category="transport-tram"]):not([data-tool-category="inspect"]) {
       display: none !important;
     }
 
     /* in transport mode its own tools come first, above inspect and demolish */
-    body.transport-mode #tool-menu .tool-menu-guide { order: -4; }
-    body.transport-mode #tool-menu [data-tool-category="transport"] { order: -3; }
-    body.transport-mode #tool-menu [data-tool-category="transport-ferry"] { order: -2; }
-    body.transport-mode #tool-menu [data-tool-category="transport-metro"] { order: -1; }
+    body.transport-mode #tool-menu .tool-menu-guide { order: -5; }
+    body.transport-mode #tool-menu [data-tool-category="transport"] { order: -4; }
+    body.transport-mode #tool-menu [data-tool-category="transport-ferry"] { order: -3; }
+    body.transport-mode #tool-menu [data-tool-category="transport-metro"] { order: -2; }
+    body.transport-mode #tool-menu [data-tool-category="transport-tram"] { order: -1; }
 
     /* the transport tools say what they do under their names */
     .transport-tool-flyout { min-width: 300px; }
@@ -8441,6 +8444,7 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
   <script src="aircraft-route-metadata.js"></script>
   <script src="aircraft-visuals.js"></script>
   <script src="vehicle-tracker.js"></script>
+  <script src="transit-trackers.js"></script>
   <script src="trees.js"></script>
   <script src="debris.js"></script>
   <script src="bus-stops.js"></script>

@@ -388,6 +388,7 @@ function loadBuildingLightDbProfiles(entries) {
 }
 
 async function fetchBuildingLightDbProfiles(scene) {
+  if (globalThis.HEUNG_SHING_CONFIG?.platform === 'web') return;
   if (typeof fetch !== 'function') return;
   try {
     const res = await fetch('/api/building-light-profiles');

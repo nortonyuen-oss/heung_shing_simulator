@@ -191,6 +191,8 @@ function stopVesselEventSound(event) {
 }
 
 function startVesselEventSound(scene, event, audioConfig) {
+  if (typeof ensureGameEventAudio === 'function' && !ensureGameEventAudio(scene, audioConfig.key,
+    () => startVesselEventSound(scene, event, audioConfig))) return false;
   stopVesselEventSound(event);
   const audioCache = scene?.cache?.audio;
   const audioIsReady = audioCache?.has?.(audioConfig.key)

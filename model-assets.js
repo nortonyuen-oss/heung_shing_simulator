@@ -15,7 +15,8 @@ const pendingZoneTextureLoads = new Map();
 
 async function loadModelAssetManifest() {
   try {
-    const response = await fetch('/api/model-assets', { cache: 'no-store' });
+    const response = await fetch(globalThis.HEUNG_SHING_CONFIG?.platform === 'web'
+      ? 'data/web-model-assets.json' : '/api/model-assets', { cache: 'no-store' });
     if (!response.ok) return;
     const manifest = await response.json();
     if (!manifest?.entries || typeof manifest.entries !== 'object') return;
@@ -246,7 +247,8 @@ async function discoverModelFiles(keyPrefix, apiFolder, config) {
 
   try {
     // Ask the Express server for the actual file list — no HTML scraping needed
-    const response = await fetch(`/api/models/${apiFolder}`, { cache: 'no-store' });
+    const response = await fetch(globalThis.HEUNG_SHING_CONFIG?.platform === 'web'
+      ? `data/model-lists/${apiFolder}.json` : `/api/models/${apiFolder}`, { cache: 'no-store' });
     if (!response.ok) return fallbackModels;
     const files = await response.json();
     return Array.isArray(files) && files.length > 0
@@ -560,6 +562,7 @@ function evictUnusedZoneTextures(scene) {
 }
 
 function rotateZoneTexturePool(scene) {
+  if (globalThis.HEUNG_SHING_CONFIG?.platform === 'web') return;
   // The landing screen deliberately hides the Phaser world. Do not decode
   // background building textures while no city session is being rendered.
   if (scene?.scene?.isVisible && !scene.scene.isVisible()) return;

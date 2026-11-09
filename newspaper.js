@@ -441,6 +441,7 @@ function applyReactionCounts(post, row) {
 }
 
 async function syncPlayerForumPosts() {
+  if (globalThis.HEUNG_SHING_CONFIG?.platform === 'web') return;
   if (typeof fetch !== 'function') return false;
   const response = await fetch('/api/forum/posts?category=all&approved=1');
   if (!response.ok) return false;
@@ -477,6 +478,7 @@ async function syncPlayerForumPosts() {
 // each approved reader comment attaches to that same post's social.comments instead of
 // spawning its own standalone post — matching how a real article and its replies relate.
 async function syncPlayerNewsComments() {
+  if (globalThis.HEUNG_SHING_CONFIG?.platform === 'web') return;
   if (typeof fetch !== 'function') return false;
   let added = false;
 

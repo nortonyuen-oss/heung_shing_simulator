@@ -135,6 +135,8 @@ function handleMenuAction(action) {
       else saveGame();
       break;
     case 'save-as':      saveAsGame();                      break;
+    case 'export-save':  globalThis.exportCurrentCity();    break;
+    case 'import-save':  globalThis.chooseCityImport();     break;
     case 'load-game':    openSaveListModal();               break;
     case 'main-menu':    returnToMainMenu();                break;
     case 'toggle-auto-replace-plants':

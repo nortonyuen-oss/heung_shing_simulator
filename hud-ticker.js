@@ -527,6 +527,7 @@ function pickTickerNewsHeadline() {
 // additive/permanent the way a forum post's addForumPost() dedupe is. Offline or unreachable just
 // means the ticker falls back to the 10 built-in ads, same silent-degrade posture as AI News.
 async function syncPlayerTickerAds() {
+  if (globalThis.HEUNG_SHING_CONFIG?.platform === 'web') return;
   if (typeof fetch !== 'function') return;
   try {
     const response = await fetch('/api/forum/ads?approved=1');

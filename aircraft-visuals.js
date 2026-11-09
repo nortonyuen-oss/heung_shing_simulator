@@ -138,6 +138,8 @@ function stopAircraftEventSound(event) {
 }
 
 function startAircraftEventSound(scene, event, audioConfig) {
+  if (typeof ensureGameEventAudio === 'function' && !ensureGameEventAudio(scene, audioConfig.key,
+    () => startAircraftEventSound(scene, event, audioConfig))) return false;
   stopAircraftEventSound(event);
   const audioCache = scene?.cache?.audio;
   const audioIsReady = audioCache?.has?.(audioConfig.key)

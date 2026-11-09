@@ -2267,6 +2267,8 @@ function getIceCreamEventAudioVolume(scene, event) {
 }
 
 function startIceCreamEventMusic(scene, event) {
+  if (typeof ensureGameEventAudio === 'function' && !ensureGameEventAudio(scene, ICE_CREAM_AUDIO_KEY,
+    () => startIceCreamEventMusic(scene, event))) return;
   event.musicElapsedMs = 0;
   event.musicComplete = false;
   const audioCache = scene?.cache?.audio;

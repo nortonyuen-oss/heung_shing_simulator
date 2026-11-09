@@ -108,6 +108,10 @@ function getLoadedZoneModelSource(scene, model) {
 
 function prepareHouseModelMetadata(scene) {
   Object.values(houseModelSets).flat().forEach((model) => {
+    if (globalThis.HEUNG_SHING_CONFIG?.platform === 'web') {
+      const authored = getManifestZoneModelMetadata(model);
+      if (authored) { model.metadata = authored; return; }
+    }
     const source = getLoadedZoneModelSource(scene, model);
     if (!source) return;
 
@@ -134,6 +138,10 @@ function prepareHouseModelMetadata(scene) {
 
 function prepareCommercialBuildingModelMetadata(scene) {
   commercialBuildingModels.forEach((model) => {
+    if (globalThis.HEUNG_SHING_CONFIG?.platform === 'web') {
+      const authored = getManifestZoneModelMetadata(model);
+      if (authored) { model.metadata = authored; return; }
+    }
     const source = getLoadedZoneModelSource(scene, model);
     if (!source) return;
 
@@ -159,6 +167,10 @@ function prepareCommercialBuildingModelMetadata(scene) {
 
 function prepareIndustrialBuildingModelMetadata(scene) {
   industrialBuildingModels.forEach((model) => {
+    if (globalThis.HEUNG_SHING_CONFIG?.platform === 'web') {
+      const authored = getManifestZoneModelMetadata(model);
+      if (authored) { model.metadata = authored; return; }
+    }
     const source = getLoadedZoneModelSource(scene, model);
     if (!source) return;
 
@@ -339,6 +351,12 @@ function getParkModelMetadata(
   footprintRows,
   anchorMode = DEFAULT_BUILDING_ANCHOR_MODE,
 ) {
+  if (globalThis.HEUNG_SHING_CONFIG?.platform === 'web') {
+    const model = getFixedBuildingModelBySpriteKey(key)
+      ?? getFixedBuildingModelBySpriteKey(resolveCanonicalTextureKey(key));
+    const authored = model && getManifestFixedBuildingModelMetadata({ ...model, footprintCols, footprintRows });
+    if (authored) return authored;
+  }
   const source = scene.textures.get(resolveCanonicalTextureKey(key))?.getSourceImage();
   if (!source) {
     return { footprintCols, footprintRows };

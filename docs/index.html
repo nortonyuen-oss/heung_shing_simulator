@@ -11,8 +11,9 @@
   <meta name="theme-color" content="#17212d" />
   <link rel="icon" href="assets/icon.png" />
   <link rel="stylesheet" href="styles.css?v=20261031-night-film" />
-  <script src="i18n.js?v=20261108-v5.4.0-1" defer></script>
-  <script src="site.js?v=20261108-v5.4.0-1" defer></script>
+  <script src="i18n.js?v=20261109-v5.5.0-1" defer></script>
+  <script src="web-play.js?v=20261109-v5.5.0-1" defer></script>
+  <script src="site.js?v=20261109-v5.5.0-1" defer></script>
 </head>
 <body>
   <header class="site-header" aria-label="網站導覽">
@@ -22,6 +23,7 @@
     </a>
     <nav>
       <div class="nav-links">
+        <a href="#" data-web-play-link hidden data-web-copy="play">即刻玩</a>
         <a href="#nightlife" data-i18n="film.nav">夜繽紛特輯</a>
         <a href="#gallery" data-i18n="nav.gallery">截圖</a>
         <a href="#downloads" data-i18n="nav.downloads">下載</a>
@@ -45,11 +47,12 @@
       <div class="hero-content">
         <p class="eyebrow" data-i18n="hero.eyebrowPrefix">香城模擬器</p>
         <h1 data-i18n="hero.title">香城模擬器</h1>
-        <p class="hero-version" data-i18n="hero.versionBadge">v5.4.0 — 【摘去鮮花 然後種出叮叮】</p>
-        <p class="hero-version-desc" data-i18n="hero.versionDesc">5.4.0 更新：喺馬路鋪路軌、設站開線，讓叮叮載住街坊遊香城。</p>
+        <p class="hero-version" data-i18n="hero.versionBadge">v5.5.0 — 【香城最大模擬器 正式上線！】</p>
+        <p class="hero-version-desc" data-i18n="hero.versionDesc">5.5.0 更新：瀏覽器即刻玩，下載城市存檔，同桌面版互通。</p>
         <p class="lede" data-i18n="hero.lede">一款向 SimCity 2000 致敬、以香港城市生活為靈感嘅城市建設遊戲。起街道、規劃社區、經營自己嘅香城巴士公司、處理議會同天氣，再睇住一座有性格嘅香城慢慢成長。</p>
-        <p class="hero-free-label" data-i18n="hero.freeLabel">完全免費 · macOS + Windows · 本機存檔</p>
+        <p class="hero-free-label" data-i18n="hero.freeLabel">完全免費 · 瀏覽器 + macOS + Windows · 本機存檔</p>
         <div class="hero-actions">
+          <a class="button primary" href="#" data-web-play-link hidden data-web-copy="play">即刻玩</a>
           <a class="button primary" href="#downloads" data-i18n="hero.downloadBtn">【免費下載】</a>
           <a class="button secondary" href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest" rel="noopener" data-release-link data-i18n="hero.latestBtn">最新版本</a>
           <a class="button secondary" href="guide.html" data-i18n="hero.guideBtn">睇遊戲指南</a>
@@ -117,12 +120,17 @@
       <p class="stats-record">
         <span class="stats-record-item">
           <span class="stat-label" data-i18n="stats.latestVersion">最新版本</span>
-          <strong class="stat-value" data-latest-version>v5.4.0</strong>
-          <span data-latest-published>2026年11月8日發布</span>
+          <strong class="stat-value" data-latest-version>v5.5.0</strong>
+          <span data-latest-published>2026年11月9日發布</span>
         </span>
         <span class="stats-record-item">
           <span class="stat-label" data-i18n="stats.totalDownloads">總下載次數</span>
           <strong class="stat-value" data-total-downloads>載入中</strong>
+        </span>
+        <span class="stats-record-item">
+          <span class="stat-label" data-web-copy="title">累計網頁遊玩人次</span>
+          <strong class="stat-value" data-web-play-total>暫未提供</strong>
+          <small data-web-play-time></small>
         </span>
         <span class="stats-record-item">
           <span class="stat-label" data-i18n="stats.totalViews">入口瀏覽</span>
@@ -136,6 +144,15 @@
           </span>
         </span>
       </p>
+    </section>
+
+    <section id="browser-play" class="downloads">
+      <div class="section-head">
+        <h2 data-web-copy="heading">網頁遊玩同存檔備份</h2>
+        <p data-web-copy="help"></p>
+        <p data-web-copy="platforms"></p>
+        <p class="stat-note" data-web-copy="detail"></p>
+      </div>
     </section>
 
     <section id="downloads" class="downloads">
@@ -153,7 +170,7 @@
             <p data-field="desc">適合 M1、M2、M3、M4 或更新的 Mac。下載 DMG 後拖入「應用程式」即可安裝。</p>
           </div>
           <div class="download-actions">
-            <a class="download-link" href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest/download/The.City.of.Heung.Shing-5.4.0-arm64.dmg" data-download-link="mac-arm64" data-field="btn">下載 ARM64 DMG</a>
+            <a class="download-link" href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest/download/The.City.of.Heung.Shing-5.5.0-arm64.dmg" data-download-link="mac-arm64" data-field="btn">下載 ARM64 DMG</a>
           </div>
         </article>
 
@@ -164,7 +181,7 @@
             <p data-field="desc">適合 Intel CPU 的 Mac。下載 DMG 後拖入「應用程式」即可安裝。</p>
           </div>
           <div class="download-actions">
-            <a class="download-link" href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest/download/The.City.of.Heung.Shing-5.4.0-x64.dmg" data-download-link="mac-x64" data-field="btn">下載 Intel DMG</a>
+            <a class="download-link" href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest/download/The.City.of.Heung.Shing-5.5.0-x64.dmg" data-download-link="mac-x64" data-field="btn">下載 Intel DMG</a>
           </div>
         </article>
 
@@ -175,7 +192,7 @@
             <p data-field="desc">推薦大部分玩家使用。安裝後會加入一般應用程式捷徑。</p>
           </div>
           <div class="download-actions">
-            <a class="download-link" href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest/download/The.City.of.Heung.Shing.Setup.5.4.0.exe" data-download-link="windows-setup" data-field="btn">下載安裝版 EXE</a>
+            <a class="download-link" href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest/download/The.City.of.Heung.Shing.Setup.5.5.0.exe" data-download-link="windows-setup" data-field="btn">下載安裝版 EXE</a>
           </div>
         </article>
 
@@ -186,7 +203,7 @@
             <p data-field="desc">不用安裝，下載後直接執行。適合快速試玩。</p>
           </div>
           <div class="download-actions">
-            <a class="download-link" href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest/download/The.City.of.Heung.Shing.5.4.0.exe" data-download-link="windows-portable" data-field="btn">下載免安裝版 EXE</a>
+            <a class="download-link" href="https://github.com/nortonyuen-oss/heung_shing_simulator/releases/latest/download/The.City.of.Heung.Shing.5.5.0.exe" data-download-link="windows-portable" data-field="btn">下載免安裝版 EXE</a>
           </div>
         </article>
       </div>

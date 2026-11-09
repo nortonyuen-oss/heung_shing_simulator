@@ -51,6 +51,7 @@ let attractPreviousSpeed = null;
 let attractLightsSuppressed = false;
 
 function isAttractModeEnabled() {
+  if (globalThis.HEUNG_SHING_CONFIG?.platform === 'web') return false;
   if (attractEnabledCache !== null) return attractEnabledCache;
   try {
     const raw = localStorage.getItem(ATTRACT_SETTING_KEY);

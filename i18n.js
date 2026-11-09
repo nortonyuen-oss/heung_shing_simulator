@@ -1,7 +1,7 @@
 const I18N_STORAGE_KEY = 'citybuilder.language';
-let appVersion = '5.4.0';
-let appReleaseTheme = '【摘去鮮花 然後種出叮叮】';
-const APP_RELEASE_THEMES = { en: '【Heung Shing Tramways】', zhHant: '【叮叮車】', ja: '【ホンコントラムでGO!】' };
+let appVersion = '5.5.0';
+let appReleaseTheme = '【香城最大模擬器 正式上線！】';
+const APP_RELEASE_THEMES = {"en": "【Heung Shing's Biggest Simulator — Now Online!】", "zhHant": "【線上遊玩開通】", "ja": "【香城最大のシミュレーター、オンラインで正式公開！】"};
 function localizedReleaseTheme() {
   if (currentLanguage === 'zhHant' && /^zh-(hk|mo)\b/i.test(navigator.language || '')) return appReleaseTheme;
   return APP_RELEASE_THEMES[currentLanguage] || appReleaseTheme;
@@ -6699,7 +6699,9 @@ function applyAppVersion() {
 
 async function loadAppVersion() {
   try {
-    const response = await fetch('/api/app-info', { cache: 'no-store' });
+    const response = globalThis.HEUNG_SHING_CONFIG?.platform === 'web'
+      ? await fetch('data/app-info.json', { cache: 'no-store' })
+      : await fetch('/api/app-info', { cache: 'no-store' });
     if (!response.ok) return;
     const info = await response.json();
     if (/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/.test(String(info.version || ''))) {

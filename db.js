@@ -117,6 +117,25 @@ function openGameDatabase(dbPath = resolveDbPath()) {
     FROM game_saves
     WHERE id = ?
   `);
+  // Keep the first original whenever a city is rewritten in a new data format.
+  // The trigger and UPDATE commit atomically, including on full-disk failures.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS save_migration_backups (
+      save_id INTEGER PRIMARY KEY,
+      original_row TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE TRIGGER IF NOT EXISTS backup_save_before_format_change
+    BEFORE UPDATE OF save_data ON game_saves
+    WHEN json_extract(OLD.save_data, '$.version') IS NOT json_extract(NEW.save_data, '$.version')
+    BEGIN
+      INSERT OR IGNORE INTO save_migration_backups(save_id, original_row)
+      VALUES (OLD.id, json_object('id', OLD.id, 'city_name', OLD.city_name,
+        'population', OLD.population, 'year', OLD.year, 'month', OLD.month,
+        'budget', OLD.budget, 'save_type', OLD.save_type, 'save_data', json(OLD.save_data),
+        'created_at', OLD.created_at, 'updated_at', OLD.updated_at));
+    END;
+  `);
 
   const getTerrainMetadataById = db.prepare(`
     SELECT id, name, profile_type, seed, created_at, updated_at
@@ -129,10 +148,15 @@ function openGameDatabase(dbPath = resolveDbPath()) {
 
     listSaves() {
       return db.prepare(`
-        SELECT id, city_name, population, year, month, budget, save_type, created_at, updated_at
+        SELECT id, city_name, population, year, month, budget, save_type, created_at, updated_at,
+          EXISTS(SELECT 1 FROM save_migration_backups WHERE save_id = game_saves.id) AS has_backup
         FROM game_saves
         ORDER BY updated_at DESC
       `).all();
+    },
+    getSaveBackup(id) {
+      const row = db.prepare('SELECT original_row FROM save_migration_backups WHERE save_id = ?').get(id);
+      return row ? JSON.parse(row.original_row) : null;
     },
 
     getSave(id) {

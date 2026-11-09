@@ -101,7 +101,8 @@ async function ensureAstronomyForDate(
   if (astronomyCalendarPending.has(key)) return astronomyCalendarPending.get(key);
 
   const [safeMonth, safeDay] = key.split('-').map(Number);
-  const request = fetch(`${ASTRONOMY_API_BASE}/${safeMonth}/${safeDay}`)
+  const request = fetch(globalThis.HEUNG_SHING_CONFIG?.platform === 'web'
+    ? `data/astronomy/${safeMonth}-${safeDay}.json` : `${ASTRONOMY_API_BASE}/${safeMonth}/${safeDay}`)
     .then(async (response) => {
       if (!response.ok) throw new Error(`Astronomy API returned ${response.status}`);
       const data = normalizeAstronomyData(await response.json(), safeMonth, safeDay);

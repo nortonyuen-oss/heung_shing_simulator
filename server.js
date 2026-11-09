@@ -518,6 +518,13 @@ function createGameApp(options = {}) {
   });
 
 // GET /api/saves/:id - fetch full save data for loading
+  app.get('/api/saves/:id/backup', (req, res) => {
+    try {
+      const row = store.getSaveBackup(Number(req.params.id));
+      if (!row) return res.status(404).json({ error: 'No original backup' });
+      return res.json(row);
+    } catch (error) { return res.status(500).json({ error: error.message }); }
+  });
   app.get('/api/saves/:id', (req, res) => {
   try {
     const row = store.getSave(Number(req.params.id));

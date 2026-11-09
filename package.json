@@ -1,8 +1,8 @@
 {
   "name": "city-builder",
-  "version": "5.4.0",
-  "releaseTheme": "【摘去鮮花 然後種出叮叮】",
-  "description": "SimCity 2000-style city builder with local SQLite save system",
+  "version": "5.5.0",
+  "releaseTheme": "【香城最大模擬器 正式上線！】",
+  "description": "Hong Kong city builder for desktop and browsers, with local and portable city saves",
   "author": "The City of Heung Shing",
   "repository": {
     "type": "git",
@@ -37,7 +37,13 @@
     "sync:lunar-calendar": "node scripts/sync-lunar-calendar.js",
     "audit:licenses": "node scripts/audit-licenses.js",
     "sync:legal": "node scripts/sync-legal-docs.js",
-    "check:legal": "node scripts/sync-legal-docs.js --check"
+    "check:legal": "node scripts/sync-legal-docs.js --check",
+    "build:web": "node scripts/build-web.js",
+    "verify:web": "node scripts/verify-web-build.js",
+    "preview:web": "node scripts/static-web-server.js",
+    "test:web": "node scripts/smoke-web.js",
+    "package:mac": "npm run verify:release-assets && electron-builder --mac",
+    "package:win": "npm run verify:release-assets && electron-builder --win"
   },
   "dependencies": {
     "electron-updater": "^6.8.9",
@@ -46,7 +52,11 @@
   "devDependencies": {
     "electron": "^39.8.10",
     "electron-builder": "^26.8.1",
-    "sharp": "^0.34.5"
+    "fake-indexeddb": "6.2.8",
+    "phaser": "3.60.0",
+    "playwright-core": "1.62.0",
+    "sharp": "^0.34.5",
+    "wrangler": "4.131.2"
   },
   "build": {
     "appId": "com.heungshing.citybuilder",
@@ -111,9 +121,9 @@
   },
   "license": "SEE LICENSE IN LICENSE",
   "releaseThemes": {
-    "zh-HK": "【摘去鮮花 然後種出叮叮】",
-    "zh-TW": "【叮叮車】",
-    "en": "【Heung Shing Tramways】",
-    "ja": "【ホンコントラムでGO!】"
+    "zh-HK": "【香城最大模擬器 正式上線！】",
+    "zh-TW": "【線上遊玩開通】",
+    "en": "【Heung Shing's Biggest Simulator — Now Online!】",
+    "ja": "【香城最大のシミュレーター、オンラインで正式公開！】"
   }
 }

@@ -1285,6 +1285,7 @@ function getMergeableCommercialBuildingsAt(
 }
 
 function isSelectableZoneModelTexture(model) {
+  if (globalThis.HEUNG_SHING_CONFIG?.platform === 'web' && model?.metadata) return true;
   return typeof isZoneModelTextureLoaded !== 'function' || isZoneModelTextureLoaded(model.key);
 }
 

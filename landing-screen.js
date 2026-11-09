@@ -689,6 +689,9 @@ function createTerrainMetadata(terrain, seed) {
 // options.terrain is the map picked on the setup screen (any map source); without one the
 // city starts on freshly generated terrain, as the preview scripts rely on.
 async function startNewGame(cityName, options = {}) {
+  if (globalThis.HEUNG_SHING_CONFIG?.platform === 'web' && !HeungShingStorage.writable) {
+    showToast(platformText('locked'), 'warning'); return;
+  }
   if (!gameReady) return;
   if (typeof closeBunHillMapEvent === 'function') closeBunHillMapEvent();
   const performanceStartedAt = globalThis.performance?.now?.() ?? Date.now();

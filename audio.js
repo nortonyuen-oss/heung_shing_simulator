@@ -31,6 +31,36 @@ const SFX_TRACKS = [
   { key: 'aircraft_takeoff', file: 'Sounds/aircraftTakeoff.m4a' },
 ];
 
+function ensureGameEventAudio(scene, key, callback = null) {
+  if (globalThis.HEUNG_SHING_CONFIG?.platform !== 'web' || scene?.cache?.audio?.exists(key)) return true;
+  if (!scene?.load) return false;
+  const track = SFX_TRACKS.find(track => track.key === key);
+  if (!track) return false;
+  scene.webAudioLoads ??= new Map();
+  scene.webAudioFailures ??= new Map();
+  if ((scene.webAudioFailures.get(key) || 0) >= 2) return false;
+  const generation = typeof saveSessionGeneration === 'number' ? saveSessionGeneration : 0;
+  const listener = callback ? () => {
+    if (typeof saveSessionGeneration !== 'number' || generation === saveSessionGeneration) callback();
+  } : null;
+  const pending = scene.webAudioLoads.get(key);
+  if (pending) { if (listener) pending.push(listener); return false; }
+  const listeners = listener ? [listener] : [];
+  scene.webAudioLoads.set(key, listeners);
+  const load = () => {
+    scene.load.audio(key, track.file);
+    scene.load.once('complete', () => {
+      scene.webAudioLoads.delete(key);
+      if (scene.cache.audio.exists(key)) listeners.forEach(listener => listener());
+      else scene.webAudioFailures.set(key, (scene.webAudioFailures.get(key) || 0) + 1);
+    });
+    scene.load.start();
+  };
+  if (scene.load.isLoading()) scene.load.once('complete', load);
+  else load();
+  return false;
+}
+
 // Music volume — persisted so the level a player left it at carries into their next
 // session instead of resetting to the slider's hardcoded HTML default every launch.
 const MUSIC_VOLUME_SETTING_KEY = 'citybuilder.musicVolume.v1';
@@ -141,6 +171,7 @@ function ensureTitleLoadingAudio() {
 }
 
 function playTitleLoadingAudio() {
+  if (globalThis.HEUNG_SHING_CONFIG?.platform === 'web') return;
   const audio = ensureTitleLoadingAudio();
   if (!audio) return;
 
@@ -259,6 +290,7 @@ function getFirstGameplayMusicTrackIndex() {
 }
 
 function ensureTitleMusic(options = {}) {
+  if (globalThis.HEUNG_SHING_CONFIG?.platform === 'web') return;
   const { useLoadingAudio = false } = options;
   if (MUSIC_TRACKS.length === 0) return;
 
@@ -340,6 +372,23 @@ function changeTrack(direction) {
 
 function playTrack(trackIndex) {
   if (!activeScene) return;
+  if (globalThis.HEUNG_SHING_CONFIG?.platform === 'web' && !activeScene.cache.audio.exists(MUSIC_TRACKS[trackIndex].key)) {
+    const key = MUSIC_TRACKS[trackIndex].key;
+    if (activeScene.pendingWebMusic === key) return;
+    activeScene.pendingWebMusic = key;
+    const load = () => {
+      activeScene.load.audio(key, MUSIC_TRACKS[trackIndex].file);
+      activeScene.load.once('complete', () => {
+        if (activeScene.pendingWebMusic !== key) return;
+        activeScene.pendingWebMusic = null;
+        if (activeScene.cache.audio.exists(key) && activeTrackIndex === trackIndex) playTrack(trackIndex);
+      });
+      activeScene.load.start();
+    };
+    if (activeScene.load.isLoading()) activeScene.load.once('complete', load);
+    else load();
+    return;
+  }
 
   if (activeMusic) {
     activeMusic.off('complete');   // remove old auto-advance listener
@@ -555,6 +604,7 @@ function updateDragonBoatAudio(scene) {
   if (!scene.sound || scene.sound.locked) return;
   plan.forEach(channel => {
     const key = 'db_' + channel;
+    if (!ensureGameEventAudio(scene, key)) return;
     if(channel==='music') {
       const matches=(scene.sound.getAll?.(key)||[]).filter(s=>!s.pendingRemove);
       const existing=matches.find(s=>s.isPlaying||s.isPaused)||sounds[channel];
@@ -606,6 +656,7 @@ function updateLionDanceAudio(scene, sources = []) {
   if (!audibleSources.length) { stopLionDanceAudio(scene); return; }
   if (!scene.sound || scene.sound.locked) return;
 
+  if (!ensureGameEventAudio(scene, LION_DANCE_AUDIO_KEY)) return;
   const matches = (scene.sound.getAll?.(LION_DANCE_AUDIO_KEY) || []).filter(sound => !sound.pendingRemove);
   const existing = matches.find(sound => sound.isPlaying || sound.isPaused) || scene.lionDanceAudio?.sound;
   matches.forEach(sound => { if (sound !== existing) { sound.stop(); sound.destroy(); } });

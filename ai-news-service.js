@@ -123,6 +123,7 @@ function saveAiNewsConfig() {
 }
 
 async function hydrateAiNewsConfig() {
+  if (globalThis.HEUNG_SHING_CONFIG?.platform === 'web') return;
   try {
     const response = await fetch('/api/ai-news/settings', { cache: 'no-store', priority: 'high' });
     if (!response.ok) throw new Error(`AI settings HTTP ${response.status}`);
@@ -140,6 +141,7 @@ async function hydrateAiNewsConfig() {
 }
 
 function isAiNewsEnabled() {
+  if (globalThis.HEUNG_SHING_CONFIG?.platform === 'web') return false;
   return aiNewsRuntime.config.enabled === true;
 }
 
@@ -208,6 +210,11 @@ async function refreshAiNewsStatus() {
 }
 
 async function initializeAiNewsService() {
+  if (globalThis.HEUNG_SHING_CONFIG?.platform === 'web') {
+    aiNewsRuntime.config.enabled = false;
+    aiNewsRuntime.initialized = true;
+    return;
+  }
   if (aiNewsRuntime.initialized) return;
   aiNewsRuntime.initialized = true;
   await hydrateAiNewsConfig();

@@ -1,0 +1,8 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "heung-shing-play",
+  "account_id": "a6d7368702ab8725c1e8188b30da7edd",
+  "compatibility_date": "2026-11-09",
+  "workers_dev": true,
+  "assets": { "directory": "./release/web", "not_found_handling": "none" }
+}

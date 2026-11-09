@@ -8,44 +8,83 @@ on:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: synchronized-release
+  cancel-in-progress: false
 
 jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Check release tag and theme
+        if: startsWith(github.ref, 'refs/tags/')
+        run: node -e "const p=require('./package.json');if(process.env.GITHUB_REF_NAME!=='v'+p.version||!p.releaseTheme)process.exit(1)"
+      - run: npm test
+
+  assets:
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - uses: actions/cache@v4
+        with:
+          path: .data/webp-cache
+          key: baked-assets-${{ runner.os }}-${{ hashFiles('scripts/prepare-release-assets.js', 'Models/**') }}
+          restore-keys: baked-assets-${{ runner.os }}-
+      - run: npm run prepare:release-assets
+      - run: npm run verify:release-assets
+      - uses: actions/upload-artifact@v4
+        with:
+          name: prepared-models
+          path: .data/package-assets/Models
+          retention-days: 1
+          include-hidden-files: true
+
   build:
-    name: Build ${{ matrix.os }}
+    name: Build ${{ matrix.os }} ${{ matrix.artifact }}
+    needs: assets
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - os: macos-15
-            command: npm run dist:mac -- --arm64 --publish never
+            command: npm run package:mac -- --arm64 --publish never
             artifact: mac-arm64-installers
           - os: macos-15
-            command: npm run dist:mac -- --x64 --publish never
+            command: npm run package:mac -- --x64 --publish never
             artifact: mac-x64-installers
           - os: windows-latest
-            command: npm run dist:win -- --publish never
+            command: npm run package:win -- --publish never
             artifact: windows-installers
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
           cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build installers
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: prepared-models
+          path: .data/package-assets/Models
+      - run: ${{ matrix.command }}
         shell: bash
-        run: ${{ matrix.command }}
-
-      - name: Upload installer artifacts
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
           path: |
@@ -55,22 +94,72 @@ jobs:
             release/*.blockmap
             release/latest*.yml
           if-no-files-found: error
+          retention-days: 1
+
+  web:
+    needs: assets
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: prepared-models
+          path: .data/package-assets/Models
+      - run: node scripts/restore-web-history.js
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - run: npm run build:web
+        env:
+          WEB_STATISTICS_ENABLED: 'true'
+      - run: npm run verify:web
+      - run: npx playwright-core install --with-deps chromium
+      - name: Browser save and backup verification
+        run: |
+          npm run preview:web > /tmp/static-web.log 2>&1 &
+          npm run test:web
+        env:
+          WEB_SAVE_PATH: /tmp/web-smoke.heungshing
+          WEB_SCREENSHOT_PATH: /tmp/web-smoke.png
+      - name: Official website languages and unavailable statistics
+        run: |
+          node scripts/build-official-site.js
+          node scripts/smoke-official-site.js
+      - run: tar -czf release/web-candidate.tar.gz -C release web
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-candidate
+          path: release/web-candidate.tar.gz
+          retention-days: 1
 
   release:
-    name: Publish GitHub Release
-    needs: build
+    name: Publish synchronized release
+    needs: [build, web]
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
-
+    environment: github-pages
+    env:
+      GH_TOKEN: ${{ github.token }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: a6d7368702ab8725c1e8188b30da7edd
     steps:
-      - name: Checkout release notes
-        uses: actions/checkout@v4
-
-      - name: Download installer artifacts
-        uses: actions/download-artifact@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Verify deployment authorization
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo "Missing GitHub Actions secret CLOUDFLARE_API_TOKEN"; exit 1; }
+          npx wrangler whoami
+      - uses: actions/download-artifact@v4
         with:
           path: artifacts
-
       - name: Prepare release assets
         shell: bash
         run: |
@@ -102,22 +191,37 @@ jobs:
           perl -0pi -e 's/\Q$ENV{OLD_SETUP}\E/$ENV{SETUP_PUBLIC}/g; s/\Q$ENV{OLD_BLOCKMAP}\E/$ENV{SETUP_PUBLIC}.blockmap/g; s/^(\s*-\s*url:\s*).*?$/$1$ENV{SETUP_PUBLIC}/mg; s/^(path:\s*).*?$/$1$ENV{SETUP_PUBLIC}/mg' release-assets/latest.yml
           ls -lh release-assets
 
-      - name: Create release and upload installers
+      - name: Prepare full draft release
         shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
-          # Create the release if it doesn't already exist (e.g. pre-created manually),
-          # then upload assets either way.
           if ! gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
             release_title="$(sed -n '1s/^# //p' RELEASE_NOTES.md)"
-            test -n "$release_title"
-            gh release create "$GITHUB_REF_NAME" \
-              --repo "$GITHUB_REPOSITORY" \
-              --title "$release_title" \
-              --notes-file RELEASE_NOTES.md
+            gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft --title "$release_title" --notes-file RELEASE_NOTES.md
           fi
-          gh release upload "$GITHUB_REF_NAME" \
-            --repo "$GITHUB_REPOSITORY" \
-            --clobber \
-            release-assets/*
+          gh release upload "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --clobber release-assets/*
+          mkdir -p release
+          tar -xzf artifacts/web-candidate/web-candidate.tar.gz -C release
+          cp artifacts/web-candidate/web-candidate.tar.gz release-assets/web-assets.tar.gz
+          gh release upload "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --clobber release-assets/web-assets.tar.gz
+      - name: Deploy statistics without resetting counts
+        run: |
+          npx wrangler d1 migrations apply heung-shing-statistics --remote --config services/statistics/wrangler.jsonc
+          npx wrangler deploy --config services/statistics/wrangler.jsonc
+      - name: Deploy verified static game
+        run: |
+          node scripts/deploy-web-release.js
+      - name: Publish complete release and prepare official site
+        run: |
+          node scripts/create-release-manifest.js
+          gh release upload "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --clobber release/release-manifest.json
+          gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft=false
+          node scripts/build-official-site.js release/release-manifest.json
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: release/site
+      - uses: actions/deploy-pages@v4
+      - name: Record verified release locations
+        run: |
+          gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --json url,tagName
+          curl --fail --silent https://heung-shing-play.nortonyuen.workers.dev/data/app-info.json

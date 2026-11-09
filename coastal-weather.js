@@ -80,6 +80,7 @@ function ensureCoastalCityState() {
 }
 
 async function refreshCoastalWeather() {
+  if (globalThis.HEUNG_SHING_CONFIG?.platform === 'web') return;
   const generation = coastalSessionGeneration;
   coastalLastAttempt = Date.now();
   try {

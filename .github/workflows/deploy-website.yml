@@ -15,8 +15,8 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
-  cancel-in-progress: true
+  group: synchronized-release
+  cancel-in-progress: false
 
 jobs:
   deploy:
@@ -29,14 +29,40 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Read published release metadata
+        id: published
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p release
+          latest=$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName --jq .tagName)
+          current=$(node -p "'v'+require('./package.json').version")
+          if [ "$latest" != "$current" ]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "Game version is not published; keeping the existing official site."
+            exit 0
+          fi
+          if gh release download "$latest" --repo "$GITHUB_REPOSITORY" --pattern release-manifest.json --dir release --clobber; then
+            node scripts/build-official-site.js release/release-manifest.json
+          else
+            node scripts/build-official-site.js
+          fi
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+
       - name: Setup Pages
+        if: steps.published.outputs.ready == 'true'
         uses: actions/configure-pages@v5
 
       - name: Upload site
+        if: steps.published.outputs.ready == 'true'
         uses: actions/upload-pages-artifact@v3
         with:
-          path: docs
+          path: release/site
 
       - name: Deploy to GitHub Pages
+        if: steps.published.outputs.ready == 'true'
         id: deployment
         uses: actions/deploy-pages@v4

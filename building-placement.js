@@ -143,11 +143,26 @@ function placeSpriteBuilding(scene, row, col, key, options = {}) {
   removeDebrisInFootprint(scene, row, col, footprintCols, footprintRows);
   const anchor = getBuildingAnchor(row, col, footprintCols, footprintRows, options.anchorMode);
   const elevOffset = getBuildingElevationOffset(row, col, footprintCols, footprintRows);
+  const deferred = globalThis.HEUNG_SHING_CONFIG?.platform === 'web' && !scene.textures.exists(textureKey);
+  if (deferred && !scene.textures.exists('web-pending-building')) scene.textures.createCanvas('web-pending-building', 1, 1).refresh();
   const building = scene.add.image(
     anchor.x + scene.offsetX + (options.offsetX ?? 0),
     anchor.y + scene.offsetY - BUILDING_SURFACE_Y_OFFSET + elevOffset + (options.offsetY ?? 0),
-    textureKey,
+    deferred ? 'web-pending-building' : textureKey,
   );
+  if (deferred) {
+    const model = getAllZoneModels().find(candidate => candidate.key === key) ?? getFixedBuildingModelBySpriteKey(key);
+    if (model) requestZoneModelTexture(scene, { ...model, key: textureKey,
+      path: model.logicalPath ? resolveModelAssetPath(model.logicalPath) : getFixedBuildingModelLoadPath(model) }, loaded => {
+      if (!loaded || !building.active) return;
+      building.setTexture(textureKey);
+      const next = applyBuildingGroundFit(scene, key, normalizeSpriteBuildingOptions(key, options));
+      building.setOrigin(next.originX ?? 0.5, next.originY ?? 1);
+      building.setScale(next.scaleX ?? next.scale ?? 1, next.scaleY ?? next.scale ?? 1);
+      positionBuilding(scene, building);
+      markBuildingNightArtDirty(scene);
+    });
+  }
   addToRenderLayer(scene, building, 'objectLayer');
   building.setOrigin(options.originX ?? 0.5, options.originY ?? 1);
   if (options.scaleX || options.scaleY) {

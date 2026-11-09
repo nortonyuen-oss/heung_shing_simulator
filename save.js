@@ -4,6 +4,10 @@
 const API_BASE = '/api/saves';
 const TERRAIN_API_BASE = '/api/terrains';
 const TERRAIN_LOCAL_KEY = 'citybuilder.terrainPresets';
+function requestGameStorage(url, options) {
+  return globalThis.HeungShingStorage
+    ? globalThis.HeungShingStorage.request(url, options) : fetch(url, options);
+}
 const COMPACT_SAVE_VERSION = 15;
 const COMPACT_RLE_ENCODING = 'rle-row-major-v1';
 const COMPACT_TREE_ENCODING = 'sparse-row-major-v1';
@@ -783,21 +787,21 @@ function saveGame(silent = false) {
       let res;
       if (isAutosave) {
         // Autosave has one dedicated slot and never changes the active manual slot.
-        res = await fetch(`${API_BASE}/autosave`, {
+        res = await requestGameStorage(`${API_BASE}/autosave`, {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
           body:    requestBody,
         });
       } else if (targetSaveId) {
         // Overwrite the existing slot
-        res = await fetch(`${API_BASE}/${targetSaveId}`, {
+        res = await requestGameStorage(`${API_BASE}/${targetSaveId}`, {
           method:  'PUT',
           headers: { 'Content-Type': 'application/json' },
           body:    requestBody,
         });
       } else {
         // Create a new slot
-        res = await fetch(API_BASE, {
+        res = await requestGameStorage(API_BASE, {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
           body:    requestBody,
@@ -809,7 +813,7 @@ function saveGame(silent = false) {
       // subsequent Ctrl+S in a permanent PUT -> 404 failure loop.
       if (!isAutosave && targetSaveId && res.status === 404
         && operationGeneration === saveSessionGeneration) {
-        res = await fetch(API_BASE, {
+        res = await requestGameStorage(API_BASE, {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
           body:    requestBody,
@@ -822,12 +826,15 @@ function saveGame(silent = false) {
         currentSaveId = data.id;
       }
       if (operationGeneration === saveSessionGeneration) {
-        showToast(silent ? t('toast.autosaved') : t('toast.citySaved'), 'info');
+        const browser = globalThis.HEUNG_SHING_CONFIG?.platform === 'web' && typeof platformText === 'function';
+        showToast(browser ? platformText(HeungShingStorage.memoryOnly ? 'memory' : 'saved')
+          : silent ? t('toast.autosaved') : t('toast.citySaved'), 'info');
       }
       return true;
     } catch (e) {
-      if (!silent && operationGeneration === saveSessionGeneration) {
-        showToast(t('toast.saveFailed'), 'danger');
+      if ((!silent || globalThis.HEUNG_SHING_CONFIG?.platform === 'web') && operationGeneration === saveSessionGeneration) {
+        showToast(globalThis.HEUNG_SHING_CONFIG?.platform === 'web' && typeof platformText === 'function'
+          ? platformText('failed') : t('toast.saveFailed'), 'danger');
       }
       console.error('[Save]', e);
       return false;
@@ -880,10 +887,12 @@ async function saveAsGame() {
 // manual save has the same city name, that is the slot the player means: saving (including the
 // autosave on Return to Main Menu) then updates it instead of minting a duplicate city.
 async function resolveAutosaveManualSlot(save) {
+  // Browser imports never adopt a different city merely because names match.
+  if (globalThis.HEUNG_SHING_CONFIG?.platform === 'web') return null;
   const name = String(save?.city?.name || '').trim();
   if (!name) return null;
   try {
-    const res = await fetch(API_BASE);
+    const res = await requestGameStorage(API_BASE);
     if (!res.ok) return null;
     const rows = await res.json();
     const matches = (Array.isArray(rows) ? rows : [])
@@ -1102,6 +1111,17 @@ async function ensureSaveBuildingTextures(scene, save) {
   Object.values(save.buildingData).forEach((record) => {
     const model = getSaveModelForRecord(record);
     if (model && !scene.textures.exists(model.key)) missingModels.set(model.key, model);
+    if (globalThis.HEUNG_SHING_CONFIG?.platform === 'web') {
+      const key = record.spriteKey || deriveFallbackSpriteKey(record);
+      const fixed = getFixedBuildingModelBySpriteKey(key)
+        ?? getFixedBuildingModelBySpriteKey(deriveFallbackSpriteKey(record));
+      if (fixed) {
+        const textureKey = getFixedBuildingTextureKey(fixed);
+        if (!scene.textures.exists(textureKey)) missingModels.set(textureKey, {
+          key: textureKey, path: getFixedBuildingModelLoadPath(fixed),
+        });
+      }
+    }
   });
   if (missingModels.size === 0) return;
 
@@ -1177,6 +1197,10 @@ function isLoadRequestCurrent(generation) {
 
 async function loadSaveById(id, scene) {
   if (typeof leaveAttractMode === 'function') leaveAttractMode('load');
+  if (globalThis.HEUNG_SHING_CONFIG?.platform === 'web' && !HeungShingStorage.writable) {
+    if (typeof platformText === 'function') showToast(platformText('locked'), 'warning');
+    return false;
+  }
   if (typeof closeBunHillMapEvent === 'function') closeBunHillMapEvent(scene);
   const performanceStartedAt = globalThis.performance?.now?.() ?? Date.now();
   let performanceScene = scene;
@@ -1202,7 +1226,7 @@ async function loadSaveById(id, scene) {
     }
     if (loadGeneration !== loadRequestGeneration) return false;
 
-    const res = await fetch(`${API_BASE}/${id}`);
+    const res = await requestGameStorage(`${API_BASE}/${id}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const row  = await res.json();
     if (loadGeneration !== loadRequestGeneration) return false;
@@ -1920,22 +1944,23 @@ function normalizeLoadedBuildingOptions(key, record) {
 // ── List / Delete ─────────────────────────────────────────────────────────────
 
 async function listSaves() {
-  const res = await fetch(API_BASE);
+  const res = await requestGameStorage(API_BASE);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();   // [{id, city_name, population, year, month, budget, updated_at}, …]
 }
 
 async function deleteSaveById(id) {
-  const res = await fetch(`${API_BASE}/${id}`, { method: 'DELETE' });
+  const res = await requestGameStorage(`${API_BASE}/${id}`, { method: 'DELETE' });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
 }
 
 // ── Terrain preset API ───────────────────────────────────────────────────────
 
 async function listTerrainPresets() {
+  if (globalThis.HEUNG_SHING_CONFIG?.platform === 'web') return globalThis.HeungShingStorage.list('terrains');
   if (terrainApiAvailable !== false) {
     try {
-      const res = await fetch(TERRAIN_API_BASE);
+      const res = await requestGameStorage(TERRAIN_API_BASE);
       if (res.ok) {
         terrainApiAvailable = true;
         return res.json();
@@ -1950,9 +1975,10 @@ async function listTerrainPresets() {
 }
 
 async function getTerrainPresetById(id) {
+  if (globalThis.HEUNG_SHING_CONFIG?.platform === 'web') return globalThis.HeungShingStorage.get(Number(id), 'terrains');
   if (terrainApiAvailable !== false) {
     try {
-      const res = await fetch(`${TERRAIN_API_BASE}/${id}`);
+      const res = await requestGameStorage(`${TERRAIN_API_BASE}/${id}`);
       if (res.ok) {
         terrainApiAvailable = true;
         return res.json();
@@ -1973,9 +1999,10 @@ async function getTerrainPresetById(id) {
 }
 
 async function createTerrainPreset(payload) {
+  if (globalThis.HEUNG_SHING_CONFIG?.platform === 'web') return globalThis.HeungShingStorage.write(payload, undefined, false, 'terrains');
   if (terrainApiAvailable !== false) {
     try {
-      const res = await fetch(TERRAIN_API_BASE, {
+      const res = await requestGameStorage(TERRAIN_API_BASE, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -2009,9 +2036,10 @@ async function createTerrainPreset(payload) {
 }
 
 async function deleteTerrainPresetById(id) {
+  if (globalThis.HEUNG_SHING_CONFIG?.platform === 'web') return globalThis.HeungShingStorage.remove(Number(id), 'terrains');
   if (terrainApiAvailable !== false) {
     try {
-      const res = await fetch(`${TERRAIN_API_BASE}/${id}`, { method: 'DELETE' });
+      const res = await requestGameStorage(`${TERRAIN_API_BASE}/${id}`, { method: 'DELETE' });
       if (res.ok) {
         terrainApiAvailable = true;
         return;
@@ -2101,12 +2129,13 @@ async function refreshSaveListModal() {
           <div class="save-list-actions">
             <button class="save-list-load-btn" data-id="${s.id}">${t('save.load')}</button>
             <button class="save-list-del-btn"  data-id="${s.id}" title="${t('save.deleteTitle')}">🗑</button>
+            ${s.has_backup && typeof platformText === 'function' ? `<button class="save-list-load-btn" data-original-backup="${s.id}">${escapeHtml(platformText('original'))}</button>` : ''}
           </div>
         </div>`;
     }).join('');
 
     // Wire Load buttons
-    list.querySelectorAll('.save-list-load-btn').forEach((btn) => {
+    list.querySelectorAll('.save-list-load-btn[data-id]').forEach((btn) => {
       btn.addEventListener('click', async () => {
         if (!gameReady) { showToast(t('toast.stillLoading'), 'warning'); return; }
         closeSaveListModal();
@@ -2117,6 +2146,9 @@ async function refreshSaveListModal() {
     });
 
     // Wire Delete buttons
+    list.querySelectorAll('[data-original-backup]').forEach(btn => {
+      btn.addEventListener('click', () => globalThis.exportSavedCity(Number(btn.dataset.originalBackup), true));
+    });
     list.querySelectorAll('.save-list-del-btn').forEach((btn) => {
       btn.addEventListener('click', async () => {
         if (!confirm(t('save.deleteConfirm'))) return;

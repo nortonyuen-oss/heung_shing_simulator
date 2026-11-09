@@ -691,6 +691,8 @@ const config = {
     roundPixels: false,
     mipmapFilter: 'LINEAR_MIPMAP_LINEAR',
   },
+  loader: globalThis.HEUNG_SHING_CONFIG?.platform === 'web'
+    ? { maxParallelDownloads: 6, xhrSettings: { timeout: 15000 } } : {},
   scale: {
     mode: Phaser.Scale.RESIZE,
     width: '100%',
@@ -715,6 +717,7 @@ async function initializeGame() {
   // Phaser's heavier startup work are still in flight. In particular, players
   // need to be able to leave fullscreen even if asset loading stalls.
   setupMenuBar();
+  await globalThis.HeungShingStorage?.initialize();
   await loadModelAssetManifest();
   houseModelSets = await discoverHouseModelSets();
   commercialBuildingModels = await discoverCommercialBuildingModels();
@@ -734,7 +737,7 @@ function preload() {
   const allHouseModels = Object.values(houseModelSets).flat().filter((model) => !model.legacy);
   const initialHouseModels = dedupeZoneModelsByKey([
     ...selectInitialZoneModelsForPreload(allHouseModels),
-    ...selectForcedWealthTierModels(allHouseModels, ['H', 'UH']),
+    ...(globalThis.HEUNG_SHING_CONFIG?.platform === 'web' ? [] : selectForcedWealthTierModels(allHouseModels, ['H', 'UH'])),
   ]);
   const initialCommercialModels = selectInitialZoneModelsForPreload(commercialBuildingModels);
   const initialIndustrialModels = selectInitialZoneModelsForPreload(industrialBuildingModels);
@@ -743,13 +746,13 @@ function preload() {
 
   setupPreloadProgressUi(this);
 
-  MUSIC_TRACKS.forEach((track) => {
+  (globalThis.HEUNG_SHING_CONFIG?.platform === 'web' ? [] : MUSIC_TRACKS).forEach((track) => {
     this.load.audio(track.key, track.file);
   });
   AMBIENT_TRACKS.forEach((track) => {
     this.load.audio(track.key, track.file);
   });
-  SFX_TRACKS.forEach((track) => {
+  (globalThis.HEUNG_SHING_CONFIG?.platform === 'web' ? [] : SFX_TRACKS).forEach((track) => {
     this.load.audio(track.key, track.file);
   });
   // The legacy Models/PNG tileset is no longer shipped. Old saves are migrated
@@ -767,6 +770,7 @@ function preload() {
   // Parks: art paths live in PARK_MODELS (constants.js) so the night bake and
   // the light calibrator see the same table.
   Object.values(PARK_MODELS).forEach((model) => {
+    if (globalThis.HEUNG_SHING_CONFIG?.platform === 'web') return;
     this.load.image(model.spriteKey, getFixedBuildingModelLoadPath(model));
   });
   // Sports grounds are service models and are queued with the fixed models below.
@@ -779,6 +783,7 @@ function preload() {
   ];
   const queuedFixedTextureKeys = new Set();
   fixedBuildingModels.forEach((model) => {
+    if (globalThis.HEUNG_SHING_CONFIG?.platform === 'web') return;
     const textureKey = getFixedBuildingTextureKey(model);
     if (!textureKey || queuedFixedTextureKeys.has(textureKey)) return;
     queuedFixedTextureKeys.add(textureKey);

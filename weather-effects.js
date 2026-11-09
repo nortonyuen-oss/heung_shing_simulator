@@ -151,7 +151,8 @@ function triggerLightningStrike(scene) {
   }
   const thunderDelay = Phaser.Math.Between(200, 800);
   scene.time.delayedCall(thunderDelay, () => {
-    if (!scene.sound?.locked) scene.sound.play('sfx_thunder', { volume: 0.5 });
+    const play = () => { if (!scene.sound?.locked) scene.sound.play('sfx_thunder', { volume: 0.5 }); };
+    if (typeof ensureGameEventAudio !== 'function' || ensureGameEventAudio(scene, 'sfx_thunder', play)) play();
   });
   scheduleNextLightning(scene);
 }

@@ -218,20 +218,8 @@ function refreshHarborSprites(scene) {
     record.assetId = HARBOR_MODELS[newKey]?.path;
     const sprite = scene?.buildingSprites?.get(id);
     if (!sprite) return;
-    sprite.setTexture(newKey);
-    // The orientation's night art is a different texture; drop the day/night
-    // bookkeeping so dawn cannot restore the previous orientation's day art.
-    sprite.__dayTextureKey = null;
-    sprite.skipNightTint = false;
-    markBuildingNightArtDirty(scene);
     const opts = harborModelMetadata[newKey];
     if (opts) {
-      sprite.setOrigin(opts.originX ?? 0.5, opts.originY ?? 1);
-      if (opts.scaleX || opts.scaleY) sprite.setScale(opts.scaleX ?? opts.scale ?? 1, opts.scaleY ?? opts.scale ?? 1);
-      else if (opts.scale) sprite.setScale(opts.scale);
-      sprite.spriteOffsetX = opts.offsetX ?? 0;
-      sprite.spriteOffsetY = opts.offsetY ?? 0;
-      sprite.anchorMode = opts.anchorMode;
       Object.assign(record, {
         originX: opts.originX,
         originY: opts.originY,
@@ -242,7 +230,24 @@ function refreshHarborSprites(scene) {
         offsetY: opts.offsetY,
         anchorMode: opts.anchorMode,
       });
-      positionBuilding(scene, sprite);
     }
+    // In the browser the new orientation's art may still be downloading; the
+    // sprite keeps its current art and geometry until it arrives.
+    const applyVisual = () => {
+      // The orientation's night art is a different texture; drop the day/night
+      // bookkeeping so dawn cannot restore the previous orientation's day art.
+      sprite.__dayTextureKey = null;
+      sprite.skipNightTint = false;
+      markBuildingNightArtDirty(scene);
+      if (!opts) return;
+      sprite.setOrigin(opts.originX ?? 0.5, opts.originY ?? 1);
+      if (opts.scaleX || opts.scaleY) sprite.setScale(opts.scaleX ?? opts.scale ?? 1, opts.scaleY ?? opts.scale ?? 1);
+      else if (opts.scale) sprite.setScale(opts.scale);
+      sprite.spriteOffsetX = opts.offsetX ?? 0;
+      sprite.spriteOffsetY = opts.offsetY ?? 0;
+      sprite.anchorMode = opts.anchorMode;
+      positionBuilding(scene, sprite);
+    };
+    if (setFixedBuildingSpriteTexture(scene, sprite, newKey, applyVisual)) applyVisual();
   });
 }

@@ -692,7 +692,7 @@ const config = {
     mipmapFilter: 'LINEAR_MIPMAP_LINEAR',
   },
   loader: globalThis.HEUNG_SHING_CONFIG?.platform === 'web'
-    ? { maxParallelDownloads: 6, xhrSettings: { timeout: 15000 } } : {},
+    ? { maxParallelDownloads: 6, xhrSettings: { timeout: 60000 } } : {},
   scale: {
     mode: Phaser.Scale.RESIZE,
     width: '100%',
@@ -3111,18 +3111,23 @@ function applyBusDepotVisualKey(scene, id, record, newKey) {
   record.assetId = BUS_DEPOT_MODELS[newKey]?.path;
   const sprite = scene?.buildingSprites?.get(id);
   if (!sprite) return true;
-  sprite.setTexture(newKey);
-  sprite.__dayTextureKey = null;
-  sprite.skipNightTint = false;
-  markBuildingNightArtDirty(scene);
   const opts = busDepotModelMetadata[newKey];
-  if (opts) {
+  // In the browser the new orientation's art may still be downloading; the
+  // sprite keeps its current art and geometry until it arrives.
+  const applyVisual = () => {
+    sprite.__dayTextureKey = null;
+    sprite.skipNightTint = false;
+    markBuildingNightArtDirty(scene);
+    if (!opts) return;
     sprite.setOrigin(opts.originX ?? 0.5, opts.originY ?? 1);
     if (opts.scaleX || opts.scaleY) sprite.setScale(opts.scaleX ?? opts.scale ?? 1, opts.scaleY ?? opts.scale ?? 1);
     else if (opts.scale) sprite.setScale(opts.scale);
     sprite.spriteOffsetX = opts.offsetX ?? 0;
     sprite.spriteOffsetY = opts.offsetY ?? 0;
     sprite.anchorMode = opts.anchorMode;
+    positionBuilding(scene, sprite);
+  };
+  if (opts) {
     Object.assign(record, {
       originX: opts.originX,
       originY: opts.originY,
@@ -3133,8 +3138,8 @@ function applyBusDepotVisualKey(scene, id, record, newKey) {
       offsetY: opts.offsetY,
       anchorMode: opts.anchorMode,
     });
-    positionBuilding(scene, sprite);
   }
+  if (setFixedBuildingSpriteTexture(scene, sprite, newKey, applyVisual)) applyVisual();
   return true;
 }
 
@@ -3146,6 +3151,10 @@ function refreshBusDepotSprites(scene) {
 }
 
 function preGenerateParkTextures(scene) {
+  // The browser build fetches park art on demand. A drawn fallback under the
+  // real texture key would count as "already loaded" and the real art would
+  // never be requested - the lot shows the shared stand-in until it arrives.
+  if (globalThis.HEUNG_SHING_CONFIG?.platform === 'web') return;
   const configs = [
     { key: 'park_small', width: TILE_WIDTH, height: TILE_IMAGE_HEIGHT, faceHeight: TILE_HEIGHT, trees: [[50, 24, 11], [36, 30, 8], [64, 32, 8]] },
     { key: 'park_large', width: TILE_WIDTH * 3, height: TILE_HEIGHT * 3 + BUILDING_SURFACE_Y_OFFSET, faceHeight: TILE_HEIGHT * 3, trees: [[118, 45, 16], [154, 48, 15], [190, 58, 14], [78, 70, 12], [230, 78, 13], [115, 93, 14], [158, 102, 16], [202, 108, 13], [145, 130, 11], [188, 134, 12]] },

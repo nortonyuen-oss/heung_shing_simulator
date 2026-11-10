@@ -113,8 +113,11 @@ async function main() {
         : fs.readFileSync(path.join(ROOT, script), 'utf8');
       source = String(source).replace(/(?<![\w.])fetch\(/g, 'fetchBundledResource(');
       // Literal UI/media references also occur in DOM attributes, CSS, and HTMLAudio.
+      // Forum images are the exception: their logical path is stored in saves and
+      // validated by normalizeForumImagePath, so it is resolved at display time
+      // (resolveForumImageSrc) rather than baked into the script as a hashed name.
       source = source.replace(/(['"])((?:UI|Music|Sounds|data|newRoadTiles|kenney_isometric-roads)\/[^'"\r\n]+)\1/g,
-        (match, quote, logical) => resources[logical] ? `${quote}${resources[logical]}${quote}` : match);
+        (match, quote, logical) => resources[logical] && !logical.startsWith('UI/news/') ? `${quote}${resources[logical]}${quote}` : match);
     }
     const target = `assets/${hash(source)}.js`; output(target, source); immutableScripts.push(target);
     html = html.replace(`src="${script}"`, `src="${target}"`);
@@ -130,6 +133,7 @@ async function main() {
     .replace('__BUILD_ID__', `${pkg.version}-${config.commitSha.slice(0, 12)}`)
     .replace('/*__SHELL__*/[]', JSON.stringify(shell));
   output('web-service-worker.js', worker);
+  output('_redirects', '/index.html / 200\n');
   output('_headers', '/assets/*\n  Cache-Control: public, max-age=31536000, immutable\n/\n  Cache-Control: no-cache\n/index.html\n  Cache-Control: no-cache\n/web-service-worker.js\n  Cache-Control: no-cache\n/data/*\n  Cache-Control: no-cache\n');
   output('LICENSE', fs.readFileSync(path.join(ROOT, 'LICENSE')));
   output('THIRD_PARTY_NOTICES.md', fs.readFileSync(path.join(ROOT, 'THIRD_PARTY_NOTICES.md')));

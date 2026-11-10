@@ -31,7 +31,12 @@ test('resolution result news uses packaged WebP assets at generation and display
   const newspaper = fs.readFileSync(path.join(ROOT, 'newspaper.js'), 'utf8');
   assert.doesNotMatch(councilNews, /['"`]UI\/News\/[a-zA-Z0-9_.-]+\.png['"`]/);
   assert.match(councilNews, /['"`]UI\/news\/footballStarVisit\.webp['"`]/);
-  assert.match(newspaper, /const imagePath = normalizeForumImagePath\(article\.image\)/);
+  // resolveForumImageSrc validates with normalizeForumImagePath, then maps the
+  // logical path to what this platform actually serves (hashed names in the browser).
+  assert.match(newspaper, /const imagePath = resolveForumImageSrc\(article\.image\)/);
+  assert.match(fs.readFileSync(path.join(ROOT, 'city-state.js'), 'utf8'),
+    /function resolveForumImageSrc\(value\) \{\s+const path = normalizeForumImagePath\(value\);/);
+  assert.doesNotMatch(newspaper, /\.src = post\.image;/);
   assert.match(newspaper, /forumImage\.src = imagePath/);
 });
 

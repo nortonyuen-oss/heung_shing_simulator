@@ -1145,7 +1145,9 @@ async function ensureSaveBuildingTextures(scene, save) {
     }
   }
   const failed = [...missingModels.values()].filter((model) => !scene.textures.exists(model.key));
-  if (failed.length > 0) {
+  // The browser can stand a building in for its art and keep fetching it
+  // (placeSpriteBuilding), so a slow connection must not refuse the whole city.
+  if (failed.length > 0 && globalThis.HEUNG_SHING_CONFIG?.platform !== 'web') {
     throw new Error(`Could not load ${failed.length} saved building texture(s)`);
   }
   if (typeof markZoneModelTextureUsed === 'function') {

@@ -189,7 +189,7 @@ function showResolutionNewspaper(article, postId = '') {
   setTextContent('newspaper-subhead', article.subhead || '');
   const forumImage = document.getElementById('forum-post-image');
   if (forumImage) {
-    const imagePath = normalizeForumImagePath(article.image);
+    const imagePath = resolveForumImageSrc(article.image);
     forumImage.hidden = !imagePath;
     forumImage.src = imagePath;
     forumImage.alt = article.headline || '';
@@ -891,7 +891,7 @@ function renderForumHistory(filter = 'all') {
     if (post.image) {
       const thumbnail = document.createElement('img');
       thumbnail.className = 'forum-thread-thumb';
-      thumbnail.src = post.image;
+      thumbnail.src = resolveForumImageSrc(post.image);
       thumbnail.alt = '';
       thumbnail.loading = 'lazy';
       summary.appendChild(thumbnail);
@@ -901,7 +901,7 @@ function renderForumHistory(filter = 'all') {
     if (post.image) {
       const image = document.createElement('img');
       image.className = 'forum-thread-image';
-      image.src = post.image;
+      image.src = resolveForumImageSrc(post.image);
       image.alt = post.headline;
       image.loading = 'lazy';
       content.appendChild(image);

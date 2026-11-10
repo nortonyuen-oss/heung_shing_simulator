@@ -462,68 +462,140 @@ function prepareZoneMetadataForLoadedTextures(scene) {
   prepareIndustrialBuildingModelMetadata(scene);
 }
 
-function requestZoneModelTexture(scene, model, callback = null) {
+// Lazy model art is fetched in small parallel batches. A serial queue made a
+// browser city wait one network round trip per building, which is what made
+// art look "missing" on connections that had plenty of bandwidth.
+const ZONE_TEXTURE_BATCH_SIZE = 6;
+const ZONE_TEXTURE_FAST_ATTEMPTS = 3;
+const ZONE_TEXTURE_SLOW_RETRY_MS = [10000, 30000, 60000];
+
+// options.persistent: the caller already shows a stand-in for this art (a
+// building on the map), so the request is never abandoned - after the quick
+// attempts it keeps retrying in the background until the art arrives or every
+// sprite waiting on it is gone. Other callers hear `false` after the quick
+// attempts, exactly as before.
+// options.sprite: a world sprite waiting on the art; on-screen ones load first.
+function requestZoneModelTexture(scene, model, callback = null, options = {}) {
   if (!scene || !model) return false;
   if (scene.textures.exists(model.key)) {
     markZoneModelTextureUsed(model.key);
     callback?.(true);
     return true;
   }
-  const queued = pendingZoneTextureLoads.get(model.key);
-  if (queued) {
-    if (callback) queued.callbacks.push(callback);
-    return false;
+  let request = pendingZoneTextureLoads.get(model.key);
+  if (!request) {
+    request = { model, callbacks: [], sprites: [], attempts: 0, delayed: false, loading: false, timer: null };
+    pendingZoneTextureLoads.set(model.key, request);
   }
-  pendingZoneTextureLoads.set(model.key, {
-    model,
-    callbacks: callback ? [callback] : [],
-    attempts: 0,
-    delayed: false,
-  });
+  if (callback) request.callbacks.push({ listener: callback, persistent: !!options.persistent });
+  if (options.sprite) request.sprites.push(options.sprite);
   pumpZoneTextureLoadQueue(scene);
   return false;
+}
+
+function isZoneTextureRequestOnScreen(scene, request) {
+  const view = scene.cameras?.main?.worldView;
+  if (!view) return false;
+  const margin = 200;
+  return request.sprites.some((sprite) => sprite.active
+    && sprite.x >= view.x - margin && sprite.x <= view.right + margin
+    && sprite.y >= view.y - margin && sprite.y <= view.bottom + margin * 3);
+}
+
+function settleZoneTextureRequest(scene, key, request, loaded) {
+  if (loaded) {
+    pendingZoneTextureLoads.delete(key);
+    markZoneModelTextureUsed(key);
+    request.callbacks.forEach(({ listener }) => listener(true));
+    return;
+  }
+  request.attempts += 1;
+  if (request.attempts < ZONE_TEXTURE_FAST_ATTEMPTS) {
+    delayZoneTextureRequest(scene, key, request, 150 * (2 ** (request.attempts - 1)));
+    return;
+  }
+  // Quick attempts are spent: callers that cannot wait are told so...
+  request.callbacks.filter(({ persistent }) => !persistent).forEach(({ listener }) => listener(false));
+  request.callbacks = request.callbacks.filter(({ persistent }) => persistent);
+  request.sprites = request.sprites.filter((sprite) => sprite.active);
+  // ...and art that a standing building still needs keeps trying, slowly.
+  if (request.callbacks.length === 0 || (request.sprites.length === 0 && request.hadSprites)) {
+    pendingZoneTextureLoads.delete(key);
+    request.callbacks.forEach(({ listener }) => listener(false));
+    return;
+  }
+  const slowIndex = Math.min(request.attempts - ZONE_TEXTURE_FAST_ATTEMPTS, ZONE_TEXTURE_SLOW_RETRY_MS.length - 1);
+  delayZoneTextureRequest(scene, key, request, ZONE_TEXTURE_SLOW_RETRY_MS[slowIndex]);
+}
+
+function delayZoneTextureRequest(scene, key, request, delayMs) {
+  request.delayed = true;
+  request.timer = setTimeout(() => {
+    request.timer = null;
+    if (pendingZoneTextureLoads.get(key) !== request) return;
+    request.delayed = false;
+    pumpZoneTextureLoadQueue(scene);
+  }, delayMs);
+}
+
+// The connection came back: retry everything that was waiting out a delay.
+function retryDelayedZoneTextureLoads(scene) {
+  if (!scene) return;
+  pendingZoneTextureLoads.forEach((request) => {
+    if (!request.delayed) return;
+    clearTimeout(request.timer);
+    request.timer = null;
+    request.delayed = false;
+  });
+  pumpZoneTextureLoadQueue(scene);
+}
+
+if (typeof globalThis.addEventListener === 'function') {
+  globalThis.addEventListener('online', () => retryDelayedZoneTextureLoads(
+    typeof activeScene !== 'undefined' ? activeScene : null,
+  ));
 }
 
 function pumpZoneTextureLoadQueue(scene) {
   if (!scene || scene.zoneTextureLoadActive || pendingZoneTextureLoads.size === 0) return;
   if (scene.load.isLoading()) {
-    scene.load.once('complete', () => pumpZoneTextureLoadQueue(scene));
+    if (!scene.zoneTextureLoadWaiting) {
+      scene.zoneTextureLoadWaiting = true;
+      scene.load.once('complete', () => {
+        scene.zoneTextureLoadWaiting = false;
+        pumpZoneTextureLoadQueue(scene);
+      });
+    }
     return;
   }
-  const nextRequest = [...pendingZoneTextureLoads.entries()]
-    .find(([, request]) => !request.delayed);
-  if (!nextRequest) return;
-  const [key, request] = nextRequest;
-  pendingZoneTextureLoads.delete(key);
+  const ready = [...pendingZoneTextureLoads.entries()].filter(([, request]) => !request.delayed && !request.loading);
+  if (ready.length === 0) return;
+  // Map insertion order is request order; a stable sort keeps it within each group.
+  const batch = ready
+    .map((entry) => ({ entry, onScreen: isZoneTextureRequestOnScreen(scene, entry[1]) }))
+    .sort((a, b) => Number(b.onScreen) - Number(a.onScreen))
+    .slice(0, ZONE_TEXTURE_BATCH_SIZE)
+    .map(({ entry }) => entry);
   scene.zoneTextureLoadActive = true;
-  const separator = request.model.path.includes('?') ? '&' : '?';
-  scene.load.image(
-    request.model.key,
-    `${request.model.path}${separator}loadAttempt=${request.attempts + 1}`,
-  );
+  batch.forEach(([key, request]) => {
+    request.loading = true;
+    if (request.sprites.length > 0) request.hadSprites = true;
+    const separator = request.model.path.includes('?') ? '&' : '?';
+    scene.load.image(key, `${request.model.path}${separator}loadAttempt=${request.attempts + 1}`);
+  });
   scene.load.once('complete', () => {
     scene.zoneTextureLoadActive = false;
-    const loaded = scene.textures.exists(request.model.key);
-    if (loaded) {
-      markZoneModelTextureUsed(request.model.key);
-      prepareZoneMetadataForLoadedTextures(scene);
-    }
-    if (!loaded && request.attempts < 2) {
-      request.attempts += 1;
-      request.delayed = true;
-      pendingZoneTextureLoads.set(key, request);
-      setTimeout(() => {
-        const delayedRequest = pendingZoneTextureLoads.get(key);
-        if (!delayedRequest) return;
-        delayedRequest.delayed = false;
-        pumpZoneTextureLoadQueue(scene);
-      }, 150 * (2 ** (request.attempts - 1)));
-    } else {
-      request.callbacks.forEach((listener) => listener(loaded));
-      // Placement callbacks commit their buildingData reference first. The LRU
-      // can then distinguish an in-use texture from a rotation-only texture.
-      if (loaded) evictUnusedZoneTextures(scene);
-    }
+    let anyLoaded = false;
+    batch.forEach(([key, request]) => {
+      request.loading = false;
+      if (scene.textures.exists(key)) anyLoaded = true;
+    });
+    // Metadata first: placement callbacks read it for the art that just arrived.
+    if (anyLoaded) prepareZoneMetadataForLoadedTextures(scene);
+    batch.forEach(([key, request]) => settleZoneTextureRequest(scene, key, request, scene.textures.exists(key)));
+    // Placement callbacks commit their buildingData reference first. The LRU
+    // can then distinguish an in-use texture from a rotation-only texture.
+    if (anyLoaded) evictUnusedZoneTextures(scene);
     pumpZoneTextureLoadQueue(scene);
   });
   scene.load.start();

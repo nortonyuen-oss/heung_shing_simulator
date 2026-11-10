@@ -291,9 +291,12 @@ test('a fixed building resolves its baked night art from the model table', () =>
   // Orientation swaps replace the texture directly and must drop the night
   // bookkeeping, like the growth swap does.
   const harbor = main.slice(main.indexOf('function refreshHarborSprites('), main.indexOf('function getBusDepotVisualCorner('));
-  assert.match(harbor, /sprite\.setTexture\(newKey\);[\s\S]{0,300}sprite\.__dayTextureKey = null;/);
+  // The swap goes through setFixedBuildingSpriteTexture (the browser may still
+  // be downloading the new art); the bookkeeping reset runs when it is applied.
+  const reset = /const applyVisual = \(\) => \{[\s\S]{0,300}sprite\.__dayTextureKey = null;[\s\S]{0,1200}setFixedBuildingSpriteTexture\(scene, sprite, newKey, applyVisual\)\) applyVisual\(\);/;
+  assert.match(harbor, reset);
   const depot = main.slice(main.indexOf('function applyBusDepotVisualKey('), main.indexOf('function refreshBusDepotSprites('));
-  assert.match(depot, /sprite\.setTexture\(newKey\);[\s\S]{0,200}sprite\.__dayTextureKey = null;/);
+  assert.match(depot, reset);
 });
 
 test('each building picks its own night variant, and the city lights up and dims block by block', () => {

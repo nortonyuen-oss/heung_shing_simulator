@@ -487,6 +487,9 @@ function fitNightTextureToDay(scene, nightKey, dayKey) {
 }
 
 function applyBuildingNightTexture(scene, sprite, wantNight, variant = 'night') {
+  // Browser: the day art is still downloading and the lot shows a stand-in
+  // with its own geometry. Night art waits for it (the swap re-marks dirty).
+  if (sprite.__artPending) return false;
   const key = getBuildingNightTextureKey(sprite, variant);
   if (!key) return false;
   if (wantNight) {

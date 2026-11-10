@@ -506,6 +506,19 @@ function normalizeForumImagePath(value) {
   return /^UI\/news\/[a-zA-Z0-9_.-]+\.webp$/.test(migrated) ? migrated : '';
 }
 
+// What an <img> should actually request for a stored forum image path. Saves
+// keep the logical path (so a city moves freely between desktop and browser);
+// the browser build serves bundled art under content-hashed names and has no
+// local /api proxy, so both kinds are resolved here at display time.
+const FORUM_PUBLIC_IMAGE_BASE = 'https://heung-shing-forum.nortonyuen.workers.dev/images/';
+function resolveForumImageSrc(value) {
+  const path = normalizeForumImagePath(value);
+  if (!path || globalThis.HEUNG_SHING_CONFIG?.platform !== 'web') return path;
+  const proxied = '/api/forum/images/';
+  if (path.startsWith(proxied)) return FORUM_PUBLIC_IMAGE_BASE + path.slice(proxied.length);
+  return typeof resolveBundledAssetPath === 'function' ? resolveBundledAssetPath(path) : path;
+}
+
 // Typhoon lifecycle used to be counted in calendar-day ticks (4-9 per storm);
 // it is now counted in displayed hours (18-36). A storm in a legacy save keeps
 // its fractional progress so the signal it was flying carries on from there.

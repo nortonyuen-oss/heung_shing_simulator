@@ -132,6 +132,86 @@ function placeHouseModel(scene, row, col, tool, requestedModelKey = null) {
   };
 }
 
+// ── Browser stand-in for art that is still downloading ───────────────────────
+// The browser build fetches building art on demand. Until it arrives the lot
+// shows a translucent grey hoarding sized to the footprint, so a slow download
+// reads as "under construction" instead of a hole in the street.
+const PENDING_BUILDING_TEXTURE_PREFIX = 'web-pending-building-';
+const PENDING_BUILDING_WALL_HEIGHT = 16;
+
+// Screen-space edge lengths (in tiles) either side of the lot's lowest corner.
+function getPendingBuildingEdges(footprintCols = 1, footprintRows = 1) {
+  const turned = (typeof mapRotation === 'undefined' ? 0 : mapRotation) % 2 === 1;
+  return turned
+    ? { left: footprintRows, right: footprintCols }
+    : { left: footprintCols, right: footprintRows };
+}
+
+function getPendingBuildingTextureKey(scene, footprintCols = 1, footprintRows = 1) {
+  const { left, right } = getPendingBuildingEdges(footprintCols, footprintRows);
+  const key = `${PENDING_BUILDING_TEXTURE_PREFIX}${left}x${right}`;
+  if (scene.textures.exists(key)) return key;
+  const hw = TILE_WIDTH / 2;
+  const hh = TILE_HEIGHT / 2;
+  const wall = PENDING_BUILDING_WALL_HEIGHT;
+  const canvas = document.createElement('canvas');
+  canvas.width = (left + right) * hw;
+  canvas.height = (left + right) * hh + wall;
+  const ctx = canvas.getContext('2d');
+  // Ground corners of the lot; `bottom` is the sprite's origin.
+  const bottom = { x: left * hw, y: canvas.height };
+  const leftCorner = { x: 0, y: canvas.height - left * hh };
+  const rightCorner = { x: canvas.width, y: canvas.height - right * hh };
+  const top = { x: right * hw, y: wall };
+  const up = (point) => ({ x: point.x, y: point.y - wall });
+  const quad = (points, fill, stroke) => {
+    ctx.beginPath();
+    points.forEach((point, index) => (index ? ctx.lineTo(point.x, point.y) : ctx.moveTo(point.x, point.y)));
+    ctx.closePath();
+    if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+    if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 1; ctx.stroke(); }
+  };
+  quad([top, rightCorner, bottom, leftCorner], 'rgba(150,156,164,0.28)');
+  quad([leftCorner, top, up(top), up(leftCorner)], 'rgba(176,182,190,0.26)');
+  quad([top, rightCorner, up(rightCorner), up(top)], 'rgba(150,156,164,0.26)');
+  quad([leftCorner, bottom, up(bottom), up(leftCorner)], 'rgba(168,174,182,0.5)', 'rgba(225,229,234,0.55)');
+  quad([bottom, rightCorner, up(rightCorner), up(bottom)], 'rgba(128,134,142,0.5)', 'rgba(225,229,234,0.55)');
+  quad([up(top), up(rightCorner), up(bottom), up(leftCorner)], null, 'rgba(235,238,242,0.6)');
+  // Drawn first, then registered: createCanvas()+refresh() leaves the mip
+  // chain empty and the sprite vanishes when zoomed out.
+  scene.textures.addCanvas(key, canvas);
+  return key;
+}
+
+// Swap a standing building to another fixed model's art (a depot or port
+// turning to face the road/water). In the browser that art may not have been
+// downloaded yet: keep what is showing and swap when it arrives.
+function setFixedBuildingSpriteTexture(scene, sprite, key, onReady = null) {
+  const model = getFixedBuildingModelBySpriteKey(key);
+  const textureKey = resolveCanonicalTextureKey(model ? getFixedBuildingTextureKey(model) : key);
+  if (scene.textures.exists(textureKey) || globalThis.HEUNG_SHING_CONFIG?.platform !== 'web') {
+    sprite.__artPending = false;
+    sprite.__wantedTextureKey = null;
+    sprite.setTexture(textureKey);
+    return true;
+  }
+  if (sprite.__wantedTextureKey === textureKey) return false;
+  sprite.__wantedTextureKey = textureKey;
+  if (!model) return false;
+  requestZoneModelTexture(scene, { key: textureKey, path: getFixedBuildingModelLoadPath(model) }, (loaded) => {
+    if (!loaded || !sprite.active || sprite.__wantedTextureKey !== textureKey) return;
+    sprite.__artPending = false;
+    sprite.__wantedTextureKey = null;
+    sprite.__dayTextureKey = null;
+    sprite.setTexture(textureKey);
+    sprite.renderTextureKey = textureKey;
+    if (onReady) onReady();
+    else positionBuilding(scene, sprite);
+    markBuildingNightArtDirty(scene);
+  }, { persistent: true, sprite });
+  return false;
+}
+
 function placeSpriteBuilding(scene, row, col, key, options = {}) {
   options = applyBuildingGroundFit(scene, key, normalizeSpriteBuildingOptions(key, options));
   // Roadside furniture follows how built-up each street is (street-furniture.js).
@@ -144,24 +224,32 @@ function placeSpriteBuilding(scene, row, col, key, options = {}) {
   const anchor = getBuildingAnchor(row, col, footprintCols, footprintRows, options.anchorMode);
   const elevOffset = getBuildingElevationOffset(row, col, footprintCols, footprintRows);
   const deferred = globalThis.HEUNG_SHING_CONFIG?.platform === 'web' && !scene.textures.exists(textureKey);
-  if (deferred && !scene.textures.exists('web-pending-building')) scene.textures.createCanvas('web-pending-building', 1, 1).refresh();
   const building = scene.add.image(
     anchor.x + scene.offsetX + (options.offsetX ?? 0),
     anchor.y + scene.offsetY - BUILDING_SURFACE_Y_OFFSET + elevOffset + (options.offsetY ?? 0),
-    deferred ? 'web-pending-building' : textureKey,
+    deferred ? getPendingBuildingTextureKey(scene, footprintCols, footprintRows) : textureKey,
   );
   if (deferred) {
-    const model = getAllZoneModels().find(candidate => candidate.key === key) ?? getFixedBuildingModelBySpriteKey(key);
+    building.__artPending = true;
+    building.__wantedTextureKey = textureKey;
+    const model = getAllZoneModels().find(candidate => candidate.key === key) ?? getFixedBuildingModelBySpriteKey(key)
+      ?? getFixedBuildingModelBySpriteKey(textureKey);
     if (model) requestZoneModelTexture(scene, { ...model, key: textureKey,
       path: model.logicalPath ? resolveModelAssetPath(model.logicalPath) : getFixedBuildingModelLoadPath(model) }, loaded => {
-      if (!loaded || !building.active) return;
+      if (!loaded || !building.active || building.__wantedTextureKey !== textureKey) return;
+      building.__artPending = false;
+      building.__wantedTextureKey = null;
+      building.__dayTextureKey = null;
       building.setTexture(textureKey);
+      building.renderTextureKey = textureKey;
       const next = applyBuildingGroundFit(scene, key, normalizeSpriteBuildingOptions(key, options));
       building.setOrigin(next.originX ?? 0.5, next.originY ?? 1);
       building.setScale(next.scaleX ?? next.scale ?? 1, next.scaleY ?? next.scale ?? 1);
+      building.spriteOffsetX = next.offsetX ?? 0;
+      building.spriteOffsetY = next.offsetY ?? 0;
       positionBuilding(scene, building);
       markBuildingNightArtDirty(scene);
-    });
+    }, { persistent: true, sprite: building });
   }
   addToRenderLayer(scene, building, 'objectLayer');
   building.setOrigin(options.originX ?? 0.5, options.originY ?? 1);
@@ -195,6 +283,7 @@ function placeSpriteBuilding(scene, row, col, key, options = {}) {
   building.spriteOffsetX = options.offsetX ?? 0;
   building.spriteOffsetY = options.offsetY ?? 0;
   building.anchorMode = options.anchorMode;
+  if (deferred) positionBuilding(scene, building);
   building.setInteractive({ useHandCursor: true });
   building.on('pointerdown', (pointer) => {
     if (typeof handleBuildingLightCalibrationPick === 'function'
@@ -511,10 +600,18 @@ function syncEventGroundPavingSprite(scene, sprite) {
     (r,c) => heightMap[r]?.[c] ?? 0, typeof mapRotation === 'undefined' ? 0 : mapRotation);
   const key = mask === 15 ? 'event_ground' : `event_ground_edges${mask}`;
   const texture = resolveCanonicalTextureKey(key);
-  if (scene.textures.exists(texture) && sprite.renderTextureKey !== texture) {
+  if (sprite.renderTextureKey === texture) {
+    if (!sprite.__artPending) sprite.__wantedTextureKey = null; // drop a swap that is no longer wanted
+    return;
+  }
+  if (scene.textures.exists(texture)) {
+    if (sprite.__artPending) return; // its own art is still arriving; re-synced when it lands
     sprite.setTexture(texture);
     sprite.renderTextureKey = texture;
     sprite.__dayTextureKey = null;
+  } else if (globalThis.HEUNG_SHING_CONFIG?.platform === 'web' && !sprite.__artPending) {
+    // Edge variants are fetched on demand in the browser; this re-runs once it arrives.
+    setFixedBuildingSpriteTexture(scene, sprite, key);
   }
 }
 
@@ -537,6 +634,21 @@ function positionBuilding(scene, building) {
     building.anchorMode,
   );
   const elevOffset = getBuildingElevationOffset(building.mapRow, building.mapCol, footprintCols, footprintRows);
+  if (building.__artPending) {
+    // The stand-in is drawn to the lot itself, so it ignores the real art's
+    // origin, scale and offsets until that art arrives.
+    const pendingKey = getPendingBuildingTextureKey(scene, footprintCols, footprintRows);
+    if (building.texture?.key !== pendingKey) building.setTexture(pendingKey);
+    const { left, right } = getPendingBuildingEdges(footprintCols, footprintRows);
+    building.setOrigin(left / (left + right), 1);
+    building.setScale(1);
+    building.setPosition(
+      anchor.x + scene.offsetX,
+      anchor.y + scene.offsetY - BUILDING_SURFACE_Y_OFFSET + elevOffset,
+    );
+    building.setDepth(getBuildingSortDepth(anchor.y, footprintCols, footprintRows, elevOffset));
+    return;
+  }
   building.setPosition(
     anchor.x + scene.offsetX + (building.spriteOffsetX ?? 0),
     anchor.y + scene.offsetY - BUILDING_SURFACE_Y_OFFSET + elevOffset + (building.spriteOffsetY ?? 0),

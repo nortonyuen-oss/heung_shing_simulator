@@ -57,6 +57,8 @@
 
 **實測結果**（真實 Phaser 鏡頭）：雙指縮放錨點誤差 0.00px（規格要求 ≤ 2px）；單指平移與手指位移一致；平移／縮放／輕點／`touchcancel`／面板上拖動，全部零城市變動（建路工具選取下亦然）；桌面滑鼠拖路照常。
 
+**真機初步確認**（2026-11-11，iPhone Safari，同一 Wi-Fi 下用瀏覽器版 build 經 `?ui=touch` 開啟）：單指平移、雙指縮放手感正常。屬非正式檢查，Phase D 嗰個正式真機矩陣（iPhone／Android／iPad × Safari／Chrome）未開始；單點（tap）同拖到一半取消未測。
+
 **發現（既有問題，未改）**：桌面滾輪縮放（`setMapZoom`）以 `scroll + screen/zoom` 計錨點，但 Phaser 鏡頭以畫面中心為原點縮放，所以每格滾輪錨點會偏離游標約 **75px**（1280px 寬、zoom 0.7→0.77 實測）。觸控縮放唔受影響（用正確公式）。是否修正桌面滾輪（會令滾輪縮放真正以游標為中心）— 待 Norton 決定，修正只需將 `setMapZoom` 改用 `mapCameraScrollForAnchor`。
 
 **Gate**：縮放／取消／面板操作零城市變化 ✅；桌面操作無回歸 ✅；`npm test` 全過（commit 後確認）。

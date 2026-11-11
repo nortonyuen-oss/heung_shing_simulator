@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <script src="ui-profile.js"></script>
   <title>香城模擬器 | The City of Heung Shing v5.5.1 — 【香城最大模擬器 正式上線！】</title>
   <link rel="icon" type="image/png" href="build/icon.png" />
   <style>
@@ -41,6 +42,15 @@
     #game-container canvas {
       display: block;
       image-rendering: auto;
+    }
+
+    /* Touch UI: the map canvas owns every finger (map-input-controller.js); the browser must not
+       scroll, zoom or select text there. Panels keep their own scrolling. */
+    [data-ui-profile="touch"] #game-container {
+      touch-action: none;
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
     }
 
     #drone-show-overlay {

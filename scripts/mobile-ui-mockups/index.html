@@ -9,10 +9,11 @@
 <body>
 
 <h1>香城模擬器 手機版 — B0 設計稿</h1>
+<p class="lead" style="background:#d6efdf;border:1px solid #14612f;border-radius:10px;padding:8px 12px;color:#14612f"><b>✅ 已凍結（2026-11-11，Norton 批准）</b> — Phase B 功能按本稿實作；之後改稿須經 Norton 同意，並同步更新 <code>docs/mobile-ui-work-plan.md</code>。</p>
 <p class="lead">規格 §6.6 要求「先審設計稿、後寫功能」。本稿為靜態 HTML/CSS（不屬遊戲代碼，亦不會上線），沿用遊戲現有 <code>--ui-*</code> 色彩、名牌貼圖、墨綠走馬燈、工具名稱與成本。<b>橫向 844×390 為完整建造畫面</b>；直向 390×844 只做載入、存檔、查詢與管理（決定 2）。圖示以 emoji 暫代，實作時沿用遊戲原圖示。</p>
 
 <div class="review">
-  <h3>請你審批（逐項回覆「OK」或指出要改）</h3>
+  <h3>審批結果</h3>
   <ol>
     <li><b>整體布局</b>：頂部狀態列＋底部收放條（點開 5 入口）＋右側停靠面板＋建造確認列（畫面 2、2b、3a、4）。</li>
     <li><b>建造流程</b>：選工具 → 點地圖預覽 → 微調／旋轉 → 確認；單指拖動只平移、不塗畫（畫面 4–8）。</li>
@@ -423,7 +424,7 @@
     <li><b>手勢</b>：跟規格——單指拖動＝平移、雙指＝縮放＋平移、tap≤300ms＝選取；<b>唔需要長按</b>。建造草稿靠「點兩點＋確認」，唔靠拖動。</li>
     <li><b>微調鍵</b>：138×138px（4 鍵 44px），預設展開，可收合。</li>
   </ol>
-  <p class="pending">仍待審批：其餘畫面有冇要改。審批後（Phase B1）先開始寫 <code>tool-actions.js</code>／<code>build-session.js</code>。稿內示例數據（站名、覆蓋率、人手、指數）只供布局用途。</p>
+  <p class="pending">已凍結。Phase A（輸入安全）完成後，Phase B1 開始寫 <code>tool-actions.js</code>／<code>build-session.js</code>。稿內示例數據（站名、覆蓋率、人手、指數）只供布局用途。</p>
 </div>
 
 </body>

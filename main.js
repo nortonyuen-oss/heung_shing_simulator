@@ -1240,6 +1240,10 @@ function create() {
     changeMapZoom(this, deltaY < 0 ? 1 : -1, pointer.x, pointer.y);
   });
 
+  // Touch UI profile: one controller owns every finger on the canvas (pan, pinch, tap).
+  // It stands down entirely in the desktop profile.
+  if (typeof installMapTouchInput === 'function') installMapTouchInput(this);
+
   // Spacebar pause shortcut
   this.input.keyboard.on('keydown-SPACE', () => toggleSimPause());
 
@@ -1654,6 +1658,13 @@ function setMapZoom(scene, requestedZoom, anchorScreenX, anchorScreenY) {
   camera.setZoom(nextZoom);
   camera.scrollX = worldX - anchorX / nextZoom;
   camera.scrollY = worldY - anchorY / nextZoom;
+  onMapViewChanged(scene);
+  return nextZoom;
+}
+
+// Everything that has to follow a change of map zoom or position beyond the camera itself.
+// Shared by wheel / +/- zoom (setMapZoom) and the touch pinch (map-input-controller.js).
+function onMapViewChanged(scene) {
   updateTerrainViewportCulling(scene, true);
   if (typeof invalidateTrafficVisualView === 'function') invalidateTrafficVisualView(scene);
   if (typeof invalidateTransportVisuals === 'function') invalidateTransportVisuals(scene);
@@ -1663,7 +1674,6 @@ function setMapZoom(scene, requestedZoom, anchorScreenX, anchorScreenY) {
   syncWeatherFxToCamera(scene);
   if (typeof updateDynamicLighting === 'function') updateDynamicLighting(scene); // cloud layer's zoom<1.2 gate reacts immediately
   updateMapNavigationControls(scene);
-  return nextZoom;
 }
 
 function changeMapZoom(scene, direction, anchorScreenX, anchorScreenY) {

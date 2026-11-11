@@ -57,7 +57,14 @@ function setupToolMenu() {
   initSportsGroundToolMenu(menu);
   setupGroupedToolMenus(menu);
 
+  // A cancelled pointer (the browser took it over, a call came in, ...) abandons the stroke:
+  // previews are cleared and nothing is committed or spent.
+  window.addEventListener('pointercancel', cancelPaintStroke);
+
   window.addEventListener('pointerup', (event) => {
+    // The touch UI's map controller owns every finger; a finger lifting must neither commit
+    // nor end a mouse or pen stroke that is still in progress.
+    if (event.pointerType === 'touch' && typeof isTouchUiProfile === 'function' && isTouchUiProfile()) return;
     const wasPainting = isPainting;
     // ── Zone rect-fill (BEFORE clearing state) ────────────────────────────────
     // Phaser defers its own pointerup event to the next update() frame, so the
@@ -584,6 +591,25 @@ function setupHouseToolMenu(menu) {
     updateHouseToolUi();
     openHouseSizeMenu();
   });
+}
+
+function cancelPaintStroke() {
+  if (activeScene?.zonePreviewGraphic)        activeScene.zonePreviewGraphic.clear();
+  if (activeScene?.bridgePreviewGraphic)      activeScene.bridgePreviewGraphic.clear();
+  if (activeScene?.tunnelPreviewLabel)        activeScene.tunnelPreviewLabel.setVisible(false);
+  if (activeScene?.buildingGuideGraphic)      activeScene.buildingGuideGraphic.clear();
+  if (activeScene?.inspectHighlightGraphic)   activeScene.inspectHighlightGraphic.clear();
+  if (isPainting && activeScene && typeof isTyphoonShelterBasinDrag === 'function' && isTyphoonShelterBasinDrag()) {
+    cancelTyphoonShelterDrag(activeScene);
+  }
+  isPainting     = false;
+  lastEditedTile = null;
+  dragStartTile  = null;
+  lastPaintTile  = null;
+  lastKnownTile  = null;
+  clearHousePressTimer();
+  clearTerrainPressTimer();
+  Object.keys(zonePressTimers).forEach(clearZonePressTimer);
 }
 
 function clearHousePressTimer() {

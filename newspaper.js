@@ -904,6 +904,11 @@ function renderForumHistory(filter = 'all') {
       image.src = resolveForumImageSrc(post.image);
       image.alt = post.headline;
       image.loading = 'lazy';
+      if (/^UI\/news\/heungShingSimulatorAd\.webp$/.test(post.image)) {
+        image.classList.add('is-link');
+        image.title = t('forum.ad.openWebsite');
+        image.addEventListener('click', openHeungShingSimulatorAd);
+      }
       content.appendChild(image);
     }
     (post.body || []).forEach((text) => { const p = document.createElement('p'); p.textContent = text; content.appendChild(p); });
@@ -1775,4 +1780,72 @@ function announceLandmarkUnlockNotice(buildingType, reason = '') {
     body: [t('forum.landmarkUnlocked.body', { city: cityName, building: name, speaker })],
     source: 'local',
   }, { category: '城市發展' });
+}
+
+function initializeHeungShingSimulatorAdForum() {
+  const language = typeof getCurrentLanguage === 'function' ? getCurrentLanguage() : 'zhHant';
+  if (language === 'en') {
+    addForumPost({
+      headline: '[Advertisement] Heung Shing Simulator - Build Your Dream City!',
+      image: 'UI/news/heungShingSimulatorAd.webp',
+      body: ['Ever dreamed of managing your own city? Heung Shing Simulator lets you build, grow, and lead a thriving metropolis. Download now and experience city planning like never before!'],
+      source: 'commercial',
+      social: {
+        likes: 2400,
+        laughs: 180,
+        angry: 45,
+        commentCount: 156,
+        shares: 890,
+        comments: [
+          { author: 'City Planner', text: 'Finally someone made it. Better than the real government\'s planning.' },
+          { author: 'Budget Critic', text: 'At least in the game you can actually control where money goes. Try that IRL lol' },
+          { author: 'Gamer Kid', text: 'This is more fun than actual politics, no cap.' },
+        ],
+      },
+    }, { id: 'ad-heung-shing-sim-forum', category: '城中熱話' });
+  } else if (language === 'ja') {
+    addForumPost({
+      headline: '【広告】香城シミュレーター - あなたの街を作ろう！',
+      image: 'UI/news/heungShingSimulatorAd.webp',
+      body: ['あなたの理想の都市を作ってみませんか？香城シミュレーターで、街を建設し、発展させ、リードできます。今ダウンロードして、都市計画を体験しましょう！'],
+      source: 'commercial',
+      social: {
+        likes: 2400,
+        laughs: 180,
+        angry: 45,
+        commentCount: 156,
+        shares: 890,
+        comments: [
+          { author: '都市計画家', text: 'やっと来たか。現実の政治よりマシだな。' },
+          { author: '予算批評家', text: 'ゲーム内では金の流れがわかる。実際はどこへ消える？' },
+          { author: 'ゲーマー小僧', text: 'リアル政治より面白い。ノーキャップ。' },
+        ],
+      },
+    }, { id: 'ad-heung-shing-sim-forum-ja', category: '城中熱話' });
+  } else {
+    addForumPost({
+      headline: '【廣告】香城模擬器 - 建設你個夢想香城！',
+      image: 'UI/news/heungShingSimulatorAd.webp',
+      body: ['想過做香城市長嗎？香城模擬器俾你設計、管理、發展一個繁榮都市。立即下載，體驗做市長既滋味啦！'],
+      source: 'commercial',
+      social: {
+        likes: 2400,
+        laughs: 180,
+        angry: 45,
+        commentCount: 156,
+        shares: 890,
+        comments: [
+          { author: '城市規劃師', text: '終於等到。比真實嘅政策好得多。' },
+          { author: '財務評論員', text: '遊戲度預算去向清楚。真實個呢？錢去咗邊度呀。' },
+          { author: '打機小子', text: '比真實政治好玩一百倍。無啦啦。' },
+        ],
+      },
+    }, { id: 'ad-heung-shing-sim-forum-zh', category: '城中熱話' });
+  }
+}
+
+function openDiscussionForum() {
+  if (typeof openForumHistory === 'function') {
+    openForumHistory();
+  }
 }

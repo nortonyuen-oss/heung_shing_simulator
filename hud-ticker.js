@@ -24,12 +24,14 @@ const TICKER_AD_MESSAGES = [
   { id: 'ad-peanut-snack', key: 'news.ad.8' },
   { id: 'ad-meat-patty-rice', key: 'news.ad.9' },
   { id: 'ad-distilled-water', key: 'news.ad.10' },
+  { id: 'ad-heung-shing-simulator', key: 'news.ad.heungShingSimulator', clickable: true, action: 'openHeungShingSimulatorAd' },
 ];
 
 let tickerShowNextTip = null;
 let lastTickerTopicId = '';
 let lastTickerAdId = '';
 let tickerCycleCount = 0;
+let currentTickerHeadline = {};
 // Approved 宣傳2-零速傳播 submissions, synced once per startTicker() call (see syncPlayerTickerAds()
 // below) and merged into TICKER_AD_MESSAGES at selection time. Unlike that fixed pool these have no
 // i18n key — {id, text} — so the code picking an ad below reads .text directly when .key is absent.
@@ -488,7 +490,7 @@ function pickTickerNewsHeadline() {
       ad = adPool.find((item) => item.id !== lastTickerAdId) || ad;
     }
     lastTickerAdId = ad.id;
-    return { id: ad.id, text: ad.key ? t(ad.key) : ad.text };
+    return { id: ad.id, text: ad.key ? t(ad.key) : ad.text, clickable: ad.clickable, action: ad.action };
   }
 
   const urgent = getUrgentCityNews();
@@ -544,6 +546,9 @@ async function syncPlayerTickerAds() {
 
 function startTicker() {
   if (typeof syncPlayerTickerAds === 'function') syncPlayerTickerAds();
+  if (typeof initializeHeungShingSimulatorAdForum === 'function') {
+    initializeHeungShingSimulatorAdForum();
+  }
   const track = document.getElementById('tip-ticker-track');
   const inner = document.getElementById('tip-ticker-inner');
   if (!track || !inner) return;
@@ -568,10 +573,12 @@ function startTicker() {
   function showNextTip() {
     tickerCycleCount += 1;
     const headline = pickTickerNewsHeadline();
+    currentTickerHeadline = headline;
     lastTickerTopicId = headline.id;
     const cityName = city.name || getDefaultCityName();
     const nextText = String(headline?.text || '').trim() || t('news.fallback.1', { city: cityName });
     inner.textContent = nextText;
+    track.style.cursor = headline.clickable ? 'pointer' : 'default';
 
     // Measure actual rendered width after setting content
     const trackW   = track.offsetWidth;
@@ -608,7 +615,18 @@ function startTicker() {
     }
     showNextTip();
   };
+
+  track.removeEventListener('click', handleTickerClick);
+  track.addEventListener('click', handleTickerClick);
   inner.addEventListener('transitionend', tickerTransitionEndHandler);
+}
+
+// Module-level so repeated startTicker() calls (new/loaded city) replace rather than stack listeners.
+// Only headlines flagged clickable react; plain news text ignores clicks.
+function handleTickerClick() {
+  if (currentTickerHeadline?.clickable && currentTickerHeadline.action === 'openHeungShingSimulatorAd') {
+    openHeungShingSimulatorAd();
+  }
 }
 
 function getPowerPlantTickerWarning() {

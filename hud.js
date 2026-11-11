@@ -81,7 +81,7 @@ function updateStatusAlert() {
   }
 
   badgeEl.title = '';
-  if (mainIconEl) mainIconEl.textContent = '📰';
+  if (mainIconEl) mainIconEl.textContent = '💬';
 }
 
 function updateTaxDisplay() {
@@ -1043,6 +1043,13 @@ function formatCityDate(day, month, year) {
     month: tMonth(safeMonth),
     year: String(safeYear),
   });
+}
+
+function openHeungShingSimulatorAd() {
+  const url = 'https://nortonyuen-oss.github.io/heung_shing_simulator/';
+  if (typeof window !== 'undefined' && typeof window.open === 'function') {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
 }
 
 // ── Metro-style city news ticker (走馬燈) ───────────────────────────────────

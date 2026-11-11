@@ -1,5 +1,5 @@
 const I18N_STORAGE_KEY = 'citybuilder.language';
-let appVersion = '5.5.0';
+let appVersion = '5.5.1';
 let appReleaseTheme = '【香城最大模擬器 正式上線！】';
 const APP_RELEASE_THEMES = {"en": "【Heung Shing's Biggest Simulator — Now Online!】", "zhHant": "【線上遊玩開通】", "ja": "【香城最大のシミュレーター、オンラインで正式公開！】"};
 function localizedReleaseTheme() {

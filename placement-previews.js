@@ -326,3 +326,42 @@ function drawRoadDragPreview(scene, start, end) {
     g.strokePath();
   });
 }
+
+// Touch drafts supply logical tiles and a validated plan; no synthetic Phaser pointer.
+function clearTouchPlacementPreview(scene) {
+  scene?.buildingGuideGraphic?.clear();
+  scene?.mobileEndpointLabels?.forEach((label) => label.setVisible(false));
+}
+
+function drawTouchPlacementPreview(scene, draft) {
+  clearTouchPlacementPreview(scene);
+  if (!draft?.start || !draft.plan) return;
+  const g = scene.buildingGuideGraphic;
+  const plan = draft.plan;
+  const tiles = plan.tiles.length ? plan.tiles : [draft.start];
+  const color = !plan.ok || draft.tool === 'bulldoze' ? 0xe04b49
+    : draft.tool === 'zone-res' ? 0x35c06f : draft.tool === 'zone-com' ? 0x4499ff
+      : draft.tool === 'zone-ind' ? 0xffcc00 : 0x45e6c3;
+  tiles.forEach(({ row, col }) => {
+    if (!isInsideMap(row, col)) return;
+    const geom = getTileFaceGeometry(row, col, scene.offsetX, scene.offsetY);
+    g.fillStyle(color, 0.28).lineStyle(2, color, 0.95).beginPath();
+    [geom.top, geom.right, geom.bottom, geom.left].forEach((point, index) => index ? g.lineTo(point.x, point.y) : g.moveTo(point.x, point.y));
+    g.closePath().fillPath().strokePath();
+  });
+  if (draft.tool === 'road' || draft.tool.startsWith('zone-') || (draft.tool === 'bulldoze' && draft.options.range)) {
+    if (!scene.mobileEndpointLabels) {
+      scene.mobileEndpointLabels = ['A', 'B'].map((text) => {
+        const label = scene.add.text(0, 0, text, { fontSize: '16px', fontStyle: 'bold', color: '#ffffff', backgroundColor: '#1f5fa8', padding: { x: 7, y: 4 } }).setOrigin(0.5, 1).setResolution(2);
+        addToRenderLayer(scene, label, 'effectLayer');
+        return label;
+      });
+    }
+    [draft.start, draft.end].forEach((tile, index) => {
+      const geom = getTileFaceGeometry(tile.row, tile.col, scene.offsetX, scene.offsetY);
+      scene.mobileEndpointLabels[index].setPosition(geom.center.x, geom.top.y - 3)
+        .setScale(1 / scene.cameras.main.zoom).setDepth(getPreviewOverlayDepth(2))
+        .setVisible(index === 0 || draft.ready);
+    });
+  }
+}

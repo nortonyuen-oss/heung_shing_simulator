@@ -213,3 +213,16 @@ svg.overlay { position: absolute; left: 0; top: 0; pointer-events: none; }
 table.cmp { border-collapse: collapse; background: #fff; font-size: 13px; margin: 8px 0; } table.cmp th, table.cmp td { border: 1px solid var(--ui-border-strong); padding: 5px 10px; text-align: left; } table.cmp th { background: var(--ui-panel-strong); }
 .refs { display: flex; flex-wrap: wrap; gap: 18px; } .refs img { display: block; border: 3px solid #1d242c; border-radius: 14px; }
 .pending { margin: 6px 0 0; font-size: 12px; color: var(--ui-text-soft); }
+
+/* 2026-11-12: shared label/value rows keep every top-bar KPI on the same baselines. */
+.kpi { display: grid; grid-template-rows: 12px 18px; align-content: center; height: 44px; }
+.kpi small { line-height: 12px; }
+.kpi strong { line-height: 18px; }
+
+/* 2026-11-12: portrait construction approved in Norton's real-device feedback. */
+.port.portrait-build .confirm { bottom: var(--bottom-h); height: 116px; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 60px 44px; grid-template-areas: 'detail detail' 'cancel approve'; gap: 4px 8px; }
+.port.portrait-build .confirm .tool { grid-area: detail; padding-right: 110px; }
+.port.portrait-build .confirm .cost { grid-area: detail; justify-self: end; }
+.port.portrait-build .confirm .cancel { grid-area: cancel; margin: 0; }
+.port.portrait-build .confirm .approve { grid-area: approve; margin: 0; }
+.port.portrait-build .context { bottom: calc(var(--bottom-h) + 116px); }

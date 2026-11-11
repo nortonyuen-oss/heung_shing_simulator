@@ -4,6 +4,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 const zlib = require('node:zlib');
 const root = process.env.STATIC_DIRECTORY ? path.resolve(process.env.STATIC_DIRECTORY) : path.resolve(__dirname, '../release/web');
+const previewHost = process.env.STATIC_HOST || '127.0.0.1';
+const previewPort = Number(process.env.PORT) || 4173;
 const types = { '.html': 'text/html', '.js': 'application/javascript', '.json': 'application/json', '.css': 'text/css',
   '.png': 'image/png', '.webp': 'image/webp', '.mp3': 'audio/mpeg', '.m4a': 'audio/mp4', '.wav': 'audio/wav' };
 http.createServer((request, response) => {
@@ -21,4 +23,4 @@ http.createServer((request, response) => {
     }
     response.setHeader('Content-Length', body.length); response.end(body);
   } catch { response.writeHead(404, { 'Content-Type': 'text/plain' }); response.end('Not found'); }
-}).listen(Number(process.env.PORT) || 4173, '127.0.0.1', () => console.log(`Static preview: http://127.0.0.1:${Number(process.env.PORT) || 4173}`));
+}).listen(previewPort, previewHost, () => console.log(`Static preview: http://${previewHost}:${previewPort}`));

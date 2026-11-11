@@ -6683,6 +6683,76 @@ const I18N = {
   },
 };
 
+// Mobile-only copy extends the same three language dictionaries as the desktop UI.
+const MOBILE_TRANSLATIONS = {
+  en: {
+    build: 'Build', transport: 'Transport', layers: 'Layers', manage: 'Manage', more: 'More', menu: 'Menu',
+    close: 'Close', back: 'Back', cancel: 'Cancel', confirm: 'Confirm build', demolish: 'Confirm demolition',
+    inspect: 'Inspect', bulldoze: 'Bulldoze', tap: 'Tap a tile to preview', tapStart: '① Tap start A', tapEnd: '② Tap end B', ready: '③ Review and confirm',
+    valid: '{count} valid tiles · {skipped} skipped', blocked: 'Site blocked: check terrain and occupied tiles.', nothing: 'No tiles can be changed here.', outside: 'Keep the draft inside the map.',
+    changed: 'The site or cost changed. Review the updated preview, then confirm again.', built: 'Construction complete.', demolished: 'Demolition complete.',
+    summary: 'Buildings {buildings} · road tiles {roads} · empty {empty} · facilities {facilities} · routes {routes}',
+    irreversible: 'No undo · Whole buildings are removed.',
+    stormDemolition: 'Floating restaurants cannot be removed during a storm.',
+    demolitionTransport: 'Railway and tram demolition will be available in a later touch update.',
+    phaseC: 'Available in a later touch update.', rotate: 'Build and manage your city in portrait or landscape.',
+    single: 'Single tile', range: 'Rectangle', density: 'Density', low: 'Low', medium: 'Medium', high: 'High',
+    nudge: 'Fine adjustment', hideNudge: 'Hide adjustment', showNudge: 'Show adjustment', endA: 'Adjust start A', endB: 'Adjust end B',
+    nw: 'Move one tile upper left', ne: 'Move one tile upper right', sw: 'Move one tile lower left', se: 'Move one tile lower right',
+    overview: 'Overview', beta: 'Touch interface (Beta)', profile: 'Interface', auto: 'Automatic', desktop: 'Desktop', touch: 'Touch (Beta)',
+    file: 'City saves', save: 'Save', saveAs: 'Save as…', load: 'Load city', export: 'Export city', import: 'Import city', mainMenu: 'Main menu',
+    language: 'Language', rename: 'Rename city', zoomIn: 'Zoom in', zoomOut: 'Zoom out', pause: 'Pause / resume',
+    toolInfo: 'Select a tool, tap to preview, then confirm. Drag with one finger to pan; pinch with two to zoom.',
+    selected: 'Selected: {name}', funds: 'Funds', population: 'Population', demand: 'R / C / I demand', indices: 'Development indices',
+    futureTools: 'Other tools will be added in the next touch update.', editor: 'Map editing will be available in a later touch update.',
+  },
+  zhHant: {
+    build: '建造', transport: '交通', layers: '圖層', manage: '管理', more: '更多', menu: '選單',
+    close: '關閉', back: '返回', cancel: '取消', confirm: '確認建造', demolish: '確認拆除',
+    inspect: '查詢', bulldoze: '拆除推土', tap: '點地圖選擇位置，先睇預覽', tapStart: '① 點起點 A', tapEnd: '② 點終點 B', ready: '③ 檢查後確認',
+    valid: '{count} 格有效 · 跳過 {skipped} 格', blocked: '位置受阻，請檢查地形及已佔用格。', nothing: '呢度冇可變更嘅格。', outside: '草稿要保持喺地圖範圍內。',
+    changed: '位置或費用有變，請檢查新預覽後再確認。', built: '建造完成。', demolished: '拆除完成。',
+    summary: '建築 {buildings} · 道路 {roads} 格 · 空地 {empty} · 設施 {facilities} · 路線 {routes}',
+    irreversible: '無法復原；整棟建築一併拆除。',
+    stormDemolition: '打風期間唔可以拆海鮮舫。',
+    demolitionTransport: '鐵路及電車拆除會喺之後嘅觸控更新開放。',
+    phaseC: '之後嘅觸控更新開放。', rotate: '直向同橫向都可以建造及管理城市。',
+    single: '單格', range: '框選', density: '密度', low: '低密度', medium: '中密度', high: '高密度',
+    nudge: '四向微調', hideNudge: '收起微調', showNudge: '展開微調', endA: '微調起點 A', endB: '微調終點 B',
+    nw: '向左上移一格', ne: '向右上移一格', sw: '向左下移一格', se: '向右下移一格',
+    overview: '概覽', beta: '觸控介面（Beta）', profile: '介面', auto: '自動', desktop: '桌面', touch: '觸控（Beta）',
+    file: '城市存檔', save: '儲存', saveAs: '另存新檔…', load: '讀取城市', export: '匯出城市', import: '匯入城市', mainMenu: '主選單',
+    language: '語言', rename: '更改城市名稱', zoomIn: '放大', zoomOut: '縮小', pause: '暫停／繼續',
+    toolInfo: '選工具、點地圖睇預覽，再確認。單指拖動平移，雙指縮放。',
+    selected: '已選：{name}', funds: '資金', population: '人口', demand: 'R／C／I 需求', indices: '發展指數',
+    futureTools: '其他工具會喺下次觸控更新加入。', editor: '地形編輯會喺之後嘅觸控更新開放。',
+  },
+  ja: {
+    build: '建設', transport: '交通', layers: 'レイヤー', manage: '管理', more: 'その他', menu: 'メニュー',
+    close: '閉じる', back: '戻る', cancel: 'キャンセル', confirm: '建設を確定', demolish: '撤去を確定',
+    inspect: '調査', bulldoze: '撤去', tap: 'マップをタップしてプレビュー', tapStart: '① 始点 A を選択', tapEnd: '② 終点 B を選択', ready: '③ 確認して確定',
+    valid: '有効 {count} マス・除外 {skipped} マス', blocked: '地形や建物を確認してください。', nothing: '変更できるマスがありません。', outside: 'マップ内で位置を選んでください。',
+    changed: '敷地や費用が変わりました。プレビューを確認して再度確定してください。', built: '建設が完了しました。', demolished: '撤去が完了しました。',
+    summary: '建物 {buildings}・道路 {roads} マス・空地 {empty}・施設 {facilities}・路線 {routes}',
+    irreversible: '元に戻せません。建物全体を撤去。',
+    stormDemolition: '暴風中は水上レストランを撤去できません。',
+    demolitionTransport: '鉄道・路面電車の撤去は今後のタッチ版で対応します。',
+    phaseC: '今後のタッチ版で対応予定です。', rotate: '縦向きでも横向きでも建設・管理ができます。',
+    single: '1 マス', range: '範囲', density: '密度', low: '低密度', medium: '中密度', high: '高密度',
+    nudge: '位置の微調整', hideNudge: '微調整を閉じる', showNudge: '微調整を開く', endA: '始点 A を調整', endB: '終点 B を調整',
+    nw: '左上に 1 マス', ne: '右上に 1 マス', sw: '左下に 1 マス', se: '右下に 1 マス',
+    overview: '概要', beta: 'タッチ UI（ベータ）', profile: 'インターフェース', auto: '自動', desktop: 'デスクトップ', touch: 'タッチ（ベータ）',
+    file: '都市データ', save: '保存', saveAs: '名前を付けて保存…', load: '都市を読み込む', export: '都市をエクスポート', import: '都市をインポート', mainMenu: 'メインメニュー',
+    language: '言語', rename: '都市名を変更', zoomIn: '拡大', zoomOut: '縮小', pause: '一時停止／再開',
+    toolInfo: 'ツールを選び、タップでプレビュー、確認して確定。1 本指で移動、2 本指でズーム。',
+    selected: '選択中：{name}', funds: '資金', population: '人口', demand: 'R / C / I 需要', indices: '発展指数',
+    futureTools: 'その他のツールは次のタッチ版で追加予定です。', editor: '地形編集は今後のタッチ版で対応予定です。',
+  },
+};
+Object.entries(MOBILE_TRANSLATIONS).forEach(([language, entries]) => {
+  Object.entries(entries).forEach(([key, value]) => { I18N[language][`mobile.${key}`] = value; });
+});
+
 let currentLanguage = detectInitialLanguage();
 
 function detectInitialLanguage() {

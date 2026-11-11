@@ -443,7 +443,7 @@ function findTyphoonShelterFloatingRestaurantAt(shelters, row, col) {
 
 // The bulldozer on a 海鮮舫: tow it away (asked first; nothing back), not while a storm holds its
 // shelter's works. True when the click was on one, whether or not it went.
-function demolishTyphoonShelterFloatingRestaurantAt(scene, row, col) {
+function demolishTyphoonShelterFloatingRestaurantAt(scene, row, col, { confirmed = false } = {}) {
   const state = getTyphoonShelterState();
   const hit = findTyphoonShelterFloatingRestaurantAt(state.shelters, row, col);
   if (!hit) return false;
@@ -454,7 +454,7 @@ function demolishTyphoonShelterFloatingRestaurantAt(scene, row, col) {
     return true;
   }
   const question = say('typhoonShelter.floatingRestaurant.confirmDemolish', `拆走「${plan.name}」嘅海鮮舫？唔會退款。`, { name: plan.name });
-  if (typeof confirm === 'function' && !confirm(question)) return true;
+  if (!confirmed && typeof confirm === 'function' && !confirm(question)) return true;
   const fishery = normalizeTyphoonShelterFishery(plan.fishery);
   fishery.facilities = fishery.facilities.filter((f) => !(f.kind === 'floatingRestaurant' && f.row === item.row && f.col === item.col));
   setTyphoonShelterState({ ...state, shelters: state.shelters.map((p) => (p.id === plan.id

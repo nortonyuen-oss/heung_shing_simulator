@@ -248,7 +248,10 @@ function installMapTouchInput(scene) {
       if (!pinch.frame) pinch.frame = window.requestAnimationFrame(flushPinch);
     },
     onPinchEnd: endPinch,
-    onCancel: endPinch,
+    onCancel({ reason }) {
+      endPinch();
+      document.dispatchEvent(new CustomEvent('heungshing:mapcancel', { detail: { reason } }));
+    },
     onTap({ x, y }) {
       document.dispatchEvent(new CustomEvent('heungshing:maptap', { detail: { x, y } }));
     },

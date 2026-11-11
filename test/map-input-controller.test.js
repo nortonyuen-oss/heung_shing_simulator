@@ -256,7 +256,7 @@ test('the global pointerup ignores a lifting finger in the touch profile, and po
   const toolMenu = fs.readFileSync(path.join(ROOT, 'tool-menu.js'), 'utf8');
   assert.match(toolMenu, /window\.addEventListener\('pointercancel', cancelPaintStroke\)/);
   const pointerUp = toolMenu.slice(toolMenu.indexOf("window.addEventListener('pointerup'"));
-  assert.match(pointerUp.slice(0, 600), /event\.pointerType === 'touch'[\s\S]{0,120}isTouchUiProfile\(\)\) return;/);
+  assert.match(pointerUp.slice(0, 600), /if \(typeof isTouchUiProfile === 'function' && isTouchUiProfile\(\)\) return;/);
   const cancel = toolMenu.slice(toolMenu.indexOf('function cancelPaintStroke()'), toolMenu.indexOf('function clearHousePressTimer()'));
   assert.ok(cancel.length > 0);
   assert.doesNotMatch(cancel, /fillZoneRect|commitRoadDrag|commitMetroTrackDrag|commitTramTrackDrag|placeUnderseaTunnel|commitTyphoonShelterDrag/,

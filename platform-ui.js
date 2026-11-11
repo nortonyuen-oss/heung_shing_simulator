@@ -131,7 +131,9 @@
   document.querySelector('[data-menu-action="open-ai-news-settings"]')?.setAttribute('hidden', '');
   let elapsed = 0, retries = 0, sending = false, counted = false, warnedLock = false;
   const sessionKey = 'heung-shing.play-session.v1';
-  let eventId = crypto.randomUUID();
+  // Plain HTTP Wi-Fi previews have storage but may lack secure-context-only randomUUID.
+  // Optional counting must never stop the save timer or the rest of the platform setup.
+  let eventId = root.crypto?.randomUUID?.() || null;
   try {
     const stored = JSON.parse(sessionStorage.getItem(sessionKey) || 'null');
     if (stored?.eventId) { eventId = stored.eventId; counted = stored.counted === true; }
@@ -146,7 +148,7 @@
     }
     if (!playing() || document.visibilityState !== 'visible' || (typeof simPaused !== 'undefined' && simPaused)) return;
     elapsed += 1;
-    if (!counted && !sending && elapsed >= 10 && config.statisticsEnabled === true && eligibleHost && !root.HEUNG_SHING_SMOKE_TEST && retries < 2) {
+    if (eventId && !counted && !sending && elapsed >= 10 && config.statisticsEnabled === true && eligibleHost && !root.HEUNG_SHING_SMOKE_TEST && retries < 2) {
       sending = true; retries += 1;
       try {
         const response = await fetch(`${config.statisticsUrl}/v1/play`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -158,7 +160,7 @@
     if (elapsed % 60 === 0 && HeungShingStorage.writable) saveGame(true);
   }, 1000);
   const settings = document.querySelector('[data-menu="settings"] .menu-dropdown');
-  if (settings) {
+  if (settings && root.caches) {
     const clear = document.createElement('button'); clear.className = 'menu-drop-item'; clear.dataset.platformLabel = 'clear'; clear.textContent = text('clear');
     clear.addEventListener('click', async () => {
       for (const key of await caches.keys()) if (key.startsWith('hs-assets-')) await caches.delete(key);

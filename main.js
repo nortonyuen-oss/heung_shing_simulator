@@ -1036,6 +1036,7 @@ function create() {
     syncWeatherFxToCamera(this);
     if (typeof updateDynamicLighting === 'function') updateDynamicLighting(this);
     if (typeof markVehicleTrackerLayoutDirty === 'function') markVehicleTrackerLayoutDirty();
+    if (typeof mobileBuildSession !== 'undefined' && isTouchUiProfile() && mobileBuildSession) drawTouchPlacementPreview(this, mobileBuildSession.getState());
   });
 
   // Group for future buildings
@@ -1070,6 +1071,7 @@ function create() {
   // While a calibrator owns the mouse (isVisualRouteCalibrationInputCaptured) the tools stand
   // down, but right-drag still pans the camera so the calibrator can be moved around the city.
   this.input.on('pointerdown', (pointer) => {
+    if (isTouchUiProfile() && pointer.button === 0) return;
     if (typeof isVisualRouteCalibrationInputCaptured === 'function'
       && isVisualRouteCalibrationInputCaptured(this) && pointer.button !== 2) return;
     if (pointer.button === 0) {
@@ -1098,6 +1100,10 @@ function create() {
   });
 
   this.input.on('pointerup', (pointer) => {
+    if (isTouchUiProfile() && pointer.button === 0) {
+      if (pointer.event?.target?.tagName === 'CANVAS' && typeof handleMobileMapTap === 'function') handleMobileMapTap({ x: pointer.x, y: pointer.y });
+      return;
+    }
     if (typeof isVisualRouteCalibrationInputCaptured === 'function'
       && isVisualRouteCalibrationInputCaptured(this) && pointer.button !== 2) return;
     if (pointer.button === 0 && selectedTool === 'inspect') {
@@ -1130,6 +1136,7 @@ function create() {
 
   // Adjust camera scroll during panning
   this.input.on('pointermove', (pointer) => {
+    if (isTouchUiProfile() && !this.isPanning) return;
     if (typeof isVisualRouteCalibrationInputCaptured === 'function'
       && isVisualRouteCalibrationInputCaptured(this) && !this.isPanning) return;
     if (isPainting && pointer.isDown) {
@@ -1674,6 +1681,9 @@ function onMapViewChanged(scene) {
   syncWeatherFxToCamera(scene);
   if (typeof updateDynamicLighting === 'function') updateDynamicLighting(scene); // cloud layer's zoom<1.2 gate reacts immediately
   updateMapNavigationControls(scene);
+  if (typeof isTouchUiProfile === 'function' && isTouchUiProfile() && typeof mobileBuildSession !== 'undefined' && mobileBuildSession) {
+    drawTouchPlacementPreview(scene, mobileBuildSession.getState());
+  }
 }
 
 function changeMapZoom(scene, direction, anchorScreenX, anchorScreenY) {
@@ -2105,6 +2115,16 @@ function shouldShowBuildingPlacementGuide(pointer) {
 
 // Apply the active tool to a specific logical tile (no pointer math, no dedup).
 function applyToolAt(scene, row, col, pointer = null) {
+  if (!isInsideMap(row, col)) return { ok: false, changed: false, cost: 0, reason: 'outside' };
+  const budget = city.budget;
+  const before = [mapData[row][col], zoneMap[row]?.[col], zoneDensityMap[row]?.[col], heightMap[row]?.[col], buildingData[getTileId(row, col)], scene.buildingSprites?.get(getTileId(row, col))];
+  const result = applyToolAtLegacy(scene, row, col, pointer);
+  const after = [mapData[row][col], zoneMap[row]?.[col], zoneDensityMap[row]?.[col], heightMap[row]?.[col], buildingData[getTileId(row, col)], scene.buildingSprites?.get(getTileId(row, col))];
+  const changed = budget !== city.budget || before.some((value, index) => value !== after[index]);
+  return { ok: result === true || changed || selectedTool === 'inspect', changed, cost: budget - city.budget };
+}
+
+function applyToolAtLegacy(scene, row, col, pointer = null) {
   if (!isInsideMap(row, col)) return;
 
   // Querying a district sign edits its bilingual label directly.
@@ -2150,8 +2170,8 @@ function applyToolAt(scene, row, col, pointer = null) {
   }
 
   // New tools (zones, power, services, dezone) handled in tools.js
-  if (handleNewTool(scene, { row, col })) return;
-  if (isNewToolHandledByToolsModule(selectedTool)) return;
+  if (handleNewTool(scene, { row, col })) return true;
+  if (isNewToolHandledByToolsModule(selectedTool)) return false;
 
   if (selectedTool === 'house')    { placeHouse(scene, row, col);    return; }
 

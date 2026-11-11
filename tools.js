@@ -208,6 +208,16 @@ function spendBudget(amount) {
 
 let districtHeightCapNoticeAt = 0;
 
+function getZonePlacementQuote(row, col, zoneType, density = DENSITY_LOW) {
+  density = Math.min(density, typeof getDistrictMaxZoneDensity === 'function' ? getDistrictMaxZoneDensity() : DENSITY_HIGH);
+  if (!isInsideMap(row, col) || [WATER, BEACH, ROAD].includes(mapData[row][col]) || !canPlaceBuilding(row, col)) return { ok: false, cost: 0, density };
+  if (zoneType === ZONE_RES && density !== DENSITY_LOW && lowDensityLockSet.has(getTileId(row, col))) return { ok: false, cost: 0, density, reason: 'lowDensity' };
+  const noop = zoneMap[row][col] === zoneType && zoneDensityMap[row][col] === density;
+  const base = zoneType === ZONE_RES ? COST_ZONE_RES : zoneType === ZONE_COM ? COST_ZONE_COM : COST_ZONE_IND;
+  const fee = base * (DENSITY_COST_MUL[density] ?? 1);
+  return { ok: true, noop, density, cost: noop ? 0 : typeof getDistrictZoningCost === 'function' ? getDistrictZoningCost(fee) : Math.round(fee) };
+}
+
 function placeZone(scene, row, col, zoneType, density = DENSITY_LOW) {
   if (!isInsideMap(row, col)) return false;
 
@@ -243,12 +253,7 @@ function placeZone(scene, row, col, zoneType, density = DENSITY_LOW) {
   // No-op if exactly the same zone+density already applied
   if (zoneMap[row][col] === zoneType && zoneDensityMap[row][col] === density) return true;
 
-  const baseCost = zoneType === ZONE_RES ? COST_ZONE_RES
-                 : zoneType === ZONE_COM ? COST_ZONE_COM
-                 : COST_ZONE_IND;
-  // 地區特色: the zoning fee is the district's land price
-  const densityCost = baseCost * (DENSITY_COST_MUL[density] ?? 1);
-  const cost = typeof getDistrictZoningCost === 'function' ? getDistrictZoningCost(densityCost) : Math.round(densityCost);
+  const { cost } = getZonePlacementQuote(row, col, zoneType, density);
 
   if (!spendBudget(cost)) {
     showToast(t('toast.notEnoughFunds'), 'warning');
@@ -358,17 +363,8 @@ function drawPowerLineSprite(scene, row, col) {
 
 // ── Infrastructure building placement ─────────────────────────────────────────
 
-function placeInfraBuilding(scene, row, col, buildingType) {
-  if (!isInsideMap(row, col)) return false;
-
-  if (buildingType === 'legislative_council') {
-    if (city.population < 10000 || hasBuildingType('legislative_council')) return false;
-  } else if (buildingType === 'stock_exchange') {
-    if (!hasBuildingType('legislative_council') || !isPolicyActive('stockExchangeAct') || hasBuildingType('stock_exchange')) return false;
-  } else if (SPECIAL_BUILDING_UNLOCKS[buildingType]) {
-    if (!isSpecialBuildingUnlocked(buildingType)) return false;
-  }
-
+// Select once for a touch draft; previews do not roll random art on every tap.
+function selectInfraPlacementModel(buildingType) {
   const existingServiceCount = SERVICE_BUILDING_MODELS[buildingType]
     ? Object.values(buildingData).filter((record) => record?.type === buildingType).length
     : 0;
@@ -390,28 +386,48 @@ function placeInfraBuilding(scene, row, col, buildingType) {
       ? existingSpecialCount % specialModels.length
       : Math.floor(Math.random() * specialModels.length)]
     : null;
-  const buildingModel = POWER_PLANT_MODELS[buildingType] ?? serviceModel ?? specialModel;
-  if (!buildingModel) return false;
-  const footprintCols = buildingModel.footprintCols;
-  const footprintRows = buildingModel.footprintRows;
-  // 海事處 buildings go on a typhoon shelter's waterfront, beside a road (typhoon-shelter-market.js)
-  const marine = typeof isTyphoonShelterBuildingType === 'function' && isTyphoonShelterBuildingType(buildingType);
-  if (marine) {
-    const why = whyNotTyphoonShelterBuilding(row, col, footprintCols, footprintRows);
-    if (why) {
-      showToast(why, 'warning');
-      return false;
-    }
-  } else if (!canPlaceBuildingFootprint(row, col, footprintCols, footprintRows)) return false;
-  // 黃金海岸酒店 stands by a yacht club
-  if (buildingType === 'gold_coast_hotel' && typeof whyNotGoldCoastHotel === 'function') {
-    const why = whyNotGoldCoastHotel(row, col, footprintCols, footprintRows);
-    if (why) {
-      showToast(why, 'warning');
-      return false;
-    }
-  }
+  return POWER_PLANT_MODELS[buildingType] ?? serviceModel ?? specialModel;
+}
 
+function getInfraPlacementLock(buildingType) {
+  if (buildingType === 'legislative_council') {
+    if (hasBuildingType(buildingType)) return { unlocked: false, reason: 'maxCount', type: buildingType };
+    if (city.population < 10000) return { unlocked: false, reason: 'population', threshold: 10000, type: buildingType };
+  } else if (buildingType === 'stock_exchange') {
+    if (hasBuildingType(buildingType)) return { unlocked: false, reason: 'maxCount', type: buildingType };
+    if (city.population < 50000) return { unlocked: false, reason: 'population', threshold: 50000, type: buildingType };
+    if (!hasBuildingType('legislative_council')) return { unlocked: false, reason: 'building', requires: 'legislative_council', type: buildingType };
+    if (!isPolicyActive('stockExchangeAct')) return { unlocked: false, reason: 'policy', requires: 'stockExchangeAct', type: buildingType };
+  }
+  return SPECIAL_BUILDING_UNLOCKS[buildingType] ? getSpecialBuildingUnlockState(buildingType) : { unlocked: true };
+}
+
+function getInfraPlacementQuote(row, col, buildingType, buildingModel) {
+  const lock = getInfraPlacementLock(buildingType);
+  if (!lock.unlocked) return { ok: false, reason: describeSpecialBuildingLockReason(lock) };
+  if (!buildingModel) return { ok: false, reason: t('mobile.blocked') };
+  const { footprintCols, footprintRows } = buildingModel;
+  const marine = typeof isTyphoonShelterBuildingType === 'function' && isTyphoonShelterBuildingType(buildingType);
+  let reason = '';
+  if (buildingType === HARBOR_BUILDING_TYPE) {
+    if (!canPlaceHarborFootprint(row, col)) reason = t('toast.harborNeedsCoastline');
+  } else if (marine) {
+    reason = whyNotTyphoonShelterBuilding(row, col, footprintCols, footprintRows) || '';
+  } else if (!canPlaceBuildingFootprint(row, col, footprintCols, footprintRows)) reason = t('mobile.blocked');
+  if (!reason && buildingType === 'gold_coast_hotel') reason = whyNotGoldCoastHotel(row, col, footprintCols, footprintRows) || '';
+  return { ok: !reason, reason, cost: INFRA_COSTS[buildingType], footprintCols, footprintRows };
+}
+
+function placeInfraBuilding(scene, row, col, buildingType, placementModel = null) {
+  if (!isInsideMap(row, col)) return false;
+  const buildingModel = placementModel || selectInfraPlacementModel(buildingType);
+  const quote = getInfraPlacementQuote(row, col, buildingType, buildingModel);
+  if (!quote.ok) {
+    if (quote.reason && typeof showToast === 'function') showToast(quote.reason, 'warning');
+    return false;
+  }
+  const { footprintCols, footprintRows } = quote;
+  const marine = typeof isTyphoonShelterBuildingType === 'function' && isTyphoonShelterBuildingType(buildingType);
   const cost = INFRA_COSTS[buildingType];
   if (!spendBudget(cost)) {
     showToast(t('toast.notEnoughFunds'), 'warning');

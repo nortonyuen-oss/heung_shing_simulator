@@ -158,6 +158,7 @@ function scheduleAnnualAutosave() {
 }
 
 function beginNewCitySaveSession(manualSaveId = null) {
+  if (typeof CustomEvent === 'function') globalThis.document?.dispatchEvent?.(new CustomEvent('heungshing:citywillchange'));
   saveSessionGeneration += 1;
   loadRequestGeneration += 1;
   cancelScheduledAnnualAutosave();
@@ -1186,6 +1187,7 @@ async function ensureSaveNightTextures(scene, save) {
 // The attract-mode loader shares the load generation so a menu choice made while the showcase
 // city is still loading wins, exactly as a second Load Save click would.
 function beginLoadRequest() {
+  if (typeof CustomEvent === 'function') globalThis.document?.dispatchEvent?.(new CustomEvent('heungshing:citywillchange'));
   return ++loadRequestGeneration;
 }
 

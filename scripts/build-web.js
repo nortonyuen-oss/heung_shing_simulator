@@ -102,6 +102,13 @@ async function main() {
     + `const originalPhaserFileLoad=Phaser.Loader.File.prototype.load;Phaser.Loader.File.prototype.load=function(){this.url=resolveBundledAssetPath(this.url);this.src=resolveBundledAssetPath(this.src);return originalPhaserFileLoad.call(this);};\n`;
   const resourceScript = `assets/${hash(resourceSource)}.js`; output(resourceScript, resourceSource);
   let html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  const immutableStyles = [];
+  for (const [, stylesheet] of html.matchAll(/<link rel="stylesheet" href="([^"?]+)[^"]*">/g)) {
+    if (/^https?:/.test(stylesheet) || stylesheet.includes('..')) throw new Error(`Unexpected stylesheet ${stylesheet}`);
+    const target = await add(stylesheet, path.join(ROOT, stylesheet));
+    immutableStyles.push(target);
+    html = html.replace(`href="${stylesheet}"`, `href="${target}"`);
+  }
   const scripts = [...html.matchAll(/<script src="([^"?]+)[^"]*"><\/script>/g)].map(match => match[1]);
   const immutableScripts = [];
   for (const script of scripts) {
@@ -128,7 +135,7 @@ async function main() {
   output('index.html', html);
   const catalog = Object.entries(resources).filter(([logical]) => logical === 'data/web-model-assets.json'
     || logical.startsWith('data/model-lists/')).map(([, immutable]) => immutable);
-  const shell = ['index.html', resourceScript, ...immutableScripts, ...catalog];
+  const shell = ['index.html', resourceScript, ...immutableScripts, ...immutableStyles, ...catalog];
   const worker = fs.readFileSync(path.join(ROOT, 'web-service-worker.js'), 'utf8')
     .replace('__BUILD_ID__', `${pkg.version}-${config.commitSha.slice(0, 12)}`)
     .replace('/*__SHELL__*/[]', JSON.stringify(shell));
@@ -144,7 +151,7 @@ async function main() {
     const name = path.relative(OUT, file).split(path.sep).join('/');
     if (!retention.assets[name]) retention.assets[name] = { lastUsedAt: config.builtAt, versions: [pkg.version] };
   }
-  const currentAssets = new Set([...Object.values(resources), ...immutableScripts, resourceScript]);
+  const currentAssets = new Set([...Object.values(resources), ...immutableScripts, ...immutableStyles, resourceScript]);
   for (const name of currentAssets) retention.assets[name] = { lastUsedAt: config.builtAt,
     versions: [...new Set([...(retention.assets[name]?.versions || []), pkg.version])] };
   output('asset-retention.json', JSON.stringify(retention));

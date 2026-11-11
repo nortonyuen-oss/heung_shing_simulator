@@ -550,7 +550,7 @@ function placeFerryPier(scene, row, col) {
 }
 
 // The bulldozer on a pier: pulled down with every route that calls at it (asked first).
-function demolishFerryPierAt(scene, row, col) {
+function demolishFerryPierAt(scene, row, col, { confirmed = false } = {}) {
   const pier = getFerryPierAt(row, col);
   if (!pier) return false;
   const state = getFerryState();
@@ -558,7 +558,7 @@ function demolishFerryPierAt(scene, row, col) {
   const question = routes.length
     ? ferryT('ferry.pier.confirmDemolishRoutes', '拆走「{name}」？用佢嘅 {n} 條航線會一齊取消。', { name: pier.name, n: routes.length })
     : ferryT('ferry.pier.confirmDemolish', '拆走「{name}」？', { name: pier.name });
-  if (typeof confirm === 'function' && !confirm(question)) return true;
+  if (!confirmed && typeof confirm === 'function' && !confirm(question)) return true;
   // its routes close: their ferries are sold where they lie
   routes.forEach((r) => removeFerryRoute(r.id));
   state.piers = state.piers.filter((p) => p !== pier);

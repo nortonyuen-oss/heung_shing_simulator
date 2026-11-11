@@ -18,6 +18,8 @@
 
 ### 1.2 Phase B（38 個）
 
+**原型已接駁（2026-11-11）**：32 個 P 工具全部經 `mobile-ui.js` 兩層「建造 › 分類 › 工具」入口及 `tool-actions.js` 共用 adapter；放置位置／款式／成本進入 `build-session.js` 草稿，按確認先提交。類別沿用桌面分類（包含核電、遊艇會及酒店）；自動化檢查全部 32 個入口可到達。案例：M07（一次提交）、M11（取消）、M19（縮放保留草稿）、M21（資金／位置重新驗證）；真機驗收未完成。
+
 **P 單點放置建築（32）** — 共用同一個 adapter：
 
 | 分類 | 工具 ID（成本） |
@@ -30,14 +32,36 @@
 
 **其他（6）**：
 
-| ID | 類型 | 備註 |
+| ID | 類型 | 備註／手機入口及驗收 |
 |---|---|---|
-| `road` | D | 直線／橋；`commitRoadDrag`（`main.js:2354`）；$10／格 |
-| `zone-res` `zone-com` `zone-ind` | D | 框選 `fillZoneRect`（`main.js:2446`）；$50／$60／$50 每格；密度選單原靠長按（`tool-menu.js:725`），改 context 按鈕 |
-| `bulldoze` | T | 含多種特殊拆除分派（`main.js:2150+`：海鮮舫、碼頭、步道、隧道、地鐵、電車…）；$5／格；摘要必須列明影響對象 |
-| `inspect` | Q | 另需處理運輸模式下點站／船／車（`handleTransitVehicleMapInspect`、`handleFerryMapInspect`） |
+| `road` | D | 建造 › 路政署 › 道路；點 A／B → 直線／橋草稿 → 確認；$10／格，橋按原有成本。M06、M07 |
+| `zone-res` `zone-com` `zone-ind` | D | 建造 › 城規會；點兩角＋密度按鈕；共用 `getZonePlacementQuote`，按有效格／密度倍率／地區地價收費，跳過原有相同分區同低密度鎖定格。M06、M21 |
+| `bulldoze` | T | 建造標題列 › 拆除；單格／框選＋建築／道路／設施／航線摘要；一般格 $5，特殊設施沿用原收費。碼頭／海鮮舫只確認一次；鐵路及電車拆除留 C，顯示未開放並拒絕確認。M11、M13 |
+| `inspect` | Q | 建造標題列 › 查詢 → 點地圖資訊卡；直向亦可用。運輸模式嘅船／車追蹤留 C。M23 |
 
-解鎖規則（已知）：`legislative-council` 需人口 ≥ 10,000 且未建（`hud.js`）；`stock-exchange` 需人口 ≥ 50,000、`stockExchangeAct` 政策及議會。其餘特殊建築見 `SPECIAL_BUILDING_UNLOCKS`，**Phase B 實作時逐項填入**。
+解鎖規則來源：`hud.js`、`tools.js` 及 `SPECIAL_BUILDING_UNLOCKS`，完整門檻列於下表。
+
+**已核對嘅 Phase B 解鎖**（由 `getInfraPlacementLock`／`getSpecialBuildingUnlockState` 共用，手機顯示鎖定原因；確認時再驗證）：
+
+| 工具 | 條件 |
+|---|---|
+| `power-coal`、`power-solar`、`power-nuclear`、`fire-station`、`police-station`、`hospital`、`primary-school`、`secondary-school`、`community-college`、`university`、`library`、`public-market` | 無人口／政策門檻；仍需合適位置及足夠資金 |
+| `fish-market`、`seafood-restaurant`、`fish-loading-bay`、`yacht-club`、`gold-coast-hotel` | 無人口門檻；海事位置規則照舊，酒店另需附近遊艇會 |
+| `legislative-council` | 人口 10,000，最多 1 棟 |
+| `stock-exchange` | 人口 50,000、已有議會、`stockExchangeAct`，最多 1 棟 |
+| `exhibition-center` | 人口 30,000，最多 1 棟 |
+| `cultural-center` | 人口 20,000，最多 1 棟 |
+| `space-museum` | 人口 15,000、`scienceDevelopment`，最多 1 棟 |
+| `buddha-statue` | 人口 12,000，最多 1 棟 |
+| `heritage-temple` | 人口 3,000，最多 4 棟 |
+| `grand-temple` | 人口 12,000、吸引力 35，最多 1 棟 |
+| `heritage-church` | 人口 5,000，最多 2 棟 |
+| `indoor-coliseum` | 人口 30,000，最多 1 棟 |
+| `football-stadium` | 人口 40,000，最多 1 棟 |
+| `murray-house` | 吸引力 60，最多 1 棟 |
+| `ocean-park` | `oceanParkDevelopmentProject` 議案獲批，最多 1 棟 |
+| `airport` | `roseGardenAirportProject` 議案獲批，最多 1 棟 |
+| `harbor` | 人口 15,000，並符合海岸線規則 |
 
 ### 1.3 Phase C（22 個）
 

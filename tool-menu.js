@@ -64,7 +64,7 @@ function setupToolMenu() {
   window.addEventListener('pointerup', (event) => {
     // The touch UI's map controller owns every finger; a finger lifting must neither commit
     // nor end a mouse or pen stroke that is still in progress.
-    if (event.pointerType === 'touch' && typeof isTouchUiProfile === 'function' && isTouchUiProfile()) return;
+    if (typeof isTouchUiProfile === 'function' && isTouchUiProfile()) return;
     const wasPainting = isPainting;
     // ── Zone rect-fill (BEFORE clearing state) ────────────────────────────────
     // Phaser defers its own pointerup event to the next update() frame, so the

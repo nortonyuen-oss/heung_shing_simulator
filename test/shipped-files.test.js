@@ -42,7 +42,7 @@ test('everything the Electron main process loads is committed', (t) => {
   }
 });
 
-test('every script the page loads is committed', (t) => {
+test('every script and stylesheet the page loads is tracked', (t) => {
   const tracked = trackedFiles();
   if (!tracked) return t.skip('not a git checkout');
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
@@ -50,5 +50,8 @@ test('every script the page loads is committed', (t) => {
     .filter((src) => !/^(https?:)?\/\//.test(src));
   assert.ok(scripts.length > 50);
   const missing = scripts.filter((src) => !tracked.has(src));
+  for (const [, stylesheet] of html.matchAll(/<link rel="stylesheet" href="([^"]+)"/g)) {
+    if (!/^(https?:)?\/\//.test(stylesheet) && !tracked.has(stylesheet)) missing.push(stylesheet);
+  }
   assert.deepEqual(missing, [], `loaded by index.html but not committed: ${missing.join(', ')}`);
 });

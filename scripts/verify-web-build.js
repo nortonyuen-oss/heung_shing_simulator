@@ -18,6 +18,10 @@ for (const file of files) {
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 assert(!html.includes('cdn.jsdelivr.net'), 'Phaser must be bundled');
 for (const match of html.matchAll(/<script src="([^"]+)"/g)) assert(fs.existsSync(path.join(root, match[1])), match[1]);
+for (const match of html.matchAll(/<link rel="stylesheet" href="([^"]+)"/g)) {
+  assert(fs.existsSync(path.join(root, match[1])), `Missing stylesheet: ${match[1]}`);
+  assert(fs.readFileSync(path.join(root, 'web-service-worker.js'), 'utf8').includes(match[1]), 'Stylesheet must be cached with the offline shell');
+}
 const report = JSON.parse(fs.readFileSync(path.join(root, 'build-report.json'), 'utf8'));
 assert.equal(report.version, require('../package.json').version);
 assert.equal(report.saveDataVersion, 15);

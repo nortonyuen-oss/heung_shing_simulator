@@ -10,7 +10,8 @@
 
 <h1>香城模擬器 手機版 — B0 設計稿</h1>
 <p class="lead" style="background:#d6efdf;border:1px solid #14612f;border-radius:10px;padding:8px 12px;color:#14612f"><b>✅ 已凍結（2026-11-11，Norton 批准）</b> — Phase B 功能按本稿實作；之後改稿須經 Norton 同意，並同步更新 <code>docs/mobile-ui-work-plan.md</code>。</p>
-<p class="lead">規格 §6.6 要求「先審設計稿、後寫功能」。本稿為靜態 HTML/CSS（不屬遊戲代碼，亦不會上線），沿用遊戲現有 <code>--ui-*</code> 色彩、名牌貼圖、墨綠走馬燈、工具名稱與成本。<b>橫向 844×390 為完整建造畫面</b>；直向 390×844 只做載入、存檔、查詢與管理（決定 2）。圖示以 emoji 暫代，實作時沿用遊戲原圖示。</p>
+<p class="lead">規格 §6.6 要求「先審設計稿、後寫功能」。本稿為靜態 HTML/CSS（不屬遊戲代碼，亦不會上線），沿用遊戲現有 <code>--ui-*</code> 色彩、名牌貼圖、墨綠走馬燈、工具名稱與成本。<b>橫向 844×390、直向 390×844 都提供完整現有建造功能</b>（決定 2；2026-11-12 Norton 真機回饋修訂）。圖示以 emoji 暫代，實作時沿用遊戲原圖示。</p>
+<p class="lead"><b>2026-11-12 Norton 授權修訂：</b>直向保留常駐底欄，建造確認列分兩行（P5）；橫向側欄背景貼邊、內容避開瀏海／圓角安全區，收放條避開側欄。</p>
 
 <div class="review">
   <h3>審批結果</h3>
@@ -66,7 +67,6 @@
     <div class="kpi"><small>每月</small><strong class="pos">+$125,033</strong></div>
     <div class="kpi grow"><small>1998年2月9日 五 · 12:58</small><strong>☀ 17°C</strong></div>
     <span class="chip-btn gold">⏸</span><span class="chip-btn on">1x ▾</span></div>
-  <div class="zoomctl" style="right:10px;top:58px"><span>＋</span><span>－</span></div>
   <div class="bottombar">
     <div class="nav"><span class="ic">🏗️</span><span class="lbl">建造<small>Build</small></span></div>
     <div class="nav"><span class="ic">🚌</span><span class="lbl">交通<small>Transport</small></span></div>
@@ -85,7 +85,6 @@
     <div class="kpi"><small>每月</small><strong class="pos">+$125,033</strong></div>
     <div class="kpi grow"><small>1998年2月9日 五 · 12:58</small><strong>☀ 17°C</strong></div>
     <span class="chip-btn gold">⏸</span><span class="chip-btn on">1x ▾</span></div>
-  <div class="zoomctl" style="right:10px;top:58px"><span>＋</span><span>－</span></div>
   <div class="bottombar">
     <div class="nav"><span class="ic">🏗️</span><span class="lbl">建造<small>Build</small></span></div>
     <div class="nav"><span class="ic">🚌</span><span class="lbl">交通<small>Transport</small></span></div>
@@ -364,17 +363,16 @@
 
 </div>
 
-<h2>2. 直向 390×844（只做載入、存檔、查詢、管理）</h2>
+<h2>2. 直向 390×844（建造、載入、存檔、查詢、管理）</h2>
 <div class="grid">
 
 <figure class="shot portrait"><div class="device port">
   <div class="topbar" style="padding:4px 6px;gap:6px"><div class="plate" style="flex-basis:56px;font-size:12px">太子</div><div class="kpi" style="padding:0 6px"><small>資金</small><strong class="pos" style="font-size:14px">$971.1M</strong></div><div class="kpi" style="padding:0 6px"><small>人口</small><strong style="font-size:14px">347,793</strong></div><span class="chip-btn gold" style="min-width:44px;padding:0">⏸</span><span class="chip-btn on" style="min-width:44px;padding:0">1x</span></div>
-  <div class="rotate-hint" style="top:54px">📱 橫向畫面可使用完整建造功能 <span style="margin-left:auto">✕</span></div>
   <div class="bottombar">
     <div class="nav"><span class="ic">🏗️</span>建造</div><div class="nav"><span class="ic">🚌</span>交通</div><div class="nav"><span class="ic">🗺️</span>圖層</div><div class="nav"><span class="ic">🏛️</span>管理</div><div class="nav"><span class="ic">☰</span>更多</div>
   </div>
 </div>
-<figcaption><b>P1 · 直向常態 HUD</b><span class="meta">可載入、存檔、查詢、管理；「建造」會提示轉橫向（唔強制鎖方向、唔強制全螢幕）。提示可關閉。</span></figcaption></figure>
+<figcaption><b>P1 · 直向常態 HUD</b><span class="meta">可直接建造、載入、存檔、查詢及管理。底部五入口常駐，建造流程見 P5；不鎖方向。</span></figcaption></figure>
 
 <figure class="shot portrait"><div class="device port">
   <div class="topbar" style="padding:4px 6px;gap:6px"><div class="plate" style="flex-basis:56px;font-size:12px">太子</div><div class="kpi" style="padding:0 6px"><small>資金</small><strong class="pos" style="font-size:14px">$971.1M</strong></div><div class="kpi" style="padding:0 6px"><small>人口</small><strong style="font-size:14px">347,793</strong></div><span class="chip-btn gold" style="min-width:44px;padding:0">⏸</span><span class="chip-btn on" style="min-width:44px;padding:0">1x</span></div>
@@ -413,6 +411,16 @@
 </div>
 <figcaption><b>P4 · 直向主選單</b><span class="meta">按鈕單欄堆疊；匯出／匯入入口外露。地圖編輯屬進階功能，列最後。</span></figcaption></figure>
 
+<figure class="shot portrait"><div class="device port portrait-build">
+  <div class="topbar" style="padding:4px 6px;gap:6px"><div class="plate" style="flex-basis:56px;font-size:12px">太子</div><div class="kpi" style="padding:0 6px"><small>資金</small><strong class="pos" style="font-size:14px">$9,000</strong></div><div class="kpi" style="padding:0 6px"><small>人口</small><strong style="font-size:14px">4</strong></div><span class="chip-btn gold" style="min-width:44px;padding:0">⏸</span><span class="chip-btn on" style="min-width:44px;padding:0">1x</span></div>
+  <div class="iso diamond" style="left:90px;top:335px;width:120px;height:60px"></div>
+  <span class="pin" style="left:95px;top:340px">A</span><span class="pin sel" style="left:205px;top:390px">B</span>
+  <div class="nudge" style="right:8px;top:104px"><span class="handle">微調 · 可收起</span><span class="nb nw">↖</span><span class="nb ne">↗</span><span class="nb sw">↙</span><span class="nb se">↘</span><span class="nb mid">B</span></div>
+  <div class="context"><span class="steps"><span class="done">① A ✓</span><span class="done">② B ✓</span><span class="on">③ 確認</span></span></div>
+  <div class="confirm"><div class="tool"><span><b>道路</b><small>✓ 3 格有效 · 跳過 0 格</small></span></div><span class="cost">$30</span><span class="chip-btn cancel">取消</span><span class="chip-btn primary approve">確認建造</span></div>
+  <div class="bottombar"><div class="nav on"><span class="ic">🏗️</span>建造</div><div class="nav"><span class="ic">🚌</span>交通</div><div class="nav"><span class="ic">🗺️</span>圖層</div><div class="nav"><span class="ic">🏛️</span>管理</div><div class="nav"><span class="ic">☰</span>更多</div></div>
+</div><figcaption><b>P5 · 直向建造（2026-11-12 Norton 授權）</b><span class="meta">同樣用兩點草稿＋微調＋確認；底部導航常駐。116px 起嘅確認區分兩行，摘要較長時可增高，上方 context 同步上移，按鈕最少 44px。</span></figcaption></figure>
+
 </div>
 
 <h2>3. 已確認嘅決定（2026-11-11）</h2>
@@ -423,6 +431,8 @@
     <li><b>底部 5 入口</b>：橫向預設收起，底部中間留收放條（畫面 2／2b）；開面板後自動收起，收放條標籤顯示目前分頁。「查詢」「拆除」放建造庫標題列。直向維持常駐底欄。</li>
     <li><b>手勢</b>：跟規格——單指拖動＝平移、雙指＝縮放＋平移、tap≤300ms＝選取；<b>唔需要長按</b>。建造草稿靠「點兩點＋確認」，唔靠拖動。</li>
     <li><b>微調鍵</b>：138×138px（4 鍵 44px），預設展開，可收合。</li>
+    <li><b>2026-11-12 第二輪真機回饋</b>：手機地圖使用雙指縮放，移除「＋／－」按鈕；通知緊貼頂欄下方 4px，位置包含安全邊界。</li>
+    <li><b>頂欄文字</b>：資金、人口、日期／天氣共用兩行排版，標籤與數值各自對齊；城市名、暫停、速度控制垂直置中。</li>
   </ol>
   <p class="pending">已凍結。Phase A（輸入安全）完成後，Phase B1 開始寫 <code>tool-actions.js</code>／<code>build-session.js</code>。稿內示例數據（站名、覆蓋率、人手、指數）只供布局用途。</p>
 </div>

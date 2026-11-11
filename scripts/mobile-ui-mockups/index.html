@@ -14,12 +14,12 @@
 <div class="review">
   <h3>請你審批（逐項回覆「OK」或指出要改）</h3>
   <ol>
-    <li><b>整體布局</b>：頂部狀態列＋底部 5 入口＋右側停靠面板＋建造確認列（畫面 2、3、4）。</li>
+    <li><b>整體布局</b>：頂部狀態列＋底部收放條（點開 5 入口）＋右側停靠面板＋建造確認列（畫面 2、2b、3a、4）。</li>
     <li><b>建造流程</b>：選工具 → 點地圖預覽 → 微調／旋轉 → 確認；單指拖動只平移、不塗畫（畫面 4–8）。</li>
     <li><b>四向微調鍵</b>：箭嘴跟等距格軸（斜向），可收合（畫面 4）。</li>
     <li><b>管理類</b>：財政、圖層、路線編輯、資訊卡、更多（畫面 9–12、14）。</li>
     <li><b>錯誤狀態</b>：儲存失敗時一定提供「下載備份」（畫面 13）。</li>
-    <li><b>待你決定</b>：<span class="tag new">走馬燈／💬 討論區放邊</span>、<span class="tag new">R/C/I 需求條與五格發展指數放邊</span>，見文末「待決定」。</li>
+    <li><b>已決定（你上一輪回覆）</b>：走馬燈只放「更多」、地圖上完全唔顯示；唔設常駐 R/C/I 條（改放「管理 › 概覽」，點「資金」直達）；橫向底欄預設收起、底部中間收放條；微調鍵 138px 預設展開；手勢跟規格。見文末。</li>
   </ol>
 </div>
 
@@ -32,10 +32,10 @@
 <table class="cmp">
   <tr><th>畫面（844×390）</th><th>地圖可用區</th><th>計算</th><th>規格目標</th></tr>
   <tr><td>現況桌面 UI</td><td>≈ 25%</td><td>(844−80)×(286−179) ÷ (844×390)，未計小地圖</td><td>—</td></tr>
-  <tr><td>新：常態 HUD（含細走馬燈）</td><td><span class="tag ok">68%</span></td><td>(390−44−52−28) ÷ 390</td><td>—</td></tr>
-  <tr><td>新：常態 HUD（走馬燈收起）</td><td><span class="tag ok">75%</span></td><td>(390−44−52) ÷ 390</td><td>—</td></tr>
+  <tr><td>新：常態 HUD（底欄收起，預設）</td><td><span class="tag ok">89%</span></td><td>(390−44) ÷ 390；收放條為浮層</td><td>—</td></tr>
+  <tr><td>新：底欄展開</td><td><span class="tag ok">75%</span></td><td>(390−44−52) ÷ 390</td><td>—</td></tr>
   <tr><td>新：建造預覽（含 context 列）</td><td><span class="tag ok">63%</span></td><td>(390−44−44−56) ÷ 390；微調鍵為浮層，不扣面積</td><td>≥ 60%</td></tr>
-  <tr><td>新：右側面板開啟</td><td><span class="tag warn">≈ 50%</span></td><td>(844−288)÷844 × (390−44−52)÷390；面板可一按關閉</td><td>規格只要求庫關閉／預覽時 ≥ 60%</td></tr>
+  <tr><td>新：右側面板開啟（底欄自動收起）</td><td><span class="tag warn">≈ 58%</span></td><td>(844−288)÷844 × (390−44)÷390；面板可一按關閉</td><td>規格只要求庫關閉／預覽時 ≥ 60%</td></tr>
 </table>
 
 <h2>1. 橫向 844×390（主要）</h2>
@@ -66,7 +66,6 @@
     <div class="kpi grow"><small>1998年2月9日 五 · 12:58</small><strong>☀ 17°C</strong></div>
     <span class="chip-btn gold">⏸</span><span class="chip-btn on">1x ▾</span></div>
   <div class="zoomctl" style="right:10px;top:58px"><span>＋</span><span>－</span></div>
-  <div class="ticker" style="bottom:58px"><span class="badge">💬 香城討論區</span><span class="txt">【市場脈動】我的城市住商工需求同步轉強，分析預料將迎來新一輪建設周期。</span></div>
   <div class="bottombar">
     <div class="nav"><span class="ic">🏗️</span><span class="lbl">建造<small>Build</small></span></div>
     <div class="nav"><span class="ic">🚌</span><span class="lbl">交通<small>Transport</small></span></div>
@@ -75,7 +74,26 @@
     <div class="nav"><span class="ic">☰</span><span class="lbl">更多<small>More</small></span><span class="dot">3</span></div>
   </div>
 </div>
-<figcaption><b>2 · 常態城市 HUD</b><span class="meta">單指拖＝平移、雙指＝縮放；點建築＝資訊卡。「⏸」暫停、「1x」開速度選單。走馬燈縮成 28px 細條（點擊開 💬 討論區）。<span class="tag ok">地圖 68%</span><span class="tag new">待決定：走馬燈位置</span></span></figcaption></figure>
+<figcaption><b>2 · 常態城市 HUD（底欄收起，預設）</b><span class="meta">地圖只剩頂欄；底部中間一條「⌃ 選單」收放條（可點區 176×44px）。<b>單指拖＝平移、雙指＝縮放＋平移</b>（跟規格，唔需要長按）；點建築＝資訊卡；點「資金」直達管理 › 概覽；⏸ 暫停、1x 開速度選單。<span class="tag ok">地圖 89%</span></span></figcaption></figure>
+
+<!-- ================= 2b 底欄展開 ================= -->
+<figure class="shot"><div class="device land bar-open">
+  <div class="topbar"><div class="plate">太子</div>
+    <div class="kpi"><small>資金</small><strong class="pos">$971,097,506</strong></div>
+    <div class="kpi"><small>人口</small><strong>347,793</strong></div>
+    <div class="kpi"><small>每月</small><strong class="pos">+$125,033</strong></div>
+    <div class="kpi grow"><small>1998年2月9日 五 · 12:58</small><strong>☀ 17°C</strong></div>
+    <span class="chip-btn gold">⏸</span><span class="chip-btn on">1x ▾</span></div>
+  <div class="zoomctl" style="right:10px;top:58px"><span>＋</span><span>－</span></div>
+  <div class="bottombar">
+    <div class="nav"><span class="ic">🏗️</span><span class="lbl">建造<small>Build</small></span></div>
+    <div class="nav"><span class="ic">🚌</span><span class="lbl">交通<small>Transport</small></span></div>
+    <div class="nav"><span class="ic">🗺️</span><span class="lbl">圖層<small>Layers</small></span></div>
+    <div class="nav"><span class="ic">🏛️</span><span class="lbl">管理<small>Manage</small></span></div>
+    <div class="nav"><span class="ic">☰</span><span class="lbl">更多<small>More</small></span><span class="dot">3</span></div>
+  </div>
+</div>
+<figcaption><b>2b · 底欄展開</b><span class="meta">點收放條展開 5 入口（「⌄ 收起」再點收起）。選咗入口後面板開啟，底欄自動收起，收放條標籤顯示目前所在分頁（見畫面 3a、11、12、14）。<span class="tag ok">地圖 75%</span><span class="tag">「更多」紅點＝討論區有新帖</span></span></figcaption></figure>
 
 <!-- ================= 3a 建造庫 分類 ================= -->
 <figure class="shot"><div class="device land">
@@ -104,7 +122,7 @@
     <div class="nav"><span class="ic">☰</span><span class="lbl">更多<small>More</small></span></div>
   </div>
 </div>
-<figcaption><b>3a · 建造庫（第 1 層：分類）</b><span class="meta">沿用遊戲現有 9 個分類名稱與英文副題；「地籍查詢」「拆除推土」改為標題列快捷鍵（🔍／🚜）。同一時間只開一個主面板；✕ 或再點「建造」關閉。<span class="tag warn">面板開啟：地圖 ≈ 50%</span></span></figcaption></figure>
+<figcaption><b>3a · 建造庫（第 1 層：分類）</b><span class="meta">沿用遊戲現有 9 個分類名稱與英文副題；「地籍查詢」「拆除推土」改為標題列快捷鍵（🔍／🚜）。同一時間只開一個主面板；✕ 關閉。開面板後底欄自動收起，收放條標籤顯示「🏗️ 建造」。<span class="tag warn">面板開啟：地圖 ≈ 58%</span></span></figcaption></figure>
 
 <!-- ================= 3b 建造庫 工具 ================= -->
 <figure class="shot"><div class="device land">
@@ -212,7 +230,7 @@
     <div class="nav"><span class="ic">☰</span><span class="lbl">更多<small>More</small></span></div>
   </div>
 </div>
-<figcaption><b>9 · 建築／格子資訊卡</b><span class="meta">點建築＝摘要卡（取代桌面 inspect 面板）；「詳情」進入同一面板子頁，關閉後回到原鏡頭。卡片為浮層，不改變地圖尺寸。<span class="tag ok">地圖 75%</span></span></figcaption></figure>
+<figcaption><b>9 · 建築／格子資訊卡</b><span class="meta">點建築＝摘要卡（取代桌面 inspect 面板）；「詳情」進入同一面板子頁，關閉後回到原鏡頭。卡片為浮層，不改變地圖尺寸。<span class="tag ok">地圖 89%</span></span></figcaption></figure>
 
 <!-- ================= 10 巴士路線 ================= -->
 <figure class="shot"><div class="device land">
@@ -231,7 +249,7 @@
   </div>
   <div class="confirm"><div class="tool"><span class="ic">🚌</span><span><b>巴士 12 號線</b><small><span class="valid ok">✓ 4 站可成線</span> 取消不會誤加站</small></span></div><span class="chip-btn wide" style="margin:0">取消</span><span class="chip-btn primary wide" style="margin:0">完成路線</span></div>
 </div>
-<figcaption><b>10 · 巴士路線編輯（路線挑站）</b><span class="meta">進入「路線編輯」後，管理詳情收合成單一側欄；pinch／取消<b>唔會</b>加站（取消原本 pointerdown 直接加站嘅捷徑），按「完成路線」先提交。站名為示例。<span class="tag warn">面板：地圖 ≈ 50%</span></span></figcaption></figure>
+<figcaption><b>10 · 巴士路線編輯（路線挑站）</b><span class="meta">進入「路線編輯」後，管理詳情收合成單一側欄；pinch／取消<b>唔會</b>加站（取消原本 pointerdown 直接加站嘅捷徑），按「完成路線」先提交。站名為示例。<span class="tag warn">面板：地圖 ≈ 49%</span></span></figcaption></figure>
 
 <!-- ================= 11 財政 ================= -->
 <figure class="shot"><div class="device land">
@@ -254,7 +272,32 @@
     <div class="nav"><span class="ic">☰</span><span class="lbl">更多<small>More</small></span></div>
   </div>
 </div>
-<figcaption><b>11 · 財政（管理 › 財政）</b><span class="meta">管理面板＝財政／政策與議會／股市／圖表／運輸公司等子頁；保留全部數值與單位。滑桿旁加 −／＋ 同數字（手指唔使拖到單一像素）。原功能即時生效，所以<b>不新增未實作嘅「套用／取消」</b>。部門預算以同款 ± 列表顯示。<span class="tag warn">面板：地圖 ≈ 50%</span></span></figcaption></figure>
+<figcaption><b>11 · 財政（管理 › 財政）</b><span class="meta">管理面板＝財政／政策與議會／股市／圖表／運輸公司等子頁；保留全部數值與單位。滑桿旁加 −／＋ 同數字（手指唔使拖到單一像素）。原功能即時生效，所以<b>不新增未實作嘅「套用／取消」</b>。部門預算以同款 ± 列表顯示。<span class="tag warn">面板：地圖 ≈ 58%</span></span></figcaption></figure>
+
+<!-- ================= 11b 管理 概覽 ================= -->
+<figure class="shot"><div class="device land">
+  <div class="topbar"><div class="plate">太子</div><div class="kpi"><small>資金</small><strong class="pos">$971,097,506</strong></div><div class="kpi"><small>人口</small><strong>347,793</strong></div><div class="kpi grow"><small>1998年2月9日 五 · 12:58</small><strong>☀ 17°C</strong></div><span class="chip-btn gold">⏸</span><span class="chip-btn on">1x ▾</span></div>
+  <div class="sheet">
+    <div class="sheet-head"><h4>管理<small>MANAGE · 概覽</small></h4><span class="icon-btn">✕</span></div>
+    <div class="sheet-tabs"><span class="t on">概覽</span><span class="t">財政</span><span class="t">議會</span><span class="t">股市 ›</span></div>
+    <div class="sheet-body" style="background:#fff;border:1px solid var(--ui-border);margin:0 8px 8px;gap:8px">
+      <div class="crumb"><b>需求</b>（R 住宅／C 商業／I 工業）</div>
+      <div class="kv"><span>R 住宅</span><div class="bar" style="flex:1;margin:4px 0 0 10px"><i style="width:68%;background:#44cc55"></i></div></div>
+      <div class="kv"><span>C 商業</span><div class="bar" style="flex:1;margin:4px 0 0 10px"><i style="width:52%;background:#4488ff"></i></div></div>
+      <div class="kv"><span>I 工業</span><div class="bar" style="flex:1;margin:4px 0 0 10px"><i style="width:35%;background:#ffcc00"></i></div></div>
+      <div class="crumb" style="margin-top:2px"><b>城市發展指數</b></div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px">
+        <div style="background:var(--index-bg);color:#ffe9b5;border-radius:8px;text-align:center;padding:4px 0;line-height:1.1"><small style="font-size:11px;opacity:.85">居住</small><br><b style="font-size:17px">99</b></div>
+        <div style="background:var(--index-bg);color:#ffe9b5;border-radius:8px;text-align:center;padding:4px 0;line-height:1.1"><small style="font-size:11px;opacity:.85">經濟</small><br><b style="font-size:17px">99</b></div>
+        <div style="background:var(--index-bg);color:#ffe9b5;border-radius:8px;text-align:center;padding:4px 0;line-height:1.1"><small style="font-size:11px;opacity:.85">環境</small><br><b style="font-size:17px">70</b></div>
+        <div style="background:var(--index-bg);color:#ffe9b5;border-radius:8px;text-align:center;padding:4px 0;line-height:1.1"><small style="font-size:11px;opacity:.85">交通</small><br><b style="font-size:17px">69</b></div>
+        <div style="background:var(--index-bg);color:#ffe9b5;border-radius:8px;text-align:center;padding:4px 0;line-height:1.1"><small style="font-size:11px;opacity:.85">總評</small><br><b style="font-size:17px">84</b></div>
+      </div>
+    </div>
+  </div>
+  <div class="bottombar"><div class="nav"><span class="ic">🏗️</span></div><div class="nav"><span class="ic">🚌</span></div><div class="nav"><span class="ic">🗺️</span></div><div class="nav on"><span class="ic">🏛️</span></div><div class="nav"><span class="ic">☰</span></div></div>
+</div>
+<figcaption><b>11b · 管理 › 概覽（R/C/I 需求＋五格發展指數）</b><span class="meta">已決定：地圖上<b>唔設</b>常駐 R/C/I 條；點頂欄「資金」（有 › 提示）直達呢頁。數值為示例（取自官網截圖）。<span class="tag warn">面板：地圖 ≈ 58%</span></span></figcaption></figure>
 
 <!-- ================= 12 圖層 ================= -->
 <figure class="shot"><div class="device land">
@@ -280,7 +323,7 @@
     <div class="nav"><span class="ic">☰</span><span class="lbl">更多<small>More</small></span></div>
   </div>
 </div>
-<figcaption><b>12 · 圖層／小地圖</b><span class="meta">圖層名稱沿用現有 11 個覆蓋圖（此處示 9 個，其餘可捲動）。選定後面板收起，地圖左上留一個可辨識嘅啟用標籤，<b>一按 ✕ 關閉</b>。小地圖由此入口開啟，不常駐佔位。<span class="tag warn">面板：地圖 ≈ 50%</span></span></figcaption></figure>
+<figcaption><b>12 · 圖層／小地圖</b><span class="meta">圖層名稱沿用現有 11 個覆蓋圖（此處示 9 個，其餘可捲動）。選定後面板收起，地圖左上留一個可辨識嘅啟用標籤，<b>一按 ✕ 關閉</b>。小地圖由此入口開啟，不常駐佔位。<span class="tag warn">面板：地圖 ≈ 58%</span></span></figcaption></figure>
 
 <!-- ================= 13 儲存失敗 ================= -->
 <figure class="shot"><div class="device land">
@@ -316,7 +359,7 @@
     <div class="nav on"><span class="ic">☰</span><span class="lbl">更多<small>More</small></span></div>
   </div>
 </div>
-<figcaption><b>14 · 更多（設定／存檔／討論區／介面模式）</b><span class="meta">「介面模式：自動／桌面／觸控」放呢度，Beta 期間手動啟用；切換前會取消草稿、保留城市與鏡頭。5.5.1 新增嘅 💬 香城討論區亦收納喺此（紅點提示新帖）。</span></figcaption></figure>
+<figcaption><b>14 · 更多（設定／存檔／討論區／介面模式）</b><span class="meta">「介面模式：自動／桌面／觸控」放呢度，Beta 期間手動啟用；切換前會取消草稿、保留城市與鏡頭。5.5.1 新增嘅 💬 香城討論區收納喺此（紅點提示新帖）；<b>走馬燈同廣告唔會顯示喺地圖</b>，只喺討論區內睇。</span></figcaption></figure>
 
 </div>
 
@@ -326,7 +369,6 @@
 <figure class="shot portrait"><div class="device port">
   <div class="topbar" style="padding:4px 6px;gap:6px"><div class="plate" style="flex-basis:56px;font-size:12px">太子</div><div class="kpi" style="padding:0 6px"><small>資金</small><strong class="pos" style="font-size:14px">$971.1M</strong></div><div class="kpi" style="padding:0 6px"><small>人口</small><strong style="font-size:14px">347,793</strong></div><span class="chip-btn gold" style="min-width:44px;padding:0">⏸</span><span class="chip-btn on" style="min-width:44px;padding:0">1x</span></div>
   <div class="rotate-hint" style="top:54px">📱 橫向畫面可使用完整建造功能 <span style="margin-left:auto">✕</span></div>
-  <div class="ticker" style="bottom:58px"><span class="badge">💬 香城討論區</span><span class="txt">【市場脈動】我的城市住商工需求同步轉強…</span></div>
   <div class="bottombar">
     <div class="nav"><span class="ic">🏗️</span>建造</div><div class="nav"><span class="ic">🚌</span>交通</div><div class="nav"><span class="ic">🗺️</span>圖層</div><div class="nav"><span class="ic">🏛️</span>管理</div><div class="nav"><span class="ic">☰</span>更多</div>
   </div>
@@ -372,15 +414,16 @@
 
 </div>
 
-<h2>3. 待決定（請回覆）</h2>
+<h2>3. 已確認嘅決定（2026-11-11）</h2>
 <div class="review">
   <ol>
-    <li><b>走馬燈（含 5.5.1 新增嘅「💬 香城討論區」同廣告）</b>：規格資訊架構冇位置。本稿方案＝<b>28px 細條浮喺底欄之上（可收起）</b>，主入口放「更多」＋紅點。備選：只放「更多」，地圖上完全唔顯示。</li>
-    <li><b>R/C/I 需求條、居住／經濟／環境／交通／總評五格指數</b>：本稿未放常駐 HUD（保地圖面積），建議放「管理 › 概覽」，點頂欄「資金」亦可直達。要唔要常駐一個迷你 R/C/I 條？</li>
-    <li><b>底部 5 入口</b>：規格指定「建造／交通／圖層／管理／更多」。已按規格；「查詢」「拆除」放建造庫標題列。</li>
-    <li><b>微調鍵尺寸</b>：138×138px（4 鍵 44px），預設展開；若覺得遮地圖可預設收合。</li>
+    <li><b>走馬燈（含 5.5.1 嘅「💬 香城討論區」同廣告）</b>：只放「更多」（紅點提示新帖），地圖上完全唔顯示。</li>
+    <li><b>R/C/I 需求條、五格發展指數</b>：唔設常駐；放「管理 › 概覽」，點頂欄「資金」（有 › 提示）直達（畫面 11b）。</li>
+    <li><b>底部 5 入口</b>：橫向預設收起，底部中間留收放條（畫面 2／2b）；開面板後自動收起，收放條標籤顯示目前分頁。「查詢」「拆除」放建造庫標題列。直向維持常駐底欄。</li>
+    <li><b>手勢</b>：跟規格——單指拖動＝平移、雙指＝縮放＋平移、tap≤300ms＝選取；<b>唔需要長按</b>。建造草稿靠「點兩點＋確認」，唔靠拖動。</li>
+    <li><b>微調鍵</b>：138×138px（4 鍵 44px），預設展開，可收合。</li>
   </ol>
-  <p class="pending">審批後（Phase B1）先開始寫 <code>tool-actions.js</code>／<code>build-session.js</code>。稿內示例數據（站名、覆蓋率、人手）只供布局用途。</p>
+  <p class="pending">仍待審批：其餘畫面有冇要改。審批後（Phase B1）先開始寫 <code>tool-actions.js</code>／<code>build-session.js</code>。稿內示例數據（站名、覆蓋率、人手、指數）只供布局用途。</p>
 </div>
 
 </body>

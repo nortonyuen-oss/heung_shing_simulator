@@ -11,6 +11,11 @@
 | 3 | 設計稿由開發方做 HTML/CSS 靜態稿，經 Norton 審批後才寫功能 |
 | 4 | 先以「觸控介面（Beta）」手動啟用；真機驗收且無 P0 後才預設自動 |
 | 5 | 版本號：minor（暫擬 5.6.0），發布時按 `release-update-checklist.md` 決定 |
+| 6 | 走馬燈（含 5.5.1 嘅 💬 香城討論區入口同廣告）**只放「更多」**（紅點提示新帖），地圖上完全唔顯示 |
+| 7 | **唔設**常駐 R/C/I 條；R/C/I 需求同五格發展指數放「管理 › 概覽」，點頂欄「資金」直達 |
+| 8 | 橫向底部 5 入口（建造／交通／圖層／管理／更多）**預設收起**，底部中間一條收放條（可點區 176×44px）；開面板後自動收起，收放條顯示目前分頁；直向維持常駐底欄 |
+| 9 | 四向微調鍵 138×138px，預設展開、可收合 |
+| 10 | 手勢**跟規格**：單指拖動＝平移；雙指＝縮放＋平移；tap ≤ 300ms＝選取；**不需要長按**（建造草稿靠「點兩點＋確認」）。曾考慮「單指長按才拖動」，已撤回（規格亦提醒長按不應係唯一入口） |
 
 ## 現況事實（影響工作量）
 
@@ -19,7 +24,7 @@
 - 60 個工具 ID、15+ 個浮動視窗；詳見 [mobile-tool-coverage.md](mobile-tool-coverage.md)。
 - 現有桌面 UI 縮到 844×390：頂欄 179px（46%）、可見地圖約 25%，故不可「縮細桌面 UI」。
 - 遊戲內介面語言只有 3 種（英／繁中／日），新字串三語齊備。
-- 5.5.1 新增嘅 💬 香城討論區／走馬燈廣告喺規格資訊架構未有位置（待決定）。
+- 5.5.1 新增嘅 💬 香城討論區／走馬燈廣告：已決定只放「更多」（決定 6）。
 
 ## Phase 0 — 準備與決定 ✅（除簽核）
 
@@ -30,17 +35,18 @@
 - [x] 5 個決定簽核
 - [ ] 準備測試城市 fixtures：小城、大城（候選 347,865 人口）、交通＋夜景（記錄建築數、人口、交通量；Phase A 末前完成）
 
-## Phase B0 — 設計稿（審批關卡）🟡 待審批
+## Phase B0 — 設計稿（審批關卡）🟡 待最終審批
 
-- [x] 15 個橫向畫面＋4 個直向畫面＋現況對照：`scripts/mobile-ui-mockups/index.html`（用 Chrome 直接開；不屬遊戲代碼、不上線）
-- [ ] **Norton 審批**（待決定：走馬燈／討論區位置、R/C/I 與五格指數位置、微調鍵預設展開）
-- [ ] 依回饋修訂稿 → 凍結（Phase B 功能按凍結稿實作）
+- [x] 17 個橫向畫面＋4 個直向畫面＋現況對照：`scripts/mobile-ui-mockups/index.html`（用 Chrome 直接開；不屬遊戲代碼、不上線）
+- [x] 第一輪回饋已套用：走馬燈移出地圖、R/C/I 移入管理概覽（畫面 11b）、橫向底欄收起＋收放條（畫面 2／2b）、手勢跟規格（決定 6–10）
+- [ ] **Norton 最終審批**（其餘畫面有冇要改）
+- [ ] 凍結稿（Phase B 功能按凍結稿實作）
 
 ## Phase A — 輸入安全（規模 M，可與 B0 並行）
 
 - [ ] `ui-profile.js`：自動／桌面／觸控、偏好存設定（非城市資料）、`data-ui-profile` 根屬性、profile 變更事件
 - [ ] `index.html` viewport meta（`viewport-fit=cover`）；僅 canvas 設 `touch-action: none`
-- [ ] `map-input-controller.js`：狀態機（idle／tapCandidate／pan／pinch／uiCaptured）、pointerId 追蹤、tap 閾值 8px／300ms、`pointercancel`／失焦／旋轉／切換模式只取消不提交
+- [ ] `map-input-controller.js`：狀態機（idle／tapCandidate／pan／pinch／uiCaptured）、pointerId 追蹤、tap 閾值 8px／300ms、單指拖＝平移、雙指＝縮放＋平移（決定 10，無長按）、`pointercancel`／失焦／旋轉／切換模式只取消不提交
 - [ ] Phaser 增加 touch pointers；舊 handler（`main.js:1072–1238`）忽略已被接管嘅觸控
 - [ ] 接管 `tool-menu.js:60` 全域 `pointerup` 提交（道路／分區／軌道／隧道／避風塘）→ 有 owner／transaction；觸控 `pointerdown` 零寫入
 - [ ] 雙指縮放：DOM→canvas 座標、`getWorldPoint` 錨點、抽出 `onMapViewChanged()`（`setMapZoom` `main.js:1645`）；0.4–3、誤差 ≤ 2px

@@ -112,9 +112,9 @@
 | 道路款式視窗 | `road-tile-set-window` | 更多 › 道路款式 | C |
 | 唱機 | `audio.js` | 更多 › 音樂 | C |
 | 說明、關於、AI 新聞設定、天氣圖例 | `help-dialog`、`about-dialog`、`ai-news-dialog`、`weather-legend-dialog` | 更多 | C |
-| 討論區、報紙、走馬燈（5.5.1 新增 💬 入口＋廣告） | `newspaper.js`、`hud-ticker.js` | 更多 › 討論區；走馬燈位置**待決定** | C |
+| 討論區、報紙、走馬燈（5.5.1 新增 💬 入口＋廣告） | `newspaper.js`、`hud-ticker.js` | 更多 › 討論區（紅點）；**走馬燈唔顯示於地圖** | C |
 | 節慶通知（含「去睇」按鈕） | `festival-ui.js`、`#toast-container` | 通知列（位置待決定） | C |
-| R/C/I 需求條、五格發展指數 | `hud.js` | 管理 › 概覽（**待決定**） | C |
+| R/C/I 需求條、五格發展指數 | `hud.js` | 管理 › 概覽；點頂欄「資金」直達（**已決定**，不設常駐條） | C |
 | 校正器（`*-calibrator.js`）、`tile-debug` | — | **不列入**（開發／桌面專用） | — |
 
 ## 4. 備註

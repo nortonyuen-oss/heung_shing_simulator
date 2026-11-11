@@ -83,6 +83,21 @@ figcaption .meta { display: block; margin-top: 2px; color: var(--ui-text-soft); 
 .ticker .badge { flex: 0 0 auto; padding: 1px 8px; border-radius: 999px; border: 1px solid #2c8d69; background: #0f4d39; color: #d7f3e6; font-size: 11px; }
 .ticker .txt { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; border-left: 1px solid rgba(174, 232, 207, .28); padding-left: 8px; }
 
+/* ───────── 橫向：底部 5 入口預設收起，中間留收放條（決定 3）─────────
+   收起條的可點區為 176×44px；畫出來的標籤只佔 132×30。標籤顯示目前所在分頁。 */
+.device.land > .bottombar { display: none; }
+.device.land.bar-open > .bottombar { display: grid; }
+.device.land::after { content: '⌃ 選單'; position: absolute; left: 50%; bottom: 0; transform: translateX(-50%); width: 132px; height: 30px; border-radius: 12px 12px 0 0; border: 1px solid var(--ui-border-strong); border-bottom: 0; background: linear-gradient(180deg, var(--ui-panel) 0%, var(--ui-panel-strong) 100%); box-shadow: 0 -2px 8px rgba(32, 42, 54, .25); font-size: 13px; font-weight: 800; line-height: 30px; text-align: center; color: var(--ui-text); }
+.device.land:has(> .bottombar > .nav:nth-child(1).on)::after { content: '🏗️ 建造 ⌃'; }
+.device.land:has(> .bottombar > .nav:nth-child(2).on)::after { content: '🚌 交通 ⌃'; }
+.device.land:has(> .bottombar > .nav:nth-child(3).on)::after { content: '🗺️ 圖層 ⌃'; }
+.device.land:has(> .bottombar > .nav:nth-child(4).on)::after { content: '🏛️ 管理 ⌃'; }
+.device.land:has(> .bottombar > .nav:nth-child(5).on)::after { content: '☰ 更多 ⌃'; }
+.device.land.bar-open::after { content: '⌄ 收起'; bottom: var(--bottom-h); }
+.device.land:has(> .confirm)::after, .device.land.title::after { display: none; }
+.plate + .kpi { border-left: 0; }
+.plate + .kpi strong::after { content: ' ›'; color: #6b7480; font-weight: 700; }
+
 /* ───────── 底部 5 入口 ───────── */
 .bottombar { position: absolute; left: 0; right: 0; bottom: 0; height: var(--bottom-h); display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; padding: 4px 8px; background: linear-gradient(180deg, var(--ui-panel) 0%, var(--ui-panel-strong) 100%); border-top: 1px solid var(--ui-border-strong); box-shadow: 0 -2px 8px rgba(32, 42, 54, .14); }
 .nav { position: relative; display: flex; align-items: center; justify-content: center; gap: 6px; min-height: var(--touch-target-min); border-radius: 10px; border: 1px solid var(--ui-border); background: #fff; color: var(--ui-text); font-weight: 800; font-size: 14px; }
@@ -96,8 +111,8 @@ figcaption .meta { display: block; margin-top: 2px; color: var(--ui-text-soft); 
 .port .nav small { display: none; }
 
 /* ───────── 側欄 / 底欄面板 ───────── */
-.sheet { position: absolute; top: var(--top-h); bottom: var(--bottom-h); right: 0; width: var(--sheet-w); display: flex; flex-direction: column; background: var(--ui-panel); border-left: 2px solid var(--ui-border-strong); box-shadow: -4px 0 14px rgba(32, 42, 54, .25); }
-.sheet.no-bottom { bottom: 0; }
+.sheet { position: absolute; top: var(--top-h); bottom: 0; right: 0; width: var(--sheet-w); display: flex; flex-direction: column; background: var(--ui-panel); border-left: 2px solid var(--ui-border-strong); box-shadow: -4px 0 14px rgba(32, 42, 54, .25); }
+.port .sheet { bottom: var(--bottom-h); }
 .sheet-head { flex: 0 0 var(--touch-target-min); display: flex; align-items: center; gap: 6px; padding: 0 6px 0 4px; background: var(--ui-panel-strong); border-bottom: 1px solid var(--ui-border-strong); }
 .sheet-head h4 { flex: 1; margin: 0; font-size: 15px; }
 .sheet-head h4 small { display: block; font-size: 11px; font-weight: 500; color: var(--ui-text-soft); }

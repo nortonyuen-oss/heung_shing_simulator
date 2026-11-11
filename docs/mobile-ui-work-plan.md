@@ -43,19 +43,23 @@
 
 **Gate 達成**：Phase B 可開始（待 Phase A 輸入安全完成後接駁）。
 
-## Phase A — 輸入安全（規模 M，可與 B0 並行）
+## Phase A — 輸入安全（規模 M，可與 B0 並行）✅ 實作完成，待你審閱
 
-- [ ] `ui-profile.js`：自動／桌面／觸控、偏好存設定（非城市資料）、`data-ui-profile` 根屬性、profile 變更事件
-- [ ] `index.html` viewport meta（`viewport-fit=cover`）；僅 canvas 設 `touch-action: none`
-- [ ] `map-input-controller.js`：狀態機（idle／tapCandidate／pan／pinch／uiCaptured）、pointerId 追蹤、tap 閾值 8px／300ms、單指拖＝平移、雙指＝縮放＋平移（決定 10，無長按）、`pointercancel`／失焦／旋轉／切換模式只取消不提交
-- [ ] Phaser 增加 touch pointers；舊 handler（`main.js:1072–1238`）忽略已被接管嘅觸控
-- [ ] 接管 `tool-menu.js:60` 全域 `pointerup` 提交（道路／分區／軌道／隧道／避風塘）→ 有 owner／transaction；觸控 `pointerdown` 零寫入
-- [ ] 雙指縮放：DOM→canvas 座標、`getWorldPoint` 錨點、抽出 `onMapViewChanged()`（`setMapZoom` `main.js:1645`）；0.4–3、誤差 ≤ 2px
-- [ ] 面板／滑桿／視窗拖曳／小地圖唔穿透去地圖
-- [ ] 決定遺留 `house` 工具路徑（無按鈕）係移除定保留
-- [ ] 測試：`map-input-controller.test.js`、`ui-profile.test.js`、Chromium touch smoke（844×390）；案例 M01–M05、M12、M17
+- [x] `ui-profile.js`：自動／桌面／觸控、偏好存設定（非城市資料）、`data-ui-profile` 根屬性、`uiprofilechange` 事件；載入時解析一次，旋轉／縮放視窗不重判。「自動」暫時等同桌面（`UI_PROFILE_AUTO_ENABLED=false`，Phase D 才開）；測試方法：`?ui=touch` 或 `setUiProfilePreference('touch')`
+- [x] viewport meta（`viewport-fit=cover`）只在觸控 profile 動態加入，桌面 profile 保持原狀（避免今日用手機開遊戲嘅玩家被改動）；觸控 profile 下 `#game-container` 設 `touch-action: none`
+- [x] `map-input-controller.js`：狀態機（idle／tapCandidate／pan／pinch／settling／uiCaptured）、pointerId 追蹤、tap 閾值 8px／300ms、單指拖＝平移、雙指＝縮放＋平移（決定 10，無長按）、三指重設基線、`pointercancel`／失焦／隱藏頁面／旋轉／切換 profile 只取消不提交；`setUiCaptured()` 供面板接管用
+- [x] Phaser 唔再收到觸控：觸控 profile 下喺 `#game-container` capture 階段攔截 `touch*` 事件並 `preventDefault`（亦防瀏覽器補發滑鼠事件），所以工具、車輛追蹤、地區招牌等 Phaser 互動都唔會被手指觸發；滑鼠／觸控筆照舊
+- [x] 提交所有權：`tool-menu.js` 全域 `pointerup` 忽略觸控 profile 下嘅手指放手；新增 `pointercancel` → `cancelPaintStroke()`（只清預覽同筆劃狀態，絕不提交；所有 profile 適用）。完整 owner／transaction 屬 Phase B 嘅 `build-session`
+- [x] 雙指縮放：用 Phaser 3.60 鏡頭真實公式（`world = scroll + origin + (screen − origin)/zoom`）錨定；抽出 `onMapViewChanged()`（`setMapZoom` 行為不變）；每幀只更新一次；0.4–3
+- [x] 面板／視窗拖曳唔穿透去地圖（煙霧測試驗證）
+- [ ] 決定遺留 `house` 工具路徑（無按鈕）係移除定保留 — **留待 Phase B**（目前冇影響）
+- [x] 測試：`test/ui-profile.test.js`（9）、`test/map-input-controller.test.js`（18）、`scripts/smoke-touch.js`（真實 Electron＋CDP 觸控，19 項）；覆蓋 M01–M05、M12、M17。844×390 版本留待 Phase B 觸控 UI 完成後再跑（現階段桌面 UI 會遮住地圖）
 
-**Gate**：縮放／取消／面板操作零城市變化；桌面操作無回歸；`npm test` 全過。
+**實測結果**（真實 Phaser 鏡頭）：雙指縮放錨點誤差 0.00px（規格要求 ≤ 2px）；單指平移與手指位移一致；平移／縮放／輕點／`touchcancel`／面板上拖動，全部零城市變動（建路工具選取下亦然）；桌面滑鼠拖路照常。
+
+**發現（既有問題，未改）**：桌面滾輪縮放（`setMapZoom`）以 `scroll + screen/zoom` 計錨點，但 Phaser 鏡頭以畫面中心為原點縮放，所以每格滾輪錨點會偏離游標約 **75px**（1280px 寬、zoom 0.7→0.77 實測）。觸控縮放唔受影響（用正確公式）。是否修正桌面滾輪（會令滾輪縮放真正以游標為中心）— 待 Norton 決定，修正只需將 `setMapZoom` 改用 `mapCameraScrollForAnchor`。
+
+**Gate**：縮放／取消／面板操作零城市變化 ✅；桌面操作無回歸 ✅；`npm test` 全過（commit 後確認）。
 
 ## Phase B — 可建造原型（規模 L，依賴 B0 凍結）
 

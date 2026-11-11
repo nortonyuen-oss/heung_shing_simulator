@@ -210,14 +210,14 @@ const check = (name, ok, detail = '') => { results.push({ name, ok, detail }); c
     await frame();
     await wait(300);
     check('desktop profile removes the viewport meta', await page.evaluate(() => !document.querySelector('meta[name="viewport"]')));
-    // A run of five flat ground tiles, found in the city data and projected to screen pixels, so the
-    // drag does not depend on what happens to be under a fixed coordinate.
+    // A run of five flat ground tiles, found in the city data; the camera is centred on it and its
+    // ends are projected to screen pixels, so the drag does not depend on the random terrain.
     const findLandRun = (skipRow) => page.evaluate((skip) => {
       const cam = activeScene.cameras.main;
       const ox = cam.width * 0.5;
       const oy = cam.height * 0.5;
-      const project = (p) => ({ x: (p.x - cam.scrollX - ox) * cam.zoom + ox, y: (p.y - cam.scrollY - oy) * cam.zoom + oy });
-      const at = (r, c) => project(getTileFaceGeometry(r, c, activeScene.offsetX, activeScene.offsetY).center);
+      const centre = (r, c) => getTileFaceGeometry(r, c, activeScene.offsetX, activeScene.offsetY).center;
+      const view = { x: cam.scrollX + ox + (640 - ox) / cam.zoom, y: cam.scrollY + oy + (440 - oy) / cam.zoom };
       let best = null;
       for (let r = 0; r < mapData.length; r += 1) {
         if (r === skip) continue;
@@ -225,14 +225,21 @@ const check = (name, ok, detail = '') => { results.push({ name, ok, detail }); c
           let flat = true;
           for (let k = 0; k <= 4 && flat; k += 1) flat = mapData[r][c + k] === GROUND && getTileHeight(r, c + k) === 0;
           if (!flat) continue;
-          const a = at(r, c);
-          const b = at(r, c + 4);
-          if (![a, b].every((p) => p.x > 300 && p.x < 1200 && p.y > 170 && p.y < 720)) continue;
-          const score = Math.hypot(a.x - 640, a.y - 440);
-          if (!best || score < best.score) best = { score, row: r, from: [a.x, a.y], to: [b.x, b.y] };
+          const a = centre(r, c);
+          const b = centre(r, c + 4);
+          const score = Math.hypot((a.x + b.x) / 2 - view.x, (a.y + b.y) / 2 - view.y);
+          if (!best || score < best.score) best = { score, row: r, c, a, b };
         }
       }
-      return best;
+      if (!best) return null;
+      // zoom 1, run centred at screen (640, 440)
+      cam.setZoom(1);
+      const mid = { x: (best.a.x + best.b.x) / 2, y: (best.a.y + best.b.y) / 2 };
+      cam.scrollX = mid.x - ox - (640 - ox);
+      cam.scrollY = mid.y - oy - (440 - oy);
+      onMapViewChanged(activeScene);
+      const project = (p) => [(p.x - cam.scrollX - ox) + ox, (p.y - cam.scrollY - oy) + oy];
+      return { row: best.row, from: project(best.a), to: project(best.b) };
     }, skipRow);
     const run = await findLandRun(-1);
     check('found flat ground on screen for the mouse test', !!run, run ? `row ${run.row}` : '');
@@ -250,13 +257,15 @@ const check = (name, ok, detail = '') => { results.push({ name, ok, detail }); c
     await page.mouse.move(cancelRun.from[0], cancelRun.from[1]);
     await page.mouse.down();
     await page.mouse.move(cancelRun.to[0], cancelRun.to[1], { steps: 6 });
+    // Phaser handles its own pointer events one frame late; let it see the stroke before it is cancelled
+    await frame();
     await page.evaluate(() => window.dispatchEvent(new PointerEvent('pointercancel', { pointerId: 1, pointerType: 'mouse' })));
     await page.mouse.up();
     await frame();
     const afterCancelStroke = await snapshot();
     check('a pointercancel mid-stroke commits nothing and clears the stroke',
       afterCancelStroke.roads === afterMouse.roads && afterCancelStroke.budget === afterMouse.budget && afterCancelStroke.painting === false,
-      `roads ${afterMouse.roads}->${afterCancelStroke.roads}`);
+      `roads ${afterMouse.roads}->${afterCancelStroke.roads}, budget ${afterMouse.budget}->${afterCancelStroke.budget}, painting ${afterCancelStroke.painting}`);
 
     // informational: how far does the existing wheel zoom drift from its anchor?
     await page.evaluate(() => { selectedTool = 'inspect'; });

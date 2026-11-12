@@ -169,7 +169,7 @@ function beginNewCitySaveSession(manualSaveId = null) {
   currentSaveId = Number(manualSaveId) || null;
 }
 
-function showTextPromptDialog(message, defaultValue = '') {
+function showTextPromptDialog(message, defaultValue = '', options = {}) {
   return new Promise((resolve) => {
     let dialog = document.getElementById('text-prompt-dialog');
     if (!dialog) {
@@ -204,6 +204,7 @@ function showTextPromptDialog(message, defaultValue = '') {
     const formEl = dialog.querySelector('form');
 
     titleEl.textContent = message;
+    inputEl.maxLength = options.maxLength ?? 30;
     inputEl.value = defaultValue || '';
     okBtn.textContent = t('dialog.ok');
     cancelBtn.textContent = t('dialog.cancel');

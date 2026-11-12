@@ -131,6 +131,7 @@ jobs:
           node scripts/smoke-mobile-build.js
           node scripts/smoke-mobile-panels.js
           node scripts/smoke-mobile-bus.js
+          node scripts/smoke-mobile-daily.js
         env:
           MOBILE_TEST_URL: http://127.0.0.1:4173/
       - name: Official website languages and unavailable statistics

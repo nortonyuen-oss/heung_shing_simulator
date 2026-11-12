@@ -54,6 +54,20 @@ function mobileSelectTool(tool) {
   mobileBuildSession.begin(tool, getTouchToolOptions(tool), mobileOwner);
 }
 
+async function mobilePromptDistrictNames() {
+  const draft = mobileBuildSession.getState();
+  if (draft?.tool !== 'district-sign') return;
+  const world = mapData;
+  const current = () => mapData === world && mobileBuildSession.getState()?.id === draft.id
+    && mobileBuildSession.getState()?.owner === draft.owner;
+  const count = getDistrictSigns().length + 1;
+  const name = await showTextPromptDialog(t('districtSign.namePrompt'), draft.options.name || t('districtSign.defaultName', { count }));
+  if (!current() || name === null || !trimDistrictName(name)) return;
+  const englishName = await showTextPromptDialog(t('districtSign.englishNamePrompt'), draft.options.englishName || t('districtSign.defaultEnglishName', { count }), { maxLength: 48 });
+  if (!current() || englishName === null || !trimDistrictEnglishName(englishName)) return;
+  mobileBuildSession.setOptions({ name: trimDistrictName(name), englishName: trimDistrictEnglishName(englishName) });
+}
+
 function handleMobileMapTap({ x, y }) {
   if (!isTouchUiProfile() || !mobileGameVisible() || mobileModalOpen()) return;
   if (mobileWorldMap !== mapData) mobileInvalidateWorld();
@@ -67,6 +81,12 @@ function handleMobileMapTap({ x, y }) {
   if (mobilePage) return;
   if (mobileMode === 'inspect') {
     mobileCancelBuild();
+    const sign = areDistrictSignsVisible() && [...getDistrictSigns()].reverse().find((item) => {
+      const sprite = activeScene.districtSignSprites?.get(item.id);
+      return (item.row === tile.row && item.col === tile.col)
+        || (sprite?.visible && Phaser.Geom.Rectangle.Contains(sprite.getBounds(), world.x, world.y));
+    });
+    if (sign) { editDistrictSign(activeScene, sign).catch((error) => console.warn('[Mobile district sign]', error)); return; }
     lastInspectTile = { ...tile };
     drawInspectHighlight(activeScene, tile.row, tile.col);
     showInspectPanel(activeScene, tile.row, tile.col);
@@ -74,14 +94,14 @@ function handleMobileMapTap({ x, y }) {
   }
   const state = mobileBuildSession.getState();
   if (!state) return; // choosing a tool is explicit; dismissing a draft never arms a new one
-  const range = state.tool === 'road' || state.tool.startsWith('zone-') || (state.tool === 'bulldoze' && state.options.range);
-  mobileBuildSession.select(tile, range);
+  mobileBuildSession.select(tile, isTouchRangeDraft(state));
 }
 
 function mobileRenderDraft(draft) {
   if (!mobileUi) return;
   const building = !!draft;
   mobileUi.classList.toggle('is-building', building);
+  mobileUi.classList.toggle('is-district-sign', draft?.tool === 'district-sign');
   document.getElementById('mobile-build-controls').hidden = !building;
   if (!draft) { clearTouchPlacementPreview(typeof activeScene === 'undefined' ? null : activeScene); return; }
   const plan = draft.plan;
@@ -96,6 +116,10 @@ function mobileRenderDraft(draft) {
   if (draft.tool === 'bus-depot' && plan && !plan.reason) status.textContent = plan.vehicleCount
     ? mobileText(plan.connected ? 'depotInUseConnected' : 'depotInUseDisconnected', { buses: plan.vehicleCount, routes: plan.routeCount })
     : mobileText(plan.connected ? 'depotConnected' : 'depotDisconnected');
+  if (draft.tool === 'dezone' && plan?.ok) status.textContent = mobileText('dezoneSummary', { count: plan.tiles.length, buildings: plan.keptBuildings });
+  if (draft.tool === 'power-line' && plan?.ok) status.textContent = mobileText('powerLineSummary', { count: plan.tiles.length, skipped: plan.skipped, trees: plan.clearedTrees });
+  if (draft.tool === 'district-sign' && plan?.ok) status.textContent = `${plan.name} · ${plan.englishName}`;
+  if (plan?.option) document.getElementById('mobile-build-name').textContent = t(plan.option.titleKey);
   status.style.color = plan && !plan.ok ? '#8d1f1e' : '#374451';
   document.getElementById('mobile-build-cost').textContent = plan ? formatMoney(plan.cost) : '—';
   const busTool = TOUCH_BUS_TOOLS.includes(draft.tool);
@@ -107,6 +131,11 @@ function mobileRenderDraft(draft) {
   }
   document.getElementById('mobile-stop-options').hidden = draft.tool !== 'bus-stop';
   document.getElementById('mobile-depot-options').hidden = draft.tool !== 'bus-depot';
+  document.getElementById('mobile-district-options').hidden = draft.tool !== 'district-sign';
+  const recreation = getTouchRecreationOptions(draft.tool);
+  const recreationSelect = document.getElementById('mobile-recreation-select');
+  recreationSelect.hidden = !recreation.length;
+  if (recreation.length) recreationSelect.innerHTML = recreation.map((option) => `<option value="${option.id}" ${option.id === draft.options.variant ? 'selected' : ''}>${mobileEscape(t(option.titleKey))} · ${option.badge} · ${formatMoney(option.cost)}</option>`).join('');
   document.querySelectorAll('[data-mobile-stop-side]').forEach((button, index) => {
     button.setAttribute('aria-pressed', String(button.dataset.mobileStopSide === draft.options.stopSide));
     const side = plan?.eligibleSides?.[index];
@@ -114,7 +143,7 @@ function mobileRenderDraft(draft) {
   });
   if (draft.tool === 'bus-depot') document.getElementById('mobile-depot-rotate').textContent = `${mobileText('rotateEntrance')} ${ { ul: '↖', ur: '↗', ll: '↙', lr: '↘' }[getBusDepotVisualCorner(draft.options.depotSide)] }`;
   const confirm = document.getElementById('mobile-confirm');
-  confirm.textContent = mobileText(draft.tool === 'bulldoze' ? 'demolish' : 'confirm');
+  confirm.textContent = mobileText(draft.tool === 'bulldoze' ? 'demolish' : draft.tool === 'dezone' ? 'confirmDezone' : 'confirm');
   confirm.className = draft.tool === 'bulldoze' ? 'm-danger' : 'm-primary';
   confirm.disabled = !building || !draft.ready || !plan?.ok;
   document.getElementById('mobile-build-step').textContent = mobileText(!draft.start ? 'tapStart' : !draft.ready ? 'tapEnd' : 'ready');
@@ -137,7 +166,7 @@ function mobileRenderDraft(draft) {
   const endToggle = document.getElementById('mobile-end-toggle');
   endToggle.textContent = draft.activeEnd === 'end' ? 'B' : 'A';
   endToggle.setAttribute('aria-label', mobileText(draft.activeEnd === 'end' ? 'endB' : 'endA'));
-  endToggle.hidden = !(draft.tool === 'road' || isZone || (draft.tool === 'bulldoze' && draft.options.range));
+  endToggle.hidden = !isTouchRangeDraft(draft);
   if (activeScene) drawTouchPlacementPreview(activeScene, draft);
 }
 
@@ -337,7 +366,7 @@ function mobileRenderPage() {
   panel.hidden = false;
   if (mobilePage === 'build') {
     const categories = [...document.querySelectorAll('#tool-menu [data-tool-category]')]
-      .filter((button) => ['roads', 'zones', 'power', 'services', 'parks', 'landmarks', 'terrain', 'marine', 'transport'].includes(button.dataset.toolCategory));
+      .filter((button) => ['roads', 'zones', 'power', 'services', 'parks', 'landmarks', 'terrain', 'marine', 'transport', 'maps'].includes(button.dataset.toolCategory));
     const intro = `<div class="m-shortcuts"><button type="button" data-mobile-tool="inspect">🔍 ${mobileText('inspect')}</button><button type="button" data-mobile-tool="bulldoze">🚜 ${mobileText('bulldoze')}</button></div>`;
     if (!mobileCategory) {
       body.innerHTML = intro + `<div class="m-categories">${categories.map((button) => `<button type="button" class="m-category" data-mobile-category="${button.dataset.toolCategory}"><span aria-hidden="true">${button.querySelector('.tool-category-icon').textContent}</span><strong>${mobileEscape(button.querySelector('.tool-category-title').textContent)}</strong></button>`).join('')}</div><p>${mobileText('toolInfo')}</p>`;
@@ -348,7 +377,10 @@ function mobileRenderPage() {
         const lock = type ? getInfraPlacementLock(type) : { unlocked: true };
         const detail = lock.unlocked ? '' : describeSpecialBuildingLockReason(lock);
         const cost = type ? formatMoney(INFRA_COSTS[type]) : tool === 'road' ? `${formatMoney(COST_ROAD)} / ▧`
-          : tool === 'bus-stop' ? formatMoney(COST_BUS_STOP) : tool === 'bus-depot' ? formatMoney(COST_BUS_DEPOT) : '';
+          : tool === 'bus-stop' ? formatMoney(COST_BUS_STOP) : tool === 'bus-depot' ? formatMoney(COST_BUS_DEPOT)
+            : tool === 'dezone' ? t('toolRow.free') : tool === 'tree' ? formatMoney(COST_TREE)
+              : tool === 'power-line' ? formatMoney(COST_POWER_LINE) : tool === 'district-sign' ? formatMoney(DISTRICT_SIGN_COST)
+                : getTouchRecreationOptions(tool).length ? mobileText('chooseStyle') : '';
         return mobileRow(`data-mobile-tool="${tool}" ${!lock.unlocked ? 'aria-disabled="true"' : ''}`, mobileToolLabel(tool), detail, mobileToolIcon(tool), lock.unlocked ? cost : '🔒');
       }).join('')}</div><p>${mobileText('futureTools')}</p>`;
     }
@@ -415,6 +447,8 @@ function setupMobileUi() {
         </div>
       </div>
       <div class="m-context">
+        <select id="mobile-recreation-select" hidden data-mobile-aria="chooseStyle"></select>
+        <span id="mobile-district-options" hidden><button type="button" id="mobile-district-names" data-mobile-text="signNames"></button></span>
         <span id="mobile-stop-options" hidden role="group" data-mobile-aria="stopSides"><button type="button" data-mobile-stop-side="first" data-mobile-aria="sideA"></button><button type="button" data-mobile-stop-side="second" data-mobile-aria="sideB"></button><button type="button" data-mobile-stop-side="both"></button></span>
         <span id="mobile-depot-options" hidden><button type="button" id="mobile-depot-rotate" data-mobile-aria="rotateEntrance"></button></span>
         <span id="mobile-density" hidden>${[[DENSITY_LOW,'low'],[DENSITY_MED,'medium'],[DENSITY_HIGH,'high']].map(([value,key]) => `<button type="button" data-mobile-density="${value}" aria-pressed="false" data-mobile-text="${key}"></button>`).join('')}</span>
@@ -460,6 +494,7 @@ function setupMobileUi() {
     } else if (button.dataset.mobileMenu) {
       mobileClosePanel(); mobileCancelBuild(); handleMenuAction(button.dataset.mobileMenu);
     } else if (button.dataset.mobileAction === 'rename') { mobileClosePanel(); renameCityPrompt(); }
+    else if (button.id === 'mobile-district-names') mobilePromptDistrictNames().catch((error) => console.warn('[Mobile district draft]', error));
     else if (button.dataset.mobileStopSide) mobileBuildSession.setOptions({ stopSide: button.dataset.mobileStopSide });
     else if (button.id === 'mobile-depot-rotate') {
       const draft = mobileBuildSession.getState();
@@ -493,10 +528,11 @@ function setupMobileUi() {
       if (!draft) return;
       const result = mobileBuildSession.confirm(draft.id, mobileOwner);
       if (result.reason === 'changed') showToast(mobileText('changed'), 'warning');
-      else if (result.ok) showToast(mobileText(draft.tool === 'bulldoze' ? 'demolished' : 'built'), 'info');
+      else if (result.ok) showToast(mobileText(draft.tool === 'bulldoze' ? 'demolished' : draft.tool === 'dezone' ? 'dezoned' : 'built'), 'info');
     }
   });
   mobileUi.addEventListener('change', (event) => {
+    if (event.target.id === 'mobile-recreation-select') mobileBuildSession.setOptions({ variant: event.target.value });
     if (event.target.id === 'mobile-speed') setSimSpeed(Number(event.target.value));
     if (event.target.matches('[data-mobile-profile]')) setUiProfilePreference(event.target.value);
     if (event.target.matches('[data-mobile-language]')) setLanguage(event.target.value);

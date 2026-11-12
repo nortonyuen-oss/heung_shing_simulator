@@ -319,14 +319,19 @@ function destroyZoneOverlaySprite(scene, row, col) {
 
 // ── Power line placement ───────────────────────────────────────────────────────
 
+function getPowerLinePlacementQuote(row, col) {
+  const ok = isInsideMap(row, col) && mapData[row][col] !== WATER;
+  const noop = ok && powerLineSet.has(getTileId(row, col));
+  return { ok, noop, cost: ok && !noop ? COST_POWER_LINE : 0 };
+}
+
 function placePowerLine(scene, row, col) {
-  if (!isInsideMap(row, col)) return false;
-  if (mapData[row][col] === WATER) return false;
+  const quote = getPowerLinePlacementQuote(row, col);
+  if (!quote.ok) return false;
+  if (quote.noop) return true;
 
   const id = getTileId(row, col);
-  if (powerLineSet.has(id)) return true;
-
-  if (!spendBudget(COST_POWER_LINE)) {
+  if (!spendBudget(quote.cost)) {
     showToast(t('toast.notEnoughFunds'), 'warning');
     return false;
   }
@@ -335,6 +340,7 @@ function placePowerLine(scene, row, col) {
   removeDebris(scene, row, col);
   powerLineSet.add(id);
   drawPowerLineSprite(scene, row, col);
+  if (typeof markPowerGridDirty === 'function') markPowerGridDirty();
   if (typeof invalidateOverlayCache === 'function') invalidateOverlayCache();
 
   return true;
@@ -641,9 +647,7 @@ function placeSelectedPark(scene, row, col) {
   return placePark(scene, row, col, option);
 }
 
-function placePark(scene, row, col, parkOption) {
-  if (!isInsideMap(row, col)) return false;
-
+function getParkPlacementQuote(row, col, parkOption) {
   const parkType = parkOption.type;
   const requestedKey = parkOption.spriteKey ?? parkType;
   const models = getParkModels(requestedKey);
@@ -654,10 +658,16 @@ function placePark(scene, row, col, parkOption) {
   const spriteKey = selectParkModel(requestedKey, existingCount)?.spriteKey ?? requestedKey;
   const footprintCols = parkOption.footprintCols ?? (parkType === 'park_large' ? 3 : 1);
   const footprintRows = parkOption.footprintRows ?? (parkType === 'park_large' ? 3 : 1);
-  if (!canPlaceBuildingFootprint(row, col, footprintCols, footprintRows)) return false;
+  return { ok: isInsideMap(row, col) && canPlaceBuildingFootprint(row, col, footprintCols, footprintRows),
+    cost: parkOption.cost ?? INFRA_COSTS[parkType], spriteKey, footprintCols, footprintRows };
+}
 
-  const cost = INFRA_COSTS[parkType];
-  if (!spendBudget(cost)) {
+function placePark(scene, row, col, parkOption) {
+  const quote = getParkPlacementQuote(row, col, parkOption);
+  if (!quote.ok) return false;
+  const { spriteKey, footprintCols, footprintRows } = quote;
+  const parkType = parkOption.type;
+  if (!spendBudget(quote.cost)) {
     showToast(t('toast.notEnoughFunds'), 'warning');
     return false;
   }
@@ -692,14 +702,18 @@ function placeSelectedSportsGround(scene, row, col) {
   return placeSportsGround(scene, row, col, option);
 }
 
-function placeSportsGround(scene, row, col, option) {
-  if (!isInsideMap(row, col)) return false;
-
+function getSportsGroundPlacementQuote(row, col, option) {
   const { type, spriteKey, footprintCols = 2, footprintRows = 2 } = option;
-  if (!canPlaceBuildingFootprint(row, col, footprintCols, footprintRows)) return false;
+  return { ok: isInsideMap(row, col) && canPlaceBuildingFootprint(row, col, footprintCols, footprintRows),
+    cost: INFRA_COSTS[type], spriteKey, footprintCols, footprintRows };
+}
 
-  const cost = INFRA_COSTS[type];
-  if (!spendBudget(cost)) {
+function placeSportsGround(scene, row, col, option) {
+  const quote = getSportsGroundPlacementQuote(row, col, option);
+  if (!quote.ok) return false;
+  const { spriteKey, footprintCols, footprintRows } = quote;
+  const { type } = option;
+  if (!spendBudget(quote.cost)) {
     showToast(t('toast.notEnoughFunds'), 'warning');
     return false;
   }

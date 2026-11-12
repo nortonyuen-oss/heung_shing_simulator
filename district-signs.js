@@ -82,6 +82,37 @@ function trimDistrictEnglishName(value) {
   return Array.from(String(value || '').replace(/\s+/g, ' ').trim()).slice(0, 48).join('');
 }
 
+function getDistrictSignPlacementQuote(scene, row, col, names = {}) {
+  const name = trimDistrictName(names.name);
+  const englishName = trimDistrictEnglishName(names.englishName);
+  const reason = !canPlaceDistrictSign(scene, row, col) ? t('toast.districtSignBlocked')
+    : getDistrictSigns().length >= DISTRICT_SIGN_MAX_COUNT ? t('toast.districtSignLimit', { count: DISTRICT_SIGN_MAX_COUNT })
+      : !name || !englishName ? t('mobile.signNeedsNames')
+        : getDistrictSigns().some((sign) => sign.name === name) ? t('toast.districtSignDuplicate') : '';
+  return { ok: !reason, reason, cost: DISTRICT_SIGN_COST, name, englishName };
+}
+
+// The desktop prompts and the touch draft share one synchronous city writer.
+function placeDistrictSignWithNames(scene, row, col, names) {
+  const quote = getDistrictSignPlacementQuote(scene, row, col, names);
+  if (!quote.ok) { showToast(quote.reason, 'warning'); return false; }
+  if (!spendBudget(quote.cost)) { showToast(t('toast.notEnoughFunds'), 'warning'); return false; }
+  removeTree(scene, row, col);
+  removeDebris(scene, row, col);
+  const sign = {
+    id: `district-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+    name: quote.name, englishName: quote.englishName, row, col,
+    radius: DISTRICT_SIGN_RADIUS, createdAtTick: city.tick,
+  };
+  if (!Array.isArray(city.districtSigns)) city.districtSigns = [];
+  city.districtSigns.push(sign);
+  drawDistrictSignSprite(scene, sign);
+  invalidateDistrictMetrics();
+  showToast(t('toast.districtSignPlaced', { name: sign.name, radius: DISTRICT_SIGN_RADIUS }), 'info');
+  if (typeof queueCityChangeAutosave === 'function') queueCityChangeAutosave();
+  return true;
+}
+
 async function placeDistrictSign(scene, row, col) {
   if (districtSignPlacementPending) return false;
   if (!canPlaceDistrictSign(scene, row, col)) {
@@ -94,42 +125,18 @@ async function placeDistrictSign(scene, row, col) {
   }
 
   districtSignPlacementPending = true;
+  const placementCity = city;
   try {
     const suggestedName = t('districtSign.defaultName', { count: getDistrictSigns().length + 1 });
     const input = await showTextPromptDialog(t('districtSign.namePrompt'), suggestedName);
     const name = trimDistrictName(input);
     if (!name) return false;
     const suggestedEnglishName = t('districtSign.defaultEnglishName', { count: getDistrictSigns().length + 1 });
-    const englishInput = await showTextPromptDialog(t('districtSign.englishNamePrompt'), suggestedEnglishName);
+    const englishInput = await showTextPromptDialog(t('districtSign.englishNamePrompt'), suggestedEnglishName, { maxLength: 48 });
     const englishName = trimDistrictEnglishName(englishInput);
     if (!englishName) return false;
-    if (getDistrictSigns().some((sign) => sign.name === name)) {
-      showToast(t('toast.districtSignDuplicate'), 'warning');
-      return false;
-    }
-    if (!canPlaceDistrictSign(scene, row, col)) return false;
-    if (!spendBudget(DISTRICT_SIGN_COST)) {
-      showToast(t('toast.notEnoughFunds'), 'warning');
-      return false;
-    }
-
-    removeTree(scene, row, col);
-    removeDebris(scene, row, col);
-    const sign = {
-      id: `district-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
-      name,
-      englishName,
-      row,
-      col,
-      radius: DISTRICT_SIGN_RADIUS,
-      createdAtTick: city.tick,
-    };
-    city.districtSigns.push(sign);
-    drawDistrictSignSprite(scene, sign);
-    invalidateDistrictMetrics();
-    showToast(t('toast.districtSignPlaced', { name, radius: DISTRICT_SIGN_RADIUS }), 'info');
-    if (typeof queueCityChangeAutosave === 'function') queueCityChangeAutosave();
-    return true;
+    if (city !== placementCity) return false;
+    return placeDistrictSignWithNames(scene, row, col, { name, englishName });
   } finally {
     districtSignPlacementPending = false;
   }
@@ -138,15 +145,17 @@ async function placeDistrictSign(scene, row, col) {
 async function editDistrictSign(scene, sign) {
   if (!sign || districtSignEditPending || districtSignPlacementPending) return false;
   districtSignEditPending = true;
+  const editingCity = city;
   try {
     const nameInput = await showTextPromptDialog(t('districtSign.editNamePrompt'), sign.name);
     if (nameInput === null) return false;
     const name = trimDistrictName(nameInput);
     if (!name) return false;
-    const englishInput = await showTextPromptDialog(t('districtSign.editEnglishNamePrompt'), sign.englishName || '');
+    const englishInput = await showTextPromptDialog(t('districtSign.editEnglishNamePrompt'), sign.englishName || '', { maxLength: 48 });
     if (englishInput === null) return false;
     const englishName = trimDistrictEnglishName(englishInput);
     if (!englishName) return false;
+    if (city !== editingCity || !getDistrictSigns().includes(sign)) return false;
     if (getDistrictSigns().some((item) => item.id !== sign.id && item.name === name)) {
       showToast(t('toast.districtSignDuplicate'), 'warning');
       return false;
@@ -234,6 +243,7 @@ function drawDistrictSignSprite(scene, sign) {
   );
   container.input.cursor = 'pointer';
   container.on('pointerdown', (pointer, localX, localY, event) => {
+    if (typeof isTouchUiProfile === 'function' && isTouchUiProfile()) return;
     if (selectedTool !== 'inspect') return;
     event?.stopPropagation?.();
     pointer.event?.stopPropagation?.();

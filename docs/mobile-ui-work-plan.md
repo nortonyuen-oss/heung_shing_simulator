@@ -102,9 +102,20 @@
 - [x] 建造庫與交通入口開放兩個工具，舊交通問題提示可直接進入手機建造草稿；其他未完成交通建造維持停用。
 - [ ] 新一輪真機操作；驗證細節見 [mobile-bus-validation.md](mobile-bus-validation.md)。
 
+## Phase C2 — 手機日常建造工具
+
+分支：`feature/mobile-daily-tools`，接續 C1／`6cdcde6`。按 Norton「好，你做C2」指示加入六個工具，手機仍為自動選擇 Beta。
+
+- [x] 電線：起終點直線、跳過水面／現有線、顯示清樹數、只確認時付款；即時更新供電網絡。
+- [x] 種樹：矩形預覽、有效格／跳過格及費用；沿用現有道路、建築、地形、電線、路旁及分區規則。
+- [x] 取消分區：矩形確認、保留建築摘要、免費，保留永久低密度指定。
+- [x] 公園／運動場：明確款式選單、共用真實佔地與付款報價，保留維園模組循環；棕櫚苑實際收費對齊既有標價 $500。
+- [x] 地區牌：中英文名先進草稿，驗證重名／上限／土地／資金，確認後寫入；查詢模式完成點擊先改名，雙指不開改名框。
+- [ ] 真機驗收；自動化結果及操作規則見 [mobile-daily-validation.md](mobile-daily-validation.md)。
+
 ## Phase C — 完整經營（規模 XL）
 
-- [ ] Phase C 工具原有 22 個，C1 巴士站／車廠已接駁，餘 20 個（見覆蓋表 §1.3）：地鐵／電車軌、海底隧道、避風塘、地形／電線／樹木／步道、右鍵特殊操作、路線編輯
+- [ ] Phase C 工具原有 22 個，C1／C2 已接駁 8 個，餘 14 個（見覆蓋表 §1.3）：地鐵／電車、渡輪、海底隧道、避風塘、地形／步道及右鍵特殊操作
 - [ ] 交通面板（`transport-ui.js`）、車輛追蹤、財政、議會、股市、圖表、圖層／小地圖、資訊卡、設定、討論區／走馬燈／報紙／節慶通知
 - [x] 面板 host：單一主面板、返回堆疊、捲動／選項保留、無重複 id、reduced motion；本批其他手機介面驗證見 [mobile-panels-validation.md](mobile-panels-validation.md)
 - [ ] 所有 hover／長按／右鍵／Shift 依賴改明確按鈕；tooltip 改 ⓘ
@@ -118,7 +129,7 @@
 - [ ] 真機矩陣：iPhone Safari、Android Chrome、iPad Safari＋桌面 Chrome／Firefox／Safari／Edge＋Electron
 - [ ] 效能：中位 ≥ 30 fps（60 秒）、觸控到預覽 p95 ≤ 100ms、15 分鐘持續遊玩；先量度再決定畫質，不降模擬頻率
 - [ ] 背景恢復（暫停並保留速度）、IndexedDB 寫入鎖重取、quota／唯讀提示、跨裝置匯出匯入、更新流程（M14–M16）
-- [x] CI：`build-installers.yml` web job 已有自動選擇／建造／管理 smoke，C1 加入完整巴士流程
+- [x] CI：`build-installers.yml` web job 已有自動選擇／建造／管理 smoke，C1 加入完整巴士流程，C2 加入日常工具及供電／存讀檔流程
 - [ ] 文檔：驗收記錄、`web-release-spec.md`、README、使用手冊／官網指南、三語 changelog
 - [x] v5.6.0 已按 Norton 指示以手機 Beta 發布及自動選擇；後續批次仍需完成真機驗收
 

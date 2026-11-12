@@ -386,7 +386,7 @@ function drawTouchPlacementPreview(scene, draft) {
     g.closePath().fillPath().strokePath();
   });
   if (draft.tool === 'bus-stop' || draft.tool === 'bus-depot') drawTouchBusPlacementPreview(scene, draft);
-  if (draft.tool === 'road' || draft.tool.startsWith('zone-') || (draft.tool === 'bulldoze' && draft.options.range)) {
+  if (isTouchRangeDraft(draft)) {
     if (!scene.mobileEndpointLabels) {
       scene.mobileEndpointLabels = ['A', 'B'].map((text) => {
         const label = scene.add.text(0, 0, text, { fontSize: '16px', fontStyle: 'bold', color: '#ffffff', backgroundColor: '#1f5fa8', padding: { x: 7, y: 4 } }).setOrigin(0.5, 1).setResolution(2);

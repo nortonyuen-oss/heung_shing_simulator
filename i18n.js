@@ -6686,6 +6686,7 @@ const I18N = {
 // Mobile-only copy extends the same three language dictionaries as the desktop UI.
 const MOBILE_TRANSLATIONS = {
   en: {
+    chooseStyle: 'Choose style', signNames: 'Set bilingual names', signNeedsNames: 'Set both names before confirming placement.', dezoneSummary: 'Clear {count} zoned tiles · keep {buildings} buildings', powerLineSummary: '{count} tiles · skip {skipped} · clear {trees} trees', confirmDezone: 'Confirm de-zoning', dezoned: 'Zoning cleared. Existing buildings remain.',
     depotInUseConnected: 'Road connected · vehicles {buses}, routes {routes}', depotInUseDisconnected: 'No road · affects {buses} vehicles / {routes} routes',
     stopAlreadySet: 'These road sides already have stops.', depotAlreadySet: 'The entrance already faces this way.', companyFundsLow: 'The transport company has insufficient funds.', companyFunding: 'Company funds · available {balance}', cityFunding: 'City funds · available {balance}', stopCoverage: 'Walking coverage: {residents} residents · {jobs} destinations', depotConnected: 'Entrance connected to a road.', depotDisconnected: 'Entrance needs a road before buses can operate.', depotEntrance: 'Entrance', rotateEntrance: 'Rotate entrance', bothSides: 'Both sides', stopSides: 'Bus stop road sides', sideA: 'Side A, marked on the map', sideB: 'Side B, marked on the map', transportManagement: 'Transport management',
     betaBadge: 'BETA', betaNotice: 'Mobile Beta · Construction and management are available. Some transport and terrain tools are still in development.',
@@ -6711,6 +6712,7 @@ const MOBILE_TRANSLATIONS = {
     futureTools: 'Other tools will be added in the next touch update.', editor: 'Map editing will be available in a later touch update.',
   },
   zhHant: {
+    chooseStyle: '揀款式', signNames: '設定中英文名', signNeedsNames: '先設定中英文名，再確認放置。', dezoneSummary: '取消 {count} 格分區 · 保留 {buildings} 棟建築', powerLineSummary: '{count} 格 · 跳過 {skipped} · 清除 {trees} 棵樹', confirmDezone: '確認取消分區', dezoned: '已取消分區，現有建築保留。',
     depotInUseConnected: '已接路 · 車廠有 {buses} 架車／{routes} 條線', depotInUseDisconnected: '入口未接路 · 影響 {buses} 架車／{routes} 條線',
     stopAlreadySet: '所選道路兩側已有相同巴士站。', depotAlreadySet: '車廠入口已朝向呢一邊。', companyFundsLow: '交通公司資金不足。', companyFunding: '公司資金 · 可用 {balance}', cityFunding: '城市資金 · 可用 {balance}', stopCoverage: '步行覆蓋：居民 {residents} · 目的地 {jobs}', depotConnected: '入口已接路，可供巴士出入。', depotDisconnected: '入口未接路，接駁後先可營運。', depotEntrance: '入口', rotateEntrance: '轉入口', bothSides: '兩側', stopSides: '巴士站道路兩側', sideA: 'A 側，位置見地圖標記', sideB: 'B 側，位置見地圖標記', transportManagement: '交通管理',
     betaBadge: 'BETA', betaNotice: '手機版 Beta · 已開放建造及管理；部分交通及地形工具仍在開發。',
@@ -6736,6 +6738,7 @@ const MOBILE_TRANSLATIONS = {
     futureTools: '其他工具會喺下次觸控更新加入。', editor: '地形編輯會喺之後嘅觸控更新開放。',
   },
   ja: {
+    chooseStyle: '種類を選択', signNames: '中国語・英語名を設定', signNeedsNames: '設置前に中国語名と英語名を設定してください。', dezoneSummary: '{count} マスを解除・建物 {buildings} 棟は維持', powerLineSummary: '{count} マス・対象外 {skipped}・樹木 {trees} 本を除去', confirmDezone: '区域解除を確定', dezoned: '区域を解除しました。既存の建物は残ります。',
     depotInUseConnected: '道路接続済み・車両 {buses}・路線 {routes}', depotInUseDisconnected: '道路未接続：車両 {buses}・路線 {routes} に影響',
     stopAlreadySet: '選択した側には既にバス停があります。', depotAlreadySet: '出入口は既にこの向きです。', companyFundsLow: '交通会社の資金が不足しています。', companyFunding: '会社資金・残高 {balance}', cityFunding: '市の資金・残高 {balance}', stopCoverage: '徒歩圏：住民 {residents}・目的地 {jobs}', depotConnected: '出入口が道路に接続しています。', depotDisconnected: '運行には出入口への道路接続が必要です。', depotEntrance: '出入口', rotateEntrance: '出入口を回転', bothSides: '両側', stopSides: 'バス停を置く道路の側', sideA: 'A 側（マップ上に表示）', sideB: 'B 側（マップ上に表示）', transportManagement: '交通管理',
     betaBadge: 'BETA', betaNotice: 'モバイル版ベータ · 建設と管理に対応。一部の交通・地形ツールは開発中です。',

@@ -1,5 +1,10 @@
 // A draft owns its tool/options/tiles. Only confirm() may call the city-writing adapter.
 // No pointer event is a transaction, and a consumed id can never be submitted twice.
+function isTouchRangeDraft(draft) {
+  return !!draft && (['road', 'power-line', 'tree', 'dezone'].includes(draft.tool)
+    || draft.tool.startsWith('zone-') || (draft.tool === 'bulldoze' && draft.options.range));
+}
+
 function touchNudgeDelta(direction, rotation = 0) {
   const directions = { nw: [0, -1], ne: [-1, 0], se: [0, 1], sw: [1, 0] };
   let [dr, dc] = directions[direction] || [0, 0];
@@ -50,7 +55,7 @@ function createBuildSession(adapter, { onChange = () => {} } = {}) {
     const key = draft.activeEnd;
     const tile = draft[key];
     draft[key] = { row: tile.row + dr, col: tile.col + dc };
-    if (draft.tool !== 'road' && !draft.tool.startsWith('zone-') && !(draft.tool === 'bulldoze' && draft.options.range)) draft.end = { ...draft.start };
+    if (!isTouchRangeDraft(draft)) draft.end = { ...draft.start };
     return refresh();
   }
   function cancel() {

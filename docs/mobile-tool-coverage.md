@@ -117,6 +117,8 @@
 
 ## 3. 視窗／面板 → 手機入口
 
+2026-11-12：下列原列 Phase C 嘅常用經營介面已按 Norton 指示提前接駁；實際驗證及未完成範圍見 [mobile-panels-validation.md](mobile-panels-validation.md)。地圖工具 Phase 分類不變。
+
 | 現有 | 檔案 | 手機入口 | Phase |
 |---|---|---|---|
 | 城市名牌（改名）、日期／時間、天氣、KPI | `topbar.js`、`hud.js` | 頂部狀態列；改名放「更多」 | B |
@@ -126,19 +128,19 @@
 | 建築／格子資訊 | `inspect-panel.js` | 資訊卡 | B |
 | 主選單、讀檔、匯入 | `landing-screen.js`、`platform-ui.js` | 主選單（放大觸控尺寸） | B |
 | 儲存失敗／唯讀提示 | `game-storage.js` | 對話框（含下載備份） | B |
-| 財政視窗 | `hud.js` | 管理 › 財政 | C |
-| 議會（政策、動議） | `council-ui.js` | 管理 › 議會與政策 | C |
-| 股票交易所 | `hud.js`、`sim-economy.js` | 管理 › 股市 | C |
-| 統計圖表 | `chart-window.js` | 管理 › 圖表 | C |
-| 運輸公司（巴士／渡輪／地鐵／電車）、路線、站點、營運 | `transport-ui.js`、`ferry-ui.js`、`metro-ui.js`、`tram-ui.js` | 交通 | C |
-| 車輛追蹤視窗（船／電車／列車） | `vehicle-tracker.js`、`transit-trackers.js` | 交通 › 追蹤 | C |
-| 圖層視窗、小地圖、地形小地圖 | `overlay-controls.js`、`city-minimap.js` | 圖層 | C |
-| 道路款式視窗 | `road-tile-set-window` | 更多 › 道路款式 | C |
-| 唱機 | `audio.js` | 更多 › 音樂 | C |
-| 說明、關於、AI 新聞設定、天氣圖例 | `help-dialog`、`about-dialog`、`ai-news-dialog`、`weather-legend-dialog` | 更多 | C |
-| 討論區、報紙、走馬燈（5.5.1 新增 💬 入口＋廣告） | `newspaper.js`、`hud-ticker.js` | 更多 › 討論區（紅點）；**走馬燈唔顯示於地圖** | C |
+| 財政視窗 | `hud.js` | 管理 › 財政 | 已接駁（其他介面批次） |
+| 議會（政策、動議） | `council-ui.js` | 管理 › 議會與政策 | 已接駁（其他介面批次） |
+| 股票交易所 | `hud.js`、`sim-economy.js` | 管理 › 股市 | 已接駁（其他介面批次） |
+| 統計圖表 | `chart-window.js` | 管理 › 圖表 | 已接駁（其他介面批次） |
+| 運輸公司（巴士／渡輪／地鐵／電車）、路線、站點、營運 | `transport-ui.js`、`ferry-ui.js`、`metro-ui.js`、`tram-ui.js` | 交通；原有管理及巴士選站已接駁，其他地圖建造仍待實作 | 部分接駁 |
+| 車輛追蹤視窗（船／電車／列車） | `vehicle-tracker.js`、`transit-trackers.js` | 交通 › 追蹤；沿用同一相機及原視窗內容 | 已接駁，待真機驗收 |
+| 圖層視窗、小地圖、地形小地圖 | `overlay-controls.js`、`city-minimap.js` | 圖層；11 個主題地圖已接駁，地形編輯小地圖仍待做 | 部分接駁 |
+| 道路款式視窗 | `road-tile-set-window` | 更多 › 道路款式 | 已接駁（其他介面批次） |
+| 唱機 | `audio.js` | 更多 › 音樂 | 已接駁（其他介面批次） |
+| 說明、關於、AI 新聞設定、天氣圖例 | `help-dialog`、`about-dialog`、`ai-news-dialog`、`weather-legend-dialog` | 更多；放大對話框及控制尺寸 | 已接駁，待真機驗收 |
+| 討論區、報紙、走馬燈（5.5.1 新增 💬 入口＋廣告） | `newspaper.js`、`hud-ticker.js` | 更多 › 討論區已接駁；紅點、報紙及通知整合仍待做；**走馬燈唔顯示於地圖** | 部分接駁 |
 | 節慶通知（含「去睇」按鈕） | `festival-ui.js`、`#toast-container` | 通知列（位置待決定） | C |
-| R/C/I 需求條、五格發展指數 | `hud.js` | 管理 › 概覽；點頂欄「資金」直達（**已決定**，不設常駐條） | C |
+| R/C/I 需求條、五格發展指數 | `hud.js` | 管理 › 概覽；點頂欄「資金」直達（**已決定**，不設常駐條） | B 已接駁 |
 | 校正器（`*-calibrator.js`）、`tile-debug` | — | **不列入**（開發／桌面專用） | — |
 
 ## 4. 備註

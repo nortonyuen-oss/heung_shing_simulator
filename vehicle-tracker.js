@@ -782,6 +782,7 @@ function closeVehicleTrackingWindow(targetOrKey, id = undefined) {
     : getVehicleTrackerTargetKey(targetOrKey, id);
   const tracker = vehicleTrackerManager.trackers.get(key);
   if (!tracker) return false;
+  if (typeof mobileRequestNativeClose === 'function' && mobileRequestNativeClose(`tracker:${key}`)) return true;
   removeVehicleTrackerCamera(tracker);
   tracker.root?.remove?.();
   tracker.surfaceContext = null;
@@ -829,6 +830,7 @@ function handleVehicleTrackerAction(event, tracker) {
     if (action === 'main') {
       const camera = tracker.scene?.cameras?.main;
       if (camera && Number.isFinite(info?.x) && Number.isFinite(info?.y)) camera.centerOn(info.x, info.y);
+      if (typeof isTouchUiProfile === 'function' && isTouchUiProfile()) mobileClosePanel();
     } else if (typeof handleTransitTrackerAction === 'function') {
       handleTransitTrackerAction(tracker, action, info);
     }
@@ -846,6 +848,7 @@ function handleVehicleTrackerAction(event, tracker) {
   if (action === 'main') {
     const camera = tracker.scene?.cameras?.main;
     if (camera && Number.isFinite(info.x) && Number.isFinite(info.y)) camera.centerOn(info.x, info.y);
+    if (typeof isTouchUiProfile === 'function' && isTouchUiProfile()) mobileClosePanel();
     return;
   }
   if (action === 'depot' && typeof sendTransportVehicleToDepot === 'function') {
@@ -970,6 +973,7 @@ function openVehicleTrackingWindow(type, id, pointer = null, options = {}) {
     setVehicleTrackingWindowMinimized(tracker, false);
     focusVehicleTrackingWindow(tracker);
     tracker.renderDirty = true;
+    if (typeof mobileHostVehicleTracker === 'function') mobileHostVehicleTracker(tracker);
     return tracker;
   }
   tracker = createVehicleTrackingWindow(String(type || 'vehicle'), String(id), pointer);
@@ -977,6 +981,7 @@ function openVehicleTrackingWindow(type, id, pointer = null, options = {}) {
   vehicleTrackerManager.scene = tracker.scene;
   if (options.minimized === true) setVehicleTrackingWindowMinimized(tracker, true);
   refreshVehicleTrackingWindow(tracker, performance.now(), true);
+  if (typeof mobileHostVehicleTracker === 'function') mobileHostVehicleTracker(tracker);
   return tracker;
 }
 

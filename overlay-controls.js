@@ -42,6 +42,7 @@ function openOverlayWindow() {
   updateMiniMap();
   // Fit the full map into the viewport on first open
   requestAnimationFrame(resetMapView);
+  if (typeof mobileHostNative === 'function') mobileHostNative('overlay');
 }
 
 function closeOverlayWindow() {
@@ -49,6 +50,7 @@ function closeOverlayWindow() {
   activeOverlay = null;
   invalidateOverlayCache();
   _syncOverlayButtons();
+  if (typeof mobileNativeClosed === 'function') mobileNativeClosed('overlay');
 }
 
 function _syncOverlayButtons() {

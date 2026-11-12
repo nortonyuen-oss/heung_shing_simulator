@@ -1,3 +1,30 @@
+# The City of Heung Shing v5.6.0 — 【手機版 Beta 登場】
+
+- 廣東話／台灣中文：【手機版 Beta 登場】
+- English: 【Mobile Beta Is Here】
+- 日本語：【モバイル版ベータ公開】
+
+## 手機版 Beta / Mobile Beta / モバイル版ベータ
+
+手機自動使用觸控 Beta，電腦沿用桌面介面；直向、橫向均可建造及管理。介面選擇只在載入或更改設定時判斷，旋轉螢幕唔會突然切換介面。
+
+- 單指平移、雙指縮放；道路、分區、建築及拆除先預覽，再確認提交。
+- 財政、稅率、部門預算、借貸、議會、股票、統計圖表、11 個圖層、交通管理、公司設定、唱機及更多設定加入手機面板。
+- 巴士路線選站會暫時收起面板，完成後返回同一編輯草稿。
+- 修正 Safari 安全邊界、直橫向面板位置、頂欄文字對齊及通知；手機移除放大／縮小按鈕，保留雙指縮放。
+
+**Beta 範圍**：部分交通建造、地形工具、通知整合及完整輔助使用仍在開發，未支援項目暫停用。手機主選單及遊戲內均標示 Beta。城市仍儲存喺自己瀏覽器，可下載 `.heungshing` 備份；冇雲端自動同步。
+
+**English:** Mobile controls are **Beta** and selected automatically on phones. Portrait and landscape support construction previews, pinch zoom, management panels and bus-stop selection. Some transport construction and terrain tools are still in development. Desktop controls remain available; saves stay on the device and can be exported.
+
+**日本語:** スマートフォンは**モバイル版ベータ**を自動選択します。縦・横画面で建設プレビュー、ピンチ操作、管理パネル、バス停選択に対応。一部の交通建設・地形ツールは開発中です。パソコンはデスクトップ UI を維持し、都市データは端末に保存・エクスポートできます。
+
+## 下載
+
+macOS Apple Silicon / Intel DMG；Windows 安裝版 / 免安裝版 EXE；官網瀏覽器版（手機觸控為 Beta）。
+
+---
+
 # The City of Heung Shing v5.5.1 — 【香城最大模擬器 正式上線！】
 
 - 廣東話：【香城最大模擬器 正式上線！】

@@ -174,6 +174,7 @@ function locateFerryPier(pier) {
   if (!pier || !activeScene?.cameras?.main || typeof isoToScreen !== 'function') return;
   const p = isoToScreen(pier.col + FERRY.pierCols / 2, pier.row + FERRY.pierRows / 2);
   activeScene.cameras.main.centerOn(p.x + activeScene.offsetX, p.y + activeScene.offsetY);
+  if (typeof isTouchUiProfile === 'function' && isTouchUiProfile() && typeof mobileClosePanel === 'function') mobileClosePanel();
 }
 
 async function renameFerryPierPrompt(pierId) {

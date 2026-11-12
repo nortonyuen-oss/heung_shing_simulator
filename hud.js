@@ -850,10 +850,12 @@ function setPnlText(elementId, value) {
 function openBudgetWindow() {
   document.getElementById('budget-window')?.classList.add('is-open');
   updateBudgetWindow();
+  if (typeof mobileHostNative === 'function') mobileHostNative('budget');
 }
 
 function closeBudgetWindow() {
   document.getElementById('budget-window')?.classList.remove('is-open');
+  if (typeof mobileNativeClosed === 'function') mobileNativeClosed('budget');
 }
 
 function toggleBudgetWindow(forceOpen = false) {
@@ -872,10 +874,12 @@ function openLegislativeWindow() {
   document.getElementById('legislative-window')?.classList.add('is-open');
   if (typeof updateCouncilMeetingUi === 'function') updateCouncilMeetingUi();
   updateLegislativeWindow();
+  if (typeof mobileHostNative === 'function') mobileHostNative('council');
 }
 
 function closeLegislativeWindow() {
   document.getElementById('legislative-window')?.classList.remove('is-open');
+  if (typeof mobileNativeClosed === 'function') mobileNativeClosed('council');
 }
 
 function toggleLegislativeWindow(forceOpen = false) {
@@ -892,10 +896,12 @@ function toggleLegislativeWindow(forceOpen = false) {
 function openStockExchangeWindow() {
   document.getElementById('stock-exchange-window')?.classList.add('is-open');
   updateStockExchangeWindow();
+  if (typeof mobileHostNative === 'function') mobileHostNative('stocks');
 }
 
 function closeStockExchangeWindow() {
   document.getElementById('stock-exchange-window')?.classList.remove('is-open');
+  if (typeof mobileNativeClosed === 'function') mobileNativeClosed('stocks');
 }
 
 function toggleStockExchangeWindow(forceOpen = false) {

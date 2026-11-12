@@ -120,6 +120,7 @@ function locateTramStop(stop) {
   if (!stop || !activeScene?.cameras?.main || typeof getTileFaceGeometry !== 'function') return;
   const face = getTileFaceGeometry(stop.row, stop.col, activeScene.offsetX, activeScene.offsetY);
   activeScene.cameras.main.centerOn(face.center.x, face.center.y);
+  if (typeof isTouchUiProfile === 'function' && isTouchUiProfile() && typeof mobileClosePanel === 'function') mobileClosePanel();
 }
 
 // The tram actions of the transport windows: true when it was one of them.

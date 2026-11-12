@@ -63,23 +63,30 @@ test('explicit preferences always win over device detection', () => {
   assert.equal(resolve({ preference: 'touch', primaryPointerCoarse: false, viewportWidth: 2560, autoEnabled: false }), 'touch');
 });
 
-test('auto picks touch only for a coarse primary pointer narrower than 1100px, and only once auto is enabled', () => {
+test('auto picks touch only for a coarse primary pointer narrower than 1100px', () => {
   const { resolve } = loadUiProfile();
   assert.equal(resolve({ preference: 'auto', primaryPointerCoarse: true, viewportWidth: 844, autoEnabled: true }), 'touch');
   assert.equal(resolve({ preference: 'auto', primaryPointerCoarse: true, viewportWidth: 1099, autoEnabled: true }), 'touch');
   assert.equal(resolve({ preference: 'auto', primaryPointerCoarse: true, viewportWidth: 1100, autoEnabled: true }), 'desktop');
   // a narrow desktop window must not flip a mouse user into the phone UI
   assert.equal(resolve({ preference: 'auto', primaryPointerCoarse: false, viewportWidth: 600, autoEnabled: true }), 'desktop');
-  // auto is off in this release: even a phone stays on the desktop UI
+  // An explicit gate override remains supported for diagnostics.
   assert.equal(resolve({ preference: 'auto', primaryPointerCoarse: true, viewportWidth: 844, autoEnabled: false }), 'desktop');
 });
 
-test('a phone gets the desktop UI by default while auto is disabled', () => {
+test('a phone automatically gets touch with a device-width viewport', () => {
   const page = loadUiProfile({ coarse: true, width: 844 });
   assert.equal(page.preference(), 'auto');
-  assert.equal(page.profile(), 'desktop');
-  assert.equal(page.context.document.documentElement.dataset.uiProfile, 'desktop');
-  assert.equal(page.metas.length, 0, 'the desktop UI keeps the page without a viewport meta');
+  assert.equal(page.profile(), 'touch');
+  assert.equal(page.context.document.documentElement.dataset.uiProfile, 'touch');
+  assert.equal(page.metas.length, 1);
+  assert.match(page.metas[0].content, /width=device-width/);
+});
+
+test('automatic mode keeps mouse desktops and wide touch displays on desktop', () => {
+  assert.equal(loadUiProfile({ coarse: false, width: 600 }).profile(), 'desktop');
+  assert.equal(loadUiProfile({ coarse: true, width: 1100 }).profile(), 'desktop');
+  assert.equal(loadUiProfile({ coarse: true, width: 1280 }).metas.length, 0);
 });
 
 test('a saved touch preference applies the profile attribute and a device-width viewport', () => {
@@ -137,7 +144,7 @@ test('blocked storage never stops the page: the choice applies to this session',
 });
 
 test('rotating or resizing does not re-resolve the profile', () => {
-  const page = loadUiProfile({ stored: 'touch', width: 844 });
+  const page = loadUiProfile({ coarse: true, width: 844 });
   page.context.innerWidth = 390;
   assert.equal(page.profile(), 'touch');
   page.context.innerWidth = 2000;

@@ -1,6 +1,6 @@
-# 香城模擬器 (The City of Heung Shing) v5.5.1 — 【香城最大模擬器 正式上線！】
+# 香城模擬器 (The City of Heung Shing) v5.6.0 — 【手機版 Beta 登場】
 
-香城模擬器 (The City of Heung Shing) v5.5.1 — 【香城最大模擬器 正式上線！】 is a SimCity 2000-style city builder inspired by Hong Kong: isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
+香城模擬器 (The City of Heung Shing) v5.6.0 — 【手機版 Beta 登場】 is a SimCity 2000-style city builder inspired by Hong Kong: isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
 
 Website and downloads: https://nortonyuen-oss.github.io/heung_shing_simulator/
 
@@ -13,6 +13,8 @@ post or reply. Website messages are tracked with the `website-feedback` issue la
 ## New in v5.5.0
 
 Play in a desktop browser with local IndexedDB saves, and download a `.heungshing` city file to back up or move between the desktop and browser editions. No city is uploaded. The browser build uses immutable assets and on-demand building and music loading. The official website displays recorded browser play sessions separately from downloads and page views. AI Cloud news and live coastal bulletins remain desktop features in this release.
+
+Mobile touch controls are **Beta**. Phones automatically use the touch interface; desktop browsers keep the desktop interface. Portrait and landscape support construction drafts, pinch zoom and management panels. Some transport construction and terrain tools are still in development.
 
 Browser build: `npm run prepare:release-assets`, `npm run build:web`, `npm run verify:web`, then `npm run preview:web`. Deployment and release requirements are documented in [the web release specification](docs/web-release-spec.md).
 

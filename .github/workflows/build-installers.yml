@@ -125,6 +125,13 @@ jobs:
         env:
           WEB_SAVE_PATH: /tmp/web-smoke.heungshing
           WEB_SCREENSHOT_PATH: /tmp/web-smoke.png
+      - name: Automatic Mobile Beta, construction and management
+        run: |
+          node scripts/smoke-mobile-auto.js
+          node scripts/smoke-mobile-build.js
+          node scripts/smoke-mobile-panels.js
+        env:
+          MOBILE_TEST_URL: http://127.0.0.1:4173/
       - name: Official website languages and unavailable statistics
         run: |
           node scripts/build-official-site.js

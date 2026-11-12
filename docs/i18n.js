@@ -270,6 +270,7 @@ const SITE_FEATURE_LIST = {
 // ── Changelog ─────────────────────────────────────────────────────────────────
 const SITE_CHANGELOG = {
   "zh-HK": [
+    {"version": "v5.6.0", "date": "2026-11-12", "dateLabel": "2026年11月12日", "title": "手機版 Beta 登場", "items": ["手機版 Beta：手機自動用觸控介面，電腦沿用桌面介面；直向同橫向都可以玩。", "單指平移、雙指縮放；道路、分區、建築同拆除先預覽再確認，唔會放手就誤建。", "財政、議會、股票、圖表、圖層、交通管理同設定加入手機面板；修正安全邊界、通知及頂欄排版。", "Beta 尚未包括全部交通建造及地形工具；存檔仍留喺自己嘅瀏覽器，可下載備份。"]},
     {"version": "v5.5.1", "date": "2026-11-11", "dateLabel": "2026年11月11日", "title": "香城最大模擬器 正式上線！", "items": ["走馬燈旁邊改為「💬 香城討論區」，㩒一下即開討論區；走馬燈有連結嘅廣告可以直接㩒入官網。", "新增【廣告】香城模擬器走馬燈廣告同討論區帖文，㩒廣告圖即開官方網站；討論區新聞圖片完整顯示，唔再裁走上下。", "修正網頁版建築圖片載入：公園圖正確顯示，分批並行載入，失敗會自動重試，未載入嘅地段先顯示灰色佔位。"]},
     {"version": "v5.5.0", "date": "2026-11-09", "dateLabel": "2026年11月9日", "title": "香城最大模擬器 正式上線！", "items": ["網頁版毋須安裝，喺自己瀏覽器建城、儲存同繼續。", "下載／匯入城市存檔，自行備份，亦可同桌面版互通。", "官網新增網頁遊玩人次；素材快取同按需下載減少重覆流量。", "修正電車圖層與車流遮擋，渡輪、電車同鐵路加入即時追蹤。"]},
     {"version": "v5.4.0", "date": "2026-11-08", "dateLabel": "2026年11月8日", "title": "摘去鮮花 然後種出叮叮", "items": ["喺馬路鋪電車路軌，放車站、開路線，同街坊一齊搭叮叮。", "電車停站接客、收劃一車費，會等紅燈同前車，尾站可以繞迴圈掉頭。", "新綫通車會喺香城討論區出新聞，配電車司機圖片。"]},
@@ -635,6 +636,7 @@ const SITE_CHANGELOG = {
 // title/items text.
 const SITE_CHANGELOG_TRANSLATIONS = {
   "zh-TW": {
+    "v5.6.0": {"title": "手機版 Beta 登場", "items": ["手機版 Beta：手機自動使用觸控介面，電腦沿用桌面介面；支援直向與橫向。", "單指平移、雙指縮放；道路、分區、建築與拆除先預覽再確認，避免放手時誤建。", "財政、議會、股票、圖表、圖層、交通管理與設定加入手機面板；修正安全邊界、通知與頂欄排版。", "Beta 尚未包含全部交通建造與地形工具；存檔仍保存在自己的瀏覽器，可下載備份。"]},
     "v5.5.1": {"title": "線上遊玩開通", "items": ["跑馬燈旁改為「💬 香城討論區」，點一下即開討論區；跑馬燈上附連結的廣告可直接點進官網。", "新增【廣告】香城模擬器跑馬燈廣告與討論區貼文，點廣告圖即開啟官方網站；討論區新聞圖片完整顯示，不再裁掉上下。", "修正網頁版建築圖片載入：公園圖正確顯示、分批並行載入、失敗自動重試，尚未載入的地塊先顯示灰色佔位。"]},
     "v5.5.0": {"title": "線上遊玩開通", "items": ["網頁版不必安裝，可在自己的瀏覽器建城、儲存並繼續。", "下載／匯入城市存檔，自行備份，並可與桌面版互通。", "官網新增網頁遊玩人次；素材快取與按需下載減少重複傳輸。", "修正電車圖層與車流遮擋，渡輪、電車與鐵路加入即時追蹤。"]},
     "v5.4.0": {"title": "叮叮車", "items": ["在道路上鋪設電車軌道、設置車站與路線，讓叮叮車載客。", "電車停站接客、收取固定車資，會等紅燈與前車，終點可繞行迴圈掉頭。", "新線通車時，香城討論區會發布附有電車司機圖片的新聞。"]},
@@ -993,6 +995,7 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   en: {
+    "v5.6.0": {"title": "Mobile Beta Is Here", "items": ["Mobile Beta: phones automatically use touch controls; computers keep the desktop interface. Play in portrait or landscape.", "Pan with one finger and pinch to zoom. Preview and confirm roads, zones, buildings and demolition before applying changes.", "Finance, council, stocks, charts, layers, transport management and settings now fit phone panels, with safe-area, notification and status-bar fixes.", "Some transport construction and terrain tools are still in development. Browser saves stay on your device and can be downloaded as backups."]},
     "v5.5.1": {"title": "Heung Shing's Biggest Simulator — Now Online!", "items": ["The ticker label is now “💬 香城討論區” (Heung Shing Forum): click it to open the forum. Linked ads in the scrolling text open the official website.", "New [Ad] Heung Shing Simulator ticker ad and forum post; click the artwork to visit the official site. Forum news images now show in full instead of being cropped.", "Browser build: park art now loads correctly, building art loads in parallel batches and retries automatically, and lots still downloading show a grey placeholder."]},
     "v5.5.0": {"title": "Heung Shing's Biggest Simulator — Now Online!", "items": ["Play in a desktop browser with local saves.", "Download and import city backups between the browser and desktop editions.", "The website shows recorded web play sessions; cached, on-demand assets reduce repeated downloads.", "Tram layering and traffic fixes, plus live ferry, tram and train trackers."]},
     "v5.4.0": {"title": "Heung Shing Tramways", "items": ["Lay tram tracks on roads, place stops and open routes for the city's double-deck trams.", "Trams pick up passengers at a flat fare, wait for traffic and signals, and use terminus loops where available.", "New lines get a Heung Shing Forum opening story with a tram driver picture."]},
@@ -1351,6 +1354,7 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   ja: {
+    "v5.6.0": {"title": "モバイル版ベータ公開", "items": ["モバイル版ベータ：スマートフォンはタッチ UI を自動選択。パソコンはデスクトップ UI を維持し、縦向き・横向きで遊べます。", "1 本指で移動、2 本指でズーム。道路・区画・建物・撤去はプレビュー後に確定するため、指を離しただけでは変更されません。", "財政・議会・株式・グラフ・レイヤー・交通管理・設定をスマートフォン向けに調整。安全領域・通知・上部バーの配置を修正しました。", "一部の交通建設・地形ツールは開発中です。都市データは端末のブラウザーに保存され、バックアップをダウンロードできます。"]},
     "v5.5.1": {"title": "香城最大のシミュレーター、オンラインで正式公開！", "items": ["ティッカー横のラベルを「💬 香城討論區」に変更。クリックでフォーラムを開きます。リンク付きの広告文をクリックすると公式サイトが開きます。", "【広告】香城シミュレーターのティッカー広告とフォーラム投稿を追加。画像をクリックすると公式サイトへ。フォーラムのニュース画像は上下が切れず全体表示されます。", "ブラウザー版：公園の画像が正しく表示され、建物画像は並列で取得・失敗時に自動再試行、取得中の区画は灰色の仮表示になります。"]},
     "v5.5.0": {"title": "香城最大のシミュレーター、オンラインで正式公開！", "items": ["インストール不要のブラウザー版。都市はブラウザーに保存できます。", "都市セーブをダウンロードしてバックアップし、デスクトップ版との間で読み込めます。", "公式サイトにブラウザープレイ回数を追加。素材のキャッシュと必要時の取得で再ダウンロードを削減します。", "トラムの描画順と車両の重なりを修正し、フェリー・トラム・列車の追跡画面を追加しました。"]},
     "v5.4.0": {"title": "ホンコントラムでGO!", "items": ["道路に路面電車の線路を敷き、電停と路線を設けて二階建てトラムを走らせます。", "均一運賃で乗客を運び、信号や前方の車を待ち、終点にループがあれば周回します。", "新路線の開業時には、運転士の画像付きニュースが香城掲示板に掲載されます。"]},
@@ -1734,8 +1738,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v5.5.1 — 【香城最大模擬器 正式上線！】",
-      versionDesc: "5.5.1 更新：瀏覽器即刻玩，下載城市存檔，同桌面版互通。",
+      versionBadge: "v5.6.0 — 【手機版 Beta 登場】",
+      versionDesc: "5.6.0 更新：手機自動啟用觸控 Beta，直向橫向建城同管理。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感嘅城市建設遊戲。起街道、規劃社區、經營自己嘅香城巴士公司、處理議會同天氣，再睇住一座有性格嘅香城慢慢成長。",
       freeLabel: "完全免費 · 瀏覽器 + macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1843,8 +1847,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v5.5.1 — 【線上遊玩開通】",
-      versionDesc: "5.5.1 更新：線上遊玩開通，可下載城市存檔並與桌面版互通。",
+      versionBadge: "v5.6.0 — 【手機版 Beta 登場】",
+      versionDesc: "5.6.0 更新：手機自動啟用觸控 Beta，支援直向與橫向建設及管理。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感的城市建設遊戲。興建街道、規劃社區、經營自己的香城公車公司、處理議會與天氣，看著一座有個性的香城慢慢成長。",
       freeLabel: "完全免費 · 瀏覽器 + macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1952,8 +1956,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "The City of Heung Shing",
       title: "The City of Heung Shing",
-      versionBadge: "v5.5.1 — 【Heung Shing's Biggest Simulator — Now Online!】",
-      versionDesc: "5.5.1 update: play in your browser, back up your city and move it to the desktop game.",
+      versionBadge: "v5.6.0 — 【Mobile Beta Is Here】",
+      versionDesc: "5.6.0 update: automatic Mobile Beta controls for building and managing in portrait or landscape.",
       lede: "A city-building game inspired by Hong Kong life and made in tribute to SimCity 2000. Build streets, shape neighbourhoods, run your own Heung Shing Bus Company, navigate council politics and weather, then watch a city with real personality grow.",
       freeLabel: "Completely free · Browser + macOS + Windows · Local saves",
       downloadBtn: "【Free Download】",
@@ -2062,8 +2066,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v5.5.1 — 【香城最大のシミュレーター、オンラインで正式公開！】",
-      versionDesc: "5.5.1 更新：ブラウザーで遊び、都市をバックアップしてデスクトップ版へ持ち運べます。",
+      versionBadge: "v5.6.0 — 【モバイル版ベータ公開】",
+      versionDesc: "5.6.0 更新：スマートフォンはタッチ版ベータを自動選択。縦・横画面で建設と管理。",
       lede: "香港の都市生活から着想を得た、SimCity 2000へのオマージュとなる都市建設ゲーム。道路を築き、地区を計画し、自分だけの香城バス会社を経営し、議会や天候に向き合いながら、個性ある香城の成長を見守ります。",
       freeLabel: "完全無料 · ブラウザー + macOS + Windows · ローカルセーブ",
       downloadBtn: "【無料ダウンロード】",

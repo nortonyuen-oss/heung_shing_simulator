@@ -1450,10 +1450,12 @@ function setupRoadTileSetWindow() {
 function openRoadTileSetWindow() {
   populateRoadTileSetOptions();
   document.getElementById('road-tile-set-window')?.classList.add('is-open');
+  if (typeof mobileHostNative === 'function') mobileHostNative('roads');
 }
 
 function closeRoadTileSetWindow() {
   document.getElementById('road-tile-set-window')?.classList.remove('is-open');
+  if (typeof mobileNativeClosed === 'function') mobileNativeClosed('roads');
 }
 
 function getLoadingHintMessages(maxTips = 40) {

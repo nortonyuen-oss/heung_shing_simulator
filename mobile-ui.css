@@ -23,7 +23,7 @@
 [data-ui-profile="touch"] .m-kpi small { display: block; line-height: 12px; }
 [data-ui-profile="touch"] .m-kpi strong { display: block; font-size: 15px; line-height: 18px; }
 [data-ui-profile="touch"] .m-date { margin-left: auto; overflow: hidden; }
-[data-ui-profile="touch"] #toast-container { top: calc(var(--mobile-top) + env(safe-area-inset-top) + 4px); left: max(8px, env(safe-area-inset-left)); right: max(8px, env(safe-area-inset-right)); transform: none; align-items: center; }
+[data-ui-profile="touch"] #toast-container { top: calc(var(--mobile-top) + env(safe-area-inset-top) + 4px); left: max(8px, env(safe-area-inset-left)); right: max(8px, env(safe-area-inset-right)); transform: none; align-items: center; z-index: 1300; }
 [data-ui-profile="touch"] #toast-container .toast { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
 [data-ui-profile="touch"] .m-panel { position: absolute; right: 0; top: calc(var(--mobile-top) + env(safe-area-inset-top)); bottom: 0; width: calc(var(--mobile-panel-width) + env(safe-area-inset-right)); max-width: 100%; padding-right: env(safe-area-inset-right); padding-bottom: env(safe-area-inset-bottom); display: flex; flex-direction: column; background: #f1f4f8; border-left: 2px solid #9aa8b8; box-shadow: -4px 0 14px #202a3640; pointer-events: auto; }
 [data-ui-profile="touch"] .m-panel-head { display: flex; flex: 0 0 44px; align-items: center; gap: 4px; padding: 0 6px; border-bottom: 1px solid #9aa8b8; background: #e2e8ef; }
@@ -74,7 +74,6 @@
 /* Keep existing native save/import dialogs and title screen, with touch-sized controls. */
 [data-ui-profile="touch"] :is(.sim-dialog, #landing-screen) :is(button, select, input:not([type="checkbox"]), .save-slot) { min-height: 44px; font-size: 16px; touch-action: manipulation; }
 [data-ui-profile="touch"] .sim-dialog { padding: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left)); }
-[data-ui-profile="touch"] .sim-dialog > :first-child { max-width: 100%; max-height: 94dvh; overflow-y: auto; overscroll-behavior: contain; }
 [data-ui-profile="touch"] #landing-screen { height: 100dvh; overflow-y: auto; align-items: flex-start; padding: max(8px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) calc(40px + env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); }
 [data-ui-profile="touch"] .landing-card { width: 100%; max-width: 860px; min-height: 0; padding: 8px 0; margin: auto; }
 [data-ui-profile="touch"] .landing-title { font-size: 26px; padding: 8px 14px; border-width: 2px; margin: 0; width: auto; }
@@ -125,3 +124,76 @@
 @media (prefers-reduced-motion: reduce) {
   [data-ui-profile="touch"] *, [data-ui-profile="touch"] *::before, [data-ui-profile="touch"] *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
 }
+/* Existing management windows share one touch panel, without duplicating IDs. */
+[data-ui-profile="touch"] :is(#budget-window, #legislative-window, #stock-exchange-window, #chart-window, #overlay-window, #jukebox-window, #road-tile-set-window, .transport-panel-window, #transport-vehicle-inspector, .vehicle-tracker-window):not(.m-native) { display: none !important; }
+[data-ui-profile="touch"] #mobile-ui .m-native { display: block !important; position: relative !important; inset: auto !important; transform: none !important; width: 100% !important; min-width: 0 !important; max-width: 100% !important; height: auto !important; min-height: 0 !important; max-height: none !important; margin: 0; border: 0; border-radius: 0; box-shadow: none; overflow: visible; background: transparent; color: #22242a; font: inherit; z-index: auto !important; }
+[data-ui-profile="touch"] .m-native > :is([id$="titlebar"], .transport-panel-head, .transport-inspector-head, .vehicle-tracker-head),
+[data-ui-profile="touch"] .m-native #overlay-resize-handle { display: none !important; }
+[data-ui-profile="touch"] #mobile-ui .m-native > :is([id$="body"], .transport-panel-body, .vehicle-tracker-body) { display: block !important; height: auto; max-height: none; overflow: visible; min-width: 0; padding: 0; background: transparent; }
+[data-ui-profile="touch"] #mobile-ui .m-native :is(input:not([type="checkbox"]), textarea, select) { min-height: 44px; min-width: 0; max-width: 100%; font-size: 16px; }
+[data-ui-profile="touch"] #mobile-ui .m-native input[type="checkbox"], [data-ui-profile="touch"] .sim-dialog input[type="checkbox"] { width: 22px; height: 22px; flex: 0 0 22px; }
+[data-ui-profile="touch"] #mobile-ui .m-native label { min-height: 44px; margin: 4px 0; }
+[data-ui-profile="touch"] #mobile-ui .m-native :is(h3, h4) { margin: 12px 0 8px; }
+[data-ui-profile="touch"] #mobile-ui .m-native :is(.budget-window-table, .transport-table, .gov-stock-table) { font-size: 13px; }
+[data-ui-profile="touch"] #mobile-ui .m-native :is(th, td) { white-space: normal; overflow-wrap: anywhere; }
+[data-ui-profile="touch"] #mobile-ui .m-native :is(.council-tabs, .transport-panel-tabs, .vehicle-tracker-tabs) { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+[data-ui-profile="touch"] #mobile-ui .m-native :is(.council-roster-layout, .council-laws-layout, .transport-fields, .transport-company-form, .transport-buy-catalog) { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; padding: 0; }
+[data-ui-profile="touch"] #mobile-ui .m-native :is(.council-roster, .council-policy-list, .council-person-detail, .council-policy-detail) { max-height: none; overflow: visible; min-width: 0; }
+[data-ui-profile="touch"] #mobile-ui .m-native :is(.transport-summary, .transport-metrics, #chart-metrics) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+[data-ui-profile="touch"] #mobile-ui .m-native :is(.transport-editor-actions, .transport-stop-picker, .transport-depots) { display: flex; flex-wrap: wrap; gap: 6px; }
+[data-ui-profile="touch"] #mobile-ui .m-native .transport-fields label { display: grid; gap: 4px; }
+[data-ui-profile="touch"] #mobile-ui .m-native .transport-fields .transport-checkbox-field { display: flex; }
+[data-ui-profile="touch"] #mobile-ui .m-native .transport-stop-row { display: grid; grid-template-columns: auto minmax(0, 1fr) repeat(3, 44px); gap: 3px; }
+[data-ui-profile="touch"] #mobile-ui .m-native .transport-stop-row button { padding: 0; }
+[data-ui-profile="touch"] #mobile-ui .m-native :is(.transport-table-wrap, .gov-stock-table-wrap) { max-width: 100%; overflow-x: auto; touch-action: pan-x pan-y; }
+[data-ui-profile="touch"] #mobile-ui .m-native .transport-table { min-width: 540px; }
+[data-ui-profile="touch"] #mobile-ui .m-native .transport-table :is(th, td) { overflow-wrap: normal; }
+[data-ui-profile="touch"] #mobile-ui .m-native #chart-win-body { display: grid !important; grid-template-rows: auto; }
+[data-ui-profile="touch"] #mobile-ui .m-native #chart-controls { gap: 4px; }
+[data-ui-profile="touch"] #mobile-ui .m-native #chart-controls label { flex: 1 1 135px; padding: 4px; border: 1px solid #bcc7d3; border-radius: 8px; font-size: 13px; }
+[data-ui-profile="touch"] #mobile-ui .m-native #chart-canvas-wrap { height: 220px; min-height: 220px; }
+[data-ui-profile="touch"] #mobile-ui .m-native .chart-metric-label { white-space: normal; }
+[data-ui-profile="touch"] #mobile-ui #budget-detail.m-native { display: flex !important; flex-direction: column; gap: 12px; padding: 4px; }
+[data-ui-profile="touch"] #mobile-ui #budget-detail :is(.tax-row, .budget-slider-row) { display: grid; grid-template-columns: minmax(70px, auto) minmax(60px, 1fr) 44px; gap: 6px; align-items: center; }
+[data-ui-profile="touch"] #mobile-ui #budget-detail .budget-section { display: flex; flex-wrap: wrap; gap: 6px; }
+[data-ui-profile="touch"] #mobile-ui #budget-detail .budget-slider-row { flex-basis: 100%; }
+[data-ui-profile="touch"] #mobile-ui #budget-detail .budget-section-title { flex-basis: 100%; }
+[data-ui-profile="touch"] #mobile-ui #budget-detail .budget-note { white-space: normal; }
+[data-ui-profile="touch"] #mobile-ui #overlay-window #overlay-win-body { display: block !important; position: relative; height: 280px; overflow: hidden; touch-action: none; background: #0d160b; }
+[data-ui-profile="touch"] #mobile-ui #overlay-mode-buttons { display: none; }
+[data-ui-profile="touch"] #mobile-ui #overlay-win-footer { display: block; padding: 10px 4px; }
+[data-ui-profile="touch"] #mobile-ui #overlay-zoom-in, [data-ui-profile="touch"] #mobile-ui #overlay-zoom-out { display: none; }
+[data-ui-profile="touch"] #mobile-ui .overlay-zoom-group { justify-content: flex-end; }
+[data-ui-profile="touch"] #mobile-ui .road-tile-set-options { grid-template-columns: minmax(0, 1fr); }
+[data-ui-profile="touch"] #mobile-ui #mobile-route-picker { position: absolute; left: max(8px, env(safe-area-inset-left)); right: max(8px, env(safe-area-inset-right)); bottom: calc(8px + env(safe-area-inset-bottom)); display: flex; align-items: center; gap: 8px; padding: 8px; border: 1px solid #9aa8b8; border-radius: 10px; background: #f1f4f8; pointer-events: auto; }
+[data-ui-profile="touch"] #mobile-route-picker-status { flex: 1; }
+[data-ui-profile="touch"] #mobile-ui.is-picking-route :is(#mobile-panel, #mobile-nav-toggle) { visibility: hidden; pointer-events: none; }
+[data-ui-profile="touch"] .sim-dialog { z-index: 2000; }
+[data-ui-profile="touch"] .sim-dialog .dialog-box { width: min(720px, 100%); max-width: 100%; max-height: calc(100dvh - max(8px, env(safe-area-inset-top)) - max(8px, env(safe-area-inset-bottom))); overflow: auto; overscroll-behavior: contain; }
+[data-ui-profile="touch"] .sim-dialog :is(.dialog-body, .forum-history-list) { max-height: none; overflow: visible; }
+[data-ui-profile="touch"] .sim-dialog :is(.forum-history-nav, .dialog-footer) { flex-wrap: wrap; }
+[data-ui-profile="touch"] .sim-dialog .dialog-body { overflow-x: auto; }
+[data-ui-profile="touch"] .sim-dialog .dialog-title-bar { position: sticky; top: 0; z-index: 1; min-height: 44px; }
+@media (orientation: portrait) {
+  [data-ui-profile="touch"] #mobile-ui #mobile-route-picker { bottom: calc(var(--mobile-nav) + 8px + env(safe-area-inset-bottom)); }
+}
+[data-ui-profile="touch"] #mobile-ui .m-native button.primary { background: #236c91; color: white; border-color: #164f6e; }
+[data-ui-profile="touch"] #mobile-ui #budget-detail .tax-row { width: 100%; margin: 0; }
+[data-ui-profile="touch"] #mobile-ui #budget-detail :is(#tax-slider, .budget-slider) { width: 100%; }
+[data-ui-profile="touch"] #mobile-ui #budget-detail .budget-stat { flex-direction: row; justify-content: space-between; width: 100%; padding: 4px; }
+[data-ui-profile="touch"] #mobile-ui .m-native .vehicle-tracker-viewport { width: 100%; height: 180px; min-height: 180px; }
+[data-ui-profile="touch"] #mobile-ui .m-native .transport-panel-tabs { margin: 0 0 8px; padding: 0 0 6px; background: transparent; }
+[data-ui-profile="touch"] #mobile-ui .m-native .transport-company-form { width: 100%; max-width: 100%; }
+[data-ui-profile="touch"] #mobile-ui .m-native .transport-company-form > label { display: grid; grid-template-columns: minmax(0, 1fr); }
+[data-ui-profile="touch"] #mobile-ui .m-native .transport-company-form input { width: 100%; }
+[data-ui-profile="touch"] #mobile-ui .m-native .transport-company-meta { flex-wrap: wrap; }
+[data-ui-profile="touch"] #mobile-ui .m-native .stock-list-wrap { max-width: 100%; max-height: none; overflow-x: auto; touch-action: pan-x pan-y; }
+[data-ui-profile="touch"] #mobile-ui .m-native .stock-list-table { min-width: 540px; }
+[data-ui-profile="touch"] #mobile-ui .m-native .council-roster { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+[data-ui-profile="touch"] #mobile-ui .m-native :is(.transport-vehicle-class-row, .transport-vehicle-row) { flex-wrap: wrap; }
+[data-ui-profile="touch"] #mobile-ui .m-native :is(.transport-route-name, .transport-company-meta, .council-detail-name) { min-width: 0; overflow-wrap: anywhere; }
+#mobile-beta-notice { display: none; }
+[data-ui-profile="touch"] #mobile-beta-notice { display: block; max-width: 560px; margin: 8px auto; padding: 8px 12px; border: 1px solid #c59a48; border-radius: 10px; color: #ffe7b0; background: #362818; font: 13px/1.4 system-ui, sans-serif; }
+[data-ui-profile="touch"] #mobile-ui .m-city { flex-direction: column; line-height: 14px; }
+[data-ui-profile="touch"] #mobile-ui .m-city #mobile-city-name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+[data-ui-profile="touch"] #mobile-ui .m-city .m-beta { color: #ffe7b0; font-size: 9px; line-height: 10px; font-weight: 800; }

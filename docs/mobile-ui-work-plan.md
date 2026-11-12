@@ -49,7 +49,7 @@
 
 ## Phase A — 輸入安全（規模 M，可與 B0 並行）✅ 實作完成，待你審閱
 
-- [x] `ui-profile.js`：自動／桌面／觸控、偏好存設定（非城市資料）、`data-ui-profile` 根屬性、`uiprofilechange` 事件；載入時解析一次，旋轉／縮放視窗不重判。「自動」暫時等同桌面（`UI_PROFILE_AUTO_ENABLED=false`，Phase D 才開）；測試方法：`?ui=touch` 或 `setUiProfilePreference('touch')`
+- [x] `ui-profile.js`：自動／桌面／觸控、偏好存設定（非城市資料）、`data-ui-profile` 根屬性、`uiprofilechange` 事件；載入時解析一次，旋轉／縮放視窗不重判。2026-11-12 按 Norton 發布指示開啟自動選擇（`UI_PROFILE_AUTO_ENABLED=true`）；主指標 coarse 且載入時 viewport 小於 1100px 使用手機 Beta，其他裝置使用桌面介面，旋轉不重判；手動設定及 `?ui=` 保留作覆蓋
 - [x] viewport meta（`viewport-fit=cover`）只在觸控 profile 動態加入，桌面 profile 保持原狀（避免今日用手機開遊戲嘅玩家被改動）；觸控 profile 下 `#game-container` 設 `touch-action: none`
 - [x] `map-input-controller.js`：狀態機（idle／tapCandidate／pan／pinch／settling／uiCaptured）、pointerId 追蹤、tap 閾值 8px／300ms、單指拖＝平移、雙指＝縮放＋平移（決定 10，無長按）、三指重設基線、`pointercancel`／失焦／隱藏頁面／旋轉／切換 profile 只取消不提交；`setUiCaptured()` 供面板接管用
 - [x] Phaser 唔再收到觸控：觸控 profile 下喺 `#game-container` capture 階段攔截 `touch*` 事件並 `preventDefault`（亦防瀏覽器補發滑鼠事件），所以工具、車輛追蹤、地區招牌等 Phaser 互動都唔會被手指觸發；滑鼠／觸控筆照舊
@@ -73,20 +73,29 @@
 - [x] `placement-previews.js` 新增接收 tile／plan 嘅觸控預覽及 A/B 標記，唔使偽造 pointer；鏡頭縮放／視窗 resize 後重畫
 - [x] 38 個 Phase B 工具入口：P 單點建築 32 個、`road`（含橋）、`zone-*`、`bulldoze`、`inspect`；密度及地區地價共用實際收費規則，解鎖見覆蓋表
 - [x] `mobile-ui.js`＋`mobile-ui.css`（`[data-ui-profile="touch"]`）：44px 頂欄、底部 5 入口、側欄、兩層建造庫、確認列、138×138px 四向微調、A/B 切換、密度／框選控制；微調支援四個地圖方向
-- [x] 主選單／讀檔／匯入匯出入口放大；直向與橫向均支援建造／查詢／管理／存檔，直向建造保留常駐底欄，取消／確認各佔一個完整按鈕位置；主選單、桌面設定及「更多」提供自動／桌面／觸控（Beta）切換，仍然 opt-in
+- [x] 主選單／讀檔／匯入匯出入口放大；直向與橫向均支援建造／查詢／管理／存檔，直向建造保留常駐底欄，取消／確認各佔一個完整按鈕位置；主選單、桌面設定及「更多」提供自動／桌面／觸控（Beta）切換，已按發布指示啟用自動選擇（手機 Beta）
 - [x] `build-session.test.js`、`tool-actions.test.js` 及 `scripts/smoke-mobile-build.js`；Electron 及靜態網頁共用操作驗證腳本，輸出截圖至 `.data/mobile-phase-b/`；驗收細節見 [mobile-phase-b-validation.md](mobile-phase-b-validation.md)
 - [x] 遺留 `house` 保留桌面路徑，觸控建造庫不暴露
 - [ ] Norton 真機驗收；Phase 0 嘅大城／交通夜景 fixtures 仍待補齊
 
-**範圍說明**：交通及圖層入口暫顯示後續觸控更新提示；「管理」先提供 R/C/I 同五項指數概覽，其他經營面板留 Phase C。拆除已支援一般建築／道路／樹木／分區，以及海鮮舫、渡輪碼頭（連航線摘要）、步道、海底隧道及未被路線使用嘅地鐵站；鐵路／電車拆除暫拒絕確認，待 Phase C 補齊整段路軌及路線影響摘要。一次範圍操作只經手機確認列確認，不再逐個碼頭／海鮮舫彈桌面 confirm。
+**範圍說明**：建造原型 checkpoint `8a7b5ed` 已提交。2026-11-12 按 Norton「開始 phase B，其他介面」指示，接續開放下述經營面板；原計劃 Phase C 嘅進階地圖工具仍獨立待做。拆除已支援一般建築／道路／樹木／分區，以及海鮮舫、渡輪碼頭（連航線摘要）、步道、海底隧道及未被路線使用嘅地鐵站；鐵路／電車拆除暫拒絕確認，待 Phase C 補齊整段路軌及路線影響摘要。一次範圍操作只經手機確認列確認，不再逐個碼頭／海鮮舫彈桌面 confirm。
 
 **Gate（尚未簽核）**：自動化已完成「新城市 → 起路 → 分區 → 建築 → 存檔 → 重開」；真機及包含 safe-area 嘅可用地圖比例仍需正式驗收，不能以桌面模擬取代。B0 嘅 44px 頂欄＋44px context＋56px 確認列在 844×390 留下 63.1% 畫布高度；浮動微調另佔局部空間，須真機量度整體可用範圍 ≥ 60%。手機「＋／－」縮放按鈕已按 2026-11-12 回饋移除。
+
+## 2026-11-12 接續批次 — 其他手機介面
+
+- [x] 管理：稅率、部門預算、借貸、財政明細、議會、股票、統計圖表；沿用既有解鎖及模擬邏輯。
+- [x] 圖層：11 個主題地圖、單指拖動／雙指縮放、天氣資訊；返回保留圖層清單位置。
+- [x] 交通：路線、車隊、需求、財務／公司、站點資訊、車輛追蹤；巴士選站暫時收起面板，完成後回到同一編輯草稿。
+- [x] 更多：畫面／模擬設定、唱機、道路款式、討論區、節慶年曆、說明、關於、AI 新聞設定。
+- [x] 沿用原 DOM 及事件，關閉／切換介面／轉城市時還原節點位置，原桌面視窗仍保留。
+- [ ] 真機驗收；交通建造工具、長按／右鍵替代、通知中心與完整輔助使用驗收仍未完成。
 
 ## Phase C — 完整經營（規模 XL）
 
 - [ ] Phase C 22 個工具（見覆蓋表 §1.3）：地鐵／電車軌、海底隧道、避風塘、地形／電線／樹木／步道、右鍵特殊操作、路線編輯
 - [ ] 交通面板（`transport-ui.js`）、車輛追蹤、財政、議會、股市、圖表、圖層／小地圖、資訊卡、設定、討論區／走馬燈／報紙／節慶通知
-- [ ] 面板 host：單一主面板、返回堆疊、捲動／選項保留、無重複 id、reduced motion
+- [x] 面板 host：單一主面板、返回堆疊、捲動／選項保留、無重複 id、reduced motion；本批其他手機介面驗證見 [mobile-panels-validation.md](mobile-panels-validation.md)
 - [ ] 所有 hover／長按／右鍵／Shift 依賴改明確按鈕；tooltip 改 ⓘ
 - [ ] 無障礙（VoiceOver／TalkBack）、對比 4.5:1、三語長字串
 - [ ] 覆蓋表 100%；未支援項目明確標示
@@ -105,3 +114,7 @@
 ## 只有 Norton 做到嘅事
 
 - B0 設計稿審批；Phase B／D 真機測試（iPhone、Android、iPad）。
+
+## v5.6.0 Beta 發布授權（2026-11-12）
+
+Norton 明確要求「commit and release」、「手遊部分寫清楚係 beta」、「自動 select version 唔好手動」。據此啟用自動 UI profile；手機主選單、遊戲城市名牌、官網四語更新及 Release Notes 均標示 Beta。先前 Phase D 完整真機矩陣仍未完成，唔視為正式簽核；以 Beta 範圍發布，未完成工具保留停用及說明。

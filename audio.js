@@ -268,10 +268,12 @@ function setupJukebox() {
 function openJukebox() {
   document.getElementById('jukebox-window')?.classList.add('is-open');
   updateJukeboxUi();
+  if (typeof mobileHostNative === 'function') mobileHostNative('jukebox');
 }
 
 function closeJukebox() {
   document.getElementById('jukebox-window')?.classList.remove('is-open');
+  if (typeof mobileNativeClosed === 'function') mobileNativeClosed('jukebox');
 }
 
 function toggleJukebox() {

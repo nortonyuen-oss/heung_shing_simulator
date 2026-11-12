@@ -1,7 +1,7 @@
 const I18N_STORAGE_KEY = 'citybuilder.language';
-let appVersion = '5.5.1';
-let appReleaseTheme = '【香城最大模擬器 正式上線！】';
-const APP_RELEASE_THEMES = {"en": "【Heung Shing's Biggest Simulator — Now Online!】", "zhHant": "【線上遊玩開通】", "ja": "【香城最大のシミュレーター、オンラインで正式公開！】"};
+let appVersion = '5.6.0';
+let appReleaseTheme = '【手機版 Beta 登場】';
+const APP_RELEASE_THEMES = {"en": "【Mobile Beta Is Here】", "zhHant": "【手機版 Beta 登場】", "ja": "【モバイル版ベータ公開】"};
 function localizedReleaseTheme() {
   if (currentLanguage === 'zhHant' && /^zh-(hk|mo)\b/i.test(navigator.language || '')) return appReleaseTheme;
   return APP_RELEASE_THEMES[currentLanguage] || appReleaseTheme;
@@ -6686,6 +6686,8 @@ const I18N = {
 // Mobile-only copy extends the same three language dictionaries as the desktop UI.
 const MOBILE_TRANSLATIONS = {
   en: {
+    betaBadge: 'BETA', betaNotice: 'Mobile Beta · Construction and management are available. Some transport and terrain tools are still in development.',
+    settings: 'Settings & information', display: 'Display & simulation', transportInfo: 'Manage existing routes, vehicles and company accounts. New transport construction tools will follow in a later update.', pickRouteStops: 'Tap bus stops to select or remove them · {count} selected', donePicking: 'Done selecting',
     build: 'Build', transport: 'Transport', layers: 'Layers', manage: 'Manage', more: 'More', menu: 'Menu',
     close: 'Close', back: 'Back', cancel: 'Cancel', confirm: 'Confirm build', demolish: 'Confirm demolition',
     inspect: 'Inspect', bulldoze: 'Bulldoze', tap: 'Tap a tile to preview', tapStart: '① Tap start A', tapEnd: '② Tap end B', ready: '③ Review and confirm',
@@ -6707,6 +6709,8 @@ const MOBILE_TRANSLATIONS = {
     futureTools: 'Other tools will be added in the next touch update.', editor: 'Map editing will be available in a later touch update.',
   },
   zhHant: {
+    betaBadge: 'BETA', betaNotice: '手機版 Beta · 已開放建造及管理；部分交通及地形工具仍在開發。',
+    settings: '設定及資訊', display: '畫面及模擬設定', transportInfo: '管理現有路線、車輛同公司帳目。交通建造工具會喺之後嘅更新加入。', pickRouteStops: '點巴士站加入或移除 · 已選 {count} 個', donePicking: '完成選站',
     build: '建造', transport: '交通', layers: '圖層', manage: '管理', more: '更多', menu: '選單',
     close: '關閉', back: '返回', cancel: '取消', confirm: '確認建造', demolish: '確認拆除',
     inspect: '查詢', bulldoze: '拆除推土', tap: '點地圖選擇位置，先睇預覽', tapStart: '① 點起點 A', tapEnd: '② 點終點 B', ready: '③ 檢查後確認',
@@ -6728,6 +6732,8 @@ const MOBILE_TRANSLATIONS = {
     futureTools: '其他工具會喺下次觸控更新加入。', editor: '地形編輯會喺之後嘅觸控更新開放。',
   },
   ja: {
+    betaBadge: 'BETA', betaNotice: 'モバイル版ベータ · 建設と管理に対応。一部の交通・地形ツールは開発中です。',
+    settings: '設定・情報', display: '表示・シミュレーション', transportInfo: '既存の路線・車両・会社の会計を管理できます。交通建設ツールは今後追加予定です。', pickRouteStops: 'バス停をタップして追加・削除 · {count} か所選択中', donePicking: '選択を完了',
     build: '建設', transport: '交通', layers: 'レイヤー', manage: '管理', more: 'その他', menu: 'メニュー',
     close: '閉じる', back: '戻る', cancel: 'キャンセル', confirm: '建設を確定', demolish: '撤去を確定',
     inspect: '調査', bulldoze: '撤去', tap: 'マップをタップしてプレビュー', tapStart: '① 始点 A を選択', tapEnd: '② 終点 B を選択', ready: '③ 確認して確定',

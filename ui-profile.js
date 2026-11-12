@@ -9,9 +9,9 @@
 const UI_PROFILE_STORAGE_KEY = 'heung-shing.ui-profile.v1';
 const UI_PROFILE_MODES = Object.freeze(['auto', 'desktop', 'touch']);
 const UI_PROFILE_AUTO_MAX_WIDTH = 1100;
-// "auto" resolves to the desktop UI until the touch UI passes real-device acceptance
-// (docs/mobile-ui-work-plan.md, Phase D). Until then the touch UI is opt-in (Beta).
-const UI_PROFILE_AUTO_ENABLED = false;
+// Mobile is released as Beta. Resolve automatically on load; explicit preferences
+// remain available, and rotation never changes the chosen interface mid-session.
+const UI_PROFILE_AUTO_ENABLED = true;
 const UI_PROFILE_VIEWPORT_CONTENT = 'width=device-width, initial-scale=1, viewport-fit=cover';
 
 let uiProfilePreference = 'auto';

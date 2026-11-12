@@ -135,6 +135,7 @@ function locateMetroStation(station) {
   if (!station || !activeScene?.cameras?.main || typeof getTileFaceGeometry !== 'function') return;
   const face = getTileFaceGeometry(station.row, station.col, activeScene.offsetX, activeScene.offsetY);
   activeScene.cameras.main.centerOn(face.center.x, face.center.y);
+  if (typeof isTouchUiProfile === 'function' && isTouchUiProfile() && typeof mobileClosePanel === 'function') mobileClosePanel();
 }
 
 function pickMetroTool(tool) {

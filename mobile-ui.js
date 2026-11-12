@@ -7,6 +7,11 @@ let mobileMode = 'inspect';
 let mobileOwner = 0;
 let mobileWorldMap = null;
 let mobileNudgeOpen = true;
+let mobileNative = null;
+let mobilePanelHistory = [];
+const mobilePageScroll = new Map();
+const mobileDynamicPanels = new Map();
+const MOBILE_PENDING_TRANSPORT_ACTIONS = new Set(['select-tool', 'ferry-new-route', 'metro-new-line', 'metro-new-station', 'metro-extend', 'tram-new-line', 'tram-new-stop', 'tram-track', 'tram-extend']);
 const mobileText = (key, values) => t(`mobile.${key}`, values);
 const mobileEscape = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
 
@@ -55,6 +60,11 @@ function handleMobileMapTap({ x, y }) {
   const world = mapCameraWorldPoint(activeScene.cameras.main, x, y);
   const tile = screenPointToTile(activeScene, world.x, world.y);
   if (!tile) return;
+  if (isTransportRoutePicking()) {
+    handleTransportRouteMapClick(tile.row, tile.col);
+    return;
+  }
+  if (mobilePage) return;
   if (mobileMode === 'inspect') {
     mobileCancelBuild();
     lastInspectTile = { ...tile };
@@ -110,12 +120,17 @@ function mobileRenderDraft(draft) {
 }
 
 function mobileClosePanel() {
+  mobileReleaseNative();
+  mobilePanelHistory = [];
   mobilePage = null;
   document.getElementById('mobile-panel').hidden = true;
   mobileUi?.classList.remove('nav-open');
   document.getElementById('mobile-nav-toggle')?.setAttribute('aria-expanded', 'false');
 }
 function mobileOpenPage(page, category = null) {
+  mobileRememberScroll();
+  mobileReleaseNative();
+  mobilePanelHistory = category ? [{ page, category: null }] : [];
   mobileCancelBuild();
   activeScene?.mapTouchInput?.controller.cancelAll('panel');
   document.getElementById('inspect-panel').style.display = 'none';
@@ -125,21 +140,176 @@ function mobileOpenPage(page, category = null) {
   document.getElementById('mobile-nav-toggle').setAttribute('aria-expanded', 'false');
   document.getElementById('mobile-nav-toggle').textContent = `${mobileText(page)} ⌃`;
   mobileRenderPage();
+  document.getElementById('mobile-panel-body').scrollTop = mobilePageScroll.get(`${page}/${category || ''}`) || 0;
+  mobileUpdateStatus();
+}
+
+// Move the existing window, including its listeners and form state. A marker
+// returns it to exactly the same DOM position when the mobile panel closes.
+function mobileNativeConfig(key) {
+  if (mobileDynamicPanels.has(key)) return mobileDynamicPanels.get(key);
+  const windows = {
+    finance: { id: 'budget-detail', title: 'budget.label', page: 'manage', open: () => { updateHUD(); mobileHostNative('finance'); }, close: () => {} },
+    budget: { id: 'budget-window', title: 'budget.windowTitle', page: 'manage', open: openBudgetWindow, close: closeBudgetWindow },
+    council: { id: 'legislative-window', title: 'council.windowTitle', page: 'manage', open: openLegislativeWindow, close: closeLegislativeWindow },
+    stocks: { id: 'stock-exchange-window', title: 'stockExchange.windowTitle', page: 'manage', open: openStockExchangeWindow, close: closeStockExchangeWindow },
+    charts: { id: 'chart-window', title: 'chart.title', page: 'manage', open: openChartWindow, close: closeChartWindow },
+    overlay: { id: 'overlay-window', title: OVERLAY_TITLES[activeOverlay] || 'toolCategory.maps', page: 'layers', open: openOverlayWindow, close: closeOverlayWindow },
+    jukebox: { id: 'jukebox-window', title: 'jukebox.title', page: 'more', open: openJukebox, close: closeJukebox },
+    roads: { id: 'road-tile-set-window', title: 'roadTileSet.windowTitle', page: 'more', open: openRoadTileSetWindow, close: closeRoadTileSetWindow },
+  };
+  if (key.startsWith('transport-')) {
+    const id = key.slice('transport-'.length);
+    if (!TRANSPORT_PANEL_IDS.includes(id)) return null;
+    return { node: transportPanels.get(id)?.root, title: TRANSPORT_PANEL_META[id].labelKey, page: 'transport',
+      open: () => openTransportPanel(id), close: () => closeTransportPanel(id) };
+  }
+  return windows[key];
+}
+function mobileRememberScroll() {
+  if (mobilePage && !mobileNative) mobilePageScroll.set(`${mobilePage}/${mobileCategory || ''}`, document.getElementById('mobile-panel-body').scrollTop);
+}
+function mobileReleaseNative() {
+  if (!mobileNative) return;
+  const { node, marker, config, role } = mobileNative;
+  mobileNative = null; // close callbacks may request another mobile navigation
+  node.classList.remove('m-native');
+  if (role === null) node.removeAttribute('role'); else node.setAttribute('role', role);
+  marker.replaceWith(node);
+  config.close();
+  mobileSyncRoutePicker();
+}
+function mobileHostNative(key, dynamicConfig = null) {
+  if (!mobileUi || !isTouchUiProfile() || !mobileGameVisible()) return;
+  if (dynamicConfig) mobileDynamicPanels.set(key, dynamicConfig);
+  const config = mobileNativeConfig(key);
+  const node = config?.getNode?.() || config?.node || document.getElementById(config?.id);
+  if (!node) return;
+  if (mobileNative?.key === key) { mobileRenderPanelHeading(); return; }
+  mobileRememberScroll();
+  const previous = mobilePage ? { page: mobilePage, category: mobileCategory, native: mobileNative?.key,
+    scroll: document.getElementById('mobile-panel-body').scrollTop } : { page: config.page, category: null };
+  mobilePanelHistory.push(previous);
+  mobileReleaseNative();
+  mobileCancelBuild();
+  activeScene?.mapTouchInput?.controller.cancelAll('panel');
+  document.getElementById('inspect-panel').style.display = 'none';
+  mobilePage = config.page;
+  mobileCategory = null;
+  const marker = document.createComment(`mobile:${key}`);
+  node.before(marker);
+  mobileNative = { key, config, node, marker, role: node.getAttribute('role') };
+  node.classList.add('m-native');
+  node.removeAttribute('role');
+  document.getElementById('mobile-panel-body').replaceChildren(node);
+  document.getElementById('mobile-panel-body').scrollTop = 0;
+  mobileUi.classList.remove('nav-open');
+  document.getElementById('mobile-nav-toggle').setAttribute('aria-expanded', 'false');
+  document.getElementById('mobile-nav-toggle').textContent = `${mobileText(mobilePage)} ⌃`;
+  document.getElementById('mobile-panel').hidden = false;
+  mobileRenderPanelHeading();
+  mobileRefreshNativeLayout();
+  mobileUpdateStatus();
+  document.getElementById('mobile-panel-back').focus({ preventScroll: true });
+}
+function mobileNativeClosed(key) {
+  if (mobileNative?.key === key) mobileBack();
+}
+function mobileRequestNativeClose(key) {
+  if (mobileNative?.key !== key) return false;
+  mobileBack();
+  return true;
+}
+function mobileShowNative(key) {
+  if (key === 'council' && !isCouncilMeetingUnlocked()) { showToast(t('legislative.windowLocked'), 'warning'); return; }
+  mobileNativeConfig(key)?.open();
+}
+function mobileBack() {
+  const previous = mobilePanelHistory.pop();
+  if (!previous) { mobileClosePanel(); return; }
+  const history = [...mobilePanelHistory];
+  mobileReleaseNative();
+  mobilePage = null;
+  if (previous.native) mobileShowNative(previous.native);
+  else mobileOpenPage(previous.page, previous.category);
+  mobilePanelHistory = history;
+  document.getElementById('mobile-panel-body').scrollTop = previous.scroll || mobilePageScroll.get(`${previous.page}/${previous.category || ''}`) || 0;
+  mobileRenderPanelHeading();
+}
+function mobileRenderPanelHeading() {
+  document.getElementById('mobile-panel-title').textContent = mobileNative ? (mobileNative.config.getTitle?.() || t(mobileNative.key === 'overlay' ? OVERLAY_TITLES[activeOverlay] : mobileNative.config.title))
+    : mobileCategory ? document.querySelector(`[data-tool-category="${mobileCategory}"] .tool-category-title`)?.textContent || mobileText(mobilePage)
+      : mobileText(mobilePage === 'manage' ? 'overview' : mobilePage);
+  document.getElementById('mobile-panel-back').hidden = !mobilePanelHistory.length;
+  document.querySelectorAll('[data-mobile-page]').forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.mobilePage === mobilePage)));
+}
+function mobileRefreshNativeLayout() {
+  if (mobileNative?.key === 'charts') updateChartWindow(true);
+  if (mobileNative?.key === 'overlay') { updateMiniMap(); resetMapView(); }
+}
+function mobileSyncRoutePicker() {
+  if (!mobileUi) return;
+  const picking = isTouchUiProfile() && mobileNative?.key === 'transport-routes' && isTransportRoutePicking();
+  mobileUi.classList.toggle('is-picking-route', !!picking);
+  const picker = document.getElementById('mobile-route-picker');
+  picker.hidden = !picking;
+  if (picking) document.getElementById('mobile-route-picker-status').textContent = mobileText('pickRouteStops', { count: transportUiState.editor.stopIds.length });
+}
+function mobileHostVehicleTracker(tracker) {
+  if (!tracker) return;
+  const { key, type, targetId } = tracker;
+  mobileHostNative(`tracker:${key}`, {
+    page: 'transport', getNode: () => vehicleTrackerManager.trackers.get(key)?.root,
+    getTitle: () => vehicleTrackerManager.trackers.get(key)?.root.querySelector('[data-vehicle-tracker-title]')?.textContent,
+    open: () => openVehicleTrackingWindow(type, targetId), close: () => closeVehicleTrackingWindow(key),
+  });
+}
+function mobileAdaptTransportPanel(root) {
+  if (!isTouchUiProfile()) return;
+  root.querySelectorAll('[data-transport-action]').forEach((button) => {
+    if (!MOBILE_PENDING_TRANSPORT_ACTIONS.has(button.dataset.transportAction)) return;
+    button.disabled = true;
+    button.title = mobileText('futureTools');
+  });
+}
+function mobileSetupOverlayGestures() {
+  const viewport = document.getElementById('overlay-win-body');
+  const pointers = new Map();
+  const measure = () => {
+    const points = [...pointers.values()];
+    const [a, b = a] = points;
+    return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, distance: Math.hypot(a.x - b.x, a.y - b.y) };
+  };
+  viewport.addEventListener('pointerdown', (event) => {
+    if (!isTouchUiProfile() || event.target.closest('button') || event.button !== 0) return;
+    event.preventDefault(); event.stopPropagation();
+    viewport.setPointerCapture(event.pointerId);
+    pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+  });
+  viewport.addEventListener('pointermove', (event) => {
+    if (!isTouchUiProfile() || !pointers.has(event.pointerId)) return;
+    const before = measure();
+    pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    const after = measure();
+    mapViewPanX += after.x - before.x; mapViewPanY += after.y - before.y;
+    if (before.distance > 0 && after.distance > 0) {
+      const rect = viewport.getBoundingClientRect();
+      _zoomAtPoint(after.x - rect.left, after.y - rect.top, after.distance / before.distance);
+    } else _applyCanvasTransform();
+  });
+  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach((type) => viewport.addEventListener(type, (event) => pointers.delete(event.pointerId)));
+  document.addEventListener('uiprofilechange', () => pointers.clear());
 }
 function mobileRow(action, title, detail = '', icon = '', tail = '') {
   return `<button type="button" class="m-row" ${action}><span aria-hidden="true">${icon}</span><span class="m-row-text"><strong>${mobileEscape(title)}</strong>${detail ? `<small>${mobileEscape(detail)}</small>` : ''}</span><span class="m-cost">${mobileEscape(tail)}</span></button>`;
 }
 function mobileRenderPage() {
   if (!mobilePage) return;
+  mobileRenderPanelHeading();
+  if (mobileNative) return;
   const panel = document.getElementById('mobile-panel');
   const body = document.getElementById('mobile-panel-body');
   panel.hidden = false;
-  document.getElementById('mobile-panel-title').textContent = mobileCategory
-    ? document.querySelector(`[data-tool-category="${mobileCategory}"] .tool-category-title`)?.textContent || mobileText(mobilePage)
-    : mobileText(mobilePage === 'manage' ? 'overview' : mobilePage);
-  const back = document.getElementById('mobile-panel-back');
-  back.hidden = !mobileCategory;
-  document.querySelectorAll('[data-mobile-page]').forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.mobilePage === mobilePage)));
   if (mobilePage === 'build') {
     const categories = [...document.querySelectorAll('#tool-menu [data-tool-category]')]
       .filter((button) => ['roads', 'zones', 'power', 'services', 'parks', 'landmarks', 'terrain', 'marine'].includes(button.dataset.toolCategory));
@@ -158,13 +328,25 @@ function mobileRenderPage() {
     }
   } else if (mobilePage === 'more') {
     const rows = [['save', 'save', '💾'], ['save-as', 'saveAs', '💾'], ['load-game', 'load', '📂'], ['export-save', 'export', '↗'], ['import-save', 'import', '↙'], ['main-menu', 'mainMenu', '🏠']];
-    body.innerHTML = `<div class="m-list">${rows.map(([action, key, icon]) => mobileRow(`data-mobile-menu="${action}"`, mobileText(key), '', icon)).join('')}${mobileRow('data-mobile-action="rename"', mobileText('rename'), '', '✏️')}</div>
+    const dialogs = [['open-forum-history', 'menu.openForum', '💬'], ['open-festival-calendar', 'menu.festivalCalendar', '🗓️'], ['open-ai-news-settings', 'menu.aiNews', '📰'], ['show-help', 'menu.help', '❔'], ['show-about', 'menu.about', 'ℹ️']];
+    updateSettingsMenu();
+    body.innerHTML = `<h3>${mobileText('file')}</h3><div class="m-list">${rows.map(([action, key, icon]) => mobileRow(`data-mobile-menu="${action}"`, mobileText(key), '', icon)).join('')}${mobileRow('data-mobile-action="rename"', mobileText('rename'), '', '✏️')}</div>
+      <h3>${mobileText('settings')}</h3><div class="m-list">${mobileRow('data-mobile-native="jukebox"', t('jukebox.title'), '', '🎵')}${mobileRow('data-mobile-native="roads"', t('roadTileSet.windowTitle'), '', '🛣️')}${dialogs.map(([action, key, icon]) => mobileRow(`data-mobile-dialog="${action}"`, document.querySelector(`[data-menu-action="${action}"]`)?.textContent || t(key), '', icon)).join('')}</div>
+      <h3>${mobileText('display')}</h3><div class="m-list">${['district-signs', 'weather-effects', 'dynamic-lighting', 'building-lights', 'night-remote-darkness', 'sea-flow', 'vessel-wakes', 'shore-reflections', 'yulan-night-tint', 'auto-replace-plants', 'festivals', 'transport-expansion', 'attract-mode'].map((key) => {
+        const source = document.getElementById(`menu-${key}`);
+        return source ? mobileRow(`data-mobile-setting="toggle-${key}" aria-pressed="${source.classList.contains('menu-checked')}"`, source.textContent.trim(), '', source.classList.contains('menu-checked') ? '✓' : '○') : '';
+      }).join('')}</div>
       <label>${mobileText('language')} <select data-mobile-language>${Object.entries(LANGUAGES).map(([key, label]) => `<option value="${key}" ${getCurrentLanguage() === key ? 'selected' : ''}>${label}</option>`).join('')}</select></label>
       <label>${mobileText('profile')} ${mobileProfileSelect()}</label><p>${mobileText('beta')}</p>`;
   } else if (mobilePage === 'manage') {
-    body.innerHTML = `<h3>${mobileText('demand')}</h3><div id="mobile-demand"></div><h3>${mobileText('indices')}</h3><div id="mobile-indices"></div><p>${mobileText('phaseC')}</p>`;
+    const windows = [['finance', 'budget.label', '💰'], ['budget', 'budget.windowTitle', '📋'], ['council', 'council.windowTitle', '🏛️'], ['stocks', 'stockExchange.windowTitle', '🏦'], ['charts', 'chart.title', '📈']];
+    body.innerHTML = `<div class="m-list">${windows.map(([key, title, icon]) => mobileRow(`data-mobile-native="${key}" ${key === 'council' && !isCouncilMeetingUnlocked() ? 'aria-disabled="true"' : ''}`, t(title), key === 'council' && !isCouncilMeetingUnlocked() ? t('legislative.windowLocked') : '', icon)).join('')}</div><h3>${mobileText('demand')}</h3><div id="mobile-demand"></div><h3>${mobileText('indices')}</h3><div id="mobile-indices"></div>`;
     mobileUpdateOverview();
-  } else body.innerHTML = `<p>${mobileText('phaseC')}</p>`;
+  } else if (mobilePage === 'layers') {
+    body.innerHTML = `<div class="m-list">${Object.keys(OVERLAY_TITLES).map((key) => mobileRow(`data-mobile-overlay="${key}"`, t(OVERLAY_TITLES[key]), '', OVERLAY_ICONS[key])).join('')}</div>${mobileRow('data-mobile-action="weather"', t('topbar.currentWeather'), '', '🌦️')}`;
+  } else if (mobilePage === 'transport') {
+    body.innerHTML = `<div class="m-list">${TRANSPORT_PANEL_IDS.map((key) => mobileRow(`data-mobile-native="transport-${key}"`, t(TRANSPORT_PANEL_META[key].labelKey), '', TRANSPORT_PANEL_META[key].icon)).join('')}</div><p>${mobileText('transportInfo')}</p>`;
+  }
   panel.querySelector('button:not([hidden])')?.focus({ preventScroll: true });
 }
 
@@ -184,7 +366,7 @@ function setupMobileUi() {
   mobileUi.hidden = true;
   mobileUi.innerHTML = `
     <header class="m-top">
-      <span class="m-city" id="mobile-city-name"></span>
+      <span class="m-city"><span id="mobile-city-name"></span><small class="m-beta" data-mobile-text="betaBadge"></small></span>
       <button type="button" class="m-funds m-kpi" data-mobile-page="manage"><small data-mobile-text="funds"></small><strong id="mobile-funds"></strong></button>
       <span class="m-kpi"><small data-mobile-text="population"></small><strong id="mobile-population"></strong></span>
       <span class="m-kpi m-date"><small id="mobile-date"></small><strong id="mobile-weather"></strong></span>
@@ -195,6 +377,7 @@ function setupMobileUi() {
       <header class="m-panel-head"><button type="button" class="m-icon" id="mobile-panel-back" data-mobile-aria="back">‹</button><h2 id="mobile-panel-title"></h2><button type="button" class="m-icon" id="mobile-panel-close" data-mobile-aria="close">✕</button></header>
       <div class="m-panel-body" id="mobile-panel-body"></div>
     </section>
+    <div id="mobile-route-picker" hidden><span id="mobile-route-picker-status" role="status" aria-live="polite"></span><button type="button" id="mobile-route-picker-done" data-mobile-text="donePicking"></button></div>
     <button type="button" class="m-nav-handle" id="mobile-nav-toggle" aria-controls="mobile-nav" aria-expanded="false"></button>
     <nav class="m-nav" id="mobile-nav" aria-label="${mobileText('menu')}">${[['build','🏗️'],['transport','🚌'],['layers','🗺️'],['manage','🏛️'],['more','☰']].map(([page, icon]) => `<button type="button" data-mobile-page="${page}" aria-pressed="false"><span aria-hidden="true">${icon}</span><span data-mobile-text="${page}"></span></button>`).join('')}</nav>
     <div id="mobile-build-controls" hidden>
@@ -214,13 +397,16 @@ function setupMobileUi() {
       <footer class="m-confirm"><div class="m-confirm-description"><strong id="mobile-build-name"></strong><span id="mobile-build-status" role="status" aria-live="polite"></span></div><span id="mobile-build-cost"></span><button type="button" id="mobile-cancel" data-mobile-text="cancel"></button><button type="button" id="mobile-confirm" class="m-primary" disabled></button></footer>
     </div>`;
   document.body.appendChild(mobileUi);
+  const betaNotice = document.createElement('p');
+  betaNotice.id = 'mobile-beta-notice';
+  document.querySelector('.landing-tagline').after(betaNotice);
   mobileBuildSession = createBuildSession({
     preview: (draft) => previewTouchToolAction(activeScene, draft),
     commit: (draft, plan) => commitTouchToolAction(activeScene, draft, plan),
   }, { onChange: mobileRenderDraft });
   mobileWorldMap = mapData;
   // A UI touch cancels any canvas finger already down, preventing a lingering tap after a button.
-  mobileUi.addEventListener('pointerdown', () => activeScene?.mapTouchInput?.controller.cancelAll('ui'));
+  mobileUi.addEventListener('pointerdown', () => activeScene?.mapTouchInput?.controller.cancelAll('ui'), true);
   mobileUi.addEventListener('click', (event) => {
     const button = event.target.closest('button');
     if (!button || button.disabled) return;
@@ -230,6 +416,19 @@ function setupMobileUi() {
       const type = TOUCH_BUILDING_TYPES[button.dataset.mobileTool];
       if (type && !getInfraPlacementLock(type).unlocked) showToast(describeSpecialBuildingLockReason(getInfraPlacementLock(type)), 'warning');
       else mobileSelectTool(button.dataset.mobileTool);
+    } else if (button.dataset.mobileNative) mobileShowNative(button.dataset.mobileNative);
+    else if (button.dataset.mobileOverlay) {
+      activeOverlay = button.dataset.mobileOverlay; invalidateOverlayCache(); openOverlayWindow();
+    } else if (button.dataset.mobileSetting) {
+      const scroll = document.getElementById('mobile-panel-body').scrollTop;
+      handleMenuAction(button.dataset.mobileSetting); mobileRenderPage();
+      document.getElementById('mobile-panel-body').scrollTop = scroll;
+    } else if (button.dataset.mobileDialog) handleMenuAction(button.dataset.mobileDialog);
+    else if (button.dataset.mobileAction === 'weather') { updateWeatherLegendDialog(); showDialog('weather-legend-dialog'); }
+    else if (button.id === 'mobile-route-picker-done') {
+      transportUiState.pickingStops = false; refreshTransportUi();
+      mobileSyncRoutePicker();
+      document.querySelector('[data-transport-action="pick-stops"]')?.focus({ preventScroll: true });
     } else if (button.dataset.mobileMenu) {
       mobileClosePanel(); mobileCancelBuild(); handleMenuAction(button.dataset.mobileMenu);
     } else if (button.dataset.mobileAction === 'rename') { mobileClosePanel(); renameCityPrompt(); }
@@ -246,7 +445,7 @@ function setupMobileUi() {
       button.setAttribute('aria-expanded', String(open));
       button.textContent = `${mobileText(open ? 'close' : mobilePage || 'menu')} ${open ? '⌄' : '⌃'}`;
     } else if (button.id === 'mobile-panel-close') mobileClosePanel();
-    else if (button.id === 'mobile-panel-back') mobileOpenPage('build');
+    else if (button.id === 'mobile-panel-back') mobileBack();
     else if (button.id === 'mobile-pause') { toggleSimPause(); mobileUpdateStatus(); }
     else if (button.id === 'mobile-cancel') mobileCancelBuild();
     else if (button.id === 'mobile-nudge-toggle') { mobileNudgeOpen = !mobileNudgeOpen; mobileRenderDraft(mobileBuildSession.getState()); }
@@ -281,12 +480,15 @@ function setupMobileUi() {
     if (event.target.matches('[data-mobile-profile]')) setUiProfilePreference(event.target.value);
   }));
   const translate = () => {
+    betaNotice.textContent = mobileText('betaNotice');
     mobileUi.querySelectorAll('[data-mobile-text]').forEach((el) => { el.textContent = mobileText(el.dataset.mobileText); });
     mobileUi.querySelectorAll('[data-mobile-aria]').forEach((el) => { el.setAttribute('aria-label', mobileText(el.dataset.mobileAria)); });
     document.getElementById('mobile-nav-toggle').textContent = `${mobileText(mobilePage || 'menu')} ⌃`;
     [profileSetting, desktopSetting].forEach((label) => { label.innerHTML = `${mobileText('profile')} ${mobileProfileSelect()}`; });
     mobileRenderDraft(mobileBuildSession.getState());
     mobileRenderPage();
+    mobileUpdateStatus();
+    mobileRefreshNativeLayout();
   };
   document.addEventListener('languagechange', translate);
   document.addEventListener('uiprofilechange', () => {
@@ -294,13 +496,19 @@ function setupMobileUi() {
   });
   document.addEventListener('heungshing:maptap', (event) => handleMobileMapTap(event.detail));
   document.addEventListener('heungshing:mapcancel', mobileCancelBuild);
-  document.addEventListener('heungshing:citywillchange', mobileInvalidateWorld);
+  document.addEventListener('heungshing:citywillchange', () => { mobileClosePanel(); mobilePageScroll.clear(); mobileDynamicPanels.clear(); mobileInvalidateWorld(); });
   window.addEventListener('blur', mobileCancelBuild);
   window.addEventListener('orientationchange', mobileCancelBuild);
   document.addEventListener('visibilitychange', () => { if (document.hidden) mobileCancelBuild(); });
   const orientation = window.matchMedia('(orientation: portrait)');
   orientation.addEventListener('change', () => { mobileCancelBuild(); mobileUpdateStatus(); });
   translate();
+  mobileSetupOverlayGestures();
+  new ResizeObserver(mobileRefreshNativeLayout).observe(document.getElementById('mobile-panel-body'));
+  mobileUi.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape' || mobileModalOpen()) return;
+    event.stopPropagation(); mobileBack();
+  });
   setInterval(mobileUpdateStatus, 500);
 }
 
@@ -322,6 +530,8 @@ function mobileUpdateStatus() {
   document.getElementById('mobile-pause').setAttribute('aria-pressed', String(simPaused));
   document.getElementById('mobile-speed').value = String(simSpeedMul);
   if (mobilePage === 'manage') mobileUpdateOverview();
+  if (mobileNative) mobileRenderPanelHeading();
+  mobileSyncRoutePicker();
   activeScene?.mapTouchInput?.controller.setUiCaptured(mobileModalOpen());
 }
 

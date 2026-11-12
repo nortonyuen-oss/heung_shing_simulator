@@ -8,6 +8,7 @@ const transportUiState = {
   selectedDepotId: '',
   expandedRouteId: '',
   fleetSort: 'number',
+  companyDraft: null,
   // the tab each window shows (2026-10: six windows folded into four)
   panelTabs: { routes: 'bus', fleet: 'list', finances: 'overview' },
   // windows showing their "?" help box
@@ -380,6 +381,7 @@ function openTransportPanel(requestedId, tab = '') {
   panel.root.hidden = false;
   focusTransportPanel(id);
   refreshTransportPanel(id);
+  if (typeof mobileHostNative === 'function') mobileHostNative(`transport-${id}`);
   updateTransportTopbarPanelButtonStates();
   if (typeof invalidateTransportVisuals === 'function') invalidateTransportVisuals(activeScene);
 }
@@ -394,6 +396,7 @@ function closeTransportPanel(id) {
   }
   updateTransportTopbarPanelButtonStates();
   if (typeof invalidateTransportVisuals === 'function') invalidateTransportVisuals(activeScene);
+  if (typeof mobileNativeClosed === 'function') mobileNativeClosed(`transport-${id}`);
 }
 
 function toggleTransportPanel(requestedId) {
@@ -1030,6 +1033,7 @@ function refreshTransportPanel(id, options = {}) {
   const help = renderTransportPanelHelp(id);
   panel.body.innerHTML = html.includes(TRANSPORT_TABS_END) ? html.replace(TRANSPORT_TABS_END, help) : help + html;
   if (id === 'routes') syncTransportRoutePickingLayout(panel);
+  if (typeof mobileAdaptTransportPanel === 'function') mobileAdaptTransportPanel(panel.root);
 }
 
 // ── 開業清單: the first steps of running buses, ticked off from the game itself ──
@@ -1243,6 +1247,7 @@ function syncTransportRoutePickingLayout(panel) {
 
 function refreshTransportUi(options = {}) {
   for (const id of TRANSPORT_PANEL_IDS) refreshTransportPanel(id, options);
+  if (typeof mobileSyncRoutePicker === 'function') mobileSyncRoutePicker();
   refreshTransportChecklist();
   refreshTransportToolHint();
   updateTransportTopbarPanelButtonStates();
@@ -1251,16 +1256,17 @@ function refreshTransportUi(options = {}) {
 }
 
 function renderTransportCompanyTab(state) {
+  const company = transportUiState.companyDraft || state.company;
   const founded = state.company.foundedYear > 0
     ? t('transport.company.founded', { year: state.company.foundedYear, month: state.company.foundedMonth })
     : '';
   return `
     <div class="transport-company-form">
       <label>${transportEscapeHtml(t('transport.company.name'))}
-        <input data-transport-field="companyName" maxlength="60" value="${transportEscapeHtml(state.company.name)}" placeholder="${transportEscapeHtml(t('transport.defaultCompanyName'))}" />
+        <input data-transport-field="companyName" maxlength="60" value="${transportEscapeHtml(company.name)}" placeholder="${transportEscapeHtml(t('transport.defaultCompanyName'))}" />
       </label>
       <label>${transportEscapeHtml(t('transport.company.president'))}
-        <input data-transport-field="presidentName" maxlength="40" value="${transportEscapeHtml(state.company.presidentName)}" placeholder="${transportEscapeHtml(t('transport.defaultPresidentName'))}" />
+        <input data-transport-field="presidentName" maxlength="40" value="${transportEscapeHtml(company.presidentName)}" placeholder="${transportEscapeHtml(t('transport.defaultPresidentName'))}" />
       </label>
       <div class="transport-company-meta">
         <span>${transportEscapeHtml(t('transport.company.cash'))}: <strong>${transportEscapeHtml(transportFormatMoney(state.company.cash))}</strong></span>
@@ -1646,9 +1652,15 @@ function openTransportStopInspector(stopId, pointer = null) {
   root.hidden = false;
   positionTransportVehicleInspector(root, pointer);
   refreshTransportInspector();
+  if (typeof mobileHostNative === 'function') mobileHostNative(`stop:${stopId}`, {
+    page: 'transport', getNode: () => transportInspectorState.root,
+    getTitle: () => root.querySelector('[data-transport-inspector-title]')?.textContent,
+    open: () => openTransportStopInspector(stopId), close: closeTransportInspector,
+  });
 }
 
 function closeTransportInspector() {
+  if (typeof mobileRequestNativeClose === 'function' && mobileRequestNativeClose(`stop:${transportInspectorState.stopId}`)) return;
   if (!transportInspectorState.root) return;
   transportInspectorState.root.hidden = true;
   transportInspectorState.kind = '';
@@ -1728,6 +1740,7 @@ function resetTransportUiForCityChange() {
   transportUiState.selectedDepotId = '';
   transportUiState.expandedRouteId = '';
   transportUiState.fleetSort = 'number';
+  transportUiState.companyDraft = null;
   setTransportUiMessage('');
   if (isTransportModeActive) setTransportModeActive(false);
 }
@@ -1813,6 +1826,11 @@ function saveTransportRouteEditor() {
 
 function handleTransportUiInput(event) {
   const field = event.target?.dataset?.transportField;
+  if (field === 'companyName' || field === 'presidentName') {
+    transportUiState.companyDraft ||= { ...getTransportExpansionState().company };
+    transportUiState.companyDraft[field === 'companyName' ? 'name' : 'presidentName'] = event.target.value;
+    return;
+  }
   if (!field || !transportUiState.editor) return;
   if (field === 'fare') {
     transportUiState.editor.fare = normalizeTransportFare(event.target.value);
@@ -1852,6 +1870,10 @@ function handleTransportUiClick(event) {
   const button = event.target.closest('[data-transport-action]');
   if (!button) return;
   const action = button.dataset.transportAction;
+  if (typeof isTouchUiProfile === 'function' && isTouchUiProfile()
+    && typeof MOBILE_PENDING_TRANSPORT_ACTIONS !== 'undefined' && MOBILE_PENDING_TRANSPORT_ACTIONS.has(action)) {
+    showToast(t('mobile.futureTools'), 'warning'); return;
+  }
   // the ferry routes and their ferries (ferry-ui.js)
   if (typeof handleFerryUiAction === 'function' && handleFerryUiAction(action, button)) return;
   // and the metro lines (metro-ui.js)
@@ -1874,6 +1896,7 @@ function handleTransportUiClick(event) {
       const point = isoToScreen(col, row);
       activeScene.cameras.main.centerOn(point.x, point.y);
     }
+    if (typeof isTouchUiProfile === 'function' && isTouchUiProfile()) mobileClosePanel();
     return;
   }
   if (action === 'open-city-chart') {
@@ -1908,6 +1931,7 @@ function handleTransportUiClick(event) {
     const state = getTransportExpansionState();
     state.company.name = String(name).trim().slice(0, 60);
     state.company.presidentName = String(presidentName).trim().slice(0, 40);
+    transportUiState.companyDraft = null;
     showToast(t('transport.company.saved'), 'info');
     if (typeof queueCityChangeAutosave === 'function') queueCityChangeAutosave();
     return refreshTransportUi();

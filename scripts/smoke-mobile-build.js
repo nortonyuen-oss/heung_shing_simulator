@@ -18,7 +18,7 @@ function check(name, ok, detail) {
   fs.mkdirSync(OUT, { recursive: true });
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'hs-mobile-build-'));
   const errors = [];
-  const browser = process.env.MOBILE_TEST_URL ? await chromium.launch({ channel: 'chrome', headless: true }) : null;
+  const browser = process.env.MOBILE_TEST_URL ? await chromium.launch({ headless: true, ...(process.env.CI ? {} : { channel: 'chrome' }) }) : null;
   const app = browser ? null : await _electron.launch({ executablePath: require('electron'), args: ['.', `--user-data-dir=${profile}`], cwd: ROOT,
     env: { ...process.env, ELECTRON_RUN_AS_NODE: undefined, ELECTRON_DISABLE_UPDATES: '1' } });
   try {

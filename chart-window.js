@@ -320,10 +320,12 @@ function openChartWindow() {
   win.classList.add('is-open');
   chartWindowLastRenderedLabel = null;
   updateChartWindow(true);
+  if (typeof mobileHostNative === 'function') mobileHostNative('charts');
 }
 
 function closeChartWindow() {
   document.getElementById('chart-window')?.classList.remove('is-open');
+  if (typeof mobileNativeClosed === 'function') mobileNativeClosed('charts');
 }
 
 function toggleChartWindow() {

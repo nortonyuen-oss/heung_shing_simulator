@@ -1,7 +1,7 @@
 {
   "name": "city-builder",
-  "version": "5.6.0",
-  "releaseTheme": "【手機版 Beta 登場】",
+  "version": "5.7.0",
+  "releaseTheme": "【手機建城 Beta 擴展】",
   "description": "Hong Kong city builder for desktop and browsers, with local and portable city saves",
   "author": "The City of Heung Shing",
   "repository": {
@@ -121,9 +121,9 @@
   },
   "license": "SEE LICENSE IN LICENSE",
   "releaseThemes": {
-    "zh-HK": "【手機版 Beta 登場】",
-    "zh-TW": "【手機版 Beta 登場】",
-    "en": "【Mobile Beta Is Here】",
-    "ja": "【モバイル版ベータ公開】"
+    "zh-HK": "【手機建城 Beta 擴展】",
+    "zh-TW": "【手機建城 Beta 擴充】",
+    "en": "【Mobile Building Beta Expanded】",
+    "ja": "【モバイル建設ベータ拡充】"
   }
 }

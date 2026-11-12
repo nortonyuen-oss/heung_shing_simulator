@@ -1,6 +1,6 @@
-# 香城模擬器 (The City of Heung Shing) v5.6.0 — 【手機版 Beta 登場】
+# 香城模擬器 (The City of Heung Shing) v5.7.0 — 【手機建城 Beta 擴展】
 
-香城模擬器 (The City of Heung Shing) v5.6.0 — 【手機版 Beta 登場】 is a SimCity 2000-style city builder inspired by Hong Kong: isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
+香城模擬器 (The City of Heung Shing) v5.7.0 — 【手機建城 Beta 擴展】 is a SimCity 2000-style city builder inspired by Hong Kong: isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
 
 Website and downloads: https://nortonyuen-oss.github.io/heung_shing_simulator/
 
@@ -9,6 +9,10 @@ Read public posts and replies on the website; sign in to GitHub to confirm a new
 post or reply. Website messages are tracked with the `website-feedback` issue label.
 
 ![The Heung Shing skyline at night, zoomed out: dense lights, the airport and the harbour](docs/assets/gameplay/nightSkyline.webp)
+
+## New in v5.7.0
+
+Mobile **Beta** adds bus stops with side selection and walking coverage, depots with entrance rotation and road checks, and the complete route, purchase and vehicle-assignment flow. Six daily tools add power lines, tree planting, de-zoning, park and sports-ground styles, and bilingual district signs. Changes are previewed and confirmed in portrait or landscape, with live cost checks and local save/reload support. New power lines refresh connectivity immediately; palm-court construction now charges the displayed $500. Phones still select Mobile Beta automatically.
 
 ## New in v5.5.0
 

@@ -1,3 +1,39 @@
+# The City of Heung Shing v5.7.0 — 【手機建城 Beta 擴展】
+
+- 廣東話：【手機建城 Beta 擴展】
+- 台灣中文：【手機建城 Beta 擴充】
+- English: 【Mobile Building Beta Expanded】
+- 日本語：【モバイル建設ベータ拡充】
+
+## 手機版 Beta：巴士同日常建城
+
+手機仍會自動使用觸控 Beta，支援直向同橫向；電腦沿用桌面介面。
+
+- 巴士站：明確揀 A 側、B 側或兩側，顯示步行覆蓋、費用及付款來源，確認後先放置。
+- 巴士車廠：3×3 預覽、入口轉向及接路提示；調整現有車廠時顯示相關車輛／路線數。可串連開線、買車、派車及營運。交通擴展啟用並解鎖後由公司付款，市庫不會補足公司欠款。
+- 電線同種樹：起終點／矩形預覽、微調、有效格及跳過格摘要、整筆費用確認。
+- 取消分區：免費清除所選分區，保留現有建築及永久低密度指定。
+- 公園／運動場：直接揀款式，顯示真實佔地及費用；維園保留六模組循環。
+- 雙語地區牌：先填中英文名再確認放置；查詢模式點牌面或其地格可免費改名，雙指縮放不會誤開改名。
+
+## 修正
+
+- 新電線即時更新供電網絡。
+- 棕櫚苑實際扣款對齊既有標價 $500（原本誤扣 $250）。
+- 地區牌英文輸入支援既有 48 字元限制；輸入期間取消草稿或切換城市，不會誤寫入新草稿／城市。
+
+**Beta 範圍**：手機已支援 46 個工具，餘下部分交通、地形及特殊操作仍在開發；完整真機效能、背景恢復及輔助使用驗收仍待完成。瀏覽器城市保存在自己裝置，可下載 `.heungshing` 備份；沒有跨裝置自動同步。
+
+**English:** Automatically selected **Mobile Beta** adds bus-stop sides and coverage, depot entrance and road previews, and the route/purchase/assignment flow. Power lines, trees, de-zoning, park and sports-ground styles, and bilingual district signs use preview and confirmation in portrait or landscape. New conductors update power immediately; the palm court now charges its displayed $500. English sign names accept 48 characters. Some transport and terrain tools remain in development; saves stay on the device and can be exported.
+
+**日本語:** 自動選択の**モバイル版ベータ**に、バス停の設置側・徒歩圏、車庫の出入口・道路接続プレビュー、路線作成・車両購入・割り当てを追加。送電線、植樹、区域解除、公園・運動場の種類選択、中国語・英語の地区標識も縦・横画面でプレビュー後に確定できます。送電網を即時更新し、パームコートの建設費を表示どおり $500 に修正。標識の英語名は48文字まで入力できます。一部の交通・地形ツールは開発中で、セーブは端末に保存・エクスポートできます。
+
+## 下載
+
+macOS Apple Silicon / Intel DMG；Windows 安裝版 / 免安裝版 EXE；官網瀏覽器版（手機觸控為 Beta）。存檔資料格式維持 v15，支援既有 v14／v15 可攜備份。
+
+---
+
 # The City of Heung Shing v5.6.0 — 【手機版 Beta 登場】
 
 - 廣東話／台灣中文：【手機版 Beta 登場】

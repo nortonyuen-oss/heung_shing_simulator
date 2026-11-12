@@ -6686,8 +6686,10 @@ const I18N = {
 // Mobile-only copy extends the same three language dictionaries as the desktop UI.
 const MOBILE_TRANSLATIONS = {
   en: {
+    depotInUseConnected: 'Road connected · vehicles {buses}, routes {routes}', depotInUseDisconnected: 'No road · affects {buses} vehicles / {routes} routes',
+    stopAlreadySet: 'These road sides already have stops.', depotAlreadySet: 'The entrance already faces this way.', companyFundsLow: 'The transport company has insufficient funds.', companyFunding: 'Company funds · available {balance}', cityFunding: 'City funds · available {balance}', stopCoverage: 'Walking coverage: {residents} residents · {jobs} destinations', depotConnected: 'Entrance connected to a road.', depotDisconnected: 'Entrance needs a road before buses can operate.', depotEntrance: 'Entrance', rotateEntrance: 'Rotate entrance', bothSides: 'Both sides', stopSides: 'Bus stop road sides', sideA: 'Side A, marked on the map', sideB: 'Side B, marked on the map', transportManagement: 'Transport management',
     betaBadge: 'BETA', betaNotice: 'Mobile Beta · Construction and management are available. Some transport and terrain tools are still in development.',
-    settings: 'Settings & information', display: 'Display & simulation', transportInfo: 'Manage existing routes, vehicles and company accounts. New transport construction tools will follow in a later update.', pickRouteStops: 'Tap bus stops to select or remove them · {count} selected', donePicking: 'Done selecting',
+    settings: 'Settings & information', display: 'Display & simulation', transportInfo: 'Build bus stops and depots, then manage routes, vehicles and company accounts. Other transport construction tools will follow later.', pickRouteStops: 'Tap bus stops to select or remove them · {count} selected', donePicking: 'Done selecting',
     build: 'Build', transport: 'Transport', layers: 'Layers', manage: 'Manage', more: 'More', menu: 'Menu',
     close: 'Close', back: 'Back', cancel: 'Cancel', confirm: 'Confirm build', demolish: 'Confirm demolition',
     inspect: 'Inspect', bulldoze: 'Bulldoze', tap: 'Tap a tile to preview', tapStart: '① Tap start A', tapEnd: '② Tap end B', ready: '③ Review and confirm',
@@ -6709,8 +6711,10 @@ const MOBILE_TRANSLATIONS = {
     futureTools: 'Other tools will be added in the next touch update.', editor: 'Map editing will be available in a later touch update.',
   },
   zhHant: {
+    depotInUseConnected: '已接路 · 車廠有 {buses} 架車／{routes} 條線', depotInUseDisconnected: '入口未接路 · 影響 {buses} 架車／{routes} 條線',
+    stopAlreadySet: '所選道路兩側已有相同巴士站。', depotAlreadySet: '車廠入口已朝向呢一邊。', companyFundsLow: '交通公司資金不足。', companyFunding: '公司資金 · 可用 {balance}', cityFunding: '城市資金 · 可用 {balance}', stopCoverage: '步行覆蓋：居民 {residents} · 目的地 {jobs}', depotConnected: '入口已接路，可供巴士出入。', depotDisconnected: '入口未接路，接駁後先可營運。', depotEntrance: '入口', rotateEntrance: '轉入口', bothSides: '兩側', stopSides: '巴士站道路兩側', sideA: 'A 側，位置見地圖標記', sideB: 'B 側，位置見地圖標記', transportManagement: '交通管理',
     betaBadge: 'BETA', betaNotice: '手機版 Beta · 已開放建造及管理；部分交通及地形工具仍在開發。',
-    settings: '設定及資訊', display: '畫面及模擬設定', transportInfo: '管理現有路線、車輛同公司帳目。交通建造工具會喺之後嘅更新加入。', pickRouteStops: '點巴士站加入或移除 · 已選 {count} 個', donePicking: '完成選站',
+    settings: '設定及資訊', display: '畫面及模擬設定', transportInfo: '建巴士站同車廠，再管理路線、車輛同公司帳目。其他交通建造工具會喺之後嘅更新加入。', pickRouteStops: '點巴士站加入或移除 · 已選 {count} 個', donePicking: '完成選站',
     build: '建造', transport: '交通', layers: '圖層', manage: '管理', more: '更多', menu: '選單',
     close: '關閉', back: '返回', cancel: '取消', confirm: '確認建造', demolish: '確認拆除',
     inspect: '查詢', bulldoze: '拆除推土', tap: '點地圖選擇位置，先睇預覽', tapStart: '① 點起點 A', tapEnd: '② 點終點 B', ready: '③ 檢查後確認',
@@ -6732,8 +6736,10 @@ const MOBILE_TRANSLATIONS = {
     futureTools: '其他工具會喺下次觸控更新加入。', editor: '地形編輯會喺之後嘅觸控更新開放。',
   },
   ja: {
+    depotInUseConnected: '道路接続済み・車両 {buses}・路線 {routes}', depotInUseDisconnected: '道路未接続：車両 {buses}・路線 {routes} に影響',
+    stopAlreadySet: '選択した側には既にバス停があります。', depotAlreadySet: '出入口は既にこの向きです。', companyFundsLow: '交通会社の資金が不足しています。', companyFunding: '会社資金・残高 {balance}', cityFunding: '市の資金・残高 {balance}', stopCoverage: '徒歩圏：住民 {residents}・目的地 {jobs}', depotConnected: '出入口が道路に接続しています。', depotDisconnected: '運行には出入口への道路接続が必要です。', depotEntrance: '出入口', rotateEntrance: '出入口を回転', bothSides: '両側', stopSides: 'バス停を置く道路の側', sideA: 'A 側（マップ上に表示）', sideB: 'B 側（マップ上に表示）', transportManagement: '交通管理',
     betaBadge: 'BETA', betaNotice: 'モバイル版ベータ · 建設と管理に対応。一部の交通・地形ツールは開発中です。',
-    settings: '設定・情報', display: '表示・シミュレーション', transportInfo: '既存の路線・車両・会社の会計を管理できます。交通建設ツールは今後追加予定です。', pickRouteStops: 'バス停をタップして追加・削除 · {count} か所選択中', donePicking: '選択を完了',
+    settings: '設定・情報', display: '表示・シミュレーション', transportInfo: 'バス停・車庫を建設し、路線・車両・会社の会計を管理できます。その他の交通建設ツールは今後追加予定です。', pickRouteStops: 'バス停をタップして追加・削除 · {count} か所選択中', donePicking: '選択を完了',
     build: '建設', transport: '交通', layers: 'レイヤー', manage: '管理', more: 'その他', menu: 'メニュー',
     close: '閉じる', back: '戻る', cancel: 'キャンセル', confirm: '建設を確定', demolish: '撤去を確定',
     inspect: '調査', bulldoze: '撤去', tap: 'マップをタップしてプレビュー', tapStart: '① 始点 A を選択', tapEnd: '② 終点 B を選択', ready: '③ 確認して確定',

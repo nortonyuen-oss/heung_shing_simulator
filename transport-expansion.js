@@ -880,9 +880,15 @@ function setExpansionEnabled(id, enabled, options = {}) {
 // company.cash - no fallback to city.budget, ever. See docs/transport-ttd-spec.md
 // §4: "Company cannot spend city.budget, and the city cannot spend
 // company.cash."
+function getTransportConstructionFunds() {
+  return isTransportExpansionActive()
+    ? { payer: 'company', balance: getTransportExpansionState().company.cash }
+    : { payer: 'city', balance: city.budget };
+}
+
 function spendTransportConstruction(amount) {
   const cost = Math.max(0, Math.round(Number(amount) || 0));
-  if (!isTransportExpansionActive()) {
+  if (getTransportConstructionFunds().payer === 'city') {
     return typeof spendBudget === 'function' ? spendBudget(cost) : false;
   }
   const state = getTransportExpansionState();
@@ -2966,6 +2972,7 @@ const transportExpansionTestApi = {
   createEmptyTransportFinancials,
   normalizeTransportFinanceHistory,
   spendTransportConstruction,
+  getTransportConstructionFunds,
   settleTransportMonth,
   getTransportFinancials,
   buyTransportVehicle,

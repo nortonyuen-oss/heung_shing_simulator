@@ -55,6 +55,20 @@ function getBusStopSides(row, col) {
   return busStopMap[row]?.[col] ?? null;
 }
 
+// Shared by the desktop cycle and explicit touch-side selection. Reading a
+// quote never changes shoulders, spending, stop ids or route state.
+function getBusStopPlacementQuote(row, col, nextSides) {
+  const eligible = isInsideMap(row, col) ? getBusStopEligibleSides(row, col) : null;
+  if (!eligible || !Array.isArray(nextSides) || nextSides.some((side) => !eligible.includes(side))) {
+    return { ok: false, reason: t('toast.busStopBlocked'), cost: 0, sides: [], eligibleSides: eligible || [] };
+  }
+  const current = getBusStopSides(row, col) || [];
+  const sides = [...new Set(nextSides)];
+  const noop = sides.length === current.length && sides.every((side) => current.includes(side));
+  return { ok: !noop, noop, reason: noop ? t('mobile.stopAlreadySet') : '',
+    cost: Math.max(0, sides.length - current.length) * COST_BUS_STOP, sides, eligibleSides: [...eligible] };
+}
+
 // Anchors a corner ('ur'|'lr'|'ll'|'ul') toward that edge of the tile's
 // actual rendered face — the same polygon pointerToTile()/
 // getTileFaceVertices() hit-test against — rather than re-deriving screen

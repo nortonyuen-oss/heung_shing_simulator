@@ -42,7 +42,7 @@ function mobileInvalidateWorld() {
   mobileCancelBuild();
 }
 function mobileSelectTool(tool) {
-  if (!TOUCH_PHASE_B_TOOLS.includes(tool)) return;
+  if (!TOUCH_SUPPORTED_TOOLS.includes(tool)) return;
   mobileCancelBuild();
   mobileMode = tool;
   if (typeof isTransportModeActive !== 'undefined' && isTransportModeActive) setTransportModeActive(false);
@@ -89,8 +89,30 @@ function mobileRenderDraft(draft) {
   const status = document.getElementById('mobile-build-status');
   status.textContent = plan?.reason || (plan?.summary ? mobileText('summary', plan.summary)
     : plan ? mobileText('valid', { count: plan.tiles.length, skipped: plan.skipped || 0 }) : mobileText('tap'));
+  if (draft.tool === 'bus-stop' && plan?.eligibleSides?.length && !plan.reason) {
+    const catchment = getTransportStopCatchmentUnits({ id: 'mobile-preview', ...draft.start });
+    status.textContent = mobileText('stopCoverage', { residents: Math.round(catchment.residents || 0), jobs: Math.round(catchment.destinationUnits || 0) });
+  }
+  if (draft.tool === 'bus-depot' && plan && !plan.reason) status.textContent = plan.vehicleCount
+    ? mobileText(plan.connected ? 'depotInUseConnected' : 'depotInUseDisconnected', { buses: plan.vehicleCount, routes: plan.routeCount })
+    : mobileText(plan.connected ? 'depotConnected' : 'depotDisconnected');
   status.style.color = plan && !plan.ok ? '#8d1f1e' : '#374451';
   document.getElementById('mobile-build-cost').textContent = plan ? formatMoney(plan.cost) : '—';
+  const busTool = TOUCH_BUS_TOOLS.includes(draft.tool);
+  const funding = document.getElementById('mobile-build-funding');
+  funding.hidden = !busTool;
+  if (busTool) {
+    const account = plan?.funding || getTransportConstructionFunds();
+    funding.textContent = mobileText(account.payer === 'company' ? 'companyFunding' : 'cityFunding', { balance: formatMoney(account.balance) });
+  }
+  document.getElementById('mobile-stop-options').hidden = draft.tool !== 'bus-stop';
+  document.getElementById('mobile-depot-options').hidden = draft.tool !== 'bus-depot';
+  document.querySelectorAll('[data-mobile-stop-side]').forEach((button, index) => {
+    button.setAttribute('aria-pressed', String(button.dataset.mobileStopSide === draft.options.stopSide));
+    const side = plan?.eligibleSides?.[index];
+    button.textContent = index === 2 ? mobileText('bothSides') : `${index ? 'B' : 'A'} ${side ? { ul: '↖', ur: '↗', ll: '↙', lr: '↘' }[getBusStopAnchorCorner(side)] : ''}`;
+  });
+  if (draft.tool === 'bus-depot') document.getElementById('mobile-depot-rotate').textContent = `${mobileText('rotateEntrance')} ${ { ul: '↖', ur: '↗', ll: '↙', lr: '↘' }[getBusDepotVisualCorner(draft.options.depotSide)] }`;
   const confirm = document.getElementById('mobile-confirm');
   confirm.textContent = mobileText(draft.tool === 'bulldoze' ? 'demolish' : 'confirm');
   confirm.className = draft.tool === 'bulldoze' ? 'm-danger' : 'm-primary';
@@ -267,10 +289,13 @@ function mobileHostVehicleTracker(tracker) {
 function mobileAdaptTransportPanel(root) {
   if (!isTouchUiProfile()) return;
   root.querySelectorAll('[data-transport-action]').forEach((button) => {
-    if (!MOBILE_PENDING_TRANSPORT_ACTIONS.has(button.dataset.transportAction)) return;
+    if (!mobileIsPendingTransportAction(button.dataset.transportAction, button.dataset.tool)) return;
     button.disabled = true;
     button.title = mobileText('futureTools');
   });
+}
+function mobileIsPendingTransportAction(action, tool) {
+  return MOBILE_PENDING_TRANSPORT_ACTIONS.has(action) && !(action === 'select-tool' && TOUCH_BUS_TOOLS.includes(tool));
 }
 function mobileSetupOverlayGestures() {
   const viewport = document.getElementById('overlay-win-body');
@@ -312,17 +337,18 @@ function mobileRenderPage() {
   panel.hidden = false;
   if (mobilePage === 'build') {
     const categories = [...document.querySelectorAll('#tool-menu [data-tool-category]')]
-      .filter((button) => ['roads', 'zones', 'power', 'services', 'parks', 'landmarks', 'terrain', 'marine'].includes(button.dataset.toolCategory));
+      .filter((button) => ['roads', 'zones', 'power', 'services', 'parks', 'landmarks', 'terrain', 'marine', 'transport'].includes(button.dataset.toolCategory));
     const intro = `<div class="m-shortcuts"><button type="button" data-mobile-tool="inspect">🔍 ${mobileText('inspect')}</button><button type="button" data-mobile-tool="bulldoze">🚜 ${mobileText('bulldoze')}</button></div>`;
     if (!mobileCategory) {
       body.innerHTML = intro + `<div class="m-categories">${categories.map((button) => `<button type="button" class="m-category" data-mobile-category="${button.dataset.toolCategory}"><span aria-hidden="true">${button.querySelector('.tool-category-icon').textContent}</span><strong>${mobileEscape(button.querySelector('.tool-category-title').textContent)}</strong></button>`).join('')}</div><p>${mobileText('toolInfo')}</p>`;
     } else {
-      const tools = TOUCH_PHASE_B_TOOLS.filter((tool) => tool !== 'inspect' && tool !== 'bulldoze' && (document.querySelector(`#tool-menu [data-tool="${tool}"]`)?.closest('[data-tool-panel]')?.dataset.toolPanel || getToolCategoryForTool(tool)) === mobileCategory);
+      const tools = TOUCH_SUPPORTED_TOOLS.filter((tool) => tool !== 'inspect' && tool !== 'bulldoze' && (document.querySelector(`#tool-menu [data-tool="${tool}"]`)?.closest('[data-tool-panel]')?.dataset.toolPanel || getToolCategoryForTool(tool)) === mobileCategory);
       body.innerHTML = intro + `<div class="m-list">${tools.map((tool) => {
         const type = TOUCH_BUILDING_TYPES[tool];
         const lock = type ? getInfraPlacementLock(type) : { unlocked: true };
         const detail = lock.unlocked ? '' : describeSpecialBuildingLockReason(lock);
-        const cost = type ? formatMoney(INFRA_COSTS[type]) : tool === 'road' ? `${formatMoney(COST_ROAD)} / ▧` : '';
+        const cost = type ? formatMoney(INFRA_COSTS[type]) : tool === 'road' ? `${formatMoney(COST_ROAD)} / ▧`
+          : tool === 'bus-stop' ? formatMoney(COST_BUS_STOP) : tool === 'bus-depot' ? formatMoney(COST_BUS_DEPOT) : '';
         return mobileRow(`data-mobile-tool="${tool}" ${!lock.unlocked ? 'aria-disabled="true"' : ''}`, mobileToolLabel(tool), detail, mobileToolIcon(tool), lock.unlocked ? cost : '🔒');
       }).join('')}</div><p>${mobileText('futureTools')}</p>`;
     }
@@ -345,7 +371,7 @@ function mobileRenderPage() {
   } else if (mobilePage === 'layers') {
     body.innerHTML = `<div class="m-list">${Object.keys(OVERLAY_TITLES).map((key) => mobileRow(`data-mobile-overlay="${key}"`, t(OVERLAY_TITLES[key]), '', OVERLAY_ICONS[key])).join('')}</div>${mobileRow('data-mobile-action="weather"', t('topbar.currentWeather'), '', '🌦️')}`;
   } else if (mobilePage === 'transport') {
-    body.innerHTML = `<div class="m-list">${TRANSPORT_PANEL_IDS.map((key) => mobileRow(`data-mobile-native="transport-${key}"`, t(TRANSPORT_PANEL_META[key].labelKey), '', TRANSPORT_PANEL_META[key].icon)).join('')}</div><p>${mobileText('transportInfo')}</p>`;
+    body.innerHTML = `<div class="m-list">${TOUCH_BUS_TOOLS.map((tool) => mobileRow(`data-mobile-tool="${tool}"`, mobileToolLabel(tool), '', mobileToolIcon(tool), formatMoney(tool === 'bus-stop' ? COST_BUS_STOP : COST_BUS_DEPOT))).join('')}</div><h3>${mobileText('transportManagement')}</h3><div class="m-list">${TRANSPORT_PANEL_IDS.map((key) => mobileRow(`data-mobile-native="transport-${key}"`, t(TRANSPORT_PANEL_META[key].labelKey), '', TRANSPORT_PANEL_META[key].icon)).join('')}</div><p>${mobileText('transportInfo')}</p>`;
   }
   panel.querySelector('button:not([hidden])')?.focus({ preventScroll: true });
 }
@@ -389,12 +415,14 @@ function setupMobileUi() {
         </div>
       </div>
       <div class="m-context">
+        <span id="mobile-stop-options" hidden role="group" data-mobile-aria="stopSides"><button type="button" data-mobile-stop-side="first" data-mobile-aria="sideA"></button><button type="button" data-mobile-stop-side="second" data-mobile-aria="sideB"></button><button type="button" data-mobile-stop-side="both"></button></span>
+        <span id="mobile-depot-options" hidden><button type="button" id="mobile-depot-rotate" data-mobile-aria="rotateEntrance"></button></span>
         <span id="mobile-density" hidden>${[[DENSITY_LOW,'low'],[DENSITY_MED,'medium'],[DENSITY_HIGH,'high']].map(([value,key]) => `<button type="button" data-mobile-density="${value}" aria-pressed="false" data-mobile-text="${key}"></button>`).join('')}</span>
         <span id="mobile-bulldoze-options" hidden><button type="button" data-mobile-range="false" data-mobile-text="single"></button><button type="button" data-mobile-range="true" data-mobile-text="range"></button></span>
         <span id="mobile-demolition-warning" hidden data-mobile-text="irreversible" style="font-size:12px;color:#8d1f1e"></span>
         <span id="mobile-build-step"></span>
       </div>
-      <footer class="m-confirm"><div class="m-confirm-description"><strong id="mobile-build-name"></strong><span id="mobile-build-status" role="status" aria-live="polite"></span></div><span id="mobile-build-cost"></span><button type="button" id="mobile-cancel" data-mobile-text="cancel"></button><button type="button" id="mobile-confirm" class="m-primary" disabled></button></footer>
+      <footer class="m-confirm"><div class="m-confirm-description"><strong id="mobile-build-name"></strong><span id="mobile-build-status" role="status" aria-live="polite"></span><small id="mobile-build-funding" hidden></small></div><span id="mobile-build-cost"></span><button type="button" id="mobile-cancel" data-mobile-text="cancel"></button><button type="button" id="mobile-confirm" class="m-primary" disabled></button></footer>
     </div>`;
   document.body.appendChild(mobileUi);
   const betaNotice = document.createElement('p');
@@ -432,7 +460,13 @@ function setupMobileUi() {
     } else if (button.dataset.mobileMenu) {
       mobileClosePanel(); mobileCancelBuild(); handleMenuAction(button.dataset.mobileMenu);
     } else if (button.dataset.mobileAction === 'rename') { mobileClosePanel(); renameCityPrompt(); }
-    else if (button.dataset.mobileDensity) mobileBuildSession.setOptions({ density: Number(button.dataset.mobileDensity) });
+    else if (button.dataset.mobileStopSide) mobileBuildSession.setOptions({ stopSide: button.dataset.mobileStopSide });
+    else if (button.id === 'mobile-depot-rotate') {
+      const draft = mobileBuildSession.getState();
+      const corner = getBusDepotVisualCorner(draft.options.depotSide);
+      const next = BUS_DEPOT_CORNER_CYCLE_ORDER[(BUS_DEPOT_CORNER_CYCLE_ORDER.indexOf(corner) + 1) % BUS_DEPOT_CORNER_CYCLE_ORDER.length];
+      mobileBuildSession.setOptions({ depotSide: getBusDepotRawSideForCorner(next) });
+    } else if (button.dataset.mobileDensity) mobileBuildSession.setOptions({ density: Number(button.dataset.mobileDensity) });
     else if (button.dataset.mobileRange) {
       const draft = mobileBuildSession.getState();
       mobileBuildSession.begin(draft.tool, { ...draft.options, range: button.dataset.mobileRange === 'true' }, mobileOwner);

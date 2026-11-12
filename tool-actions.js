@@ -8,6 +8,8 @@ const TOUCH_BUILDING_TYPES = Object.freeze({
   ...LANDMARK_TOOL_BUILDING_TYPES,
 });
 const TOUCH_PHASE_B_TOOLS = Object.freeze(['road', 'zone-res', 'zone-com', 'zone-ind', 'bulldoze', 'inspect', ...Object.keys(TOUCH_BUILDING_TYPES)]);
+const TOUCH_BUS_TOOLS = Object.freeze(['bus-stop', 'bus-depot']);
+const TOUCH_SUPPORTED_TOOLS = Object.freeze([...TOUCH_PHASE_B_TOOLS, ...TOUCH_BUS_TOOLS]);
 const touchObjectIds = new WeakMap();
 let nextTouchObjectId = 1;
 function touchObjectIdentity(record) {
@@ -17,6 +19,8 @@ function touchObjectIdentity(record) {
 }
 
 function getTouchToolOptions(tool) {
+  if (tool === 'bus-stop') return { stopSide: 'both' };
+  if (tool === 'bus-depot') return { depotSide: getBusDepotRawSideForCorner('ll') };
   const type = TOUCH_BUILDING_TYPES[tool];
   const model = type === HARBOR_BUILDING_TYPE ? HARBOR_MODELS[Object.keys(HARBOR_MODELS)[0]]
     : type ? selectInfraPlacementModel(type) : null;
@@ -104,13 +108,25 @@ function getTouchDemolitionPlan(scene, tiles) {
 
 function previewTouchToolAction(scene, draft) {
   const plan = { ok: false, reason: '', cost: 0, tiles: [], kind: draft.tool, signature: '' };
-  if (!TOUCH_PHASE_B_TOOLS.includes(draft.tool)) return { ...plan, reason: t('mobile.phaseC') };
+  if (!TOUCH_SUPPORTED_TOOLS.includes(draft.tool)) return { ...plan, reason: t('mobile.phaseC') };
   if (!draft.start || !draft.end) return plan;
   if (![draft.start, draft.end].every(({ row, col }) => isInsideMap(row, col))) return { ...plan, reason: t('mobile.outside') };
   if (isTerrainCreatorMode) return { ...plan, reason: t('mobile.phaseC') };
   const { row, col } = draft.start;
   let identity = [];
-  if (TOUCH_BUILDING_TYPES[draft.tool]) {
+  if (draft.tool === 'bus-stop') {
+    const eligible = getBusStopEligibleSides(row, col) || [];
+    const mode = draft.options.stopSide;
+    if (!['first', 'second', 'both'].includes(mode)) return { ...plan, reason: t('toast.busStopBlocked') };
+    const sides = mode === 'both' ? eligible : eligible.slice(mode === 'second' ? 1 : 0, mode === 'second' ? 2 : 1);
+    Object.assign(plan, getBusStopPlacementQuote(row, col, sides));
+    plan.tiles = [{ row, col }];
+    identity = [touchTileIdentity(scene, row, col), eligible];
+  } else if (draft.tool === 'bus-depot') {
+    Object.assign(plan, getBusDepotPlacementQuote(scene, row, col, draft.options.depotSide));
+    plan.tiles = getFootprintTiles(plan.row, plan.col, plan.footprintCols, plan.footprintRows).map(([r, c]) => ({ row: r, col: c }));
+    identity = [plan.previousSide, plan.frontage, plan.fleet, ...plan.tiles.filter((tile) => isInsideMap(tile.row, tile.col)).map((tile) => touchTileIdentity(scene, tile.row, tile.col))];
+  } else if (TOUCH_BUILDING_TYPES[draft.tool]) {
     const type = TOUCH_BUILDING_TYPES[draft.tool];
     Object.assign(plan, getInfraPlacementQuote(row, col, type, draft.options.model));
     plan.tiles = getFootprintTiles(row, col, plan.footprintCols || 1, plan.footprintRows || 1).map(([r, c]) => ({ row: r, col: c }));
@@ -151,15 +167,23 @@ function previewTouchToolAction(scene, draft) {
     identity = demolition.affected;
   }
   if (!plan.ok && !plan.reason) plan.reason = t('mobile.nothing');
-  if (plan.ok && city.budget < plan.cost) { plan.ok = false; plan.reason = t('toast.notEnoughFunds'); }
-  plan.signature = JSON.stringify([draft.tool, draft.start, draft.end, draft.options, plan.cost, plan.tiles, identity]);
+  if (TOUCH_BUS_TOOLS.includes(draft.tool)) plan.funding = getTransportConstructionFunds();
+  if (plan.ok && (plan.cost > 0 || !plan.funding) && (plan.funding?.balance ?? city.budget) < plan.cost) {
+    plan.ok = false;
+    plan.reason = plan.funding?.payer === 'company' ? t('mobile.companyFundsLow') : t('toast.notEnoughFunds');
+  }
+  plan.signature = JSON.stringify([draft.tool, draft.start, draft.end, draft.options, plan.cost, plan.tiles, plan.funding?.payer, identity]);
   return plan;
 }
 
 function commitTouchToolAction(scene, draft, plan) {
   let ok = true;
-  const budget = city.budget;
-  if (TOUCH_BUILDING_TYPES[draft.tool]) {
+  const budget = plan.funding ? getTransportConstructionFunds().balance : city.budget;
+  if (draft.tool === 'bus-stop') {
+    ok = placeBusStop(scene, draft.start.row, draft.start.col, { sides: plan.sides });
+  } else if (draft.tool === 'bus-depot') {
+    ok = placeBusDepotBuilding(scene, draft.start.row, draft.start.col, { rawSide: plan.rawSide });
+  } else if (TOUCH_BUILDING_TYPES[draft.tool]) {
     const { row, col } = draft.start;
     ok = draft.tool === 'harbor' ? placeHarborBuilding(scene, row, col)
       : placeInfraBuilding(scene, row, col, TOUCH_BUILDING_TYPES[draft.tool], draft.options.model);
@@ -184,5 +208,5 @@ function commitTouchToolAction(scene, draft, plan) {
   }
   updateHUD();
   if (ok) queueCityChangeAutosave();
-  return { ok: !!ok, changed: !!ok, cost: budget - city.budget };
+  return { ok: !!ok, changed: !!ok, cost: budget - (plan.funding ? getTransportConstructionFunds().balance : city.budget) };
 }

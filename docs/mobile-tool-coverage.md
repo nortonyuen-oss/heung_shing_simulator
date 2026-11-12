@@ -63,7 +63,7 @@
 | `airport` | `roseGardenAirportProject` 議案獲批，最多 1 棟 |
 | `harbor` | 人口 15,000，並符合海岸線規則 |
 
-### 1.3 Phase C（22 個）
+### 1.3 Phase C（22 個；C1 已接駁 2 個，餘 20 個）
 
 | ID | 類型 | 現有互動／依賴 | 手機方案 |
 |---|---|---|---|
@@ -79,9 +79,9 @@
 | `park` | P | 選單選款式（`tool-menu.js:884`）；變體 `park-small`／`park-large` | 款式放工具選項 |
 | `sports-ground` | P | 選單靠**長按**（`tool-menu.js:1064`） | 款式放工具選項 |
 | `floating-restaurant` | P | **右鍵**轉向（`main.js:1111–1119`）；$20,000 | 「轉向」context 按鈕 |
-| `bus-stop` | P | **hover** 綠／紅高亮＋覆蓋範圍預覽（`main.js:1216`）；$20 | 點選預覽顯示同一高亮；直路對側選項 |
+| `bus-stop` | P | 直路兩側；$20／新增側 | **C1 已接駁**：A／B／兩側選擇、步行覆蓋、付款來源、預覽確認；沿用既有加建差額規則 |
 | `district-sign` | P | 點擊放置；查詢時可改名；$250 | 放置確認；改名走資訊卡 |
-| `bus-depot` | P | $4,000 | 同 P |
+| `bus-depot` | P | 3×3；$4,000；入口接路 | **C1 已接駁**：入口轉向、道路連接預覽、現有車廠免費轉向及車隊影響摘要；見 [驗證記錄](mobile-bus-validation.md) |
 | `ferry-pier` | P | $2,500；拆除會連帶移除路線（`demolishFerryPierAt`） | 同 P；拆除摘要需提示 |
 | `tram-stop` | P | $150 | 同 P |
 | `metro-station` | P | 1×1 入口，鄰路；$15,000 | 同 P |

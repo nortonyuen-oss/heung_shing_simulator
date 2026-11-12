@@ -197,3 +197,5 @@
 [data-ui-profile="touch"] #mobile-ui .m-city { flex-direction: column; line-height: 14px; }
 [data-ui-profile="touch"] #mobile-ui .m-city #mobile-city-name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 [data-ui-profile="touch"] #mobile-ui .m-city .m-beta { color: #ffe7b0; font-size: 9px; line-height: 10px; font-weight: 800; }
+[data-ui-profile="touch"] #mobile-build-funding { display: block; line-height: 14px; color: #155f86; }
+[data-ui-profile="touch"] #mobile-stop-options { display: inline-flex; flex-shrink: 0; gap: 4px; }

@@ -1871,7 +1871,7 @@ function handleTransportUiClick(event) {
   if (!button) return;
   const action = button.dataset.transportAction;
   if (typeof isTouchUiProfile === 'function' && isTouchUiProfile()
-    && typeof MOBILE_PENDING_TRANSPORT_ACTIONS !== 'undefined' && MOBILE_PENDING_TRANSPORT_ACTIONS.has(action)) {
+    && typeof mobileIsPendingTransportAction === 'function' && mobileIsPendingTransportAction(action, button.dataset.tool)) {
     showToast(t('mobile.futureTools'), 'warning'); return;
   }
   // the ferry routes and their ferries (ferry-ui.js)
@@ -1908,6 +1908,7 @@ function handleTransportUiClick(event) {
     return;
   }
   if (action === 'select-tool') {
+    if (typeof isTouchUiProfile === 'function' && isTouchUiProfile() && typeof mobileSelectTool === 'function') return mobileSelectTool(button.dataset.tool);
     selectTransportModeTool(button.dataset.tool);
     return;
   }

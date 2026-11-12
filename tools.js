@@ -151,7 +151,7 @@ function plantTreeWithTool(scene, row, col) {
 // straight off busStopMap (via getBusStopSides) rather than tracked
 // separately — nothing to get out of sync between clicks:
 //   none -> left only (sides[0]) -> right only (sides[1]) -> both -> none
-function placeBusStop(scene, row, col) {
+function placeBusStop(scene, row, col, options = {}) {
   if (!isInsideMap(row, col)) return false;
 
   const sides = getBusStopEligibleSides(row, col);
@@ -166,21 +166,23 @@ function placeBusStop(scene, row, col) {
   const hasRight = current.includes(right);
 
   let next;
-  if (!hasLeft && !hasRight) next = [left];
+  if (Array.isArray(options.sides)) next = options.sides;
+  else if (!hasLeft && !hasRight) next = [left];
   else if (hasLeft && !hasRight) next = [right];
   else if (!hasLeft && hasRight) next = [left, right];
   else next = [];
 
-  const addedCount = Math.max(0, next.length - current.length);
+  const quote = getBusStopPlacementQuote(row, col, next);
+  if (!quote.ok) return false;
   const spendBusInfrastructure = typeof spendTransportConstruction === 'function'
     ? spendTransportConstruction
     : spendBudget;
-  if (addedCount > 0 && !spendBusInfrastructure(addedCount * COST_BUS_STOP)) {
+  if (quote.cost > 0 && !spendBusInfrastructure(quote.cost)) {
     showToast(t('toast.notEnoughFunds'), 'warning');
     return false;
   }
 
-  setBusStopSides(row, col, next);
+  setBusStopSides(row, col, quote.sides);
   refreshBusStopSpriteAt(scene, row, col);
   if (typeof queueCityChangeAutosave === 'function') queueCityChangeAutosave();
   return true;
@@ -541,18 +543,46 @@ function placeHarborBuilding(scene, row, col) {
 // corner. Clicking an already-placed depot (any of its 9 footprint tiles)
 // cycles its orientation LL -> LR -> UR -> UL -> LL instead of attempting a
 // second placement.
-function placeBusDepotBuilding(scene, row, col) {
-  if (!isInsideMap(row, col)) return false;
-
+function getBusDepotPlacementQuote(scene, row, col, requestedSide = null) {
+  const blocked = { ok: false, reason: t('mobile.blocked'), cost: 0, row, col,
+    footprintCols: BUS_DEPOT_FOOTPRINT_COLS, footprintRows: BUS_DEPOT_FOOTPRINT_ROWS, frontage: [] };
+  if (!isInsideMap(row, col)) return blocked;
   const existingSprite = scene?.buildingSprites?.get(getTileId(row, col));
   const existingId = existingSprite ? getTileId(existingSprite.mapRow, existingSprite.mapCol) : null;
   const existingRecord = existingId ? buildingData[existingId] : null;
-  if (existingSprite && existingRecord?.type === 'bus_depot') {
+  const rotating = existingRecord?.type === 'bus_depot';
+  let rawSide = requestedSide;
+  if (!rawSide && rotating) {
     const currentCorner = getBusDepotVisualCorner(existingRecord.busDepotRawSide);
     const nextIndex = (BUS_DEPOT_CORNER_CYCLE_ORDER.indexOf(currentCorner) + 1) % BUS_DEPOT_CORNER_CYCLE_ORDER.length;
-    const nextRawSide = getBusDepotRawSideForCorner(BUS_DEPOT_CORNER_CYCLE_ORDER[nextIndex]);
-    existingRecord.busDepotRawSide = nextRawSide;
-    applyBusDepotVisualKey(scene, existingId, existingRecord, getBusDepotVisualKey(nextRawSide));
+    rawSide = getBusDepotRawSideForCorner(BUS_DEPOT_CORNER_CYCLE_ORDER[nextIndex]);
+  }
+  rawSide ||= getBusDepotRawSideForCorner('ll');
+  if (!['n', 'e', 's', 'w'].includes(rawSide)) return blocked;
+  if (!rotating && !canPlaceBuildingFootprint(row, col, BUS_DEPOT_FOOTPRINT_COLS, BUS_DEPOT_FOOTPRINT_ROWS)) return blocked;
+  const anchorRow = rotating ? existingSprite.mapRow : row;
+  const anchorCol = rotating ? existingSprite.mapCol : col;
+  const id = getTileId(anchorRow, anchorCol);
+  const footprintCols = rotating ? existingRecord.footprintCols || 3 : BUS_DEPOT_FOOTPRINT_COLS;
+  const footprintRows = rotating ? existingRecord.footprintRows || 3 : BUS_DEPOT_FOOTPRINT_ROWS;
+  const record = { type: 'bus_depot', footprintCols, footprintRows, busDepotRawSide: rawSide };
+  const frontage = getTransportDepotFrontageTiles(id, record).map(([r, c]) => ({ row: r, col: c, road: isInsideMap(r, c) && isRoadTile(r, c) }));
+  const fleet = rotating ? getTransportExpansionState().vehicles.filter((vehicle) => vehicle.depotId === id)
+    .map((vehicle) => [vehicle.id, vehicle.routeId || '']) : [];
+  const noop = rotating && existingRecord.busDepotRawSide === rawSide;
+  return { ok: !noop, noop, reason: noop ? t('mobile.depotAlreadySet') : '', cost: rotating ? 0 : COST_BUS_DEPOT,
+    row: anchorRow, col: anchorCol, id, rawSide, rotating, footprintCols, footprintRows,
+    previousSide: rotating ? existingRecord.busDepotRawSide : null, frontage, connected: frontage.some((tile) => tile.road),
+    fleet, vehicleCount: fleet.length, routeCount: new Set(fleet.map(([, route]) => route).filter(Boolean)).size };
+}
+
+function placeBusDepotBuilding(scene, row, col, options = {}) {
+  const quote = getBusDepotPlacementQuote(scene, row, col, options.rawSide);
+  if (!quote.ok) return false;
+  if (quote.rotating) {
+    const existingRecord = buildingData[quote.id];
+    existingRecord.busDepotRawSide = quote.rawSide;
+    applyBusDepotVisualKey(scene, quote.id, existingRecord, getBusDepotVisualKey(quote.rawSide));
     if (typeof markTransportNetworkDirty === 'function') markTransportNetworkDirty();
     if (
       typeof isTransportExpansionActive === 'function'
@@ -562,17 +592,15 @@ function placeBusDepotBuilding(scene, row, col) {
     return true;
   }
 
-  if (!canPlaceBuildingFootprint(row, col, BUS_DEPOT_FOOTPRINT_COLS, BUS_DEPOT_FOOTPRINT_ROWS)) return false;
-
   const spendBusInfrastructure = typeof spendTransportConstruction === 'function'
     ? spendTransportConstruction
     : spendBudget;
-  if (!spendBusInfrastructure(COST_BUS_DEPOT)) {
+  if (!spendBusInfrastructure(quote.cost)) {
     showToast(t('toast.notEnoughFunds'), 'warning');
     return false;
   }
 
-  const rawSide = getBusDepotRawSideForCorner('ll');
+  const rawSide = quote.rawSide;
   const key = getBusDepotVisualKey(rawSide);
   const opts = busDepotModelMetadata[key] ?? BUS_DEPOT_MODELS[key];
   placeSpriteBuilding(scene, row, col, key, opts);

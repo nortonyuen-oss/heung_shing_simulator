@@ -330,7 +330,43 @@ function drawRoadDragPreview(scene, start, end) {
 // Touch drafts supply logical tiles and a validated plan; no synthetic Phaser pointer.
 function clearTouchPlacementPreview(scene) {
   scene?.buildingGuideGraphic?.clear();
+  scene?.busStopHighlightGraphic?.clear();
   scene?.mobileEndpointLabels?.forEach((label) => label.setVisible(false));
+  scene?.mobileBusPlacementLabels?.forEach((label) => label.setVisible(false));
+}
+
+function drawTouchBusPlacementPreview(scene, draft) {
+  const plan = draft.plan;
+  if (!scene.mobileBusPlacementLabels) {
+    scene.mobileBusPlacementLabels = [0, 1].map(() => {
+      const label = scene.add.text(0, 0, '', { fontSize: '14px', fontStyle: 'bold', color: '#ffffff', padding: { x: 5, y: 3 } }).setOrigin(0.5, 1).setResolution(2);
+      addToRenderLayer(scene, label, 'effectLayer');
+      return label;
+    });
+  }
+  const labelAt = (index, point, text, selected) => scene.mobileBusPlacementLabels[index]
+    .setPosition(point.x, point.y).setText(text).setBackgroundColor(selected ? '#166b37' : '#8a5308')
+    .setScale(1 / scene.cameras.main.zoom).setDepth(getPreviewOverlayDepth(3)).setVisible(true);
+  if (draft.tool === 'bus-stop') {
+    const { row, col } = draft.start;
+    drawBusStopHighlight(scene, row, col);
+    if (plan.eligibleSides?.length) drawTransportCatchmentPreview(scene, row, col);
+    (plan.eligibleSides || []).forEach((side, index) => {
+      const point = getBusStopAnchorPoint(row, col, getBusStopAnchorCorner(side), scene.offsetX, scene.offsetY);
+      labelAt(index, point, index ? 'B' : 'A', plan.sides.includes(side));
+    });
+  } else {
+    const g = scene.buildingGuideGraphic;
+    (plan.frontage || []).forEach((tile, index) => {
+      if (!isInsideMap(tile.row, tile.col)) return;
+      const geom = getTileFaceGeometry(tile.row, tile.col, scene.offsetX, scene.offsetY);
+      const color = tile.road ? 0x45e6c3 : 0xf4a62a;
+      g.lineStyle(3, color, 0.95).beginPath();
+      [geom.top, geom.right, geom.bottom, geom.left].forEach((point, i) => i ? g.lineTo(point.x, point.y) : g.moveTo(point.x, point.y));
+      g.closePath().strokePath();
+      if (index === 1) labelAt(0, geom.center, t('mobile.depotEntrance'), plan.connected);
+    });
+  }
 }
 
 function drawTouchPlacementPreview(scene, draft) {
@@ -349,6 +385,7 @@ function drawTouchPlacementPreview(scene, draft) {
     [geom.top, geom.right, geom.bottom, geom.left].forEach((point, index) => index ? g.lineTo(point.x, point.y) : g.moveTo(point.x, point.y));
     g.closePath().fillPath().strokePath();
   });
+  if (draft.tool === 'bus-stop' || draft.tool === 'bus-depot') drawTouchBusPlacementPreview(scene, draft);
   if (draft.tool === 'road' || draft.tool.startsWith('zone-') || (draft.tool === 'bulldoze' && draft.options.range)) {
     if (!scene.mobileEndpointLabels) {
       scene.mobileEndpointLabels = ['A', 'B'].map((text) => {

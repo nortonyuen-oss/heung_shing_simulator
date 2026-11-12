@@ -52,7 +52,7 @@ function check(name, ok, detail) {
     const cdp = await page.context().newCDPSession(page);
     await cdp.send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 });
     const touch = (type, points) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: points.map(([x, y, id = 1]) => ({ x, y, id, radiusX: 8, radiusY: 8, force: 1 })) });
-    const tap = async ([x, y]) => { await touch('touchStart', [[x, y]]); await page.waitForTimeout(35); await touch('touchEnd', []); await page.waitForTimeout(100); };
+    const tap = async ([x, y]) => { await cdp.send('Input.synthesizeTapGesture', { x, y, duration: 40, gestureSourceType: 'touch' }); await page.waitForTimeout(100); };
     const snapshot = () => page.evaluate(() => JSON.stringify({ budget: city.budget, roads: roadTileCount, buildings: Object.fromEntries(Object.entries(buildingData).map(([id, b]) => [id, { type: b.type, spriteKey: b.spriteKey, cols: b.footprintCols, rows: b.footprintRows }])), zones: zoneMap, density: zoneDensityMap }));
     const state = () => page.evaluate(() => mobileBuildSession.getState());
     const center = async (row, col) => page.evaluate(([r, c]) => {
@@ -103,7 +103,7 @@ function check(name, ok, detail) {
     await choose('roads', 'road');
     const before = await snapshot();
     await tap(await point(90, 88));
-    check('first tap selects A and spends nothing (M06)', !(await state()).ready && before === await snapshot());
+    check('first tap selects A and spends nothing (M06)', (await state()).start?.row === 90 && (await state()).start?.col === 88 && !(await state()).ready && before === await snapshot());
     await tap(await point(90, 92));
     let draft = await state();
     check('second tap shows a five-tile $50 draft without building', draft.ready && draft.plan.cost === 50 && before === await snapshot(), JSON.stringify(draft.start));

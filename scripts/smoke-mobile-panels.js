@@ -155,8 +155,8 @@ async function checkPanelLayouts(page, cdp) {
       return { budget: city.budget, routes: getTransportExpansionState().routes.length };
     });
     await page.waitForTimeout(100);
-    await touch('touchStart', [[180, 340, 1]]); await page.waitForTimeout(35); await touch('touchEnd', []);
-    await page.waitForTimeout(150);
+    await cdp.send('Input.synthesizeTapGesture', { x: 180, y: 340, duration: 40, gestureSourceType: 'touch' });
+    await page.waitForFunction(() => transportUiState.editor.stopIds.length === 1);
     const pickDiagnostic = await page.evaluate(() => {
       const world = mapCameraWorldPoint(activeScene.cameras.main, 180, 340);
       return { stops: transportUiState.editor.stopIds, tile: screenPointToTile(activeScene, world.x, world.y), target: document.elementFromPoint(180, 340)?.tagName, input: activeScene.mapTouchInput.controller.getState(), modal: mobileModalOpen() };

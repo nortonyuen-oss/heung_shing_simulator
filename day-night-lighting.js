@@ -253,14 +253,18 @@ function setupDynamicLighting(scene) {
 
   // Separate from weatherOverlay: this is time-of-day darkness, not a storm.
   //
-  // Night darkness is split across TWO passes so that lit building windows can
-  // survive it. A single full-screen pass at the old 0.54 peak sat above every
-  // sprite, so anything drawn as ordinary pixels - such as a window baked into
-  // a building's night texture - came out as mid-grey rather than lit. The
-  // ground pass carries most of the darkening but sits UNDER the object band,
-  // dimming terrain and roads only; the atmosphere pass keeps a light wash over
-  // everything so the scene still reads as one image. Buildings supply their
-  // own darkening (baked or tinted) and trees/vehicles are tinted to match.
+  // Night darkness is split across TWO passes so that lit building windows and
+  // street lamps survive it. A single full-screen pass above every sprite used
+  // to dim them too - anything drawn as ordinary pixels, such as a window baked
+  // into a building's night texture or a lamp's lit pool, came out dimmer than
+  // its own baked brightness, which read as low night contrast rather than a
+  // dark city with bright highlights. The ground pass now carries the whole
+  // darkening target but sits UNDER the object band, dimming terrain and roads
+  // only; the atmosphere pass above everything is kept wired up but dialled to
+  // zero (NIGHT_ATMOSPHERE_SHARE) so lit sprites keep their full baked
+  // brightness - raise it again for a touch of whole-screen cohesion at the
+  // cost of that. Buildings supply their own darkening (baked or tinted) and
+  // trees/vehicles are tinted to match.
   scene.groundNightOverlay = scene.add.rectangle(0, 0, scene.scale.width, scene.scale.height, 0x020713, 1);
   scene.groundNightOverlay.setOrigin(0, 0);
   scene.groundNightOverlay.setScrollFactor(0);
@@ -605,19 +609,22 @@ function syncBuildingNightTextures(scene, rawNightAlpha) {
 // data in sim-weather.js still peaks at 0.54 and stays the authoritative input
 // to the lamp ramps; this is the display target the two passes composite to.
 // Deepened 2026-09-28 (0.45/0.56 -> 0.62/0.71: the ground's remaining light cut
-// by ~15% and then another 20%) with the atmosphere share cut so the pass over
-// the buildings stays ~0.14: the extra dark lands on the ground only, and the
-// lit windows, lamp pools and beacons stand out against it.
+// by ~15% and then another 20%).
 const NIGHT_DARKNESS_PEAK = 0.62;
 // ... and in the small hours (getDeepNightDepth, sim-weather.js), when the
 // keyframe curve is flat but the city has gone to bed.
 const NIGHT_DARKNESS_DEEP_PEAK = 0.71;
 const NIGHT_KEYFRAME_PEAK = 0.54;
-// How much of that darkness stays in the pass above every sprite. The rest
-// goes below the object band. A lit window baked into a building texture only
-// has to survive this share, so keep it low enough that white stays white-ish:
-// 255 * (1 - 0.14) = ~219 (0.62 * 0.226).
-const NIGHT_ATMOSPHERE_SHARE = 0.226;
+// How much of that darkness stays in the pass above every sprite (the rest
+// goes below the object band, onto the ground pass alone). Norton 2026-11-14:
+// dialled to 0 - a lit window baked into a building texture, or a street
+// lamp's lit pool, sits above the object band same as this pass and used to
+// have to survive this share too, which read as low night contrast since
+// nothing ever showed at its full baked brightness. Raise it again for a
+// touch of whole-screen cohesion at that cost. 盂蘭's green night tint used to
+// ride this share by reusing this same rectangle (festival-yulan.js); it now
+// drives its own overlay so it still works with this at 0.
+const NIGHT_ATMOSPHERE_SHARE = 0;
 
 // Colour applied to objects in the object band (trees, vehicles, vessels) to
 // stand in for the ground pass they no longer sit under.

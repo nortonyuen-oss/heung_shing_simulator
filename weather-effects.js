@@ -95,6 +95,7 @@ function syncWeatherFxToCamera(scene) {
   scene.weatherOverlay?.setSize(w, h).setPosition(x, y);
   scene.nightOverlay?.setSize(w, h).setPosition(x, y);
   scene.groundNightOverlay?.setSize(w, h).setPosition(x, y);
+  scene.yulanNightOverlay?.setSize(w, h).setPosition(x, y);
   scene.lightningFlash?.setSize(w, h).setPosition(x, y);
   scene.starField?.setSize(w, h).setPosition(x, y).setTileScale(1 / zoom, 1 / zoom);
   // setPosition() is safe here (see the big comment on applyRainState() for why plain

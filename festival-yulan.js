@@ -14,9 +14,14 @@ const YULAN_SMOKE_KEY = 'fx_yulan_smoke';
 const YULAN_GHOST_TIME = Object.freeze([22 * 60, 28 * 60]);    // the wisps, and the green in the sky
 const YULAN_MAX_WISPS = 20;
 const YULAN_SMOKE_PER_FIRE = 2;
-const YULAN_NIGHT_COLOUR = 0x020713;                           // day-night-lighting.js's overlay
+const YULAN_NIGHT_COLOUR = 0x020713;                           // matches day-night-lighting.js's own overlay colour
 const YULAN_GHOST_NIGHT_COLOUR = 0x03160f;                     // a little toward green
 const YULAN_TINT_SETTING_KEY = 'citybuilder.yulanNightTint.v1';
+// Used to ride day-night-lighting.js's atmosphere pass (reusing scene.nightOverlay directly), back
+// when that pass had a non-zero share of the night darkening. That share is now 0 so lamps and lit
+// building windows keep their full baked brightness (Norton 2026-11-14), so this tint drives its
+// own overlay instead, at the same share that pass used to carry.
+const YULAN_NIGHT_OVERLAY_SHARE = 0.226;
 let yulanTintEnabledCache = null;
 
 function isYulanNightTintEnabled() {
@@ -438,9 +443,21 @@ function clearYulanLights(scene) {
   restoreYulanNightColour(scene);
 }
 
+// Lazy, like ensureYulanTextures: only the 盂蘭 month ever needs this, and most cities never see it.
+function ensureYulanNightOverlay(scene) {
+  if (scene.yulanNightOverlay) return scene.yulanNightOverlay;
+  const overlay = scene.add.rectangle(0, 0, scene.scale.width, scene.scale.height, YULAN_NIGHT_COLOUR, 1);
+  overlay.setOrigin(0, 0);
+  overlay.setScrollFactor(0);
+  overlay.setDepth(999997); // same stacking position day-night-lighting.js's own nightOverlay uses
+  overlay.setAlpha(0);
+  scene.yulanNightOverlay = overlay;
+  return overlay;
+}
+
 function restoreYulanNightColour(scene) {
   if (scene?.yulanNightColour == null) return;
-  scene.nightOverlay?.setFillStyle(YULAN_NIGHT_COLOUR, 1);
+  scene.yulanNightOverlay?.setAlpha(0);
   scene.yulanNightColour = null;
 }
 
@@ -566,16 +583,22 @@ function updateYulanWisps(scene, time, mine, sky, add) {
 
 // The deep night of the 盂蘭 month, a little green (eased in over an hour; View → 盂蘭夜色).
 function updateYulanNightColour(scene, sky) {
-  if (!scene.nightOverlay) return;
+  if (!scene) return;
   if (!isYulanNightTintEnabled() || sky < YULAN_GHOST_TIME[0] || sky >= YULAN_GHOST_TIME[1]) {
     restoreYulanNightColour(scene);
     return;
   }
+  const overlay = ensureYulanNightOverlay(scene);
   const t = Math.min(1, (sky - YULAN_GHOST_TIME[0]) / 60, (YULAN_GHOST_TIME[1] - sky) / 60);
   const colour = lerpYulanColour(YULAN_NIGHT_COLOUR, YULAN_GHOST_NIGHT_COLOUR, t);
-  if (scene.yulanNightColour === colour) return;
-  scene.nightOverlay.setFillStyle(colour, 1);
-  scene.yulanNightColour = colour;
+  if (scene.yulanNightColour !== colour) {
+    overlay.setFillStyle(colour, 1);
+    scene.yulanNightColour = colour;
+  }
+  // Rides scene.nightDarkness (day-night-lighting.js's composite target) rather than its own fixed
+  // peak, so the tint still only shows up once the night is actually dark, same feel as before this
+  // moved off the shared overlay.
+  overlay.setAlpha(Math.max(0, Math.min(1, Number(scene.nightDarkness) || 0)) * YULAN_NIGHT_OVERLAY_SHARE);
 }
 
 // ── The news ──────────────────────────────────────────────────────────────────

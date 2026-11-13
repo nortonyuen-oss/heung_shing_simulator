@@ -270,6 +270,7 @@ const SITE_FEATURE_LIST = {
 // ── Changelog ─────────────────────────────────────────────────────────────────
 const SITE_CHANGELOG = {
   "zh-HK": [
+    {"version":"v5.8.0","date":"2026-11-14","dateLabel":"2026年11月14日","title":"手機建城 Beta 全通","items":["餘下 14 個觸控工具全部接駁，手機工具總數由 46 個升到 60 個，涵蓋全部地圖工具。","鐵路：地鐵路軌（地底／地面／高架選單）、地鐵站、地面站及逐站開線；電車路軌、電車站及開線；扣地鐵撥款再由公司現金找數。","渡輪碼頭放置同逐站開線；海底隧道兩岸選點拖曳，即時睇過海預覽同造價。","避風塘用加／減切換按鈕取代 Shift 框選，出入口模式直接點防波堤；地形用筆刷選單取代長按。","海濱步道矩形草稿鋪設，再點已鋪嘅格免費加／減碼頭；浮動餐廳轉向變成放置前選項。","修正遊戲城市夜晚對比度：路燈同建築夜燈光度回復原有亮度，唔再被全螢幕夜間遮罩拖暗。"]},
     {"version":"v5.7.0","date":"2026-11-12","dateLabel":"2026年11月12日","title":"手機建城 Beta 擴展","items":["手機版 Beta 繼續自動切換，支援直向同橫向；巴士站可揀 A／B／兩側，預覽步行覆蓋，車廠可轉入口同檢查接路。","由手機建站、建車廠、開線、買車、派車到營運；交通公司同市庫分開付款，確認前顯示費用同資金來源。","加入電線、種樹、取消分區、公園及運動場款式、雙語地區牌；先預覽再確認，取消分區保留建築同永久低密度指定。","新電線即時更新供電；棕櫚苑扣款對齊標價 $500；地區牌英文名支援 48 字元，雙指唔會誤開改名。","手機仍為 Beta，部分交通同地形工具尚在開發；存檔留喺自己裝置，可下載備份。"]},
     {"version": "v5.6.0", "date": "2026-11-12", "dateLabel": "2026年11月12日", "title": "手機版 Beta 登場", "items": ["手機版 Beta：手機自動用觸控介面，電腦沿用桌面介面；直向同橫向都可以玩。", "單指平移、雙指縮放；道路、分區、建築同拆除先預覽再確認，唔會放手就誤建。", "財政、議會、股票、圖表、圖層、交通管理同設定加入手機面板；修正安全邊界、通知及頂欄排版。", "Beta 尚未包括全部交通建造及地形工具；存檔仍留喺自己嘅瀏覽器，可下載備份。"]},
     {"version": "v5.5.1", "date": "2026-11-11", "dateLabel": "2026年11月11日", "title": "香城最大模擬器 正式上線！", "items": ["走馬燈旁邊改為「💬 香城討論區」，㩒一下即開討論區；走馬燈有連結嘅廣告可以直接㩒入官網。", "新增【廣告】香城模擬器走馬燈廣告同討論區帖文，㩒廣告圖即開官方網站；討論區新聞圖片完整顯示，唔再裁走上下。", "修正網頁版建築圖片載入：公園圖正確顯示，分批並行載入，失敗會自動重試，未載入嘅地段先顯示灰色佔位。"]},
@@ -637,6 +638,7 @@ const SITE_CHANGELOG = {
 // title/items text.
 const SITE_CHANGELOG_TRANSLATIONS = {
   "zh-TW": {
+    "v5.8.0": {"title":"手機建城 Beta 全通","items":["餘下 14 個觸控工具全部接駁，手機工具總數由 46 個升到 60 個，涵蓋全部地圖工具。","鐵路：地鐵路軌（地底／地面／高架選單）、地鐵站、地面站及逐站開線；電車路軌、電車站及開線；扣地鐵撥款再由公司現金找數。","渡輪碼頭放置同逐站開線；海底隧道兩岸選點拖曳，即時睇過海預覽同造價。","避風塘用加／減切換按鈕取代 Shift 框選，出入口模式直接點防波堤；地形用筆刷選單取代長按。","海濱步道矩形草稿鋪設，再點已鋪嘅格免費加／減碼頭；浮動餐廳轉向變成放置前選項。","修正遊戲城市夜晚對比度：路燈同建築夜燈光度回復原有亮度，唔再被全螢幕夜間遮罩拖暗。"]},
     "v5.7.0": {"title":"手機建城 Beta 擴充","items":["手機版 Beta 維持自動切換，支援直向與橫向；巴士站可選 A／B／兩側並預覽步行範圍，車庫可旋轉入口及檢查道路連接。","在手機建站、建車庫、開路線、購車、派車並營運；交通公司與市庫分開付款，確認前顯示費用與資金來源。","新增送電線、植樹、取消分區、公園與運動場款式、雙語地區標誌；先預覽再確認，取消分區會保留建築及永久低密度指定。","新送電線即時更新供電；棕櫚苑扣款對齊標價 $500；地區標誌英文名支援 48 字元，雙指操作不會誤開改名。","手機仍為 Beta，部分交通與地形工具尚在開發；存檔保存在自己的裝置，可下載備份。"]},
     "v5.6.0": {"title": "手機版 Beta 登場", "items": ["手機版 Beta：手機自動使用觸控介面，電腦沿用桌面介面；支援直向與橫向。", "單指平移、雙指縮放；道路、分區、建築與拆除先預覽再確認，避免放手時誤建。", "財政、議會、股票、圖表、圖層、交通管理與設定加入手機面板；修正安全邊界、通知與頂欄排版。", "Beta 尚未包含全部交通建造與地形工具；存檔仍保存在自己的瀏覽器，可下載備份。"]},
     "v5.5.1": {"title": "線上遊玩開通", "items": ["跑馬燈旁改為「💬 香城討論區」，點一下即開討論區；跑馬燈上附連結的廣告可直接點進官網。", "新增【廣告】香城模擬器跑馬燈廣告與討論區貼文，點廣告圖即開啟官方網站；討論區新聞圖片完整顯示，不再裁掉上下。", "修正網頁版建築圖片載入：公園圖正確顯示、分批並行載入、失敗自動重試，尚未載入的地塊先顯示灰色佔位。"]},
@@ -997,6 +999,7 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   en: {
+    "v5.8.0": {"title":"Mobile Building Beta — Fully Connected","items":["The remaining 14 touch tools are connected, bringing mobile from 46 to all 60 map tools.","Rail: metro track (underground/surface/elevated), metro stations, surface stations and station-by-station lines; tram track, stops and lines. Costs draw from the metro subsidy, then company cash.","Ferry piers and station-by-station routes. The undersea tunnel previews the crossing and cost as you drag between shores.","Typhoon shelters swap Shift-drag for add/remove toggle buttons, with entrance mode tapping breakwaters directly; terrain uses an explicit brush menu instead of long-press.","The waterfront promenade lays a rectangle draft, then tapping a laid tile offers a free pier add/remove; the floating restaurant's rotation is now a pre-placement choice.","Fixed low night contrast: street lamps and lit building windows keep their full brightness instead of being dimmed by the night overlay."]},
     "v5.7.0": {"title":"Mobile Building Beta Expanded","items":["Mobile Beta stays automatic in portrait and landscape. Choose bus-stop sides and preview walking coverage; rotate depot entrances and check road access.","Build stops and depots, create routes, buy and assign buses, and operate them on a phone. Construction previews identify the city or transport-company account and its cost.","Add power lines, trees, de-zoning, park and sports-ground styles, and bilingual district signs. Preview and confirm changes; de-zoning preserves buildings and permanent low-density designations.","New conductors refresh power immediately. The palm court charges its displayed $500; English sign names accept 48 characters, and pinching never opens the name editor.","Phone controls remain Beta, with some transport and terrain tools still in development. Saves stay on your device and can be exported."]},
     "v5.6.0": {"title": "Mobile Beta Is Here", "items": ["Mobile Beta: phones automatically use touch controls; computers keep the desktop interface. Play in portrait or landscape.", "Pan with one finger and pinch to zoom. Preview and confirm roads, zones, buildings and demolition before applying changes.", "Finance, council, stocks, charts, layers, transport management and settings now fit phone panels, with safe-area, notification and status-bar fixes.", "Some transport construction and terrain tools are still in development. Browser saves stay on your device and can be downloaded as backups."]},
     "v5.5.1": {"title": "Heung Shing's Biggest Simulator — Now Online!", "items": ["The ticker label is now “💬 香城討論區” (Heung Shing Forum): click it to open the forum. Linked ads in the scrolling text open the official website.", "New [Ad] Heung Shing Simulator ticker ad and forum post; click the artwork to visit the official site. Forum news images now show in full instead of being cropped.", "Browser build: park art now loads correctly, building art loads in parallel batches and retries automatically, and lots still downloading show a grey placeholder."]},
@@ -1357,6 +1360,7 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   ja: {
+    "v5.8.0": {"title":"モバイル建設ベータ全線開通","items":["残り14種類のタッチツールを追加し、モバイル対応は46種類から全60種類のマップツールに拡大しました。","鉄道：地下鉄の線路（地下・地上・高架の選択）、地下鉄駅、地上駅、駅を選んでの路線作成。路面電車の線路、停留所、路線も対応。費用は地下鉄補助金、その後は会社資金から支払います。","フェリー桟橋の設置と駅を選んでの航路作成。海底トンネルは両岸をドラッグするだけで横断プレビューと費用を確認できます。","台風避難港はShiftドラッグの代わりに追加・削除の切り替えボタンに変更し、出入口モードは防波堤を直接タップ。地形は長押しの代わりに明示的なブラシメニューを使用します。","海辺のプロムナードは矩形ドラフトで敷設し、敷設済みのマスをタップすると無料で桟橋を追加・削除できます。浮き餐廳の向きは設置前の選択肢になりました。","夜間のコントラストが低い問題を修正：街灯と建物の夜間照明は夜間オーバーレイで暗くならず、本来の明るさを保ちます。"]},
     "v5.7.0": {"title":"モバイル建設ベータ拡充","items":["モバイル版ベータは引き続き自動選択。縦・横画面でバス停の設置側と徒歩圏を確認し、車庫の出入口を回転して道路接続を確認できます。","スマートフォンでバス停・車庫の建設、路線作成、購入・割り当て、運行まで対応。確定前に費用と市・交通会社の支払元を表示します。","送電線、植樹、区域解除、公園・運動場の種類選択、中国語・英語の地区標識を追加。プレビュー後に確定し、区域解除でも建物と恒久的な低密度指定は維持します。","新しい送電線は電力網を即時更新。パームコートの建設費を表示どおり $500 に修正し、標識の英語名は48文字まで入力可能。ピンチ操作で改名画面は開きません。","スマートフォン版はベータで、一部の交通・地形ツールは開発中です。セーブは端末に保存され、エクスポートできます。"]},
     "v5.6.0": {"title": "モバイル版ベータ公開", "items": ["モバイル版ベータ：スマートフォンはタッチ UI を自動選択。パソコンはデスクトップ UI を維持し、縦向き・横向きで遊べます。", "1 本指で移動、2 本指でズーム。道路・区画・建物・撤去はプレビュー後に確定するため、指を離しただけでは変更されません。", "財政・議会・株式・グラフ・レイヤー・交通管理・設定をスマートフォン向けに調整。安全領域・通知・上部バーの配置を修正しました。", "一部の交通建設・地形ツールは開発中です。都市データは端末のブラウザーに保存され、バックアップをダウンロードできます。"]},
     "v5.5.1": {"title": "香城最大のシミュレーター、オンラインで正式公開！", "items": ["ティッカー横のラベルを「💬 香城討論區」に変更。クリックでフォーラムを開きます。リンク付きの広告文をクリックすると公式サイトが開きます。", "【広告】香城シミュレーターのティッカー広告とフォーラム投稿を追加。画像をクリックすると公式サイトへ。フォーラムのニュース画像は上下が切れず全体表示されます。", "ブラウザー版：公園の画像が正しく表示され、建物画像は並列で取得・失敗時に自動再試行、取得中の区画は灰色の仮表示になります。"]},
@@ -1742,8 +1746,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v5.7.0 — 【手機建城 Beta 擴展】",
-      versionDesc: "5.7.0 更新：手機 Beta 加入巴士建造、日常工具同雙語路牌。",
+      versionBadge: "v5.8.0 — 【手機建城 Beta 全通】",
+      versionDesc: "5.8.0 更新：手機 Beta 接通鐵路、渡輪、隧道同地形，支援全部 60 個工具。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感嘅城市建設遊戲。起街道、規劃社區、經營自己嘅香城巴士公司、處理議會同天氣，再睇住一座有性格嘅香城慢慢成長。",
       freeLabel: "完全免費 · 瀏覽器 + macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1851,8 +1855,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v5.7.0 — 【手機建城 Beta 擴充】",
-      versionDesc: "5.7.0 更新：手機 Beta 新增巴士建造、日常工具與雙語地區標誌。",
+      versionBadge: "v5.8.0 — 【手機建城 Beta 全通】",
+      versionDesc: "5.8.0 更新：手機 Beta 接通鐵路、渡輪、隧道與地形，支援全部 60 個工具。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感的城市建設遊戲。興建街道、規劃社區、經營自己的香城公車公司、處理議會與天氣，看著一座有個性的香城慢慢成長。",
       freeLabel: "完全免費 · 瀏覽器 + macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1960,8 +1964,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "The City of Heung Shing",
       title: "The City of Heung Shing",
-      versionBadge: "v5.7.0 — 【Mobile Building Beta Expanded】",
-      versionDesc: "5.7.0 update: Mobile Beta adds bus construction, daily tools and bilingual district signs.",
+      versionBadge: "v5.8.0 — 【Mobile Building Beta — Fully Connected】",
+      versionDesc: "5.8.0 update: Mobile Beta connects rail, ferry, tunnel and terrain tools, reaching all 60 tools.",
       lede: "A city-building game inspired by Hong Kong life and made in tribute to SimCity 2000. Build streets, shape neighbourhoods, run your own Heung Shing Bus Company, navigate council politics and weather, then watch a city with real personality grow.",
       freeLabel: "Completely free · Browser + macOS + Windows · Local saves",
       downloadBtn: "【Free Download】",
@@ -2070,8 +2074,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v5.7.0 — 【モバイル建設ベータ拡充】",
-      versionDesc: "5.7.0 更新：モバイル版ベータにバス建設、日常ツール、二言語の地区標識を追加。",
+      versionBadge: "v5.8.0 — 【モバイル建設ベータ全線開通】",
+      versionDesc: "5.8.0 更新：モバイル版ベータに鉄道・フェリー・トンネル・地形を追加し、全60種類のツールに対応。",
       lede: "香港の都市生活から着想を得た、SimCity 2000へのオマージュとなる都市建設ゲーム。道路を築き、地区を計画し、自分だけの香城バス会社を経営し、議会や天候に向き合いながら、個性ある香城の成長を見守ります。",
       freeLabel: "完全無料 · ブラウザー + macOS + Windows · ローカルセーブ",
       downloadBtn: "【無料ダウンロード】",
@@ -3167,7 +3171,7 @@ const SITE_GUIDE = {
     pageIntroSuffix: "。",
     toc: "目錄",
     sections: [
-      {"id":"mobile-beta","title":"手機操作（Beta）","blocks":[{"type":"p","text":"手機自動使用觸控 Beta；直向同橫向都可以建城及管理。單指平移、雙指縮放；揀工具、點地圖睇預覽，再用確認提交，取消唔會扣錢。"},{"type":"ul","items":["巴士站：交通 › 巴士站，揀 A／B／兩側，睇步行覆蓋；每新增一側 $20。","車廠：交通 › 巴士車廠，預覽 3×3 佔地同轉入口；入口接路後先可買車及營運。再去路線開線、車隊買車及派線。交通擴展啟用並解鎖後只用公司資金，其他情況用市庫。","電線／種樹：揀起終點或矩形兩角，微調後確認；電線每新格 $5，樹木每有效格 $15。電線即時更新供電。","取消分區：框選後免費確認，保留現有建築同永久低密度指定。公園同運動場直接揀款式，佔地同費用會喺預覽顯示。","地圖 › 地區牌：先設定中英文名，再確認 $250 放置；查詢模式點牌面或地格可免費改名。中文最多 30 字元，英文最多 48 字元，全城最多 16 牌。"]},{"type":"p","text":"手機仍為 Beta，部分交通及地形工具未開放。網頁城市存在自己嘅瀏覽器，請從「更多」下載 .heungshing 備份；換裝置要自行匯入，冇跨裝置自動同步。"}]},
+      {"id":"mobile-beta","title":"手機操作（Beta）","blocks":[{"type":"p","text":"手機自動使用觸控 Beta；直向同橫向都可以建城及管理。單指平移、雙指縮放；揀工具、點地圖睇預覽，再用確認提交，取消唔會扣錢。"},{"type":"ul","items":["巴士站：交通 › 巴士站，揀 A／B／兩側，睇步行覆蓋；每新增一側 $20。","車廠：交通 › 巴士車廠，預覽 3×3 佔地同轉入口；入口接路後先可買車及營運。再去路線開線、車隊買車及派線。交通擴展啟用並解鎖後只用公司資金，其他情況用市庫。","電線／種樹：揀起終點或矩形兩角，微調後確認；電線每新格 $5，樹木每有效格 $15。電線即時更新供電。","取消分區：框選後免費確認，保留現有建築同永久低密度指定。公園同運動場直接揀款式，佔地同費用會喺預覽顯示。","地圖 › 地區牌：先設定中英文名，再確認 $250 放置；查詢模式點牌面或地格可免費改名。中文最多 30 字元，英文最多 48 字元，全城最多 16 牌。","鐵路／渡輪：地鐵、電車路軌同車站、逐站開線，海底隧道兩岸拖曳即睇造價；渡輪碼頭放置同開線同樣睇公司／市庫邊個找數。","地形／海濱：筆刷選單升高、降低或拉平地形；海濱步道矩形草稿鋪設，再點已鋪嘅格免費加／減碼頭；避風塘用加／減按鈕取代框選。"]},{"type":"p","text":"手機已支援全部 60 個工具；鐵路及電車嘅拆除仍未開放觸控。網頁城市存在自己嘅瀏覽器，請從「更多」下載 .heungshing 備份；換裝置要自行匯入，冇跨裝置自動同步。"}]},
       {
         id: "zoning",
         title: "一、分區基礎",
@@ -3341,7 +3345,7 @@ const SITE_GUIDE = {
     pageIntroSuffix: "。",
     toc: "目錄",
     sections: [
-      {"id":"mobile-beta","title":"手機操作（Beta）","blocks":[{"type":"p","text":"手機自動使用觸控 Beta；支援直向與橫向建設及管理。單指平移、雙指縮放；選工具、點地圖預覽，再按確認提交，取消不會扣款。"},{"type":"ul","items":["巴士站：交通 › 巴士站，選 A／B／兩側並查看步行範圍；每新增一側 $20。","車庫：交通 › 巴士車庫，預覽 3×3 占地及旋轉入口；入口接路後才可購車及營運。接著在路線開線、車隊購車並指派。交通擴展啟用且解鎖後只用公司資金，其他情況使用市庫。","送電線／植樹：選起終點或矩形兩角，微調後確認；送電線每新格 $5，樹木每有效格 $15。送電線即時更新供電。","取消分區：框選後免費確認，保留既有建築及永久低密度指定。公園與運動場直接選款式，預覽顯示占地與費用。","地圖 › 地區標誌：先設定中英文名，再確認 $250 放置；查詢模式點標誌或地格可免費改名。中文最多 30 字元、英文最多 48 字元，全城最多 16 個標誌。"]},{"type":"p","text":"手機仍為 Beta，部分交通與地形工具尚未開放。網頁城市儲存在自己的瀏覽器，請從「更多」下載 .heungshing 備份；換裝置須自行匯入，沒有跨裝置自動同步。"}]},
+      {"id":"mobile-beta","title":"手機操作（Beta）","blocks":[{"type":"p","text":"手機自動使用觸控 Beta；支援直向與橫向建設及管理。單指平移、雙指縮放；選工具、點地圖預覽，再按確認提交，取消不會扣款。"},{"type":"ul","items":["巴士站：交通 › 巴士站，選 A／B／兩側並查看步行範圍；每新增一側 $20。","車庫：交通 › 巴士車庫，預覽 3×3 占地及旋轉入口；入口接路後才可購車及營運。接著在路線開線、車隊購車並指派。交通擴展啟用且解鎖後只用公司資金，其他情況使用市庫。","送電線／植樹：選起終點或矩形兩角，微調後確認；送電線每新格 $5，樹木每有效格 $15。送電線即時更新供電。","取消分區：框選後免費確認，保留既有建築及永久低密度指定。公園與運動場直接選款式，預覽顯示占地與費用。","地圖 › 地區標誌：先設定中英文名，再確認 $250 放置；查詢模式點標誌或地格可免費改名。中文最多 30 字元、英文最多 48 字元，全城最多 16 個標誌。","鐵路／渡輪：地鐵、電車路軌與車站、逐站開線，海底隧道兩岸拖曳即可查看造價；渡輪碼頭放置與開線同樣視公司／市庫何方找數。","地形／海濱：筆刷選單升高、降低或拉平地形；海濱步道矩形草稿鋪設，再點已鋪的格免費加／減碼頭；避風塘用加／減按鈕取代框選。"]},{"type":"p","text":"手機已支援全部 60 個工具；鐵路與電車的拆除仍未開放觸控。網頁城市儲存在自己的瀏覽器，請從「更多」下載 .heungshing 備份；換裝置須自行匯入，沒有跨裝置自動同步。"}]},
       {
         id: "zoning",
         title: "一、分區基礎",
@@ -3515,7 +3519,7 @@ const SITE_GUIDE = {
     pageIntroSuffix: ".",
     toc: "Contents",
     sections: [
-      {"id":"mobile-beta","title":"Mobile controls (Beta)","blocks":[{"type":"p","text":"Phones automatically use Mobile Beta in portrait or landscape. Pan with one finger and pinch to zoom. Select a tool, tap the map to preview, then confirm. Cancelling never charges construction costs."},{"type":"ul","items":["Bus stops: Transport › Bus stop. Select side A, B or both and check walking coverage; each additional side costs $20.","Depots: Transport › Bus depot. Preview the 3×3 lot and rotate the entrance. Connect the entrance to a road before purchasing or operating buses, then create routes and buy/assign vehicles in the fleet panel. An enabled and unlocked transport expansion pays from company funds; otherwise construction uses the city treasury.","Power lines and trees: choose endpoints or rectangle corners, adjust and confirm. New conductors cost $5 per tile; eligible tree tiles cost $15 each. Conductors update power immediately.","De-zoning: select a rectangle and confirm for free, keeping buildings and permanent low-density designations. Park and sports-ground selectors show the chosen footprint and cost.","Maps › District sign: set Chinese and English names, then confirm the $250 placement. Inspect the sign or its tile to rename it for free. Chinese names accept 30 characters, English names 48; the city limit is 16 signs."]},{"type":"p","text":"Phone controls remain Beta; some transport and terrain tools are unavailable. Browser cities stay on your device. Use More to download a .heungshing backup and import it on another device; saves do not sync automatically."}]},
+      {"id":"mobile-beta","title":"Mobile controls (Beta)","blocks":[{"type":"p","text":"Phones automatically use Mobile Beta in portrait or landscape. Pan with one finger and pinch to zoom. Select a tool, tap the map to preview, then confirm. Cancelling never charges construction costs."},{"type":"ul","items":["Bus stops: Transport › Bus stop. Select side A, B or both and check walking coverage; each additional side costs $20.","Depots: Transport › Bus depot. Preview the 3×3 lot and rotate the entrance. Connect the entrance to a road before purchasing or operating buses, then create routes and buy/assign vehicles in the fleet panel. An enabled and unlocked transport expansion pays from company funds; otherwise construction uses the city treasury.","Power lines and trees: choose endpoints or rectangle corners, adjust and confirm. New conductors cost $5 per tile; eligible tree tiles cost $15 each. Conductors update power immediately.","De-zoning: select a rectangle and confirm for free, keeping buildings and permanent low-density designations. Park and sports-ground selectors show the chosen footprint and cost.","Maps › District sign: set Chinese and English names, then confirm the $250 placement. Inspect the sign or its tile to rename it for free. Chinese names accept 30 characters, English names 48; the city limit is 16 signs.","Rail and ferry: metro and tram track and stations, station-by-station lines, and the undersea tunnel, which previews the crossing cost as you drag between shores. Ferry piers and routes use the same company/treasury payment check.","Terrain and waterfront: an explicit brush menu raises, lowers or flattens terrain. The promenade lays a rectangle draft, then tapping a laid tile offers a free pier add/remove; typhoon shelters use add/remove toggle buttons instead of a drag selection."]},{"type":"p","text":"Mobile now covers all 60 tools; rail and tram demolition remain desktop-only for now. Browser cities stay on your device. Use More to download a .heungshing backup and import it on another device; saves do not sync automatically."}]},
       {
         id: "zoning",
         title: "1. Zoning Basics",
@@ -3689,7 +3693,7 @@ const SITE_GUIDE = {
     pageIntroSuffix: "をご覧ください。",
     toc: "目次",
     sections: [
-      {"id":"mobile-beta","title":"モバイル操作（ベータ）","blocks":[{"type":"p","text":"スマートフォンは縦・横画面でモバイル版ベータを自動選択します。1本指で移動、2本指でズーム。ツールを選び、マップでプレビューしてから確定します。キャンセルでは建設費を支払いません。"},{"type":"ul","items":["バス停：交通 › バス停で A側・B側・両側と徒歩圏を確認。追加する側ごとに $20 です。","車庫：交通 › バス車庫で3×3の敷地と出入口を確認・回転。購入・運行前に入口を道路へ接続し、路線・車両パネルで路線作成、購入、割り当てを行います。交通拡張が有効かつ解放済みなら会社資金、それ以外は市の資金を使います。","送電線・植樹：始終点または矩形の2隅を選び、微調整して確定。新しい送電線は1マス $5、植樹可能なマスは1本 $15。送電網は即時更新します。","区域解除：矩形を選んで無料で確定。建物と恒久的な低密度指定を維持します。公園・運動場は種類を選び、敷地と費用を確認できます。","マップ › 地区標識：中国語・英語名を設定して $250 で設置。調査モードで標識やそのマスをタップすると無料で改名できます。中国語名30文字、英語名48文字、市内16か所まで。"]},{"type":"p","text":"モバイル版はベータで、一部の交通・地形ツールは未対応です。都市は端末のブラウザーに保存されます。「その他」で .heungshing をダウンロードし、別の端末へ手動で読み込めます。自動同期はありません。"}]},
+      {"id":"mobile-beta","title":"モバイル操作（ベータ）","blocks":[{"type":"p","text":"スマートフォンは縦・横画面でモバイル版ベータを自動選択します。1本指で移動、2本指でズーム。ツールを選び、マップでプレビューしてから確定します。キャンセルでは建設費を支払いません。"},{"type":"ul","items":["バス停：交通 › バス停で A側・B側・両側と徒歩圏を確認。追加する側ごとに $20 です。","車庫：交通 › バス車庫で3×3の敷地と出入口を確認・回転。購入・運行前に入口を道路へ接続し、路線・車両パネルで路線作成、購入、割り当てを行います。交通拡張が有効かつ解放済みなら会社資金、それ以外は市の資金を使います。","送電線・植樹：始終点または矩形の2隅を選び、微調整して確定。新しい送電線は1マス $5、植樹可能なマスは1本 $15。送電網は即時更新します。","区域解除：矩形を選んで無料で確定。建物と恒久的な低密度指定を維持します。公園・運動場は種類を選び、敷地と費用を確認できます。","マップ › 地区標識：中国語・英語名を設定して $250 で設置。調査モードで標識やそのマスをタップすると無料で改名できます。中国語名30文字、英語名48文字、市内16か所まで。","鉄道・フェリー：地下鉄・路面電車の線路と駅、駅を選んでの路線作成、両岸をドラッグするだけで費用を確認できる海底トンネル。フェリー桟橋と航路も同じ会社・市の支払い確認です。","地形・海辺：明示的なブラシメニューで地形を上げ・下げ・平坦化。プロムナードは矩形ドラフトで敷設し、敷設済みのマスをタップすると無料で桟橋を追加・削除。台風避難港はドラッグ選択の代わりに追加・削除の切り替えボタンです。"]},{"type":"p","text":"モバイル版は全60種類のツールに対応しました。鉄道・路面電車の撤去は引き続きデスクトップ限定です。都市は端末のブラウザーに保存されます。「その他」で .heungshing をダウンロードし、別の端末へ手動で読み込めます。自動同期はありません。"}]},
       {
         id: "zoning",
         title: "1. 区画の基本",

@@ -1,6 +1,6 @@
-# 香城模擬器 (The City of Heung Shing) v5.7.0 — 【手機建城 Beta 擴展】
+# 香城模擬器 (The City of Heung Shing) v5.8.0 — 【手機建城 Beta 全通】
 
-香城模擬器 (The City of Heung Shing) v5.7.0 — 【手機建城 Beta 擴展】 is a SimCity 2000-style city builder inspired by Hong Kong: isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
+香城模擬器 (The City of Heung Shing) v5.8.0 — 【手機建城 Beta 全通】 is a SimCity 2000-style city builder inspired by Hong Kong: isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
 
 Website and downloads: https://nortonyuen-oss.github.io/heung_shing_simulator/
 
@@ -9,6 +9,10 @@ Read public posts and replies on the website; sign in to GitHub to confirm a new
 post or reply. Website messages are tracked with the `website-feedback` issue label.
 
 ![The Heung Shing skyline at night, zoomed out: dense lights, the airport and the harbour](docs/assets/gameplay/nightSkyline.webp)
+
+## New in v5.8.0
+
+Mobile **Beta** connects its remaining 14 tools, reaching full parity with desktop: metro and tram track, stations and lines; ferry piers and routes; the undersea tunnel; typhoon-shelter basins; terrain shaping; and the waterfront promenade. Mobile now covers all 60 map tools, previewed and confirmed in portrait or landscape before anything is built. Night contrast is also fixed: street lamps and lit building windows keep their full brightness instead of being dimmed by the night overlay.
 
 ## New in v5.7.0
 

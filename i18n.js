@@ -1,7 +1,7 @@
 const I18N_STORAGE_KEY = 'citybuilder.language';
-let appVersion = '5.7.0';
-let appReleaseTheme = '【手機建城 Beta 擴展】';
-const APP_RELEASE_THEMES = {"en":"【Mobile Building Beta Expanded】","zhHant":"【手機建城 Beta 擴充】","ja":"【モバイル建設ベータ拡充】"};
+let appVersion = '5.8.0';
+let appReleaseTheme = '【手機建城 Beta 全通】';
+const APP_RELEASE_THEMES = {"en":"【Mobile Building Beta — Fully Connected】","zhHant":"【手機建城 Beta 全通】","ja":"【モバイル建設ベータ全線開通】"};
 function localizedReleaseTheme() {
   if (currentLanguage === 'zhHant' && /^zh-(hk|mo)\b/i.test(navigator.language || '')) return appReleaseTheme;
   return APP_RELEASE_THEMES[currentLanguage] || appReleaseTheme;

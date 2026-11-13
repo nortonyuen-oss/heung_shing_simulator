@@ -1,3 +1,37 @@
+# The City of Heung Shing v5.8.0 — 【手機建城 Beta 全通】
+
+- 廣東話／台灣中文：【手機建城 Beta 全通】
+- English: 【Mobile Building Beta — Fully Connected】
+- 日本語：【モバイル建設ベータ全線開通】
+
+## 手機版 Beta：鐵路、渡輪同地形全部接通
+
+手機仍會自動使用觸控 Beta，支援直向同橫向；電腦沿用桌面介面。餘下 14 個工具全部接駁，手機版工具總數由 46 個升到 60 個，涵蓋全部地圖工具。
+
+- 鐵路：地鐵路軌（地底／地面／高架高度選單）、地鐵站、地面站及開線；電車路軌、電車站及開線。扣地鐵撥款，再由公司現金找數。
+- 渡輪：碼頭放置同開線，一樣睇公司／市庫邊個找數。
+- 海底隧道：兩岸選點拖曳，即時睇過海預覽同造價。
+- 避風塘：加／減切換按鈕取代 Shift 框選；出入口模式直接點防波堤。
+- 地形：筆刷選單取代長按，矩形草稿升高、降低或拉平。
+- 海濱步道：矩形草稿鋪設，再點已鋪嘅格免費加／減碼頭。
+- 浮動餐廳：轉向變成放置前選項，同車廠轉入口一樣。
+
+## 修正
+
+- 遊戲城市夜晚對比度：路燈同建築夜燈光度回復原有亮度，唔再被全螢幕夜間遮罩拖暗。
+
+**Beta 範圍**：手機已支援全部 60 個工具；鐵路及電車路軌／車站嘅拆除仍未開放，真機效能、背景恢復及輔助使用驗收仍待完成。瀏覽器城市保存在自己裝置，可下載 `.heungshing` 備份；沒有跨裝置自動同步。
+
+**English:** Mobile Beta connects the remaining 14 tools — metro and tram track/stations/lines, ferry piers and routes, the undersea tunnel, typhoon-shelter basins, terrain and the waterfront promenade — bringing mobile to full tool parity (60 of 60). Night contrast is fixed: street lamps and lit building windows keep their full brightness instead of being dimmed by the night overlay. Rail and tram demolition remain desktop-only for now; saves stay on the device and can be exported.
+
+**日本語:** モバイル版ベータに残り14種類のツール（地下鉄・路面電車の線路・駅・路線、フェリー桟橋・航路、海底トンネル、台風避難港、地形、海辺のプロムナード）を追加し、全60種類のツールに対応しました。夜間のコントラストも改善：街灯と建物の夜間照明は夜間オーバーレイで暗くならず、本来の明るさを保ちます。鉄道・路面電車の撤去は引き続きデスクトップ限定です。セーブは端末に保存・エクスポートできます。
+
+## 下載
+
+macOS Apple Silicon / Intel DMG；Windows 安裝版 / 免安裝版 EXE；官網瀏覽器版（手機觸控為 Beta）。存檔資料格式維持 v15，支援既有 v14／v15 可攜備份。
+
+---
+
 # The City of Heung Shing v5.7.0 — 【手機建城 Beta 擴展】
 
 - 廣東話：【手機建城 Beta 擴展】

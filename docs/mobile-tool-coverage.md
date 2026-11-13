@@ -63,32 +63,34 @@
 | `airport` | `roseGardenAirportProject` 議案獲批，最多 1 棟 |
 | `harbor` | 人口 15,000，並符合海岸線規則 |
 
-### 1.3 Phase C（22 個；C1／C2 已接駁 8 個，餘 14 個）
+### 1.3 Phase C（22 個；C1／C2 已接駁 8 個，C3 接駁餘下 14 個，全部完成）
 
 | ID | 類型 | 現有互動／依賴 | 手機方案 |
 |---|---|---|---|
-| `undersea-tunnel` | D | 兩岸拖曳；`placeUnderseaTunnel`（`undersea-tunnel.js:231`）；$30,000+ | 兩岸選點草稿，驗證後確認 |
-| `metro-track` | D | 拖曳＋高度選單（`metro-surface.js:740`）；$500+/格 | 高度取草稿快照；成本顯示「待計算」 |
-| `tram-track` | D | 沿路拖曳（`tram.js:304`）；$120 | 起終點草稿，保留道路依附規則 |
-| `typhoon-shelter` | D | 水域框選；**Shift** 取消範圍；入口靠點擊（`main.js:1167`） | 加／減切換按鈕；多步規劃流程適配 |
+| `undersea-tunnel` | D | 兩岸拖曳；`placeUnderseaTunnel`（`undersea-tunnel.js:231`）；$30,000+ | **C3 已接駁**：兩岸選點草稿，用 `getUnderseaTunnelCrossing` 預覽，扣市庫 |
+| `metro-track` | D | 拖曳＋高度選單（`metro-surface.js:740`）；$500+/格 | **C3 已接駁**：高度選單（地底／地面／高架），`planMetroTrack` 即時叫價；扣地鐵撥款→公司現金 |
+| `tram-track` | D | 沿路拖曳（`tram.js:304`）；$120 | **C3 已接駁**：起終點草稿，`planTramTrack` 預覽；運輸公司未開辦直接拒絕，冇市庫後備 |
+| `typhoon-shelter` | D | 水域框選；**Shift** 取消範圍；入口靠點擊（`main.js:1167`） | **C3 已接駁**：加／減切換按鈕取代 Shift；「水域／出入口」模式切換，出入口模式冇草稿直接點防波堤 |
 | `dezone` | T | 逐格即時塗畫；免費 | **C2 已接駁**：框選、保留建築摘要、免費確認；保留永久低密度限制 |
-| `terrain` | T | 逐格塗畫；筆刷選單靠**長按**（`tool-menu.js:602`） | 明確筆刷選單按鈕；範圍草稿 |
+| `terrain` | T | 逐格塗畫；筆刷選單靠**長按**（`tool-menu.js:602`） | **C3 已接駁**：明確筆刷選單取代長按；矩形草稿，免費，升高／降低／拉平逐格套用桌面函式 |
 | `power-line` | T | 逐格塗畫；$5 | **C2 已接駁**：起終點直線、跳過現有線及水面、清樹摘要、確認後即時更新供電 |
 | `tree` | T | 逐格塗畫；$15 | **C2 已接駁**：矩形草稿、跳過佔位、費用確認；沿用路旁／空分區種樹規則 |
-| `promenade` | T | 逐格塗畫（推斷）；**右鍵**切換公眾碼頭（`main.js:1120–1125`）；$400 | 範圍草稿＋「碼頭」context 按鈕 |
+| `promenade` | T | 逐格塗畫（推斷）；**右鍵**切換公眾碼頭（`main.js:1120–1125`）；$400 | **C3 已接駁**：矩形草稿 $400／格；再點已鋪嘅同一格彈出免費「加／減碼頭」確認，取代右鍵 |
 | `park` | P | 10 款；維園沿用模組循環 | **C2 已接駁**：明確款式選單、真實佔地與費用、確認前不寫入 |
 | `sports-ground` | P | 2×2／3×3 | **C2 已接駁**：明確款式選單、佔地及費用確認 |
-| `floating-restaurant` | P | **右鍵**轉向（`main.js:1111–1119`）；$20,000 | 「轉向」context 按鈕 |
+| `floating-restaurant` | P | **右鍵**轉向（`main.js:1111–1119`）；$20,000 | **C3 已接駁**：轉向做放置前選項（同車廠轉入口一樣），避風塘未運作中顯示桌面原有拒絕原因 |
 | `bus-stop` | P | 直路兩側；$20／新增側 | **C1 已接駁**：A／B／兩側選擇、步行覆蓋、付款來源、預覽確認；沿用既有加建差額規則 |
 | `district-sign` | P | 點擊放置；查詢時可改名；$250 | **C2 已接駁**：中英文名草稿、重名／上限驗證、放置確認；查詢時點牌或地格改名，見 [驗證記錄](mobile-daily-validation.md) |
 | `bus-depot` | P | 3×3；$4,000；入口接路 | **C1 已接駁**：入口轉向、道路連接預覽、現有車廠免費轉向及車隊影響摘要；見 [驗證記錄](mobile-bus-validation.md) |
-| `ferry-pier` | P | $2,500；拆除會連帶移除路線（`demolishFerryPierAt`） | 同 P；拆除摘要需提示 |
-| `tram-stop` | P | $150 | 同 P |
-| `metro-station` | P | 1×1 入口，鄰路；$15,000 | 同 P |
-| `metro-surface-station` | P | 依高度；$8,000+ | 同 P＋高度選項 |
-| `metro-line` | S | 逐站點選；$5,000 | 路線編輯模式 |
-| `tram-line` | S | 逐站點選；$250 | 路線編輯模式 |
-| `ferry-route` | S | 逐碼頭點選；$900 | 路線編輯模式 |
+| `ferry-pier` | P | $2,500；拆除會連帶移除路線（`demolishFerryPierAt`） | **C3 已接駁**：build-session 草稿，`whyNotFerryPierAt` 預覽，公司／市庫付款同巴士一致 |
+| `tram-stop` | P | $150 | **C3 已接駁**：build-session 草稿，`whyNotTramStopAt` 預覽，需已鋪直軌 |
+| `metro-station` | P | 1×1 入口，鄰路；$15,000 | **C3 已接駁**：build-session 草稿，`whyNotMetroStationAt` 預覽，扣地鐵撥款→公司現金 |
+| `metro-surface-station` | P | 依高度；$8,000+ | **C3 已接駁**：同 metro-station，自動跟現有路軌高度判斷地底／地面／高架，冇獨立高度選項 |
+| `metro-line` | S | 逐站點選；$5,000 | **C3 已接駁**：`MOBILE_DIRECT_TAP_TOOLS` 直接點站接站，冇草稿，直接提交到 `handleMetroLineClick` |
+| `tram-line` | S | 逐站點選；$250 | **C3 已接駁**：同上，直接提交到 `handleTramLineClick` |
+| `ferry-route` | S | 逐碼頭點選；$900 | **C3 已接駁**：同上，直接提交到 `handleFerryRouteClick`（只需兩個碼頭） |
+
+C3 驗收細節見 [mobile-rail-validation.md](mobile-rail-validation.md)；已知限制（鐵路／電車拆除、已核准避風塘擴建嘅二次確認）同文件內「已知限制」一節。
 
 ### 1.4 非工具項目
 

@@ -200,7 +200,7 @@ function check(name, ok, detail) {
         && state.vehicles.length === 1 && state.vehicles[0].routeId === state.routes[0].id && state.company.cash === saved.cash
         && JSON.stringify([getBusStopSides(90,84), getBusStopSides(90,96)]) === JSON.stringify(saved.sides);
     }, saved));
-    check('all bus tools are available and other pending transport builders remain disabled', await page.evaluate(() => TOUCH_BUS_TOOLS.every(tool => TOUCH_SUPPORTED_TOOLS.includes(tool)) && !mobileIsPendingTransportAction('select-tool','bus-stop') && mobileIsPendingTransportAction('metro-new-line')));
+    check('all bus tools are available and the C3 transport builders are no longer pending', await page.evaluate(() => TOUCH_BUS_TOOLS.every(tool => TOUCH_SUPPORTED_TOOLS.includes(tool)) && !mobileIsPendingTransportAction('select-tool','bus-stop') && !mobileIsPendingTransportAction('metro-new-line')));
     check('no uncaught browser errors', errors.length === 0, errors);
   } finally {
     fs.writeFileSync(path.join(out, 'results.json'), JSON.stringify({ results, errors }, null, 2));

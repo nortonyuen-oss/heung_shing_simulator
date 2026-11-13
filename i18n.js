@@ -6710,6 +6710,10 @@ const MOBILE_TRANSLATIONS = {
     toolInfo: 'Select a tool, tap to preview, then confirm. Drag with one finger to pan; pinch with two to zoom.',
     selected: 'Selected: {name}', funds: 'Funds', population: 'Population', demand: 'R / C / I demand', indices: 'Development indices',
     futureTools: 'Other tools will be added in the next touch update.', editor: 'Map editing will be available in a later touch update.',
+    metroHeight: 'Track height', shelterMode: 'Mode', shelterRange: 'Basin area', shelterAdd: 'Add', shelterSubtract: 'Cut', rotateRestaurant: 'Rotate',
+    metroTrackPreview: 'Will lay: {parts}', pierToggleHint: 'Confirm to add or remove a public pier here (free).', confirmPier: 'Confirm pier',
+    tapLineStops: 'Tap stops on the map, one after another; tap the last stop again to finish.', tapEntrance: 'Tap a breakwater tile to open or close an entrance.',
+    cancelLine: 'Cancel line', doneEntrances: 'Done with entrances',
   },
   zhHant: {
     chooseStyle: '揀款式', signNames: '設定中英文名', signNeedsNames: '先設定中英文名，再確認放置。', dezoneSummary: '取消 {count} 格分區 · 保留 {buildings} 棟建築', powerLineSummary: '{count} 格 · 跳過 {skipped} · 清除 {trees} 棵樹', confirmDezone: '確認取消分區', dezoned: '已取消分區，現有建築保留。',
@@ -6736,6 +6740,10 @@ const MOBILE_TRANSLATIONS = {
     toolInfo: '選工具、點地圖睇預覽，再確認。單指拖動平移，雙指縮放。',
     selected: '已選：{name}', funds: '資金', population: '人口', demand: 'R／C／I 需求', indices: '發展指數',
     futureTools: '其他工具會喺下次觸控更新加入。', editor: '地形編輯會喺之後嘅觸控更新開放。',
+    metroHeight: '路軌高度', shelterMode: '操作模式', shelterRange: '水域範圍', shelterAdd: '加', shelterSubtract: '減', rotateRestaurant: '轉向',
+    metroTrackPreview: '將會起：{parts}', pierToggleHint: '撳確認加或減呢格嘅公眾碼頭（免費）。', confirmPier: '確認碼頭',
+    tapLineStops: '撳地圖上嘅站，一個一個連落去；撳返最後嗰個站完成。', tapEntrance: '撳防波堤開關出入口。',
+    cancelLine: '取消畫綫', doneEntrances: '完成出入口設定',
   },
   ja: {
     chooseStyle: '種類を選択', signNames: '中国語・英語名を設定', signNeedsNames: '設置前に中国語名と英語名を設定してください。', dezoneSummary: '{count} マスを解除・建物 {buildings} 棟は維持', powerLineSummary: '{count} マス・対象外 {skipped}・樹木 {trees} 本を除去', confirmDezone: '区域解除を確定', dezoned: '区域を解除しました。既存の建物は残ります。',
@@ -6762,6 +6770,10 @@ const MOBILE_TRANSLATIONS = {
     toolInfo: 'ツールを選び、タップでプレビュー、確認して確定。1 本指で移動、2 本指でズーム。',
     selected: '選択中：{name}', funds: '資金', population: '人口', demand: 'R / C / I 需要', indices: '発展指数',
     futureTools: 'その他のツールは次のタッチ版で追加予定です。', editor: '地形編集は今後のタッチ版で対応予定です。',
+    metroHeight: '軌道の高さ', shelterMode: 'モード', shelterRange: '水域の範囲', shelterAdd: '追加', shelterSubtract: '削減', rotateRestaurant: '回転',
+    metroTrackPreview: '敷設予定：{parts}', pierToggleHint: '確定すると、このマスの公共桟橋を追加・削除します（無料）。', confirmPier: '桟橋を確定',
+    tapLineStops: '地図上の停留所を順にタップ。最後の停留所を再タップすると完成します。', tapEntrance: '防波堤のマスをタップして出入口を開閉します。',
+    cancelLine: '線の作成を取消', doneEntrances: '出入口の設定を完了',
   },
 };
 Object.entries(MOBILE_TRANSLATIONS).forEach(([language, entries]) => {

@@ -77,7 +77,7 @@ function check(name, ok, detail) {
       await tapAt(point.x, point.y);
     };
     const photo = async name => { await page.waitForFunction(() => !document.querySelector('#toast-container .toast'), null, { timeout: 10000 }); await page.screenshot({ path: path.join(out, name + '.png') }); };
-    check('automatic Mobile Beta exposes all six C2 tools', await page.evaluate(() => getUiProfile() === 'touch' && getUiProfilePreference() === 'auto' && TOUCH_DAILY_TOOLS.length === 6 && new Set(TOUCH_SUPPORTED_TOOLS).size === 46));
+    check('automatic Mobile Beta exposes all six C2 tools', await page.evaluate(() => getUiProfile() === 'touch' && getUiProfilePreference() === 'auto' && TOUCH_DAILY_TOOLS.length === 6 && new Set(TOUCH_SUPPORTED_TOOLS).size === 57));
     await choose('parks', 'tree'); const beforeTrees = await snapshot();
     await tapTile(95, 80);
     check('first tree tap selects A without placing or spending', !(await draft()).ready && beforeTrees === await snapshot());

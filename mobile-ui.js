@@ -11,7 +11,14 @@ let mobileNative = null;
 let mobilePanelHistory = [];
 const mobilePageScroll = new Map();
 const mobileDynamicPanels = new Map();
-const MOBILE_PENDING_TRANSPORT_ACTIONS = new Set(['select-tool', 'ferry-new-route', 'metro-new-line', 'metro-new-station', 'metro-extend', 'tram-new-line', 'tram-new-stop', 'tram-track', 'tram-extend']);
+// Phase C3: all transport construction is now mobile-supported, so nothing is pending any more.
+const MOBILE_PENDING_TRANSPORT_ACTIONS = new Set();
+const TOUCH_METRO_TOOLS = Object.freeze(['metro-line', 'metro-station', 'metro-track', 'metro-surface-station']);
+const TOUCH_TRAM_TOOLS = Object.freeze(['tram-track', 'tram-stop', 'tram-line']);
+const TOUCH_FERRY_TOOLS = Object.freeze(['ferry-pier', 'ferry-route']);
+function mobileToolCostLabel(tool) {
+  return document.querySelector(`#tool-menu [data-tool="${tool}"] .tool-row-cost`)?.textContent || '';
+}
 const mobileText = (key, values) => t(`mobile.${key}`, values);
 const mobileEscape = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
 
@@ -42,7 +49,7 @@ function mobileInvalidateWorld() {
   mobileCancelBuild();
 }
 function mobileSelectTool(tool) {
-  if (!TOUCH_SUPPORTED_TOOLS.includes(tool)) return;
+  if (!TOUCH_SUPPORTED_TOOLS.includes(tool) && !MOBILE_DIRECT_TAP_TOOLS.includes(tool)) return;
   mobileCancelBuild();
   mobileMode = tool;
   if (typeof isTransportModeActive !== 'undefined' && isTransportModeActive) setTransportModeActive(false);
@@ -51,7 +58,23 @@ function mobileSelectTool(tool) {
   mobileClosePanel();
   document.getElementById('inspect-panel').style.display = 'none';
   if (tool === 'inspect') return;
+  if (MOBILE_DIRECT_TAP_TOOLS.includes(tool)) { mobileSyncRoutePicker(); return; }
   mobileBuildSession.begin(tool, getTouchToolOptions(tool), mobileOwner);
+}
+
+// 地鐵綫／電車綫／渡輪航線: each tap commits straight to the desktop writer (metro.js/tram-
+// lines.js/ferry.js), same as a desktop click while the tool is selected - there is no draft to
+// preview, so build-session never sees these taps.
+function mobileDirectTapHandler(tool) {
+  if (tool === 'metro-line') return typeof handleMetroLineClick === 'function' ? handleMetroLineClick : null;
+  if (tool === 'tram-line') return typeof handleTramLineClick === 'function' ? handleTramLineClick : null;
+  if (tool === 'ferry-route') return typeof handleFerryRouteClick === 'function' ? handleFerryRouteClick : null;
+  return null;
+}
+function mobileCancelDirectTapDraft(tool) {
+  if (tool === 'metro-line' && typeof metroLineDraft !== 'undefined') metroLineDraft = null;
+  if (tool === 'tram-line' && typeof tramLineDraft !== 'undefined') tramLineDraft = null;
+  if (tool === 'ferry-route' && typeof ferryRouteDraft !== 'undefined') ferryRouteDraft = null;
 }
 
 async function mobilePromptDistrictNames() {
@@ -79,6 +102,17 @@ function handleMobileMapTap({ x, y }) {
     return;
   }
   if (mobilePage) return;
+  if (mobileMode === 'typhoon-shelter' && typeof typhoonShelterMode !== 'undefined' && typhoonShelterMode === 'entrance') {
+    if (typeof handleTyphoonShelterToolClick === 'function') handleTyphoonShelterToolClick(activeScene, tile.row, tile.col);
+    mobileUpdateStatus();
+    return;
+  }
+  if (MOBILE_DIRECT_TAP_TOOLS.includes(mobileMode)) {
+    mobileDirectTapHandler(mobileMode)?.(activeScene, tile.row, tile.col);
+    if (typeof refreshTransportToolHint === 'function') refreshTransportToolHint();
+    mobileSyncRoutePicker();
+    return;
+  }
   if (mobileMode === 'inspect') {
     mobileCancelBuild();
     const sign = areDistrictSignsVisible() && [...getDistrictSigns()].reverse().find((item) => {
@@ -119,19 +153,45 @@ function mobileRenderDraft(draft) {
   if (draft.tool === 'dezone' && plan?.ok) status.textContent = mobileText('dezoneSummary', { count: plan.tiles.length, buildings: plan.keptBuildings });
   if (draft.tool === 'power-line' && plan?.ok) status.textContent = mobileText('powerLineSummary', { count: plan.tiles.length, skipped: plan.skipped, trees: plan.clearedTrees });
   if (draft.tool === 'district-sign' && plan?.ok) status.textContent = `${plan.name} · ${plan.englishName}`;
+  if (draft.tool === 'metro-track' && plan?.ok) status.textContent = mobileText('metroTrackPreview', { parts: metroTrackSummary(plan.kinds) });
+  if (draft.tool === 'promenade' && plan?.pierToggle) status.textContent = mobileText('pierToggleHint');
   if (plan?.option) document.getElementById('mobile-build-name').textContent = t(plan.option.titleKey);
   status.style.color = plan && !plan.ok ? '#8d1f1e' : '#374451';
   document.getElementById('mobile-build-cost').textContent = plan ? formatMoney(plan.cost) : '—';
-  const busTool = TOUCH_BUS_TOOLS.includes(draft.tool);
+  const companyFundedTool = TOUCH_BUS_TOOLS.includes(draft.tool) || draft.tool === 'ferry-pier'
+    || ['metro-track', 'metro-station', 'metro-surface-station', 'tram-track', 'tram-stop'].includes(draft.tool);
   const funding = document.getElementById('mobile-build-funding');
-  funding.hidden = !busTool;
-  if (busTool) {
+  funding.hidden = !companyFundedTool;
+  if (companyFundedTool) {
     const account = plan?.funding || getTransportConstructionFunds();
     funding.textContent = mobileText(account.payer === 'company' ? 'companyFunding' : 'cityFunding', { balance: formatMoney(account.balance) });
   }
   document.getElementById('mobile-stop-options').hidden = draft.tool !== 'bus-stop';
   document.getElementById('mobile-depot-options').hidden = draft.tool !== 'bus-depot';
   document.getElementById('mobile-district-options').hidden = draft.tool !== 'district-sign';
+  document.getElementById('mobile-metro-height-options').hidden = draft.tool !== 'metro-track';
+  if (draft.tool === 'metro-track') {
+    document.querySelectorAll('[data-mobile-metro-height]').forEach((button) => {
+      button.setAttribute('aria-pressed', String(button.dataset.mobileMetroHeight === draft.options.height));
+    });
+  }
+  document.getElementById('mobile-shelter-options').hidden = draft.tool !== 'typhoon-shelter';
+  if (draft.tool === 'typhoon-shelter') {
+    const mode = typeof typhoonShelterMode !== 'undefined' ? typhoonShelterMode : 'basin';
+    document.querySelectorAll('[data-mobile-shelter-mode]').forEach((button) => {
+      button.setAttribute('aria-pressed', String(button.dataset.mobileShelterMode === mode));
+    });
+    document.getElementById('mobile-shelter-subtract-options').hidden = mode !== 'basin';
+    document.querySelectorAll('[data-mobile-shelter-subtract]').forEach((button) => {
+      button.setAttribute('aria-pressed', String((button.dataset.mobileShelterSubtract === 'true') === !!draft.options.subtract));
+    });
+  }
+  const terrainSelect = document.getElementById('mobile-terrain-select');
+  terrainSelect.hidden = draft.tool !== 'terrain';
+  if (draft.tool === 'terrain') {
+    terrainSelect.innerHTML = TERRAIN_OPTIONS.map((opt) => `<option value="${opt.key}" ${opt.key === draft.options.terrainType ? 'selected' : ''}>${opt.emoji} ${mobileEscape(t(opt.titleKey))}</option>`).join('');
+  }
+  document.getElementById('mobile-restaurant-options').hidden = draft.tool !== 'floating-restaurant';
   const recreation = getTouchRecreationOptions(draft.tool);
   const recreationSelect = document.getElementById('mobile-recreation-select');
   recreationSelect.hidden = !recreation.length;
@@ -143,7 +203,8 @@ function mobileRenderDraft(draft) {
   });
   if (draft.tool === 'bus-depot') document.getElementById('mobile-depot-rotate').textContent = `${mobileText('rotateEntrance')} ${ { ul: '↖', ur: '↗', ll: '↙', lr: '↘' }[getBusDepotVisualCorner(draft.options.depotSide)] }`;
   const confirm = document.getElementById('mobile-confirm');
-  confirm.textContent = mobileText(draft.tool === 'bulldoze' ? 'demolish' : draft.tool === 'dezone' ? 'confirmDezone' : 'confirm');
+  confirm.textContent = mobileText(draft.tool === 'bulldoze' ? 'demolish' : draft.tool === 'dezone' ? 'confirmDezone'
+    : draft.tool === 'promenade' && plan?.pierToggle ? 'confirmPier' : 'confirm');
   confirm.className = draft.tool === 'bulldoze' ? 'm-danger' : 'm-primary';
   confirm.disabled = !building || !draft.ready || !plan?.ok;
   document.getElementById('mobile-build-step').textContent = mobileText(!draft.start ? 'tapStart' : !draft.ready ? 'tapEnd' : 'ready');
@@ -300,11 +361,19 @@ function mobileRefreshNativeLayout() {
 }
 function mobileSyncRoutePicker() {
   if (!mobileUi) return;
-  const picking = isTouchUiProfile() && mobileNative?.key === 'transport-routes' && isTransportRoutePicking();
+  const busPicking = isTouchUiProfile() && mobileNative?.key === 'transport-routes' && isTransportRoutePicking();
+  const directTap = isTouchUiProfile() && !mobilePage && !mobileNative && MOBILE_DIRECT_TAP_TOOLS.includes(mobileMode);
+  const entranceMode = isTouchUiProfile() && !mobilePage && !mobileNative && mobileMode === 'typhoon-shelter'
+    && typeof typhoonShelterMode !== 'undefined' && typhoonShelterMode === 'entrance';
+  const picking = busPicking || directTap || entranceMode;
   mobileUi.classList.toggle('is-picking-route', !!picking);
   const picker = document.getElementById('mobile-route-picker');
   picker.hidden = !picking;
-  if (picking) document.getElementById('mobile-route-picker-status').textContent = mobileText('pickRouteStops', { count: transportUiState.editor.stopIds.length });
+  if (!picking) return;
+  document.getElementById('mobile-route-picker-status').textContent = busPicking
+    ? mobileText('pickRouteStops', { count: transportUiState.editor.stopIds.length })
+    : entranceMode ? mobileText('tapEntrance') : mobileText('tapLineStops');
+  document.getElementById('mobile-route-picker-done').textContent = mobileText(busPicking ? 'donePicking' : directTap ? 'cancelLine' : 'doneEntrances');
 }
 function mobileHostVehicleTracker(tracker) {
   if (!tracker) return;
@@ -403,7 +472,10 @@ function mobileRenderPage() {
   } else if (mobilePage === 'layers') {
     body.innerHTML = `<div class="m-list">${Object.keys(OVERLAY_TITLES).map((key) => mobileRow(`data-mobile-overlay="${key}"`, t(OVERLAY_TITLES[key]), '', OVERLAY_ICONS[key])).join('')}</div>${mobileRow('data-mobile-action="weather"', t('topbar.currentWeather'), '', '🌦️')}`;
   } else if (mobilePage === 'transport') {
-    body.innerHTML = `<div class="m-list">${TOUCH_BUS_TOOLS.map((tool) => mobileRow(`data-mobile-tool="${tool}"`, mobileToolLabel(tool), '', mobileToolIcon(tool), formatMoney(tool === 'bus-stop' ? COST_BUS_STOP : COST_BUS_DEPOT))).join('')}</div><h3>${mobileText('transportManagement')}</h3><div class="m-list">${TRANSPORT_PANEL_IDS.map((key) => mobileRow(`data-mobile-native="transport-${key}"`, t(TRANSPORT_PANEL_META[key].labelKey), '', TRANSPORT_PANEL_META[key].icon)).join('')}</div><p>${mobileText('transportInfo')}</p>`;
+    const group = (titleKey, tools) => `<h3>${mobileEscape(t(titleKey))}</h3><div class="m-list">${tools.map((tool) => mobileRow(`data-mobile-tool="${tool}"`, mobileToolLabel(tool), '', mobileToolIcon(tool), mobileToolCostLabel(tool))).join('')}</div>`;
+    body.innerHTML = group('toolCategory.busTitle', TOUCH_BUS_TOOLS) + group('toolCategory.metroTitle', TOUCH_METRO_TOOLS)
+      + group('toolCategory.tramTitle', TOUCH_TRAM_TOOLS) + group('toolCategory.ferryTitle', TOUCH_FERRY_TOOLS)
+      + `<h3>${mobileText('transportManagement')}</h3><div class="m-list">${TRANSPORT_PANEL_IDS.map((key) => mobileRow(`data-mobile-native="transport-${key}"`, t(TRANSPORT_PANEL_META[key].labelKey), '', TRANSPORT_PANEL_META[key].icon)).join('')}</div><p>${mobileText('transportInfo')}</p>`;
   }
   panel.querySelector('button:not([hidden])')?.focus({ preventScroll: true });
 }
@@ -451,6 +523,13 @@ function setupMobileUi() {
         <span id="mobile-district-options" hidden><button type="button" id="mobile-district-names" data-mobile-text="signNames"></button></span>
         <span id="mobile-stop-options" hidden role="group" data-mobile-aria="stopSides"><button type="button" data-mobile-stop-side="first" data-mobile-aria="sideA"></button><button type="button" data-mobile-stop-side="second" data-mobile-aria="sideB"></button><button type="button" data-mobile-stop-side="both"></button></span>
         <span id="mobile-depot-options" hidden><button type="button" id="mobile-depot-rotate" data-mobile-aria="rotateEntrance"></button></span>
+        <span id="mobile-metro-height-options" hidden role="group" data-mobile-aria="metroHeight">${METRO_RAIL_HEIGHTS.map((height) => `<button type="button" data-mobile-metro-height="${height}" aria-pressed="false" data-i18n="metroHeight.${height}"></button>`).join('')}</span>
+        <span id="mobile-shelter-options" hidden>
+          <span role="group" data-mobile-aria="shelterMode"><button type="button" data-mobile-shelter-mode="basin" aria-pressed="false" data-i18n="typhoonShelter.mode.basin"></button><button type="button" data-mobile-shelter-mode="entrance" aria-pressed="false" data-i18n="typhoonShelter.mode.entrance"></button></span>
+          <span id="mobile-shelter-subtract-options" role="group" data-mobile-aria="shelterRange"><button type="button" data-mobile-shelter-subtract="false" aria-pressed="false" data-mobile-text="shelterAdd"></button><button type="button" data-mobile-shelter-subtract="true" aria-pressed="false" data-mobile-text="shelterSubtract"></button></span>
+        </span>
+        <select id="mobile-terrain-select" hidden data-mobile-aria="chooseStyle"></select>
+        <span id="mobile-restaurant-options" hidden><button type="button" id="mobile-restaurant-rotate" data-mobile-text="rotateRestaurant"></button></span>
         <span id="mobile-density" hidden>${[[DENSITY_LOW,'low'],[DENSITY_MED,'medium'],[DENSITY_HIGH,'high']].map(([value,key]) => `<button type="button" data-mobile-density="${value}" aria-pressed="false" data-mobile-text="${key}"></button>`).join('')}</span>
         <span id="mobile-bulldoze-options" hidden><button type="button" data-mobile-range="false" data-mobile-text="single"></button><button type="button" data-mobile-range="true" data-mobile-text="range"></button></span>
         <span id="mobile-demolition-warning" hidden data-mobile-text="irreversible" style="font-size:12px;color:#8d1f1e"></span>
@@ -488,7 +567,15 @@ function setupMobileUi() {
     } else if (button.dataset.mobileDialog) handleMenuAction(button.dataset.mobileDialog);
     else if (button.dataset.mobileAction === 'weather') { updateWeatherLegendDialog(); showDialog('weather-legend-dialog'); }
     else if (button.id === 'mobile-route-picker-done') {
-      transportUiState.pickingStops = false; refreshTransportUi();
+      if (MOBILE_DIRECT_TAP_TOOLS.includes(mobileMode)) {
+        mobileCancelDirectTapDraft(mobileMode);
+        mobileSelectTool('inspect');
+      } else if (mobileMode === 'typhoon-shelter' && typeof typhoonShelterMode !== 'undefined' && typhoonShelterMode === 'entrance') {
+        typhoonShelterMode = 'basin';
+        mobileBuildSession.begin('typhoon-shelter', getTouchToolOptions('typhoon-shelter'), mobileOwner);
+      } else {
+        transportUiState.pickingStops = false; refreshTransportUi();
+      }
       mobileSyncRoutePicker();
       document.querySelector('[data-transport-action="pick-stops"]')?.focus({ preventScroll: true });
     } else if (button.dataset.mobileMenu) {
@@ -501,6 +588,17 @@ function setupMobileUi() {
       const corner = getBusDepotVisualCorner(draft.options.depotSide);
       const next = BUS_DEPOT_CORNER_CYCLE_ORDER[(BUS_DEPOT_CORNER_CYCLE_ORDER.indexOf(corner) + 1) % BUS_DEPOT_CORNER_CYCLE_ORDER.length];
       mobileBuildSession.setOptions({ depotSide: getBusDepotRawSideForCorner(next) });
+    } else if (button.dataset.mobileMetroHeight) {
+      mobileBuildSession.setOptions({ height: button.dataset.mobileMetroHeight });
+    } else if (button.dataset.mobileShelterMode) {
+      typhoonShelterMode = button.dataset.mobileShelterMode;
+      if (typhoonShelterMode === 'entrance') mobileCancelBuild();
+      else if (!mobileBuildSession.getState()) mobileBuildSession.begin('typhoon-shelter', getTouchToolOptions('typhoon-shelter'), mobileOwner);
+      mobileSyncRoutePicker();
+    } else if (button.dataset.mobileShelterSubtract) {
+      mobileBuildSession.setOptions({ subtract: button.dataset.mobileShelterSubtract === 'true' });
+    } else if (button.id === 'mobile-restaurant-rotate') {
+      mobileBuildSession.setOptions({ turn: turnTyphoonShelterFloatingRestaurant() });
     } else if (button.dataset.mobileDensity) mobileBuildSession.setOptions({ density: Number(button.dataset.mobileDensity) });
     else if (button.dataset.mobileRange) {
       const draft = mobileBuildSession.getState();
@@ -533,6 +631,7 @@ function setupMobileUi() {
   });
   mobileUi.addEventListener('change', (event) => {
     if (event.target.id === 'mobile-recreation-select') mobileBuildSession.setOptions({ variant: event.target.value });
+    if (event.target.id === 'mobile-terrain-select') mobileBuildSession.setOptions({ terrainType: event.target.value });
     if (event.target.id === 'mobile-speed') setSimSpeed(Number(event.target.value));
     if (event.target.matches('[data-mobile-profile]')) setUiProfilePreference(event.target.value);
     if (event.target.matches('[data-mobile-language]')) setLanguage(event.target.value);
@@ -553,6 +652,10 @@ function setupMobileUi() {
     betaNotice.textContent = mobileText('betaNotice');
     mobileUi.querySelectorAll('[data-mobile-text]').forEach((el) => { el.textContent = mobileText(el.dataset.mobileText); });
     mobileUi.querySelectorAll('[data-mobile-aria]').forEach((el) => { el.setAttribute('aria-label', mobileText(el.dataset.mobileAria)); });
+    // Buttons that reuse an existing (non-mobile-prefixed) i18n key, like the shelter mode and
+    // metro height picks: swept here too so they show text on first load, not just after the
+    // page-wide applyTranslations() sweep (whose timing this must not depend on).
+    mobileUi.querySelectorAll('[data-i18n]').forEach((el) => { el.textContent = t(el.dataset.i18n); });
     document.getElementById('mobile-nav-toggle').textContent = `${mobileText(mobilePage || 'menu')} ⌃`;
     [profileSetting, desktopSetting].forEach((label) => { label.innerHTML = `${mobileText('profile')} ${mobileProfileSelect()}`; });
     mobileRenderDraft(mobileBuildSession.getState());

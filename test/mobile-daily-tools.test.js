@@ -61,7 +61,7 @@ function snapshot(c) { return JSON.stringify([c.city, c.mapData, c.zoneMap, c.zo
 test('C2 adds exactly six tools; quotes and option changes never write to the city', () => {
   const c = setup();
   assert.equal(vm.runInContext('TOUCH_DAILY_TOOLS.length', c), 6);
-  assert.equal(vm.runInContext('new Set(TOUCH_SUPPORTED_TOOLS).size', c), 46);
+  assert.equal(vm.runInContext('new Set(TOUCH_SUPPORTED_TOOLS).size', c), 57);
   const before = snapshot(c);
   for (const tool of ['power-line', 'tree', 'dezone', 'park', 'sports-ground', 'district-sign']) {
     const s = session(c, tool, { row: 5, col: 5 }, { row: 6, col: 6 }); s.cancel();

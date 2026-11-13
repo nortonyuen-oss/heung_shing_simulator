@@ -10,7 +10,17 @@ const TOUCH_BUILDING_TYPES = Object.freeze({
 const TOUCH_PHASE_B_TOOLS = Object.freeze(['road', 'zone-res', 'zone-com', 'zone-ind', 'bulldoze', 'inspect', ...Object.keys(TOUCH_BUILDING_TYPES)]);
 const TOUCH_BUS_TOOLS = Object.freeze(['bus-stop', 'bus-depot']);
 const TOUCH_DAILY_TOOLS = Object.freeze(['power-line', 'tree', 'dezone', 'park', 'sports-ground', 'district-sign']);
-const TOUCH_SUPPORTED_TOOLS = Object.freeze([...TOUCH_PHASE_B_TOOLS, ...TOUCH_BUS_TOOLS, ...TOUCH_DAILY_TOOLS]);
+// C3: rail/ferry/tunnel point-and-drag builders, reusing the same build-session draft the P/D/T
+// tools above already use; the bus-style funding display (tool-actions.js funding block below)
+// widens to cover the company-funded ones.
+const TOUCH_RAIL_TOOLS = Object.freeze(['metro-track', 'metro-station', 'metro-surface-station', 'tram-track', 'tram-stop', 'ferry-pier']);
+// 海底隧道 (city budget, like road), 避風塘/地形/海濱步道 (rectangle paint) and 海鮮舫 (point placement
+// with a pre-placement rotate option, same shape as the bus depot's rotate-entrance button).
+const TOUCH_TERRAIN_MARINE_TOOLS = Object.freeze(['undersea-tunnel', 'typhoon-shelter', 'terrain', 'promenade', 'floating-restaurant']);
+const TOUCH_SUPPORTED_TOOLS = Object.freeze([...TOUCH_PHASE_B_TOOLS, ...TOUCH_BUS_TOOLS, ...TOUCH_DAILY_TOOLS, ...TOUCH_RAIL_TOOLS, ...TOUCH_TERRAIN_MARINE_TOOLS]);
+// 地鐵綫／電車綫／渡輪航線 (S: tap station after station) commit per tap on the existing desktop
+// writer, like a toast-driven click - they never go through build-session (mobile-ui.js).
+const MOBILE_DIRECT_TAP_TOOLS = Object.freeze(['metro-line', 'tram-line', 'ferry-route']);
 const touchObjectIds = new WeakMap();
 let nextTouchObjectId = 1;
 function touchObjectIdentity(record) {
@@ -24,6 +34,12 @@ function getTouchToolOptions(tool) {
   if (tool === 'bus-depot') return { depotSide: getBusDepotRawSideForCorner('ll') };
   if (tool === 'park' || tool === 'sports-ground') return { variant: getTouchRecreationOptions(tool)[0].id };
   if (tool === 'district-sign') return { name: '', englishName: '' };
+  if (tool === 'metro-track') return { height: typeof metroRailHeight !== 'undefined' ? metroRailHeight : 'ground' };
+  if (tool === 'typhoon-shelter') return { subtract: false };
+  if (tool === 'terrain') return { terrainType: typeof selectedTerrainType !== 'undefined' ? selectedTerrainType : 'grass' };
+  if (tool === 'floating-restaurant') {
+    return { turn: typeof typhoonShelterFloatingRestaurantTurn !== 'undefined' ? typhoonShelterFloatingRestaurantTurn : 'cols' };
+  }
   const type = TOUCH_BUILDING_TYPES[tool];
   const model = type === HARBOR_BUILDING_TYPE ? HARBOR_MODELS[Object.keys(HARBOR_MODELS)[0]]
     : type ? selectInfraPlacementModel(type) : null;
@@ -165,6 +181,124 @@ function previewTouchToolAction(scene, draft) {
     Object.assign(plan, getBusDepotPlacementQuote(scene, row, col, draft.options.depotSide));
     plan.tiles = getFootprintTiles(plan.row, plan.col, plan.footprintCols, plan.footprintRows).map(([r, c]) => ({ row: r, col: c }));
     identity = [plan.previousSide, plan.frontage, plan.fleet, ...plan.tiles.filter((tile) => isInsideMap(tile.row, tile.col)).map((tile) => touchTileIdentity(scene, tile.row, tile.col))];
+  } else if (draft.tool === 'metro-station') {
+    if (!isMetroUnlocked()) {
+      plan.reason = metroT(...METRO_REFUSALS.locked);
+    } else {
+      const res = whyNotMetroStationAt(row, col, getMetroStationContext());
+      if (res.code) plan.reason = metroT(...METRO_REFUSALS[res.code]);
+      else { plan.ok = true; plan.cost = METRO.stationCost; plan.tiles = [{ row, col }]; }
+    }
+    identity = [touchTileIdentity(scene, row, col)];
+  } else if (draft.tool === 'metro-surface-station') {
+    const why = whyNotMetroSurfaceStation(row, col);
+    if (why) {
+      plan.reason = why;
+    } else {
+      const level = (getMetroState().trackElev || {})[`${row}:${col}`];
+      plan.ok = true;
+      plan.cost = level === 'u' ? METRO_SURFACE.undergroundStationCost : METRO_SURFACE.stationCost;
+      plan.tiles = [{ row, col }];
+    }
+    identity = [touchTileIdentity(scene, row, col), getMetroTrackBits()[`${row}:${col}`], (getMetroState().trackElev || {})[`${row}:${col}`]];
+  } else if (draft.tool === 'metro-track') {
+    const trackPlan = planMetroTrack(draft.start, draft.end, draft.options.height);
+    if (!trackPlan.ok) {
+      plan.reason = metroTrackRefusal(trackPlan.reason);
+    } else {
+      plan.ok = true;
+      plan.cost = trackPlan.cost;
+      plan.tiles = trackPlan.path.map(({ row: r, col: c }) => ({ row: r, col: c }));
+      plan.kinds = trackPlan.kinds;
+    }
+    identity = (trackPlan.path || []).map((tile) => touchTileIdentity(scene, tile.row, tile.col));
+  } else if (draft.tool === 'tram-stop') {
+    const res = whyNotTramStopAt(row, col, tramStopContext());
+    if (!res.code && !tramStopLinkIsPlain(getTramTrackGeometry(), res.site)) res.code = 'notStraight';
+    if (res.code) {
+      plan.reason = tramT(...TRAM_STOP_REFUSALS[res.code]);
+    } else {
+      plan.ok = true;
+      plan.cost = TRAM_SERVICE.stopCost;
+      plan.tiles = [{ row, col }];
+    }
+    identity = [touchTileIdentity(scene, row, col), res.site];
+  } else if (draft.tool === 'tram-track') {
+    const trackPlan = planTramTrack(draft.start, draft.end);
+    if (!trackPlan.ok) {
+      plan.reason = trackPlan.reason === 'notRoad' ? tramT('tram.track.notRoad', '電車路軌要鋪喺馬路上（唔可以喺橋、斜路或者隧道口）。') : t('mobile.nothing');
+    } else {
+      plan.ok = true;
+      plan.cost = trackPlan.cost;
+      plan.tiles = [...trackPlan.adds, ...trackPlan.removes].map(({ row: r, col: c }) => ({ row: r, col: c }));
+    }
+    identity = trackPlan.path.map((tile) => touchTileIdentity(scene, tile.row, tile.col));
+  } else if (draft.tool === 'ferry-pier') {
+    const res = whyNotFerryPierAt(row, col, getFerryPierContext());
+    if (res.code) {
+      plan.reason = ferryT(...FERRY_REFUSALS[res.code]);
+    } else {
+      plan.ok = true;
+      plan.cost = FERRY.pierCost;
+      plan.tiles = getFootprintTiles(row, col, FERRY.pierCols, FERRY.pierRows).map(([r, c]) => ({ row: r, col: c }));
+    }
+    identity = plan.tiles.length ? plan.tiles.map((tile) => touchTileIdentity(scene, tile.row, tile.col)) : [touchTileIdentity(scene, row, col)];
+  } else if (draft.tool === 'undersea-tunnel') {
+    const crossing = getUnderseaTunnelCrossing(draft.start, draft.end);
+    if (!crossing.site) {
+      plan.reason = t(crossing.reason);
+    } else {
+      plan.ok = true;
+      plan.cost = crossing.site.cost;
+      plan.tiles = [...crossing.site.under, ...crossing.site.portals.flatMap((p) => p.tiles)].map(([r, c]) => ({ row: r, col: c }));
+    }
+    identity = plan.tiles.map((tile) => touchTileIdentity(scene, tile.row, tile.col));
+  } else if (draft.tool === 'typhoon-shelter') {
+    const result = computeTyphoonShelterDrag(draft.start, draft.end, !!draft.options.subtract);
+    if (result.rejected) {
+      plan.reason = result.rejected;
+    } else {
+      plan.ok = true;
+      plan.cost = result.bill ? result.bill.cost : 0;
+      plan.tiles = typhoonShelterRectTiles(result.rect.r0, result.rect.c0, result.rect.r1, result.rect.c1)
+        .map((k) => k.split(':').map(Number)).map(([r, c]) => ({ row: r, col: c }));
+      plan.shelterPlan = result.plan;
+      plan.shelterAnalysis = result.analysis;
+    }
+    identity = [result.targetId, !!draft.options.subtract, result.plan ? [...(result.plan.basin || [])] : null];
+  } else if (draft.tool === 'terrain') {
+    const tiles = touchRectTiles(draft.start, draft.end).filter((tile) => isInsideMap(tile.row, tile.col));
+    plan.tiles = tiles;
+    plan.ok = tiles.length > 0;
+    plan.cost = 0;
+    plan.terrainType = draft.options.terrainType;
+    identity = tiles.map((tile) => touchTileIdentity(scene, tile.row, tile.col));
+  } else if (draft.tool === 'promenade') {
+    const tiles = touchRectTiles(draft.start, draft.end);
+    const singleExisting = draft.start.row === draft.end.row && draft.start.col === draft.end.col && isPromenadeTile(row, col);
+    if (singleExisting) {
+      plan.ok = true;
+      plan.cost = 0;
+      plan.tiles = [{ row, col }];
+      plan.pierToggle = true;
+    } else {
+      plan.tiles = tiles.filter((tile) => isInsideMap(tile.row, tile.col) && !whyNotPromenadeAt(tile.row, tile.col));
+      plan.cost = plan.tiles.length * PROMENADE.cost;
+      plan.ok = plan.tiles.length > 0;
+      plan.skipped = tiles.length - plan.tiles.length;
+    }
+    identity = tiles.map((tile) => touchTileIdentity(scene, tile.row, tile.col));
+  } else if (draft.tool === 'floating-restaurant') {
+    if (typeof typhoonShelterFloatingRestaurantTurn !== 'undefined') typhoonShelterFloatingRestaurantTurn = draft.options.turn;
+    const placement = getTyphoonShelterFloatingRestaurantPlacement(row, col);
+    if (placement.why) {
+      plan.reason = tsFisheryT(...placement.why);
+    } else {
+      plan.ok = true;
+      plan.cost = TYPHOON_SHELTER_FACILITIES.floatingRestaurant.cost;
+      plan.tiles = getFootprintTiles(placement.site.row, placement.site.col, placement.site.cols, placement.site.rows).map(([r, c]) => ({ row: r, col: c }));
+    }
+    identity = [draft.options.turn, ...plan.tiles.filter((tile) => isInsideMap(tile.row, tile.col)).map((tile) => touchTileIdentity(scene, tile.row, tile.col))];
   } else if (TOUCH_BUILDING_TYPES[draft.tool]) {
     const type = TOUCH_BUILDING_TYPES[draft.tool];
     Object.assign(plan, getInfraPlacementQuote(row, col, type, draft.options.model));
@@ -206,7 +340,18 @@ function previewTouchToolAction(scene, draft) {
     identity = demolition.affected;
   }
   if (!plan.ok && !plan.reason) plan.reason = t('mobile.nothing');
-  if (TOUCH_BUS_TOOLS.includes(draft.tool)) plan.funding = getTransportConstructionFunds();
+  if (TOUCH_BUS_TOOLS.includes(draft.tool) || draft.tool === 'ferry-pier') plan.funding = getTransportConstructionFunds();
+  if (['metro-track', 'metro-station', 'metro-surface-station'].includes(draft.tool)) {
+    const base = getTransportConstructionFunds();
+    plan.funding = { payer: base.payer, balance: getMetroState().grantBalance + base.balance };
+  }
+  if (['tram-track', 'tram-stop'].includes(draft.tool)) {
+    plan.funding = { payer: 'company', balance: getTransportExpansionState().company.cash };
+    if (plan.ok && !isTransportExpansionActive()) {
+      plan.ok = false;
+      plan.reason = tramT('tram.companyClosed', '要先開辦運輸公司，電車由公司出錢起。');
+    }
+  }
   if (plan.ok && plan.cost > 0 && (plan.funding?.balance ?? city.budget) < plan.cost) {
     plan.ok = false;
     plan.reason = plan.funding?.payer === 'company' ? t('mobile.companyFundsLow') : t('toast.notEnoughFunds');
@@ -231,6 +376,35 @@ function commitTouchToolAction(scene, draft, plan) {
     ok = placeBusStop(scene, draft.start.row, draft.start.col, { sides: plan.sides });
   } else if (draft.tool === 'bus-depot') {
     ok = placeBusDepotBuilding(scene, draft.start.row, draft.start.col, { rawSide: plan.rawSide });
+  } else if (draft.tool === 'metro-station') {
+    ok = placeMetroStation(scene, draft.start.row, draft.start.col);
+  } else if (draft.tool === 'metro-surface-station') {
+    ok = placeMetroSurfaceStation(scene, draft.start.row, draft.start.col);
+  } else if (draft.tool === 'metro-track') {
+    ok = commitMetroTrackDrag(scene, draft.start, draft.end, draft.options.height);
+  } else if (draft.tool === 'tram-stop') {
+    ok = !!placeTramStop(scene, draft.start.row, draft.start.col);
+  } else if (draft.tool === 'tram-track') {
+    ok = commitTramTrackDrag(scene, draft.start, draft.end);
+  } else if (draft.tool === 'ferry-pier') {
+    ok = placeFerryPier(scene, draft.start.row, draft.start.col);
+  } else if (draft.tool === 'undersea-tunnel') {
+    ok = placeUnderseaTunnel(scene, draft.start, draft.end);
+  } else if (draft.tool === 'typhoon-shelter') {
+    ok = commitTyphoonShelterPlan(scene, plan.shelterPlan, plan.shelterAnalysis);
+  } else if (draft.tool === 'terrain') {
+    for (const { row, col } of plan.tiles) {
+      if (plan.terrainType === 'raise') applyRaiseTerrain(scene, row, col, TERRAIN_RAISE_BLOCK_RADIUS);
+      else if (plan.terrainType === 'lower') applyLowerTerrain(scene, row, col, TERRAIN_RAISE_BLOCK_RADIUS);
+      else if (plan.terrainType === 'flatten') applyFlattenTerrain(scene, row, col, TERRAIN_RAISE_BLOCK_RADIUS);
+      else setTileType(scene, row, col, TOOL_TERRAIN[plan.terrainType]);
+    }
+  } else if (draft.tool === 'promenade') {
+    ok = plan.pierToggle ? togglePromenadePierAt(scene, draft.start.row, draft.start.col)
+      : plan.tiles.reduce((all, { row, col }) => placePromenade(scene, row, col, { quiet: true }) && all, true);
+  } else if (draft.tool === 'floating-restaurant') {
+    if (typeof typhoonShelterFloatingRestaurantTurn !== 'undefined') typhoonShelterFloatingRestaurantTurn = draft.options.turn;
+    ok = placeTyphoonShelterFloatingRestaurant(scene, draft.start.row, draft.start.col);
   } else if (TOUCH_BUILDING_TYPES[draft.tool]) {
     const { row, col } = draft.start;
     ok = draft.tool === 'harbor' ? placeHarborBuilding(scene, row, col)

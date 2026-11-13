@@ -1,7 +1,8 @@
 // A draft owns its tool/options/tiles. Only confirm() may call the city-writing adapter.
 // No pointer event is a transaction, and a consumed id can never be submitted twice.
 function isTouchRangeDraft(draft) {
-  return !!draft && (['road', 'power-line', 'tree', 'dezone'].includes(draft.tool)
+  return !!draft && (['road', 'power-line', 'tree', 'dezone', 'metro-track', 'tram-track', 'undersea-tunnel',
+    'typhoon-shelter', 'terrain', 'promenade'].includes(draft.tool)
     || draft.tool.startsWith('zone-') || (draft.tool === 'bulldoze' && draft.options.range));
 }
 

@@ -139,6 +139,7 @@ function locateMetroStation(station) {
 }
 
 function pickMetroTool(tool) {
+  if (typeof isTouchUiProfile === 'function' && isTouchUiProfile() && typeof mobileSelectTool === 'function') { mobileSelectTool(tool); return; }
   if (typeof selectTransportModeTool === 'function') selectTransportModeTool(tool);
   else document.querySelector(`[data-tool="${tool}"]`)?.click();
 }

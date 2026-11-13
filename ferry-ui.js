@@ -199,7 +199,8 @@ function handleFerryUiAction(action, button) {
   const routeId = button.dataset.routeId;
   const route = routeId && state.routes.find((r) => r.id === routeId);
   if (action === 'ferry-new-route') {
-    if (typeof selectTransportModeTool === 'function') selectTransportModeTool('ferry-route');
+    if (typeof isTouchUiProfile === 'function' && isTouchUiProfile() && typeof mobileSelectTool === 'function') mobileSelectTool('ferry-route');
+    else if (typeof selectTransportModeTool === 'function') selectTransportModeTool('ferry-route');
     else document.querySelector('[data-tool="ferry-route"]')?.click();
     ferryUiToast(ferryT('ferry.toast.newRouteHow', '撳一個渡輪碼頭，再撳另一個，就開到航線。'), 'info');
     return true;

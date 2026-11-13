@@ -169,7 +169,7 @@ async function checkPanelLayouts(page, cdp) {
     check('done selecting returns to the same unsaved route', await page.evaluate(() => !isTransportRoutePicking() && transportUiState.editor.name === 'Phone draft' && transportUiState.editor.stopIds.length === 1 && !mobileUi.classList.contains('is-picking-route')));
     await page.click('[data-transport-action="cancel-editor"]');
     await page.click('[data-transport-action="panel-tab"][data-tab="metro"]');
-    check('pending transport construction is visibly disabled', await page.locator('[data-transport-action="metro-new-line"]').isDisabled());
+    check('C3 metro construction is no longer disabled', !(await page.locator('[data-transport-action="metro-new-line"]').isDisabled()));
     await back(); await native('transport-finances');
     await page.click('[data-transport-action="panel-tab"][data-tab="company"]');
     await page.locator('[data-transport-field="companyName"]').fill('Phone Transit');

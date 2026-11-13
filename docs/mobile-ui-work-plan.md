@@ -113,9 +113,28 @@
 - [x] 地區牌：中英文名先進草稿，驗證重名／上限／土地／資金，確認後寫入；查詢模式完成點擊先改名，雙指不開改名框。
 - [ ] 真機驗收；自動化結果及操作規則見 [mobile-daily-validation.md](mobile-daily-validation.md)。
 
+## Phase C3 — 鐵路、渡輪、地形同海濱（2026-11-13 接續批次）
+
+分支：`feature/mobile-ui`（直接接續 main，無獨立分支）。按 Norton「一次做齊全部 14 個」指示，一口氣接駁覆蓋表 §1.3 餘下嘅 14 個工具。
+
+- [x] 地鐵：路軌（三個高度：地底／地面／高架，手機高度選單）、車站、地面站（自動跟路軌高度，冇獨立選項）、地鐵綫（直接點站接站，冇草稿，同桌面一致）；扣款順序：地鐵撥款 → 公司現金，唔扣市庫。
+- [x] 電車：路軌、車站（沿用現有草稿／預覽機制）、電車綫（直接點站接站）；運輸公司未開辦直接拒絕，冇市庫後備（同桌面 `tramCompanyClosed` 一致）。
+- [x] 渡輪：碼頭（build-session 草稿）、航線（直接點兩個碼頭，冇草稿）。
+- [x] 海底隧道：拖曳草稿，扣市庫，同 `road` 同一付款規則。
+- [x] 避風塘：水域加／減（取代 Shift 鍵嘅明確按鈕）、出入口模式切換（取代桌面 mode bar，呢個模式冇草稿，直接點防波堤）；新水域免費，已核准嘅擴建即時叫價。
+- [x] 地形：矩形框選＋明確筆刷選單（取代長按），免費；升高／降低／拉平逐格套用桌面函式。
+- [x] 海濱步道：矩形鋪設 $400／格；已鋪嘅格再點一次（起終點同格）彈出免費嘅加／減碼頭確認（取代右鍵）。
+- [x] 海鮮舫：轉向做放置前選項（同車廠轉入口按鈕一樣），避風塘未運作中顯示桌面原有拒絕原因。
+- [x] 運輸公司視窗嘅「新增地鐵綫／新增車站／延長／新增電車綫／新增電車站／鋪路軌／新增渡輪航線」全部解封（`pickMetroTool`／`pickTramTool`／`handleFerryUiAction` 加咗手機判斷，直接開 `mobileSelectTool`）。
+- [x] 手機「交通」頁新增地鐵／電車／渡輪三組工具列表，各自即時叫價。
+- [x] `test/mobile-rail-terrain-tools.test.js`（12 項，用真實城市狀態同 writer）、`scripts/smoke-mobile-rail.js`（24 項，真實瀏覽器觸控）；驗收細節見 [mobile-rail-validation.md](mobile-rail-validation.md)。
+- [ ] 真機驗收；鐵路／電車拆除、已核准避風塘擴建嘅二次確認介面仍未開放（見驗證記錄「已知限制」）。
+
+**Gate**：覆蓋表 60 個工具全部接駁（餘真機驗收同拆除）；`npm test` 1,303 項全過；5 個手機 smoke 腳本（auto／build／panels／bus／daily／rail）全過，瀏覽器零未捕捉錯誤。
+
 ## Phase C — 完整經營（規模 XL）
 
-- [ ] Phase C 工具原有 22 個，C1／C2 已接駁 8 個，餘 14 個（見覆蓋表 §1.3）：地鐵／電車、渡輪、海底隧道、避風塘、地形／步道及右鍵特殊操作
+- [x] Phase C 工具原有 22 個，C1／C2 已接駁 8 個，C3 接駁餘下 14 個（見覆蓋表 §1.3）：地鐵／電車、渡輪、海底隧道、避風塘、地形／步道全部已接駁；右鍵特殊操作改做情境按鈕或放置前選項
 - [ ] 交通面板（`transport-ui.js`）、車輛追蹤、財政、議會、股市、圖表、圖層／小地圖、資訊卡、設定、討論區／走馬燈／報紙／節慶通知
 - [x] 面板 host：單一主面板、返回堆疊、捲動／選項保留、無重複 id、reduced motion；本批其他手機介面驗證見 [mobile-panels-validation.md](mobile-panels-validation.md)
 - [ ] 所有 hover／長按／右鍵／Shift 依賴改明確按鈕；tooltip 改 ⓘ
@@ -129,7 +148,7 @@
 - [ ] 真機矩陣：iPhone Safari、Android Chrome、iPad Safari＋桌面 Chrome／Firefox／Safari／Edge＋Electron
 - [ ] 效能：中位 ≥ 30 fps（60 秒）、觸控到預覽 p95 ≤ 100ms、15 分鐘持續遊玩；先量度再決定畫質，不降模擬頻率
 - [ ] 背景恢復（暫停並保留速度）、IndexedDB 寫入鎖重取、quota／唯讀提示、跨裝置匯出匯入、更新流程（M14–M16）
-- [x] CI：`build-installers.yml` web job 已有自動選擇／建造／管理 smoke，C1 加入完整巴士流程，C2 加入日常工具及供電／存讀檔流程
+- [x] CI：`build-installers.yml` web job 已有自動選擇／建造／管理 smoke，C1 加入完整巴士流程，C2 加入日常工具及供電／存讀檔流程，C3 加入鐵路／渡輪／避風塘／地形／海濱流程（`smoke-mobile-rail.js`）
 - [ ] 文檔：驗收記錄、`web-release-spec.md`、README、使用手冊／官網指南、三語 changelog
 - [x] v5.6.0 已按 Norton 指示以手機 Beta 發布及自動選擇；後續批次仍需完成真機驗收
 

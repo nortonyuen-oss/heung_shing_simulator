@@ -8,6 +8,7 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const sharp = require('sharp');
 const { WORLD, chunkBounds } = require('./world-config.js');
+const { WORLD_BUILDINGS } = require('./world-construction-catalog.js');
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const hash = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
 
@@ -101,11 +102,12 @@ export function legacyAdapterSource(main = fs.readFileSync(path.join(ROOT, 'main
       let mapRotation=0;
       ${extractFunction(main, 'isoToScreen')}
       ${extractFunction(main, 'screenToIso')}
-      return {project:isoToScreen,unproject:screenToIso,setRotation(value){mapRotation=value;}};
+      ${extractFunction(fs.readFileSync(path.join(ROOT, 'building-placement.js'), 'utf8'), 'getBuildingAnchor')}
+      return {project:isoToScreen,unproject:screenToIso,buildingAnchor:getBuildingAnchor,setRotation(value){mapRotation=value;}};
     };
     api.createLegacyTerrainVisuals=function(world){
       const MAP_WIDTH=world.width,MAP_HEIGHT=world.height,WATER=5,BEACH=4,HEIGHT_STEP_PIXELS=13;
-      let read;
+      let read,roadRead;
       const rows=new Map();
       const mapData=new Proxy({}, {get(_,row){
         if(!rows.has(row))rows.set(row,new Proxy({}, {get(_,col){return read(Number(col),Number(row)).terrainType;}}));
@@ -114,9 +116,20 @@ export function legacyAdapterSource(main = fs.readFileSync(path.join(ROOT, 'main
       const getTileHeight=(row,col)=>read(col,row).height;
       const isInsideMap=(row,col)=>row>=0&&row<MAP_HEIGHT&&col>=0&&col<MAP_WIDTH;
       const isHarborFrontageTile=()=>false,isTyphoonShelterQuayTileSafe=()=>false;
+      const isBridgeTile=()=>false,getRoadCarriagewayBand=()=>null,getRoadEdgeExitSide=()=>null;
+      const isRoadLikeTile=(row,col)=>roadRead(col,row);
+      ${extractFunction(keys, 'getRoadSlopeKey')}
+      ${extractFunction(main, 'isSlopeTile')}
+      ${extractFunction(main, 'getSupportedRoadSlopeKey')}
+      ${extractFunction(keys, 'getRoadKey')}
       ${terrainFunctions.map(name => extractFunction(keys, name)).join('\n')}
       ${['getElevationVisualOffset', 'getHillSlopeBaseHeight', 'getTerrainTileVisualOffset'].map(name => extractFunction(main, name)).join('\n')}
-      return {describe(col,row,rotation,sample){
+      function roadStyle(col,row,rotation,roads,terrain){
+        roadRead=roads;read=terrain||(()=>({terrainType:1,height:0}));
+        const key=rotateTileKey(getRoadKey(row,col),rotation);
+        return {key,offset:getTerrainTileVisualOffset(row,col,key)};
+      }
+      return {describeRoadStyle:roadStyle,describeRoad(col,row,rotation,roads,terrain){return roadStyle(col,row,rotation,roads,terrain).key;},describe(col,row,rotation,sample){
         read=sample;
         const tile=read(col,row);
         const base=tile.terrainType===5?getWaterKey(row,col):tile.terrainType===4?getBeachKey(row,col):tile.height>0?getHillKey(row,col):'ground_full';
@@ -237,6 +250,13 @@ export async function buildTerrainPacks({ source = path.join(ROOT, 'hk-terrain-t
     fs.writeFileSync(path.join(temporary, 'legacy-terrain-adapter.js'), adapterSource);
     manifest.adapterSha256 = hash(adapterSource);
     manifest.art = await createAtlas(temporary);
+    fs.mkdirSync(path.join(temporary, 'buildings'));
+    manifest.construction = {};
+    for (const model of Object.values(WORLD_BUILDINGS)) {
+      const url = `buildings/${model.id}.webp`;
+      await sharp(path.join(ROOT, model.path)).resize({ width: 800, withoutEnlargement: true }).webp({ quality: 90 }).toFile(path.join(temporary, url));
+      manifest.construction[model.id] = { url };
+    }
     manifest.lod = await createLod(temporary, 'overview', { col: 0, row: 0, width: world.width, height: world.height }, terrain, elevations, world, projectionFactory);
     manifest.trial.lod = await createLod(temporary, 'trial', manifest.trial, terrain, elevations, world, projectionFactory);
     fs.writeFileSync(path.join(temporary, 'manifest.json'), JSON.stringify(manifest));

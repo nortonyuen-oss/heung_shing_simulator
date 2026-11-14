@@ -4,7 +4,7 @@
 
 分支：`codex/world-chunk-streaming`，起點 `49ed6dd`。
 
-本輪落實規格的 Phase 0 與 Phase 1 地形試驗。新路徑位於 `/world/preview.html`，只讀取一個 256×256 試驗區域；正式城市入口、模擬與 v14/v15 城市存檔繼續使用原有路徑。全港資料可以獨立尋址，但試驗相機限制在該區域內。
+本文記錄 Phase 0 與 Phase 1。其後已在相同 `/world/preview.html` 接入 [Phase 2 建設與增量儲存](world-streaming-phase2.md)。正式城市入口、模擬與 v14/v15 城市存檔繼續使用原有路徑。全港資料可以獨立尋址，試驗相機目前限制在一個 256×256 區域內。
 
 開始工作時，`landing-screen.js`、`main.js`、`save.js` 已有未提交修改。這些修改完整保留，本輪沒有編輯或提交它們。未追蹤的新聞圖片及 `scripts/metro-train-demo/` 亦保留。
 
@@ -74,7 +74,7 @@ npm run prepare:world-terrain
 npm start
 ```
 
-開啟 `http://localhost:3000/world/preview.html`。拖曳／兩指縮放、滾輪、R 旋轉，或按跨區跳轉。這是開發試驗入口，沒有建設、城市存檔或完整 Minimap 操作。
+開啟 `http://localhost:3000/world/preview.html`。拖曳／兩指縮放、滾輪、R 旋轉，或按跨區跳轉。Phase 1 是只讀入口；目前 Phase 2 已加入建設及獨立世界存檔，完整 Minimap 留待 Phase 3。
 
 生成資產在 `data/world-terrain/`，已加入 gitignore。保留輸入檔與 Builder，無需提交約 23MB 的可重建二進位資料。Builder 只有在新資料全部成功後才替換舊輸出，拒絕覆蓋未識別的非地形目錄。
 
@@ -119,6 +119,8 @@ node scripts/drive-electron.js scripts/world-streaming-baseline.js
 新增 12 項單元測試；完整測試合共 1,315 項通過。Chrome／Electron 報告是本機實測記錄，未訂為正式裝置效能門檻。
 
 ### 下一階段
+
+以下為 Phase 1 完成時的清單；Phase 2 現況見 [建設與增量儲存](world-streaming-phase2.md)。
 
 1. Phase 2：World Delta Store、Dirty Storage Chunk、SQLite／IndexedDB 交易、完整匯出及版本／回退；先修復資料與 Sprite 的耦合，再接建設卸載。
 2. Phase 3：獨立 Overview／Local Minimap 與全港導航。

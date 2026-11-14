@@ -18,6 +18,7 @@
       this.projection.setRotation(this.rotation);
     }
     project(col, row) { return this.projection.project(col, row); }
+    buildingAnchor(entity) { return this.projection.buildingAnchor(entity.row, entity.col, entity.width, entity.height); }
     unproject(x, y) {
       const tile = this.projection.unproject(x, y);
       return { col: tile.x, row: tile.y };

@@ -126,6 +126,18 @@
         else if (record.state !== 'DECODING') this.records.delete(id);
       }
     }
+    invalidateTiles(tiles) {
+      const ids = new Set();
+      for (const tile of tiles) for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+        ids.add(`r:${Math.floor((tile.col + dc) / 32)}:${Math.floor((tile.row + dr) / 32)}`);
+      }
+      for (const id of ids) {
+        const record = this.records.get(id); if (!record || record.obsolete) continue;
+        record.obsolete = true;
+        if (record.job) record.state = 'UNMOUNTING';
+        else if (record.state !== 'DECODING') this.records.delete(id);
+      }
+    }
     destroy() {
       this.closed = true; this.wanted.clear();
       for (const record of this.records.values()) if (record.job) this.renderer.destroyJob(record.job);

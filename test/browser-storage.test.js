@@ -51,7 +51,7 @@ test('IndexedDB schema is stable and data-version replacement preserves the orig
   const row = await store.write(old);
   await store.write(payload('upgraded'), row.id);
   const db = await new Promise((resolve, reject) => {
-    const request = factory.open('heung-shing-game', 1); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error);
+    const request = factory.open('heung-shing-game', 2); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error);
   });
   const backup = await new Promise(resolve => {
     const request = db.transaction('migrationBackups').objectStore('migrationBackups').get(`saves:${row.id}`);

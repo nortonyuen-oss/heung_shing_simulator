@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { DatabaseSync } = require('node:sqlite');
+const { createWorldSqliteStore } = require('./world/world-sqlite-store');
 const hkoAstronomySeed = require('./data/hko-astronomy-2026.json');
 
 const DEFAULT_DB_PATH = path.join(__dirname, '.data', 'citybuilder.sqlite');
@@ -145,6 +146,7 @@ function openGameDatabase(dbPath = resolveDbPath()) {
 
   return {
     path: dbPath,
+    ...createWorldSqliteStore(db),
 
     listSaves() {
       return db.prepare(`

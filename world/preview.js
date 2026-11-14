@@ -3,7 +3,7 @@
   'use strict';
   const api = globalThis.HeungShingWorld, status = document.getElementById('status');
   const root = new URL('../data/world-terrain/', location.href);
-  const state = globalThis.__worldStreamingPreview = { ready: false, errors: [], events: [], manifest: null };
+  const state = globalThis.__worldStreamingPreview = { ready: false, errors: [], events: [], manifest: null, storageError: false };
   const diagnostics = new api.WorldDiagnostics();
   function message(text, error = false) { status.textContent = text; status.dataset.error = String(error); }
   function event(entry) {
@@ -28,7 +28,26 @@
     const world = provider.world, region = manifest.trial;
     const adapter = new api.WorldModeAdapter(world, api.createLegacyWorldProjection(world), region);
     const visuals = api.createLegacyTerrainVisuals(world);
-    let manager, renderer, lod, scene, lastStatsAt = 0, pinch = null, jumpSide = false;
+    let manager, renderer, entityRenderer, buildUi, lod, scene, lastStatsAt = 0, pinch = null, jumpSide = false;
+    let desktop = false;
+    const storageChoice = new URLSearchParams(location.search).get('storage');
+    if (storageChoice !== 'browser') {
+      try { const info = await fetch('/api/app-info'); desktop = info.ok && !!(await info.json()).version; } catch {}
+    }
+    if (storageChoice === 'desktop' && !desktop) throw new Error('本機儲存服務未啟動，請用 npm start 開啟預覽。');
+    globalThis.HEUNG_SHING_CONFIG = Object.freeze({ platform: desktop ? 'desktop' : 'web' });
+    await HeungShingStorage.initialize();
+    const delta = new api.WorldDeltaStore(world), data = new api.WorldDataAccess(provider, delta);
+    let saveId = 'world-trial-v1'; try { saveId = localStorage.getItem('heung-shing.world-trial.active') || saveId; } catch {}
+    const session = new api.WorldSaveSession({ delta, storage: HeungShingStorage, id: saveId, onStatus(entry) {
+      const labels = { dirty: '有未儲存修改', saving: '儲存中…', saved: '已儲存', loaded: '已載入', error: '未能儲存 · 可匯出備份' };
+      document.getElementById('save-status').textContent = `${desktop ? '此電腦' : '此瀏覽器'} · ${labels[entry.kind] || ''}`;
+      if (entry.kind === 'error') { state.storageError = true; message(entry.error, true); }
+      if (['saved', 'loaded'].includes(entry.kind)) { state.storageError = false; message(''); }
+    }, captureView: () => state.ready ? { ...adapter.cameraFocus(scene.cameras.main), rotation: adapter.rotation, zoom: scene.cameras.main.zoom } : null });
+    await session.load();
+    const construction = new api.WorldConstruction({ world, region, data, delta });
+    delta.subscribe(entry => { if (entry.all) manager?.invalidate(); else if (entry.terrainTiles?.length) manager?.invalidateTiles(entry.terrainTiles); });
     const centre = { col: region.startCol ?? region.col + region.width / 2 + 16, row: region.startRow ?? region.row + region.height / 2 + 16 };
     const fetchFailure = file => { state.errors.push(`Asset failed: ${file.src}`); message('地形圖像載入失敗，請重新建立地形資料。', true); };
     const game = new Phaser.Game({ type: Phaser.AUTO, parent: 'world-canvas', backgroundColor: '#15232c',
@@ -38,23 +57,33 @@
         this.load.on('loaderror', fetchFailure);
         this.load.atlas('world-terrain', new URL(manifest.art.image, root).href, new URL(manifest.art.atlas, root).href);
         region.lod.forEach((view, rotation) => this.load.image(`world-lod-${rotation}`, new URL(view.url, root).href));
+        if (!manifest.construction) { message('請先執行 npm run prepare:world-terrain 更新建設素材。', true); return; }
+        for (const model of Object.values(api.WORLD_BUILDINGS)) this.load.image(model.texture, new URL(manifest.construction[model.id].url, root).href);
+        for (const [key, file] of Object.entries(ROAD_TILE_LOGICAL_FILES)) this.load.image(`world-${key}`, new URL(`../kenney_isometric-roads/png/${file}`, location.href).href);
+        for (const [key, file] of [['x', 'metro_track_x'], ['y', 'metro_track_y'], ['cross', 'metro_track_cross_xy']]) this.load.image(`world-rail-${key}`, new URL(`../Models/metroTrack/${file}.png`, location.href).href);
       }, create() {
         scene = this;
         lod = new api.WorldLod(scene, region.lod);
         renderer = new api.WorldChunkRenderer({ scene, adapter, visuals });
-        manager = new api.WorldChunkManager({ world, region, provider, renderer, onEvent: event });
+        manager = new api.WorldChunkManager({ world, region, provider: data, renderer, onEvent: event });
+        entityRenderer = new api.WorldEntityRenderer({ scene, adapter, delta, visuals, fitGround: fitBuildingToGroundCorners,
+          sampleForTile: (col, row) => manager.records.get(`r:${Math.floor(col / 32)}:${Math.floor(row / 32)}`)?.job?.data?.sample });
         scene.cameras.main.setZoom(.8); adapter.centreCamera(scene.cameras.main, centre.col, centre.row);
         installInput(game.canvas);
+        buildUi = new api.WorldConstructionUi({ scene, adapter, construction, delta, session, message, restoreView });
         state.ready = true;
-        Object.assign(state, { scene, provider, manager, renderer, adapter, game, setFocus, rotate,
+        Object.assign(state, { scene, provider, manager, renderer, adapter, game, setFocus, rotate, delta, data, construction, entityRenderer, session, buildUi,
           stats: () => ({ ...manager.snapshot(), ...diagnostics.snapshot(), focus: adapter.cameraFocus(scene.cameras.main),
-            rotation: adapter.rotation, zoom: scene.cameras.main.zoom, atlasRgbaBytes: manifest.art.rgbaBytes }) });
+            rotation: adapter.rotation, zoom: scene.cameras.main.zoom, atlasRgbaBytes: manifest.art.rgbaBytes,
+            construction: { revision: delta.revision, dirtyChunks: delta.dirtyChunks.size, entities: delta.entities.size, visuals: entityRenderer.snapshot(), storageRevision: session.storageRevision } }) });
+        restoreView(delta.header);
       }, update(_time, delta) {
         if (!state.ready) return;
         diagnostics.frame(delta);
         const camera = scene.cameras.main, raw = adapter.cameraFocus(camera), focus = adapter.clamp(raw.col, raw.row);
         if (Math.abs(raw.col - focus.col) > .001 || Math.abs(raw.row - focus.row) > .001) adapter.centreCamera(camera, focus.col, focus.row);
         manager.setFocus(focus.col, focus.row); manager.pump(); renderer.cull(camera);
+        entityRenderer.sync(manager.snapshot().activeIds);
         if (performance.now() - lastStatsAt > 250) { renderStats(focus); lastStatsAt = performance.now(); }
       } },
     });
@@ -65,7 +94,11 @@
     function rotate() {
       if (!state.ready) return;
       const focus = adapter.cameraFocus(scene.cameras.main);
-      adapter.setRotation(adapter.rotation + 1); lod.setRotation(adapter.rotation); manager.invalidate(); setFocus(focus.col, focus.row);
+      buildUi?.cancel(); adapter.setRotation(adapter.rotation + 1); lod.setRotation(adapter.rotation); manager.invalidate(); setFocus(focus.col, focus.row);
+    }
+    function restoreView(snapshot) {
+      buildUi?.cancel(); manager?.invalidate();
+      if (snapshot.viewpoint) { adapter.setRotation(snapshot.viewpoint.rotation); lod.setRotation(adapter.rotation); scene.cameras.main.setZoom(snapshot.viewpoint.zoom); setFocus(snapshot.viewpoint.col, snapshot.viewpoint.row); }
     }
     function zoomTo(value, x = scene.cameras.main.width / 2, y = scene.cameras.main.height / 2) {
       const camera = scene.cameras.main, anchor = mapCameraWorldPoint(camera, x, y);
@@ -86,12 +119,14 @@
         `Pack cache ${mib(stats.terrain.packBytes)} MiB · read ${mib(stats.terrain.networkBytes)} MiB`,
         `Frame p95/p99 ${ms(stats.frameP95Ms)} / ${ms(stats.frameP99Ms)} ms`,
         `Mount p95 ${ms(stats.mountP95Ms)} ms · errors ${stats.errors}`,
+        `Built ${delta.entities.size} · unsaved chunks ${delta.dirtyChunks.size}`,
       ].join('\n');
-      if (!stats.states.ERROR && stats.states.ACTIVE === stats.wanted && !state.errors.length) message('');
+      if (!stats.states.ERROR && stats.states.ACTIVE === stats.wanted && !state.errors.length && !state.storageError) message('');
     }
     function installInput(canvas) {
       const camera = scene.cameras.main;
       const input = createMapInputController({
+        onTap({ x, y }) { buildUi?.tap(x, y); },
         onPan({ dx, dy }) { camera.scrollX -= dx / camera.zoom; camera.scrollY -= dy / camera.zoom; },
         onPinchStart({ x, y }) { pinch = { zoom: camera.zoom, anchor: mapCameraWorldPoint(camera, x, y) }; },
         onPinch({ x, y, scale }) {
@@ -116,7 +151,7 @@
       document.getElementById('zoom-out').onclick = () => zoomTo(camera.zoom / 1.25);
       document.getElementById('home').onclick = () => setFocus(centre.col, centre.row);
       document.getElementById('jump').onclick = () => { jumpSide = !jumpSide; setFocus(region.col + (jumpSide ? 208 : 48), region.row + (jumpSide ? 208 : 48)); };
-      scene.events.once('shutdown', () => { manager.destroy(); renderer.destroy(); lod.destroy(); provider.destroy(); });
+      scene.events.once('shutdown', () => { session.destroy(); buildUi?.destroy(); entityRenderer.destroy(); manager.destroy(); renderer.destroy(); lod.destroy(); provider.destroy(); });
     }
   } catch (error) { state.errors.push(String(error.message || error)); message(String(error.message || error), true); }
 })();

@@ -4,14 +4,20 @@ body { margin: 0; overflow: hidden; }
 header { height: 66px; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 18px; background: #24353d; border-bottom: 1px solid #55646a; }
 header strong { display: block; font-size: 16px; }
 header span { display: block; font-size: 12px; margin-top: 3px; color: #afc0c4; }
+header span span { display: inline; }
 nav { display: flex; align-items: center; gap: 6px; }
 button, a { font: inherit; font-size: 13px; color: inherit; background: #354a51; border: 1px solid #6e8287; border-radius: 4px; padding: 7px 10px; text-decoration: none; cursor: pointer; }
 button:hover, a:hover { background: #466069; }
 button:focus-visible, a:focus-visible { outline: 2px solid #e7cf85; outline-offset: 2px; }
 output { min-width: 44px; text-align: center; font-size: 12px; }
-#world-canvas { position: absolute; inset: 66px 0 0; }
+#construction-controls { position: absolute; top: 66px; left: 0; right: 0; min-height: 46px; display: flex; gap: 6px; align-items: center; padding: 6px 12px; background: #24353d; overflow-x: auto; z-index: 2; }
+select { font: inherit; font-size: 12px; padding: 7px; border-radius: 4px; background: #354a51; color: inherit; border: 1px solid #6e8287; max-width: 180px; }
+#construction-controls button, #construction-controls select { flex-shrink: 0; }
+#world-canvas { position: absolute; inset: 112px 0 0; }
+#build-draft { position: absolute; bottom: 16px; left: 16px; z-index: 3; padding: 10px; background: #24353df0; border: 1px solid #e7cf85; border-radius: 5px; display: flex; align-items: center; gap: 8px; font-size: 13px; }
+#build-draft[hidden] { display: none; }
 canvas { display: block; touch-action: none; }
-#status { position: absolute; top: 76px; left: 12px; margin: 0; padding: 8px 12px; background: #18262fe6; border-radius: 4px; max-width: min(650px, calc(100vw - 24px)); font-size: 13px; }
+#status { position: absolute; top: 122px; left: 12px; margin: 0; padding: 8px 12px; background: #18262fe6; border-radius: 4px; max-width: min(650px, calc(100vw - 24px)); font-size: 13px; }
 #status:empty { display: none; }
 #status[data-error="true"] { border: 1px solid #cb8677; color: #ffccbf; }
 aside { position: absolute; right: 12px; bottom: 12px; max-width: calc(100vw - 24px); background: #18262fe8; border: 1px solid #596b72; border-radius: 6px; padding: 10px 12px; font-size: 12px; }
@@ -23,7 +29,10 @@ aside p { margin: 8px 0 0; color: #aabdbf; font-size: 11px; }
   header strong { font-size: 14px; }
   nav { justify-content: space-between; gap: 3px; }
   button, a { padding: 7px 6px; font-size: 11px; }
-  #world-canvas { top: 110px; }
-  #status { top: 120px; }
+  #construction-controls { top: 110px; }
+  #world-canvas { top: 156px; }
+  #status { top: 166px; }
   aside { padding: 8px; }
+  #build-draft { left: 8px; right: 8px; bottom: 8px; font-size: 11px; }
+  aside:has(~ #build-draft:not([hidden])) { bottom: 70px; }
 }

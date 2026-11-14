@@ -3,7 +3,8 @@
   'use strict';
   const isWeb = () => root.HEUNG_SHING_CONFIG?.platform === 'web';
   const DB_NAME = 'heung-shing-game';
-  const stores = ['saves', 'payloads', 'terrains', 'terrainPayloads', 'migrationBackups', 'settings'];
+  const stores = ['saves', 'payloads', 'terrains', 'terrainPayloads', 'migrationBackups', 'settings',
+    'worldSaves', 'worldChunks', 'worldEntities', 'worldBackups'];
   const revisions = new Map();
   let db, opening, writable = false, memoryOnly = false, leaseTimer, unlock;
   const owner = root.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`;
@@ -20,6 +21,7 @@
       const access = name => ({
         get: key => Promise.resolve(structuredClone(memory[name].get(key))),
         getAll: () => Promise.resolve(structuredClone([...memory[name].values()])),
+        getAllByIndex: (_index, query) => Promise.resolve(structuredClone([...memory[name].values()].filter(value => value.saveId === query))),
         put: (value, key) => {
           const id = key ?? value.id ?? ++memoryId;
           memory[name].set(id, structuredClone(['saves', 'terrains'].includes(name) ? { ...value, id } : value));
@@ -36,6 +38,7 @@
       const access = name => ({
         get: key => req(tx.objectStore(name).get(key)),
         getAll: () => req(tx.objectStore(name).getAll()),
+        getAllByIndex: (index, query) => req(tx.objectStore(name).index(index).getAll(query)),
         put: (data, key) => req(key === undefined
           ? tx.objectStore(name).put(data) : tx.objectStore(name).put(data, key)),
         delete: key => req(tx.objectStore(name).delete(key)),
@@ -66,12 +69,16 @@
     opening = (async () => {
       try {
         db = await new Promise((resolve, reject) => {
-          const request = root.indexedDB.open(DB_NAME, 1);
+          const request = root.indexedDB.open(DB_NAME, 2);
           request.onupgradeneeded = () => {
             for (const name of stores) {
               if (!request.result.objectStoreNames.contains(name)) {
                 request.result.createObjectStore(name,
                   ['saves', 'terrains'].includes(name) ? { keyPath: 'id', autoIncrement: true } : undefined);
+              }
+              if (['worldChunks', 'worldEntities'].includes(name)) {
+                const store = request.transaction.objectStore(name);
+                if (!store.indexNames.contains('saveId')) store.createIndex('saveId', 'saveId');
               }
             }
           };
@@ -223,7 +230,60 @@
       return { ok: false, status: error.status || 507, json: async () => ({ error: error.message }) };
     }
   }
-  root.HeungShingStorage = { initialize, request, list, get, write, remove,
+  async function worldRequest(url, options = {}) {
+    if (!isWeb()) return root.fetch(url, options);
+    await initialize();
+    const f = root.HeungShingWorld.WorldSaveFormat;
+    try {
+      const match = String(url).match(/^\/api\/world-saves(?:\/([a-zA-Z0-9_-]{1,100})(?:\/(backup|restore))?)?$/);
+      if (!match) throw f.worldSaveError('Invalid world storage operation');
+      const [, id, action] = match, method = options.method || 'GET';
+      const names = ['worldSaves', 'worldChunks', 'worldEntities', 'worldBackups', 'settings'];
+      const writing = method !== 'GET';
+      if (writing && memoryOnly) throw f.worldSaveError('瀏覽器未能提供永久儲存；請匯出備份。', 507);
+      const value = await transaction(names, writing ? 'readwrite' : 'readonly', async access => {
+        if (writing) await verifyLease(access);
+        if (!id && method === 'GET') return (await access('worldSaves').getAll()).map(row => ({ id: row.id, storageRevision: row.storageRevision, city: row.header.city }));
+        const metadata = await access('worldSaves').get(id);
+        async function load() {
+          if (!metadata) return null;
+          const chunks = await access('worldChunks').getAllByIndex('saveId', id), entities = await access('worldEntities').getAllByIndex('saveId', id);
+          return { saveId: id, storageRevision: metadata.storageRevision,
+            snapshot: f.validateWorldSnapshot({ ...metadata.header, chunks: chunks.map(entry => entry.value), entities: entities.map(entry => entry.value) }) };
+        }
+        if (method === 'GET' && action === 'backup') { const backup = await access('worldBackups').get(id); if (!backup) throw f.worldSaveError('沒有上一個儲存版本。', 404); return f.validateWorldSnapshot(backup); }
+        const old = await load();
+        if (method === 'GET') { if (!old) throw f.worldSaveError('World save not found', 404); return old; }
+        const body = JSON.parse(options.body);
+        if (!Number.isSafeInteger(body.expectedRevision) || body.expectedRevision < 0) throw f.worldSaveError('Invalid save revision');
+        if ((old?.storageRevision || 0) !== body.expectedRevision) throw f.worldSaveError('存檔已由另一個視窗更新，請先匯出目前修改再載入。', 409);
+        let snapshot, checkpoint;
+        if (method === 'POST' && action === 'restore') {
+          snapshot = await access('worldBackups').get(id);
+          if (!snapshot) throw f.worldSaveError('沒有上一個儲存版本。', 404);
+          f.validateWorldSnapshot(snapshot);
+          for (const entry of await access('worldChunks').getAllByIndex('saveId', id)) await access('worldChunks').delete([id, entry.value.chunkId]);
+          for (const entry of await access('worldEntities').getAllByIndex('saveId', id)) await access('worldEntities').delete([id, entry.value.id]);
+          checkpoint = { chunks: snapshot.chunks, entities: snapshot.entities.map(value => ({ id: value.id, value })) };
+        } else {
+          if (method !== 'PUT' || action) throw f.worldSaveError('Unsupported world storage operation');
+          checkpoint = body.checkpoint; snapshot = f.mergeWorldCheckpoint(old?.snapshot, checkpoint);
+        }
+        const { chunks, entities, ...header } = snapshot, storageRevision = (old?.storageRevision || 0) + 1;
+        await access('worldSaves').put({ id, header, storageRevision }, id);
+        for (const chunk of checkpoint.chunks) await access('worldChunks').put({ saveId: id, value: chunk }, [id, chunk.chunkId]);
+        for (const entity of checkpoint.entities) {
+          if (entity.value === null) await access('worldEntities').delete([id, entity.id]);
+          else await access('worldEntities').put({ saveId: id, value: entity.value }, [id, entity.id]);
+        }
+        if (old) await access('worldBackups').put(old.snapshot, id);
+        return { saveId: id, storageRevision, localRevision: snapshot.revision, ...(action === 'restore' ? { snapshot } : {}) };
+      });
+      if (writing) root.navigator?.storage?.persist?.().catch(() => {});
+      return { ok: true, status: 200, json: async () => value };
+    } catch (error) { return { ok: false, status: error.status || 507, json: async () => ({ error: error.message }) }; }
+  }
+  root.HeungShingStorage = { initialize, request, list, get, write, remove, worldRequest,
     get memoryOnly() { return memoryOnly; }, get writable() { return !isWeb() || writable; } };
   if (typeof module !== 'undefined') module.exports = root.HeungShingStorage;
 })(globalThis);

@@ -130,6 +130,17 @@ test('C15: long-distance exploration reaches a stable mounted object count and d
   assert.equal(renderer.maxLive, 9);
 });
 
+test('a terrain edit remounts only affected render chunks and their one-tile halo', async () => {
+  const world = createWorldConfig({ width: 256, height: 256 }), clock = { value: 1 }, renderer = fakeRenderer(clock);
+  const manager = new WorldChunkManager({ world, provider: { getRenderChunk: async id => ({ id }) }, renderer, now: () => clock.value });
+  manager.setFocus(80, 80); let before = await settle(manager);
+  manager.invalidateTiles([{ col: 79, row: 79 }]); let after = await settle(manager);
+  assert.equal(after.mounted - before.mounted, 1); assert.equal(after.unmounted - before.unmounted, 1);
+  before = after; manager.invalidateTiles([{ col: 63, row: 63 }]); after = await settle(manager);
+  assert.equal(after.mounted - before.mounted, 4); assert.equal(after.unmounted - before.unmounted, 4);
+  assert.equal(renderer.maxLive, 9);
+});
+
 test('C16: decode errors retain a retryable state and recover after backoff', async () => {
   const world = createWorldConfig({ width: 64, height: 64 }), clock = { value: 1 }, renderer = fakeRenderer(clock);
   let calls = 0;

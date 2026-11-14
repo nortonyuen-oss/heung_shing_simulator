@@ -1303,6 +1303,12 @@
     /* Must sit above #landing-screen (z-index: 400) */
     #save-list-modal { z-index: 500; }
 
+    /* Shown from confirmSetup (landing-screen.js) while 開新城市 is still open - same reason as
+       #save-list-modal above. Without this it renders (and stays interactive-looking in the DOM)
+       entirely behind the landing screen: invisible, unclickable, and its awaited Promise never
+       resolves, so 建立城市 just silently does nothing. */
+    #territory-warning-dialog { z-index: 500; }
+
     #save-list-modal .dialog-overlay {
       background: rgba(8, 14, 20, 0.62);
       backdrop-filter: blur(4px) saturate(0.9);

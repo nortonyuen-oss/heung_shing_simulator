@@ -475,6 +475,13 @@ function setupLandingScreen() {
       territoryWarningAcknowledged = true;
     }
     if (btnStart) btnStart.disabled = true;
+    // showPreviewStatus below writes into .setup-preview, which the 香港地區 tab's own CSS hides
+    // outright (same reason showTerritoryIntro exists) - every map source lives under that tab's
+    // chip list, including 香港全境, so that status is never actually visible here. The button
+    // itself is always visible regardless of tab; borrow it as the one loading indicator the
+    // player can actually see, restored in `finally` either way.
+    const btnStartOriginalText = btnStart?.textContent;
+    if (btnStart) btnStart.textContent = t('landing.mapGenerating');
     try {
       const terrain = await source.getTerrain();
       // A chunked source (香港全境) has no mapData/heightMap yet - chunks generate lazily as the
@@ -506,6 +513,7 @@ function setupLandingScreen() {
       showToast(t('toast.terrainPresetLoadFailed'), 'danger');
     } finally {
       if (btnStart) btnStart.disabled = !selectedSource;
+      if (btnStart && btnStartOriginalText !== undefined) btnStart.textContent = btnStartOriginalText;
     }
   }
 

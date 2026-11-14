@@ -585,12 +585,19 @@ function isLazyWorldMap() {
 // 香港全境: allocates mapData/heightMap at the chosen source's full size but leaves every cell
 // at the typed array's zero default ("not generated yet" - 0 is never a real mapData value,
 // GROUND..HILL are 1-6) instead of copying in a full terrain the source doesn't have yet.
-// ensureTerritoryChunkGenerated fills cells in on demand as the player explores.
+// ensureTerritoryChunkGenerated fills cells in on demand as the player explores. Does NOT
+// generate the starting chunk itself - resetGameState() (called via rebuildFreshMapSession,
+// right after this in startNewGame/startTerrainCreatorMode) wipes treeMap/debrisMap/
+// territoryGeneratedChunkIds back to empty, so generating a chunk before that runs is wasted
+// work the very next line immediately throws away. generateTerritoryStartingChunk below does
+// this instead, once the reset has actually happened.
 function initializeChunkedTerritoryWorld(terrain) {
   mapData = createFilledTypedMap(Uint8Array, 0);
   heightMap = createFilledTypedMap(Uint8Array, 0);
   resetBridgeLayers();
-  territoryGeneratedChunkIds = new Set();
+}
+
+function generateTerritoryStartingChunk(terrain) {
   const startRow = Number.isFinite(terrain?.startRow) ? terrain.startRow : Math.floor(MAP_HEIGHT / 2);
   const startCol = Number.isFinite(terrain?.startCol) ? terrain.startCol : Math.floor(MAP_WIDTH / 2);
   ensureTerritoryChunkGenerated(activeScene, startRow, startCol);
@@ -670,6 +677,9 @@ function startTerrainCreatorMode(profileType, seedText, terrain = null) {
   activeTerrainProfileType = profileType;
   currentSeed = seedText || createSeed();
   setMapDimensions(terrain?.width, terrain?.height);
+  // See the matching comment in startNewGame - any tile sprites already on the scene were built
+  // for whichever map (and size) was previously loaded, not this one.
+  resetTileSpritesForNewMap(activeScene);
   if (terrain?.chunked) {
     currentTerrainMetadata = createTerrainMetadata(terrain, currentSeed);
     initializeChunkedTerritoryWorld(terrain);
@@ -680,6 +690,7 @@ function startTerrainCreatorMode(profileType, seedText, terrain = null) {
     mapData = generateTerrainMapByProfile(profileType, currentSeed);
   }
   rebuildFreshMapSession(getDefaultCityName());
+  if (terrain?.chunked) generateTerritoryStartingChunk(terrain);
   selectedTool = 'terrain';
   selectedTerrainType = 'raise';
 
@@ -761,6 +772,11 @@ async function startNewGame(cityName, options = {}) {
   const terrain = options.terrain ?? null;
   const source = terrain ? 'map-source' : 'random';
   setMapDimensions(terrain?.width, terrain?.height);
+  // Any tile sprites already on the scene were built for whichever map (and whatever size) was
+  // previously loaded - create()'s own startup scene the first time, a different city's map on
+  // every load after that. Must happen after setMapDimensions (it reads the now-current
+  // MAP_WIDTH/MAP_HEIGHT) and before anything below reads mapData/heightMap for this new map.
+  resetTileSpritesForNewMap(activeScene);
 
   stopSimTimer();
   isTerrainCreatorMode = false;
@@ -788,6 +804,7 @@ async function startNewGame(cityName, options = {}) {
   else if (typeof currentSaveId !== 'undefined') currentSaveId = null;
 
   rebuildFreshMapSession(cityName || getDefaultCityName());
+  if (terrain?.chunked) generateTerritoryStartingChunk(terrain);
   city.districtProfileId = options.districtProfileId || '';
   city.regionNeighbours = typeof computeRegionNeighbours === 'function'
     ? computeRegionNeighbours({ districtId: city.districtProfileId, features: terrain?.features })

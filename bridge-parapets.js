@@ -41,10 +41,10 @@ const BRIDGE_PARAPET_SIDES_FOR_AXIS = Object.freeze({ row: ['n', 's'], col: ['e'
 
 // Pure: every parapet segment the bridge map calls for. `bridgeValueAt(row, col)` returns the
 // normalised bridge value ('deck:row', 'deck:col', 'ramp:n'...) or null.
-function computeBridgeParapetPlacements({ mapWidth, mapHeight, bridgeValueAt }) {
+function computeBridgeParapetPlacements({ mapWidth, mapHeight, bridgeValueAt, rowStart = 0, colStart = 0 }) {
   const placements = [];
-  for (let row = 0; row < mapHeight; row++) {
-    for (let col = 0; col < mapWidth; col++) {
+  for (let row = rowStart; row < rowStart + mapHeight; row++) {
+    for (let col = colStart; col < colStart + mapWidth; col++) {
       const value = bridgeValueAt(row, col);
       if (!value) continue;
       let axis = null;
@@ -208,7 +208,10 @@ function rebuildBridgeParapetSprites(scene) {
   const sprites = ensureBridgeParapetSprites(scene);
   if (!sprites || typeof normalizeBridgeMapValue !== 'function' || typeof bridgeMap === 'undefined') return;
   const bridgeValueAt = (row, col) => normalizeBridgeMapValue(bridgeMap.get(getTileId(row, col)));
-  const placements = computeBridgeParapetPlacements({ mapWidth: MAP_WIDTH, mapHeight: MAP_HEIGHT, bridgeValueAt });
+  const bounds = typeof getActiveSweepBounds === 'function' ? getActiveSweepBounds() : { rowStart: 0, colStart: 0, rowCount: MAP_HEIGHT, colCount: MAP_WIDTH };
+  const placements = computeBridgeParapetPlacements({
+    mapWidth: bounds.colCount, mapHeight: bounds.rowCount, rowStart: bounds.rowStart, colStart: bounds.colStart, bridgeValueAt,
+  });
   const wanted = new Map(placements.map((placement) => [bridgeParapetId(placement), placement]));
   sprites.forEach((sprite, id) => {
     if (wanted.has(id)) return;

@@ -114,12 +114,12 @@ const TRAFFIC_SIGNAL_BAND_TRAVEL = Object.freeze({ north: 'n', east: 'e', south:
 // Map of "row:col" (every junction tile) -> cluster { row, col, tiles, arms }, where row/col is
 // the block's first tile in row-major order (a lone tile is its own anchor, so a one-tile
 // junction keeps exactly its old timing offset) and `arms` are the sides roads leave it by.
-function computeTrafficSignalJunctionClusters({ mapWidth, mapHeight, roadKeyAt }) {
+function computeTrafficSignalJunctionClusters({ mapWidth, mapHeight, roadKeyAt, rowStart = 0, colStart = 0 }) {
   const clusters = new Map();
-  const isJunction = (row, col) => row >= 0 && row < mapHeight && col >= 0 && col < mapWidth
+  const isJunction = (row, col) => row >= rowStart && row < rowStart + mapHeight && col >= colStart && col < colStart + mapWidth
     && Boolean(TRAFFIC_SIGNAL_JUNCTION_ARMS[roadKeyAt(row, col)]);
-  for (let row = 0; row < mapHeight; row++) {
-    for (let col = 0; col < mapWidth; col++) {
+  for (let row = rowStart; row < rowStart + mapHeight; row++) {
+    for (let col = colStart; col < colStart + mapWidth; col++) {
       if (clusters.has(`${row}:${col}`) || !isJunction(row, col)) continue;
       const cluster = { row, col, tiles: [], arms: [] };
       const armSet = new Set();
@@ -151,15 +151,15 @@ function computeTrafficSignalJunctionClusters({ mapWidth, mapHeight, roadKeyAt }
 // enters the junction gets a pole - the one leaving it carries no traffic towards a signal, and
 // its "driver's left" kerb would be the central median - and only on its kerbside tile, so a
 // carriageway several tiles wide shares one pole on the pavement side.
-function computeTrafficSignalPlacements({ mapWidth, mapHeight, roadKeyAt, carriagewayBandAt = () => null, clusters = null }) {
-  clusters = clusters ?? computeTrafficSignalJunctionClusters({ mapWidth, mapHeight, roadKeyAt });
+function computeTrafficSignalPlacements({ mapWidth, mapHeight, roadKeyAt, carriagewayBandAt = () => null, clusters = null, rowStart = 0, colStart = 0 }) {
+  clusters = clusters ?? computeTrafficSignalJunctionClusters({ mapWidth, mapHeight, roadKeyAt, rowStart, colStart });
   const inbound = (row, col, travel) => {
     const band = carriagewayBandAt(row, col);
     return !band || TRAFFIC_SIGNAL_BAND_TRAVEL[band.direction] === travel;
   };
   const placements = [];
-  for (let row = 0; row < mapHeight; row++) {
-    for (let col = 0; col < mapWidth; col++) {
+  for (let row = rowStart; row < rowStart + mapHeight; row++) {
+    for (let col = colStart; col < colStart + mapWidth; col++) {
       const arms = TRAFFIC_SIGNAL_JUNCTION_ARMS[roadKeyAt(row, col)];
       if (!arms) continue;
       const cluster = clusters.get(`${row}:${col}`);
@@ -167,7 +167,7 @@ function computeTrafficSignalPlacements({ mapWidth, mapHeight, roadKeyAt, carria
         const delta = TRAFFIC_SIGNAL_DIRECTION_DELTA[arm];
         const approachRow = row + delta.row;
         const approachCol = col + delta.col;
-        if (approachRow < 0 || approachRow >= mapHeight || approachCol < 0 || approachCol >= mapWidth) continue;
+        if (approachRow < rowStart || approachRow >= rowStart + mapHeight || approachCol < colStart || approachCol >= colStart + mapWidth) continue;
         const approachKey = roadKeyAt(approachRow, approachCol);
         if (!TRAFFIC_SIGNAL_APPROACH_KEYS.has(approachKey)) continue;
         const travel = TRAFFIC_SIGNAL_OPPOSITE[arm];
@@ -571,7 +571,8 @@ function rebuildTrafficSignalSprites(scene) {
     ? createRoadKeyReader()
     : (row, col) => (isRoadLikeTile(row, col) ? getRoadKey(row, col) : null);
   const carriagewayBandAt = typeof getRoadCarriagewayBand === 'function' ? getRoadCarriagewayBand : undefined;
-  const mapSize = { mapWidth: MAP_WIDTH, mapHeight: MAP_HEIGHT, roadKeyAt };
+  const bounds = typeof getActiveSweepBounds === 'function' ? getActiveSweepBounds() : { rowStart: 0, colStart: 0, rowCount: MAP_HEIGHT, colCount: MAP_WIDTH };
+  const mapSize = { mapWidth: bounds.colCount, mapHeight: bounds.rowCount, rowStart: bounds.rowStart, colStart: bounds.colStart, roadKeyAt };
   // The junction blocks feed both the pole placements and the registry below.
   const clusters = computeTrafficSignalJunctionClusters(mapSize);
   const placements = computeTrafficSignalPlacements({ ...mapSize, carriagewayBandAt, clusters });

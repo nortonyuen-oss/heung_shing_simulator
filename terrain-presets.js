@@ -200,6 +200,17 @@ function ensureTerritoryChunkGenerated(scene, row, col) {
   const colCount = Math.min(TERRITORY_CHUNK_SIZE, tiles.width - colStart);
   if (rowCount <= 0 || colCount <= 0) return;
 
+  // Grow the explored-area bounding box (main.js's getActiveSweepBounds) so the road-decoration
+  // rebuilders sweep only the chunks generated so far, not the whole territory.
+  if (!territoryGeneratedBounds) {
+    territoryGeneratedBounds = { rowStart, colStart, rowEnd: rowStart + rowCount, colEnd: colStart + colCount };
+  } else {
+    territoryGeneratedBounds.rowStart = Math.min(territoryGeneratedBounds.rowStart, rowStart);
+    territoryGeneratedBounds.colStart = Math.min(territoryGeneratedBounds.colStart, colStart);
+    territoryGeneratedBounds.rowEnd = Math.max(territoryGeneratedBounds.rowEnd, rowStart + rowCount);
+    territoryGeneratedBounds.colEnd = Math.max(territoryGeneratedBounds.colEnd, colStart + colCount);
+  }
+
   // decodeHkTerrainRow/hkTerrainCodesToMaps/finishHkTerrain all read the MAP_WIDTH/MAP_HEIGHT
   // globals rather than taking dimensions as parameters - narrow them to the chunk's own size
   // for this chunk-local, transient decode, then restore the real (territory) dimensions before

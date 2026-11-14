@@ -56,12 +56,12 @@ function isPedestrianRailingJunctionKey(key) {
 // map direction of its half clear of the stripes; `hasBusStopAt(row, col)` says it has a bus
 // stop. Each placement is a tile, the kerb `side` it stands on and the direction `toward` the
 // half of the tile it covers (towards the junction or crossing it guards).
-function computePedestrianRailingPlacements({ mapWidth, mapHeight, roadKeyAt, zebraFarSideAt = () => null, hasBusStopAt = () => false }) {
-  const inside = (row, col) => row >= 0 && col >= 0 && row < mapHeight && col < mapWidth;
+function computePedestrianRailingPlacements({ mapWidth, mapHeight, roadKeyAt, zebraFarSideAt = () => null, hasBusStopAt = () => false, rowStart = 0, colStart = 0 }) {
+  const inside = (row, col) => row >= rowStart && col >= colStart && row < rowStart + mapHeight && col < colStart + mapWidth;
   const keyAt = (row, col) => (inside(row, col) ? roadKeyAt(row, col) : null);
   const placements = [];
-  for (let row = 0; row < mapHeight; row++) {
-    for (let col = 0; col < mapWidth; col++) {
+  for (let row = rowStart; row < rowStart + mapHeight; row++) {
+    for (let col = colStart; col < colStart + mapWidth; col++) {
       const straight = PEDESTRIAN_RAILING_STRAIGHTS[keyAt(row, col)];
       if (!straight || hasBusStopAt(row, col)) continue;
       const towards = straight.along.filter((toward) => {
@@ -256,7 +256,10 @@ function rebuildPedestrianRailingSprites(scene) {
     const sides = typeof getBusStopSides === 'function' ? getBusStopSides(row, col) : null;
     return Array.isArray(sides) && sides.length > 0;
   };
-  const placements = computePedestrianRailingPlacements({ mapWidth: MAP_WIDTH, mapHeight: MAP_HEIGHT, roadKeyAt, zebraFarSideAt, hasBusStopAt });
+  const bounds = typeof getActiveSweepBounds === 'function' ? getActiveSweepBounds() : { rowStart: 0, colStart: 0, rowCount: MAP_HEIGHT, colCount: MAP_WIDTH };
+  const placements = computePedestrianRailingPlacements({
+    mapWidth: bounds.colCount, mapHeight: bounds.rowCount, rowStart: bounds.rowStart, colStart: bounds.colStart, roadKeyAt, zebraFarSideAt, hasBusStopAt,
+  });
   // Roadside furniture reads the half-tile cells to keep its props out of the railings.
   scene.pedestrianRailingPlacements = placements;
   const wanted = new Map(mergePedestrianRailingRuns(placements).map((run) => [run.id, run]));

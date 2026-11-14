@@ -71,7 +71,7 @@ function streetLampLeftOf(travel) {
 // non-road value; `signalPlacements` (computeTrafficSignalPlacements) lets a lamp on a signal's
 // approach tile move to the far half of the tile when it would share the pole's kerb end.
 // `skipSideAt(row, col, side)`: a kerb with no lamp (a tram reservation, tram.js).
-function computeStreetLampPlacements({ mapWidth, mapHeight, roadKeyAt, signalPlacements = [], period = STREET_LAMP_SPACING_PERIOD, inset = STREET_LAMP_LOGICAL_INSET, skipSideAt = () => false }) {
+function computeStreetLampPlacements({ mapWidth, mapHeight, roadKeyAt, signalPlacements = [], period = STREET_LAMP_SPACING_PERIOD, inset = STREET_LAMP_LOGICAL_INSET, skipSideAt = () => false, rowStart = 0, colStart = 0 }) {
   const signalKerbs = new Map();
   for (const signal of signalPlacements) {
     const key = `${signal.row}:${signal.col}`;
@@ -79,8 +79,8 @@ function computeStreetLampPlacements({ mapWidth, mapHeight, roadKeyAt, signalPla
     signalKerbs.get(key).push({ side: streetLampLeftOf(signal.travel), forward: signal.travel });
   }
   const placements = [];
-  for (let row = 0; row < mapHeight; row++) {
-    for (let col = 0; col < mapWidth; col++) {
+  for (let row = rowStart; row < rowStart + mapHeight; row++) {
+    for (let col = colStart; col < colStart + mapWidth; col++) {
       const key = roadKeyAt(row, col);
       const straight = STREET_LAMP_STRAIGHTS[key];
       if (straight) {
@@ -265,20 +265,23 @@ function rebuildStreetLampSprites(scene) {
   const roadKeyAt = typeof createRoadKeyReader === 'function'
     ? createRoadKeyReader()
     : (row, col) => (isRoadLikeTile(row, col) ? getRoadKey(row, col) : null);
+  const bounds = typeof getActiveSweepBounds === 'function' ? getActiveSweepBounds() : { rowStart: 0, colStart: 0, rowCount: MAP_HEIGHT, colCount: MAP_WIDTH };
   // The poles from the latest signal rebuild (traffic-signals.js), unless that rebuild is still
   // queued behind this one - then work them out here.
   const signalPlacements = Array.isArray(scene.trafficSignalPlacements) && !scene.trafficSignalRefreshPending
     ? scene.trafficSignalPlacements
     : typeof computeTrafficSignalPlacements === 'function'
     ? computeTrafficSignalPlacements({
-      mapWidth: MAP_WIDTH,
-      mapHeight: MAP_HEIGHT,
+      mapWidth: bounds.colCount,
+      mapHeight: bounds.rowCount,
+      rowStart: bounds.rowStart,
+      colStart: bounds.colStart,
       roadKeyAt,
       carriagewayBandAt: typeof getRoadCarriagewayBand === 'function' ? getRoadCarriagewayBand : undefined,
     })
     : [];
   const placements = computeStreetLampPlacements({
-    mapWidth: MAP_WIDTH, mapHeight: MAP_HEIGHT, roadKeyAt, signalPlacements,
+    mapWidth: bounds.colCount, mapHeight: bounds.rowCount, rowStart: bounds.rowStart, colStart: bounds.colStart, roadKeyAt, signalPlacements,
     skipSideAt: typeof isTramReservationSide === 'function' ? isTramReservationSide : undefined,
   });
   const wanted = new Map(placements.map((placement) => [streetLampId(placement), placement]));

@@ -159,31 +159,34 @@ function computeStreetFurniturePlacements({
   mapWidth, mapHeight, roadKeyAt, bandAt = () => null, frontageAt: readFrontage = () => null,
   busStopAt = () => false, occupiedAt = () => false, railingTileAt = () => false,
   trafficAt = () => 0, signalPlacements = [], railingRuns = [], zebraAt = () => false, rates = STREET_FURNITURE_RATES,
+  rowStart = 0, colStart = 0,
 }) {
-  const inside = (r, c) => r >= 0 && c >= 0 && r < mapHeight && c < mapWidth;
+  const inside = (r, c) => r >= rowStart && c >= colStart && r < rowStart + mapHeight && c < colStart + mapWidth;
   // getRoadKey runs the carriageway-band scan and every tile is asked about several times below:
-  // read the whole map once into a flat array (a Map here cost more than the scan itself).
+  // read the whole swept area once into a flat array (a Map here cost more than the scan itself).
+  // Indexed relative to (rowStart, colStart), not the tile's own row/col, so this stays sized to
+  // the swept area even when that area sits far from the map's origin (香港全境's explored bounds).
   const keys = new Array(mapWidth * mapHeight);
   const straightTiles = [];
-  for (let r = 0; r < mapHeight; r++) {
-    for (let c = 0; c < mapWidth; c++) {
+  for (let r = rowStart; r < rowStart + mapHeight; r++) {
+    for (let c = colStart; c < colStart + mapWidth; c++) {
       const key = roadKeyAt(r, c) ?? null;
-      keys[r * mapWidth + c] = key;
+      keys[(r - rowStart) * mapWidth + (c - colStart)] = key;
       const straight = STREET_FURNITURE_STRAIGHTS[key];
       if (straight) straightTiles.push({ row: r, col: c, key, straight });
     }
   }
-  const keyAt = (r, c) => (inside(r, c) ? keys[r * mapWidth + c] : null);
+  const keyAt = (r, c) => (inside(r, c) ? keys[(r - rowStart) * mapWidth + (c - colStart)] : null);
   const frontage = new Array(mapWidth * mapHeight);
   const frontageAt = (r, c) => {
     if (!inside(r, c)) return null;
-    const index = r * mapWidth + c;
+    const index = (r - rowStart) * mapWidth + (c - colStart);
     if (frontage[index] === undefined) frontage[index] = readFrontage(r, c) ?? null;
     return frontage[index];
   };
   const densities = new Map();
   const densityAt = (r, c, straight) => {
-    const index = r * mapWidth + c;
+    const index = (r - rowStart) * mapWidth + (c - colStart);
     if (!densities.has(index)) densities.set(index, streetFurnitureDensity(r, c, straight, frontageAt));
     return densities.get(index);
   };
@@ -278,8 +281,8 @@ function computeStreetFurniturePlacements({
 
     // Junction blocks: junction tiles joined side by side (a dual carriageway's crossing is several).
     const seen = new Set();
-    for (let r0 = 0; r0 < mapHeight; r0++) {
-      for (let c0 = 0; c0 < mapWidth; c0++) {
+    for (let r0 = rowStart; r0 < rowStart + mapHeight; r0++) {
+      for (let c0 = colStart; c0 < colStart + mapWidth; c0++) {
         if (!isStreetFurnitureJunctionKey(keyAt(r0, c0)) || seen.has(r0 * mapWidth + c0)) continue;
         const block = [];
         const stack = [[r0, c0]];
@@ -425,8 +428,8 @@ function computeStreetFurniturePlacements({
   //    tiles; it still gets one at most).
   if (rates.newsstandMax > 0) {
     const stalls = [];
-    for (let r = 0; r < mapHeight; r++) {
-      for (let c = 0; c < mapWidth; c++) {
+    for (let r = rowStart; r < rowStart + mapHeight; r++) {
+      for (let c = colStart; c < colStart + mapWidth; c++) {
         if (!isStreetFurnitureJunctionKey(keyAt(r, c))) continue;
         if (stalls.some((stall) => Math.abs(stall.row - r) + Math.abs(stall.col - c) <= rates.newsstandSpacing)) continue;
         const approaches = [];
@@ -728,9 +731,12 @@ function rebuildStreetFurnitureSprites(scene, { recomputeTraffic = true } = {}) 
   const signalPlacements = [];
   scene.trafficSignalSprites?.forEach((sprite) => { if (sprite.trafficSignal) signalPlacements.push(sprite.trafficSignal); });
 
+  const bounds = typeof getActiveSweepBounds === 'function' ? getActiveSweepBounds() : { rowStart: 0, colStart: 0, rowCount: MAP_HEIGHT, colCount: MAP_WIDTH };
   const placements = computeStreetFurniturePlacements({
-    mapWidth: MAP_WIDTH,
-    mapHeight: MAP_HEIGHT,
+    mapWidth: bounds.colCount,
+    mapHeight: bounds.rowCount,
+    rowStart: bounds.rowStart,
+    colStart: bounds.colStart,
     roadKeyAt,
     bandAt,
     frontageAt,

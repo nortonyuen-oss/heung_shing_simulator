@@ -32,6 +32,12 @@ let lowDensityLockSet = new Set();  // tile IDs of permanently low-density-locke
 // terraforming. Empty/unused on every non-chunked map.
 let territoryGeneratedChunkIds = new Set();  // "chunkRow:chunkCol"
 
+// The smallest row/col rectangle covering every chunk generated so far - lets the road-
+// decoration rebuilders (bridge parapets, traffic signals, street lamps, pedestrian railings,
+// street furniture) sweep only the explored area instead of the full territory (getActiveSweepBounds
+// in main.js). null until the first chunk is generated. Empty/unused on every non-chunked map.
+let territoryGeneratedBounds = null;  // { rowStart, colStart, rowEnd, colEnd }
+
 function createDefaultStockMarketState() {
   let listedNonHsi = 0;
   const stocks = STOCK_MARKET_CATALOG.map((entry, index) => {
@@ -298,6 +304,7 @@ function resetGameState() {
   powerLineSet.clear();
   lowDensityLockSet.clear();
   territoryGeneratedChunkIds.clear();
+  territoryGeneratedBounds = null;
   roadTileCount = 0;
   // These maps have just been replaced with empty arrays.  A load immediately
   // repopulates the source sets/buildings and calls the cached infrastructure

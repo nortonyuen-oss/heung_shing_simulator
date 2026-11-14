@@ -982,21 +982,13 @@ function create() {
   // Disable browser context menu to allow right-click panning
   this.input.mouse.disableContextMenu();
 
-  // Draw the map: select ground or the appropriate road variant and
-  // position it in screen space.  Depth ordering uses the y-value
-  // before applying offsets.
-  // A normal map still owns every terrain Image up front (the comment on
-  // createTerrainTileSprite below explains why they're created detached). A lazy-world map
-  // (香港全境) skips this entirely - ensureTileSprite creates each tile's Image (and, the first
-  // time its chunk is touched, generates that chunk's terrain) only once a tile actually streams
-  // into view (viewport-culling.js) or is directly edited (refreshTileSprite).
-  if (!isLazyWorldMap()) {
-    for (let row = 0; row < MAP_HEIGHT; row++) {
-      for (let col = 0; col < MAP_WIDTH; col++) {
-        createTerrainTileSprite(this, row, col);
-      }
-    }
-  }
+  // Draw the map: select ground or the appropriate road variant and position it in screen
+  // space. create() only ever runs once, at MAP_WIDTH/MAP_HEIGHT's startup default (256x256) -
+  // whichever real map the player picks loads later, at whatever its own size turns out to be,
+  // so the eager-vs-lazy decision and the actual sprite population both belong in
+  // resetTileSpritesForNewMap (called again by copyTerrainToWorld/initializeChunkedTerritoryWorld
+  // for every subsequent city load), not hardcoded here to this one startup moment.
+  resetTileSpritesForNewMap(this);
 
   if (typeof generateSeaFlowTextures === 'function') generateSeaFlowTextures(this);
   if (typeof generateRippleRingTexture === 'function') generateRippleRingTexture(this);
@@ -2734,11 +2726,40 @@ function applyRoadLineVariantForTile(scene, sprite, row, col, key, baseTextureKe
   applyRoadLineTexture(scene, sprite, key, variantId, tileSetId, baseTextureKey);
 }
 
+// Called on every map load - create()'s own startup scene (at MAP_WIDTH/MAP_HEIGHT's 256x256
+// default, before any real city is picked), and again by copyTerrainToWorld/
+// initializeChunkedTerritoryWorld (landing-screen.js) once setMapDimensions has committed to
+// whatever map the player actually chose. Any sprites already on the scene were built for
+// whatever map (and whatever size) was previously loaded and must not be silently reused -
+// reusing create()'s one-time startup grid for a since-loaded, differently-sized city is exactly
+// what left 65,536 stale sprites (and the territory-sized mapData they no longer matched)
+// sitting around before this existed, measured at a 16.8s startNewGame instead of the ~0.5s one
+// chunk actually costs.
+function resetTileSpritesForNewMap(scene) {
+  if (!scene) return;
+  scene.tileSprites?.forEach((sprite) => sprite.destroy());
+  scene.tileSprites = new Map();
+  scene.activeTerrainSpriteIds = new Set();
+  scene.terrainViewportCacheKey = null;
+  // A normal map still owns every terrain Image up front (the comment on createTerrainTileSprite
+  // below explains why they're created detached). A lazy-world map (香港全境) leaves this empty -
+  // ensureTileSprite creates each tile's Image (and, the first time its chunk is touched,
+  // generates that chunk's terrain) only once a tile actually streams into view
+  // (viewport-culling.js) or is directly edited (refreshTileSprite).
+  if (!isLazyWorldMap()) {
+    for (let row = 0; row < MAP_HEIGHT; row++) {
+      for (let col = 0; col < MAP_WIDTH; col++) {
+        createTerrainTileSprite(scene, row, col);
+      }
+    }
+  }
+}
+
 // The map owns up to MAP_WIDTH*MAP_HEIGHT terrain Images, but only a few hundred can appear in
 // one camera view. Creating them detached avoids an O(n²) first-frame pass through Phaser's
 // Display List; viewport culling adds only the camera-local subset when gameplay becomes
-// visible. Does not check for an existing sprite at (row, col) - callers (create()'s eager
-// loop, ensureTileSprite below) are responsible for not calling this twice for the same tile.
+// visible. Does not check for an existing sprite at (row, col) - callers (resetTileSpritesForNewMap's
+// eager loop, ensureTileSprite below) are responsible for not calling this twice for the same tile.
 function createTerrainTileSprite(scene, row, col) {
   const key = getTileKey(row, col);
   const pos = isoToScreen(col, row);
@@ -2915,6 +2936,27 @@ function refreshCarriagewayBandRegion(scene, rowMin, rowMax, colMin, colMax) {
   scheduleTerrainMiniMapUpdate();
   scheduleMapEdgeSkirtRedraw(scene);
   if (typeof syncRegionConnectionSigns === 'function') syncRegionConnectionSigns(scene);
+}
+
+// 香港全境 (lazy-world maps): the road-decoration rebuilders below (bridge parapets, traffic
+// signals, street lamps, pedestrian railings, street furniture) each do a full mapWidth x
+// mapHeight sweep looking for road/bridge tiles - fine at a normal map's 65,536 tiles, a
+// 7.65M-tile freeze at full-territory scale (measured: ~46s). Every chunk generated so far sits
+// inside territoryGeneratedBounds (terrain-presets.js/city-state.js), so sweeping just that box
+// finds every real road/bridge tile while skipping the untouched rest of the territory. Normal
+// maps, and a lazy-world map before its first chunk exists, sweep the whole map unchanged.
+function getActiveSweepBounds() {
+  if (typeof isLazyWorldMap === 'function' && isLazyWorldMap()) {
+    if (typeof territoryGeneratedBounds !== 'undefined' && territoryGeneratedBounds) {
+      const { rowStart, colStart, rowEnd, colEnd } = territoryGeneratedBounds;
+      return { rowStart, colStart, rowCount: rowEnd - rowStart, colCount: colEnd - colStart };
+    }
+    // No chunk generated yet (e.g. refreshAllTiles runs once, inside rebuildFreshMapSession,
+    // before the starting chunk's own generateTerritoryStartingChunk call) - every tile is still
+    // the ungenerated sentinel, so there is nothing for a road/bridge decoration to find yet.
+    return { rowStart: 0, colStart: 0, rowCount: 0, colCount: 0 };
+  }
+  return { rowStart: 0, colStart: 0, rowCount: MAP_HEIGHT, colCount: MAP_WIDTH };
 }
 
 function refreshAllTiles(scene) {

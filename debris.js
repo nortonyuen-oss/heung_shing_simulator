@@ -68,7 +68,7 @@ function canDebrisOccupyAt(scene, row, col, blockedTiles = null) {
 }
 
 function canDebrisGrowAt(scene, row, col, blockedTiles = null) {
-  if (debrisMap[row]?.[col]) return false;
+  if (debrisMap.get(getTileId(row, col))) return false;
   return canDebrisOccupyAt(scene, row, col, blockedTiles);
 }
 
@@ -86,7 +86,7 @@ function invalidateOrphanedNeighborDebris(scene, row, col) {
       const nr = row + dr;
       const nc = col + dc;
       if (!isInsideMap(nr, nc)) continue;
-      if (!debrisMap[nr]?.[nc]) continue;
+      if (!debrisMap.get(getTileId(nr, nc))) continue;
       if (mapData[nr][nc] === DIRT && isAdjacentToNonDirtTerrain(nr, nc)) {
         removeDebris(scene, nr, nc);
       }
@@ -110,22 +110,22 @@ function getDebrisVisualOffset(debris) {
 
 function generateInitialDebris(scene, blockedTiles = null) {
   const random = createRandom(`${currentSeed}:debris`);
-  debrisMap = createFilledMap(null);
+  debrisMap = new Map();
   for (let row = 0; row < MAP_HEIGHT; row++) {
     for (let col = 0; col < MAP_WIDTH; col++) {
       if (!canDebrisGrowAt(scene, row, col, blockedTiles)) continue;
       if (random() >= BARE_LAND_DEBRIS_SPAWN_CHANCE) continue;
-      debrisMap[row][col] = {
+      debrisMap.set(getTileId(row, col), {
         kind: chooseBareLandDebrisKind(random()).id,
         variant: random(),
-      };
+      });
     }
   }
   if (typeof invalidateDebrisSimulationTiles === 'function') invalidateDebrisSimulationTiles();
 }
 
 function placeDebrisSprite(scene, row, col) {
-  const debris = debrisMap[row]?.[col];
+  const debris = debrisMap.get(getTileId(row, col));
   if (!debris || !scene?.debrisSprites) return;
 
   const kind = getBareLandDebrisKind(debris.kind);
@@ -149,7 +149,7 @@ function placeDebrisSprite(scene, row, col) {
 function positionDebrisSprite(scene, sprite) {
   const row = sprite.mapRow;
   const col = sprite.mapCol;
-  const debris = debrisMap[row]?.[col];
+  const debris = debrisMap.get(getTileId(row, col));
   if (!debris) return;
   const pos = isoToScreen(col, row);
   const baseOffset = getDebrisVisualOffset(debris);
@@ -168,14 +168,14 @@ function refreshDebrisSprite(scene, row, col) {
     existing.destroy();
     scene.debrisSprites.delete(id);
   }
-  if (debrisMap[row]?.[col]) placeDebrisSprite(scene, row, col);
+  if (debrisMap.get(id)) placeDebrisSprite(scene, row, col);
 }
 
 function removeDebris(scene, row, col) {
-  if (!isInsideMap(row, col) || !debrisMap[row]?.[col]) return false;
-  debrisMap[row][col] = null;
-  if (typeof invalidateDebrisSimulationTiles === 'function') invalidateDebrisSimulationTiles();
   const id = getTileId(row, col);
+  if (!isInsideMap(row, col) || !debrisMap.get(id)) return false;
+  debrisMap.delete(id);
+  if (typeof invalidateDebrisSimulationTiles === 'function') invalidateDebrisSimulationTiles();
   const sprite = scene?.debrisSprites?.get(id);
   if (sprite) {
     sprite.destroy();
@@ -193,11 +193,10 @@ function removeDebrisInFootprint(scene, row, col, footprintCols = 1, footprintRo
 function rebuildDebrisSprites(scene) {
   scene?.debrisSprites?.forEach((sprite) => sprite.destroy());
   scene?.debrisSprites?.clear();
-  for (let row = 0; row < MAP_HEIGHT; row++) {
-    for (let col = 0; col < MAP_WIDTH; col++) {
-      if (debrisMap[row]?.[col]) placeDebrisSprite(scene, row, col);
-    }
-  }
+  debrisMap.forEach((debris, id) => {
+    const [row, col] = id.split(':').map(Number);
+    placeDebrisSprite(scene, row, col);
+  });
 }
 
 function normalizeDebrisRecord(debris) {
@@ -217,11 +216,11 @@ function restoreOrGenerateDebris(scene, save) {
     return;
   }
 
-  debrisMap = createFilledMap(null);
+  debrisMap = new Map();
   for (let row = 0; row < MAP_HEIGHT; row++) {
     for (let col = 0; col < MAP_WIDTH; col++) {
-      const debris = normalizeDebrisRecord(save.debrisMap[row]?.[col]);
-      debrisMap[row][col] = debris && canDebrisOccupyAt(scene, row, col) ? debris : null;
+      const debris = normalizeDebrisRecord(save.debrisMap.get(getTileId(row, col)));
+      if (debris && canDebrisOccupyAt(scene, row, col)) debrisMap.set(getTileId(row, col), debris);
     }
   }
   if (typeof invalidateDebrisSimulationTiles === 'function') invalidateDebrisSimulationTiles();

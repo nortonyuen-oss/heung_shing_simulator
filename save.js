@@ -458,19 +458,25 @@ function normalizeCompactDebrisEntry(debris, fieldName, location) {
   return { kind, variant };
 }
 
+// debrisMap lives in memory as a sparse Map (tileId -> {kind, variant}), not a dense grid - see
+// the equivalent note on encodeCompactBusStopMap above.
 function encodeCompactDebrisMap(source) {
   const fieldName = 'debrisMap';
   const { width, height } = getCompactMapDimensions();
-  assertCompactSourceMap(source, fieldName, width, height);
-  const entries = [];
-  for (let row = 0; row < height; row += 1) {
-    for (let col = 0; col < width; col += 1) {
-      if (source[row][col] == null) continue;
-      const index = row * width + col;
-      const debris = normalizeCompactDebrisEntry(source[row][col], fieldName, `${row}:${col}`);
-      entries.push([index, debris.kind, debris.variant]);
-    }
+  if (!(source instanceof Map)) {
+    throw createCompactSaveError(fieldName, 'source must be a Map');
   }
+  const entries = [];
+  source.forEach((debris, id) => {
+    if (debris == null) return;
+    const [row, col] = String(id).split(':').map(Number);
+    if (!Number.isInteger(row) || !Number.isInteger(col) || row < 0 || row >= height || col < 0 || col >= width) {
+      throw createCompactSaveError(fieldName, `invalid tile id ${id}`);
+    }
+    const normalized = normalizeCompactDebrisEntry(debris, fieldName, id);
+    entries.push([row * width + col, normalized.kind, normalized.variant]);
+  });
+  entries.sort((a, b) => a[0] - b[0]);
   return { encoding: COMPACT_DEBRIS_ENCODING, width, height, entries };
 }
 
@@ -487,7 +493,7 @@ function decodeCompactDebrisMap(encoded) {
     throw createCompactSaveError(fieldName, 'invalid sparse entry list');
   }
 
-  const result = Array.from({ length: height }, () => Array(width).fill(null));
+  const result = new Map();
   let previousIndex = -1;
   encoded.entries.forEach((entry, entryNumber) => {
     if (!Array.isArray(entry) || entry.length !== 3) {
@@ -498,7 +504,7 @@ function decodeCompactDebrisMap(encoded) {
       throw createCompactSaveError(fieldName, `invalid or duplicate index in entry ${entryNumber}`);
     }
     const debris = normalizeCompactDebrisEntry({ kind, variant }, fieldName, `entry ${entryNumber}`);
-    result[Math.floor(index / width)][index % width] = debris;
+    result.set(`${Math.floor(index / width)}:${index % width}`, debris);
     previousIndex = index;
   });
   return result;

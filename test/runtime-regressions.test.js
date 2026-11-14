@@ -154,7 +154,6 @@ test('save requests serialize an immutable snapshot before entering the queue', 
     zoneMap: Array.from({ length: 3 }, () => Array(4).fill(0)),
     zoneDensityMap: Array.from({ length: 3 }, () => Array(4).fill(1)),
     treeMap: Array.from({ length: 3 }, () => Array(4).fill(null)),
-    debrisMap: Array.from({ length: 3 }, () => Array(4).fill(null)),
     buildingData: { '1:1': { type: 'residential', nested: { value: 'A' } } },
     powerSources: new Set(),
     powerLineSet: new Set(),
@@ -165,6 +164,9 @@ test('save requests serialize an immutable snapshot before entering the queue', 
     showToast: () => {},
     t: (key) => key,
   });
+  // encodeCompactDebrisMap checks `debrisMap instanceof Map` - built via vm.runInContext so it
+  // belongs to the context's own realm, avoiding a cross-realm instanceof failure.
+  vm.runInContext('debrisMap = new Map();', context);
   const bodies = [];
   context.fetch = async (_url, options) => {
     bodies.push(JSON.parse(options.body));
@@ -221,7 +223,6 @@ test('autosave stringification runs in a worker without losing snapshot immutabi
     zoneMap: Array.from({ length: 3 }, () => Array(4).fill(0)),
     zoneDensityMap: Array.from({ length: 3 }, () => Array(4).fill(1)),
     treeMap: Array.from({ length: 3 }, () => Array(4).fill(null)),
-    debrisMap: Array.from({ length: 3 }, () => Array(4).fill(null)),
     buildingData: { '1:1': { type: 'residential', nested: { value: 'A' } } },
     powerSources: new Set(),
     powerLineSet: new Set(),
@@ -232,6 +233,9 @@ test('autosave stringification runs in a worker without losing snapshot immutabi
     showToast: () => {},
     t: (key) => key,
   });
+  // encodeCompactDebrisMap checks `debrisMap instanceof Map` - built via vm.runInContext so it
+  // belongs to the context's own realm, avoiding a cross-realm instanceof failure.
+  vm.runInContext('debrisMap = new Map();', context);
   const bodies = [];
   const metrics = [];
   context.recordVisualRoutePerformanceOperation = (section, duration, details) => {
@@ -258,24 +262,28 @@ test('autosave stringification runs in a worker without losing snapshot immutabi
 });
 
 test('save session generations preserve a successful slot on failed load and reject stale responses', async () => {
-  const installSaveState = (context) => Object.assign(context, {
-    activeScene: { scene: {}, tileSprites: [], buildingSprites: new Map(), zoneOverlays: new Map() },
-    city: { name: 'Race City', population: 10, year: 1900, month: 1, budget: 5000 },
-    currentSeed: 'seed',
-    mapData: Array.from({ length: 3 }, () => Array(4).fill(1)),
-    heightMap: Array.from({ length: 3 }, () => Array(4).fill(0)),
-    bridgeMap: Array.from({ length: 3 }, () => Array(4).fill(null)),
-    roadUnderlayMap: Array.from({ length: 3 }, () => Array(4).fill(null)),
-    zoneMap: Array.from({ length: 3 }, () => Array(4).fill(0)),
-    zoneDensityMap: Array.from({ length: 3 }, () => Array(4).fill(1)),
-    treeMap: Array.from({ length: 3 }, () => Array(4).fill(null)),
-    debrisMap: Array.from({ length: 3 }, () => Array(4).fill(null)),
-    buildingData: {}, powerSources: new Set(), powerLineSet: new Set(), lowDensityLockSet: new Set(), roadTileCount: 0,
-    getDefaultCityName: () => 'Default', getCurrentRoadTileSetId: () => 'default',
-    showToast: () => {}, t: (key) => key,
-    window: { setTimeout },
-    console: { error: () => {}, log: console.log, warn: console.warn },
-  });
+  const installSaveState = (context) => {
+    Object.assign(context, {
+      activeScene: { scene: {}, tileSprites: [], buildingSprites: new Map(), zoneOverlays: new Map() },
+      city: { name: 'Race City', population: 10, year: 1900, month: 1, budget: 5000 },
+      currentSeed: 'seed',
+      mapData: Array.from({ length: 3 }, () => Array(4).fill(1)),
+      heightMap: Array.from({ length: 3 }, () => Array(4).fill(0)),
+      bridgeMap: Array.from({ length: 3 }, () => Array(4).fill(null)),
+      roadUnderlayMap: Array.from({ length: 3 }, () => Array(4).fill(null)),
+      zoneMap: Array.from({ length: 3 }, () => Array(4).fill(0)),
+      zoneDensityMap: Array.from({ length: 3 }, () => Array(4).fill(1)),
+      treeMap: Array.from({ length: 3 }, () => Array(4).fill(null)),
+      buildingData: {}, powerSources: new Set(), powerLineSet: new Set(), lowDensityLockSet: new Set(), roadTileCount: 0,
+      getDefaultCityName: () => 'Default', getCurrentRoadTileSetId: () => 'default',
+      showToast: () => {}, t: (key) => key,
+      window: { setTimeout },
+      console: { error: () => {}, log: console.log, warn: console.warn },
+    });
+    // encodeCompactDebrisMap checks `debrisMap instanceof Map` - built via vm.runInContext so it
+    // belongs to the context's own realm, avoiding a cross-realm instanceof failure.
+    vm.runInContext('debrisMap = new Map();', context);
+  };
 
   const failedLoadContext = createSaveVm();
   installSaveState(failedLoadContext);

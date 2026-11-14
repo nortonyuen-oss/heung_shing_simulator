@@ -26,7 +26,8 @@ function createContext() {
   const context = vm.createContext({
     Math, Number,
     mapRotation: 0,
-    treeMap: {}, debrisMap: {},
+    treeMap: {}, debrisMap: new Map(),
+    getTileId: (r, c) => `${r}:${c}`,
     isoToScreen: (col, row) => ({ x: (col - row) * 50, y: (col + row) * 25 }),
     getTileHeight: () => 0,
     getWorldDepth: (layer, local) => 200000 + local,
@@ -64,7 +65,7 @@ test('a tree stands on the centre of its own tile, not the tile diagonally in fr
 test('trees and debris sort with the buildings, lamps and traffic around them', () => {
   const context = createContext();
   context.treeMap = { 4: { 6: { variant: 0.3, count: 1 } }, 3: { 6: { variant: 0.3, count: 1 } }, 5: { 6: { variant: 0.3, count: 1 } } };
-  context.debrisMap = { 4: { 7: { kind: 'sedanWreck', variant: 0.2 } } };
+  context.debrisMap = new Map([['4:7', { kind: 'sedanWreck', variant: 0.2 }]]);
   const scene = { offsetX: 0, offsetY: 0 };
   const positionTree = vm.runInContext('positionTree', context);
   const positionDebris = vm.runInContext('positionDebrisSprite', context);

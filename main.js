@@ -688,7 +688,7 @@ function getBuildingSubLabel(type, levelOrWealthTier) {
 }
 
 // Map data: 1=ground, 2=road, 3=dirt, 4=beach, 5=water, 6=hill
-let mapData = createFilledMap(GROUND);
+let mapData = createFilledTypedMap(Uint8Array, GROUND);
 
 const config = {
   type: Phaser.AUTO,

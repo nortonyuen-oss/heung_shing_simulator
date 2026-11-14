@@ -1757,6 +1757,17 @@ function createFilledMap(value) {
   return Array.from({ length: MAP_HEIGHT }, () => Array(MAP_WIDTH).fill(value));
 }
 
+// Same shape as createFilledMap (arr[row][col]), but each row is a typed array instead of a
+// plain Array - ~8x less memory per cell, which matters once MAP_WIDTH/MAP_HEIGHT can be set to
+// the full Hong Kong territory (setMapDimensions in main.js) rather than the fixed 256x256.
+function createFilledTypedMap(ArrayCtor, value) {
+  return Array.from({ length: MAP_HEIGHT }, () => {
+    const row = new ArrayCtor(MAP_WIDTH);
+    if (value) row.fill(value);
+    return row;
+  });
+}
+
 // City nameplate colour picker: UI/nameplateNew.webp is a single 5x2 grid of
 // colour swatches: one sprite sheet, selected at runtime via CSS
 // background-position instead of shipping 10 separate image files.

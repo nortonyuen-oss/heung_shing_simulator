@@ -57,12 +57,16 @@ test('compact v15 maps and sparse trees round-trip exactly', () => {
     };
     decoded = decodeSaveDataForLoad(encoded);
   `, context);
-  assert.deepEqual(JSON.parse(JSON.stringify(context.decoded.mapData)), context.layers.mapData);
-  assert.deepEqual(JSON.parse(JSON.stringify(context.decoded.heightMap)), context.layers.heightMap);
+  // mapData/heightMap/zoneMap/zoneDensityMap decode into typed-array rows (createFilledTypedMap);
+  // JSON.stringify serializes those as {"0":1,...} objects rather than [1,...] arrays, so compare
+  // via plain-array rows instead of round-tripping through JSON.
+  const plainRows = (rows) => rows.map((row) => Array.from(row));
+  assert.deepEqual(plainRows(context.decoded.mapData), context.layers.mapData);
+  assert.deepEqual(plainRows(context.decoded.heightMap), context.layers.heightMap);
   assert.deepEqual(JSON.parse(JSON.stringify(context.decoded.bridgeMap)), context.layers.bridgeMap);
   assert.deepEqual(JSON.parse(JSON.stringify(context.decoded.roadUnderlayMap)), context.layers.roadUnderlayMap);
-  assert.deepEqual(JSON.parse(JSON.stringify(context.decoded.zoneMap)), context.layers.zoneMap);
-  assert.deepEqual(JSON.parse(JSON.stringify(context.decoded.zoneDensityMap)), context.layers.zoneDensityMap);
+  assert.deepEqual(plainRows(context.decoded.zoneMap), context.layers.zoneMap);
+  assert.deepEqual(plainRows(context.decoded.zoneDensityMap), context.layers.zoneDensityMap);
   assert.deepEqual(JSON.parse(JSON.stringify(context.decoded.treeMap)), context.layers.treeMap);
 });
 
@@ -463,7 +467,7 @@ test('resetting a city invalidates infrastructure caches before save restoration
     source.indexOf('function resetGameState()'),
     source.indexOf('const _normalizedCityStateObjects'),
   );
-  assert.match(reset, /powerMap\s*=\s*createFilledMap\(false\)/);
+  assert.match(reset, /powerMap\s*=\s*createFilledTypedMap\(Uint8Array,\s*0\)/);
   assert.match(reset, /serviceMap\s*=\s*createFilledMap\(null\)/);
   assert.match(reset, /invalidateBuildingCountCache\(\)/);
   assert.match(reset, /markPowerGridDirty\(\)/);

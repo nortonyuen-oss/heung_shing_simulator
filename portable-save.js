@@ -10,8 +10,11 @@
     if (![14, 15].includes(payload.save_data.version)) fail('This save format is not supported. Use a compatible game version.');
     const data = decode(payload.save_data);
     for (const name of ['mapData', 'heightMap', 'bridgeMap', 'roadUnderlayMap', 'zoneMap', 'zoneDensityMap', 'treeMap']) {
+      // mapData/heightMap/zoneMap/zoneDensityMap rows are typed arrays once decoded (see
+      // createFilledTypedMap in constants.js) - Array.isArray is false for those, so a row must
+      // also be accepted via ArrayBuffer.isView.
       if (!Array.isArray(data[name]) || data[name].length !== height
-        || data[name].some(row => !Array.isArray(row) || row.length !== width)) fail(`Invalid ${name} dimensions`);
+        || data[name].some(row => !(Array.isArray(row) || ArrayBuffer.isView(row)) || row.length !== width)) fail(`Invalid ${name} dimensions`);
     }
     if (!object(data.buildingData) || Object.keys(data.buildingData).length > width * height) fail('Invalid buildings');
     for (const key of Object.keys(data.buildingData)) {

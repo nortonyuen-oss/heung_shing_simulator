@@ -542,8 +542,8 @@ function hideLandingScreen() {
 }
 
 function copyTerrainToWorld(mapRows, heightRows) {
-  mapData = createFilledMap(GROUND);
-  heightMap = createFilledMap(0);
+  mapData = createFilledTypedMap(Uint8Array, GROUND);
+  heightMap = createFilledTypedMap(Uint8Array, 0);
   resetBridgeLayers();
 
   for (let row = 0; row < MAP_HEIGHT; row++) {

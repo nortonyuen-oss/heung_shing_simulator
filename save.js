@@ -279,12 +279,15 @@ function isValidCompactMapValue(fieldName, value) {
   return false;
 }
 
+// Rows are plain Arrays for most fields, but mapData/heightMap/zoneMap/zoneDensityMap hold
+// typed-array rows (see createFilledTypedMap) - ArrayBuffer.isView catches those too, since
+// Array.isArray is false for a typed array.
 function assertCompactSourceMap(source, fieldName, width, height) {
   if (!Array.isArray(source) || source.length !== height) {
     throw createCompactSaveError(fieldName, `expected ${height} rows`);
   }
   source.forEach((row) => {
-    if (!Array.isArray(row) || row.length !== width) {
+    if (!(Array.isArray(row) || ArrayBuffer.isView(row)) || row.length !== width) {
       throw createCompactSaveError(fieldName, `each row must contain ${width} cells`);
     }
   });
@@ -317,6 +320,12 @@ function encodeCompactRleMap(source, fieldName) {
   return { encoding: COMPACT_RLE_ENCODING, width, height, runs };
 }
 
+// mapData/heightMap/zoneMap/zoneDensityMap live in memory as Uint8Array rows (createFilledTypedMap)
+// - every value isValidCompactMapValue allows for these four fields is a small non-negative
+// integer, so decoding straight into a Uint8Array is lossless and keeps the loaded city's memory
+// footprint in line with a freshly-generated one instead of silently reverting to plain Arrays.
+const COMPACT_TYPED_FIELDS = new Set(['mapData', 'heightMap', 'zoneMap', 'zoneDensityMap']);
+
 function decodeCompactRleMap(encoded, fieldName) {
   const { width, height, total } = getCompactMapDimensions();
   if (!encoded || typeof encoded !== 'object' || Array.isArray(encoded)) {
@@ -330,7 +339,8 @@ function decodeCompactRleMap(encoded, fieldName) {
     throw createCompactSaveError(fieldName, 'invalid run list');
   }
 
-  const flat = new Array(total);
+  const typed = COMPACT_TYPED_FIELDS.has(fieldName);
+  const flat = typed ? new Uint8Array(total) : new Array(total);
   let offset = 0;
   for (let runIndex = 0; runIndex < encoded.runs.length; runIndex += 2) {
     const value = encoded.runs[runIndex];
@@ -349,7 +359,7 @@ function decodeCompactRleMap(encoded, fieldName) {
   }
 
   return Array.from({ length: height }, (_, row) => (
-    flat.slice(row * width, (row + 1) * width)
+    typed ? flat.subarray(row * width, (row + 1) * width) : flat.slice(row * width, (row + 1) * width)
   ));
 }
 
@@ -1345,8 +1355,8 @@ const TERRAIN_ELEVATION_REPAIR_THRESHOLD = 64;
 function normalizeSavedTerrainElevation(save) {
   const sourceMap = Array.isArray(save?.mapData) ? save.mapData : [];
   const sourceHeights = Array.isArray(save?.heightMap) ? save.heightMap : [];
-  const normalizedMap = createFilledMap(GROUND);
-  const normalizedHeights = createFilledMap(0);
+  const normalizedMap = createFilledTypedMap(Uint8Array, GROUND);
+  const normalizedHeights = createFilledTypedMap(Uint8Array, 0);
   let impossibleWaterHeight = 0;
   let zeroHeightHill = 0;
   let elevatedSurface = 0;
@@ -1447,11 +1457,12 @@ function applySaveData(scene, save) {
   } else if (typeof setCurrentRoadTileSetId === 'function') {
     setCurrentRoadTileSetId(save.roadTileSetId ?? 'classic');
   }
-  for (let r = 0; r < MAP_HEIGHT; r++)
-    for (let c = 0; c < MAP_WIDTH; c++)
-      mapData[r][c] = terrainElevation.mapData[r][c];
+  // Reassign rather than copy cell-by-cell into the old arrays: setMapDimensions above may have
+  // just changed MAP_WIDTH/MAP_HEIGHT (a save from a different-size city), and terrainElevation
+  // was already built at the new size - the old mapData/heightMap may be the wrong shape entirely.
+  mapData = terrainElevation.mapData;
   // The border keeps whatever height was saved: Hong Kong district maps run high to the edge.
-  heightMap = terrainElevation.heightMap.map((row) => Array.from(row));
+  heightMap = terrainElevation.heightMap;
 
   // Clear Phaser sprites
   clearAllOverlays(scene);

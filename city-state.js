@@ -4,7 +4,7 @@ let zoneDensityMap  = [];   // DENSITY_LOW | DENSITY_MED | DENSITY_HIGH per cell
 let heightMap       = [];   // 0 = sea/flat, each +1 step is 100m altitude
 let bridgeMap       = [];   // null | 'deck:row' | 'deck:col' | 'ramp:n/e/s/w'
 let roadUnderlayMap = [];   // original terrain below bridge road tiles
-let powerMap        = [];   // boolean per cell (is this cell powered?)
+let powerMap        = [];   // 0 | 1 per cell (is this cell powered?) - Uint8Array rows
 let serviceMap      = [];   // { fire: bool, police: bool, park: 0|1|2 } | null per cell
 let treeMap         = [];   // null | { species, age, variant } per cell
 let debrisMap       = [];   // null | { kind, variant } per cell - derelict props on dirt tiles
@@ -272,9 +272,9 @@ function resetGameState() {
   if (typeof stopCoastalWeatherSession === 'function') stopCoastalWeatherSession();
   city.coastalWeather = null;
   if (typeof resetExpansionState === 'function') resetExpansionState();
-  zoneMap        = createFilledMap(ZONE_NONE);
-  zoneDensityMap = createFilledMap(DENSITY_LOW);
-  powerMap       = createFilledMap(false);
+  zoneMap        = createFilledTypedMap(Uint8Array, ZONE_NONE);
+  zoneDensityMap = createFilledTypedMap(Uint8Array, DENSITY_LOW);
+  powerMap       = createFilledTypedMap(Uint8Array, 0);
   serviceMap     = createFilledMap(null);
   treeMap        = createFilledMap(null);
   debrisMap      = createFilledMap(null);
@@ -284,7 +284,7 @@ function resetGameState() {
   if (typeof invalidateResidentialEnvironmentScoreCache === 'function') invalidateResidentialEnvironmentScoreCache();
   bridgeMap      = createFilledMap(null);
   roadUnderlayMap = createFilledMap(null);
-  trafficMap     = createFilledMap(0);
+  trafficMap     = createFilledTypedMap(Float32Array, 0);
 
   Object.keys(buildingData).forEach((k) => delete buildingData[k]);
   if (typeof clearHarborFrontageTileCache === 'function') clearHarborFrontageTileCache();

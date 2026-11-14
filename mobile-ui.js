@@ -666,18 +666,14 @@ function setupMobileUi() {
     if (event.target.matches('[data-mobile-profile]')) setUiProfilePreference(event.target.value);
     if (event.target.matches('[data-mobile-language]')) setLanguage(event.target.value);
   });
-  const profileSetting = document.createElement('label');
-  profileSetting.className = 'ui-profile-setting';
-  profileSetting.id = 'landing-ui-profile';
-  document.getElementById('landing-menu').appendChild(profileSetting);
-  // The same preference is reachable from the existing desktop Settings menu.
+  // Reachable from the existing desktop Settings menu (not shown on the landing screen itself).
   const desktopSetting = document.createElement('label');
   desktopSetting.className = 'ui-profile-setting';
   desktopSetting.id = 'desktop-ui-profile';
   document.querySelector('[data-menu="settings"] .menu-dropdown')?.appendChild(desktopSetting);
-  [profileSetting, desktopSetting].forEach((label) => label.addEventListener('change', (event) => {
+  desktopSetting.addEventListener('change', (event) => {
     if (event.target.matches('[data-mobile-profile]')) setUiProfilePreference(event.target.value);
-  }));
+  });
   const translate = () => {
     betaNotice.textContent = mobileText('betaNotice');
     mobileUi.querySelectorAll('[data-mobile-text]').forEach((el) => { el.textContent = mobileText(el.dataset.mobileText); });
@@ -687,7 +683,7 @@ function setupMobileUi() {
     // page-wide applyTranslations() sweep (whose timing this must not depend on).
     mobileUi.querySelectorAll('[data-i18n]').forEach((el) => { el.textContent = t(el.dataset.i18n); });
     mobileSetNavToggleLabel(mobileUi.classList.contains('nav-open'), mobileText(mobilePage || 'menu'));
-    [profileSetting, desktopSetting].forEach((label) => { label.innerHTML = `${mobileText('profile')} ${mobileProfileSelect()}`; });
+    desktopSetting.innerHTML = `${mobileText('profile')} ${mobileProfileSelect()}`;
     mobileRenderDraft(mobileBuildSession.getState());
     mobileRenderPage();
     mobileUpdateStatus();

@@ -1,3 +1,28 @@
+# The City of Heung Shing v5.8.1 — 【手機建城 Beta 全通】
+
+- 廣東話／台灣中文：【手機建城 Beta 全通】
+- English: 【Mobile Building Beta — Fully Connected】
+- 日本語：【モバイル建設ベータ全線開通】
+
+## 手機版 Beta：介面精簡
+
+- 底部選單把手由大型「建造 ⌃」標籤，改為半透明細圓形 ☰／✕ 按鈕，收細佔用畫面嘅面積。
+- 新增常駐走馬燈，同步桌面版新聞／廣告內容，撳一下直接開香城討論區；「更多」頁加入「顯示走馬燈」開關（只限手機，桌面版冇呢個設定）。
+- 頂部狀態列回復日期同時間顯示（直向先前因位置不足被隱藏，現省略星期幾換返空間）。
+- 交通模式按鈕：公共交通擴充未啟用或未解鎖時，一開始已經變灰色鎖定，唔使撳咗先知。
+
+**Beta 範圍**：手機已支援全部 60 個工具；鐵路及電車路軌／車站嘅拆除仍未開放，真機效能、背景恢復及輔助使用驗收仍待完成。瀏覽器城市保存在自己裝置，可下載 `.heungshing` 備份；沒有跨裝置自動同步。
+
+**English:** A small mobile update: the collapsed nav handle is now a compact translucent ☰ button instead of a large labelled bar; a slim always-on ticker mirrors the desktop news/ad ticker and opens the forum on tap, with a new mobile-only "Show ticker" setting to turn it off; the status bar's date and time are back (weekday dropped to fit); and the Transport mode button greys out proactively when the transport company isn't enabled or unlocked, rather than only after switching into it.
+
+**日本語:** モバイル版の小規模更新：折りたたみ時のナビハンドルを、大きなラベル付きバーから半透明の小さな ☰ ボタンに変更。デスクトップ版のニュース・広告ティッカーと同期する常時表示の細いティッカーを追加し、タップで討論区を開けます（モバイル限定の「ティッカーを表示」設定で非表示にできます）。ステータスバーの日付・時刻表示を復活（曜日を省略して幅を確保）。交通モードボタンは、交通会社が有効化・解放される前から灰色で表示されるようになりました。
+
+## 下載
+
+macOS Apple Silicon / Intel DMG；Windows 安裝版 / 免安裝版 EXE；官網瀏覽器版（手機觸控為 Beta）。存檔資料格式維持 v15，支援既有 v14／v15 可攜備份。
+
+---
+
 # The City of Heung Shing v5.8.0 — 【手機建城 Beta 全通】
 
 - 廣東話／台灣中文：【手機建城 Beta 全通】

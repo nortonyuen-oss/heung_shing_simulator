@@ -270,6 +270,7 @@ const SITE_FEATURE_LIST = {
 // ── Changelog ─────────────────────────────────────────────────────────────────
 const SITE_CHANGELOG = {
   "zh-HK": [
+    {"version":"v5.8.1","date":"2026-11-14","dateLabel":"2026年11月14日","title":"手機建城 Beta 全通","items":["底部選單把手由大型「建造」標籤，改為半透明細圓形 ☰／✕ 按鈕，收細佔用畫面面積。","新增常駐走馬燈，同步桌面版新聞／廣告內容，撳一下直接開香城討論區；「更多」頁加入「顯示走馬燈」開關（只限手機）。","頂部狀態列回復日期同時間顯示，省略星期幾換返空間。","交通模式按鈕：公共交通擴充未啟用或未解鎖時，一開始已經變灰色鎖定。"]},
     {"version":"v5.8.0","date":"2026-11-14","dateLabel":"2026年11月14日","title":"手機建城 Beta 全通","items":["餘下 14 個觸控工具全部接駁，手機工具總數由 46 個升到 60 個，涵蓋全部地圖工具。","鐵路：地鐵路軌（地底／地面／高架選單）、地鐵站、地面站及逐站開線；電車路軌、電車站及開線；扣地鐵撥款再由公司現金找數。","渡輪碼頭放置同逐站開線；海底隧道兩岸選點拖曳，即時睇過海預覽同造價。","避風塘用加／減切換按鈕取代 Shift 框選，出入口模式直接點防波堤；地形用筆刷選單取代長按。","海濱步道矩形草稿鋪設，再點已鋪嘅格免費加／減碼頭；浮動餐廳轉向變成放置前選項。","修正遊戲城市夜晚對比度：路燈同建築夜燈光度回復原有亮度，唔再被全螢幕夜間遮罩拖暗。"]},
     {"version":"v5.7.0","date":"2026-11-12","dateLabel":"2026年11月12日","title":"手機建城 Beta 擴展","items":["手機版 Beta 繼續自動切換，支援直向同橫向；巴士站可揀 A／B／兩側，預覽步行覆蓋，車廠可轉入口同檢查接路。","由手機建站、建車廠、開線、買車、派車到營運；交通公司同市庫分開付款，確認前顯示費用同資金來源。","加入電線、種樹、取消分區、公園及運動場款式、雙語地區牌；先預覽再確認，取消分區保留建築同永久低密度指定。","新電線即時更新供電；棕櫚苑扣款對齊標價 $500；地區牌英文名支援 48 字元，雙指唔會誤開改名。","手機仍為 Beta，部分交通同地形工具尚在開發；存檔留喺自己裝置，可下載備份。"]},
     {"version": "v5.6.0", "date": "2026-11-12", "dateLabel": "2026年11月12日", "title": "手機版 Beta 登場", "items": ["手機版 Beta：手機自動用觸控介面，電腦沿用桌面介面；直向同橫向都可以玩。", "單指平移、雙指縮放；道路、分區、建築同拆除先預覽再確認，唔會放手就誤建。", "財政、議會、股票、圖表、圖層、交通管理同設定加入手機面板；修正安全邊界、通知及頂欄排版。", "Beta 尚未包括全部交通建造及地形工具；存檔仍留喺自己嘅瀏覽器，可下載備份。"]},
@@ -638,6 +639,7 @@ const SITE_CHANGELOG = {
 // title/items text.
 const SITE_CHANGELOG_TRANSLATIONS = {
   "zh-TW": {
+    "v5.8.1": {"title":"手機建城 Beta 全通","items":["底部選單把手由大型「建造」標籤，改為半透明細圓形 ☰／✕ 按鈕，收細佔用畫面面積。","新增常駐走馬燈，同步桌面版新聞／廣告內容，點一下直接開香城討論區；「更多」頁加入「顯示走馬燈」開關（只限手機）。","頂部狀態列回復日期與時間顯示，省略星期幾換取空間。","交通模式按鈕：公共交通擴充未啟用或未解鎖時，一開始已經變灰色鎖定。"]},
     "v5.8.0": {"title":"手機建城 Beta 全通","items":["餘下 14 個觸控工具全部接駁，手機工具總數由 46 個升到 60 個，涵蓋全部地圖工具。","鐵路：地鐵路軌（地底／地面／高架選單）、地鐵站、地面站及逐站開線；電車路軌、電車站及開線；扣地鐵撥款再由公司現金找數。","渡輪碼頭放置同逐站開線；海底隧道兩岸選點拖曳，即時睇過海預覽同造價。","避風塘用加／減切換按鈕取代 Shift 框選，出入口模式直接點防波堤；地形用筆刷選單取代長按。","海濱步道矩形草稿鋪設，再點已鋪嘅格免費加／減碼頭；浮動餐廳轉向變成放置前選項。","修正遊戲城市夜晚對比度：路燈同建築夜燈光度回復原有亮度，唔再被全螢幕夜間遮罩拖暗。"]},
     "v5.7.0": {"title":"手機建城 Beta 擴充","items":["手機版 Beta 維持自動切換，支援直向與橫向；巴士站可選 A／B／兩側並預覽步行範圍，車庫可旋轉入口及檢查道路連接。","在手機建站、建車庫、開路線、購車、派車並營運；交通公司與市庫分開付款，確認前顯示費用與資金來源。","新增送電線、植樹、取消分區、公園與運動場款式、雙語地區標誌；先預覽再確認，取消分區會保留建築及永久低密度指定。","新送電線即時更新供電；棕櫚苑扣款對齊標價 $500；地區標誌英文名支援 48 字元，雙指操作不會誤開改名。","手機仍為 Beta，部分交通與地形工具尚在開發；存檔保存在自己的裝置，可下載備份。"]},
     "v5.6.0": {"title": "手機版 Beta 登場", "items": ["手機版 Beta：手機自動使用觸控介面，電腦沿用桌面介面；支援直向與橫向。", "單指平移、雙指縮放；道路、分區、建築與拆除先預覽再確認，避免放手時誤建。", "財政、議會、股票、圖表、圖層、交通管理與設定加入手機面板；修正安全邊界、通知與頂欄排版。", "Beta 尚未包含全部交通建造與地形工具；存檔仍保存在自己的瀏覽器，可下載備份。"]},
@@ -999,6 +1001,7 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   en: {
+    "v5.8.1": {"title":"Mobile Building Beta — Fully Connected","items":["The collapsed nav handle is now a compact translucent ☰ button instead of a large labelled bar, taking up less of the screen.","Added a slim always-on ticker that mirrors the desktop news/ad ticker and opens the forum on tap; a new mobile-only \"Show ticker\" setting in the More page turns it off.","The status bar's date and time are back, with the weekday dropped to make room.","The Transport mode button now greys out up front when the transport company isn't enabled or unlocked, instead of only after switching into it."]},
     "v5.8.0": {"title":"Mobile Building Beta — Fully Connected","items":["The remaining 14 touch tools are connected, bringing mobile from 46 to all 60 map tools.","Rail: metro track (underground/surface/elevated), metro stations, surface stations and station-by-station lines; tram track, stops and lines. Costs draw from the metro subsidy, then company cash.","Ferry piers and station-by-station routes. The undersea tunnel previews the crossing and cost as you drag between shores.","Typhoon shelters swap Shift-drag for add/remove toggle buttons, with entrance mode tapping breakwaters directly; terrain uses an explicit brush menu instead of long-press.","The waterfront promenade lays a rectangle draft, then tapping a laid tile offers a free pier add/remove; the floating restaurant's rotation is now a pre-placement choice.","Fixed low night contrast: street lamps and lit building windows keep their full brightness instead of being dimmed by the night overlay."]},
     "v5.7.0": {"title":"Mobile Building Beta Expanded","items":["Mobile Beta stays automatic in portrait and landscape. Choose bus-stop sides and preview walking coverage; rotate depot entrances and check road access.","Build stops and depots, create routes, buy and assign buses, and operate them on a phone. Construction previews identify the city or transport-company account and its cost.","Add power lines, trees, de-zoning, park and sports-ground styles, and bilingual district signs. Preview and confirm changes; de-zoning preserves buildings and permanent low-density designations.","New conductors refresh power immediately. The palm court charges its displayed $500; English sign names accept 48 characters, and pinching never opens the name editor.","Phone controls remain Beta, with some transport and terrain tools still in development. Saves stay on your device and can be exported."]},
     "v5.6.0": {"title": "Mobile Beta Is Here", "items": ["Mobile Beta: phones automatically use touch controls; computers keep the desktop interface. Play in portrait or landscape.", "Pan with one finger and pinch to zoom. Preview and confirm roads, zones, buildings and demolition before applying changes.", "Finance, council, stocks, charts, layers, transport management and settings now fit phone panels, with safe-area, notification and status-bar fixes.", "Some transport construction and terrain tools are still in development. Browser saves stay on your device and can be downloaded as backups."]},
@@ -1360,6 +1363,7 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   ja: {
+    "v5.8.1": {"title":"モバイル建設ベータ全線開通","items":["折りたたみ時のナビハンドルを、大きなラベル付きバーから半透明の小さな ☰ ボタンに変更し、画面の占有面積を縮小しました。","デスクトップ版のニュース・広告ティッカーと同期する常時表示の細いティッカーを追加。タップで討論区を開けます。「その他」ページにモバイル限定の「ティッカーを表示」設定を追加し、非表示にできます。","ステータスバーの日付・時刻表示を復活。曜日を省略してスペースを確保しました。","交通モードボタンは、交通会社が有効化・解放される前から灰色で表示されるようになりました。"]},
     "v5.8.0": {"title":"モバイル建設ベータ全線開通","items":["残り14種類のタッチツールを追加し、モバイル対応は46種類から全60種類のマップツールに拡大しました。","鉄道：地下鉄の線路（地下・地上・高架の選択）、地下鉄駅、地上駅、駅を選んでの路線作成。路面電車の線路、停留所、路線も対応。費用は地下鉄補助金、その後は会社資金から支払います。","フェリー桟橋の設置と駅を選んでの航路作成。海底トンネルは両岸をドラッグするだけで横断プレビューと費用を確認できます。","台風避難港はShiftドラッグの代わりに追加・削除の切り替えボタンに変更し、出入口モードは防波堤を直接タップ。地形は長押しの代わりに明示的なブラシメニューを使用します。","海辺のプロムナードは矩形ドラフトで敷設し、敷設済みのマスをタップすると無料で桟橋を追加・削除できます。浮き餐廳の向きは設置前の選択肢になりました。","夜間のコントラストが低い問題を修正：街灯と建物の夜間照明は夜間オーバーレイで暗くならず、本来の明るさを保ちます。"]},
     "v5.7.0": {"title":"モバイル建設ベータ拡充","items":["モバイル版ベータは引き続き自動選択。縦・横画面でバス停の設置側と徒歩圏を確認し、車庫の出入口を回転して道路接続を確認できます。","スマートフォンでバス停・車庫の建設、路線作成、購入・割り当て、運行まで対応。確定前に費用と市・交通会社の支払元を表示します。","送電線、植樹、区域解除、公園・運動場の種類選択、中国語・英語の地区標識を追加。プレビュー後に確定し、区域解除でも建物と恒久的な低密度指定は維持します。","新しい送電線は電力網を即時更新。パームコートの建設費を表示どおり $500 に修正し、標識の英語名は48文字まで入力可能。ピンチ操作で改名画面は開きません。","スマートフォン版はベータで、一部の交通・地形ツールは開発中です。セーブは端末に保存され、エクスポートできます。"]},
     "v5.6.0": {"title": "モバイル版ベータ公開", "items": ["モバイル版ベータ：スマートフォンはタッチ UI を自動選択。パソコンはデスクトップ UI を維持し、縦向き・横向きで遊べます。", "1 本指で移動、2 本指でズーム。道路・区画・建物・撤去はプレビュー後に確定するため、指を離しただけでは変更されません。", "財政・議会・株式・グラフ・レイヤー・交通管理・設定をスマートフォン向けに調整。安全領域・通知・上部バーの配置を修正しました。", "一部の交通建設・地形ツールは開発中です。都市データは端末のブラウザーに保存され、バックアップをダウンロードできます。"]},
@@ -1746,8 +1750,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v5.8.0 — 【手機建城 Beta 全通】",
-      versionDesc: "5.8.0 更新：手機 Beta 接通鐵路、渡輪、隧道同地形，支援全部 60 個工具。",
+      versionBadge: "v5.8.1 — 【手機建城 Beta 全通】",
+      versionDesc: "5.8.1 更新：手機介面精簡，新增常駐走馬燈同香城討論區捷徑。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感嘅城市建設遊戲。起街道、規劃社區、經營自己嘅香城巴士公司、處理議會同天氣，再睇住一座有性格嘅香城慢慢成長。",
       freeLabel: "完全免費 · 瀏覽器 + macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1855,8 +1859,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v5.8.0 — 【手機建城 Beta 全通】",
-      versionDesc: "5.8.0 更新：手機 Beta 接通鐵路、渡輪、隧道與地形，支援全部 60 個工具。",
+      versionBadge: "v5.8.1 — 【手機建城 Beta 全通】",
+      versionDesc: "5.8.1 更新：手機介面精簡，新增常駐走馬燈與香城討論區捷徑。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感的城市建設遊戲。興建街道、規劃社區、經營自己的香城公車公司、處理議會與天氣，看著一座有個性的香城慢慢成長。",
       freeLabel: "完全免費 · 瀏覽器 + macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1964,8 +1968,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "The City of Heung Shing",
       title: "The City of Heung Shing",
-      versionBadge: "v5.8.0 — 【Mobile Building Beta — Fully Connected】",
-      versionDesc: "5.8.0 update: Mobile Beta connects rail, ferry, tunnel and terrain tools, reaching all 60 tools.",
+      versionBadge: "v5.8.1 — 【Mobile Building Beta — Fully Connected】",
+      versionDesc: "5.8.1 update: a simpler mobile interface, with an always-on ticker and a Heung Shing Forum shortcut.",
       lede: "A city-building game inspired by Hong Kong life and made in tribute to SimCity 2000. Build streets, shape neighbourhoods, run your own Heung Shing Bus Company, navigate council politics and weather, then watch a city with real personality grow.",
       freeLabel: "Completely free · Browser + macOS + Windows · Local saves",
       downloadBtn: "【Free Download】",
@@ -2074,8 +2078,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v5.8.0 — 【モバイル建設ベータ全線開通】",
-      versionDesc: "5.8.0 更新：モバイル版ベータに鉄道・フェリー・トンネル・地形を追加し、全60種類のツールに対応。",
+      versionBadge: "v5.8.1 — 【モバイル建設ベータ全線開通】",
+      versionDesc: "5.8.1 更新：モバイル版インターフェースを簡素化し、常時表示のティッカーと討論区への近道を追加。",
       lede: "香港の都市生活から着想を得た、SimCity 2000へのオマージュとなる都市建設ゲーム。道路を築き、地区を計画し、自分だけの香城バス会社を経営し、議会や天候に向き合いながら、個性ある香城の成長を見守ります。",
       freeLabel: "完全無料 · ブラウザー + macOS + Windows · ローカルセーブ",
       downloadBtn: "【無料ダウンロード】",

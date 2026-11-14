@@ -1688,7 +1688,7 @@ function getResidentialTileFactors(row, col, context) {
   const canopy = typeof getTreeInfluenceValue === 'function'
     ? clamp(getTreeInfluenceValue(row, col), 0, 1)
     : 0;
-  const park = clamp(Math.min(serviceMap[row]?.[col]?.park ?? 0, 2) / 2, 0, 1);
+  const park = clamp(Math.min(serviceMap.get(getTileId(row, col))?.park ?? 0, 2) / 2, 0, 1);
   const environment = clamp((1 - pollution) * 0.55 + canopy * 0.25 + park * 0.20, 0, 1);
   const health = typeof getLocalHealthScore === 'function'
     ? clamp(getLocalHealthScore(row, col, context.pollutionSources), 0, 1)
@@ -1826,7 +1826,7 @@ function getCommercialTileFactors(row, col, context) {
   const canopy = typeof getTreeInfluenceValue === 'function'
     ? clamp(getTreeInfluenceValue(row, col), 0, 1)
     : 0;
-  const park = clamp(Math.min(serviceMap[row]?.[col]?.park ?? 0, 2) / 2, 0, 1);
+  const park = clamp(Math.min(serviceMap.get(getTileId(row, col))?.park ?? 0, 2) / 2, 0, 1);
   const environment = clamp((1 - pollution) * 0.60 + canopy * 0.20 + park * 0.20, 0, 1);
   const factors = { landValue, scenic, pollution, environment };
   context.tileFactors.set(cacheKey, factors);
@@ -2173,9 +2173,10 @@ function getZoneGrowthLandScore(row, col, zone, landValueMap = null) {
   }
 
   let score = 0.35;
-  if (serviceMap[row]?.[col]?.police) score += 0.22;
-  if (serviceMap[row]?.[col]?.fire) score += 0.22;
-  if (zone === ZONE_RES) score += (serviceMap[row]?.[col]?.park ?? 0) * 0.12;
+  const svc = serviceMap.get(getTileId(row, col));
+  if (svc?.police) score += 0.22;
+  if (svc?.fire) score += 0.22;
+  if (zone === ZONE_RES) score += (svc?.park ?? 0) * 0.12;
   if (powerMap[row]?.[col]) score += 0.10;
   if (zone === ZONE_RES) {
     if (typeof getTreeInfluenceValue === 'function') {

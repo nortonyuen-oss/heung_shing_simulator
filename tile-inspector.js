@@ -311,7 +311,7 @@ function clampUnit(value) {
 function getInspectIndicators(row, col) {
   const landValue = getTileOverlayValue('landvalue', row, col);
   const pollution = getTileOverlayValue('pollution', row, col);
-  const svc = serviceMap[row]?.[col];
+  const svc = serviceMap.get(getTileId(row, col));
   const powered = !!powerMap[row]?.[col];
   const parkLevel = Math.min(2, svc?.park ?? 0);
 

@@ -215,7 +215,7 @@ function updateEducationLevels() {
     if (pop <= 0) return;
 
     const [r, c] = id.split(':').map(Number);
-    const cell = serviceMap[r]?.[c] ?? null;
+    const cell = serviceMap.get(getTileId(r, c)) ?? null;
     const localBasic = clamp((cell?.eduBasic ?? 0) * basicPolicyMul, 0, 1);
     let localHigher = clamp(cell?.eduHigher ?? 0, 0, 1);
     if (isPolicyActive('scienceDevelopment')) {
@@ -256,7 +256,7 @@ function getAverageEducationForBuilding(record, row, col) {
   const higher = clamp(city.educationHigherIndex ?? 0, 0, 1);
 
   if (record.type === 'residential') {
-    const cell = serviceMap[row]?.[col] ?? null;
+    const cell = serviceMap.get(getTileId(row, col)) ?? null;
     const localBasic = clamp((cell?.eduBasic ?? 0) * (isPolicyActive('educationReform') ? EDUCATION_POLICY_REFORM_MUL : 1), 0, 1);
     const localHigher = clamp(
       (cell?.eduHigher ?? 0)
@@ -285,7 +285,7 @@ function updateCrimeRateIndex() {
 
   forEachSimulationZonedTile((r, c) => {
     zonedCount++;
-    riskSum += serviceMap[r]?.[c]?.police ? protectedRisk : unprotectedRisk;
+    riskSum += serviceMap.get(getTileId(r, c))?.police ? protectedRisk : unprotectedRisk;
   });
 
   city.crimeRateIndex = zonedCount > 0 ? clamp(riskSum / zonedCount, 0, 1) : 0;
@@ -313,7 +313,7 @@ function updateHealthMetrics() {
 
     const [row, col] = id.split(':').map(Number);
     const localHealth = getLocalHealthScore(row, col, pollutionSources);
-    const hospitalCoverage = clamp(serviceMap[row]?.[col]?.health ?? 0, 0, 1);
+    const hospitalCoverage = clamp(serviceMap.get(getTileId(row, col))?.health ?? 0, 0, 1);
 
     weightedHealthSum += localHealth * pop;
     weightedCoverageSum += hospitalCoverage * pop;
@@ -340,7 +340,7 @@ function updateHealthMetrics() {
 }
 
 function getLocalHealthScore(row, col, pollutionSources = null) {
-  const svc = serviceMap[row]?.[col] ?? null;
+  const svc = serviceMap.get(getTileId(row, col)) ?? null;
   const hospital = clamp(svc?.health ?? 0, 0, 1);
   const pollutionPressure = getLocalHealthPollutionPressure(row, col, pollutionSources);
   const recreation = clamp(
@@ -853,13 +853,13 @@ function computeHappiness(scene) {
   forEachSimulationZonedTile((r, c) => {
     zoned++;
     if (powerMap[r][c]) powered++;
-    if (serviceMap[r]?.[c]?.fire) fireCovered++;
-    if (serviceMap[r]?.[c]?.police) policeCovered++;
+    if (serviceMap.get(getTileId(r, c))?.fire) fireCovered++;
+    if (serviceMap.get(getTileId(r, c))?.police) policeCovered++;
     if (zoneMap[r][c] === ZONE_RES) {
       residential++;
-      parkScore += Math.min(serviceMap[r]?.[c]?.park ?? 0, 2);
+      parkScore += Math.min(serviceMap.get(getTileId(r, c))?.park ?? 0, 2);
       // Sports grounds contribute an additional recreation bonus (up to +0.5 park-equivalent)
-      parkScore += Math.min((serviceMap[r]?.[c]?.sportsGround ?? 0) * 0.5, 1);
+      parkScore += Math.min((serviceMap.get(getTileId(r, c))?.sportsGround ?? 0) * 0.5, 1);
       const env = getResidentialEnvironmentScore(r, c);
       treeScore += env.tree;
       scenicScore += env.scenic;

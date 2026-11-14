@@ -5,7 +5,7 @@ let heightMap       = [];   // 0 = sea/flat, each +1 step is 100m altitude
 let bridgeMap       = [];   // null | 'deck:row' | 'deck:col' | 'ramp:n/e/s/w'
 let roadUnderlayMap = [];   // original terrain below bridge road tiles
 let powerMap        = [];   // 0 | 1 per cell (is this cell powered?) - Uint8Array rows
-let serviceMap      = [];   // { fire: bool, police: bool, park: 0|1|2 } | null per cell
+let serviceMap      = new Map(); // tileId -> { fire, police, park, health, eduBasic, eduHigher }; absent = none
 let treeMap         = new Map(); // tileId -> { species, age, variant, count, planted? }; absent = none
 let debrisMap       = new Map(); // tileId -> { kind, variant }; absent = none
 let busStopMap      = new Map(); // tileId -> array of raw sides ('n'|'e'|'s'|'w'); absent = none
@@ -275,7 +275,7 @@ function resetGameState() {
   zoneMap        = createFilledTypedMap(Uint8Array, ZONE_NONE);
   zoneDensityMap = createFilledTypedMap(Uint8Array, DENSITY_LOW);
   powerMap       = createFilledTypedMap(Uint8Array, 0);
-  serviceMap     = createFilledMap(null);
+  serviceMap     = new Map();
   treeMap        = new Map();
   debrisMap      = new Map();
   busStopMap     = new Map();

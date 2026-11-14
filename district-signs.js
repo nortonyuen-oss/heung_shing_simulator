@@ -349,7 +349,7 @@ function getDistrictMetrics(districtKey) {
       }
       if (zoneMap[row][col] === ZONE_NONE) continue;
       zonedTiles++;
-      const service = serviceMap[row]?.[col] || {};
+      const service = serviceMap.get(getTileId(row, col)) || {};
       const education = Math.max(0, Math.min(1, (service.eduBasic || 0) * 0.55 + (service.eduHigher || 0) * 0.45));
       const health = typeof getLocalHealthScore === 'function'
         ? getLocalHealthScore(row, col)

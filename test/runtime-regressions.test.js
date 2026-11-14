@@ -481,7 +481,7 @@ test('resetting a city invalidates infrastructure caches before save restoration
     source.indexOf('const _normalizedCityStateObjects'),
   );
   assert.match(reset, /powerMap\s*=\s*createFilledTypedMap\(Uint8Array,\s*0\)/);
-  assert.match(reset, /serviceMap\s*=\s*createFilledMap\(null\)/);
+  assert.match(reset, /serviceMap\s*=\s*new Map\(\)/);
   assert.match(reset, /invalidateBuildingCountCache\(\)/);
   assert.match(reset, /markPowerGridDirty\(\)/);
   assert.match(reset, /markServiceCoverageDirty\(\)/);

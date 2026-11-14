@@ -302,7 +302,7 @@ function updateServiceCoverage() {
   if (!_serviceCoverageDirty) return;
   _serviceCoverageDirty = false;
 
-  serviceMap = createFilledMap(null);
+  serviceMap = new Map();
 
   Object.entries(buildingData).forEach(([id, record]) => {
     const anchorId = getServiceCoverageAnchorId(id, record);
@@ -336,8 +336,10 @@ function getServiceCoverageAnchorId(id, record) {
 }
 
 function ensureServiceCell(r, c) {
-  if (!serviceMap[r][c]) {
-    serviceMap[r][c] = {
+  const id = getTileId(r, c);
+  let cell = serviceMap.get(id);
+  if (!cell) {
+    cell = {
       fire: false,
       police: false,
       park: 0,
@@ -345,8 +347,9 @@ function ensureServiceCell(r, c) {
       eduBasic: 0,
       eduHigher: 0,
     };
+    serviceMap.set(id, cell);
   }
-  return serviceMap[r][c];
+  return cell;
 }
 
 function bfsService(anchorId, key, radius, value = true) {

@@ -239,7 +239,7 @@ function showInspectPanel(scene, row, col, pointer = null) {
   const tileHeight = getTileHeight(row, col);
   const zone    = zoneMap[row]?.[col] ?? ZONE_NONE;
   const powered = !!powerMap[row]?.[col];
-  const svc     = serviceMap[row]?.[col];
+  const svc     = serviceMap.get(id);
   const tree    = treeMap.get(id);
 
   const inspectRecord = resolveBuildingRecordForInspect(scene, row, col);

@@ -725,7 +725,7 @@ function computeHealthMap() {
       if (zoneMap[r][c] === ZONE_NONE && !buildingData[getTileId(r, c)]) continue;
       map[r][c] = typeof getLocalHealthScore === 'function'
         ? getLocalHealthScore(r, c, pollutionSources)
-        : clamp(serviceMap[r]?.[c]?.health ?? 0, 0, 1);
+        : clamp(serviceMap.get(getTileId(r, c))?.health ?? 0, 0, 1);
     }
   }
   return map;
@@ -736,7 +736,7 @@ function computeEducationMap() {
   for (let r = 0; r < MAP_HEIGHT; r++) {
     for (let c = 0; c < MAP_WIDTH; c++) {
       if (zoneMap[r][c] === ZONE_NONE && !buildingData[getTileId(r, c)]) continue;
-      const cell = serviceMap[r]?.[c] ?? null;
+      const cell = serviceMap.get(getTileId(r, c)) ?? null;
       const basic = clamp(cell?.eduBasic ?? 0, 0, 1);
       const higher = clamp(cell?.eduHigher ?? 0, 0, 1);
       map[r][c] = clamp(basic * 0.55 + higher * 0.45, 0, 1);
@@ -761,7 +761,7 @@ function computeEducationDistrictAverages() {
     if (pop <= 0) return;
 
     const [r, c] = id.split(':').map(Number);
-    const cell = serviceMap[r]?.[c] ?? null;
+    const cell = serviceMap.get(getTileId(r, c)) ?? null;
     const localEdu = clamp((cell?.eduBasic ?? 0) * 0.55 + (cell?.eduHigher ?? 0) * 0.45, 0, 1);
     const key = r < splitRow
       ? (c < splitCol ? 'nw' : 'ne')
@@ -832,7 +832,7 @@ function computeCrimeMap() {
   for (let r = 0; r < MAP_HEIGHT; r++)
     for (let c = 0; c < MAP_WIDTH; c++)
       if (zoneMap[r][c] !== ZONE_NONE)
-        map[r][c] = serviceMap[r]?.[c]?.police ? protectedRisk : unprotectedRisk;
+        map[r][c] = serviceMap.get(getTileId(r, c))?.police ? protectedRisk : unprotectedRisk;
   return map;
 }
 
@@ -860,7 +860,7 @@ function computeFireMap() {
   for (let r = 0; r < MAP_HEIGHT; r++)
     for (let c = 0; c < MAP_WIDTH; c++)
       if (zoneMap[r][c] !== ZONE_NONE)
-        map[r][c] = Math.max(map[r][c], serviceMap[r]?.[c]?.fire ? protectedRisk : unprotectedRisk);
+        map[r][c] = Math.max(map[r][c], serviceMap.get(getTileId(r, c))?.fire ? protectedRisk : unprotectedRisk);
   return map;
 }
 
@@ -869,7 +869,7 @@ function addTreeFireRisk(map) {
   treeMap.forEach((tree, id) => {
     const [row, col] = id.split(':').map(Number);
     const baseRisk = isMatureTree(tree) ? TREE_FIRE_RISK_MATURE : TREE_FIRE_RISK_YOUNG;
-    const risk = serviceMap[row]?.[col]?.fire ? baseRisk * 0.55 : baseRisk;
+    const risk = serviceMap.get(getTileId(row, col))?.fire ? baseRisk * 0.55 : baseRisk;
     for (let dr = -radius; dr <= radius; dr++) {
       for (let dc = -radius; dc <= radius; dc++) {
         const r = row + dr;
@@ -958,9 +958,10 @@ function composeLandValueMap(canopy, pollution, influenceMaps) {
   const applyTile = (r, c) => {
     if (zoneMap[r]?.[c] === ZONE_NONE) return;
     let val = 0.35;
-    if (serviceMap[r]?.[c]?.police) val += 0.22;
-    if (serviceMap[r]?.[c]?.fire)   val += 0.22;
-    if (zoneMap[r][c] === ZONE_RES) val += (serviceMap[r]?.[c]?.park ?? 0) * 0.12;
+    const svc = serviceMap.get(getTileId(r, c));
+    if (svc?.police) val += 0.22;
+    if (svc?.fire)   val += 0.22;
+    if (zoneMap[r][c] === ZONE_RES) val += (svc?.park ?? 0) * 0.12;
     if (powerMap[r]?.[c])           val += 0.10;
     if (zoneMap[r][c] === ZONE_RES) {
       val += (canopy[r]?.[c] ?? 0) * TREE_LAND_VALUE_BONUS_MAX;

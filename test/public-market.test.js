@@ -170,7 +170,8 @@ test('residential quality and actual mansion selection both respond to the marke
   const c = runtime({ '10:10': market() });
   Object.assign(c, {
     houseModelSets: { house: ['H', 'UH'].map(wealthTier => ({ spriteKey: wealthTier, wealthTier, metadata: { scale: 1 } })) },
-    serviceMap: [], getScenicValue: () => 0, getLocalHealthPollutionPressure: () => 0,
+    serviceMap: new Map(), getTileId: (r, col) => `${r}:${col}`,
+    getScenicValue: () => 0, getLocalHealthPollutionPressure: () => 0,
     getTreeInfluenceValue: () => 0, getLocalHealthScore: () => .5,
     modelUsageCounts: new Map(), modelRecentHistory: new Map(),
     isInsideMap: () => true, getResidentialWealthDistrictTier: () => 'ultraRich',

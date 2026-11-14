@@ -13,7 +13,7 @@
     }
     clear() { for (const object of this.objects.values()) { object.destroy(); this.destroyed++; } this.objects.clear(); this.entitySprites.clear(); }
     sync(activeIds) {
-      const key = `${this.delta.revision}:${this.adapter.rotation}:${activeIds.slice().sort().join('|')}`;
+      const key = `${this.delta.constructionRevision}:${this.adapter.rotation}:${activeIds.slice().sort().join('|')}`;
       if (key === this.key) return;
       this.key = key;
       const previous = this.objects; this.objects = new Map(); this.entitySprites = new Map();

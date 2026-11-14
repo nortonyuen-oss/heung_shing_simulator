@@ -22,6 +22,7 @@
   <section id="construction-controls" aria-label="建設與存檔">
     <select id="build-tool" aria-label="建設工具">
       <option value="browse">瀏覽地圖</option><option value="road">道路</option><option value="bridge">橋樑</option><option value="rail">地面路軌</option>
+      <option value="route-road">巴士班次起終點</option><option value="route-rail">列車班次起終點</option>
       <option value="market2">公共街市 2×2</option><option value="park4">維園地段 4×4</option>
       <option value="zoneR">住宅分區</option><option value="zoneC">商業分區</option><option value="zoneI">工業分區</option>
       <option value="raise">升高地形</option><option value="lower">降低地形</option><option value="flatten4">整平 4×4 地段</option><option value="water4">挖掘水域 4×4</option><option value="bulldoze">拆除</option>
@@ -39,6 +40,14 @@
       <pre id="diagnostics">等待地圖啟動</pre>
     </details>
   </aside>
+  <section id="world-simulation" aria-label="世界運作">
+    <details open><summary id="simulation-summary">世界運作 · 暫停</summary>
+      <div class="simulation-actions"><button id="simulation-toggle" type="button">開始模擬</button><select id="simulation-speed" aria-label="模擬速度"><option value="1">1 倍速</option><option value="4">4 倍速</option><option value="16">16 倍速</option></select><button id="simulation-step" type="button">前進一日</button></div>
+      <p id="simulation-stats"></p>
+      <div class="simulation-actions"><select id="world-service" aria-label="交通班次"></select><button id="service-follow" type="button">查看</button><button id="service-remove" type="button">移除</button></div>
+      <p id="service-progress"></p>
+    </details>
+  </section>
   <section id="world-minimap" data-mode="local" data-collapsed="false" aria-label="世界小地圖">
     <div class="minimap-heading"><strong data-map-title>附近地圖</strong><button type="button" data-map-mode aria-pressed="false">全港總覽</button><button type="button" data-map-collapse aria-expanded="true">收起</button></div>
     <div class="minimap-body">
@@ -56,11 +65,15 @@
   <script src="../game-storage.js"></script>
   <script src="world-config.js"></script>
   <script src="world-construction-catalog.js"></script>
+  <script src="world-simulation-format.js"></script>
   <script src="world-save-format.js"></script>
   <script src="world-delta-store.js"></script>
   <script src="world-save-session.js"></script>
   <script src="world-data-access.js"></script>
   <script src="world-construction.js"></script>
+  <script src="world-transport-network.js"></script>
+  <script src="world-simulation.js"></script>
+  <script src="world-simulation-ui.js"></script>
   <script src="world-entity-renderer.js"></script>
   <script src="world-construction-ui.js"></script>
   <script src="world-coordinates.js"></script>

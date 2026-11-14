@@ -20,7 +20,7 @@
     inside(cell) { return f.point(cell, this.world) && cell.col >= this.region.col && cell.row >= this.region.row
       && cell.col < this.region.col + this.region.width && cell.row < this.region.row + this.region.height; }
     async plan(tool, a, b = a) {
-      const revision = this.delta.revision, operations = [], cells = [], push = (kind, cell, value) => operations.push({ kind, ...cell, value });
+      const revision = this.delta.constructionRevision, operations = [], cells = [], push = (kind, cell, value) => operations.push({ kind, ...cell, value });
       f.check(this.inside(a) && this.inside(b), '請喺世界範圍內建設。');
       let cost = 0, id;
       if (WORLD_BUILDINGS[tool]) {
@@ -105,11 +105,11 @@
         f.check(cells.every(cell => !this.delta.entityAt(cell.col, cell.row) && !this.delta.roadAt(cell.col, cell.row)) && tiles.every(tile => tile.terrainType !== 5), '分區需要未被佔用嘅陸地。');
         cells.forEach((cell, index) => push('zones', cell, { type: { zoneR: 1, zoneC: 2, zoneI: 3 }[tool], density: 1, height: tiles[index].height })); cost = cells.length * 50;
       } else throw new Error('Unknown construction tool');
-      f.check(this.delta.revision === revision, '地圖已有新修改，請重新預覽。');
+      f.check(this.delta.constructionRevision === revision, '地圖已有新修改，請重新預覽。');
       f.check(this.delta.header.city.budget >= cost, '資金不足。');
       return { tool, revision, operations, cells, cost, entityId: id };
     }
-    confirm(plan) { f.check(plan && plan.revision === this.delta.revision, '地圖已有新修改，請重新預覽。'); return this.delta.transact(plan.operations, { cost: plan.cost }); }
+    confirm(plan) { f.check(plan && plan.revision === this.delta.constructionRevision, '地圖已有新修改，請重新預覽。'); return this.delta.transact(plan.operations, { cost: plan.cost }); }
   }
   return { WorldConstruction, worldLine };
 });

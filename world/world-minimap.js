@@ -92,8 +92,8 @@
     return { chunks, entities: [...ids].map(id => delta.entities.get(id)).filter(Boolean) };
   }
   class WorldMinimap {
-    constructor({ scene, adapter, delta, manifest, rootUrl, navigate, element = document.getElementById('world-minimap') }) {
-      this.scene = scene; this.adapter = adapter; this.delta = delta; this.manifest = manifest; this.rootUrl = rootUrl; this.navigate = navigate; this.element = element;
+    constructor({ scene, adapter, delta, simulation, manifest, rootUrl, navigate, element = document.getElementById('world-minimap') }) {
+      this.scene = scene; this.adapter = adapter; this.delta = delta; this.simulation = simulation; this.manifest = manifest; this.rootUrl = rootUrl; this.navigate = navigate; this.element = element;
       this.base = element.querySelector('[data-map-base]'); this.city = element.querySelector('[data-map-city]'); this.view = element.querySelector('[data-map-view]');
       this.surface = element.querySelector('.minimap-surface'); this.label = element.querySelector('[data-map-position]');
       this.mode = 'local'; this.collapsed = false; this.baseDirty = true; this.cityDirty = true; this.viewKey = ''; this.layoutKey = '';
@@ -103,7 +103,7 @@
         if (!response.ok) throw new Error(`Local overview HTTP ${response.status}`);
         return createImageBitmap(await response.blob());
       }, onChange: () => { this.baseDirty = true; } });
-      this.unsubscribe = delta.subscribe(() => { this.cityDirty = true; });
+      this.unsubscribe = delta.subscribe(event => { if (!event.simulation || event.routesChanged) this.cityDirty = true; if (event.all || event.routesChanged) this.viewKey = ''; });
       this.installUi();
       this.resize = new ResizeObserver(() => { this.layoutKey = ''; this.constrainPosition(); }); this.resize.observe(this.surface);
       try {
@@ -194,12 +194,14 @@
         ctx.restore(); this.baseDirty = false; this.draws.base++;
       }
       if (this.cityDirty) { this.drawCity(); this.cityDirty = false; this.draws.city++; }
-      const viewKey = `${camera.scrollX}:${camera.scrollY}:${camera.zoom}:${camera.width}:${camera.height}:${camera.originX}:${camera.originY}`;
+      const viewKey = `${camera.scrollX}:${camera.scrollY}:${camera.zoom}:${camera.width}:${camera.height}:${camera.originX}:${camera.originY}:${this.delta.header.simulation?.elapsedMs || 0}`;
       if (viewKey !== this.viewKey) {
         this.viewKey = viewKey; const ctx = this.view.getContext('2d'); ctx.clearRect(0, 0, width, height); this.clip(ctx);
         const points = this.transform.viewport(camera); ctx.beginPath(); points.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)); ctx.closePath();
         ctx.fillStyle = '#fff7d51a'; ctx.fill(); ctx.strokeStyle = '#fff4cb'; ctx.lineWidth = Math.max(1.5, width / this.surface.clientWidth); ctx.stroke();
-        const p = this.transform.worldToMinimap(focus.col, focus.row); ctx.fillStyle = '#fff4cb'; ctx.fillRect(p.x - 2, p.y - 2, 4, 4); ctx.restore();
+        const p = this.transform.worldToMinimap(focus.col, focus.row); ctx.fillStyle = '#fff4cb'; ctx.fillRect(p.x - 2, p.y - 2, 4, 4);
+        for (const entry of this.simulation?.positions() || []) { const p = this.transform.worldToMinimap(entry.position.col, entry.position.row); ctx.fillStyle = entry.mode === 'road' ? '#f2cd71' : '#e1bab4'; ctx.fillRect(p.x - 2, p.y - 2, 4, 4); }
+        ctx.restore();
         this.label.textContent = `${Math.round(focus.col)}, ${Math.round(focus.row)} · R${rotation} · ${this.mode === 'local' ? '附近 256 格' : '20 米／格'}`; this.draws.viewport++;
       }
     }
@@ -233,6 +235,10 @@
           ctx.beginPath(); points.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)); ctx.strokeStyle = entity.kind === 'rail' ? '#d1b7b1bb' : '#d3ccc0bb';
           ctx.lineWidth = this.mode === 'world' ? 1.5 : Math.max(1.5, tileWidth * .35); ctx.stroke();
         }
+      }
+      for (const service of this.delta.header.simulation?.services || []) if (service.status === 'active') {
+        ctx.beginPath(); service.path.forEach((cell, i) => { const p = this.transform.worldToMinimap(cell.col, cell.row); i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y); });
+        ctx.strokeStyle = service.mode === 'road' ? '#ddca8f77' : '#dbb5b177'; ctx.lineWidth = 1.5; ctx.stroke();
       }
       ctx.restore();
     }

@@ -10,7 +10,7 @@
     constructor(world = configApi.WORLD) {
       this.world = world; this.header = f.emptyWorldSnapshot(world);
       this.chunks = new Map(); this.entities = new Map(); this.occupancy = new Map(); this.renderRefs = new Map();
-      this.dirtyChunks = new Map(); this.dirtyEntities = new Map(); this.listeners = new Set(); this.metaDirty = false;
+      this.dirtyChunks = new Map(); this.dirtyEntities = new Map(); this.listeners = new Set(); this.metaDirty = false; this.constructionRevision = 0;
     }
     get revision() { return this.header.revision; }
     get dirty() { return this.metaDirty || this.dirtyChunks.size > 0 || this.dirtyEntities.size > 0; }
@@ -41,6 +41,7 @@
       f.check(Array.isArray(operations) && operations.length <= 10000 && Number.isSafeInteger(cost) && cost >= 0, 'Invalid construction transaction');
       f.check(this.header.city.budget >= cost, '資金不足。');
       const touched = new Map(), changes = new Map(), changedTiles = new Map(), terrainTiles = [];
+      let networkChanged = false;
       const edit = id => {
         if (!touched.has(id)) {
           const old = this.chunks.get(id) || this.blankChunk(id);
@@ -56,11 +57,13 @@
           if (old) for (const id of f.entityStorageIds(old)) edit(id).refs.delete(old.id);
           if (old) f.entityCells(old).forEach(mark);
           const entity = operation.value ? f.clone(operation.value) : null;
+          if (['bridge', 'rail'].includes(old?.kind) || ['bridge', 'rail'].includes(entity?.kind)) networkChanged = true;
           if (entity) { f.validateEntity(entity, this.world); f.check(entity.id === operation.id, 'Entity ID mismatch');
             for (const id of f.entityStorageIds(entity)) edit(id).refs.add(entity.id); f.entityCells(entity).forEach(mark); }
           changes.set(operation.id, entity);
         } else {
           f.check(['terrain', 'roads', 'zones'].includes(operation.kind) && f.point(operation, this.world), 'Invalid tile transaction');
+          if (operation.kind === 'roads') networkChanged = true;
           const chunk = edit(f.storageId(operation.col, operation.row)), key = f.tileId(operation.col, operation.row);
           if (operation.value === null) chunk[operation.kind].delete(key);
           else chunk[operation.kind].set(key, { ...f.clone(operation.value), col: operation.col, row: operation.row });
@@ -83,9 +86,16 @@
         if (entity) this.entities.set(id, entity); else this.entities.delete(id);
         this.dirtyEntities.set(id, revision);
       }
-      this.header = { ...head, city: snapshot.city, revision }; this.metaDirty = true; this.rebuildEntityIndexes();
-      const event = { revision, tiles: [...changedTiles.values()], terrainTiles, storageChunks: [...touched.keys()], entityIds: [...changes.keys()] };
+      this.header = { ...head, city: snapshot.city, revision }; this.constructionRevision = revision; this.metaDirty = true; this.rebuildEntityIndexes();
+      const event = { revision, tiles: [...changedTiles.values()], terrainTiles, storageChunks: [...touched.keys()], entityIds: [...changes.keys()], networkChanged };
       this.listeners.forEach(listener => listener(event)); return event;
+    }
+    commitSimulation(simulation, budget, { routesChanged = false } = {}) {
+      // Metadata-only transactions leave chunk dirtiness, construction drafts and sprites alone.
+      const snapshot = { ...this.header, simulation: f.clone(simulation), city: { ...this.header.city, budget }, revision: this.revision + 1, chunks: [], entities: [] };
+      f.validateWorldSnapshot(snapshot, this.world);
+      const { chunks, entities, ...header } = snapshot; this.header = header; this.metaDirty = true;
+      this.listeners.forEach(listener => listener({ revision: this.revision, simulation: true, routesChanged }));
     }
     rebuildEntityIndexes() {
       this.occupancy.clear(); this.renderRefs.clear();
@@ -105,7 +115,7 @@
       return [...entities].map(id => this.entities.get(id)); }
     replace(snapshot, { dirty = false } = {}) {
       f.validateWorldSnapshot(snapshot, this.world);
-      const clean = f.clone(snapshot); this.header = clean; this.chunks.clear(); this.entities.clear(); this.dirtyChunks.clear(); this.dirtyEntities.clear();
+      const clean = f.clone(snapshot); this.header = clean; this.constructionRevision = clean.revision; this.chunks.clear(); this.entities.clear(); this.dirtyChunks.clear(); this.dirtyEntities.clear();
       for (const entry of clean.chunks) this.chunks.set(entry.chunkId, { id: entry.chunkId, revision: entry.revision,
         terrain: new Map(entry.terrainEdits.map(record => [f.tileId(record.col, record.row), record])),
         roads: new Map(entry.roads.map(record => [f.tileId(record.col, record.row), record])),

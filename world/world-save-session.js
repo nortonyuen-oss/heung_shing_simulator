@@ -9,9 +9,11 @@
     constructor({ delta, storage, id = 'world-trial-v1', autosaveMs = 1200, onStatus = () => {}, captureView = () => null }) {
       Object.assign(this, { delta, storage, id, autosaveMs, onStatus, captureView });
       this.storageRevision = 0; this.saving = null; this.timer = null; this.closed = false; this.lastError = null;
-      this.unsubscribe = delta.subscribe(() => { if (delta.dirty) { onStatus({ kind: 'dirty' }); this.schedule(); } });
+      this.unsubscribe = delta.subscribe(event => { if (delta.dirty) {
+        onStatus({ kind: 'dirty' }); if (!event.simulation || !this.timer && !this.saving) this.schedule(event.simulation ? 15000 : this.autosaveMs);
+      } });
     }
-    schedule() { clearTimeout(this.timer); if (!this.closed) this.timer = setTimeout(() => this.flush().catch(() => {}), this.autosaveMs); }
+    schedule(delay = this.autosaveMs) { clearTimeout(this.timer); if (!this.closed) this.timer = setTimeout(() => { this.timer = null; this.flush().catch(() => {}); }, delay); }
     async request(url, options) {
       if (options?.body) options = { ...options, headers: { 'Content-Type': 'application/json', ...(options.headers || {}) } };
       const response = await this.storage.worldRequest(url, options), value = await response.json();
@@ -33,7 +35,7 @@
       this.onStatus({ kind: 'loaded', id, storageRevision: this.storageRevision }); return value;
     }
     flush() {
-      clearTimeout(this.timer);
+      clearTimeout(this.timer); this.timer = null;
       if (this.saving) return this.saving;
       if (!this.delta.dirty && this.storageRevision > 0) return Promise.resolve({ storageRevision: this.storageRevision });
       const viewpoint = this.captureView(); if (viewpoint) this.delta.header.viewpoint = f.clone(viewpoint);
@@ -66,7 +68,7 @@
       const checkpoint = { header, chunks, entities: entities.map(value => ({ id: value.id, value })) };
       const value = await this.request(`/api/world-saves/${id}`, { method: 'PUT', body: JSON.stringify({ expectedRevision: 0, checkpoint }) });
       this.id = id; this.storageRevision = value.storageRevision; this.delta.replace(snapshot); this.lastError = null;
-      this.onStatus({ kind: 'loaded', id, storageRevision: this.storageRevision }); return value;
+      this.onStatus({ kind: 'loaded', id, storageRevision: this.storageRevision }); return { ...value, snapshot: f.clone(snapshot) };
     }
     exportBackup() { return f.exportWorldSave(this.delta.snapshot(), this.delta.world); }
     destroy() { this.closed = true; clearTimeout(this.timer); this.unsubscribe(); }

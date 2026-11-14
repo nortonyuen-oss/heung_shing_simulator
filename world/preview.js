@@ -28,7 +28,7 @@
     const world = provider.world, region = { col: 0, row: 0, width: world.width, height: world.height };
     const adapter = new api.WorldModeAdapter(world, api.createLegacyWorldProjection(world), region);
     const visuals = api.createLegacyTerrainVisuals(world);
-    let manager, renderer, entityRenderer, buildUi, minimap, lod, scene, lastStatsAt = 0, pinch = null, jumpSide = false;
+    let manager, renderer, entityRenderer, trafficRenderer, simulationUi, buildUi, minimap, lod, scene, lastStatsAt = 0, pinch = null, jumpSide = false;
     let desktop = false;
     const storageChoice = new URLSearchParams(location.search).get('storage');
     if (storageChoice !== 'browser') {
@@ -47,6 +47,8 @@
     }, captureView: () => state.ready ? { ...adapter.cameraFocus(scene.cameras.main), rotation: adapter.rotation, zoom: scene.cameras.main.zoom } : null });
     await session.load();
     const construction = new api.WorldConstruction({ world, region, data, delta });
+    const network = new api.WorldTransportNetwork(delta);
+    const simulation = new api.WorldSimulation({ delta, network, writable: () => HeungShingStorage.writable });
     delta.subscribe(entry => { if (entry.all) manager?.invalidate(); else if (entry.terrainTiles?.length) manager?.invalidateTiles(entry.terrainTiles); });
     const centre = { col: manifest.trial.startCol, row: manifest.trial.startRow };
     const fetchFailure = file => { state.errors.push(`Asset failed: ${file.src}`); message('地形圖像載入失敗，請重新建立地形資料。', true); };
@@ -70,14 +72,20 @@
           sampleForTile: (col, row) => manager.records.get(`r:${Math.floor(col / 32)}:${Math.floor(row / 32)}`)?.job?.data?.sample });
         scene.cameras.main.setZoom(.8); adapter.centreCamera(scene.cameras.main, centre.col, centre.row);
         installInput(game.canvas);
-        buildUi = new api.WorldConstructionUi({ scene, adapter, construction, delta, session, message, restoreView });
-        minimap = new api.WorldMinimap({ scene, adapter, delta, manifest, rootUrl: root, navigate(col, row) { buildUi.cancel(); setFocus(col, row); } });
+        buildUi = new api.WorldConstructionUi({ scene, adapter, construction, delta, session, simulation, message, restoreView });
+        const navigate = (col, row) => { buildUi.cancel(); setFocus(col, row); };
+        minimap = new api.WorldMinimap({ scene, adapter, delta, simulation, manifest, rootUrl: root, navigate });
+        trafficRenderer = new api.WorldTrafficRenderer({ scene, adapter, simulation });
+        simulationUi = new api.WorldSimulationUi({ simulation, navigate, message });
         state.ready = true;
-        Object.assign(state, { scene, provider, manager, renderer, adapter, game, setFocus, rotate, delta, data, construction, entityRenderer, session, buildUi, minimap,
+        Object.assign(state, { scene, provider, manager, renderer, adapter, game, setFocus, rotate, delta, data, construction, entityRenderer, session, buildUi, minimap, network, simulation, trafficRenderer,
           stats: () => ({ ...manager.snapshot(), ...diagnostics.snapshot(), focus: adapter.cameraFocus(scene.cameras.main),
             rotation: adapter.rotation, zoom: scene.cameras.main.zoom, atlasRgbaBytes: manifest.art.rgbaBytes, minimap: minimap.snapshot(),
+            simulation: simulation.snapshot(), traffic: trafficRenderer.snapshot(),
             construction: { revision: delta.revision, dirtyChunks: delta.dirtyChunks.size, entities: delta.entities.size, visuals: entityRenderer.snapshot(), storageRevision: session.storageRevision } }) });
         restoreView(delta.header);
+        const tick = () => { if (buildUi?.busy) return; try { simulation.tick(); } catch (error) { message(error.message, true); } };
+        tick(); const timer = setInterval(tick, 1000); scene.events.once('shutdown', () => clearInterval(timer));
       }, update(_time, delta) {
         if (!state.ready) return;
         diagnostics.frame(delta);
@@ -85,6 +93,7 @@
         if (Math.abs(raw.col - focus.col) > .001 || Math.abs(raw.row - focus.row) > .001) adapter.centreCamera(camera, focus.col, focus.row);
         manager.setFocus(focus.col, focus.row); manager.pump(); renderer.cull(camera);
         entityRenderer.sync(manager.snapshot().activeIds);
+        trafficRenderer.sync(manager.snapshot().activeIds);
         minimap.update();
         if (performance.now() - lastStatsAt > 250) { renderStats(focus); lastStatsAt = performance.now(); }
       } },
@@ -111,6 +120,7 @@
     function renderStats(focus) {
       const stats = state.stats(), mib = bytes => (bytes / 1048576).toFixed(2), ms = value => value == null ? '—' : value.toFixed(2);
       document.getElementById('zoom').textContent = `${Math.round(stats.zoom * 100)}%`;
+      simulationUi.update();
       document.getElementById('diagnostics').textContent = [
         `World  ${world.width} × ${world.height} · 20m/tile`,
         `Navigation  全港 · ${region.width} × ${region.height}`,
@@ -123,6 +133,7 @@
         `Mount p95 ${ms(stats.mountP95Ms)} ms · errors ${stats.errors}`,
         `Built ${delta.entities.size} · unsaved chunks ${delta.dirtyChunks.size}`,
         `Minimap cache ${mib(stats.minimap.cache.bytes)} MiB · ${stats.minimap.cache.pending} loading`,
+        `Network ${stats.simulation.network.roadNodes} road / ${stats.simulation.network.railNodes} rail · vehicles ${stats.traffic.vehicles}`,
       ].join('\n');
       if (!stats.states.ERROR && stats.states.ACTIVE === stats.wanted && !state.errors.length && !state.storageError) message('');
     }
@@ -154,7 +165,7 @@
       document.getElementById('zoom-out').onclick = () => zoomTo(camera.zoom / 1.25);
       document.getElementById('home').onclick = () => { buildUi?.cancel(); setFocus(centre.col, centre.row); };
       document.getElementById('jump').onclick = () => { buildUi?.cancel(); jumpSide = !jumpSide; setFocus(jumpSide ? 2864 : centre.col, jumpSide ? 336 : centre.row); };
-      scene.events.once('shutdown', () => { session.destroy(); buildUi?.destroy(); minimap?.destroy(); entityRenderer.destroy(); manager.destroy(); renderer.destroy(); lod.destroy(); provider.destroy(); });
+      scene.events.once('shutdown', () => { session.destroy(); buildUi?.destroy(); simulationUi?.destroy(); minimap?.destroy(); trafficRenderer?.destroy(); simulation.destroy(); network.destroy(); entityRenderer.destroy(); manager.destroy(); renderer.destroy(); lod.destroy(); provider.destroy(); });
     }
   } catch (error) { state.errors.push(String(error.message || error)); message(String(error.message || error), true); }
 })();

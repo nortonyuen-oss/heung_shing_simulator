@@ -1,8 +1,8 @@
 (function (root) {
   'use strict';
   class WorldConstructionUi {
-    constructor({ scene, adapter, construction, delta, session, message, restoreView = () => {} }) {
-      Object.assign(this, { scene, adapter, construction, delta, session, message, restoreView });
+    constructor({ scene, adapter, construction, delta, session, simulation, message, restoreView = () => {} }) {
+      Object.assign(this, { scene, adapter, construction, delta, session, simulation, message, restoreView });
       this.tool = 'browse'; this.start = null; this.draft = null; this.sequence = 0; this.busy = false;
       this.guide = scene.add.graphics().setDepth(900000);
       this.controls = document.getElementById('construction-controls');
@@ -37,7 +37,7 @@
       try { return await action(); } catch (error) { this.message(error.message, true); }
       finally { this.busy = false; this.controls.inert = false; }
     }
-    cancel() { this.sequence++; this.start = null; this.draft = null; this.guide.clear(); document.getElementById('build-draft').hidden = true; document.getElementById('confirm-build').disabled = false; }
+    cancel() { this.sequence++; this.start = null; this.draft = null; this.guide.clear(); document.getElementById('build-draft').hidden = true; document.getElementById('confirm-build').disabled = false; document.getElementById('confirm-build').textContent = '確定建設'; }
     async tap(x, y) {
       if (this.tool === 'browse' || this.busy) return;
       if (!this.session.storage.writable) { this.message('另一個遊戲分頁正在寫入；請關閉該分頁後重新載入。', true); return; }
@@ -58,6 +58,18 @@
     }
     async planAt(cell) {
       const sequence = ++this.sequence, multi = ['road', 'bridge', 'rail', 'zoneR', 'zoneC', 'zoneI'].includes(this.tool);
+      if (this.tool.startsWith('route-')) {
+        const mode = this.tool.slice(6), node = this.simulation.network.nodeAt(mode, cell);
+        if (!node) throw new Error(mode === 'road' ? '請點選道路或橋樑作班次端點。' : '請點選地面路軌作班次端點。');
+        if (!this.start) {
+          this.start = cell; this.draft = { cells: [{ ...cell, height: node.elevation }], operations: [] }; this.drawDraft(); this.draft = null;
+          document.getElementById('build-draft').hidden = false; document.getElementById('confirm-build').disabled = true;
+          document.getElementById('build-cost').textContent = '請點選班次終點'; return;
+        }
+        this.draft = this.simulation.planService(mode, this.start, cell); this.drawDraft();
+        document.getElementById('confirm-build').disabled = false; document.getElementById('confirm-build').textContent = '新增班次';
+        document.getElementById('build-cost').textContent = `${this.draft.cells.length} 格 · 來回行駛`; document.getElementById('build-draft').hidden = false; return;
+      }
       if (this.tool === 'bridge' && !this.start) {
         const tile = await this.construction.data.getTile(cell.col, cell.row);
         if (sequence !== this.sequence || this.busy) return;
@@ -88,6 +100,7 @@
     confirm() {
       if (!this.draft || this.busy) return;
       try {
+        if (this.draft.service) { this.simulation.confirmService(this.draft); this.cancel(); this.message('已新增班次；按「開始模擬」運行。'); return; }
         const model = root.HeungShingWorld.WORLD_BUILDINGS[this.draft.tool];
         if (model && !this.scene.textures.exists(model.texture)) throw new Error('建築圖像未能載入，請重新載入後再建設。');
         this.construction.confirm(this.draft); this.cancel(); this.message('建設完成；正在自動儲存。');

@@ -2,6 +2,8 @@
 
 分支：`codex/world-chunk-streaming`。依照 [規格第 8 節及 Phase 3](world-chunk-streaming-spec-v1.0.md)，世界預覽的導航及建設範圍由試驗區域擴展至整個 **3187×2400** 世界。
 
+現已接入 [Phase 4 世界路網、交通時間及區域聚合](world-streaming-phase4.md)。本文的「下一階段」保留 Phase 3 完成時的歷史界線。
+
 ## 操作
 
 ```sh

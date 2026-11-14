@@ -1,4 +1,4 @@
-# The City of Heung Shing v5.8.1 — 【手機建城 Beta 全通】
+# The City of Heung Shing v5.8.2 — 【手機建城 Beta 全通】
 
 - 廣東話／台灣中文：【手機建城 Beta 全通】
 - English: 【Mobile Building Beta — Fully Connected】

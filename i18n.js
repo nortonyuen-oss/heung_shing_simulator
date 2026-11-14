@@ -1,5 +1,5 @@
 const I18N_STORAGE_KEY = 'citybuilder.language';
-let appVersion = '5.8.1';
+let appVersion = '5.8.2';
 let appReleaseTheme = '【手機建城 Beta 全通】';
 const APP_RELEASE_THEMES = {"en":"【Mobile Building Beta — Fully Connected】","zhHant":"【手機建城 Beta 全通】","ja":"【モバイル建設ベータ全線開通】"};
 function localizedReleaseTheme() {

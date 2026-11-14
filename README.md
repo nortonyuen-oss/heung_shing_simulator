@@ -1,6 +1,6 @@
-# 香城模擬器 (The City of Heung Shing) v5.8.1 — 【手機建城 Beta 全通】
+# 香城模擬器 (The City of Heung Shing) v5.8.2 — 【手機建城 Beta 全通】
 
-香城模擬器 (The City of Heung Shing) v5.8.1 — 【手機建城 Beta 全通】 is a SimCity 2000-style city builder inspired by Hong Kong: isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
+香城模擬器 (The City of Heung Shing) v5.8.2 — 【手機建城 Beta 全通】 is a SimCity 2000-style city builder inspired by Hong Kong: isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
 
 Website and downloads: https://nortonyuen-oss.github.io/heung_shing_simulator/
 
@@ -10,7 +10,7 @@ post or reply. Website messages are tracked with the `website-feedback` issue la
 
 ![The Heung Shing skyline at night, zoomed out: dense lights, the airport and the harbour](docs/assets/gameplay/nightSkyline.webp)
 
-## New in v5.8.1
+## New in v5.8.2
 
 A small mobile update: the status bar's nav handle is now a compact translucent ☰ button instead of a large labelled bar, a slim always-on ticker mirrors desktop's news/forum strip (with a new setting to turn it off), the status bar's date and time are back, and the Transport mode button now greys out up front when the transport company isn't enabled or unlocked yet, instead of only after switching into it.
 

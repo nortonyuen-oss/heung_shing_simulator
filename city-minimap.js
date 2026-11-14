@@ -11,14 +11,49 @@ let cityMinimapLastRotation = null;
 let cityMinimapLastView = '';
 let cityMinimapDragging = false;
 
-// One canvas pixel per tile: a tile at view column c and view row r lands on
-// x = c - r + MAP_WIDTH, y = floor((c + r) / 2). Tiles whose c + r is even fill the even x
+// The canvas is a fixed 512x256 (UI/index.html) - exactly 2x a normal 256x256 map's diamond, one
+// pixel per tile. 香港全境's explored area can grow far past that, so every function below works
+// against a "grid" - rowStart/colStart (the explored area's own origin, getCityMinimapGrid),
+// step (how many real tiles one grid cell covers; 1 for a normal map) and gridWidth/gridHeight
+// (the grid's own size, always <=256 on both axes) - instead of the live MAP_WIDTH/MAP_HEIGHT
+// directly. A normal map's grid is exactly { rowStart:0, colStart:0, step:1, gridWidth:MAP_WIDTH,
+// gridHeight:MAP_HEIGHT }, so every formula below reduces to exactly what it was before.
+function getCityMinimapGrid() {
+  if (typeof isLazyWorldMap === 'function' && isLazyWorldMap()) {
+    if (typeof getActiveSweepBounds !== 'function') return null;
+    const bounds = getActiveSweepBounds();
+    if (!bounds.rowCount || !bounds.colCount) return null; // nothing generated yet
+    // Downsample so the grid never exceeds a normal map's own 256-tile budget on either axis -
+    // the minimap's per-redraw cost stays the same regardless of how much territory is explored,
+    // instead of growing without bound as the player wanders further (Norton: "唔好load全圖").
+    const step = Math.max(1, Math.ceil(Math.max(bounds.rowCount, bounds.colCount) / 256));
+    return {
+      rowStart: bounds.rowStart,
+      colStart: bounds.colStart,
+      step,
+      gridWidth: Math.ceil(bounds.colCount / step),
+      gridHeight: Math.ceil(bounds.rowCount / step),
+    };
+  }
+  return { rowStart: 0, colStart: 0, step: 1, gridWidth: MAP_WIDTH, gridHeight: MAP_HEIGHT };
+}
+
+// One canvas pixel per grid cell: a tile at grid column c and grid row r lands on
+// x = c - r + gridWidth, y = floor((c + r) / 2). Tiles whose c + r is even fill the even x
 // of a canvas row and the odd ones the odd x, so the diamond has no gaps.
-function getCityMinimapViewCoords(row, col) {
-  if (mapRotation === 1) return { c: MAP_HEIGHT - 1 - row, r: col };
-  if (mapRotation === 2) return { c: MAP_WIDTH - 1 - col, r: MAP_HEIGHT - 1 - row };
-  if (mapRotation === 3) return { c: row, r: MAP_WIDTH - 1 - col };
-  return { c: col, r: row };
+function getCityMinimapViewCoords(gridRow, gridCol, grid) {
+  if (mapRotation === 1) return { c: grid.gridHeight - 1 - gridRow, r: gridCol };
+  if (mapRotation === 2) return { c: grid.gridWidth - 1 - gridCol, r: grid.gridHeight - 1 - gridRow };
+  if (mapRotation === 3) return { c: gridRow, r: grid.gridWidth - 1 - gridCol };
+  return { c: gridCol, r: gridRow };
+}
+
+// Inverts getCityMinimapViewCoords: a diamond (c, r) back to the grid (row, col) that painted it.
+function invertCityMinimapViewCoords(c, r, grid) {
+  if (mapRotation === 1) return { gridRow: grid.gridHeight - 1 - c, gridCol: r };
+  if (mapRotation === 2) return { gridRow: grid.gridHeight - 1 - r, gridCol: grid.gridWidth - 1 - c };
+  if (mapRotation === 3) return { gridRow: c, gridCol: grid.gridWidth - 1 - r };
+  return { gridRow: r, gridCol: c };
 }
 
 function cityMinimapTileColor(row, col) {
@@ -39,12 +74,9 @@ function drawCityMinimap() {
   const canvas = document.getElementById('city-minimap-canvas');
   const ctx = canvas?.getContext('2d');
   if (!ctx || !mapData?.length) return;
-  // The 1 canvas pixel per tile painting below assumes the fixed canvas is sized for a normal
-  // 256-wide map's diamond (2*256 x 256) - at territory scale (3187x2400) the same math would
-  // write far outside the canvas. Skip the background paint on a lazy-world map (香港全境) for
-  // now rather than risk it; the camera-position overlay and click-to-navigate below are pure
-  // coordinate math (not tied to a canvas pixel grid) and still work normally either way.
-  if (typeof isLazyWorldMap === 'function' && isLazyWorldMap()) {
+  const grid = getCityMinimapGrid();
+  if (!grid) {
+    // 香港全境: no chunk generated yet - nothing real to show.
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     return;
   }
@@ -52,17 +84,26 @@ function drawCityMinimap() {
   const width = canvas.width;
   const image = ctx.createImageData(width, canvas.height);
   const data = image.data;
+  // Takes a real (row, col) - converts to the grid cell it falls in (step-scaled, clipped to the
+  // grid's own bounds) so every caller below keeps iterating real tile/building positions.
   const paint = (row, col, rgb) => {
-    const { c, r } = getCityMinimapViewCoords(row, col);
-    const idx = (((c + r) >> 1) * width + (c - r + MAP_WIDTH)) * 4;
+    const gridRow = Math.floor((row - grid.rowStart) / grid.step);
+    const gridCol = Math.floor((col - grid.colStart) / grid.step);
+    if (gridRow < 0 || gridRow >= grid.gridHeight || gridCol < 0 || gridCol >= grid.gridWidth) return;
+    const { c, r } = getCityMinimapViewCoords(gridRow, gridCol, grid);
+    const idx = (((c + r) >> 1) * width + (c - r + grid.gridWidth)) * 4;
     data[idx] = rgb[0];
     data[idx + 1] = rgb[1];
     data[idx + 2] = rgb[2];
     data[idx + 3] = 255;
   };
 
-  for (let row = 0; row < MAP_HEIGHT; row++) {
-    for (let col = 0; col < MAP_WIDTH; col++) paint(row, col, cityMinimapTileColor(row, col));
+  for (let gridRow = 0; gridRow < grid.gridHeight; gridRow++) {
+    for (let gridCol = 0; gridCol < grid.gridWidth; gridCol++) {
+      const row = grid.rowStart + gridRow * grid.step;
+      const col = grid.colStart + gridCol * grid.step;
+      paint(row, col, cityMinimapTileColor(row, col));
+    }
   }
   // Buildings that are not zone growth (civic, landmarks, utilities) stand out in pale stone.
   Object.entries(buildingData).forEach(([id, record]) => {
@@ -90,7 +131,7 @@ function drawCityMinimap() {
   }
 
   ctx.putImageData(image, 0, 0);
-  drawCityMinimapMetroLines(ctx, metro);
+  drawCityMinimapMetroLines(ctx, metro, grid);
   cityMinimapLastDrawAt = performance.now();
   cityMinimapLastRotation = mapRotation;
 }
@@ -98,12 +139,14 @@ function drawCityMinimap() {
 // The 地鐵 lines over the map, quietly (Norton, 2026-11-07: 簡單就好，不需要強調): each a thin line in
 // its colour, part see-through - a surface line along its track, an underground one station to
 // station - and its stations a pale dot. A point (col, row) with a tile's middle at +0.5.
-function cityMinimapPointAt(col, row) {
-  const { c, r } = getCityMinimapViewCoords(row - 0.5, col - 0.5);
-  return { x: c - r + MAP_WIDTH + 0.5, y: (c + r) / 2 + 0.5 };
+function cityMinimapPointAt(col, row, grid) {
+  const gridRow = (row - 0.5 - grid.rowStart) / grid.step;
+  const gridCol = (col - 0.5 - grid.colStart) / grid.step;
+  const { c, r } = getCityMinimapViewCoords(gridRow, gridCol, grid);
+  return { x: c - r + grid.gridWidth + 0.5, y: (c + r) / 2 + 0.5 };
 }
 
-function drawCityMinimapMetroLines(ctx, metro) {
+function drawCityMinimapMetroLines(ctx, metro, grid) {
   if (!metro?.lines?.length || typeof getMetroLineStations !== 'function') return;
   ctx.save();
   // (the canvas is shown at about half size: 1.5 px reads as a fine line, not a bold one)
@@ -114,8 +157,8 @@ function drawCityMinimapMetroLines(ctx, metro) {
     if (stations.length < 2) return;
     const geom = line.surface && typeof getSurfaceLineGeometry === 'function' ? getSurfaceLineGeometry(line) : null;
     const pts = geom?.verts?.length
-      ? geom.verts.map((v) => cityMinimapPointAt(v.x, v.y))
-      : stations.map((s) => cityMinimapPointAt(s.col + 0.5, s.row + 0.5));
+      ? geom.verts.map((v) => cityMinimapPointAt(v.x, v.y, grid))
+      : stations.map((s) => cityMinimapPointAt(s.col + 0.5, s.row + 0.5, grid));
     ctx.globalAlpha = line.status === 'suspended' ? 0.3 : 0.65;
     ctx.strokeStyle = line.color || '#c0392b';
     ctx.beginPath();
@@ -125,26 +168,43 @@ function drawCityMinimapMetroLines(ctx, metro) {
   ctx.globalAlpha = 0.85;
   ctx.fillStyle = '#f2efe6';
   (metro.stations || []).forEach((s) => {
-    const p = cityMinimapPointAt(s.col + 0.5, s.row + 0.5);
+    const p = cityMinimapPointAt(s.col + 0.5, s.row + 0.5, grid);
     ctx.fillRect(Math.round(p.x) - 1, Math.round(p.y) - 1, 2, 2);
   });
   ctx.restore();
 }
 
-// World position <-> minimap fraction. Tile centres sit at isoToScreen + the scene offset, and
-// the minimap x/y above are those positions divided by half a tile.
+// World position <-> minimap fraction, in the same grid the background paint above uses (so the
+// camera-position overlay and click-to-navigate line up with whatever's actually drawn - the
+// full map for a normal city, just the explored, downsampled area for 香港全境).
+// screenToIso (main.js) inverts isoToScreen's rotation and projection back to the plain
+// (col, row) a world position corresponds to; getCityMinimapViewCoords re-applies the same
+// rotation the paint above uses, pivoted on the grid instead of the live MAP_WIDTH/MAP_HEIGHT.
 function cityMinimapWorldToFraction(scene, worldX, worldY) {
+  const grid = getCityMinimapGrid();
+  if (!grid) return { x: 0.5, y: 0.5 }; // nothing generated yet - no frame to place meaningfully
+  const iso = screenToIso(worldX - scene.offsetX, worldY - scene.offsetY);
+  const gridRow = (iso.y - grid.rowStart) / grid.step;
+  const gridCol = (iso.x - grid.colStart) / grid.step;
+  const { c, r } = getCityMinimapViewCoords(gridRow, gridCol, grid);
   return {
-    x: ((worldX - ORIGIN_X - scene.offsetX) / (TILE_WIDTH / 2) + MAP_WIDTH) / (MAP_WIDTH * 2),
-    y: ((worldY - scene.offsetY) / TILE_HEIGHT) / MAP_HEIGHT,
+    x: (c - r + grid.gridWidth) / (grid.gridWidth * 2),
+    y: ((c + r) / 2) / grid.gridHeight,
   };
 }
 
 function cityMinimapFractionToWorld(scene, fx, fy) {
-  return {
-    x: (fx * MAP_WIDTH * 2 - MAP_WIDTH) * (TILE_WIDTH / 2) + ORIGIN_X + scene.offsetX,
-    y: fy * MAP_HEIGHT * TILE_HEIGHT + scene.offsetY,
-  };
+  const grid = getCityMinimapGrid();
+  if (!grid) return { x: scene.offsetX, y: scene.offsetY };
+  const cMinusR = fx * grid.gridWidth * 2 - grid.gridWidth;
+  const cPlusR = fy * grid.gridHeight * 2;
+  const c = (cMinusR + cPlusR) / 2;
+  const r = (cPlusR - cMinusR) / 2;
+  const { gridRow, gridCol } = invertCityMinimapViewCoords(c, r, grid);
+  const row = grid.rowStart + gridRow * grid.step;
+  const col = grid.colStart + gridCol * grid.step;
+  const pos = isoToScreen(col, row);
+  return { x: pos.x + scene.offsetX, y: pos.y + scene.offsetY };
 }
 
 function updateCityMinimapView() {

@@ -407,7 +407,9 @@ let trafficRoadTilesCache = null;
 
 // A 海底隧道's portals and the sea it runs under carry traffic like a road (undersea-tunnel.js).
 function isRoadTile(r, c) {
-  return mapData[r]?.[c] === ROAD || roadUnderlayMap[r]?.[c] != null || bridgeMap[r]?.[c] != null
+  if (mapData[r]?.[c] === ROAD) return true;
+  const id = getTileId(r, c);
+  return roadUnderlayMap.get(id) != null || bridgeMap.get(id) != null
     || (typeof getUnderseaTunnelTile === 'function' && getUnderseaTunnelTile(r, c) != null);
 }
 

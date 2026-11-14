@@ -910,10 +910,11 @@ function chooseNextTrafficTile(previous, current, neighbours, random = Math.rand
 
 function isTrafficFlatRoadTile(row, col, layers) {
   const roadValue = layers?.roadValue ?? 2;
+  const id = `${row}:${col}`;
   return layers?.mapData?.[row]?.[col] === roadValue
     && Number(layers?.heightMap?.[row]?.[col] ?? 0) === 0
-    && !layers?.bridgeMap?.[row]?.[col]
-    && layers?.roadUnderlayMap?.[row]?.[col] == null
+    && !layers?.bridgeMap?.get(id)
+    && layers?.roadUnderlayMap?.get(id) == null
     && !layers?.slopeMap?.[row]?.[col]
     && !(typeof layers?.isSlopeRoad === 'function' && layers.isSlopeRoad(row, col));
 }
@@ -1106,7 +1107,7 @@ function getTrafficRoadSurface(row, col, layers) {
   const roadValue = layers?.roadValue ?? 2;
   const heightStep = Math.max(0, Number(layers?.heightStepPixels) || 12);
   const bridgeDeckLift = Math.max(0, Number(layers?.bridgeDeckLiftPixels) || 15);
-  const bridge = normalizeTrafficBridgeValue(layers?.bridgeMap?.[row]?.[col]);
+  const bridge = normalizeTrafficBridgeValue(layers?.bridgeMap?.get(`${row}:${col}`));
 
   // 海底隧道 (undersea-tunnel.js): its portals and the sea it runs under, at sea level, along
   // the tunnel only; under the sea the vehicles are hidden

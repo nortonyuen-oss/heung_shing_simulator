@@ -2214,11 +2214,12 @@ function applyToolAtLegacy(scene, row, col, pointer = null) {
     if (!heightMap[row]) heightMap[row] = [];
     const bulldozeHeight = getTileHeight(row, col);
     if (isBridgeTile(row, col)) {
-      const underlay = roadUnderlayMap[row]?.[col] ?? WATER;
+      const id = getTileId(row, col);
+      const underlay = roadUnderlayMap.get(id) ?? WATER;
       if (underlay !== ROAD) roadTileCount = Math.max(0, roadTileCount - 1);
       mapData[row][col] = underlay;
-      bridgeMap[row][col] = null;
-      roadUnderlayMap[row][col] = null;
+      bridgeMap.delete(id);
+      roadUnderlayMap.delete(id);
       heightMap[row][col] = 0;
       refreshBridgeSprite(scene, row, col);
     } else if (clearedDebris && mapData[row][col] === DIRT) {
@@ -2652,8 +2653,9 @@ function setTileType(scene, row, col, tileType) {
   if (oldType === tileType) return;
 
   if (isBridgeTile(row, col) && tileType !== ROAD) {
-    bridgeMap[row][col] = null;
-    roadUnderlayMap[row][col] = null;
+    const clearedId = getTileId(row, col);
+    bridgeMap.delete(clearedId);
+    roadUnderlayMap.delete(clearedId);
   }
 
   if (tileType === ROAD) {
@@ -2967,8 +2969,9 @@ function isAdjacentToRoad(row, col) {
       const nr = row + dr, nc = col + dc;
       if (!isInsideMap(nr, nc)) continue;
       if (mapData[nr]?.[nc] === ROAD) return true;
-      if (roadUnderlayMap[nr]?.[nc] != null) return true;
-      if (bridgeMap[nr]?.[nc]) return true;
+      const nid = getTileId(nr, nc);
+      if (roadUnderlayMap.get(nid) != null) return true;
+      if (bridgeMap.get(nid)) return true;
     }
   }
   return false;

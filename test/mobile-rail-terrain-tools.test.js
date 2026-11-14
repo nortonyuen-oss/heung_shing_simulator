@@ -28,7 +28,7 @@ function setup() {
     treeMap: new Map(),
     city: { budget: 1000000, population: 50000, year: 1900, month: 1, tick: 0, weather: { typhoonStage: 'none' }, underseaTunnels: [], districtSigns: [] },
     mapData: grid(1), zoneMap: grid(0), zoneDensityMap: grid(1), heightMap: grid(0),
-    buildingData: {}, roadUnderlayMap: grid(null), bridgeMap: grid(null), powerLineSet: new Set(), lowDensityLockSet: new Set(),
+    buildingData: {}, roadUnderlayMap: new Map(), bridgeMap: new Map(), powerLineSet: new Set(), lowDensityLockSet: new Set(),
     scene: {
       buildingSprites: new Map(), treeSprites: new Map(), debrisSprites: new Map(), zoneOverlays: new Map(),
       add: {

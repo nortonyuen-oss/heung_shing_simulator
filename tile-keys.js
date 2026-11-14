@@ -221,7 +221,7 @@ function getCarriagewayLaneDirection(width, index, vertical) {
 // Determine which road tile to use based on neighbouring roads
 function getRoadKey(row, col) {
   if (isBridgeTile(row, col)) {
-    const bridgeValue = normalizeBridgeMapValue(bridgeMap[row][col]);
+    const bridgeValue = normalizeBridgeMapValue(bridgeMap.get(getTileId(row, col)));
     if (bridgeValue === 'deck:row') return 'road_bridge_h';
     if (bridgeValue === 'deck:col') return 'road_bridge_v';
     const rampMatch = bridgeValue?.match(/^ramp:([nesw])$/);

@@ -173,15 +173,15 @@ function isInsideBridgeRampDeckHalf(x, y, bounds, visualDirection) {
 }
 
 function isBridgeTile(row, col) {
-  return !!bridgeMap?.[row]?.[col];
+  return !!bridgeMap.get(getTileId(row, col));
 }
 
 function isBridgeDeckTile(row, col) {
-  return normalizeBridgeMapValue(bridgeMap?.[row]?.[col])?.startsWith('deck:') ?? false;
+  return normalizeBridgeMapValue(bridgeMap.get(getTileId(row, col)))?.startsWith('deck:') ?? false;
 }
 
 function isBridgeRampTile(row, col) {
-  return normalizeBridgeMapValue(bridgeMap?.[row]?.[col])?.startsWith('ramp:') ?? false;
+  return normalizeBridgeMapValue(bridgeMap.get(getTileId(row, col)))?.startsWith('ramp:') ?? false;
 }
 
 function analyzeBridgePath(scene, pathInfo) {
@@ -260,6 +260,7 @@ function buildBridgePath(scene, bridge) {
 
   const path = dedupePath(bridge.path);
   path.forEach(({ row, col }, index) => {
+    const id = getTileId(row, col);
     const isInterior = index > 0 && index < path.length - 1;
     const isStart = index === 0;
     const isEnd = index === path.length - 1;
@@ -269,8 +270,8 @@ function buildBridgePath(scene, bridge) {
       removeTree(scene, row, col);
       removeDebris(scene, row, col);
       removeZoneOverlay(scene, row, col);
-      bridgeMap[row][col] = `deck:${bridge.axis}`;
-      roadUnderlayMap[row][col] = oldType;
+      bridgeMap.set(id, `deck:${bridge.axis}`);
+      roadUnderlayMap.set(id, oldType);
       mapData[row][col] = oldType;
       heightMap[row][col] = 0;
     } else if (isStart || isEnd) {
@@ -284,11 +285,11 @@ function buildBridgePath(scene, bridge) {
       const towardWater = isStart
         ? getDirectionBetweenTiles(path[index], path[index + 1])
         : getDirectionBetweenTiles(path[index], path[index - 1]);
-      bridgeMap[row][col] = `ramp:${towardWater}`;
-      roadUnderlayMap[row][col] = oldType;
+      bridgeMap.set(id, `ramp:${towardWater}`);
+      roadUnderlayMap.set(id, oldType);
     } else {
-      bridgeMap[row][col] = null;
-      roadUnderlayMap[row][col] = null;
+      bridgeMap.delete(id);
+      roadUnderlayMap.delete(id);
     }
   });
 
@@ -371,11 +372,12 @@ function refreshAllBridgeSprites(scene) {
   if (!scene?.bridgeSprites) return;
   scene.bridgeSprites.forEach(destroyBridgeSpriteEntry);
   scene.bridgeSprites.clear();
-  for (let row = 0; row < MAP_HEIGHT; row++) {
-    for (let col = 0; col < MAP_WIDTH; col++) {
-      refreshBridgeSprite(scene, row, col);
-    }
-  }
+  // bridgeMap is the sparse list of bridge tiles now, and every stale sprite was just cleared
+  // above, so only tiles bridgeMap actually holds can need a sprite.
+  bridgeMap.forEach((value, id) => {
+    const [row, col] = id.split(':').map(Number);
+    refreshBridgeSprite(scene, row, col);
+  });
 }
 
 function repositionBridgeSprites(scene) {
@@ -469,7 +471,7 @@ function getBridgeSpriteKey(row, col) {
 }
 
 function getBridgeRampDirection(row, col) {
-  return normalizeBridgeMapValue(bridgeMap?.[row]?.[col])?.match(/^ramp:([nesw])$/)?.[1] ?? null;
+  return normalizeBridgeMapValue(bridgeMap.get(getTileId(row, col)))?.match(/^ramp:([nesw])$/)?.[1] ?? null;
 }
 
 function getBridgeRampVisualDirection(row, col) {
@@ -538,8 +540,8 @@ function getBridgeErrorMessage(reason) {
 }
 
 function resetBridgeLayers() {
-  bridgeMap = createFilledMap(null);
-  roadUnderlayMap = createFilledMap(null);
+  bridgeMap = new Map();
+  roadUnderlayMap = new Map();
 }
 
 function getBridgeDeckVisualOffset(row, col, key) {
@@ -547,7 +549,7 @@ function getBridgeDeckVisualOffset(row, col, key) {
 }
 
 function getBridgeUnderlayTileType(row, col) {
-  const underlay = roadUnderlayMap?.[row]?.[col];
+  const underlay = roadUnderlayMap.get(getTileId(row, col));
   if ([GROUND, DIRT, BEACH, WATER, HILL].includes(underlay)) return underlay;
   if (underlay === ROAD) return getTileHeight(row, col) > 0 ? HILL : GROUND;
   return isBridgeDeckTile(row, col) ? WATER : GROUND;

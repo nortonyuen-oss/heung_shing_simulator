@@ -714,8 +714,8 @@ test('flat-road eligibility excludes elevated roads, bridges, and bridge underla
   const layers = {
     mapData: [[2, 2, 2, 2, 2]],
     heightMap: [[0, 1, 0, 0, 0]],
-    bridgeMap: [[null, null, 'deck:row', null, null]],
-    roadUnderlayMap: [[null, null, null, 5, null]],
+    bridgeMap: new Map([['0:2', 'deck:row']]),
+    roadUnderlayMap: new Map([['0:3', 5]]),
     slopeMap: [[false, false, false, false, true]],
     roadValue: 2,
   };
@@ -730,7 +730,7 @@ test('traffic surfaces describe terrain slopes, crests, bridge ramps, and bridge
   const terrainSlopeLayers = {
     mapData: [[2, 2, 2]],
     heightMap: [[0, 1, 1]],
-    bridgeMap: [[null, null, null]],
+    bridgeMap: new Map(),
     roadSlopeKeyMap: [[null, 'road_hill_w', null]],
     roadValue: 2,
     heightStepPixels: 12,
@@ -748,7 +748,7 @@ test('traffic surfaces describe terrain slopes, crests, bridge ramps, and bridge
   const crestLayers = {
     mapData: [[2], [2], [2]],
     heightMap: [[0], [1], [0]],
-    bridgeMap: [[null], [null], [null]],
+    bridgeMap: new Map(),
     roadSlopeKeyMap: [[null], ['road_hill2_n'], [null]],
     roadValue: 2,
     heightStepPixels: 12,
@@ -762,7 +762,7 @@ test('traffic surfaces describe terrain slopes, crests, bridge ramps, and bridge
   const bridgeLayers = {
     mapData: [[2, 2, 5]],
     heightMap: [[0, 0, 0]],
-    bridgeMap: [[null, 'ramp:e', 'deck:row']],
+    bridgeMap: new Map([['0:1', 'ramp:e'], ['0:2', 'deck:row']]),
     roadSlopeKeyMap: [[null, null, null]],
     roadValue: 2,
     bridgeDeckLiftPixels: 15,
@@ -777,7 +777,7 @@ test('traffic surfaces describe terrain slopes, crests, bridge ramps, and bridge
   assert.deepEqual(deck.directions, ['e', 'w']);
   assert.equal(deck.centerLift, 15);
 
-  bridgeLayers.bridgeMap[0][2] = 'deck:col';
+  bridgeLayers.bridgeMap.set('0:2', 'deck:col');
   const columnDeck = getTrafficRoadSurface(0, 2, bridgeLayers);
   assert.deepEqual(columnDeck.directions, ['n', 's']);
 });
@@ -786,7 +786,7 @@ test('traffic surface connections require matching direction and boundary height
   const terrainLayers = {
     mapData: [[2, 2, 2]],
     heightMap: [[0, 1, 1]],
-    bridgeMap: [[null, null, null]],
+    bridgeMap: new Map(),
     roadSlopeKeyMap: [[null, 'road_hill_w', null]],
     roadValue: 2,
     heightStepPixels: 12,
@@ -801,7 +801,7 @@ test('traffic surface connections require matching direction and boundary height
   const bridgeLayers = {
     mapData: [[2, 2, 5]],
     heightMap: [[0, 0, 0]],
-    bridgeMap: [[null, 'ramp:e', 'deck:row']],
+    bridgeMap: new Map([['0:1', 'ramp:e'], ['0:2', 'deck:row']]),
     roadSlopeKeyMap: [[null, null, null]],
     roadValue: 2,
     bridgeDeckLiftPixels: 15,
@@ -818,7 +818,7 @@ test('traffic legs rise continuously at surface boundaries and adjust hill speed
   const layers = {
     mapData: [[2, 2, 2]],
     heightMap: [[0, 1, 1]],
-    bridgeMap: [[null, null, null]],
+    bridgeMap: new Map(),
     roadSlopeKeyMap: [[null, 'road_hill_w', null]],
     roadValue: 2,
     heightStepPixels: 12,

@@ -293,16 +293,32 @@ function assertCompactSourceMap(source, fieldName, width, height) {
   });
 }
 
+// bridgeMap/roadUnderlayMap live in memory as sparse Maps (tileId -> value), not a dense grid -
+// RLE still encodes them as a dense run list (long null runs compress just as well), so encode
+// reads through a Map.get accessor instead of row/col indexing and decode (below) skips writing
+// null runs into the result Map rather than filling every cell.
+const COMPACT_SPARSE_FIELDS = new Set(['bridgeMap', 'roadUnderlayMap']);
+
 function encodeCompactRleMap(source, fieldName) {
   const { width, height } = getCompactMapDimensions();
-  assertCompactSourceMap(source, fieldName, width, height);
+  const sparse = COMPACT_SPARSE_FIELDS.has(fieldName);
+  let getValue;
+  if (sparse) {
+    if (!(source instanceof Map)) {
+      throw createCompactSaveError(fieldName, 'source must be a Map');
+    }
+    getValue = (row, col) => source.get(`${row}:${col}`) ?? null;
+  } else {
+    assertCompactSourceMap(source, fieldName, width, height);
+    getValue = (row, col) => source[row][col];
+  }
   const runs = [];
   let previousValue;
   let previousCount = 0;
 
   for (let row = 0; row < height; row += 1) {
     for (let col = 0; col < width; col += 1) {
-      const value = source[row][col];
+      const value = getValue(row, col);
       if (previousCount > 0 && value === previousValue) {
         previousCount += 1;
       } else {
@@ -337,6 +353,32 @@ function decodeCompactRleMap(encoded, fieldName) {
   if (!Array.isArray(encoded.runs) || encoded.runs.length < 2
     || encoded.runs.length % 2 !== 0 || encoded.runs.length > total * 2) {
     throw createCompactSaveError(fieldName, 'invalid run list');
+  }
+
+  if (COMPACT_SPARSE_FIELDS.has(fieldName)) {
+    const result = new Map();
+    let sparseOffset = 0;
+    for (let runIndex = 0; runIndex < encoded.runs.length; runIndex += 2) {
+      const value = encoded.runs[runIndex];
+      const count = encoded.runs[runIndex + 1];
+      if (!isValidCompactMapValue(fieldName, value)) {
+        throw createCompactSaveError(fieldName, `invalid value in run ${runIndex / 2}`);
+      }
+      if (!Number.isInteger(count) || count <= 0 || sparseOffset + count > total) {
+        throw createCompactSaveError(fieldName, `invalid length in run ${runIndex / 2}`);
+      }
+      if (value !== null) {
+        for (let i = 0; i < count; i += 1) {
+          const index = sparseOffset + i;
+          result.set(`${Math.floor(index / width)}:${index % width}`, value);
+        }
+      }
+      sparseOffset += count;
+    }
+    if (sparseOffset !== total) {
+      throw createCompactSaveError(fieldName, `decoded ${sparseOffset} of ${total} cells`);
+    }
+    return result;
   }
 
   const typed = COMPACT_TYPED_FIELDS.has(fieldName);
@@ -1507,19 +1549,40 @@ function applySaveData(scene, save) {
     Math.max(1, Math.floor(Number(city.day) || 1)),
   );
 
-  // Restore infrastructure metadata
+  // Restore infrastructure metadata. bridgeMap/roadUnderlayMap decode into sparse Maps for a
+  // v15+ save (decodeCompactRleMap), so only the tiles they actually hold need a visit; a v14
+  // (uncompressed) save's data passes through decodeSaveDataForLoad's early return untouched and
+  // is still a dense grid there, so that shape is read the old way instead of being dropped.
   roadTileCount = save.roadTileCount ?? 0;
-  bridgeMap = createFilledMap(null);
-  roadUnderlayMap = createFilledMap(null);
-  for (let r = 0; r < MAP_HEIGHT; r++) {
-    for (let c = 0; c < MAP_WIDTH; c++) {
-      const bridgeValue = (save.bridgeMap?.[r] ?? [])[c];
-      bridgeMap[r][c] = normalizeSavedBridgeMapValue(bridgeValue);
-      const underlay = Number((save.roadUnderlayMap?.[r] ?? [])[c]);
-      roadUnderlayMap[r][c] = [GROUND, ROAD, DIRT, BEACH, WATER, HILL].includes(underlay) ? underlay : null;
-      if (bridgeMap[r][c]?.startsWith('deck:') && roadUnderlayMap[r][c] !== null && roadUnderlayMap[r][c] !== ROAD) {
-        mapData[r][c] = roadUnderlayMap[r][c];
-        heightMap[r][c] = 0;
+  bridgeMap = new Map();
+  roadUnderlayMap = new Map();
+  const restoreBridgeCell = (r, c) => {
+    const id = getTileId(r, c);
+    const bridgeValue = save.bridgeMap instanceof Map ? save.bridgeMap.get(id) : (save.bridgeMap?.[r] ?? [])[c];
+    const normalizedBridge = normalizeSavedBridgeMapValue(bridgeValue);
+    if (normalizedBridge !== null) bridgeMap.set(id, normalizedBridge);
+    const underlayRaw = save.roadUnderlayMap instanceof Map ? save.roadUnderlayMap.get(id) : (save.roadUnderlayMap?.[r] ?? [])[c];
+    const underlay = Number(underlayRaw);
+    const normalizedUnderlay = [GROUND, ROAD, DIRT, BEACH, WATER, HILL].includes(underlay) ? underlay : null;
+    if (normalizedUnderlay !== null) roadUnderlayMap.set(id, normalizedUnderlay);
+    if (normalizedBridge?.startsWith('deck:') && normalizedUnderlay !== null && normalizedUnderlay !== ROAD) {
+      mapData[r][c] = normalizedUnderlay;
+      heightMap[r][c] = 0;
+    }
+  };
+  if (save.bridgeMap instanceof Map || save.roadUnderlayMap instanceof Map) {
+    const bridgeTileIds = new Set([
+      ...(save.bridgeMap instanceof Map ? save.bridgeMap.keys() : []),
+      ...(save.roadUnderlayMap instanceof Map ? save.roadUnderlayMap.keys() : []),
+    ]);
+    bridgeTileIds.forEach((id) => {
+      const [r, c] = id.split(':').map(Number);
+      restoreBridgeCell(r, c);
+    });
+  } else {
+    for (let r = 0; r < MAP_HEIGHT; r++) {
+      for (let c = 0; c < MAP_WIDTH; c++) {
+        restoreBridgeCell(r, c);
       }
     }
   }

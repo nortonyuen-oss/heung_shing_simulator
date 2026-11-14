@@ -235,9 +235,8 @@ function collectNightRemoteLitMask(scene) {
   const bridges = typeof bridgeMap !== 'undefined' ? bridgeMap : null;
   for (let row = 0; row < MAP_HEIGHT; row++) {
     const mapRow = mapData[row];
-    const bridgeRow = bridges?.[row];
     for (let col = 0; col < MAP_WIDTH; col++) {
-      if (mapRow[col] === ROAD || bridgeRow?.[col]) mark(row, col);
+      if (mapRow[col] === ROAD || bridges?.get(getTileId(row, col))) mark(row, col);
     }
   }
   // one entry per footprint tile, keyed "row:col"

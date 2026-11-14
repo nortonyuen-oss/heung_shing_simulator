@@ -70,10 +70,10 @@ function canPlantTreeAt(scene, row, col) {
 // Why the tree tool refuses a tile, for the hover guide and the toast; null when it may plant.
 function getTreePlantingBlockReason(scene, row, col) {
   if (!isInsideMap(row, col)) return 'terrain';
-  if (mapData[row][col] === ROAD || roadUnderlayMap[row]?.[col] != null || bridgeMap[row]?.[col]) return 'road';
-  if (!isTreeTerrainEligible(row, col)) return 'terrain';
-  if (treeMap.get(getTileId(row, col))) return 'tree';
   const id = getTileId(row, col);
+  if (mapData[row][col] === ROAD || roadUnderlayMap.get(id) != null || bridgeMap.get(id)) return 'road';
+  if (!isTreeTerrainEligible(row, col)) return 'terrain';
+  if (treeMap.get(id)) return 'tree';
   if (buildingData[id] || scene?.buildingSprites?.has(id)) return 'building';
   if (typeof hasDistrictSignAt === 'function' && hasDistrictSignAt(row, col)) return 'building';
   if (powerLineSet.has(id)) return 'powerLine';
@@ -85,12 +85,12 @@ function getTreePlantingBlockReason(scene, row, col) {
 function canTreeOccupyAt(scene, row, col, blockedTiles = null, { planted = false } = {}) {
   if (!isTreeTerrainEligible(row, col)) return false;
   if (mapData[row]?.[col] === ROAD) return false;
-  if (roadUnderlayMap[row]?.[col] != null) return false;
-  if (!planted && isAdjacentToRoad(row, col)) return false;
   const id = getTileId(row, col);
+  if (roadUnderlayMap.get(id) != null) return false;
+  if (!planted && isAdjacentToRoad(row, col)) return false;
   if (!planted && zoneMap[row]?.[col] !== ZONE_NONE) return false;
   if (powerLineSet.has(id)) return false;
-  if (bridgeMap[row]?.[col]) return false;
+  if (bridgeMap.get(id)) return false;
   if (blockedTiles?.has(id)) return false;
   if (buildingData[id]) return false;
   if (scene?.buildingSprites?.has(id)) return false;

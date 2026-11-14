@@ -96,7 +96,7 @@ test('a dry daytime city spawns an ice cream truck again after the last rain rea
     const TILE_WIDTH = 64, TILE_HEIGHT = 32, TILE_IMAGE_HEIGHT = 32;
     const BUILDING_SURFACE_Y_OFFSET = 0, ROAD = 2;
     const mapData = Array.from({ length: 3 }, (_, row) => Array(31).fill(row === 1 ? ROAD : 0));
-    const heightMap = [], bridgeMap = [], roadUnderlayMap = [];
+    const heightMap = [], bridgeMap = new Map(), roadUnderlayMap = new Map();
     const buildingData = { '0:15': { type: 'primary_school', footprintRows: 1, footprintCols: 1 } };
     function isInsideMap(row, col) { return row >= 0 && row < 3 && col >= 0 && col < 31; }
     function isoToScreen(col, row) { return { x: (col - row) * 32, y: (col + row) * 16 }; }

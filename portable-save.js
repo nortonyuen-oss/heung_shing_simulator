@@ -9,25 +9,27 @@
     if (!object(payload) || !object(payload.save_data) || !object(payload.save_data.city)) fail('Invalid city data');
     if (![14, 15].includes(payload.save_data.version)) fail('This save format is not supported. Use a compatible game version.');
     const data = decode(payload.save_data);
-    for (const name of ['mapData', 'heightMap', 'bridgeMap', 'roadUnderlayMap', 'zoneMap', 'zoneDensityMap']) {
+    for (const name of ['mapData', 'heightMap', 'zoneMap', 'zoneDensityMap']) {
       // mapData/heightMap/zoneMap/zoneDensityMap rows are typed arrays once decoded (see
       // createFilledTypedMap in constants.js) - Array.isArray is false for those, so a row must
       // also be accepted via ArrayBuffer.isView.
       if (!Array.isArray(data[name]) || data[name].length !== height
         || data[name].some(row => !(Array.isArray(row) || ArrayBuffer.isView(row)) || row.length !== width)) fail(`Invalid ${name} dimensions`);
     }
-    // treeMap (and the rest of Phase 2's mostly-null layers, as they convert) decodes into a
-    // sparse Map (tileId -> value) for a v15+ save. A v14 (uncompressed) save's data passes
-    // through decodeSaveDataForLoad's early return untouched, so it is still a dense grid there.
-    if (data.treeMap instanceof Map) {
-      if (data.treeMap.size > width * height) fail('Invalid treeMap');
-      for (const id of data.treeMap.keys()) {
-        const match = typeof id === 'string' && id.match(/^(\d+):(\d+)$/);
-        if (!match || +match[1] >= height || +match[2] >= width) fail('Invalid treeMap location');
+    // treeMap/bridgeMap/roadUnderlayMap (Phase 2's mostly-null layers) decode into a sparse Map
+    // (tileId -> value) for a v15+ save. A v14 (uncompressed) save's data passes through
+    // decodeSaveDataForLoad's early return untouched, so it is still a dense grid there.
+    for (const name of ['treeMap', 'bridgeMap', 'roadUnderlayMap']) {
+      if (data[name] instanceof Map) {
+        if (data[name].size > width * height) fail(`Invalid ${name}`);
+        for (const id of data[name].keys()) {
+          const match = typeof id === 'string' && id.match(/^(\d+):(\d+)$/);
+          if (!match || +match[1] >= height || +match[2] >= width) fail(`Invalid ${name} location`);
+        }
+      } else if (!Array.isArray(data[name]) || data[name].length !== height
+        || data[name].some((row) => !Array.isArray(row) || row.length !== width)) {
+        fail(`Invalid ${name} dimensions`);
       }
-    } else if (!Array.isArray(data.treeMap) || data.treeMap.length !== height
-      || data.treeMap.some((row) => !Array.isArray(row) || row.length !== width)) {
-      fail('Invalid treeMap dimensions');
     }
     if (!object(data.buildingData) || Object.keys(data.buildingData).length > width * height) fail('Invalid buildings');
     for (const key of Object.keys(data.buildingData)) {

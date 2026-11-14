@@ -207,7 +207,7 @@ function clearBridgeParapetSprites(scene) {
 function rebuildBridgeParapetSprites(scene) {
   const sprites = ensureBridgeParapetSprites(scene);
   if (!sprites || typeof normalizeBridgeMapValue !== 'function' || typeof bridgeMap === 'undefined') return;
-  const bridgeValueAt = (row, col) => normalizeBridgeMapValue(bridgeMap?.[row]?.[col]);
+  const bridgeValueAt = (row, col) => normalizeBridgeMapValue(bridgeMap.get(getTileId(row, col)));
   const placements = computeBridgeParapetPlacements({ mapWidth: MAP_WIDTH, mapHeight: MAP_HEIGHT, bridgeValueAt });
   const wanted = new Map(placements.map((placement) => [bridgeParapetId(placement), placement]));
   sprites.forEach((sprite, id) => {

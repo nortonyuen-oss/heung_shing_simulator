@@ -11,7 +11,6 @@ const GROUND = 1;
 // Real traffic-visuals.js + the real carriageway block from main.js, over a synthetic map.
 function createRoadContext(size, isRoad) {
   const mapData = Array.from({ length: size }, (_, r) => Array.from({ length: size }, (_, c) => (isRoad(r, c) ? ROAD : GROUND)));
-  const blank = () => Array.from({ length: size }, () => Array(size).fill(null));
   const context = vm.createContext({
     console,
     TICKS_PER_MONTH: 4,
@@ -20,8 +19,8 @@ function createRoadContext(size, isRoad) {
     MAP_HEIGHT: size,
     mapData,
     heightMap: Array.from({ length: size }, () => Array(size).fill(0)),
-    bridgeMap: blank(),
-    roadUnderlayMap: blank(),
+    bridgeMap: new Map(),
+    roadUnderlayMap: new Map(),
     isInsideMap: (row, col) => row >= 0 && row < size && col >= 0 && col < size,
     isBridgeDeckTile: () => false,
     getRoadSlopeKey: () => null,

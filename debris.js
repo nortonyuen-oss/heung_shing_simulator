@@ -59,7 +59,7 @@ function canDebrisOccupyAt(scene, row, col, blockedTiles = null) {
   const id = getTileId(row, col);
   if (zoneMap[row]?.[col] !== ZONE_NONE) return false;
   if (powerLineSet.has(id)) return false;
-  if (bridgeMap[row]?.[col]) return false;
+  if (bridgeMap.get(id)) return false;
   if (blockedTiles?.has(id)) return false;
   if (buildingData[id]) return false;
   if (scene?.buildingSprites?.has(id)) return false;
@@ -249,18 +249,19 @@ function paintDirtClusterBlob(terrain, centerRow, centerCol, random, isEligible)
 // existing tree - trees are never bulldozed to make room for a bare patch).
 function scatterBareLandDirtClusters(scene) {
   const random = createRandom(`${currentSeed}:bareLandRetrofit`);
-  const isEligible = (row, col) => (
-    isInsideMap(row, col)
-    && mapData[row][col] === GROUND
-    && zoneMap[row]?.[col] === ZONE_NONE
-    && !bridgeMap[row]?.[col]
-    && !powerLineSet.has(getTileId(row, col))
-    && roadUnderlayMap[row]?.[col] == null
-    && !buildingData[getTileId(row, col)]
-    && !scene?.buildingSprites?.has(getTileId(row, col))
-    && !treeMap.get(getTileId(row, col))
-    && !(typeof hasDistrictSignAt === 'function' && hasDistrictSignAt(row, col))
-  );
+  const isEligible = (row, col) => {
+    const id = getTileId(row, col);
+    return isInsideMap(row, col)
+      && mapData[row][col] === GROUND
+      && zoneMap[row]?.[col] === ZONE_NONE
+      && !bridgeMap.get(id)
+      && !powerLineSet.has(id)
+      && roadUnderlayMap.get(id) == null
+      && !buildingData[id]
+      && !scene?.buildingSprites?.has(id)
+      && !treeMap.get(id)
+      && !(typeof hasDistrictSignAt === 'function' && hasDistrictSignAt(row, col));
+  };
 
   const visited = createNumericMap(false);
   let changed = false;

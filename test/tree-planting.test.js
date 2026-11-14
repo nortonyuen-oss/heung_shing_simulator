@@ -26,11 +26,10 @@ function createRulesContext() {
     [GROUND, GROUND, HILL, GROUND, GROUND],
     [GROUND, GROUND, GROUND, GROUND, GROUND],
   ];
-  const empty = () => Array.from({ length: 5 }, () => Array(5).fill(null));
   const context = vm.createContext({
     Math, Number, Set,
     GROUND, WATER, ROAD, HILL, ZONE_NONE: 0, MAP_WIDTH: 5, MAP_HEIGHT: 5,
-    mapData, treeMap: new Map(), roadUnderlayMap: empty(), bridgeMap: empty(),
+    mapData, treeMap: new Map(), roadUnderlayMap: new Map(), bridgeMap: new Map(),
     zoneMap: Array.from({ length: 5 }, () => Array(5).fill(0)),
     buildingData: { '0:4': { type: 'house' } },
     powerLineSet: new Set(['4:0']),
@@ -68,7 +67,7 @@ test('the tree tool plants beside roads and on empty zoned lots, where wild tree
   assert.equal(reason(scene, 4, 3), 'tree');
   assert.equal(plant(scene, 4, 3), false);
   // A road with an underlay (a bridge ramp) or a bridge deck refuses too.
-  context.roadUnderlayMap[1][0] = GROUND; context.bridgeMap[3][0] = 'deck:row';
+  context.roadUnderlayMap.set('1:0', GROUND); context.bridgeMap.set('3:0', 'deck:row');
   assert.equal(reason(scene, 1, 0), 'road');
   assert.equal(reason(scene, 3, 0), 'road');
   // The occupancy rule that loads and the sim apply: a planted tree keeps a roadside/zoned tile.
@@ -92,8 +91,8 @@ test('the forest sweep keeps a planted roadside tree and culls a wild one', () =
       ['2:2', { species: 'banyan', age: 6, variant: 0.1 }],
     ]),
     zoneMap: [[0, 0, 0], [0, 0, 0], [0, 0, 1]],
-    roadUnderlayMap: [[null, null, null], [null, null, null], [null, null, null]],
-    bridgeMap: [[null, null, null], [null, null, null], [null, null, null]],
+    roadUnderlayMap: new Map(),
+    bridgeMap: new Map(),
     getTreeSimulationTiles: () => [[0, 0], [0, 1], [2, 2]],
     isTreeTerrainEligible: (r, c) => [GROUND, HILL].includes([[GROUND, GROUND, GROUND], [ROAD, ROAD, ROAD], [GROUND, GROUND, GROUND]][r][c]),
     isAdjacentToRoad: (r) => r === 0 || r === 2,

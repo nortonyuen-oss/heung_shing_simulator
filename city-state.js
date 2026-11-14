@@ -2,8 +2,8 @@
 let zoneMap         = [];   // ZONE_NONE | ZONE_RES | ZONE_COM | ZONE_IND per cell
 let zoneDensityMap  = [];   // DENSITY_LOW | DENSITY_MED | DENSITY_HIGH per cell
 let heightMap       = [];   // 0 = sea/flat, each +1 step is 100m altitude
-let bridgeMap       = [];   // null | 'deck:row' | 'deck:col' | 'ramp:n/e/s/w'
-let roadUnderlayMap = [];   // original terrain below bridge road tiles
+let bridgeMap       = new Map(); // tileId -> 'deck:row' | 'deck:col' | 'ramp:n/e/s/w'; absent = none
+let roadUnderlayMap = new Map(); // tileId -> original terrain below a bridge road tile
 let powerMap        = [];   // 0 | 1 per cell (is this cell powered?) - Uint8Array rows
 let serviceMap      = new Map(); // tileId -> { fire, police, park, health, eduBasic, eduHigher }; absent = none
 let treeMap         = new Map(); // tileId -> { species, age, variant, count, planted? }; absent = none
@@ -282,8 +282,8 @@ function resetGameState() {
   if (typeof invalidateTreeSimulationTiles === 'function') invalidateTreeSimulationTiles();
   if (typeof invalidateDebrisSimulationTiles === 'function') invalidateDebrisSimulationTiles();
   if (typeof invalidateResidentialEnvironmentScoreCache === 'function') invalidateResidentialEnvironmentScoreCache();
-  bridgeMap      = createFilledMap(null);
-  roadUnderlayMap = createFilledMap(null);
+  bridgeMap      = new Map();
+  roadUnderlayMap = new Map();
   trafficMap     = createFilledTypedMap(Float32Array, 0);
 
   Object.keys(buildingData).forEach((k) => delete buildingData[k]);

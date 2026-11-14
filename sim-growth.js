@@ -1455,7 +1455,7 @@ function updateTrees(scene) {
     // Land repurposed under the tree: gone. A wild tree also gives way to zoning and keeps
     // its canopy off the roads; one the player planted stays on its lot until it develops.
     if (!isTreeTerrainEligible(r, c) || scene.buildingSprites.has(id)
-        || mapData[r]?.[c] === ROAD || roadUnderlayMap[r]?.[c] != null || bridgeMap[r]?.[c]
+        || mapData[r]?.[c] === ROAD || roadUnderlayMap.get(id) != null || bridgeMap.get(id)
         || (!tree.planted && (zoneMap[r]?.[c] !== ZONE_NONE || isAdjacentToRoad(r, c)))) {
       removeTree(scene, r, c);
       continue;
@@ -1587,8 +1587,8 @@ function createResidentialQualityContext(landValueMap = null) {
 
 function getRoadIntensity(row, col, radius = 3) {
   const terrain = typeof mapData !== 'undefined' ? mapData : [];
-  const underlay = typeof roadUnderlayMap !== 'undefined' ? roadUnderlayMap : [];
-  const bridges = typeof bridgeMap !== 'undefined' ? bridgeMap : [];
+  const underlay = typeof roadUnderlayMap !== 'undefined' ? roadUnderlayMap : new Map();
+  const bridges = typeof bridgeMap !== 'undefined' ? bridgeMap : new Map();
   const roadTile = typeof ROAD !== 'undefined' ? ROAD : 2;
   let roadTiles = 0;
   for (let dr = -radius; dr <= radius; dr++) {
@@ -1596,7 +1596,8 @@ function getRoadIntensity(row, col, radius = 3) {
       if (Math.abs(dr) + Math.abs(dc) > radius) continue;
       const rr = Math.round(row + dr);
       const cc = Math.round(col + dc);
-      if (terrain[rr]?.[cc] === roadTile || underlay[rr]?.[cc] != null || bridges[rr]?.[cc] != null) {
+      const id = `${rr}:${cc}`;
+      if (terrain[rr]?.[cc] === roadTile || underlay.get(id) != null || bridges.get(id) != null) {
         roadTiles++;
       }
     }

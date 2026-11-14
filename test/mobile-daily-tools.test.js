@@ -15,7 +15,7 @@ function setup() {
     GROUND: 1, ROAD: 2, DIRT: 3, BEACH: 4, WATER: 5, HILL: 6,
     city: { budget: 10000, tick: 0, districtSigns: [] }, buildingData: {},
     mapData: grid(1), zoneMap: grid(0), zoneDensityMap: grid(1), treeMap: new Map(),
-    roadUnderlayMap: grid(null), bridgeMap: grid(null), powerLineSet: new Set(), lowDensityLockSet: new Set(),
+    roadUnderlayMap: new Map(), bridgeMap: new Map(), powerLineSet: new Set(), lowDensityLockSet: new Set(),
     scene: { buildingSprites: new Map(), treeSprites: new Map(), debrisSprites: new Map(), zoneOverlays: new Map() },
     isInsideMap: (r, col) => r >= 0 && col >= 0 && r < 24 && col < 24,
     isTerrainCreatorMode: false, getTileHeight: () => 0, isSlopeTile: () => false, isBridgeTile: () => false,

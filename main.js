@@ -11,10 +11,20 @@ const BUILDING_SURFACE_Y_OFFSET = TILE_IMAGE_HEIGHT - TILE_HEIGHT;
 // tile diagonally in front of its own - you had to bulldoze the tile behind to remove it - and,
 // sorted as if half a tile behind, let the house on the next tile draw over a tree in front.)
 const TILE_PROP_FOOT_OFFSET_Y = -TILE_IMAGE_HEIGHT + TILE_HEIGHT / 2 + 4;
-const MAP_WIDTH = 256;
-const MAP_HEIGHT = 256;
+let MAP_WIDTH = 256;
+let MAP_HEIGHT = 256;
 // originX shifts the grid horizontally so it is centered on the screen
-const ORIGIN_X = MAP_HEIGHT * (TILE_WIDTH / 2);
+let ORIGIN_X = MAP_HEIGHT * (TILE_WIDTH / 2);
+
+// Sets the live map size and recomputes everything derived from it at module-parse time
+// (just ORIGIN_X today). Must run before any terrain copy or city-state reset for the new
+// map - landing-screen.js's copyTerrainToWorld/resetGameState, save.js's applySaveData -
+// since those allocate every per-tile layer at whatever MAP_WIDTH/MAP_HEIGHT already are.
+function setMapDimensions(width, height) {
+  MAP_WIDTH = Number.isFinite(width) && width > 0 ? Math.round(width) : 256;
+  MAP_HEIGHT = Number.isFinite(height) && height > 0 ? Math.round(height) : 256;
+  ORIGIN_X = MAP_HEIGHT * (TILE_WIDTH / 2);
+}
 // Terrain tile type constants (GROUND–HILL defined here; zones defined in constants.js)
 const GROUND = 1;
 const ROAD = 2;

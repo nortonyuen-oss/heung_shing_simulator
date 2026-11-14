@@ -679,6 +679,8 @@ function buildSavePayload({ autosave = false, manualSaveId = currentSaveId } = {
     save_data: {
       version:       COMPACT_SAVE_VERSION,
       ...(autosave ? { autosave: { manualSaveId } } : {}),
+      mapWidth:      MAP_WIDTH,
+      mapHeight:     MAP_HEIGHT,
       seed:          currentSeed,
       roadTileSetId: typeof getCurrentRoadTileSetId === 'function'
         ? getCurrentRoadTileSetId()
@@ -1431,6 +1433,8 @@ function applySaveData(scene, save) {
   if (typeof clearVesselVisuals === 'function') clearVesselVisuals(scene);
   if (typeof clearAircraftVisuals === 'function') clearAircraftVisuals(scene);
 
+  // Older saves predate mapWidth/mapHeight - they were always the one fixed size.
+  setMapDimensions(save.mapWidth, save.mapHeight);
   const terrainElevation = normalizeSavedTerrainElevation(save);
   const savedViewpoint = normalizeSavedViewpoint(save.viewpoint) ?? getDefaultSavedViewpoint();
   if (typeof mapRotation !== 'undefined') mapRotation = savedViewpoint.rotation;

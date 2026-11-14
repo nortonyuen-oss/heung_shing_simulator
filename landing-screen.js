@@ -610,6 +610,7 @@ function startTerrainCreatorMode(profileType, seedText, terrain = null) {
   isTerrainCreatorMode = true;
   activeTerrainProfileType = profileType;
   currentSeed = seedText || createSeed();
+  setMapDimensions(terrain?.width, terrain?.height);
   if (terrain?.mapData && terrain?.heightMap) {
     copyTerrainToWorld(terrain.mapData, terrain.heightMap);
     currentTerrainMetadata = createTerrainMetadata(terrain, currentSeed);
@@ -697,6 +698,7 @@ async function startNewGame(cityName, options = {}) {
   const performanceStartedAt = globalThis.performance?.now?.() ?? Date.now();
   const terrain = options.terrain ?? null;
   const source = terrain ? 'map-source' : 'random';
+  setMapDimensions(terrain?.width, terrain?.height);
 
   stopSimTimer();
   isTerrainCreatorMode = false;

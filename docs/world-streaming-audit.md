@@ -4,7 +4,7 @@
 
 分支：`codex/world-chunk-streaming`，起點 `49ed6dd`。
 
-本文記錄 Phase 0 與 Phase 1。其後已在相同 `/world/preview.html` 接入 [Phase 2 建設與增量儲存](world-streaming-phase2.md)。正式城市入口、模擬與 v14/v15 城市存檔繼續使用原有路徑。全港資料可以獨立尋址，試驗相機目前限制在一個 256×256 區域內。
+本文記錄 Phase 0 與 Phase 1。其後已在相同 `/world/preview.html` 接入 [Phase 2 建設與增量儲存](world-streaming-phase2.md) 及 [Phase 3 小地圖與全港導航](world-streaming-phase3.md)。目前世界預覽已放開整個 3187×2400 範圍；下文的 256×256 限制是 Phase 1 歷史記錄。正式城市入口、模擬與 v14/v15 城市存檔繼續使用原有路徑。
 
 開始工作時，`landing-screen.js`、`main.js`、`save.js` 已有未提交修改。這些修改完整保留，本輪沒有編輯或提交它們。未追蹤的新聞圖片及 `scripts/metro-train-demo/` 亦保留。
 

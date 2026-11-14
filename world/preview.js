@@ -25,10 +25,10 @@
       script.integrity = `sha256-${btoa(String.fromCharCode(...manifest.adapterSha256.match(/../g).map(hex => parseInt(hex, 16))))}`;
       script.onload = resolve; script.onerror = () => reject(new Error('地形 Adapter 未能載入')); document.head.appendChild(script);
     });
-    const world = provider.world, region = manifest.trial;
+    const world = provider.world, region = { col: 0, row: 0, width: world.width, height: world.height };
     const adapter = new api.WorldModeAdapter(world, api.createLegacyWorldProjection(world), region);
     const visuals = api.createLegacyTerrainVisuals(world);
-    let manager, renderer, entityRenderer, buildUi, lod, scene, lastStatsAt = 0, pinch = null, jumpSide = false;
+    let manager, renderer, entityRenderer, buildUi, minimap, lod, scene, lastStatsAt = 0, pinch = null, jumpSide = false;
     let desktop = false;
     const storageChoice = new URLSearchParams(location.search).get('storage');
     if (storageChoice !== 'browser') {
@@ -48,7 +48,7 @@
     await session.load();
     const construction = new api.WorldConstruction({ world, region, data, delta });
     delta.subscribe(entry => { if (entry.all) manager?.invalidate(); else if (entry.terrainTiles?.length) manager?.invalidateTiles(entry.terrainTiles); });
-    const centre = { col: region.startCol ?? region.col + region.width / 2 + 16, row: region.startRow ?? region.row + region.height / 2 + 16 };
+    const centre = { col: manifest.trial.startCol, row: manifest.trial.startRow };
     const fetchFailure = file => { state.errors.push(`Asset failed: ${file.src}`); message('地形圖像載入失敗，請重新建立地形資料。', true); };
     const game = new Phaser.Game({ type: Phaser.AUTO, parent: 'world-canvas', backgroundColor: '#15232c',
       scale: { mode: Phaser.Scale.RESIZE, width: '100%', height: '100%' },
@@ -56,14 +56,14 @@
       scene: { preload() {
         this.load.on('loaderror', fetchFailure);
         this.load.atlas('world-terrain', new URL(manifest.art.image, root).href, new URL(manifest.art.atlas, root).href);
-        region.lod.forEach((view, rotation) => this.load.image(`world-lod-${rotation}`, new URL(view.url, root).href));
+        manifest.lod.forEach((view, rotation) => this.load.image(`world-lod-${rotation}`, new URL(view.url, root).href));
         if (!manifest.construction) { message('請先執行 npm run prepare:world-terrain 更新建設素材。', true); return; }
         for (const model of Object.values(api.WORLD_BUILDINGS)) this.load.image(model.texture, new URL(manifest.construction[model.id].url, root).href);
         for (const [key, file] of Object.entries(ROAD_TILE_LOGICAL_FILES)) this.load.image(`world-${key}`, new URL(`../kenney_isometric-roads/png/${file}`, location.href).href);
         for (const [key, file] of [['x', 'metro_track_x'], ['y', 'metro_track_y'], ['cross', 'metro_track_cross_xy']]) this.load.image(`world-rail-${key}`, new URL(`../Models/metroTrack/${file}.png`, location.href).href);
       }, create() {
         scene = this;
-        lod = new api.WorldLod(scene, region.lod);
+        lod = new api.WorldLod(scene, manifest.lod);
         renderer = new api.WorldChunkRenderer({ scene, adapter, visuals });
         manager = new api.WorldChunkManager({ world, region, provider: data, renderer, onEvent: event });
         entityRenderer = new api.WorldEntityRenderer({ scene, adapter, delta, visuals, fitGround: fitBuildingToGroundCorners,
@@ -71,10 +71,11 @@
         scene.cameras.main.setZoom(.8); adapter.centreCamera(scene.cameras.main, centre.col, centre.row);
         installInput(game.canvas);
         buildUi = new api.WorldConstructionUi({ scene, adapter, construction, delta, session, message, restoreView });
+        minimap = new api.WorldMinimap({ scene, adapter, delta, manifest, rootUrl: root, navigate(col, row) { buildUi.cancel(); setFocus(col, row); } });
         state.ready = true;
-        Object.assign(state, { scene, provider, manager, renderer, adapter, game, setFocus, rotate, delta, data, construction, entityRenderer, session, buildUi,
+        Object.assign(state, { scene, provider, manager, renderer, adapter, game, setFocus, rotate, delta, data, construction, entityRenderer, session, buildUi, minimap,
           stats: () => ({ ...manager.snapshot(), ...diagnostics.snapshot(), focus: adapter.cameraFocus(scene.cameras.main),
-            rotation: adapter.rotation, zoom: scene.cameras.main.zoom, atlasRgbaBytes: manifest.art.rgbaBytes,
+            rotation: adapter.rotation, zoom: scene.cameras.main.zoom, atlasRgbaBytes: manifest.art.rgbaBytes, minimap: minimap.snapshot(),
             construction: { revision: delta.revision, dirtyChunks: delta.dirtyChunks.size, entities: delta.entities.size, visuals: entityRenderer.snapshot(), storageRevision: session.storageRevision } }) });
         restoreView(delta.header);
       }, update(_time, delta) {
@@ -84,6 +85,7 @@
         if (Math.abs(raw.col - focus.col) > .001 || Math.abs(raw.row - focus.row) > .001) adapter.centreCamera(camera, focus.col, focus.row);
         manager.setFocus(focus.col, focus.row); manager.pump(); renderer.cull(camera);
         entityRenderer.sync(manager.snapshot().activeIds);
+        minimap.update();
         if (performance.now() - lastStatsAt > 250) { renderStats(focus); lastStatsAt = performance.now(); }
       } },
     });
@@ -111,7 +113,7 @@
       document.getElementById('zoom').textContent = `${Math.round(stats.zoom * 100)}%`;
       document.getElementById('diagnostics').textContent = [
         `World  ${world.width} × ${world.height} · 20m/tile`,
-        `Trial  (${region.col},${region.row}) 256 × 256`,
+        `Navigation  全港 · ${region.width} × ${region.height}`,
         `Camera (${focus.col.toFixed(1)},${focus.row.toFixed(1)}) R${stats.rotation}`,
         `Detail ${stats.states.ACTIVE || 0} active / ${stats.states.MOUNTING || 0} mounting / ${stats.states.DECODING || 0} reading`,
         `Objects ${stats.renderer.gameObjects} · tiles ${stats.renderer.terrainTiles}`,
@@ -120,6 +122,7 @@
         `Frame p95/p99 ${ms(stats.frameP95Ms)} / ${ms(stats.frameP99Ms)} ms`,
         `Mount p95 ${ms(stats.mountP95Ms)} ms · errors ${stats.errors}`,
         `Built ${delta.entities.size} · unsaved chunks ${delta.dirtyChunks.size}`,
+        `Minimap cache ${mib(stats.minimap.cache.bytes)} MiB · ${stats.minimap.cache.pending} loading`,
       ].join('\n');
       if (!stats.states.ERROR && stats.states.ACTIVE === stats.wanted && !state.errors.length && !state.storageError) message('');
     }
@@ -145,13 +148,13 @@
       canvas.addEventListener('wheel', event => { event.preventDefault(); const p = point(event); zoomTo(camera.zoom * Math.exp(-event.deltaY * .001), p.x, p.y); }, { passive: false });
       window.addEventListener('blur', () => input.cancelAll('blur'));
       document.addEventListener('visibilitychange', () => { if (document.hidden) input.cancelAll('hidden'); });
-      window.addEventListener('keydown', event => { if (event.key.toLowerCase() === 'r' && !event.ctrlKey && !event.metaKey) rotate(); });
+      window.addEventListener('keydown', event => { if (event.key.toLowerCase() === 'r' && !event.ctrlKey && !event.metaKey && !event.target.closest('input,select,textarea,[contenteditable="true"]')) rotate(); });
       document.getElementById('rotate').onclick = rotate;
       document.getElementById('zoom-in').onclick = () => zoomTo(camera.zoom * 1.25);
       document.getElementById('zoom-out').onclick = () => zoomTo(camera.zoom / 1.25);
-      document.getElementById('home').onclick = () => setFocus(centre.col, centre.row);
-      document.getElementById('jump').onclick = () => { jumpSide = !jumpSide; setFocus(region.col + (jumpSide ? 208 : 48), region.row + (jumpSide ? 208 : 48)); };
-      scene.events.once('shutdown', () => { session.destroy(); buildUi?.destroy(); entityRenderer.destroy(); manager.destroy(); renderer.destroy(); lod.destroy(); provider.destroy(); });
+      document.getElementById('home').onclick = () => { buildUi?.cancel(); setFocus(centre.col, centre.row); };
+      document.getElementById('jump').onclick = () => { buildUi?.cancel(); jumpSide = !jumpSide; setFocus(jumpSide ? 2864 : centre.col, jumpSide ? 336 : centre.row); };
+      scene.events.once('shutdown', () => { session.destroy(); buildUi?.destroy(); minimap?.destroy(); entityRenderer.destroy(); manager.destroy(); renderer.destroy(); lod.destroy(); provider.destroy(); });
     }
   } catch (error) { state.errors.push(String(error.message || error)); message(String(error.message || error), true); }
 })();

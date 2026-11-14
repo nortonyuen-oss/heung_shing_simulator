@@ -171,7 +171,7 @@ async function createAtlas(out) {
   return { image: 'terrain-atlas.png', atlas: 'terrain-atlas.json', width, height, rgbaBytes: width * height * 4 };
 }
 
-async function createLod(out, name, region, terrain, elevations, world, projectionFactory) {
+async function createLod(out, name, region, terrain, elevations, world, projectionFactory, pixelWidth = 1024) {
   const views = [];
   // Match the actual terrain art's top-face colours so the LOD/detail transition does not
   // turn the sea blue or lighten high hills. Keep the LOD independent of live map arrays.
@@ -187,7 +187,7 @@ async function createLod(out, name, region, terrain, elevations, world, projecti
       [region.col - .5, region.row + region.height - .5], [region.col + region.width - .5, region.row + region.height - .5]].map(([c, r]) => projection.project(c, r));
     const minX = Math.min(...corners.map(p => p.x)), minY = Math.min(...corners.map(p => p.y)) - 40;
     const worldWidth = Math.max(...corners.map(p => p.x)) - minX, worldHeight = Math.max(...corners.map(p => p.y)) - 40 - minY;
-    const width = 1024, height = Math.max(1, Math.ceil(width * worldHeight / worldWidth));
+    const width = pixelWidth, height = Math.max(1, Math.ceil(width * worldHeight / worldWidth));
     const rgba = Buffer.alloc(width * height * 4);
     for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
       const point = projection.unproject(minX + (x + .5) / width * worldWidth, minY + (y + .5) / height * worldHeight + 40);
@@ -259,6 +259,14 @@ export async function buildTerrainPacks({ source = path.join(ROOT, 'hk-terrain-t
     }
     manifest.lod = await createLod(temporary, 'overview', { col: 0, row: 0, width: world.width, height: world.height }, terrain, elevations, world, projectionFactory);
     manifest.trial.lod = await createLod(temporary, 'trial', manifest.trial, terrain, elevations, world, projectionFactory);
+    progress('Building bounded, on-demand local minimap cache');
+    fs.mkdirSync(path.join(temporary, 'local'));
+    manifest.localLod = { size: 256, regions: {} };
+    for (let y = 0; y < Math.ceil(world.height / 256); y++) for (let x = 0; x < Math.ceil(world.width / 256); x++) {
+      const region = { col: x * 256, row: y * 256, width: Math.min(256, world.width - x * 256), height: Math.min(256, world.height - y * 256) };
+      manifest.localLod.regions[`${x}:${y}`] = { ...region,
+        views: await createLod(temporary, `local/l-${x}-${y}`, region, terrain, elevations, world, projectionFactory, 512) };
+    }
     fs.writeFileSync(path.join(temporary, 'manifest.json'), JSON.stringify(manifest));
     if (fs.existsSync(output)) {
       const existingManifest = path.join(output, 'manifest.json');

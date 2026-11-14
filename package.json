@@ -15,9 +15,10 @@
   "scripts": {
     "test": "node --test test/*.test.js",
     "prepare:world-terrain": "node world/terrain-pack-builder.mjs",
-    "test:world": "node --test test/world-streaming.test.js test/world-construction.test.js",
+    "test:world": "node --test test/world-streaming.test.js test/world-construction.test.js test/world-minimap.test.js",
     "smoke:world": "node scripts/smoke-world-streaming.js",
     "smoke:world:construction": "node scripts/smoke-world-construction.js",
+    "smoke:world:navigation": "node scripts/smoke-world-navigation.js",
     "start": "node server.js",
     "dev": "node server.js",
     "electron:dev": "node scripts/run-electron.js",

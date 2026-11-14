@@ -20,10 +20,24 @@ canvas { display: block; touch-action: none; }
 #status { position: absolute; top: 122px; left: 12px; margin: 0; padding: 8px 12px; background: #18262fe6; border-radius: 4px; max-width: min(650px, calc(100vw - 24px)); font-size: 13px; }
 #status:empty { display: none; }
 #status[data-error="true"] { border: 1px solid #cb8677; color: #ffccbf; }
-aside { position: absolute; right: 12px; bottom: 12px; max-width: calc(100vw - 24px); background: #18262fe8; border: 1px solid #596b72; border-radius: 6px; padding: 10px 12px; font-size: 12px; }
+aside { position: absolute; left: 12px; top: 122px; max-width: calc(100vw - 24px); background: #18262fe8; border: 1px solid #596b72; border-radius: 6px; padding: 10px 12px; font-size: 12px; }
+#status:not(:empty) ~ aside { top: 174px; }
 summary { cursor: pointer; }
 pre { margin: 10px 0 0; font: 11px/1.5 ui-monospace, monospace; color: #c3d6d3; min-width: 280px; }
 aside p { margin: 8px 0 0; color: #aabdbf; font-size: 11px; }
+#world-minimap { position: absolute; right: 12px; bottom: 12px; width: min(312px, calc(100vw - 24px)); z-index: 3; border: 1px solid #78857d; border-radius: 5px; background: #253631f5; box-shadow: 0 3px 15px #0005; }
+#world-minimap[data-mode="world"] { width: min(680px, calc(100vw - 24px)); }
+.minimap-heading { display: flex; gap: 5px; align-items: center; padding: 6px 8px; cursor: move; touch-action: none; background: #354a42; border-radius: 5px 5px 0 0; }
+.minimap-heading strong { flex: 1; font-size: 12px; white-space: nowrap; }
+.minimap-heading button { padding: 4px 7px; font-size: 11px; background: #3b5048; }
+.minimap-body { padding: 6px; }
+.minimap-surface { position: relative; width: 100%; aspect-ratio: 2; background: #172c29; touch-action: none; cursor: crosshair; overflow: hidden; }
+.minimap-surface:focus-visible { outline: 2px solid #e7cf85; }
+.minimap-surface canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.minimap-body output { display: block; padding-top: 5px; color: #d4dbcc; font: 11px ui-monospace, monospace; }
+.minimap-body p { text-align: center; color: #9fae9e; font-size: 10px; margin: 5px 0 0; }
+#world-minimap[data-collapsed="true"] { width: 230px; }
+#world-minimap[data-collapsed="true"] .minimap-body, #world-minimap[data-collapsed="true"] [data-map-mode] { display: none; }
 @media (max-width: 700px) {
   header { height: 110px; flex-direction: column; align-items: stretch; padding: 8px 10px; gap: 6px; }
   header strong { font-size: 14px; }
@@ -32,7 +46,9 @@ aside p { margin: 8px 0 0; color: #aabdbf; font-size: 11px; }
   #construction-controls { top: 110px; }
   #world-canvas { top: 156px; }
   #status { top: 166px; }
-  aside { padding: 8px; }
+  aside { padding: 8px; top: 166px; }
+  #status:not(:empty) ~ aside { top: 216px; }
+  #world-minimap { width: min(256px, calc(100vw - 24px)); }
+  #world-minimap:has(~ #build-draft:not([hidden])) { bottom: 70px; }
   #build-draft { left: 8px; right: 8px; bottom: 8px; font-size: 11px; }
-  aside:has(~ #build-draft:not([hidden])) { bottom: 70px; }
 }

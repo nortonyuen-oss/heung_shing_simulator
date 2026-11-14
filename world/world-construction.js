@@ -21,12 +21,12 @@
       && cell.col < this.region.col + this.region.width && cell.row < this.region.row + this.region.height; }
     async plan(tool, a, b = a) {
       const revision = this.delta.revision, operations = [], cells = [], push = (kind, cell, value) => operations.push({ kind, ...cell, value });
-      f.check(this.inside(a) && this.inside(b), '請喺試驗區域內建設。');
+      f.check(this.inside(a) && this.inside(b), '請喺世界範圍內建設。');
       let cost = 0, id;
       if (WORLD_BUILDINGS[tool]) {
         const model = WORLD_BUILDINGS[tool];
         for (let r = 0; r < model.height; r++) for (let c = 0; c < model.width; c++) cells.push({ col: a.col + c, row: a.row + r });
-        f.check(cells.every(cell => this.inside(cell)), '建築超出試驗區域。');
+        f.check(cells.every(cell => this.inside(cell)), '建築超出世界邊界。');
         const ground = await Promise.all(cells.map(cell => this.data.getTile(cell.col, cell.row)));
         f.check(ground.every(tile => [1, 3, 6].includes(tile.terrainType) && tile.height === ground[0].height), '建築需要同一高度嘅陸地；可先整平地形。');
         f.check(cells.every(cell => !this.delta.entityAt(cell.col, cell.row) && !this.delta.roadAt(cell.col, cell.row)), '地段已經有建設。');
@@ -67,7 +67,7 @@
           const cell = { col: left + c, row: top + r }; return this.data.getTile(cell.col, cell.row).then(tile => samples.set(f.tileId(cell.col, cell.row), { ...tile, ...cell }));
         })).flat());
         for (let r = 0; r < size; r++) for (let c = 0; c < size; c++) {
-          const cell = { col: a.col + c, row: a.row + r }; f.check(this.inside(cell), '整平範圍超出試驗區域。');
+          const cell = { col: a.col + c, row: a.row + r }; f.check(this.inside(cell), '整平範圍超出世界邊界。');
           targets.set(f.tileId(cell.col, cell.row), { ...cell, height: target, terrainType: tool === 'water4' ? 5 : target > 0 ? 6 : 1 });
         }
         const queue = [...targets.values()];
@@ -84,7 +84,7 @@
           }
         }
         for (const value of targets.values()) {
-          f.check(this.inside(value), '整地影響到試驗區域以外，請選擇較內側位置。');
+          f.check(this.inside(value), '整地影響到世界邊界以外，請選擇較內側位置。');
           f.check(!this.delta.entityAt(value.col, value.row) && !this.delta.roadAt(value.col, value.row), '整地範圍有建設，請先拆除。');
           const old = samples.get(f.tileId(value.col, value.row));
           if (old.height !== value.height || old.terrainType !== value.terrainType) {

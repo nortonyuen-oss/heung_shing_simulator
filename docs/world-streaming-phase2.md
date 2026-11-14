@@ -2,6 +2,8 @@
 
 分支：`codex/world-chunk-streaming`。沿用 [v1.0 規格](world-chunk-streaming-spec-v1.0.md) 的 256×256 試驗區域，建立可操作、可保存的建設流程。Phase 1 的 64×64 Storage／32×32 Render／最多九塊高細節限制繼續保留。
 
+本文記錄 Phase 2；現時 [Phase 3](world-streaming-phase3.md) 已加入附近小地圖、全港總覽，並放開全港導航與建設，沿用相同存檔及絕對座標。
+
 ## 操作
 
 ```sh

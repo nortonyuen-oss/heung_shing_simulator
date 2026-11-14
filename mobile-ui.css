@@ -34,7 +34,10 @@
 [data-ui-profile="touch"] #mobile-ui.ticker-hidden .m-ticker { display: none; }
 [data-ui-profile="touch"] #toast-container { top: calc(var(--mobile-top) + var(--mobile-ticker) + env(safe-area-inset-top) + 4px); left: max(8px, env(safe-area-inset-left)); right: max(8px, env(safe-area-inset-right)); transform: none; align-items: center; z-index: 1300; }
 [data-ui-profile="touch"] #toast-container .toast { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
-[data-ui-profile="touch"] .m-panel { position: absolute; right: 0; top: calc(var(--mobile-top) + var(--mobile-ticker) + env(safe-area-inset-top)); bottom: 0; width: calc(var(--mobile-panel-width) + env(safe-area-inset-right)); max-width: 100%; padding-right: env(safe-area-inset-right); padding-bottom: env(safe-area-inset-bottom); display: flex; flex-direction: column; background: #f1f4f8; border-left: 2px solid #9aa8b8; box-shadow: -4px 0 14px #202a3640; pointer-events: auto; }
+/* The panel is DOM-after .m-ticker so it paints over it anyway when open - no need to also give
+   up 24px of panel height for a ticker the player isn't looking at while a panel has focus
+   (that 24px previously clipped a row in the manage panel's native list at max scroll). */
+[data-ui-profile="touch"] .m-panel { position: absolute; right: 0; top: calc(var(--mobile-top) + env(safe-area-inset-top)); bottom: 0; width: calc(var(--mobile-panel-width) + env(safe-area-inset-right)); max-width: 100%; padding-right: env(safe-area-inset-right); padding-bottom: env(safe-area-inset-bottom); display: flex; flex-direction: column; background: #f1f4f8; border-left: 2px solid #9aa8b8; box-shadow: -4px 0 14px #202a3640; pointer-events: auto; }
 [data-ui-profile="touch"] .m-panel-head { display: flex; flex: 0 0 44px; align-items: center; gap: 4px; padding: 0 6px; border-bottom: 1px solid #9aa8b8; background: #e2e8ef; }
 [data-ui-profile="touch"] .m-panel-head h2 { flex: 1; margin: 0; font-size: 15px; }
 [data-ui-profile="touch"] #mobile-ui .m-icon { padding: 0; border: 0; background: transparent; font-size: 20px; }
@@ -78,7 +81,7 @@
 [data-ui-profile="touch"] #mobile-ui .m-nudge-pad .m-end-toggle { left: 47px; top: 47px; background: #dbe7f6; font-size: 13px; }
 [data-ui-profile="touch"] #mobile-ui label { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
 [data-ui-profile="touch"] .m-overview-row { display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px solid #c3ccd7; padding: 8px 0; }
-[data-ui-profile="touch"] #inspect-panel { position: fixed !important; left: auto !important; right: 0 !important; top: calc(var(--mobile-top) + var(--mobile-ticker) + env(safe-area-inset-top)) !important; bottom: auto !important; height: calc(100dvh - var(--mobile-top) - var(--mobile-ticker) - env(safe-area-inset-top) - var(--mobile-inspect-bottom) - env(safe-area-inset-bottom)); transform: none !important; width: calc(clamp(260px, 40vw, 360px) + env(safe-area-inset-right)); max-width: 100%; padding-right: env(safe-area-inset-right); max-height: none; z-index: 1200; overflow-y: auto; touch-action: pan-y; }
+[data-ui-profile="touch"] #inspect-panel { position: fixed !important; left: auto !important; right: 0 !important; top: calc(var(--mobile-top) + env(safe-area-inset-top)) !important; bottom: auto !important; height: calc(100dvh - var(--mobile-top) - env(safe-area-inset-top) - var(--mobile-inspect-bottom) - env(safe-area-inset-bottom)); transform: none !important; width: calc(clamp(260px, 40vw, 360px) + env(safe-area-inset-right)); max-width: 100%; padding-right: env(safe-area-inset-right); max-height: none; z-index: 1200; overflow-y: auto; touch-action: pan-y; }
 [data-ui-profile="touch"] #inspect-panel .insp-header { position: sticky; top: 0; z-index: 1; }
 [data-ui-profile="touch"] #inspect-panel .insp-sprite-key { display: none; }
 [data-ui-profile="touch"] #inspect-panel :is(button, input) { min-height: 44px; min-width: 44px; font-size: 14px; }

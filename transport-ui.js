@@ -1248,6 +1248,7 @@ function syncTransportRoutePickingLayout(panel) {
 function refreshTransportUi(options = {}) {
   for (const id of TRANSPORT_PANEL_IDS) refreshTransportPanel(id, options);
   if (typeof mobileSyncRoutePicker === 'function') mobileSyncRoutePicker();
+  refreshPlayModeSwitch();
   refreshTransportChecklist();
   refreshTransportToolHint();
   updateTransportTopbarPanelButtonStates();
@@ -1498,10 +1499,19 @@ function setTransportModeActive(active) {
 
 function refreshPlayModeSwitch() {
   if (typeof document === 'undefined') return;
+  const state = getTransportExpansionState();
+  const transportLocked = !state.enabled || !state.unlocked;
   document.querySelectorAll('#play-mode-switch [data-play-mode]').forEach((button) => {
     const active = (button.dataset.playMode === 'transport') === isTransportModeActive;
     button.classList.toggle('is-active', active);
     button.setAttribute('aria-selected', String(active));
+    const isTransportButton = button.dataset.playMode === 'transport';
+    button.classList.toggle('is-locked', isTransportButton && transportLocked);
+    if (isTransportButton) {
+      button.title = transportLocked
+        ? t('transport.unlockProgress', { population: Math.round(city.population || 0).toLocaleString() })
+        : '';
+    }
   });
 }
 

@@ -190,6 +190,10 @@ function handleMenuAction(action) {
       if (typeof setYulanNightTintEnabled === 'function') setYulanNightTintEnabled(!isYulanNightTintEnabled());
       updateViewMenu();
       break;
+    // Mobile-only (no desktop menu checkbox to refresh here - see isMobileTickerEnabled).
+    case 'toggle-mobile-ticker':
+      if (typeof setMobileTickerEnabled === 'function') setMobileTickerEnabled(!isMobileTickerEnabled());
+      break;
     case 'toggle-night-remote-darkness':
       if (typeof setNightRemoteDarknessEnabled === 'function') {
         setNightRemoteDarknessEnabled(!isNightRemoteDarknessEnabled());

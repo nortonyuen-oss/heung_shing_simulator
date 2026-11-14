@@ -23,6 +23,31 @@ const mobileText = (key, values) => t(`mobile.${key}`, values);
 const mobileEscape = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
 
 function mobileIsPortrait() { return window.matchMedia('(orientation: portrait)').matches; }
+// Mobile-only: desktop's ticker has no such toggle, so this doesn't mirror a #menu-* checkbox
+// the way the other "display" rows do (see mobileRenderPage's 'more' branch).
+const MOBILE_TICKER_SETTING_KEY = 'citybuilder.mobileTicker.v1';
+function isMobileTickerEnabled() {
+  try { return localStorage.getItem(MOBILE_TICKER_SETTING_KEY) !== 'off'; } catch { return true; }
+}
+function setMobileTickerEnabled(enabled) {
+  try { localStorage.setItem(MOBILE_TICKER_SETTING_KEY, enabled ? 'on' : 'off'); } catch {}
+}
+// #game-container locks page scrolling (touch-action: none) so the browser never sees the
+// scroll gesture it normally uses to auto-collapse its own address bar. This nudge scroll is
+// the standard workaround for that; it is best-effort (no browser guarantees it) and landscape-
+// only, since portrait keeps the mobile top/nav bars that already assume the chrome is visible.
+function mobileNudgeBrowserChrome() {
+  if (!isTouchUiProfile() || mobileIsPortrait()) return;
+  window.scrollTo(0, 1);
+}
+// The handle is icon-only (☰/✕) now - open.nav already highlights the active page's own icon, so
+// the page name only needs to reach assistive tech, via aria-label, not sighted users.
+function mobileSetNavToggleLabel(open, label) {
+  const toggle = document.getElementById('mobile-nav-toggle');
+  if (!toggle) return;
+  toggle.textContent = open ? '✕' : '☰';
+  toggle.setAttribute('aria-label', label);
+}
 function mobileGameVisible() {
   return typeof gameReady !== 'undefined' && gameReady && activeScene
     && getComputedStyle(document.getElementById('landing-screen')).display === 'none';
@@ -250,7 +275,7 @@ function mobileOpenPage(page, category = null) {
   mobileCategory = category;
   mobileUi.classList.remove('nav-open');
   document.getElementById('mobile-nav-toggle').setAttribute('aria-expanded', 'false');
-  document.getElementById('mobile-nav-toggle').textContent = `${mobileText(page)} ⌃`;
+  mobileSetNavToggleLabel(false, mobileText(page));
   mobileRenderPage();
   document.getElementById('mobile-panel-body').scrollTop = mobilePageScroll.get(`${page}/${category || ''}`) || 0;
   mobileUpdateStatus();
@@ -317,7 +342,7 @@ function mobileHostNative(key, dynamicConfig = null) {
   document.getElementById('mobile-panel-body').scrollTop = 0;
   mobileUi.classList.remove('nav-open');
   document.getElementById('mobile-nav-toggle').setAttribute('aria-expanded', 'false');
-  document.getElementById('mobile-nav-toggle').textContent = `${mobileText(mobilePage)} ⌃`;
+  mobileSetNavToggleLabel(false, mobileText(mobilePage));
   document.getElementById('mobile-panel').hidden = false;
   mobileRenderPanelHeading();
   mobileRefreshNativeLayout();
@@ -462,7 +487,7 @@ function mobileRenderPage() {
       <h3>${mobileText('display')}</h3><div class="m-list">${['district-signs', 'weather-effects', 'dynamic-lighting', 'building-lights', 'night-remote-darkness', 'sea-flow', 'vessel-wakes', 'shore-reflections', 'yulan-night-tint', 'auto-replace-plants', 'festivals', 'transport-expansion', 'attract-mode'].map((key) => {
         const source = document.getElementById(`menu-${key}`);
         return source ? mobileRow(`data-mobile-setting="toggle-${key}" aria-pressed="${source.classList.contains('menu-checked')}"`, source.textContent.trim(), '', source.classList.contains('menu-checked') ? '✓' : '○') : '';
-      }).join('')}</div>
+      }).join('')}${mobileRow(`data-mobile-setting="toggle-mobile-ticker" aria-pressed="${isMobileTickerEnabled()}"`, mobileText('showTicker'), '', isMobileTickerEnabled() ? '✓' : '○')}</div>
       <label>${mobileText('language')} <select data-mobile-language>${Object.entries(LANGUAGES).map(([key, label]) => `<option value="${key}" ${getCurrentLanguage() === key ? 'selected' : ''}>${label}</option>`).join('')}</select></label>
       <label>${mobileText('profile')} ${mobileProfileSelect()}</label><p>${mobileText('beta')}</p>`;
   } else if (mobilePage === 'manage') {
@@ -503,6 +528,10 @@ function setupMobileUi() {
       <button type="button" id="mobile-pause" data-mobile-aria="pause">⏸</button>
       <select id="mobile-speed" data-i18n-aria="topbar.simSpeed"><option value="0.15">1×</option><option value="0.5">2×</option><option value="1">4×</option><option value="2">8×</option></select>
     </header>
+    <button type="button" class="m-ticker" id="mobile-ticker" data-mobile-aria="openForum">
+      <span class="m-ticker-icon" aria-hidden="true">💬</span>
+      <span class="m-ticker-text" id="mobile-ticker-text"></span>
+    </button>
     <section class="m-panel" id="mobile-panel" hidden aria-labelledby="mobile-panel-title">
       <header class="m-panel-head"><button type="button" class="m-icon" id="mobile-panel-back" data-mobile-aria="back">‹</button><h2 id="mobile-panel-title"></h2><button type="button" class="m-icon" id="mobile-panel-close" data-mobile-aria="close">✕</button></header>
       <div class="m-panel-body" id="mobile-panel-body"></div>
@@ -610,10 +639,11 @@ function setupMobileUi() {
     } else if (button.id === 'mobile-nav-toggle') {
       const open = mobileUi.classList.toggle('nav-open');
       button.setAttribute('aria-expanded', String(open));
-      button.textContent = `${mobileText(open ? 'close' : mobilePage || 'menu')} ${open ? '⌄' : '⌃'}`;
+      mobileSetNavToggleLabel(open, mobileText(open ? 'close' : mobilePage || 'menu'));
     } else if (button.id === 'mobile-panel-close') mobileClosePanel();
     else if (button.id === 'mobile-panel-back') mobileBack();
     else if (button.id === 'mobile-pause') { toggleSimPause(); mobileUpdateStatus(); }
+    else if (button.id === 'mobile-ticker') openDiscussionForum();
     else if (button.id === 'mobile-cancel') mobileCancelBuild();
     else if (button.id === 'mobile-nudge-toggle') { mobileNudgeOpen = !mobileNudgeOpen; mobileRenderDraft(mobileBuildSession.getState()); }
     else if (button.id === 'mobile-end-toggle') {
@@ -656,7 +686,7 @@ function setupMobileUi() {
     // metro height picks: swept here too so they show text on first load, not just after the
     // page-wide applyTranslations() sweep (whose timing this must not depend on).
     mobileUi.querySelectorAll('[data-i18n]').forEach((el) => { el.textContent = t(el.dataset.i18n); });
-    document.getElementById('mobile-nav-toggle').textContent = `${mobileText(mobilePage || 'menu')} ⌃`;
+    mobileSetNavToggleLabel(mobileUi.classList.contains('nav-open'), mobileText(mobilePage || 'menu'));
     [profileSetting, desktopSetting].forEach((label) => { label.innerHTML = `${mobileText('profile')} ${mobileProfileSelect()}`; });
     mobileRenderDraft(mobileBuildSession.getState());
     mobileRenderPage();
@@ -671,11 +701,12 @@ function setupMobileUi() {
   document.addEventListener('heungshing:mapcancel', mobileCancelBuild);
   document.addEventListener('heungshing:citywillchange', () => { mobileClosePanel(); mobilePageScroll.clear(); mobileDynamicPanels.clear(); mobileInvalidateWorld(); });
   window.addEventListener('blur', mobileCancelBuild);
-  window.addEventListener('orientationchange', mobileCancelBuild);
+  window.addEventListener('orientationchange', () => { mobileCancelBuild(); setTimeout(mobileNudgeBrowserChrome, 300); });
   document.addEventListener('visibilitychange', () => { if (document.hidden) mobileCancelBuild(); });
   const orientation = window.matchMedia('(orientation: portrait)');
-  orientation.addEventListener('change', () => { mobileCancelBuild(); mobileUpdateStatus(); });
+  orientation.addEventListener('change', () => { mobileCancelBuild(); mobileUpdateStatus(); setTimeout(mobileNudgeBrowserChrome, 300); });
   translate();
+  setTimeout(mobileNudgeBrowserChrome, 300);
   mobileSetupOverlayGestures();
   new ResizeObserver(mobileRefreshNativeLayout).observe(document.getElementById('mobile-panel-body'));
   mobileUi.addEventListener('keydown', (event) => {
@@ -690,6 +721,7 @@ function mobileUpdateStatus() {
   const visible = isTouchUiProfile() && mobileGameVisible();
   mobileUi.hidden = !visible;
   if (!visible) { if (mobileBuildSession.getState()) mobileCancelBuild(); return; }
+  mobileUi.classList.toggle('ticker-hidden', !isMobileTickerEnabled());
   if (mobileWorldMap !== mapData) mobileInvalidateWorld();
   const read = (id) => document.getElementById(id)?.textContent.trim() || '';
   document.getElementById('mobile-city-name').textContent = read('topbar-city-name-zh') || city.name;
@@ -697,8 +729,14 @@ function mobileUpdateStatus() {
   document.getElementById('mobile-funds').textContent = mobileIsPortrait() ? `$${compact(city.budget)}` : formatMoney(city.budget);
   document.getElementById('mobile-funds').parentElement.setAttribute('aria-label', `${mobileText('funds')} ${formatMoney(city.budget)}`);
   document.getElementById('mobile-population').textContent = mobileIsPortrait() ? compact(city.population || 0) : Number(city.population || 0).toLocaleString();
-  document.getElementById('mobile-date').textContent = `${read('topbar-date-zh')} ${read('topbar-time')}`;
+  // Portrait has the least room in the status bar: drop the weekday so the date and time
+  // (what was actually asked for) survive the .m-date cell's overflow:hidden intact.
+  const fullDate = read('topbar-date-zh');
+  const dateLabel = mobileIsPortrait() ? fullDate.replace(/\s*星期[日一二三四五六]$/, '') : fullDate;
+  document.getElementById('mobile-date').textContent = `${dateLabel} ${read('topbar-time')}`;
   document.getElementById('mobile-weather').textContent = `${read('topbar-weather-icon')} ${read('topbar-weather-temp')}`;
+  // Mirrors the desktop ticker's own rotation (hud-ticker.js) rather than re-running it here.
+  document.getElementById('mobile-ticker-text').textContent = read('tip-ticker-inner');
   document.getElementById('mobile-pause').textContent = simPaused ? '▶' : '⏸';
   document.getElementById('mobile-pause').setAttribute('aria-pressed', String(simPaused));
   document.getElementById('mobile-speed').value = String(simSpeedMul);

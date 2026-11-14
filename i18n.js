@@ -6714,6 +6714,7 @@ const MOBILE_TRANSLATIONS = {
     metroTrackPreview: 'Will lay: {parts}', pierToggleHint: 'Confirm to add or remove a public pier here (free).', confirmPier: 'Confirm pier',
     tapLineStops: 'Tap stops on the map, one after another; tap the last stop again to finish.', tapEntrance: 'Tap a breakwater tile to open or close an entrance.',
     cancelLine: 'Cancel line', doneEntrances: 'Done with entrances',
+    openForum: 'Heung Shing Forum', showTicker: 'Show ticker',
   },
   zhHant: {
     chooseStyle: '揀款式', signNames: '設定中英文名', signNeedsNames: '先設定中英文名，再確認放置。', dezoneSummary: '取消 {count} 格分區 · 保留 {buildings} 棟建築', powerLineSummary: '{count} 格 · 跳過 {skipped} · 清除 {trees} 棵樹', confirmDezone: '確認取消分區', dezoned: '已取消分區，現有建築保留。',
@@ -6744,6 +6745,7 @@ const MOBILE_TRANSLATIONS = {
     metroTrackPreview: '將會起：{parts}', pierToggleHint: '撳確認加或減呢格嘅公眾碼頭（免費）。', confirmPier: '確認碼頭',
     tapLineStops: '撳地圖上嘅站，一個一個連落去；撳返最後嗰個站完成。', tapEntrance: '撳防波堤開關出入口。',
     cancelLine: '取消畫綫', doneEntrances: '完成出入口設定',
+    openForum: '香城討論區', showTicker: '顯示走馬燈',
   },
   ja: {
     chooseStyle: '種類を選択', signNames: '中国語・英語名を設定', signNeedsNames: '設置前に中国語名と英語名を設定してください。', dezoneSummary: '{count} マスを解除・建物 {buildings} 棟は維持', powerLineSummary: '{count} マス・対象外 {skipped}・樹木 {trees} 本を除去', confirmDezone: '区域解除を確定', dezoned: '区域を解除しました。既存の建物は残ります。',
@@ -6774,6 +6776,7 @@ const MOBILE_TRANSLATIONS = {
     metroTrackPreview: '敷設予定：{parts}', pierToggleHint: '確定すると、このマスの公共桟橋を追加・削除します（無料）。', confirmPier: '桟橋を確定',
     tapLineStops: '地図上の停留所を順にタップ。最後の停留所を再タップすると完成します。', tapEntrance: '防波堤のマスをタップして出入口を開閉します。',
     cancelLine: '線の作成を取消', doneEntrances: '出入口の設定を完了',
+    openForum: '香城討論区', showTicker: 'ティッカーを表示',
   },
 };
 Object.entries(MOBILE_TRANSLATIONS).forEach(([language, entries]) => {

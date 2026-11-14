@@ -1,6 +1,6 @@
 /* Phase B follows the frozen B0 layout. Every override is scoped to the opt-in profile. */
 #mobile-ui { display: none; }
-[data-ui-profile="touch"] { --mobile-top: 44px; --mobile-nav: 52px; --mobile-confirm: 56px; --mobile-context: 44px; --mobile-panel-width: clamp(260px, 34vw, 360px); --mobile-inspect-bottom: 44px; }
+[data-ui-profile="touch"] { --mobile-top: 44px; --mobile-ticker: 24px; --mobile-nav: 52px; --mobile-confirm: 56px; --mobile-context: 44px; --mobile-panel-width: clamp(260px, 34vw, 360px); --mobile-inspect-bottom: 44px; }
 [data-ui-profile="touch"] body { height: 100dvh; overflow: hidden; overscroll-behavior: none; }
 [data-ui-profile="touch"] #game-container { height: 100dvh; width: 100%; }
 [data-ui-profile="touch"] :is(#top-bar, #tool-menu, #hud, #budget-panel, #speed-controls, #city-minimap, #terrain-minimap-panel, .map-zoom-control, .tool-popup, #tile-debug, #transport-tool-hint) { display: none !important; }
@@ -23,9 +23,18 @@
 [data-ui-profile="touch"] .m-kpi small { display: block; line-height: 12px; }
 [data-ui-profile="touch"] .m-kpi strong { display: block; font-size: 15px; line-height: 18px; }
 [data-ui-profile="touch"] .m-date { margin-left: auto; overflow: hidden; }
-[data-ui-profile="touch"] #toast-container { top: calc(var(--mobile-top) + env(safe-area-inset-top) + 4px); left: max(8px, env(safe-area-inset-left)); right: max(8px, env(safe-area-inset-right)); transform: none; align-items: center; z-index: 1300; }
+/* Mirrors the desktop ticker + forum pill (#status-ticker-main) as one slim, always-visible,
+   always-tappable strip rather than two controls, so it stays simple and costs little height. */
+[data-ui-profile="touch"] #mobile-ui .m-ticker { position: absolute; top: calc(var(--mobile-top) + env(safe-area-inset-top)); left: 0; right: 0; height: var(--mobile-ticker); min-height: var(--mobile-ticker); min-width: 0; display: flex; align-items: center; gap: 6px; border: 0; border-radius: 0; padding: 0 max(10px, env(safe-area-inset-right)) 0 max(10px, env(safe-area-inset-left)); background: rgba(18, 63, 56, 0.78); color: #ecf4f0; font-size: 11px; font-weight: 600; text-align: left; justify-content: flex-start; }
+[data-ui-profile="touch"] .m-ticker-icon { flex: none; font-size: 13px; }
+[data-ui-profile="touch"] .m-ticker-text { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+/* "Show ticker" setting (mobile-only, see isMobileTickerEnabled): collapses --mobile-ticker back
+   to 0 so the panel/nudge pad/inspect panel/toasts that key off it reclaim the strip's height. */
+[data-ui-profile="touch"] #mobile-ui.ticker-hidden { --mobile-ticker: 0px; }
+[data-ui-profile="touch"] #mobile-ui.ticker-hidden .m-ticker { display: none; }
+[data-ui-profile="touch"] #toast-container { top: calc(var(--mobile-top) + var(--mobile-ticker) + env(safe-area-inset-top) + 4px); left: max(8px, env(safe-area-inset-left)); right: max(8px, env(safe-area-inset-right)); transform: none; align-items: center; z-index: 1300; }
 [data-ui-profile="touch"] #toast-container .toast { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
-[data-ui-profile="touch"] .m-panel { position: absolute; right: 0; top: calc(var(--mobile-top) + env(safe-area-inset-top)); bottom: 0; width: calc(var(--mobile-panel-width) + env(safe-area-inset-right)); max-width: 100%; padding-right: env(safe-area-inset-right); padding-bottom: env(safe-area-inset-bottom); display: flex; flex-direction: column; background: #f1f4f8; border-left: 2px solid #9aa8b8; box-shadow: -4px 0 14px #202a3640; pointer-events: auto; }
+[data-ui-profile="touch"] .m-panel { position: absolute; right: 0; top: calc(var(--mobile-top) + var(--mobile-ticker) + env(safe-area-inset-top)); bottom: 0; width: calc(var(--mobile-panel-width) + env(safe-area-inset-right)); max-width: 100%; padding-right: env(safe-area-inset-right); padding-bottom: env(safe-area-inset-bottom); display: flex; flex-direction: column; background: #f1f4f8; border-left: 2px solid #9aa8b8; box-shadow: -4px 0 14px #202a3640; pointer-events: auto; }
 [data-ui-profile="touch"] .m-panel-head { display: flex; flex: 0 0 44px; align-items: center; gap: 4px; padding: 0 6px; border-bottom: 1px solid #9aa8b8; background: #e2e8ef; }
 [data-ui-profile="touch"] .m-panel-head h2 { flex: 1; margin: 0; font-size: 15px; }
 [data-ui-profile="touch"] #mobile-ui .m-icon { padding: 0; border: 0; background: transparent; font-size: 20px; }
@@ -44,9 +53,11 @@
 [data-ui-profile="touch"] .m-nav { position: absolute; left: 0; right: 0; bottom: 0; height: calc(var(--mobile-nav) + env(safe-area-inset-bottom)); display: none; grid-template-columns: repeat(5, 1fr); gap: 6px; padding: 4px max(8px, env(safe-area-inset-right)) calc(4px + env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left)); background: linear-gradient(#f1f4f8, #e2e8ef); border-top: 1px solid #9aa8b8; pointer-events: auto; }
 [data-ui-profile="touch"] #mobile-ui.nav-open .m-nav { display: grid; }
 [data-ui-profile="touch"] .m-nav button { display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 700; }
-[data-ui-profile="touch"] #mobile-ui .m-nav-handle { position: absolute; left: 50%; transform: translateX(-50%); bottom: env(safe-area-inset-bottom); width: 176px; height: 44px; border-radius: 12px 12px 0 0; pointer-events: auto; background: #f1f4f8; font-weight: 700; }
-[data-ui-profile="touch"] #mobile-ui.nav-open .m-nav-handle { bottom: calc(var(--mobile-nav) + env(safe-area-inset-bottom)); }
-[data-ui-profile="touch"] #mobile-ui:has(#mobile-panel:not([hidden])) .m-nav-handle { left: min(50%, calc(100% - var(--mobile-panel-width) - env(safe-area-inset-right) - 96px)); }
+/* A small floating hamburger, not a labelled bar: the collapsed nav handle only needs to say
+   "there's a menu here", not which page it is - the open nav already highlights that icon. */
+[data-ui-profile="touch"] #mobile-ui .m-nav-handle { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom) + 10px); width: 44px; height: 44px; border: none; border-radius: 50%; pointer-events: auto; background: rgba(241, 244, 248, 0.6); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); box-shadow: 0 2px 8px rgba(20, 30, 28, 0.25); font-size: 17px; line-height: 1; }
+[data-ui-profile="touch"] #mobile-ui.nav-open .m-nav-handle { bottom: calc(var(--mobile-nav) + env(safe-area-inset-bottom) + 6px); }
+[data-ui-profile="touch"] #mobile-ui:has(#mobile-panel:not([hidden])) .m-nav-handle { left: min(50%, calc(100% - var(--mobile-panel-width) - env(safe-area-inset-right) - 30px)); }
 [data-ui-profile="touch"] #mobile-ui.is-building .m-nav-handle, [data-ui-profile="touch"] #mobile-ui.is-building .m-nav { display: none; }
 [data-ui-profile="touch"] .m-confirm { position: absolute; bottom: 0; left: 0; right: 0; min-height: calc(var(--mobile-confirm) + env(safe-area-inset-bottom)); display: flex; gap: 8px; align-items: center; padding: 4px max(8px, env(safe-area-inset-right)) calc(4px + env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left)); background: linear-gradient(#f1f4f8, #e2e8ef); border-top: 2px solid #9aa8b8; pointer-events: auto; }
 [data-ui-profile="touch"] .m-confirm-description { flex: 1; min-width: 0; line-height: 1.2; }
@@ -56,7 +67,7 @@
 [data-ui-profile="touch"] .m-context { position: absolute; left: 0; right: 0; bottom: calc(var(--mobile-confirm) + env(safe-area-inset-bottom)); height: var(--mobile-context); display: flex; gap: 6px; align-items: center; padding: 0 max(8px, env(safe-area-inset-left)); background: #f1f4f8f5; border-top: 1px solid #9aa8b8; pointer-events: auto; overflow-x: auto; }
 [data-ui-profile="touch"] #mobile-build-step { margin-left: auto; font-size: 12px; white-space: nowrap; }
 [data-ui-profile="touch"] .m-context button { flex-shrink: 0; border-radius: 6px !important; }
-[data-ui-profile="touch"] .m-nudge { position: absolute; right: max(8px, env(safe-area-inset-right)); top: calc(var(--mobile-top) + env(safe-area-inset-top) + 8px); width: 138px; height: 182px; pointer-events: none; }
+[data-ui-profile="touch"] .m-nudge { position: absolute; right: max(8px, env(safe-area-inset-right)); top: calc(var(--mobile-top) + var(--mobile-ticker) + env(safe-area-inset-top) + 8px); width: 138px; height: 182px; pointer-events: none; }
 [data-ui-profile="touch"] #mobile-ui .m-nudge-toggle { position: absolute; right: 0; top: 0; height: 44px; padding: 0 6px; font-size: 12px; pointer-events: auto; }
 [data-ui-profile="touch"] .m-nudge-pad { position: absolute; top: 44px; width: 138px; height: 138px; }
 [data-ui-profile="touch"] #mobile-ui .m-nudge-pad button { position: absolute; width: 44px; height: 44px; padding: 0; pointer-events: auto; background: #fffffff0; font-size: 20px; }
@@ -67,12 +78,14 @@
 [data-ui-profile="touch"] #mobile-ui .m-nudge-pad .m-end-toggle { left: 47px; top: 47px; background: #dbe7f6; font-size: 13px; }
 [data-ui-profile="touch"] #mobile-ui label { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
 [data-ui-profile="touch"] .m-overview-row { display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px solid #c3ccd7; padding: 8px 0; }
-[data-ui-profile="touch"] #inspect-panel { position: fixed !important; left: auto !important; right: 0 !important; top: calc(var(--mobile-top) + env(safe-area-inset-top)) !important; bottom: auto !important; height: calc(100dvh - var(--mobile-top) - env(safe-area-inset-top) - var(--mobile-inspect-bottom) - env(safe-area-inset-bottom)); transform: none !important; width: calc(clamp(260px, 40vw, 360px) + env(safe-area-inset-right)); max-width: 100%; padding-right: env(safe-area-inset-right); max-height: none; z-index: 1200; overflow-y: auto; touch-action: pan-y; }
+[data-ui-profile="touch"] #inspect-panel { position: fixed !important; left: auto !important; right: 0 !important; top: calc(var(--mobile-top) + var(--mobile-ticker) + env(safe-area-inset-top)) !important; bottom: auto !important; height: calc(100dvh - var(--mobile-top) - var(--mobile-ticker) - env(safe-area-inset-top) - var(--mobile-inspect-bottom) - env(safe-area-inset-bottom)); transform: none !important; width: calc(clamp(260px, 40vw, 360px) + env(safe-area-inset-right)); max-width: 100%; padding-right: env(safe-area-inset-right); max-height: none; z-index: 1200; overflow-y: auto; touch-action: pan-y; }
 [data-ui-profile="touch"] #inspect-panel .insp-header { position: sticky; top: 0; z-index: 1; }
 [data-ui-profile="touch"] #inspect-panel .insp-sprite-key { display: none; }
 [data-ui-profile="touch"] #inspect-panel :is(button, input) { min-height: 44px; min-width: 44px; font-size: 14px; }
-/* Keep existing native save/import dialogs and title screen, with touch-sized controls. */
-[data-ui-profile="touch"] :is(.sim-dialog, #landing-screen) :is(button, select, input:not([type="checkbox"]), .save-slot) { min-height: 44px; font-size: 16px; touch-action: manipulation; }
+/* Keep existing native save/import dialogs and title screen, with touch-sized controls. The
+   overview map's district pins are buttons too (for keyboard/click access) but are fixed-size
+   18px map markers, not form controls - the 44px minimum stretched every one into an 18x44 oval. */
+[data-ui-profile="touch"] :is(.sim-dialog, #landing-screen) :is(button:not(.setup-overview-marker), select, input:not([type="checkbox"]), .save-slot) { min-height: 44px; font-size: 16px; touch-action: manipulation; }
 [data-ui-profile="touch"] .sim-dialog { padding: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left)); }
 [data-ui-profile="touch"] #landing-screen { height: 100dvh; overflow-y: auto; align-items: flex-start; padding: max(8px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) calc(40px + env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); }
 [data-ui-profile="touch"] .landing-card { width: 100%; max-width: 860px; min-height: 0; padding: 8px 0; margin: auto; }
@@ -115,7 +128,6 @@
   [data-ui-profile="touch"] #mobile-ui .m-city { width: 60px; min-width: 44px; font-size: 12px; }
   [data-ui-profile="touch"] #mobile-ui .m-funds { padding: 0 2px; }
   [data-ui-profile="touch"] .m-kpi strong { font-size: 12px; }
-  [data-ui-profile="touch"] .m-date { display: none; }
   [data-ui-profile="touch"] #mobile-speed { width: 54px; min-width: 44px; padding: 0 2px; }
   [data-ui-profile="touch"] #inspect-panel { width: 100%; }
   [data-ui-profile="touch"] #landing-menu .landing-actions { grid-template-columns: 1fr; width: min(320px, 100%); }

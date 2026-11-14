@@ -171,6 +171,37 @@ function setupLandingScreen() {
     introThumb?.getContext('2d')?.clearRect(0, 0, introThumb.width, introThumb.height);
   }
 
+  // 香港全境 lives in the same chip list as the districts (renderDistrictPicker), so it shares
+  // their visible UI (.setup-overview / .setup-district-intro) rather than .setup-preview, which
+  // #landing-setup[data-tab="district"] hides outright - selectSource writing into previewName/
+  // previewStats for this source was a no-op the player could never see, which was the whole
+  // "按落去無反應" bug. getDistrictOverviewBox returns null for it (no single district box to
+  // draw), so placeOverviewFrame below just hides the frame, same as it would for any source
+  // outside every district's box.
+  function showTerritoryIntro(source) {
+    placeOverviewFrame(overviewFrame, source);
+    if (introName) introName.textContent = source?.name ?? '';
+    if (introBody) introBody.textContent = source ? t('landing.territoryIntro') : '';
+    if (introMeta) introMeta.textContent = ''; // filled in once getTerrain() resolves with a size
+    if (introDifficulty) introDifficulty.textContent = '';
+    if (typeof renderDistrictTraits === 'function') renderDistrictTraits(introTraits, null);
+    // No mapData exists yet to sample a pixel preview from (terrain streams in per chunk as the
+    // player explores) - and nothing should be computed just for a thumbnail anyway, per Norton.
+    // The overview map's own image is already loaded for the district picker above; reuse it
+    // (centre-cropped to the thumb's square) instead of loading or rendering anything new.
+    const ctx = introThumb?.getContext('2d');
+    const overviewImg = overviewMap?.querySelector('img');
+    if (ctx) {
+      ctx.clearRect(0, 0, introThumb.width, introThumb.height);
+      if (overviewImg?.complete && overviewImg.naturalWidth) {
+        const side = Math.min(overviewImg.naturalWidth, overviewImg.naturalHeight);
+        const sx = (overviewImg.naturalWidth - side) / 2;
+        const sy = (overviewImg.naturalHeight - side) / 2;
+        ctx.drawImage(overviewImg, sx, sy, side, side, 0, 0, introThumb.width, introThumb.height);
+      }
+    }
+  }
+
   async function selectSource(source) {
     selectedSource = source;
     if (source && rememberedSourceIds[source.kind] !== undefined) rememberedSourceIds[source.kind] = source.id;
@@ -188,6 +219,7 @@ function setupLandingScreen() {
     }
 
     if (source.kind === 'district') showDistrictIntro(source);
+    if (source.kind === 'territory') showTerritoryIntro(source);
     if (previewName) {
       previewName.textContent = source.kind === 'generated'
         ? getMapSourceProfileLabel(source.profileType)
@@ -215,6 +247,10 @@ function setupLandingScreen() {
       if (previewStats) {
         previewStats.textContent = t('landing.mapSize', getMapSourceSizeKm(terrain));
       }
+      // previewStats lives on the (hidden, under this tab) .setup-preview figure - introMeta is
+      // the visible equivalent on .setup-district-intro, set here rather than in
+      // showTerritoryIntro because it needs this terrain descriptor's width/height.
+      if (introMeta) introMeta.textContent = t('landing.mapSize', getMapSourceSizeKm(terrain));
       return;
     }
     if (!terrain?.mapData) {

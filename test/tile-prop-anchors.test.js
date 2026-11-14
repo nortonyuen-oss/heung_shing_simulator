@@ -26,7 +26,7 @@ function createContext() {
   const context = vm.createContext({
     Math, Number,
     mapRotation: 0,
-    treeMap: {}, debrisMap: new Map(),
+    treeMap: new Map(), debrisMap: new Map(),
     getTileId: (r, c) => `${r}:${c}`,
     isoToScreen: (col, row) => ({ x: (col - row) * 50, y: (col + row) * 25 }),
     getTileHeight: () => 0,
@@ -50,7 +50,7 @@ function fakeSprite(row, col, extra = {}) {
 
 test('a tree stands on the centre of its own tile, not the tile diagonally in front', () => {
   const context = createContext();
-  context.treeMap = { 4: { 6: { variant: 0.3, count: 1 } } };
+  context.treeMap = new Map([['4:6', { variant: 0.3, count: 1 }]]);
   const sprite = fakeSprite(4, 6, { treeCount: 1, treeSubIndex: 0 });
   vm.runInContext('positionTree', context)({ offsetX: 1000, offsetY: 2000 }, sprite);
   const tileY = (6 + 4) * 25;                       // isoToScreen y: bottom of the tile image
@@ -64,7 +64,7 @@ test('a tree stands on the centre of its own tile, not the tile diagonally in fr
 
 test('trees and debris sort with the buildings, lamps and traffic around them', () => {
   const context = createContext();
-  context.treeMap = { 4: { 6: { variant: 0.3, count: 1 } }, 3: { 6: { variant: 0.3, count: 1 } }, 5: { 6: { variant: 0.3, count: 1 } } };
+  context.treeMap = new Map([['4:6', { variant: 0.3, count: 1 }], ['3:6', { variant: 0.3, count: 1 }], ['5:6', { variant: 0.3, count: 1 }]]);
   context.debrisMap = new Map([['4:7', { kind: 'sedanWreck', variant: 0.2 }]]);
   const scene = { offsetX: 0, offsetY: 0 };
   const positionTree = vm.runInContext('positionTree', context);

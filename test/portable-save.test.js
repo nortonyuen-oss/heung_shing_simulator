@@ -38,12 +38,22 @@ test('portable filenames cannot introduce paths', () => {
 });
 test('a legacy v14 uncompressed city can be imported without changing its original data', () => {
   const payload = fixture();
-  // v14 stores full plain arrays, not RLE - decode()'s mapData/heightMap/zoneMap/zoneDensityMap
-  // rows are typed arrays (createFilledTypedMap); expand them during the JSON round-trip so this
-  // fixture matches what an actual v14 save looked like, instead of {"0":1,...}-shaped rows.
-  payload.save_data = JSON.parse(JSON.stringify(decode(payload.save_data), (key, value) => (
-    ArrayBuffer.isView(value) ? Array.from(value) : value
-  )));
+  // v14 stores full plain arrays, not RLE/sparse - decode()'s mapData/heightMap/zoneMap/
+  // zoneDensityMap rows are typed arrays and treeMap is a sparse Map (tileId -> tree); expand
+  // both during the JSON round-trip so this fixture matches what an actual v14 save looked
+  // like, instead of {"0":1,...}-shaped rows or a Map that JSON.stringify would flatten to {}.
+  payload.save_data = JSON.parse(JSON.stringify(decode(payload.save_data), (key, value) => {
+    if (ArrayBuffer.isView(value)) return Array.from(value);
+    if (key === 'treeMap' && value instanceof Map) {
+      const dense = Array.from({ length: 256 }, () => Array(256).fill(null));
+      value.forEach((tree, id) => {
+        const [row, col] = id.split(':').map(Number);
+        dense[row][col] = tree;
+      });
+      return dense;
+    }
+    return value;
+  }));
   payload.save_data.version = 14;
   const envelope = portable.make(payload, '5.4.0');
   const parsed = portable.parse(JSON.stringify(envelope), decode, 256, 256);

@@ -258,7 +258,7 @@ function scatterBareLandDirtClusters(scene) {
     && roadUnderlayMap[row]?.[col] == null
     && !buildingData[getTileId(row, col)]
     && !scene?.buildingSprites?.has(getTileId(row, col))
-    && !treeMap[row]?.[col]
+    && !treeMap.get(getTileId(row, col))
     && !(typeof hasDistrictSignAt === 'function' && hasDistrictSignAt(row, col))
   );
 

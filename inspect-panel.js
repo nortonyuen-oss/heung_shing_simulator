@@ -240,7 +240,7 @@ function showInspectPanel(scene, row, col, pointer = null) {
   const zone    = zoneMap[row]?.[col] ?? ZONE_NONE;
   const powered = !!powerMap[row]?.[col];
   const svc     = serviceMap[row]?.[col];
-  const tree    = treeMap[row]?.[col];
+  const tree    = treeMap.get(id);
 
   const inspectRecord = resolveBuildingRecordForInspect(scene, row, col);
   const hasBldg = inspectRecord.hasBldg;

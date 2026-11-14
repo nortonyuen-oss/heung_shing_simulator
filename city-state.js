@@ -6,7 +6,7 @@ let bridgeMap       = [];   // null | 'deck:row' | 'deck:col' | 'ramp:n/e/s/w'
 let roadUnderlayMap = [];   // original terrain below bridge road tiles
 let powerMap        = [];   // 0 | 1 per cell (is this cell powered?) - Uint8Array rows
 let serviceMap      = [];   // { fire: bool, police: bool, park: 0|1|2 } | null per cell
-let treeMap         = [];   // null | { species, age, variant } per cell
+let treeMap         = new Map(); // tileId -> { species, age, variant, count, planted? }; absent = none
 let debrisMap       = new Map(); // tileId -> { kind, variant }; absent = none
 let busStopMap      = new Map(); // tileId -> array of raw sides ('n'|'e'|'s'|'w'); absent = none
 let trafficMap      = [];   // 0–1 traffic load per road tile (updated each sim tick)
@@ -276,7 +276,7 @@ function resetGameState() {
   zoneDensityMap = createFilledTypedMap(Uint8Array, DENSITY_LOW);
   powerMap       = createFilledTypedMap(Uint8Array, 0);
   serviceMap     = createFilledMap(null);
-  treeMap        = createFilledMap(null);
+  treeMap        = new Map();
   debrisMap      = new Map();
   busStopMap     = new Map();
   if (typeof invalidateTreeSimulationTiles === 'function') invalidateTreeSimulationTiles();

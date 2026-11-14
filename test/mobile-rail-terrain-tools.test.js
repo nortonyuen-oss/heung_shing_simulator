@@ -25,7 +25,7 @@ function setup() {
   });
   Object.assign(c, {
     GROUND: 1, ROAD: 2, DIRT: 3, BEACH: 4, WATER: 5, HILL: 6, MAP_WIDTH: 256, MAP_HEIGHT: 256, MAX_TERRAIN_HEIGHT: 8,
-    treeMap: grid(null),
+    treeMap: new Map(),
     city: { budget: 1000000, population: 50000, year: 1900, month: 1, tick: 0, weather: { typhoonStage: 'none' }, underseaTunnels: [], districtSigns: [] },
     mapData: grid(1), zoneMap: grid(0), zoneDensityMap: grid(1), heightMap: grid(0),
     buildingData: {}, roadUnderlayMap: grid(null), bridgeMap: grid(null), powerLineSet: new Set(), lowDensityLockSet: new Set(),
@@ -54,7 +54,7 @@ function setup() {
     isoToScreen: (col, row) => ({ x: col * 100, y: row * 50 }),
     getTileFaceGeometry: () => ({ center: { x: 0, y: 0 } }),
     setTimeout: () => {},
-    removeTree: (scene, row, col) => { scene.treeSprites.delete(`${row}:${col}`); if (c.treeMap[row]) c.treeMap[row][col] = null; },
+    removeTree: (scene, row, col) => { scene.treeSprites.delete(`${row}:${col}`); c.treeMap.delete(`${row}:${col}`); },
     removeDebris: () => false,
     canPlaceRoad: () => true,
     refreshTileArea: () => {},

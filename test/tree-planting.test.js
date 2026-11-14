@@ -30,7 +30,7 @@ function createRulesContext() {
   const context = vm.createContext({
     Math, Number, Set,
     GROUND, WATER, ROAD, HILL, ZONE_NONE: 0, MAP_WIDTH: 5, MAP_HEIGHT: 5,
-    mapData, treeMap: empty(), roadUnderlayMap: empty(), bridgeMap: empty(),
+    mapData, treeMap: new Map(), roadUnderlayMap: empty(), bridgeMap: empty(),
     zoneMap: Array.from({ length: 5 }, () => Array(5).fill(0)),
     buildingData: { '0:4': { type: 'house' } },
     powerLineSet: new Set(['4:0']),
@@ -64,7 +64,7 @@ test('the tree tool plants beside roads and on empty zoned lots, where wild tree
   assert.equal(reason(scene, 0, 4), 'building');
   assert.equal(reason(scene, 4, 0), 'powerLine');
   assert.equal(reason(scene, 4, 4), null);
-  context.treeMap[4][3] = { species: 'banyan', age: 1, variant: 0.2 };
+  context.treeMap.set('4:3', { species: 'banyan', age: 1, variant: 0.2 });
   assert.equal(reason(scene, 4, 3), 'tree');
   assert.equal(plant(scene, 4, 3), false);
   // A road with an underlay (a bridge ramp) or a bridge deck refuses too.
@@ -86,7 +86,11 @@ test('the forest sweep keeps a planted roadside tree and culls a wild one', () =
     GROUND, ROAD, ZONE_NONE: 0, TREE_MATURE_AGE: 6, TREE_GROW_CHANCE_PER_TICK: 0, TREE_DEATH_CHANCE_PER_TICK: 0,
     TREE_SPREAD_CHANCE_GROUND: 0, TREE_SPREAD_CHANCE_HILL: 0, TREE_SPREAD_NEIGHBOR_CAP: 3, HILL,
     mapData: [[GROUND, GROUND, GROUND], [ROAD, ROAD, ROAD], [GROUND, GROUND, GROUND]],
-    treeMap: [[{ species: 'banyan', age: 6, variant: 0.1, planted: true }, { species: 'banyan', age: 6, variant: 0.1 }, null], [null, null, null], [null, null, { species: 'banyan', age: 6, variant: 0.1 }]],
+    treeMap: new Map([
+      ['0:0', { species: 'banyan', age: 6, variant: 0.1, planted: true }],
+      ['0:1', { species: 'banyan', age: 6, variant: 0.1 }],
+      ['2:2', { species: 'banyan', age: 6, variant: 0.1 }],
+    ]),
     zoneMap: [[0, 0, 0], [0, 0, 0], [0, 0, 1]],
     roadUnderlayMap: [[null, null, null], [null, null, null], [null, null, null]],
     bridgeMap: [[null, null, null], [null, null, null], [null, null, null]],
@@ -106,19 +110,31 @@ test('the forest sweep keeps a planted roadside tree and culls a wild one', () =
 test('the compact save keeps the planted flag and still reads five-element wild entries', () => {
   const context = vm.createContext({ Array, JSON, MAP_HEIGHT: 2, MAP_WIDTH: 2, Math, Number, Object, Set, String, console, TREE_SYSTEM_VERSION: 1, BARE_LAND_VERSION: 1, ROAD_TILE_SET_DEFAULT_ID: 'default', clearTimeout, setTimeout, fetch: async () => { throw new Error('no'); }, AbortController, Promise });
   vm.runInContext(source('save.js'), context, { filename: 'save.js' });
+  // encodeCompactTreeMap checks `source instanceof Map` - built via vm.runInContext so it
+  // belongs to the context's own realm, avoiding a cross-realm instanceof failure.
+  vm.runInContext(
+    "trees = new Map([['0:0', { species: 'banyan', age: 2, variant: 0.5, count: 1, planted: true }], ['1:1', { species: 'palmLeaf', age: 6, variant: 0.25, count: 2 }]]);",
+    context,
+  );
   const encode = vm.runInContext('encodeCompactTreeMap', context);
   const decode = vm.runInContext('decodeCompactTreeMap', context);
-  const trees = [[{ species: 'banyan', age: 2, variant: 0.5, count: 1, planted: true }, null], [null, { species: 'palmLeaf', age: 6, variant: 0.25, count: 2 }]];
-  const encoded = JSON.parse(JSON.stringify(encode(trees)));
+  const encoded = JSON.parse(JSON.stringify(encode(context.trees)));
   assert.deepEqual(encoded.entries, [[0, 'banyan', 2, 0.5, 1, 1], [3, 'palmLeaf', 6, 0.25, 2]], 'six elements only for a planted tree');
-  const decoded = JSON.parse(JSON.stringify(decode(encoded)));
-  assert.deepEqual(decoded, [[{ species: 'banyan', age: 2, variant: 0.5, count: 1, planted: true }, null], [null, { species: 'palmLeaf', age: 6, variant: 0.25, count: 2 }]]);
+  const decoded = decode(encoded);
+  // decoded's tree objects are vm-realm plain objects (decodeCompactTreeMap ran inside this
+  // context, whose own Map/Object aren't the outer realm's); JSON round-tripping the extracted
+  // entries array rebuilds them as ordinary objects deepEqual can compare without a prototype
+  // mismatch, the same reason the old dense-array version of this test used it.
+  assert.deepEqual(JSON.parse(JSON.stringify(Array.from(decoded.entries()))), [
+    ['0:0', { species: 'banyan', age: 2, variant: 0.5, count: 1, planted: true }],
+    ['1:1', { species: 'palmLeaf', age: 6, variant: 0.25, count: 2 }],
+  ]);
   // The normaliser main.js runs on load carries the flag through.
   const normalizerContext = vm.createContext({ Math, Number, TREE_SPECIES: [{ id: 'banyan' }, { id: 'palmLeaf' }], TREE_MATURE_AGE: 6, chooseTreeSpeciesForTile: () => ({ id: 'banyan' }) });
   vm.runInContext(sliceFunction(mainSource, 'normalizeTreeRecord'), normalizerContext);
   const normalize = vm.runInContext('normalizeTreeRecord', normalizerContext);
-  assert.equal(normalize(decoded[0][0], 0, 0).planted, true);
-  assert.equal(normalize(decoded[1][1], 1, 1).planted, false);
+  assert.equal(normalize(decoded.get('0:0'), 0, 0).planted, true);
+  assert.equal(normalize(decoded.get('1:1'), 1, 1).planted, false);
 });
 
 test('the tree tool shows a hover guide, plants as planted and explains a refusal', () => {

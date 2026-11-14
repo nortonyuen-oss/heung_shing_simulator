@@ -42,8 +42,13 @@ test('compact v15 maps and sparse trees round-trip exactly', () => {
     roadUnderlayMap: [[null, null, null, null], [null, 5, 5, null], [null, null, null, null]],
     zoneMap: [[0, 1, 1, 0], [0, 2, 3, 0], [0, 0, 0, 0]],
     zoneDensityMap: [[1, 1, 2, 1], [1, 2, 3, 1], [1, 1, 1, 1]],
-    treeMap: [[null, { species: 'banyan', age: 6, variant: 0.37, count: 2 }, null, null], [null, null, null, null], [null, null, { species: 'palmLeaf', age: 2, variant: 0.91, count: 1 }, null]],
   };
+  // encodeCompactTreeMap checks `source instanceof Map` - built via vm.runInContext so it
+  // belongs to the context's own realm, avoiding a cross-realm instanceof failure.
+  vm.runInContext(
+    "layers.treeMap = new Map([['0:1', { species: 'banyan', age: 6, variant: 0.37, count: 2 }], ['2:2', { species: 'palmLeaf', age: 2, variant: 0.91, count: 1 }]]);",
+    context,
+  );
   vm.runInContext(`
     encoded = {
       version: 15,
@@ -67,7 +72,7 @@ test('compact v15 maps and sparse trees round-trip exactly', () => {
   assert.deepEqual(JSON.parse(JSON.stringify(context.decoded.roadUnderlayMap)), context.layers.roadUnderlayMap);
   assert.deepEqual(plainRows(context.decoded.zoneMap), context.layers.zoneMap);
   assert.deepEqual(plainRows(context.decoded.zoneDensityMap), context.layers.zoneDensityMap);
-  assert.deepEqual(JSON.parse(JSON.stringify(context.decoded.treeMap)), context.layers.treeMap);
+  assert.deepEqual(Object.fromEntries(context.decoded.treeMap), Object.fromEntries(context.layers.treeMap));
 });
 
 test('compact decoder rejects corrupt runs and leaves v14 saves compatible', () => {
@@ -153,7 +158,6 @@ test('save requests serialize an immutable snapshot before entering the queue', 
     roadUnderlayMap: Array.from({ length: 3 }, () => Array(4).fill(null)),
     zoneMap: Array.from({ length: 3 }, () => Array(4).fill(0)),
     zoneDensityMap: Array.from({ length: 3 }, () => Array(4).fill(1)),
-    treeMap: Array.from({ length: 3 }, () => Array(4).fill(null)),
     buildingData: { '1:1': { type: 'residential', nested: { value: 'A' } } },
     powerSources: new Set(),
     powerLineSet: new Set(),
@@ -164,9 +168,10 @@ test('save requests serialize an immutable snapshot before entering the queue', 
     showToast: () => {},
     t: (key) => key,
   });
-  // encodeCompactDebrisMap checks `debrisMap instanceof Map` - built via vm.runInContext so it
-  // belongs to the context's own realm, avoiding a cross-realm instanceof failure.
-  vm.runInContext('debrisMap = new Map();', context);
+  // encodeCompactDebrisMap/encodeCompactTreeMap check `instanceof Map` - built via
+  // vm.runInContext so they belong to the context's own realm, avoiding a cross-realm
+  // instanceof failure.
+  vm.runInContext('debrisMap = new Map(); treeMap = new Map();', context);
   const bodies = [];
   context.fetch = async (_url, options) => {
     bodies.push(JSON.parse(options.body));
@@ -222,7 +227,6 @@ test('autosave stringification runs in a worker without losing snapshot immutabi
     roadUnderlayMap: Array.from({ length: 3 }, () => Array(4).fill(null)),
     zoneMap: Array.from({ length: 3 }, () => Array(4).fill(0)),
     zoneDensityMap: Array.from({ length: 3 }, () => Array(4).fill(1)),
-    treeMap: Array.from({ length: 3 }, () => Array(4).fill(null)),
     buildingData: { '1:1': { type: 'residential', nested: { value: 'A' } } },
     powerSources: new Set(),
     powerLineSet: new Set(),
@@ -233,9 +237,10 @@ test('autosave stringification runs in a worker without losing snapshot immutabi
     showToast: () => {},
     t: (key) => key,
   });
-  // encodeCompactDebrisMap checks `debrisMap instanceof Map` - built via vm.runInContext so it
-  // belongs to the context's own realm, avoiding a cross-realm instanceof failure.
-  vm.runInContext('debrisMap = new Map();', context);
+  // encodeCompactDebrisMap/encodeCompactTreeMap check `instanceof Map` - built via
+  // vm.runInContext so they belong to the context's own realm, avoiding a cross-realm
+  // instanceof failure.
+  vm.runInContext('debrisMap = new Map(); treeMap = new Map();', context);
   const bodies = [];
   const metrics = [];
   context.recordVisualRoutePerformanceOperation = (section, duration, details) => {
@@ -273,16 +278,16 @@ test('save session generations preserve a successful slot on failed load and rej
       roadUnderlayMap: Array.from({ length: 3 }, () => Array(4).fill(null)),
       zoneMap: Array.from({ length: 3 }, () => Array(4).fill(0)),
       zoneDensityMap: Array.from({ length: 3 }, () => Array(4).fill(1)),
-      treeMap: Array.from({ length: 3 }, () => Array(4).fill(null)),
       buildingData: {}, powerSources: new Set(), powerLineSet: new Set(), lowDensityLockSet: new Set(), roadTileCount: 0,
       getDefaultCityName: () => 'Default', getCurrentRoadTileSetId: () => 'default',
       showToast: () => {}, t: (key) => key,
       window: { setTimeout },
       console: { error: () => {}, log: console.log, warn: console.warn },
     });
-    // encodeCompactDebrisMap checks `debrisMap instanceof Map` - built via vm.runInContext so it
-    // belongs to the context's own realm, avoiding a cross-realm instanceof failure.
-    vm.runInContext('debrisMap = new Map();', context);
+    // encodeCompactDebrisMap/encodeCompactTreeMap check `instanceof Map` - built via
+    // vm.runInContext so they belong to the context's own realm, avoiding a cross-realm
+    // instanceof failure.
+    vm.runInContext('debrisMap = new Map(); treeMap = new Map();', context);
   };
 
   const failedLoadContext = createSaveVm();

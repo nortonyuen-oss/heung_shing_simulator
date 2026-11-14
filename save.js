@@ -390,22 +390,29 @@ function normalizeCompactTreeEntry(tree, fieldName, location) {
   return planted ? { species, age, variant, count, planted: true } : { species, age, variant, count };
 }
 
+// treeMap lives in memory as a sparse Map (tileId -> tree), not a dense grid - see the
+// equivalent note on encodeCompactBusStopMap above.
 function encodeCompactTreeMap(source) {
   const fieldName = 'treeMap';
   const { width, height } = getCompactMapDimensions();
-  assertCompactSourceMap(source, fieldName, width, height);
-  const entries = [];
-  for (let row = 0; row < height; row += 1) {
-    for (let col = 0; col < width; col += 1) {
-      if (source[row][col] == null) continue;
-      const index = row * width + col;
-      const tree = normalizeCompactTreeEntry(source[row][col], fieldName, `${row}:${col}`);
-      // A sixth element marks a player-planted tree; wild trees keep the five-element form.
-      entries.push(tree.planted
-        ? [index, tree.species, tree.age, tree.variant, tree.count, 1]
-        : [index, tree.species, tree.age, tree.variant, tree.count]);
-    }
+  if (!(source instanceof Map)) {
+    throw createCompactSaveError(fieldName, 'source must be a Map');
   }
+  const entries = [];
+  source.forEach((treeValue, id) => {
+    if (treeValue == null) return;
+    const [row, col] = String(id).split(':').map(Number);
+    if (!Number.isInteger(row) || !Number.isInteger(col) || row < 0 || row >= height || col < 0 || col >= width) {
+      throw createCompactSaveError(fieldName, `invalid tile id ${id}`);
+    }
+    const tree = normalizeCompactTreeEntry(treeValue, fieldName, id);
+    const index = row * width + col;
+    // A sixth element marks a player-planted tree; wild trees keep the five-element form.
+    entries.push(tree.planted
+      ? [index, tree.species, tree.age, tree.variant, tree.count, 1]
+      : [index, tree.species, tree.age, tree.variant, tree.count]);
+  });
+  entries.sort((a, b) => a[0] - b[0]);
   return { encoding: COMPACT_TREE_ENCODING, width, height, entries };
 }
 
@@ -422,7 +429,7 @@ function decodeCompactTreeMap(encoded) {
     throw createCompactSaveError(fieldName, 'invalid sparse entry list');
   }
 
-  const result = Array.from({ length: height }, () => Array(width).fill(null));
+  const result = new Map();
   let previousIndex = -1;
   encoded.entries.forEach((entry, entryNumber) => {
     if (!Array.isArray(entry) || (entry.length !== 5 && entry.length !== 6)) {
@@ -437,7 +444,7 @@ function decodeCompactTreeMap(encoded) {
       fieldName,
       `entry ${entryNumber}`,
     );
-    result[Math.floor(index / width)][index % width] = tree;
+    result.set(`${Math.floor(index / width)}:${index % width}`, tree);
     previousIndex = index;
   });
   return result;

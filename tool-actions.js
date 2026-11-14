@@ -68,7 +68,7 @@ function touchTileIdentity(scene, row, col) {
     typeof getBusStopSides === 'function' ? getBusStopSides(row, col) : null,
     typeof hasDistrictSignAt === 'function' && hasDistrictSignAt(row, col),
     typeof powerLineSet !== 'undefined' && powerLineSet.has(getTileId(row, col)),
-    typeof treeMap !== 'undefined' ? touchObjectIdentity(treeMap[row]?.[col]) : 0];
+    typeof treeMap !== 'undefined' ? touchObjectIdentity(treeMap.get(getTileId(row, col))) : 0];
 }
 
 function getTouchDemolitionPlan(scene, tiles) {
@@ -167,7 +167,7 @@ function previewTouchToolAction(scene, draft) {
         .filter(Boolean);
       plan.keptBuildings = new Set(buildings).size;
     }
-    if (draft.tool === 'power-line') plan.clearedTrees = plan.tiles.filter((tile) => treeMap[tile.row]?.[tile.col]).length;
+    if (draft.tool === 'power-line') plan.clearedTrees = plan.tiles.filter((tile) => treeMap.get(getTileId(tile.row, tile.col))).length;
     identity = tiles.map((tile) => touchTileIdentity(scene, tile.row, tile.col));
   } else if (draft.tool === 'bus-stop') {
     const eligible = getBusStopEligibleSides(row, col) || [];

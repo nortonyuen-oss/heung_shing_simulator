@@ -55,7 +55,7 @@ function isTreeTerrainEligible(row, col) {
 // Where a wild tree may sprout (forest generation and spread, sim-growth.js updateTrees).
 function canTreeGrowAt(scene, row, col, blockedTiles = null) {
   if (!isTreeTerrainEligible(row, col)) return false;
-  if (treeMap[row]?.[col]) return false;
+  if (treeMap.get(getTileId(row, col))) return false;
   return canTreeOccupyAt(scene, row, col, blockedTiles);
 }
 
@@ -72,7 +72,7 @@ function getTreePlantingBlockReason(scene, row, col) {
   if (!isInsideMap(row, col)) return 'terrain';
   if (mapData[row][col] === ROAD || roadUnderlayMap[row]?.[col] != null || bridgeMap[row]?.[col]) return 'road';
   if (!isTreeTerrainEligible(row, col)) return 'terrain';
-  if (treeMap[row]?.[col]) return 'tree';
+  if (treeMap.get(getTileId(row, col))) return 'tree';
   const id = getTileId(row, col);
   if (buildingData[id] || scene?.buildingSprites?.has(id)) return 'building';
   if (typeof hasDistrictSignAt === 'function' && hasDistrictSignAt(row, col)) return 'building';
@@ -166,7 +166,7 @@ function generateForestMap(random) {
 
 function generateInitialTrees(scene, blockedTiles = null) {
   const random = createRandom(`${currentSeed}:trees`);
-  treeMap = createFilledMap(null);
+  treeMap = new Map();
   const forestWeights = generateForestMap(random);
 
   for (let row = 0; row < MAP_HEIGHT; row++) {
@@ -180,12 +180,12 @@ function generateInitialTrees(scene, blockedTiles = null) {
       const inForest = forestWeights[row][col] > TREE_BASE_DENSITY * 4;
       const species = chooseTreeSpeciesForTile(row, col, random());
       const r = random();
-      treeMap[row][col] = {
+      treeMap.set(getTileId(row, col), {
         species: species.id,
         age:     Math.floor(random() * (TREE_MATURE_AGE + 1)),
         variant: random(),
         count:   inForest ? (r < 0.70 ? 1 : r < 0.92 ? 2 : 3) : 1,
-      };
+      });
     }
   }
   if (typeof invalidateTreeSimulationTiles === 'function') invalidateTreeSimulationTiles();
@@ -199,11 +199,12 @@ function restoreOrGenerateTrees(scene, save) {
     return;
   }
 
-  treeMap = createFilledMap(null);
+  treeMap = new Map();
   for (let row = 0; row < MAP_HEIGHT; row++) {
     for (let col = 0; col < MAP_WIDTH; col++) {
-      const tree = normalizeTreeRecord(save.treeMap[row]?.[col], row, col);
-      treeMap[row][col] = tree && canTreeOccupyAt(scene, row, col, null, { planted: tree.planted }) ? tree : null;
+      const id = getTileId(row, col);
+      const tree = normalizeTreeRecord(save.treeMap.get(id), row, col);
+      if (tree && canTreeOccupyAt(scene, row, col, null, { planted: tree.planted })) treeMap.set(id, tree);
     }
   }
   if (typeof invalidateTreeSimulationTiles === 'function') invalidateTreeSimulationTiles();
@@ -211,11 +212,10 @@ function restoreOrGenerateTrees(scene, save) {
 
 function rebuildTreeSprites(scene) {
   clearTreeSprites(scene);
-  for (let row = 0; row < MAP_HEIGHT; row++) {
-    for (let col = 0; col < MAP_WIDTH; col++) {
-      if (treeMap[row]?.[col]) placeTreeSprite(scene, row, col);
-    }
-  }
+  treeMap.forEach((tree, id) => {
+    const [row, col] = id.split(':').map(Number);
+    placeTreeSprite(scene, row, col);
+  });
 }
 
 function getTreeSubOffset(count, index, variant) {
@@ -227,7 +227,7 @@ function getTreeSubOffset(count, index, variant) {
 }
 
 function placeTreeSprite(scene, row, col) {
-  const tree = treeMap[row]?.[col];
+  const tree = treeMap.get(getTileId(row, col));
   if (!tree || !scene?.treeSprites) return;
 
   const pos = isoToScreen(col, row);
@@ -271,15 +271,15 @@ function refreshTreeSprite(scene, row, col) {
     existing.forEach((s) => s.destroy());
     scene.treeSprites.delete(id);
   }
-  if (treeMap[row]?.[col]) placeTreeSprite(scene, row, col);
+  if (treeMap.get(id)) placeTreeSprite(scene, row, col);
 }
 
 function removeTree(scene, row, col) {
-  if (!isInsideMap(row, col) || !treeMap[row]?.[col]) return false;
-  treeMap[row][col] = null;
+  const id = getTileId(row, col);
+  if (!isInsideMap(row, col) || !treeMap.get(id)) return false;
+  treeMap.delete(id);
   if (typeof invalidateTreeSimulationTiles === 'function') invalidateTreeSimulationTiles();
   if (typeof invalidateOverlayCache === 'function') invalidateOverlayCache();
-  const id = getTileId(row, col);
   const sprites = scene?.treeSprites?.get(id);
   if (sprites) {
     sprites.forEach((s) => s.destroy());
@@ -299,12 +299,12 @@ function placeTree(scene, row, col, options = {}) {
   const species = options.species
     ? getTreeSpecies(options.species)
     : chooseTreeSpeciesForTile(row, col);
-  treeMap[row][col] = {
+  treeMap.set(getTileId(row, col), {
     species: species.id,
     age: options.age ?? 0,
     variant: Math.random(),
     ...(planted ? { planted: true } : {}),
-  };
+  });
   if (typeof invalidateTreeSimulationTiles === 'function') invalidateTreeSimulationTiles();
   if (typeof invalidateOverlayCache === 'function') invalidateOverlayCache();
   refreshTreeSprite(scene, row, col);
@@ -315,9 +315,10 @@ function positionTree(scene, sprite) {
   const row = sprite.mapRow;
   const col = sprite.mapCol;
   const pos = isoToScreen(col, row);
-  const baseOffset = getTreeVisualOffset(treeMap[row]?.[col]);
+  const tree = treeMap.get(getTileId(row, col));
+  const baseOffset = getTreeVisualOffset(tree);
   const elevOffset = getElevationVisualOffset(row, col);
-  const sub = getTreeSubOffset(sprite.treeCount ?? 1, sprite.treeSubIndex ?? 0, treeMap[row]?.[col]?.variant ?? 0);
+  const sub = getTreeSubOffset(sprite.treeCount ?? 1, sprite.treeSubIndex ?? 0, tree?.variant ?? 0);
   sprite.setPosition(
     pos.x + scene.offsetX + baseOffset.x + sub.x,
     pos.y + scene.offsetY + TILE_PROP_FOOT_OFFSET_Y + elevOffset + baseOffset.y + sub.y,
@@ -344,20 +345,8 @@ function isMatureTree(tree) {
 }
 
 function getMatureTreeCount() {
-  if (typeof getTreeSimulationTiles === 'function') {
-    let count = 0;
-    for (const [row, col] of getTreeSimulationTiles(activeScene)) {
-      if (isMatureTree(treeMap[row]?.[col])) count++;
-    }
-    return count;
-  }
-
   let count = 0;
-  for (let row = 0; row < MAP_HEIGHT; row++) {
-    for (let col = 0; col < MAP_WIDTH; col++) {
-      if (isMatureTree(treeMap[row]?.[col])) count++;
-    }
-  }
+  treeMap.forEach((tree) => { if (isMatureTree(tree)) count++; });
   return count;
 }
 
@@ -368,7 +357,7 @@ function getTreeInfluenceValue(row, col, radius = TREE_CANOPY_RADIUS) {
       const r = row + dr;
       const c = col + dc;
       if (!isInsideMap(r, c)) continue;
-      const tree = treeMap[r]?.[c];
+      const tree = treeMap.get(getTileId(r, c));
       if (!tree) continue;
       const dist = Math.abs(dr) + Math.abs(dc);
       if (dist > radius) continue;
@@ -381,22 +370,9 @@ function getTreeInfluenceValue(row, col, radius = TREE_CANOPY_RADIUS) {
 
 function computeTreeCanopyMap(radius = TREE_CANOPY_RADIUS) {
   const map = createFilledMap(0);
-  const treeTiles = typeof getTreeSimulationTiles === 'function'
-    ? getTreeSimulationTiles(activeScene)
-    : null;
-  const tiles = treeTiles ?? (() => {
-    const all = [];
-    for (let row = 0; row < MAP_HEIGHT; row++) {
-      for (let col = 0; col < MAP_WIDTH; col++) {
-        if (treeMap[row]?.[col]) all.push([row, col]);
-      }
-    }
-    return all;
-  })();
-
-  for (const [row, col] of tiles) {
-    const tree = treeMap[row]?.[col];
-    if (!tree) continue;
+  treeMap.forEach((tree, id) => {
+    if (!tree) return;
+    const [row, col] = id.split(':').map(Number);
     const strength = isMatureTree(tree) ? 1 : 0.45;
     for (let dr = -radius; dr <= radius; dr++) {
       for (let dc = -radius; dc <= radius; dc++) {
@@ -408,6 +384,6 @@ function computeTreeCanopyMap(radius = TREE_CANOPY_RADIUS) {
         map[r][c] = Math.min(1, map[r][c] + strength * (1 - dist / Math.max(1, radius + 1)) / 4);
       }
     }
-  }
+  });
   return map;
 }

@@ -1425,50 +1425,36 @@ function invalidateTreeSimulationTiles() {
   treeSimulationTilesCache = null;
 }
 
-function getTreeSimulationTiles(scene) {
+// treeMap is itself a sparse Map now (tileId -> tree), so it's already the list of tiles that
+// have a tree - no need for the sprite-count-bounded fast path vs. full-grid-scan fallback this
+// used when treeMap was dense.
+function getTreeSimulationTiles() {
   if (treeSimulationTilesCache) return treeSimulationTilesCache;
-
-  // Parsing and sorting sprite-map string keys wins for a fresh sparse city,
-  // but becomes slower than one row-major array scan once there are a few
-  // thousand trees. Keep the sparse path bounded for mature/dense saves.
-  const denseTreeThreshold = Math.min(4096, MAP_WIDTH * MAP_HEIGHT * 0.0625);
-  if (scene?.treeSprites instanceof Map && scene.treeSprites.size <= denseTreeThreshold) {
-    const tiles = [];
-    scene.treeSprites.forEach((sprites, id) => {
-      const separator = id.indexOf(':');
-      const row = Number(id.slice(0, separator));
-      const col = Number(id.slice(separator + 1));
-      if (treeMap[row]?.[col]) tiles.push([row, col]);
-    });
-    // The former full-map scan was row-major. Preserve that order so the random
-    // number sequence (and therefore tree growth/death outcomes) stays identical.
-    tiles.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
-    treeSimulationTilesCache = tiles;
-    return treeSimulationTilesCache;
-  }
-
   const tiles = [];
-  for (let row = 0; row < MAP_HEIGHT; row++) {
-    for (let col = 0; col < MAP_WIDTH; col++) {
-      if (treeMap[row]?.[col]) tiles.push([row, col]);
-    }
-  }
+  treeMap.forEach((tree, id) => {
+    const separator = id.indexOf(':');
+    tiles.push([Number(id.slice(0, separator)), Number(id.slice(separator + 1))]);
+  });
+  // The former full-map scan was row-major. Preserve that order so the random
+  // number sequence (and therefore tree growth/death outcomes) stays identical.
+  tiles.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
   treeSimulationTilesCache = tiles;
   return treeSimulationTilesCache;
 }
 
 function updateTrees(scene) {
-  if (!scene || !treeMap?.length) return;
+  if (!scene) return;
 
   const newTrees = [];
 
-  for (const [r, c] of getTreeSimulationTiles(scene)) {
-    const tree = treeMap[r]?.[c];
+  for (const [r, c] of getTreeSimulationTiles()) {
+    const id = getTileId(r, c);
+    const tree = treeMap.get(id);
     if (!tree) continue;
 
     // Land repurposed under the tree: gone. A wild tree also gives way to zoning and keeps
     // its canopy off the roads; one the player planted stays on its lot until it develops.
-    if (!isTreeTerrainEligible(r, c) || scene.buildingSprites.has(getTileId(r, c))
+    if (!isTreeTerrainEligible(r, c) || scene.buildingSprites.has(id)
         || mapData[r]?.[c] === ROAD || roadUnderlayMap[r]?.[c] != null || bridgeMap[r]?.[c]
         || (!tree.planted && (zoneMap[r]?.[c] !== ZONE_NONE || isAdjacentToRoad(r, c)))) {
       removeTree(scene, r, c);
@@ -1492,7 +1478,7 @@ function updateTrees(scene) {
     // Density cap: a tree surrounded by 3+ tree neighbours is in a dense
     // interior — it stops spreading outward so forests reach natural equilibrium.
     const treeNeighbours = getCardinalNeighbors(r, c)
-      .filter(([nr, nc]) => treeMap[nr]?.[nc]).length;
+      .filter(([nr, nc]) => treeMap.get(getTileId(nr, nc))).length;
     if (treeNeighbours >= TREE_SPREAD_NEIGHBOR_CAP) continue;
 
     const spreadChance = mapData[r][c] === HILL ? TREE_SPREAD_CHANCE_HILL : TREE_SPREAD_CHANCE_GROUND;
@@ -1511,7 +1497,7 @@ function updateTrees(scene) {
   }
 
   newTrees.forEach(({ row, col, species }) => {
-    if (treeMap[row]?.[col] || !canTreeGrowAt(scene, row, col)) return;
+    if (treeMap.get(getTileId(row, col)) || !canTreeGrowAt(scene, row, col)) return;
     placeTree(scene, row, col, { species, age: 0, spend: false });
   });
 }

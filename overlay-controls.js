@@ -535,7 +535,7 @@ function terrainPixelColor(terrain, r, c) {
   if (zone === ZONE_RES) return [80, 160, 60];
   if (zone === ZONE_COM) return [60, 100, 200];
   if (zone === ZONE_IND) return [160, 140, 40];
-  if (treeMap[r]?.[c]) return [38, 115, 45];
+  if (treeMap.get(getTileId(r, c))) return [38, 115, 45];
   if (isBridgeTile(r, c)) return [110, 110, 110];
   switch (terrain) {
     case ROAD:  return [110, 110, 110];
@@ -866,24 +866,21 @@ function computeFireMap() {
 
 function addTreeFireRisk(map) {
   const radius = 2;
-  for (let row = 0; row < MAP_HEIGHT; row++) {
-    for (let col = 0; col < MAP_WIDTH; col++) {
-      const tree = treeMap[row]?.[col];
-      if (!tree) continue;
-      const baseRisk = isMatureTree(tree) ? TREE_FIRE_RISK_MATURE : TREE_FIRE_RISK_YOUNG;
-      const risk = serviceMap[row]?.[col]?.fire ? baseRisk * 0.55 : baseRisk;
-      for (let dr = -radius; dr <= radius; dr++) {
-        for (let dc = -radius; dc <= radius; dc++) {
-          const r = row + dr;
-          const c = col + dc;
-          if (!isInsideMap(r, c)) continue;
-          const dist = Math.abs(dr) + Math.abs(dc);
-          if (dist > radius) continue;
-          map[r][c] = Math.min(1, map[r][c] + risk * (1 - dist / Math.max(1, radius + 1)));
-        }
+  treeMap.forEach((tree, id) => {
+    const [row, col] = id.split(':').map(Number);
+    const baseRisk = isMatureTree(tree) ? TREE_FIRE_RISK_MATURE : TREE_FIRE_RISK_YOUNG;
+    const risk = serviceMap[row]?.[col]?.fire ? baseRisk * 0.55 : baseRisk;
+    for (let dr = -radius; dr <= radius; dr++) {
+      for (let dc = -radius; dc <= radius; dc++) {
+        const r = row + dr;
+        const c = col + dc;
+        if (!isInsideMap(r, c)) continue;
+        const dist = Math.abs(dr) + Math.abs(dc);
+        if (dist > radius) continue;
+        map[r][c] = Math.min(1, map[r][c] + risk * (1 - dist / Math.max(1, radius + 1)));
       }
     }
-  }
+  });
 }
 
 function computePopulationMap() {

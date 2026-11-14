@@ -14,7 +14,7 @@ function setup() {
   Object.assign(c, {
     GROUND: 1, ROAD: 2, DIRT: 3, BEACH: 4, WATER: 5, HILL: 6,
     city: { budget: 10000, tick: 0, districtSigns: [] }, buildingData: {},
-    mapData: grid(1), zoneMap: grid(0), zoneDensityMap: grid(1), treeMap: grid(null),
+    mapData: grid(1), zoneMap: grid(0), zoneDensityMap: grid(1), treeMap: new Map(),
     roadUnderlayMap: grid(null), bridgeMap: grid(null), powerLineSet: new Set(), lowDensityLockSet: new Set(),
     scene: { buildingSprites: new Map(), treeSprites: new Map(), debrisSprites: new Map(), zoneOverlays: new Map() },
     isInsideMap: (r, col) => r >= 0 && col >= 0 && r < 24 && col < 24,
@@ -56,7 +56,7 @@ function session(c, tool, start, end = start, options = {}) {
   return s;
 }
 function confirm(s) { const draft = s.getState(); return s.confirm(draft.id, draft.owner); }
-function snapshot(c) { return JSON.stringify([c.city, c.mapData, c.zoneMap, c.zoneDensityMap, c.treeMap, c.buildingData, [...c.powerLineSet], [...c.lowDensityLockSet], c.saves]); }
+function snapshot(c) { return JSON.stringify([c.city, c.mapData, c.zoneMap, c.zoneDensityMap, [...c.treeMap], c.buildingData, [...c.powerLineSet], [...c.lowDensityLockSet], c.saves]); }
 
 test('C2 adds exactly six tools; quotes and option changes never write to the city', () => {
   const c = setup();
@@ -79,7 +79,7 @@ test('power line quotes skip existing lines and water, charge once and invalidat
   assert.equal(draft.plan.cost, 10); assert.equal(draft.plan.skipped, 2); assert.equal(draft.plan.clearedTrees, 1);
   assert.equal(confirm(s).cost, 10); assert.equal(c.city.budget, 90);
   assert.deepEqual([...c.powerLineSet].sort(), ['5:5', '5:6', '5:8']);
-  assert.equal(c.treeMap[5][6], null); assert.equal(c.dirtyCount, 2); assert.equal(c.powerUpdates, 1);
+  assert.equal(c.treeMap.get('5:6'), undefined); assert.equal(c.dirtyCount, 2); assert.equal(c.powerUpdates, 1);
   assert.equal(s.confirm(draft.id, draft.owner).reason, 'stale');
 });
 
@@ -92,7 +92,7 @@ test('power line and tree range approval rechecks changed targets and the whole 
   assert.equal(confirm(s).ok, false); assert.equal(c.powerLineSet.size, 1);
   const trees = session(c, 'tree', { row: 8, col: 8 }, { row: 9, col: 9 });
   assert.equal(trees.getState().plan.cost, 60); assert.equal(confirm(trees).ok, false);
-  assert.equal(c.treeMap.flat().filter(Boolean).length, 0);
+  assert.equal(c.treeMap.size, 0);
 });
 
 test('tree rectangles use the native roadside/zoned-lot rules and preserve occupied tiles', () => {
@@ -101,8 +101,8 @@ test('tree rectangles use the native roadside/zoned-lot rules and preserve occup
   c.powerLineSet.add('6:5'); c.buildingData['6:6'] = { type: 'library' };
   const s = session(c, 'tree', { row: 5, col: 5 }, { row: 6, col: 6 });
   assert.equal(s.getState().plan.skipped, 3); assert.equal(confirm(s).cost, 15);
-  assert.equal(c.treeMap[5][5].planted, true); assert.equal(c.zoneMap[5][5], 1);
-  assert.equal(c.treeMap.flat().filter(Boolean).length, 1);
+  assert.equal(c.treeMap.get('5:5').planted, true); assert.equal(c.zoneMap[5][5], 1);
+  assert.equal(c.treeMap.size, 1);
   const duplicate = session(c, 'tree', { row: 5, col: 5 }); assert.equal(duplicate.getState().plan.ok, false);
 });
 

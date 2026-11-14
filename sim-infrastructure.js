@@ -179,16 +179,24 @@ function updatePowerGrid(scene) {
   _powerGridDirty = false;
   if (typeof invalidatePublicMarketState === 'function') invalidatePublicMarketState();
 
-  for (let r = 0; r < MAP_HEIGHT; r++)
-    for (let c = 0; c < MAP_WIDTH; c++)
+  // 香港全境: this fires on nearly every edit (markPowerGridDirty), so a full MAP_WIDTH x
+  // MAP_HEIGHT sweep here is the same territory-scale freeze the road-decoration rebuilders had
+  // (main.js's getActiveSweepBounds) - bounded to the explored area instead. A zone or building
+  // can only exist where the player has actually been (zoning/building requires a tile sprite,
+  // which requires its chunk to already be generated), so nothing outside that area is lost.
+  const bounds = typeof getActiveSweepBounds === 'function'
+    ? getActiveSweepBounds() : { rowStart: 0, colStart: 0, rowCount: MAP_HEIGHT, colCount: MAP_WIDTH };
+
+  for (let r = bounds.rowStart; r < bounds.rowStart + bounds.rowCount; r++)
+    for (let c = bounds.colStart; c < bounds.colStart + bounds.colCount; c++)
       powerMap[r][c] = false;
 
   let totalSupply = 0;
   let totalDemand = 0;
   const activePlants = [];
 
-  for (let r = 0; r < MAP_HEIGHT; r++) {
-    for (let c = 0; c < MAP_WIDTH; c++) {
+  for (let r = bounds.rowStart; r < bounds.rowStart + bounds.rowCount; r++) {
+    for (let c = bounds.colStart; c < bounds.colStart + bounds.colCount; c++) {
       const id = getTileId(r, c);
       const record = buildingData[id];
       if (record) {

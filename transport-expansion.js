@@ -905,26 +905,22 @@ function getTransportStopKey(row, col) {
 function syncTransportStops() {
   const state = getTransportExpansionState();
   const byLocation = new Map(state.stops.map((stop) => [getTransportStopKey(stop.row, stop.col), stop]));
-  if (typeof busStopMap !== 'undefined' && Array.isArray(busStopMap)) {
-    for (let row = 0; row < busStopMap.length; row++) {
-      const cells = busStopMap[row];
-      if (!Array.isArray(cells)) continue;
-      for (let col = 0; col < cells.length; col++) {
-        if (!Array.isArray(cells[col]) || cells[col].length === 0) continue;
-        const key = getTransportStopKey(row, col);
-        if (byLocation.has(key)) continue;
-        const stop = {
-          id: `stop-${state.nextStopId++}`,
-          row,
-          col,
-          name: '',
-          createdTick: Math.max(0, Number(typeof city === 'undefined' ? 0 : city.tick) || 0),
-          waitingPassengers: 0,
-        };
-        state.stops.push(stop);
-        byLocation.set(key, stop);
-      }
-    }
+  if (typeof busStopMap !== 'undefined' && busStopMap instanceof Map) {
+    // busStopMap keys are already "row:col", the same shape getTransportStopKey produces.
+    busStopMap.forEach((sides, key) => {
+      if (!Array.isArray(sides) || sides.length === 0 || byLocation.has(key)) return;
+      const [row, col] = key.split(':').map(Number);
+      const stop = {
+        id: `stop-${state.nextStopId++}`,
+        row,
+        col,
+        name: '',
+        createdTick: Math.max(0, Number(typeof city === 'undefined' ? 0 : city.tick) || 0),
+        waitingPassengers: 0,
+      };
+      state.stops.push(stop);
+      byLocation.set(key, stop);
+    });
   }
   transportRuntime.dirtyStops = false;
   return state.stops;

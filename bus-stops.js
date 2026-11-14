@@ -52,7 +52,7 @@ function getBusStopSpriteId(row, col, rawSide) {
 }
 
 function getBusStopSides(row, col) {
-  return busStopMap[row]?.[col] ?? null;
+  return busStopMap.get(getTileId(row, col)) ?? null;
 }
 
 // Shared by the desktop cycle and explicit touch-side selection. Reading a
@@ -189,14 +189,15 @@ function refreshBusStopSpriteAt(scene, row, col) {
 // Replaces a tile's full shoulder set — used by placeBusStop's (tools.js)
 // none->left->right->both->none click cycle. Pass [] to clear.
 function setBusStopSides(row, col, sides) {
-  if (!busStopMap[row]) busStopMap[row] = [];
-  busStopMap[row][col] = sides.length ? sides : null;
+  const id = getTileId(row, col);
+  if (sides.length) busStopMap.set(id, sides); else busStopMap.delete(id);
   if (typeof markTransportStopsDirty === 'function') markTransportStopsDirty([{ row, col }]);
 }
 
 function removeBusStopsAt(scene, row, col) {
-  if (!isInsideMap(row, col) || !busStopMap[row]?.[col]) return false;
-  busStopMap[row][col] = null;
+  const id = getTileId(row, col);
+  if (!isInsideMap(row, col) || !busStopMap.get(id)) return false;
+  busStopMap.delete(id);
   ['n', 'e', 's', 'w'].forEach((side) => {
     const key = getBusStopSpriteId(row, col, side);
     const sprite = scene?.busStopSprites?.get(key);
@@ -214,7 +215,7 @@ function removeBusStopsAt(scene, row, col) {
 // only makes sense on a straight road shoulder — if the tile no longer
 // qualifies, drop it rather than leave it floating on a corner/T/cross tile.
 function invalidateBusStopIfOrphaned(scene, row, col) {
-  if (!busStopMap[row]?.[col]) return;
+  if (!busStopMap.get(getTileId(row, col))) return;
   if (getBusStopEligibleSides(row, col)) return;
   removeBusStopsAt(scene, row, col);
 }
@@ -226,9 +227,8 @@ function clearBusStopSprites(scene) {
 
 function rebuildBusStopSprites(scene) {
   clearBusStopSprites(scene);
-  for (let row = 0; row < MAP_HEIGHT; row++) {
-    for (let col = 0; col < MAP_WIDTH; col++) {
-      if (busStopMap[row]?.[col]) refreshBusStopSpriteAt(scene, row, col);
-    }
-  }
+  busStopMap.forEach((sides, id) => {
+    const [row, col] = id.split(':').map(Number);
+    refreshBusStopSpriteAt(scene, row, col);
+  });
 }

@@ -13,7 +13,7 @@ function setup({ company = true } = {}) {
   Object.assign(c, {
     GROUND: 1, ROAD: 2, DIRT: 3, BEACH: 4, WATER: 5, HILL: 6,
     city: { budget: 5000, population: 3000, year: 1900, month: 1, tick: 0, weather: { typhoonStage: 'none' } },
-    mapData: grid(1), zoneMap: grid(0), zoneDensityMap: grid(1), busStopMap: grid(null), buildingData: {},
+    mapData: grid(1), zoneMap: grid(0), zoneDensityMap: grid(1), buildingData: {},
     scene: { buildingSprites: new Map(), treeSprites: new Map(), debrisSprites: new Map() },
     isTerrainCreatorMode: false, baseRoadKey: 'road_straight_h', mapRotation: 0,
     isInsideMap: (r, col) => r >= 0 && col >= 0 && r < 20 && col < 20,
@@ -28,6 +28,10 @@ function setup({ company = true } = {}) {
     getBuildingJobCapacity: record => record.type === 'commercial' ? 1000 : 0,
   });
   c.activeScene = c.scene;
+  // bus-stops.js/transport-expansion.js check `busStopMap instanceof Map` - built via
+  // vm.runInContext so the Map belongs to the context's own realm (c.Map isn't reachable from
+  // outside), avoiding a cross-realm instanceof failure.
+  vm.runInContext('busStopMap = new Map();', c);
   for (let col = 1; col < 19; col++) c.mapData[10][col] = c.ROAD;
   load('building-placement.js'); load('bus-stops.js'); load('tools.js'); load('transport-expansion.js');
   c.refreshBusStopSpriteAt = () => {};
@@ -52,7 +56,7 @@ function session(c, tool, tile, options = {}) {
   return s;
 }
 function confirm(s) { const draft = s.getState(); return s.confirm(draft.id, draft.owner); }
-function snapshot(c) { return JSON.stringify({ city: c.city, map: c.mapData, stops: c.busStopMap, buildings: c.buildingData, expansion: c.getExpansionSaveState(), saves: c.saves }); }
+function snapshot(c) { return JSON.stringify({ city: c.city, map: c.mapData, stops: Array.from(c.busStopMap.entries()), buildings: c.buildingData, expansion: c.getExpansionSaveState(), saves: c.saves }); }
 
 test('bus previews are read-only and quote the actual company account even when the city has no money', () => {
   const c = setup(); c.city.budget = 0;

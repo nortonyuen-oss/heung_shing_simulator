@@ -514,31 +514,37 @@ function normalizeCompactBusStopSides(sides, fieldName, location) {
   return unique;
 }
 
+// busStopMap lives in memory as a sparse Map (tileId -> sides), not a dense grid - the on-disk
+// entry-list format is unchanged, only ordered by index here (ascending index is what decode
+// below requires, which a dense row/col sweep gave for free but Map insertion order does not).
 function encodeCompactBusStopMap(source) {
   const fieldName = 'busStopMap';
   const { width, height } = getCompactMapDimensions();
-  assertCompactSourceMap(source, fieldName, width, height);
-  const entries = [];
-  for (let row = 0; row < height; row += 1) {
-    for (let col = 0; col < width; col += 1) {
-      if (!Array.isArray(source[row][col]) || source[row][col].length === 0) continue;
-      const index = row * width + col;
-      const sides = normalizeCompactBusStopSides(source[row][col], fieldName, `${row}:${col}`);
-      entries.push([index, sides.join('')]);
-    }
+  if (!(source instanceof Map)) {
+    throw createCompactSaveError(fieldName, 'source must be a Map');
   }
+  const entries = [];
+  source.forEach((sides, id) => {
+    if (!Array.isArray(sides) || sides.length === 0) return;
+    const [row, col] = String(id).split(':').map(Number);
+    if (!Number.isInteger(row) || !Number.isInteger(col) || row < 0 || row >= height || col < 0 || col >= width) {
+      throw createCompactSaveError(fieldName, `invalid tile id ${id}`);
+    }
+    const normalizedSides = normalizeCompactBusStopSides(sides, fieldName, id);
+    entries.push([row * width + col, normalizedSides.join('')]);
+  });
+  entries.sort((a, b) => a[0] - b[0]);
   return { encoding: COMPACT_BUS_STOP_ENCODING, width, height, entries };
 }
 
 // Tolerant of a missing/undefined payload: saves written before this feature
-// existed simply have no bus stops, so this returns an empty grid instead of
+// existed simply have no bus stops, so this returns an empty map instead of
 // throwing — unlike decodeCompactTreeMap, this field is not guaranteed to be
 // present for every save tagged with the current COMPACT_SAVE_VERSION.
 function decodeCompactBusStopMap(encoded) {
   const fieldName = 'busStopMap';
   const { width, height, total } = getCompactMapDimensions();
-  const emptyMap = () => Array.from({ length: height }, () => Array(width).fill(null));
-  if (encoded === undefined) return emptyMap();
+  if (encoded === undefined) return new Map();
   if (!encoded || typeof encoded !== 'object' || Array.isArray(encoded)) {
     throw createCompactSaveError(fieldName, 'sparse payload must be an object');
   }
@@ -549,7 +555,7 @@ function decodeCompactBusStopMap(encoded) {
     throw createCompactSaveError(fieldName, 'invalid sparse entry list');
   }
 
-  const result = emptyMap();
+  const result = new Map();
   let previousIndex = -1;
   encoded.entries.forEach((entry, entryNumber) => {
     if (!Array.isArray(entry) || entry.length !== 2) {
@@ -564,7 +570,7 @@ function decodeCompactBusStopMap(encoded) {
       fieldName,
       `entry ${entryNumber}`,
     );
-    result[Math.floor(index / width)][index % width] = sides;
+    result.set(`${Math.floor(index / width)}:${index % width}`, sides);
     previousIndex = index;
   });
   return result;
@@ -708,9 +714,7 @@ function buildSavePayload({ autosave = false, manualSaveId = currentSaveId } = {
       bareLandVersion: BARE_LAND_VERSION,
       debrisMap:     encodeCompactDebrisMap(debrisMap),
       busStopMap:    encodeCompactBusStopMap(
-        typeof busStopMap === 'undefined'
-          ? Array.from({ length: MAP_HEIGHT }, () => Array(MAP_WIDTH).fill(null))
-          : busStopMap,
+        typeof busStopMap === 'undefined' ? new Map() : busStopMap,
       ),
       expansions:    typeof getExpansionSaveState === 'function' ? getExpansionSaveState() : {},
       buildingData,
@@ -1423,14 +1427,7 @@ function normalizeSavedTerrainElevation(save) {
 }
 
 function restoreBusStopMap(save) {
-  busStopMap = createFilledMap(null);
-  if (!Array.isArray(save?.busStopMap)) return;
-  for (let r = 0; r < MAP_HEIGHT; r++) {
-    for (let c = 0; c < MAP_WIDTH; c++) {
-      const sides = (save.busStopMap[r] ?? [])[c];
-      busStopMap[r][c] = Array.isArray(sides) && sides.length ? sides : null;
-    }
-  }
+  busStopMap = save?.busStopMap instanceof Map ? save.busStopMap : new Map();
 }
 
 // ── Apply save data to the running scene ──────────────────────────────────────

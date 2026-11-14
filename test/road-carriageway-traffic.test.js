@@ -131,9 +131,6 @@ test('cars in different lanes of the same one-way tile do not queue behind each 
 
 test('a bus plans its way back separately instead of reversing up a one-way lane', () => {
   const mapSize = 12;
-  const busStopMap = Array.from({ length: mapSize }, () => Array(mapSize).fill(null));
-  busStopMap[5][2] = ['w', 'e'];
-  busStopMap[5][9] = ['w', 'e'];
   // Row 5 cols 1..10 eastbound only, row 6 cols 1..10 westbound only, joined two-way at
   // both ends — the shape of a 2-wide E-W road with its end corners.
   const roadCells = new Set();
@@ -150,22 +147,29 @@ test('a bus plans its way back separately instead of reversing up a one-way lane
     console,
     COST_BUS_STOP: 20,
     city: { population: 3000, budget: 5000, year: 1900, month: 1, day: 1, tick: 0, commercialCount: 1, weather: { typhoonStage: 'none' } },
-    busStopMap,
     buildingData: {
       '2:1': { type: 'bus_depot', footprintRows: 3, footprintCols: 3, busDepotRawSide: 's' },
       '4:2': { type: 'residential', population: 3000, footprintRows: 1, footprintCols: 1 },
       '4:9': { type: 'commercial', level: 3, footprintRows: 3, footprintCols: 3 },
     },
     trafficMap: Array.from({ length: mapSize }, () => Array(mapSize).fill(0)),
-    getBusStopSides: (row, col) => busStopMap[row]?.[col] ?? null,
     getBusStopEligibleSides: () => ['w', 'e'],
-    setBusStopSides: (row, col, sides) => { busStopMap[row][col] = Array.from(sides); },
     getBuildingJobCapacity: (record) => (record.type === 'commercial' ? 1000 : 0),
     getTrafficRoadNeighbours: oneWay,
     isInsideMap: (row, col) => row >= 0 && row < mapSize && col >= 0 && col < mapSize,
     isRoadTile: (row, col) => roadCells.has(`${row}:${col}`),
     t: (key) => key,
   });
+  // transport-expansion.js checks `busStopMap instanceof Map` - built via vm.runInContext so the
+  // Map belongs to the context's own realm (context.Map isn't reachable from outside), avoiding
+  // a cross-realm instanceof failure.
+  vm.runInContext("busStopMap = new Map([['5:2', ['w', 'e']], ['5:9', ['w', 'e']]]);", context);
+  const busStopMap = context.busStopMap;
+  context.getBusStopSides = (row, col) => busStopMap.get(`${row}:${col}`) ?? null;
+  context.setBusStopSides = (row, col, sides) => {
+    const id = `${row}:${col}`;
+    if (sides.length) busStopMap.set(id, Array.from(sides)); else busStopMap.delete(id);
+  };
   vm.runInContext(fs.readFileSync(path.join(ROOT, 'traffic-demand.js'), 'utf8'), context, { filename: 'traffic-demand.js' });
   vm.runInContext(fs.readFileSync(path.join(ROOT, 'transport-expansion.js'), 'utf8'), context, { filename: 'transport-expansion.js' });
   vm.runInContext(`

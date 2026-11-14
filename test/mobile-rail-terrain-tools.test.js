@@ -25,7 +25,7 @@ function setup() {
   });
   Object.assign(c, {
     GROUND: 1, ROAD: 2, DIRT: 3, BEACH: 4, WATER: 5, HILL: 6, MAP_WIDTH: 256, MAP_HEIGHT: 256, MAX_TERRAIN_HEIGHT: 8,
-    busStopMap: grid(null), treeMap: grid(null),
+    treeMap: grid(null),
     city: { budget: 1000000, population: 50000, year: 1900, month: 1, tick: 0, weather: { typhoonStage: 'none' }, underseaTunnels: [], districtSigns: [] },
     mapData: grid(1), zoneMap: grid(0), zoneDensityMap: grid(1), heightMap: grid(0),
     buildingData: {}, roadUnderlayMap: grid(null), bridgeMap: grid(null), powerLineSet: new Set(), lowDensityLockSet: new Set(),
@@ -64,6 +64,10 @@ function setup() {
     invalidateOverlayCache: () => {},
   });
   c.activeScene = c.scene;
+  // bus-stops.js/transport-expansion.js check `busStopMap instanceof Map` - built via
+  // vm.runInContext so the Map belongs to the context's own realm (c.Map isn't reachable from
+  // outside), avoiding a cross-realm instanceof failure.
+  vm.runInContext('busStopMap = new Map();', c);
   const mainSrc = fs.readFileSync(path.join(ROOT, 'main.js'), 'utf8');
   const dragStart = mainSrc.indexOf('function getStraightDragPath(');
   vm.runInContext(mainSrc.slice(dragStart, mainSrc.indexOf('\n}\n', dragStart) + 3), c);

@@ -8,7 +8,7 @@ let powerMap        = [];   // 0 | 1 per cell (is this cell powered?) - Uint8Arr
 let serviceMap      = [];   // { fire: bool, police: bool, park: 0|1|2 } | null per cell
 let treeMap         = [];   // null | { species, age, variant } per cell
 let debrisMap       = [];   // null | { kind, variant } per cell - derelict props on dirt tiles
-let busStopMap      = [];   // null | array of raw sides ('n'|'e'|'s'|'w') per cell
+let busStopMap      = new Map(); // tileId -> array of raw sides ('n'|'e'|'s'|'w'); absent = none
 let trafficMap      = [];   // 0–1 traffic load per road tile (updated each sim tick)
 
 // Simulation metadata for every placed building (player-placed or sim-spawned)
@@ -278,7 +278,7 @@ function resetGameState() {
   serviceMap     = createFilledMap(null);
   treeMap        = createFilledMap(null);
   debrisMap      = createFilledMap(null);
-  busStopMap     = createFilledMap(null);
+  busStopMap     = new Map();
   if (typeof invalidateTreeSimulationTiles === 'function') invalidateTreeSimulationTiles();
   if (typeof invalidateDebrisSimulationTiles === 'function') invalidateDebrisSimulationTiles();
   if (typeof invalidateResidentialEnvironmentScoreCache === 'function') invalidateResidentialEnvironmentScoreCache();

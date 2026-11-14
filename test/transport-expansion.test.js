@@ -21,9 +21,6 @@ function countTurns(route) {
 
 function createTransportVm() {
   const mapSize = 12;
-  const busStopMap = Array.from({ length: mapSize }, () => Array(mapSize).fill(null));
-  busStopMap[5][2] = ['w', 'e'];
-  busStopMap[5][9] = ['w', 'e'];
   const roadCells = new Set(Array.from({ length: 10 }, (_, index) => `5:${index + 1}`));
   const context = vm.createContext({
     console,
@@ -38,7 +35,6 @@ function createTransportVm() {
       commercialCount: 1,
       weather: { typhoonStage: 'none' },
     },
-    busStopMap,
     buildingData: {
       '2:1': {
         type: 'bus_depot',
@@ -50,9 +46,7 @@ function createTransportVm() {
       '4:9': { type: 'commercial', level: 3, footprintRows: 3, footprintCols: 3 },
     },
     trafficMap: Array.from({ length: mapSize }, () => Array(mapSize).fill(0)),
-    getBusStopSides: (row, col) => busStopMap[row]?.[col] ?? null,
     getBusStopEligibleSides: () => ['w', 'e'],
-    setBusStopSides: (row, col, sides) => { busStopMap[row][col] = Array.from(sides); },
     getBuildingJobCapacity: (record) => record.type === 'commercial' ? 1000 : 0,
     getTrafficRoadNeighbours: (row, col) => [[-1, 0], [0, 1], [1, 0], [0, -1]]
       .map(([dr, dc]) => ({ row: row + dr, col: col + dc }))
@@ -61,6 +55,16 @@ function createTransportVm() {
     isRoadTile: (row, col) => roadCells.has(`${row}:${col}`),
     t: (key) => key,
   });
+  // transport-expansion.js checks `busStopMap instanceof Map` - built via vm.runInContext so the
+  // Map is constructed with the context's own realm's Map, not the outer realm's (context.Map
+  // isn't reachable as a plain property from outside), avoiding a cross-realm instanceof failure.
+  vm.runInContext("busStopMap = new Map([['5:2', ['w', 'e']], ['5:9', ['w', 'e']]]);", context);
+  const busStopMap = context.busStopMap;
+  context.getBusStopSides = (row, col) => busStopMap.get(`${row}:${col}`) ?? null;
+  context.setBusStopSides = (row, col, sides) => {
+    const id = `${row}:${col}`;
+    if (sides.length) busStopMap.set(id, Array.from(sides)); else busStopMap.delete(id);
+  };
   // the commuter pools follow the road traffic's time-of-day curve
   vm.runInContext(fs.readFileSync(path.join(ROOT, 'traffic-demand.js'), 'utf8'), context, { filename: 'traffic-demand.js' });
   const source = fs.readFileSync(path.join(ROOT, 'transport-expansion.js'), 'utf8');
@@ -438,7 +442,7 @@ test('live expansion unlocks, routes, breaks, settles and restores without affec
     };
     savedExpansion = getExpansionSaveState();
 
-    busStopMap[5][9] = null;
+    busStopMap.delete('5:9');
     markTransportStopsDirty();
     updateTransportSimulation();
     brokenResult = {
@@ -451,7 +455,7 @@ test('live expansion unlocks, routes, breaks, settles and restores without affec
     repeatedSettlement = settleTransportMonth();
     cashAfterRepeatedSettlement = getTransportExpansionState().company.cash;
 
-    busStopMap[5][9] = ['w', 'e'];
+    busStopMap.set('5:9', ['w', 'e']);
     markTransportStopsDirty();
     updateTransportSimulation();
     restoredStatus = getTransportRouteRuntime(createdRoute.id).status;
@@ -559,7 +563,7 @@ test('live expansion unlocks, routes, breaks, settles and restores without affec
 
 test('one-click platform pairing still costs $20, drawn from company.cash', () => {
   const context = createTransportVm();
-  context.busStopMap[5][9] = ['w'];
+  context.busStopMap.set('5:9', ['w']);
   vm.runInContext(`
     setExpansionEnabled('transport', true, { notify: false, autosave: false });
     stopIds = listTransportStopSites().map((stop) => stop.id);
@@ -570,7 +574,7 @@ test('one-click platform pairing still costs $20, drawn from company.cash', () =
   `, context);
   assert.equal(context.pairingCost, 20);
   assert.equal(context.paired, true);
-  assert.deepEqual(context.busStopMap[5][9], ['w', 'e']);
+  assert.deepEqual(context.busStopMap.get('5:9'), ['w', 'e']);
   assert.equal(context.cashBeforePairing - context.cashAfterPairing, 20);
 });
 
@@ -820,7 +824,7 @@ test('a broken route\'s vehicle idles in place instead of driving or boarding ri
     depotId = getConnectedCommissionedTransportDepots()[0].id;
     vehicle = buyTransportVehicle(depotId, 'standard_double_decker');
     assignTransportVehicleToRoute(vehicle.id, route.id);
-    busStopMap[5][9] = null;
+    busStopMap.delete('5:9');
     markTransportStopsDirty();
     updateTransportSimulation();
     simulateTransportVehiclesDaily();

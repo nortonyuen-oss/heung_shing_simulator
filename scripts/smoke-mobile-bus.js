@@ -50,7 +50,7 @@ function check(name, ok, detail) {
       document.addEventListener('heungshing:maptap', () => window.mobileBusTapCount++);
     });
     const snapshot = () => page.evaluate(() => JSON.stringify({ city: city.budget, cash: getTransportExpansionState().company.cash,
-      sides: busStopMap, depots: Object.entries(buildingData).filter(([, b]) => b.type === 'bus_depot'), routes: getTransportExpansionState().routes, roads: roadTileCount }));
+      sides: [...busStopMap], depots: Object.entries(buildingData).filter(([, b]) => b.type === 'bus_depot'), routes: getTransportExpansionState().routes, roads: roadTileCount }));
     const tapTile = async (row, col) => {
       const point = await page.evaluate(async ([row, col]) => {
         const camera = activeScene.cameras.main;

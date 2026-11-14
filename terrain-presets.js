@@ -157,3 +157,112 @@ function sampleHkTerrain(landform, seed) {
     heightMap: heightRows,
   };
 }
+
+// 香港全境: the whole territory (HK_TERRAIN_TILES) as one playable map, generated lazily one
+// 256x256 chunk at a time - the first time a tile inside it is actually needed
+// (ensureTileSprite, main.js), not up front. Generating the whole 3187x2400 territory in one
+// call was measured at ~58s (finishHkTerrain is several O(area) flood-fill/slope passes); one
+// chunk measures 300-800ms. Chunk size matches HK_TERRAIN_WINDOWS.size and every district map,
+// so this reuses the exact decode -> hkTerrainCodesToMaps -> finishHkTerrain pipeline above,
+// just windowed to a chunk's rectangle instead of a whole district or a catalogue sample.
+const TERRITORY_CHUNK_SIZE = 256;
+
+function getTerritoryChunkId(chunkRow, chunkCol) {
+  return `${chunkRow}:${chunkCol}`;
+}
+
+// The default starting view for a new 香港全境 city: the geometric centre of the territory's
+// tile grid (not any particular district - just somewhere with land nearby for v1).
+function getHkTerritoryDefaultStart() {
+  const tiles = typeof HK_TERRAIN_TILES !== 'undefined' ? HK_TERRAIN_TILES : null;
+  if (!tiles) return { startRow: 0, startCol: 0 };
+  return {
+    startRow: Math.floor(tiles.height / 2),
+    startCol: Math.floor(tiles.width / 2),
+  };
+}
+
+// Idempotent: a chunk already in territoryGeneratedChunkIds is left untouched. finishHkTerrain
+// is a stabilizing pass, not a no-op on already-settled data - re-running it after the player
+// has terraformed that chunk would reapply slope/topology constraints over their own edits.
+function ensureTerritoryChunkGenerated(scene, row, col) {
+  const tiles = typeof HK_TERRAIN_TILES !== 'undefined' ? HK_TERRAIN_TILES : null;
+  if (!tiles) return;
+  const chunkRow = Math.floor(row / TERRITORY_CHUNK_SIZE);
+  const chunkCol = Math.floor(col / TERRITORY_CHUNK_SIZE);
+  const chunkId = getTerritoryChunkId(chunkRow, chunkCol);
+  if (territoryGeneratedChunkIds.has(chunkId)) return;
+  territoryGeneratedChunkIds.add(chunkId); // before generating: guards re-entrant calls
+
+  const rowStart = chunkRow * TERRITORY_CHUNK_SIZE;
+  const colStart = chunkCol * TERRITORY_CHUNK_SIZE;
+  const rowCount = Math.min(TERRITORY_CHUNK_SIZE, tiles.height - rowStart);
+  const colCount = Math.min(TERRITORY_CHUNK_SIZE, tiles.width - colStart);
+  if (rowCount <= 0 || colCount <= 0) return;
+
+  // decodeHkTerrainRow/hkTerrainCodesToMaps/finishHkTerrain all read the MAP_WIDTH/MAP_HEIGHT
+  // globals rather than taking dimensions as parameters - narrow them to the chunk's own size
+  // for this chunk-local, transient decode, then restore the real (territory) dimensions before
+  // writing into the live mapData/heightMap, which stay sized to the whole territory throughout.
+  const savedWidth = MAP_WIDTH;
+  const savedHeight = MAP_HEIGHT;
+  setMapDimensions(colCount, rowCount);
+  const rows = [];
+  for (let r = 0; r < rowCount; r++) {
+    rows.push(decodeHkTerrainRow(tiles.rows[rowStart + r], colStart, colCount));
+  }
+  const { mapRows, heightRows } = hkTerrainCodesToMaps((r, c) => rows[r][c]);
+  finishHkTerrain(mapRows, heightRows);
+  setMapDimensions(savedWidth, savedHeight);
+
+  for (let r = 0; r < rowCount; r++) {
+    for (let c = 0; c < colCount; c++) {
+      mapData[rowStart + r][colStart + c] = mapRows[r][c];
+      heightMap[rowStart + r][colStart + c] = heightRows[r][c];
+    }
+  }
+
+  const range = { rowStart, colStart, rowCount, colCount };
+  if (typeof generateInitialTrees === 'function') {
+    generateInitialTrees(scene, null, { ...range, seed: `${currentSeed}:trees:${chunkId}` });
+  }
+  if (typeof generateInitialDebris === 'function') {
+    generateInitialDebris(scene, null, { ...range, seed: `${currentSeed}:debris:${chunkId}` });
+  }
+  // generateInitialTrees/generateInitialDebris only populate treeMap/debrisMap (data); every
+  // other map source pairs that with a full rebuildTreeSprites/rebuildDebrisSprites call - the
+  // equivalent here is bounded to just this chunk's tiles (placeTreeSprite/placeDebrisSprite
+  // already no-op on a tile with nothing there, so this is the same shape of scan a normal
+  // 256x256 map's rebuild already does, just once per chunk instead of once per game).
+  if (scene) {
+    for (let r = 0; r < rowCount; r++) {
+      for (let c = 0; c < colCount; c++) {
+        const row = rowStart + r;
+        const col = colStart + c;
+        if (typeof placeTreeSprite === 'function') placeTreeSprite(scene, row, col);
+        if (typeof placeDebrisSprite === 'function') placeDebrisSprite(scene, row, col);
+      }
+    }
+  }
+}
+
+// Lightweight descriptor for map-sources.js - no mapData/heightMap yet (there isn't one until
+// chunks generate), just enough for the landing screen and startNewGame/startTerrainCreatorMode
+// to recognise this as a chunked source and route around copyTerrainToWorld.
+function getHkFullTerritoryTerrainDescriptor() {
+  const tiles = typeof HK_TERRAIN_TILES !== 'undefined' ? HK_TERRAIN_TILES : null;
+  if (!tiles) return null;
+  return {
+    version: 1,
+    generatorVersion: 3,
+    profileType: 'territory',
+    chunked: true,
+    seed: 'hk-territory:v1',
+    features: ['lands-department-dtm', 'hk-territory'],
+    width: tiles.width,
+    height: tiles.height,
+    ...getHkTerritoryDefaultStart(),
+    mapData: null,
+    heightMap: null,
+  };
+}

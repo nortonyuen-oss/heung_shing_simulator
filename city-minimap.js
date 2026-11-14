@@ -39,6 +39,15 @@ function drawCityMinimap() {
   const canvas = document.getElementById('city-minimap-canvas');
   const ctx = canvas?.getContext('2d');
   if (!ctx || !mapData?.length) return;
+  // The 1 canvas pixel per tile painting below assumes the fixed canvas is sized for a normal
+  // 256-wide map's diamond (2*256 x 256) - at territory scale (3187x2400) the same math would
+  // write far outside the canvas. Skip the background paint on a lazy-world map (香港全境) for
+  // now rather than risk it; the camera-position overlay and click-to-navigate below are pure
+  // coordinate math (not tied to a canvas pixel grid) and still work normally either way.
+  if (typeof isLazyWorldMap === 'function' && isLazyWorldMap()) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    return;
+  }
 
   const width = canvas.width;
   const image = ctx.createImageData(width, canvas.height);

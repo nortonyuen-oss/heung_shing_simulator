@@ -26,6 +26,12 @@ let roadTileCount = 0;          // maintained by setTileType()
 // this keeps low-density districts low-rise for the rest of the game.
 let lowDensityLockSet = new Set();  // tile IDs of permanently low-density-locked land
 
+// 香港全境: which 256x256 terrain chunks (terrain-presets.js) have already been generated -
+// ensureTerritoryChunkGenerated must never run finishHkTerrain twice on the same chunk, since
+// it's a stabilizing pass that would reapply slope/topology constraints over a player's own
+// terraforming. Empty/unused on every non-chunked map.
+let territoryGeneratedChunkIds = new Set();  // "chunkRow:chunkCol"
+
 function createDefaultStockMarketState() {
   let listedNonHsi = 0;
   const stocks = STOCK_MARKET_CATALOG.map((entry, index) => {
@@ -291,6 +297,7 @@ function resetGameState() {
   powerSources.clear();
   powerLineSet.clear();
   lowDensityLockSet.clear();
+  territoryGeneratedChunkIds.clear();
   roadTileCount = 0;
   // These maps have just been replaced with empty arrays.  A load immediately
   // repopulates the source sets/buildings and calls the cached infrastructure

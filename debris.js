@@ -108,11 +108,20 @@ function getDebrisVisualOffset(debris) {
   };
 }
 
-function generateInitialDebris(scene, blockedTiles = null) {
-  const random = createRandom(`${currentSeed}:debris`);
-  debrisMap = new Map();
-  for (let row = 0; row < MAP_HEIGHT; row++) {
-    for (let col = 0; col < MAP_WIDTH; col++) {
+// range (rowStart/colStart/rowCount/colCount/seed) scopes generation to a sub-rectangle - used
+// by 香港全境's per-chunk generation (terrain-presets.js), which must not wipe debris already
+// generated for other chunks. Omitted, this is the whole current map, unchanged from before.
+function generateInitialDebris(scene, blockedTiles = null, range = null) {
+  const random = createRandom(range?.seed ?? `${currentSeed}:debris`);
+  if (!range) debrisMap = new Map();
+  const rowStart = range?.rowStart ?? 0;
+  const colStart = range?.colStart ?? 0;
+  const rowCount = range?.rowCount ?? MAP_HEIGHT;
+  const colCount = range?.colCount ?? MAP_WIDTH;
+  for (let localRow = 0; localRow < rowCount; localRow++) {
+    for (let localCol = 0; localCol < colCount; localCol++) {
+      const row = rowStart + localRow;
+      const col = colStart + localCol;
       if (!canDebrisGrowAt(scene, row, col, blockedTiles)) continue;
       if (random() >= BARE_LAND_DEBRIS_SPAWN_CHANCE) continue;
       debrisMap.set(getTileId(row, col), {

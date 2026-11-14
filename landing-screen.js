@@ -48,6 +48,8 @@ function setupLandingScreen() {
   const rememberedSourceIds = { district: '', saved: '' };
   // Each pick bumps this, so a slow terrain load never paints over a newer pick.
   let previewToken = 0;
+  // 香港全境's performance-warning dialog shows once per session, not on every confirm.
+  let territoryWarningAcknowledged = false;
 
   function setLandingState(state) {
     if (menu) menu.style.display = state === 'menu' ? 'grid' : 'none';
@@ -203,6 +205,18 @@ function setupLandingScreen() {
       console.error('[MapSource Preview]', source.id, error);
     }
     if (token !== previewToken) return;
+    // A chunked source (香港全境) has no mapData yet - terrain streams in per chunk as the
+    // player explores (ensureTerritoryChunkGenerated), not up front, so there is nothing to
+    // sample a preview image from. Show its real size and a placeholder instead of the normal
+    // pixel preview, rather than treating "no mapData" here as a preview failure.
+    if (terrain?.chunked) {
+      previewCanvas?.getContext('2d')?.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+      showPreviewStatus('');
+      if (previewStats) {
+        previewStats.textContent = t('landing.mapSize', getMapSourceSizeKm(terrain));
+      }
+      return;
+    }
     if (!terrain?.mapData) {
       showPreviewStatus(t('landing.terrainPreviewFailed'));
       if (previewStats) previewStats.textContent = '';
@@ -217,8 +231,7 @@ function setupLandingScreen() {
       previewName.textContent = `${getMapSourceProfileLabel(source.profileType)} · ${t('landing.nearDistrict', { name: nearName })}`;
     }
     if (previewStats) {
-      const km = getMapSourceSizeKm();
-      previewStats.textContent = `${t('landing.mapStats', measureTerrainStats(terrain))} · ${t('landing.mapSize', { km })}`;
+      previewStats.textContent = `${t('landing.mapStats', measureTerrainStats(terrain))} · ${t('landing.mapSize', getMapSourceSizeKm(terrain))}`;
     }
     if (source.kind === 'district') {
       drawMapSourcePreview(introThumb, terrain, 128);
@@ -287,7 +300,11 @@ function setupLandingScreen() {
   // 香港地區: a name chip per district on the right, and a marker at each district's centre on
   // the overview; hovering either outlines that district's square.
   function renderDistrictPicker() {
-    const sources = listDistrictMapSources();
+    // 香港全境 lives alongside the district chips rather than its own tab for now - it's a map
+    // source like any other (same selectSource/confirmSetup path), just a much bigger one.
+    // getDistrictOverviewBox(source) returns null for it (no .centre), so it naturally never
+    // gets an overview-map marker below, only a chip in the list.
+    const sources = [createHkTerritoryMapSource(), ...listDistrictMapSources()];
     const showHover = (source) => placeOverviewFrame(overviewHover, source);
     const hideHover = () => { if (overviewHover) overviewHover.hidden = true; };
 
@@ -416,11 +433,26 @@ function setupLandingScreen() {
       showToast(t('landing.mapRequired'), 'warning');
       return;
     }
+    if (source.kind === 'territory' && !territoryWarningAcknowledged) {
+      const confirmed = await showTerritoryWarningDialog();
+      if (!confirmed) return;
+      territoryWarningAcknowledged = true;
+    }
     if (btnStart) btnStart.disabled = true;
     try {
       const terrain = await source.getTerrain();
-      if (!terrain?.mapData || !terrain?.heightMap) {
+      // A chunked source (香港全境) has no mapData/heightMap yet - chunks generate lazily as the
+      // player explores (terrain-presets.js's ensureTerritoryChunkGenerated), not up front.
+      if (!terrain?.chunked && (!terrain?.mapData || !terrain?.heightMap)) {
         throw new Error(`Missing terrain data for map ${source.id}`);
+      }
+      // The expensive part of a chunked source (generating its starting chunk, 300-800ms) runs
+      // inside startNewGame/startTerrainCreatorMode below, not getTerrain() above - show the
+      // same brief status those already use for a slow terrain generate, so the UI doesn't look
+      // frozen for that one chunk. await nextPaint() lets the status actually paint first.
+      if (terrain?.chunked) {
+        showPreviewStatus(t('landing.mapGenerating'));
+        await nextPaint();
       }
       if (setupMode === 'editor') {
         startTerrainCreatorMode(source.profileType, terrain.seed || createSeed(), terrain);
@@ -541,6 +573,29 @@ function hideLandingScreen() {
   if (typeof startTicker === 'function') startTicker();
 }
 
+// 香港全境 and any future map this large stream their terrain/sprites in lazily rather than
+// building the whole grid up front - see ensureTerritoryChunkGenerated (terrain-presets.js) and
+// ensureTileSprite (main.js). Checked by area, not a per-source flag, so it applies uniformly
+// regardless of why a map ended up this size.
+const LAZY_WORLD_TILE_THRESHOLD = 256 * 256;
+function isLazyWorldMap() {
+  return MAP_WIDTH * MAP_HEIGHT > LAZY_WORLD_TILE_THRESHOLD;
+}
+
+// 香港全境: allocates mapData/heightMap at the chosen source's full size but leaves every cell
+// at the typed array's zero default ("not generated yet" - 0 is never a real mapData value,
+// GROUND..HILL are 1-6) instead of copying in a full terrain the source doesn't have yet.
+// ensureTerritoryChunkGenerated fills cells in on demand as the player explores.
+function initializeChunkedTerritoryWorld(terrain) {
+  mapData = createFilledTypedMap(Uint8Array, 0);
+  heightMap = createFilledTypedMap(Uint8Array, 0);
+  resetBridgeLayers();
+  territoryGeneratedChunkIds = new Set();
+  const startRow = Number.isFinite(terrain?.startRow) ? terrain.startRow : Math.floor(MAP_HEIGHT / 2);
+  const startCol = Number.isFinite(terrain?.startCol) ? terrain.startCol : Math.floor(MAP_WIDTH / 2);
+  ensureTerritoryChunkGenerated(activeScene, startRow, startCol);
+}
+
 function copyTerrainToWorld(mapRows, heightRows) {
   mapData = createFilledTypedMap(Uint8Array, GROUND);
   heightMap = createFilledTypedMap(Uint8Array, 0);
@@ -583,7 +638,11 @@ function rebuildFreshMapSession(cityName) {
   clearAllOverlays(activeScene);
   clearBuildings(activeScene);
   resetGameState();
-  if (!isTerrainCreatorMode) {
+  // A lazy-world map (香港全境) generates trees/debris (data and sprites both) per chunk as it
+  // streams in - ensureTerritoryChunkGenerated, including for the starting chunk, already called
+  // by initializeChunkedTerritoryWorld before this runs. A full-map pass here would be the same
+  // up-front cost the chunking exists to avoid, and would duplicate the starting chunk's sprites.
+  if (!isTerrainCreatorMode && !isLazyWorldMap()) {
     generateInitialTrees(activeScene);
     rebuildTreeSprites(activeScene);
     generateInitialDebris(activeScene);
@@ -611,7 +670,10 @@ function startTerrainCreatorMode(profileType, seedText, terrain = null) {
   activeTerrainProfileType = profileType;
   currentSeed = seedText || createSeed();
   setMapDimensions(terrain?.width, terrain?.height);
-  if (terrain?.mapData && terrain?.heightMap) {
+  if (terrain?.chunked) {
+    currentTerrainMetadata = createTerrainMetadata(terrain, currentSeed);
+    initializeChunkedTerritoryWorld(terrain);
+  } else if (terrain?.mapData && terrain?.heightMap) {
     copyTerrainToWorld(terrain.mapData, terrain.heightMap);
     currentTerrainMetadata = createTerrainMetadata(terrain, currentSeed);
   } else {
@@ -705,7 +767,11 @@ async function startNewGame(cityName, options = {}) {
   activeTerrainProfileType = 'custom';
   setTerrainEditorUiActive(false);
 
-  if (terrain?.mapData && terrain?.heightMap) {
+  if (terrain?.chunked) {
+    currentSeed = terrain.seed || createSeed();
+    currentTerrainMetadata = createTerrainMetadata(terrain, currentSeed);
+    initializeChunkedTerritoryWorld(terrain);
+  } else if (terrain?.mapData && terrain?.heightMap) {
     copyTerrainToWorld(terrain.mapData, terrain.heightMap);
     currentSeed = terrain.seed || createSeed();
     currentTerrainMetadata = createTerrainMetadata(terrain, currentSeed);
@@ -884,6 +950,76 @@ function showCityIdentityDialog(defaults = {}) {
       inputZhEl.focus();
       inputZhEl.select();
     }, 0);
+  });
+}
+
+// 香港全境: a plain confirm, same singleton-DOM-element/Promise pattern as
+// showCityIdentityDialog above, just OK/Cancel with no inputs. Resolves true/false.
+function showTerritoryWarningDialog() {
+  return new Promise((resolve) => {
+    let dialog = document.getElementById('territory-warning-dialog');
+    if (!dialog) {
+      dialog = document.createElement('div');
+      dialog.id = 'territory-warning-dialog';
+      dialog.className = 'sim-dialog';
+      dialog.setAttribute('role', 'dialog');
+      dialog.setAttribute('aria-modal', 'true');
+      dialog.innerHTML = `
+        <div class="dialog-overlay" data-territory-cancel></div>
+        <form class="dialog-box" style="max-width:420px; width:92vw">
+          <div class="dialog-title-bar">
+            <span data-territory-title></span>
+            <button class="dialog-close-btn" type="button" data-territory-cancel>✕</button>
+          </div>
+          <div class="dialog-body">
+            <p data-territory-body style="margin:0 0 12px; line-height:1.5"></p>
+          </div>
+          <div class="dialog-footer">
+            <button class="dialog-cancel-btn" type="button" data-territory-cancel></button>
+            <button class="dialog-ok-btn" type="submit"></button>
+          </div>
+        </form>
+      `;
+      document.body.appendChild(dialog);
+    }
+
+    const titleEl = dialog.querySelector('[data-territory-title]');
+    const bodyEl = dialog.querySelector('[data-territory-body]');
+    const okBtn = dialog.querySelector('.dialog-ok-btn');
+    const cancelBtn = dialog.querySelector('.dialog-cancel-btn');
+    const formEl = dialog.querySelector('form');
+
+    titleEl.textContent = t('landing.territoryWarningTitle');
+    bodyEl.textContent = t('landing.territoryWarningBody');
+    okBtn.textContent = t('landing.territoryWarningConfirm');
+    cancelBtn.textContent = t('dialog.cancel');
+
+    let settled = false;
+    const cleanup = () => {
+      dialog.style.display = 'none';
+      formEl.removeEventListener('submit', onSubmit);
+      dialog.querySelectorAll('[data-territory-cancel]').forEach((el) => {
+        el.removeEventListener('click', onCancel);
+      });
+      document.removeEventListener('keydown', onKeyDown);
+    };
+    const finish = (value) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve(value);
+    };
+    const onSubmit = (e) => { e.preventDefault(); finish(true); };
+    const onCancel = () => finish(false);
+    const onKeyDown = (e) => { if (e.key === 'Escape') finish(false); };
+
+    formEl.addEventListener('submit', onSubmit);
+    dialog.querySelectorAll('[data-territory-cancel]').forEach((el) => {
+      el.addEventListener('click', onCancel);
+    });
+    document.addEventListener('keydown', onKeyDown);
+
+    dialog.style.display = 'flex';
   });
 }
 

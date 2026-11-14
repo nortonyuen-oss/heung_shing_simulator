@@ -751,7 +751,7 @@ function syncTramTracks(scene = typeof activeScene !== 'undefined' ? activeScene
   const turn = typeof mapRotation === 'number' ? mapRotation : 0;
   const used = new Set();
   geo.tiles.forEach((cell, key) => {
-    const road = scene.tileSprites[cell.row]?.[cell.col];
+    const road = getTileSprite(scene, cell.row, cell.col);
     if (!road) return;
     const picture = tramTilePicture(geo, cell, turn);
     if (!scene.textures.exists(picture.key)) drawTramTrackPicture(scene, picture);

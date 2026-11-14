@@ -247,7 +247,7 @@ function rebuildPedestrianRailingSprites(scene) {
     : (row, col) => (isRoadLikeTile(row, col) ? getRoadKey(row, col) : null);
   const rotation = typeof mapRotation !== 'undefined' ? mapRotation : 0;
   const zebraFarSideAt = (row, col) => {
-    const match = /road_straight_([vh])__lines_zebra/.exec(scene.tileSprites?.[row]?.[col]?.texture?.key ?? '');
+    const match = /road_straight_([vh])__lines_zebra/.exec(getTileSprite(scene, row, col)?.texture?.key ?? '');
     if (!match) return null;
     const screenSide = PEDESTRIAN_RAILING_ZEBRA_FAR_SIDE[match[1]];
     return typeof rotateDirection === 'function' ? rotateDirection(screenSide, -rotation) : screenSide;

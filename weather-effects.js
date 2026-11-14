@@ -378,7 +378,7 @@ function updateSeaFlowAnimation(scene, time) {
   for (const id of scene.activeTerrainSpriteIds) {
     const row = Math.floor(id / MAP_WIDTH);
     const col = id % MAP_WIDTH;
-    const tile = scene.tileSprites[row]?.[col];
+    const tile = getTileSprite(scene, row, col);
     if (!tile) continue;
     if (resolveTileTextureKey(getTileKey(row, col)) !== SEA_FLOW_BASE_KEY) continue;
     const phase = (scene.seaFlowFrame + row + col) % SEA_FLOW_FRAME_COUNT;

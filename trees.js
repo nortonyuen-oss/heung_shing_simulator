@@ -132,25 +132,27 @@ function buildTreeBlockedTilesFromSave(save) {
   return blocked;
 }
 
-function generateForestMap(random) {
+// weights is sized/indexed to rowCount x colCount (0-relative), not MAP_HEIGHT x MAP_WIDTH -
+// generateInitialTrees translates to absolute row/col when scoping to a chunk's sub-rectangle.
+function generateForestMap(random, rowCount = MAP_HEIGHT, colCount = MAP_WIDTH) {
   const forestCount = TREE_FOREST_COUNT_MIN +
     Math.floor(random() * (TREE_FOREST_COUNT_MAX - TREE_FOREST_COUNT_MIN + 1));
   const forests = [];
   for (let f = 0; f < forestCount; f++) {
     forests.push({
-      row:      random() * MAP_HEIGHT,
-      col:      random() * MAP_WIDTH,
+      row:      random() * rowCount,
+      col:      random() * colCount,
       radius:   TREE_FOREST_RADIUS_MIN + random() * (TREE_FOREST_RADIUS_MAX - TREE_FOREST_RADIUS_MIN),
       strength: TREE_FOREST_STRENGTH_MIN + random() * (TREE_FOREST_STRENGTH_MAX - TREE_FOREST_STRENGTH_MIN),
     });
   }
 
-  const weights = createFilledMap(TREE_BASE_DENSITY);
+  const weights = Array.from({ length: rowCount }, () => Array(colCount).fill(TREE_BASE_DENSITY));
   for (const f of forests) {
     const rMin = Math.max(0, Math.floor(f.row - f.radius));
-    const rMax = Math.min(MAP_HEIGHT - 1, Math.ceil(f.row + f.radius));
+    const rMax = Math.min(rowCount - 1, Math.ceil(f.row + f.radius));
     const cMin = Math.max(0, Math.floor(f.col - f.radius));
-    const cMax = Math.min(MAP_WIDTH - 1, Math.ceil(f.col + f.radius));
+    const cMax = Math.min(colCount - 1, Math.ceil(f.col + f.radius));
     for (let row = rMin; row <= rMax; row++) {
       for (let col = cMin; col <= cMax; col++) {
         const dist = Math.sqrt((row - f.row) ** 2 + (col - f.col) ** 2);
@@ -164,20 +166,29 @@ function generateForestMap(random) {
   return weights;
 }
 
-function generateInitialTrees(scene, blockedTiles = null) {
-  const random = createRandom(`${currentSeed}:trees`);
-  treeMap = new Map();
-  const forestWeights = generateForestMap(random);
+// range (rowStart/colStart/rowCount/colCount/seed) scopes generation to a sub-rectangle - used
+// by 香港全境's per-chunk generation (terrain-presets.js), which must not wipe trees already
+// generated for other chunks. Omitted, this is the whole current map, unchanged from before.
+function generateInitialTrees(scene, blockedTiles = null, range = null) {
+  const random = createRandom(range?.seed ?? `${currentSeed}:trees`);
+  if (!range) treeMap = new Map();
+  const rowStart = range?.rowStart ?? 0;
+  const colStart = range?.colStart ?? 0;
+  const rowCount = range?.rowCount ?? MAP_HEIGHT;
+  const colCount = range?.colCount ?? MAP_WIDTH;
+  const forestWeights = generateForestMap(random, rowCount, colCount);
 
-  for (let row = 0; row < MAP_HEIGHT; row++) {
-    for (let col = 0; col < MAP_WIDTH; col++) {
+  for (let localRow = 0; localRow < rowCount; localRow++) {
+    for (let localCol = 0; localCol < colCount; localCol++) {
+      const row = rowStart + localRow;
+      const col = colStart + localCol;
       if (!canTreeGrowAt(scene, row, col, blockedTiles)) continue;
 
       const hillMul = mapData[row][col] === HILL ? 1.8 : 1.0;
-      const chance = Math.min(forestWeights[row][col] * hillMul, 0.82);
+      const chance = Math.min(forestWeights[localRow][localCol] * hillMul, 0.82);
       if (random() >= chance) continue;
 
-      const inForest = forestWeights[row][col] > TREE_BASE_DENSITY * 4;
+      const inForest = forestWeights[localRow][localCol] > TREE_BASE_DENSITY * 4;
       const species = chooseTreeSpeciesForTile(row, col, random());
       const r = random();
       treeMap.set(getTileId(row, col), {

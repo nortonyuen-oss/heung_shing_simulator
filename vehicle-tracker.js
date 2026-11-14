@@ -632,7 +632,7 @@ function collectVehicleTrackerTerrainCandidates(scene, camera, target) {
   const range = getTerrainViewportLogicalRange(scene, bounds);
   for (let row = range.minRow; row <= range.maxRow; row++) {
     for (let col = range.minCol; col <= range.maxCol; col++) {
-      const tile = scene.tileSprites?.[row]?.[col];
+      const tile = getTileSprite(scene, row, col);
       if (tile?.displayList) target.add(tile);
     }
   }

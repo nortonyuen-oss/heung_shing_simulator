@@ -741,7 +741,7 @@ function rebuildStreetFurnitureSprites(scene, { recomputeTraffic = true } = {}) 
     signalPlacements,
     railingRuns: typeof mergePedestrianRailingRuns === 'function' ? mergePedestrianRailingRuns(scene.pedestrianRailingPlacements ?? []) : [],
     // a zebra crossing is read off the tile's rendered texture, as the railings read it
-    zebraAt: (row, col) => /__lines_zebra/.test(scene.tileSprites?.[row]?.[col]?.texture?.key ?? ''),
+    zebraAt: (row, col) => /__lines_zebra/.test(getTileSprite(scene, row, col)?.texture?.key ?? ''),
   });
   const wanted = new Map(placements.map((placement) => [streetFurnitureId(placement), placement]));
   const rotation = typeof mapRotation !== 'undefined' ? mapRotation : 0;

@@ -32,15 +32,42 @@ function loadViewportCullingContext() {
     worldToLogicalPoint: (_scene, x, y) => ({ x: x / 10, y: y / 10 }),
   });
   vm.runInContext(mainSource.slice(start, end), context, { filename: 'main-culling.js' });
+  // getTileSprite/ensureTileSprite (main.js) - updateTerrainViewportCulling calls these now
+  // instead of indexing scene.tileSprites directly. Every test here pre-populates every tile, so
+  // ensureTileSprite never needs to fall through to actually creating one (createTerrainTileSprite,
+  // Phaser-dependent) - a real Map lookup is enough.
+  vm.runInContext(`
+    function getTileSprite(scene, row, col) { return scene.tileSprites?.get(row * MAP_WIDTH + col); }
+    function ensureTileSprite(scene, row, col) { return scene.tileSprites.get(row * MAP_WIDTH + col); }
+  `, context, { filename: 'tile-sprite-stubs.js' });
   return context;
 }
 
+// scene.tileSprites is a Map keyed by row*size+col now, not a dense [row][col] array.
+// updateTerrainViewportCulling checks `scene.tileSprites instanceof Map` - built via the
+// context's own Map (vm.runInContext('new Map()', ...), since context.Map isn't reachable as a
+// plain property from outside) so that check sees a real Map, not a cross-realm mismatch.
+function buildTileSpriteMap(context, size, factory) {
+  const map = vm.runInContext('new Map()', context);
+  for (let row = 0; row < size; row++) {
+    for (let col = 0; col < size; col++) {
+      map.set(row * size + col, factory(row, col));
+    }
+  }
+  return map;
+}
+
+// A freshly created tile sprite starts off the Scene Display List (createTerrainTileSprite
+// builds it with add: false) - updateTerrainViewportCulling no longer has an init pass to strip
+// a pre-built dense grid out of it (that grid is never dense-and-pre-attached any more), so this
+// fixture must start in that same "not yet attached" state rather than relying on that removed
+// pass to correct it.
 function createTerrainTile(x, y) {
   return {
     x,
     y,
     visible: true,
-    displayList: {},
+    displayList: null,
     setVisible(value) { this.visible = value; },
     removeFromDisplayList() { this.displayList = null; },
     addToDisplayList() { this.displayList = {}; },
@@ -53,9 +80,7 @@ test('terrain viewport keeps only camera-local tiles on the Phaser display list'
     cameras: {
       main: { width: 40, height: 40, zoom: 1, originX: 0, originY: 0, scrollX: 0, scrollY: 0 },
     },
-    tileSprites: Array.from({ length: 16 }, (_, row) => (
-      Array.from({ length: 16 }, (_, col) => createTerrainTile(col * 10, row * 10))
-    )),
+    tileSprites: buildTileSpriteMap(context, 16, (row, col) => createTerrainTile(col * 10, row * 10)),
     buildingSprites: new Map(),
     treeSprites: new Map(),
     zoneOverlays: new Map(),
@@ -67,7 +92,7 @@ test('terrain viewport keeps only camera-local tiles on the Phaser display list'
   context.scene = scene;
   vm.runInContext('updateTerrainViewportCulling(scene, true)', context);
 
-  const firstActive = scene.tileSprites.flat().filter((tile) => tile.displayList).length;
+  const firstActive = [...scene.tileSprites.values()].filter((tile) => tile.displayList).length;
   assert.equal(firstActive, scene.activeTerrainSpriteIds.size);
   assert.ok(firstActive > 0 && firstActive < 256);
   assert.ok(scene.viewportCullStats.terrainCandidates < 256);
@@ -81,7 +106,7 @@ test('terrain viewport keeps only camera-local tiles on the Phaser display list'
   assert.ok(scene.viewportCullStats.terrainEntered > 0);
   assert.ok(scene.viewportCullStats.terrainExited > 0);
   assert.equal(
-    scene.tileSprites.flat().filter((tile) => tile.displayList).length,
+    [...scene.tileSprites.values()].filter((tile) => tile.displayList).length,
     scene.activeTerrainSpriteIds.size,
   );
 });
@@ -112,7 +137,7 @@ test('a zoom step moves its tiles onto and off the display list in one pass, wit
   });
   const scene = {
     cameras: { main: { width: 40, height: 40, zoom: 1, originX: 0, originY: 0, scrollX: 0, scrollY: 0 } },
-    tileSprites: Array.from({ length: 16 }, (_, row) => Array.from({ length: 16 }, (_, col) => makeTile(col * 10, row * 10))),
+    tileSprites: buildTileSpriteMap(context, 16, (row, col) => makeTile(col * 10, row * 10)),
     activeTerrainSpriteIds: new Set(),
     buildingSprites: new Map(),
     treeSprites: new Map(),
@@ -124,7 +149,7 @@ test('a zoom step moves its tiles onto and off the display list in one pass, wit
   };
   context.scene = scene;
   vm.runInContext('updateTerrainViewportCulling(scene, true)', context);
-  const onList = () => scene.tileSprites.flat().filter((tile) => tile.displayList === children);
+  const onList = () => [...scene.tileSprites.values()].filter((tile) => tile.displayList === children);
   const active = onList();
   assert.ok(active.length > 0 && active.length < 256);
   assert.deepEqual(children.list, [...others, ...active.sort((a, b) => children.list.indexOf(a) - children.list.indexOf(b))]);
@@ -154,9 +179,7 @@ test('terrain culling keeps distant tracker tiles active but filters them from t
     cameras: {
       main: { id: 1, width: 40, height: 40, zoom: 1, originX: 0, originY: 0, scrollX: 0, scrollY: 0 },
     },
-    tileSprites: Array.from({ length: 16 }, (_, row) => (
-      Array.from({ length: 16 }, (_, col) => ({ ...createTerrainTile(col * 10, row * 10), cameraFilter: 0 }))
-    )),
+    tileSprites: buildTileSpriteMap(context, 16, (row, col) => ({ ...createTerrainTile(col * 10, row * 10), cameraFilter: 0 })),
     buildingSprites: new Map(),
     treeSprites: new Map(),
     busStopSprites: new Map(),
@@ -169,8 +192,8 @@ test('terrain culling keeps distant tracker tiles active but filters them from t
   context.scene = scene;
   vm.runInContext('updateTerrainViewportCulling(scene, true)', context);
 
-  const mainTile = scene.tileSprites[1][1];
-  const trackerTile = scene.tileSprites[12][12];
+  const mainTile = scene.tileSprites.get(1 * 16 + 1);
+  const trackerTile = scene.tileSprites.get(12 * 16 + 12);
   assert.ok(mainTile.displayList, 'main-camera terrain remains attached');
   assert.equal(mainTile.cameraFilter & scene.cameras.main.id, 0);
   assert.ok(trackerTile.displayList, 'distant tracker terrain joins the shared Display List');
@@ -183,7 +206,9 @@ test('terrain culling keeps distant tracker tiles active but filters them from t
 
 test('terrain grid is created detached to avoid a quadratic first cull pass', () => {
   assert.match(mainSource, /this\.activeTerrainSpriteIds\s*=\s*new Set\(\)/);
-  assert.match(mainSource, /this\.make\.image\(\{[\s\S]*?add:\s*false[\s\S]*?\}\)/);
+  // createTerrainTileSprite(scene, row, col) does the actual creation now (main.js), called both
+  // by create()'s eager loop (this === scene there) and by ensureTileSprite (lazy-world case).
+  assert.match(mainSource, /scene\.make\.image\(\{[\s\S]*?add:\s*false[\s\S]*?\}\)/);
   assert.doesNotMatch(
     mainSource.slice(
       mainSource.indexOf('// Draw the map:'),

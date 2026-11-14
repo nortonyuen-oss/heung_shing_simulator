@@ -137,7 +137,9 @@ function updateTerrainViewportCulling(scene, force = false) {
   const camera = scene?.cameras?.main;
   if (
     !camera
-    || !scene?.tileSprites?.length
+    // Existence, not emptiness: a lazy-world map (香港全境) starts with zero sprites and relies
+    // on this very function (via ensureTileSprite below) to create the first ones.
+    || !(scene?.tileSprites instanceof Map)
     || (scene.scene?.isVisible && !scene.scene.isVisible())
   ) {
     return;
@@ -165,14 +167,12 @@ function updateTerrainViewportCulling(scene, force = false) {
     getPaddedWorldViewportBounds(entry, padX, padY)
   ));
 
+  // Every tile sprite - created by create()'s eager loop on a normal map, or by
+  // ensureTileSprite below on a lazy-world one - starts already out of the Scene Display List
+  // (createTerrainTileSprite builds it with add: false), so there is no longer an initialization
+  // pass needed here to strip a freshly-built dense grid out of it.
   if (!(scene.activeTerrainSpriteIds instanceof Set)) {
     scene.activeTerrainSpriteIds = new Set();
-    // One initialization pass removes the full 256x256 terrain grid from the
-    // Scene Display List. Later frames only add the small camera-local set, so
-    // Phaser no longer traverses tens of thousands of invisible Images.
-    for (const row of scene.tileSprites) {
-      for (const tile of row) setTerrainSpriteViewportActive(tile, false, scene);
-    }
   }
 
   const nextActiveTerrainIds = new Set();
@@ -187,7 +187,10 @@ function updateTerrainViewportCulling(scene, force = false) {
           seenTerrainCandidates.add(id);
           terrainCandidates++;
         }
-        const tile = scene.tileSprites[row]?.[col];
+        // Entering the padded viewport is also "being created for the first time" (and, on a
+        // 香港全境 city, generating this tile's chunk if it hasn't been yet) - the one line that
+        // turns on lazy world streaming, built entirely on the logical-range signal above.
+        const tile = ensureTileSprite(scene, row, col);
         if (!tile) continue;
         if (
           tile.x >= bounds.minX
@@ -207,7 +210,7 @@ function updateTerrainViewportCulling(scene, force = false) {
   for (const id of nextActiveTerrainIds) {
     const row = Math.floor(id / MAP_WIDTH);
     const col = id % MAP_WIDTH;
-    const tile = scene.tileSprites[row]?.[col];
+    const tile = getTileSprite(scene, row, col);
     if (!tile || !mainTerrainBounds) continue;
     if (isPointWithinCullBounds(tile.x, tile.y, mainTerrainBounds)) {
       tile.cameraFilter &= ~camera.id;
@@ -219,13 +222,13 @@ function updateTerrainViewportCulling(scene, force = false) {
     if (nextActiveTerrainIds.has(id)) continue;
     const row = Math.floor(id / MAP_WIDTH);
     const col = id % MAP_WIDTH;
-    terrainExiting.push(scene.tileSprites[row]?.[col]);
+    terrainExiting.push(getTileSprite(scene, row, col));
   }
   for (const id of nextActiveTerrainIds) {
     if (scene.activeTerrainSpriteIds.has(id)) continue;
     const row = Math.floor(id / MAP_WIDTH);
     const col = id % MAP_WIDTH;
-    terrainEntering.push(scene.tileSprites[row]?.[col]);
+    terrainEntering.push(getTileSprite(scene, row, col));
   }
   setTerrainSpritesViewportActive(scene, terrainExiting, false);
   setTerrainSpritesViewportActive(scene, terrainEntering, true);

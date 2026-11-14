@@ -11,7 +11,7 @@ const MAP_EDGE_SKIRT_DEPTH = -100000; // below every terrain tile in the terrain
 let mapEdgeSkirtRaf = null;
 
 function drawMapEdgeSkirt(scene) {
-  if (!scene?.add || !scene.tileSprites?.length) return;
+  if (!scene?.add || !scene.tileSprites?.size) return;
   if (!scene.mapEdgeSkirt) {
     scene.mapEdgeSkirt = scene.add.graphics();
     scene.mapEdgeSkirt.setDepth(getWorldDepth('terrain', MAP_EDGE_SKIRT_DEPTH));

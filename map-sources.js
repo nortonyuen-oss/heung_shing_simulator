@@ -87,6 +87,20 @@ function createGeneratedMapSource(profileType, seed, mode = GENERATED_MAP_DEFAUL
   };
 }
 
+// 香港全境: the whole Hong Kong territory as one playable map, chunked (terrain-presets.js's
+// ensureTerritoryChunkGenerated). getTerrain() returns a lightweight descriptor with no
+// mapData/heightMap - there isn't one yet, chunks generate as the player explores - rather than
+// the fully-realized terrain object every other source returns.
+function createHkTerritoryMapSource() {
+  return {
+    kind: 'territory',
+    id: 'hk-territory',
+    name: t('landing.territoryName'),
+    profileType: 'territory',
+    getTerrain: async () => getHkFullTerritoryTerrainDescriptor(),
+  };
+}
+
 async function listSavedMapSources() {
   let rows = [];
   try {
@@ -133,27 +147,42 @@ function measureTerrainStats(terrain) {
   return { flat: Math.max(0, 100 - waterPct - hillPct), hill: hillPct, water: waterPct };
 }
 
-function getMapSourceSizeKm() {
-  return (MAP_WIDTH * MAP_SOURCE_TILE_METRES) / 1000;
+// terrain.width (set by sources that know their own size up front, e.g. the 香港全境 territory
+// source) wins; every other existing source is always exactly MAP_WIDTH x MAP_HEIGHT at the
+// moment it's generated, but the live globals can since have moved on to a different city's size
+// by the time this preview runs (selectSource previews before setMapDimensions - Phase 0 - has
+// committed to the picked source), so that fallback alone is not reliable either.
+function getMapSourceSizeKm(terrain) {
+  const width = Number(terrain?.width) || Number(terrain?.mapData?.[0]?.length) || MAP_WIDTH;
+  const height = Number(terrain?.height) || Number(terrain?.mapData?.length) || MAP_HEIGHT;
+  return {
+    widthKm: (width * MAP_SOURCE_TILE_METRES) / 1000,
+    heightKm: (height * MAP_SOURCE_TILE_METRES) / 1000,
+  };
 }
 
 // Muted top-down relief: flat colours per tile type, hills tinted towards rock as they rise and
 // lit from the north-west so ridges read at a glance, with faint 1 km grid lines on large previews.
-function drawMapSourcePreview(canvas, terrain, size = MAP_WIDTH) {
+// Reads the terrain's own mapData dimensions (like measureTerrainStats already does), not the
+// live MAP_WIDTH/MAP_HEIGHT globals - same staleness reason as getMapSourceSizeKm above.
+function drawMapSourcePreview(canvas, terrain, size = 256) {
   const ctx = canvas.getContext('2d');
   if (!ctx || !terrain?.mapData) return;
+  const mapRows = terrain.mapData;
+  const heightRows = terrain.heightMap ?? [];
+  const sourceHeight = mapRows.length;
+  const sourceWidth = mapRows[0]?.length ?? 0;
+  if (!sourceHeight || !sourceWidth) return;
   canvas.width = size;
   canvas.height = size;
   const image = ctx.createImageData(size, size);
-  const mapRows = terrain.mapData;
-  const heightRows = terrain.heightMap ?? [];
   const tileAt = (row, col) => Number((mapRows[row] ?? [])[col]);
   const heightAt = (row, col) => Number((heightRows[row] ?? [])[col]) || 0;
 
   for (let y = 0; y < size; y++) {
-    const row = Math.floor((y / size) * MAP_HEIGHT);
+    const row = Math.floor((y / size) * sourceHeight);
     for (let x = 0; x < size; x++) {
-      const col = Math.floor((x / size) * MAP_WIDTH);
+      const col = Math.floor((x / size) * sourceWidth);
       const tile = tileAt(row, col);
       const h = heightAt(row, col);
       let rgb;
@@ -185,7 +214,7 @@ function drawMapSourcePreview(canvas, terrain, size = MAP_WIDTH) {
   ctx.putImageData(image, 0, 0);
 
   if (size >= 192) {
-    const step = (MAP_SOURCE_PREVIEW_GRID_TILES / MAP_WIDTH) * size;
+    const step = (MAP_SOURCE_PREVIEW_GRID_TILES / sourceWidth) * size;
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.16)';
     ctx.lineWidth = 1;
     ctx.beginPath();

@@ -997,9 +997,7 @@ function getVisualRoutePerformanceSnapshot(scene) {
   const buildingSpriteValues = scene?.buildingSprites?.values
     ? [...scene.buildingSprites.values()]
     : [];
-  const terrainObjects = Array.isArray(scene?.tileSprites)
-    ? scene.tileSprites.reduce((total, row) => total + (Array.isArray(row) ? row.length : 0), 0)
-    : 0;
+  const terrainObjects = scene?.tileSprites instanceof Map ? scene.tileSprites.size : 0;
   return {
     schemaVersion: 2,
     recordedAt: new Date().toISOString(),

@@ -185,7 +185,7 @@ function applySeaFlowEnabledState(scene) {
   for (const id of scene.activeTerrainSpriteIds) {
     const row = Math.floor(id / MAP_WIDTH);
     const col = id % MAP_WIDTH;
-    const tile = scene.tileSprites[row]?.[col];
+    const tile = getTileSprite(scene, row, col);
     if (!tile || !tile.texture?.key?.includes('_flow_')) continue;
     tile.setTexture(resolveTileTextureKey(getTileKey(row, col)));
     applyTileTextureDisplayScale(tile);
@@ -947,7 +947,12 @@ function create() {
   this.isPanning = false;
   this.panPrevX = 0;
   this.panPrevY = 0;
-  this.tileSprites = [];
+  // A sparse Map keyed by row*MAP_WIDTH+col (the same numeric id scheme viewport-culling.js and
+  // others already use), not a dense [row][col] array - see createTerrainTileSprite/
+  // getTileSprite/ensureTileSprite below. A normal map still creates every entry up front right
+  // after this (zero behavior change); a lazy-world map (香港全境) creates them on demand as
+  // tiles actually stream into view.
+  this.tileSprites = new Map();
   this.activeTerrainSpriteIds = new Set();
   this.buildingSprites = new Map();
   this.zoneOverlays    = new Map();
@@ -980,33 +985,16 @@ function create() {
   // Draw the map: select ground or the appropriate road variant and
   // position it in screen space.  Depth ordering uses the y-value
   // before applying offsets.
-  for (let row = 0; row < MAP_HEIGHT; row++) {
-    this.tileSprites[row] = [];
-
-    for (let col = 0; col < MAP_WIDTH; col++) {
-      const key = getTileKey(row, col);
-      const pos = isoToScreen(col, row);
-      const x = pos.x + this.offsetX;
-      const y = pos.y + this.offsetY + getTerrainTileVisualOffset(row, col, key);
-      // The map owns 65,536 terrain Images, but only a few hundred can appear
-      // in one camera view. Creating them detached avoids an O(n²) first-frame
-      // pass through Phaser's Display List; viewport culling adds only the
-      // camera-local subset when gameplay becomes visible.
-      const tile = this.make.image({
-        x,
-        y,
-        key: resolveTileTextureKey(key),
-        add: false,
-      });
-      tile.vehicleTrackerTerrain = true;
-      addToRenderLayer(this, tile, 'terrainLayer');
-      tile.setVisible(false);
-      tile.setOrigin(0.5, 1);
-      tile.setDepth(getTerrainTileDepth(row, col, key, pos.y));
-      tile.setMask(worldMask);
-      applyTileVisualStyle(tile, row, col, key);
-      applyTileTextureDisplayScale(tile);
-      this.tileSprites[row][col] = tile;
+  // A normal map still owns every terrain Image up front (the comment on
+  // createTerrainTileSprite below explains why they're created detached). A lazy-world map
+  // (香港全境) skips this entirely - ensureTileSprite creates each tile's Image (and, the first
+  // time its chunk is touched, generates that chunk's terrain) only once a tile actually streams
+  // into view (viewport-culling.js) or is directly edited (refreshTileSprite).
+  if (!isLazyWorldMap()) {
+    for (let row = 0; row < MAP_HEIGHT; row++) {
+      for (let col = 0; col < MAP_WIDTH; col++) {
+        createTerrainTileSprite(this, row, col);
+      }
     }
   }
 
@@ -1319,7 +1307,7 @@ function setRoadTileSet(id, options = {}) {
     : ROAD_TILE_SET_DEFAULT_ID;
   const nextId = setCurrentRoadTileSetId(id);
 
-  if (refresh && activeScene?.tileSprites?.length) {
+  if (refresh && activeScene?.tileSprites?.size) {
     refreshAllTiles(activeScene);
     sortWorldRenderLayers(activeScene);
   }
@@ -1902,15 +1890,18 @@ function drawWorldMask(scene) {
 }
 
 function positionAllTiles(scene) {
-  for (let row = 0; row < MAP_HEIGHT; row++) {
-    for (let col = 0; col < MAP_WIDTH; col++) {
-      const pos = isoToScreen(col, row);
-      const key = getTileKey(row, col);
-      scene.tileSprites[row][col].setPosition(pos.x + scene.offsetX, pos.y + scene.offsetY + getTerrainTileVisualOffset(row, col, key));
-      // Depth must be refreshed after rotation because pos.y changes completely
-      scene.tileSprites[row][col].setDepth(getTerrainTileDepth(row, col, key, pos.y));
-    }
-  }
+  // Iterates whatever tiles actually have a sprite (every tile, on a normal map; only the
+  // streamed-in ones on a lazy-world map) rather than sweeping MAP_HEIGHT x MAP_WIDTH - same
+  // result on a normal map, since create() populated every entry up front.
+  scene.tileSprites.forEach((sprite, id) => {
+    const row = Math.floor(id / MAP_WIDTH);
+    const col = id % MAP_WIDTH;
+    const pos = isoToScreen(col, row);
+    const key = getTileKey(row, col);
+    sprite.setPosition(pos.x + scene.offsetX, pos.y + scene.offsetY + getTerrainTileVisualOffset(row, col, key));
+    // Depth must be refreshed after rotation because pos.y changes completely
+    sprite.setDepth(getTerrainTileDepth(row, col, key, pos.y));
+  });
 
   scene.buildingSprites.forEach((building) => {
     positionBuilding(scene, building);
@@ -2743,11 +2734,53 @@ function applyRoadLineVariantForTile(scene, sprite, row, col, key, baseTextureKe
   applyRoadLineTexture(scene, sprite, key, variantId, tileSetId, baseTextureKey);
 }
 
+// The map owns up to MAP_WIDTH*MAP_HEIGHT terrain Images, but only a few hundred can appear in
+// one camera view. Creating them detached avoids an O(n²) first-frame pass through Phaser's
+// Display List; viewport culling adds only the camera-local subset when gameplay becomes
+// visible. Does not check for an existing sprite at (row, col) - callers (create()'s eager
+// loop, ensureTileSprite below) are responsible for not calling this twice for the same tile.
+function createTerrainTileSprite(scene, row, col) {
+  const key = getTileKey(row, col);
+  const pos = isoToScreen(col, row);
+  const x = pos.x + scene.offsetX;
+  const y = pos.y + scene.offsetY + getTerrainTileVisualOffset(row, col, key);
+  const tile = scene.make.image({ x, y, key: resolveTileTextureKey(key), add: false });
+  tile.vehicleTrackerTerrain = true;
+  addToRenderLayer(scene, tile, 'terrainLayer');
+  tile.setVisible(false);
+  tile.setOrigin(0.5, 1);
+  tile.setDepth(getTerrainTileDepth(row, col, key, pos.y));
+  tile.setMask(scene.worldMask);
+  applyTileVisualStyle(tile, row, col, key);
+  applyTileTextureDisplayScale(tile);
+  scene.tileSprites.set(row * MAP_WIDTH + col, tile);
+  return tile;
+}
+
+// Read-only - never force-creates a sprite (and, transitively, never force-generates a 香港全境
+// chunk) for a tile nothing has actually streamed in yet. Use this for anything that merely
+// wants to know what's currently on screen (e.g. a passing vehicle in vehicle-tracker.js).
+function getTileSprite(scene, row, col) {
+  return scene.tileSprites?.get(row * MAP_WIDTH + col);
+}
+
+// The create-on-demand half of lazy world streaming: used by viewport-culling.js (a tile
+// entering the camera's view) and by refreshTileSprite below (any tool action editing a tile,
+// even one off-screen) - both inherit "generate this tile's chunk if needed, then create its
+// sprite" for free. Idempotent: a tile that already has a sprite is returned unchanged.
+function ensureTileSprite(scene, row, col) {
+  const id = row * MAP_WIDTH + col;
+  const existing = scene.tileSprites.get(id);
+  if (existing) return existing;
+  if (typeof ensureTerritoryChunkGenerated === 'function') ensureTerritoryChunkGenerated(scene, row, col);
+  return createTerrainTileSprite(scene, row, col);
+}
+
 function refreshTileSprite(scene, tileRow, tileCol) {
   const key = getTileKey(tileRow, tileCol);
   const baseTextureKey = resolveTileTextureKey(key);
   const pos = isoToScreen(tileCol, tileRow);
-  const sprite = scene.tileSprites[tileRow][tileCol];
+  const sprite = ensureTileSprite(scene, tileRow, tileCol);
   sprite.setTexture(baseTextureKey);
   sprite.setPosition(pos.x + scene.offsetX, pos.y + scene.offsetY + getTerrainTileVisualOffset(tileRow, tileCol, key));
   sprite.setDepth(getTerrainTileDepth(tileRow, tileCol, key, pos.y));
@@ -2885,20 +2918,20 @@ function refreshCarriagewayBandRegion(scene, rowMin, rowMax, colMin, colMax) {
 }
 
 function refreshAllTiles(scene) {
-  for (let row = 0; row < MAP_HEIGHT; row++) {
-    for (let col = 0; col < MAP_WIDTH; col++) {
-      const key = getTileKey(row, col);
-      const baseTextureKey = resolveTileTextureKey(key);
-      const pos = isoToScreen(col, row);
-      const sprite = scene.tileSprites[row][col];
-      sprite.setTexture(baseTextureKey);
-      sprite.setPosition(pos.x + scene.offsetX, pos.y + scene.offsetY + getTerrainTileVisualOffset(row, col, key));
-      sprite.setDepth(getTerrainTileDepth(row, col, key, pos.y));
-      applyTileVisualStyle(sprite, row, col, key);
-      applyRoadLineVariantForTile(scene, sprite, row, col, key, baseTextureKey);
-      applyTileTextureDisplayScale(sprite);
-    }
-  }
+  // Iterates whatever tiles actually have a sprite - same scope note as positionAllTiles above.
+  scene.tileSprites.forEach((sprite, id) => {
+    const row = Math.floor(id / MAP_WIDTH);
+    const col = id % MAP_WIDTH;
+    const key = getTileKey(row, col);
+    const baseTextureKey = resolveTileTextureKey(key);
+    const pos = isoToScreen(col, row);
+    sprite.setTexture(baseTextureKey);
+    sprite.setPosition(pos.x + scene.offsetX, pos.y + scene.offsetY + getTerrainTileVisualOffset(row, col, key));
+    sprite.setDepth(getTerrainTileDepth(row, col, key, pos.y));
+    applyTileVisualStyle(sprite, row, col, key);
+    applyRoadLineVariantForTile(scene, sprite, row, col, key, baseTextureKey);
+    applyTileTextureDisplayScale(sprite);
+  });
   refreshAllBridgeSprites(scene);
   if (typeof rebuildTrafficSignalSprites === 'function') rebuildTrafficSignalSprites(scene);
   if (typeof rebuildStreetLampSprites === 'function') rebuildStreetLampSprites(scene);

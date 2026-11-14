@@ -175,7 +175,7 @@ function refreshBusStopSpriteAt(scene, row, col) {
   // The road tile itself shows a busStop line-marking variant that overrides everything else
   // (getRoadLineVariantAt) - re-key it every time a stop is added or removed here, or the
   // marking would only update on some unrelated later refresh (a nearby road edit, a rotation).
-  if (scene?.tileSprites?.[row]?.[col]) {
+  if (getTileSprite(scene, row, col)) {
     refreshTileSprite(scene, row, col);
     refreshRoadLineRunThrough(scene, row, col);
     if (typeof schedulePedestrianRailingRefresh === 'function') schedulePedestrianRailingRefresh(scene);

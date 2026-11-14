@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5">
+  <title>香城 · 世界地形串流試驗</title>
+  <link rel="stylesheet" href="preview.css">
+</head>
+<body>
+  <header>
+    <div><strong>世界地形串流試驗</strong><span>256 × 256 試驗區域 · 只讀地形</span></div>
+    <nav aria-label="地圖操作">
+      <button id="rotate" type="button">旋轉 R</button>
+      <button id="zoom-out" type="button" aria-label="縮小">−</button>
+      <output id="zoom">80%</output>
+      <button id="zoom-in" type="button" aria-label="放大">＋</button>
+      <button id="home" type="button">起點</button>
+      <button id="jump" type="button">跨區跳轉</button>
+      <a href="/">返回城市</a>
+    </nav>
+  </header>
+  <main id="world-canvas" aria-label="可拖動、縮放及旋轉的香港地形"></main>
+  <p id="status" role="status">正在讀取地形資料…</p>
+  <aside>
+    <details open>
+      <summary>開發診斷</summary>
+      <pre id="diagnostics">等待地圖啟動</pre>
+    </details>
+    <p>拖曳移動 · 滾輪／兩指縮放 · R 旋轉<br>本試驗不會建立或修改城市存檔。</p>
+  </aside>
+  <script src="../node_modules/phaser/dist/phaser.min.js"></script>
+  <script src="../map-input-controller.js"></script>
+  <script src="world-config.js"></script>
+  <script src="world-coordinates.js"></script>
+  <script src="world-terrain-provider.js"></script>
+  <script src="world-chunk-manager.js"></script>
+  <script src="world-chunk-renderer.js"></script>
+  <script src="world-lod.js"></script>
+  <script src="world-diagnostics.js"></script>
+  <script src="preview.js"></script>
+</body>
+</html>

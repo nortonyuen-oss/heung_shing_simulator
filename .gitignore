@@ -18,3 +18,7 @@ scripts/source-art/**/*.zip
 
 # 電車: the squared renders, made again by scripts/prepare-tram-assets.py
 scripts/source-art/tramways/squared/
+
+# Rebuilt from hk-terrain-tiles.js by npm run prepare:world-terrain.
+/data/world-terrain/
+/data/world-terrain.building-*/

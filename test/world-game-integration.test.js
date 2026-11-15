@@ -13,6 +13,18 @@ function gameState() {
     powerSources: [], powerLineSet: ['2200:3100'], lowDensityLockSet: ['2201:3100'], roadTileCount: 1,
     expansions: { transport: { enabled: true, routes: [{ id: 'bus-1' }] } } };
 }
+test('new territory keeps the original geographic starting point and saved cameras keep their position',()=>{
+  const vm=require('node:vm'),fs=require('node:fs');
+  const presets=fs.readFileSync(require.resolve('../terrain-presets'),'utf8');
+  const start=presets.indexOf('function getHkTerritoryDefaultStart('),end=presets.indexOf('\n}',start)+2;
+  const context=vm.createContext({HK_TERRAIN_TILES:WORLD});
+  vm.runInContext(presets.slice(start,end),context);
+  vm.runInContext(fs.readFileSync(require.resolve('../world/world-game-host'),'utf8'),context);
+  const host=Object.create(vm.runInContext('WorldGameHost.prototype',context));host.delta={header:{}};
+  assert.deepEqual(JSON.parse(JSON.stringify(host.initialViewpoint())),{col:1593,row:1200,rotation:0,zoom:.8});
+  const saved={col:1716,row:1821,rotation:3,zoom:.4};host.delta.header.viewpoint=saved;
+  assert.equal(host.initialViewpoint(),saved,'loading a city must not move its camera or constructions');
+});
 test('world compatibility grids never allocate terrain cells when reading distant places', () => {
   let writes = 0;
   const grid = createSparseGameGrid(WORLD.width, WORLD.height, (row, col) => row + col, () => writes++);

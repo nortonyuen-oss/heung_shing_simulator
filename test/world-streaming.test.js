@@ -9,6 +9,8 @@ const { WorldModeAdapter } = require('../world/world-coordinates');
 const { WorldTerrainProvider } = require('../world/world-terrain-provider');
 const { WorldChunkManager } = require('../world/world-chunk-manager');
 const { WorldChunkRenderer } = require('../world/world-chunk-renderer');
+const { WorldRegionalLod, regionalLodViews } = require('../world/world-lod');
+const { projectedRegion } = require('../world/world-minimap');
 const ROOT = path.resolve(__dirname, '..');
 const digest = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
 const immediate = () => new Promise(resolve => setImmediate(resolve));
@@ -193,6 +195,15 @@ test('corrupt packs and wrong manifests are rejected, and failed reads can be re
   assert.throws(() => new WorldTerrainProvider(fixture.manifest, { fetchBytes: async () => [] }), /identity mismatch/);
 });
 
+test('terrain geography validation rejects valid-looking packs stored at shifted world coordinates', () => {
+  const { verifyPackedCoordinates } = require('../scripts/world-release-assets');
+  const { manifest, files, world } = makeTerrainFixture(128, 64), bytes = Buffer.from(files.get('packs/p-0-0.bin'));
+  const codes = Uint8Array.from({ length: world.width * world.height }, (_, at) => (at % world.width + Math.floor(at / world.width)) % 9 + 2);
+  verifyPackedCoordinates(manifest, 'p:0:0', bytes, codes);
+  const shifted = Buffer.concat([bytes.subarray(12288), bytes.subarray(0, 12288)]);
+  assert.throws(() => verifyPackedCoordinates(manifest, 'p:0:0', shifted, codes), /geography mismatch/);
+});
+
 test('C12: legacy projection adapter round-trips rectangular worlds in all four rotations', async () => {
   const { legacyAdapterSource } = await import('../world/terrain-pack-builder.mjs');
   const context = vm.createContext({}); vm.runInContext(legacyAdapterSource(), context);
@@ -244,4 +255,45 @@ test('RLE preprocessing validates full rows and preserves the legacy finishing r
   vm.runInContext(fs.readFileSync(path.join(ROOT, 'terrain-generation.js'), 'utf8'), context);
   vm.runInContext('finishHkTerrain(terrain,elevations)', context);
   assert.deepEqual([...result.terrain], terrain.flat()); assert.deepEqual([...result.elevations], elevations.flat());
+});
+
+async function regionalFixture() {
+  const { legacyAdapterSource } = await import('../world/terrain-pack-builder.mjs');
+  const context = vm.createContext({}); vm.runInContext(legacyAdapterSource(), context);
+  const adapter = new WorldModeAdapter(WORLD, context.HeungShingWorld.createLegacyWorldProjection(WORLD));
+  const lod = { size: 256, regions: {} };
+  for (let y = 0; y < Math.ceil(WORLD.height / 256); y++) for (let x = 0; x < Math.ceil(WORLD.width / 256); x++) {
+    const region = { col: x * 256, row: y * 256, width: Math.min(256, WORLD.width - x * 256), height: Math.min(256, WORLD.height - y * 256), views: [] };
+    for (let rotation = 0; rotation < 4; rotation++) { adapter.setRotation(rotation); region.views.push({ ...projectedRegion(adapter, region), url: `${x}:${y}:${rotation}` }); }
+    lod.regions[`${x}:${y}`] = region;
+  }
+  const camera = { width: 2560, height: 1600, zoom: .4, centerOn(x, y) { this.scrollX = x - this.width / 2; this.scrollY = y - this.height / 2; } };
+  return { adapter, lod, camera };
+}
+
+test('regional coastlines cover the camera in world coordinates for all rotations and world edges', async () => {
+  const { adapter, lod, camera } = await regionalFixture();
+  for (let rotation = 0; rotation < 4; rotation++) for (const [col, row] of [[1792, 1792], [1716, 1821], [0, 0], [3186, 2399]]) {
+    adapter.setRotation(rotation); adapter.centreCamera(camera, col, row);
+    const views = regionalLodViews(adapter, camera, lod, rotation); assert(views.length > 0 && views.length <= 4);
+    for (const view of views) assert(view.url.endsWith(`:${rotation}`));
+    const owner = `${Math.floor(col / 256)}:${Math.floor(row / 256)}:${rotation}`;
+    assert(views.some(view => view.url === owner), 'the camera must use its own region rather than the trial region');
+  }
+});
+
+test('regional backdrop images and Phaser textures are bounded and destroyed together after exploration', async () => {
+  const { adapter, lod, camera } = await regionalFixture(); adapter.setRotation(0);
+  let closed = 0; const textures = new Set(), objects = new Set();
+  const scene = { textures: { addImage(key) { textures.add(key); }, remove(key) { textures.delete(key); } }, add: { image() {
+    const image = { setOrigin() { return this; }, setDisplaySize() { return this; }, setDepth() { return this; }, destroy() { objects.delete(this); } }; objects.add(image); return image;
+  } } };
+  const backdrop = new WorldRegionalLod({ scene, adapter, lod, load: async () => ({ width: 1024, height: 512, close() { closed++; } }) });
+  for (let i = 0; i < 18; i++) {
+    adapter.centreCamera(camera, 512 + i % 9 * 256, 512 + i % 6 * 256); backdrop.update(camera, 0);
+    for (let n = 0; n < 20 && backdrop.cache.pending.size; n++) await immediate();
+    const stats = backdrop.snapshot(); assert(stats.bytes <= 8 * 1024 * 1024); assert(stats.textureBytes <= 8 * 1024 * 1024);
+    assert.equal(stats.errors, 0); assert(textures.size <= 4 && objects.size <= 4);
+  }
+  assert(closed > 0); backdrop.destroy(); assert.equal(textures.size, 0); assert.equal(objects.size, 0); assert.equal(backdrop.snapshot().bytes, 0);
 });

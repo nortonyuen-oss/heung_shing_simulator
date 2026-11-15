@@ -121,8 +121,10 @@ class WorldGameHost {
       region: { col: 0, row: 0, width: MAP_WIDTH, height: MAP_HEIGHT },
       onEvent: event => { this.diagnostics.event(event); if (event.type === 'CHUNK_ERROR') console.warn('[World]', event); } });
     this.lod = new api.WorldLod(scene, this.manifest.lod); this.lod.image.setDepth(-1); this.lod.setRotation(mapRotation);
+    this.regionalLod = new api.WorldRegionalLod({ scene, adapter: this.adapter,
+      lod: this.manifest.regionalLod || this.manifest.localLod, resolveAsset: file => this.asset(file) });
     this.ready = true;
-    const view = this.delta.header.viewpoint || { col: this.manifest.trial.startCol, row: this.manifest.trial.startRow, rotation: 0, zoom: .8 };
+    const view = this.initialViewpoint();
     mapRotation = view.rotation; this.rotate(mapRotation); drawWorldMask(scene);
     scene.cameras.main.setZoom(view.zoom); this.adapter.centreCamera(scene.cameras.main, view.col, view.row);
     invalidateZoneGrowthTileCache(); markPowerGridDirty(); markServiceCoverageDirty(); markTrafficNetworkDirty();
@@ -131,6 +133,12 @@ class WorldGameHost {
     this.update(performance.now(), 0); drawCityMinimap();
     this.timer = setInterval(() => { if (this.enabled && !isAttractModeActive()) this.save(true); }, 15000);
     history.replaceState(null, '', `/?world=1&slot=${encodeURIComponent(this.session.id)}`);
+  }
+  initialViewpoint() {
+    // Opening the full territory must show the same geography as the original
+    // game, rather than silently moving the camera to the streaming trial area.
+    const start = getHkTerritoryDefaultStart();
+    return this.delta.header.viewpoint || { col: start.startCol, row: start.startRow, rotation: 0, zoom: .8 };
   }
   baseTile(row, col) {
     const edit = this.delta.terrainAt(col, row); if (edit) return edit;
@@ -261,7 +269,7 @@ class WorldGameHost {
     if (focus.col !== clamped.col || focus.row !== clamped.row) this.adapter.centreCamera(camera, clamped.col, clamped.row);
     this.manager.setFocus(clamped.col, clamped.row);
     if (this.pendingTerrain.size) { this.manager.invalidateTiles([...this.pendingTerrain.values()]); this.pendingTerrain.clear(); }
-    this.manager.pump(); this.renderer.cull(camera);
+    this.manager.pump(); this.renderer.cull(camera); this.regionalLod?.update(camera, mapRotation);
     this.indexBuildings(); const ids = this.manager.snapshot().activeIds, wanted = new Set();
     for (const id of ids) for (const anchor of this.buildingChunks.get(id) || []) wanted.add(anchor);
     // Actual Phaser sprites may leave. Logical footprint records stay in buildingData.
@@ -353,7 +361,7 @@ class WorldGameHost {
   }
   stats() {
     const activeStorage=new Set(this.manager.snapshot().activeIds.map(id=>{const [,x,y]=id.split(':').map(Number);return `s:${Math.floor(x/2)}:${Math.floor(y/2)}`;}));
-    return {...this.manager.snapshot(),...this.diagnostics.snapshot(),terrain:this.provider.snapshot(),summaryRecords:this.chunkTable.rows.size,
+    return {...this.manager.snapshot(),...this.diagnostics.snapshot(),terrain:this.provider.snapshot(),regionalLod:this.regionalLod?.snapshot(),summaryRecords:this.chunkTable.rows.size,
       unloadedSummaryRecords:[...this.chunkTable.rows.keys()].filter(id=>!activeStorage.has(id)).length,save:this.session.diagnostics()};
   }
   capture() {
@@ -416,7 +424,7 @@ class WorldGameHost {
     }
   }
   destroy() {
-    clearInterval(this.timer); clearTimeout(this.buildSaveTimer); this.ready = false; this.session?.destroy(); this.manager?.destroy(); this.renderer?.destroy(); this.lod?.destroy(); this.provider?.destroy();
+    clearInterval(this.timer); clearTimeout(this.buildSaveTimer); this.ready = false; this.session?.destroy(); this.manager?.destroy(); this.renderer?.destroy(); this.regionalLod?.destroy(); this.lod?.destroy(); this.provider?.destroy();
     stopSimTimer(); clearAllOverlays(this.scene); clearBuildings(this.scene);
     this.scene.debrisSprites?.forEach(sprite=>sprite.destroy()); this.scene.debrisSprites?.clear();
     clearBusStopSprites(this.scene); clearTransportVisuals(this.scene);

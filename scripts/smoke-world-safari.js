@@ -27,10 +27,10 @@ const settled = 'globalThis.__worldGameHost?.ready && __worldGameHost.manager.sn
   await evaluate(`if(document.getElementById('btn-world-saves'))throw Error('Obsolete entry'); document.getElementById('btn-new-game').click();document.querySelector('[data-source-id="hk-territory"]').click();document.getElementById('city-name-input').value='Safari 全境整合';document.getElementById('btn-start-city').click();return true;`);
   await waitFor(settled);
   const initial = await evaluate(`return {name:city.name,id:__worldGameHost.session.id,writable:HeungShingStorage.writable};`); assert.equal(initial.name,'Safari 全境整合'); assert(initial.writable);
-  await evaluate(`setGameSpeed(GAME_SPEEDS.PAUSED);mapData[1760][1584]=GROUND;heightMap[1760][1584]=0;selectedTool='road';applyToolAt(activeScene,1760,1584);if(!await saveGame())throw Error('Save failed');return true;`);
+  await evaluate(`setGameSpeed(GAME_SPEEDS.PAUSED);mapData[1200][1593]=GROUND;heightMap[1200][1593]=0;selectedTool='road';applyToolAt(activeScene,1200,1593);if(!await saveGame())throw Error('Save failed');return true;`);
   for(let i=0;i<12;i++){await evaluate(`__worldGameHost.adapter.centreCamera(activeScene.cameras.main,${112+i*127%2800},${128+i%12*128});return true;`);await waitFor(settled);}
   await evaluate(`if(!await saveGame())throw Error('Save failed');return true;`); await command('/refresh',{}); await waitFor(settled);
-  assert.equal(await evaluate('return mapData[1760][1584];'),2); assert(await evaluate('return HeungShingStorage.writable;'));
+  assert.equal(await evaluate('return mapData[1200][1593];'),2); assert(await evaluate('return HeungShingStorage.writable;'));
   await evaluate('await returnToMainMenu(); document.getElementById("btn-continue").click();return true;');
   await waitFor('document.querySelector("[data-world-slot]")'); await evaluate(`document.querySelector('[data-world-slot="${initial.id}"]').click();return true;`);await waitFor(settled);
   const final = await evaluate(`return {city:city.name,maxMounted:__worldGameHost.manager.snapshot().maxMounted,cache:__worldGameHost.provider.snapshot(),frames:window.__frameErrors||[],save:__worldGameHost.session.diagnostics()};`);

@@ -261,11 +261,18 @@ export async function buildTerrainPacks({ source = path.join(ROOT, 'hk-terrain-t
     manifest.trial.lod = await createLod(temporary, 'trial', manifest.trial, terrain, elevations, world, projectionFactory);
     progress('Building bounded, on-demand local minimap cache');
     fs.mkdirSync(path.join(temporary, 'local'));
+    fs.mkdirSync(path.join(temporary, 'regional'));
     manifest.localLod = { size: 256, regions: {} };
+    // The whole-world overview is a minimap/failure fallback, not a sufficiently
+    // precise coastline for the main camera. These are on-demand static images,
+    // independent of the nine detailed chunks and all mutable city state.
+    manifest.regionalLod = { version: 1, size: 256, regions: {} };
     for (let y = 0; y < Math.ceil(world.height / 256); y++) for (let x = 0; x < Math.ceil(world.width / 256); x++) {
       const region = { col: x * 256, row: y * 256, width: Math.min(256, world.width - x * 256), height: Math.min(256, world.height - y * 256) };
       manifest.localLod.regions[`${x}:${y}`] = { ...region,
         views: await createLod(temporary, `local/l-${x}-${y}`, region, terrain, elevations, world, projectionFactory, 512) };
+      manifest.regionalLod.regions[`${x}:${y}`] = { ...region,
+        views: await createLod(temporary, `regional/l-${x}-${y}`, region, terrain, elevations, world, projectionFactory, 1024) };
     }
     fs.writeFileSync(path.join(temporary, 'manifest.json'), JSON.stringify(manifest));
     if (fs.existsSync(output)) {

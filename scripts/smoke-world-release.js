@@ -41,12 +41,12 @@ async function menuScenario(browser, origin, backend) {
   try { await page.waitForFunction(sharedReady, null, { timeout: 90000 }); } catch(error) { console.log(backend, await page.evaluate(()=>({host:!!globalThis.__worldGameHost,ready:globalThis.__worldGameHost?.ready,stats:globalThis.__worldGameHost?.manager?.snapshot(),frames:window.__frameErrors,toasts:document.getElementById('toast-container')?.innerText}))); throw error; }
   const original = await page.evaluate(async () => {
     setGameSpeed(GAME_SPEEDS.PAUSED); const host = __worldGameHost;
-    mapData[1760][1584] = GROUND; heightMap[1760][1584] = 0;
-    selectedTool = 'road'; const result = applyToolAt(activeScene,1760,1584);
+    mapData[1200][1593] = GROUND; heightMap[1200][1593] = 0;
+    selectedTool = 'road'; const result = applyToolAt(activeScene,1200,1593);
     if (!await saveGame()) throw Error('World save failed'); return { slot: host.session.id, result, budget: city.budget };
   }); assert(original.result.changed);
   await page.reload(); await page.waitForFunction(sharedReady, null, { timeout: 150000 });
-  assert.equal(await page.evaluate(() => mapData[1760][1584]), 2);
+  assert.equal(await page.evaluate(() => mapData[1200][1593]), 2);
   await page.evaluate(() => returnToMainMenu()); await page.click('#btn-continue');
   await page.locator(`[data-world-slot="${original.slot}"]`).click(); await page.waitForFunction(sharedReady, null, { timeout: 90000 });
   assert.equal(await page.evaluate(() => city.budget), original.budget); assert.deepEqual(errors, []);

@@ -23,11 +23,12 @@ const ROOT = path.resolve(__dirname, '..');
   await page.waitForFunction(()=>__worldGameHost.manager.snapshot().states.ACTIVE===9,null,{timeout:90000});
   console.log('world', await page.evaluate(()=>({size:[MAP_WIDTH,MAP_HEIGHT],city:city.name,stats:__worldGameHost.manager.snapshot(),frames:window.__frameErrors})));
   assert.equal(new URL(page.url()).pathname,'/');
+  assert.deepEqual(await page.evaluate(()=>{const v=__worldGameHost.viewpoint();return {col:v.col,row:v.row};}),{col:1593,row:1200},'new territory retains its original geographic starting point');
   const blocked=await page.evaluate(()=>{selectedTool='road';return applyToolAt(activeScene,100,100);});assert.equal(blocked.reason,'loading');assert.equal(blocked.cost,0);
   assert.equal(await page.evaluate(()=>__worldGameHost.chunkTable.rows.size),0,'unexplored/undeveloped chunks have no summary row');
   const built = await page.evaluate(async()=>{
    setGameSpeed(GAME_SPEEDS.PAUSED);
-   const h=__worldGameHost, scene=activeScene, r=1760,c=1584, initialRevision=h.session.storageRevision;
+   const h=__worldGameHost, scene=activeScene, r=1200,c=1593, initialRevision=h.session.storageRevision;
    for(let row=r;row<r+6;row++)for(let col=c;col<c+10;col++){mapData[row][col]=GROUND;heightMap[row][col]=0;}
    selectedTool='road'; const road=applyToolAt(scene,r+2,c+2);
    selectedTool='zone-res'; const zone=applyToolAt(scene,r+3,c+2);
@@ -40,14 +41,14 @@ const ROOT = path.resolve(__dirname, '..');
   const summaries=await page.evaluate(()=>__worldGameHost.chunkTable.serialize());assert(summaries.length>0);assert(summaries.length<4);assert.equal(Object.keys(summaries[0]).length,9); assert(built.saved); assert(built.road.changed); assert(built.zone.changed); assert(built.buildingIds.length);
   await page.evaluate(()=>{const h=__worldGameHost;h.adapter.centreCamera(activeScene.cameras.main,40,40);});
   await page.waitForFunction(()=>__worldGameHost.manager.snapshot().activeIds.every(id=>Number(id.split(':')[1])<4),null,{timeout:30000});
-  const far=await page.evaluate(()=>({sprites:activeScene.buildingSprites.size,logical:Object.keys(buildingData).length,occupied:activeScene.buildingSprites.has('1764:1588'),tiles:getZoneGrowthTiles().length}));
+  const far=await page.evaluate(()=>({sprites:activeScene.buildingSprites.size,logical:Object.keys(buildingData).length,occupied:activeScene.buildingSprites.has('1204:1597'),tiles:getZoneGrowthTiles().length}));
   console.log('far',far);assert.equal(far.sprites,0);assert(far.occupied);assert.equal(far.logical,built.buildingIds.length);
   await page.evaluate(()=>{updatePowerGrid(activeScene);updateServiceCoverage();updateTrafficMap();runEconomy(activeScene);});
-  await page.evaluate(()=>{__worldGameHost.adapter.centreCamera(activeScene.cameras.main,1584,1760);rotateMap(activeScene);});
+  await page.evaluate(()=>{__worldGameHost.adapter.centreCamera(activeScene.cameras.main,1593,1200);rotateMap(activeScene);});
   await page.waitForFunction(()=>__worldGameHost.manager.snapshot().states.ACTIVE===9,null,{timeout:30000});
   assert(await page.evaluate(()=>saveGame()));
   await page.reload();await page.waitForFunction(()=>globalThis.__worldGameHost?.ready,null,{timeout:150000});
-  const restored=await page.evaluate(()=>({slot:__worldGameHost.session.id,name:city.name,road:mapData[1762][1586],zone:zoneMap[1763][1586],buildings:Object.keys(buildingData).length,rotation:mapRotation,frames:window.__frameErrors}));
+  const restored=await page.evaluate(()=>({slot:__worldGameHost.session.id,name:city.name,road:mapData[1202][1595],zone:zoneMap[1203][1595],buildings:Object.keys(buildingData).length,rotation:mapRotation,frames:window.__frameErrors}));
   console.log('restored',restored); assert.equal(restored.slot,built.slot);assert.equal(restored.road,2);assert.equal(restored.zone,1);assert.equal(restored.rotation,1);
   await page.evaluate(()=>returnToMainMenu());
   await page.waitForFunction(()=>!isWorldGameActive()&&MAP_WIDTH===256&&MAP_HEIGHT===256&&activeScene.tileSprites.size===65536,null,{timeout:30000});
@@ -59,11 +60,11 @@ const ROOT = path.resolve(__dirname, '..');
   for(let i=0;i<28;i++){
    await page.evaluate(i=>{const h=__worldGameHost;const col=128+i*127%2800,row=128+i%12*160;h.adapter.centreCamera(activeScene.cameras.main,col,row);h.manager.setFocus(col,row);},i);
    await page.waitForFunction(()=>{const h=__worldGameHost,s=h.manager.snapshot();return s.states.ACTIVE===s.wanted&&!s.states.UNMOUNTING&&!s.states.MOUNTING;},null,{timeout:30000});
-   const stats=await page.evaluate(()=>__worldGameHost.stats());assert(stats.maxMounted<=9);assert(stats.terrain.decodedBytes<=2097152);assert(stats.terrain.packBytes<=1048576);assert.equal(stats.summaryRecords,summaries.length);
+   const stats=await page.evaluate(()=>__worldGameHost.stats());assert(stats.maxMounted<=9);assert(stats.terrain.decodedBytes<=2097152);assert(stats.terrain.packBytes<=1048576);assert.equal(stats.summaryRecords,summaries.length);assert(stats.regionalLod.bytes<=8388608);assert(stats.regionalLod.textureBytes<=8388608);assert(stats.regionalLod.textures<=4);
   }
   await debug.send('HeapProfiler.collectGarbage');const heapAfter=await page.evaluate(()=>performance.memory?.usedJSHeapSize||0);assert(heapAfter-heapBefore<24*1024*1024);
   console.log('jump-pressure',{...await page.evaluate(()=>__worldGameHost.stats()),heapBefore,heapAfter});
-  await page.evaluate(()=>__worldGameHost.adapter.centreCamera(activeScene.cameras.main,1584,1760));
+  await page.evaluate(()=>__worldGameHost.adapter.centreCamera(activeScene.cameras.main,1593,1200));
   const frames=await page.evaluate(()=>window.__frameErrors||[]);assert.deepEqual(frames,[]);assert.deepEqual(errors,[]);
   fs.mkdirSync(path.join(ROOT,'test-results/world-integration'),{recursive:true});
   await page.waitForFunction(()=>__worldGameHost.manager.snapshot().states.ACTIVE===9,null,{timeout:30000});

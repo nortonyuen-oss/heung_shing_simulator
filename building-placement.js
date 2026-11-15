@@ -665,7 +665,9 @@ function canPlaceBuilding(row, col) {
     // nor on a 地鐵站 entrance (metro.js)
     && !(typeof isMetroStationTile === 'function' && isMetroStationTile(row, col))
     // nor on 地鐵路軌 or under a viaduct (metro-surface.js) - over a tunnel is fine
-    && !(typeof metroTrackGroundUse === 'function' && (metroTrackGroundUse(row, col) || 'none') !== 'none');
+    && !(typeof metroTrackGroundUse === 'function' && (metroTrackGroundUse(row, col) || 'none') !== 'none')
+    // nor on 輕鐵路軌 or under its viaduct (light-rail.js)
+    && !(typeof lightRailGroundUse === 'function' && lightRailGroundUse(row, col));
 }
 
 function canPlaceBuildingFootprint(row, col, footprintCols = 1, footprintRows = 1) {

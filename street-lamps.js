@@ -282,7 +282,9 @@ function rebuildStreetLampSprites(scene) {
     : [];
   const placements = computeStreetLampPlacements({
     mapWidth: bounds.colCount, mapHeight: bounds.rowCount, rowStart: bounds.rowStart, colStart: bounds.colStart, roadKeyAt, signalPlacements,
-    skipSideAt: typeof isTramReservationSide === 'function' ? isTramReservationSide : undefined,
+    // (no lamp on a tram reservation's kerb, nor where 輕鐵 track crosses one: light-rail.js)
+    skipSideAt: (row, col, side) => (typeof isTramReservationSide === 'function' && isTramReservationSide(row, col, side))
+      || (typeof lightRailCrossesKerbAt === 'function' && lightRailCrossesKerbAt(row, col, side)),
   });
   const wanted = new Map(placements.map((placement) => [streetLampId(placement), placement]));
   sprites.forEach((sprite, id) => {

@@ -708,6 +708,13 @@ function rebuildStreetFurnitureSprites(scene, { recomputeTraffic = true } = {}) 
   };
   const occupied = new Set();
   const railingTiles = new Set();
+  // (nothing on a kerb 輕鐵 track crosses: light-rail.js)
+  if (typeof lightRailKerbSidesAt === 'function' && typeof getTransportExpansionState === 'function') {
+    Object.keys(getTransportExpansionState()?.lightRail?.tracks || {}).forEach((k) => {
+      const [r, c] = k.split(':').map(Number);
+      lightRailKerbSidesAt(r, c).forEach((side) => ['n', 'e', 's', 'w'].forEach((half) => occupied.add(`${r}:${c}:${side}:${half}`)));
+    });
+  }
   (scene.pedestrianRailingPlacements ?? []).forEach((p) => {
     occupied.add(`${p.row}:${p.col}:${p.side}:${p.toward}`);
     railingTiles.add(`${p.row}:${p.col}`);

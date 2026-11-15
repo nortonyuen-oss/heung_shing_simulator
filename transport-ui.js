@@ -1133,7 +1133,7 @@ function handleTransportChecklistClick(event) {
 
 // ── The hint bar: what the tool in hand does, and what is under the pointer ──
 
-const TRANSPORT_HINT_TOOLS = new Set(['bus-stop', 'bus-depot', 'ferry-pier', 'ferry-route', 'metro-station', 'metro-line', 'metro-track', 'metro-surface-station', 'tram-track', 'tram-stop', 'tram-line']);
+const TRANSPORT_HINT_TOOLS = new Set(['bus-stop', 'bus-depot', 'ferry-pier', 'ferry-route', 'metro-station', 'metro-line', 'metro-track', 'metro-surface-station', 'tram-track', 'tram-stop', 'tram-line', 'light-rail-track']);
 let transportToolHintEl = null;
 let transportHintHover = null;
 

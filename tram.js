@@ -207,6 +207,8 @@ function canLayTramTrackAt(row, col) {
   if (typeof isBridgeTile === 'function' && isBridgeTile(row, col)) return false;
   if (typeof isSlopeTile === 'function' && isSlopeTile(row, col)) return false;
   if (typeof isUnderseaTunnelTile === 'function' && isUnderseaTunnelTile(row, col)) return false;
+  // (nor on the 輕鐵's: two systems, never one tile - light-rail.js)
+  if (typeof isLightRailTrackTile === 'function' && isLightRailTrackTile(row, col)) return false;
   return true;
 }
 

@@ -254,7 +254,8 @@ function rebuildPedestrianRailingSprites(scene) {
   };
   const hasBusStopAt = (row, col) => {
     const sides = typeof getBusStopSides === 'function' ? getBusStopSides(row, col) : null;
-    return Array.isArray(sides) && sides.length > 0;
+    // (and none where 輕鐵 track runs across the pavement: a level crossing, a turn off the road)
+    return (Array.isArray(sides) && sides.length > 0) || (typeof lightRailCutsKerbAt === 'function' && lightRailCutsKerbAt(row, col));
   };
   const bounds = typeof getActiveSweepBounds === 'function' ? getActiveSweepBounds() : { rowStart: 0, colStart: 0, rowCount: MAP_HEIGHT, colCount: MAP_WIDTH };
   const placements = computePedestrianRailingPlacements({

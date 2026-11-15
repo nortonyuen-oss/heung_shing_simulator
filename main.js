@@ -50,7 +50,7 @@ const TOOL_TERRAIN = {
 let selectedTool = 'road';
 // 地鐵's track tools, dragged and laid on pointerup (metro-surface.js): tool -> what it lays
 // (and 電車路軌, tram.js)
-const METRO_DRAG_TOOLS = new Map([['metro-track', 'track'], ['tram-track', 'tram']]);
+const METRO_DRAG_TOOLS = new Map([['metro-track', 'track'], ['tram-track', 'tram'], ['light-rail-track', 'lightRail']]);
 let isPainting = false;
 let gameReady = false;
 let lastEditedTile = null;
@@ -348,6 +348,7 @@ function updateGameFrame(time, delta) {
   // and the trains on the surface track (metro-surface-lines.js)
   if (typeof updateMetroSurfaceTrains === 'function') updateMetroSurfaceTrains(this);
   if (typeof updateTram === 'function') updateTram(this, delta);
+  if (typeof updateLightRail === 'function') updateLightRail(this, delta);
   if (typeof updateTyphoonShelterBobbing === 'function') updateTyphoonShelterBobbing(this, time);
   if (typeof updateTyphoonShelterMarkets === 'function') updateTyphoonShelterMarkets(this, time);
   if (typeof updateTyphoonShelterBuildingLighting === 'function') updateTyphoonShelterBuildingLighting(this);
@@ -1141,6 +1142,12 @@ function create() {
         if (cur) {
           lastKnownTile = { row: cur.row, col: cur.col };
           drawUnderseaTunnelDragPreview(this, dragStartTile, cur);
+        }
+      } else if (selectedTool === 'light-rail-track' && dragStartTile && typeof drawLightRailTrackDragPreview === 'function') {
+        const cur = pointerToTile(this, pointer);
+        if (cur) {
+          lastKnownTile = { row: cur.row, col: cur.col };
+          drawLightRailTrackDragPreview(this, dragStartTile, cur);
         }
       } else if (selectedTool === 'tram-track' && dragStartTile && typeof drawTramTrackDragPreview === 'function') {
         const cur = pointerToTile(this, pointer);
@@ -1941,6 +1948,8 @@ function canPlaceRoad(scene, row, col) {
   // nor across 地鐵路軌 (metro-surface.js): the MTR has no level crossings (over a tunnel and
   // under a viaduct are fine)
   if (typeof metroTrackGroundUse === 'function' && metroTrackGroundUse(row, col) === 'ground') return false;
+  // nor across 輕鐵路軌 (light-rail.js): its level crossings are laid with the track, across a road
+  if (typeof lightRailGroundUse === 'function' && lightRailGroundUse(row, col) === 'ground') return false;
   if (!isSupportedRoadSlopeTile(row, col)) return false;
   return true;
 }
@@ -2187,6 +2196,8 @@ function applyToolAtLegacy(scene, row, col, pointer = null) {
     // (a tram stop first, then its track: tram-lines.js, tram.js)
     if (typeof demolishTramStopAt === 'function' && demolishTramStopAt(scene, row, col)) return;
     if (typeof demolishTramTrackAt === 'function' && demolishTramTrackAt(scene, row, col)) return;
+    // and 輕鐵路軌 taken up, a road under it left (light-rail.js)
+    if (typeof demolishLightRailTrackAt === 'function' && demolishLightRailTrackAt(scene, row, col)) return;
     spendBudget(COST_BULLDOZE);
     if (typeof removeDistrictSignAt === 'function') removeDistrictSignAt(scene, row, col);
     removeBuilding(scene, row, col);

@@ -31,6 +31,11 @@ const METRO_RAIL = Object.freeze({
   portalTiles: 4,
 });
 
+// What the track's heights are, by system: the 地鐵's deck three levels up, a ramp five tiles, tunnels
+// and hill tunnels allowed; the 輕鐵's (light-rail.js) two levels and four tiles, never underground.
+// planRailAtHeight takes one as env.spec; railSideHeight and railLevelMismatch as their last argument.
+const METRO_RAIL_SPEC = Object.freeze({ deckLevels: 3, rampTiles: METRO_RAIL.rampTiles, underground: true });
+
 const RAIL_DIRS = Object.freeze({ n: [-1, 0], e: [0, 1], s: [1, 0], w: [0, -1] });
 const RAIL_OPPOSITE = Object.freeze({ n: 's', e: 'w', s: 'n', w: 'e' });
 // the sides each bit joins, in the map's frame (railway-track.js: A west, B north, C east, D south)
@@ -175,7 +180,7 @@ function railDeckCodeAt(level) {
 
 // The track's height (metres above the flat) where it crosses a side of a tile; `ground` the tile's
 // ground there (a hilltop's, a hillside's), where ground track and a ramp's foot lie. Pure.
-function railSideHeight(code, side, ground = 0) {
+function railSideHeight(code, side, ground = 0, spec = METRO_RAIL_SPEC) {
   if (!code) return ground;
   const deck = railDeckLevel(code);
   if (deck != null) return deck * METRO_RAIL.hillLevelMetres;
@@ -189,8 +194,9 @@ function railSideHeight(code, side, ground = 0) {
     return (0.5 - step) * per;
   }
   const step = Number(code[0]), up = code[1];
-  const lo = ground + ((step - 1) / METRO_RAIL.rampTiles) * METRO_RAIL.deckMetres;
-  const hi = ground + (step / METRO_RAIL.rampTiles) * METRO_RAIL.deckMetres;
+  const rise = spec.deckLevels * METRO_RAIL.hillLevelMetres;
+  const lo = ground + ((step - 1) / spec.rampTiles) * rise;
+  const hi = ground + (step / spec.rampTiles) * rise;
   if (side === up) return hi;
   if (side === RAIL_OPPOSITE[up]) return lo;
   return (lo + hi) / 2;
@@ -232,6 +238,9 @@ function railGroundAt(level, openEdges, side) {
  */
 function planRailAtHeight(height, path0, bits, elev, env) {
   const lvl = METRO_RAIL.hillLevelMetres;
+  // (the system's: a deck D levels up, a ramp RAMP tiles - METRO_RAIL_SPEC unless env.spec)
+  const spec = env.spec || METRO_RAIL_SPEC;
+  const D = spec.deckLevels, RAMP = spec.rampTiles;
   const path = path0.slice();
   const assign = {};
   const out = { ok: false, reason: null, path, assign, level: null, follow: false };
@@ -254,7 +263,7 @@ function planRailAtHeight(height, path0, bits, elev, env) {
       if (!railBitsOf(bits[k] || 0).some((b) => RAIL_BIT_SIDES[b].includes(toward))) return null;
     }
     const ground = env.groundAt(k, toward);
-    const m = railSideHeight(elev[k], toward, ground);
+    const m = railSideHeight(elev[k], toward, ground, spec);
     if (m < -0.01) return { kind: 'under', level: 0 };
     if (Math.abs(m - ground) < 0.01) return { kind: 'ground', level: Math.round(m / lvl) };
     return { kind: 'level', level: Math.round(m / lvl) };
@@ -274,12 +283,12 @@ function planRailAtHeight(height, path0, bits, elev, env) {
     if (levels.length) L = levels[0];
     else if (abuts(js, first)) L = js.level;
     else if (abuts(je, last)) L = je.level;
-    else if (js && js.kind === 'ground') L = js.level + 3;
-    else if (je && je.kind === 'ground') L = je.level + 3;
-    else L = topAt(Math.min(first, n - 1)) + 3;
+    else if (js && js.kind === 'ground') L = js.level + D;
+    else if (je && je.kind === 'ground') L = je.level + D;
+    else L = topAt(Math.min(first, n - 1)) + D;
     if (L > 9) return refuse('deckHill');
   } else if (height === 'ground') {
-    const groundOf = (j, i) => (!j ? topAt(Math.max(0, Math.min(i, n - 1))) : j.kind === 'ground' ? j.level : j.kind === 'under' ? 0 : j.level - 3);
+    const groundOf = (j, i) => (!j ? topAt(Math.max(0, Math.min(i, n - 1))) : j.kind === 'ground' ? j.level : j.kind === 'under' ? 0 : j.level - D);
     const a = groundOf(js, first), b = groundOf(je, last);
     if (a === b) L = a; else out.follow = true;
   }
@@ -292,12 +301,12 @@ function planRailAtHeight(height, path0, bits, elev, env) {
     if (runKind === 'under') {
       if (j.kind === 'under') return [];
       if (j.kind === 'ground') return j.level === 0 ? ['portalDown'] : { refuse: 'portalFlat' };
-      return j.level === 3 ? ['rampDown', 'portalDown'] : { refuse: 'rampHeight' };
+      return j.level === D ? ['rampDown', 'portalDown'] : { refuse: 'rampHeight' };
     }
     if (runKind === 'level') {
       if (j.kind === 'level') return [];
-      if (j.kind === 'ground') return j.level === L ? [] : j.level + 3 === L ? ['rampUp'] : { refuse: 'rampHeight' };
-      return L === 3 ? ['portalUp', 'rampUp'] : { refuse: 'rampHeight' };
+      if (j.kind === 'ground') return j.level === L ? [] : j.level + D === L ? ['rampUp'] : { refuse: 'rampHeight' };
+      return L === D ? ['portalUp', 'rampUp'] : { refuse: 'rampHeight' };
     }
     if (j.kind === 'ground') return [];
     return j.kind === 'under' ? ['portalUp'] : ['rampDown'];
@@ -309,8 +318,8 @@ function planRailAtHeight(height, path0, bits, elev, env) {
     let cur = j.kind === 'under' ? 0 : j.level;
     for (const piece of pieces) {
       const ramp = piece.startsWith('ramp');
-      const N = ramp ? METRO_RAIL.rampTiles : METRO_RAIL.portalTiles;
-      const groundLevel = piece === 'rampUp' ? cur : piece === 'rampDown' ? cur - 3 : 0;
+      const N = ramp ? RAMP : METRO_RAIL.portalTiles;
+      const groundLevel = piece === 'rampUp' ? cur : piece === 'rampDown' ? cur - D : 0;
       for (let s = 0; s < N; s++, at++) {
         const i = order[at];
         if (i == null || taken.has(i) || has(path[i])) return { reason: ramp ? 'rampShort' : 'portalShort', p: path[order[0]] };
@@ -324,7 +333,7 @@ function planRailAtHeight(height, path0, bits, elev, env) {
         assign[keyOf(p)] = piece === 'rampUp' ? `${s + 1}${away}` : piece === 'rampDown' ? `${N - s}${back}`
           : piece === 'portalDown' ? `p${s + 1}${away}` : `p${N - s}${back}`;
       }
-      cur = piece === 'rampUp' ? cur + 3 : piece === 'rampDown' ? cur - 3 : 0;
+      cur = piece === 'rampUp' ? cur + D : piece === 'rampDown' ? cur - D : 0;
     }
     return null;
   };
@@ -348,6 +357,7 @@ function planRailAtHeight(height, path0, bits, elev, env) {
       code = '';
     } else {
       const top = topAt(i);
+      if (top > L && !spec.underground) return refuse('hillHigh', p);
       if (top > L) code = 'hill';
       else if (top === L && flatAt(i)) {
         if (!env.canGround(p.row, p.col)) return refuse('ground', p);
@@ -417,7 +427,7 @@ function railCodeKind(code) {
  * Track joined across a tile's side at two heights (ground track run into a deck's end, say): the
  * first of `keys` so joined, or null. Pure.
  */
-function railLevelMismatch(bits, elev, keys, groundAt = () => 0) {
+function railLevelMismatch(bits, elev, keys, groundAt = () => 0, spec = METRO_RAIL_SPEC) {
   for (const k of keys) {
     const [r, c] = k.split(':').map(Number);
     for (const bit of railBitsOf(bits[k] || 0)) {
@@ -426,7 +436,7 @@ function railLevelMismatch(bits, elev, keys, groundAt = () => 0) {
         const nk = railKey(r + dr, c + dc);
         const back = RAIL_OPPOSITE[sideHere];
         if (!railBitsOf(bits[nk] || 0).some((b) => RAIL_BIT_SIDES[b].includes(back))) continue;
-        if (Math.abs(railSideHeight(elev[k], sideHere, groundAt(k, sideHere)) - railSideHeight(elev[nk], back, groundAt(nk, back))) > 0.01) return k;
+        if (Math.abs(railSideHeight(elev[k], sideHere, groundAt(k, sideHere), spec) - railSideHeight(elev[nk], back, groundAt(nk, back), spec)) > 0.01) return k;
       }
     }
   }
@@ -484,6 +494,8 @@ function canLayMetroTrackAt(row, col) {
   if (typeof isMetroStationTile === 'function' && isMetroStationTile(row, col)) return false;
   if (typeof isUnderseaTunnelTile === 'function' && isUnderseaTunnelTile(row, col)) return false;
   if (typeof isPromenadeTile === 'function' && isPromenadeTile(row, col)) return false;
+  // (nor on the 輕鐵's track or under its viaduct: light-rail.js)
+  if (typeof lightRailGroundUse === 'function' && lightRailGroundUse(row, col)) return false;
   return true;
 }
 
@@ -604,6 +616,7 @@ function canDeckMetroTrackAt(row, col) {
   if (typeof isMetroStationTile === 'function' && isMetroStationTile(row, col)) return false;
   if (typeof isUnderseaTunnelTile === 'function' && isUnderseaTunnelTile(row, col)) return false;
   if (typeof isPromenadeTile === 'function' && isPromenadeTile(row, col)) return false;
+  if (typeof lightRailGroundUse === 'function' && lightRailGroundUse(row, col)) return false;
   return true;
 }
 
@@ -931,8 +944,10 @@ function syncMetroTracks(scene) {
 // diamond, raised anywhere up to its deck, covers the point. The traffic keeps under it
 // (traffic-visuals.js getTrafficVehicleDepth).
 function metroDeckDepthOver(scene, x, y) {
-  const decks = scene?.metroTrackSprites;
-  if (!decks?.size || typeof screenToIso !== 'function') return null;
+  // (the 輕鐵's viaducts too: light-rail.js keeps its deck sprites the same way)
+  const metroDecks = scene?.metroTrackSprites, lightDecks = scene?.lightRailTrackSprites;
+  if ((!metroDecks?.size && !lightDecks?.size) || typeof screenToIso !== 'function') return null;
+  const decks = { get: (k) => metroDecks?.get(k)?.__deckLiftPx ? metroDecks.get(k) : lightDecks?.get(k) };
   const iso = screenToIso(x - scene.offsetX, y - scene.offsetY + (typeof TILE_PICK_Y_OFFSET === 'number' ? TILE_PICK_Y_OFFSET : 0));
   const r0 = Math.floor(iso.y), c0 = Math.floor(iso.x);
   const hw = TILE_WIDTH / 2, hh = TILE_HEIGHT / 2;
@@ -1330,5 +1345,5 @@ function getMetroTrackMonthlyUpkeep() {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { METRO_RAIL, RAIL_BIT_SIDES, railDragPath, addRailPathBits, railBadTiles, railBitFor, railVisualMask, railSideHeight, planRailAtHeight, railCodeKind, railGroundUse, railLevelMismatch, railDeckLevel, railGroundAt, railIsHill, railElevatedRun, railIsUp, railIsDown };
+  module.exports = { METRO_RAIL, METRO_RAIL_SPEC, RAIL_BIT_SIDES, RAIL_OPPOSITE, RAIL_PLAIN_MASKS, railKey, railBitsOf, railSideTowards, railDragPath, addRailPathBits, railBadTiles, railBitFor, railVisualMask, railSideHeight, planRailAtHeight, railCodeKind, railGroundUse, railLevelMismatch, railDeckLevel, railGroundAt, railIsHill, railElevatedRun, railIsUp, railIsDown };
 }

@@ -2731,6 +2731,18 @@ function applyRoadLineVariantForTile(scene, sprite, row, col, key, baseTextureKe
   applyRoadLineTexture(scene, sprite, key, variantId, tileSetId, baseTextureKey);
 }
 
+// MAP_WIDTH/MAP_HEIGHT can change on any city load (setMapDimensions), but the scene derived
+// three things from them once in create(): the offsets that centre the map at scroll 0, the
+// diamond world mask every world sprite is clipped to, and the terrain sprites. Left at the
+// startup 256x256 values, a 香港全境 city was drawn ~100,000 px from the camera and clipped away
+// by the old map's mask - a blank main map no matter where the minimap sent the camera.
+function applyMapSizeToScene(scene) {
+  if (!scene?.cameras?.main) return;
+  updateMapMetrics(scene);
+  if (scene.maskGraphics) drawWorldMask(scene);
+  resetTileSpritesForNewMap(scene);
+}
+
 // Called on every map load - create()'s own startup scene (at MAP_WIDTH/MAP_HEIGHT's 256x256
 // default, before any real city is picked), and again by copyTerrainToWorld/
 // initializeChunkedTerritoryWorld (landing-screen.js) once setMapDimensions has committed to

@@ -728,9 +728,9 @@ function startTerrainCreatorMode(profileType, seedText, terrain = null) {
   activeTerrainProfileType = profileType;
   currentSeed = seedText || createSeed();
   setMapDimensions(terrain?.width, terrain?.height);
-  // See the matching comment in startNewGame - any tile sprites already on the scene were built
-  // for whichever map (and size) was previously loaded, not this one.
-  resetTileSpritesForNewMap(activeScene);
+  // See the matching comment in startNewGame - the scene's offsets, world mask and tile sprites
+  // were all built for whichever map (and size) was previously loaded, not this one.
+  applyMapSizeToScene(activeScene);
   if (terrain?.chunked) {
     currentTerrainMetadata = createTerrainMetadata(terrain, currentSeed);
     initializeChunkedTerritoryWorld(terrain);
@@ -824,11 +824,11 @@ async function startNewGame(cityName, options = {}) {
   const terrain = options.terrain ?? null;
   const source = terrain ? 'map-source' : 'random';
   setMapDimensions(terrain?.width, terrain?.height);
-  // Any tile sprites already on the scene were built for whichever map (and whatever size) was
-  // previously loaded - create()'s own startup scene the first time, a different city's map on
-  // every load after that. Must happen after setMapDimensions (it reads the now-current
-  // MAP_WIDTH/MAP_HEIGHT) and before anything below reads mapData/heightMap for this new map.
-  resetTileSpritesForNewMap(activeScene);
+  // The scene's offsets, world mask and tile sprites were all built for whichever map (and
+  // whatever size) was previously loaded - create()'s own startup scene the first time, a
+  // different city's map on every load after that. Must happen after setMapDimensions (it reads
+  // the now-current MAP_WIDTH/MAP_HEIGHT) and before anything below reads mapData/heightMap.
+  applyMapSizeToScene(activeScene);
 
   stopSimTimer();
   isTerrainCreatorMode = false;

@@ -1501,7 +1501,9 @@ function applySaveData(scene, save) {
   if (typeof clearAircraftVisuals === 'function') clearAircraftVisuals(scene);
 
   // Older saves predate mapWidth/mapHeight - they were always the one fixed size.
+  const previousMapSize = `${MAP_WIDTH}x${MAP_HEIGHT}`;
   setMapDimensions(save.mapWidth, save.mapHeight);
+  const mapSizeChanged = previousMapSize !== `${MAP_WIDTH}x${MAP_HEIGHT}`;
   const terrainElevation = normalizeSavedTerrainElevation(save);
   const savedViewpoint = normalizeSavedViewpoint(save.viewpoint) ?? getDefaultSavedViewpoint();
   if (typeof mapRotation !== 'undefined') mapRotation = savedViewpoint.rotation;
@@ -1520,6 +1522,10 @@ function applySaveData(scene, save) {
   mapData = terrainElevation.mapData;
   // The border keeps whatever height was saved: Hong Kong district maps run high to the edge.
   heightMap = terrainElevation.heightMap;
+  // A save of a different size than the city on screen: re-centre, re-mask and rebuild the tile
+  // sprites for it (after mapData above, which the eager normal-map sprite build reads). Same-size
+  // loads keep reusing the sprites already there, as they always have.
+  if (mapSizeChanged && typeof applyMapSizeToScene === 'function') applyMapSizeToScene(scene);
 
   // Clear Phaser sprites
   clearAllOverlays(scene);

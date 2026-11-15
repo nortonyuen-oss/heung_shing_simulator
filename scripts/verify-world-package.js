@@ -3,7 +3,7 @@ const fs = require('node:fs'), path = require('node:path'), crypto = require('no
 const app = path.resolve(process.argv[2] || 'release/world-phase5/mac/The City of Heung Shing.app');
 const archive = app.endsWith('.asar') ? app : path.join(app, 'Contents/Resources/app.asar');
 const files = new Set(asar.listPackage(archive).map(file => file.replace(/\\/g, '/').replace(/^\/+/, '')));
-const read = file => asar.extractFile(archive, file);
+const read = file => asar.extractFile(archive, path.normalize(file));
 const html = read('world/index.html').toString();
 for (const [, src] of html.matchAll(/<script src="([^"]+)"/g)) assert(files.has(path.posix.normalize(`world/${src}`)), `Missing world script ${src}`);
 const manifest = JSON.parse(read('data/world-terrain/manifest.json'));

@@ -60,7 +60,7 @@ jobs:
           [[ "$RELEASE_ASSET_RUN" =~ ^[0-9]+$ ]] || exit 1
           export RELEASE_ASSET_COMMIT=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$RELEASE_ASSET_RUN" --jq .head_sha)
           git fetch --no-tags --depth=1 origin "$RELEASE_ASSET_COMMIT"
-          node -e 'const {execFileSync}=require("node:child_process"); const files=execFileSync("git",["diff","--name-only",process.env.RELEASE_ASSET_COMMIT,"HEAD"],{encoding:"utf8"}).trim().split("\n").filter(Boolean); const allowed=new Set([".github/workflows/build-installers.yml","scripts/verify-world-package.js"]); if(files.some(file=>!allowed.has(file)))throw Error("Asset source differs from this release; regenerate assets");'
+          node -e 'const {execFileSync}=require("node:child_process"); const files=execFileSync("git",["diff","--name-only",process.env.RELEASE_ASSET_COMMIT,"HEAD"],{encoding:"utf8"}).trim().split("\n").filter(Boolean); const allowed=new Set([".github/workflows/build-installers.yml","scripts/verify-world-package.js","test/world-package.test.js"]); if(files.some(file=>!allowed.has(file)))throw Error("Asset source differs from this release; regenerate assets");'
           gh run download "$RELEASE_ASSET_RUN" --repo "$GITHUB_REPOSITORY" --name prepared-models --dir .data/package-assets/Models
           gh run download "$RELEASE_ASSET_RUN" --repo "$GITHUB_REPOSITORY" --name world-terrain --dir data/world-terrain
           node scripts/bake-road-line-textures.js
@@ -161,10 +161,10 @@ jobs:
           WEB_STATISTICS_ENABLED: 'true'
       - run: npm run verify:web
       - run: npx playwright-core install --with-deps chromium
-      - name: Territory navigation and automatic development
-        run: |
-          npm run smoke:world:geography
-          npm run smoke:world:growth
+      - name: Territory navigation
+        run: npm run smoke:world:geography
+      - name: Automatic territory development
+        run: npm run smoke:world:growth
       - name: Browser save and backup verification
         run: |
           npm run preview:web > /tmp/static-web.log 2>&1 &

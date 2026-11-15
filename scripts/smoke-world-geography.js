@@ -46,7 +46,7 @@ async function clickLandmark(page, landmark, touch) {
   const server = await new Promise(resolve => { const s = app.listen(0, '127.0.0.1', () => resolve(s)); }); let browser;
   const report = [];
   try {
-    browser = await chromium.launch({ channel: 'chrome', headless: true });
+    browser = await chromium.launch({ headless: true, ...(process.env.CI ? {} : { channel: 'chrome' }) });
     for (const mobile of [false, true]) {
       const context = await browser.newContext({ viewport: mobile ? { width: 390, height: 844 } : { width: 1440, height: 1000 }, isMobile: mobile, hasTouch: mobile });
       const page = await context.newPage(), errors = []; page.on('pageerror', error => errors.push(error.message));

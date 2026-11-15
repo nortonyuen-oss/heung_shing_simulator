@@ -53,6 +53,12 @@ jobs:
           path: .data/package-assets/Models
           retention-days: 1
           include-hidden-files: true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: world-terrain
+          path: data/world-terrain
+          if-no-files-found: error
+          retention-days: 1
 
   build:
     name: Build ${{ matrix.os }} ${{ matrix.artifact }}
@@ -82,8 +88,19 @@ jobs:
         with:
           name: prepared-models
           path: .data/package-assets/Models
+      - uses: actions/download-artifact@v4
+        with:
+          name: world-terrain
+          path: data/world-terrain
+      - run: npm run verify:world-assets
       - run: ${{ matrix.command }}
         shell: bash
+      - name: Verify packaged territory assets
+        shell: bash
+        run: |
+          archive=$(find release -type f -name app.asar | head -n 1)
+          test -n "$archive"
+          node scripts/verify-world-package.js "$archive"
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
@@ -110,6 +127,11 @@ jobs:
         with:
           name: prepared-models
           path: .data/package-assets/Models
+      - uses: actions/download-artifact@v4
+        with:
+          name: world-terrain
+          path: data/world-terrain
+      - run: npm run verify:world-assets
       - run: node scripts/restore-web-history.js
         env:
           GH_TOKEN: ${{ github.token }}
@@ -118,6 +140,10 @@ jobs:
           WEB_STATISTICS_ENABLED: 'true'
       - run: npm run verify:web
       - run: npx playwright-core install --with-deps chromium
+      - name: Territory navigation and automatic development
+        run: |
+          npm run smoke:world:geography
+          npm run smoke:world:growth
       - name: Browser save and backup verification
         run: |
           npm run preview:web > /tmp/static-web.log 2>&1 &

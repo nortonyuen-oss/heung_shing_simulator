@@ -1,3 +1,35 @@
+# The City of Heung Shing v5.9.0 — 【香港全境串流】
+
+- 廣東話／台灣中文：【香港全境串流】
+- English: 【Hong Kong Territory Streaming】
+- 日本語：【香港全域ストリーミング】
+
+## 香港全境融入原遊戲
+
+- 沿用原遊戲建設工具、分區自然發展、人口、財政、供電、公共服務、運輸及存檔；主選單移除獨立測試入口。
+- 開新城市預設普通地圖，「香港全境」放喺最後，由玩家自行選擇。
+- 保留原地形資料及海岸線，修正小地圖點擊約 12 km 偏移；鴨脷洲、啟德跑道可用新增「全境／區域」切換定位，手機亦可使用。
+- 地形按附近區塊載入，道路／建築圖片按視野掛載，減少全圖讀取及掃描；未發展地區唔建立城市摘要，已發展區塊摘要保留人口、電力、稅金／支出及 R/C/I 需求。
+- 地形同道路共用繪製遮罩，減少 GPU 批次中斷；原大型地形來源改為舊實景取樣器有需要先讀取。
+- 修正先起電廠同道路、再劃區時電網快取冇更新，導致自動起屋過慢；新增、改用途／密度及移除分區會更新供電，住宅、商業及工業可自然發展。
+- 修正切換不同尺寸城市時場景偏移、遮罩及地形圖片未同步。
+
+## 驗證與存檔
+
+完整回歸測試、全境建設／導航／儲存重載、真實遊戲日曆自然發展及模型顯示已通過。桌面 Chrome 1280×900 的 48,000 格合成道路渲染測試約 60 FPS；這不是大量人口／車輛城市或實體 iPhone FPS 保證。手機操作仍為 Beta。
+
+普通城市維持 v15 存檔，支援既有 v14／v15 備份；全境使用獨立世界存檔及 `.heungshing` 備份。資料留喺玩家裝置，沒有跨裝置自動同步。
+
+**English:** Hong Kong territory is integrated into the original game with streamed nearby terrain, viewport-based road/building art and sparse developed-chunk summaries. Territory/Region minimap navigation preserves the original coastline and fixes misplaced clicks. Ordinary maps remain the default. Zoning now refreshes power connections, restoring automatic residential, commercial and industrial growth. Mobile controls remain Beta; measured desktop rendering performance is not a physical-iPhone or mature-city guarantee.
+
+**日本語:** 香港全域を既存ゲームに統合し、近隣地形のストリーミングと視野内の道路・建物表示、開発済みチャンクのみの集計を導入。ミニマップの全域／地域切り替えと位置ずれを修正し、元の海岸線を維持します。通常マップが初期選択です。区画変更時の電力更新を修正し、住宅・商業・工業の自動発展を復旧。モバイル操作は引き続き Beta です。
+
+## 下載
+
+macOS Apple Silicon / Intel DMG；Windows 安裝版／免安裝版 EXE；官網瀏覽器版。
+
+---
+
 # The City of Heung Shing v5.8.2 — 【手機建城 Beta 全通】
 
 - 廣東話／台灣中文：【手機建城 Beta 全通】

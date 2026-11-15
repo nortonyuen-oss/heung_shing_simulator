@@ -327,15 +327,55 @@ function lrtCarOffset(v, k) {
   return k === 0 ? s : -s;
 }
 
+// The level crossings' lights (light-rail.js): red from when a set's nose is CROSSING_RED tiles off until
+// its tail is CROSSING_CLEAR past; amber for the CROSSING_AMBER before that. Pure but for the lights.
+const LRT_CROSSING = Object.freeze({ red: 2.2, amber: 3.4, clear: 0.4, step: 0.2, carWait: 0.9, onIt: 0.6, departing: 0.8 });
+
+// For each set: the crossing tiles about it - how far ahead of its nose each is (negative: under it,
+// or behind). [{ v, key, ahead }]
+function lrtCrossingsAbout(placed, plans, crossings) {
+  const out = [];
+  if (!crossings.size) return out;
+  placed.forEach((t) => {
+    const plan = plans.get(t.line.id);
+    const half = lrtSetHalf(t.v);
+    const seen = new Map();
+    for (let s = -half - LRT_CROSSING.clear; s <= half + LRT_CROSSING.amber; s += LRT_CROSSING.step) {
+      const [x, y] = tramRoutePointAt(plan.route, (Number(t.v.dist) || 0) + s).pos;
+      const key = `${Math.floor(y)}:${Math.floor(x)}`;
+      if (!crossings.has(key) || seen.has(key)) continue;
+      seen.set(key, s - half);
+    }
+    seen.forEach((ahead, key) => out.push({ v: t.v, key, ahead }));
+  });
+  return out;
+}
+
+function updateLightRailCrossings(about) {
+  const lights = new Map();
+  about.forEach(({ v, key, ahead }) => {
+    let light = ahead <= LRT_CROSSING.red ? 'red' : 'amber';
+    // a set waiting at a station by the crossing holds nothing until it is about to go (amber then),
+    // unless it stands on it
+    if (v.dwellLeft > 0 && ahead > LRT_CROSSING.onIt) {
+      if (v.dwellLeft > LRT_CROSSING.departing) return;
+      light = 'amber';
+    }
+    if (lights.get(key) !== 'red') lights.set(key, light);
+  });
+  if (typeof setLightRailCrossingLights === 'function') setLightRailCrossingLights(lights);
+}
+
 function advanceLightRailFleet(scene, delta, amount = null) {
   const state = lrtState();
-  if (!state.cars.length) return;
+  if (!state.cars.length) { if (typeof setLightRailCrossingLights === 'function') setLightRailCrossingLights(new Map()); return; }
   if (amount === null) {
     if (typeof computeTrafficProgressAmount !== 'function') return;
     const paused = typeof isGamePaused === 'function' ? isGamePaused() : (typeof simPaused !== 'undefined' && simPaused);
     amount = computeTrafficProgressAmount(delta, paused, typeof getVehicleVisualSpeedMultiplier === 'function' ? getVehicleVisualSpeedMultiplier() : 1);
   }
   const sky = typeof getTyphoonShelterFleetClock === 'function' ? getTyphoonShelterFleetClock() : 0;
+  if (!isTramRunning(sky) && typeof setLightRailCrossingLights === 'function') setLightRailCrossingLights(new Map());
   if (!(amount > 0) || !isTramRunning(sky)) return;
   const placed = [];
   const plans = new Map();
@@ -356,11 +396,19 @@ function advanceLightRailFleet(scene, delta, amount = null) {
   });
   const traffic = scene ? [...(scene.trafficVisualState?.vehicles || []), ...(scene.transportVisualState?.vehicles || [])]
     .map(trafficVehicleMapPoint).filter(Boolean) : [];
+  // the level crossings: their lights from where the sets are; and a set waits short of one with a
+  // vehicle still on it (it had a green when it went in)
+  const crossings = new Set(typeof getLightRailCrossings === 'function' ? getLightRailCrossings().map((x) => `${x.row}:${x.col}`) : []);
+  const about = lrtCrossingsAbout(placed, plans, crossings);
+  updateLightRailCrossings(about);
+  const occupied = new Set();
+  if (crossings.size) traffic.forEach((o) => { const k = `${Math.floor(o.pos[1])}:${Math.floor(o.pos[0])}`; if (crossings.has(k)) occupied.add(k); });
   placed.forEach((t) => {
     const plan = plans.get(t.line.id);
     const gap = t.traffic ? LIGHT_RAIL_SERVICE.streetGapTiles : LIGHT_RAIL_SERVICE.reservedGapTiles;
     const moved = stepTram(t.v, plan.route, amount * (t.traffic ? 1 : LIGHT_RAIL_SERVICE.reservedSpeed), {
       blocked: () => {
+        if (occupied.size && about.some((a) => a.v === t.v && occupied.has(a.key) && a.ahead > 0 && a.ahead < LRT_CROSSING.carWait)) return true;
         // the set ahead on the same track (its middle, past both halves and its second car, and a gap)
         if (placed.some((o) => o !== t && tramBlockedBy(t.pos, t.heading, o.pos, o.heading,
           lrtSetHalf(t.v) + lrtSetHalf(o.v) + gap, 0.15, String(o.v.id) < String(t.v.id)))) return true;
@@ -622,5 +670,5 @@ function updateLightRailService(scene, delta = 16) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { LIGHT_RAIL_SERVICE, LRT_SET, lightRailViewOf, lightRailCarPicture, lrtSetHalf, lrtCarOffset };
+  module.exports = { LIGHT_RAIL_SERVICE, LRT_SET, LRT_CROSSING, lightRailViewOf, lightRailCarPicture, lrtSetHalf, lrtCarOffset, lrtCrossingsAbout };
 }

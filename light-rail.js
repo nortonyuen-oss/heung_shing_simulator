@@ -147,9 +147,80 @@ function lightRailCutsKerbAt(row, col) {
   return lightRailKerbSidesAt(row, col).length > 0;
 }
 
+// ── Level crossings (phase 4, docs/light-rail-design.md §2.4) ──────────────────────────────────────
+// A road crossed by light rail track has traffic lights, as Hong Kong's crossings do (no barriers): a
+// pole on each approach, at the end of the tile before the crossing, on the driver's left. They run in
+// the junction signals' system (traffic-signals.js): each crossing is a junction there, its lights not
+// on a cycle but set by the light rail's cars (light-rail-lines.js updateLightRailCrossings) - green,
+// amber as a car comes near, red until it has gone by; the road traffic, the buses and the managed
+// vehicles stop at its stop lines, as at any red light.
+
+const lightRailCrossingCache = { key: null, list: [] };
+
+// [{ row, col, axis: the road's way ('ns' | 'ew'), band }]
+function getLightRailCrossings() {
+  if (typeof getTransportExpansionState !== 'function' || !getTransportExpansionState()?.lightRail) return [];
+  const state = getLightRailState();
+  const key = `${lightRailTrackRevision}|${typeof roadTileCount !== 'undefined' ? roadTileCount : 0}|${Object.keys(state.tracks).length}`;
+  if (lightRailCrossingCache.key === key) return lightRailCrossingCache.list;
+  const env = lightRailMapEnv();
+  const list = [];
+  Object.entries(state.tracks).forEach(([k, mask]) => {
+    const [row, col] = k.split(':').map(Number);
+    if (state.trackElev[k] || lightRailTileKind(row, col, mask, null, env) !== 'crossing') return;
+    list.push({ row, col, axis: lightRailRoadAxis(row, col, env), band: Boolean(env.bandAt(row, col)) });
+  });
+  lightRailCrossingCache.key = key;
+  lightRailCrossingCache.list = list;
+  return list;
+}
+
+function isLightRailCrossingTile(row, col) {
+  return getLightRailCrossings().some((x) => x.row === row && x.col === col);
+}
+
+// The poles: one for each way the road comes in, on the tile before the crossing (traffic-signals.js
+// placement form: the tile it stands on, the way the traffic it faces is going, its "junction").
+function getLightRailCrossingSignalPlacements(isRoadTile = lightRailIsRoad) {
+  const out = [];
+  getLightRailCrossings().forEach((x) => {
+    const ways = x.axis === 'ew' ? [['e', 0, -1], ['w', 0, 1]] : [['s', -1, 0], ['n', 1, 0]];
+    ways.forEach(([travel, dr, dc]) => {
+      const row = x.row + dr, col = x.col + dc;
+      if (!isRoadTile(row, col) || isLightRailCrossingTile(row, col)) return;
+      // (not on a junction: its own signals stand there)
+      if (lightRailRoadAxis(row, col, lightRailMapEnv()) === null) return;
+      out.push({ row, col, travel, junctionRow: x.row, junctionCol: x.col, lightRailCrossing: true });
+    });
+  });
+  return out;
+}
+
+// Each crossing's lights now: "row:col" -> 'amber' | 'red' (green when not there).
+const lightRailCrossingLights = new Map();
+
+function getLightRailCrossingPhase(row, col) {
+  const vehicle = lightRailCrossingLights.get(`${row}:${col}`) || 'green';
+  return { vehicle, ped: 'red', stage: vehicle, active: 0 };
+}
+
+function setLightRailCrossingLights(lights) {
+  lightRailCrossingLights.clear();
+  lights.forEach((v, k) => lightRailCrossingLights.set(k, v));
+}
+
+// Where a vehicle waits for a crossing's red: its middle this far along the leg into the crossing tile
+// (from the tile before's middle) - its nose at the stop line, 0.28 of a tile from the crossing's middle;
+// a longer vehicle (headwayFactor) further back.
+function lightRailCrossingStopProgress(headwayFactor = 1) {
+  const extra = Math.max(0, (Number(headwayFactor) || 1) - 0.55) / 0.45;
+  return Math.max(0.2, 0.52 - 0.25 * extra);
+}
+
 // After track is laid or taken up: the kerbside things worked out again.
 function onLightRailTracksChanged(scene) {
   if (!scene) return;
+  if (typeof scheduleTrafficSignalRefresh === 'function') scheduleTrafficSignalRefresh(scene);
   if (typeof scheduleStreetLampRefresh === 'function') scheduleStreetLampRefresh(scene);
   if (typeof schedulePedestrianRailingRefresh === 'function') schedulePedestrianRailingRefresh(scene);
   if (typeof scheduleStreetFurnitureRefresh === 'function') scheduleStreetFurnitureRefresh(scene, { recomputeTraffic: false });
@@ -718,14 +789,20 @@ function syncLightRailTracks(scene = typeof activeScene !== 'undefined' ? active
     wanted.add(key);
     return sprite;
   };
-  // street track and level crossings: drawn on their road tiles as the tram's is
+  // street track and level crossings: drawn on their road tiles as the tram's is (a crossing's with its
+  // concrete panel and stop lines under the rails)
+  const crossings = new Map(getLightRailCrossings().map((x) => [railKey(x.row, x.col), x]));
   geo.tiles.forEach((cell, key) => {
     const road = getTileSprite(scene, cell.row, cell.col);
     if (!road) return;
     const picture = tramTilePicture(geo, cell, turn);
+    const xing = crossings.get(key);
     // (its own keys: the tram drops the pictures its own tiles no longer show)
-    picture.key = `lrt_${picture.key}`;
-    if (!scene.textures.exists(picture.key)) drawTramTrackPicture(scene, picture);
+    picture.key = xing ? `lrt_xing_${xing.axis}${xing.band ? 'b' : ''}_${turn}_${picture.key}` : `lrt_${picture.key}`;
+    if (!scene.textures.exists(picture.key)) {
+      if (xing) drawLightRailCrossingPicture(scene, picture, cell, turn, xing);
+      else drawTramTrackPicture(scene, picture);
+    }
     pictures.add(picture.key);
     const sprite = spriteFor(key, picture.key, 'roadLayer');
     sprite.__deckLiftPx = 0;
@@ -781,6 +858,74 @@ function syncLightRailTracks(scene = typeof activeScene !== 'undefined' ? active
   (scene.__lightRailPictures || new Set()).forEach((k) => { if (!pictures.has(k) && scene.textures.exists(k)) scene.textures.remove(k); });
   scene.__lightRailPictures = pictures;
   scene.__lightRailTrackSyncKey = lightRailTrackSyncKey(scene);
+}
+
+// A level crossing's picture: the road tile's face with a concrete panel along the track (its width
+// either side), the stop lines across the lanes coming in (Hong Kong keeps left), and the rails over.
+// Drawn in the map's frame and turned to the tile as drawn (tram.js tramTileLocal).
+function drawLightRailCrossingPicture(scene, picture, cell, turn, xing) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 256;
+  const ctx = canvas.getContext('2d');
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(256, 49); ctx.lineTo(416, 129); ctx.lineTo(256, 209); ctx.lineTo(96, 129);
+  ctx.closePath();
+  ctx.clip();
+  ctx.setTransform(160, 80, -160, 80, 256, 49);
+  const L = (x, y) => tramTileLocal(cell.col + x, cell.row + y, cell.row, cell.col, turn);
+  const poly = (pts, fill) => {
+    ctx.fillStyle = fill;
+    ctx.beginPath();
+    pts.map(([x, y]) => L(x, y)).forEach(([u, v], i) => (i ? ctx.lineTo(u, v) : ctx.moveTo(u, v)));
+    ctx.closePath();
+    ctx.fill();
+  };
+  const line = (a, b, style, width) => {
+    ctx.strokeStyle = style;
+    ctx.lineWidth = width;
+    ctx.beginPath();
+    const [u0, v0] = L(...a), [u1, v1] = L(...b);
+    ctx.moveTo(u0, v0); ctx.lineTo(u1, v1);
+    ctx.stroke();
+  };
+  // (the road runs along x for 'ew': the track across it, along y)
+  const ew = xing.axis === 'ew';
+  const P = (along, across) => (ew ? [across, along] : [along, across]);   // along the track, across it
+  const H = 0.18;
+  poly([P(0, 0.5 - H), P(1, 0.5 - H), P(1, 0.5 + H), P(0, 0.5 + H)], 'rgba(170, 166, 158, 0.96)');
+  // its slabs' joints, and a darker edge each side
+  for (let k = 1; k < 5; k++) line(P(k / 5, 0.5 - H), P(k / 5, 0.5 + H), 'rgba(120, 116, 110, 0.55)', 0.006);
+  [-1, 1].forEach((sg) => line(P(0, 0.5 + sg * H), P(1, 0.5 + sg * H), 'rgba(90, 88, 84, 0.8)', 0.008));
+  // the stop lines (narrow roads: the lanes 0.25 - 0.75 across the tile), on the near-side lanes coming in
+  if (!xing.band) {
+    const S = 0.28;
+    if (ew) {
+      // eastbound (from x < 0.5) keeps to y < 0.5; westbound to y > 0.5
+      line([0.5 - S, 0.25], [0.5 - S, 0.5], 'rgba(238, 238, 232, 0.95)', 0.022);
+      line([0.5 + S, 0.5], [0.5 + S, 0.75], 'rgba(238, 238, 232, 0.95)', 0.022);
+    } else {
+      // southbound (from y < 0.5) keeps to x > 0.5; northbound to x < 0.5
+      line([0.5, 0.5 - S], [0.75, 0.5 - S], 'rgba(238, 238, 232, 0.95)', 0.022);
+      line([0.25, 0.5 + S], [0.5, 0.5 + S], 'rgba(238, 238, 232, 0.95)', 0.022);
+    }
+  }
+  // the rails (as the tram's)
+  ctx.lineCap = 'butt';
+  ctx.lineJoin = 'round';
+  const stroke = (pts, style) => {
+    ctx.strokeStyle = style.colour;
+    ctx.lineWidth = style.half * 2;
+    ctx.beginPath();
+    pts.forEach(([u, v], i) => (i ? ctx.lineTo(u, v) : ctx.moveTo(u, v)));
+    ctx.stroke();
+  };
+  const { bed, groove, head } = TRAM_RAIL_STYLE;
+  picture.curves.forEach((pts) => stroke(pts, bed));
+  [groove, head].forEach((style) => picture.curves.forEach((pts) => [-1, 1].forEach((sg) => stroke(tramOffsetLine(pts, sg * style.at), style))));
+  ctx.restore();
+  scene.textures.addCanvas(picture.key, canvas);
 }
 
 // A deck's piers (its pictures have none): under the middle of each track's line on the tile, as

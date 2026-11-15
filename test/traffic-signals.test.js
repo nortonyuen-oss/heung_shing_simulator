@@ -747,3 +747,23 @@ test('a one-tile junction times exactly as before (its own tile is the block anc
   const clusters = run('computeTrafficSignalJunctionClusters')({ mapWidth: 5, mapHeight: 5, roadKeyAt: roadKeyAtFor(['..|..', '..|..', '--+--', '..|..', '..|..']) });
   assert.deepEqual(toPlain(clusters.get('2:2')), { row: 2, col: 2, tiles: [{ row: 2, col: 2 }], arms: ['n', 'e', 's', 'w'] });
 });
+
+test('a 輕鐵 level crossing holds the traffic at its stop line while its lights are red, not on green', () => {
+  const run = createContext();
+  // the light rail's side (light-rail.js), as the game has it
+  run(`var lights = new Map();
+    function getLightRailCrossingPhase(row, col) { const vehicle = lights.get(row + ':' + col) || 'green'; return { vehicle, ped: 'red' }; }
+    function lightRailCrossingStopProgress(f = 1) { return Math.max(0.2, 0.52 - 0.25 * Math.max(0, (f - 0.55) / 0.45)); }`);
+  const scene = run('({ trafficSignalJunctions: new Map([["5:6", { row: 5, col: 6, lightRail: true }]]), trafficSignalClockMs: 0 })');
+  const hold = run('getTrafficSignalHoldProgress');
+  const into = [{ row: 5, col: 5 }, { row: 5, col: 6 }];
+  assert.equal(hold(scene, ...into, 0.1, 0.55), null, 'green: drive on');
+  run('lights.set("5:6", "red")');
+  assert.equal(hold(scene, ...into, 0.1, 0.55), 0.52, 'red: a car waits with its nose at the stop line, on the crossing tile');
+  assert.ok(hold(scene, ...into, 0.1, 1.4) < 0.52, 'a bus waits further back');
+  assert.equal(hold(scene, ...into, 0.6, 0.55), null, 'past the stop line: carries on over');
+  assert.equal(hold(scene, { row: 5, col: 6 }, { row: 5, col: 7 }, 0.1, 0.55), null, 'leaving the crossing: never held');
+  run('lights.set("5:6", "amber")');
+  assert.equal(hold(scene, ...into, 0.45, 0.55), null, 'amber, too near to stop: goes');
+  assert.equal(hold(scene, ...into, 0.1, 0.55), 0.52, 'amber, far enough back: stops');
+});

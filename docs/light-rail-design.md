@@ -106,7 +106,10 @@ Norton 嘅模型 `lightRailStation.png`（豐年路）：兩條路軌兩邊各�
    車站暫時用電車站嘅圖做替身（第 3 期換新模型）。
 3. **輕鐵站**（2026-11-15 完成）：Norton 嘅豐年路模型；月台約 1.7 格（兩卡長度）；行人平交路
    喺樓梯嗰頭橫過兩條路軌；兩卡停站時成班車對正月台中間；夜晚上蓋光管著燈。
-4. **馬路平交路**：燈號、汽車讓輕鐵。
+4. **馬路平交路**（2026-11-15 完成）：每條入嚟嘅行車線前一格有交通燈（同路口燈一樣，喺司機左邊）；
+   輕鐵埋嚟（車頭 3.4 格內）轉黃燈、2.2 格內紅燈，車尾過咗 0.4 格先轉返綠；喺站停緊嘅輕鐵唔會
+   令燈轉紅，就快開車先轉黃。汽車、巴士喺停車線前停（大車停後啲）；黃燈太近停唔切就過。
+   輕鐵見到仲有車喺平交路上面就等。路面：石屎鋪板、停車線（雙線冇停車線）。
 5. **乘客同收入**、路線表、討論區通車新聞、實時監控、夜燈。
 6. 拎走電車綫嘅「車種：輕鐵」試驗掣（試驗用嘅 `line.vehicle`、`v.cars`）。
 
@@ -142,6 +145,17 @@ Norton 嘅模型 `lightRailStation.png`（豐年路）：兩條路軌兩邊各�
   光管做夜燈層。輸出 `Models/lightRail/lrt_station_{rise,fall}_{base,front}[_lit].png` 同
   `light-rail-station-art.js`。
 - 車站要起喺平地（唔可以喺山坡）。
+
+## 6e. 實作（第 4 期）
+
+- 平交路喺交通燈系統（`traffic-signals.js`）入面當一個路口：`rebuildTrafficSignalSprites` 加埋
+  `getLightRailCrossingSignalPlacements()` 嘅燈柱，路口表加埋每個平交路（`lightRail: true`）；
+  `getTrafficSignalPhase` 遇到平交路就問 `getLightRailCrossingPhase`，`getTrafficSignalHoldProgress`
+  用 `lightRailCrossingStopProgress`（停車線喺平交路嗰格）。所以普通車、巴士、雪糕車、晚上燈光
+  全部照用路口燈嘅做法。
+- 燈色由 `light-rail-lines.js` `updateLightRailCrossings` 每幀按輕鐵位置計。
+- 路面：`light-rail.js` `drawLightRailCrossingPicture`（石屎鋪板、接縫、停車線、路軌）。
+- 冇做「輕鐵」路牌（香港輕鐵平交路主要靠交通燈）。
 
 ## 7. 唔做（暫時）
 

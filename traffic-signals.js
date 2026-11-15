@@ -279,6 +279,8 @@ function describeTrafficSignalJunctionArms(row, col, arms, timing = TRAFFIC_SIGN
 //                                       flashing over its last pedFlashMs)
 // Pure; the caller never has to have seen an earlier tick.
 function getTrafficSignalPhase(junction, arm, clockMs, timing = TRAFFIC_SIGNAL_TIMING) {
+  // a 輕鐵 level crossing: its lights set by the light rail's cars (light-rail.js)
+  if (junction?.lightRail) return typeof getLightRailCrossingPhase === 'function' ? getLightRailCrossingPhase(junction.row, junction.col) : null;
   const groupIndex = junction?.armGroup?.[arm];
   if (groupIndex === undefined) return null;
   const cycle = junction.cycleMs;
@@ -338,7 +340,9 @@ function getTrafficSignalHoldProgress(scene, current, next, progress, headwayFac
   if (!junction) return null;
   // Already inside the same junction block: it was let in at the stop line, never hold it again.
   if (junctions.get(trafficSignalJunctionKey(current.row, current.col)) === junction) return null;
-  const stop = trafficSignalStopProgressFor(headwayFactor);
+  // (at a 輕鐵 crossing the stop line is on the crossing's own tile: light-rail.js)
+  const stop = junction.lightRail && typeof lightRailCrossingStopProgress === 'function'
+    ? lightRailCrossingStopProgress(headwayFactor) : trafficSignalStopProgressFor(headwayFactor);
   if (progress > stop + 1e-6) return null;
   const arm = trafficSignalDirectionForDelta(current.row - next.row, current.col - next.col);
   const phase = getTrafficSignalPhase(junction, arm, scene.trafficSignalClockMs || 0);
@@ -576,6 +580,9 @@ function rebuildTrafficSignalSprites(scene) {
   // The junction blocks feed both the pole placements and the registry below.
   const clusters = computeTrafficSignalJunctionClusters(mapSize);
   const placements = computeTrafficSignalPlacements({ ...mapSize, carriagewayBandAt, clusters });
+  // and the 輕鐵's level crossings' poles (light-rail.js)
+  const crossingPlacements = typeof getLightRailCrossingSignalPlacements === 'function' ? getLightRailCrossingSignalPlacements() : [];
+  placements.push(...crossingPlacements);
   // Street lamps step aside for these poles; they read this list rather than recomputing it.
   scene.trafficSignalPlacements = placements;
   // The junction registry the phase queries read: every tile of a junction block maps to the
@@ -583,11 +590,22 @@ function rebuildTrafficSignalSprites(scene) {
   const junctions = new Map();
   placements.forEach((placement) => {
     if (junctions.has(trafficSignalJunctionKey(placement.junctionRow, placement.junctionCol))) return;
+    if (placement.lightRailCrossing) {
+      junctions.set(trafficSignalJunctionKey(placement.junctionRow, placement.junctionCol), { row: placement.junctionRow, col: placement.junctionCol, lightRail: true });
+      return;
+    }
     const cluster = clusters.get(trafficSignalJunctionKey(placement.junctionRow, placement.junctionCol));
     const junction = cluster && describeTrafficSignalJunctionArms(cluster.row, cluster.col, cluster.arms);
     if (!junction) return;
     cluster.tiles.forEach((tile) => junctions.set(trafficSignalJunctionKey(tile.row, tile.col), junction));
   });
+  // (every 輕鐵 crossing holds its traffic, a pole beside it or not)
+  if (typeof getLightRailCrossings === 'function') {
+    getLightRailCrossings().forEach((x) => {
+      const key = trafficSignalJunctionKey(x.row, x.col);
+      if (!junctions.has(key)) junctions.set(key, { row: x.row, col: x.col, lightRail: true });
+    });
+  }
   scene.trafficSignalJunctions = junctions;
   const wanted = new Map(placements.map((placement) => [trafficSignalId(placement), placement]));
   sprites.forEach((sprite, id) => {

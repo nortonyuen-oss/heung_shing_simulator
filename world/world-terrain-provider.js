@@ -1,22 +1,21 @@
 (function (root, factory) {
-  const api = factory(typeof module !== 'undefined' && module.exports ? require('./world-config') : root.HeungShingWorld);
+  const api = factory(typeof module !== 'undefined' && module.exports ? require('./world-config') : root.HeungShingWorld,
+    typeof module !== 'undefined' && module.exports ? require('./world-crypto') : root.HeungShingWorld);
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else Object.assign(root.HeungShingWorld ||= {}, api);
-})(globalThis, function (configApi) {
+})(globalThis, function (configApi, cryptoApi) {
   'use strict';
   const { createWorldConfig, chunkBounds, parseChunkId } = configApi;
-  async function sha256(bytes) {
-    if (!globalThis.crypto?.subtle) throw new Error('SHA-256 verification requires Web Crypto');
-    const hash = await globalThis.crypto.subtle.digest('SHA-256', bytes);
-    return Array.from(new Uint8Array(hash), value => value.toString(16).padStart(2, '0')).join('');
-  }
+  const sha256 = cryptoApi.worldSha256;
 
   class WorldTerrainProvider {
     constructor(manifest, { fetchBytes, cacheBytes = 2 * 1024 * 1024, packCacheBytes = 1024 * 1024, concurrency = 3,
-      digest = sha256, expectedWorld = configApi.WORLD, onEvent = () => {} } = {}) {
+      digest = sha256, renderChunkTiles = 32, expectedWorld = configApi.WORLD, onEvent = () => {} } = {}) {
       if (manifest?.format !== 'heung-shing-world-terrain' || manifest.schemaVersion !== 1
         || manifest.channels !== 3 || !manifest.chunks || !manifest.packs) throw new Error('Unsupported terrain manifest');
       this.world = createWorldConfig(manifest.world);
+      if (![32, 64].includes(renderChunkTiles)) throw new Error('Invalid benchmark render size');
+      this.renderWorld = Object.freeze({ ...this.world, renderChunkTiles });
       if (['id', 'width', 'height', 'tileMetres', 'baseTerrainVersion'].some(key => manifest.world[key] !== expectedWorld[key])
         || manifest.baseTerrainVersion !== expectedWorld.baseTerrainVersion) throw new Error('Terrain identity mismatch');
       this.manifest = manifest;
@@ -108,7 +107,7 @@
     }
     async getRenderChunk(id) {
       const { x, y } = parseChunkId(id, 'r');
-      const bounds = chunkBounds(this.world, 'r', x, y);
+      const bounds = chunkBounds(this.renderWorld, 'r', x, y);
       if (!bounds) throw new Error(`Out-of-world render chunk ${id}`);
       // A one-tile halo comes from neighbouring storage chunks, never from per-chunk smoothing.
       const left = Math.max(0, bounds.col - 1), top = Math.max(0, bounds.row - 1);

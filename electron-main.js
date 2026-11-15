@@ -226,6 +226,11 @@ async function createWindow() {
     },
   });
 
+  // The desktop installer carries Phaser; opening either game mode must work without a CDN.
+  mainWindow.webContents.session.webRequest.onBeforeRequest({ urls: ['https://cdn.jsdelivr.net/npm/phaser@3.60.0/*'] }, (_request, callback) => {
+    callback({ redirectURL: new URL('node_modules/phaser/dist/phaser.min.js', gameServer.url).href });
+  });
+
   const publishFullscreenState = (isFullscreen) => {
     if (!mainWindow || mainWindow.isDestroyed() || mainWindow.webContents.isDestroyed()) return;
     mainWindow.webContents.send(WINDOW_FULLSCREEN_CHANGED_CHANNEL, isFullscreen);

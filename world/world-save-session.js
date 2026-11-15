@@ -9,6 +9,7 @@
     constructor({ delta, storage, id = 'world-trial-v1', autosaveMs = 1200, onStatus = () => {}, captureView = () => null }) {
       Object.assign(this, { delta, storage, id, autosaveMs, onStatus, captureView });
       this.storageRevision = 0; this.saving = null; this.timer = null; this.closed = false; this.lastError = null;
+      this.flushDurations = [];
       this.unsubscribe = delta.subscribe(event => { if (delta.dirty) {
         onStatus({ kind: 'dirty' }); if (!event.simulation || !this.timer && !this.saving) this.schedule(event.simulation ? 15000 : this.autosaveMs);
       } });
@@ -41,12 +42,13 @@
       const viewpoint = this.captureView(); if (viewpoint) this.delta.header.viewpoint = f.clone(viewpoint);
       const checkpoint = this.delta.checkpoint(this.storageRevision === 0), id = this.id;
       this.onStatus({ kind: 'saving' });
+      const started = performance.now();
       let success = false;
       this.saving = this.request(`/api/world-saves/${id}`, { method: 'PUT', body: JSON.stringify({ expectedRevision: this.storageRevision, checkpoint }) })
         .then(value => { this.storageRevision = value.storageRevision; this.delta.acknowledge(checkpoint); this.lastError = null; success = true;
           this.onStatus({ kind: this.delta.dirty ? 'dirty' : 'saved', storageRevision: value.storageRevision }); return value; })
         .catch(error => { this.lastError = error; this.onStatus({ kind: 'error', error: error.message }); throw error; })
-        .finally(() => { this.saving = null; if (success && this.delta.dirty) this.schedule(); });
+        .finally(() => { this.flushDurations.push(performance.now() - started); if (this.flushDurations.length > 64) this.flushDurations.shift(); this.saving = null; if (success && this.delta.dirty) this.schedule(); });
       return this.saving;
     }
     async restoreBackup() {
@@ -71,6 +73,7 @@
       this.onStatus({ kind: 'loaded', id, storageRevision: this.storageRevision }); return { ...value, snapshot: f.clone(snapshot) };
     }
     exportBackup() { return f.exportWorldSave(this.delta.snapshot(), this.delta.world); }
+    diagnostics() { const sorted = [...this.flushDurations].sort((a, b) => a - b); return { lastFlushMs: this.flushDurations.at(-1) ?? null, flushP95Ms: sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * .95))] ?? null, flushSamples: sorted.length }; }
     destroy() { this.closed = true; clearTimeout(this.timer); this.unsubscribe(); }
   }
   return { WorldSaveSession };

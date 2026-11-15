@@ -23,7 +23,9 @@
       };
       const active = new Set(activeIds), visible = cell => active.has(`r:${Math.floor(cell.col / 32)}:${Math.floor(cell.row / 32)}`);
       const roadRead = (col, row) => !!this.delta.roadAt(col, row) || this.delta.entityAt(col, row)?.kind === 'bridge';
-      for (const chunk of this.delta.chunks.values()) {
+      const chunks = new Set();
+      for (const id of activeIds) { const [, x, y] = id.split(':').map(Number); const chunk = this.delta.chunks.get(`s:${Math.floor(x / 2)}:${Math.floor(y / 2)}`); if (chunk) chunks.add(chunk); }
+      for (const chunk of chunks) {
         for (const cell of chunk.roads.values()) if (visible(cell)) {
           const point = this.adapter.project(cell.col, cell.row), style = this.visuals.describeRoadStyle(cell.col, cell.row, this.adapter.rotation, roadRead, this.sampleForTile(cell.col, cell.row));
           image(`road:${f.tileId(cell.col, cell.row)}`, point.x, point.y + style.offset, `world-${style.key}`).setOrigin(.5, 1).setDepth(point.y + style.offset + 1);

@@ -25,4 +25,12 @@ for (const match of html.matchAll(/<link rel="stylesheet" href="([^"]+)"/g)) {
 const report = JSON.parse(fs.readFileSync(path.join(root, 'build-report.json'), 'utf8'));
 assert.equal(report.version, require('../package.json').version);
 assert.equal(report.saveDataVersion, 15);
+assert.equal(report.world.storageChunks, 1900); assert.equal(report.world.packs, 130); assert.equal(report.world.renderChunkTiles, 32);
+const worldHtml = fs.readFileSync(path.join(root, 'world/index.html'), 'utf8'), worker = fs.readFileSync(path.join(root, 'web-service-worker.js'), 'utf8');
+for (const [, src] of worldHtml.matchAll(/(?:src|href)="(\.\.\/assets\/[^"]+)"/g)) assert(fs.existsSync(path.resolve(root, 'world', src)), `Missing world resource ${src}`);
+assert(worker.includes('world/index.html'), 'World offline shell is missing');
+const worldAssets = JSON.parse(fs.readFileSync(path.join(root, 'data/world-web-assets.json'))).assets;
+for (const target of Object.values(worldAssets)) assert(fs.existsSync(path.join(root, target.replace(/^\//, ''))), target);
+assert(Object.keys(worldAssets).some(key => key.endsWith('.bin')), 'World binary packs are missing');
+assert(!worldHtml.includes('node_modules'), 'World Phaser must be bundled');
 console.log(`Verified ${files.length} static files for v${report.version}; no server or city database in web output.`);

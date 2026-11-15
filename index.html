@@ -4728,7 +4728,7 @@
     /* While the showcase city plays behind the menu, every gameplay layer between the canvas and
        the landing screen (top bar, tool menu, HUD, zoom controls…) stays out of sight. Modal
        dialogs are exempt: the Load Save list opens from this very menu. */
-    body.attract-live > :not(#game-container):not(#landing-screen):not(.sim-dialog):not(script) {
+    body.attract-live > :not(#game-container):not(#landing-screen):not(.sim-dialog):not(#world-save-list):not(script) {
       visibility: hidden !important;
     }
 
@@ -7062,6 +7062,7 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
           <button id="btn-new-game" class="landing-btn primary" data-i18n-html="landing.newGame"><span class="landing-btn-main">New City</span><span class="landing-btn-sub">Start Fresh</span></button>
           <button id="btn-terrain-creator" class="landing-btn primary" data-i18n-html="landing.terrainCreator"><span class="landing-btn-main">Map Editor</span><span class="landing-btn-sub">Design Terrain</span></button>
           <button id="btn-continue" class="landing-btn secondary" data-i18n-html="landing.loadSaved"><span class="landing-btn-main">Load Save</span><span class="landing-btn-sub">Continue City</span></button>
+          <button id="btn-world-saves" class="landing-btn secondary"><span class="landing-btn-main" data-i18n="landing.worldSaves">全港世界存檔</span><span class="landing-btn-sub" data-i18n="landing.worldBeta">世界模式（測試版）</span></button>
           <button id="btn-import-city" class="landing-btn secondary" data-i18n-html="landing.importCity"><span class="landing-btn-main">Import City</span><span class="landing-btn-sub">Restore Backup</span></button>
         </div>
       </div>
@@ -8528,6 +8529,17 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
   <script src="district-profiles.js"></script>
   <script src="hk-terrain-tiles.js"></script>
   <script src="terrain-presets.js"></script>
+  <style>.setup-settings .setup-row[hidden], .setup-settings .setup-switch[hidden] { display:none !important; } #world-save-list::backdrop { background:#101a24b0; }</style>
+  <dialog id="world-save-list" style="color:#e7e8d9;background:#24353d;border:1px solid #78857d;border-radius:6px;width:min(520px,92vw);max-height:80vh">
+    <h3 data-i18n="landing.worldSaves">全港世界存檔</h3><div id="world-save-list-items" style="display:grid;gap:8px;max-height:55vh;overflow:auto"></div>
+    <button id="world-save-list-close" type="button" class="setup-button" style="margin-top:12px" data-i18n="dialog.close">關閉</button>
+  </dialog>
+  <script src="world/world-config.js"></script>
+  <script src="world/world-crypto.js"></script>
+  <script src="world/world-construction-catalog.js"></script>
+  <script src="world/world-simulation-format.js"></script>
+  <script src="world/world-save-format.js"></script>
+  <script src="world/world-entry.js"></script>
   <script src="map-sources.js"></script>
   <script src="landing-screen.js"></script>
   <script src="attract-mode.js"></script>

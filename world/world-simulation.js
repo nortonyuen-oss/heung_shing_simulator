@@ -1,15 +1,16 @@
 (function (root, factory) {
   const api = factory(typeof module !== 'undefined' && module.exports ? require('./world-save-format') : root.HeungShingWorld,
-    typeof module !== 'undefined' && module.exports ? require('./world-simulation-format') : root.HeungShingWorld);
+    typeof module !== 'undefined' && module.exports ? require('./world-simulation-format') : root.HeungShingWorld,
+    typeof module !== 'undefined' && module.exports ? require('./world-crypto') : root.HeungShingWorld);
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else Object.assign(root.HeungShingWorld ||= {}, api);
-})(globalThis, function (formatApi, format) {
+})(globalThis, function (formatApi, format, cryptoApi) {
   'use strict';
   const { WorldSaveFormat: f } = formatApi;
   const { WORLD_DAY_MS, WORLD_TILE_TRAVEL_MS, WORLD_STOP_MS, MAX_WORLD_TIME_MS, emptyWorldSimulation, servicePosition } = format;
   const money = n => Math.max(0, Math.min(Number.MAX_SAFE_INTEGER, Math.round(n)));
   class WorldSimulation {
-    constructor({ delta, network, now = () => Date.now(), writable = () => true, makeId = () => `service-${crypto.randomUUID()}` }) {
+    constructor({ delta, network, now = () => Date.now(), writable = () => true, makeId = () => `service-${cryptoApi.worldUuid()}` }) {
       Object.assign(this, { delta, network, now, writable, makeId }); this.regional = new Map(); this.metricRevision = -1; this.routeVersion = -1;
       this.lastTickAt = -Infinity; this.stats = { aggregateRebuilds: 0, dailyPasses: 0, batchedDays: 0 };
       this.unsubscribe = delta.subscribe(event => { if (event.all) { this.metricRevision = this.routeVersion = -1; this.lastTickAt = -Infinity; } });

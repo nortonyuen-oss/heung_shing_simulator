@@ -6,7 +6,8 @@ const crypto = require('node:crypto');
 const { execFileSync } = require('node:child_process');
 const sharp = require('sharp');
 const ROOT = path.resolve(__dirname, '..');
-const OUT = path.resolve(ROOT, 'release', process.env.WEB_BUILD_DIRECTORY || 'web');
+const TARGET = path.resolve(ROOT, 'release', process.env.WEB_BUILD_DIRECTORY || 'web');
+const OUT = `${TARGET}.building-${process.pid}`;
 if (!OUT.startsWith(path.join(ROOT, 'release') + path.sep)) throw new Error('Web output must be inside release/');
 const STAGED = path.join(ROOT, '.data/package-assets/Models');
 const hash = data => crypto.createHash('sha256').update(data).digest('hex');
@@ -23,9 +24,8 @@ async function main() {
   if (!fs.existsSync(path.join(STAGED, 'model-assets.json'))) throw new Error('Run npm run prepare:release-assets first');
   fs.rmSync(OUT, { recursive: true, force: true }); fs.mkdirSync(OUT, { recursive: true });
   const pkg = require('../package.json');
-  const previous = path.join(ROOT, '.data/previous-web/web');
   const retention = { version: pkg.version, assets: {} };
-  if (fs.existsSync(path.join(previous, 'asset-retention.json'))) {
+  for (const previous of [path.join(ROOT, '.data/previous-web/web'), TARGET]) if (fs.existsSync(path.join(previous, 'asset-retention.json'))) {
     const history = JSON.parse(fs.readFileSync(path.join(previous, 'asset-retention.json'), 'utf8'));
     const cutoff = Date.now() - 30 * 86400000;
     for (const [name, record] of Object.entries(history.assets)) {
@@ -133,15 +133,16 @@ async function main() {
   html = html.replace(/(['"])((?:UI|Music|Sounds|data|build|newRoadTiles|kenney_isometric-roads)\/[^'"\r\n]+)\1/g,
     (match, quote, logical) => resources[logical] ? `${quote}${resources[logical]}${quote}` : match);
   output('index.html', html);
+  const world = await require('./world-release-assets').bundleWorldWeb({ output, add });
   const catalog = Object.entries(resources).filter(([logical]) => logical === 'data/web-model-assets.json'
     || logical.startsWith('data/model-lists/')).map(([, immutable]) => immutable);
-  const shell = ['index.html', resourceScript, ...immutableScripts, ...immutableStyles, ...catalog];
+  const shell = [...new Set(['index.html', 'world/index.html', 'world/preview.html', resourceScript, ...immutableScripts, ...immutableStyles, ...catalog, ...world.core])];
   const worker = fs.readFileSync(path.join(ROOT, 'web-service-worker.js'), 'utf8')
     .replace('__BUILD_ID__', `${pkg.version}-${config.commitSha.slice(0, 12)}`)
     .replace('/*__SHELL__*/[]', JSON.stringify(shell));
   output('web-service-worker.js', worker);
   output('_redirects', '/index.html / 200\n');
-  output('_headers', '/assets/*\n  Cache-Control: public, max-age=31536000, immutable\n/\n  Cache-Control: no-cache\n/index.html\n  Cache-Control: no-cache\n/web-service-worker.js\n  Cache-Control: no-cache\n/data/*\n  Cache-Control: no-cache\n');
+  output('_headers', '/assets/*\n  Cache-Control: public, max-age=31536000, immutable\n/\n  Cache-Control: no-cache\n/index.html\n  Cache-Control: no-cache\n/world/*\n  Cache-Control: no-cache\n/web-service-worker.js\n  Cache-Control: no-cache\n/data/*\n  Cache-Control: no-cache\n');
   output('LICENSE', fs.readFileSync(path.join(ROOT, 'LICENSE')));
   output('THIRD_PARTY_NOTICES.md', fs.readFileSync(path.join(ROOT, 'THIRD_PARTY_NOTICES.md')));
   const phaserLicense = path.join(path.dirname(require.resolve('phaser/package.json')), 'LICENSE.md');
@@ -155,10 +156,14 @@ async function main() {
   for (const name of currentAssets) retention.assets[name] = { lastUsedAt: config.builtAt,
     versions: [...new Set([...(retention.assets[name]?.versions || []), pkg.version])] };
   output('asset-retention.json', JSON.stringify(retention));
-  const report = { ...appInfo, assetManifestHash: hash(JSON.stringify(models)), files: files.length,
+  const report = { ...appInfo, world, assetManifestHash: hash(JSON.stringify(models)), files: files.length,
     totalBytes: files.reduce((total, file) => total + fs.statSync(file).size, 0),
     largestBytes: Math.max(...files.map(file => fs.statSync(file).size)) };
   output('build-report.json', JSON.stringify(report, null, 2));
+  const backup = `${TARGET}.previous-${process.pid}`;
+  if (fs.existsSync(TARGET)) fs.renameSync(TARGET, backup);
+  try { fs.renameSync(OUT, TARGET); } catch (error) { if (fs.existsSync(backup)) fs.renameSync(backup, TARGET); throw error; }
+  if (fs.existsSync(backup)) fs.rmSync(backup, { recursive: true, force: true });
   console.log(JSON.stringify({ version: pkg.version, files: report.files, MiB: +(report.totalBytes / 1048576).toFixed(1), statisticsEnabled: config.statisticsEnabled }));
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });

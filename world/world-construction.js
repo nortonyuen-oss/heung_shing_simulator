@@ -1,9 +1,10 @@
 (function (root, factory) {
   const api = factory(typeof module !== 'undefined' && module.exports ? require('./world-save-format') : root.HeungShingWorld,
-    typeof module !== 'undefined' && module.exports ? require('./world-construction-catalog') : root.HeungShingWorld);
+    typeof module !== 'undefined' && module.exports ? require('./world-construction-catalog') : root.HeungShingWorld,
+    typeof module !== 'undefined' && module.exports ? require('./world-crypto') : root.HeungShingWorld);
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else Object.assign(root.HeungShingWorld ||= {}, api);
-})(globalThis, function (formatApi, catalog) {
+})(globalThis, function (formatApi, catalog, cryptoApi) {
   'use strict';
   const { WorldSaveFormat: f } = formatApi, { WORLD_BUILDINGS } = catalog;
   function worldLine(a, b) {
@@ -16,7 +17,7 @@
     return cells;
   }
   class WorldConstruction {
-    constructor({ world, region, data, delta, makeId = () => `entity-${globalThis.crypto.randomUUID()}` }) { Object.assign(this, { world, region, data, delta, makeId }); }
+    constructor({ world, region, data, delta, makeId = () => `entity-${cryptoApi.worldUuid()}` }) { Object.assign(this, { world, region, data, delta, makeId }); }
     inside(cell) { return f.point(cell, this.world) && cell.col >= this.region.col && cell.row >= this.region.row
       && cell.col < this.region.col + this.region.width && cell.row < this.region.row + this.region.height; }
     async plan(tool, a, b = a) {

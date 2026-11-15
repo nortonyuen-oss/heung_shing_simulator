@@ -3,6 +3,11 @@
   'use strict';
   const api = globalThis.HeungShingWorld, status = document.getElementById('status');
   const root = new URL('../data/world-terrain/', location.href);
+  const params = new URLSearchParams(location.search), benchmark = params.get('benchmark') === '1';
+  const renderChunkTiles = benchmark && params.get('render') === '64' ? 64 : 32;
+  function assetUrl(file, base = root) {
+    const url = new URL(file, base); return new URL(globalThis.HEUNG_SHING_WORLD_ASSETS?.[url.pathname] || url.href, location.href).href;
+  }
   const state = globalThis.__worldStreamingPreview = { ready: false, errors: [], events: [], manifest: null, storageError: false };
   const diagnostics = new api.WorldDiagnostics();
   function message(text, error = false) { status.textContent = text; status.dataset.error = String(error); }
@@ -11,17 +16,18 @@
     if (entry.type === 'CHUNK_ERROR') message(`區域讀取失敗，會自動重試；低細節地形仍然保留。${entry.error}`, true);
   }
   try {
-    const response = await fetch(new URL('manifest.json', root));
-    if (!response.ok) throw new Error('請先執行 npm run prepare:world-terrain，然後重新載入。');
+    const launch = HeungShingWorldEntry.parseWorldLaunch(location.search);
+    const response = await fetch(assetUrl('manifest.json'));
+    if (!response.ok) throw new Error('世界地形資料暫時未能載入，請重試。');
     const manifest = state.manifest = await response.json();
-    const provider = new api.WorldTerrainProvider(manifest, { onEvent: event, fetchBytes: async url => {
-      const response = await fetch(new URL(url, root));
+    const provider = new api.WorldTerrainProvider(manifest, { renderChunkTiles, onEvent: event, fetchBytes: async url => {
+      const response = await fetch(assetUrl(url));
       if (!response.ok) throw new Error(`HTTP ${response.status}: ${url}`);
       return new Uint8Array(await response.arrayBuffer());
     } });
     if (!/^[a-f0-9]{64}$/.test(manifest.adapterSha256)) throw new Error('地形 Adapter 版本不一致，請重新建立地形資料。');
     await new Promise((resolve, reject) => {
-      const script = document.createElement('script'); script.src = new URL('legacy-terrain-adapter.js', root);
+      const script = document.createElement('script'); script.src = assetUrl('legacy-terrain-adapter.js');
       script.integrity = `sha256-${btoa(String.fromCharCode(...manifest.adapterSha256.match(/../g).map(hex => parseInt(hex, 16))))}`;
       script.onload = resolve; script.onerror = () => reject(new Error('地形 Adapter 未能載入')); document.head.appendChild(script);
     });
@@ -31,59 +37,75 @@
     let manager, renderer, entityRenderer, trafficRenderer, simulationUi, buildUi, minimap, lod, scene, lastStatsAt = 0, pinch = null, jumpSide = false;
     let desktop = false;
     const storageChoice = new URLSearchParams(location.search).get('storage');
-    if (storageChoice !== 'browser') {
+    if (storageChoice !== 'browser' && globalThis.HEUNG_SHING_WORLD_PLATFORM !== 'web') {
       try { const info = await fetch('/api/app-info'); desktop = info.ok && !!(await info.json()).version; } catch {}
     }
     if (storageChoice === 'desktop' && !desktop) throw new Error('本機儲存服務未啟動，請用 npm start 開啟預覽。');
     globalThis.HEUNG_SHING_CONFIG = Object.freeze({ platform: desktop ? 'desktop' : 'web' });
     await HeungShingStorage.initialize();
     const delta = new api.WorldDeltaStore(world), data = new api.WorldDataAccess(provider, delta);
-    let saveId = 'world-trial-v1'; try { saveId = localStorage.getItem('heung-shing.world-trial.active') || saveId; } catch {}
+    let saveId = launch.slot || 'world-trial-v1'; if (!launch.slot) try { saveId = localStorage.getItem('heung-shing.world-trial.active') || saveId; } catch {}
     const session = new api.WorldSaveSession({ delta, storage: HeungShingStorage, id: saveId, onStatus(entry) {
       const labels = { dirty: '有未儲存修改', saving: '儲存中…', saved: '已儲存', loaded: '已載入', error: '未能儲存 · 可匯出備份' };
       document.getElementById('save-status').textContent = `${desktop ? '此電腦' : '此瀏覽器'} · ${labels[entry.kind] || ''}`;
       if (entry.kind === 'error') { state.storageError = true; message(entry.error, true); }
       if (['saved', 'loaded'].includes(entry.kind)) { state.storageError = false; message(''); }
     }, captureView: () => state.ready ? { ...adapter.cameraFocus(scene.cameras.main), rotation: adapter.rotation, zoom: scene.cameras.main.zoom } : null });
-    await session.load();
+    if (!benchmark) {
+      await session.load();
+      if (launch.slot && !launch.fresh && session.storageRevision === 0) throw new Error('找不到這份世界存檔，請返回主選單選擇。');
+      if (launch.fresh && session.storageRevision === 0) {
+        const initial = api.WorldSaveFormat.emptyWorldSnapshot(world); initial.city.name = launch.name; initial.city.startYear = launch.startYear;
+        delta.replace(initial, { dirty: true }); await session.flush();
+      }
+      if (launch.fresh) { params.delete('new'); params.delete('name'); params.delete('year'); params.set('slot', session.id); history.replaceState(null, '', `${location.pathname}?${params}`); }
+    }
     const construction = new api.WorldConstruction({ world, region, data, delta });
     const network = new api.WorldTransportNetwork(delta);
-    const simulation = new api.WorldSimulation({ delta, network, writable: () => HeungShingStorage.writable });
+    const simulation = new api.WorldSimulation({ delta, network, writable: () => !benchmark && HeungShingStorage.writable });
     delta.subscribe(entry => { if (entry.all) manager?.invalidate(); else if (entry.terrainTiles?.length) manager?.invalidateTiles(entry.terrainTiles); });
     const centre = { col: manifest.trial.startCol, row: manifest.trial.startRow };
-    const fetchFailure = file => { state.errors.push(`Asset failed: ${file.src}`); message('地形圖像載入失敗，請重新建立地形資料。', true); };
+    const fetchFailure = file => { state.errors.push(`Asset failed: ${file.src}`); message('世界素材未能載入，請重試。', true); document.getElementById('boot-actions').hidden = false; };
     const game = new Phaser.Game({ type: Phaser.AUTO, parent: 'world-canvas', backgroundColor: '#15232c',
       scale: { mode: Phaser.Scale.RESIZE, width: '100%', height: '100%' },
       render: { antialias: true, roundPixels: false }, fps: { target: 60, limit: 0 },
       scene: { preload() {
         this.load.on('loaderror', fetchFailure);
-        this.load.atlas('world-terrain', new URL(manifest.art.image, root).href, new URL(manifest.art.atlas, root).href);
-        manifest.lod.forEach((view, rotation) => this.load.image(`world-lod-${rotation}`, new URL(view.url, root).href));
+        this.load.atlas('world-terrain', assetUrl(manifest.art.image), assetUrl(manifest.art.atlas));
+        manifest.lod.forEach((view, rotation) => this.load.image(`world-lod-${rotation}`, assetUrl(view.url)));
         if (!manifest.construction) { message('請先執行 npm run prepare:world-terrain 更新建設素材。', true); return; }
-        for (const model of Object.values(api.WORLD_BUILDINGS)) this.load.image(model.texture, new URL(manifest.construction[model.id].url, root).href);
-        for (const [key, file] of Object.entries(ROAD_TILE_LOGICAL_FILES)) this.load.image(`world-${key}`, new URL(`../kenney_isometric-roads/png/${file}`, location.href).href);
-        for (const [key, file] of [['x', 'metro_track_x'], ['y', 'metro_track_y'], ['cross', 'metro_track_cross_xy']]) this.load.image(`world-rail-${key}`, new URL(`../Models/metroTrack/${file}.png`, location.href).href);
+        for (const model of Object.values(api.WORLD_BUILDINGS)) this.load.image(model.texture, assetUrl(manifest.construction[model.id].url));
+        for (const [key, file] of Object.entries(ROAD_TILE_LOGICAL_FILES)) this.load.image(`world-${key}`, assetUrl(`../kenney_isometric-roads/png/${file}`, location.href));
+        for (const [key, file] of [['x', 'metro_track_x'], ['y', 'metro_track_y'], ['cross', 'metro_track_cross_xy']]) this.load.image(`world-rail-${key}`, assetUrl(`../Models/metroTrack/${file}.png`, location.href));
       }, create() {
+        if (state.errors.length) return;
         scene = this;
         lod = new api.WorldLod(scene, manifest.lod);
         renderer = new api.WorldChunkRenderer({ scene, adapter, visuals });
-        manager = new api.WorldChunkManager({ world, region, provider: data, renderer, onEvent: event });
+        manager = new api.WorldChunkManager({ world: provider.renderWorld, region, provider: data, renderer, onEvent: event });
         entityRenderer = new api.WorldEntityRenderer({ scene, adapter, delta, visuals, fitGround: fitBuildingToGroundCorners,
           sampleForTile: (col, row) => manager.records.get(`r:${Math.floor(col / 32)}:${Math.floor(row / 32)}`)?.job?.data?.sample });
         scene.cameras.main.setZoom(.8); adapter.centreCamera(scene.cameras.main, centre.col, centre.row);
         installInput(game.canvas);
-        buildUi = new api.WorldConstructionUi({ scene, adapter, construction, delta, session, simulation, message, restoreView });
+        buildUi = benchmark ? { cancel() {}, destroy() {} } : new api.WorldConstructionUi({ scene, adapter, construction, delta, session, simulation, message, restoreView });
+        if (benchmark) { document.getElementById('construction-controls').inert = true; document.getElementById('world-name').textContent = `Render ${renderChunkTiles} 效能測試`; }
         const navigate = (col, row) => { buildUi.cancel(); setFocus(col, row); };
-        minimap = new api.WorldMinimap({ scene, adapter, delta, simulation, manifest, rootUrl: root, navigate });
+        minimap = new api.WorldMinimap({ scene, adapter, delta, simulation, manifest, rootUrl: root, resolveAsset: assetUrl, navigate });
         trafficRenderer = new api.WorldTrafficRenderer({ scene, adapter, simulation });
         simulationUi = new api.WorldSimulationUi({ simulation, navigate, message });
         state.ready = true;
-        Object.assign(state, { scene, provider, manager, renderer, adapter, game, setFocus, rotate, delta, data, construction, entityRenderer, session, buildUi, minimap, network, simulation, trafficRenderer,
+        Object.assign(state, { scene, provider, manager, renderer, adapter, game, setFocus, rotate, delta, data, construction, entityRenderer, session, buildUi, minimap, network, simulation, trafficRenderer, benchmark, renderChunkTiles,
           stats: () => ({ ...manager.snapshot(), ...diagnostics.snapshot(), focus: adapter.cameraFocus(scene.cameras.main),
             rotation: adapter.rotation, zoom: scene.cameras.main.zoom, atlasRgbaBytes: manifest.art.rgbaBytes, minimap: minimap.snapshot(),
             simulation: simulation.snapshot(), traffic: trafficRenderer.snapshot(),
+            save: session.diagnostics(),
             construction: { revision: delta.revision, dirtyChunks: delta.dirtyChunks.size, entities: delta.entities.size, visuals: entityRenderer.snapshot(), storageRevision: session.storageRevision } }) });
         restoreView(delta.header);
+        document.querySelector('header a[href="/"]').addEventListener('click', async event => {
+          if (event.button !== 0 || event.ctrlKey || event.metaKey) return;
+          event.preventDefault();
+          try { if (!benchmark) await session.flush(); await HeungShingStorage.releaseForNavigation(); location.assign('/'); } catch (error) { message(error.message, true); }
+        });
         const tick = () => { if (buildUi?.busy) return; try { simulation.tick(); } catch (error) { message(error.message, true); } };
         tick(); const timer = setInterval(tick, 1000); scene.events.once('shutdown', () => clearInterval(timer));
       }, update(_time, delta) {
@@ -92,8 +114,7 @@
         const camera = scene.cameras.main, raw = adapter.cameraFocus(camera), focus = adapter.clamp(raw.col, raw.row);
         if (Math.abs(raw.col - focus.col) > .001 || Math.abs(raw.row - focus.row) > .001) adapter.centreCamera(camera, focus.col, focus.row);
         manager.setFocus(focus.col, focus.row); manager.pump(); renderer.cull(camera);
-        entityRenderer.sync(manager.snapshot().activeIds);
-        trafficRenderer.sync(manager.snapshot().activeIds);
+        if (!benchmark) { entityRenderer.sync(manager.snapshot().activeIds); trafficRenderer.sync(manager.snapshot().activeIds); }
         minimap.update();
         if (performance.now() - lastStatsAt > 250) { renderStats(focus); lastStatsAt = performance.now(); }
       } },
@@ -167,5 +188,5 @@
       document.getElementById('jump').onclick = () => { buildUi?.cancel(); jumpSide = !jumpSide; setFocus(jumpSide ? 2864 : centre.col, jumpSide ? 336 : centre.row); };
       scene.events.once('shutdown', () => { session.destroy(); buildUi?.destroy(); simulationUi?.destroy(); minimap?.destroy(); trafficRenderer?.destroy(); simulation.destroy(); network.destroy(); entityRenderer.destroy(); manager.destroy(); renderer.destroy(); lod.destroy(); provider.destroy(); });
     }
-  } catch (error) { state.errors.push(String(error.message || error)); message(String(error.message || error), true); }
+  } catch (error) { state.errors.push(String(error.message || error)); message(String(error.message || error), true); document.getElementById('boot-actions').hidden = false; }
 })();

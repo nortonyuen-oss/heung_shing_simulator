@@ -2,6 +2,8 @@
 
 分支：`codex/world-chunk-streaming`。世界預覽新增可操作的巴士／列車來回班次，以及人口和財政聚合。依照 [規格第 7 節及 Phase 4](world-chunk-streaming-spec-v1.0.md)，路網、班次、人口、時鐘及預算都由世界資料持有，與九個詳細 Render Chunks 的生命週期分開。
 
+後續已進入 [Phase 5](world-streaming-phase5.md)。使用者要求全境最終融入原遊戲，這裡的獨立介面與基礎經濟只是過渡，不能視為完整遊戲整合。
+
 ## 操作
 
 沿用 `npm start` 及 `/world/preview.html`，靜態預覽可使用 IndexedDB。新舊世界載入後，未曾啟動的模擬保持暫停，不會自行扣除維護費。

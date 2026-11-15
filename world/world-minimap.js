@@ -92,14 +92,14 @@
     return { chunks, entities: [...ids].map(id => delta.entities.get(id)).filter(Boolean) };
   }
   class WorldMinimap {
-    constructor({ scene, adapter, delta, simulation, manifest, rootUrl, navigate, element = document.getElementById('world-minimap') }) {
+    constructor({ scene, adapter, delta, simulation, manifest, rootUrl, resolveAsset = file => new URL(file, rootUrl), navigate, element = document.getElementById('world-minimap') }) {
       this.scene = scene; this.adapter = adapter; this.delta = delta; this.simulation = simulation; this.manifest = manifest; this.rootUrl = rootUrl; this.navigate = navigate; this.element = element;
       this.base = element.querySelector('[data-map-base]'); this.city = element.querySelector('[data-map-city]'); this.view = element.querySelector('[data-map-view]');
       this.surface = element.querySelector('.minimap-surface'); this.label = element.querySelector('[data-map-position]');
       this.mode = 'local'; this.collapsed = false; this.baseDirty = true; this.cityDirty = true; this.viewKey = ''; this.layoutKey = '';
       this.draws = { base: 0, city: 0, viewport: 0 }; this.abort = new AbortController(); this.gesture = null;
       this.cache = new WorldOverviewCache({ load: async (view, signal) => {
-        const response = await fetch(new URL(view.url, rootUrl), { signal });
+        const response = await fetch(resolveAsset(view.url), { signal });
         if (!response.ok) throw new Error(`Local overview HTTP ${response.status}`);
         return createImageBitmap(await response.blob());
       }, onChange: () => { this.baseDirty = true; } });

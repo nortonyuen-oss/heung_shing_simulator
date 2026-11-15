@@ -48,8 +48,7 @@ function setupLandingScreen() {
   const rememberedSourceIds = { district: '', saved: '' };
   // Each pick bumps this, so a slow terrain load never paints over a newer pick.
   let previewToken = 0;
-  // 香港全境's performance-warning dialog shows once per session, not on every confirm.
-  let territoryWarningAcknowledged = false;
+  globalThis.HeungShingWorldEntry.setupWorldMenu();
 
   function setLandingState(state) {
     if (menu) menu.style.display = state === 'menu' ? 'grid' : 'none';
@@ -204,6 +203,9 @@ function setupLandingScreen() {
 
   async function selectSource(source) {
     selectedSource = source;
+    const worldMode = source?.kind === 'territory';
+    if (roadTileSetSelect) roadTileSetSelect.closest('.setup-row').hidden = worldMode;
+    if (transportExpansionCheckbox) transportExpansionCheckbox.closest('.setup-switch').hidden = worldMode;
     if (source && rememberedSourceIds[source.kind] !== undefined) rememberedSourceIds[source.kind] = source.id;
     markSelectedCards();
     if (btnStart) btnStart.disabled = !source;
@@ -220,6 +222,11 @@ function setupLandingScreen() {
 
     if (source.kind === 'district') showDistrictIntro(source);
     if (source.kind === 'territory') showTerritoryIntro(source);
+    if (source.kind === 'territory') {
+      // The world engine has its own immutable packs; selecting it must never load legacy RLE.
+      if (introMeta) introMeta.textContent = t('landing.worldSize');
+      showPreviewStatus(''); return;
+    }
     if (previewName) {
       previewName.textContent = source.kind === 'generated'
         ? getMapSourceProfileLabel(source.profileType)
@@ -340,7 +347,7 @@ function setupLandingScreen() {
     // source like any other (same selectSource/confirmSetup path), just a much bigger one.
     // getDistrictOverviewBox(source) returns null for it (no .centre), so it naturally never
     // gets an overview-map marker below, only a chip in the list.
-    const sources = [createHkTerritoryMapSource(), ...listDistrictMapSources()];
+    const sources = [...(setupMode === 'editor' ? [] : [createHkTerritoryMapSource()]), ...listDistrictMapSources()];
     const showHover = (source) => placeOverviewFrame(overviewHover, source);
     const hideHover = () => { if (overviewHover) overviewHover.hidden = true; };
 
@@ -469,10 +476,10 @@ function setupLandingScreen() {
       showToast(t('landing.mapRequired'), 'warning');
       return;
     }
-    if (source.kind === 'territory' && !territoryWarningAcknowledged) {
-      const confirmed = await showTerritoryWarningDialog();
-      if (!confirmed) return;
-      territoryWarningAcknowledged = true;
+    if (source.kind === 'territory') {
+      try { await globalThis.HeungShingWorldEntry.enterWorld(globalThis.HeungShingWorldEntry.createWorldUrl({ name: nameInput.value.trim() || getDefaultCityName(), startYear: resolveCityStartYear(selectedStartYear) })); }
+      catch (error) { showToast(error.message, 'danger'); }
+      return;
     }
     if (btnStart) btnStart.disabled = true;
     // showPreviewStatus below writes into .setup-preview, which the 香港地區 tab's own CSS hides

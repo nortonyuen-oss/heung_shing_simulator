@@ -17,14 +17,14 @@
       document.getElementById('world-file').onchange = event => this.run(async () => {
         const file = event.target.files[0]; if (!file) return;
         if (file.size > root.HeungShingWorld.WorldSaveFormat.MAX_WORLD_SAVE_BYTES) throw new Error('備份超過 20 MiB。');
-        const id = `world-${crypto.randomUUID()}`, value = await session.importBackup(await file.text(), id);
+        const id = `world-${root.HeungShingWorld.worldUuid()}`, value = await session.importBackup(await file.text(), id);
         restoreView(value.snapshot); await this.updateSlots(); event.target.value = '';
       });
       this.unsubscribe = delta.subscribe(() => this.updateBudget()); this.updateBudget(); this.updateSlots().catch(error => message(error.message, true));
       window.addEventListener('beforeunload', event => { if (delta.dirty) { event.preventDefault(); event.returnValue = ''; } });
       window.addEventListener('keydown', event => { if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') { event.preventDefault(); this.run(() => session.flush()); } });
     }
-    updateBudget() { document.getElementById('world-budget').textContent = `$${this.delta.header.city.budget.toLocaleString()}`; }
+    updateBudget() { document.getElementById('world-budget').textContent = `$${this.delta.header.city.budget.toLocaleString()}`; document.getElementById('world-name').textContent = this.delta.header.city.name; }
     async updateSlots() {
       const rows = await this.session.list(), select = document.getElementById('world-slot'); select.replaceChildren();
       if (!rows.some(row => row.id === this.session.id)) rows.push({ id: this.session.id, city: this.delta.header.city });

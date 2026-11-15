@@ -49,7 +49,7 @@
     if (!Number.isFinite(col) || !Number.isFinite(row)) throw new Error('Invalid camera focus');
     col = Math.max(region.col, Math.min(region.col + region.width - 1, col));
     row = Math.max(region.row, Math.min(region.row + region.height - 1, row));
-    const cx = Math.floor(col / 32), cy = Math.floor(row / 32);
+    const cx = Math.floor(col / world.renderChunkTiles), cy = Math.floor(row / world.renderChunkTiles);
     const chunks = [];
     for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
       const bounds = chunkBounds(world, 'r', cx + dx, cy + dy);

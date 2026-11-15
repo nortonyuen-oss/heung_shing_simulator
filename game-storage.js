@@ -8,6 +8,9 @@
   const revisions = new Map();
   let db, opening, writable = false, memoryOnly = false, leaseTimer, unlock;
   const owner = root.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`;
+  const handoffKey = 'heung-shing.writer-handoff'; let navigationOwner = null;
+  function consumeHandoff() { try { navigationOwner = root.sessionStorage?.getItem(handoffKey); root.sessionStorage?.removeItem(handoffKey); } catch {} }
+  consumeHandoff();
   const memory = Object.fromEntries(stores.map(name => [name, new Map()]));
   let memoryId = 0;
   function req(request) {
@@ -57,8 +60,9 @@
     writable = await transaction(['settings'], 'readwrite', async access => {
       const store = access('settings');
       const lease = await store.get('writer');
-      if (lease && lease.owner !== owner && lease.expires > now) return false;
+      if (lease && lease.owner !== owner && lease.owner !== navigationOwner && lease.expires > now) return false;
       await store.put({ owner, expires: now + 30000 }, 'writer');
+      navigationOwner = null;
       return true;
     });
     return writable;
@@ -109,14 +113,25 @@
         unlock?.();
         root.clearInterval(leaseTimer);
         writable = false;
-        if (!root.navigator?.locks?.request) transaction(['settings'], 'readwrite', async access => {
-          const lease = await access('settings').get('writer');
-          if (lease?.owner === owner) await access('settings').delete('writer');
-        }).catch(() => {});
+        // Safari may freeze bfcache pages before a new IDB transaction can finish.
+        // Close synchronously; a one-use, same-tab token transfers only our existing lease.
+        try { root.sessionStorage?.setItem(handoffKey, owner); } catch {}
+        db?.close(); db = null; opening = null;
       }, { once: true });
     })();
     return opening;
   }
+  async function releaseForNavigation() {
+    if (!isWeb()) return;
+    await initialize(); root.clearInterval(leaseTimer);
+    if (db && !root.navigator?.locks?.request && writable) await transaction(['settings'], 'readwrite', async access => {
+      const lease = await access('settings').get('writer'); if (lease?.owner === owner) await access('settings').delete('writer');
+    });
+    unlock?.(); unlock = null; writable = false; db?.close(); db = null; opening = null;
+    // If beforeunload is cancelled, or this page returns from bfcache, reopen its connection.
+    root.setTimeout?.(() => initialize().catch(() => {}), 1000);
+  }
+  root.addEventListener?.('pageshow', event => { if (event.persisted) { consumeHandoff(); initialize().catch(() => { writable = false; }); } });
   function assertWriter() {
     if (!writable) throw Object.assign(new Error('Another game tab has write access. Close it and reload this tab.'), { status: 409 });
   }
@@ -283,7 +298,7 @@
       return { ok: true, status: 200, json: async () => value };
     } catch (error) { return { ok: false, status: error.status || 507, json: async () => ({ error: error.message }) }; }
   }
-  root.HeungShingStorage = { initialize, request, list, get, write, remove, worldRequest,
+  root.HeungShingStorage = { initialize, releaseForNavigation, request, list, get, write, remove, worldRequest,
     get memoryOnly() { return memoryOnly; }, get writable() { return !isWeb() || writable; } };
   if (typeof module !== 'undefined') module.exports = root.HeungShingStorage;
 })(globalThis);

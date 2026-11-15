@@ -27,9 +27,10 @@
       return { ...f.clone(header), chunks: [...this.chunks.values()].map(chunk => this.serializeChunk(chunk)).sort((a, b) => a.chunkId.localeCompare(b.chunkId)),
         entities: [...this.entities.values()].map(f.clone).sort((a, b) => a.id.localeCompare(b.id)) }; }
     checkpoint(all = false) {
-      const snapshot = this.snapshot(), { chunks, entities, ...header } = snapshot;
-      return { header, chunks: chunks.filter(chunk => all || this.dirtyChunks.has(chunk.chunkId)),
-        entities: all ? entities.map(value => ({ id: value.id, value })) : [...this.dirtyEntities.keys()].map(id => ({ id, value: f.clone(this.entities.get(id) || null) })),
+      const { chunks: _c, entities: _e, ...header } = this.header;
+      const chunks = all ? [...this.chunks.values()] : [...this.dirtyChunks.keys()].map(id => this.chunks.get(id));
+      return { header: f.clone(header), chunks: chunks.map(chunk => this.serializeChunk(chunk)).sort((a, b) => a.chunkId.localeCompare(b.chunkId)),
+        entities: (all ? [...this.entities.keys()] : [...this.dirtyEntities.keys()]).map(id => ({ id, value: f.clone(this.entities.get(id) || null) })),
         token: { revision: this.revision, chunks: [...this.dirtyChunks], entities: [...this.dirtyEntities] } };
     }
     acknowledge(checkpoint) {

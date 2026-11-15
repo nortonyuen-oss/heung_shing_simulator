@@ -123,6 +123,9 @@ class WorldGameHost {
     this.lod = new api.WorldLod(scene, this.manifest.lod); this.lod.image.setDepth(-1); this.lod.setRotation(mapRotation);
     this.regionalLod = new api.WorldRegionalLod({ scene, adapter: this.adapter,
       lod: this.manifest.regionalLod || this.manifest.localLod, resolveAsset: file => this.asset(file) });
+    this.minimap = new api.WorldGameMinimap({ scene, adapter: this.adapter, manifest: this.manifest,
+      resolveAsset: file => this.asset(file), onChange: () => { cityMinimapLastDrawAt = 0; } });
+    try { this.minimap.setMode(localStorage.getItem('heung-shing.world-minimap-mode') || 'local'); } catch {}
     this.ready = true;
     const view = this.initialViewpoint();
     mapRotation = view.rotation; this.rotate(mapRotation); drawWorldMask(scene);
@@ -218,15 +221,9 @@ class WorldGameHost {
     finally { this.mountingBuilding = false; }
   }
   *visibleRoadTiles() {
-    if (this.roadIndexVersion !== this.roadVersion) {
-      this.roadChunks.clear();
-      for (const [id, type] of mapData.sparseCells) {
-        if(type!==ROAD)continue; const [row,col]=id.split(':').map(Number), key=`r:${Math.floor(col/32)}:${Math.floor(row/32)}`;
-        if(!this.roadChunks.has(key))this.roadChunks.set(key,[]);this.roadChunks.get(key).push({row,col});
-      }
-      this.roadIndexVersion=this.roadVersion;
+    for (const [id, type] of HeungShingWorld.sparseGameChunkEntries(mapData, this.manager?.snapshot().activeIds || [])) {
+      if (type === ROAD) { const [row,col] = id.split(':').map(Number); yield {row,col}; }
     }
-    for(const id of this.manager?.snapshot().activeIds||[]) yield* this.roadChunks.get(id)||[];
   }
   visualAreaKey() { const b=this.activeBounds();return `${b.rowStart}:${b.colStart}:${mapRotation}`; }
   yulanRuralTiles(scene) {
@@ -270,33 +267,41 @@ class WorldGameHost {
     this.manager.setFocus(clamped.col, clamped.row);
     if (this.pendingTerrain.size) { this.manager.invalidateTiles([...this.pendingTerrain.values()]); this.pendingTerrain.clear(); }
     this.manager.pump(); this.renderer.cull(camera); this.regionalLod?.update(camera, mapRotation);
-    this.indexBuildings(); const ids = this.manager.snapshot().activeIds, wanted = new Set();
-    for (const id of ids) for (const anchor of this.buildingChunks.get(id) || []) wanted.add(anchor);
-    // Actual Phaser sprites may leave. Logical footprint records stay in buildingData.
-    const leaving = new Set();
-    for (const sprite of this.scene.buildingSprites.values()) if (!wanted.has(getTileId(sprite.mapRow, sprite.mapCol))) leaving.add(sprite);
-    for (const [id, sprite] of this.scene.buildingSprites) if (leaving.has(sprite)) Map.prototype.delete.call(this.scene.buildingSprites, id);
-    for (const sprite of leaving) sprite.destroy();
-    for (const anchor of wanted) this.mountBuilding(anchor);
+    const ids = this.manager.snapshot().activeIds;
     const visualKey = ids.join(',') + ':' + mapRotation;
-    if ((this.visualKey !== visualKey || this.lastVisualKey === '') && (time - (this.lastVisualAt || 0) > 150 || this.lastVisualKey === '')) {
-      this.syncLocalVisuals(new Set(ids)); this.visualKey = ids.join(',') + ':' + mapRotation; this.lastVisualKey = 'valid'; this.lastVisualAt = time;
+    const buildingKey = `${visualKey}:${this.buildingVersion}`;
+    if (this.buildingVisualKey !== buildingKey) {
+      this.indexBuildings(); const wanted = new Set();
+      for (const id of ids) for (const anchor of this.buildingChunks.get(id) || []) wanted.add(anchor);
+      const leaving = new Set();
+      for (const sprite of this.scene.buildingSprites.values()) if (!wanted.has(getTileId(sprite.mapRow, sprite.mapCol))) leaving.add(sprite);
+      for (const [id, sprite] of this.scene.buildingSprites) if (leaving.has(sprite)) Map.prototype.delete.call(this.scene.buildingSprites, id);
+      for (const sprite of leaving) sprite.destroy();
+      for (const anchor of wanted) this.mountBuilding(anchor);
+      this.buildingVisualKey = buildingKey;
+    }
+    const viewportKey = `${Math.floor(clamped.col/4)}:${Math.floor(clamped.row/4)}:${camera.zoom}:${camera.width}:${camera.height}`;
+    if ((this.visualKey !== visualKey || this.viewportVisualKey !== viewportKey || this.lastVisualKey === '') && (time - (this.lastVisualAt || 0) > 150 || this.lastVisualKey === '')) {
+      this.syncLocalVisuals(new Set(ids)); this.visualKey = visualKey; this.viewportVisualKey = viewportKey; this.lastVisualKey = 'valid'; this.lastVisualAt = time;
     }
   }
   syncLocalVisuals(active) {
-    const contains = (row, col) => active.has(`r:${Math.floor(col / 32)}:${Math.floor(row / 32)}`);
+    const view = getCameraWorldViewRect(this.scene.cameras.main), range = getTerrainViewportLogicalRange(this.scene,
+      { minX: view.x - 200, maxX: view.x + view.width + 200, minY: view.y - 250, maxY: view.y + view.height + 250 });
+    const contains = (row, col) => active.has(`r:${Math.floor(col / 32)}:${Math.floor(row / 32)}`)
+      && row >= range.minRow && row <= range.maxRow && col >= range.minCol && col <= range.maxCol;
     for (const [id, sprite] of this.scene.tileSprites) {
       const row = Math.floor(id / MAP_WIDTH), col = id % MAP_WIDTH;
       if (!contains(row, col) || mapData[row][col] !== ROAD) { sprite.destroy(); this.scene.tileSprites.delete(id); }
     }
-    for (const [id, value] of mapData.sparseCells) {
+    for (const [id, value] of HeungShingWorld.sparseGameChunkEntries(mapData, active)) {
       if (value !== ROAD) continue; const [row, col] = id.split(':').map(Number);
       if (contains(row, col)) { refreshTileSprite(this.scene, row, col); const sprite = this.scene.tileSprites.get(row * MAP_WIDTH + col); setTerrainSpriteViewportActive(sprite, true, this.scene); }
     }
     for (const [id, sprite] of this.scene.zoneOverlays) {
       const [r,c] = id.split(':').map(Number); if (!contains(r,c) || !zoneMap[r][c]) { sprite.destroy(); this.scene.zoneOverlays.delete(id); }
     }
-    for (const [id, zone] of zoneMap.sparseCells) {
+    for (const [id, zone] of HeungShingWorld.sparseGameChunkEntries(zoneMap, active)) {
       if (!zone) continue; const [row,col] = id.split(':').map(Number); if (!contains(row,col) || this.scene.zoneOverlays.has(id)) continue;
       const point = isoToScreen(col,row), code = zone === ZONE_RES ? 'res' : zone === ZONE_COM ? 'com' : 'ind';
       const overlay = this.scene.add.image(point.x, point.y + getElevationVisualOffset(row,col), `zone_overlay_${code}_${zoneDensityMap[row][col]}`).setOrigin(.5,1).setAlpha(.8);
@@ -338,7 +343,9 @@ class WorldGameHost {
     const maintenance={fire_station:UPKEEP_FIRE_STATION,police_station:UPKEEP_POLICE_STATION,primary_school:UPKEEP_PRIMARY_SCHOOL,secondary_school:UPKEEP_SECONDARY_SCHOOL,
       library:UPKEEP_LIBRARY,community_college:UPKEEP_COMMUNITY_COLLEGE,university:UPKEEP_UNIVERSITY,hospital:UPKEEP_HOSPITAL,event_ground:UPKEEP_EVENT_GROUND,
       park_small:UPKEEP_PARK_SMALL,park_large:UPKEEP_PARK_LARGE,park_flagship:UPKEEP_PARK_FLAGSHIP,sports_ground_small:UPKEEP_SPORTS_GROUND_SMALL,sports_ground_large:UPKEEP_SPORTS_GROUND_LARGE};
-    for(const [id,type]of mapData.sparseCells){const [r,c]=id.split(':').map(Number);add(r,c,type===ROAD?{expenses:UPKEEP_ROAD_PER_TILE*getDepartmentFunding('roads')}:{ });}
+    const roadUpkeep = UPKEEP_ROAD_PER_TILE * getDepartmentFunding('roads');
+    for (const [id, cells] of mapData.sparseChunkCells) { const [,x,y] = id.split(':').map(Number); add(y*32,x*32,{expenses:(cells.counts.get(ROAD)||0)*roadUpkeep}); }
+    for (const id of heightMap.sparseChunkCells.keys()) { const [,x,y] = id.split(':').map(Number); add(y*32,x*32); }
     for(const [id,zone]of zoneMap.sparseCells){if(!zone)continue;const [r,c]=id.split(':').map(Number);add(r,c,{powerDemand:this.buildingAt(id)?0:getZonePowerDemand(zone,zoneDensityMap[r][c])});}
     for(const [id,record]of Object.entries(buildingData)){
       const [r,c]=id.split(':').map(Number), type=record.type;
@@ -361,7 +368,7 @@ class WorldGameHost {
   }
   stats() {
     const activeStorage=new Set(this.manager.snapshot().activeIds.map(id=>{const [,x,y]=id.split(':').map(Number);return `s:${Math.floor(x/2)}:${Math.floor(y/2)}`;}));
-    return {...this.manager.snapshot(),...this.diagnostics.snapshot(),terrain:this.provider.snapshot(),regionalLod:this.regionalLod?.snapshot(),summaryRecords:this.chunkTable.rows.size,
+    return {...this.manager.snapshot(),...this.diagnostics.snapshot(),terrain:this.provider.snapshot(),regionalLod:this.regionalLod?.snapshot(),minimap:this.minimap?.snapshot(),summaryRecords:this.chunkTable.rows.size,
       unloadedSummaryRecords:[...this.chunkTable.rows.keys()].filter(id=>!activeStorage.has(id)).length,save:this.session.diagnostics()};
   }
   capture() {
@@ -410,21 +417,46 @@ class WorldGameHost {
     const x = Math.max(0,Math.min(raster.width-1,Math.round((point.x-view.x)/view.width*raster.width))), y = Math.max(0,Math.min(raster.height-1,Math.round((point.y-40-view.y)/view.height*raster.height)));
     const index = (y*raster.width+x)*4; return [raster.data[index],raster.data[index+1],raster.data[index+2]];
   }
-  paintMinimap(ctx, grid, paint) {
-    const source = this.scene.textures.get(`world-lod-${mapRotation}`).getSourceImage(), view = this.manifest.lod[mapRotation];
-    const scale = 1 / (grid.step * 50), x = view.x * scale - MAP_HEIGHT / grid.step + grid.gridWidth;
-    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-    ctx.drawImage(source, x, view.y * scale, view.width * scale, view.height * scale);
-    // Match the original minimap's one-pixel-per-cell projection.
-    for (const [id, value] of mapData.sparseCells) { const [r, c] = id.split(':').map(Number); paint(r, c, value === ROAD ? [70,72,76] : cityMinimapTileColor(r,c)); }
-    // paint writes the caller's ImageData; draw developed cells directly over the LOD.
-    for (const { row, col } of this.simulationTiles()) {
-      if (!zoneMap[row]?.[col] && !buildingData[getTileId(row, col)] && mapData[row]?.[col] !== ROAD) continue;
-      const point = cityMinimapPointAt(col, row, grid), rgb = cityMinimapTileColor(row, col); ctx.fillStyle = `rgb(${rgb.join(',')})`; ctx.fillRect(point.x, point.y, 2, 1);
+  paintMinimap(ctx) {
+    this.minimap.drawBase(ctx);
+    const key = `${this.minimap.layoutKey}:${this.stateVersion}:${this.buildingVersion}`;
+    if (!this.minimapCityCanvas) { this.minimapCityCanvas = document.createElement('canvas'); this.minimapCityCanvas.width = ctx.canvas.width; this.minimapCityCanvas.height = ctx.canvas.height; }
+    if (this.minimapCityKey !== key) {
+      this.indexBuildings();
+      const layer = this.minimapCityCanvas.getContext('2d'), image = layer.createImageData(ctx.canvas.width, ctx.canvas.height), ids = new Set(), anchors = new Set();
+      const region = this.minimap.region, chunks = [];
+      for (let y = Math.floor(region.row/32); y <= Math.floor((region.row+region.height-1)/32); y++)
+        for (let x = Math.floor(region.col/32); x <= Math.floor((region.col+region.width-1)/32); x++) chunks.push(`r:${x}:${y}`);
+      for (const grid of [mapData, zoneMap]) {
+        const entries = this.minimap.mode === 'world' ? grid.sparseCells : HeungShingWorld.sparseGameChunkEntries(grid,chunks);
+        for (const [id] of entries) ids.add(id);
+      }
+      for (const id of chunks) for (const anchor of this.buildingChunks.get(id) || []) anchors.add(anchor);
+      for (const anchor of anchors) {
+        const [row,col] = anchor.split(':').map(Number), record = buildingData[anchor];
+        for (let r = row; r < row + (record.footprintRows || 1); r++) for (let c = col; c < col + (record.footprintCols || 1); c++) ids.add(`${r}:${c}`);
+      }
+      const width = image.width, height = image.height, data = image.data;
+      for (const id of ids) {
+        const [row,col] = id.split(':').map(Number); if (!this.minimap.contains(col,row)) continue;
+        const building = this.footprints.has(id), type = mapData.sparseCells.get(id), zone = zoneMap.sparseCells.get(id);
+        if (type === undefined && !zone && !building) continue;
+        const rgb = building ? [214,208,194] : type === ROAD ? [70,72,76] : cityMinimapTileColor(row,col);
+        const point = this.minimap.transform.worldToMinimap(col,row), x = Math.floor(point.x), y = Math.floor(point.y);
+        if (y < 0 || y >= height) continue;
+        for (let dx = 0; dx < 2; dx++) {
+          if (x+dx < 0 || x+dx >= width) continue;
+          const at = (y*width+x+dx)*4; data[at]=rgb[0]; data[at+1]=rgb[1]; data[at+2]=rgb[2]; data[at+3]=255;
+        }
+      }
+      layer.putImageData(image,0,0); this.minimapCityKey = key;
     }
+    this.minimap.clip(ctx); ctx.drawImage(this.minimapCityCanvas,0,0);
+    ctx.restore();
   }
   destroy() {
-    clearInterval(this.timer); clearTimeout(this.buildSaveTimer); this.ready = false; this.session?.destroy(); this.manager?.destroy(); this.renderer?.destroy(); this.regionalLod?.destroy(); this.lod?.destroy(); this.provider?.destroy();
+    clearInterval(this.timer); clearTimeout(this.buildSaveTimer); this.ready = false; this.session?.destroy(); this.manager?.destroy(); this.renderer?.destroy(); this.minimap?.destroy(); this.regionalLod?.destroy(); this.lod?.destroy(); this.provider?.destroy();
+    if (this.minimapCityCanvas) { this.minimapCityCanvas.width=0; this.minimapCityCanvas.height=0; }
     stopSimTimer(); clearAllOverlays(this.scene); clearBuildings(this.scene);
     this.scene.debrisSprites?.forEach(sprite=>sprite.destroy()); this.scene.debrisSprites?.clear();
     clearBusStopSprites(this.scene); clearTransportVisuals(this.scene);

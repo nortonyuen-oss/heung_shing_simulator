@@ -47,6 +47,9 @@
       }), onChange: () => this.sync() });
     }
     update(camera, rotation) {
+      const state = [camera.scrollX,camera.scrollY,camera.zoom,camera.width,camera.height,camera.originX,camera.originY,rotation];
+      if (this.lastCameraState && state.every((value,index) => value === this.lastCameraState[index])) { this.cache.pump(); return; }
+      this.lastCameraState = state;
       const views = regionalLodViews(this.adapter, camera, this.lod, rotation), key = views.map(view => view.url).join('|');
       if (key !== this.key) { this.key = key; this.views = views; this.cache.setWanted(views); this.sync(); }
       else this.cache.pump();

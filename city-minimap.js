@@ -11,6 +11,33 @@ let cityMinimapLastRotation = null;
 let cityMinimapLastView = '';
 let cityMinimapDragging = false;
 
+function worldCityMinimap() { return isWorldGameActive() ? globalThis.__worldGameHost.minimap : null; }
+
+function updateWorldCityMinimapControls() {
+  const map = worldCityMinimap(), modes = document.getElementById('city-minimap-modes'), location = document.getElementById('city-minimap-location');
+  if (modes) modes.hidden = !map;
+  if (location) location.hidden = !map;
+  if (!map) return;
+  document.querySelectorAll('[data-city-minimap-mode]').forEach(button => {
+    const active = button.dataset.cityMinimapMode === map.mode;
+    button.classList.toggle('is-active', active); button.setAttribute('aria-pressed', String(active));
+  });
+  if (location) {
+    const host = globalThis.__worldGameHost, focus = host.adapter.cameraFocus(activeScene.cameras.main), geo = host.manifest.geography;
+    const e = geo.westE + (focus.col + .5) * geo.tileMetres, n = geo.northN - (focus.row + .5) * geo.tileMetres;
+    let nearest, distance = Infinity;
+    for (const district of HK_DISTRICT_MAPS) { const d = (district.centre.e - e) ** 2 + (district.centre.n - n) ** 2; if (d < distance) { distance = d; nearest = district; } }
+    const names = HK_DISTRICT_INFO[nearest?.id]?.names, name = names?.[currentLanguage] || names?.en;
+    location.textContent = distance < 100000000 && name ? t('minimap.near', { name }) : t('landing.territoryName');
+  }
+}
+
+function setWorldCityMinimapMode(mode) {
+  const map = worldCityMinimap(); if (!map) return;
+  map.setMode(mode); try { localStorage.setItem('heung-shing.world-minimap-mode', map.mode); } catch {}
+  cityMinimapLastView = ''; drawCityMinimap(); updateCityMinimapView();
+}
+
 // The canvas is a fixed 512x256 (UI/index.html) - exactly 2x a normal 256x256 map's diamond, one
 // pixel per tile. 香港全境's explored area can grow far past that, so every function below works
 // against a "grid" - rowStart/colStart (the explored area's own origin, getCityMinimapGrid),
@@ -19,7 +46,10 @@ let cityMinimapDragging = false;
 // directly. A normal map's grid is exactly { rowStart:0, colStart:0, step:1, gridWidth:MAP_WIDTH,
 // gridHeight:MAP_HEIGHT }, so every formula below reduces to exactly what it was before.
 function getCityMinimapGrid() {
-  if (isWorldGameActive()) { const step = Math.max(MAP_WIDTH, MAP_HEIGHT) / 256; return { rowStart: 0, colStart: 0, step, gridWidth: MAP_WIDTH / step, gridHeight: MAP_HEIGHT / step }; }
+  if (worldCityMinimap()) {
+    const map = worldCityMinimap(); map.layout(); const r = map.region, step = Math.max(r.width, r.height) / 256;
+    return { rowStart: r.row, colStart: r.col, step, gridWidth: r.width / step, gridHeight: r.height / step };
+  }
   if (typeof isLazyWorldMap === 'function' && isLazyWorldMap()) {
     if (typeof getActiveSweepBounds !== 'function') return null;
     const bounds = getActiveSweepBounds();
@@ -75,6 +105,14 @@ function drawCityMinimap() {
   const canvas = document.getElementById('city-minimap-canvas');
   const ctx = canvas?.getContext('2d');
   if (!ctx || !mapData?.length) return;
+  updateWorldCityMinimapControls();
+  if (worldCityMinimap()) {
+    const host = globalThis.__worldGameHost;
+    host.paintMinimap(ctx); host.minimap.clip(ctx);
+    const metro = typeof getTransportExpansionState === 'function' ? getTransportExpansionState()?.metro : null;
+    drawCityMinimapMetroLines(ctx, metro, getCityMinimapGrid()); ctx.restore();
+    cityMinimapLastDrawAt = performance.now(); cityMinimapLastRotation = mapRotation; return;
+  }
   const grid = getCityMinimapGrid();
   if (!grid) {
     // 香港全境: no chunk generated yet - nothing real to show.
@@ -132,7 +170,6 @@ function drawCityMinimap() {
   }
 
   ctx.putImageData(image, 0, 0);
-  if (isWorldGameActive()) globalThis.__worldGameHost.paintMinimap(ctx, grid, paint);
   drawCityMinimapMetroLines(ctx, metro, grid);
   cityMinimapLastDrawAt = performance.now();
   cityMinimapLastRotation = mapRotation;
@@ -142,6 +179,7 @@ function drawCityMinimap() {
 // its colour, part see-through - a surface line along its track, an underground one station to
 // station - and its stations a pale dot. A point (col, row) with a tile's middle at +0.5.
 function cityMinimapPointAt(col, row, grid) {
+  if (worldCityMinimap()) return worldCityMinimap().tileToPoint(col - .5, row - .5);
   const gridRow = (row - 0.5 - grid.rowStart) / grid.step;
   const gridCol = (col - 0.5 - grid.colStart) / grid.step;
   const { c, r } = getCityMinimapViewCoords(gridRow, gridCol, grid);
@@ -183,6 +221,10 @@ function drawCityMinimapMetroLines(ctx, metro, grid) {
 // (col, row) a world position corresponds to; getCityMinimapViewCoords re-applies the same
 // rotation the paint above uses, pivoted on the grid instead of the live MAP_WIDTH/MAP_HEIGHT.
 function cityMinimapWorldToFraction(scene, worldX, worldY) {
+  if (worldCityMinimap()) {
+    const map = worldCityMinimap(), tile = globalThis.__worldGameHost.adapter.unproject(worldX, worldY), p = map.tileToPoint(tile.col, tile.row);
+    return { x: p.x / map.width, y: p.y / map.height };
+  }
   const grid = getCityMinimapGrid();
   if (!grid) return { x: 0.5, y: 0.5 }; // nothing generated yet - no frame to place meaningfully
   const iso = screenToIso(worldX - scene.offsetX, worldY - scene.offsetY);
@@ -196,6 +238,10 @@ function cityMinimapWorldToFraction(scene, worldX, worldY) {
 }
 
 function cityMinimapFractionToWorld(scene, fx, fy) {
+  if (worldCityMinimap()) {
+    const tile = worldCityMinimap().fractionToTile(fx, fy);
+    return globalThis.__worldGameHost.adapter.project(tile.col, tile.row);
+  }
   const grid = getCityMinimapGrid();
   if (!grid) return { x: scene.offsetX, y: scene.offsetY };
   const cMinusR = fx * grid.gridWidth * 2 - grid.gridWidth;
@@ -213,6 +259,17 @@ function updateCityMinimapView() {
   const frame = document.getElementById('city-minimap-view');
   const camera = activeScene?.cameras?.main;
   if (!frame || !camera) return;
+  if (worldCityMinimap()) {
+    const map = worldCityMinimap(); map.layout();
+    const key = `world:${map.layoutKey}:${camera.scrollX}:${camera.scrollY}:${camera.zoom}:${camera.width}:${camera.height}:${camera.originX}:${camera.originY}`;
+    if (key === cityMinimapLastView) return; cityMinimapLastView = key;
+    const points = map.viewport(camera);
+    const left = Math.min(...points.map(p => p.x)), top = Math.min(...points.map(p => p.y));
+    frame.style.left = `${left / map.width * 100}%`; frame.style.top = `${top / map.height * 100}%`;
+    frame.style.width = `${Math.max(2, Math.max(...points.map(p => p.x)) - left) / map.width * 100}%`;
+    frame.style.height = `${Math.max(2, Math.max(...points.map(p => p.y)) - top) / map.height * 100}%`;
+    return;
+  }
   const view = camera.worldView;
   const key = `${view.x | 0}:${view.y | 0}:${view.width | 0}:${view.height | 0}`;
   if (key === cityMinimapLastView) return;
@@ -235,8 +292,11 @@ function isCityMinimapShown() {
 
 function tickCityMinimap() {
   requestAnimationFrame(tickCityMinimap);
+  const panel = document.getElementById('city-minimap');
+  if (panel) panel.dataset.worldMap = String(isWorldGameActive() && !isTerrainCreatorMode && !isAttractModeActive() && document.getElementById('landing-screen')?.style.display === 'none');
   if (!gameReady || !activeScene || !isCityMinimapShown()) return;
-  if (mapRotation !== cityMinimapLastRotation || performance.now() - cityMinimapLastDrawAt > CITY_MINIMAP_REDRAW_MS) {
+  const map = worldCityMinimap(), canvas = document.getElementById('city-minimap-canvas');
+  if (mapRotation !== cityMinimapLastRotation || performance.now() - cityMinimapLastDrawAt > CITY_MINIMAP_REDRAW_MS || map?.needsRedraw(canvas.width, canvas.height)) {
     drawCityMinimap();
     cityMinimapLastView = '';
   }
@@ -332,15 +392,23 @@ function setupCityMinimap() {
   surface.addEventListener('pointerdown', (event) => {
     if (event.button !== 0 || event.target.closest('button')) return;
     cityMinimapDragging = true;
+    if (typeof isTouchUiProfile === 'function' && isTouchUiProfile()) {
+      activeScene?.mapTouchInput?.controller.cancelAll('minimap');
+      if (typeof mobileCancelBuild === 'function') mobileCancelBuild();
+    }
+    worldCityMinimap()?.beginNavigation();
     surface.setPointerCapture(event.pointerId);
     moveCameraToCityMinimapPoint(event);
   });
   surface.addEventListener('pointermove', (event) => {
     if (cityMinimapDragging) moveCameraToCityMinimapPoint(event);
   });
-  const endDrag = () => { cityMinimapDragging = false; };
+  const endDrag = () => { if (cityMinimapDragging) worldCityMinimap()?.endNavigation(); cityMinimapDragging = false; };
   surface.addEventListener('pointerup', endDrag);
   surface.addEventListener('pointercancel', endDrag);
+  surface.addEventListener('lostpointercapture', endDrag);
+
+  document.querySelectorAll('[data-city-minimap-mode]').forEach(button => button.addEventListener('click', () => setWorldCityMinimapMode(button.dataset.cityMinimapMode)));
 
   document.getElementById('city-minimap-toggle')?.addEventListener('click', () => {
     setCityMinimapCollapsed(!panel.classList.contains('is-collapsed'));

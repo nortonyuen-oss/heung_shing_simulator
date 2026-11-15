@@ -2163,6 +2163,13 @@
       cursor: grabbing;
     }
 
+    .city-minimap-modes { display: flex; gap: 2px; margin-left: auto; }
+    .city-minimap-modes[hidden], .city-minimap-location[hidden] { display: none; }
+    .city-minimap-modes button { min-width: 33px; padding: 1px 4px; border: 1px solid #a9b6bd; border-radius: 3px; font: inherit; color: #43535e; background: #eef2f4; cursor: pointer; }
+    .city-minimap-modes button.is-active { color: #fff; background: #3b6685; border-color: #3b6685; }
+    .city-minimap-location { height: 15px; padding: 0 4px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 10px; color: #52616b; }
+    #city-minimap.is-collapsed .city-minimap-modes, #city-minimap.is-collapsed .city-minimap-location { display: none; }
+
     .city-minimap-toggle {
       width: 16px;
       height: 16px;
@@ -7797,8 +7804,13 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
   <aside id="city-minimap" aria-label="City map" data-i18n-aria="minimap.label">
     <div class="city-minimap-header">
       <span data-i18n="minimap.label">City map</span>
+      <div id="city-minimap-modes" class="city-minimap-modes" role="group" data-i18n-aria="minimap.scope" aria-label="Map scope" hidden>
+        <button type="button" data-city-minimap-mode="world" data-i18n="minimap.world" aria-pressed="false">全境</button>
+        <button type="button" data-city-minimap-mode="local" data-i18n="minimap.region" aria-pressed="true">區域</button>
+      </div>
       <button id="city-minimap-toggle" class="city-minimap-toggle" type="button" aria-controls="city-minimap-surface" aria-expanded="true">−</button>
     </div>
+    <div id="city-minimap-location" class="city-minimap-location" hidden></div>
     <div id="city-minimap-surface" class="city-minimap-surface">
       <canvas id="city-minimap-canvas" width="512" height="256"></canvas>
       <div id="city-minimap-view" class="city-minimap-view"></div>
@@ -8526,7 +8538,6 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
   <script src="hk-district-maps.js"></script>
   <script src="hk-district-info.js"></script>
   <script src="district-profiles.js"></script>
-  <script src="hk-terrain-tiles.js"></script>
   <script src="terrain-presets.js"></script>
   <style>.setup-settings .setup-row[hidden], .setup-settings .setup-switch[hidden] { display:none !important; }</style>
   <script src="world/world-game-state.js"></script>

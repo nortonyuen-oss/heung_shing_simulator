@@ -96,6 +96,9 @@ async function main() {
     const logical = path.relative(OUT, file).split(path.sep).join('/');
     await add(logical, file);
   }
+  // Only the legacy random real-terrain sampler needs the complete RLE source.
+  // Keep it available offline after use, without executing/pre-caching it on game boot.
+  await add('hk-terrain-tiles.js', path.join(ROOT, 'hk-terrain-tiles.js'));
   const resourceSource = `globalThis.HEUNG_SHING_RESOURCES=${JSON.stringify(resources)};\n`
     + `function resolveBundledAssetPath(value){if(typeof value!=='string')return value;let key=value.split('?')[0].replace(/^\\/+/, '');try{const url=new URL(value,location.href);if(url.origin!==location.origin)return value;key=decodeURIComponent(url.pathname.replace(/^\\/+/,''));}catch{}return HEUNG_SHING_RESOURCES[key]||(/^assets\\/[a-f0-9]{64}\\./.test(key)?key:value);}\n`
     + `function fetchBundledResource(value,options){return fetch(resolveBundledAssetPath(value),options);}\n`

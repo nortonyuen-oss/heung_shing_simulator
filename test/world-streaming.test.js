@@ -222,9 +222,9 @@ test('C12: legacy projection adapter round-trips rectangular worlds in all four 
 
 test('renderer batches by world depth, mounts incrementally, and really destroys Phaser objects', () => {
   let ticks = 0; const now = () => ticks += .01, objects = [];
-  const scene = { textures: { get: () => ({ has: () => true, get: () => ({ height: 80 }) }) }, add: { blitter() {
+  const scene = { worldMask: {}, textures: { get: () => ({ has: () => true, get: () => ({ height: 80 }) }) }, add: { blitter() {
     const object = { visible: false, bobs: [], setDepth(value) { this.depth = value; return this; }, setVisible(value) { this.visible = value; return this; },
-      create(x, y, frame) { this.bobs.push({ x, y, frame }); }, destroy() { this.destroyed = true; this.bobs.length = 0; } };
+      setMask(value) { this.mask = value; return this; }, create(x, y, frame) { this.bobs.push({ x, y, frame }); }, destroy() { this.destroyed = true; this.bobs.length = 0; } };
     objects.push(object); return object;
   } } };
   const renderer = new WorldChunkRenderer({ scene, now, adapter: { rotation: 0, project: (c, r) => ({ x: (c - r) * 50, y: (c + r) * 25 }) },
@@ -234,6 +234,7 @@ test('renderer batches by world depth, mounts incrementally, and really destroys
   assert(objects.every(object => !object.visible));
   while (!renderer.stepMount(job, now() + 3)) {}
   assert.equal(renderer.snapshot().terrainTiles, 1024);
+  assert(objects.every(object => object.mask === scene.worldMask), 'terrain must share the original Images stencil mask to preserve GPU batching');
   assert.equal(renderer.snapshot().gameObjects, 63, 'one depth batch per diagonal, not 1024 Images');
   assert.equal(Math.min(...objects.map(object => object.depth)), (32 + 64) * 25);
   renderer.beginUnmount(job); while (!renderer.stepUnmount(job, now() + .2)) {}
@@ -255,6 +256,17 @@ test('RLE preprocessing validates full rows and preserves the legacy finishing r
   vm.runInContext(fs.readFileSync(path.join(ROOT, 'terrain-generation.js'), 'utf8'), context);
   vm.runInContext('finishHkTerrain(terrain,elevations)', context);
   assert.deepEqual([...result.terrain], terrain.flat()); assert.deepEqual([...result.elevations], elevations.flat());
+});
+
+test('stationary terrain culling skips repeated work and rechecks newly mounted chunks',()=>{
+  let visibilityCalls=0;
+  const scene={textures:{get:()=>({has:()=>true,get:()=>({height:80})})},add:{blitter:()=>({setDepth(){return this;},setVisible(){visibilityCalls++;return this;},create(){},destroy(){}})}};
+  const renderer=new WorldChunkRenderer({scene,now:()=>0,adapter:{rotation:0,project:(c,r)=>({x:c*50-r*50,y:(c+r)*25})},visuals:{describe:()=>({key:'ground_full',offset:0,shade:0})}});
+  const mount=col=>{const job=renderer.beginMount({bounds:{col,row:0,width:1,height:1},sample:()=>({})});renderer.stepMount(job,Infinity);return job;};
+  mount(0);const camera={scrollX:0,scrollY:0,zoom:1,width:1280,height:900};renderer.cull(camera);const before=visibilityCalls;
+  for(let i=0;i<100;i++)renderer.cull(camera);assert.equal(visibilityCalls,before);
+  mount(1);const mounted=visibilityCalls;renderer.cull(camera);assert(visibilityCalls>mounted);
+  const after=visibilityCalls;camera.scrollX++;renderer.cull(camera);assert(visibilityCalls>after);renderer.destroy();
 });
 
 async function regionalFixture() {

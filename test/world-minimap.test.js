@@ -4,7 +4,7 @@ const vm = require('node:vm');
 const { WORLD } = require('../world/world-config');
 const { WorldModeAdapter } = require('../world/world-coordinates');
 const { WorldDeltaStore } = require('../world/world-delta-store');
-const { WorldMinimapTransform, WorldOverviewCache, projectedRegion, localRegion, sparseMinimapData } = require('../world/world-minimap');
+const { WorldMinimapTransform, WorldOverviewCache, WorldGameMinimap, projectedRegion, localRegion, sparseMinimapData } = require('../world/world-minimap');
 const tick = () => new Promise(resolve => setImmediate(resolve));
 async function adapter() {
   const { legacyAdapterSource } = await import('../world/terrain-pack-builder.mjs');
@@ -97,4 +97,78 @@ test('raster cache caps simultaneous decodes and does not churn if the visible s
   for (let i = 0; i < 10; i++) await tick();
   assert.equal(peak, 2); assert.equal(cache.snapshot().bytes, 8); assert.equal(cache.snapshot().requests, 3); assert.equal(cache.snapshot().errors, 1);
   assert.equal(closed, 1); cache.destroy(); assert.equal(closed, 3);
+});
+
+async function gameMinimap() {
+  const a = await adapter(), manifest = { lod: [], localLod: { size: 256, regions: {} } };
+  for (let rotation = 0; rotation < 4; rotation++) { a.setRotation(rotation); manifest.lod.push({ ...projectedRegion(a, { col: 0, row: 0, width: WORLD.width, height: WORLD.height }), rotation }); }
+  for (let y = 0; y < Math.ceil(WORLD.height / 256); y++) for (let x = 0; x < Math.ceil(WORLD.width / 256); x++) {
+    const region = { col: x * 256, row: y * 256, width: Math.min(256, WORLD.width - x * 256), height: Math.min(256, WORLD.height - y * 256), views: [] };
+    for (let rotation = 0; rotation < 4; rotation++) { a.setRotation(rotation); region.views.push({ ...projectedRegion(a, region), url: `${x}:${y}:${rotation}` }); }
+    manifest.localLod.regions[`${x}:${y}`] = region;
+  }
+  a.setRotation(0);
+  const camera = { width: 1280, height: 900, zoom: .8, centerOn(x, y) { this.scrollX = x - this.width / 2; this.scrollY = y - this.height / 2; } };
+  const scene = { offsetX: 0, offsetY: 0, cameras: { main: camera }, textures: { get: () => ({ getSourceImage: () => ({ width: 1024, height: 512 }) }) } };
+  a.centreCamera(camera, 1716, 1821);
+  const map = new WorldGameMinimap({ scene, adapter: a, manifest, load: async () => ({ width: 512, height: 256, close() {} }) });
+  const draws = [], ctx = { canvas: { width: 512, height: 256 }, clearRect() {}, save() {}, restore() {}, beginPath() {}, moveTo() {}, lineTo() {}, closePath() {}, clip() {}, drawImage(...args) { draws.push(args); } };
+  return { a, camera, scene, map, ctx, draws, manifest };
+}
+
+test('original-game minimap clicks use the exact painted landmark positions in both scopes and four rotations', async () => {
+  const fs = require('node:fs'), { a, scene, map, ctx, draws, manifest } = await gameMinimap();
+  const context = vm.createContext({ isWorldGameActive: () => true, __worldGameHost: { adapter: a, minimap: map }, MAP_WIDTH: WORLD.width, MAP_HEIGHT: WORLD.height, mapRotation: 0 });
+  vm.runInContext(fs.readFileSync(require.resolve('../city-minimap'), 'utf8'), context);
+  for (let rotation = 0; rotation < 4; rotation++) for (const mode of ['world', 'local']) for (const tile of [{ col: 1697, row: 1832 }, { col: 1980, row: 1450 }]) {
+    a.setRotation(rotation); context.mapRotation = rotation; a.centreCamera(scene.cameras.main, tile.col, tile.row); map.setMode(mode);
+    draws.length = 0; map.drawBase(ctx);
+    // Independently locate the landmark using the ACTUAL drawImage placement,
+    // then send that canvas fraction through the original game's click handler.
+    const [, x, y, width, height] = draws[0], view = manifest.lod[rotation], p = a.project(tile.col, tile.row);
+    const px = x + (p.x - view.x) / view.width * width, py = y + (p.y - 40 - view.y) / view.height * height;
+    const world = context.cityMinimapFractionToWorld(scene, px / 512, py / 256), actual = a.unproject(world.x, world.y);
+    closeTo(actual.col, tile.col); closeTo(actual.row, tile.row);
+    const fraction = context.cityMinimapWorldToFraction(scene, p.x, p.y); closeTo(fraction.x, px / 512); closeTo(fraction.y, py / 256);
+  }
+  map.destroy();
+});
+
+test('ordinary 256 cities retain their original minimap geometry and inverse navigation', async () => {
+  const fs = require('node:fs'), { legacyAdapterSource } = await import('../world/terrain-pack-builder.mjs');
+  const context = vm.createContext({ isWorldGameActive: () => false, MAP_WIDTH: 256, MAP_HEIGHT: 256, mapRotation: 0 });
+  vm.runInContext(legacyAdapterSource(), context);
+  const p = context.HeungShingWorld.createLegacyWorldProjection({ width: 256, height: 256 });
+  context.isoToScreen = p.project; context.screenToIso = p.unproject;
+  vm.runInContext(fs.readFileSync(require.resolve('../city-minimap'), 'utf8'), context);
+  const scene = { offsetX: -1000, offsetY: 400 };
+  for (let rotation = 0; rotation < 4; rotation++) {
+    context.mapRotation = rotation; p.setRotation(rotation);
+    for (const [col, row] of [[0, 0], [80, 40], [255, 255]]) {
+      const point = p.project(col, row), fraction = context.cityMinimapWorldToFraction(scene, point.x + scene.offsetX, point.y + scene.offsetY);
+      const result = context.cityMinimapFractionToWorld(scene, fraction.x, fraction.y);
+      closeTo(result.x, point.x + scene.offsetX); closeTo(result.y, point.y + scene.offsetY);
+    }
+  }
+});
+
+test('local minimap freezes the painted region during dragging, then follows the camera after release', async () => {
+  const { a, camera, map, ctx } = await gameMinimap(); map.drawBase(ctx);
+  const before = { ...map.region }; map.beginNavigation(); const point = map.tileToPoint(1790, 1870);
+  for (let i = 0; i < 8; i++) {
+    const tile = map.fractionToTile(point.x / 512, point.y / 256); closeTo(tile.col, 1790); closeTo(tile.row, 1870);
+    a.centreCamera(camera, tile.col, tile.row); map.layout(); assert.deepEqual(map.region, before);
+  }
+  map.endNavigation(); map.layout(); assert.notDeepEqual(map.region, before); map.destroy();
+});
+
+test('minimap terrain is not repainted every frame and local image decodes stay bounded during travel', async () => {
+  const { a, camera, map, ctx } = await gameMinimap();
+  for (let n = 0; n < 12; n++) {
+    a.centreCamera(camera, 300 + n * 210, 300 + n % 6 * 260); map.drawBase(ctx);
+    for (let i = 0; i < 12 && map.cache.pending.size; i++) await tick(); map.drawBase(ctx);
+    for (let i = 0; i < 60; i++) assert.equal(map.needsRedraw(512, 256), false);
+    assert(map.snapshot().cache.bytes <= 4 * 1024 * 1024); assert.equal(map.snapshot().cache.errors, 0);
+  }
+  map.setMode('world'); map.drawBase(ctx); assert.equal(map.cache.wanted.size, 0); map.destroy(); assert.equal(map.snapshot().cache.bytes, 0);
 });

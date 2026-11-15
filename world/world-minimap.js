@@ -80,6 +80,66 @@
       this.entries.forEach(entry => entry.image.close?.()); this.entries.clear(); this.wanted.clear(); this.failures.clear(); this.bytes = 0;
     }
   }
+  // Original-game minimap: raster placement, city overlays, pointer navigation and
+  // camera frame all use the SAME transform of the rectangular territory.
+  class WorldGameMinimap {
+    constructor({ scene, adapter, manifest, resolveAsset, onChange = () => {}, load }) {
+      Object.assign(this, { scene, adapter, manifest, onChange });
+      this.mode = 'local'; this.layoutKey = ''; this.drawnKey = ''; this.rasterVersion = 0; this.draws = 0;
+      this.cache = new WorldOverviewCache({ load: load || (async (view, signal) => {
+        const response = await fetch(resolveAsset(view.url), { signal });
+        if (!response.ok) throw new Error(`Minimap region HTTP ${response.status}`);
+        return createImageBitmap(await response.blob());
+      }), onChange: () => { this.rasterVersion++; this.onChange(); } });
+    }
+    setMode(mode) {
+      mode = mode === 'world' ? 'world' : 'local'; if (mode === this.mode) return;
+      this.mode = mode; this.gesture = null; this.drawnKey = ''; this.cache.setWanted([]); this.onChange();
+    }
+    layout(width = this.width || 512, height = this.height || 256) {
+      this.width = width; this.height = height;
+      const world = this.adapter.world, focus = this.adapter.cameraFocus(this.scene.cameras.main);
+      const region = this.gesture?.region || (this.mode === 'world' ? { col: 0, row: 0, width: world.width, height: world.height } : localRegion(world, focus));
+      const key = `${this.mode}:${this.adapter.rotation}:${width}:${height}:${region.col}:${region.row}:${region.width}:${region.height}`;
+      if (key !== this.layoutKey) {
+        this.layoutKey = key; this.region = region;
+        this.transform = new WorldMinimapTransform(this.adapter, projectedRegion(this.adapter, region), width, height);
+      }
+      return this.transform;
+    }
+    needsRedraw(width, height) { this.layout(width, height); this.cache.pump(); return this.drawnKey !== `${this.layoutKey}:${this.rasterVersion}`; }
+    beginNavigation() { this.layout(); this.gesture = { region: { ...this.region } }; }
+    endNavigation() { this.gesture = null; this.drawnKey = ''; this.onChange(); }
+    tileToPoint(col, row) { return this.layout().worldToMinimap(col, row); }
+    fractionToTile(x, y) { return this.layout().minimapToWorldTile(x * this.width, y * this.height); }
+    viewport(camera) { return this.layout().viewport(camera); }
+    contains(col, row) { const r = this.region; return col >= r.col && row >= r.row && col < r.col + r.width && row < r.row + r.height; }
+    clip(ctx) {
+      const r = this.region, points = [[r.col - .5, r.row - .5], [r.col + r.width - .5, r.row - .5],
+        [r.col + r.width - .5, r.row + r.height - .5], [r.col - .5, r.row + r.height - .5]];
+      ctx.save(); ctx.beginPath();
+      points.forEach(([c, row], i) => { const p = this.transform.worldToMinimap(c, row); i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y); });
+      ctx.closePath(); ctx.clip();
+    }
+    drawBase(ctx) {
+      const t = this.layout(ctx.canvas.width, ctx.canvas.height), rotation = this.adapter.rotation, r = this.region, views = [];
+      if (this.mode === 'local') {
+        const lod = this.manifest.localLod;
+        for (let y = Math.floor(r.row / lod.size); y <= Math.floor((r.row + r.height - 1) / lod.size); y++)
+          for (let x = Math.floor(r.col / lod.size); x <= Math.floor((r.col + r.width - 1) / lod.size); x++) {
+            const view = lod.regions[`${x}:${y}`]?.views[rotation]; if (view) views.push(view);
+          }
+      }
+      this.cache.setWanted(views);
+      ctx.clearRect(0, 0, this.width, this.height); ctx.imageSmoothingEnabled = false; this.clip(ctx);
+      const paint = (source, view) => { const p = t.projectedToMinimap(view.x, view.y); ctx.drawImage(source, p.x, p.y, view.width * t.scale, view.height * t.scale); };
+      paint(this.scene.textures.get(`world-lod-${rotation}`).getSourceImage(), this.manifest.lod[rotation]);
+      for (const view of views) { const image = this.cache.get(view); if (image) paint(image, view); }
+      ctx.restore(); this.drawnKey = `${this.layoutKey}:${this.rasterVersion}`; this.draws++;
+    }
+    snapshot() { return { mode: this.mode, region: this.region, draws: this.draws, cache: this.cache.snapshot() }; }
+    destroy() { this.cache.destroy(); this.gesture = null; }
+  }
   function sparseMinimapData(delta, region = null) {
     const chunks = [], ids = new Set();
     if (region) {
@@ -245,5 +305,5 @@
     snapshot() { return { mode: this.mode, collapsed: this.collapsed, region: this.region, draws: { ...this.draws }, cache: this.cache.snapshot() }; }
     destroy() { this.unsubscribe(); this.abort.abort(); this.resize.disconnect(); this.cache.destroy(); }
   }
-  return { WorldMinimapTransform, WorldOverviewCache, WorldMinimap, projectedRegion, localRegion, sparseMinimapData };
+  return { WorldMinimapTransform, WorldOverviewCache, WorldGameMinimap, WorldMinimap, projectedRegion, localRegion, sparseMinimapData };
 });

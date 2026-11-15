@@ -4,15 +4,38 @@
   else Object.assign(root.HeungShingWorld ||= {}, api);
 })(globalThis, function () {
   'use strict';
+  class SparseChunkCells extends Map {
+    constructor() { super(); this.chunks = new Map(); }
+    chunkId(id) { const [row, col] = id.split(':').map(Number); return `r:${Math.floor(col / 32)}:${Math.floor(row / 32)}`; }
+    set(id, value) {
+      const key = this.chunkId(id); let chunk = this.chunks.get(key);
+      if (!chunk) { chunk = new Map(); chunk.counts = new Map(); this.chunks.set(key, chunk); }
+      if (chunk.has(id)) { const old = chunk.get(id), count = chunk.counts.get(old) - 1; count ? chunk.counts.set(old, count) : chunk.counts.delete(old); }
+      chunk.set(id, value); chunk.counts.set(value, (chunk.counts.get(value) || 0) + 1);
+      return super.set(id, value);
+    }
+    delete(id) {
+      if (!this.has(id)) return false;
+      const key = this.chunkId(id), chunk = this.chunks.get(key), old = this.get(id), count = chunk.counts.get(old) - 1;
+      count ? chunk.counts.set(old, count) : chunk.counts.delete(old); chunk.delete(id);
+      if (!chunk.size) this.chunks.delete(key);
+      return super.delete(id);
+    }
+    clear() { super.clear(); this.chunks.clear(); }
+  }
+  function* sparseGameChunkEntries(grid, chunkIds) {
+    for (const id of chunkIds) { const chunk = grid.sparseChunkCells.get(id); if (chunk) yield* chunk; }
+  }
   // Array-compatible access for the existing game rules. Only written cells are owned;
   // reading an unmodified terrain cell never allocates a tile or a full map row.
   function createSparseGameGrid(width, height, fallback = 0, changed = () => {}) {
-    const cells = new Map(), rows = new Map();
+    const cells = new SparseChunkCells(), rows = new Map();
     const numeric = key => typeof key === 'string' && /^(0|[1-9]\d*)$/.test(key);
     const readDefault = (row, col) => typeof fallback === 'function' ? fallback(row, col) : fallback;
     const grid = new Proxy(new Array(height), {
       get(target, key) {
         if (key === 'sparseCells') return cells;
+        if (key === 'sparseChunkCells') return cells.chunks;
         if (key === 'clearSparse') return () => cells.clear();
         if (!numeric(key)) return Reflect.get(target, key);
         const row = Number(key); if (row >= height) return undefined;
@@ -82,5 +105,5 @@
       && game[name].every(id => /^(\d+):(\d+)$/.test(id) && Number(id.split(':')[0]) < world.height && Number(id.split(':')[1]) < world.width), 'Invalid city tile set');
     return game;
   }
-  return { createSparseGameGrid, serializeSparseGameGrid, restoreSparseGameGrid, validateGameState };
+  return { createSparseGameGrid, sparseGameChunkEntries, serializeSparseGameGrid, restoreSparseGameGrid, validateGameState };
 });

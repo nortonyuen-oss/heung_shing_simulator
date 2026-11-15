@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { createSparseGameGrid, serializeSparseGameGrid, restoreSparseGameGrid } = require('../world/world-game-state');
+const { createSparseGameGrid, sparseGameChunkEntries, serializeSparseGameGrid, restoreSparseGameGrid } = require('../world/world-game-state');
 const { WorldSaveFormat: f } = require('../world/world-save-format');
 const { WorldDeltaStore } = require('../world/world-delta-store');
 const { WORLD } = require('../world/world-config');
@@ -38,6 +38,66 @@ test('world compatibility grids never allocate terrain cells when reading distan
   const restored = restoreSparseGameGrid(createSparseGameGrid(WORLD.width, WORLD.height, 1), serializeSparseGameGrid(grid));
   assert.equal(restored[2200][3100], 0); assert.equal(restored[1][2], 9); assert.equal(restored.sparseCells.size, 2);
   assert.throws(() => { restored[2] = []; });
+});
+test('render chunk queries and road totals do not scan cold terrain cells',()=>{
+  const grid=createSparseGameGrid(WORLD.width,WORLD.height,0);
+  for(let row=1000;row<1100;row++)for(let col=2000;col<2200;col++)grid.sparseCells.set(`${row}:${col}`,2);
+  grid[10][10]=2;grid[11][10]=1;
+  grid.sparseCells[Symbol.iterator]=()=>{throw Error('Unnecessary cold-cell scan');};
+  assert.deepEqual([...sparseGameChunkEntries(grid,['r:0:0'])],[['10:10',2],['11:10',1]]);
+  assert.equal(grid.sparseChunkCells.get('r:0:0').counts.get(2),1);
+  grid[11][10]=2;assert.equal(grid.sparseChunkCells.get('r:0:0').counts.get(2),2);
+  grid.sparseCells.delete('10:10');assert.equal(grid.sparseChunkCells.get('r:0:0').counts.get(2),1);
+  grid.clearSparse();assert.equal(grid.sparseChunkCells.size,0);assert.equal(grid.sparseCells.size,0);
+});
+test('territory metadata is available without loading the complete legacy RLE source',()=>{
+  const vm=require('node:vm'),fs=require('node:fs'),context=vm.createContext({HeungShingWorld:{WORLD}});
+  vm.runInContext(fs.readFileSync(require.resolve('../terrain-presets'),'utf8'),context);
+  const descriptor=context.getHkFullTerritoryTerrainDescriptor();assert.equal(descriptor.width,WORLD.width);assert.equal(descriptor.height,WORLD.height);
+  assert.equal(descriptor.startCol,1593);assert.equal(descriptor.startRow,1200);assert.equal(descriptor.mapData,null);
+});
+test('legacy real-terrain samples load once on demand and can retry after a failed request',async()=>{
+  const vm=require('node:vm'),fs=require('node:fs'),scripts=[];
+  const context=vm.createContext({resolveBundledAssetPath:()=>'/assets/legacy-hk.js',document:{createElement:()=>({remove(){}}),head:{appendChild(s){scripts.push(s);}}}});
+  vm.runInContext(fs.readFileSync(require.resolve('../terrain-presets'),'utf8'),context);
+  const first=context.ensureHkTerrainSource(),duplicate=context.ensureHkTerrainSource();assert.equal(first,duplicate);assert.equal(scripts.length,1);assert.equal(scripts[0].src,'/assets/legacy-hk.js');
+  const rejected=assert.rejects(first,/could not be loaded/);scripts[0].onerror();await rejected;
+  const retry=context.ensureHkTerrainSource();assert.equal(scripts.length,2);
+  vm.runInContext('const HK_TERRAIN_TILES={width:3187,height:2400};',context);scripts[1].onload();await retry;
+  await context.ensureHkTerrainSource();assert.equal(scripts.length,2);
+});
+test('a late terrain preview cannot generate a whole territory or change the live map dimensions',async()=>{
+  const vm=require('node:vm'),fs=require('node:fs');let release;
+  const gate=new Promise(resolve=>release=resolve),context=vm.createContext({HK_TERRAIN_LANDFORMS:{'hk-any':()=>true},t:key=>key,ensureHkTerrainSource:()=>gate});
+  vm.runInContext('let MAP_WIDTH=256,MAP_HEIGHT=256,calls=0;function setMapDimensions(w,h){MAP_WIDTH=w;MAP_HEIGHT=h;}function sampleHkTerrain(){calls++;return {width:MAP_WIDTH,height:MAP_HEIGHT};}',context);
+  vm.runInContext(fs.readFileSync(require.resolve('../map-sources'),'utf8'),context);
+  const source=context.createGeneratedMapSource('hk-any','delayed','real'),first=source.getTerrain(),second=source.getTerrain();
+  vm.runInContext('setMapDimensions(3187,2400)',context);release();const [a,b]=await Promise.all([first,second]);
+  assert.equal(a.width,256);assert.equal(a.height,256);assert.equal(a,b);assert.equal(vm.runInContext('calls',context),1);
+  assert.deepEqual(Array.from(vm.runInContext('[MAP_WIDTH,MAP_HEIGHT]',context)),[3187,2400]);
+  vm.runInContext('sampleHkTerrain=()=>{throw Error("preview failed")}',context);
+  await assert.rejects(context.createGeneratedMapSource('hk-any','failed','real').getTerrain(),/preview failed/);
+  assert.deepEqual(Array.from(vm.runInContext('[MAP_WIDTH,MAP_HEIGHT]',context)),[3187,2400]);
+});
+test('minimap city pixels are cached and local painting never scans cold world cells',()=>{
+  const vm=require('node:vm'),fs=require('node:fs'),grid=createSparseGameGrid(WORLD.width,WORLD.height,0),zones=createSparseGameGrid(WORLD.width,WORLD.height,0);
+  for(let row=1000;row<1100;row++)for(let col=2000;col<2200;col++)grid.sparseCells.set(`${row}:${col}`,2);
+  grid[10][10]=2;grid.sparseCells[Symbol.iterator]=()=>{throw Error('Cold world scan');};let writes=0;
+  const layer={createImageData:(width,height)=>({width,height,data:new Uint8ClampedArray(width*height*4)}),putImageData(){writes++;}};
+  const canvas={getContext:()=>layer},context=vm.createContext({mapData:grid,zoneMap:zones,buildingData:{},ROAD:2,document:{createElement:()=>canvas},HeungShingWorld:{sparseGameChunkEntries},cityMinimapTileColor:()=>[118,148,98]});
+  vm.runInContext(fs.readFileSync(require.resolve('../world/world-game-host'),'utf8'),context);
+  const host=Object.create(vm.runInContext('WorldGameHost.prototype',context));
+  Object.assign(host,{stateVersion:0,buildingVersion:0,indexBuildings(){},buildingChunks:new Map(),footprints:new Map(),minimap:{mode:'local',layoutKey:'local-0',region:{col:0,row:0,width:256,height:256},drawBase(){},clip(){},contains:(c,r)=>c>=0&&r>=0&&c<256&&r<256,transform:{worldToMinimap:(c,r)=>({x:c,y:r})}}});
+  const ctx={canvas:{width:512,height:256},drawImage(){},restore(){}};
+  host.paintMinimap(ctx);assert.equal(writes,1);for(let i=0;i<100;i++)host.paintMinimap(ctx);assert.equal(writes,1);
+  host.stateVersion++;host.paintMinimap(ctx);assert.equal(writes,2);
+  host.minimap.layoutKey='rotated';host.paintMinimap(ctx);assert.equal(writes,3);
+});
+test('refreshing an unloaded neighbouring road updates its data without forcing a sprite',()=>{
+  const vm=require('node:vm'),fs=require('node:fs'),source=fs.readFileSync(require.resolve('../main'),'utf8');
+  const start=source.indexOf('function refreshTileSprite('),end=source.indexOf('\nfunction ',start+1),invalidated=[];
+  const context=vm.createContext({ROAD:2,mapData:{10:{10:2}},isWorldGameActive:()=>true,__worldGameHost:{invalidate:(r,c)=>invalidated.push([r,c])},getTileKey:()=> 'road_cross',resolveTileTextureKey:key=>key,isoToScreen:()=>({x:0,y:0}),ensureTileSprite:()=>null});
+  vm.runInContext(source.slice(start,end),context);context.refreshTileSprite({},10,10);assert.deepEqual(invalidated,[[10,10]]);
 });
 test('integrated game state survives incremental world checkpoints without changing old world v2 data', () => {
   const delta = new WorldDeltaStore(); delta.header.game = gameState();

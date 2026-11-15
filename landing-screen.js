@@ -347,7 +347,7 @@ function setupLandingScreen() {
     // source like any other (same selectSource/confirmSetup path), just a much bigger one.
     // getDistrictOverviewBox(source) returns null for it (no .centre), so it naturally never
     // gets an overview-map marker below, only a chip in the list.
-    const sources = [...(setupMode === 'editor' ? [] : [createHkTerritoryMapSource()]), ...listDistrictMapSources()];
+    const sources = [...listDistrictMapSources(), ...(setupMode === 'editor' ? [] : [createHkTerritoryMapSource()])];
     const showHover = (source) => placeOverviewFrame(overviewHover, source);
     const hideHover = () => { if (overviewHover) overviewHover.hidden = true; };
 

@@ -2797,8 +2797,13 @@ function getTileSprite(scene, row, col) {
 // sprite" for free. Idempotent: a tile that already has a sprite is returned unchanged.
 function ensureTileSprite(scene, row, col) {
   if (isWorldGameActive()) {
-    if (mapData[row]?.[col] !== ROAD) return null;
-    return scene.tileSprites.get(row * MAP_WIDTH + col) || createTerrainTileSprite(scene, row, col);
+    // Immutable world terrain never contains roads: most viewport candidates can
+    // be rejected without decoding a terrain sample or allocating a grid row.
+    if (mapData.sparseCells.get(getTileId(row, col)) !== ROAD || !shouldRenderWorldTile(row, col)) return null;
+    const existing = scene.tileSprites.get(row * MAP_WIDTH + col); if (existing) return existing;
+    const sprite = createTerrainTileSprite(scene, row, col), key = getTileKey(row, col);
+    applyRoadLineVariantForTile(scene, sprite, row, col, key, resolveTileTextureKey(key));
+    return sprite;
   }
   const id = row * MAP_WIDTH + col;
   const existing = scene.tileSprites.get(id);
@@ -2813,6 +2818,10 @@ function refreshTileSprite(scene, tileRow, tileCol) {
   const baseTextureKey = resolveTileTextureKey(key);
   const pos = isoToScreen(tileCol, tileRow);
   const sprite = ensureTileSprite(scene, tileRow, tileCol);
+  if (!sprite) {
+    if (isWorldGameActive()) globalThis.__worldGameHost.invalidate(tileRow, tileCol);
+    return;
+  }
   sprite.setTexture(baseTextureKey);
   sprite.setPosition(pos.x + scene.offsetX, pos.y + scene.offsetY + getTerrainTileVisualOffset(tileRow, tileCol, key));
   sprite.setDepth(getTerrainTileDepth(tileRow, tileCol, key, pos.y));

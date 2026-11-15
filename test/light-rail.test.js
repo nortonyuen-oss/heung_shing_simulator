@@ -4,6 +4,7 @@ const { test } = require('node:test');
 // light-rail.js runs on the metro's rail planner and the tram's street planner (globals in the game)
 global.rotateDirection = (d, steps) => { const o = ['n', 'e', 's', 'w']; return o[(o.indexOf(d) + ((steps % 4) + 4)) % 4]; };
 Object.assign(global, require('../metro-surface.js'), require('../tram.js'));
+Object.assign(global, require('../tram-lines.js'));
 const lr = require('../light-rail.js');
 
 const X = 1, Y = 2;
@@ -105,4 +106,38 @@ test('the saved state keeps only what it should', () => {
   const s = lr.normalizeLightRailState({ tracks: { '1:2': 2, bad: 3, '3:4': 99 }, trackElev: { '1:2': 'd2', '5:5': 'd2', '1:3': 'u' } });
   assert.deepEqual(s.tracks, { '1:2': 2 });
   assert.deepEqual(s.trackElev, { '1:2': 'd2' });
+});
+
+// lays a drag on `state` (it must succeed)
+const layOn = (state, e, a, b, h = 'ground') => {
+  const p = lr.planLightRailTrackPure(a, b, h, state, e);
+  assert.equal(p.ok, true, `${JSON.stringify(a)}-${JSON.stringify(b)} ${h}: ${p.reason}`);
+  state.tracks = p.bits; state.trackElev = p.elev;
+};
+
+test('one route from street track on a road, off it over open ground, up a ramp and along a deck', () => {
+  const e = env({ roads: row(5, 0, 12) });
+  const state = { ...empty(), stations: [] };
+  layOn(state, e, { row: 5, col: 1 }, { row: 5, col: 8 });                // along the road
+  layOn(state, e, { row: 5, col: 8 }, { row: 12, col: 8 });               // off it, south over the ground
+  layOn(state, e, { row: 12, col: 8 }, { row: 22, col: 8 }, 'deck');      // up onto a viaduct
+  layOn(state, e, { row: 22, col: 8 }, { row: 26, col: 8 }, 'deck');
+  const geo = lr.buildLightRailGeometry(state, e);
+  // stations: one on the ground (the middle of three straight tiles), one up on the deck's far end? no -
+  // stations stand on the ground: one at 9:8, and a stop on the street to route to
+  assert.equal(lr.whyNotLightRailStationAt(9, 8, state, e).code, null);
+  assert.equal(lr.whyNotLightRailStationAt(5, 4, state, e).code, 'notGround', 'not on the street');
+  assert.equal(lr.whyNotLightRailStationAt(18, 8, state, e).code, 'notGround', 'not on the viaduct (phase 3: ground only)');
+  const route = buildTramLineRoute(geo, [{ row: 5, col: 3, axis: 'ew', band: false }, { row: 9, col: 8, axis: 'ns', band: false }]);
+  assert.ok(!route.code, `route: ${route.code}`);
+  // it runs from the road onto the ground: a point on each
+  assert.ok(route.pts.some(([x, y]) => Math.floor(y) === 5 && Math.floor(x) === 3));
+  assert.ok(route.pts.some(([x, y]) => Math.floor(y) === 8 && Math.floor(x) === 8));
+  // heights: the ground at 0, the deck two levels up, the ramp half way at its second step's end
+  assert.equal(lr.lightRailHeightAt(8.5, 9.5, state, e), 0);
+  assert.equal(lr.lightRailHeightAt(8.4, 20.5, state, e), 2 * METRO_RAIL.hillLevelMetres);
+  assert.ok(Math.abs(lr.lightRailHeightAt(8.5, 15, state, e) - METRO_RAIL.hillLevelMetres) < 1e-9, 'half way up the ramp');
+  // the traffic: on the narrow road's street track, not on the ground
+  assert.equal(lr.lightRailInTrafficAt(3.5, 5.4, state, e), true);
+  assert.equal(lr.lightRailInTrafficAt(8.4, 9.5, state, e), false);
 });

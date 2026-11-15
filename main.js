@@ -2019,7 +2019,9 @@ function isNewToolHandledByToolsModule(tool) {
     || (typeof METRO_DRAG_TOOLS !== 'undefined' && METRO_DRAG_TOOLS.has(tool))
     || tool === 'metro-surface-station'
     || tool === 'tram-stop'
-    || tool === 'tram-line';
+    || tool === 'tram-line'
+    || tool === 'light-rail-station'
+    || tool === 'light-rail-line';
 }
 
 function getSelectedPlacementFootprint() {
@@ -2061,6 +2063,7 @@ function getSelectedPlacementFootprint() {
   if (typeof METRO_DRAG_TOOLS !== 'undefined' && METRO_DRAG_TOOLS.has(selectedTool)) return { footprintCols: 1, footprintRows: 1 };
   if (selectedTool === 'metro-surface-station') return { footprintCols: 1, footprintRows: 1 };
   if (selectedTool === 'tram-stop' || selectedTool === 'tram-line') return { footprintCols: 1, footprintRows: 1 };
+  if (selectedTool === 'light-rail-station' || selectedTool === 'light-rail-line') return { footprintCols: 1, footprintRows: 1 };
   if (selectedTool === 'floating-restaurant' && typeof TYPHOON_SHELTER_FLOATING_RESTAURANT !== 'undefined') {
     // (turned by a right-click: typhoonShelterFloatingRestaurantTurn)
     const F = TYPHOON_SHELTER_FLOATING_RESTAURANT;
@@ -2196,7 +2199,8 @@ function applyToolAtLegacy(scene, row, col, pointer = null) {
     // (a tram stop first, then its track: tram-lines.js, tram.js)
     if (typeof demolishTramStopAt === 'function' && demolishTramStopAt(scene, row, col)) return;
     if (typeof demolishTramTrackAt === 'function' && demolishTramTrackAt(scene, row, col)) return;
-    // and 輕鐵路軌 taken up, a road under it left (light-rail.js)
+    // and 輕鐵: a station first, then its track, a road under it left (light-rail-lines.js, light-rail.js)
+    if (typeof demolishLightRailStationAt === 'function' && demolishLightRailStationAt(scene, row, col)) return;
     if (typeof demolishLightRailTrackAt === 'function' && demolishLightRailTrackAt(scene, row, col)) return;
     spendBudget(COST_BULLDOZE);
     if (typeof removeDistrictSignAt === 'function') removeDistrictSignAt(scene, row, col);

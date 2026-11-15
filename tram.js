@@ -800,6 +800,6 @@ function updateTram(scene, delta = 16) {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     normalizeTramState, tramReservationSideOf, tramDragPath, planTramTrack, tramEndChange, tramBitFor,
-    buildTramTrackGeometry, tramTileLocal, TRAM_GEOM,
+    buildTramTrackGeometry, tramTileLocal, TRAM_GEOM, tramEdgeOf, tramEdgeKey,
   };
 }

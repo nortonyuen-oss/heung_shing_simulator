@@ -118,6 +118,13 @@ function handleNewTool(scene, tile) {
     if (typeof refreshTransportToolHint === 'function') refreshTransportToolHint();
     return result;
   }
+  // 輕鐵 (light-rail-lines.js)
+  if (selectedTool === 'light-rail-station') return placeLightRailStation(scene, row, col);
+  if (selectedTool === 'light-rail-line') {
+    const result = handleLightRailLineClick(scene, row, col);
+    if (typeof refreshTransportToolHint === 'function') refreshTransportToolHint();
+    return result;
+  }
   // 電車 (tram-lines.js)
   if (selectedTool === 'tram-stop') return placeTramStop(scene, row, col);
   if (selectedTool === 'tram-line') {

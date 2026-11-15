@@ -595,6 +595,7 @@ function updateTransportVisuals(time, delta) {
     ...(scene.trafficVisualState?.iceCreamEvent ? [scene.trafficVisualState.iceCreamEvent] : []),
     // (the trams in the lanes of a narrow road: tram-lines.js)
     ...(scene.tramTrafficLeaders || []),
+    ...(scene.lightRailTrafficLeaders || []),
   ]);
   state.vehicles.forEach((vehicle) => {
     const backing = vehicleById.get(vehicle.vehicleId);

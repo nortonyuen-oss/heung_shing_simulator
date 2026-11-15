@@ -2,6 +2,7 @@
 // rise_* the car down-left to up-right, fall_* down-right to up-left, horiz_* side on, vert_* end on;
 // _front / _rear the end toward the viewer (horiz: the way its cab points). anchor: the footprint's middle
 // on the ground; heads / tails: its lamps where they show; scale: to the game's size at TILE_WIDTH 100.
+// rise_* / fall_* with _r / _l: tilted on a ramp, its screen-right / screen-left end raised.
 const LIGHT_RAIL_ART = Object.freeze({
   "rise_front": {
     "path": "Models/lightRail/lrv_rise_front.png",
@@ -22,6 +23,52 @@ const LIGHT_RAIL_ART = Object.freeze({
       [
         135.1,
         360.6
+      ]
+    ],
+    "scale": 0.16259
+  },
+  "rise_front_r": {
+    "path": "Models/lightRail/lrv_rise_front_r.png",
+    "key": "lrv_rise_front_r",
+    "size": [
+      512,
+      512
+    ],
+    "anchor": [
+      255.7,
+      317.8
+    ],
+    "heads": [
+      [
+        102.4,
+        363.8
+      ],
+      [
+        135.1,
+        376.3
+      ]
+    ],
+    "scale": 0.16259
+  },
+  "rise_front_l": {
+    "path": "Models/lightRail/lrv_rise_front_l.png",
+    "key": "lrv_rise_front_l",
+    "size": [
+      512,
+      512
+    ],
+    "anchor": [
+      255.7,
+      317.8
+    ],
+    "heads": [
+      [
+        102.4,
+        323.9
+      ],
+      [
+        135.1,
+        344.9
       ]
     ],
     "scale": 0.16259
@@ -49,6 +96,52 @@ const LIGHT_RAIL_ART = Object.freeze({
     ],
     "scale": 0.16259
   },
+  "rise_rear_r": {
+    "path": "Models/lightRail/lrv_rise_rear_r.png",
+    "key": "lrv_rise_rear_r",
+    "size": [
+      512,
+      512
+    ],
+    "anchor": [
+      255.7,
+      308.8
+    ],
+    "tails": [
+      [
+        104.3,
+        285.7
+      ],
+      [
+        139.3,
+        298.4
+      ]
+    ],
+    "scale": 0.16259
+  },
+  "rise_rear_l": {
+    "path": "Models/lightRail/lrv_rise_rear_l.png",
+    "key": "lrv_rise_rear_l",
+    "size": [
+      512,
+      512
+    ],
+    "anchor": [
+      255.7,
+      308.8
+    ],
+    "tails": [
+      [
+        104.3,
+        246.4
+      ],
+      [
+        139.3,
+        268.2
+      ]
+    ],
+    "scale": 0.16259
+  },
   "fall_front": {
     "path": "Models/lightRail/lrv_fall_front.png",
     "key": "lrv_fall_front",
@@ -72,6 +165,52 @@ const LIGHT_RAIL_ART = Object.freeze({
     ],
     "scale": 0.16259
   },
+  "fall_front_r": {
+    "path": "Models/lightRail/lrv_fall_front_r.png",
+    "key": "lrv_fall_front_r",
+    "size": [
+      512,
+      512
+    ],
+    "anchor": [
+      255.7,
+      312.4
+    ],
+    "heads": [
+      [
+        405.2,
+        318.1
+      ],
+      [
+        373.9,
+        340.2
+      ]
+    ],
+    "scale": 0.16259
+  },
+  "fall_front_l": {
+    "path": "Models/lightRail/lrv_fall_front_l.png",
+    "key": "lrv_fall_front_l",
+    "size": [
+      512,
+      512
+    ],
+    "anchor": [
+      255.7,
+      312.4
+    ],
+    "heads": [
+      [
+        405.2,
+        357.0
+      ],
+      [
+        373.9,
+        370.9
+      ]
+    ],
+    "scale": 0.16259
+  },
   "fall_rear": {
     "path": "Models/lightRail/lrv_fall_rear.png",
     "key": "lrv_fall_rear",
@@ -91,6 +230,52 @@ const LIGHT_RAIL_ART = Object.freeze({
       [
         369.8,
         282.8
+      ]
+    ],
+    "scale": 0.16259
+  },
+  "fall_rear_r": {
+    "path": "Models/lightRail/lrv_fall_rear_r.png",
+    "key": "lrv_fall_rear_r",
+    "size": [
+      512,
+      512
+    ],
+    "anchor": [
+      255.9,
+      309.6
+    ],
+    "tails": [
+      [
+        406.8,
+        245.7
+      ],
+      [
+        369.8,
+        268.0
+      ]
+    ],
+    "scale": 0.16259
+  },
+  "fall_rear_l": {
+    "path": "Models/lightRail/lrv_fall_rear_l.png",
+    "key": "lrv_fall_rear_l",
+    "size": [
+      512,
+      512
+    ],
+    "anchor": [
+      255.9,
+      309.6
+    ],
+    "tails": [
+      [
+        406.8,
+        285.0
+      ],
+      [
+        369.8,
+        297.6
       ]
     ],
     "scale": 0.16259

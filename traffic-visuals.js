@@ -2565,6 +2565,7 @@ function hasTrafficSpawnConflict(state, current, next, scene = null) {
   // not on a tile a tram is on, or about to be (tram-lines.js updateTramVehicles)
   const onTram = (tile) => tile && tile.row === current.row && tile.col === current.col;
   if (scene?.tramTrafficLeaders?.some((tram) => onTram(tram.current) || onTram(tram.next))) return true;
+  if (scene?.lightRailTrafficLeaders?.some((car) => onTram(car.current) || onTram(car.next))) return true;
   return vehicles.some((vehicle) => (
     vehicle.current
     && vehicle.next
@@ -2861,7 +2862,8 @@ function updateTrafficVisuals(time, delta) {
   const busLeaders = scene?.transportVisualState?.vehicles || [];
   const fishTruckLeaders = state.fishTrucks ? [...state.fishTrucks.values()] : [];
   // and the trams on a narrow road, in the lanes with the cars (tram-lines.js updateTramVehicles)
-  const tramLeaders = scene.tramTrafficLeaders || [];
+  // (and the 輕鐵's on a narrow road: light-rail-lines.js updateLightRailCars)
+  const tramLeaders = [...(scene.tramTrafficLeaders || []), ...(scene.lightRailTrafficLeaders || [])];
   const leaders = state.iceCreamEvent
     ? [...state.vehicles, state.iceCreamEvent, ...busLeaders, ...fishTruckLeaders, ...tramLeaders]
     : [...state.vehicles, ...busLeaders, ...fishTruckLeaders, ...tramLeaders];

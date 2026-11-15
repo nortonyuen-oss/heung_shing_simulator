@@ -43,7 +43,31 @@ function normalizeLightRailState(raw) {
     // (a deck `d<level>`, a ramp step `<1..4><side it rises to>`)
     if (tracks[key] && typeof code === 'string' && /^(d[1-9]|[1-4][nesw])$/.test(code)) trackElev[key] = code;
   });
-  return { tracks, trackElev, nextId: Math.max(1, Math.floor(Number(src.nextId) || 1)) };
+  const num = (v, d = 0) => (Number.isFinite(Number(v)) ? Number(v) : d);
+  const text = (v, d) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, 40) : d);
+  const list = (v) => (Array.isArray(v) ? v.filter((x) => x && typeof x === 'object') : []);
+  // 輕鐵站 (phase 2/3): on a straight of open-ground track, its platforms two tiles long about the tile
+  const stations = list(src.stations).map((st) => ({
+    id: String(st.id), row: Math.floor(num(st.row, -1)), col: Math.floor(num(st.col, -1)),
+    axis: st.axis === 'ew' ? 'ew' : 'ns', name: text(st.name, '輕鐵站'), waitingByLine: {},
+  })).filter((st) => st.id && st.row >= 0 && st.col >= 0);
+  const stationIds = new Set(stations.map((st) => st.id));
+  const lines = list(src.lines).map((l) => ({
+    id: String(l.id), name: text(l.name, '輕鐵綫'), color: /^#[0-9a-f]{6}$/i.test(l.color) ? l.color : '#e8711a',
+    stationIds: (Array.isArray(l.stationIds) ? l.stationIds.map(String) : []).filter((id) => stationIds.has(id)),
+    status: l.status === 'suspended' ? 'suspended' : 'active',
+    monthToDatePassengers: Math.max(0, num(l.monthToDatePassengers)), monthToDateRevenue: Math.max(0, num(l.monthToDateRevenue)),
+    history: list(l.history).slice(-24),
+  })).filter((l) => l.id && l.stationIds.length >= 2);
+  const lineIds = new Set(lines.map((l) => l.id));
+  // a car (or two coupled back to back) on a line
+  const cars = list(src.cars).map((v) => ({
+    id: String(v.id), lineId: String(v.lineId), dist: Math.max(0, num(v.dist)), dwellLeft: Math.max(0, num(v.dwellLeft)),
+    callIndex: Math.max(0, Math.floor(num(v.callIndex))), aboard: Math.max(0, num(v.aboard)),
+    cars: v.cars === 2 ? 2 : 1, purchasePrice: Math.max(0, num(v.purchasePrice)), ageMonths: Math.max(0, Math.floor(num(v.ageMonths))),
+    tilesThisMonth: Math.max(0, num(v.tilesThisMonth)),
+  })).filter((v) => v.id && lineIds.has(v.lineId));
+  return { tracks, trackElev, stations, lines, cars, nextId: Math.max(1, Math.floor(num(src.nextId, 1))) };
 }
 
 function getLightRailState() {
@@ -246,6 +270,137 @@ function planLightRailTrackPure(start, end, height, state, env) {
   return out;
 }
 
+// ── The lines' way (phase 2, pure) ─────────────────────────────────────────────────────────────────
+
+// Off the road the tracks cross every tile edge 2.25 m either side of its middle (railway-track.js),
+// as drawn.
+const LIGHT_RAIL_GEOM = Object.freeze({ railHalf: 2.25 / 20, samples: 8 });
+
+function lightRailEdgeMiddle(row, col, side) {
+  if (side === 'n') return [col + 0.5, row];
+  if (side === 's') return [col + 0.5, row + 1];
+  if (side === 'w') return [col, row + 0.5];
+  return [col + 1, row + 0.5];
+}
+
+/**
+ * The light rail's track as the tram's route finder takes it (tram-lines.js buildTramLineRoute): the
+ * street track's links worked out as the tram's are (buildTramTrackGeometry), and each other tile's -
+ * open ground, a level crossing, a viaduct, a ramp - a straight double track between its edges' middles
+ * (a diagonal across the corner, as drawn), joined at the same edge nodes. Pure with `env`.
+ */
+function buildLightRailGeometry(state, env) {
+  const street = {};
+  const crossing = new Set();
+  Object.entries(state.tracks || {}).forEach(([k, mask]) => {
+    if ((state.trackElev || {})[k]) return;
+    const [r, c] = k.split(':').map(Number);
+    if (!env.isRoad(r, c)) return;
+    street[k] = mask;
+    if (lightRailTileKind(r, c, mask, null, env) === 'crossing') crossing.add(k);
+  });
+  const geo = buildTramTrackGeometry(street, (r, c) => (crossing.has(railKey(r, c)) ? null : env.bandAt(r, c)), env.isRoad);
+  const nodes = new Map();
+  geo.links.forEach((l) => [l.a, l.b, l.from, l.to].forEach((n) => { if (n) nodes.set(n.key, n); }));
+  const nodeAt = (row, col, side) => {
+    const e = tramEdgeOf(row, col, side);
+    const key = tramEdgeKey(e);
+    let n = nodes.get(key);
+    if (!n) {
+      n = { key, axis: e.axis, line: e.line, pos: e.at + 0.5, half: LIGHT_RAIL_GEOM.railHalf, slope: 0, halfSlope: 0, band: false, links: [] };
+      nodes.set(key, n);
+    }
+    return n;
+  };
+  const h = LIGHT_RAIL_GEOM.railHalf, N = LIGHT_RAIL_GEOM.samples;
+  Object.entries(state.tracks || {}).forEach(([key, mask]) => {
+    if (street[key] !== undefined) return;
+    const [row, col] = key.split(':').map(Number);
+    railBitsOf(mask).forEach((bit) => {
+      const [sa, sb] = RAIL_BIT_SIDES[bit];
+      const a = nodeAt(row, col, sa), b = nodeAt(row, col, sb);
+      const ends = (side) => {
+        const [x, y] = lightRailEdgeMiddle(row, col, side);
+        return side === 'n' || side === 's' ? [[x - h, y], [x + h, y]] : [[x, y - h], [x, y + h]];
+      };
+      let A = ends(sa), B = ends(sb);
+      if (bit !== 1 && bit !== 2) {
+        // a diagonal: inner with inner, nearer the corner its two sides share
+        const K = [sa === 'e' || sb === 'e' ? col + 1 : col, sa === 's' || sb === 's' ? row + 1 : row];
+        const near = (p, q) => Math.hypot(p[0] - K[0], p[1] - K[1]) - Math.hypot(q[0] - K[0], q[1] - K[1]);
+        A = A.slice().sort(near); B = B.slice().sort(near);
+      }
+      const rails = [0, 1].map((i) => {
+        const pts = [];
+        for (let k = 0; k <= N; k++) pts.push([A[i][0] + (B[i][0] - A[i][0]) * k / N, A[i][1] + (B[i][1] - A[i][1]) * k / N]);
+        return pts;
+      });
+      const mid = rails[0].map((p, i) => [(p[0] + rails[1][i][0]) / 2, (p[1] + rails[1][i][1]) / 2]);
+      const length = Math.hypot(mid[N][0] - mid[0][0], mid[N][1] - mid[0][1]);
+      const link = { tile: key, row, col, bit, sides: [sa, sb], a, b, from: a, to: b, straight: bit === 1 || bit === 2, consumed: false, rail: true, rails, mid, length };
+      geo.links.push(link);
+      a.links.push(link);
+      b.links.push(link);
+    });
+  });
+  return geo;
+}
+
+/** The track's height at a map point (x = col, y = row), metres over the flat. Pure with `env`. */
+function lightRailHeightAt(x, y, state, env) {
+  const row = Math.floor(y), col = Math.floor(x);
+  const key = railKey(row, col);
+  const code = (state.trackElev || {})[key];
+  const fx = x - col, fy = y - row;
+  // how far toward a side across the tile
+  const toward = (side) => (side === 'n' ? 1 - fy : side === 's' ? fy : side === 'w' ? 1 - fx : fx);
+  if (!code) {
+    // the ground (a hillside: from its foot to its top across it)
+    const edges = env.rail.openEdges(row, col);
+    if (edges.length === 1) {
+      const foot = env.rail.groundAt(key, edges[0]), top = env.rail.groundAt(key, RAIL_OPPOSITE[edges[0]]);
+      return foot + (top - foot) * toward(RAIL_OPPOSITE[edges[0]]);
+    }
+    return env.rail.groundAt(key, null);
+  }
+  if (railDeckLevel(code) != null) return railSideHeight(code, null, 0, LIGHT_RAIL_SPEC);
+  const up = code[1];
+  const ground = env.rail.groundAt(key, null);
+  const lo = railSideHeight(code, RAIL_OPPOSITE[up], ground, LIGHT_RAIL_SPEC), hi = railSideHeight(code, up, ground, LIGHT_RAIL_SPEC);
+  return lo + (hi - lo) * toward(up);
+}
+
+// Whether a map point runs in the road's traffic: street track on a narrow road (a dual carriageway's
+// reservation, a level crossing and the light rail's own track do not). Pure with `env`.
+function lightRailInTrafficAt(x, y, state, env) {
+  const row = Math.floor(y), col = Math.floor(x);
+  const mask = (state.tracks || {})[railKey(row, col)];
+  if (!mask || (state.trackElev || {})[railKey(row, col)] || !env.isRoad(row, col)) return false;
+  return lightRailTileKind(row, col, mask, null, env) === 'street' && !env.bandAt(row, col);
+}
+
+// A station's place (docs/light-rail-design.md §3): the middle of its two-tile platforms on a tile of
+// straight double track on open ground, the track straight on each side of it too (the platforms
+// reach half a tile each way). { code, site: { row, col, axis } }, code null when it may go. Pure.
+function whyNotLightRailStationAt(row, col, state, env) {
+  const tracks = state.tracks || {}, elev = state.trackElev || {};
+  const mask = tracks[railKey(row, col)];
+  if (!mask) return { code: 'noTrack' };
+  if (mask !== 1 && mask !== 2) return { code: 'notStraight' };
+  const axis = mask === 1 ? 'ns' : 'ew';
+  const [dr, dc] = axis === 'ns' ? [1, 0] : [0, 1];
+  const tiles = [[row - dr, col - dc], [row, col], [row + dr, col + dc]];
+  for (const [r, c] of tiles) {
+    const k = railKey(r, c);
+    if (tracks[k] !== mask) return { code: 'notStraight' };
+    if (elev[k] || env.isRoad(r, c)) return { code: 'notGround' };
+  }
+  const near = (state.stations || []).find((st) => (axis === 'ns' ? st.col === col && Math.abs(st.row - row) < 3 : st.row === row && Math.abs(st.col - col) < 3)
+    || (st.row === row && st.col === col));
+  if (near) return { code: 'taken' };
+  return { code: null, site: { row, col, axis } };
+}
+
 // ── On the map ──────────────────────────────────────────────────────────────────────────────────────
 
 function lightRailIsRoad(row, col) {
@@ -327,9 +482,19 @@ function setLightRailHeight(height) {
 }
 
 function planLightRailTrack(start, end, height = lightRailHeight) {
-  const plan = planLightRailTrackPure(start, end, height, getLightRailState(), lightRailMapEnv());
+  const state = getLightRailState();
+  const plan = planLightRailTrackPure(start, end, height, state, lightRailMapEnv());
   if (plan.ok && typeof isTransportExpansionActive === 'function' && !isTransportExpansionActive()) {
     return { ...plan, ok: false, reason: 'company' };
+  }
+  // (a station's three tiles stay one straight: light-rail-lines.js)
+  if (plan.ok && typeof isLightRailStationTile === 'function') {
+    const touched = Object.keys({ ...state.tracks, ...plan.bits }).find((k) => {
+      if (state.tracks[k] === plan.bits[k]) return false;
+      const [r, c] = k.split(':').map(Number);
+      return isLightRailStationTile(r, c);
+    });
+    if (touched) return { ...plan, ok: false, reason: 'station', bad: touched };
   }
   return plan;
 }
@@ -355,6 +520,7 @@ const LIGHT_RAIL_TRACK_REFUSALS = Object.freeze({
   rampHeight: ['lightRail.track.rampHeight', '高度唔夾：上落橋一次上落兩層。'],
   deckGround: ['lightRail.track.deckGround', '高架橋墩要落喺地面或者馬路上（唔可以喺水、建築或者其他路軌上面）。'],
   funds: ['lightRail.track.funds', '公司資金唔夠起路軌（要 ${cost}）。'],
+  station: ['lightRail.track.station', '輕鐵站嗰三格路軌要保持直路：喺站外面分叉或者轉彎。'],
 });
 
 function lightRailTrackRefusal(reason, vars = {}) {
@@ -414,6 +580,8 @@ function demolishLightRailTrackAt(scene, row, col) {
   const state = getLightRailState();
   const key = railKey(row, col);
   if (!state.tracks[key]) return false;
+  // not under a station (light-rail-lines.js: the bulldozer takes the station first)
+  if (typeof isLightRailStationTile === 'function' && isLightRailStationTile(row, col)) return false;
   const next = { ...state.tracks };
   const nextElev = { ...state.trackElev };
   delete next[key];
@@ -670,6 +838,8 @@ function updateLightRail(scene, delta = 16) {
   if ((tracks && Object.keys(tracks).length) || scene.lightRailTrackSprites?.size) {
     if (scene.__lightRailTrackSyncKey !== lightRailTrackSyncKey(scene)) syncLightRailTracks(scene);
   }
+  // the stations, the lines' cars (light-rail-lines.js)
+  if (typeof updateLightRailService === 'function') updateLightRailService(scene, delta);
 }
 
 // The track's upkeep for the company's month.
@@ -681,6 +851,6 @@ function getLightRailTrackMonthlyUpkeep() {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     LIGHT_RAIL, LIGHT_RAIL_SPEC, normalizeLightRailState, lightRailRoadAxis, lightRailCrossesRoad, lightRailTileKind,
-    planLightRailTrackPure,
+    planLightRailTrackPure, buildLightRailGeometry, lightRailHeightAt, lightRailInTrafficAt, whyNotLightRailStationAt,
   };
 }

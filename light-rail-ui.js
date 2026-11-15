@@ -16,7 +16,7 @@ function renderLightRailLineCard(line, state) {
   const sets = getLightRailLineSets(line, state);
   const stations = getLightRailLineStations(line, state);
   const plan = getLightRailLineRoute(line, state);
-  const cycle = plan && typeof tramRoundTripMinutes === 'function' ? tramRoundTripMinutes(plan.route) : 0;
+  const cycle = plan ? lightRailRoundTripMinutes(plan.route) : 0;
   const id = lrtUiEscape(line.id);
   const expanded = lightRailUiState.expandedLineId === line.id;
   const suspended = line.status === 'suspended';
@@ -29,6 +29,9 @@ function renderLightRailLineCard(line, state) {
     metric(lightRailT('lightRail.ui.roundTrip', '來回'), `${Math.round(cycle)} min`),
     metric(lightRailT('lightRail.ui.termini', '總站'), `${end(loops[0])} / ${end(loops[1])}`),
     metric(lightRailT('lightRail.ui.cars', '車卡'), lightRailT('lightRail.ui.carsValue', '{sets} 班（兩卡 {pairs}）', { sets: sets.length, pairs })),
+    metric(lightRailT('lightRail.ui.passengers', '本月乘客'), Math.round(line.monthToDatePassengers || 0).toLocaleString()),
+    metric(lightRailT('lightRail.ui.revenue', '本月收入'), lrtUiMoney(line.monthToDateRevenue || 0)),
+    metric(lightRailT('lightRail.ui.lastNet', '上月盈虧'), (line.history || []).length ? lrtUiMoney(line.history.at(-1).net, true) : '—'),
   ].join('');
   const list = !expanded ? '' : `
     <div class="transport-route-fleet">
@@ -36,11 +39,16 @@ function renderLightRailLineCard(line, state) {
         <div class="metro-station-row">
           <button class="transport-route-vehicle" type="button" data-transport-action="lrt-locate-station" data-station-id="${lrtUiEscape(st.id)}">
             <span>${i + 1}. 🚉 ${lrtUiEscape(st.name)}</span>
+            <span>👥 ${Math.round(st.waitingByLine?.[line.id] || 0).toLocaleString()}</span>
           </button>
           <button class="transport-btn metro-station-rename" type="button" data-transport-action="lrt-rename-station" data-station-id="${lrtUiEscape(st.id)}" title="${lrtUiEscape(lightRailT('lightRail.ui.renameStation', '車站改名'))}">✎</button>
         </div>`).join('')}
       ${sets.map((v) => `
-        <div class="transport-route-vehicle"><span>🚈 ${lrtUiEscape(v.id)}${v.cars === 2 ? ' ×2' : ''}</span></div>`).join('')}
+        <button class="transport-route-vehicle" type="button" data-transport-action="lrt-watch" data-vehicle-id="${lrtUiEscape(v.id)}" title="${lrtUiEscape(lightRailT('lightRail.ui.watchHint', '實時監控'))}">
+          <span>📹 🚈 ${lrtUiEscape(v.id)}${v.cars === 2 ? ' ×2' : ''}</span>
+          <span>👤 ${Math.round(v.aboard || 0)} / ${LIGHT_RAIL_SERVICE.carCapacity * v.cars}</span>
+          <span>${lrtUiEscape(lrtUiMoney(v.monthToDateRevenue || 0))}</span>
+        </button>`).join('')}
     </div>`;
   const issue = typeof renderTransportIssue !== 'function' ? '' : suspended
     ? renderTransportIssue(lightRailT('lightRail.issue.suspended', '輕鐵綫暫停中。'), `<button class="transport-btn" type="button" data-transport-action="lrt-toggle" data-line-id="${id}">${lrtUiEscape(t('transport.resume'))}</button>`)
@@ -88,6 +96,7 @@ function renderLightRailLinesSection() {
       <button class="transport-btn" type="button" data-transport-action="lrt-track">${lrtUiEscape(lightRailT('lightRail.ui.track', '鋪路軌'))}</button>
     </div>
     <p class="transport-depots">${lrtUiEscape(lightRailT('lightRail.ui.stats', '輕鐵站 {stations} 個 · 輕鐵 {sets} 班 · 路軌 {tiles} 格', { stations: state.stations.length, sets: state.cars.length, tiles: Object.keys(state.tracks).length }))}</p>
+    <p class="transport-depots">${lrtUiEscape(lightRailT('lightRail.ui.fareHint', '車費劃一 ${fare}；兩卡車載客多一倍。總站有迴圈就行迴圈，冇就喺站外轉軌掉頭。', { fare: LIGHT_RAIL_SERVICE.fare }))}</p>
     <div class="transport-routes">${cards}</div>`;
 }
 
@@ -162,6 +171,9 @@ function handleLightRailUiAction(action, button) {
         refreshLightRailUi();
       }).catch((error) => console.warn('[light rail station rename]', error));
     }
+    return true;
+  } else if (action === 'lrt-watch') {
+    if (typeof openVehicleTrackingWindow === 'function') openVehicleTrackingWindow('lightrail', button.dataset.vehicleId);
     return true;
   } else if (action === 'lrt-locate-station') {
     const station = getLightRailStationById(button.dataset.stationId, state);

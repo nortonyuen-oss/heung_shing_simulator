@@ -20,6 +20,15 @@ const LIGHT_RAIL_SERVICE = Object.freeze({
   streetGapTiles: 0.25,
   reservedGapTiles: 0.6,
   dwellTiles: 2.6,
+  // riders and money (docs/light-rail-design.md §5; tuned in 太子 with the city running, 2026-11-15:
+  // the station by the busy road there reaches some 1,800 riders a day at a bus stop's share - the same
+  // people the buses count - so it takes a third of that; a dense two-station line then pays back in
+  // about 22 months, a typical four-station one in about two years)
+  fare: 0.02,                  // flat, as the 輕鐵's single fare: a 4-tile bus ride's
+  catchmentRadius: 6,          // a tram stop's is 4, a bus stop's 5: its stations are further apart
+  boardingShare: 0.35,         // times a bus stop's daily share
+  stationMonthlyUpkeep: 4,
+  tileRunningCost: 0.0002,
 });
 
 const LRT_SET = Object.freeze({
@@ -226,7 +235,11 @@ function handleLightRailLineClick(scene, row, col) {
     return lrtSay('lightRail.line.pickSecond', '由「{name}」開出：撳下一個輕鐵站。', { name: station.name });
   }
   const last = draftLine ? getLightRailStationById(draftLine.stationIds.at(-1), state) : pending;
-  if (last.id === station.id) { lightRailLineDraft = null; return lrtSay('lightRail.line.done', '完成。'); }
+  if (last.id === station.id) {
+    lightRailLineDraft = null;
+    if (draftLine) announceLightRailLineOpened(draftLine);
+    return lrtSay('lightRail.line.done', '完成。');
+  }
   if (draftLine?.stationIds.includes(station.id)) {
     return lrtSay('lightRail.line.again', '「{line}」已經經過「{name}」。', { line: draftLine.name, name: station.name }, 'warning');
   }
@@ -255,6 +268,7 @@ function handleLightRailLineClick(scene, row, col) {
   state.lines.push(line);
   lightRailLineDraft = { lineId: line.id };
   lightRailNetworkRevision += 1;
+  line.newsPending = true;
   const bought = buyLightRailCar(line.id).ok;
   if (typeof queueCityChangeAutosave === 'function') queueCityChangeAutosave();
   return bought
@@ -263,7 +277,134 @@ function handleLightRailLineClick(scene, row, col) {
 }
 
 function cancelLightRailLineDraft() {
+  const draftLine = lightRailLineDraft?.lineId ? lrtState().lines.find((l) => l.id === lightRailLineDraft.lineId) : null;
   lightRailLineDraft = null;
+  if (draftLine) announceLightRailLineOpened(draftLine);
+}
+
+// A new line in 香城討論區, once: when it is drawn to its end (or at the month's turn).
+function announceLightRailLineOpened(line, state = lrtState()) {
+  if (!line?.newsPending || typeof city === 'undefined') return false;
+  if (lightRailLineDraft?.lineId === line.id) return false;
+  delete line.newsPending;
+  if (typeof addForumPost !== 'function') return false;
+  const stations = getLightRailLineStations(line, state);
+  if (stations.length < 2) return false;
+  const cityName = String(city.name || '').trim() || '香城';
+  const headline = `【輕鐵通車】${line.name}今日投入服務　街坊：唔使再等小巴`;
+  if (typeof addCityNews === 'function') addCityNews(headline);
+  addForumPost({
+    headline,
+    body: [
+      `${cityName}輕鐵「${line.name}」今日通車，由「${stations[0].name}」開往「${stations.at(-1).name}」，沿途 ${stations.length} 個站。`,
+      '路面同汽車一齊行、出到專用路軌就加速，上橋落橋一程過；過馬路嗰陣交通燈會轉紅讓輕鐵先過。有街坊話繁忙時間兩卡車都迫爆，運輸公司話會睇乘客量再加班次。',
+    ],
+    source: 'local',
+    social: { likes: 2800, laughs: 260, angry: 40, commentCount: 540, shares: 720 },
+  }, { id: `lightRailLineOpen-${line.id}`, category: '城中熱話', author: '運輸公司' });
+  return true;
+}
+
+// ── Riders and money ────────────────────────────────────────────────────────────────────────────────
+
+function lightRailStationCatchmentPoint(st) {
+  return { id: `lrt-${st.id}`, row: st.row, col: st.col, radius: LIGHT_RAIL_SERVICE.catchmentRadius };
+}
+
+// Hour by hour each station's riders join its queues, split over the lines calling there (the tram's
+// way, tram-lines.js accrueTramStopsForHour).
+function accrueLightRailStationsForHour(state, envHour) {
+  if (typeof getTransportStopRidersForHour !== 'function') return;
+  const dayStart = typeof GAME_DAY_START_MINUTES === 'number' ? GAME_DAY_START_MINUTES : 360;
+  const hour = ((envHour + Math.floor(dayStart / 60)) % 24 + 24) % 24;
+  const resetHour = typeof TRANSPORT_STOP_POOL_RESET_HOUR === 'number' ? TRANSPORT_STOP_POOL_RESET_HOUR : 4;
+  const share = (typeof TRANSPORT_STOP_DAILY_BOARDING_SHARE === 'number' ? TRANSPORT_STOP_DAILY_BOARDING_SHARE : 0.75) * LIGHT_RAIL_SERVICE.boardingShare;
+  const active = state.lines.filter((l) => l.status === 'active' && getLightRailLineSets(l, state).length);
+  state.stations.forEach((st) => {
+    if (hour === resetHour || !st.waitingByLine) st.waitingByLine = {};
+    const lines = active.filter((l) => l.stationIds.includes(st.id));
+    if (!lines.length) { st.waitingByLine = {}; return; }
+    const riders = getTransportStopRidersForHour(lightRailStationCatchmentPoint(st), hour, share);
+    lines.forEach((l) => { st.waitingByLine[l.id] = Math.min(9999, (st.waitingByLine[l.id] || 0) + riders / lines.length); });
+  });
+}
+
+// A set calls at a station: riders off (spread over the stations ahead), the queue for the way it
+// leaves on up to its room (a pair takes twice a car's), each paying the flat fare. Pure.
+function lightRailCall({ aboard, waiting, arrivingAhead, share, capacity }) {
+  const riding = Math.max(0, Math.floor(aboard || 0));
+  const alighting = arrivingAhead <= 1 ? riding : Math.round(riding / arrivingAhead);
+  const room = capacity - (riding - alighting);
+  const boarding = Math.max(0, Math.min(room, Math.floor(Math.max(0, waiting || 0) * Math.max(0, Math.min(1, share)))));
+  return { alighting, boarding, revenue: boarding * LIGHT_RAIL_SERVICE.fare };
+}
+
+function lightRailCallAt(state, line, v, route, call) {
+  const stations = getLightRailLineStations(line, state);
+  const n = stations.length;
+  const st = stations[call.stop];
+  if (!st) return;
+  const i = route.calls.indexOf(call);
+  const prev = route.calls[(i - 1 + route.calls.length) % route.calls.length];
+  const arrivingAhead = prev.leaving > 0 ? n - call.stop : call.stop + 1;
+  const leavingAhead = call.leaving > 0 ? n - 1 - call.stop : call.stop;
+  const waiting = st.waitingByLine?.[line.id] || 0;
+  const r = lightRailCall({ aboard: v.aboard, waiting, arrivingAhead, share: leavingAhead / Math.max(1, n - 1), capacity: LIGHT_RAIL_SERVICE.carCapacity * v.cars });
+  v.aboard = v.aboard - r.alighting + r.boarding;
+  if (st.waitingByLine) st.waitingByLine[line.id] = Math.max(0, waiting - r.boarding);
+  const transport = typeof getTransportExpansionState === 'function' ? getTransportExpansionState() : null;
+  if (r.revenue > 0 && transport) {
+    transport.company.cashFraction = (Number(transport.company.cashFraction) || 0) + r.revenue;
+    const whole = Math.floor(transport.company.cashFraction);
+    if (whole > 0) { transport.company.cash += whole; transport.company.cashFraction -= whole; }
+    line.monthToDateRevenue += r.revenue;
+    v.monthToDateRevenue = (v.monthToDateRevenue || 0) + r.revenue;
+  }
+  line.monthToDatePassengers += r.boarding;
+}
+
+// From the transport company's clock (transport-expansion.js advanceTransportClock): the queues.
+function advanceLightRailClock(fromMinutes, toMinutes) {
+  if (typeof mapData === 'undefined' || !(toMinutes > fromMinutes)) return;
+  if (typeof getTransportExpansionState !== 'function' || !getTransportExpansionState()?.lightRail) return;
+  const state = lrtState();
+  if (!state.lines.length) return;
+  for (let h = Math.floor(fromMinutes / 60) + 1; h * 60 <= toMinutes; h++) accrueLightRailStationsForHour(state, h);
+}
+
+// The month for the company's books (settleTransportMonth): the fares (credited at each call), the
+// riders, and the costs - each car's upkeep and running, the stations' and the track's upkeep.
+function settleLightRailMonth(ended = null) {
+  const out = { revenue: 0, passengers: 0, cost: 0 };
+  if (typeof getTransportExpansionState !== 'function' || !getTransportExpansionState()?.lightRail) return out;
+  const state = lrtState();
+  state.lines.forEach((line) => announceLightRailLineOpened(line, state));
+  state.lines.forEach((line) => {
+    const fleet = getLightRailLineSets(line, state);
+    const cost = fleet.reduce((sum, v) => sum + LIGHT_RAIL_SERVICE.carMonthlyUpkeep * v.cars + v.tilesThisMonth * LIGHT_RAIL_SERVICE.tileRunningCost * v.cars, 0);
+    out.revenue += line.monthToDateRevenue;
+    out.passengers += line.monthToDatePassengers;
+    out.cost += cost;
+    line.history.push({
+      year: ended ? ended.year : (typeof city !== 'undefined' ? city.year : 0),
+      month: ended ? ended.month : (typeof city !== 'undefined' ? city.month : 0),
+      passengers: line.monthToDatePassengers,
+      revenue: Math.round(line.monthToDateRevenue * 100) / 100,
+      cost: Math.round(cost * 100) / 100, net: Math.round((line.monthToDateRevenue - cost) * 100) / 100,
+    });
+    if (line.history.length > 24) line.history.splice(0, line.history.length - 24);
+    line.monthToDateRevenue = 0;
+    line.monthToDatePassengers = 0;
+  });
+  state.cars.forEach((v) => {
+    v.lastMonthRevenue = v.monthToDateRevenue || 0;
+    v.monthToDateRevenue = 0;
+    v.tilesThisMonth = 0;
+    v.ageMonths += 1;
+  });
+  out.cost += state.stations.length * LIGHT_RAIL_SERVICE.stationMonthlyUpkeep;
+  out.cost += typeof getLightRailTrackMonthlyUpkeep === 'function' ? getLightRailTrackMonthlyUpkeep() : 0;
+  return out;
 }
 
 // ── Routes ──────────────────────────────────────────────────────────────────────────────────────────
@@ -308,6 +449,23 @@ function getLightRailLineRoute(line, state = lrtState()) {
     }
   }
   return lrtRouteCache.get(key);
+}
+
+// A round trip as long as it takes, in the sky's minutes at the speed the game runs now: the stretches
+// in the road's traffic at the tram's pace, its own track and viaducts half as fast again, and its calls.
+function lightRailRoundTripMinutes(route) {
+  let traffic = 0, reserved = 0;
+  for (let i = 1; i < route.pts.length; i++) {
+    const d = route.cum[i] - route.cum[i - 1];
+    if (route.traffic[i] && route.traffic[i - 1]) traffic += d; else reserved += d;
+  }
+  const visual = typeof getVehicleVisualSpeedMultiplier === 'function' ? Math.max(1, getVehicleVisualSpeedMultiplier()) : 1;
+  const sky = typeof getDayNightSpeedMultiplier === 'function' ? Math.max(1, getDayNightSpeedMultiplier()) : 1;
+  const tilesPerSecond = (typeof TRAFFIC_VISUAL_CONFIG !== 'undefined' ? TRAFFIC_VISUAL_CONFIG.baseSpeedTilesPerSecond : 0.9) * visual;
+  const pace = TRAM_SERVICE.speedFactor;
+  const seconds = (traffic / pace + reserved / (pace * LIGHT_RAIL_SERVICE.reservedSpeed) + route.calls.length * TRAM_SERVICE.dwellTiles) / tilesPerSecond;
+  const skyMinutesPerSecond = 1440 / ((typeof GAME_DAY_NIGHT_CYCLE_REAL_MS === 'number' ? GAME_DAY_NIGHT_CYCLE_REAL_MS : 480000) / 1000) * sky;
+  return seconds * skyMinutesPerSecond;
 }
 
 // ── The fleet ───────────────────────────────────────────────────────────────────────────────────────
@@ -422,6 +580,7 @@ function advanceLightRailFleet(scene, delta, amount = null) {
         const hold = getTrafficSignalHoldProgress(scene, leg.current, leg.next, leg.progress, TRAM_SERVICE.headwayFactor);
         return hold === null ? null : hold - leg.progress;
       },
+      onCall: (call) => lightRailCallAt(state, t.line, t.v, plan.route, call),
     });
     t.v.tilesThisMonth += moved;
   });
@@ -670,5 +829,5 @@ function updateLightRailService(scene, delta = 16) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { LIGHT_RAIL_SERVICE, LRT_SET, LRT_CROSSING, lightRailViewOf, lightRailCarPicture, lrtSetHalf, lrtCarOffset, lrtCrossingsAbout };
+  module.exports = { LIGHT_RAIL_SERVICE, LRT_SET, LRT_CROSSING, lightRailViewOf, lightRailCarPicture, lrtSetHalf, lrtCarOffset, lrtCrossingsAbout, lightRailCall };
 }

@@ -58,6 +58,7 @@ function normalizeLightRailState(raw) {
     status: l.status === 'suspended' ? 'suspended' : 'active',
     monthToDatePassengers: Math.max(0, num(l.monthToDatePassengers)), monthToDateRevenue: Math.max(0, num(l.monthToDateRevenue)),
     history: list(l.history).slice(-24),
+    ...(l.newsPending ? { newsPending: true } : {}),
   })).filter((l) => l.id && l.stationIds.length >= 2);
   const lineIds = new Set(lines.map((l) => l.id));
   // a car (or two coupled back to back) on a line
@@ -66,6 +67,7 @@ function normalizeLightRailState(raw) {
     callIndex: Math.max(0, Math.floor(num(v.callIndex))), aboard: Math.max(0, num(v.aboard)),
     cars: v.cars === 2 ? 2 : 1, purchasePrice: Math.max(0, num(v.purchasePrice)), ageMonths: Math.max(0, Math.floor(num(v.ageMonths))),
     tilesThisMonth: Math.max(0, num(v.tilesThisMonth)),
+    monthToDateRevenue: Math.max(0, num(v.monthToDateRevenue)), lastMonthRevenue: Math.max(0, num(v.lastMonthRevenue)),
   })).filter((v) => v.id && lineIds.has(v.lineId));
   return { tracks, trackElev, stations, lines, cars, nextId: Math.max(1, Math.floor(num(src.nextId, 1))) };
 }

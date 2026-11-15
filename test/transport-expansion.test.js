@@ -544,6 +544,7 @@ test('live expansion unlocks, routes, breaks, settles and restores without affec
     metroOperations: 0,
     metroProperty: 0,
     tramOperations: 0,
+    lightRailOperations: 0,
     operatingSubsidy: 0,
     elderlyFareSubsidy: 0,
     subsidy: 0,

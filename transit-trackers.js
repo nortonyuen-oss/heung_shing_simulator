@@ -7,7 +7,7 @@
 // line's card in the routes window. A metro train underground, or in a tunnel, is followed over the
 // ground above it, the window saying so.
 
-const TRANSIT_TRACKER_TYPES = Object.freeze(['ferry', 'tram', 'metro']);
+const TRANSIT_TRACKER_TYPES = Object.freeze(['ferry', 'tram', 'metro', 'lightrail']);
 
 function isTransitTrackerType(type) {
   return TRANSIT_TRACKER_TYPES.includes(type);
@@ -193,6 +193,74 @@ function resolveTramTrackerTarget(scene, id) {
   });
 }
 
+// ── 輕鐵 ────────────────────────────────────────────────────────────────────────────────────────
+
+function resolveLightRailTrackerTarget(scene, id) {
+  if (typeof getLightRailState !== 'function' || typeof getTransportExpansionState !== 'function' || !getTransportExpansionState()?.lightRail) return null;
+  const state = getLightRailState();
+  const v = state.cars.find((x) => String(x.id) === String(id));
+  if (!v) return null;
+  const line = state.lines.find((l) => l.id === v.lineId);
+  const plan = line ? getLightRailLineRoute(line, state) : null;
+  const stations = line ? getLightRailLineStations(line, state) : [];
+  const running = typeof isTramRunning === 'function' ? isTramRunning(transitSkyClock()) : true;
+  const at = plan ? tramRoutePointAt(plan.route, Number(v.dist) || 0) : null;
+  const sprite = scene?.lightRailCarSprites?.get(`${v.id}#0`);
+  const drawn = sprite && sprite.active !== false && sprite.visible && Number.isFinite(sprite.x);
+  const world = drawn ? { x: sprite.x, y: sprite.y } : at ? transitWorldPoint(scene, at.pos[0], at.pos[1]) : null;
+  const calls = plan?.route?.calls || [];
+  const nextCall = calls.length ? calls[(Number(v.callIndex) || 0) % calls.length] : null;
+  const lastCall = calls.length ? calls[((Number(v.callIndex) || 0) - 1 + calls.length) % calls.length] : null;
+  const stationName = (call) => stations[call?.stop]?.name || '—';
+  const status = line?.status === 'suspended' ? transitTrackerT('transit.status.suspended', '暫停服務')
+    : !running ? transitTrackerT('transit.status.tramNight', '收咗車（06:00 開出）')
+      : !plan ? transitTrackerT('transit.status.noWay', '路軌斷咗，行唔到')
+        : Number(v.dwellLeft) > 0 ? transitTrackerT('transit.status.atStop', '停站上落客：{stop}', { stop: stationName(lastCall) })
+          : transitTrackerT('transit.status.running', '行駛中');
+  const leg = nextCall ? `${stationName(lastCall)} → ${stationName(nextCall)}` : '—';
+  const capacity = LIGHT_RAIL_SERVICE.carCapacity * (v.cars === 2 ? 2 : 1);
+  const passengers = `${Math.round(v.aboard || 0)} / ${capacity}`;
+  return transitTrackerBase({
+    available: !!world && running && line?.status !== 'suspended',
+    x: world?.x,
+    y: world?.y,
+    sprite: drawn ? sprite : null,
+    title: `🚈 ${line?.name || ''} · ${v.id}`,
+    status,
+    route: line?.name || '—',
+    leg,
+    passengers,
+    position: at ? { row: at.pos[1], col: at.pos[0] } : null,
+    unavailableText: status,
+    tabRows: {
+      passengers: [
+        [transitTrackerT('transport.inspector.passengers', '乘客'), `👤 ${passengers}`],
+        [transitTrackerT('transit.tracker.nextStop', '下一站'), stationName(nextCall)],
+        [transitTrackerT('transit.tracker.fare', '車費'), transitTrackerMoney(LIGHT_RAIL_SERVICE.fare)],
+      ],
+      condition: [
+        [transitTrackerT('transport.inspector.status', '狀態'), status],
+        [transitTrackerT('transit.tracker.cars', '車卡'), v.cars === 2 ? transitTrackerT('transit.tracker.carsPair', '兩卡') : transitTrackerT('transit.tracker.carsSingle', '單卡')],
+        [transitTrackerT('transport.inspector.age', '車齡（月）'), String(Math.floor(Number(v.ageMonths) || 0))],
+        [transitTrackerT('transit.tracker.tilesThisMonth', '本月行駛（格）'), String(Math.round(Number(v.tilesThisMonth) || 0))],
+        [transitTrackerT('transit.tracker.revenue', '本月收入'), transitTrackerMoney(v.monthToDateRevenue)],
+        [transitTrackerT('transit.tracker.lastRevenue', '上月收入'), transitTrackerMoney(v.lastMonthRevenue)],
+      ],
+      route: [
+        [transitTrackerT('transit.tracker.lightRailLine', '輕鐵綫'), line?.name || '—'],
+        [transitTrackerT('transport.inspector.currentLeg', '現時路段'), leg],
+        [transitTrackerT('transit.tracker.stations', '車站'), String(stations.length)],
+      ],
+    },
+    actions: [
+      line && { id: 'route', label: transitTrackerT('transport.inspector.route', '路線') },
+      world && { id: 'main', label: transitTrackerT('transport.tracker.locateMain', '主畫面') },
+      { id: 'sell', label: transitTrackerT('transit.tracker.sellLightRail', '賣輕鐵'), danger: true },
+    ].filter(Boolean),
+    entity: v,
+  });
+}
+
 // ── 地鐵 ────────────────────────────────────────────────────────────────────────────────────────
 
 function resolveMetroTrackerTarget(scene, id) {
@@ -270,6 +338,7 @@ function resolveTransitTrackerTarget(scene, type, id) {
   if (type === 'ferry') return resolveFerryTrackerTarget(scene, id);
   if (type === 'tram') return resolveTramTrackerTarget(scene, id);
   if (type === 'metro') return resolveMetroTrackerTarget(scene, id);
+  if (type === 'lightrail') return resolveLightRailTrackerTarget(scene, id);
   return null;
 }
 
@@ -280,6 +349,14 @@ function handleTransitTrackerAction(tracker, action, info) {
   const toast = (text, kind = 'info') => { if (typeof showToast === 'function') showToast(text, kind); };
   if (action === 'route') {
     if (typeof openTransportPanel === 'function') openTransportPanel('routes', tracker.type);
+    return;
+  }
+  if (action === 'sell' && tracker.type === 'lightrail') {
+    if (!window.confirm(transitTrackerT('transit.confirmSellLightRail', '賣出呢班輕鐵（{id}）？', { id: v.id }))) return;
+    const value = sellLightRailCarNow(getLightRailState(), v);
+    toast(transitTrackerT('lightRail.toast.sold', '賣咗一班輕鐵，收返 ${value}。', { value: Math.round(value).toLocaleString() }));
+    closeVehicleTrackingWindow(tracker.key);
+    if (typeof refreshLightRailUi === 'function') refreshLightRailUi();
     return;
   }
   if (action !== 'sell') return;
@@ -312,6 +389,11 @@ function handleTransitTrackerAction(tracker, action, info) {
 // tram or a car is drawn in, their lamps and lit windows, and the ferries.
 function forEachTransitTrackerObject(scene, visit) {
   scene?.tramSprites?.forEach((sprite) => {
+    visit(sprite);
+    (sprite.__tramPieces || []).forEach(visit);
+    (sprite.__tramLamps || []).forEach(visit);
+  });
+  scene?.lightRailCarSprites?.forEach((sprite) => {
     visit(sprite);
     (sprite.__tramPieces || []).forEach(visit);
     (sprite.__tramLamps || []).forEach(visit);
@@ -349,6 +431,15 @@ function findTransitVehicleAt(scene, x, y) {
       const d = Math.hypot(left + w / 2 - x, top + h / 2 - y);
       // (a light rail pair's second car is `<id>#2`: the vehicle's)
       if (!best || d < best.d) best = { type: 'tram', id: String(id).split('#')[0], d };
+    }
+  });
+  // the light rail's cars: `<id>#<k>` each, the set's id
+  scene.lightRailCarSprites?.forEach((sprite, key) => {
+    const w = sprite.frame?.realWidth * sprite.scaleX, h = sprite.frame?.realHeight * sprite.scaleY;
+    const left = sprite.x - sprite.displayOriginX * sprite.scaleX, top = sprite.y - sprite.displayOriginY * sprite.scaleY;
+    if (sprite.visible && x >= left && x <= left + w && y >= top && y <= top + h) {
+      const d = Math.hypot(left + w / 2 - x, top + h / 2 - y);
+      if (!best || d < best.d) best = { type: 'lightrail', id: String(key).split('#')[0], d };
     }
   });
   scene.metroTrainSprites?.forEach((cars, id) => cars.forEach((car) => {

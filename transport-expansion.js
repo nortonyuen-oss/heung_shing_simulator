@@ -288,6 +288,8 @@ function createEmptyTransportFinancials() {
     metroProperty: 0,
     // the trams' upkeep and running, and their stops' and track's (tram-lines.js)
     tramOperations: 0,
+    // the light rail's cars', stations' and track's (light-rail-lines.js)
+    lightRailOperations: 0,
     // paid in by the government (getTransportGovernmentSubsidy): 政府補貼 and the 兩蚊長者優惠
     operatingSubsidy: 0,
     elderlyFareSubsidy: 0,
@@ -340,6 +342,7 @@ function normalizeTransportFinanceHistory(raw) {
         metroOperations: transportRoundMoney(financials.metroOperations),
         metroProperty: transportRoundMoney(financials.metroProperty),
         tramOperations: transportRoundMoney(financials.tramOperations),
+        lightRailOperations: transportRoundMoney(financials.lightRailOperations),
         operatingSubsidy: transportRoundMoney(financials.operatingSubsidy),
         elderlyFareSubsidy: transportRoundMoney(financials.elderlyFareSubsidy),
         subsidy: transportRoundMoney(financials.subsidy),
@@ -2270,6 +2273,8 @@ function advanceTransportClock(fromMinutes, toMinutes) {
   if (typeof advanceMetroClock === 'function') advanceMetroClock(from, to);
   // 電車 (tram-lines.js): its stops' queues and every call
   if (typeof advanceTramClock === 'function') advanceTramClock(from, to);
+  // 輕鐵 (light-rail-lines.js): its stations' queues
+  if (typeof advanceLightRailClock === 'function') advanceLightRailClock(from, to);
 }
 
 function getTransportQueueRevision() {
@@ -2780,11 +2785,15 @@ function settleTransportMonth() {
   // and the trams' (tram-lines.js)
   const tramMonth = typeof settleTramMonth === 'function' ? settleTramMonth(ended) : { revenue: 0, passengers: 0, cost: 0 };
   revenue += tramMonth.revenue;
+  // and the light rail's (light-rail-lines.js)
+  const lightRailMonth = typeof settleLightRailMonth === 'function' ? settleLightRailMonth(ended) : { revenue: 0, passengers: 0, cost: 0 };
+  revenue += lightRailMonth.revenue;
   const depotUpkeep = getConnectedCommissionedTransportDepots().length * TRANSPORT_DEPOT_MONTHLY_UPKEEP;
   const ferryOperations = Number(ferryMonth.cost) || 0;
   const metroOperations = Number(metroMonth.cost) || 0;
   const tramOperations = Number(tramMonth.cost) || 0;
-  const cost = transportRoundMoney(routeOperations + depotUpkeep + ferryOperations + metroOperations + tramOperations);
+  const lightRailOperations = Number(lightRailMonth.cost) || 0;
+  const cost = transportRoundMoney(routeOperations + depotUpkeep + ferryOperations + metroOperations + tramOperations + lightRailOperations);
   const roundedRevenue = transportRoundMoney(revenue);
   // worked out before lastFinancials moves on: the operating subsidy is last month's costs' share
   const grant = getTransportGovernmentSubsidy();
@@ -2800,6 +2809,7 @@ function settleTransportMonth() {
     metroOperations: transportRoundMoney(metroOperations),
     metroProperty,
     tramOperations: transportRoundMoney(tramOperations),
+    lightRailOperations: transportRoundMoney(lightRailOperations),
     operatingSubsidy: grant.operatingSubsidy,
     elderlyFareSubsidy: grant.elderlyFareSubsidy,
     subsidy: grant.subsidy,
@@ -2811,7 +2821,7 @@ function settleTransportMonth() {
     month: ended.month,
     passengers: state.routes.reduce((sum, route) => (
       sum + (route.history.at(-1)?.passengers || 0)
-    ), 0) + ferryMonth.passengers + metroMonth.passengers + tramMonth.passengers,
+    ), 0) + ferryMonth.passengers + metroMonth.passengers + tramMonth.passengers + lightRailMonth.passengers,
     ...state.lastFinancials,
     closingCash: state.company.cash,
   });

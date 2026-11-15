@@ -141,3 +141,15 @@ test('one route from street track on a road, off it over open ground, up a ramp 
   assert.equal(lr.lightRailInTrafficAt(3.5, 5.4, state, e), true);
   assert.equal(lr.lightRailInTrafficAt(8.4, 9.5, state, e), false);
 });
+
+test('a call: riders off spread over the stations ahead, the queue on up to the room, each paying the flat fare', () => {
+  global.TRAM_SERVICE = require('../tram-lines.js').TRAM_SERVICE;
+  const { lightRailCall, LIGHT_RAIL_SERVICE } = require('../light-rail-lines.js');
+  const single = lightRailCall({ aboard: 120, waiting: 500, arrivingAhead: 2, share: 1, capacity: 200 });
+  assert.equal(single.alighting, 60, 'half get off here, half at the last station');
+  assert.equal(single.boarding, 140, 'as many on as there is room');
+  assert.ok(Math.abs(single.revenue - 140 * LIGHT_RAIL_SERVICE.fare) < 1e-9);
+  const pair = lightRailCall({ aboard: 120, waiting: 500, arrivingAhead: 2, share: 1, capacity: 400 });
+  assert.equal(pair.boarding, 340, 'a coupled pair takes twice the room');
+  assert.equal(lightRailCall({ aboard: 30, waiting: 80, arrivingAhead: 1, share: 0, capacity: 200 }).boarding, 0, 'the last station: everyone off, no one on');
+});

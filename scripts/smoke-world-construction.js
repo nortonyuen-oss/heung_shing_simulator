@@ -29,7 +29,7 @@ async function buildViaUi(page, tool, a, b = a) {
 async function runScenario(browser, backend, origin) {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, acceptDownloads: true });
   const page = await context.newPage(), errors = []; page.on('pageerror', error => { errors.push(error.message); console.error(`[${backend} browser] ${error.message}`); });
-  const url = `${origin}/world/preview.html?storage=${backend}`;
+  const url = `${origin}/world/benchmark.html?storage=${backend}`;
   await page.goto(url); await settle(page);
   assert.equal(await page.evaluate(() => HEUNG_SHING_CONFIG.platform), backend === 'browser' ? 'web' : 'desktop');
   for (const [tool, anchor] of [['market2', { col: 1599, row: 1791 }], ['park4', { col: 1663, row: 1727 }]]) {

@@ -411,6 +411,7 @@ function updateSoundMenu() {
 // ── File actions ──────────────────────────────────────────────────────────────
 
 async function returnToMainMenu() {
+  if (isWorldGameActive() && !await globalThis.__worldGameHost.save(true)) return;
   // Auto-save current game, then go back to landing screen
   let pendingSave = Promise.resolve();
   if (!isTerrainCreatorMode) {
@@ -435,6 +436,7 @@ async function returnToMainMenu() {
   // Once the save is on its way, let the title screen's showcase city take over again.
   if (typeof restartAttractMode === 'function') {
     await pendingSave.catch(() => {});
+    if (isWorldGameActive()) await leaveWorldGame();
     restartAttractMode(typeof activeScene !== 'undefined' ? activeScene : null);
   }
 }

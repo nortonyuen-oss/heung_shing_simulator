@@ -356,11 +356,13 @@ function previewTouchToolAction(scene, draft) {
     plan.ok = false;
     plan.reason = plan.funding?.payer === 'company' ? t('mobile.companyFundsLow') : t('toast.notEnoughFunds');
   }
+  if (plan.ok && typeof isWorldGameActive === 'function' && isWorldGameActive() && plan.tiles.some(({row,col})=>(!shouldRenderWorldTile(row,col) || !globalThis.__worldGameHost.hasTerrainTile(row,col)))) { plan.ok=false;plan.reason=t('toast.stillLoading'); }
   plan.signature = JSON.stringify([draft.tool, draft.start, draft.end, draft.options, plan.cost, plan.tiles, plan.funding?.payer, plan.spriteKey, identity]);
   return plan;
 }
 
 function commitTouchToolAction(scene, draft, plan) {
+  if (typeof isWorldGameActive === 'function' && isWorldGameActive() && plan.tiles.some(({row,col})=>(!shouldRenderWorldTile(row,col) || !globalThis.__worldGameHost.hasTerrainTile(row,col)))) return {ok:false,changed:false,cost:0,reason:'loading'};
   let ok = true;
   const budget = plan.funding ? getTransportConstructionFunds().balance : city.budget;
   if (draft.tool === 'park' || draft.tool === 'sports-ground') {

@@ -187,16 +187,22 @@ function updatePowerGrid(scene) {
   const bounds = typeof getActiveSweepBounds === 'function'
     ? getActiveSweepBounds() : { rowStart: 0, colStart: 0, rowCount: MAP_HEIGHT, colCount: MAP_WIDTH };
 
-  for (let r = bounds.rowStart; r < bounds.rowStart + bounds.rowCount; r++)
-    for (let c = bounds.colStart; c < bounds.colStart + bounds.colCount; c++)
-      powerMap[r][c] = false;
+  if (powerMap.clearSparse) powerMap.clearSparse();
+  else for (let r = bounds.rowStart; r < bounds.rowStart + bounds.rowCount; r++)
+    for (let c = bounds.colStart; c < bounds.colStart + bounds.colCount; c++) powerMap[r][c] = false;
 
   let totalSupply = 0;
   let totalDemand = 0;
   const activePlants = [];
 
-  for (let r = bounds.rowStart; r < bounds.rowStart + bounds.rowCount; r++) {
-    for (let c = bounds.colStart; c < bounds.colStart + bounds.colCount; c++) {
+  const worldSummary = typeof isWorldGameActive==='function'&&isWorldGameActive() ? globalThis.__worldGameHost : null;
+  if(worldSummary){
+    worldSummary.refreshChunkSummaryTable();
+    for(const row of worldSummary.chunkTable.rows.values()){totalSupply+=row.powerSupply;totalDemand+=row.powerDemand;}
+    for(const record of Object.values(buildingData))if(POWER_PLANT_STATS[record.type]&&(record.powerState??'active')!=='abandoned')activePlants.push({record,output:getPowerPlantOutput(record)});
+  }
+  for (const { row: r, col: c } of worldSummary?[]:iterateGameTiles(bounds)) {
+    {
       const id = getTileId(r, c);
       const record = buildingData[id];
       if (record) {
@@ -261,13 +267,13 @@ function updatePowerGrid(scene) {
 
   // Seed BFS from every tile occupied by a power plant
   powerSources.forEach((id) => {
-    const building = scene.buildingSprites.get(id);
-    if (!building) return;
+    const record=buildingData[id], [row,col]=id.split(':').map(Number);
+    if(!record)return;
     getFootprintTiles(
-      building.mapRow,
-      building.mapCol,
-      building.footprintCols ?? 1,
-      building.footprintRows ?? 1,
+      row,
+      col,
+      record.footprintCols ?? 1,
+      record.footprintRows ?? 1,
     ).forEach(([r, c]) => {
       if (isInsideMap(r, c) && !powerMap[r][c]) {
         powerMap[r][c] = true;
@@ -293,8 +299,8 @@ function updatePowerGrid(scene) {
   }
 
   // Second pass: empty zoned tiles are powered if adjacent to a powered tile.
-  for (let r = 0; r < MAP_HEIGHT; r++) {
-    for (let c = 0; c < MAP_WIDTH; c++) {
+  for (const { row: r, col: c } of iterateGameTiles()) {
+    {
       if (zoneMap[r][c] === ZONE_NONE || powerMap[r][c]) continue;
       if (scene.buildingSprites.has(getTileId(r, c))) continue;
       if (getCardinalNeighbors(r, c).some(([nr, nc]) => isInsideMap(nr, nc) && powerMap[nr][nc])) {
@@ -433,8 +439,8 @@ function clearTrafficLoadForRoadTiles(roadTiles) {
 function getTrafficRoadTiles() {
   if (trafficRoadTilesCache) return trafficRoadTilesCache;
   const roadTiles = [];
-  for (let row = 0; row < MAP_HEIGHT; row++) {
-    for (let col = 0; col < MAP_WIDTH; col++) {
+  for (const { row: row, col: col } of iterateGameTiles()) {
+    {
       if (isRoadTile(row, col)) roadTiles.push(row * MAP_WIDTH + col);
     }
   }
@@ -513,8 +519,8 @@ function updateTrafficMap() {
   if (Array.isArray(zonedTiles)) {
     zonedTiles.forEach(({ row, col }) => countCoverage(row, col));
   } else {
-    for (let r = 0; r < MAP_HEIGHT; r++) {
-      for (let c = 0; c < MAP_WIDTH; c++) {
+    for (const { row: r, col: c } of iterateGameTiles()) {
+    {
         countCoverage(r, c);
       }
     }

@@ -110,6 +110,7 @@ function getBusStopSortDepth(row, col, corner) {
 }
 
 function placeBusStopSprite(scene, row, col, rawSide) {
+  if (typeof shouldRenderWorldTile === 'function' && !shouldRenderWorldTile(row, col)) return null;
   if (!scene?.add || !scene.busStopSprites) return null;
   const corner = getBusStopVisualCorner(rawSide);
   const anchorCorner = getBusStopAnchorCorner(rawSide);

@@ -134,9 +134,12 @@ async function main() {
     (match, quote, logical) => resources[logical] ? `${quote}${resources[logical]}${quote}` : match);
   output('index.html', html);
   const world = await require('./world-release-assets').bundleWorldWeb({ output, add });
+  const worldAssetMap = JSON.parse(fs.readFileSync(path.join(OUT, 'data/world-web-assets.json'), 'utf8')).assets;
+  html = html.replace('</head>', `<script>globalThis.HEUNG_SHING_WORLD_ASSETS=${JSON.stringify(worldAssetMap)};</script></head>`);
+  output('index.html', html);
   const catalog = Object.entries(resources).filter(([logical]) => logical === 'data/web-model-assets.json'
     || logical.startsWith('data/model-lists/')).map(([, immutable]) => immutable);
-  const shell = [...new Set(['index.html', 'world/index.html', 'world/preview.html', resourceScript, ...immutableScripts, ...immutableStyles, ...catalog, ...world.core])];
+  const shell = [...new Set(['index.html', 'world/index.html', 'world/preview.html', 'world/benchmark.html', resourceScript, ...immutableScripts, ...immutableStyles, ...catalog, ...world.core])];
   const worker = fs.readFileSync(path.join(ROOT, 'web-service-worker.js'), 'utf8')
     .replace('__BUILD_ID__', `${pkg.version}-${config.commitSha.slice(0, 12)}`)
     .replace('/*__SHELL__*/[]', JSON.stringify(shell));

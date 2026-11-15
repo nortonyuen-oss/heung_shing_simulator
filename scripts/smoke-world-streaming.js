@@ -33,7 +33,7 @@ async function settled(page) {
     const page = await context.newPage(), errors = [], requests = [];
     page.on('pageerror', error => errors.push(error.message));
     page.on('request', request => requests.push(request.url()));
-    const url = `http://127.0.0.1:${server.address().port}/world/preview.html`;
+    const url = `http://127.0.0.1:${server.address().port}/world/benchmark.html`;
     await page.goto(url);
     const initial = await settled(page);
     assert.equal(initial.wanted, 9); assert.equal(initial.states.ACTIVE, 9);

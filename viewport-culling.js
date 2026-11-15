@@ -134,6 +134,11 @@ function getPaddedWorldViewportBounds(camera, padX, padY) {
 }
 
 function updateTerrainViewportCulling(scene, force = false) {
+  if (typeof isWorldGameActive === 'function' && isWorldGameActive()) {
+    const cameras = getActiveWorldViewportCameras(scene);
+    updateSpriteViewportCulling(scene, cameras.map(camera => getPaddedWorldViewportBounds(camera, TILE_WIDTH * 6, TILE_IMAGE_HEIGHT * 6)));
+    return;
+  }
   const camera = scene?.cameras?.main;
   if (
     !camera

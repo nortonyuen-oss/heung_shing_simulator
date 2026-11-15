@@ -7,7 +7,7 @@ const { createWorldUrl, parseWorldLaunch } = require('../world/world-entry');
 const { sha256Fallback } = require('../world/world-crypto');
 test('world launch preserves encoded city name, chosen year and stable save identity', () => {
   const url = new URL(createWorldUrl({ name: '海港 & 世界 <新>', startYear: 1900, id: 'world-test' }, 'https://example.test/'));
-  assert.equal(url.pathname, '/world/index.html'); assert.deepEqual(parseWorldLaunch(url.search), { slot: 'world-test', fresh: true, name: '海港 & 世界 <新>', startYear: 1900 });
+  assert.equal(url.pathname, '/'); assert.equal(url.searchParams.get('world'), '1'); assert.deepEqual(parseWorldLaunch(url.search), { slot: 'world-test', fresh: true, name: '海港 & 世界 <新>', startYear: 1900 });
   assert.equal(parseWorldLaunch('?slot=world-trial-v1').fresh, false); assert.equal(parseWorldLaunch('?year=-1', 2026).startYear, 2026);
   assert.throws(() => parseWorldLaunch('?slot=../../saves')); assert.throws(() => createWorldUrl({ id: '../x' }, 'https://example.test/'));
 });

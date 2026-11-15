@@ -4,11 +4,14 @@
   else root.HeungShingWorldEntry = api;
 })(globalThis, function (cryptoApi) {
   'use strict';
-  function createWorldUrl({ name, startYear, id = `world-${cryptoApi.worldUuid()}` }, base = location.href) {
+  function createWorldUrl({ name, startYear, roadTileSetId, transportExpansion, id = `world-${cryptoApi.worldUuid()}` }, base = location.href) {
     if (!/^world-[a-zA-Z0-9_-]{1,90}$/.test(id)) throw new Error('Invalid new world ID');
-    const url = new URL('/world/index.html', base);
+    const url = new URL('/?world=1', base);
     url.searchParams.set('new', id); url.searchParams.set('name', String(name || '香港全境').trim().slice(0, 30));
-    url.searchParams.set('year', String(startYear)); return url.href;
+    url.searchParams.set('year', String(startYear));
+    if (roadTileSetId) url.searchParams.set('roads', roadTileSetId);
+    if (transportExpansion) url.searchParams.set('transport', '1');
+    return url.href;
   }
   function parseWorldLaunch(search, nowYear = new Date().getFullYear()) {
     const params = new URLSearchParams(search), fresh = params.get('new'), slot = fresh || params.get('slot');
@@ -18,23 +21,20 @@
     return { slot, fresh: !!fresh, name: (params.get('name') || '香港全境').trim().slice(0, 30) || '香港全境',
       startYear: Number.isSafeInteger(year) && year >= 1850 && year <= 9999 ? year : nowYear };
   }
-  async function showWorldSaves() {
-    const response = await HeungShingStorage.worldRequest('/api/world-saves'), rows = await response.json();
-    if (!response.ok) throw new Error(rows.error || '未能讀取世界存檔。');
-    const dialog = document.getElementById('world-save-list'), list = document.getElementById('world-save-list-items'); list.replaceChildren();
-    for (const row of rows) {
-      const button = document.createElement('button'); button.type = 'button'; button.className = 'setup-button';
-      button.textContent = `${row.city.name} · $${Number(row.city.budget).toLocaleString()}`;
-      button.onclick = async () => { const url = new URL('/world/index.html', location.href); url.searchParams.set('slot', row.id); try { await enterWorld(url.href); } catch (error) { showToast(error.message, 'danger'); } };
-      list.appendChild(button);
-    }
-    if (!rows.length) list.textContent = t('landing.worldEmpty');
-    dialog.showModal();
+  function hasPendingLaunch(search = globalThis.location?.search || '') {
+    const params = new URLSearchParams(search);
+    return params.get('world') === '1' && (params.has('slot') || params.has('new'));
   }
-  function setupWorldMenu() {
-    document.getElementById('btn-world-saves')?.addEventListener('click', () => showWorldSaves().catch(error => showToast(error.message, 'danger')));
-    document.getElementById('world-save-list-close')?.addEventListener('click', () => document.getElementById('world-save-list').close());
+  async function enterWorld(url) {
+    const params = new URL(url, location.href).search;
+    const launch = parseWorldLaunch(params);
+    if (!launch.slot) throw new Error('請選擇城市存檔。');
+    return startWorldGame({ ...launch, roadTileSetId: new URLSearchParams(params).get('roads'), transportExpansion: new URLSearchParams(params).get('transport') === '1' });
   }
-  async function enterWorld(url) { await HeungShingStorage.releaseForNavigation(); location.assign(url); }
-  return { createWorldUrl, parseWorldLaunch, showWorldSaves, setupWorldMenu, enterWorld };
+  async function resumeLaunch() {
+    const params = new URLSearchParams(location.search);
+    if (params.get('world') !== '1' || !params.has('slot') && !params.has('new')) return;
+    return enterWorld(location.href);
+  }
+  return { createWorldUrl, parseWorldLaunch, hasPendingLaunch, enterWorld, resumeLaunch };
 });

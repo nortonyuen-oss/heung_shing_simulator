@@ -19,37 +19,23 @@ async function waitFor(expression, timeout = 150000) {
   }
   throw Error(`Safari timeout: ${expression}`);
 }
-const settled = 'globalThis.__worldStreamingPreview?.ready && __worldStreamingPreview.manager.snapshot().states.ACTIVE===__worldStreamingPreview.manager.snapshot().wanted';
+const settled = 'globalThis.__worldGameHost?.ready && __worldGameHost.manager.snapshot().states.ACTIVE===__worldGameHost.manager.snapshot().wanted';
 (async () => {
-  try {
-    await command('/timeouts', { script: 120000, pageLoad: 120000, implicit: 0 }); await command('/window/rect', { width: 1280, height: 900 });
-    console.log('Safari: opening packaged main menu'); await command('/url', { url: origin }); await waitFor('typeof gameReady!=="undefined"&&gameReady');
-    await evaluate(`setLanguage('zhHant');document.getElementById('btn-new-game').click();document.querySelector('[data-source-id="hk-territory"]').click();document.getElementById('city-name-input').value='Safari 全港驗收';[...document.querySelectorAll('#newgame-start-year button')].find(b=>b.textContent==='1900').click();document.getElementById('btn-start-city').click();return true;`);
-    await waitFor(settled); console.log('Safari: world entry ready');
-    const initial = await evaluate(`const p=__worldStreamingPreview;return {name:p.delta.header.city.name,year:p.delta.header.city.startYear,id:p.session.id,writable:HeungShingStorage.writable};`);
-    assert.equal(initial.name, 'Safari 全港驗收'); assert.equal(initial.year, 1900); assert(initial.writable);
-    await evaluate(`const p=__worldStreamingPreview;for(const tool of ['flatten4','market2'])p.construction.confirm(await p.construction.plan(tool,{col:1599,row:1791}));p.simulation.advance(60000);await p.session.flush();return true;`); await waitFor(settled);
-    console.log('Safari: construction and save complete');
-    const frames = await evaluate(`return new Promise(resolve=>{const values=[];let previous;function frame(time){if(previous!==undefined)values.push(time-previous);previous=time;if(values.length<120){requestAnimationFrame(frame);return;}values.sort((a,b)=>a-b);resolve({samples:120,p95Ms:values[114],p99Ms:values[118]});}requestAnimationFrame(frame);});`);
-    for (let i = 0; i < 24; i++) {
-      await evaluate(`const p=__worldStreamingPreview;if(${i}%6===0)p.rotate();p.setFocus(${112 + i * 127 % 2800},${128 + i % 16 * 128});return true;`); await waitFor(settled);
-    }
-    const backup = await evaluate(`return __worldStreamingPreview.session.exportBackup();`); fs.writeFileSync(path.join(OUT, 'safari.heungshing'), backup);
-    await command('/refresh', {}); await waitFor(settled);
-    console.log('Safari: world reload complete');
-    assert.equal(await evaluate('return HeungShingStorage.writable;'), true, 'Safari reload must keep its same-tab writer lease');
-    assert.equal(await evaluate('return __worldStreamingPreview.delta.entities.size;'), 1);
-    await evaluate('document.querySelector("header a").click();return true;'); await waitFor('typeof gameReady!=="undefined"&&gameReady');
-    console.log('Safari: returned to main menu');
-    await evaluate(`document.getElementById('btn-world-saves').click();return true;`);
-    await waitFor('document.querySelector("#world-save-list-items button")');
-    assert.equal(await evaluate('return getComputedStyle(document.getElementById("world-save-list")).visibility;'), 'visible');
-    await evaluate(`[...document.querySelectorAll('#world-save-list-items button')].find(b=>b.textContent.includes('Safari 全港驗收')).click();return true;`); await waitFor(settled);
-    const final = await evaluate(`const p=__worldStreamingPreview,s=p.stats();return {name:p.delta.header.city.name,entities:p.delta.entities.size,maxMounted:s.maxMounted,frameP95Ms:s.frameP95Ms,detailLoadP95Ms:s.detailLoadP95Ms,cache:s.terrain,minimap:s.minimap.cache,save:s.save,errors:p.errors,secureContext:isSecureContext,writable:HeungShingStorage.writable};`);
-    assert.equal(final.entities, 1); assert(final.maxMounted <= 9); assert.equal(final.errors.length, 0); assert.equal(final.minimap.errors, 0);
-    assert(final.writable);
-    fs.writeFileSync(path.join(OUT, 'safari.png'), Buffer.from(await command('/screenshot'), 'base64'));
-    fs.writeFileSync(path.join(OUT, 'safari-report.json'), JSON.stringify({ browser: session.capabilities, initial, frames, final, note: 'Native desktop Safari; physical iPhone acceptance is separate.' }, null, 2));
-    console.log(JSON.stringify({ browser: 'Safari', version: session.capabilities.browserVersion, initial, frames, final }));
-  } finally { await fetch(base, { method: 'DELETE' }).catch(() => {}); }
-})().catch(error => { console.error(error); process.exitCode = 1; });
+ try {
+  await command('/timeouts', { script: 120000, pageLoad: 120000, implicit: 0 }); await command('/window/rect', { width: 1280, height: 900 });
+  await command('/url', { url: origin }); await waitFor('typeof gameReady!=="undefined"&&gameReady');
+  await evaluate(`if(document.getElementById('btn-world-saves'))throw Error('Obsolete entry'); document.getElementById('btn-new-game').click();document.querySelector('[data-source-id="hk-territory"]').click();document.getElementById('city-name-input').value='Safari 全境整合';document.getElementById('btn-start-city').click();return true;`);
+  await waitFor(settled);
+  const initial = await evaluate(`return {name:city.name,id:__worldGameHost.session.id,writable:HeungShingStorage.writable};`); assert.equal(initial.name,'Safari 全境整合'); assert(initial.writable);
+  await evaluate(`setGameSpeed(GAME_SPEEDS.PAUSED);mapData[1760][1584]=GROUND;heightMap[1760][1584]=0;selectedTool='road';applyToolAt(activeScene,1760,1584);if(!await saveGame())throw Error('Save failed');return true;`);
+  for(let i=0;i<12;i++){await evaluate(`__worldGameHost.adapter.centreCamera(activeScene.cameras.main,${112+i*127%2800},${128+i%12*128});return true;`);await waitFor(settled);}
+  await evaluate(`if(!await saveGame())throw Error('Save failed');return true;`); await command('/refresh',{}); await waitFor(settled);
+  assert.equal(await evaluate('return mapData[1760][1584];'),2); assert(await evaluate('return HeungShingStorage.writable;'));
+  await evaluate('await returnToMainMenu(); document.getElementById("btn-continue").click();return true;');
+  await waitFor('document.querySelector("[data-world-slot]")'); await evaluate(`document.querySelector('[data-world-slot="${initial.id}"]').click();return true;`);await waitFor(settled);
+  const final = await evaluate(`return {city:city.name,maxMounted:__worldGameHost.manager.snapshot().maxMounted,cache:__worldGameHost.provider.snapshot(),frames:window.__frameErrors||[],save:__worldGameHost.session.diagnostics()};`);
+  assert(final.maxMounted<=9);assert.equal(final.frames.length,0);
+  fs.writeFileSync(path.join(OUT,'safari-integration.png'),Buffer.from(await command('/screenshot'),'base64'));
+  fs.writeFileSync(path.join(OUT,'safari-integration-report.json'),JSON.stringify({browser:session.capabilities,initial,final},null,2));console.log(JSON.stringify({browser:'Safari',initial,final}));
+ } finally { await fetch(base,{method:'DELETE'}).catch(()=>{}); }
+})().catch(error=>{console.error(error);process.exitCode=1;});

@@ -98,3 +98,5 @@ node scripts/smoke-world-offline.js
 3. 原有建築目錄、道路款式、交通站點／乘客、生長、需求、財政及服務規則逐項接 World Data／Entity／Network Adapter；不能只把原遊戲嵌入另一頁或沿用簡化玩法當完成。
 4. 全境只保留最多九塊詳細地形、世界實體與 Sprite 分離；不能為了重用 HUD 而重建 7,648,800 格陣列或保留另一套巨型地形 Scene。
 5. 舊 256×256 城市、既有世界 v2、原有未提交修改與存檔 rollback 都要有回歸驗證。
+
+後續進度：全境已接回原遊戲場景／選單，並按追加要求完成節慶全圖掃描修正及稀疏區塊摘要表。詳見 [整合及效能紀錄](world-streaming-game-integration.md)。本頁先前的 iPhone 回覆針對獨立試驗頁；共用原遊戲版本的手機實機驗收需重新操作。

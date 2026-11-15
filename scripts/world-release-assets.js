@@ -40,7 +40,7 @@ async function bundleWorldWeb({ output, add }) {
     .concat(['x', 'y', 'cross_xy'].map(axis => `Models/metroTrack/metro_track_${axis}.png`))) {
     const target = await add(logical, path.join(ROOT, logical)); assets[`/${logical}`] = `/${target}`; core.push(target);
   }
-  let html = fs.readFileSync(path.join(ROOT, 'world/index.html'), 'utf8');
+  let html = fs.readFileSync(path.join(ROOT, 'world/benchmark.html'), 'utf8');
   for (const [, src] of [...html.matchAll(/<script src="([^"]+)"/g)]) {
     const file = path.resolve(ROOT, 'world', src), target = await add(path.relative(ROOT, file), file); core.push(target); html = html.replace(`src="${src}"`, `src="../${target}"`);
   }
@@ -48,7 +48,8 @@ async function bundleWorldWeb({ output, add }) {
   const config = `globalThis.HEUNG_SHING_WORLD_PLATFORM='web';globalThis.HEUNG_SHING_WORLD_ASSETS=${JSON.stringify(assets)};`;
   const configPath = `assets/${sha(config)}.js`; output(configPath, config); core.push(configPath);
   html = html.replace('<script ', `<script src="../${configPath}"></script>\n  <script `);
-  output('world/index.html', html); output('world/preview.html', fs.readFileSync(path.join(ROOT, 'world/preview.html')));
+  output('world/benchmark.html', html);
+  output('world/index.html', fs.readFileSync(path.join(ROOT, 'world/index.html'))); output('world/preview.html', fs.readFileSync(path.join(ROOT, 'world/preview.html')));
   output('data/world-web-assets.json', JSON.stringify({ assets, manifestHash: sha(JSON.stringify(manifest)) }));
   return { core: [...new Set(core)], files: files.length, packs: 130, storageChunks: 1900, renderChunkTiles: 32 };
 }

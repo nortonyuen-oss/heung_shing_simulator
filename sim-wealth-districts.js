@@ -204,8 +204,8 @@ function computeWealthDistrictOverlayMap() {
   const landValueMap = typeof computeLandValueMap === 'function' ? computeLandValueMap() : null;
   const grid = computeWealthDistrictGridMap(landValueMap);
   const map = createFilledMap(0);
-  for (let row = 0; row < MAP_HEIGHT; row++) {
-    for (let col = 0; col < MAP_WIDTH; col++) {
+  for (const { row: row, col: col } of iterateGameTiles()) {
+    {
       if (zoneMap[row]?.[col] !== ZONE_RES) continue;
       const tier = getResidentialWealthDistrictTier(row, col, grid);
       map[row][col] = WEALTH_DISTRICT_TIER_OVERLAY_VALUES[tier] ?? 0;

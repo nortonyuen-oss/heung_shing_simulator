@@ -30,34 +30,33 @@ async function frames(page, samples = 120) {
   }), samples);
 }
 async function menuScenario(browser, origin, backend) {
-  const context = await browser.newContext({ viewport: { width: 1280, height: 900 } }), page = await context.newPage(), errors = [], requests = [];
-  page.on('pageerror', e => errors.push(e.message)); page.on('request', r => requests.push(r.url())); page.on('dialog', d => d.accept());
+  const context = await browser.newContext({ viewport: { width: 1280, height: 900 } }), page = await context.newPage(), errors = [];
+  page.on('pageerror', error => { errors.push(error.message); console.log(backend, 'PAGE ERROR', error.message); }); page.on('console', message => { if(message.type()==='error') console.log(backend,'CONSOLE',message.text().slice(0,400)); }); page.on('dialog', dialog => dialog.accept());
+  if (backend === 'desktop') await page.route('**/phaser@3.60.0/**', route => route.fulfill({ path: require.resolve('phaser/dist/phaser.min.js'), contentType: 'application/javascript' }));
   await page.goto(origin); await page.waitForFunction(() => typeof gameReady !== 'undefined' && gameReady, null, { timeout: 150000 });
-  await page.evaluate(() => { setLanguage('zhHant'); initializeChunkedTerritoryWorld = () => { throw Error('Legacy territory engine was called'); }; });
-  await page.click('#btn-new-game'); await page.click('[data-source-id="hk-territory"]'); await page.fill('#city-name-input', `${backend} 全港 & 新城`);
-  await page.locator('#newgame-start-year button').filter({ hasText: /^1900$/ }).click();
-  assert.equal(await page.locator('#newgame-road-tile-set').isVisible(), false);
-  const launchRequest = requests.length;
-  await page.click('#btn-start-city'); await page.waitForURL('**/world/index.html?**'); await settled(page);
-  const first = await page.evaluate(() => ({ id: __worldStreamingPreview.session.id, city: __worldStreamingPreview.delta.header.city, writable: HeungShingStorage.writable }));
-  assert.equal(first.city.name, `${backend} 全港 & 新城`); assert.equal(first.city.startYear, 1900); assert(first.writable);
-  assert(!requests.slice(launchRequest).some(url => /hk-terrain-tiles\.js/.test(url)), 'world entry must not fetch legacy full-world RLE');
-  assert.equal(await page.evaluate(() => typeof HK_TERRAIN_TILES), 'undefined');
-  await page.evaluate(async () => { const p = __worldStreamingPreview; for (const tool of ['flatten4', 'market2']) p.construction.confirm(await p.construction.plan(tool, { col: 1599, row: 1791 })); await p.session.flush(); });
-  await page.click('header a[href="/"]'); await page.waitForFunction(() => typeof gameReady !== 'undefined' && gameReady, null, { timeout: 150000 });
-  await page.click('#btn-world-saves');
-  try { await page.locator('#world-save-list-items button').filter({ hasText: first.city.name }).click({ timeout: 15000 }); }
-  catch (error) { await page.screenshot({ path: path.join(OUT, `${backend}-menu-failure.png`) }); console.log(await page.evaluate(() => ({ dialog: document.getElementById('world-save-list').outerHTML, display: getComputedStyle(document.getElementById('world-save-list')).display, errors: document.body.innerText.slice(-700) }))); throw error; }
-  await settled(page);
-  assert.equal(await page.evaluate(() => __worldStreamingPreview.session.id), first.id); assert.equal(await page.evaluate(() => __worldStreamingPreview.delta.entities.size), 1);
-  await page.screenshot({ path: path.join(OUT, `${backend}-menu-world.png`) });
-  assert.equal(errors.length, 0, errors.join('\n')); await context.close(); console.log(JSON.stringify({ stage: 'menu', backend, first })); return first;
+  assert.equal(await page.locator('#btn-world-saves').count(), 0);
+  await page.click('#btn-new-game'); await page.click('[data-source-id="hk-territory"]'); await page.fill('#city-name-input', `${backend} 全港整合`);
+  await page.click('#btn-start-city');
+  const sharedReady = () => globalThis.__worldGameHost?.ready && __worldGameHost.manager.snapshot().states.ACTIVE === 9;
+  try { await page.waitForFunction(sharedReady, null, { timeout: 90000 }); } catch(error) { console.log(backend, await page.evaluate(()=>({host:!!globalThis.__worldGameHost,ready:globalThis.__worldGameHost?.ready,stats:globalThis.__worldGameHost?.manager?.snapshot(),frames:window.__frameErrors,toasts:document.getElementById('toast-container')?.innerText}))); throw error; }
+  const original = await page.evaluate(async () => {
+    setGameSpeed(GAME_SPEEDS.PAUSED); const host = __worldGameHost;
+    mapData[1760][1584] = GROUND; heightMap[1760][1584] = 0;
+    selectedTool = 'road'; const result = applyToolAt(activeScene,1760,1584);
+    if (!await saveGame()) throw Error('World save failed'); return { slot: host.session.id, result, budget: city.budget };
+  }); assert(original.result.changed);
+  await page.reload(); await page.waitForFunction(sharedReady, null, { timeout: 150000 });
+  assert.equal(await page.evaluate(() => mapData[1760][1584]), 2);
+  await page.evaluate(() => returnToMainMenu()); await page.click('#btn-continue');
+  await page.locator(`[data-world-slot="${original.slot}"]`).click(); await page.waitForFunction(sharedReady, null, { timeout: 90000 });
+  assert.equal(await page.evaluate(() => city.budget), original.budget); assert.deepEqual(errors, []);
+  await context.close(); console.log(JSON.stringify({ stage: 'shared-menu', backend, slot: original.slot }));
 }
 async function compareRender(browser, origin) {
   const results = [];
   for (const size of [32, 64]) {
     const context = await browser.newContext({ viewport: { width: 1280, height: 900 } }), page = await context.newPage();
-    await page.goto(`${origin}/world/index.html?benchmark=1&render=${size}`); await settled(page); await frames(page, 60);
+    await page.goto(`${origin}/world/benchmark.html?benchmark=1&render=${size}`); await settled(page); await frames(page, 60);
     const steady = await frames(page); const loads = [];
     for (let i = 0; i < 16; i++) {
       const start = Date.now(); await page.evaluate(i => __worldStreamingPreview.setFocus(1456 + (i % 4) * 64, 1664 + Math.floor(i / 4) * 64), i); await settled(page); loads.push(Date.now() - start);
@@ -69,7 +68,7 @@ async function compareRender(browser, origin) {
 }
 async function pressure(browser, origin, backend, seconds) {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 } }), page = await context.newPage(), errors = [];
-  page.on('pageerror', e => errors.push(e.message)); await page.goto(`${origin}/world/index.html?storage=${backend}`); await settled(page);
+  page.on('pageerror', e => errors.push(e.message)); await page.goto(`${origin}/world/benchmark.html?storage=${backend}`); await settled(page);
   const installed = await page.evaluate(async () => {
     const p = __worldStreamingPreview, state = await (await fetch('/__test/world-workload.json')).json();
     p.session.autosaveMs = 1e9; state.simulation.lastWallMs = Date.now(); const start = performance.now(); p.delta.replace(state, { dirty: true });

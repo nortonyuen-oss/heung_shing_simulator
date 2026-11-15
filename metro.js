@@ -1169,7 +1169,7 @@ function syncMetroStations(scene) {
   // (a surface station is a platform, drawn by syncMetroPlatforms: metro-surface-lines.js)
   if (typeof syncMetroPlatforms === 'function') syncMetroPlatforms(scene);
   // (and a 地底站's entrance, as these)
-  const stations = (getTransportExpansionState()?.metro?.stations || []).filter((s) => !s.surface || s.underground);
+  const stations = (getTransportExpansionState()?.metro?.stations || []).filter((s) => (!s.surface || s.underground) && (typeof shouldRenderWorldTile !== 'function' || shouldRenderWorldTile(s.row,s.col)));
   const ids = new Set(stations.map((s) => s.id));
   scene.metroStationSprites.forEach((sprite, id) => { if (!ids.has(id)) { sprite.__lit?.destroy(); sprite.destroy(); scene.metroStationSprites.delete(id); } });
   stations.forEach((station) => {

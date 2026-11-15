@@ -323,7 +323,7 @@ function refreshBridgeSprite(scene, row, col) {
   if (!scene?.bridgeSprites) return;
   const id = getTileId(row, col);
   let existing = scene.bridgeSprites.get(id);
-  if (!isBridgeTile(row, col)) {
+  if (!isBridgeTile(row, col) || (typeof shouldRenderWorldTile === 'function' && !shouldRenderWorldTile(row, col))) {
     if (existing) {
       destroyBridgeSpriteEntry(existing);
       scene.bridgeSprites.delete(id);

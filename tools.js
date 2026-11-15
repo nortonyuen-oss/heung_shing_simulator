@@ -347,6 +347,7 @@ function placePowerLine(scene, row, col) {
 }
 
 function drawPowerLineSprite(scene, row, col) {
+  if (typeof shouldRenderWorldTile === 'function' && !shouldRenderWorldTile(row, col)) return null;
   const id  = getTileId(row, col);
   const pos = isoToScreen(col, row);
 

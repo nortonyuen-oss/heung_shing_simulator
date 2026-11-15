@@ -31,7 +31,7 @@ async function tapTile(page, cell) {
 async function scenario(browser, backend, origin) {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, acceptDownloads: true }), page = await context.newPage(), errors = [];
   page.on('pageerror', error => { errors.push(error.message); console.error(`[${backend}] ${error.message}`); });
-  const url = `${origin}/world/preview.html?storage=${backend}`; await page.goto(url); await settle(page);
+  const url = `${origin}/world/benchmark.html?storage=${backend}`; await page.goto(url); await settle(page);
   assert.equal(await page.evaluate(() => __worldStreamingPreview.delta.header.simulation), undefined);
   for (const col of [1592, 1596, 1600, 1604]) await build(page, 'flatten4', { col, row: 1820 });
   await build(page, 'road', { col: 1593, row: 1821 }, { col: 1607, row: 1821 });
@@ -111,7 +111,7 @@ async function scenario(browser, backend, origin) {
     browser = await chromium.launch({ channel: process.env.WORLD_TEST_BROWSER || 'chrome', headless: true });
     for (const [i, backend] of ['browser', 'desktop'].entries()) await scenario(browser, backend, `http://127.0.0.1:${servers[i].address().port}`);
     const phoneContext = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true }), phone = await phoneContext.newPage();
-    await phone.goto(`http://127.0.0.1:${servers[0].address().port}/world/preview.html?storage=browser`); await settle(phone);
+    await phone.goto(`http://127.0.0.1:${servers[0].address().port}/world/benchmark.html?storage=browser`); await settle(phone);
     await phone.locator('#simulation-summary').tap(); await phone.locator('#simulation-step').tap();
     assert.equal(await phone.evaluate(() => __worldStreamingPreview.simulation.snapshot().day), 2);
     await phone.screenshot({ path: path.join(OUT, 'mobile.png') }); await phoneContext.close(); console.log(`PASS world simulation: ${OUT}`);

@@ -42,7 +42,7 @@ async function build(page, tool, a, b = a) {
     browser = await chromium.launch({ channel: process.env.WORLD_TEST_BROWSER || 'chrome', headless: true });
     const context = await browser.newContext({ viewport: { width: 1280, height: 900 } }), page = await context.newPage(), errors = [], requests = [];
     page.on('pageerror', error => { errors.push(error.message); console.error(error.message); }); page.on('request', request => requests.push(request.url()));
-    const url = `http://127.0.0.1:${server.address().port}/world/preview.html?storage=browser`;
+    const url = `http://127.0.0.1:${server.address().port}/world/benchmark.html?storage=browser`;
     await page.goto(url); await settled(page);
     await page.waitForFunction(() => __worldStreamingPreview.minimap.cache.snapshot().images > 0 && !__worldStreamingPreview.minimap.cache.snapshot().pending);
     assert.equal(await page.evaluate(() => __worldStreamingPreview.adapter.region.width), 3187);

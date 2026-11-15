@@ -11,7 +11,7 @@ async function settled(page) {
     const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, acceptDownloads: true }), page = await context.newPage(), errors = []; page.on('pageerror', e => errors.push(e.message));
     await page.goto(origin); await page.waitForFunction(() => typeof gameReady !== 'undefined' && gameReady, null, { timeout: 150000 });
     await page.evaluate(() => navigator.serviceWorker.ready); console.log('Offline test: service worker installed');
-    await page.evaluate(async () => { await HeungShingWorldEntry.enterWorld(HeungShingWorldEntry.createWorldUrl({ name: '離線驗收', startYear: 1900 })); }); await settled(page);
+    await page.goto(`${origin}/world/benchmark.html?new=world-offline-${Date.now()}&name=離線驗收&year=1900`); await settled(page);
     await page.evaluate(async () => { const p = __worldStreamingPreview; for (const tool of ['flatten4', 'market2']) p.construction.confirm(await p.construction.plan(tool, { col: 1599, row: 1791 })); await p.session.flush(); }); await settled(page);
     const before = await page.evaluate(() => ({ slot: __worldStreamingPreview.session.id, entities: __worldStreamingPreview.delta.entities.size }));
     await context.setOffline(true); await page.reload(); await settled(page); assert.equal(await page.evaluate(() => __worldStreamingPreview.delta.entities.size), before.entities);
@@ -23,7 +23,7 @@ async function settled(page) {
     await page.screenshot({ path: path.join(OUT, 'offline-recovered.png') }); await context.close();
     const phoneContext = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true }), phone = await phoneContext.newPage();
     const lanOrigin = process.env.WORLD_LAN_URL || 'http://192.168.212.106:4183';
-    await phone.goto(`${lanOrigin}/world/index.html?new=world-lan-${Date.now()}&name=LAN驗收&year=1980`); await settled(phone);
+    await phone.goto(`${lanOrigin}/world/benchmark.html?new=world-lan-${Date.now()}&name=LAN驗收&year=1980`); await settled(phone);
     assert.equal(await phone.evaluate(() => isSecureContext), false); assert.equal(await phone.evaluate(() => HeungShingStorage.writable), true);
     await phone.evaluate(async () => { const p = __worldStreamingPreview; for (const tool of ['flatten4', 'market2']) p.construction.confirm(await p.construction.plan(tool, { col: 1599, row: 1791 })); await p.session.flush(); });
     await phone.reload(); await settled(phone); assert.equal(await phone.evaluate(() => __worldStreamingPreview.delta.entities.size), 1); assert.equal(await phone.evaluate(() => HeungShingStorage.writable), true);

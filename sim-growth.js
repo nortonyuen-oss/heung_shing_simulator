@@ -23,7 +23,12 @@ function getZoneGrowthTiles() {
   zoneGrowthTileCacheStats.misses++;
   const startedAt = globalThis.performance?.now?.() ?? Date.now();
   const tiles = [];
-  for (let row = 0; row < MAP_HEIGHT; row++) {
+  if (typeof isWorldGameActive === 'function' && isWorldGameActive()) {
+    for (const [id, zone] of zoneMap.sparseCells) {
+      if (zone === ZONE_NONE) continue;
+      const [row, col] = id.split(':').map(Number); tiles.push({ row, col, id });
+    }
+  } else for (let row = 0; row < MAP_HEIGHT; row++) {
     for (let col = 0; col < MAP_WIDTH; col++) {
       if (zoneMap[row]?.[col] === ZONE_NONE) continue;
       tiles.push({ row, col, id: `${row}:${col}` });
@@ -35,6 +40,11 @@ function getZoneGrowthTiles() {
     globalThis.performance?.now?.() ?? Date.now()
   ) - startedAt;
   return zoneGrowthTileCache;
+}
+
+function getDetailedZoneGrowthTiles() {
+  const tiles=getZoneGrowthTiles();
+  return typeof isWorldGameActive==='function'&&isWorldGameActive()?tiles.filter(({row,col})=>shouldRenderWorldTile(row,col)):tiles;
 }
 
 function getZoneGrowthTileCacheStats() {
@@ -228,6 +238,7 @@ function collectZoneDeclineCandidates() {
     if (!record || !['residential', 'commercial', 'industrial'].includes(record.type)) return;
     zoneBuildingCount++;
     const [row, col] = id.split(':').map(Number);
+    if(typeof isWorldGameActive==='function'&&isWorldGameActive()&&!shouldRenderWorldTile(row,col))return;
     const zone = zoneMap[row]?.[col] ?? ZONE_NONE;
     if (zone === ZONE_NONE) return;
     const hasRoad = hasAdjacentRoad(row, col);
@@ -450,6 +461,7 @@ function renewLegacyModelBuildings(scene, qualityContexts, random = Math.random)
   if (city.tick % TICKS_PER_MONTH !== 0) return 0;
   let renewed = 0;
   Object.entries(buildingData).forEach(([id, record]) => {
+    const [r,c]=id.split(':').map(Number);if(typeof isWorldGameActive==='function'&&isWorldGameActive()&&!shouldRenderWorldTile(r,c))return;
     if (!getZoneModelForRecord(record)?.legacy || random() >= LEGACY_MODEL_RENEWAL_CHANCE_PER_MONTH) return;
     const [row, col] = id.split(':').map(Number);
     const model = pickRenewalModel(record, row, col, qualityContexts);
@@ -561,7 +573,7 @@ function scanForLargeResidentialLots(scene, qualityContexts) {
     : [];
   if (!residentialSizes.length && !commercialSizes.length) return;
 
-  for (const { row: r, col: c, id } of getZoneGrowthTiles()) {
+  for (const { row: r, col: c, id } of (typeof getDetailedZoneGrowthTiles === 'function' ? getDetailedZoneGrowthTiles() : getZoneGrowthTiles())) {
     if (zoneDensityMap[r]?.[c] !== DENSITY_HIGH) continue;
     const zone = zoneMap[r]?.[c];
     const sizes = zone === ZONE_RES ? residentialSizes : zone === ZONE_COM ? commercialSizes : null;
@@ -623,7 +635,7 @@ function scanForLowDensityEstateUpgrades(scene, qualityContexts) {
   // every time this scan runs), not the raw tick, or 75% of tiles would never
   // be reachable since city.tick is always a multiple of TICKS_PER_MONTH here.
   const monthIndex = Math.floor(city.tick / LOW_DENSITY_ESTATE_SCAN_INTERVAL_TICKS);
-  for (const { row: r, col: c } of getZoneGrowthTiles()) {
+  for (const { row: r, col: c } of (typeof getDetailedZoneGrowthTiles === 'function' ? getDetailedZoneGrowthTiles() : getZoneGrowthTiles())) {
     if (((r * 37 + c * 17 + monthIndex) % LOW_DENSITY_ESTATE_SCAN_SHARD_COUNT) !== 0) continue;
     if (zoneMap[r]?.[c] !== ZONE_RES || zoneDensityMap[r]?.[c] !== DENSITY_LOW) continue;
 
@@ -676,6 +688,7 @@ function scanForLowDensityEstateUpgrades(scene, qualityContexts) {
 const ZONE_GROWTH_TILES_PER_STEP = 400;
 
 function buildZoneGrowthSteps(scene) {
+  if(typeof isWorldGameActive==='function'&&isWorldGameActive()&&!getDetailedZoneGrowthTiles().length)return [];
   const ctx = {
     landValueMap: null,
     residentialQualityContext: null,
@@ -703,11 +716,11 @@ function buildZoneGrowthSteps(scene) {
   step('legacyRenewal', () => renewLegacyModelBuildings(scene, ctx.qualityContexts));
   // The tile list is read when the chunk runs (it is cached and may be invalidated by the
   // steps before it); each chunk walks its own slice.
-  const tileCount = getZoneGrowthTiles().length;
+  const tileCount = getDetailedZoneGrowthTiles().length;
   const chunks = Math.max(1, Math.ceil(tileCount / ZONE_GROWTH_TILES_PER_STEP));
   for (let chunk = 0; chunk < chunks; chunk++) {
     step(chunks > 1 ? `tiles.${chunk + 1}/${chunks}` : 'tiles', () => {
-      const tiles = getZoneGrowthTiles();
+      const tiles = getDetailedZoneGrowthTiles();
       const from = chunk * ZONE_GROWTH_TILES_PER_STEP;
       const to = Math.min(tiles.length, from + ZONE_GROWTH_TILES_PER_STEP);
       for (let index = from; index < to; index++) growZoneTile(scene, tiles[index], ctx);
@@ -726,6 +739,7 @@ function growOrShrinkZones(scene) {
 function growZoneTile(scene, { row: r, col: c, id }, ctx) {
   const zone = zoneMap[r]?.[c] ?? ZONE_NONE;
   if (zone === ZONE_NONE) return;
+  if(typeof isWorldGameActive==='function'&&isWorldGameActive()&&!shouldRenderWorldTile(r,c))return;
 
   const hasBldg = scene.buildingSprites.has(id);
   const powered = !!powerMap[r][c];
@@ -1448,6 +1462,7 @@ function updateTrees(scene) {
   const newTrees = [];
 
   for (const [r, c] of getTreeSimulationTiles()) {
+    if(typeof isWorldGameActive==='function'&&isWorldGameActive()&&!shouldRenderWorldTile(r,c))continue;
     const id = getTileId(r, c);
     const tree = treeMap.get(id);
     if (!tree) continue;
@@ -1535,6 +1550,7 @@ function getDebrisSimulationTiles() {
 function updateDebris(scene) {
   if (!scene) return;
   for (const [r, c] of getDebrisSimulationTiles()) {
+    if(typeof isWorldGameActive==='function'&&isWorldGameActive()&&!shouldRenderWorldTile(r,c))continue;
     if (!debrisMap.get(`${r}:${c}`)) continue;
     if (!canDebrisOccupyAt(scene, r, c)) removeDebris(scene, r, c);
   }

@@ -54,8 +54,12 @@
     check(snapshot.worldId === world.id && snapshot.baseTerrainVersion === world.baseTerrainVersion
       && snapshot.worldSize?.width === world.width && snapshot.worldSize?.height === world.height && snapshot.chunkSize === 64, 'World/base terrain identity mismatch');
     check(integer(snapshot.revision, 0, Number.MAX_SAFE_INTEGER) && typeof snapshot.city?.name === 'string'
-      && snapshot.city.name.length <= 120 && integer(snapshot.city.budget, 0, Number.MAX_SAFE_INTEGER), 'Invalid world metadata');
+      && snapshot.city.name.length <= 120 && (snapshot.game ? Number.isFinite(snapshot.city.budget) && Math.abs(snapshot.city.budget) <= Number.MAX_SAFE_INTEGER : integer(snapshot.city.budget, 0, Number.MAX_SAFE_INTEGER)), 'Invalid world metadata');
     if (snapshot.city.startYear !== undefined) check(integer(snapshot.city.startYear, 1850, 9999), 'Invalid world start year');
+    if (snapshot.game !== undefined) {
+      const gameApi = typeof module !== 'undefined' && module.exports ? require('./world-game-state') : globalThis.HeungShingWorld;
+      gameApi.validateGameState(snapshot.game, world, check);
+    }
     if (snapshot.simulation !== undefined) simulationFormat.validateWorldSimulation(snapshot.simulation, world, check);
     if (snapshot.viewpoint) check(Number.isFinite(snapshot.viewpoint.col) && Number.isFinite(snapshot.viewpoint.row)
       && snapshot.viewpoint.col >= 0 && snapshot.viewpoint.col < world.width && snapshot.viewpoint.row >= 0 && snapshot.viewpoint.row < world.height

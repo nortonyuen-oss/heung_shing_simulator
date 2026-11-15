@@ -19,6 +19,7 @@ let cityMinimapDragging = false;
 // directly. A normal map's grid is exactly { rowStart:0, colStart:0, step:1, gridWidth:MAP_WIDTH,
 // gridHeight:MAP_HEIGHT }, so every formula below reduces to exactly what it was before.
 function getCityMinimapGrid() {
+  if (isWorldGameActive()) { const step = Math.max(MAP_WIDTH, MAP_HEIGHT) / 256; return { rowStart: 0, colStart: 0, step, gridWidth: MAP_WIDTH / step, gridHeight: MAP_HEIGHT / step }; }
   if (typeof isLazyWorldMap === 'function' && isLazyWorldMap()) {
     if (typeof getActiveSweepBounds !== 'function') return null;
     const bounds = getActiveSweepBounds();
@@ -98,7 +99,7 @@ function drawCityMinimap() {
     data[idx + 3] = 255;
   };
 
-  for (let gridRow = 0; gridRow < grid.gridHeight; gridRow++) {
+  for (let gridRow = 0; !isWorldGameActive() && gridRow < grid.gridHeight; gridRow++) {
     for (let gridCol = 0; gridCol < grid.gridWidth; gridCol++) {
       const row = grid.rowStart + gridRow * grid.step;
       const col = grid.colStart + gridCol * grid.step;
@@ -131,6 +132,7 @@ function drawCityMinimap() {
   }
 
   ctx.putImageData(image, 0, 0);
+  if (isWorldGameActive()) globalThis.__worldGameHost.paintMinimap(ctx, grid, paint);
   drawCityMinimapMetroLines(ctx, metro, grid);
   cityMinimapLastDrawAt = performance.now();
   cityMinimapLastRotation = mapRotation;

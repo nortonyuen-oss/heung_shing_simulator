@@ -48,7 +48,7 @@ function setupLandingScreen() {
   const rememberedSourceIds = { district: '', saved: '' };
   // Each pick bumps this, so a slow terrain load never paints over a newer pick.
   let previewToken = 0;
-  globalThis.HeungShingWorldEntry.setupWorldMenu();
+
 
   function setLandingState(state) {
     if (menu) menu.style.display = state === 'menu' ? 'grid' : 'none';
@@ -203,7 +203,7 @@ function setupLandingScreen() {
 
   async function selectSource(source) {
     selectedSource = source;
-    const worldMode = source?.kind === 'territory';
+    const worldMode = false;
     if (roadTileSetSelect) roadTileSetSelect.closest('.setup-row').hidden = worldMode;
     if (transportExpansionCheckbox) transportExpansionCheckbox.closest('.setup-switch').hidden = worldMode;
     if (source && rememberedSourceIds[source.kind] !== undefined) rememberedSourceIds[source.kind] = source.id;
@@ -477,7 +477,7 @@ function setupLandingScreen() {
       return;
     }
     if (source.kind === 'territory') {
-      try { await globalThis.HeungShingWorldEntry.enterWorld(globalThis.HeungShingWorldEntry.createWorldUrl({ name: nameInput.value.trim() || getDefaultCityName(), startYear: resolveCityStartYear(selectedStartYear) })); }
+      try { await globalThis.HeungShingWorldEntry.enterWorld(globalThis.HeungShingWorldEntry.createWorldUrl({ name: nameInput.value.trim() || getDefaultCityName(), startYear: resolveCityStartYear(selectedStartYear), roadTileSetId: roadTileSetSelect?.value, transportExpansion: transportExpansionCheckbox?.checked })); }
       catch (error) { showToast(error.message, 'danger'); }
       return;
     }
@@ -603,7 +603,7 @@ function setupLandingScreen() {
 
   // Menu is wired; bring the showcase city up behind it (no-op when disabled or unavailable).
   if (typeof startAttractMode === 'function') {
-    startAttractMode(typeof activeScene !== 'undefined' ? activeScene : null);
+    if (!globalThis.HeungShingWorldEntry?.hasPendingLaunch?.()) startAttractMode(typeof activeScene !== 'undefined' ? activeScene : null);
   }
 }
 
@@ -814,6 +814,7 @@ function createTerrainMetadata(terrain, seed) {
 // options.terrain is the map picked on the setup screen (any map source); without one the
 // city starts on freshly generated terrain, as the preview scripts rely on.
 async function startNewGame(cityName, options = {}) {
+  if (isWorldGameActive()) { if (!await globalThis.__worldGameHost.save(true)) return; await leaveWorldGame(); }
   if (globalThis.HEUNG_SHING_CONFIG?.platform === 'web' && !HeungShingStorage.writable) {
     showToast(platformText('locked'), 'warning'); return;
   }

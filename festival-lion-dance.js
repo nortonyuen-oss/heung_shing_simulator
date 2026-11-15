@@ -213,12 +213,15 @@ function getLionDanceLayoutExtras(scene) {
   if (!scene || typeof mapData === 'undefined') return { lionRoutes: [], lionVenueAvailable: false };
   const roadTiles = [];
   let signature = 2166136261;
-  for (let row = 0; row < mapData.length; row++) for (let col = 0; col < mapData[row].length; col++) {
-    if (!isLionDanceRoadTile(row, col)) continue;
+  const scanRoad = (row, col) => {
+    if (!isLionDanceRoadTile(row, col)) return;
     const height = typeof heightMap === 'undefined' ? 0 : heightMap[row]?.[col] || 0;
     roadTiles.push({ row, col, height });
     signature = Math.imul(signature ^ (row * 65537 + col * 17 + height), 16777619) >>> 0;
-  }
+  };
+  if (typeof isWorldGameActive === 'function' && isWorldGameActive()) {
+    for (const { row, col } of globalThis.__worldGameHost.visibleRoadTiles()) scanRoad(row,col);
+  } else for (let row=0;row<mapData.length;row++) for(let col=0;col<mapData[row].length;col++) scanRoad(row,col);
   const key = `${roadTiles.length}:${signature}`;
   if (scene.lionDanceRouteMap?.key !== key) scene.lionDanceRouteMap = { key, routes: buildLionDanceRoutes({ roadTiles }) };
   const seed = typeof city === 'undefined' ? '' : `${city.name}:${city.year}`;

@@ -13,7 +13,10 @@ let trafficMap      = [];   // 0–1 traffic load per road tile (updated each si
 
 // Simulation metadata for every placed building (player-placed or sim-spawned)
 // Keyed by getTileId(anchorRow, anchorCol)
-const buildingData = {};
+const buildingData = new Proxy({}, {
+  set(target, key, value) { target[key] = value; globalThis.__worldGameHost?.buildingChanged(); return true; },
+  deleteProperty(target, key) { delete target[key]; globalThis.__worldGameHost?.buildingChanged(); return true; },
+});
 
 // Infrastructure state
 let powerSources  = new Set();  // tile IDs of power plant anchor tiles

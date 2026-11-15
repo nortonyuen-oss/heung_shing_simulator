@@ -394,6 +394,8 @@ function whyNotLightRailStationAt(row, col, state, env) {
     const k = railKey(r, c);
     if (tracks[k] !== mask) return { code: 'notStraight' };
     if (elev[k] || env.isRoad(r, c)) return { code: 'notGround' };
+    // (its platforms level: not on a hillside)
+    if (env.rail.openEdges(r, c).length) return { code: 'notFlat' };
   }
   const near = (state.stations || []).find((st) => (axis === 'ns' ? st.col === col && Math.abs(st.row - row) < 3 : st.row === row && Math.abs(st.col - col) < 3)
     || (st.row === row && st.col === col));

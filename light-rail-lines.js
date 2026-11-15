@@ -4,7 +4,7 @@
 // finder (tram-lines.js buildTramLineRoute) on the light rail's geometry (buildLightRailGeometry), each
 // point given its height and whether it runs in the road's traffic. A car runs at the traffic's pace
 // on the road (queueing with it, as a tram), faster on its own track; two cars may run coupled back to
-// back. Stations here are placeholders for phase 3's (Norton's lightRailStation.png).
+// back. Stations are Norton's 豐年路 render (light-rail-station-art.js).
 
 const LIGHT_RAIL_SERVICE = Object.freeze({
   stationCost: 2000,
@@ -83,6 +83,7 @@ const LIGHT_RAIL_STATION_REFUSALS = Object.freeze({
   noTrack: ['lightRail.station.noTrack', '輕鐵站要起喺輕鐵路軌上面。'],
   notStraight: ['lightRail.station.notStraight', '輕鐵站要三格直嘅雙軌（月台兩格長）：喺直路中間撳。'],
   notGround: ['lightRail.station.notGround', '輕鐵站要起喺空地嘅路軌上（唔可以喺馬路、平交路、高架或者上落橋）。'],
+  notFlat: ['lightRail.station.notFlat', '輕鐵站要起喺平地上（唔可以喺山坡）。'],
   taken: ['lightRail.station.taken', '附近已經有輕鐵站。'],
 });
 
@@ -313,13 +314,17 @@ function getLightRailLineRoute(line, state = lrtState()) {
 
 const lrtRouteKeys = new WeakMap();
 
-function lrtSetHalf() {
-  return LRT_SET.carTiles / 2;
+// A set's length's half (a pair's two cars and the coupling between): `dist` is its middle, so it stops
+// with the platforms' middle under its own.
+function lrtSetHalf(v) {
+  return v && v.cars === 2 ? LRT_SET.carTiles + LRT_SET.couplerTiles / 2 : LRT_SET.carTiles / 2;
 }
 
-// How far a set reaches behind its leading car's middle, past that car's own half (its second car).
-function lrtSetTrail(v) {
-  return v.cars === 2 ? LRT_SET.carTiles + LRT_SET.couplerTiles : 0;
+// Where a set's car k (0 the leading one) is, from the set's middle, along its way (tiles).
+function lrtCarOffset(v, k) {
+  if (v.cars !== 2) return 0;
+  const s = (LRT_SET.carTiles + LRT_SET.couplerTiles) / 2;
+  return k === 0 ? s : -s;
 }
 
 function advanceLightRailFleet(scene, delta, amount = null) {
@@ -351,7 +356,6 @@ function advanceLightRailFleet(scene, delta, amount = null) {
   });
   const traffic = scene ? [...(scene.trafficVisualState?.vehicles || []), ...(scene.transportVisualState?.vehicles || [])]
     .map(trafficVehicleMapPoint).filter(Boolean) : [];
-  const half = lrtSetHalf();
   placed.forEach((t) => {
     const plan = plans.get(t.line.id);
     const gap = t.traffic ? LIGHT_RAIL_SERVICE.streetGapTiles : LIGHT_RAIL_SERVICE.reservedGapTiles;
@@ -359,9 +363,9 @@ function advanceLightRailFleet(scene, delta, amount = null) {
       blocked: () => {
         // the set ahead on the same track (its middle, past both halves and its second car, and a gap)
         if (placed.some((o) => o !== t && tramBlockedBy(t.pos, t.heading, o.pos, o.heading,
-          half + half + lrtSetTrail(o.v) + gap, 0.15, String(o.v.id) < String(t.v.id)))) return true;
+          lrtSetHalf(t.v) + lrtSetHalf(o.v) + gap, 0.15, String(o.v.id) < String(t.v.id)))) return true;
         // on the road: the traffic ahead, as a tram waits for it
-        if (t.traffic && traffic.some((o) => tramBlockedBy(t.pos, t.heading, o.pos, o.heading, TRAM_SERVICE.trafficSpacingTiles + half - 0.3))) return true;
+        if (t.traffic && traffic.some((o) => tramBlockedBy(t.pos, t.heading, o.pos, o.heading, TRAM_SERVICE.trafficSpacingTiles + lrtSetHalf(t.v) - 0.3))) return true;
         return false;
       },
       limit: () => {
@@ -462,15 +466,18 @@ function syncLightRailCarLamps(scene, sprite, lamps, strength) {
   pool.slice(lamps.length).forEach((l) => l.setVisible(false));
 }
 
+function lightRailStationTextures() {
+  if (typeof LIGHT_RAIL_STATION_ART === 'undefined') return [];
+  return ['rise', 'fall'].flatMap((v) => ['base', 'front', 'base_lit', 'front_lit'].map((n) => LIGHT_RAIL_STATION_ART[v][n]).filter(Boolean));
+}
+
 function lightRailArtLoaded(scene) {
-  return typeof LIGHT_RAIL_ART !== 'undefined' && Object.values(LIGHT_RAIL_ART).every((a) => scene.textures.exists(a.key))
-    && ['stop_front', 'stop_back'].every((k) => typeof TRAM_ART === 'undefined' || scene.textures.exists(TRAM_ART[k].key));
+  return typeof LIGHT_RAIL_ART !== 'undefined' && [...Object.values(LIGHT_RAIL_ART), ...lightRailStationTextures()].every((a) => scene.textures.exists(a.key));
 }
 
 function loadLightRailArt(scene) {
   if (typeof LIGHT_RAIL_ART === 'undefined' || scene.__lightRailArtLoading) return;
-  const all = [...Object.values(LIGHT_RAIL_ART), ...(typeof TRAM_ART !== 'undefined' ? [TRAM_ART.stop_front, TRAM_ART.stop_back] : [])]
-    .filter((a) => a && !scene.textures.exists(a.key));
+  const all = [...Object.values(LIGHT_RAIL_ART), ...lightRailStationTextures()].filter((a) => a && !scene.textures.exists(a.key));
   if (!all.length) return;
   scene.__lightRailArtLoading = true;
   all.forEach((a) => scene.load.image(a.key, typeof resolveModelAssetPath === 'function' ? resolveModelAssetPath(a.path) : a.path));
@@ -489,7 +496,7 @@ function updateLightRailCars(scene) {
   const seen = new Set();
   const draw = (v, line, plan, k) => {
     const trailer = k === 1;
-    const at = tramRoutePointAt(plan.route, (Number(v.dist) || 0) - k * (LRT_SET.carTiles + LRT_SET.couplerTiles));
+    const at = tramRoutePointAt(plan.route, (Number(v.dist) || 0) + lrtCarOffset(v, k));
     const [x, y] = at.pos;
     const heading = tramAxisHeading(at.pos, at.heading, state.tracks);
     const z = lightRailHeightAt(x, y, state, env);
@@ -518,10 +525,12 @@ function updateLightRailCars(scene) {
     if (typeof applyNightPropTint === 'function') applyNightPropTint(scene, sprite);
     applyTramPieces(scene, sprite, lightRailSlicedPieces(scene, at.pos, view, sprite, z));
     syncLightRailCarLamps(scene, sprite, lamps, strength);
-    // on a narrow road: a car the traffic queues behind (as a tram, tram-lines.js updateTramVehicles)
-    if (!trailer && at.traffic) {
-      const leg = tramAsTrafficLeg(at.pos, heading);
-      const headwayFactor = TRAM_SERVICE.headwayFactor + (lrtSetHalf() - 0.3 + lrtSetTrail(v)) / ((typeof TRAFFIC_VISUAL_CONFIG !== 'undefined' && TRAFFIC_VISUAL_CONFIG.minimumHeadwayTiles) || 0.65);
+    // on a narrow road: a set the traffic queues behind (as a tram, tram-lines.js updateTramVehicles) -
+    // by its middle, kept clear of by its half
+    if (k === v.cars - 1 && at.traffic) {
+      const mid = v.cars === 2 ? tramRoutePointAt(plan.route, Number(v.dist) || 0) : at;
+      const leg = tramAsTrafficLeg(mid.pos, tramAxisHeading(mid.pos, mid.heading, state.tracks));
+      const headwayFactor = TRAM_SERVICE.headwayFactor + (lrtSetHalf(v) - 0.3) / ((typeof TRAFFIC_VISUAL_CONFIG !== 'undefined' && TRAFFIC_VISUAL_CONFIG.minimumHeadwayTiles) || 0.65);
       scene.lightRailTrafficLeaders.push({ ...leg, renderedProgress: leg.progress, model: { headwayFactor, category: 'tram' }, tram: true });
     }
   };
@@ -540,47 +549,62 @@ function updateLightRailCars(scene) {
   });
 }
 
-// The stations, for now the tram's platforms (phase 3: Norton's lightRailStation.png): two a side, along
-// its two tiles, outside its tracks.
+// The stations (scripts/prepare-light-rail-station-assets.py, Norton's 豐年路 render): its far platform
+// and the passengers' crossing (base) behind every car on its tracks, its near platform (front) in front
+// of them all - each layer sorted past the cars it may overlap - and their tube lights at night.
 function syncLightRailStations(scene) {
   if (!scene.lightRailStationSprites) scene.lightRailStationSprites = new Map();
-  if (typeof TRAM_ART === 'undefined') return;
+  if (typeof LIGHT_RAIL_STATION_ART === 'undefined') return;
   const state = lrtState();
   const turn = typeof mapRotation === 'number' ? mapRotation : 0;
-  const signature = `${state.stations.map((s) => `${s.id}@${s.row},${s.col}`).join('|')}#${turn}#${scene.offsetX},${scene.offsetY}`;
-  if (scene.__lightRailStationSignature === signature) return;
-  scene.__lightRailStationSignature = signature;
-  const wanted = new Set();
-  const off = 0.22;
-  state.stations.forEach((st) => {
-    const along = st.axis === 'ns' ? [0, 1] : [1, 0];
-    const across = st.axis === 'ns' ? [1, 0] : [0, 1];
-    const cx = st.col + 0.5, cy = st.row + 0.5;
-    const a0 = isoToScreen(cx, cy), a1 = isoToScreen(cx + along[0], cy + along[1]);
-    const fall = (a1.x - a0.x) * (a1.y - a0.y) > 0;
-    [-1, 1].forEach((sg) => [-0.5, 0.5].forEach((k) => {
-      const x = cx + across[0] * off * sg + along[0] * k, y = cy + across[1] * off * sg + along[1] * k;
-      const f0 = isoToScreen(x, y), f1 = isoToScreen(x - across[0] * sg, y - across[1] * sg);
-      const front = f1.y > f0.y;
-      const art = TRAM_ART[front ? 'stop_front' : 'stop_back'];
-      if (!scene.textures.exists(art.key)) return;
-      const id = `${st.id}|${sg}|${k}`;
-      wanted.add(id);
-      let sprite = scene.lightRailStationSprites.get(id);
-      if (!sprite) { sprite = newTramSprite(scene, art.key); scene.lightRailStationSprites.set(id, sprite); }
-      if (sprite.texture.key !== art.key) sprite.setTexture(art.key);
-      const p = lightRailScreenAt(scene, x, y, lightRailHeightAt(x, y, state, lightRailMapEnv()));
-      sprite.setFlipX(!fall).setOrigin(fall ? art.anchor[0] / art.size[0] : 1 - art.anchor[0] / art.size[0], art.anchor[1] / art.size[1]);
-      const ends = [-0.5, 0.5].map((e) => tramDepthAt(x + along[0] * e, y + along[1] * e));
-      sprite.setScale(art.scale * TILE_WIDTH / 100).setPosition(p.x, p.y).setDepth(front ? Math.min(...ends) : Math.max(...ends));
-      sprite.__nightGround = true;
-      if (typeof applyNightPropTint === 'function') applyNightPropTint(scene, sprite);
-    }));
-  });
-  scene.lightRailStationSprites.forEach((sprite, id) => {
-    if (wanted.has(id)) return;
-    sprite.destroy();
-    scene.lightRailStationSprites.delete(id);
+  const signature = `${state.stations.map((s) => `${s.id}@${s.row},${s.col},${s.axis}`).join('|')}#${turn}#${scene.offsetX},${scene.offsetY}`;
+  const strength = Math.max(0, Math.min(1, Number(scene.buildingLightStrength) || 0));
+  if (scene.__lightRailStationSignature !== signature) {
+    scene.__lightRailStationSignature = signature;
+    const wanted = new Set();
+    const env = lightRailMapEnv();
+    state.stations.forEach((st) => {
+      const along = st.axis === 'ns' ? [0, 1] : [1, 0];
+      const across = st.axis === 'ns' ? [1, 0] : [0, 1];
+      const cx = st.col + 0.5, cy = st.row + 0.5;
+      const a0 = isoToScreen(cx, cy), a1 = isoToScreen(cx + along[0], cy + along[1]);
+      const view = (a1.x - a0.x) * (a1.y - a0.y) > 0 ? 'fall' : 'rise';
+      const art = LIGHT_RAIL_STATION_ART[view];
+      // (the depths of the cars it may overlap: on both tracks, a car's length past each end)
+      const reach = LIGHT_RAIL_STATION_ART.platformTiles / 2 + LRT_SET.carTiles;
+      const depths = [];
+      [-0.1125, 0.1125].forEach((t) => [-reach, 0, reach].forEach((k) => depths.push(tramDepthAt(cx + across[0] * t + along[0] * k, cy + across[1] * t + along[1] * k))));
+      const p = lightRailScreenAt(scene, cx, cy, lightRailHeightAt(cx, cy, state, env));
+      [['base', Math.min(...depths) - 0.6], ['front', Math.max(...depths) + 0.6]].forEach(([layer, depth]) => {
+        [layer, `${layer}_lit`].forEach((name) => {
+          const tex = art[name];
+          if (!tex || !scene.textures.exists(tex.key)) return;
+          const id = `${st.id}|${name}`;
+          wanted.add(id);
+          let sprite = scene.lightRailStationSprites.get(id);
+          if (!sprite) {
+            sprite = newTramSprite(scene, tex.key);
+            if (name.endsWith('_lit')) sprite.setBlendMode?.(typeof Phaser !== 'undefined' ? Phaser.BlendModes.ADD : 'ADD');
+            scene.lightRailStationSprites.set(id, sprite);
+          } else if (sprite.texture.key !== tex.key) sprite.setTexture(tex.key);
+          sprite.setOrigin(art.anchor[0] / art.size[0], art.anchor[1] / art.size[1]).setScale(art.scale * TILE_WIDTH / 100)
+            .setPosition(p.x, p.y).setDepth(depth + (name.endsWith('_lit') ? 0.01 : 0));
+          sprite.__lrtLit = name.endsWith('_lit');
+          sprite.__nightGround = !sprite.__lrtLit;
+          if (!sprite.__lrtLit && typeof applyNightPropTint === 'function') applyNightPropTint(scene, sprite);
+        });
+      });
+    });
+    scene.lightRailStationSprites.forEach((sprite, id) => {
+      if (wanted.has(id)) return;
+      sprite.destroy();
+      scene.lightRailStationSprites.delete(id);
+    });
+  }
+  // (the tube lights come on with the buildings' windows)
+  scene.lightRailStationSprites.forEach((sprite) => {
+    if (sprite.__lrtLit) sprite.setAlpha(strength).setVisible(strength > 0.01);
+    else if (typeof applyNightPropTint === 'function') applyNightPropTint(scene, sprite);
   });
 }
 
@@ -598,5 +622,5 @@ function updateLightRailService(scene, delta = 16) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { LIGHT_RAIL_SERVICE, LRT_SET, lightRailViewOf, lightRailCarPicture };
+  module.exports = { LIGHT_RAIL_SERVICE, LRT_SET, lightRailViewOf, lightRailCarPicture, lrtSetHalf, lrtCarOffset };
 }

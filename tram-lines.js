@@ -797,7 +797,7 @@ function advanceTramFleet(scene, delta, amount = null) {
         const ownExtra = tramVehicleHalfLength(t.line) - TRAM_LENGTH_TILES / 2;
         if (placed.some((o) => o !== t && tramBlockedBy(t.pos, t.heading, o.pos, o.heading,
           TRAM_SERVICE.tramSpacingTiles + ownExtra + tramVehicleHalfLength(o.line) - TRAM_LENGTH_TILES / 2
-            + tramVehicleTrailTiles(o.line, o.v), 0.15))) { tramQueueStats.tram++; return true; }
+            + tramVehicleTrailTiles(o.line, o.v), 0.15, String(o.v.id) < String(t.v.id)))) { tramQueueStats.tram++; return true; }
         if (t.traffic && traffic.some((o) => tramBlockedBy(t.pos, t.heading, o.pos, o.heading, TRAM_SERVICE.trafficSpacingTiles + ownExtra))) { tramQueueStats.car++; return true; }
         // crossing over into the other lane at a terminus: not across the bows of a car in it
         if (t.traffic && tramLaneOffset(t.pos, t.heading) < TRAM_OWN_LANE_MIN
@@ -1058,13 +1058,16 @@ function trafficVehicleMapPoint(vehicle) {
 }
 
 // Whether something at `other` going `otherHeading` is in front of a tram, in its lane, nearer than
-// `gap` (middles). Pure.
-function tramBlockedBy(pos, heading, other, otherHeading, gap, lateral = 0.35) {
+// `gap` (middles). Pure. Level with it (two lines' first trams both start at the line's first stop when
+// the lines share it): neither is ahead, and without `yieldWhenLevel` for one of them the two would run
+// on together, drawn one in the other.
+function tramBlockedBy(pos, heading, other, otherHeading, gap, lateral = 0.35, yieldWhenLevel = false) {
   if (heading[0] * otherHeading[0] + heading[1] * otherHeading[1] < 0.7) return false;
   const dx = other[0] - pos[0], dy = other[1] - pos[1];
   const ahead = dx * heading[0] + dy * heading[1];
   const side = Math.abs(dx * heading[1] - dy * heading[0]);
-  return ahead > 0.01 && ahead < gap && side < lateral;
+  if (side >= lateral) return false;
+  return (ahead > 0.01 && ahead < gap) || (yieldWhenLevel && Math.abs(ahead) <= 0.01);
 }
 
 // The trams, each frame (main.js update via updateTram): where each is on its line, drawn and lit,

@@ -335,6 +335,19 @@ function getFestivalPlacementPoint(scene, placement) {
   const shifted = isoToScreen(col + dCol, row + dRow);
   let depth = getBuildingSortDepth(getBuildingAnchor(row, col, 1, 1).y, 1, 1, 0);
   if (placement.lionDance || placement.fireDragon) depth += shifted.y - centre.y;
+  // A group out on a road tile's pavement (盂蘭's 燒街衣, 中秋's lantern poles) sorts by the pavement
+  // line it stands on, not as the whole tile: a 電車 / 輕鐵, a bus or a car on the same tile is in front
+  // of the far pavement's and behind the near one's (Norton, 2026-11-15: 燒衣街坊 drawn on a light
+  // rail car's roof - 唔好穿模). The group's own things keep their order among themselves (all share it).
+  if (placement.sortOffsets) {
+    let sRow = 0, sCol = 0;
+    placement.sortOffsets.forEach(([dir, metres]) => {
+      const [dr, dc] = FESTIVAL_STEP[dir] || [0, 0];
+      sRow += (dr * metres) / FESTIVAL_TILE_M;
+      sCol += (dc * metres) / FESTIVAL_TILE_M;
+    });
+    depth += isoToScreen(col + sCol, row + sRow).y - centre.y;
+  }
   if (placement.groundBuildingId) {
     const ground = scene.buildingSprites?.get(placement.groundBuildingId);
     if (!ground) return null;

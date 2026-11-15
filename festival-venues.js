@@ -864,6 +864,8 @@ function layoutYulanStreetGroup(out, s, ctx) {
     out.push({
       id: `yulan:street:${s.row}:${s.col}:${s.side}:${key}`, festival: 'yulan', partId, mode: 'tile', row: s.row, col: s.col,
       offsets: [[s.side, YULAN_KERB_IN_M + inM], [s.half, alongM]],
+      // (sorted as the pavement it is out on: festival-sprites.js getFestivalPlacementPoint)
+      sortOffsets: [[s.side, YULAN_KERB_IN_M]],
       district: s.district, ...(part?.heightM && !extra.heightM ? { heightM: part.heightM * YULAN_STREET_SCALE } : {}), ...extra,
     });
   };
@@ -1166,7 +1168,7 @@ function layoutMidAutumnRoute(out, loop, ctx) {
       // not on a pavement that is more road (a junction's mouth)
       if (ctx.isRoad?.(t.row + dr, t.col + dc)) return;
       out.push({ id: `midAutumn:route:${t.row}:${t.col}:${side}`, festival: 'midAutumn', partId: 'maLanternPole',
-        mode: 'tile', row: t.row, col: t.col, offsets: [[side, MID_AUTUMN_KERB_M]] });
+        mode: 'tile', row: t.row, col: t.col, offsets: [[side, MID_AUTUMN_KERB_M]], sortOffsets: [[side, MID_AUTUMN_KERB_M]] });
     });
   });
   if (getMidAutumnPresence(ctx.minute, MID_AUTUMN_TIMES.dragon, 1, 1) <= 0 || ctx.dragonWeatherBad) return;

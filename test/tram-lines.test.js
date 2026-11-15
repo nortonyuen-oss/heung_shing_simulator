@@ -135,6 +135,8 @@ test('in the traffic: a tram as a car leg, and what holds it', () => {
   assert.equal(lines.tramBlockedBy([5.38, 7.3], [0, -1], [5.5, 6.7], [0, -1], 0.9), true, 'a car ahead the same way');
   assert.equal(lines.tramBlockedBy([5.38, 7.3], [0, -1], [5.5, 6.7], [0, 1], 0.9), false, 'oncoming');
   assert.equal(lines.tramBlockedBy([5.38, 7.3], [0, -1], [5.5, 7.9], [0, -1], 0.9), false, 'behind');
+  assert.equal(lines.tramBlockedBy([5.38, 7.3], [0, -1], [5.38, 7.3], [0, -1], 0.9, 0.15), false, 'level: neither ahead');
+  assert.equal(lines.tramBlockedBy([5.38, 7.3], [0, -1], [5.38, 7.3], [0, -1], 0.9, 0.15, true), true, 'level: the one told to yield waits');
 });
 
 test('a stop: on straight track; on a dual carriageway the band pair, whichever half is clicked', () => {

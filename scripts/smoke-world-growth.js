@@ -93,7 +93,12 @@ async function settled(page) {
     for (const id of grown.buildings) assert(restored.buildings.includes(id), 'automatic buildings survive reload');
     assert(restored.population > 0); assert(restored.powered); assert.deepEqual(restored.frames, []); assert.deepEqual(errors, []);
     const output = path.join(ROOT, 'test-results/world-growth'); fs.mkdirSync(output, { recursive: true });
-    await page.evaluate(() => { city.timeOfDayMinutes = 720; updateDynamicLighting(activeScene); setMapZoom(activeScene, 1); });
+    await page.evaluate(() => {
+      city.timeOfDayMinutes = 720; updateDynamicLighting(activeScene); setMapZoom(activeScene, .8);
+      const h = __worldGameHost; h.adapter.centreCamera(activeScene.cameras.main, 1690, 1831); h.manager.setFocus(1690, 1831);
+    });
+    await settled(page);
+    await page.waitForFunction(() => [...activeScene.buildingSprites.values()].every(sprite => !sprite.__artPending), null, { timeout: 60000 });
     await page.waitForTimeout(400);
     await page.screenshot({ path: path.join(output, 'automatic-development.png') });
     fs.writeFileSync(path.join(output, 'report.json'), JSON.stringify({ before, grown, restored }, null, 2));

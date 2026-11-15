@@ -15,8 +15,9 @@
   "scripts": {
     "test": "node --test test/*.test.js",
     "prepare:world-terrain": "node world/terrain-pack-builder.mjs",
-    "test:world": "node --test test/world-streaming.test.js test/world-construction.test.js test/world-minimap.test.js test/world-simulation.test.js test/world-entry.test.js test/world-game-integration.test.js",
+    "test:world": "node --test test/world-streaming.test.js test/world-construction.test.js test/world-minimap.test.js test/world-simulation.test.js test/world-entry.test.js test/world-game-integration.test.js test/zoning-power.test.js",
     "smoke:world:integration": "node scripts/smoke-world-integration.js",
+    "smoke:world:growth": "node scripts/smoke-world-growth.js",
     "profile:world": "node scripts/profile-world-integration.js",
     "profile:world:loading": "node scripts/profile-world-loading.js",
     "audit:world-coastline": "node scripts/audit-world-coastline.js",

@@ -290,7 +290,10 @@ function planRailAtHeight(height, path0, bits, elev, env) {
   } else if (height === 'ground') {
     const groundOf = (j, i) => (!j ? topAt(Math.max(0, Math.min(i, n - 1))) : j.kind === 'ground' ? j.level : j.kind === 'under' ? 0 : j.level - D);
     const a = groundOf(js, first), b = groundOf(je, last);
-    if (a === b) L = a; else out.follow = true;
+    // (a system that cannot tunnel - the 輕鐵 - lays its ground track on the ground all the way, over
+    // every rise and dip, never a viaduct or a tunnel it was not asked for)
+    if (!spec.underground) out.follow = true;
+    else if (a === b) L = a; else out.follow = true;
   }
   out.level = L;
 
@@ -1347,5 +1350,5 @@ function getMetroTrackMonthlyUpkeep() {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { METRO_RAIL, METRO_RAIL_SPEC, RAIL_BIT_SIDES, RAIL_OPPOSITE, RAIL_PLAIN_MASKS, railKey, railBitsOf, railSideTowards, railDragPath, addRailPathBits, railBadTiles, railBitFor, railVisualMask, railSideHeight, planRailAtHeight, railCodeKind, railGroundUse, railLevelMismatch, railDeckLevel, railGroundAt, railIsHill, railElevatedRun, railIsUp, railIsDown };
+  module.exports = { METRO_RAIL, METRO_RAIL_SPEC, RAIL_BIT_SIDES, RAIL_DIRS, RAIL_OPPOSITE, RAIL_PLAIN_MASKS, railKey, railBitsOf, railSideTowards, railDragPath, addRailPathBits, railBadTiles, railBitFor, railVisualMask, railSideHeight, planRailAtHeight, railCodeKind, railGroundUse, railLevelMismatch, railDeckLevel, railGroundAt, railIsHill, railElevatedRun, railIsUp, railIsDown };
 }

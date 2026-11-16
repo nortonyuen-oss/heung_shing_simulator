@@ -9,7 +9,8 @@ const lr = require('../light-rail.js');
 
 const X = 1, Y = 2;
 // A map: `roads` a set of 'row:col', `hills` { 'row:col': level }; open ground elsewhere.
-const env = ({ roads = new Set(), hills = {}, bands = {} } = {}) => {
+const env = (opts = {}) => withGround(baseEnv(opts));
+const baseEnv = ({ roads = new Set(), hills = {}, bands = {} } = {}) => {
   const isRoad = (r, c) => roads.has(`${r}:${c}`);
   return {
     isRoad,
@@ -19,12 +20,21 @@ const env = ({ roads = new Set(), hills = {}, bands = {} } = {}) => {
     canGround: (r, c) => !isRoad(r, c) && r >= 0 && c >= 0,
     rail: {
       level: (r, c) => hills[`${r}:${c}`] || 0,
-      openEdges: () => [],
+      // (a hill tile falls away to its lower neighbours, as tile-keys.js getHillOpenEdges)
+      openEdges: (r, c) => {
+        const h = hills[`${r}:${c}`] || 0;
+        if (h <= 0) return [];
+        return [['n', -1, 0], ['e', 0, 1], ['s', 1, 0], ['w', 0, -1]].filter(([, dr, dc]) => (hills[`${r + dr}:${c + dc}`] || 0) < h).map(([d]) => d);
+      },
       inside: (r, c) => r >= 0 && c >= 0 && r < 100 && c < 100,
       canDeck: (r, c) => r >= 0 && c >= 0,
-      groundAt: (k) => (hills[k] || 0) * 6.656,
     },
   };
+};
+const withGround = (e) => {
+  const lvlOf = (r, c) => lr.lightRailCornersFrom(e.rail.level(r, c), e.rail.openEdges(r, c));
+  e.rail.groundAt = (k, side = null) => { const [r, c] = k.split(':').map(Number); return lr.lightRailGroundMetres(lvlOf(r, c), side); };
+  return e;
 };
 const row = (r, c0, c1) => { const s = new Set(); for (let c = c0; c <= c1; c++) s.add(`${r}:${c}`); return s; };
 const col = (c, r0, r1) => { const s = new Set(); for (let r = r0; r <= r1; r++) s.add(`${r}:${c}`); return s; };
@@ -189,4 +199,59 @@ test('the light rail opens only when the council passes 輕便鐵路撥款 (15,0
   } finally {
     delete global.getTransportExpansionState; delete global.isTransportExpansionActive; delete global.spendTransportConstruction;
   }
+});
+
+test('ground track follows the ground: over a rise, across a slope\'s corner, up onto a plateau', () => {
+  // a rise of one level between two ends on the flat: on it, not a tunnel nor a refusal
+  const bump = {};
+  for (let c = 5; c <= 7; c++) bump[`3:${c}`] = 1;
+  const over = lr.planLightRailTrackPure({ row: 3, col: 0 }, { row: 3, col: 12 }, 'ground', empty(), env({ hills: bump }));
+  assert.equal(over.ok, true, over.reason);
+  assert.deepEqual(over.elev, {}, 'no viaduct, no tunnel: ground track all the way');
+  // a plateau (level 1, rows 0-5, cols 0-5): its corner tile falls away two ways
+  const plateau = {};
+  for (let r = 0; r <= 5; r++) for (let c = 0; c <= 5; c++) plateau[`${r}:${c}`] = 1;
+  const e = env({ hills: plateau });
+  assert.deepEqual(e.rail.openEdges(5, 5).sort(), ['e', 's'], 'a slope corner');
+  const down = lr.planLightRailTrackPure({ row: 2, col: 2 }, { row: 9, col: 9 }, 'ground', empty(), e);
+  assert.equal(down.ok, true, down.reason);
+  // along the plateau's edge and off it sideways: no 'slope axis' rule any more
+  const along = lr.planLightRailTrackPure({ row: 5, col: 0 }, { row: 5, col: 9 }, 'ground', empty(), e);
+  assert.equal(along.ok, true, along.reason);
+  // the height is continuous where the plateau meets its slope: one height at their shared side
+  const state = { tracks: down.bits, trackElev: {} };
+  const z1 = lr.lightRailHeightAt(4.5, 4.999, state, e), z2 = lr.lightRailHeightAt(4.5, 5.001, state, e);
+  assert.ok(Math.abs(z1 - z2) < 0.05, `${z1} vs ${z2}`);
+});
+
+test('where the terrain\'s corners disagree, track meets track at one height (raised, never sunk)', () => {
+  // 太子 147:104-106 as the terrain draws it: a slope's corner, a hillside, then a plateau whose
+  // corner by the hillside's low one is a level higher (the terrain simplified there)
+  const raw = { '0:0': { nw: 2, ne: 2, se: 3, sw: 2 }, '0:1': { nw: 2, ne: 2, se: 3, sw: 3 }, '0:2': { nw: 3, ne: 3, se: 3, sw: 3 } };
+  const e = env();
+  e.rail.corners = (r, c) => raw[`${r}:${c}`] || { nw: 0, ne: 0, se: 0, sw: 0 };
+  const state = { tracks: { '0:0': Y, '0:1': Y, '0:2': Y }, trackElev: {} };
+  assert.deepEqual(lr.lightRailTrackCorners(0, 1, state, e), { nw: 2, ne: 3, se: 3, sw: 3 }, 'its low corner raised to the plateau track\'s');
+  assert.deepEqual(lr.lightRailTrackCorners(0, 2, state, e), raw['0:2'], 'the higher never lowered');
+  for (const x of [1, 2]) {
+    const z1 = lr.lightRailHeightAt(x - 0.001, 0.5, state, e), z2 = lr.lightRailHeightAt(x + 0.001, 0.5, state, e);
+    assert.ok(Math.abs(z1 - z2) < 0.05, `at x ${x}: ${z1} vs ${z2}`);
+  }
+  // only ground track counts: not open ground, nor a viaduct
+  assert.deepEqual(lr.lightRailTrackCorners(0, 1, { tracks: { '0:0': Y, '0:1': Y }, trackElev: {} }, e), raw['0:1']);
+  assert.deepEqual(lr.lightRailTrackCorners(0, 1, { tracks: state.tracks, trackElev: { '0:2': 'd2' } }, e), raw['0:1']);
+  // the fold is the same diagonal of the map whichever way it is turned
+  const k = { nw: 2, ne: 3, se: 4, sw: 2 };
+  assert.equal(lr.lightRailVisualFold(k, 0), 'lr', 'NE-SW (the nearer level): left to right as drawn');
+  assert.equal(lr.lightRailVisualFold(k, 1), 'tb', 'turned once: top to bottom');
+});
+
+test('a slope corner\'s corners, and as drawn when the map is turned', () => {
+  const k = lr.lightRailCornersFrom(1, ['e', 's']);
+  assert.deepEqual(k, { nw: 1, ne: 0, se: 0, sw: 0 }, 'falls away east and south: only the far corner high');
+  assert.equal(lr.lightRailSurfaceLevel(k, 0, 0), 1);
+  assert.equal(lr.lightRailSurfaceLevel(k, 1, 1), 0);
+  assert.ok(Math.abs(lr.lightRailSurfaceLevel(k, 0.5, 0.5) - 0) < 1e-9, 'the fold along the low diagonal');
+  assert.deepEqual(lr.lightRailVisualCornerLifts(k, 0), { top: 1, right: 0, bottom: 0, left: 0 }, 'map north-west is the top corner');
+  assert.deepEqual(lr.lightRailVisualCornerLifts(k, 1), { top: 0, right: 1, bottom: 0, left: 0 }, 'turned once it is on the right');
 });

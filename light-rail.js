@@ -363,13 +363,7 @@ function planLightRailTrackPure(start, end, height, state, env) {
   // (a level crossing straight across: no points on it)
   const crossed = [...crossings].find((k) => next[k] !== 1 && next[k] !== 2);
   if (crossed) { out.reason = 'crossingStraight'; out.bad = crossed; return out; }
-  const askew = path.find(({ row, col }) => {
-    const k = railKey(row, col);
-    const edges = env.rail.openEdges(row, col);
-    return !nextElev[k] && edges.length === 1 && next[k] !== (edges[0] === 'n' || edges[0] === 's' ? 1 : 2);
-  });
-  if (askew) { out.reason = 'slopeAxis'; out.bad = key(askew); return out; }
-  const mismatch = railLevelMismatch(next, nextElev, path.map(key), env.rail.groundAt, LIGHT_RAIL_SPEC);
+  const mismatch = lightRailLevelMismatch(next, nextElev, path.map(key), env.rail.groundAt);
   if (mismatch) { out.reason = 'levelJoin'; out.bad = mismatch; return out; }
   out.newTiles = Object.keys(plan.assign);
   out.newTiles.forEach((k) => {
@@ -386,6 +380,81 @@ function planLightRailTrackPure(start, end, height, state, env) {
   out.elev = nextElev;
   out.ok = true;
   return out;
+}
+
+// ── The ground under the track (pure) ───────────────────────────────────────────────────────────────
+// 地面 track follows the ground over any terrain (Norton, 2026-11-16: 明明在平地 - the land's one-level
+// steps are hard to see, and track refused on a slope corner or over a rise read as a bug): a tile's
+// surface is set by its four corners, as the terrain draws it - a hill tile's corner touching a side
+// that falls away is a level lower (tile-keys.js getHillKey: plateau, edge and corner slopes).
+
+const LIGHT_RAIL_CORNER_SIDES = Object.freeze({ nw: ['n', 'w'], ne: ['n', 'e'], se: ['s', 'e'], sw: ['s', 'w'] });
+const LIGHT_RAIL_SIDE_CORNERS = Object.freeze({ n: ['nw', 'ne'], e: ['ne', 'se'], s: ['se', 'sw'], w: ['sw', 'nw'] });
+
+// A tile's corners in terrain levels, from its level and the sides it falls away to.
+function lightRailCornersFrom(level, openEdges) {
+  const out = {};
+  Object.entries(LIGHT_RAIL_CORNER_SIDES).forEach(([corner, sides]) => {
+    out[corner] = level - (sides.some((s) => openEdges.includes(s)) ? 1 : 0);
+  });
+  return out;
+}
+
+function lightRailCornersOf(env, row, col) {
+  if (env.rail.corners) return env.rail.corners(row, col);
+  return lightRailCornersFrom(env.rail.level(row, col), env.rail.openEdges(row, col));
+}
+
+// Whether a tile's surface folds along its NW-SE diagonal (else NE-SW): the diagonal whose corners
+// agree (the terrain's own fold); else the nearer level of the two; else the higher (a ridge). The
+// same whichever way the map is turned.
+function lightRailFoldsNwSe(k) {
+  const a = Math.abs(k.nw - k.se), b = Math.abs(k.ne - k.sw);
+  if (a !== b) return a < b;
+  return k.nw + k.se >= k.ne + k.sw;
+}
+
+// The surface's height (levels) at a point of a tile (fx, fy in 0..1, along col and row): two planes
+// folded along a diagonal (lightRailFoldsNwSe), as the track is drawn.
+function lightRailSurfaceLevel(k, fx, fy) {
+  if (lightRailFoldsNwSe(k)) {
+    return fx >= fy ? k.nw + (k.ne - k.nw) * (fx - fy) + (k.se - k.nw) * fy
+      : k.nw + (k.sw - k.nw) * (fy - fx) + (k.se - k.nw) * fx;
+  }
+  return fx + fy <= 1 ? k.nw + (k.ne - k.nw) * fx + (k.sw - k.nw) * fy
+    : k.se + (k.sw - k.se) * (1 - fx) + (k.ne - k.se) * (1 - fy);
+}
+
+// Where each corner of a tile is on the map: the grid point (row + dr, col + dc).
+const LIGHT_RAIL_CORNER_AT = Object.freeze({ nw: [0, 0], ne: [0, 1], se: [1, 1], sw: [1, 0] });
+
+/**
+ * The corners ground track lies on (levels): the ground's, each raised to the highest of the ground
+ * track's that meet at that point - where the terrain simplifies a slope its tiles' corners can
+ * disagree by a level (a hillside's low corner beside a plateau's), and track would meet track half a
+ * level apart; raised, never sunk, so it never cuts into the ground. Pure with `env`.
+ */
+function lightRailTrackCorners(row, col, state, env) {
+  const tracks = state.tracks || {}, elev = state.trackElev || {};
+  const out = { ...lightRailCornersOf(env, row, col) };
+  Object.entries(LIGHT_RAIL_CORNER_AT).forEach(([corner, [vr, vc]]) => {
+    Object.entries(LIGHT_RAIL_CORNER_AT).forEach(([theirs, [dr, dc]]) => {
+      const r = row + vr - dr, c = col + vc - dc;
+      if (r === row && c === col) return;
+      const k = railKey(r, c);
+      if (!tracks[k] || elev[k]) return;
+      out[corner] = Math.max(out[corner], lightRailCornersOf(env, r, c)[theirs]);
+    });
+  });
+  return out;
+}
+
+// The ground's height (metres) where track crosses a tile's side (its middle), or at its middle.
+function lightRailGroundMetres(k, side) {
+  const lvl = METRO_RAIL.hillLevelMetres;
+  if (!side) return lightRailSurfaceLevel(k, 0.5, 0.5) * lvl;
+  const [a, b] = LIGHT_RAIL_SIDE_CORNERS[side];
+  return ((k[a] + k[b]) / 2) * lvl;
 }
 
 // ── The lines' way (phase 2, pure) ─────────────────────────────────────────────────────────────────
@@ -473,13 +542,8 @@ function lightRailHeightAt(x, y, state, env) {
   // how far toward a side across the tile
   const toward = (side) => (side === 'n' ? 1 - fy : side === 's' ? fy : side === 'w' ? 1 - fx : fx);
   if (!code) {
-    // the ground (a hillside: from its foot to its top across it)
-    const edges = env.rail.openEdges(row, col);
-    if (edges.length === 1) {
-      const foot = env.rail.groundAt(key, edges[0]), top = env.rail.groundAt(key, RAIL_OPPOSITE[edges[0]]);
-      return foot + (top - foot) * toward(RAIL_OPPOSITE[edges[0]]);
-    }
-    return env.rail.groundAt(key, null);
+    // the ground, its surface as the track is drawn on it
+    return lightRailSurfaceLevel(lightRailTrackCorners(row, col, state, env), fx, fy) * METRO_RAIL.hillLevelMetres;
   }
   if (railDeckLevel(code) != null) return railSideHeight(code, null, 0, LIGHT_RAIL_SPEC);
   const up = code[1];
@@ -521,6 +585,29 @@ function whyNotLightRailStationAt(row, col, state, env) {
   return { code: null, site: { row, col, axis } };
 }
 
+// Track joined across a side at two heights - only where a viaduct or a ramp is one of the two: ground
+// track meets ground track wherever the ground does (the terrain's own corners may disagree by half a
+// level where it simplifies a slope; the track is raised there to meet, lightRailTrackCorners). The
+// first of `keys` so joined, or null. Pure.
+function lightRailLevelMismatch(bits, elev, keys, groundAt) {
+  for (const k of keys) {
+    const [r, c] = k.split(':').map(Number);
+    for (const bit of railBitsOf(bits[k] || 0)) {
+      for (const side of RAIL_BIT_SIDES[bit]) {
+        const [dr, dc] = RAIL_DIRS[side];
+        const nk = railKey(r + dr, c + dc);
+        const back = RAIL_OPPOSITE[side];
+        if (!elev[k] && !elev[nk]) continue;
+        if (!railBitsOf(bits[nk] || 0).some((b) => RAIL_BIT_SIDES[b].includes(back))) continue;
+        const here = railSideHeight(elev[k], side, groundAt(k, side), LIGHT_RAIL_SPEC);
+        const there = railSideHeight(elev[nk], back, groundAt(nk, back), LIGHT_RAIL_SPEC);
+        if (Math.abs(here - there) > 0.01) return k;
+      }
+    }
+  }
+  return null;
+}
+
 // ── On the map ──────────────────────────────────────────────────────────────────────────────────────
 
 function lightRailIsRoad(row, col) {
@@ -549,12 +636,31 @@ function canCrossLightRailAt(row, col) {
   return true;
 }
 
-// Open ground, as the metro's track takes it (metro-surface.js canLayMetroTrackAt), and no metro
-// track on it (over a metro tunnel is fine).
+// Open ground: not water, a road, a bridge, a building, a metro station, an undersea tunnel's mouth or
+// the promenade, nor the metro's track (over a metro tunnel is fine) - on any terrain, a slope's
+// corner too (the track follows the ground).
 function canLayLightRailGroundAt(row, col) {
-  if (typeof canLayMetroTrackAt !== 'function' || !canLayMetroTrackAt(row, col)) return false;
+  if (!isInsideMap(row, col)) return false;
+  if (mapData[row][col] === WATER || mapData[row][col] === ROAD) return false;
+  if (typeof isBridgeTile === 'function' && isBridgeTile(row, col)) return false;
+  const id = getTileId(row, col);
+  if (buildingData[id] || activeScene?.buildingSprites?.has(id)) return false;
+  if (typeof isMetroStationTile === 'function' && isMetroStationTile(row, col)) return false;
+  if (typeof isUnderseaTunnelTile === 'function' && isUnderseaTunnelTile(row, col)) return false;
+  if (typeof isPromenadeTile === 'function' && isPromenadeTile(row, col)) return false;
   if (typeof metroTrackGroundUse === 'function' && (metroTrackGroundUse(row, col) || 'none') !== 'none') return false;
   return true;
+}
+
+// A tile's corners on the map (levels), the terrain's own way: a hill tile's open sides normalised as
+// its picture is chosen (tile-keys.js normalizeHillOpenEdges).
+function lightRailGroundCorners(row, col) {
+  if (!isInsideMap(row, col)) return lightRailCornersFrom(0, []);
+  const level = getTileHeight(row, col);
+  const slope = level > 0 && typeof isSlopeTile === 'function' && isSlopeTile(row, col);
+  let open = slope ? getHillOpenEdges(row, col) : [];
+  if (slope && typeof normalizeHillOpenEdges === 'function') open = normalizeHillOpenEdges(row, col, open);
+  return lightRailCornersFrom(level, open);
 }
 
 // Where a viaduct's pier may stand: as the metro's, and not on the metro's or the tram's track.
@@ -565,6 +671,14 @@ function canDeckLightRailAt(row, col) {
 }
 
 function lightRailMapEnv() {
+  // (corners asked for again and again in one frame or one drag: kept while this env is in use)
+  const memo = new Map();
+  const corners = (row, col) => {
+    const k = railKey(row, col);
+    let v = memo.get(k);
+    if (!v) { v = lightRailGroundCorners(row, col); memo.set(k, v); }
+    return v;
+  };
   return {
     isRoad: lightRailIsRoad,
     bandAt: lightRailBandAt,
@@ -576,7 +690,12 @@ function lightRailMapEnv() {
       openEdges: metroOpenEdges,
       inside: isInsideMap,
       canDeck: canDeckLightRailAt,
-      groundAt: metroGroundMetresAt,
+      corners,
+      // (the ground where track crosses a side: the terrain's surface there)
+      groundAt: (key, side = null) => {
+        const [row, col] = key.split(':').map(Number);
+        return lightRailGroundMetres(corners(row, col), side);
+      },
     },
   };
 }
@@ -626,7 +745,7 @@ const LIGHT_RAIL_TRACK_REFUSALS = Object.freeze({
   tooShort: ['lightRail.track.tooShort', '拖長啲：路軌最少兩格。'],
   nothing: ['lightRail.track.nothing', '呢度已經有路軌。'],
   street: ['lightRail.track.street', '沿馬路嘅路軌要喺馬路上（唔可以喺橋、斜路、隧道口或者電車路軌上面）。'],
-  ground: ['lightRail.track.ground', '路軌要起喺空地上（唔可以喺水或者建築上面）。'],
+  ground: ['lightRail.track.ground', '路軌要起喺空地上（唔可以喺水、建築、地鐵站、地鐵路軌或者海濱長廊上面）。'],
   crossing: ['lightRail.track.crossing', '過馬路要打直過（平交路），唔可以喺路口、巴士站、斜路或者橋上面；或者用高架。'],
   crossingStraight: ['lightRail.track.crossingStraight', '平交路要直：喺馬路外面先轉彎或者分叉。'],
   junction: ['lightRail.track.junction', '呢個路軌組合起唔到（例如兩條斜綫交叉、四向分叉）。'],
@@ -868,17 +987,18 @@ function syncLightRailTracks(scene = typeof activeScene !== 'undefined' ? active
     const face = getTileFaceGeometry(row, col, scene.offsetX, scene.offsetY);
     const viaductOrigin = (sprite) => sprite.setOrigin(METRO_VIADUCT_ART.centre[0] / METRO_VIADUCT_ART.width, METRO_VIADUCT_ART.centre[1] / METRO_VIADUCT_ART.height);
     if (kind === 'ground') {
-      const edges = metroOpenEdges(row, col);
-      const slopeUp = edges.length === 1 ? rotateDirection(RAIL_OPPOSITE[edges[0]], turn) : null;
-      const texture = slopeUp ? `metro_track_slope_${slopeUp}` : metroTrackTextureKey(mask);
-      if (slopeUp && !scene.textures.exists(texture) && typeof loadMetroViaductTextures === 'function') {
-        loadMetroViaductTextures(scene).then(() => syncLightRailTracks(scene));
-      }
-      if (!texture || !scene.textures.exists(texture)) return;
+      // on the ground as the terrain lies: a flat tile's picture, or it fitted to a slope's corners
+      // (raised where the next track's are higher), over the tile's face at its lowest
+      const flat = metroTrackTextureKey(mask);
+      if (!flat || !scene.textures.exists(flat)) return;
+      const corners = lightRailTrackCorners(row, col, state, env);
+      const lift = lightRailVisualCornerLifts(corners, turn, Math.min(...Object.values(env.rail.corners(row, col))));
+      const sloped = Object.values(lift).some((v) => v > 0);
+      const texture = sloped ? lightRailSlopePicture(scene, flat, lift, lightRailVisualFold(corners, turn)) : flat;
       const sprite = spriteFor(key, texture, 'roadLayer');
       sprite.__deckLiftPx = 0;
       sprite.setScale(TILE_WIDTH / RAILWAY_TRACK_TILE.width).setPosition(face.center.x, face.center.y);
-      if (slopeUp) viaductOrigin(sprite); else sprite.setOrigin(0.5, 0.5);
+      if (sloped) sprite.setOrigin(0.5, LIGHT_RAIL_SLOPE_ART.centreY / LIGHT_RAIL_SLOPE_ART.height); else sprite.setOrigin(0.5, 0.5);
       sprite.setDepth(getWorldDepth('road', face.center.y + 1));
       if (typeof applyNightPropTint === 'function') applyNightPropTint(scene, sprite);
       return;
@@ -977,6 +1097,84 @@ function drawLightRailCrossingPicture(scene, picture, cell, turn, xing) {
   scene.textures.addCanvas(picture.key, canvas);
 }
 
+// The map's corner drawn at a screen corner (a pair of screen sides: n, e, s, w), the map turned.
+function lightRailMapCornerAt(a, b, turn) {
+  const back = (v) => rotateDirection(v, -turn);
+  return Object.keys(LIGHT_RAIL_CORNER_SIDES).find((k) => {
+    const sides = LIGHT_RAIL_CORNER_SIDES[k];
+    return sides.includes(back(a)) && sides.includes(back(b));
+  });
+}
+
+// A tile's corners as drawn (top, right, bottom, left on the screen, the map turned as it is), each
+// in levels over `base` (default the lowest) - where the tile's face is drawn (main.js
+// getTerrainTileVisualOffset: a hill slope's face at its foot, a plateau's at its top).
+function lightRailVisualCornerLifts(corners, turn = 0, base = null) {
+  const v = {
+    top: corners[lightRailMapCornerAt('n', 'w', turn)], right: corners[lightRailMapCornerAt('n', 'e', turn)],
+    bottom: corners[lightRailMapCornerAt('s', 'e', turn)], left: corners[lightRailMapCornerAt('s', 'w', turn)],
+  };
+  const low = base == null ? Math.min(...Object.values(v)) : base;
+  return { top: v.top - low, right: v.right - low, bottom: v.bottom - low, left: v.left - low };
+}
+
+// The diagonal the drawn tile folds along: 'tb' top to bottom or 'lr', as lightRailSurfaceLevel's.
+function lightRailVisualFold(corners, turn = 0) {
+  const top = lightRailMapCornerAt('n', 'w', turn);
+  const nwse = lightRailFoldsNwSe(corners);
+  return (top === 'nw' || top === 'se') === nwse ? 'tb' : 'lr';
+}
+
+// A slope's track picture: the flat track tile (512 x 256, its diamond's corners at (256, 0), (512, 128),
+// (256, 256), (0, 128)) warped onto the corners lifted a level each (66.56 px: HEIGHT_STEP_PIXELS 13
+// at TILE_WIDTH 100), two triangles folded along `fold` (lightRailVisualFold, as the cars ride it);
+// drawn on a 512 x 512 canvas, the face's middle at (256, centreY). Shared by every tile drawn the same.
+const LIGHT_RAIL_SLOPE_ART = Object.freeze({ width: 512, height: 512, top: 200, centreY: 328, liftPx: 66.56 });
+
+function lightRailSlopePicture(scene, flatKey, lift, fold) {
+  const key = `lrt_slope_${flatKey}_${lift.top}${lift.right}${lift.bottom}${lift.left}_${fold}`;
+  if (scene.textures.exists(key)) return key;
+  const A = LIGHT_RAIL_SLOPE_ART;
+  const frame = scene.textures.getFrame(flatKey);
+  const src = frame.source.image;
+  const S = { top: [256, 0], right: [512, 128], bottom: [256, 256], left: [0, 128] };
+  const D = {
+    top: [256, A.top - lift.top * A.liftPx], right: [512, A.top + 128 - lift.right * A.liftPx],
+    bottom: [256, A.top + 256 - lift.bottom * A.liftPx], left: [0, A.top + 128 - lift.left * A.liftPx],
+  };
+  const tris = fold === 'tb' ? [['top', 'right', 'bottom'], ['top', 'bottom', 'left']] : [['left', 'top', 'right'], ['left', 'right', 'bottom']];
+  const canvas = document.createElement('canvas');
+  canvas.width = A.width;
+  canvas.height = A.height;
+  const ctx = canvas.getContext('2d');
+  tris.forEach((tri) => {
+    const [s0, s1, s2] = tri.map((k) => S[k]);
+    const [d0, d1, d2] = tri.map((k) => D[k]);
+    // the affine map taking the source triangle onto the destination one
+    const den = (s1[0] - s0[0]) * (s2[1] - s0[1]) - (s2[0] - s0[0]) * (s1[1] - s0[1]);
+    const a = ((d1[0] - d0[0]) * (s2[1] - s0[1]) - (d2[0] - d0[0]) * (s1[1] - s0[1])) / den;
+    const c = ((d2[0] - d0[0]) * (s1[0] - s0[0]) - (d1[0] - d0[0]) * (s2[0] - s0[0])) / den;
+    const b = ((d1[1] - d0[1]) * (s2[1] - s0[1]) - (d2[1] - d0[1]) * (s1[1] - s0[1])) / den;
+    const d = ((d2[1] - d0[1]) * (s1[0] - s0[0]) - (d1[1] - d0[1]) * (s2[0] - s0[0])) / den;
+    const e = d0[0] - a * s0[0] - c * s0[1];
+    const f = d0[1] - b * s0[0] - d * s0[1];
+    // (clipped to the destination triangle grown a hair, so the fold shows no seam)
+    const cx = (d0[0] + d1[0] + d2[0]) / 3, cy = (d0[1] + d1[1] + d2[1]) / 3;
+    const grow = (p) => { const dx = p[0] - cx, dy = p[1] - cy, l = Math.hypot(dx, dy) || 1; return [p[0] + dx / l * 0.75, p[1] + dy / l * 0.75]; };
+    ctx.save();
+    ctx.beginPath();
+    [d0, d1, d2].map(grow).forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+    ctx.closePath();
+    ctx.clip();
+    ctx.setTransform(a, b, c, d, e, f);
+    ctx.drawImage(src, frame.cutX, frame.cutY, frame.cutWidth, frame.cutHeight, 0, 0, 512, 256);
+    ctx.restore();
+  });
+  // (drawn, then added: a canvas added first and drawn after keeps empty mipmaps)
+  scene.textures.addCanvas(key, canvas);
+  return key;
+}
+
 // A deck's piers (its pictures have none): under the middle of each track's line on the tile, as
 // drawn, down to the ground there (metro-surface.js syncMetroPiers, the light rail's slimmer ones).
 function syncLightRailPiers(scene, key, row, col, mask, deck, depth, wanted) {
@@ -1048,6 +1246,7 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     LIGHT_RAIL, LIGHT_RAIL_SPEC, normalizeLightRailState, lightRailRoadAxis, lightRailCrossesRoad, lightRailTileKind,
     planLightRailTrackPure, buildLightRailGeometry, lightRailHeightAt, lightRailInTrafficAt, whyNotLightRailStationAt,
+    lightRailCornersFrom, lightRailSurfaceLevel, lightRailGroundMetres, lightRailVisualCornerLifts, lightRailTrackCorners, lightRailVisualFold,
     isLightRailUnlocked, grantLightRailFunding, spendLightRailFunds,
   };
 }

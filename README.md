@@ -1,6 +1,6 @@
-# 香城模擬器 (The City of Heung Shing) v5.10.0 — 【光之鐵路】
+# 香城模擬器 (The City of Heung Shing) v5.10.1 — 【光之鐵路】
 
-香城模擬器 (The City of Heung Shing) v5.10.0 — 【光之鐵路】 is a SimCity 2000-style city builder inspired by Hong Kong: isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a light rail, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
+香城模擬器 (The City of Heung Shing) v5.10.1 — 【光之鐵路】 is a SimCity 2000-style city builder inspired by Hong Kong: isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a light rail, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
 
 Website and downloads: https://nortonyuen-oss.github.io/heung_shing_simulator/
 
@@ -9,6 +9,10 @@ Read public posts and replies on the website; sign in to GitHub to confirm a new
 post or reply. Website messages are tracked with the `website-feedback` issue label.
 
 ![The Heung Shing skyline at night, zoomed out: dense lights, the airport and the harbour](docs/assets/gameplay/nightSkyline.webp)
+
+## New in v5.10.1
+
+A light rail fix: ground track now follows the terrain - over one-level rises, across the corners of slopes and sideways along hillsides - instead of being refused midway with a terrain message on land that looks flat. Track tilts to fit each slope, neighbouring pieces always meet at one height where the terrain's own tiles don't line up, and the cars ride it smoothly. The refusal message now names what is in the way.
 
 ## New in v5.10.0
 

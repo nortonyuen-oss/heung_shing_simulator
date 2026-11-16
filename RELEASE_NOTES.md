@@ -1,3 +1,25 @@
+# The City of Heung Shing v5.10.1 — 【光之鐵路】
+
+- 廣東話／台灣中文：【光之鐵路】
+- English: 【The Light Railway】
+- 日本語：【光の鉄道】
+
+## 修正：輕鐵地面路軌跟住地形行
+
+- 輕鐵地面路軌跟住地形行：翻過一級高嘅小山丘、行過山坡轉角、打橫沿住山坡都起得，唔會再喺睇落平坦嘅地起到一半話「地形唔啱」（之前沿用地鐵嘅山坡規矩，但輕鐵唔落地底，遇到小山丘就唔俾起）。
+- 路軌拉斜貼住山坡，轉地圖都一樣；地形唔夾嘅位，兩格路軌升到同一高度接埋，唔會斷開或者插入地面，輕鐵行過唔會跳。
+- 起唔到路軌嘅提示直接講原因：水、建築、橋、地鐵站、地鐵路軌、海底隧道口或者海濱長廊。
+
+**English:** A light rail fix. Ground track now follows the terrain - over one-level rises, across the corners of slopes and sideways along hillsides - instead of being refused midway with a terrain message on land that looks flat (it had kept the metro's slope rules, and the light rail cannot tunnel). Track tilts to fit each slope at every map rotation; where the terrain's own tiles don't line up, neighbouring track is raised to meet, never gapped or sunk into the ground, and the cars ride it smoothly. When track can't go somewhere, the message now says what is in the way.
+
+**日本語:** ライトレールの修正。地上線路が地形に沿うようになり、1段の高まり、斜面の角、斜面を横切る区間も敷設できます。平らに見える土地で途中から「地形が合わない」と拒否されることはなくなりました（地下鉄の斜面ルールを流用していましたが、ライトレールはトンネルを掘れないため）。線路は斜面に合わせて傾き、地形の継ぎ目では隣の線路を高い側にそろえて接続し、車両も跳ねずに走ります。敷設できない場合は理由を直接表示します。
+
+## 下載
+
+macOS Apple Silicon / Intel DMG；Windows 安裝版／免安裝版 EXE；官網瀏覽器版。
+
+---
+
 # The City of Heung Shing v5.10.0 — 【光之鐵路】
 
 - 廣東話／台灣中文：【光之鐵路】

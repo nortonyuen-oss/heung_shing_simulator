@@ -1,5 +1,5 @@
 const I18N_STORAGE_KEY = 'citybuilder.language';
-let appVersion = '5.10.0';
+let appVersion = '5.10.1';
 let appReleaseTheme = '【光之鐵路】';
 const APP_RELEASE_THEMES = {"en":"【The Light Railway】","zhHant":"【光之鐵路】","ja":"【光の鉄道】"};
 function localizedReleaseTheme() {
@@ -529,7 +529,7 @@ const I18N = {
     'lightRail.track.tooShort': "Drag further: track is at least two tiles.",
     'lightRail.track.nothing': "There is track here already.",
     'lightRail.track.street': "Street track goes on a road (not a bridge, a slope, a tunnel mouth or tram track).",
-    'lightRail.track.ground': "Track goes on open ground (not water or buildings).",
+    'lightRail.track.ground': "Track goes on open ground (not water, buildings, bridges, metro stations or track, tunnel mouths or the promenade).",
     'lightRail.track.crossing': "Cross a road straight (a level crossing), not at a junction, a bus stop, a slope or a bridge - or go elevated.",
     'lightRail.track.crossingStraight': "A level crossing is straight: turn or branch off the road.",
     'lightRail.track.junction': "This track layout cannot be built (two diagonals crossing, a four-way branch).",
@@ -2881,7 +2881,7 @@ const I18N = {
     'lightRail.track.tooShort': "拖長啲：路軌最少兩格。",
     'lightRail.track.nothing': "呢度已經有路軌。",
     'lightRail.track.street': "沿馬路嘅路軌要喺馬路上（唔可以喺橋、斜路、隧道口或者電車路軌上面）。",
-    'lightRail.track.ground': "路軌要起喺空地上（唔可以喺水或者建築上面）。",
+    'lightRail.track.ground': "路軌要起喺空地上（唔可以喺水、建築、橋、地鐵站、地鐵路軌、海底隧道口或者海濱長廊上面）。",
     'lightRail.track.crossing': "過馬路要打直過（平交路），唔可以喺路口、巴士站、斜路或者橋上面；或者用高架。",
     'lightRail.track.crossingStraight': "平交路要直：喺馬路外面先轉彎或者分叉。",
     'lightRail.track.junction': "呢個路軌組合起唔到（例如兩條斜綫交叉、四向分叉）。",
@@ -5143,7 +5143,7 @@ const I18N = {
     'lightRail.track.tooShort': "もっと長くドラッグ：線路は最低2マスです。",
     'lightRail.track.nothing': "ここにはすでに線路があります。",
     'lightRail.track.street': "併用軌道は道路上に敷きます（橋・坂・トンネル口・路面電車の線路は不可）。",
-    'lightRail.track.ground': "線路は空き地に敷きます（水や建物の上は不可）。",
+    'lightRail.track.ground': "線路は空き地に敷きます（水、建物、橋、地下鉄の駅・線路、海底トンネル入口、プロムナードの上は不可）。",
     'lightRail.track.crossing': "道路はまっすぐ横切ってください（踏切）。交差点・バス停・坂・橋は不可、または高架にしてください。",
     'lightRail.track.crossingStraight': "踏切はまっすぐです。曲がりや分岐は道路の外で。",
     'lightRail.track.junction': "この線路の組み合わせは作れません（斜め同士の交差、四方向分岐など）。",

@@ -745,7 +745,7 @@ const LIGHT_RAIL_TRACK_REFUSALS = Object.freeze({
   tooShort: ['lightRail.track.tooShort', '拖長啲：路軌最少兩格。'],
   nothing: ['lightRail.track.nothing', '呢度已經有路軌。'],
   street: ['lightRail.track.street', '沿馬路嘅路軌要喺馬路上（唔可以喺橋、斜路、隧道口或者電車路軌上面）。'],
-  ground: ['lightRail.track.ground', '路軌要起喺空地上（唔可以喺水、建築、地鐵站、地鐵路軌或者海濱長廊上面）。'],
+  ground: ['lightRail.track.ground', '路軌要起喺空地上（唔可以喺水、建築、橋、地鐵站、地鐵路軌、海底隧道口或者海濱長廊上面）。'],
   crossing: ['lightRail.track.crossing', '過馬路要打直過（平交路），唔可以喺路口、巴士站、斜路或者橋上面；或者用高架。'],
   crossingStraight: ['lightRail.track.crossingStraight', '平交路要直：喺馬路外面先轉彎或者分叉。'],
   junction: ['lightRail.track.junction', '呢個路軌組合起唔到（例如兩條斜綫交叉、四向分叉）。'],

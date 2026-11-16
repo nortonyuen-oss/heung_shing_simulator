@@ -1,6 +1,6 @@
-# 香城模擬器 (The City of Heung Shing) v5.9.0 — 【香港全境串流】
+# 香城模擬器 (The City of Heung Shing) v5.10.0 — 【光之鐵路】
 
-香城模擬器 (The City of Heung Shing) v5.9.0 — 【香港全境串流】 is a SimCity 2000-style city builder inspired by Hong Kong: isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
+香城模擬器 (The City of Heung Shing) v5.10.0 — 【光之鐵路】 is a SimCity 2000-style city builder inspired by Hong Kong: isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a light rail, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
 
 Website and downloads: https://nortonyuen-oss.github.io/heung_shing_simulator/
 
@@ -9,6 +9,10 @@ Read public posts and replies on the website; sign in to GitHub to confirm a new
 post or reply. Website messages are tracked with the `website-feedback` issue label.
 
 ![The Heung Shing skyline at night, zoomed out: dense lights, the airport and the harbour](docs/assets/gameplay/nightSkyline.webp)
+
+## New in v5.10.0
+
+The light rail (輕鐵) arrives as a transport system of its own. Once the Legislative Council passes Light Rail Funding - a city of 15,000 at least - the grant goes to the transport company to build it. One track tool lays street track along roads, its own ballasted track over open ground with 45-degree turns, level crossings straight across roads, and viaducts two levels up with ramps put in by themselves. Stations come from a 豐年路-style render with a passengers' crossing at the stairs; cars run single or coupled back to back, queue with traffic on the road and run faster on their own track. At level crossings, traffic lights turn red and cars stop for the light rail. Riders, a flat fare, the company's books, live tracking and opening news follow.
 
 ## New in v5.9.0
 

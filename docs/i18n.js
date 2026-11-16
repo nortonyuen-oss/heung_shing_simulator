@@ -270,6 +270,7 @@ const SITE_FEATURE_LIST = {
 // ── Changelog ─────────────────────────────────────────────────────────────────
 const SITE_CHANGELOG = {
   "zh-HK": [
+    {"version":"v5.10.0","date":"2026-11-16","dateLabel":"2026年11月16日","title":"光之鐵路","items":["輕鐵成為獨立交通系統：立法會通過【輕便鐵路撥款】（人口 15,000），市庫撥款畀運輸公司專款興建。","一個工具三種路軌：路面路軌、空地專用路軌（45 度轉彎）、打直過馬路嘅平交路；高架兩層高，兩頭自動加上落橋。","8 方向輕鐵車，單卡或者兩卡屁股對屁股；路面同汽車排隊，專用路軌快啲；豐年路款車站連行人平交路。","平交路交通燈：輕鐵埋嚟轉紅，汽車同巴士停車讓輕鐵；乘客、車費、運輸公司賬目、實時監控同通車新聞。"]},
     {"version":"v5.9.0","date":"2026-11-15","dateLabel":"2026年11月15日","title":"香港全境串流","items":["香港全境融入原遊戲，沿用建設、分區、人口、財政、公共服務、運輸同存檔。","地形按附近區塊載入，道路同建築圖片按視野建立，減少全圖掃描；未發展區塊唔建立城市摘要。","小地圖加入「全境／區域」，修正點擊跳錯位置，保留鴨脷洲同啟德跑道等原有海岸線。","開新城市預設普通地圖，「香港全境」放最後；分區後更新電網，恢復住宅、商業同工業自然發展。"]},
     {"version":"v5.8.2","date":"2026-11-14","dateLabel":"2026年11月14日","title":"手機建城 Beta 全通","items":["底部選單把手由大型「建造」標籤，改為半透明細圓形 ☰／✕ 按鈕，收細佔用畫面面積。","新增常駐走馬燈，同步桌面版新聞／廣告內容，撳一下直接開香城討論區；「更多」頁加入「顯示走馬燈」開關（只限手機）。","頂部狀態列回復日期同時間顯示，省略星期幾換返空間。","交通模式按鈕：公共交通擴充未啟用或未解鎖時，一開始已經變灰色鎖定。"]},
     {"version":"v5.8.0","date":"2026-11-14","dateLabel":"2026年11月14日","title":"手機建城 Beta 全通","items":["餘下 14 個觸控工具全部接駁，手機工具總數由 46 個升到 60 個，涵蓋全部地圖工具。","鐵路：地鐵路軌（地底／地面／高架選單）、地鐵站、地面站及逐站開線；電車路軌、電車站及開線；扣地鐵撥款再由公司現金找數。","渡輪碼頭放置同逐站開線；海底隧道兩岸選點拖曳，即時睇過海預覽同造價。","避風塘用加／減切換按鈕取代 Shift 框選，出入口模式直接點防波堤；地形用筆刷選單取代長按。","海濱步道矩形草稿鋪設，再點已鋪嘅格免費加／減碼頭；浮動餐廳轉向變成放置前選項。","修正遊戲城市夜晚對比度：路燈同建築夜燈光度回復原有亮度，唔再被全螢幕夜間遮罩拖暗。"]},
@@ -640,6 +641,7 @@ const SITE_CHANGELOG = {
 // title/items text.
 const SITE_CHANGELOG_TRANSLATIONS = {
   "zh-TW": {
+    "v5.10.0": {"title":"光之鐵路","items":["輕鐵成為獨立交通系統：立法會通過【輕便鐵路撥款】（人口 15,000），市庫撥款給運輸公司專款興建。","一個工具三種軌道：路面軌道、空地專用軌道（45 度轉彎）、直角穿越馬路的平交道；高架兩層高，兩端自動加上引道。","8 方向輕鐵列車，單節或兩節背對背連結；路面與汽車排隊，專用軌道較快；豐年路款車站附行人平交道。","平交道號誌：輕鐵接近即轉紅，汽車與公車停車禮讓；乘客、車資、運輸公司帳目、即時監控與通車新聞。"]},
     "v5.9.0": {"title":"香港全境串流","items":["香港全境整合原有遊戲，沿用建設、分區、人口、財政、公共服務、運輸與存檔。","地形依附近區塊載入，道路及建築圖片依視野建立，減少全圖掃描；未開發區塊不建立城市摘要。","小地圖新增「全境／區域」，修正點選位置偏移，保留鴨脷洲與啟德跑道等原有海岸線。","新城市預設一般地圖，「香港全境」移至最後；劃分區後更新電網，恢復住宅、商業與工業自然發展。"]},
     "v5.8.2": {"title":"手機建城 Beta 全通","items":["底部選單把手由大型「建造」標籤，改為半透明細圓形 ☰／✕ 按鈕，收細佔用畫面面積。","新增常駐走馬燈，同步桌面版新聞／廣告內容，點一下直接開香城討論區；「更多」頁加入「顯示走馬燈」開關（只限手機）。","頂部狀態列回復日期與時間顯示，省略星期幾換取空間。","交通模式按鈕：公共交通擴充未啟用或未解鎖時，一開始已經變灰色鎖定。"]},
     "v5.8.0": {"title":"手機建城 Beta 全通","items":["餘下 14 個觸控工具全部接駁，手機工具總數由 46 個升到 60 個，涵蓋全部地圖工具。","鐵路：地鐵路軌（地底／地面／高架選單）、地鐵站、地面站及逐站開線；電車路軌、電車站及開線；扣地鐵撥款再由公司現金找數。","渡輪碼頭放置同逐站開線；海底隧道兩岸選點拖曳，即時睇過海預覽同造價。","避風塘用加／減切換按鈕取代 Shift 框選，出入口模式直接點防波堤；地形用筆刷選單取代長按。","海濱步道矩形草稿鋪設，再點已鋪嘅格免費加／減碼頭；浮動餐廳轉向變成放置前選項。","修正遊戲城市夜晚對比度：路燈同建築夜燈光度回復原有亮度，唔再被全螢幕夜間遮罩拖暗。"]},
@@ -1003,6 +1005,7 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   en: {
+    "v5.10.0": {"title":"The Light Railway","items":["The light rail is a transport system of its own: the Legislative Council's Light Rail Funding (a city of 15,000) gives the transport company the money to build it.","One tool, three kinds of track: street track along roads, its own track over open ground with 45-degree turns, and level crossings straight across roads; two-level viaducts with ramps put in by themselves.","Eight-way light rail cars, single or coupled back to back; they queue with traffic on the road and run faster on their own track. 豐年路-style stations with a passengers' crossing.","Level-crossing traffic lights turn red as a car comes and road traffic stops for it; riders, fares, the company's books, live tracking and opening news."]},
     "v5.9.0": {"title":"Hong Kong Territory Streaming","items":["Hong Kong territory runs in the original game with its construction, zoning, population, finances, services, transport and saves.","Load nearby terrain chunks and mount road/building art for the viewport, reducing whole-map scans; undeveloped chunks add no city-summary records.","Switch the minimap between Territory and Region, with corrected navigation and original coastlines including Ap Lei Chau and the Kai Tak runway.","Ordinary maps remain the new-city default, with territory listed last. Zoning refreshes power connections so residential, commercial and industrial lots develop automatically."]},
     "v5.8.2": {"title":"Mobile Building Beta — Fully Connected","items":["The collapsed nav handle is now a compact translucent ☰ button instead of a large labelled bar, taking up less of the screen.","Added a slim always-on ticker that mirrors the desktop news/ad ticker and opens the forum on tap; a new mobile-only \"Show ticker\" setting in the More page turns it off.","The status bar's date and time are back, with the weekday dropped to make room.","The Transport mode button now greys out up front when the transport company isn't enabled or unlocked, instead of only after switching into it."]},
     "v5.8.0": {"title":"Mobile Building Beta — Fully Connected","items":["The remaining 14 touch tools are connected, bringing mobile from 46 to all 60 map tools.","Rail: metro track (underground/surface/elevated), metro stations, surface stations and station-by-station lines; tram track, stops and lines. Costs draw from the metro subsidy, then company cash.","Ferry piers and station-by-station routes. The undersea tunnel previews the crossing and cost as you drag between shores.","Typhoon shelters swap Shift-drag for add/remove toggle buttons, with entrance mode tapping breakwaters directly; terrain uses an explicit brush menu instead of long-press.","The waterfront promenade lays a rectangle draft, then tapping a laid tile offers a free pier add/remove; the floating restaurant's rotation is now a pre-placement choice.","Fixed low night contrast: street lamps and lit building windows keep their full brightness instead of being dimmed by the night overlay."]},
@@ -1366,6 +1369,7 @@ const SITE_CHANGELOG_TRANSLATIONS = {
     ] },
   },
   ja: {
+    "v5.10.0": {"title":"光の鉄道","items":["ライトレールが独立した交通システムに：議会の「ライトレール建設出資」（人口15,000）で、交通会社に建設資金が渡ります。","一つのツールで3種類の線路：道路沿いの併用軌道、空き地の専用線路（45度カーブ）、道路を直角に横切る踏切。2段の高架とスロープも自動で設置。","8方向のライトレール車両、1両または背中合わせの2両連結。道路では車列に並び、専用線路ではより速く走行。豐年路風の駅と構内踏切。","踏切の信号は車両の接近で赤になり、自動車やバスが停止。乗客・運賃・会社の会計・ライブ表示・開業ニュース。"]},
     "v5.9.0": {"title":"香港全域ストリーミング","items":["香港全域を既存のゲームに統合し、建設、区画、人口、財政、公共サービス、交通、セーブを共通化しました。","近くの地形チャンクと視野内の道路・建物画像だけを読み込み、全マップ走査を削減。未開発チャンクには都市集計を作成しません。","ミニマップに「全域／地域」を追加し、クリック位置のずれを修正。鴨脷洲や啓徳滑走路など元の海岸線を維持します。","新都市は通常マップが初期選択で、香港全域は選択肢の最後に移動。区画変更時に電力接続を更新し、住宅・商業・工業の自動発展を修正しました。"]},
     "v5.8.2": {"title":"モバイル建設ベータ全線開通","items":["折りたたみ時のナビハンドルを、大きなラベル付きバーから半透明の小さな ☰ ボタンに変更し、画面の占有面積を縮小しました。","デスクトップ版のニュース・広告ティッカーと同期する常時表示の細いティッカーを追加。タップで討論区を開けます。「その他」ページにモバイル限定の「ティッカーを表示」設定を追加し、非表示にできます。","ステータスバーの日付・時刻表示を復活。曜日を省略してスペースを確保しました。","交通モードボタンは、交通会社が有効化・解放される前から灰色で表示されるようになりました。"]},
     "v5.8.0": {"title":"モバイル建設ベータ全線開通","items":["残り14種類のタッチツールを追加し、モバイル対応は46種類から全60種類のマップツールに拡大しました。","鉄道：地下鉄の線路（地下・地上・高架の選択）、地下鉄駅、地上駅、駅を選んでの路線作成。路面電車の線路、停留所、路線も対応。費用は地下鉄補助金、その後は会社資金から支払います。","フェリー桟橋の設置と駅を選んでの航路作成。海底トンネルは両岸をドラッグするだけで横断プレビューと費用を確認できます。","台風避難港はShiftドラッグの代わりに追加・削除の切り替えボタンに変更し、出入口モードは防波堤を直接タップ。地形は長押しの代わりに明示的なブラシメニューを使用します。","海辺のプロムナードは矩形ドラフトで敷設し、敷設済みのマスをタップすると無料で桟橋を追加・削除できます。浮き餐廳の向きは設置前の選択肢になりました。","夜間のコントラストが低い問題を修正：街灯と建物の夜間照明は夜間オーバーレイで暗くならず、本来の明るさを保ちます。"]},
@@ -1754,8 +1758,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v5.9.0 — 【香港全境串流】",
-      versionDesc: "5.9.0 更新：香港全境融入原遊戲，按區載入，加入全境／區域導航並修正自動起屋。",
+      versionBadge: "v5.10.0 — 【光之鐵路】",
+      versionDesc: "5.10.0 更新：輕鐵登場：立法會撥款開放，路面、專用路軌、高架同平交路一條綫行晒。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感嘅城市建設遊戲。起街道、規劃社區、經營自己嘅香城巴士公司、處理議會同天氣，再睇住一座有性格嘅香城慢慢成長。",
       freeLabel: "完全免費 · 瀏覽器 + macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1863,8 +1867,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v5.9.0 — 【香港全境串流】",
-      versionDesc: "5.9.0 更新：香港全境整合原遊戲，依區載入，新增全境／區域導航並修正自動建屋。",
+      versionBadge: "v5.10.0 — 【光之鐵路】",
+      versionDesc: "5.10.0 更新：輕鐵登場：立法會撥款開放，路面、專用軌道、高架與平交道一條線行駛。",
       lede: "一款向 SimCity 2000 致敬、以香港城市生活為靈感的城市建設遊戲。興建街道、規劃社區、經營自己的香城公車公司、處理議會與天氣，看著一座有個性的香城慢慢成長。",
       freeLabel: "完全免費 · 瀏覽器 + macOS + Windows · 本機存檔",
       downloadBtn: "【免費下載】",
@@ -1972,8 +1976,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "The City of Heung Shing",
       title: "The City of Heung Shing",
-      versionBadge: "v5.9.0 — 【Hong Kong Territory Streaming】",
-      versionDesc: "5.9.0: streamed Hong Kong territory in the original game, regional navigation and restored automatic development.",
+      versionBadge: "v5.10.0 — 【The Light Railway】",
+      versionDesc: "5.10.0: the light rail arrives - council-funded, on streets, its own track, viaducts and level crossings.",
       lede: "A city-building game inspired by Hong Kong life and made in tribute to SimCity 2000. Build streets, shape neighbourhoods, run your own Heung Shing Bus Company, navigate council politics and weather, then watch a city with real personality grow.",
       freeLabel: "Completely free · Browser + macOS + Windows · Local saves",
       downloadBtn: "【Free Download】",
@@ -2082,8 +2086,8 @@ const SITE_TEXT = {
     hero: {
       eyebrowPrefix: "香城模擬器",
       title: "香城模擬器",
-      versionBadge: "v5.9.0 — 【香港全域ストリーミング】",
-      versionDesc: "5.9.0 更新：香港全域を既存ゲームに統合。地域別読み込み、全域／地域ナビ、自動発展の修正。",
+      versionBadge: "v5.10.0 — 【光の鉄道】",
+      versionDesc: "5.10.0 更新：ライトレール登場。議会の出資で解禁、併用軌道・専用線路・高架・踏切を一路線で。",
       lede: "香港の都市生活から着想を得た、SimCity 2000へのオマージュとなる都市建設ゲーム。道路を築き、地区を計画し、自分だけの香城バス会社を経営し、議会や天候に向き合いながら、個性ある香城の成長を見守ります。",
       freeLabel: "完全無料 · ブラウザー + macOS + Windows · ローカルセーブ",
       downloadBtn: "【無料ダウンロード】",

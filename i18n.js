@@ -1,7 +1,7 @@
 const I18N_STORAGE_KEY = 'citybuilder.language';
-let appVersion = '5.9.0';
-let appReleaseTheme = '【香港全境串流】';
-const APP_RELEASE_THEMES = {"en":"【Hong Kong Territory Streaming】","zhHant":"【香港全境串流】","ja":"【香港全域ストリーミング】"};
+let appVersion = '5.10.0';
+let appReleaseTheme = '【光之鐵路】';
+const APP_RELEASE_THEMES = {"en":"【The Light Railway】","zhHant":"【光之鐵路】","ja":"【光の鉄道】"};
 function localizedReleaseTheme() {
   if (currentLanguage === 'zhHant' && /^zh-(hk|mo)\b/i.test(navigator.language || '')) return appReleaseTheme;
   return APP_RELEASE_THEMES[currentLanguage] || appReleaseTheme;

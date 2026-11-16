@@ -1,3 +1,34 @@
+# The City of Heung Shing v5.10.0 — 【光之鐵路】
+
+- 廣東話／台灣中文：【光之鐵路】
+- English: 【The Light Railway】
+- 日本語：【光の鉄道】
+
+## 輕鐵：獨立嘅交通系統
+
+- **立法會開放**：城市人口 15,000 以上、有運輸公司同立法會，就可以提出【輕便鐵路撥款】；通過之後市庫撥款畀運輸公司專款專用嚟起輕鐵，鋪路軌、起站同買車先用撥款，唔夠先用公司現金；兩年後可以再申請。
+- **一個工具，三種路軌**：沿馬路拖係路面路軌（窄路行車線中間、雙線行中間專用路）；喺空地拖係自己嘅碎石路軌，45 度轉彎；打直過馬路就係平交路。揀「高架」就起兩層高嘅橋，兩頭自動加四格上落橋；輕鐵唔落地底。
+- **輕鐵車**：8 個方向嘅輕鐵（九廣 Comeng 款），單卡或者兩卡屁股對屁股；路面同汽車一齊排隊等燈，專用路軌同高架快啲；上落橋車身會斜；夜晚車頭白燈、車尾紅燈。
+- **輕鐵站**：豐年路款兩邊月台，月台一頭有行人平交路橫過路軌；夜晚上蓋光管著燈。
+- **平交路**：每條入嚟嘅行車線前有交通燈；輕鐵埋嚟轉黃燈再轉紅燈，汽車、巴士喺停車線前停，過咗先放行。
+- **營運**：逐個鐘頭有人喺站等車，單一車費；每月保養入運輸公司賬；路線表「輕鐵綫」分頁、實時監控、香城討論區通車新聞。
+
+## 修正
+
+- 盂蘭燒街衣同中秋燈籠柱改為按所企行人路排序，唔會再畫喺駛過嘅電車、巴士或者汽車上面。
+- 兩條電車綫喺同一個站開出時，並排嘅電車會讓，唔會疊埋一齊行。
+- 關於視窗嘅版本號更正。
+
+**English:** The light rail arrives as its own transport system, opened when the Legislative Council passes Light Rail Funding (a city of 15,000; the grant goes to the transport company). One track tool lays street track along roads, its own track over open ground with 45-degree turns, level crossings straight across roads and two-level viaducts with ramps. Stations with a passengers' crossing; single or coupled cars that queue with traffic on the road; level crossings whose traffic lights stop the cars; riders, fares, the company's books, live tracking and news. Also: roadside festival groups no longer draw over passing vehicles, and level trams on a shared stop no longer run inside each other.
+
+**日本語:** ライトレールが独立した交通システムとして登場。人口15,000以上で議会が「ライトレール建設出資」を可決すると、出資金が交通会社に渡り建設できます。道路沿いの併用軌道、空き地の専用線路（45度カーブ）、道路を横切る踏切、2段の高架とスロープを一つのツールで敷設。駅と旅客用の構内踏切、1両・2両連結の車両、踏切の信号で止まる自動車、乗客・運賃・会計・ライブ表示・ニュースに対応。祭りの路上グループが通過車両の上に描かれる問題と、同じ停留所から並んで発車する路面電車の重なりも修正しました。
+
+## 下載
+
+macOS Apple Silicon / Intel DMG；Windows 安裝版／免安裝版 EXE；官網瀏覽器版。
+
+---
+
 # The City of Heung Shing v5.9.0 — 【香港全境串流】
 
 - 廣東話／台灣中文：【香港全境串流】

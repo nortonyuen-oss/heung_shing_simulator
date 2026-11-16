@@ -43,49 +43,6 @@ const TRAM_SERVICE = Object.freeze({
 
 // 電車's green and its advertising liveries (tram-art.js), taken in turn as trams are bought
 const TRAM_LIVERIES = Object.freeze(['green', 'hss', 'lan', 'nightday']);
-
-// 輕鐵 on the road (feature/light-rail-street, a test): a line set to `vehicle: 'lrv'` runs KCR light
-// rail cars (light-rail-art.js) on the same track. A light rail car has a front and a back, so its
-// picture follows the way it runs (its front seen coming toward the viewer); it is a single 20.2 m car,
-// against a tram's 12 m, so it keeps further back from what is ahead and the traffic further from it.
-const TRAM_LENGTH_TILES = 0.6;
-// (a car's length as drawn, light-rail-art.js: 20.2 m, drawn a little under the world's 20 m a tile)
-const LIGHT_RAIL_LENGTH_TILES = typeof LIGHT_RAIL_CAR_TILES === 'number' ? LIGHT_RAIL_CAR_TILES : 20.2 / 20;
-
-function tramLineIsLightRail(line) {
-  return line?.vehicle === 'lrv' && typeof LIGHT_RAIL_ART !== 'undefined';
-}
-
-function tramVehicleHalfLength(line) {
-  return (tramLineIsLightRail(line) ? LIGHT_RAIL_LENGTH_TILES : TRAM_LENGTH_TILES) / 2;
-}
-
-// Light rail cars also run coupled in pairs (Norton, 2026-11-15: 有些輕鐵係兩卡的) - a vehicle's
-// `cars: 2`. The second car follows the first along the track coupled back to back (屁股對屁股), so
-// both ends of the pair are cabs: the second car's picture faces the other way to the first's, and the
-// pair's lamps show only at its outer ends - the first car's headlamps, the second car's cab lit red.
-const LIGHT_RAIL_COUPLER_TILES = 0.6 / 20 * (LIGHT_RAIL_LENGTH_TILES / (20.2 / 20));
-
-function tramVehicleCars(line, v) {
-  return tramLineIsLightRail(line) && v?.cars === 2 ? 2 : 1;
-}
-
-// How far a pair's second car reaches behind the first car's back, in tiles (0 for a single car).
-function tramVehicleTrailTiles(line, v) {
-  return (tramVehicleCars(line, v) - 1) * (LIGHT_RAIL_LENGTH_TILES + LIGHT_RAIL_COUPLER_TILES);
-}
-
-function tramVehicleArt(line, v, view, frontSeen) {
-  if (tramLineIsLightRail(line)) return LIGHT_RAIL_ART[`${view}_${frontSeen ? 'front' : 'rear'}`];
-  return TRAM_ART[`${v.livery}_${view}`] || TRAM_ART[`green_${view}`];
-}
-
-function tramAllArt() {
-  return [
-    ...(typeof TRAM_ART !== 'undefined' ? Object.values(TRAM_ART) : []),
-    ...(typeof LIGHT_RAIL_ART !== 'undefined' ? Object.values(LIGHT_RAIL_ART) : []),
-  ];
-}
 const TRAM_LINE_COLORS = Object.freeze(['#2e8b57', '#c0392b', '#2471a3', '#d68910', '#7d3c98', '#17a589']);
 
 let tramLineDraft = null;
@@ -792,13 +749,9 @@ function advanceTramFleet(scene, delta, amount = null) {
     const plan = plans.get(t.line.id);
     const moved = stepTram(t.v, plan.route, amount, {
       blocked: () => {
-        // (the gaps are a tram's; a light rail car's half is longer, and a pair's second car trails
-        // behind the one ahead)
-        const ownExtra = tramVehicleHalfLength(t.line) - TRAM_LENGTH_TILES / 2;
-        if (placed.some((o) => o !== t && tramBlockedBy(t.pos, t.heading, o.pos, o.heading,
-          TRAM_SERVICE.tramSpacingTiles + ownExtra + tramVehicleHalfLength(o.line) - TRAM_LENGTH_TILES / 2
-            + tramVehicleTrailTiles(o.line, o.v), 0.15, String(o.v.id) < String(t.v.id)))) { tramQueueStats.tram++; return true; }
-        if (t.traffic && traffic.some((o) => tramBlockedBy(t.pos, t.heading, o.pos, o.heading, TRAM_SERVICE.trafficSpacingTiles + ownExtra))) { tramQueueStats.car++; return true; }
+        // (two level - two lines' first trams both start at a stop they share - the later one waits)
+        if (placed.some((o) => o !== t && tramBlockedBy(t.pos, t.heading, o.pos, o.heading, TRAM_SERVICE.tramSpacingTiles, 0.15, String(o.v.id) < String(t.v.id)))) { tramQueueStats.tram++; return true; }
+        if (t.traffic && traffic.some((o) => tramBlockedBy(t.pos, t.heading, o.pos, o.heading, TRAM_SERVICE.trafficSpacingTiles))) { tramQueueStats.car++; return true; }
         // crossing over into the other lane at a terminus: not across the bows of a car in it
         if (t.traffic && tramLaneOffset(t.pos, t.heading) < TRAM_OWN_LANE_MIN
           && traffic.some((o) => tramCrossingCutsIn(t.pos, t.heading, o.pos, o.heading))) { tramQueueStats.car++; return true; }
@@ -938,12 +891,12 @@ function destroyTramSprite(sprite) {
 }
 
 function tramArtLoaded(scene) {
-  return typeof TRAM_ART !== 'undefined' && tramAllArt().every((a) => scene.textures.exists(a.key) && (!a.lit || scene.textures.exists(a.lit.key)));
+  return typeof TRAM_ART !== 'undefined' && Object.values(TRAM_ART).every((a) => scene.textures.exists(a.key) && (!a.lit || scene.textures.exists(a.lit.key)));
 }
 
 function loadTramArt(scene) {
   if (typeof TRAM_ART === 'undefined' || scene.__tramArtLoading) return;
-  const all = tramAllArt().flatMap((a) => [a, a.lit].filter(Boolean)).filter((a) => !scene.textures.exists(a.key));
+  const all = Object.values(TRAM_ART).flatMap((a) => [a, a.lit].filter(Boolean)).filter((a) => !scene.textures.exists(a.key));
   if (!all.length) return;
   scene.__tramArtLoading = true;
   all.forEach((a) => scene.load.image(a.key, typeof resolveModelAssetPath === 'function' ? resolveModelAssetPath(a.path) : a.path));
@@ -1084,15 +1037,7 @@ function updateTramVehicles(scene) {
       if (line.status !== 'active') return;
       const plan = getTramLineRoute(line, state);
       if (!plan) return;
-      getTramLineTrams(line, state).forEach((v) => {
-        const dist = Number(v.dist) || 0;
-        trams.push({ v, line, key: v.id, ...tramRoutePointAt(plan.route, dist) });
-        // (a pair's second car, a car's length and its coupling behind along the track)
-        if (tramVehicleCars(line, v) === 2) {
-          trams.push({ v, line, key: `${v.id}#2`, trailer: true,
-            ...tramRoutePointAt(plan.route, dist - LIGHT_RAIL_LENGTH_TILES - LIGHT_RAIL_COUPLER_TILES) });
-        }
-      });
+      getTramLineTrams(line, state).forEach((v) => trams.push({ v, ...tramRoutePointAt(plan.route, Number(v.dist) || 0) }));
     });
   }
   const strength = typeof getRuntimeTrafficLightStrength === 'function' ? getRuntimeTrafficLightStrength(scene) : 0;
@@ -1103,14 +1048,10 @@ function updateTramVehicles(scene) {
     const p0 = isoToScreen(x, y), p1 = isoToScreen(x + t.heading[0], y + t.heading[1]);
     const sdx = p1.x - p0.x, sdy = p1.y - p0.y;
     const view = sdx * sdy > 0 ? 'fall' : 'rise';
-    // its front seen when it runs the way its picture's cab faces on the screen (a pair's second car,
-    // coupled back to back, faces the other way)
-    const frontSeen = (sdx > 0) === (view === 'fall');
-    const facing = t.trailer ? !frontSeen : frontSeen;
-    const art = tramVehicleArt(t.line, t.v, view, facing);
-    let sprite = scene.tramSprites.get(t.key);
-    if (!sprite) { sprite = newTramSprite(scene, art.key); scene.tramSprites.set(t.key, sprite); }
-    seen.add(t.key);
+    const art = TRAM_ART[`${t.v.livery}_${view}`] || TRAM_ART[`green_${view}`];
+    let sprite = scene.tramSprites.get(t.v.id);
+    if (!sprite) { sprite = newTramSprite(scene, art.key); scene.tramSprites.set(t.v.id, sprite); }
+    seen.add(t.v.id);
     if (sprite.texture.key !== art.key) sprite.setTexture(art.key);
     const at = tramScreenAt(scene, x, y);
     sprite.setOrigin(art.anchor[0] / art.size[0], art.anchor[1] / art.size[1]).setScale(art.scale * TILE_WIDTH / 100);
@@ -1118,23 +1059,14 @@ function updateTramVehicles(scene) {
     sprite.__nightGround = false;
     if (typeof applyNightPropTint === 'function') applyNightPropTint(scene, sprite);
     applyTramPieces(scene, sprite, tramSlicedPieces(scene, t.pos, view, sprite));
-    // (a pair's lamps at its outer ends, both cabs: running toward the viewer the first car's
-    // headlamps; away, the second car's cab, its lamps red at the back of the pair)
-    if (tramVehicleCars(t.line, t.v) === 2) {
-      syncTramVehicleLamps(scene, sprite, art, facing, facing ? strength : 0, Boolean(t.trailer));
-    } else {
-      syncTramVehicleLamps(scene, sprite, art, frontSeen, strength);
-    }
-    if (t.traffic && !t.trailer) {
+    // its front seen when it runs the way its picture's cab faces on the screen
+    syncTramVehicleLamps(scene, sprite, art, (sdx > 0) === (view === 'fall'), strength);
+    if (t.traffic) {
       // in the lane(s) it is in: its own, the way it goes; crossing over to the other track at a
       // terminus, the oncoming one too (the traffic coming the other way stops short of it instead of
       // driving through it); and before it crosses, only the one it stands in - a car going by beside
-      // it does not wait for it (it waits for the car: advanceTramFleet). A car keeps its distance
-      // from the tram's back (a light rail car's is further behind its middle; a pair's, its second car's).
-      const extra = tramVehicleHalfLength(t.line) - TRAM_LENGTH_TILES / 2 + tramVehicleTrailTiles(t.line, t.v);
-      const minHeadway = (typeof TRAFFIC_VISUAL_CONFIG !== 'undefined' && TRAFFIC_VISUAL_CONFIG.minimumHeadwayTiles) || 0.65;
-      const headwayFactor = TRAM_SERVICE.headwayFactor + extra / minHeadway;
-      const model = { headwayFactor, category: 'tram' };
+      // it does not wait for it (it waits for the car: advanceTramFleet)
+      const model = { headwayFactor: TRAM_SERVICE.headwayFactor, category: 'tram' };
       const lat = tramLaneOffset(t.pos, t.heading);
       if (lat > -TRAM_OWN_LANE_MIN) {
         const leg = tramAsTrafficLeg(t.pos, t.heading);

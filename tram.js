@@ -33,7 +33,6 @@ function normalizeTramState(raw) {
     monthToDatePassengers: Math.max(0, num(l.monthToDatePassengers)), monthToDateRevenue: Math.max(0, num(l.monthToDateRevenue)),
     history: list(l.history).slice(-24),
     ...(l.newsPending ? { newsPending: true } : {}),
-    ...(l.vehicle === 'lrv' ? { vehicle: 'lrv' } : {}),      // 輕鐵 cars (tram-lines.js)
   })).filter((l) => l.id && l.stopIds.length >= 2);
   const lineIds = new Set(lines.map((l) => l.id));
   const trams = list(src.trams).map((v) => ({
@@ -42,7 +41,6 @@ function normalizeTramState(raw) {
     livery: typeof v.livery === 'string' ? v.livery : 'green', purchasePrice: Math.max(0, num(v.purchasePrice)),
     ageMonths: Math.max(0, Math.floor(num(v.ageMonths))), tilesThisMonth: Math.max(0, num(v.tilesThisMonth)),
     monthToDateRevenue: Math.max(0, num(v.monthToDateRevenue)), lastMonthRevenue: Math.max(0, num(v.lastMonthRevenue)),
-    ...(v.cars === 2 ? { cars: 2 } : {}),      // 輕鐵 coupled in a pair (tram-lines.js)
   })).filter((v) => v.id && lineIds.has(v.lineId));
   return { tracks, stops, lines, trams, nextId: Math.max(1, Math.floor(num(src.nextId, 1))) };
 }
@@ -100,15 +98,13 @@ const TRAM_STOP_OFFSET = Object.freeze({ reservation: 0.20, kerb: 0.32 });
 // on the screen, else its back. tram-art.js `head`, `tails`: texture px. The traffic's lamp glows
 // (traffic-visuals.js), the headlamp a bus's one and a third, the reds a little smaller.
 const TRAM_LAMP_SCALE = Object.freeze({ head: 1.35, tail: 0.85 });
-// red: the lamps lit as tail lamps (a light rail pair's back cab shows its headlamps' places red).
-function syncTramVehicleLamps(scene, sprite, art, frontSeen, strength, red = !frontSeen) {
+function syncTramVehicleLamps(scene, sprite, art, frontSeen, strength) {
   const lit = strength > 0.01 && art && typeof ensureTrafficLightTextures === 'function' && ensureTrafficLightTextures(scene);
   const lamps = sprite.__tramLamps || (sprite.__tramLamps = []);
   if (!lit || !sprite.visible) { lamps.forEach((l) => l.setVisible(false)); return; }
-  // (a tram's one headlamp, a light rail car's two)
-  const spots = (frontSeen ? (art.heads || (art.head ? [art.head] : [])) : art.tails) || [];
-  const key = red ? TRAFFIC_LIGHT_CONFIG.taillightTextureKey : TRAFFIC_LIGHT_CONFIG.headlightTextureKey;
-  const scale = (red ? TRAM_LAMP_SCALE.tail : TRAM_LAMP_SCALE.head) * (TILE_WIDTH / 100);
+  const spots = frontSeen ? [art.head] : art.tails;
+  const key = frontSeen ? TRAFFIC_LIGHT_CONFIG.headlightTextureKey : TRAFFIC_LIGHT_CONFIG.taillightTextureKey;
+  const scale = (frontSeen ? TRAM_LAMP_SCALE.head : TRAM_LAMP_SCALE.tail) * (TILE_WIDTH / 100);
   spots.forEach(([lx, ly], i) => {
     let lamp = lamps[i];
     if (!lamp) {

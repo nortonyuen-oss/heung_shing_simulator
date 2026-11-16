@@ -86,8 +86,6 @@ function renderTramLineCard(line, state) {
         <button class="transport-btn" type="button" data-transport-action="tram-sell-one" data-line-id="${id}"${s.trams.length ? '' : ' disabled'}>${tramUiEscape(tramT('tram.ui.sellOne', '減電車'))}</button>
         <button class="transport-btn" type="button" data-transport-action="tram-extend" data-line-id="${id}">${tramUiEscape(tramT('tram.ui.extend', '延長'))}</button>
         <button class="transport-btn" type="button" data-transport-action="tram-rename" data-line-id="${id}">${tramUiEscape(tramT('tram.ui.rename', '改名'))}</button>
-        <button class="transport-btn" type="button" data-transport-action="tram-vehicle" data-line-id="${id}" title="${tramUiEscape(tramT('tram.ui.vehicleHint', '試行輕鐵：呢條綫嘅車轉做九廣輕鐵（路軌、車站照用）'))}">${tramUiEscape(line.vehicle === 'lrv' ? tramT('tram.ui.vehicleLrv', '車種：輕鐵') : tramT('tram.ui.vehicleTram', '車種：電車'))}</button>
-        ${line.vehicle === 'lrv' && s.trams.length ? `<button class="transport-btn" type="button" data-transport-action="tram-couple" data-line-id="${id}" title="${tramUiEscape(tramT('tram.ui.coupleHint', '撳一下多一架輕鐵掛成兩卡；全部兩卡之後再撳就全部變返單卡'))}">${tramUiEscape(tramT('tram.ui.couple', '兩卡 {n}/{total}', { n: s.trams.filter((v) => v.cars === 2).length, total: s.trams.length }))}</button>` : ''}
         <button class="transport-btn" type="button" data-transport-action="tram-toggle" data-line-id="${id}">${tramUiEscape(typeof t === 'function' ? t(suspended ? 'transport.resume' : 'transport.suspend') : (suspended ? 'Resume' : 'Suspend'))}</button>
         <button class="transport-btn danger" type="button" data-transport-action="tram-delete" data-line-id="${id}">${tramUiEscape(typeof t === 'function' ? t('transport.delete') : 'Delete')}</button>
       </div>
@@ -170,18 +168,6 @@ function handleTramUiAction(action, button) {
     return true;
   } else if (action === 'tram-toggle' && line) {
     setTramLineSuspended(line.id, line.status !== 'suspended');
-  } else if (action === 'tram-vehicle' && line) {
-    // 輕鐵 on the road (a test): the line's cars drawn as KCR light rail, or back to trams
-    if (line.vehicle === 'lrv') delete line.vehicle;
-    else line.vehicle = 'lrv';
-    if (typeof queueCityChangeAutosave === 'function') queueCityChangeAutosave();
-  } else if (action === 'tram-couple' && line) {
-    // one more of the line's light rail cars coupled into a pair; all pairs already - all single again
-    const fleet = getTramLineTrams(line, state);
-    const single = fleet.find((v) => v.cars !== 2);
-    if (single) single.cars = 2;
-    else fleet.forEach((v) => { delete v.cars; });
-    if (typeof queueCityChangeAutosave === 'function') queueCityChangeAutosave();
   } else if (action === 'tram-delete' && line) {
     if (typeof window !== 'undefined' && !window.confirm(tramT('tram.confirmDelete', '取消「{name}」？佢嘅電車會即刻賣出，車站留低。', { name: line.name }))) return true;
     const value = removeTramLine(line.id);

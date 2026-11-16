@@ -429,8 +429,7 @@ function findTransitVehicleAt(scene, x, y) {
     const left = sprite.x - sprite.displayOriginX * sprite.scaleX, top = sprite.y - sprite.displayOriginY * sprite.scaleY;
     if (sprite.visible && x >= left && x <= left + w && y >= top && y <= top + h) {
       const d = Math.hypot(left + w / 2 - x, top + h / 2 - y);
-      // (a light rail pair's second car is `<id>#2`: the vehicle's)
-      if (!best || d < best.d) best = { type: 'tram', id: String(id).split('#')[0], d };
+      if (!best || d < best.d) best = { type: 'tram', id, d };
     }
   });
   // the light rail's cars: `<id>#<k>` each, the set's id

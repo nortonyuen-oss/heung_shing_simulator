@@ -55,8 +55,23 @@ NEAR_TOP = [(285, 712), (330, 700), (372, 640), (385, 598), (392, 553), (410, 53
             (586, 435), (640, 430), (700, 375), (750, 360), (790, 340), (810, 320), (945, 254), (1040, 199),
             (1072, 190), (1112, 198), (1140, 220), (1148, 252), (1152, 300), (1188, 300)]
 ROOF_REACH = 14                            # roof-coloured pixels this far over the outline are the near roof's
-# the name boards (squared px boxes): their lettering painted out with the board's own black
+# the name boards (squared px boxes, for the near platform's outline and the night layer)
 SIGN_BOXES = [(228, 330, 395, 450), (872, 345, 1012, 455)]
+# ... and each board's corners (top left, top right, bottom right, bottom left), read off the render.
+# Norton, 2026-11-15: 站牌名稱應該係比較細的 - each is shrunk about its middle, its lettering with it;
+# what it hid is filled in: the far board's from the next bay along (BAY: the canopy's pillar spacing,
+# its beam, tube light and railing the same there), the near board's left clear (behind it is the gap
+# between the platforms, where the game's own track shows).
+SIGN_BOARDS = [
+    dict(corners=[(227.5, 406), (385, 344), (387.5, 381), (230, 440)], fill='bay'),
+    # (the near one: the gap behind it left clear, the canopy's beam and the handrail - orange, running
+    # along the platform - carried across it from the columns either side, REFS)
+    dict(corners=[(875, 416), (1009, 355), (1012.5, 382.5), (876, 446)], fill='clear', refs=(842, 1040)),
+]
+SIGN_SHRINK = 0.55
+BAY = (196, -97)
+# the notice boards (squared px boxes): not lit at night (Norton: 站牌不要亮燈)
+NOTICE_BOXES = [(628, 172, 726, 300), (768, 448, 852, 640)]
 NEAR_BOARD_BOX = (768, 448, 852, 640)        # the near platform's notice board
 # the passengers' crossing: across both tracks this far from the platforms' middle toward the stairs
 # (metres along; the stairs' feet are some 22-23 m out), this wide
@@ -160,28 +175,83 @@ def masks(a):
     return near, bed
 
 
-def paint_out_signs(a):
-    """Each name board's lettering (bright) in the board's black, its red logo kept."""
+def sign_board_mask(a, board):
+    """A name board's pixels: its black panel, white lettering and red logo reached from its middle
+    (within its corners grown a little), then its outline's convex hull - every pixel of it, the lip
+    and shadow under its lower edge too."""
+    h, w = a.shape[:2]
+    rgb = a[..., :3].astype(int)
+    lum, sat = rgb.mean(2), rgb.max(2) - rgb.min(2)
+    boardish = (a[..., 3] > 100) & ((rgb.max(2) < 80) | ((rgb.min(2) > 160) & (sat < 45)) | ((rgb[..., 0] > 120) & (rgb[..., 0] - rgb[..., 1] > 60)))
+    near_img = Image.new('L', (w, h), 0)
+    ImageDraw.Draw(near_img).polygon(board['corners'], fill=255)
+    near = np.asarray(near_img.filter(ImageFilter.MaxFilter(17))) > 0
+    boardish &= near
+    cx = int(np.mean([p[0] for p in board['corners']])); cy = int(np.mean([p[1] for p in board['corners']]))
+    seen = np.zeros((h, w), bool)
+    starts = [(y, x) for y in range(cy - 6, cy + 7) for x in range(cx - 6, cx + 7) if boardish[y, x]]
+    q = deque(starts)
+    for y, x in starts: seen[y, x] = True
+    while q:
+        y, x = q.popleft()
+        for yy, xx in ((y + 1, x), (y - 1, x), (y, x + 1), (y, x - 1)):
+            if 0 <= yy < h and 0 <= xx < w and boardish[yy, xx] and not seen[yy, xx]:
+                seen[yy, xx] = True; q.append((yy, xx))
+    ys, xs = np.nonzero(seen)
+    pts = sorted(set(zip(xs.tolist(), ys.tolist())))
+    cross = lambda o, a_, b: (a_[0] - o[0]) * (b[1] - o[1]) - (a_[1] - o[1]) * (b[0] - o[0])
+    lower, upper = [], []
+    for p_ in pts:
+        while len(lower) >= 2 and cross(lower[-2], lower[-1], p_) <= 0: lower.pop()
+        lower.append(p_)
+    for p_ in reversed(pts):
+        while len(upper) >= 2 and cross(upper[-2], upper[-1], p_) <= 0: upper.pop()
+        upper.append(p_)
+    hull = lower[:-1] + upper[:-1]
+    mask_img = Image.new('L', (w, h), 0)
+    ImageDraw.Draw(mask_img).polygon(hull, fill=255)
+    return np.asarray(mask_img.filter(ImageFilter.MaxFilter(3))) > 0
+
+
+def resize_signs(a):
+    """Each name board shrunk about its middle (SIGN_SHRINK), its lettering with it, and what it hid
+    filled in (SIGN_BOARDS)."""
     out = a.copy()
-    for x0, y0, x1, y1 in SIGN_BOXES:
-        box = out[y0:y1, x0:x1]
-        rgb = box[..., :3].astype(int)
-        dark = (rgb.max(2) < 60) & (box[..., 3] > 200)
-        if not dark.any():
-            continue
-        black = np.median(rgb[dark], axis=0)
-        # the lettering and its edges: anything not black and not the red logo, inside the board (between
-        # its dark pixels in its row)
-        red = (rgb[..., 0] > 120) & (rgb[..., 0] - rgb[..., 1] > 60)
-        logo = np.asarray(Image.fromarray((red * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(5))) > 0
-        for y in range(box.shape[0]):
-            xs = np.nonzero(dark[y])[0]
-            if len(xs) < 4:
-                continue
-            m = (rgb[y].max(1) >= 60) & ~logo[y] & (box[y, :, 3] > 200)
-            m[:xs.min()] = False; m[xs.max() + 1:] = False
-            box[y, m, :3] = black
-        out[y0:y1, x0:x1] = box
+    h, w = a.shape[:2]
+    for board in SIGN_BOARDS:
+        mask = sign_board_mask(a, board)
+        ys, xs = np.nonzero(mask)
+        # the board itself, cut out
+        board_px = np.zeros_like(a)
+        board_px[mask] = a[mask]
+        # what it hid
+        if board['fill'] == 'bay':
+            dx, dy = BAY
+            sy, sx = ys + dy, xs + dx
+            ok = (sy >= 0) & (sy < h) & (sx >= 0) & (sx < w)
+            out[ys[ok], xs[ok]] = a[sy[ok], sx[ok]]
+        else:
+            out[ys, xs, 3] = 0
+            for x, y in zip(xs, ys):
+                best = None
+                for xr in board.get('refs', ()):
+                    yr = int(round(y + 0.5 * (x - xr)))      # along the platform (-0.5) to that column
+                    if not (0 <= yr < h):
+                        continue
+                    r_, g_, b_, al_ = (int(v) for v in a[yr, xr])
+                    if al_ > 200 and r_ > 150 and 50 < g_ < 160 and b_ < 100 and r_ - b_ > 90:
+                        if best is None or abs(x - xr) < best[0]:
+                            best = (abs(x - xr), a[yr, xr])
+                if best is not None:
+                    out[y, x] = best[1]
+        # the board, smaller, about its middle
+        cx, cy = np.mean([p[0] for p in board['corners']]), np.mean([p[1] for p in board['corners']])
+        k = SIGN_SHRINK
+        small = Image.fromarray(board_px, 'RGBA').convert('RGBa').transform(
+            (w, h), Image.AFFINE, (1 / k, 0, cx - cx / k, 0, 1 / k, cy - cy / k), resample=Image.BICUBIC).convert('RGBA')
+        base = Image.fromarray(out, 'RGBA')
+        base.alpha_composite(small)
+        out = np.asarray(base).copy()
     return out
 
 
@@ -221,12 +291,15 @@ def crossing(size, centre_a):
 
 def tube_light_layer(a):
     """The tube lights under the canopies lit: their pixels (bright, unsaturated, long), a glow round them
-    and a pool of light below each on the platform."""
+    and a pool of light below each on the platform - not the name boards' lettering nor the notice boards
+    (Norton, 2026-11-15: 站牌不要亮燈)."""
     rgb = a[..., :3].astype(float)
     al = a[..., 3]
     lum = rgb.mean(2)
     sat = rgb.max(2) - rgb.min(2)
     tubes = (al > 200) & (lum > 232) & (sat < 40)
+    for x0, y0, x1, y1 in SIGN_BOXES + NOTICE_BOXES:
+        tubes[y0:y1, x0:x1] = False
     tube_img = Image.fromarray((tubes * 255).astype(np.uint8))
     glow = np.asarray(tube_img.filter(ImageFilter.GaussianBlur(9)), np.float32) / 255.0
     pool = np.asarray(tube_img.transform(tube_img.size, Image.AFFINE, (1, 0, 0, 0, 1, -70)).filter(ImageFilter.GaussianBlur(22)), np.float32) / 255.0
@@ -251,7 +324,7 @@ def main():
     OUT.mkdir(parents=True, exist_ok=True)
     GAME.mkdir(parents=True, exist_ok=True)
     sq, _ = square(cut(SRC))
-    a = paint_out_signs(np.asarray(sq).copy())
+    a = resize_signs(np.asarray(sq).copy())
     near, bed = masks(a)
     base = a.copy(); base[..., 3] = np.where(near | bed, 0, a[..., 3])
     front = a.copy(); front[..., 3] = np.where(near, a[..., 3], 0)
@@ -267,8 +340,10 @@ def main():
     base_img = cross
     front_img = Image.fromarray(front, 'RGBA')
     lit = tube_light_layer(a)
-    base_lit = lit.copy(); base_lit[..., 3] = np.where(near, 0, lit[..., 3])
-    front_lit = lit.copy(); front_lit[..., 3] = np.where(near, lit[..., 3], 0)
+    # (each layer's light only on its own pixels: none on the render's bed, taken out - the game's track
+    # shows there, and a pool of light over it read as white specks)
+    base_lit = lit.copy(); base_lit[..., 3] = np.where(np.asarray(base_img)[..., 3] > 30, lit[..., 3], 0)
+    front_lit = lit.copy(); front_lit[..., 3] = np.where(front[..., 3] > 30, lit[..., 3], 0)
     layers = {'base': base_img, 'front': front_img, 'base_lit': Image.fromarray(base_lit, 'RGBA'), 'front_lit': Image.fromarray(front_lit, 'RGBA')}
     # check sheet: the layers on green, the anchor, the game's track lines
     chk = Image.new('RGBA', base_img.size, (60, 120, 70, 255))

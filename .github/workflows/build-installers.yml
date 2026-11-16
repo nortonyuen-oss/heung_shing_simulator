@@ -60,7 +60,7 @@ jobs:
           [[ "$RELEASE_ASSET_RUN" =~ ^[0-9]+$ ]] || exit 1
           export RELEASE_ASSET_COMMIT=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$RELEASE_ASSET_RUN" --jq .head_sha)
           git fetch --no-tags --depth=1 origin "$RELEASE_ASSET_COMMIT"
-          node -e 'const {execFileSync}=require("node:child_process"); const files=execFileSync("git",["diff","--name-only",process.env.RELEASE_ASSET_COMMIT,"HEAD"],{encoding:"utf8"}).trim().split("\n").filter(Boolean); const allowed=new Set([".github/workflows/build-installers.yml","scripts/verify-world-package.js","test/world-package.test.js"]); if(files.some(file=>!allowed.has(file)))throw Error("Asset source differs from this release; regenerate assets");'
+          node -e 'const {execFileSync}=require("node:child_process"); const files=execFileSync("git",["diff","--name-only",process.env.RELEASE_ASSET_COMMIT,"HEAD"],{encoding:"utf8"}).trim().split("\n").filter(Boolean); const allowed=new Set([".github/workflows/build-installers.yml","scripts/verify-world-package.js"]); const isCheck=file=>allowed.has(file)||file.startsWith("test/")||(file.startsWith("scripts/smoke-")&&file.endsWith(".js")); if(files.some(file=>!isCheck(file)))throw Error("Asset source differs from this release; regenerate assets");'
           gh run download "$RELEASE_ASSET_RUN" --repo "$GITHUB_REPOSITORY" --name prepared-models --dir .data/package-assets/Models
           gh run download "$RELEASE_ASSET_RUN" --repo "$GITHUB_REPOSITORY" --name world-terrain --dir data/world-terrain
           node scripts/bake-road-line-textures.js

@@ -48,8 +48,7 @@ function setupLandingScreen() {
   const rememberedSourceIds = { district: '', saved: '' };
   // Each pick bumps this, so a slow terrain load never paints over a newer pick.
   let previewToken = 0;
-  // 香港全境's performance-warning dialog shows once per session, not on every confirm.
-  let territoryWarningAcknowledged = false;
+
 
   function setLandingState(state) {
     if (menu) menu.style.display = state === 'menu' ? 'grid' : 'none';
@@ -204,6 +203,9 @@ function setupLandingScreen() {
 
   async function selectSource(source) {
     selectedSource = source;
+    const worldMode = false;
+    if (roadTileSetSelect) roadTileSetSelect.closest('.setup-row').hidden = worldMode;
+    if (transportExpansionCheckbox) transportExpansionCheckbox.closest('.setup-switch').hidden = worldMode;
     if (source && rememberedSourceIds[source.kind] !== undefined) rememberedSourceIds[source.kind] = source.id;
     markSelectedCards();
     if (btnStart) btnStart.disabled = !source;
@@ -220,6 +222,11 @@ function setupLandingScreen() {
 
     if (source.kind === 'district') showDistrictIntro(source);
     if (source.kind === 'territory') showTerritoryIntro(source);
+    if (source.kind === 'territory') {
+      // The world engine has its own immutable packs; selecting it must never load legacy RLE.
+      if (introMeta) introMeta.textContent = t('landing.worldSize');
+      showPreviewStatus(''); return;
+    }
     if (previewName) {
       previewName.textContent = source.kind === 'generated'
         ? getMapSourceProfileLabel(source.profileType)
@@ -340,7 +347,7 @@ function setupLandingScreen() {
     // source like any other (same selectSource/confirmSetup path), just a much bigger one.
     // getDistrictOverviewBox(source) returns null for it (no .centre), so it naturally never
     // gets an overview-map marker below, only a chip in the list.
-    const sources = [createHkTerritoryMapSource(), ...listDistrictMapSources()];
+    const sources = [...listDistrictMapSources(), ...(setupMode === 'editor' ? [] : [createHkTerritoryMapSource()])];
     const showHover = (source) => placeOverviewFrame(overviewHover, source);
     const hideHover = () => { if (overviewHover) overviewHover.hidden = true; };
 
@@ -469,10 +476,10 @@ function setupLandingScreen() {
       showToast(t('landing.mapRequired'), 'warning');
       return;
     }
-    if (source.kind === 'territory' && !territoryWarningAcknowledged) {
-      const confirmed = await showTerritoryWarningDialog();
-      if (!confirmed) return;
-      territoryWarningAcknowledged = true;
+    if (source.kind === 'territory') {
+      try { await globalThis.HeungShingWorldEntry.enterWorld(globalThis.HeungShingWorldEntry.createWorldUrl({ name: nameInput.value.trim() || getDefaultCityName(), startYear: resolveCityStartYear(selectedStartYear), roadTileSetId: roadTileSetSelect?.value, transportExpansion: transportExpansionCheckbox?.checked })); }
+      catch (error) { showToast(error.message, 'danger'); }
+      return;
     }
     if (btnStart) btnStart.disabled = true;
     // showPreviewStatus below writes into .setup-preview, which the 香港地區 tab's own CSS hides
@@ -596,7 +603,7 @@ function setupLandingScreen() {
 
   // Menu is wired; bring the showcase city up behind it (no-op when disabled or unavailable).
   if (typeof startAttractMode === 'function') {
-    startAttractMode(typeof activeScene !== 'undefined' ? activeScene : null);
+    if (!globalThis.HeungShingWorldEntry?.hasPendingLaunch?.()) startAttractMode(typeof activeScene !== 'undefined' ? activeScene : null);
   }
 }
 
@@ -721,9 +728,9 @@ function startTerrainCreatorMode(profileType, seedText, terrain = null) {
   activeTerrainProfileType = profileType;
   currentSeed = seedText || createSeed();
   setMapDimensions(terrain?.width, terrain?.height);
-  // See the matching comment in startNewGame - any tile sprites already on the scene were built
-  // for whichever map (and size) was previously loaded, not this one.
-  resetTileSpritesForNewMap(activeScene);
+  // See the matching comment in startNewGame - the scene's offsets, world mask and tile sprites
+  // were all built for whichever map (and size) was previously loaded, not this one.
+  applyMapSizeToScene(activeScene);
   if (terrain?.chunked) {
     currentTerrainMetadata = createTerrainMetadata(terrain, currentSeed);
     initializeChunkedTerritoryWorld(terrain);
@@ -807,6 +814,7 @@ function createTerrainMetadata(terrain, seed) {
 // options.terrain is the map picked on the setup screen (any map source); without one the
 // city starts on freshly generated terrain, as the preview scripts rely on.
 async function startNewGame(cityName, options = {}) {
+  if (isWorldGameActive()) { if (!await globalThis.__worldGameHost.save(true)) return; await leaveWorldGame(); }
   if (globalThis.HEUNG_SHING_CONFIG?.platform === 'web' && !HeungShingStorage.writable) {
     showToast(platformText('locked'), 'warning'); return;
   }
@@ -816,11 +824,11 @@ async function startNewGame(cityName, options = {}) {
   const terrain = options.terrain ?? null;
   const source = terrain ? 'map-source' : 'random';
   setMapDimensions(terrain?.width, terrain?.height);
-  // Any tile sprites already on the scene were built for whichever map (and whatever size) was
-  // previously loaded - create()'s own startup scene the first time, a different city's map on
-  // every load after that. Must happen after setMapDimensions (it reads the now-current
-  // MAP_WIDTH/MAP_HEIGHT) and before anything below reads mapData/heightMap for this new map.
-  resetTileSpritesForNewMap(activeScene);
+  // The scene's offsets, world mask and tile sprites were all built for whichever map (and
+  // whatever size) was previously loaded - create()'s own startup scene the first time, a
+  // different city's map on every load after that. Must happen after setMapDimensions (it reads
+  // the now-current MAP_WIDTH/MAP_HEIGHT) and before anything below reads mapData/heightMap.
+  applyMapSizeToScene(activeScene);
 
   stopSimTimer();
   isTerrainCreatorMode = false;

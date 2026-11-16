@@ -1754,6 +1754,7 @@ const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct'
 
 // Utility: create a 2D map array filled with a value
 function createFilledMap(value) {
+  if (typeof isWorldGameActive === 'function' && isWorldGameActive()) return createWorldGameGrid(value);
   return Array.from({ length: MAP_HEIGHT }, () => Array(MAP_WIDTH).fill(value));
 }
 
@@ -1761,6 +1762,7 @@ function createFilledMap(value) {
 // plain Array - ~8x less memory per cell, which matters once MAP_WIDTH/MAP_HEIGHT can be set to
 // the full Hong Kong territory (setMapDimensions in main.js) rather than the fixed 256x256.
 function createFilledTypedMap(ArrayCtor, value) {
+  if (typeof isWorldGameActive === 'function' && isWorldGameActive()) return createWorldGameGrid(value);
   return Array.from({ length: MAP_HEIGHT }, () => {
     const row = new ArrayCtor(MAP_WIDTH);
     if (value) row.fill(value);

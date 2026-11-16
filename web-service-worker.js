@@ -44,7 +44,7 @@ self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
   if (event.request.method !== 'GET' || url.origin !== self.location.origin) return;
   if (event.request.mode === 'navigate') {
-    event.respondWith(fetch(event.request).catch(async () => (await caches.open(SHELL_CACHE)).match('index.html')));
+    event.respondWith(fetch(event.request).catch(async () => { const cache = await caches.open(SHELL_CACHE); return (await cache.match(url.pathname.replace(/^\//, ''))) || cache.match(url.pathname.startsWith('/world/') ? 'world/index.html' : 'index.html'); }));
     return;
   }
   if (!url.pathname.includes('/assets/')) return;

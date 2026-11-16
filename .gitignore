@@ -21,3 +21,7 @@ scripts/source-art/tramways/squared/
 
 # 輕鐵: the squared renders and check overlays, made again by scripts/prepare-light-rail-assets.py
 scripts/source-art/lightRail/squared/
+
+# Rebuilt from hk-terrain-tiles.js by npm run prepare:world-terrain.
+/data/world-terrain/
+/data/world-terrain.building-*/

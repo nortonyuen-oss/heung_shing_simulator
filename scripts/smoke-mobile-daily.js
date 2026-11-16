@@ -48,7 +48,7 @@ function check(name, ok, detail) {
     const cdp = await page.context().newCDPSession(page);
     await cdp.send('Emulation.setSafeAreaInsetsOverride', { insets: { top: 59, left: 0, right: 0, bottom: 34 } });
     const draft = () => page.evaluate(() => mobileBuildSession.getState());
-    const snapshot = () => page.evaluate(() => JSON.stringify({ budget: city.budget, lines: [...powerLineSet].sort(), trees: treeMap,
+    const snapshot = () => page.evaluate(() => JSON.stringify({ budget: city.budget, lines: [...powerLineSet].sort(), trees: [...treeMap].sort(([a], [b]) => a.localeCompare(b)),
       zones: zoneMap, locks: [...lowDensityLockSet].sort(), buildings: buildingData, signs: getDistrictSigns() }));
     const nav = async name => {
       if (await page.locator('#mobile-nav-toggle').isVisible()) await page.click('#mobile-nav-toggle');
@@ -93,7 +93,7 @@ function check(name, ok, detail) {
     await page.click('#mobile-cancel');
     check('cancelling a tree range leaves the city unchanged', beforeTrees === await snapshot());
     await choose('parks', 'tree'); await tapTile(95, 80); await tapTile(96, 82); await page.click('#mobile-confirm');
-    check('confirmed trees charge $30 and retain the native planted flag', await page.evaluate(() => city.budget === 9970 && treeMap[95][82]?.planted && treeMap[96][80]?.planted && !treeMap[95][81] && !treeMap[96][81] && !treeMap[96][82]));
+    check('confirmed trees charge $30 and retain the native planted flag', await page.evaluate(() => city.budget === 9970 && treeMap.get('95:82')?.planted && treeMap.get('96:80')?.planted && !treeMap.has('95:81') && !treeMap.has('96:81') && !treeMap.has('96:82')));
     await choose('zones', 'dezone'); await tapTile(99, 88); await tapTile(99 + fixture.keptRows - 1, 88 + fixture.keptCols - 1);
     check('de-zoning previews the retained building and a free price', (await draft()).plan.keptBuildings === 1 && (await draft()).plan.cost === 0 && await page.locator('#mobile-confirm').textContent() === '確認取消分區');
     await page.evaluate(() => { city.budget = -50; }); await page.click('#mobile-confirm');
@@ -104,7 +104,7 @@ function check(name, ok, detail) {
     const line = (await draft()).plan;
     check('power line preview skips its existing conductor and discloses tree removal', !fixture.libraryPowered && line.skipped === 1 && line.clearedTrees === 1 && line.cost === line.tiles.length * 5 && beforeLines === await snapshot());
     await page.click('#mobile-confirm');
-    check('confirming conductors immediately powers the disconnected library', await page.evaluate(cost => powerMap[90][96] && city.budget === 9970 - cost && !treeMap[90][90], line.cost));
+    check('confirming conductors immediately powers the disconnected library', await page.evaluate(cost => powerMap[90][96] && city.budget === 9970 - cost && !treeMap.has('90:90'), line.cost));
     await choose('parks', 'park'); await page.locator('#mobile-recreation-select').selectOption('palm_court'); await tapTile(80, 90);
     const beforePark = await snapshot();
     check('the explicit park picker quotes the selected 2x2 palm court at $500', (await draft()).plan.tiles.length === 4 && (await draft()).plan.cost === 500);
@@ -188,7 +188,7 @@ function check(name, ok, detail) {
     const lots = value => Object.entries(value.buildings).map(([id, b]) => [id, b.type, b.spriteKey, b.parkVariant, b.footprintCols, b.footprintRows]);
     // Compact saves explicitly restore count=1 and planted=false on ordinary trees.
     // Compare every tree's meaningful data, including its exact position and random variant.
-    const trees = value => value.trees.map(row => row.map(tree => tree ? [tree.species, tree.age, tree.variant, tree.count ?? 1, !!tree.planted] : null));
+    const trees = value => value.trees.map(([id, tree]) => [id, tree.species, tree.age, tree.variant, tree.count ?? 1, !!tree.planted]);
     const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
     const persistence = { budget: before.budget === after.budget, lines: same(before.lines, after.lines), trees: same(trees(before), trees(after)),
       zones: same(before.zones, after.zones), locks: same(before.locks, after.locks), signs: same(before.signs, after.signs), lots: same(lots(before), lots(after)) };

@@ -107,12 +107,15 @@ function getMidAutumnLayoutExtras(scene) {
   if (typeof mapData === 'undefined') return extras;
   const roadTiles = [];
   let signature = 2166136261;
-  for (let row = 0; row < mapData.length; row++) for (let col = 0; col < mapData[row].length; col++) {
-    if (!isFireDragonRoadTile(row, col)) continue;
+  const scanRoad = (row, col) => {
+    if (!isFireDragonRoadTile(row, col)) return;
     const height = typeof heightMap === 'undefined' ? 0 : heightMap[row]?.[col] || 0;
     roadTiles.push({ row, col, height });
     signature = Math.imul(signature ^ (row * 65537 + col * 17 + height), 16777619) >>> 0;
-  }
+  };
+  if (typeof isWorldGameActive === 'function' && isWorldGameActive()) {
+    for (const { row, col } of globalThis.__worldGameHost.visibleRoadTiles()) scanRoad(row,col);
+  } else for (let row=0;row<mapData.length;row++) for(let col=0;col<mapData[row].length;col++) scanRoad(row,col);
   const buildings = typeof buildingData !== 'undefined' ? Object.keys(buildingData).length : 0;
   const key = `${roadTiles.length}:${signature}:${buildings}`;
   if (midAutumnMapCache?.key !== key) {

@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5">
+  <title>香城 · 全港世界建設</title>
+  <link rel="stylesheet" href="preview.css">
+</head>
+<body>
+  <header>
+    <div><strong id="world-name">香港全境 · 測試版</strong><span>3187 × 2400 · <output id="world-budget">$100,000</output> · <span id="save-status">正在連接儲存…</span></span></div>
+    <nav aria-label="地圖操作">
+      <button id="rotate" type="button">旋轉 R</button>
+      <button id="zoom-out" type="button" aria-label="縮小">−</button>
+      <output id="zoom">80%</output>
+      <button id="zoom-in" type="button" aria-label="放大">＋</button>
+      <button id="home" type="button">起點</button>
+      <button id="jump" type="button">跨區跳轉</button>
+      <a href="/">主選單</a>
+    </nav>
+  </header>
+  <section id="construction-controls" aria-label="建設與存檔">
+    <select id="build-tool" aria-label="建設工具">
+      <option value="browse">瀏覽地圖</option><option value="road">道路</option><option value="bridge">橋樑</option><option value="rail">地面路軌</option>
+      <option value="route-road">巴士班次起終點</option><option value="route-rail">列車班次起終點</option>
+      <option value="market2">公共街市 2×2</option><option value="park4">維園地段 4×4</option>
+      <option value="zoneR">住宅分區</option><option value="zoneC">商業分區</option><option value="zoneI">工業分區</option>
+      <option value="raise">升高地形</option><option value="lower">降低地形</option><option value="flatten4">整平 4×4 地段</option><option value="water4">挖掘水域 4×4</option><option value="bulldoze">拆除</option>
+    </select>
+    <select id="world-slot" aria-label="世界存檔"></select>
+    <button id="world-save" type="button">儲存</button><button id="world-load" type="button">載入</button>
+    <button id="world-rollback" type="button">上一版</button><button id="world-export" type="button">匯出備份</button><button id="world-import" type="button">匯入備份</button>
+    <input id="world-file" type="file" accept=".heungshing,application/json" hidden>
+  </section>
+  <main id="world-canvas" aria-label="可拖動、縮放及旋轉的香港地形"></main>
+  <p id="status" role="status">正在讀取地形資料…</p>
+  <div id="boot-actions" hidden><button type="button" onclick="location.reload()">重新載入</button><a href="/">返回主選單</a></div>
+  <aside id="world-diagnostics">
+    <details>
+      <summary>開發診斷</summary>
+      <pre id="diagnostics">等待地圖啟動</pre>
+    </details>
+  </aside>
+  <section id="world-simulation" aria-label="世界運作">
+    <details open><summary id="simulation-summary">世界運作 · 暫停</summary>
+      <div class="simulation-actions"><button id="simulation-toggle" type="button">開始模擬</button><select id="simulation-speed" aria-label="模擬速度"><option value="1">1 倍速</option><option value="4">4 倍速</option><option value="16">16 倍速</option></select><button id="simulation-step" type="button">前進一日</button></div>
+      <p id="simulation-stats"></p>
+      <div class="simulation-actions"><select id="world-service" aria-label="交通班次"></select><button id="service-follow" type="button">查看</button><button id="service-remove" type="button">移除</button></div>
+      <p id="service-progress"></p>
+    </details>
+  </section>
+  <section id="world-minimap" data-mode="local" data-collapsed="false" aria-label="世界小地圖">
+    <div class="minimap-heading"><strong data-map-title>附近地圖</strong><button type="button" data-map-mode aria-pressed="false">全港總覽</button><button type="button" data-map-collapse aria-expanded="true">收起</button></div>
+    <div class="minimap-body">
+      <div class="minimap-surface" tabindex="0" role="application" aria-label="點擊或拖動地圖跳轉，方向鍵移動鏡頭">
+        <canvas data-map-base aria-hidden="true"></canvas><canvas data-map-city aria-hidden="true"></canvas><canvas data-map-view aria-hidden="true"></canvas>
+      </div>
+      <output data-map-position>正在定位…</output><p>點擊／拖動跳轉 · 拖動標題移位</p>
+    </div>
+  </section>
+  <section id="build-draft" hidden aria-label="建設預覽"><span id="build-cost"></span><button id="confirm-build" type="button">確定建設</button><button id="cancel-build" type="button">取消</button></section>
+  <script src="../node_modules/phaser/dist/phaser.min.js"></script>
+  <script src="../map-input-controller.js"></script>
+  <script src="../road-tile-sets.js"></script>
+  <script src="../building-ground-fit.js"></script>
+  <script src="../game-storage.js"></script>
+  <script src="world-game-state.js"></script>
+  <script src="world-config.js"></script>
+  <script src="world-crypto.js"></script>
+  <script src="world-entry.js"></script>
+  <script src="world-construction-catalog.js"></script>
+  <script src="world-simulation-format.js"></script>
+  <script src="world-save-format.js"></script>
+  <script src="world-delta-store.js"></script>
+  <script src="world-save-session.js"></script>
+  <script src="world-data-access.js"></script>
+  <script src="world-construction.js"></script>
+  <script src="world-transport-network.js"></script>
+  <script src="world-simulation.js"></script>
+  <script src="world-simulation-ui.js"></script>
+  <script src="world-entity-renderer.js"></script>
+  <script src="world-construction-ui.js"></script>
+  <script src="world-coordinates.js"></script>
+  <script src="world-terrain-provider.js"></script>
+  <script src="world-chunk-manager.js"></script>
+  <script src="world-chunk-renderer.js"></script>
+  <script src="world-lod.js"></script>
+  <script src="world-minimap.js"></script>
+  <script src="world-diagnostics.js"></script>
+  <script src="preview.js"></script>
+</body>
+</html>

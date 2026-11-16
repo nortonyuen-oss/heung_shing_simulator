@@ -72,15 +72,21 @@ function createGeneratedMapSource(profileType, seed, mode = GENERATED_MAP_DEFAUL
     seed,
     getTerrain: async () => {
       if (terrain) return terrain;
-      if (landform === 'flat') {
-        terrain = {
-          version: 1, generatorVersion: 4, profileType: 'flat', seed, features: ['flat'],
-          mapData: createFilledMap(GROUND), heightMap: createFilledMap(0),
-        };
-      } else if (sourceMode === 'original') {
-        terrain = generateOriginalTerrain(landform, seed);
-      } else {
-        terrain = sampleHkTerrain(landform, seed);
+      if (landform !== 'flat' && sourceMode === 'real') await ensureHkTerrainSource();
+      if (terrain) return terrain; // another caller may have completed during the shared read
+      // The city may have switched to the territory while this source was downloading.
+      // Legacy generators are synchronous and use global dimensions; scope them to
+      // their own 256-tile map and restore the live world's geometry before yielding.
+      const width = MAP_WIDTH, height = MAP_HEIGHT, resize = width !== 256 || height !== 256;
+      if (resize) setMapDimensions(256,256);
+      try {
+        if (landform === 'flat') {
+          terrain = { version: 1, generatorVersion: 4, profileType: 'flat', seed, features: ['flat'],
+            mapData: createFilledMap(GROUND), heightMap: createFilledMap(0) };
+        } else if (sourceMode === 'original') terrain = generateOriginalTerrain(landform, seed);
+        else terrain = sampleHkTerrain(landform, seed);
+      } finally {
+        if (resize) setMapDimensions(width,height);
       }
       return terrain;
     },

@@ -2,11 +2,17 @@ name: Build Installers
 
 on:
   workflow_dispatch:
+    inputs:
+      asset_run_id:
+        description: Reuse assets after a CI/package verifier repair of the same release
+        required: false
+        type: string
   push:
     tags:
       - "v*.*.*"
 
 permissions:
+  actions: read
   contents: write
   pages: write
   id-token: write
@@ -45,14 +51,35 @@ jobs:
           path: .data/webp-cache
           key: baked-assets-${{ runner.os }}-${{ hashFiles('scripts/prepare-release-assets.js', 'Models/**') }}
           restore-keys: baked-assets-${{ runner.os }}-
+      - name: Restore assets from the verified source revision
+        if: inputs.asset_run_id != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_ASSET_RUN: ${{ inputs.asset_run_id }}
+        run: |
+          [[ "$RELEASE_ASSET_RUN" =~ ^[0-9]+$ ]] || exit 1
+          export RELEASE_ASSET_COMMIT=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$RELEASE_ASSET_RUN" --jq .head_sha)
+          git fetch --no-tags --depth=1 origin "$RELEASE_ASSET_COMMIT"
+          node -e 'const {execFileSync}=require("node:child_process"); const files=execFileSync("git",["diff","--name-only",process.env.RELEASE_ASSET_COMMIT,"HEAD"],{encoding:"utf8"}).trim().split("\n").filter(Boolean); const allowed=new Set([".github/workflows/build-installers.yml","scripts/verify-world-package.js"]); const isCheck=file=>allowed.has(file)||file.startsWith("test/")||(file.startsWith("scripts/smoke-")&&file.endsWith(".js")); if(files.some(file=>!isCheck(file)))throw Error("Asset source differs from this release; regenerate assets");'
+          gh run download "$RELEASE_ASSET_RUN" --repo "$GITHUB_REPOSITORY" --name prepared-models --dir .data/package-assets/Models
+          gh run download "$RELEASE_ASSET_RUN" --repo "$GITHUB_REPOSITORY" --name world-terrain --dir data/world-terrain
+          node scripts/bake-road-line-textures.js
       - run: npm run prepare:release-assets
+        if: inputs.asset_run_id == ''
       - run: npm run verify:release-assets
+      - run: npm run verify:world-assets
       - uses: actions/upload-artifact@v4
         with:
           name: prepared-models
           path: .data/package-assets/Models
           retention-days: 1
           include-hidden-files: true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: world-terrain
+          path: data/world-terrain
+          if-no-files-found: error
+          retention-days: 1
 
   build:
     name: Build ${{ matrix.os }} ${{ matrix.artifact }}
@@ -82,8 +109,19 @@ jobs:
         with:
           name: prepared-models
           path: .data/package-assets/Models
+      - uses: actions/download-artifact@v4
+        with:
+          name: world-terrain
+          path: data/world-terrain
+      - run: npm run verify:world-assets
       - run: ${{ matrix.command }}
         shell: bash
+      - name: Verify packaged territory assets
+        shell: bash
+        run: |
+          archive=$(find release -type f -name app.asar | head -n 1)
+          test -n "$archive"
+          node scripts/verify-world-package.js "$archive"
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
@@ -110,6 +148,11 @@ jobs:
         with:
           name: prepared-models
           path: .data/package-assets/Models
+      - uses: actions/download-artifact@v4
+        with:
+          name: world-terrain
+          path: data/world-terrain
+      - run: npm run verify:world-assets
       - run: node scripts/restore-web-history.js
         env:
           GH_TOKEN: ${{ github.token }}
@@ -118,6 +161,10 @@ jobs:
           WEB_STATISTICS_ENABLED: 'true'
       - run: npm run verify:web
       - run: npx playwright-core install --with-deps chromium
+      - name: Territory navigation
+        run: npm run smoke:world:geography
+      - name: Automatic territory development
+        run: npm run smoke:world:growth
       - name: Browser save and backup verification
         run: |
           npm run preview:web > /tmp/static-web.log 2>&1 &

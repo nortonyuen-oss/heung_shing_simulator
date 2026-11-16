@@ -220,8 +220,12 @@ function computeNightRemoteField(lit, width, height, litRadius, fadeTiles) {
 function collectNightRemoteLitMask(scene) {
   const rotation = typeof mapRotation === 'number' ? mapRotation : 0;
   const odd = rotation === 1 || rotation === 3;
-  const width = odd ? MAP_HEIGHT : MAP_WIDTH;
-  const height = odd ? MAP_WIDTH : MAP_HEIGHT;
+  const bounds = typeof isWorldGameActive === 'function' && isWorldGameActive()
+    ? globalThis.__worldGameHost.activeBounds() : { rowStart: 0, colStart: 0, rowCount: MAP_HEIGHT, colCount: MAP_WIDTH };
+  const width = odd ? bounds.rowCount : bounds.colCount;
+  const height = odd ? bounds.colCount : bounds.rowCount;
+  const originCol = rotation === 1 ? MAP_HEIGHT - bounds.rowStart - bounds.rowCount : rotation === 2 ? MAP_WIDTH - bounds.colStart - bounds.colCount : rotation === 3 ? bounds.rowStart : bounds.colStart;
+  const originRow = rotation === 1 ? bounds.colStart : rotation === 2 ? MAP_HEIGHT - bounds.rowStart - bounds.rowCount : rotation === 3 ? MAP_WIDTH - bounds.colStart - bounds.colCount : bounds.rowStart;
   const lit = new Uint8Array(width * height);
   const mark = (row, col) => {
     if (row < 0 || col < 0 || row >= MAP_HEIGHT || col >= MAP_WIDTH) return;
@@ -230,12 +234,13 @@ function collectNightRemoteLitMask(scene) {
     if (rotation === 1) { vizCol = MAP_HEIGHT - 1 - row; vizRow = col; }
     else if (rotation === 2) { vizCol = MAP_WIDTH - 1 - col; vizRow = MAP_HEIGHT - 1 - row; }
     else if (rotation === 3) { vizCol = row; vizRow = MAP_WIDTH - 1 - col; }
-    lit[vizRow * width + vizCol] = 1;
+    vizCol -= originCol; vizRow -= originRow;
+    if (vizCol >= 0 && vizCol < width && vizRow >= 0 && vizRow < height) lit[vizRow * width + vizCol] = 1;
   };
   const bridges = typeof bridgeMap !== 'undefined' ? bridgeMap : null;
-  for (let row = 0; row < MAP_HEIGHT; row++) {
+  for (let row = bounds.rowStart; row < bounds.rowStart + bounds.rowCount; row++) {
     const mapRow = mapData[row];
-    for (let col = 0; col < MAP_WIDTH; col++) {
+    for (let col = bounds.colStart; col < bounds.colStart + bounds.colCount; col++) {
       if (mapRow[col] === ROAD || bridges?.get(getTileId(row, col))) mark(row, col);
     }
   }
@@ -244,11 +249,11 @@ function collectNightRemoteLitMask(scene) {
     const split = tileId.indexOf(':');
     mark(Number(tileId.slice(0, split)), Number(tileId.slice(split + 1)));
   });
-  return { lit, width, height, rotation };
+  return { lit, width, height, rotation, originCol, originRow };
 }
 
 function sameNightRemoteMask(a, b) {
-  if (!a || !b || a.width !== b.width || a.height !== b.height || a.rotation !== b.rotation) return false;
+  if (!a || !b || a.width !== b.width || a.height !== b.height || a.rotation !== b.rotation || a.originCol !== b.originCol || a.originRow !== b.originRow) return false;
   const x = a.lit;
   const y = b.lit;
   for (let i = 0; i < x.length; i++) if (x[i] !== y[i]) return false;
@@ -297,7 +302,7 @@ function rebuildNightRemoteDarknessTexture(scene, mask) {
   context.putImageData(imageData, 0, 0);
   texture.refresh();
   scene.__nightRemoteMask = mask;
-  scene.__nightRemoteField = { field, width: mask.width, height: mask.height };
+  scene.__nightRemoteField = { field, width: mask.width, height: mask.height, originCol: mask.originCol || 0, originRow: mask.originRow || 0 };
   // props sample the field for their tint: make the next tint pass look again
   scene.__nightTintStep = null;
 }
@@ -337,7 +342,8 @@ function updateNightRemoteDarkness(scene, rawNightAlpha, deepNightDepth, total) 
     return;
   }
   syncNightRemoteDarknessField(scene);
-  layer.container.setPosition(ORIGIN_X + (scene.offsetX || 0), (scene.offsetY || 0) - TILE_HEIGHT);
+  const { originCol = 0, originRow = 0 } = scene.__nightRemoteMask || {};
+  layer.container.setPosition(ORIGIN_X + (scene.offsetX || 0) + (originCol - originRow) * TILE_WIDTH / 2, (scene.offsetY || 0) - TILE_HEIGHT + (originCol + originRow) * TILE_HEIGHT / 2);
   layer.image.setTint(preview ? NIGHT_REMOTE_DARKNESS_PREVIEW_COLOR : NIGHT_REMOTE_DARKNESS_COLOR);
   layer.container.setAlpha(preview ? NIGHT_REMOTE_DARKNESS_PREVIEW_ALPHA : extra);
   layer.container.setVisible(true);
@@ -355,8 +361,8 @@ function getNightRemoteDimAt(scene, worldX, worldY) {
   const y = (worldY - (scene.offsetY || 0) + TILE_HEIGHT / 2) / (TILE_HEIGHT / 2);
   const col = Math.floor((x + y) / 2);
   const row = Math.floor((y - x) / 2);
-  const c = Math.max(0, Math.min(info.width - 1, col));
-  const r = Math.max(0, Math.min(info.height - 1, row));
+  const c = Math.max(0, Math.min(info.width - 1, col - (info.originCol || 0)));
+  const r = Math.max(0, Math.min(info.height - 1, row - (info.originRow || 0)));
   return extra * info.field[r * info.width + c];
 }
 

@@ -58,6 +58,7 @@
   root.exportCurrentCity = async function () {
     if (!playing()) { showToast(text('idle'), 'warning'); return; }
     try {
+      if (isWorldGameActive()) { globalThis.__worldGameHost.capture(); downloadWorldGameSave(globalThis.__worldGameHost.session.exportBackup()); showToast(text('downloaded'), 'info'); return; }
       const snapshot = HeungShingPortableSave.make(buildSavePayload(), appVersion);
       HeungShingPortableSave.download(snapshot);
       showToast(text('downloaded'), 'info');
@@ -82,7 +83,18 @@
       if (!file) return;
       try {
         if (file.size > HeungShingPortableSave.MAX_BYTES) throw new Error('Save too large');
-        const envelope = HeungShingPortableSave.parse(await file.text(), decodeSaveDataForLoad, MAP_WIDTH, MAP_HEIGHT);
+        const sourceText = await file.text();
+        if (JSON.parse(sourceText)?.format === 'heung-shing-world-save') {
+          const snapshot = HeungShingWorld.WorldSaveFormat.importWorldSave(sourceText);
+          if (playing() && !await saveGame()) throw new Error('Could not save current city');
+          const id = `world-${HeungShingWorld.worldUuid()}`;
+          const { chunks, entities, ...header } = snapshot;
+          const response = await HeungShingStorage.worldRequest(`/api/world-saves/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ expectedRevision: 0, checkpoint: { header, chunks, entities: entities.map(value => ({ id: value.id, value })) } }) });
+          if (!response.ok) throw new Error('Could not import world');
+          await startWorldGame({ slot: id, fresh: false }); closeSaveListModal(); return;
+        }
+        const envelope = HeungShingPortableSave.parse(sourceText, decodeSaveDataForLoad, 256, 256);
         if (playing()) {
           if (!confirm(text('confirm'))) return;
           if (!await saveGame()) throw new Error('Could not save current city');

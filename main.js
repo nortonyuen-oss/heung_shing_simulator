@@ -287,7 +287,7 @@ function setGameWorldVisible(visible) {
 // getRoadKey runs the carriageway-band scan, and those passes ask about the same tiles many
 // times over, so each tile is read once and kept in a flat array for the pass.
 function createRoadKeyReader() {
-  const cache = new Array(MAP_WIDTH * MAP_HEIGHT);
+  const cache = isWorldGameActive() ? Object.create(null) : new Array(MAP_WIDTH * MAP_HEIGHT);
   return (row, col) => {
     if (row < 0 || col < 0 || row >= MAP_HEIGHT || col >= MAP_WIDTH) return null;
     const index = row * MAP_WIDTH + col;
@@ -301,6 +301,7 @@ function createRoadKeyReader() {
 }
 
 function updateGameFrame(time, delta) {
+  if (isWorldGameActive()) globalThis.__worldGameHost.update(time, delta);
   if (typeof recordVisualRoutePerformanceFrameStart === 'function') {
     recordVisualRoutePerformanceFrameStart(this);
   }
@@ -1265,6 +1266,7 @@ function create() {
   initBudgetPanel();
   updateHUD();
   setupLandingScreen();
+  globalThis.HeungShingWorldEntry.resumeLaunch().catch(error => showToast(error.message, 'danger'));
 }
 
 function setupPreloadProgressUi(scene) {
@@ -1768,6 +1770,7 @@ function setupRotateCluster() {
 }
 
 function updateMapMetrics(scene) {
+  if (isWorldGameActive()) { scene.offsetX = 0; scene.offsetY = 0; scene.mapWidthPx = (MAP_WIDTH + MAP_HEIGHT) * 50; scene.mapHeightPx = (MAP_WIDTH + MAP_HEIGHT) * 25; return; }
   const mapWidthPx = (MAP_WIDTH + MAP_HEIGHT) * (TILE_WIDTH / 2);
   const mapHeightPx = (MAP_WIDTH + MAP_HEIGHT) * (TILE_HEIGHT / 2);
 
@@ -1940,6 +1943,7 @@ function positionAllTiles(scene) {
 
 function canPlaceRoad(scene, row, col) {
   if (!isInsideMap(row, col)) return false;
+  if (typeof isWorldGameActive === 'function' && isWorldGameActive() && (!shouldRenderWorldTile(row,col) || !globalThis.__worldGameHost.hasTerrainTile(row,col))) return false;
   if (scene?.buildingSprites?.has(getTileId(row, col))) return false;
   if (buildingData[getTileId(row, col)]) return false;
   if (typeof isUnderseaTunnelTile === 'function' && isUnderseaTunnelTile(row, col)) return false;
@@ -2123,6 +2127,7 @@ function shouldShowBuildingPlacementGuide(pointer) {
 // Apply the active tool to a specific logical tile (no pointer math, no dedup).
 function applyToolAt(scene, row, col, pointer = null) {
   if (!isInsideMap(row, col)) return { ok: false, changed: false, cost: 0, reason: 'outside' };
+  if (typeof isWorldGameActive === 'function' && isWorldGameActive() && selectedTool !== 'inspect' && (!shouldRenderWorldTile(row,col) || !globalThis.__worldGameHost.hasTerrainTile(row,col))) return { ok:false,changed:false,cost:0,reason:'loading' };
   const budget = city.budget;
   const before = [mapData[row][col], zoneMap[row]?.[col], zoneDensityMap[row]?.[col], heightMap[row]?.[col], buildingData[getTileId(row, col)], scene.buildingSprites?.get(getTileId(row, col))];
   const result = applyToolAtLegacy(scene, row, col, pointer);
@@ -2741,6 +2746,18 @@ function applyRoadLineVariantForTile(scene, sprite, row, col, key, baseTextureKe
   applyRoadLineTexture(scene, sprite, key, variantId, tileSetId, baseTextureKey);
 }
 
+// MAP_WIDTH/MAP_HEIGHT can change on any city load (setMapDimensions), but the scene derived
+// three things from them once in create(): the offsets that centre the map at scroll 0, the
+// diamond world mask every world sprite is clipped to, and the terrain sprites. Left at the
+// startup 256x256 values, a 香港全境 city was drawn ~100,000 px from the camera and clipped away
+// by the old map's mask - a blank main map no matter where the minimap sent the camera.
+function applyMapSizeToScene(scene) {
+  if (!scene?.cameras?.main) return;
+  updateMapMetrics(scene);
+  if (scene.maskGraphics) drawWorldMask(scene);
+  resetTileSpritesForNewMap(scene);
+}
+
 // Called on every map load - create()'s own startup scene (at MAP_WIDTH/MAP_HEIGHT's 256x256
 // default, before any real city is picked), and again by copyTerrainToWorld/
 // initializeChunkedTerritoryWorld (landing-screen.js) once setMapDimensions has committed to
@@ -2754,6 +2771,7 @@ function resetTileSpritesForNewMap(scene) {
   if (!scene) return;
   scene.tileSprites?.forEach((sprite) => sprite.destroy());
   scene.tileSprites = new Map();
+  if (typeof gameReady !== 'undefined' && !gameReady && globalThis.HeungShingWorldEntry?.hasPendingLaunch?.()) return;
   scene.activeTerrainSpriteIds = new Set();
   scene.terrainViewportCacheKey = null;
   // A normal map still owns every terrain Image up front (the comment on createTerrainTileSprite
@@ -2805,6 +2823,15 @@ function getTileSprite(scene, row, col) {
 // even one off-screen) - both inherit "generate this tile's chunk if needed, then create its
 // sprite" for free. Idempotent: a tile that already has a sprite is returned unchanged.
 function ensureTileSprite(scene, row, col) {
+  if (isWorldGameActive()) {
+    // Immutable world terrain never contains roads: most viewport candidates can
+    // be rejected without decoding a terrain sample or allocating a grid row.
+    if (mapData.sparseCells.get(getTileId(row, col)) !== ROAD || !shouldRenderWorldTile(row, col)) return null;
+    const existing = scene.tileSprites.get(row * MAP_WIDTH + col); if (existing) return existing;
+    const sprite = createTerrainTileSprite(scene, row, col), key = getTileKey(row, col);
+    applyRoadLineVariantForTile(scene, sprite, row, col, key, resolveTileTextureKey(key));
+    return sprite;
+  }
   const id = row * MAP_WIDTH + col;
   const existing = scene.tileSprites.get(id);
   if (existing) return existing;
@@ -2813,10 +2840,15 @@ function ensureTileSprite(scene, row, col) {
 }
 
 function refreshTileSprite(scene, tileRow, tileCol) {
+  if (isWorldGameActive() && mapData[tileRow]?.[tileCol] !== ROAD) { globalThis.__worldGameHost.invalidate(tileRow, tileCol); refreshBridgeSprite(scene, tileRow, tileCol); return; }
   const key = getTileKey(tileRow, tileCol);
   const baseTextureKey = resolveTileTextureKey(key);
   const pos = isoToScreen(tileCol, tileRow);
   const sprite = ensureTileSprite(scene, tileRow, tileCol);
+  if (!sprite) {
+    if (isWorldGameActive()) globalThis.__worldGameHost.invalidate(tileRow, tileCol);
+    return;
+  }
   sprite.setTexture(baseTextureKey);
   sprite.setPosition(pos.x + scene.offsetX, pos.y + scene.offsetY + getTerrainTileVisualOffset(tileRow, tileCol, key));
   sprite.setDepth(getTerrainTileDepth(tileRow, tileCol, key, pos.y));
@@ -2961,6 +2993,7 @@ function refreshCarriagewayBandRegion(scene, rowMin, rowMax, colMin, colMax) {
 // finds every real road/bridge tile while skipping the untouched rest of the territory. Normal
 // maps, and a lazy-world map before its first chunk exists, sweep the whole map unchanged.
 function getActiveSweepBounds() {
+  if (isWorldGameActive()) return globalThis.__worldGameHost.activeBounds();
   if (typeof isLazyWorldMap === 'function' && isLazyWorldMap()) {
     if (typeof territoryGeneratedBounds !== 'undefined' && territoryGeneratedBounds) {
       const { rowStart, colStart, rowEnd, colEnd } = territoryGeneratedBounds;
@@ -3400,6 +3433,7 @@ function rotateMap(scene, steps = 1) {
   clearAircraftVisuals(scene);
   mapRotation = ((mapRotation + steps) % 4 + 4) % 4;
 
+  if (isWorldGameActive()) globalThis.__worldGameHost.rotate(mapRotation);
   // Refresh tile textures (direction-aware keys change)
   refreshAllTiles(scene);
   refreshHarborSprites(scene);

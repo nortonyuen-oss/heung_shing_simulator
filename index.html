@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <script src="ui-profile.js"></script>
-  <title>香城模擬器 | The City of Heung Shing v5.8.2 — 【手機建城 Beta 全通】</title>
+  <title>香城模擬器 | The City of Heung Shing v5.9.0 — 【香港全境串流】</title>
   <link rel="icon" type="image/png" href="build/icon.png" />
   <style>
     * { box-sizing: border-box; }
@@ -2162,6 +2162,13 @@
     #city-minimap.is-dragging .city-minimap-header {
       cursor: grabbing;
     }
+
+    .city-minimap-modes { display: flex; gap: 2px; margin-left: auto; }
+    .city-minimap-modes[hidden], .city-minimap-location[hidden] { display: none; }
+    .city-minimap-modes button { min-width: 33px; padding: 1px 4px; border: 1px solid #a9b6bd; border-radius: 3px; font: inherit; color: #43535e; background: #eef2f4; cursor: pointer; }
+    .city-minimap-modes button.is-active { color: #fff; background: #3b6685; border-color: #3b6685; }
+    .city-minimap-location { height: 15px; padding: 0 4px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 10px; color: #52616b; }
+    #city-minimap.is-collapsed .city-minimap-modes, #city-minimap.is-collapsed .city-minimap-location { display: none; }
 
     .city-minimap-toggle {
       width: 16px;
@@ -4728,7 +4735,7 @@
     /* While the showcase city plays behind the menu, every gameplay layer between the canvas and
        the landing screen (top bar, tool menu, HUD, zoom controls…) stays out of sight. Modal
        dialogs are exempt: the Load Save list opens from this very menu. */
-    body.attract-live > :not(#game-container):not(#landing-screen):not(.sim-dialog):not(script) {
+    body.attract-live > :not(#game-container):not(#landing-screen):not(.sim-dialog):not(#world-save-list):not(script) {
       visibility: hidden !important;
     }
 
@@ -6888,11 +6895,11 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
         <button id="about-app-icon" class="about-app-icon" type="button" aria-label="City icon" aria-pressed="false">🏙️</button>
         <div style="font-size:18px; font-weight:900; margin-bottom:6px" data-i18n="app.name">The City of Heung Shing</div>
         <div style="color:#5a5648; font-size:12px" data-i18n="dialog.aboutEnglishName">The City of Heung Shing</div>
-        <div style="color:#5a5648; font-size:12px" data-i18n="dialog.version">Version 5.8.2 — 【手機建城 Beta 全通】</div>
+        <div style="color:#5a5648; font-size:12px" data-i18n="dialog.version">Version 5.8.2 — 【香港全境串流】</div>
         <div id="visual-route-calibration-test-mode-label" hidden>【test mode】</div>
         <div style="color:#5a5648; font-size:12px" data-i18n="dialog.aboutInspired">A Hong Kong-themed city simulation brand title</div>
         <div style="margin-top:14px; font-size:12px; line-height:1.8; color:#3a3530">
-          <span data-i18n-html="dialog.aboutBuilt">The City of Heung Shing v5.8.2 — 【手機建城 Beta 全通】<br>Plan · Build · Govern · Thrive</span>
+          <span data-i18n-html="dialog.aboutBuilt">The City of Heung Shing v5.9.0 — 【香港全境串流】<br>Plan · Build · Govern · Thrive</span>
         </div>
         <div class="about-links">
           <a class="about-link" href="https://nortonyuen-oss.github.io/heung_shing_simulator/" target="_blank" rel="noopener noreferrer" data-i18n="dialog.websiteLink">Official Website</a>
@@ -7833,8 +7840,13 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
   <aside id="city-minimap" aria-label="City map" data-i18n-aria="minimap.label">
     <div class="city-minimap-header">
       <span data-i18n="minimap.label">City map</span>
+      <div id="city-minimap-modes" class="city-minimap-modes" role="group" data-i18n-aria="minimap.scope" aria-label="Map scope" hidden>
+        <button type="button" data-city-minimap-mode="world" data-i18n="minimap.world" aria-pressed="false">全境</button>
+        <button type="button" data-city-minimap-mode="local" data-i18n="minimap.region" aria-pressed="true">區域</button>
+      </div>
       <button id="city-minimap-toggle" class="city-minimap-toggle" type="button" aria-controls="city-minimap-surface" aria-expanded="true">−</button>
     </div>
+    <div id="city-minimap-location" class="city-minimap-location" hidden></div>
     <div id="city-minimap-surface" class="city-minimap-surface">
       <canvas id="city-minimap-canvas" width="512" height="256"></canvas>
       <div id="city-minimap-view" class="city-minimap-view"></div>
@@ -8567,8 +8579,26 @@ Airport           Council project: population 80,000, income $12,000, surplus $2
   <script src="hk-district-maps.js"></script>
   <script src="hk-district-info.js"></script>
   <script src="district-profiles.js"></script>
-  <script src="hk-terrain-tiles.js"></script>
   <script src="terrain-presets.js"></script>
+  <style>.setup-settings .setup-row[hidden], .setup-settings .setup-switch[hidden] { display:none !important; }</style>
+  <script src="world/world-game-state.js"></script>
+  <script src="world/world-chunk-summary.js"></script>
+  <script src="world/world-diagnostics.js"></script>
+  <script src="world/world-config.js"></script>
+  <script src="world/world-crypto.js"></script>
+  <script src="world/world-construction-catalog.js"></script>
+  <script src="world/world-simulation-format.js"></script>
+  <script src="world/world-save-format.js"></script>
+  <script src="world/world-coordinates.js"></script>
+  <script src="world/world-terrain-provider.js"></script>
+  <script src="world/world-delta-store.js"></script>
+  <script src="world/world-save-session.js"></script>
+  <script src="world/world-chunk-manager.js"></script>
+  <script src="world/world-chunk-renderer.js"></script>
+  <script src="world/world-minimap.js"></script>
+  <script src="world/world-lod.js"></script>
+  <script src="world/world-game-host.js"></script>
+  <script src="world/world-entry.js"></script>
   <script src="map-sources.js"></script>
   <script src="landing-screen.js"></script>
   <script src="attract-mode.js"></script>

@@ -134,6 +134,7 @@ function generateInitialDebris(scene, blockedTiles = null, range = null) {
 }
 
 function placeDebrisSprite(scene, row, col) {
+  if (typeof shouldRenderWorldTile === 'function' && !shouldRenderWorldTile(row, col)) return null;
   const debris = debrisMap.get(getTileId(row, col));
   if (!debris || !scene?.debrisSprites) return;
 

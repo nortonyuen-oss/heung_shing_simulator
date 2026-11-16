@@ -277,6 +277,9 @@ function placeZone(scene, row, col, zoneType, density = DENSITY_LOW) {
   zoneMap[row][col] = zoneType;
   zoneDensityMap[row][col] = density;
   if (typeof invalidateZoneGrowthTileCache === 'function') invalidateZoneGrowthTileCache();
+  // Roads/plants may already have a clean cached grid before this lot exists.
+  // Refresh its connection and reserved demand on the next simulation pulse.
+  if (typeof markPowerGridDirty === 'function') markPowerGridDirty();
   if (zoneType === ZONE_RES && density === DENSITY_LOW) {
     lowDensityLockSet.add(getTileId(row, col));
   }
@@ -306,6 +309,7 @@ function placeZone(scene, row, col, zoneType, density = DENSITY_LOW) {
 
 function removeZoneOverlay(scene, row, col) {
   const id = getTileId(row, col);
+  const wasZoned = zoneMap[row][col] !== ZONE_NONE;
   const existing = scene.zoneOverlays.get(id);
   if (existing) {
     existing.destroy();
@@ -313,6 +317,7 @@ function removeZoneOverlay(scene, row, col) {
   }
   zoneMap[row][col] = ZONE_NONE;
   if (typeof invalidateZoneGrowthTileCache === 'function') invalidateZoneGrowthTileCache();
+  if (wasZoned && typeof markPowerGridDirty === 'function') markPowerGridDirty();
   if (typeof invalidateOverlayCache === 'function') invalidateOverlayCache();
 }
 
@@ -354,6 +359,7 @@ function placePowerLine(scene, row, col) {
 }
 
 function drawPowerLineSprite(scene, row, col) {
+  if (typeof shouldRenderWorldTile === 'function' && !shouldRenderWorldTile(row, col)) return null;
   const id  = getTileId(row, col);
   const pos = isoToScreen(col, row);
 

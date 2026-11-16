@@ -39,7 +39,7 @@ function createMemoryAiNewsCredentialStore() {
 
 function sendStoreError(res, error, routeLabel) {
   console.error(`[${routeLabel}]`, error.message);
-  const status = error?.code === 'INVALID_PAYLOAD' ? 400 : 500;
+  const status = error?.status || (['INVALID_PAYLOAD', 'INVALID_WORLD_SAVE'].includes(error?.code) ? 400 : 500);
   res.status(status).json({ error: error.message });
 }
 
@@ -505,6 +505,23 @@ function createGameApp(options = {}) {
       console.error('[forum proxy /images]', error.message);
       res.status(503).end();
     }
+  });
+
+  // World deltas have their own additive schema; legacy city snapshots remain untouched.
+  app.get('/api/world-saves', (_req, res) => { try { res.json(store.listWorldSaves()); } catch (error) { sendStoreError(res, error, 'GET world saves'); } });
+  app.get('/api/world-saves/:id', (req, res) => {
+    try { const value = store.getWorldSave(req.params.id); if (!value) return res.status(404).json({ error: 'World save not found' }); res.json(value); }
+    catch (error) { sendStoreError(res, error, 'GET world save'); }
+  });
+  app.put('/api/world-saves/:id', (req, res) => {
+    try { res.json(store.commitWorldSave(req.params.id, req.body)); } catch (error) { sendStoreError(res, error, 'PUT world save'); }
+  });
+  app.get('/api/world-saves/:id/backup', (req, res) => {
+    try { const value = store.getWorldBackup(req.params.id); if (!value) return res.status(404).json({ error: 'No world backup' }); res.json(value); }
+    catch (error) { sendStoreError(res, error, 'GET world backup'); }
+  });
+  app.post('/api/world-saves/:id/restore', (req, res) => {
+    try { res.json(store.restoreWorldBackup(req.params.id, req.body)); } catch (error) { sendStoreError(res, error, 'Restore world backup'); }
   });
 
 // GET /api/saves - list all saves (metadata only, no full JSON blob)

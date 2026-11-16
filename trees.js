@@ -238,6 +238,7 @@ function getTreeSubOffset(count, index, variant) {
 }
 
 function placeTreeSprite(scene, row, col) {
+  if (typeof shouldRenderWorldTile === 'function' && !shouldRenderWorldTile(row, col)) return null;
   const tree = treeMap.get(getTileId(row, col));
   if (!tree || !scene?.treeSprites) return;
 

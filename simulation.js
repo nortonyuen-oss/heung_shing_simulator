@@ -70,6 +70,7 @@ function buildCitySimulationPulseSteps(scene) {
     if (typeof updateCityAttractivenessMetrics === 'function') updateCityAttractivenessMetrics();
   });
   step('demand', () => updateDemand());
+  step('worldSummary', () => { if(typeof isWorldGameActive==='function'&&isWorldGameActive())globalThis.__worldGameHost.refreshChunkSummaryTable(); });
   step('stocks', () => updateStockMarketTick());
   step('trees', () => updateTrees(scene));
   step('debris', () => {

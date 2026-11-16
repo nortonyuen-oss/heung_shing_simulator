@@ -1,7 +1,7 @@
 {
   "name": "city-builder",
-  "version": "5.8.2",
-  "releaseTheme": "【手機建城 Beta 全通】",
+  "version": "5.9.0",
+  "releaseTheme": "【香港全境串流】",
   "description": "Hong Kong city builder for desktop and browsers, with local and portable city saves",
   "author": "The City of Heung Shing",
   "repository": {
@@ -14,12 +14,26 @@
   },
   "scripts": {
     "test": "node --test test/*.test.js",
+    "prepare:world-terrain": "node world/terrain-pack-builder.mjs",
+    "test:world": "node --test test/world-streaming.test.js test/world-construction.test.js test/world-minimap.test.js test/world-simulation.test.js test/world-entry.test.js test/world-game-integration.test.js test/zoning-power.test.js",
+    "smoke:world:integration": "node scripts/smoke-world-integration.js",
+    "smoke:world:growth": "node scripts/smoke-world-growth.js",
+    "profile:world": "node scripts/profile-world-integration.js",
+    "profile:world:loading": "node scripts/profile-world-loading.js",
+    "audit:world-coastline": "node scripts/audit-world-coastline.js",
+    "smoke:world:geography": "node scripts/smoke-world-geography.js",
+    "smoke:world": "node scripts/smoke-world-streaming.js",
+    "smoke:world:construction": "node scripts/smoke-world-construction.js",
+    "smoke:world:navigation": "node scripts/smoke-world-navigation.js",
+    "smoke:world:simulation": "node scripts/smoke-world-simulation.js",
+    "smoke:world:release": "node scripts/smoke-world-release.js",
     "start": "node server.js",
     "dev": "node server.js",
     "electron:dev": "node scripts/run-electron.js",
     "electron:perf": "npm run prepare:release-assets && node scripts/run-electron.js --performance",
     "rebuild:electron": "electron-builder install-app-deps",
-    "prepare:release-assets": "node scripts/prepare-release-assets.js && node scripts/bake-night-textures.js && node scripts/bake-road-line-textures.js",
+    "prepare:release-assets": "node scripts/prepare-release-assets.js && node scripts/bake-night-textures.js && node scripts/bake-road-line-textures.js && node scripts/world-release-assets.js --ensure",
+    "verify:world-assets": "node scripts/world-release-assets.js",
     "verify:release-assets": "node scripts/verify-release-assets.js",
     "dist": "npm run prepare:release-assets && npm run verify:release-assets && electron-builder",
     "dist:mac": "npm run prepare:release-assets && npm run verify:release-assets && electron-builder --mac",
@@ -47,13 +61,13 @@
   },
   "dependencies": {
     "electron-updater": "^6.8.9",
-    "express": "^4.18.2"
+    "express": "^4.18.2",
+    "phaser": "3.60.0"
   },
   "devDependencies": {
     "electron": "^39.8.10",
     "electron-builder": "^26.8.1",
     "fake-indexeddb": "6.2.8",
-    "phaser": "3.60.0",
     "playwright-core": "1.62.0",
     "sharp": "^0.34.5",
     "wrangler": "4.131.2"
@@ -86,8 +100,13 @@
       "!.git/**",
       "!.vscode/**",
       "!.claude/**",
+      "!.codex/**",
+      "!.agents/**",
+      "!.aws/**",
+      "!.env*",
       "!.venv/**",
       "!.DS_Store",
+      "!data/world-terrain.building-*/**",
       "!**/.DS_Store",
       "!**/process_log.csv",
       "!**/settings.json",
@@ -121,9 +140,9 @@
   },
   "license": "SEE LICENSE IN LICENSE",
   "releaseThemes": {
-    "zh-HK": "【手機建城 Beta 全通】",
-    "zh-TW": "【手機建城 Beta 全通】",
-    "en": "【Mobile Building Beta — Fully Connected】",
-    "ja": "【モバイル建設ベータ全線開通】"
+    "zh-HK": "【香港全境串流】",
+    "zh-TW": "【香港全境串流】",
+    "en": "【Hong Kong Territory Streaming】",
+    "ja": "【香港全域ストリーミング】"
   }
 }

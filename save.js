@@ -738,6 +738,7 @@ function restoreSavedViewpoint(scene, rawViewpoint) {
 function buildSavePayload({ autosave = false, manualSaveId = currentSaveId } = {}) {
   // Never snapshot a city halfway through a spread-out simulation pulse.
   if (typeof flushCitySimulationPulses === 'function') flushCitySimulationPulses();
+  if (typeof isWorldGameActive === 'function' && isWorldGameActive()) throw new Error('World cities use sparse world saves');
   const viewpoint = captureCurrentViewpoint(
     typeof activeScene === 'undefined' ? null : activeScene,
   );
@@ -772,7 +773,7 @@ function buildSavePayload({ autosave = false, manualSaveId = currentSaveId } = {
         typeof busStopMap === 'undefined' ? new Map() : busStopMap,
       ),
       expansions:    typeof getExpansionSaveState === 'function' ? getExpansionSaveState() : {},
-      buildingData,
+      buildingData: { ...buildingData },
       powerSources:  Array.from(powerSources),
       powerLineSet:  Array.from(powerLineSet),
       lowDensityLockSet: Array.from(lowDensityLockSet),
@@ -786,6 +787,7 @@ function buildSavePayload({ autosave = false, manualSaveId = currentSaveId } = {
 function saveGame(silent = false) {
   // Ctrl+S on the title screen must never write the showcase city into a slot.
   if (typeof isAttractModeActive === 'function' && isAttractModeActive()) return;
+  if (typeof isWorldGameActive === 'function' && isWorldGameActive()) return globalThis.__worldGameHost.save(silent);
   if (!activeScene) {
     if (!silent) showToast(t('toast.gameNotReady'), 'warning');
     return Promise.resolve(false);
@@ -935,6 +937,7 @@ function queueCityChangeAutosave(delayMs = 300) {
 // ── Save As (forces a new slot) ───────────────────────────────────────────────
 
 async function saveAsGame() {
+  if (isWorldGameActive()) return globalThis.__worldGameHost.saveAs();
   if (!activeScene) { showToast(t('toast.gameNotReady'), 'warning'); return; }
 
   const name = await showTextPromptDialog(t('prompt.saveAs'), city.name || getDefaultCityName());
@@ -1273,6 +1276,7 @@ function isLoadRequestCurrent(generation) {
 
 async function loadSaveById(id, scene) {
   if (typeof leaveAttractMode === 'function') leaveAttractMode('load');
+  if (typeof isWorldGameActive === 'function' && isWorldGameActive()) { if (!await globalThis.__worldGameHost.save(true)) return false; await leaveWorldGame(); }
   if (globalThis.HEUNG_SHING_CONFIG?.platform === 'web' && !HeungShingStorage.writable) {
     if (typeof platformText === 'function') showToast(platformText('locked'), 'warning');
     return false;
@@ -1488,6 +1492,7 @@ function restoreBusStopMap(save) {
 // ── Apply save data to the running scene ──────────────────────────────────────
 
 function applySaveData(scene, save) {
+  if (isWorldGameActive()) throw new Error('Close world session before loading a legacy city');
   if (typeof closeBunHillMapEvent === 'function') closeBunHillMapEvent(scene);
   stopSimTimer();
   if (typeof clearTrafficVisuals === 'function') clearTrafficVisuals(scene);
@@ -1496,7 +1501,9 @@ function applySaveData(scene, save) {
   if (typeof clearAircraftVisuals === 'function') clearAircraftVisuals(scene);
 
   // Older saves predate mapWidth/mapHeight - they were always the one fixed size.
+  const previousMapSize = `${MAP_WIDTH}x${MAP_HEIGHT}`;
   setMapDimensions(save.mapWidth, save.mapHeight);
+  const mapSizeChanged = previousMapSize !== `${MAP_WIDTH}x${MAP_HEIGHT}`;
   const terrainElevation = normalizeSavedTerrainElevation(save);
   const savedViewpoint = normalizeSavedViewpoint(save.viewpoint) ?? getDefaultSavedViewpoint();
   if (typeof mapRotation !== 'undefined') mapRotation = savedViewpoint.rotation;
@@ -1515,6 +1522,10 @@ function applySaveData(scene, save) {
   mapData = terrainElevation.mapData;
   // The border keeps whatever height was saved: Hong Kong district maps run high to the edge.
   heightMap = terrainElevation.heightMap;
+  // A save of a different size than the city on screen: re-centre, re-mask and rebuild the tile
+  // sprites for it (after mapData above, which the eager normal-map sprite build reads). Same-size
+  // loads keep reusing the sprites already there, as they always have.
+  if (mapSizeChanged && typeof applyMapSizeToScene === 'function') applyMapSizeToScene(scene);
 
   // Clear Phaser sprites
   clearAllOverlays(scene);
@@ -2187,8 +2198,9 @@ async function refreshSaveListModal() {
 
   try {
     const saves = await listSaves();
+    const worldRows = await listWorldGameSaves();
 
-    if (saves.length === 0) {
+    if (saves.length === 0 && worldRows.length === 0) {
       list.innerHTML = `
         <div class="save-list-empty">
           ${t('save.empty')}
@@ -2226,6 +2238,7 @@ async function refreshSaveListModal() {
           </div>
         </div>`;
     }).join('');
+    appendWorldGameSaves(list, worldRows);
 
     // Wire Load buttons
     list.querySelectorAll('.save-list-load-btn[data-id]').forEach((btn) => {

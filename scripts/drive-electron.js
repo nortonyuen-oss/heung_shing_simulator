@@ -27,7 +27,7 @@ if (!stepsFile) {
 }
 const keep = process.argv.includes('--keep');
 const steps = require(path.resolve(stepsFile));
-const electronPath = require('electron');
+const electronPath = process.env.DRIVE_EXECUTABLE || require('electron');
 // DRIVE_USER_DATA=<dir> runs against a separate profile (its own saves database and single-
 // instance lock), so a check can run while the real game is open.
 const userDataArgs = process.env.DRIVE_USER_DATA ? [`--user-data-dir=${path.resolve(process.env.DRIVE_USER_DATA)}`] : [];
@@ -35,7 +35,7 @@ const userDataArgs = process.env.DRIVE_USER_DATA ? [`--user-data-dir=${path.reso
 const keepLogPath=path.join(process.env.DRIVE_USER_DATA?path.resolve(process.env.DRIVE_USER_DATA):path.join(ROOT,'.data'),'electron-driver.log');
 if(keep)fs.mkdirSync(path.dirname(keepLogPath),{recursive:true});
 const keepLogFd=keep?fs.openSync(keepLogPath,'a'):null;
-const child = spawn(electronPath, ['.', `--remote-debugging-port=${PORT}`, ...userDataArgs], {
+const child = spawn(electronPath, [...(process.env.DRIVE_EXECUTABLE ? [] : ['.']), `--remote-debugging-port=${PORT}`, ...userDataArgs], {
   cwd: ROOT,
   detached: keep,
   stdio: keep?['ignore',keepLogFd,keepLogFd]:['ignore', 'pipe', 'pipe'],

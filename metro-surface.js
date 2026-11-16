@@ -850,7 +850,8 @@ function syncMetroTracks(scene) {
     loadMetroViaductTextures(scene).then(() => syncMetroTracks(scene));
   }
   scene.metroTrackSprites.forEach((sprite, key) => {
-    if (!bits[key] || Boolean(elev[key]) !== Boolean(sprite.__elevated)) { sprite.destroy(); scene.metroTrackSprites.delete(key); }
+    const [row,col] = key.split(':').map(Number);
+    if (!bits[key] || (typeof shouldRenderWorldTile === 'function' && !shouldRenderWorldTile(row,col)) || Boolean(elev[key]) !== Boolean(sprite.__elevated)) { sprite.destroy(); scene.metroTrackSprites.delete(key); }
   });
   // an island station's tiles: its end tiles' decks spread the tracks; its own five are drawn with
   // the station (metro-surface-lines.js syncMetroPlatforms), none here
@@ -867,6 +868,7 @@ function syncMetroTracks(scene) {
   const turn = typeof mapRotation === 'number' ? mapRotation : 0;
   Object.entries(bits).forEach(([key, mask]) => {
     const [row, col] = key.split(':').map(Number);
+    if (typeof shouldRenderWorldTile === 'function' && !shouldRenderWorldTile(row,col)) return;
     const code = elev[key];
     if (island.has(key) && !island.get(key)) return;
     // a tunnel, and inside a hill, drawn only in the 地底 view (syncMetroUnderground); a portal's

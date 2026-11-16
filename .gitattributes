@@ -1,0 +1,4 @@
+# Terrain manifests hash these sources; all platforms must check out identical bytes.
+*.js text eol=lf
+*.mjs text eol=lf
+*.json text eol=lf

@@ -67,8 +67,9 @@ function computeYulanKerbSlots(scene) {
   const step = { n: [-1, 0], e: [0, 1], s: [1, 0], w: [0, -1] };
   const isRoad = (r, c) => isInsideMap(r, c) && mapData[r][c] === ROAD && !(typeof isBridgeTile === 'function' && isBridgeTile(r, c));
   const slots = [];
-  for (let r = 0; r < mapData.length; r++) {
-    for (let c = 0; c < mapData[r].length; c++) {
+  const candidates = typeof isWorldGameActive === 'function' && isWorldGameActive() ? globalThis.__worldGameHost.visibleRoadTiles() : null;
+  for (const {row:r,col:c} of candidates || (function*(){for(let row=0;row<mapData.length;row++)for(let col=0;col<mapData[row].length;col++)yield {row,col};})()) {
+    {
       if (!isRoad(r, c)) continue;
       Object.entries(step).forEach(([side, [dr, dc]]) => {
         // only the pavement on the far side of the road at this rotation: a building on the near side
@@ -179,7 +180,7 @@ function getYulanLayoutExtras(scene, ctx) {
   const monthIndex = typeof getCityMonthIndex === 'function' ? getCityMonthIndex() : 0;
   const count = typeof buildingData !== 'undefined' ? Object.keys(buildingData).length : 0;
   const rotation = typeof mapRotation === 'number' ? mapRotation : 0;
-  const key = `${city.name}:${monthIndex}:${count}:${rotation}`;
+  const key = `${city.name}:${monthIndex}:${count}:${rotation}${typeof isWorldGameActive === 'function' && isWorldGameActive() ? ':' + globalThis.__worldGameHost.visualAreaKey() : ''}`;
   if (yulanMapCache?.key !== key) yulanMapCache = { key, kerbSlots: computeYulanKerbSlots(scene) };
   const districtOf = (id) => {
     const [r, c] = String(id).replace(/^eventGround:/, '').split(':').map(Number);
@@ -211,6 +212,7 @@ const YULAN_ABOVE_NIGHT_DEPTH = 999998; // over day-night-lighting.js's night ov
 
 /** Open land on the outskirts: buildable ground with nothing built, zoned or paved for some way round. */
 function computeYulanRuralTiles(scene) {
+  if (typeof isWorldGameActive === 'function' && isWorldGameActive()) return globalThis.__worldGameHost.yulanRuralTiles(scene);
   if (typeof mapData === 'undefined' || !mapData.length) return [];
   const H = mapData.length;
   const W = mapData[0].length;

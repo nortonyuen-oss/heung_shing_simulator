@@ -1,6 +1,6 @@
-# 香城模擬器 (The City of Heung Shing) v5.8.2 — 【手機建城 Beta 全通】
+# 香城模擬器 (The City of Heung Shing) v5.9.0 — 【香港全境串流】
 
-香城模擬器 (The City of Heung Shing) v5.8.2 — 【手機建城 Beta 全通】 is a SimCity 2000-style city builder inspired by Hong Kong: isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
+香城模擬器 (The City of Heung Shing) v5.9.0 — 【香港全境串流】 is a SimCity 2000-style city builder inspired by Hong Kong: isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
 
 Website and downloads: https://nortonyuen-oss.github.io/heung_shing_simulator/
 
@@ -9,6 +9,12 @@ Read public posts and replies on the website; sign in to GitHub to confirm a new
 post or reply. Website messages are tracked with the `website-feedback` issue label.
 
 ![The Heung Shing skyline at night, zoomed out: dense lights, the airport and the harbour](docs/assets/gameplay/nightSkyline.webp)
+
+## New in v5.9.0
+
+Hong Kong territory now uses streamed terrain in the original game, with the same city tools, zoning, economy, transport and saves. Only nearby terrain details and visible road/building art are mounted; undeveloped chunks add no city-summary records. The minimap switches between Territory and Region, preserving the original coastline and fixing clicks that previously jumped to the wrong place. Ordinary maps remain the new-city default, with territory listed last. Zoning now refreshes power connections so residential, commercial and industrial lots develop automatically after roads and a power plant are built.
+
+Desktop Chrome rendering tests reached about 60 FPS in an isolated 48,000-road scene; this is not a physical-iPhone or mature populated-city benchmark. Mobile controls remain Beta. Territory saves stay separate from ordinary city saves and can be backed up as `.heungshing` files.
 
 ## New in v5.8.2
 

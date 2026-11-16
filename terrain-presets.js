@@ -15,6 +15,19 @@ const TERRAIN_OPTIONS = [
 // through hillsides, and map-edge-skirt.js draws the cut.
 const hkDistrictTerrainCache = new Map();
 
+let hkTerrainSourcePromise = null;
+function ensureHkTerrainSource() {
+  if (typeof HK_TERRAIN_TILES !== 'undefined') return Promise.resolve();
+  if (!hkTerrainSourcePromise) hkTerrainSourcePromise = new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = typeof resolveBundledAssetPath === 'function' ? resolveBundledAssetPath('hk-terrain-tiles.js') : 'hk-terrain-tiles.js';
+    script.onload = () => resolve();
+    script.onerror = () => { script.remove(); hkTerrainSourcePromise = null; reject(new Error('Hong Kong terrain samples could not be loaded')); };
+    document.head.appendChild(script);
+  });
+  return hkTerrainSourcePromise;
+}
+
 // One run-length coded row (W water, B beach, a-i land at level 0-8, then the run length) as an
 // array of codes; only columns [fromCol, fromCol + width) are kept.
 function decodeHkTerrainRow(encoded, fromCol = 0, width = MAP_WIDTH) {
@@ -174,7 +187,7 @@ function getTerritoryChunkId(chunkRow, chunkCol) {
 // The default starting view for a new 香港全境 city: the geometric centre of the territory's
 // tile grid (not any particular district - just somewhere with land nearby for v1).
 function getHkTerritoryDefaultStart() {
-  const tiles = typeof HK_TERRAIN_TILES !== 'undefined' ? HK_TERRAIN_TILES : null;
+  const tiles = typeof HK_TERRAIN_TILES !== 'undefined' ? HK_TERRAIN_TILES : globalThis.HeungShingWorld?.WORLD;
   if (!tiles) return { startRow: 0, startCol: 0 };
   return {
     startRow: Math.floor(tiles.height / 2),
@@ -261,7 +274,7 @@ function ensureTerritoryChunkGenerated(scene, row, col) {
 // chunks generate), just enough for the landing screen and startNewGame/startTerrainCreatorMode
 // to recognise this as a chunked source and route around copyTerrainToWorld.
 function getHkFullTerritoryTerrainDescriptor() {
-  const tiles = typeof HK_TERRAIN_TILES !== 'undefined' ? HK_TERRAIN_TILES : null;
+  const tiles = typeof HK_TERRAIN_TILES !== 'undefined' ? HK_TERRAIN_TILES : globalThis.HeungShingWorld?.WORLD;
   if (!tiles) return null;
   return {
     version: 1,

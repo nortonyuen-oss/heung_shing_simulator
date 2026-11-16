@@ -782,7 +782,7 @@ function findVesselShipRoute(scene, portEntry, rect) {
       clearanceEntry,
       waterValue,
       isOutsideView,
-      Math.max(1000, mapData.length * (mapData[0]?.length ?? 0)),
+      typeof isWorldGameActive === 'function' && isWorldGameActive() ? 8192 : Math.max(1000, mapData.length * (mapData[0]?.length ?? 0)),
     );
     if (!portToOutside) return [];
     const inbound = portToOutside.slice().reverse();

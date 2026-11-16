@@ -533,7 +533,11 @@ test('growth reuses a sparse zoned-tile index until zoning changes', () => {
   );
   assert.equal(context.tileStats.hits, 1);
   assert.equal(context.tileStats.rebuilds, 2);
-  assert.match(growthSource, /for \(const \{ row: r, col: c, id \} of getZoneGrowthTiles\(\)\)/);
+  context.isWorldGameActive = () => true;
+  context.shouldRenderWorldTile = row => row === 0;
+  vm.runInContext('detailed = getDetailedZoneGrowthTiles()', context);
+  assert.deepEqual(JSON.parse(JSON.stringify(context.detailed.map(tile => tile.id))), ['0:3']);
+  assert.equal(context.third.length, 3, 'unloaded zones stay authoritative in the aggregate index');
 });
 
 test('monthly economy reuses the land-value map already built by growth', () => {

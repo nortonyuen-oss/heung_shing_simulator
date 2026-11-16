@@ -1,7 +1,7 @@
 const I18N_STORAGE_KEY = 'citybuilder.language';
-let appVersion = '5.8.2';
-let appReleaseTheme = '【手機建城 Beta 全通】';
-const APP_RELEASE_THEMES = {"en":"【Mobile Building Beta — Fully Connected】","zhHant":"【手機建城 Beta 全通】","ja":"【モバイル建設ベータ全線開通】"};
+let appVersion = '5.9.0';
+let appReleaseTheme = '【香港全境串流】';
+const APP_RELEASE_THEMES = {"en":"【Hong Kong Territory Streaming】","zhHant":"【香港全境串流】","ja":"【香港全域ストリーミング】"};
 function localizedReleaseTheme() {
   if (currentLanguage === 'zhHant' && /^zh-(hk|mo)\b/i.test(navigator.language || '')) return appReleaseTheme;
   return APP_RELEASE_THEMES[currentLanguage] || appReleaseTheme;
@@ -1062,7 +1062,11 @@ const I18N = {
     'landing.mapScaleBar': '1 km',
     'landing.mapGenerating': 'Generating…',
     'landing.territoryName': 'Hong Kong (Full Territory)',
-    'landing.territoryIntro': 'The whole territory as one map, generated as you explore it. Far bigger than a normal map, so a long session uses more memory.',
+    'landing.territoryIntro': 'Explore and build across Hong Kong with streamed terrain, a world overview, transport services and a basic economy. World mode is in beta.',
+    'landing.worldSize': '3187 × 2400 tiles · 20 metres per tile',
+    'landing.worldSaves': 'World Saves',
+    'landing.worldBeta': 'Hong Kong World (Beta)',
+    'landing.worldEmpty': 'No world saves yet. Choose Hong Kong (Full Territory) when starting a new city.',
     'landing.territoryWarningTitle': 'Hong Kong (Full Territory)',
     'landing.territoryWarningBody': 'This map streams in as you explore it - each newly-visited area takes under a second to generate, and there is no need to wait for the whole thing up front. It covers the whole territory, about 116× the usual map, so a very long play session that visits most of it will use more memory than a normal city. Terrain seams between explored areas may look slightly uneven in places - this is a known early-access rough edge, not a bug report you need to file.',
     'landing.territoryWarningConfirm': 'Start anyway',
@@ -2095,6 +2099,10 @@ const I18N = {
     'terrainEditor.map': 'Terrain Map',
     'terrainEditor.mapMeta': 'H{high}% · W{water}%',
     'minimap.label': 'City map',
+    'minimap.scope': 'Map scope',
+    'minimap.world': 'Territory',
+    'minimap.region': 'Region',
+    'minimap.near': 'Near {name}',
     'minimap.show': 'Show the map',
     'minimap.hide': 'Hide the map',
     'toast.districtHeightCap': 'This district has a height limit: zoned at the highest density allowed.',
@@ -3405,7 +3413,11 @@ const I18N = {
     'landing.mapSize': '{widthKm} × {heightKm} 公里',
     'landing.mapScaleBar': '1 公里',
     'landing.territoryName': '香港全境',
-    'landing.territoryIntro': '成個香港做一張地圖，探索到邊度就生成到邊度。範圍大過普通地圖好多，長時間玩會用多啲記憶體。',
+    'landing.territoryIntro': '全港世界模式（測試版）：串流地形、全港總覽、跨區建設、交通班次同基礎經濟。',
+    'landing.worldSize': '3187 × 2400 格 · 每格 20 米',
+    'landing.worldSaves': '全港世界存檔',
+    'landing.worldBeta': '世界模式（測試版）',
+    'landing.worldEmpty': '暫時未有世界存檔；開新城市時選「香港全境」即可建立。',
     'landing.territoryWarningTitle': '香港全境',
     'landing.territoryWarningBody': '呢張地圖會喺你探索嗰陣逐步載入——每去一個新地方，大約一秒內就生成好，唔使預先等成張圖整好。全境涵蓋成個香港，大約係普通地圖嘅 116 倍，長時間遊玩、行勻大部分地方會用多啲記憶體。已探索區域之間嘅地形邊界可能有啲唔夠順滑——呢個係已知嘅初版瑕疵，唔使特登報告。',
     'landing.territoryWarningConfirm': '照樣開始',
@@ -4439,6 +4451,10 @@ const I18N = {
     'terrainEditor.map': '地形地圖',
     'terrainEditor.mapMeta': '高地{high}% · 水域{water}%',
     'minimap.label': '城市地圖',
+    'minimap.scope': '地圖範圍',
+    'minimap.world': '全境',
+    'minimap.region': '區域',
+    'minimap.near': '{name}附近',
     'minimap.show': '顯示地圖',
     'minimap.hide': '收起地圖',
     'toast.districtHeightCap': '此地區限高，已按容許的最高密度劃區。',
@@ -5659,7 +5675,11 @@ const I18N = {
     'landing.mapSize': '{widthKm} × {heightKm} km',
     'landing.mapScaleBar': '1 km',
     'landing.territoryName': '香港全域',
-    'landing.territoryIntro': '香港全域を一つの地図に。探索するにつれて生成されます。通常の地図よりはるかに広く、長時間プレイするとメモリ使用量が増えます。',
+    'landing.territoryIntro': '香港全域で建設できるワールドモード（ベータ）。地形ストリーミング、全域地図、交通便と基本的な経済を利用できます。',
+    'landing.worldSize': '3187 × 2400 タイル · 1タイル20m',
+    'landing.worldSaves': 'ワールドのセーブ',
+    'landing.worldBeta': 'ワールドモード（ベータ）',
+    'landing.worldEmpty': 'まだセーブがありません。新しい都市で「香港全域」を選んでください。',
     'landing.territoryWarningTitle': '香港全域',
     'landing.territoryWarningBody': 'この地図は探索するにつれて順次読み込まれます。新しいエリアに入るたびに1秒未満で生成されるので、全体の生成を事前に待つ必要はありません。香港全域をカバーしており、通常の地図の約116倍の広さです。長時間プレイして大部分を探索すると、通常の都市より多くのメモリを使用します。探索済みエリア間の地形の境目が多少不自然に見える場合がありますが、これは既知の初期バージョンの粗さであり、不具合報告は不要です。',
     'landing.territoryWarningConfirm': 'このまま始める',
@@ -6361,6 +6381,10 @@ const I18N = {
     'terrainEditor.map': '地形マップ',
     'terrainEditor.mapMeta': '高地{high}% · 水域{water}%',
     'minimap.label': '都市マップ',
+    'minimap.scope': '地図の範囲',
+    'minimap.world': '全域',
+    'minimap.region': '地域',
+    'minimap.near': '{name}付近',
     'minimap.show': 'マップを表示',
     'minimap.hide': 'マップを隠す',
     'toast.districtHeightCap': 'この地区は高さ制限があるため、許可された最高密度で区画しました。',

@@ -147,7 +147,9 @@ function drawMiniMap(canvas, type) {
       const src = getMiniMapSourceCoords(r, c);
       const idx = (r * W + c) * 4;
       // Terrain base
-      const [br, bg, bb] = terrainPixelColor(mapData[src.row]?.[src.col] ?? GROUND, src.row, src.col);
+      const [br, bg, bb] = typeof isWorldGameActive === 'function' && isWorldGameActive()
+        ? globalThis.__worldGameHost.overlayTerrainColor(src.row,src.col)
+        : terrainPixelColor(mapData[src.row]?.[src.col] ?? GROUND, src.row, src.col);
       // Overlay
       const val = valMap[src.row]?.[src.col] ?? 0;
       const [or, og, ob, oa] = overlayPixelColor(type, val);
@@ -164,6 +166,9 @@ function drawMiniMap(canvas, type) {
 }
 
 function getMiniMapSourceCoords(displayRow, displayCol) {
+  if (typeof isWorldGameActive === 'function' && isWorldGameActive()) {
+    const odd = mapRotation % 2 === 1; displayRow = Math.floor(displayRow * (odd ? MAP_WIDTH : MAP_HEIGHT) / 256); displayCol = Math.floor(displayCol * (odd ? MAP_HEIGHT : MAP_WIDTH) / 256);
+  }
   if (mapRotation === 1) return { row: MAP_HEIGHT - 1 - displayCol, col: displayRow };
   if (mapRotation === 2) return { row: MAP_HEIGHT - 1 - displayRow, col: MAP_WIDTH - 1 - displayCol };
   if (mapRotation === 3) return { row: displayCol, col: MAP_WIDTH - 1 - displayRow };
@@ -171,6 +176,11 @@ function getMiniMapSourceCoords(displayRow, displayCol) {
 }
 
 function getMiniMapDisplayCoords(row, col) {
+  if (typeof isWorldGameActive === 'function' && isWorldGameActive()) {
+    const r = mapRotation === 1 ? col : mapRotation === 2 ? MAP_HEIGHT - 1 - row : mapRotation === 3 ? MAP_WIDTH - 1 - col : row;
+    const c = mapRotation === 1 ? MAP_HEIGHT - 1 - row : mapRotation === 2 ? MAP_WIDTH - 1 - col : mapRotation === 3 ? row : col;
+    return { row: r * 256 / (mapRotation % 2 ? MAP_WIDTH : MAP_HEIGHT), col: c * 256 / (mapRotation % 2 ? MAP_HEIGHT : MAP_WIDTH) };
+  }
   if (mapRotation === 1) return { row: col, col: MAP_HEIGHT - 1 - row };
   if (mapRotation === 2) return { row: MAP_HEIGHT - 1 - row, col: MAP_WIDTH - 1 - col };
   if (mapRotation === 3) return { row: MAP_WIDTH - 1 - col, col: row };
@@ -707,8 +717,7 @@ function computeTrafficOverlayMap() {
   const timeMultiplier = typeof getTrafficTimeOfDayMultiplier === 'function'
     ? getTrafficTimeOfDayMultiplier()
     : 1;
-  for (let r = 0; r < MAP_HEIGHT; r++)
-    for (let c = 0; c < MAP_WIDTH; c++)
+  for (const { row: r, col: c } of iterateGameTiles())
       map[r][c] = typeof applyTrafficTimeOfDayMultiplier === 'function'
         ? applyTrafficTimeOfDayMultiplier(trafficMap[r]?.[c] ?? 0, timeMultiplier)
         : Math.max(0, Math.min(1, (trafficMap[r]?.[c] ?? 0) * timeMultiplier));
@@ -720,8 +729,8 @@ function computeHealthMap() {
   const pollutionSources = typeof getHealthPollutionSources === 'function'
     ? getHealthPollutionSources()
     : null;
-  for (let r = 0; r < MAP_HEIGHT; r++) {
-    for (let c = 0; c < MAP_WIDTH; c++) {
+  for (const { row: r, col: c } of iterateGameTiles()) {
+    {
       if (zoneMap[r][c] === ZONE_NONE && !buildingData[getTileId(r, c)]) continue;
       map[r][c] = typeof getLocalHealthScore === 'function'
         ? getLocalHealthScore(r, c, pollutionSources)
@@ -733,8 +742,8 @@ function computeHealthMap() {
 
 function computeEducationMap() {
   const map = createFilledMap(0);
-  for (let r = 0; r < MAP_HEIGHT; r++) {
-    for (let c = 0; c < MAP_WIDTH; c++) {
+  for (const { row: r, col: c } of iterateGameTiles()) {
+    {
       if (zoneMap[r][c] === ZONE_NONE && !buildingData[getTileId(r, c)]) continue;
       const cell = serviceMap.get(getTileId(r, c)) ?? null;
       const basic = clamp(cell?.eduBasic ?? 0, 0, 1);
@@ -800,8 +809,8 @@ function computePollutionMap(canopy) {
     }
   });
   canopy = canopy ?? computeTreeCanopyMap();
-  for (let r = 0; r < MAP_HEIGHT; r++) {
-    for (let c = 0; c < MAP_WIDTH; c++) {
+  for (const { row: r, col: c } of iterateGameTiles(null, canopy)) {
+    {
       if (canopy[r][c] <= 0) continue;
       map[r][c] = Math.max(0, map[r][c] - canopy[r][c] * 0.22);
     }
@@ -829,8 +838,7 @@ function computeCrimeMap() {
   const map = createFilledMap(0);
   const protectedRisk = isPolicyActive('publicSafety') ? 0.03 : 0.05;
   const unprotectedRisk = Math.max(0.35, 0.82 - (getDepartmentFunding('police') - 1) * 0.25);
-  for (let r = 0; r < MAP_HEIGHT; r++)
-    for (let c = 0; c < MAP_WIDTH; c++)
+  for (const { row: r, col: c } of iterateGameTiles())
       if (zoneMap[r][c] !== ZONE_NONE)
         map[r][c] = serviceMap.get(getTileId(r, c))?.police ? protectedRisk : unprotectedRisk;
   return map;
@@ -857,8 +865,7 @@ function computeFireMap() {
     }
   });
   addTreeFireRisk(map);
-  for (let r = 0; r < MAP_HEIGHT; r++)
-    for (let c = 0; c < MAP_WIDTH; c++)
+  for (const { row: r, col: c } of iterateGameTiles())
       if (zoneMap[r][c] !== ZONE_NONE)
         map[r][c] = Math.max(map[r][c], serviceMap.get(getTileId(r, c))?.fire ? protectedRisk : unprotectedRisk);
   return map;
@@ -1002,8 +1009,8 @@ function computeLandValueMap() {
 function computeElectricityMap() {
   const map = createFilledMap(0);
   const powerRatio = city.powerRatio ?? 1;
-  for (let r = 0; r < MAP_HEIGHT; r++) {
-    for (let c = 0; c < MAP_WIDTH; c++) {
+  for (const { row: r, col: c } of iterateGameTiles()) {
+    {
       if (zoneMap[r][c] === ZONE_NONE && !buildingData[getTileId(r, c)]) continue;
       map[r][c] = powerMap[r][c] ? Math.max(0.2, powerRatio) : Math.max(0, powerRatio * 0.15);
     }

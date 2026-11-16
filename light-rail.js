@@ -69,7 +69,13 @@ function normalizeLightRailState(raw) {
     tilesThisMonth: Math.max(0, num(v.tilesThisMonth)),
     monthToDateRevenue: Math.max(0, num(v.monthToDateRevenue)), lastMonthRevenue: Math.max(0, num(v.lastMonthRevenue)),
   })).filter((v) => v.id && lineIds.has(v.lineId));
-  return { tracks, trackElev, stations, lines, cars, nextId: Math.max(1, Math.floor(num(src.nextId, 1))) };
+  return {
+    tracks, trackElev, stations, lines, cars, nextId: Math.max(1, Math.floor(num(src.nextId, 1))),
+    // 輕便鐵路撥款 (council-definitions.js lightRailFunding): passed by the council - the light rail is
+    // open to the company from then on - and what is left of its grants, for the light rail only
+    approved: src.approved === true,
+    grantBalance: Math.max(0, Math.round(num(src.grantBalance))),
+  };
 }
 
 function getLightRailState() {
@@ -77,6 +83,45 @@ function getLightRailState() {
   if (!transport) return normalizeLightRailState(null);
   if (!transport.lightRail) transport.lightRail = normalizeLightRailState(null);
   return transport.lightRail;
+}
+
+// Open to the transport company once the council has passed 輕便鐵路撥款 (a city of 15,000 at least,
+// with a transport company and a 立法會: council-voting.js).
+function isLightRailUnlocked() {
+  if (typeof isTransportExpansionActive === 'function' && !isTransportExpansionActive()) return false;
+  return getLightRailState().approved === true;
+}
+
+// The council's grant (council-effects.js), kept apart from the company's cash for the light rail only;
+// the first one opens it.
+function grantLightRailFunding(amount) {
+  const value = Math.max(0, Math.round(Number(amount) || 0));
+  const state = getLightRailState();
+  state.approved = true;
+  state.grantBalance += value;
+  if (typeof queueCityChangeAutosave === 'function') queueCityChangeAutosave();
+  if (typeof refreshTransportUi === 'function') refreshTransportUi();
+  return value;
+}
+
+// What the light rail builds and buys is paid from the grant first, the company's cash for the rest.
+// False, and nothing spent, when the two together are not enough (or it is not open yet).
+function spendLightRailFunds(amount) {
+  if (!isLightRailUnlocked()) return false;
+  const cost = Math.max(0, Math.round(Number(amount) || 0));
+  const state = getLightRailState();
+  const fromGrant = Math.min(state.grantBalance, cost);
+  const rest = cost - fromGrant;
+  if (rest > 0 && !(typeof spendTransportConstruction === 'function' && spendTransportConstruction(rest))) return false;
+  state.grantBalance -= fromGrant;
+  if (fromGrant > 0 && typeof showToast === 'function') {
+    showToast(lightRailT('lightRail.toast.paidFromGrant', '輕鐵撥款支付 ${paid}{rest}，撥款餘額 ${left}。', {
+      paid: fromGrant.toLocaleString(),
+      rest: rest > 0 ? lightRailT('lightRail.toast.paidRest', '，公司現金支付 ${rest}', { rest: rest.toLocaleString() }) : '',
+      left: state.grantBalance.toLocaleString(),
+    }), 'info');
+  }
+  return true;
 }
 
 function isLightRailTrackTile(row, col) {
@@ -562,6 +607,7 @@ function planLightRailTrack(start, end, height = lightRailHeight) {
   if (plan.ok && typeof isTransportExpansionActive === 'function' && !isTransportExpansionActive()) {
     return { ...plan, ok: false, reason: 'company' };
   }
+  if (plan.ok && !isLightRailUnlocked()) return { ...plan, ok: false, reason: 'locked' };
   // (a station's three tiles stay one straight: light-rail-lines.js)
   if (plan.ok && typeof isLightRailStationTile === 'function') {
     const touched = Object.keys({ ...state.tracks, ...plan.bits }).find((k) => {
@@ -576,6 +622,7 @@ function planLightRailTrack(start, end, height = lightRailHeight) {
 
 const LIGHT_RAIL_TRACK_REFUSALS = Object.freeze({
   company: ['lightRail.track.company', '要先開辦運輸公司，輕鐵由公司出錢起。'],
+  locked: ['lightRail.track.locked', '輕鐵要立法會通過「輕便鐵路撥款」先可以起（城市人口要有 15,000）。'],
   tooShort: ['lightRail.track.tooShort', '拖長啲：路軌最少兩格。'],
   nothing: ['lightRail.track.nothing', '呢度已經有路軌。'],
   street: ['lightRail.track.street', '沿馬路嘅路軌要喺馬路上（唔可以喺橋、斜路、隧道口或者電車路軌上面）。'],
@@ -626,7 +673,7 @@ function commitLightRailTrackDrag(scene, start, end, height = lightRailHeight) {
   const warn = (msg) => { if (typeof showToast === 'function') showToast(msg, 'warning'); return false; };
   const plan = planLightRailTrack(start, end, height);
   if (!plan.ok) return warn(lightRailTrackRefusal(plan.reason));
-  if (plan.cost > 0 && !(typeof spendTransportConstruction === 'function' && spendTransportConstruction(plan.cost))) {
+  if (plan.cost > 0 && !spendLightRailFunds(plan.cost)) {
     return warn(lightRailTrackRefusal('funds', { cost: plan.cost.toLocaleString() }));
   }
   plan.clearTiles.forEach((k) => {
@@ -1001,5 +1048,6 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     LIGHT_RAIL, LIGHT_RAIL_SPEC, normalizeLightRailState, lightRailRoadAxis, lightRailCrossesRoad, lightRailTileKind,
     planLightRailTrackPure, buildLightRailGeometry, lightRailHeightAt, lightRailInTrafficAt, whyNotLightRailStationAt,
+    isLightRailUnlocked, grantLightRailFunding, spendLightRailFunds,
   };
 }

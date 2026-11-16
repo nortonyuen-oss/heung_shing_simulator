@@ -374,6 +374,29 @@ const COUNCIL_RESOLUTION_DEFS = Object.freeze([
     successModifiers: {},
     riskModifiers: {},
   },
+  {
+    // 輕便鐵路撥款 (Norton 2026-11-16: 輕鐵建造請好似地鐵咁，要在立法局通過，然後人口基數達15000，然後
+    // 政府撥款比運輸公司建造): the light rail opens to the transport company only when the council has
+    // passed this - a city of 15,000 at least - and its price goes to the company as a grant for the
+    // light rail only (light-rail.js grantLightRailFunding). A new grant for each stage, two years apart.
+    id: 'lightRailFunding',
+    titleKey: 'resolution.lightRailFunding.title',
+    descKey: 'resolution.lightRailFunding.desc',
+    upfrontBase: 15000,
+    monthsOfIncome: 3,
+    durationMonths: 1,
+    cooldownMonths: 24,
+    absurdity: 0,
+    unlockPopulation: 15000,
+    requiresTransportCompany: true,
+    transportGrant: 'lightRail',
+    // the new towns' case (as the 屯門 light rail's): the roads' need first, the districts it serves
+    issues: { roads: 1.5, finance: -0.5, business: 1, environment: 0.5 },
+    tags: ['railway', 'infrastructure', 'public_transport'],
+    leadOfficialIds: ['treasury_head', 'chief_executive'],
+    successModifiers: {},
+    riskModifiers: {},
+  },
 ]);
 
 const COUNCIL_RESOLUTION_IDS = Object.freeze(COUNCIL_RESOLUTION_DEFS.map((resolution) => resolution.id));

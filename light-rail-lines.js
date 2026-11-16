@@ -52,14 +52,18 @@ function lrtSay(key, fallback, vars = {}, kind = 'info') {
   return kind !== 'warning';
 }
 
+// Not open yet (no company, or the council has not passed 輕便鐵路撥款): a word why, and true.
 function lrtCompanyClosed() {
-  if (typeof isTransportExpansionActive !== 'function' || isTransportExpansionActive()) return false;
-  return !lrtSay('lightRail.track.company', '要先開辦運輸公司，輕鐵由公司出錢起。', {}, 'warning');
+  if (typeof isTransportExpansionActive === 'function' && !isTransportExpansionActive()) {
+    return !lrtSay('lightRail.track.company', '要先開辦運輸公司，輕鐵由公司出錢起。', {}, 'warning');
+  }
+  if (!isLightRailUnlocked()) return !lrtSay(...LIGHT_RAIL_TRACK_REFUSALS.locked, {}, 'warning');
+  return false;
 }
 
+// (the council's grant first, then the company's cash: light-rail.js)
 function lrtSpend(amount) {
-  if (typeof isTransportExpansionActive === 'function' && !isTransportExpansionActive()) return false;
-  return typeof spendTransportConstruction === 'function' ? spendTransportConstruction(amount) : false;
+  return spendLightRailFunds(amount);
 }
 
 // ── Stations ────────────────────────────────────────────────────────────────────────────────────────
@@ -136,6 +140,7 @@ function lrtJoiningPhase(phases) {
 }
 
 function buyLightRailCar(lineId) {
+  if (!isLightRailUnlocked()) return { ok: false, code: 'locked' };
   const state = lrtState();
   const line = state.lines.find((l) => l.id === lineId);
   if (!line) return { ok: false, code: 'line' };
@@ -158,6 +163,7 @@ function buyLightRailCar(lineId) {
 // One more of the line's cars coupled into a pair (bought); all pairs - all single again (the second
 // cars sold back at the resale share).
 function coupleLightRailCars(lineId) {
+  if (!isLightRailUnlocked()) return { ok: false, code: 'locked' };
   const state = lrtState();
   const line = state.lines.find((l) => l.id === lineId);
   if (!line) return { ok: false };

@@ -173,6 +173,12 @@ function getResolutionCanonicalFacts(resolutionId, outcome, extra = {}) {
       ? [`${title}獲立法會通過，市庫撥出 ${grant} 注資運輸公司，專款專用於興建地下鐵路。`, '運輸公司將用撥款起地鐵站、掘隧道同購買列車，預計紓緩路面交通，帶動車站一帶發展。']
       : [`${title} has been approved: the treasury puts ${grant} into the transport company, to be spent on the metro only.`, 'The company will use it for stations, tunnels and trains, easing the roads and lifting the districts round the stations.'];
   }
+  if (resolutionId === 'lightRailFunding') {
+    const grant = `$${Number(extra.grant || extra.cost || 0).toLocaleString()}`;
+    return zh
+      ? [`${title}獲立法會通過，市庫撥出 ${grant} 注資運輸公司，專款專用於興建輕便鐵路，輕鐵正式解禁。`, '運輸公司可以開始鋪輕鐵路軌、起輕鐵站同購買輕鐵，連接新市鎮各區，紓緩路面交通。']
+      : [`${title} has been approved: the treasury puts ${grant} into the transport company for the light rail only, and the light rail is unlocked.`, 'The company can now lay track, build stations and buy cars, linking the districts and easing the roads.'];
+  }
   if (resolutionId === 'oceanParkDevelopmentProject') {
     return zh
       ? [`${title}獲立法會通過，海洋公園正式解鎖，可以 $22,000 興建 8×8 項目。`, '康文部門將籌備選址，預計帶動家庭消閒及旅遊。']
@@ -238,6 +244,10 @@ function buildLocalResolutionArticle(event) {
     headline = zh ? `${title}獲通過　市庫注資地下鐵路` : `${title} approved: the treasury funds the metro`;
     subhead = zh ? `${lead}宣布撥款　${partner}期望地鐵紓緩路面交通` : `${lead} announces the grant as ${partner} looks to the metro to ease the roads`;
     quote = zh ? '地下鐵路係城市未來幾十年嘅骨幹，政府有責任帶頭投資。' : 'A metro is the backbone of the city for decades to come; the government should lead the investment.';
+  } else if (resolutionId === 'lightRailFunding') {
+    headline = zh ? `${title}獲通過　市庫注資輕便鐵路` : `${title} approved: the treasury funds the light rail`;
+    subhead = zh ? `${lead}宣布撥款　${partner}期望輕鐵連接各區` : `${lead} announces the grant as ${partner} looks to the light rail to link the districts`;
+    quote = zh ? '輕鐵係新市鎮嘅血脈，街坊出入唔使再靠塞車嘅馬路。' : 'The light rail is a new town\'s lifeblood: residents no longer depend on jammed roads.';
   } else if (resolutionId === 'oceanParkDevelopmentProject') {
     headline = zh ? '【海洋公園發展計劃】獲通過　香城將有自己嘅海洋公園' : 'Ocean Park Development Project approved; the city will have its own Ocean Park';
     subhead = zh ? `${lead}宣布展開選址　${partner}期望帶動家庭旅遊` : `${lead} begins site planning as ${partner} looks to family tourism`;
@@ -318,6 +328,12 @@ function localizeResolutionArticleJapanese(article, event, names) {
     subhead: `${lead}が拠出を発表、${partner}は渋滞緩和に期待`,
     body: [`市庫から$${Number(event.gameplayOutcome.grant || event.gameplayOutcome.cost || 0).toLocaleString()}を交通会社に拠出し、地下鉄の建設に限って使われる。`, '駅、トンネル、列車の整備に充て、道路の混雑を和らげ、駅周辺の発展を促す見込み。'],
     quote: '地下鉄は今後数十年の都市の骨格です。政府が率先して投資すべきです。',
+  });
+  else if (resolutionId === 'lightRailFunding') Object.assign(result, {
+    headline: `${title}が議会を通過　市庫がライトレールに出資`,
+    subhead: `${lead}が拠出を発表、${partner}は各地区の連絡に期待`,
+    body: [`市庫から$${Number(event.gameplayOutcome.grant || event.gameplayOutcome.cost || 0).toLocaleString()}を交通会社に拠出し、ライトレールの建設に限って使われる。ライトレールが解禁された。`, '線路、駅、車両の整備に充て、各地区を結び道路の混雑を和らげる見込み。'],
+    quote: 'ライトレールはニュータウンの生命線です。渋滞する道路に頼らずに移動できます。',
   });
   else if (resolutionId === 'oceanParkDevelopmentProject') Object.assign(result, {
     headline: `${title}が議会を通過　香城にオーシャンパーク誕生へ`,

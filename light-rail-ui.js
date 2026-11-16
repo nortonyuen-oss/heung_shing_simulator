@@ -86,6 +86,10 @@ function renderLightRailLineCard(line, state) {
 function renderLightRailLinesSection() {
   if (typeof getLightRailState !== 'function') return '';
   const state = getLightRailState();
+  if (!isLightRailUnlocked()) {
+    const population = Number(typeof city !== 'undefined' ? city.population : 0) || 0;
+    return `<div class="transport-empty">${lrtUiEscape(lightRailT('lightRail.ui.locked', '輕鐵未開放：城市人口要有 15,000（而家 {population}），再喺立法會通過「輕便鐵路撥款」。撥款會交畀運輸公司，專款專用嚟起輕鐵。', { population: Math.round(population).toLocaleString() }))}</div>`;
+  }
   const cards = state.lines.length
     ? state.lines.map((line) => renderLightRailLineCard(line, state)).join('')
     : `<div class="transport-empty">${lrtUiEscape(lightRailT('lightRail.ui.empty', '未有輕鐵綫：先鋪輕鐵路軌，喺空地直路軌上起兩個輕鐵站，再用「輕鐵路線」工具由一個站撳去另一個站。'))}</div>`;
@@ -96,6 +100,7 @@ function renderLightRailLinesSection() {
       <button class="transport-btn" type="button" data-transport-action="lrt-track">${lrtUiEscape(lightRailT('lightRail.ui.track', '鋪路軌'))}</button>
     </div>
     <p class="transport-depots">${lrtUiEscape(lightRailT('lightRail.ui.stats', '輕鐵站 {stations} 個 · 輕鐵 {sets} 班 · 路軌 {tiles} 格', { stations: state.stations.length, sets: state.cars.length, tiles: Object.keys(state.tracks).length }))}</p>
+    ${state.grantBalance > 0 ? `<p class="transport-depots">${lrtUiEscape(lightRailT('lightRail.ui.grant', '政府輕鐵撥款餘額 ${amount}：鋪路軌、起站同買車會先用撥款。', { amount: Math.round(state.grantBalance).toLocaleString() }))}</p>` : ''}
     <p class="transport-depots">${lrtUiEscape(lightRailT('lightRail.ui.fareHint', '車費劃一 ${fare}；兩卡車載客多一倍。總站有迴圈就行迴圈，冇就喺站外轉軌掉頭。', { fare: LIGHT_RAIL_SERVICE.fare }))}</p>
     <div class="transport-routes">${cards}</div>`;
 }
@@ -117,6 +122,10 @@ function handleLightRailUiAction(action, button) {
   const lineId = button.dataset.lineId;
   const line = lineId && state.lines.find((l) => l.id === lineId);
   const price = LIGHT_RAIL_SERVICE.carPrice.toLocaleString();
+  if (!isLightRailUnlocked() && ['lrt-new-line', 'lrt-new-station', 'lrt-track', 'lrt-buy', 'lrt-couple', 'lrt-extend'].includes(action)) {
+    toast(lightRailT(...LIGHT_RAIL_TRACK_REFUSALS.locked), 'warning');
+    return true;
+  }
   if (action === 'lrt-new-line') {
     pickLightRailTool('light-rail-line');
     lightRailLineDraft = { forceNew: true };

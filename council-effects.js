@@ -199,9 +199,13 @@ function resolveCouncilResolutionOutcome(resolutionId) {
   if (definition.unlockBuildingType) {
     return { outcome: 'success', readiness: 1, refundCost: 0, modifiers: {} };
   }
-  // 地下鐵路撥款: the money the city paid goes to the transport company, for the metro (metro.js)
+  // 地下鐵路撥款 / 輕便鐵路撥款: the money the city paid goes to the transport company, for the metro
+  // (metro.js) or the light rail (light-rail.js) only
   if (definition.transportGrant) {
-    const grant = typeof grantMetroFunding === 'function' ? grantMetroFunding(getCouncilResolutionUpfrontCost(resolutionId)) : 0;
+    const grantTo = definition.transportGrant === 'lightRail'
+      ? (typeof grantLightRailFunding === 'function' ? grantLightRailFunding : null)
+      : (typeof grantMetroFunding === 'function' ? grantMetroFunding : null);
+    const grant = grantTo ? grantTo(getCouncilResolutionUpfrontCost(resolutionId)) : 0;
     return { outcome: 'success', readiness: 1, refundCost: 0, modifiers: {}, grant };
   }
   const readiness = getCouncilResolutionReadiness(resolutionId, 'approval');

@@ -153,3 +153,40 @@ test('a call: riders off spread over the stations ahead, the queue on up to the 
   assert.equal(pair.boarding, 340, 'a coupled pair takes twice the room');
   assert.equal(lightRailCall({ aboard: 30, waiting: 80, arrivingAhead: 1, share: 0, capacity: 200 }).boarding, 0, 'the last station: everyone off, no one on');
 });
+
+test('the light rail opens only when the council passes 輕便鐵路撥款 (15,000 people), its grant spent first', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const vm = require('node:vm');
+  // the resolution, as the council sees it
+  const ctx = vm.createContext({});
+  vm.runInContext(`${fs.readFileSync(path.join(__dirname, '..', 'council-definitions.js'), 'utf8')}; this.defs = COUNCIL_RESOLUTION_DEFS;`, ctx);
+  const def = ctx.defs.find((d) => d.id === 'lightRailFunding');
+  assert.ok(def, 'a lightRailFunding resolution');
+  assert.equal(def.unlockPopulation, 15000);
+  assert.equal(def.requiresTransportCompany, true);
+  assert.equal(def.transportGrant, 'lightRail');
+  // the company's side
+  const transport = { company: { cash: 1000 }, lightRail: lr.normalizeLightRailState(null) };
+  global.getTransportExpansionState = () => transport;
+  global.isTransportExpansionActive = () => true;
+  let spent = 0;
+  global.spendTransportConstruction = (n) => { if (transport.company.cash < n) return false; transport.company.cash -= n; spent += n; return true; };
+  try {
+    assert.equal(lr.isLightRailUnlocked(), false, 'closed before the vote');
+    assert.equal(lr.spendLightRailFunds(100), false, 'nothing built before the vote');
+    assert.equal(lr.grantLightRailFunding(5000), 5000);
+    assert.equal(lr.isLightRailUnlocked(), true, 'open once passed');
+    assert.equal(lr.spendLightRailFunds(4000), true);
+    assert.equal(transport.lightRail.grantBalance, 1000, 'the grant pays first');
+    assert.equal(spent, 0, 'the company\'s cash untouched');
+    assert.equal(lr.spendLightRailFunds(1500), true);
+    assert.equal(transport.lightRail.grantBalance, 0);
+    assert.equal(spent, 500, 'the rest from the company');
+    assert.equal(lr.spendLightRailFunds(5000), false, 'not enough: nothing spent');
+    assert.equal(spent, 500);
+    assert.deepEqual(lr.normalizeLightRailState({ approved: true, grantBalance: 12.4 }).approved, true, 'kept through a save');
+  } finally {
+    delete global.getTransportExpansionState; delete global.isTransportExpansionActive; delete global.spendTransportConstruction;
+  }
+});

@@ -1,3 +1,30 @@
+# The City of Heung Shing v5.10.3 — 【香城茶餐廳】
+
+- 廣東話／台灣中文：【香城茶餐廳】
+- English: 【Heung Shing Cha Chaan Teng】
+- 日本語：【香城茶餐廳】
+
+## 修正：輕鐵、電車同香港全境
+
+- **輕鐵路面路軌畫唔出**：香港全境模式啲馬路格仔係鏡頭行到先生成，起路軌嗰陣未生成，輕鐵搵唔到馬路去對位，所以起咗、扣咗錢都睇唔到。而家馬路一出現就會補畫；電車路軌同樣修正。
+- **馬路上起輕鐵站**：規則同電車站一樣，窄路嘅直路（候車亭喺兩邊行人路），或者雙線道路中間嘅專用路（候車亭喺路軌兩邊）。
+- **電車喺高地偏離馬路**：電車同電車站之前按平地計位置，喺高地（全境大部分陸地）會畫低咗；而家貼返馬路。
+- **全境馬路綠色接縫**：全境模式喺每格馬路底下都畫咗草地，透過馬路格之間嘅縫露出綠線；而家普通馬路底下唔再畫草地（橋底嘅海照畫）。
+- **輕鐵上橋穿模**：車行到上落橋同高架交界，前面嗰格橋面會切過車身；而家車身一定畫喺佢經過嘅高架上面。
+- **橋嘅日夜色調**：輕鐵橋、上落橋、橋墩同電車路軌跟住時間轉色，夜晚起嘅橋日頭唔會再暗。
+- **全境小地圖**：調亮同加對比，睇得清楚成個香港。
+- **夜晚地面**：亮咗約 20%（最暗時剩低嘅光由 38% 加到 45.6%，郊外同樣加 20%）。
+
+**English:** Light rail and tram fixes, mostly in Hong Kong Territory mode. Street track laid there is now drawn (road tiles there are made as the camera reaches them, so track laid before that never showed - though laid and paid for); tram track gets the same fix. Light rail stations can go on roads by the tram stop rules: a narrow road's straight, or a dual carriageway's central reservation. Trams and tram stops no longer sit below roads on raised land. Road tiles in Territory mode no longer show green seams (the ground was drawn under every road tile). Light rail cars no longer clip through viaducts where a ramp meets the deck, and viaducts, ramps, piers and tram track now follow the time of day instead of keeping the look they were built with. The Territory minimap is brighter, and the ground at night is about 20% lighter.
+
+**日本語:** 主に香港全域モードのライトレール・路面電車の修正。全域で敷いた併用軌道が表示されるように（道路タイルはカメラが近づいてから作られるため、それ以前に敷いた線路は敷設・支払い済みでも見えませんでした）。路面電車の線路も同様に修正。ライトレール駅を道路上（狭い道路の直線区間、または中央分離帯道路の専用レーン）に設置可能に。高台で路面電車と停留所が道路より下に描かれる問題、全域モードの道路タイル間の緑の継ぎ目を修正。スロープと高架の境目で車両がめり込む問題、夜に建てた高架が昼も暗いままになる問題を修正。全域ミニマップを明るくし、夜の地面を約20%明るくしました。
+
+## 下載
+
+macOS Apple Silicon / Intel DMG；Windows 安裝版／免安裝版 EXE；官網瀏覽器版。
+
+---
+
 # The City of Heung Shing v5.10.2 — 【香城茶餐廳】
 
 - 廣東話／台灣中文：【香城茶餐廳】

@@ -1,5 +1,5 @@
 const I18N_STORAGE_KEY = 'citybuilder.language';
-let appVersion = '5.10.2';
+let appVersion = '5.10.3';
 let appReleaseTheme = '【香城茶餐廳】';
 const APP_RELEASE_THEMES = {"en":"【Heung Shing Cha Chaan Teng】","zhHant":"【香城茶餐廳】","ja":"【香城茶餐廳】"};
 function localizedReleaseTheme() {

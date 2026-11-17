@@ -29,6 +29,56 @@ let openForumPostId = '';
 // up to a lot of DOM churn/autosave writes over a long game. Only throttle the filler
 // case — an actual notable event still posts the same month it happens.
 const FORUM_FILLER_INTERVAL_MONTHS = 3;
+const CAACAANTENG_AD_INTERVAL_MONTHS = 6;
+
+// Website destinations belong to these built-in adverts, never to saved/player text.
+function getForumAdWebsite(article) {
+  if (article?.image === 'UI/news/caacaanteng.webp') return 'https://caacaanteng.com/';
+  if (article?.image === 'UI/news/heungShingSimulatorAd.webp') return 'https://nortonyuen-oss.github.io/heung_shing_simulator/';
+  return '';
+}
+
+function createForumAdLink(article, image = null) {
+  const url = getForumAdWebsite(article);
+  if (!url) return image;
+  const link = document.createElement('a');
+  link.href = url;
+  link.target = '_blank';
+  link.rel = 'noopener noreferrer';
+  link.title = t('forum.ad.openWebsite');
+  if (image) {
+    image.classList.add('is-link');
+    link.appendChild(image);
+  } else {
+    link.textContent = url.replace(/^https:\/\//, '').replace(/\/$/, '');
+  }
+  return link;
+}
+
+function maybeAnnounceCaacaantengAd(monthIndex = getCityMonthIndex()) {
+  if (!city || !Number.isSafeInteger(monthIndex) || monthIndex < 0) return null;
+  const lastMonth = Number(city.lastCaacaantengAdMonthIndex);
+  if (Number.isSafeInteger(lastMonth) && lastMonth >= 0
+    && monthIndex - lastMonth < CAACAANTENG_AD_INTERVAL_MONTHS) return null;
+  city.lastCaacaantengAdMonthIndex = monthIndex;
+  return addForumPost({
+    headline: t('forum.caacaanteng.headline'),
+    image: 'UI/news/caacaanteng.webp',
+    body: [t('forum.caacaanteng.body1'), t('forum.caacaanteng.body2')],
+    source: 'local',
+    social: {
+      likes: 932, laughs: 328, angry: 3, commentCount: 5, shares: 168,
+      comments: [1, 2, 3, 4, 5].map((index) => ({
+        author: t(`forum.caacaanteng.author${index}`),
+        text: t(`forum.caacaanteng.comment${index}`),
+      })),
+    },
+  }, {
+    id: `ad-caacaanteng-${monthIndex}`,
+    category: '城中熱話',
+    author: t('forum.caacaanteng.sponsor'),
+  });
+}
 
 function getExamForumCitizenName(seed = '') {
   const source = String(seed);
@@ -203,6 +253,8 @@ function showResolutionNewspaper(article, postId = '') {
       paragraph.textContent = text;
       return paragraph;
     }));
+    const adLink = createForumAdLink(article);
+    if (adLink) body.appendChild(adLink);
   }
 
   const speaker = article.quoteSpeakerId ? getCouncilOfficialDefinition(article.quoteSpeakerId) : null;
@@ -576,6 +628,7 @@ function localizeForumTopicJapanese(topic, context) {
 }
 
 function generateMonthlyForumPost(monthIndex = getCityMonthIndex()) {
+  maybeAnnounceCaacaantengAd(monthIndex);
   if (!city || Number(city.lastForumMonthIndex) >= monthIndex) return null;
   city.lastForumMonthIndex = monthIndex;
   const language = typeof getCurrentLanguage === 'function' ? getCurrentLanguage() : 'en';
@@ -904,14 +957,11 @@ function renderForumHistory(filter = 'all') {
       image.src = resolveForumImageSrc(post.image);
       image.alt = post.headline;
       image.loading = 'lazy';
-      if (/^UI\/news\/heungShingSimulatorAd\.webp$/.test(post.image)) {
-        image.classList.add('is-link');
-        image.title = t('forum.ad.openWebsite');
-        image.addEventListener('click', openHeungShingSimulatorAd);
-      }
-      content.appendChild(image);
+      content.appendChild(createForumAdLink(post, image));
     }
     (post.body || []).forEach((text) => { const p = document.createElement('p'); p.textContent = text; content.appendChild(p); });
+    const adLink = createForumAdLink(post);
+    if (adLink) content.appendChild(adLink);
     const reaction = document.createElement('div'); reaction.className = 'forum-reactions'; reaction.textContent = `👍 ${post.social?.likes || 0}　😂 ${post.social?.laughs || 0}　😡 ${post.social?.angry || 0}　↗ ${post.social?.shares || 0}　🤡 ${post.social?.clowns || 0}`; content.appendChild(reaction);
     const commentsWrap = document.createElement('div'); commentsWrap.className = 'forum-comments';
     renderForumComments(commentsWrap, post.social?.comments || []);

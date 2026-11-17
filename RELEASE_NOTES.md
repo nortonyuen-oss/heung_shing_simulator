@@ -1,3 +1,26 @@
+# The City of Heung Shing v5.10.2 — 【香城茶餐廳】
+
+- 廣東話／台灣中文：【香城茶餐廳】
+- English: 【Heung Shing Cha Chaan Teng】
+- 日本語：【香城茶餐廳】
+
+## 香城梗係要有茶餐廳啦！
+
+- 香城討論區加入【香城茶餐廳】香城模式廣告，使用新茶餐廳新聞圖，附上 caacaanteng.com 連結；㩒廣告圖或者文字連結即開網站。
+- 開城／讀檔先刊登一次，之後每 6 個遊戲月再刊登；排程隨存檔保留，唔會因讀檔重複出帖。
+- 配上 5 則模擬街坊留言：「凍飲唔使加三蚊？」「朝早睇市庫，夜晚睇茶記條數」等茶記吹水。
+- 加入可點擊走馬燈：【香城聯盟】 香城茶餐廳 - 凍飲唔使加三蚊～ 快啲黎試下做茶記老闆啦！
+
+**English:** Heung Shing Cha Chaan Teng joins the forum with its cafe illustration, a caacaanteng.com link and five simulated neighbours’ replies. The advert appears when a city starts or loads, then once every six game months, with the schedule saved to prevent duplicate posts on reload. A clickable Heung Shing Alliance ticker advert invites you to try running a cha chaan teng.
+
+**日本語:** 香城茶餐廳の香城モード広告を掲示板に追加。喫茶店のイラスト、caacaanteng.com へのリンク、住民5人の模擬コメントを掲載。初回は街の開始・読込時、その後はゲーム内6か月ごとに掲載し、間隔はセーブに保存されます。香城連盟のクリック可能なティッカー広告も追加。
+
+## 下載
+
+macOS Apple Silicon / Intel DMG；Windows 安裝版／免安裝版 EXE；官網瀏覽器版。
+
+---
+
 # The City of Heung Shing v5.10.1 — 【光之鐵路】
 
 - 廣東話／台灣中文：【光之鐵路】

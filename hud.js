@@ -1058,4 +1058,10 @@ function openHeungShingSimulatorAd() {
   }
 }
 
+function openCaacaantengAd() {
+  if (typeof window !== 'undefined' && typeof window.open === 'function') {
+    window.open('https://caacaanteng.com/', '_blank', 'noopener,noreferrer');
+  }
+}
+
 // ── Metro-style city news ticker (走馬燈) ───────────────────────────────────

@@ -25,6 +25,7 @@ const TICKER_AD_MESSAGES = [
   { id: 'ad-meat-patty-rice', key: 'news.ad.9' },
   { id: 'ad-distilled-water', key: 'news.ad.10' },
   { id: 'ad-heung-shing-simulator', key: 'news.ad.heungShingSimulator', clickable: true, action: 'openHeungShingSimulatorAd' },
+  { id: 'ad-caacaanteng', key: 'news.ad.caacaanteng', clickable: true, action: 'openCaacaantengAd' },
 ];
 
 let tickerShowNextTip = null;
@@ -549,6 +550,7 @@ function startTicker() {
   if (typeof initializeHeungShingSimulatorAdForum === 'function') {
     initializeHeungShingSimulatorAdForum();
   }
+  if (typeof maybeAnnounceCaacaantengAd === 'function') maybeAnnounceCaacaantengAd();
   const track = document.getElementById('tip-ticker-track');
   const inner = document.getElementById('tip-ticker-inner');
   if (!track || !inner) return;
@@ -626,6 +628,8 @@ function startTicker() {
 function handleTickerClick() {
   if (currentTickerHeadline?.clickable && currentTickerHeadline.action === 'openHeungShingSimulatorAd') {
     openHeungShingSimulatorAd();
+  } else if (currentTickerHeadline?.clickable && currentTickerHeadline.action === 'openCaacaantengAd') {
+    openCaacaantengAd();
   }
 }
 

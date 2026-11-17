@@ -261,6 +261,7 @@ const city = {
   },
   forumPosts: [],
   lastForumMonthIndex: -1,
+  lastCaacaantengAdMonthIndex: -1,
   // 避風塘 plans (typhoon-shelter.js); only the basin and entrances are stored.
   typhoonShelters: { version: 1, nextId: 1, shelters: [] },
   // 海濱步道 built from the parks menu (promenade.js): its tiles and their public piers
@@ -457,6 +458,7 @@ function resetGameState() {
   };
   city.forumPosts = [];
   city.lastForumMonthIndex = -1;
+  city.lastCaacaantengAdMonthIndex = -1;
   city.districtProfileId = '';
   city.regionNeighbours = null;
   city.regionFlows = null;
@@ -920,6 +922,7 @@ function normalizeCityFinanceState() {
     })).filter((post) => post.headline));
   }
   city.lastForumMonthIndex = Math.floor(toFiniteOr(city.lastForumMonthIndex, -1));
+  city.lastCaacaantengAdMonthIndex = Math.floor(toFiniteOr(city.lastCaacaantengAdMonthIndex, -1));
   city.creditRating = city.creditRating || 'A';
 }
 

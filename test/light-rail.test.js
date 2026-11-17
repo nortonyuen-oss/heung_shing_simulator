@@ -110,6 +110,32 @@ test('a street station, as a tram stop: on a narrow road\'s straight, or a dual 
   assert.equal(lr.whyNotLightRailStationAt(5, 4, state, e).code, 'notStraight');
 });
 
+test('street track\'s tram junctions never stop track being laid elsewhere', () => {
+  // Norton 2026-11-17: 起到出唔返草地之後系統就卡住左唔俾再起路軌, 就算普通地面也是不行 - street track
+  // by a road junction took a tram junction's bits (no rail layout), and every later drag over open
+  // ground anywhere was refused for it ('junction', a tile not on its way)
+  const roads = new Set([...row(5, 0, 21), ...col(16, 0, 21), ...col(8, 0, 21)]);
+  const e = env({ roads });
+  const state = empty();
+  const lay = (a, b) => {
+    const p = lr.planLightRailTrackPure(a, b, 'ground', state, e);
+    if (p.ok) { state.tracks = p.bits; state.trackElev = p.elev; }
+    return p;
+  };
+  // track over the open ground straight across the road (a level crossing), then street track along
+  // the road from it - the tram's planner joins them as a junction both ways
+  assert.equal(lay({ row: 7, col: 17 }, { row: 2, col: 17 }).ok, true);
+  assert.equal(lay({ row: 5, col: 17 }, { row: 5, col: 11 }).ok, true);
+  const odd = railBadTiles(state.tracks);
+  assert.ok(odd.length, `the street track holds a tram junction (${JSON.stringify(state.tracks)})`);
+  assert.ok(odd.every((k) => e.isRoad(...k.split(':').map(Number))), 'only on the road');
+  const plain = lay({ row: 18, col: 2 }, { row: 18, col: 6 });
+  assert.equal(plain.ok, true, `plain ground elsewhere: ${plain.reason} at ${plain.bad}`);
+  // ... while a drag's own bad junction is still refused
+  const crossOver = lay({ row: 17, col: 3 }, { row: 19, col: 5 });
+  assert.notEqual(crossOver.reason, 'junction', 'a diagonal across the straight is a layout (a crossing)');
+});
+
 test('elevated: a two-level deck over the road, four-tile ramps from the ground each end', () => {
   const e = env({ roads: row(8, 0, 19) });
   const state = empty();

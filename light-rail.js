@@ -358,9 +358,17 @@ function planLightRailTrackPure(start, end, height, state, env) {
   const next = addRailPathBits(bits, path);
   const nextElev = { ...elev };
   Object.entries(plan.assign).forEach(([k, code]) => { if (code) nextElev[k] = code; else delete nextElev[k]; });
-  const junctions = railBadTiles(next);
+  // (checked on this drag's own tiles, as the rail lays them: street track on a road keeps the tram's
+  // junctions - its line joining a level crossing branches both ways, no rail layout - and one such
+  // tile anywhere refused every later drag, over open ground too: Norton 2026-11-17, 系統就卡住左)
+  const touched = [...new Set(path.map(key))];
+  const railLaid = (k) => {
+    const [r, c] = k.split(':').map(Number);
+    return Boolean(nextElev[k]) || !env.isRoad(r, c) || crossings.has(k);
+  };
+  const junctions = railBadTiles(Object.fromEntries(touched.filter((k) => next[k] && railLaid(k)).map((k) => [k, next[k]])));
   if (junctions.length) { out.reason = 'junction'; out.bad = junctions[0]; return out; }
-  const plain = Object.keys(nextElev).find((k) => next[k] && !RAIL_PLAIN_MASKS.has(next[k]));
+  const plain = touched.find((k) => nextElev[k] && next[k] && !RAIL_PLAIN_MASKS.has(next[k]));
   if (plain) { out.reason = 'deckPoints'; out.bad = plain; return out; }
   // (a level crossing straight across: no points on it)
   const crossed = [...crossings].find((k) => next[k] !== 1 && next[k] !== 2);

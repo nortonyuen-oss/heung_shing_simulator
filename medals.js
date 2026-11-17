@@ -284,7 +284,7 @@
     }
     if (result.newlyEarned.length || result.newParts.length) scheduleMedalProfileSave();
     result.newlyEarned.forEach(announceMedal);
-    if (result.newlyEarned.length) refreshMedalCabinet();
+    if (result.newlyEarned.length || result.newParts.length) refreshMedalCabinet();
     return result.newlyEarned;
   }
 
@@ -364,93 +364,159 @@
     grand: L('香城大紫荊', 'Grand Bauhinia', '香城大紫荊'),
   };
 
-  function ensureMedalCabinetStyles() {
-    if (document.getElementById('medal-cabinet-styles')) return;
-    const style = document.createElement('style');
-    style.id = 'medal-cabinet-styles';
-    style.textContent = `
-      .toast.toast-medal { background: #7a2357; }
-      /* the game's dialogs set pre-wrap and Courier for their plain-text bodies; this one is laid out */
-      #${MEDAL_DIALOG_ID} .dialog-body { white-space: normal; font-family: Arial, sans-serif; line-height: 1.4; }
-      #${MEDAL_DIALOG_ID} .medal-summary { margin: 0 0 4px; font-size: 13px; color: #3a4148; }
-      #${MEDAL_DIALOG_ID} .medal-series-title { margin: 14px 0 8px; font-size: 14px; font-weight: 700; color: #1e5cb3; }
-      #${MEDAL_DIALOG_ID} .medal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 8px; }
-      #${MEDAL_DIALOG_ID} .medal-card { display: flex; gap: 10px; padding: 8px; border-radius: 6px;
-        background: #f4f7fa; border: 1px solid #c3ccd6; color: #1e2427; }
-      #${MEDAL_DIALOG_ID} .medal-card.is-earned { border-color: #b0407a; background: #f6e3ee; }
-      #${MEDAL_DIALOG_ID} .medal-card.is-unavailable { opacity: 0.55; }
-      #${MEDAL_DIALOG_ID} .medal-emblem { flex: 0 0 38px; height: 38px; border-radius: 50%; display: grid; place-items: center;
-        font-size: 20px; color: #fff; background: var(--medal-colour, #b0407a);
-        box-shadow: inset 0 0 0 3px rgba(255,255,255,0.35); filter: grayscale(1) brightness(0.7); }
-      #${MEDAL_DIALOG_ID} .medal-card.is-earned .medal-emblem { filter: none; }
-      #${MEDAL_DIALOG_ID} .medal-text { min-width: 0; font-size: 12px; line-height: 1.4; }
-      #${MEDAL_DIALOG_ID} .medal-name { font-size: 13px; font-weight: 700; }
-      #${MEDAL_DIALOG_ID} .medal-meta { color: #5b6570; }
-      #${MEDAL_DIALOG_ID} .medal-parts { margin: 3px 0; padding: 0; list-style: none; color: #5b6570; }
-      #${MEDAL_DIALOG_ID} .medal-parts li.is-done { color: #8e1b5b; font-weight: 700; }
-    `;
-    document.head.appendChild(style);
-  }
-
-  const MEDAL_TIER_COLOURS = {
-    bronze: '#a8683a', silver: '#8e959e', gold: '#c9a227', black: '#2a1830',
-    memorial: '#9a7cc0', grand: '#8e1b5b',
-  };
+  const cabinetView = { series: 'all', filter: 'all', query: '', sort: 'catalogue', selected: null, detailOpen: false };
+  let cabinetReturnFocus = null;
 
   function escapeMedalHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
   }
+  const htmlText = (text) => escapeMedalHtml(say(text));
+  const concealedMedal = (def) => def.hidden && !medalRuntime.profile.earned[def.id];
+  const medalName = (def) => concealedMedal(def) ? say(L('未揭曉的榮譽', 'An undiscovered honour', 'まだ見ぬ栄誉')) : say(def.name);
+  const medalTier = (def) => concealedMedal(def) ? say(L('隱藏勳章', 'Hidden medal', '隠し勲章'))
+    : def.tier ? say(MEDAL_TIER_LABELS[def.tier]) : say(L('洋紫荊', 'Bauhinia', '洋紫荊'));
+  const medalEmblem = (def) => `<span class="medal-emblem">${renderBauhiniaMedalSvg(def.tier, concealedMedal(def))}</span>`;
+
+  function medalStatus(def) {
+    if (medalRuntime.profile.earned[def.id]) return say(L('已取得', 'Awarded', '獲得済み'));
+    if (concealedMedal(def)) return say(L('等待你發掘', 'Waiting to be discovered', '発見を待っています'));
+    if (def.status === 'blocked') return say(L('即將推出', 'Coming soon', '近日公開'));
+    if (def.status === 'locked') return say(L('門檻待定', 'Criteria pending', '基準未定'));
+    return say(L('未取得', 'Not yet earned', '未獲得'));
+  }
+
+  function medalPartsProgress(def) {
+    const total = def.parts?.length || 0;
+    const done = (def.parts || []).filter((part) => medalRuntime.profile.parts[def.id]?.[part.id]).length;
+    return { total, done };
+  }
 
   function renderMedalCard(def) {
-    const profile = medalRuntime.profile;
-    const earned = profile.earned[def.id];
-    const unavailable = def.status !== 'active';
-    const concealed = def.hidden && !earned;
-    const tier = def.tier ? say(MEDAL_TIER_LABELS[def.tier]) : say(L('洋紫荊', 'Bauhinia', '洋紫荊'));
-    const tierNote = def.tierDraft && def.tier ? say(L('（草案）', ' (draft)', '（草案）')) : '';
-    let status;
-    if (earned) {
-      status = say(L(`${earned.city || '—'}・${earned.year} 年 ${earned.month} 月取得`, `Earned in ${earned.city || '—'}, ${earned.month}/${earned.year}`, `${earned.city || '—'}・${earned.year}年${earned.month}月に獲得`));
-    } else if (def.status === 'blocked') {
-      status = say(L('即將推出', 'Coming soon', '近日公開'));
-    } else if (def.status === 'locked') {
-      status = say(L('門檻待定', 'Threshold to be decided', '基準未定'));
-    } else status = say(L('未取得', 'Not yet earned', '未獲得'));
-    const parts = !concealed && def.parts && def.status === 'active'
-      ? `<ul class="medal-parts">${def.parts.map((part) => {
-        const done = !!profile.parts[def.id]?.[part.id];
-        return `<li class="${done ? 'is-done' : ''}">${done ? '✓' : '·'} ${escapeMedalHtml(say(part.name))}</li>`;
-      }).join('')}</ul>` : '';
-    const quote = earned && def.quote ? `<div class="medal-meta">${escapeMedalHtml(say(def.quote))}</div>` : '';
-    return `
-      <div class="medal-card${earned ? ' is-earned' : ''}${unavailable && !earned ? ' is-unavailable' : ''}" data-medal-id="${def.id}">
-        <div class="medal-emblem" style="--medal-colour:${MEDAL_TIER_COLOURS[def.tier] || '#b0407a'}">${concealed ? '?' : '✿'}</div>
-        <div class="medal-text">
-          <div class="medal-name">${escapeMedalHtml(concealed ? '？？？' : say(def.name))}</div>
-          <div class="medal-meta">${def.id}・${escapeMedalHtml(tier + tierNote)}</div>
-          <div>${escapeMedalHtml(concealed ? say(L('隱藏勳章', 'Hidden medal', '隠し勲章')) : say(def.desc))}</div>
-          ${parts}${quote}
-          <div class="medal-meta">${escapeMedalHtml(status)}</div>
-        </div>
-      </div>`;
+    const earned = medalRuntime.profile.earned[def.id];
+    const hidden = concealedMedal(def);
+    const { total, done } = medalPartsProgress(def);
+    const progress = !earned && !hidden && def.status === 'active' && total;
+    const status = progress ? say(L(`${done} / ${total} 項條件`, `${done} / ${total} objectives`, `${done} / ${total} 条件`)) : medalStatus(def);
+    return `<button type="button" class="medal-card${earned ? ' is-earned' : ''}${def.status !== 'active' && !earned ? ' is-unavailable' : ''}"
+      data-medal-id="${def.id}" aria-pressed="${cabinetView.selected === def.id}" aria-controls="medal-cabinet-detail">
+      <span class="mc-card-id">${def.id}</span>${earned ? '<span class="mc-earned-mark" aria-hidden="true">✓</span>' : ''}
+      ${medalEmblem(def)}<span class="medal-name">${escapeMedalHtml(medalName(def))}</span>
+      <span class="mc-card-tier">${escapeMedalHtml(medalTier(def))}</span>
+      <span class="mc-card-status">${escapeMedalHtml(status)}</span>
+      ${progress ? `<span class="mc-card-progress" aria-hidden="true" style="--progress:${done / total * 100}%"><i></i></span>` : ''}
+    </button>`;
+  }
+
+  function matchingMedals() {
+    const query = cabinetView.query.trim().toLocaleLowerCase();
+    const matches = MEDAL_DEFS.filter((def) => {
+      const earned = !!medalRuntime.profile.earned[def.id];
+      if (cabinetView.series !== 'all' && def.series !== cabinetView.series) return false;
+      if (cabinetView.filter === 'earned' && !earned || cabinetView.filter === 'unearned' && earned) return false;
+      // Secret names, criteria and tiers must not be discoverable through search.
+      const searchable = concealedMedal(def) ? `${def.id} ${medalName(def)} ${medalTier(def)}` : `${def.id} ${say(def.name)} ${say(def.desc)} ${medalTier(def)}`;
+      return !query || searchable.toLocaleLowerCase().includes(query);
+    });
+    if (cabinetView.sort === 'recent') matches.sort((a, b) => String(medalRuntime.profile.earned[b.id]?.at || '').localeCompare(String(medalRuntime.profile.earned[a.id]?.at || '')));
+    if (cabinetView.sort === 'progress') matches.sort((a, b) => {
+      const score = (def) => {
+        if (medalRuntime.profile.earned[def.id] || concealedMedal(def) || def.status !== 'active') return -1;
+        const { done, total } = medalPartsProgress(def);
+        return total ? done / total : 0;
+      };
+      return score(b) - score(a);
+    });
+    return matches;
+  }
+
+  function renderMedalDetail(def) {
+    if (!def) return `<p class="mc-empty">${htmlText(L('選取一枚勳章，查看它的故事。', 'Choose a medal to explore its story.', '勲章を選んで詳細を確認。'))}</p>`;
+    const earned = medalRuntime.profile.earned[def.id];
+    const hidden = concealedMedal(def);
+    const { done, total } = medalPartsProgress(def);
+    const parts = !hidden && def.parts && def.status === 'active' ? `<ul class="medal-parts">${def.parts.map((part) => {
+      const stamp = medalRuntime.profile.parts[def.id]?.[part.id];
+      return `<li class="${stamp ? 'is-done' : ''}"><span class="mc-part-check" aria-label="${htmlText(stamp ? L('已完成', 'Complete', '完了') : L('未完成', 'Incomplete', '未完了'))}">${stamp ? '✓' : '−'}</span><span>${htmlText(part.name)}${stamp ? `<span class="mc-part-city">${escapeMedalHtml(stamp.city || '—')} · ${stamp.year}.${String(stamp.month).padStart(2, '0')}</span>` : ''}</span></li>`;
+    }).join('')}</ul>` : '';
+    const date = earned ? say(L(`${earned.year} 年 ${earned.month} 月獲頒`, `Awarded ${earned.month}/${earned.year}`, `${earned.year}年${earned.month}月に授与`)) : '';
+    return `<div class="mc-detail-top"><button type="button" class="mc-detail-back" data-medal-back>‹ ${htmlText(L('返回收藏', 'Collection', 'コレクションへ'))}</button><span>${htmlText(L('勳章檔案', 'MEDAL RECORD', '勲章記録'))}</span><span>${def.id}</span></div>
+      <div class="mc-detail-art${earned ? '' : ' is-unearned'}">${medalEmblem(def)}</div>
+      <div class="mc-detail-tier">${escapeMedalHtml(medalTier(def))}</div>
+      <h2 class="mc-detail-name" id="medal-cabinet-detail-title" tabindex="-1">${escapeMedalHtml(medalName(def))}</h2>
+      <div class="mc-status-pill${earned ? ' is-earned' : ''}">${earned ? '✓ ' : ''}${escapeMedalHtml(medalStatus(def))}</div>
+      <section class="mc-detail-section"><h3>${htmlText(L('授勳條件', 'OBJECTIVES', '授与条件'))}</h3>
+        <p class="mc-description">${htmlText(hidden ? L('每座城市都藏着驚喜。繼續探索，讓這份榮譽自己揭曉。', 'Every city holds a surprise. Keep exploring to uncover this honour.', '街には驚きが隠れています。探索を続け、この栄誉を見つけましょう。') : def.desc)}</p>
+        ${parts}${!hidden && total ? `<p class="mc-detail-note">${htmlText(L(`已完成 ${done} / ${total} 項；各項可跨城市累積。`, `${done} / ${total} complete; objectives accumulate across cities.`, `${done} / ${total} 完了。条件は都市をまたいで累積します。`))}${def.live ? `<br>${htmlText(L('所有項目完成後，亦須符合上述城市條件。', 'The city conditions above must also be met.', '上記の都市条件も満たす必要があります。'))}` : ''}</p>` : ''}
+        ${!hidden && def.tierDraft ? `<p class="mc-detail-note">${htmlText(L('勳章等級暫按原草案編定。', 'Medal grade follows the original draft.', '等級は原案に基づく暫定です。'))}</p>` : ''}
+      </section>
+      ${earned ? `<section class="mc-detail-section"><h3>${htmlText(L('授勳紀錄', 'AWARD RECORD', '受賞記録'))}</h3><p class="mc-earned-city">${escapeMedalHtml(earned.city || '—')}</p><p class="mc-earned-date">${escapeMedalHtml(date)}</p>${def.quote ? `<p class="mc-detail-note">${htmlText(def.quote)}</p>` : ''}</section>` : ''}`;
+  }
+
+  function renderMedalResults({ resetScroll = false } = {}) {
+    const dialog = document.getElementById(MEDAL_DIALOG_ID);
+    const matches = matchingMedals();
+    if (!matches.some((def) => def.id === cabinetView.selected)) cabinetView.selected = matches[0]?.id || null;
+    const scroll = dialog.querySelector('.mc-scroll');
+    const scrollTop = resetScroll ? 0 : scroll.scrollTop;
+    dialog.querySelector('.medal-grid').innerHTML = matches.length ? matches.map(renderMedalCard).join('')
+      : `<p class="mc-empty">${htmlText(L('暫時沒有符合的勳章。試試其他分類或關鍵字。', 'No medals match. Try a different category or search.', '該当する勲章がありません。分類や検索語を変えてみてください。'))}</p>`;
+    scroll.scrollTop = scrollTop;
+    const title = cabinetView.series === 'all' ? L('全部勳章', 'All medals', 'すべての勲章') : MEDAL_SERIES.find((s) => s.id === cabinetView.series).title;
+    dialog.querySelector('[data-medal-gallery-title]').textContent = say(title);
+    dialog.querySelector('[data-medal-result-count]').textContent = say(L(`${matches.length} 枚`, `${matches.length} medals`, `${matches.length} 個`));
+    dialog.querySelectorAll('[data-medal-series]').forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.medalSeries === cabinetView.series)));
+    dialog.querySelectorAll('[data-medal-filter]').forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.medalFilter === cabinetView.filter)));
+    dialog.querySelector('.mc-layout').classList.toggle('is-detail-open', cabinetView.detailOpen && !!cabinetView.selected);
+    dialog.querySelector('.mc-detail').innerHTML = renderMedalDetail(MEDAL_DEFS_BY_ID[cabinetView.selected]);
   }
 
   function renderMedalCabinet() {
     const dialog = document.getElementById(MEDAL_DIALOG_ID);
     if (!dialog) return;
     const { earned, total } = getMedalCompletion(medalRuntime.profile);
+    const percent = Math.round(earned / total * 100);
+    const active = document.activeElement;
+    const focusKey = active?.dataset?.medalId;
+    const focusControl = ['medalSeries', 'medalFilter', 'medalSort', 'medalBack'].find((key) => active?.dataset && key in active.dataset);
+    const focusValue = focusControl ? active.dataset[focusControl] : null;
+    const scrollTop = dialog.querySelector('.mc-scroll')?.scrollTop || 0;
+    const detailScroll = dialog.querySelector('.mc-detail')?.scrollTop || 0;
+    const searchFocused = active?.matches('[data-medal-search]');
+    const selection = searchFocused ? [active.selectionStart, active.selectionEnd] : null;
     dialog.querySelector('[data-medal-title]').textContent = say(L('洋紫荊勳章', 'Bauhinia Medals', '洋紫荊勲章'));
-    const body = dialog.querySelector('[data-medal-body]');
-    body.innerHTML = `
-      <p class="medal-summary">${escapeMedalHtml(say(L(
-        `已取得 ${earned}／${total}。勳章跟玩家，所有城市存檔累積計算。`,
-        `${earned} of ${total} earned. Medals belong to you and build up across all your cities.`,
-        `${earned}／${total} 獲得。勲章はプレイヤーに属し、すべての都市で累積します。`,
-      )))}</p>
-      ${MEDAL_SERIES.map((series) => `
-        <div class="medal-series-title">${escapeMedalHtml(say(series.title))}</div>
-        <div class="medal-grid">${MEDAL_DEFS.filter((def) => def.series === series.id).map(renderMedalCard).join('')}</div>
-      `).join('')}`;
+    dialog.querySelector('[data-medal-subtitle]').textContent = say(L('城市會變，你的成就長存。', 'Every city changes. Your achievements endure.', '街は変わっても、功績は残る。'));
+    dialog.querySelector('[data-medal-completion]').innerHTML = `<div class="mc-completion-label"><strong>${medalRuntime.loaded ? earned : '—'}</strong><span>/ ${total}</span><small>${medalRuntime.loaded ? percent + '%' : '—'}</small></div><div class="mc-progress" role="progressbar" aria-label="${htmlText(L('收藏進度', 'Collection progress', 'コレクション進捗'))}" aria-valuenow="${earned}" aria-valuemin="0" aria-valuemax="${total}"><span style="--progress:${percent}%"></span></div>`;
+    dialog.querySelector('[data-medal-close]').setAttribute('aria-label', say(L('關閉勳章櫃', 'Close medal cabinet', '勲章コレクションを閉じる')));
+    const series = [{ id: 'all', title: L('全部勳章', 'All medals', 'すべての勲章'), icon: '▦' }, ...MEDAL_SERIES.map((s, i) => ({ ...s, icon: ['◇', '✧', '♛'][i] }))];
+    dialog.querySelector('[data-medal-body]').innerHTML = `<div class="mc-layout${cabinetView.detailOpen ? ' is-detail-open' : ''}">
+      <nav class="mc-nav" aria-label="${htmlText(L('勳章系列', 'Medal series', '勲章シリーズ'))}"><p class="mc-nav-label">${htmlText(L('收藏分類', 'COLLECTIONS', 'コレクション'))}</p>
+        ${series.map((s) => {
+          const defs = MEDAL_DEFS.filter((def) => s.id === 'all' || def.series === s.id);
+          const count = defs.filter((def) => medalRuntime.profile.earned[def.id]).length;
+          return `<button type="button" class="mc-series" data-medal-series="${s.id}" aria-pressed="${cabinetView.series === s.id}"><span class="mc-series-icon" aria-hidden="true">${s.icon}</span><span>${htmlText(s.title)}</span><span class="mc-series-count">${count}/${defs.length}</span></button>`;
+        }).join('')}
+        <p class="mc-nav-note">${htmlText(L('一枚勳章，<br>一段香城故事。', 'A medal for every<br>Heung Shing story.', '勲章の一つひとつに、<br>香城の物語。')).replace(/&lt;br&gt;/g, '<br>')}</p>
+      </nav>
+      <section class="mc-gallery" aria-labelledby="medal-gallery-title"><div class="mc-gallery-heading"><h2 id="medal-gallery-title" data-medal-gallery-title></h2><span class="mc-result-count" data-medal-result-count role="status"></span></div>
+        ${!medalRuntime.loaded ? `<div class="mc-load-notice" role="status">${medalRuntime.loading ? htmlText(L('正在讀取你的收藏…', 'Loading your collection…', 'コレクションを読み込み中…')) : `${htmlText(L('暫時無法讀取收藏。', 'Collection could not be loaded.', 'コレクションを読み込めません。'))}<button type="button" class="mc-retry" data-medal-retry>${htmlText(L('重試', 'Retry', '再試行'))}</button>`}</div>` : ''}
+        <div class="mc-controls"><div class="mc-filters" role="group" aria-label="${htmlText(L('取得狀態', 'Award status', '獲得状態'))}">
+          ${[['all', L('全部', 'All', 'すべて')], ['earned', L('已取得', 'Awarded', '獲得済み')], ['unearned', L('未取得', 'Unearned', '未獲得')]].map(([id, label]) => `<button type="button" class="mc-filter" data-medal-filter="${id}" aria-pressed="${cabinetView.filter === id}">${htmlText(label)}</button>`).join('')}
+        </div><input type="search" class="mc-search" data-medal-search placeholder="${htmlText(L('搜尋勳章…', 'Search medals…', '勲章を検索…'))}" aria-label="${htmlText(L('搜尋勳章', 'Search medals', '勲章を検索'))}" value="${escapeMedalHtml(cabinetView.query)}">
+        <select class="mc-sort" data-medal-sort aria-label="${htmlText(L('勳章排序', 'Sort medals', '勲章の並べ替え'))}">${[['catalogue', L('編號排序', 'Catalogue order', '番号順')], ['recent', L('最近取得', 'Recently awarded', '獲得が新しい順')], ['progress', L('條件完成度', 'Objective progress', '条件の達成度')]].map(([id, label]) => `<option value="${id}"${cabinetView.sort === id ? ' selected' : ''}>${htmlText(label)}</option>`).join('')}</select></div>
+        <div class="mc-scroll"><div class="medal-grid"></div></div>
+      </section>
+      <aside class="mc-detail" id="medal-cabinet-detail" aria-label="${htmlText(L('勳章詳情', 'Medal details', '勲章の詳細'))}" tabindex="0"></aside>
+    </div>`;
+    dialog.querySelector('[data-medal-footer]').innerHTML = `<span>${htmlText(L('勳章跟隨玩家 · 所有城市共同累積', 'Your honours · Shared across all your cities', 'プレイヤーの栄誉 · すべての都市で累積'))}</span><span class="mc-footer-shortcut"><kbd>ESC</kbd>${htmlText(L('返回城市', 'Return to city', '街に戻る'))}</span>`;
+    renderMedalResults();
+    dialog.querySelector('.mc-scroll').scrollTop = scrollTop;
+    dialog.querySelector('.mc-detail').scrollTop = detailScroll;
+    if (searchFocused) {
+      const input = dialog.querySelector('[data-medal-search]');
+      input.focus({ preventScroll: true });
+      input.setSelectionRange(...selection);
+    } else if (focusKey) dialog.querySelector(`[data-medal-id="${focusKey}"]`)?.focus({ preventScroll: true });
+    else if (focusControl) [...dialog.querySelectorAll('button, select')].find((el) => el.dataset[focusControl] === focusValue)?.focus({ preventScroll: true });
   }
 
   // the top bar's count (index.html #topbar-medals): a dash until the cabinet has loaded
@@ -468,41 +534,88 @@
     if (dialog && dialog.style.display !== 'none') renderMedalCabinet();
   }
 
+  function closeMedalCabinet() {
+    document.getElementById(MEDAL_DIALOG_ID).style.display = 'none';
+    cabinetReturnFocus?.focus({ preventScroll: true });
+  }
+
   function ensureMedalCabinetDialog() {
     let dialog = document.getElementById(MEDAL_DIALOG_ID);
     if (dialog) return dialog;
-    ensureMedalCabinetStyles();
     dialog = document.createElement('div');
     dialog.id = MEDAL_DIALOG_ID;
     dialog.className = 'sim-dialog';
     dialog.setAttribute('role', 'dialog');
-    dialog.innerHTML = `
-      <div class="dialog-overlay"></div>
-      <div class="dialog-box" style="max-width:760px">
-        <div class="dialog-title-bar">
-          <span data-medal-title></span>
-          <button class="dialog-close-btn" type="button" data-medal-close>✕</button>
-        </div>
-        <div class="dialog-body" data-medal-body style="max-height:70vh;overflow:auto"></div>
-      </div>`;
+    dialog.setAttribute('aria-modal', 'true');
+    dialog.setAttribute('aria-labelledby', 'medal-cabinet-title');
+    dialog.innerHTML = `<div class="dialog-overlay"></div><div class="dialog-box">
+      <header class="mc-header"><div class="mc-seal">${renderBauhiniaMedalSvg('gold')}</div><div class="mc-heading"><div class="mc-eyebrow">HEUNG SHING · HONOURS</div><h1 id="medal-cabinet-title" data-medal-title></h1><p class="mc-subtitle" data-medal-subtitle></p></div><div class="mc-completion" data-medal-completion></div><button class="mc-close" type="button" data-medal-close>×</button></header>
+      <div class="dialog-body" data-medal-body></div><footer class="mc-footer" data-medal-footer></footer></div>`;
     document.body.appendChild(dialog);
-    const close = () => { dialog.style.display = 'none'; };
-    dialog.querySelector('[data-medal-close]').addEventListener('click', close);
-    dialog.querySelector('.dialog-overlay').addEventListener('click', close);
+    dialog.querySelector('[data-medal-close]').addEventListener('click', closeMedalCabinet);
+    dialog.querySelector('.dialog-overlay').addEventListener('click', closeMedalCabinet);
+    dialog.addEventListener('click', (event) => {
+      const target = event.target.closest('button');
+      if (!target) return;
+      if (target.hasAttribute('data-medal-retry')) { openMedalCabinet(); return; }
+      if (target.dataset.medalSeries) cabinetView.series = target.dataset.medalSeries;
+      else if (target.dataset.medalFilter) cabinetView.filter = target.dataset.medalFilter;
+      else if (target.dataset.medalId) {
+        cabinetView.selected = target.dataset.medalId;
+        cabinetView.detailOpen = true;
+        dialog.querySelectorAll('[data-medal-id]').forEach((card) => card.setAttribute('aria-pressed', String(card.dataset.medalId === cabinetView.selected)));
+        dialog.querySelector('.mc-detail').innerHTML = renderMedalDetail(MEDAL_DEFS_BY_ID[cabinetView.selected]);
+        dialog.querySelector('.mc-detail').scrollTop = 0;
+        dialog.querySelector('.mc-layout').classList.add('is-detail-open');
+        if (matchMedia('(max-width: 760px)').matches) dialog.querySelector('[data-medal-back]').focus();
+        return;
+      } else if (target.hasAttribute('data-medal-back')) {
+        cabinetView.detailOpen = false;
+        dialog.querySelector('.mc-layout').classList.remove('is-detail-open');
+        dialog.querySelector(`[data-medal-id="${cabinetView.selected}"]`)?.focus();
+        return;
+      } else return;
+      renderMedalResults({ resetScroll: true });
+    });
+    dialog.addEventListener('input', (event) => {
+      if (!event.target.matches('[data-medal-search]')) return;
+      cabinetView.query = event.target.value;
+      renderMedalResults({ resetScroll: true });
+    });
+    dialog.addEventListener('change', (event) => {
+      if (!event.target.matches('[data-medal-sort]')) return;
+      cabinetView.sort = event.target.value;
+      renderMedalResults({ resetScroll: true });
+    });
+    dialog.addEventListener('keydown', (event) => {
+      event.stopPropagation(); // Modal shortcuts must not reach the city/map keyboard controls.
+      if (event.key === 'Escape') { event.preventDefault(); closeMedalCabinet(); }
+      if (event.key !== 'Tab') return;
+      const focusable = [...dialog.querySelectorAll('button, input, select, [tabindex="0"]')].filter((el) => !el.disabled && el.getClientRects().length);
+      const first = focusable[0], last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+    });
+    dialog.addEventListener('keyup', (event) => event.stopPropagation());
     return dialog;
   }
 
   async function openMedalCabinet() {
-    ensureMedalCabinetStyles();
     const dialog = ensureMedalCabinetDialog();
+    if (dialog.style.display !== 'flex') {
+      cabinetReturnFocus = document.activeElement;
+      cabinetView.detailOpen = false;
+    }
     dialog.style.display = 'flex';
+    // Start loading before rendering so the initial view announces its loading state.
+    const loading = loadMedalProfile();
     renderMedalCabinet();
-    await loadMedalProfile();
+    dialog.querySelector('[data-medal-close]').focus({ preventScroll: true });
+    await loading;
     runMedalEvaluation();
     renderMedalCabinet();
   }
 
-  if (typeof document !== 'undefined') ensureMedalCabinetStyles();
   if (typeof onGameClockEvent === 'function') onGameClockEvent('gameclock:month', onMedalMonthTurned);
   loadMedalProfile();
 

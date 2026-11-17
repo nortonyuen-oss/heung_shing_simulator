@@ -1,6 +1,6 @@
-# 香城模擬器 (The City of Heung Shing) v5.10.4 — 【香城茶餐廳】
+# 香城模擬器 (The City of Heung Shing) v5.11.0 — 【香城洋紫荊勳章】
 
-香城模擬器 (The City of Heung Shing) v5.10.4 — 【香城茶餐廳】 is a SimCity 2000-style city builder inspired by Hong Kong: isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a light rail, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
+香城模擬器 (The City of Heung Shing) v5.11.0 — 【香城洋紫荊勳章】 is a SimCity 2000-style city builder inspired by Hong Kong: isometric pixel-art buildings, a real day/night cycle with per-building lighting, Hong Kong weather and typhoon signals, a Legislative Council, a player-run transport company with trams, a light rail, a container port and an airport, a local SQLite save system and a classic windowed UI. Free, no in-app purchases.
 
 Website and downloads: https://nortonyuen-oss.github.io/heung_shing_simulator/
 
@@ -9,6 +9,10 @@ Read public posts and replies on the website; sign in to GitHub to confirm a new
 post or reply. Website messages are tracked with the `website-feedback` issue label.
 
 ![The Heung Shing skyline at night, zoomed out: dense lights, the airport and the harbour](docs/assets/gameplay/nightSkyline.webp)
+
+## New in v5.11.0
+
+The Bauhinia Medal cabinet belongs to you across all your cities: 36 honours to collect, with 31 currently judged and the rest awaiting their related systems. Open it from the top-bar medal count or the File menu. A new navy-and-brass cabinet brings series, search, earned/unearned filters, sorting and individual objective and award records; phones have a compact collection and detail view. Original enamel Bauhinia medals come in bronze, silver, gold and special finishes, while secret honours stay concealed until earned. Government stock trades now fill along their own price movement, preventing an instant buy-and-sell profit.
 
 ## New in v5.10.4
 

@@ -157,3 +157,18 @@
 - `save.js`：載入後判定；`city-state.js`：`city.medalLog`（荒謬事件、連續盈餘月數）
 - `index.html`／`topbar.js`／`i18n.js`：檔案選單「🏵 洋紫荊勳章…」
 - `test/government-stock-trading.test.js`：新成交價規則＋即買即賣唔再賺錢
+
+## 9. 收藏櫃視覺重設計（2026-11-17）
+
+參考 [Guild Wars 2 的分類、總覽及獨立成就詳情](https://www.guildwars2.com/en/news/new-account-achievement-rewards-incoming/)，以及 [Steam 成就頁的總進度、搜尋及取得狀態篩選](https://steamcommunity.com/app/593110/announcements)。採用深藍展示櫃配香檳金，讓勳章圖案與完成狀態成為視覺重點。
+
+- 桌面：左側系列與完成數、中間等寬勳章卡、右側單枚勳章大圖及條件。長條件清單不再撐高整行卡片。
+- 手機：可橫向捲動的系列列、雙欄收藏；選取勳章進入詳情，返回時保留收藏位置。
+- 搜尋、全部／已取得／未取得篩選，以及編號／最近取得／條件完成度排序。排序只使用已記錄的部分條件，不虛構人口等即時百分比。
+- 隱藏勳章在解鎖前使用中性圖案及文案；搜尋也不會暴露真正名稱、等級或條件。
+- 顯示逐項完成城市與年月；新記錄的部分條件立即更新面板，即使整枚勳章尚未取得。
+- 支援三種既有語言、讀取失敗後重試、鍵盤焦點限制、Escape 關閉及還原入口焦點。
+
+圖案使用原創 SVG：五瓣琺瑯洋紫荊、花瓣星紋、金屬雕邊、月桂及紫色綬帶；依既有等級製作銅、銀、金、黑、紀念、大紫荊及普通洋紫荊版本，另有隱藏問號版。原始碼 `medal-art.js`；獨立匯出檔 `UI/medals/`；版面 `medal-cabinet.css`。內嵌向量可隨解析度縮放，亦隨遊戲程式一同離線快取。
+
+驗證：`node --test test/medals.test.js test/building-unlock-guide.test.js`；`node scripts/smoke-medal-cabinet.js` 使用獨立測試資料，覆蓋三種語言、五種螢幕尺寸、搜尋與篩選、隱藏資料、跨城市部分進度更新、鍵盤及讀取錯誤。截圖與圖案總覽輸出至 `.data/medal-cabinet/`。

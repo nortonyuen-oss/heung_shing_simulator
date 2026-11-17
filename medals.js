@@ -370,12 +370,14 @@
     style.id = 'medal-cabinet-styles';
     style.textContent = `
       .toast.toast-medal { background: #7a2357; }
-      #${MEDAL_DIALOG_ID} .medal-summary { margin: 0 0 12px; font-size: 13px; opacity: 0.85; }
-      #${MEDAL_DIALOG_ID} .medal-series-title { margin: 14px 0 8px; font-size: 14px; font-weight: 700; }
+      /* the game's dialogs set pre-wrap and Courier for their plain-text bodies; this one is laid out */
+      #${MEDAL_DIALOG_ID} .dialog-body { white-space: normal; font-family: Arial, sans-serif; line-height: 1.4; }
+      #${MEDAL_DIALOG_ID} .medal-summary { margin: 0 0 4px; font-size: 13px; color: #3a4148; }
+      #${MEDAL_DIALOG_ID} .medal-series-title { margin: 14px 0 8px; font-size: 14px; font-weight: 700; color: #1e5cb3; }
       #${MEDAL_DIALOG_ID} .medal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 8px; }
       #${MEDAL_DIALOG_ID} .medal-card { display: flex; gap: 10px; padding: 8px; border-radius: 6px;
-        background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.10); }
-      #${MEDAL_DIALOG_ID} .medal-card.is-earned { border-color: rgba(214,120,170,0.75); background: rgba(176,64,122,0.16); }
+        background: #f4f7fa; border: 1px solid #c3ccd6; color: #1e2427; }
+      #${MEDAL_DIALOG_ID} .medal-card.is-earned { border-color: #b0407a; background: #f6e3ee; }
       #${MEDAL_DIALOG_ID} .medal-card.is-unavailable { opacity: 0.55; }
       #${MEDAL_DIALOG_ID} .medal-emblem { flex: 0 0 38px; height: 38px; border-radius: 50%; display: grid; place-items: center;
         font-size: 20px; color: #fff; background: var(--medal-colour, #b0407a);
@@ -383,9 +385,9 @@
       #${MEDAL_DIALOG_ID} .medal-card.is-earned .medal-emblem { filter: none; }
       #${MEDAL_DIALOG_ID} .medal-text { min-width: 0; font-size: 12px; line-height: 1.4; }
       #${MEDAL_DIALOG_ID} .medal-name { font-size: 13px; font-weight: 700; }
-      #${MEDAL_DIALOG_ID} .medal-meta { opacity: 0.7; }
-      #${MEDAL_DIALOG_ID} .medal-parts { margin: 3px 0 0; padding: 0; list-style: none; }
-      #${MEDAL_DIALOG_ID} .medal-parts li.is-done { color: #f2b6d6; }
+      #${MEDAL_DIALOG_ID} .medal-meta { color: #5b6570; }
+      #${MEDAL_DIALOG_ID} .medal-parts { margin: 3px 0; padding: 0; list-style: none; color: #5b6570; }
+      #${MEDAL_DIALOG_ID} .medal-parts li.is-done { color: #8e1b5b; font-weight: 700; }
     `;
     document.head.appendChild(style);
   }
